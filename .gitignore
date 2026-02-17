@@ -1,0 +1,14 @@
+# 데이터 폴더 제외
+datasets_*
+
+# 모델 폴더 제외
+models_*
+
+# 실험 기록 제외
+experiments_*
+
+# 임시 파일
+*.pyc
+__pycache__/
+.ipynb_checkpoints/
+.env
