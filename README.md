@@ -1,2 +1,3 @@
 # ai-product-systems-lab
-Captures architectures, inference infrastructure, and operational challenges of LLMs and generative AI products. Documents failure modes and design decisions to show capability in building and running AI-powered services.
+End-to-end development of AI-powered systems including image, video, recommendation, and language models. 
+Covers model integration, inference optimization, APIs, and production deployment with a focus on real-world scalability.
