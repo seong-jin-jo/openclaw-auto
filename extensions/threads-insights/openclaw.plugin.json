@@ -1,0 +1,35 @@
+{
+  "id": "threads-insights",
+  "name": "Threads Insights",
+  "description": "Collect post engagement metrics from Threads Insights API, detect viral posts, and auto-feed patterns.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "accessToken": {
+        "type": ["string", "object"],
+        "description": "Threads API long-lived access token."
+      },
+      "userId": {
+        "type": "string",
+        "description": "Threads user ID."
+      },
+      "queuePath": {
+        "type": "string",
+        "description": "Path to queue.json. Defaults to data/queue.json."
+      },
+      "stylePath": {
+        "type": "string",
+        "description": "Path to style-data.json. Defaults to data/style-data.json."
+      },
+      "popularPostsPath": {
+        "type": "string",
+        "description": "Path to popular-posts.txt. Defaults to data/popular-posts.txt."
+      },
+      "viralThreshold": {
+        "type": "number",
+        "description": "Minimum views to consider a post viral. Default: 500."
+      }
+    }
+  }
+}

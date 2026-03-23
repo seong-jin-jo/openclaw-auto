@@ -1,0 +1,43 @@
+{
+  "id": "threads-search",
+  "name": "Threads Search",
+  "description": "Search trending posts on Threads by keywords and update popular-posts.txt.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "accessToken": {
+        "type": ["string", "object"],
+        "description": "Threads API long-lived access token."
+      },
+      "userId": {
+        "type": "string",
+        "description": "Threads user ID."
+      },
+      "keywordsPath": {
+        "type": "string",
+        "description": "Path to search-keywords.txt. Defaults to data/search-keywords.txt."
+      },
+      "popularPostsPath": {
+        "type": "string",
+        "description": "Path to popular-posts.txt. Defaults to data/popular-posts.txt."
+      },
+      "archivePath": {
+        "type": "string",
+        "description": "Path to popular-posts-archive.txt. Defaults to data/popular-posts-archive.txt."
+      },
+      "maxPopularPosts": {
+        "type": "number",
+        "description": "Max posts to keep in popular-posts.txt. Default: 30."
+      },
+      "minLikes": {
+        "type": "number",
+        "description": "Minimum likes to qualify as trending. Default: 10."
+      },
+      "searchDays": {
+        "type": "number",
+        "description": "Only include posts from last N days. Default: 7."
+      }
+    }
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "auth": {
+    "profiles": {
+      "anthropic:default": {
+        "provider": "anthropic",
+        "mode": "token"
+      }
+    }
+  },
+  "models": {
+    "providers": {
+      "ollama": {
+        "baseUrl": "https://ollama-serve.example.com",
+        "models": [
+          {
+            "id": "llama3.1:8b",
+            "name": "Llama 3.1 8B"
+          },
+          {
+            "id": "mistral:7b",
+            "name": "Mistral 7B"
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "anthropic/claude-sonnet-4-6",
+        "fallbacks": [
+          "google/gemini-2.5-flash",
+          "ollama/llama3.1:8b"
+        ]
+      },
+      "compaction": {
+        "mode": "safeguard"
+      }
+    }
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "restart": true,
+    "ownerDisplay": "raw"
+  },
+  "gateway": {
+    "mode": "local",
+    "auth": {
+      "mode": "token",
+      "token": "YOUR_GATEWAY_TOKEN"
+    }
+  },
+  "plugins": {
+    "entries": {
+      "threads-publish": {
+        "enabled": true,
+        "config": {
+          "accessToken": "YOUR_THREADS_ACCESS_TOKEN",
+          "userId": "YOUR_THREADS_USER_ID"
+        }
+      },
+      "threads-queue": {
+        "enabled": true,
+        "config": {
+          "queuePath": "/home/node/data/queue.json"
+        }
+      },
+      "threads-style": {
+        "enabled": true,
+        "config": {
+          "stylePath": "/home/node/data/style-data.json"
+        }
+      },
+      "threads-insights": {
+        "enabled": true,
+        "config": {
+          "accessToken": "YOUR_THREADS_ACCESS_TOKEN",
+          "userId": "YOUR_THREADS_USER_ID",
+          "queuePath": "/home/node/data/queue.json",
+          "stylePath": "/home/node/data/style-data.json",
+          "popularPostsPath": "/home/node/data/popular-posts.txt"
+        }
+      },
+      "threads-search": {
+        "enabled": true,
+        "config": {
+          "accessToken": "YOUR_THREADS_ACCESS_TOKEN",
+          "userId": "YOUR_THREADS_USER_ID",
+          "keywordsPath": "/home/node/data/search-keywords.txt",
+          "popularPostsPath": "/home/node/data/popular-posts.txt",
+          "archivePath": "/home/node/data/popular-posts-archive.txt"
+        }
+      },
+      "threads-growth": {
+        "enabled": true,
+        "config": {
+          "accessToken": "YOUR_THREADS_ACCESS_TOKEN",
+          "userId": "YOUR_THREADS_USER_ID",
+          "growthPath": "/home/node/data/growth.json"
+        }
+      }
+    }
+  }
+}
