@@ -140,37 +140,59 @@ OpenClaw Cron (시간 도래)
    Threads Account API → growth.json
 ```
 
-## 파일 구조와 데이터 저장 위치
+## 프로젝트 구조
 
 ```
-openclaw-auto/
-├── openclaw/extensions/          # OpenClaw 플러그인 (TypeScript)
+ai-product-systems-lab/           # GitHub 레포 (이 저장소)
+├── extensions/                   # 커스텀 OpenClaw 플러그인 (TypeScript)
 │   ├── threads-publish/          #   → Threads API 발행
 │   ├── threads-queue/            #   → queue.json 읽기/쓰기
 │   ├── threads-style/            #   → style-data.json 읽기/쓰기
-│   ├── threads-insights/         #   → queue.json + popular-posts.txt + style-data.json 읽기/쓰기
-│   ├── threads-search/           #   → search-keywords.txt 읽기, popular-posts.txt 쓰기
-│   └── threads-growth/           #   → growth.json 읽기/쓰기
+│   ├── threads-insights/         #   → 반응 수집 + 터진 글 감지
+│   ├── threads-search/           #   → 키워드 기반 외부 인기글 수집
+│   └── threads-growth/           #   → 팔로워 추적
 │
-├── data/                         # 모든 데이터 파일 (Tool이 직접 읽기/쓰기)
-│   ├── queue.json                #   콘텐츠 큐 (draft/approved/published/failed)
-│   ├── style-data.json           #   스타일 학습 (원본→수정 쌍, 터진 글 패턴)
-│   ├── growth.json               #   팔로워 수/증감 일별 기록 (최대 90일)
-│   ├── popular-posts.txt         #   인기글 참고자료 (수동 + 외부 + 자체 바이럴)
-│   ├── search-keywords.txt       #   외부 인기글 검색 키워드 (10개)
-│   ├── generate.log              #   생성 로그
-│   ├── insights.log              #   반응 수집 로그
-│   └── growth.log                #   팔로워 추적 로그
+├── config/                       # 설정 템플릿 (실제 설정은 gitignore)
+│   ├── openclaw.json.example     #   Gateway + Plugin 설정 템플릿
+│   └── cron/
+│       └── jobs.json.example     #   Cron Job 5개 정의
 │
 ├── dashboard/                    # 웹 대시보드 (Flask + Vanilla JS)
-│   ├── server.py                 #   API 백엔드 (data/ 파일 직접 읽기/쓰기)
+│   ├── Dockerfile                #   Python 3.12 slim
+│   ├── server.py                 #   API 백엔드
+│   ├── requirements.txt          #   flask>=3.0
 │   └── static/
 │       ├── index.html            #   SPA 진입점
-│       └── app.js                #   Tailwind CSS + Vanilla JS 프론트엔드
+│       └── app.js                #   Tailwind CSS + Vanilla JS
 │
-├── CLAUDE.md                     # 프로젝트 문서 (OpenClaw Agent가 참고)
-└── README.md                     # 이 파일
+├── docker-compose.yml            # gateway(18789) + dashboard(3456)
+├── .env.example                  # 환경변수 템플릿
+├── CLAUDE.md                     # Agent용 프로젝트 문서
+├── README.md                     # 이 파일
+│
+├── openclaw/                     # ⚠️ gitignore — 서버에서 별도 clone
+│   └── (OpenClaw 오픈소스 전체)   #   extensions/ 에 커스텀 플러그인 복사 후 빌드
+│
+└── data/                         # ⚠️ gitignore — 런타임 데이터
+    ├── queue.json                #   콘텐츠 큐
+    ├── style-data.json           #   스타일 학습 데이터
+    ├── growth.json               #   팔로워 추적
+    ├── popular-posts.txt         #   인기글 참고
+    └── search-keywords.txt       #   검색 키워드
 ```
+
+### gitignore 정책
+
+| 경로 | Git 추적 | 이유 |
+|------|---------|------|
+| `extensions/` | ✅ 추적 | 커스텀 플러그인 코드 |
+| `config/*.example` | ✅ 추적 | 설정 템플릿 |
+| `dashboard/` | ✅ 추적 | 대시보드 코드 |
+| `openclaw/` | ❌ 제외 | OpenClaw 오픈소스 (서버에서 별도 clone) |
+| `config/openclaw.json` | ❌ 제외 | 토큰 포함 |
+| `config/cron/jobs.json` | ❌ 제외 | 런타임 설정 |
+| `.env` | ❌ 제외 | 시크릿 |
+| `data/` | ❌ 제외 | 런타임 데이터 |
 
 **데이터 저장 원리:** 모든 데이터는 `data/` 디렉토리에 flat file로 저장된다. DB 없음. 각 Tool이 직접 파일을 읽고 쓴다. 대시보드도 같은 파일을 직접 읽는다.
 
@@ -495,40 +517,52 @@ A/B 구조:
 | 4b | 캐러셀/투표 포맷 실험 |
 | 4c | Webhook 기반 댓글 자동 응답 |
 
-## Docker 배포 (On-premise 서버)
-
-소스에서 직접 Docker 이미지를 빌드하여 배포. 커스텀 플러그인 수정 시 `docker compose up -d --build`로 반영.
+## 온프레미스 배포
 
 ### 사전 준비
 
-- Docker + Docker Compose 설치
-- `openclaw/` 디렉토리에 OpenClaw 소스 (git submodule 또는 직접 clone)
-
-### 설정
-
 ```bash
-# 1. 클론
-git clone <repo> openclaw-auto && cd openclaw-auto
-git submodule update --init    # openclaw 소스가 submodule인 경우
+# Git
+sudo apt update && sudo apt install -y git
 
-# 2. 설정 파일 복사
-cp config/openclaw.json.example config/openclaw.json
-cp config/cron/jobs.json.example config/cron/jobs.json
-cp .env.example .env
-
-# 3. 토큰 기입
-#   .env → OPENCLAW_GATEWAY_TOKEN, THREADS_ACCESS_TOKEN, THREADS_USER_ID
-#   config/openclaw.json → gateway.auth.token, 각 plugin의 accessToken/userId
+# Docker + Docker Compose
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker $USER
+# ※ 로그아웃 후 재로그인 (docker 그룹 적용)
+sudo apt install -y docker-compose-plugin
 ```
 
-### 빌드 & 실행
+### 최초 설치
 
 ```bash
-# 빌드 + 실행
-docker compose up -d --build
+# 1. 프로젝트 클론
+git clone https://github.com/seong-jin-jo/ai-product-systems-lab.git
+cd ai-product-systems-lab
 
-# 코드 수정 후 재배포
-git pull
+# 2. OpenClaw 소스 클론 (Docker 빌드에 필요, 1회만)
+git clone https://github.com/openclaw/openclaw.git openclaw
+
+# 3. 커스텀 플러그인을 OpenClaw 소스에 복사
+cp -r extensions/threads-* openclaw/extensions/
+
+# 4. 환경변수 설정
+cp .env.example .env
+vim .env   # OPENCLAW_GATEWAY_TOKEN, THREADS_ACCESS_TOKEN, THREADS_USER_ID 입력
+
+# 5. Gateway 설정
+cp config/openclaw.json.example config/openclaw.json
+# 토큰 교체 (YOUR_GATEWAY_TOKEN, YOUR_THREADS_ACCESS_TOKEN, YOUR_THREADS_USER_ID)
+sed -i 's/YOUR_GATEWAY_TOKEN/<게이트웨이토큰>/g' config/openclaw.json
+sed -i 's|YOUR_THREADS_ACCESS_TOKEN|<스레드토큰>|g' config/openclaw.json
+sed -i 's/YOUR_THREADS_USER_ID/<유저ID>/g' config/openclaw.json
+
+# 6. Cron 설정
+cp config/cron/jobs.json.example config/cron/jobs.json
+
+# 7. 데이터 디렉토리 생성
+mkdir -p data
+
+# 8. 빌드 + 실행 (첫 빌드 10~20분)
 docker compose up -d --build
 ```
 
@@ -536,8 +570,8 @@ docker compose up -d --build
 
 | 서비스 | 포트 | 설명 |
 |--------|------|------|
-| `openclaw-gateway` | 18789 | OpenClaw Gateway (소스 빌드, 커스텀 플러그인 포함) |
-| `dashboard` | 3456 | Flask 대시보드 |
+| `openclaw-gateway` | **18789** | OpenClaw Gateway (커스텀 플러그인 포함) |
+| `dashboard` | **3456** | Flask 대시보드 |
 
 ### 볼륨 매핑
 
@@ -546,22 +580,70 @@ docker compose up -d --build
 | `./config/` | `/home/node/.openclaw/` | openclaw.json + cron/jobs.json |
 | `./data/` | `/home/node/data/` (gateway), `/app/data/` (dashboard) | 데이터 파일 |
 
+### Cloudflare Tunnel 매핑
+
+```yaml
+# Cloudflare tunnel config
+- hostname: dashboard.example.com
+  service: http://localhost:3456
+- hostname: gateway.example.com    # 필요 시
+  service: http://localhost:18789
+```
+
 ### 검증
 
 ```bash
-# Gateway 헬스체크
-curl http://localhost:18789/healthz
-
-# Dashboard API
-curl http://localhost:3456/api/overview
-
-# Cron 목록
-docker compose exec openclaw-gateway node dist/index.js cron list
-
-# 플러그인 목록
-docker compose exec openclaw-gateway node dist/index.js plugin list
-
-# 로그 확인
-docker compose logs openclaw-gateway --tail 50
-docker compose logs dashboard --tail 50
+docker compose ps                                    # 서비스 상태
+curl http://localhost:18789/healthz                   # Gateway 헬스체크
+curl http://localhost:3456/api/overview               # Dashboard API
+docker compose logs openclaw-gateway --tail 50        # Gateway 로그
+docker compose logs dashboard --tail 50               # Dashboard 로그
 ```
+
+## 개발 → 배포 워크플로우
+
+```
+┌─────────────────────┐         ┌──────────────────────┐
+│  로컬 Mac            │         │  온프레미스 서버       │
+│                     │  push   │                      │
+│  Claude로 코드 튜닝  │ ──────▶ │  git pull             │
+│  extensions/ 수정   │  GitHub │  cp -r extensions/    │
+│  dashboard/ 수정    │         │    threads-* openclaw/│
+│  config 수정        │         │    extensions/        │
+│                     │         │  docker compose up    │
+│  git add + commit   │         │    -d --build         │
+│  git push           │         │                      │
+└─────────────────────┘         └──────────────────────┘
+```
+
+### 로컬에서 (Claude로 튜닝)
+
+```bash
+# 코드 수정 후
+git add -A
+git commit -m "설명"
+git push
+```
+
+### 서버에서 (반영)
+
+```bash
+cd ~/ai/ai-product-systems-lab
+
+# 플러그인/대시보드 변경 시
+git pull
+cp -r extensions/threads-* openclaw/extensions/
+docker compose up -d --build
+
+# config/data만 변경 시 (재빌드 불필요)
+docker compose restart
+```
+
+### 언제 `--build`가 필요한가
+
+| 변경 내용 | 명령어 |
+|----------|--------|
+| `extensions/` 플러그인 코드 | `cp -r ... && docker compose up -d --build` |
+| `dashboard/` 코드 | `docker compose up -d --build` |
+| `config/` 설정 | `docker compose restart` |
+| `data/` 데이터 | 자동 반영 (볼륨 마운트) |
