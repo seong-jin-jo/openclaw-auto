@@ -9,9 +9,10 @@ openclaw/.env
 config/openclaw.json
 config/cron/jobs.json
 
-# 데이터 (런타임)
-data/
-!data/.gitkeep
+# 데이터 (런타임) — 가이드/키워드만 추적, 나머지 제외
+data/*
+!data/prompt-guide.txt
+!data/search-keywords.txt
 
 # 로그
 *.log
