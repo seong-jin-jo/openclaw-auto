@@ -9,6 +9,19 @@ openclaw/.env
 config/openclaw.json
 config/cron/jobs.json
 
+# OpenClaw Gateway 런타임 (민감: 인증 토큰, 디바이스 키)
+config/agents/
+config/devices/
+config/identity/
+
+# OpenClaw Gateway 런타임 (비민감: 상태/로그)
+config/memory/
+config/workspace/
+config/canvas/
+config/logs/
+config/cron/runs/
+config/update-check.json
+
 # 데이터 (런타임)
 data/
 !data/.gitkeep
@@ -19,6 +32,10 @@ data/
 # Python
 __pycache__/
 *.pyc
+
+# Backup files
+*.bak
+*.bak.*
 
 # OS
 .DS_Store
