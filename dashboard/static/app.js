@@ -94,7 +94,11 @@ async function loadOverview() {
 async function loadQueue(status) {
   const url = status && status !== "all" ? `/api/queue?status=${status}` : "/api/queue";
   const data = await API.get(url);
-  if (data) state.queue = data.posts || [];
+  if (data) {
+    state.queue = (data.posts || []).sort((a, b) =>
+      (b.generatedAt || "").localeCompare(a.generatedAt || "")
+    );
+  }
   render();
 }
 
@@ -353,6 +357,12 @@ function renderPost(p) {
       ` : `
         <p class="text-gray-200 text-sm mb-2 whitespace-pre-wrap">${esc(p.text)}</p>
       `}
+
+      ${p.imageUrl ? `
+        <div class="mb-2">
+          <img src="${esc(p.imageUrl)}" alt="post image" class="rounded max-h-48 object-cover" onerror="this.style.display='none'">
+        </div>
+      ` : ""}
 
       ${p.hashtags?.length ? `
         <div class="flex gap-1 mb-2">
