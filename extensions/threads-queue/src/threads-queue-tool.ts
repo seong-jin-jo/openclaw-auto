@@ -33,6 +33,7 @@ type Post = {
   error: string | null;
   abVariant: string;
   model: string | null;
+  imageUrl: string | null;
   engagement: Engagement | null;
 };
 
@@ -111,6 +112,9 @@ const ThreadsQueueToolSchema = Type.Object(
     model: Type.Optional(
       Type.String({ description: 'Model used to generate this post (e.g. "gemini-2.5-flash", "llama3.1:8b"). For add action.' }),
     ),
+    imageUrl: Type.Optional(
+      Type.String({ description: "Public image URL to attach to the post (for add/update)." }),
+    ),
     statusFilter: optionalStringEnum(
       ["draft", "approved", "published", "failed"] as const,
       { description: "Filter by status (for list)." },
@@ -154,6 +158,7 @@ export function createThreadsQueueTool(api: OpenClawPluginApi) {
             : [];
           const abVariant = readStringParam(rawParams, "abVariant") ?? "A";
           const model = readStringParam(rawParams, "model") ?? null;
+          const imageUrl = readStringParam(rawParams, "imageUrl") ?? null;
 
           // Validate text length
           if (text.length > 500) {
@@ -165,11 +170,6 @@ export function createThreadsQueueTool(api: OpenClawPluginApi) {
           const totalChars = text.replace(/\s/g, "").length;
           if (totalChars > 0 && koreanChars / totalChars < 0.3) {
             return jsonResult({ success: false, reason: "한국어 비율 부족" });
-          }
-
-          // Auto-fill hashtags from topic if empty
-          if (hashtags.length === 0 && topic !== "general") {
-            hashtags = [topic];
           }
 
           const post: Post = {
@@ -187,6 +187,7 @@ export function createThreadsQueueTool(api: OpenClawPluginApi) {
             error: null,
             abVariant,
             model,
+            imageUrl,
             engagement: null,
           };
 
@@ -233,6 +234,11 @@ export function createThreadsQueueTool(api: OpenClawPluginApi) {
           const error = readStringParam(rawParams, "error");
           if (error !== undefined) {
             post.error = error ?? null;
+          }
+
+          const newImageUrl = readStringParam(rawParams, "imageUrl");
+          if (newImageUrl !== undefined) {
+            post.imageUrl = newImageUrl ?? null;
           }
 
           await writeQueue(queuePath, queue);

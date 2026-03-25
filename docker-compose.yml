@@ -29,6 +29,8 @@ services:
       - "3456:3456"
     volumes:
       - ./data:/app/data
+      - ./dashboard/server.py:/app/server.py
+      - ./dashboard/static:/app/static
     environment:
       DATA_DIR: /app/data
       DASHBOARD_PORT: "3456"

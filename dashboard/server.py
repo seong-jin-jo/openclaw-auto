@@ -156,6 +156,7 @@ def api_queue():
     posts = queue.get("posts", [])
     if status_filter:
         posts = [p for p in posts if p.get("status") == status_filter]
+    posts.sort(key=lambda p: p.get("generatedAt", ""), reverse=True)
 
     return jsonify({"posts": posts, "total": len(posts)})
 
@@ -172,9 +173,9 @@ def api_approve(post_id):
             post["status"] = "approved"
             now = datetime.now(timezone.utc)
             post["approvedAt"] = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-            hours = data.get("hours", 2)
+            hours = data.get("hours", 0)
             if not isinstance(hours, (int, float)) or hours < 0:
-                hours = 2
+                hours = 0
             scheduled = now + timedelta(hours=hours)
             post["scheduledAt"] = scheduled.strftime("%Y-%m-%dT%H:%M:%S.000Z")
             write_json(QUEUE_PATH, queue)
@@ -247,7 +248,7 @@ def api_bulk_approve():
         if post["id"] in ids and post["status"] == "draft":
             post["status"] = "approved"
             post["approvedAt"] = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-            scheduled = now + timedelta(hours=2 * (approved + 1))
+            scheduled = now
             post["scheduledAt"] = scheduled.strftime("%Y-%m-%dT%H:%M:%S.000Z")
             approved += 1
 
