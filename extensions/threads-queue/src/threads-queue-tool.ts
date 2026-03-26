@@ -69,7 +69,9 @@ async function readQueue(queuePath: string): Promise<QueueData> {
 
 async function writeQueue(queuePath: string, data: QueueData): Promise<void> {
   await fs.mkdir(path.dirname(queuePath), { recursive: true });
-  await fs.writeFile(queuePath, JSON.stringify(data, null, 2), "utf-8");
+  const tmpPath = queuePath + `.tmp.${process.pid}`;
+  await fs.writeFile(tmpPath, JSON.stringify(data, null, 2), "utf-8");
+  await fs.rename(tmpPath, queuePath);
 }
 
 const ThreadsQueueToolSchema = Type.Object(
