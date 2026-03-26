@@ -65,6 +65,7 @@ const state = {
   analytics: null,
   keywords: [],
   settings: null,
+  cronJobs: [],
   loading: false,
   editingPost: null,
   editText: "",
@@ -86,8 +87,12 @@ function loadingOverlay() {
 
 // ── Data Loading ──
 async function loadOverview() {
-  const data = await API.get("/api/overview");
+  const [data, cronData] = await Promise.all([
+    API.get("/api/overview"),
+    API.get("/api/cron-status"),
+  ]);
   if (data) state.overview = data;
+  if (cronData) state.cronJobs = cronData.jobs || [];
   render();
 }
 
@@ -268,6 +273,25 @@ function renderOverview() {
       ${card("Viral Posts", o.viralPosts?.length || 0, `>= ${state.analytics?.summary?.viralThreshold || 500} views`)}
       ${card("Popular Refs", o.popularPostsCount || 0, Object.entries(o.popularSourceCounts || {}).map(([k, v]) => `${k}: ${v}`).join(", "))}
     </div>
+
+    ${state.cronJobs.length ? `
+      <div class="bg-gray-900 rounded-lg p-4 mb-6">
+        <h3 class="text-sm font-medium text-gray-400 mb-3">Cron 현황</h3>
+        <div class="space-y-1">
+          ${state.cronJobs.map(j => {
+            const statusIcon = j.lastStatus === "ok" ? "text-green-400" : j.lastStatus === "error" ? "text-red-400" : "text-gray-500";
+            const fmtTime = (ms) => ms ? new Date(ms).toLocaleString("ko-KR", {month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}) : "-";
+            return `<div class="flex items-center justify-between text-sm py-1 border-b border-gray-800 last:border-0">
+              <span class="text-gray-300">${esc(j.name)}</span>
+              <div class="flex gap-4 text-xs">
+                <span class="text-gray-500">마지막: <span class="${statusIcon}">${fmtTime(j.lastRunAt)}</span></span>
+                <span class="text-gray-500">다음: <span class="text-blue-400">${fmtTime(j.nextRunAt)}</span></span>
+              </div>
+            </div>`;
+          }).join("")}
+        </div>
+      </div>
+    ` : ""}
 
     ${o.viralPosts?.length ? `
       <div class="bg-gray-900 rounded-lg p-4 mb-6">

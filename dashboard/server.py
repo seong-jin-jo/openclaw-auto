@@ -30,6 +30,8 @@ GROWTH_PATH = DATA_DIR / "growth.json"
 POPULAR_PATH = DATA_DIR / "popular-posts.txt"
 KEYWORDS_PATH = DATA_DIR / "search-keywords.txt"
 SETTINGS_PATH = DATA_DIR / "settings.json"
+CONFIG_DIR = Path(os.environ.get("CONFIG_DIR", Path(__file__).resolve().parent.parent / "config"))
+CRON_JOBS_PATH = CONFIG_DIR / "cron" / "jobs.json"
 
 DEFAULT_SETTINGS = {
     "viralThreshold": 500,
@@ -447,6 +449,34 @@ def api_settings_update():
     write_json(SETTINGS_PATH, current)
     logger.info("Settings updated: %s", list(updated.keys()))
     return jsonify({"ok": True, "settings": current})
+
+
+# ── API: Cron Status ──
+@app.route("/api/cron-status")
+def api_cron_status():
+    cron_data = read_json(CRON_JOBS_PATH)
+    if cron_data is None:
+        return jsonify({"jobs": []})
+    name_map = {
+        "threads-generate-drafts": "콘텐츠 생성",
+        "threads-auto-publish": "자동 발행",
+        "threads-collect-insights": "반응 수집",
+        "threads-track-growth": "팔로워 추적",
+        "threads-fetch-trending": "인기글 수집",
+    }
+    jobs = []
+    for job in cron_data.get("jobs", []):
+        state = job.get("state", {})
+        jobs.append({
+            "name": name_map.get(job["name"], job["name"]),
+            "id": job["name"],
+            "enabled": job.get("enabled", False),
+            "lastRunAt": state.get("lastRunAtMs"),
+            "nextRunAt": state.get("nextRunAtMs"),
+            "lastStatus": state.get("lastRunStatus", "unknown"),
+            "everyMs": job.get("schedule", {}).get("everyMs"),
+        })
+    return jsonify({"jobs": jobs})
 
 
 # ── API: Prompt Guide ──

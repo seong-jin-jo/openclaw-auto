@@ -29,9 +29,11 @@ services:
       - "3456:3456"
     volumes:
       - ./data:/app/data
+      - ./config:/app/config:ro
       - ./dashboard/server.py:/app/server.py
       - ./dashboard/static:/app/static
     environment:
       DATA_DIR: /app/data
+      CONFIG_DIR: /app/config
       DASHBOARD_PORT: "3456"
     restart: unless-stopped
