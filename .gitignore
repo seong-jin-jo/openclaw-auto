@@ -1,6 +1,3 @@
-# OpenClaw 소스 (서버에서 별도 clone)
-openclaw/
-
 # 민감 파일 (서버에서 직접 생성)
 .env
 openclaw/.env
@@ -8,6 +5,19 @@ openclaw/.env
 # 실제 설정 파일 (토큰 포함, 서버에서 example에서 복사)
 config/openclaw.json
 config/cron/jobs.json
+
+# OpenClaw Gateway 런타임 (민감: 인증 토큰, 디바이스 키)
+config/agents/
+config/devices/
+config/identity/
+
+# OpenClaw Gateway 런타임 (비민감: 상태/로그)
+config/memory/
+config/workspace/
+config/canvas/
+config/logs/
+config/cron/runs/
+config/update-check.json
 
 # 데이터 (런타임) — 가이드/키워드만 추적, 나머지 제외
 data/*
@@ -20,6 +30,10 @@ data/*
 # Python
 __pycache__/
 *.pyc
+
+# Backup files
+*.bak
+*.bak.*
 
 # OS
 .DS_Store
