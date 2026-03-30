@@ -587,20 +587,55 @@ git push upstream main          # 직접 push (권한 있으면)
 gh pr create --repo 원본유저/openclaw-auto   # PR
 ```
 
-### 대시보드 커스터마이징
+### fork에서 extension 추가/수정 후 원본에 반영하기
 
-대시보드는 공통 코드이나, 제품에 따라 표시할 내용이 다를 수 있다.
+예: fork에서 `extensions/twitter-publish/` 새로 만든 경우
 
-**현재 지원하는 방식:**
-- `data/prompt-guide.txt` — 대시보드 Settings 탭에서 직접 편집 가능
-- `data/search-keywords.txt` — 대시보드 Settings 탭에서 편집
-- Cron 주기/프롬프트 — `config/cron/jobs.json`에서 제품별 조정
+```bash
+# fork 레포에서 개발 완료 후
+git add extensions/twitter-publish/
+git commit -m "Add Twitter publish extension"
 
-**플랫폼 확장 시:**
-- 새 플랫폼 extension 추가 (예: `extensions/twitter-publish/`)
-- `docker-compose.yml`의 `OPENCLAW_EXTENSIONS`에 추가
-- `config/openclaw.json`에 해당 플러그인 설정
-- 대시보드는 queue.json 기반이라 플랫폼 무관하게 동작
+# 원본 레포에 반영 (2가지 방법)
+# 방법 1: 직접 push (권한 있으면)
+git push upstream main
+
+# 방법 2: PR
+git push origin main    # fork에 먼저 push
+gh pr create --repo 원본유저/openclaw-auto --title "Add Twitter publish"
+
+# 다른 fork에서 최신화
+git fetch upstream && git merge upstream/main
+cp -r extensions/twitter-* openclaw/extensions/  # submodule에 복사
+docker compose up -d --build
+```
+
+주의: `extensions/` 코드만 원본에 반영. `data/`, `.env`, `config/openclaw.json` 등 서비스별 파일은 절대 push하지 않음 (.gitignore 처리됨).
+
+### 대시보드 사용법
+
+대시보드에서 서비스별 커스터마이징 가능:
+
+| 탭 | 기능 |
+|----|------|
+| **Overview** | 큐 상태, 팔로워, 터진 글, Cron 현황 (다음/마지막 실행) |
+| **Queue** | draft 검수: 승인/수정/삭제, bulk approve. 최신순 정렬, 이미지 미리보기 |
+| **Analytics** | 포스트별 engagement, 토픽별 평균 반응 |
+| **Popular Posts** | 인기글 (manual/own-viral/external 필터) |
+| **Settings** | Content Guide (전략/톤/타겟 편집), 검색 키워드 편집, Threshold 설정 |
+
+**Settings 탭에서 튜닝할 수 있는 것:**
+- **Content Guide** (`prompt-guide.txt`) — 타겟 오디언스, 톤, 콘텐츠 유형, 금지사항 등. AI가 글 생성할 때 이 가이드를 최우선으로 따름.
+- **Search Keywords** (`search-keywords.txt`) — 인기글 수집에 사용할 키워드
+- **Thresholds** — 터진 글 기준 views, 최소 좋아요, 검색 기간 등
+
+### 플랫폼 확장
+
+새 플랫폼 추가 시:
+1. `extensions/` 에 새 tool 추가 (예: `twitter-publish/`, `instagram-publish/`)
+2. `docker-compose.yml`의 `OPENCLAW_EXTENSIONS` build arg에 추가
+3. `config/openclaw.json`에 해당 플러그인 설정 (토큰 등)
+4. 대시보드는 queue.json 기반이라 플랫폼 무관하게 동작
 
 ## 온프레미스 배포
 
