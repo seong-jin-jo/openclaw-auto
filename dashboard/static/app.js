@@ -357,28 +357,37 @@ function renderQueue() {
           </button>
         `).join("")}
       </div>
-      <div class="flex gap-2 items-center">
-        ${selectable.length > 0 ? `
-          <label class="flex items-center gap-1 text-sm text-gray-400 cursor-pointer">
-            <input type="checkbox" id="select-all" ${allSelected ? "checked" : ""} class="rounded border-gray-600">
-            Select All (${selectable.length})
-          </label>
-          <button id="bulk-approve" class="px-3 py-1 text-sm bg-green-700 text-white rounded hover:bg-green-600 disabled:opacity-50"
-            ${state.selectedIds.size === 0 ? "disabled" : ""}>
-            Approve (${state.selectedIds.size})
-          </button>
-          <button id="bulk-delete" class="px-3 py-1 text-sm bg-red-700 text-white rounded hover:bg-red-600 disabled:opacity-50"
-            ${state.selectedIds.size === 0 ? "disabled" : ""}>
-            Delete (${state.selectedIds.size})
-          </button>
-        ` : ""}
-      </div>
+      ${selectable.length > 0 ? `
+        <label class="flex items-center gap-1 text-sm text-gray-400 cursor-pointer">
+          <input type="checkbox" id="select-all" ${allSelected ? "checked" : ""} class="rounded border-gray-600">
+          Select All (${selectable.length})
+        </label>
+      ` : ""}
     </div>
 
-    <div class="space-y-3">
+    <div class="space-y-3 ${state.selectedIds.size > 0 ? "pb-20" : ""}">
       ${state.queue.length === 0 ? `<p class="text-gray-500 text-sm">No posts</p>` : ""}
       ${state.queue.map(p => renderPost(p)).join("")}
     </div>
+
+    ${state.selectedIds.size > 0 ? `
+      <div class="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 px-4 py-3 z-50">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+          <span class="text-sm text-gray-300">${state.selectedIds.size}개 선택됨</span>
+          <div class="flex gap-2">
+            <button id="bulk-approve" class="px-4 py-2 text-sm bg-green-700 text-white rounded hover:bg-green-600">
+              Approve (${state.selectedIds.size})
+            </button>
+            <button id="bulk-delete" class="px-4 py-2 text-sm bg-red-700 text-white rounded hover:bg-red-600">
+              Delete (${state.selectedIds.size})
+            </button>
+            <button id="bulk-cancel" class="px-4 py-2 text-sm bg-gray-700 text-gray-300 rounded hover:bg-gray-600">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    ` : ""}
   `;
 }
 
@@ -641,6 +650,10 @@ function bindEvents() {
   // Bulk delete
   const bulkDelBtn = document.getElementById("bulk-delete");
   if (bulkDelBtn) bulkDelBtn.onclick = bulkDelete;
+
+  // Bulk cancel
+  const bulkCancelBtn = document.getElementById("bulk-cancel");
+  if (bulkCancelBtn) bulkCancelBtn.onclick = () => { state.selectedIds.clear(); render(); };
 
   // Keywords save
   const saveKw = document.getElementById("save-keywords");
