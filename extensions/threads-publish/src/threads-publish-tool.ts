@@ -37,6 +37,11 @@ const ThreadsPublishToolSchema = Type.Object(
     text: Type.String({
       description: "The text content to publish on Threads. Max 500 characters.",
     }),
+    image_url: Type.Optional(
+      Type.String({
+        description: "Public URL of an image to attach. When provided, the post becomes an IMAGE type instead of TEXT.",
+      }),
+    ),
   },
   { additionalProperties: false },
 );
@@ -46,7 +51,7 @@ export function createThreadsPublishTool(api: OpenClawPluginApi) {
     name: "threads_publish",
     label: "Threads Publish",
     description:
-      "Publish a text post to Meta Threads. Uses 2-step flow: create media container, then publish.",
+      "Publish a text or image post to Meta Threads. Uses 2-step flow: create media container, then publish. Pass image_url for image posts.",
     parameters: ThreadsPublishToolSchema,
     async execute(_toolCallId: string, rawParams: Record<string, unknown>) {
       const text = readStringParam(rawParams, "text", { required: true });
@@ -54,18 +59,23 @@ export function createThreadsPublishTool(api: OpenClawPluginApi) {
         throw new Error(`Text exceeds 500 character limit (${text.length} chars).`);
       }
 
+      const imageUrl = readStringParam(rawParams, "image_url");
       const { accessToken, userId } = resolveConfig(api);
 
       // Step 1: Create media container
       const createUrl = `${THREADS_API_BASE}/${userId}/threads`;
+      const containerParams: Record<string, string> = {
+        media_type: imageUrl ? "IMAGE" : "TEXT",
+        text,
+        access_token: accessToken,
+      };
+      if (imageUrl) {
+        containerParams.image_url = imageUrl;
+      }
       const createResp = await fetch(createUrl, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          media_type: "TEXT",
-          text,
-          access_token: accessToken,
-        }),
+        body: new URLSearchParams(containerParams),
       });
 
       if (!createResp.ok) {
@@ -99,6 +109,7 @@ export function createThreadsPublishTool(api: OpenClawPluginApi) {
         threadsMediaId: publishData.id,
         containerId,
         textLength: text.length,
+        mediaType: imageUrl ? "IMAGE" : "TEXT",
       });
     },
   };

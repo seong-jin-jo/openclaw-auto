@@ -2,7 +2,9 @@
 """Threads 콘텐츠 대시보드 — Flask 백엔드
 데이터: queue.json, growth.json, popular-posts.txt, style-data.json 직접 읽기/쓰기
 """
+import fcntl
 import json
+import logging
 import os
 import re
 from datetime import datetime, timezone, timedelta
@@ -12,6 +14,14 @@ from flask import Flask, jsonify, request, send_from_directory, abort
 
 app = Flask(__name__, static_folder="static", static_url_path="")
 
+# ── 로깅 설정 ──
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger(__name__)
+
 # ── 경로 설정 ──
 DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).resolve().parent.parent / "data"))
 QUEUE_PATH = Path(os.environ.get("THREADS_QUEUE_PATH", DATA_DIR / "queue.json"))
@@ -20,6 +30,8 @@ GROWTH_PATH = DATA_DIR / "growth.json"
 POPULAR_PATH = DATA_DIR / "popular-posts.txt"
 KEYWORDS_PATH = DATA_DIR / "search-keywords.txt"
 SETTINGS_PATH = DATA_DIR / "settings.json"
+CONFIG_DIR = Path(os.environ.get("CONFIG_DIR", Path(__file__).resolve().parent.parent / "config"))
+CRON_JOBS_PATH = CONFIG_DIR / "cron" / "jobs.json"
 
 DEFAULT_SETTINGS = {
     "viralThreshold": 500,
@@ -32,6 +44,9 @@ DEFAULT_SETTINGS = {
     "draftsPerBatch": 5,
 }
 
+# ── 인증 (선택) ──
+AUTH_TOKEN = os.environ.get("DASHBOARD_AUTH_TOKEN", "")
+
 
 def read_settings():
     saved = read_json(SETTINGS_PATH)
@@ -41,6 +56,29 @@ def read_settings():
 
 
 VIRAL_THRESHOLD = int(os.environ.get("VIRAL_THRESHOLD", "500"))
+
+
+# ── CORS ──
+@app.after_request
+def add_cors(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    return response
+
+
+# ── 인증 미들웨어 ──
+@app.before_request
+def check_auth():
+    if not AUTH_TOKEN:
+        return  # 토큰 미설정 시 인증 비활성화
+    if request.method == "OPTIONS":
+        return  # CORS preflight 통과
+    if request.path == "/" or request.path.startswith("/static"):
+        return  # 정적 파일 통과
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    if token != AUTH_TOKEN:
+        return jsonify({"error": "Unauthorized"}), 401
 
 
 # ── 유틸 ──
@@ -54,7 +92,19 @@ def read_json(path):
 
 def write_json(path, data):
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+        fcntl.flock(f, fcntl.LOCK_EX)
+        try:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        finally:
+            fcntl.flock(f, fcntl.LOCK_UN)
+
+
+def get_json_body():
+    """요청 body에서 JSON 안전하게 파싱"""
+    try:
+        return request.get_json(force=True) if request.is_json else {}
+    except Exception:
+        return {}
 
 
 def parse_popular_posts():
@@ -108,6 +158,7 @@ def api_queue():
     posts = queue.get("posts", [])
     if status_filter:
         posts = [p for p in posts if p.get("status") == status_filter]
+    posts.sort(key=lambda p: p.get("generatedAt", ""), reverse=True)
 
     return jsonify({"posts": posts, "total": len(posts)})
 
@@ -118,16 +169,19 @@ def api_approve(post_id):
     if queue is None:
         return jsonify({"error": "queue.json not found"}), 404
 
+    data = get_json_body()
     for post in queue.get("posts", []):
         if post["id"] == post_id:
             post["status"] = "approved"
             now = datetime.now(timezone.utc)
             post["approvedAt"] = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-            # 기본 2시간 후 발행 예약
-            hours = request.json.get("hours", 2) if request.is_json else 2
+            hours = data.get("hours", 0)
+            if not isinstance(hours, (int, float)) or hours < 0:
+                hours = 0
             scheduled = now + timedelta(hours=hours)
             post["scheduledAt"] = scheduled.strftime("%Y-%m-%dT%H:%M:%S.000Z")
             write_json(QUEUE_PATH, queue)
+            logger.info("Post approved: %s", post_id)
             return jsonify({"ok": True, "post": post})
 
     return jsonify({"error": "post not found"}), 404
@@ -139,13 +193,16 @@ def api_update(post_id):
     if queue is None:
         return jsonify({"error": "queue.json not found"}), 404
 
-    data = request.get_json(force=True) if request.is_json else {}
+    data = get_json_body()
     for post in queue.get("posts", []):
         if post["id"] == post_id:
             if "text" in data:
-                if post.get("originalText") is None and post["text"] != data["text"]:
+                text = data["text"]
+                if not isinstance(text, str) or not text.strip():
+                    return jsonify({"error": "text must be a non-empty string"}), 400
+                if post.get("originalText") is None and post["text"] != text:
                     post["originalText"] = post["text"]
-                post["text"] = data["text"]
+                post["text"] = text
             if "topic" in data:
                 post["topic"] = data["topic"]
             if "hashtags" in data:
@@ -153,6 +210,7 @@ def api_update(post_id):
             if "scheduledAt" in data:
                 post["scheduledAt"] = data["scheduledAt"]
             write_json(QUEUE_PATH, queue)
+            logger.info("Post updated: %s", post_id)
             return jsonify({"ok": True, "post": post})
 
     return jsonify({"error": "post not found"}), 404
@@ -170,6 +228,7 @@ def api_delete(post_id):
         return jsonify({"error": "post not found"}), 404
 
     write_json(QUEUE_PATH, queue)
+    logger.info("Post deleted: %s", post_id)
     return jsonify({"ok": True})
 
 
@@ -179,8 +238,11 @@ def api_bulk_approve():
     if queue is None:
         return jsonify({"error": "queue.json not found"}), 404
 
-    data = request.get_json(force=True) if request.is_json else {}
+    data = get_json_body()
     ids = data.get("ids", [])
+    if not isinstance(ids, list):
+        return jsonify({"error": "ids must be an array"}), 400
+
     now = datetime.now(timezone.utc)
     approved = 0
 
@@ -188,11 +250,12 @@ def api_bulk_approve():
         if post["id"] in ids and post["status"] == "draft":
             post["status"] = "approved"
             post["approvedAt"] = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-            scheduled = now + timedelta(hours=2 * (approved + 1))
+            scheduled = now
             post["scheduledAt"] = scheduled.strftime("%Y-%m-%dT%H:%M:%S.000Z")
             approved += 1
 
     write_json(QUEUE_PATH, queue)
+    logger.info("Bulk approved: %d posts", approved)
     return jsonify({"ok": True, "approved": approved})
 
 
@@ -228,12 +291,15 @@ def api_keywords():
 
 @app.route("/api/keywords", methods=["POST"])
 def api_keywords_update():
-    data = request.get_json(force=True) if request.is_json else {}
+    data = get_json_body()
     keywords = data.get("keywords", [])
+    if not isinstance(keywords, list):
+        return jsonify({"error": "keywords must be an array"}), 400
     with open(KEYWORDS_PATH, "w", encoding="utf-8") as f:
         f.write("# Threads 인기글 검색 키워드 (한 줄에 하나, #=주석, 빈 줄 무시)\n")
         for kw in keywords:
             f.write(f"{kw}\n")
+    logger.info("Keywords updated: %d keywords", len(keywords))
     return jsonify({"ok": True, "count": len(keywords)})
 
 
@@ -370,7 +436,7 @@ def api_settings():
 
 @app.route("/api/settings", methods=["POST"])
 def api_settings_update():
-    data = request.get_json(force=True) if request.is_json else {}
+    data = get_json_body()
     current = read_settings()
     allowed_keys = set(DEFAULT_SETTINGS.keys())
     updated = {}
@@ -381,7 +447,36 @@ def api_settings_update():
                 updated[key] = int(val)
     current.update(updated)
     write_json(SETTINGS_PATH, current)
+    logger.info("Settings updated: %s", list(updated.keys()))
     return jsonify({"ok": True, "settings": current})
+
+
+# ── API: Cron Status ──
+@app.route("/api/cron-status")
+def api_cron_status():
+    cron_data = read_json(CRON_JOBS_PATH)
+    if cron_data is None:
+        return jsonify({"jobs": []})
+    name_map = {
+        "threads-generate-drafts": "콘텐츠 생성",
+        "threads-auto-publish": "자동 발행",
+        "threads-collect-insights": "반응 수집",
+        "threads-track-growth": "팔로워 추적",
+        "threads-fetch-trending": "인기글 수집",
+    }
+    jobs = []
+    for job in cron_data.get("jobs", []):
+        state = job.get("state", {})
+        jobs.append({
+            "name": name_map.get(job["name"], job["name"]),
+            "id": job["name"],
+            "enabled": job.get("enabled", False),
+            "lastRunAt": state.get("lastRunAtMs"),
+            "nextRunAt": state.get("nextRunAtMs"),
+            "lastStatus": state.get("lastRunStatus", "unknown"),
+            "everyMs": job.get("schedule", {}).get("everyMs"),
+        })
+    return jsonify({"jobs": jobs})
 
 
 # ── API: Prompt Guide ──
@@ -399,14 +494,17 @@ def api_guide():
 
 @app.route("/api/guide", methods=["POST"])
 def api_guide_update():
-    data = request.get_json(force=True) if request.is_json else {}
+    data = get_json_body()
     guide = data.get("guide", "")
+    if not isinstance(guide, str):
+        return jsonify({"error": "guide must be a string"}), 400
     with open(GUIDE_PATH, "w", encoding="utf-8") as f:
         f.write(guide)
+    logger.info("Guide updated (%d chars)", len(guide))
     return jsonify({"ok": True})
 
 
 if __name__ == "__main__":
     port = int(os.environ.get("DASHBOARD_PORT", "3000"))
-    print(f"Threads Dashboard running on http://localhost:{port}")
+    logger.info("Threads Dashboard running on http://localhost:%d", port)
     app.run(host="0.0.0.0", port=port, debug=True)

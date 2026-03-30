@@ -1,6 +1,6 @@
-# Threads 자동 발행 시스템
+# openclaw-auto — SNS 콘텐츠 자동화 시스템
 
-OpenClaw 기반 Threads 콘텐츠 자동 생성/검수/발행 시스템.
+OpenClaw 기반 콘텐츠 자동 생성/검수/발행/분석 파이프라인. 현재 Threads 지원, 플랫폼 확장 가능.
 
 ## 왜 OpenClaw인가 — n8n, 단순 LLM Agent와 비교
 
@@ -85,7 +85,7 @@ DAG(방향성 비순환 그래프) 기반. 모든 분기를 사람이 미리 설
   │  │ (스케줄러)  │    │ (Sonnet 4.6)    │    │ Registry    │ │
   │  │            │    │                  │    │             │ │
   │  │ 6h: 생성   │    │ 프롬프트 → 판단  │    │ publish     │ │
-  │  │ 2h: 발행   │    │ → Tool 호출     │    │ queue       │ │
+  │  │ 4h: 발행   │    │ → Tool 호출     │    │ queue       │ │
   │  │ 6h: 수집   │    │ → 결과 확인     │    │ style       │ │
   │  │ 1w: 인기글 │    │ → 다음 행동     │    │ insights    │ │
   │  │ 1d: 팔로워 │    │                  │    │ search      │ │
@@ -234,9 +234,9 @@ ai-product-systems-lab/           # GitHub 레포 (이 저장소)
 ### threads_publish — Threads API 2단계 발행
 
 ```
-입력:  text (max 500자)
-동작:  POST /{userId}/threads (container 생성) → POST /{userId}/threads_publish (발행)
-출력:  { success, threadsMediaId, containerId }
+입력:  text (max 500자), image_url (선택 — 이미지 포스트)
+동작:  POST /{userId}/threads (container 생성, TEXT 또는 IMAGE) → POST /{userId}/threads_publish (발행)
+출력:  { success, threadsMediaId, containerId, mediaType }
 인증:  plugin config의 accessToken + userId
 ```
 
@@ -264,6 +264,7 @@ Post 구조:
   "threadsMediaId": "발행 후 Threads ID | null",
   "model": "claude-sonnet-4-6 | null",
   "abVariant": "A",
+  "imageUrl": "https://... | null (이미지 포스트용)",
   "engagement": { "views": 0, "likes": 0, "replies": 0, "reposts": 0, "quotes": 0,
                    "collectCount": 0, "fedToPopular": false, "fedToStyle": false }
 }
@@ -317,7 +318,7 @@ summary  통계: 편집 유형별 카운트, 평균 길이, 길이 트렌드
 | Cron Job | 주기 | Agent가 하는 일 |
 |----------|------|----------------|
 | `threads-generate-drafts` | 6시간 | popular-posts.txt + style-data.json 참고하여 글 5개 생성 → queue에 draft 저장 |
-| `threads-auto-publish` | 2시간 | queue에서 approved + 시간 도래한 글을 Threads API로 발행 |
+| `threads-auto-publish` | 4시간 | queue에서 approved + 시간 도래한 글 1개를 Threads API로 발행 |
 | `threads-collect-insights` | 6시간 | 발행 글의 views/likes 수집, views >= 500이면 터진 글로 자동 피드 |
 | `threads-fetch-trending` | 주 1회 | search-keywords.txt 키워드로 외부 인기글 검색 → popular-posts.txt 갱신 |
 | `threads-track-growth` | 매일 | 팔로워 수/프로필 조회수 수집 → growth.json 갱신 |
@@ -332,7 +333,7 @@ openclaw cron runs --id <id>           # 실행 이력
 ## 대시보드
 
 ```bash
-python3 dashboard/server.py    # http://localhost:3000
+python3 dashboard/server.py    # http://localhost:3456
 ```
 
 대시보드는 `data/` 디렉토리의 파일을 **직접 읽고 쓰는** Flask 앱이다. OpenClaw Tool과 같은 파일을 공유.
@@ -342,10 +343,10 @@ python3 dashboard/server.py    # http://localhost:3000
 | 엔드포인트 | 메서드 | 데이터 소스 | 기능 |
 |-----------|--------|-----------|------|
 | `/api/queue` | GET | queue.json | 글 목록 (status 필터) |
-| `/api/queue/{id}/approve` | POST | queue.json | 승인 + 2시간 후 발행 예약 |
+| `/api/queue/{id}/approve` | POST | queue.json | 승인 (즉시 발행 가능 상태, 다음 cron에서 발행) |
 | `/api/queue/{id}/update` | POST | queue.json | 텍스트/토픽/해시태그 수정 |
 | `/api/queue/{id}/delete` | POST | queue.json | 삭제 |
-| `/api/queue/bulk-approve` | POST | queue.json | 다건 승인 (시간차 예약) |
+| `/api/queue/bulk-approve` | POST | queue.json | 다건 승인 (즉시 발행 가능) |
 | `/api/analytics` | GET | queue.json | 토픽별 평균 반응, 터진 글 수 |
 | `/api/growth` | GET | growth.json | 팔로워 일별 기록 |
 | `/api/popular` | GET | popular-posts.txt | 인기글 (source 필터) |
@@ -406,7 +407,7 @@ openclaw models auth login --provider anthropic       # OpenClaw에 등록
 | `MAX_POPULAR_POSTS` | X | popular-posts.txt 최대 보관 수 | 30 |
 | `MIN_LIKES` | X | 외부 인기글 최소 좋아요 | 10 |
 | `SEARCH_DAYS` | X | 외부 인기글 검색 기간(일) | 7 |
-| `DASHBOARD_PORT` | X | 대시보드 포트 | 3000 |
+| `DASHBOARD_PORT` | X | 대시보드 포트 | 3456 |
 
 ## 사용법
 
@@ -424,9 +425,9 @@ openclaw agent --agent main --message "threads_search로 인기글 수집해"
 
 일상적으로 할 일은 **검수 하나**뿐.
 
-1. 대시보드 접속 (http://localhost:3000)
+1. 대시보드 접속 (http://localhost:3456)
 2. Queue 탭에서 draft 확인
-3. 괜찮으면 Approve (2시간 후 자동 발행)
+3. 괜찮으면 Approve (다음 auto-publish cron에서 자동 발행)
 4. 수정 필요하면 Edit → 수정 후 Approve
 5. 별로면 Delete
 
@@ -517,6 +518,90 @@ A/B 구조:
 | 4b | 캐러셀/투표 포맷 실험 |
 | 4c | Webhook 기반 댓글 자동 응답 |
 
+## Fork & Deploy (멀티 프로덕트)
+
+이 레포를 중앙 허브로 두고, 각 제품/팀에서 fork하여 독립 운영할 수 있다.
+
+### 구조
+
+```
+이 레포 (중앙 허브)
+  ├── fork → org-A/openclaw-auto   (팀 A — 팀원 접근 가능)
+  ├── fork → org-B/openclaw-auto   (팀 B — 팀원 접근 가능)
+  └── clone → 개인 서버             (개인 프로덕트 — fork 불필요)
+```
+
+### 제품별로 다른 것 (로컬에만, .gitignore)
+
+| 파일 | 설명 |
+|------|------|
+| `.env` | API 토큰, 계정 정보 |
+| `config/openclaw.json` | 플러그인 설정, 모델 선택 |
+| `config/cron/jobs.json` | 발행 주기, 생성 프롬프트 |
+| `data/prompt-guide.txt` | 콘텐츠 전략, 타겟, 톤 |
+| `data/queue.json` | 콘텐츠 큐 |
+| `data/popular-posts.txt` | 인기글 참고 데이터 |
+| `data/search-keywords.txt` | 검색 키워드 |
+
+### 공통 코드 (git 추적, 모든 fork가 공유)
+
+| 경로 | 설명 |
+|------|------|
+| `extensions/` | OpenClaw 플러그인 (publish, queue, insights 등) |
+| `dashboard/` | 웹 대시보드 |
+| `docker-compose.yml` | 컨테이너 구성 |
+| `scripts/` | 유틸리티 스크립트 |
+
+### Fork 후 셋업
+
+```bash
+# 1. Fork (GitHub UI) 또는 직접 clone
+git clone git@github.com:your-org/openclaw-auto.git
+cd openclaw-auto
+
+# 2. upstream 등록 (중앙 레포에서 업데이트 받기 위해)
+git remote add upstream git@github.com:원본유저/openclaw-auto.git
+
+# 3. 제품별 설정 (로컬만, git에 안 올라감)
+cp .env.example .env
+cp config/openclaw.json.example config/openclaw.json
+cp config/cron/jobs.json.example config/cron/jobs.json
+
+# 4. 제품 전략 작성
+vim data/prompt-guide.txt    # 타겟, 톤, 콘텐츠 유형 정의
+
+# 5. 실행
+docker compose up -d --build
+```
+
+### 코드 동기화
+
+```bash
+# 중앙 레포의 최신 코드 가져오기
+git fetch upstream
+git merge upstream/main
+
+# 내가 개선한 공통 코드를 중앙 레포에 반영
+git push upstream main          # 직접 push (권한 있으면)
+# 또는
+gh pr create --repo 원본유저/openclaw-auto   # PR
+```
+
+### 대시보드 커스터마이징
+
+대시보드는 공통 코드이나, 제품에 따라 표시할 내용이 다를 수 있다.
+
+**현재 지원하는 방식:**
+- `data/prompt-guide.txt` — 대시보드 Settings 탭에서 직접 편집 가능
+- `data/search-keywords.txt` — 대시보드 Settings 탭에서 편집
+- Cron 주기/프롬프트 — `config/cron/jobs.json`에서 제품별 조정
+
+**플랫폼 확장 시:**
+- 새 플랫폼 extension 추가 (예: `extensions/twitter-publish/`)
+- `docker-compose.yml`의 `OPENCLAW_EXTENSIONS`에 추가
+- `config/openclaw.json`에 해당 플러그인 설정
+- 대시보드는 queue.json 기반이라 플랫폼 무관하게 동작
+
 ## 온프레미스 배포
 
 ### 사전 준비
@@ -604,46 +689,34 @@ docker compose logs dashboard --tail 50               # Dashboard 로그
 
 ```
 ┌─────────────────────┐         ┌──────────────────────┐
-│  로컬 Mac            │         │  온프레미스 서버       │
-│                     │  push   │                      │
-│  Claude로 코드 튜닝  │ ──────▶ │  git pull             │
-│  extensions/ 수정   │  GitHub │  cp -r extensions/    │
-│  dashboard/ 수정    │         │    threads-* openclaw/│
-│  config 수정        │         │    extensions/        │
-│                     │         │  docker compose up    │
-│  git add + commit   │         │    -d --build         │
-│  git push           │         │                      │
+│  WSL (개발)          │  push   │  GitHub (중앙 허브)    │
+│                     │ ──────▶ │                      │
+│  Claude Code로 튜닝  │         │  openclaw-auto        │
+│  extensions/ 수정   │  pull   │                      │
+│  dashboard/ 수정    │ ◀────── │                      │
+│                     │         │                      │
+│  git commit + push  │         │  다른 WSL에서 pull     │
 └─────────────────────┘         └──────────────────────┘
 ```
 
-### 로컬에서 (Claude로 튜닝)
+### 코드 수정 후 반영
 
 ```bash
-# 코드 수정 후
-git add -A
+# 코드 수정 + 커밋
+git add extensions/ dashboard/
 git commit -m "설명"
-git push
-```
+git push origin main
 
-### 서버에서 (반영)
-
-```bash
-cd ~/ai/ai-product-systems-lab
-
-# 플러그인/대시보드 변경 시
-git pull
-cp -r extensions/threads-* openclaw/extensions/
-docker compose up -d --build
-
-# config/data만 변경 시 (재빌드 불필요)
-docker compose restart
+# 다른 WSL에서 최신화
+git pull origin main
+docker compose up -d --build    # extensions 변경 시 rebuild 필요
 ```
 
 ### 언제 `--build`가 필요한가
 
 | 변경 내용 | 명령어 |
 |----------|--------|
-| `extensions/` 플러그인 코드 | `cp -r ... && docker compose up -d --build` |
-| `dashboard/` 코드 | `docker compose up -d --build` |
+| `extensions/` 플러그인 코드 | `docker compose up -d --build` |
+| `dashboard/server.py` 또는 `static/` | 자동 반영 (볼륨 마운트) |
 | `config/` 설정 | `docker compose restart` |
 | `data/` 데이터 | 자동 반영 (볼륨 마운트) |

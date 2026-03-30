@@ -1,17 +1,56 @@
 /* Threads 콘텐츠 대시보드 — Vanilla JS (Alpine.js 스타일) */
 
+// ── Toast System ──
+function showToast(message, type = "info") {
+  const container = document.getElementById("toast-container");
+  if (!container) return;
+  const colors = {
+    success: "bg-green-800 text-green-200 border-green-600",
+    error: "bg-red-800 text-red-200 border-red-600",
+    warning: "bg-yellow-800 text-yellow-200 border-yellow-600",
+    info: "bg-blue-800 text-blue-200 border-blue-600",
+  };
+  const el = document.createElement("div");
+  el.className = `px-4 py-2 rounded border text-sm shadow-lg transition-opacity duration-300 ${colors[type] || colors.info}`;
+  el.textContent = message;
+  container.appendChild(el);
+  setTimeout(() => {
+    el.style.opacity = "0";
+    setTimeout(() => el.remove(), 300);
+  }, 3000);
+}
+
 const API = {
   async get(url) {
-    const res = await fetch(url);
-    return res.json();
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        showToast(`요청 실패: ${res.status}`, "error");
+        return null;
+      }
+      return res.json();
+    } catch (e) {
+      showToast(`네트워크 오류: ${e.message}`, "error");
+      return null;
+    }
   },
   async post(url, body) {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    return res.json();
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        showToast(errData.error || `요청 실패: ${res.status}`, "error");
+        return null;
+      }
+      return res.json();
+    } catch (e) {
+      showToast(`네트워크 오류: ${e.message}`, "error");
+      return null;
+    }
   },
 };
 
@@ -26,52 +65,77 @@ const state = {
   analytics: null,
   keywords: [],
   settings: null,
+  cronJobs: [],
   loading: false,
   editingPost: null,
   editText: "",
   selectedIds: new Set(),
 };
 
+// ── Loading Helpers ──
+function setLoading(on) {
+  state.loading = on;
+  render();
+}
+
+function loadingOverlay() {
+  if (!state.loading) return "";
+  return `<div class="fixed inset-0 bg-black/30 z-40 flex items-center justify-center">
+    <span class="text-gray-300 text-sm">Loading...</span>
+  </div>`;
+}
+
 // ── Data Loading ──
 async function loadOverview() {
-  state.overview = await API.get("/api/overview");
+  const [data, cronData] = await Promise.all([
+    API.get("/api/overview"),
+    API.get("/api/cron-status"),
+  ]);
+  if (data) state.overview = data;
+  if (cronData) state.cronJobs = cronData.jobs || [];
   render();
 }
 
 async function loadQueue(status) {
   const url = status && status !== "all" ? `/api/queue?status=${status}` : "/api/queue";
   const data = await API.get(url);
-  state.queue = data.posts || [];
+  if (data) {
+    state.queue = (data.posts || []).sort((a, b) =>
+      (b.generatedAt || "").localeCompare(a.generatedAt || "")
+    );
+  }
   render();
 }
 
 async function loadGrowth() {
   const data = await API.get("/api/growth");
-  state.growth = data.records || [];
+  if (data) state.growth = data.records || [];
   render();
 }
 
 async function loadPopular() {
   const data = await API.get("/api/popular");
-  state.popular = data.posts || [];
+  if (data) state.popular = data.posts || [];
   render();
 }
 
 async function loadAnalytics() {
-  state.analytics = await API.get("/api/analytics");
+  const data = await API.get("/api/analytics");
+  if (data) state.analytics = data;
   render();
 }
 
 async function loadKeywords() {
   const data = await API.get("/api/keywords");
-  state.keywords = data.keywords || [];
+  if (data) state.keywords = data.keywords || [];
   render();
 }
 
 async function loadSettings() {
-  state.settings = await API.get("/api/settings");
+  const settings = await API.get("/api/settings");
+  if (settings) state.settings = settings;
   const guideData = await API.get("/api/guide");
-  state.guide = guideData.guide || "";
+  state.guide = guideData ? guideData.guide || "" : "";
   render();
 }
 
@@ -83,50 +147,81 @@ async function saveSettings() {
     const el = document.getElementById(`setting-${f}`);
     if (el) updates[f] = parseInt(el.value, 10) || 0;
   }
-  await API.post("/api/settings", updates);
-  await loadSettings();
+  setLoading(true);
+  const result = await API.post("/api/settings", updates);
+  setLoading(false);
+  if (result) {
+    showToast("설정이 저장되었습니다", "success");
+    await loadSettings();
+  }
 }
 
 // ── Actions ──
 async function approvePost(id, hours = 2) {
-  await API.post(`/api/queue/${id}/approve`, { hours });
-  await loadQueue(state.queueFilter);
-  await loadOverview();
+  setLoading(true);
+  const result = await API.post(`/api/queue/${id}/approve`, { hours });
+  setLoading(false);
+  if (result) {
+    showToast("승인 완료", "success");
+    await loadQueue(state.queueFilter);
+    await loadOverview();
+  }
 }
 
 async function updatePost(id, text) {
-  await API.post(`/api/queue/${id}/update`, { text });
-  state.editingPost = null;
-  await loadQueue(state.queueFilter);
+  setLoading(true);
+  const result = await API.post(`/api/queue/${id}/update`, { text });
+  setLoading(false);
+  if (result) {
+    showToast("수정 완료", "success");
+    state.editingPost = null;
+    await loadQueue(state.queueFilter);
+  }
 }
 
 async function deletePost(id) {
   if (!confirm("정말 삭제하시겠습니까?")) return;
-  await API.post(`/api/queue/${id}/delete`);
-  await loadQueue(state.queueFilter);
-  await loadOverview();
+  setLoading(true);
+  const result = await API.post(`/api/queue/${id}/delete`);
+  setLoading(false);
+  if (result) {
+    showToast("삭제 완료", "success");
+    await loadQueue(state.queueFilter);
+    await loadOverview();
+  }
 }
 
 async function bulkApprove() {
   const ids = Array.from(state.selectedIds);
   if (ids.length === 0) return;
   if (!confirm(`${ids.length}개 글을 일괄 승인하시겠습니까?`)) return;
-  await API.post("/api/queue/bulk-approve", { ids });
-  state.selectedIds.clear();
-  await loadQueue(state.queueFilter);
-  await loadOverview();
+  setLoading(true);
+  const result = await API.post("/api/queue/bulk-approve", { ids });
+  setLoading(false);
+  if (result) {
+    showToast(`${result.approved || ids.length}개 승인 완료`, "success");
+    state.selectedIds.clear();
+    await loadQueue(state.queueFilter);
+    await loadOverview();
+  }
 }
 
 async function saveKeywords(text) {
   const keywords = text.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("#"));
-  await API.post("/api/keywords", { keywords });
-  await loadKeywords();
+  setLoading(true);
+  const result = await API.post("/api/keywords", { keywords });
+  setLoading(false);
+  if (result) {
+    showToast("키워드 저장 완료", "success");
+    await loadKeywords();
+  }
 }
 
 // ── Render ──
 function render() {
   const app = document.getElementById("app");
   app.innerHTML = `
+    ${loadingOverlay()}
     ${renderNav()}
     <main class="max-w-7xl mx-auto px-4 py-6">
       ${state.tab === "overview" ? renderOverview() : ""}
@@ -178,6 +273,25 @@ function renderOverview() {
       ${card("Viral Posts", o.viralPosts?.length || 0, `>= ${state.analytics?.summary?.viralThreshold || 500} views`)}
       ${card("Popular Refs", o.popularPostsCount || 0, Object.entries(o.popularSourceCounts || {}).map(([k, v]) => `${k}: ${v}`).join(", "))}
     </div>
+
+    ${state.cronJobs.length ? `
+      <div class="bg-gray-900 rounded-lg p-4 mb-6">
+        <h3 class="text-sm font-medium text-gray-400 mb-3">Cron 현황</h3>
+        <div class="space-y-1">
+          ${state.cronJobs.map(j => {
+            const statusIcon = j.lastStatus === "ok" ? "text-green-400" : j.lastStatus === "error" ? "text-red-400" : "text-gray-500";
+            const fmtTime = (ms) => ms ? new Date(ms).toLocaleString("ko-KR", {month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}) : "-";
+            return `<div class="flex items-center justify-between text-sm py-1 border-b border-gray-800 last:border-0">
+              <span class="text-gray-300">${esc(j.name)}</span>
+              <div class="flex gap-4 text-xs">
+                <span class="text-gray-500">마지막: <span class="${statusIcon}">${fmtTime(j.lastRunAt)}</span></span>
+                <span class="text-gray-500">다음: <span class="text-blue-400">${fmtTime(j.nextRunAt)}</span></span>
+              </div>
+            </div>`;
+          }).join("")}
+        </div>
+      </div>
+    ` : ""}
 
     ${o.viralPosts?.length ? `
       <div class="bg-gray-900 rounded-lg p-4 mb-6">
@@ -252,6 +366,7 @@ function renderPost(p) {
           ` : ""}
           <span class="text-xs px-2 py-0.5 rounded ${statusColors[p.status] || "bg-gray-700 text-gray-300"}">${p.status}</span>
           <span class="text-xs text-gray-500">${p.topic || ""}</span>
+          ${p.abVariant && p.abVariant !== "A" ? `<span class="text-xs px-1.5 py-0.5 rounded bg-purple-900 text-purple-300">${p.abVariant}</span>` : ""}
           ${p.model ? `<span class="text-xs text-gray-600">${p.model}</span>` : ""}
         </div>
         <span class="text-xs text-gray-600">${p.id.slice(0, 8)}</span>
@@ -266,6 +381,12 @@ function renderPost(p) {
       ` : `
         <p class="text-gray-200 text-sm mb-2 whitespace-pre-wrap">${esc(p.text)}</p>
       `}
+
+      ${p.imageUrl ? `
+        <div class="mb-2">
+          <img src="${esc(p.imageUrl)}" alt="post image" class="rounded max-h-48 object-cover" onerror="this.style.display='none'">
+        </div>
+      ` : ""}
 
       ${p.hashtags?.length ? `
         <div class="flex gap-1 mb-2">
@@ -336,6 +457,7 @@ function renderAnalytics() {
 
     <div class="bg-gray-900 rounded-lg p-4">
       <h3 class="text-sm font-medium text-gray-400 mb-3">Published Posts</h3>
+      ${(a.posts || []).length === 0 ? `<p class="text-gray-500 text-sm">No published posts yet</p>` : ""}
       ${(a.posts || []).map(p => `
         <div class="flex justify-between items-start py-2 border-b border-gray-800 last:border-0">
           <div class="flex-1 mr-4">
@@ -495,8 +617,13 @@ function bindEvents() {
     saveGd.onclick = async () => {
       const ta = document.getElementById("guide-textarea");
       if (ta) {
-        await API.post("/api/guide", { guide: ta.value });
-        await loadSettings();
+        setLoading(true);
+        const result = await API.post("/api/guide", { guide: ta.value });
+        setLoading(false);
+        if (result) {
+          showToast("가이드 저장 완료", "success");
+          await loadSettings();
+        }
       }
     };
   }
@@ -506,7 +633,7 @@ function bindEvents() {
     el.onclick = async () => {
       const src = el.dataset.popularFilter;
       const data = await API.get(src === "all" ? "/api/popular" : `/api/popular?source=${src}`);
-      state.popular = data.posts || [];
+      if (data) state.popular = data.posts || [];
       render();
     };
   });
