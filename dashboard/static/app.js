@@ -206,6 +206,31 @@ async function bulkApprove() {
   }
 }
 
+async function bulkDelete() {
+  const ids = Array.from(state.selectedIds);
+  if (ids.length === 0) return;
+  if (!confirm(`${ids.length}개 글을 일괄 삭제하시겠습니까?`)) return;
+  setLoading(true);
+  const result = await API.post("/api/queue/bulk-delete", { ids });
+  setLoading(false);
+  if (result) {
+    showToast(`${result.deleted || ids.length}개 삭제 완료`, "success");
+    state.selectedIds.clear();
+    await loadQueue(state.queueFilter);
+    await loadOverview();
+  }
+}
+
+function toggleSelectAll() {
+  const selectable = state.queue.filter(p => p.status === "draft" || p.status === "approved");
+  if (state.selectedIds.size === selectable.length && selectable.length > 0) {
+    state.selectedIds.clear();
+  } else {
+    selectable.forEach(p => state.selectedIds.add(p.id));
+  }
+  render();
+}
+
 async function saveKeywords(text) {
   const keywords = text.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("#"));
   setLoading(true);
@@ -319,7 +344,8 @@ function card(title, value, sub) {
 
 function renderQueue() {
   const filters = ["all", "draft", "approved", "published", "failed"];
-  const drafts = state.queue.filter(p => p.status === "draft");
+  const selectable = state.queue.filter(p => p.status === "draft" || p.status === "approved");
+  const allSelected = selectable.length > 0 && state.selectedIds.size === selectable.length;
 
   return `
     <div class="flex items-center justify-between mb-4">
@@ -331,18 +357,37 @@ function renderQueue() {
           </button>
         `).join("")}
       </div>
-      ${drafts.length > 0 ? `
-        <button id="bulk-approve" class="px-3 py-1 text-sm bg-green-700 text-white rounded hover:bg-green-600 disabled:opacity-50"
-          ${state.selectedIds.size === 0 ? "disabled" : ""}>
-          Approve Selected (${state.selectedIds.size})
-        </button>
+      ${selectable.length > 0 ? `
+        <label class="flex items-center gap-1 text-sm text-gray-400 cursor-pointer">
+          <input type="checkbox" id="select-all" ${allSelected ? "checked" : ""} class="rounded border-gray-600">
+          Select All (${selectable.length})
+        </label>
       ` : ""}
     </div>
 
-    <div class="space-y-3">
+    <div class="space-y-3 ${state.selectedIds.size > 0 ? "pb-20" : ""}">
       ${state.queue.length === 0 ? `<p class="text-gray-500 text-sm">No posts</p>` : ""}
       ${state.queue.map(p => renderPost(p)).join("")}
     </div>
+
+    ${state.selectedIds.size > 0 ? `
+      <div class="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 px-4 py-3 z-50">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+          <span class="text-sm text-gray-300">${state.selectedIds.size}개 선택됨</span>
+          <div class="flex gap-2">
+            <button id="bulk-approve" class="px-4 py-2 text-sm bg-green-700 text-white rounded hover:bg-green-600">
+              Approve (${state.selectedIds.size})
+            </button>
+            <button id="bulk-delete" class="px-4 py-2 text-sm bg-red-700 text-white rounded hover:bg-red-600">
+              Delete (${state.selectedIds.size})
+            </button>
+            <button id="bulk-cancel" class="px-4 py-2 text-sm bg-gray-700 text-gray-300 rounded hover:bg-gray-600">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    ` : ""}
   `;
 }
 
@@ -360,7 +405,7 @@ function renderPost(p) {
     <div class="bg-gray-900 rounded-lg p-4">
       <div class="flex items-start justify-between mb-2">
         <div class="flex items-center gap-2">
-          ${p.status === "draft" ? `
+          ${p.status === "draft" || p.status === "approved" ? `
             <input type="checkbox" data-select="${p.id}" ${state.selectedIds.has(p.id) ? "checked" : ""}
               class="rounded border-gray-600">
           ` : ""}
@@ -594,9 +639,21 @@ function bindEvents() {
     };
   });
 
+  // Select all
+  const selectAllBtn = document.getElementById("select-all");
+  if (selectAllBtn) selectAllBtn.onchange = toggleSelectAll;
+
   // Bulk approve
   const bulkBtn = document.getElementById("bulk-approve");
   if (bulkBtn) bulkBtn.onclick = bulkApprove;
+
+  // Bulk delete
+  const bulkDelBtn = document.getElementById("bulk-delete");
+  if (bulkDelBtn) bulkDelBtn.onclick = bulkDelete;
+
+  // Bulk cancel
+  const bulkCancelBtn = document.getElementById("bulk-cancel");
+  if (bulkCancelBtn) bulkCancelBtn.onclick = () => { state.selectedIds.clear(); render(); };
 
   // Keywords save
   const saveKw = document.getElementById("save-keywords");

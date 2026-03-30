@@ -259,6 +259,27 @@ def api_bulk_approve():
     return jsonify({"ok": True, "approved": approved})
 
 
+@app.route("/api/queue/bulk-delete", methods=["POST"])
+def api_bulk_delete():
+    queue = read_json(QUEUE_PATH)
+    if queue is None:
+        return jsonify({"error": "queue.json not found"}), 404
+
+    data = get_json_body()
+    ids = data.get("ids", [])
+    if not isinstance(ids, list):
+        return jsonify({"error": "ids must be an array"}), 400
+
+    id_set = set(ids)
+    before = len(queue.get("posts", []))
+    queue["posts"] = [p for p in queue.get("posts", []) if p["id"] not in id_set]
+    deleted = before - len(queue["posts"])
+
+    write_json(QUEUE_PATH, queue)
+    logger.info("Bulk deleted: %d posts", deleted)
+    return jsonify({"ok": True, "deleted": deleted})
+
+
 # ── API: Growth ──
 @app.route("/api/growth")
 def api_growth():
