@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import re
+import secrets
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -44,8 +45,11 @@ DEFAULT_SETTINGS = {
     "draftsPerBatch": 5,
 }
 
-# ── 인증 (선택) ──
+# ── 인증 ──
 AUTH_TOKEN = os.environ.get("DASHBOARD_AUTH_TOKEN", "")
+if not AUTH_TOKEN:
+    AUTH_TOKEN = secrets.token_hex(24)
+    logger.warning("DASHBOARD_AUTH_TOKEN not set! Generated random token: %s", AUTH_TOKEN)
 
 
 def read_settings():
@@ -59,9 +63,18 @@ VIRAL_THRESHOLD = int(os.environ.get("VIRAL_THRESHOLD", "500"))
 
 
 # ── CORS ──
+DASHBOARD_PORT = os.environ.get("DASHBOARD_PORT", "3000")
+ALLOWED_ORIGINS = {
+    f"http://localhost:{DASHBOARD_PORT}",
+    f"http://127.0.0.1:{DASHBOARD_PORT}",
+}
+
+
 @app.after_request
 def add_cors(response):
-    response.headers["Access-Control-Allow-Origin"] = "*"
+    origin = request.headers.get("Origin", "")
+    if origin in ALLOWED_ORIGINS:
+        response.headers["Access-Control-Allow-Origin"] = origin
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return response
@@ -70,11 +83,9 @@ def add_cors(response):
 # ── 인증 미들웨어 ──
 @app.before_request
 def check_auth():
-    if not AUTH_TOKEN:
-        return  # 토큰 미설정 시 인증 비활성화
     if request.method == "OPTIONS":
         return  # CORS preflight 통과
-    if request.path == "/" or request.path.startswith("/static"):
+    if request.path == "/" or (not request.path.startswith("/api/") and request.path.endswith((".js", ".css", ".ico", ".png", ".svg"))):
         return  # 정적 파일 통과
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
     if token != AUTH_TOKEN:
@@ -196,6 +207,8 @@ def api_update(post_id):
     data = get_json_body()
     for post in queue.get("posts", []):
         if post["id"] == post_id:
+            if "status" in data and data["status"] in ("draft", "approved"):
+                post["status"] = data["status"]
             if "text" in data:
                 text = data["text"]
                 if not isinstance(text, str) or not text.strip():
@@ -523,6 +536,37 @@ def api_guide_update():
         f.write(guide)
     logger.info("Guide updated (%d chars)", len(guide))
     return jsonify({"ok": True})
+
+
+# ── API: Alerts ──
+@app.route("/api/alerts")
+def api_alerts():
+    alerts = []
+
+    # Failed posts
+    queue = read_json(QUEUE_PATH) or {"posts": []}
+    failed = [p for p in queue.get("posts", []) if p.get("status") == "failed"]
+    if failed:
+        alerts.append({
+            "severity": "error",
+            "message": f"발행 실패 {len(failed)}건",
+            "count": len(failed),
+            "type": "failed_posts",
+        })
+
+    # Cron errors
+    cron_data = read_json(CRON_JOBS_PATH) or {"jobs": []}
+    for job in cron_data.get("jobs", []):
+        state_data = job.get("state", {})
+        if state_data.get("lastRunStatus") == "error":
+            alerts.append({
+                "severity": "warning",
+                "message": f"Cron 에러: {job.get('name', 'unknown')}",
+                "type": "cron_error",
+                "jobName": job.get("name"),
+            })
+
+    return jsonify({"alerts": alerts})
 
 
 if __name__ == "__main__":

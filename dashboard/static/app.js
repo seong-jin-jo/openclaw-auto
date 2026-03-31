@@ -20,10 +20,57 @@ function showToast(message, type = "info") {
   }, 3000);
 }
 
+// ── Auth ──
+function getAuthToken() {
+  return localStorage.getItem("dashboard_token") || "";
+}
+
+function setAuthToken(token) {
+  localStorage.setItem("dashboard_token", token);
+}
+
+function clearAuthToken() {
+  localStorage.removeItem("dashboard_token");
+}
+
+function promptLogin() {
+  const app = document.getElementById("app");
+  app.innerHTML = `
+    <div class="min-h-screen flex items-center justify-center">
+      <div class="bg-gray-900 rounded-lg p-6 w-80">
+        <h2 class="text-white text-lg font-bold mb-4">Dashboard Login</h2>
+        <input id="login-token" type="password" placeholder="Auth Token"
+          class="w-full bg-gray-800 text-gray-200 text-sm p-2 rounded border border-gray-700 mb-3">
+        <button id="login-btn" class="w-full px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-500">Login</button>
+      </div>
+    </div>
+  `;
+  document.getElementById("login-btn").onclick = () => {
+    const token = document.getElementById("login-token").value.trim();
+    if (token) {
+      setAuthToken(token);
+      initApp();
+    }
+  };
+  document.getElementById("login-token").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") document.getElementById("login-btn").click();
+  });
+}
+
+function authHeaders() {
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 const API = {
   async get(url) {
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, { headers: authHeaders() });
+      if (res.status === 401) {
+        clearAuthToken();
+        promptLogin();
+        return null;
+      }
       if (!res.ok) {
         showToast(`요청 실패: ${res.status}`, "error");
         return null;
@@ -38,9 +85,14 @@ const API = {
     try {
       const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(body),
       });
+      if (res.status === 401) {
+        clearAuthToken();
+        promptLogin();
+        return null;
+      }
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         showToast(errData.error || `요청 실패: ${res.status}`, "error");
@@ -66,11 +118,15 @@ const state = {
   keywords: [],
   settings: null,
   cronJobs: [],
+  alerts: [],
   loading: false,
   editingPost: null,
   editText: "",
   selectedIds: new Set(),
+  lastUpdated: null,
 };
+
+let overviewInterval = null;
 
 // ── Loading Helpers ──
 function setLoading(on) {
@@ -87,12 +143,15 @@ function loadingOverlay() {
 
 // ── Data Loading ──
 async function loadOverview() {
-  const [data, cronData] = await Promise.all([
+  const [data, cronData, alertData] = await Promise.all([
     API.get("/api/overview"),
     API.get("/api/cron-status"),
+    API.get("/api/alerts"),
   ]);
   if (data) state.overview = data;
   if (cronData) state.cronJobs = cronData.jobs || [];
+  if (alertData) state.alerts = alertData.alerts || [];
+  state.lastUpdated = new Date();
   render();
 }
 
@@ -191,6 +250,46 @@ async function deletePost(id) {
   }
 }
 
+async function retryPost(id) {
+  setLoading(true);
+  const scheduled = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+  const result = await API.post(`/api/queue/${id}/update`, {
+    status: "approved",
+    scheduledAt: scheduled,
+  });
+  setLoading(false);
+  if (result) {
+    showToast("재시도 예약 완료", "success");
+    await loadQueue(state.queueFilter);
+    await loadOverview();
+  }
+}
+
+async function bulkDelete() {
+  const ids = Array.from(state.selectedIds);
+  if (ids.length === 0) return;
+  if (!confirm(`${ids.length}개 글을 일괄 삭제하시겠습니까?`)) return;
+  setLoading(true);
+  const result = await API.post("/api/queue/bulk-delete", { ids });
+  setLoading(false);
+  if (result) {
+    showToast(`${result.deleted || ids.length}개 삭제 완료`, "success");
+    state.selectedIds.clear();
+    await loadQueue(state.queueFilter);
+    await loadOverview();
+  }
+}
+
+function toggleSelectAll() {
+  const selectable = state.queue.filter(p => p.status === "draft" || p.status === "approved");
+  if (state.selectedIds.size === selectable.length && selectable.length > 0) {
+    state.selectedIds.clear();
+  } else {
+    selectable.forEach(p => state.selectedIds.add(p.id));
+  }
+  render();
+}
+
 async function bulkApprove() {
   const ids = Array.from(state.selectedIds);
   if (ids.length === 0) return;
@@ -286,12 +385,27 @@ function renderNav() {
   `;
 }
 
+function renderAlerts() {
+  if (!state.alerts.length) return "";
+  return state.alerts.map(a => {
+    const colors = a.severity === "error"
+      ? "bg-red-900/60 border-red-700 text-red-200"
+      : "bg-yellow-900/60 border-yellow-700 text-yellow-200";
+    return `<div class="px-4 py-2 rounded border ${colors} text-sm mb-2">${esc(a.message)}</div>`;
+  }).join("");
+}
+
 function renderOverview() {
   const o = state.overview;
   if (!o) return `<p class="text-gray-500">Loading...</p>`;
 
   const sc = o.statusCounts || {};
+  const updatedAt = state.lastUpdated
+    ? state.lastUpdated.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })
+    : "";
   return `
+    ${renderAlerts()}
+    ${updatedAt ? `<p class="text-xs text-gray-600 mb-3 text-right">Last updated: ${updatedAt}</p>` : ""}
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
       ${card("Followers", o.followers ?? "N/A", o.weekDelta != null ? `${o.weekDelta >= 0 ? "+" : ""}${o.weekDelta} this week` : "")}
       ${card("Published", sc.published || 0, `${sc.draft || 0} drafts, ${sc.approved || 0} approved`)}
@@ -410,9 +524,9 @@ function renderPost(p) {
               class="rounded border-gray-600">
           ` : ""}
           <span class="text-xs px-2 py-0.5 rounded ${statusColors[p.status] || "bg-gray-700 text-gray-300"}">${p.status}</span>
-          <span class="text-xs text-gray-500">${p.topic || ""}</span>
-          ${p.abVariant && p.abVariant !== "A" ? `<span class="text-xs px-1.5 py-0.5 rounded bg-purple-900 text-purple-300">${p.abVariant}</span>` : ""}
-          ${p.model ? `<span class="text-xs text-gray-600">${p.model}</span>` : ""}
+          <span class="text-xs text-gray-500">${esc(p.topic || "")}</span>
+          ${p.abVariant && p.abVariant !== "A" ? `<span class="text-xs px-1.5 py-0.5 rounded bg-purple-900 text-purple-300">${esc(p.abVariant)}</span>` : ""}
+          ${p.model ? `<span class="text-xs text-gray-600">${esc(p.model)}</span>` : ""}
         </div>
         <span class="text-xs text-gray-600">${p.id.slice(0, 8)}</span>
       </div>
@@ -435,7 +549,7 @@ function renderPost(p) {
 
       ${p.hashtags?.length ? `
         <div class="flex gap-1 mb-2">
-          ${p.hashtags.map(h => `<span class="text-xs text-blue-400">#${h}</span>`).join("")}
+          ${p.hashtags.map(h => `<span class="text-xs text-blue-400">#${esc(h)}</span>`).join("")}
         </div>
       ` : ""}
 
@@ -450,10 +564,19 @@ function renderPost(p) {
 
       ${p.scheduledAt ? `<p class="text-xs text-gray-600 mt-1">Scheduled: ${new Date(p.scheduledAt).toLocaleString()}</p>` : ""}
 
-      <div class="flex gap-2 mt-2">
+      <div class="flex gap-2 mt-2 items-center">
         ${p.status === "draft" ? `
           <button data-approve="${p.id}" class="px-2 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>
+          <select data-approve-hours="${p.id}" class="text-xs bg-gray-800 text-gray-300 rounded border border-gray-700 px-1 py-1">
+            <option value="0">즉시</option>
+            <option value="1">1시간 후</option>
+            <option value="2" selected>2시간 후</option>
+            <option value="4">4시간 후</option>
+          </select>
           <button data-edit="${p.id}" class="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button>
+        ` : ""}
+        ${p.status === "failed" ? `
+          <button data-retry="${p.id}" class="px-2 py-1 text-xs bg-yellow-700 text-white rounded hover:bg-yellow-600">Retry</button>
         ` : ""}
         ${p.status !== "published" ? `
           <button data-delete="${p.id}" class="px-2 py-1 text-xs bg-red-900 text-red-300 rounded hover:bg-red-800">Delete</button>
@@ -507,7 +630,7 @@ function renderAnalytics() {
         <div class="flex justify-between items-start py-2 border-b border-gray-800 last:border-0">
           <div class="flex-1 mr-4">
             <span class="text-gray-200 text-sm">${esc(p.text)}</span>
-            <span class="text-gray-600 text-xs ml-2">${p.topic}</span>
+            <span class="text-gray-600 text-xs ml-2">${esc(p.topic)}</span>
           </div>
           <div class="text-right text-xs text-gray-500 whitespace-nowrap">
             <div>${p.views} views</div>
@@ -537,7 +660,7 @@ function renderPopular() {
           <div class="flex items-center gap-2 mb-2">
             <span class="text-xs px-2 py-0.5 rounded bg-purple-900 text-purple-300">${p.source || "unknown"}</span>
             ${p.type ? `<span class="text-xs px-2 py-0.5 rounded bg-cyan-900 text-cyan-300">${p.type}</span>` : ""}
-            <span class="text-xs text-gray-500">${p.topic || ""}</span>
+            <span class="text-xs text-gray-500">${esc(p.topic || "")}</span>
             ${p.likes && p.likes !== "0" ? `<span class="text-xs text-yellow-500">${p.likes} likes</span>` : ""}
             ${p.collected ? `<span class="text-xs text-gray-600">${p.collected}</span>` : ""}
           </div>
@@ -612,7 +735,14 @@ function bindEvents() {
 
   // Post actions
   document.querySelectorAll("[data-approve]").forEach(el => {
-    el.onclick = () => approvePost(el.dataset.approve);
+    el.onclick = () => {
+      const hoursSelect = document.querySelector(`[data-approve-hours="${el.dataset.approve}"]`);
+      const hours = hoursSelect ? parseInt(hoursSelect.value, 10) : 2;
+      approvePost(el.dataset.approve, hours);
+    };
+  });
+  document.querySelectorAll("[data-retry]").forEach(el => {
+    el.onclick = () => retryPost(el.dataset.retry);
   });
   document.querySelectorAll("[data-edit]").forEach(el => {
     el.onclick = () => { state.editingPost = el.dataset.edit; render(); };
@@ -698,8 +828,15 @@ function bindEvents() {
 
 function switchTab(tab) {
   state.tab = tab;
-  if (tab === "overview") loadOverview();
-  else if (tab === "queue") loadQueue(state.queueFilter);
+  // Clear auto-refresh when leaving overview
+  if (overviewInterval) {
+    clearInterval(overviewInterval);
+    overviewInterval = null;
+  }
+  if (tab === "overview") {
+    loadOverview();
+    overviewInterval = setInterval(loadOverview, 60000);
+  } else if (tab === "queue") loadQueue(state.queueFilter);
   else if (tab === "analytics") loadAnalytics();
   else if (tab === "popular") loadPopular();
   else if (tab === "settings") { loadKeywords(); loadSettings(); }
@@ -713,8 +850,25 @@ function esc(s) {
 }
 
 // ── Init ──
-document.addEventListener("DOMContentLoaded", () => {
-  loadOverview();
+async function initApp() {
+  // Verify token by calling overview
+  const test = await API.get("/api/overview");
+  if (!test) return; // 401 triggers promptLogin via API handler
+  state.overview = test;
+  const cronData = await API.get("/api/cron-status");
+  if (cronData) state.cronJobs = cronData.jobs || [];
+  const alertData = await API.get("/api/alerts");
+  if (alertData) state.alerts = alertData.alerts || [];
+  state.lastUpdated = new Date();
   loadQueue("all");
+  overviewInterval = setInterval(loadOverview, 60000);
   render();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (getAuthToken()) {
+    initApp();
+  } else {
+    promptLogin();
+  }
 });

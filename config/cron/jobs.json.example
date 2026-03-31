@@ -64,8 +64,8 @@
     {
       "id": "a1b2c3d4-5678-4321-abcd-222222222222",
       "name": "threads-fetch-trending",
-      "description": "외부 인기글 수집 (주 1회 월요일)",
-      "enabled": true,
+      "description": "외부 인기글 수집 (주 1회 월요일) — keyword_search 심사 승인 후 enable",
+      "enabled": false,
       "schedule": {
         "kind": "every",
         "everyMs": 604800000
