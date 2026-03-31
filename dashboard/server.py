@@ -257,13 +257,14 @@ def api_bulk_approve():
         return jsonify({"error": "ids must be an array"}), 400
 
     now = datetime.now(timezone.utc)
+    interval_hours = data.get("intervalHours", 2)
     approved = 0
 
     for i, post in enumerate(queue.get("posts", [])):
         if post["id"] in ids and post["status"] == "draft":
             post["status"] = "approved"
             post["approvedAt"] = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-            scheduled = now
+            scheduled = now + timedelta(hours=interval_hours * approved)
             post["scheduledAt"] = scheduled.strftime("%Y-%m-%dT%H:%M:%S.000Z")
             approved += 1
 
@@ -291,6 +292,16 @@ def api_bulk_delete():
     write_json(QUEUE_PATH, queue)
     logger.info("Bulk deleted: %d posts", deleted)
     return jsonify({"ok": True, "deleted": deleted})
+
+
+# ── API: Trend Report ──
+@app.route("/api/trend-report")
+def api_trend_report():
+    report_path = os.path.join(DATA_DIR, "trend-report.json")
+    report = read_json(report_path)
+    if report is None:
+        return jsonify({"generatedAt": None, "keywords": {}, "rewriteCandidates": []})
+    return jsonify(report)
 
 
 # ── API: Growth ──

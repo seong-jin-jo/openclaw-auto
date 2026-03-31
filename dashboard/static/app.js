@@ -124,6 +124,7 @@ const state = {
   editText: "",
   selectedIds: new Set(),
   lastUpdated: null,
+  trendReport: null,
 };
 
 let overviewInterval = null;
@@ -187,6 +188,12 @@ async function loadAnalytics() {
 async function loadKeywords() {
   const data = await API.get("/api/keywords");
   if (data) state.keywords = data.keywords || [];
+  render();
+}
+
+async function loadTrends() {
+  const data = await API.get("/api/trend-report");
+  if (data) state.trendReport = data;
   render();
 }
 
@@ -352,6 +359,7 @@ function render() {
       ${state.tab === "queue" ? renderQueue() : ""}
       ${state.tab === "analytics" ? renderAnalytics() : ""}
       ${state.tab === "popular" ? renderPopular() : ""}
+      ${state.tab === "trends" ? renderTrends() : ""}
       ${state.tab === "settings" ? renderSettings() : ""}
     </main>
   `;
@@ -364,6 +372,7 @@ function renderNav() {
     { id: "queue", label: "Queue" },
     { id: "analytics", label: "Analytics" },
     { id: "popular", label: "Popular Posts" },
+    { id: "trends", label: "Trends" },
     { id: "settings", label: "Settings" },
   ];
   return `
@@ -562,7 +571,13 @@ function renderPost(p) {
         </div>
       ` : ""}
 
-      ${p.scheduledAt ? `<p class="text-xs text-gray-600 mt-1">Scheduled: ${new Date(p.scheduledAt).toLocaleString()}</p>` : ""}
+      <div class="flex flex-wrap gap-3 text-xs text-gray-600 mt-1">
+        ${p.generatedAt ? `<span>생성: ${fmtDate(p.generatedAt)}</span>` : ""}
+        ${p.originalText ? `<span>수정됨</span>` : ""}
+        ${p.approvedAt ? `<span>승인: ${fmtDate(p.approvedAt)}</span>` : ""}
+        ${p.scheduledAt && p.status === "approved" ? `<span class="text-blue-400">발행 예정: ${fmtDate(p.scheduledAt)}</span>` : ""}
+        ${p.publishedAt ? `<span class="text-green-400">발행: ${fmtDate(p.publishedAt)}</span>` : ""}
+      </div>
 
       <div class="flex gap-2 mt-2 items-center">
         ${p.status === "draft" ? `
@@ -669,6 +684,67 @@ function renderPopular() {
       `).join("")}
       ${state.popular.length === 0 ? `<p class="text-gray-500 text-sm">No popular posts</p>` : ""}
     </div>
+  `;
+}
+
+function renderTrends() {
+  const r = state.trendReport;
+  if (!r || !r.generatedAt) return `<p class="text-gray-500 text-sm">No trend report yet. Run threads-rewrite-trending cron to generate.</p>`;
+
+  const keywords = r.keywords || {};
+  const candidates = r.rewriteCandidates || [];
+
+  return `
+    <div class="mb-4 text-xs text-gray-500">Last updated: ${fmtDate(r.generatedAt)}</div>
+
+    ${Object.keys(keywords).length ? `
+      <div class="bg-gray-900 rounded-lg p-4 mb-6">
+        <h3 class="text-sm font-medium text-gray-400 mb-3">Keyword Trends</h3>
+        <table class="w-full text-sm">
+          <thead><tr class="text-gray-500 text-xs">
+            <th class="text-left py-1">Keyword</th>
+            <th class="text-right py-1">Posts</th>
+            <th class="text-right py-1">Avg Likes</th>
+            <th class="text-right py-1">Trend</th>
+            <th class="text-left py-1 pl-4">Patterns</th>
+          </tr></thead>
+          <tbody>
+            ${Object.entries(keywords).map(([kw, d]) => `
+              <tr class="border-t border-gray-800">
+                <td class="text-gray-200 py-1">${esc(kw)}</td>
+                <td class="text-gray-400 text-right py-1">${d.postCount || 0}</td>
+                <td class="text-gray-400 text-right py-1">${d.avgLikes || 0}</td>
+                <td class="text-right py-1">
+                  <span class="${d.trend === '상승' ? 'text-green-400' : d.trend === '하락' ? 'text-red-400' : 'text-gray-400'}">${d.trend || '-'}</span>
+                </td>
+                <td class="text-gray-500 py-1 pl-4">${(d.patterns || []).join(', ')}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    ` : ""}
+
+    ${candidates.length ? `
+      <div class="bg-gray-900 rounded-lg p-4 mb-6">
+        <h3 class="text-sm font-medium text-gray-400 mb-3">Rewrite Candidates</h3>
+        <div class="space-y-3">
+          ${candidates.map(c => `
+            <div class="border-b border-gray-800 pb-3 last:border-0">
+              <p class="text-gray-200 text-sm whitespace-pre-wrap mb-1">${esc(c.original || '')}</p>
+              <p class="text-xs text-gray-500">${esc(c.reason || '')}</p>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    ` : ""}
+
+    ${r.topPost ? `
+      <div class="bg-gray-900 rounded-lg p-4">
+        <h3 class="text-sm font-medium text-gray-400 mb-2">Top Post</h3>
+        <p class="text-gray-200 text-sm whitespace-pre-wrap">${esc(r.topPost)}</p>
+      </div>
+    ` : ""}
   `;
 }
 
@@ -839,8 +915,14 @@ function switchTab(tab) {
   } else if (tab === "queue") loadQueue(state.queueFilter);
   else if (tab === "analytics") loadAnalytics();
   else if (tab === "popular") loadPopular();
+  else if (tab === "trends") loadTrends();
   else if (tab === "settings") { loadKeywords(); loadSettings(); }
   render();
+}
+
+function fmtDate(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleString("ko-KR", {month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false});
 }
 
 function esc(s) {
