@@ -782,3 +782,14 @@ docker compose up -d --build    # extensions 변경 시 rebuild 필요
 | `dashboard/server.py` 또는 `static/` | 자동 반영 (볼륨 마운트) |
 | `config/` 설정 | `docker compose restart` |
 | `data/` 데이터 | 자동 반영 (볼륨 마운트) |
+
+## Changelog
+
+| PR | 날짜 | 변경 내용 |
+|----|------|----------|
+| [#3](https://github.com/seong-jin-jo/openclaw-auto/pull/3) | 2026-03-30 | Queue 다중 선택 + sticky 액션바 (bulk approve/delete) |
+| [#4](https://github.com/seong-jin-jo/openclaw-auto/pull/4) | 2026-03-30 | 발행 속도 제한: get_approved limit=1, scheduledAt 2h 간격 분산 |
+| [#5](https://github.com/seong-jin-jo/openclaw-auto/pull/5) | 2026-03-31 | 대시보드 인증 + XSS/auth 보안 패치 |
+| [#6](https://github.com/seong-jin-jo/openclaw-auto/pull/6) | 2026-03-31 | Trends 탭, 댓글 자동 좋아요, 저조 글 자동 삭제, Queue 타임스탬프 |
+| [#7](https://github.com/seong-jin-jo/openclaw-auto/pull/7) | 2026-03-31 | cleanup 시 성과 영구 보존 (analytics-history.json) |
+| [#8](https://github.com/seong-jin-jo/openclaw-auto/pull/8) | 2026-03-31 | 서비스별 데이터를 generic 템플릿으로 분리 |
