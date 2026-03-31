@@ -85,7 +85,7 @@ def add_cors(response):
 def check_auth():
     if request.method == "OPTIONS":
         return  # CORS preflight 통과
-    if request.path == "/" or request.path.startswith("/static") or request.path.endswith((".js", ".css", ".ico", ".png", ".svg")):
+    if request.path == "/" or (not request.path.startswith("/api/") and request.path.endswith((".js", ".css", ".ico", ".png", ".svg"))):
         return  # 정적 파일 통과
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
     if token != AUTH_TOKEN:

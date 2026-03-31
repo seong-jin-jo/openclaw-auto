@@ -499,9 +499,9 @@ function renderPost(p) {
               class="rounded border-gray-600">
           ` : ""}
           <span class="text-xs px-2 py-0.5 rounded ${statusColors[p.status] || "bg-gray-700 text-gray-300"}">${p.status}</span>
-          <span class="text-xs text-gray-500">${p.topic || ""}</span>
-          ${p.abVariant && p.abVariant !== "A" ? `<span class="text-xs px-1.5 py-0.5 rounded bg-purple-900 text-purple-300">${p.abVariant}</span>` : ""}
-          ${p.model ? `<span class="text-xs text-gray-600">${p.model}</span>` : ""}
+          <span class="text-xs text-gray-500">${esc(p.topic || "")}</span>
+          ${p.abVariant && p.abVariant !== "A" ? `<span class="text-xs px-1.5 py-0.5 rounded bg-purple-900 text-purple-300">${esc(p.abVariant)}</span>` : ""}
+          ${p.model ? `<span class="text-xs text-gray-600">${esc(p.model)}</span>` : ""}
         </div>
         <span class="text-xs text-gray-600">${p.id.slice(0, 8)}</span>
       </div>
@@ -524,7 +524,7 @@ function renderPost(p) {
 
       ${p.hashtags?.length ? `
         <div class="flex gap-1 mb-2">
-          ${p.hashtags.map(h => `<span class="text-xs text-blue-400">#${h}</span>`).join("")}
+          ${p.hashtags.map(h => `<span class="text-xs text-blue-400">#${esc(h)}</span>`).join("")}
         </div>
       ` : ""}
 
@@ -605,7 +605,7 @@ function renderAnalytics() {
         <div class="flex justify-between items-start py-2 border-b border-gray-800 last:border-0">
           <div class="flex-1 mr-4">
             <span class="text-gray-200 text-sm">${esc(p.text)}</span>
-            <span class="text-gray-600 text-xs ml-2">${p.topic}</span>
+            <span class="text-gray-600 text-xs ml-2">${esc(p.topic)}</span>
           </div>
           <div class="text-right text-xs text-gray-500 whitespace-nowrap">
             <div>${p.views} views</div>
@@ -635,7 +635,7 @@ function renderPopular() {
           <div class="flex items-center gap-2 mb-2">
             <span class="text-xs px-2 py-0.5 rounded bg-purple-900 text-purple-300">${p.source || "unknown"}</span>
             ${p.type ? `<span class="text-xs px-2 py-0.5 rounded bg-cyan-900 text-cyan-300">${p.type}</span>` : ""}
-            <span class="text-xs text-gray-500">${p.topic || ""}</span>
+            <span class="text-xs text-gray-500">${esc(p.topic || "")}</span>
             ${p.likes && p.likes !== "0" ? `<span class="text-xs text-yellow-500">${p.likes} likes</span>` : ""}
             ${p.collected ? `<span class="text-xs text-gray-600">${p.collected}</span>` : ""}
           </div>
