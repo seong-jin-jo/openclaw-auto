@@ -505,9 +505,10 @@ def api_cron_status():
     name_map = {
         "threads-generate-drafts": "콘텐츠 생성",
         "threads-auto-publish": "자동 발행",
-        "threads-collect-insights": "반응 수집",
+        "threads-collect-insights": "반응 수집 + 좋아요 + 저조삭제",
         "threads-track-growth": "팔로워 추적",
         "threads-fetch-trending": "인기글 수집",
+        "threads-rewrite-trending": "트렌드 재가공",
     }
     jobs = []
     for job in cron_data.get("jobs", []):
