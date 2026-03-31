@@ -448,7 +448,13 @@ function renderPost(p) {
         </div>
       ` : ""}
 
-      ${p.scheduledAt ? `<p class="text-xs text-gray-600 mt-1">Scheduled: ${new Date(p.scheduledAt).toLocaleString()}</p>` : ""}
+      <div class="flex flex-wrap gap-3 text-xs text-gray-600 mt-1">
+        ${p.generatedAt ? `<span>생성: ${fmtDate(p.generatedAt)}</span>` : ""}
+        ${p.originalText ? `<span>수정됨</span>` : ""}
+        ${p.approvedAt ? `<span>승인: ${fmtDate(p.approvedAt)}</span>` : ""}
+        ${p.scheduledAt && p.status === "approved" ? `<span class="text-blue-400">발행 예정: ${fmtDate(p.scheduledAt)}</span>` : ""}
+        ${p.publishedAt ? `<span class="text-green-400">발행: ${fmtDate(p.publishedAt)}</span>` : ""}
+      </div>
 
       <div class="flex gap-2 mt-2">
         ${p.status === "draft" ? `
@@ -704,6 +710,11 @@ function switchTab(tab) {
   else if (tab === "popular") loadPopular();
   else if (tab === "settings") { loadKeywords(); loadSettings(); }
   render();
+}
+
+function fmtDate(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleString("ko-KR", {month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false});
 }
 
 function esc(s) {

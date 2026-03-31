@@ -244,13 +244,14 @@ def api_bulk_approve():
         return jsonify({"error": "ids must be an array"}), 400
 
     now = datetime.now(timezone.utc)
+    interval_hours = data.get("intervalHours", 2)
     approved = 0
 
     for i, post in enumerate(queue.get("posts", [])):
         if post["id"] in ids and post["status"] == "draft":
             post["status"] = "approved"
             post["approvedAt"] = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-            scheduled = now
+            scheduled = now + timedelta(hours=interval_hours * approved)
             post["scheduledAt"] = scheduled.strftime("%Y-%m-%dT%H:%M:%S.000Z")
             approved += 1
 
