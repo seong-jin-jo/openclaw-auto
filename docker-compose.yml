@@ -17,9 +17,9 @@ services:
     user: root
     init: true
     restart: unless-stopped
-    command: ["sh", "-c", "chown -R node:node /home/node/.openclaw /home/node/data 2>/dev/null; exec node dist/index.js gateway --bind lan --port 18789"]
+    command: ["sh", "-c", "chown -R node:node /home/node/.openclaw /home/node/data 2>/dev/null; exec node dist/index.js gateway --bind lan --port 18790"]
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://172.25.34.11:18789/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://172.25.34.11:18790/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 5
