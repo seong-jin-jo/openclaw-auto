@@ -121,6 +121,9 @@ const ThreadsQueueToolSchema = Type.Object(
       ["draft", "approved", "published", "failed"] as const,
       { description: "Filter by status (for list)." },
     ),
+    limit: Type.Optional(
+      Type.Number({ description: "Max posts to return for get_approved (default: 1)." }),
+    ),
   },
   { additionalProperties: false },
 );
@@ -260,12 +263,17 @@ export function createThreadsQueueTool(api: OpenClawPluginApi) {
 
         case "get_approved": {
           const now = new Date();
-          const ready = queue.posts.filter(
-            (p) =>
-              p.status === "approved" &&
-              p.scheduledAt &&
-              new Date(p.scheduledAt) <= now,
-          );
+          const limitParam = rawParams.limit;
+          const limit = typeof limitParam === "number" && limitParam > 0 ? limitParam : 1;
+          const ready = queue.posts
+            .filter(
+              (p) =>
+                p.status === "approved" &&
+                p.scheduledAt &&
+                new Date(p.scheduledAt) <= now,
+            )
+            .sort((a, b) => new Date(a.scheduledAt!).getTime() - new Date(b.scheduledAt!).getTime())
+            .slice(0, limit);
           return jsonResult({
             total: ready.length,
             posts: ready,
