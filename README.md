@@ -178,7 +178,9 @@ ai-product-systems-lab/           # GitHub 레포 (이 저장소)
     ├── style-data.json           #   스타일 학습 데이터
     ├── growth.json               #   팔로워 추적
     ├── popular-posts.txt         #   인기글 참고
-    └── search-keywords.txt       #   검색 키워드
+    ├── search-keywords.txt       #   검색 키워드
+    ├── analytics-history.json    #   삭제된 글의 성과 이력 (영구 보존)
+    └── trend-report.json         #   트렌드 분석 리포트
 ```
 
 ### gitignore 정책
@@ -270,7 +272,7 @@ Post 구조:
 }
 ```
 
-### threads_insights — 반응 수집 + 터진 글 감지
+### threads_insights — 반응 수집 + 댓글 좋아요 + 저조 글 삭제
 
 ```
 action: collect
@@ -280,6 +282,15 @@ action: collect
 4. views >= VIRAL_THRESHOLD(기본 500) → 터진 글 판정
    → popular-posts.txt에 추가 (source: own-viral)
    → style-data.json에 viral_pattern으로 추가
+
+action: auto_like_replies
+1. 발행된 글의 댓글 목록 조회 (GET /{mediaId}/replies)
+2. 각 댓글에 좋아요 (POST /{replyId}/likes)
+
+action: cleanup_low_engagement
+1. 발행 3일+ 경과 글 중 views < minViews(기본 100) AND likes < minLikes(기본 3) 필터
+2. Threads API로 해당 글 삭제 (DELETE /{mediaId})
+3. queue에서 status를 failed로 업데이트 (사유 기록)
 ```
 
 ### threads_search — 외부 인기글 수집
@@ -318,9 +329,10 @@ summary  통계: 편집 유형별 카운트, 평균 길이, 길이 트렌드
 | Cron Job | 주기 | Agent가 하는 일 |
 |----------|------|----------------|
 | `threads-generate-drafts` | 6시간 | popular-posts.txt + style-data.json 참고하여 글 5개 생성 → queue에 draft 저장 |
-| `threads-auto-publish` | 4시간 | queue에서 approved + 시간 도래한 글 1개를 Threads API로 발행 |
-| `threads-collect-insights` | 6시간 | 발행 글의 views/likes 수집, views >= 500이면 터진 글로 자동 피드 |
+| `threads-auto-publish` | 2시간 | queue에서 approved + 시간 도래한 글 **1개만** 발행 (속도 제한) |
+| `threads-collect-insights` | 6시간 | 반응 수집 + 댓글 자동 좋아요 + 3일 경과 저조 글 자동 삭제 |
 | `threads-fetch-trending` | 주 1회 | search-keywords.txt 키워드로 외부 인기글 검색 → popular-posts.txt 갱신 |
+| `threads-rewrite-trending` | 주 1회 | 인기글 트렌드 분석 → trend-report.json + 리라이팅 draft 생성 |
 | `threads-track-growth` | 매일 | 팔로워 수/프로필 조회수 수집 → growth.json 갱신 |
 
 Cron 관리:
@@ -346,7 +358,9 @@ python3 dashboard/server.py    # http://localhost:3456
 | `/api/queue/{id}/approve` | POST | queue.json | 승인 (즉시 발행 가능 상태, 다음 cron에서 발행) |
 | `/api/queue/{id}/update` | POST | queue.json | 텍스트/토픽/해시태그 수정 |
 | `/api/queue/{id}/delete` | POST | queue.json | 삭제 |
-| `/api/queue/bulk-approve` | POST | queue.json | 다건 승인 (즉시 발행 가능) |
+| `/api/queue/bulk-approve` | POST | queue.json | 다건 승인 (2시간 간격 분산 예약) |
+| `/api/queue/bulk-delete` | POST | queue.json | 다건 삭제 |
+| `/api/trend-report` | GET | trend-report.json | 트렌드 분석 리포트 |
 | `/api/analytics` | GET | queue.json | 토픽별 평균 반응, 터진 글 수 |
 | `/api/growth` | GET | growth.json | 팔로워 일별 기록 |
 | `/api/popular` | GET | popular-posts.txt | 인기글 (source 필터) |
@@ -357,11 +371,12 @@ python3 dashboard/server.py    # http://localhost:3456
 
 | 탭 | 하는 일 |
 |----|---------|
-| Overview | 큐 상태, 팔로워, 터진 글 요약 |
-| Queue | draft 검수: 승인/수정/삭제, bulk approve |
+| Overview | 큐 상태, 팔로워, 터진 글, 크론 현황 요약 |
+| Queue | draft 검수: 승인/수정/삭제, bulk approve/delete, 타임스탬프 표시 |
 | Analytics | 포스트별 engagement, 토픽별 평균 반응 |
 | Popular Posts | 인기글 (manual/own-viral/external 필터) |
-| Settings | 검색 키워드 편집 |
+| Trends | 키워드별 트렌드, 리라이팅 후보, 자동화 크론 상태 |
+| Settings | 검색 키워드 편집, 콘텐츠 가이드 편집 |
 
 ## 설정
 

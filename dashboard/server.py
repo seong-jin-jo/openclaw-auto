@@ -257,13 +257,14 @@ def api_bulk_approve():
         return jsonify({"error": "ids must be an array"}), 400
 
     now = datetime.now(timezone.utc)
+    interval_hours = data.get("intervalHours", 2)
     approved = 0
 
     for i, post in enumerate(queue.get("posts", [])):
         if post["id"] in ids and post["status"] == "draft":
             post["status"] = "approved"
             post["approvedAt"] = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-            scheduled = now
+            scheduled = now + timedelta(hours=interval_hours * approved)
             post["scheduledAt"] = scheduled.strftime("%Y-%m-%dT%H:%M:%S.000Z")
             approved += 1
 
@@ -291,6 +292,16 @@ def api_bulk_delete():
     write_json(QUEUE_PATH, queue)
     logger.info("Bulk deleted: %d posts", deleted)
     return jsonify({"ok": True, "deleted": deleted})
+
+
+# ── API: Trend Report ──
+@app.route("/api/trend-report")
+def api_trend_report():
+    report_path = os.path.join(DATA_DIR, "trend-report.json")
+    report = read_json(report_path)
+    if report is None:
+        return jsonify({"generatedAt": None, "keywords": {}, "rewriteCandidates": []})
+    return jsonify(report)
 
 
 # ── API: Growth ──
@@ -347,8 +358,27 @@ def api_analytics():
     posts = queue.get("posts", [])
     published = [p for p in posts if p.get("status") == "published"]
 
-    # 포스트별 engagement
+    # Merge archived posts from analytics-history.json
+    history_path = os.path.join(DATA_DIR, "analytics-history.json")
+    history = read_json(history_path)
+    archived = history.get("posts", []) if history else []
+
+    # 포스트별 engagement (current + archived)
     post_stats = []
+    for p in archived:
+        eng = p.get("engagement") or {}
+        post_stats.append({
+            "id": p["id"],
+            "text": p.get("text", "")[:80],
+            "topic": p.get("topic", ""),
+            "publishedAt": p.get("publishedAt"),
+            "views": eng.get("views", 0),
+            "likes": eng.get("likes", 0),
+            "replies": eng.get("replies", 0),
+            "reposts": eng.get("reposts", 0),
+            "quotes": eng.get("quotes", 0),
+            "archived": True,
+        })
     for p in published:
         eng = p.get("engagement") or {}
         post_stats.append({
@@ -494,9 +524,10 @@ def api_cron_status():
     name_map = {
         "threads-generate-drafts": "콘텐츠 생성",
         "threads-auto-publish": "자동 발행",
-        "threads-collect-insights": "반응 수집",
+        "threads-collect-insights": "반응 수집 + 좋아요 + 저조삭제",
         "threads-track-growth": "팔로워 추적",
         "threads-fetch-trending": "인기글 수집",
+        "threads-rewrite-trending": "트렌드 재가공",
     }
     jobs = []
     for job in cron_data.get("jobs", []):
