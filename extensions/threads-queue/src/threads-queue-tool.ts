@@ -48,6 +48,19 @@ type QueueConfig = {
 
 const DEFAULT_QUEUE_DIR = path.resolve(process.cwd(), "data");
 const DEFAULT_QUEUE_PATH = path.join(DEFAULT_QUEUE_DIR, "queue.json");
+const DEFAULT_ANALYTICS_PATH = path.join(DEFAULT_QUEUE_DIR, "analytics-history.json");
+
+type AnalyticsHistory = {
+  posts: Array<{
+    id: string;
+    text: string;
+    topic: string;
+    hashtags: string[];
+    publishedAt: string | null;
+    archivedAt: string;
+    engagement: Engagement | null;
+  }>;
+};
 
 function resolveQueuePath(api: OpenClawPluginApi): string {
   const pluginCfg = (api.pluginConfig ?? {}) as QueueConfig;
@@ -285,12 +298,14 @@ export function createThreadsQueueTool(api: OpenClawPluginApi) {
           const PUBLISHED_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
           const FAILED_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
           const details: { id: string; status: string; age: string }[] = [];
+          const toArchive: Post[] = [];
 
           queue.posts = queue.posts.filter((p) => {
             if (p.status === "published" && p.publishedAt) {
               const age = now.getTime() - new Date(p.publishedAt).getTime();
               if (age > PUBLISHED_MAX_AGE_MS) {
                 details.push({ id: p.id, status: "published", age: `${Math.floor(age / 86400000)}d` });
+                toArchive.push(p);
                 return false;
               }
             }
@@ -304,8 +319,34 @@ export function createThreadsQueueTool(api: OpenClawPluginApi) {
             return true;
           });
 
+          // Archive published posts' engagement to analytics-history.json
+          if (toArchive.length > 0) {
+            const analyticsPath = path.join(path.dirname(queuePath), "analytics-history.json");
+            let history: AnalyticsHistory;
+            try {
+              const raw = await fs.readFile(analyticsPath, "utf-8");
+              history = JSON.parse(raw) as AnalyticsHistory;
+            } catch {
+              history = { posts: [] };
+            }
+            for (const p of toArchive) {
+              history.posts.push({
+                id: p.id,
+                text: p.text,
+                topic: p.topic,
+                hashtags: p.hashtags,
+                publishedAt: p.publishedAt,
+                archivedAt: now.toISOString(),
+                engagement: p.engagement,
+              });
+            }
+            const tmpPath = analyticsPath + `.tmp.${process.pid}`;
+            await fs.writeFile(tmpPath, JSON.stringify(history, null, 2), "utf-8");
+            await fs.rename(tmpPath, analyticsPath);
+          }
+
           await writeQueue(queuePath, queue);
-          return jsonResult({ removed: details.length, details });
+          return jsonResult({ removed: details.length, archived: toArchive.length, details });
         }
 
         default:

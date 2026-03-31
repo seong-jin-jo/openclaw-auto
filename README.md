@@ -178,7 +178,9 @@ ai-product-systems-lab/           # GitHub 레포 (이 저장소)
     ├── style-data.json           #   스타일 학습 데이터
     ├── growth.json               #   팔로워 추적
     ├── popular-posts.txt         #   인기글 참고
-    └── search-keywords.txt       #   검색 키워드
+    ├── search-keywords.txt       #   검색 키워드
+    ├── analytics-history.json    #   삭제된 글의 성과 이력 (영구 보존)
+    └── trend-report.json         #   트렌드 분석 리포트
 ```
 
 ### gitignore 정책

@@ -358,8 +358,27 @@ def api_analytics():
     posts = queue.get("posts", [])
     published = [p for p in posts if p.get("status") == "published"]
 
-    # 포스트별 engagement
+    # Merge archived posts from analytics-history.json
+    history_path = os.path.join(DATA_DIR, "analytics-history.json")
+    history = read_json(history_path)
+    archived = history.get("posts", []) if history else []
+
+    # 포스트별 engagement (current + archived)
     post_stats = []
+    for p in archived:
+        eng = p.get("engagement") or {}
+        post_stats.append({
+            "id": p["id"],
+            "text": p.get("text", "")[:80],
+            "topic": p.get("topic", ""),
+            "publishedAt": p.get("publishedAt"),
+            "views": eng.get("views", 0),
+            "likes": eng.get("likes", 0),
+            "replies": eng.get("replies", 0),
+            "reposts": eng.get("reposts", 0),
+            "quotes": eng.get("quotes", 0),
+            "archived": True,
+        })
     for p in published:
         eng = p.get("engagement") or {}
         post_stats.append({
