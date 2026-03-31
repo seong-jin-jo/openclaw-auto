@@ -294,6 +294,16 @@ def api_bulk_delete():
     return jsonify({"ok": True, "deleted": deleted})
 
 
+# ── API: Trend Report ──
+@app.route("/api/trend-report")
+def api_trend_report():
+    report_path = os.path.join(DATA_DIR, "trend-report.json")
+    report = read_json(report_path)
+    if report is None:
+        return jsonify({"generatedAt": None, "keywords": {}, "rewriteCandidates": []})
+    return jsonify(report)
+
+
 # ── API: Growth ──
 @app.route("/api/growth")
 def api_growth():
