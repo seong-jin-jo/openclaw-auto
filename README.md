@@ -538,10 +538,21 @@ A/B 구조:
 | `.env` | API 토큰, 계정 정보 |
 | `config/openclaw.json` | 플러그인 설정, 모델 선택 |
 | `config/cron/jobs.json` | 발행 주기, 생성 프롬프트 |
-| `data/prompt-guide.txt` | 콘텐츠 전략, 타겟, 톤 |
 | `data/queue.json` | 콘텐츠 큐 |
 | `data/popular-posts.txt` | 인기글 참고 데이터 |
-| `data/search-keywords.txt` | 검색 키워드 |
+
+> **⚠️ `data/prompt-guide.txt`와 `data/search-keywords.txt`에 대해**
+>
+> 이 두 파일은 git에 **범용 템플릿**으로 포함되어 있습니다.
+> Fork 후 반드시 **자기 서비스에 맞게 내용을 교체**하세요.
+> 교체한 뒤에는 로컬 변경으로 유지하면 됩니다 (git에 push하지 않음).
+>
+> upstream merge 시 이 파일에 충돌이 나면 **자기 것(ours)을 유지**하세요:
+> ```bash
+> git checkout --ours data/prompt-guide.txt data/search-keywords.txt
+> git add data/prompt-guide.txt data/search-keywords.txt
+> git merge --continue
+> ```
 
 ### 공통 코드 (git 추적, 모든 fork가 공유)
 
@@ -567,8 +578,9 @@ cp .env.example .env
 cp config/openclaw.json.example config/openclaw.json
 cp config/cron/jobs.json.example config/cron/jobs.json
 
-# 4. 제품 전략 작성
-vim data/prompt-guide.txt    # 타겟, 톤, 콘텐츠 유형 정의
+# 4. 콘텐츠 전략 작성 (필수 — 내 서비스에 맞게 교체)
+vim data/prompt-guide.txt    # 타겟, 톤, 콘텐츠 유형, CTA 전략
+vim data/search-keywords.txt # 인기글 수집용 키워드
 
 # 5. 실행
 docker compose up -d --build
