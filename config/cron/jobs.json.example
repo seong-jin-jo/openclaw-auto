@@ -14,7 +14,7 @@
       "wakeMode": "now",
       "payload": {
         "kind": "agentTurn",
-        "message": "다음을 수행하라:\n1. threads_style tool로 action=read하여 스타일 데이터 확인\n2. /home/node/data/popular-posts.txt 파일을 읽어 인기글 패턴과 type 확인\n3. /home/node/data/prompt-guide.txt 파일을 읽어 콘텐츠 가이드(타겟/유형/톤) 확인. 이 가이드를 반드시 따라라.\n4. 위 데이터를 참고하여 Threads에 올릴 글 5개를 생성. prompt-guide.txt의 지침을 최우선으로 따르되, 추가로:\n   - 100% 한국어\n   - 500자 이내\n   - topic 구체적으로 지정\n   - hashtags 2~4개\n5. 각 글을 threads_queue tool로 action=add하여 draft로 저장. topic과 hashtags도 함께 지정.\n6. model 파라미터에 현재 모델명 기록.\n7. 실패한 글은 건너뛰고 최소 3개 이상 생성."
+        "message": "다음을 수행하라:\n1. threads_style tool로 action=read하여 스타일 데이터 확인\n2. /home/node/data/popular-posts.txt 파일을 읽어 인기글 패턴 확인\n3. /home/node/data/prompt-guide.txt 파일을 읽어 콘텐츠 가이드 확인. 이 가이드의 타겟/톤/유형/언어/길이 지침을 반드시 따라라.\n4. 위 데이터를 참고하여 글 5개를 생성. prompt-guide.txt의 지침을 최우선으로 따르되, topic과 hashtags도 지정.\n5. 각 글을 threads_queue tool로 action=add하여 draft로 저장.\n6. model 파라미터에 현재 모델명 기록.\n7. 실패한 글은 건너뛰고 최소 3개 이상 생성."
       },
       "delivery": {
         "mode": "none",
@@ -24,17 +24,17 @@
     {
       "id": "f05fa155-a37a-43a1-99e5-c1852b350160",
       "name": "threads-auto-publish",
-      "description": "승인된 Threads 글 자동 발행 (2시간마다)",
+      "description": "승인된 글 자동 발행 (4시간마다 1개)",
       "enabled": true,
       "schedule": {
         "kind": "every",
-        "everyMs": 7200000
+        "everyMs": 14400000
       },
       "sessionTarget": "isolated",
       "wakeMode": "now",
       "payload": {
         "kind": "agentTurn",
-        "message": "다음을 수행하라:\n1. threads_queue tool로 action=get_approved하여 발행 예정 시간이 도래한 승인된 글 확인\n2. 결과가 없으면 \"발행할 글 없음\"으로 종료\n3. 결과가 있으면 각 글에 대해:\n   a. threads_publish tool로 text 파라미터에 글 내용을 넣어 발행\n   b. 발행 성공 시 threads_queue tool로 action=update, 해당 글의 id, status를 published로, threadsMediaId를 발행 결과의 threadsMediaId로 업데이트\n   c. 발행 실패 시 threads_queue tool로 action=update, 해당 글의 id, status를 failed로, error에 에러 메시지 기록\n4. 처리 결과 요약 출력\n5. threads_queue tool로 action=cleanup 실행하여 오래된 published/failed 글 자동 정리"
+        "message": "다음을 수행하라:\n1. threads_queue tool로 action=get_approved 실행\n2. 결과가 없으면 종료\n3. 결과가 있으면 첫 번째 글 1개를 threads_publish tool로 발행하라. text 파라미터에 해당 글의 text를 넣어라.\n4. 발행 성공하면 threads_queue tool로 action=update, id에 해당 글 id, status를 published, threadsMediaId를 발행 결과의 id로 업데이트\n5. 발행 실패하면 threads_queue tool로 action=update, status를 failed, error에 에러 내용 기록\n6. threads_queue tool로 action=cleanup 실행"
       },
       "delivery": {
         "mode": "none",
