@@ -483,6 +483,10 @@ openclaw agent --agent main --message "threads_search로 인기글 수집해"
 | 2b | 팔로워 추적 (Account Insights API) | 완료 |
 | 2c | 콘텐츠 대시보드 (Flask) | 완료 |
 | 2d | 아키텍처 전환: scripts/ 제거 → OpenClaw 완전 자동화 | 완료 |
+| 2e | 댓글 자동 좋아요 + 저조 글 자동 삭제 | 완료 |
+| 2f | 트렌드 분석 + 리라이팅 draft 생성 | 완료 |
+| 2g | 성과 영구 보존 (analytics-history.json) | 완료 |
+| 2h | 이미지 첨부 인프라 (Browser + AI 이미지 + R2 호스팅) | 진행 중 |
 
 ### 다음: A/B 테스트 구조
 
