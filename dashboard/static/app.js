@@ -39,7 +39,7 @@ const S = {
   page: "overview", subTab: "queue",
   overview: null, queue: [], growth: [], popular: [], analytics: null,
   keywords: [], settings: null, guide: "", cronJobs: [], activity: [],
-  channelConfig: { threads: {}, x: {} },
+  channelConfig: { threads: {}, x: {} }, tokenStatus: null, editingXCreds: false,
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(),
 };
@@ -75,6 +75,7 @@ async function loadGrowth() { const d = await API.get("/api/growth"); if (d) S.g
 async function loadPopular() { const d = await API.get("/api/popular"); if (d) S.popular = d.posts || []; render(); }
 async function loadAnalytics() { const d = await API.get("/api/analytics"); if (d) S.analytics = d; render(); }
 async function loadKeywords() { const d = await API.get("/api/keywords"); if (d) S.keywords = d.keywords || []; render(); }
+async function loadTokenStatus() { const d = await API.get("/api/token-status"); if (d) S.tokenStatus = d; render(); }
 async function loadSettings() {
   const [s, g] = await Promise.all([API.get("/api/settings"), API.get("/api/guide")]);
   if (s) S.settings = s;
@@ -262,6 +263,10 @@ function renderChannel() {
     <div class="flex items-center gap-3 mb-6">
       <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm font-bold text-white">T</span>
       <div><h2 class="text-xl font-semibold text-white">Threads</h2><p class="text-xs text-gray-500">${S.channelConfig.threads?.userId ? "ID: " + S.channelConfig.threads.userId : ""} ${S.growth.length ? " &middot; " + S.growth[S.growth.length - 1].followers + " followers" : ""}</p></div>
+      <a href="https://www.threads.net/@${S.channelConfig.threads?.username || S.channelConfig.threads?.userId || ''}" target="_blank" rel="noopener" class="ml-auto px-3 py-1 text-xs rounded border border-gray-700 text-gray-400 hover:text-purple-400 hover:border-purple-500 transition flex items-center gap-1.5" title="Open Threads profile">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        Open Threads
+      </a>
     </div>
     <div class="flex gap-1 mb-6 border-b border-gray-800/50 pb-3">
       ${tabs.map(t => `<button data-subtab="${t}" class="px-3 py-1.5 text-sm rounded ${S.subTab === t ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"}">${t.charAt(0).toUpperCase() + t.slice(1)}</button>`).join("")}
@@ -359,6 +364,23 @@ function renderChannelSettings(channel) {
 
   return `
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Threads Connection -->
+      <div class="card p-5">
+        <h3 class="text-sm font-medium text-gray-300 mb-1">Threads API Connection</h3>
+        <p class="text-[10px] text-gray-600 mb-4">developers.facebook.com > Threads API</p>
+        <div class="space-y-2.5 text-sm">
+          <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="${S.channelConfig.threads?.connected ? "text-green-400" : "text-yellow-400"}">${S.channelConfig.threads?.connected ? "Connected" : "Not connected"}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Username</span><span class="text-gray-300">${S.channelConfig.threads?.username ? "@" + S.channelConfig.threads.username : "-"}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">User ID</span><span class="text-gray-300">${S.channelConfig.threads?.userId || "-"}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Auth Method</span><span class="text-gray-300">Long-lived Access Token</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Character Limit</span><span class="text-gray-300">500</span></div>
+        </div>
+        <div class="mt-3 p-3 rounded bg-gray-900/50">
+          <p class="text-[10px] text-gray-500 mb-1">Threads API \ud1a0\ud070 \uad00\ub9ac:</p>
+          <p class="text-[10px] text-gray-400">.env \ud30c\uc77c\uc758 THREADS_ACCESS_TOKEN, THREADS_USER_ID \ub610\ub294 config/openclaw.json\uc758 threads-publish.config\uc5d0\uc11c \uc124\uc815</p>
+        </div>
+      </div>
+
       <div class="card p-5">
         <div class="flex items-center justify-between mb-4"><h3 class="text-sm font-medium text-gray-300">Automation</h3><button id="save-settings" class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button></div>
         ${row("viralThreshold", "Viral Threshold", "터진 글 기준 views")}
@@ -391,6 +413,10 @@ function renderChannelX() {
     <div class="flex items-center gap-3 mb-6">
       <span class="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center text-sm font-bold text-white">X</span>
       <div><h2 class="text-xl font-semibold text-white">X (Twitter)</h2><p class="text-xs text-gray-500">${connected ? "Connected" : "Not connected"}</p></div>
+      ${connected ? `<a href="https://x.com" target="_blank" rel="noopener" class="ml-auto px-3 py-1 text-xs rounded border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        Open X
+      </a>` : ""}
     </div>
     <div class="flex gap-1 mb-6 border-b border-gray-800/50 pb-3">
       ${tabs.map(t => `<button data-subtab="${t}" class="px-3 py-1.5 text-sm rounded ${S.subTab === t ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"}">${t.charAt(0).toUpperCase() + t.slice(1)}</button>`).join("")}
@@ -401,38 +427,114 @@ function renderChannelX() {
   </div>`;
 }
 
+function credField(id, label, desc, type = "text") {
+  return `<div>
+    <label class="text-xs text-gray-400 block mb-0.5">${label}</label>
+    <p class="text-[10px] text-gray-600 mb-1">${desc}</p>
+    <input id="${id}" type="${type}" placeholder="Enter ${label}" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 placeholder-gray-600">
+  </div>`;
+}
+
 function renderXSettings() {
+  const connected = S.channelConfig.x?.connected;
+  const editing = S.editingXCreds;
+
+  if (connected && !editing) {
+    return `
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-4">X Channel Info</h3>
+          <div class="space-y-2.5 text-sm">
+            <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="text-green-400">Connected</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Character Limit</span><span class="text-gray-300">280</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Auth Method</span><span class="text-gray-300">OAuth 1.0a (User Context)</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Permission</span><span class="text-gray-300">Read and Write</span></div>
+          </div>
+          <button id="edit-x-creds" class="w-full mt-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Edit Credentials</button>
+        </div>
+      </div>`;
+  }
+
   return `
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div class="card p-5">
-        <h3 class="text-sm font-medium text-gray-300 mb-4">X API Credentials</h3>
-        <div class="space-y-3">
-          <div><label class="text-xs text-gray-500 block mb-1">API Key</label><input id="x-apiKey" type="text" placeholder="Enter API Key" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 placeholder-gray-600"></div>
-          <div><label class="text-xs text-gray-500 block mb-1">API Key Secret</label><input id="x-apiKeySecret" type="password" placeholder="Enter API Key Secret" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 placeholder-gray-600"></div>
-          <div><label class="text-xs text-gray-500 block mb-1">Access Token</label><input id="x-accessToken" type="text" placeholder="Enter Access Token" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 placeholder-gray-600"></div>
-          <div><label class="text-xs text-gray-500 block mb-1">Access Token Secret</label><input id="x-accessTokenSecret" type="password" placeholder="Enter Access Token Secret" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 placeholder-gray-600"></div>
+        <h3 class="text-sm font-medium text-gray-300 mb-1">OAuth 1.0a User Authentication</h3>
+        <p class="text-[10px] text-gray-600 mb-4">developer.x.com > Your App > Keys and tokens</p>
+        <div class="space-y-4">
+          <div class="border-b border-gray-800/50 pb-3">
+            <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Consumer Keys</p>
+            ${credField("x-apiKey", "API Key", "Consumer Key \u2014 \uc571 \uc778\uc99d\uc5d0 \uc0ac\uc6a9")}
+            <div class="mt-2">${credField("x-apiKeySecret", "API Key Secret", "Consumer Secret \u2014 \uc571 \uc11c\uba85\uc5d0 \uc0ac\uc6a9", "password")}</div>
+          </div>
+          <div>
+            <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Access Token (Read+Write)</p>
+            ${credField("x-accessToken", "Access Token", "\uc0ac\uc6a9\uc790 \ub300\uc2e0 \ud2b8\uc717 \ubc1c\ud589 \uad8c\ud55c")}
+            <div class="mt-2">${credField("x-accessTokenSecret", "Access Token Secret", "\uc561\uc138\uc2a4 \ud1a0\ud070 \uc11c\uba85\uc5d0 \uc0ac\uc6a9", "password")}</div>
+          </div>
         </div>
-        <button id="save-x-config" class="w-full mt-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${S.channelConfig.x?.connected ? "Update Credentials" : "Connect X Account"}</button>
-        <p class="text-[10px] text-gray-600 mt-3 text-center">Get credentials at developer.x.com</p>
-      </div>
-      <div class="card p-5">
-        <h3 class="text-sm font-medium text-gray-300 mb-4">X Channel Info</h3>
-        <div class="space-y-2 text-sm">
-          <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="${S.channelConfig.x?.connected ? "text-green-400" : "text-yellow-400"}">${S.channelConfig.x?.connected ? "Connected" : "Not connected"}</span></div>
-          <div class="flex justify-between"><span class="text-gray-500">Character Limit</span><span class="text-gray-300">280</span></div>
-          <div class="flex justify-between"><span class="text-gray-500">API Plan</span><span class="text-gray-300">Basic ($100/mo) required</span></div>
-          <div class="flex justify-between"><span class="text-gray-500">Auth Method</span><span class="text-gray-300">OAuth 1.0a</span></div>
+        <div class="flex gap-2 mt-4">
+          <button id="save-x-config" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${connected ? "Update" : "Connect X Account"}</button>
+          ${connected ? `<button id="cancel-x-edit" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>` : ""}
         </div>
       </div>
+      ${!connected ? `<div class="card p-5">
+        <h3 class="text-sm font-medium text-gray-300 mb-3">Setup Guide</h3>
+        <ol class="text-xs text-gray-400 space-y-1.5 list-decimal list-inside">
+          <li>developer.x.com \uc5d0\uc11c \uc571 \uc0dd\uc131</li>
+          <li>User Authentication Settings > Read and Write \uad8c\ud55c \uc124\uc815</li>
+          <li>Consumer Keys \uc7ac\uc0dd\uc131 \u2192 Key + Secret \ubcf5\uc0ac</li>
+          <li>Access Token \uc0dd\uc131 (Read+Write) \u2192 Token + Secret \ubcf5\uc0ac</li>
+          <li>\uc67c\ucabd \ud3fc\uc5d0 4\uac1c \ud0a4 \uc785\ub825 \ud6c4 Connect</li>
+        </ol>
+      </div>` : ""}
     </div>`;
 }
 
-// ── Settings Page (Channel Connections) ──
+// ── Settings Page (Channel Connections + Token Management) ──
 function renderSettings() {
+  const ts = S.tokenStatus || {};
+  const claude = ts.claude;
   return `<div class="px-8 py-6">
     <h2 class="text-xl font-semibold text-white mb-1">Settings</h2>
-    <p class="text-sm text-gray-500 mb-6">Channel connections & system status</p>
+    <p class="text-sm text-gray-500 mb-6">Channel connections, token management & system status</p>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <!-- Token Management -->
+      <div class="card p-5">
+        <h3 class="text-sm font-medium text-gray-300 mb-4">Token & API Status</h3>
+        <div class="space-y-3">
+          <div class="p-3 rounded-lg bg-gray-900/50">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs text-gray-300">Claude (AI Engine)</span>
+              <span class="text-[10px] ${claude?.healthy ? "text-green-400" : "text-red-400"}">${claude ? (claude.healthy ? "Healthy" : "Expiring soon") : "Unknown"}</span>
+            </div>
+            ${claude ? `
+              <div class="text-[10px] text-gray-500 space-y-0.5">
+                <div>Type: ${claude.type || "oauth"} (Max Plan)</div>
+                <div>Remaining: <span class="${claude.remainingHours > 2 ? "text-gray-300" : "text-red-400"}">${claude.remainingHours}h</span> (auto-refresh)</div>
+                <div>Errors: ${claude.errorCount}</div>
+                <div>Last used: ${claude.lastUsed ? fmtAgo(new Date(claude.lastUsed).toISOString()) : "never"}</div>
+              </div>
+            ` : `<p class="text-[10px] text-gray-600">No data available</p>`}
+          </div>
+          <div class="p-3 rounded-lg bg-gray-900/50">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs text-gray-300">Threads API</span>
+              <span class="text-[10px] ${ts.threads?.connected ? "text-green-400" : "text-gray-600"}">${ts.threads?.connected ? "Connected" : "Not connected"}</span>
+            </div>
+            ${ts.threads?.userId ? `<div class="text-[10px] text-gray-500">User ID: ${ts.threads.userId}</div>` : ""}
+          </div>
+          <div class="p-3 rounded-lg bg-gray-900/50">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs text-gray-300">X (Twitter) API</span>
+              <span class="text-[10px] ${ts.x?.connected ? "text-green-400" : "text-yellow-400"}">${ts.x?.connected ? "Connected" : "Not connected"}</span>
+            </div>
+            ${ts.x?.connected ? `<div class="text-[10px] text-gray-500">Enabled: ${ts.x.enabled}</div>` : `<div class="text-[10px] text-gray-600">Setup in X channel settings</div>`}
+          </div>
+        </div>
+      </div>
+
+      <!-- Channel Connections -->
       <div class="card p-5">
         <h3 class="text-sm font-medium text-gray-300 mb-4">Connected Channels</h3>
         <div class="space-y-3">
@@ -499,12 +601,17 @@ function bindEvents() {
     if (ta) { const kw = ta.value.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("#")); const r = await API.post("/api/keywords", { keywords: kw }); if (r) showToast("키워드 저장됨", "success"); }
   };
 
+  const editX = document.getElementById("edit-x-creds");
+  if (editX) editX.onclick = () => { S.editingXCreds = true; render(); };
+  const cancelX = document.getElementById("cancel-x-edit");
+  if (cancelX) cancelX.onclick = () => { S.editingXCreds = false; render(); };
+
   const saveX = document.getElementById("save-x-config");
   if (saveX) saveX.onclick = async () => {
     const data = {};
     ["apiKey", "apiKeySecret", "accessToken", "accessTokenSecret"].forEach(k => { const el = document.getElementById("x-" + k); if (el?.value) data[k] = el.value; });
     const r = await API.post("/api/channel-config/x", data);
-    if (r) { showToast(r.enabled ? "X 연결 완료!" : "저장됨", "success"); loadOverview(); }
+    if (r) { showToast(r.enabled ? "X 연결 완료!" : "저장됨", "success"); S.editingXCreds = false; loadOverview(); }
   };
 }
 
@@ -513,7 +620,7 @@ function navigate(page) {
   if (page === "overview") loadOverview();
   else if (page === "threads") { S.subTab = "queue"; loadQueue(S.queueFilter); loadGrowth(); }
   else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); }
-  else if (page === "settings") { loadSettings(); loadKeywords(); }
+  else if (page === "settings") { loadSettings(); loadKeywords(); loadTokenStatus(); }
   render();
 }
 

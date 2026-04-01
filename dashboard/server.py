@@ -7,7 +7,6 @@ import json
 import logging
 import os
 import re
-import secrets
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -47,9 +46,6 @@ DEFAULT_SETTINGS = {
 
 # ── 인증 ──
 AUTH_TOKEN = os.environ.get("DASHBOARD_AUTH_TOKEN", "")
-if not AUTH_TOKEN:
-    AUTH_TOKEN = secrets.token_hex(24)
-    logger.warning("DASHBOARD_AUTH_TOKEN not set! Generated random token: %s", AUTH_TOKEN)
 
 
 def read_settings():
@@ -73,8 +69,10 @@ ALLOWED_ORIGINS = {
 @app.after_request
 def add_cors(response):
     origin = request.headers.get("Origin", "")
-    if origin in ALLOWED_ORIGINS:
+    if origin in ALLOWED_ORIGINS or origin.endswith(".cloudflare-tunnel.cloud") or origin.endswith(".trycloudflare.com"):
         response.headers["Access-Control-Allow-Origin"] = origin
+    elif not origin:
+        response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return response
@@ -83,9 +81,11 @@ def add_cors(response):
 # ── 인증 미들웨어 ──
 @app.before_request
 def check_auth():
+    if not AUTH_TOKEN:
+        return  # 토큰 미설정 시 인증 비활성화
     if request.method == "OPTIONS":
         return  # CORS preflight 통과
-    if request.path == "/" or (not request.path.startswith("/api/") and request.path.endswith((".js", ".css", ".ico", ".png", ".svg"))):
+    if request.path == "/" or not request.path.startswith("/api/"):
         return  # 정적 파일 통과
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
     if token != AUTH_TOKEN:
@@ -620,6 +620,49 @@ def api_alerts():
     return jsonify({"alerts": alerts})
 
 
+# ── API: Token Status ──
+@app.route("/api/token-status")
+def api_token_status():
+    import time
+    result = {"claude": None, "threads": None, "x": None}
+
+    # Claude OAuth token
+    auth_path = CONFIG_DIR / "agents" / "main" / "agent" / "auth-profiles.json"
+    auth = read_json(auth_path)
+    if auth:
+        for k, v in auth.get("profiles", {}).items():
+            exp = v.get("expires", 0)
+            remaining_h = (exp / 1000 - time.time()) / 3600
+            stats = auth.get("usageStats", {}).get(k, {})
+            result["claude"] = {
+                "profile": k,
+                "type": v.get("type"),
+                "expiresAt": exp,
+                "remainingHours": round(remaining_h, 1),
+                "healthy": remaining_h > 1,
+                "errorCount": stats.get("errorCount", 0),
+                "lastUsed": stats.get("lastUsed"),
+            }
+
+    # Threads token (from .env or openclaw.json)
+    config = read_json(CONFIG_DIR / "openclaw.json") or {}
+    plugins = config.get("plugins", {}).get("entries", {})
+    tp = plugins.get("threads-publish", {})
+    result["threads"] = {
+        "connected": bool(tp.get("config", {}).get("accessToken", "")),
+        "userId": tp.get("config", {}).get("userId", ""),
+    }
+
+    # X token
+    xp = plugins.get("x-publish", {})
+    result["x"] = {
+        "connected": bool(xp.get("config", {}).get("apiKey", "")),
+        "enabled": xp.get("enabled", False),
+    }
+
+    return jsonify(result)
+
+
 # ── API: Activity Timeline ──
 @app.route("/api/activity")
 def api_activity():
@@ -653,7 +696,21 @@ def api_channel_config():
     plugins = config.get("plugins", {}).get("entries", {})
     channels = {}
     tp = plugins.get("threads-publish", {})
-    channels["threads"] = {"enabled": tp.get("enabled", False), "userId": tp.get("config", {}).get("userId", ""), "connected": bool(tp.get("config", {}).get("accessToken", ""))}
+    t_cfg = tp.get("config", {})
+    # Try to get username from Threads API
+    t_username = ""
+    t_token = t_cfg.get("accessToken", "")
+    t_uid = t_cfg.get("userId", "")
+    if t_token and t_uid:
+        try:
+            import urllib.request
+            url = f"https://graph.threads.net/v1.0/me?fields=username&access_token={t_token}"
+            with urllib.request.urlopen(url, timeout=5) as resp:
+                t_data = json.loads(resp.read())
+                t_username = t_data.get("username", "")
+        except Exception:
+            pass
+    channels["threads"] = {"enabled": tp.get("enabled", False), "userId": t_uid, "username": t_username, "connected": bool(t_token)}
     xp = plugins.get("x-publish", {})
     channels["x"] = {"enabled": xp.get("enabled", False), "connected": bool(xp.get("config", {}).get("apiKey", ""))}
     return jsonify(channels)
