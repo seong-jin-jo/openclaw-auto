@@ -712,7 +712,20 @@ def api_channel_config():
             pass
     channels["threads"] = {"enabled": tp.get("enabled", False), "userId": t_uid, "username": t_username, "connected": bool(t_token)}
     xp = plugins.get("x-publish", {})
-    channels["x"] = {"enabled": xp.get("enabled", False), "connected": bool(xp.get("config", {}).get("apiKey", ""))}
+    x_cfg = xp.get("config", {})
+    def mask(val):
+        if not val or len(val) < 8: return ""
+        return val[:6] + "..." + val[-4:]
+    channels["x"] = {
+        "enabled": xp.get("enabled", False),
+        "connected": bool(x_cfg.get("apiKey", "")),
+        "keys": {
+            "apiKey": mask(x_cfg.get("apiKey", "")),
+            "apiKeySecret": mask(x_cfg.get("apiKeySecret", "")),
+            "accessToken": mask(x_cfg.get("accessToken", "")),
+            "accessTokenSecret": mask(x_cfg.get("accessTokenSecret", "")),
+        } if x_cfg.get("apiKey") else None,
+    }
     return jsonify(channels)
 
 

@@ -457,19 +457,19 @@ function renderXSettings() {
   const editing = S.editingXCreds;
 
   if (connected && !editing) {
+    const keys = S.channelConfig.x?.keys || {};
     return `
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="card p-5">
-          <h3 class="text-sm font-medium text-gray-300 mb-4">X Channel Info</h3>
-          <div class="space-y-2.5 text-sm">
-            <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="text-green-400">Connected</span></div>
-            <div class="flex justify-between"><span class="text-gray-500">Character Limit</span><span class="text-gray-300">280</span></div>
-            <div class="flex justify-between"><span class="text-gray-500">Auth Method</span><span class="text-gray-300">OAuth 1.0a (User Context)</span></div>
-            <div class="flex justify-between"><span class="text-gray-500">Permission</span><span class="text-gray-300">Read and Write</span></div>
+          <h3 class="text-sm font-medium text-gray-300 mb-4">Current Credentials</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span class="text-gray-500">API Key</span><span class="text-gray-300 font-mono text-xs">${keys.apiKey || "-"}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">API Key Secret</span><span class="text-gray-300 font-mono text-xs">${keys.apiKeySecret || "-"}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Access Token</span><span class="text-gray-300 font-mono text-xs">${keys.accessToken || "-"}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Access Token Secret</span><span class="text-gray-300 font-mono text-xs">${keys.accessTokenSecret || "-"}</span></div>
           </div>
           <button id="edit-x-creds" class="w-full mt-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Edit Credentials</button>
         </div>
-      </div>`;
   }
 
   return `
