@@ -1,8 +1,8 @@
 {
-  "name": "@openclaw/naver-blog",
+  "name": "@openclaw/sample-blog",
   "version": "2026.4.1",
   "private": true,
-  "description": "OpenClaw Naver Blog XML-RPC publish plugin",
+  "description": "OpenClaw Sample column article publish plugin",
   "type": "module",
   "openclaw": {
     "extensions": [

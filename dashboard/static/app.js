@@ -119,6 +119,7 @@ const state = {
   settings: null,
   cronJobs: [],
   alerts: [],
+  blogQueue: [],
   loading: false,
   editingPost: null,
   editText: "",
@@ -188,6 +189,33 @@ async function loadKeywords() {
   const data = await API.get("/api/keywords");
   if (data) state.keywords = data.keywords || [];
   render();
+}
+
+async function loadBlogQueue() {
+  const data = await API.get("/api/blog-queue");
+  if (data) state.blogQueue = data.posts || [];
+  render();
+}
+
+async function approveBlogPost(id) {
+  setLoading(true);
+  const result = await API.post(`/api/blog-queue/${id}/approve`);
+  setLoading(false);
+  if (result) {
+    showToast("블로그 글 승인 완료", "success");
+    await loadBlogQueue();
+  }
+}
+
+async function deleteBlogPost(id) {
+  if (!confirm("블로그 글을 삭제하시겠습니까?")) return;
+  setLoading(true);
+  const result = await API.post(`/api/blog-queue/${id}/delete`);
+  setLoading(false);
+  if (result) {
+    showToast("삭제 완료", "success");
+    await loadBlogQueue();
+  }
 }
 
 async function loadSettings() {
@@ -352,6 +380,7 @@ function render() {
       ${state.tab === "queue" ? renderQueue() : ""}
       ${state.tab === "analytics" ? renderAnalytics() : ""}
       ${state.tab === "popular" ? renderPopular() : ""}
+      ${state.tab === "blog" ? renderBlog() : ""}
       ${state.tab === "settings" ? renderSettings() : ""}
     </main>
   `;
@@ -364,6 +393,7 @@ function renderNav() {
     { id: "queue", label: "Queue" },
     { id: "analytics", label: "Analytics" },
     { id: "popular", label: "Popular Posts" },
+    { id: "blog", label: "Blog" },
     { id: "settings", label: "Settings" },
   ];
   return `
@@ -642,6 +672,54 @@ function renderAnalytics() {
   `;
 }
 
+function renderBlog() {
+  const statusColors = {
+    draft: "bg-yellow-900 text-yellow-300",
+    approved: "bg-blue-900 text-blue-300",
+    published: "bg-green-900 text-green-300",
+    failed: "bg-red-900 text-red-300",
+  };
+
+  return `
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-bold text-white">Blog Queue</h2>
+      <span class="text-sm text-gray-500">${state.blogQueue.length} posts</span>
+    </div>
+
+    <div class="space-y-3">
+      ${state.blogQueue.length === 0 ? `<p class="text-gray-500 text-sm">No blog posts yet. Blog posts are generated from published Threads content.</p>` : ""}
+      ${state.blogQueue.map(p => `
+        <div class="bg-gray-900 rounded-lg p-4">
+          <div class="flex items-start justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs px-2 py-0.5 rounded ${statusColors[p.status] || "bg-gray-700 text-gray-300"}">${esc(p.status)}</span>
+              <span class="text-xs text-gray-500">${esc(p.seoKeyword || "")}</span>
+              ${p.blogPostUrl ? `<a href="${esc(p.blogPostUrl)}" target="_blank" class="text-xs text-blue-400 hover:underline">View</a>` : ""}
+            </div>
+            <span class="text-xs text-gray-600">${esc(p.id.slice(0, 8))}</span>
+          </div>
+          <h3 class="text-gray-200 text-sm font-medium mb-1">${esc(p.title || "")}</h3>
+          <p class="text-gray-400 text-xs mb-2">${esc((p.content || "").replace(/<[^>]*>/g, "").slice(0, 150))}...</p>
+          ${p.tags?.length ? `
+            <div class="flex flex-wrap gap-1 mb-2">
+              ${p.tags.slice(0, 10).map(t => `<span class="text-xs text-cyan-400">#${esc(t)}</span>`).join("")}
+              ${p.tags.length > 10 ? `<span class="text-xs text-gray-500">+${p.tags.length - 10}</span>` : ""}
+            </div>
+          ` : ""}
+          <div class="flex gap-2 mt-2">
+            ${p.status === "draft" ? `
+              <button data-blog-approve="${p.id}" class="px-2 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>
+            ` : ""}
+            ${p.status !== "published" ? `
+              <button data-blog-delete="${p.id}" class="px-2 py-1 text-xs bg-red-900 text-red-300 rounded hover:bg-red-800">Delete</button>
+            ` : ""}
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
 function renderPopular() {
   const sources = ["all", "manual", "external", "own-viral"];
   return `
@@ -769,6 +847,14 @@ function bindEvents() {
     };
   });
 
+  // Blog actions
+  document.querySelectorAll("[data-blog-approve]").forEach(el => {
+    el.onclick = () => approveBlogPost(el.dataset.blogApprove);
+  });
+  document.querySelectorAll("[data-blog-delete]").forEach(el => {
+    el.onclick = () => deleteBlogPost(el.dataset.blogDelete);
+  });
+
   // Select all
   const selectAllBtn = document.getElementById("select-all");
   if (selectAllBtn) selectAllBtn.onchange = toggleSelectAll;
@@ -839,6 +925,7 @@ function switchTab(tab) {
   } else if (tab === "queue") loadQueue(state.queueFilter);
   else if (tab === "analytics") loadAnalytics();
   else if (tab === "popular") loadPopular();
+  else if (tab === "blog") loadBlogQueue();
   else if (tab === "settings") { loadKeywords(); loadSettings(); }
   render();
 }

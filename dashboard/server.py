@@ -30,6 +30,7 @@ STYLE_PATH = Path(os.environ.get("THREADS_STYLE_PATH", DATA_DIR / "style-data.js
 GROWTH_PATH = DATA_DIR / "growth.json"
 POPULAR_PATH = DATA_DIR / "popular-posts.txt"
 KEYWORDS_PATH = DATA_DIR / "search-keywords.txt"
+BLOG_QUEUE_PATH = DATA_DIR / "blog-queue.json"
 SETTINGS_PATH = DATA_DIR / "settings.json"
 CONFIG_DIR = Path(os.environ.get("CONFIG_DIR", Path(__file__).resolve().parent.parent / "config"))
 CRON_JOBS_PATH = CONFIG_DIR / "cron" / "jobs.json"
@@ -291,6 +292,52 @@ def api_bulk_delete():
     write_json(QUEUE_PATH, queue)
     logger.info("Bulk deleted: %d posts", deleted)
     return jsonify({"ok": True, "deleted": deleted})
+
+
+# ── API: Blog Queue ──
+@app.route("/api/blog-queue")
+def api_blog_queue():
+    queue = read_json(BLOG_QUEUE_PATH)
+    if queue is None:
+        return jsonify({"posts": [], "total": 0})
+    status_filter = request.args.get("status")
+    posts = queue.get("posts", [])
+    if status_filter:
+        posts = [p for p in posts if p.get("status") == status_filter]
+    posts.sort(key=lambda p: p.get("generatedAt", ""), reverse=True)
+    return jsonify({"posts": posts, "total": len(posts)})
+
+
+@app.route("/api/blog-queue/<post_id>/approve", methods=["POST"])
+def api_blog_approve(post_id):
+    queue = read_json(BLOG_QUEUE_PATH)
+    if queue is None:
+        return jsonify({"error": "blog-queue.json not found"}), 404
+    data = get_json_body()
+    for post in queue.get("posts", []):
+        if post["id"] == post_id:
+            post["status"] = "approved"
+            now = datetime.now(timezone.utc)
+            post["approvedAt"] = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+            post["scheduledAt"] = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+            write_json(BLOG_QUEUE_PATH, queue)
+            logger.info("Blog post approved: %s", post_id)
+            return jsonify({"ok": True, "post": post})
+    return jsonify({"error": "post not found"}), 404
+
+
+@app.route("/api/blog-queue/<post_id>/delete", methods=["POST"])
+def api_blog_delete(post_id):
+    queue = read_json(BLOG_QUEUE_PATH)
+    if queue is None:
+        return jsonify({"error": "blog-queue.json not found"}), 404
+    posts = queue.get("posts", [])
+    queue["posts"] = [p for p in posts if p["id"] != post_id]
+    if len(queue["posts"]) == len(posts):
+        return jsonify({"error": "post not found"}), 404
+    write_json(BLOG_QUEUE_PATH, queue)
+    logger.info("Blog post deleted: %s", post_id)
+    return jsonify({"ok": True})
 
 
 # ── API: Growth ──
