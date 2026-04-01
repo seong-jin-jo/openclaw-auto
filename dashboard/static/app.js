@@ -69,7 +69,8 @@ const S = {
   page: "overview", subTab: "queue",
   overview: null, queue: [], growth: [], popular: [], analytics: null,
   keywords: [], settings: null, guide: "", cronJobs: [], activity: [],
-  channelConfig: { threads: {}, x: {} }, images: [],
+  channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [],
+  tokenStatus: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null,
@@ -146,6 +147,7 @@ function render() {
   else if (S.page === "threads") app.innerHTML = renderChannel("threads");
   else if (S.page === "x") app.innerHTML = renderChannelX();
   else if (S.page === "images") app.innerHTML = renderImages();
+  else if (S.page === "blog") app.innerHTML = renderBlog();
   else if (S.page === "settings") app.innerHTML = renderSettings();
   bindEvents();
   const oldModal = document.getElementById("image-picker-overlay");
@@ -197,6 +199,11 @@ function renderSidebar() {
           <span class="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[9px] font-bold text-gray-500">IG</span>
           Instagram <span class="ml-auto text-[10px] text-gray-700">Soon</span>
         </div>
+
+        <button data-nav="blog" class="sidebar-item ${S.page === "blog" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
+          <span class="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[9px] font-bold text-gray-400">B</span>
+          Blog
+        </button>
 
         <div class="px-3 mt-5 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Assets</span></div>
         <button data-nav="images" class="sidebar-item ${S.page === "images" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
@@ -786,6 +793,10 @@ function bindEvents() {
     const r = await API.post("/api/channel-config/x", data);
     if (r) { showToast(r.enabled ? "X 연결 완료!" : "저장됨", "success"); loadOverview(); }
   };
+
+  // Blog actions
+  document.querySelectorAll("[data-blog-approve]").forEach(el => { el.onclick = () => approveBlogPost(el.dataset.blogApprove); });
+  document.querySelectorAll("[data-blog-delete]").forEach(el => { el.onclick = () => deleteBlogPost(el.dataset.blogDelete); });
 }
 
 function navigate(page) {
@@ -794,6 +805,7 @@ function navigate(page) {
   else if (page === "threads") { S.subTab = "queue"; loadQueue(S.queueFilter); loadGrowth(); loadImages(); }
   else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); }
   else if (page === "images") loadImages();
+  else if (page === "blog") loadBlogQueue();
   else if (page === "settings") { loadSettings(); loadKeywords(); }
   render();
 }
@@ -967,6 +979,44 @@ async function deleteImage(filename) {
     if (res.ok) { showToast("삭제됨", "success"); await loadImages(); render(); }
     else showToast("삭제 실패", "error");
   } catch (e) { showToast("삭제 실패: " + e.message, "error"); }
+}
+
+// ── Blog ──
+async function loadBlogQueue() { const d = await API.get("/api/blog-queue"); if (d) S.blogQueue = d.posts || []; render(); }
+async function approveBlogPost(id) { const r = await API.post("/api/blog-queue/" + id + "/approve"); if (r) { showToast("블로그 글 승인", "success"); loadBlogQueue(); } }
+async function deleteBlogPost(id) { if (!confirm("삭제?")) return; const r = await API.post("/api/blog-queue/" + id + "/delete"); if (r) { showToast("삭제 완료", "success"); loadBlogQueue(); } }
+
+function renderBlog() {
+  const posts = S.blogQueue || [];
+  const sc = { draft: "bg-yellow-900/40 text-yellow-300", approved: "bg-blue-900/40 text-blue-300", published: "bg-green-900/40 text-green-300", failed: "bg-red-900/40 text-red-300" };
+  return `<div class="px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div><h2 class="text-xl font-bold text-white">Blog Queue</h2><p class="text-xs text-gray-500 mt-1">SEO 블로그 글 자동 생성 파이프라인</p></div>
+      <span class="text-sm text-gray-500">${posts.length} posts</span>
+    </div>
+    ${posts.length === 0 ? `<div class="card p-8 text-center"><p class="text-gray-500 text-sm">블로그 글이 없습니다.</p></div>` : ""}
+    <div class="space-y-3">
+    ${posts.map(p => `
+      <div class="card p-4">
+        <div class="flex items-start justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] px-1.5 py-0.5 rounded ${sc[p.status] || "bg-gray-700 text-gray-300"}">${esc(p.status)}</span>
+            ${p.seoKeyword ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-900/40 text-cyan-300">${esc(p.seoKeyword)}</span>` : ""}
+            ${p.blogPostUrl ? `<a href="${esc(p.blogPostUrl)}" target="_blank" class="text-[10px] text-blue-400 hover:underline">View &rarr;</a>` : ""}
+          </div>
+          <span class="text-[10px] text-gray-600">${esc((p.id || "").slice(0, 8))}</span>
+        </div>
+        <h3 class="text-sm font-medium text-gray-200 mb-1">${esc(p.title || "")}</h3>
+        <p class="text-xs text-gray-500 mb-2">${esc((p.content || "").replace(/<[^>]*>/g, "").slice(0, 150))}...</p>
+        ${p.tags?.length ? `<div class="flex flex-wrap gap-1 mb-2">${p.tags.slice(0, 8).map(t => `<span class="text-[10px] text-cyan-400">#${esc(t)}</span>`).join("")}</div>` : ""}
+        <div class="flex gap-2 mt-2">
+          ${p.status === "draft" ? `<button data-blog-approve="${p.id}" class="px-2 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>` : ""}
+          ${p.status !== "published" ? `<button data-blog-delete="${p.id}" class="px-2 py-1 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">Delete</button>` : ""}
+        </div>
+      </div>
+    `).join("")}
+    </div>
+  </div>`;
 }
 
 // ── Init ──
