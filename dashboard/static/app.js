@@ -1020,8 +1020,10 @@ function renderBlog() {
 }
 
 // ── Init ──
-document.addEventListener("DOMContentLoaded", () => {
-  if (!getAuthToken()) { promptLogin(); return; }
+document.addEventListener("DOMContentLoaded", async () => {
+  // Try API first — if no auth required, skip login
+  const test = await fetch("/api/overview", { headers: authHeaders() });
+  if (test.status === 401 && !getAuthToken()) { promptLogin(); return; }
   loadOverview();
   loadImages();
   render();
