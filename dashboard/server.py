@@ -29,10 +29,22 @@ STYLE_PATH = Path(os.environ.get("THREADS_STYLE_PATH", DATA_DIR / "style-data.js
 GROWTH_PATH = DATA_DIR / "growth.json"
 POPULAR_PATH = DATA_DIR / "popular-posts.txt"
 KEYWORDS_PATH = DATA_DIR / "search-keywords.txt"
-BLOG_QUEUE_PATH = DATA_DIR / "blog-queue.json"
 SETTINGS_PATH = DATA_DIR / "settings.json"
 CONFIG_DIR = Path(os.environ.get("CONFIG_DIR", Path(__file__).resolve().parent.parent / "config"))
 CRON_JOBS_PATH = CONFIG_DIR / "cron" / "jobs.json"
+CHANNEL_SETTINGS_PATH = Path(DATA_DIR) / "channel-settings.json"
+
+AUTOMATION_FEATURES = [
+    {"key": "content_generation",    "label": "Content Generation",    "description": "콘텐츠 배치 생성", "default": True},
+    {"key": "auto_publish",          "label": "Auto Publish",          "description": "승인 글 자동 발행", "default": True},
+    {"key": "insights_collection",   "label": "Insights Collection",   "description": "발행 글 반응 수집", "default": True},
+    {"key": "auto_like_replies",     "label": "Auto Like Replies",     "description": "댓글 자동 좋아요", "default": True},
+    {"key": "low_engagement_cleanup","label": "Low Engagement Cleanup","description": "저조한 글 자동 삭제", "default": False},
+    {"key": "trending_collection",   "label": "Trending Collection",   "description": "외부 인기글 수집", "default": True},
+    {"key": "follower_tracking",     "label": "Follower Tracking",     "description": "팔로워 추적", "default": True},
+    {"key": "trending_rewrite",      "label": "Trending Rewrite",      "description": "트렌드 재가공", "default": False},
+    {"key": "image_generation",      "label": "Image Generation",      "description": "이미지 자동 생성/첨부", "default": False},
+]
 
 DEFAULT_SETTINGS = {
     "viralThreshold": 500,
@@ -74,6 +86,7 @@ def add_cors(response):
         response.headers["Access-Control-Allow-Origin"] = origin
     elif not origin:
         response.headers["Access-Control-Allow-Origin"] = "*"
+    else:
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return response
@@ -82,11 +95,9 @@ def add_cors(response):
 # ── 인증 미들웨어 ──
 @app.before_request
 def check_auth():
-    if not AUTH_TOKEN:
-        return  # 토큰 미설정 시 인증 비활성화
     if request.method == "OPTIONS":
         return  # CORS preflight 통과
-    if request.path == "/" or not request.path.startswith("/api/"):
+    if request.path == "/" or request.path.startswith("/images/") or (not request.path.startswith("/api/") and request.path.endswith((".js", ".css", ".ico", ".png", ".svg"))):
         return  # 정적 파일 통과
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
     if token != AUTH_TOKEN:
@@ -168,6 +179,33 @@ def serve_image(filename):
     return send_from_directory(IMAGES_DIR, filename)
 
 
+@app.route("/api/images")
+def api_images():
+    if not os.path.isdir(IMAGES_DIR):
+        return jsonify([])
+    files = []
+    for f in sorted(os.listdir(IMAGES_DIR), key=lambda x: os.path.getmtime(os.path.join(IMAGES_DIR, x)), reverse=True):
+        ext = os.path.splitext(f)[1].lower()
+        if ext in (".jpg", ".jpeg", ".png", ".gif", ".webp"):
+            path = os.path.join(IMAGES_DIR, f)
+            files.append({
+                "filename": f,
+                "url": f"/images/{f}",
+                "size": os.path.getsize(path),
+                "createdAt": datetime.fromtimestamp(os.path.getmtime(path)).isoformat(),
+            })
+    return jsonify(files)
+
+
+@app.route("/api/images/<filename>", methods=["DELETE"])
+def api_delete_image(filename):
+    path = os.path.join(IMAGES_DIR, filename)
+    if not os.path.isfile(path):
+        return jsonify({"error": "File not found"}), 404
+    os.remove(path)
+    return jsonify({"success": True})
+
+
 # ── API: Queue ──
 @app.route("/api/queue")
 def api_queue():
@@ -232,6 +270,12 @@ def api_update(post_id):
                 post["hashtags"] = data["hashtags"]
             if "scheduledAt" in data:
                 post["scheduledAt"] = data["scheduledAt"]
+            if "imageUrl" in data:
+                img = data["imageUrl"]
+                if img is None or (isinstance(img, str) and (img.startswith("/images/") or img.startswith("https://"))):
+                    post["imageUrl"] = img
+                else:
+                    return jsonify({"error": "imageUrl must be null, /images/ path, or https:// URL"}), 400
             write_json(QUEUE_PATH, queue)
             logger.info("Post updated: %s", post_id)
             return jsonify({"ok": True, "post": post})
@@ -312,51 +356,6 @@ def api_trend_report():
     if report is None:
         return jsonify({"generatedAt": None, "keywords": {}, "rewriteCandidates": []})
     return jsonify(report)
-
-
-# ── API: Blog Queue ──
-@app.route("/api/blog-queue")
-def api_blog_queue():
-    queue = read_json(BLOG_QUEUE_PATH)
-    if queue is None:
-        return jsonify({"posts": [], "total": 0})
-    status_filter = request.args.get("status")
-    posts = queue.get("posts", [])
-    if status_filter:
-        posts = [p for p in posts if p.get("status") == status_filter]
-    posts.sort(key=lambda p: p.get("generatedAt", ""), reverse=True)
-    return jsonify({"posts": posts, "total": len(posts)})
-
-
-@app.route("/api/blog-queue/<post_id>/approve", methods=["POST"])
-def api_blog_approve(post_id):
-    queue = read_json(BLOG_QUEUE_PATH)
-    if queue is None:
-        return jsonify({"error": "blog-queue.json not found"}), 404
-    for post in queue.get("posts", []):
-        if post["id"] == post_id:
-            post["status"] = "approved"
-            now = datetime.now(timezone.utc)
-            post["approvedAt"] = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-            post["scheduledAt"] = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-            write_json(BLOG_QUEUE_PATH, queue)
-            logger.info("Blog post approved: %s", post_id)
-            return jsonify({"ok": True, "post": post})
-    return jsonify({"error": "post not found"}), 404
-
-
-@app.route("/api/blog-queue/<post_id>/delete", methods=["POST"])
-def api_blog_delete(post_id):
-    queue = read_json(BLOG_QUEUE_PATH)
-    if queue is None:
-        return jsonify({"error": "blog-queue.json not found"}), 404
-    posts = queue.get("posts", [])
-    queue["posts"] = [p for p in posts if p["id"] != post_id]
-    if len(queue["posts"]) == len(posts):
-        return jsonify({"error": "post not found"}), 404
-    write_json(BLOG_QUEUE_PATH, queue)
-    logger.info("Blog post deleted: %s", post_id)
-    return jsonify({"ok": True})
 
 
 # ── API: Growth ──
@@ -666,49 +665,6 @@ def api_alerts():
     return jsonify({"alerts": alerts})
 
 
-# ── API: Token Status ──
-@app.route("/api/token-status")
-def api_token_status():
-    import time
-    result = {"claude": None, "threads": None, "x": None}
-
-    # Claude OAuth token
-    auth_path = CONFIG_DIR / "agents" / "main" / "agent" / "auth-profiles.json"
-    auth = read_json(auth_path)
-    if auth:
-        for k, v in auth.get("profiles", {}).items():
-            exp = v.get("expires", 0)
-            remaining_h = (exp / 1000 - time.time()) / 3600
-            stats = auth.get("usageStats", {}).get(k, {})
-            result["claude"] = {
-                "profile": k,
-                "type": v.get("type"),
-                "expiresAt": exp,
-                "remainingHours": round(remaining_h, 1),
-                "healthy": remaining_h > 1,
-                "errorCount": stats.get("errorCount", 0),
-                "lastUsed": stats.get("lastUsed"),
-            }
-
-    # Threads token (from .env or openclaw.json)
-    config = read_json(CONFIG_DIR / "openclaw.json") or {}
-    plugins = config.get("plugins", {}).get("entries", {})
-    tp = plugins.get("threads-publish", {})
-    result["threads"] = {
-        "connected": bool(tp.get("config", {}).get("accessToken", "")),
-        "userId": tp.get("config", {}).get("userId", ""),
-    }
-
-    # X token
-    xp = plugins.get("x-publish", {})
-    result["x"] = {
-        "connected": bool(xp.get("config", {}).get("apiKey", "")),
-        "enabled": xp.get("enabled", False),
-    }
-
-    return jsonify(result)
-
-
 # ── API: Activity Timeline ──
 @app.route("/api/activity")
 def api_activity():
@@ -735,49 +691,53 @@ def api_activity():
 
 
 # ── API: Channel Config ──
+# ── API: Token Status ──
+@app.route("/api/token-status")
+def api_token_status():
+    import time as _time
+    result = {"claude": None, "threads": None, "x": None}
+    auth_path = CONFIG_DIR / "agents" / "main" / "agent" / "auth-profiles.json"
+    auth = read_json(auth_path)
+    if auth:
+        for k, v in auth.get("profiles", {}).items():
+            exp = v.get("expires", 0)
+            remaining_h = (exp / 1000 - _time.time()) / 3600
+            stats = auth.get("usageStats", {}).get(k, {})
+            result["claude"] = {"profile": k, "type": v.get("type"), "expiresAt": exp, "remainingHours": round(remaining_h, 1), "healthy": remaining_h > 1, "errorCount": stats.get("errorCount", 0), "lastUsed": stats.get("lastUsed")}
+    config = read_json(CONFIG_DIR / "openclaw.json") or {}
+    plugins = config.get("plugins", {}).get("entries", {})
+    tp = plugins.get("threads-publish", {})
+    result["threads"] = {"connected": bool(tp.get("config", {}).get("accessToken", "")), "userId": tp.get("config", {}).get("userId", "")}
+    xp = plugins.get("x-publish", {})
+    result["x"] = {"connected": bool(xp.get("config", {}).get("apiKey", "")), "enabled": xp.get("enabled", False)}
+    return jsonify(result)
+
+
 @app.route("/api/channel-config")
 def api_channel_config():
     config_path = CONFIG_DIR / "openclaw.json"
     config = read_json(config_path) or {}
     plugins = config.get("plugins", {}).get("entries", {})
     channels = {}
+    # Threads
     tp = plugins.get("threads-publish", {})
     t_cfg = tp.get("config", {})
-    # Try to get username from Threads API
-    t_username = ""
     t_token = t_cfg.get("accessToken", "")
     t_uid = t_cfg.get("userId", "")
+    t_username = ""
     if t_token and t_uid:
         try:
             import urllib.request
             url = f"https://graph.threads.net/v1.0/me?fields=username&access_token={t_token}"
             with urllib.request.urlopen(url, timeout=5) as resp:
-                t_data = json.loads(resp.read())
-                t_username = t_data.get("username", "")
+                t_username = json.loads(resp.read()).get("username", "")
         except Exception:
             pass
-    channels["threads"] = {
-        "enabled": tp.get("enabled", False),
-        "userId": t_uid,
-        "username": t_username,
-        "connected": bool(t_token),
-        "keys": {
-            "accessToken": t_token,
-            "userId": t_uid,
-        },
-    }
+    channels["threads"] = {"enabled": tp.get("enabled", False), "userId": t_uid, "username": t_username, "connected": bool(t_token), "keys": {"accessToken": t_token, "userId": t_uid}}
+    # X
     xp = plugins.get("x-publish", {})
     x_cfg = xp.get("config", {})
-    channels["x"] = {
-        "enabled": xp.get("enabled", False),
-        "connected": bool(x_cfg.get("apiKey", "")),
-        "keys": {
-            "apiKey": x_cfg.get("apiKey", ""),
-            "apiKeySecret": x_cfg.get("apiKeySecret", ""),
-            "accessToken": x_cfg.get("accessToken", ""),
-            "accessTokenSecret": x_cfg.get("accessTokenSecret", ""),
-        },
-    }
+    channels["x"] = {"enabled": xp.get("enabled", False), "connected": bool(x_cfg.get("apiKey", "")), "keys": {"apiKey": x_cfg.get("apiKey", ""), "apiKeySecret": x_cfg.get("apiKeySecret", ""), "accessToken": x_cfg.get("accessToken", ""), "accessTokenSecret": x_cfg.get("accessTokenSecret", "")}}
     return jsonify(channels)
 
 
@@ -788,17 +748,13 @@ def api_channel_config_threads():
     config = read_json(config_path)
     if config is None:
         return jsonify({"error": "openclaw.json not found"}), 404
-
     plugins = config.setdefault("plugins", {}).setdefault("entries", {})
-    # Update all threads plugins that use accessToken/userId
-    thread_plugins = ["threads-publish", "threads-insights", "threads-search", "threads-growth"]
-    for pname in thread_plugins:
+    for pname in ["threads-publish", "threads-insights", "threads-search", "threads-growth"]:
         p = plugins.setdefault(pname, {"enabled": True, "config": {}})
         if "accessToken" in data and isinstance(data["accessToken"], str) and data["accessToken"].strip():
             p["config"]["accessToken"] = data["accessToken"].strip()
         if "userId" in data and isinstance(data["userId"], str) and data["userId"].strip():
             p["config"]["userId"] = data["userId"].strip()
-
     write_json(config_path, config)
     logger.info("Threads channel config updated")
     return jsonify({"ok": True})
@@ -822,6 +778,78 @@ def api_channel_config_x():
     write_json(config_path, config)
     logger.info("X channel config updated")
     return jsonify({"ok": True, "enabled": xp["enabled"]})
+
+
+# ── API: Channel Automation Settings ──
+def _read_channel_settings():
+    data = read_json(CHANNEL_SETTINGS_PATH)
+    if data is None:
+        data = {}
+    for ch in ("threads", "x"):
+        if ch not in data:
+            data[ch] = {}
+        for f in AUTOMATION_FEATURES:
+            if f["key"] not in data[ch]:
+                data[ch][f["key"]] = f["default"]
+    return data
+
+
+@app.route("/api/channel-settings")
+def api_channel_settings():
+    data = _read_channel_settings()
+    return jsonify({"features": AUTOMATION_FEATURES, "settings": data})
+
+
+@app.route("/api/channel-settings/<channel>", methods=["POST"])
+def api_update_channel_settings(channel):
+    if channel not in ("threads", "x"):
+        return jsonify({"error": "Invalid channel"}), 400
+    body = get_json_body()
+    data = _read_channel_settings()
+    valid_keys = {f["key"] for f in AUTOMATION_FEATURES}
+    for k, v in body.items():
+        if k in valid_keys and isinstance(v, bool):
+            data[channel][k] = v
+    write_json(CHANNEL_SETTINGS_PATH, data)
+    logger.info("Channel settings updated: %s", channel)
+    return jsonify({"ok": True, "settings": data[channel]})
+
+
+# ── API: Cron Run History ──
+@app.route("/api/cron-runs")
+def api_cron_runs():
+    cron_runs_dir = CONFIG_DIR / "cron" / "runs"
+    if not cron_runs_dir.is_dir():
+        return jsonify({"runs": []})
+    # Build jobId → name map from jobs.json
+    cron_data = read_json(CRON_JOBS_PATH) or {}
+    id_to_name = {j["id"]: j["name"] for j in cron_data.get("jobs", []) if "id" in j}
+    runs = []
+    for f in sorted(cron_runs_dir.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True):
+        if not f.name.endswith(".jsonl"):
+            continue
+        try:
+            with open(f, "r", encoding="utf-8") as fh:
+                for line in fh:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    entry = json.loads(line)
+                    if entry.get("action") == "finished":
+                        job_id = entry.get("jobId", f.stem)
+                        runs.append({
+                            "jobId": job_id,
+                            "jobName": id_to_name.get(job_id, job_id),
+                            "status": entry.get("status", "unknown"),
+                            "summary": (entry.get("summary") or "")[:200],
+                            "durationMs": entry.get("durationMs", 0),
+                            "finishedAt": entry.get("ts", 0),
+                            "model": entry.get("model", ""),
+                        })
+        except Exception:
+            continue
+    runs.sort(key=lambda r: r.get("finishedAt", 0), reverse=True)
+    return jsonify({"runs": runs[:30]})
 
 
 if __name__ == "__main__":
