@@ -594,9 +594,12 @@ git remote add upstream git@github.com:원본유저/openclaw-auto.git
 cp .env.example .env
 cp config/openclaw.json.example config/openclaw.json
 cp config/cron/jobs.json.example config/cron/jobs.json
+cp data/prompt-guide.txt.example data/prompt-guide.txt
+cp data/search-keywords.txt.example data/search-keywords.txt
 
-# 4. 제품 전략 작성
+# 4. 제품 전략 작성 (이 파일들은 .gitignore → 머지해도 안 덮어씌워짐)
 vim data/prompt-guide.txt    # 타겟, 톤, 콘텐츠 유형 정의
+vim data/search-keywords.txt # 인기글 검색 키워드 설정
 
 # 5. 실행
 docker compose up -d --build
@@ -605,7 +608,7 @@ docker compose up -d --build
 ### 코드 동기화
 
 ```bash
-# 중앙 레포의 최신 코드 가져오기
+# 중앙 레포의 최신 코드 가져오기 (data/ 파일은 .gitignore라 안전)
 git fetch upstream
 git merge upstream/main
 
