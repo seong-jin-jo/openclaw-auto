@@ -86,7 +86,6 @@ def add_cors(response):
         response.headers["Access-Control-Allow-Origin"] = origin
     elif not origin:
         response.headers["Access-Control-Allow-Origin"] = "*"
-    else:
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return response
