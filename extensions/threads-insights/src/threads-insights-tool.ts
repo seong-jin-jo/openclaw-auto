@@ -331,7 +331,17 @@ export function createThreadsInsightsTool(api: OpenClawPluginApi) {
           if (!post.engagement!.fedToPopular) {
             const textOneLine = post.text.replace(/\n/g, " ");
             if (!popularContent.includes(textOneLine.substring(0, 100))) {
-              const entry = `\n---\ntopic: ${post.topic}\nengagement: viral (${post.engagement!.views} views, ${post.engagement!.likes} likes)\nlikes: ${post.engagement!.likes}\nsource: own-viral\ncollected: ${now.toISOString().split("T")[0]}\ntext: ${textOneLine}\n`;
+              let postUrl = "";
+              if (post.threadsMediaId) {
+                try {
+                  const plResp = await fetch(`${THREADS_API_BASE}/${post.threadsMediaId}?fields=permalink&access_token=${config.accessToken}`);
+                  if (plResp.ok) {
+                    const pl = (await plResp.json()) as { permalink?: string };
+                    postUrl = pl.permalink ?? "";
+                  }
+                } catch { /* ignore */ }
+              }
+              const entry = `\n---\ntopic: ${post.topic}\nengagement: viral (${post.engagement!.views} views, ${post.engagement!.likes} likes)\nlikes: ${post.engagement!.likes}\nsource: own-viral\ncollected: ${now.toISOString().split("T")[0]}${postUrl ? `\nurl: ${postUrl}` : ""}\ntext: ${textOneLine}\n`;
               popularContent += entry;
               post.engagement!.fedToPopular = true;
             }
