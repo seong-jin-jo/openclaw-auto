@@ -452,7 +452,10 @@ function renderPopular() {
       <div class="flex items-center gap-2 mb-2">
         <span class="text-xs px-2 py-0.5 rounded bg-purple-900/50 text-purple-300">${p.source || "unknown"}</span>
         ${p.type ? `<span class="text-xs px-2 py-0.5 rounded bg-cyan-900/50 text-cyan-300">${p.type}</span>` : ""}
+        ${p.topic ? `<span class="text-xs text-gray-500">${esc(p.topic)}</span>` : ""}
         ${p.likes && p.likes !== "0" ? `<span class="text-xs text-yellow-500">${p.likes} likes</span>` : ""}
+        ${p.username ? `<span class="text-[10px] text-gray-600">@${esc(p.username)}</span>` : ""}
+        ${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener" class="text-[10px] text-blue-400 hover:text-blue-300 ml-auto">Open &rarr;</a>` : ""}
       </div>
       <p class="text-sm text-gray-200 whitespace-pre-wrap">${esc(p.text || "")}</p>
     </div>
