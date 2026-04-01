@@ -491,6 +491,15 @@ def api_overview():
         src = pp.get("source", "unknown")
         source_counts[src] = source_counts.get(src, 0) + 1
 
+    # 채널별 발행 카운트
+    channel_counts = {"threads": 0, "x": 0}
+    for p in posts:
+        ch = p.get("channels") or {}
+        if ch.get("threads", {}).get("status") == "published":
+            channel_counts["threads"] += 1
+        if ch.get("x", {}).get("status") == "published":
+            channel_counts["x"] += 1
+
     return jsonify({
         "statusCounts": status_counts,
         "followers": followers,
@@ -498,6 +507,7 @@ def api_overview():
         "viralPosts": viral_posts,
         "popularPostsCount": len(popular),
         "popularSourceCounts": source_counts,
+        "channelCounts": channel_counts,
     })
 
 
@@ -533,6 +543,7 @@ def api_cron_status():
     name_map = {
         "threads-generate-drafts": "콘텐츠 생성",
         "threads-auto-publish": "자동 발행",
+        "multi-channel-publish": "멀티채널 발행",
         "threads-collect-insights": "반응 수집 + 좋아요 + 저조삭제",
         "threads-track-growth": "팔로워 추적",
         "threads-fetch-trending": "인기글 수집",
@@ -609,7 +620,66 @@ def api_alerts():
     return jsonify({"alerts": alerts})
 
 
+# ── API: Activity Timeline ──
+@app.route("/api/activity")
+def api_activity():
+    queue = read_json(QUEUE_PATH) or {"posts": []}
+    posts = queue.get("posts", [])
+    events = []
+    settings = read_settings()
+    for p in posts:
+        ch = p.get("channels") or {}
+        if p.get("publishedAt"):
+            channels_published = []
+            if ch.get("threads", {}).get("status") == "published":
+                channels_published.append("Threads")
+            if ch.get("x", {}).get("status") == "published":
+                channels_published.append("X")
+            events.append({"type": "publish", "text": p["text"][:60], "channel": " + ".join(channels_published) or "Threads", "at": p["publishedAt"]})
+        if p.get("status") == "draft" and p.get("generatedAt"):
+            events.append({"type": "draft", "text": p["text"][:60], "at": p["generatedAt"]})
+        eng = p.get("engagement") or {}
+        if eng.get("views", 0) >= settings["viralThreshold"]:
+            events.append({"type": "viral", "text": p["text"][:60], "views": eng["views"], "at": eng.get("collectedAt") or p.get("publishedAt", "")})
+    events.sort(key=lambda e: e.get("at", ""), reverse=True)
+    return jsonify({"events": events[:20]})
+
+
+# ── API: Channel Config ──
+@app.route("/api/channel-config")
+def api_channel_config():
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path) or {}
+    plugins = config.get("plugins", {}).get("entries", {})
+    channels = {}
+    tp = plugins.get("threads-publish", {})
+    channels["threads"] = {"enabled": tp.get("enabled", False), "userId": tp.get("config", {}).get("userId", ""), "connected": bool(tp.get("config", {}).get("accessToken", ""))}
+    xp = plugins.get("x-publish", {})
+    channels["x"] = {"enabled": xp.get("enabled", False), "connected": bool(xp.get("config", {}).get("apiKey", ""))}
+    return jsonify(channels)
+
+
+@app.route("/api/channel-config/x", methods=["POST"])
+def api_channel_config_x():
+    data = get_json_body()
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path)
+    if config is None:
+        return jsonify({"error": "openclaw.json not found"}), 404
+    plugins = config.setdefault("plugins", {}).setdefault("entries", {})
+    xp = plugins.setdefault("x-publish", {"enabled": False, "config": {}})
+    for key in ("apiKey", "apiKeySecret", "accessToken", "accessTokenSecret"):
+        if key in data and isinstance(data[key], str) and data[key].strip():
+            xp["config"][key] = data[key].strip()
+    creds = xp.get("config", {})
+    if all(creds.get(k) for k in ("apiKey", "apiKeySecret", "accessToken", "accessTokenSecret")):
+        xp["enabled"] = True
+    write_json(config_path, config)
+    logger.info("X channel config updated")
+    return jsonify({"ok": True, "enabled": xp["enabled"]})
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("DASHBOARD_PORT", "3000"))
-    logger.info("Threads Dashboard running on http://localhost:%d", port)
+    logger.info("Marketing Hub running on http://localhost:%d", port)
     app.run(host="0.0.0.0", port=port, debug=True)
