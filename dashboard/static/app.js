@@ -409,11 +409,35 @@ function renderAnalytics() {
   const a = S.analytics;
   if (!a) return `<p class="text-gray-500">Loading...</p>`;
   const s = a.summary || {};
+  const posts = (a.posts || []).sort((a, b) => (b.publishedAt || "").localeCompare(a.publishedAt || ""));
   return `
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">${card("Published", s.totalPublished)}${card("Views", s.totalViews)}${card("Avg Views", s.avgViews)}${card("Avg Likes", s.avgLikes)}</div>
     ${Object.keys(a.topics || {}).length ? `<div class="card p-4 mb-6"><h3 class="text-xs font-medium text-gray-400 mb-3">Topic Performance</h3>
       <table class="w-full text-sm"><thead><tr class="text-[10px] text-gray-500 uppercase"><th class="text-left py-1">Topic</th><th class="text-right py-1">Posts</th><th class="text-right py-1">Avg Views</th><th class="text-right py-1">Avg Likes</th></tr></thead>
-      <tbody>${Object.entries(a.topics).map(([t, s]) => `<tr class="border-t border-gray-800/50"><td class="text-gray-200 py-1">${esc(t)}</td><td class="text-gray-400 text-right py-1">${s.count}</td><td class="text-gray-400 text-right py-1">${s.avgViews || 0}</td><td class="text-gray-400 text-right py-1">${s.avgLikes || 0}</td></tr>`).join("")}</tbody></table></div>` : ""}`;
+      <tbody>${Object.entries(a.topics).map(([t, s]) => `<tr class="border-t border-gray-800/50"><td class="text-gray-200 py-1">${esc(t)}</td><td class="text-gray-400 text-right py-1">${s.count}</td><td class="text-gray-400 text-right py-1">${s.avgViews || 0}</td><td class="text-gray-400 text-right py-1">${s.avgLikes || 0}</td></tr>`).join("")}</tbody></table></div>` : ""}
+    ${posts.length ? `<div class="card p-4"><h3 class="text-xs font-medium text-gray-400 mb-3">Post Performance</h3>
+      <div class="space-y-2">
+        ${posts.map(p => {
+          const vt = s.viralThreshold || 500;
+          const isViral = p.views >= vt;
+          return `<div class="flex items-start gap-3 py-2 border-b border-gray-800/50 last:border-0">
+            <div class="flex-1 min-w-0">
+              <p class="text-xs text-gray-200 truncate" title="${esc(p.text)}">${esc(p.text)}</p>
+              <div class="flex items-center gap-3 mt-1">
+                <span class="text-[10px] text-gray-600">${p.topic || ""}</span>
+                <span class="text-[10px] text-gray-600">${p.publishedAt ? fmtTime(p.publishedAt) : ""}</span>
+                ${p.archived ? '<span class="text-[10px] text-gray-700">archived</span>' : ""}
+              </div>
+            </div>
+            <div class="flex gap-4 text-right shrink-0">
+              <div><p class="text-xs ${isViral ? "text-yellow-400 font-medium" : "text-gray-300"}">${p.views}</p><p class="text-[10px] text-gray-600">views</p></div>
+              <div><p class="text-xs text-gray-300">${p.likes}</p><p class="text-[10px] text-gray-600">likes</p></div>
+              <div><p class="text-xs text-gray-300">${p.replies}</p><p class="text-[10px] text-gray-600">replies</p></div>
+            </div>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>` : ""}`;
 }
 
 function renderGrowth() {
