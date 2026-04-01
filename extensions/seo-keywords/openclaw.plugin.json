@@ -1,0 +1,23 @@
+{
+  "id": "seo-keywords",
+  "name": "SEO Keywords",
+  "description": "Analyze keyword search volume and competition via Naver Search Ad API.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "naverClientId": {
+        "type": "string",
+        "description": "Naver Search Ad API client ID."
+      },
+      "naverClientSecret": {
+        "type": ["string", "object"],
+        "description": "Naver Search Ad API client secret."
+      },
+      "naverCustomerId": {
+        "type": "string",
+        "description": "Naver Search Ad API customer ID."
+      }
+    }
+  }
+}
