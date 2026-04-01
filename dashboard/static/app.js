@@ -444,12 +444,14 @@ function renderChannelX() {
   </div>`;
 }
 
-function credField(id, label, desc, type = "text", currentMasked = "") {
+function credField(id, label, desc, isSecret = false, fullValue = "") {
+  const masked = fullValue ? fullValue.replace(/./g, "\u2022") : "";
   return `<div>
-    <label class="text-xs text-gray-400 block mb-0.5">${label}</label>
-    <p class="text-[10px] text-gray-600 mb-1">${desc}</p>
-    <input id="${id}" type="${type}" placeholder="${currentMasked ? "Current: " + currentMasked : "Enter " + label}" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 placeholder-gray-600">
-    ${currentMasked ? `<p class="text-[10px] text-gray-600 mt-0.5">Current: <span class="font-mono">${currentMasked}</span> — 빈칸이면 기존 값 유지</p>` : ""}
+    <label class="text-xs text-gray-400 block mb-0.5">${label} <span class="text-gray-600">${desc}</span></label>
+    <div class="relative">
+      <input id="${id}" type="${isSecret ? "password" : "text"}" value="${esc(fullValue)}" placeholder="${label}" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 pr-16 text-sm text-gray-300 placeholder-gray-600 font-mono">
+      ${isSecret ? `<button type="button" data-toggle-vis="${id}" class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 hover:text-gray-300">Show</button>` : ""}
+    </div>
   </div>`;
 }
 
@@ -458,16 +460,19 @@ function renderXSettings() {
   const editing = S.editingXCreds;
 
   if (connected && !editing) {
-    const keys = S.channelConfig.x?.keys || {};
+    const k = S.channelConfig.x?.keys || {};
     return `
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="card p-5">
-          <h3 class="text-sm font-medium text-gray-300 mb-4">Current Credentials</h3>
-          <div class="space-y-2 text-sm">
-            <div class="flex justify-between"><span class="text-gray-500">API Key</span><span class="text-gray-300 font-mono text-xs">${keys.apiKey || "-"}</span></div>
-            <div class="flex justify-between"><span class="text-gray-500">API Key Secret</span><span class="text-gray-300 font-mono text-xs">${keys.apiKeySecret || "-"}</span></div>
-            <div class="flex justify-between"><span class="text-gray-500">Access Token</span><span class="text-gray-300 font-mono text-xs">${keys.accessToken || "-"}</span></div>
-            <div class="flex justify-between"><span class="text-gray-500">Access Token Secret</span><span class="text-gray-300 font-mono text-xs">${keys.accessTokenSecret || "-"}</span></div>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-medium text-gray-300">X API Credentials</h3>
+            <span class="text-[10px] px-2 py-0.5 rounded bg-blue-900/30 text-blue-400 border border-blue-800/30">OAuth 1.0a</span>
+          </div>
+          <div class="space-y-3">
+            ${credField("x-view-apiKey", "API Key", "\uc571 \uc2dd\ubcc4", false, k.apiKey)}
+            ${credField("x-view-apiKeySecret", "API Key Secret", "\uc694\uccad \uc11c\uba85\uc6a9", true, k.apiKeySecret)}
+            ${credField("x-view-accessToken", "Access Token", "\ud2b8\uc717 \ubc1c\ud589 \uad8c\ud55c", false, k.accessToken)}
+            ${credField("x-view-accessTokenSecret", "Access Token Secret", "\uc561\uc138\uc2a4 \uc11c\uba85\uc6a9", true, k.accessTokenSecret)}
           </div>
           <button id="edit-x-creds" class="w-full mt-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Edit Credentials</button>
         </div>
@@ -487,13 +492,13 @@ function renderXSettings() {
         <div class="space-y-4">${(() => { const k = S.channelConfig.x?.keys || {}; return `
           <div class="border-b border-gray-800/50 pb-3">
             <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Consumer Keys <span class="normal-case text-gray-600">(= API Key)</span></p>
-            ${credField("x-apiKey", "API Key", "Consumer Key \u2014 \uc571 \uc2dd\ubcc4\uc5d0 \uc0ac\uc6a9", "text", k.apiKey)}
-            <div class="mt-2">${credField("x-apiKeySecret", "API Key Secret", "Consumer Secret \u2014 \uc694\uccad \uc11c\uba85\uc5d0 \uc0ac\uc6a9 (\ud55c \ubc88\ub9cc \ubcf4\uc784)", "password", k.apiKeySecret)}</div>
+            ${credField("x-apiKey", "API Key", "\uc571 \uc2dd\ubcc4", false, k.apiKey)}
+            <div class="mt-2">${credField("x-apiKeySecret", "API Key Secret", "\uc694\uccad \uc11c\uba85\uc6a9", true, k.apiKeySecret)}</div>
           </div>
           <div>
             <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Access Token <span class="normal-case text-gray-600">(Read+Write \ud544\uc218)</span></p>
-            ${credField("x-accessToken", "Access Token", "\uc0ac\uc6a9\uc790 \ub300\uc2e0 \ud2b8\uc717 \ubc1c\ud589 \uad8c\ud55c", "text", k.accessToken)}
-            <div class="mt-2">${credField("x-accessTokenSecret", "Access Token Secret", "\uc561\uc138\uc2a4 \ud1a0\ud070 \uc11c\uba85\uc5d0 \uc0ac\uc6a9 (\ud55c \ubc88\ub9cc \ubcf4\uc784)", "password", k.accessTokenSecret)}</div>
+            ${credField("x-accessToken", "Access Token", "\ud2b8\uc717 \ubc1c\ud589 \uad8c\ud55c", false, k.accessToken)}
+            <div class="mt-2">${credField("x-accessTokenSecret", "Access Token Secret", "\uc561\uc138\uc2a4 \uc11c\uba85\uc6a9", true, k.accessTokenSecret)}</div>
           </div>`; })()}
         </div>
         <div class="flex gap-2 mt-4">
@@ -647,6 +652,17 @@ function bindEvents() {
     const ta = document.getElementById("keywords-textarea");
     if (ta) { const kw = ta.value.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("#")); const r = await API.post("/api/keywords", { keywords: kw }); if (r) showToast("키워드 저장됨", "success"); }
   };
+
+  document.querySelectorAll("[data-toggle-vis]").forEach(el => {
+    el.onclick = () => {
+      const input = document.getElementById(el.dataset.toggleVis);
+      if (input) {
+        const show = input.type === "password";
+        input.type = show ? "text" : "password";
+        el.textContent = show ? "Hide" : "Show";
+      }
+    };
+  });
 
   const toggleXGuide = document.getElementById("toggle-x-guide");
   if (toggleXGuide) toggleXGuide.onclick = () => { S.showXGuide = !S.showXGuide; render(); };
