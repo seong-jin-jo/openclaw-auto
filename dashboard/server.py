@@ -95,10 +95,12 @@ def add_cors(response):
 # ── 인증 미들웨어 ──
 @app.before_request
 def check_auth():
+    if not AUTH_TOKEN:
+        return  # 토큰 미설정 시 인증 비활성화
     if request.method == "OPTIONS":
-        return  # CORS preflight 통과
-    if request.path == "/" or request.path.startswith("/images/") or (not request.path.startswith("/api/") and request.path.endswith((".js", ".css", ".ico", ".png", ".svg"))):
-        return  # 정적 파일 통과
+        return
+    if request.path == "/" or request.path.startswith("/images/") or (not request.path.startswith("/api/") and request.path.endswith((".js", ".css", ".ico", ".png", ".svg", ".html"))):
+        return
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
     if token != AUTH_TOKEN:
         return jsonify({"error": "Unauthorized"}), 401
