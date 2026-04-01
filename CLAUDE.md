@@ -83,7 +83,7 @@ dashboard/
 | `x_publish` | X (Twitter) API v2 발행 (OAuth 1.0a, 280자 제한) |
 | `threads_queue` | 콘텐츠 큐 CRUD (list/add/update/delete/get_approved/cleanup/update_channel) |
 | `threads_style` | 스타일 학습 데이터 RAG (read/add/summary) |
-| `threads_insights` | 반응 수집 + 터진 글 감지 + 자동 피드 (collect) |
+| `threads_insights` | 반응 수집 + 터진 글 감지 + 자동 피드 + 댓글 답글 + 인용 게시 (collect/auto_like_replies/auto_reply/cleanup_low_engagement) |
 | `threads_search` | 키워드 기반 외부 인기글 수집 (fetch) |
 | `threads_growth` | 팔로워 수/증감 추적 (track) |
 | `image_upload` | 로컬 이미지 → Cloudflare R2 업로드 → 퍼블릭 URL 반환 (upload) |

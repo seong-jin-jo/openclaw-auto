@@ -40,10 +40,14 @@ AUTOMATION_FEATURES = [
     {"key": "auto_publish",          "label": "Auto Publish",          "description": "승인 글 자동 발행", "default": True},
     {"key": "insights_collection",   "label": "Insights Collection",   "description": "발행 글 반응 수집", "default": True},
     {"key": "auto_like_replies",     "label": "Auto Like Replies",     "description": "댓글 자동 좋아요", "default": True},
+    {"key": "auto_reply",            "label": "Auto Reply",            "description": "댓글 자동 답글 (AI 톤)", "default": False},
     {"key": "low_engagement_cleanup","label": "Low Engagement Cleanup","description": "저조한 글 자동 삭제", "default": False},
     {"key": "trending_collection",   "label": "Trending Collection",   "description": "외부 인기글 수집", "default": True},
-    {"key": "follower_tracking",     "label": "Follower Tracking",     "description": "팔로워 추적", "default": True},
     {"key": "trending_rewrite",      "label": "Trending Rewrite",      "description": "트렌드 재가공", "default": False},
+    {"key": "quote_trending",        "label": "Quote Trending",        "description": "인기글 인용 게시", "default": False},
+    {"key": "series_followup",       "label": "Series Follow-up",      "description": "반응 좋은 토픽 시리즈 후속글", "default": False},
+    {"key": "casual_posts",          "label": "Casual Posts",          "description": "일상/감성 글 자동 생성", "default": False},
+    {"key": "follower_tracking",     "label": "Follower Tracking",     "description": "팔로워 추적", "default": True},
     {"key": "image_generation",      "label": "Image Generation",      "description": "이미지 자동 생성/첨부", "default": False},
 ]
 
@@ -56,6 +60,9 @@ DEFAULT_SETTINGS = {
     "insightsMaxCollections": 3,
     "publishIntervalHours": 2,
     "draftsPerBatch": 5,
+    "imagePerBatch": 1,
+    "casualPerBatch": 1,
+    "quotePerBatch": 0,
 }
 
 # ── 인증 ──
@@ -447,6 +454,28 @@ def api_keywords_update():
 
 
 # ── API: Analytics ──
+def _hourly_performance(post_stats):
+    """시간대별 평균 engagement 계산"""
+    hours = {}
+    for p in post_stats:
+        if not p.get("publishedAt"):
+            continue
+        try:
+            h = datetime.fromisoformat(p["publishedAt"].replace("Z", "+00:00")).hour
+        except Exception:
+            continue
+        if h not in hours:
+            hours[h] = {"count": 0, "views": 0, "likes": 0}
+        hours[h]["count"] += 1
+        hours[h]["views"] += p.get("views", 0)
+        hours[h]["likes"] += p.get("likes", 0)
+    result = {}
+    for h, d in hours.items():
+        c = d["count"]
+        result[h] = {"count": c, "avgViews": round(d["views"] / c), "avgLikes": round(d["likes"] / c)}
+    return result
+
+
 @app.route("/api/analytics")
 def api_analytics():
     queue = read_json(QUEUE_PATH)
@@ -509,6 +538,25 @@ def api_analytics():
             topic_stats[topic]["avgLikes"] = round(topic_stats[topic]["likes"] / c)
             topic_stats[topic]["avgReplies"] = round(topic_stats[topic]["replies"] / c)
 
+    # 해시태그별 성과
+    hashtag_stats = {}
+    for p in published + archived:
+        eng = p.get("engagement") or {}
+        views = eng.get("views", 0)
+        likes = eng.get("likes", 0)
+        for tag in p.get("hashtags", []):
+            tag = tag.lstrip("#")
+            if tag not in hashtag_stats:
+                hashtag_stats[tag] = {"count": 0, "views": 0, "likes": 0}
+            hashtag_stats[tag]["count"] += 1
+            hashtag_stats[tag]["views"] += views
+            hashtag_stats[tag]["likes"] += likes
+    for tag in hashtag_stats:
+        c = hashtag_stats[tag]["count"]
+        if c > 0:
+            hashtag_stats[tag]["avgViews"] = round(hashtag_stats[tag]["views"] / c)
+            hashtag_stats[tag]["avgLikes"] = round(hashtag_stats[tag]["likes"] / c)
+
     # 전체 요약
     total_views = sum(p["views"] for p in post_stats)
     total_likes = sum(p["likes"] for p in post_stats)
@@ -528,6 +576,8 @@ def api_analytics():
         },
         "posts": post_stats,
         "topics": topic_stats,
+        "hashtags": hashtag_stats,
+        "hourlyPerformance": _hourly_performance(post_stats),
         "statusCounts": {
             "draft": sum(1 for p in posts if p.get("status") == "draft"),
             "approved": sum(1 for p in posts if p.get("status") == "approved"),

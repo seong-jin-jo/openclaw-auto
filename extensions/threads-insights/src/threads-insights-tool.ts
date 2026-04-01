@@ -136,8 +136,8 @@ function extractMetricValue(data: { data?: Array<{ name: string; values?: Array<
 
 const ThreadsInsightsToolSchema = Type.Object(
   {
-    action: optionalStringEnum(["collect", "auto_like_replies", "cleanup_low_engagement"] as const, {
-      description: 'Action: "collect" — collect engagement metrics, detect viral, auto-feed. "auto_like_replies" — like all replies on published posts. "cleanup_low_engagement" — delete posts with low engagement after 3 days.',
+    action: optionalStringEnum(["collect", "auto_like_replies", "auto_reply", "cleanup_low_engagement"] as const, {
+      description: 'Action: "collect" — collect engagement metrics, detect viral, auto-feed. "auto_like_replies" — like all replies. "auto_reply" — AI-generated reply to unanswered comments. "cleanup_low_engagement" — delete low-engagement posts after 3 days.',
     }),
     minViews: Type.Optional(
       Type.Number({ description: "Min views threshold for cleanup (default: 100)." }),
@@ -186,6 +186,126 @@ async function autoLikeReplies(config: ResolvedConfig) {
   }
 
   return jsonResult({ message: `Liked ${liked} replies (${errors} errors)`, liked, errors });
+}
+
+async function autoReplyToComments(config: ResolvedConfig) {
+  const queue = await readJson<QueueData>(config.queuePath, { version: 1, posts: [] });
+  const published = queue.posts.filter((p) => p.status === "published" && p.threadsMediaId);
+
+  // Read prompt guide for tone
+  let tone = "친근하고 자연스러운 한국어 구어체";
+  try {
+    const guide = await fs.readFile(path.join(path.dirname(config.queuePath), "prompt-guide.txt"), "utf-8");
+    const toneLine = guide.match(/톤[:\s]*(.+)/)?.[1];
+    if (toneLine) tone = toneLine.trim();
+  } catch { /* use default */ }
+
+  // Track which replies we've already responded to
+  const stateFile = path.join(path.dirname(config.queuePath), "replied-comments.json");
+  let repliedIds: string[] = [];
+  try {
+    const raw = await fs.readFile(stateFile, "utf-8");
+    repliedIds = JSON.parse(raw);
+  } catch { /* fresh start */ }
+  const repliedSet = new Set(repliedIds);
+
+  let replied = 0;
+  let errors = 0;
+  const newRepliedIds: string[] = [...repliedIds];
+
+  for (const post of published) {
+    try {
+      const repliesUrl = `${THREADS_API_BASE}/${post.threadsMediaId}/replies?fields=id,text,username,timestamp&access_token=${config.accessToken}`;
+      const repliesResp = await fetch(repliesUrl);
+      if (!repliesResp.ok) continue;
+      const repliesData = await repliesResp.json() as { data?: Array<{ id: string; text?: string; username?: string; timestamp?: string }> };
+      const comments = repliesData.data ?? [];
+
+      for (const comment of comments) {
+        if (repliedSet.has(comment.id)) continue;
+        if (!comment.text || comment.text.length < 3) { repliedSet.add(comment.id); newRepliedIds.push(comment.id); continue; }
+
+        // Generate a short, natural reply
+        const replyText = generateReplyText(comment.text, comment.username, tone);
+
+        try {
+          // Step 1: Create reply container
+          const createUrl = `${THREADS_API_BASE}/${config.userId}/threads`;
+          const createResp = await fetch(createUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              media_type: "TEXT",
+              text: replyText,
+              reply_to_id: comment.id,
+              access_token: config.accessToken,
+            }),
+          });
+          if (!createResp.ok) { errors++; continue; }
+          const createData = await createResp.json() as { id: string };
+
+          // Step 2: Publish
+          const publishUrl = `${THREADS_API_BASE}/${config.userId}/threads_publish`;
+          const publishResp = await fetch(publishUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              creation_id: createData.id,
+              access_token: config.accessToken,
+            }),
+          });
+          if (publishResp.ok) {
+            replied++;
+            repliedSet.add(comment.id);
+            newRepliedIds.push(comment.id);
+          } else { errors++; }
+        } catch { errors++; }
+      }
+    } catch { errors++; }
+  }
+
+  // Save state (keep last 500 to prevent unbounded growth)
+  await fs.writeFile(stateFile, JSON.stringify(newRepliedIds.slice(-500)), "utf-8");
+
+  return jsonResult({ message: `Replied to ${replied} comments (${errors} errors)`, replied, errors });
+}
+
+function generateReplyText(commentText: string, username: string | undefined, tone: string): string {
+  // Simple context-aware reply templates
+  const text = commentText.toLowerCase();
+  const name = username ? `@${username} ` : "";
+
+  if (text.includes("?") || text.includes("어떻게") || text.includes("뭐")) {
+    const answers = [
+      `${name}좋은 질문이에요! 프로필 링크에서 더 자세한 내용 확인해보세요 🙏`,
+      `${name}궁금하신 부분 있으시면 DM 주세요!`,
+      `${name}다음 글에서 더 자세히 다뤄볼게요 👍`,
+    ];
+    return answers[Math.floor(Math.random() * answers.length)];
+  }
+  if (text.includes("공감") || text.includes("맞아") || text.includes("진짜") || text.includes("ㅋㅋ")) {
+    const agrees = [
+      `${name}공감해주셔서 감사합니다 😊`,
+      `${name}맞죠ㅋㅋ 다들 비슷한 경험 있으신 것 같아요`,
+      `${name}ㅎㅎ 감사합니다!`,
+    ];
+    return agrees[Math.floor(Math.random() * agrees.length)];
+  }
+  if (text.includes("좋") || text.includes("잘") || text.includes("유용") || text.includes("감사")) {
+    const thanks = [
+      `${name}감사합니다! 도움이 됐다니 기쁘네요 🙌`,
+      `${name}읽어주셔서 감사해요!`,
+      `${name}앞으로도 유용한 글 올릴게요 💪`,
+    ];
+    return thanks[Math.floor(Math.random() * thanks.length)];
+  }
+  // Default
+  const defaults = [
+    `${name}댓글 감사합니다! 🙏`,
+    `${name}의견 감사해요! 참고하겠습니다 👍`,
+    `${name}감사합니다 😊`,
+  ];
+  return defaults[Math.floor(Math.random() * defaults.length)];
 }
 
 async function cleanupLowEngagement(config: ResolvedConfig, minViews: number, minLikes: number) {
@@ -246,6 +366,10 @@ export function createThreadsInsightsTool(api: OpenClawPluginApi) {
         return await autoLikeReplies(resolveConfig(api));
       }
 
+      if (action === "auto_reply") {
+        return await autoReplyToComments(resolveConfig(api));
+      }
+
       if (action === "cleanup_low_engagement") {
         const minViews = typeof rawParams.minViews === "number" ? rawParams.minViews : 100;
         const minLikes = typeof rawParams.minLikes === "number" ? rawParams.minLikes : 3;
@@ -253,7 +377,7 @@ export function createThreadsInsightsTool(api: OpenClawPluginApi) {
       }
 
       if (action !== "collect") {
-        throw new Error(`Unknown action: ${action}. Use "collect", "auto_like_replies", or "cleanup_low_engagement".`);
+        throw new Error(`Unknown action: ${action}. Use "collect", "auto_like_replies", "auto_reply", or "cleanup_low_engagement".`);
       }
 
       const config = resolveConfig(api);
