@@ -158,6 +158,15 @@ def index():
     return send_from_directory("static", "index.html")
 
 
+# ── 이미지 서빙 ──
+IMAGES_DIR = os.path.join(DATA_DIR, "images")
+
+
+@app.route("/images/<path:filename>")
+def serve_image(filename):
+    return send_from_directory(IMAGES_DIR, filename)
+
+
 # ── API: Queue ──
 @app.route("/api/queue")
 def api_queue():
