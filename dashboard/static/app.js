@@ -17,17 +17,47 @@ function showToast(message, type = "info") {
   setTimeout(() => { el.style.opacity = "0"; setTimeout(() => el.remove(), 300); }, 3000);
 }
 
+// ── Auth ──
+function getAuthToken() { return localStorage.getItem("dashboard_auth_token") || ""; }
+function setAuthToken(t) { localStorage.setItem("dashboard_auth_token", t); }
+function authHeaders() {
+  const t = getAuthToken();
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
+function promptLogin() {
+  document.getElementById("app").innerHTML = `
+    <div class="flex items-center justify-center min-h-screen">
+      <div class="card p-8 w-80">
+        <h2 class="text-lg font-bold text-white mb-4">Dashboard Login</h2>
+        <input id="login-token" type="password" placeholder="Auth Token"
+          class="w-full bg-gray-800 text-gray-200 text-sm p-3 rounded border border-gray-700 mb-3">
+        <button id="login-btn" class="w-full py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">Login</button>
+      </div>
+    </div>`;
+  const sidebar = document.getElementById("sidebar");
+  if (sidebar) sidebar.innerHTML = "";
+  setTimeout(() => {
+    const input = document.getElementById("login-token");
+    const btn = document.getElementById("login-btn");
+    const doLogin = () => { if (input.value.trim()) { setAuthToken(input.value.trim()); location.reload(); } };
+    if (btn) btn.onclick = doLogin;
+    if (input) { input.focus(); input.onkeydown = (e) => { if (e.key === "Enter") doLogin(); }; }
+  }, 0);
+}
+
 const API = {
   async get(url) {
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, { headers: authHeaders() });
+      if (res.status === 401) { localStorage.removeItem("dashboard_auth_token"); promptLogin(); return null; }
       if (!res.ok) { showToast(`요청 실패: ${res.status}`, "error"); return null; }
       return res.json();
     } catch (e) { showToast(`네트워크 오류: ${e.message}`, "error"); return null; }
   },
   async post(url, body) {
     try {
-      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify(body) });
+      if (res.status === 401) { localStorage.removeItem("dashboard_auth_token"); promptLogin(); return null; }
       if (!res.ok) { const d = await res.json().catch(() => ({})); showToast(d.error || `요청 실패: ${res.status}`, "error"); return null; }
       return res.json();
     } catch (e) { showToast(`네트워크 오류: ${e.message}`, "error"); return null; }
@@ -39,9 +69,10 @@ const S = {
   page: "overview", subTab: "queue",
   overview: null, queue: [], growth: [], popular: [], analytics: null,
   keywords: [], settings: null, guide: "", cronJobs: [], activity: [],
-  channelConfig: { threads: {}, x: {} }, tokenStatus: null, editingXCreds: false, showXGuide: false, showThreadsGuide: false,
+  channelConfig: { threads: {}, x: {} }, images: [],
+  channelSettings: { features: [], settings: {} }, cronRuns: [],
   queueFilter: "all", loading: false,
-  editingPost: null, selectedIds: new Set(),
+  editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null,
 };
 
 function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
@@ -75,7 +106,6 @@ async function loadGrowth() { const d = await API.get("/api/growth"); if (d) S.g
 async function loadPopular() { const d = await API.get("/api/popular"); if (d) S.popular = d.posts || []; render(); }
 async function loadAnalytics() { const d = await API.get("/api/analytics"); if (d) S.analytics = d; render(); }
 async function loadKeywords() { const d = await API.get("/api/keywords"); if (d) S.keywords = d.keywords || []; render(); }
-async function loadTokenStatus() { const d = await API.get("/api/token-status"); if (d) S.tokenStatus = d; render(); }
 async function loadSettings() {
   const [s, g] = await Promise.all([API.get("/api/settings"), API.get("/api/guide")]);
   if (s) S.settings = s;
@@ -85,7 +115,8 @@ async function loadSettings() {
 
 // ── Actions ──
 async function approvePost(id, hours = 2) { const r = await API.post(`/api/queue/${id}/approve`, { hours }); if (r) { showToast("승인 완료", "success"); loadQueue(S.queueFilter); } }
-async function updatePost(id, text) { const r = await API.post(`/api/queue/${id}/update`, { text }); if (r) { showToast("수정 완료", "success"); S.editingPost = null; loadQueue(S.queueFilter); } }
+async function updatePost(id, payload) { const r = await API.post(`/api/queue/${id}/update`, payload); if (r) { showToast("수정 완료", "success"); S.editingPost = null; loadQueue(S.queueFilter); } }
+async function updatePostImage(id, imageUrl) { const r = await API.post(`/api/queue/${id}/update`, { imageUrl }); if (r) { showToast(imageUrl ? "이미지 첨부됨" : "이미지 제거됨", "success"); S.imagePickerPostId = null; loadQueue(S.queueFilter); } }
 async function deletePost(id) { if (!confirm("정말 삭제?")) return; const r = await API.post(`/api/queue/${id}/delete`); if (r) { showToast("삭제 완료", "success"); loadQueue(S.queueFilter); } }
 async function bulkApprove() {
   const ids = Array.from(S.selectedIds); if (!ids.length) return;
@@ -93,6 +124,19 @@ async function bulkApprove() {
   const r = await API.post("/api/queue/bulk-approve", { ids });
   if (r) { showToast(`${r.approved}개 승인`, "success"); S.selectedIds.clear(); loadQueue(S.queueFilter); }
 }
+async function bulkDelete() {
+  const ids = Array.from(S.selectedIds); if (!ids.length) return;
+  if (!confirm(`${ids.length}개 일괄 삭제?`)) return;
+  const r = await API.post("/api/queue/bulk-delete", { ids });
+  if (r) { showToast(`${r.deleted}개 삭제`, "success"); S.selectedIds.clear(); loadQueue(S.queueFilter); }
+}
+function toggleSelectAll() {
+  const selectable = S.queue.filter(p => p.status === "draft" || p.status === "approved");
+  if (S.selectedIds.size === selectable.length && selectable.length > 0) S.selectedIds.clear();
+  else selectable.forEach(p => S.selectedIds.add(p.id));
+  render();
+}
+function fmtDate(iso) { return iso ? new Date(iso).toLocaleString("ko-KR", {month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}) : ""; }
 
 // ── Render ──
 function render() {
@@ -101,8 +145,15 @@ function render() {
   if (S.page === "overview") app.innerHTML = renderOverview();
   else if (S.page === "threads") app.innerHTML = renderChannel("threads");
   else if (S.page === "x") app.innerHTML = renderChannelX();
+  else if (S.page === "images") app.innerHTML = renderImages();
   else if (S.page === "settings") app.innerHTML = renderSettings();
   bindEvents();
+  const oldModal = document.getElementById("image-picker-overlay");
+  if (oldModal) oldModal.remove();
+  if (S.imagePickerPostId) {
+    app.insertAdjacentHTML("beforeend", renderImagePickerModal());
+    bindImagePickerEvents();
+  }
 }
 
 function renderSidebar() {
@@ -115,7 +166,12 @@ function renderSidebar() {
   return `
     <aside class="w-56 border-r border-gray-800/50 flex flex-col h-screen sticky top-0" style="background:#0e0e0e">
       <div class="px-4 py-5 border-b border-gray-800/50">
-        <h1 class="text-base font-semibold text-white tracking-tight">Marketing Hub</h1>
+        <div class="flex items-center gap-2">
+          <h1 class="text-base font-semibold text-white tracking-tight">Marketing Hub</h1>
+          <a href="https://www.threads.net/@code_zero_to_one" target="_blank" rel="noopener" class="text-gray-500 hover:text-white transition-colors" title="Threads">
+            <svg width="14" height="14" viewBox="0 0 192 192" fill="currentColor"><path d="M141.537 88.988a66.667 66.667 0 0 0-2.518-1.143c-1.482-27.307-16.403-42.94-41.457-43.1h-.398c-15.09 0-27.701 6.494-35.174 18.033l12.626 8.657c5.58-8.432 14.39-11.18 22.55-11.18h.27c8.736.054 15.322 2.593 19.58 7.543 3.098 3.603 5.17 8.564 6.207 14.88a84.463 84.463 0 0 0-24.478-2.26c-28.04 1.588-46.072 17.2-44.828 38.823.636 11.06 6.348 20.587 16.087 26.834 8.235 5.286 18.852 7.87 29.884 7.273 14.566-.787 25.993-6.395 33.99-16.672 6.075-7.806 9.977-17.782 11.756-30.168 7.057 4.26 12.3 9.848 15.287 16.7 5.07 11.637 5.367 30.735-10.4 46.483-13.836 13.81-30.477 19.782-52.477 19.958-24.416-.195-42.862-7.988-54.83-23.16C39.32 152.595 32.87 132.376 32.66 108c.21-24.376 6.66-44.595 19.176-60.082C63.795 32.633 82.24 24.84 106.657 24.645c24.584.2 43.285 8.028 55.573 23.273 6.028 7.482 10.575 16.644 13.584 27.283l14.868-3.936c-3.538-12.496-8.96-23.379-16.234-32.409C159.396 20.263 137.058 10.812 106.717 10.6h-.078C76.322 10.812 54.282 20.316 39.52 39.13 23.478 59.546 15.375 86.757 15.13 108l.002.283c.245 21.243 8.348 48.454 24.39 68.87 14.762 18.814 36.802 28.318 67.143 28.53h.078c26.006-.2 46.643-8.082 63.29-24.163 22.095-21.358 21.478-47.567 14.568-63.42-4.954-11.377-14.452-20.548-27.064-26.112z"/></svg>
+          </a>
+        </div>
         <p class="text-xs text-gray-500 mt-0.5">openclaw-auto</p>
       </div>
       <nav class="flex-1 py-3">
@@ -141,6 +197,13 @@ function renderSidebar() {
           <span class="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[9px] font-bold text-gray-500">IG</span>
           Instagram <span class="ml-auto text-[10px] text-gray-700">Soon</span>
         </div>
+
+        <div class="px-3 mt-5 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Assets</span></div>
+        <button data-nav="images" class="sidebar-item ${S.page === "images" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
+          <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          Images
+          <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-gray-800 text-gray-500">${S.images.length}</span>
+        </button>
 
         <div class="px-3 mt-5 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">System</span></div>
         <button data-nav="settings" class="sidebar-item ${S.page === "settings" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
@@ -263,10 +326,6 @@ function renderChannel() {
     <div class="flex items-center gap-3 mb-6">
       <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm font-bold text-white">T</span>
       <div><h2 class="text-xl font-semibold text-white">Threads</h2><p class="text-xs text-gray-500">${S.channelConfig.threads?.userId ? "ID: " + S.channelConfig.threads.userId : ""} ${S.growth.length ? " &middot; " + S.growth[S.growth.length - 1].followers + " followers" : ""}</p></div>
-      <a href="https://www.threads.net/@${S.channelConfig.threads?.username || S.channelConfig.threads?.userId || ''}" target="_blank" rel="noopener" class="ml-auto px-3 py-1 text-xs rounded border border-gray-700 text-gray-400 hover:text-purple-400 hover:border-purple-500 transition flex items-center gap-1.5" title="Open Threads profile">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-        Open Threads
-      </a>
     </div>
     <div class="flex gap-1 mb-6 border-b border-gray-800/50 pb-3">
       ${tabs.map(t => `<button data-subtab="${t}" class="px-3 py-1.5 text-sm rounded ${S.subTab === t ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"}">${t.charAt(0).toUpperCase() + t.slice(1)}</button>`).join("")}
@@ -284,7 +343,13 @@ function renderQueue() {
   return `
     <div class="flex items-center justify-between mb-4">
       <div class="flex gap-1">${filters.map(f => `<button data-filter="${f}" class="px-3 py-1 text-xs rounded ${S.queueFilter === f ? "bg-blue-600/30 text-blue-300 border border-blue-600/30" : "text-gray-500 hover:bg-gray-800"}">${f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}</button>`).join("")}</div>
-      ${S.selectedIds.size > 0 ? `<button id="bulk-approve" class="px-3 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve (${S.selectedIds.size})</button>` : ""}
+      <div class="flex gap-2 items-center">
+        ${S.queue.filter(p => p.status === "draft" || p.status === "approved").length > 0 ? `<label class="flex items-center gap-1 text-xs text-gray-400 cursor-pointer"><input type="checkbox" id="select-all" ${S.selectedIds.size > 0 ? "checked" : ""} class="rounded border-gray-600"> All</label>` : ""}
+        ${S.selectedIds.size > 0 ? `
+          <button id="bulk-approve" class="px-3 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve (${S.selectedIds.size})</button>
+          <button id="bulk-delete" class="px-3 py-1 text-xs bg-red-700 text-white rounded hover:bg-red-600">Delete (${S.selectedIds.size})</button>
+        ` : ""}
+      </div>
     </div>
     <div class="space-y-3">
       ${S.queue.length === 0 ? `<p class="text-gray-600 text-sm">No posts</p>` : S.queue.map(renderPost).join("")}
@@ -299,7 +364,7 @@ function renderPost(p) {
     <div class="card p-4">
       <div class="flex items-start justify-between mb-2">
         <div class="flex items-center gap-2">
-          ${p.status === "draft" ? `<input type="checkbox" data-select="${p.id}" ${S.selectedIds.has(p.id) ? "checked" : ""} class="rounded border-gray-600">` : ""}
+          ${p.status === "draft" || p.status === "approved" ? `<input type="checkbox" data-select="${p.id}" ${S.selectedIds.has(p.id) ? "checked" : ""} class="rounded border-gray-600">` : ""}
           <span class="text-[10px] px-2 py-0.5 rounded ${sc[p.status] || "bg-gray-700 text-gray-300"}">${p.status}</span>
           <span class="text-xs text-gray-500">${p.topic || ""}</span>
           ${p.model ? `<span class="text-xs text-gray-600">${p.model}</span>` : ""}
@@ -309,15 +374,32 @@ function renderPost(p) {
           ${channelBadge("X", ch.x)}
         </div>
       </div>
+      ${p.imageUrl ? `
+        <div class="mb-2 relative group/img" style="max-width:480px">
+          <img src="${esc(p.imageUrl)}" alt="Post image" class="w-full rounded-lg border border-gray-800" style="display:block">
+          ${p.status === "draft" ? `<button data-remove-image="${p.id}" class="absolute top-2 right-2 p-1 bg-red-900/80 rounded text-red-300 hover:text-white opacity-0 group-hover/img:opacity-100 transition-opacity" title="이미지 제거">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>` : ""}
+        </div>
+      ` : ""}
       ${isEditing ? `
         <textarea id="edit-textarea" class="w-full bg-gray-800 text-gray-200 text-sm p-2 rounded border border-gray-700 mb-2" rows="4">${esc(p.text)}</textarea>
-        <div class="flex gap-2"><button data-save="${p.id}" class="px-2 py-1 text-xs bg-blue-600 text-white rounded">Save</button><button data-cancel-edit class="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded">Cancel</button></div>
+        <div class="flex gap-2">
+          <button data-save="${p.id}" class="px-2 py-1 text-xs bg-blue-600 text-white rounded">Save</button>
+          <button data-cancel-edit class="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded">Cancel</button>
+          <button data-pick-image="${p.id}" class="px-2 py-1 text-xs bg-purple-700 text-white rounded hover:bg-purple-600">${p.imageUrl ? "Change Image" : "Add Image"}</button>
+        </div>
       ` : `<p class="text-sm text-gray-200 mb-2 whitespace-pre-wrap">${esc(p.text)}</p>`}
       ${p.hashtags?.length ? `<div class="flex gap-1 mb-2">${p.hashtags.map(h => `<span class="text-xs text-blue-400">#${h}</span>`).join("")}</div>` : ""}
       ${p.engagement?.views != null ? `<div class="flex gap-4 text-xs text-gray-500"><span>views: ${p.engagement.views}</span><span>likes: ${p.engagement.likes || 0}</span><span>replies: ${p.engagement.replies || 0}</span></div>` : ""}
-      ${p.scheduledAt ? `<p class="text-xs text-gray-600 mt-1">Scheduled: ${new Date(p.scheduledAt).toLocaleString()}</p>` : ""}
+      <div class="flex flex-wrap gap-3 text-xs text-gray-600 mt-1">
+        ${p.generatedAt ? `<span>생성: ${fmtDate(p.generatedAt)}</span>` : ""}
+        ${p.approvedAt ? `<span>승인: ${fmtDate(p.approvedAt)}</span>` : ""}
+        ${p.scheduledAt && p.status === "approved" ? `<span class="text-blue-400">발행예정: ${fmtDate(p.scheduledAt)}</span>` : ""}
+        ${p.publishedAt ? `<span class="text-green-400">발행: ${fmtDate(p.publishedAt)}</span>` : ""}
+      </div>
       <div class="flex gap-2 mt-2">
-        ${p.status === "draft" ? `<button data-approve="${p.id}" class="px-2 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button><button data-edit="${p.id}" class="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button>` : ""}
+        ${p.status === "draft" ? `<button data-approve="${p.id}" class="px-2 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button><button data-edit="${p.id}" class="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button><button data-pick-image="${p.id}" class="px-2 py-1 text-xs bg-purple-900/50 text-purple-300 rounded hover:bg-purple-800">Image</button>` : ""}
         ${p.status !== "published" ? `<button data-delete="${p.id}" class="px-2 py-1 text-xs bg-red-900/50 text-red-300 rounded hover:bg-red-800">Delete</button>` : ""}
       </div>
     </div>`;
@@ -354,59 +436,106 @@ function renderPopular() {
 }
 
 // ── Per-Channel Settings ──
+function renderThreadsCredentials() {
+  const tk = S.channelConfig.threads?.keys || {};
+  return `
+    <div class="card p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-medium text-gray-300">Threads API Credentials</h3>
+        <span class="text-[10px] px-2 py-0.5 rounded bg-purple-900/30 text-purple-400 border border-purple-800/30">Long-lived Token</span>
+      </div>
+      <div class="space-y-3 mb-3">
+        ${credField("threads-accessToken", "Access Token", "", true, tk.accessToken)}
+        <div class="mt-2">${credField("threads-userId", "User ID", "", false, tk.userId)}</div>
+      </div>
+      <button id="save-threads-config" class="w-full py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${S.channelConfig.threads?.connected ? "Update Credentials" : "Connect Threads"}</button>
+    </div>
+    <div class="card p-5">
+      <h3 class="text-sm font-medium text-gray-300 mb-3">Threads Channel Info</h3>
+      <div class="space-y-2 text-sm">
+        <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="${S.channelConfig.threads?.connected ? "text-green-400" : "text-yellow-400"}">${S.channelConfig.threads?.connected ? "Connected" : "Not connected"}</span></div>
+        <div class="flex justify-between"><span class="text-gray-500">Username</span><span class="text-gray-300">${S.channelConfig.threads?.username ? "@" + S.channelConfig.threads.username : "-"}</span></div>
+        <div class="flex justify-between"><span class="text-gray-500">Character Limit</span><span class="text-gray-300">500</span></div>
+        <div class="flex justify-between"><span class="text-gray-500">Token Validity</span><span class="text-gray-300">60\uc77c (\uac31\uc2e0 \ud544\uc694)</span></div>
+      </div>
+    </div>`;
+}
+
 function renderChannelSettings(channel) {
   const s = S.settings || {};
+  const cs = (S.channelSettings.settings || {})[channel] || {};
+  const features = S.channelSettings.features || [];
   const row = (key, label, desc) => `
     <div class="flex items-center justify-between py-2 border-b border-gray-800/50 last:border-0">
       <div><p class="text-xs text-gray-300">${label}</p><p class="text-[10px] text-gray-600">${desc}</p></div>
       <input id="setting-${key}" type="number" value="${s[key] ?? ""}" min="0" class="w-20 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-gray-300 text-right">
     </div>`;
 
+  const featureToCron = {
+    content_generation: "threads-generate-drafts",
+    auto_publish: "threads-auto-publish",
+    insights_collection: "threads-collect-insights",
+    auto_like_replies: "threads-collect-insights",
+    low_engagement_cleanup: "threads-collect-insights",
+    trending_collection: "threads-fetch-trending",
+    follower_tracking: "threads-track-growth",
+    trending_rewrite: "threads-rewrite-trending",
+  };
+  function runsFor(featureKey) {
+    const cronName = featureToCron[featureKey];
+    if (!cronName) return [];
+    return S.cronRuns.filter(r => r.jobName === cronName);
+  }
+
   return `
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <!-- Threads Connection -->
-      <div class="card p-5">${(() => { const tk = S.channelConfig.threads?.keys || {}; return `
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-medium text-gray-300">Threads API Credentials</h3>
-          <span class="text-[10px] px-2 py-0.5 rounded bg-purple-900/30 text-purple-400 border border-purple-800/30">Long-lived Token</span>
-        </div>
-        <div class="space-y-3 mb-3">
-          ${credField("threads-accessToken", "Access Token", "", true, tk.accessToken)}
-          <div class="mt-2">${credField("threads-userId", "User ID", "", false, tk.userId)}</div>
-        </div>
-        <button id="save-threads-config" class="w-full py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${S.channelConfig.threads?.connected ? "Update Credentials" : "Connect Threads"}</button>
-      `; })()}</div>
-
-      <!-- Threads Info + Guide -->
-      <div class="space-y-4">
-        <div class="card p-5">
-          <h3 class="text-sm font-medium text-gray-300 mb-3">Threads Channel Info</h3>
-          <div class="space-y-2 text-sm">
-            <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="${S.channelConfig.threads?.connected ? "text-green-400" : "text-yellow-400"}">${S.channelConfig.threads?.connected ? "Connected" : "Not connected"}</span></div>
-            <div class="flex justify-between"><span class="text-gray-500">Username</span><span class="text-gray-300">${S.channelConfig.threads?.username ? "@" + S.channelConfig.threads.username : "-"}</span></div>
-            <div class="flex justify-between"><span class="text-gray-500">Character Limit</span><span class="text-gray-300">500</span></div>
-            <div class="flex justify-between"><span class="text-gray-500">Auth Method</span><span class="text-gray-300">Long-lived Access Token</span></div>
-            <div class="flex justify-between"><span class="text-gray-500">Token Validity</span><span class="text-gray-300">60\uc77c (\uac31\uc2e0 \ud544\uc694)</span></div>
-          </div>
-        </div>
-        <div class="card p-5">
-          <h3 class="text-sm font-medium text-gray-300 mb-3">Setup Guide</h3>
-          <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
-            <li><a href="https://developers.facebook.com" target="_blank" class="text-blue-400 hover:underline">developers.facebook.com</a> > \uc571 \ub9cc\ub4e4\uae30 > Use cases > Threads API \ucd94\uac00</li>
-            <li>Threads API > Settings > <strong class="text-gray-300">Access Token</strong> \uc0dd\uc131 (long-lived)
-              <div class="ml-4 mt-0.5 text-gray-500">\uc0dd\uc131\ub41c \ud1a0\ud070\uc744 \uc67c\ucabd Access Token \ud544\ub4dc\uc5d0 \uc785\ub825</div>
-            </li>
-            <li>Threads \ud504\ub85c\ud544\uc5d0\uc11c <strong class="text-gray-300">User ID</strong> \ud655\uc778
-              <div class="ml-4 mt-0.5 text-gray-500">API \uc751\ub2f5\uc758 id \ud544\ub4dc \ub610\ub294 Meta \uac1c\ubc1c\uc790 \ub300\uc2dc\ubcf4\ub4dc\uc5d0\uc11c \ud655\uc778</div>
-            </li>
-            <li>\uc67c\ucabd \ud3fc\uc5d0 \uc785\ub825 \ud6c4 Connect</li>
-          </ol>
-          <p class="text-[10px] text-yellow-500/70 mt-2">* Access Token\uc740 60\uc77c \uc720\ud6a8. \ub9cc\ub8cc \uc804 \uac31\uc2e0 \ud544\uc694 (API\ub85c \uc790\ub3d9 \uac31\uc2e0 \uac00\ub2a5)</p>
-        </div>
-      </div>
-
+      ${channel === "threads" ? renderThreadsCredentials() : ""}
       <div class="card p-5">
-        <div class="flex items-center justify-between mb-4"><h3 class="text-sm font-medium text-gray-300">Automation</h3><button id="save-settings" class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button></div>
+        <h3 class="text-sm font-medium text-gray-300 mb-4">Automation</h3>
+        ${features.map(f => {
+          const runs = runsFor(f.key);
+          const run = runs[0] || null;
+          const sc = run ? (run.status === "ok" ? "text-green-400" : "text-red-400") : "";
+          const ago = run?.finishedAt ? fmtAgo(new Date(run.finishedAt).toISOString()) : "";
+          const expanded = S.expandedFeature === f.key;
+          return `
+          <div class="border-b border-gray-800/50 last:border-0">
+            <div class="flex items-center gap-3 py-2.5 cursor-pointer" data-expand-feature="${f.key}">
+              <label class="relative inline-flex items-center cursor-pointer shrink-0" onclick="event.stopPropagation()">
+                <input type="checkbox" data-feature-toggle="${f.key}" data-channel="${channel}" ${cs[f.key] ? "checked" : ""} class="sr-only peer">
+                <div class="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+              </label>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-gray-300">${f.label}</span>
+                  ${run ? `<span class="text-[10px] ${sc}">${run.status === "ok" ? "&#10003;" : "&#10007;"}</span><span class="text-[10px] text-gray-600">${ago}</span>` : ""}
+                  ${runs.length ? `<svg class="w-3 h-3 text-gray-600 ml-auto transition-transform ${expanded ? "rotate-180" : ""}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>` : ""}
+                </div>
+                <p class="text-[10px] text-gray-600">${f.description}</p>
+              </div>
+            </div>
+            ${expanded && runs.length ? `
+              <div class="ml-12 mb-3 space-y-1.5">
+                ${runs.slice(0, 10).map(r => `
+                  <div class="flex items-start gap-2 py-1">
+                    <span class="text-[10px] mt-0.5 ${r.status === "ok" ? "text-green-400" : "text-red-400"}">${r.status === "ok" ? "&#10003;" : "&#10007;"}</span>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-gray-500">${r.finishedAt ? new Date(r.finishedAt).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }) : ""}</span>
+                        <span class="text-[10px] text-gray-700">${r.model || ""}</span>
+                        <span class="text-[10px] text-gray-700 ml-auto">${Math.round(r.durationMs / 1000)}s</span>
+                      </div>
+                      <p class="text-[10px] text-gray-500 break-words">${esc(r.summary)}</p>
+                    </div>
+                  </div>
+                `).join("")}
+              </div>
+            ` : ""}
+          </div>`;
+        }).join("")}
+      </div>
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-4"><h3 class="text-sm font-medium text-gray-300">Parameters</h3><button id="save-settings" class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button></div>
         ${row("viralThreshold", "Viral Threshold", "터진 글 기준 views")}
         ${row("draftsPerBatch", "Drafts per Batch", "배치당 생성 개수")}
         ${row("publishIntervalHours", "Publish Interval", "발행 간격 (시간)")}
@@ -437,10 +566,6 @@ function renderChannelX() {
     <div class="flex items-center gap-3 mb-6">
       <span class="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center text-sm font-bold text-white">X</span>
       <div><h2 class="text-xl font-semibold text-white">X (Twitter)</h2><p class="text-xs text-gray-500">${connected ? "Connected" : "Not connected"}</p></div>
-      ${connected ? `<a href="https://x.com" target="_blank" rel="noopener" class="ml-auto px-3 py-1 text-xs rounded border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition flex items-center gap-1.5">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-        Open X
-      </a>` : ""}
     </div>
     <div class="flex gap-1 mb-6 border-b border-gray-800/50 pb-3">
       ${tabs.map(t => `<button data-subtab="${t}" class="px-3 py-1.5 text-sm rounded ${S.subTab === t ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"}">${t.charAt(0).toUpperCase() + t.slice(1)}</button>`).join("")}
@@ -452,9 +577,8 @@ function renderChannelX() {
 }
 
 function credField(id, label, desc, isSecret = false, fullValue = "") {
-  const masked = fullValue ? fullValue.replace(/./g, "\u2022") : "";
   return `<div>
-    <label class="text-xs text-gray-400 block mb-0.5">${label} <span class="text-gray-600">${desc}</span></label>
+    <label class="text-xs text-gray-400 block mb-0.5">${label} ${desc ? `<span class="text-gray-600">${desc}</span>` : ""}</label>
     <div class="relative">
       <input id="${id}" type="${isSecret ? "password" : "text"}" value="${esc(fullValue)}" placeholder="${label}" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 pr-16 text-sm text-gray-300 placeholder-gray-600 font-mono">
       ${isSecret ? `<button type="button" data-toggle-vis="${id}" class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 hover:text-gray-300">Show</button>` : ""}
@@ -465,17 +589,15 @@ function credField(id, label, desc, isSecret = false, fullValue = "") {
 function renderXSettings() {
   const connected = S.channelConfig.x?.connected;
   const k = S.channelConfig.x?.keys || {};
-
   return `
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <!-- Credentials -->
       <div class="card p-5">
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-sm font-medium text-gray-300">OAuth 1.0 Keys</h3>
           <span class="text-[10px] px-2 py-0.5 rounded bg-blue-900/30 text-blue-400 border border-blue-800/30">OAuth 1.0a</span>
         </div>
         <div class="p-2 rounded bg-yellow-900/20 border border-yellow-800/20 mb-4">
-          <p class="text-[10px] text-yellow-400/80">X Developer Portal > <strong>Keys and tokens</strong> > OAuth 1.0 섹션. OAuth 2.0 Client ID/Secret은 사용하지 않습니다.</p>
+          <p class="text-[10px] text-yellow-400/80">X Developer Portal > <strong>Keys and tokens</strong> > OAuth 1.0 \uc139\uc158. OAuth 2.0 Client ID/Secret\uc740 \uc0ac\uc6a9\ud558\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.</p>
         </div>
         <div class="space-y-4">
           <div class="border-b border-gray-800/50 pb-3">
@@ -491,8 +613,6 @@ function renderXSettings() {
         </div>
         <button id="save-x-config" class="w-full mt-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${connected ? "Update Credentials" : "Connect X Account"}</button>
       </div>
-
-      <!-- Channel Info + Guide (always visible) -->
       <div class="space-y-4">
         <div class="card p-5">
           <h3 class="text-sm font-medium text-gray-300 mb-3">X Channel Info</h3>
@@ -510,12 +630,8 @@ function renderXSettings() {
             <li>App Settings > <strong class="text-gray-300">User authentication settings</strong> > Edit
               <div class="ml-4 mt-0.5 text-gray-500">- App permissions: <strong class="text-gray-300">Read and write</strong><br>- Type of App: Web App<br>- Website URL: https://example.com<br>- Callback URL: https://example.com/callback</div>
             </li>
-            <li>Keys and tokens > <strong class="text-gray-300">\uc18c\ube44\uc790 \ud0a4 (Consumer Keys)</strong> > \uc7ac\uc0dd\uc131
-              <div class="ml-4 mt-0.5 text-gray-500">\uc18c\ube44\uc790 \ud0a4 + \uc18c\ube44\uc790 \uc2dc\ud06c\ub9bf \ubcf5\uc0ac (\ud55c \ubc88\ub9cc \ubcf4\uc784)</div>
-            </li>
-            <li>Keys and tokens > <strong class="text-gray-300">\uc561\uc138\uc2a4 \ud1a0\ud070 (Access Token)</strong> > \uc0dd\uc131
-              <div class="ml-4 mt-0.5 text-gray-500">Read+Write \uad8c\ud55c \ud655\uc778 \ud6c4 \uc0dd\uc131. \uc561\uc138\uc2a4 \ud1a0\ud070 + \uc2dc\ud06c\ub9bf \ubcf5\uc0ac (\ud55c \ubc88\ub9cc \ubcf4\uc784)</div>
-            </li>
+            <li>Keys and tokens > <strong class="text-gray-300">\uc18c\ube44\uc790 \ud0a4</strong> > \uc7ac\uc0dd\uc131 > Key + Secret \ubcf5\uc0ac</li>
+            <li>Keys and tokens > <strong class="text-gray-300">\uc561\uc138\uc2a4 \ud1a0\ud070</strong> > \uc0dd\uc131 (Read+Write) > Token + Secret \ubcf5\uc0ac</li>
             <li>\uc67c\ucabd \ud3fc\uc5d0 4\uac1c \ud0a4 \uc785\ub825 > Connect</li>
           </ol>
           <p class="text-[10px] text-yellow-500/70 mt-2">* \uad8c\ud55c \ubcc0\uacbd \ud6c4 \ubc18\ub4dc\uc2dc \uc561\uc138\uc2a4 \ud1a0\ud070\uc744 \uc7ac\uc0dd\uc131\ud574\uc57c \ud569\ub2c8\ub2e4</p>
@@ -524,51 +640,12 @@ function renderXSettings() {
     </div>`;
 }
 
-// ── Settings Page (Channel Connections + Token Management) ──
+// ── Settings Page (Channel Connections) ──
 function renderSettings() {
-  const ts = S.tokenStatus || {};
-  const claude = ts.claude;
   return `<div class="px-8 py-6">
     <h2 class="text-xl font-semibold text-white mb-1">Settings</h2>
-    <p class="text-sm text-gray-500 mb-6">Channel connections, token management & system status</p>
+    <p class="text-sm text-gray-500 mb-6">Channel connections & system status</p>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-      <!-- Token Management -->
-      <div class="card p-5">
-        <h3 class="text-sm font-medium text-gray-300 mb-4">Token & API Status</h3>
-        <div class="space-y-3">
-          <div class="p-3 rounded-lg bg-gray-900/50">
-            <div class="flex items-center justify-between mb-1">
-              <span class="text-xs text-gray-300">Claude (AI Engine)</span>
-              <span class="text-[10px] ${claude?.healthy ? "text-green-400" : "text-red-400"}">${claude ? (claude.healthy ? "Healthy" : "Expiring soon") : "Unknown"}</span>
-            </div>
-            ${claude ? `
-              <div class="text-[10px] text-gray-500 space-y-0.5">
-                <div>Type: ${claude.type || "oauth"} (Max Plan)</div>
-                <div>Remaining: <span class="${claude.remainingHours > 2 ? "text-gray-300" : "text-red-400"}">${claude.remainingHours}h</span> (auto-refresh)</div>
-                <div>Errors: ${claude.errorCount}</div>
-                <div>Last used: ${claude.lastUsed ? fmtAgo(new Date(claude.lastUsed).toISOString()) : "never"}</div>
-              </div>
-            ` : `<p class="text-[10px] text-gray-600">No data available</p>`}
-          </div>
-          <div class="p-3 rounded-lg bg-gray-900/50">
-            <div class="flex items-center justify-between mb-1">
-              <span class="text-xs text-gray-300">Threads API</span>
-              <span class="text-[10px] ${ts.threads?.connected ? "text-green-400" : "text-gray-600"}">${ts.threads?.connected ? "Connected" : "Not connected"}</span>
-            </div>
-            ${ts.threads?.userId ? `<div class="text-[10px] text-gray-500">User ID: ${ts.threads.userId}</div>` : ""}
-          </div>
-          <div class="p-3 rounded-lg bg-gray-900/50">
-            <div class="flex items-center justify-between mb-1">
-              <span class="text-xs text-gray-300">X (Twitter) API</span>
-              <span class="text-[10px] ${ts.x?.connected ? "text-green-400" : "text-yellow-400"}">${ts.x?.connected ? "Connected" : "Not connected"}</span>
-            </div>
-            ${ts.x?.connected ? `<div class="text-[10px] text-gray-500">Enabled: ${ts.x.enabled}</div>` : `<div class="text-[10px] text-gray-600">Setup in X channel settings</div>`}
-          </div>
-        </div>
-      </div>
-
-      <!-- Channel Connections -->
       <div class="card p-5">
         <h3 class="text-sm font-medium text-gray-300 mb-4">Connected Channels</h3>
         <div class="space-y-3">
@@ -607,13 +684,19 @@ function bindEvents() {
   document.querySelectorAll("[data-filter]").forEach(el => { el.onclick = () => { S.queueFilter = el.dataset.filter; loadQueue(S.queueFilter); }; });
   document.querySelectorAll("[data-approve]").forEach(el => { el.onclick = () => approvePost(el.dataset.approve); });
   document.querySelectorAll("[data-edit]").forEach(el => { el.onclick = () => { S.editingPost = el.dataset.edit; render(); }; });
-  document.querySelectorAll("[data-save]").forEach(el => { el.onclick = () => { const ta = document.getElementById("edit-textarea"); if (ta) updatePost(el.dataset.save, ta.value); }; });
+  document.querySelectorAll("[data-save]").forEach(el => { el.onclick = () => { const ta = document.getElementById("edit-textarea"); if (ta) updatePost(el.dataset.save, { text: ta.value }); }; });
   document.querySelectorAll("[data-cancel-edit]").forEach(el => { el.onclick = () => { S.editingPost = null; render(); }; });
   document.querySelectorAll("[data-delete]").forEach(el => { el.onclick = () => deletePost(el.dataset.delete); });
+  document.querySelectorAll("[data-pick-image]").forEach(el => { el.onclick = (e) => { e.stopPropagation(); S.imagePickerPostId = el.dataset.pickImage; render(); }; });
+  document.querySelectorAll("[data-remove-image]").forEach(el => { el.onclick = () => updatePostImage(el.dataset.removeImage, null); });
   document.querySelectorAll("[data-select]").forEach(el => { el.onchange = () => { if (el.checked) S.selectedIds.add(el.dataset.select); else S.selectedIds.delete(el.dataset.select); render(); }; });
 
+  const selectAllBtn = document.getElementById("select-all");
+  if (selectAllBtn) selectAllBtn.onchange = toggleSelectAll;
   const bulkBtn = document.getElementById("bulk-approve");
   if (bulkBtn) bulkBtn.onclick = bulkApprove;
+  const bulkDelBtn = document.getElementById("bulk-delete");
+  if (bulkDelBtn) bulkDelBtn.onclick = bulkDelete;
 
   const saveSt = document.getElementById("save-settings");
   if (saveSt) saveSt.onclick = async () => {
@@ -635,17 +718,27 @@ function bindEvents() {
     if (ta) { const kw = ta.value.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("#")); const r = await API.post("/api/keywords", { keywords: kw }); if (r) showToast("키워드 저장됨", "success"); }
   };
 
-  document.querySelectorAll("[data-toggle-vis]").forEach(el => {
-    el.onclick = () => {
-      const input = document.getElementById(el.dataset.toggleVis);
-      if (input) {
-        const show = input.type === "password";
-        input.type = show ? "text" : "password";
-        el.textContent = show ? "Hide" : "Show";
-      }
+  document.querySelectorAll("[data-expand-feature]").forEach(el => {
+    el.onclick = () => { S.expandedFeature = S.expandedFeature === el.dataset.expandFeature ? null : el.dataset.expandFeature; render(); };
+  });
+  document.querySelectorAll("[data-feature-toggle]").forEach(el => {
+    el.onchange = async () => {
+      const key = el.dataset.featureToggle;
+      const channel = el.dataset.channel;
+      const r = await API.post(`/api/channel-settings/${channel}`, { [key]: el.checked });
+      if (r) showToast(`${key} ${el.checked ? "ON" : "OFF"}`, "success");
     };
   });
 
+  // Show/Hide toggle for credential fields
+  document.querySelectorAll("[data-toggle-vis]").forEach(el => {
+    el.onclick = () => {
+      const input = document.getElementById(el.dataset.toggleVis);
+      if (input) { const show = input.type === "password"; input.type = show ? "text" : "password"; el.textContent = show ? "Hide" : "Show"; }
+    };
+  });
+
+  // Threads credential save
   const saveThreads = document.getElementById("save-threads-config");
   if (saveThreads) saveThreads.onclick = async () => {
     const data = {};
@@ -657,45 +750,157 @@ function bindEvents() {
     if (r) { showToast("Threads 설정 저장됨", "success"); loadOverview(); }
   };
 
-  const toggleXGuide = document.getElementById("toggle-x-guide");
-  if (toggleXGuide) toggleXGuide.onclick = () => { S.showXGuide = !S.showXGuide; render(); };
-  const toggleThreadsGuide = document.getElementById("toggle-threads-guide");
-  if (toggleThreadsGuide) toggleThreadsGuide.onclick = () => { S.showThreadsGuide = !S.showThreadsGuide; render(); };
-
-  const editX = document.getElementById("edit-x-creds");
-  if (editX) editX.onclick = () => { S.editingXCreds = true; render(); };
-  const cancelX = document.getElementById("cancel-x-edit");
-  if (cancelX) cancelX.onclick = () => { S.editingXCreds = false; render(); };
-
   const saveX = document.getElementById("save-x-config");
   if (saveX) saveX.onclick = async () => {
     const data = {};
     ["apiKey", "apiKeySecret", "accessToken", "accessTokenSecret"].forEach(k => { const el = document.getElementById("x-" + k); if (el?.value) data[k] = el.value; });
     const r = await API.post("/api/channel-config/x", data);
-    if (r) { showToast(r.enabled ? "X 연결 완료!" : "저장됨", "success"); S.editingXCreds = false; loadOverview(); }
+    if (r) { showToast(r.enabled ? "X 연결 완료!" : "저장됨", "success"); loadOverview(); }
   };
 }
 
 function navigate(page) {
   S.page = page;
   if (page === "overview") loadOverview();
-  else if (page === "threads") { S.subTab = "queue"; loadQueue(S.queueFilter); loadGrowth(); }
+  else if (page === "threads") { S.subTab = "queue"; loadQueue(S.queueFilter); loadGrowth(); loadImages(); }
   else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); }
-  else if (page === "settings") { loadSettings(); loadKeywords(); loadTokenStatus(); }
+  else if (page === "images") loadImages();
+  else if (page === "settings") { loadSettings(); loadKeywords(); }
   render();
 }
 
 function switchSubTab(tab) {
-  if (tab === "queue") loadQueue(S.queueFilter);
+  if (tab === "queue") { loadQueue(S.queueFilter); loadImages(); }
   else if (tab === "analytics") loadAnalytics();
   else if (tab === "growth") loadGrowth();
   else if (tab === "popular") loadPopular();
-  else if (tab === "settings") { loadSettings(); loadKeywords(); }
+  else if (tab === "settings") { loadSettings(); loadKeywords(); loadChannelSettings(); loadCronRuns(); }
   render();
+}
+
+// ── Channel Settings & Cron Runs ──
+async function loadChannelSettings() {
+  const data = await API.get("/api/channel-settings");
+  if (data) { S.channelSettings = data; render(); }
+}
+async function loadCronRuns() {
+  const data = await API.get("/api/cron-runs");
+  if (data) { S.cronRuns = data.runs || []; render(); }
+}
+
+// ── Image Picker Modal ──
+function renderImagePickerModal() {
+  if (!S.imagePickerPostId) return "";
+  const post = S.queue.find(p => p.id === S.imagePickerPostId);
+  return `
+    <div id="image-picker-overlay" class="fixed inset-0 z-40 bg-black/70 flex items-center justify-center" style="backdrop-filter:blur(4px)">
+      <div class="card p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto mx-4">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-white">Select Image</h3>
+          <button id="close-image-picker" class="text-gray-400 hover:text-white text-xl">&times;</button>
+        </div>
+        ${post?.imageUrl ? `<button data-select-image="__remove__" class="w-full mb-4 p-3 rounded-lg border border-red-800/50 bg-red-900/20 text-red-300 text-sm hover:bg-red-900/40">Remove current image</button>` : ""}
+        ${S.images.length === 0 ? `<p class="text-gray-500 text-sm text-center py-8">No images available. Generate images first.</p>` : `
+          <div class="grid grid-cols-3 gap-3">
+            ${S.images.map(img => `
+              <div data-select-image="${esc(img.url)}" class="cursor-pointer rounded-lg border overflow-hidden transition-colors ${post?.imageUrl === img.url ? "border-blue-500 ring-2 ring-blue-500/30" : "border-gray-800 hover:border-blue-500"}">
+                <div class="aspect-square bg-gray-900"><img src="${esc(img.url)}" class="w-full h-full object-cover" loading="lazy"></div>
+                <div class="p-2"><p class="text-[10px] text-gray-400 truncate">${esc(img.filename)}</p></div>
+              </div>
+            `).join("")}
+          </div>
+        `}
+      </div>
+    </div>`;
+}
+
+function bindImagePickerEvents() {
+  const close = document.getElementById("close-image-picker");
+  if (close) close.onclick = () => { S.imagePickerPostId = null; render(); };
+  const overlay = document.getElementById("image-picker-overlay");
+  if (overlay) overlay.onclick = (e) => { if (e.target === overlay) { S.imagePickerPostId = null; render(); } };
+  document.querySelectorAll("[data-select-image]").forEach(el => {
+    el.onclick = (e) => {
+      e.stopPropagation();
+      const url = el.dataset.selectImage;
+      updatePostImage(S.imagePickerPostId, url === "__remove__" ? null : url);
+    };
+  });
+}
+
+// ── Images ──
+async function loadImages() {
+  const data = await API.get("/api/images");
+  if (data) S.images = data;
+}
+
+function fmtBytes(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+function renderImages() {
+  return `<div class="p-6 max-w-6xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-bold text-white">Images</h2>
+        <p class="text-sm text-gray-500 mt-1">${S.images.length}개 이미지 — AI 생성 이미지 갤러리</p>
+      </div>
+    </div>
+    ${S.images.length === 0 ? `
+      <div class="card p-12 text-center">
+        <svg class="w-12 h-12 text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <p class="text-gray-500">아직 생성된 이미지가 없습니다</p>
+        <p class="text-xs text-gray-600 mt-1">image_generate tool로 이미지를 생성하면 여기에 표시됩니다</p>
+      </div>
+    ` : `
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        ${S.images.map(img => `
+          <div class="card overflow-hidden group relative">
+            <div class="aspect-square bg-gray-900 flex items-center justify-center">
+              <img src="${esc(img.url)}" alt="${esc(img.filename)}" class="w-full h-full object-cover" loading="lazy">
+            </div>
+            <div class="p-3">
+              <p class="text-xs text-gray-300 truncate" title="${esc(img.filename)}">${esc(img.filename)}</p>
+              <div class="flex items-center justify-between mt-1">
+                <span class="text-[10px] text-gray-500">${fmtBytes(img.size)}</span>
+                <span class="text-[10px] text-gray-500">${fmtTime(img.createdAt)}</span>
+              </div>
+            </div>
+            <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+              <button onclick="copyImageUrl('${esc(img.url)}')" class="p-1.5 bg-gray-900/80 rounded text-gray-300 hover:text-white" title="URL 복사">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              </button>
+              <button onclick="deleteImage('${esc(img.filename)}')" class="p-1.5 bg-gray-900/80 rounded text-red-400 hover:text-red-300" title="삭제">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    `}
+  </div>`;
+}
+
+function copyImageUrl(url) {
+  const full = window.location.origin + url;
+  navigator.clipboard.writeText(full).then(() => showToast("URL 복사됨", "success"));
+}
+
+async function deleteImage(filename) {
+  if (!confirm("이미지를 삭제하시겠습니까?")) return;
+  try {
+    const res = await fetch("/api/images/" + encodeURIComponent(filename), { method: "DELETE", headers: authHeaders() });
+    if (res.ok) { showToast("삭제됨", "success"); await loadImages(); render(); }
+    else showToast("삭제 실패", "error");
+  } catch (e) { showToast("삭제 실패: " + e.message, "error"); }
 }
 
 // ── Init ──
 document.addEventListener("DOMContentLoaded", () => {
+  if (!getAuthToken()) { promptLogin(); return; }
   loadOverview();
+  loadImages();
   render();
 });
