@@ -67,6 +67,8 @@ type PopularPost = {
   source: string;
   collected: string;
   text: string;
+  url?: string;
+  username?: string;
 };
 
 function parsePopularPosts(content: string): PopularPost[] {
@@ -91,6 +93,8 @@ function parsePopularPosts(content: string): PopularPost[] {
         source: entry.source ?? "unknown",
         collected: entry.collected ?? "",
         text: entry.text,
+        url: entry.url,
+        username: entry.username,
       });
     }
   }
@@ -98,7 +102,11 @@ function parsePopularPosts(content: string): PopularPost[] {
 }
 
 function formatPopularPost(post: PopularPost): string {
-  return `---\ntopic: ${post.topic}\nengagement: ${post.engagement}\nlikes: ${post.likes}\nsource: ${post.source}\ncollected: ${post.collected}\ntext: ${post.text}\n`;
+  let s = `---\ntopic: ${post.topic}\nengagement: ${post.engagement}\nlikes: ${post.likes}\nsource: ${post.source}\ncollected: ${post.collected}`;
+  if (post.username) s += `\nusername: ${post.username}`;
+  if (post.url) s += `\nurl: ${post.url}`;
+  s += `\ntext: ${post.text}\n`;
+  return s;
 }
 
 function koreanRatio(text: string): number {
@@ -216,6 +224,7 @@ export function createThreadsSearchTool(api: OpenClawPluginApi) {
               newPosts.some((p) => p.text.substring(0, 100) === prefix);
             if (isDupe) continue;
 
+            const postUrl = item.username ? `https://www.threads.net/@${item.username}/post/${item.id}` : "";
             newPosts.push({
               topic: keyword,
               engagement: `high (${likes} likes)`,
@@ -223,6 +232,8 @@ export function createThreadsSearchTool(api: OpenClawPluginApi) {
               source: "external",
               collected: now.toISOString().split("T")[0],
               text: textOneLine,
+              url: postUrl,
+              username: item.username ?? "",
             });
           }
         } catch {
