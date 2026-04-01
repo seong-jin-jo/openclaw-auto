@@ -415,6 +415,8 @@ function renderAnalytics() {
     ${Object.keys(a.topics || {}).length ? `<div class="card p-4 mb-6"><h3 class="text-xs font-medium text-gray-400 mb-3">Topic Performance</h3>
       <table class="w-full text-sm"><thead><tr class="text-[10px] text-gray-500 uppercase"><th class="text-left py-1">Topic</th><th class="text-right py-1">Posts</th><th class="text-right py-1">Avg Views</th><th class="text-right py-1">Avg Likes</th></tr></thead>
       <tbody>${Object.entries(a.topics).map(([t, s]) => `<tr class="border-t border-gray-800/50"><td class="text-gray-200 py-1">${esc(t)}</td><td class="text-gray-400 text-right py-1">${s.count}</td><td class="text-gray-400 text-right py-1">${s.avgViews || 0}</td><td class="text-gray-400 text-right py-1">${s.avgLikes || 0}</td></tr>`).join("")}</tbody></table></div>` : ""}
+    ${Object.keys(a.hashtags || {}).length ? `<div class="card p-4 mb-6"><h3 class="text-xs font-medium text-gray-400 mb-3">Hashtag Performance</h3>
+      <div class="flex flex-wrap gap-2">${Object.entries(a.hashtags).sort((a, b) => (b[1].avgViews || 0) - (a[1].avgViews || 0)).map(([t, s]) => `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs border border-gray-800 ${s.avgViews >= (a.summary?.viralThreshold || 500) ? "bg-yellow-900/30 border-yellow-700/50 text-yellow-300" : "bg-gray-900 text-gray-400"}">#${esc(t)} <span class="text-[10px] text-gray-500">${s.count}posts ${s.avgViews || 0}v ${s.avgLikes || 0}l</span></span>`).join("")}</div></div>` : ""}
     ${posts.length ? `<div class="card p-4"><h3 class="text-xs font-medium text-gray-400 mb-3">Post Performance</h3>
       <div class="space-y-2">
         ${posts.map(p => {
@@ -560,6 +562,9 @@ function renderChannelSettings(channel) {
         <div class="flex items-center justify-between mb-4"><h3 class="text-sm font-medium text-gray-300">Parameters</h3><button id="save-settings" class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button></div>
         ${row("viralThreshold", "Viral Threshold", "터진 글 기준 views")}
         ${row("draftsPerBatch", "Drafts per Batch", "배치당 생성 개수")}
+        ${row("imagePerBatch", "Images per Batch", "배치당 이미지 첨부 수")}
+        ${row("casualPerBatch", "Casual per Batch", "배치당 일상 글 수")}
+        ${row("quotePerBatch", "Quotes per Batch", "배치당 인용 게시 수")}
         ${row("publishIntervalHours", "Publish Interval", "발행 간격 (시간)")}
         ${row("insightsIntervalHours", "Insights Interval", "반응 수집 간격 (시간)")}
         ${row("insightsMaxCollections", "Max Collections", "최대 반응 수집 횟수")}

@@ -42,6 +42,11 @@ const ThreadsPublishToolSchema = Type.Object(
         description: "Public URL of an image to attach. When provided, the post becomes an IMAGE type instead of TEXT.",
       }),
     ),
+    quote_post_id: Type.Optional(
+      Type.String({
+        description: "Media ID of a Threads post to quote. Creates a quote post with your text + the quoted post.",
+      }),
+    ),
   },
   { additionalProperties: false },
 );
@@ -60,6 +65,7 @@ export function createThreadsPublishTool(api: OpenClawPluginApi) {
       }
 
       const imageUrl = readStringParam(rawParams, "image_url");
+      const quotePostId = readStringParam(rawParams, "quote_post_id");
       const { accessToken, userId } = resolveConfig(api);
 
       // Step 1: Create media container
@@ -71,6 +77,9 @@ export function createThreadsPublishTool(api: OpenClawPluginApi) {
       };
       if (imageUrl) {
         containerParams.image_url = imageUrl;
+      }
+      if (quotePostId) {
+        containerParams.quote_post_id = quotePostId;
       }
       const createResp = await fetch(createUrl, {
         method: "POST",
@@ -110,6 +119,7 @@ export function createThreadsPublishTool(api: OpenClawPluginApi) {
         containerId,
         textLength: text.length,
         mediaType: imageUrl ? "IMAGE" : "TEXT",
+        quoted: quotePostId || null,
       });
     },
   };
