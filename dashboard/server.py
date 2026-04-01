@@ -710,7 +710,16 @@ def api_channel_config():
                 t_username = t_data.get("username", "")
         except Exception:
             pass
-    channels["threads"] = {"enabled": tp.get("enabled", False), "userId": t_uid, "username": t_username, "connected": bool(t_token)}
+    channels["threads"] = {
+        "enabled": tp.get("enabled", False),
+        "userId": t_uid,
+        "username": t_username,
+        "connected": bool(t_token),
+        "keys": {
+            "accessToken": t_token,
+            "userId": t_uid,
+        },
+    }
     xp = plugins.get("x-publish", {})
     x_cfg = xp.get("config", {})
     channels["x"] = {
@@ -724,6 +733,29 @@ def api_channel_config():
         },
     }
     return jsonify(channels)
+
+
+@app.route("/api/channel-config/threads", methods=["POST"])
+def api_channel_config_threads():
+    data = get_json_body()
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path)
+    if config is None:
+        return jsonify({"error": "openclaw.json not found"}), 404
+
+    plugins = config.setdefault("plugins", {}).setdefault("entries", {})
+    # Update all threads plugins that use accessToken/userId
+    thread_plugins = ["threads-publish", "threads-insights", "threads-search", "threads-growth"]
+    for pname in thread_plugins:
+        p = plugins.setdefault(pname, {"enabled": True, "config": {}})
+        if "accessToken" in data and isinstance(data["accessToken"], str) and data["accessToken"].strip():
+            p["config"]["accessToken"] = data["accessToken"].strip()
+        if "userId" in data and isinstance(data["userId"], str) and data["userId"].strip():
+            p["config"]["userId"] = data["userId"].strip()
+
+    write_json(config_path, config)
+    logger.info("Threads channel config updated")
+    return jsonify({"ok": True})
 
 
 @app.route("/api/channel-config/x", methods=["POST"])

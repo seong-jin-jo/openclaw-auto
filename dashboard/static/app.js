@@ -365,37 +365,44 @@ function renderChannelSettings(channel) {
   return `
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <!-- Threads Connection -->
-      <div class="card p-5">
+      <div class="card p-5">${(() => { const tk = S.channelConfig.threads?.keys || {}; return `
         <div class="flex items-center justify-between mb-3">
-          <div>
-            <h3 class="text-sm font-medium text-gray-300">Threads API</h3>
-            <p class="text-[10px] text-gray-600">developers.facebook.com > Threads API</p>
-          </div>
-          <button id="toggle-threads-guide" class="text-[10px] text-blue-400 hover:text-blue-300">${S.showThreadsGuide ? "Hide Guide" : "Setup Guide"}</button>
+          <h3 class="text-sm font-medium text-gray-300">Threads API Credentials</h3>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-purple-900/30 text-purple-400 border border-purple-800/30">Long-lived Token</span>
         </div>
-        <div class="space-y-2 text-sm">
-          <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="${S.channelConfig.threads?.connected ? "text-green-400" : "text-yellow-400"}">${S.channelConfig.threads?.connected ? "Connected" : "Not connected"}</span></div>
-          <div class="flex justify-between"><span class="text-gray-500">Username</span><span class="text-gray-300">${S.channelConfig.threads?.username ? "@" + S.channelConfig.threads.username : "-"}</span></div>
-          <div class="flex justify-between"><span class="text-gray-500">User ID</span><span class="text-gray-300">${S.channelConfig.threads?.userId || "-"}</span></div>
-          <div class="flex justify-between"><span class="text-gray-500">Auth</span><span class="text-gray-300">Long-lived Access Token</span></div>
-          <div class="flex justify-between"><span class="text-gray-500">Char Limit</span><span class="text-gray-300">500</span></div>
+        <div class="space-y-3 mb-3">
+          ${credField("threads-accessToken", "Access Token", "", true, tk.accessToken)}
+          <div class="mt-2">${credField("threads-userId", "User ID", "", false, tk.userId)}</div>
         </div>
-        ${S.showThreadsGuide ? `
-          <div class="mt-3 p-3 rounded bg-gray-900/50">
-            <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Setup Guide</p>
-            <ol class="text-[10px] text-gray-400 space-y-1 list-decimal list-inside">
-              <li><a href="https://developers.facebook.com" target="_blank" class="text-blue-400 hover:underline">developers.facebook.com</a> > 앱 만들기 > Use cases > Threads API 추가</li>
-              <li>Threads API > Settings > Access Token 생성 (long-lived)</li>
-              <li>Threads 프로필에서 User ID 확인</li>
-              <li>.env 파일에 설정:
-                <div class="mt-1 p-2 bg-gray-800 rounded font-mono text-[10px] text-gray-300">THREADS_ACCESS_TOKEN=your_token<br>THREADS_USER_ID=your_user_id</div>
-              </li>
-              <li>또는 config/openclaw.json > plugins > threads-publish > config에 직접 입력</li>
-              <li>Gateway 재시작으로 적용</li>
-            </ol>
-            <p class="text-[10px] text-gray-500 mt-2">Access Token은 60일 유효, 만료 전 갱신 필요</p>
+        <button id="save-threads-config" class="w-full py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${S.channelConfig.threads?.connected ? "Update Credentials" : "Connect Threads"}</button>
+      `; })()}</div>
+
+      <!-- Threads Info + Guide -->
+      <div class="space-y-4">
+        <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-3">Threads Channel Info</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="${S.channelConfig.threads?.connected ? "text-green-400" : "text-yellow-400"}">${S.channelConfig.threads?.connected ? "Connected" : "Not connected"}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Username</span><span class="text-gray-300">${S.channelConfig.threads?.username ? "@" + S.channelConfig.threads.username : "-"}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Character Limit</span><span class="text-gray-300">500</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Auth Method</span><span class="text-gray-300">Long-lived Access Token</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Token Validity</span><span class="text-gray-300">60\uc77c (\uac31\uc2e0 \ud544\uc694)</span></div>
           </div>
-        ` : ""}
+        </div>
+        <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-3">Setup Guide</h3>
+          <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
+            <li><a href="https://developers.facebook.com" target="_blank" class="text-blue-400 hover:underline">developers.facebook.com</a> > \uc571 \ub9cc\ub4e4\uae30 > Use cases > Threads API \ucd94\uac00</li>
+            <li>Threads API > Settings > <strong class="text-gray-300">Access Token</strong> \uc0dd\uc131 (long-lived)
+              <div class="ml-4 mt-0.5 text-gray-500">\uc0dd\uc131\ub41c \ud1a0\ud070\uc744 \uc67c\ucabd Access Token \ud544\ub4dc\uc5d0 \uc785\ub825</div>
+            </li>
+            <li>Threads \ud504\ub85c\ud544\uc5d0\uc11c <strong class="text-gray-300">User ID</strong> \ud655\uc778
+              <div class="ml-4 mt-0.5 text-gray-500">API \uc751\ub2f5\uc758 id \ud544\ub4dc \ub610\ub294 Meta \uac1c\ubc1c\uc790 \ub300\uc2dc\ubcf4\ub4dc\uc5d0\uc11c \ud655\uc778</div>
+            </li>
+            <li>\uc67c\ucabd \ud3fc\uc5d0 \uc785\ub825 \ud6c4 Connect</li>
+          </ol>
+          <p class="text-[10px] text-yellow-500/70 mt-2">* Access Token\uc740 60\uc77c \uc720\ud6a8. \ub9cc\ub8cc \uc804 \uac31\uc2e0 \ud544\uc694 (API\ub85c \uc790\ub3d9 \uac31\uc2e0 \uac00\ub2a5)</p>
+        </div>
       </div>
 
       <div class="card p-5">
@@ -457,87 +464,62 @@ function credField(id, label, desc, isSecret = false, fullValue = "") {
 
 function renderXSettings() {
   const connected = S.channelConfig.x?.connected;
-  const editing = S.editingXCreds;
-
-  if (connected && !editing) {
-    const k = S.channelConfig.x?.keys || {};
-    return `
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="card p-5">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-sm font-medium text-gray-300">X API Credentials</h3>
-            <span class="text-[10px] px-2 py-0.5 rounded bg-blue-900/30 text-blue-400 border border-blue-800/30">OAuth 1.0a</span>
-          </div>
-          <div class="space-y-3">
-            ${credField("x-view-apiKey", "API Key", "\uc571 \uc2dd\ubcc4", false, k.apiKey)}
-            ${credField("x-view-apiKeySecret", "API Key Secret", "\uc694\uccad \uc11c\uba85\uc6a9", true, k.apiKeySecret)}
-            ${credField("x-view-accessToken", "Access Token", "\ud2b8\uc717 \ubc1c\ud589 \uad8c\ud55c", false, k.accessToken)}
-            ${credField("x-view-accessTokenSecret", "Access Token Secret", "\uc561\uc138\uc2a4 \uc11c\uba85\uc6a9", true, k.accessTokenSecret)}
-          </div>
-          <button id="edit-x-creds" class="w-full mt-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Edit Credentials</button>
-        </div>
-      </div>`;
-  }
+  const k = S.channelConfig.x?.keys || {};
 
   return `
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Credentials -->
       <div class="card p-5">
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-medium text-gray-300">X API Credentials</h3>
+          <h3 class="text-sm font-medium text-gray-300">OAuth 1.0 Keys</h3>
           <span class="text-[10px] px-2 py-0.5 rounded bg-blue-900/30 text-blue-400 border border-blue-800/30">OAuth 1.0a</span>
         </div>
         <div class="p-2 rounded bg-yellow-900/20 border border-yellow-800/20 mb-4">
-          <p class="text-[10px] text-yellow-400/80">X Developer Portal > Keys and tokens 에서 <strong>OAuth 1.0</strong> 섹션의 키를 입력하세요. OAuth 2.0 Client ID/Secret은 사용하지 않습니다.</p>
+          <p class="text-[10px] text-yellow-400/80">X Developer Portal > <strong>Keys and tokens</strong> > OAuth 1.0 섹션. OAuth 2.0 Client ID/Secret은 사용하지 않습니다.</p>
         </div>
-        <div class="space-y-4">${(() => { const k = S.channelConfig.x?.keys || {}; return `
+        <div class="space-y-4">
           <div class="border-b border-gray-800/50 pb-3">
-            <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Consumer Keys <span class="normal-case text-gray-600">(= API Key)</span></p>
-            ${credField("x-apiKey", "API Key", "\uc571 \uc2dd\ubcc4", false, k.apiKey)}
-            <div class="mt-2">${credField("x-apiKeySecret", "API Key Secret", "\uc694\uccad \uc11c\uba85\uc6a9", true, k.apiKeySecret)}</div>
+            <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">\uc18c\ube44\uc790 \ud0a4 (Consumer Keys)</p>
+            ${credField("x-apiKey", "\uc18c\ube44\uc790 \ud0a4 (API Key)", "", false, k.apiKey)}
+            <div class="mt-2">${credField("x-apiKeySecret", "\uc18c\ube44\uc790 \uc2dc\ud06c\ub9bf (API Key Secret)", "", true, k.apiKeySecret)}</div>
           </div>
           <div>
-            <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Access Token <span class="normal-case text-gray-600">(Read+Write \ud544\uc218)</span></p>
-            ${credField("x-accessToken", "Access Token", "\ud2b8\uc717 \ubc1c\ud589 \uad8c\ud55c", false, k.accessToken)}
-            <div class="mt-2">${credField("x-accessTokenSecret", "Access Token Secret", "\uc561\uc138\uc2a4 \uc11c\uba85\uc6a9", true, k.accessTokenSecret)}</div>
-          </div>`; })()}
+            <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">\uc561\uc138\uc2a4 \ud1a0\ud070 (Access Token)</p>
+            ${credField("x-accessToken", "\uc561\uc138\uc2a4 \ud1a0\ud070 (Access Token)", "", false, k.accessToken)}
+            <div class="mt-2">${credField("x-accessTokenSecret", "\uc561\uc138\uc2a4 \ud1a0\ud070 \uc2dc\ud06c\ub9bf (Access Token Secret)", "", true, k.accessTokenSecret)}</div>
+          </div>
         </div>
-        <div class="flex gap-2 mt-4">
-          <button id="save-x-config" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${connected ? "Update" : "Connect X Account"}</button>
-          ${connected ? `<button id="cancel-x-edit" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>` : ""}
-        </div>
+        <button id="save-x-config" class="w-full mt-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${connected ? "Update Credentials" : "Connect X Account"}</button>
       </div>
-      <div class="card p-5">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-medium text-gray-300">${connected ? "X Channel Info" : "Setup Guide"}</h3>
-          ${connected ? `<button id="toggle-x-guide" class="text-[10px] text-blue-400 hover:text-blue-300">${S.showXGuide ? "Hide Guide" : "Setup Guide"}</button>` : ""}
+
+      <!-- Channel Info + Guide (always visible) -->
+      <div class="space-y-4">
+        <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-3">X Channel Info</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="${connected ? "text-green-400" : "text-yellow-400"}">${connected ? "Connected" : "Not connected"}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Character Limit</span><span class="text-gray-300">280</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Auth Method</span><span class="text-gray-300">OAuth 1.0a (User Context)</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Permission</span><span class="text-gray-300">Read and Write \ud544\uc218</span></div>
+          </div>
         </div>
-        ${connected ? `
-          <div class="space-y-2 text-sm mb-3">
-            <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="text-green-400">Connected</span></div>
-            <div class="flex justify-between"><span class="text-gray-500">Char Limit</span><span class="text-gray-300">280</span></div>
-            <div class="flex justify-between"><span class="text-gray-500">Auth</span><span class="text-gray-300">OAuth 1.0a (User Context)</span></div>
-            <div class="flex justify-between"><span class="text-gray-500">Permission</span><span class="text-gray-300">Read and Write</span></div>
-          </div>
-        ` : ""}
-        ${!connected || S.showXGuide ? `
-          <div class="${connected ? "mt-2" : ""} p-3 rounded bg-gray-900/50">
-            <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">X API Setup Guide</p>
-            <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
-              <li><a href="https://developer.x.com" target="_blank" class="text-blue-400 hover:underline">developer.x.com</a> > Dashboard > Create App</li>
-              <li>App Settings > <strong class="text-gray-300">User authentication settings</strong> > Edit
-                <div class="ml-4 mt-0.5 text-gray-500">- App permissions: <strong class="text-gray-300">Read and write</strong><br>- Type of App: Web App<br>- Website URL: https://example.com<br>- Callback URL: https://example.com/callback</div>
-              </li>
-              <li>Keys and tokens > <strong class="text-gray-300">Consumer Keys</strong> > Regenerate
-                <div class="ml-4 mt-0.5 text-gray-500">- API Key + API Key Secret 복사 (한 번만 보임)</div>
-              </li>
-              <li>Keys and tokens > <strong class="text-gray-300">Access Token and Secret</strong> > Generate
-                <div class="ml-4 mt-0.5 text-gray-500">- Read+Write 권한 확인 후 생성<br>- Access Token + Secret 복사 (한 번만 보임)</div>
-              </li>
-              <li>왼쪽 폼에 4개 키 입력 > Connect</li>
-            </ol>
-            <p class="text-[10px] text-yellow-500/70 mt-2">* 권한 변경 후 반드시 Access Token을 재생성해야 합니다</p>
-          </div>
-        ` : ""}
+        <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-3">Setup Guide</h3>
+          <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
+            <li><a href="https://developer.x.com" target="_blank" class="text-blue-400 hover:underline">developer.x.com</a> > Dashboard > Create App</li>
+            <li>App Settings > <strong class="text-gray-300">User authentication settings</strong> > Edit
+              <div class="ml-4 mt-0.5 text-gray-500">- App permissions: <strong class="text-gray-300">Read and write</strong><br>- Type of App: Web App<br>- Website URL: https://example.com<br>- Callback URL: https://example.com/callback</div>
+            </li>
+            <li>Keys and tokens > <strong class="text-gray-300">\uc18c\ube44\uc790 \ud0a4 (Consumer Keys)</strong> > \uc7ac\uc0dd\uc131
+              <div class="ml-4 mt-0.5 text-gray-500">\uc18c\ube44\uc790 \ud0a4 + \uc18c\ube44\uc790 \uc2dc\ud06c\ub9bf \ubcf5\uc0ac (\ud55c \ubc88\ub9cc \ubcf4\uc784)</div>
+            </li>
+            <li>Keys and tokens > <strong class="text-gray-300">\uc561\uc138\uc2a4 \ud1a0\ud070 (Access Token)</strong> > \uc0dd\uc131
+              <div class="ml-4 mt-0.5 text-gray-500">Read+Write \uad8c\ud55c \ud655\uc778 \ud6c4 \uc0dd\uc131. \uc561\uc138\uc2a4 \ud1a0\ud070 + \uc2dc\ud06c\ub9bf \ubcf5\uc0ac (\ud55c \ubc88\ub9cc \ubcf4\uc784)</div>
+            </li>
+            <li>\uc67c\ucabd \ud3fc\uc5d0 4\uac1c \ud0a4 \uc785\ub825 > Connect</li>
+          </ol>
+          <p class="text-[10px] text-yellow-500/70 mt-2">* \uad8c\ud55c \ubcc0\uacbd \ud6c4 \ubc18\ub4dc\uc2dc \uc561\uc138\uc2a4 \ud1a0\ud070\uc744 \uc7ac\uc0dd\uc131\ud574\uc57c \ud569\ub2c8\ub2e4</p>
+        </div>
       </div>
     </div>`;
 }
@@ -663,6 +645,17 @@ function bindEvents() {
       }
     };
   });
+
+  const saveThreads = document.getElementById("save-threads-config");
+  if (saveThreads) saveThreads.onclick = async () => {
+    const data = {};
+    const at = document.getElementById("threads-accessToken");
+    const uid = document.getElementById("threads-userId");
+    if (at?.value) data.accessToken = at.value;
+    if (uid?.value) data.userId = uid.value;
+    const r = await API.post("/api/channel-config/threads", data);
+    if (r) { showToast("Threads 설정 저장됨", "success"); loadOverview(); }
+  };
 
   const toggleXGuide = document.getElementById("toggle-x-guide");
   if (toggleXGuide) toggleXGuide.onclick = () => { S.showXGuide = !S.showXGuide; render(); };
