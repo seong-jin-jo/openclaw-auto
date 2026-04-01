@@ -20,21 +20,36 @@ function showToast(message, type = "info") {
 // ── Auth ──
 function getAuthToken() { return localStorage.getItem("dashboard_auth_token") || ""; }
 function setAuthToken(t) { localStorage.setItem("dashboard_auth_token", t); }
-function clearAuthToken() { localStorage.removeItem("dashboard_auth_token"); }
 function authHeaders() {
   const t = getAuthToken();
   return t ? { Authorization: `Bearer ${t}` } : {};
 }
 function promptLogin() {
-  const t = prompt("Dashboard Auth Token:");
-  if (t) { setAuthToken(t.trim()); location.reload(); }
+  document.getElementById("app").innerHTML = `
+    <div class="flex items-center justify-center min-h-screen">
+      <div class="card p-8 w-80">
+        <h2 class="text-lg font-bold text-white mb-4">Dashboard Login</h2>
+        <input id="login-token" type="password" placeholder="Auth Token"
+          class="w-full bg-gray-800 text-gray-200 text-sm p-3 rounded border border-gray-700 mb-3">
+        <button id="login-btn" class="w-full py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">Login</button>
+      </div>
+    </div>`;
+  const sidebar = document.getElementById("sidebar");
+  if (sidebar) sidebar.innerHTML = "";
+  setTimeout(() => {
+    const input = document.getElementById("login-token");
+    const btn = document.getElementById("login-btn");
+    const doLogin = () => { if (input.value.trim()) { setAuthToken(input.value.trim()); location.reload(); } };
+    if (btn) btn.onclick = doLogin;
+    if (input) { input.focus(); input.onkeydown = (e) => { if (e.key === "Enter") doLogin(); }; }
+  }, 0);
 }
 
 const API = {
   async get(url) {
     try {
       const res = await fetch(url, { headers: authHeaders() });
-      if (res.status === 401) { clearAuthToken(); promptLogin(); return null; }
+      if (res.status === 401) { localStorage.removeItem("dashboard_auth_token"); promptLogin(); return null; }
       if (!res.ok) { showToast(`요청 실패: ${res.status}`, "error"); return null; }
       return res.json();
     } catch (e) { showToast(`네트워크 오류: ${e.message}`, "error"); return null; }
@@ -42,7 +57,7 @@ const API = {
   async post(url, body) {
     try {
       const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify(body) });
-      if (res.status === 401) { clearAuthToken(); promptLogin(); return null; }
+      if (res.status === 401) { localStorage.removeItem("dashboard_auth_token"); promptLogin(); return null; }
       if (!res.ok) { const d = await res.json().catch(() => ({})); showToast(d.error || `요청 실패: ${res.status}`, "error"); return null; }
       return res.json();
     } catch (e) { showToast(`네트워크 오류: ${e.message}`, "error"); return null; }
@@ -576,6 +591,7 @@ function switchSubTab(tab) {
 
 // ── Init ──
 document.addEventListener("DOMContentLoaded", () => {
+  if (!getAuthToken()) { promptLogin(); return; }
   loadOverview();
   render();
 });

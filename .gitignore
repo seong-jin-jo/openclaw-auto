@@ -19,10 +19,9 @@ config/logs/
 config/cron/runs/
 config/update-check.json
 
-# 데이터 (런타임) — 가이드/키워드만 추적, 나머지 제외
+# 데이터 (런타임) — .example만 추적, 실제 파일은 서비스별 로컬 관리
 data/*
-!data/prompt-guide.txt
-!data/search-keywords.txt
+!data/*.example
 
 # 로그
 *.log
