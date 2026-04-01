@@ -470,23 +470,29 @@ function renderXSettings() {
           </div>
           <button id="edit-x-creds" class="w-full mt-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Edit Credentials</button>
         </div>
+      </div>`;
   }
 
   return `
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div class="card p-5">
-        <h3 class="text-sm font-medium text-gray-300 mb-1">OAuth 1.0a User Authentication</h3>
-        <p class="text-[10px] text-gray-600 mb-4">developer.x.com > Your App > Keys and tokens</p>
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-medium text-gray-300">X API Credentials</h3>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-blue-900/30 text-blue-400 border border-blue-800/30">OAuth 1.0a</span>
+        </div>
+        <div class="p-2 rounded bg-yellow-900/20 border border-yellow-800/20 mb-4">
+          <p class="text-[10px] text-yellow-400/80">X Developer Portal > Keys and tokens 에서 <strong>OAuth 1.0</strong> 섹션의 키를 입력하세요. OAuth 2.0 Client ID/Secret은 사용하지 않습니다.</p>
+        </div>
         <div class="space-y-4">
           <div class="border-b border-gray-800/50 pb-3">
-            <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Consumer Keys</p>
-            ${credField("x-apiKey", "API Key", "Consumer Key \u2014 \uc571 \uc778\uc99d\uc5d0 \uc0ac\uc6a9")}
-            <div class="mt-2">${credField("x-apiKeySecret", "API Key Secret", "Consumer Secret \u2014 \uc571 \uc11c\uba85\uc5d0 \uc0ac\uc6a9", "password")}</div>
+            <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Consumer Keys <span class="normal-case text-gray-600">(= API Key)</span></p>
+            ${credField("x-apiKey", "API Key", "Consumer Key \u2014 \uc571 \uc2dd\ubcc4\uc5d0 \uc0ac\uc6a9")}
+            <div class="mt-2">${credField("x-apiKeySecret", "API Key Secret", "Consumer Secret \u2014 \uc694\uccad \uc11c\uba85\uc5d0 \uc0ac\uc6a9 (\ud55c \ubc88\ub9cc \ubcf4\uc784)", "password")}</div>
           </div>
           <div>
-            <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Access Token (Read+Write)</p>
+            <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Access Token <span class="normal-case text-gray-600">(Read+Write \ud544\uc218)</span></p>
             ${credField("x-accessToken", "Access Token", "\uc0ac\uc6a9\uc790 \ub300\uc2e0 \ud2b8\uc717 \ubc1c\ud589 \uad8c\ud55c")}
-            <div class="mt-2">${credField("x-accessTokenSecret", "Access Token Secret", "\uc561\uc138\uc2a4 \ud1a0\ud070 \uc11c\uba85\uc5d0 \uc0ac\uc6a9", "password")}</div>
+            <div class="mt-2">${credField("x-accessTokenSecret", "Access Token Secret", "\uc561\uc138\uc2a4 \ud1a0\ud070 \uc11c\uba85\uc5d0 \uc0ac\uc6a9 (\ud55c \ubc88\ub9cc \ubcf4\uc784)", "password")}</div>
           </div>
         </div>
         <div class="flex gap-2 mt-4">
