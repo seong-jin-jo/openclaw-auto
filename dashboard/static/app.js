@@ -444,11 +444,12 @@ function renderChannelX() {
   </div>`;
 }
 
-function credField(id, label, desc, type = "text") {
+function credField(id, label, desc, type = "text", currentMasked = "") {
   return `<div>
     <label class="text-xs text-gray-400 block mb-0.5">${label}</label>
     <p class="text-[10px] text-gray-600 mb-1">${desc}</p>
-    <input id="${id}" type="${type}" placeholder="Enter ${label}" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 placeholder-gray-600">
+    <input id="${id}" type="${type}" placeholder="${currentMasked ? "Current: " + currentMasked : "Enter " + label}" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 placeholder-gray-600">
+    ${currentMasked ? `<p class="text-[10px] text-gray-600 mt-0.5">Current: <span class="font-mono">${currentMasked}</span> — 빈칸이면 기존 값 유지</p>` : ""}
   </div>`;
 }
 
@@ -483,17 +484,17 @@ function renderXSettings() {
         <div class="p-2 rounded bg-yellow-900/20 border border-yellow-800/20 mb-4">
           <p class="text-[10px] text-yellow-400/80">X Developer Portal > Keys and tokens 에서 <strong>OAuth 1.0</strong> 섹션의 키를 입력하세요. OAuth 2.0 Client ID/Secret은 사용하지 않습니다.</p>
         </div>
-        <div class="space-y-4">
+        <div class="space-y-4">${(() => { const k = S.channelConfig.x?.keys || {}; return `
           <div class="border-b border-gray-800/50 pb-3">
             <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Consumer Keys <span class="normal-case text-gray-600">(= API Key)</span></p>
-            ${credField("x-apiKey", "API Key", "Consumer Key \u2014 \uc571 \uc2dd\ubcc4\uc5d0 \uc0ac\uc6a9")}
-            <div class="mt-2">${credField("x-apiKeySecret", "API Key Secret", "Consumer Secret \u2014 \uc694\uccad \uc11c\uba85\uc5d0 \uc0ac\uc6a9 (\ud55c \ubc88\ub9cc \ubcf4\uc784)", "password")}</div>
+            ${credField("x-apiKey", "API Key", "Consumer Key \u2014 \uc571 \uc2dd\ubcc4\uc5d0 \uc0ac\uc6a9", "text", k.apiKey)}
+            <div class="mt-2">${credField("x-apiKeySecret", "API Key Secret", "Consumer Secret \u2014 \uc694\uccad \uc11c\uba85\uc5d0 \uc0ac\uc6a9 (\ud55c \ubc88\ub9cc \ubcf4\uc784)", "password", k.apiKeySecret)}</div>
           </div>
           <div>
             <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Access Token <span class="normal-case text-gray-600">(Read+Write \ud544\uc218)</span></p>
-            ${credField("x-accessToken", "Access Token", "\uc0ac\uc6a9\uc790 \ub300\uc2e0 \ud2b8\uc717 \ubc1c\ud589 \uad8c\ud55c")}
-            <div class="mt-2">${credField("x-accessTokenSecret", "Access Token Secret", "\uc561\uc138\uc2a4 \ud1a0\ud070 \uc11c\uba85\uc5d0 \uc0ac\uc6a9 (\ud55c \ubc88\ub9cc \ubcf4\uc784)", "password")}</div>
-          </div>
+            ${credField("x-accessToken", "Access Token", "\uc0ac\uc6a9\uc790 \ub300\uc2e0 \ud2b8\uc717 \ubc1c\ud589 \uad8c\ud55c", "text", k.accessToken)}
+            <div class="mt-2">${credField("x-accessTokenSecret", "Access Token Secret", "\uc561\uc138\uc2a4 \ud1a0\ud070 \uc11c\uba85\uc5d0 \uc0ac\uc6a9 (\ud55c \ubc88\ub9cc \ubcf4\uc784)", "password", k.accessTokenSecret)}</div>
+          </div>`; })()}
         </div>
         <div class="flex gap-2 mt-4">
           <button id="save-x-config" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${connected ? "Update" : "Connect X Account"}</button>
