@@ -1,0 +1,12 @@
+{
+  "name": "@openclaw/dedu-blog",
+  "version": "2026.4.1",
+  "private": true,
+  "description": "OpenClaw D-Edu column article publish plugin",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

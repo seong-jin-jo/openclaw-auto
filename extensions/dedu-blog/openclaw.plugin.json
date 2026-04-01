@@ -1,0 +1,19 @@
+{
+  "id": "dedu-blog",
+  "name": "D-Edu Blog",
+  "description": "Publish column articles to D-Edu site via admin API.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "apiBaseUrl": {
+        "type": "string",
+        "description": "D-Edu API base URL (e.g. https://www.d-edu.site)."
+      },
+      "adminToken": {
+        "type": ["string", "object"],
+        "description": "D-Edu admin JWT token for column article publishing."
+      }
+    }
+  }
+}
