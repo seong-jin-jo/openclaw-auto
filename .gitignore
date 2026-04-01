@@ -18,10 +18,13 @@ config/canvas/
 config/logs/
 config/cron/runs/
 config/update-check.json
+config/exec-approvals.json
+config/media/
+config/tasks/
 
-# 데이터 (런타임)
-data/
-!data/.gitkeep
+# 데이터 (런타임) — .example만 추적, 실제 파일은 서비스별 로컬 관리
+data/*
+!data/*.example
 
 # 로그
 *.log

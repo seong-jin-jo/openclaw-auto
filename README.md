@@ -6,6 +6,7 @@ OpenClaw 기반 콘텐츠 자동 생성/검수/발행/분석 파이프라인. Th
 
 | 버전 | 날짜 | 변경 내용 |
 |------|------|----------|
+| v2.1 | 2026-04-02 | 이미지 파이프라인 (생성→R2 업로드→발행), Queue 이미지 프리뷰+에셋 피커, 채널별 자동화 토글+실행 기록, Images 에셋 갤러리 |
 | v2.0 | 2026-04-01 | 멀티채널 지원 (X/Twitter), 대시보드 리디자인 (사이드바+통합현황), queue v2 스키마 |
 | v1.5 | 2026-03-31 | 이미지 파이프라인, analytics-history, trend report, bulk-delete |
 | v1.0 | 2026-03-30 | 초기 버전: Threads 6개 Tool + Cron 5개 + 대시보드 |
@@ -594,9 +595,12 @@ git remote add upstream git@github.com:원본유저/openclaw-auto.git
 cp .env.example .env
 cp config/openclaw.json.example config/openclaw.json
 cp config/cron/jobs.json.example config/cron/jobs.json
+cp data/prompt-guide.txt.example data/prompt-guide.txt
+cp data/search-keywords.txt.example data/search-keywords.txt
 
-# 4. 제품 전략 작성
+# 4. 제품 전략 작성 (이 파일들은 .gitignore → 머지해도 안 덮어씌워짐)
 vim data/prompt-guide.txt    # 타겟, 톤, 콘텐츠 유형 정의
+vim data/search-keywords.txt # 인기글 검색 키워드 설정
 
 # 5. 실행
 docker compose up -d --build
@@ -605,7 +609,7 @@ docker compose up -d --build
 ### 코드 동기화
 
 ```bash
-# 중앙 레포의 최신 코드 가져오기
+# 중앙 레포의 최신 코드 가져오기 (data/ 파일은 .gitignore라 안전)
 git fetch upstream
 git merge upstream/main
 

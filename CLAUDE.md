@@ -26,6 +26,7 @@ extensions/
   threads-insights/  → 반응 수집 + 터진 글 감지 + 자동 피드
   threads-search/    → 키워드 기반 외부 인기글 수집
   threads-growth/    → 팔로워 수/증감 추적
+  image-upload/      → Cloudflare R2 이미지 업로드 → 퍼블릭 URL
 
 data/                → 서비스별 로컬 데이터 (.gitignore)
   queue.json           → 콘텐츠 큐
@@ -62,6 +63,13 @@ dashboard/
 - `X_ACCESS_TOKEN`: X Access Token
 - `X_ACCESS_TOKEN_SECRET`: X Access Token Secret
 
+### Cloudflare R2 (이미지 업로드)
+- `R2_ACCESS_KEY_ID`: R2 액세스 키
+- `R2_SECRET_ACCESS_KEY`: R2 시크릿 키
+- `R2_BUCKET`: R2 버킷 이름
+- `R2_ENDPOINT`: R2 S3 호환 엔드포인트
+- `R2_PUBLIC_URL`: R2 퍼블릭 URL 베이스
+
 ### 공통
 - `OPENCLAW_GATEWAY_TOKEN`: Gateway 인증 토큰
 - `DASHBOARD_PORT`: 대시보드 포트 (기본: 3456)
@@ -78,6 +86,7 @@ dashboard/
 | `threads_insights` | 반응 수집 + 터진 글 감지 + 자동 피드 (collect) |
 | `threads_search` | 키워드 기반 외부 인기글 수집 (fetch) |
 | `threads_growth` | 팔로워 수/증감 추적 (track) |
+| `image_upload` | 로컬 이미지 → Cloudflare R2 업로드 → 퍼블릭 URL 반환 (upload) |
 
 ## Cron Jobs
 
