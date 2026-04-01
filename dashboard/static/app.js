@@ -184,7 +184,7 @@ function renderSidebar() {
           </button>
         `).join("")}
 
-        <div class="px-3 mt-5 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Channels</span></div>
+        <div class="px-3 mt-5 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Social</span></div>
         <button data-nav="threads" class="sidebar-item ${S.page === "threads" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
           <span class="w-4 h-4 rounded bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-[9px] font-bold text-white">T</span>
           Threads
@@ -195,15 +195,36 @@ function renderSidebar() {
           X (Twitter)
           <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${S.channelConfig.x?.connected ? "bg-green-900/50 text-green-400" : "bg-yellow-900/50 text-yellow-400"}">${S.channelConfig.x?.connected ? "Live" : "Setup"}</span>
         </button>
-        <div class="px-4 py-2 text-sm text-gray-600 flex items-center gap-3 opacity-50">
-          <span class="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[9px] font-bold text-gray-500">IG</span>
-          Instagram <span class="ml-auto text-[10px] text-gray-700">Soon</span>
-        </div>
+        ${["Instagram", "Facebook", "LinkedIn", "Bluesky", "TikTok"].map(ch => `
+          <div class="px-4 py-1.5 text-sm text-gray-700 flex items-center gap-3 opacity-40">
+            <span class="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[8px] font-bold text-gray-600">${ch[0]}</span>
+            ${ch} <span class="ml-auto text-[9px] text-gray-800">Soon</span>
+          </div>`).join("")}
 
+        <div class="px-3 mt-4 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Blog & SEO</span></div>
         <button data-nav="blog" class="sidebar-item ${S.page === "blog" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
           <span class="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[9px] font-bold text-gray-400">B</span>
           Blog
         </button>
+        ${["Naver Blog", "Medium"].map(ch => `
+          <div class="px-4 py-1.5 text-sm text-gray-700 flex items-center gap-3 opacity-40">
+            <span class="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[8px] font-bold text-gray-600">${ch[0]}</span>
+            ${ch} <span class="ml-auto text-[9px] text-gray-800">Soon</span>
+          </div>`).join("")}
+
+        <div class="px-3 mt-4 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Messaging</span></div>
+        ${["Kakao Channel", "Telegram", "LINE", "Discord", "WhatsApp"].map(ch => `
+          <div class="px-4 py-1.5 text-sm text-gray-700 flex items-center gap-3 opacity-40">
+            <span class="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[8px] font-bold text-gray-600">${ch[0]}</span>
+            ${ch} <span class="ml-auto text-[9px] text-gray-800">Soon</span>
+          </div>`).join("")}
+
+        <div class="px-3 mt-4 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Local & Business</span></div>
+        ${["Google Business", "Pinterest", "YouTube", "Tumblr"].map(ch => `
+          <div class="px-4 py-1.5 text-sm text-gray-700 flex items-center gap-3 opacity-40">
+            <span class="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[8px] font-bold text-gray-600">${ch[0]}</span>
+            ${ch} <span class="ml-auto text-[9px] text-gray-800">Soon</span>
+          </div>`).join("")}
 
         <div class="px-3 mt-5 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Assets</span></div>
         <button data-nav="images" class="sidebar-item ${S.page === "images" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
