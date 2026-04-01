@@ -12,6 +12,25 @@ AI 에이전트가 콘텐츠를 자동 생성하고, 검수 후 멀티채널로 
 | v1.5 | 2026-03-31 | analytics-history, trend report, bulk-delete |
 | v1.0 | 2026-03-30 | 초기 버전: Threads 6개 Tool + Cron 5개 + 대시보드 |
 
+<details>
+<summary>PR 히스토리</summary>
+
+| PR | 제목 | from | 주요 내용 |
+|----|------|------|----------|
+| #13 | 자동화 토글 실제 연동 + 이미지 생성 + 주기 설정 | sample-brand | 토글→크론 연동, 대시보드 이미지 생성 UI, 주기 파라미터 |
+| #12 | 이미지 파이프라인 + 에셋 갤러리 + 자동화 토글 | sample-brand | image-upload extension, Images 탭, 자동화 ON/OFF, 실행 기록 |
+| #11 | 디에듀 블로그 SEO 자동화 | idealstudy | sample-blog/blog-queue/seo-keywords extensions, Blog 탭 |
+| #10 | 이미지 파이프라인 changelog | sample-brand | README changelog 추가 |
+| #9 | Threads 프로필 링크 | sample-brand | 대시보드에 Threads 링크 |
+| #8 | 서비스별 데이터 제네릭화 | idealstudy | prompt-guide/keywords를 .example 템플릿으로 분리 |
+| #7 | analytics-history | sample-brand | 성과 영구 보존 |
+| #6 | 파이프라인 확장 | sample-brand | 트렌드 재가공, 댓글 좋아요, 저조 글 삭제 |
+| #5 | 대시보드 보안 | idealstudy | 인증 + XSS 방지 |
+| #4 | 발행 rate limit | sample-brand | 1회 1글 발행 + 스태거드 스케줄링 |
+| #3 | 일괄 큐 관리 | sample-brand | bulk select/approve/delete |
+
+</details>
+
 ## 왜 OpenClaw인가
 
 핵심 차이: **런타임 바인딩**. LLM 에이전트가 실행 시점에 어떤 Tool을 어떤 순서로 호출할지 결정.
