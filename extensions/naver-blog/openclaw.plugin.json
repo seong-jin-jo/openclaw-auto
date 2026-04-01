@@ -1,0 +1,19 @@
+{
+  "id": "naver-blog",
+  "name": "Naver Blog",
+  "description": "Publish blog posts to Naver Blog via XML-RPC API.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "blogId": {
+        "type": "string",
+        "description": "Naver Blog ID (블로그 아이디)."
+      },
+      "apiPassword": {
+        "type": ["string", "object"],
+        "description": "Naver Blog API password (블로그 관리 > API 설정에서 발급)."
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "@openclaw/naver-blog",
+  "version": "2026.4.1",
+  "private": true,
+  "description": "OpenClaw Naver Blog XML-RPC publish plugin",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
       network: host
       args:
-        OPENCLAW_EXTENSIONS: "threads-publish threads-queue threads-style threads-insights threads-search threads-growth"
+        OPENCLAW_EXTENSIONS: "threads-publish threads-queue threads-style threads-insights threads-search threads-growth naver-blog blog-queue seo-keywords"
     volumes:
       - ./config:/home/node/.openclaw       # openclaw.json + cron/jobs.json
       - ./data:/home/node/data              # 데이터 파일
