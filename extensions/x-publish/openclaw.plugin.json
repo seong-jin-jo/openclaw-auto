@@ -1,0 +1,27 @@
+{
+  "id": "x-publish",
+  "name": "X Publish",
+  "description": "Publish tweets to X (Twitter) via API v2.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "apiKey": {
+        "type": "string",
+        "description": "X API Key (Consumer Key)."
+      },
+      "apiKeySecret": {
+        "type": "string",
+        "description": "X API Key Secret (Consumer Secret)."
+      },
+      "accessToken": {
+        "type": "string",
+        "description": "X Access Token (User context)."
+      },
+      "accessTokenSecret": {
+        "type": "string",
+        "description": "X Access Token Secret (User context)."
+      }
+    }
+  }
+}
