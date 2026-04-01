@@ -474,7 +474,7 @@ function renderChannelSettings(channel) {
           const expanded = S.expandedFeature === f.key;
           return `
           <div class="border-b border-gray-800/50 last:border-0">
-            <div class="flex items-center gap-3 py-2.5 cursor-pointer" data-expand-feature="${f.key}">
+            <div class="flex items-center gap-3 py-2.5 cursor-pointer" onclick="toggleFeatureDetail('${f.key}')">
               <label class="relative inline-flex items-center cursor-pointer shrink-0" onclick="event.stopPropagation()">
                 <input type="checkbox" data-feature-toggle="${f.key}" data-channel="${channel}" ${cs[f.key] ? "checked" : ""} class="sr-only peer">
                 <div class="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
@@ -654,9 +654,6 @@ function bindEvents() {
     if (ta) { const kw = ta.value.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("#")); const r = await API.post("/api/keywords", { keywords: kw }); if (r) showToast("키워드 저장됨", "success"); }
   };
 
-  document.querySelectorAll("[data-expand-feature]").forEach(el => {
-    el.onclick = () => { S.expandedFeature = S.expandedFeature === el.dataset.expandFeature ? null : el.dataset.expandFeature; render(); };
-  });
   document.querySelectorAll("[data-feature-toggle]").forEach(el => {
     el.onchange = async () => {
       const key = el.dataset.featureToggle;
@@ -695,6 +692,7 @@ function switchSubTab(tab) {
 }
 
 // ── Channel Settings & Cron Runs ──
+function toggleFeatureDetail(key) { S.expandedFeature = S.expandedFeature === key ? null : key; render(); }
 async function loadChannelSettings() {
   const data = await API.get("/api/channel-settings");
   if (data) { S.channelSettings = data; render(); }
