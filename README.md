@@ -6,6 +6,7 @@ AI 에이전트가 콘텐츠를 자동 생성하고, 검수 후 멀티채널로 
 
 | 버전 | 날짜 | 변경 내용 |
 |------|------|----------|
+| v2.3 | 2026-04-02 | 대시보드: 사이드바 카테고리(접기/펼치기), 메인화면(Alerts+토큰), 랜딩페이지, 채널 상태관리(Live/Setup/Ready/Soon) |
 | v2.2 | 2026-04-02 | Blog 탭, Threads/X 크리덴셜 관리 UI, PR #11~13 머지 |
 | v2.1 | 2026-04-02 | 이미지 파이프라인 (생성→R2 업로드→발행), 자동화 토글+실행 기록, Images 갤러리 |
 | v2.0 | 2026-04-01 | 멀티채널 지원 (X/Twitter), 대시보드 리디자인 (사이드바+통합현황), queue v2 스키마 |
@@ -64,9 +65,14 @@ AI 에이전트가 콘텐츠를 자동 생성하고, 검수 후 멀티채널로 
 ## 현재 기능
 
 ### 지원 채널
-- **Threads** — 텍스트/이미지 발행, 반응 수집, 팔로워 추적
-- **X (Twitter)** — 텍스트 발행 (OAuth 1.0a)
-- **Blog** — SEO 블로그 자동 생성 파이프라인
+
+**Social (텍스트/이미지):** Threads ✅ · X ✅ · Instagram · Facebook · LinkedIn · Bluesky · Pinterest · Tumblr
+**Video:** TikTok · YouTube
+**Blog & SEO:** Blog ✅ · Naver Blog · Medium
+**Messaging:** Kakao Channel · Telegram · LINE · Discord · WhatsApp
+**Data & Analytics:** Google Analytics · Search Console · Google Business
+
+✅ = 구현 완료, 나머지 = Ready/Soon
 
 ### 대시보드
 사이드바 기반 멀티채널 관제 UI:
