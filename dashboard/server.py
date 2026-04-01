@@ -33,6 +33,19 @@ KEYWORDS_PATH = DATA_DIR / "search-keywords.txt"
 SETTINGS_PATH = DATA_DIR / "settings.json"
 CONFIG_DIR = Path(os.environ.get("CONFIG_DIR", Path(__file__).resolve().parent.parent / "config"))
 CRON_JOBS_PATH = CONFIG_DIR / "cron" / "jobs.json"
+CHANNEL_SETTINGS_PATH = Path(DATA_DIR) / "channel-settings.json"
+
+AUTOMATION_FEATURES = [
+    {"key": "content_generation",    "label": "Content Generation",    "description": "콘텐츠 배치 생성", "default": True},
+    {"key": "auto_publish",          "label": "Auto Publish",          "description": "승인 글 자동 발행", "default": True},
+    {"key": "insights_collection",   "label": "Insights Collection",   "description": "발행 글 반응 수집", "default": True},
+    {"key": "auto_like_replies",     "label": "Auto Like Replies",     "description": "댓글 자동 좋아요", "default": True},
+    {"key": "low_engagement_cleanup","label": "Low Engagement Cleanup","description": "저조한 글 자동 삭제", "default": False},
+    {"key": "trending_collection",   "label": "Trending Collection",   "description": "외부 인기글 수집", "default": True},
+    {"key": "follower_tracking",     "label": "Follower Tracking",     "description": "팔로워 추적", "default": True},
+    {"key": "trending_rewrite",      "label": "Trending Rewrite",      "description": "트렌드 재가공", "default": False},
+    {"key": "image_generation",      "label": "Image Generation",      "description": "이미지 자동 생성/첨부", "default": False},
+]
 
 DEFAULT_SETTINGS = {
     "viralThreshold": 500,
@@ -85,7 +98,7 @@ def add_cors(response):
 def check_auth():
     if request.method == "OPTIONS":
         return  # CORS preflight 통과
-    if request.path == "/" or (not request.path.startswith("/api/") and request.path.endswith((".js", ".css", ".ico", ".png", ".svg"))):
+    if request.path == "/" or request.path.startswith("/images/") or (not request.path.startswith("/api/") and request.path.endswith((".js", ".css", ".ico", ".png", ".svg"))):
         return  # 정적 파일 통과
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
     if token != AUTH_TOKEN:
@@ -167,6 +180,33 @@ def serve_image(filename):
     return send_from_directory(IMAGES_DIR, filename)
 
 
+@app.route("/api/images")
+def api_images():
+    if not os.path.isdir(IMAGES_DIR):
+        return jsonify([])
+    files = []
+    for f in sorted(os.listdir(IMAGES_DIR), key=lambda x: os.path.getmtime(os.path.join(IMAGES_DIR, x)), reverse=True):
+        ext = os.path.splitext(f)[1].lower()
+        if ext in (".jpg", ".jpeg", ".png", ".gif", ".webp"):
+            path = os.path.join(IMAGES_DIR, f)
+            files.append({
+                "filename": f,
+                "url": f"/images/{f}",
+                "size": os.path.getsize(path),
+                "createdAt": datetime.fromtimestamp(os.path.getmtime(path)).isoformat(),
+            })
+    return jsonify(files)
+
+
+@app.route("/api/images/<filename>", methods=["DELETE"])
+def api_delete_image(filename):
+    path = os.path.join(IMAGES_DIR, filename)
+    if not os.path.isfile(path):
+        return jsonify({"error": "File not found"}), 404
+    os.remove(path)
+    return jsonify({"success": True})
+
+
 # ── API: Queue ──
 @app.route("/api/queue")
 def api_queue():
@@ -231,6 +271,12 @@ def api_update(post_id):
                 post["hashtags"] = data["hashtags"]
             if "scheduledAt" in data:
                 post["scheduledAt"] = data["scheduledAt"]
+            if "imageUrl" in data:
+                img = data["imageUrl"]
+                if img is None or (isinstance(img, str) and (img.startswith("/images/") or img.startswith("https://"))):
+                    post["imageUrl"] = img
+                else:
+                    return jsonify({"error": "imageUrl must be null, /images/ path, or https:// URL"}), 400
             write_json(QUEUE_PATH, queue)
             logger.info("Post updated: %s", post_id)
             return jsonify({"ok": True, "post": post})
@@ -677,6 +723,78 @@ def api_channel_config_x():
     write_json(config_path, config)
     logger.info("X channel config updated")
     return jsonify({"ok": True, "enabled": xp["enabled"]})
+
+
+# ── API: Channel Automation Settings ──
+def _read_channel_settings():
+    data = read_json(CHANNEL_SETTINGS_PATH)
+    if data is None:
+        data = {}
+    for ch in ("threads", "x"):
+        if ch not in data:
+            data[ch] = {}
+        for f in AUTOMATION_FEATURES:
+            if f["key"] not in data[ch]:
+                data[ch][f["key"]] = f["default"]
+    return data
+
+
+@app.route("/api/channel-settings")
+def api_channel_settings():
+    data = _read_channel_settings()
+    return jsonify({"features": AUTOMATION_FEATURES, "settings": data})
+
+
+@app.route("/api/channel-settings/<channel>", methods=["POST"])
+def api_update_channel_settings(channel):
+    if channel not in ("threads", "x"):
+        return jsonify({"error": "Invalid channel"}), 400
+    body = get_json_body()
+    data = _read_channel_settings()
+    valid_keys = {f["key"] for f in AUTOMATION_FEATURES}
+    for k, v in body.items():
+        if k in valid_keys and isinstance(v, bool):
+            data[channel][k] = v
+    write_json(CHANNEL_SETTINGS_PATH, data)
+    logger.info("Channel settings updated: %s", channel)
+    return jsonify({"ok": True, "settings": data[channel]})
+
+
+# ── API: Cron Run History ──
+@app.route("/api/cron-runs")
+def api_cron_runs():
+    cron_runs_dir = CONFIG_DIR / "cron" / "runs"
+    if not cron_runs_dir.is_dir():
+        return jsonify({"runs": []})
+    # Build jobId → name map from jobs.json
+    cron_data = read_json(CRON_JOBS_PATH) or {}
+    id_to_name = {j["id"]: j["name"] for j in cron_data.get("jobs", []) if "id" in j}
+    runs = []
+    for f in sorted(cron_runs_dir.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True):
+        if not f.name.endswith(".jsonl"):
+            continue
+        try:
+            with open(f, "r", encoding="utf-8") as fh:
+                for line in fh:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    entry = json.loads(line)
+                    if entry.get("action") == "finished":
+                        job_id = entry.get("jobId", f.stem)
+                        runs.append({
+                            "jobId": job_id,
+                            "jobName": id_to_name.get(job_id, job_id),
+                            "status": entry.get("status", "unknown"),
+                            "summary": (entry.get("summary") or "")[:200],
+                            "durationMs": entry.get("durationMs", 0),
+                            "finishedAt": entry.get("ts", 0),
+                            "model": entry.get("model", ""),
+                        })
+        except Exception:
+            continue
+    runs.sort(key=lambda r: r.get("finishedAt", 0), reverse=True)
+    return jsonify({"runs": runs[:30]})
 
 
 if __name__ == "__main__":
