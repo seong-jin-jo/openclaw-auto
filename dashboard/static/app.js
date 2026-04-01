@@ -1,6 +1,6 @@
-/* Threads 콘텐츠 대시보드 — Vanilla JS (Alpine.js 스타일) */
+/* Marketing Hub Dashboard — Vanilla JS */
 
-// ── Toast System ──
+// ── Toast ──
 function showToast(message, type = "info") {
   const container = document.getElementById("toast-container");
   if (!container) return;
@@ -14,972 +14,520 @@ function showToast(message, type = "info") {
   el.className = `px-4 py-2 rounded border text-sm shadow-lg transition-opacity duration-300 ${colors[type] || colors.info}`;
   el.textContent = message;
   container.appendChild(el);
-  setTimeout(() => {
-    el.style.opacity = "0";
-    setTimeout(() => el.remove(), 300);
-  }, 3000);
-}
-
-// ── Auth ──
-function getAuthToken() {
-  return localStorage.getItem("dashboard_token") || "";
-}
-
-function setAuthToken(token) {
-  localStorage.setItem("dashboard_token", token);
-}
-
-function clearAuthToken() {
-  localStorage.removeItem("dashboard_token");
-}
-
-function promptLogin() {
-  const app = document.getElementById("app");
-  app.innerHTML = `
-    <div class="min-h-screen flex items-center justify-center">
-      <div class="bg-gray-900 rounded-lg p-6 w-80">
-        <h2 class="text-white text-lg font-bold mb-4">Dashboard Login</h2>
-        <input id="login-token" type="password" placeholder="Auth Token"
-          class="w-full bg-gray-800 text-gray-200 text-sm p-2 rounded border border-gray-700 mb-3">
-        <button id="login-btn" class="w-full px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-500">Login</button>
-      </div>
-    </div>
-  `;
-  document.getElementById("login-btn").onclick = () => {
-    const token = document.getElementById("login-token").value.trim();
-    if (token) {
-      setAuthToken(token);
-      initApp();
-    }
-  };
-  document.getElementById("login-token").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") document.getElementById("login-btn").click();
-  });
-}
-
-function authHeaders() {
-  const token = getAuthToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  setTimeout(() => { el.style.opacity = "0"; setTimeout(() => el.remove(), 300); }, 3000);
 }
 
 const API = {
   async get(url) {
     try {
-      const res = await fetch(url, { headers: authHeaders() });
-      if (res.status === 401) {
-        clearAuthToken();
-        promptLogin();
-        return null;
-      }
-      if (!res.ok) {
-        showToast(`요청 실패: ${res.status}`, "error");
-        return null;
-      }
+      const res = await fetch(url);
+      if (!res.ok) { showToast(`요청 실패: ${res.status}`, "error"); return null; }
       return res.json();
-    } catch (e) {
-      showToast(`네트워크 오류: ${e.message}`, "error");
-      return null;
-    }
+    } catch (e) { showToast(`네트워크 오류: ${e.message}`, "error"); return null; }
   },
   async post(url, body) {
     try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify(body),
-      });
-      if (res.status === 401) {
-        clearAuthToken();
-        promptLogin();
-        return null;
-      }
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        showToast(errData.error || `요청 실패: ${res.status}`, "error");
-        return null;
-      }
+      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); showToast(d.error || `요청 실패: ${res.status}`, "error"); return null; }
       return res.json();
-    } catch (e) {
-      showToast(`네트워크 오류: ${e.message}`, "error");
-      return null;
-    }
+    } catch (e) { showToast(`네트워크 오류: ${e.message}`, "error"); return null; }
   },
 };
 
 // ── State ──
-const state = {
-  tab: "overview",
-  overview: null,
-  queue: [],
-  queueFilter: "all",
-  growth: [],
-  popular: [],
-  analytics: null,
-  keywords: [],
-  settings: null,
-  cronJobs: [],
-  alerts: [],
-  loading: false,
-  editingPost: null,
-  editText: "",
-  selectedIds: new Set(),
-  lastUpdated: null,
-  trendReport: null,
+const S = {
+  page: "overview", subTab: "queue",
+  overview: null, queue: [], growth: [], popular: [], analytics: null,
+  keywords: [], settings: null, guide: "", cronJobs: [], activity: [],
+  channelConfig: { threads: {}, x: {} },
+  queueFilter: "all", loading: false,
+  editingPost: null, selectedIds: new Set(),
 };
 
-let overviewInterval = null;
-
-// ── Loading Helpers ──
-function setLoading(on) {
-  state.loading = on;
-  render();
-}
-
-function loadingOverlay() {
-  if (!state.loading) return "";
-  return `<div class="fixed inset-0 bg-black/30 z-40 flex items-center justify-center">
-    <span class="text-gray-300 text-sm">Loading...</span>
-  </div>`;
+function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+function fmtTime(ms) { return ms ? new Date(ms).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }) : "-"; }
+function fmtAgo(iso) {
+  if (!iso) return "";
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
 }
 
 // ── Data Loading ──
 async function loadOverview() {
-  const [data, cronData, alertData] = await Promise.all([
-    API.get("/api/overview"),
-    API.get("/api/cron-status"),
-    API.get("/api/alerts"),
+  const [data, cronData, activity, chCfg] = await Promise.all([
+    API.get("/api/overview"), API.get("/api/cron-status"), API.get("/api/activity"), API.get("/api/channel-config"),
   ]);
-  if (data) state.overview = data;
-  if (cronData) state.cronJobs = cronData.jobs || [];
-  if (alertData) state.alerts = alertData.alerts || [];
-  state.lastUpdated = new Date();
+  if (data) S.overview = data;
+  if (cronData) S.cronJobs = cronData.jobs || [];
+  if (activity) S.activity = activity.events || [];
+  if (chCfg) S.channelConfig = chCfg;
   render();
 }
-
 async function loadQueue(status) {
   const url = status && status !== "all" ? `/api/queue?status=${status}` : "/api/queue";
   const data = await API.get(url);
-  if (data) {
-    state.queue = (data.posts || []).sort((a, b) =>
-      (b.generatedAt || "").localeCompare(a.generatedAt || "")
-    );
-  }
+  if (data) S.queue = (data.posts || []).sort((a, b) => (b.generatedAt || "").localeCompare(a.generatedAt || ""));
   render();
 }
-
-async function loadGrowth() {
-  const data = await API.get("/api/growth");
-  if (data) state.growth = data.records || [];
-  render();
-}
-
-async function loadPopular() {
-  const data = await API.get("/api/popular");
-  if (data) state.popular = data.posts || [];
-  render();
-}
-
-async function loadAnalytics() {
-  const data = await API.get("/api/analytics");
-  if (data) state.analytics = data;
-  render();
-}
-
-async function loadKeywords() {
-  const data = await API.get("/api/keywords");
-  if (data) state.keywords = data.keywords || [];
-  render();
-}
-
-async function loadTrends() {
-  const [data, cronData] = await Promise.all([
-    API.get("/api/trend-report"),
-    API.get("/api/cron-status"),
-  ]);
-  if (data) state.trendReport = data;
-  if (cronData) state.cronJobs = cronData.jobs || [];
-  render();
-}
-
+async function loadGrowth() { const d = await API.get("/api/growth"); if (d) S.growth = d.records || []; render(); }
+async function loadPopular() { const d = await API.get("/api/popular"); if (d) S.popular = d.posts || []; render(); }
+async function loadAnalytics() { const d = await API.get("/api/analytics"); if (d) S.analytics = d; render(); }
+async function loadKeywords() { const d = await API.get("/api/keywords"); if (d) S.keywords = d.keywords || []; render(); }
 async function loadSettings() {
-  const settings = await API.get("/api/settings");
-  if (settings) state.settings = settings;
-  const guideData = await API.get("/api/guide");
-  state.guide = guideData ? guideData.guide || "" : "";
+  const [s, g] = await Promise.all([API.get("/api/settings"), API.get("/api/guide")]);
+  if (s) S.settings = s;
+  S.guide = g ? g.guide || "" : "";
   render();
-}
-
-async function saveSettings() {
-  const fields = ["viralThreshold", "minLikes", "searchDays", "maxPopularPosts",
-    "insightsIntervalHours", "insightsMaxCollections", "publishIntervalHours", "draftsPerBatch"];
-  const updates = {};
-  for (const f of fields) {
-    const el = document.getElementById(`setting-${f}`);
-    if (el) updates[f] = parseInt(el.value, 10) || 0;
-  }
-  setLoading(true);
-  const result = await API.post("/api/settings", updates);
-  setLoading(false);
-  if (result) {
-    showToast("설정이 저장되었습니다", "success");
-    await loadSettings();
-  }
 }
 
 // ── Actions ──
-async function approvePost(id, hours = 2) {
-  setLoading(true);
-  const result = await API.post(`/api/queue/${id}/approve`, { hours });
-  setLoading(false);
-  if (result) {
-    showToast("승인 완료", "success");
-    await loadQueue(state.queueFilter);
-    await loadOverview();
-  }
-}
-
-async function updatePost(id, text) {
-  setLoading(true);
-  const result = await API.post(`/api/queue/${id}/update`, { text });
-  setLoading(false);
-  if (result) {
-    showToast("수정 완료", "success");
-    state.editingPost = null;
-    await loadQueue(state.queueFilter);
-  }
-}
-
-async function deletePost(id) {
-  if (!confirm("정말 삭제하시겠습니까?")) return;
-  setLoading(true);
-  const result = await API.post(`/api/queue/${id}/delete`);
-  setLoading(false);
-  if (result) {
-    showToast("삭제 완료", "success");
-    await loadQueue(state.queueFilter);
-    await loadOverview();
-  }
-}
-
-async function retryPost(id) {
-  setLoading(true);
-  const scheduled = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-  const result = await API.post(`/api/queue/${id}/update`, {
-    status: "approved",
-    scheduledAt: scheduled,
-  });
-  setLoading(false);
-  if (result) {
-    showToast("재시도 예약 완료", "success");
-    await loadQueue(state.queueFilter);
-    await loadOverview();
-  }
-}
-
-async function bulkDelete() {
-  const ids = Array.from(state.selectedIds);
-  if (ids.length === 0) return;
-  if (!confirm(`${ids.length}개 글을 일괄 삭제하시겠습니까?`)) return;
-  setLoading(true);
-  const result = await API.post("/api/queue/bulk-delete", { ids });
-  setLoading(false);
-  if (result) {
-    showToast(`${result.deleted || ids.length}개 삭제 완료`, "success");
-    state.selectedIds.clear();
-    await loadQueue(state.queueFilter);
-    await loadOverview();
-  }
-}
-
-function toggleSelectAll() {
-  const selectable = state.queue.filter(p => p.status === "draft" || p.status === "approved");
-  if (state.selectedIds.size === selectable.length && selectable.length > 0) {
-    state.selectedIds.clear();
-  } else {
-    selectable.forEach(p => state.selectedIds.add(p.id));
-  }
-  render();
-}
-
+async function approvePost(id, hours = 2) { const r = await API.post(`/api/queue/${id}/approve`, { hours }); if (r) { showToast("승인 완료", "success"); loadQueue(S.queueFilter); } }
+async function updatePost(id, text) { const r = await API.post(`/api/queue/${id}/update`, { text }); if (r) { showToast("수정 완료", "success"); S.editingPost = null; loadQueue(S.queueFilter); } }
+async function deletePost(id) { if (!confirm("정말 삭제?")) return; const r = await API.post(`/api/queue/${id}/delete`); if (r) { showToast("삭제 완료", "success"); loadQueue(S.queueFilter); } }
 async function bulkApprove() {
-  const ids = Array.from(state.selectedIds);
-  if (ids.length === 0) return;
-  if (!confirm(`${ids.length}개 글을 일괄 승인하시겠습니까?`)) return;
-  setLoading(true);
-  const result = await API.post("/api/queue/bulk-approve", { ids });
-  setLoading(false);
-  if (result) {
-    showToast(`${result.approved || ids.length}개 승인 완료`, "success");
-    state.selectedIds.clear();
-    await loadQueue(state.queueFilter);
-    await loadOverview();
-  }
-}
-
-async function bulkDelete() {
-  const ids = Array.from(state.selectedIds);
-  if (ids.length === 0) return;
-  if (!confirm(`${ids.length}개 글을 일괄 삭제하시겠습니까?`)) return;
-  setLoading(true);
-  const result = await API.post("/api/queue/bulk-delete", { ids });
-  setLoading(false);
-  if (result) {
-    showToast(`${result.deleted || ids.length}개 삭제 완료`, "success");
-    state.selectedIds.clear();
-    await loadQueue(state.queueFilter);
-    await loadOverview();
-  }
-}
-
-function toggleSelectAll() {
-  const selectable = state.queue.filter(p => p.status === "draft" || p.status === "approved");
-  if (state.selectedIds.size === selectable.length && selectable.length > 0) {
-    state.selectedIds.clear();
-  } else {
-    selectable.forEach(p => state.selectedIds.add(p.id));
-  }
-  render();
-}
-
-async function saveKeywords(text) {
-  const keywords = text.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("#"));
-  setLoading(true);
-  const result = await API.post("/api/keywords", { keywords });
-  setLoading(false);
-  if (result) {
-    showToast("키워드 저장 완료", "success");
-    await loadKeywords();
-  }
+  const ids = Array.from(S.selectedIds); if (!ids.length) return;
+  if (!confirm(`${ids.length}개 일괄 승인?`)) return;
+  const r = await API.post("/api/queue/bulk-approve", { ids });
+  if (r) { showToast(`${r.approved}개 승인`, "success"); S.selectedIds.clear(); loadQueue(S.queueFilter); }
 }
 
 // ── Render ──
 function render() {
+  document.getElementById("sidebar").innerHTML = renderSidebar();
   const app = document.getElementById("app");
-  app.innerHTML = `
-    ${loadingOverlay()}
-    ${renderNav()}
-    <main class="max-w-7xl mx-auto px-4 py-6">
-      ${state.tab === "overview" ? renderOverview() : ""}
-      ${state.tab === "queue" ? renderQueue() : ""}
-      ${state.tab === "analytics" ? renderAnalytics() : ""}
-      ${state.tab === "popular" ? renderPopular() : ""}
-      ${state.tab === "trends" ? renderTrends() : ""}
-      ${state.tab === "settings" ? renderSettings() : ""}
-    </main>
-  `;
+  if (S.page === "overview") app.innerHTML = renderOverview();
+  else if (S.page === "threads") app.innerHTML = renderChannel("threads");
+  else if (S.page === "x") app.innerHTML = renderChannelX();
+  else if (S.page === "settings") app.innerHTML = renderSettings();
   bindEvents();
 }
 
-function renderNav() {
-  const tabs = [
-    { id: "overview", label: "Overview" },
-    { id: "queue", label: "Queue" },
-    { id: "analytics", label: "Analytics" },
-    { id: "popular", label: "Popular Posts" },
-    { id: "trends", label: "Trends" },
-    { id: "settings", label: "Settings" },
+function renderSidebar() {
+  const items = [
+    { page: "overview", icon: `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>`, label: "Marketing Home" },
   ];
+  const cronOk = S.cronJobs.filter(j => j.lastStatus === "ok").length;
+  const cronTotal = S.cronJobs.length;
+
   return `
-    <nav class="bg-gray-900 border-b border-gray-800">
-      <div class="max-w-7xl mx-auto px-4">
-        <div class="flex items-center justify-between h-14">
-          <h1 class="text-lg font-bold text-white">Threads Dashboard</h1>
-          <div class="flex gap-1">
-            ${tabs.map(t => `
-              <button data-tab="${t.id}"
-                class="px-3 py-2 text-sm rounded ${state.tab === t.id ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white hover:bg-gray-800"}">
-                ${t.label}
-              </button>
-            `).join("")}
-          </div>
-        </div>
+    <aside class="w-56 border-r border-gray-800/50 flex flex-col h-screen sticky top-0" style="background:#0e0e0e">
+      <div class="px-4 py-5 border-b border-gray-800/50">
+        <h1 class="text-base font-semibold text-white tracking-tight">Marketing Hub</h1>
+        <p class="text-xs text-gray-500 mt-0.5">openclaw-auto</p>
       </div>
-    </nav>
-  `;
-}
-
-function renderAlerts() {
-  if (!state.alerts.length) return "";
-  return state.alerts.map(a => {
-    const colors = a.severity === "error"
-      ? "bg-red-900/60 border-red-700 text-red-200"
-      : "bg-yellow-900/60 border-yellow-700 text-yellow-200";
-    return `<div class="px-4 py-2 rounded border ${colors} text-sm mb-2">${esc(a.message)}</div>`;
-  }).join("");
-}
-
-function renderOverview() {
-  const o = state.overview;
-  if (!o) return `<p class="text-gray-500">Loading...</p>`;
-
-  const sc = o.statusCounts || {};
-  const updatedAt = state.lastUpdated
-    ? state.lastUpdated.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })
-    : "";
-  return `
-    ${renderAlerts()}
-    ${updatedAt ? `<p class="text-xs text-gray-600 mb-3 text-right">Last updated: ${updatedAt}</p>` : ""}
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      ${card("Followers", o.followers ?? "N/A", o.weekDelta != null ? `${o.weekDelta >= 0 ? "+" : ""}${o.weekDelta} this week` : "")}
-      ${card("Published", sc.published || 0, `${sc.draft || 0} drafts, ${sc.approved || 0} approved`)}
-      ${card("Viral Posts", o.viralPosts?.length || 0, `>= ${state.analytics?.summary?.viralThreshold || 500} views`)}
-      ${card("Popular Refs", o.popularPostsCount || 0, Object.entries(o.popularSourceCounts || {}).map(([k, v]) => `${k}: ${v}`).join(", "))}
-    </div>
-
-    ${state.cronJobs.length ? `
-      <div class="bg-gray-900 rounded-lg p-4 mb-6">
-        <h3 class="text-sm font-medium text-gray-400 mb-3">Cron 현황</h3>
-        <div class="space-y-1">
-          ${state.cronJobs.map(j => {
-            const statusIcon = j.lastStatus === "ok" ? "text-green-400" : j.lastStatus === "error" ? "text-red-400" : "text-gray-500";
-            const fmtTime = (ms) => ms ? new Date(ms).toLocaleString("ko-KR", {month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}) : "-";
-            return `<div class="flex items-center justify-between text-sm py-1 border-b border-gray-800 last:border-0">
-              <span class="text-gray-300">${esc(j.name)}</span>
-              <div class="flex gap-4 text-xs">
-                <span class="text-gray-500">마지막: <span class="${statusIcon}">${fmtTime(j.lastRunAt)}</span></span>
-                <span class="text-gray-500">다음: <span class="text-blue-400">${fmtTime(j.nextRunAt)}</span></span>
-              </div>
-            </div>`;
-          }).join("")}
-        </div>
-      </div>
-    ` : ""}
-
-    ${o.viralPosts?.length ? `
-      <div class="bg-gray-900 rounded-lg p-4 mb-6">
-        <h3 class="text-sm font-medium text-gray-400 mb-3">Viral Posts</h3>
-        ${o.viralPosts.map(p => `
-          <div class="flex justify-between items-start py-2 border-b border-gray-800 last:border-0">
-            <span class="text-gray-200 text-sm flex-1">${esc(p.text)}</span>
-            <span class="text-green-400 text-sm ml-4 whitespace-nowrap">${p.views} views / ${p.likes} likes</span>
-          </div>
+      <nav class="flex-1 py-3">
+        <div class="px-3 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Overview</span></div>
+        ${items.map(i => `
+          <button data-nav="${i.page}" class="sidebar-item ${S.page === i.page ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
+            <span class="text-gray-500">${i.icon}</span> ${i.label}
+          </button>
         `).join("")}
+
+        <div class="px-3 mt-5 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Channels</span></div>
+        <button data-nav="threads" class="sidebar-item ${S.page === "threads" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
+          <span class="w-4 h-4 rounded bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-[9px] font-bold text-white">T</span>
+          Threads
+          <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${S.channelConfig.threads?.connected ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}">${S.channelConfig.threads?.connected ? "Live" : "Off"}</span>
+        </button>
+        <button data-nav="x" class="sidebar-item ${S.page === "x" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
+          <span class="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[10px] font-bold text-white">X</span>
+          X (Twitter)
+          <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${S.channelConfig.x?.connected ? "bg-green-900/50 text-green-400" : "bg-yellow-900/50 text-yellow-400"}">${S.channelConfig.x?.connected ? "Live" : "Setup"}</span>
+        </button>
+        <div class="px-4 py-2 text-sm text-gray-600 flex items-center gap-3 opacity-50">
+          <span class="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[9px] font-bold text-gray-500">IG</span>
+          Instagram <span class="ml-auto text-[10px] text-gray-700">Soon</span>
+        </div>
+
+        <div class="px-3 mt-5 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">System</span></div>
+        <button data-nav="settings" class="sidebar-item ${S.page === "settings" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
+          <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Settings
+        </button>
+      </nav>
+      <div class="px-4 py-3 border-t border-gray-800/50">
+        <div class="flex items-center gap-2">
+          <div class="pulse-dot ${cronOk === cronTotal ? "bg-green-500" : "bg-yellow-500"}"></div>
+          <span class="text-xs text-gray-500">${cronOk}/${cronTotal} crons ok</span>
+        </div>
       </div>
-    ` : ""}
-  `;
+    </aside>`;
 }
 
 function card(title, value, sub) {
-  return `
-    <div class="bg-gray-900 rounded-lg p-4">
-      <p class="text-xs text-gray-500 uppercase tracking-wide">${title}</p>
-      <p class="text-2xl font-bold text-white mt-1">${value}</p>
-      ${sub ? `<p class="text-xs text-gray-400 mt-1">${sub}</p>` : ""}
+  return `<div class="card p-4"><p class="text-[11px] text-gray-500 uppercase tracking-wide">${title}</p><p class="text-2xl font-bold text-white mt-1">${value}</p>${sub ? `<p class="text-xs text-gray-400 mt-1">${sub}</p>` : ""}</div>`;
+}
+
+function channelBadge(label, ch) {
+  if (!ch) return "";
+  const c = { published: "bg-green-900/40 text-green-400", failed: "bg-red-900/40 text-red-400", pending: "bg-gray-800 text-gray-500", skipped: "bg-gray-800 text-gray-600" };
+  return `<span class="text-[10px] px-1.5 py-0.5 rounded ${c[ch.status] || "bg-gray-700 text-gray-300"}">${label}: ${ch.status}</span>`;
+}
+
+// ── Overview Page ──
+function renderOverview() {
+  const o = S.overview;
+  if (!o) return `<div class="px-8 py-6"><p class="text-gray-500">Loading...</p></div>`;
+  const sc = o.statusCounts || {};
+  const cc = o.channelCounts || {};
+  const totalPub = sc.published || 0;
+
+  return `<div class="px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div><h2 class="text-xl font-semibold text-white">Marketing Overview</h2><p class="text-sm text-gray-500 mt-0.5">All channels at a glance</p></div>
     </div>
-  `;
+
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      ${card("Published", totalPub, `T:${cc.threads || 0} X:${cc.x || 0}`)}
+      ${card("Followers", o.followers ?? "N/A", o.weekDelta != null ? `${o.weekDelta >= 0 ? "+" : ""}${o.weekDelta} this week` : "")}
+      ${card("Viral", o.viralPosts?.length || 0, `>= ${S.settings?.viralThreshold || 500} views`)}
+      ${card("Queue", (sc.draft || 0) + (sc.approved || 0), `${sc.draft || 0} drafts, ${sc.approved || 0} approved`)}
+      ${card("Popular Refs", o.popularPostsCount || 0, Object.entries(o.popularSourceCounts || {}).map(([k, v]) => `${k}:${v}`).join(" "))}
+    </div>
+
+    <!-- Channel Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div class="channel-card card p-5" data-nav="threads">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-3">
+            <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm font-bold text-white">T</span>
+            <div><h3 class="text-sm font-medium text-white">Threads</h3><p class="text-xs text-gray-500">${S.channelConfig.threads?.userId ? "ID: " + S.channelConfig.threads.userId : ""}</p></div>
+          </div>
+          <span class="text-[10px] px-2 py-1 rounded-full ${S.channelConfig.threads?.connected ? "bg-green-900/40 text-green-400 border border-green-800/30" : "bg-gray-800 text-gray-500"}">${S.channelConfig.threads?.connected ? "Connected" : "Not connected"}</span>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div><p class="text-[10px] text-gray-500">Published</p><p class="text-lg font-semibold text-white">${cc.threads || 0}</p></div>
+          <div><p class="text-[10px] text-gray-500">Followers</p><p class="text-lg font-semibold text-white">${o.followers ?? "-"}</p></div>
+          <div><p class="text-[10px] text-gray-500">Growth</p><p class="text-lg font-semibold ${(o.weekDelta || 0) >= 0 ? "text-green-400" : "text-red-400"}">${o.weekDelta != null ? (o.weekDelta >= 0 ? "+" : "") + o.weekDelta : "-"}</p></div>
+        </div>
+        <div class="mt-3 pt-3 border-t border-gray-800/50 flex justify-between text-xs"><span class="text-gray-600">View details</span><span class="text-blue-400">&rarr;</span></div>
+      </div>
+
+      <div class="channel-card card p-5" data-nav="x">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-3">
+            <span class="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center text-sm font-bold text-white">X</span>
+            <div><h3 class="text-sm font-medium text-white">X (Twitter)</h3><p class="text-xs text-gray-500">${S.channelConfig.x?.connected ? "Connected" : "Not connected"}</p></div>
+          </div>
+          <span class="text-[10px] px-2 py-1 rounded-full ${S.channelConfig.x?.connected ? "bg-green-900/40 text-green-400 border border-green-800/30" : "bg-yellow-900/40 text-yellow-400 border border-yellow-800/30"}">${S.channelConfig.x?.connected ? "Connected" : "Setup Required"}</span>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div><p class="text-[10px] text-gray-500">Published</p><p class="text-lg font-semibold ${cc.x ? "text-white" : "text-gray-600"}">${cc.x || 0}</p></div>
+          <div><p class="text-[10px] text-gray-500">Impressions</p><p class="text-lg font-semibold text-gray-600">-</p></div>
+          <div><p class="text-[10px] text-gray-500">Followers</p><p class="text-lg font-semibold text-gray-600">-</p></div>
+        </div>
+        <div class="mt-3 pt-3 border-t border-gray-800/50 flex justify-between text-xs"><span class="text-gray-600">${S.channelConfig.x?.connected ? "View details" : "Setup credentials"}</span><span class="text-${S.channelConfig.x?.connected ? "blue" : "yellow"}-400">&rarr;</span></div>
+      </div>
+    </div>
+
+    <!-- Cron + Activity -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="card p-5">
+        <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Automation Status</h3>
+        <div class="space-y-2.5">
+          ${S.cronJobs.map(j => {
+            const dot = j.lastStatus === "ok" ? "bg-green-500" : j.lastStatus === "error" ? "bg-red-500" : "bg-gray-600";
+            const info = j.lastStatus === "error" ? `<span class="text-red-400">error</span>` : `<span>${fmtTime(j.nextRunAt)}</span>`;
+            return `<div class="flex items-center justify-between"><div class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full ${dot}"></div><span class="text-xs text-gray-300">${esc(j.name)}</span></div><span class="text-[10px] text-gray-500">${info}</span></div>`;
+          }).join("")}
+        </div>
+      </div>
+      <div class="card p-5 col-span-2">
+        <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Recent Activity</h3>
+        <div class="space-y-3">
+          ${S.activity.slice(0, 6).map(e => {
+            const icons = { publish: "bg-green-900/40 text-green-400", draft: "bg-purple-900/40 text-purple-400", viral: "bg-yellow-900/40 text-yellow-400" };
+            const labels = { publish: e.channel || "T", draft: "AI", viral: "!" };
+            return `<div class="flex gap-3 items-start">
+              <div class="mt-0.5 w-6 h-6 rounded ${icons[e.type] || "bg-gray-800 text-gray-400"} flex items-center justify-center flex-shrink-0"><span class="text-[9px]">${labels[e.type] || "?"}</span></div>
+              <div class="flex-1 min-w-0">
+                <p class="text-xs text-gray-300 truncate">${esc(e.text)}${e.type === "viral" ? ` — ${e.views} views` : ""}</p>
+                <p class="text-[10px] text-gray-600 mt-0.5">${fmtAgo(e.at)}</p>
+              </div>
+            </div>`;
+          }).join("") || `<p class="text-xs text-gray-600">No recent activity</p>`}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Channel Page (Threads) ──
+function renderChannel() {
+  const tabs = ["queue", "analytics", "growth", "popular", "settings"];
+  return `<div class="px-8 py-6">
+    <button data-nav="overview" class="text-gray-500 hover:text-gray-300 text-sm mb-1">&larr; Back</button>
+    <div class="flex items-center gap-3 mb-6">
+      <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm font-bold text-white">T</span>
+      <div><h2 class="text-xl font-semibold text-white">Threads</h2><p class="text-xs text-gray-500">${S.channelConfig.threads?.userId ? "ID: " + S.channelConfig.threads.userId : ""} ${S.growth.length ? " &middot; " + S.growth[S.growth.length - 1].followers + " followers" : ""}</p></div>
+    </div>
+    <div class="flex gap-1 mb-6 border-b border-gray-800/50 pb-3">
+      ${tabs.map(t => `<button data-subtab="${t}" class="px-3 py-1.5 text-sm rounded ${S.subTab === t ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"}">${t.charAt(0).toUpperCase() + t.slice(1)}</button>`).join("")}
+    </div>
+    ${S.subTab === "queue" ? renderQueue() : ""}
+    ${S.subTab === "analytics" ? renderAnalytics() : ""}
+    ${S.subTab === "growth" ? renderGrowth() : ""}
+    ${S.subTab === "popular" ? renderPopular() : ""}
+    ${S.subTab === "settings" ? renderChannelSettings("threads") : ""}
+  </div>`;
 }
 
 function renderQueue() {
   const filters = ["all", "draft", "approved", "published", "failed"];
-  const selectable = state.queue.filter(p => p.status === "draft" || p.status === "approved");
-  const allSelected = selectable.length > 0 && state.selectedIds.size === selectable.length;
-
   return `
     <div class="flex items-center justify-between mb-4">
-      <div class="flex gap-1">
-        ${filters.map(f => `
-          <button data-filter="${f}"
-            class="px-3 py-1 text-sm rounded ${state.queueFilter === f ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"}">
-            ${f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
-          </button>
-        `).join("")}
-      </div>
-      ${selectable.length > 0 ? `
-        <label class="flex items-center gap-1 text-sm text-gray-400 cursor-pointer">
-          <input type="checkbox" id="select-all" ${allSelected ? "checked" : ""} class="rounded border-gray-600">
-          Select All (${selectable.length})
-        </label>
-      ` : ""}
+      <div class="flex gap-1">${filters.map(f => `<button data-filter="${f}" class="px-3 py-1 text-xs rounded ${S.queueFilter === f ? "bg-blue-600/30 text-blue-300 border border-blue-600/30" : "text-gray-500 hover:bg-gray-800"}">${f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}</button>`).join("")}</div>
+      ${S.selectedIds.size > 0 ? `<button id="bulk-approve" class="px-3 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve (${S.selectedIds.size})</button>` : ""}
     </div>
-
-    <div class="space-y-3 ${state.selectedIds.size > 0 ? "pb-20" : ""}">
-      ${state.queue.length === 0 ? `<p class="text-gray-500 text-sm">No posts</p>` : ""}
-      ${state.queue.map(p => renderPost(p)).join("")}
-    </div>
-
-    ${state.selectedIds.size > 0 ? `
-      <div class="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 px-4 py-3 z-50">
-        <div class="max-w-7xl mx-auto flex items-center justify-between">
-          <span class="text-sm text-gray-300">${state.selectedIds.size}개 선택됨</span>
-          <div class="flex gap-2">
-            <button id="bulk-approve" class="px-4 py-2 text-sm bg-green-700 text-white rounded hover:bg-green-600">
-              Approve (${state.selectedIds.size})
-            </button>
-            <button id="bulk-delete" class="px-4 py-2 text-sm bg-red-700 text-white rounded hover:bg-red-600">
-              Delete (${state.selectedIds.size})
-            </button>
-            <button id="bulk-cancel" class="px-4 py-2 text-sm bg-gray-700 text-gray-300 rounded hover:bg-gray-600">
-              Cancel
-            </button>
-          </div>
-        </div>
-      </div>
-    ` : ""}
-  `;
+    <div class="space-y-3">
+      ${S.queue.length === 0 ? `<p class="text-gray-600 text-sm">No posts</p>` : S.queue.map(renderPost).join("")}
+    </div>`;
 }
 
 function renderPost(p) {
-  const eng = p.engagement || {};
-  const isEditing = state.editingPost === p.id;
-  const statusColors = {
-    draft: "bg-yellow-900 text-yellow-300",
-    approved: "bg-blue-900 text-blue-300",
-    published: "bg-green-900 text-green-300",
-    failed: "bg-red-900 text-red-300",
-  };
-
+  const isEditing = S.editingPost === p.id;
+  const sc = { draft: "bg-yellow-900/50 text-yellow-300", approved: "bg-blue-900/50 text-blue-300", published: "bg-green-900/50 text-green-300", failed: "bg-red-900/50 text-red-300" };
+  const ch = p.channels || {};
   return `
-    <div class="bg-gray-900 rounded-lg p-4">
+    <div class="card p-4">
       <div class="flex items-start justify-between mb-2">
         <div class="flex items-center gap-2">
-          ${p.status === "draft" || p.status === "approved" ? `
-            <input type="checkbox" data-select="${p.id}" ${state.selectedIds.has(p.id) ? "checked" : ""}
-              class="rounded border-gray-600">
-          ` : ""}
-          <span class="text-xs px-2 py-0.5 rounded ${statusColors[p.status] || "bg-gray-700 text-gray-300"}">${p.status}</span>
-          <span class="text-xs text-gray-500">${esc(p.topic || "")}</span>
-          ${p.abVariant && p.abVariant !== "A" ? `<span class="text-xs px-1.5 py-0.5 rounded bg-purple-900 text-purple-300">${esc(p.abVariant)}</span>` : ""}
-          ${p.model ? `<span class="text-xs text-gray-600">${esc(p.model)}</span>` : ""}
+          ${p.status === "draft" ? `<input type="checkbox" data-select="${p.id}" ${S.selectedIds.has(p.id) ? "checked" : ""} class="rounded border-gray-600">` : ""}
+          <span class="text-[10px] px-2 py-0.5 rounded ${sc[p.status] || "bg-gray-700 text-gray-300"}">${p.status}</span>
+          <span class="text-xs text-gray-500">${p.topic || ""}</span>
+          ${p.model ? `<span class="text-xs text-gray-600">${p.model}</span>` : ""}
         </div>
-        <span class="text-xs text-gray-600">${p.id.slice(0, 8)}</span>
+        <div class="flex gap-1">
+          ${channelBadge("T", ch.threads)}
+          ${channelBadge("X", ch.x)}
+        </div>
       </div>
-
       ${isEditing ? `
         <textarea id="edit-textarea" class="w-full bg-gray-800 text-gray-200 text-sm p-2 rounded border border-gray-700 mb-2" rows="4">${esc(p.text)}</textarea>
-        <div class="flex gap-2">
-          <button data-save="${p.id}" class="px-2 py-1 text-xs bg-blue-600 text-white rounded">Save</button>
-          <button data-cancel-edit class="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded">Cancel</button>
-        </div>
-      ` : `
-        <p class="text-gray-200 text-sm mb-2 whitespace-pre-wrap">${esc(p.text)}</p>
-      `}
-
-      ${p.imageUrl ? `
-        <div class="mb-2">
-          <img src="${esc(p.imageUrl)}" alt="post image" class="rounded max-h-48 object-cover" onerror="this.style.display='none'">
-        </div>
-      ` : ""}
-
-      ${p.hashtags?.length ? `
-        <div class="flex gap-1 mb-2">
-          ${p.hashtags.map(h => `<span class="text-xs text-blue-400">#${esc(h)}</span>`).join("")}
-        </div>
-      ` : ""}
-
-      ${p.status === "published" && eng.views != null ? `
-        <div class="flex gap-4 text-xs text-gray-500">
-          <span>views: ${eng.views}</span>
-          <span>likes: ${eng.likes || 0}</span>
-          <span>replies: ${eng.replies || 0}</span>
-          <span>reposts: ${eng.reposts || 0}</span>
-        </div>
-      ` : ""}
-
-      <div class="flex flex-wrap gap-3 text-xs text-gray-600 mt-1">
-        ${p.generatedAt ? `<span>생성: ${fmtDate(p.generatedAt)}</span>` : ""}
-        ${p.originalText ? `<span>수정됨</span>` : ""}
-        ${p.approvedAt ? `<span>승인: ${fmtDate(p.approvedAt)}</span>` : ""}
-        ${p.scheduledAt && p.status === "approved" ? `<span class="text-blue-400">발행 예정: ${fmtDate(p.scheduledAt)}</span>` : ""}
-        ${p.publishedAt ? `<span class="text-green-400">발행: ${fmtDate(p.publishedAt)}</span>` : ""}
+        <div class="flex gap-2"><button data-save="${p.id}" class="px-2 py-1 text-xs bg-blue-600 text-white rounded">Save</button><button data-cancel-edit class="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded">Cancel</button></div>
+      ` : `<p class="text-sm text-gray-200 mb-2 whitespace-pre-wrap">${esc(p.text)}</p>`}
+      ${p.hashtags?.length ? `<div class="flex gap-1 mb-2">${p.hashtags.map(h => `<span class="text-xs text-blue-400">#${h}</span>`).join("")}</div>` : ""}
+      ${p.engagement?.views != null ? `<div class="flex gap-4 text-xs text-gray-500"><span>views: ${p.engagement.views}</span><span>likes: ${p.engagement.likes || 0}</span><span>replies: ${p.engagement.replies || 0}</span></div>` : ""}
+      ${p.scheduledAt ? `<p class="text-xs text-gray-600 mt-1">Scheduled: ${new Date(p.scheduledAt).toLocaleString()}</p>` : ""}
+      <div class="flex gap-2 mt-2">
+        ${p.status === "draft" ? `<button data-approve="${p.id}" class="px-2 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button><button data-edit="${p.id}" class="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button>` : ""}
+        ${p.status !== "published" ? `<button data-delete="${p.id}" class="px-2 py-1 text-xs bg-red-900/50 text-red-300 rounded hover:bg-red-800">Delete</button>` : ""}
       </div>
-
-      <div class="flex gap-2 mt-2 items-center">
-        ${p.status === "draft" ? `
-          <button data-approve="${p.id}" class="px-2 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>
-          <select data-approve-hours="${p.id}" class="text-xs bg-gray-800 text-gray-300 rounded border border-gray-700 px-1 py-1">
-            <option value="0">즉시</option>
-            <option value="1">1시간 후</option>
-            <option value="2" selected>2시간 후</option>
-            <option value="4">4시간 후</option>
-          </select>
-          <button data-edit="${p.id}" class="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button>
-        ` : ""}
-        ${p.status === "failed" ? `
-          <button data-retry="${p.id}" class="px-2 py-1 text-xs bg-yellow-700 text-white rounded hover:bg-yellow-600">Retry</button>
-        ` : ""}
-        ${p.status !== "published" ? `
-          <button data-delete="${p.id}" class="px-2 py-1 text-xs bg-red-900 text-red-300 rounded hover:bg-red-800">Delete</button>
-        ` : ""}
-      </div>
-    </div>
-  `;
+    </div>`;
 }
 
 function renderAnalytics() {
-  const a = state.analytics;
+  const a = S.analytics;
   if (!a) return `<p class="text-gray-500">Loading...</p>`;
-
   const s = a.summary || {};
   return `
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      ${card("Total Published", s.totalPublished)}
-      ${card("Total Views", s.totalViews)}
-      ${card("Avg Views", s.avgViews)}
-      ${card("Avg Likes", s.avgLikes)}
-    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">${card("Published", s.totalPublished)}${card("Views", s.totalViews)}${card("Avg Views", s.avgViews)}${card("Avg Likes", s.avgLikes)}</div>
+    ${Object.keys(a.topics || {}).length ? `<div class="card p-4 mb-6"><h3 class="text-xs font-medium text-gray-400 mb-3">Topic Performance</h3>
+      <table class="w-full text-sm"><thead><tr class="text-[10px] text-gray-500 uppercase"><th class="text-left py-1">Topic</th><th class="text-right py-1">Posts</th><th class="text-right py-1">Avg Views</th><th class="text-right py-1">Avg Likes</th></tr></thead>
+      <tbody>${Object.entries(a.topics).map(([t, s]) => `<tr class="border-t border-gray-800/50"><td class="text-gray-200 py-1">${esc(t)}</td><td class="text-gray-400 text-right py-1">${s.count}</td><td class="text-gray-400 text-right py-1">${s.avgViews || 0}</td><td class="text-gray-400 text-right py-1">${s.avgLikes || 0}</td></tr>`).join("")}</tbody></table></div>` : ""}`;
+}
 
-    ${Object.keys(a.topics || {}).length ? `
-      <div class="bg-gray-900 rounded-lg p-4 mb-6">
-        <h3 class="text-sm font-medium text-gray-400 mb-3">Topic Performance</h3>
-        <table class="w-full text-sm">
-          <thead><tr class="text-gray-500 text-xs">
-            <th class="text-left py-1">Topic</th>
-            <th class="text-right py-1">Posts</th>
-            <th class="text-right py-1">Avg Views</th>
-            <th class="text-right py-1">Avg Likes</th>
-          </tr></thead>
-          <tbody>
-            ${Object.entries(a.topics).map(([topic, s]) => `
-              <tr class="border-t border-gray-800">
-                <td class="text-gray-200 py-1">${esc(topic)}</td>
-                <td class="text-gray-400 text-right py-1">${s.count}</td>
-                <td class="text-gray-400 text-right py-1">${s.avgViews || 0}</td>
-                <td class="text-gray-400 text-right py-1">${s.avgLikes || 0}</td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-      </div>
-    ` : ""}
-
-    <div class="bg-gray-900 rounded-lg p-4">
-      <h3 class="text-sm font-medium text-gray-400 mb-3">Published Posts</h3>
-      ${(a.posts || []).length === 0 ? `<p class="text-gray-500 text-sm">No published posts yet</p>` : ""}
-      ${(a.posts || []).map(p => `
-        <div class="flex justify-between items-start py-2 border-b border-gray-800 last:border-0">
-          <div class="flex-1 mr-4">
-            <span class="text-gray-200 text-sm">${esc(p.text)}</span>
-            <span class="text-gray-600 text-xs ml-2">${esc(p.topic)}</span>
-          </div>
-          <div class="text-right text-xs text-gray-500 whitespace-nowrap">
-            <div>${p.views} views</div>
-            <div>${p.likes} likes</div>
-          </div>
-        </div>
-      `).join("")}
-    </div>
-  `;
+function renderGrowth() {
+  if (!S.growth.length) return `<p class="text-gray-600 text-sm">No growth data</p>`;
+  return `<div class="card p-4"><h3 class="text-xs font-medium text-gray-400 mb-3">Follower History</h3>
+    <div class="space-y-1">${S.growth.slice(-14).map(r => `<div class="flex justify-between text-xs border-b border-gray-800/50 py-1"><span class="text-gray-300">${r.date}</span><span class="text-gray-200">${r.followers}</span><span class="${r.delta >= 0 ? "text-green-400" : "text-red-400"}">${r.delta >= 0 ? "+" : ""}${r.delta}</span></div>`).join("")}</div></div>`;
 }
 
 function renderPopular() {
-  const sources = ["all", "manual", "external", "own-viral"];
-  return `
-    <div class="flex gap-1 mb-4">
-      ${sources.map(s => `
-        <button data-popular-filter="${s}"
-          class="px-3 py-1 text-sm rounded ${s === "all" ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"}">
-          ${s === "all" ? "All" : s}
-        </button>
-      `).join("")}
+  return `<div class="space-y-3">${S.popular.map(p => `
+    <div class="card p-4">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-xs px-2 py-0.5 rounded bg-purple-900/50 text-purple-300">${p.source || "unknown"}</span>
+        ${p.type ? `<span class="text-xs px-2 py-0.5 rounded bg-cyan-900/50 text-cyan-300">${p.type}</span>` : ""}
+        ${p.likes && p.likes !== "0" ? `<span class="text-xs text-yellow-500">${p.likes} likes</span>` : ""}
+      </div>
+      <p class="text-sm text-gray-200 whitespace-pre-wrap">${esc(p.text || "")}</p>
     </div>
-
-    <div class="space-y-3">
-      ${state.popular.map(p => `
-        <div class="bg-gray-900 rounded-lg p-4">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="text-xs px-2 py-0.5 rounded bg-purple-900 text-purple-300">${p.source || "unknown"}</span>
-            ${p.type ? `<span class="text-xs px-2 py-0.5 rounded bg-cyan-900 text-cyan-300">${p.type}</span>` : ""}
-            <span class="text-xs text-gray-500">${esc(p.topic || "")}</span>
-            ${p.likes && p.likes !== "0" ? `<span class="text-xs text-yellow-500">${p.likes} likes</span>` : ""}
-            ${p.collected ? `<span class="text-xs text-gray-600">${p.collected}</span>` : ""}
-          </div>
-          <p class="text-gray-200 text-sm whitespace-pre-wrap">${esc(p.text || "")}</p>
-        </div>
-      `).join("")}
-      ${state.popular.length === 0 ? `<p class="text-gray-500 text-sm">No popular posts</p>` : ""}
-    </div>
-  `;
+  `).join("") || `<p class="text-gray-600 text-sm">No popular posts</p>`}</div>`;
 }
 
-function renderTrends() {
-  const r = state.trendReport;
-  const keywords = r?.keywords || {};
-  const candidates = r?.rewriteCandidates || [];
-
-  // Automation status from cron jobs
-  const automationJobs = ["threads-collect-insights", "threads-rewrite-trending", "threads-fetch-trending"];
-  const automationCrons = state.cronJobs.filter(j => automationJobs.includes(j.id));
+// ── Per-Channel Settings ──
+function renderChannelSettings(channel) {
+  const s = S.settings || {};
+  const row = (key, label, desc) => `
+    <div class="flex items-center justify-between py-2 border-b border-gray-800/50 last:border-0">
+      <div><p class="text-xs text-gray-300">${label}</p><p class="text-[10px] text-gray-600">${desc}</p></div>
+      <input id="setting-${key}" type="number" value="${s[key] ?? ""}" min="0" class="w-20 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-gray-300 text-right">
+    </div>`;
 
   return `
-    <div class="bg-gray-900 rounded-lg p-4 mb-6">
-      <h3 class="text-sm font-medium text-gray-400 mb-3">Automation Status</h3>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        ${automationCrons.map(j => {
-          const statusColor = j.lastStatus === "ok" ? "text-green-400" : j.lastStatus === "error" ? "text-red-400" : "text-gray-500";
-          const fmtTime = (ms) => ms ? fmtDate(new Date(ms).toISOString()) : "-";
-          return `<div class="bg-gray-800 rounded p-3">
-            <p class="text-sm text-gray-200 mb-1">${esc(j.name)}</p>
-            <p class="text-xs ${statusColor}">${j.lastStatus || 'idle'}</p>
-            <p class="text-xs text-gray-500 mt-1">마지막: ${fmtTime(j.lastRunAt)}</p>
-            <p class="text-xs text-gray-500">다음: ${fmtTime(j.nextRunAt)}</p>
-          </div>`;
-        }).join("")}
-        ${automationCrons.length === 0 ? `<p class="text-gray-500 text-sm">No automation crons found</p>` : ""}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-4"><h3 class="text-sm font-medium text-gray-300">Automation</h3><button id="save-settings" class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button></div>
+        ${row("viralThreshold", "Viral Threshold", "터진 글 기준 views")}
+        ${row("draftsPerBatch", "Drafts per Batch", "배치당 생성 개수")}
+        ${row("publishIntervalHours", "Publish Interval", "발행 간격 (시간)")}
+        ${row("insightsIntervalHours", "Insights Interval", "반응 수집 간격 (시간)")}
+        ${row("insightsMaxCollections", "Max Collections", "최대 반응 수집 횟수")}
+        ${row("minLikes", "Min Likes", "외부 인기글 최소 좋아요")}
+        ${row("searchDays", "Search Days", "검색 기간 (일)")}
+        ${row("maxPopularPosts", "Max Popular Posts", "인기글 최대 보관 수")}
       </div>
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-3"><h3 class="text-sm font-medium text-gray-300">Content Guide</h3><button id="save-guide" class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button></div>
+        <p class="text-[10px] text-gray-600 mb-2">AI가 글 생성할 때 참고하는 톤/타겟/유형 가이드</p>
+        <textarea id="guide-textarea" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 font-mono" rows="12">${esc(S.guide)}</textarea>
+      </div>
+      <div class="card p-5 col-span-2">
+        <div class="flex items-center justify-between mb-3"><h3 class="text-sm font-medium text-gray-300">Search Keywords</h3><button id="save-keywords" class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button></div>
+        <textarea id="keywords-textarea" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300" rows="6">${S.keywords.join("\n")}</textarea>
+      </div>
+    </div>`;
+}
+
+// ── X Channel Page ──
+function renderChannelX() {
+  const connected = S.channelConfig.x?.connected;
+  const tabs = connected ? ["queue", "analytics", "settings"] : ["settings"];
+  return `<div class="px-8 py-6">
+    <button data-nav="overview" class="text-gray-500 hover:text-gray-300 text-sm mb-1">&larr; Back</button>
+    <div class="flex items-center gap-3 mb-6">
+      <span class="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center text-sm font-bold text-white">X</span>
+      <div><h2 class="text-xl font-semibold text-white">X (Twitter)</h2><p class="text-xs text-gray-500">${connected ? "Connected" : "Not connected"}</p></div>
     </div>
+    <div class="flex gap-1 mb-6 border-b border-gray-800/50 pb-3">
+      ${tabs.map(t => `<button data-subtab="${t}" class="px-3 py-1.5 text-sm rounded ${S.subTab === t ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"}">${t.charAt(0).toUpperCase() + t.slice(1)}</button>`).join("")}
+    </div>
+    ${S.subTab === "queue" && connected ? renderQueue() : ""}
+    ${S.subTab === "analytics" && connected ? renderAnalytics() : ""}
+    ${S.subTab === "settings" ? renderXSettings() : ""}
+  </div>`;
+}
 
-    ${r?.generatedAt ? `
-      <div class="mb-4 text-xs text-gray-500">Trend report: ${fmtDate(r.generatedAt)}</div>
-    ` : `
-      <div class="bg-gray-800 rounded-lg p-4 mb-6 text-sm text-gray-400">
-        Trend report not yet generated. <code>threads-rewrite-trending</code> cron will create it.
-      </div>
-    `}
-
-    ${Object.keys(keywords).length ? `
-      <div class="bg-gray-900 rounded-lg p-4 mb-6">
-        <h3 class="text-sm font-medium text-gray-400 mb-3">Keyword Trends</h3>
-        <table class="w-full text-sm">
-          <thead><tr class="text-gray-500 text-xs">
-            <th class="text-left py-1">Keyword</th>
-            <th class="text-right py-1">Posts</th>
-            <th class="text-right py-1">Avg Likes</th>
-            <th class="text-right py-1">Trend</th>
-            <th class="text-left py-1 pl-4">Patterns</th>
-          </tr></thead>
-          <tbody>
-            ${Object.entries(keywords).map(([kw, d]) => `
-              <tr class="border-t border-gray-800">
-                <td class="text-gray-200 py-1">${esc(kw)}</td>
-                <td class="text-gray-400 text-right py-1">${d.postCount || 0}</td>
-                <td class="text-gray-400 text-right py-1">${d.avgLikes || 0}</td>
-                <td class="text-right py-1">
-                  <span class="${d.trend === '상승' ? 'text-green-400' : d.trend === '하락' ? 'text-red-400' : 'text-gray-400'}">${d.trend || '-'}</span>
-                </td>
-                <td class="text-gray-500 py-1 pl-4">${(d.patterns || []).join(', ')}</td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-      </div>
-    ` : ""}
-
-    ${candidates.length ? `
-      <div class="bg-gray-900 rounded-lg p-4 mb-6">
-        <h3 class="text-sm font-medium text-gray-400 mb-3">Rewrite Candidates</h3>
+function renderXSettings() {
+  return `
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="card p-5">
+        <h3 class="text-sm font-medium text-gray-300 mb-4">X API Credentials</h3>
         <div class="space-y-3">
-          ${candidates.map(c => `
-            <div class="border-b border-gray-800 pb-3 last:border-0">
-              <p class="text-gray-200 text-sm whitespace-pre-wrap mb-1">${esc(c.original || '')}</p>
-              <p class="text-xs text-gray-500">${esc(c.reason || '')}</p>
-            </div>
-          `).join("")}
+          <div><label class="text-xs text-gray-500 block mb-1">API Key</label><input id="x-apiKey" type="text" placeholder="Enter API Key" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 placeholder-gray-600"></div>
+          <div><label class="text-xs text-gray-500 block mb-1">API Key Secret</label><input id="x-apiKeySecret" type="password" placeholder="Enter API Key Secret" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 placeholder-gray-600"></div>
+          <div><label class="text-xs text-gray-500 block mb-1">Access Token</label><input id="x-accessToken" type="text" placeholder="Enter Access Token" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 placeholder-gray-600"></div>
+          <div><label class="text-xs text-gray-500 block mb-1">Access Token Secret</label><input id="x-accessTokenSecret" type="password" placeholder="Enter Access Token Secret" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 placeholder-gray-600"></div>
+        </div>
+        <button id="save-x-config" class="w-full mt-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${S.channelConfig.x?.connected ? "Update Credentials" : "Connect X Account"}</button>
+        <p class="text-[10px] text-gray-600 mt-3 text-center">Get credentials at developer.x.com</p>
+      </div>
+      <div class="card p-5">
+        <h3 class="text-sm font-medium text-gray-300 mb-4">X Channel Info</h3>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="${S.channelConfig.x?.connected ? "text-green-400" : "text-yellow-400"}">${S.channelConfig.x?.connected ? "Connected" : "Not connected"}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Character Limit</span><span class="text-gray-300">280</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">API Plan</span><span class="text-gray-300">Basic ($100/mo) required</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Auth Method</span><span class="text-gray-300">OAuth 1.0a</span></div>
         </div>
       </div>
-    ` : ""}
-
-    ${r?.topPost ? `
-      <div class="bg-gray-900 rounded-lg p-4">
-        <h3 class="text-sm font-medium text-gray-400 mb-2">Top Post</h3>
-        <p class="text-gray-200 text-sm whitespace-pre-wrap">${esc(r.topPost)}</p>
-      </div>
-    ` : ""}
-  `;
+    </div>`;
 }
 
+// ── Settings Page (Channel Connections) ──
 function renderSettings() {
-  const s = state.settings || {};
-  const settingRow = (key, label, desc) => `
-    <div class="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
-      <div>
-        <p class="text-sm text-gray-200">${label}</p>
-        <p class="text-xs text-gray-500">${desc}</p>
+  return `<div class="px-8 py-6">
+    <h2 class="text-xl font-semibold text-white mb-1">Settings</h2>
+    <p class="text-sm text-gray-500 mb-6">Channel connections & system status</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="card p-5">
+        <h3 class="text-sm font-medium text-gray-300 mb-4">Connected Channels</h3>
+        <div class="space-y-3">
+          <div class="flex items-center justify-between p-3 rounded-lg bg-gray-900/50 cursor-pointer hover:bg-gray-800/50" data-nav="threads">
+            <div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-[8px] font-bold text-white">T</span><div><p class="text-xs text-gray-300">Threads</p><p class="text-[10px] text-gray-600">${S.channelConfig.threads?.userId ? "ID: " + S.channelConfig.threads.userId : ""}</p></div></div>
+            <span class="text-[10px] ${S.channelConfig.threads?.connected ? "text-green-400" : "text-gray-600"}">${S.channelConfig.threads?.connected ? "Connected" : "Not connected"}</span>
+          </div>
+          <div class="flex items-center justify-between p-3 rounded-lg bg-gray-900/50 cursor-pointer hover:bg-gray-800/50" data-nav="x">
+            <div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-gray-700 flex items-center justify-center text-[9px] font-bold text-white">X</span><div><p class="text-xs text-gray-300">X (Twitter)</p><p class="text-[10px] text-gray-600">${S.channelConfig.x?.connected ? "OAuth 1.0a" : "Setup required"}</p></div></div>
+            <span class="text-[10px] ${S.channelConfig.x?.connected ? "text-green-400" : "text-yellow-400"}">${S.channelConfig.x?.connected ? "Connected" : "Setup"}</span>
+          </div>
+          <div class="flex items-center justify-between p-3 rounded-lg bg-gray-900/50 opacity-50">
+            <div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-gray-700 flex items-center justify-center text-[8px] font-bold text-gray-500">IG</span><div><p class="text-xs text-gray-500">Instagram</p></div></div>
+            <span class="text-[10px] text-gray-700">Coming soon</span>
+          </div>
+        </div>
+        <p class="text-[10px] text-gray-600 mt-4">Click a channel to manage its settings</p>
       </div>
-      <input id="setting-${key}" type="number" value="${s[key] ?? ""}" min="0"
-        class="w-24 bg-gray-800 text-gray-200 text-sm p-1.5 rounded border border-gray-700 text-right">
-    </div>
-  `;
-
-  return `
-    <div class="bg-gray-900 rounded-lg p-4 mb-6">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-sm font-medium text-gray-400">Thresholds & Limits</h3>
-        <button id="save-settings" class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
+      <div class="card p-5">
+        <h3 class="text-sm font-medium text-gray-300 mb-4">System Status</h3>
+        <div class="space-y-2.5">
+          ${S.cronJobs.map(j => {
+            const dot = j.lastStatus === "ok" ? "bg-green-500" : j.lastStatus === "error" ? "bg-red-500" : "bg-gray-600";
+            return `<div class="flex items-center justify-between"><div class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full ${dot}"></div><span class="text-xs text-gray-300">${esc(j.name)}</span></div><span class="text-[10px] text-gray-500">${j.lastStatus === "error" ? '<span class="text-red-400">error</span>' : fmtTime(j.nextRunAt)}</span></div>`;
+          }).join("")}
+        </div>
       </div>
-      ${settingRow("viralThreshold", "Viral Threshold", "터진 글 기준 views")}
-      ${settingRow("minLikes", "Min Likes", "외부 인기글 최소 좋아요")}
-      ${settingRow("searchDays", "Search Days", "외부 인기글 검색 기간 (일)")}
-      ${settingRow("maxPopularPosts", "Max Popular Posts", "popular-posts.txt 최대 보관 수")}
-      ${settingRow("insightsIntervalHours", "Insights Interval", "반응 수집 간격 (시간)")}
-      ${settingRow("insightsMaxCollections", "Max Collections", "최대 반응 수집 횟수")}
-      ${settingRow("publishIntervalHours", "Publish Interval", "발행 간격 (시간)")}
-      ${settingRow("draftsPerBatch", "Drafts per Batch", "배치당 생성 개수")}
     </div>
-
-    <div class="bg-gray-900 rounded-lg p-4 mb-6">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-sm font-medium text-gray-400">Content Guide</h3>
-        <button id="save-guide" class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
-      </div>
-      <p class="text-xs text-gray-500 mb-2">AI가 글 생성할 때 참고하는 톤/타겟/유형 가이드. 수정하면 다음 생성부터 반영됨.</p>
-      <textarea id="guide-textarea" class="w-full bg-gray-800 text-gray-200 text-sm p-2 rounded border border-gray-700 mb-2 font-mono" rows="16">${esc(state.guide || "")}</textarea>
-    </div>
-
-    <div class="bg-gray-900 rounded-lg p-4 mb-6">
-      <h3 class="text-sm font-medium text-gray-400 mb-3">Search Keywords</h3>
-      <textarea id="keywords-textarea" class="w-full bg-gray-800 text-gray-200 text-sm p-2 rounded border border-gray-700 mb-2" rows="10">${state.keywords.join("\n")}</textarea>
-      <button id="save-keywords" class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-500">Save Keywords</button>
-    </div>
-  `;
+  </div>`;
 }
 
 // ── Event Binding ──
 function bindEvents() {
-  // Tab navigation
-  document.querySelectorAll("[data-tab]").forEach(el => {
-    el.onclick = () => switchTab(el.dataset.tab);
-  });
+  document.querySelectorAll("[data-nav]").forEach(el => { el.onclick = () => navigate(el.dataset.nav); });
+  document.querySelectorAll("[data-subtab]").forEach(el => { el.onclick = () => { S.subTab = el.dataset.subtab; switchSubTab(el.dataset.subtab); }; });
+  document.querySelectorAll("[data-filter]").forEach(el => { el.onclick = () => { S.queueFilter = el.dataset.filter; loadQueue(S.queueFilter); }; });
+  document.querySelectorAll("[data-approve]").forEach(el => { el.onclick = () => approvePost(el.dataset.approve); });
+  document.querySelectorAll("[data-edit]").forEach(el => { el.onclick = () => { S.editingPost = el.dataset.edit; render(); }; });
+  document.querySelectorAll("[data-save]").forEach(el => { el.onclick = () => { const ta = document.getElementById("edit-textarea"); if (ta) updatePost(el.dataset.save, ta.value); }; });
+  document.querySelectorAll("[data-cancel-edit]").forEach(el => { el.onclick = () => { S.editingPost = null; render(); }; });
+  document.querySelectorAll("[data-delete]").forEach(el => { el.onclick = () => deletePost(el.dataset.delete); });
+  document.querySelectorAll("[data-select]").forEach(el => { el.onchange = () => { if (el.checked) S.selectedIds.add(el.dataset.select); else S.selectedIds.delete(el.dataset.select); render(); }; });
 
-  // Queue filters
-  document.querySelectorAll("[data-filter]").forEach(el => {
-    el.onclick = () => {
-      state.queueFilter = el.dataset.filter;
-      loadQueue(state.queueFilter);
-    };
-  });
-
-  // Post actions
-  document.querySelectorAll("[data-approve]").forEach(el => {
-    el.onclick = () => {
-      const hoursSelect = document.querySelector(`[data-approve-hours="${el.dataset.approve}"]`);
-      const hours = hoursSelect ? parseInt(hoursSelect.value, 10) : 2;
-      approvePost(el.dataset.approve, hours);
-    };
-  });
-  document.querySelectorAll("[data-retry]").forEach(el => {
-    el.onclick = () => retryPost(el.dataset.retry);
-  });
-  document.querySelectorAll("[data-edit]").forEach(el => {
-    el.onclick = () => { state.editingPost = el.dataset.edit; render(); };
-  });
-  document.querySelectorAll("[data-save]").forEach(el => {
-    el.onclick = () => {
-      const textarea = document.getElementById("edit-textarea");
-      if (textarea) updatePost(el.dataset.save, textarea.value);
-    };
-  });
-  document.querySelectorAll("[data-cancel-edit]").forEach(el => {
-    el.onclick = () => { state.editingPost = null; render(); };
-  });
-  document.querySelectorAll("[data-delete]").forEach(el => {
-    el.onclick = () => deletePost(el.dataset.delete);
-  });
-
-  // Checkboxes
-  document.querySelectorAll("[data-select]").forEach(el => {
-    el.onchange = () => {
-      if (el.checked) state.selectedIds.add(el.dataset.select);
-      else state.selectedIds.delete(el.dataset.select);
-      render();
-    };
-  });
-
-  // Select all
-  const selectAllBtn = document.getElementById("select-all");
-  if (selectAllBtn) selectAllBtn.onchange = toggleSelectAll;
-
-  // Bulk approve
   const bulkBtn = document.getElementById("bulk-approve");
   if (bulkBtn) bulkBtn.onclick = bulkApprove;
 
-  // Bulk delete
-  const bulkDelBtn = document.getElementById("bulk-delete");
-  if (bulkDelBtn) bulkDelBtn.onclick = bulkDelete;
-
-  // Bulk cancel
-  const bulkCancelBtn = document.getElementById("bulk-cancel");
-  if (bulkCancelBtn) bulkCancelBtn.onclick = () => { state.selectedIds.clear(); render(); };
-
-  // Keywords save
-  const saveKw = document.getElementById("save-keywords");
-  if (saveKw) {
-    saveKw.onclick = () => {
-      const ta = document.getElementById("keywords-textarea");
-      if (ta) saveKeywords(ta.value);
-    };
-  }
-
-  // Settings save
   const saveSt = document.getElementById("save-settings");
-  if (saveSt) saveSt.onclick = saveSettings;
+  if (saveSt) saveSt.onclick = async () => {
+    const fields = ["viralThreshold", "minLikes", "searchDays", "draftsPerBatch", "publishIntervalHours"];
+    const u = {}; fields.forEach(f => { const el = document.getElementById(`setting-${f}`); if (el) u[f] = parseInt(el.value, 10) || 0; });
+    const r = await API.post("/api/settings", u);
+    if (r) { showToast("설정 저장됨", "success"); loadSettings(); }
+  };
 
-  // Guide save
   const saveGd = document.getElementById("save-guide");
-  if (saveGd) {
-    saveGd.onclick = async () => {
-      const ta = document.getElementById("guide-textarea");
-      if (ta) {
-        setLoading(true);
-        const result = await API.post("/api/guide", { guide: ta.value });
-        setLoading(false);
-        if (result) {
-          showToast("가이드 저장 완료", "success");
-          await loadSettings();
-        }
-      }
-    };
-  }
+  if (saveGd) saveGd.onclick = async () => {
+    const ta = document.getElementById("guide-textarea");
+    if (ta) { const r = await API.post("/api/guide", { guide: ta.value }); if (r) showToast("가이드 저장됨", "success"); }
+  };
 
-  // Popular filters
-  document.querySelectorAll("[data-popular-filter]").forEach(el => {
-    el.onclick = async () => {
-      const src = el.dataset.popularFilter;
-      const data = await API.get(src === "all" ? "/api/popular" : `/api/popular?source=${src}`);
-      if (data) state.popular = data.posts || [];
-      render();
-    };
-  });
+  const saveKw = document.getElementById("save-keywords");
+  if (saveKw) saveKw.onclick = async () => {
+    const ta = document.getElementById("keywords-textarea");
+    if (ta) { const kw = ta.value.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("#")); const r = await API.post("/api/keywords", { keywords: kw }); if (r) showToast("키워드 저장됨", "success"); }
+  };
+
+  const saveX = document.getElementById("save-x-config");
+  if (saveX) saveX.onclick = async () => {
+    const data = {};
+    ["apiKey", "apiKeySecret", "accessToken", "accessTokenSecret"].forEach(k => { const el = document.getElementById("x-" + k); if (el?.value) data[k] = el.value; });
+    const r = await API.post("/api/channel-config/x", data);
+    if (r) { showToast(r.enabled ? "X 연결 완료!" : "저장됨", "success"); loadOverview(); }
+  };
 }
 
-function switchTab(tab) {
-  state.tab = tab;
-  // Clear auto-refresh when leaving overview
-  if (overviewInterval) {
-    clearInterval(overviewInterval);
-    overviewInterval = null;
-  }
-  if (tab === "overview") {
-    loadOverview();
-    overviewInterval = setInterval(loadOverview, 60000);
-  } else if (tab === "queue") loadQueue(state.queueFilter);
-  else if (tab === "analytics") loadAnalytics();
-  else if (tab === "popular") loadPopular();
-  else if (tab === "trends") loadTrends();
-  else if (tab === "settings") { loadKeywords(); loadSettings(); }
+function navigate(page) {
+  S.page = page;
+  if (page === "overview") loadOverview();
+  else if (page === "threads") { S.subTab = "queue"; loadQueue(S.queueFilter); loadGrowth(); }
+  else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); }
+  else if (page === "settings") { loadSettings(); loadKeywords(); }
   render();
 }
 
-function fmtDate(iso) {
-  if (!iso) return "";
-  return new Date(iso).toLocaleString("ko-KR", {month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false});
-}
-
-function esc(s) {
-  const d = document.createElement("div");
-  d.textContent = s;
-  return d.innerHTML;
+function switchSubTab(tab) {
+  if (tab === "queue") loadQueue(S.queueFilter);
+  else if (tab === "analytics") loadAnalytics();
+  else if (tab === "growth") loadGrowth();
+  else if (tab === "popular") loadPopular();
+  else if (tab === "settings") { loadSettings(); loadKeywords(); }
+  render();
 }
 
 // ── Init ──
-async function initApp() {
-  // Verify token by calling overview
-  const test = await API.get("/api/overview");
-  if (!test) return; // 401 triggers promptLogin via API handler
-  state.overview = test;
-  const cronData = await API.get("/api/cron-status");
-  if (cronData) state.cronJobs = cronData.jobs || [];
-  const alertData = await API.get("/api/alerts");
-  if (alertData) state.alerts = alertData.alerts || [];
-  state.lastUpdated = new Date();
-  loadQueue("all");
-  overviewInterval = setInterval(loadOverview, 60000);
-  render();
-}
-
 document.addEventListener("DOMContentLoaded", () => {
-  if (getAuthToken()) {
-    initApp();
-  } else {
-    promptLogin();
-  }
+  loadOverview();
+  render();
 });
