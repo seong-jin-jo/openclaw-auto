@@ -192,8 +192,12 @@ async function loadKeywords() {
 }
 
 async function loadTrends() {
-  const data = await API.get("/api/trend-report");
+  const [data, cronData] = await Promise.all([
+    API.get("/api/trend-report"),
+    API.get("/api/cron-status"),
+  ]);
   if (data) state.trendReport = data;
+  if (cronData) state.cronJobs = cronData.jobs || [];
   render();
 }
 
@@ -689,13 +693,38 @@ function renderPopular() {
 
 function renderTrends() {
   const r = state.trendReport;
-  if (!r || !r.generatedAt) return `<p class="text-gray-500 text-sm">No trend report yet. Run threads-rewrite-trending cron to generate.</p>`;
+  const keywords = r?.keywords || {};
+  const candidates = r?.rewriteCandidates || [];
 
-  const keywords = r.keywords || {};
-  const candidates = r.rewriteCandidates || [];
+  // Automation status from cron jobs
+  const automationJobs = ["threads-collect-insights", "threads-rewrite-trending", "threads-fetch-trending"];
+  const automationCrons = state.cronJobs.filter(j => automationJobs.includes(j.id));
 
   return `
-    <div class="mb-4 text-xs text-gray-500">Last updated: ${fmtDate(r.generatedAt)}</div>
+    <div class="bg-gray-900 rounded-lg p-4 mb-6">
+      <h3 class="text-sm font-medium text-gray-400 mb-3">Automation Status</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        ${automationCrons.map(j => {
+          const statusColor = j.lastStatus === "ok" ? "text-green-400" : j.lastStatus === "error" ? "text-red-400" : "text-gray-500";
+          const fmtTime = (ms) => ms ? fmtDate(new Date(ms).toISOString()) : "-";
+          return `<div class="bg-gray-800 rounded p-3">
+            <p class="text-sm text-gray-200 mb-1">${esc(j.name)}</p>
+            <p class="text-xs ${statusColor}">${j.lastStatus || 'idle'}</p>
+            <p class="text-xs text-gray-500 mt-1">마지막: ${fmtTime(j.lastRunAt)}</p>
+            <p class="text-xs text-gray-500">다음: ${fmtTime(j.nextRunAt)}</p>
+          </div>`;
+        }).join("")}
+        ${automationCrons.length === 0 ? `<p class="text-gray-500 text-sm">No automation crons found</p>` : ""}
+      </div>
+    </div>
+
+    ${r?.generatedAt ? `
+      <div class="mb-4 text-xs text-gray-500">Trend report: ${fmtDate(r.generatedAt)}</div>
+    ` : `
+      <div class="bg-gray-800 rounded-lg p-4 mb-6 text-sm text-gray-400">
+        Trend report not yet generated. <code>threads-rewrite-trending</code> cron will create it.
+      </div>
+    `}
 
     ${Object.keys(keywords).length ? `
       <div class="bg-gray-900 rounded-lg p-4 mb-6">
@@ -739,7 +768,7 @@ function renderTrends() {
       </div>
     ` : ""}
 
-    ${r.topPost ? `
+    ${r?.topPost ? `
       <div class="bg-gray-900 rounded-lg p-4">
         <h3 class="text-sm font-medium text-gray-400 mb-2">Top Post</h3>
         <p class="text-gray-200 text-sm whitespace-pre-wrap">${esc(r.topPost)}</p>
