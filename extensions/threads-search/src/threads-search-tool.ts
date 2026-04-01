@@ -173,6 +173,16 @@ export function createThreadsSearchTool(api: OpenClawPluginApi) {
       const seenIds = new Set<string>();
       const newPosts: PopularPost[] = [];
 
+      // Fetch own username to skip own posts
+      let ownUsername = "";
+      try {
+        const meResp = await fetch(`${THREADS_API_BASE}/${config.userId}?fields=username&access_token=${config.accessToken}`);
+        if (meResp.ok) {
+          const me = (await meResp.json()) as { username?: string };
+          ownUsername = me.username ?? "";
+        }
+      } catch { /* ignore */ }
+
       for (const keyword of keywords) {
         try {
           const encoded = encodeURIComponent(keyword);
@@ -187,6 +197,8 @@ export function createThreadsSearchTool(api: OpenClawPluginApi) {
             // Skip duplicates
             if (seenIds.has(item.id)) continue;
             seenIds.add(item.id);
+            // Skip own posts
+            if (item.username && item.username === ownUsername) continue;
             // Skip low engagement
             const likes = item.like_count ?? 0;
             if (likes < config.minLikes) continue;
