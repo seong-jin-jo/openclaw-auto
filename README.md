@@ -1,6 +1,14 @@
-# openclaw-auto — SNS 콘텐츠 자동화 시스템
+# openclaw-auto — 멀티채널 SNS 콘텐츠 자동화 시스템
 
-OpenClaw 기반 콘텐츠 자동 생성/검수/발행/분석 파이프라인. 현재 Threads 지원, 플랫폼 확장 가능.
+OpenClaw 기반 콘텐츠 자동 생성/검수/발행/분석 파이프라인. Threads + X (Twitter) 멀티채널 지원, 추가 플랫폼 확장 가능.
+
+## Changelog
+
+| 버전 | 날짜 | 변경 내용 |
+|------|------|----------|
+| v2.0 | 2026-04-01 | 멀티채널 지원 (X/Twitter), 대시보드 리디자인 (사이드바+통합현황), queue v2 스키마 |
+| v1.5 | 2026-03-31 | 이미지 파이프라인, analytics-history, trend report, bulk-delete |
+| v1.0 | 2026-03-30 | 초기 버전: Threads 6개 Tool + Cron 5개 + 대시보드 |
 
 ## 왜 OpenClaw인가 — n8n, 단순 LLM Agent와 비교
 
@@ -399,7 +407,8 @@ python3 dashboard/server.py    # http://localhost:3456
       "threads-style":   { "enabled": true, "config": { "stylePath": "/abs/path/data/style-data.json" } },
       "threads-insights": { "enabled": true, "config": { "accessToken": "...", "userId": "...", "queuePath": "...", "stylePath": "...", "popularPostsPath": "..." } },
       "threads-search":  { "enabled": true, "config": { "accessToken": "...", "userId": "...", "keywordsPath": "...", "popularPostsPath": "...", "archivePath": "..." } },
-      "threads-growth":  { "enabled": true, "config": { "accessToken": "...", "userId": "...", "growthPath": "..." } }
+      "threads-growth":  { "enabled": true, "config": { "accessToken": "...", "userId": "...", "growthPath": "..." } },
+      "x-publish":       { "enabled": false, "config": { "apiKey": "...", "apiKeySecret": "...", "accessToken": "...", "accessTokenSecret": "..." } }
     }
   }
 }
