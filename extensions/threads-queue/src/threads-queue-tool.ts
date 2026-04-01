@@ -18,6 +18,19 @@ type Engagement = {
   fedToStyle: boolean;
 };
 
+type ChannelStatus = {
+  status: "pending" | "published" | "failed" | "skipped";
+  mediaId?: string | null;
+  tweetId?: string | null;
+  publishedAt: string | null;
+  error: string | null;
+};
+
+type Channels = {
+  threads: ChannelStatus;
+  x: ChannelStatus;
+};
+
 type Post = {
   id: string;
   text: string;
@@ -35,6 +48,7 @@ type Post = {
   model: string | null;
   imageUrl: string | null;
   engagement: Engagement | null;
+  channels?: Channels;
 };
 
 type QueueData = {
@@ -71,12 +85,30 @@ function resolveQueuePath(api: OpenClawPluginApi): string {
   );
 }
 
+function migratePost(post: Post): Post {
+  if (!post.channels && post.status !== "draft") {
+    post.channels = {
+      threads: {
+        status: post.status === "published" ? "published" : post.status === "failed" ? "failed" : "pending",
+        mediaId: post.threadsMediaId ?? null,
+        publishedAt: post.publishedAt ?? null,
+        error: post.status === "failed" ? (post.error ?? null) : null,
+      },
+      x: { status: "pending", tweetId: null, publishedAt: null, error: null },
+    };
+  }
+  return post;
+}
+
 async function readQueue(queuePath: string): Promise<QueueData> {
   try {
     const raw = await fs.readFile(queuePath, "utf-8");
-    return JSON.parse(raw) as QueueData;
+    const data = JSON.parse(raw) as QueueData;
+    data.version = 2;
+    data.posts = data.posts.map(migratePost);
+    return data;
   } catch {
-    return { version: 1, posts: [] };
+    return { version: 2, posts: [] };
   }
 }
 
@@ -90,10 +122,10 @@ async function writeQueue(queuePath: string, data: QueueData): Promise<void> {
 const ThreadsQueueToolSchema = Type.Object(
   {
     action: optionalStringEnum(
-      ["list", "add", "update", "delete", "get_approved", "cleanup"] as const,
+      ["list", "add", "update", "delete", "get_approved", "cleanup", "update_channel"] as const,
       {
         description:
-          'Action to perform: "list" (all posts), "add" (new draft), "update" (modify post), "delete" (remove post), "get_approved" (get approved posts ready to publish), "cleanup" (remove old published/failed posts).',
+          'Action to perform: "list", "add", "update", "delete", "get_approved", "cleanup", "update_channel" (update per-channel publish status).',
       },
     ),
     id: Type.Optional(
@@ -129,6 +161,17 @@ const ThreadsQueueToolSchema = Type.Object(
     ),
     imageUrl: Type.Optional(
       Type.String({ description: "Public image URL to attach to the post (for add/update)." }),
+    ),
+    channel: optionalStringEnum(
+      ["threads", "x"] as const,
+      { description: 'Target channel for update_channel action: "threads" or "x".' },
+    ),
+    channelStatus: optionalStringEnum(
+      ["published", "failed", "skipped"] as const,
+      { description: 'Channel publish status for update_channel action.' },
+    ),
+    tweetId: Type.Optional(
+      Type.String({ description: "X tweet ID after publishing (for update_channel)." }),
     ),
     statusFilter: optionalStringEnum(
       ["draft", "approved", "published", "failed"] as const,
@@ -291,6 +334,54 @@ export function createThreadsQueueTool(api: OpenClawPluginApi) {
             total: ready.length,
             posts: ready,
           });
+        }
+
+        case "update_channel": {
+          const id = readStringParam(rawParams, "id", { required: true });
+          const channel = readStringParam(rawParams, "channel", { required: true }) as "threads" | "x";
+          const channelStatus = readStringParam(rawParams, "channelStatus", { required: true }) as ChannelStatus["status"];
+          const post = queue.posts.find((p) => p.id === id);
+          if (!post) throw new Error(`Post not found: ${id}`);
+
+          if (!post.channels) {
+            post.channels = {
+              threads: { status: "pending", mediaId: null, publishedAt: null, error: null },
+              x: { status: "pending", tweetId: null, publishedAt: null, error: null },
+            };
+          }
+
+          const now = new Date().toISOString();
+          const ch = post.channels[channel];
+          ch.status = channelStatus;
+          ch.error = null;
+
+          if (channelStatus === "published") {
+            ch.publishedAt = now;
+            if (channel === "threads") {
+              const mediaId = readStringParam(rawParams, "threadsMediaId");
+              if (mediaId) { ch.mediaId = mediaId; post.threadsMediaId = mediaId; }
+            } else if (channel === "x") {
+              const tweet = readStringParam(rawParams, "tweetId");
+              if (tweet) ch.tweetId = tweet;
+            }
+          } else if (channelStatus === "failed") {
+            const error = readStringParam(rawParams, "error");
+            ch.error = error ?? "Unknown error";
+          }
+
+          const allChannels = Object.values(post.channels);
+          const allDone = allChannels.every((c) => c.status === "published" || c.status === "skipped");
+          const anyFailed = allChannels.some((c) => c.status === "failed");
+          const anyPending = allChannels.some((c) => c.status === "pending");
+
+          if (allDone) { post.status = "published"; post.publishedAt = now; }
+          else if (anyFailed && !anyPending) {
+            post.status = "failed";
+            post.error = allChannels.filter((c) => c.status === "failed").map((c) => c.error).join("; ");
+          }
+
+          await writeQueue(queuePath, queue);
+          return jsonResult({ success: true, post });
         }
 
         case "cleanup": {
