@@ -26,12 +26,48 @@ function authHeaders() {
 }
 function promptLogin() {
   document.getElementById("app").innerHTML = `
-    <div class="flex items-center justify-center min-h-screen">
-      <div class="card p-8 w-80">
-        <h2 class="text-lg font-bold text-white mb-4">Dashboard Login</h2>
-        <input id="login-token" type="password" placeholder="Auth Token"
-          class="w-full bg-gray-800 text-gray-200 text-sm p-3 rounded border border-gray-700 mb-3">
-        <button id="login-btn" class="w-full py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">Login</button>
+    <div class="min-h-screen flex flex-col">
+      <!-- Landing Hero -->
+      <div class="flex-1 flex flex-col items-center justify-center px-8 text-center">
+        <div class="mb-8">
+          <h1 class="text-4xl font-bold text-white mb-3">Marketing Hub</h1>
+          <p class="text-lg text-gray-400 max-w-lg">AI가 콘텐츠를 자동 생성하고, 멀티채널로 발행하고, 반응을 분석하여 다음 콘텐츠에 반영합니다.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mb-12">
+          <div class="card p-6 text-left">
+            <div class="w-10 h-10 rounded-lg bg-purple-900/30 flex items-center justify-center mb-3"><span class="text-lg">🤖</span></div>
+            <h3 class="text-sm font-medium text-white mb-1">AI Content Generation</h3>
+            <p class="text-xs text-gray-500">Claude가 트렌드와 스타일을 분석하여 맞춤 콘텐츠를 자동 생성</p>
+          </div>
+          <div class="card p-6 text-left">
+            <div class="w-10 h-10 rounded-lg bg-blue-900/30 flex items-center justify-center mb-3"><span class="text-lg">📡</span></div>
+            <h3 class="text-sm font-medium text-white mb-1">Multi-Channel Publishing</h3>
+            <p class="text-xs text-gray-500">Threads, X, Blog 등 여러 채널에 최적화된 콘텐츠를 동시 발행</p>
+          </div>
+          <div class="card p-6 text-left">
+            <div class="w-10 h-10 rounded-lg bg-green-900/30 flex items-center justify-center mb-3"><span class="text-lg">📊</span></div>
+            <h3 class="text-sm font-medium text-white mb-1">Feedback Loop</h3>
+            <p class="text-xs text-gray-500">반응 데이터를 자동 수집하여 다음 콘텐츠 품질을 지속 개선</p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap justify-center gap-3 mb-12">
+          ${["Threads", "X", "Instagram", "Facebook", "LinkedIn", "TikTok", "YouTube", "Blog", "Kakao", "Telegram"].map(ch =>
+            `<span class="text-[11px] px-3 py-1 rounded-full bg-gray-800/50 text-gray-500 border border-gray-800">${ch}</span>`
+          ).join("")}
+          <span class="text-[11px] px-3 py-1 rounded-full text-gray-600">+more</span>
+        </div>
+
+        <!-- Login -->
+        <div class="card p-6 w-80">
+          <h2 class="text-sm font-medium text-white mb-3 text-center">Dashboard Login</h2>
+          <input id="login-token" type="password" placeholder="Auth Token"
+            class="w-full bg-gray-900 text-gray-200 text-sm p-3 rounded border border-gray-700 mb-3">
+          <button id="login-btn" class="w-full py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">Login</button>
+        </div>
+
+        <p class="text-[10px] text-gray-700 mt-8">Powered by <a href="https://openclaw.ai" target="_blank" class="text-gray-500 hover:text-gray-400">OpenClaw</a> + Claude</p>
       </div>
     </div>`;
   const sidebar = document.getElementById("sidebar");
@@ -70,8 +106,9 @@ const S = {
   overview: null, queue: [], growth: [], popular: [], analytics: null,
   keywords: [], settings: null, guide: "", cronJobs: [], activity: [],
   channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [],
-  tokenStatus: null,
+  tokenStatus: null, alerts: [],
   channelSettings: { features: [], settings: {} }, cronRuns: [],
+  sidebarCollapsed: { social: false, video: true, blog: false, messaging: true, data: true },
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null,
 };
@@ -88,13 +125,15 @@ function fmtAgo(iso) {
 
 // ── Data Loading ──
 async function loadOverview() {
-  const [data, cronData, activity, chCfg] = await Promise.all([
-    API.get("/api/overview"), API.get("/api/cron-status"), API.get("/api/activity"), API.get("/api/channel-config"),
+  const [data, cronData, activity, chCfg, tokenData, alertData] = await Promise.all([
+    API.get("/api/overview"), API.get("/api/cron-status"), API.get("/api/activity"), API.get("/api/channel-config"), API.get("/api/token-status"), API.get("/api/alerts"),
   ]);
   if (data) S.overview = data;
   if (cronData) S.cronJobs = cronData.jobs || [];
   if (activity) S.activity = activity.events || [];
   if (chCfg) S.channelConfig = chCfg;
+  if (tokenData) S.tokenStatus = tokenData;
+  if (alertData) S.alerts = alertData.alerts || [];
   render();
 }
 async function loadQueue(status) {
@@ -158,6 +197,35 @@ function render() {
   }
 }
 
+function sidebarGroup(key, title, items) {
+  const collapsed = S.sidebarCollapsed[key];
+  const activeCount = items.filter(i => i.nav && !i.soon).length;
+  const soonCount = items.filter(i => i.soon).length;
+  return `
+    <div class="mt-4">
+      <button data-sidebar-toggle="${key}" class="px-3 mb-1 w-full flex items-center justify-between cursor-pointer hover:opacity-80">
+        <span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">${title}</span>
+        <span class="flex items-center gap-1">
+          ${soonCount ? `<span class="text-[9px] text-gray-700">${activeCount}/${activeCount + soonCount}</span>` : ""}
+          <svg class="w-3 h-3 text-gray-700 transition-transform ${collapsed ? "" : "rotate-180"}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </span>
+      </button>
+      ${collapsed ? "" : items.map(i => {
+        if (i.nav && !i.soon) {
+          return `<button data-nav="${i.key}" class="sidebar-item ${S.page === i.key ? "active" : ""} w-full text-left px-4 py-1.5 text-sm text-gray-300 flex items-center gap-3">
+            <span class="w-4 h-4 rounded ${i.iconClass || "bg-gray-800 text-gray-400"} flex items-center justify-center text-[9px] font-bold">${i.icon}</span>
+            ${i.label}
+            ${i.status ? `<span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${i.statusClass || "bg-gray-800 text-gray-500"}">${i.status}</span>` : ""}
+          </button>`;
+        }
+        return `<div class="px-4 py-1 text-[12px] text-gray-700 flex items-center gap-3 opacity-40">
+          <span class="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[8px] font-bold text-gray-600">${i.icon}</span>
+          ${i.label} <span class="ml-auto text-[9px] text-gray-800">Soon</span>
+        </div>`;
+      }).join("")}
+    </div>`;
+}
+
 function renderSidebar() {
   const items = [
     { page: "overview", icon: `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>`, label: "Marketing Home" },
@@ -184,47 +252,41 @@ function renderSidebar() {
           </button>
         `).join("")}
 
-        <div class="px-3 mt-5 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Social</span></div>
-        <button data-nav="threads" class="sidebar-item ${S.page === "threads" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
-          <span class="w-4 h-4 rounded bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-[9px] font-bold text-white">T</span>
-          Threads
-          <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${S.channelConfig.threads?.connected ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}">${S.channelConfig.threads?.connected ? "Live" : "Off"}</span>
-        </button>
-        <button data-nav="x" class="sidebar-item ${S.page === "x" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
-          <span class="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[10px] font-bold text-white">X</span>
-          X (Twitter)
-          <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${S.channelConfig.x?.connected ? "bg-green-900/50 text-green-400" : "bg-yellow-900/50 text-yellow-400"}">${S.channelConfig.x?.connected ? "Live" : "Setup"}</span>
-        </button>
-        ${["Instagram", "Facebook", "LinkedIn", "Bluesky", "TikTok"].map(ch => `
-          <div class="px-4 py-1.5 text-sm text-gray-700 flex items-center gap-3 opacity-40">
-            <span class="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[8px] font-bold text-gray-600">${ch[0]}</span>
-            ${ch} <span class="ml-auto text-[9px] text-gray-800">Soon</span>
-          </div>`).join("")}
+        ${sidebarGroup("social", "Social", [
+          { key: "threads", label: "Threads", icon: "T", iconClass: "bg-gradient-to-br from-purple-500 to-pink-500 text-white", nav: true, status: S.channelConfig.threads?.connected ? "Live" : "Off", statusClass: S.channelConfig.threads?.connected ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500" },
+          { key: "x", label: "X (Twitter)", icon: "X", nav: true, status: S.channelConfig.x?.connected ? "Live" : "Setup", statusClass: S.channelConfig.x?.connected ? "bg-green-900/50 text-green-400" : "bg-yellow-900/50 text-yellow-400" },
+          { label: "Instagram", icon: "I", soon: true },
+          { label: "Facebook", icon: "F", soon: true },
+          { label: "LinkedIn", icon: "L", soon: true },
+          { label: "Bluesky", icon: "B", soon: true },
+          { label: "Pinterest", icon: "P", soon: true },
+          { label: "Tumblr", icon: "T", soon: true },
+        ])}
 
-        <div class="px-3 mt-4 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Blog & SEO</span></div>
-        <button data-nav="blog" class="sidebar-item ${S.page === "blog" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
-          <span class="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[9px] font-bold text-gray-400">B</span>
-          Blog
-        </button>
-        ${["Naver Blog", "Medium"].map(ch => `
-          <div class="px-4 py-1.5 text-sm text-gray-700 flex items-center gap-3 opacity-40">
-            <span class="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[8px] font-bold text-gray-600">${ch[0]}</span>
-            ${ch} <span class="ml-auto text-[9px] text-gray-800">Soon</span>
-          </div>`).join("")}
+        ${sidebarGroup("video", "Video", [
+          { label: "TikTok", icon: "T", soon: true },
+          { label: "YouTube", icon: "Y", soon: true },
+        ])}
 
-        <div class="px-3 mt-4 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Messaging</span></div>
-        ${["Kakao Channel", "Telegram", "LINE", "Discord", "WhatsApp"].map(ch => `
-          <div class="px-4 py-1.5 text-sm text-gray-700 flex items-center gap-3 opacity-40">
-            <span class="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[8px] font-bold text-gray-600">${ch[0]}</span>
-            ${ch} <span class="ml-auto text-[9px] text-gray-800">Soon</span>
-          </div>`).join("")}
+        ${sidebarGroup("blog", "Blog & SEO", [
+          { key: "blog", label: "Blog", icon: "B", nav: true },
+          { label: "Naver Blog", icon: "N", soon: true },
+          { label: "Medium", icon: "M", soon: true },
+        ])}
 
-        <div class="px-3 mt-4 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Local & Business</span></div>
-        ${["Google Business", "Pinterest", "YouTube", "Tumblr"].map(ch => `
-          <div class="px-4 py-1.5 text-sm text-gray-700 flex items-center gap-3 opacity-40">
-            <span class="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[8px] font-bold text-gray-600">${ch[0]}</span>
-            ${ch} <span class="ml-auto text-[9px] text-gray-800">Soon</span>
-          </div>`).join("")}
+        ${sidebarGroup("messaging", "Messaging", [
+          { label: "Kakao Channel", icon: "K", soon: true },
+          { label: "Telegram", icon: "T", soon: true },
+          { label: "LINE", icon: "L", soon: true },
+          { label: "Discord", icon: "D", soon: true },
+          { label: "WhatsApp", icon: "W", soon: true },
+        ])}
+
+        ${sidebarGroup("data", "Data & Analytics", [
+          { label: "Google Analytics", icon: "G", soon: true },
+          { label: "Search Console", icon: "S", soon: true },
+          { label: "Google Business", icon: "G", soon: true },
+        ])}
 
         <div class="px-3 mt-5 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Assets</span></div>
         <button data-nav="images" class="sidebar-item ${S.page === "images" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
@@ -340,6 +402,44 @@ function renderOverview() {
               </div>
             </div>`;
           }).join("") || `<p class="text-xs text-gray-600">No recent activity</p>`}
+        </div>
+      </div>
+    </div>
+
+    <!-- Alerts + Token Status -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      ${S.alerts?.length ? `
+        <div class="card p-5 ${S.alerts.some(a => a.severity === "error") ? "border-red-900/50" : "border-yellow-900/50"}">
+          <h3 class="text-xs font-medium text-red-400 uppercase tracking-wide mb-3">Alerts</h3>
+          <div class="space-y-2">
+            ${S.alerts.map(a => `
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] ${a.severity === "error" ? "text-red-400" : "text-yellow-400"}">${a.severity === "error" ? "●" : "▲"}</span>
+                <span class="text-xs text-gray-300">${esc(a.message)}</span>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      ` : ""}
+
+      <div class="card p-5 ${S.alerts?.length ? "" : "col-span-1"}">
+        <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">AI Engine</h3>
+        ${S.tokenStatus?.claude ? `
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span class="text-gray-500">Claude</span><span class="${S.tokenStatus.claude.healthy ? "text-green-400" : "text-red-400"}">${S.tokenStatus.claude.healthy ? "Healthy" : "Expiring"}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Token</span><span class="text-gray-300">${S.tokenStatus.claude.remainingHours}h remaining</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Errors</span><span class="text-gray-300">${S.tokenStatus.claude.errorCount}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Last used</span><span class="text-gray-300">${S.tokenStatus.claude.lastUsed ? fmtAgo(new Date(S.tokenStatus.claude.lastUsed).toISOString()) : "-"}</span></div>
+          </div>
+        ` : `<p class="text-xs text-gray-600">No data</p>`}
+      </div>
+
+      <div class="card p-5 ${S.alerts?.length ? "" : "col-span-1"}">
+        <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Channels Status</h3>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between"><span class="text-gray-500">Threads</span><span class="${S.tokenStatus?.threads?.connected ? "text-green-400" : "text-gray-600"}">${S.tokenStatus?.threads?.connected ? "Connected" : "Off"}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">X (Twitter)</span><span class="${S.tokenStatus?.x?.connected ? "text-green-400" : "text-yellow-400"}">${S.tokenStatus?.x?.connected ? "Connected" : "Setup"}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Blog</span><span class="text-gray-300">Active</span></div>
         </div>
       </div>
     </div>
@@ -729,6 +829,7 @@ function renderSettings() {
 // ── Event Binding ──
 function bindEvents() {
   document.querySelectorAll("[data-nav]").forEach(el => { el.onclick = () => navigate(el.dataset.nav); });
+  document.querySelectorAll("[data-sidebar-toggle]").forEach(el => { el.onclick = () => { S.sidebarCollapsed[el.dataset.sidebarToggle] = !S.sidebarCollapsed[el.dataset.sidebarToggle]; render(); }; });
   document.querySelectorAll("[data-subtab]").forEach(el => { el.onclick = () => { S.subTab = el.dataset.subtab; switchSubTab(el.dataset.subtab); }; });
   document.querySelectorAll("[data-filter]").forEach(el => { el.onclick = () => { S.queueFilter = el.dataset.filter; loadQueue(S.queueFilter); }; });
   document.querySelectorAll("[data-approve]").forEach(el => { el.onclick = () => approvePost(el.dataset.approve); });

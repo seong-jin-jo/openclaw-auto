@@ -16,6 +16,17 @@
     .channel-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
     .pulse-dot { width: 8px; height: 8px; border-radius: 50%; animation: pulse 2s infinite; }
     @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+    #sidebar aside { overflow-y: auto; scrollbar-width: thin; scrollbar-color: #333 transparent; }
+    #sidebar aside::-webkit-scrollbar { width: 4px; }
+    #sidebar aside::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+    #sidebar aside::-webkit-scrollbar-track { background: transparent; }
+    @media (max-width: 768px) {
+      body { flex-direction: column; }
+      #sidebar aside { width: 100% !important; height: auto !important; position: relative !important; border-right: none !important; border-bottom: 1px solid rgba(255,255,255,0.1); }
+      #sidebar aside nav { display: flex; flex-wrap: wrap; gap: 2px; padding: 8px; }
+      #sidebar aside nav > div { display: none; }
+      #sidebar aside nav > button { flex: none; }
+    }
   </style>
 </head>
 <body class="min-h-screen flex">
