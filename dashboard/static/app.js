@@ -69,9 +69,10 @@ const S = {
   page: "overview", subTab: "queue",
   overview: null, queue: [], growth: [], popular: [], analytics: null,
   keywords: [], settings: null, guide: "", cronJobs: [], activity: [],
-  channelConfig: { threads: {}, x: {} },
+  channelConfig: { threads: {}, x: {} }, images: [],
+  channelSettings: { features: [], settings: {} }, cronRuns: [],
   queueFilter: "all", loading: false,
-  editingPost: null, selectedIds: new Set(),
+  editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null,
 };
 
 function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
@@ -114,7 +115,8 @@ async function loadSettings() {
 
 // ── Actions ──
 async function approvePost(id, hours = 2) { const r = await API.post(`/api/queue/${id}/approve`, { hours }); if (r) { showToast("승인 완료", "success"); loadQueue(S.queueFilter); } }
-async function updatePost(id, text) { const r = await API.post(`/api/queue/${id}/update`, { text }); if (r) { showToast("수정 완료", "success"); S.editingPost = null; loadQueue(S.queueFilter); } }
+async function updatePost(id, payload) { const r = await API.post(`/api/queue/${id}/update`, payload); if (r) { showToast("수정 완료", "success"); S.editingPost = null; loadQueue(S.queueFilter); } }
+async function updatePostImage(id, imageUrl) { const r = await API.post(`/api/queue/${id}/update`, { imageUrl }); if (r) { showToast(imageUrl ? "이미지 첨부됨" : "이미지 제거됨", "success"); S.imagePickerPostId = null; loadQueue(S.queueFilter); } }
 async function deletePost(id) { if (!confirm("정말 삭제?")) return; const r = await API.post(`/api/queue/${id}/delete`); if (r) { showToast("삭제 완료", "success"); loadQueue(S.queueFilter); } }
 async function bulkApprove() {
   const ids = Array.from(S.selectedIds); if (!ids.length) return;
@@ -143,8 +145,15 @@ function render() {
   if (S.page === "overview") app.innerHTML = renderOverview();
   else if (S.page === "threads") app.innerHTML = renderChannel("threads");
   else if (S.page === "x") app.innerHTML = renderChannelX();
+  else if (S.page === "images") app.innerHTML = renderImages();
   else if (S.page === "settings") app.innerHTML = renderSettings();
   bindEvents();
+  const oldModal = document.getElementById("image-picker-overlay");
+  if (oldModal) oldModal.remove();
+  if (S.imagePickerPostId) {
+    app.insertAdjacentHTML("beforeend", renderImagePickerModal());
+    bindImagePickerEvents();
+  }
 }
 
 function renderSidebar() {
@@ -188,6 +197,13 @@ function renderSidebar() {
           <span class="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[9px] font-bold text-gray-500">IG</span>
           Instagram <span class="ml-auto text-[10px] text-gray-700">Soon</span>
         </div>
+
+        <div class="px-3 mt-5 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Assets</span></div>
+        <button data-nav="images" class="sidebar-item ${S.page === "images" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
+          <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          Images
+          <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-gray-800 text-gray-500">${S.images.length}</span>
+        </button>
 
         <div class="px-3 mt-5 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">System</span></div>
         <button data-nav="settings" class="sidebar-item ${S.page === "settings" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
@@ -358,9 +374,21 @@ function renderPost(p) {
           ${channelBadge("X", ch.x)}
         </div>
       </div>
+      ${p.imageUrl ? `
+        <div class="mb-2 relative group/img" style="max-width:480px">
+          <img src="${esc(p.imageUrl)}" alt="Post image" class="w-full rounded-lg border border-gray-800" style="display:block">
+          ${p.status === "draft" ? `<button data-remove-image="${p.id}" class="absolute top-2 right-2 p-1 bg-red-900/80 rounded text-red-300 hover:text-white opacity-0 group-hover/img:opacity-100 transition-opacity" title="이미지 제거">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>` : ""}
+        </div>
+      ` : ""}
       ${isEditing ? `
         <textarea id="edit-textarea" class="w-full bg-gray-800 text-gray-200 text-sm p-2 rounded border border-gray-700 mb-2" rows="4">${esc(p.text)}</textarea>
-        <div class="flex gap-2"><button data-save="${p.id}" class="px-2 py-1 text-xs bg-blue-600 text-white rounded">Save</button><button data-cancel-edit class="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded">Cancel</button></div>
+        <div class="flex gap-2">
+          <button data-save="${p.id}" class="px-2 py-1 text-xs bg-blue-600 text-white rounded">Save</button>
+          <button data-cancel-edit class="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded">Cancel</button>
+          <button data-pick-image="${p.id}" class="px-2 py-1 text-xs bg-purple-700 text-white rounded hover:bg-purple-600">${p.imageUrl ? "Change Image" : "Add Image"}</button>
+        </div>
       ` : `<p class="text-sm text-gray-200 mb-2 whitespace-pre-wrap">${esc(p.text)}</p>`}
       ${p.hashtags?.length ? `<div class="flex gap-1 mb-2">${p.hashtags.map(h => `<span class="text-xs text-blue-400">#${h}</span>`).join("")}</div>` : ""}
       ${p.engagement?.views != null ? `<div class="flex gap-4 text-xs text-gray-500"><span>views: ${p.engagement.views}</span><span>likes: ${p.engagement.likes || 0}</span><span>replies: ${p.engagement.replies || 0}</span></div>` : ""}
@@ -371,7 +399,7 @@ function renderPost(p) {
         ${p.publishedAt ? `<span class="text-green-400">발행: ${fmtDate(p.publishedAt)}</span>` : ""}
       </div>
       <div class="flex gap-2 mt-2">
-        ${p.status === "draft" ? `<button data-approve="${p.id}" class="px-2 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button><button data-edit="${p.id}" class="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button>` : ""}
+        ${p.status === "draft" ? `<button data-approve="${p.id}" class="px-2 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button><button data-edit="${p.id}" class="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button><button data-pick-image="${p.id}" class="px-2 py-1 text-xs bg-purple-900/50 text-purple-300 rounded hover:bg-purple-800">Image</button>` : ""}
         ${p.status !== "published" ? `<button data-delete="${p.id}" class="px-2 py-1 text-xs bg-red-900/50 text-red-300 rounded hover:bg-red-800">Delete</button>` : ""}
       </div>
     </div>`;
@@ -410,16 +438,78 @@ function renderPopular() {
 // ── Per-Channel Settings ──
 function renderChannelSettings(channel) {
   const s = S.settings || {};
+  const cs = (S.channelSettings.settings || {})[channel] || {};
+  const features = S.channelSettings.features || [];
   const row = (key, label, desc) => `
     <div class="flex items-center justify-between py-2 border-b border-gray-800/50 last:border-0">
       <div><p class="text-xs text-gray-300">${label}</p><p class="text-[10px] text-gray-600">${desc}</p></div>
       <input id="setting-${key}" type="number" value="${s[key] ?? ""}" min="0" class="w-20 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-gray-300 text-right">
     </div>`;
 
+  const featureToCron = {
+    content_generation: "threads-generate-drafts",
+    auto_publish: "threads-auto-publish",
+    insights_collection: "threads-collect-insights",
+    auto_like_replies: "threads-collect-insights",
+    low_engagement_cleanup: "threads-collect-insights",
+    trending_collection: "threads-fetch-trending",
+    follower_tracking: "threads-track-growth",
+    trending_rewrite: "threads-rewrite-trending",
+  };
+  function runsFor(featureKey) {
+    const cronName = featureToCron[featureKey];
+    if (!cronName) return [];
+    return S.cronRuns.filter(r => r.jobName === cronName);
+  }
+
   return `
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div class="card p-5">
-        <div class="flex items-center justify-between mb-4"><h3 class="text-sm font-medium text-gray-300">Automation</h3><button id="save-settings" class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button></div>
+        <h3 class="text-sm font-medium text-gray-300 mb-4">Automation</h3>
+        ${features.map(f => {
+          const runs = runsFor(f.key);
+          const run = runs[0] || null;
+          const sc = run ? (run.status === "ok" ? "text-green-400" : "text-red-400") : "";
+          const ago = run?.finishedAt ? fmtAgo(new Date(run.finishedAt).toISOString()) : "";
+          const expanded = S.expandedFeature === f.key;
+          return `
+          <div class="border-b border-gray-800/50 last:border-0">
+            <div class="flex items-center gap-3 py-2.5 cursor-pointer" data-expand-feature="${f.key}">
+              <label class="relative inline-flex items-center cursor-pointer shrink-0" onclick="event.stopPropagation()">
+                <input type="checkbox" data-feature-toggle="${f.key}" data-channel="${channel}" ${cs[f.key] ? "checked" : ""} class="sr-only peer">
+                <div class="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+              </label>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-gray-300">${f.label}</span>
+                  ${run ? `<span class="text-[10px] ${sc}">${run.status === "ok" ? "&#10003;" : "&#10007;"}</span><span class="text-[10px] text-gray-600">${ago}</span>` : ""}
+                  ${runs.length ? `<svg class="w-3 h-3 text-gray-600 ml-auto transition-transform ${expanded ? "rotate-180" : ""}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>` : ""}
+                </div>
+                <p class="text-[10px] text-gray-600">${f.description}</p>
+              </div>
+            </div>
+            ${expanded && runs.length ? `
+              <div class="ml-12 mb-3 space-y-1.5">
+                ${runs.slice(0, 10).map(r => `
+                  <div class="flex items-start gap-2 py-1">
+                    <span class="text-[10px] mt-0.5 ${r.status === "ok" ? "text-green-400" : "text-red-400"}">${r.status === "ok" ? "&#10003;" : "&#10007;"}</span>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-gray-500">${r.finishedAt ? new Date(r.finishedAt).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }) : ""}</span>
+                        <span class="text-[10px] text-gray-700">${r.model || ""}</span>
+                        <span class="text-[10px] text-gray-700 ml-auto">${Math.round(r.durationMs / 1000)}s</span>
+                      </div>
+                      <p class="text-[10px] text-gray-500 break-words">${esc(r.summary)}</p>
+                    </div>
+                  </div>
+                `).join("")}
+              </div>
+            ` : ""}
+          </div>`;
+        }).join("")}
+      </div>
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-4"><h3 class="text-sm font-medium text-gray-300">Parameters</h3><button id="save-settings" class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button></div>
         ${row("viralThreshold", "Viral Threshold", "터진 글 기준 views")}
         ${row("draftsPerBatch", "Drafts per Batch", "배치당 생성 개수")}
         ${row("publishIntervalHours", "Publish Interval", "발행 간격 (시간)")}
@@ -530,9 +620,11 @@ function bindEvents() {
   document.querySelectorAll("[data-filter]").forEach(el => { el.onclick = () => { S.queueFilter = el.dataset.filter; loadQueue(S.queueFilter); }; });
   document.querySelectorAll("[data-approve]").forEach(el => { el.onclick = () => approvePost(el.dataset.approve); });
   document.querySelectorAll("[data-edit]").forEach(el => { el.onclick = () => { S.editingPost = el.dataset.edit; render(); }; });
-  document.querySelectorAll("[data-save]").forEach(el => { el.onclick = () => { const ta = document.getElementById("edit-textarea"); if (ta) updatePost(el.dataset.save, ta.value); }; });
+  document.querySelectorAll("[data-save]").forEach(el => { el.onclick = () => { const ta = document.getElementById("edit-textarea"); if (ta) updatePost(el.dataset.save, { text: ta.value }); }; });
   document.querySelectorAll("[data-cancel-edit]").forEach(el => { el.onclick = () => { S.editingPost = null; render(); }; });
   document.querySelectorAll("[data-delete]").forEach(el => { el.onclick = () => deletePost(el.dataset.delete); });
+  document.querySelectorAll("[data-pick-image]").forEach(el => { el.onclick = (e) => { e.stopPropagation(); S.imagePickerPostId = el.dataset.pickImage; render(); }; });
+  document.querySelectorAll("[data-remove-image]").forEach(el => { el.onclick = () => updatePostImage(el.dataset.removeImage, null); });
   document.querySelectorAll("[data-select]").forEach(el => { el.onchange = () => { if (el.checked) S.selectedIds.add(el.dataset.select); else S.selectedIds.delete(el.dataset.select); render(); }; });
 
   const selectAllBtn = document.getElementById("select-all");
@@ -562,6 +654,18 @@ function bindEvents() {
     if (ta) { const kw = ta.value.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("#")); const r = await API.post("/api/keywords", { keywords: kw }); if (r) showToast("키워드 저장됨", "success"); }
   };
 
+  document.querySelectorAll("[data-expand-feature]").forEach(el => {
+    el.onclick = () => { S.expandedFeature = S.expandedFeature === el.dataset.expandFeature ? null : el.dataset.expandFeature; render(); };
+  });
+  document.querySelectorAll("[data-feature-toggle]").forEach(el => {
+    el.onchange = async () => {
+      const key = el.dataset.featureToggle;
+      const channel = el.dataset.channel;
+      const r = await API.post(`/api/channel-settings/${channel}`, { [key]: el.checked });
+      if (r) showToast(`${key} ${el.checked ? "ON" : "OFF"}`, "success");
+    };
+  });
+
   const saveX = document.getElementById("save-x-config");
   if (saveX) saveX.onclick = async () => {
     const data = {};
@@ -574,24 +678,145 @@ function bindEvents() {
 function navigate(page) {
   S.page = page;
   if (page === "overview") loadOverview();
-  else if (page === "threads") { S.subTab = "queue"; loadQueue(S.queueFilter); loadGrowth(); }
+  else if (page === "threads") { S.subTab = "queue"; loadQueue(S.queueFilter); loadGrowth(); loadImages(); }
   else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); }
+  else if (page === "images") loadImages();
   else if (page === "settings") { loadSettings(); loadKeywords(); }
   render();
 }
 
 function switchSubTab(tab) {
-  if (tab === "queue") loadQueue(S.queueFilter);
+  if (tab === "queue") { loadQueue(S.queueFilter); loadImages(); }
   else if (tab === "analytics") loadAnalytics();
   else if (tab === "growth") loadGrowth();
   else if (tab === "popular") loadPopular();
-  else if (tab === "settings") { loadSettings(); loadKeywords(); }
+  else if (tab === "settings") { loadSettings(); loadKeywords(); loadChannelSettings(); loadCronRuns(); }
   render();
+}
+
+// ── Channel Settings & Cron Runs ──
+async function loadChannelSettings() {
+  const data = await API.get("/api/channel-settings");
+  if (data) { S.channelSettings = data; render(); }
+}
+async function loadCronRuns() {
+  const data = await API.get("/api/cron-runs");
+  if (data) { S.cronRuns = data.runs || []; render(); }
+}
+
+// ── Image Picker Modal ──
+function renderImagePickerModal() {
+  if (!S.imagePickerPostId) return "";
+  const post = S.queue.find(p => p.id === S.imagePickerPostId);
+  return `
+    <div id="image-picker-overlay" class="fixed inset-0 z-40 bg-black/70 flex items-center justify-center" style="backdrop-filter:blur(4px)">
+      <div class="card p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto mx-4">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-white">Select Image</h3>
+          <button id="close-image-picker" class="text-gray-400 hover:text-white text-xl">&times;</button>
+        </div>
+        ${post?.imageUrl ? `<button data-select-image="__remove__" class="w-full mb-4 p-3 rounded-lg border border-red-800/50 bg-red-900/20 text-red-300 text-sm hover:bg-red-900/40">Remove current image</button>` : ""}
+        ${S.images.length === 0 ? `<p class="text-gray-500 text-sm text-center py-8">No images available. Generate images first.</p>` : `
+          <div class="grid grid-cols-3 gap-3">
+            ${S.images.map(img => `
+              <div data-select-image="${esc(img.url)}" class="cursor-pointer rounded-lg border overflow-hidden transition-colors ${post?.imageUrl === img.url ? "border-blue-500 ring-2 ring-blue-500/30" : "border-gray-800 hover:border-blue-500"}">
+                <div class="aspect-square bg-gray-900"><img src="${esc(img.url)}" class="w-full h-full object-cover" loading="lazy"></div>
+                <div class="p-2"><p class="text-[10px] text-gray-400 truncate">${esc(img.filename)}</p></div>
+              </div>
+            `).join("")}
+          </div>
+        `}
+      </div>
+    </div>`;
+}
+
+function bindImagePickerEvents() {
+  const close = document.getElementById("close-image-picker");
+  if (close) close.onclick = () => { S.imagePickerPostId = null; render(); };
+  const overlay = document.getElementById("image-picker-overlay");
+  if (overlay) overlay.onclick = (e) => { if (e.target === overlay) { S.imagePickerPostId = null; render(); } };
+  document.querySelectorAll("[data-select-image]").forEach(el => {
+    el.onclick = (e) => {
+      e.stopPropagation();
+      const url = el.dataset.selectImage;
+      updatePostImage(S.imagePickerPostId, url === "__remove__" ? null : url);
+    };
+  });
+}
+
+// ── Images ──
+async function loadImages() {
+  const data = await API.get("/api/images");
+  if (data) S.images = data;
+}
+
+function fmtBytes(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+function renderImages() {
+  return `<div class="p-6 max-w-6xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-bold text-white">Images</h2>
+        <p class="text-sm text-gray-500 mt-1">${S.images.length}개 이미지 — AI 생성 이미지 갤러리</p>
+      </div>
+    </div>
+    ${S.images.length === 0 ? `
+      <div class="card p-12 text-center">
+        <svg class="w-12 h-12 text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <p class="text-gray-500">아직 생성된 이미지가 없습니다</p>
+        <p class="text-xs text-gray-600 mt-1">image_generate tool로 이미지를 생성하면 여기에 표시됩니다</p>
+      </div>
+    ` : `
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        ${S.images.map(img => `
+          <div class="card overflow-hidden group relative">
+            <div class="aspect-square bg-gray-900 flex items-center justify-center">
+              <img src="${esc(img.url)}" alt="${esc(img.filename)}" class="w-full h-full object-cover" loading="lazy">
+            </div>
+            <div class="p-3">
+              <p class="text-xs text-gray-300 truncate" title="${esc(img.filename)}">${esc(img.filename)}</p>
+              <div class="flex items-center justify-between mt-1">
+                <span class="text-[10px] text-gray-500">${fmtBytes(img.size)}</span>
+                <span class="text-[10px] text-gray-500">${fmtTime(img.createdAt)}</span>
+              </div>
+            </div>
+            <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+              <button onclick="copyImageUrl('${esc(img.url)}')" class="p-1.5 bg-gray-900/80 rounded text-gray-300 hover:text-white" title="URL 복사">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              </button>
+              <button onclick="deleteImage('${esc(img.filename)}')" class="p-1.5 bg-gray-900/80 rounded text-red-400 hover:text-red-300" title="삭제">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    `}
+  </div>`;
+}
+
+function copyImageUrl(url) {
+  const full = window.location.origin + url;
+  navigator.clipboard.writeText(full).then(() => showToast("URL 복사됨", "success"));
+}
+
+async function deleteImage(filename) {
+  if (!confirm("이미지를 삭제하시겠습니까?")) return;
+  try {
+    const res = await fetch("/api/images/" + encodeURIComponent(filename), { method: "DELETE", headers: authHeaders() });
+    if (res.ok) { showToast("삭제됨", "success"); await loadImages(); render(); }
+    else showToast("삭제 실패", "error");
+  } catch (e) { showToast("삭제 실패: " + e.message, "error"); }
 }
 
 // ── Init ──
 document.addEventListener("DOMContentLoaded", () => {
   if (!getAuthToken()) { promptLogin(); return; }
   loadOverview();
+  loadImages();
   render();
 });

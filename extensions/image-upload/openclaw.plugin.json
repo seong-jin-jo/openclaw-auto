@@ -1,0 +1,31 @@
+{
+  "id": "image-upload",
+  "name": "Image Upload",
+  "description": "Upload local images to Cloudflare R2 and return public URLs for Threads/X publishing.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "r2AccessKeyId": {
+        "type": ["string", "object"],
+        "description": "Cloudflare R2 access key ID."
+      },
+      "r2SecretAccessKey": {
+        "type": ["string", "object"],
+        "description": "Cloudflare R2 secret access key."
+      },
+      "r2Bucket": {
+        "type": "string",
+        "description": "R2 bucket name."
+      },
+      "r2PublicUrl": {
+        "type": "string",
+        "description": "R2 public URL base (e.g. https://your-bucket.r2.dev)."
+      },
+      "r2Endpoint": {
+        "type": "string",
+        "description": "R2 S3-compatible endpoint URL."
+      }
+    }
+  }
+}
