@@ -5,7 +5,8 @@ services:
       dockerfile: Dockerfile
       network: host
       args:
-        OPENCLAW_EXTENSIONS: "threads-publish threads-queue threads-style threads-insights threads-search threads-growth dedu-blog blog-queue seo-keywords"
+        OPENCLAW_EXTENSIONS: "threads-publish threads-queue threads-style threads-insights threads-search threads-growth dedu-blog blog-queue seo-keywords image-generation-core"
+        OPENCLAW_INSTALL_BROWSER: "1"
     volumes:
       - ./config:/home/node/.openclaw       # openclaw.json + cron/jobs.json
       - ./data:/home/node/data              # 데이터 파일
@@ -30,7 +31,7 @@ services:
       context: ./dashboard
       network: host
     ports:
-      - "34661:34661"
+      - "34560:34560"
     volumes:
       - ./data:/app/data
       - ./config:/app/config:ro
@@ -40,6 +41,6 @@ services:
     environment:
       DATA_DIR: /app/data
       CONFIG_DIR: /app/config
-      DASHBOARD_PORT: "34661"
+      DASHBOARD_PORT: "34560"
       DASHBOARD_AUTH_TOKEN: ${DASHBOARD_AUTH_TOKEN:-}
     restart: unless-stopped

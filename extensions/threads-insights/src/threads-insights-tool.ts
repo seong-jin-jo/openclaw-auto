@@ -136,24 +136,124 @@ function extractMetricValue(data: { data?: Array<{ name: string; values?: Array<
 
 const ThreadsInsightsToolSchema = Type.Object(
   {
-    action: optionalStringEnum(["collect"] as const, {
-      description: 'Action: "collect" — collect engagement metrics for published posts, detect viral posts, and auto-feed patterns.',
+    action: optionalStringEnum(["collect", "auto_like_replies", "cleanup_low_engagement"] as const, {
+      description: 'Action: "collect" — collect engagement metrics, detect viral, auto-feed. "auto_like_replies" — like all replies on published posts. "cleanup_low_engagement" — delete posts with low engagement after 3 days.',
     }),
+    minViews: Type.Optional(
+      Type.Number({ description: "Min views threshold for cleanup (default: 100)." }),
+    ),
+    minLikes: Type.Optional(
+      Type.Number({ description: "Min likes threshold for cleanup (default: 3)." }),
+    ),
   },
   { additionalProperties: false },
 );
+
+type ResolvedConfig = ReturnType<typeof resolveConfig>;
+
+async function autoLikeReplies(config: ResolvedConfig) {
+  const queue = await readJson<QueueData>(config.queuePath, { version: 1, posts: [] });
+  const published = queue.posts.filter((p) => p.status === "published" && p.threadsMediaId);
+
+  let liked = 0;
+  let errors = 0;
+
+  for (const post of published) {
+    try {
+      // Get replies
+      const repliesUrl = `${THREADS_API_BASE}/${post.threadsMediaId}/replies?fields=id&access_token=${config.accessToken}`;
+      const repliesResp = await fetch(repliesUrl);
+      if (!repliesResp.ok) continue;
+      const repliesData = await repliesResp.json() as { data?: Array<{ id: string }> };
+      const replies = repliesData.data ?? [];
+
+      for (const reply of replies) {
+        try {
+          const likeUrl = `${THREADS_API_BASE}/${reply.id}/likes`;
+          const likeResp = await fetch(likeUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ access_token: config.accessToken }),
+          });
+          if (likeResp.ok) liked++;
+        } catch {
+          errors++;
+        }
+      }
+    } catch {
+      errors++;
+    }
+  }
+
+  return jsonResult({ message: `Liked ${liked} replies (${errors} errors)`, liked, errors });
+}
+
+async function cleanupLowEngagement(config: ResolvedConfig, minViews: number, minLikes: number) {
+  const queue = await readJson<QueueData>(config.queuePath, { version: 1, posts: [] });
+  const now = new Date();
+  const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+
+  const toDelete = queue.posts.filter((p) => {
+    if (p.status !== "published" || !p.threadsMediaId || !p.publishedAt) return false;
+    const age = now.getTime() - new Date(p.publishedAt).getTime();
+    if (age < THREE_DAYS_MS) return false;
+    if (!p.engagement) return false;
+    return p.engagement.views < minViews && p.engagement.likes < minLikes;
+  });
+
+  let deleted = 0;
+  let errors = 0;
+
+  for (const post of toDelete) {
+    try {
+      const deleteUrl = `${THREADS_API_BASE}/${post.threadsMediaId}?access_token=${config.accessToken}`;
+      const resp = await fetch(deleteUrl, { method: "DELETE" });
+      if (resp.ok) {
+        post.status = "failed";
+        post.error = `Auto-deleted: low engagement (views=${post.engagement!.views}, likes=${post.engagement!.likes})`;
+        deleted++;
+      } else {
+        errors++;
+      }
+    } catch {
+      errors++;
+    }
+  }
+
+  if (deleted > 0) {
+    await writeJson(config.queuePath, queue);
+  }
+
+  return jsonResult({
+    message: `Deleted ${deleted} low-engagement posts (${errors} errors)`,
+    deleted,
+    errors,
+    candidates: toDelete.length,
+  });
+}
 
 export function createThreadsInsightsTool(api: OpenClawPluginApi) {
   return {
     name: "threads_insights",
     label: "Threads Insights",
     description:
-      "Collect engagement metrics (views/likes/replies/reposts/quotes) for published Threads posts. Detects viral posts and auto-feeds patterns to popular-posts.txt and style-data.json.",
+      "Collect engagement metrics, auto-like replies, and cleanup low-engagement posts. Actions: collect, auto_like_replies, cleanup_low_engagement.",
     parameters: ThreadsInsightsToolSchema,
     async execute(_toolCallId: string, rawParams: Record<string, unknown>) {
       const action = readStringParam(rawParams, "action") ?? "collect";
+
+      if (action === "auto_like_replies") {
+        return await autoLikeReplies(resolveConfig(api));
+      }
+
+      if (action === "cleanup_low_engagement") {
+        const minViews = typeof rawParams.minViews === "number" ? rawParams.minViews : 100;
+        const minLikes = typeof rawParams.minLikes === "number" ? rawParams.minLikes : 3;
+        return await cleanupLowEngagement(resolveConfig(api), minViews, minLikes);
+      }
+
       if (action !== "collect") {
-        throw new Error(`Unknown action: ${action}. Use "collect".`);
+        throw new Error(`Unknown action: ${action}. Use "collect", "auto_like_replies", or "cleanup_low_engagement".`);
       }
 
       const config = resolveConfig(api);

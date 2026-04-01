@@ -159,6 +159,15 @@ def index():
     return send_from_directory("static", "index.html")
 
 
+# ── 이미지 서빙 ──
+IMAGES_DIR = os.path.join(DATA_DIR, "images")
+
+
+@app.route("/images/<path:filename>")
+def serve_image(filename):
+    return send_from_directory(IMAGES_DIR, filename)
+
+
 # ── API: Queue ──
 @app.route("/api/queue")
 def api_queue():
@@ -258,13 +267,14 @@ def api_bulk_approve():
         return jsonify({"error": "ids must be an array"}), 400
 
     now = datetime.now(timezone.utc)
+    interval_hours = data.get("intervalHours", 2)
     approved = 0
 
     for i, post in enumerate(queue.get("posts", [])):
         if post["id"] in ids and post["status"] == "draft":
             post["status"] = "approved"
             post["approvedAt"] = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-            scheduled = now
+            scheduled = now + timedelta(hours=interval_hours * approved)
             post["scheduledAt"] = scheduled.strftime("%Y-%m-%dT%H:%M:%S.000Z")
             approved += 1
 
@@ -294,6 +304,16 @@ def api_bulk_delete():
     return jsonify({"ok": True, "deleted": deleted})
 
 
+# ── API: Trend Report ──
+@app.route("/api/trend-report")
+def api_trend_report():
+    report_path = os.path.join(DATA_DIR, "trend-report.json")
+    report = read_json(report_path)
+    if report is None:
+        return jsonify({"generatedAt": None, "keywords": {}, "rewriteCandidates": []})
+    return jsonify(report)
+
+
 # ── API: Blog Queue ──
 @app.route("/api/blog-queue")
 def api_blog_queue():
@@ -313,7 +333,6 @@ def api_blog_approve(post_id):
     queue = read_json(BLOG_QUEUE_PATH)
     if queue is None:
         return jsonify({"error": "blog-queue.json not found"}), 404
-    data = get_json_body()
     for post in queue.get("posts", []):
         if post["id"] == post_id:
             post["status"] = "approved"
@@ -394,8 +413,27 @@ def api_analytics():
     posts = queue.get("posts", [])
     published = [p for p in posts if p.get("status") == "published"]
 
-    # 포스트별 engagement
+    # Merge archived posts from analytics-history.json
+    history_path = os.path.join(DATA_DIR, "analytics-history.json")
+    history = read_json(history_path)
+    archived = history.get("posts", []) if history else []
+
+    # 포스트별 engagement (current + archived)
     post_stats = []
+    for p in archived:
+        eng = p.get("engagement") or {}
+        post_stats.append({
+            "id": p["id"],
+            "text": p.get("text", "")[:80],
+            "topic": p.get("topic", ""),
+            "publishedAt": p.get("publishedAt"),
+            "views": eng.get("views", 0),
+            "likes": eng.get("likes", 0),
+            "replies": eng.get("replies", 0),
+            "reposts": eng.get("reposts", 0),
+            "quotes": eng.get("quotes", 0),
+            "archived": True,
+        })
     for p in published:
         eng = p.get("engagement") or {}
         post_stats.append({
@@ -499,6 +537,15 @@ def api_overview():
         src = pp.get("source", "unknown")
         source_counts[src] = source_counts.get(src, 0) + 1
 
+    # 채널별 발행 카운트
+    channel_counts = {"threads": 0, "x": 0}
+    for p in posts:
+        ch = p.get("channels") or {}
+        if ch.get("threads", {}).get("status") == "published":
+            channel_counts["threads"] += 1
+        if ch.get("x", {}).get("status") == "published":
+            channel_counts["x"] += 1
+
     return jsonify({
         "statusCounts": status_counts,
         "followers": followers,
@@ -506,6 +553,7 @@ def api_overview():
         "viralPosts": viral_posts,
         "popularPostsCount": len(popular),
         "popularSourceCounts": source_counts,
+        "channelCounts": channel_counts,
     })
 
 
@@ -541,9 +589,11 @@ def api_cron_status():
     name_map = {
         "threads-generate-drafts": "콘텐츠 생성",
         "threads-auto-publish": "자동 발행",
-        "threads-collect-insights": "반응 수집",
+        "multi-channel-publish": "멀티채널 발행",
+        "threads-collect-insights": "반응 수집 + 좋아요 + 저조삭제",
         "threads-track-growth": "팔로워 추적",
         "threads-fetch-trending": "인기글 수집",
+        "threads-rewrite-trending": "트렌드 재가공",
     }
     jobs = []
     for job in cron_data.get("jobs", []):
@@ -616,7 +666,66 @@ def api_alerts():
     return jsonify({"alerts": alerts})
 
 
+# ── API: Activity Timeline ──
+@app.route("/api/activity")
+def api_activity():
+    queue = read_json(QUEUE_PATH) or {"posts": []}
+    posts = queue.get("posts", [])
+    events = []
+    settings = read_settings()
+    for p in posts:
+        ch = p.get("channels") or {}
+        if p.get("publishedAt"):
+            channels_published = []
+            if ch.get("threads", {}).get("status") == "published":
+                channels_published.append("Threads")
+            if ch.get("x", {}).get("status") == "published":
+                channels_published.append("X")
+            events.append({"type": "publish", "text": p["text"][:60], "channel": " + ".join(channels_published) or "Threads", "at": p["publishedAt"]})
+        if p.get("status") == "draft" and p.get("generatedAt"):
+            events.append({"type": "draft", "text": p["text"][:60], "at": p["generatedAt"]})
+        eng = p.get("engagement") or {}
+        if eng.get("views", 0) >= settings["viralThreshold"]:
+            events.append({"type": "viral", "text": p["text"][:60], "views": eng["views"], "at": eng.get("collectedAt") or p.get("publishedAt", "")})
+    events.sort(key=lambda e: e.get("at", ""), reverse=True)
+    return jsonify({"events": events[:20]})
+
+
+# ── API: Channel Config ──
+@app.route("/api/channel-config")
+def api_channel_config():
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path) or {}
+    plugins = config.get("plugins", {}).get("entries", {})
+    channels = {}
+    tp = plugins.get("threads-publish", {})
+    channels["threads"] = {"enabled": tp.get("enabled", False), "userId": tp.get("config", {}).get("userId", ""), "connected": bool(tp.get("config", {}).get("accessToken", ""))}
+    xp = plugins.get("x-publish", {})
+    channels["x"] = {"enabled": xp.get("enabled", False), "connected": bool(xp.get("config", {}).get("apiKey", ""))}
+    return jsonify(channels)
+
+
+@app.route("/api/channel-config/x", methods=["POST"])
+def api_channel_config_x():
+    data = get_json_body()
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path)
+    if config is None:
+        return jsonify({"error": "openclaw.json not found"}), 404
+    plugins = config.setdefault("plugins", {}).setdefault("entries", {})
+    xp = plugins.setdefault("x-publish", {"enabled": False, "config": {}})
+    for key in ("apiKey", "apiKeySecret", "accessToken", "accessTokenSecret"):
+        if key in data and isinstance(data[key], str) and data[key].strip():
+            xp["config"][key] = data[key].strip()
+    creds = xp.get("config", {})
+    if all(creds.get(k) for k in ("apiKey", "apiKeySecret", "accessToken", "accessTokenSecret")):
+        xp["enabled"] = True
+    write_json(config_path, config)
+    logger.info("X channel config updated")
+    return jsonify({"ok": True, "enabled": xp["enabled"]})
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("DASHBOARD_PORT", "3000"))
-    logger.info("Threads Dashboard running on http://localhost:%d", port)
+    logger.info("Marketing Hub running on http://localhost:%d", port)
     app.run(host="0.0.0.0", port=port, debug=True)

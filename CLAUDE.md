@@ -1,8 +1,8 @@
-# openclaw-auto — SNS 콘텐츠 자동화 시스템
+# openclaw-auto — 멀티채널 SNS 콘텐츠 자동화 시스템
 
 ## 프로젝트 개요
 
-OpenClaw 기반 SNS 콘텐츠 자동 생성/검수/발행/분석 시스템.
+OpenClaw 기반 멀티채널(Threads + X) 콘텐츠 자동 생성/검수/발행/분석 시스템.
 모든 자동화가 OpenClaw Cron → Claude Agent → Tool 파이프라인으로 동작.
 서비스별 전략/톤/타겟은 `data/prompt-guide.txt`와 대시보드 Settings에서 커스터마이징.
 
@@ -10,7 +10,8 @@ OpenClaw 기반 SNS 콘텐츠 자동 생성/검수/발행/분석 시스템.
 
 ```
 OpenClaw Cron → Claude Agent → threads_queue Tool   (생성)
-OpenClaw Cron → Claude Agent → threads_publish Tool  (발행)
+OpenClaw Cron → Claude Agent → threads_publish Tool  (Threads 발행)
+OpenClaw Cron → Claude Agent → x_publish Tool        (X 발행)
 OpenClaw Cron → Claude Agent → threads_insights Tool (반응 수집)
 OpenClaw Cron → Claude Agent → threads_search Tool   (인기글 수집)
 OpenClaw Cron → Claude Agent → threads_growth Tool   (팔로워 추적)
@@ -19,7 +20,8 @@ OpenClaw Cron → Claude Agent → threads_growth Tool   (팔로워 추적)
 ```
 extensions/
   threads-publish/   → Threads API 2단계 발행 (TEXT/IMAGE)
-  threads-queue/     → queue.json CRUD
+  x-publish/         → X (Twitter) API v2 발행 (OAuth 1.0a)
+  threads-queue/     → queue.json CRUD (멀티채널 channels 지원)
   threads-style/     → style-data.json RAG 학습
   threads-insights/  → 반응 수집 + 터진 글 감지 + 자동 피드
   threads-search/    → 키워드 기반 외부 인기글 수집
@@ -50,8 +52,17 @@ dashboard/
 
 ## 환경 변수
 
+### Threads
 - `THREADS_ACCESS_TOKEN`: Threads API access token
 - `THREADS_USER_ID`: Threads user ID
+
+### X (Twitter)
+- `X_API_KEY`: X API Key (Consumer Key)
+- `X_API_KEY_SECRET`: X API Key Secret
+- `X_ACCESS_TOKEN`: X Access Token
+- `X_ACCESS_TOKEN_SECRET`: X Access Token Secret
+
+### 공통
 - `OPENCLAW_GATEWAY_TOKEN`: Gateway 인증 토큰
 - `DASHBOARD_PORT`: 대시보드 포트 (기본: 3456)
 - `VIRAL_THRESHOLD`: 터진 글 기준 views (기본: 500)
@@ -61,7 +72,8 @@ dashboard/
 | Tool | 설명 |
 |------|------|
 | `threads_publish` | Threads API 발행 (TEXT/IMAGE, container → publish) |
-| `threads_queue` | 콘텐츠 큐 CRUD (list/add/update/delete/get_approved/cleanup) |
+| `x_publish` | X (Twitter) API v2 발행 (OAuth 1.0a, 280자 제한) |
+| `threads_queue` | 콘텐츠 큐 CRUD (list/add/update/delete/get_approved/cleanup/update_channel) |
 | `threads_style` | 스타일 학습 데이터 RAG (read/add/summary) |
 | `threads_insights` | 반응 수집 + 터진 글 감지 + 자동 피드 (collect) |
 | `threads_search` | 키워드 기반 외부 인기글 수집 (fetch) |

@@ -1,0 +1,12 @@
+{
+  "name": "@openclaw/x-publish",
+  "version": "2026.4.1",
+  "private": true,
+  "description": "OpenClaw X (Twitter) API v2 publish plugin",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
