@@ -207,6 +207,49 @@ def api_delete_image(filename):
     return jsonify({"success": True})
 
 
+@app.route("/api/generate-image", methods=["POST"])
+def api_generate_image():
+    import subprocess
+    data = get_json_body()
+    prompt = data.get("prompt", "").strip()
+    if not prompt or len(prompt) > 500:
+        return jsonify({"error": "prompt required (max 500 chars)"}), 400
+    safe_prompt = prompt.replace("'", "\\'").replace('"', '\\"')
+    msg = f'image_generate tool로 "{safe_prompt}" 이미지를 생성하라. 생성된 이미지를 /home/node/data/images/ 폴더에 저장하라.'
+    try:
+        result = subprocess.run(
+            ["docker", "exec", "marketing-ai-openclaw-gateway-1",
+             "node", "dist/index.js", "agent", "--agent", "main", "--message", msg],
+            capture_output=True, text=True, timeout=120,
+        )
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "Image generation timed out"}), 504
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    # Find newly created images
+    os.makedirs(IMAGES_DIR, exist_ok=True)
+    images = []
+    for f in sorted(os.listdir(IMAGES_DIR), key=lambda x: os.path.getmtime(os.path.join(IMAGES_DIR, x)), reverse=True):
+        if os.path.splitext(f)[1].lower() in (".jpg", ".jpeg", ".png", ".webp"):
+            images.append({"filename": f, "url": f"/images/{f}"})
+            break
+    if not images:
+        # Check config/media for gateway-generated images and copy latest
+        media_dir = CONFIG_DIR / "media" / "tool-image-generation"
+        if media_dir.is_dir():
+            media_files = sorted(media_dir.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True)
+            for mf in media_files:
+                if mf.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp"):
+                    import shutil
+                    dest = os.path.join(IMAGES_DIR, mf.name)
+                    shutil.copy2(mf, dest)
+                    images.append({"filename": mf.name, "url": f"/images/{mf.name}"})
+                    break
+    if not images:
+        return jsonify({"error": "Image generation failed", "output": result.stdout[-500:]}), 500
+    return jsonify({"success": True, "image": images[0]})
+
+
 # ── API: Queue ──
 @app.route("/api/queue")
 def api_queue():
@@ -608,6 +651,33 @@ def api_cron_status():
             "everyMs": job.get("schedule", {}).get("everyMs"),
         })
     return jsonify({"jobs": jobs})
+
+
+@app.route("/api/cron/<job_name>/interval", methods=["POST"])
+def api_cron_interval(job_name):
+    import subprocess
+    cron_data = read_json(CRON_JOBS_PATH)
+    if cron_data is None:
+        return jsonify({"error": "cron jobs not found"}), 404
+    job = next((j for j in cron_data.get("jobs", []) if j["name"] == job_name), None)
+    if not job:
+        return jsonify({"error": "job not found"}), 404
+    data = get_json_body()
+    hours = data.get("hours")
+    if not isinstance(hours, (int, float)) or hours < 1 or hours > 168:
+        return jsonify({"error": "hours must be between 1 and 168"}), 400
+    try:
+        result = subprocess.run(
+            ["node", "dist/index.js", "cron", "edit", job["id"], "--every", f"{int(hours)}h"],
+            capture_output=True, text=True, timeout=15,
+            cwd="/app" if os.path.isdir("/app/dist") else os.path.join(os.path.dirname(__file__), "..", "openclaw"),
+        )
+        if result.returncode != 0:
+            return jsonify({"error": result.stderr.strip() or "cron edit failed"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    logger.info("Cron interval updated: %s → %dh", job_name, hours)
+    return jsonify({"ok": True, "hours": hours})
 
 
 # ── API: Prompt Guide ──

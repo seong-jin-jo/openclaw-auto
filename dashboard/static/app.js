@@ -461,6 +461,14 @@ function renderChannelSettings(channel) {
     if (!cronName) return [];
     return S.cronRuns.filter(r => r.jobName === cronName);
   }
+  function cronInterval(featureKey) {
+    const cronName = featureToCron[featureKey];
+    if (!cronName) return null;
+    const job = S.cronJobs.find(j => j.id === cronName);
+    return job?.everyMs ? Math.round(job.everyMs / 3600000) : null;
+  }
+  // features that share a cron — only first one shows interval editor
+  const shownCronEditors = new Set();
 
   return `
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -472,6 +480,10 @@ function renderChannelSettings(channel) {
           const sc = run ? (run.status === "ok" ? "text-green-400" : "text-red-400") : "";
           const ago = run?.finishedAt ? fmtAgo(new Date(run.finishedAt).toISOString()) : "";
           const expanded = S.expandedFeature === f.key;
+          const hours = cronInterval(f.key);
+          const cronName = featureToCron[f.key];
+          const showInterval = cronName && !shownCronEditors.has(cronName);
+          if (cronName) shownCronEditors.add(cronName);
           return `
           <div class="border-b border-gray-800/50 last:border-0">
             <div class="flex items-center gap-3 py-2.5 cursor-pointer" onclick="toggleFeatureDetail('${f.key}')">
@@ -482,14 +494,23 @@ function renderChannelSettings(channel) {
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
                   <span class="text-xs text-gray-300">${f.label}</span>
+                  ${hours ? `<span class="text-[10px] text-gray-600">${hours}h</span>` : ""}
                   ${run ? `<span class="text-[10px] ${sc}">${run.status === "ok" ? "&#10003;" : "&#10007;"}</span><span class="text-[10px] text-gray-600">${ago}</span>` : ""}
-                  ${runs.length ? `<svg class="w-3 h-3 text-gray-600 ml-auto transition-transform ${expanded ? "rotate-180" : ""}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>` : ""}
+                  ${runs.length || hours ? `<svg class="w-3 h-3 text-gray-600 ml-auto transition-transform ${expanded ? "rotate-180" : ""}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>` : ""}
                 </div>
                 <p class="text-[10px] text-gray-600">${f.description}</p>
               </div>
             </div>
-            ${expanded && runs.length ? `
+            ${expanded ? `
               <div class="ml-12 mb-3 space-y-1.5">
+                ${showInterval && hours ? `
+                  <div class="flex items-center gap-2 py-1.5 px-2 bg-gray-900/50 rounded mb-2" onclick="event.stopPropagation()">
+                    <span class="text-[10px] text-gray-400">Interval</span>
+                    <select data-cron-interval="${cronName}" class="bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-[10px] text-gray-300">
+                      ${[1,2,3,4,6,8,12,24,48,168].map(h => `<option value="${h}" ${h === hours ? "selected" : ""}>${h < 24 ? h + "h" : h === 24 ? "1d" : h === 48 ? "2d" : "7d"}</option>`).join("")}
+                    </select>
+                  </div>
+                ` : ""}
                 ${runs.slice(0, 10).map(r => `
                   <div class="flex items-start gap-2 py-1">
                     <span class="text-[10px] mt-0.5 ${r.status === "ok" ? "text-green-400" : "text-red-400"}">${r.status === "ok" ? "&#10003;" : "&#10007;"}</span>
@@ -662,6 +683,17 @@ function bindEvents() {
       if (r) showToast(`${key} ${el.checked ? "ON" : "OFF"}`, "success");
     };
   });
+  document.querySelectorAll("[data-cron-interval]").forEach(el => {
+    el.onchange = async () => {
+      const jobName = el.dataset.cronInterval;
+      const hours = parseInt(el.value, 10);
+      if (!confirm(`주기를 ${hours < 24 ? hours + "시간" : hours === 24 ? "1일" : hours === 48 ? "2일" : "7일"}으로 변경하시겠습니까?`)) { el.value = el.dataset.prevValue || el.value; return; }
+      const r = await API.post(`/api/cron/${jobName}/interval`, { hours });
+      if (r) { showToast(`주기 변경: ${hours}h`, "success"); loadOverview(); }
+      else el.value = el.dataset.prevValue || el.value;
+    };
+    el.dataset.prevValue = el.value;
+  });
 
   const saveX = document.getElementById("save-x-config");
   if (saveX) saveX.onclick = async () => {
@@ -713,8 +745,19 @@ function renderImagePickerModal() {
           <h3 class="text-lg font-semibold text-white">Select Image</h3>
           <button id="close-image-picker" class="text-gray-400 hover:text-white text-xl">&times;</button>
         </div>
+        <div class="mb-4 p-3 rounded-lg border border-gray-800 bg-gray-900/50">
+          <div class="flex items-center gap-2 mb-2">
+            <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <span class="text-xs text-gray-300">Generate New</span>
+          </div>
+          <div class="flex gap-2">
+            <input id="image-gen-prompt" type="text" placeholder="이미지 설명 (예: AI와 협업하는 개발자 일러스트)" class="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
+            <button id="image-gen-btn" class="px-3 py-1.5 text-xs bg-purple-600 text-white rounded hover:bg-purple-500 shrink-0">Generate</button>
+          </div>
+          <div id="image-gen-status" class="hidden mt-2 text-[10px] text-gray-500"></div>
+        </div>
         ${post?.imageUrl ? `<button data-select-image="__remove__" class="w-full mb-4 p-3 rounded-lg border border-red-800/50 bg-red-900/20 text-red-300 text-sm hover:bg-red-900/40">Remove current image</button>` : ""}
-        ${S.images.length === 0 ? `<p class="text-gray-500 text-sm text-center py-8">No images available. Generate images first.</p>` : `
+        ${S.images.length === 0 ? `<p class="text-gray-500 text-sm text-center py-8">No images available. Generate one above or upload images to data/images/</p>` : `
           <div class="grid grid-cols-3 gap-3">
             ${S.images.map(img => `
               <div data-select-image="${esc(img.url)}" class="cursor-pointer rounded-lg border overflow-hidden transition-colors ${post?.imageUrl === img.url ? "border-blue-500 ring-2 ring-blue-500/30" : "border-gray-800 hover:border-blue-500"}">
@@ -740,6 +783,37 @@ function bindImagePickerEvents() {
       updatePostImage(S.imagePickerPostId, url === "__remove__" ? null : url);
     };
   });
+  const genBtn = document.getElementById("image-gen-btn");
+  const genInput = document.getElementById("image-gen-prompt");
+  const genStatus = document.getElementById("image-gen-status");
+  if (genBtn && genInput) {
+    const doGenerate = async () => {
+      const prompt = genInput.value.trim();
+      if (!prompt) { genInput.focus(); return; }
+      genBtn.disabled = true;
+      genBtn.textContent = "Generating...";
+      if (genStatus) { genStatus.classList.remove("hidden"); genStatus.textContent = "AI 이미지 생성 중... (최대 2분 소요)"; }
+      try {
+        const res = await fetch("/api/generate-image", { method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify({ prompt }) });
+        const data = await res.json();
+        if (data.success && data.image) {
+          showToast("이미지 생성 완료", "success");
+          await loadImages();
+          updatePostImage(S.imagePickerPostId, data.image.url);
+        } else {
+          showToast(data.error || "이미지 생성 실패", "error");
+          genBtn.disabled = false; genBtn.textContent = "Generate";
+          if (genStatus) genStatus.textContent = data.error || "실패";
+        }
+      } catch (e) {
+        showToast("이미지 생성 실패: " + e.message, "error");
+        genBtn.disabled = false; genBtn.textContent = "Generate";
+        if (genStatus) genStatus.textContent = e.message;
+      }
+    };
+    genBtn.onclick = doGenerate;
+    genInput.onkeydown = (e) => { if (e.key === "Enter") doGenerate(); };
+  }
 }
 
 // ── Images ──
