@@ -39,7 +39,7 @@ const S = {
   page: "overview", subTab: "queue",
   overview: null, queue: [], growth: [], popular: [], analytics: null,
   keywords: [], settings: null, guide: "", cronJobs: [], activity: [],
-  channelConfig: { threads: {}, x: {} }, tokenStatus: null, editingXCreds: false,
+  channelConfig: { threads: {}, x: {} }, tokenStatus: null, editingXCreds: false, showXGuide: false, showThreadsGuide: false,
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(),
 };
@@ -366,19 +366,36 @@ function renderChannelSettings(channel) {
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <!-- Threads Connection -->
       <div class="card p-5">
-        <h3 class="text-sm font-medium text-gray-300 mb-1">Threads API Connection</h3>
-        <p class="text-[10px] text-gray-600 mb-4">developers.facebook.com > Threads API</p>
-        <div class="space-y-2.5 text-sm">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h3 class="text-sm font-medium text-gray-300">Threads API</h3>
+            <p class="text-[10px] text-gray-600">developers.facebook.com > Threads API</p>
+          </div>
+          <button id="toggle-threads-guide" class="text-[10px] text-blue-400 hover:text-blue-300">${S.showThreadsGuide ? "Hide Guide" : "Setup Guide"}</button>
+        </div>
+        <div class="space-y-2 text-sm">
           <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="${S.channelConfig.threads?.connected ? "text-green-400" : "text-yellow-400"}">${S.channelConfig.threads?.connected ? "Connected" : "Not connected"}</span></div>
           <div class="flex justify-between"><span class="text-gray-500">Username</span><span class="text-gray-300">${S.channelConfig.threads?.username ? "@" + S.channelConfig.threads.username : "-"}</span></div>
           <div class="flex justify-between"><span class="text-gray-500">User ID</span><span class="text-gray-300">${S.channelConfig.threads?.userId || "-"}</span></div>
-          <div class="flex justify-between"><span class="text-gray-500">Auth Method</span><span class="text-gray-300">Long-lived Access Token</span></div>
-          <div class="flex justify-between"><span class="text-gray-500">Character Limit</span><span class="text-gray-300">500</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Auth</span><span class="text-gray-300">Long-lived Access Token</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Char Limit</span><span class="text-gray-300">500</span></div>
         </div>
-        <div class="mt-3 p-3 rounded bg-gray-900/50">
-          <p class="text-[10px] text-gray-500 mb-1">Threads API \ud1a0\ud070 \uad00\ub9ac:</p>
-          <p class="text-[10px] text-gray-400">.env \ud30c\uc77c\uc758 THREADS_ACCESS_TOKEN, THREADS_USER_ID \ub610\ub294 config/openclaw.json\uc758 threads-publish.config\uc5d0\uc11c \uc124\uc815</p>
-        </div>
+        ${S.showThreadsGuide ? `
+          <div class="mt-3 p-3 rounded bg-gray-900/50">
+            <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Setup Guide</p>
+            <ol class="text-[10px] text-gray-400 space-y-1 list-decimal list-inside">
+              <li><a href="https://developers.facebook.com" target="_blank" class="text-blue-400 hover:underline">developers.facebook.com</a> > 앱 만들기 > Use cases > Threads API 추가</li>
+              <li>Threads API > Settings > Access Token 생성 (long-lived)</li>
+              <li>Threads 프로필에서 User ID 확인</li>
+              <li>.env 파일에 설정:
+                <div class="mt-1 p-2 bg-gray-800 rounded font-mono text-[10px] text-gray-300">THREADS_ACCESS_TOKEN=your_token<br>THREADS_USER_ID=your_user_id</div>
+              </li>
+              <li>또는 config/openclaw.json > plugins > threads-publish > config에 직접 입력</li>
+              <li>Gateway 재시작으로 적용</li>
+            </ol>
+            <p class="text-[10px] text-gray-500 mt-2">Access Token은 60일 유효, 만료 전 갱신 필요</p>
+          </div>
+        ` : ""}
       </div>
 
       <div class="card p-5">
@@ -477,16 +494,39 @@ function renderXSettings() {
           ${connected ? `<button id="cancel-x-edit" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>` : ""}
         </div>
       </div>
-      ${!connected ? `<div class="card p-5">
-        <h3 class="text-sm font-medium text-gray-300 mb-3">Setup Guide</h3>
-        <ol class="text-xs text-gray-400 space-y-1.5 list-decimal list-inside">
-          <li>developer.x.com \uc5d0\uc11c \uc571 \uc0dd\uc131</li>
-          <li>User Authentication Settings > Read and Write \uad8c\ud55c \uc124\uc815</li>
-          <li>Consumer Keys \uc7ac\uc0dd\uc131 \u2192 Key + Secret \ubcf5\uc0ac</li>
-          <li>Access Token \uc0dd\uc131 (Read+Write) \u2192 Token + Secret \ubcf5\uc0ac</li>
-          <li>\uc67c\ucabd \ud3fc\uc5d0 4\uac1c \ud0a4 \uc785\ub825 \ud6c4 Connect</li>
-        </ol>
-      </div>` : ""}
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-medium text-gray-300">${connected ? "X Channel Info" : "Setup Guide"}</h3>
+          ${connected ? `<button id="toggle-x-guide" class="text-[10px] text-blue-400 hover:text-blue-300">${S.showXGuide ? "Hide Guide" : "Setup Guide"}</button>` : ""}
+        </div>
+        ${connected ? `
+          <div class="space-y-2 text-sm mb-3">
+            <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="text-green-400">Connected</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Char Limit</span><span class="text-gray-300">280</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Auth</span><span class="text-gray-300">OAuth 1.0a (User Context)</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Permission</span><span class="text-gray-300">Read and Write</span></div>
+          </div>
+        ` : ""}
+        ${!connected || S.showXGuide ? `
+          <div class="${connected ? "mt-2" : ""} p-3 rounded bg-gray-900/50">
+            <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">X API Setup Guide</p>
+            <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
+              <li><a href="https://developer.x.com" target="_blank" class="text-blue-400 hover:underline">developer.x.com</a> > Dashboard > Create App</li>
+              <li>App Settings > <strong class="text-gray-300">User authentication settings</strong> > Edit
+                <div class="ml-4 mt-0.5 text-gray-500">- App permissions: <strong class="text-gray-300">Read and write</strong><br>- Type of App: Web App<br>- Website URL: https://example.com<br>- Callback URL: https://example.com/callback</div>
+              </li>
+              <li>Keys and tokens > <strong class="text-gray-300">Consumer Keys</strong> > Regenerate
+                <div class="ml-4 mt-0.5 text-gray-500">- API Key + API Key Secret 복사 (한 번만 보임)</div>
+              </li>
+              <li>Keys and tokens > <strong class="text-gray-300">Access Token and Secret</strong> > Generate
+                <div class="ml-4 mt-0.5 text-gray-500">- Read+Write 권한 확인 후 생성<br>- Access Token + Secret 복사 (한 번만 보임)</div>
+              </li>
+              <li>왼쪽 폼에 4개 키 입력 > Connect</li>
+            </ol>
+            <p class="text-[10px] text-yellow-500/70 mt-2">* 권한 변경 후 반드시 Access Token을 재생성해야 합니다</p>
+          </div>
+        ` : ""}
+      </div>
     </div>`;
 }
 
@@ -600,6 +640,11 @@ function bindEvents() {
     const ta = document.getElementById("keywords-textarea");
     if (ta) { const kw = ta.value.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("#")); const r = await API.post("/api/keywords", { keywords: kw }); if (r) showToast("키워드 저장됨", "success"); }
   };
+
+  const toggleXGuide = document.getElementById("toggle-x-guide");
+  if (toggleXGuide) toggleXGuide.onclick = () => { S.showXGuide = !S.showXGuide; render(); };
+  const toggleThreadsGuide = document.getElementById("toggle-threads-guide");
+  if (toggleThreadsGuide) toggleThreadsGuide.onclick = () => { S.showThreadsGuide = !S.showThreadsGuide; render(); };
 
   const editX = document.getElementById("edit-x-creds");
   if (editX) editX.onclick = () => { S.editingXCreds = true; render(); };
