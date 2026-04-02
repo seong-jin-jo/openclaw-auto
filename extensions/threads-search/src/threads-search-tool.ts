@@ -109,6 +109,113 @@ function formatPopularPost(post: PopularPost): string {
   return s;
 }
 
+async function scrapeThreadsSearch(config: ReturnType<typeof resolveConfig>) {
+  const { chromium } = await import("playwright-core");
+
+  const keywordsRaw = await readTextFile(config.keywordsPath);
+  const keywords = keywordsRaw.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#"));
+  if (!keywords.length) {
+    return jsonResult({ message: "No keywords found", newPosts: 0 });
+  }
+
+  const existingContent = await readTextFile(config.popularPostsPath);
+  const existingPosts = parsePopularPosts(existingContent);
+  const headerLines: string[] = [];
+  for (const line of existingContent.split("\n")) {
+    if (line.startsWith("#")) headerLines.push(line);
+    else break;
+  }
+  const header = headerLines.length > 0 ? headerLines.join("\n") + "\n" : "";
+
+  const chromePath = "/home/node/.cache/ms-playwright/chromium-1208/chrome-linux64/chrome";
+  let browser;
+  try {
+    browser = await chromium.launch({ headless: true, executablePath: chromePath, args: ["--no-sandbox"] });
+  } catch {
+    return jsonResult({ message: "Browser launch failed. Chromium not available.", newPosts: 0 });
+  }
+
+  const newPosts: PopularPost[] = [];
+  const seenTexts = new Set(existingPosts.map((p) => p.text.substring(0, 80)));
+  // Fetch own username to skip own posts
+  let ownUsername = "";
+  try {
+    const meResp = await fetch(`https://graph.threads.net/v1.0/${config.userId}?fields=username&access_token=${config.accessToken}`);
+    if (meResp.ok) { const me = (await meResp.json()) as { username?: string }; ownUsername = me.username ?? ""; }
+  } catch { /* ignore */ }
+
+  const maxKeywords = Math.min(keywords.length, 5); // Limit to avoid too many browser sessions
+  for (let ki = 0; ki < maxKeywords; ki++) {
+    const keyword = keywords[ki];
+    try {
+      const page = await browser.newPage();
+      const encoded = encodeURIComponent(keyword);
+      await page.goto(`https://www.threads.net/search?q=${encoded}&serp_type=default`, { waitUntil: "domcontentloaded", timeout: 20000 });
+      await page.waitForTimeout(6000);
+
+      const posts = await page.evaluate(() => {
+        const results: Array<{ username: string; url: string; text: string }> = [];
+        const links = document.querySelectorAll('a[href*="/post/"]');
+        const seen = new Set<string>();
+        for (const link of links) {
+          const href = link.getAttribute("href");
+          if (!href || seen.has(href) || href.includes("/media")) continue;
+          seen.add(href);
+          const match = href.match(/@([^/]+)\/post\/([^/?]+)/);
+          if (!match) continue;
+          const container = link.closest("[data-pressable-container]") || link.parentElement?.parentElement?.parentElement;
+          if (!container) continue;
+          const spans = container.querySelectorAll("span");
+          let text = "";
+          for (const span of spans) {
+            const t = span.textContent?.trim();
+            if (t && t.length > 20 && t.length < 600 && !t.includes("Translate") && !t.includes("Log in")) { text = t; break; }
+          }
+          if (text) results.push({ username: match[1], url: "https://www.threads.net" + href, text: text.substring(0, 500) });
+        }
+        return results;
+      });
+
+      for (const post of posts) {
+        if (post.username === ownUsername) continue;
+        if (koreanRatio(post.text) < 0.15) continue;
+        const prefix = post.text.substring(0, 80);
+        if (seenTexts.has(prefix)) continue;
+        seenTexts.add(prefix);
+        newPosts.push({
+          topic: keyword,
+          engagement: "trending",
+          likes: 0,
+          source: "external",
+          collected: new Date().toISOString().split("T")[0],
+          text: post.text.replace(/\n/g, " "),
+          url: post.url,
+          username: post.username,
+        });
+      }
+      await page.close();
+    } catch {
+      // Skip failed keyword
+    }
+  }
+
+  await browser.close();
+
+  if (newPosts.length > 0) {
+    const allPosts = [...existingPosts, ...newPosts];
+    const trimmed = allPosts.slice(0, config.maxPopularPosts);
+    const content = header + trimmed.map(formatPopularPost).join("");
+    await fs.writeFile(config.popularPostsPath, content, "utf-8");
+  }
+
+  return jsonResult({
+    message: `Browser scrape: ${maxKeywords} keywords → ${newPosts.length} new external posts collected`,
+    newPosts: newPosts.length,
+    keywords: maxKeywords,
+    total: existingPosts.length + newPosts.length,
+  });
+}
+
 function koreanRatio(text: string): number {
   const stripped = text.replace(/\s/g, "");
   if (stripped.length === 0) return 0;
@@ -131,8 +238,8 @@ async function writeTextFile(filePath: string, content: string): Promise<void> {
 
 const ThreadsSearchToolSchema = Type.Object(
   {
-    action: optionalStringEnum(["fetch"] as const, {
-      description: 'Action: "fetch" — search trending posts by keywords and update popular-posts.txt.',
+    action: optionalStringEnum(["fetch", "scrape"] as const, {
+      description: 'Action: "fetch" — search via API (own posts only). "scrape" — browser-based search for external trending posts by keywords.',
     }),
   },
   { additionalProperties: false },
@@ -146,9 +253,14 @@ export function createThreadsSearchTool(api: OpenClawPluginApi) {
       "Search trending posts on Threads using keywords from search-keywords.txt. Filters by likes, Korean ratio, and recency. Updates popular-posts.txt.",
     parameters: ThreadsSearchToolSchema,
     async execute(_toolCallId: string, rawParams: Record<string, unknown>) {
-      const action = readStringParam(rawParams, "action") ?? "fetch";
+      const action = readStringParam(rawParams, "action") ?? "scrape";
+
+      if (action === "scrape") {
+        return await scrapeThreadsSearch(resolveConfig(api));
+      }
+
       if (action !== "fetch") {
-        throw new Error(`Unknown action: ${action}. Use "fetch".`);
+        throw new Error(`Unknown action: ${action}. Use "scrape" or "fetch".`);
       }
 
       const config = resolveConfig(api);
