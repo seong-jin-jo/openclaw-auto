@@ -1,0 +1,31 @@
+{
+  "id": "tumblr-publish",
+  "name": "Tumblr Publish",
+  "description": "Publish posts to Tumblr via API v2 (OAuth 1.0a)",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "consumerKey": {
+        "type": "string",
+        "description": "Tumblr OAuth consumer key"
+      },
+      "consumerSecret": {
+        "type": "string",
+        "description": "Consumer secret"
+      },
+      "accessToken": {
+        "type": "string",
+        "description": "Access token"
+      },
+      "accessTokenSecret": {
+        "type": "string",
+        "description": "Access token secret"
+      },
+      "blogName": {
+        "type": "string",
+        "description": "Blog name (e.g. myblog.tumblr.com)"
+      }
+    }
+  }
+}

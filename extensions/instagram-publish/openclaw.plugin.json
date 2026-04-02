@@ -1,0 +1,19 @@
+{
+  "id": "instagram-publish",
+  "name": "Instagram Publish",
+  "description": "Publish posts to Instagram via Meta Graph API (Business account required)",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "accessToken": {
+        "type": "string",
+        "description": "Instagram Graph API access token (via Facebook)"
+      },
+      "userId": {
+        "type": "string",
+        "description": "Instagram Business account user ID"
+      }
+    }
+  }
+}
