@@ -453,6 +453,34 @@ def api_keywords_update():
     return jsonify({"ok": True, "count": len(keywords)})
 
 
+@app.route("/api/popular/add", methods=["POST"])
+def api_popular_add():
+    data = get_json_body()
+    text = data.get("text", "").strip()
+    if not text:
+        return jsonify({"error": "text required"}), 400
+    url = data.get("url", "").strip()
+    topic = data.get("topic", "general").strip()
+    # Extract username from URL if provided
+    username = ""
+    if url and "threads.net/@" in url:
+        try:
+            username = url.split("threads.net/@")[1].split("/")[0]
+        except Exception:
+            pass
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    entry = f"\n---\ntopic: {topic}\nengagement: unknown\nlikes: 0\nsource: external\ncollected: {today}"
+    if username:
+        entry += f"\nusername: {username}"
+    if url:
+        entry += f"\nurl: {url}"
+    entry += f"\ntext: {text.replace(chr(10), ' ')}\n"
+    with open(POPULAR_PATH, "a", encoding="utf-8") as f:
+        f.write(entry)
+    logger.info("Popular post added: %s", text[:50])
+    return jsonify({"ok": True})
+
+
 # ── API: Analytics ──
 def _hourly_performance(post_stats):
     """시간대별 평균 engagement 계산"""
