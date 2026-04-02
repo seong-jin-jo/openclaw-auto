@@ -463,25 +463,28 @@ function renderPopular() {
         <button id="ext-post-add" class="px-3 py-1.5 text-xs bg-purple-600 text-white rounded hover:bg-purple-500 shrink-0">Add</button>
       </div>
     </div>
-    <div class="space-y-2">${S.popular.map((p, i) => `
-    <div class="card overflow-hidden">
-      <div class="flex items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-gray-800/30" onclick="togglePopularDetail(${i})">
+    <div class="space-y-2">${S.popular.map((p, i) => {
+      const open = S.expandedPopular === i;
+      return `
+    <div class="card overflow-hidden cursor-pointer hover:bg-gray-800/20 transition-colors" onclick="togglePopularDetail(${i})">
+      <div class="flex items-center gap-2 px-4 pt-3 pb-1">
         <span class="text-xs px-2 py-0.5 rounded ${sourceColors[p.source] || "bg-gray-700 text-gray-300"}">${p.source || "?"}</span>
         ${p.topic ? `<span class="text-[10px] text-gray-500">${esc(p.topic)}</span>` : ""}
         ${p.likes && p.likes !== "0" ? `<span class="text-[10px] text-yellow-500">${p.likes} likes</span>` : ""}
         ${p.username ? `<span class="text-[10px] text-gray-600">@${esc(p.username)}</span>` : ""}
         <span class="text-[10px] text-gray-700 ml-auto">${p.collected || ""}</span>
-        <svg class="w-3 h-3 text-gray-600 transition-transform ${S.expandedPopular === i ? "rotate-180" : ""}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        <svg class="w-3 h-3 text-gray-600 transition-transform ${open ? "rotate-180" : ""}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
       </div>
-      <p class="text-xs text-gray-300 px-4 pb-2 ${S.expandedPopular === i ? "" : "truncate"}">${esc(p.text || "")}</p>
-      ${S.expandedPopular === i ? `
-        <div class="px-4 pb-3 flex items-center gap-3">
+      <p class="text-xs text-gray-300 px-4 pb-3 ${open ? "whitespace-pre-wrap" : "truncate"}">${esc(p.text || "")}</p>
+      ${open ? `
+        <div class="px-4 pb-3 flex items-center gap-3 border-t border-gray-800/50 pt-2">
           ${p.engagement ? `<span class="text-[10px] text-gray-500">${esc(p.engagement)}</span>` : ""}
-          ${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener" class="text-[10px] text-blue-400 hover:text-blue-300">Threads에서 보기 &rarr;</a>` : ""}
+          ${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener" class="text-[10px] text-blue-400 hover:text-blue-300" onclick="event.stopPropagation()">Threads에서 보기 &rarr;</a>` : ""}
+          <button class="text-[10px] text-red-400 hover:text-red-300 ml-auto" onclick="event.stopPropagation(); deletePopularPost(${i})">삭제</button>
         </div>
       ` : ""}
-    </div>
-  `).join("") || `<p class="text-gray-600 text-sm">No popular posts</p>`}</div>`;
+    </div>`;
+    }).join("") || `<p class="text-gray-600 text-sm">No popular posts</p>`}</div>`;
 }
 
 // ── Per-Channel Settings ──
@@ -552,6 +555,7 @@ function renderChannelSettings(channel) {
             </div>
             ${expanded ? `
               <div class="ml-12 mb-3 space-y-1.5">
+                ${f.detail ? `<p class="text-[10px] text-gray-500 py-1 mb-1">${f.detail}</p>` : ""}
                 ${showInterval && hours ? `
                   <div class="flex items-center gap-2 py-1.5 px-2 bg-gray-900/50 rounded mb-2" onclick="event.stopPropagation()">
                     <span class="text-[10px] text-gray-400">Interval</span>
@@ -788,6 +792,11 @@ function switchSubTab(tab) {
 // ── Channel Settings & Cron Runs ──
 function toggleFeatureDetail(key) { S.expandedFeature = S.expandedFeature === key ? null : key; render(); }
 function togglePopularDetail(i) { S.expandedPopular = S.expandedPopular === i ? null : i; render(); }
+async function deletePopularPost(i) {
+  if (!confirm("이 인기글을 삭제하시겠습니까?")) return;
+  const r = await API.post("/api/popular/delete", { index: i });
+  if (r) { showToast("삭제됨", "success"); S.expandedPopular = null; loadPopular(); }
+}
 async function loadChannelSettings() {
   const data = await API.get("/api/channel-settings");
   if (data) { S.channelSettings = data; render(); }
