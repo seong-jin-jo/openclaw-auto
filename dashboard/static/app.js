@@ -230,8 +230,8 @@ function render() {
 }
 
 const CH_LABELS = { instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", bluesky: "Bluesky", pinterest: "Pinterest", tumblr: "Tumblr", tiktok: "TikTok", youtube: "YouTube", telegram: "Telegram", discord: "Discord", line: "LINE", naver_blog: "Naver Blog" };
-const CH_STATUS_BADGE = { live: "bg-green-900/50 text-green-400", connect: "bg-blue-900/50 text-blue-400", soon: "bg-gray-800 text-gray-600" };
-const CH_STATUS_LABEL = { live: "Live", connect: "Connect", soon: "Coming Soon" };
+const CH_STATUS_BADGE = { live: "bg-green-900/50 text-green-400", connect: "bg-gray-800 text-blue-400 border border-blue-900/50", soon: "bg-gray-800 text-gray-600" };
+const CH_STATUS_LABEL = { live: "Live", connect: "+ Connect", soon: "Coming Soon" };
 
 function chSidebarItem(key) {
   const ch = S.channelConfig[key] || {};
@@ -303,7 +303,7 @@ function renderSidebar() {
 
         ${sidebarGroup("social", "Social", [
           { key: "threads", label: "Threads", icon: "T", iconClass: "bg-gradient-to-br from-purple-500 to-pink-500 text-white", nav: true, status: S.channelConfig.threads?.connected ? "Live" : "Off", statusClass: S.channelConfig.threads?.connected ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500" },
-          { key: "x", label: "X (Twitter)", icon: "X", nav: true, status: S.channelConfig.x?.connected ? "Live" : "Setup", statusClass: S.channelConfig.x?.connected ? "bg-green-900/50 text-green-400" : "bg-yellow-900/50 text-yellow-400" },
+          { key: "x", label: "X (Twitter)", icon: "X", nav: true, status: S.channelConfig.x?.connected ? "Live" : "Connect", statusClass: S.channelConfig.x?.connected ? "bg-green-900/50 text-green-400" : "bg-blue-900/50 text-blue-400" },
           ...["instagram", "facebook", "linkedin", "bluesky", "pinterest", "tumblr"].map(ch => chSidebarItem(ch)),
         ])}
 
@@ -352,12 +352,6 @@ function renderSidebar() {
           <div class="pulse-dot ${cronOk === cronTotal ? "bg-green-500" : "bg-yellow-500"}"></div>
           <span class="text-xs text-gray-500">${cronOk}/${cronTotal} crons ok</span>
         </div>
-        ${getAuthToken() ? `
-          <div class="flex gap-2">
-            <button id="btn-logout" class="text-[10px] text-gray-600 hover:text-gray-400">Logout</button>
-            <button id="btn-change-pw" class="text-[10px] text-gray-600 hover:text-gray-400">Change Token</button>
-          </div>
-        ` : ""}
       </div>
     </aside>`;
 }
@@ -516,7 +510,7 @@ function renderOverview() {
         <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Channels Status</h3>
         <div class="space-y-2 text-sm">
           <div class="flex justify-between"><span class="text-gray-500">Threads</span><span class="${S.tokenStatus?.threads?.connected ? "text-green-400" : "text-gray-600"}">${S.tokenStatus?.threads?.connected ? "Connected" : "Off"}</span></div>
-          <div class="flex justify-between"><span class="text-gray-500">X (Twitter)</span><span class="${S.tokenStatus?.x?.connected ? "text-green-400" : "text-yellow-400"}">${S.tokenStatus?.x?.connected ? "Connected" : "Setup"}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">X (Twitter)</span><span class="${S.tokenStatus?.x?.connected ? "text-green-400" : "text-yellow-400"}">${S.tokenStatus?.x?.connected ? "Connected" : "Connect"}</span></div>
           <div class="flex justify-between"><span class="text-gray-500">Blog</span><span class="text-gray-300">Active</span></div>
         </div>
       </div>
@@ -881,8 +875,8 @@ function renderSettings() {
             <span class="text-[10px] ${S.channelConfig.threads?.connected ? "text-green-400" : "text-gray-600"}">${S.channelConfig.threads?.connected ? "Connected" : "Not connected"}</span>
           </div>
           <div class="flex items-center justify-between p-3 rounded-lg bg-gray-900/50 cursor-pointer hover:bg-gray-800/50" data-nav="x">
-            <div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-gray-700 flex items-center justify-center text-[9px] font-bold text-white">X</span><div><p class="text-xs text-gray-300">X (Twitter)</p><p class="text-[10px] text-gray-600">${S.channelConfig.x?.connected ? "OAuth 1.0a" : "Setup required"}</p></div></div>
-            <span class="text-[10px] ${S.channelConfig.x?.connected ? "text-green-400" : "text-yellow-400"}">${S.channelConfig.x?.connected ? "Connected" : "Setup"}</span>
+            <div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-gray-700 flex items-center justify-center text-[9px] font-bold text-white">X</span><div><p class="text-xs text-gray-300">X (Twitter)</p><p class="text-[10px] text-gray-600">${S.channelConfig.x?.connected ? "OAuth 1.0a" : ""}</p></div></div>
+            <span class="text-[10px] ${S.channelConfig.x?.connected ? "text-green-400" : "text-blue-400"}">${S.channelConfig.x?.connected ? "Connected" : "+ Connect"}</span>
           </div>
           <div class="flex items-center justify-between p-3 rounded-lg bg-gray-900/50 opacity-50">
             <div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-gray-700 flex items-center justify-center text-[8px] font-bold text-gray-500">IG</span><div><p class="text-xs text-gray-500">Instagram</p></div></div>
@@ -891,13 +885,25 @@ function renderSettings() {
         </div>
         <p class="text-[10px] text-gray-600 mt-4">Click a channel to manage its settings</p>
       </div>
-      <div class="card p-5">
-        <h3 class="text-sm font-medium text-gray-300 mb-4">System Status</h3>
-        <div class="space-y-2.5">
-          ${S.cronJobs.map(j => {
-            const dot = j.lastStatus === "ok" ? "bg-green-500" : j.lastStatus === "error" ? "bg-red-500" : "bg-gray-600";
-            return `<div class="flex items-center justify-between"><div class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full ${dot}"></div><span class="text-xs text-gray-300">${esc(j.name)}</span></div><span class="text-[10px] text-gray-500">${j.lastStatus === "error" ? '<span class="text-red-400">error</span>' : fmtTime(j.nextRunAt)}</span></div>`;
-          }).join("")}
+      <div class="space-y-4">
+        <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-4">System Status</h3>
+          <div class="space-y-2.5">
+            ${S.cronJobs.map(j => {
+              const dot = j.lastStatus === "ok" ? "bg-green-500" : j.lastStatus === "error" ? "bg-red-500" : "bg-gray-600";
+              return `<div class="flex items-center justify-between"><div class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full ${dot}"></div><span class="text-xs text-gray-300">${esc(j.name)}</span></div><span class="text-[10px] text-gray-500">${j.lastStatus === "error" ? '<span class="text-red-400">error</span>' : fmtTime(j.nextRunAt)}</span></div>`;
+            }).join("")}
+          </div>
+        </div>
+        <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-4">Account</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span class="text-gray-500">Auth</span><span class="text-gray-300">${getAuthToken() ? "Token (localStorage)" : "No auth"}</span></div>
+          </div>
+          <div class="flex gap-2 mt-4">
+            <button id="btn-logout" class="px-4 py-2 text-xs bg-gray-800 text-gray-300 rounded hover:bg-gray-700">Logout</button>
+            <button id="btn-change-pw" class="px-4 py-2 text-xs bg-gray-800 text-gray-300 rounded hover:bg-gray-700">Change Token</button>
+          </div>
         </div>
       </div>
     </div>
