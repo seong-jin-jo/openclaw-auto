@@ -106,7 +106,7 @@ const S = {
   overview: null, queue: [], growth: [], popular: [], analytics: null,
   keywords: [], settings: null, guide: "", cronJobs: [], activity: [],
   channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [],
-  tokenStatus: null, alerts: [],
+  tokenStatus: null, alerts: [], weekly: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
   sidebarCollapsed: { social: false, video: true, blog: false, messaging: true, data: true, custom: true },
   queueFilter: "all", loading: false,
@@ -125,8 +125,8 @@ function fmtAgo(iso) {
 
 // ── Data Loading ──
 async function loadOverview() {
-  const [data, cronData, activity, chCfg, tokenData, alertData] = await Promise.all([
-    API.get("/api/overview"), API.get("/api/cron-status"), API.get("/api/activity"), API.get("/api/channel-config"), API.get("/api/token-status"), API.get("/api/alerts"),
+  const [data, cronData, activity, chCfg, tokenData, alertData, weeklyData] = await Promise.all([
+    API.get("/api/overview"), API.get("/api/cron-status"), API.get("/api/activity"), API.get("/api/channel-config"), API.get("/api/token-status"), API.get("/api/alerts"), API.get("/api/weekly-summary"),
   ]);
   if (data) S.overview = data;
   if (cronData) S.cronJobs = cronData.jobs || [];
@@ -134,6 +134,7 @@ async function loadOverview() {
   if (chCfg) S.channelConfig = chCfg;
   if (tokenData) S.tokenStatus = tokenData;
   if (alertData) S.alerts = alertData.alerts || [];
+  if (weeklyData) S.weekly = weeklyData;
   render();
 }
 async function loadQueue(status) {
@@ -395,6 +396,32 @@ function renderOverview() {
         <div class="mt-3 pt-3 border-t border-gray-800/50 flex justify-between text-xs"><span class="text-gray-600">${S.channelConfig.x?.connected ? "View details" : "Setup credentials"}</span><span class="text-${S.channelConfig.x?.connected ? "blue" : "yellow"}-400">&rarr;</span></div>
       </div>
     </div>
+
+    <!-- Weekly Performance -->
+    ${S.weekly ? `
+    <div class="card p-5 mb-6">
+      <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-4">This Week</h3>
+      <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+        <div><p class="text-[10px] text-gray-500">Published</p><p class="text-xl font-bold text-white">${S.weekly.published}</p></div>
+        <div><p class="text-[10px] text-gray-500">Views</p><p class="text-xl font-bold text-white">${S.weekly.views.toLocaleString()}</p></div>
+        <div><p class="text-[10px] text-gray-500">Likes</p><p class="text-xl font-bold text-white">${S.weekly.likes}</p></div>
+        <div><p class="text-[10px] text-gray-500">Replies</p><p class="text-xl font-bold text-white">${S.weekly.replies}</p></div>
+        <div><p class="text-[10px] text-gray-500">Eng. Rate</p><p class="text-xl font-bold ${S.weekly.engagementRate > 3 ? "text-green-400" : "text-white"}">${S.weekly.engagementRate}%</p></div>
+        <div><p class="text-[10px] text-gray-500">Drafts</p><p class="text-xl font-bold text-gray-400">${S.weekly.drafted}</p></div>
+      </div>
+      ${S.weekly.published > 0 ? `
+        <div class="mt-4 pt-3 border-t border-gray-800/50">
+          <div class="flex items-center gap-6 text-xs">
+            <span class="text-gray-500">Channel breakdown:</span>
+            <span class="text-purple-400">Threads: ${S.weekly.channels?.threads || 0}</span>
+            <span class="text-gray-300">X: ${S.weekly.channels?.x || 0}</span>
+          </div>
+        </div>
+      ` : `
+        <p class="text-xs text-gray-600 mt-3">이번 주 발행된 글이 없습니다. Queue에서 draft를 승인하면 자동 발행됩니다.</p>
+      `}
+    </div>
+    ` : ""}
 
     <!-- Cron + Activity -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

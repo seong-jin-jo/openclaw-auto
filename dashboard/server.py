@@ -808,6 +808,51 @@ def api_activity():
 
 
 # ── API: Channel Config ──
+# ── API: Weekly Summary ──
+@app.route("/api/weekly-summary")
+def api_weekly_summary():
+    from datetime import timedelta
+    queue = read_json(QUEUE_PATH) or {"posts": []}
+    posts = queue.get("posts", [])
+    now = datetime.now(timezone.utc)
+    week_ago = now - timedelta(days=7)
+
+    # Posts published this week
+    week_published = [p for p in posts if p.get("publishedAt") and datetime.fromisoformat(p["publishedAt"].replace("Z", "+00:00")) > week_ago]
+    week_drafted = [p for p in posts if p.get("generatedAt") and datetime.fromisoformat(p["generatedAt"].replace("Z", "+00:00")) > week_ago and p.get("status") == "draft"]
+
+    # Engagement this week
+    total_views = sum((p.get("engagement") or {}).get("views", 0) for p in week_published)
+    total_likes = sum((p.get("engagement") or {}).get("likes", 0) for p in week_published)
+    total_replies = sum((p.get("engagement") or {}).get("replies", 0) for p in week_published)
+
+    # Channel breakdown
+    ch_breakdown = {"threads": 0, "x": 0}
+    for p in week_published:
+        ch = p.get("channels") or {}
+        if ch.get("threads", {}).get("status") == "published":
+            ch_breakdown["threads"] += 1
+        if ch.get("x", {}).get("status") == "published":
+            ch_breakdown["x"] += 1
+
+    # Cron runs this week
+    cron_data = read_json(CRON_JOBS_PATH) or {"jobs": []}
+    cron_ok = sum(1 for j in cron_data.get("jobs", []) if j.get("state", {}).get("lastRunStatus") == "ok")
+    cron_err = sum(1 for j in cron_data.get("jobs", []) if j.get("state", {}).get("lastRunStatus") == "error")
+
+    return jsonify({
+        "published": len(week_published),
+        "drafted": len(week_drafted),
+        "views": total_views,
+        "likes": total_likes,
+        "replies": total_replies,
+        "engagementRate": round((total_likes + total_replies) / total_views * 100, 1) if total_views > 0 else 0,
+        "channels": ch_breakdown,
+        "cronOk": cron_ok,
+        "cronErr": cron_err,
+    })
+
+
 # ── API: Token Status ──
 @app.route("/api/token-status")
 def api_token_status():
