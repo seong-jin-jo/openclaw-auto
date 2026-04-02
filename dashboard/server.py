@@ -99,8 +99,13 @@ def check_auth():
         return  # 토큰 미설정 시 인증 비활성화
     if request.method == "OPTIONS":
         return
+    # 정적 파일: 항상 허용
     if request.path == "/" or request.path.startswith("/images/") or (not request.path.startswith("/api/") and request.path.endswith((".js", ".css", ".ico", ".png", ".svg", ".html"))):
         return
+    # 읽기 API (GET): 인증 없이 허용 — 대시보드 미리보기 가능
+    if request.method == "GET":
+        return
+    # 쓰기 API (POST/PUT/DELETE): 인증 필요
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
     if token != AUTH_TOKEN:
         return jsonify({"error": "Unauthorized"}), 401

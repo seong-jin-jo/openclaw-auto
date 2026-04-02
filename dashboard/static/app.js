@@ -24,6 +24,35 @@ function authHeaders() {
   const t = getAuthToken();
   return t ? { Authorization: `Bearer ${t}` } : {};
 }
+function showLoginModal() {
+  const existing = document.getElementById("login-modal-overlay");
+  if (existing) return;
+  const overlay = document.createElement("div");
+  overlay.id = "login-modal-overlay";
+  overlay.className = "fixed inset-0 bg-black/60 z-50 flex items-center justify-center";
+  overlay.innerHTML = `
+    <div class="card p-6 w-80">
+      <h2 class="text-sm font-medium text-white mb-1">Login Required</h2>
+      <p class="text-[10px] text-gray-500 mb-3">이 작업을 수행하려면 로그인이 필요합니다.</p>
+      <input id="modal-login-token" type="password" placeholder="Auth Token"
+        class="w-full bg-gray-900 text-gray-200 text-sm p-3 rounded border border-gray-700 mb-3">
+      <div class="flex gap-2">
+        <button id="modal-login-btn" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">Login</button>
+        <button id="modal-cancel-btn" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  setTimeout(() => {
+    document.getElementById("modal-login-btn").onclick = () => {
+      const token = document.getElementById("modal-login-token").value.trim();
+      if (token) { setAuthToken(token); overlay.remove(); showToast("로그인 완료", "success"); }
+    };
+    document.getElementById("modal-cancel-btn").onclick = () => overlay.remove();
+    document.getElementById("modal-login-token").focus();
+    document.getElementById("modal-login-token").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("modal-login-btn").click(); });
+  }, 50);
+}
+
 function promptLogin() {
   document.getElementById("app").innerHTML = `
     <div class="min-h-screen">
@@ -114,7 +143,7 @@ const API = {
   async post(url, body) {
     try {
       const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify(body) });
-      if (res.status === 401) { localStorage.removeItem("dashboard_auth_token"); promptLogin(); return null; }
+      if (res.status === 401) { showLoginModal(); return null; }
       if (!res.ok) { const d = await res.json().catch(() => ({})); showToast(d.error || `요청 실패: ${res.status}`, "error"); return null; }
       return res.json();
     } catch (e) { showToast(`네트워크 오류: ${e.message}`, "error"); return null; }
@@ -593,6 +622,23 @@ function renderPost(p) {
           <button data-pick-image="${p.id}" class="px-2 py-1 text-xs bg-purple-700 text-white rounded hover:bg-purple-600">${p.imageUrl ? "Change Image" : "Add Image"}</button>
         </div>
       ` : `<p class="text-sm text-gray-200 mb-2 whitespace-pre-wrap">${esc(p.text)}</p>`}
+      ${p.status === "draft" || p.status === "approved" ? `
+        <div class="flex items-center gap-3 mb-2 text-xs">
+          <span class="text-gray-600">Publish to:</span>
+          ${["threads", "x"].map(ch => {
+            const chCfg = S.channelConfig[ch] || {};
+            const enabled = chCfg.connected || chCfg.enabled;
+            const checked = (p.channels?.[ch]?.status !== "skipped");
+            const limit = ch === "x" ? 280 : 500;
+            const over = p.text.length > limit;
+            return enabled ? `
+              <label class="flex items-center gap-1 ${over ? "text-yellow-500" : "text-gray-400"}">
+                <input type="checkbox" data-publish-channel="${p.id}:${ch}" ${checked ? "checked" : ""} class="rounded border-gray-600 w-3 h-3">
+                ${ch === "threads" ? "T" : "X"}${over ? ` (${p.text.length}/${limit})` : ""}
+              </label>` : "";
+          }).join("")}
+        </div>
+      ` : ""}
       ${p.hashtags?.length ? `<div class="flex gap-1 mb-2">${p.hashtags.map(h => `<span class="text-xs text-blue-400">#${h}</span>`).join("")}</div>` : ""}
       ${p.engagement?.views != null ? `<div class="flex gap-4 text-xs text-gray-500"><span>views: ${p.engagement.views}</span><span>likes: ${p.engagement.likes || 0}</span><span>replies: ${p.engagement.replies || 0}</span></div>` : ""}
       <div class="flex flex-wrap gap-3 text-xs text-gray-600 mt-1">
@@ -1307,9 +1353,7 @@ function renderBlog() {
 
 // ── Init ──
 document.addEventListener("DOMContentLoaded", async () => {
-  const test = await fetch("/api/overview", { headers: authHeaders() });
-  if (test.status === 401 && !getAuthToken()) { promptLogin(); return; }
-  // Restore page from URL hash
+  // Always show dashboard (GET APIs are public), login only needed for writes
   const hash = window.location.hash.replace("#", "");
   if (hash) S.page = hash;
   loadOverview();
