@@ -72,7 +72,7 @@ const S = {
   channelConfig: { threads: {}, x: {} }, images: [],
   channelSettings: { features: [], settings: {} }, cronRuns: [],
   queueFilter: "all", loading: false,
-  editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null,
+  editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null, expandedPopular: null,
 };
 
 function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
@@ -449,6 +449,7 @@ function renderGrowth() {
 }
 
 function renderPopular() {
+  const sourceColors = { external: "bg-purple-900/50 text-purple-300", "own-viral": "bg-green-900/50 text-green-300", manual: "bg-gray-700 text-gray-300" };
   return `
     <div class="card p-4 mb-4">
       <div class="flex items-center gap-2 mb-3">
@@ -462,17 +463,23 @@ function renderPopular() {
         <button id="ext-post-add" class="px-3 py-1.5 text-xs bg-purple-600 text-white rounded hover:bg-purple-500 shrink-0">Add</button>
       </div>
     </div>
-    <div class="space-y-3">${S.popular.map(p => `
-    <div class="card p-4">
-      <div class="flex items-center gap-2 mb-2">
-        <span class="text-xs px-2 py-0.5 rounded bg-purple-900/50 text-purple-300">${p.source || "unknown"}</span>
-        ${p.type ? `<span class="text-xs px-2 py-0.5 rounded bg-cyan-900/50 text-cyan-300">${p.type}</span>` : ""}
-        ${p.topic ? `<span class="text-xs text-gray-500">${esc(p.topic)}</span>` : ""}
-        ${p.likes && p.likes !== "0" ? `<span class="text-xs text-yellow-500">${p.likes} likes</span>` : ""}
+    <div class="space-y-2">${S.popular.map((p, i) => `
+    <div class="card overflow-hidden">
+      <div class="flex items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-gray-800/30" onclick="togglePopularDetail(${i})">
+        <span class="text-xs px-2 py-0.5 rounded ${sourceColors[p.source] || "bg-gray-700 text-gray-300"}">${p.source || "?"}</span>
+        ${p.topic ? `<span class="text-[10px] text-gray-500">${esc(p.topic)}</span>` : ""}
+        ${p.likes && p.likes !== "0" ? `<span class="text-[10px] text-yellow-500">${p.likes} likes</span>` : ""}
         ${p.username ? `<span class="text-[10px] text-gray-600">@${esc(p.username)}</span>` : ""}
-        ${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener" class="text-[10px] text-blue-400 hover:text-blue-300 ml-auto">Open &rarr;</a>` : ""}
+        <span class="text-[10px] text-gray-700 ml-auto">${p.collected || ""}</span>
+        <svg class="w-3 h-3 text-gray-600 transition-transform ${S.expandedPopular === i ? "rotate-180" : ""}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
       </div>
-      <p class="text-sm text-gray-200 whitespace-pre-wrap">${esc(p.text || "")}</p>
+      <p class="text-xs text-gray-300 px-4 pb-2 ${S.expandedPopular === i ? "" : "truncate"}">${esc(p.text || "")}</p>
+      ${S.expandedPopular === i ? `
+        <div class="px-4 pb-3 flex items-center gap-3">
+          ${p.engagement ? `<span class="text-[10px] text-gray-500">${esc(p.engagement)}</span>` : ""}
+          ${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener" class="text-[10px] text-blue-400 hover:text-blue-300">Threads에서 보기 &rarr;</a>` : ""}
+        </div>
+      ` : ""}
     </div>
   `).join("") || `<p class="text-gray-600 text-sm">No popular posts</p>`}</div>`;
 }
@@ -780,6 +787,7 @@ function switchSubTab(tab) {
 
 // ── Channel Settings & Cron Runs ──
 function toggleFeatureDetail(key) { S.expandedFeature = S.expandedFeature === key ? null : key; render(); }
+function togglePopularDetail(i) { S.expandedPopular = S.expandedPopular === i ? null : i; render(); }
 async function loadChannelSettings() {
   const data = await API.get("/api/channel-settings");
   if (data) { S.channelSettings = data; render(); }

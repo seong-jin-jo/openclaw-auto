@@ -154,7 +154,7 @@ async function scrapeThreadsSearch(config: ReturnType<typeof resolveConfig>) {
       await page.waitForTimeout(6000);
 
       const posts = await page.evaluate(() => {
-        const results: Array<{ username: string; url: string; text: string }> = [];
+        const results: Array<{ username: string; url: string; text: string; likes: number; replies: number }> = [];
         const links = document.querySelectorAll('a[href*="/post/"]');
         const seen = new Set<string>();
         for (const link of links) {
@@ -163,7 +163,7 @@ async function scrapeThreadsSearch(config: ReturnType<typeof resolveConfig>) {
           seen.add(href);
           const match = href.match(/@([^/]+)\/post\/([^/?]+)/);
           if (!match) continue;
-          const container = link.closest("[data-pressable-container]") || link.parentElement?.parentElement?.parentElement;
+          const container = link.closest("[data-pressable-container]") || link.parentElement?.parentElement?.parentElement?.parentElement;
           if (!container) continue;
           const spans = container.querySelectorAll("span");
           let text = "";
@@ -171,7 +171,14 @@ async function scrapeThreadsSearch(config: ReturnType<typeof resolveConfig>) {
             const t = span.textContent?.trim();
             if (t && t.length > 20 && t.length < 600 && !t.includes("Translate") && !t.includes("Log in")) { text = t; break; }
           }
-          if (text) results.push({ username: match[1], url: "https://www.threads.net" + href, text: text.substring(0, 500) });
+          // Extract likes/replies from SVG icon siblings
+          const svgs = container.querySelectorAll("svg");
+          const metrics: number[] = [];
+          for (const svg of svgs) {
+            const next = svg.parentElement?.nextElementSibling || svg.nextElementSibling;
+            if (next) { const n = parseInt(next.textContent?.trim() || ""); if (!isNaN(n)) metrics.push(n); }
+          }
+          if (text) results.push({ username: match[1], url: "https://www.threads.net" + href, text: text.substring(0, 500), likes: metrics[0] || 0, replies: metrics[1] || 0 });
         }
         return results;
       });
@@ -179,13 +186,14 @@ async function scrapeThreadsSearch(config: ReturnType<typeof resolveConfig>) {
       for (const post of posts) {
         if (post.username === ownUsername) continue;
         if (koreanRatio(post.text) < 0.15) continue;
+        if (post.likes < config.minLikes) continue;
         const prefix = post.text.substring(0, 80);
         if (seenTexts.has(prefix)) continue;
         seenTexts.add(prefix);
         newPosts.push({
           topic: keyword,
-          engagement: "trending",
-          likes: 0,
+          engagement: `trending (${post.likes} likes, ${post.replies} replies)`,
+          likes: post.likes,
           source: "external",
           collected: new Date().toISOString().split("T")[0],
           text: post.text.replace(/\n/g, " "),
@@ -202,7 +210,7 @@ async function scrapeThreadsSearch(config: ReturnType<typeof resolveConfig>) {
   await browser.close();
 
   if (newPosts.length > 0) {
-    const allPosts = [...existingPosts, ...newPosts];
+    const allPosts = [...existingPosts, ...newPosts].sort((a, b) => b.likes - a.likes);
     const trimmed = allPosts.slice(0, config.maxPopularPosts);
     const content = header + trimmed.map(formatPopularPost).join("");
     await fs.writeFile(config.popularPostsPath, content, "utf-8");
