@@ -1,6 +1,8 @@
 import { Type } from "@sinclair/typebox";
 import { jsonResult, readStringParam } from "openclaw/plugin-sdk/agent-runtime";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-runtime";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 
 const THREADS_API_BASE = "https://graph.threads.net/v1.0";
 
@@ -68,17 +70,25 @@ export function createThreadsPublishTool(api: OpenClawPluginApi) {
       const quotePostId = readStringParam(rawParams, "quote_post_id");
       const { accessToken, userId } = resolveConfig(api);
 
-      // Convert local /images/ path to public URL
+      // Convert local /images/ path to public URL via temporary upload
       if (imageUrl && imageUrl.startsWith("/images/")) {
-        const publicBase = process.env.DASHBOARD_PUBLIC_URL;
-        if (publicBase) {
-          imageUrl = `${publicBase.replace(/\/+$/, "")}${imageUrl}`;
-        } else {
-          throw new Error(
-            "Cannot publish image: imageUrl is a local path but DASHBOARD_PUBLIC_URL is not set. " +
-            "Set DASHBOARD_PUBLIC_URL env var to your dashboard's public domain (e.g. https://dashboard.example.com).",
-          );
+        const filename = imageUrl.replace("/images/", "");
+        const dataDir = process.env.DATA_DIR || resolve(process.cwd(), "data");
+        const localPath = resolve(dataDir, "images", filename);
+        const fileBuffer = await readFile(localPath);
+        const formData = new FormData();
+        formData.append("file", new Blob([fileBuffer]), filename);
+        const uploadResp = await fetch("https://tmpfiles.org/api/v1/upload", { method: "POST", body: formData });
+        if (!uploadResp.ok) {
+          throw new Error(`Image upload failed (${uploadResp.status}). Cannot publish image without public URL.`);
         }
+        const uploadData = (await uploadResp.json()) as { data?: { url?: string } };
+        const tmpUrl = uploadData.data?.url;
+        if (!tmpUrl) {
+          throw new Error("Image upload returned no URL.");
+        }
+        // tmpfiles.org requires /dl/ prefix for direct download
+        imageUrl = tmpUrl.replace("tmpfiles.org/", "tmpfiles.org/dl/");
       }
 
       // Step 1: Create media container
