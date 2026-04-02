@@ -1,0 +1,15 @@
+{
+  "id": "youtube-publish",
+  "name": "YouTube Publish",
+  "description": "Upload videos to YouTube via Data API v3 (video file required, community posts not supported)",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "accessToken": {
+        "type": "string",
+        "description": "YouTube/Google OAuth 2.0 access token"
+      }
+    }
+  }
+}

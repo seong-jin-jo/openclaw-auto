@@ -1,0 +1,15 @@
+{
+  "id": "blog-queue",
+  "name": "Blog Queue",
+  "description": "Manage blog content queue (draft → approved → published).",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "queuePath": {
+        "type": "string",
+        "description": "Path to blog-queue.json (default: data/blog-queue.json)."
+      }
+    }
+  }
+}

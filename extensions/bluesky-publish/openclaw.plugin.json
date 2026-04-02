@@ -1,0 +1,19 @@
+{
+  "id": "bluesky-publish",
+  "name": "Bluesky Publish",
+  "description": "Publish posts to Bluesky via AT Protocol",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "handle": {
+        "type": "string",
+        "description": "Bluesky handle (e.g. user.bsky.social)"
+      },
+      "appPassword": {
+        "type": "string",
+        "description": "App password (Settings > App Passwords)"
+      }
+    }
+  }
+}

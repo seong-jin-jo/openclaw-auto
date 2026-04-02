@@ -1,0 +1,23 @@
+{
+  "id": "naver-blog-publish",
+  "name": "Naver Blog Publish",
+  "description": "Publish posts to Naver Blog via XML-RPC (legacy API)",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "blogId": {
+        "type": "string",
+        "description": "Naver Blog ID"
+      },
+      "username": {
+        "type": "string",
+        "description": "Naver username"
+      },
+      "apiKey": {
+        "type": "string",
+        "description": "Blog API key (XML-RPC)"
+      }
+    }
+  }
+}

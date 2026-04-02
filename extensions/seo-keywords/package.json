@@ -1,0 +1,12 @@
+{
+  "name": "@openclaw/seo-keywords",
+  "version": "2026.4.1",
+  "private": true,
+  "description": "OpenClaw SEO keyword analysis plugin (Naver Search Ad API)",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

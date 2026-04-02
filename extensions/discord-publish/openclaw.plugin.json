@@ -1,0 +1,15 @@
+{
+  "id": "discord-publish",
+  "name": "Discord Publish",
+  "description": "Send messages to Discord channels via Webhook",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "webhookUrl": {
+        "type": "string",
+        "description": "Discord Webhook URL (Channel Settings > Integrations > Webhooks)"
+      }
+    }
+  }
+}

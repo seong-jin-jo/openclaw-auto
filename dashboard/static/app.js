@@ -26,12 +26,69 @@ function authHeaders() {
 }
 function promptLogin() {
   document.getElementById("app").innerHTML = `
-    <div class="flex items-center justify-center min-h-screen">
-      <div class="card p-8 w-80">
-        <h2 class="text-lg font-bold text-white mb-4">Dashboard Login</h2>
-        <input id="login-token" type="password" placeholder="Auth Token"
-          class="w-full bg-gray-800 text-gray-200 text-sm p-3 rounded border border-gray-700 mb-3">
-        <button id="login-btn" class="w-full py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">Login</button>
+    <div class="min-h-screen">
+      <!-- Hero -->
+      <div class="flex flex-col items-center justify-center px-8 pt-20 pb-16 text-center">
+        <div class="text-[10px] px-3 py-1 rounded-full bg-blue-900/30 text-blue-400 border border-blue-800/30 mb-6">AI-Powered Marketing Automation</div>
+        <h1 class="text-5xl font-bold text-white mb-4 leading-tight">Marketing Hub</h1>
+        <p class="text-lg text-gray-400 max-w-2xl mb-4">AI가 콘텐츠를 자동 생성하고, 20개+ 채널에 동시 발행하고, 반응을 분석하여 다음 콘텐츠에 자동 반영합니다.</p>
+        <p class="text-sm text-gray-600 mb-10">검수만 하세요. 나머지는 자동입니다.</p>
+
+        <!-- Login Card -->
+        <div class="card p-6 w-80 mb-16">
+          <input id="login-token" type="password" placeholder="Auth Token"
+            class="w-full bg-gray-900 text-gray-200 text-sm p-3 rounded border border-gray-700 mb-3">
+          <button id="login-btn" class="w-full py-2.5 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-500">Start Dashboard</button>
+        </div>
+      </div>
+
+      <!-- Pipeline -->
+      <div class="max-w-4xl mx-auto px-8 pb-16">
+        <div class="text-center mb-10">
+          <h2 class="text-xl font-semibold text-white mb-2">Automated Pipeline</h2>
+          <p class="text-sm text-gray-500">설정 한 번이면 24/7 자동 운영</p>
+        </div>
+        <div class="flex items-center justify-between gap-2 mb-4">
+          ${[
+            { icon: "1", label: "Trend Collection", desc: "외부 인기글 수집", color: "purple" },
+            { icon: "2", label: "AI Generation", desc: "Claude가 맞춤 생성", color: "blue" },
+            { icon: "3", label: "Human Review", desc: "대시보드에서 검수", color: "yellow" },
+            { icon: "4", label: "Auto Publish", desc: "멀티채널 발행", color: "green" },
+            { icon: "5", label: "Feedback Loop", desc: "반응→학습→개선", color: "red" },
+          ].map(s => `
+            <div class="flex-1 text-center">
+              <div class="w-10 h-10 rounded-full bg-${s.color}-900/30 text-${s.color}-400 flex items-center justify-center mx-auto mb-2 text-sm font-bold">${s.icon}</div>
+              <p class="text-xs font-medium text-white">${s.label}</p>
+              <p class="text-[10px] text-gray-600">${s.desc}</p>
+            </div>
+          `).join(`<div class="text-gray-700 text-lg">&rarr;</div>`)}
+        </div>
+      </div>
+
+      <!-- Features -->
+      <div class="max-w-4xl mx-auto px-8 pb-16">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="card p-6">
+            <h3 class="text-sm font-medium text-white mb-2">20+ Channels</h3>
+            <p class="text-xs text-gray-500 mb-3">Threads, X, Instagram, Facebook, LinkedIn, Blog, Telegram, Discord 등</p>
+            <div class="flex flex-wrap gap-1">
+              ${["T", "X", "I", "F", "L", "B", "TG", "D"].map(c => `<span class="text-[9px] w-5 h-5 rounded bg-gray-800 text-gray-500 flex items-center justify-center">${c}</span>`).join("")}
+              <span class="text-[9px] text-gray-700">+12</span>
+            </div>
+          </div>
+          <div class="card p-6">
+            <h3 class="text-sm font-medium text-white mb-2">AI Feedback Loop</h3>
+            <p class="text-xs text-gray-500">터진 글을 자동 감지하여 스타일과 패턴을 학습. 다음 콘텐츠 품질이 자동으로 개선됩니다.</p>
+          </div>
+          <div class="card p-6">
+            <h3 class="text-sm font-medium text-white mb-2">Zero Maintenance</h3>
+            <p class="text-xs text-gray-500">Cron이 생성/발행/수집을 24시간 자동 처리. 당신은 대시보드에서 승인만 하면 됩니다.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center pb-12">
+        <p class="text-[10px] text-gray-700">Powered by <a href="https://openclaw.ai" target="_blank" class="text-gray-600 hover:text-gray-400">OpenClaw</a> + Claude</p>
       </div>
     </div>`;
   const sidebar = document.getElementById("sidebar");
@@ -69,8 +126,10 @@ const S = {
   page: "overview", subTab: "queue",
   overview: null, queue: [], growth: [], popular: [], analytics: null,
   keywords: [], settings: null, guide: "", cronJobs: [], activity: [],
-  channelConfig: { threads: {}, x: {} }, images: [],
+  channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [],
+  tokenStatus: null, alerts: [], weekly: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
+  sidebarCollapsed: { social: false, video: true, blog: false, messaging: true, data: true, custom: true },
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null, expandedPopular: null,
 };
@@ -87,13 +146,20 @@ function fmtAgo(iso) {
 
 // ── Data Loading ──
 async function loadOverview() {
-  const [data, cronData, activity, chCfg] = await Promise.all([
-    API.get("/api/overview"), API.get("/api/cron-status"), API.get("/api/activity"), API.get("/api/channel-config"),
+  const [data, cronData, activity, chCfg, tokenData, alertData, weeklyData] = await Promise.all([
+    API.get("/api/overview"), API.get("/api/cron-status"), API.get("/api/activity"), API.get("/api/channel-config"), API.get("/api/token-status"), API.get("/api/alerts"), API.get("/api/weekly-summary"),
   ]);
   if (data) S.overview = data;
   if (cronData) S.cronJobs = cronData.jobs || [];
   if (activity) S.activity = activity.events || [];
   if (chCfg) S.channelConfig = chCfg;
+  // Lazy load threads username (don't block main render)
+  if (S.channelConfig.threads?.connected && !S.channelConfig.threads?.username) {
+    API.get("/api/threads-username").then(d => { if (d?.username) { S.channelConfig.threads.username = d.username; render(); } });
+  }
+  if (tokenData) S.tokenStatus = tokenData;
+  if (alertData) S.alerts = alertData.alerts || [];
+  if (weeklyData) S.weekly = weeklyData;
   render();
 }
 async function loadQueue(status) {
@@ -140,12 +206,19 @@ function fmtDate(iso) { return iso ? new Date(iso).toLocaleString("ko-KR", {mont
 
 // ── Render ──
 function render() {
-  document.getElementById("sidebar").innerHTML = renderSidebar();
+  const sidebarEl = document.getElementById("sidebar");
+  const sidebarAside = sidebarEl?.querySelector("aside");
+  const scrollTop = sidebarAside?.scrollTop || 0;
+  sidebarEl.innerHTML = renderSidebar();
+  const newAside = sidebarEl.querySelector("aside");
+  if (newAside) newAside.scrollTop = scrollTop;
   const app = document.getElementById("app");
   if (S.page === "overview") app.innerHTML = renderOverview();
   else if (S.page === "threads") app.innerHTML = renderChannel("threads");
   else if (S.page === "x") app.innerHTML = renderChannelX();
   else if (S.page === "images") app.innerHTML = renderImages();
+  else if (S.page === "blog") app.innerHTML = renderBlog();
+  else if (CH_LABELS[S.page]) app.innerHTML = renderGenericChannel(S.page);
   else if (S.page === "settings") app.innerHTML = renderSettings();
   bindEvents();
   const oldModal = document.getElementById("image-picker-overlay");
@@ -154,6 +227,55 @@ function render() {
     app.insertAdjacentHTML("beforeend", renderImagePickerModal());
     bindImagePickerEvents();
   }
+}
+
+const CH_LABELS = { instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", bluesky: "Bluesky", pinterest: "Pinterest", tumblr: "Tumblr", tiktok: "TikTok", youtube: "YouTube", telegram: "Telegram", discord: "Discord", line: "LINE", naver_blog: "Naver Blog" };
+const CH_STATUS_BADGE = { live: "bg-green-900/50 text-green-400", connected: "bg-blue-900/50 text-blue-400", available: "", soon: "" };
+const CH_STATUS_LABEL = { live: "Live", connected: "Connected", available: "", soon: "" };
+
+function chSidebarItem(key) {
+  const ch = S.channelConfig[key] || {};
+  const status = ch.status || "soon";
+  const label = CH_LABELS[key] || key;
+  if (status === "live") {
+    return { key, label, icon: label[0], nav: true, status: "Live", statusClass: CH_STATUS_BADGE.live };
+  }
+  if (status === "connected") {
+    return { key, label, icon: label[0], nav: true, status: "Connected", statusClass: CH_STATUS_BADGE.connected };
+  }
+  if (status === "available") {
+    return { key, label, icon: label[0], nav: true }; // no badge
+  }
+  return { label, icon: label[0], soon: true };
+}
+
+function sidebarGroup(key, title, items) {
+  const collapsed = S.sidebarCollapsed[key];
+  const activeCount = items.filter(i => i.nav && !i.soon).length;
+  const soonCount = items.filter(i => i.soon).length;
+  return `
+    <div class="mt-4">
+      <button data-sidebar-toggle="${key}" class="px-3 mb-1 w-full flex items-center justify-between cursor-pointer hover:opacity-80">
+        <span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">${title}</span>
+        <span class="flex items-center gap-1">
+          ${soonCount ? `<span class="text-[9px] text-gray-700">${activeCount}/${activeCount + soonCount}</span>` : ""}
+          <svg class="w-3 h-3 text-gray-700 transition-transform ${collapsed ? "" : "rotate-180"}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </span>
+      </button>
+      ${collapsed ? "" : items.map(i => {
+        if (i.nav && !i.soon) {
+          return `<button data-nav="${i.key}" class="sidebar-item ${S.page === i.key ? "active" : ""} w-full text-left px-4 py-1.5 text-sm text-gray-300 flex items-center gap-3">
+            <span class="w-4 h-4 rounded ${i.iconClass || "bg-gray-800 text-gray-400"} flex items-center justify-center text-[9px] font-bold">${i.icon}</span>
+            ${i.label}
+            ${i.status ? `<span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${i.statusClass || "bg-gray-800 text-gray-500"}">${i.status}</span>` : ""}
+          </button>`;
+        }
+        return `<div class="px-4 py-1 text-[12px] text-gray-700 flex items-center gap-3 opacity-40">
+          <span class="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[8px] font-bold text-gray-600">${i.icon}</span>
+          ${i.label} <span class="ml-auto text-[9px] text-gray-800">Soon</span>
+        </div>`;
+      }).join("")}
+    </div>`;
 }
 
 function renderSidebar() {
@@ -182,21 +304,38 @@ function renderSidebar() {
           </button>
         `).join("")}
 
-        <div class="px-3 mt-5 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Channels</span></div>
-        <button data-nav="threads" class="sidebar-item ${S.page === "threads" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
-          <span class="w-4 h-4 rounded bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-[9px] font-bold text-white">T</span>
-          Threads
-          <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${S.channelConfig.threads?.connected ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}">${S.channelConfig.threads?.connected ? "Live" : "Off"}</span>
-        </button>
-        <button data-nav="x" class="sidebar-item ${S.page === "x" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
-          <span class="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[10px] font-bold text-white">X</span>
-          X (Twitter)
-          <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${S.channelConfig.x?.connected ? "bg-green-900/50 text-green-400" : "bg-yellow-900/50 text-yellow-400"}">${S.channelConfig.x?.connected ? "Live" : "Setup"}</span>
-        </button>
-        <div class="px-4 py-2 text-sm text-gray-600 flex items-center gap-3 opacity-50">
-          <span class="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[9px] font-bold text-gray-500">IG</span>
-          Instagram <span class="ml-auto text-[10px] text-gray-700">Soon</span>
-        </div>
+        ${sidebarGroup("social", "Social", [
+          { key: "threads", label: "Threads", icon: "T", iconClass: "bg-gradient-to-br from-purple-500 to-pink-500 text-white", nav: true, status: S.channelConfig.threads?.connected ? "Live" : "Off", statusClass: S.channelConfig.threads?.connected ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500" },
+          { key: "x", label: "X (Twitter)", icon: "X", nav: true, status: S.channelConfig.x?.connected ? (S.channelConfig.x?.enabled ? "Live" : "Connected") : "", statusClass: S.channelConfig.x?.connected ? (S.channelConfig.x?.enabled ? CH_STATUS_BADGE.live : CH_STATUS_BADGE.connected) : "" },
+          ...["instagram", "facebook", "linkedin", "bluesky", "pinterest", "tumblr"].map(ch => chSidebarItem(ch)),
+        ])}
+
+        ${sidebarGroup("video", "Video", [
+          ...["tiktok", "youtube"].map(ch => chSidebarItem(ch)),
+        ])}
+
+        ${sidebarGroup("blog", "Blog & SEO", [
+          { key: "blog", label: "Blog", icon: "B", nav: true },
+          chSidebarItem("naver_blog"),
+          { label: "Medium", icon: "M", soon: true },
+        ])}
+
+        ${sidebarGroup("messaging", "Messaging", [
+          ...["telegram", "discord", "line"].map(ch => chSidebarItem(ch)),
+          { label: "Kakao Channel", icon: "K", soon: true },
+          { label: "WhatsApp", icon: "W", soon: true },
+        ])}
+
+        ${sidebarGroup("data", "Data & Analytics", [
+          { label: "Google Analytics", icon: "G", soon: true },
+          { label: "Search Console", icon: "S", soon: true },
+          { label: "Google Business", icon: "G", soon: true },
+        ])}
+
+        ${sidebarGroup("custom", "Custom", [
+          { label: "Custom API", icon: "+", soon: true },
+          { label: "Webhook", icon: "W", soon: true },
+        ])}
 
         <div class="px-3 mt-5 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Assets</span></div>
         <button data-nav="images" class="sidebar-item ${S.page === "images" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
@@ -211,7 +350,7 @@ function renderSidebar() {
           Settings
         </button>
       </nav>
-      <div class="px-4 py-3 border-t border-gray-800/50">
+      <div class="px-4 py-3 border-t border-gray-800/50 space-y-2">
         <div class="flex items-center gap-2">
           <div class="pulse-dot ${cronOk === cronTotal ? "bg-green-500" : "bg-yellow-500"}"></div>
           <span class="text-xs text-gray-500">${cronOk}/${cronTotal} crons ok</span>
@@ -286,6 +425,32 @@ function renderOverview() {
       </div>
     </div>
 
+    <!-- Weekly Performance -->
+    ${S.weekly ? `
+    <div class="card p-5 mb-6">
+      <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-4">This Week</h3>
+      <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+        <div><p class="text-[10px] text-gray-500">Published</p><p class="text-xl font-bold text-white">${S.weekly.published}</p></div>
+        <div><p class="text-[10px] text-gray-500">Views</p><p class="text-xl font-bold text-white">${S.weekly.views.toLocaleString()}</p></div>
+        <div><p class="text-[10px] text-gray-500">Likes</p><p class="text-xl font-bold text-white">${S.weekly.likes}</p></div>
+        <div><p class="text-[10px] text-gray-500">Replies</p><p class="text-xl font-bold text-white">${S.weekly.replies}</p></div>
+        <div><p class="text-[10px] text-gray-500">Eng. Rate</p><p class="text-xl font-bold ${S.weekly.engagementRate > 3 ? "text-green-400" : "text-white"}">${S.weekly.engagementRate}%</p></div>
+        <div><p class="text-[10px] text-gray-500">Drafts</p><p class="text-xl font-bold text-gray-400">${S.weekly.drafted}</p></div>
+      </div>
+      ${S.weekly.published > 0 ? `
+        <div class="mt-4 pt-3 border-t border-gray-800/50">
+          <div class="flex items-center gap-6 text-xs">
+            <span class="text-gray-500">Channel breakdown:</span>
+            <span class="text-purple-400">Threads: ${S.weekly.channels?.threads || 0}</span>
+            <span class="text-gray-300">X: ${S.weekly.channels?.x || 0}</span>
+          </div>
+        </div>
+      ` : `
+        <p class="text-xs text-gray-600 mt-3">이번 주 발행된 글이 없습니다. Queue에서 draft를 승인하면 자동 발행됩니다.</p>
+      `}
+    </div>
+    ` : ""}
+
     <!-- Cron + Activity -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       <div class="card p-5">
@@ -312,6 +477,44 @@ function renderOverview() {
               </div>
             </div>`;
           }).join("") || `<p class="text-xs text-gray-600">No recent activity</p>`}
+        </div>
+      </div>
+    </div>
+
+    <!-- Alerts + Token Status -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      ${S.alerts?.length ? `
+        <div class="card p-5 ${S.alerts.some(a => a.severity === "error") ? "border-red-900/50" : "border-yellow-900/50"}">
+          <h3 class="text-xs font-medium text-red-400 uppercase tracking-wide mb-3">Alerts</h3>
+          <div class="space-y-2">
+            ${S.alerts.map(a => `
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] ${a.severity === "error" ? "text-red-400" : "text-yellow-400"}">${a.severity === "error" ? "●" : "▲"}</span>
+                <span class="text-xs text-gray-300">${esc(a.message)}</span>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      ` : ""}
+
+      <div class="card p-5 ${S.alerts?.length ? "" : "col-span-1"}">
+        <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">AI Engine</h3>
+        ${S.tokenStatus?.claude ? `
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span class="text-gray-500">Claude</span><span class="${S.tokenStatus.claude.healthy ? "text-green-400" : "text-red-400"}">${S.tokenStatus.claude.healthy ? "Healthy" : "Expiring"}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Token</span><span class="text-gray-300">${S.tokenStatus.claude.remainingHours}h remaining</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Errors</span><span class="text-gray-300">${S.tokenStatus.claude.errorCount}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Last used</span><span class="text-gray-300">${S.tokenStatus.claude.lastUsed ? fmtAgo(new Date(S.tokenStatus.claude.lastUsed).toISOString()) : "-"}</span></div>
+          </div>
+        ` : `<p class="text-xs text-gray-600">No data</p>`}
+      </div>
+
+      <div class="card p-5 ${S.alerts?.length ? "" : "col-span-1"}">
+        <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Channels Status</h3>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between"><span class="text-gray-500">Threads</span><span class="${S.tokenStatus?.threads?.connected ? "text-green-400" : "text-gray-600"}">${S.tokenStatus?.threads?.connected ? "Connected" : "Off"}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">X (Twitter)</span><span class="${S.tokenStatus?.x?.connected ? "text-green-400" : "text-yellow-400"}">${S.tokenStatus?.x?.connected ? "Connected" : ""}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Blog</span><span class="text-gray-300">Active</span></div>
         </div>
       </div>
     </div>
@@ -488,6 +691,31 @@ function renderPopular() {
 }
 
 // ── Per-Channel Settings ──
+function renderThreadsCredentials() {
+  const tk = S.channelConfig.threads?.keys || {};
+  return `
+    <div class="card p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-medium text-gray-300">Threads API Credentials</h3>
+        <span class="text-[10px] px-2 py-0.5 rounded bg-purple-900/30 text-purple-400 border border-purple-800/30">Long-lived Token</span>
+      </div>
+      <div class="space-y-3 mb-3">
+        ${credField("threads-accessToken", "Access Token", "", true, tk.accessToken)}
+        <div class="mt-2">${credField("threads-userId", "User ID", "", false, tk.userId)}</div>
+      </div>
+      <button id="save-threads-config" class="w-full py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${S.channelConfig.threads?.connected ? "Update Credentials" : "Connect Threads"}</button>
+    </div>
+    <div class="card p-5">
+      <h3 class="text-sm font-medium text-gray-300 mb-3">Threads Channel Info</h3>
+      <div class="space-y-2 text-sm">
+        <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="${S.channelConfig.threads?.connected ? "text-green-400" : "text-yellow-400"}">${S.channelConfig.threads?.connected ? "Connected" : "Not connected"}</span></div>
+        <div class="flex justify-between"><span class="text-gray-500">Username</span><span class="text-gray-300">${S.channelConfig.threads?.username ? "@" + S.channelConfig.threads.username : "-"}</span></div>
+        <div class="flex justify-between"><span class="text-gray-500">Character Limit</span><span class="text-gray-300">500</span></div>
+        <div class="flex justify-between"><span class="text-gray-500">Token Validity</span><span class="text-gray-300">60\uc77c (\uac31\uc2e0 \ud544\uc694)</span></div>
+      </div>
+    </div>`;
+}
+
 function renderChannelSettings(channel) {
   const s = S.settings || {};
   const cs = (S.channelSettings.settings || {})[channel] || {};
@@ -524,6 +752,7 @@ function renderChannelSettings(channel) {
 
   return `
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      ${channel === "threads" ? renderThreadsCredentials() : ""}
       <div class="card p-5">
         <h3 class="text-sm font-medium text-gray-300 mb-4">Automation</h3>
         ${features.map(f => {
@@ -627,27 +856,65 @@ function renderChannelX() {
   </div>`;
 }
 
+function credField(id, label, desc, isSecret = false, fullValue = "") {
+  return `<div>
+    <label class="text-xs text-gray-400 block mb-0.5">${label} ${desc ? `<span class="text-gray-600">${desc}</span>` : ""}</label>
+    <div class="relative">
+      <input id="${id}" type="${isSecret ? "password" : "text"}" value="${esc(fullValue)}" placeholder="${label}" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 pr-16 text-sm text-gray-300 placeholder-gray-600 font-mono">
+      ${isSecret ? `<button type="button" data-toggle-vis="${id}" class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 hover:text-gray-300">Show</button>` : ""}
+    </div>
+  </div>`;
+}
+
 function renderXSettings() {
+  const connected = S.channelConfig.x?.connected;
+  const k = S.channelConfig.x?.keys || {};
   return `
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div class="card p-5">
-        <h3 class="text-sm font-medium text-gray-300 mb-4">X API Credentials</h3>
-        <div class="space-y-3">
-          <div><label class="text-xs text-gray-500 block mb-1">API Key</label><input id="x-apiKey" type="text" placeholder="Enter API Key" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 placeholder-gray-600"></div>
-          <div><label class="text-xs text-gray-500 block mb-1">API Key Secret</label><input id="x-apiKeySecret" type="password" placeholder="Enter API Key Secret" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 placeholder-gray-600"></div>
-          <div><label class="text-xs text-gray-500 block mb-1">Access Token</label><input id="x-accessToken" type="text" placeholder="Enter Access Token" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 placeholder-gray-600"></div>
-          <div><label class="text-xs text-gray-500 block mb-1">Access Token Secret</label><input id="x-accessTokenSecret" type="password" placeholder="Enter Access Token Secret" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 placeholder-gray-600"></div>
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-medium text-gray-300">OAuth 1.0 Keys</h3>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-blue-900/30 text-blue-400 border border-blue-800/30">OAuth 1.0a</span>
         </div>
-        <button id="save-x-config" class="w-full mt-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${S.channelConfig.x?.connected ? "Update Credentials" : "Connect X Account"}</button>
-        <p class="text-[10px] text-gray-600 mt-3 text-center">Get credentials at developer.x.com</p>
+        <div class="p-2 rounded bg-yellow-900/20 border border-yellow-800/20 mb-4">
+          <p class="text-[10px] text-yellow-400/80">X Developer Portal > <strong>Keys and tokens</strong> > OAuth 1.0 \uc139\uc158. OAuth 2.0 Client ID/Secret\uc740 \uc0ac\uc6a9\ud558\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.</p>
+        </div>
+        <div class="space-y-4">
+          <div class="border-b border-gray-800/50 pb-3">
+            <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">\uc18c\ube44\uc790 \ud0a4 (Consumer Keys)</p>
+            ${credField("x-apiKey", "\uc18c\ube44\uc790 \ud0a4 (API Key)", "", false, k.apiKey)}
+            <div class="mt-2">${credField("x-apiKeySecret", "\uc18c\ube44\uc790 \uc2dc\ud06c\ub9bf (API Key Secret)", "", true, k.apiKeySecret)}</div>
+          </div>
+          <div>
+            <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">\uc561\uc138\uc2a4 \ud1a0\ud070 (Access Token)</p>
+            ${credField("x-accessToken", "\uc561\uc138\uc2a4 \ud1a0\ud070 (Access Token)", "", false, k.accessToken)}
+            <div class="mt-2">${credField("x-accessTokenSecret", "\uc561\uc138\uc2a4 \ud1a0\ud070 \uc2dc\ud06c\ub9bf (Access Token Secret)", "", true, k.accessTokenSecret)}</div>
+          </div>
+        </div>
+        <button id="save-x-config" class="w-full mt-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${connected ? "Update Credentials" : "Connect X Account"}</button>
       </div>
-      <div class="card p-5">
-        <h3 class="text-sm font-medium text-gray-300 mb-4">X Channel Info</h3>
-        <div class="space-y-2 text-sm">
-          <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="${S.channelConfig.x?.connected ? "text-green-400" : "text-yellow-400"}">${S.channelConfig.x?.connected ? "Connected" : "Not connected"}</span></div>
-          <div class="flex justify-between"><span class="text-gray-500">Character Limit</span><span class="text-gray-300">280</span></div>
-          <div class="flex justify-between"><span class="text-gray-500">API Plan</span><span class="text-gray-300">Basic ($100/mo) required</span></div>
-          <div class="flex justify-between"><span class="text-gray-500">Auth Method</span><span class="text-gray-300">OAuth 1.0a</span></div>
+      <div class="space-y-4">
+        <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-3">X Channel Info</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="${connected ? "text-green-400" : "text-yellow-400"}">${connected ? "Connected" : "Not connected"}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Character Limit</span><span class="text-gray-300">280</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Auth Method</span><span class="text-gray-300">OAuth 1.0a (User Context)</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Permission</span><span class="text-gray-300">Read and Write \ud544\uc218</span></div>
+          </div>
+        </div>
+        <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-3">Setup Guide</h3>
+          <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
+            <li><a href="https://developer.x.com" target="_blank" class="text-blue-400 hover:underline">developer.x.com</a> > Dashboard > Create App</li>
+            <li>App Settings > <strong class="text-gray-300">User authentication settings</strong> > Edit
+              <div class="ml-4 mt-0.5 text-gray-500">- App permissions: <strong class="text-gray-300">Read and write</strong><br>- Type of App: Web App<br>- Website URL: https://example.com<br>- Callback URL: https://example.com/callback</div>
+            </li>
+            <li>Keys and tokens > <strong class="text-gray-300">\uc18c\ube44\uc790 \ud0a4</strong> > \uc7ac\uc0dd\uc131 > Key + Secret \ubcf5\uc0ac</li>
+            <li>Keys and tokens > <strong class="text-gray-300">\uc561\uc138\uc2a4 \ud1a0\ud070</strong> > \uc0dd\uc131 (Read+Write) > Token + Secret \ubcf5\uc0ac</li>
+            <li>\uc67c\ucabd \ud3fc\uc5d0 4\uac1c \ud0a4 \uc785\ub825 > Connect</li>
+          </ol>
+          <p class="text-[10px] text-yellow-500/70 mt-2">* \uad8c\ud55c \ubcc0\uacbd \ud6c4 \ubc18\ub4dc\uc2dc \uc561\uc138\uc2a4 \ud1a0\ud070\uc744 \uc7ac\uc0dd\uc131\ud574\uc57c \ud569\ub2c8\ub2e4</p>
         </div>
       </div>
     </div>`;
@@ -667,8 +934,8 @@ function renderSettings() {
             <span class="text-[10px] ${S.channelConfig.threads?.connected ? "text-green-400" : "text-gray-600"}">${S.channelConfig.threads?.connected ? "Connected" : "Not connected"}</span>
           </div>
           <div class="flex items-center justify-between p-3 rounded-lg bg-gray-900/50 cursor-pointer hover:bg-gray-800/50" data-nav="x">
-            <div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-gray-700 flex items-center justify-center text-[9px] font-bold text-white">X</span><div><p class="text-xs text-gray-300">X (Twitter)</p><p class="text-[10px] text-gray-600">${S.channelConfig.x?.connected ? "OAuth 1.0a" : "Setup required"}</p></div></div>
-            <span class="text-[10px] ${S.channelConfig.x?.connected ? "text-green-400" : "text-yellow-400"}">${S.channelConfig.x?.connected ? "Connected" : "Setup"}</span>
+            <div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-gray-700 flex items-center justify-center text-[9px] font-bold text-white">X</span><div><p class="text-xs text-gray-300">X (Twitter)</p><p class="text-[10px] text-gray-600">${S.channelConfig.x?.connected ? "OAuth 1.0a" : ""}</p></div></div>
+            <span class="text-[10px] ${S.channelConfig.x?.connected ? "text-blue-400" : "text-gray-600"}">${S.channelConfig.x?.connected ? "Connected" : ""}</span>
           </div>
           <div class="flex items-center justify-between p-3 rounded-lg bg-gray-900/50 opacity-50">
             <div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-gray-700 flex items-center justify-center text-[8px] font-bold text-gray-500">IG</span><div><p class="text-xs text-gray-500">Instagram</p></div></div>
@@ -677,13 +944,27 @@ function renderSettings() {
         </div>
         <p class="text-[10px] text-gray-600 mt-4">Click a channel to manage its settings</p>
       </div>
-      <div class="card p-5">
-        <h3 class="text-sm font-medium text-gray-300 mb-4">System Status</h3>
-        <div class="space-y-2.5">
-          ${S.cronJobs.map(j => {
-            const dot = j.lastStatus === "ok" ? "bg-green-500" : j.lastStatus === "error" ? "bg-red-500" : "bg-gray-600";
-            return `<div class="flex items-center justify-between"><div class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full ${dot}"></div><span class="text-xs text-gray-300">${esc(j.name)}</span></div><span class="text-[10px] text-gray-500">${j.lastStatus === "error" ? '<span class="text-red-400">error</span>' : fmtTime(j.nextRunAt)}</span></div>`;
-          }).join("")}
+      <div class="space-y-4">
+        <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-4">System Status</h3>
+          <div class="space-y-2.5">
+            ${S.cronJobs.map(j => {
+              const dot = j.lastStatus === "ok" ? "bg-green-500" : j.lastStatus === "error" ? "bg-red-500" : "bg-gray-600";
+              return `<div class="flex items-center justify-between"><div class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full ${dot}"></div><span class="text-xs text-gray-300">${esc(j.name)}</span></div><span class="text-[10px] text-gray-500">${j.lastStatus === "error" ? '<span class="text-red-400">error</span>' : fmtTime(j.nextRunAt)}</span></div>`;
+            }).join("")}
+          </div>
+        </div>
+        <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-4">Account</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span class="text-gray-500">Auth</span><span class="text-gray-300">${getAuthToken() ? "Token (localStorage)" : "No auth"}</span></div>
+          </div>
+          ${getAuthToken() ? `
+            <div class="flex gap-2 mt-4">
+              <button id="btn-logout" class="px-4 py-2 text-xs bg-gray-800 text-gray-300 rounded hover:bg-gray-700">Logout</button>
+              <button id="btn-change-pw" class="px-4 py-2 text-xs bg-gray-800 text-gray-300 rounded hover:bg-gray-700">Change Token</button>
+            </div>
+          ` : `<p class="text-[10px] text-gray-600 mt-3">DASHBOARD_AUTH_TOKEN 환경변수 설정 시 로그인 활성화</p>`}
         </div>
       </div>
     </div>
@@ -693,6 +974,11 @@ function renderSettings() {
 // ── Event Binding ──
 function bindEvents() {
   document.querySelectorAll("[data-nav]").forEach(el => { el.onclick = () => navigate(el.dataset.nav); });
+  document.querySelectorAll("[data-sidebar-toggle]").forEach(el => { el.onclick = () => { S.sidebarCollapsed[el.dataset.sidebarToggle] = !S.sidebarCollapsed[el.dataset.sidebarToggle]; render(); }; });
+  const logoutBtn = document.getElementById("btn-logout");
+  if (logoutBtn) logoutBtn.onclick = () => { localStorage.removeItem("dashboard_auth_token"); location.reload(); };
+  const changePwBtn = document.getElementById("btn-change-pw");
+  if (changePwBtn) changePwBtn.onclick = () => { localStorage.removeItem("dashboard_auth_token"); promptLogin(); };
   document.querySelectorAll("[data-subtab]").forEach(el => { el.onclick = () => { S.subTab = el.dataset.subtab; switchSubTab(el.dataset.subtab); }; });
   document.querySelectorAll("[data-filter]").forEach(el => { el.onclick = () => { S.queueFilter = el.dataset.filter; loadQueue(S.queueFilter); }; });
   document.querySelectorAll("[data-approve]").forEach(el => { el.onclick = () => approvePost(el.dataset.approve); });
@@ -761,6 +1047,26 @@ function bindEvents() {
     el.dataset.prevValue = el.value;
   });
 
+  // Show/Hide toggle for credential fields
+  document.querySelectorAll("[data-toggle-vis]").forEach(el => {
+    el.onclick = () => {
+      const input = document.getElementById(el.dataset.toggleVis);
+      if (input) { const show = input.type === "password"; input.type = show ? "text" : "password"; el.textContent = show ? "Hide" : "Show"; }
+    };
+  });
+
+  // Threads credential save
+  const saveThreads = document.getElementById("save-threads-config");
+  if (saveThreads) saveThreads.onclick = async () => {
+    const data = {};
+    const at = document.getElementById("threads-accessToken");
+    const uid = document.getElementById("threads-userId");
+    if (at?.value) data.accessToken = at.value;
+    if (uid?.value) data.userId = uid.value;
+    const r = await API.post("/api/channel-config/threads", data);
+    if (r) { showToast("Threads 설정 저장됨", "success"); loadOverview(); }
+  };
+
   const saveX = document.getElementById("save-x-config");
   if (saveX) saveX.onclick = async () => {
     const data = {};
@@ -768,14 +1074,34 @@ function bindEvents() {
     const r = await API.post("/api/channel-config/x", data);
     if (r) { showToast(r.enabled ? "X 연결 완료!" : "저장됨", "success"); loadOverview(); }
   };
+
+  // Generic channel credential save
+  Object.keys(CH_LABELS).forEach(key => {
+    const btn = document.getElementById(`save-ch-${key}`);
+    if (btn) btn.onclick = async () => {
+      const sg = { facebook: ["accessToken","pageId"], bluesky: ["handle","appPassword"], instagram: ["accessToken","userId"], linkedin: ["accessToken","personUrn"], pinterest: ["accessToken","boardId"], tumblr: ["consumerKey","consumerSecret","accessToken","accessTokenSecret","blogName"], tiktok: ["accessToken"], youtube: ["accessToken"], telegram: ["botToken","chatId"], discord: ["webhookUrl"], line: ["channelAccessToken"], naver_blog: ["blogId","username","apiKey"] };
+      const fields = sg[key] || [];
+      const data = {};
+      fields.forEach(f => { const el = document.getElementById(`ch-${key}-${f}`); if (el?.value) data[f] = el.value; });
+      const r = await API.post(`/api/channel-config/${key}`, data);
+      if (r) { showToast(r.enabled ? `${CH_LABELS[key]} 연결 완료!` : "저장됨", "success"); loadOverview(); }
+    };
+  });
+
+  // Blog actions
+  document.querySelectorAll("[data-blog-approve]").forEach(el => { el.onclick = () => approveBlogPost(el.dataset.blogApprove); });
+  document.querySelectorAll("[data-blog-delete]").forEach(el => { el.onclick = () => deleteBlogPost(el.dataset.blogDelete); });
 }
 
 function navigate(page) {
   S.page = page;
+  window.location.hash = page;
   if (page === "overview") loadOverview();
   else if (page === "threads") { S.subTab = "queue"; loadQueue(S.queueFilter); loadGrowth(); loadImages(); }
   else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); }
   else if (page === "images") loadImages();
+  else if (page === "blog") loadBlogQueue();
+  else if (CH_LABELS[page]) loadOverview(); // generic channels use overview data
   else if (page === "settings") { loadSettings(); loadKeywords(); }
   render();
 }
@@ -957,10 +1283,113 @@ async function deleteImage(filename) {
   } catch (e) { showToast("삭제 실패: " + e.message, "error"); }
 }
 
+// ── Generic Channel Page ──
+function renderGenericChannel(key) {
+  const label = CH_LABELS[key] || key;
+  const ch = S.channelConfig[key] || {};
+  const status = ch.status || "soon";
+  const keys = ch.keys || {};
+  const hasKeys = Object.values(keys).some(v => v);
+
+  const setupGuides = {
+    facebook: { fields: ["accessToken", "pageId"], labels: ["Page Access Token", "Page ID"], guide: "developers.facebook.com > 앱 만들기 > Facebook Login > Page Access Token 발급" },
+    bluesky: { fields: ["handle", "appPassword"], labels: ["Handle (e.g. user.bsky.social)", "App Password"], guide: "bsky.app > Settings > App Passwords > 새 비밀번호 생성" },
+    instagram: { fields: ["accessToken", "userId"], labels: ["Graph API Access Token", "Instagram Business User ID"], guide: "developers.facebook.com > Instagram Graph API > Business 계정 연결 필요 (App Review 2-4주)" },
+    linkedin: { fields: ["accessToken", "personUrn"], labels: ["OAuth 2.0 Access Token", "Person URN (urn:li:person:xxx)"], guide: "LinkedIn Partner Program 승인 필요. learn.microsoft.com/linkedin" },
+    pinterest: { fields: ["accessToken", "boardId"], labels: ["OAuth 2.0 Access Token", "Board ID"], guide: "developers.pinterest.com > 앱 생성 > OAuth 토큰 발급" },
+    tumblr: { fields: ["consumerKey", "consumerSecret", "accessToken", "accessTokenSecret", "blogName"], labels: ["Consumer Key", "Consumer Secret", "Access Token", "Access Token Secret", "Blog Name"], guide: "tumblr.com/oauth/apps > OAuth 1.0a 앱 등록" },
+    tiktok: { fields: ["accessToken"], labels: ["OAuth Access Token"], guide: "developers.tiktok.com > 앱 생성 > Content Posting API 심사 필요 (심사 전 비공개만)" },
+    youtube: { fields: ["accessToken"], labels: ["Google OAuth 2.0 Access Token"], guide: "console.cloud.google.com > YouTube Data API v3 활성화 > OAuth 토큰. 커뮤니티 글 API는 미지원 (영상 업로드만)" },
+    telegram: { fields: ["botToken", "chatId"], labels: ["Bot Token (@BotFather)", "Chat/Channel ID (@channelname 또는 -100xxx)"], guide: "Telegram에서 @BotFather에게 /newbot으로 봇 생성 → 토큰 발급" },
+    discord: { fields: ["webhookUrl"], labels: ["Webhook URL"], guide: "Discord 채널 설정 > 연동 > 웹후크 > 새 웹후크 만들기 > URL 복사" },
+    line: { fields: ["channelAccessToken"], labels: ["Channel Access Token (long-lived)"], guide: "developers.line.biz > LINE Official Account > Messaging API > Channel Access Token 발급" },
+    naver_blog: { fields: ["blogId", "username", "apiKey"], labels: ["Blog ID", "Username", "API Key (XML-RPC)"], guide: "네이버 블로그 관리 > 글쓰기 API 설정. 공식 REST API 없음 (레거시 XML-RPC)" },
+  };
+
+  const sg = setupGuides[key] || { fields: [], labels: [], guide: "Setup guide not available yet." };
+
+  return `<div class="px-8 py-6">
+    <button data-nav="overview" class="text-gray-500 hover:text-gray-300 text-sm mb-1">&larr; Back</button>
+    <div class="flex items-center gap-3 mb-6">
+      <span class="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center text-sm font-bold text-white">${label[0]}</span>
+      <div><h2 class="text-xl font-semibold text-white">${label}</h2><p class="text-xs text-gray-500">${CH_STATUS_LABEL[status] || status}</p></div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="card p-5">
+        <h3 class="text-sm font-medium text-gray-300 mb-4">Credentials</h3>
+        <div class="space-y-3">
+          ${sg.fields.map((f, i) => credField(`ch-${key}-${f}`, sg.labels[i], "", f.toLowerCase().includes("secret") || f.toLowerCase().includes("password") || f.toLowerCase().includes("token"), keys[f] || "")).join("")}
+        </div>
+        <button id="save-ch-${key}" class="w-full mt-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${hasKeys ? "Update" : "Connect"}</button>
+      </div>
+      <div class="space-y-4">
+        <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-3">Channel Info</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="${CH_STATUS_BADGE[status] || ""} text-xs px-1.5 py-0.5 rounded">${CH_STATUS_LABEL[status] || status}</span></div>
+          </div>
+        </div>
+        <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-3">Setup Guide</h3>
+          <p class="text-xs text-gray-400">${sg.guide}</p>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Blog ──
+async function loadBlogQueue() { const d = await API.get("/api/blog-queue"); if (d) S.blogQueue = d.posts || []; render(); }
+async function approveBlogPost(id) { const r = await API.post("/api/blog-queue/" + id + "/approve"); if (r) { showToast("블로그 글 승인", "success"); loadBlogQueue(); } }
+async function deleteBlogPost(id) { if (!confirm("삭제?")) return; const r = await API.post("/api/blog-queue/" + id + "/delete"); if (r) { showToast("삭제 완료", "success"); loadBlogQueue(); } }
+
+function renderBlog() {
+  const posts = S.blogQueue || [];
+  const sc = { draft: "bg-yellow-900/40 text-yellow-300", approved: "bg-blue-900/40 text-blue-300", published: "bg-green-900/40 text-green-300", failed: "bg-red-900/40 text-red-300" };
+  return `<div class="px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div><h2 class="text-xl font-bold text-white">Blog Queue</h2><p class="text-xs text-gray-500 mt-1">SEO 블로그 글 자동 생성 파이프라인</p></div>
+      <span class="text-sm text-gray-500">${posts.length} posts</span>
+    </div>
+    ${posts.length === 0 ? `<div class="card p-8 text-center"><p class="text-gray-500 text-sm">블로그 글이 없습니다.</p></div>` : ""}
+    <div class="space-y-3">
+    ${posts.map(p => `
+      <div class="card p-4">
+        <div class="flex items-start justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] px-1.5 py-0.5 rounded ${sc[p.status] || "bg-gray-700 text-gray-300"}">${esc(p.status)}</span>
+            ${p.seoKeyword ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-900/40 text-cyan-300">${esc(p.seoKeyword)}</span>` : ""}
+            ${p.blogPostUrl ? `<a href="${esc(p.blogPostUrl)}" target="_blank" class="text-[10px] text-blue-400 hover:underline">View &rarr;</a>` : ""}
+          </div>
+          <span class="text-[10px] text-gray-600">${esc((p.id || "").slice(0, 8))}</span>
+        </div>
+        <h3 class="text-sm font-medium text-gray-200 mb-1">${esc(p.title || "")}</h3>
+        <p class="text-xs text-gray-500 mb-2">${esc((p.content || "").replace(/<[^>]*>/g, "").slice(0, 150))}...</p>
+        ${p.tags?.length ? `<div class="flex flex-wrap gap-1 mb-2">${p.tags.slice(0, 8).map(t => `<span class="text-[10px] text-cyan-400">#${esc(t)}</span>`).join("")}</div>` : ""}
+        <div class="flex gap-2 mt-2">
+          ${p.status === "draft" ? `<button data-blog-approve="${p.id}" class="px-2 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>` : ""}
+          ${p.status !== "published" ? `<button data-blog-delete="${p.id}" class="px-2 py-1 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">Delete</button>` : ""}
+        </div>
+      </div>
+    `).join("")}
+    </div>
+  </div>`;
+}
+
 // ── Init ──
-document.addEventListener("DOMContentLoaded", () => {
-  if (!getAuthToken()) { promptLogin(); return; }
+document.addEventListener("DOMContentLoaded", async () => {
+  const test = await fetch("/api/overview", { headers: authHeaders() });
+  if (test.status === 401 && !getAuthToken()) { promptLogin(); return; }
+  // Restore page from URL hash
+  const hash = window.location.hash.replace("#", "");
+  if (hash) S.page = hash;
   loadOverview();
   loadImages();
   render();
+});
+
+window.addEventListener("hashchange", () => {
+  const hash = window.location.hash.replace("#", "");
+  if (hash && hash !== S.page) { S.page = hash; render(); }
 });

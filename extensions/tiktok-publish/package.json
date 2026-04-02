@@ -1,0 +1,12 @@
+{
+  "name": "@openclaw/tiktok-publish",
+  "version": "2026.4.2",
+  "private": true,
+  "description": "OpenClaw TikTok Publish plugin",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
