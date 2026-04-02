@@ -311,12 +311,12 @@ function generateReplyText(commentText: string, username: string | undefined, to
 async function cleanupLowEngagement(config: ResolvedConfig, minViews: number, minLikes: number) {
   const queue = await readJson<QueueData>(config.queuePath, { version: 1, posts: [] });
   const now = new Date();
-  const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+  const CLEANUP_AGE_MS = 24 * 60 * 60 * 1000; // 24시간
 
   const toDelete = queue.posts.filter((p) => {
     if (p.status !== "published" || !p.threadsMediaId || !p.publishedAt) return false;
     const age = now.getTime() - new Date(p.publishedAt).getTime();
-    if (age < THREE_DAYS_MS) return false;
+    if (age < CLEANUP_AGE_MS) return false;
     if (!p.engagement) return false;
     return p.engagement.views < minViews && p.engagement.likes < minLikes;
   });
