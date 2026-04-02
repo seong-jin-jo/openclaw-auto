@@ -36,19 +36,19 @@ CRON_JOBS_PATH = CONFIG_DIR / "cron" / "jobs.json"
 CHANNEL_SETTINGS_PATH = Path(DATA_DIR) / "channel-settings.json"
 
 AUTOMATION_FEATURES = [
-    {"key": "content_generation",    "label": "Content Generation",    "description": "콘텐츠 배치 생성", "default": True},
-    {"key": "auto_publish",          "label": "Auto Publish",          "description": "승인 글 자동 발행", "default": True},
-    {"key": "insights_collection",   "label": "Insights Collection",   "description": "발행 글 반응 수집", "default": True},
-    {"key": "auto_like_replies",     "label": "Auto Like Replies",     "description": "댓글 자동 좋아요", "default": True},
-    {"key": "auto_reply",            "label": "Auto Reply",            "description": "댓글 자동 답글 (AI 톤)", "default": False},
-    {"key": "low_engagement_cleanup","label": "Low Engagement Cleanup","description": "저조한 글 자동 삭제", "default": False},
-    {"key": "trending_collection",   "label": "Trending Collection",   "description": "외부 인기글 수집", "default": True},
-    {"key": "trending_rewrite",      "label": "Trending Rewrite",      "description": "트렌드 재가공", "default": False},
-    {"key": "quote_trending",        "label": "Quote Trending",        "description": "인기글 인용 게시", "default": False},
-    {"key": "series_followup",       "label": "Series Follow-up",      "description": "반응 좋은 토픽 시리즈 후속글", "default": False},
-    {"key": "casual_posts",          "label": "Casual Posts",          "description": "일상/감성 글 자동 생성", "default": False},
-    {"key": "follower_tracking",     "label": "Follower Tracking",     "description": "팔로워 추적", "default": True},
-    {"key": "image_generation",      "label": "Image Generation",      "description": "이미지 자동 생성/첨부", "default": False},
+    {"key": "content_generation",    "label": "Content Generation",    "description": "prompt-guide 기반 글 배치 생성 → draft 저장", "detail": "6시간마다 prompt-guide.txt + style-data.json + popular-posts.txt를 참고하여 draftsPerBatch개(기본 5) 글을 자동 생성합니다. 대시보드에서 검수/승인 후 발행됩니다.", "default": True},
+    {"key": "auto_publish",          "label": "Auto Publish",          "description": "승인된 글 자동 발행 (1개씩)", "detail": "2시간마다 승인(approved) 상태인 글 중 가장 이른 예약 글 1개를 Threads에 발행합니다. 이미지가 있으면 IMAGE 타입으로 발행합니다.", "default": True},
+    {"key": "insights_collection",   "label": "Insights Collection",   "description": "발행 글 views/likes/replies 수집", "detail": "6시간마다 발행된 글의 engagement 지표를 Threads API로 수집합니다. viral 기준(viralThreshold) 초과 시 popular-posts.txt에 자동 등록됩니다.", "default": True},
+    {"key": "auto_like_replies",     "label": "Auto Like Replies",     "description": "내 글에 달린 댓글에 좋아요", "detail": "insights 수집 시 함께 실행됩니다. 발행된 모든 글의 댓글에 자동으로 좋아요를 누릅니다.", "default": True},
+    {"key": "auto_reply",            "label": "Auto Reply",            "description": "미답변 댓글에 AI 톤 자동 답글", "detail": "댓글 내용을 분석하여 질문/공감/감사 등에 맞는 자연스러운 답글을 작성합니다. 이미 답한 댓글은 건너뜁니다.", "default": False},
+    {"key": "low_engagement_cleanup","label": "Low Engagement Cleanup","description": "24시간 후 반응 저조 글 자동 삭제", "detail": "발행 24시간 경과 후 views < 100 AND likes < 3인 글을 Threads에서 삭제합니다. 삭제된 글은 대시보드 Analytics에 archived로 기록됩니다.", "default": False},
+    {"key": "trending_collection",   "label": "Trending Collection",   "description": "키워드 기반 외부 인기글 브라우저 수집", "detail": "6시간마다 search-keywords.txt 키워드로 Threads 검색 페이지를 스크래핑하여 외부 인기글(likes, username, URL)을 수집합니다. minLikes 이상만 저장합니다.", "default": True},
+    {"key": "trending_rewrite",      "label": "Trending Rewrite",      "description": "수집된 인기글을 우리 톤으로 재가공", "detail": "주 1회 popular-posts.txt의 인기글을 분석하고, 우리 prompt-guide.txt 톤으로 리라이팅하여 draft로 저장합니다.", "default": False},
+    {"key": "quote_trending",        "label": "Quote Trending",        "description": "외부 인기글 인용 게시 (우리 관점 추가)", "detail": "insights 수집 시 external 인기글 중 1개를 골라 우리 관점 코멘트와 함께 인용 게시(quote post)합니다.", "default": False},
+    {"key": "series_followup",       "label": "Series Follow-up",      "description": "반응 좋은 토픽으로 시리즈 후속글", "detail": "글 생성 시 own-viral 중 반응이 가장 좋은 토픽을 골라 시리즈 후속글 1개를 추가 생성합니다.", "default": False},
+    {"key": "casual_posts",          "label": "Casual Posts",          "description": "일상/감성 톤 글 (사람처럼 보이기)", "detail": "글 생성 시 casualPerBatch개(기본 1)를 일상 톤으로 생성합니다. 카페 코딩, 날씨 감상, 소소한 일상 등. 자동화 봇처럼 보이지 않게 합니다.", "default": False},
+    {"key": "follower_tracking",     "label": "Follower Tracking",     "description": "팔로워 수/증감 매일 추적", "detail": "매일 Threads 팔로워 수를 기록하고 증감을 추적합니다. Growth 탭에서 확인할 수 있습니다.", "default": True},
+    {"key": "image_generation",      "label": "Image Generation",      "description": "배치 중 일부에 AI 이미지 자동 생성", "detail": "글 생성 시 imagePerBatch개(기본 1)에 AI 일러스트를 생성하여 첨부합니다. 발행 시 자동으로 퍼블릭 URL로 업로드됩니다.", "default": False},
 ]
 
 DEFAULT_SETTINGS = {
@@ -478,6 +478,31 @@ def api_popular_add():
     with open(POPULAR_PATH, "a", encoding="utf-8") as f:
         f.write(entry)
     logger.info("Popular post added: %s", text[:50])
+    return jsonify({"ok": True})
+
+
+@app.route("/api/popular/delete", methods=["POST"])
+def api_popular_delete():
+    data = get_json_body()
+    index = data.get("index")
+    if not isinstance(index, int) or index < 0:
+        return jsonify({"error": "invalid index"}), 400
+    posts = parse_popular_posts()
+    if index >= len(posts):
+        return jsonify({"error": "index out of range"}), 404
+    posts.pop(index)
+    # Rebuild file
+    header = "# Threads 인기글 참고 목록\n# source: manual(수동), external(외부수집), own-viral(자체바이럴)\n# type: 꿀팁, 공감, 의견, 경험담, 밈\n"
+    entries = ""
+    for p in posts:
+        entries += "\n---\n"
+        for k, v in p.items():
+            if k != "text":
+                entries += f"{k}: {v}\n"
+        entries += f"text: {p.get('text', '')}\n"
+    with open(POPULAR_PATH, "w", encoding="utf-8") as f:
+        f.write(header + entries)
+    logger.info("Popular post deleted at index %d", index)
     return jsonify({"ok": True})
 
 
