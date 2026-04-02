@@ -230,8 +230,8 @@ function render() {
 }
 
 const CH_LABELS = { instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", bluesky: "Bluesky", pinterest: "Pinterest", tumblr: "Tumblr", tiktok: "TikTok", youtube: "YouTube", telegram: "Telegram", discord: "Discord", line: "LINE", naver_blog: "Naver Blog" };
-const CH_STATUS_BADGE = { live: "bg-green-900/50 text-green-400", connect: "bg-gray-800 text-gray-500", soon: "bg-gray-800 text-gray-700" };
-const CH_STATUS_LABEL = { live: "Live", connect: "+", soon: "" };
+const CH_STATUS_BADGE = { live: "bg-green-900/50 text-green-400", connected: "bg-blue-900/50 text-blue-400", available: "", soon: "" };
+const CH_STATUS_LABEL = { live: "Live", connected: "Connected", available: "", soon: "" };
 
 function chSidebarItem(key) {
   const ch = S.channelConfig[key] || {};
@@ -240,8 +240,11 @@ function chSidebarItem(key) {
   if (status === "live") {
     return { key, label, icon: label[0], nav: true, status: "Live", statusClass: CH_STATUS_BADGE.live };
   }
-  if (status === "connect") {
-    return { key, label, icon: label[0], nav: true, status: "Connect", statusClass: CH_STATUS_BADGE.connect };
+  if (status === "connected") {
+    return { key, label, icon: label[0], nav: true, status: "Connected", statusClass: CH_STATUS_BADGE.connected };
+  }
+  if (status === "available") {
+    return { key, label, icon: label[0], nav: true }; // no badge
   }
   return { label, icon: label[0], soon: true };
 }
@@ -303,7 +306,7 @@ function renderSidebar() {
 
         ${sidebarGroup("social", "Social", [
           { key: "threads", label: "Threads", icon: "T", iconClass: "bg-gradient-to-br from-purple-500 to-pink-500 text-white", nav: true, status: S.channelConfig.threads?.connected ? "Live" : "Off", statusClass: S.channelConfig.threads?.connected ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500" },
-          { key: "x", label: "X (Twitter)", icon: "X", nav: true, status: S.channelConfig.x?.connected ? "Live" : "+", statusClass: S.channelConfig.x?.connected ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500" },
+          { key: "x", label: "X (Twitter)", icon: "X", nav: true, status: S.channelConfig.x?.connected ? (S.channelConfig.x?.enabled ? "Live" : "Connected") : "", statusClass: S.channelConfig.x?.connected ? (S.channelConfig.x?.enabled ? CH_STATUS_BADGE.live : CH_STATUS_BADGE.connected) : "" },
           ...["instagram", "facebook", "linkedin", "bluesky", "pinterest", "tumblr"].map(ch => chSidebarItem(ch)),
         ])}
 
@@ -510,7 +513,7 @@ function renderOverview() {
         <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Channels Status</h3>
         <div class="space-y-2 text-sm">
           <div class="flex justify-between"><span class="text-gray-500">Threads</span><span class="${S.tokenStatus?.threads?.connected ? "text-green-400" : "text-gray-600"}">${S.tokenStatus?.threads?.connected ? "Connected" : "Off"}</span></div>
-          <div class="flex justify-between"><span class="text-gray-500">X (Twitter)</span><span class="${S.tokenStatus?.x?.connected ? "text-green-400" : "text-yellow-400"}">${S.tokenStatus?.x?.connected ? "Connected" : "+"}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">X (Twitter)</span><span class="${S.tokenStatus?.x?.connected ? "text-green-400" : "text-yellow-400"}">${S.tokenStatus?.x?.connected ? "Connected" : ""}</span></div>
           <div class="flex justify-between"><span class="text-gray-500">Blog</span><span class="text-gray-300">Active</span></div>
         </div>
       </div>
@@ -876,7 +879,7 @@ function renderSettings() {
           </div>
           <div class="flex items-center justify-between p-3 rounded-lg bg-gray-900/50 cursor-pointer hover:bg-gray-800/50" data-nav="x">
             <div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-gray-700 flex items-center justify-center text-[9px] font-bold text-white">X</span><div><p class="text-xs text-gray-300">X (Twitter)</p><p class="text-[10px] text-gray-600">${S.channelConfig.x?.connected ? "OAuth 1.0a" : ""}</p></div></div>
-            <span class="text-[10px] ${S.channelConfig.x?.connected ? "text-green-400" : "text-gray-500"}">${S.channelConfig.x?.connected ? "Connected" : "+"}</span>
+            <span class="text-[10px] ${S.channelConfig.x?.connected ? "text-blue-400" : "text-gray-600"}">${S.channelConfig.x?.connected ? "Connected" : ""}</span>
           </div>
           <div class="flex items-center justify-between p-3 rounded-lg bg-gray-900/50 opacity-50">
             <div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-gray-700 flex items-center justify-center text-[8px] font-bold text-gray-500">IG</span><div><p class="text-xs text-gray-500">Instagram</p></div></div>
@@ -1026,6 +1029,7 @@ function bindEvents() {
 
 function navigate(page) {
   S.page = page;
+  window.location.hash = page;
   if (page === "overview") loadOverview();
   else if (page === "threads") { S.subTab = "queue"; loadQueue(S.queueFilter); loadGrowth(); loadImages(); }
   else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); }
@@ -1303,10 +1307,17 @@ function renderBlog() {
 
 // ── Init ──
 document.addEventListener("DOMContentLoaded", async () => {
-  // Try API first — if no auth required, skip login
   const test = await fetch("/api/overview", { headers: authHeaders() });
   if (test.status === 401 && !getAuthToken()) { promptLogin(); return; }
+  // Restore page from URL hash
+  const hash = window.location.hash.replace("#", "");
+  if (hash) S.page = hash;
   loadOverview();
   loadImages();
   render();
+});
+
+window.addEventListener("hashchange", () => {
+  const hash = window.location.hash.replace("#", "");
+  if (hash && hash !== S.page) { S.page = hash; render(); }
 });

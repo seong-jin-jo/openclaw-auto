@@ -921,8 +921,10 @@ def api_channel_config():
         # Status: live (enabled+key), setup (key but not enabled), ready (ext exists, no key), soon (no ext)
         if has_key and p.get("enabled"):
             status = "live"
+        elif has_key:
+            status = "connected"
         elif has_ext:
-            status = "connect"
+            status = "available"
         else:
             status = "soon"
         channels[ch_key] = {"status": status, "enabled": p.get("enabled", False), "connected": has_key, "keys": {k: v for k, v in p_cfg.items() if isinstance(v, str)}}
