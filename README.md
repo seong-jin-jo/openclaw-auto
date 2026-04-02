@@ -135,6 +135,8 @@ cd openclaw-auto
 cp .env.example .env
 cp config/openclaw.json.example config/openclaw.json
 cp config/cron/jobs.json.example config/cron/jobs.json
+cp docker-compose.yml.example docker-compose.yml
+# docker-compose.yml에서 포트, 이미지명 등 서비스에 맞게 수정
 
 # 커스텀 플러그인을 OpenClaw에 복사
 cp -r extensions/* openclaw/extensions/
