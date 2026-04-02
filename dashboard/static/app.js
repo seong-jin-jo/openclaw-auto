@@ -449,7 +449,20 @@ function renderGrowth() {
 }
 
 function renderPopular() {
-  return `<div class="space-y-3">${S.popular.map(p => `
+  return `
+    <div class="card p-4 mb-4">
+      <div class="flex items-center gap-2 mb-3">
+        <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <span class="text-xs text-gray-300">Add External Post</span>
+      </div>
+      <textarea id="ext-post-text" class="w-full bg-gray-900 text-gray-200 text-xs p-2 rounded border border-gray-700 mb-2" rows="3" placeholder="인기글 텍스트를 붙여넣기"></textarea>
+      <div class="flex gap-2">
+        <input id="ext-post-url" type="text" placeholder="Threads URL (선택)" class="flex-1 bg-gray-900 text-gray-200 text-xs p-2 rounded border border-gray-700">
+        <input id="ext-post-topic" type="text" placeholder="키워드/주제" class="w-28 bg-gray-900 text-gray-200 text-xs p-2 rounded border border-gray-700">
+        <button id="ext-post-add" class="px-3 py-1.5 text-xs bg-purple-600 text-white rounded hover:bg-purple-500 shrink-0">Add</button>
+      </div>
+    </div>
+    <div class="space-y-3">${S.popular.map(p => `
     <div class="card p-4">
       <div class="flex items-center gap-2 mb-2">
         <span class="text-xs px-2 py-0.5 rounded bg-purple-900/50 text-purple-300">${p.source || "unknown"}</span>
@@ -705,6 +718,16 @@ function bindEvents() {
   if (saveKw) saveKw.onclick = async () => {
     const ta = document.getElementById("keywords-textarea");
     if (ta) { const kw = ta.value.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("#")); const r = await API.post("/api/keywords", { keywords: kw }); if (r) showToast("키워드 저장됨", "success"); }
+  };
+
+  const extPostBtn = document.getElementById("ext-post-add");
+  if (extPostBtn) extPostBtn.onclick = async () => {
+    const text = document.getElementById("ext-post-text")?.value?.trim();
+    if (!text) { showToast("텍스트를 입력하세요", "warning"); return; }
+    const url = document.getElementById("ext-post-url")?.value?.trim() || "";
+    const topic = document.getElementById("ext-post-topic")?.value?.trim() || "general";
+    const r = await API.post("/api/popular/add", { text, url, topic });
+    if (r) { showToast("인기글 추가됨", "success"); loadPopular(); }
   };
 
   document.querySelectorAll("[data-feature-toggle]").forEach(el => {
