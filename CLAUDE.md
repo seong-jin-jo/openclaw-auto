@@ -81,7 +81,7 @@ OpenClaw Cron → Claude Agent → Tool Registry
 ### 공통
 - `OPENCLAW_GATEWAY_TOKEN`: Gateway 인증 토큰
 - `DASHBOARD_PORT`: 대시보드 포트 (기본: 3456)
-- `DASHBOARD_AUTH_TOKEN`: 대시보드 인증 토큰 (미설정 시 인증 비활성화)
+- `DASHBOARD_AUTH_TOKEN`: 대시보드 인증 토큰. 설정하면 로그인 필수, 미설정 시 누구나 접근 가능. .env에 추가하거나 docker run -e로 전달
 - `VIRAL_THRESHOLD`: 터진 글 기준 views (기본: 500)
 
 ## Cron Jobs
