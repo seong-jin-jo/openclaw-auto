@@ -64,9 +64,22 @@ export function createThreadsPublishTool(api: OpenClawPluginApi) {
         throw new Error(`Text exceeds 500 character limit (${text.length} chars).`);
       }
 
-      const imageUrl = readStringParam(rawParams, "image_url");
+      let imageUrl = readStringParam(rawParams, "image_url");
       const quotePostId = readStringParam(rawParams, "quote_post_id");
       const { accessToken, userId } = resolveConfig(api);
+
+      // Convert local /images/ path to public URL
+      if (imageUrl && imageUrl.startsWith("/images/")) {
+        const publicBase = process.env.DASHBOARD_PUBLIC_URL;
+        if (publicBase) {
+          imageUrl = `${publicBase.replace(/\/+$/, "")}${imageUrl}`;
+        } else {
+          throw new Error(
+            "Cannot publish image: imageUrl is a local path but DASHBOARD_PUBLIC_URL is not set. " +
+            "Set DASHBOARD_PUBLIC_URL env var to your dashboard's public domain (e.g. https://dashboard.example.com).",
+          );
+        }
+      }
 
       // Step 1: Create media container
       const createUrl = `${THREADS_API_BASE}/${userId}/threads`;
