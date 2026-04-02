@@ -1,0 +1,19 @@
+{
+  "id": "linkedin-publish",
+  "name": "LinkedIn Publish",
+  "description": "Publish posts to LinkedIn via Community Management API (Partner Program required)",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "accessToken": {
+        "type": "string",
+        "description": "LinkedIn OAuth 2.0 access token"
+      },
+      "personUrn": {
+        "type": "string",
+        "description": "Person URN (e.g. urn:li:person:xxx)"
+      }
+    }
+  }
+}

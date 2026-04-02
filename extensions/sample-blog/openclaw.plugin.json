@@ -1,0 +1,19 @@
+{
+  "id": "sample-blog",
+  "name": "Sample Blog",
+  "description": "Publish column articles to Sample site via admin API.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "apiBaseUrl": {
+        "type": "string",
+        "description": "Sample API base URL (e.g. https://www.example.com)."
+      },
+      "adminToken": {
+        "type": ["string", "object"],
+        "description": "Sample admin JWT token for column article publishing."
+      }
+    }
+  }
+}

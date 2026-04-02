@@ -7,7 +7,6 @@ import json
 import logging
 import os
 import re
-import secrets
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -30,6 +29,7 @@ STYLE_PATH = Path(os.environ.get("THREADS_STYLE_PATH", DATA_DIR / "style-data.js
 GROWTH_PATH = DATA_DIR / "growth.json"
 POPULAR_PATH = DATA_DIR / "popular-posts.txt"
 KEYWORDS_PATH = DATA_DIR / "search-keywords.txt"
+BLOG_QUEUE_PATH = DATA_DIR / "blog-queue.json"
 SETTINGS_PATH = DATA_DIR / "settings.json"
 CONFIG_DIR = Path(os.environ.get("CONFIG_DIR", Path(__file__).resolve().parent.parent / "config"))
 CRON_JOBS_PATH = CONFIG_DIR / "cron" / "jobs.json"
@@ -67,9 +67,6 @@ DEFAULT_SETTINGS = {
 
 # ── 인증 ──
 AUTH_TOKEN = os.environ.get("DASHBOARD_AUTH_TOKEN", "")
-if not AUTH_TOKEN:
-    AUTH_TOKEN = secrets.token_hex(24)
-    logger.warning("DASHBOARD_AUTH_TOKEN not set! Generated random token: %s", AUTH_TOKEN)
 
 
 def read_settings():
@@ -93,8 +90,10 @@ ALLOWED_ORIGINS = {
 @app.after_request
 def add_cors(response):
     origin = request.headers.get("Origin", "")
-    if origin in ALLOWED_ORIGINS:
+    if origin in ALLOWED_ORIGINS or origin.endswith(".cloudflare-tunnel.cloud") or origin.endswith(".trycloudflare.com"):
         response.headers["Access-Control-Allow-Origin"] = origin
+    elif not origin:
+        response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return response
@@ -103,10 +102,12 @@ def add_cors(response):
 # ── 인증 미들웨어 ──
 @app.before_request
 def check_auth():
+    if not AUTH_TOKEN:
+        return  # 토큰 미설정 시 인증 비활성화
     if request.method == "OPTIONS":
-        return  # CORS preflight 통과
-    if request.path == "/" or request.path.startswith("/images/") or (not request.path.startswith("/api/") and request.path.endswith((".js", ".css", ".ico", ".png", ".svg"))):
-        return  # 정적 파일 통과
+        return
+    if request.path == "/" or request.path.startswith("/images/") or (not request.path.startswith("/api/") and request.path.endswith((".js", ".css", ".ico", ".png", ".svg", ".html"))):
+        return
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
     if token != AUTH_TOKEN:
         return jsonify({"error": "Unauthorized"}), 401
@@ -410,6 +411,51 @@ def api_trend_report():
 
 
 # ── API: Growth ──
+# ── API: Blog Queue ──
+@app.route("/api/blog-queue")
+def api_blog_queue():
+    queue = read_json(BLOG_QUEUE_PATH)
+    if queue is None:
+        return jsonify({"posts": [], "total": 0})
+    status_filter = request.args.get("status")
+    posts = queue.get("posts", [])
+    if status_filter:
+        posts = [p for p in posts if p.get("status") == status_filter]
+    posts.sort(key=lambda p: p.get("generatedAt", ""), reverse=True)
+    return jsonify({"posts": posts, "total": len(posts)})
+
+
+@app.route("/api/blog-queue/<post_id>/approve", methods=["POST"])
+def api_blog_approve(post_id):
+    queue = read_json(BLOG_QUEUE_PATH)
+    if queue is None:
+        return jsonify({"error": "blog-queue.json not found"}), 404
+    for post in queue.get("posts", []):
+        if post["id"] == post_id:
+            post["status"] = "approved"
+            now = datetime.now(timezone.utc)
+            post["approvedAt"] = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+            post["scheduledAt"] = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+            write_json(BLOG_QUEUE_PATH, queue)
+            logger.info("Blog post approved: %s", post_id)
+            return jsonify({"ok": True, "post": post})
+    return jsonify({"error": "post not found"}), 404
+
+
+@app.route("/api/blog-queue/<post_id>/delete", methods=["POST"])
+def api_blog_delete(post_id):
+    queue = read_json(BLOG_QUEUE_PATH)
+    if queue is None:
+        return jsonify({"error": "blog-queue.json not found"}), 404
+    posts = queue.get("posts", [])
+    queue["posts"] = [p for p in posts if p["id"] != post_id]
+    if len(queue["posts"]) == len(posts):
+        return jsonify({"error": "post not found"}), 404
+    write_json(BLOG_QUEUE_PATH, queue)
+    logger.info("Blog post deleted: %s", post_id)
+    return jsonify({"ok": True})
+
+
 @app.route("/api/growth")
 def api_growth():
     growth = read_json(GROWTH_PATH)
@@ -865,21 +911,204 @@ def api_activity():
 
 
 # ── API: Channel Config ──
+# ── API: Weekly Summary ──
+@app.route("/api/weekly-summary")
+def api_weekly_summary():
+    from datetime import timedelta
+    queue = read_json(QUEUE_PATH) or {"posts": []}
+    posts = queue.get("posts", [])
+    now = datetime.now(timezone.utc)
+    week_ago = now - timedelta(days=7)
+
+    # Posts published this week
+    week_published = [p for p in posts if p.get("publishedAt") and datetime.fromisoformat(p["publishedAt"].replace("Z", "+00:00")) > week_ago]
+    week_drafted = [p for p in posts if p.get("generatedAt") and datetime.fromisoformat(p["generatedAt"].replace("Z", "+00:00")) > week_ago and p.get("status") == "draft"]
+
+    # Engagement this week
+    total_views = sum((p.get("engagement") or {}).get("views", 0) for p in week_published)
+    total_likes = sum((p.get("engagement") or {}).get("likes", 0) for p in week_published)
+    total_replies = sum((p.get("engagement") or {}).get("replies", 0) for p in week_published)
+
+    # Channel breakdown
+    ch_breakdown = {"threads": 0, "x": 0}
+    for p in week_published:
+        ch = p.get("channels") or {}
+        if ch.get("threads", {}).get("status") == "published":
+            ch_breakdown["threads"] += 1
+        if ch.get("x", {}).get("status") == "published":
+            ch_breakdown["x"] += 1
+
+    # Cron runs this week
+    cron_data = read_json(CRON_JOBS_PATH) or {"jobs": []}
+    cron_ok = sum(1 for j in cron_data.get("jobs", []) if j.get("state", {}).get("lastRunStatus") == "ok")
+    cron_err = sum(1 for j in cron_data.get("jobs", []) if j.get("state", {}).get("lastRunStatus") == "error")
+
+    return jsonify({
+        "published": len(week_published),
+        "drafted": len(week_drafted),
+        "views": total_views,
+        "likes": total_likes,
+        "replies": total_replies,
+        "engagementRate": round((total_likes + total_replies) / total_views * 100, 1) if total_views > 0 else 0,
+        "channels": ch_breakdown,
+        "cronOk": cron_ok,
+        "cronErr": cron_err,
+    })
+
+
+# ── API: Token Status ──
+@app.route("/api/token-status")
+def api_token_status():
+    import time as _time
+    result = {"claude": None, "threads": None, "x": None}
+    auth_path = CONFIG_DIR / "agents" / "main" / "agent" / "auth-profiles.json"
+    auth = read_json(auth_path)
+    if auth:
+        for k, v in auth.get("profiles", {}).items():
+            exp = v.get("expires", 0)
+            remaining_h = (exp / 1000 - _time.time()) / 3600
+            stats = auth.get("usageStats", {}).get(k, {})
+            result["claude"] = {"profile": k, "type": v.get("type"), "expiresAt": exp, "remainingHours": round(remaining_h, 1), "healthy": remaining_h > 1, "errorCount": stats.get("errorCount", 0), "lastUsed": stats.get("lastUsed")}
+    config = read_json(CONFIG_DIR / "openclaw.json") or {}
+    plugins = config.get("plugins", {}).get("entries", {})
+    tp = plugins.get("threads-publish", {})
+    result["threads"] = {"connected": bool(tp.get("config", {}).get("accessToken", "")), "userId": tp.get("config", {}).get("userId", "")}
+    xp = plugins.get("x-publish", {})
+    result["x"] = {"connected": bool(xp.get("config", {}).get("apiKey", "")), "enabled": xp.get("enabled", False)}
+    return jsonify(result)
+
+
 @app.route("/api/channel-config")
 def api_channel_config():
     config_path = CONFIG_DIR / "openclaw.json"
     config = read_json(config_path) or {}
     plugins = config.get("plugins", {}).get("entries", {})
     channels = {}
+    # Threads
     tp = plugins.get("threads-publish", {})
-    channels["threads"] = {"enabled": tp.get("enabled", False), "userId": tp.get("config", {}).get("userId", ""), "connected": bool(tp.get("config", {}).get("accessToken", ""))}
+    t_cfg = tp.get("config", {})
+    t_token = t_cfg.get("accessToken", "")
+    t_uid = t_cfg.get("userId", "")
+    t_username = ""  # loaded lazily via /api/threads-username
+    channels["threads"] = {"enabled": tp.get("enabled", False), "userId": t_uid, "username": t_username, "connected": bool(t_token), "keys": {"accessToken": t_token, "userId": t_uid}}
+    # X
     xp = plugins.get("x-publish", {})
-    channels["x"] = {"enabled": xp.get("enabled", False), "connected": bool(xp.get("config", {}).get("apiKey", ""))}
+    x_cfg = xp.get("config", {})
+    channels["x"] = {"enabled": xp.get("enabled", False), "connected": bool(x_cfg.get("apiKey", "")), "keys": {"apiKey": x_cfg.get("apiKey", ""), "apiKeySecret": x_cfg.get("apiKeySecret", ""), "accessToken": x_cfg.get("accessToken", ""), "accessTokenSecret": x_cfg.get("accessTokenSecret", "")}}
+
+    # All other channels — check plugin config existence
+    IMPLEMENTED_PLUGINS = {  # plugins that have extension code ready
+        "facebook-publish", "bluesky-publish", "instagram-publish", "linkedin-publish",
+        "pinterest-publish", "tumblr-publish", "tiktok-publish", "youtube-publish",
+        "telegram-publish", "discord-publish", "line-publish", "naver-blog-publish",
+    }
+    other_channels = {
+        "facebook": {"plugin": "facebook-publish", "key_field": "accessToken"},
+        "bluesky": {"plugin": "bluesky-publish", "key_field": "handle"},
+        "instagram": {"plugin": "instagram-publish", "key_field": "accessToken"},
+        "linkedin": {"plugin": "linkedin-publish", "key_field": "accessToken"},
+        "pinterest": {"plugin": "pinterest-publish", "key_field": "accessToken"},
+        "tumblr": {"plugin": "tumblr-publish", "key_field": "consumerKey"},
+        "tiktok": {"plugin": "tiktok-publish", "key_field": "accessToken"},
+        "youtube": {"plugin": "youtube-publish", "key_field": "accessToken"},
+        "telegram": {"plugin": "telegram-publish", "key_field": "botToken"},
+        "discord": {"plugin": "discord-publish", "key_field": "webhookUrl"},
+        "line": {"plugin": "line-publish", "key_field": "channelAccessToken"},
+        "naver_blog": {"plugin": "naver-blog-publish", "key_field": "blogId"},
+    }
+    for ch_key, ch_info in other_channels.items():
+        p = plugins.get(ch_info["plugin"], {})
+        p_cfg = p.get("config", {})
+        has_ext = ch_info["plugin"] in IMPLEMENTED_PLUGINS
+        has_key = bool(p_cfg.get(ch_info["key_field"], ""))
+        # Status: live (enabled+key), setup (key but not enabled), ready (ext exists, no key), soon (no ext)
+        if has_key and p.get("enabled"):
+            status = "live"
+        elif has_key:
+            status = "connected"
+        elif has_ext:
+            status = "available"
+        else:
+            status = "soon"
+        channels[ch_key] = {"status": status, "enabled": p.get("enabled", False), "connected": has_key, "keys": {k: v for k, v in p_cfg.items() if isinstance(v, str)}}
+
     return jsonify(channels)
 
 
-@app.route("/api/channel-config/x", methods=["POST"])
-def api_channel_config_x():
+@app.route("/api/threads-username")
+def api_threads_username():
+    config = read_json(CONFIG_DIR / "openclaw.json") or {}
+    tp = config.get("plugins", {}).get("entries", {}).get("threads-publish", {}).get("config", {})
+    t_token = tp.get("accessToken", "")
+    if not t_token:
+        return jsonify({"username": ""})
+    try:
+        import urllib.request
+        url = f"https://graph.threads.net/v1.0/me?fields=username&access_token={t_token}"
+        with urllib.request.urlopen(url, timeout=3) as resp:
+            return jsonify({"username": json.loads(resp.read()).get("username", "")})
+    except Exception:
+        return jsonify({"username": ""})
+
+
+@app.route("/api/channel-config/<channel>", methods=["POST"])
+def api_channel_config_generic(channel):
+    # Handle threads and x separately (they have custom logic)
+    if channel == "threads":
+        return api_channel_config_threads_impl()
+    if channel == "x":
+        return api_channel_config_x_impl()
+
+    # Generic channel config save
+    plugin_map = {
+        "facebook": "facebook-publish", "bluesky": "bluesky-publish", "instagram": "instagram-publish",
+        "linkedin": "linkedin-publish", "pinterest": "pinterest-publish", "tumblr": "tumblr-publish",
+        "tiktok": "tiktok-publish", "youtube": "youtube-publish", "telegram": "telegram-publish",
+        "discord": "discord-publish", "line": "line-publish", "naver_blog": "naver-blog-publish",
+    }
+    plugin_name = plugin_map.get(channel)
+    if not plugin_name:
+        return jsonify({"error": f"Unknown channel: {channel}"}), 400
+
+    data = get_json_body()
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path)
+    if config is None:
+        return jsonify({"error": "openclaw.json not found"}), 404
+
+    plugins = config.setdefault("plugins", {}).setdefault("entries", {})
+    p = plugins.setdefault(plugin_name, {"enabled": False, "config": {}})
+    updated = False
+    for key, val in data.items():
+        if isinstance(val, str) and val.strip():
+            p["config"][key] = val.strip()
+            updated = True
+    if updated and p["config"]:
+        p["enabled"] = True
+    write_json(config_path, config)
+    logger.info("Channel %s config updated", channel)
+    return jsonify({"ok": True, "enabled": p["enabled"]})
+
+
+def api_channel_config_threads_impl():
+    data = get_json_body()
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path)
+    if config is None:
+        return jsonify({"error": "openclaw.json not found"}), 404
+    plugins = config.setdefault("plugins", {}).setdefault("entries", {})
+    for pname in ["threads-publish", "threads-insights", "threads-search", "threads-growth"]:
+        p = plugins.setdefault(pname, {"enabled": True, "config": {}})
+        if "accessToken" in data and isinstance(data["accessToken"], str) and data["accessToken"].strip():
+            p["config"]["accessToken"] = data["accessToken"].strip()
+        if "userId" in data and isinstance(data["userId"], str) and data["userId"].strip():
+            p["config"]["userId"] = data["userId"].strip()
+    write_json(config_path, config)
+    logger.info("Threads channel config updated")
+    return jsonify({"ok": True})
+
+
+def api_channel_config_x_impl():
     data = get_json_body()
     config_path = CONFIG_DIR / "openclaw.json"
     config = read_json(config_path)

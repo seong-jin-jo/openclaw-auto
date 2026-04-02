@@ -1,0 +1,12 @@
+{
+  "name": "@openclaw/tumblr-publish",
+  "version": "2026.4.2",
+  "private": true,
+  "description": "OpenClaw Tumblr Publish plugin",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

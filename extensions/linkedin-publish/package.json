@@ -1,0 +1,12 @@
+{
+  "name": "@openclaw/linkedin-publish",
+  "version": "2026.4.2",
+  "private": true,
+  "description": "OpenClaw LinkedIn Publish plugin",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

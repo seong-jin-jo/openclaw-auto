@@ -1,0 +1,19 @@
+{
+  "id": "pinterest-publish",
+  "name": "Pinterest Publish",
+  "description": "Create Pins on Pinterest via Content API v5",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "accessToken": {
+        "type": "string",
+        "description": "Pinterest OAuth 2.0 access token"
+      },
+      "boardId": {
+        "type": "string",
+        "description": "Target board ID"
+      }
+    }
+  }
+}
