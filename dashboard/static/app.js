@@ -108,7 +108,7 @@ const S = {
   channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [],
   tokenStatus: null, alerts: [],
   channelSettings: { features: [], settings: {} }, cronRuns: [],
-  sidebarCollapsed: { social: false, video: true, blog: false, messaging: true, data: true },
+  sidebarCollapsed: { social: false, video: true, blog: false, messaging: true, data: true, custom: true },
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null,
 };
@@ -296,6 +296,11 @@ function renderSidebar() {
           { label: "Google Analytics", icon: "G", soon: true },
           { label: "Search Console", icon: "S", soon: true },
           { label: "Google Business", icon: "G", soon: true },
+        ])}
+
+        ${sidebarGroup("custom", "Custom", [
+          { label: "Custom API", icon: "+", soon: true },
+          { label: "Webhook", icon: "W", soon: true },
         ])}
 
         <div class="px-3 mt-5 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Assets</span></div>

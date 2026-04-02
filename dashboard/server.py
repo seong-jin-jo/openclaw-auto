@@ -856,9 +856,12 @@ def api_channel_config():
     x_cfg = xp.get("config", {})
     channels["x"] = {"enabled": xp.get("enabled", False), "connected": bool(x_cfg.get("apiKey", "")), "keys": {"apiKey": x_cfg.get("apiKey", ""), "apiKeySecret": x_cfg.get("apiKeySecret", ""), "accessToken": x_cfg.get("accessToken", ""), "accessTokenSecret": x_cfg.get("accessTokenSecret", "")}}
 
-    # All other channels — auto-detect from extensions/ directory
-    import pathlib
-    ext_dir = pathlib.Path(__file__).resolve().parent.parent / "extensions"
+    # All other channels — check plugin config existence
+    IMPLEMENTED_PLUGINS = {  # plugins that have extension code ready
+        "facebook-publish", "bluesky-publish", "instagram-publish", "linkedin-publish",
+        "pinterest-publish", "tumblr-publish", "tiktok-publish", "youtube-publish",
+        "telegram-publish", "discord-publish", "line-publish", "naver-blog-publish",
+    }
     other_channels = {
         "facebook": {"plugin": "facebook-publish", "key_field": "accessToken"},
         "bluesky": {"plugin": "bluesky-publish", "key_field": "handle"},
@@ -876,7 +879,7 @@ def api_channel_config():
     for ch_key, ch_info in other_channels.items():
         p = plugins.get(ch_info["plugin"], {})
         p_cfg = p.get("config", {})
-        has_ext = (ext_dir / ch_info["plugin"]).is_dir()
+        has_ext = ch_info["plugin"] in IMPLEMENTED_PLUGINS
         has_key = bool(p_cfg.get(ch_info["key_field"], ""))
         # Status: live (enabled+key), setup (key but not enabled), ready (ext exists, no key), soon (no ext)
         if has_key and p.get("enabled"):
