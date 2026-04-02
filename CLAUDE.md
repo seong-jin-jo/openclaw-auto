@@ -50,10 +50,9 @@ OpenClaw Cron → Claude Agent → Tool Registry
 
 | 상태 | 뱃지 | 조건 |
 |------|------|------|
-| Live (초록) | 운영 중 | credential 입력 + 발행 성공 |
-| Setup (노랑) | 설정 중 | credential 일부 입력 |
-| Ready (파랑) | 연결 가능 | extension 존재 + credential 미입력 |
-| Soon (회색) | 준비 중 | extension 미구현 또는 외부 승인 대기 |
+| Live (초록) | 운영 중 | credential 입력 + enabled |
+| + Connect (파랑 테두리) | 연결 가능 | extension 존재 + credential 미입력 |
+| Coming Soon (회색) | 준비 중 | extension 미구현 또는 외부 승인 대기 |
 
 ## 새 채널 추가 방법
 
