@@ -1,0 +1,12 @@
+{
+  "name": "@openclaw/line-publish",
+  "version": "2026.4.2",
+  "private": true,
+  "description": "OpenClaw LINE Publish plugin",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "id": "tiktok-publish",
+  "name": "TikTok Publish",
+  "description": "Upload content to TikTok via Content Posting API (app audit required)",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "accessToken": {
+        "type": "string",
+        "description": "TikTok OAuth access token (requires app audit for public posts)"
+      }
+    }
+  }
+}

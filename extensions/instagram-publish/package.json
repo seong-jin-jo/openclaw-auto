@@ -1,0 +1,12 @@
+{
+  "name": "@openclaw/instagram-publish",
+  "version": "2026.4.2",
+  "private": true,
+  "description": "OpenClaw Instagram Publish plugin",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

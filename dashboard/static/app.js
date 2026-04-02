@@ -187,6 +187,7 @@ function render() {
   else if (S.page === "x") app.innerHTML = renderChannelX();
   else if (S.page === "images") app.innerHTML = renderImages();
   else if (S.page === "blog") app.innerHTML = renderBlog();
+  else if (CH_LABELS[S.page]) app.innerHTML = renderGenericChannel(S.page);
   else if (S.page === "settings") app.innerHTML = renderSettings();
   bindEvents();
   const oldModal = document.getElementById("image-picker-overlay");
@@ -195,6 +196,23 @@ function render() {
     app.insertAdjacentHTML("beforeend", renderImagePickerModal());
     bindImagePickerEvents();
   }
+}
+
+const CH_LABELS = { instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", bluesky: "Bluesky", pinterest: "Pinterest", tumblr: "Tumblr", tiktok: "TikTok", youtube: "YouTube", telegram: "Telegram", discord: "Discord", line: "LINE", naver_blog: "Naver Blog" };
+const CH_STATUS_BADGE = { live: "bg-green-900/50 text-green-400", setup: "bg-yellow-900/50 text-yellow-400", ready: "bg-blue-900/50 text-blue-400", soon: "bg-gray-800 text-gray-600" };
+const CH_STATUS_LABEL = { live: "Live", setup: "Setup", ready: "Ready", soon: "Soon" };
+
+function chSidebarItem(key) {
+  const ch = S.channelConfig[key] || {};
+  const status = ch.status || "soon";
+  const label = CH_LABELS[key] || key;
+  if (status === "live" || status === "setup") {
+    return { key, label, icon: label[0], nav: true, status: CH_STATUS_LABEL[status], statusClass: CH_STATUS_BADGE[status] };
+  }
+  if (status === "ready") {
+    return { key, label, icon: label[0], nav: true, status: "Ready", statusClass: CH_STATUS_BADGE.ready };
+  }
+  return { label, icon: label[0], soon: true };
 }
 
 function sidebarGroup(key, title, items) {
@@ -255,30 +273,22 @@ function renderSidebar() {
         ${sidebarGroup("social", "Social", [
           { key: "threads", label: "Threads", icon: "T", iconClass: "bg-gradient-to-br from-purple-500 to-pink-500 text-white", nav: true, status: S.channelConfig.threads?.connected ? "Live" : "Off", statusClass: S.channelConfig.threads?.connected ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500" },
           { key: "x", label: "X (Twitter)", icon: "X", nav: true, status: S.channelConfig.x?.connected ? "Live" : "Setup", statusClass: S.channelConfig.x?.connected ? "bg-green-900/50 text-green-400" : "bg-yellow-900/50 text-yellow-400" },
-          { label: "Instagram", icon: "I", soon: true },
-          { label: "Facebook", icon: "F", soon: true },
-          { label: "LinkedIn", icon: "L", soon: true },
-          { label: "Bluesky", icon: "B", soon: true },
-          { label: "Pinterest", icon: "P", soon: true },
-          { label: "Tumblr", icon: "T", soon: true },
+          ...["instagram", "facebook", "linkedin", "bluesky", "pinterest", "tumblr"].map(ch => chSidebarItem(ch)),
         ])}
 
         ${sidebarGroup("video", "Video", [
-          { label: "TikTok", icon: "T", soon: true },
-          { label: "YouTube", icon: "Y", soon: true },
+          ...["tiktok", "youtube"].map(ch => chSidebarItem(ch)),
         ])}
 
         ${sidebarGroup("blog", "Blog & SEO", [
           { key: "blog", label: "Blog", icon: "B", nav: true },
-          { label: "Naver Blog", icon: "N", soon: true },
+          chSidebarItem("naver_blog"),
           { label: "Medium", icon: "M", soon: true },
         ])}
 
         ${sidebarGroup("messaging", "Messaging", [
+          ...["telegram", "discord", "line"].map(ch => chSidebarItem(ch)),
           { label: "Kakao Channel", icon: "K", soon: true },
-          { label: "Telegram", icon: "T", soon: true },
-          { label: "LINE", icon: "L", soon: true },
-          { label: "Discord", icon: "D", soon: true },
           { label: "WhatsApp", icon: "W", soon: true },
         ])}
 
@@ -916,6 +926,19 @@ function bindEvents() {
     if (r) { showToast(r.enabled ? "X 연결 완료!" : "저장됨", "success"); loadOverview(); }
   };
 
+  // Generic channel credential save
+  Object.keys(CH_LABELS).forEach(key => {
+    const btn = document.getElementById(`save-ch-${key}`);
+    if (btn) btn.onclick = async () => {
+      const sg = { facebook: ["accessToken","pageId"], bluesky: ["handle","appPassword"], instagram: ["accessToken","userId"], linkedin: ["accessToken","personUrn"], pinterest: ["accessToken","boardId"], tumblr: ["consumerKey","consumerSecret","accessToken","accessTokenSecret","blogName"], tiktok: ["accessToken"], youtube: ["accessToken"], telegram: ["botToken","chatId"], discord: ["webhookUrl"], line: ["channelAccessToken"], naver_blog: ["blogId","username","apiKey"] };
+      const fields = sg[key] || [];
+      const data = {};
+      fields.forEach(f => { const el = document.getElementById(`ch-${key}-${f}`); if (el?.value) data[f] = el.value; });
+      const r = await API.post(`/api/channel-config/${key}`, data);
+      if (r) { showToast(r.enabled ? `${CH_LABELS[key]} 연결 완료!` : "저장됨", "success"); loadOverview(); }
+    };
+  });
+
   // Blog actions
   document.querySelectorAll("[data-blog-approve]").forEach(el => { el.onclick = () => approveBlogPost(el.dataset.blogApprove); });
   document.querySelectorAll("[data-blog-delete]").forEach(el => { el.onclick = () => deleteBlogPost(el.dataset.blogDelete); });
@@ -928,6 +951,7 @@ function navigate(page) {
   else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); }
   else if (page === "images") loadImages();
   else if (page === "blog") loadBlogQueue();
+  else if (CH_LABELS[page]) loadOverview(); // generic channels use overview data
   else if (page === "settings") { loadSettings(); loadKeywords(); }
   render();
 }
@@ -1101,6 +1125,62 @@ async function deleteImage(filename) {
     if (res.ok) { showToast("삭제됨", "success"); await loadImages(); render(); }
     else showToast("삭제 실패", "error");
   } catch (e) { showToast("삭제 실패: " + e.message, "error"); }
+}
+
+// ── Generic Channel Page ──
+function renderGenericChannel(key) {
+  const label = CH_LABELS[key] || key;
+  const ch = S.channelConfig[key] || {};
+  const status = ch.status || "soon";
+  const keys = ch.keys || {};
+  const hasKeys = Object.values(keys).some(v => v);
+
+  const setupGuides = {
+    facebook: { fields: ["accessToken", "pageId"], labels: ["Page Access Token", "Page ID"], guide: "developers.facebook.com > 앱 만들기 > Facebook Login > Page Access Token 발급" },
+    bluesky: { fields: ["handle", "appPassword"], labels: ["Handle (e.g. user.bsky.social)", "App Password"], guide: "bsky.app > Settings > App Passwords > 새 비밀번호 생성" },
+    instagram: { fields: ["accessToken", "userId"], labels: ["Graph API Access Token", "Instagram Business User ID"], guide: "developers.facebook.com > Instagram Graph API > Business 계정 연결 필요 (App Review 2-4주)" },
+    linkedin: { fields: ["accessToken", "personUrn"], labels: ["OAuth 2.0 Access Token", "Person URN (urn:li:person:xxx)"], guide: "LinkedIn Partner Program 승인 필요. learn.microsoft.com/linkedin" },
+    pinterest: { fields: ["accessToken", "boardId"], labels: ["OAuth 2.0 Access Token", "Board ID"], guide: "developers.pinterest.com > 앱 생성 > OAuth 토큰 발급" },
+    tumblr: { fields: ["consumerKey", "consumerSecret", "accessToken", "accessTokenSecret", "blogName"], labels: ["Consumer Key", "Consumer Secret", "Access Token", "Access Token Secret", "Blog Name"], guide: "tumblr.com/oauth/apps > OAuth 1.0a 앱 등록" },
+    tiktok: { fields: ["accessToken"], labels: ["OAuth Access Token"], guide: "developers.tiktok.com > 앱 생성 > Content Posting API 심사 필요 (심사 전 비공개만)" },
+    youtube: { fields: ["accessToken"], labels: ["Google OAuth 2.0 Access Token"], guide: "console.cloud.google.com > YouTube Data API v3 활성화 > OAuth 토큰. 커뮤니티 글 API는 미지원 (영상 업로드만)" },
+    telegram: { fields: ["botToken", "chatId"], labels: ["Bot Token (@BotFather)", "Chat/Channel ID (@channelname 또는 -100xxx)"], guide: "Telegram에서 @BotFather에게 /newbot으로 봇 생성 → 토큰 발급" },
+    discord: { fields: ["webhookUrl"], labels: ["Webhook URL"], guide: "Discord 채널 설정 > 연동 > 웹후크 > 새 웹후크 만들기 > URL 복사" },
+    line: { fields: ["channelAccessToken"], labels: ["Channel Access Token (long-lived)"], guide: "developers.line.biz > LINE Official Account > Messaging API > Channel Access Token 발급" },
+    naver_blog: { fields: ["blogId", "username", "apiKey"], labels: ["Blog ID", "Username", "API Key (XML-RPC)"], guide: "네이버 블로그 관리 > 글쓰기 API 설정. 공식 REST API 없음 (레거시 XML-RPC)" },
+  };
+
+  const sg = setupGuides[key] || { fields: [], labels: [], guide: "Setup guide not available yet." };
+
+  return `<div class="px-8 py-6">
+    <button data-nav="overview" class="text-gray-500 hover:text-gray-300 text-sm mb-1">&larr; Back</button>
+    <div class="flex items-center gap-3 mb-6">
+      <span class="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center text-sm font-bold text-white">${label[0]}</span>
+      <div><h2 class="text-xl font-semibold text-white">${label}</h2><p class="text-xs text-gray-500">${CH_STATUS_LABEL[status] || status}</p></div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="card p-5">
+        <h3 class="text-sm font-medium text-gray-300 mb-4">Credentials</h3>
+        <div class="space-y-3">
+          ${sg.fields.map((f, i) => credField(`ch-${key}-${f}`, sg.labels[i], "", f.toLowerCase().includes("secret") || f.toLowerCase().includes("password") || f.toLowerCase().includes("token"), keys[f] || "")).join("")}
+        </div>
+        <button id="save-ch-${key}" class="w-full mt-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${hasKeys ? "Update" : "Connect"}</button>
+      </div>
+      <div class="space-y-4">
+        <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-3">Channel Info</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="${CH_STATUS_BADGE[status] || ""} text-xs px-1.5 py-0.5 rounded">${CH_STATUS_LABEL[status] || status}</span></div>
+          </div>
+        </div>
+        <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-3">Setup Guide</h3>
+          <p class="text-xs text-gray-400">${sg.guide}</p>
+        </div>
+      </div>
+    </div>
+  </div>`;
 }
 
 // ── Blog ──

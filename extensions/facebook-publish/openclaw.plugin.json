@@ -1,0 +1,19 @@
+{
+  "id": "facebook-publish",
+  "name": "Facebook Publish",
+  "description": "Publish posts to Facebook Pages via Graph API",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "accessToken": {
+        "type": "string",
+        "description": "Facebook Page long-lived access token"
+      },
+      "pageId": {
+        "type": "string",
+        "description": "Facebook Page ID"
+      }
+    }
+  }
+}

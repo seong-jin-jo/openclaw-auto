@@ -1,0 +1,15 @@
+{
+  "id": "line-publish",
+  "name": "LINE Publish",
+  "description": "Broadcast messages via LINE Official Account Messaging API",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "channelAccessToken": {
+        "type": "string",
+        "description": "LINE Channel access token (long-lived)"
+      }
+    }
+  }
+}

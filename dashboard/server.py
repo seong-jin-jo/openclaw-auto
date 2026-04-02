@@ -855,11 +855,83 @@ def api_channel_config():
     xp = plugins.get("x-publish", {})
     x_cfg = xp.get("config", {})
     channels["x"] = {"enabled": xp.get("enabled", False), "connected": bool(x_cfg.get("apiKey", "")), "keys": {"apiKey": x_cfg.get("apiKey", ""), "apiKeySecret": x_cfg.get("apiKeySecret", ""), "accessToken": x_cfg.get("accessToken", ""), "accessTokenSecret": x_cfg.get("accessTokenSecret", "")}}
+
+    # All other channels — auto-detect from extensions/ directory
+    import pathlib
+    ext_dir = pathlib.Path(__file__).resolve().parent.parent / "extensions"
+    other_channels = {
+        "facebook": {"plugin": "facebook-publish", "key_field": "accessToken"},
+        "bluesky": {"plugin": "bluesky-publish", "key_field": "handle"},
+        "instagram": {"plugin": "instagram-publish", "key_field": "accessToken"},
+        "linkedin": {"plugin": "linkedin-publish", "key_field": "accessToken"},
+        "pinterest": {"plugin": "pinterest-publish", "key_field": "accessToken"},
+        "tumblr": {"plugin": "tumblr-publish", "key_field": "consumerKey"},
+        "tiktok": {"plugin": "tiktok-publish", "key_field": "accessToken"},
+        "youtube": {"plugin": "youtube-publish", "key_field": "accessToken"},
+        "telegram": {"plugin": "telegram-publish", "key_field": "botToken"},
+        "discord": {"plugin": "discord-publish", "key_field": "webhookUrl"},
+        "line": {"plugin": "line-publish", "key_field": "channelAccessToken"},
+        "naver_blog": {"plugin": "naver-blog-publish", "key_field": "blogId"},
+    }
+    for ch_key, ch_info in other_channels.items():
+        p = plugins.get(ch_info["plugin"], {})
+        p_cfg = p.get("config", {})
+        has_ext = (ext_dir / ch_info["plugin"]).is_dir()
+        has_key = bool(p_cfg.get(ch_info["key_field"], ""))
+        # Status: live (enabled+key), setup (key but not enabled), ready (ext exists, no key), soon (no ext)
+        if has_key and p.get("enabled"):
+            status = "live"
+        elif has_key:
+            status = "setup"
+        elif has_ext:
+            status = "ready"
+        else:
+            status = "soon"
+        channels[ch_key] = {"status": status, "enabled": p.get("enabled", False), "connected": has_key, "keys": {k: v for k, v in p_cfg.items() if isinstance(v, str)}}
+
     return jsonify(channels)
 
 
-@app.route("/api/channel-config/threads", methods=["POST"])
-def api_channel_config_threads():
+@app.route("/api/channel-config/<channel>", methods=["POST"])
+def api_channel_config_generic(channel):
+    # Handle threads and x separately (they have custom logic)
+    if channel == "threads":
+        return api_channel_config_threads_impl()
+    if channel == "x":
+        return api_channel_config_x_impl()
+
+    # Generic channel config save
+    plugin_map = {
+        "facebook": "facebook-publish", "bluesky": "bluesky-publish", "instagram": "instagram-publish",
+        "linkedin": "linkedin-publish", "pinterest": "pinterest-publish", "tumblr": "tumblr-publish",
+        "tiktok": "tiktok-publish", "youtube": "youtube-publish", "telegram": "telegram-publish",
+        "discord": "discord-publish", "line": "line-publish", "naver_blog": "naver-blog-publish",
+    }
+    plugin_name = plugin_map.get(channel)
+    if not plugin_name:
+        return jsonify({"error": f"Unknown channel: {channel}"}), 400
+
+    data = get_json_body()
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path)
+    if config is None:
+        return jsonify({"error": "openclaw.json not found"}), 404
+
+    plugins = config.setdefault("plugins", {}).setdefault("entries", {})
+    p = plugins.setdefault(plugin_name, {"enabled": False, "config": {}})
+    updated = False
+    for key, val in data.items():
+        if isinstance(val, str) and val.strip():
+            p["config"][key] = val.strip()
+            updated = True
+    if updated and p["config"]:
+        p["enabled"] = True
+    write_json(config_path, config)
+    logger.info("Channel %s config updated", channel)
+    return jsonify({"ok": True, "enabled": p["enabled"]})
+
+
+def api_channel_config_threads_impl():
     data = get_json_body()
     config_path = CONFIG_DIR / "openclaw.json"
     config = read_json(config_path)
@@ -877,8 +949,7 @@ def api_channel_config_threads():
     return jsonify({"ok": True})
 
 
-@app.route("/api/channel-config/x", methods=["POST"])
-def api_channel_config_x():
+def api_channel_config_x_impl():
     data = get_json_body()
     config_path = CONFIG_DIR / "openclaw.json"
     config = read_json(config_path)

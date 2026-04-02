@@ -1,0 +1,19 @@
+{
+  "id": "telegram-publish",
+  "name": "Telegram Publish",
+  "description": "Send messages to Telegram channels/groups via Bot API",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "botToken": {
+        "type": "string",
+        "description": "Telegram Bot token from @BotFather"
+      },
+      "chatId": {
+        "type": "string",
+        "description": "Chat/Channel ID (e.g. @channelname or -100xxx)"
+      }
+    }
+  }
+}
