@@ -886,23 +886,7 @@ def api_channel_config():
     t_cfg = tp.get("config", {})
     t_token = t_cfg.get("accessToken", "")
     t_uid = t_cfg.get("userId", "")
-    # Username lookup is cached to avoid slow API calls on every request
-    t_username = ""
-    if t_token and t_uid:
-        cache_key = f"threads_username_{t_uid}"
-        if not hasattr(api_channel_config, '_cache'):
-            api_channel_config._cache = {}
-        if cache_key in api_channel_config._cache:
-            t_username = api_channel_config._cache[cache_key]
-        else:
-            try:
-                import urllib.request
-                url = f"https://graph.threads.net/v1.0/me?fields=username&access_token={t_token}"
-                with urllib.request.urlopen(url, timeout=3) as resp:
-                    t_username = json.loads(resp.read()).get("username", "")
-                api_channel_config._cache[cache_key] = t_username
-            except Exception:
-                pass
+    t_username = ""  # loaded lazily via /api/threads-username
     channels["threads"] = {"enabled": tp.get("enabled", False), "userId": t_uid, "username": t_username, "connected": bool(t_token), "keys": {"accessToken": t_token, "userId": t_uid}}
     # X
     xp = plugins.get("x-publish", {})
@@ -937,15 +921,29 @@ def api_channel_config():
         # Status: live (enabled+key), setup (key but not enabled), ready (ext exists, no key), soon (no ext)
         if has_key and p.get("enabled"):
             status = "live"
-        elif has_key:
-            status = "setup"
         elif has_ext:
-            status = "ready"
+            status = "connect"
         else:
             status = "soon"
         channels[ch_key] = {"status": status, "enabled": p.get("enabled", False), "connected": has_key, "keys": {k: v for k, v in p_cfg.items() if isinstance(v, str)}}
 
     return jsonify(channels)
+
+
+@app.route("/api/threads-username")
+def api_threads_username():
+    config = read_json(CONFIG_DIR / "openclaw.json") or {}
+    tp = config.get("plugins", {}).get("entries", {}).get("threads-publish", {}).get("config", {})
+    t_token = tp.get("accessToken", "")
+    if not t_token:
+        return jsonify({"username": ""})
+    try:
+        import urllib.request
+        url = f"https://graph.threads.net/v1.0/me?fields=username&access_token={t_token}"
+        with urllib.request.urlopen(url, timeout=3) as resp:
+            return jsonify({"username": json.loads(resp.read()).get("username", "")})
+    except Exception:
+        return jsonify({"username": ""})
 
 
 @app.route("/api/channel-config/<channel>", methods=["POST"])

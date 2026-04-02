@@ -26,48 +26,69 @@ function authHeaders() {
 }
 function promptLogin() {
   document.getElementById("app").innerHTML = `
-    <div class="min-h-screen flex flex-col">
-      <!-- Landing Hero -->
-      <div class="flex-1 flex flex-col items-center justify-center px-8 text-center">
-        <div class="mb-8">
-          <h1 class="text-4xl font-bold text-white mb-3">Marketing Hub</h1>
-          <p class="text-lg text-gray-400 max-w-lg">AI가 콘텐츠를 자동 생성하고, 멀티채널로 발행하고, 반응을 분석하여 다음 콘텐츠에 반영합니다.</p>
-        </div>
+    <div class="min-h-screen">
+      <!-- Hero -->
+      <div class="flex flex-col items-center justify-center px-8 pt-20 pb-16 text-center">
+        <div class="text-[10px] px-3 py-1 rounded-full bg-blue-900/30 text-blue-400 border border-blue-800/30 mb-6">AI-Powered Marketing Automation</div>
+        <h1 class="text-5xl font-bold text-white mb-4 leading-tight">Marketing Hub</h1>
+        <p class="text-lg text-gray-400 max-w-2xl mb-4">AI가 콘텐츠를 자동 생성하고, 20개+ 채널에 동시 발행하고, 반응을 분석하여 다음 콘텐츠에 자동 반영합니다.</p>
+        <p class="text-sm text-gray-600 mb-10">검수만 하세요. 나머지는 자동입니다.</p>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mb-12">
-          <div class="card p-6 text-left">
-            <div class="w-10 h-10 rounded-lg bg-purple-900/30 flex items-center justify-center mb-3"><span class="text-lg">🤖</span></div>
-            <h3 class="text-sm font-medium text-white mb-1">AI Content Generation</h3>
-            <p class="text-xs text-gray-500">Claude가 트렌드와 스타일을 분석하여 맞춤 콘텐츠를 자동 생성</p>
-          </div>
-          <div class="card p-6 text-left">
-            <div class="w-10 h-10 rounded-lg bg-blue-900/30 flex items-center justify-center mb-3"><span class="text-lg">📡</span></div>
-            <h3 class="text-sm font-medium text-white mb-1">Multi-Channel Publishing</h3>
-            <p class="text-xs text-gray-500">Threads, X, Blog 등 여러 채널에 최적화된 콘텐츠를 동시 발행</p>
-          </div>
-          <div class="card p-6 text-left">
-            <div class="w-10 h-10 rounded-lg bg-green-900/30 flex items-center justify-center mb-3"><span class="text-lg">📊</span></div>
-            <h3 class="text-sm font-medium text-white mb-1">Feedback Loop</h3>
-            <p class="text-xs text-gray-500">반응 데이터를 자동 수집하여 다음 콘텐츠 품질을 지속 개선</p>
-          </div>
-        </div>
-
-        <div class="flex flex-wrap justify-center gap-3 mb-12">
-          ${["Threads", "X", "Instagram", "Facebook", "LinkedIn", "TikTok", "YouTube", "Blog", "Kakao", "Telegram"].map(ch =>
-            `<span class="text-[11px] px-3 py-1 rounded-full bg-gray-800/50 text-gray-500 border border-gray-800">${ch}</span>`
-          ).join("")}
-          <span class="text-[11px] px-3 py-1 rounded-full text-gray-600">+more</span>
-        </div>
-
-        <!-- Login -->
-        <div class="card p-6 w-80">
-          <h2 class="text-sm font-medium text-white mb-3 text-center">Dashboard Login</h2>
+        <!-- Login Card -->
+        <div class="card p-6 w-80 mb-16">
           <input id="login-token" type="password" placeholder="Auth Token"
             class="w-full bg-gray-900 text-gray-200 text-sm p-3 rounded border border-gray-700 mb-3">
-          <button id="login-btn" class="w-full py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">Login</button>
+          <button id="login-btn" class="w-full py-2.5 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-500">Start Dashboard</button>
         </div>
+      </div>
 
-        <p class="text-[10px] text-gray-700 mt-8">Powered by <a href="https://openclaw.ai" target="_blank" class="text-gray-500 hover:text-gray-400">OpenClaw</a> + Claude</p>
+      <!-- Pipeline -->
+      <div class="max-w-4xl mx-auto px-8 pb-16">
+        <div class="text-center mb-10">
+          <h2 class="text-xl font-semibold text-white mb-2">Automated Pipeline</h2>
+          <p class="text-sm text-gray-500">설정 한 번이면 24/7 자동 운영</p>
+        </div>
+        <div class="flex items-center justify-between gap-2 mb-4">
+          ${[
+            { icon: "1", label: "Trend Collection", desc: "외부 인기글 수집", color: "purple" },
+            { icon: "2", label: "AI Generation", desc: "Claude가 맞춤 생성", color: "blue" },
+            { icon: "3", label: "Human Review", desc: "대시보드에서 검수", color: "yellow" },
+            { icon: "4", label: "Auto Publish", desc: "멀티채널 발행", color: "green" },
+            { icon: "5", label: "Feedback Loop", desc: "반응→학습→개선", color: "red" },
+          ].map(s => `
+            <div class="flex-1 text-center">
+              <div class="w-10 h-10 rounded-full bg-${s.color}-900/30 text-${s.color}-400 flex items-center justify-center mx-auto mb-2 text-sm font-bold">${s.icon}</div>
+              <p class="text-xs font-medium text-white">${s.label}</p>
+              <p class="text-[10px] text-gray-600">${s.desc}</p>
+            </div>
+          `).join(`<div class="text-gray-700 text-lg">&rarr;</div>`)}
+        </div>
+      </div>
+
+      <!-- Features -->
+      <div class="max-w-4xl mx-auto px-8 pb-16">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="card p-6">
+            <h3 class="text-sm font-medium text-white mb-2">20+ Channels</h3>
+            <p class="text-xs text-gray-500 mb-3">Threads, X, Instagram, Facebook, LinkedIn, Blog, Telegram, Discord 등</p>
+            <div class="flex flex-wrap gap-1">
+              ${["T", "X", "I", "F", "L", "B", "TG", "D"].map(c => `<span class="text-[9px] w-5 h-5 rounded bg-gray-800 text-gray-500 flex items-center justify-center">${c}</span>`).join("")}
+              <span class="text-[9px] text-gray-700">+12</span>
+            </div>
+          </div>
+          <div class="card p-6">
+            <h3 class="text-sm font-medium text-white mb-2">AI Feedback Loop</h3>
+            <p class="text-xs text-gray-500">터진 글을 자동 감지하여 스타일과 패턴을 학습. 다음 콘텐츠 품질이 자동으로 개선됩니다.</p>
+          </div>
+          <div class="card p-6">
+            <h3 class="text-sm font-medium text-white mb-2">Zero Maintenance</h3>
+            <p class="text-xs text-gray-500">Cron이 생성/발행/수집을 24시간 자동 처리. 당신은 대시보드에서 승인만 하면 됩니다.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center pb-12">
+        <p class="text-[10px] text-gray-700">Powered by <a href="https://openclaw.ai" target="_blank" class="text-gray-600 hover:text-gray-400">OpenClaw</a> + Claude</p>
       </div>
     </div>`;
   const sidebar = document.getElementById("sidebar");
@@ -132,6 +153,10 @@ async function loadOverview() {
   if (cronData) S.cronJobs = cronData.jobs || [];
   if (activity) S.activity = activity.events || [];
   if (chCfg) S.channelConfig = chCfg;
+  // Lazy load threads username (don't block main render)
+  if (S.channelConfig.threads?.connected && !S.channelConfig.threads?.username) {
+    API.get("/api/threads-username").then(d => { if (d?.username) { S.channelConfig.threads.username = d.username; render(); } });
+  }
   if (tokenData) S.tokenStatus = tokenData;
   if (alertData) S.alerts = alertData.alerts || [];
   if (weeklyData) S.weekly = weeklyData;
@@ -205,18 +230,18 @@ function render() {
 }
 
 const CH_LABELS = { instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", bluesky: "Bluesky", pinterest: "Pinterest", tumblr: "Tumblr", tiktok: "TikTok", youtube: "YouTube", telegram: "Telegram", discord: "Discord", line: "LINE", naver_blog: "Naver Blog" };
-const CH_STATUS_BADGE = { live: "bg-green-900/50 text-green-400", setup: "bg-yellow-900/50 text-yellow-400", ready: "bg-blue-900/50 text-blue-400", soon: "bg-gray-800 text-gray-600" };
-const CH_STATUS_LABEL = { live: "Live", setup: "Setup", ready: "Ready", soon: "Soon" };
+const CH_STATUS_BADGE = { live: "bg-green-900/50 text-green-400", connect: "bg-blue-900/50 text-blue-400", soon: "bg-gray-800 text-gray-600" };
+const CH_STATUS_LABEL = { live: "Live", connect: "Connect", soon: "Coming Soon" };
 
 function chSidebarItem(key) {
   const ch = S.channelConfig[key] || {};
   const status = ch.status || "soon";
   const label = CH_LABELS[key] || key;
-  if (status === "live" || status === "setup") {
-    return { key, label, icon: label[0], nav: true, status: CH_STATUS_LABEL[status], statusClass: CH_STATUS_BADGE[status] };
+  if (status === "live") {
+    return { key, label, icon: label[0], nav: true, status: "Live", statusClass: CH_STATUS_BADGE.live };
   }
-  if (status === "ready") {
-    return { key, label, icon: label[0], nav: true, status: "Ready", statusClass: CH_STATUS_BADGE.ready };
+  if (status === "connect") {
+    return { key, label, icon: label[0], nav: true, status: "Connect", statusClass: CH_STATUS_BADGE.connect };
   }
   return { label, icon: label[0], soon: true };
 }
@@ -322,11 +347,17 @@ function renderSidebar() {
           Settings
         </button>
       </nav>
-      <div class="px-4 py-3 border-t border-gray-800/50">
+      <div class="px-4 py-3 border-t border-gray-800/50 space-y-2">
         <div class="flex items-center gap-2">
           <div class="pulse-dot ${cronOk === cronTotal ? "bg-green-500" : "bg-yellow-500"}"></div>
           <span class="text-xs text-gray-500">${cronOk}/${cronTotal} crons ok</span>
         </div>
+        ${getAuthToken() ? `
+          <div class="flex gap-2">
+            <button id="btn-logout" class="text-[10px] text-gray-600 hover:text-gray-400">Logout</button>
+            <button id="btn-change-pw" class="text-[10px] text-gray-600 hover:text-gray-400">Change Token</button>
+          </div>
+        ` : ""}
       </div>
     </aside>`;
 }
@@ -877,6 +908,10 @@ function renderSettings() {
 function bindEvents() {
   document.querySelectorAll("[data-nav]").forEach(el => { el.onclick = () => navigate(el.dataset.nav); });
   document.querySelectorAll("[data-sidebar-toggle]").forEach(el => { el.onclick = () => { S.sidebarCollapsed[el.dataset.sidebarToggle] = !S.sidebarCollapsed[el.dataset.sidebarToggle]; render(); }; });
+  const logoutBtn = document.getElementById("btn-logout");
+  if (logoutBtn) logoutBtn.onclick = () => { localStorage.removeItem("dashboard_auth_token"); location.reload(); };
+  const changePwBtn = document.getElementById("btn-change-pw");
+  if (changePwBtn) changePwBtn.onclick = () => { localStorage.removeItem("dashboard_auth_token"); promptLogin(); };
   document.querySelectorAll("[data-subtab]").forEach(el => { el.onclick = () => { S.subTab = el.dataset.subtab; switchSubTab(el.dataset.subtab); }; });
   document.querySelectorAll("[data-filter]").forEach(el => { el.onclick = () => { S.queueFilter = el.dataset.filter; loadQueue(S.queueFilter); }; });
   document.querySelectorAll("[data-approve]").forEach(el => { el.onclick = () => approvePost(el.dataset.approve); });
