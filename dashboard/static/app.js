@@ -180,7 +180,12 @@ function fmtDate(iso) { return iso ? new Date(iso).toLocaleString("ko-KR", {mont
 
 // ── Render ──
 function render() {
-  document.getElementById("sidebar").innerHTML = renderSidebar();
+  const sidebarEl = document.getElementById("sidebar");
+  const sidebarAside = sidebarEl?.querySelector("aside");
+  const scrollTop = sidebarAside?.scrollTop || 0;
+  sidebarEl.innerHTML = renderSidebar();
+  const newAside = sidebarEl.querySelector("aside");
+  if (newAside) newAside.scrollTop = scrollTop;
   const app = document.getElementById("app");
   if (S.page === "overview") app.innerHTML = renderOverview();
   else if (S.page === "threads") app.innerHTML = renderChannel("threads");
