@@ -78,13 +78,21 @@ function parsePopularPosts(content: string): PopularPost[] {
     if (block.trim().startsWith("#")) continue;
     const lines = block.trim().split("\n");
     const entry: Record<string, string> = {};
+    let inText = false;
+    const textLines: string[] = [];
     for (const line of lines) {
       if (line.startsWith("#")) continue;
-      const match = line.match(/^(\w+):\s*(.+)$/);
-      if (match) {
-        entry[match[1]] = match[2];
+      if (line.startsWith("text:")) {
+        inText = true;
+        textLines.push(line.substring(5).trim());
+      } else if (inText) {
+        textLines.push(line);
+      } else {
+        const match = line.match(/^(\w+):\s*(.+)$/);
+        if (match) entry[match[1]] = match[2];
       }
     }
+    if (textLines.length) entry.text = textLines.join("\n").trim();
     if (entry.text) {
       posts.push({
         topic: entry.topic ?? "general",
@@ -196,7 +204,7 @@ async function scrapeThreadsSearch(config: ReturnType<typeof resolveConfig>) {
           likes: post.likes,
           source: "external",
           collected: new Date().toISOString().split("T")[0],
-          text: post.text.replace(/\n/g, " "),
+          text: post.text,
           url: post.url,
           username: post.username,
         });
