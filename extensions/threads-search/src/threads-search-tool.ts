@@ -67,6 +67,8 @@ type PopularPost = {
   source: string;
   collected: string;
   text: string;
+  url?: string;
+  username?: string;
 };
 
 function parsePopularPosts(content: string): PopularPost[] {
@@ -76,13 +78,21 @@ function parsePopularPosts(content: string): PopularPost[] {
     if (block.trim().startsWith("#")) continue;
     const lines = block.trim().split("\n");
     const entry: Record<string, string> = {};
+    let inText = false;
+    const textLines: string[] = [];
     for (const line of lines) {
       if (line.startsWith("#")) continue;
-      const match = line.match(/^(\w+):\s*(.+)$/);
-      if (match) {
-        entry[match[1]] = match[2];
+      if (line.startsWith("text:")) {
+        inText = true;
+        textLines.push(line.substring(5).trim());
+      } else if (inText) {
+        textLines.push(line);
+      } else {
+        const match = line.match(/^(\w+):\s*(.+)$/);
+        if (match) entry[match[1]] = match[2];
       }
     }
+    if (textLines.length) entry.text = textLines.join("\n").trim();
     if (entry.text) {
       posts.push({
         topic: entry.topic ?? "general",
@@ -91,6 +101,8 @@ function parsePopularPosts(content: string): PopularPost[] {
         source: entry.source ?? "unknown",
         collected: entry.collected ?? "",
         text: entry.text,
+        url: entry.url,
+        username: entry.username,
       });
     }
   }
@@ -98,7 +110,126 @@ function parsePopularPosts(content: string): PopularPost[] {
 }
 
 function formatPopularPost(post: PopularPost): string {
-  return `---\ntopic: ${post.topic}\nengagement: ${post.engagement}\nlikes: ${post.likes}\nsource: ${post.source}\ncollected: ${post.collected}\ntext: ${post.text}\n`;
+  let s = `---\ntopic: ${post.topic}\nengagement: ${post.engagement}\nlikes: ${post.likes}\nsource: ${post.source}\ncollected: ${post.collected}`;
+  if (post.username) s += `\nusername: ${post.username}`;
+  if (post.url) s += `\nurl: ${post.url}`;
+  s += `\ntext: ${post.text}\n`;
+  return s;
+}
+
+async function scrapeThreadsSearch(config: ReturnType<typeof resolveConfig>) {
+  const { chromium } = await import("playwright-core");
+
+  const keywordsRaw = await readTextFile(config.keywordsPath);
+  const keywords = keywordsRaw.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#"));
+  if (!keywords.length) {
+    return jsonResult({ message: "No keywords found", newPosts: 0 });
+  }
+
+  const existingContent = await readTextFile(config.popularPostsPath);
+  const existingPosts = parsePopularPosts(existingContent);
+  const headerLines: string[] = [];
+  for (const line of existingContent.split("\n")) {
+    if (line.startsWith("#")) headerLines.push(line);
+    else break;
+  }
+  const header = headerLines.length > 0 ? headerLines.join("\n") + "\n" : "";
+
+  const chromePath = "/home/node/.cache/ms-playwright/chromium-1208/chrome-linux64/chrome";
+  let browser;
+  try {
+    browser = await chromium.launch({ headless: true, executablePath: chromePath, args: ["--no-sandbox"] });
+  } catch {
+    return jsonResult({ message: "Browser launch failed. Chromium not available.", newPosts: 0 });
+  }
+
+  const newPosts: PopularPost[] = [];
+  const seenTexts = new Set(existingPosts.map((p) => p.text.substring(0, 80)));
+  // Fetch own username to skip own posts
+  let ownUsername = "";
+  try {
+    const meResp = await fetch(`https://graph.threads.net/v1.0/${config.userId}?fields=username&access_token=${config.accessToken}`);
+    if (meResp.ok) { const me = (await meResp.json()) as { username?: string }; ownUsername = me.username ?? ""; }
+  } catch { /* ignore */ }
+
+  const maxKeywords = Math.min(keywords.length, 5); // Limit to avoid too many browser sessions
+  for (let ki = 0; ki < maxKeywords; ki++) {
+    const keyword = keywords[ki];
+    try {
+      const page = await browser.newPage();
+      const encoded = encodeURIComponent(keyword);
+      await page.goto(`https://www.threads.net/search?q=${encoded}&serp_type=default`, { waitUntil: "domcontentloaded", timeout: 20000 });
+      await page.waitForTimeout(6000);
+
+      const posts = await page.evaluate(() => {
+        const results: Array<{ username: string; url: string; text: string; likes: number; replies: number }> = [];
+        const links = document.querySelectorAll('a[href*="/post/"]');
+        const seen = new Set<string>();
+        for (const link of links) {
+          const href = link.getAttribute("href");
+          if (!href || seen.has(href) || href.includes("/media")) continue;
+          seen.add(href);
+          const match = href.match(/@([^/]+)\/post\/([^/?]+)/);
+          if (!match) continue;
+          const container = link.closest("[data-pressable-container]") || link.parentElement?.parentElement?.parentElement?.parentElement;
+          if (!container) continue;
+          const spans = container.querySelectorAll("span");
+          let text = "";
+          for (const span of spans) {
+            const t = span.textContent?.trim();
+            if (t && t.length > 20 && t.length < 600 && !t.includes("Translate") && !t.includes("Log in")) { text = t; break; }
+          }
+          // Extract likes/replies from SVG icon siblings
+          const svgs = container.querySelectorAll("svg");
+          const metrics: number[] = [];
+          for (const svg of svgs) {
+            const next = svg.parentElement?.nextElementSibling || svg.nextElementSibling;
+            if (next) { const n = parseInt(next.textContent?.trim() || ""); if (!isNaN(n)) metrics.push(n); }
+          }
+          if (text) results.push({ username: match[1], url: "https://www.threads.net" + href, text: text.substring(0, 500), likes: metrics[0] || 0, replies: metrics[1] || 0 });
+        }
+        return results;
+      });
+
+      for (const post of posts) {
+        if (post.username === ownUsername) continue;
+        if (koreanRatio(post.text) < 0.15) continue;
+        if (post.likes < config.minLikes) continue;
+        const prefix = post.text.substring(0, 80);
+        if (seenTexts.has(prefix)) continue;
+        seenTexts.add(prefix);
+        newPosts.push({
+          topic: keyword,
+          engagement: `trending (${post.likes} likes, ${post.replies} replies)`,
+          likes: post.likes,
+          source: "external",
+          collected: new Date().toISOString().split("T")[0],
+          text: post.text,
+          url: post.url,
+          username: post.username,
+        });
+      }
+      await page.close();
+    } catch {
+      // Skip failed keyword
+    }
+  }
+
+  await browser.close();
+
+  if (newPosts.length > 0) {
+    const allPosts = [...existingPosts, ...newPosts].sort((a, b) => b.likes - a.likes);
+    const trimmed = allPosts.slice(0, config.maxPopularPosts);
+    const content = header + trimmed.map(formatPopularPost).join("");
+    await fs.writeFile(config.popularPostsPath, content, "utf-8");
+  }
+
+  return jsonResult({
+    message: `Browser scrape: ${maxKeywords} keywords → ${newPosts.length} new external posts collected`,
+    newPosts: newPosts.length,
+    keywords: maxKeywords,
+    total: existingPosts.length + newPosts.length,
+  });
 }
 
 function koreanRatio(text: string): number {
@@ -123,8 +254,8 @@ async function writeTextFile(filePath: string, content: string): Promise<void> {
 
 const ThreadsSearchToolSchema = Type.Object(
   {
-    action: optionalStringEnum(["fetch"] as const, {
-      description: 'Action: "fetch" — search trending posts by keywords and update popular-posts.txt.',
+    action: optionalStringEnum(["fetch", "scrape"] as const, {
+      description: 'Action: "fetch" — search via API (own posts only). "scrape" — browser-based search for external trending posts by keywords.',
     }),
   },
   { additionalProperties: false },
@@ -138,9 +269,14 @@ export function createThreadsSearchTool(api: OpenClawPluginApi) {
       "Search trending posts on Threads using keywords from search-keywords.txt. Filters by likes, Korean ratio, and recency. Updates popular-posts.txt.",
     parameters: ThreadsSearchToolSchema,
     async execute(_toolCallId: string, rawParams: Record<string, unknown>) {
-      const action = readStringParam(rawParams, "action") ?? "fetch";
+      const action = readStringParam(rawParams, "action") ?? "scrape";
+
+      if (action === "scrape") {
+        return await scrapeThreadsSearch(resolveConfig(api));
+      }
+
       if (action !== "fetch") {
-        throw new Error(`Unknown action: ${action}. Use "fetch".`);
+        throw new Error(`Unknown action: ${action}. Use "scrape" or "fetch".`);
       }
 
       const config = resolveConfig(api);
@@ -173,6 +309,16 @@ export function createThreadsSearchTool(api: OpenClawPluginApi) {
       const seenIds = new Set<string>();
       const newPosts: PopularPost[] = [];
 
+      // Fetch own username to skip own posts
+      let ownUsername = "";
+      try {
+        const meResp = await fetch(`${THREADS_API_BASE}/${config.userId}?fields=username&access_token=${config.accessToken}`);
+        if (meResp.ok) {
+          const me = (await meResp.json()) as { username?: string };
+          ownUsername = me.username ?? "";
+        }
+      } catch { /* ignore */ }
+
       for (const keyword of keywords) {
         try {
           const encoded = encodeURIComponent(keyword);
@@ -187,6 +333,8 @@ export function createThreadsSearchTool(api: OpenClawPluginApi) {
             // Skip duplicates
             if (seenIds.has(item.id)) continue;
             seenIds.add(item.id);
+            // Skip own posts
+            if (item.username && item.username === ownUsername) continue;
             // Skip low engagement
             const likes = item.like_count ?? 0;
             if (likes < config.minLikes) continue;
@@ -204,6 +352,7 @@ export function createThreadsSearchTool(api: OpenClawPluginApi) {
               newPosts.some((p) => p.text.substring(0, 100) === prefix);
             if (isDupe) continue;
 
+            const postUrl = item.username ? `https://www.threads.net/@${item.username}/post/${item.id}` : "";
             newPosts.push({
               topic: keyword,
               engagement: `high (${likes} likes)`,
@@ -211,6 +360,8 @@ export function createThreadsSearchTool(api: OpenClawPluginApi) {
               source: "external",
               collected: now.toISOString().split("T")[0],
               text: textOneLine,
+              url: postUrl,
+              username: item.username ?? "",
             });
           }
         } catch {

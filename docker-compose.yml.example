@@ -10,6 +10,13 @@ services:
     volumes:
       - ./config:/home/node/.openclaw       # openclaw.json + cron/jobs.json
       - ./data:/home/node/data              # 데이터 파일
+      - ./extensions/threads-publish:/app/extensions/threads-publish
+      - ./extensions/threads-queue:/app/extensions/threads-queue
+      - ./extensions/threads-insights:/app/extensions/threads-insights
+      - ./extensions/threads-search:/app/extensions/threads-search
+      - ./extensions/threads-growth:/app/extensions/threads-growth
+      - ./extensions/threads-style:/app/extensions/threads-style
+      - ./extensions/x-publish:/app/extensions/x-publish
     env_file: .env
     environment:
       HOME: /home/node
