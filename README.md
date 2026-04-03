@@ -16,6 +16,7 @@ AI 에이전트가 콘텐츠를 자동 생성하고, 검수 후 멀티채널로 
 
 | PR | 제목 | from | 주요 내용 |
 |----|------|------|----------|
+| #14 | 자동화 강화: 댓글 답글, 인기글 스크래핑, 이미지 발행, 해시태그 분석 | code-zero-to-one | auto-reply, quote trending, 스크래핑 수집, hashtag/hourly 분석, 비율 설정 |
 | #13 | 자동화 토글 실제 연동 + 이미지 생성 + 주기 설정 | code-zero-to-one | 토글→크론 연동, 대시보드 이미지 생성 UI, 주기 파라미터 |
 | #12 | 이미지 파이프라인 + 에셋 갤러리 + 자동화 토글 | code-zero-to-one | image-upload extension, Images 탭, 자동화 ON/OFF, 실행 기록 |
 | #11 | 디에듀 블로그 SEO 자동화 | idealstudy | dedu-blog/blog-queue/seo-keywords extensions, Blog 탭 |
