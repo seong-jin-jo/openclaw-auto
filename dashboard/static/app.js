@@ -1353,9 +1353,11 @@ function renderBlog() {
 
 // ── Init ──
 document.addEventListener("DOMContentLoaded", async () => {
-  // Always show dashboard (GET APIs are public), login only needed for writes
   const hash = window.location.hash.replace("#", "");
   if (hash) S.page = hash;
+  // Test auth — if 401, show landing page with login
+  const test = await fetch("/api/overview", { headers: authHeaders() });
+  if (test.status === 401) { promptLogin(); return; }
   loadOverview();
   loadImages();
   render();
