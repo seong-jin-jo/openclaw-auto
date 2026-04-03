@@ -160,7 +160,7 @@ const S = {
   channelSettings: { features: [], settings: {} }, cronRuns: [],
   sidebarCollapsed: { social: false, video: true, blog: false, messaging: true, data: true, custom: true },
   queueFilter: "all", loading: false,
-  editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null,
+  editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null, expandedPopular: null,
 };
 
 function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
@@ -658,11 +658,37 @@ function renderAnalytics() {
   const a = S.analytics;
   if (!a) return `<p class="text-gray-500">Loading...</p>`;
   const s = a.summary || {};
+  const posts = (a.posts || []).sort((a, b) => (b.publishedAt || "").localeCompare(a.publishedAt || ""));
   return `
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">${card("Published", s.totalPublished)}${card("Views", s.totalViews)}${card("Avg Views", s.avgViews)}${card("Avg Likes", s.avgLikes)}</div>
     ${Object.keys(a.topics || {}).length ? `<div class="card p-4 mb-6"><h3 class="text-xs font-medium text-gray-400 mb-3">Topic Performance</h3>
       <table class="w-full text-sm"><thead><tr class="text-[10px] text-gray-500 uppercase"><th class="text-left py-1">Topic</th><th class="text-right py-1">Posts</th><th class="text-right py-1">Avg Views</th><th class="text-right py-1">Avg Likes</th></tr></thead>
-      <tbody>${Object.entries(a.topics).map(([t, s]) => `<tr class="border-t border-gray-800/50"><td class="text-gray-200 py-1">${esc(t)}</td><td class="text-gray-400 text-right py-1">${s.count}</td><td class="text-gray-400 text-right py-1">${s.avgViews || 0}</td><td class="text-gray-400 text-right py-1">${s.avgLikes || 0}</td></tr>`).join("")}</tbody></table></div>` : ""}`;
+      <tbody>${Object.entries(a.topics).map(([t, s]) => `<tr class="border-t border-gray-800/50"><td class="text-gray-200 py-1">${esc(t)}</td><td class="text-gray-400 text-right py-1">${s.count}</td><td class="text-gray-400 text-right py-1">${s.avgViews || 0}</td><td class="text-gray-400 text-right py-1">${s.avgLikes || 0}</td></tr>`).join("")}</tbody></table></div>` : ""}
+    ${Object.keys(a.hashtags || {}).length ? `<div class="card p-4 mb-6"><h3 class="text-xs font-medium text-gray-400 mb-3">Hashtag Performance</h3>
+      <div class="flex flex-wrap gap-2">${Object.entries(a.hashtags).sort((a, b) => (b[1].avgViews || 0) - (a[1].avgViews || 0)).map(([t, s]) => `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs border border-gray-800 ${s.avgViews >= (a.summary?.viralThreshold || 500) ? "bg-yellow-900/30 border-yellow-700/50 text-yellow-300" : "bg-gray-900 text-gray-400"}">#${esc(t)} <span class="text-[10px] text-gray-500">${s.count}posts ${s.avgViews || 0}v ${s.avgLikes || 0}l</span></span>`).join("")}</div></div>` : ""}
+    ${posts.length ? `<div class="card p-4"><h3 class="text-xs font-medium text-gray-400 mb-3">Post Performance</h3>
+      <div class="space-y-2">
+        ${posts.map(p => {
+          const vt = s.viralThreshold || 500;
+          const isViral = p.views >= vt;
+          return `<div class="flex items-start gap-3 py-2 border-b border-gray-800/50 last:border-0">
+            <div class="flex-1 min-w-0">
+              <p class="text-xs text-gray-200 truncate" title="${esc(p.text)}">${esc(p.text)}</p>
+              <div class="flex items-center gap-3 mt-1">
+                <span class="text-[10px] text-gray-600">${p.topic || ""}</span>
+                <span class="text-[10px] text-gray-600">${p.publishedAt ? fmtTime(p.publishedAt) : ""}</span>
+                ${p.archived ? '<span class="text-[10px] text-gray-700">archived</span>' : ""}
+              </div>
+            </div>
+            <div class="flex gap-4 text-right shrink-0">
+              <div><p class="text-xs ${isViral ? "text-yellow-400 font-medium" : "text-gray-300"}">${p.views}</p><p class="text-[10px] text-gray-600">views</p></div>
+              <div><p class="text-xs text-gray-300">${p.likes}</p><p class="text-[10px] text-gray-600">likes</p></div>
+              <div><p class="text-xs text-gray-300">${p.replies}</p><p class="text-[10px] text-gray-600">replies</p></div>
+            </div>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>` : ""}`;
 }
 
 function renderGrowth() {
@@ -672,16 +698,42 @@ function renderGrowth() {
 }
 
 function renderPopular() {
-  return `<div class="space-y-3">${S.popular.map(p => `
-    <div class="card p-4">
-      <div class="flex items-center gap-2 mb-2">
-        <span class="text-xs px-2 py-0.5 rounded bg-purple-900/50 text-purple-300">${p.source || "unknown"}</span>
-        ${p.type ? `<span class="text-xs px-2 py-0.5 rounded bg-cyan-900/50 text-cyan-300">${p.type}</span>` : ""}
-        ${p.likes && p.likes !== "0" ? `<span class="text-xs text-yellow-500">${p.likes} likes</span>` : ""}
+  const sourceColors = { external: "bg-purple-900/50 text-purple-300", "own-viral": "bg-green-900/50 text-green-300", manual: "bg-gray-700 text-gray-300" };
+  return `
+    <div class="card p-4 mb-4">
+      <div class="flex items-center gap-2 mb-3">
+        <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <span class="text-xs text-gray-300">Add External Post</span>
       </div>
-      <p class="text-sm text-gray-200 whitespace-pre-wrap">${esc(p.text || "")}</p>
+      <textarea id="ext-post-text" class="w-full bg-gray-900 text-gray-200 text-xs p-2 rounded border border-gray-700 mb-2" rows="3" placeholder="인기글 텍스트를 붙여넣기"></textarea>
+      <div class="flex gap-2">
+        <input id="ext-post-url" type="text" placeholder="Threads URL (선택)" class="flex-1 bg-gray-900 text-gray-200 text-xs p-2 rounded border border-gray-700">
+        <input id="ext-post-topic" type="text" placeholder="키워드/주제" class="w-28 bg-gray-900 text-gray-200 text-xs p-2 rounded border border-gray-700">
+        <button id="ext-post-add" class="px-3 py-1.5 text-xs bg-purple-600 text-white rounded hover:bg-purple-500 shrink-0">Add</button>
+      </div>
     </div>
-  `).join("") || `<p class="text-gray-600 text-sm">No popular posts</p>`}</div>`;
+    <div class="space-y-2">${S.popular.map((p, i) => {
+      const open = S.expandedPopular === i;
+      return `
+    <div class="card overflow-hidden cursor-pointer hover:bg-gray-800/20 transition-colors" onclick="togglePopularDetail(${i})">
+      <div class="flex items-center gap-2 px-4 pt-3 pb-1">
+        <span class="text-xs px-2 py-0.5 rounded ${sourceColors[p.source] || "bg-gray-700 text-gray-300"}">${p.source || "?"}</span>
+        ${p.topic ? `<span class="text-[10px] text-gray-500">${esc(p.topic)}</span>` : ""}
+        ${p.likes && p.likes !== "0" ? `<span class="text-[10px] text-yellow-500">${p.likes} likes</span>` : ""}
+        ${p.username ? `<span class="text-[10px] text-gray-600">@${esc(p.username)}</span>` : ""}
+        <span class="text-[10px] text-gray-700 ml-auto">${p.collected || ""}</span>
+        <svg class="w-3 h-3 text-gray-600 transition-transform ${open ? "rotate-180" : ""}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </div>
+      <p class="text-xs text-gray-300 px-4 pb-3 ${open ? "whitespace-pre-wrap" : "truncate"}">${esc(p.text || "")}</p>
+      ${open ? `
+        <div class="px-4 pb-3 flex items-center gap-3 border-t border-gray-800/50 pt-2">
+          ${p.engagement ? `<span class="text-[10px] text-gray-500">${esc(p.engagement)}</span>` : ""}
+          ${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener" class="text-[10px] text-blue-400 hover:text-blue-300" onclick="event.stopPropagation()">Threads에서 보기 &rarr;</a>` : ""}
+          <button class="text-[10px] text-red-400 hover:text-red-300 ml-auto" onclick="event.stopPropagation(); deletePopularPost(${i})">삭제</button>
+        </div>
+      ` : ""}
+    </div>`;
+    }).join("") || `<p class="text-gray-600 text-sm">No popular posts</p>`}</div>`;
 }
 
 // ── Per-Channel Settings ──
@@ -778,6 +830,7 @@ function renderChannelSettings(channel) {
             </div>
             ${expanded ? `
               <div class="ml-12 mb-3 space-y-1.5">
+                ${f.detail ? `<p class="text-[10px] text-gray-500 py-1 mb-1">${f.detail}</p>` : ""}
                 ${showInterval && hours ? `
                   <div class="flex items-center gap-2 py-1.5 px-2 bg-gray-900/50 rounded mb-2" onclick="event.stopPropagation()">
                     <span class="text-[10px] text-gray-400">Interval</span>
@@ -808,6 +861,9 @@ function renderChannelSettings(channel) {
         <div class="flex items-center justify-between mb-4"><h3 class="text-sm font-medium text-gray-300">Parameters</h3><button id="save-settings" class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button></div>
         ${row("viralThreshold", "Viral Threshold", "터진 글 기준 views")}
         ${row("draftsPerBatch", "Drafts per Batch", "배치당 생성 개수")}
+        ${row("imagePerBatch", "Images per Batch", "배치당 이미지 첨부 수")}
+        ${row("casualPerBatch", "Casual per Batch", "배치당 일상 글 수")}
+        ${row("quotePerBatch", "Quotes per Batch", "배치당 인용 게시 수")}
         ${row("publishIntervalHours", "Publish Interval", "발행 간격 (시간)")}
         ${row("insightsIntervalHours", "Insights Interval", "반응 수집 간격 (시간)")}
         ${row("insightsMaxCollections", "Max Collections", "최대 반응 수집 횟수")}
@@ -1007,6 +1063,16 @@ function bindEvents() {
     if (ta) { const kw = ta.value.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("#")); const r = await API.post("/api/keywords", { keywords: kw }); if (r) showToast("키워드 저장됨", "success"); }
   };
 
+  const extPostBtn = document.getElementById("ext-post-add");
+  if (extPostBtn) extPostBtn.onclick = async () => {
+    const text = document.getElementById("ext-post-text")?.value?.trim();
+    if (!text) { showToast("텍스트를 입력하세요", "warning"); return; }
+    const url = document.getElementById("ext-post-url")?.value?.trim() || "";
+    const topic = document.getElementById("ext-post-topic")?.value?.trim() || "general";
+    const r = await API.post("/api/popular/add", { text, url, topic });
+    if (r) { showToast("인기글 추가됨", "success"); loadPopular(); }
+  };
+
   document.querySelectorAll("[data-feature-toggle]").forEach(el => {
     el.onchange = async () => {
       const key = el.dataset.featureToggle;
@@ -1097,6 +1163,12 @@ function switchSubTab(tab) {
 
 // ── Channel Settings & Cron Runs ──
 function toggleFeatureDetail(key) { S.expandedFeature = S.expandedFeature === key ? null : key; render(); }
+function togglePopularDetail(i) { S.expandedPopular = S.expandedPopular === i ? null : i; render(); }
+async function deletePopularPost(i) {
+  if (!confirm("이 인기글을 삭제하시겠습니까?")) return;
+  const r = await API.post("/api/popular/delete", { index: i });
+  if (r) { showToast("삭제됨", "success"); S.expandedPopular = null; loadPopular(); }
+}
 async function loadChannelSettings() {
   const data = await API.get("/api/channel-settings");
   if (data) { S.channelSettings = data; render(); }

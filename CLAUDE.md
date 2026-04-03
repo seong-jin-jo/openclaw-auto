@@ -84,6 +84,20 @@ OpenClaw Cron → Claude Agent → Tool Registry
 - `DASHBOARD_AUTH_TOKEN`: 대시보드 인증 토큰. 설정하면 로그인 필수, 미설정 시 누구나 접근 가능. .env에 추가하거나 docker run -e로 전달
 - `VIRAL_THRESHOLD`: 터진 글 기준 views (기본: 500)
 
+## Tool 목록
+
+| Tool | 설명 |
+|------|------|
+| `threads_publish` | Threads API 발행 (TEXT/IMAGE/QUOTE, container → publish) |
+| `x_publish` | X (Twitter) API v2 발행 (OAuth 1.0a, 280자 제한) |
+| `threads_queue` | 콘텐츠 큐 CRUD (list/add/update/delete/get_approved/cleanup/update_channel) |
+| `threads_style` | 스타일 학습 데이터 RAG (read/add/summary) |
+| `threads_insights` | 반응 수집 + 댓글 좋아요/답글 + 저조 삭제 (collect/auto_like_replies/auto_reply/cleanup_low_engagement) |
+| `threads_search` | 브라우저 스크래핑 기반 외부 인기글 수집 (scrape/fetch) |
+| `threads_growth` | 팔로워 수/증감 추적 (track) |
+| `image_upload` | 로컬 이미지 → Cloudflare R2 업로드 → 퍼블릭 URL 반환 (upload) |
+
+
 ## Cron Jobs
 
 | 이름 | 기본 주기 | 설명 |
