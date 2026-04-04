@@ -1,0 +1,12 @@
+{
+  "name": "@openclaw/card-generator",
+  "version": "2026.4.4",
+  "private": true,
+  "description": "OpenClaw card news image generator (canvas-based text cards)",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

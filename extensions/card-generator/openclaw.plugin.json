@@ -1,0 +1,10 @@
+{
+  "id": "card-generator",
+  "name": "Card Generator",
+  "description": "Generate card news images (text-based slides) for Instagram carousel and Shorts.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
