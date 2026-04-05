@@ -818,13 +818,14 @@ def api_cron_interval(job_name):
     if not isinstance(hours, (int, float)) or hours < 1 or hours > 168:
         return jsonify({"error": "hours must be between 1 and 168"}), 400
     try:
-        result = subprocess.run(
-            ["node", "dist/index.js", "cron", "edit", job["id"], "--every", f"{int(hours)}h"],
-            capture_output=True, text=True, timeout=15,
-            cwd="/app" if os.path.isdir("/app/dist") else os.path.join(os.path.dirname(__file__), "..", "openclaw"),
-        )
-        if result.returncode != 0:
-            return jsonify({"error": result.stderr.strip() or "cron edit failed"}), 500
+        # Update jobs.json directly (dashboard doesn't have OpenClaw CLI)
+        cron_data = read_json(CRON_JOBS_PATH)
+        if cron_data:
+            for j in cron_data.get("jobs", []):
+                if j["id"] == job["id"]:
+                    j["schedule"]["everyMs"] = int(hours) * 3600 * 1000
+                    break
+            write_json(CRON_JOBS_PATH, cron_data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     logger.info("Cron interval updated: %s → %dh", job_name, hours)
