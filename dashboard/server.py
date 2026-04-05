@@ -989,6 +989,72 @@ def api_token_status():
     return jsonify(result)
 
 
+# ── API: LLM Config ──
+@app.route("/api/llm-config")
+def api_llm_config():
+    config = read_json(CONFIG_DIR / "openclaw.json") or {}
+    agents = config.get("agents", {}).get("defaults", {})
+    model = agents.get("model", {})
+
+    # Per-job model overrides from cron jobs
+    cron_data = read_json(CRON_JOBS_PATH) or {"jobs": []}
+    job_models = {}
+    for j in cron_data.get("jobs", []):
+        job_models[j["name"]] = j.get("payload", {}).get("model") or model.get("primary", "")
+
+    # Available models (hardcoded common ones, could be dynamic)
+    available = [
+        "anthropic/claude-opus-4-6", "anthropic/claude-opus-4-5",
+        "anthropic/claude-sonnet-4-6", "anthropic/claude-sonnet-4-5",
+        "anthropic/claude-haiku-4-5",
+        "google/gemini-2.5-flash",
+        "ollama/llama3.1:8b", "ollama/mistral:7b",
+    ]
+
+    return jsonify({
+        "primary": model.get("primary", ""),
+        "fallbacks": model.get("fallbacks", []),
+        "jobModels": job_models,
+        "available": available,
+    })
+
+
+@app.route("/api/llm-config", methods=["POST"])
+def api_llm_config_update():
+    data = get_json_body()
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path)
+    if config is None:
+        return jsonify({"error": "openclaw.json not found"}), 404
+
+    agents = config.setdefault("agents", {}).setdefault("defaults", {})
+    model = agents.setdefault("model", {})
+
+    # Update primary model
+    if "primary" in data and isinstance(data["primary"], str) and data["primary"].strip():
+        model["primary"] = data["primary"].strip()
+
+    # Update fallbacks
+    if "fallbacks" in data and isinstance(data["fallbacks"], list):
+        model["fallbacks"] = [f for f in data["fallbacks"] if isinstance(f, str) and f.strip()]
+
+    # Update per-job model overrides
+    if "jobModels" in data and isinstance(data["jobModels"], dict):
+        cron_data = read_json(CRON_JOBS_PATH) or {"jobs": []}
+        for j in cron_data.get("jobs", []):
+            if j["name"] in data["jobModels"]:
+                override = data["jobModels"][j["name"]]
+                if override and override != model.get("primary", ""):
+                    j.setdefault("payload", {})["model"] = override
+                elif "model" in j.get("payload", {}):
+                    del j["payload"]["model"]  # remove override = use default
+        write_json(CRON_JOBS_PATH, cron_data)
+
+    write_json(config_path, config)
+    logger.info("LLM config updated: primary=%s", model.get("primary"))
+    return jsonify({"ok": True, "primary": model.get("primary"), "fallbacks": model.get("fallbacks", [])})
+
+
 @app.route("/api/channel-config")
 def api_channel_config():
     config_path = CONFIG_DIR / "openclaw.json"
