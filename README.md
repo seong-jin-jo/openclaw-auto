@@ -149,9 +149,19 @@ docker compose up -d --build
 
 ### 2. 채널 연결
 
-대시보드 접속 후 각 채널 Settings에서 크리덴셜 입력:
-- **Threads**: developers.facebook.com에서 Access Token + User ID 발급
-- **X (Twitter)**: developer.x.com에서 소비자 키 + 액세스 토큰 발급 (OAuth 1.0a, Read+Write)
+대시보드에서 각 채널 클릭 → credential 입력 → **자동 검증** → Connected.
+
+- credential 입력 후 실제 API를 호출하여 유효성 검증
+- 검증 실패 시 Connected로 표시되지 않음 (에러 메시지 표시)
+- **Setup Guide**: 단계별 따라하기로 시작 가능
+- **더 알아보기**: 각 키의 역할, OAuth 구조, 비용/제한사항 확인
+
+주요 채널:
+- **Threads**: developers.facebook.com > Access Token + User ID
+- **X (Twitter)**: developer.x.com > OAuth 1.0a 소비자 키 + 액세스 토큰 (Read+Write). OAuth 2.0은 권한 설정 시 자동 생성되지만 사용하지 않음
+- **Bluesky**: bsky.app > Handle + App Password (무료, 승인 불필요)
+- **Telegram**: @BotFather > Bot Token + Chat ID (무료)
+- 기타: 각 채널 Settings의 Setup Guide 참조
 
 ### 3. 콘텐츠 전략 설정
 

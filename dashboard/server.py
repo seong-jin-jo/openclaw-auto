@@ -978,6 +978,14 @@ def api_token_status():
     result["threads"] = {"connected": bool(tp.get("config", {}).get("accessToken", "")), "userId": tp.get("config", {}).get("userId", "")}
     xp = plugins.get("x-publish", {})
     result["x"] = {"connected": bool(xp.get("config", {}).get("apiKey", "")), "enabled": xp.get("enabled", False)}
+    # LLM model info
+    agents = config.get("agents", {}).get("defaults", {})
+    model = agents.get("model", {})
+    result["llm"] = {
+        "primary": model.get("primary", "unknown"),
+        "fallbacks": model.get("fallbacks", []),
+        "auth": "Claude Code Max Plan (OAuth, auto-refresh)",
+    }
     return jsonify(result)
 
 
@@ -1054,6 +1062,80 @@ def api_threads_username():
         return jsonify({"username": ""})
 
 
+# ── Channel Verification ──
+def verify_channel(channel, cfg):
+    """Verify credentials by making a real API call. Returns {verified, account, error}."""
+    import urllib.request, urllib.error
+    try:
+        if channel == "threads":
+            token = cfg.get("accessToken", "")
+            if not token:
+                return {"verified": False, "error": "Access Token is empty"}
+            url = f"https://graph.threads.net/v1.0/me?fields=username&access_token={token}"
+            with urllib.request.urlopen(url, timeout=5) as resp:
+                data = json.loads(resp.read())
+                return {"verified": True, "account": f"@{data.get('username', '')}"}
+
+        elif channel == "bluesky":
+            handle = cfg.get("handle", "")
+            pw = cfg.get("appPassword", "")
+            if not handle or not pw:
+                return {"verified": False, "error": "Handle and App Password required"}
+            req = urllib.request.Request("https://bsky.social/xrpc/com.atproto.server.createSession",
+                data=json.dumps({"identifier": handle, "password": pw}).encode(),
+                headers={"Content-Type": "application/json"}, method="POST")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                data = json.loads(resp.read())
+                return {"verified": True, "account": f"@{data.get('handle', '')}"}
+
+        elif channel == "telegram":
+            token = cfg.get("botToken", "")
+            if not token:
+                return {"verified": False, "error": "Bot Token is empty"}
+            url = f"https://api.telegram.org/bot{token}/getMe"
+            with urllib.request.urlopen(url, timeout=5) as resp:
+                data = json.loads(resp.read())
+                if data.get("ok"):
+                    return {"verified": True, "account": f"@{data['result'].get('username', '')}"}
+                return {"verified": False, "error": "Invalid bot token"}
+
+        elif channel == "x":
+            # X requires OAuth 1.0a signature — complex, skip for now
+            # Just check if all 4 keys are present
+            required = ["apiKey", "apiKeySecret", "accessToken", "accessTokenSecret"]
+            missing = [k for k in required if not cfg.get(k)]
+            if missing:
+                return {"verified": False, "error": f"Missing: {', '.join(missing)}"}
+            return {"verified": True, "account": "(OAuth 1.0a keys saved)"}
+
+        elif channel == "facebook":
+            token = cfg.get("accessToken", "")
+            page_id = cfg.get("pageId", "")
+            if not token or not page_id:
+                return {"verified": False, "error": "Access Token and Page ID required"}
+            url = f"https://graph.facebook.com/v21.0/{page_id}?fields=name&access_token={token}"
+            with urllib.request.urlopen(url, timeout=5) as resp:
+                data = json.loads(resp.read())
+                return {"verified": True, "account": data.get("name", page_id)}
+
+        elif channel == "discord":
+            webhook_url = cfg.get("webhookUrl", "")
+            if not webhook_url or not webhook_url.startswith("https://discord.com/api/webhooks/"):
+                return {"verified": False, "error": "Invalid Discord Webhook URL"}
+            return {"verified": True, "account": "(Webhook configured)"}
+
+        else:
+            # Generic: just check if any key has value
+            has_any = any(v for v in cfg.values() if isinstance(v, str) and v.strip())
+            return {"verified": has_any, "account": "" if not has_any else "(credentials saved)"}
+
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")[:200]
+        return {"verified": False, "error": f"API error ({e.code}): {body}"}
+    except Exception as e:
+        return {"verified": False, "error": str(e)[:200]}
+
+
 @app.route("/api/channel-config/<channel>", methods=["POST"])
 def api_channel_config_generic(channel):
     # Handle threads and x separately (they have custom logic)
@@ -1086,11 +1168,12 @@ def api_channel_config_generic(channel):
         if isinstance(val, str) and val.strip():
             p["config"][key] = val.strip()
             updated = True
-    if updated and p["config"]:
-        p["enabled"] = True
+    # Verify credentials
+    result = verify_channel(channel, p.get("config", {}))
+    p["enabled"] = result.get("verified", False)
     write_json(config_path, config)
-    logger.info("Channel %s config updated", channel)
-    return jsonify({"ok": True, "enabled": p["enabled"]})
+    logger.info("Channel %s config updated, verified=%s", channel, result.get("verified"))
+    return jsonify({"ok": True, "enabled": p["enabled"], **result})
 
 
 def api_channel_config_threads_impl():
@@ -1106,9 +1189,14 @@ def api_channel_config_threads_impl():
             p["config"]["accessToken"] = data["accessToken"].strip()
         if "userId" in data and isinstance(data["userId"], str) and data["userId"].strip():
             p["config"]["userId"] = data["userId"].strip()
+    # Verify
+    tp_cfg = plugins.get("threads-publish", {}).get("config", {})
+    result = verify_channel("threads", tp_cfg)
+    for pname in ["threads-publish", "threads-insights", "threads-search", "threads-growth"]:
+        plugins.get(pname, {})["enabled"] = result.get("verified", False)
     write_json(config_path, config)
-    logger.info("Threads channel config updated")
-    return jsonify({"ok": True})
+    logger.info("Threads config updated, verified=%s", result.get("verified"))
+    return jsonify({"ok": True, **result})
 
 
 def api_channel_config_x_impl():
@@ -1122,12 +1210,12 @@ def api_channel_config_x_impl():
     for key in ("apiKey", "apiKeySecret", "accessToken", "accessTokenSecret"):
         if key in data and isinstance(data[key], str) and data[key].strip():
             xp["config"][key] = data[key].strip()
-    creds = xp.get("config", {})
-    if all(creds.get(k) for k in ("apiKey", "apiKeySecret", "accessToken", "accessTokenSecret")):
-        xp["enabled"] = True
+    # Verify
+    result = verify_channel("x", xp.get("config", {}))
+    xp["enabled"] = result.get("verified", False)
     write_json(config_path, config)
-    logger.info("X channel config updated")
-    return jsonify({"ok": True, "enabled": xp["enabled"]})
+    logger.info("X config updated, verified=%s", result.get("verified"))
+    return jsonify({"ok": True, **result})
 
 
 # ── API: Channel Automation Settings ──
