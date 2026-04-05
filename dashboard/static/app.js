@@ -156,7 +156,7 @@ const S = {
   overview: null, queue: [], growth: [], popular: [], analytics: null,
   keywords: [], settings: null, guide: "", cronJobs: [], activity: [],
   channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [],
-  tokenStatus: null, alerts: [], weekly: null,
+  tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
   sidebarCollapsed: { social: false, video: true, blog: false, messaging: true, data: true, custom: true }, showDetail: null,
   queueFilter: "all", loading: false,
@@ -201,6 +201,7 @@ async function loadGrowth() { const d = await API.get("/api/growth"); if (d) S.g
 async function loadPopular() { const d = await API.get("/api/popular"); if (d) S.popular = d.posts || []; render(); }
 async function loadAnalytics() { const d = await API.get("/api/analytics"); if (d) S.analytics = d; render(); }
 async function loadKeywords() { const d = await API.get("/api/keywords"); if (d) S.keywords = d.keywords || []; render(); }
+async function loadLlmConfig() { const d = await API.get("/api/llm-config"); if (d) S.llmConfig = d; render(); }
 async function loadSettings() {
   const [s, g] = await Promise.all([API.get("/api/settings"), API.get("/api/guide")]);
   if (s) S.settings = s;
@@ -1001,15 +1002,40 @@ function renderSettings() {
           </div>
         </div>
         <div class="card p-5">
-          <h3 class="text-sm font-medium text-gray-300 mb-4">AI Engine</h3>
-          ${S.tokenStatus?.llm ? `
-            <div class="space-y-2 text-sm">
-              <div class="flex justify-between"><span class="text-gray-500">Model</span><span class="text-gray-300">${S.tokenStatus.llm.primary}</span></div>
-              <div class="flex justify-between"><span class="text-gray-500">Fallbacks</span><span class="text-gray-300">${S.tokenStatus.llm.fallbacks?.join(", ") || "none"}</span></div>
-              <div class="flex justify-between"><span class="text-gray-500">Auth</span><span class="text-gray-300">${S.tokenStatus.llm.auth}</span></div>
-              ${S.tokenStatus.claude ? `<div class="flex justify-between"><span class="text-gray-500">Token</span><span class="${S.tokenStatus.claude.healthy ? "text-green-400" : "text-red-400"}">${S.tokenStatus.claude.remainingHours}h remaining</span></div>` : ""}
+          <h3 class="text-sm font-medium text-gray-300 mb-4">AI Engine (LLM)</h3>
+          ${S.llmConfig ? `
+            <div class="space-y-3">
+              <div>
+                <label class="text-[10px] text-gray-500 block mb-1">Primary Model</label>
+                <select id="llm-primary" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300">
+                  ${(S.llmConfig.available || []).map(m => `<option value="${m}" ${m === S.llmConfig.primary ? "selected" : ""}>${m}</option>`).join("")}
+                </select>
+              </div>
+              <div>
+                <label class="text-[10px] text-gray-500 block mb-1">Fallback Models</label>
+                <p class="text-xs text-gray-400">${(S.llmConfig.fallbacks || []).join(" → ") || "none"}</p>
+              </div>
+              ${S.tokenStatus?.claude ? `
+                <div class="flex justify-between text-sm"><span class="text-gray-500">Token</span><span class="${S.tokenStatus.claude.healthy ? "text-green-400" : "text-red-400"}">${S.tokenStatus.claude.remainingHours}h remaining</span></div>
+              ` : ""}
+
+              <div class="border-t border-gray-800/50 pt-3 mt-3">
+                <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Per-Job Model Override</p>
+                <div class="space-y-2">
+                  ${Object.entries(S.llmConfig.jobModels || {}).map(([job, model]) => `
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="text-[10px] text-gray-400 flex-shrink-0 w-40 truncate">${job}</span>
+                      <select data-job-model="${job}" class="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-[10px] text-gray-300">
+                        <option value="" ${!model || model === S.llmConfig.primary ? "selected" : ""}>Default (${(S.llmConfig.primary || "").split("/").pop()})</option>
+                        ${(S.llmConfig.available || []).filter(m => m !== S.llmConfig.primary).map(m => `<option value="${m}" ${m === model ? "selected" : ""}>${m.split("/").pop()}</option>`).join("")}
+                      </select>
+                    </div>
+                  `).join("")}
+                </div>
+              </div>
+
+              <button id="save-llm-config" class="w-full mt-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">Save LLM Config</button>
             </div>
-            <p class="text-[10px] text-gray-600 mt-3">config/openclaw.json > agents.defaults.model에서 변경</p>
           ` : `<p class="text-xs text-gray-600">Loading...</p>`}
         </div>
         <div class="card p-5">
@@ -1033,6 +1059,18 @@ function renderSettings() {
 function bindEvents() {
   document.querySelectorAll("[data-nav]").forEach(el => { el.onclick = () => navigate(el.dataset.nav); });
   document.querySelectorAll("[data-sidebar-toggle]").forEach(el => { el.onclick = () => { S.sidebarCollapsed[el.dataset.sidebarToggle] = !S.sidebarCollapsed[el.dataset.sidebarToggle]; render(); }; });
+  // LLM config save
+  const saveLlm = document.getElementById("save-llm-config");
+  if (saveLlm) saveLlm.onclick = async () => {
+    const primary = document.getElementById("llm-primary")?.value;
+    const jobModels = {};
+    document.querySelectorAll("[data-job-model]").forEach(el => {
+      jobModels[el.dataset.jobModel] = el.value;
+    });
+    const r = await API.post("/api/llm-config", { primary, jobModels });
+    if (r) { showToast(`LLM 설정 저장: ${r.primary?.split("/").pop()}`, "success"); loadLlmConfig(); loadOverview(); }
+  };
+
   const logoutBtn = document.getElementById("btn-logout");
   if (logoutBtn) logoutBtn.onclick = () => { localStorage.removeItem("dashboard_auth_token"); location.reload(); };
   const changePwBtn = document.getElementById("btn-change-pw");
@@ -1177,7 +1215,7 @@ function navigate(page) {
   else if (page === "images") loadImages();
   else if (page === "blog") loadBlogQueue();
   else if (CH_LABELS[page]) loadOverview(); // generic channels use overview data
-  else if (page === "settings") { loadSettings(); loadKeywords(); }
+  else if (page === "settings") { loadSettings(); loadKeywords(); loadLlmConfig(); }
   render();
 }
 
