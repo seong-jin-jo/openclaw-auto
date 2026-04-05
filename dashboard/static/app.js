@@ -406,52 +406,52 @@ function renderOverview() {
   const cc = o.channelCounts || {};
   const totalPub = sc.published || 0;
 
+  // Build channel grid data
+  const allChannels = [
+    { key: "threads", label: "Threads", icon: "T", iconClass: "bg-gradient-to-br from-purple-500 to-pink-500 text-white" },
+    { key: "x", label: "X", icon: "X" },
+    { key: "instagram", label: "Instagram", icon: "IG" },
+    { key: "facebook", label: "Facebook", icon: "F" },
+    { key: "bluesky", label: "Bluesky", icon: "BS" },
+    { key: "linkedin", label: "LinkedIn", icon: "LI" },
+    { key: "tiktok", label: "TikTok", icon: "TK" },
+    { key: "youtube", label: "YouTube", icon: "YT" },
+    { key: "blog", label: "Blog", icon: "B", nav: "blog" },
+    { key: "telegram", label: "Telegram", icon: "TG" },
+    { key: "discord", label: "Discord", icon: "DC" },
+    { key: "pinterest", label: "Pinterest", icon: "P" },
+  ];
+
   return `<div class="px-8 py-6">
-    <div class="flex items-center justify-between mb-6">
-      <div><h2 class="text-xl font-semibold text-white">Marketing Overview</h2><p class="text-sm text-gray-500 mt-0.5">All channels at a glance</p></div>
+    <!-- Channel Grid (Genspark style) -->
+    <div class="mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-white">Channels</h2>
+        <span class="text-xs text-gray-600">${Object.values(S.channelConfig).filter(c => c.connected || c.status === "live").length} connected</span>
+      </div>
+      <div class="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-3">
+        ${allChannels.map(ch => {
+          const cfg = S.channelConfig[ch.key] || {};
+          const status = cfg.status || (cfg.connected ? "live" : "available");
+          const isLive = status === "live" || cfg.connected;
+          const navTarget = ch.nav || ch.key;
+          return `
+            <button data-nav="${navTarget}" class="flex flex-col items-center gap-1.5 p-3 rounded-xl hover:bg-gray-800/50 transition group">
+              <div class="w-10 h-10 rounded-xl ${ch.iconClass || (isLive ? "bg-gray-700 text-white" : "bg-gray-800/50 text-gray-600")} flex items-center justify-center text-xs font-bold ${isLive ? "ring-1 ring-green-800/50" : ""}">${ch.icon}</div>
+              <span class="text-[10px] ${isLive ? "text-gray-300" : "text-gray-600"}">${ch.label}</span>
+              ${isLive ? '<div class="w-1 h-1 rounded-full bg-green-500"></div>' : ""}
+            </button>`;
+        }).join("")}
+      </div>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+    <!-- Stats Row -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
       ${card("Published", totalPub, `T:${cc.threads || 0} X:${cc.x || 0}`)}
-      ${card("Followers", o.followers ?? "N/A", o.weekDelta != null ? `${o.weekDelta >= 0 ? "+" : ""}${o.weekDelta} this week` : "")}
-      ${card("Viral", o.viralPosts?.length || 0, `>= ${S.settings?.viralThreshold || 500} views`)}
-      ${card("Queue", (sc.draft || 0) + (sc.approved || 0), `${sc.draft || 0} drafts, ${sc.approved || 0} approved`)}
-      ${card("Popular Refs", o.popularPostsCount || 0, Object.entries(o.popularSourceCounts || {}).map(([k, v]) => `${k}:${v}`).join(" "))}
-    </div>
-
-    <!-- Channel Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-      <div class="channel-card card p-5" data-nav="threads">
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-3">
-            <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm font-bold text-white">T</span>
-            <div><h3 class="text-sm font-medium text-white">Threads</h3><p class="text-xs text-gray-500">${S.channelConfig.threads?.userId ? "ID: " + S.channelConfig.threads.userId : ""}</p></div>
-          </div>
-          <span class="text-[10px] px-2 py-1 rounded-full ${S.channelConfig.threads?.connected ? "bg-green-900/40 text-green-400 border border-green-800/30" : "bg-gray-800 text-gray-500"}">${S.channelConfig.threads?.connected ? "Connected" : "Not connected"}</span>
-        </div>
-        <div class="grid grid-cols-3 gap-3">
-          <div><p class="text-[10px] text-gray-500">Published</p><p class="text-lg font-semibold text-white">${cc.threads || 0}</p></div>
-          <div><p class="text-[10px] text-gray-500">Followers</p><p class="text-lg font-semibold text-white">${o.followers ?? "-"}</p></div>
-          <div><p class="text-[10px] text-gray-500">Growth</p><p class="text-lg font-semibold ${(o.weekDelta || 0) >= 0 ? "text-green-400" : "text-red-400"}">${o.weekDelta != null ? (o.weekDelta >= 0 ? "+" : "") + o.weekDelta : "-"}</p></div>
-        </div>
-        <div class="mt-3 pt-3 border-t border-gray-800/50 flex justify-between text-xs"><span class="text-gray-600">View details</span><span class="text-blue-400">&rarr;</span></div>
-      </div>
-
-      <div class="channel-card card p-5" data-nav="x">
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-3">
-            <span class="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center text-sm font-bold text-white">X</span>
-            <div><h3 class="text-sm font-medium text-white">X (Twitter)</h3><p class="text-xs text-gray-500">${S.channelConfig.x?.connected ? "Connected" : "Not connected"}</p></div>
-          </div>
-          <span class="text-[10px] px-2 py-1 rounded-full ${S.channelConfig.x?.connected ? "bg-green-900/40 text-green-400 border border-green-800/30" : "bg-yellow-900/40 text-yellow-400 border border-yellow-800/30"}">${S.channelConfig.x?.connected ? "Connected" : "Setup Required"}</span>
-        </div>
-        <div class="grid grid-cols-3 gap-3">
-          <div><p class="text-[10px] text-gray-500">Published</p><p class="text-lg font-semibold ${cc.x ? "text-white" : "text-gray-600"}">${cc.x || 0}</p></div>
-          <div><p class="text-[10px] text-gray-500">Impressions</p><p class="text-lg font-semibold text-gray-600">-</p></div>
-          <div><p class="text-[10px] text-gray-500">Followers</p><p class="text-lg font-semibold text-gray-600">-</p></div>
-        </div>
-        <div class="mt-3 pt-3 border-t border-gray-800/50 flex justify-between text-xs"><span class="text-gray-600">${S.channelConfig.x?.connected ? "View details" : "Setup credentials"}</span><span class="text-${S.channelConfig.x?.connected ? "blue" : "yellow"}-400">&rarr;</span></div>
-      </div>
+      ${card("Followers", o.followers ?? "-", o.weekDelta != null ? `${o.weekDelta >= 0 ? "+" : ""}${o.weekDelta} this week` : "")}
+      ${card("Viral", o.viralPosts?.length || 0, "")}
+      ${card("Queue", (sc.draft || 0) + (sc.approved || 0), `${sc.draft || 0} drafts`)}
+      ${card("Engagement", S.weekly?.engagementRate ? S.weekly.engagementRate + "%" : "-", "this week")}
     </div>
 
     <!-- Weekly Performance -->
