@@ -18,6 +18,7 @@ services:
       - ./extensions/threads-style:/app/extensions/threads-style
       - ./extensions/x-publish:/app/extensions/x-publish
       - ./extensions/card-generator:/app/extensions/card-generator
+      - ./extensions/instagram-publish:/app/extensions/instagram-publish
     env_file: .env
     environment:
       HOME: /home/node
