@@ -54,6 +54,33 @@ OpenClaw Cron → Claude Agent → Tool Registry
 | + Connect (파랑 테두리) | 연결 가능 | extension 존재 + credential 미입력 |
 | Coming Soon (회색) | 준비 중 | extension 미구현 또는 외부 승인 대기 |
 
+## Credential 검증
+
+credential 저장 시 `verify_channel(channel, config)` 함수가 실제 API를 호출하여 유효성 검증:
+- 검증 성공 → `enabled: true`, 응답에 `verified: true, account: "@username"`
+- 검증 실패 → `enabled: false`, 응답에 `verified: false, error: "이유"`
+- 채널별 검증: Threads(GET /me), Bluesky(createSession), Telegram(getMe), Facebook(GET /page), Discord(webhook URL 형식)
+- X는 OAuth 1.0a 서명이 복잡하여 키 존재 여부만 확인
+
+## Setup Guide 구조
+
+모든 채널에 **Quick Setup** + **Detail(더 알아보기)** 2단계:
+- Quick: 단계별 따라하기 (사이트 접속 → 앱 생성 → 키 복사 → 입력)
+- Detail: 각 키의 역할, OAuth 구조, 권한 설명, 비용/제한사항
+- `app.js`의 `setupGuides` 객체에 `quick` (배열) + `detail` (문자열) 정의
+
+## AI 엔진 설정
+
+LLM은 `config/openclaw.json > agents.defaults.model`에서 설정:
+```json
+"model": {
+  "primary": "anthropic/claude-sonnet-4-6",
+  "fallbacks": ["google/gemini-2.5-flash", "ollama/llama3.1:8b"]
+}
+```
+- 인증: Claude Code Max Plan (OAuth, 자동 refresh)
+- 대시보드 Settings > AI Engine에서 모델명/토큰 상태 확인 가능
+
 ## 새 채널 추가 방법
 
 1. `extensions/PLATFORM-publish/` 디렉토리 생성 (threads-publish 패턴 참고)
@@ -61,7 +88,9 @@ OpenClaw Cron → Claude Agent → Tool Registry
 3. `threads-queue-tool.ts`의 `Channels` 타입에 채널 추가
 4. Docker 이미지 리빌드 (`OPENCLAW_EXTENSIONS`에 포함)
 5. 크론잡 프롬프트에 새 채널 발행 로직 추가
-6. 대시보드 사이드바 + Settings에 채널 UI 추가
+6. 대시보드: `setupGuides`에 `quick` + `detail` 추가
+7. `server.py`: `verify_channel()`에 검증 로직 추가
+8. `server.py`: `IMPLEMENTED_PLUGINS` 세트에 플러그인명 추가
 
 ## 환경 변수
 
