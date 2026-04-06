@@ -513,27 +513,40 @@ def api_popular():
 
 
 # ── API: Keywords ──
+# ── API: Keywords (공통 + 채널별) ──
 @app.route("/api/keywords")
-def api_keywords():
+@app.route("/api/keywords/<channel>")
+def api_keywords(channel=None):
+    common_kw = []
     try:
         with open(KEYWORDS_PATH, "r", encoding="utf-8") as f:
-            lines = [l.strip() for l in f if l.strip() and not l.startswith("#")]
-        return jsonify({"keywords": lines})
+            common_kw = [l.strip() for l in f if l.strip() and not l.startswith("#")]
     except FileNotFoundError:
-        return jsonify({"keywords": []})
+        pass
+    ch_kw = []
+    if channel:
+        ch_path = DATA_DIR / f"search-keywords.{channel}.txt"
+        try:
+            with open(ch_path, "r", encoding="utf-8") as f:
+                ch_kw = [l.strip() for l in f if l.strip() and not l.startswith("#")]
+        except FileNotFoundError:
+            pass
+    return jsonify({"keywords": ch_kw or common_kw, "common": common_kw, "channelKeywords": ch_kw, "channel": channel or "common"})
 
 
 @app.route("/api/keywords", methods=["POST"])
-def api_keywords_update():
+@app.route("/api/keywords/<channel>", methods=["POST"])
+def api_keywords_update(channel=None):
     data = get_json_body()
     keywords = data.get("keywords", [])
     if not isinstance(keywords, list):
         return jsonify({"error": "keywords must be an array"}), 400
-    with open(KEYWORDS_PATH, "w", encoding="utf-8") as f:
-        f.write("# Threads 인기글 검색 키워드 (한 줄에 하나, #=주석, 빈 줄 무시)\n")
+    path = DATA_DIR / f"search-keywords.{channel}.txt" if channel else KEYWORDS_PATH
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(f"# {'채널별' if channel else '공통'} 검색 키워드\n")
         for kw in keywords:
             f.write(f"{kw}\n")
-    logger.info("Keywords updated: %d keywords", len(keywords))
+    logger.info("Keywords updated: %s (%d)", channel or "common", len(keywords))
     return jsonify({"ok": True, "count": len(keywords)})
 
 
@@ -868,28 +881,41 @@ def api_cron_interval(job_name):
     return jsonify({"ok": True, "hours": hours})
 
 
-# ── API: Prompt Guide ──
+# ── API: Prompt Guide (공통 + 채널별) ──
 GUIDE_PATH = DATA_DIR / "prompt-guide.txt"
 
 
 @app.route("/api/guide")
-def api_guide():
+@app.route("/api/guide/<channel>")
+def api_guide(channel=None):
+    common = ""
     try:
         with open(GUIDE_PATH, "r", encoding="utf-8") as f:
-            return jsonify({"guide": f.read()})
+            common = f.read()
     except FileNotFoundError:
-        return jsonify({"guide": ""})
+        pass
+    ch_guide = ""
+    if channel:
+        ch_path = DATA_DIR / f"prompt-guide.{channel}.txt"
+        try:
+            with open(ch_path, "r", encoding="utf-8") as f:
+                ch_guide = f.read()
+        except FileNotFoundError:
+            pass
+    return jsonify({"guide": ch_guide or common, "common": common, "channelGuide": ch_guide, "channel": channel or "common"})
 
 
 @app.route("/api/guide", methods=["POST"])
-def api_guide_update():
+@app.route("/api/guide/<channel>", methods=["POST"])
+def api_guide_update(channel=None):
     data = get_json_body()
     guide = data.get("guide", "")
     if not isinstance(guide, str):
         return jsonify({"error": "guide must be a string"}), 400
-    with open(GUIDE_PATH, "w", encoding="utf-8") as f:
+    path = DATA_DIR / f"prompt-guide.{channel}.txt" if channel else GUIDE_PATH
+    with open(path, "w", encoding="utf-8") as f:
         f.write(guide)
-    logger.info("Guide updated (%d chars)", len(guide))
+    logger.info("Guide updated: %s (%d chars)", channel or "common", len(guide))
     return jsonify({"ok": True})
 
 

@@ -159,6 +159,7 @@ const S = {
   tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
   sidebarCollapsed: { social: false, video: true, blog: false, messaging: true, data: true, custom: true }, showDetail: null, editingChannel: null,
+  channelGuide: null, channelKeywords: null,
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null, expandedPopular: null,
 };
@@ -202,6 +203,16 @@ async function loadGrowth() { const d = await API.get("/api/growth"); if (d) S.g
 async function loadPopular() { const d = await API.get("/api/popular"); if (d) S.popular = d.posts || []; render(); }
 async function loadAnalytics() { const d = await API.get("/api/analytics"); if (d) S.analytics = d; render(); }
 async function loadKeywords() { const d = await API.get("/api/keywords"); if (d) S.keywords = d.keywords || []; render(); }
+async function loadChannelGuideAndKeywords() {
+  const ch = S.page === "threads" ? "threads" : S.page === "x" ? "x" : S.page;
+  const [g, k] = await Promise.all([API.get(`/api/guide/${ch}`), API.get(`/api/keywords/${ch}`)]);
+  if (g) S.channelGuide = g;
+  if (k) S.channelKeywords = k;
+  // Also load common for fallback
+  if (!S.guide) { const cg = await API.get("/api/guide"); if (cg) S.guide = cg.guide || ""; }
+  if (!S.keywords?.length) { const ck = await API.get("/api/keywords"); if (ck) S.keywords = ck.keywords || []; }
+  render();
+}
 async function loadLlmConfig() { const d = await API.get("/api/llm-config"); if (d) S.llmConfig = d; render(); }
 async function loadSettings() {
   const [s, g] = await Promise.all([API.get("/api/settings"), API.get("/api/guide")]);
@@ -874,13 +885,25 @@ function renderChannelSettings(channel) {
         ${row("maxPopularPosts", "Max Popular Posts", "인기글 최대 보관 수")}
       </div>
       <div class="card p-5">
-        <div class="flex items-center justify-between mb-3"><h3 class="text-sm font-medium text-gray-300">Content Guide</h3><button id="save-guide" class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button></div>
-        <p class="text-[10px] text-gray-600 mb-2">AI가 글 생성할 때 참고하는 톤/타겟/유형 가이드</p>
-        <textarea id="guide-textarea" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 font-mono" rows="12">${esc(S.guide)}</textarea>
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-medium text-gray-300">Content Guide <span class="text-[10px] text-gray-600">(${channel})</span></h3>
+          <div class="flex gap-2">
+            ${S.channelGuide?.channelGuide ? `<button id="copy-common-guide" class="px-2 py-1 text-[10px] bg-gray-800 text-gray-400 rounded hover:bg-gray-700">공통에서 복사</button>` : ""}
+            <button id="save-guide" class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
+          </div>
+        </div>
+        <p class="text-[10px] text-gray-600 mb-2">${S.channelGuide?.channelGuide ? "채널 전용 가이드 사용 중" : "공통 가이드 사용 중 — 수정하면 채널 전용으로 저장됩니다"}</p>
+        <textarea id="guide-textarea" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 font-mono" rows="12">${esc(S.channelGuide?.guide || S.guide)}</textarea>
       </div>
       <div class="card p-5 col-span-2">
-        <div class="flex items-center justify-between mb-3"><h3 class="text-sm font-medium text-gray-300">Search Keywords</h3><button id="save-keywords" class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button></div>
-        <textarea id="keywords-textarea" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300" rows="6">${S.keywords.join("\n")}</textarea>
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-medium text-gray-300">Search Keywords <span class="text-[10px] text-gray-600">(${channel})</span></h3>
+          <div class="flex gap-2">
+            ${S.channelKeywords?.channelKeywords?.length ? `<button id="copy-common-keywords" class="px-2 py-1 text-[10px] bg-gray-800 text-gray-400 rounded hover:bg-gray-700">공통에서 복사</button>` : ""}
+            <button id="save-keywords" class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
+          </div>
+        </div>
+        <textarea id="keywords-textarea" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300" rows="6">${(S.channelKeywords?.keywords || S.keywords).join("\n")}</textarea>
       </div>
     </div>`;
 }
@@ -1102,16 +1125,30 @@ function bindEvents() {
     if (r) { showToast("설정 저장됨", "success"); loadSettings(); }
   };
 
+  const ch = S.page === "threads" ? "threads" : S.page === "x" ? "x" : (CH_LABELS[S.page] ? S.page : null);
+  const guideUrl = ch ? `/api/guide/${ch}` : "/api/guide";
+  const kwUrl = ch ? `/api/keywords/${ch}` : "/api/keywords";
+
   const saveGd = document.getElementById("save-guide");
   if (saveGd) saveGd.onclick = async () => {
     const ta = document.getElementById("guide-textarea");
-    if (ta) { const r = await API.post("/api/guide", { guide: ta.value }); if (r) showToast("가이드 저장됨", "success"); }
+    if (ta) { const r = await API.post(guideUrl, { guide: ta.value }); if (r) { showToast(`가이드 저장됨 (${ch || "공통"})`, "success"); loadChannelGuideAndKeywords(); } }
+  };
+  const copyGuide = document.getElementById("copy-common-guide");
+  if (copyGuide) copyGuide.onclick = () => {
+    const ta = document.getElementById("guide-textarea");
+    if (ta && S.channelGuide?.common) { ta.value = S.channelGuide.common; showToast("공통 가이드 복사됨", "info"); }
   };
 
   const saveKw = document.getElementById("save-keywords");
   if (saveKw) saveKw.onclick = async () => {
     const ta = document.getElementById("keywords-textarea");
-    if (ta) { const kw = ta.value.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("#")); const r = await API.post("/api/keywords", { keywords: kw }); if (r) showToast("키워드 저장됨", "success"); }
+    if (ta) { const kw = ta.value.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("#")); const r = await API.post(kwUrl, { keywords: kw }); if (r) { showToast(`키워드 저장됨 (${ch || "공통"})`, "success"); loadChannelGuideAndKeywords(); } }
+  };
+  const copyKw = document.getElementById("copy-common-keywords");
+  if (copyKw) copyKw.onclick = () => {
+    const ta = document.getElementById("keywords-textarea");
+    if (ta && S.channelKeywords?.common) { ta.value = S.channelKeywords.common.join("\n"); showToast("공통 키워드 복사됨", "info"); }
   };
 
   const extPostBtn = document.getElementById("ext-post-add");
@@ -1234,7 +1271,7 @@ function switchSubTab(tab) {
   else if (tab === "analytics") loadAnalytics();
   else if (tab === "growth") loadGrowth();
   else if (tab === "popular") loadPopular();
-  else if (tab === "settings") { loadSettings(); loadKeywords(); loadChannelSettings(); loadCronRuns(); }
+  else if (tab === "settings") { loadSettings(); loadChannelGuideAndKeywords(); loadChannelSettings(); loadCronRuns(); }
   render();
 }
 
