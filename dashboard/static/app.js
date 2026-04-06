@@ -155,10 +155,10 @@ const S = {
   page: "overview", subTab: "queue",
   overview: null, queue: [], growth: [], popular: [], analytics: null,
   keywords: [], settings: null, guide: "", cronJobs: [], activity: [],
-  channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [],
+  channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [], seoSettings: null, blogDetailId: null, blogEditing: false, blogGuide: "", blogKeywords: [], blogStats: null, gscConfig: null, gscEditing: false, gscAnalytics: null, gscDays: 28, gscDimension: "query",
   tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
-  sidebarCollapsed: { social: false, video: true, blog: false, messaging: true, data: true, custom: true }, showDetail: null, editingChannel: null,
+  sidebarCollapsed: { social: false, video: true, blog: false, messaging: true, data: false, custom: true }, showDetail: null, editingChannel: null,
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null, expandedPopular: null,
 };
@@ -248,6 +248,8 @@ function render() {
   else if (S.page === "threads") app.innerHTML = renderChannel("threads");
   else if (S.page === "x") app.innerHTML = renderChannelX();
   else if (S.page === "images") app.innerHTML = renderImages();
+  else if (S.page === "search-console") app.innerHTML = renderSearchConsole();
+  else if (S.page === "blog-edit") app.innerHTML = renderBlogEditor();
   else if (S.page === "blog") app.innerHTML = renderBlog();
   else if (CH_LABELS[S.page]) app.innerHTML = renderGenericChannel(S.page);
   else if (S.page === "settings") app.innerHTML = renderSettings();
@@ -359,7 +361,7 @@ function renderSidebar() {
 
         ${sidebarGroup("data", "Data & Analytics", [
           { label: "Google Analytics", icon: "G", soon: true },
-          { label: "Search Console", icon: "S", soon: true },
+          { key: "search-console", label: "Search Console", icon: "S", nav: true },
           { label: "Google Business", icon: "G", soon: true },
         ])}
 
@@ -660,6 +662,13 @@ function renderAnalytics() {
   const a = S.analytics;
   if (!a) return `<p class="text-gray-500">Loading...</p>`;
   const s = a.summary || {};
+  if (s.totalPublished === 0 && !(a.posts || []).length) {
+    return `<div class="card p-8 text-center">
+      <p class="text-gray-400 mb-2">Analytics 데이터가 없습니다</p>
+      <p class="text-xs text-gray-600">발행된 글이 없거나 insights 수집이 아직 안 됐습니다.</p>
+      <p class="text-xs text-gray-600 mt-1">Claude API 크레딧 확인: <a href="https://claude.ai/settings/usage" target="_blank" class="text-blue-400 hover:underline">claude.ai/settings/usage</a></p>
+    </div>`;
+  }
   const posts = (a.posts || []).sort((a, b) => (b.publishedAt || "").localeCompare(a.publishedAt || ""));
   return `
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">${card("Published", s.totalPublished)}${card("Views", s.totalViews)}${card("Avg Views", s.avgViews)}${card("Avg Likes", s.avgLikes)}</div>
@@ -1212,8 +1221,53 @@ function bindEvents() {
   });
 
   // Blog actions
-  document.querySelectorAll("[data-blog-approve]").forEach(el => { el.onclick = () => approveBlogPost(el.dataset.blogApprove); });
-  document.querySelectorAll("[data-blog-delete]").forEach(el => { el.onclick = () => deleteBlogPost(el.dataset.blogDelete); });
+  document.querySelectorAll("[data-blog-detail]").forEach(el => { el.onclick = () => openBlogDetail(el.dataset.blogDetail); });
+  document.querySelectorAll("[data-blog-approve]").forEach(el => { el.onclick = (e) => { e.stopPropagation(); approveBlogPost(el.dataset.blogApprove); }; });
+  document.querySelectorAll("[data-blog-delete]").forEach(el => { el.onclick = (e) => { e.stopPropagation(); deleteBlogPost(el.dataset.blogDelete); }; });
+  const saveBlogCfg = document.getElementById("save-blog-config");
+  if (saveBlogCfg) saveBlogCfg.onclick = async () => {
+    const data = {};
+    ["apiBaseUrl", "email", "password"].forEach(k => { const el = document.getElementById("blog-" + k); if (el?.value) data[k] = el.value; });
+    const r = await API.post("/api/channel-config/blog", data);
+    if (r) { showToast("Blog 설정 저장됨", "success"); loadOverview(); }
+  };
+  // SEO settings save removed — GSC/NSA already registered via domain verification
+  const saveBlogGuide = document.getElementById("save-blog-guide");
+  if (saveBlogGuide) saveBlogGuide.onclick = async () => {
+    const ta = document.getElementById("blog-guide-textarea");
+    if (ta) { const r = await API.post("/api/blog-guide", { guide: ta.value }); if (r) showToast("Blog 가이드 저장됨", "success"); }
+  };
+  const saveBlogKw = document.getElementById("save-blog-keywords");
+  if (saveBlogKw) saveBlogKw.onclick = async () => {
+    const ta = document.getElementById("blog-keywords-textarea");
+    if (ta) { const kw = ta.value.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("#")); const r = await API.post("/api/blog-keywords", { keywords: kw }); if (r) showToast("Blog 키워드 저장됨", "success"); }
+  };
+  document.querySelectorAll("[data-gsc-index]").forEach(el => {
+    el.onclick = async () => { const r = await API.post("/api/gsc-index", { url: el.dataset.gscIndex }); if (r?.ok) showToast("색인 요청 완료", "success"); else showToast(r?.error || "실패", "error"); };
+  });
+  document.querySelectorAll("[data-gsc-days]").forEach(el => {
+    el.onclick = () => { S.gscDays = parseInt(el.dataset.gscDays); loadGscAnalytics(); };
+  });
+  document.querySelectorAll("[data-gsc-dim]").forEach(el => {
+    el.onclick = () => { S.gscDimension = el.dataset.gscDim; loadGscAnalytics(); };
+  });
+  const gscEditBtn = document.getElementById("gsc-edit-key");
+  if (gscEditBtn) gscEditBtn.onclick = () => { S.gscEditing = true; render(); };
+  const gscCancelBtn = document.getElementById("gsc-cancel-edit");
+  if (gscCancelBtn) gscCancelBtn.onclick = () => { S.gscEditing = false; render(); };
+  const saveGscKey = document.getElementById("save-gsc-key");
+  if (saveGscKey) saveGscKey.onclick = async () => {
+    const ta = document.getElementById("gsc-key-json");
+    if (ta?.value) { const r = await API.post("/api/gsc-config", { keyJson: ta.value }); if (r?.ok) { showToast("GSC 키 저장됨: " + (r.email || ""), "success"); S.gscEditing = false; loadGscConfig(); render(); } }
+  };
+  const gscFile = document.getElementById("gsc-key-file");
+  if (gscFile) gscFile.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { document.getElementById("gsc-key-json").value = reader.result; };
+    reader.readAsText(file);
+  };
 }
 
 function navigate(page) {
@@ -1223,7 +1277,8 @@ function navigate(page) {
   else if (page === "threads") { S.subTab = "queue"; loadQueue(S.queueFilter); loadGrowth(); loadImages(); }
   else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); }
   else if (page === "images") loadImages();
-  else if (page === "blog") loadBlogQueue();
+  else if (page === "search-console") { loadGscConfig(); loadGscAnalytics(); }
+  else if (page === "blog") { loadBlogQueue(); loadBlogStats(); loadSeoSettings(); loadGscConfig(); loadBlogGuide(); loadBlogKeywords(); }
   else if (CH_LABELS[page]) loadOverview(); // generic channels use overview data
   else if (page === "settings") { loadSettings(); loadKeywords(); loadLlmConfig(); loadOverview(); }
   render();
@@ -1505,40 +1560,378 @@ function renderGenericChannel(key) {
 
 // ── Blog ──
 async function loadBlogQueue() { const d = await API.get("/api/blog-queue"); if (d) S.blogQueue = d.posts || []; render(); }
-async function approveBlogPost(id) { const r = await API.post("/api/blog-queue/" + id + "/approve"); if (r) { showToast("블로그 글 승인", "success"); loadBlogQueue(); } }
-async function deleteBlogPost(id) { if (!confirm("삭제?")) return; const r = await API.post("/api/blog-queue/" + id + "/delete"); if (r) { showToast("삭제 완료", "success"); loadBlogQueue(); } }
+async function approveBlogPost(id) { const r = await API.post("/api/blog-queue/" + id + "/approve"); if (r) { showToast("블로그 글 승인", "success"); S.blogDetailId = null; loadBlogQueue(); } }
+async function deleteBlogPost(id) { if (!confirm("삭제?")) return; const r = await API.post("/api/blog-queue/" + id + "/delete"); if (r) { showToast("삭제 완료", "success"); S.blogDetailId = null; loadBlogQueue(); } }
+async function saveBlogPost(id) {
+  const title = document.getElementById("blog-edit-title")?.value;
+  const content = document.getElementById("blog-edit-content")?.value;
+  const seoKeyword = document.getElementById("blog-edit-keyword")?.value;
+  const thumbnailUrl = document.getElementById("blog-edit-thumbnail")?.value || "";
+  const tagsRaw = document.getElementById("blog-edit-tags")?.value || "";
+  const tags = tagsRaw.split(",").map(t => t.trim()).filter(Boolean);
+  const payload = { title, content, seoKeyword, tags };
+  if (thumbnailUrl) payload.thumbnailUrl = thumbnailUrl;
+  const r = await API.post("/api/blog-queue/" + id + "/update", payload);
+  if (r) { showToast("Saved", "success"); loadBlogQueue(); setTimeout(() => bindBlogEditorEvents(), 100); }
+}
+
+function openBlogDetail(id) { S.blogDetailId = id; S.blogEditing = false; S.page = "blog-edit"; render(); bindBlogEditorEvents(); }
+
+function renderBlogEditor() {
+  const p = S.blogQueue.find(x => x.id === S.blogDetailId);
+  if (!p) { S.page = "blog"; return renderBlog(); }
+  const sc = { draft: "bg-yellow-900/40 text-yellow-300", approved: "bg-blue-900/40 text-blue-300", published: "bg-green-900/40 text-green-300", failed: "bg-red-900/40 text-red-300" };
+  const canEdit = p.status === "draft" || p.status === "approved";
+
+  if (S.blogEditing) {
+    // ── Edit mode: split layout ──
+    return `<div class="flex flex-col h-screen">
+      <div class="flex items-center justify-between px-6 py-3 border-b border-gray-800 bg-[#0e0e0e]">
+        <div class="flex items-center gap-3">
+          <button id="blog-back" class="text-gray-500 hover:text-white text-sm">&larr; Back</button>
+          <span class="text-[10px] px-2 py-0.5 rounded ${sc[p.status] || "bg-gray-700 text-gray-300"}">${p.status}</span>
+          <span class="text-sm text-white font-medium">${esc(p.title || "Untitled")}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="blog-toggle-edit" class="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Preview</button>
+          <button id="blog-save-edit" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
+          ${p.status === "draft" ? `<button data-blog-approve="${p.id}" class="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>` : ""}
+        </div>
+      </div>
+      <div class="flex-1 flex overflow-hidden">
+        <div class="w-1/2 border-r border-gray-800 flex flex-col">
+          <div class="px-4 py-3 space-y-2 border-b border-gray-800 bg-[#111]">
+            <input id="blog-edit-title" type="text" value="${esc(p.title || "")}" placeholder="Title" class="w-full bg-transparent text-white text-lg font-bold p-0 border-0 outline-none placeholder-gray-600">
+            <div class="flex gap-2">
+              <input id="blog-edit-keyword" type="text" value="${esc(p.seoKeyword || "")}" placeholder="SEO Keyword" class="flex-1 bg-gray-800 text-cyan-300 text-xs p-1.5 rounded border border-gray-700">
+              <input id="blog-edit-tags" type="text" value="${esc((p.tags || []).join(", "))}" placeholder="Tags (comma separated)" class="flex-1 bg-gray-800 text-gray-300 text-xs p-1.5 rounded border border-gray-700">
+            </div>
+            <div class="flex gap-2 items-center">
+              <label class="text-[10px] text-gray-500">Thumbnail</label>
+              <input id="blog-edit-thumbnail" type="text" value="${esc(p.thumbnailUrl || "")}" placeholder="이미지 URL 붙여넣기 (미드저니 등)" class="flex-1 bg-gray-800 text-gray-300 text-xs p-1.5 rounded border border-gray-700">
+              <button id="blog-upload-thumb" class="px-2 py-1.5 text-[10px] bg-purple-700 text-white rounded hover:bg-purple-600 whitespace-nowrap">Upload</button>
+              <label class="px-2 py-1.5 text-[10px] bg-gray-700 text-gray-300 rounded hover:bg-gray-600 cursor-pointer whitespace-nowrap">
+                File <input type="file" id="blog-thumb-file" accept="image/*" class="hidden">
+              </label>
+            </div>
+            ${p.thumbnailUrl ? `<img src="${esc(p.thumbnailUrl)}" class="mt-1 h-16 rounded border border-gray-700 object-cover">` : ""}
+          </div>
+          <textarea id="blog-edit-content" class="flex-1 bg-[#0a0a0a] text-gray-200 text-sm p-4 border-0 outline-none resize-none font-mono leading-relaxed" placeholder="Write HTML or Markdown...">${esc(p.content || "")}</textarea>
+        </div>
+        <div class="w-1/2 overflow-y-auto bg-[#fafafa]">
+          <div id="blog-live-preview" class="max-w-2xl mx-auto px-8 py-10 blog-article-preview"></div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ── Preview mode: article-style full page ──
+  return `<div class="flex flex-col min-h-screen">
+    <div class="flex items-center justify-between px-6 py-3 border-b border-gray-800 bg-[#0e0e0e] sticky top-0 z-10">
+      <div class="flex items-center gap-3">
+        <button id="blog-back" class="text-gray-500 hover:text-white text-sm">&larr; Back</button>
+        <span class="text-[10px] px-2 py-0.5 rounded ${sc[p.status] || "bg-gray-700 text-gray-300"}">${p.status}</span>
+        ${p.seoKeyword ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-900/40 text-cyan-300">${esc(p.seoKeyword)}</span>` : ""}
+        ${p.viewCount != null ? `<span class="text-[10px] text-gray-500">views ${p.viewCount}</span>` : ""}
+      </div>
+      <div class="flex items-center gap-2">
+        ${canEdit ? `<button id="blog-toggle-edit" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Edit</button>` : ""}
+        ${p.status === "draft" ? `<button data-blog-approve="${p.id}" class="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>` : ""}
+        ${p.status !== "published" ? `<button data-blog-delete="${p.id}" class="px-3 py-1.5 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">Delete</button>` : ""}
+        ${p.blogPostUrl ? `<a href="${esc(p.blogPostUrl)}" target="_blank" class="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">View on Site &rarr;</a>` : ""}
+      </div>
+    </div>
+    <div class="flex-1 bg-[#fafafa] overflow-y-auto">
+      <article class="max-w-2xl mx-auto px-8 py-10 blog-article-preview">
+        ${p.thumbnailUrl ? `<img src="${esc(p.thumbnailUrl)}" alt="" class="w-full rounded-lg mb-8 shadow-md">` : ""}
+        <h1 style="font-size:1.75rem;font-weight:800;color:#111;line-height:1.3;margin-bottom:0.75rem">${esc(p.title || "")}</h1>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.5rem">
+          ${(p.tags || []).map(t => `<span style="font-size:0.7rem;padding:2px 8px;border-radius:9999px;background:#e0f2fe;color:#0369a1">#${esc(t)}</span>`).join("")}
+        </div>
+        <div style="font-size:0.75rem;color:#888;margin-bottom:2rem">
+          ${p.model ? p.model : ""} ${p.generatedAt ? "| " + fmtDate(p.generatedAt) : ""}
+        </div>
+        <div class="blog-article-body">${p.content || ""}</div>
+      </article>
+    </div>
+  </div>`;
+}
+
+function bindBlogEditorEvents() {
+  setTimeout(() => {
+    document.getElementById("blog-back")?.addEventListener("click", () => { S.blogDetailId = null; S.blogEditing = false; S.page = "blog"; loadBlogQueue(); });
+    document.getElementById("blog-toggle-edit")?.addEventListener("click", () => { S.blogEditing = !S.blogEditing; render(); bindBlogEditorEvents(); });
+    document.getElementById("blog-save-edit")?.addEventListener("click", () => saveBlogPost(S.blogDetailId));
+    document.querySelectorAll("[data-blog-approve]").forEach(el => { el.onclick = () => approveBlogPost(el.dataset.blogApprove); });
+    document.querySelectorAll("[data-blog-delete]").forEach(el => { el.onclick = () => deleteBlogPost(el.dataset.blogDelete); });
+
+    // Thumbnail upload
+    const uploadThumbBtn = document.getElementById("blog-upload-thumb");
+    if (uploadThumbBtn) uploadThumbBtn.onclick = async () => {
+      const urlInput = document.getElementById("blog-edit-thumbnail");
+      if (!urlInput?.value) { showToast("URL을 입력하세요", "warning"); return; }
+      uploadThumbBtn.textContent = "Uploading..."; uploadThumbBtn.disabled = true;
+      const r = await API.post("/api/blog-upload-image", { imageUrl: urlInput.value });
+      uploadThumbBtn.textContent = "Upload"; uploadThumbBtn.disabled = false;
+      if (r?.ok) { showToast("이미지 업로드 완료", "success"); /* mediaId를 저장 */ }
+      else showToast(r?.error || "업로드 실패", "error");
+    };
+    const thumbFile = document.getElementById("blog-thumb-file");
+    if (thumbFile) thumbFile.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        // Show preview by creating object URL
+        const urlInput = document.getElementById("blog-edit-thumbnail");
+        if (urlInput) urlInput.value = URL.createObjectURL(file);
+        showToast("파일 선택됨 — Upload 버튼을 눌러 업로드하세요", "info");
+      };
+      reader.readAsDataURL(file);
+    };
+
+    // Live preview in edit mode
+    const editor = document.getElementById("blog-edit-content");
+    const preview = document.getElementById("blog-live-preview");
+    if (editor && preview) {
+      const updatePreview = () => {
+        const title = document.getElementById("blog-edit-title")?.value || "";
+        const thumb = document.getElementById("blog-edit-thumbnail")?.value || "";
+        preview.innerHTML = `
+          ${thumb ? `<img src="${esc(thumb)}" alt="" style="width:100%;border-radius:8px;margin-bottom:2rem;box-shadow:0 2px 8px rgba(0,0,0,0.1)">` : ""}
+          <h1 style="font-size:1.75rem;font-weight:800;color:#111;line-height:1.3;margin-bottom:1.5rem">${esc(title)}</h1>
+          <div class="blog-article-body">${editor.value}</div>`;
+      };
+      editor.addEventListener("input", updatePreview);
+      document.getElementById("blog-edit-title")?.addEventListener("input", updatePreview);
+      document.getElementById("blog-edit-thumbnail")?.addEventListener("input", updatePreview);
+      updatePreview();
+    }
+  }, 0);
+}
 
 function renderBlog() {
   const posts = S.blogQueue || [];
   const sc = { draft: "bg-yellow-900/40 text-yellow-300", approved: "bg-blue-900/40 text-blue-300", published: "bg-green-900/40 text-green-300", failed: "bg-red-900/40 text-red-300" };
   return `<div class="px-8 py-6">
     <div class="flex items-center justify-between mb-6">
-      <div><h2 class="text-xl font-bold text-white">Blog Queue</h2><p class="text-xs text-gray-500 mt-1">SEO 블로그 글 자동 생성 파이프라인</p></div>
-      <span class="text-sm text-gray-500">${posts.length} posts</span>
+      <div><h2 class="text-xl font-bold text-white">Blog</h2><p class="text-xs text-gray-500 mt-1">학생/학부모 대상 SEO 칼럼 자동화</p></div>
+      <span class="text-sm text-gray-500">${posts.length} in queue</span>
     </div>
+    ${renderBlogStats()}
+    <h3 class="text-sm font-medium text-gray-400 mt-6 mb-3">Queue</h3>
     ${posts.length === 0 ? `<div class="card p-8 text-center"><p class="text-gray-500 text-sm">블로그 글이 없습니다.</p></div>` : ""}
     <div class="space-y-3">
     ${posts.map(p => `
-      <div class="card p-4">
+      <div class="card p-4 cursor-pointer hover:border-gray-600 transition-colors" data-blog-detail="${p.id}">
         <div class="flex items-start justify-between mb-2">
           <div class="flex items-center gap-2">
             <span class="text-[10px] px-1.5 py-0.5 rounded ${sc[p.status] || "bg-gray-700 text-gray-300"}">${esc(p.status)}</span>
             ${p.seoKeyword ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-900/40 text-cyan-300">${esc(p.seoKeyword)}</span>` : ""}
-            ${p.blogPostUrl ? `<a href="${esc(p.blogPostUrl)}" target="_blank" class="text-[10px] text-blue-400 hover:underline">View &rarr;</a>` : ""}
+            ${p.blogPostUrl ? `<a href="${esc(p.blogPostUrl)}" target="_blank" class="text-[10px] text-blue-400 hover:underline" onclick="event.stopPropagation()">View &rarr;</a>` : ""}
           </div>
-          <span class="text-[10px] text-gray-600">${esc((p.id || "").slice(0, 8))}</span>
+          <div class="flex items-center gap-2">
+            ${p.viewCount != null ? `<span class="text-[10px] text-gray-500">views: ${p.viewCount}</span>` : ""}
+            <span class="text-[10px] text-gray-600">${fmtDate(p.generatedAt)}</span>
+          </div>
         </div>
         <h3 class="text-sm font-medium text-gray-200 mb-1">${esc(p.title || "")}</h3>
         <p class="text-xs text-gray-500 mb-2">${esc((p.content || "").replace(/<[^>]*>/g, "").slice(0, 150))}...</p>
-        ${p.tags?.length ? `<div class="flex flex-wrap gap-1 mb-2">${p.tags.slice(0, 8).map(t => `<span class="text-[10px] text-cyan-400">#${esc(t)}</span>`).join("")}</div>` : ""}
-        <div class="flex gap-2 mt-2">
+        ${p.tags?.length ? `<div class="flex flex-wrap gap-1 mb-2">${p.tags.slice(0, 8).map(t => `<span class="text-[10px] text-cyan-400">#${esc(t)}</span>`).join("")}${p.tags.length > 8 ? `<span class="text-[10px] text-gray-600">+${p.tags.length - 8}</span>` : ""}</div>` : ""}
+        <div class="flex gap-2 mt-2" onclick="event.stopPropagation()">
           ${p.status === "draft" ? `<button data-blog-approve="${p.id}" class="px-2 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>` : ""}
           ${p.status !== "published" ? `<button data-blog-delete="${p.id}" class="px-2 py-1 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">Delete</button>` : ""}
         </div>
       </div>
     `).join("")}
     </div>
+    <div class="mt-8">
+      <h3 class="text-lg font-bold text-white mb-4">Blog Settings</h3>
+      ${renderBlogConfig()}
+    </div>
   </div>`;
+}
+
+function renderBlogConfig() {
+  const cfg = S.channelConfig.blog || {};
+  return `
+    <div class="card p-4">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="w-5 h-5 rounded bg-blue-900 flex items-center justify-center text-[9px] font-bold text-blue-300">B</span>
+        <span class="text-sm font-medium text-white">Sample Blog Connection</span>
+        <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${cfg.connected ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}">${cfg.connected ? "Connected" : "Not set"}</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div>
+          <label class="text-xs text-gray-500 block mb-1">API Base URL</label>
+          <input id="blog-apiBaseUrl" type="text" value="${esc(cfg.apiBaseUrl || "https://api.example.com")}" class="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 block mb-1">Email</label>
+          <input id="blog-email" type="text" value="${esc(cfg.email || "")}" placeholder="account@example.com" class="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 block mb-1">Password</label>
+          <div class="flex gap-1">
+            <input id="blog-password" type="password" value="${esc(cfg.password || "")}" class="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
+            <button data-toggle-vis="blog-password" class="px-2 text-[10px] text-gray-500 hover:text-white bg-gray-800 rounded border border-gray-700">Show</button>
+          </div>
+        </div>
+      </div>
+      <button id="save-blog-config" class="mt-3 px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save Connection</button>
+    </div>
+    <div class="card p-4 mt-4">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm font-medium text-white">Blog Content Guide</span>
+        <span class="text-[10px] text-gray-500">학생/학부모 대상 콘텐츠 전략</span>
+      </div>
+      <textarea id="blog-guide-textarea" rows="10" class="w-full bg-gray-800 text-gray-200 text-xs p-3 rounded border border-gray-700 font-mono leading-relaxed">${esc(S.blogGuide || "")}</textarea>
+      <button id="save-blog-guide" class="mt-2 px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save Guide</button>
+    </div>
+    <div class="card p-4 mt-4">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm font-medium text-white">Blog SEO Keywords</span>
+        <span class="text-[10px] text-gray-500">학생/학부모 검색어 (한 줄에 하나)</span>
+      </div>
+      <textarea id="blog-keywords-textarea" rows="8" class="w-full bg-gray-800 text-gray-200 text-xs p-3 rounded border border-gray-700 font-mono">${esc((S.blogKeywords || []).join("\n"))}</textarea>
+      <button id="save-blog-keywords" class="mt-2 px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save Keywords</button>
+    </div>`;
+}
+
+function renderSeoSection() {
+  const g = S.gscConfig || {};
+  const editing = S.gscEditing || false;
+  return `
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div class="card p-4">
+        <div class="flex items-center gap-2">
+          <span class="w-5 h-5 rounded bg-blue-900 flex items-center justify-center text-[10px] font-bold text-blue-300">G</span>
+          <span class="text-sm font-medium text-white">Google Search Console</span>
+          <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-green-900/50 text-green-400">Registered</span>
+        </div>
+        <p class="text-[10px] text-gray-500 mt-2">도메인 인증 완료. 검색 성과는 search.google.com/search-console 에서 확인.</p>
+      </div>
+      <div class="card p-4">
+        <div class="flex items-center gap-2">
+          <span class="w-5 h-5 rounded bg-green-900 flex items-center justify-center text-[10px] font-bold text-green-300">N</span>
+          <span class="text-sm font-medium text-white">Naver Search Advisor</span>
+          <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-green-900/50 text-green-400">Registered</span>
+        </div>
+        <p class="text-[10px] text-gray-500 mt-2">등록 완료. 검색 성과는 searchadvisor.naver.com 에서 확인.</p>
+      </div>
+    </div>
+    <div class="card p-4">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="w-5 h-5 rounded bg-blue-900 flex items-center justify-center text-[10px] font-bold text-blue-300">G</span>
+        <span class="text-sm font-medium text-white">Indexing API</span>
+        <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${g.configured ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}">${g.configured ? g.email : "Not set"}</span>
+        ${g.configured && !editing ? `<button id="gsc-edit-key" class="text-[10px] text-blue-400 hover:text-blue-300">Edit</button>` : ""}
+      </div>
+      ${g.configured && !editing ? `
+        <div class="text-xs text-gray-400 space-y-1">
+          <div><span class="text-gray-600">Email:</span> ${esc(g.email)}</div>
+          <div><span class="text-gray-600">Status:</span> <span class="text-green-400">Connected</span> — 글 목록에서 "Index" 버튼으로 색인 요청 가능</div>
+        </div>
+      ` : `
+        <label class="text-xs text-gray-500 block mb-1">Service Account JSON Key</label>
+        <textarea id="gsc-key-json" rows="4" class="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700 font-mono mb-2" placeholder='JSON 키 붙여넣기 또는 파일 업로드'></textarea>
+        <div class="flex gap-2">
+          <button id="save-gsc-key" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
+          <label class="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600 cursor-pointer">
+            Upload JSON <input type="file" id="gsc-key-file" accept=".json" class="hidden">
+          </label>
+          ${g.configured ? `<button id="gsc-cancel-edit" class="px-3 py-1.5 text-xs bg-gray-800 text-gray-400 rounded hover:bg-gray-700">Cancel</button>` : ""}
+        </div>
+        <p class="text-[10px] text-gray-600 mt-2">Google Cloud → 서비스 계정 → 키 → JSON 다운로드. 새 글 발행 후 구글에 색인 요청 자동화에 사용.</p>
+      `}
+    </div>`;
+}
+
+async function loadSeoSettings() { const d = await API.get("/api/seo-settings"); if (d) S.seoSettings = d; }
+async function loadGscConfig() { const d = await API.get("/api/gsc-config"); if (d) S.gscConfig = d; }
+async function loadGscAnalytics() {
+  const d = await API.get(`/api/gsc-analytics?days=${S.gscDays}&dimension=${S.gscDimension}`);
+  if (d) { S.gscAnalytics = d; render(); }
+}
+
+function renderSearchConsole() {
+  const g = S.gscAnalytics;
+  const days = S.gscDays;
+  const dim = S.gscDimension;
+  return `<div class="px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-bold text-white">Search Console</h2>
+        <p class="text-xs text-gray-500 mt-1">Google 검색 성과 — example.com</p>
+      </div>
+      <div class="flex gap-2">
+        ${[7,28,90].map(d => `<button data-gsc-days="${d}" class="px-3 py-1 text-xs rounded ${days === d ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-800"}">${d}d</button>`).join("")}
+        <span class="text-gray-700 mx-1">|</span>
+        ${["query","page"].map(d => `<button data-gsc-dim="${d}" class="px-3 py-1 text-xs rounded ${dim === d ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-800"}">${d === "query" ? "Keywords" : "Pages"}</button>`).join("")}
+      </div>
+    </div>
+    ${!g || g.error ? `<div class="card p-8 text-center"><p class="text-gray-500 text-sm">${g?.error || "Loading..."}</p>${!S.gscConfig?.configured ? `<p class="text-xs text-gray-600 mt-2">아래에서 서비스 계정 키를 설정하세요</p>` : ""}</div>` : `
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Clicks</div><div class="text-xl font-bold text-white">${g.totalClicks}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Impressions</div><div class="text-xl font-bold text-white">${g.totalImpressions?.toLocaleString()}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Avg CTR</div><div class="text-xl font-bold text-white">${g.avgCtr}%</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Avg Position</div><div class="text-xl font-bold text-white">${g.avgPosition}</div></div>
+      </div>
+      <div class="card p-4">
+        <h3 class="text-xs font-medium text-gray-400 mb-3">${dim === "query" ? "Top Keywords" : "Top Pages"}</h3>
+        ${g.rows?.length ? `<table class="w-full text-sm">
+          <thead><tr class="text-[10px] text-gray-500 uppercase border-b border-gray-800">
+            <th class="text-left py-2">${dim === "query" ? "Keyword" : "Page"}</th>
+            <th class="text-right py-2">Clicks</th>
+            <th class="text-right py-2">Impressions</th>
+            <th class="text-right py-2">CTR</th>
+            <th class="text-right py-2">Position</th>
+          </tr></thead>
+          <tbody>${g.rows.map(r => `<tr class="border-b border-gray-800/30">
+            <td class="text-gray-200 py-2 max-w-xs truncate">${esc(r.key)}</td>
+            <td class="text-gray-400 text-right py-2">${r.clicks}</td>
+            <td class="text-gray-400 text-right py-2">${r.impressions}</td>
+            <td class="text-gray-400 text-right py-2">${r.ctr}%</td>
+            <td class="text-gray-400 text-right py-2">${r.position}</td>
+          </tr>`).join("")}</tbody>
+        </table>` : `<p class="text-gray-600 text-sm">No data for this period</p>`}
+      </div>
+      ${g.cached ? `<p class="text-[10px] text-gray-600 mt-2">Cached data from ${g.fetchedAt?.slice(0,16) || "unknown"}</p>` : ""}
+    `}
+    <div class="mt-8">
+      ${renderSeoSection()}
+    </div>
+  </div>`;
+}
+async function loadBlogStats() { const d = await API.get("/api/blog-stats"); if (d) { S.blogStats = d; render(); } }
+
+function renderBlogStats() {
+  const s = S.blogStats;
+  if (!s || s.error) return `<div class="card p-4 text-center text-xs text-gray-500">${s?.error || "Loading stats..."}</div>`;
+  return `
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Published</div><div class="text-xl font-bold text-white">${s.totalArticles}</div></div>
+      <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Total Views</div><div class="text-xl font-bold text-white">${s.totalViews}</div></div>
+      <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Avg Views</div><div class="text-xl font-bold text-white">${s.avgViews}</div></div>
+      <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Top Article</div><div class="text-xs text-gray-300 truncate">${s.topArticle ? esc(s.topArticle.title) : "-"}</div>${s.topArticle ? `<div class="text-[10px] text-gray-500">${s.topArticle.viewCount} views</div>` : ""}</div>
+    </div>
+    ${s.articles?.length ? `<div class="card p-4"><h4 class="text-xs font-medium text-gray-400 mb-2">Articles on example.com</h4>
+      <div class="space-y-1">${s.articles.map(a => `<div class="flex justify-between items-center text-xs border-b border-gray-800/30 py-1.5">
+        <a href="https://www.example.com/community/column/${a.id}" target="_blank" class="text-gray-300 hover:text-white truncate flex-1 mr-3">${esc(a.title)}</a>
+        <span class="text-gray-500 whitespace-nowrap mr-2">${a.viewCount} views</span>
+        ${S.gscConfig?.configured ? `<button data-gsc-index="https://www.example.com/community/column/${a.id}" class="text-[10px] text-blue-400 hover:text-blue-300 whitespace-nowrap">Index</button>` : ""}
+      </div>`).join("")}</div></div>` : ""}`;
+}
+
+async function loadBlogGuide() { const d = await API.get("/api/blog-guide"); if (d) { S.blogGuide = d.guide || ""; render(); } }
+async function loadBlogKeywords() { const d = await API.get("/api/blog-keywords"); if (d) { S.blogKeywords = d.keywords || []; render(); } }
+async function saveSeoSettings() {
+  const data = {
+    googleSearchConsole: { metaTag: document.getElementById("gsc-meta")?.value || "", sitemapUrl: document.getElementById("gsc-sitemap")?.value || "", registered: document.getElementById("gsc-registered")?.checked || false },
+    naverSearchAdvisor: { metaTag: document.getElementById("nsa-meta")?.value || "", sitemapUrl: document.getElementById("nsa-sitemap")?.value || "", registered: document.getElementById("nsa-registered")?.checked || false },
+  };
+  const r = await API.post("/api/seo-settings", data);
+  if (r) { S.seoSettings = data; showToast("SEO settings saved", "success"); }
 }
 
 // ── Init ──

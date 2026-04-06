@@ -20,6 +20,24 @@
     #sidebar aside::-webkit-scrollbar { width: 4px; }
     #sidebar aside::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
     #sidebar aside::-webkit-scrollbar-track { background: transparent; }
+
+    /* Blog article preview — magazine style */
+    .blog-article-preview { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+    .blog-article-body { color: #333; font-size: 1rem; line-height: 1.85; }
+    .blog-article-body h1 { font-size: 1.5rem; font-weight: 800; color: #111; margin: 2rem 0 0.75rem; }
+    .blog-article-body h2 { font-size: 1.25rem; font-weight: 700; color: #111; margin: 2rem 0 0.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e5e7eb; }
+    .blog-article-body h3 { font-size: 1.1rem; font-weight: 600; color: #222; margin: 1.5rem 0 0.5rem; }
+    .blog-article-body p { margin: 0.75rem 0; color: #444; }
+    .blog-article-body strong { color: #111; font-weight: 600; }
+    .blog-article-body em { color: #555; font-style: italic; }
+    .blog-article-body a { color: #2563eb; text-decoration: underline; text-underline-offset: 2px; }
+    .blog-article-body a:hover { color: #1d4ed8; }
+    .blog-article-body ul, .blog-article-body ol { margin: 0.75rem 0; padding-left: 1.5rem; color: #444; }
+    .blog-article-body li { margin: 0.4rem 0; }
+    .blog-article-body li strong { color: #222; }
+    .blog-article-body img { width: 100%; border-radius: 8px; margin: 1.5rem 0; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .blog-article-body blockquote { border-left: 3px solid #3b82f6; padding: 0.5rem 1rem; margin: 1rem 0; background: #f0f7ff; color: #333; border-radius: 0 8px 8px 0; }
+
     @media (max-width: 768px) {
       body { flex-direction: column; }
       #sidebar aside { width: 100% !important; height: auto !important; position: relative !important; border-right: none !important; border-bottom: 1px solid rgba(255,255,255,0.1); }
