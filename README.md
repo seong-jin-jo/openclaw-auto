@@ -17,6 +17,7 @@ AI 에이전트가 콘텐츠를 자동 생성하고, 검수 후 멀티채널로 
 
 | PR | 제목 | from | 주요 내용 |
 |----|------|------|----------|
+| #14 | 자동화 강화: 댓글 답글, 인기글 스크래핑, 이미지 발행, 해시태그 분석 | code-zero-to-one | auto-reply, quote trending, 스크래핑 수집, hashtag/hourly 분석, 비율 설정 |
 | #13 | 자동화 토글 실제 연동 + 이미지 생성 + 주기 설정 | code-zero-to-one | 토글→크론 연동, 대시보드 이미지 생성 UI, 주기 파라미터 |
 | #12 | 이미지 파이프라인 + 에셋 갤러리 + 자동화 토글 | code-zero-to-one | image-upload extension, Images 탭, 자동화 ON/OFF, 실행 기록 |
 | #11 | 디에듀 블로그 SEO 자동화 | idealstudy | dedu-blog/blog-queue/seo-keywords extensions, Blog 탭 |
@@ -149,9 +150,19 @@ docker compose up -d --build
 
 ### 2. 채널 연결
 
-대시보드 접속 후 각 채널 Settings에서 크리덴셜 입력:
-- **Threads**: developers.facebook.com에서 Access Token + User ID 발급
-- **X (Twitter)**: developer.x.com에서 소비자 키 + 액세스 토큰 발급 (OAuth 1.0a, Read+Write)
+대시보드에서 각 채널 클릭 → credential 입력 → **자동 검증** → Connected.
+
+- credential 입력 후 실제 API를 호출하여 유효성 검증
+- 검증 실패 시 Connected로 표시되지 않음 (에러 메시지 표시)
+- **Setup Guide**: 단계별 따라하기로 시작 가능
+- **더 알아보기**: 각 키의 역할, OAuth 구조, 비용/제한사항 확인
+
+주요 채널:
+- **Threads**: developers.facebook.com > Access Token + User ID
+- **X (Twitter)**: developer.x.com > OAuth 1.0a 소비자 키 + 액세스 토큰 (Read+Write). OAuth 2.0은 권한 설정 시 자동 생성되지만 사용하지 않음
+- **Bluesky**: bsky.app > Handle + App Password (무료, 승인 불필요)
+- **Telegram**: @BotFather > Bot Token + Chat ID (무료)
+- 기타: 각 채널 Settings의 Setup Guide 참조
 
 ### 3. 콘텐츠 전략 설정
 

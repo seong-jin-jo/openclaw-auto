@@ -24,6 +24,35 @@ function authHeaders() {
   const t = getAuthToken();
   return t ? { Authorization: `Bearer ${t}` } : {};
 }
+function showLoginModal() {
+  const existing = document.getElementById("login-modal-overlay");
+  if (existing) return;
+  const overlay = document.createElement("div");
+  overlay.id = "login-modal-overlay";
+  overlay.className = "fixed inset-0 bg-black/60 z-50 flex items-center justify-center";
+  overlay.innerHTML = `
+    <div class="card p-6 w-80">
+      <h2 class="text-sm font-medium text-white mb-1">Login Required</h2>
+      <p class="text-[10px] text-gray-500 mb-3">이 작업을 수행하려면 로그인이 필요합니다.</p>
+      <input id="modal-login-token" type="password" placeholder="Auth Token"
+        class="w-full bg-gray-900 text-gray-200 text-sm p-3 rounded border border-gray-700 mb-3">
+      <div class="flex gap-2">
+        <button id="modal-login-btn" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">Login</button>
+        <button id="modal-cancel-btn" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  setTimeout(() => {
+    document.getElementById("modal-login-btn").onclick = () => {
+      const token = document.getElementById("modal-login-token").value.trim();
+      if (token) { setAuthToken(token); overlay.remove(); showToast("로그인 완료", "success"); }
+    };
+    document.getElementById("modal-cancel-btn").onclick = () => overlay.remove();
+    document.getElementById("modal-login-token").focus();
+    document.getElementById("modal-login-token").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("modal-login-btn").click(); });
+  }, 50);
+}
+
 function promptLogin() {
   document.getElementById("app").innerHTML = `
     <div class="min-h-screen">
@@ -114,7 +143,7 @@ const API = {
   async post(url, body) {
     try {
       const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify(body) });
-      if (res.status === 401) { localStorage.removeItem("dashboard_auth_token"); promptLogin(); return null; }
+      if (res.status === 401) { showLoginModal(); return null; }
       if (!res.ok) { const d = await res.json().catch(() => ({})); showToast(d.error || `요청 실패: ${res.status}`, "error"); return null; }
       return res.json();
     } catch (e) { showToast(`네트워크 오류: ${e.message}`, "error"); return null; }
@@ -127,9 +156,9 @@ const S = {
   overview: null, queue: [], growth: [], popular: [], analytics: null,
   keywords: [], settings: null, guide: "", cronJobs: [], activity: [],
   channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [],
-  tokenStatus: null, alerts: [], weekly: null,
+  tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
-  sidebarCollapsed: { social: false, video: true, blog: false, messaging: true, data: true, custom: true },
+  sidebarCollapsed: { social: false, video: true, blog: false, messaging: true, data: true, custom: true }, showDetail: null,
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null, expandedPopular: null,
 };
@@ -172,6 +201,7 @@ async function loadGrowth() { const d = await API.get("/api/growth"); if (d) S.g
 async function loadPopular() { const d = await API.get("/api/popular"); if (d) S.popular = d.posts || []; render(); }
 async function loadAnalytics() { const d = await API.get("/api/analytics"); if (d) S.analytics = d; render(); }
 async function loadKeywords() { const d = await API.get("/api/keywords"); if (d) S.keywords = d.keywords || []; render(); }
+async function loadLlmConfig() { const d = await API.get("/api/llm-config"); if (d) S.llmConfig = d; render(); }
 async function loadSettings() {
   const [s, g] = await Promise.all([API.get("/api/settings"), API.get("/api/guide")]);
   if (s) S.settings = s;
@@ -377,52 +407,52 @@ function renderOverview() {
   const cc = o.channelCounts || {};
   const totalPub = sc.published || 0;
 
+  // Build channel grid data
+  const allChannels = [
+    { key: "threads", label: "Threads", icon: "T", iconClass: "bg-gradient-to-br from-purple-500 to-pink-500 text-white" },
+    { key: "x", label: "X", icon: "X" },
+    { key: "instagram", label: "Instagram", icon: "IG" },
+    { key: "facebook", label: "Facebook", icon: "F" },
+    { key: "bluesky", label: "Bluesky", icon: "BS" },
+    { key: "linkedin", label: "LinkedIn", icon: "LI" },
+    { key: "tiktok", label: "TikTok", icon: "TK" },
+    { key: "youtube", label: "YouTube", icon: "YT" },
+    { key: "blog", label: "Blog", icon: "B", nav: "blog" },
+    { key: "telegram", label: "Telegram", icon: "TG" },
+    { key: "discord", label: "Discord", icon: "DC" },
+    { key: "pinterest", label: "Pinterest", icon: "P" },
+  ];
+
   return `<div class="px-8 py-6">
-    <div class="flex items-center justify-between mb-6">
-      <div><h2 class="text-xl font-semibold text-white">Marketing Overview</h2><p class="text-sm text-gray-500 mt-0.5">All channels at a glance</p></div>
+    <!-- Channel Grid (Genspark style) -->
+    <div class="mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-white">Channels</h2>
+        <span class="text-xs text-gray-600">${Object.values(S.channelConfig).filter(c => c.connected || c.status === "live").length} connected</span>
+      </div>
+      <div class="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-3">
+        ${allChannels.map(ch => {
+          const cfg = S.channelConfig[ch.key] || {};
+          const status = cfg.status || (cfg.connected ? "live" : "available");
+          const isLive = status === "live" || cfg.connected;
+          const navTarget = ch.nav || ch.key;
+          return `
+            <button data-nav="${navTarget}" class="flex flex-col items-center gap-1.5 p-3 rounded-xl hover:bg-gray-800/50 transition group">
+              <div class="w-10 h-10 rounded-xl ${ch.iconClass || (isLive ? "bg-gray-700 text-white" : "bg-gray-800/50 text-gray-600")} flex items-center justify-center text-xs font-bold ${isLive ? "ring-1 ring-green-800/50" : ""}">${ch.icon}</div>
+              <span class="text-[10px] ${isLive ? "text-gray-300" : "text-gray-600"}">${ch.label}</span>
+              ${isLive ? '<div class="w-1 h-1 rounded-full bg-green-500"></div>' : ""}
+            </button>`;
+        }).join("")}
+      </div>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+    <!-- Stats Row -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
       ${card("Published", totalPub, `T:${cc.threads || 0} X:${cc.x || 0}`)}
-      ${card("Followers", o.followers ?? "N/A", o.weekDelta != null ? `${o.weekDelta >= 0 ? "+" : ""}${o.weekDelta} this week` : "")}
-      ${card("Viral", o.viralPosts?.length || 0, `>= ${S.settings?.viralThreshold || 500} views`)}
-      ${card("Queue", (sc.draft || 0) + (sc.approved || 0), `${sc.draft || 0} drafts, ${sc.approved || 0} approved`)}
-      ${card("Popular Refs", o.popularPostsCount || 0, Object.entries(o.popularSourceCounts || {}).map(([k, v]) => `${k}:${v}`).join(" "))}
-    </div>
-
-    <!-- Channel Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-      <div class="channel-card card p-5" data-nav="threads">
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-3">
-            <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm font-bold text-white">T</span>
-            <div><h3 class="text-sm font-medium text-white">Threads</h3><p class="text-xs text-gray-500">${S.channelConfig.threads?.userId ? "ID: " + S.channelConfig.threads.userId : ""}</p></div>
-          </div>
-          <span class="text-[10px] px-2 py-1 rounded-full ${S.channelConfig.threads?.connected ? "bg-green-900/40 text-green-400 border border-green-800/30" : "bg-gray-800 text-gray-500"}">${S.channelConfig.threads?.connected ? "Connected" : "Not connected"}</span>
-        </div>
-        <div class="grid grid-cols-3 gap-3">
-          <div><p class="text-[10px] text-gray-500">Published</p><p class="text-lg font-semibold text-white">${cc.threads || 0}</p></div>
-          <div><p class="text-[10px] text-gray-500">Followers</p><p class="text-lg font-semibold text-white">${o.followers ?? "-"}</p></div>
-          <div><p class="text-[10px] text-gray-500">Growth</p><p class="text-lg font-semibold ${(o.weekDelta || 0) >= 0 ? "text-green-400" : "text-red-400"}">${o.weekDelta != null ? (o.weekDelta >= 0 ? "+" : "") + o.weekDelta : "-"}</p></div>
-        </div>
-        <div class="mt-3 pt-3 border-t border-gray-800/50 flex justify-between text-xs"><span class="text-gray-600">View details</span><span class="text-blue-400">&rarr;</span></div>
-      </div>
-
-      <div class="channel-card card p-5" data-nav="x">
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-3">
-            <span class="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center text-sm font-bold text-white">X</span>
-            <div><h3 class="text-sm font-medium text-white">X (Twitter)</h3><p class="text-xs text-gray-500">${S.channelConfig.x?.connected ? "Connected" : "Not connected"}</p></div>
-          </div>
-          <span class="text-[10px] px-2 py-1 rounded-full ${S.channelConfig.x?.connected ? "bg-green-900/40 text-green-400 border border-green-800/30" : "bg-yellow-900/40 text-yellow-400 border border-yellow-800/30"}">${S.channelConfig.x?.connected ? "Connected" : "Setup Required"}</span>
-        </div>
-        <div class="grid grid-cols-3 gap-3">
-          <div><p class="text-[10px] text-gray-500">Published</p><p class="text-lg font-semibold ${cc.x ? "text-white" : "text-gray-600"}">${cc.x || 0}</p></div>
-          <div><p class="text-[10px] text-gray-500">Impressions</p><p class="text-lg font-semibold text-gray-600">-</p></div>
-          <div><p class="text-[10px] text-gray-500">Followers</p><p class="text-lg font-semibold text-gray-600">-</p></div>
-        </div>
-        <div class="mt-3 pt-3 border-t border-gray-800/50 flex justify-between text-xs"><span class="text-gray-600">${S.channelConfig.x?.connected ? "View details" : "Setup credentials"}</span><span class="text-${S.channelConfig.x?.connected ? "blue" : "yellow"}-400">&rarr;</span></div>
-      </div>
+      ${card("Followers", o.followers ?? "-", o.weekDelta != null ? `${o.weekDelta >= 0 ? "+" : ""}${o.weekDelta} this week` : "")}
+      ${card("Viral", o.viralPosts?.length || 0, "")}
+      ${card("Queue", (sc.draft || 0) + (sc.approved || 0), `${sc.draft || 0} drafts`)}
+      ${card("Engagement", S.weekly?.engagementRate ? S.weekly.engagementRate + "%" : "-", "this week")}
     </div>
 
     <!-- Weekly Performance -->
@@ -593,6 +623,23 @@ function renderPost(p) {
           <button data-pick-image="${p.id}" class="px-2 py-1 text-xs bg-purple-700 text-white rounded hover:bg-purple-600">${p.imageUrl ? "Change Image" : "Add Image"}</button>
         </div>
       ` : `<p class="text-sm text-gray-200 mb-2 whitespace-pre-wrap">${esc(p.text)}</p>`}
+      ${p.status === "draft" || p.status === "approved" ? `
+        <div class="flex items-center gap-3 mb-2 text-xs">
+          <span class="text-gray-600">Publish to:</span>
+          ${["threads", "x"].map(ch => {
+            const chCfg = S.channelConfig[ch] || {};
+            const enabled = chCfg.connected || chCfg.enabled;
+            const checked = (p.channels?.[ch]?.status !== "skipped");
+            const limit = ch === "x" ? 280 : 500;
+            const over = p.text.length > limit;
+            return enabled ? `
+              <label class="flex items-center gap-1 ${over ? "text-yellow-500" : "text-gray-400"}">
+                <input type="checkbox" data-publish-channel="${p.id}:${ch}" ${checked ? "checked" : ""} class="rounded border-gray-600 w-3 h-3">
+                ${ch === "threads" ? "T" : "X"}${over ? ` (${p.text.length}/${limit})` : ""}
+              </label>` : "";
+          }).join("")}
+        </div>
+      ` : ""}
       ${p.hashtags?.length ? `<div class="flex gap-1 mb-2">${p.hashtags.map(h => `<span class="text-xs text-blue-400">#${h}</span>`).join("")}</div>` : ""}
       ${p.engagement?.views != null ? `<div class="flex gap-4 text-xs text-gray-500"><span>views: ${p.engagement.views}</span><span>likes: ${p.engagement.likes || 0}</span><span>replies: ${p.engagement.replies || 0}</span></div>` : ""}
       <div class="flex flex-wrap gap-3 text-xs text-gray-600 mt-1">
@@ -955,6 +1002,43 @@ function renderSettings() {
           </div>
         </div>
         <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-4">AI Engine (LLM)</h3>
+          ${S.llmConfig ? `
+            <div class="space-y-3">
+              <div>
+                <label class="text-[10px] text-gray-500 block mb-1">Primary Model</label>
+                <select id="llm-primary" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300">
+                  ${(S.llmConfig.available || []).map(m => `<option value="${m}" ${m === S.llmConfig.primary ? "selected" : ""}>${m}</option>`).join("")}
+                </select>
+              </div>
+              <div>
+                <label class="text-[10px] text-gray-500 block mb-1">Fallback Models</label>
+                <p class="text-xs text-gray-400">${(S.llmConfig.fallbacks || []).join(" → ") || "none"}</p>
+              </div>
+              ${S.tokenStatus?.claude ? `
+                <div class="flex justify-between text-sm"><span class="text-gray-500">Token</span><span class="${S.tokenStatus.claude.healthy ? "text-green-400" : "text-red-400"}">${S.tokenStatus.claude.remainingHours}h remaining</span></div>
+              ` : ""}
+
+              <div class="border-t border-gray-800/50 pt-3 mt-3">
+                <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Per-Job Model Override</p>
+                <div class="space-y-2">
+                  ${Object.entries(S.llmConfig.jobModels || {}).map(([job, model]) => `
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="text-[10px] text-gray-400 flex-shrink-0 w-40 truncate">${job}</span>
+                      <select data-job-model="${job}" class="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-[10px] text-gray-300">
+                        <option value="" ${!model || model === S.llmConfig.primary ? "selected" : ""}>Default (${(S.llmConfig.primary || "").split("/").pop()})</option>
+                        ${(S.llmConfig.available || []).filter(m => m !== S.llmConfig.primary).map(m => `<option value="${m}" ${m === model ? "selected" : ""}>${m.split("/").pop()}</option>`).join("")}
+                      </select>
+                    </div>
+                  `).join("")}
+                </div>
+              </div>
+
+              <button id="save-llm-config" class="w-full mt-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">Save LLM Config</button>
+            </div>
+          ` : `<p class="text-xs text-gray-600">Loading...</p>`}
+        </div>
+        <div class="card p-5">
           <h3 class="text-sm font-medium text-gray-300 mb-4">Account</h3>
           <div class="space-y-2 text-sm">
             <div class="flex justify-between"><span class="text-gray-500">Auth</span><span class="text-gray-300">${getAuthToken() ? "Token (localStorage)" : "No auth"}</span></div>
@@ -975,6 +1059,18 @@ function renderSettings() {
 function bindEvents() {
   document.querySelectorAll("[data-nav]").forEach(el => { el.onclick = () => navigate(el.dataset.nav); });
   document.querySelectorAll("[data-sidebar-toggle]").forEach(el => { el.onclick = () => { S.sidebarCollapsed[el.dataset.sidebarToggle] = !S.sidebarCollapsed[el.dataset.sidebarToggle]; render(); }; });
+  // LLM config save
+  const saveLlm = document.getElementById("save-llm-config");
+  if (saveLlm) saveLlm.onclick = async () => {
+    const primary = document.getElementById("llm-primary")?.value;
+    const jobModels = {};
+    document.querySelectorAll("[data-job-model]").forEach(el => {
+      jobModels[el.dataset.jobModel] = el.value;
+    });
+    const r = await API.post("/api/llm-config", { primary, jobModels });
+    if (r) { showToast(`LLM 설정 저장: ${r.primary?.split("/").pop()}`, "success"); loadLlmConfig(); loadOverview(); }
+  };
+
   const logoutBtn = document.getElementById("btn-logout");
   if (logoutBtn) logoutBtn.onclick = () => { localStorage.removeItem("dashboard_auth_token"); location.reload(); };
   const changePwBtn = document.getElementById("btn-change-pw");
@@ -1064,7 +1160,11 @@ function bindEvents() {
     if (at?.value) data.accessToken = at.value;
     if (uid?.value) data.userId = uid.value;
     const r = await API.post("/api/channel-config/threads", data);
-    if (r) { showToast("Threads 설정 저장됨", "success"); loadOverview(); }
+    if (r) {
+      if (r.verified) showToast(`Threads 연결 완료${r.account ? " — " + r.account : ""}`, "success");
+      else showToast(`연결 실패: ${r.error || "Invalid credentials"}`, "error");
+      loadOverview();
+    }
   };
 
   const saveX = document.getElementById("save-x-config");
@@ -1072,8 +1172,15 @@ function bindEvents() {
     const data = {};
     ["apiKey", "apiKeySecret", "accessToken", "accessTokenSecret"].forEach(k => { const el = document.getElementById("x-" + k); if (el?.value) data[k] = el.value; });
     const r = await API.post("/api/channel-config/x", data);
-    if (r) { showToast(r.enabled ? "X 연결 완료!" : "저장됨", "success"); loadOverview(); }
+    if (r) {
+      if (r.verified) showToast(`X 연결 완료${r.account ? " — " + r.account : ""}`, "success");
+      else showToast(`연결 실패: ${r.error || "Invalid credentials"}`, "error");
+      loadOverview();
+    }
   };
+
+  // Detail toggle
+  document.querySelectorAll("[data-toggle-detail]").forEach(el => { el.onclick = () => { S.showDetail = S.showDetail === el.dataset.toggleDetail ? null : el.dataset.toggleDetail; render(); }; });
 
   // Generic channel credential save
   Object.keys(CH_LABELS).forEach(key => {
@@ -1083,8 +1190,14 @@ function bindEvents() {
       const fields = sg[key] || [];
       const data = {};
       fields.forEach(f => { const el = document.getElementById(`ch-${key}-${f}`); if (el?.value) data[f] = el.value; });
+      btn.textContent = "Verifying..."; btn.disabled = true;
       const r = await API.post(`/api/channel-config/${key}`, data);
-      if (r) { showToast(r.enabled ? `${CH_LABELS[key]} 연결 완료!` : "저장됨", "success"); loadOverview(); }
+      btn.textContent = hasKeys ? "Update" : "Connect"; btn.disabled = false;
+      if (r) {
+        if (r.verified) showToast(`${CH_LABELS[key]} 연결 완료${r.account ? " — " + r.account : ""}`, "success");
+        else showToast(`연결 실패: ${r.error || "Invalid credentials"}`, "error");
+        loadOverview();
+      }
     };
   });
 
@@ -1102,7 +1215,7 @@ function navigate(page) {
   else if (page === "images") loadImages();
   else if (page === "blog") loadBlogQueue();
   else if (CH_LABELS[page]) loadOverview(); // generic channels use overview data
-  else if (page === "settings") { loadSettings(); loadKeywords(); }
+  else if (page === "settings") { loadSettings(); loadKeywords(); loadLlmConfig(); }
   render();
 }
 
@@ -1292,21 +1405,45 @@ function renderGenericChannel(key) {
   const hasKeys = Object.values(keys).some(v => v);
 
   const setupGuides = {
-    facebook: { fields: ["accessToken", "pageId"], labels: ["Page Access Token", "Page ID"], guide: "developers.facebook.com > 앱 만들기 > Facebook Login > Page Access Token 발급" },
-    bluesky: { fields: ["handle", "appPassword"], labels: ["Handle (e.g. user.bsky.social)", "App Password"], guide: "bsky.app > Settings > App Passwords > 새 비밀번호 생성" },
-    instagram: { fields: ["accessToken", "userId"], labels: ["Graph API Access Token", "Instagram Business User ID"], guide: "developers.facebook.com > Instagram Graph API > Business 계정 연결 필요 (App Review 2-4주)" },
-    linkedin: { fields: ["accessToken", "personUrn"], labels: ["OAuth 2.0 Access Token", "Person URN (urn:li:person:xxx)"], guide: "LinkedIn Partner Program 승인 필요. learn.microsoft.com/linkedin" },
-    pinterest: { fields: ["accessToken", "boardId"], labels: ["OAuth 2.0 Access Token", "Board ID"], guide: "developers.pinterest.com > 앱 생성 > OAuth 토큰 발급" },
-    tumblr: { fields: ["consumerKey", "consumerSecret", "accessToken", "accessTokenSecret", "blogName"], labels: ["Consumer Key", "Consumer Secret", "Access Token", "Access Token Secret", "Blog Name"], guide: "tumblr.com/oauth/apps > OAuth 1.0a 앱 등록" },
-    tiktok: { fields: ["accessToken"], labels: ["OAuth Access Token"], guide: "developers.tiktok.com > 앱 생성 > Content Posting API 심사 필요 (심사 전 비공개만)" },
-    youtube: { fields: ["accessToken"], labels: ["Google OAuth 2.0 Access Token"], guide: "console.cloud.google.com > YouTube Data API v3 활성화 > OAuth 토큰. 커뮤니티 글 API는 미지원 (영상 업로드만)" },
-    telegram: { fields: ["botToken", "chatId"], labels: ["Bot Token (@BotFather)", "Chat/Channel ID (@channelname 또는 -100xxx)"], guide: "Telegram에서 @BotFather에게 /newbot으로 봇 생성 → 토큰 발급" },
-    discord: { fields: ["webhookUrl"], labels: ["Webhook URL"], guide: "Discord 채널 설정 > 연동 > 웹후크 > 새 웹후크 만들기 > URL 복사" },
-    line: { fields: ["channelAccessToken"], labels: ["Channel Access Token (long-lived)"], guide: "developers.line.biz > LINE Official Account > Messaging API > Channel Access Token 발급" },
-    naver_blog: { fields: ["blogId", "username", "apiKey"], labels: ["Blog ID", "Username", "API Key (XML-RPC)"], guide: "네이버 블로그 관리 > 글쓰기 API 설정. 공식 REST API 없음 (레거시 XML-RPC)" },
+    facebook: { fields: ["accessToken", "pageId"], labels: ["Page Access Token", "Page ID"],
+      quick: ["developers.facebook.com 접속 > 앱 만들기", "Use cases > Facebook Login 추가", "Settings > Page Access Token 발급", "Page ID 확인 (페이지 정보에서)", "위 폼에 입력 후 Connect"],
+      detail: "Access Token으로 Facebook Page에 글을 발행합니다. Page Access Token은 페이지 관리자 권한이 필요하며, 60일 유효 (long-lived). Page ID는 페이지 고유 번호입니다." },
+    bluesky: { fields: ["handle", "appPassword"], labels: ["Handle (예: user.bsky.social)", "App Password"],
+      quick: ["bsky.app 로그인", "Settings > App Passwords", "새 비밀번호 생성 > 이름 입력 > 생성", "Handle과 생성된 비밀번호를 위 폼에 입력"],
+      detail: "Bluesky는 AT Protocol 기반 오픈 소셜 네트워크입니다. App Password는 계정 비밀번호 대신 사용하는 앱 전용 비밀번호로, 언제든 폐기 가능합니다. API 사용은 무료이며 승인 불필요." },
+    instagram: { fields: ["accessToken", "userId"], labels: ["Graph API Access Token", "Instagram Business User ID"],
+      quick: ["developers.facebook.com > 앱 만들기", "Use cases > Instagram Graph API 추가", "Business/Creator 계정 필요 (개인 계정 불가)", "Access Token 발급 + User ID 확인", "App Review 제출 (2-4주 소요)"],
+      detail: "Instagram은 Meta Graph API를 통해 발행합니다. 이미지가 필수이며, Business 또는 Creator 계정이 Facebook Page에 연결되어 있어야 합니다. App Review를 통과해야 프로덕션 사용 가능." },
+    linkedin: { fields: ["accessToken", "personUrn"], labels: ["OAuth 2.0 Access Token", "Person URN (urn:li:person:xxx)"],
+      quick: ["LinkedIn Partner Program 신청 (learn.microsoft.com/linkedin)", "승인 후 앱 생성 > OAuth 2.0 설정", "Access Token 발급", "Person URN 확인 (API /v2/me 호출)"],
+      detail: "LinkedIn은 Partner Program 승인이 필요합니다. 자가 신청 후 승인 기간이 불확실합니다. Person URN은 urn:li:person:xxxx 형태의 사용자 고유 식별자." },
+    pinterest: { fields: ["accessToken", "boardId"], labels: ["OAuth 2.0 Access Token", "Board ID"],
+      quick: ["developers.pinterest.com > 앱 생성", "OAuth 2.0 토큰 발급", "대상 Board의 ID 확인", "위 폼에 입력"],
+      detail: "Pinterest Content API v5는 오픈 액세스 (승인 불필요). Pin 생성 시 이미지가 필수입니다. Board ID는 핀을 저장할 보드의 고유 번호." },
+    tumblr: { fields: ["consumerKey", "consumerSecret", "accessToken", "accessTokenSecret", "blogName"], labels: ["Consumer Key", "Consumer Secret", "Access Token", "Access Token Secret", "Blog Name"],
+      quick: ["tumblr.com/oauth/apps > 앱 등록", "OAuth Consumer Key/Secret 발급", "Access Token 발급 (OAuth 1.0a)", "Blog Name 입력 (예: myblog.tumblr.com)"],
+      detail: "Tumblr는 X(Twitter)와 같은 OAuth 1.0a 방식입니다. Consumer Key는 앱 식별, Consumer Secret은 요청 서명, Access Token/Secret은 사용자 인증에 사용됩니다." },
+    tiktok: { fields: ["accessToken"], labels: ["OAuth Access Token"],
+      quick: ["developers.tiktok.com > 앱 생성", "Content Posting API 권한 신청", "앱 심사 제출 (심사 전 비공개 포스트만 가능)", "심사 통과 후 Access Token 발급"],
+      detail: "TikTok은 앱 심사가 필수입니다. 심사 전에는 모든 포스트가 비공개로만 생성됩니다. 영상/사진 콘텐츠 위주이며, 15건/일 제한." },
+    youtube: { fields: ["accessToken"], labels: ["Google OAuth 2.0 Access Token"],
+      quick: ["console.cloud.google.com > YouTube Data API v3 활성화", "OAuth 2.0 클라이언트 생성 > Access Token 발급", "영상 업로드만 가능 (커뮤니티 글 API 미지원)"],
+      detail: "YouTube Data API는 영상 업로드에 사용됩니다. 커뮤니티 글 작성 API는 공식적으로 존재하지 않습니다. 일일 10,000 quota units 제한." },
+    telegram: { fields: ["botToken", "chatId"], labels: ["Bot Token (@BotFather에서 발급)", "Chat/Channel ID (@채널명 또는 -100xxx)"],
+      quick: ["Telegram에서 @BotFather 검색 > /newbot 명령", "봇 이름 + username 설정 > Token 발급", "봇을 채널/그룹에 관리자로 추가", "채널 ID 확인 (@채널명 또는 숫자 ID)"],
+      detail: "Bot Token은 @BotFather가 발급하는 고유 키입니다. 봇이 채널에 글을 쓰려면 해당 채널의 관리자 권한이 필요합니다. API 사용은 완전 무료." },
+    discord: { fields: ["webhookUrl"], labels: ["Webhook URL"],
+      quick: ["Discord 서버 > 채널 설정 > 연동", "웹후크 > 새 웹후크 만들기", "이름 설정 > URL 복사", "위 폼에 URL 붙여넣기"],
+      detail: "Discord Webhook은 가장 간단한 연동 방식입니다. URL 하나만으로 메시지를 보낼 수 있으며, 별도 인증이 필요 없습니다. 보내기만 가능 (읽기 불가)." },
+    line: { fields: ["channelAccessToken"], labels: ["Channel Access Token (long-lived)"],
+      quick: ["developers.line.biz > LINE Official Account 생성", "Messaging API 활성화", "Channel Access Token (long-lived) 발급", "위 폼에 입력"],
+      detail: "LINE Messaging API는 브로드캐스트(전체 발송) 방식입니다. 무료 500건/월, 이후 건당 과금. Channel Access Token은 장기 유효 토큰." },
+    naver_blog: { fields: ["blogId", "username", "apiKey"], labels: ["Blog ID", "네이버 Username", "API Key (XML-RPC)"],
+      quick: ["네이버 블로그 관리 > 글쓰기 API 설정", "Blog ID, Username 확인", "XML-RPC API Key 발급", "위 폼에 입력"],
+      detail: "네이버 블로그는 공식 REST API가 없습니다. 레거시 XML-RPC 방식으로 발행하며, 안정성이 보장되지 않습니다. 비공식 방식." },
   };
 
-  const sg = setupGuides[key] || { fields: [], labels: [], guide: "Setup guide not available yet." };
+  const sg = setupGuides[key] || { fields: [], labels: [], quick: ["Setup guide가 아직 준비되지 않았습니다."], detail: "" };
 
   return `<div class="px-8 py-6">
     <button data-nav="overview" class="text-gray-500 hover:text-gray-300 text-sm mb-1">&larr; Back</button>
@@ -1327,12 +1464,18 @@ function renderGenericChannel(key) {
         <div class="card p-5">
           <h3 class="text-sm font-medium text-gray-300 mb-3">Channel Info</h3>
           <div class="space-y-2 text-sm">
-            <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="${CH_STATUS_BADGE[status] || ""} text-xs px-1.5 py-0.5 rounded">${CH_STATUS_LABEL[status] || status}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="${status === "live" ? "text-green-400" : status === "connected" ? "text-blue-400" : "text-gray-500"}">${status === "live" ? "Live" : status === "connected" ? "Connected" : "Not connected"}</span></div>
           </div>
         </div>
         <div class="card p-5">
           <h3 class="text-sm font-medium text-gray-300 mb-3">Setup Guide</h3>
-          <p class="text-xs text-gray-400">${sg.guide}</p>
+          <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
+            ${(sg.quick || []).map(step => `<li>${step}</li>`).join("")}
+          </ol>
+          ${sg.detail ? `
+            <button data-toggle-detail="${key}" class="text-[10px] text-blue-400 hover:text-blue-300 mt-3 block">${S.showDetail === key ? "접기" : "더 알아보기"}</button>
+            ${S.showDetail === key ? `<div class="mt-2 p-3 rounded bg-gray-900/50"><p class="text-[10px] text-gray-500 leading-relaxed">${sg.detail}</p></div>` : ""}
+          ` : ""}
         </div>
       </div>
     </div>
@@ -1379,11 +1522,11 @@ function renderBlog() {
 
 // ── Init ──
 document.addEventListener("DOMContentLoaded", async () => {
-  const test = await fetch("/api/overview", { headers: authHeaders() });
-  if (test.status === 401 && !getAuthToken()) { promptLogin(); return; }
-  // Restore page from URL hash
   const hash = window.location.hash.replace("#", "");
   if (hash) S.page = hash;
+  // Test auth — if 401, show landing page with login
+  const test = await fetch("/api/overview", { headers: authHeaders() });
+  if (test.status === 401) { promptLogin(); return; }
   loadOverview();
   loadImages();
   render();
