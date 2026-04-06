@@ -175,8 +175,8 @@ function fmtAgo(iso) {
 
 // ── Data Loading ──
 async function loadOverview() {
-  const [data, cronData, activity, chCfg, tokenData, alertData, weeklyData] = await Promise.all([
-    API.get("/api/overview"), API.get("/api/cron-status"), API.get("/api/activity"), API.get("/api/channel-config"), API.get("/api/token-status"), API.get("/api/alerts"), API.get("/api/weekly-summary"),
+  const [data, cronData, activity, chCfg, tokenData, alertData, weeklyData, llmData] = await Promise.all([
+    API.get("/api/overview"), API.get("/api/cron-status"), API.get("/api/activity"), API.get("/api/channel-config"), API.get("/api/token-status"), API.get("/api/alerts"), API.get("/api/weekly-summary"), API.get("/api/llm-config"),
   ]);
   if (data) S.overview = data;
   if (cronData) S.cronJobs = cronData.jobs || [];
@@ -189,6 +189,7 @@ async function loadOverview() {
   if (tokenData) S.tokenStatus = tokenData;
   if (alertData) S.alerts = alertData.alerts || [];
   if (weeklyData) S.weekly = weeklyData;
+  if (llmData) S.llmConfig = llmData;
   render();
 }
 async function loadQueue(status) {
