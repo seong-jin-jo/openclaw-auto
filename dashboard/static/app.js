@@ -1215,7 +1215,7 @@ function navigate(page) {
   else if (page === "images") loadImages();
   else if (page === "blog") loadBlogQueue();
   else if (CH_LABELS[page]) loadOverview(); // generic channels use overview data
-  else if (page === "settings") { loadSettings(); loadKeywords(); loadLlmConfig(); }
+  else if (page === "settings") { loadSettings(); loadKeywords(); loadLlmConfig(); loadOverview(); }
   render();
 }
 
