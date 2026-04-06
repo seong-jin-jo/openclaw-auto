@@ -158,7 +158,7 @@ const S = {
   channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [],
   tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
-  sidebarCollapsed: { social: false, video: true, blog: false, messaging: true, data: true, custom: true }, showDetail: null,
+  sidebarCollapsed: { social: false, video: true, blog: false, messaging: true, data: true, custom: true }, showDetail: null, editingChannel: null,
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null, expandedPopular: null,
 };
@@ -904,11 +904,11 @@ function renderChannelX() {
   </div>`;
 }
 
-function credField(id, label, desc, isSecret = false, fullValue = "") {
+function credField(id, label, desc, isSecret = false, fullValue = "", editable = true) {
   return `<div>
     <label class="text-xs text-gray-400 block mb-0.5">${label} ${desc ? `<span class="text-gray-600">${desc}</span>` : ""}</label>
     <div class="relative">
-      <input id="${id}" type="${isSecret ? "password" : "text"}" value="${esc(fullValue)}" placeholder="${label}" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 pr-16 text-sm text-gray-300 placeholder-gray-600 font-mono">
+      <input id="${id}" type="${isSecret ? "password" : "text"}" value="${esc(fullValue)}" placeholder="${label}" ${editable ? "" : "readonly"} class="w-full ${editable ? "bg-gray-900" : "bg-gray-900/50 cursor-default"} border border-gray-700 rounded px-3 py-2 pr-16 text-sm text-gray-300 placeholder-gray-600 font-mono">
       ${isSecret ? `<button type="button" data-toggle-vis="${id}" class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 hover:text-gray-300">Show</button>` : ""}
     </div>
   </div>`;
@@ -1180,6 +1180,14 @@ function bindEvents() {
     }
   };
 
+  // Channel edit toggle
+  Object.keys(CH_LABELS).forEach(key => {
+    const editBtn = document.getElementById(`edit-ch-${key}`);
+    if (editBtn) editBtn.onclick = () => { S.editingChannel = key; render(); };
+    const cancelBtn = document.getElementById(`cancel-edit-ch-${key}`);
+    if (cancelBtn) cancelBtn.onclick = () => { S.editingChannel = null; render(); };
+  });
+
   // Detail toggle
   document.querySelectorAll("[data-toggle-detail]").forEach(el => { el.onclick = () => { S.showDetail = S.showDetail === el.dataset.toggleDetail ? null : el.dataset.toggleDetail; render(); }; });
 
@@ -1195,7 +1203,7 @@ function bindEvents() {
       const r = await API.post(`/api/channel-config/${key}`, data);
       btn.textContent = hasKeys ? "Update" : "Connect"; btn.disabled = false;
       if (r) {
-        if (r.verified) showToast(`${CH_LABELS[key]} 연결 완료${r.account ? " — " + r.account : ""}`, "success");
+        if (r.verified) { showToast(`${CH_LABELS[key]} 연결 완료${r.account ? " — " + r.account : ""}`, "success"); S.editingChannel = null; }
         else showToast(`연결 실패: ${r.error || "Invalid credentials"}`, "error");
         loadOverview();
       }
@@ -1454,13 +1462,24 @@ function renderGenericChannel(key) {
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div class="card p-5">
-        <h3 class="text-sm font-medium text-gray-300 mb-4">Credentials</h3>
-        <div class="space-y-3">
-          ${sg.fields.map((f, i) => credField(`ch-${key}-${f}`, sg.labels[i], "", f.toLowerCase().includes("secret") || f.toLowerCase().includes("password") || f.toLowerCase().includes("token"), keys[f] || "")).join("")}
+      <div class="card p-5">${(() => {
+        const editing = S.editingChannel === key;
+        const editable = editing || !hasKeys;
+        return `
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-medium text-gray-300">Credentials</h3>
+          ${hasKeys && !editing ? `<button id="edit-ch-${key}" class="text-[10px] text-blue-400 hover:text-blue-300">Edit Credentials</button>` : ""}
         </div>
-        <button id="save-ch-${key}" class="w-full mt-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${hasKeys ? "Update" : "Connect"}</button>
-      </div>
+        <div class="space-y-3">
+          ${sg.fields.map((f, i) => credField(`ch-${key}-${f}`, sg.labels[i], "", f.toLowerCase().includes("secret") || f.toLowerCase().includes("password") || f.toLowerCase().includes("token"), keys[f] || "", editable)).join("")}
+        </div>
+        ${editable ? `
+          <div class="flex gap-2 mt-4">
+            <button id="save-ch-${key}" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${hasKeys ? "Update" : "Connect"}</button>
+            ${hasKeys && editing ? `<button id="cancel-edit-ch-${key}" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>` : ""}
+          </div>
+        ` : ""}`;
+      })()}</div>
       <div class="space-y-4">
         <div class="card p-5">
           <h3 class="text-sm font-medium text-gray-300 mb-3">Channel Info</h3>
