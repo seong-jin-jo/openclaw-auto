@@ -988,6 +988,29 @@ function renderXSettings() {
           <p class="text-[10px] text-yellow-500/70 mt-2">* \uad8c\ud55c \ubcc0\uacbd \ud6c4 \ubc18\ub4dc\uc2dc \uc561\uc138\uc2a4 \ud1a0\ud070\uc744 \uc7ac\uc0dd\uc131\ud574\uc57c \ud569\ub2c8\ub2e4</p>
         </div>
       </div>
+
+      <!-- Content Guide + Keywords (X) -->
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-medium text-gray-300">Content Guide <span class="text-[10px] text-gray-600">(X)</span></h3>
+          <div class="flex gap-2">
+            <button id="copy-common-guide" class="px-2 py-1 text-[10px] bg-gray-800 text-gray-400 rounded hover:bg-gray-700">\uacf5\ud1b5\uc5d0\uc11c \ubcf5\uc0ac</button>
+            <button id="save-guide" class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
+          </div>
+        </div>
+        <p class="text-[10px] text-gray-600 mb-2">${S.channelGuide?.channelGuide ? "X \uc804\uc6a9 \uac00\uc774\ub4dc" : "\uacf5\ud1b5 \uac00\uc774\ub4dc \uc0ac\uc6a9 \uc911 \u2014 \uc218\uc815\ud558\uba74 X \uc804\uc6a9\uc73c\ub85c \uc800\uc7a5"} (280\uc790 \uc81c\ud55c \uace0\ub824)</p>
+        <textarea id="guide-textarea" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 font-mono" rows="10">${esc(S.channelGuide?.guide || S.guide)}</textarea>
+      </div>
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-medium text-gray-300">Search Keywords <span class="text-[10px] text-gray-600">(X)</span></h3>
+          <div class="flex gap-2">
+            <button id="copy-common-keywords" class="px-2 py-1 text-[10px] bg-gray-800 text-gray-400 rounded hover:bg-gray-700">\uacf5\ud1b5\uc5d0\uc11c \ubcf5\uc0ac</button>
+            <button id="save-keywords" class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
+          </div>
+        </div>
+        <textarea id="keywords-textarea" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300" rows="6">${(S.channelKeywords?.keywords || S.keywords).join("\n")}</textarea>
+      </div>
     </div>`;
 }
 
@@ -1258,10 +1281,10 @@ function navigate(page) {
   window.location.hash = page;
   if (page === "overview") loadOverview();
   else if (page === "threads") { S.subTab = "queue"; loadQueue(S.queueFilter); loadGrowth(); loadImages(); }
-  else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); }
+  else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); loadChannelGuideAndKeywords(); }
   else if (page === "images") loadImages();
   else if (page === "blog") loadBlogQueue();
-  else if (CH_LABELS[page]) loadOverview(); // generic channels use overview data
+  else if (CH_LABELS[page]) { loadOverview(); loadChannelGuideAndKeywords(); }
   else if (page === "settings") { loadSettings(); loadKeywords(); loadLlmConfig(); loadOverview(); }
   render();
 }
@@ -1535,6 +1558,29 @@ function renderGenericChannel(key) {
             ${S.showDetail === key ? `<div class="mt-2 p-3 rounded bg-gray-900/50"><p class="text-[10px] text-gray-500 leading-relaxed">${sg.detail}</p></div>` : ""}
           ` : ""}
         </div>
+      </div>
+
+      <!-- Content Guide + Keywords (채널별) -->
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-medium text-gray-300">Content Guide <span class="text-[10px] text-gray-600">(${label})</span></h3>
+          <div class="flex gap-2">
+            <button id="copy-common-guide" class="px-2 py-1 text-[10px] bg-gray-800 text-gray-400 rounded hover:bg-gray-700">\uacf5\ud1b5\uc5d0\uc11c \ubcf5\uc0ac</button>
+            <button id="save-guide" class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
+          </div>
+        </div>
+        <p class="text-[10px] text-gray-600 mb-2">${S.channelGuide?.channelGuide ? label + " \uc804\uc6a9 \uac00\uc774\ub4dc" : "\uacf5\ud1b5 \uac00\uc774\ub4dc \uc0ac\uc6a9 \uc911"}</p>
+        <textarea id="guide-textarea" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 font-mono" rows="8">${esc(S.channelGuide?.guide || S.guide)}</textarea>
+      </div>
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-medium text-gray-300">Keywords <span class="text-[10px] text-gray-600">(${label})</span></h3>
+          <div class="flex gap-2">
+            <button id="copy-common-keywords" class="px-2 py-1 text-[10px] bg-gray-800 text-gray-400 rounded hover:bg-gray-700">\uacf5\ud1b5\uc5d0\uc11c \ubcf5\uc0ac</button>
+            <button id="save-keywords" class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
+          </div>
+        </div>
+        <textarea id="keywords-textarea" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300" rows="5">${(S.channelKeywords?.keywords || S.keywords).join("\n")}</textarea>
       </div>
     </div>
   </div>`;
