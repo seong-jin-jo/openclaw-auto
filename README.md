@@ -76,17 +76,23 @@ AI 에이전트가 콘텐츠를 자동 생성하고, 검수 후 멀티채널로 
 
 ### 대시보드
 사이드바 기반 멀티채널 관제 UI:
-- **Marketing Home** — 전체 현황, 채널 비교, 크론 상태, 활동 타임라인
-- **Threads / X** — Queue 관리(검수/승인/수정/삭제), Analytics, Growth, Popular Posts, Settings
+- **Marketing Home** — 채널 아이콘 그리드, 주간 성과, 크론 상태, 활동 타임라인, Alerts
+- **채널별 페이지** — Queue / Analytics / Growth / Popular / Settings (credential + 가이드 + 키워드)
 - **Blog** — 블로그 큐 관리
-- **Images** — 에셋 갤러리 (R2 업로드 이미지)
-- **Settings** — 채널 연결, 자동화 토글 (9개 기능 ON/OFF), 파라미터, Content Guide
+- **Images** — 에셋 갤러리
+- **Settings** — 채널 연결, AI Engine (LLM 모델 설정), 자동화 토글, Account
+
+### Content Guide + Keywords
+채널별로 독립 관리 가능. 공통 가이드를 기본으로, 채널 전용 가이드로 오버라이드.
+- 공통: `data/prompt-guide.txt`, `data/search-keywords.txt`
+- 채널별: `data/prompt-guide.x.txt`, `data/search-keywords.x.txt` 등
+- "공통에서 복사" 버튼으로 동기화
 
 ### 자동화 (Cron)
 | 기능 | 기본 주기 | 설명 |
 |------|----------|------|
 | 콘텐츠 생성 | 6시간 | AI가 prompt-guide 기반으로 draft 배치 생성 |
-| 자동 발행 | 4시간 | 승인된 글 자동 발행 (Threads + X) |
+| 멀티채널 발행 | 2시간 | 승인된 글 Threads + X 동시 발행 (채널별 글자수 최적화) |
 | 반응 수집 | 6시간 | views/likes/replies 수집 + 터진 글 감지 |
 | 인기글 수집 | 주 1회 | 키워드 기반 외부 트렌딩 수집 |
 | 팔로워 추적 | 일 1회 | 팔로워 수/증감 기록 |
