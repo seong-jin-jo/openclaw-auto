@@ -17,6 +17,8 @@ services:
       - ./extensions/threads-growth:/app/extensions/threads-growth
       - ./extensions/threads-style:/app/extensions/threads-style
       - ./extensions/x-publish:/app/extensions/x-publish
+      - ./extensions/card-generator:/app/extensions/card-generator
+      - ./extensions/instagram-publish:/app/extensions/instagram-publish
     env_file: .env
     environment:
       HOME: /home/node
@@ -40,7 +42,7 @@ services:
       - "34560:34560"
     volumes:
       - ./data:/app/data
-      - ./config:/app/config:ro
+      - ./config:/app/config
       - ./dashboard/server.py:/app/server.py
       - ./dashboard/static:/app/static
     env_file: .env

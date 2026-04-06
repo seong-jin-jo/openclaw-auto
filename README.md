@@ -7,15 +7,16 @@ AI 에이전트가 콘텐츠를 자동 생성하고, 검수 후 멀티채널로 
 | 버전 | 날짜 | 변경 내용 |
 |------|------|----------|
 | v1.0 | 2026-03-30 | **Threads 자동화** — 콘텐츠 생성/발행/분석 + 피드백 루프 + 대시보드 |
-| v2.0 | 2026-04-06 | **멀티채널 플랫폼** — X(Twitter) 동시 발행, 20개+ 채널 지원, 대시보드 리디자인, credential 관리/검증, LLM 모델 설정, Setup Guide, 이미지 파이프라인, 자동화 토글 |
-| v3.0 | 예정 | **Threads + X 동시 발행 실운영** — multi-channel-publish, 채널별 최적화 (280자 압축), 공통 인터페이스 완성 |
-| v4.0 | 예정 | **SaaS 출시** — 온보딩 템플릿, 성과 리포트, 멀티 테넌트, 결제 |
+| v2.0 | 2026-04-06 | **멀티채널 플랫폼** — X 동시 발행, 20개+ 채널, credential 검증, LLM 설정, 카드뉴스, 이미지 파이프라인 |
+| v3.0 | 예정 | **Threads + X 동시 발행 실운영** — multi-channel-publish, 공통 인터페이스 |
+| v4.0 | 예정 | **SaaS 출시** — 온보딩, 성과 리포트, 멀티 테넌트, 결제 |
 
 <details>
 <summary>PR 히스토리</summary>
 
 | PR | 제목 | from | 주요 내용 |
 |----|------|------|----------|
+| #15 | Instagram 카드뉴스 발행 파이프라인 + card-generator | sample-brand | card-generator extension, Instagram 캐러셀, 카드 생성 API |
 | #14 | 자동화 강화: 댓글 답글, 인기글 스크래핑, 이미지 발행, 해시태그 분석 | sample-brand | auto-reply, quote trending, 스크래핑 수집, hashtag/hourly 분석, 비율 설정 |
 | #13 | 자동화 토글 실제 연동 + 이미지 생성 + 주기 설정 | sample-brand | 토글→크론 연동, 대시보드 이미지 생성 UI, 주기 파라미터 |
 | #12 | 이미지 파이프라인 + 에셋 갤러리 + 자동화 토글 | sample-brand | image-upload extension, Images 탭, 자동화 ON/OFF, 실행 기록 |

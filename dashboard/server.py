@@ -49,6 +49,8 @@ AUTOMATION_FEATURES = [
     {"key": "casual_posts",          "label": "Casual Posts",          "description": "일상/감성 톤 글 (사람처럼 보이기)", "detail": "글 생성 시 casualPerBatch개(기본 1)를 일상 톤으로 생성합니다. 카페 코딩, 날씨 감상, 소소한 일상 등. 자동화 봇처럼 보이지 않게 합니다.", "default": False},
     {"key": "follower_tracking",     "label": "Follower Tracking",     "description": "팔로워 수/증감 매일 추적", "detail": "매일 Threads 팔로워 수를 기록하고 증감을 추적합니다. Growth 탭에서 확인할 수 있습니다.", "default": True},
     {"key": "image_generation",      "label": "Image Generation",      "description": "배치 중 일부에 AI 이미지 자동 생성", "detail": "글 생성 시 imagePerBatch개(기본 1)에 AI 일러스트를 생성하여 첨부합니다. 발행 시 자동으로 퍼블릭 URL로 업로드됩니다.", "default": False},
+    {"key": "instagram_carousel",   "label": "Instagram Carousel",    "description": "카드뉴스 자동 생성 + Instagram 캐러셀 발행", "detail": "인기 토픽을 카드뉴스(텍스트 카드 3~5장)로 변환하여 Instagram 캐러셀로 발행합니다. 크레덴셜 설정 필요.", "default": False},
+    {"key": "youtube_shorts",       "label": "YouTube Shorts",        "description": "카드뉴스 기반 짧은 영상 생성 + Shorts 발행", "detail": "카드뉴스 이미지 + TTS 음성을 합성하여 30~60초 Shorts 영상을 생성합니다. ffmpeg + TTS 모델 필요.", "default": False},
 ]
 
 DEFAULT_SETTINGS = {
@@ -258,6 +260,40 @@ def api_generate_image():
     if not images:
         return jsonify({"error": "Image generation failed", "output": result.stdout[-500:]}), 500
     return jsonify({"success": True, "image": images[0]})
+
+
+@app.route("/api/generate-card", methods=["POST"])
+def api_generate_card():
+    import subprocess
+    data = get_json_body()
+    title = data.get("title", "").strip()
+    slides = data.get("slides", [])
+    style = data.get("style", "dark")
+    if not title or not slides:
+        return jsonify({"error": "title and slides required"}), 400
+    slides_json = json.dumps(slides, ensure_ascii=False)
+    msg = f'card_generate tool 호출: action="generate", title="{title}", slides={slides_json}, style="{style}"'
+    try:
+        result = subprocess.run(
+            ["docker", "exec", "marketing-ai-openclaw-gateway-1",
+             "node", "dist/index.js", "agent", "--agent", "main",
+             "--session-id", f"card-api-{os.getpid()}", "--message", msg],
+            capture_output=True, text=True, timeout=60,
+        )
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "Card generation timed out"}), 504
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    # Find generated card files
+    os.makedirs(IMAGES_DIR, exist_ok=True)
+    cards = sorted([f for f in os.listdir(IMAGES_DIR) if f.startswith("card-") and f.endswith(".png")],
+                   key=lambda x: os.path.getmtime(os.path.join(IMAGES_DIR, x)), reverse=True)
+    # Get latest batch (same prefix)
+    if cards:
+        batch_prefix = cards[0][:13]  # "card-XXXXXXXX"
+        batch_files = [{"filename": f, "url": f"/images/{f}"} for f in sorted(cards) if f.startswith(batch_prefix)]
+        return jsonify({"success": True, "cards": batch_files})
+    return jsonify({"error": "Card generation failed"}), 500
 
 
 # ── API: Queue ──
@@ -1174,6 +1210,18 @@ def verify_channel(channel, cfg):
                 return {"verified": False, "error": f"Missing: {', '.join(missing)}"}
             return {"verified": True, "account": "(OAuth 1.0a keys saved)"}
 
+        elif channel == "instagram":
+            token = cfg.get("accessToken", "")
+            user_id = cfg.get("userId", "")
+            if not token:
+                return {"verified": False, "error": "Access Token is empty"}
+            if not user_id:
+                return {"verified": False, "error": "User ID is empty"}
+            url = f"https://graph.instagram.com/v21.0/{user_id}?fields=username&access_token={token}"
+            with urllib.request.urlopen(url, timeout=5) as resp:
+                data = json.loads(resp.read())
+                return {"verified": True, "account": f"@{data.get('username', '')}"}
+
         elif channel == "facebook":
             token = cfg.get("accessToken", "")
             page_id = cfg.get("pageId", "")
@@ -1229,6 +1277,8 @@ def api_channel_config_generic(channel):
 
     plugins = config.setdefault("plugins", {}).setdefault("entries", {})
     p = plugins.setdefault(plugin_name, {"enabled": False, "config": {}})
+    if "config" not in p:
+        p["config"] = {}
     updated = False
     for key, val in data.items():
         if isinstance(val, str) and val.strip():

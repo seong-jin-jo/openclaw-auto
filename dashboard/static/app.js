@@ -1199,9 +1199,10 @@ function bindEvents() {
       const fields = sg[key] || [];
       const data = {};
       fields.forEach(f => { const el = document.getElementById(`ch-${key}-${f}`); if (el?.value) data[f] = el.value; });
+      const origText = btn.textContent;
       btn.textContent = "Verifying..."; btn.disabled = true;
       const r = await API.post(`/api/channel-config/${key}`, data);
-      btn.textContent = hasKeys ? "Update" : "Connect"; btn.disabled = false;
+      btn.textContent = origText; btn.disabled = false;
       if (r) {
         if (r.verified) { showToast(`${CH_LABELS[key]} 연결 완료${r.account ? " — " + r.account : ""}`, "success"); S.editingChannel = null; }
         else showToast(`연결 실패: ${r.error || "Invalid credentials"}`, "error");
@@ -1421,8 +1422,8 @@ function renderGenericChannel(key) {
       quick: ["bsky.app 로그인", "Settings > App Passwords", "새 비밀번호 생성 > 이름 입력 > 생성", "Handle과 생성된 비밀번호를 위 폼에 입력"],
       detail: "Bluesky는 AT Protocol 기반 오픈 소셜 네트워크입니다. App Password는 계정 비밀번호 대신 사용하는 앱 전용 비밀번호로, 언제든 폐기 가능합니다. API 사용은 무료이며 승인 불필요." },
     instagram: { fields: ["accessToken", "userId"], labels: ["Graph API Access Token", "Instagram Business User ID"],
-      quick: ["developers.facebook.com > 앱 만들기", "Use cases > Instagram Graph API 추가", "Business/Creator 계정 필요 (개인 계정 불가)", "Access Token 발급 + User ID 확인", "App Review 제출 (2-4주 소요)"],
-      detail: "Instagram은 Meta Graph API를 통해 발행합니다. 이미지가 필수이며, Business 또는 Creator 계정이 Facebook Page에 연결되어 있어야 합니다. App Review를 통과해야 프로덕션 사용 가능." },
+      quick: ["Instagram을 Business 또는 Creator 계정으로 전환 (프로필 > 설정 > 프로페셔널 계정)", "Facebook Page 생성 후 Instagram 계정과 연결", "developers.facebook.com > 앱 만들기 (비즈니스 유형)", "Instagram Graph API + Instagram Content Publishing 제품 추가", "테스터 등록: 앱 역할 > Instagram Testers에 자기 계정 추가 → Instagram 앱에서 수락", "Graph API Explorer에서 instagram_basic + instagram_content_publish 권한으로 토큰 생성", "⚠️ User ID 찾기: Graph API Explorer에서 GET /me/accounts → 페이지 ID 확인 → GET /{페이지ID}?fields=instagram_business_account → 그 안의 id가 User ID (앱 ID와 다름!)"],
+      detail: "⚠️ 주의: 앱 ID ≠ User ID. 앱 ID(숫자)를 넣으면 에러 납니다. 반드시 instagram_business_account.id를 넣으세요.\n\n앱 시크릿(App Secret)은 대시보드에 입력 불필요 — 장기 토큰 교환 시에만 사용.\n\nAccess Token만 입력하면 됩니다. 테스터 모드에서는 App Review 없이 자기 계정에 발행 가능.\n\n토큰 유효기간: 단기 1시간, 장기 60일.\n\n지원: 단일 이미지, 캐러셀(카드뉴스 2~10장), 릴스(영상 URL)." },
     linkedin: { fields: ["accessToken", "personUrn"], labels: ["OAuth 2.0 Access Token", "Person URN (urn:li:person:xxx)"],
       quick: ["LinkedIn Partner Program 신청 (learn.microsoft.com/linkedin)", "승인 후 앱 생성 > OAuth 2.0 설정", "Access Token 발급", "Person URN 확인 (API /v2/me 호출)"],
       detail: "LinkedIn은 Partner Program 승인이 필요합니다. 자가 신청 후 승인 기간이 불확실합니다. Person URN은 urn:li:person:xxxx 형태의 사용자 고유 식별자." },
