@@ -1210,6 +1210,18 @@ def verify_channel(channel, cfg):
                 return {"verified": False, "error": f"Missing: {', '.join(missing)}"}
             return {"verified": True, "account": "(OAuth 1.0a keys saved)"}
 
+        elif channel == "instagram":
+            token = cfg.get("accessToken", "")
+            user_id = cfg.get("userId", "")
+            if not token:
+                return {"verified": False, "error": "Access Token is empty"}
+            if not user_id:
+                return {"verified": False, "error": "User ID is empty"}
+            url = f"https://graph.instagram.com/v21.0/{user_id}?fields=username&access_token={token}"
+            with urllib.request.urlopen(url, timeout=5) as resp:
+                data = json.loads(resp.read())
+                return {"verified": True, "account": f"@{data.get('username', '')}"}
+
         elif channel == "facebook":
             token = cfg.get("accessToken", "")
             page_id = cfg.get("pageId", "")
