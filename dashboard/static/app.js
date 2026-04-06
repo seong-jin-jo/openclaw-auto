@@ -1190,9 +1190,10 @@ function bindEvents() {
       const fields = sg[key] || [];
       const data = {};
       fields.forEach(f => { const el = document.getElementById(`ch-${key}-${f}`); if (el?.value) data[f] = el.value; });
+      const origText = btn.textContent;
       btn.textContent = "Verifying..."; btn.disabled = true;
       const r = await API.post(`/api/channel-config/${key}`, data);
-      btn.textContent = hasKeys ? "Update" : "Connect"; btn.disabled = false;
+      btn.textContent = origText; btn.disabled = false;
       if (r) {
         if (r.verified) showToast(`${CH_LABELS[key]} 연결 완료${r.account ? " — " + r.account : ""}`, "success");
         else showToast(`연결 실패: ${r.error || "Invalid credentials"}`, "error");
