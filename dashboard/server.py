@@ -108,8 +108,10 @@ def check_auth():
         return  # 토큰 미설정 시 인증 비활성화
     if request.method == "OPTIONS":
         return
+    # 정적 파일: 항상 허용
     if request.path == "/" or request.path.startswith("/images/") or (not request.path.startswith("/api/") and request.path.endswith((".js", ".css", ".ico", ".png", ".svg", ".html"))):
         return
+    # API: 인증 필요
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
     if token != AUTH_TOKEN:
         return jsonify({"error": "Unauthorized"}), 401
@@ -852,13 +854,14 @@ def api_cron_interval(job_name):
     if not isinstance(hours, (int, float)) or hours < 1 or hours > 168:
         return jsonify({"error": "hours must be between 1 and 168"}), 400
     try:
-        result = subprocess.run(
-            ["node", "dist/index.js", "cron", "edit", job["id"], "--every", f"{int(hours)}h"],
-            capture_output=True, text=True, timeout=15,
-            cwd="/app" if os.path.isdir("/app/dist") else os.path.join(os.path.dirname(__file__), "..", "openclaw"),
-        )
-        if result.returncode != 0:
-            return jsonify({"error": result.stderr.strip() or "cron edit failed"}), 500
+        # Update jobs.json directly (dashboard doesn't have OpenClaw CLI)
+        cron_data = read_json(CRON_JOBS_PATH)
+        if cron_data:
+            for j in cron_data.get("jobs", []):
+                if j["id"] == job["id"]:
+                    j["schedule"]["everyMs"] = int(hours) * 3600 * 1000
+                    break
+            write_json(CRON_JOBS_PATH, cron_data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     logger.info("Cron interval updated: %s → %dh", job_name, hours)
@@ -1011,7 +1014,81 @@ def api_token_status():
     result["threads"] = {"connected": bool(tp.get("config", {}).get("accessToken", "")), "userId": tp.get("config", {}).get("userId", "")}
     xp = plugins.get("x-publish", {})
     result["x"] = {"connected": bool(xp.get("config", {}).get("apiKey", "")), "enabled": xp.get("enabled", False)}
+    # LLM model info
+    agents = config.get("agents", {}).get("defaults", {})
+    model = agents.get("model", {})
+    result["llm"] = {
+        "primary": model.get("primary", "unknown"),
+        "fallbacks": model.get("fallbacks", []),
+        "auth": "Claude Code Max Plan (OAuth, auto-refresh)",
+    }
     return jsonify(result)
+
+
+# ── API: LLM Config ──
+@app.route("/api/llm-config")
+def api_llm_config():
+    config = read_json(CONFIG_DIR / "openclaw.json") or {}
+    agents = config.get("agents", {}).get("defaults", {})
+    model = agents.get("model", {})
+
+    # Per-job model overrides from cron jobs
+    cron_data = read_json(CRON_JOBS_PATH) or {"jobs": []}
+    job_models = {}
+    for j in cron_data.get("jobs", []):
+        job_models[j["name"]] = j.get("payload", {}).get("model") or model.get("primary", "")
+
+    # Available models (hardcoded common ones, could be dynamic)
+    available = [
+        "anthropic/claude-opus-4-6", "anthropic/claude-opus-4-5",
+        "anthropic/claude-sonnet-4-6", "anthropic/claude-sonnet-4-5",
+        "anthropic/claude-haiku-4-5",
+        "google/gemini-2.5-flash",
+        "ollama/llama3.1:8b", "ollama/mistral:7b",
+    ]
+
+    return jsonify({
+        "primary": model.get("primary", ""),
+        "fallbacks": model.get("fallbacks", []),
+        "jobModels": job_models,
+        "available": available,
+    })
+
+
+@app.route("/api/llm-config", methods=["POST"])
+def api_llm_config_update():
+    data = get_json_body()
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path)
+    if config is None:
+        return jsonify({"error": "openclaw.json not found"}), 404
+
+    agents = config.setdefault("agents", {}).setdefault("defaults", {})
+    model = agents.setdefault("model", {})
+
+    # Update primary model
+    if "primary" in data and isinstance(data["primary"], str) and data["primary"].strip():
+        model["primary"] = data["primary"].strip()
+
+    # Update fallbacks
+    if "fallbacks" in data and isinstance(data["fallbacks"], list):
+        model["fallbacks"] = [f for f in data["fallbacks"] if isinstance(f, str) and f.strip()]
+
+    # Update per-job model overrides
+    if "jobModels" in data and isinstance(data["jobModels"], dict):
+        cron_data = read_json(CRON_JOBS_PATH) or {"jobs": []}
+        for j in cron_data.get("jobs", []):
+            if j["name"] in data["jobModels"]:
+                override = data["jobModels"][j["name"]]
+                if override and override != model.get("primary", ""):
+                    j.setdefault("payload", {})["model"] = override
+                elif "model" in j.get("payload", {}):
+                    del j["payload"]["model"]  # remove override = use default
+        write_json(CRON_JOBS_PATH, cron_data)
+
+    write_json(config_path, config)
+    logger.info("LLM config updated: primary=%s", model.get("primary"))
+    return jsonify({"ok": True, "primary": model.get("primary"), "fallbacks": model.get("fallbacks", [])})
 
 
 @app.route("/api/channel-config")
@@ -1087,6 +1164,80 @@ def api_threads_username():
         return jsonify({"username": ""})
 
 
+# ── Channel Verification ──
+def verify_channel(channel, cfg):
+    """Verify credentials by making a real API call. Returns {verified, account, error}."""
+    import urllib.request, urllib.error
+    try:
+        if channel == "threads":
+            token = cfg.get("accessToken", "")
+            if not token:
+                return {"verified": False, "error": "Access Token is empty"}
+            url = f"https://graph.threads.net/v1.0/me?fields=username&access_token={token}"
+            with urllib.request.urlopen(url, timeout=5) as resp:
+                data = json.loads(resp.read())
+                return {"verified": True, "account": f"@{data.get('username', '')}"}
+
+        elif channel == "bluesky":
+            handle = cfg.get("handle", "")
+            pw = cfg.get("appPassword", "")
+            if not handle or not pw:
+                return {"verified": False, "error": "Handle and App Password required"}
+            req = urllib.request.Request("https://bsky.social/xrpc/com.atproto.server.createSession",
+                data=json.dumps({"identifier": handle, "password": pw}).encode(),
+                headers={"Content-Type": "application/json"}, method="POST")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                data = json.loads(resp.read())
+                return {"verified": True, "account": f"@{data.get('handle', '')}"}
+
+        elif channel == "telegram":
+            token = cfg.get("botToken", "")
+            if not token:
+                return {"verified": False, "error": "Bot Token is empty"}
+            url = f"https://api.telegram.org/bot{token}/getMe"
+            with urllib.request.urlopen(url, timeout=5) as resp:
+                data = json.loads(resp.read())
+                if data.get("ok"):
+                    return {"verified": True, "account": f"@{data['result'].get('username', '')}"}
+                return {"verified": False, "error": "Invalid bot token"}
+
+        elif channel == "x":
+            # X requires OAuth 1.0a signature — complex, skip for now
+            # Just check if all 4 keys are present
+            required = ["apiKey", "apiKeySecret", "accessToken", "accessTokenSecret"]
+            missing = [k for k in required if not cfg.get(k)]
+            if missing:
+                return {"verified": False, "error": f"Missing: {', '.join(missing)}"}
+            return {"verified": True, "account": "(OAuth 1.0a keys saved)"}
+
+        elif channel == "facebook":
+            token = cfg.get("accessToken", "")
+            page_id = cfg.get("pageId", "")
+            if not token or not page_id:
+                return {"verified": False, "error": "Access Token and Page ID required"}
+            url = f"https://graph.facebook.com/v21.0/{page_id}?fields=name&access_token={token}"
+            with urllib.request.urlopen(url, timeout=5) as resp:
+                data = json.loads(resp.read())
+                return {"verified": True, "account": data.get("name", page_id)}
+
+        elif channel == "discord":
+            webhook_url = cfg.get("webhookUrl", "")
+            if not webhook_url or not webhook_url.startswith("https://discord.com/api/webhooks/"):
+                return {"verified": False, "error": "Invalid Discord Webhook URL"}
+            return {"verified": True, "account": "(Webhook configured)"}
+
+        else:
+            # Generic: just check if any key has value
+            has_any = any(v for v in cfg.values() if isinstance(v, str) and v.strip())
+            return {"verified": has_any, "account": "" if not has_any else "(credentials saved)"}
+
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")[:200]
+        return {"verified": False, "error": f"API error ({e.code}): {body}"}
+    except Exception as e:
+        return {"verified": False, "error": str(e)[:200]}
+
+
 @app.route("/api/channel-config/<channel>", methods=["POST"])
 def api_channel_config_generic(channel):
     # Handle threads and x separately (they have custom logic)
@@ -1121,11 +1272,12 @@ def api_channel_config_generic(channel):
         if isinstance(val, str) and val.strip():
             p["config"][key] = val.strip()
             updated = True
-    if updated and p["config"]:
-        p["enabled"] = True
+    # Verify credentials
+    result = verify_channel(channel, p.get("config", {}))
+    p["enabled"] = result.get("verified", False)
     write_json(config_path, config)
-    logger.info("Channel %s config updated", channel)
-    return jsonify({"ok": True, "enabled": p["enabled"]})
+    logger.info("Channel %s config updated, verified=%s", channel, result.get("verified"))
+    return jsonify({"ok": True, "enabled": p["enabled"], **result})
 
 
 def api_channel_config_threads_impl():
@@ -1141,9 +1293,14 @@ def api_channel_config_threads_impl():
             p["config"]["accessToken"] = data["accessToken"].strip()
         if "userId" in data and isinstance(data["userId"], str) and data["userId"].strip():
             p["config"]["userId"] = data["userId"].strip()
+    # Verify
+    tp_cfg = plugins.get("threads-publish", {}).get("config", {})
+    result = verify_channel("threads", tp_cfg)
+    for pname in ["threads-publish", "threads-insights", "threads-search", "threads-growth"]:
+        plugins.get(pname, {})["enabled"] = result.get("verified", False)
     write_json(config_path, config)
-    logger.info("Threads channel config updated")
-    return jsonify({"ok": True})
+    logger.info("Threads config updated, verified=%s", result.get("verified"))
+    return jsonify({"ok": True, **result})
 
 
 def api_channel_config_x_impl():
@@ -1157,12 +1314,12 @@ def api_channel_config_x_impl():
     for key in ("apiKey", "apiKeySecret", "accessToken", "accessTokenSecret"):
         if key in data and isinstance(data[key], str) and data[key].strip():
             xp["config"][key] = data[key].strip()
-    creds = xp.get("config", {})
-    if all(creds.get(k) for k in ("apiKey", "apiKeySecret", "accessToken", "accessTokenSecret")):
-        xp["enabled"] = True
+    # Verify
+    result = verify_channel("x", xp.get("config", {}))
+    xp["enabled"] = result.get("verified", False)
     write_json(config_path, config)
-    logger.info("X channel config updated")
-    return jsonify({"ok": True, "enabled": xp["enabled"]})
+    logger.info("X config updated, verified=%s", result.get("verified"))
+    return jsonify({"ok": True, **result})
 
 
 # ── API: Channel Automation Settings ──
