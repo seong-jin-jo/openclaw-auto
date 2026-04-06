@@ -888,18 +888,18 @@ function renderChannelSettings(channel) {
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-sm font-medium text-gray-300">Content Guide <span class="text-[10px] text-gray-600">(${channel})</span></h3>
           <div class="flex gap-2">
-            ${S.channelGuide?.channelGuide ? `<button id="copy-common-guide" class="px-2 py-1 text-[10px] bg-gray-800 text-gray-400 rounded hover:bg-gray-700">공통에서 복사</button>` : ""}
+            <button id="copy-common-guide" class="px-2 py-1 text-[10px] bg-gray-800 text-gray-400 rounded hover:bg-gray-700">\uacf5\ud1b5\uc5d0\uc11c \ubcf5\uc0ac</button>
             <button id="save-guide" class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
           </div>
         </div>
-        <p class="text-[10px] text-gray-600 mb-2">${S.channelGuide?.channelGuide ? "채널 전용 가이드 사용 중" : "공통 가이드 사용 중 — 수정하면 채널 전용으로 저장됩니다"}</p>
-        <textarea id="guide-textarea" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 font-mono" rows="12">${esc(S.channelGuide?.guide || S.guide)}</textarea>
+        <p class="text-[10px] text-gray-600 mb-2">${S.channelGuide?.channelGuide ? "\ucc44\ub110 \uc804\uc6a9 \uac00\uc774\ub4dc" : "\uacf5\ud1b5 \uac00\uc774\ub4dc \uc0ac\uc6a9 \uc911 \u2014 \uc218\uc815\ud558\uba74 \ucc44\ub110 \uc804\uc6a9\uc73c\ub85c \uc800\uc7a5"}</p>
+        <textarea id="guide-textarea" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 font-mono" rows="10">${esc(S.channelGuide?.guide || S.guide)}</textarea>
       </div>
-      <div class="card p-5 col-span-2">
+      <div class="card p-5">
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-medium text-gray-300">Search Keywords <span class="text-[10px] text-gray-600">(${channel})</span></h3>
+          <h3 class="text-sm font-medium text-gray-300">Keywords <span class="text-[10px] text-gray-600">(${channel})</span></h3>
           <div class="flex gap-2">
-            ${S.channelKeywords?.channelKeywords?.length ? `<button id="copy-common-keywords" class="px-2 py-1 text-[10px] bg-gray-800 text-gray-400 rounded hover:bg-gray-700">공통에서 복사</button>` : ""}
+            <button id="copy-common-keywords" class="px-2 py-1 text-[10px] bg-gray-800 text-gray-400 rounded hover:bg-gray-700">\uacf5\ud1b5\uc5d0\uc11c \ubcf5\uc0ac</button>
             <button id="save-keywords" class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
           </div>
         </div>
