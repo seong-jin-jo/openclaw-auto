@@ -42,7 +42,7 @@ services:
       - "34560:34560"
     volumes:
       - ./data:/app/data
-      - ./config:/app/config:ro
+      - ./config:/app/config
       - ./dashboard/server.py:/app/server.py
       - ./dashboard/static:/app/static
     env_file: .env
