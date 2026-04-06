@@ -271,7 +271,7 @@ function render() {
   }
 }
 
-const CH_LABELS = { instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", bluesky: "Bluesky", pinterest: "Pinterest", tumblr: "Tumblr", tiktok: "TikTok", youtube: "YouTube", telegram: "Telegram", discord: "Discord", line: "LINE", naver_blog: "Naver Blog" };
+const CH_LABELS = { instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", bluesky: "Bluesky", pinterest: "Pinterest", tumblr: "Tumblr", tiktok: "TikTok", youtube: "YouTube", telegram: "Telegram", discord: "Discord", slack: "Slack", line: "LINE", naver_blog: "Naver Blog" };
 const CH_STATUS_BADGE = { live: "bg-green-900/50 text-green-400", connected: "bg-blue-900/50 text-blue-400", available: "", soon: "" };
 const CH_STATUS_LABEL = { live: "Live", connected: "Connected", available: "", soon: "" };
 
@@ -363,7 +363,7 @@ function renderSidebar() {
         ])}
 
         ${sidebarGroup("messaging", "Messaging", [
-          ...["telegram", "discord", "line"].map(ch => chSidebarItem(ch)),
+          ...["telegram", "discord", "slack", "line"].map(ch => chSidebarItem(ch)),
           { label: "Kakao Channel", icon: "K", soon: true },
           { label: "WhatsApp", icon: "W", soon: true },
         ])}
@@ -1255,7 +1255,7 @@ function bindEvents() {
   Object.keys(CH_LABELS).forEach(key => {
     const btn = document.getElementById(`save-ch-${key}`);
     if (btn) btn.onclick = async () => {
-      const sg = { facebook: ["accessToken","pageId"], bluesky: ["handle","appPassword"], instagram: ["accessToken","userId"], linkedin: ["accessToken","personUrn"], pinterest: ["accessToken","boardId"], tumblr: ["consumerKey","consumerSecret","accessToken","accessTokenSecret","blogName"], tiktok: ["accessToken"], youtube: ["accessToken"], telegram: ["botToken","chatId"], discord: ["webhookUrl"], line: ["channelAccessToken"], naver_blog: ["blogId","username","apiKey"] };
+      const sg = { facebook: ["accessToken","pageId"], bluesky: ["handle","appPassword"], instagram: ["accessToken","userId"], linkedin: ["accessToken","personUrn"], pinterest: ["accessToken","boardId"], tumblr: ["consumerKey","consumerSecret","accessToken","accessTokenSecret","blogName"], tiktok: ["accessToken"], youtube: ["accessToken"], telegram: ["botToken","chatId"], discord: ["webhookUrl"], slack: ["webhookUrl"], line: ["channelAccessToken"], naver_blog: ["blogId","username","apiKey"] };
       const fields = sg[key] || [];
       const data = {};
       fields.forEach(f => { const el = document.getElementById(`ch-${key}-${f}`); if (el?.value) data[f] = el.value; });
@@ -1505,6 +1505,9 @@ function renderGenericChannel(key) {
     discord: { fields: ["webhookUrl"], labels: ["Webhook URL"],
       quick: ["Discord 서버 > 채널 설정 > 연동", "웹후크 > 새 웹후크 만들기", "이름 설정 > URL 복사", "위 폼에 URL 붙여넣기"],
       detail: "Discord Webhook은 가장 간단한 연동 방식입니다. URL 하나만으로 메시지를 보낼 수 있으며, 별도 인증이 필요 없습니다. 보내기만 가능 (읽기 불가)." },
+    slack: { fields: ["webhookUrl"], labels: ["Incoming Webhook URL"],
+      quick: ["api.slack.com/apps > Create New App > From scratch", "Incoming Webhooks 활성화 (ON)", "Add New Webhook to Workspace > 채널 선택 > Allow", "Webhook URL 복사 > 위 폼에 붙여넣기"],
+      detail: "Slack Incoming Webhook은 Discord와 동일한 방식입니다. 앱을 만들고 Webhook을 활성화하면 URL이 생성됩니다. 해당 URL로 POST 요청을 보내면 지정된 채널에 메시지가 표시됩니다. mrkdwn 포맷 지원." },
     line: { fields: ["channelAccessToken"], labels: ["Channel Access Token (long-lived)"],
       quick: ["developers.line.biz > LINE Official Account 생성", "Messaging API 활성화", "Channel Access Token (long-lived) 발급", "위 폼에 입력"],
       detail: "LINE Messaging API는 브로드캐스트(전체 발송) 방식입니다. 무료 500건/월, 이후 건당 과금. Channel Access Token은 장기 유효 토큰." },

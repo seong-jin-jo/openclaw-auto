@@ -1139,7 +1139,7 @@ def api_channel_config():
     IMPLEMENTED_PLUGINS = {  # plugins that have extension code ready
         "facebook-publish", "bluesky-publish", "instagram-publish", "linkedin-publish",
         "pinterest-publish", "tumblr-publish", "tiktok-publish", "youtube-publish",
-        "telegram-publish", "discord-publish", "line-publish", "naver-blog-publish",
+        "telegram-publish", "discord-publish", "slack-publish", "line-publish", "naver-blog-publish",
     }
     other_channels = {
         "facebook": {"plugin": "facebook-publish", "key_field": "accessToken"},
@@ -1152,6 +1152,7 @@ def api_channel_config():
         "youtube": {"plugin": "youtube-publish", "key_field": "accessToken"},
         "telegram": {"plugin": "telegram-publish", "key_field": "botToken"},
         "discord": {"plugin": "discord-publish", "key_field": "webhookUrl"},
+        "slack": {"plugin": "slack-publish", "key_field": "webhookUrl"},
         "line": {"plugin": "line-publish", "key_field": "channelAccessToken"},
         "naver_blog": {"plugin": "naver-blog-publish", "key_field": "blogId"},
     }
@@ -1262,6 +1263,12 @@ def verify_channel(channel, cfg):
             webhook_url = cfg.get("webhookUrl", "")
             if not webhook_url or not webhook_url.startswith("https://discord.com/api/webhooks/"):
                 return {"verified": False, "error": "Invalid Discord Webhook URL"}
+            return {"verified": True, "account": "(Webhook configured)"}
+
+        elif channel == "slack":
+            webhook_url = cfg.get("webhookUrl", "")
+            if not webhook_url or not webhook_url.startswith("https://hooks.slack.com/"):
+                return {"verified": False, "error": "Invalid Slack Webhook URL. Must start with https://hooks.slack.com/"}
             return {"verified": True, "account": "(Webhook configured)"}
 
         else:

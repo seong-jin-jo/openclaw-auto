@@ -1,0 +1,12 @@
+{
+  "id": "slack-publish",
+  "name": "Slack Publish",
+  "description": "Send messages to Slack channels via Incoming Webhook.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "webhookUrl": { "type": "string", "description": "Slack Incoming Webhook URL" }
+    }
+  }
+}
