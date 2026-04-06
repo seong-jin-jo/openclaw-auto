@@ -1114,6 +1114,8 @@ def api_channel_config_generic(channel):
 
     plugins = config.setdefault("plugins", {}).setdefault("entries", {})
     p = plugins.setdefault(plugin_name, {"enabled": False, "config": {}})
+    if "config" not in p:
+        p["config"] = {}
     updated = False
     for key, val in data.items():
         if isinstance(val, str) and val.strip():
