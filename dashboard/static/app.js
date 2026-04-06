@@ -155,7 +155,7 @@ const S = {
   page: "overview", subTab: "queue",
   overview: null, queue: [], growth: [], popular: [], analytics: null,
   keywords: [], settings: null, guide: "", cronJobs: [], activity: [],
-  channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [], seoSettings: null, blogDetailId: null, blogEditing: false, blogGuide: "", blogKeywords: [], blogStats: null, gscConfig: null, gscEditing: false, gscAnalytics: null, gscDays: 28, gscDimension: "query",
+  channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [], seoSettings: null, blogDetailId: null, blogEditing: false, blogGuide: "", blogKeywords: [], blogStats: null, gscConfig: null, gscEditing: false, gscAnalytics: null, gscDays: 28, gscDimension: "query", gaAnalytics: null, gaDays: 28,
   tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
   sidebarCollapsed: { social: false, video: true, blog: false, messaging: true, data: false, custom: true }, showDetail: null, editingChannel: null,
@@ -248,7 +248,9 @@ function render() {
   else if (S.page === "threads") app.innerHTML = renderChannel("threads");
   else if (S.page === "x") app.innerHTML = renderChannelX();
   else if (S.page === "images") app.innerHTML = renderImages();
+  else if (S.page === "blog-performance") app.innerHTML = renderBlogPerformance();
   else if (S.page === "search-console") app.innerHTML = renderSearchConsole();
+  else if (S.page === "google-analytics") app.innerHTML = renderGoogleAnalytics();
   else if (S.page === "blog-edit") app.innerHTML = renderBlogEditor();
   else if (S.page === "blog") app.innerHTML = renderBlog();
   else if (CH_LABELS[S.page]) app.innerHTML = renderGenericChannel(S.page);
@@ -360,8 +362,9 @@ function renderSidebar() {
         ])}
 
         ${sidebarGroup("data", "Data & Analytics", [
-          { label: "Google Analytics", icon: "G", soon: true },
+          { key: "blog-performance", label: "Blog Performance", icon: "B", nav: true },
           { key: "search-console", label: "Search Console", icon: "S", nav: true },
+          { key: "google-analytics", label: "Google Analytics", icon: "G", nav: true },
           { label: "Google Business", icon: "G", soon: true },
         ])}
 
@@ -1251,6 +1254,14 @@ function bindEvents() {
   document.querySelectorAll("[data-gsc-dim]").forEach(el => {
     el.onclick = () => { S.gscDimension = el.dataset.gscDim; loadGscAnalytics(); };
   });
+  document.querySelectorAll("[data-ga-days]").forEach(el => {
+    el.onclick = () => { S.gaDays = parseInt(el.dataset.gaDays); loadGaAnalytics(); };
+  });
+  const saveGaCfg = document.getElementById("save-ga-config");
+  if (saveGaCfg) saveGaCfg.onclick = async () => {
+    const pid = document.getElementById("ga-property-id")?.value;
+    if (pid) { const r = await API.post("/api/ga-config", { propertyId: pid }); if (r?.ok) { showToast("GA 설정 저장됨", "success"); loadGaAnalytics(); } }
+  };
   const gscEditBtn = document.getElementById("gsc-edit-key");
   if (gscEditBtn) gscEditBtn.onclick = () => { S.gscEditing = true; render(); };
   const gscCancelBtn = document.getElementById("gsc-cancel-edit");
@@ -1277,7 +1288,9 @@ function navigate(page) {
   else if (page === "threads") { S.subTab = "queue"; loadQueue(S.queueFilter); loadGrowth(); loadImages(); }
   else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); }
   else if (page === "images") loadImages();
+  else if (page === "blog-performance") { loadBlogStats(); loadGscAnalytics(); }
   else if (page === "search-console") { loadGscConfig(); loadGscAnalytics(); }
+  else if (page === "google-analytics") { loadGaAnalytics(); }
   else if (page === "blog") { loadBlogQueue(); loadBlogStats(); loadSeoSettings(); loadGscConfig(); loadBlogGuide(); loadBlogKeywords(); }
   else if (CH_LABELS[page]) loadOverview(); // generic channels use overview data
   else if (page === "settings") { loadSettings(); loadKeywords(); loadLlmConfig(); loadOverview(); }
@@ -1718,8 +1731,7 @@ function renderBlog() {
       <div><h2 class="text-xl font-bold text-white">Blog</h2><p class="text-xs text-gray-500 mt-1">학생/학부모 대상 SEO 칼럼 자동화</p></div>
       <span class="text-sm text-gray-500">${posts.length} in queue</span>
     </div>
-    ${renderBlogStats()}
-    <h3 class="text-sm font-medium text-gray-400 mt-6 mb-3">Queue</h3>
+    <h3 class="text-sm font-medium text-gray-400 mb-3">Queue</h3>
     ${posts.length === 0 ? `<div class="card p-8 text-center"><p class="text-gray-500 text-sm">블로그 글이 없습니다.</p></div>` : ""}
     <div class="space-y-3">
     ${posts.map(p => `
@@ -1904,6 +1916,121 @@ function renderSearchConsole() {
   </div>`;
 }
 async function loadBlogStats() { const d = await API.get("/api/blog-stats"); if (d) { S.blogStats = d; render(); } }
+async function loadGaAnalytics() {
+  const d = await API.get(`/api/ga-analytics?days=${S.gaDays}`);
+  if (d) { S.gaAnalytics = d; render(); }
+}
+
+// ── Blog Performance Page ──
+function renderBlogPerformance() {
+  const bs = S.blogStats;
+  const g = S.gscAnalytics;
+  return `<div class="px-8 py-6">
+    <h2 class="text-xl font-bold text-white mb-1">Blog Performance</h2>
+    <p class="text-xs text-gray-500 mb-6">example.com 칼럼 성과 — 조회수 + 검색 데이터</p>
+
+    ${!bs || bs.error ? `<div class="card p-4 text-center text-xs text-gray-500">${bs?.error || "Loading..."}</div>` : `
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Published</div><div class="text-xl font-bold text-white">${bs.totalArticles}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Total Views</div><div class="text-xl font-bold text-white">${bs.totalViews}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Avg Views</div><div class="text-xl font-bold text-white">${bs.avgViews}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Search Clicks</div><div class="text-xl font-bold text-white">${g?.totalClicks ?? "-"}</div></div>
+      </div>
+
+      <div class="card p-4 mb-6">
+        <h3 class="text-xs font-medium text-gray-400 mb-3">Articles</h3>
+        ${bs.articles?.length ? `<table class="w-full text-sm">
+          <thead><tr class="text-[10px] text-gray-500 uppercase border-b border-gray-800">
+            <th class="text-left py-2">Title</th>
+            <th class="text-right py-2">Views</th>
+            <th class="text-right py-2">Search Clicks</th>
+            <th class="text-right py-2">Impressions</th>
+            <th class="text-right py-2">Actions</th>
+          </tr></thead>
+          <tbody>${bs.articles.map(a => {
+            const gscRow = (g?.rows || []).find(r => r.key?.includes("/column/" + a.id));
+            return `<tr class="border-b border-gray-800/30">
+              <td class="text-gray-200 py-2"><a href="https://www.example.com/community/column/${a.id}" target="_blank" class="hover:text-white truncate block max-w-xs">${esc(a.title)}</a></td>
+              <td class="text-gray-400 text-right py-2">${a.viewCount}</td>
+              <td class="text-gray-400 text-right py-2">${gscRow ? gscRow.clicks : "-"}</td>
+              <td class="text-gray-400 text-right py-2">${gscRow ? gscRow.impressions : "-"}</td>
+              <td class="text-right py-2">${S.gscConfig?.configured ? `<button data-gsc-index="https://www.example.com/community/column/${a.id}" class="text-[10px] text-blue-400 hover:text-blue-300">Index</button>` : ""}</td>
+            </tr>`;
+          }).join("")}</tbody>
+        </table>` : `<p class="text-gray-600 text-sm">No articles</p>`}
+      </div>
+
+      ${g?.rows?.length ? `<div class="card p-4">
+        <h3 class="text-xs font-medium text-gray-400 mb-3">Top Search Keywords → Blog</h3>
+        <div class="space-y-1">${g.rows.filter(r => r.key).slice(0, 10).map(r => `
+          <div class="flex justify-between items-center text-xs border-b border-gray-800/30 py-1.5">
+            <span class="text-gray-300">${esc(r.key)}</span>
+            <div class="flex gap-4 text-gray-500">
+              <span>${r.clicks} clicks</span>
+              <span>${r.impressions} imp</span>
+              <span>${r.ctr}% CTR</span>
+              <span>pos ${r.position}</span>
+            </div>
+          </div>
+        `).join("")}</div>
+      </div>` : ""}
+    `}
+  </div>`;
+}
+
+// ── Google Analytics Page ──
+function renderGoogleAnalytics() {
+  const ga = S.gaAnalytics;
+  const days = S.gaDays;
+  return `<div class="px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-bold text-white">Google Analytics</h2>
+        <p class="text-xs text-gray-500 mt-1">example.com 방문 분석</p>
+      </div>
+      <div class="flex gap-2">
+        ${[7,28,90].map(d => `<button data-ga-days="${d}" class="px-3 py-1 text-xs rounded ${days === d ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-800"}">${d}d</button>`).join("")}
+      </div>
+    </div>
+    ${!ga || ga.error ? `<div class="card p-8 text-center">
+      <p class="text-gray-500 text-sm">${ga?.error || "Loading..."}</p>
+      <p class="text-xs text-gray-600 mt-2">GA4 Property ID를 설정하세요. Google Cloud Console에서 서비스 계정에 GA4 접근 권한을 추가해야 합니다.</p>
+      <div class="mt-4">
+        <label class="text-xs text-gray-500 block mb-1">GA4 Property ID</label>
+        <div class="flex gap-2 max-w-md mx-auto">
+          <input id="ga-property-id" type="text" value="" placeholder="123456789" class="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
+          <button id="save-ga-config" class="px-3 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
+        </div>
+        <p class="text-[10px] text-gray-600 mt-2">GA4 관리 > 속성 > 속성 설정 > 속성 ID</p>
+      </div>
+    </div>` : `
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Sessions</div><div class="text-xl font-bold text-white">${ga.totalSessions?.toLocaleString() ?? 0}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Pageviews</div><div class="text-xl font-bold text-white">${ga.totalPageviews?.toLocaleString() ?? 0}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Avg Duration</div><div class="text-xl font-bold text-white">${ga.avgDuration ?? "-"}s</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Bounce Rate</div><div class="text-xl font-bold text-white">${ga.bounceRate ?? "-"}%</div></div>
+      </div>
+      ${ga.sources?.length ? `<div class="card p-4 mb-6"><h3 class="text-xs font-medium text-gray-400 mb-3">Traffic Sources</h3>
+        <div class="space-y-2">${ga.sources.map(s => `
+          <div class="flex items-center gap-3">
+            <span class="text-xs text-gray-300 w-32">${esc(s.source)}</span>
+            <div class="flex-1 bg-gray-800 rounded-full h-2"><div class="bg-blue-600 rounded-full h-2" style="width:${Math.min(100, (s.sessions / (ga.totalSessions || 1)) * 100)}%"></div></div>
+            <span class="text-xs text-gray-500 w-16 text-right">${s.sessions}</span>
+          </div>
+        `).join("")}</div>
+      </div>` : ""}
+      ${ga.pages?.length ? `<div class="card p-4"><h3 class="text-xs font-medium text-gray-400 mb-3">Top Pages</h3>
+        <table class="w-full text-sm"><thead><tr class="text-[10px] text-gray-500 uppercase border-b border-gray-800">
+          <th class="text-left py-2">Page</th><th class="text-right py-2">Views</th><th class="text-right py-2">Avg Time</th>
+        </tr></thead><tbody>${ga.pages.map(p => `<tr class="border-b border-gray-800/30">
+          <td class="text-gray-200 py-2 truncate max-w-xs">${esc(p.path)}</td>
+          <td class="text-gray-400 text-right py-2">${p.views}</td>
+          <td class="text-gray-400 text-right py-2">${p.avgDuration}s</td>
+        </tr>`).join("")}</tbody></table>
+      </div>` : ""}
+    `}
+  </div>`;
+}
 
 function renderBlogStats() {
   const s = S.blogStats;

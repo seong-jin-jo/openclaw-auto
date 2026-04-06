@@ -1686,6 +1686,127 @@ def api_gsc_analytics():
         return jsonify({"error": str(e), "rows": []})
 
 
+# ── API: Google Analytics ──
+GA_CONFIG_PATH = DATA_DIR / "ga-config.json"
+
+
+@app.route("/api/ga-config")
+def api_ga_config():
+    cfg = read_json(GA_CONFIG_PATH)
+    if cfg is None:
+        return jsonify({"configured": False, "propertyId": ""})
+    return jsonify({"configured": bool(cfg.get("propertyId")), "propertyId": cfg.get("propertyId", "")})
+
+
+@app.route("/api/ga-config", methods=["POST"])
+def api_ga_config_update():
+    data = get_json_body()
+    pid = data.get("propertyId", "")
+    if not pid:
+        return jsonify({"error": "propertyId required"}), 400
+    write_json(GA_CONFIG_PATH, {"propertyId": pid})
+    logger.info("GA config saved: %s", pid)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/ga-analytics")
+def api_ga_analytics():
+    key_data = read_json(GSC_KEY_PATH)
+    ga_cfg = read_json(GA_CONFIG_PATH)
+    if key_data is None:
+        return jsonify({"error": "Service account not configured"})
+    if ga_cfg is None or not ga_cfg.get("propertyId"):
+        return jsonify({"error": "GA4 Property ID not configured"})
+
+    property_id = ga_cfg["propertyId"]
+    days = int(request.args.get("days", "28"))
+
+    try:
+        import urllib.request
+        access_token = _gsc_get_access_token(key_data, "https://www.googleapis.com/auth/analytics.readonly")
+
+        end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        start_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+
+        # GA4 Data API - runReport
+        body = json.dumps({
+            "dateRanges": [{"startDate": start_date, "endDate": end_date}],
+            "metrics": [
+                {"name": "sessions"},
+                {"name": "screenPageViews"},
+                {"name": "averageSessionDuration"},
+                {"name": "bounceRate"},
+            ],
+            "dimensions": [{"name": "sessionDefaultChannelGroup"}],
+            "limit": 20,
+        }).encode()
+
+        api_url = f"https://analyticsdata.googleapis.com/v1beta/properties/{property_id}:runReport"
+        req = urllib.request.Request(api_url, data=body, headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}",
+        })
+        resp = urllib.request.urlopen(req, timeout=15)
+        result = json.loads(resp.read())
+
+        total_sessions = 0
+        total_pageviews = 0
+        sources = []
+        for row in result.get("rows", []):
+            source = row["dimensionValues"][0]["value"]
+            sessions = int(row["metricValues"][0]["value"])
+            pageviews = int(row["metricValues"][1]["value"])
+            total_sessions += sessions
+            total_pageviews += pageviews
+            sources.append({"source": source, "sessions": sessions, "pageviews": pageviews})
+        sources.sort(key=lambda x: x["sessions"], reverse=True)
+
+        # Get totals from first row metadata or sum
+        totals = result.get("totals", [{}])
+        avg_duration = "0"
+        bounce_rate = "0"
+        if totals and totals[0].get("metricValues"):
+            avg_duration = str(round(float(totals[0]["metricValues"][2]["value"]), 1))
+            bounce_rate = str(round(float(totals[0]["metricValues"][3]["value"]) * 100, 1))
+
+        # Page-level report
+        page_body = json.dumps({
+            "dateRanges": [{"startDate": start_date, "endDate": end_date}],
+            "metrics": [{"name": "screenPageViews"}, {"name": "averageSessionDuration"}],
+            "dimensions": [{"name": "pagePath"}],
+            "dimensionFilter": {"filter": {"fieldName": "pagePath", "stringFilter": {"matchType": "CONTAINS", "value": "/community/column"}}},
+            "orderBys": [{"metric": {"metricName": "screenPageViews"}, "desc": True}],
+            "limit": 20,
+        }).encode()
+        page_req = urllib.request.Request(api_url, data=page_body, headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}",
+        })
+        page_resp = urllib.request.urlopen(page_req, timeout=15)
+        page_result = json.loads(page_resp.read())
+
+        pages = []
+        for row in page_result.get("rows", []):
+            pages.append({
+                "path": row["dimensionValues"][0]["value"],
+                "views": int(row["metricValues"][0]["value"]),
+                "avgDuration": round(float(row["metricValues"][1]["value"]), 1),
+            })
+
+        return jsonify({
+            "totalSessions": total_sessions,
+            "totalPageviews": total_pageviews,
+            "avgDuration": avg_duration,
+            "bounceRate": bounce_rate,
+            "sources": sources,
+            "pages": pages,
+            "days": days,
+        })
+    except Exception as e:
+        logger.error("GA analytics failed: %s", e)
+        return jsonify({"error": str(e)})
+
+
 # ── API: Blog Image Upload (proxy to sample presigned URL) ──
 @app.route("/api/blog-upload-image", methods=["POST"])
 def api_blog_upload_image():
