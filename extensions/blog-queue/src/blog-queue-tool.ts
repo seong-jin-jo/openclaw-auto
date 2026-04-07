@@ -94,8 +94,8 @@ const BlogQueueToolSchema = Type.Object(
       Type.String({ description: "New status (for update): draft, approved, failed." }),
     ),
     scheduledAt: Type.Optional(Type.String({ description: "Scheduled publish time ISO (for update)." })),
-    blogPostId: Type.Optional(Type.String({ description: "Naver blog post ID (for update after publish)." })),
-    blogPostUrl: Type.Optional(Type.String({ description: "Naver blog post URL (for update after publish)." })),
+    blogPostId: Type.Optional(Type.String({ description: "Sample article ID (for update after publish)." })),
+    blogPostUrl: Type.Optional(Type.String({ description: "Sample article URL (for update after publish)." })),
     error: Type.Optional(Type.String({ description: "Error message (for update on failure)." })),
     model: Type.Optional(Type.String({ description: "LLM model name used for generation." })),
     statusFilter: optionalStringEnum(
@@ -114,7 +114,7 @@ export function createBlogQueueTool(api: OpenClawPluginApi) {
     name: "blog_queue",
     label: "Blog Queue",
     description:
-      "Manage the blog content queue. List, add, update, delete posts, or get approved posts ready for publishing to Naver Blog.",
+      "Manage the blog content queue. List, add, update, delete posts, or get approved posts ready for publishing to Sample Blog (example.com).",
     parameters: BlogQueueToolSchema,
     async execute(_toolCallId: string, rawParams: Record<string, unknown>) {
       const action = readStringParam(rawParams, "action", { required: true });

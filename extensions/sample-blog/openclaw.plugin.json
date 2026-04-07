@@ -1,18 +1,22 @@
 {
   "id": "sample-blog",
   "name": "Sample Blog",
-  "description": "Publish column articles to Sample site via admin API.",
+  "description": "Manage Sample site column articles: publish, list with viewCount, aggregate stats.",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
     "properties": {
       "apiBaseUrl": {
         "type": "string",
-        "description": "Sample API base URL (e.g. https://www.example.com)."
+        "description": "Sample API base URL (e.g. https://api.example.com)."
       },
-      "adminToken": {
-        "type": ["string", "object"],
-        "description": "Sample admin JWT token for column article publishing."
+      "email": {
+        "type": "string",
+        "description": "Sample admin account email."
+      },
+      "password": {
+        "type": "string",
+        "description": "Sample admin account password."
       }
     }
   }

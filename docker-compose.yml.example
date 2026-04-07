@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
       network: host
       args:
-        OPENCLAW_EXTENSIONS: "threads-publish threads-queue threads-style threads-insights threads-search threads-growth image-generation-core image-upload"
+        OPENCLAW_EXTENSIONS: "threads-publish threads-queue threads-style threads-insights threads-search threads-growth image-generation-core image-upload sample-blog blog-queue seo-keywords"
         OPENCLAW_INSTALL_BROWSER: "1"
     volumes:
       - ./config:/home/node/.openclaw       # openclaw.json + cron/jobs.json
@@ -19,16 +19,19 @@ services:
       - ./extensions/x-publish:/app/extensions/x-publish
       - ./extensions/card-generator:/app/extensions/card-generator
       - ./extensions/instagram-publish:/app/extensions/instagram-publish
+      - ./extensions/sample-blog:/app/extensions/sample-blog
+      - ./extensions/blog-queue:/app/extensions/blog-queue
+      - ./extensions/seo-keywords:/app/extensions/seo-keywords
     env_file: .env
     environment:
       HOME: /home/node
-      TZ: Asia/Seoul
+      TZ: ${TZ:-Asia/Seoul}
     network_mode: host
     init: true
     restart: unless-stopped
-    command: ["node", "dist/index.js", "gateway", "--bind", "lan", "--port", "18789"]
+    command: ["node", "dist/index.js", "gateway", "--bind", "lan", "--port", "${GATEWAY_PORT:-18789}"]
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:18789/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:${GATEWAY_PORT:-18789}/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -39,7 +42,7 @@ services:
       context: ./dashboard
       network: host
     ports:
-      - "34560:34560"
+      - "${DASHBOARD_PORT:-34560}:${DASHBOARD_PORT:-34560}"
     volumes:
       - ./data:/app/data
       - ./config:/app/config
@@ -49,6 +52,6 @@ services:
     environment:
       DATA_DIR: /app/data
       CONFIG_DIR: /app/config
-      DASHBOARD_PORT: "34560"
+      DASHBOARD_PORT: "${DASHBOARD_PORT:-34560}"
       DASHBOARD_AUTH_TOKEN: ${DASHBOARD_AUTH_TOKEN:-}
     restart: unless-stopped
