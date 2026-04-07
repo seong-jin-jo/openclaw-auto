@@ -159,7 +159,7 @@ const S = {
   tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
   sidebarCollapsed: { social: false, video: true, blog: false, messaging: true, data: true, custom: true }, showDetail: null, editingChannel: null,
-  channelGuide: null, channelKeywords: null, notificationSettings: null,
+  channelGuide: null, channelKeywords: null, notificationSettings: null, tenantInfo: null, chatChannels: null,
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null, expandedPopular: null,
 };
@@ -211,6 +211,12 @@ async function loadChannelGuideAndKeywords() {
   // Also load common for fallback
   if (!S.guide) { const cg = await API.get("/api/guide"); if (cg) S.guide = cg.guide || ""; }
   if (!S.keywords?.length) { const ck = await API.get("/api/keywords"); if (ck) S.keywords = ck.keywords || []; }
+  render();
+}
+async function loadTenantAndChat() {
+  const [t, c] = await Promise.all([API.get("/api/tenant-info"), API.get("/api/chat-channels")]);
+  if (t) S.tenantInfo = t;
+  if (c) S.chatChannels = c;
   render();
 }
 async function loadNotifSettings() { const d = await API.get("/api/notification-settings"); if (d) S.notificationSettings = d; render(); }
@@ -1099,6 +1105,27 @@ function renderSettings() {
           ` : `<p class="text-[10px] text-gray-600 mt-3">DASHBOARD_AUTH_TOKEN 환경변수 설정 시 로그인 활성화</p>`}
         </div>
         <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-4">Interactive Chat</h3>
+          <p class="text-[10px] text-gray-600 mb-3">Telegram/Slack/Discord 봇으로 Agent와 대화. 대시보드 없이 모바일에서 관리 가능.</p>
+          ${S.chatChannels ? `
+            <div class="space-y-2">
+              ${["telegram", "slack", "discord"].map(ch => {
+                const cc = S.chatChannels[ch] || {};
+                return `<div class="flex items-center justify-between p-2 rounded bg-gray-900/50">
+                  <span class="text-xs text-gray-300">${ch.charAt(0).toUpperCase() + ch.slice(1)}</span>
+                  <span class="text-[10px] ${cc.configured ? "text-green-400" : "text-gray-600"}">${cc.configured ? "Connected" : "Not configured"}</span>
+                </div>`;
+              }).join("")}
+            </div>
+            <div class="mt-3 p-2 rounded bg-gray-900/50">
+              <p class="text-[10px] text-gray-500 mb-1">Setup: Gateway 컨테이너에서</p>
+              <code class="text-[10px] text-gray-400 font-mono">openclaw channels setup telegram</code>
+              <p class="text-[10px] text-gray-600 mt-2">연결 후 예시 명령:</p>
+              <p class="text-[10px] text-gray-500">"이번 주 성과" · "다음 글 승인" · "X에 글 올려"</p>
+            </div>
+          ` : `<p class="text-xs text-gray-600">Loading...</p>`}
+        </div>
+        <div class="card p-5">
           <h3 class="text-sm font-medium text-gray-300 mb-4">Notifications</h3>
           ${S.notificationSettings ? `
             <div class="space-y-3">
@@ -1338,7 +1365,7 @@ function navigate(page) {
   else if (page === "images") loadImages();
   else if (page === "blog") loadBlogQueue();
   else if (CH_LABELS[page]) { loadOverview(); loadChannelGuideAndKeywords(); }
-  else if (page === "settings") { loadSettings(); loadKeywords(); loadLlmConfig(); loadOverview(); loadNotifSettings(); }
+  else if (page === "settings") { loadSettings(); loadKeywords(); loadLlmConfig(); loadOverview(); loadNotifSettings(); loadTenantAndChat(); }
   render();
 }
 

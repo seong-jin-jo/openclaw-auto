@@ -102,9 +102,27 @@ def add_cors(response):
     return response
 
 
-# ── 인증 미들웨어 ──
+# ── 멀티테넌트 + 인증 미들웨어 ──
+TENANTS_DIR = Path(os.environ.get("TENANTS_DIR", Path(__file__).resolve().parent.parent / "tenants"))
+
+# Auth tokens: single token or tenant-based ("tenant-id:password")
+AUTH_TOKENS = {}  # { "tenant-id:password": tenant_id, ... }
+if AUTH_TOKEN and ":" in AUTH_TOKEN:
+    # Multi-tenant format
+    parts = AUTH_TOKEN.split(",")
+    for part in parts:
+        AUTH_TOKENS[part.strip()] = part.strip().split(":")[0]
+elif AUTH_TOKEN:
+    AUTH_TOKENS[AUTH_TOKEN] = "default"
+
+
 @app.before_request
 def check_auth():
+    from flask import g
+    g.tenant_id = None
+    g.data_dir = DATA_DIR
+    g.config_dir = CONFIG_DIR
+
     if not AUTH_TOKEN:
         return  # 토큰 미설정 시 인증 비활성화
     if request.method == "OPTIONS":
@@ -114,8 +132,46 @@ def check_auth():
         return
     # API: 인증 필요
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
-    if token != AUTH_TOKEN:
+
+    # Multi-tenant: check token map
+    if AUTH_TOKENS:
+        tenant_id = AUTH_TOKENS.get(token)
+        if not tenant_id:
+            return jsonify({"error": "Unauthorized"}), 401
+        g.tenant_id = tenant_id
+        # Tenant-specific paths
+        if tenant_id != "default":
+            tenant_dir = TENANTS_DIR / tenant_id
+            if (tenant_dir / "data").is_dir():
+                g.data_dir = tenant_dir / "data"
+            if (tenant_dir / "config").is_dir():
+                g.config_dir = tenant_dir / "config"
+    elif token != AUTH_TOKEN:
         return jsonify({"error": "Unauthorized"}), 401
+
+
+# ── Tenant info API ──
+@app.route("/api/tenant-info")
+def api_tenant_info():
+    from flask import g
+    return jsonify({
+        "tenantId": getattr(g, "tenant_id", None),
+        "dataDir": str(getattr(g, "data_dir", DATA_DIR)),
+        "configDir": str(getattr(g, "config_dir", CONFIG_DIR)),
+        "multiTenant": bool(AUTH_TOKENS and len(AUTH_TOKENS) > 1),
+    })
+
+
+def get_data_dir():
+    """Get tenant-specific or default data directory."""
+    from flask import g
+    return getattr(g, "data_dir", DATA_DIR)
+
+
+def get_config_dir():
+    """Get tenant-specific or default config directory."""
+    from flask import g
+    return getattr(g, "config_dir", CONFIG_DIR)
 
 
 # ── 유틸 ──
@@ -1000,6 +1056,19 @@ def api_send_notification():
 
     except Exception as e:
         return jsonify({"error": str(e)[:200]}), 500
+
+
+# ── API: Chat Channels (Interactive) ──
+@app.route("/api/chat-channels")
+def api_chat_channels():
+    config = read_json(CONFIG_DIR / "openclaw.json") or {}
+    channels_cfg = config.get("channels", {})
+    result = {}
+    for ch in ["telegram", "slack", "discord"]:
+        ch_cfg = channels_cfg.get(ch, {})
+        has_token = bool(ch_cfg.get("botToken") or ch_cfg.get("token") or ch_cfg.get("appToken"))
+        result[ch] = {"configured": has_token, "config": {k: "***" if "token" in k.lower() else v for k, v in ch_cfg.items()}}
+    return jsonify(result)
 
 
 # ── API: Alerts ──
