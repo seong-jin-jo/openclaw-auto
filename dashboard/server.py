@@ -1624,7 +1624,7 @@ def api_channel_config_generic(channel):
         "facebook": "facebook-publish", "bluesky": "bluesky-publish", "instagram": "instagram-publish",
         "linkedin": "linkedin-publish", "pinterest": "pinterest-publish", "tumblr": "tumblr-publish",
         "tiktok": "tiktok-publish", "youtube": "youtube-publish", "telegram": "telegram-publish",
-        "discord": "discord-publish", "line": "line-publish", "naver_blog": "naver-blog-publish",
+        "discord": "discord-publish", "slack": "slack-publish", "line": "line-publish", "naver_blog": "naver-blog-publish",
     }
     plugin_name = plugin_map.get(channel)
     if not plugin_name:
