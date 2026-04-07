@@ -158,7 +158,7 @@ const S = {
   channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [],
   tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
-  sidebarCollapsed: { social: false, video: true, blog: false, messaging: true, data: true, custom: true }, showDetail: null, editingChannel: null,
+  sidebarCollapsed: {}, showDetail: null, editingChannel: null,
   channelGuide: null, channelKeywords: null, notificationSettings: null, tenantInfo: null, chatChannels: null,
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null, expandedPopular: null,
@@ -299,7 +299,10 @@ function chSidebarItem(key) {
 }
 
 function sidebarGroup(key, title, items) {
-  const collapsed = S.sidebarCollapsed[key];
+  // Auto-open if any item has Live/Connected status
+  const hasActive = items.some(i => i.status === "Live" || i.status === "Connected");
+  if (hasActive && S.sidebarCollapsed[key] === undefined) S.sidebarCollapsed[key] = false;
+  const collapsed = S.sidebarCollapsed[key] ?? !hasActive;
   const activeCount = items.filter(i => i.nav && !i.soon).length;
   const soonCount = items.filter(i => i.soon).length;
   return `
@@ -1328,6 +1331,19 @@ function bindEvents() {
     if (cancelBtn) cancelBtn.onclick = () => { S.editingChannel = null; render(); };
   });
 
+  // Messaging test send
+  ["telegram", "discord", "slack", "line"].forEach(ch => {
+    const btn = document.getElementById(`send-test-${ch}`);
+    if (btn) btn.onclick = async () => {
+      const msg = document.getElementById(`test-msg-${ch}`)?.value || "test";
+      btn.textContent = "Sending..."; btn.disabled = true;
+      const r = await API.post("/api/send-notification", { channel: ch, message: msg });
+      btn.textContent = "Send"; btn.disabled = false;
+      if (r?.ok) showToast(`${ch} 전송 완료`, "success");
+      else showToast(`전송 실패: ${r?.error || "unknown"}`, "error");
+    };
+  });
+
   // Detail toggle
   document.querySelectorAll("[data-toggle-detail]").forEach(el => { el.onclick = () => { S.showDetail = S.showDetail === el.dataset.toggleDetail ? null : el.dataset.toggleDetail; render(); }; });
 
@@ -1665,6 +1681,41 @@ function renderGenericChannel(key) {
         </div>
         <textarea id="keywords-textarea" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300" rows="5">${(S.channelKeywords?.keywords || S.keywords).join("\n")}</textarea>
       </div>
+
+      ${["telegram", "discord", "slack", "line"].includes(key) ? `
+      <!-- Messaging 전용 -->
+      <div class="card p-5">
+        <h3 class="text-sm font-medium text-gray-300 mb-3">알림 발송</h3>
+        <p class="text-[10px] text-gray-600 mb-3">이 채널로 마케팅 알림을 자동 발송할 수 있습니다.</p>
+        <div class="space-y-2">
+          ${["onPublish:글 발행 시", "onViral:바이럴 감지 시", "onError:크론 에러 시", "weeklyReport:주간 리포트"].map(item => {
+            const [evt, label2] = item.split(":");
+            const enabled = S.notificationSettings?.[evt]?.channels?.includes(key);
+            return `<div class="flex items-center justify-between p-2 rounded bg-gray-900/50">
+              <span class="text-xs text-gray-400">${label2}</span>
+              <span class="text-[10px] ${enabled ? "text-green-400" : "text-gray-600"}">${enabled ? "ON" : "OFF"}</span>
+            </div>`;
+          }).join("")}
+        </div>
+        <p class="text-[10px] text-gray-600 mt-2">Settings > Notifications에서 변경</p>
+      </div>
+      <div class="card p-5">
+        <h3 class="text-sm font-medium text-gray-300 mb-3">테스트 발송</h3>
+        <div class="flex gap-2">
+          <input id="test-msg-${key}" type="text" value="Marketing Hub 테스트 메시지" class="flex-1 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300">
+          <button id="send-test-${key}" class="px-4 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-500">Send</button>
+        </div>
+        ${S.chatChannels?.[key]?.configured ? `
+          <div class="mt-3 p-2 rounded bg-green-900/20 border border-green-800/20">
+            <p class="text-[10px] text-green-400">Interactive Chat 연결됨 — 이 채널에서 Agent와 대화 가능</p>
+          </div>
+        ` : `
+          <div class="mt-3 p-2 rounded bg-gray-900/50">
+            <p class="text-[10px] text-gray-500">Interactive Chat: Gateway에서 <code>openclaw channels setup ${key}</code>로 양방향 대화 활성화</p>
+          </div>
+        `}
+      </div>
+      ` : ""}
     </div>
   </div>`;
 }
