@@ -268,6 +268,22 @@ def api_images():
     return jsonify(files)
 
 
+@app.route("/api/card-slides/<batch_id>")
+def api_card_slides(batch_id):
+    """Return all slide images for a card news batch ID."""
+    import re
+    if not re.match(r'^[a-f0-9]{8}$', batch_id):
+        return jsonify({"error": "Invalid batch ID"}), 400
+    if not os.path.isdir(IMAGES_DIR):
+        return jsonify({"slides": []})
+    prefix = f"card-{batch_id}-"
+    slides = []
+    for f in sorted(os.listdir(IMAGES_DIR)):
+        if f.startswith(prefix) and f.endswith(".png"):
+            slides.append({"filename": f, "url": f"/images/{f}"})
+    return jsonify({"batchId": batch_id, "slides": slides})
+
+
 @app.route("/api/images/<filename>", methods=["DELETE"])
 def api_delete_image(filename):
     path = os.path.join(IMAGES_DIR, filename)
@@ -1359,9 +1375,27 @@ def api_token_status():
     if auth:
         for k, v in auth.get("profiles", {}).items():
             exp = v.get("expires", 0)
-            remaining_h = (exp / 1000 - _time.time()) / 3600
+            remaining_h = (exp / 1000 - _time.time()) / 3600 if exp else -1
             stats = auth.get("usageStats", {}).get(k, {})
-            result["claude"] = {"profile": k, "type": v.get("type"), "expiresAt": exp, "remainingHours": round(remaining_h, 1), "healthy": remaining_h > 1, "errorCount": stats.get("errorCount", 0), "lastUsed": stats.get("lastUsed")}
+            token_val = v.get("token", "")
+            token_preview = token_val[:15] + "..." if len(token_val) > 15 else token_val
+            # Try to detect if token is working by checking recent errors
+            last_error = stats.get("lastFailureAt", 0)
+            last_used = stats.get("lastUsed", 0)
+            error_count = stats.get("errorCount", 0)
+            # Check if gateway is returning usage errors
+            healthy = True
+            error_hint = None
+            if last_error > last_used and error_count > 0:
+                healthy = False
+                error_hint = "Token may be expired or usage limit reached"
+            result["claude"] = {
+                "profile": k, "type": v.get("type"),
+                "tokenPreview": token_preview,
+                "expiresAt": exp, "remainingHours": round(remaining_h, 1) if exp else None,
+                "healthy": healthy, "errorHint": error_hint,
+                "errorCount": error_count, "lastUsed": last_used, "lastFailureAt": last_error,
+            }
     config = read_json(CONFIG_DIR / "openclaw.json") or {}
     plugins = config.get("plugins", {}).get("entries", {})
     tp = plugins.get("threads-publish", {})
@@ -1374,9 +1408,53 @@ def api_token_status():
     result["llm"] = {
         "primary": model.get("primary", "unknown"),
         "fallbacks": model.get("fallbacks", []),
-        "auth": "Claude Code Max Plan (OAuth, auto-refresh)",
+        "auth": "Claude Code Max Plan (OAuth setup-token)",
     }
     return jsonify(result)
+
+
+@app.route("/api/claude-token", methods=["POST"])
+def api_update_claude_token():
+    """Update Claude API authentication token (setup-token or API key)."""
+    data = get_json_body()
+    token = data.get("token", "").strip()
+    if not token:
+        return jsonify({"error": "Token is empty"}), 400
+
+    auth_path = CONFIG_DIR / "agents" / "main" / "agent" / "auth-profiles.json"
+    auth = read_json(auth_path) or {"version": 1, "profiles": {}, "lastGood": {}, "usageStats": {}}
+
+    if token.startswith("sk-ant-oat01-"):
+        # Setup token (OAuth)
+        auth["profiles"]["anthropic:default"] = {
+            "type": "token",
+            "provider": "anthropic",
+            "token": token,
+        }
+        token_type = "setup-token"
+    elif token.startswith("sk-ant-api"):
+        # API key
+        auth["profiles"]["anthropic:default"] = {
+            "type": "api-key",
+            "provider": "anthropic",
+            "token": token,
+        }
+        token_type = "api-key"
+    else:
+        return jsonify({"error": "Invalid token format. Expected sk-ant-oat01-... (setup-token) or sk-ant-api... (API key)"}), 400
+
+    # Reset error stats
+    auth["usageStats"]["anthropic:default"] = {
+        "errorCount": 0,
+        "lastUsed": int(__import__("time").time() * 1000),
+    }
+    auth["lastGood"]["anthropic"] = "anthropic:default"
+
+    # Ensure directory exists
+    auth_path.parent.mkdir(parents=True, exist_ok=True)
+    write_json(auth_path, auth)
+    logger.info("Claude token updated: type=%s", token_type)
+    return jsonify({"ok": True, "type": token_type, "preview": token[:15] + "..."})
 
 
 # ── API: LLM Config ──
@@ -1464,10 +1542,17 @@ def api_channel_config():
     channels["x"] = {"enabled": xp.get("enabled", False), "connected": bool(x_cfg.get("apiKey", "")), "keys": {"apiKey": x_cfg.get("apiKey", ""), "apiKeySecret": x_cfg.get("apiKeySecret", ""), "accessToken": x_cfg.get("accessToken", ""), "accessTokenSecret": x_cfg.get("accessTokenSecret", "")}}
 
     # All other channels — check plugin config existence
+    # Midjourney (special — not a publish channel, but an image generation tool)
+    mj_p = plugins.get("midjourney-image", {})
+    mj_cfg = mj_p.get("config", {})
+    mj_has_key = bool(mj_cfg.get("discordToken", ""))
+    channels["midjourney"] = {"status": "live" if mj_has_key and mj_p.get("enabled") else ("connected" if mj_has_key else "available"), "enabled": mj_p.get("enabled", False), "connected": mj_has_key, "keys": {k: v for k, v in mj_cfg.items() if isinstance(v, str)}}
+
     IMPLEMENTED_PLUGINS = {  # plugins that have extension code ready
         "facebook-publish", "bluesky-publish", "instagram-publish", "linkedin-publish",
         "pinterest-publish", "tumblr-publish", "tiktok-publish", "youtube-publish",
         "telegram-publish", "discord-publish", "slack-publish", "line-publish", "naver-blog-publish",
+        "midjourney-image",
     }
     other_channels = {
         "facebook": {"plugin": "facebook-publish", "key_field": "accessToken"},
@@ -1599,6 +1684,25 @@ def verify_channel(channel, cfg):
                 return {"verified": False, "error": "Invalid Slack Webhook URL. Must start with https://hooks.slack.com/"}
             return {"verified": True, "account": "(Webhook configured)"}
 
+        elif channel == "midjourney":
+            token = cfg.get("discordToken", "")
+            channel_id = cfg.get("channelId", "")
+            server_id = cfg.get("serverId", "")
+            if not token:
+                return {"verified": False, "error": "Discord Token is empty"}
+            if not channel_id:
+                return {"verified": False, "error": "Channel ID is empty"}
+            if not server_id:
+                return {"verified": False, "error": "Server ID is empty"}
+            # Verify by fetching channel info
+            req = urllib.request.Request(
+                f"https://discord.com/api/v10/channels/{channel_id}",
+                headers={"Authorization": token})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                data = json.loads(resp.read())
+                ch_name = data.get("name", channel_id)
+                return {"verified": True, "account": f"#{ch_name}"}
+
         else:
             # Generic: just check if any key has value
             has_any = any(v for v in cfg.values() if isinstance(v, str) and v.strip())
@@ -1625,6 +1729,7 @@ def api_channel_config_generic(channel):
         "linkedin": "linkedin-publish", "pinterest": "pinterest-publish", "tumblr": "tumblr-publish",
         "tiktok": "tiktok-publish", "youtube": "youtube-publish", "telegram": "telegram-publish",
         "discord": "discord-publish", "slack": "slack-publish", "line": "line-publish", "naver_blog": "naver-blog-publish",
+        "midjourney": "midjourney-image",
     }
     plugin_name = plugin_map.get(channel)
     if not plugin_name:
@@ -1711,7 +1816,7 @@ def _read_channel_settings():
     data = read_json(CHANNEL_SETTINGS_PATH)
     if data is None:
         data = {}
-    for ch in ("threads", "x"):
+    for ch in ("threads", "x", "instagram"):
         if ch not in data:
             data[ch] = {}
         for f in AUTOMATION_FEATURES:
@@ -1728,7 +1833,7 @@ def api_channel_settings():
 
 @app.route("/api/channel-settings/<channel>", methods=["POST"])
 def api_update_channel_settings(channel):
-    if channel not in ("threads", "x"):
+    if channel not in ("threads", "x", "instagram"):
         return jsonify({"error": "Invalid channel"}), 400
     body = get_json_body()
     data = _read_channel_settings()

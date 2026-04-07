@@ -40,7 +40,8 @@ OpenClaw Cron → Claude Agent → Tool Registry
   "status": "approved",
   "channels": {
     "threads": { "status": "pending", "mediaId": null, "publishedAt": null, "error": null },
-    "x": { "status": "pending", "tweetId": null, "publishedAt": null, "error": null }
+    "x": { "status": "pending", "tweetId": null, "publishedAt": null, "error": null },
+    "instagram": { "status": "pending", "publishedAt": null, "error": null }
   }
 }
 ```
@@ -109,6 +110,8 @@ data/
 | `THREADS_USER_ID` | Threads user ID |
 | `X_API_KEY` / `X_API_KEY_SECRET` | X 소비자 키/시크릿 (OAuth 1.0a) |
 | `X_ACCESS_TOKEN` / `X_ACCESS_TOKEN_SECRET` | X 액세스 토큰/시크릿 (Read+Write) |
+| `INSTAGRAM_ACCESSTOKEN` / `INSTAGRAM_USERID` | Instagram Graph API 토큰/유저 ID |
+| `MIDJOURNEY_DISCORD_TOKEN` / `MIDJOURNEY_CHANNEL_ID` / `MIDJOURNEY_SERVER_ID` | Midjourney Discord 연동 |
 | `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET` / `R2_ENDPOINT` / `R2_PUBLIC_URL` | Cloudflare R2 |
 | `OPENCLAW_GATEWAY_TOKEN` | Gateway 인증 |
 | `DASHBOARD_PORT` | 대시보드 포트 (기본 3456) |
@@ -121,6 +124,8 @@ data/
 |------|------|------|------|
 | `threads-generate-drafts` | 6h | Sonnet | prompt-guide 기반 draft 생성 |
 | `multi-channel-publish` | 2h | Haiku | 승인 글 멀티채널 발행 |
+| `instagram-generate-drafts` | 6h | Sonnet | Instagram 카드뉴스 콘텐츠 생성 |
+| `instagram-auto-publish` | 2h | Haiku | Instagram 이미지 글 자동 발행 |
 | `threads-collect-insights` | 6h | Haiku | 반응 수집 + 댓글 좋아요 + 저조 삭제 |
 | `threads-fetch-trending` | 주1회 | Haiku | 외부 인기글 수집 |
 | `threads-track-growth` | 매일 | Haiku | 팔로워 추적 |
