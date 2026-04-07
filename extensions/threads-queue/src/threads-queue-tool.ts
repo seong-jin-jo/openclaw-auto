@@ -29,6 +29,7 @@ type ChannelStatus = {
 type Channels = {
   threads: ChannelStatus;
   x: ChannelStatus;
+  instagram: ChannelStatus;
 };
 
 type Post = {
@@ -95,7 +96,11 @@ function migratePost(post: Post): Post {
         error: post.status === "failed" ? (post.error ?? null) : null,
       },
       x: { status: "pending", tweetId: null, publishedAt: null, error: null },
+      instagram: { status: "pending", publishedAt: null, error: null },
     };
+  }
+  if (post.channels && !post.channels.instagram) {
+    post.channels.instagram = { status: "pending", publishedAt: null, error: null };
   }
   return post;
 }
@@ -163,8 +168,8 @@ const ThreadsQueueToolSchema = Type.Object(
       Type.String({ description: "Public image URL to attach to the post (for add/update)." }),
     ),
     channel: optionalStringEnum(
-      ["threads", "x"] as const,
-      { description: 'Target channel for update_channel action: "threads" or "x".' },
+      ["threads", "x", "instagram"] as const,
+      { description: 'Target channel for update_channel action: "threads", "x", or "instagram".' },
     ),
     channelStatus: optionalStringEnum(
       ["published", "failed", "skipped"] as const,
@@ -338,7 +343,7 @@ export function createThreadsQueueTool(api: OpenClawPluginApi) {
 
         case "update_channel": {
           const id = readStringParam(rawParams, "id", { required: true });
-          const channel = readStringParam(rawParams, "channel", { required: true }) as "threads" | "x";
+          const channel = readStringParam(rawParams, "channel", { required: true }) as "threads" | "x" | "instagram";
           const channelStatus = readStringParam(rawParams, "channelStatus", { required: true }) as ChannelStatus["status"];
           const post = queue.posts.find((p) => p.id === id);
           if (!post) throw new Error(`Post not found: ${id}`);
@@ -347,6 +352,7 @@ export function createThreadsQueueTool(api: OpenClawPluginApi) {
             post.channels = {
               threads: { status: "pending", mediaId: null, publishedAt: null, error: null },
               x: { status: "pending", tweetId: null, publishedAt: null, error: null },
+              instagram: { status: "pending", publishedAt: null, error: null },
             };
           }
 

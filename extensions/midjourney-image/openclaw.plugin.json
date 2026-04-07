@@ -1,0 +1,23 @@
+{
+  "id": "midjourney-image",
+  "name": "Midjourney Image",
+  "description": "Generate images via Midjourney through Discord bot interaction. Supports imagine, upscale, and variations.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "discordToken": {
+        "type": ["string", "object"],
+        "description": "Discord bot or user token for sending commands."
+      },
+      "channelId": {
+        "type": "string",
+        "description": "Discord channel ID where Midjourney bot is present."
+      },
+      "serverId": {
+        "type": "string",
+        "description": "Discord server (guild) ID."
+      }
+    }
+  }
+}

@@ -37,7 +37,8 @@ OpenClaw Cron → Claude Agent → Tool Registry
   "threadsMediaId": null,
   "channels": {
     "threads": { "status": "pending", "mediaId": null, "publishedAt": null, "error": null },
-    "x": { "status": "pending", "tweetId": null, "publishedAt": null, "error": null }
+    "x": { "status": "pending", "tweetId": null, "publishedAt": null, "error": null },
+    "instagram": { "status": "pending", "publishedAt": null, "error": null }
   }
 }
 ```
@@ -59,7 +60,7 @@ OpenClaw Cron → Claude Agent → Tool Registry
 credential 저장 시 `verify_channel(channel, config)` 함수가 실제 API를 호출하여 유효성 검증:
 - 검증 성공 → `enabled: true`, 응답에 `verified: true, account: "@username"`
 - 검증 실패 → `enabled: false`, 응답에 `verified: false, error: "이유"`
-- 채널별 검증: Threads(GET /me), Bluesky(createSession), Telegram(getMe), Facebook(GET /page), Discord(webhook URL 형식)
+- 채널별 검증: Threads(GET /me), Bluesky(createSession), Telegram(getMe), Facebook(GET /page), Discord(webhook URL 형식), Instagram(GET /{userId}), Midjourney(GET /channels/{channelId})
 - X는 OAuth 1.0a 서명이 복잡하여 키 존재 여부만 확인
 
 ## Setup Guide 구조
@@ -104,6 +105,17 @@ LLM은 `config/openclaw.json > agents.defaults.model`에서 설정:
 - `X_ACCESS_TOKEN`: 액세스 토큰 (Read+Write 필수)
 - `X_ACCESS_TOKEN_SECRET`: 액세스 토큰 시크릿
 
+### Instagram
+- `INSTAGRAM_ACCESSTOKEN`: Instagram Graph API access token
+- `INSTAGRAM_USERID`: Instagram Business User ID
+
+### Midjourney
+- `MIDJOURNEY_DISCORD_TOKEN`: Discord 봇/유저 토큰
+- `MIDJOURNEY_CHANNEL_ID`: 미드저니 봇이 있는 Discord 채널 ID
+- `MIDJOURNEY_SERVER_ID`: Discord 서버 ID
+- `MIDJOURNEY_POLL_INTERVAL_MS`: 폴링 간격 (기본: 5000)
+- `MIDJOURNEY_TIMEOUT_MS`: 타임아웃 (기본: 300000)
+
 ### Cloudflare R2
 - `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_ENDPOINT`, `R2_PUBLIC_URL`
 
@@ -124,6 +136,8 @@ LLM은 `config/openclaw.json > agents.defaults.model`에서 설정:
 | `threads_insights` | 반응 수집 + 댓글 좋아요/답글 + 저조 삭제 (collect/auto_like_replies/auto_reply/cleanup_low_engagement) |
 | `threads_search` | 브라우저 스크래핑 기반 외부 인기글 수집 (scrape/fetch) |
 | `threads_growth` | 팔로워 수/증감 추적 (track) |
+| `instagram_publish` | Instagram 발행 (단일 이미지/캐러셀, Graph API v21.0) |
+| `midjourney_image` | Midjourney Discord 연동 이미지 생성 (imagine/upscale) |
 | `image_upload` | 로컬 이미지 → Cloudflare R2 업로드 → 퍼블릭 URL 반환 (upload) |
 
 
@@ -132,7 +146,9 @@ LLM은 `config/openclaw.json > agents.defaults.model`에서 설정:
 | 이름 | 기본 주기 | 설명 |
 |------|----------|------|
 | `threads-generate-drafts` | 6시간 | draft 배치 생성 (prompt-guide.txt 기반) |
-| `threads-auto-publish` | 4시간 | approved 글 자동 발행 |
+| `threads-auto-publish` | 2시간 | approved 글 자동 발행 |
+| `instagram-generate-drafts` | 6시간 | Instagram 이미지 콘텐츠 배치 생성 (이미지 필수) |
+| `instagram-auto-publish` | 2시간 | Instagram 이미지 글 자동 발행 |
 | `threads-collect-insights` | 6시간 | 반응 수집 + 댓글 좋아요 + 저조 글 삭제 |
 | `threads-fetch-trending` | 주 1회 | 외부 인기글 수집 |
 | `threads-track-growth` | 매일 | 팔로워 추적 |

@@ -246,6 +246,7 @@ function render() {
   if (S.page === "overview") app.innerHTML = renderOverview();
   else if (S.page === "threads") app.innerHTML = renderChannel("threads");
   else if (S.page === "x") app.innerHTML = renderChannelX();
+  else if (S.page === "instagram") app.innerHTML = renderChannelInstagram();
   else if (S.page === "images") app.innerHTML = renderImages();
   else if (S.page === "blog") app.innerHTML = renderBlog();
   else if (CH_LABELS[S.page]) app.innerHTML = renderGenericChannel(S.page);
@@ -259,7 +260,7 @@ function render() {
   }
 }
 
-const CH_LABELS = { instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", bluesky: "Bluesky", pinterest: "Pinterest", tumblr: "Tumblr", tiktok: "TikTok", youtube: "YouTube", telegram: "Telegram", discord: "Discord", line: "LINE", naver_blog: "Naver Blog" };
+const CH_LABELS = { instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", bluesky: "Bluesky", pinterest: "Pinterest", tumblr: "Tumblr", tiktok: "TikTok", youtube: "YouTube", telegram: "Telegram", discord: "Discord", line: "LINE", naver_blog: "Naver Blog", midjourney: "Midjourney" };
 const CH_STATUS_BADGE = { live: "bg-green-900/50 text-green-400", connected: "bg-blue-900/50 text-blue-400", available: "", soon: "" };
 const CH_STATUS_LABEL = { live: "Live", connected: "Connected", available: "", soon: "" };
 
@@ -354,6 +355,10 @@ function renderSidebar() {
           ...["telegram", "discord", "line"].map(ch => chSidebarItem(ch)),
           { label: "Kakao Channel", icon: "K", soon: true },
           { label: "WhatsApp", icon: "W", soon: true },
+        ])}
+
+        ${sidebarGroup("creative", "Creative Tools", [
+          chSidebarItem("midjourney"),
         ])}
 
         ${sidebarGroup("data", "Data & Analytics", [
@@ -531,11 +536,12 @@ function renderOverview() {
         <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">AI Engine</h3>
         ${S.tokenStatus?.claude ? `
           <div class="space-y-2 text-sm">
-            <div class="flex justify-between"><span class="text-gray-500">Claude</span><span class="${S.tokenStatus.claude.healthy ? "text-green-400" : "text-red-400"}">${S.tokenStatus.claude.healthy ? "Healthy" : "Expiring"}</span></div>
-            <div class="flex justify-between"><span class="text-gray-500">Token</span><span class="text-gray-300">${S.tokenStatus.claude.remainingHours}h remaining</span></div>
-            <div class="flex justify-between"><span class="text-gray-500">Errors</span><span class="text-gray-300">${S.tokenStatus.claude.errorCount}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Claude</span><span class="${S.tokenStatus.claude.healthy ? "text-green-400" : "text-red-400"}">${S.tokenStatus.claude.healthy ? "Healthy" : "Error"}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Token</span><span class="text-gray-400 font-mono text-xs">${S.tokenStatus.claude.tokenPreview || "..."}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Errors</span><span class="${S.tokenStatus.claude.errorCount > 0 ? "text-red-400" : "text-gray-300"}">${S.tokenStatus.claude.errorCount}</span></div>
             <div class="flex justify-between"><span class="text-gray-500">Last used</span><span class="text-gray-300">${S.tokenStatus.claude.lastUsed ? fmtAgo(new Date(S.tokenStatus.claude.lastUsed).toISOString()) : "-"}</span></div>
           </div>
+          ${!S.tokenStatus.claude.healthy ? `<a data-nav="settings" class="block mt-2 text-[10px] text-red-400 hover:text-red-300 cursor-pointer">Settings에서 토큰 재등록 필요 →</a>` : ""}
         ` : `<p class="text-xs text-gray-600">No data</p>`}
       </div>
 
@@ -605,6 +611,7 @@ function renderPost(p) {
         <div class="flex gap-1">
           ${channelBadge("T", ch.threads)}
           ${channelBadge("X", ch.x)}
+          ${channelBadge("IG", ch.instagram)}
         </div>
       </div>
       ${p.imageUrl ? `
@@ -626,16 +633,18 @@ function renderPost(p) {
       ${p.status === "draft" || p.status === "approved" ? `
         <div class="flex items-center gap-3 mb-2 text-xs">
           <span class="text-gray-600">Publish to:</span>
-          ${["threads", "x"].map(ch => {
+          ${["threads", "x", "instagram"].map(ch => {
             const chCfg = S.channelConfig[ch] || {};
             const enabled = chCfg.connected || chCfg.enabled;
             const checked = (p.channels?.[ch]?.status !== "skipped");
-            const limit = ch === "x" ? 280 : 500;
+            const limit = ch === "x" ? 280 : ch === "instagram" ? 2200 : 500;
             const over = p.text.length > limit;
+            const noImage = ch === "instagram" && !p.imageUrl;
+            const chLabel = ch === "threads" ? "T" : ch === "x" ? "X" : "IG";
             return enabled ? `
-              <label class="flex items-center gap-1 ${over ? "text-yellow-500" : "text-gray-400"}">
-                <input type="checkbox" data-publish-channel="${p.id}:${ch}" ${checked ? "checked" : ""} class="rounded border-gray-600 w-3 h-3">
-                ${ch === "threads" ? "T" : "X"}${over ? ` (${p.text.length}/${limit})` : ""}
+              <label class="flex items-center gap-1 ${noImage ? "text-gray-600 line-through" : over ? "text-yellow-500" : "text-gray-400"}" ${noImage ? 'title="Instagram은 이미지 필수"' : ""}>
+                <input type="checkbox" data-publish-channel="${p.id}:${ch}" ${checked && !noImage ? "checked" : ""} ${noImage ? "disabled" : ""} class="rounded border-gray-600 w-3 h-3">
+                ${chLabel}${noImage ? " (no img)" : over ? ` (${p.text.length}/${limit})` : ""}
               </label>` : "";
           }).join("")}
         </div>
@@ -903,6 +912,200 @@ function renderChannelX() {
   </div>`;
 }
 
+function renderChannelInstagram() {
+  const connected = S.channelConfig.instagram?.connected;
+  const tabs = connected ? ["queue", "settings"] : ["settings"];
+  const allPosts = S.queue || [];
+
+  return `<div class="px-8 py-6">
+    <button data-nav="overview" class="text-gray-500 hover:text-gray-300 text-sm mb-1">&larr; Back</button>
+    <div class="flex items-center gap-3 mb-6">
+      <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center text-sm font-bold text-white">IG</span>
+      <div><h2 class="text-xl font-semibold text-white">Instagram</h2><p class="text-xs text-gray-500">${connected ? "Connected" : "Not connected"} ${S.channelConfig.instagram?.userId ? " &middot; ID: " + S.channelConfig.instagram.userId : ""}</p></div>
+    </div>
+    <div class="flex gap-1 mb-6 border-b border-gray-800/50 pb-3">
+      ${tabs.map(t => `<button data-subtab="${t}" class="px-3 py-1.5 text-sm rounded ${S.subTab === t ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"}">${t.charAt(0).toUpperCase() + t.slice(1)}</button>`).join("")}
+    </div>
+    ${S.subTab === "queue" && connected ? renderInstagramQueue(allPosts) : ""}
+    ${S.subTab === "settings" ? renderInstagramSettings() : ""}
+  </div>`;
+}
+
+function renderInstagramQueue(allPosts) {
+  const filters = ["all", "with-image", "draft", "approved", "published"];
+  const igFilter = S.queueFilter || "all";
+
+  let filtered = allPosts;
+  if (igFilter === "with-image") filtered = allPosts.filter(p => p.imageUrl);
+  else if (igFilter === "draft") filtered = allPosts.filter(p => p.status === "draft");
+  else if (igFilter === "approved") filtered = allPosts.filter(p => p.status === "approved");
+  else if (igFilter === "published") filtered = allPosts.filter(p => p.status === "published" || p.channels?.instagram?.status === "published");
+
+  const igPosts = filtered;
+  const withImg = allPosts.filter(p => p.imageUrl).length;
+  const igPublished = allPosts.filter(p => p.channels?.instagram?.status === "published").length;
+  const igPending = allPosts.filter(p => p.imageUrl && p.status === "approved" && p.channels?.instagram?.status === "pending").length;
+
+  return `
+    <div class="grid grid-cols-4 gap-3 mb-6">
+      <div class="card p-3 text-center"><p class="text-lg font-bold text-white">${allPosts.length}</p><p class="text-[10px] text-gray-500">Total</p></div>
+      <div class="card p-3 text-center"><p class="text-lg font-bold text-purple-400">${withImg}</p><p class="text-[10px] text-gray-500">With Image</p></div>
+      <div class="card p-3 text-center"><p class="text-lg font-bold text-blue-400">${igPending}</p><p class="text-[10px] text-gray-500">Ready to Publish</p></div>
+      <div class="card p-3 text-center"><p class="text-lg font-bold text-green-400">${igPublished}</p><p class="text-[10px] text-gray-500">Published</p></div>
+    </div>
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex gap-1">${filters.map(f => {
+        const label = f === "all" ? "All" : f === "with-image" ? "With Image" : f.charAt(0).toUpperCase() + f.slice(1);
+        return `<button data-filter="${f}" class="px-3 py-1 text-xs rounded ${igFilter === f ? "bg-blue-600/30 text-blue-300 border border-blue-600/30" : "text-gray-500 hover:bg-gray-800"}">${label}</button>`;
+      }).join("")}</div>
+      <span class="text-xs text-gray-500">${igPosts.length} posts</span>
+    </div>
+    <div class="space-y-3">
+      ${igPosts.length === 0 ? `<div class="card p-8 text-center"><p class="text-gray-500 text-sm">No posts${igFilter === "with-image" ? " with images" : ""}</p></div>` : ""}
+      ${igPosts.map(p => renderInstagramPost(p)).join("")}
+    </div>`;
+}
+
+function renderInstagramPost(p) {
+  const sc = { draft: "bg-yellow-900/50 text-yellow-300", approved: "bg-blue-900/50 text-blue-300", published: "bg-green-900/50 text-green-300", failed: "bg-red-900/50 text-red-300" };
+  const igStatus = p.channels?.instagram?.status || "pending";
+  const igBadge = { published: "bg-green-900/40 text-green-400", failed: "bg-red-900/40 text-red-400", pending: "bg-gray-800 text-gray-500", skipped: "bg-gray-800 text-gray-600" };
+  const isEditing = S.editingPost === p.id;
+
+  // Detect card news by imageUrl pattern: /images/card-XXXXXXXX-01-title.png
+  const cardMatch = p.imageUrl?.match(/\/images\/card-([a-f0-9]{8})-/);
+  const batchId = cardMatch ? cardMatch[1] : null;
+  const isCard = !!batchId;
+
+  return `
+    <div class="card p-4">
+      <!-- Header: status + topic -->
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] px-2 py-0.5 rounded ${sc[p.status] || "bg-gray-700 text-gray-300"}">${p.status}</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded ${igBadge[igStatus]}">IG: ${igStatus}</span>
+          ${isCard ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-900/40 text-purple-300">Card News</span>` : ""}
+        </div>
+        <span class="text-[10px] text-gray-600">${esc((p.id || "").slice(0, 8))}</span>
+      </div>
+
+      <!-- Card slides horizontal scroll -->
+      ${p.imageUrl ? `
+        <div class="mb-3 -mx-1">
+          ${isCard ? `
+            <div id="card-slides-${esc(p.id)}" class="flex gap-2 overflow-x-auto pb-2 snap-x" style="scrollbar-width: thin; scrollbar-color: #374151 transparent;" data-load-slides="${batchId}">
+              <div class="flex-shrink-0 w-36 h-44 rounded-lg overflow-hidden border border-gray-800 snap-start">
+                <img src="${esc(p.imageUrl)}" alt="Slide 1" class="w-full h-full object-cover">
+              </div>
+              <div class="flex-shrink-0 w-36 h-44 rounded-lg border border-dashed border-gray-700 flex items-center justify-center snap-start">
+                <span class="text-[10px] text-gray-600">Loading slides...</span>
+              </div>
+            </div>
+          ` : `
+            <div class="w-36 h-44 rounded-lg overflow-hidden border border-gray-800">
+              <img src="${esc(p.imageUrl)}" alt="" class="w-full h-full object-cover">
+            </div>
+          `}
+        </div>
+      ` : `
+        <div class="mb-3 w-36 h-44 rounded-lg border border-dashed border-gray-700 bg-gray-900/30 flex items-center justify-center">
+          <span class="text-gray-600 text-xs">No Image</span>
+        </div>
+      `}
+
+      <!-- Topic -->
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-xs font-medium text-gray-300">${esc(p.topic || "general")}</span>
+        ${p.model ? `<span class="text-[10px] text-gray-600">${esc(p.model)}</span>` : ""}
+      </div>
+
+      <!-- Caption text -->
+      ${isEditing ? `
+        <textarea id="edit-textarea" class="w-full bg-gray-800 text-gray-200 text-sm p-2 rounded border border-gray-700 mb-2" rows="4">${esc(p.text)}</textarea>
+        <div class="flex gap-2">
+          <button data-save="${p.id}" class="px-2 py-1 text-xs bg-blue-600 text-white rounded">Save</button>
+          <button data-cancel-edit class="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded">Cancel</button>
+          <button data-pick-image="${p.id}" class="px-2 py-1 text-xs bg-purple-700 text-white rounded hover:bg-purple-600">${p.imageUrl ? "Change" : "Add"} Image</button>
+        </div>
+      ` : `<p class="text-sm text-gray-300 mb-2 whitespace-pre-wrap line-clamp-4">${esc(p.text)}</p>`}
+
+      <!-- Hashtags -->
+      ${p.hashtags?.length ? `<div class="flex flex-wrap gap-1 mb-3">${p.hashtags.map(h => `<span class="text-[10px] text-blue-400">#${h}</span>`).join("")}</div>` : ""}
+
+      <!-- Actions -->
+      ${!isEditing ? `
+        <div class="flex gap-2 pt-2 border-t border-gray-800/50">
+          ${p.status === "draft" ? `<button data-approve="${p.id}" class="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>` : ""}
+          ${p.status === "draft" || p.status === "approved" ? `<button data-edit="${p.id}" class="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button>` : ""}
+          ${p.status === "draft" ? `<button data-delete="${p.id}" class="px-3 py-1.5 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">Delete</button>` : ""}
+          ${!p.imageUrl && (p.status === "draft" || p.status === "approved") ? `<button data-pick-image="${p.id}" class="px-3 py-1.5 text-xs bg-purple-700 text-white rounded hover:bg-purple-600">Add Image</button>` : ""}
+        </div>
+      ` : ""}
+    </div>`;
+}
+
+function renderInstagramSettings() {
+  const ch = S.channelConfig.instagram || {};
+  const keys = ch.keys || {};
+  const hasKeys = Object.values(keys).some(v => v);
+  const cs = (S.channelSettings.settings || {}).instagram || {};
+  const features = S.channelSettings.features || [];
+
+  const igFeatures = ["content_generation", "auto_publish", "instagram_carousel", "image_generation"];
+  const igFeatureToCron = {
+    content_generation: "instagram-generate-drafts",
+    auto_publish: "instagram-auto-publish",
+  };
+
+  return `
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="card p-5">
+        <h3 class="text-sm font-medium text-gray-300 mb-4">Credentials</h3>
+        <div class="space-y-3">
+          ${credField("ch-instagram-accessToken", "Graph API Access Token", "", true, keys.accessToken || "")}
+          ${credField("ch-instagram-userId", "Instagram Business User ID", "", false, keys.userId || "")}
+        </div>
+        <button id="save-ch-instagram" class="w-full mt-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${hasKeys ? "Update" : "Connect"}</button>
+        <div class="mt-4 card p-4 bg-gray-900/50">
+          <h4 class="text-xs font-medium text-gray-400 mb-2">Setup Guide</h4>
+          <ol class="text-[10px] text-gray-500 space-y-1 list-decimal list-inside">
+            <li>Instagram을 Business/Creator 계정으로 전환</li>
+            <li>Facebook Page 생성 후 Instagram 계정 연결</li>
+            <li>developers.facebook.com > 앱 만들기</li>
+            <li>Instagram Graph API + Content Publishing 제품 추가</li>
+            <li>테스터 등록 후 Instagram 앱에서 수락</li>
+            <li>Graph API Explorer에서 토큰 생성</li>
+            <li>GET /me/accounts → 페이지 ID → GET /{페이지ID}?fields=instagram_business_account → id가 User ID</li>
+          </ol>
+        </div>
+      </div>
+      <div class="card p-5">
+        <h3 class="text-sm font-medium text-gray-300 mb-4">Automation</h3>
+        <div class="space-y-1">
+          ${features.filter(f => igFeatures.includes(f.key)).map(f => {
+            const cronName = igFeatureToCron[f.key];
+            const runs = cronName ? S.cronRuns.filter(r => r.jobName === cronName) : [];
+            const run = runs[0] || null;
+            const sc = run ? (run.status === "ok" ? "text-green-400" : "text-red-400") : "";
+            const ago = run?.finishedAt ? fmtAgo(new Date(run.finishedAt).toISOString()) : "";
+            return `
+              <div class="flex items-center justify-between py-2.5 border-b border-gray-800/50">
+                <div class="flex-1">
+                  <p class="text-xs text-gray-300">${f.label}</p>
+                  <p class="text-[10px] text-gray-600">${f.description}</p>
+                  ${run ? `<p class="text-[10px] ${sc} mt-0.5">${run.status === "ok" ? "Success" : "Error"} ${ago}</p>` : ""}
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer ml-3">
+                  <input type="checkbox" data-ig-toggle="${f.key}" ${cs[f.key] ? "checked" : ""} class="sr-only peer">
+                  <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:bg-green-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+                </label>
+              </div>`;
+          }).join("")}
+        </div>
+      </div>
+    </div>`;
+}
+
 function credField(id, label, desc, isSecret = false, fullValue = "") {
   return `<div>
     <label class="text-xs text-gray-400 block mb-0.5">${label} ${desc ? `<span class="text-gray-600">${desc}</span>` : ""}</label>
@@ -984,9 +1187,9 @@ function renderSettings() {
             <div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-gray-700 flex items-center justify-center text-[9px] font-bold text-white">X</span><div><p class="text-xs text-gray-300">X (Twitter)</p><p class="text-[10px] text-gray-600">${S.channelConfig.x?.connected ? "OAuth 1.0a" : ""}</p></div></div>
             <span class="text-[10px] ${S.channelConfig.x?.connected ? "text-blue-400" : "text-gray-600"}">${S.channelConfig.x?.connected ? "Connected" : ""}</span>
           </div>
-          <div class="flex items-center justify-between p-3 rounded-lg bg-gray-900/50 opacity-50">
-            <div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-gray-700 flex items-center justify-center text-[8px] font-bold text-gray-500">IG</span><div><p class="text-xs text-gray-500">Instagram</p></div></div>
-            <span class="text-[10px] text-gray-700">Coming soon</span>
+          <div class="flex items-center justify-between p-3 rounded-lg bg-gray-900/50 cursor-pointer hover:bg-gray-800/50" data-nav="instagram">
+            <div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-gradient-to-br from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center text-[8px] font-bold text-white">IG</span><div><p class="text-xs text-gray-300">Instagram</p><p class="text-[10px] text-gray-600">${S.channelConfig.instagram?.userId ? "ID: " + S.channelConfig.instagram.userId : ""}</p></div></div>
+            <span class="text-[10px] ${S.channelConfig.instagram?.connected ? "text-green-400" : "text-gray-600"}">${S.channelConfig.instagram?.connected ? "Connected" : "Not connected"}</span>
           </div>
         </div>
         <p class="text-[10px] text-gray-600 mt-4">Click a channel to manage its settings</p>
@@ -1015,9 +1218,26 @@ function renderSettings() {
                 <label class="text-[10px] text-gray-500 block mb-1">Fallback Models</label>
                 <p class="text-xs text-gray-400">${(S.llmConfig.fallbacks || []).join(" → ") || "none"}</p>
               </div>
-              ${S.tokenStatus?.claude ? `
-                <div class="flex justify-between text-sm"><span class="text-gray-500">Token</span><span class="${S.tokenStatus.claude.healthy ? "text-green-400" : "text-red-400"}">${S.tokenStatus.claude.remainingHours}h remaining</span></div>
-              ` : ""}
+              <div class="mt-3 p-3 rounded-lg bg-gray-900/50 border border-gray-800/30">
+                <div class="flex items-center justify-between mb-3">
+                  <h4 class="text-xs font-medium text-gray-300">Claude Token</h4>
+                  ${S.tokenStatus?.claude ? `
+                    <span class="text-[10px] px-2 py-0.5 rounded ${S.tokenStatus.claude.healthy ? "bg-green-900/40 text-green-400" : "bg-red-900/40 text-red-400"}">${S.tokenStatus.claude.healthy ? "Healthy" : "Error"} · ${S.tokenStatus.claude.type || "token"}</span>
+                  ` : ""}
+                </div>
+                ${S.tokenStatus?.claude ? `
+                  <div class="space-y-1 text-[10px] mb-3">
+                    <div class="flex justify-between"><span class="text-gray-500">Errors</span><span class="${S.tokenStatus.claude.errorCount > 0 ? "text-red-400" : "text-gray-400"}">${S.tokenStatus.claude.errorCount}</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500">Last used</span><span class="text-gray-400">${S.tokenStatus.claude.lastUsed ? fmtAgo(new Date(S.tokenStatus.claude.lastUsed).toISOString()) : "-"}</span></div>
+                    ${S.tokenStatus.claude.errorHint ? `<p class="text-red-400 mt-1">${S.tokenStatus.claude.errorHint}</p>` : ""}
+                  </div>
+                ` : ""}
+                <div class="space-y-3">
+                  ${credField("claude-token-input", "Setup Token 또는 API Key", "", true, S.tokenStatus?.claude?.tokenPreview || "")}
+                  <p class="text-[10px] text-gray-600">다른 터미널에서 <code class="bg-gray-800 px-1 rounded">claude setup-token</code> 실행 후 토큰을 붙여넣으세요.</p>
+                  <button id="save-claude-token" class="w-full py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${S.tokenStatus?.claude?.tokenPreview ? "Update Token" : "Connect"}</button>
+                </div>
+              </div>
 
               <div class="border-t border-gray-800/50 pt-3 mt-3">
                 <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Per-Job Model Override</p>
@@ -1057,8 +1277,44 @@ function renderSettings() {
 
 // ── Event Binding ──
 function bindEvents() {
+  // Load card news slides asynchronously
+  document.querySelectorAll("[data-load-slides]").forEach(async el => {
+    const batchId = el.dataset.loadSlides;
+    if (!batchId || el.dataset.loaded) return;
+    el.dataset.loaded = "1";
+    try {
+      const data = await API.get(`/api/card-slides/${batchId}`);
+      if (data?.slides?.length > 0) {
+        el.innerHTML = data.slides.map((s, i) => `
+          <div class="flex-shrink-0 w-36 h-44 rounded-lg overflow-hidden border border-gray-800 snap-start">
+            <img src="${esc(s.url)}" alt="Slide ${i + 1}" class="w-full h-full object-cover">
+          </div>
+        `).join("");
+      }
+    } catch (e) { /* keep loading placeholder */ }
+  });
+
   document.querySelectorAll("[data-nav]").forEach(el => { el.onclick = () => navigate(el.dataset.nav); });
   document.querySelectorAll("[data-sidebar-toggle]").forEach(el => { el.onclick = () => { S.sidebarCollapsed[el.dataset.sidebarToggle] = !S.sidebarCollapsed[el.dataset.sidebarToggle]; render(); }; });
+  // Claude token update
+  const saveToken = document.getElementById("save-claude-token");
+  if (saveToken) saveToken.onclick = async () => {
+    const input = document.getElementById("claude-token-input");
+    const token = input?.value?.trim();
+    if (!token) { showToast("토큰을 입력하세요", "warning"); return; }
+    if (!token.startsWith("sk-ant-")) { showToast("잘못된 토큰 형식 (sk-ant-...)", "error"); return; }
+    saveToken.textContent = "Updating..."; saveToken.disabled = true;
+    const r = await API.post("/api/claude-token", { token });
+    saveToken.textContent = "Update Token"; saveToken.disabled = false;
+    if (r?.ok) {
+      showToast(`Claude 토큰 업데이트 완료 (${r.type})`, "success");
+      input.value = "";
+      loadOverview();
+    } else {
+      showToast(`토큰 업데이트 실패: ${r?.error || "Unknown error"}`, "error");
+    }
+  };
+
   // LLM config save
   const saveLlm = document.getElementById("save-llm-config");
   if (saveLlm) saveLlm.onclick = async () => {
@@ -1076,7 +1332,7 @@ function bindEvents() {
   const changePwBtn = document.getElementById("btn-change-pw");
   if (changePwBtn) changePwBtn.onclick = () => { localStorage.removeItem("dashboard_auth_token"); promptLogin(); };
   document.querySelectorAll("[data-subtab]").forEach(el => { el.onclick = () => { S.subTab = el.dataset.subtab; switchSubTab(el.dataset.subtab); }; });
-  document.querySelectorAll("[data-filter]").forEach(el => { el.onclick = () => { S.queueFilter = el.dataset.filter; loadQueue(S.queueFilter); }; });
+  document.querySelectorAll("[data-filter]").forEach(el => { el.onclick = () => { S.queueFilter = el.dataset.filter; if (S.page === "instagram") { loadQueue("all"); } else { loadQueue(S.queueFilter); } }; });
   document.querySelectorAll("[data-approve]").forEach(el => { el.onclick = () => approvePost(el.dataset.approve); });
   document.querySelectorAll("[data-edit]").forEach(el => { el.onclick = () => { S.editingPost = el.dataset.edit; render(); }; });
   document.querySelectorAll("[data-save]").forEach(el => { el.onclick = () => { const ta = document.getElementById("edit-textarea"); if (ta) updatePost(el.dataset.save, { text: ta.value }); }; });
@@ -1129,6 +1385,13 @@ function bindEvents() {
       const channel = el.dataset.channel;
       const r = await API.post(`/api/channel-settings/${channel}`, { [key]: el.checked });
       if (r) showToast(`${key} ${el.checked ? "ON" : "OFF"}`, "success");
+    };
+  });
+  document.querySelectorAll("[data-ig-toggle]").forEach(el => {
+    el.onchange = async () => {
+      const key = el.dataset.igToggle;
+      const r = await API.post("/api/channel-settings/instagram", { [key]: el.checked });
+      if (r) showToast(`Instagram ${key} ${el.checked ? "ON" : "OFF"}`, "success");
     };
   });
   document.querySelectorAll("[data-cron-interval]").forEach(el => {
@@ -1186,7 +1449,7 @@ function bindEvents() {
   Object.keys(CH_LABELS).forEach(key => {
     const btn = document.getElementById(`save-ch-${key}`);
     if (btn) btn.onclick = async () => {
-      const sg = { facebook: ["accessToken","pageId"], bluesky: ["handle","appPassword"], instagram: ["accessToken","userId"], linkedin: ["accessToken","personUrn"], pinterest: ["accessToken","boardId"], tumblr: ["consumerKey","consumerSecret","accessToken","accessTokenSecret","blogName"], tiktok: ["accessToken"], youtube: ["accessToken"], telegram: ["botToken","chatId"], discord: ["webhookUrl"], line: ["channelAccessToken"], naver_blog: ["blogId","username","apiKey"] };
+      const sg = { facebook: ["accessToken","pageId"], bluesky: ["handle","appPassword"], instagram: ["accessToken","userId"], linkedin: ["accessToken","personUrn"], pinterest: ["accessToken","boardId"], tumblr: ["consumerKey","consumerSecret","accessToken","accessTokenSecret","blogName"], tiktok: ["accessToken"], youtube: ["accessToken"], telegram: ["botToken","chatId"], discord: ["webhookUrl"], line: ["channelAccessToken"], naver_blog: ["blogId","username","apiKey"], midjourney: ["discordToken","channelId","serverId"] };
       const fields = sg[key] || [];
       const data = {};
       fields.forEach(f => { const el = document.getElementById(`ch-${key}-${f}`); if (el?.value) data[f] = el.value; });
@@ -1213,6 +1476,7 @@ function navigate(page) {
   if (page === "overview") loadOverview();
   else if (page === "threads") { S.subTab = "queue"; loadQueue(S.queueFilter); loadGrowth(); loadImages(); }
   else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); }
+  else if (page === "instagram") { S.subTab = S.channelConfig.instagram?.connected ? "queue" : "settings"; S.queueFilter = "all"; loadQueue("all"); loadImages(); loadChannelSettings(); loadCronRuns(); }
   else if (page === "images") loadImages();
   else if (page === "blog") loadBlogQueue();
   else if (CH_LABELS[page]) loadOverview(); // generic channels use overview data
@@ -1442,6 +1706,9 @@ function renderGenericChannel(key) {
     naver_blog: { fields: ["blogId", "username", "apiKey"], labels: ["Blog ID", "네이버 Username", "API Key (XML-RPC)"],
       quick: ["네이버 블로그 관리 > 글쓰기 API 설정", "Blog ID, Username 확인", "XML-RPC API Key 발급", "위 폼에 입력"],
       detail: "네이버 블로그는 공식 REST API가 없습니다. 레거시 XML-RPC 방식으로 발행하며, 안정성이 보장되지 않습니다. 비공식 방식." },
+    midjourney: { fields: ["discordToken", "channelId", "serverId"], labels: ["Discord Token", "Channel ID (미드저니 봇 채널)", "Server ID (Discord 서버)"],
+      quick: ["Discord 서버에 Midjourney 봇 초대 (midjourney.com/app)", "개발자 모드 ON: Discord 설정 > 고급 > 개발자 모드 활성화", "서버 이름 우클릭 > 서버 ID 복사", "미드저니 봇이 있는 채널 우클릭 > 채널 ID 복사", "Discord Token: 봇 토큰 또는 유저 토큰 입력 (discord.com/developers > Applications > Bot > Token)", "위 폼에 3개 값 입력 후 Connect"],
+      detail: "Midjourney Discord 연동으로 /imagine 명령을 자동 전송하고 생성된 이미지를 수집합니다.\n\n⚠️ 유저 토큰 사용 시 Discord TOS 위반 리스크가 있습니다. 봇 토큰 사용을 권장합니다.\n\n봇 토큰 발급: discord.com/developers > New Application > Bot > Reset Token\n봇을 서버에 초대: OAuth2 > URL Generator > bot 권한 선택 > 생성된 URL로 초대\n\n필요 권한: Read Messages, Send Messages, Read Message History.\n\n이미지 생성 시간: 30~90초. 자동 업스케일 지원.\n\nMidjourney 구독 필요 (Basic $10/월, Standard $30/월)." },
   };
 
   const sg = setupGuides[key] || { fields: [], labels: [], quick: ["Setup guide가 아직 준비되지 않았습니다."], detail: "" };

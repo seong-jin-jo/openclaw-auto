@@ -2,9 +2,19 @@ import { Type } from "@sinclair/typebox";
 import { jsonResult, readStringParam } from "openclaw/plugin-sdk/agent-runtime";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-runtime";
 import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { resolve, extname } from "node:path";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { randomUUID } from "node:crypto";
 
 const API_BASE = "https://graph.instagram.com/v21.0";
+
+const MIME_TYPES: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+};
 
 type Config = { accessToken?: string; userId?: string };
 
@@ -17,23 +27,44 @@ function resolveConfig(api: OpenClawPluginApi) {
   return { accessToken, userId };
 }
 
-async function uploadToPublic(localPath: string): Promise<string> {
+async function uploadToR2(localPath: string): Promise<string> {
   const filename = localPath.replace("/images/", "");
   const dataDir = process.env.DATA_DIR || "/home/node/data";
   const filePath = resolve(dataDir, "images", filename);
   const fileBuffer = await readFile(filePath);
-  const formData = new FormData();
-  formData.append("file", new Blob([fileBuffer]), filename);
-  const resp = await fetch("https://tmpfiles.org/api/v1/upload", { method: "POST", body: formData });
-  if (!resp.ok) throw new Error(`Image upload failed (${resp.status})`);
-  const data = (await resp.json()) as { data?: { url?: string } };
-  const tmpUrl = data.data?.url;
-  if (!tmpUrl) throw new Error("Image upload returned no URL.");
-  return tmpUrl.replace("tmpfiles.org/", "tmpfiles.org/dl/");
+
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID || "";
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY || "";
+  const bucket = process.env.R2_BUCKET || "";
+  const publicUrl = (process.env.R2_PUBLIC_URL || "").replace(/\/+$/, "");
+  const endpoint = process.env.R2_ENDPOINT || "";
+
+  if (!accessKeyId || !secretAccessKey || !bucket || !publicUrl || !endpoint) {
+    throw new Error("R2 credentials not configured. Set R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_URL, R2_ENDPOINT env vars.");
+  }
+
+  const ext = extname(filename).toLowerCase();
+  const contentType = MIME_TYPES[ext] || "application/octet-stream";
+  const key = `instagram/${randomUUID()}${ext}`;
+
+  const s3 = new S3Client({
+    region: "auto",
+    endpoint,
+    credentials: { accessKeyId, secretAccessKey },
+  });
+
+  await s3.send(new PutObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    Body: fileBuffer,
+    ContentType: contentType,
+  }));
+
+  return `${publicUrl}/${key}`;
 }
 
 async function resolveImageUrl(url: string): Promise<string> {
-  if (url.startsWith("/images/")) return await uploadToPublic(url);
+  if (url.startsWith("/images/")) return await uploadToR2(url);
   return url;
 }
 
