@@ -155,10 +155,10 @@ const S = {
   page: "overview", subTab: "queue",
   overview: null, queue: [], growth: [], popular: [], analytics: null,
   keywords: [], settings: null, guide: "", cronJobs: [], activity: [],
-  channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [], seoSettings: null, blogDetailId: null, blogEditing: false, blogGuide: "", blogKeywords: [], blogStats: null, gscConfig: null, gscEditing: false, gscAnalytics: null, gscDays: 28, gscDimension: "query", gaAnalytics: null, gaDays: 28, nsaData: null, kwResearch: null,
+  channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [], seoSettings: null, blogDetailId: null, blogEditing: false, blogGuide: "", blogKeywords: [], blogStats: null, gscConfig: null, gscEditing: false, gscAnalytics: null, gscDays: 28, gscDimension: "query", gaAnalytics: null, gaDays: 28, nsaData: null, kwResearch: null, naverTrend: null, googleTrend: null,
   tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
-  sidebarCollapsed: { social: false, video: true, blog: false, messaging: true, data: false, custom: true }, showDetail: null, editingChannel: null,
+  sidebarCollapsed: { social: false, video: true, blog: false, messaging: true, data: false, research: false, custom: true }, showDetail: null, editingChannel: null,
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null, expandedPopular: null,
 };
@@ -252,6 +252,9 @@ function render() {
   else if (S.page === "search-console") app.innerHTML = renderSearchConsole();
   else if (S.page === "search-advisor") app.innerHTML = renderSearchAdvisor();
   else if (S.page === "google-analytics") app.innerHTML = renderGoogleAnalytics();
+  else if (S.page === "keyword-planner") app.innerHTML = renderKeywordPlanner();
+  else if (S.page === "naver-trends") app.innerHTML = renderNaverTrends();
+  else if (S.page === "google-trends") app.innerHTML = renderGoogleTrends();
   else if (S.page === "blog-edit") app.innerHTML = renderBlogEditor();
   else if (S.page === "blog") app.innerHTML = renderBlog();
   else if (CH_LABELS[S.page]) app.innerHTML = renderGenericChannel(S.page);
@@ -370,9 +373,10 @@ function renderSidebar() {
           { label: "Google Business", icon: "G", soon: true },
         ])}
 
-        ${sidebarGroup("custom", "Custom", [
-          { label: "Custom API", icon: "+", soon: true },
-          { label: "Webhook", icon: "W", soon: true },
+        ${sidebarGroup("research", "Keyword Research", [
+          { key: "keyword-planner", label: "Keyword Planner", icon: "K", nav: true },
+          { key: "naver-trends", label: "Naver Trends", icon: "N", nav: true },
+          { key: "google-trends", label: "Google Trends", icon: "G", nav: true },
         ])}
 
         <div class="px-3 mt-5 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Assets</span></div>
@@ -1276,6 +1280,26 @@ function bindEvents() {
       if (r) { S.kwResearch = r; render(); }
     } else { showToast("Blog Keywords가 비어있습니다", "warning"); }
   };
+  const naverTrendBtn = document.getElementById("naver-trend-btn");
+  if (naverTrendBtn) naverTrendBtn.onclick = async () => {
+    const input = document.getElementById("naver-trend-input")?.value;
+    if (!input) return;
+    const keywords = input.split(",").map(s => s.trim()).filter(Boolean);
+    naverTrendBtn.textContent = "Loading..."; naverTrendBtn.disabled = true;
+    const r = await API.post("/api/naver-trend", { keywords });
+    naverTrendBtn.textContent = "Trend"; naverTrendBtn.disabled = false;
+    if (r) { S.naverTrend = r; render(); }
+  };
+  const googleTrendBtn = document.getElementById("google-trend-btn");
+  if (googleTrendBtn) googleTrendBtn.onclick = async () => {
+    const input = document.getElementById("google-trend-input")?.value;
+    if (!input) return;
+    const keywords = input.split(",").map(s => s.trim()).filter(Boolean);
+    googleTrendBtn.textContent = "Loading..."; googleTrendBtn.disabled = true;
+    const r = await API.post("/api/google-trend", { keywords });
+    googleTrendBtn.textContent = "Trend"; googleTrendBtn.disabled = false;
+    if (r) { S.googleTrend = r; render(); }
+  };
   const saveNsa = document.getElementById("save-nsa-data");
   if (saveNsa) saveNsa.onclick = async () => {
     const data = {
@@ -1337,6 +1361,9 @@ function navigate(page) {
   else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); }
   else if (page === "images") loadImages();
   else if (page === "blog-performance") { loadBlogStats(); loadGscAnalytics(); }
+  else if (page === "keyword-planner") render();
+  else if (page === "naver-trends") render();
+  else if (page === "google-trends") render();
   else if (page === "search-advisor") loadNsaData();
   else if (page === "search-console") { loadGscConfig(); loadGscAnalytics(); }
   else if (page === "google-analytics") { loadGaAnalytics(); }
@@ -2030,42 +2057,109 @@ function renderSearchAdvisor() {
       <span class="text-[10px] text-gray-600 self-center">${nsa?.savedAt ? `Last saved: ${nsa.savedAt.slice(0,16)}` : "Not saved yet"}</span>
     </div>
 
-    <div class="mt-8">
-      <h3 class="text-lg font-bold text-white mb-4">Keyword Research</h3>
-      <div class="card p-4 mb-4">
-        <div class="flex gap-2 mb-3">
-          <input id="kw-research-input" type="text" placeholder="키워드 입력 (쉼표로 구분, 최대 5개)" class="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
-          <button id="kw-research-btn" class="px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Analyze</button>
-          <button id="kw-research-blog" class="px-4 py-2 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Blog Keywords로 분석</button>
-        </div>
-        ${S.kwResearch?.error ? `<p class="text-xs text-red-400">${esc(S.kwResearch.error)}</p>` : ""}
-        ${S.kwResearch?.results?.length ? `<table class="w-full text-sm">
-          <thead><tr class="text-[10px] text-gray-500 uppercase border-b border-gray-800">
-            <th class="text-left py-2">Keyword</th>
-            <th class="text-right py-2">PC</th>
-            <th class="text-right py-2">Mobile</th>
-            <th class="text-right py-2">Total</th>
-            <th class="text-right py-2">Competition</th>
-            <th class="text-right py-2"></th>
-          </tr></thead>
-          <tbody>${S.kwResearch.results.slice(0, 30).map(r => {
-            const comp = {"높음":"text-red-400","중간":"text-yellow-400","낮음":"text-green-400","high":"text-red-400","medium":"text-yellow-400","low":"text-green-400"};
-            return `<tr class="border-b border-gray-800/30">
-              <td class="text-gray-200 py-2">${esc(r.keyword)}</td>
-              <td class="text-gray-400 text-right py-2">${r.pcSearches?.toLocaleString()}</td>
-              <td class="text-gray-400 text-right py-2">${r.mobileSearches?.toLocaleString()}</td>
-              <td class="text-white text-right py-2 font-medium">${r.totalSearches?.toLocaleString()}</td>
-              <td class="text-right py-2 ${comp[r.competition] || "text-gray-400"}">${r.competition || "-"}</td>
-              <td class="text-right py-2"><button data-add-keyword="${esc(r.keyword)}" class="text-[10px] text-blue-400 hover:text-blue-300">+ Keywords</button></td>
-            </tr>`;
-          }).join("")}</tbody>
-        </table>` : S.kwResearch ? `<p class="text-xs text-gray-600">No results</p>` : ""}
-      </div>
-    </div>
   </div>`;
 }
 
 async function loadNsaData() { const d = await API.get("/api/nsa-data"); if (d) { S.nsaData = d; render(); } }
+
+// ── Keyword Research Pages ──
+function kwResultsTable() {
+  if (!S.kwResearch?.results?.length) return S.kwResearch?.error ? `<p class="text-xs text-red-400 mt-3">${esc(S.kwResearch.error)}</p>` : "";
+  const comp = {"높음":"text-red-400","중간":"text-yellow-400","낮음":"text-green-400","high":"text-red-400","medium":"text-yellow-400","low":"text-green-400"};
+  return `<table class="w-full text-sm mt-4">
+    <thead><tr class="text-[10px] text-gray-500 uppercase border-b border-gray-800">
+      <th class="text-left py-2">Keyword</th><th class="text-right py-2">PC</th><th class="text-right py-2">Mobile</th>
+      <th class="text-right py-2">Total</th><th class="text-right py-2">Competition</th><th class="text-right py-2"></th>
+    </tr></thead>
+    <tbody>${S.kwResearch.results.slice(0, 30).map(r => `<tr class="border-b border-gray-800/30">
+      <td class="text-gray-200 py-2">${esc(r.keyword)}</td>
+      <td class="text-gray-400 text-right py-2">${r.pcSearches?.toLocaleString()}</td>
+      <td class="text-gray-400 text-right py-2">${r.mobileSearches?.toLocaleString()}</td>
+      <td class="text-white text-right py-2 font-medium">${r.totalSearches?.toLocaleString()}</td>
+      <td class="text-right py-2 ${comp[r.competition] || "text-gray-400"}">${r.competition || "-"}</td>
+      <td class="text-right py-2"><button data-add-keyword="${esc(r.keyword)}" class="text-[10px] text-blue-400 hover:text-blue-300">+ Blog KW</button></td>
+    </tr>`).join("")}</tbody>
+  </table>`;
+}
+
+function renderKeywordPlanner() {
+  return `<div class="px-8 py-6">
+    <h2 class="text-xl font-bold text-white mb-1">Keyword Planner</h2>
+    <p class="text-xs text-gray-500 mb-6">네이버 검색광고 API — 키워드별 검색량 + 경쟁도 + 연관 키워드</p>
+    <div class="card p-4">
+      <div class="flex gap-2 mb-2">
+        <input id="kw-research-input" type="text" placeholder="키워드 입력 (쉼표로 구분, 최대 5개)" class="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
+        <button id="kw-research-btn" class="px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Analyze</button>
+        <button id="kw-research-blog" class="px-4 py-2 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600 whitespace-nowrap">Blog Keywords</button>
+      </div>
+      <p class="text-[10px] text-gray-600">네이버 검색광고 API 키 필요: Settings 또는 .env에 NAVER_SEARCHAD_* 설정</p>
+      ${kwResultsTable()}
+    </div>
+  </div>`;
+}
+
+function renderNaverTrends() {
+  return `<div class="px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-bold text-white">Naver Trends</h2>
+        <p class="text-xs text-gray-500 mt-1">네이버 데이터랩 — 검색 트렌드 분석</p>
+      </div>
+      <a href="https://datalab.naver.com" target="_blank" class="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">네이버 데이터랩 열기 &rarr;</a>
+    </div>
+    <div class="card p-4 mb-4">
+      <div class="flex gap-2 mb-2">
+        <input id="naver-trend-input" type="text" placeholder="키워드 입력 (쉼표로 구분, 최대 5개)" class="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
+        <button id="naver-trend-btn" class="px-4 py-2 text-xs bg-green-600 text-white rounded hover:bg-green-500">Trend</button>
+      </div>
+      <p class="text-[10px] text-gray-600">네이버 개발자센터 API 키 필요: NAVER_CLIENT_ID, NAVER_CLIENT_SECRET</p>
+      ${S.naverTrend?.error ? `<p class="text-xs text-red-400 mt-3">${esc(S.naverTrend.error)}</p>` : ""}
+      ${S.naverTrend?.results?.length ? `
+        <div class="mt-4">
+          <h4 class="text-xs font-medium text-gray-400 mb-2">Search Trend (relative)</h4>
+          ${S.naverTrend.results.map(group => `
+            <div class="mb-3">
+              <span class="text-xs text-gray-300">${esc(group.title)}</span>
+              <div class="flex items-end gap-0.5 h-16 mt-1">${(group.data || []).slice(-30).map(d => {
+                const pct = Math.max(2, d.ratio);
+                return `<div class="flex-1 bg-green-600 rounded-t" style="height:${pct}%" title="${d.period}: ${d.ratio}"></div>`;
+              }).join("")}</div>
+            </div>
+          `).join("")}
+        </div>
+      ` : ""}
+    </div>
+  </div>`;
+}
+
+function renderGoogleTrends() {
+  return `<div class="px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-bold text-white">Google Trends</h2>
+        <p class="text-xs text-gray-500 mt-1">구글 검색 트렌드 — 한국 교육 키워드</p>
+      </div>
+      <a href="https://trends.google.com/trends/explore?geo=KR&cat=958" target="_blank" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Google Trends 열기 &rarr;</a>
+    </div>
+    <div class="card p-4 mb-4">
+      <div class="flex gap-2 mb-2">
+        <input id="google-trend-input" type="text" placeholder="키워드 입력 (쉼표로 구분)" class="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
+        <button id="google-trend-btn" class="px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Trend</button>
+      </div>
+      <p class="text-[10px] text-gray-600">Google Trends API (Alpha) 키 필요. 또는 pytrends 라이브러리 사용.</p>
+      ${S.googleTrend?.error ? `<p class="text-xs text-red-400 mt-3">${esc(S.googleTrend.error)}</p>` : ""}
+      ${S.googleTrend?.results?.length ? `
+        <div class="mt-4 space-y-2">${S.googleTrend.results.map(r => `
+          <div class="flex items-center gap-3 text-xs">
+            <span class="text-gray-300 w-48 truncate">${esc(r.query)}</span>
+            <div class="flex-1 bg-gray-800 rounded-full h-2"><div class="bg-blue-600 rounded-full h-2" style="width:${r.value}%"></div></div>
+            <span class="text-gray-500 w-12 text-right">${r.value}</span>
+          </div>
+        `).join("")}</div>
+      ` : ""}
+    </div>
+  </div>`;
+}
 
 async function loadBlogStats() { const d = await API.get("/api/blog-stats"); if (d) { S.blogStats = d; render(); } }
 async function loadGaAnalytics() {

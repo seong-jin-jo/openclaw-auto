@@ -1805,6 +1805,69 @@ def api_keyword_research():
         return jsonify({"error": str(e), "results": []})
 
 
+# ── API: Naver Datalab Trend ──
+@app.route("/api/naver-trend", methods=["POST"])
+def api_naver_trend():
+    """Fetch search trend from Naver Datalab API"""
+    client_id = os.environ.get("NAVER_CLIENT_ID", "")
+    client_secret = os.environ.get("NAVER_CLIENT_SECRET", "")
+    if not client_id or not client_secret:
+        return jsonify({"error": "네이버 개발자센터 API 키 필요: NAVER_CLIENT_ID, NAVER_CLIENT_SECRET (.env에 추가)", "results": []})
+
+    data = get_json_body()
+    keywords = data.get("keywords", [])
+    if not keywords:
+        return jsonify({"error": "keywords required", "results": []})
+
+    try:
+        import urllib.request
+        end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        start_date = (datetime.now(timezone.utc) - timedelta(days=90)).strftime("%Y-%m-%d")
+
+        body = json.dumps({
+            "startDate": start_date,
+            "endDate": end_date,
+            "timeUnit": "week",
+            "keywordGroups": [{"groupName": kw, "keywords": [kw]} for kw in keywords[:5]],
+        }).encode()
+
+        req = urllib.request.Request(
+            "https://openapi.naver.com/v1/datalab/search",
+            data=body,
+            headers={
+                "Content-Type": "application/json",
+                "X-Naver-Client-Id": client_id,
+                "X-Naver-Client-Secret": client_secret,
+            }
+        )
+        resp = urllib.request.urlopen(req, timeout=10)
+        result = json.loads(resp.read())
+
+        results = []
+        for group in result.get("results", []):
+            results.append({
+                "title": group.get("title", ""),
+                "data": [{"period": d.get("period", ""), "ratio": d.get("ratio", 0)} for d in group.get("data", [])],
+            })
+        return jsonify({"results": results})
+    except Exception as e:
+        logger.error("Naver trend failed: %s", e)
+        return jsonify({"error": str(e), "results": []})
+
+
+# ── API: Google Trends ──
+@app.route("/api/google-trend", methods=["POST"])
+def api_google_trend():
+    """Fetch search trend — currently redirects to Google Trends web (no API key configured)"""
+    # Google Trends API (Alpha) requires special access
+    # For now, suggest using the web interface
+    return jsonify({
+        "error": "Google Trends API는 Alpha 단계입니다. trends.google.com/trends/explore?geo=KR 에서 직접 확인하세요.",
+        "results": [],
+        "webUrl": "https://trends.google.com/trends/explore?geo=KR&cat=958",
+    })
+
+
 # ── API: Google Analytics ──
 GA_CONFIG_PATH = DATA_DIR / "ga-config.json"
 
