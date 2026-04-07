@@ -1,0 +1,12 @@
+{
+  "name": "@openclaw/midjourney-image",
+  "version": "2026.4.7",
+  "private": true,
+  "description": "OpenClaw Midjourney image generation via Discord",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
