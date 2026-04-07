@@ -565,12 +565,46 @@ def api_blog_stats():
         avg_views = round(total_views / len(articles)) if articles else 0
         top = articles[0] if articles else None
 
+        # Tag aggregation
+        tag_stats = {}
+        for a in articles:
+            for tag in a.get("tags", []):
+                if tag not in tag_stats:
+                    tag_stats[tag] = {"count": 0, "totalViews": 0}
+                tag_stats[tag]["count"] += 1
+                tag_stats[tag]["totalViews"] += a["viewCount"]
+        for t in tag_stats.values():
+            t["avgViews"] = round(t["totalViews"] / t["count"]) if t["count"] else 0
+        top_tags = sorted(tag_stats.items(), key=lambda x: x[1]["avgViews"], reverse=True)[:15]
+
+        # Save daily snapshot
+        history_path = DATA_DIR / "blog-analytics-history.json"
+        history = read_json(history_path) or {"snapshots": []}
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        existing = [s for s in history["snapshots"] if s.get("date") == today]
+        snapshot = {"date": today, "totalViews": total_views, "totalArticles": len(articles),
+                    "articles": [{"id": a["id"], "viewCount": a["viewCount"]} for a in articles]}
+        if existing:
+            existing[0].update(snapshot)
+        else:
+            history["snapshots"].append(snapshot)
+            history["snapshots"] = history["snapshots"][-90:]  # keep 90 days
+        write_json(history_path, history)
+
+        # Calculate daily delta
+        yesterday = [(s) for s in history["snapshots"] if s["date"] < today]
+        prev_views = yesterday[-1]["totalViews"] if yesterday else 0
+        daily_delta = total_views - prev_views
+
         return jsonify({
             "totalArticles": len(articles),
             "totalViews": total_views,
             "avgViews": avg_views,
+            "dailyDelta": daily_delta,
             "topArticle": top,
             "articles": articles,
+            "topTags": [{"tag": t, **v} for t, v in top_tags],
+            "history": [{"date": s["date"], "totalViews": s["totalViews"]} for s in history["snapshots"][-14:]],
         })
     except Exception as e:
         logger.error("Blog stats fetch failed: %s", e)

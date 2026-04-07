@@ -1254,6 +1254,17 @@ function bindEvents() {
   document.querySelectorAll("[data-gsc-dim]").forEach(el => {
     el.onclick = () => { S.gscDimension = el.dataset.gscDim; loadGscAnalytics(); };
   });
+  document.querySelectorAll("[data-add-keyword]").forEach(el => {
+    el.onclick = async () => {
+      const kw = el.dataset.addKeyword;
+      const cur = await API.get("/api/blog-keywords");
+      if (cur && !cur.keywords.includes(kw)) {
+        cur.keywords.push(kw);
+        const r = await API.post("/api/blog-keywords", { keywords: cur.keywords });
+        if (r) { showToast(`"${kw}" 키워드 추가됨`, "success"); el.textContent = "Added"; el.disabled = true; }
+      } else { showToast("이미 있는 키워드", "info"); }
+    };
+  });
   document.querySelectorAll("[data-ga-days]").forEach(el => {
     el.onclick = () => { S.gaDays = parseInt(el.dataset.gaDays); loadGaAnalytics(); };
   });
@@ -1889,6 +1900,16 @@ function renderSearchConsole() {
         <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Avg CTR</div><div class="text-xl font-bold text-white">${g.avgCtr}%</div></div>
         <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Avg Position</div><div class="text-xl font-bold text-white">${g.avgPosition}</div></div>
       </div>
+      ${(() => {
+        const insights = [];
+        if (dim === "query" && g.rows?.length) {
+          const lowCtr = g.rows.filter(r => r.impressions >= 10 && r.ctr < 3);
+          if (lowCtr.length) insights.push(`<span class="text-yellow-400">${lowCtr.length}개 키워드</span>가 노출은 되지만 클릭이 낮습니다 — 제목/설명 개선 필요`);
+          const topKw = g.rows.filter(r => r.clicks > 0 && r.position <= 5);
+          if (topKw.length) insights.push(`<span class="text-green-400">${topKw.length}개 키워드</span>가 상위 5위 안에 있습니다`);
+        }
+        return insights.length ? `<div class="card p-3 mb-4 border-l-2 border-blue-600"><div class="text-xs text-gray-300 space-y-1">${insights.map(i => `<div>${i}</div>`).join("")}</div></div>` : "";
+      })()}
       <div class="card p-4">
         <h3 class="text-xs font-medium text-gray-400 mb-3">${dim === "query" ? "Top Keywords" : "Top Pages"}</h3>
         ${g.rows?.length ? `<table class="w-full text-sm">
@@ -1898,14 +1919,24 @@ function renderSearchConsole() {
             <th class="text-right py-2">Impressions</th>
             <th class="text-right py-2">CTR</th>
             <th class="text-right py-2">Position</th>
+            ${dim === "query" ? `<th class="text-right py-2"></th>` : ""}
           </tr></thead>
-          <tbody>${g.rows.map(r => `<tr class="border-b border-gray-800/30">
-            <td class="text-gray-200 py-2 max-w-xs truncate">${esc(r.key)}</td>
-            <td class="text-gray-400 text-right py-2">${r.clicks}</td>
-            <td class="text-gray-400 text-right py-2">${r.impressions}</td>
-            <td class="text-gray-400 text-right py-2">${r.ctr}%</td>
-            <td class="text-gray-400 text-right py-2">${r.position}</td>
-          </tr>`).join("")}</tbody>
+          <tbody>${g.rows.map(r => {
+            const lowCtr = r.impressions >= 10 && r.ctr < 3;
+            const highPos = r.position > 10;
+            return `<tr class="border-b border-gray-800/30${lowCtr ? " bg-yellow-900/10" : ""}">
+              <td class="text-gray-200 py-2 max-w-xs truncate">
+                ${esc(r.key)}
+                ${lowCtr && dim === "query" ? `<span class="text-[9px] text-yellow-400 ml-1">CTR low</span>` : ""}
+                ${highPos && dim === "query" ? `<span class="text-[9px] text-orange-400 ml-1">pos ${r.position}</span>` : ""}
+              </td>
+              <td class="text-gray-400 text-right py-2">${r.clicks}</td>
+              <td class="text-gray-400 text-right py-2">${r.impressions}</td>
+              <td class="text-gray-400 text-right py-2 ${lowCtr ? "text-yellow-400" : ""}">${r.ctr}%</td>
+              <td class="text-gray-400 text-right py-2">${r.position}</td>
+              ${dim === "query" ? `<td class="text-right py-2"><button data-add-keyword="${esc(r.key)}" class="text-[10px] text-blue-400 hover:text-blue-300">+ Keywords</button></td>` : ""}
+            </tr>`;
+          }).join("")}</tbody>
         </table>` : `<p class="text-gray-600 text-sm">No data for this period</p>`}
       </div>
       ${g.cached ? `<p class="text-[10px] text-gray-600 mt-2">Cached data from ${g.fetchedAt?.slice(0,16) || "unknown"}</p>` : ""}
@@ -1930,12 +1961,32 @@ function renderBlogPerformance() {
     <p class="text-xs text-gray-500 mb-6">d-edu.site 칼럼 성과 — 조회수 + 검색 데이터</p>
 
     ${!bs || bs.error ? `<div class="card p-4 text-center text-xs text-gray-500">${bs?.error || "Loading..."}</div>` : `
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
         <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Published</div><div class="text-xl font-bold text-white">${bs.totalArticles}</div></div>
-        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Total Views</div><div class="text-xl font-bold text-white">${bs.totalViews}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Total Views</div><div class="text-xl font-bold text-white">${bs.totalViews}</div>${bs.dailyDelta != null ? `<div class="text-[10px] ${bs.dailyDelta >= 0 ? "text-green-400" : "text-red-400"}">${bs.dailyDelta >= 0 ? "+" : ""}${bs.dailyDelta} today</div>` : ""}</div>
         <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Avg Views</div><div class="text-xl font-bold text-white">${bs.avgViews}</div></div>
         <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Search Clicks</div><div class="text-xl font-bold text-white">${g?.totalClicks ?? "-"}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Impressions</div><div class="text-xl font-bold text-white">${g?.totalImpressions ?? "-"}</div></div>
       </div>
+
+      ${bs.history?.length > 1 ? `<div class="card p-4 mb-6">
+        <h3 class="text-xs font-medium text-gray-400 mb-3">Views Trend (14 days)</h3>
+        <div class="flex items-end gap-1 h-20">${bs.history.map((h, i) => {
+          const max = Math.max(...bs.history.map(x => x.totalViews)) || 1;
+          const pct = Math.max(4, (h.totalViews / max) * 100);
+          const prev = i > 0 ? bs.history[i-1].totalViews : h.totalViews;
+          const delta = h.totalViews - prev;
+          return `<div class="flex-1 flex flex-col items-center gap-0.5">
+            <div class="w-full rounded-t ${delta > 0 ? "bg-green-600" : delta < 0 ? "bg-red-600" : "bg-gray-600"}" style="height:${pct}%" title="${h.date}: ${h.totalViews} views (${delta >= 0 ? "+" : ""}${delta})"></div>
+            <span class="text-[8px] text-gray-600">${h.date.slice(5)}</span>
+          </div>`;
+        }).join("")}</div>
+      </div>` : ""}
+
+      ${bs.topTags?.length ? `<div class="card p-4 mb-6">
+        <h3 class="text-xs font-medium text-gray-400 mb-3">Tag Performance</h3>
+        <div class="flex flex-wrap gap-2">${bs.topTags.map(t => `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs border border-gray-800 bg-gray-900 text-gray-400">#${esc(t.tag)} <span class="text-[10px] text-gray-500">${t.count}posts ${t.avgViews}avg</span></span>`).join("")}</div>
+      </div>` : ""}
 
       <div class="card p-4 mb-6">
         <h3 class="text-xs font-medium text-gray-400 mb-3">Articles</h3>
