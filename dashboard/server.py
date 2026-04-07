@@ -1741,6 +1741,70 @@ def api_nsa_data_update():
     return jsonify({"ok": True})
 
 
+# ── API: Naver Keyword Research ──
+@app.route("/api/keyword-research", methods=["POST"])
+def api_keyword_research():
+    """Analyze keywords via Naver Search Ad API"""
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path) or {}
+    seo_cfg = config.get("plugins", {}).get("entries", {}).get("seo-keywords", {}).get("config", {})
+    client_id = seo_cfg.get("naverClientId", "") or os.environ.get("NAVER_SEARCHAD_CLIENT_ID", "")
+    client_secret = seo_cfg.get("naverClientSecret", "") or os.environ.get("NAVER_SEARCHAD_CLIENT_SECRET", "")
+    customer_id = seo_cfg.get("naverCustomerId", "") or os.environ.get("NAVER_SEARCHAD_CUSTOMER_ID", "")
+
+    if not client_id or not client_secret or not customer_id:
+        return jsonify({"error": "네이버 검색광고 API 키가 설정되지 않았습니다. Settings에서 설정하거나 .env에 NAVER_SEARCHAD_* 환경변수를 추가하세요.", "results": []})
+
+    data = get_json_body()
+    keywords = data.get("keywords", [])
+    if not keywords:
+        return jsonify({"error": "keywords required", "results": []})
+
+    try:
+        import urllib.request
+        import hmac
+        import hashlib
+        import base64
+        import time
+
+        timestamp = str(int(time.time() * 1000))
+        method = "GET"
+        uri = "/keywordstool"
+        message = f"{timestamp}.{method}.{uri}"
+        signature = base64.b64encode(hmac.new(client_secret.encode(), message.encode(), hashlib.sha256).digest()).decode()
+
+        params = urllib.parse.urlencode({"hintKeywords": ",".join(keywords[:5]), "showDetail": "1"})
+        req = urllib.request.Request(
+            f"https://api.searchad.naver.com{uri}?{params}",
+            headers={
+                "X-Timestamp": timestamp,
+                "X-API-KEY": client_id,
+                "X-Customer": customer_id,
+                "X-Signature": signature,
+            }
+        )
+        resp = urllib.request.urlopen(req, timeout=10)
+        result = json.loads(resp.read())
+
+        results = []
+        for kw in result.get("keywordList", []):
+            pc = int(kw.get("monthlyPcQcCnt", 0)) if isinstance(kw.get("monthlyPcQcCnt"), (int, float)) else 0
+            mobile = int(kw.get("monthlyMobileQcCnt", 0)) if isinstance(kw.get("monthlyMobileQcCnt"), (int, float)) else 0
+            results.append({
+                "keyword": kw.get("relKeyword", ""),
+                "pcSearches": pc,
+                "mobileSearches": mobile,
+                "totalSearches": pc + mobile,
+                "competition": kw.get("compIdx", ""),
+            })
+        results.sort(key=lambda x: x["totalSearches"], reverse=True)
+        logger.info("Keyword research: %d results for %s", len(results), keywords)
+        return jsonify({"results": results, "total": len(results)})
+    except Exception as e:
+        logger.error("Keyword research failed: %s", e)
+        return jsonify({"error": str(e), "results": []})
+
+
 # ── API: Google Analytics ──
 GA_CONFIG_PATH = DATA_DIR / "ga-config.json"
 

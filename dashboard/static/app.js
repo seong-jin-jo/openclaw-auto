@@ -155,7 +155,7 @@ const S = {
   page: "overview", subTab: "queue",
   overview: null, queue: [], growth: [], popular: [], analytics: null,
   keywords: [], settings: null, guide: "", cronJobs: [], activity: [],
-  channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [], seoSettings: null, blogDetailId: null, blogEditing: false, blogGuide: "", blogKeywords: [], blogStats: null, gscConfig: null, gscEditing: false, gscAnalytics: null, gscDays: 28, gscDimension: "query", gaAnalytics: null, gaDays: 28, nsaData: null,
+  channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [], seoSettings: null, blogDetailId: null, blogEditing: false, blogGuide: "", blogKeywords: [], blogStats: null, gscConfig: null, gscEditing: false, gscAnalytics: null, gscDays: 28, gscDimension: "query", gaAnalytics: null, gaDays: 28, nsaData: null, kwResearch: null,
   tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
   sidebarCollapsed: { social: false, video: true, blog: false, messaging: true, data: false, custom: true }, showDetail: null, editingChannel: null,
@@ -1256,6 +1256,26 @@ function bindEvents() {
   document.querySelectorAll("[data-gsc-dim]").forEach(el => {
     el.onclick = () => { S.gscDimension = el.dataset.gscDim; loadGscAnalytics(); };
   });
+  const kwBtn = document.getElementById("kw-research-btn");
+  if (kwBtn) kwBtn.onclick = async () => {
+    const input = document.getElementById("kw-research-input")?.value;
+    if (!input) return;
+    const keywords = input.split(",").map(s => s.trim()).filter(Boolean);
+    kwBtn.textContent = "Analyzing..."; kwBtn.disabled = true;
+    const r = await API.post("/api/keyword-research", { keywords });
+    kwBtn.textContent = "Analyze"; kwBtn.disabled = false;
+    if (r) { S.kwResearch = r; render(); }
+  };
+  const kwBlogBtn = document.getElementById("kw-research-blog");
+  if (kwBlogBtn) kwBlogBtn.onclick = async () => {
+    const kw = await API.get("/api/blog-keywords");
+    if (kw?.keywords?.length) {
+      kwBlogBtn.textContent = "Analyzing..."; kwBlogBtn.disabled = true;
+      const r = await API.post("/api/keyword-research", { keywords: kw.keywords.slice(0, 5) });
+      kwBlogBtn.textContent = "Blog Keywords로 분석"; kwBlogBtn.disabled = false;
+      if (r) { S.kwResearch = r; render(); }
+    } else { showToast("Blog Keywords가 비어있습니다", "warning"); }
+  };
   const saveNsa = document.getElementById("save-nsa-data");
   if (saveNsa) saveNsa.onclick = async () => {
     const data = {
@@ -2008,6 +2028,39 @@ function renderSearchAdvisor() {
     <div class="flex gap-2">
       <button id="save-nsa-data" class="px-4 py-2 text-xs bg-green-700 text-white rounded hover:bg-green-600">Save Data</button>
       <span class="text-[10px] text-gray-600 self-center">${nsa?.savedAt ? `Last saved: ${nsa.savedAt.slice(0,16)}` : "Not saved yet"}</span>
+    </div>
+
+    <div class="mt-8">
+      <h3 class="text-lg font-bold text-white mb-4">Keyword Research</h3>
+      <div class="card p-4 mb-4">
+        <div class="flex gap-2 mb-3">
+          <input id="kw-research-input" type="text" placeholder="키워드 입력 (쉼표로 구분, 최대 5개)" class="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
+          <button id="kw-research-btn" class="px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Analyze</button>
+          <button id="kw-research-blog" class="px-4 py-2 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Blog Keywords로 분석</button>
+        </div>
+        ${S.kwResearch?.error ? `<p class="text-xs text-red-400">${esc(S.kwResearch.error)}</p>` : ""}
+        ${S.kwResearch?.results?.length ? `<table class="w-full text-sm">
+          <thead><tr class="text-[10px] text-gray-500 uppercase border-b border-gray-800">
+            <th class="text-left py-2">Keyword</th>
+            <th class="text-right py-2">PC</th>
+            <th class="text-right py-2">Mobile</th>
+            <th class="text-right py-2">Total</th>
+            <th class="text-right py-2">Competition</th>
+            <th class="text-right py-2"></th>
+          </tr></thead>
+          <tbody>${S.kwResearch.results.slice(0, 30).map(r => {
+            const comp = {"높음":"text-red-400","중간":"text-yellow-400","낮음":"text-green-400","high":"text-red-400","medium":"text-yellow-400","low":"text-green-400"};
+            return `<tr class="border-b border-gray-800/30">
+              <td class="text-gray-200 py-2">${esc(r.keyword)}</td>
+              <td class="text-gray-400 text-right py-2">${r.pcSearches?.toLocaleString()}</td>
+              <td class="text-gray-400 text-right py-2">${r.mobileSearches?.toLocaleString()}</td>
+              <td class="text-white text-right py-2 font-medium">${r.totalSearches?.toLocaleString()}</td>
+              <td class="text-right py-2 ${comp[r.competition] || "text-gray-400"}">${r.competition || "-"}</td>
+              <td class="text-right py-2"><button data-add-keyword="${esc(r.keyword)}" class="text-[10px] text-blue-400 hover:text-blue-300">+ Keywords</button></td>
+            </tr>`;
+          }).join("")}</tbody>
+        </table>` : S.kwResearch ? `<p class="text-xs text-gray-600">No results</p>` : ""}
+      </div>
     </div>
   </div>`;
 }
