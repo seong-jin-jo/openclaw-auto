@@ -1151,6 +1151,7 @@ function renderSettings() {
             <div class="flex gap-2 mt-3">
               <button id="save-notif-settings" class="flex-1 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-500">Save</button>
               <button id="test-notif" class="px-4 py-2 bg-gray-800 text-gray-300 text-xs rounded hover:bg-gray-700">Test</button>
+              <button id="send-weekly-report" class="px-4 py-2 bg-green-800 text-green-300 text-xs rounded hover:bg-green-700">주간 리포트 발송</button>
             </div>
           ` : `<p class="text-xs text-gray-600">Loading...</p>`}
         </div>
@@ -1199,6 +1200,16 @@ function bindEvents() {
     const r = await API.post("/api/send-notification", { channel: ch, message: "🔔 Marketing Hub 테스트 알림" });
     if (r?.ok) showToast(`테스트 알림 전송: ${ch}`, "success");
     else showToast(`전송 실패: ${r?.error || "unknown"}`, "error");
+  };
+
+  // Weekly report send
+  const sendReport = document.getElementById("send-weekly-report");
+  if (sendReport) sendReport.onclick = async () => {
+    sendReport.textContent = "발송 중..."; sendReport.disabled = true;
+    const r = await API.post("/api/weekly-report/send", {});
+    sendReport.textContent = "주간 리포트 발송"; sendReport.disabled = false;
+    if (r?.ok) showToast("주간 리포트 발송 완료", "success");
+    else showToast(`발송 실패: ${r?.error || "unknown"}`, "error");
   };
 
   const logoutBtn = document.getElementById("btn-logout");

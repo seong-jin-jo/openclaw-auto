@@ -154,6 +154,22 @@ Flask + Vanilla JS SPA. 구조:
 - X API: 종량제 (PPU), 고객 부담
 - 호스팅: Docker 인스턴스 or 멀티테넌트 공유
 
+### Messaging 채널 상세
+
+**즉시 사용 가능 (무료):**
+- Telegram: @BotFather → Bot Token + Chat ID. 완전 무료, 양방향 대화 가능
+- Discord: 채널 설정 > 웹후크 URL. 완전 무료, 일방향
+- Slack: api.slack.com > Incoming Webhook. 완전 무료, 일방향
+
+**연동 가능 (유료/계약):**
+- LINE: developers.line.biz > Messaging API. 무료 500건/월, 이후 건당 과금. 브로드캐스트 방식
+- Kakao Channel: 알림톡(템플릿 승인 필요) + 친구톡(마케팅). 직접 API 없음, 리셀러(알리고/솔라피) 통해 연동. 건당 과금
+- WhatsApp: BSP(Business Solution Provider) 계약 필요. 건당 $0.02~$0.22. 템플릿 사전 승인
+
+**자영업자 우선순위:**
+한국: Kakao > LINE > Telegram
+글로벌: WhatsApp > Telegram > LINE
+
 ### Messaging 활용
 1. **콘텐츠 발행**: 카카오/LINE/Telegram 채널에 마케팅 콘텐츠 자동 발송
 2. **알림**: 발행 완료/바이럴/에러 → Telegram/Slack/Discord로 관리자 알림

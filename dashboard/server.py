@@ -32,6 +32,7 @@ KEYWORDS_PATH = DATA_DIR / "search-keywords.txt"
 BLOG_QUEUE_PATH = DATA_DIR / "blog-queue.json"
 SETTINGS_PATH = DATA_DIR / "settings.json"
 NOTIFICATION_SETTINGS_PATH = DATA_DIR / "notification-settings.json"
+NOTIFICATION_LOG_PATH = DATA_DIR / "notification-log.json"
 CONFIG_DIR = Path(os.environ.get("CONFIG_DIR", Path(__file__).resolve().parent.parent / "config"))
 CRON_JOBS_PATH = CONFIG_DIR / "cron" / "jobs.json"
 CHANNEL_SETTINGS_PATH = Path(DATA_DIR) / "channel-settings.json"
@@ -1055,7 +1056,127 @@ def api_send_notification():
             return jsonify({"error": f"Unsupported channel: {channel}"}), 400
 
     except Exception as e:
+        log_notification(channel, message, False, str(e)[:100])
         return jsonify({"error": str(e)[:200]}), 500
+
+
+# ── API: Weekly Report (generate + send) ──
+@app.route("/api/weekly-report")
+def api_weekly_report():
+    """Generate a text report from weekly-summary data."""
+    from datetime import timedelta
+    queue = read_json(QUEUE_PATH) or {"posts": []}
+    posts = queue.get("posts", [])
+    now = datetime.now(timezone.utc)
+    week_ago = now - timedelta(days=7)
+
+    week_published = [p for p in posts if p.get("publishedAt") and datetime.fromisoformat(p["publishedAt"].replace("Z", "+00:00")) > week_ago]
+    total_views = sum((p.get("engagement") or {}).get("views", 0) for p in week_published)
+    total_likes = sum((p.get("engagement") or {}).get("likes", 0) for p in week_published)
+    total_replies = sum((p.get("engagement") or {}).get("replies", 0) for p in week_published)
+
+    growth = read_json(GROWTH_PATH) or {"records": []}
+    records = growth.get("records", [])
+    followers = records[-1]["followers"] if records else 0
+    week_delta = records[-1]["followers"] - records[-7]["followers"] if len(records) >= 7 else (records[-1].get("delta", 0) if records else 0)
+
+    settings = read_settings()
+    vt = settings.get("viralThreshold", 500)
+    viral = [p for p in week_published if (p.get("engagement") or {}).get("views", 0) >= vt]
+
+    eng_rate = round((total_likes + total_replies) / total_views * 100, 1) if total_views > 0 else 0
+
+    report = f"""📊 주간 마케팅 리포트
+━━━━━━━━━━━━━━━━
+📝 발행: {len(week_published)}건
+👀 조회수: {total_views:,}
+❤️ 좋아요: {total_likes}
+💬 댓글: {total_replies}
+📈 참여율: {eng_rate}%
+👥 팔로워: {followers:,} ({'+' if week_delta >= 0 else ''}{week_delta})
+🔥 바이럴: {len(viral)}건 (>= {vt} views)
+"""
+    if viral:
+        report += "\n🏆 Top 바이럴:\n"
+        for v in viral[:3]:
+            views = (v.get("engagement") or {}).get("views", 0)
+            report += f"  • {v['text'][:40]}... ({views:,} views)\n"
+
+    return jsonify({"report": report, "stats": {
+        "published": len(week_published), "views": total_views, "likes": total_likes,
+        "replies": total_replies, "engRate": eng_rate, "followers": followers,
+        "weekDelta": week_delta, "viral": len(viral),
+    }})
+
+
+@app.route("/api/weekly-report/send", methods=["POST"])
+def api_weekly_report_send():
+    """Send weekly report to configured notification channels."""
+    import urllib.request
+    report_resp = api_weekly_report()
+    report_data = report_resp.get_json()
+    report_text = report_data.get("report", "No data")
+
+    notif = read_json(NOTIFICATION_SETTINGS_PATH) or {}
+    weekly_cfg = notif.get("weeklyReport", {})
+    channels = weekly_cfg.get("channels", [])
+    if not channels:
+        return jsonify({"error": "No channels configured for weekly report. Set in Settings > Notifications."}), 400
+
+    config = read_json(CONFIG_DIR / "openclaw.json") or {}
+    plugins = config.get("plugins", {}).get("entries", {})
+    results = {}
+
+    for ch in channels:
+        try:
+            if ch == "telegram":
+                cfg = plugins.get("telegram-publish", {}).get("config", {})
+                token = cfg.get("botToken", "")
+                chat_id = cfg.get("chatId", "")
+                if not token or not chat_id:
+                    results[ch] = {"ok": False, "error": "Not configured"}
+                    continue
+                req = urllib.request.Request(
+                    f"https://api.telegram.org/bot{token}/sendMessage",
+                    data=json.dumps({"chat_id": chat_id, "text": report_text}).encode(),
+                    headers={"Content-Type": "application/json"}, method="POST")
+                with urllib.request.urlopen(req, timeout=10):
+                    results[ch] = {"ok": True}
+            elif ch in ("discord", "slack"):
+                cfg = plugins.get(f"{ch}-publish", {}).get("config", {})
+                webhook_url = cfg.get("webhookUrl", "")
+                if not webhook_url:
+                    results[ch] = {"ok": False, "error": "Not configured"}
+                    continue
+                payload = json.dumps({"text": report_text} if ch == "slack" else {"content": report_text}).encode()
+                req = urllib.request.Request(webhook_url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
+                with urllib.request.urlopen(req, timeout=10):
+                    results[ch] = {"ok": True}
+            else:
+                results[ch] = {"ok": False, "error": "Unsupported"}
+        except Exception as e:
+            results[ch] = {"ok": False, "error": str(e)[:100]}
+
+    logger.info("Weekly report sent: %s", results)
+    return jsonify({"ok": True, "results": results, "report": report_text})
+
+
+# ── Notification Log ──
+def log_notification(channel, message, success, error=None):
+    log = read_json(NOTIFICATION_LOG_PATH) or {"entries": []}
+    log["entries"].insert(0, {
+        "channel": channel, "message": message[:100],
+        "success": success, "error": error,
+        "at": datetime.now(timezone.utc).isoformat(),
+    })
+    log["entries"] = log["entries"][:100]  # keep last 100
+    write_json(NOTIFICATION_LOG_PATH, log)
+
+
+@app.route("/api/notification-log")
+def api_notification_log():
+    log = read_json(NOTIFICATION_LOG_PATH) or {"entries": []}
+    return jsonify(log)
 
 
 # ── API: Chat Channels (Interactive) ──
