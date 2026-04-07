@@ -1720,6 +1720,27 @@ def api_gsc_analytics():
         return jsonify({"error": str(e), "rows": []})
 
 
+# ── API: Naver Search Advisor (manual data) ──
+NSA_DATA_PATH = DATA_DIR / "nsa-data.json"
+
+
+@app.route("/api/nsa-data")
+def api_nsa_data():
+    data = read_json(NSA_DATA_PATH)
+    if data is None:
+        return jsonify({"clicks": 0, "impressions": 0, "ctr": 0, "position": 0, "keywords": [], "savedAt": None})
+    return jsonify(data)
+
+
+@app.route("/api/nsa-data", methods=["POST"])
+def api_nsa_data_update():
+    data = get_json_body()
+    data["savedAt"] = datetime.now(timezone.utc).isoformat()
+    write_json(NSA_DATA_PATH, data)
+    logger.info("NSA data saved")
+    return jsonify({"ok": True})
+
+
 # ── API: Google Analytics ──
 GA_CONFIG_PATH = DATA_DIR / "ga-config.json"
 

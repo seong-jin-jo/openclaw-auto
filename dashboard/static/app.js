@@ -155,7 +155,7 @@ const S = {
   page: "overview", subTab: "queue",
   overview: null, queue: [], growth: [], popular: [], analytics: null,
   keywords: [], settings: null, guide: "", cronJobs: [], activity: [],
-  channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [], seoSettings: null, blogDetailId: null, blogEditing: false, blogGuide: "", blogKeywords: [], blogStats: null, gscConfig: null, gscEditing: false, gscAnalytics: null, gscDays: 28, gscDimension: "query", gaAnalytics: null, gaDays: 28,
+  channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [], seoSettings: null, blogDetailId: null, blogEditing: false, blogGuide: "", blogKeywords: [], blogStats: null, gscConfig: null, gscEditing: false, gscAnalytics: null, gscDays: 28, gscDimension: "query", gaAnalytics: null, gaDays: 28, nsaData: null,
   tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
   sidebarCollapsed: { social: false, video: true, blog: false, messaging: true, data: false, custom: true }, showDetail: null, editingChannel: null,
@@ -250,6 +250,7 @@ function render() {
   else if (S.page === "images") app.innerHTML = renderImages();
   else if (S.page === "blog-performance") app.innerHTML = renderBlogPerformance();
   else if (S.page === "search-console") app.innerHTML = renderSearchConsole();
+  else if (S.page === "search-advisor") app.innerHTML = renderSearchAdvisor();
   else if (S.page === "google-analytics") app.innerHTML = renderGoogleAnalytics();
   else if (S.page === "blog-edit") app.innerHTML = renderBlogEditor();
   else if (S.page === "blog") app.innerHTML = renderBlog();
@@ -364,6 +365,7 @@ function renderSidebar() {
         ${sidebarGroup("data", "Data & Analytics", [
           { key: "blog-performance", label: "Blog Performance", icon: "B", nav: true },
           { key: "search-console", label: "Search Console", icon: "S", nav: true },
+          { key: "search-advisor", label: "Search Advisor", icon: "N", nav: true },
           { key: "google-analytics", label: "Google Analytics", icon: "G", nav: true },
           { label: "Google Business", icon: "G", soon: true },
         ])}
@@ -1254,6 +1256,21 @@ function bindEvents() {
   document.querySelectorAll("[data-gsc-dim]").forEach(el => {
     el.onclick = () => { S.gscDimension = el.dataset.gscDim; loadGscAnalytics(); };
   });
+  const saveNsa = document.getElementById("save-nsa-data");
+  if (saveNsa) saveNsa.onclick = async () => {
+    const data = {
+      clicks: parseInt(document.getElementById("nsa-clicks")?.value) || 0,
+      impressions: parseInt(document.getElementById("nsa-impressions")?.value) || 0,
+      ctr: parseFloat(document.getElementById("nsa-ctr")?.value) || 0,
+      position: parseFloat(document.getElementById("nsa-position")?.value) || 0,
+      keywords: (document.getElementById("nsa-keywords")?.value || "").split("\n").filter(l => l.trim()).map(l => {
+        const parts = l.split(",").map(s => s.trim());
+        return { query: parts[0] || "", clicks: parseInt(parts[1]) || 0, impressions: parseInt(parts[2]) || 0, ctr: parseFloat(parts[3]) || 0, position: parseFloat(parts[4]) || 0 };
+      }),
+    };
+    const r = await API.post("/api/nsa-data", data);
+    if (r?.ok) { showToast("Search Advisor 데이터 저장됨", "success"); loadNsaData(); }
+  };
   document.querySelectorAll("[data-add-keyword]").forEach(el => {
     el.onclick = async () => {
       const kw = el.dataset.addKeyword;
@@ -1300,6 +1317,7 @@ function navigate(page) {
   else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); }
   else if (page === "images") loadImages();
   else if (page === "blog-performance") { loadBlogStats(); loadGscAnalytics(); }
+  else if (page === "search-advisor") loadNsaData();
   else if (page === "search-console") { loadGscConfig(); loadGscAnalytics(); }
   else if (page === "google-analytics") { loadGaAnalytics(); }
   else if (page === "blog") { loadBlogQueue(); loadBlogStats(); loadSeoSettings(); loadGscConfig(); loadBlogGuide(); loadBlogKeywords(); }
@@ -1946,6 +1964,56 @@ function renderSearchConsole() {
     </div>
   </div>`;
 }
+// ── Naver Search Advisor Page ──
+function renderSearchAdvisor() {
+  const nsa = S.nsaData;
+  return `<div class="px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-bold text-white">Naver Search Advisor</h2>
+        <p class="text-xs text-gray-500 mt-1">네이버 검색 성과 — example.com</p>
+      </div>
+      <a href="https://searchadvisor.naver.com/console/board?siteUrl=https%3A%2F%2Fexample.com%2F" target="_blank" class="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">네이버 Search Advisor 열기 &rarr;</a>
+    </div>
+
+    <div class="card p-4 mb-6 border-l-2 border-green-600">
+      <div class="text-xs text-gray-300 mb-2">네이버 Search Advisor는 공식 API가 없어서 자동 수집이 불가합니다.</div>
+      <div class="text-xs text-gray-500">아래에서 수동으로 데이터를 입력하면 Blog Performance와 함께 추적할 수 있습니다.</div>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div class="card p-4">
+        <label class="text-[10px] text-gray-500 block mb-1">Clicks (최근 28일)</label>
+        <input id="nsa-clicks" type="number" value="${nsa?.clicks ?? ""}" class="w-full bg-gray-800 text-white text-xl font-bold p-1 rounded border border-gray-700">
+      </div>
+      <div class="card p-4">
+        <label class="text-[10px] text-gray-500 block mb-1">Impressions</label>
+        <input id="nsa-impressions" type="number" value="${nsa?.impressions ?? ""}" class="w-full bg-gray-800 text-white text-xl font-bold p-1 rounded border border-gray-700">
+      </div>
+      <div class="card p-4">
+        <label class="text-[10px] text-gray-500 block mb-1">Avg CTR (%)</label>
+        <input id="nsa-ctr" type="number" step="0.1" value="${nsa?.ctr ?? ""}" class="w-full bg-gray-800 text-white text-xl font-bold p-1 rounded border border-gray-700">
+      </div>
+      <div class="card p-4">
+        <label class="text-[10px] text-gray-500 block mb-1">Avg Position</label>
+        <input id="nsa-position" type="number" step="0.1" value="${nsa?.position ?? ""}" class="w-full bg-gray-800 text-white text-xl font-bold p-1 rounded border border-gray-700">
+      </div>
+    </div>
+
+    <div class="card p-4 mb-4">
+      <h3 class="text-xs font-medium text-gray-400 mb-3">Top Keywords (수동 입력)</h3>
+      <textarea id="nsa-keywords" rows="6" class="w-full bg-gray-800 text-gray-200 text-xs p-3 rounded border border-gray-700 font-mono" placeholder="키워드, 클릭, 노출, CTR, 순위 (한 줄에 하나)&#10;예: 과외 관리, 5, 120, 4.2, 3.5&#10;학생 관리 앱, 3, 80, 3.8, 5.2">${(nsa?.keywords || []).map(k => `${k.query}, ${k.clicks}, ${k.impressions}, ${k.ctr}, ${k.position}`).join("\n")}</textarea>
+    </div>
+
+    <div class="flex gap-2">
+      <button id="save-nsa-data" class="px-4 py-2 text-xs bg-green-700 text-white rounded hover:bg-green-600">Save Data</button>
+      <span class="text-[10px] text-gray-600 self-center">${nsa?.savedAt ? `Last saved: ${nsa.savedAt.slice(0,16)}` : "Not saved yet"}</span>
+    </div>
+  </div>`;
+}
+
+async function loadNsaData() { const d = await API.get("/api/nsa-data"); if (d) { S.nsaData = d; render(); } }
+
 async function loadBlogStats() { const d = await API.get("/api/blog-stats"); if (d) { S.blogStats = d; render(); } }
 async function loadGaAnalytics() {
   const d = await API.get(`/api/ga-analytics?days=${S.gaDays}`);
