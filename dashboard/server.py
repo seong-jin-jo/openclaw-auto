@@ -985,6 +985,22 @@ def api_cron_interval(job_name):
     return jsonify({"ok": True, "hours": hours})
 
 
+@app.route("/api/cron/<job_name>/toggle", methods=["POST"])
+def api_cron_toggle(job_name):
+    cron_data = read_json(CRON_JOBS_PATH)
+    if cron_data is None:
+        return jsonify({"error": "cron jobs not found"}), 404
+    job = next((j for j in cron_data.get("jobs", []) if j["name"] == job_name), None)
+    if not job:
+        return jsonify({"error": "job not found"}), 404
+    data = get_json_body()
+    enabled = data.get("enabled", not job.get("enabled", True))
+    job["enabled"] = bool(enabled)
+    write_json(CRON_JOBS_PATH, cron_data)
+    logger.info("Cron toggled: %s → %s", job_name, "enabled" if enabled else "disabled")
+    return jsonify({"ok": True, "enabled": enabled})
+
+
 # ── API: Prompt Guide ──
 GUIDE_PATH = DATA_DIR / "prompt-guide.txt"
 BLOG_GUIDE_PATH = DATA_DIR / "blog-prompt-guide.txt"
