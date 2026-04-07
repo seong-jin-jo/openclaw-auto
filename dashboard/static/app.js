@@ -2257,18 +2257,23 @@ function renderBlogPerformance() {
       </div>
 
       ${g?.rows?.length ? `<div class="card p-4">
-        <h3 class="text-xs font-medium text-gray-400 mb-3">Top Search Keywords → Blog</h3>
-        <div class="space-y-1">${g.rows.filter(r => r.key).slice(0, 10).map(r => `
-          <div class="flex justify-between items-center text-xs border-b border-gray-800/30 py-1.5">
-            <span class="text-gray-300">${esc(r.key)}</span>
-            <div class="flex gap-4 text-gray-500">
-              <span>${r.clicks} clicks</span>
-              <span>${r.impressions} imp</span>
-              <span>${r.ctr}% CTR</span>
-              <span>pos ${r.position}</span>
-            </div>
-          </div>
-        `).join("")}</div>
+        <h3 class="text-xs font-medium text-gray-400 mb-3">Search Keywords (Google)</h3>
+        <table class="w-full text-sm">
+          <thead><tr class="text-[10px] text-gray-500 uppercase border-b border-gray-800">
+            <th class="text-left py-2">Keyword</th><th class="text-right py-2">Clicks</th><th class="text-right py-2">Imp</th><th class="text-right py-2">CTR</th><th class="text-right py-2">Pos</th><th class="text-right py-2"></th>
+          </tr></thead>
+          <tbody>${g.rows.filter(r => r.key).slice(0, 15).map(r => {
+            const lowCtr = r.impressions >= 5 && r.ctr < 5;
+            return `<tr class="border-b border-gray-800/30${lowCtr ? " bg-yellow-900/10" : ""}">
+              <td class="text-gray-200 py-2">${esc(r.key)}${lowCtr ? ` <span class="text-[9px] text-yellow-400">CTR low</span>` : ""}</td>
+              <td class="text-gray-400 text-right py-2">${r.clicks}</td>
+              <td class="text-gray-400 text-right py-2">${r.impressions}</td>
+              <td class="text-gray-400 text-right py-2">${r.ctr}%</td>
+              <td class="text-gray-400 text-right py-2">${r.position}</td>
+              <td class="text-right py-2"><button data-add-keyword="${esc(r.key)}" class="text-[10px] text-blue-400 hover:text-blue-300">+ Blog KW</button></td>
+            </tr>`;
+          }).join("")}</tbody>
+        </table>
       </div>` : ""}
     `}
   </div>`;
