@@ -159,7 +159,7 @@ const S = {
   tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
   sidebarCollapsed: { social: false, video: true, blog: false, messaging: true, data: true, custom: true }, showDetail: null, editingChannel: null,
-  channelGuide: null, channelKeywords: null,
+  channelGuide: null, channelKeywords: null, notificationSettings: null,
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null, expandedPopular: null,
 };
@@ -213,6 +213,7 @@ async function loadChannelGuideAndKeywords() {
   if (!S.keywords?.length) { const ck = await API.get("/api/keywords"); if (ck) S.keywords = ck.keywords || []; }
   render();
 }
+async function loadNotifSettings() { const d = await API.get("/api/notification-settings"); if (d) S.notificationSettings = d; render(); }
 async function loadLlmConfig() { const d = await API.get("/api/llm-config"); if (d) S.llmConfig = d; render(); }
 async function loadSettings() {
   const [s, g] = await Promise.all([API.get("/api/settings"), API.get("/api/guide")]);
@@ -1097,6 +1098,32 @@ function renderSettings() {
             </div>
           ` : `<p class="text-[10px] text-gray-600 mt-3">DASHBOARD_AUTH_TOKEN 환경변수 설정 시 로그인 활성화</p>`}
         </div>
+        <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-4">Notifications</h3>
+          ${S.notificationSettings ? `
+            <div class="space-y-3">
+              ${["onPublish", "onViral", "onError", "weeklyReport"].map(evt => {
+                const labels = { onPublish: "글 발행 시", onViral: "바이럴 감지 시", onError: "크론 에러 시", weeklyReport: "주간 리포트" };
+                const ns = S.notificationSettings[evt] || { enabled: false, channels: [] };
+                return `
+                  <div class="flex items-center justify-between p-2 rounded bg-gray-900/50">
+                    <div class="flex items-center gap-2">
+                      <input type="checkbox" data-notif-event="${evt}" ${ns.enabled ? "checked" : ""} class="rounded border-gray-600 w-3 h-3">
+                      <span class="text-xs text-gray-300">${labels[evt]}</span>
+                    </div>
+                    <select data-notif-channel="${evt}" class="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-[10px] text-gray-300">
+                      <option value="">Off</option>
+                      ${["telegram", "discord", "slack", "line"].map(ch => `<option value="${ch}" ${ns.channels?.includes(ch) ? "selected" : ""}>${ch}</option>`).join("")}
+                    </select>
+                  </div>`;
+              }).join("")}
+            </div>
+            <div class="flex gap-2 mt-3">
+              <button id="save-notif-settings" class="flex-1 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-500">Save</button>
+              <button id="test-notif" class="px-4 py-2 bg-gray-800 text-gray-300 text-xs rounded hover:bg-gray-700">Test</button>
+            </div>
+          ` : `<p class="text-xs text-gray-600">Loading...</p>`}
+        </div>
       </div>
     </div>
   </div>`;
@@ -1116,6 +1143,32 @@ function bindEvents() {
     });
     const r = await API.post("/api/llm-config", { primary, jobModels });
     if (r) { showToast(`LLM 설정 저장: ${r.primary?.split("/").pop()}`, "success"); loadLlmConfig(); loadOverview(); }
+  };
+
+  // Notification settings
+  const saveNotif = document.getElementById("save-notif-settings");
+  if (saveNotif) saveNotif.onclick = async () => {
+    const settings = {};
+    ["onPublish", "onViral", "onError", "weeklyReport"].forEach(evt => {
+      const checkbox = document.querySelector(`[data-notif-event="${evt}"]`);
+      const select = document.querySelector(`[data-notif-channel="${evt}"]`);
+      settings[evt] = { enabled: checkbox?.checked || false, channels: select?.value ? [select.value] : [] };
+    });
+    const r = await API.post("/api/notification-settings", settings);
+    if (r) { showToast("알림 설정 저장됨", "success"); loadNotifSettings(); }
+  };
+  const testNotif = document.getElementById("test-notif");
+  if (testNotif) testNotif.onclick = async () => {
+    // Find first configured channel
+    const ns = S.notificationSettings || {};
+    let ch = "";
+    for (const evt of ["onError", "onViral", "onPublish"]) {
+      if (ns[evt]?.channels?.length) { ch = ns[evt].channels[0]; break; }
+    }
+    if (!ch) { showToast("알림 채널을 먼저 설정하세요", "warning"); return; }
+    const r = await API.post("/api/send-notification", { channel: ch, message: "🔔 Marketing Hub 테스트 알림" });
+    if (r?.ok) showToast(`테스트 알림 전송: ${ch}`, "success");
+    else showToast(`전송 실패: ${r?.error || "unknown"}`, "error");
   };
 
   const logoutBtn = document.getElementById("btn-logout");
@@ -1285,7 +1338,7 @@ function navigate(page) {
   else if (page === "images") loadImages();
   else if (page === "blog") loadBlogQueue();
   else if (CH_LABELS[page]) { loadOverview(); loadChannelGuideAndKeywords(); }
-  else if (page === "settings") { loadSettings(); loadKeywords(); loadLlmConfig(); loadOverview(); }
+  else if (page === "settings") { loadSettings(); loadKeywords(); loadLlmConfig(); loadOverview(); loadNotifSettings(); }
   render();
 }
 

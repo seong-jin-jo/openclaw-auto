@@ -31,6 +31,7 @@ POPULAR_PATH = DATA_DIR / "popular-posts.txt"
 KEYWORDS_PATH = DATA_DIR / "search-keywords.txt"
 BLOG_QUEUE_PATH = DATA_DIR / "blog-queue.json"
 SETTINGS_PATH = DATA_DIR / "settings.json"
+NOTIFICATION_SETTINGS_PATH = DATA_DIR / "notification-settings.json"
 CONFIG_DIR = Path(os.environ.get("CONFIG_DIR", Path(__file__).resolve().parent.parent / "config"))
 CRON_JOBS_PATH = CONFIG_DIR / "cron" / "jobs.json"
 CHANNEL_SETTINGS_PATH = Path(DATA_DIR) / "channel-settings.json"
@@ -917,6 +918,88 @@ def api_guide_update(channel=None):
         f.write(guide)
     logger.info("Guide updated: %s (%d chars)", channel or "common", len(guide))
     return jsonify({"ok": True})
+
+
+# ── API: Notification Settings + Send ──
+DEFAULT_NOTIFICATION_SETTINGS = {
+    "onPublish": {"enabled": False, "channels": []},
+    "onViral": {"enabled": False, "channels": []},
+    "onError": {"enabled": True, "channels": []},
+    "weeklyReport": {"enabled": False, "channels": []},
+}
+
+
+@app.route("/api/notification-settings")
+def api_notification_settings():
+    saved = read_json(NOTIFICATION_SETTINGS_PATH) or {}
+    return jsonify({**DEFAULT_NOTIFICATION_SETTINGS, **saved})
+
+
+@app.route("/api/notification-settings", methods=["POST"])
+def api_notification_settings_update():
+    data = get_json_body()
+    current = read_json(NOTIFICATION_SETTINGS_PATH) or {}
+    for key in DEFAULT_NOTIFICATION_SETTINGS:
+        if key in data and isinstance(data[key], dict):
+            current[key] = data[key]
+    write_json(NOTIFICATION_SETTINGS_PATH, current)
+    logger.info("Notification settings updated")
+    return jsonify({"ok": True})
+
+
+@app.route("/api/send-notification", methods=["POST"])
+def api_send_notification():
+    """Send a test notification to specified channel."""
+    import urllib.request
+    data = get_json_body()
+    channel = data.get("channel", "")
+    message = data.get("message", "Marketing Hub test notification")
+
+    config = read_json(CONFIG_DIR / "openclaw.json") or {}
+    plugins = config.get("plugins", {}).get("entries", {})
+
+    try:
+        if channel == "telegram":
+            cfg = plugins.get("telegram-publish", {}).get("config", {})
+            token = cfg.get("botToken", "")
+            chat_id = cfg.get("chatId", "")
+            if not token or not chat_id:
+                return jsonify({"error": "Telegram not configured"}), 400
+            req = urllib.request.Request(
+                f"https://api.telegram.org/bot{token}/sendMessage",
+                data=json.dumps({"chat_id": chat_id, "text": message}).encode(),
+                headers={"Content-Type": "application/json"}, method="POST")
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                return jsonify({"ok": True, "result": json.loads(resp.read())})
+
+        elif channel in ("discord", "slack"):
+            plugin_name = f"{channel}-publish"
+            cfg = plugins.get(plugin_name, {}).get("config", {})
+            webhook_url = cfg.get("webhookUrl", "")
+            if not webhook_url:
+                return jsonify({"error": f"{channel} not configured"}), 400
+            payload = json.dumps({"text": message} if channel == "slack" else {"content": message}).encode()
+            req = urllib.request.Request(webhook_url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                return jsonify({"ok": True})
+
+        elif channel == "line":
+            cfg = plugins.get("line-publish", {}).get("config", {})
+            token = cfg.get("channelAccessToken", "")
+            if not token:
+                return jsonify({"error": "LINE not configured"}), 400
+            req = urllib.request.Request(
+                "https://api.line.me/v2/bot/message/broadcast",
+                data=json.dumps({"messages": [{"type": "text", "text": message}]}).encode(),
+                headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"}, method="POST")
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                return jsonify({"ok": True})
+
+        else:
+            return jsonify({"error": f"Unsupported channel: {channel}"}), 400
+
+    except Exception as e:
+        return jsonify({"error": str(e)[:200]}), 500
 
 
 # ── API: Alerts ──

@@ -130,7 +130,7 @@ data/
 Flask + Vanilla JS SPA. 구조:
 - Marketing Home: 채널 그리드 + 주간 성과 + 크론 상태 + 활동 타임라인
 - 채널별 페이지: Queue / Analytics / Growth / Popular / Settings (credential + guide + keywords)
-- Settings: 채널 연결 + AI Engine + Account
+- Settings: 채널 연결 + AI Engine + Notifications + Account
 - Blog / Images 탭
 
 인증: `DASHBOARD_AUTH_TOKEN` 설정 시 로그인 필수. 미인증 시 랜딩페이지.
@@ -154,9 +154,38 @@ Flask + Vanilla JS SPA. 구조:
 - X API: 종량제 (PPU), 고객 부담
 - 호스팅: Docker 인스턴스 or 멀티테넌트 공유
 
+### Messaging 활용
+1. **콘텐츠 발행**: 카카오/LINE/Telegram 채널에 마케팅 콘텐츠 자동 발송
+2. **알림**: 발행 완료/바이럴/에러 → Telegram/Slack/Discord로 관리자 알림
+3. **대화 (양방향)**: OpenClaw 내장 채널 기능으로 Agent와 대화 가능 (Telegram 봇 등)
+
+알림 설정: `data/notification-settings.json`
+```json
+{ "onPublish": { "enabled": true, "channels": ["telegram"] },
+  "onViral": { "enabled": true, "channels": ["slack"] },
+  "onError": { "enabled": true, "channels": ["slack"] } }
+```
+API: `GET/POST /api/notification-settings`, `POST /api/send-notification`
+
 ### 멀티 테넌트
-현재: 프로젝트별 독립 인스턴스 (dark/tenant1)
-목표: 하나의 서버에서 여러 고객 관리
-- 고객별 data/ 디렉토리 분리
-- config/openclaw.json 고객별 격리
-- 대시보드 로그인 → 고객 식별 → 해당 데이터만 표시
+
+**현재** (Phase 1): 프로젝트별 독립 인스턴스
+```
+/home/sj/marketing-AI-dark/    ← 고객 A (독립 Docker)
+/home/sj/marketing-AI-tenant1/   ← 고객 B (독립 Docker)
+```
+
+**Phase 2** (v3.0): tenant 라우팅
+```
+/app/tenants/
+  tenant-001/config/ + data/   ← 고객 A
+  tenant-002/config/ + data/   ← 고객 B
+```
+- 로그인 토큰에 tenant ID 포함: `tenant-001:password`
+- server.py에서 DATA_DIR/CONFIG_DIR를 tenant별 분기
+- 같은 대시보드 + extension으로 여러 고객 서비스
+
+**Phase 3** (v4.0 SaaS): 회원가입 + DB + 결제
+- 회원가입 → tenant 자동 생성
+- flat file → DB 전환 (Supabase/PostgreSQL)
+- Stripe 결제 연동
