@@ -1108,23 +1108,41 @@ function renderSettings() {
           ` : `<p class="text-[10px] text-gray-600 mt-3">DASHBOARD_AUTH_TOKEN 환경변수 설정 시 로그인 활성화</p>`}
         </div>
         <div class="card p-5">
-          <h3 class="text-sm font-medium text-gray-300 mb-4">Interactive Chat</h3>
-          <p class="text-[10px] text-gray-600 mb-3">Telegram/Slack/Discord 봇으로 Agent와 대화. 대시보드 없이 모바일에서 관리 가능.</p>
+          <h3 class="text-sm font-medium text-gray-300 mb-3">Interactive Chat</h3>
+          <p class="text-[10px] text-gray-600 mb-3">봇으로 Agent와 대화 — "이번 주 성과 보여줘", "다음 글 승인해", "X에 글 올려"</p>
           ${S.chatChannels ? `
-            <div class="space-y-2">
-              ${["telegram", "slack", "discord"].map(ch => {
-                const cc = S.chatChannels[ch] || {};
-                return `<div class="flex items-center justify-between p-2 rounded bg-gray-900/50">
-                  <span class="text-xs text-gray-300">${ch.charAt(0).toUpperCase() + ch.slice(1)}</span>
-                  <span class="text-[10px] ${cc.configured ? "text-green-400" : "text-gray-600"}">${cc.configured ? "Connected" : "Not configured"}</span>
-                </div>`;
-              }).join("")}
-            </div>
-            <div class="mt-3 p-2 rounded bg-gray-900/50">
-              <p class="text-[10px] text-gray-500 mb-1">Setup: Gateway 컨테이너에서</p>
-              <code class="text-[10px] text-gray-400 font-mono">openclaw channels setup telegram</code>
-              <p class="text-[10px] text-gray-600 mt-2">연결 후 예시 명령:</p>
-              <p class="text-[10px] text-gray-500">"이번 주 성과" · "다음 글 승인" · "X에 글 올려"</p>
+            <div class="space-y-3">
+              <!-- Telegram -->
+              <div class="p-3 rounded bg-gray-900/50">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs text-gray-300">Telegram</span>
+                  <span class="text-[10px] ${S.chatChannels.telegram?.configured ? "text-green-400" : "text-gray-600"}">${S.chatChannels.telegram?.configured ? "Connected" : ""}</span>
+                </div>
+                ${S.chatChannels.telegram?.configured ? `
+                  <p class="text-[10px] text-green-400/70">양방향 대화 활성. Gateway 재시작 후 봇에게 메시지를 보내면 Agent가 응답합니다.</p>
+                ` : `
+                  <div class="flex gap-2">
+                    <input id="chat-telegram-token" type="password" placeholder="Bot Token (@BotFather)" class="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-[11px] text-gray-300 font-mono">
+                    <button id="setup-chat-telegram" class="px-3 py-1 bg-blue-600 text-white text-[10px] rounded hover:bg-blue-500">Connect</button>
+                  </div>
+                  <p class="text-[10px] text-gray-600 mt-1">@BotFather → /newbot → 토큰 복사</p>
+                `}
+              </div>
+              <!-- Slack -->
+              <div class="p-3 rounded bg-gray-900/50">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs text-gray-300">Slack <span class="text-[10px] text-gray-600">(양방향은 Bot+App Token 필요)</span></span>
+                  <span class="text-[10px] ${S.chatChannels.slack?.configured ? "text-green-400" : "text-gray-600"}">${S.chatChannels.slack?.configured ? "Connected" : ""}</span>
+                </div>
+                ${!S.chatChannels.slack?.configured ? `<p class="text-[10px] text-gray-600">Slack 양방향은 Bot Token(xoxb-) + App Token(xapp-) 필요. 일방향 알림은 Webhook으로 가능.</p>` : `<p class="text-[10px] text-green-400/70">양방향 대화 활성</p>`}
+              </div>
+              <!-- Discord -->
+              <div class="p-3 rounded bg-gray-900/50">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs text-gray-300">Discord</span>
+                  <span class="text-[10px] ${S.chatChannels.discord?.configured ? "text-green-400" : "text-gray-600"}">${S.chatChannels.discord?.configured ? "Connected" : ""}</span>
+                </div>
+              </div>
             </div>
           ` : `<p class="text-xs text-gray-600">Loading...</p>`}
         </div>
@@ -1200,6 +1218,22 @@ function bindEvents() {
     const r = await API.post("/api/send-notification", { channel: ch, message: "🔔 Marketing Hub 테스트 알림" });
     if (r?.ok) showToast(`테스트 알림 전송: ${ch}`, "success");
     else showToast(`전송 실패: ${r?.error || "unknown"}`, "error");
+  };
+
+  // Interactive Chat setup
+  const setupTg = document.getElementById("setup-chat-telegram");
+  if (setupTg) setupTg.onclick = async () => {
+    const token = document.getElementById("chat-telegram-token")?.value?.trim();
+    if (!token) { showToast("Bot Token을 입력하세요", "warning"); return; }
+    setupTg.textContent = "Verifying..."; setupTg.disabled = true;
+    const r = await API.post("/api/chat-channels/telegram", { token });
+    setupTg.textContent = "Connect"; setupTg.disabled = false;
+    if (r?.verified) {
+      showToast(`Telegram 봇 연결: ${r.bot}. ${r.note}`, "success");
+      loadTenantAndChat();
+    } else {
+      showToast(`연결 실패: ${r?.error || "unknown"}`, "error");
+    }
   };
 
   // Weekly report send

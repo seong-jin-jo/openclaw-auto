@@ -1179,7 +1179,7 @@ def api_notification_log():
     return jsonify(log)
 
 
-# ── API: Chat Channels (Interactive) ──
+# ── API: Chat Channels (Interactive — OpenClaw native) ──
 @app.route("/api/chat-channels")
 def api_chat_channels():
     config = read_json(CONFIG_DIR / "openclaw.json") or {}
@@ -1188,8 +1188,63 @@ def api_chat_channels():
     for ch in ["telegram", "slack", "discord"]:
         ch_cfg = channels_cfg.get(ch, {})
         has_token = bool(ch_cfg.get("botToken") or ch_cfg.get("token") or ch_cfg.get("appToken"))
-        result[ch] = {"configured": has_token, "config": {k: "***" if "token" in k.lower() else v for k, v in ch_cfg.items()}}
+        result[ch] = {"configured": has_token, "config": {k: ("***" if "token" in k.lower() else v) for k, v in ch_cfg.items()}}
     return jsonify(result)
+
+
+@app.route("/api/chat-channels/<channel>", methods=["POST"])
+def api_chat_channels_setup(channel):
+    """Setup OpenClaw native channel for interactive chat."""
+    data = get_json_body()
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path)
+    if config is None:
+        return jsonify({"error": "openclaw.json not found"}), 404
+
+    channels_cfg = config.setdefault("channels", {})
+
+    if channel == "telegram":
+        token = data.get("token", "").strip()
+        if not token:
+            return jsonify({"error": "Bot token required"}), 400
+        channels_cfg["telegram"] = {"botToken": token}
+        # Verify bot
+        try:
+            import urllib.request
+            url = f"https://api.telegram.org/bot{token}/getMe"
+            with urllib.request.urlopen(url, timeout=5) as resp:
+                bot_data = json.loads(resp.read())
+                if not bot_data.get("ok"):
+                    return jsonify({"error": "Invalid bot token"}), 400
+                bot_name = bot_data["result"].get("username", "")
+        except Exception as e:
+            return jsonify({"error": f"Bot verification failed: {str(e)[:100]}"}), 400
+
+        write_json(config_path, config)
+        logger.info("Telegram interactive chat configured: @%s", bot_name)
+        return jsonify({"ok": True, "verified": True, "bot": f"@{bot_name}", "note": "Gateway 재시작 필요 (봇 polling 시작)"})
+
+    elif channel == "slack":
+        # Slack native needs bot-token + app-token (different from webhook)
+        bot_token = data.get("botToken", "").strip()
+        app_token = data.get("appToken", "").strip()
+        if not bot_token or not app_token:
+            return jsonify({"error": "Bot Token (xoxb-...) and App Token (xapp-...) required"}), 400
+        channels_cfg["slack"] = {"botToken": bot_token, "appToken": app_token}
+        write_json(config_path, config)
+        logger.info("Slack interactive chat configured")
+        return jsonify({"ok": True, "note": "Gateway 재시작 필요"})
+
+    elif channel == "discord":
+        token = data.get("token", "").strip()
+        if not token:
+            return jsonify({"error": "Bot token required"}), 400
+        channels_cfg["discord"] = {"token": token}
+        write_json(config_path, config)
+        logger.info("Discord interactive chat configured")
+        return jsonify({"ok": True, "note": "Gateway 재시작 필요"})
+
+    return jsonify({"error": f"Unsupported channel: {channel}"}), 400
 
 
 # ── API: Alerts ──
