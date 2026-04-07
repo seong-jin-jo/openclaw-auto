@@ -205,3 +205,16 @@ API: `GET/POST /api/notification-settings`, `POST /api/send-notification`
 - 회원가입 → tenant 자동 생성
 - flat file → DB 전환 (Supabase/PostgreSQL)
 - Stripe 결제 연동
+
+### 기술 전환 고려 (v4.0 시점)
+
+**DB 전환:**
+- 현재: flat file (queue.json, growth.json) — 동시 접근 문제, 검색/집계 불가
+- SQLite (가장 간단) 또는 PostgreSQL/Supabase (SaaS 대비)
+- 마이그레이션: queue.json → posts 테이블, growth.json → metrics 테이블
+
+**Next.js 전환:**
+- 현재: Flask + Vanilla JS (app.js 2000줄+, 컴포넌트 분리 불가)
+- Next.js + React → 컴포넌트 분리, SSR/SEO, TypeScript (extension과 통일)
+- 예상 공수: 3-5일 풀타임
+- 추천 시점: v3.0 완료 후, v4.0 SaaS 준비 단계

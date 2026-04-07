@@ -682,7 +682,13 @@ function renderAnalytics() {
   if (!a) return `<p class="text-gray-500">Loading...</p>`;
   const s = a.summary || {};
   const posts = (a.posts || []).sort((a, b) => (b.publishedAt || "").localeCompare(a.publishedAt || ""));
+  // Check if cron is running
+  const insightsCron = S.cronJobs.find(j => j.id === "threads-collect-insights" || j.name?.includes("반응"));
+  const cronError = insightsCron && insightsCron.lastStatus === "error";
+  const lastRun = insightsCron?.lastRunAt ? fmtAgo(new Date(insightsCron.lastRunAt).toISOString()) : null;
   return `
+    ${cronError ? `<div class="p-3 rounded bg-yellow-900/20 border border-yellow-800/20 mb-4"><p class="text-[10px] text-yellow-400/80">자동화 일시 중단 — 데이터가 최신이 아닐 수 있습니다${lastRun ? ` (마지막 수집: ${lastRun})` : ""}</p></div>` : ""}
+    ${s.totalPublished === 0 ? `<div class="p-3 rounded bg-gray-900/50 mb-4"><p class="text-xs text-gray-500">아직 발행된 글이 없습니다. Queue에서 draft를 승인하면 자동 발행됩니다.</p></div>` : ""}
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">${card("Published", s.totalPublished)}${card("Views", s.totalViews)}${card("Avg Views", s.avgViews)}${card("Avg Likes", s.avgLikes)}</div>
     ${Object.keys(a.topics || {}).length ? `<div class="card p-4 mb-6"><h3 class="text-xs font-medium text-gray-400 mb-3">Topic Performance</h3>
       <table class="w-full text-sm"><thead><tr class="text-[10px] text-gray-500 uppercase"><th class="text-left py-1">Topic</th><th class="text-right py-1">Posts</th><th class="text-right py-1">Avg Views</th><th class="text-right py-1">Avg Likes</th></tr></thead>
@@ -763,17 +769,29 @@ function renderPopular() {
 function renderThreadsCredentials() {
   const tk = S.channelConfig.threads?.keys || {};
   return `
-    <div class="card p-5">
+    <div class="card p-5">${(() => {
+      const tEditing = S.editingChannel === "threads";
+      const tConnected = S.channelConfig.threads?.connected;
+      const tEditable = tEditing || !tConnected;
+      return `
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-sm font-medium text-gray-300">Threads API Credentials</h3>
-        <span class="text-[10px] px-2 py-0.5 rounded bg-purple-900/30 text-purple-400 border border-purple-800/30">Long-lived Token</span>
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] px-2 py-0.5 rounded bg-purple-900/30 text-purple-400 border border-purple-800/30">Long-lived Token</span>
+          ${tConnected && !tEditing ? `<button id="edit-ch-threads" class="text-[10px] text-blue-400 hover:text-blue-300">Edit</button>` : ""}
+        </div>
       </div>
       <div class="space-y-3 mb-3">
-        ${credField("threads-accessToken", "Access Token", "", true, tk.accessToken)}
-        <div class="mt-2">${credField("threads-userId", "User ID", "", false, tk.userId)}</div>
+        ${credField("threads-accessToken", "Access Token", "", true, tk.accessToken, tEditable)}
+        <div class="mt-2">${credField("threads-userId", "User ID", "", false, tk.userId, tEditable)}</div>
       </div>
-      <button id="save-threads-config" class="w-full py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${S.channelConfig.threads?.connected ? "Update Credentials" : "Connect Threads"}</button>
-    </div>
+      ${tEditable ? `
+        <div class="flex gap-2">
+          <button id="save-threads-config" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${tConnected ? "Update" : "Connect Threads"}</button>
+          ${tConnected && tEditing ? `<button id="cancel-edit-ch-threads" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>` : ""}
+        </div>
+      ` : ""}`;
+    })()}</div>
     <div class="card p-5">
       <h3 class="text-sm font-medium text-gray-300 mb-3">Threads Channel Info</h3>
       <div class="space-y-2 text-sm">
@@ -952,28 +970,36 @@ function renderXSettings() {
   const k = S.channelConfig.x?.keys || {};
   return `
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div class="card p-5">
+      <div class="card p-5">${(() => {
+        const xEditing = S.editingChannel === "x";
+        const xEditable = xEditing || !connected;
+        return `
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-sm font-medium text-gray-300">OAuth 1.0 Keys</h3>
-          <span class="text-[10px] px-2 py-0.5 rounded bg-blue-900/30 text-blue-400 border border-blue-800/30">OAuth 1.0a</span>
-        </div>
-        <div class="p-2 rounded bg-yellow-900/20 border border-yellow-800/20 mb-4">
-          <p class="text-[10px] text-yellow-400/80">X Developer Portal > <strong>Keys and tokens</strong> > OAuth 1.0 \uc139\uc158. OAuth 2.0 Client ID/Secret\uc740 \uc0ac\uc6a9\ud558\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.</p>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] px-2 py-0.5 rounded bg-blue-900/30 text-blue-400 border border-blue-800/30">OAuth 1.0a</span>
+            ${connected && !xEditing ? `<button id="edit-ch-x" class="text-[10px] text-blue-400 hover:text-blue-300">Edit</button>` : ""}
+          </div>
         </div>
         <div class="space-y-4">
           <div class="border-b border-gray-800/50 pb-3">
             <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">\uc18c\ube44\uc790 \ud0a4 (Consumer Keys)</p>
-            ${credField("x-apiKey", "\uc18c\ube44\uc790 \ud0a4 (API Key)", "", false, k.apiKey)}
-            <div class="mt-2">${credField("x-apiKeySecret", "\uc18c\ube44\uc790 \uc2dc\ud06c\ub9bf (API Key Secret)", "", true, k.apiKeySecret)}</div>
+            ${credField("x-apiKey", "\uc18c\ube44\uc790 \ud0a4 (API Key)", "", false, k.apiKey, xEditable)}
+            <div class="mt-2">${credField("x-apiKeySecret", "\uc18c\ube44\uc790 \uc2dc\ud06c\ub9bf (API Key Secret)", "", true, k.apiKeySecret, xEditable)}</div>
           </div>
           <div>
             <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">\uc561\uc138\uc2a4 \ud1a0\ud070 (Access Token)</p>
-            ${credField("x-accessToken", "\uc561\uc138\uc2a4 \ud1a0\ud070 (Access Token)", "", false, k.accessToken)}
-            <div class="mt-2">${credField("x-accessTokenSecret", "\uc561\uc138\uc2a4 \ud1a0\ud070 \uc2dc\ud06c\ub9bf (Access Token Secret)", "", true, k.accessTokenSecret)}</div>
+            ${credField("x-accessToken", "\uc561\uc138\uc2a4 \ud1a0\ud070 (Access Token)", "", false, k.accessToken, xEditable)}
+            <div class="mt-2">${credField("x-accessTokenSecret", "\uc561\uc138\uc2a4 \ud1a0\ud070 \uc2dc\ud06c\ub9bf (Access Token Secret)", "", true, k.accessTokenSecret, xEditable)}</div>
           </div>
         </div>
-        <button id="save-x-config" class="w-full mt-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${connected ? "Update Credentials" : "Connect X Account"}</button>
-      </div>
+        ${xEditable ? `
+          <div class="flex gap-2 mt-4">
+            <button id="save-x-config" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${connected ? "Update" : "Connect X Account"}</button>
+            ${connected && xEditing ? `<button id="cancel-edit-ch-x" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>` : ""}
+          </div>
+        ` : ""}`;
+      })()}</div>
       <div class="space-y-4">
         <div class="card p-5">
           <h3 class="text-sm font-medium text-gray-300 mb-3">X Channel Info</h3>
@@ -1350,7 +1376,7 @@ function bindEvents() {
     if (uid?.value) data.userId = uid.value;
     const r = await API.post("/api/channel-config/threads", data);
     if (r) {
-      if (r.verified) showToast(`Threads 연결 완료${r.account ? " — " + r.account : ""}`, "success");
+      if (r.verified) { showToast(`Threads 연결 완료${r.account ? " — " + r.account : ""}`, "success"); S.editingChannel = null; }
       else showToast(`연결 실패: ${r.error || "Invalid credentials"}`, "error");
       loadOverview();
     }
@@ -1362,14 +1388,14 @@ function bindEvents() {
     ["apiKey", "apiKeySecret", "accessToken", "accessTokenSecret"].forEach(k => { const el = document.getElementById("x-" + k); if (el?.value) data[k] = el.value; });
     const r = await API.post("/api/channel-config/x", data);
     if (r) {
-      if (r.verified) showToast(`X 연결 완료${r.account ? " — " + r.account : ""}`, "success");
+      if (r.verified) { showToast(`X 연결 완료${r.account ? " — " + r.account : ""}`, "success"); S.editingChannel = null; }
       else showToast(`연결 실패: ${r.error || "Invalid credentials"}`, "error");
       loadOverview();
     }
   };
 
-  // Channel edit toggle
-  Object.keys(CH_LABELS).forEach(key => {
+  // Channel edit toggle (all channels including threads/x)
+  [...Object.keys(CH_LABELS), "threads", "x"].forEach(key => {
     const editBtn = document.getElementById(`edit-ch-${key}`);
     if (editBtn) editBtn.onclick = () => { S.editingChannel = key; render(); };
     const cancelBtn = document.getElementById(`cancel-edit-ch-${key}`);
