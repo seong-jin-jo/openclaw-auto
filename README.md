@@ -16,7 +16,9 @@ AI 에이전트가 콘텐츠를 자동 생성하고, 검수 후 멀티채널로 
 
 | PR | 제목 | from | 주요 내용 |
 |----|------|------|----------|
-| #15 | Instagram 카드뉴스 발행 파이프라인 + card-generator | sample-brand | card-generator extension, Instagram 캐러셀, 카드 생성 API |
+| #17 | Data Analytics + SEO + Blog 자동화 | idealstudy | SEO 분석, 블로그 자동화 개선 |
+| #16 | Instagram + Midjourney + Claude 토큰 관리 | sample-brand | Instagram 채널, Midjourney 이미지, 토큰 관리 |
+| #15 | Instagram 카드뉴스 + card-generator | sample-brand | card-generator extension, Instagram 캐러셀 |
 | #14 | 자동화 강화: 댓글 답글, 인기글 스크래핑, 이미지 발행, 해시태그 분석 | sample-brand | auto-reply, quote trending, 스크래핑 수집, hashtag/hourly 분석, 비율 설정 |
 | #13 | 자동화 토글 실제 연동 + 이미지 생성 + 주기 설정 | sample-brand | 토글→크론 연동, 대시보드 이미지 생성 UI, 주기 파라미터 |
 | #12 | 이미지 파이프라인 + 에셋 갤러리 + 자동화 토글 | sample-brand | image-upload extension, Images 탭, 자동화 ON/OFF, 실행 기록 |
