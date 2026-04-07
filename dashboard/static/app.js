@@ -1642,7 +1642,7 @@ function renderGenericChannel(key) {
       detail: "YouTube Data API는 영상 업로드에 사용됩니다. 커뮤니티 글 작성 API는 공식적으로 존재하지 않습니다. 일일 10,000 quota units 제한." },
     telegram: { fields: ["botToken", "chatId"], labels: ["Bot Token (@BotFather에서 발급)", "Chat ID (선택 — 알림 발송용)"],
       quick: ["Telegram에서 @BotFather 검색 > /newbot 명령", "봇 이름 + username 설정 > Bot Token 복사", "양방향 대화만 할 경우: Bot Token만 입력하면 완료", "알림도 받으려면: Chat ID 입력 (아래 '더 알아보기' 참고)"],
-      detail: "Bot Token: @BotFather가 발급하는 봇 고유 키. 무료.\n\nChat ID: 봇이 먼저 메시지를 보낼 대상. 없으면 양방향 대화만 가능 (유저가 먼저 말해야 함). 있으면 봇이 알림을 자동 발송할 수 있음.\n\nChat ID 확인법:\n• 봇에게 아무 메시지 보낸 후 https://api.telegram.org/bot{TOKEN}/getUpdates 호출 → chat.id 확인\n• 또는 @userinfobot에게 메시지 → 자신의 ID 확인\n• 채널이면 @채널명 또는 -100으로 시작하는 숫자 ID\n\n양방향 대화 (Interactive Chat):\nSettings > Interactive Chat에서 Bot Token을 입력하면 양방향 대화가 활성화됩니다. 이 경우 봇에게 직접 메시지를 보내면 Agent가 응답합니다. 양방향 대화에서도 알림 발송은 Chat ID가 있어야 가능합니다." },
+      detail: "Bot Token\n@BotFather에게 /newbot 하면 발급되는 봇 전용 비밀번호입니다. 무료.\n\nChat ID란?\n봇이 '알림'을 보낼 장소입니다.\n- 없으면: 내가 봇에게 먼저 말해야 대화 가능\n- 있으면: 봇이 먼저 알림을 보낼 수 있음 (바이럴 감지, 주간 리포트 등)\n\nChat ID 확인하는 법\n1. 봇에게 아무 메시지를 보냅니다\n2. 브라우저에서 아래 주소 접속:\n   https://api.telegram.org/bot여기에토큰/getUpdates\n3. 결과에서 \"chat\":{\"id\": 숫자} ← 이 숫자가 Chat ID\n\n또는 Telegram에서 @RawDataBot 에게 메시지 보내면 바로 Chat ID를 알려줍니다.\n\n양방향 대화\nSettings > Interactive Chat에서 Bot Token을 설정하면, 봇에게 '이번 주 성과 보여줘' 같은 명령을 보낼 수 있습니다." },
     discord: { fields: ["webhookUrl"], labels: ["Webhook URL"],
       quick: ["Discord 서버 > 채널 설정 > 연동", "웹후크 > 새 웹후크 만들기", "이름 설정 > URL 복사", "위 폼에 URL 붙여넣기"],
       detail: "Discord Webhook은 가장 간단한 연동 방식입니다. URL 하나만으로 메시지를 보낼 수 있으며, 별도 인증이 필요 없습니다. 보내기만 가능 (읽기 불가)." },
@@ -1699,7 +1699,7 @@ function renderGenericChannel(key) {
           </ol>
           ${sg.detail ? `
             <button data-toggle-detail="${key}" class="text-[10px] text-blue-400 hover:text-blue-300 mt-3 block">${S.showDetail === key ? "접기" : "더 알아보기"}</button>
-            ${S.showDetail === key ? `<div class="mt-2 p-3 rounded bg-gray-900/50"><p class="text-[10px] text-gray-500 leading-relaxed">${sg.detail}</p></div>` : ""}
+            ${S.showDetail === key ? `<div class="mt-2 p-3 rounded bg-gray-900/50"><p class="text-[10px] text-gray-500 leading-relaxed whitespace-pre-wrap">${sg.detail}</p></div>` : ""}
           ` : ""}
         </div>
       </div>
