@@ -1771,6 +1771,10 @@ function bindEvents() {
   });
 
   // R2 Storage Config
+  const editR2 = document.getElementById("edit-r2");
+  if (editR2) editR2.onclick = () => { S.editingChannel = "r2"; render(); };
+  const cancelR2 = document.getElementById("cancel-edit-r2");
+  if (cancelR2) cancelR2.onclick = () => { S.editingChannel = null; render(); };
   const saveR2 = document.getElementById("save-r2-config");
   if (saveR2) saveR2.onclick = async () => {
     const data = {
@@ -2081,14 +2085,26 @@ function renderImages() {
           </div>
         </div>
       </details>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        ${credField("r2-access-key", "Access Key ID", "", false, r2.accessKeyId || "")}
-        ${credField("r2-secret-key", "Secret Access Key", "", true, r2.secretAccessKey || "")}
-        ${credField("r2-bucket", "Bucket Name", "", false, r2.bucket || "")}
-        ${credField("r2-endpoint", "S3 Endpoint", "https://<account-id>.r2.cloudflarestorage.com", false, r2.endpoint || "")}
-        ${credField("r2-public-url", "Public URL", "https://your-bucket.r2.dev 또는 커스텀 도메인", false, r2.publicUrl || "")}
-      </div>
-      <button id="save-r2-config" class="w-full mt-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${r2Connected ? "Update" : "Connect"}</button>
+      ${(() => {
+        const editing = S.editingChannel === "r2";
+        const editable = editing || !r2Connected;
+        return `
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-[10px] text-gray-500">Credentials</span>
+          ${r2Connected && !editing ? '<button id="edit-r2" class="text-[10px] text-blue-400 hover:text-blue-300">Edit Credentials</button>' : ""}
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          ${credField("r2-access-key", "Access Key ID", "", false, r2.accessKeyId || "", editable)}
+          ${credField("r2-secret-key", "Secret Access Key", "", true, r2.secretAccessKey || "", editable)}
+          ${credField("r2-bucket", "Bucket Name", "", false, r2.bucket || "", editable)}
+          ${credField("r2-endpoint", "S3 Endpoint", "https://<account-id>.r2.cloudflarestorage.com", false, r2.endpoint || "", editable)}
+          ${credField("r2-public-url", "Public URL", "https://your-bucket.r2.dev", false, r2.publicUrl || "", editable)}
+        </div>
+        ${editable ? '<div class="flex gap-2 mt-4">' +
+          '<button id="save-r2-config" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">' + (r2Connected ? "Update" : "Connect") + '</button>' +
+          (r2Connected && editing ? '<button id="cancel-edit-r2" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>' : "") +
+          '</div>' : ""}`;
+      })()}
     </div>
     ${S.images.length === 0 ? `
       <div class="card p-12 text-center">
