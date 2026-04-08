@@ -2038,7 +2038,29 @@ function renderImages() {
         <h3 class="text-sm font-medium text-gray-300">Cloud Storage (Cloudflare R2)</h3>
         ${r2Connected ? `<span class="text-[10px] text-green-400">Bucket: ${esc(r2.bucket || "")}</span>` : ""}
       </div>
-      <p class="text-[10px] text-gray-600 mb-3">Instagram 발행 시 이미지를 퍼블릭 URL로 업로드합니다. R2 > API Tokens에서 S3 API 토큰을 생성하세요.</p>
+      <details class="mb-3">
+        <summary class="text-[10px] text-blue-400 hover:text-blue-300 cursor-pointer">Setup Guide — R2 API 토큰 만드는 법</summary>
+        <div class="mt-2 p-3 rounded bg-gray-900/50 text-[10px] text-gray-500 space-y-1.5">
+          <p class="font-medium text-gray-400">1. Cloudflare 대시보드 접속</p>
+          <p class="pl-3">dash.cloudflare.com > R2 Object Storage</p>
+          <p class="font-medium text-gray-400">2. 버킷 생성 (없으면)</p>
+          <p class="pl-3">R2 > Create bucket > 이름 입력 (예: marketing-images) > 리전: APAC</p>
+          <p class="font-medium text-gray-400">3. 퍼블릭 액세스 활성화</p>
+          <p class="pl-3">버킷 > Settings > Public access > Allow Access > r2.dev 도메인 복사 (또는 커스텀 도메인 연결)</p>
+          <p class="font-medium text-gray-400">4. API 토큰 생성</p>
+          <p class="pl-3">R2 > Overview 우측 > Manage R2 API Tokens > Create API token</p>
+          <p class="pl-3">- Permissions: <strong>Object Read & Write</strong> 선택</p>
+          <p class="pl-3">- Specify bucket: 위에서 만든 버킷 선택 (또는 Apply to all)</p>
+          <p class="pl-3">- TTL: 무기한 권장</p>
+          <p class="pl-3">- Create API Token 클릭</p>
+          <p class="font-medium text-gray-400">5. 값 복사</p>
+          <p class="pl-3">- <strong>Access Key ID</strong>: 토큰 생성 후 표시되는 Access Key ID</p>
+          <p class="pl-3">- <strong>Secret Access Key</strong>: 토큰 생성 후 표시 (이 페이지 벗어나면 다시 볼 수 없음!)</p>
+          <p class="pl-3">- <strong>S3 Endpoint</strong>: 토큰 상세에 표시된 endpoint (https://&lt;account-id&gt;.r2.cloudflarestorage.com)</p>
+          <p class="pl-3">- <strong>Bucket</strong>: 버킷 이름</p>
+          <p class="pl-3">- <strong>Public URL</strong>: 3단계에서 복사한 r2.dev 도메인</p>
+        </div>
+      </details>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         ${credField("r2-access-key", "Access Key ID", "", false, r2.accessKeyId || "")}
         ${credField("r2-secret-key", "Secret Access Key", "", true, r2.secretAccessKey || "")}
