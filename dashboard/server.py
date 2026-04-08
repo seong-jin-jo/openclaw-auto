@@ -31,11 +31,10 @@ POPULAR_PATH = DATA_DIR / "popular-posts.txt"
 KEYWORDS_PATH = DATA_DIR / "search-keywords.txt"
 BLOG_QUEUE_PATH = DATA_DIR / "blog-queue.json"
 SETTINGS_PATH = DATA_DIR / "settings.json"
-NOTIFICATION_SETTINGS_PATH = DATA_DIR / "notification-settings.json"
-NOTIFICATION_LOG_PATH = DATA_DIR / "notification-log.json"
 CONFIG_DIR = Path(os.environ.get("CONFIG_DIR", Path(__file__).resolve().parent.parent / "config"))
 CRON_JOBS_PATH = CONFIG_DIR / "cron" / "jobs.json"
 CHANNEL_SETTINGS_PATH = Path(DATA_DIR) / "channel-settings.json"
+SEO_SETTINGS_PATH = DATA_DIR / "seo-settings.json"
 
 AUTOMATION_FEATURES = [
     {"key": "content_generation",    "label": "Content Generation",    "description": "prompt-guide 기반 글 배치 생성 → draft 저장", "detail": "6시간마다 prompt-guide.txt + style-data.json + popular-posts.txt를 참고하여 draftsPerBatch개(기본 5) 글을 자동 생성합니다. 대시보드에서 검수/승인 후 발행됩니다.", "default": True},
@@ -103,27 +102,9 @@ def add_cors(response):
     return response
 
 
-# ── 멀티테넌트 + 인증 미들웨어 ──
-TENANTS_DIR = Path(os.environ.get("TENANTS_DIR", Path(__file__).resolve().parent.parent / "tenants"))
-
-# Auth tokens: single token or tenant-based ("tenant-id:password")
-AUTH_TOKENS = {}  # { "tenant-id:password": tenant_id, ... }
-if AUTH_TOKEN and ":" in AUTH_TOKEN:
-    # Multi-tenant format
-    parts = AUTH_TOKEN.split(",")
-    for part in parts:
-        AUTH_TOKENS[part.strip()] = part.strip().split(":")[0]
-elif AUTH_TOKEN:
-    AUTH_TOKENS[AUTH_TOKEN] = "default"
-
-
+# ── 인증 미들웨어 ──
 @app.before_request
 def check_auth():
-    from flask import g
-    g.tenant_id = None
-    g.data_dir = DATA_DIR
-    g.config_dir = CONFIG_DIR
-
     if not AUTH_TOKEN:
         return  # 토큰 미설정 시 인증 비활성화
     if request.method == "OPTIONS":
@@ -133,46 +114,8 @@ def check_auth():
         return
     # API: 인증 필요
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
-
-    # Multi-tenant: check token map
-    if AUTH_TOKENS:
-        tenant_id = AUTH_TOKENS.get(token)
-        if not tenant_id:
-            return jsonify({"error": "Unauthorized"}), 401
-        g.tenant_id = tenant_id
-        # Tenant-specific paths
-        if tenant_id != "default":
-            tenant_dir = TENANTS_DIR / tenant_id
-            if (tenant_dir / "data").is_dir():
-                g.data_dir = tenant_dir / "data"
-            if (tenant_dir / "config").is_dir():
-                g.config_dir = tenant_dir / "config"
-    elif token != AUTH_TOKEN:
+    if token != AUTH_TOKEN:
         return jsonify({"error": "Unauthorized"}), 401
-
-
-# ── Tenant info API ──
-@app.route("/api/tenant-info")
-def api_tenant_info():
-    from flask import g
-    return jsonify({
-        "tenantId": getattr(g, "tenant_id", None),
-        "dataDir": str(getattr(g, "data_dir", DATA_DIR)),
-        "configDir": str(getattr(g, "config_dir", CONFIG_DIR)),
-        "multiTenant": bool(AUTH_TOKENS and len(AUTH_TOKENS) > 1),
-    })
-
-
-def get_data_dir():
-    """Get tenant-specific or default data directory."""
-    from flask import g
-    return getattr(g, "data_dir", DATA_DIR)
-
-
-def get_config_dir():
-    """Get tenant-specific or default config directory."""
-    from flask import g
-    return getattr(g, "config_dir", CONFIG_DIR)
 
 
 # ── 유틸 ──
@@ -552,6 +495,122 @@ def api_blog_delete(post_id):
     return jsonify({"ok": True})
 
 
+@app.route("/api/blog-queue/<post_id>/update", methods=["POST"])
+def api_blog_update(post_id):
+    queue = read_json(BLOG_QUEUE_PATH)
+    if queue is None:
+        return jsonify({"error": "blog-queue.json not found"}), 404
+    data = get_json_body()
+    for post in queue.get("posts", []):
+        if post["id"] == post_id:
+            for key in ("title", "content", "seoKeyword", "category", "thumbnailUrl"):
+                if key in data and isinstance(data[key], str):
+                    post[key] = data[key]
+            if "tags" in data and isinstance(data["tags"], list):
+                post["tags"] = [str(t) for t in data["tags"]]
+            write_json(BLOG_QUEUE_PATH, queue)
+            logger.info("Blog post updated: %s", post_id)
+            return jsonify({"ok": True, "post": post})
+    return jsonify({"error": "post not found"}), 404
+
+
+# ── API: Blog Stats (proxy to d-edu.site) ──
+@app.route("/api/blog-stats")
+def api_blog_stats():
+    """Fetch article stats directly from d-edu.site API"""
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path) or {}
+    blog_cfg = config.get("plugins", {}).get("entries", {}).get("dedu-blog", {}).get("config", {})
+    api_base = blog_cfg.get("apiBaseUrl", "")
+    email = blog_cfg.get("email", "")
+    password = blog_cfg.get("password", "")
+    if not api_base or not email:
+        return jsonify({"error": "Blog not configured", "articles": [], "totalViews": 0, "totalArticles": 0})
+
+    try:
+        import urllib.request
+        # Login
+        login_data = json.dumps({"email": email, "password": password}).encode()
+        login_req = urllib.request.Request(f"{api_base}/api/auth/login", login_data, {"Content-Type": "application/json"})
+        login_resp = urllib.request.urlopen(login_req, timeout=10)
+        cookie = login_resp.headers.get("Set-Cookie", "")
+        import re as _re
+        auth_match = _re.search(r"Authorization=([^;]+)", cookie)
+        if not auth_match:
+            return jsonify({"error": "Login failed", "articles": [], "totalViews": 0, "totalArticles": 0})
+        auth_token = auth_match.group(1)
+
+        # Fetch articles
+        list_req = urllib.request.Request(
+            f"{api_base}/api/admin/column-articles?status=APPROVED&page=0&size=100",
+            headers={"Cookie": f"Authorization={auth_token}"}
+        )
+        list_resp = urllib.request.urlopen(list_req, timeout=10)
+        data = json.loads(list_resp.read())
+        content = data.get("data", {}).get("content", [])
+
+        articles = []
+        total_views = 0
+        for a in content:
+            views = a.get("viewCount", 0) or 0
+            total_views += views
+            articles.append({
+                "id": a.get("id"),
+                "title": a.get("title", ""),
+                "viewCount": views,
+                "tags": a.get("tags", []),
+                "regDate": a.get("regDate", ""),
+            })
+        articles.sort(key=lambda x: x["viewCount"], reverse=True)
+        avg_views = round(total_views / len(articles)) if articles else 0
+        top = articles[0] if articles else None
+
+        # Tag aggregation
+        tag_stats = {}
+        for a in articles:
+            for tag in a.get("tags", []):
+                if tag not in tag_stats:
+                    tag_stats[tag] = {"count": 0, "totalViews": 0}
+                tag_stats[tag]["count"] += 1
+                tag_stats[tag]["totalViews"] += a["viewCount"]
+        for t in tag_stats.values():
+            t["avgViews"] = round(t["totalViews"] / t["count"]) if t["count"] else 0
+        top_tags = sorted(tag_stats.items(), key=lambda x: x[1]["avgViews"], reverse=True)[:15]
+
+        # Save daily snapshot
+        history_path = DATA_DIR / "blog-analytics-history.json"
+        history = read_json(history_path) or {"snapshots": []}
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        existing = [s for s in history["snapshots"] if s.get("date") == today]
+        snapshot = {"date": today, "totalViews": total_views, "totalArticles": len(articles),
+                    "articles": [{"id": a["id"], "viewCount": a["viewCount"]} for a in articles]}
+        if existing:
+            existing[0].update(snapshot)
+        else:
+            history["snapshots"].append(snapshot)
+            history["snapshots"] = history["snapshots"][-90:]  # keep 90 days
+        write_json(history_path, history)
+
+        # Calculate daily delta
+        yesterday = [(s) for s in history["snapshots"] if s["date"] < today]
+        prev_views = yesterday[-1]["totalViews"] if yesterday else 0
+        daily_delta = total_views - prev_views
+
+        return jsonify({
+            "totalArticles": len(articles),
+            "totalViews": total_views,
+            "avgViews": avg_views,
+            "dailyDelta": daily_delta,
+            "topArticle": top,
+            "articles": articles,
+            "topTags": [{"tag": t, **v} for t, v in top_tags],
+            "history": [{"date": s["date"], "totalViews": s["totalViews"]} for s in history["snapshots"][-14:]],
+        })
+    except Exception as e:
+        logger.error("Blog stats fetch failed: %s", e)
+        return jsonify({"error": str(e), "articles": [], "totalViews": 0, "totalArticles": 0})
+
+
 @app.route("/api/growth")
 def api_growth():
     growth = read_json(GROWTH_PATH)
@@ -571,40 +630,27 @@ def api_popular():
 
 
 # ── API: Keywords ──
-# ── API: Keywords (공통 + 채널별) ──
 @app.route("/api/keywords")
-@app.route("/api/keywords/<channel>")
-def api_keywords(channel=None):
-    common_kw = []
+def api_keywords():
     try:
         with open(KEYWORDS_PATH, "r", encoding="utf-8") as f:
-            common_kw = [l.strip() for l in f if l.strip() and not l.startswith("#")]
+            lines = [l.strip() for l in f if l.strip() and not l.startswith("#")]
+        return jsonify({"keywords": lines})
     except FileNotFoundError:
-        pass
-    ch_kw = []
-    if channel:
-        ch_path = DATA_DIR / f"search-keywords.{channel}.txt"
-        try:
-            with open(ch_path, "r", encoding="utf-8") as f:
-                ch_kw = [l.strip() for l in f if l.strip() and not l.startswith("#")]
-        except FileNotFoundError:
-            pass
-    return jsonify({"keywords": ch_kw or common_kw, "common": common_kw, "channelKeywords": ch_kw, "channel": channel or "common"})
+        return jsonify({"keywords": []})
 
 
 @app.route("/api/keywords", methods=["POST"])
-@app.route("/api/keywords/<channel>", methods=["POST"])
-def api_keywords_update(channel=None):
+def api_keywords_update():
     data = get_json_body()
     keywords = data.get("keywords", [])
     if not isinstance(keywords, list):
         return jsonify({"error": "keywords must be an array"}), 400
-    path = DATA_DIR / f"search-keywords.{channel}.txt" if channel else KEYWORDS_PATH
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(f"# {'채널별' if channel else '공통'} 검색 키워드\n")
+    with open(KEYWORDS_PATH, "w", encoding="utf-8") as f:
+        f.write("# Threads 인기글 검색 키워드 (한 줄에 하나, #=주석, 빈 줄 무시)\n")
         for kw in keywords:
             f.write(f"{kw}\n")
-    logger.info("Keywords updated: %s (%d)", channel or "common", len(keywords))
+    logger.info("Keywords updated: %d keywords", len(keywords))
     return jsonify({"ok": True, "count": len(keywords)})
 
 
@@ -939,312 +985,93 @@ def api_cron_interval(job_name):
     return jsonify({"ok": True, "hours": hours})
 
 
-# ── API: Prompt Guide (공통 + 채널별) ──
+@app.route("/api/cron/<job_name>/toggle", methods=["POST"])
+def api_cron_toggle(job_name):
+    cron_data = read_json(CRON_JOBS_PATH)
+    if cron_data is None:
+        return jsonify({"error": "cron jobs not found"}), 404
+    job = next((j for j in cron_data.get("jobs", []) if j["name"] == job_name), None)
+    if not job:
+        return jsonify({"error": "job not found"}), 404
+    data = get_json_body()
+    enabled = data.get("enabled", not job.get("enabled", True))
+    job["enabled"] = bool(enabled)
+    write_json(CRON_JOBS_PATH, cron_data)
+    logger.info("Cron toggled: %s → %s", job_name, "enabled" if enabled else "disabled")
+    return jsonify({"ok": True, "enabled": enabled})
+
+
+# ── API: Prompt Guide ──
 GUIDE_PATH = DATA_DIR / "prompt-guide.txt"
+BLOG_GUIDE_PATH = DATA_DIR / "blog-prompt-guide.txt"
+BLOG_KEYWORDS_PATH = DATA_DIR / "blog-keywords.txt"
 
 
 @app.route("/api/guide")
-@app.route("/api/guide/<channel>")
-def api_guide(channel=None):
-    common = ""
+def api_guide():
     try:
         with open(GUIDE_PATH, "r", encoding="utf-8") as f:
-            common = f.read()
+            return jsonify({"guide": f.read()})
     except FileNotFoundError:
-        pass
-    ch_guide = ""
-    if channel:
-        ch_path = DATA_DIR / f"prompt-guide.{channel}.txt"
-        try:
-            with open(ch_path, "r", encoding="utf-8") as f:
-                ch_guide = f.read()
-        except FileNotFoundError:
-            pass
-    return jsonify({"guide": ch_guide or common, "common": common, "channelGuide": ch_guide, "channel": channel or "common"})
+        return jsonify({"guide": ""})
 
 
 @app.route("/api/guide", methods=["POST"])
-@app.route("/api/guide/<channel>", methods=["POST"])
-def api_guide_update(channel=None):
+def api_guide_update():
     data = get_json_body()
     guide = data.get("guide", "")
     if not isinstance(guide, str):
         return jsonify({"error": "guide must be a string"}), 400
-    path = DATA_DIR / f"prompt-guide.{channel}.txt" if channel else GUIDE_PATH
-    with open(path, "w", encoding="utf-8") as f:
+    with open(GUIDE_PATH, "w", encoding="utf-8") as f:
         f.write(guide)
-    logger.info("Guide updated: %s (%d chars)", channel or "common", len(guide))
+    logger.info("Guide updated (%d chars)", len(guide))
     return jsonify({"ok": True})
 
 
-# ── API: Notification Settings + Send ──
-DEFAULT_NOTIFICATION_SETTINGS = {
-    "onPublish": {"enabled": False, "channels": []},
-    "onViral": {"enabled": False, "channels": []},
-    "onError": {"enabled": True, "channels": []},
-    "weeklyReport": {"enabled": False, "channels": []},
-}
-
-
-@app.route("/api/notification-settings")
-def api_notification_settings():
-    saved = read_json(NOTIFICATION_SETTINGS_PATH) or {}
-    return jsonify({**DEFAULT_NOTIFICATION_SETTINGS, **saved})
-
-
-@app.route("/api/notification-settings", methods=["POST"])
-def api_notification_settings_update():
-    data = get_json_body()
-    current = read_json(NOTIFICATION_SETTINGS_PATH) or {}
-    for key in DEFAULT_NOTIFICATION_SETTINGS:
-        if key in data and isinstance(data[key], dict):
-            current[key] = data[key]
-    write_json(NOTIFICATION_SETTINGS_PATH, current)
-    logger.info("Notification settings updated")
-    return jsonify({"ok": True})
-
-
-@app.route("/api/send-notification", methods=["POST"])
-def api_send_notification():
-    """Send a test notification to specified channel."""
-    import urllib.request
-    data = get_json_body()
-    channel = data.get("channel", "")
-    message = data.get("message", "Marketing Hub test notification")
-
-    config = read_json(CONFIG_DIR / "openclaw.json") or {}
-    plugins = config.get("plugins", {}).get("entries", {})
-
+# ── API: Blog Guide & Keywords ──
+@app.route("/api/blog-guide")
+def api_blog_guide():
     try:
-        if channel == "telegram":
-            cfg = plugins.get("telegram-publish", {}).get("config", {})
-            token = cfg.get("botToken", "")
-            chat_id = cfg.get("chatId", "")
-            if not token or not chat_id:
-                return jsonify({"error": "Telegram not configured"}), 400
-            req = urllib.request.Request(
-                f"https://api.telegram.org/bot{token}/sendMessage",
-                data=json.dumps({"chat_id": chat_id, "text": message}).encode(),
-                headers={"Content-Type": "application/json"}, method="POST")
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                return jsonify({"ok": True, "result": json.loads(resp.read())})
-
-        elif channel in ("discord", "slack"):
-            plugin_name = f"{channel}-publish"
-            cfg = plugins.get(plugin_name, {}).get("config", {})
-            webhook_url = cfg.get("webhookUrl", "")
-            if not webhook_url:
-                return jsonify({"error": f"{channel} not configured"}), 400
-            payload = json.dumps({"text": message} if channel == "slack" else {"content": message}).encode()
-            req = urllib.request.Request(webhook_url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                return jsonify({"ok": True})
-
-        elif channel == "line":
-            cfg = plugins.get("line-publish", {}).get("config", {})
-            token = cfg.get("channelAccessToken", "")
-            if not token:
-                return jsonify({"error": "LINE not configured"}), 400
-            req = urllib.request.Request(
-                "https://api.line.me/v2/bot/message/broadcast",
-                data=json.dumps({"messages": [{"type": "text", "text": message}]}).encode(),
-                headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"}, method="POST")
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                return jsonify({"ok": True})
-
-        else:
-            return jsonify({"error": f"Unsupported channel: {channel}"}), 400
-
-    except Exception as e:
-        log_notification(channel, message, False, str(e)[:100])
-        return jsonify({"error": str(e)[:200]}), 500
+        with open(BLOG_GUIDE_PATH, "r", encoding="utf-8") as f:
+            return jsonify({"guide": f.read()})
+    except FileNotFoundError:
+        return jsonify({"guide": ""})
 
 
-# ── API: Weekly Report (generate + send) ──
-@app.route("/api/weekly-report")
-def api_weekly_report():
-    """Generate a text report from weekly-summary data."""
-    from datetime import timedelta
-    queue = read_json(QUEUE_PATH) or {"posts": []}
-    posts = queue.get("posts", [])
-    now = datetime.now(timezone.utc)
-    week_ago = now - timedelta(days=7)
-
-    week_published = [p for p in posts if p.get("publishedAt") and datetime.fromisoformat(p["publishedAt"].replace("Z", "+00:00")) > week_ago]
-    total_views = sum((p.get("engagement") or {}).get("views", 0) for p in week_published)
-    total_likes = sum((p.get("engagement") or {}).get("likes", 0) for p in week_published)
-    total_replies = sum((p.get("engagement") or {}).get("replies", 0) for p in week_published)
-
-    growth = read_json(GROWTH_PATH) or {"records": []}
-    records = growth.get("records", [])
-    followers = records[-1]["followers"] if records else 0
-    week_delta = records[-1]["followers"] - records[-7]["followers"] if len(records) >= 7 else (records[-1].get("delta", 0) if records else 0)
-
-    settings = read_settings()
-    vt = settings.get("viralThreshold", 500)
-    viral = [p for p in week_published if (p.get("engagement") or {}).get("views", 0) >= vt]
-
-    eng_rate = round((total_likes + total_replies) / total_views * 100, 1) if total_views > 0 else 0
-
-    report = f"""📊 주간 마케팅 리포트
-━━━━━━━━━━━━━━━━
-📝 발행: {len(week_published)}건
-👀 조회수: {total_views:,}
-❤️ 좋아요: {total_likes}
-💬 댓글: {total_replies}
-📈 참여율: {eng_rate}%
-👥 팔로워: {followers:,} ({'+' if week_delta >= 0 else ''}{week_delta})
-🔥 바이럴: {len(viral)}건 (>= {vt} views)
-"""
-    if viral:
-        report += "\n🏆 Top 바이럴:\n"
-        for v in viral[:3]:
-            views = (v.get("engagement") or {}).get("views", 0)
-            report += f"  • {v['text'][:40]}... ({views:,} views)\n"
-
-    return jsonify({"report": report, "stats": {
-        "published": len(week_published), "views": total_views, "likes": total_likes,
-        "replies": total_replies, "engRate": eng_rate, "followers": followers,
-        "weekDelta": week_delta, "viral": len(viral),
-    }})
-
-
-@app.route("/api/weekly-report/send", methods=["POST"])
-def api_weekly_report_send():
-    """Send weekly report to configured notification channels."""
-    import urllib.request
-    report_resp = api_weekly_report()
-    report_data = report_resp.get_json()
-    report_text = report_data.get("report", "No data")
-
-    notif = read_json(NOTIFICATION_SETTINGS_PATH) or {}
-    weekly_cfg = notif.get("weeklyReport", {})
-    channels = weekly_cfg.get("channels", [])
-    if not channels:
-        return jsonify({"error": "No channels configured for weekly report. Set in Settings > Notifications."}), 400
-
-    config = read_json(CONFIG_DIR / "openclaw.json") or {}
-    plugins = config.get("plugins", {}).get("entries", {})
-    results = {}
-
-    for ch in channels:
-        try:
-            if ch == "telegram":
-                cfg = plugins.get("telegram-publish", {}).get("config", {})
-                token = cfg.get("botToken", "")
-                chat_id = cfg.get("chatId", "")
-                if not token or not chat_id:
-                    results[ch] = {"ok": False, "error": "Not configured"}
-                    continue
-                req = urllib.request.Request(
-                    f"https://api.telegram.org/bot{token}/sendMessage",
-                    data=json.dumps({"chat_id": chat_id, "text": report_text}).encode(),
-                    headers={"Content-Type": "application/json"}, method="POST")
-                with urllib.request.urlopen(req, timeout=10):
-                    results[ch] = {"ok": True}
-            elif ch in ("discord", "slack"):
-                cfg = plugins.get(f"{ch}-publish", {}).get("config", {})
-                webhook_url = cfg.get("webhookUrl", "")
-                if not webhook_url:
-                    results[ch] = {"ok": False, "error": "Not configured"}
-                    continue
-                payload = json.dumps({"text": report_text} if ch == "slack" else {"content": report_text}).encode()
-                req = urllib.request.Request(webhook_url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
-                with urllib.request.urlopen(req, timeout=10):
-                    results[ch] = {"ok": True}
-            else:
-                results[ch] = {"ok": False, "error": "Unsupported"}
-        except Exception as e:
-            results[ch] = {"ok": False, "error": str(e)[:100]}
-
-    logger.info("Weekly report sent: %s", results)
-    return jsonify({"ok": True, "results": results, "report": report_text})
-
-
-# ── Notification Log ──
-def log_notification(channel, message, success, error=None):
-    log = read_json(NOTIFICATION_LOG_PATH) or {"entries": []}
-    log["entries"].insert(0, {
-        "channel": channel, "message": message[:100],
-        "success": success, "error": error,
-        "at": datetime.now(timezone.utc).isoformat(),
-    })
-    log["entries"] = log["entries"][:100]  # keep last 100
-    write_json(NOTIFICATION_LOG_PATH, log)
-
-
-@app.route("/api/notification-log")
-def api_notification_log():
-    log = read_json(NOTIFICATION_LOG_PATH) or {"entries": []}
-    return jsonify(log)
-
-
-# ── API: Chat Channels (Interactive — OpenClaw native) ──
-@app.route("/api/chat-channels")
-def api_chat_channels():
-    config = read_json(CONFIG_DIR / "openclaw.json") or {}
-    channels_cfg = config.get("channels", {})
-    result = {}
-    for ch in ["telegram", "slack", "discord"]:
-        ch_cfg = channels_cfg.get(ch, {})
-        has_token = bool(ch_cfg.get("botToken") or ch_cfg.get("token") or ch_cfg.get("appToken"))
-        result[ch] = {"configured": has_token, "config": {k: ("***" if "token" in k.lower() else v) for k, v in ch_cfg.items()}}
-    return jsonify(result)
-
-
-@app.route("/api/chat-channels/<channel>", methods=["POST"])
-def api_chat_channels_setup(channel):
-    """Setup OpenClaw native channel for interactive chat."""
+@app.route("/api/blog-guide", methods=["POST"])
+def api_blog_guide_update():
     data = get_json_body()
-    config_path = CONFIG_DIR / "openclaw.json"
-    config = read_json(config_path)
-    if config is None:
-        return jsonify({"error": "openclaw.json not found"}), 404
+    guide = data.get("guide", "")
+    if not isinstance(guide, str):
+        return jsonify({"error": "guide must be a string"}), 400
+    with open(BLOG_GUIDE_PATH, "w", encoding="utf-8") as f:
+        f.write(guide)
+    logger.info("Blog guide updated (%d chars)", len(guide))
+    return jsonify({"ok": True})
 
-    channels_cfg = config.setdefault("channels", {})
 
-    if channel == "telegram":
-        token = data.get("token", "").strip()
-        if not token:
-            return jsonify({"error": "Bot token required"}), 400
-        channels_cfg["telegram"] = {"botToken": token}
-        # Verify bot
-        try:
-            import urllib.request
-            url = f"https://api.telegram.org/bot{token}/getMe"
-            with urllib.request.urlopen(url, timeout=5) as resp:
-                bot_data = json.loads(resp.read())
-                if not bot_data.get("ok"):
-                    return jsonify({"error": "Invalid bot token"}), 400
-                bot_name = bot_data["result"].get("username", "")
-        except Exception as e:
-            return jsonify({"error": f"Bot verification failed: {str(e)[:100]}"}), 400
+@app.route("/api/blog-keywords")
+def api_blog_keywords():
+    try:
+        with open(BLOG_KEYWORDS_PATH, "r", encoding="utf-8") as f:
+            lines = [l.strip() for l in f if l.strip() and not l.startswith("#")]
+        return jsonify({"keywords": lines})
+    except FileNotFoundError:
+        return jsonify({"keywords": []})
 
-        write_json(config_path, config)
-        logger.info("Telegram interactive chat configured: @%s", bot_name)
-        return jsonify({"ok": True, "verified": True, "bot": f"@{bot_name}", "note": "Gateway 재시작 필요 (봇 polling 시작)"})
 
-    elif channel == "slack":
-        # Slack native needs bot-token + app-token (different from webhook)
-        bot_token = data.get("botToken", "").strip()
-        app_token = data.get("appToken", "").strip()
-        if not bot_token or not app_token:
-            return jsonify({"error": "Bot Token (xoxb-...) and App Token (xapp-...) required"}), 400
-        channels_cfg["slack"] = {"botToken": bot_token, "appToken": app_token}
-        write_json(config_path, config)
-        logger.info("Slack interactive chat configured")
-        return jsonify({"ok": True, "note": "Gateway 재시작 필요"})
-
-    elif channel == "discord":
-        token = data.get("token", "").strip()
-        if not token:
-            return jsonify({"error": "Bot token required"}), 400
-        channels_cfg["discord"] = {"token": token}
-        write_json(config_path, config)
-        logger.info("Discord interactive chat configured")
-        return jsonify({"ok": True, "note": "Gateway 재시작 필요"})
-
-    return jsonify({"error": f"Unsupported channel: {channel}"}), 400
+@app.route("/api/blog-keywords", methods=["POST"])
+def api_blog_keywords_update():
+    data = get_json_body()
+    keywords = data.get("keywords", [])
+    if not isinstance(keywords, list):
+        return jsonify({"error": "keywords must be an array"}), 400
+    with open(BLOG_KEYWORDS_PATH, "w", encoding="utf-8") as f:
+        f.write("# Blog SEO 키워드 — 학생/학부모 대상 (한 줄에 하나, #=주석)\n")
+        for kw in keywords:
+            f.write(f"{kw}\n")
+    logger.info("Blog keywords updated: %d keywords", len(keywords))
+    return jsonify({"ok": True, "count": len(keywords)})
 
 
 # ── API: Alerts ──
@@ -1467,7 +1294,7 @@ def api_channel_config():
     IMPLEMENTED_PLUGINS = {  # plugins that have extension code ready
         "facebook-publish", "bluesky-publish", "instagram-publish", "linkedin-publish",
         "pinterest-publish", "tumblr-publish", "tiktok-publish", "youtube-publish",
-        "telegram-publish", "discord-publish", "slack-publish", "line-publish", "naver-blog-publish",
+        "telegram-publish", "discord-publish", "line-publish", "naver-blog-publish",
     }
     other_channels = {
         "facebook": {"plugin": "facebook-publish", "key_field": "accessToken"},
@@ -1480,7 +1307,6 @@ def api_channel_config():
         "youtube": {"plugin": "youtube-publish", "key_field": "accessToken"},
         "telegram": {"plugin": "telegram-publish", "key_field": "botToken"},
         "discord": {"plugin": "discord-publish", "key_field": "webhookUrl"},
-        "slack": {"plugin": "slack-publish", "key_field": "webhookUrl"},
         "line": {"plugin": "line-publish", "key_field": "channelAccessToken"},
         "naver_blog": {"plugin": "naver-blog-publish", "key_field": "blogId"},
     }
@@ -1499,6 +1325,19 @@ def api_channel_config():
         else:
             status = "soon"
         channels[ch_key] = {"status": status, "enabled": p.get("enabled", False), "connected": has_key, "keys": {k: v for k, v in p_cfg.items() if isinstance(v, str)}}
+
+    # Blog (dedu-blog)
+    bp = plugins.get("dedu-blog", {})
+    b_cfg = bp.get("config", {})
+    b_email = b_cfg.get("email", "")
+    channels["blog"] = {
+        "enabled": bp.get("enabled", False),
+        "connected": bool(b_email),
+        "apiBaseUrl": b_cfg.get("apiBaseUrl", ""),
+        "email": b_email,
+        "password": b_cfg.get("password", ""),
+        "keys": {k: v for k, v in b_cfg.items() if isinstance(v, str)},
+    }
 
     return jsonify(channels)
 
@@ -1593,12 +1432,6 @@ def verify_channel(channel, cfg):
                 return {"verified": False, "error": "Invalid Discord Webhook URL"}
             return {"verified": True, "account": "(Webhook configured)"}
 
-        elif channel == "slack":
-            webhook_url = cfg.get("webhookUrl", "")
-            if not webhook_url or not webhook_url.startswith("https://hooks.slack.com/"):
-                return {"verified": False, "error": "Invalid Slack Webhook URL. Must start with https://hooks.slack.com/"}
-            return {"verified": True, "account": "(Webhook configured)"}
-
         else:
             # Generic: just check if any key has value
             has_any = any(v for v in cfg.values() if isinstance(v, str) and v.strip())
@@ -1624,7 +1457,8 @@ def api_channel_config_generic(channel):
         "facebook": "facebook-publish", "bluesky": "bluesky-publish", "instagram": "instagram-publish",
         "linkedin": "linkedin-publish", "pinterest": "pinterest-publish", "tumblr": "tumblr-publish",
         "tiktok": "tiktok-publish", "youtube": "youtube-publish", "telegram": "telegram-publish",
-        "discord": "discord-publish", "slack": "slack-publish", "line": "line-publish", "naver_blog": "naver-blog-publish",
+        "discord": "discord-publish", "line": "line-publish", "naver_blog": "naver-blog-publish",
+        "blog": "dedu-blog",
     }
     plugin_name = plugin_map.get(channel)
     if not plugin_name:
@@ -1645,17 +1479,9 @@ def api_channel_config_generic(channel):
         if isinstance(val, str) and val.strip():
             p["config"][key] = val.strip()
             updated = True
-    # Verify credentials (best-effort — DNS may fail in container)
+    # Verify credentials
     result = verify_channel(channel, p.get("config", {}))
-    if result.get("verified"):
-        p["enabled"] = True
-    elif "name resolution" in result.get("error", "").lower() or "timeout" in result.get("error", "").lower():
-        # Network issue in container — save anyway, mark as enabled
-        p["enabled"] = True
-        result["verified"] = True
-        result["account"] = "(네트워크 검증 불가 — 저장됨)"
-    else:
-        p["enabled"] = False
+    p["enabled"] = result.get("verified", False)
     write_json(config_path, config)
     logger.info("Channel %s config updated, verified=%s", channel, result.get("verified"))
     return jsonify({"ok": True, "enabled": p["enabled"], **result})
@@ -1677,9 +1503,6 @@ def api_channel_config_threads_impl():
     # Verify
     tp_cfg = plugins.get("threads-publish", {}).get("config", {})
     result = verify_channel("threads", tp_cfg)
-    if not result.get("verified") and ("name resolution" in result.get("error", "").lower() or "timeout" in result.get("error", "").lower()):
-        result["verified"] = True
-        result["account"] = "(\ub124\ud2b8\uc6cc\ud06c \uac80\uc99d \ubd88\uac00 \u2014 \uc800\uc7a5\ub428)"
     for pname in ["threads-publish", "threads-insights", "threads-search", "threads-growth"]:
         plugins.get(pname, {})["enabled"] = result.get("verified", False)
     write_json(config_path, config)
@@ -1739,6 +1562,517 @@ def api_update_channel_settings(channel):
     write_json(CHANNEL_SETTINGS_PATH, data)
     logger.info("Channel settings updated: %s", channel)
     return jsonify({"ok": True, "settings": data[channel]})
+
+
+# ── API: SEO Settings ──
+@app.route("/api/seo-settings")
+def api_seo_settings():
+    settings = read_json(SEO_SETTINGS_PATH)
+    if settings is None:
+        settings = {
+            "googleSearchConsole": {"metaTag": "", "sitemapUrl": "", "registered": False},
+            "naverSearchAdvisor": {"metaTag": "", "sitemapUrl": "", "registered": False},
+        }
+    return jsonify(settings)
+
+
+@app.route("/api/seo-settings", methods=["POST"])
+def api_seo_settings_update():
+    data = get_json_body()
+    write_json(SEO_SETTINGS_PATH, data)
+    logger.info("SEO settings updated")
+    return jsonify({"ok": True})
+
+
+# ── API: GSC Service Account ──
+GSC_KEY_PATH = DATA_DIR / "gsc-service-account.json"
+
+
+@app.route("/api/gsc-config")
+def api_gsc_config():
+    key_data = read_json(GSC_KEY_PATH)
+    if key_data is None:
+        return jsonify({"configured": False, "email": ""})
+    return jsonify({"configured": True, "email": key_data.get("client_email", "")})
+
+
+@app.route("/api/gsc-config", methods=["POST"])
+def api_gsc_config_update():
+    data = get_json_body()
+    key_json = data.get("keyJson", "")
+    if not key_json:
+        return jsonify({"error": "keyJson is required"}), 400
+    try:
+        parsed = json.loads(key_json) if isinstance(key_json, str) else key_json
+        if "client_email" not in parsed or "private_key" not in parsed:
+            return jsonify({"error": "Invalid service account JSON: missing client_email or private_key"}), 400
+        write_json(GSC_KEY_PATH, parsed)
+        logger.info("GSC service account configured: %s", parsed.get("client_email", ""))
+        return jsonify({"ok": True, "email": parsed.get("client_email", "")})
+    except json.JSONDecodeError:
+        return jsonify({"error": "Invalid JSON format"}), 400
+
+
+def _gsc_get_access_token(key_data, scope):
+    """Get Google OAuth2 access token from service account key"""
+    import urllib.request
+    import time
+    import base64
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
+
+    now = int(time.time())
+    header = base64.urlsafe_b64encode(json.dumps({"alg": "RS256", "typ": "JWT"}).encode()).rstrip(b"=")
+    claim = base64.urlsafe_b64encode(json.dumps({
+        "iss": key_data["client_email"],
+        "scope": scope,
+        "aud": "https://oauth2.googleapis.com/token",
+        "iat": now, "exp": now + 3600,
+    }).encode()).rstrip(b"=")
+    signing_input = header + b"." + claim
+    pk = serialization.load_pem_private_key(key_data["private_key"].encode(), password=None)
+    sig = pk.sign(signing_input, asym_padding.PKCS1v15(), hashes.SHA256())
+    jwt_token = signing_input + b"." + base64.urlsafe_b64encode(sig).rstrip(b"=")
+
+    token_req = urllib.request.Request(
+        "https://oauth2.googleapis.com/token",
+        data=f"grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion={jwt_token.decode()}".encode(),
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    token_resp = urllib.request.urlopen(token_req, timeout=10)
+    return json.loads(token_resp.read()).get("access_token")
+
+
+@app.route("/api/gsc-index", methods=["POST"])
+def api_gsc_index_request():
+    key_data = read_json(GSC_KEY_PATH)
+    if key_data is None:
+        return jsonify({"error": "GSC service account not configured"}), 400
+    data = get_json_body()
+    url = data.get("url", "")
+    if not url:
+        return jsonify({"error": "url is required"}), 400
+    try:
+        import urllib.request
+        access_token = _gsc_get_access_token(key_data, "https://www.googleapis.com/auth/indexing")
+        index_req = urllib.request.Request(
+            "https://indexing.googleapis.com/v3/urlNotifications:publish",
+            data=json.dumps({"url": url, "type": "URL_UPDATED"}).encode(),
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+        )
+        result = json.loads(urllib.request.urlopen(index_req, timeout=10).read())
+        logger.info("GSC index requested: %s", url)
+        return jsonify({"ok": True, "url": url, "result": result})
+    except Exception as e:
+        logger.error("GSC index request failed: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/gsc-analytics")
+def api_gsc_analytics():
+    """Fetch search analytics from Google Search Console"""
+    key_data = read_json(GSC_KEY_PATH)
+    if key_data is None:
+        return jsonify({"error": "GSC service account not configured", "rows": []})
+    site_url = request.args.get("site", "sc-domain:d-edu.site")
+    days = int(request.args.get("days", "28"))
+    dimension = request.args.get("dimension", "query")  # query or page
+
+    try:
+        import urllib.request
+        access_token = _gsc_get_access_token(key_data, "https://www.googleapis.com/auth/webmasters.readonly")
+
+        end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        start_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+
+        body = json.dumps({
+            "startDate": start_date,
+            "endDate": end_date,
+            "dimensions": [dimension],
+            "rowLimit": 50,
+        }).encode()
+        api_url = f"https://www.googleapis.com/webmasters/v3/sites/{urllib.parse.quote(site_url, safe='')}/searchAnalytics/query"
+        req = urllib.request.Request(api_url, data=body, headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}",
+        })
+        resp = urllib.request.urlopen(req, timeout=15)
+        result = json.loads(resp.read())
+
+        rows = []
+        total_clicks = 0
+        total_impressions = 0
+        for r in result.get("rows", []):
+            clicks = r.get("clicks", 0)
+            impressions = r.get("impressions", 0)
+            total_clicks += clicks
+            total_impressions += impressions
+            rows.append({
+                "key": r["keys"][0] if r.get("keys") else "",
+                "clicks": clicks,
+                "impressions": impressions,
+                "ctr": round(r.get("ctr", 0) * 100, 1),
+                "position": round(r.get("position", 0), 1),
+            })
+
+        avg_ctr = round((total_clicks / total_impressions * 100) if total_impressions > 0 else 0, 1)
+        avg_position = round(sum(r["position"] for r in rows) / len(rows), 1) if rows else 0
+
+        # Cache to file
+        cache = {"fetchedAt": datetime.now(timezone.utc).isoformat(), "days": days, "dimension": dimension,
+                 "totalClicks": total_clicks, "totalImpressions": total_impressions, "avgCtr": avg_ctr, "avgPosition": avg_position, "rows": rows}
+        cache_path = DATA_DIR / "gsc-analytics.json"
+        write_json(cache_path, cache)
+
+        return jsonify(cache)
+    except Exception as e:
+        logger.error("GSC analytics failed: %s", e)
+        # Return cached data if available
+        cache_path = DATA_DIR / "gsc-analytics.json"
+        cached = read_json(cache_path)
+        if cached:
+            cached["cached"] = True
+            return jsonify(cached)
+        return jsonify({"error": str(e), "rows": []})
+
+
+# ── API: Naver Search Advisor (manual data) ──
+NSA_DATA_PATH = DATA_DIR / "nsa-data.json"
+
+
+@app.route("/api/nsa-data")
+def api_nsa_data():
+    data = read_json(NSA_DATA_PATH)
+    if data is None:
+        return jsonify({"clicks": 0, "impressions": 0, "ctr": 0, "position": 0, "keywords": [], "savedAt": None})
+    return jsonify(data)
+
+
+@app.route("/api/nsa-data", methods=["POST"])
+def api_nsa_data_update():
+    data = get_json_body()
+    data["savedAt"] = datetime.now(timezone.utc).isoformat()
+    write_json(NSA_DATA_PATH, data)
+    logger.info("NSA data saved")
+    return jsonify({"ok": True})
+
+
+# ── API: Naver Keyword Research ──
+@app.route("/api/keyword-research", methods=["POST"])
+def api_keyword_research():
+    """Analyze keywords via Naver Search Ad API"""
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path) or {}
+    seo_cfg = config.get("plugins", {}).get("entries", {}).get("seo-keywords", {}).get("config", {})
+    client_id = seo_cfg.get("naverClientId", "") or os.environ.get("NAVER_SEARCHAD_CLIENT_ID", "")
+    client_secret = seo_cfg.get("naverClientSecret", "") or os.environ.get("NAVER_SEARCHAD_CLIENT_SECRET", "")
+    customer_id = seo_cfg.get("naverCustomerId", "") or os.environ.get("NAVER_SEARCHAD_CUSTOMER_ID", "")
+
+    if not client_id or not client_secret or not customer_id:
+        return jsonify({"error": "네이버 검색광고 API 키가 설정되지 않았습니다. Settings에서 설정하거나 .env에 NAVER_SEARCHAD_* 환경변수를 추가하세요.", "results": []})
+
+    data = get_json_body()
+    keywords = data.get("keywords", [])
+    if not keywords:
+        return jsonify({"error": "keywords required", "results": []})
+
+    try:
+        import urllib.request
+        import hmac
+        import hashlib
+        import base64
+        import time
+
+        timestamp = str(int(time.time() * 1000))
+        method = "GET"
+        uri = "/keywordstool"
+        message = f"{timestamp}.{method}.{uri}"
+        signature = base64.b64encode(hmac.new(client_secret.encode(), message.encode(), hashlib.sha256).digest()).decode()
+
+        params = urllib.parse.urlencode({"hintKeywords": ",".join(keywords[:5]), "showDetail": "1"})
+        req = urllib.request.Request(
+            f"https://api.searchad.naver.com{uri}?{params}",
+            headers={
+                "X-Timestamp": timestamp,
+                "X-API-KEY": client_id,
+                "X-Customer": customer_id,
+                "X-Signature": signature,
+            }
+        )
+        resp = urllib.request.urlopen(req, timeout=10)
+        result = json.loads(resp.read())
+
+        results = []
+        for kw in result.get("keywordList", []):
+            pc = int(kw.get("monthlyPcQcCnt", 0)) if isinstance(kw.get("monthlyPcQcCnt"), (int, float)) else 0
+            mobile = int(kw.get("monthlyMobileQcCnt", 0)) if isinstance(kw.get("monthlyMobileQcCnt"), (int, float)) else 0
+            results.append({
+                "keyword": kw.get("relKeyword", ""),
+                "pcSearches": pc,
+                "mobileSearches": mobile,
+                "totalSearches": pc + mobile,
+                "competition": kw.get("compIdx", ""),
+            })
+        results.sort(key=lambda x: x["totalSearches"], reverse=True)
+        logger.info("Keyword research: %d results for %s", len(results), keywords)
+        return jsonify({"results": results, "total": len(results)})
+    except Exception as e:
+        logger.error("Keyword research failed: %s", e)
+        return jsonify({"error": str(e), "results": []})
+
+
+# ── API: Naver Datalab Trend ──
+@app.route("/api/naver-trend", methods=["POST"])
+def api_naver_trend():
+    """Fetch search trend from Naver Datalab API"""
+    client_id = os.environ.get("NAVER_CLIENT_ID", "")
+    client_secret = os.environ.get("NAVER_CLIENT_SECRET", "")
+    if not client_id or not client_secret:
+        return jsonify({"error": "네이버 개발자센터 API 키 필요: NAVER_CLIENT_ID, NAVER_CLIENT_SECRET (.env에 추가)", "results": []})
+
+    data = get_json_body()
+    keywords = data.get("keywords", [])
+    if not keywords:
+        return jsonify({"error": "keywords required", "results": []})
+
+    try:
+        import urllib.request
+        end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        start_date = (datetime.now(timezone.utc) - timedelta(days=90)).strftime("%Y-%m-%d")
+
+        body = json.dumps({
+            "startDate": start_date,
+            "endDate": end_date,
+            "timeUnit": "week",
+            "keywordGroups": [{"groupName": kw, "keywords": [kw]} for kw in keywords[:5]],
+        }).encode()
+
+        req = urllib.request.Request(
+            "https://openapi.naver.com/v1/datalab/search",
+            data=body,
+            headers={
+                "Content-Type": "application/json",
+                "X-Naver-Client-Id": client_id,
+                "X-Naver-Client-Secret": client_secret,
+            }
+        )
+        resp = urllib.request.urlopen(req, timeout=10)
+        result = json.loads(resp.read())
+
+        results = []
+        for group in result.get("results", []):
+            results.append({
+                "title": group.get("title", ""),
+                "data": [{"period": d.get("period", ""), "ratio": d.get("ratio", 0)} for d in group.get("data", [])],
+            })
+        return jsonify({"results": results})
+    except Exception as e:
+        logger.error("Naver trend failed: %s", e)
+        return jsonify({"error": str(e), "results": []})
+
+
+# ── API: Google Trends ──
+@app.route("/api/google-trend", methods=["POST"])
+def api_google_trend():
+    """Fetch search trend — currently redirects to Google Trends web (no API key configured)"""
+    # Google Trends API (Alpha) requires special access
+    # For now, suggest using the web interface
+    return jsonify({
+        "error": "Google Trends API는 Alpha 단계입니다. trends.google.com/trends/explore?geo=KR 에서 직접 확인하세요.",
+        "results": [],
+        "webUrl": "https://trends.google.com/trends/explore?geo=KR&cat=958",
+    })
+
+
+# ── API: Google Analytics ──
+GA_CONFIG_PATH = DATA_DIR / "ga-config.json"
+
+
+@app.route("/api/ga-config")
+def api_ga_config():
+    cfg = read_json(GA_CONFIG_PATH)
+    if cfg is None:
+        return jsonify({"configured": False, "propertyId": ""})
+    return jsonify({"configured": bool(cfg.get("propertyId")), "propertyId": cfg.get("propertyId", "")})
+
+
+@app.route("/api/ga-config", methods=["POST"])
+def api_ga_config_update():
+    data = get_json_body()
+    pid = data.get("propertyId", "")
+    if not pid:
+        return jsonify({"error": "propertyId required"}), 400
+    write_json(GA_CONFIG_PATH, {"propertyId": pid})
+    logger.info("GA config saved: %s", pid)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/ga-analytics")
+def api_ga_analytics():
+    key_data = read_json(GSC_KEY_PATH)
+    ga_cfg = read_json(GA_CONFIG_PATH)
+    if key_data is None:
+        return jsonify({"error": "Service account not configured"})
+    if ga_cfg is None or not ga_cfg.get("propertyId"):
+        return jsonify({"error": "GA4 Property ID not configured"})
+
+    property_id = ga_cfg["propertyId"]
+    days = int(request.args.get("days", "28"))
+
+    try:
+        import urllib.request
+        access_token = _gsc_get_access_token(key_data, "https://www.googleapis.com/auth/analytics.readonly")
+
+        end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        start_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+
+        # GA4 Data API - runReport
+        body = json.dumps({
+            "dateRanges": [{"startDate": start_date, "endDate": end_date}],
+            "metrics": [
+                {"name": "sessions"},
+                {"name": "screenPageViews"},
+                {"name": "averageSessionDuration"},
+                {"name": "bounceRate"},
+            ],
+            "dimensions": [{"name": "sessionDefaultChannelGroup"}],
+            "limit": 20,
+        }).encode()
+
+        api_url = f"https://analyticsdata.googleapis.com/v1beta/properties/{property_id}:runReport"
+        req = urllib.request.Request(api_url, data=body, headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}",
+        })
+        resp = urllib.request.urlopen(req, timeout=15)
+        result = json.loads(resp.read())
+
+        total_sessions = 0
+        total_pageviews = 0
+        sources = []
+        for row in result.get("rows", []):
+            source = row["dimensionValues"][0]["value"]
+            sessions = int(row["metricValues"][0]["value"])
+            pageviews = int(row["metricValues"][1]["value"])
+            total_sessions += sessions
+            total_pageviews += pageviews
+            sources.append({"source": source, "sessions": sessions, "pageviews": pageviews})
+        sources.sort(key=lambda x: x["sessions"], reverse=True)
+
+        # Get totals from first row metadata or sum
+        totals = result.get("totals", [{}])
+        avg_duration = "0"
+        bounce_rate = "0"
+        if totals and totals[0].get("metricValues"):
+            avg_duration = str(round(float(totals[0]["metricValues"][2]["value"]), 1))
+            bounce_rate = str(round(float(totals[0]["metricValues"][3]["value"]) * 100, 1))
+
+        # Page-level report
+        page_body = json.dumps({
+            "dateRanges": [{"startDate": start_date, "endDate": end_date}],
+            "metrics": [{"name": "screenPageViews"}, {"name": "averageSessionDuration"}],
+            "dimensions": [{"name": "pagePath"}],
+            "dimensionFilter": {"filter": {"fieldName": "pagePath", "stringFilter": {"matchType": "CONTAINS", "value": "/community/column"}}},
+            "orderBys": [{"metric": {"metricName": "screenPageViews"}, "desc": True}],
+            "limit": 20,
+        }).encode()
+        page_req = urllib.request.Request(api_url, data=page_body, headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}",
+        })
+        page_resp = urllib.request.urlopen(page_req, timeout=15)
+        page_result = json.loads(page_resp.read())
+
+        pages = []
+        for row in page_result.get("rows", []):
+            pages.append({
+                "path": row["dimensionValues"][0]["value"],
+                "views": int(row["metricValues"][0]["value"]),
+                "avgDuration": round(float(row["metricValues"][1]["value"]), 1),
+            })
+
+        return jsonify({
+            "totalSessions": total_sessions,
+            "totalPageviews": total_pageviews,
+            "avgDuration": avg_duration,
+            "bounceRate": bounce_rate,
+            "sources": sources,
+            "pages": pages,
+            "days": days,
+        })
+    except Exception as e:
+        logger.error("GA analytics failed: %s", e)
+        return jsonify({"error": str(e)})
+
+
+# ── API: Blog Image Upload (proxy to d-edu presigned URL) ──
+@app.route("/api/blog-upload-image", methods=["POST"])
+def api_blog_upload_image():
+    """Upload image URL to d-edu via presigned URL, return mediaId"""
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path) or {}
+    blog_cfg = config.get("plugins", {}).get("entries", {}).get("dedu-blog", {}).get("config", {})
+    api_base = blog_cfg.get("apiBaseUrl", "")
+    email = blog_cfg.get("email", "")
+    password = blog_cfg.get("password", "")
+    if not api_base or not email:
+        return jsonify({"error": "Blog not configured"}), 400
+
+    data = get_json_body()
+    image_url = data.get("imageUrl", "")
+    if not image_url:
+        return jsonify({"error": "imageUrl is required"}), 400
+
+    try:
+        import urllib.request
+
+        # Login to d-edu
+        login_data = json.dumps({"email": email, "password": password}).encode()
+        login_req = urllib.request.Request(f"{api_base}/api/auth/login", login_data, {"Content-Type": "application/json"})
+        login_resp = urllib.request.urlopen(login_req, timeout=10)
+        cookie = login_resp.headers.get("Set-Cookie", "")
+        import re as _re
+        auth_match = _re.search(r"Authorization=([^;]+)", cookie)
+        if not auth_match:
+            return jsonify({"error": "d-edu login failed"}), 500
+        auth_token = auth_match.group(1)
+        auth_headers = {"Cookie": f"Authorization={auth_token}", "Content-Type": "application/json"}
+
+        # Download image (follow redirects)
+        img_req = urllib.request.Request(image_url, headers={"User-Agent": "Mozilla/5.0"})
+        img_resp = urllib.request.urlopen(img_req, timeout=30)
+        img_data = img_resp.read()
+        content_type = img_resp.headers.get("Content-Type", "image/png").split(";")[0].strip()
+        if content_type not in ("image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"):
+            content_type = "image/png"
+        from pathlib import PurePosixPath
+        fname = PurePosixPath(urllib.parse.urlparse(image_url).path).name or f"image-{int(__import__('time').time())}.png"
+        if not fname.lower().endswith((".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg")):
+            ext = {"image/jpeg": ".jpg", "image/png": ".png", "image/gif": ".gif", "image/webp": ".webp"}.get(content_type, ".png")
+            fname = f"image-{int(__import__('time').time())}{ext}"
+        logger.info("Blog image download: %s (%d bytes, %s)", fname, len(img_data), content_type)
+
+        # Presign
+        presign_body = json.dumps({"mediaAssetList": [{"fileName": fname, "contentType": content_type, "sizeBytes": len(img_data)}]}).encode()
+        presign_req = urllib.request.Request(f"{api_base}/api/common/media/presign-batch", presign_body, auth_headers)
+        presign_resp = urllib.request.urlopen(presign_req, timeout=10)
+        presign_result = json.loads(presign_resp.read())
+        asset = presign_result["data"]["mediaAssetList"][0]
+        media_id = asset["mediaId"]
+        logger.info("Blog image presign OK: %s", media_id)
+
+        # Upload to S3
+        upload_req = urllib.request.Request(asset["uploadUrl"], img_data, method="PUT")
+        upload_req.add_header("Content-Type", content_type)
+        for k, v in asset.get("headers", {}).items():
+            upload_req.add_header(k, v)
+        urllib.request.urlopen(upload_req, timeout=30)
+
+        logger.info("Blog image uploaded: %s → %s", fname, media_id)
+        return jsonify({"ok": True, "mediaId": media_id, "fileName": fname})
+    except Exception as e:
+        logger.error("Blog image upload failed: %s", e)
+        return jsonify({"error": str(e)}), 500
 
 
 # ── API: Cron Run History ──
