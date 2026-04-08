@@ -5,13 +5,23 @@ services:
       dockerfile: Dockerfile
       network: host
       args:
-        # 공통 extensions (모든 서비스)
-        OPENCLAW_EXTENSIONS: "threads-publish threads-queue threads-style threads-insights threads-search threads-growth x-publish image-upload"
-        # Custom extensions 추가 시: "... blog-queue dedu-blog seo-keywords card-generator"
+        OPENCLAW_EXTENSIONS: "threads-publish threads-queue threads-style threads-insights threads-search threads-growth image-generation-core image-upload dedu-blog blog-queue seo-keywords"
         OPENCLAW_INSTALL_BROWSER: "1"
     volumes:
-      - ./config:/home/node/.openclaw
-      - ./data:/home/node/data
+      - ./config:/home/node/.openclaw       # openclaw.json + cron/jobs.json
+      - ./data:/home/node/data              # 데이터 파일
+      - ./extensions/threads-publish:/app/extensions/threads-publish
+      - ./extensions/threads-queue:/app/extensions/threads-queue
+      - ./extensions/threads-insights:/app/extensions/threads-insights
+      - ./extensions/threads-search:/app/extensions/threads-search
+      - ./extensions/threads-growth:/app/extensions/threads-growth
+      - ./extensions/threads-style:/app/extensions/threads-style
+      - ./extensions/x-publish:/app/extensions/x-publish
+      - ./extensions/card-generator:/app/extensions/card-generator
+      - ./extensions/instagram-publish:/app/extensions/instagram-publish
+      - ./extensions/dedu-blog:/app/extensions/dedu-blog
+      - ./extensions/blog-queue:/app/extensions/blog-queue
+      - ./extensions/seo-keywords:/app/extensions/seo-keywords
     env_file: .env
     environment:
       HOME: /home/node
@@ -19,7 +29,7 @@ services:
     network_mode: host
     init: true
     restart: unless-stopped
-    command: ["node", "dist/index.js", "gateway", "--bind", "loopback", "--port", "${GATEWAY_PORT:-18789}"]
+    command: ["node", "dist/index.js", "gateway", "--bind", "lan", "--port", "${GATEWAY_PORT:-18789}"]
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:${GATEWAY_PORT:-18789}/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
@@ -31,7 +41,8 @@ services:
     build:
       context: ./dashboard
       network: host
-    network_mode: host
+    ports:
+      - "${DASHBOARD_PORT:-34560}:${DASHBOARD_PORT:-34560}"
     volumes:
       - ./data:/app/data
       - ./config:/app/config

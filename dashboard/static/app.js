@@ -158,7 +158,7 @@ const S = {
   channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [],
   tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
-  sidebarCollapsed: {}, showDetail: null, editingChannel: null,
+  sidebarCollapsed: { data: false, research: false }, showDetail: null, editingChannel: null,
   channelGuide: null, channelKeywords: null, notificationSettings: null, tenantInfo: null, chatChannels: null, communityPosts: [], r2Config: null,
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null, expandedPopular: null,
@@ -267,6 +267,14 @@ function render() {
   else if (S.page === "x") app.innerHTML = renderChannelX();
   else if (S.page === "instagram") app.innerHTML = renderChannelInstagram();
   else if (S.page === "images") app.innerHTML = renderImages();
+  else if (S.page === "blog-performance") app.innerHTML = renderBlogPerformance();
+  else if (S.page === "search-console") app.innerHTML = renderSearchConsole();
+  else if (S.page === "search-advisor") app.innerHTML = renderSearchAdvisor();
+  else if (S.page === "google-analytics") app.innerHTML = renderGoogleAnalytics();
+  else if (S.page === "keyword-planner") app.innerHTML = renderKeywordPlanner();
+  else if (S.page === "naver-trends") app.innerHTML = renderNaverTrends();
+  else if (S.page === "google-trends") app.innerHTML = renderGoogleTrends();
+  else if (S.page === "blog-edit") app.innerHTML = renderBlogEditor();
   else if (S.page === "blog") app.innerHTML = renderBlog();
   else if (S.page === "zeroone_community") app.innerHTML = renderZeroOneCommunity();
   else if (CH_LABELS[S.page]) app.innerHTML = renderGenericChannel(S.page);
@@ -378,11 +386,18 @@ function renderSidebar() {
           { label: "WhatsApp", icon: "W", soon: true },
         ])}
 
-        ${sidebarGroup("data", "Data & SEO", [
-          { label: "Google Analytics", icon: "GA", soon: true },
-          { label: "Search Console", icon: "SC", soon: true },
-          { label: "SEO Keywords", icon: "KW", soon: true },
-          { label: "Google Business", icon: "GB", soon: true },
+        ${sidebarGroup("data", "Data & Analytics", [
+          { key: "blog-performance", label: "Blog Performance", icon: "B", nav: true },
+          { key: "search-console", label: "Google Search Console", icon: "SC", nav: true },
+          { key: "search-advisor", label: "Naver Search Advisor", icon: "N", nav: true },
+          { key: "google-analytics", label: "Google Analytics", icon: "GA", nav: true },
+          { label: "Google Business Profile", icon: "GB", soon: true },
+        ])}
+
+        ${sidebarGroup("research", "Keyword Research", [
+          { key: "keyword-planner", label: "Naver Keyword Planner", icon: "K", nav: true },
+          { key: "naver-trends", label: "Naver Datalab", icon: "N", nav: true },
+          { key: "google-trends", label: "Google Trends", icon: "G", nav: true },
         ])}
 
         ${sidebarGroup("custom", "Custom Integration", [
@@ -1893,7 +1908,14 @@ function navigate(page) {
   else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); loadChannelGuideAndKeywords(); }
   else if (page === "instagram") { loadOverview(); loadQueue("all"); loadChannelSettings(); loadCronRuns(); loadChannelGuideAndKeywords(); }
   else if (page === "images") { loadImages(); loadR2Config(); }
-  else if (page === "blog") loadBlogQueue();
+  else if (page === "blog-performance") { loadBlogStats(); loadGscAnalytics(); }
+  else if (page === "search-console") { loadGscConfig(); loadGscAnalytics(); }
+  else if (page === "search-advisor") loadNsaData();
+  else if (page === "google-analytics") { loadGaConfig(); loadGaAnalytics(); }
+  else if (page === "keyword-planner") { loadKwPlannerConfig(); render(); }
+  else if (page === "naver-trends") { loadNaverDatalabConfig(); render(); }
+  else if (page === "google-trends") render();
+  else if (page === "blog") { loadBlogQueue(); loadOverview(); loadBlogGuide(); loadBlogKeywords(); }
   else if (page === "zeroone_community") { /* manual load via button */ }
   else if (CH_LABELS[page]) { loadOverview(); loadChannelGuideAndKeywords(); }
   else if (page === "settings") { loadSettings(); loadKeywords(); loadLlmConfig(); loadOverview(); loadNotifSettings(); loadTenantAndChat(); }
@@ -2518,3 +2540,841 @@ window.addEventListener("hashchange", () => {
   const hash = window.location.hash.replace("#", "");
   if (hash && hash !== S.page) { S.page = hash; render(); }
 });
+
+
+// ════════════════════════════════════════
+// ══ D-Edu Custom Pages ══
+// ════════════════════════════════════════
+
+async function loadBlogStats() { const d = await API.get("/api/blog-stats"); if (d) { S.blogStats = d; render(); } }
+
+async function loadGaAnalytics() {
+  const d = await API.get(`/api/ga-analytics?days=${S.gaDays}`);
+  if (d) { S.gaAnalytics = d; render(); }
+}
+
+async function loadGscAnalytics() {
+  const d = await API.get(`/api/gsc-analytics?days=${S.gscDays}&dimension=${S.gscDimension}`);
+  if (d) { S.gscAnalytics = d; render(); }
+}
+
+async function loadGscConfig() { const d = await API.get("/api/gsc-config"); if (d) S.gscConfig = d; }
+
+async function loadGaConfig() { const d = await API.get("/api/ga-config"); if (d) { S.gaConfigured = d.configured; S.gaPropertyId = d.propertyId || ""; render(); } }
+
+async function loadSlackConfig() { const d = await API.get("/api/slack-config"); if (d) { S.slackConfigured = d.configured; S.slackWebhookUrl = d.webhookUrl || ""; render(); } }
+
+async function loadNsaData() { const d = await API.get("/api/nsa-data"); if (d) { S.nsaData = d; render(); } }
+
+async function loadKwPlannerConfig() { const d = await API.get("/api/kw-planner-config"); if (d) { S.kwPlannerConfigured = d.configured; S.kwPlannerKeys = d; render(); } }
+
+async function loadNaverDatalabConfig() { const d = await API.get("/api/naver-datalab-config"); if (d) { S.naverDatalabConfigured = d.configured; S.naverDatalabKeys = d; render(); } }
+
+async function loadBlogGuide() { const d = await API.get("/api/blog-guide"); if (d) { S.blogGuide = d.guide || ""; render(); } }
+
+async function loadBlogKeywords() { const d = await API.get("/api/blog-keywords"); if (d) { S.blogKeywords = d.keywords || []; render(); } }
+
+function renderBlogPerformance() {
+  const bs = S.blogStats;
+  const g = S.gscAnalytics;
+  return `<div class="px-8 py-6">
+    <h2 class="text-xl font-bold text-white mb-1">Blog Performance</h2>
+    <p class="text-xs text-gray-500 mb-2">d-edu.site 칼럼 성과</p>
+    <div class="card p-3 mb-6 border-l-2 border-blue-600"><p class="text-[11px] text-gray-400">발행된 칼럼의 조회수와 검색 유입을 추적합니다. 글별로 d-edu 조회수 + Google 검색 클릭/노출을 통합해서 봅니다.</p></div>
+
+    ${!bs || bs.error ? `<div class="card p-4 text-center text-xs text-gray-500">${bs?.error || "Loading..."}</div>` : `
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Published</div><div class="text-xl font-bold text-white">${bs.totalArticles}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Total Views</div><div class="text-xl font-bold text-white">${bs.totalViews}</div>${bs.dailyDelta != null ? `<div class="text-[10px] ${bs.dailyDelta >= 0 ? "text-green-400" : "text-red-400"}">${bs.dailyDelta >= 0 ? "+" : ""}${bs.dailyDelta} today</div>` : ""}</div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Avg Views</div><div class="text-xl font-bold text-white">${bs.avgViews}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Search Clicks</div><div class="text-xl font-bold text-white">${g?.totalClicks ?? "-"}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Impressions</div><div class="text-xl font-bold text-white">${g?.totalImpressions ?? "-"}</div></div>
+      </div>
+
+      ${bs.history?.length > 1 ? `<div class="card p-4 mb-6">
+        <h3 class="text-xs font-medium text-gray-400 mb-3">Views Trend (14 days)</h3>
+        <div class="flex items-end gap-1 h-20">${bs.history.map((h, i) => {
+          const max = Math.max(...bs.history.map(x => x.totalViews)) || 1;
+          const pct = Math.max(4, (h.totalViews / max) * 100);
+          const prev = i > 0 ? bs.history[i-1].totalViews : h.totalViews;
+          const delta = h.totalViews - prev;
+          return `<div class="flex-1 flex flex-col items-center gap-0.5">
+            <div class="w-full rounded-t ${delta > 0 ? "bg-green-600" : delta < 0 ? "bg-red-600" : "bg-gray-600"}" style="height:${pct}%" title="${h.date}: ${h.totalViews} views (${delta >= 0 ? "+" : ""}${delta})"></div>
+            <span class="text-[8px] text-gray-600">${h.date.slice(5)}</span>
+          </div>`;
+        }).join("")}</div>
+      </div>` : ""}
+
+      ${bs.topTags?.length ? `<div class="card p-4 mb-6">
+        <h3 class="text-xs font-medium text-gray-400 mb-3">Tag Performance</h3>
+        <div class="flex flex-wrap gap-2">${bs.topTags.map(t => `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs border border-gray-800 bg-gray-900 text-gray-400">#${esc(t.tag)} <span class="text-[10px] text-gray-500">${t.count}posts ${t.avgViews}avg</span></span>`).join("")}</div>
+      </div>` : ""}
+
+      <div class="card p-4 mb-6">
+        <h3 class="text-xs font-medium text-gray-400 mb-3">Articles</h3>
+        ${bs.articles?.length ? `<table class="w-full text-sm">
+          <thead><tr class="text-[10px] text-gray-500 uppercase border-b border-gray-800">
+            <th class="text-left py-2">Title</th>
+            <th class="text-right py-2">Views</th>
+            <th class="text-right py-2">Search Clicks</th>
+            <th class="text-right py-2">Impressions</th>
+            <th class="text-right py-2">Actions</th>
+          </tr></thead>
+          <tbody>${bs.articles.map(a => {
+            const gscRow = (g?.rows || []).find(r => r.key?.includes("/column/" + a.id));
+            return `<tr class="border-b border-gray-800/30">
+              <td class="text-gray-200 py-2"><a href="https://www.d-edu.site/community/column/${a.id}" target="_blank" class="hover:text-white truncate block max-w-xs">${esc(a.title)}</a></td>
+              <td class="text-gray-400 text-right py-2">${a.viewCount}</td>
+              <td class="text-gray-400 text-right py-2">${gscRow ? gscRow.clicks : "-"}</td>
+              <td class="text-gray-400 text-right py-2">${gscRow ? gscRow.impressions : "-"}</td>
+              <td class="text-right py-2">${S.gscConfig?.configured ? `<button data-gsc-index="https://www.d-edu.site/community/column/${a.id}" class="text-[10px] text-blue-400 hover:text-blue-300">Index</button>` : ""}</td>
+            </tr>`;
+          }).join("")}</tbody>
+        </table>` : `<p class="text-gray-600 text-sm">No articles</p>`}
+      </div>
+
+      ${g?.rows?.length ? `<div class="card p-4">
+        <h3 class="text-xs font-medium text-gray-400 mb-3">Search Keywords (Google)</h3>
+        <table class="w-full text-sm">
+          <thead><tr class="text-[10px] text-gray-500 uppercase border-b border-gray-800">
+            <th class="text-left py-2">Keyword</th><th class="text-right py-2">Clicks</th><th class="text-right py-2">Imp</th><th class="text-right py-2">CTR</th><th class="text-right py-2">Pos</th><th class="text-right py-2"></th>
+          </tr></thead>
+          <tbody>${g.rows.filter(r => r.key).slice(0, 15).map(r => {
+            const lowCtr = r.impressions >= 5 && r.ctr < 5;
+            return `<tr class="border-b border-gray-800/30${lowCtr ? " bg-yellow-900/10" : ""}">
+              <td class="text-gray-200 py-2">${esc(r.key)}${lowCtr ? ` <span class="text-[9px] text-yellow-400">CTR low</span>` : ""}</td>
+              <td class="text-gray-400 text-right py-2">${r.clicks}</td>
+              <td class="text-gray-400 text-right py-2">${r.impressions}</td>
+              <td class="text-gray-400 text-right py-2">${r.ctr}%</td>
+              <td class="text-gray-400 text-right py-2">${r.position}</td>
+              <td class="text-right py-2"><button data-add-keyword="${esc(r.key)}" class="text-[10px] text-blue-400 hover:text-blue-300">+ Blog KW</button></td>
+            </tr>`;
+          }).join("")}</tbody>
+        </table>
+      </div>` : ""}
+    `}
+  </div>`;
+}
+
+function renderSearchConsole() {
+  const g = S.gscAnalytics;
+  const days = S.gscDays;
+  const dim = S.gscDimension;
+  return `<div class="px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-bold text-white">Google Search Console</h2>
+        <p class="text-xs text-gray-500 mt-1">Google 검색 성과</p>
+      </div>
+      <div class="flex gap-2">
+        ${[7,28,90].map(d => `<button data-gsc-days="${d}" class="px-3 py-1 text-xs rounded ${days === d ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-800"}">${d}d</button>`).join("")}
+        <span class="text-gray-700 mx-1">|</span>
+        ${["query","page"].map(d => `<button data-gsc-dim="${d}" class="px-3 py-1 text-xs rounded ${dim === d ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-800"}">${d === "query" ? "Keywords" : "Pages"}</button>`).join("")}
+      </div>
+    </div>
+    <div class="card p-3 mb-6 border-l-2 border-blue-600"><p class="text-[11px] text-gray-400">구글 검색에서 사이트가 어떤 키워드로 노출/클릭되는지 확인합니다. 노출은 높은데 클릭이 낮은 키워드는 제목 개선이 필요합니다.</p></div>
+    ${!g || g.error ? `<div class="card p-8 text-center"><p class="text-gray-500 text-sm">${g?.error || "Loading..."}</p>${!S.gscConfig?.configured ? `<p class="text-xs text-gray-600 mt-2">아래에서 서비스 계정 키를 설정하세요</p>` : ""}</div>` : `
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Clicks</div><div class="text-xl font-bold text-white">${g.totalClicks}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Impressions</div><div class="text-xl font-bold text-white">${g.totalImpressions?.toLocaleString()}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Avg CTR</div><div class="text-xl font-bold text-white">${g.avgCtr}%</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Avg Position</div><div class="text-xl font-bold text-white">${g.avgPosition}</div></div>
+      </div>
+      ${(() => {
+        const insights = [];
+        if (dim === "query" && g.rows?.length) {
+          const lowCtr = g.rows.filter(r => r.impressions >= 10 && r.ctr < 3);
+          if (lowCtr.length) insights.push(`<span class="text-yellow-400">${lowCtr.length}개 키워드</span>가 노출은 되지만 클릭이 낮습니다 — 제목/설명 개선 필요`);
+          const topKw = g.rows.filter(r => r.clicks > 0 && r.position <= 5);
+          if (topKw.length) insights.push(`<span class="text-green-400">${topKw.length}개 키워드</span>가 상위 5위 안에 있습니다`);
+        }
+        return insights.length ? `<div class="card p-3 mb-4 border-l-2 border-blue-600"><div class="text-xs text-gray-300 space-y-1">${insights.map(i => `<div>${i}</div>`).join("")}</div></div>` : "";
+      })()}
+      <div class="card p-4">
+        <h3 class="text-xs font-medium text-gray-400 mb-3">${dim === "query" ? "Top Keywords" : "Top Pages"}</h3>
+        ${g.rows?.length ? `<table class="w-full text-sm">
+          <thead><tr class="text-[10px] text-gray-500 uppercase border-b border-gray-800">
+            <th class="text-left py-2">${dim === "query" ? "Keyword" : "Page"}</th>
+            <th class="text-right py-2">Clicks</th>
+            <th class="text-right py-2">Impressions</th>
+            <th class="text-right py-2">CTR</th>
+            <th class="text-right py-2">Position</th>
+            ${dim === "query" ? `<th class="text-right py-2"></th>` : ""}
+          </tr></thead>
+          <tbody>${g.rows.map(r => {
+            const lowCtr = r.impressions >= 10 && r.ctr < 3;
+            const highPos = r.position > 10;
+            return `<tr class="border-b border-gray-800/30${lowCtr ? " bg-yellow-900/10" : ""}">
+              <td class="text-gray-200 py-2 max-w-xs truncate">
+                ${esc(r.key)}
+                ${lowCtr && dim === "query" ? `<span class="text-[9px] text-yellow-400 ml-1">CTR low</span>` : ""}
+                ${highPos && dim === "query" ? `<span class="text-[9px] text-orange-400 ml-1">pos ${r.position}</span>` : ""}
+              </td>
+              <td class="text-gray-400 text-right py-2">${r.clicks}</td>
+              <td class="text-gray-400 text-right py-2">${r.impressions}</td>
+              <td class="text-gray-400 text-right py-2 ${lowCtr ? "text-yellow-400" : ""}">${r.ctr}%</td>
+              <td class="text-gray-400 text-right py-2">${r.position}</td>
+              ${dim === "query" ? `<td class="text-right py-2"><button data-add-keyword="${esc(r.key)}" class="text-[10px] text-blue-400 hover:text-blue-300">+ Keywords</button></td>` : ""}
+            </tr>`;
+          }).join("")}</tbody>
+        </table>` : `<p class="text-gray-600 text-sm">No data for this period</p>`}
+      </div>
+      ${g.cached ? `<p class="text-[10px] text-gray-600 mt-2">Cached data from ${g.fetchedAt?.slice(0,16) || "unknown"}</p>` : ""}
+    `}
+    <div class="mt-8">
+      ${renderSeoSection()}
+    </div>
+  </div>`;
+}
+
+function renderSeoSection() {
+  const g = S.gscConfig || {};
+  const editing = S.gscEditing || false;
+  return `
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div class="card p-4">
+        <div class="flex items-center gap-2">
+          <span class="w-5 h-5 rounded bg-blue-900 flex items-center justify-center text-[10px] font-bold text-blue-300">G</span>
+          <span class="text-sm font-medium text-white">Google Search Console</span>
+          <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-green-900/50 text-green-400">Registered</span>
+        </div>
+        <p class="text-[10px] text-gray-500 mt-2">도메인 인증 완료. 검색 성과는 search.google.com/search-console 에서 확인.</p>
+      </div>
+      <div class="card p-4">
+        <div class="flex items-center gap-2">
+          <span class="w-5 h-5 rounded bg-green-900 flex items-center justify-center text-[10px] font-bold text-green-300">N</span>
+          <span class="text-sm font-medium text-white">Naver Search Advisor</span>
+          <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-green-900/50 text-green-400">Registered</span>
+        </div>
+        <p class="text-[10px] text-gray-500 mt-2">등록 완료. 검색 성과는 searchadvisor.naver.com 에서 확인.</p>
+      </div>
+    </div>
+    <div class="card p-4">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="w-5 h-5 rounded bg-blue-900 flex items-center justify-center text-[10px] font-bold text-blue-300">G</span>
+        <span class="text-sm font-medium text-white">Indexing API</span>
+        <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${g.configured ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}">${g.configured ? g.email : "Not set"}</span>
+        ${g.configured && !editing ? `<button id="gsc-edit-key" class="text-[10px] text-blue-400 hover:text-blue-300">Edit</button>` : ""}
+      </div>
+      ${g.configured && !editing ? `
+        <div class="text-xs text-gray-400 space-y-1">
+          <div><span class="text-gray-600">Email:</span> ${esc(g.email)}</div>
+          <div><span class="text-gray-600">Status:</span> <span class="text-green-400">Connected</span> — 글 목록에서 "Index" 버튼으로 색인 요청 가능</div>
+        </div>
+      ` : `
+        <label class="text-xs text-gray-500 block mb-1">Service Account JSON Key</label>
+        <textarea id="gsc-key-json" rows="4" class="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700 font-mono mb-2" placeholder='JSON 키 붙여넣기 또는 파일 업로드'></textarea>
+        <div class="flex gap-2">
+          <button id="save-gsc-key" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
+          <label class="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600 cursor-pointer">
+            Upload JSON <input type="file" id="gsc-key-file" accept=".json" class="hidden">
+          </label>
+          ${g.configured ? `<button id="gsc-cancel-edit" class="px-3 py-1.5 text-xs bg-gray-800 text-gray-400 rounded hover:bg-gray-700">Cancel</button>` : ""}
+        </div>
+        <p class="text-[10px] text-gray-600 mt-2">Google Cloud → 서비스 계정 → 키 → JSON 다운로드. 새 글 발행 후 구글에 색인 요청 자동화에 사용.</p>
+      `}
+    </div>`;
+}
+
+function renderSearchAdvisor() {
+  const nsa = S.nsaData;
+  return `<div class="px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-bold text-white">Naver Search Advisor</h2>
+        <p class="text-xs text-gray-500 mt-1">네이버 검색 성과 — d-edu.site</p>
+      </div>
+      <a href="https://searchadvisor.naver.com/console/board?siteUrl=https%3A%2F%2Fd-edu.site%2F" target="_blank" class="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">네이버 Search Advisor 열기 &rarr;</a>
+    </div>
+
+    <div class="card p-3 mb-6 border-l-2 border-green-600">
+      <div class="text-[11px] text-gray-400 mb-1">네이버 검색에서 사이트가 어떻게 노출되는지 확인합니다. searchadvisor.naver.com에서 데이터를 확인하고 아래에 수동 입력하세요.</div>
+      <div class="text-xs text-gray-300">네이버 Search Advisor는 공식 API가 없어서 자동 수집이 불가합니다.</div>
+      <div class="text-xs text-gray-500">아래에서 수동으로 데이터를 입력하면 Blog Performance와 함께 추적할 수 있습니다.</div>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div class="card p-4">
+        <label class="text-[10px] text-gray-500 block mb-1">Clicks (최근 28일)</label>
+        <input id="nsa-clicks" type="number" value="${nsa?.clicks ?? ""}" class="w-full bg-gray-800 text-white text-xl font-bold p-1 rounded border border-gray-700">
+      </div>
+      <div class="card p-4">
+        <label class="text-[10px] text-gray-500 block mb-1">Impressions</label>
+        <input id="nsa-impressions" type="number" value="${nsa?.impressions ?? ""}" class="w-full bg-gray-800 text-white text-xl font-bold p-1 rounded border border-gray-700">
+      </div>
+      <div class="card p-4">
+        <label class="text-[10px] text-gray-500 block mb-1">Avg CTR (%)</label>
+        <input id="nsa-ctr" type="number" step="0.1" value="${nsa?.ctr ?? ""}" class="w-full bg-gray-800 text-white text-xl font-bold p-1 rounded border border-gray-700">
+      </div>
+      <div class="card p-4">
+        <label class="text-[10px] text-gray-500 block mb-1">Avg Position</label>
+        <input id="nsa-position" type="number" step="0.1" value="${nsa?.position ?? ""}" class="w-full bg-gray-800 text-white text-xl font-bold p-1 rounded border border-gray-700">
+      </div>
+    </div>
+
+    <div class="card p-4 mb-4">
+      <h3 class="text-xs font-medium text-gray-400 mb-3">Top Keywords (수동 입력)</h3>
+      <textarea id="nsa-keywords" rows="6" class="w-full bg-gray-800 text-gray-200 text-xs p-3 rounded border border-gray-700 font-mono" placeholder="키워드, 클릭, 노출, CTR, 순위 (한 줄에 하나)&#10;예: 과외 관리, 5, 120, 4.2, 3.5&#10;학생 관리 앱, 3, 80, 3.8, 5.2">${(nsa?.keywords || []).map(k => `${k.query}, ${k.clicks}, ${k.impressions}, ${k.ctr}, ${k.position}`).join("\n")}</textarea>
+    </div>
+
+    <div class="flex gap-2">
+      <button id="save-nsa-data" class="px-4 py-2 text-xs bg-green-700 text-white rounded hover:bg-green-600">Save Data</button>
+      <span class="text-[10px] text-gray-600 self-center">${nsa?.savedAt ? `Last saved: ${nsa.savedAt.slice(0,16)}` : "Not saved yet"}</span>
+    </div>
+
+  </div>`;
+}
+
+function renderGoogleAnalytics() {
+  const ga = S.gaAnalytics;
+  const days = S.gaDays;
+  return `<div class="px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-bold text-white">Google Analytics</h2>
+        <p class="text-xs text-gray-500 mt-1">d-edu.site 방문자 분석</p>
+      </div>
+      <div class="flex gap-2">
+        ${[7,28,90].map(d => `<button data-ga-days="${d}" class="px-3 py-1 text-xs rounded ${days === d ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-800"}">${d}d</button>`).join("")}
+      </div>
+    </div>
+    <div class="card p-3 mb-6 border-l-2 border-blue-600"><p class="text-[11px] text-gray-400">사이트 방문자 수, 유입 경로(검색/직접/SNS), 체류시간을 분석합니다. 칼럼 페이지별 성과를 확인할 수 있습니다.</p></div>
+    <div>
+    </div>
+    <div class="card p-5 mb-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-medium text-gray-300">Credentials</h3>
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] px-1.5 py-0.5 rounded-full ${S.gaConfigured ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}">${S.gaConfigured ? "Connected" : "Not set"}</span>
+          ${S.gaConfigured && !S.gaEditing ? `<button id="edit-ga-config" class="text-[10px] text-blue-400 hover:text-blue-300">Edit</button>` : ""}
+        </div>
+      </div>
+      ${!S.gaConfigured || S.gaEditing ? `
+        <div class="space-y-3 mb-3">
+          ${credField("ga-property-id", "Property ID", "(숫자)", false, S.gaPropertyId || "", true)}
+        </div>
+        <div class="flex gap-2">
+          <button id="save-ga-config" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${S.gaConfigured ? "Update" : "Connect"}</button>
+          ${S.gaConfigured && S.gaEditing ? `<button id="cancel-ga-edit" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>` : ""}
+        </div>
+
+        <div class="mt-4 border-t border-gray-800/50 pt-3">
+          <h3 class="text-sm font-medium text-gray-300 mb-3">Setup Guide</h3>
+          <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
+            <li><a href="https://console.cloud.google.com/apis/api/analyticsdata.googleapis.com" target="_blank" class="text-blue-400 hover:underline">Google Cloud Console</a> → <strong class="text-gray-300">Google Analytics Data API</strong> 사용 설정 (필수!)</li>
+            <li><a href="https://analytics.google.com" target="_blank" class="text-blue-400 hover:underline">analytics.google.com</a> 접속</li>
+            <li>좌측 하단 <strong class="text-gray-300">⚙ 관리</strong> → <strong class="text-gray-300">속성 설정</strong> → <strong class="text-gray-300">속성 ID</strong> (숫자) 복사</li>
+            <li>같은 관리 페이지 → <strong class="text-gray-300">속성 접근 관리</strong> → <strong class="text-gray-300">+</strong></li>
+            <li>이메일: <span class="text-gray-300 font-mono text-[9px]">google-search-console@dedu-479013.iam.gserviceaccount.com</span> → 역할: <strong class="text-gray-300">뷰어</strong></li>
+            <li>위 폼에 Property ID 입력 후 Connect</li>
+          </ol>
+          <details class="mt-2"><summary class="text-[10px] text-blue-400 cursor-pointer">더 알아보기</summary>
+            <p class="text-[10px] text-gray-500 mt-1 whitespace-pre-wrap">GA4 Data API를 사용합니다. 2가지 설정이 모두 필요합니다:
+
+1) Google Cloud Console에서 "Google Analytics Data API" 활성화 (사용 버튼)
+2) GA4 속성 접근 관리에서 서비스 계정에 뷰어 권한 추가
+
+403 에러 원인:
+- "API has not been used" → Cloud Console에서 API 활성화 필요
+- "Permission denied" → GA4에서 서비스 계정 뷰어 추가 필요
+
+Property ID는 숫자입니다 (예: 516671158). GA4 관리 → 속성 설정에서 확인.</p>
+          </details>
+        </div>
+      ` : `<p class="text-xs text-gray-400">Property ID: ${S.gaPropertyId || ""}</p>`}
+    </div>
+
+    ${!ga || ga.error ? `<div class="card p-8 text-center">
+      <p class="text-gray-500 text-sm">${ga?.error || "데이터 로딩 중..."}</p>
+    </div>` : `
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Sessions</div><div class="text-xl font-bold text-white">${ga.totalSessions?.toLocaleString() ?? 0}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Pageviews</div><div class="text-xl font-bold text-white">${ga.totalPageviews?.toLocaleString() ?? 0}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Avg Duration</div><div class="text-xl font-bold text-white">${ga.avgDuration ?? "-"}s</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Bounce Rate</div><div class="text-xl font-bold text-white">${ga.bounceRate ?? "-"}%</div></div>
+      </div>
+      ${ga.sources?.length ? `<div class="card p-4 mb-6"><h3 class="text-xs font-medium text-gray-400 mb-3">Traffic Sources</h3>
+        <div class="space-y-2">${ga.sources.map(s => `
+          <div class="flex items-center gap-3">
+            <span class="text-xs text-gray-300 w-32">${esc(s.source)}</span>
+            <div class="flex-1 bg-gray-800 rounded-full h-2"><div class="bg-blue-600 rounded-full h-2" style="width:${Math.min(100, (s.sessions / (ga.totalSessions || 1)) * 100)}%"></div></div>
+            <span class="text-xs text-gray-500 w-16 text-right">${s.sessions}</span>
+          </div>
+        `).join("")}</div>
+      </div>` : ""}
+      ${ga.pages?.length ? `<div class="card p-4"><h3 class="text-xs font-medium text-gray-400 mb-3">Top Pages</h3>
+        <table class="w-full text-sm"><thead><tr class="text-[10px] text-gray-500 uppercase border-b border-gray-800">
+          <th class="text-left py-2">Page</th><th class="text-right py-2">Views</th><th class="text-right py-2">Avg Time</th>
+        </tr></thead><tbody>${ga.pages.map(p => `<tr class="border-b border-gray-800/30">
+          <td class="text-gray-200 py-2 truncate max-w-xs">${esc(p.path)}</td>
+          <td class="text-gray-400 text-right py-2">${p.views}</td>
+          <td class="text-gray-400 text-right py-2">${p.avgDuration}s</td>
+        </tr>`).join("")}</tbody></table>
+      </div>` : ""}
+    `}
+  </div>`;
+}
+
+function kwResultsTable() {
+  if (!S.kwResearch?.results?.length) return S.kwResearch?.error ? `<p class="text-xs text-red-400 mt-3">${esc(S.kwResearch.error)}</p>` : "";
+  const comp = {"높음":"text-red-400","중간":"text-yellow-400","낮음":"text-green-400","high":"text-red-400","medium":"text-yellow-400","low":"text-green-400"};
+  return `<table class="w-full text-sm mt-4">
+    <thead><tr class="text-[10px] text-gray-500 uppercase border-b border-gray-800">
+      <th class="text-left py-2">Keyword</th><th class="text-right py-2">PC</th><th class="text-right py-2">Mobile</th>
+      <th class="text-right py-2">Total</th><th class="text-right py-2">Competition</th><th class="text-right py-2"></th>
+    </tr></thead>
+    <tbody>${S.kwResearch.results.slice(0, 30).map(r => `<tr class="border-b border-gray-800/30">
+      <td class="text-gray-200 py-2">${esc(r.keyword)}</td>
+      <td class="text-gray-400 text-right py-2">${r.pcSearches?.toLocaleString()}</td>
+      <td class="text-gray-400 text-right py-2">${r.mobileSearches?.toLocaleString()}</td>
+      <td class="text-white text-right py-2 font-medium">${r.totalSearches?.toLocaleString()}</td>
+      <td class="text-right py-2 ${comp[r.competition] || "text-gray-400"}">${r.competition || "-"}</td>
+      <td class="text-right py-2"><button data-add-keyword="${esc(r.keyword)}" class="text-[10px] text-blue-400 hover:text-blue-300">+ Blog KW</button></td>
+    </tr>`).join("")}</tbody>
+  </table>`;
+}
+
+function renderKeywordPlanner() {
+  const configured = S.kwPlannerConfigured;
+  const editing = S.kwPlannerEditing;
+  const editable = !configured || editing;
+  return `<div class="px-8 py-6">
+    <h2 class="text-xl font-bold text-white mb-1">Naver Keyword Planner</h2>
+    <p class="text-xs text-gray-500 mb-2">네이버 검색광고 API — 키워드 검색량 + 경쟁도</p>
+    <div class="card p-3 mb-6 border-l-2 border-purple-600"><p class="text-[11px] text-gray-400">키워드의 월간 검색량(PC/모바일)과 경쟁도를 조회합니다. 검색량 높고 경쟁 낮은 키워드를 찾아 "+ Blog KW" 버튼으로 Blog Keywords에 추가하세요.</p></div>
+
+    <div class="card p-5 mb-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-medium text-gray-300">Credentials</h3>
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] px-1.5 py-0.5 rounded-full ${configured ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}">${configured ? "Connected" : "Not set"}</span>
+          ${configured && !editing ? `<button id="edit-kw-planner-config" class="text-[10px] text-blue-400 hover:text-blue-300">Edit Credentials</button>` : ""}
+        </div>
+      </div>
+      <div class="space-y-3 mb-3">
+        ${credField("naver-searchad-customer", "Customer ID", "(숫자)", false, S.kwPlannerKeys?.customerId || "", editable)}
+        ${credField("naver-searchad-id", "액세스라이선스", "(API Key)", false, S.kwPlannerKeys?.clientId || "", editable)}
+        ${credField("naver-searchad-secret", "비밀키", "(Secret Key)", true, S.kwPlannerKeys?.clientSecret || "", editable)}
+      </div>
+      ${editable ? `
+        <div class="flex gap-2">
+          <button id="save-kw-planner-config" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${configured ? "Update" : "Connect"}</button>
+          ${configured && editing ? `<button id="cancel-kw-planner-edit" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>` : ""}
+        </div>
+      ` : ""}
+
+      <div class="mt-4 border-t border-gray-800/50 pt-3">
+        <h3 class="text-sm font-medium text-gray-300 mb-3">Setup Guide</h3>
+        <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
+          <li><a href="https://searchad.naver.com" target="_blank" class="text-blue-400 hover:underline">searchad.naver.com</a> 접속 → 네이버 로그인</li>
+          <li>상단 <strong class="text-gray-300">도구</strong> → <strong class="text-gray-300">API 관리</strong></li>
+          <li>API 키 발급 → <strong class="text-gray-300">액세스라이선스</strong>(API Key), <strong class="text-gray-300">비밀키</strong>(Secret Key) 복사</li>
+          <li>API 관리 페이지 상단에서 <strong class="text-gray-300">CUSTOMER_ID</strong> (숫자) 확인</li>
+          <li>위 폼에 3개 입력 후 Connect</li>
+        </ol>
+        <details class="mt-2"><summary class="text-[10px] text-blue-400 cursor-pointer">더 알아보기</summary>
+          <p class="text-[10px] text-gray-500 mt-1">네이버 검색광고 키워드도구 API를 사용합니다. 광고 집행 없이도 API 키 발급이 가능합니다. 키워드별 월간 PC/모바일 검색량, 경쟁 정도, 연관 키워드를 반환합니다. 무료이며 일일 호출 한도가 있습니다.</p>
+        </details>
+      </div>
+    </div>
+
+    <div class="card p-4">
+      <div class="flex gap-2 mb-2">
+        <input id="kw-research-input" type="text" placeholder="키워드 입력 (쉼표로 구분, 최대 5개)" class="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
+        <button id="kw-research-btn" class="px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Analyze</button>
+        <button id="kw-research-blog" class="px-4 py-2 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600 whitespace-nowrap">Blog Keywords</button>
+      </div>
+      ${kwResultsTable()}
+    </div>
+  </div>`;
+}
+
+function renderNaverTrends() {
+  const configured = S.naverDatalabConfigured;
+  const editing = S.naverDatalabEditing;
+  const editable = !configured || editing;
+  return `<div class="px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-bold text-white">Naver Datalab</h2>
+        <p class="text-xs text-gray-500 mt-1">네이버 검색 트렌드</p>
+      </div>
+      <a href="https://datalab.naver.com" target="_blank" class="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">네이버 데이터랩 열기 &rarr;</a>
+    </div>
+    <div class="card p-3 mb-4 border-l-2 border-green-600"><p class="text-[11px] text-gray-400">키워드 검색 트렌드를 시기별로 확인합니다. 시험 시즌, 방학 등 시즌 키워드를 미리 파악해서 콘텐츠를 준비하세요.</p></div>
+
+    <div class="card p-5 mb-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-medium text-gray-300">Credentials</h3>
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] px-1.5 py-0.5 rounded-full ${configured ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}">${configured ? "Connected" : "Not set"}</span>
+          ${configured && !editing ? `<button id="edit-naver-datalab-config" class="text-[10px] text-blue-400 hover:text-blue-300">Edit Credentials</button>` : ""}
+        </div>
+      </div>
+      <div class="space-y-3 mb-3">
+        ${credField("naver-datalab-id", "Client ID", "", false, S.naverDatalabKeys?.clientId || "", editable)}
+        ${credField("naver-datalab-secret", "Client Secret", "", true, S.naverDatalabKeys?.clientSecret || "", editable)}
+      </div>
+      ${editable ? `
+        <div class="flex gap-2">
+          <button id="save-naver-datalab-config" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${configured ? "Update" : "Connect"}</button>
+          ${configured && editing ? `<button id="cancel-naver-datalab-edit" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>` : ""}
+        </div>
+      ` : ""}
+
+      <div class="mt-4 border-t border-gray-800/50 pt-3">
+        <h3 class="text-sm font-medium text-gray-300 mb-3">Setup Guide</h3>
+        <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
+          <li><a href="https://developers.naver.com" target="_blank" class="text-blue-400 hover:underline">developers.naver.com</a> 접속 → 네이버 로그인</li>
+          <li><strong class="text-gray-300">Application</strong> → <strong class="text-gray-300">애플리케이션 등록</strong></li>
+          <li>사용 API에서 <strong class="text-gray-300">"데이터랩 (검색어트렌드)"</strong> 체크</li>
+          <li><strong class="text-gray-300">Client ID</strong>, <strong class="text-gray-300">Client Secret</strong> 복사</li>
+          <li>위 폼에 입력 후 Connect</li>
+        </ol>
+        <details class="mt-2"><summary class="text-[10px] text-blue-400 cursor-pointer">더 알아보기</summary>
+          <p class="text-[10px] text-gray-500 mt-1">네이버 통합 검색어 트렌드 API를 사용합니다. 최대 5개 키워드의 상대적 검색량 변화를 주간/월간 단위로 조회합니다. 성별, 연령대별 필터 가능. 무료.</p>
+        </details>
+      </div>
+    </div>
+
+    <div class="card p-4 mb-4">
+      <div class="flex gap-2 mb-2">
+        <input id="naver-trend-input" type="text" placeholder="키워드 입력 (쉼표로 구분, 최대 5개)" class="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
+        <button id="naver-trend-btn" class="px-4 py-2 text-xs bg-green-600 text-white rounded hover:bg-green-500">Trend</button>
+      </div>
+      ${S.naverTrend?.error ? `<div class="mt-3"><p class="text-xs text-red-400">${esc(S.naverTrend.error)}</p>${S.naverTrend.error.includes("401") || S.naverTrend.error.includes("Scopes") ? `<p class="text-[10px] text-yellow-400 mt-1">→ developers.naver.com → 내 앱 → 수정 → 사용 API에서 "데이터랩 (검색어트렌드)" 체크 → 저장</p>` : ""}</div>` : ""}
+      ${S.naverTrend?.results?.length ? `
+        <div class="mt-4">
+          <h4 class="text-xs font-medium text-gray-400 mb-2">Search Trend (relative)</h4>
+          ${S.naverTrend.results.map(group => `
+            <div class="mb-3">
+              <span class="text-xs text-gray-300">${esc(group.title)}</span>
+              <div class="flex items-end gap-0.5 h-16 mt-1">${(group.data || []).slice(-30).map(d => {
+                const pct = Math.max(2, d.ratio);
+                return `<div class="flex-1 bg-green-600 rounded-t" style="height:${pct}%" title="${d.period}: ${d.ratio}"></div>`;
+              }).join("")}</div>
+            </div>
+          `).join("")}
+        </div>
+      ` : ""}
+    </div>
+  </div>`;
+}
+
+function renderGoogleTrends() {
+  return `<div class="px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-bold text-white">Google Trends</h2>
+        <p class="text-xs text-gray-500 mt-1">구글 검색 트렌드</p>
+      </div>
+      <a href="https://trends.google.com/trends/explore?geo=KR&cat=958" target="_blank" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Google Trends 열기 &rarr;</a>
+    </div>
+    <div class="card p-4 mb-4">
+      <div class="flex gap-2 mb-2">
+        <input id="google-trend-input" type="text" placeholder="키워드 입력 (쉼표로 구분)" class="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
+        <button id="google-trend-btn" class="px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Trend</button>
+      </div>
+      <p class="text-[10px] text-gray-600">Google Trends API (Alpha) 키 필요. 또는 pytrends 라이브러리 사용.</p>
+      <div class="card p-3 mt-3 border-l-2 border-blue-600"><p class="text-[11px] text-gray-400">글로벌/한국 검색 트렌드를 확인합니다. 상승 중인 주제를 선점하세요. 교육(카테고리 958) 트렌드로 바로 이동할 수 있습니다.</p></div>
+      ${S.googleTrend?.error ? `<p class="text-xs text-red-400 mt-3">${esc(S.googleTrend.error)}</p>` : ""}
+      ${S.googleTrend?.results?.length ? `
+        <div class="mt-4 space-y-2">${S.googleTrend.results.map(r => `
+          <div class="flex items-center gap-3 text-xs">
+            <span class="text-gray-300 w-48 truncate">${esc(r.query)}</span>
+            <div class="flex-1 bg-gray-800 rounded-full h-2"><div class="bg-blue-600 rounded-full h-2" style="width:${r.value}%"></div></div>
+            <span class="text-gray-500 w-12 text-right">${r.value}</span>
+          </div>
+        `).join("")}</div>
+      ` : ""}
+    </div>
+  </div>`;
+}
+
+function renderBlogStats() {
+  const s = S.blogStats;
+  if (!s || s.error) return `<div class="card p-4 text-center text-xs text-gray-500">${s?.error || "Loading stats..."}</div>`;
+  return `
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Published</div><div class="text-xl font-bold text-white">${s.totalArticles}</div></div>
+      <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Total Views</div><div class="text-xl font-bold text-white">${s.totalViews}</div></div>
+      <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Avg Views</div><div class="text-xl font-bold text-white">${s.avgViews}</div></div>
+      <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Top Article</div><div class="text-xs text-gray-300 truncate">${s.topArticle ? esc(s.topArticle.title) : "-"}</div>${s.topArticle ? `<div class="text-[10px] text-gray-500">${s.topArticle.viewCount} views</div>` : ""}</div>
+    </div>
+    ${s.articles?.length ? `<div class="card p-4"><h4 class="text-xs font-medium text-gray-400 mb-2">Articles on d-edu.site</h4>
+      <div class="space-y-1">${s.articles.map(a => `<div class="flex justify-between items-center text-xs border-b border-gray-800/30 py-1.5">
+        <a href="https://www.d-edu.site/community/column/${a.id}" target="_blank" class="text-gray-300 hover:text-white truncate flex-1 mr-3">${esc(a.title)}</a>
+        <span class="text-gray-500 whitespace-nowrap mr-2">${a.viewCount} views</span>
+        ${S.gscConfig?.configured ? `<button data-gsc-index="https://www.d-edu.site/community/column/${a.id}" class="text-[10px] text-blue-400 hover:text-blue-300 whitespace-nowrap">Index</button>` : ""}
+      </div>`).join("")}</div></div>` : ""}`;
+}
+
+function renderBlog() {
+  const posts = S.blogQueue || [];
+  const sc = { draft: "bg-yellow-900/40 text-yellow-300", approved: "bg-blue-900/40 text-blue-300", published: "bg-green-900/40 text-green-300", failed: "bg-red-900/40 text-red-300" };
+  return `<div class="px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div><h2 class="text-xl font-bold text-white">Blog (D-Edu)</h2><p class="text-xs text-gray-500 mt-1">학생/학부모 대상 SEO 칼럼 자동화</p></div>
+      <span class="text-sm text-gray-500">${posts.length} in queue</span>
+    </div>
+
+    <details class="card p-4 mb-6">
+      <summary class="text-sm font-medium text-gray-300 cursor-pointer">SEO 콘텐츠 자동화 플로우</summary>
+      <div class="mt-3 text-[11px] text-gray-400 space-y-2">
+        <div class="flex items-start gap-2"><span class="text-blue-400 font-bold">1.</span><div><strong class="text-gray-300">키워드 수집</strong> — Naver Keyword Planner에서 검색량 높고 경쟁 낮은 키워드를 찾아 Blog Keywords에 추가</div></div>
+        <div class="flex items-start gap-2"><span class="text-blue-400 font-bold">2.</span><div><strong class="text-gray-300">트렌드 확인</strong> — Naver Datalab에서 시즌 키워드 파악 (시험, 방학 등)</div></div>
+        <div class="flex items-start gap-2"><span class="text-blue-400 font-bold">3.</span><div><strong class="text-gray-300">콘텐츠 생산</strong> — AI가 Blog Keywords + Content Guide 기반으로 칼럼 draft 자동 생성 (12시간마다)</div></div>
+        <div class="flex items-start gap-2"><span class="text-blue-400 font-bold">4.</span><div><strong class="text-gray-300">검수 + 발행</strong> — 아래 Queue에서 draft 확인 → 클릭해서 수정 → Approve → d-edu.site에 자동 발행 (8시간마다)</div></div>
+        <div class="flex items-start gap-2"><span class="text-blue-400 font-bold">5.</span><div><strong class="text-gray-300">검색 노출</strong> — Google Search Console에서 색인 요청 → 24시간 내 검색 노출</div></div>
+        <div class="flex items-start gap-2"><span class="text-blue-400 font-bold">6.</span><div><strong class="text-gray-300">결과 분석</strong> — Blog Performance에서 조회수 + 검색 클릭 추적 → 잘 되는 키워드 더 밀기</div></div>
+        <p class="text-[10px] text-gray-500 mt-2 border-t border-gray-800 pt-2">Settings에서 Content Generation / Auto Publish 토글로 자동화를 끄고 켤 수 있습니다. Content Guide에서 타겟, 톤, 주제를 수정하세요.</p>
+      </div>
+    </details>
+
+    <h3 class="text-sm font-medium text-gray-400 mb-3">Queue</h3>
+    ${posts.length === 0 ? `<div class="card p-8 text-center"><p class="text-gray-500 text-sm">블로그 글이 없습니다.</p></div>` : ""}
+    <div class="space-y-3">
+    ${posts.map(p => `
+      <div class="card p-4 cursor-pointer hover:border-gray-600 transition-colors" data-blog-detail="${p.id}">
+        <div class="flex items-start justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] px-1.5 py-0.5 rounded ${sc[p.status] || "bg-gray-700 text-gray-300"}">${esc(p.status)}</span>
+            ${p.seoKeyword ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-900/40 text-cyan-300">${esc(p.seoKeyword)}</span>` : ""}
+            ${p.blogPostUrl ? `<a href="${esc(p.blogPostUrl)}" target="_blank" class="text-[10px] text-blue-400 hover:underline" onclick="event.stopPropagation()">View &rarr;</a>` : ""}
+          </div>
+          <div class="flex items-center gap-2">
+            ${p.viewCount != null ? `<span class="text-[10px] text-gray-500">views: ${p.viewCount}</span>` : ""}
+            <span class="text-[10px] text-gray-600">${fmtDate(p.generatedAt)}</span>
+          </div>
+        </div>
+        <h3 class="text-sm font-medium text-gray-200 mb-1">${esc(p.title || "")}</h3>
+        <p class="text-xs text-gray-500 mb-2">${esc((p.content || "").replace(/<[^>]*>/g, "").slice(0, 150))}...</p>
+        ${p.tags?.length ? `<div class="flex flex-wrap gap-1 mb-2">${p.tags.slice(0, 8).map(t => `<span class="text-[10px] text-cyan-400">#${esc(t)}</span>`).join("")}${p.tags.length > 8 ? `<span class="text-[10px] text-gray-600">+${p.tags.length - 8}</span>` : ""}</div>` : ""}
+        <div class="flex gap-2 mt-2" onclick="event.stopPropagation()">
+          ${p.status === "draft" ? `<button data-blog-approve="${p.id}" class="px-2 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>` : ""}
+          ${p.status !== "published" ? `<button data-blog-delete="${p.id}" class="px-2 py-1 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">Delete</button>` : ""}
+        </div>
+      </div>
+    `).join("")}
+    </div>
+    <div class="mt-8">
+      <h3 class="text-lg font-bold text-white mb-4">Blog Settings</h3>
+      ${renderBlogConfig()}
+    </div>
+  </div>`;
+}
+
+function renderBlogConfig() {
+  const cfg = S.channelConfig.blog || {};
+  return `
+    <div class="card p-4">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="w-5 h-5 rounded bg-blue-900 flex items-center justify-center text-[9px] font-bold text-blue-300">B</span>
+        <span class="text-sm font-medium text-white">D-Edu Blog Connection</span>
+        <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${cfg.connected ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}">${cfg.connected ? "Connected" : "Not set"}</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div>
+          <label class="text-xs text-gray-500 block mb-1">API Base URL</label>
+          <input id="blog-apiBaseUrl" type="text" value="${esc(cfg.apiBaseUrl || "https://api.d-edu.site")}" class="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 block mb-1">Email</label>
+          <input id="blog-email" type="text" value="${esc(cfg.email || "")}" placeholder="account@d-edu.site" class="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 block mb-1">Password</label>
+          <div class="flex gap-1">
+            <input id="blog-password" type="password" value="${esc(cfg.password || "")}" class="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
+            <button data-toggle-vis="blog-password" class="px-2 text-[10px] text-gray-500 hover:text-white bg-gray-800 rounded border border-gray-700">Show</button>
+          </div>
+        </div>
+      </div>
+      <button id="save-blog-config" class="mt-3 px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save Connection</button>
+    </div>
+    <div class="card p-4 mt-4">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm font-medium text-white">Blog Automation</span>
+      </div>
+      <div class="space-y-3">
+        <label class="flex items-center justify-between">
+          <div><span class="text-xs text-gray-300">Content Generation</span><p class="text-[10px] text-gray-600">학생/학부모 대상 칼럼 자동 생성 (12시간마다)</p></div>
+          <div class="relative"><input type="checkbox" id="blog-toggle-generate" ${S.cronJobs.find(j=>j.name==="blog-generate-drafts")?.enabled !== false ? "checked" : ""} class="sr-only peer"><div class="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 cursor-pointer after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div></div>
+        </label>
+        <label class="flex items-center justify-between">
+          <div><span class="text-xs text-gray-300">Auto Publish</span><p class="text-[10px] text-gray-600">승인된 글을 d-edu.site에 자동 발행 (8시간마다)</p></div>
+          <div class="relative"><input type="checkbox" id="blog-toggle-publish" ${S.cronJobs.find(j=>j.name==="blog-auto-publish")?.enabled !== false ? "checked" : ""} class="sr-only peer"><div class="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 cursor-pointer after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div></div>
+        </label>
+      </div>
+    </div>
+    <div class="card p-4 mt-4">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm font-medium text-white">Blog Content Guide</span>
+        <span class="text-[10px] text-gray-500">학생/학부모 대상 콘텐츠 전략</span>
+      </div>
+      <textarea id="blog-guide-textarea" rows="10" class="w-full bg-gray-800 text-gray-200 text-xs p-3 rounded border border-gray-700 font-mono leading-relaxed">${esc(S.blogGuide || "")}</textarea>
+      <button id="save-blog-guide" class="mt-2 px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save Guide</button>
+    </div>
+    <div class="card p-4 mt-4">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm font-medium text-white">Blog SEO Keywords</span>
+        <span class="text-[10px] text-gray-500">학생/학부모 검색어 (한 줄에 하나)</span>
+      </div>
+      <textarea id="blog-keywords-textarea" rows="8" class="w-full bg-gray-800 text-gray-200 text-xs p-3 rounded border border-gray-700 font-mono">${esc((S.blogKeywords || []).join("\n"))}</textarea>
+      <button id="save-blog-keywords" class="mt-2 px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save Keywords</button>
+    </div>`;
+}
+
+function renderBlogEditor() {
+  const p = S.blogQueue.find(x => x.id === S.blogDetailId);
+  if (!p) { S.page = "blog"; return renderBlog(); }
+  const sc = { draft: "bg-yellow-900/40 text-yellow-300", approved: "bg-blue-900/40 text-blue-300", published: "bg-green-900/40 text-green-300", failed: "bg-red-900/40 text-red-300" };
+  const canEdit = p.status === "draft" || p.status === "approved";
+
+  if (S.blogEditing) {
+    // ── Edit mode: split layout ──
+    return `<div class="flex flex-col h-screen">
+      <div class="flex items-center justify-between px-6 py-3 border-b border-gray-800 bg-[#0e0e0e]">
+        <div class="flex items-center gap-3">
+          <button id="blog-back" class="text-gray-500 hover:text-white text-sm">&larr; Back</button>
+          <span class="text-[10px] px-2 py-0.5 rounded ${sc[p.status] || "bg-gray-700 text-gray-300"}">${p.status}</span>
+          <span class="text-sm text-white font-medium">${esc(p.title || "Untitled")}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="blog-toggle-edit" class="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Preview</button>
+          <button id="blog-save-edit" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
+          ${p.status === "draft" ? `<button data-blog-approve="${p.id}" class="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>` : ""}
+        </div>
+      </div>
+      <div class="flex-1 flex overflow-hidden">
+        <div class="w-1/2 border-r border-gray-800 flex flex-col">
+          <div class="px-4 py-3 space-y-2 border-b border-gray-800 bg-[#111]">
+            <input id="blog-edit-title" type="text" value="${esc(p.title || "")}" placeholder="Title" class="w-full bg-transparent text-white text-lg font-bold p-0 border-0 outline-none placeholder-gray-600">
+            <div class="flex gap-2">
+              <input id="blog-edit-keyword" type="text" value="${esc(p.seoKeyword || "")}" placeholder="SEO Keyword" class="flex-1 bg-gray-800 text-cyan-300 text-xs p-1.5 rounded border border-gray-700">
+              <input id="blog-edit-tags" type="text" value="${esc((p.tags || []).join(", "))}" placeholder="Tags (comma separated)" class="flex-1 bg-gray-800 text-gray-300 text-xs p-1.5 rounded border border-gray-700">
+            </div>
+            <div class="flex gap-2 items-center">
+              <label class="text-[10px] text-gray-500">Thumbnail</label>
+              <input id="blog-edit-thumbnail" type="text" value="${esc(p.thumbnailUrl || "")}" placeholder="이미지 URL 붙여넣기 (미드저니 등)" class="flex-1 bg-gray-800 text-gray-300 text-xs p-1.5 rounded border border-gray-700">
+              <button id="blog-upload-thumb" class="px-2 py-1.5 text-[10px] bg-purple-700 text-white rounded hover:bg-purple-600 whitespace-nowrap">Upload</button>
+              <label class="px-2 py-1.5 text-[10px] bg-gray-700 text-gray-300 rounded hover:bg-gray-600 cursor-pointer whitespace-nowrap">
+                File <input type="file" id="blog-thumb-file" accept="image/*" class="hidden">
+              </label>
+            </div>
+            ${p.thumbnailUrl ? `<img src="${esc(p.thumbnailUrl)}" class="mt-1 h-16 rounded border border-gray-700 object-cover">` : ""}
+          </div>
+          <textarea id="blog-edit-content" class="flex-1 bg-[#0a0a0a] text-gray-200 text-sm p-4 border-0 outline-none resize-none font-mono leading-relaxed" placeholder="Write HTML or Markdown...">${esc(p.content || "")}</textarea>
+        </div>
+        <div class="w-1/2 overflow-y-auto bg-[#fafafa]">
+          <div id="blog-live-preview" class="max-w-2xl mx-auto px-8 py-10 blog-article-preview"></div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ── Preview mode: article-style full page ──
+  return `<div class="flex flex-col min-h-screen">
+    <div class="flex items-center justify-between px-6 py-3 border-b border-gray-800 bg-[#0e0e0e] sticky top-0 z-10">
+      <div class="flex items-center gap-3">
+        <button id="blog-back" class="text-gray-500 hover:text-white text-sm">&larr; Back</button>
+        <span class="text-[10px] px-2 py-0.5 rounded ${sc[p.status] || "bg-gray-700 text-gray-300"}">${p.status}</span>
+        ${p.seoKeyword ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-900/40 text-cyan-300">${esc(p.seoKeyword)}</span>` : ""}
+        ${p.viewCount != null ? `<span class="text-[10px] text-gray-500">views ${p.viewCount}</span>` : ""}
+      </div>
+      <div class="flex items-center gap-2">
+        ${canEdit ? `<button id="blog-toggle-edit" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Edit</button>` : ""}
+        ${p.status === "draft" ? `<button data-blog-approve="${p.id}" class="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>` : ""}
+        ${p.status !== "published" ? `<button data-blog-delete="${p.id}" class="px-3 py-1.5 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">Delete</button>` : ""}
+        ${p.blogPostUrl ? `<a href="${esc(p.blogPostUrl)}" target="_blank" class="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">View on Site &rarr;</a>` : ""}
+      </div>
+    </div>
+    <div class="flex-1 bg-[#fafafa] overflow-y-auto">
+      <article class="max-w-2xl mx-auto px-8 py-10 blog-article-preview">
+        ${p.thumbnailUrl ? `<img src="${esc(p.thumbnailUrl)}" alt="" class="w-full rounded-lg mb-8 shadow-md">` : ""}
+        <h1 style="font-size:1.75rem;font-weight:800;color:#111;line-height:1.3;margin-bottom:0.75rem">${esc(p.title || "")}</h1>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.5rem">
+          ${(p.tags || []).map(t => `<span style="font-size:0.7rem;padding:2px 8px;border-radius:9999px;background:#e0f2fe;color:#0369a1">#${esc(t)}</span>`).join("")}
+        </div>
+        <div style="font-size:0.75rem;color:#888;margin-bottom:2rem">
+          ${p.model ? p.model : ""} ${p.generatedAt ? "| " + fmtDate(p.generatedAt) : ""}
+        </div>
+        <div class="blog-article-body">${p.content || ""}</div>
+      </article>
+    </div>
+  </div>`;
+}
+
+function openBlogDetail(id) { S.blogDetailId = id; S.blogEditing = false; S.page = "blog-edit"; render(); bindBlogEditorEvents(); }
+
+function bindBlogEditorEvents() {
+  setTimeout(() => {
+    document.getElementById("blog-back")?.addEventListener("click", () => { S.blogDetailId = null; S.blogEditing = false; S.page = "blog"; loadBlogQueue(); });
+    document.getElementById("blog-toggle-edit")?.addEventListener("click", () => { S.blogEditing = !S.blogEditing; render(); bindBlogEditorEvents(); });
+    document.getElementById("blog-save-edit")?.addEventListener("click", () => saveBlogPost(S.blogDetailId));
+    document.querySelectorAll("[data-blog-approve]").forEach(el => { el.onclick = () => approveBlogPost(el.dataset.blogApprove); });
+    document.querySelectorAll("[data-blog-delete]").forEach(el => { el.onclick = () => deleteBlogPost(el.dataset.blogDelete); });
+
+    // Thumbnail upload
+    const uploadThumbBtn = document.getElementById("blog-upload-thumb");
+    if (uploadThumbBtn) uploadThumbBtn.onclick = async () => {
+      const urlInput = document.getElementById("blog-edit-thumbnail");
+      if (!urlInput?.value) { showToast("URL을 입력하세요", "warning"); return; }
+      uploadThumbBtn.textContent = "Uploading..."; uploadThumbBtn.disabled = true;
+      const r = await API.post("/api/blog-upload-image", { imageUrl: urlInput.value });
+      uploadThumbBtn.textContent = "Upload"; uploadThumbBtn.disabled = false;
+      if (r?.ok) { showToast("이미지 업로드 완료", "success"); /* mediaId를 저장 */ }
+      else showToast(r?.error || "업로드 실패", "error");
+    };
+    const thumbFile = document.getElementById("blog-thumb-file");
+    if (thumbFile) thumbFile.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        // Show preview by creating object URL
+        const urlInput = document.getElementById("blog-edit-thumbnail");
+        if (urlInput) urlInput.value = URL.createObjectURL(file);
+        showToast("파일 선택됨 — Upload 버튼을 눌러 업로드하세요", "info");
+      };
+      reader.readAsDataURL(file);
+    };
+
+    // Live preview in edit mode
+    const editor = document.getElementById("blog-edit-content");
+    const preview = document.getElementById("blog-live-preview");
+    if (editor && preview) {
+      const updatePreview = () => {
+        const title = document.getElementById("blog-edit-title")?.value || "";
+        const thumb = document.getElementById("blog-edit-thumbnail")?.value || "";
+        preview.innerHTML = `
+          ${thumb ? `<img src="${esc(thumb)}" alt="" style="width:100%;border-radius:8px;margin-bottom:2rem;box-shadow:0 2px 8px rgba(0,0,0,0.1)">` : ""}
+          <h1 style="font-size:1.75rem;font-weight:800;color:#111;line-height:1.3;margin-bottom:1.5rem">${esc(title)}</h1>
+          <div class="blog-article-body">${editor.value}</div>`;
+      };
+      editor.addEventListener("input", updatePreview);
+      document.getElementById("blog-edit-title")?.addEventListener("input", updatePreview);
+      document.getElementById("blog-edit-thumbnail")?.addEventListener("input", updatePreview);
+      updatePreview();
+    }
+  }, 0);
+}
+
+async function saveBlogPost(id) {
+  const title = document.getElementById("blog-edit-title")?.value;
+  const content = document.getElementById("blog-edit-content")?.value;
+  const seoKeyword = document.getElementById("blog-edit-keyword")?.value;
+  const thumbnailUrl = document.getElementById("blog-edit-thumbnail")?.value || "";
+  const tagsRaw = document.getElementById("blog-edit-tags")?.value || "";
+  const tags = tagsRaw.split(",").map(t => t.trim()).filter(Boolean);
+  const payload = { title, content, seoKeyword, tags };
+  if (thumbnailUrl) payload.thumbnailUrl = thumbnailUrl;
+  const r = await API.post("/api/blog-queue/" + id + "/update", payload);
+  if (r) { showToast("Saved", "success"); loadBlogQueue(); setTimeout(() => bindBlogEditorEvents(), 100); }
+}
+
+async function approveBlogPost(id) { const r = await API.post("/api/blog-queue/" + id + "/approve"); if (r) { showToast("블로그 글 승인", "success"); S.blogDetailId = null; loadBlogQueue(); } }
+
+async function deleteBlogPost(id) { if (!confirm("삭제?")) return; const r = await API.post("/api/blog-queue/" + id + "/delete"); if (r) { showToast("삭제 완료", "success"); S.blogDetailId = null; loadBlogQueue(); } }
+
+async function loadBlogQueue() { const d = await API.get("/api/blog-queue"); if (d) S.blogQueue = d.posts || []; render(); }

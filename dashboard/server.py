@@ -36,6 +36,14 @@ NOTIFICATION_LOG_PATH = DATA_DIR / "notification-log.json"
 CONFIG_DIR = Path(os.environ.get("CONFIG_DIR", Path(__file__).resolve().parent.parent / "config"))
 CRON_JOBS_PATH = CONFIG_DIR / "cron" / "jobs.json"
 CHANNEL_SETTINGS_PATH = Path(DATA_DIR) / "channel-settings.json"
+BLOG_GUIDE_PATH = DATA_DIR / "blog-prompt-guide.txt"
+BLOG_KEYWORDS_PATH = DATA_DIR / "blog-keywords.txt"
+GSC_KEY_PATH = DATA_DIR / "gsc-service-account.json"
+NSA_DATA_PATH = DATA_DIR / "nsa-data.json"
+GA_CONFIG_PATH = DATA_DIR / "ga-config.json"
+NAVER_DATALAB_CONFIG_PATH = DATA_DIR / "naver-datalab-config.json"
+SLACK_CONFIG_PATH = DATA_DIR / "slack-config.json"
+
 
 AUTOMATION_FEATURES = [
     {"key": "content_generation",    "label": "Content Generation",    "description": "prompt-guide 기반 글 배치 생성 → draft 저장", "detail": "6시간마다 prompt-guide.txt + style-data.json + popular-posts.txt를 참고하여 draftsPerBatch개(기본 5) 글을 자동 생성합니다. 대시보드에서 검수/승인 후 발행됩니다.", "default": True},
@@ -2158,6 +2166,755 @@ def api_cron_runs():
             continue
     runs.sort(key=lambda r: r.get("finishedAt", 0), reverse=True)
     return jsonify({"runs": runs[:30]})
+
+
+# ════════════════════════════════════════
+# ══ D-Edu Custom APIs ══
+# ════════════════════════════════════════
+
+def _gsc_get_access_token(key_data, scope):
+    """Get Google OAuth2 access token from service account key"""
+    import urllib.request
+    import time
+    import base64
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
+
+    now = int(time.time())
+    header = base64.urlsafe_b64encode(json.dumps({"alg": "RS256", "typ": "JWT"}).encode()).rstrip(b"=")
+    claim = base64.urlsafe_b64encode(json.dumps({
+        "iss": key_data["client_email"],
+        "scope": scope,
+        "aud": "https://oauth2.googleapis.com/token",
+        "iat": now, "exp": now + 3600,
+    }).encode()).rstrip(b"=")
+    signing_input = header + b"." + claim
+    pk = serialization.load_pem_private_key(key_data["private_key"].encode(), password=None)
+    sig = pk.sign(signing_input, asym_padding.PKCS1v15(), hashes.SHA256())
+    jwt_token = signing_input + b"." + base64.urlsafe_b64encode(sig).rstrip(b"=")
+
+    token_req = urllib.request.Request(
+        "https://oauth2.googleapis.com/token",
+        data=f"grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion={jwt_token.decode()}".encode(),
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    token_resp = urllib.request.urlopen(token_req, timeout=10)
+    return json.loads(token_resp.read()).get("access_token")
+
+# ── API: Blog Stats (proxy to d-edu.site) ──
+@app.route("/api/blog-stats")
+def api_blog_stats():
+    """Fetch article stats directly from d-edu.site API"""
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path) or {}
+    blog_cfg = config.get("plugins", {}).get("entries", {}).get("dedu-blog", {}).get("config", {})
+    api_base = blog_cfg.get("apiBaseUrl", "")
+    email = blog_cfg.get("email", "")
+    password = blog_cfg.get("password", "")
+    if not api_base or not email:
+        return jsonify({"error": "Blog not configured", "articles": [], "totalViews": 0, "totalArticles": 0})
+
+    try:
+        import urllib.request
+        # Login
+        login_data = json.dumps({"email": email, "password": password}).encode()
+        login_req = urllib.request.Request(f"{api_base}/api/auth/login", login_data, {"Content-Type": "application/json"})
+        login_resp = urllib.request.urlopen(login_req, timeout=10)
+        cookie = login_resp.headers.get("Set-Cookie", "")
+        import re as _re
+        auth_match = _re.search(r"Authorization=([^;]+)", cookie)
+        if not auth_match:
+            return jsonify({"error": "Login failed", "articles": [], "totalViews": 0, "totalArticles": 0})
+        auth_token = auth_match.group(1)
+
+        # Fetch articles
+        list_req = urllib.request.Request(
+            f"{api_base}/api/admin/column-articles?status=APPROVED&page=0&size=100",
+            headers={"Cookie": f"Authorization={auth_token}"}
+        )
+        list_resp = urllib.request.urlopen(list_req, timeout=10)
+        data = json.loads(list_resp.read())
+        content = data.get("data", {}).get("content", [])
+
+        articles = []
+        total_views = 0
+        for a in content:
+            views = a.get("viewCount", 0) or 0
+            total_views += views
+            articles.append({
+                "id": a.get("id"),
+                "title": a.get("title", ""),
+                "viewCount": views,
+                "tags": a.get("tags", []),
+                "regDate": a.get("regDate", ""),
+            })
+        articles.sort(key=lambda x: x["viewCount"], reverse=True)
+        avg_views = round(total_views / len(articles)) if articles else 0
+        top = articles[0] if articles else None
+
+        # Tag aggregation
+        tag_stats = {}
+        for a in articles:
+            for tag in a.get("tags", []):
+                if tag not in tag_stats:
+                    tag_stats[tag] = {"count": 0, "totalViews": 0}
+                tag_stats[tag]["count"] += 1
+                tag_stats[tag]["totalViews"] += a["viewCount"]
+        for t in tag_stats.values():
+            t["avgViews"] = round(t["totalViews"] / t["count"]) if t["count"] else 0
+        top_tags = sorted(tag_stats.items(), key=lambda x: x[1]["avgViews"], reverse=True)[:15]
+
+        # Save daily snapshot
+        history_path = DATA_DIR / "blog-analytics-history.json"
+        history = read_json(history_path) or {"snapshots": []}
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        existing = [s for s in history["snapshots"] if s.get("date") == today]
+        snapshot = {"date": today, "totalViews": total_views, "totalArticles": len(articles),
+                    "articles": [{"id": a["id"], "viewCount": a["viewCount"]} for a in articles]}
+        if existing:
+            existing[0].update(snapshot)
+        else:
+            history["snapshots"].append(snapshot)
+            history["snapshots"] = history["snapshots"][-90:]  # keep 90 days
+        write_json(history_path, history)
+
+        # Calculate daily delta
+        yesterday = [(s) for s in history["snapshots"] if s["date"] < today]
+        prev_views = yesterday[-1]["totalViews"] if yesterday else 0
+        daily_delta = total_views - prev_views
+
+        return jsonify({
+            "totalArticles": len(articles),
+            "totalViews": total_views,
+            "avgViews": avg_views,
+            "dailyDelta": daily_delta,
+            "topArticle": top,
+            "articles": articles,
+            "topTags": [{"tag": t, **v} for t, v in top_tags],
+            "history": [{"date": s["date"], "totalViews": s["totalViews"]} for s in history["snapshots"][-14:]],
+        })
+    except Exception as e:
+        logger.error("Blog stats fetch failed: %s", e)
+        return jsonify({"error": str(e), "articles": [], "totalViews": 0, "totalArticles": 0})
+
+
+# ── API: Blog Guide & Keywords ──
+@app.route("/api/blog-guide")
+def api_blog_guide():
+    try:
+        with open(BLOG_GUIDE_PATH, "r", encoding="utf-8") as f:
+            return jsonify({"guide": f.read()})
+    except FileNotFoundError:
+        return jsonify({"guide": ""})
+
+
+@app.route("/api/blog-guide", methods=["POST"])
+def api_blog_guide_update():
+    data = get_json_body()
+    guide = data.get("guide", "")
+    if not isinstance(guide, str):
+        return jsonify({"error": "guide must be a string"}), 400
+    with open(BLOG_GUIDE_PATH, "w", encoding="utf-8") as f:
+        f.write(guide)
+    logger.info("Blog guide updated (%d chars)", len(guide))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/blog-keywords")
+def api_blog_keywords():
+    try:
+        with open(BLOG_KEYWORDS_PATH, "r", encoding="utf-8") as f:
+            lines = [l.strip() for l in f if l.strip() and not l.startswith("#")]
+        return jsonify({"keywords": lines})
+    except FileNotFoundError:
+        return jsonify({"keywords": []})
+
+
+@app.route("/api/blog-keywords", methods=["POST"])
+def api_blog_keywords_update():
+    data = get_json_body()
+    keywords = data.get("keywords", [])
+    if not isinstance(keywords, list):
+        return jsonify({"error": "keywords must be an array"}), 400
+    with open(BLOG_KEYWORDS_PATH, "w", encoding="utf-8") as f:
+        f.write("# Blog SEO 키워드 — 학생/학부모 대상 (한 줄에 하나, #=주석)\n")
+        for kw in keywords:
+            f.write(f"{kw}\n")
+    logger.info("Blog keywords updated: %d keywords", len(keywords))
+    return jsonify({"ok": True, "count": len(keywords)})
+
+# ── API: GSC Service Account ──
+GSC_KEY_PATH = DATA_DIR / "gsc-service-account.json"
+
+
+@app.route("/api/gsc-config")
+def api_gsc_config():
+    key_data = read_json(GSC_KEY_PATH)
+    if key_data is None:
+        return jsonify({"configured": False, "email": ""})
+    return jsonify({"configured": True, "email": key_data.get("client_email", "")})
+
+
+@app.route("/api/gsc-config", methods=["POST"])
+def api_gsc_config_update():
+    data = get_json_body()
+    key_json = data.get("keyJson", "")
+    if not key_json:
+        return jsonify({"error": "keyJson is required"}), 400
+    try:
+        parsed = json.loads(key_json) if isinstance(key_json, str) else key_json
+        if "client_email" not in parsed or "private_key" not in parsed:
+            return jsonify({"error": "Invalid service account JSON: missing client_email or private_key"}), 400
+        write_json(GSC_KEY_PATH, parsed)
+        logger.info("GSC service account configured: %s", parsed.get("client_email", ""))
+        return jsonify({"ok": True, "email": parsed.get("client_email", "")})
+    except json.JSONDecodeError:
+        return jsonify({"error": "Invalid JSON format"}), 400
+
+
+
+
+@app.route("/api/gsc-index", methods=["POST"])
+def api_gsc_index_request():
+    key_data = read_json(GSC_KEY_PATH)
+    if key_data is None:
+        return jsonify({"error": "GSC service account not configured"}), 400
+    data = get_json_body()
+    url = data.get("url", "")
+    if not url:
+        return jsonify({"error": "url is required"}), 400
+    try:
+        import urllib.request
+        access_token = _gsc_get_access_token(key_data, "https://www.googleapis.com/auth/indexing")
+        index_req = urllib.request.Request(
+            "https://indexing.googleapis.com/v3/urlNotifications:publish",
+            data=json.dumps({"url": url, "type": "URL_UPDATED"}).encode(),
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+        )
+        result = json.loads(urllib.request.urlopen(index_req, timeout=10).read())
+        logger.info("GSC index requested: %s", url)
+        return jsonify({"ok": True, "url": url, "result": result})
+    except Exception as e:
+        logger.error("GSC index request failed: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/gsc-analytics")
+def api_gsc_analytics():
+    """Fetch search analytics from Google Search Console"""
+    key_data = read_json(GSC_KEY_PATH)
+    if key_data is None:
+        return jsonify({"error": "GSC service account not configured", "rows": []})
+    site_url = request.args.get("site", "sc-domain:d-edu.site")
+    days = int(request.args.get("days", "28"))
+    dimension = request.args.get("dimension", "query")  # query or page
+
+    try:
+        import urllib.request
+        access_token = _gsc_get_access_token(key_data, "https://www.googleapis.com/auth/webmasters.readonly")
+
+        end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        start_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+
+        body = json.dumps({
+            "startDate": start_date,
+            "endDate": end_date,
+            "dimensions": [dimension],
+            "rowLimit": 50,
+        }).encode()
+        api_url = f"https://www.googleapis.com/webmasters/v3/sites/{urllib.parse.quote(site_url, safe='')}/searchAnalytics/query"
+        req = urllib.request.Request(api_url, data=body, headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}",
+        })
+        resp = urllib.request.urlopen(req, timeout=15)
+        result = json.loads(resp.read())
+
+        rows = []
+        total_clicks = 0
+        total_impressions = 0
+        for r in result.get("rows", []):
+            clicks = r.get("clicks", 0)
+            impressions = r.get("impressions", 0)
+            total_clicks += clicks
+            total_impressions += impressions
+            rows.append({
+                "key": r["keys"][0] if r.get("keys") else "",
+                "clicks": clicks,
+                "impressions": impressions,
+                "ctr": round(r.get("ctr", 0) * 100, 1),
+                "position": round(r.get("position", 0), 1),
+            })
+
+        avg_ctr = round((total_clicks / total_impressions * 100) if total_impressions > 0 else 0, 1)
+        avg_position = round(sum(r["position"] for r in rows) / len(rows), 1) if rows else 0
+
+        # Cache to file
+        cache = {"fetchedAt": datetime.now(timezone.utc).isoformat(), "days": days, "dimension": dimension,
+                 "totalClicks": total_clicks, "totalImpressions": total_impressions, "avgCtr": avg_ctr, "avgPosition": avg_position, "rows": rows}
+        cache_path = DATA_DIR / "gsc-analytics.json"
+        write_json(cache_path, cache)
+
+        return jsonify(cache)
+    except Exception as e:
+        logger.error("GSC analytics failed: %s", e)
+        # Return cached data if available
+        cache_path = DATA_DIR / "gsc-analytics.json"
+        cached = read_json(cache_path)
+        if cached:
+            cached["cached"] = True
+            return jsonify(cached)
+        return jsonify({"error": str(e), "rows": []})
+
+# ── API: Naver Search Advisor (manual data) ──
+NSA_DATA_PATH = DATA_DIR / "nsa-data.json"
+
+
+@app.route("/api/nsa-data")
+def api_nsa_data():
+    data = read_json(NSA_DATA_PATH)
+    if data is None:
+        return jsonify({"clicks": 0, "impressions": 0, "ctr": 0, "position": 0, "keywords": [], "savedAt": None})
+    return jsonify(data)
+
+
+@app.route("/api/nsa-data", methods=["POST"])
+def api_nsa_data_update():
+    data = get_json_body()
+    data["savedAt"] = datetime.now(timezone.utc).isoformat()
+    write_json(NSA_DATA_PATH, data)
+    logger.info("NSA data saved")
+    return jsonify({"ok": True})
+
+# ── API: Keyword Research Config ──
+@app.route("/api/kw-planner-config")
+def api_kw_planner_config():
+    config = read_json(CONFIG_DIR / "openclaw.json") or {}
+    seo_cfg = config.get("plugins", {}).get("entries", {}).get("seo-keywords", {}).get("config", {})
+    cid = seo_cfg.get("naverClientId", "") or os.environ.get("NAVER_SEARCHAD_CLIENT_ID", "")
+    secret = seo_cfg.get("naverClientSecret", "") or os.environ.get("NAVER_SEARCHAD_CLIENT_SECRET", "")
+    customer = seo_cfg.get("naverCustomerId", "") or os.environ.get("NAVER_SEARCHAD_CUSTOMER_ID", "")
+    return jsonify({"configured": bool(cid), "clientId": cid, "clientSecret": secret, "customerId": customer})
+
+
+@app.route("/api/kw-planner-config", methods=["POST"])
+def api_kw_planner_config_update():
+    data = get_json_body()
+    client_id = data.get("clientId", "")
+    client_secret = data.get("clientSecret", "")
+    customer_id = data.get("customerId", "")
+    if not client_id or not client_secret or not customer_id:
+        return jsonify({"error": "All 3 fields required"}), 400
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path) or {}
+    plugins = config.setdefault("plugins", {}).setdefault("entries", {})
+    p = plugins.setdefault("seo-keywords", {"enabled": True, "config": {}})
+    p["config"]["naverClientId"] = client_id
+    p["config"]["naverClientSecret"] = client_secret
+    p["config"]["naverCustomerId"] = customer_id
+    p["enabled"] = True
+    write_json(config_path, config)
+    logger.info("Keyword Planner config saved")
+    return jsonify({"ok": True})
+
+
+NAVER_DATALAB_CONFIG_PATH = DATA_DIR / "naver-datalab-config.json"
+
+
+@app.route("/api/naver-datalab-config")
+def api_naver_datalab_config():
+    cfg = read_json(NAVER_DATALAB_CONFIG_PATH) or {}
+    cid = cfg.get("clientId", "") or os.environ.get("NAVER_CLIENT_ID", "")
+    secret = cfg.get("clientSecret", "") or os.environ.get("NAVER_CLIENT_SECRET", "")
+    return jsonify({"configured": bool(cid), "clientId": cid, "clientSecret": secret})
+
+
+@app.route("/api/naver-datalab-config", methods=["POST"])
+def api_naver_datalab_config_update():
+    data = get_json_body()
+    client_id = data.get("clientId", "")
+    client_secret = data.get("clientSecret", "")
+    if not client_id or not client_secret:
+        return jsonify({"error": "Client ID and Secret required"}), 400
+    write_json(NAVER_DATALAB_CONFIG_PATH, {"clientId": client_id, "clientSecret": client_secret})
+    os.environ["NAVER_CLIENT_ID"] = client_id
+    os.environ["NAVER_CLIENT_SECRET"] = client_secret
+    logger.info("Naver Datalab config saved")
+    return jsonify({"ok": True})
+
+# ── API: Naver Keyword Research ──
+@app.route("/api/keyword-research", methods=["POST"])
+def api_keyword_research():
+    """Analyze keywords via Naver Search Ad API"""
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path) or {}
+    seo_cfg = config.get("plugins", {}).get("entries", {}).get("seo-keywords", {}).get("config", {})
+    client_id = seo_cfg.get("naverClientId", "") or os.environ.get("NAVER_SEARCHAD_CLIENT_ID", "")
+    client_secret = seo_cfg.get("naverClientSecret", "") or os.environ.get("NAVER_SEARCHAD_CLIENT_SECRET", "")
+    customer_id = seo_cfg.get("naverCustomerId", "") or os.environ.get("NAVER_SEARCHAD_CUSTOMER_ID", "")
+
+    if not client_id or not client_secret or not customer_id:
+        return jsonify({"error": "네이버 검색광고 API 키가 설정되지 않았습니다. Settings에서 설정하거나 .env에 NAVER_SEARCHAD_* 환경변수를 추가하세요.", "results": []})
+
+    data = get_json_body()
+    keywords = data.get("keywords", [])
+    if not keywords:
+        return jsonify({"error": "keywords required", "results": []})
+
+    try:
+        import urllib.request
+        import hmac
+        import hashlib
+        import base64
+        import time
+
+        timestamp = str(int(time.time() * 1000))
+        method = "GET"
+        uri = "/keywordstool"
+        message = f"{timestamp}.{method}.{uri}"
+        signature = base64.b64encode(hmac.new(client_secret.encode(), message.encode(), hashlib.sha256).digest()).decode()
+
+        # 네이버 SA API는 공백 포함 키워드 거부 → 공백 제거하여 전송
+        processed = [kw.strip().replace(" ", "") for kw in keywords[:5]]
+        hint = ",".join(processed)
+        url = f"https://api.searchad.naver.com{uri}?hintKeywords={urllib.parse.quote(hint)}&showDetail=1"
+        req = urllib.request.Request(
+            url,
+            headers={
+                "X-Timestamp": timestamp,
+                "X-API-KEY": client_id,
+                "X-Customer": customer_id,
+                "X-Signature": signature,
+            }
+        )
+        try:
+            resp = urllib.request.urlopen(req, timeout=10)
+        except urllib.error.HTTPError as e:
+            err_body = e.read().decode()
+            logger.error("Naver SearchAd API error %d: %s", e.code, err_body[:300])
+            return jsonify({"error": f"네이버 API {e.code}: {err_body[:200]}", "results": []})
+        result = json.loads(resp.read())
+
+        results = []
+        for kw in result.get("keywordList", []):
+            pc = int(kw.get("monthlyPcQcCnt", 0)) if isinstance(kw.get("monthlyPcQcCnt"), (int, float)) else 0
+            mobile = int(kw.get("monthlyMobileQcCnt", 0)) if isinstance(kw.get("monthlyMobileQcCnt"), (int, float)) else 0
+            results.append({
+                "keyword": kw.get("relKeyword", ""),
+                "pcSearches": pc,
+                "mobileSearches": mobile,
+                "totalSearches": pc + mobile,
+                "competition": kw.get("compIdx", ""),
+            })
+        results.sort(key=lambda x: x["totalSearches"], reverse=True)
+        logger.info("Keyword research: %d results for %s", len(results), keywords)
+        return jsonify({"results": results, "total": len(results)})
+    except Exception as e:
+        logger.error("Keyword research failed: %s", e)
+        return jsonify({"error": str(e), "results": []})
+
+# ── API: Naver Datalab Trend ──
+@app.route("/api/naver-trend", methods=["POST"])
+def api_naver_trend():
+    """Fetch search trend from Naver Datalab API"""
+    dl_cfg = read_json(NAVER_DATALAB_CONFIG_PATH) or {}
+    client_id = dl_cfg.get("clientId", "") or os.environ.get("NAVER_CLIENT_ID", "")
+    client_secret = dl_cfg.get("clientSecret", "") or os.environ.get("NAVER_CLIENT_SECRET", "")
+    if not client_id or not client_secret:
+        return jsonify({"error": "Naver Datalab 페이지에서 API 키를 설정하세요", "results": []})
+
+    data = get_json_body()
+    keywords = data.get("keywords", [])
+    if not keywords:
+        return jsonify({"error": "keywords required", "results": []})
+
+    try:
+        import urllib.request
+        end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        start_date = (datetime.now(timezone.utc) - timedelta(days=90)).strftime("%Y-%m-%d")
+
+        body = json.dumps({
+            "startDate": start_date,
+            "endDate": end_date,
+            "timeUnit": "week",
+            "keywordGroups": [{"groupName": kw, "keywords": [kw]} for kw in keywords[:5]],
+        }).encode()
+
+        req = urllib.request.Request(
+            "https://openapi.naver.com/v1/datalab/search",
+            data=body,
+            headers={
+                "Content-Type": "application/json",
+                "X-Naver-Client-Id": client_id,
+                "X-Naver-Client-Secret": client_secret,
+            }
+        )
+        try:
+            resp = urllib.request.urlopen(req, timeout=10)
+        except urllib.error.HTTPError as e:
+            err_body = e.read().decode()
+            logger.error("Naver Datalab API error %d: %s", e.code, err_body[:300])
+            return jsonify({"error": f"네이버 Datalab API {e.code}: {err_body[:200]}", "results": []})
+        result = json.loads(resp.read())
+
+        results = []
+        for group in result.get("results", []):
+            results.append({
+                "title": group.get("title", ""),
+                "data": [{"period": d.get("period", ""), "ratio": d.get("ratio", 0)} for d in group.get("data", [])],
+            })
+        return jsonify({"results": results})
+    except Exception as e:
+        logger.error("Naver trend failed: %s", e)
+        return jsonify({"error": str(e), "results": []})
+
+# ── API: Google Trends ──
+@app.route("/api/google-trend", methods=["POST"])
+def api_google_trend():
+    """Fetch search trend — currently redirects to Google Trends web (no API key configured)"""
+    # Google Trends API (Alpha) requires special access
+    # For now, suggest using the web interface
+    return jsonify({
+        "error": "Google Trends API는 Alpha 단계입니다. trends.google.com/trends/explore?geo=KR 에서 직접 확인하세요.",
+        "results": [],
+        "webUrl": "https://trends.google.com/trends/explore?geo=KR&cat=958",
+    })
+
+# ── API: Google Analytics ──
+GA_CONFIG_PATH = DATA_DIR / "ga-config.json"
+
+
+@app.route("/api/ga-config")
+def api_ga_config():
+    cfg = read_json(GA_CONFIG_PATH)
+    if cfg is None:
+        return jsonify({"configured": False, "propertyId": ""})
+    return jsonify({"configured": bool(cfg.get("propertyId")), "propertyId": cfg.get("propertyId", "")})
+
+
+@app.route("/api/ga-config", methods=["POST"])
+def api_ga_config_update():
+    data = get_json_body()
+    pid = data.get("propertyId", "")
+    if not pid:
+        return jsonify({"error": "propertyId required"}), 400
+    write_json(GA_CONFIG_PATH, {"propertyId": pid})
+    logger.info("GA config saved: %s", pid)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/ga-analytics")
+def api_ga_analytics():
+    key_data = read_json(GSC_KEY_PATH)
+    ga_cfg = read_json(GA_CONFIG_PATH)
+    if key_data is None:
+        return jsonify({"error": "Service account not configured"})
+    if ga_cfg is None or not ga_cfg.get("propertyId"):
+        return jsonify({"error": "GA4 Property ID not configured"})
+
+    property_id = ga_cfg["propertyId"]
+    days = int(request.args.get("days", "28"))
+
+    try:
+        import urllib.request
+        access_token = _gsc_get_access_token(key_data, "https://www.googleapis.com/auth/analytics.readonly")
+
+        end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        start_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+
+        # GA4 Data API - runReport
+        body = json.dumps({
+            "dateRanges": [{"startDate": start_date, "endDate": end_date}],
+            "metrics": [
+                {"name": "sessions"},
+                {"name": "screenPageViews"},
+                {"name": "averageSessionDuration"},
+                {"name": "bounceRate"},
+            ],
+            "dimensions": [{"name": "sessionDefaultChannelGroup"}],
+            "limit": 20,
+        }).encode()
+
+        api_url = f"https://analyticsdata.googleapis.com/v1beta/properties/{property_id}:runReport"
+        req = urllib.request.Request(api_url, data=body, headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}",
+        })
+        resp = urllib.request.urlopen(req, timeout=15)
+        result = json.loads(resp.read())
+
+        total_sessions = 0
+        total_pageviews = 0
+        sources = []
+        for row in result.get("rows", []):
+            source = row["dimensionValues"][0]["value"]
+            sessions = int(row["metricValues"][0]["value"])
+            pageviews = int(row["metricValues"][1]["value"])
+            total_sessions += sessions
+            total_pageviews += pageviews
+            sources.append({"source": source, "sessions": sessions, "pageviews": pageviews})
+        sources.sort(key=lambda x: x["sessions"], reverse=True)
+
+        # Get totals from first row metadata or sum
+        totals = result.get("totals", [{}])
+        avg_duration = "0"
+        bounce_rate = "0"
+        if totals and totals[0].get("metricValues"):
+            avg_duration = str(round(float(totals[0]["metricValues"][2]["value"]), 1))
+            bounce_rate = str(round(float(totals[0]["metricValues"][3]["value"]) * 100, 1))
+
+        # Page-level report
+        page_body = json.dumps({
+            "dateRanges": [{"startDate": start_date, "endDate": end_date}],
+            "metrics": [{"name": "screenPageViews"}, {"name": "averageSessionDuration"}],
+            "dimensions": [{"name": "pagePath"}],
+            "dimensionFilter": {"filter": {"fieldName": "pagePath", "stringFilter": {"matchType": "CONTAINS", "value": "/community/column"}}},
+            "orderBys": [{"metric": {"metricName": "screenPageViews"}, "desc": True}],
+            "limit": 20,
+        }).encode()
+        page_req = urllib.request.Request(api_url, data=page_body, headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}",
+        })
+        page_resp = urllib.request.urlopen(page_req, timeout=15)
+        page_result = json.loads(page_resp.read())
+
+        pages = []
+        for row in page_result.get("rows", []):
+            pages.append({
+                "path": row["dimensionValues"][0]["value"],
+                "views": int(row["metricValues"][0]["value"]),
+                "avgDuration": round(float(row["metricValues"][1]["value"]), 1),
+            })
+
+        return jsonify({
+            "totalSessions": total_sessions,
+            "totalPageviews": total_pageviews,
+            "avgDuration": avg_duration,
+            "bounceRate": bounce_rate,
+            "sources": sources,
+            "pages": pages,
+            "days": days,
+        })
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode()
+        logger.error("GA analytics failed: %d %s", e.code, err_body[:300])
+        if e.code == 403:
+            return jsonify({"error": "GA4 접근 권한 없음 — analytics.google.com → 관리 → 속성 접근 관리 → 서비스 계정(google-search-console@dedu-479013...) 뷰어 추가 필요"})
+        return jsonify({"error": f"GA4 API {e.code}: {err_body[:200]}"})
+    except Exception as e:
+        logger.error("GA analytics failed: %s", e)
+        return jsonify({"error": str(e)})
+
+# ── API: Blog Image Upload (proxy to d-edu presigned URL) ──
+@app.route("/api/blog-upload-image", methods=["POST"])
+def api_blog_upload_image():
+    """Upload image URL to d-edu via presigned URL, return mediaId"""
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path) or {}
+    blog_cfg = config.get("plugins", {}).get("entries", {}).get("dedu-blog", {}).get("config", {})
+    api_base = blog_cfg.get("apiBaseUrl", "")
+    email = blog_cfg.get("email", "")
+    password = blog_cfg.get("password", "")
+    if not api_base or not email:
+        return jsonify({"error": "Blog not configured"}), 400
+
+    data = get_json_body()
+    image_url = data.get("imageUrl", "")
+    if not image_url:
+        return jsonify({"error": "imageUrl is required"}), 400
+
+    try:
+        import urllib.request
+
+        # Login to d-edu
+        login_data = json.dumps({"email": email, "password": password}).encode()
+        login_req = urllib.request.Request(f"{api_base}/api/auth/login", login_data, {"Content-Type": "application/json"})
+        login_resp = urllib.request.urlopen(login_req, timeout=10)
+        cookie = login_resp.headers.get("Set-Cookie", "")
+        import re as _re
+        auth_match = _re.search(r"Authorization=([^;]+)", cookie)
+        if not auth_match:
+            return jsonify({"error": "d-edu login failed"}), 500
+        auth_token = auth_match.group(1)
+        auth_headers = {"Cookie": f"Authorization={auth_token}", "Content-Type": "application/json"}
+
+        # Download image (follow redirects)
+        img_req = urllib.request.Request(image_url, headers={"User-Agent": "Mozilla/5.0"})
+        img_resp = urllib.request.urlopen(img_req, timeout=30)
+        img_data = img_resp.read()
+        content_type = img_resp.headers.get("Content-Type", "image/png").split(";")[0].strip()
+        if content_type not in ("image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"):
+            content_type = "image/png"
+        from pathlib import PurePosixPath
+        fname = PurePosixPath(urllib.parse.urlparse(image_url).path).name or f"image-{int(__import__('time').time())}.png"
+        if not fname.lower().endswith((".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg")):
+            ext = {"image/jpeg": ".jpg", "image/png": ".png", "image/gif": ".gif", "image/webp": ".webp"}.get(content_type, ".png")
+            fname = f"image-{int(__import__('time').time())}{ext}"
+        logger.info("Blog image download: %s (%d bytes, %s)", fname, len(img_data), content_type)
+
+        # Presign
+        presign_body = json.dumps({"mediaAssetList": [{"fileName": fname, "contentType": content_type, "sizeBytes": len(img_data)}]}).encode()
+        presign_req = urllib.request.Request(f"{api_base}/api/common/media/presign-batch", presign_body, auth_headers)
+        presign_resp = urllib.request.urlopen(presign_req, timeout=10)
+        presign_result = json.loads(presign_resp.read())
+        asset = presign_result["data"]["mediaAssetList"][0]
+        media_id = asset["mediaId"]
+        logger.info("Blog image presign OK: %s", media_id)
+
+        # Upload to S3
+        upload_req = urllib.request.Request(asset["uploadUrl"], img_data, method="PUT")
+        upload_req.add_header("Content-Type", content_type)
+        for k, v in asset.get("headers", {}).items():
+            upload_req.add_header(k, v)
+        urllib.request.urlopen(upload_req, timeout=30)
+
+        logger.info("Blog image uploaded: %s → %s", fname, media_id)
+        return jsonify({"ok": True, "mediaId": media_id, "fileName": fname})
+    except Exception as e:
+        logger.error("Blog image upload failed: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+# ── API: Slack Notification ──
+SLACK_CONFIG_PATH = DATA_DIR / "slack-config.json"
+
+
+@app.route("/api/slack-config")
+def api_slack_config():
+    cfg = read_json(SLACK_CONFIG_PATH) or {}
+    return jsonify({"configured": bool(cfg.get("webhookUrl")), "webhookUrl": cfg.get("webhookUrl", "")})
+
+
+@app.route("/api/slack-config", methods=["POST"])
+def api_slack_config_update():
+    data = get_json_body()
+    url = data.get("webhookUrl", "")
+    if not url or not url.startswith("https://hooks.slack.com/"):
+        return jsonify({"error": "Invalid Slack Webhook URL. https://hooks.slack.com/... 형식이어야 합니다."}), 400
+    write_json(SLACK_CONFIG_PATH, {"webhookUrl": url})
+    logger.info("Slack webhook configured")
+    return jsonify({"ok": True})
+
+
+@app.route("/api/slack-test", methods=["POST"])
+def api_slack_test():
+    cfg = read_json(SLACK_CONFIG_PATH) or {}
+    webhook_url = cfg.get("webhookUrl", "")
+    if not webhook_url:
+        oc = read_json(CONFIG_DIR / "openclaw.json") or {}
+        webhook_url = oc.get("plugins", {}).get("entries", {}).get("slack-publish", {}).get("config", {}).get("webhookUrl", "")
+    if not webhook_url:
+        return jsonify({"error": "Slack webhook not configured"}), 400
+    try:
+        import urllib.request
+        payload = json.dumps({"text": "✅ Marketing Hub 연결 테스트 성공!"}).encode()
+        req = urllib.request.Request(webhook_url, data=payload, headers={"Content-Type": "application/json"})
+        urllib.request.urlopen(req, timeout=10)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 
 
 if __name__ == "__main__":
