@@ -155,7 +155,7 @@ const S = {
   page: "overview", subTab: "queue",
   overview: null, queue: [], growth: [], popular: [], analytics: null,
   keywords: [], settings: null, guide: "", cronJobs: [], activity: [],
-  channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [], seoSettings: null, blogDetailId: null, blogEditing: false, blogGuide: "", blogKeywords: [], blogStats: null, gscConfig: null, gscEditing: false, gscAnalytics: null, gscDays: 28, gscDimension: "query", gaAnalytics: null, gaDays: 28, nsaData: null, kwResearch: null, naverTrend: null, googleTrend: null,
+  channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [], seoSettings: null, blogDetailId: null, blogEditing: false, blogGuide: "", blogKeywords: [], blogStats: null, gscConfig: null, gscEditing: false, gscAnalytics: null, gscDays: 28, gscDimension: "query", gaAnalytics: null, gaDays: 28, nsaData: null, kwResearch: null, naverTrend: null, googleTrend: null, kwPlannerConfigured: false, kwPlannerEditing: false, naverDatalabConfigured: false, naverDatalabEditing: false,
   tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
   sidebarCollapsed: { social: false, video: true, blog: true, messaging: true, data: false, research: false, custom: false }, showDetail: null, editingChannel: null,
@@ -1275,6 +1275,33 @@ function bindEvents() {
   document.querySelectorAll("[data-gsc-dim]").forEach(el => {
     el.onclick = () => { S.gscDimension = el.dataset.gscDim; loadGscAnalytics(); };
   });
+  // Keyword Planner config
+  const saveKwCfg = document.getElementById("save-kw-planner-config");
+  if (saveKwCfg) saveKwCfg.onclick = async () => {
+    const r = await API.post("/api/kw-planner-config", {
+      clientId: document.getElementById("naver-searchad-id")?.value,
+      clientSecret: document.getElementById("naver-searchad-secret")?.value,
+      customerId: document.getElementById("naver-searchad-customer")?.value,
+    });
+    if (r?.ok) { showToast("Keyword Planner 연결됨", "success"); S.kwPlannerConfigured = true; S.kwPlannerEditing = false; render(); }
+  };
+  const editKwCfg = document.getElementById("edit-kw-planner-config");
+  if (editKwCfg) editKwCfg.onclick = () => { S.kwPlannerEditing = true; render(); };
+  const cancelKwCfg = document.getElementById("cancel-kw-planner-edit");
+  if (cancelKwCfg) cancelKwCfg.onclick = () => { S.kwPlannerEditing = false; render(); };
+  // Naver Datalab config
+  const saveNdCfg = document.getElementById("save-naver-datalab-config");
+  if (saveNdCfg) saveNdCfg.onclick = async () => {
+    const r = await API.post("/api/naver-datalab-config", {
+      clientId: document.getElementById("naver-datalab-id")?.value,
+      clientSecret: document.getElementById("naver-datalab-secret")?.value,
+    });
+    if (r?.ok) { showToast("Naver Datalab 연결됨", "success"); S.naverDatalabConfigured = true; S.naverDatalabEditing = false; render(); }
+  };
+  const editNdCfg = document.getElementById("edit-naver-datalab-config");
+  if (editNdCfg) editNdCfg.onclick = () => { S.naverDatalabEditing = true; render(); };
+  const cancelNdCfg = document.getElementById("cancel-naver-datalab-edit");
+  if (cancelNdCfg) cancelNdCfg.onclick = () => { S.naverDatalabEditing = false; render(); };
   const kwBtn = document.getElementById("kw-research-btn");
   if (kwBtn) kwBtn.onclick = async () => {
     const input = document.getElementById("kw-research-input")?.value;
@@ -1376,8 +1403,8 @@ function navigate(page) {
   else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); }
   else if (page === "images") loadImages();
   else if (page === "blog-performance") { loadBlogStats(); loadGscAnalytics(); }
-  else if (page === "keyword-planner") render();
-  else if (page === "naver-trends") render();
+  else if (page === "keyword-planner") { loadKwPlannerConfig(); render(); }
+  else if (page === "naver-trends") { loadNaverDatalabConfig(); render(); }
   else if (page === "google-trends") render();
   else if (page === "search-advisor") loadNsaData();
   else if (page === "search-console") { loadGscConfig(); loadGscAnalytics(); }
@@ -2093,6 +2120,8 @@ function renderSearchAdvisor() {
 }
 
 async function loadNsaData() { const d = await API.get("/api/nsa-data"); if (d) { S.nsaData = d; render(); } }
+async function loadKwPlannerConfig() { const d = await API.get("/api/kw-planner-config"); if (d) { S.kwPlannerConfigured = d.configured; render(); } }
+async function loadNaverDatalabConfig() { const d = await API.get("/api/naver-datalab-config"); if (d) { S.naverDatalabConfigured = d.configured; render(); } }
 
 // ── Keyword Research Pages ──
 function kwResultsTable() {
@@ -2115,23 +2144,55 @@ function kwResultsTable() {
 }
 
 function renderKeywordPlanner() {
+  const configured = S.kwPlannerConfigured;
   return `<div class="px-8 py-6">
     <h2 class="text-xl font-bold text-white mb-1">Keyword Planner</h2>
-    <p class="text-xs text-gray-500 mb-2">네이버 검색광고 API</p>
+    <p class="text-xs text-gray-500 mb-2">네이버 검색광고 API — 키워드 검색량 + 경쟁도</p>
     <div class="card p-3 mb-6 border-l-2 border-purple-600"><p class="text-[11px] text-gray-400">키워드의 월간 검색량(PC/모바일)과 경쟁도를 조회합니다. 검색량 높고 경쟁 낮은 키워드를 찾아 "+ Blog KW" 버튼으로 Blog Keywords에 추가하세요.</p></div>
+
+    <div class="card p-4 mb-4">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm font-medium text-white">API 연결</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded-full ${configured ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}">${configured ? "Connected" : "Not set"}</span>
+      </div>
+      ${!configured || S.kwPlannerEditing ? `
+        <div class="space-y-2 mb-3">
+          <div><label class="text-[10px] text-gray-500">Client ID</label><input id="naver-searchad-id" type="text" placeholder="searchad.naver.com → 도구 → API 관리" class="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700"></div>
+          <div><label class="text-[10px] text-gray-500">Client Secret</label><input id="naver-searchad-secret" type="password" class="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700"></div>
+          <div><label class="text-[10px] text-gray-500">Customer ID</label><input id="naver-searchad-customer" type="text" class="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700"></div>
+        </div>
+        <div class="flex gap-2">
+          <button id="save-kw-planner-config" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
+          ${configured ? `<button id="cancel-kw-planner-edit" class="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded">Cancel</button>` : ""}
+        </div>
+        <details class="mt-3"><summary class="text-[10px] text-blue-400 cursor-pointer">Setup Guide</summary>
+          <ol class="text-[10px] text-gray-500 mt-2 space-y-1 list-decimal pl-4">
+            <li>searchad.naver.com 접속 → 네이버 로그인</li>
+            <li>상단 <b>도구</b> → <b>API 관리</b></li>
+            <li>API 키 발급 → <b>Client ID</b>, <b>Client Secret</b> 복사</li>
+            <li>상단 우측 계정 정보에서 <b>Customer ID</b> (숫자) 복사</li>
+            <li>위 3개를 입력 후 Save</li>
+          </ol>
+        </details>
+      ` : `
+        <p class="text-xs text-gray-400">네이버 검색광고 API 연결됨</p>
+        <button id="edit-kw-planner-config" class="mt-2 text-[10px] text-blue-400 hover:text-blue-300">Edit</button>
+      `}
+    </div>
+
     <div class="card p-4">
       <div class="flex gap-2 mb-2">
         <input id="kw-research-input" type="text" placeholder="키워드 입력 (쉼표로 구분, 최대 5개)" class="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
         <button id="kw-research-btn" class="px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Analyze</button>
         <button id="kw-research-blog" class="px-4 py-2 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600 whitespace-nowrap">Blog Keywords</button>
       </div>
-      <p class="text-[10px] text-gray-600">네이버 검색광고 API 키 필요: Settings 또는 .env에 NAVER_SEARCHAD_* 설정</p>
       ${kwResultsTable()}
     </div>
   </div>`;
 }
 
 function renderNaverTrends() {
+  const configured = S.naverDatalabConfigured;
   return `<div class="px-8 py-6">
     <div class="flex items-center justify-between mb-6">
       <div>
@@ -2140,13 +2201,42 @@ function renderNaverTrends() {
       </div>
       <a href="https://datalab.naver.com" target="_blank" class="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">네이버 데이터랩 열기 &rarr;</a>
     </div>
+    <div class="card p-3 mb-4 border-l-2 border-green-600"><p class="text-[11px] text-gray-400">키워드 검색 트렌드를 시기별로 확인합니다. 시험 시즌, 방학 등 시즌 키워드를 미리 파악해서 콘텐츠를 준비하세요.</p></div>
+
+    <div class="card p-4 mb-4">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm font-medium text-white">API 연결</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded-full ${configured ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}">${configured ? "Connected" : "Not set"}</span>
+      </div>
+      ${!configured || S.naverDatalabEditing ? `
+        <div class="space-y-2 mb-3">
+          <div><label class="text-[10px] text-gray-500">Client ID</label><input id="naver-datalab-id" type="text" placeholder="developers.naver.com → 앱 등록" class="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700"></div>
+          <div><label class="text-[10px] text-gray-500">Client Secret</label><input id="naver-datalab-secret" type="password" class="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700"></div>
+        </div>
+        <div class="flex gap-2">
+          <button id="save-naver-datalab-config" class="px-3 py-1.5 text-xs bg-green-600 text-white rounded hover:bg-green-500">Save</button>
+          ${configured ? `<button id="cancel-naver-datalab-edit" class="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded">Cancel</button>` : ""}
+        </div>
+        <details class="mt-3"><summary class="text-[10px] text-blue-400 cursor-pointer">Setup Guide</summary>
+          <ol class="text-[10px] text-gray-500 mt-2 space-y-1 list-decimal pl-4">
+            <li>developers.naver.com 접속 → 네이버 로그인</li>
+            <li><b>Application</b> → <b>애플리케이션 등록</b></li>
+            <li>사용 API에서 <b>"데이터랩 (검색어트렌드)"</b> 체크</li>
+            <li><b>Client ID</b>, <b>Client Secret</b> 복사</li>
+            <li>위에 입력 후 Save</li>
+          </ol>
+        </details>
+      ` : `
+        <p class="text-xs text-gray-400">네이버 데이터랩 API 연결됨</p>
+        <button id="edit-naver-datalab-config" class="mt-2 text-[10px] text-blue-400 hover:text-blue-300">Edit</button>
+      `}
+    </div>
+
     <div class="card p-4 mb-4">
       <div class="flex gap-2 mb-2">
         <input id="naver-trend-input" type="text" placeholder="키워드 입력 (쉼표로 구분, 최대 5개)" class="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
         <button id="naver-trend-btn" class="px-4 py-2 text-xs bg-green-600 text-white rounded hover:bg-green-500">Trend</button>
       </div>
-      <p class="text-[10px] text-gray-600">네이버 개발자센터 API 키 필요: NAVER_CLIENT_ID, NAVER_CLIENT_SECRET</p>
-      <div class="card p-3 mt-3 border-l-2 border-green-600"><p class="text-[11px] text-gray-400">키워드 검색 트렌드를 시기별로 확인합니다. 시험 시즌, 방학 등 시즌 키워드를 미리 파악해서 콘텐츠를 준비하세요.</p></div>
       ${S.naverTrend?.error ? `<p class="text-xs text-red-400 mt-3">${esc(S.naverTrend.error)}</p>` : ""}
       ${S.naverTrend?.results?.length ? `
         <div class="mt-4">

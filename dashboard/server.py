@@ -1757,6 +1757,71 @@ def api_nsa_data_update():
     return jsonify({"ok": True})
 
 
+# ── API: Keyword Research Config ──
+@app.route("/api/kw-planner-config")
+def api_kw_planner_config():
+    config = read_json(CONFIG_DIR / "openclaw.json") or {}
+    seo_cfg = config.get("plugins", {}).get("entries", {}).get("seo-keywords", {}).get("config", {})
+    has_id = bool(seo_cfg.get("naverClientId", "") or os.environ.get("NAVER_SEARCHAD_CLIENT_ID", ""))
+    return jsonify({"configured": has_id})
+
+
+@app.route("/api/kw-planner-config", methods=["POST"])
+def api_kw_planner_config_update():
+    data = get_json_body()
+    client_id = data.get("clientId", "")
+    client_secret = data.get("clientSecret", "")
+    customer_id = data.get("customerId", "")
+    if not client_id or not client_secret or not customer_id:
+        return jsonify({"error": "All 3 fields required"}), 400
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path) or {}
+    plugins = config.setdefault("plugins", {}).setdefault("entries", {})
+    p = plugins.setdefault("seo-keywords", {"enabled": True, "config": {}})
+    p["config"]["naverClientId"] = client_id
+    p["config"]["naverClientSecret"] = client_secret
+    p["config"]["naverCustomerId"] = customer_id
+    p["enabled"] = True
+    write_json(config_path, config)
+    logger.info("Keyword Planner config saved")
+    return jsonify({"ok": True})
+
+
+@app.route("/api/naver-datalab-config")
+def api_naver_datalab_config():
+    has_id = bool(os.environ.get("NAVER_CLIENT_ID", ""))
+    return jsonify({"configured": has_id})
+
+
+@app.route("/api/naver-datalab-config", methods=["POST"])
+def api_naver_datalab_config_update():
+    data = get_json_body()
+    client_id = data.get("clientId", "")
+    client_secret = data.get("clientSecret", "")
+    if not client_id or not client_secret:
+        return jsonify({"error": "Client ID and Secret required"}), 400
+    # Save to .env file
+    env_path = Path(__file__).resolve().parent.parent / ".env"
+    try:
+        lines = []
+        if env_path.exists():
+            with open(env_path, "r") as f:
+                lines = f.readlines()
+        # Remove existing entries
+        lines = [l for l in lines if not l.startswith("NAVER_CLIENT_ID=") and not l.startswith("NAVER_CLIENT_SECRET=")]
+        lines.append(f"NAVER_CLIENT_ID={client_id}\n")
+        lines.append(f"NAVER_CLIENT_SECRET={client_secret}\n")
+        with open(env_path, "w") as f:
+            f.writelines(lines)
+        # Also set in current process
+        os.environ["NAVER_CLIENT_ID"] = client_id
+        os.environ["NAVER_CLIENT_SECRET"] = client_secret
+        logger.info("Naver Datalab config saved")
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ── API: Naver Keyword Research ──
 @app.route("/api/keyword-research", methods=["POST"])
 def api_keyword_research():
