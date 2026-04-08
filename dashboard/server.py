@@ -1405,9 +1405,18 @@ def api_weekly_summary():
     now = datetime.now(timezone.utc)
     week_ago = now - timedelta(days=7)
 
+    def _parse_dt(s):
+        try:
+            dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt
+        except Exception:
+            return None
+
     # Posts published this week
-    week_published = [p for p in posts if p.get("publishedAt") and datetime.fromisoformat(p["publishedAt"].replace("Z", "+00:00")) > week_ago]
-    week_drafted = [p for p in posts if p.get("generatedAt") and datetime.fromisoformat(p["generatedAt"].replace("Z", "+00:00")) > week_ago and p.get("status") == "draft"]
+    week_published = [p for p in posts if p.get("publishedAt") and (_parse_dt(p["publishedAt"]) or week_ago) > week_ago]
+    week_drafted = [p for p in posts if p.get("generatedAt") and (_parse_dt(p["generatedAt"]) or week_ago) > week_ago and p.get("status") == "draft"]
 
     # Engagement this week
     total_views = sum((p.get("engagement") or {}).get("views", 0) for p in week_published)
@@ -1454,17 +1463,22 @@ def api_token_status():
             remaining_h = (exp / 1000 - _time.time()) / 3600 if exp else -1
             stats = auth.get("usageStats", {}).get(k, {})
             token_val = v.get("token", "")
-            token_preview = token_val[:15] + "..." if len(token_val) > 15 else token_val
-            # Try to detect if token is working by checking recent errors
+            token_preview = token_val  # full value, UI handles Show/Hide
             last_error = stats.get("lastFailureAt", 0)
             last_used = stats.get("lastUsed", 0)
             error_count = stats.get("errorCount", 0)
-            # Check if gateway is returning usage errors
-            healthy = True
+            # Check health: token format + recent gateway success
+            healthy = bool(token_val and len(token_val) > 50)
             error_hint = None
-            if last_error > last_used and error_count > 0:
+            if not token_val:
+                error_hint = "Token not set"
                 healthy = False
-                error_hint = "Token may be expired or usage limit reached"
+            elif len(token_val) < 50:
+                error_hint = "Token too short — 올바른 setup-token을 넣으세요"
+                healthy = False
+            elif error_count > 5 and last_error > last_used:
+                healthy = False
+                error_hint = f"최근 {error_count}회 연속 실패 — 토큰 만료 가능성"
             result["claude"] = {
                 "profile": k, "type": v.get("type"),
                 "tokenPreview": token_preview,
