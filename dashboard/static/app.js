@@ -2039,26 +2039,46 @@ function renderImages() {
         ${r2Connected ? `<span class="text-[10px] text-green-400">Bucket: ${esc(r2.bucket || "")}</span>` : ""}
       </div>
       <details class="mb-3">
-        <summary class="text-[10px] text-blue-400 hover:text-blue-300 cursor-pointer">Setup Guide — R2 API 토큰 만드는 법</summary>
-        <div class="mt-2 p-3 rounded bg-gray-900/50 text-[10px] text-gray-500 space-y-1.5">
-          <p class="font-medium text-gray-400">1. Cloudflare 대시보드 접속</p>
-          <p class="pl-3">dash.cloudflare.com > R2 Object Storage</p>
-          <p class="font-medium text-gray-400">2. 버킷 생성 (없으면)</p>
-          <p class="pl-3">R2 > Create bucket > 이름 입력 (예: marketing-images) > 리전: APAC</p>
-          <p class="font-medium text-gray-400">3. 퍼블릭 액세스 활성화</p>
-          <p class="pl-3">버킷 > Settings > Public access > Allow Access > r2.dev 도메인 복사 (또는 커스텀 도메인 연결)</p>
-          <p class="font-medium text-gray-400">4. API 토큰 생성</p>
-          <p class="pl-3">R2 > Overview 우측 > Manage R2 API Tokens > Create API token</p>
-          <p class="pl-3">- Permissions: <strong>Object Read & Write</strong> 선택</p>
-          <p class="pl-3">- Specify bucket: 위에서 만든 버킷 선택 (또는 Apply to all)</p>
-          <p class="pl-3">- TTL: 무기한 권장</p>
-          <p class="pl-3">- Create API Token 클릭</p>
-          <p class="font-medium text-gray-400">5. 값 복사</p>
-          <p class="pl-3">- <strong>Access Key ID</strong>: 토큰 생성 후 표시되는 Access Key ID</p>
-          <p class="pl-3">- <strong>Secret Access Key</strong>: 토큰 생성 후 표시 (이 페이지 벗어나면 다시 볼 수 없음!)</p>
-          <p class="pl-3">- <strong>S3 Endpoint</strong>: 토큰 상세에 표시된 endpoint (https://&lt;account-id&gt;.r2.cloudflarestorage.com)</p>
-          <p class="pl-3">- <strong>Bucket</strong>: 버킷 이름</p>
-          <p class="pl-3">- <strong>Public URL</strong>: 3단계에서 복사한 r2.dev 도메인</p>
+        <summary class="text-[10px] text-blue-400 hover:text-blue-300 cursor-pointer">Setup Guide — R2 설정 전체 가이드</summary>
+        <div class="mt-2 p-3 rounded bg-gray-900/50 text-[10px] text-gray-500 space-y-2">
+          <p class="font-medium text-gray-300">Step 1. 버킷 생성</p>
+          <p class="pl-3">dash.cloudflare.com > R2 Object Storage > Create bucket</p>
+          <p class="pl-3">이름 입력 (예: marketing-images) > Create bucket</p>
+
+          <p class="font-medium text-gray-300">Step 2. 퍼블릭 액세스 활성화</p>
+          <p class="pl-3">생성된 버킷 클릭 > <strong>Settings</strong> 탭</p>
+          <p class="pl-3"><strong>Public Development URL</strong> 항목에서 <strong>Enable</strong> 클릭</p>
+          <p class="pl-3">확인창에 <code class="bg-gray-800 px-1 rounded">allow</code> 입력 > Allow</p>
+          <p class="pl-3">활성화 후 표시되는 URL이 <strong>Public URL</strong>입니다 (예: https://pub-xxx.r2.dev)</p>
+          <p class="pl-3 text-yellow-500">⚠ r2.dev는 개발용 (rate limit 있음). 프로덕션은 커스텀 도메인 연결 권장</p>
+
+          <p class="font-medium text-gray-300">Step 3. API 토큰 생성</p>
+          <p class="pl-3">R2 Overview 페이지 우측 <strong>Account Details</strong></p>
+          <p class="pl-3">S3 API 옆 <strong>Manage</strong> 클릭</p>
+          <p class="pl-3"><strong>Create Account API token</strong> 클릭 (User API token도 가능)</p>
+          <p class="pl-3 text-gray-400">- Token name: 아무 이름 (예: marketing-hub)</p>
+          <p class="pl-3 text-gray-400">- Permissions: <strong>Object Read & Write</strong> 선택</p>
+          <p class="pl-3 text-gray-400">- Specify bucket(s): 위에서 만든 버킷 선택</p>
+          <p class="pl-3 text-gray-400">- TTL: 기본값 (무기한) 유지</p>
+          <p class="pl-3 text-gray-400">- Client IP Address Filtering: 비워두기 (제한 없음)</p>
+          <p class="pl-3 text-gray-400">- <strong>Create API Token</strong> 클릭</p>
+
+          <p class="font-medium text-gray-300">Step 4. 값 복사 (이 화면을 벗어나면 Secret을 다시 볼 수 없음!)</p>
+          <p class="pl-3">- <strong>Access Key ID</strong>: 표시된 값 복사 → 아래 폼에 입력</p>
+          <p class="pl-3">- <strong>Secret Access Key</strong>: 표시된 값 복사 → 아래 폼에 입력</p>
+
+          <p class="font-medium text-gray-300">Step 5. S3 Endpoint 확인</p>
+          <p class="pl-3">R2 Overview > Account Details에 표시된 S3 API 주소</p>
+          <p class="pl-3">형식: <code class="bg-gray-800 px-1 rounded">https://&lt;account-id&gt;.r2.cloudflarestorage.com</code></p>
+
+          <p class="font-medium text-gray-300">아래 폼에 입력할 값 정리</p>
+          <div class="pl-3 mt-1 p-2 rounded bg-gray-800/50 space-y-0.5">
+            <p><strong>Access Key ID</strong>: Step 4에서 복사한 값</p>
+            <p><strong>Secret Access Key</strong>: Step 4에서 복사한 값</p>
+            <p><strong>Bucket Name</strong>: Step 1에서 만든 버킷 이름</p>
+            <p><strong>S3 Endpoint</strong>: Step 5의 https://xxx.r2.cloudflarestorage.com</p>
+            <p><strong>Public URL</strong>: Step 2에서 활성화 후 표시된 https://pub-xxx.r2.dev</p>
+          </div>
         </div>
       </details>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
