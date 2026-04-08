@@ -48,6 +48,8 @@ type Post = {
   abVariant: string;
   model: string | null;
   imageUrl: string | null;
+  imageUrls?: string[] | null;
+  cardBatchId?: string | null;
   engagement: Engagement | null;
   channels?: Channels;
 };
@@ -165,7 +167,13 @@ const ThreadsQueueToolSchema = Type.Object(
       Type.String({ description: 'Model used to generate this post (e.g. "gemini-2.5-flash", "llama3.1:8b"). For add action.' }),
     ),
     imageUrl: Type.Optional(
-      Type.String({ description: "Public image URL to attach to the post (for add/update)." }),
+      Type.String({ description: "Public image URL to attach to the post (for add/update). For card news, use the first slide." }),
+    ),
+    imageUrls: Type.Optional(
+      Type.Array(Type.String(), { description: "Array of image URLs for carousel/card news (for add/update). Overrides imageUrl for Instagram." }),
+    ),
+    cardBatchId: Type.Optional(
+      Type.String({ description: "Card news batch ID from card_generate tool (for add). Links slides together." }),
     ),
     channel: optionalStringEnum(
       ["threads", "x", "instagram"] as const,
@@ -238,6 +246,11 @@ export function createThreadsQueueTool(api: OpenClawPluginApi) {
             return jsonResult({ success: false, reason: "한국어 비율 부족" });
           }
 
+          const imageUrls = Array.isArray(rawParams.imageUrls)
+            ? (rawParams.imageUrls as string[]).filter((u) => typeof u === "string")
+            : null;
+          const cardBatchId = readStringParam(rawParams, "cardBatchId") ?? null;
+
           const post: Post = {
             id: crypto.randomUUID(),
             text,
@@ -253,7 +266,9 @@ export function createThreadsQueueTool(api: OpenClawPluginApi) {
             error: null,
             abVariant,
             model,
-            imageUrl,
+            imageUrl: imageUrl || (imageUrls?.[0] ?? null),
+            imageUrls: imageUrls?.length ? imageUrls : null,
+            cardBatchId,
             engagement: null,
           };
 
@@ -305,6 +320,11 @@ export function createThreadsQueueTool(api: OpenClawPluginApi) {
           const newImageUrl = readStringParam(rawParams, "imageUrl");
           if (newImageUrl !== undefined) {
             post.imageUrl = newImageUrl ?? null;
+          }
+
+          if (Array.isArray(rawParams.imageUrls)) {
+            post.imageUrls = (rawParams.imageUrls as string[]).filter((u) => typeof u === "string");
+            if (!post.imageUrl && post.imageUrls.length) post.imageUrl = post.imageUrls[0];
           }
 
           await writeQueue(queuePath, queue);

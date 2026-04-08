@@ -2115,19 +2115,32 @@ function renderGenericChannel(key) {
           <h3 class="text-sm font-medium text-gray-300">Content Queue</h3>
           <span class="text-[10px] text-gray-500">${(S.queue || []).filter(p => p.imageUrl).length} with image / ${(S.queue || []).length} total</span>
         </div>
-        <div class="space-y-2 max-h-96 overflow-y-auto">
-          ${(S.queue || []).slice(0, 20).map(p => {
+        <div class="space-y-3 max-h-[600px] overflow-y-auto">
+          ${(S.queue || []).filter(p => p.imageUrl || p.imageUrls?.length).slice(0, 20).map(p => {
             const sc2 = { draft: "bg-yellow-900/50 text-yellow-300", approved: "bg-blue-900/50 text-blue-300", published: "bg-green-900/50 text-green-300" };
             const igSt = p.channels?.instagram?.status || "pending";
-            return `<div class="flex items-center gap-3 p-2 rounded bg-gray-900/50">
-              ${p.imageUrl ? `<img src="${esc(p.imageUrl)}" class="w-10 h-10 rounded object-cover flex-shrink-0">` : `<div class="w-10 h-10 rounded bg-gray-800 flex-shrink-0 flex items-center justify-center text-[8px] text-gray-600">No img</div>`}
-              <div class="flex-1 min-w-0">
-                <p class="text-xs text-gray-300 truncate">${esc(p.text.substring(0, 60))}</p>
-                <div class="flex gap-2 text-[10px] text-gray-600">${p.topic || ""} · IG: ${igSt}</div>
+            const slides = p.imageUrls || (p.imageUrl ? [p.imageUrl] : []);
+            const isCard = slides.length > 1 || p.cardBatchId;
+            return `<div class="p-3 rounded-lg bg-gray-900/50 border border-gray-800/50">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] px-1.5 py-0.5 rounded ${sc2[p.status] || "bg-gray-800 text-gray-500"}">${p.status}</span>
+                  ${isCard ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-900/40 text-purple-300">Card ' + slides.length + ' slides</span>' : ''}
+                  <span class="text-[10px] text-gray-600">IG: ${igSt}</span>
+                </div>
+                <span class="text-[10px] text-gray-600">${p.topic || ""}</span>
               </div>
-              <span class="text-[10px] px-1.5 py-0.5 rounded ${sc2[p.status] || "bg-gray-800 text-gray-500"}">${p.status}</span>
+              <div class="flex gap-1.5 overflow-x-auto pb-2 mb-2" style="scrollbar-width:thin">
+                ${slides.map((s,i) => `<img src="${esc(s)}" class="w-20 h-24 rounded object-cover flex-shrink-0 border border-gray-700" title="Slide ${i+1}">`).join("")}
+              </div>
+              <p class="text-xs text-gray-300 line-clamp-2">${esc(p.text.substring(0, 120))}</p>
+              ${p.hashtags?.length ? '<div class="flex flex-wrap gap-1 mt-1">' + p.hashtags.slice(0,5).map(h => '<span class="text-[10px] text-blue-400">#' + h + '</span>').join("") + '</div>' : ''}
+              <div class="flex gap-2 mt-2">
+                ${p.status === "draft" ? '<button data-approve="' + p.id + '" class="px-2 py-1 text-[10px] bg-green-700 text-white rounded hover:bg-green-600">Approve</button>' : ''}
+                ${p.status === "draft" ? '<button data-delete="' + p.id + '" class="px-2 py-1 text-[10px] bg-red-900/40 text-red-300 rounded hover:bg-red-800">Delete</button>' : ''}
+              </div>
             </div>`;
-          }).join("") || '<p class="text-[10px] text-gray-600">큐가 비어있습니다</p>'}
+          }).join("") || '<p class="text-[10px] text-gray-600">이미지 콘텐츠가 없습니다. Automation에서 Content Generation을 ON하세요.</p>'}
         </div>
       </div>
 
