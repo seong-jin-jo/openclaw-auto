@@ -367,9 +367,9 @@ function renderSidebar() {
         ])}
 
         ${sidebarGroup("blog", "Blog & SEO", [
-          { key: "blog", label: "Blog", icon: "B", nav: true },
           chSidebarItem("naver_blog"),
           { label: "Medium", icon: "M", soon: true },
+          { label: "Substack", icon: "S", soon: true },
         ])}
 
         ${sidebarGroup("messaging", "Messaging", [
@@ -384,9 +384,11 @@ function renderSidebar() {
           { label: "Google Business", icon: "G", soon: true },
         ])}
 
-        ${sidebarGroup("custom", "Custom", [
+        ${sidebarGroup("custom", "Custom Integration", [
+          { key: "blog", label: "Blog", icon: "B", nav: true },
           { label: "Custom API", icon: "+", soon: true },
           { label: "Webhook", icon: "W", soon: true },
+          { label: "RSS Feed", icon: "R", soon: true },
         ])}
 
         <div class="px-3 mt-5 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Assets</span></div>
@@ -439,9 +441,9 @@ function renderOverview() {
     { key: "linkedin", label: "LinkedIn", icon: "LI" },
     { key: "tiktok", label: "TikTok", icon: "TK" },
     { key: "youtube", label: "YouTube", icon: "YT" },
-    { key: "blog", label: "Blog", icon: "B", nav: "blog" },
     { key: "telegram", label: "Telegram", icon: "TG" },
     { key: "discord", label: "Discord", icon: "DC" },
+    { key: "slack", label: "Slack", icon: "SL" },
     { key: "pinterest", label: "Pinterest", icon: "P" },
   ];
 
@@ -959,7 +961,7 @@ function credField(id, label, desc, isSecret = false, fullValue = "", editable =
   return `<div>
     <label class="text-xs text-gray-400 block mb-0.5">${label} ${desc ? `<span class="text-gray-600">${desc}</span>` : ""}</label>
     <div class="relative">
-      <input id="${id}" type="${isSecret ? "password" : "text"}" value="${esc(fullValue)}" placeholder="${label}" ${editable ? "" : "readonly"} class="w-full ${editable ? "bg-gray-900" : "bg-gray-900/50 cursor-default"} border border-gray-700 rounded px-3 py-2 pr-16 text-sm text-gray-300 placeholder-gray-600 font-mono">
+      <input id="${id}" type="${isSecret ? "password" : "text"}" value="${esc(fullValue)}" placeholder="${label}" ${editable ? "" : "readonly"} class="w-full ${editable ? "bg-gray-900" : "bg-gray-900/50 cursor-default"} border border-gray-700 rounded px-3 py-2 pr-16 text-[11px] text-gray-300 placeholder-gray-600 font-mono" title="${esc(fullValue)}">
       ${isSecret ? `<button type="button" data-toggle-vis="${id}" class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 hover:text-gray-300">Show</button>` : ""}
     </div>
   </div>`;

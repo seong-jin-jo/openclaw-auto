@@ -68,13 +68,14 @@ AI 에이전트가 콘텐츠를 자동 생성하고, 검수 후 멀티채널로 
 
 ### 지원 채널
 
-**Social (텍스트/이미지):** Threads ✅ · X ✅ · Instagram · Facebook · LinkedIn · Bluesky · Pinterest · Tumblr
+**Social:** Threads ✅ · X ✅ · Instagram · Facebook · LinkedIn · Bluesky · Pinterest · Tumblr
 **Video:** TikTok · YouTube
-**Blog & SEO:** Blog ✅ · Naver Blog · Medium
-**Messaging:** Kakao Channel · Telegram · LINE · Discord · WhatsApp
+**Blog & SEO:** Naver Blog · Medium · Substack
+**Messaging:** Telegram · Discord · Slack · LINE · Kakao · WhatsApp
 **Data & Analytics:** Google Analytics · Search Console · Google Business
+**Custom:** Blog (자체 사이트) · Custom API · Webhook · RSS
 
-✅ = 구현 완료, 나머지 = Ready/Soon
+✅ = 운영 중, 나머지 = 연결 가능(Ready) 또는 준비 중(Soon)
 
 ### 대시보드
 사이드바 기반 멀티채널 관제 UI:
