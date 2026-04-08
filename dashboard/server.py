@@ -268,6 +268,67 @@ def api_images():
     return jsonify(files)
 
 
+# ── Card News Generator ──
+@app.route("/api/card-news/generate", methods=["POST"])
+def api_card_news_generate():
+    """Generate card news slides via gateway card_generate tool."""
+    import subprocess
+    data = get_json_body()
+    title = data.get("title", "").strip()
+    slides = data.get("slides", [])
+    style = data.get("style", "dark")
+    ending = data.get("ending", "")
+
+    if not title:
+        return jsonify({"error": "title required"}), 400
+    if not slides or not isinstance(slides, list):
+        return jsonify({"error": "slides array required"}), 400
+
+    slides_json = json.dumps(slides, ensure_ascii=False)
+    msg = f'card_generate tool로 action=generate, title="{title}", slides={slides_json}, style="{style}"'
+    if ending:
+        msg += f', ending="{ending}"'
+    msg += ' 를 실행하라. 결과의 files와 batchId를 그대로 출력하라.'
+
+    try:
+        result = subprocess.run(
+            ["docker", "exec", "marketing-ai-openclaw-gateway-1",
+             "node", "dist/index.js", "agent", "--agent", "main", "--message", msg],
+            capture_output=True, text=True, timeout=60,
+        )
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "Card generation timed out"}), 504
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    # Find newly created card images by scanning for latest batch
+    os.makedirs(IMAGES_DIR, exist_ok=True)
+    import glob
+    card_files = sorted(glob.glob(os.path.join(IMAGES_DIR, "card-*-01-title.png")),
+                        key=os.path.getmtime, reverse=True)
+    if not card_files:
+        return jsonify({"error": "No card images generated", "output": result.stdout[-500:]}), 500
+
+    latest = os.path.basename(card_files[0])
+    batch_match = __import__("re").match(r"card-([a-f0-9]{8})-", latest)
+    if not batch_match:
+        return jsonify({"error": "Could not parse batch ID"}), 500
+
+    batch_id = batch_match.group(1)
+    prefix = f"card-{batch_id}-"
+    all_slides = []
+    for f in sorted(os.listdir(IMAGES_DIR)):
+        if f.startswith(prefix) and f.endswith(".png"):
+            all_slides.append(f"/images/{f}")
+
+    return jsonify({
+        "success": True,
+        "batchId": batch_id,
+        "slides": all_slides,
+        "totalSlides": len(all_slides),
+    })
+
+
 # ── Custom: Sample Community ──
 @app.route("/api/custom/sample-community")
 def api_sample_community():
@@ -460,6 +521,36 @@ def api_queue():
     posts.sort(key=lambda p: p.get("generatedAt", ""), reverse=True)
 
     return jsonify({"posts": posts, "total": len(posts)})
+
+
+@app.route("/api/queue/add", methods=["POST"])
+def api_queue_add():
+    """Add a post directly to the queue (e.g., from card news editor)."""
+    import uuid, time
+    data = get_json_body()
+    text = data.get("text", "").strip()
+    if not text:
+        return jsonify({"error": "text required"}), 400
+    queue = read_json(QUEUE_PATH) or {"version": 2, "posts": []}
+    post = {
+        "id": str(uuid.uuid4()),
+        "text": text,
+        "originalText": None,
+        "topic": data.get("topic", "general"),
+        "hashtags": data.get("hashtags", []),
+        "status": "draft",
+        "generatedAt": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "approvedAt": None, "scheduledAt": None, "publishedAt": None,
+        "threadsMediaId": None, "error": None,
+        "abVariant": "A", "model": "manual",
+        "imageUrl": data.get("imageUrl"),
+        "imageUrls": data.get("imageUrls"),
+        "cardBatchId": data.get("cardBatchId"),
+        "engagement": None,
+    }
+    queue["posts"].append(post)
+    write_json(QUEUE_PATH, queue)
+    return jsonify({"success": True, "post": post})
 
 
 @app.route("/api/queue/<post_id>/approve", methods=["POST"])

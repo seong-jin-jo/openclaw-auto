@@ -977,7 +977,7 @@ function renderChannelX() {
 
 function renderChannelInstagram() {
   const connected = S.channelConfig.instagram?.connected;
-  const tabs = connected ? ["queue", "analytics", "settings"] : ["settings"];
+  const tabs = connected ? ["queue", "create", "settings"] : ["settings"];
   const allPosts = S.queue || [];
 
   return `<div class="px-8 py-6">
@@ -990,7 +990,7 @@ function renderChannelInstagram() {
       ${tabs.map(t => `<button data-subtab="${t}" class="px-3 py-1.5 text-sm rounded ${S.subTab === t ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"}">${t.charAt(0).toUpperCase() + t.slice(1)}</button>`).join("")}
     </div>
     ${S.subTab === "queue" && connected ? renderInstagramQueue(allPosts) : ""}
-    ${S.subTab === "analytics" && connected ? renderAnalytics() : ""}
+    ${S.subTab === "create" && connected ? renderCardNewsEditor() : ""}
     ${S.subTab === "settings" ? renderInstagramSettings() : ""}
   </div>`;
 }
@@ -1092,6 +1092,86 @@ function renderInstagramPost(p) {
           ${!p.imageUrl && (p.status === "draft" || p.status === "approved") ? `<button data-pick-image="${p.id}" class="px-3 py-1.5 text-xs bg-purple-700 text-white rounded hover:bg-purple-600">Add Image</button>` : ""}
         </div>
       ` : ""}
+    </div>`;
+}
+
+function renderCardNewsEditor() {
+  const ed = S.cardEditor || { title: "", slides: [""], style: "dark", ending: "", caption: "", hashtags: "", generating: false, result: null };
+  if (!S.cardEditor) S.cardEditor = ed;
+  const result = ed.result;
+
+  return `
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Left: Editor -->
+      <div class="space-y-4">
+        <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-4">카드뉴스 만들기</h3>
+          <div class="space-y-3">
+            <div>
+              <label class="text-[10px] text-gray-500 block mb-1">제목 (타이틀 슬라이드)</label>
+              <input id="card-title" type="text" value="${esc(ed.title)}" placeholder="예: AI 코딩 도구 비교 2026" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300">
+            </div>
+            <div>
+              <label class="text-[10px] text-gray-500 block mb-1">스타일</label>
+              <div class="flex gap-2">
+                ${["dark", "light", "gradient"].map(s => `<button data-card-style="${s}" class="px-3 py-1.5 text-xs rounded ${ed.style === s ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}">${s}</button>`).join("")}
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-[10px] text-gray-500">슬라이드 (각 장의 텍스트)</label>
+                <button id="card-add-slide" class="text-[10px] text-blue-400 hover:text-blue-300">+ 슬라이드 추가</button>
+              </div>
+              <div class="space-y-2" id="card-slides-editor">
+                ${ed.slides.map((s, i) => `
+                  <div class="flex gap-2">
+                    <span class="text-[10px] text-gray-600 mt-2 w-4">${i + 1}</span>
+                    <textarea data-card-slide="${i}" class="flex-1 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300" rows="3" placeholder="슬라이드 ${i + 1} 내용">${esc(s)}</textarea>
+                    ${ed.slides.length > 1 ? `<button data-card-remove-slide="${i}" class="text-red-400 hover:text-red-300 text-xs mt-2">✕</button>` : ""}
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+            <div>
+              <label class="text-[10px] text-gray-500 block mb-1">엔딩 슬라이드</label>
+              <input id="card-ending" type="text" value="${esc(ed.ending)}" placeholder="자세한 내용은 프로필 링크에서 확인하세요" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300">
+            </div>
+            <button id="card-generate-btn" class="w-full py-2.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-500 ${ed.generating ? "opacity-50 cursor-wait" : ""}" ${ed.generating ? "disabled" : ""}>${ed.generating ? "생성 중..." : "카드뉴스 생성"}</button>
+          </div>
+        </div>
+
+        <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-3">캡션 & 해시태그</h3>
+          <textarea id="card-caption" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 mb-2" rows="4" placeholder="Instagram 캡션을 입력하세요">${esc(ed.caption)}</textarea>
+          <input id="card-hashtags" type="text" value="${esc(ed.hashtags)}" placeholder="#AI #코딩 #개발 ..." class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300">
+        </div>
+      </div>
+
+      <!-- Right: Preview -->
+      <div class="card p-5">
+        <h3 class="text-sm font-medium text-gray-300 mb-4">프리뷰</h3>
+        ${result ? `
+          <div class="flex gap-2 overflow-x-auto pb-3 mb-4" style="scrollbar-width:thin">
+            ${result.slides.map((s, i) => `
+              <div class="flex-shrink-0 w-40 h-50 rounded-lg overflow-hidden border border-gray-700">
+                <img src="${esc(s)}" alt="Slide ${i + 1}" class="w-full h-full object-cover">
+              </div>
+            `).join("")}
+          </div>
+          <p class="text-[10px] text-gray-500 mb-4">${result.totalSlides} slides · batch: ${result.batchId}</p>
+          <div class="flex gap-2">
+            <button id="card-save-draft" class="flex-1 py-2 bg-green-700 text-white text-sm rounded hover:bg-green-600">큐에 Draft 저장</button>
+            <button id="card-regenerate" class="px-4 py-2 bg-gray-700 text-gray-300 text-sm rounded hover:bg-gray-600">재생성</button>
+          </div>
+        ` : `
+          <div class="flex items-center justify-center h-64 text-gray-600">
+            <div class="text-center">
+              <p class="text-sm mb-1">카드뉴스를 생성하면 여기에 프리뷰가 표시됩니다</p>
+              <p class="text-[10px]">제목 + 슬라이드 텍스트 입력 후 "카드뉴스 생성" 클릭</p>
+            </div>
+          </div>
+        `}
+      </div>
     </div>`;
 }
 
@@ -1685,6 +1765,57 @@ function bindEvents() {
       }
     };
   });
+
+  // Card News Editor
+  const cardGenBtn = document.getElementById("card-generate-btn");
+  if (cardGenBtn) cardGenBtn.onclick = async () => {
+    const ed = S.cardEditor || {};
+    ed.title = document.getElementById("card-title")?.value || "";
+    ed.ending = document.getElementById("card-ending")?.value || "";
+    ed.caption = document.getElementById("card-caption")?.value || "";
+    ed.hashtags = document.getElementById("card-hashtags")?.value || "";
+    document.querySelectorAll("[data-card-slide]").forEach(el => { ed.slides[parseInt(el.dataset.cardSlide)] = el.value; });
+    if (!ed.title) { showToast("제목을 입력하세요", "warning"); return; }
+    if (!ed.slides.some(s => s.trim())) { showToast("슬라이드 내용을 입력하세요", "warning"); return; }
+    ed.generating = true; S.cardEditor = ed; render();
+    const r = await API.post("/api/card-news/generate", { title: ed.title, slides: ed.slides.filter(s => s.trim()), style: ed.style, ending: ed.ending || ed.title });
+    ed.generating = false;
+    if (r?.success) { ed.result = r; showToast(`카드뉴스 ${r.totalSlides}장 생성 완료`, "success"); }
+    else showToast(r?.error || "생성 실패", "error");
+    S.cardEditor = ed; render();
+  };
+  document.querySelectorAll("[data-card-style]").forEach(el => {
+    el.onclick = () => { if (!S.cardEditor) S.cardEditor = { title: "", slides: [""], style: "dark", ending: "", caption: "", hashtags: "", generating: false, result: null }; S.cardEditor.style = el.dataset.cardStyle; render(); };
+  });
+  const addSlideBtn = document.getElementById("card-add-slide");
+  if (addSlideBtn) addSlideBtn.onclick = () => {
+    if (!S.cardEditor) return;
+    document.querySelectorAll("[data-card-slide]").forEach(el => { S.cardEditor.slides[parseInt(el.dataset.cardSlide)] = el.value; });
+    S.cardEditor.slides.push(""); render();
+  };
+  document.querySelectorAll("[data-card-remove-slide]").forEach(el => {
+    el.onclick = () => {
+      const idx = parseInt(el.dataset.cardRemoveSlide);
+      document.querySelectorAll("[data-card-slide]").forEach(el2 => { S.cardEditor.slides[parseInt(el2.dataset.cardSlide)] = el2.value; });
+      S.cardEditor.slides.splice(idx, 1); render();
+    };
+  });
+  const saveDraftBtn = document.getElementById("card-save-draft");
+  if (saveDraftBtn) saveDraftBtn.onclick = async () => {
+    const ed = S.cardEditor;
+    if (!ed?.result) return;
+    const caption = document.getElementById("card-caption")?.value || ed.title;
+    const hashStr = document.getElementById("card-hashtags")?.value || "";
+    const hashtags = hashStr.split(/[#\s]+/).filter(h => h.trim());
+    const r = await API.post("/api/queue/add", {
+      text: caption, topic: "instagram-card", hashtags,
+      imageUrl: ed.result.slides[0], imageUrls: ed.result.slides, cardBatchId: ed.result.batchId,
+    });
+    if (r?.success) { showToast("큐에 Draft 저장됨", "success"); ed.result = null; ed.title = ""; ed.slides = [""]; ed.caption = ""; ed.hashtags = ""; S.cardEditor = ed; loadQueue("all"); }
+    else showToast(r?.error || "저장 실패", "error");
+  };
+  const regenBtn = document.getElementById("card-regenerate");
+  if (regenBtn) regenBtn.onclick = () => { if (S.cardEditor) { S.cardEditor.result = null; render(); } };
 
   // Sample Community
   const fetchCommunity = document.getElementById("fetch-community");
