@@ -1762,6 +1762,25 @@ function bindEvents() {
     };
   });
 
+  // Notification toggles (in channel page)
+  document.querySelectorAll("[data-notif-toggle]").forEach(el => {
+    el.onchange = async () => {
+      const evt = el.dataset.notifToggle;
+      const ch = el.dataset.notifCh;
+      const ns = S.notificationSettings || {};
+      if (!ns[evt]) ns[evt] = { enabled: false, channels: [] };
+      if (el.checked) {
+        if (!ns[evt].channels.includes(ch)) ns[evt].channels.push(ch);
+        ns[evt].enabled = true;
+      } else {
+        ns[evt].channels = ns[evt].channels.filter(c => c !== ch);
+        ns[evt].enabled = ns[evt].channels.length > 0;
+      }
+      const r = await API.post("/api/notification-settings", ns);
+      if (r?.ok) { S.notificationSettings = ns; showToast(`${evt} → ${ch} ${el.checked ? "ON" : "OFF"}`, "success"); }
+    };
+  });
+
   // Slack template
   const saveSlackTmpl = document.getElementById("save-slack-template");
   if (saveSlackTmpl) saveSlackTmpl.onclick = async () => {
@@ -2355,8 +2374,8 @@ function renderGenericChannel(key) {
         </div>
       </div>
 
-      <!-- Content Guide + Keywords (채널별) -->
-      <div class="card p-5">
+      <!-- Content Guide + Keywords (콘텐츠 발행 채널만) -->
+      ${!["telegram", "discord", "slack", "line"].includes(key) ? `<div class="card p-5">
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-sm font-medium text-gray-300">Content Guide <span class="text-[10px] text-gray-600">(${label})</span></h3>
           <div class="flex gap-2">
@@ -2376,7 +2395,7 @@ function renderGenericChannel(key) {
           </div>
         </div>
         <textarea id="keywords-textarea" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300" rows="5">${(S.channelKeywords?.keywords || S.keywords).join("\n")}</textarea>
-      </div>
+      </div>` : ""}
 
       ${["instagram"].includes(key) ? `
       <!-- Queue (이미지 콘텐츠) -->
@@ -2432,11 +2451,10 @@ function renderGenericChannel(key) {
             const enabled = S.notificationSettings?.[evt]?.channels?.includes(key);
             return `<div class="flex items-center justify-between p-2 rounded bg-gray-900/50">
               <span class="text-xs text-gray-400">${label2}</span>
-              <span class="text-[10px] ${enabled ? "text-green-400" : "text-gray-600"}">${enabled ? "ON" : "OFF"}</span>
+              <label class="relative cursor-pointer"><input type="checkbox" data-notif-toggle="${evt}" data-notif-ch="${key}" ${enabled ? "checked" : ""} class="sr-only peer"><div class="w-8 h-4 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-full"></div></label>
             </div>`;
           }).join("")}
         </div>
-        <p class="text-[10px] text-gray-600 mt-2">Settings > Notifications에서 이벤트별 ON/OFF 변경</p>
       </div>
       ${key === "slack" ? `
       <div class="card p-5">
