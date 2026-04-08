@@ -155,7 +155,7 @@ const S = {
   page: "overview", subTab: "queue",
   overview: null, queue: [], growth: [], popular: [], analytics: null,
   keywords: [], settings: null, guide: "", cronJobs: [], activity: [],
-  channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [], seoSettings: null, blogDetailId: null, blogEditing: false, blogGuide: "", blogKeywords: [], blogStats: null, gscConfig: null, gscEditing: false, gscAnalytics: null, gscDays: 28, gscDimension: "query", gaAnalytics: null, gaDays: 28, nsaData: null, kwResearch: null, naverTrend: null, googleTrend: null, kwPlannerConfigured: false, kwPlannerEditing: false, naverDatalabConfigured: false, naverDatalabEditing: false,
+  channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [], seoSettings: null, blogDetailId: null, blogEditing: false, blogGuide: "", blogKeywords: [], blogStats: null, gscConfig: null, gscEditing: false, gscAnalytics: null, gscDays: 28, gscDimension: "query", gaAnalytics: null, gaDays: 28, gaConfigured: false, gaPropertyId: "", gaEditing: false, nsaData: null, kwResearch: null, naverTrend: null, googleTrend: null, kwPlannerConfigured: false, kwPlannerEditing: false, naverDatalabConfigured: false, naverDatalabEditing: false,
   tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
   sidebarCollapsed: { social: false, video: true, blog: true, messaging: true, data: false, research: false, custom: false }, showDetail: null, editingChannel: null,
@@ -373,7 +373,7 @@ function renderSidebar() {
         ])}
 
         ${sidebarGroup("research", "Keyword Research", [
-          { key: "keyword-planner", label: "Keyword Planner", icon: "K", nav: true },
+          { key: "keyword-planner", label: "Naver Keyword Planner", icon: "K", nav: true },
           { key: "naver-trends", label: "Naver Datalab", icon: "N", nav: true },
           { key: "google-trends", label: "Google Trends", icon: "G", nav: true },
         ])}
@@ -1374,8 +1374,12 @@ function bindEvents() {
   const saveGaCfg = document.getElementById("save-ga-config");
   if (saveGaCfg) saveGaCfg.onclick = async () => {
     const pid = document.getElementById("ga-property-id")?.value;
-    if (pid) { const r = await API.post("/api/ga-config", { propertyId: pid }); if (r?.ok) { showToast("GA 설정 저장됨", "success"); loadGaAnalytics(); } }
+    if (pid) { const r = await API.post("/api/ga-config", { propertyId: pid }); if (r?.ok) { showToast("GA 연결됨 — Property ID: " + pid, "success"); S.gaConfigured = true; S.gaPropertyId = pid; S.gaEditing = false; loadGaAnalytics(); render(); } }
   };
+  const editGaCfg = document.getElementById("edit-ga-config");
+  if (editGaCfg) editGaCfg.onclick = () => { S.gaEditing = true; render(); };
+  const cancelGaEdit = document.getElementById("cancel-ga-edit");
+  if (cancelGaEdit) cancelGaEdit.onclick = () => { S.gaEditing = false; render(); };
   const gscEditBtn = document.getElementById("gsc-edit-key");
   if (gscEditBtn) gscEditBtn.onclick = () => { S.gscEditing = true; render(); };
   const gscCancelBtn = document.getElementById("gsc-cancel-edit");
@@ -1408,7 +1412,7 @@ function navigate(page) {
   else if (page === "google-trends") render();
   else if (page === "search-advisor") loadNsaData();
   else if (page === "search-console") { loadGscConfig(); loadGscAnalytics(); }
-  else if (page === "google-analytics") { loadGaAnalytics(); }
+  else if (page === "google-analytics") { loadGaConfig(); loadGaAnalytics(); }
   else if (page === "blog") { loadBlogQueue(); loadSeoSettings(); loadGscConfig(); loadBlogGuide(); loadBlogKeywords(); loadOverview(); }
   else if (CH_LABELS[page]) loadOverview(); // generic channels use overview data
   else if (page === "settings") { loadSettings(); loadKeywords(); loadLlmConfig(); loadOverview(); }
@@ -2120,6 +2124,7 @@ function renderSearchAdvisor() {
 }
 
 async function loadNsaData() { const d = await API.get("/api/nsa-data"); if (d) { S.nsaData = d; render(); } }
+async function loadGaConfig() { const d = await API.get("/api/ga-config"); if (d) { S.gaConfigured = d.configured; S.gaPropertyId = d.propertyId || ""; render(); } }
 async function loadKwPlannerConfig() { const d = await API.get("/api/kw-planner-config"); if (d) { S.kwPlannerConfigured = d.configured; render(); } }
 async function loadNaverDatalabConfig() { const d = await API.get("/api/naver-datalab-config"); if (d) { S.naverDatalabConfigured = d.configured; render(); } }
 
@@ -2145,39 +2150,46 @@ function kwResultsTable() {
 
 function renderKeywordPlanner() {
   const configured = S.kwPlannerConfigured;
+  const editing = S.kwPlannerEditing;
+  const editable = !configured || editing;
   return `<div class="px-8 py-6">
-    <h2 class="text-xl font-bold text-white mb-1">Keyword Planner</h2>
+    <h2 class="text-xl font-bold text-white mb-1">Naver Keyword Planner</h2>
     <p class="text-xs text-gray-500 mb-2">네이버 검색광고 API — 키워드 검색량 + 경쟁도</p>
     <div class="card p-3 mb-6 border-l-2 border-purple-600"><p class="text-[11px] text-gray-400">키워드의 월간 검색량(PC/모바일)과 경쟁도를 조회합니다. 검색량 높고 경쟁 낮은 키워드를 찾아 "+ Blog KW" 버튼으로 Blog Keywords에 추가하세요.</p></div>
 
-    <div class="card p-4 mb-4">
+    <div class="card p-5 mb-4">
       <div class="flex items-center justify-between mb-3">
-        <span class="text-sm font-medium text-white">API 연결</span>
-        <span class="text-[10px] px-1.5 py-0.5 rounded-full ${configured ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}">${configured ? "Connected" : "Not set"}</span>
+        <h3 class="text-sm font-medium text-gray-300">Credentials</h3>
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] px-1.5 py-0.5 rounded-full ${configured ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}">${configured ? "Connected" : "Not set"}</span>
+          ${configured && !editing ? `<button id="edit-kw-planner-config" class="text-[10px] text-blue-400 hover:text-blue-300">Edit Credentials</button>` : ""}
+        </div>
       </div>
-      ${!configured || S.kwPlannerEditing ? `
-        <div class="space-y-2 mb-3">
-          <div><label class="text-[10px] text-gray-500">Client ID</label><input id="naver-searchad-id" type="text" placeholder="searchad.naver.com → 도구 → API 관리" class="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700"></div>
-          <div><label class="text-[10px] text-gray-500">Client Secret</label><input id="naver-searchad-secret" type="password" class="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700"></div>
-          <div><label class="text-[10px] text-gray-500">Customer ID</label><input id="naver-searchad-customer" type="text" class="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700"></div>
-        </div>
+      <div class="space-y-3 mb-3">
+        ${credField("naver-searchad-customer", "Customer ID", "(숫자)", false, "", editable)}
+        ${credField("naver-searchad-id", "액세스라이선스", "(API Key)", false, "", editable)}
+        ${credField("naver-searchad-secret", "비밀키", "(Secret Key)", true, "", editable)}
+      </div>
+      ${editable ? `
         <div class="flex gap-2">
-          <button id="save-kw-planner-config" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
-          ${configured ? `<button id="cancel-kw-planner-edit" class="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded">Cancel</button>` : ""}
+          <button id="save-kw-planner-config" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${configured ? "Update" : "Connect"}</button>
+          ${configured && editing ? `<button id="cancel-kw-planner-edit" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>` : ""}
         </div>
-        <details class="mt-3"><summary class="text-[10px] text-blue-400 cursor-pointer">Setup Guide</summary>
-          <ol class="text-[10px] text-gray-500 mt-2 space-y-1 list-decimal pl-4">
-            <li>searchad.naver.com 접속 → 네이버 로그인</li>
-            <li>상단 <b>도구</b> → <b>API 관리</b></li>
-            <li>API 키 발급 → <b>Client ID</b>, <b>Client Secret</b> 복사</li>
-            <li>상단 우측 계정 정보에서 <b>Customer ID</b> (숫자) 복사</li>
-            <li>위 3개를 입력 후 Save</li>
-          </ol>
+      ` : ""}
+
+      <div class="mt-4 border-t border-gray-800/50 pt-3">
+        <h3 class="text-sm font-medium text-gray-300 mb-3">Setup Guide</h3>
+        <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
+          <li><a href="https://searchad.naver.com" target="_blank" class="text-blue-400 hover:underline">searchad.naver.com</a> 접속 → 네이버 로그인</li>
+          <li>상단 <strong class="text-gray-300">도구</strong> → <strong class="text-gray-300">API 관리</strong></li>
+          <li>API 키 발급 → <strong class="text-gray-300">액세스라이선스</strong>(API Key), <strong class="text-gray-300">비밀키</strong>(Secret Key) 복사</li>
+          <li>API 관리 페이지 상단에서 <strong class="text-gray-300">CUSTOMER_ID</strong> (숫자) 확인</li>
+          <li>위 폼에 3개 입력 후 Connect</li>
+        </ol>
+        <details class="mt-2"><summary class="text-[10px] text-blue-400 cursor-pointer">더 알아보기</summary>
+          <p class="text-[10px] text-gray-500 mt-1">네이버 검색광고 키워드도구 API를 사용합니다. 광고 집행 없이도 API 키 발급이 가능합니다. 키워드별 월간 PC/모바일 검색량, 경쟁 정도, 연관 키워드를 반환합니다. 무료이며 일일 호출 한도가 있습니다.</p>
         </details>
-      ` : `
-        <p class="text-xs text-gray-400">네이버 검색광고 API 연결됨</p>
-        <button id="edit-kw-planner-config" class="mt-2 text-[10px] text-blue-400 hover:text-blue-300">Edit</button>
-      `}
+      </div>
     </div>
 
     <div class="card p-4">
@@ -2193,6 +2205,8 @@ function renderKeywordPlanner() {
 
 function renderNaverTrends() {
   const configured = S.naverDatalabConfigured;
+  const editing = S.naverDatalabEditing;
+  const editable = !configured || editing;
   return `<div class="px-8 py-6">
     <div class="flex items-center justify-between mb-6">
       <div>
@@ -2203,33 +2217,38 @@ function renderNaverTrends() {
     </div>
     <div class="card p-3 mb-4 border-l-2 border-green-600"><p class="text-[11px] text-gray-400">키워드 검색 트렌드를 시기별로 확인합니다. 시험 시즌, 방학 등 시즌 키워드를 미리 파악해서 콘텐츠를 준비하세요.</p></div>
 
-    <div class="card p-4 mb-4">
+    <div class="card p-5 mb-4">
       <div class="flex items-center justify-between mb-3">
-        <span class="text-sm font-medium text-white">API 연결</span>
-        <span class="text-[10px] px-1.5 py-0.5 rounded-full ${configured ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}">${configured ? "Connected" : "Not set"}</span>
+        <h3 class="text-sm font-medium text-gray-300">Credentials</h3>
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] px-1.5 py-0.5 rounded-full ${configured ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}">${configured ? "Connected" : "Not set"}</span>
+          ${configured && !editing ? `<button id="edit-naver-datalab-config" class="text-[10px] text-blue-400 hover:text-blue-300">Edit Credentials</button>` : ""}
+        </div>
       </div>
-      ${!configured || S.naverDatalabEditing ? `
-        <div class="space-y-2 mb-3">
-          <div><label class="text-[10px] text-gray-500">Client ID</label><input id="naver-datalab-id" type="text" placeholder="developers.naver.com → 앱 등록" class="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700"></div>
-          <div><label class="text-[10px] text-gray-500">Client Secret</label><input id="naver-datalab-secret" type="password" class="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700"></div>
-        </div>
+      <div class="space-y-3 mb-3">
+        ${credField("naver-datalab-id", "Client ID", "", false, "", editable)}
+        ${credField("naver-datalab-secret", "Client Secret", "", true, "", editable)}
+      </div>
+      ${editable ? `
         <div class="flex gap-2">
-          <button id="save-naver-datalab-config" class="px-3 py-1.5 text-xs bg-green-600 text-white rounded hover:bg-green-500">Save</button>
-          ${configured ? `<button id="cancel-naver-datalab-edit" class="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded">Cancel</button>` : ""}
+          <button id="save-naver-datalab-config" class="flex-1 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-500">${configured ? "Update" : "Connect"}</button>
+          ${configured && editing ? `<button id="cancel-naver-datalab-edit" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>` : ""}
         </div>
-        <details class="mt-3"><summary class="text-[10px] text-blue-400 cursor-pointer">Setup Guide</summary>
-          <ol class="text-[10px] text-gray-500 mt-2 space-y-1 list-decimal pl-4">
-            <li>developers.naver.com 접속 → 네이버 로그인</li>
-            <li><b>Application</b> → <b>애플리케이션 등록</b></li>
-            <li>사용 API에서 <b>"데이터랩 (검색어트렌드)"</b> 체크</li>
-            <li><b>Client ID</b>, <b>Client Secret</b> 복사</li>
-            <li>위에 입력 후 Save</li>
-          </ol>
+      ` : ""}
+
+      <div class="mt-4 border-t border-gray-800/50 pt-3">
+        <h3 class="text-sm font-medium text-gray-300 mb-3">Setup Guide</h3>
+        <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
+          <li><a href="https://developers.naver.com" target="_blank" class="text-blue-400 hover:underline">developers.naver.com</a> 접속 → 네이버 로그인</li>
+          <li><strong class="text-gray-300">Application</strong> → <strong class="text-gray-300">애플리케이션 등록</strong></li>
+          <li>사용 API에서 <strong class="text-gray-300">"데이터랩 (검색어트렌드)"</strong> 체크</li>
+          <li><strong class="text-gray-300">Client ID</strong>, <strong class="text-gray-300">Client Secret</strong> 복사</li>
+          <li>위 폼에 입력 후 Connect</li>
+        </ol>
+        <details class="mt-2"><summary class="text-[10px] text-blue-400 cursor-pointer">더 알아보기</summary>
+          <p class="text-[10px] text-gray-500 mt-1">네이버 통합 검색어 트렌드 API를 사용합니다. 최대 5개 키워드의 상대적 검색량 변화를 주간/월간 단위로 조회합니다. 성별, 연령대별 필터 가능. 무료.</p>
         </details>
-      ` : `
-        <p class="text-xs text-gray-400">네이버 데이터랩 API 연결됨</p>
-        <button id="edit-naver-datalab-config" class="mt-2 text-[10px] text-blue-400 hover:text-blue-300">Edit</button>
-      `}
+      </div>
     </div>
 
     <div class="card p-4 mb-4">
@@ -2392,17 +2411,43 @@ function renderGoogleAnalytics() {
     <div class="card p-3 mb-6 border-l-2 border-blue-600"><p class="text-[11px] text-gray-400">사이트 방문자 수, 유입 경로(검색/직접/SNS), 체류시간을 분석합니다. 칼럼 페이지별 성과를 확인할 수 있습니다.</p></div>
     <div>
     </div>
-    ${!ga || ga.error ? `<div class="card p-8 text-center">
-      <p class="text-gray-500 text-sm">${ga?.error || "Loading..."}</p>
-      <p class="text-xs text-gray-600 mt-2">GA4 Property ID를 설정하세요. Google Cloud Console에서 서비스 계정에 GA4 접근 권한을 추가해야 합니다.</p>
-      <div class="mt-4">
-        <label class="text-xs text-gray-500 block mb-1">GA4 Property ID</label>
-        <div class="flex gap-2 max-w-md mx-auto">
-          <input id="ga-property-id" type="text" value="" placeholder="123456789" class="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
-          <button id="save-ga-config" class="px-3 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
+    <div class="card p-5 mb-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-medium text-gray-300">Credentials</h3>
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] px-1.5 py-0.5 rounded-full ${S.gaConfigured ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}">${S.gaConfigured ? "Connected" : "Not set"}</span>
+          ${S.gaConfigured && !S.gaEditing ? `<button id="edit-ga-config" class="text-[10px] text-blue-400 hover:text-blue-300">Edit</button>` : ""}
         </div>
-        <p class="text-[10px] text-gray-600 mt-2">GA4 관리 > 속성 > 속성 설정 > 속성 ID</p>
       </div>
+      ${!S.gaConfigured || S.gaEditing ? `
+        <div class="space-y-3 mb-3">
+          ${credField("ga-property-id", "Property ID", "(숫자)", false, S.gaPropertyId || "", true)}
+        </div>
+        <div class="flex gap-2">
+          <button id="save-ga-config" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${S.gaConfigured ? "Update" : "Connect"}</button>
+          ${S.gaConfigured && S.gaEditing ? `<button id="cancel-ga-edit" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>` : ""}
+        </div>
+
+        <div class="mt-4 border-t border-gray-800/50 pt-3">
+          <h3 class="text-sm font-medium text-gray-300 mb-3">Setup Guide</h3>
+          <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
+            <li><a href="https://analytics.google.com" target="_blank" class="text-blue-400 hover:underline">analytics.google.com</a> 접속</li>
+            <li>좌측 하단 <strong class="text-gray-300">⚙ 관리</strong> → <strong class="text-gray-300">속성 설정</strong></li>
+            <li><strong class="text-gray-300">속성 ID</strong> (숫자) 복사</li>
+            <li>같은 관리 페이지 → <strong class="text-gray-300">속성 접근 관리</strong> → <strong class="text-gray-300">+</strong></li>
+            <li>이메일: <span class="text-gray-300 font-mono text-[9px]">google-search-console@dedu-479013.iam.gserviceaccount.com</span></li>
+            <li>역할: <strong class="text-gray-300">뷰어</strong> → 추가</li>
+            <li>위 폼에 Property ID 입력 후 Connect</li>
+          </ol>
+          <details class="mt-2"><summary class="text-[10px] text-blue-400 cursor-pointer">더 알아보기</summary>
+            <p class="text-[10px] text-gray-500 mt-1">GA4 Data API를 사용합니다. GSC와 동일한 서비스 계정을 재사용합니다. GA4에서 서비스 계정에 뷰어 권한을 추가해야 데이터 조회가 가능합니다.</p>
+          </details>
+        </div>
+      ` : `<p class="text-xs text-gray-400">Property ID: ${S.gaPropertyId || ""}</p>`}
+    </div>
+
+    ${!ga || ga.error ? `<div class="card p-8 text-center">
+      <p class="text-gray-500 text-sm">${ga?.error || "데이터 로딩 중..."}</p>
     </div>` : `
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Sessions</div><div class="text-xl font-bold text-white">${ga.totalSessions?.toLocaleString() ?? 0}</div></div>
