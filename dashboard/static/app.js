@@ -299,18 +299,16 @@ function chSidebarItem(key) {
 }
 
 function sidebarGroup(key, title, items) {
-  // Auto-open if any item has Live/Connected status
-  const hasActive = items.some(i => i.status === "Live" || i.status === "Connected");
-  if (hasActive && S.sidebarCollapsed[key] === undefined) S.sidebarCollapsed[key] = false;
-  const collapsed = S.sidebarCollapsed[key] ?? !hasActive;
-  const activeCount = items.filter(i => i.nav && !i.soon).length;
-  const soonCount = items.filter(i => i.soon).length;
+  const liveCount = items.filter(i => i.status === "Live" || i.status === "Connected").length;
+  const totalCount = items.length;
+  // Auto-open: any live/connected channel → open. User toggle overrides.
+  const collapsed = S.sidebarCollapsed[key] ?? (liveCount === 0);
   return `
     <div class="mt-4">
       <button data-sidebar-toggle="${key}" class="px-3 mb-1 w-full flex items-center justify-between cursor-pointer hover:opacity-80">
         <span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">${title}</span>
         <span class="flex items-center gap-1">
-          ${soonCount ? `<span class="text-[9px] text-gray-700">${activeCount}/${activeCount + soonCount}</span>` : ""}
+          ${totalCount > 0 ? `<span class="text-[9px] ${liveCount > 0 ? "text-green-600" : "text-gray-700"}">${liveCount}/${totalCount}</span>` : ""}
           <svg class="w-3 h-3 text-gray-700 transition-transform ${collapsed ? "" : "rotate-180"}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
         </span>
       </button>
@@ -366,7 +364,7 @@ function renderSidebar() {
           ...["tiktok", "youtube"].map(ch => chSidebarItem(ch)),
         ])}
 
-        ${sidebarGroup("blog", "Blog & SEO", [
+        ${sidebarGroup("blog", "Blog", [
           chSidebarItem("naver_blog"),
           { label: "Medium", icon: "M", soon: true },
           { label: "Substack", icon: "S", soon: true },
@@ -378,10 +376,11 @@ function renderSidebar() {
           { label: "WhatsApp", icon: "W", soon: true },
         ])}
 
-        ${sidebarGroup("data", "Data & Analytics", [
-          { label: "Google Analytics", icon: "G", soon: true },
-          { label: "Search Console", icon: "S", soon: true },
-          { label: "Google Business", icon: "G", soon: true },
+        ${sidebarGroup("data", "Data & SEO", [
+          { label: "Google Analytics", icon: "GA", soon: true },
+          { label: "Search Console", icon: "SC", soon: true },
+          { label: "SEO Keywords", icon: "KW", soon: true },
+          { label: "Google Business", icon: "GB", soon: true },
         ])}
 
         ${sidebarGroup("custom", "Custom Integration", [
