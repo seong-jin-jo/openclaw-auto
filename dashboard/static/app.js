@@ -158,7 +158,7 @@ const S = {
   channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [],
   tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
-  sidebarCollapsed: { data: false, research: false }, showDetail: null, editingChannel: null,
+  sidebarCollapsed: { data: false, research: false }, showDetail: null, editingChannel: null, slackTemplate: "", slackReportPreview: "",
   channelGuide: null, channelKeywords: null, notificationSettings: null, tenantInfo: null, chatChannels: null, communityPosts: [], r2Config: null,
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null, expandedPopular: null,
@@ -1762,6 +1762,27 @@ function bindEvents() {
     };
   });
 
+  // Slack template
+  const saveSlackTmpl = document.getElementById("save-slack-template");
+  if (saveSlackTmpl) saveSlackTmpl.onclick = async () => {
+    const tmpl = document.getElementById("slack-template")?.value;
+    const r = await API.post("/api/slack-template", { template: tmpl });
+    if (r?.ok) showToast("템플릿 저장됨", "success");
+  };
+  const previewSlackReport = document.getElementById("slack-preview-report");
+  if (previewSlackReport) previewSlackReport.onclick = async () => {
+    const r = await API.get("/api/slack-report-preview");
+    if (r?.report) { S.slackReportPreview = r.report; render(); }
+  };
+  const sendSlackCustom = document.getElementById("send-slack-custom-report");
+  if (sendSlackCustom) sendSlackCustom.onclick = async () => {
+    sendSlackCustom.textContent = "Sending..."; sendSlackCustom.disabled = true;
+    const r = await API.post("/api/slack-send-custom");
+    sendSlackCustom.textContent = "Send Report"; sendSlackCustom.disabled = false;
+    if (r?.ok) showToast("리포트 전송됨", "success");
+    else showToast(r?.error || "실패", "error");
+  };
+
   // Detail toggle
   document.querySelectorAll("[data-toggle-detail]").forEach(el => { el.onclick = () => { S.showDetail = S.showDetail === el.dataset.toggleDetail ? null : el.dataset.toggleDetail; render(); }; });
 
@@ -1917,7 +1938,7 @@ function navigate(page) {
   else if (page === "google-trends") render();
   else if (page === "blog") { loadBlogQueue(); loadOverview(); loadBlogGuide(); loadBlogKeywords(); }
   else if (page === "zeroone_community") { /* manual load via button */ }
-  else if (CH_LABELS[page]) { loadOverview(); loadChannelGuideAndKeywords(); }
+  else if (CH_LABELS[page]) { loadOverview(); loadChannelGuideAndKeywords(); if (page === "slack") loadSlackTemplate(); }
   else if (page === "settings") { loadSettings(); loadKeywords(); loadLlmConfig(); loadOverview(); loadNotifSettings(); loadTenantAndChat(); }
   render();
 }
@@ -2415,8 +2436,30 @@ function renderGenericChannel(key) {
             </div>`;
           }).join("")}
         </div>
-        <p class="text-[10px] text-gray-600 mt-2">Settings > Notifications에서 변경</p>
+        <p class="text-[10px] text-gray-600 mt-2">Settings > Notifications에서 이벤트별 ON/OFF 변경</p>
       </div>
+      ${key === "slack" ? `
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-medium text-gray-300">주간 리포트 템플릿</h3>
+          <button id="slack-preview-report" class="text-[10px] text-blue-400 hover:text-blue-300">Preview</button>
+        </div>
+        <textarea id="slack-template" rows="12" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-xs text-gray-300 font-mono mb-2" placeholder="Loading...">${esc(S.slackTemplate || "")}</textarea>
+        <div class="flex gap-2">
+          <button id="save-slack-template" class="px-4 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-500">Save Template</button>
+          <button id="send-slack-custom-report" class="px-4 py-2 bg-purple-700 text-white text-xs rounded hover:bg-purple-600">Send Report</button>
+        </div>
+        <details class="mt-2"><summary class="text-[10px] text-blue-400 cursor-pointer">사용 가능한 변수</summary>
+          <div class="text-[10px] text-gray-500 mt-1 font-mono space-y-0.5">
+            <div>{blog_articles} {blog_views} {blog_delta} {blog_top}</div>
+            <div>{gsc_clicks} {gsc_impressions} {gsc_ctr} {gsc_top_keywords}</div>
+            <div>{ga_sessions} {ga_pageviews}</div>
+            <div>{dashboard_url}</div>
+          </div>
+        </details>
+        ${S.slackReportPreview ? `<div class="mt-3 p-3 rounded bg-gray-900/80 border border-gray-800"><pre class="text-[10px] text-gray-300 whitespace-pre-wrap">${esc(S.slackReportPreview)}</pre></div>` : ""}
+      </div>
+      ` : ""}
       <div class="card p-5">
         <h3 class="text-sm font-medium text-gray-300 mb-3">테스트 발송</h3>
         <div class="flex gap-2">
@@ -3378,3 +3421,8 @@ async function approveBlogPost(id) { const r = await API.post("/api/blog-queue/"
 async function deleteBlogPost(id) { if (!confirm("삭제?")) return; const r = await API.post("/api/blog-queue/" + id + "/delete"); if (r) { showToast("삭제 완료", "success"); S.blogDetailId = null; loadBlogQueue(); } }
 
 async function loadBlogQueue() { const d = await API.get("/api/blog-queue"); if (d) S.blogQueue = d.posts || []; render(); }
+// ── Slack Template ──
+async function loadSlackTemplate() {
+  const d = await API.get("/api/slack-template");
+  if (d) { S.slackTemplate = d.template || ""; render(); }
+}
