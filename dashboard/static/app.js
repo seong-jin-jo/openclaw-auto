@@ -159,7 +159,7 @@ const S = {
   tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
   sidebarCollapsed: {}, showDetail: null, editingChannel: null,
-  channelGuide: null, channelKeywords: null, notificationSettings: null, tenantInfo: null, chatChannels: null,
+  channelGuide: null, channelKeywords: null, notificationSettings: null, tenantInfo: null, chatChannels: null, communityPosts: [],
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null, expandedPopular: null,
 };
@@ -265,9 +265,9 @@ function render() {
   if (S.page === "overview") app.innerHTML = renderOverview();
   else if (S.page === "threads") app.innerHTML = renderChannel("threads");
   else if (S.page === "x") app.innerHTML = renderChannelX();
-  else if (S.page === "instagram") app.innerHTML = renderChannelInstagram();
   else if (S.page === "images") app.innerHTML = renderImages();
   else if (S.page === "blog") app.innerHTML = renderBlog();
+  else if (S.page === "sample_community") app.innerHTML = renderSampleCommunity();
   else if (CH_LABELS[S.page]) app.innerHTML = renderGenericChannel(S.page);
   else if (S.page === "settings") app.innerHTML = renderSettings();
   bindEvents();
@@ -279,7 +279,7 @@ function render() {
   }
 }
 
-const CH_LABELS = { instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", bluesky: "Bluesky", pinterest: "Pinterest", tumblr: "Tumblr", tiktok: "TikTok", youtube: "YouTube", telegram: "Telegram", discord: "Discord", slack: "Slack", line: "LINE", naver_blog: "Naver Blog", midjourney: "Midjourney" };
+const CH_LABELS = { instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", bluesky: "Bluesky", pinterest: "Pinterest", tumblr: "Tumblr", tiktok: "TikTok", youtube: "YouTube", telegram: "Telegram", discord: "Discord", slack: "Slack", line: "LINE", naver_blog: "Naver Blog", midjourney: "Midjourney", sample_community: "Sample Community" };
 const CH_STATUS_BADGE = { live: "bg-green-900/50 text-green-400", connected: "bg-blue-900/50 text-blue-400", available: "", soon: "" };
 const CH_STATUS_LABEL = { live: "Live", connected: "Connected", available: "", soon: "" };
 
@@ -386,8 +386,9 @@ function renderSidebar() {
 
         ${sidebarGroup("custom", "Custom Integration", [
           { key: "blog", label: "Blog", icon: "B", nav: true },
+          chSidebarItem("midjourney"),
+          { key: "sample_community", label: "Sample Community", icon: "Z", nav: true },
           { label: "Custom API", icon: "+", soon: true },
-          { label: "Webhook", icon: "W", soon: true },
           { label: "RSS Feed", icon: "R", soon: true },
         ])}
 
@@ -819,16 +820,23 @@ function renderChannelSettings(channel) {
       <input id="setting-${key}" type="number" value="${s[key] ?? ""}" min="0" class="w-20 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-gray-300 text-right">
     </div>`;
 
-  const featureToCron = {
-    content_generation: "threads-generate-drafts",
-    auto_publish: "threads-auto-publish",
-    insights_collection: "threads-collect-insights",
-    auto_like_replies: "threads-collect-insights",
-    low_engagement_cleanup: "threads-collect-insights",
-    trending_collection: "threads-fetch-trending",
-    follower_tracking: "threads-track-growth",
-    trending_rewrite: "threads-rewrite-trending",
+  const featureToCronMap = {
+    threads: {
+      content_generation: "threads-generate-drafts",
+      auto_publish: "threads-auto-publish",
+      insights_collection: "threads-collect-insights",
+      auto_like_replies: "threads-collect-insights",
+      low_engagement_cleanup: "threads-collect-insights",
+      trending_collection: "threads-fetch-trending",
+      follower_tracking: "threads-track-growth",
+      trending_rewrite: "threads-rewrite-trending",
+    },
+    instagram: {
+      content_generation: "instagram-generate-drafts",
+      auto_publish: "instagram-auto-publish",
+    },
   };
+  const featureToCron = featureToCronMap[channel] || featureToCronMap.threads;
   function runsFor(featureKey) {
     const cronName = featureToCron[featureKey];
     if (!cronName) return [];
@@ -1423,6 +1431,12 @@ function renderSettings() {
 
 // ── Event Binding ──
 function bindEvents() {
+  // Render channel automation sections
+  ["instagram"].forEach(ch => {
+    const container = document.getElementById(`channel-automation-${ch}`);
+    if (container) container.innerHTML = renderChannelAutomation(ch);
+  });
+
   // Load card news slides asynchronously
   document.querySelectorAll("[data-load-slides]").forEach(async el => {
     const batchId = el.dataset.loadSlides;
@@ -1698,6 +1712,25 @@ function bindEvents() {
     };
   });
 
+  // Sample Community
+  const fetchCommunity = document.getElementById("fetch-community");
+  if (fetchCommunity) fetchCommunity.onclick = async () => {
+    fetchCommunity.textContent = "수집 중..."; fetchCommunity.disabled = true;
+    await loadCommunityPosts();
+    fetchCommunity.textContent = "새 글 수집"; fetchCommunity.disabled = false;
+  };
+  document.querySelectorAll("[data-community-draft]").forEach(el => {
+    el.onclick = async () => {
+      const postId = el.dataset.communityDraft;
+      const tone = el.dataset.tone;
+      el.textContent = "생성중..."; el.disabled = true;
+      const r = await API.post("/api/custom/sample-community/draft", { postId: parseInt(postId), tone });
+      el.disabled = false; el.textContent = tone === "curate" ? "큐레이션" : tone === "summary" ? "요약" : "토론유도";
+      if (r?.ok) showToast("Draft 생성 완료 — 큐에서 확인", "success");
+      else showToast(r?.error || "Draft 생성 실패", "error");
+    };
+  });
+
   // Blog actions
   document.querySelectorAll("[data-blog-approve]").forEach(el => { el.onclick = () => approveBlogPost(el.dataset.blogApprove); });
   document.querySelectorAll("[data-blog-delete]").forEach(el => { el.onclick = () => deleteBlogPost(el.dataset.blogDelete); });
@@ -1709,9 +1742,10 @@ function navigate(page) {
   if (page === "overview") loadOverview();
   else if (page === "threads") { S.subTab = "queue"; loadQueue(S.queueFilter); loadGrowth(); loadImages(); }
   else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); loadChannelGuideAndKeywords(); }
-  else if (page === "instagram") { S.subTab = S.channelConfig.instagram?.connected ? "queue" : "settings"; S.queueFilter = "all"; loadQueue("all"); loadImages(); loadChannelSettings(); loadCronRuns(); }
+  else if (page === "instagram") { loadOverview(); loadChannelSettings(); loadCronRuns(); loadChannelGuideAndKeywords(); }
   else if (page === "images") loadImages();
   else if (page === "blog") loadBlogQueue();
+  else if (page === "sample_community") { /* manual load via button */ }
   else if (CH_LABELS[page]) { loadOverview(); loadChannelGuideAndKeywords(); }
   else if (page === "settings") { loadSettings(); loadKeywords(); loadLlmConfig(); loadOverview(); loadNotifSettings(); loadTenantAndChat(); }
   render();
@@ -1894,6 +1928,63 @@ async function deleteImage(filename) {
   } catch (e) { showToast("삭제 실패: " + e.message, "error"); }
 }
 
+function renderChannelAutomation(channel) {
+  const cronMap = {
+    instagram: { content_generation: "instagram-generate-drafts", auto_publish: "instagram-auto-publish" },
+  };
+  const cMap = cronMap[channel];
+  if (!cMap) return "";
+  const cs = (S.channelSettings.settings || {})[channel] || {};
+  const features = (S.channelSettings.features || []).filter(f => cMap[f.key]);
+  return features.map(f => {
+    const cronName = cMap[f.key];
+    const runs = S.cronRuns.filter(r => r.jobName === cronName);
+    const run = runs[0] || null;
+    const sc = run ? (run.status === "ok" ? "text-green-400" : "text-red-400") : "";
+    const ago = run?.finishedAt ? fmtAgo(new Date(run.finishedAt).toISOString()) : "";
+    const expanded = S.expandedFeature === f.key;
+    let html = `<div class="border-b border-gray-800/50 last:border-0">
+      <div class="flex items-center gap-3 py-2.5 cursor-pointer" onclick="toggleFeatureDetail('${f.key}')">
+        <label class="relative inline-flex items-center cursor-pointer shrink-0" onclick="event.stopPropagation()">
+          <input type="checkbox" data-feature-toggle="${f.key}" data-channel="${channel}" ${cs[f.key] ? "checked" : ""} class="sr-only peer">
+          <div class="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+        </label>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-300">${f.label}</span>`;
+    if (run) html += `<span class="text-[10px] ${sc}">${run.status === "ok" ? "&#10003;" : "&#10007;"}</span><span class="text-[10px] text-gray-600">${ago}</span>`;
+    html += `<svg class="w-3 h-3 text-gray-600 ml-auto transition-transform ${expanded ? "rotate-180" : ""}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </div>
+          <p class="text-[10px] text-gray-600">${f.description}</p>
+        </div>
+      </div>`;
+    if (expanded) {
+      html += `<div class="ml-12 mb-3 space-y-1.5">`;
+      if (runs.length) {
+        runs.slice(0, 10).forEach(r => {
+          const ts = r.finishedAt ? new Date(r.finishedAt).toLocaleString("ko-KR", {month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}) : "";
+          html += `<div class="flex items-start gap-2 py-1">
+            <span class="text-[10px] mt-0.5 ${r.status === "ok" ? "text-green-400" : "text-red-400"}">${r.status === "ok" ? "&#10003;" : "&#10007;"}</span>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] text-gray-500">${ts}</span>
+                <span class="text-[10px] text-gray-700">${r.model || ""}</span>
+                <span class="text-[10px] text-gray-700 ml-auto">${Math.round(r.durationMs / 1000)}s</span>
+              </div>
+              <p class="text-[10px] text-gray-500 break-words">${esc(r.summary)}</p>
+            </div>
+          </div>`;
+        });
+      } else {
+        html += `<p class="text-[10px] text-gray-600">실행 이력 없음</p>`;
+      }
+      html += `</div>`;
+    }
+    html += `</div>`;
+    return html;
+  }).join("");
+}
+
 // ── Generic Channel Page ──
 function renderGenericChannel(key) {
   const label = CH_LABELS[key] || key;
@@ -2017,6 +2108,14 @@ function renderGenericChannel(key) {
         <textarea id="keywords-textarea" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300" rows="5">${(S.channelKeywords?.keywords || S.keywords).join("\n")}</textarea>
       </div>
 
+      ${["instagram"].includes(key) ? `
+      <!-- Automation (크론잡이 있는 채널) -->
+      <div class="card p-5 md:col-span-2">
+        <h3 class="text-sm font-medium text-gray-300 mb-4">Automation</h3>
+        <div id="channel-automation-${key}"></div>
+      </div>
+      ` : ""}
+
       ${["telegram", "discord", "slack", "line"].includes(key) ? `
       <!-- Messaging 전용 -->
       <div class="card p-5">
@@ -2051,6 +2150,54 @@ function renderGenericChannel(key) {
         `}
       </div>
       ` : ""}
+    </div>
+  </div>`;
+}
+
+// ── Sample Community ──
+async function loadCommunityPosts() {
+  const data = await API.get("/api/custom/sample-community");
+  if (data) { S.communityPosts = [...(data.popularItems || []), ...(data.items || [])]; render(); }
+}
+
+function renderSampleCommunity() {
+  const posts = S.communityPosts || [];
+  return `<div class="px-8 py-6">
+    <button data-nav="overview" class="text-gray-500 hover:text-gray-300 text-sm mb-1">&larr; Back</button>
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-semibold text-white">Sample Community</h2>
+        <p class="text-xs text-gray-500">커뮤니티 글 수집 → Threads/Instagram draft 생성</p>
+      </div>
+      <button id="fetch-community" class="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">새 글 수집</button>
+    </div>
+    ${posts.length === 0 ? `<div class="card p-8 text-center"><p class="text-gray-500 text-sm">수집 버튼을 눌러 커뮤니티 글을 불러오세요</p></div>` : ""}
+    <div class="space-y-3">
+      ${posts.map(p => `
+        <div class="card p-4">
+          <div class="flex items-start justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] px-2 py-0.5 rounded bg-indigo-900/40 text-indigo-300">${esc(p.board || "free")}</span>
+              <span class="text-xs font-medium text-gray-200">${esc(p.title)}</span>
+            </div>
+            <a href="https://www.example.com/community/${p.postId}" target="_blank" class="text-[10px] text-blue-400 hover:underline">원문 &rarr;</a>
+          </div>
+          <p class="text-sm text-gray-400 mb-2 line-clamp-2">${esc(p.excerpt || "")}</p>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3 text-[10px] text-gray-500">
+              <span>${esc(p.author?.name || "")} (${esc(p.author?.role || "")})</span>
+              <span>views: ${p.stats?.viewCount || 0}</span>
+              <span>likes: ${p.stats?.likeCount || 0}</span>
+              <span>comments: ${p.stats?.commentCount || 0}</span>
+            </div>
+            <div class="flex gap-1">
+              <button data-community-draft="${p.postId}" data-tone="curate" class="px-2 py-1 text-[10px] bg-purple-700 text-white rounded hover:bg-purple-600">큐레이션</button>
+              <button data-community-draft="${p.postId}" data-tone="summary" class="px-2 py-1 text-[10px] bg-blue-700 text-white rounded hover:bg-blue-600">요약</button>
+              <button data-community-draft="${p.postId}" data-tone="discuss" class="px-2 py-1 text-[10px] bg-green-700 text-white rounded hover:bg-green-600">토론유도</button>
+            </div>
+          </div>
+        </div>
+      `).join("")}
     </div>
   </div>`;
 }

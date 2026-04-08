@@ -268,6 +268,82 @@ def api_images():
     return jsonify(files)
 
 
+# ── Custom: Sample Community ──
+@app.route("/api/custom/sample-community")
+def api_sample_community():
+    """Proxy Sample community posts API."""
+    import urllib.request
+    try:
+        url = "https://api.example.com/api/v1/community/posts"
+        req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "Mozilla/5.0 OpenClaw-Marketing"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read())
+            return jsonify(data.get("content", {}))
+    except Exception as e:
+        return jsonify({"error": str(e)[:200], "popularItems": [], "items": []}), 500
+
+
+@app.route("/api/custom/sample-community/draft", methods=["POST"])
+def api_sample_community_draft():
+    """Create a queue draft from a community post."""
+    import urllib.request
+    body = get_json_body()
+    post_id = body.get("postId")
+    tone = body.get("tone", "curate")  # curate, summary, discuss
+    if not post_id:
+        return jsonify({"error": "postId required"}), 400
+
+    # Fetch post detail
+    try:
+        url = f"https://api.example.com/api/v1/community/posts/{post_id}"
+        req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "Mozilla/5.0 OpenClaw-Marketing"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read())
+            post = data.get("content", {})
+    except Exception as e:
+        return jsonify({"error": f"Failed to fetch post: {e}"}), 500
+
+    title = post.get("title", "")
+    excerpt = post.get("excerpt", "") or post.get("body", "")[:200]
+    author = post.get("author", {}).get("name", "")
+    community_url = f"https://www.example.com/community/{post_id}"
+
+    # Generate draft text based on tone
+    if tone == "curate":
+        text = f"제로원 커뮤니티에서 흥미로운 글 발견 👀\n\n\"{title}\"\nby {author}\n\n{excerpt[:100]}...\n\n자세한 내용은 제로원 커뮤니티에서 확인하세요\n{community_url}"
+    elif tone == "summary":
+        text = f"{title}\n\n{excerpt[:200]}\n\n원문: {community_url}"
+    else:  # discuss
+        text = f"{title}\n\n{excerpt[:100]}...\n\n여러분은 어떻게 생각하세요? 💬\n\n자세한 글: {community_url}"
+
+    # Add to queue
+    import uuid, time
+    queue_path = Path(DATA_DIR) / "queue.json"
+    queue = read_json(queue_path) or {"version": 2, "posts": []}
+    new_post = {
+        "id": str(uuid.uuid4()),
+        "text": text,
+        "originalText": None,
+        "topic": "sample-community",
+        "hashtags": ["제로원", "개발자커뮤니티", "Sample"],
+        "status": "draft",
+        "generatedAt": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "approvedAt": None,
+        "scheduledAt": None,
+        "publishedAt": None,
+        "threadsMediaId": None,
+        "error": None,
+        "abVariant": "A",
+        "model": "manual",
+        "imageUrl": post.get("previewImageUrl"),
+        "engagement": None,
+    }
+    queue["posts"].append(new_post)
+    write_json(queue_path, queue)
+    logger.info("Community draft created: postId=%s tone=%s", post_id, tone)
+    return jsonify({"ok": True, "postId": new_post["id"]})
+
+
 @app.route("/api/card-slides/<batch_id>")
 def api_card_slides(batch_id):
     """Return all slide images for a card news batch ID."""
