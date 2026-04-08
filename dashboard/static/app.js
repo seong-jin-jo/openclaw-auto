@@ -1108,8 +1108,12 @@ function renderCardNewsEditor() {
           <h3 class="text-sm font-medium text-gray-300 mb-4">카드뉴스 만들기</h3>
           <div class="space-y-3">
             <div>
-              <label class="text-[10px] text-gray-500 block mb-1">제목 (타이틀 슬라이드)</label>
-              <input id="card-title" type="text" value="${esc(ed.title)}" placeholder="예: AI 코딩 도구 비교 2026" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300">
+              <label class="text-[10px] text-gray-500 block mb-1">주제 입력</label>
+              <div class="flex gap-2">
+                <input id="card-title" type="text" value="${esc(ed.title)}" placeholder="예: AI 코딩 도구 비교 2026" class="flex-1 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300">
+                <button id="card-ai-outline" class="px-3 py-2 bg-purple-700 text-white text-xs rounded hover:bg-purple-600 flex-shrink-0 ${ed.outlining ? "opacity-50 cursor-wait" : ""}" ${ed.outlining ? "disabled" : ""}>${ed.outlining ? "생성중..." : "AI 초안"}</button>
+              </div>
+              <p class="text-[10px] text-gray-600 mt-1">주제 입력 후 "AI 초안" 클릭하면 슬라이드 내용을 자동 생성합니다</p>
             </div>
             <div>
               <label class="text-[10px] text-gray-500 block mb-1">스타일</label>
@@ -1766,7 +1770,26 @@ function bindEvents() {
     };
   });
 
-  // Card News Editor
+  // Card News Editor — AI Outline
+  const aiOutlineBtn = document.getElementById("card-ai-outline");
+  if (aiOutlineBtn) aiOutlineBtn.onclick = async () => {
+    const title = document.getElementById("card-title")?.value?.trim();
+    if (!title) { showToast("주제를 입력하세요", "warning"); return; }
+    if (!S.cardEditor) S.cardEditor = { title, slides: [""], style: "dark", ending: "", caption: "", hashtags: "", generating: false, result: null };
+    S.cardEditor.title = title;
+    S.cardEditor.outlining = true; render();
+    const r = await API.post("/api/card-news/outline", { title });
+    S.cardEditor.outlining = false;
+    if (r?.success) {
+      S.cardEditor.slides = r.slides || [""];
+      S.cardEditor.caption = r.caption || "";
+      S.cardEditor.hashtags = (r.hashtags || []).map(h => "#" + h).join(" ");
+      showToast(`${r.slides?.length || 0}장 초안 생성 완료`, "success");
+    } else { showToast(r?.error || "초안 생성 실패", "error"); }
+    render();
+  };
+
+  // Card News Editor — Generate
   const cardGenBtn = document.getElementById("card-generate-btn");
   if (cardGenBtn) cardGenBtn.onclick = async () => {
     const ed = S.cardEditor || {};

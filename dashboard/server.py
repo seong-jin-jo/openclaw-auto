@@ -268,7 +268,48 @@ def api_images():
     return jsonify(files)
 
 
-# ── Card News Generator ──
+# ── Card News ──
+@app.route("/api/card-news/outline", methods=["POST"])
+def api_card_news_outline():
+    """AI generates slide outline from a topic/title."""
+    import subprocess
+    data = get_json_body()
+    title = data.get("title", "").strip()
+    if not title:
+        return jsonify({"error": "title required"}), 400
+
+    msg = f"""다음 주제로 Instagram 카드뉴스 슬라이드 초안을 만들어라: "{title}"
+
+규칙:
+- 슬라이드 4~5장 분량
+- 각 슬라이드는 핵심 포인트 1개
+- 짧고 임팩트 있게 (각 슬라이드 2~3줄)
+- 100% 한국어
+- 마지막 슬라이드는 CTA (프로필 링크 유도)
+
+출력 형식 (JSON만, 다른 텍스트 없이):
+{{"slides": ["슬라이드1 내용", "슬라이드2 내용", ...], "caption": "Instagram 캡션", "hashtags": ["태그1", "태그2", ...]}}"""
+
+    try:
+        result = subprocess.run(
+            ["docker", "exec", "marketing-ai-openclaw-gateway-1",
+             "node", "dist/index.js", "agent", "--agent", "main", "--message", msg],
+            capture_output=True, text=True, timeout=60,
+        )
+        output = result.stdout.strip()
+        # Extract JSON from output
+        import re
+        json_match = re.search(r'\{[\s\S]*"slides"[\s\S]*\}', output)
+        if json_match:
+            parsed = json.loads(json_match.group())
+            return jsonify({"success": True, **parsed})
+        return jsonify({"error": "AI 응답에서 JSON을 추출할 수 없음", "raw": output[-300:]}), 500
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "AI outline generation timed out"}), 504
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/card-news/generate", methods=["POST"])
 def api_card_news_generate():
     """Generate card news slides via gateway card_generate tool."""
