@@ -159,7 +159,7 @@ const S = {
   tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
   sidebarCollapsed: {}, showDetail: null, editingChannel: null,
-  channelGuide: null, channelKeywords: null, notificationSettings: null, tenantInfo: null, chatChannels: null, communityPosts: [],
+  channelGuide: null, channelKeywords: null, notificationSettings: null, tenantInfo: null, chatChannels: null, communityPosts: [], r2Config: null,
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null, expandedPopular: null,
 };
@@ -1770,6 +1770,23 @@ function bindEvents() {
     };
   });
 
+  // R2 Storage Config
+  const saveR2 = document.getElementById("save-r2-config");
+  if (saveR2) saveR2.onclick = async () => {
+    const data = {
+      accessKeyId: document.getElementById("r2-access-key")?.value?.trim(),
+      secretAccessKey: document.getElementById("r2-secret-key")?.value?.trim(),
+      bucket: document.getElementById("r2-bucket")?.value?.trim(),
+      endpoint: document.getElementById("r2-endpoint")?.value?.trim(),
+      publicUrl: document.getElementById("r2-public-url")?.value?.trim(),
+    };
+    saveR2.textContent = "Saving..."; saveR2.disabled = true;
+    const r = await API.post("/api/r2-config", data);
+    saveR2.textContent = "Update"; saveR2.disabled = false;
+    if (r?.ok) { showToast("R2 Storage 설정 저장됨", "success"); loadR2Config(); }
+    else showToast(r?.error || "저장 실패", "error");
+  };
+
   // Card News Editor — AI Outline
   const aiOutlineBtn = document.getElementById("card-ai-outline");
   if (aiOutlineBtn) aiOutlineBtn.onclick = async () => {
@@ -1871,7 +1888,7 @@ function navigate(page) {
   else if (page === "threads") { S.subTab = "queue"; loadQueue(S.queueFilter); loadGrowth(); loadImages(); }
   else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); loadChannelGuideAndKeywords(); }
   else if (page === "instagram") { loadOverview(); loadQueue("all"); loadChannelSettings(); loadCronRuns(); loadChannelGuideAndKeywords(); }
-  else if (page === "images") loadImages();
+  else if (page === "images") { loadImages(); loadR2Config(); }
   else if (page === "blog") loadBlogQueue();
   else if (page === "sample_community") { /* manual load via button */ }
   else if (CH_LABELS[page]) { loadOverview(); loadChannelGuideAndKeywords(); }
@@ -1992,6 +2009,10 @@ async function loadImages() {
   const data = await API.get("/api/images");
   if (data) S.images = data;
 }
+async function loadR2Config() {
+  const data = await API.get("/api/r2-config");
+  if (data) { S.r2Config = data; render(); }
+}
 
 function fmtBytes(bytes) {
   if (bytes < 1024) return bytes + " B";
@@ -2000,12 +2021,32 @@ function fmtBytes(bytes) {
 }
 
 function renderImages() {
+  const r2 = S.r2Config || {};
+  const r2Connected = !!(r2.bucket && r2.accessKeyId);
   return `<div class="p-6 max-w-6xl mx-auto">
     <div class="flex items-center justify-between mb-6">
       <div>
         <h2 class="text-xl font-bold text-white">Images</h2>
         <p class="text-sm text-gray-500 mt-1">${S.images.length}개 이미지 — AI 생성 이미지 갤러리</p>
       </div>
+      <span class="text-[10px] px-2 py-1 rounded ${r2Connected ? "bg-green-900/40 text-green-400" : "bg-yellow-900/40 text-yellow-400"}">${r2Connected ? "R2 Connected" : "R2 Not configured"}</span>
+    </div>
+
+    <!-- R2 Storage Settings -->
+    <div class="card p-5 mb-6">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-medium text-gray-300">Cloud Storage (Cloudflare R2)</h3>
+        ${r2Connected ? `<span class="text-[10px] text-green-400">Bucket: ${esc(r2.bucket || "")}</span>` : ""}
+      </div>
+      <p class="text-[10px] text-gray-600 mb-3">Instagram 발행 시 이미지를 퍼블릭 URL로 업로드합니다. R2 > API Tokens에서 S3 API 토큰을 생성하세요.</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        ${credField("r2-access-key", "Access Key ID", "", false, r2.accessKeyId || "")}
+        ${credField("r2-secret-key", "Secret Access Key", "", true, r2.secretAccessKey || "")}
+        ${credField("r2-bucket", "Bucket Name", "", false, r2.bucket || "")}
+        ${credField("r2-endpoint", "S3 Endpoint", "https://<account-id>.r2.cloudflarestorage.com", false, r2.endpoint || "")}
+        ${credField("r2-public-url", "Public URL", "https://your-bucket.r2.dev 또는 커스텀 도메인", false, r2.publicUrl || "")}
+      </div>
+      <button id="save-r2-config" class="w-full mt-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${r2Connected ? "Update" : "Connect"}</button>
     </div>
     ${S.images.length === 0 ? `
       <div class="card p-12 text-center">

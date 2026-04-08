@@ -250,6 +250,61 @@ def serve_image(filename):
     return send_from_directory(IMAGES_DIR, filename)
 
 
+@app.route("/api/r2-config")
+def api_r2_config_get():
+    """Get R2 storage configuration."""
+    env_path = Path(DATA_DIR).parent / ".env"
+    r2 = {}
+    if env_path.is_file():
+        for line in env_path.read_text().splitlines():
+            line = line.strip()
+            if line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            if k == "R2_ACCESS_KEY_ID": r2["accessKeyId"] = v
+            elif k == "R2_SECRET_ACCESS_KEY": r2["secretAccessKey"] = v
+            elif k == "R2_BUCKET": r2["bucket"] = v
+            elif k == "R2_ENDPOINT": r2["endpoint"] = v
+            elif k == "R2_PUBLIC_URL": r2["publicUrl"] = v
+    return jsonify(r2)
+
+
+@app.route("/api/r2-config", methods=["POST"])
+def api_r2_config_save():
+    """Save R2 storage configuration to .env file."""
+    data = get_json_body()
+    env_path = Path(DATA_DIR).parent / ".env"
+
+    # Read existing .env
+    existing = {}
+    if env_path.is_file():
+        for line in env_path.read_text().splitlines():
+            line = line.strip()
+            if line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            existing[k] = v
+
+    # Update R2 values
+    r2_map = {
+        "accessKeyId": "R2_ACCESS_KEY_ID",
+        "secretAccessKey": "R2_SECRET_ACCESS_KEY",
+        "bucket": "R2_BUCKET",
+        "endpoint": "R2_ENDPOINT",
+        "publicUrl": "R2_PUBLIC_URL",
+    }
+    for key, env_key in r2_map.items():
+        val = data.get(key, "").strip()
+        if val:
+            existing[env_key] = val
+
+    # Write .env
+    lines = [f"{k}={v}" for k, v in existing.items()]
+    env_path.write_text("\n".join(lines) + "\n")
+    logger.info("R2 config saved to .env")
+    return jsonify({"ok": True})
+
+
 @app.route("/api/images")
 def api_images():
     if not os.path.isdir(IMAGES_DIR):
