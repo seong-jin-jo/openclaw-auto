@@ -1742,7 +1742,7 @@ function navigate(page) {
   if (page === "overview") loadOverview();
   else if (page === "threads") { S.subTab = "queue"; loadQueue(S.queueFilter); loadGrowth(); loadImages(); }
   else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); loadChannelGuideAndKeywords(); }
-  else if (page === "instagram") { loadOverview(); loadChannelSettings(); loadCronRuns(); loadChannelGuideAndKeywords(); }
+  else if (page === "instagram") { loadOverview(); loadQueue("all"); loadChannelSettings(); loadCronRuns(); loadChannelGuideAndKeywords(); }
   else if (page === "images") loadImages();
   else if (page === "blog") loadBlogQueue();
   else if (page === "zeroone_community") { /* manual load via button */ }
@@ -2109,6 +2109,28 @@ function renderGenericChannel(key) {
       </div>
 
       ${["instagram"].includes(key) ? `
+      <!-- Queue (이미지 콘텐츠) -->
+      <div class="card p-5 md:col-span-2">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-medium text-gray-300">Content Queue</h3>
+          <span class="text-[10px] text-gray-500">${(S.queue || []).filter(p => p.imageUrl).length} with image / ${(S.queue || []).length} total</span>
+        </div>
+        <div class="space-y-2 max-h-96 overflow-y-auto">
+          ${(S.queue || []).slice(0, 20).map(p => {
+            const sc2 = { draft: "bg-yellow-900/50 text-yellow-300", approved: "bg-blue-900/50 text-blue-300", published: "bg-green-900/50 text-green-300" };
+            const igSt = p.channels?.instagram?.status || "pending";
+            return `<div class="flex items-center gap-3 p-2 rounded bg-gray-900/50">
+              ${p.imageUrl ? `<img src="${esc(p.imageUrl)}" class="w-10 h-10 rounded object-cover flex-shrink-0">` : `<div class="w-10 h-10 rounded bg-gray-800 flex-shrink-0 flex items-center justify-center text-[8px] text-gray-600">No img</div>`}
+              <div class="flex-1 min-w-0">
+                <p class="text-xs text-gray-300 truncate">${esc(p.text.substring(0, 60))}</p>
+                <div class="flex gap-2 text-[10px] text-gray-600">${p.topic || ""} · IG: ${igSt}</div>
+              </div>
+              <span class="text-[10px] px-1.5 py-0.5 rounded ${sc2[p.status] || "bg-gray-800 text-gray-500"}">${p.status}</span>
+            </div>`;
+          }).join("") || '<p class="text-[10px] text-gray-600">큐가 비어있습니다</p>'}
+        </div>
+      </div>
+
       <!-- Automation (크론잡이 있는 채널) -->
       <div class="card p-5 md:col-span-2">
         <h3 class="text-sm font-medium text-gray-300 mb-4">Automation</h3>
