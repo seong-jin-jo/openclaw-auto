@@ -265,6 +265,7 @@ function render() {
   if (S.page === "overview") app.innerHTML = renderOverview();
   else if (S.page === "threads") app.innerHTML = renderChannel("threads");
   else if (S.page === "x") app.innerHTML = renderChannelX();
+  else if (S.page === "instagram") app.innerHTML = renderChannelInstagram();
   else if (S.page === "images") app.innerHTML = renderImages();
   else if (S.page === "blog") app.innerHTML = renderBlog();
   else if (S.page === "sample_community") app.innerHTML = renderSampleCommunity();
@@ -386,18 +387,23 @@ function renderSidebar() {
 
         ${sidebarGroup("custom", "Custom Integration", [
           { key: "blog", label: "Blog", icon: "B", nav: true },
-          chSidebarItem("midjourney"),
           { key: "sample_community", label: "Sample Community", icon: "Z", nav: true },
           { label: "Custom API", icon: "+", soon: true },
           { label: "RSS Feed", icon: "R", soon: true },
         ])}
 
-        <div class="px-3 mt-5 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Assets</span></div>
+        <div class="px-3 mt-5 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Assets & Tools</span></div>
         <button data-nav="images" class="sidebar-item ${S.page === "images" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
           <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
           Images
           <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-gray-800 text-gray-500">${S.images.length}</span>
         </button>
+        ${(() => { const mj = S.channelConfig.midjourney || {}; const mjStatus = mj.connected ? "text-green-400" : "text-gray-500"; return `
+        <button data-nav="midjourney" class="sidebar-item ${S.page === "midjourney" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
+          <span class="w-4 h-4 rounded bg-indigo-900/50 flex items-center justify-center text-[8px] font-bold text-indigo-300">MJ</span>
+          Midjourney
+          <span class="ml-auto w-2 h-2 rounded-full ${mj.connected ? "bg-green-500" : "bg-gray-700"}"></span>
+        </button>`; })()}
 
         <div class="px-3 mt-5 mb-2"><span class="text-[10px] font-medium text-gray-600 uppercase tracking-wider">System</span></div>
         <button data-nav="settings" class="sidebar-item ${S.page === "settings" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
@@ -971,7 +977,7 @@ function renderChannelX() {
 
 function renderChannelInstagram() {
   const connected = S.channelConfig.instagram?.connected;
-  const tabs = connected ? ["queue", "settings"] : ["settings"];
+  const tabs = connected ? ["queue", "analytics", "settings"] : ["settings"];
   const allPosts = S.queue || [];
 
   return `<div class="px-8 py-6">
@@ -984,6 +990,7 @@ function renderChannelInstagram() {
       ${tabs.map(t => `<button data-subtab="${t}" class="px-3 py-1.5 text-sm rounded ${S.subTab === t ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"}">${t.charAt(0).toUpperCase() + t.slice(1)}</button>`).join("")}
     </div>
     ${S.subTab === "queue" && connected ? renderInstagramQueue(allPosts) : ""}
+    ${S.subTab === "analytics" && connected ? renderAnalytics() : ""}
     ${S.subTab === "settings" ? renderInstagramSettings() : ""}
   </div>`;
 }
@@ -1029,40 +1036,27 @@ function renderInstagramPost(p) {
   const igBadge = { published: "bg-green-900/40 text-green-400", failed: "bg-red-900/40 text-red-400", pending: "bg-gray-800 text-gray-500", skipped: "bg-gray-800 text-gray-600" };
   const isEditing = S.editingPost === p.id;
 
-  // Detect card news by imageUrl pattern: /images/card-XXXXXXXX-01-title.png
-  const cardMatch = p.imageUrl?.match(/\/images\/card-([a-f0-9]{8})-/);
-  const batchId = cardMatch ? cardMatch[1] : null;
-  const isCard = !!batchId;
+  const slides = p.imageUrls || (p.imageUrl ? [p.imageUrl] : []);
+  const isCard = slides.length > 1 || p.cardBatchId;
 
   return `
     <div class="card p-4">
-      <!-- Header: status + topic -->
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
           <span class="text-[10px] px-2 py-0.5 rounded ${sc[p.status] || "bg-gray-700 text-gray-300"}">${p.status}</span>
           <span class="text-[10px] px-1.5 py-0.5 rounded ${igBadge[igStatus]}">IG: ${igStatus}</span>
-          ${isCard ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-900/40 text-purple-300">Card News</span>` : ""}
+          ${isCard ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-900/40 text-purple-300">Card ${slides.length} slides</span>` : ""}
         </div>
         <span class="text-[10px] text-gray-600">${esc((p.id || "").slice(0, 8))}</span>
       </div>
 
-      <!-- Card slides horizontal scroll -->
-      ${p.imageUrl ? `
-        <div class="mb-3 -mx-1">
-          ${isCard ? `
-            <div id="card-slides-${esc(p.id)}" class="flex gap-2 overflow-x-auto pb-2 snap-x" style="scrollbar-width: thin; scrollbar-color: #374151 transparent;" data-load-slides="${batchId}">
-              <div class="flex-shrink-0 w-36 h-44 rounded-lg overflow-hidden border border-gray-800 snap-start">
-                <img src="${esc(p.imageUrl)}" alt="Slide 1" class="w-full h-full object-cover">
-              </div>
-              <div class="flex-shrink-0 w-36 h-44 rounded-lg border border-dashed border-gray-700 flex items-center justify-center snap-start">
-                <span class="text-[10px] text-gray-600">Loading slides...</span>
-              </div>
-            </div>
-          ` : `
-            <div class="w-36 h-44 rounded-lg overflow-hidden border border-gray-800">
-              <img src="${esc(p.imageUrl)}" alt="" class="w-full h-full object-cover">
-            </div>
-          `}
+      ${slides.length > 0 ? `
+        <div class="mb-3">
+          <div class="flex gap-2 overflow-x-auto pb-2" style="scrollbar-width:thin; scrollbar-color:#374151 transparent">
+            ${slides.map((s, i) => `<div class="flex-shrink-0 w-36 h-44 rounded-lg overflow-hidden border border-gray-800">
+              <img src="${esc(s)}" alt="Slide ${i + 1}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\\'flex items-center justify-center w-full h-full bg-gray-900 text-[10px] text-gray-600\\'>Slide ${i + 1}</div>'">
+            </div>`).join("")}
+          </div>
         </div>
       ` : `
         <div class="mb-3 w-36 h-44 rounded-lg border border-dashed border-gray-700 bg-gray-900/30 flex items-center justify-center">
@@ -1138,27 +1132,7 @@ function renderInstagramSettings() {
       </div>
       <div class="card p-5">
         <h3 class="text-sm font-medium text-gray-300 mb-4">Automation</h3>
-        <div class="space-y-1">
-          ${features.filter(f => igFeatures.includes(f.key)).map(f => {
-            const cronName = igFeatureToCron[f.key];
-            const runs = cronName ? S.cronRuns.filter(r => r.jobName === cronName) : [];
-            const run = runs[0] || null;
-            const sc = run ? (run.status === "ok" ? "text-green-400" : "text-red-400") : "";
-            const ago = run?.finishedAt ? fmtAgo(new Date(run.finishedAt).toISOString()) : "";
-            return `
-              <div class="flex items-center justify-between py-2.5 border-b border-gray-800/50">
-                <div class="flex-1">
-                  <p class="text-xs text-gray-300">${f.label}</p>
-                  <p class="text-[10px] text-gray-600">${f.description}</p>
-                  ${run ? `<p class="text-[10px] ${sc} mt-0.5">${run.status === "ok" ? "Success" : "Error"} ${ago}</p>` : ""}
-                </div>
-                <label class="relative inline-flex items-center cursor-pointer ml-3">
-                  <input type="checkbox" data-ig-toggle="${f.key}" ${cs[f.key] ? "checked" : ""} class="sr-only peer">
-                  <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:bg-green-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
-                </label>
-              </div>`;
-          }).join("")}
-        </div>
+        <div id="channel-automation-instagram"></div>
       </div>
     </div>`;
 }
