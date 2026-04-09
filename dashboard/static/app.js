@@ -1879,7 +1879,14 @@ function bindEvents() {
   document.querySelectorAll("[data-settings-tab]").forEach(el => {
     el.onclick = () => {
       S.settingsTab = el.dataset.settingsTab;
-      if (el.dataset.settingsTab === "storage") loadR2Config();
+      const loaders = {
+        channels: () => loadOverview(),
+        ai: () => { loadLlmConfig(); loadOverview(); },
+        storage: () => loadR2Config(),
+        design: () => {},
+        system: () => { loadOverview(); loadNotifSettings(); },
+      };
+      (loaders[el.dataset.settingsTab] || (() => {}))();
       render();
     };
   });
