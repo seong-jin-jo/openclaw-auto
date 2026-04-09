@@ -159,7 +159,7 @@ const S = {
   tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
   sidebarCollapsed: {}, showDetail: null, editingChannel: null,
-  channelGuide: null, channelKeywords: null, notificationSettings: null, tenantInfo: null, chatChannels: null, communityPosts: [], r2Config: null, designTools: null,
+  channelGuide: null, channelKeywords: null, notificationSettings: null, tenantInfo: null, chatChannels: null, communityPosts: [], r2Config: null, designTools: null, settingsTab: "channels",
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null, expandedPopular: null,
 };
@@ -1321,33 +1321,223 @@ function renderXSettings() {
     </div>`;
 }
 
-// ── Settings Page (Channel Connections) ──
+// ── Settings Page ──
 function renderSettings() {
+  const stab = S.settingsTab || "channels";
+  const settingsTabs = [
+    { key: "channels", label: "Channels", desc: "발행 채널 연결" },
+    { key: "ai", label: "AI Engine", desc: "LLM 모델 + 토큰" },
+    { key: "storage", label: "Storage", desc: "이미지 저장소" },
+    { key: "design", label: "Design Tools", desc: "Canva / Figma" },
+    { key: "system", label: "System", desc: "크론 + 계정" },
+  ];
+
   return `<div class="px-8 py-6">
     <h2 class="text-xl font-semibold text-white mb-1">Settings</h2>
-    <p class="text-sm text-gray-500 mb-6">Channel connections & system status</p>
+    <p class="text-sm text-gray-500 mb-6">서비스 설정 — 각 항목이 어디에서 사용되는지 확인하세요</p>
+    <div class="flex gap-1 mb-6 border-b border-gray-800/50 pb-3">
+      ${settingsTabs.map(t => `<button data-settings-tab="${t.key}" class="px-3 py-1.5 text-sm rounded ${stab === t.key ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"}">${t.label}</button>`).join("")}
+    </div>
+
+    ${stab === "channels" ? renderSettingsChannels() : ""}
+    ${stab === "ai" ? renderSettingsAI() : ""}
+    ${stab === "storage" ? renderSettingsStorage() : ""}
+    ${stab === "design" ? renderSettingsDesign() : ""}
+    ${stab === "system" ? renderSettingsSystem() : ""}
+  </div>`;
+}
+
+function renderSettingsChannels() {
+  const chRow = (key, icon, iconClass, label, sub) => {
+    const ch = S.channelConfig[key] || {};
+    const connected = ch.connected || ch.enabled;
+    return `<div class="flex items-center justify-between p-3 rounded-lg bg-gray-900/50 cursor-pointer hover:bg-gray-800/50" data-nav="${key}">
+      <div class="flex items-center gap-3"><span class="w-6 h-6 rounded ${iconClass} flex items-center justify-center text-[8px] font-bold text-white">${icon}</span><div><p class="text-xs text-gray-300">${label}</p><p class="text-[10px] text-gray-600">${sub}</p></div></div>
+      <span class="text-[10px] ${connected ? "text-green-400" : "text-gray-600"}">${connected ? "Connected" : ""}</span>
+    </div>`;
+  };
+  return `
+    <p class="text-[10px] text-gray-500 mb-4">콘텐츠를 발행할 SNS 채널. 클릭하면 해당 채널 설정으로 이동합니다.</p>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div class="card p-5">
-        <h3 class="text-sm font-medium text-gray-300 mb-4">Connected Channels</h3>
-        <div class="space-y-3">
-          <div class="flex items-center justify-between p-3 rounded-lg bg-gray-900/50 cursor-pointer hover:bg-gray-800/50" data-nav="threads">
-            <div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-[8px] font-bold text-white">T</span><div><p class="text-xs text-gray-300">Threads</p><p class="text-[10px] text-gray-600">${S.channelConfig.threads?.userId ? "ID: " + S.channelConfig.threads.userId : ""}</p></div></div>
-            <span class="text-[10px] ${S.channelConfig.threads?.connected ? "text-green-400" : "text-gray-600"}">${S.channelConfig.threads?.connected ? "Connected" : "Not connected"}</span>
-          </div>
-          <div class="flex items-center justify-between p-3 rounded-lg bg-gray-900/50 cursor-pointer hover:bg-gray-800/50" data-nav="x">
-            <div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-gray-700 flex items-center justify-center text-[9px] font-bold text-white">X</span><div><p class="text-xs text-gray-300">X (Twitter)</p><p class="text-[10px] text-gray-600">${S.channelConfig.x?.connected ? "OAuth 1.0a" : ""}</p></div></div>
-            <span class="text-[10px] ${S.channelConfig.x?.connected ? "text-blue-400" : "text-gray-600"}">${S.channelConfig.x?.connected ? "Connected" : ""}</span>
-          </div>
-          <div class="flex items-center justify-between p-3 rounded-lg bg-gray-900/50 cursor-pointer hover:bg-gray-800/50" data-nav="instagram">
-            <div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-gradient-to-br from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center text-[8px] font-bold text-white">IG</span><div><p class="text-xs text-gray-300">Instagram</p><p class="text-[10px] text-gray-600">${S.channelConfig.instagram?.userId ? "ID: " + S.channelConfig.instagram.userId : ""}</p></div></div>
-            <span class="text-[10px] ${S.channelConfig.instagram?.connected ? "text-green-400" : "text-gray-600"}">${S.channelConfig.instagram?.connected ? "Connected" : "Not connected"}</span>
-          </div>
+        <h3 class="text-sm font-medium text-gray-300 mb-3">Social</h3>
+        <div class="space-y-2">
+          ${chRow("threads", "T", "bg-gradient-to-br from-purple-500 to-pink-500", "Threads", S.channelConfig.threads?.userId ? "ID: " + S.channelConfig.threads.userId : "")}
+          ${chRow("x", "X", "bg-gray-700", "X (Twitter)", S.channelConfig.x?.connected ? "OAuth 1.0a" : "")}
+          ${chRow("instagram", "IG", "bg-gradient-to-br from-yellow-400 via-pink-500 to-purple-600", "Instagram", S.channelConfig.instagram?.userId ? "ID: " + S.channelConfig.instagram.userId : "")}
         </div>
-        <p class="text-[10px] text-gray-600 mt-4">Click a channel to manage its settings</p>
       </div>
-      <div class="space-y-4">
-        <div class="card p-5">
-          <h3 class="text-sm font-medium text-gray-300 mb-4">System Status</h3>
+      <div class="card p-5">
+        <h3 class="text-sm font-medium text-gray-300 mb-3">Messaging & Others</h3>
+        <div class="space-y-2">
+          ${chRow("telegram", "TG", "bg-blue-500", "Telegram", "")}
+          ${chRow("discord", "DC", "bg-indigo-600", "Discord", "")}
+          ${chRow("slack", "SL", "bg-green-700", "Slack", "")}
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderSettingsAI() {
+  return `
+    <p class="text-[10px] text-gray-500 mb-4">모든 채널의 콘텐츠 자동 생성 + 트렌드 분석에 사용됩니다.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="card p-5">
+        <h3 class="text-sm font-medium text-gray-300 mb-4">LLM Model</h3>
+        ${S.llmConfig ? `
+          <div class="space-y-3">
+            <div>
+              <label class="text-[10px] text-gray-500 block mb-1">Primary Model</label>
+              <select id="llm-primary" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300">
+                ${(S.llmConfig.available || []).map(m => `<option value="${m}" ${m === S.llmConfig.primary ? "selected" : ""}>${m}</option>`).join("")}
+              </select>
+            </div>
+            <div>
+              <label class="text-[10px] text-gray-500 block mb-1">Fallback Models</label>
+              <p class="text-xs text-gray-400">${(S.llmConfig.fallbacks || []).join(" → ") || "none"}</p>
+            </div>
+            <div class="border-t border-gray-800/50 pt-3">
+              <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Per-Job Override</p>
+              <div class="space-y-2">
+                ${Object.entries(S.llmConfig.jobModels || {}).map(([job, model]) => `
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-[10px] text-gray-400 flex-shrink-0 w-40 truncate">${job}</span>
+                    <select data-job-model="${job}" class="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-[10px] text-gray-300">
+                      <option value="" ${!model || model === S.llmConfig.primary ? "selected" : ""}>Default</option>
+                      ${(S.llmConfig.available || []).filter(m => m !== S.llmConfig.primary).map(m => `<option value="${m}" ${m === model ? "selected" : ""}>${m.split("/").pop()}</option>`).join("")}
+                    </select>
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+            <button id="save-llm-config" class="w-full mt-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">Save</button>
+          </div>
+        ` : `<p class="text-xs text-gray-600">Loading...</p>`}
+      </div>
+      <div class="card p-5">
+        <h3 class="text-sm font-medium text-gray-300 mb-4">Claude Token</h3>
+        ${S.tokenStatus?.claude ? `
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-[10px] px-2 py-0.5 rounded ${S.tokenStatus.claude.healthy ? "bg-green-900/40 text-green-400" : "bg-red-900/40 text-red-400"}">${S.tokenStatus.claude.healthy ? "Healthy" : "Error"}</span>
+            <span class="text-[10px] text-gray-600">${S.tokenStatus.claude.type || "token"}</span>
+          </div>
+          <div class="space-y-1 text-[10px] mb-3">
+            <div class="flex justify-between"><span class="text-gray-500">Errors</span><span class="${S.tokenStatus.claude.errorCount > 0 ? "text-red-400" : "text-gray-400"}">${S.tokenStatus.claude.errorCount}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Last used</span><span class="text-gray-400">${S.tokenStatus.claude.lastUsed ? fmtAgo(new Date(S.tokenStatus.claude.lastUsed).toISOString()) : "-"}</span></div>
+          </div>
+        ` : ""}
+        <div class="space-y-3">
+          ${credField("claude-token-input", "Setup Token 또는 API Key", "", true, S.tokenStatus?.claude?.tokenPreview || "")}
+          <details class="text-[10px]">
+            <summary class="text-blue-400 hover:text-blue-300 cursor-pointer">Setup Guide</summary>
+            <div class="mt-2 p-2 rounded bg-gray-900/50 text-gray-500 space-y-1">
+              <p>1. 터미널에서 <code class="bg-gray-800 px-1 rounded">claude setup-token</code> 실행</p>
+              <p>2. 브라우저에서 Anthropic 로그인</p>
+              <p>3. 생성된 <code class="bg-gray-800 px-1 rounded">sk-ant-oat01-...</code> 토큰 복사</p>
+              <p>4. 위 필드에 붙여넣기 → Update Token</p>
+            </div>
+          </details>
+          <button id="save-claude-token" class="w-full py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${S.tokenStatus?.claude?.tokenPreview ? "Update Token" : "Connect"}</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderSettingsStorage() {
+  const r2 = S.r2Config || {};
+  const r2Connected = !!(r2.bucket && r2.accessKeyId);
+  const editing = S.editingChannel === "r2";
+  const editable = editing || !r2Connected;
+  return `
+    <p class="text-[10px] text-gray-500 mb-4">Instagram, Threads 등 이미지 발행 시 공용 업로드 저장소. 모든 채널에서 사용됩니다.</p>
+    <div class="card p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-medium text-gray-300">Cloudflare R2</h3>
+        <span class="text-[10px] px-2 py-0.5 rounded ${r2Connected ? "bg-green-900/40 text-green-400" : "bg-yellow-900/40 text-yellow-400"}">${r2Connected ? "Connected" : "Not configured"}</span>
+      </div>
+      <details class="mb-3 text-[10px]">
+        <summary class="text-blue-400 hover:text-blue-300 cursor-pointer">Setup Guide — R2 설정법</summary>
+        <div class="mt-2 p-3 rounded bg-gray-900/50 text-gray-500 space-y-1.5">
+          <p class="font-medium text-gray-400">1. 버킷 생성</p>
+          <p class="pl-3">dash.cloudflare.com > R2 > Create bucket</p>
+          <p class="font-medium text-gray-400">2. 퍼블릭 액세스</p>
+          <p class="pl-3">버킷 > Settings > Public Development URL > Enable > <code class="bg-gray-800 px-1 rounded">allow</code> 입력</p>
+          <p class="font-medium text-gray-400">3. API 토큰</p>
+          <p class="pl-3">R2 Overview > Account Details > S3 API > Manage > Create Account API token</p>
+          <p class="pl-3">Permission: Object Read & Write, Bucket 선택, TTL 기본값</p>
+          <p class="pl-3 text-yellow-500">⚠ Secret Access Key는 생성 시 한 번만 표시됨</p>
+          <p class="font-medium text-gray-400">4. 아래 입력</p>
+          <p class="pl-3">Access Key ID, Secret, Bucket, S3 Endpoint, Public URL</p>
+        </div>
+      </details>
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-[10px] text-gray-500">Credentials</span>
+        ${r2Connected && !editing ? '<button id="edit-r2" class="text-[10px] text-blue-400 hover:text-blue-300">Edit</button>' : ""}
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        ${credField("r2-access-key", "Access Key ID", "", false, r2.accessKeyId || "", editable)}
+        ${credField("r2-secret-key", "Secret Access Key", "", true, r2.secretAccessKey || "", editable)}
+        ${credField("r2-bucket", "Bucket Name", "", false, r2.bucket || "", editable)}
+        ${credField("r2-endpoint", "S3 Endpoint", "", false, r2.endpoint || "", editable)}
+        ${credField("r2-public-url", "Public URL", "", false, r2.publicUrl || "", editable)}
+      </div>
+      ${editable ? `<div class="flex gap-2 mt-4">
+        <button id="save-r2-config" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${r2Connected ? "Update" : "Connect"}</button>
+        ${r2Connected && editing ? '<button id="cancel-edit-r2" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>' : ""}
+      </div>` : ""}
+    </div>`;
+}
+
+function renderSettingsDesign() {
+  return `
+    <p class="text-[10px] text-gray-500 mb-4">Instagram 카드뉴스를 전문 툴에서 리터치 후 가져오기. 연결하면 Create 탭에서 "편집" 버튼이 활성화됩니다.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="card p-5">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="w-6 h-6 rounded bg-[#00C4CC] flex items-center justify-center text-[9px] font-bold text-white">C</span>
+          <h3 class="text-sm font-medium text-gray-300">Canva</h3>
+          <span class="text-[10px] ${S.designTools?.canva ? "text-green-400" : "text-gray-600"} ml-auto">${S.designTools?.canva ? "Connected" : ""}</span>
+        </div>
+        <p class="text-[10px] text-gray-600 mb-3">에셋 업로드 → 템플릿 기반 디자인 생성 → 편집 → Export PNG</p>
+        <details class="mb-3 text-[10px]">
+          <summary class="text-blue-400 hover:text-blue-300 cursor-pointer">Setup Guide</summary>
+          <div class="mt-2 p-2 rounded bg-gray-900/50 text-gray-500 space-y-1">
+            <p>1. <a href="https://www.canva.dev" target="_blank" class="text-blue-400">canva.dev</a> 접속 → Create an app</p>
+            <p>2. App name 입력, 용도 선택</p>
+            <p>3. OAuth Settings에서 Redirect URL 설정</p>
+            <p>4. Client ID + Client Secret 복사</p>
+            <p>5. Scopes: <code class="bg-gray-800 px-1 rounded">design:content:read design:content:write asset:read asset:write</code></p>
+          </div>
+        </details>
+        <p class="text-[10px] text-yellow-500">연동 준비 중</p>
+      </div>
+      <div class="card p-5">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="w-6 h-6 rounded bg-black border border-gray-700 flex items-center justify-center text-[10px] font-bold text-white">F</span>
+          <h3 class="text-sm font-medium text-gray-300">Figma</h3>
+          <span class="text-[10px] ${S.designTools?.figma ? "text-green-400" : "text-gray-600"} ml-auto">${S.designTools?.figma ? "Connected" : ""}</span>
+        </div>
+        <p class="text-[10px] text-gray-600 mb-3">MCP로 프레임 생성 → 디자이너 편집 → REST API로 PNG Export</p>
+        <details class="mb-3 text-[10px]">
+          <summary class="text-blue-400 hover:text-blue-300 cursor-pointer">Setup Guide</summary>
+          <div class="mt-2 p-2 rounded bg-gray-900/50 text-gray-500 space-y-1">
+            <p>1. <a href="https://www.figma.com/developers" target="_blank" class="text-blue-400">figma.com/developers</a> → Personal Access Token 생성</p>
+            <p>2. MCP 서버 설정: <code class="bg-gray-800 px-1 rounded">npx figma-mcp-server</code></p>
+            <p>3. Token을 아래에 입력</p>
+            <p>4. 카드뉴스 파일용 Figma File URL 지정</p>
+          </div>
+        </details>
+        <p class="text-[10px] text-yellow-500">연동 준비 중</p>
+      </div>
+    </div>`;
+}
+
+function renderSettingsSystem() {
+  return `
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="card p-5">
+        <h3 class="text-sm font-medium text-gray-300 mb-4">Cron Status</h3>
+        <p class="text-[10px] text-gray-500 mb-3">자동화 작업 실행 현황</p>
           <div class="space-y-2.5">
             ${S.cronJobs.map(j => {
               const dot = j.lastStatus === "ok" ? "bg-green-500" : j.lastStatus === "error" ? "bg-red-500" : "bg-gray-600";
@@ -1355,138 +1545,19 @@ function renderSettings() {
             }).join("")}
           </div>
         </div>
-        <div class="card p-5">
-          <h3 class="text-sm font-medium text-gray-300 mb-4">AI Engine (LLM)</h3>
-          ${S.llmConfig ? `
-            <div class="space-y-3">
-              <div>
-                <label class="text-[10px] text-gray-500 block mb-1">Primary Model</label>
-                <select id="llm-primary" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300">
-                  ${(S.llmConfig.available || []).map(m => `<option value="${m}" ${m === S.llmConfig.primary ? "selected" : ""}>${m}</option>`).join("")}
-                </select>
-              </div>
-              <div>
-                <label class="text-[10px] text-gray-500 block mb-1">Fallback Models</label>
-                <p class="text-xs text-gray-400">${(S.llmConfig.fallbacks || []).join(" → ") || "none"}</p>
-              </div>
-              <div class="mt-3 p-3 rounded-lg bg-gray-900/50 border border-gray-800/30">
-                <div class="flex items-center justify-between mb-3">
-                  <h4 class="text-xs font-medium text-gray-300">Claude Token</h4>
-                  ${S.tokenStatus?.claude ? `
-                    <span class="text-[10px] px-2 py-0.5 rounded ${S.tokenStatus.claude.healthy ? "bg-green-900/40 text-green-400" : "bg-red-900/40 text-red-400"}">${S.tokenStatus.claude.healthy ? "Healthy" : "Error"} · ${S.tokenStatus.claude.type || "token"}</span>
-                  ` : ""}
-                </div>
-                ${S.tokenStatus?.claude ? `
-                  <div class="space-y-1 text-[10px] mb-3">
-                    <div class="flex justify-between"><span class="text-gray-500">Errors</span><span class="${S.tokenStatus.claude.errorCount > 0 ? "text-red-400" : "text-gray-400"}">${S.tokenStatus.claude.errorCount}</span></div>
-                    <div class="flex justify-between"><span class="text-gray-500">Last used</span><span class="text-gray-400">${S.tokenStatus.claude.lastUsed ? fmtAgo(new Date(S.tokenStatus.claude.lastUsed).toISOString()) : "-"}</span></div>
-                    ${S.tokenStatus.claude.errorHint ? `<p class="text-red-400 mt-1">${S.tokenStatus.claude.errorHint}</p>` : ""}
-                  </div>
-                ` : ""}
-                <div class="space-y-3">
-                  ${credField("claude-token-input", "Setup Token 또는 API Key", "", true, S.tokenStatus?.claude?.tokenPreview || "")}
-                  <p class="text-[10px] text-gray-600">다른 터미널에서 <code class="bg-gray-800 px-1 rounded">claude setup-token</code> 실행 후 토큰을 붙여넣으세요.</p>
-                  <button id="save-claude-token" class="w-full py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${S.tokenStatus?.claude?.tokenPreview ? "Update Token" : "Connect"}</button>
-                </div>
-              </div>
-
-              <div class="border-t border-gray-800/50 pt-3 mt-3">
-                <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Per-Job Model Override</p>
-                <div class="space-y-2">
-                  ${Object.entries(S.llmConfig.jobModels || {}).map(([job, model]) => `
-                    <div class="flex items-center justify-between gap-2">
-                      <span class="text-[10px] text-gray-400 flex-shrink-0 w-40 truncate">${job}</span>
-                      <select data-job-model="${job}" class="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-[10px] text-gray-300">
-                        <option value="" ${!model || model === S.llmConfig.primary ? "selected" : ""}>Default (${(S.llmConfig.primary || "").split("/").pop()})</option>
-                        ${(S.llmConfig.available || []).filter(m => m !== S.llmConfig.primary).map(m => `<option value="${m}" ${m === model ? "selected" : ""}>${m.split("/").pop()}</option>`).join("")}
-                      </select>
-                    </div>
-                  `).join("")}
-                </div>
-              </div>
-
-              <button id="save-llm-config" class="w-full mt-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">Save LLM Config</button>
-            </div>
-          ` : `<p class="text-xs text-gray-600">Loading...</p>`}
-        </div>
+      </div>
+      <div class="space-y-4">
         <div class="card p-5">
           <h3 class="text-sm font-medium text-gray-300 mb-4">Account</h3>
           <div class="space-y-2 text-sm">
-            <div class="flex justify-between"><span class="text-gray-500">Auth</span><span class="text-gray-300">${getAuthToken() ? "Token (localStorage)" : "No auth"}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Auth</span><span class="text-gray-300">${getAuthToken() ? "Token set" : "No auth"}</span></div>
           </div>
           ${getAuthToken() ? `
             <div class="flex gap-2 mt-4">
               <button id="btn-logout" class="px-4 py-2 text-xs bg-gray-800 text-gray-300 rounded hover:bg-gray-700">Logout</button>
               <button id="btn-change-pw" class="px-4 py-2 text-xs bg-gray-800 text-gray-300 rounded hover:bg-gray-700">Change Token</button>
             </div>
-          ` : `<p class="text-[10px] text-gray-600 mt-3">DASHBOARD_AUTH_TOKEN 환경변수 설정 시 로그인 활성화</p>`}
-        </div>
-        <div class="card p-5">
-          <h3 class="text-sm font-medium text-gray-300 mb-3">Design Tools</h3>
-          <p class="text-[10px] text-gray-600 mb-3">카드뉴스 리터치용 디자인 툴 연동. 연결하면 Create 탭에서 "편집" 버튼 활성화.</p>
-          <div class="space-y-3">
-            <div class="p-3 rounded bg-gray-900/50">
-              <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center gap-2">
-                  <span class="w-5 h-5 rounded bg-[#00C4CC] flex items-center justify-center text-[8px] font-bold text-white">C</span>
-                  <span class="text-xs text-gray-300">Canva</span>
-                </div>
-                <span class="text-[10px] ${S.designTools?.canva ? "text-green-400" : "text-gray-600"}">${S.designTools?.canva ? "Connected" : ""}</span>
-              </div>
-              <p class="text-[10px] text-gray-500">Canva Connect API — OAuth 연동 필요. <a href="https://www.canva.dev/docs/connect/" target="_blank" class="text-blue-400 hover:underline">Developer Docs</a></p>
-              <p class="text-[10px] text-yellow-500 mt-1">준비 중</p>
-            </div>
-            <div class="p-3 rounded bg-gray-900/50">
-              <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center gap-2">
-                  <span class="w-5 h-5 rounded bg-black flex items-center justify-center text-[10px] font-bold text-white">F</span>
-                  <span class="text-xs text-gray-300">Figma</span>
-                </div>
-                <span class="text-[10px] ${S.designTools?.figma ? "text-green-400" : "text-gray-600"}">${S.designTools?.figma ? "Connected" : ""}</span>
-              </div>
-              <p class="text-[10px] text-gray-500">Figma MCP + REST API — Personal Access Token 필요. <a href="https://developers.figma.com/docs/figma-mcp-server/" target="_blank" class="text-blue-400 hover:underline">MCP Docs</a></p>
-              <p class="text-[10px] text-yellow-500 mt-1">준비 중</p>
-            </div>
-          </div>
-        </div>
-        <div class="card p-5">
-          <h3 class="text-sm font-medium text-gray-300 mb-3">Interactive Chat</h3>
-          <p class="text-[10px] text-gray-600 mb-3">봇으로 Agent와 대화 — "이번 주 성과 보여줘", "다음 글 승인해", "X에 글 올려"</p>
-          ${S.chatChannels ? `
-            <div class="space-y-3">
-              <!-- Telegram -->
-              <div class="p-3 rounded bg-gray-900/50">
-                <div class="flex items-center justify-between mb-2">
-                  <span class="text-xs text-gray-300">Telegram</span>
-                  <span class="text-[10px] ${S.chatChannels.telegram?.configured ? "text-green-400" : "text-gray-600"}">${S.chatChannels.telegram?.configured ? "Connected" : ""}</span>
-                </div>
-                ${S.chatChannels.telegram?.configured ? `
-                  <p class="text-[10px] text-green-400/70">양방향 대화 활성. Gateway 재시작 후 봇에게 메시지를 보내면 Agent가 응답합니다.</p>
-                ` : `
-                  <div class="flex gap-2">
-                    <input id="chat-telegram-token" type="password" placeholder="Bot Token (@BotFather)" class="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-[11px] text-gray-300 font-mono">
-                    <button id="setup-chat-telegram" class="px-3 py-1 bg-blue-600 text-white text-[10px] rounded hover:bg-blue-500">Connect</button>
-                  </div>
-                  <p class="text-[10px] text-gray-600 mt-1">@BotFather → /newbot → 토큰 복사</p>
-                `}
-              </div>
-              <!-- Slack -->
-              <div class="p-3 rounded bg-gray-900/50">
-                <div class="flex items-center justify-between mb-2">
-                  <span class="text-xs text-gray-300">Slack <span class="text-[10px] text-gray-600">(양방향은 Bot+App Token 필요)</span></span>
-                  <span class="text-[10px] ${S.chatChannels.slack?.configured ? "text-green-400" : "text-gray-600"}">${S.chatChannels.slack?.configured ? "Connected" : ""}</span>
-                </div>
-                ${!S.chatChannels.slack?.configured ? `<p class="text-[10px] text-gray-600">Slack 양방향은 Bot Token(xoxb-) + App Token(xapp-) 필요. 일방향 알림은 Webhook으로 가능.</p>` : `<p class="text-[10px] text-green-400/70">양방향 대화 활성</p>`}
-              </div>
-              <!-- Discord -->
-              <div class="p-3 rounded bg-gray-900/50">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs text-gray-300">Discord</span>
-                  <span class="text-[10px] ${S.chatChannels.discord?.configured ? "text-green-400" : "text-gray-600"}">${S.chatChannels.discord?.configured ? "Connected" : ""}</span>
-                </div>
-              </div>
-            </div>
-          ` : `<p class="text-xs text-gray-600">Loading...</p>`}
+          ` : ""}
         </div>
         <div class="card p-5">
           <h3 class="text-sm font-medium text-gray-300 mb-4">Notifications</h3>
@@ -1503,7 +1574,7 @@ function renderSettings() {
                     </div>
                     <select data-notif-channel="${evt}" class="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-[10px] text-gray-300">
                       <option value="">Off</option>
-                      ${["telegram", "discord", "slack", "line"].map(ch => `<option value="${ch}" ${ns.channels?.includes(ch) ? "selected" : ""}>${ch}</option>`).join("")}
+                      ${["telegram", "discord", "slack"].map(ch => `<option value="${ch}" ${ns.channels?.includes(ch) ? "selected" : ""}>${ch}</option>`).join("")}
                     </select>
                   </div>`;
               }).join("")}
@@ -1511,13 +1582,11 @@ function renderSettings() {
             <div class="flex gap-2 mt-3">
               <button id="save-notif-settings" class="flex-1 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-500">Save</button>
               <button id="test-notif" class="px-4 py-2 bg-gray-800 text-gray-300 text-xs rounded hover:bg-gray-700">Test</button>
-              <button id="send-weekly-report" class="px-4 py-2 bg-green-800 text-green-300 text-xs rounded hover:bg-green-700">주간 리포트 발송</button>
             </div>
           ` : `<p class="text-xs text-gray-600">Loading...</p>`}
         </div>
       </div>
-    </div>
-  </div>`;
+    </div>`;
 }
 
 // ── Event Binding ──
@@ -1803,6 +1872,11 @@ function bindEvents() {
     };
   });
 
+  // Settings tabs
+  document.querySelectorAll("[data-settings-tab]").forEach(el => {
+    el.onclick = () => { S.settingsTab = el.dataset.settingsTab; render(); };
+  });
+
   // R2 Storage Config
   const editR2 = document.getElementById("edit-r2");
   if (editR2) editR2.onclick = () => { S.editingChannel = "r2"; render(); };
@@ -1951,7 +2025,7 @@ function navigate(page) {
   else if (page === "blog") loadBlogQueue();
   else if (page === "zeroone_community") { /* manual load via button */ }
   else if (CH_LABELS[page]) { loadOverview(); loadChannelGuideAndKeywords(); }
-  else if (page === "settings") { loadSettings(); loadKeywords(); loadLlmConfig(); loadOverview(); loadNotifSettings(); loadTenantAndChat(); }
+  else if (page === "settings") { loadSettings(); loadKeywords(); loadLlmConfig(); loadOverview(); loadNotifSettings(); loadTenantAndChat(); loadR2Config(); }
   render();
 }
 
