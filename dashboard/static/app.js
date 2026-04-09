@@ -1339,11 +1339,14 @@ function renderSettings() {
       ${settingsTabs.map(t => `<button data-settings-tab="${t.key}" class="px-3 py-1.5 text-sm rounded ${stab === t.key ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"}">${t.label}</button>`).join("")}
     </div>
 
-    ${stab === "channels" ? renderSettingsChannels() : ""}
-    ${stab === "ai" ? renderSettingsAI() : ""}
-    ${stab === "storage" ? renderSettingsStorage() : ""}
-    ${stab === "design" ? renderSettingsDesign() : ""}
-    ${stab === "system" ? renderSettingsSystem() : ""}
+    ${(() => { try {
+      if (stab === "channels") return renderSettingsChannels();
+      if (stab === "ai") return renderSettingsAI();
+      if (stab === "storage") return renderSettingsStorage();
+      if (stab === "design") return renderSettingsDesign();
+      if (stab === "system") return renderSettingsSystem();
+      return "";
+    } catch(e) { return `<div class="card p-5"><p class="text-red-400 text-sm">Render error: ${e.message}</p></div>`; } })()}
   </div>`;
 }
 
@@ -1874,7 +1877,11 @@ function bindEvents() {
 
   // Settings tabs
   document.querySelectorAll("[data-settings-tab]").forEach(el => {
-    el.onclick = () => { S.settingsTab = el.dataset.settingsTab; render(); };
+    el.onclick = () => {
+      S.settingsTab = el.dataset.settingsTab;
+      if (el.dataset.settingsTab === "storage") loadR2Config();
+      render();
+    };
   });
 
   // R2 Storage Config
