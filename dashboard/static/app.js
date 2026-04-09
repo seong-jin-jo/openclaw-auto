@@ -1500,65 +1500,110 @@ function renderSettingsStorage() {
 }
 
 function renderSettingsDesign() {
+  const canva = S.designTools?.canva || {};
+  const figma = S.designTools?.figma || {};
+  const canvaConnected = !!canva.clientId;
+  const figmaConnected = !!figma.accessToken;
+  const canvaEditing = S.editingChannel === "canva";
+  const figmaEditing = S.editingChannel === "figma";
+  const canvaEditable = canvaEditing || !canvaConnected;
+  const figmaEditable = figmaEditing || !figmaConnected;
+
   return `
     <p class="text-[10px] text-gray-500 mb-4">Instagram 카드뉴스를 전문 툴에서 리터치 후 가져오기. 연결하면 Create 탭에서 "편집" 버튼이 활성화됩니다.</p>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div class="card p-5">
-        <div class="flex items-center gap-2 mb-3">
-          <span class="w-6 h-6 rounded bg-[#00C4CC] flex items-center justify-center text-[9px] font-bold text-white">C</span>
-          <h3 class="text-sm font-medium text-gray-300">Canva</h3>
-          <span class="text-[10px] ${S.designTools?.canva ? "text-green-400" : "text-gray-600"} ml-auto">${S.designTools?.canva ? "Connected" : ""}</span>
-        </div>
-        <p class="text-[10px] text-gray-600 mb-3">에셋 업로드 → 템플릿 기반 디자인 생성 → 편집 → Export PNG</p>
-        <details class="mb-3 text-[10px]">
-          <summary class="text-blue-400 hover:text-blue-300 cursor-pointer">Setup Guide</summary>
-          <div class="mt-2 p-3 rounded bg-gray-900/50 text-gray-500 space-y-1.5">
-            <p class="font-medium text-gray-400">1. 개발자 포털 접속</p>
-            <p class="pl-3"><a href="https://www.canva.com/developers/" target="_blank" class="text-blue-400 hover:underline">canva.com/developers</a> → 로그인 → <strong>Your integrations</strong></p>
-            <p class="font-medium text-gray-400">2. 앱 생성</p>
-            <p class="pl-3"><strong>Create an integration</strong> 클릭 → 이름 입력 (예: marketing-hub)</p>
-            <p class="pl-3">Type: <strong>Private</strong> (팀 전용) 또는 Public</p>
-            <p class="font-medium text-gray-400">3. Client ID + Secret 복사</p>
-            <p class="pl-3">Configuration 탭 > <strong>Client ID</strong> 메모</p>
-            <p class="pl-3"><strong>Generate secret</strong> 클릭 → Secret 복사</p>
-            <p class="pl-3 text-yellow-500">⚠ Secret은 생성 시 한 번만 표시됨</p>
-            <p class="font-medium text-gray-400">4. Scopes 설정</p>
-            <p class="pl-3">Scopes 탭에서 다음을 활성화:</p>
-            <p class="pl-3"><code class="bg-gray-800 px-1 rounded">design:content:read</code> <code class="bg-gray-800 px-1 rounded">design:content:write</code></p>
-            <p class="pl-3"><code class="bg-gray-800 px-1 rounded">asset:read</code> <code class="bg-gray-800 px-1 rounded">asset:write</code></p>
-            <p class="pl-3"><code class="bg-gray-800 px-1 rounded">design:meta:read</code> <code class="bg-gray-800 px-1 rounded">profile:read</code></p>
-            <p class="font-medium text-gray-400">5. OAuth Redirect URL</p>
-            <p class="pl-3">Authentication 탭 > Redirect URL: <code class="bg-gray-800 px-1 rounded">https://your-dashboard-url/api/canva/callback</code></p>
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded bg-[#00C4CC] flex items-center justify-center text-[9px] font-bold text-white">C</span>
+            <h3 class="text-sm font-medium text-gray-300">Canva</h3>
           </div>
-        </details>
-        <p class="text-[10px] text-yellow-500">연동 준비 중 — 위 Setup 완료 후 알려주세요</p>
+          <span class="text-[10px] px-2 py-0.5 rounded ${canvaConnected ? "bg-green-900/40 text-green-400" : "bg-gray-800 text-gray-500"}">${canvaConnected ? "Connected" : "Not connected"}</span>
+        </div>
+
+        <div class="mb-3">
+          <ol class="text-[10px] text-gray-400 space-y-1 list-decimal list-inside">
+            <li><a href="https://www.canva.com/developers/" target="_blank" class="text-blue-400 hover:underline">canva.com/developers</a> → Your integrations → Create an integration</li>
+            <li>Configuration 탭 → Client ID 메모 + Generate secret → Secret 복사</li>
+            <li>Scopes 탭 → design:content, asset read/write 활성화</li>
+            <li>아래 폼에 입력 후 Connect</li>
+          </ol>
+          <details class="mt-2 text-[10px]">
+            <summary class="text-blue-400 hover:text-blue-300 cursor-pointer">더 알아보기</summary>
+            <div class="mt-2 p-3 rounded bg-gray-900/50 text-gray-500 space-y-1.5">
+              <p>Canva Connect API로 에셋 업로드 → 템플릿 기반 디자인 생성 → 편집 → Export PNG 플로우를 자동화합니다.</p>
+              <p class="font-medium text-gray-400 mt-2">앱 유형</p>
+              <p>Private: 팀 전용. Public: 모든 Canva 유저 사용 가능.</p>
+              <p class="font-medium text-gray-400 mt-2">필요 Scopes</p>
+              <p><code class="bg-gray-800 px-1 rounded">design:content:read</code> <code class="bg-gray-800 px-1 rounded">design:content:write</code> — 디자인 생성/수정</p>
+              <p><code class="bg-gray-800 px-1 rounded">asset:read</code> <code class="bg-gray-800 px-1 rounded">asset:write</code> — 이미지 업로드</p>
+              <p><code class="bg-gray-800 px-1 rounded">design:meta:read</code> <code class="bg-gray-800 px-1 rounded">profile:read</code> — 메타데이터</p>
+              <p class="font-medium text-gray-400 mt-2">OAuth Redirect URL</p>
+              <p>Authentication 탭에서 설정: <code class="bg-gray-800 px-1 rounded">https://your-dashboard/api/canva/callback</code></p>
+              <p class="text-yellow-500 mt-2">⚠ Secret은 생성 시 한 번만 표시됨</p>
+            </div>
+          </details>
+        </div>
+
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[10px] text-gray-500">Credentials</span>
+          ${canvaConnected && !canvaEditing ? '<button id="edit-canva" class="text-[10px] text-blue-400 hover:text-blue-300">Edit</button>' : ""}
+        </div>
+        <div class="space-y-3">
+          ${credField("canva-client-id", "Client ID", "", false, canva.clientId || "", canvaEditable)}
+          ${credField("canva-client-secret", "Client Secret", "", true, canva.clientSecret || "", canvaEditable)}
+        </div>
+        ${canvaEditable ? `<div class="flex gap-2 mt-4">
+          <button id="save-canva" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${canvaConnected ? "Update" : "Connect"}</button>
+          ${canvaConnected && canvaEditing ? '<button id="cancel-edit-canva" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>' : ""}
+        </div>` : ""}
       </div>
+
       <div class="card p-5">
-        <div class="flex items-center gap-2 mb-3">
-          <span class="w-6 h-6 rounded bg-black border border-gray-700 flex items-center justify-center text-[10px] font-bold text-white">F</span>
-          <h3 class="text-sm font-medium text-gray-300">Figma</h3>
-          <span class="text-[10px] ${S.designTools?.figma ? "text-green-400" : "text-gray-600"} ml-auto">${S.designTools?.figma ? "Connected" : ""}</span>
-        </div>
-        <p class="text-[10px] text-gray-600 mb-3">MCP로 프레임 생성 → 디자이너 편집 → REST API로 PNG Export</p>
-        <details class="mb-3 text-[10px]">
-          <summary class="text-blue-400 hover:text-blue-300 cursor-pointer">Setup Guide</summary>
-          <div class="mt-2 p-3 rounded bg-gray-900/50 text-gray-500 space-y-1.5">
-            <p class="font-medium text-gray-400">1. Personal Access Token 생성</p>
-            <p class="pl-3">Figma 좌상단 계정 메뉴 → <strong>Settings</strong> → <strong>Security</strong> 탭</p>
-            <p class="pl-3">Personal access tokens 섹션 → <strong>Generate new token</strong></p>
-            <p class="pl-3">이름 입력 (예: marketing-hub) → Enter</p>
-            <p class="pl-3 text-yellow-500">⚠ 토큰은 생성 직후에만 표시됨 — 즉시 복사!</p>
-            <p class="font-medium text-gray-400">2. 카드뉴스 파일 준비</p>
-            <p class="pl-3">Figma에서 새 파일 생성 (예: "Card News Templates")</p>
-            <p class="pl-3">1080×1350px 프레임 생성 (Instagram 4:5)</p>
-            <p class="pl-3">파일 URL 복사 (예: figma.com/design/xxxxxxx/...)</p>
-            <p class="font-medium text-gray-400">3. MCP 서버 (선택)</p>
-            <p class="pl-3">AI가 Figma에 직접 디자인을 생성하려면 MCP 서버 필요:</p>
-            <p class="pl-3"><code class="bg-gray-800 px-1 rounded">npx @anthropic-ai/figma-mcp-server</code></p>
-            <p class="pl-3"><a href="https://developers.figma.com/docs/figma-mcp-server/" target="_blank" class="text-blue-400 hover:underline">Figma MCP Docs</a></p>
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded bg-black border border-gray-700 flex items-center justify-center text-[10px] font-bold text-white">F</span>
+            <h3 class="text-sm font-medium text-gray-300">Figma</h3>
           </div>
-        </details>
-        <p class="text-[10px] text-yellow-500">연동 준비 중</p>
+          <span class="text-[10px] px-2 py-0.5 rounded ${figmaConnected ? "bg-green-900/40 text-green-400" : "bg-gray-800 text-gray-500"}">${figmaConnected ? "Connected" : "Not connected"}</span>
+        </div>
+
+        <div class="mb-3">
+          <ol class="text-[10px] text-gray-400 space-y-1 list-decimal list-inside">
+            <li>Figma 좌상단 계정 메뉴 → Settings → Security 탭</li>
+            <li>Personal access tokens → Generate new token → 이름 입력 → Enter</li>
+            <li>토큰 즉시 복사 (페이지 벗어나면 다시 볼 수 없음)</li>
+            <li>아래 폼에 입력 후 Connect</li>
+          </ol>
+          <details class="mt-2 text-[10px]">
+            <summary class="text-blue-400 hover:text-blue-300 cursor-pointer">더 알아보기</summary>
+            <div class="mt-2 p-3 rounded bg-gray-900/50 text-gray-500 space-y-1.5">
+              <p>Figma MCP로 AI가 프레임/텍스트/이미지를 직접 생성하고, REST API로 편집 결과를 PNG Export합니다.</p>
+              <p class="font-medium text-gray-400 mt-2">Personal Access Token</p>
+              <p>토큰 하나로 Figma 계정의 모든 파일에 접근 가능. 신뢰할 수 있는 환경에서만 사용.</p>
+              <p class="font-medium text-gray-400 mt-2">카드뉴스 파일</p>
+              <p>Figma에서 새 파일 생성 → 1080×1350px 프레임 (Instagram 4:5) → URL 복사</p>
+              <p class="font-medium text-gray-400 mt-2">MCP 서버 (선택)</p>
+              <p>AI가 Figma에 직접 디자인을 생성하려면 필요:</p>
+              <p><code class="bg-gray-800 px-1 rounded">npx @anthropic-ai/figma-mcp-server</code></p>
+              <p><a href="https://developers.figma.com/docs/figma-mcp-server/" target="_blank" class="text-blue-400 hover:underline">Figma MCP Docs</a></p>
+              <p class="text-yellow-500 mt-2">⚠ 토큰은 생성 직후에만 표시됨</p>
+            </div>
+          </details>
+        </div>
+
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[10px] text-gray-500">Credentials</span>
+          ${figmaConnected && !figmaEditing ? '<button id="edit-figma" class="text-[10px] text-blue-400 hover:text-blue-300">Edit</button>' : ""}
+        </div>
+        <div class="space-y-3">
+          ${credField("figma-token", "Personal Access Token", "", true, figma.accessToken || "", figmaEditable)}
+          ${credField("figma-file-url", "Card News File URL (선택)", "figma.com/design/xxx/...", false, figma.fileUrl || "", figmaEditable)}
+        </div>
+        ${figmaEditable ? `<div class="flex gap-2 mt-4">
+          <button id="save-figma" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${figmaConnected ? "Update" : "Connect"}</button>
+          ${figmaConnected && figmaEditing ? '<button id="cancel-edit-figma" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>' : ""}
+        </div>` : ""}
       </div>
     </div>`;
 }
@@ -1911,7 +1956,7 @@ function bindEvents() {
         channels: () => loadOverview(),
         ai: () => { loadLlmConfig(); loadOverview(); },
         storage: () => loadR2Config(),
-        design: () => {},
+        design: () => loadDesignTools(),
         system: () => { loadOverview(); loadNotifSettings(); },
       };
       (loaders[el.dataset.settingsTab] || (() => {}))();
@@ -1937,6 +1982,36 @@ function bindEvents() {
     const r = await API.post("/api/r2-config", data);
     saveR2.textContent = "Update"; saveR2.disabled = false;
     if (r?.ok) { showToast("R2 Storage 설정 저장됨", "success"); loadR2Config(); }
+    else showToast(r?.error || "저장 실패", "error");
+  };
+
+  // Design Tools credentials
+  const editCanva = document.getElementById("edit-canva");
+  if (editCanva) editCanva.onclick = () => { S.editingChannel = "canva"; render(); };
+  const cancelCanva = document.getElementById("cancel-edit-canva");
+  if (cancelCanva) cancelCanva.onclick = () => { S.editingChannel = null; render(); };
+  const saveCanva = document.getElementById("save-canva");
+  if (saveCanva) saveCanva.onclick = async () => {
+    const data = { clientId: document.getElementById("canva-client-id")?.value?.trim(), clientSecret: document.getElementById("canva-client-secret")?.value?.trim() };
+    if (!data.clientId) { showToast("Client ID를 입력하세요", "warning"); return; }
+    saveCanva.textContent = "Saving..."; saveCanva.disabled = true;
+    const r = await API.post("/api/design-tools/canva", data);
+    saveCanva.textContent = "Connect"; saveCanva.disabled = false;
+    if (r?.ok) { showToast("Canva 설정 저장됨", "success"); S.editingChannel = null; loadDesignTools(); }
+    else showToast(r?.error || "저장 실패", "error");
+  };
+  const editFigma = document.getElementById("edit-figma");
+  if (editFigma) editFigma.onclick = () => { S.editingChannel = "figma"; render(); };
+  const cancelFigma = document.getElementById("cancel-edit-figma");
+  if (cancelFigma) cancelFigma.onclick = () => { S.editingChannel = null; render(); };
+  const saveFigma = document.getElementById("save-figma");
+  if (saveFigma) saveFigma.onclick = async () => {
+    const data = { accessToken: document.getElementById("figma-token")?.value?.trim(), fileUrl: document.getElementById("figma-file-url")?.value?.trim() };
+    if (!data.accessToken) { showToast("Access Token을 입력하세요", "warning"); return; }
+    saveFigma.textContent = "Saving..."; saveFigma.disabled = true;
+    const r = await API.post("/api/design-tools/figma", data);
+    saveFigma.textContent = "Connect"; saveFigma.disabled = false;
+    if (r?.ok) { showToast("Figma 설정 저장됨", "success"); S.editingChannel = null; loadDesignTools(); }
     else showToast(r?.error || "저장 실패", "error");
   };
 
@@ -2205,6 +2280,10 @@ function bindImagePickerEvents() {
 async function loadImages() {
   const data = await API.get("/api/images");
   if (data) S.images = data;
+}
+async function loadDesignTools() {
+  const data = await API.get("/api/design-tools");
+  if (data) { S.designTools = data; render(); }
 }
 async function loadR2Config() {
   const data = await API.get("/api/r2-config");

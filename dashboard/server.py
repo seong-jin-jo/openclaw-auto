@@ -323,6 +323,31 @@ def api_images():
     return jsonify(files)
 
 
+# ── Design Tools ──
+DESIGN_TOOLS_PATH = Path(DATA_DIR) / "design-tools.json"
+
+@app.route("/api/design-tools")
+def api_design_tools_get():
+    data = read_json(DESIGN_TOOLS_PATH) or {}
+    return jsonify(data)
+
+@app.route("/api/design-tools/canva", methods=["POST"])
+def api_design_tools_canva():
+    body = get_json_body()
+    data = read_json(DESIGN_TOOLS_PATH) or {}
+    data["canva"] = {"clientId": body.get("clientId", ""), "clientSecret": body.get("clientSecret", "")}
+    write_json(DESIGN_TOOLS_PATH, data)
+    return jsonify({"ok": True})
+
+@app.route("/api/design-tools/figma", methods=["POST"])
+def api_design_tools_figma():
+    body = get_json_body()
+    data = read_json(DESIGN_TOOLS_PATH) or {}
+    data["figma"] = {"accessToken": body.get("accessToken", ""), "fileUrl": body.get("fileUrl", "")}
+    write_json(DESIGN_TOOLS_PATH, data)
+    return jsonify({"ok": True})
+
+
 # ── Card News ──
 @app.route("/api/card-news/outline", methods=["POST"])
 def api_card_news_outline():
