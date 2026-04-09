@@ -542,6 +542,25 @@ def api_card_slides(batch_id):
     return jsonify({"batchId": batch_id, "slides": slides})
 
 
+@app.route("/api/images/upload", methods=["POST"])
+def api_upload_image():
+    """Upload image file to local images directory."""
+    if "file" not in request.files:
+        return jsonify({"error": "No file"}), 400
+    f = request.files["file"]
+    if not f.filename:
+        return jsonify({"error": "Empty filename"}), 400
+    ext = os.path.splitext(f.filename)[1].lower()
+    if ext not in (".jpg", ".jpeg", ".png", ".gif", ".webp"):
+        return jsonify({"error": f"Unsupported format: {ext}"}), 400
+    import uuid
+    safe_name = f"{uuid.uuid4().hex[:12]}{ext}"
+    os.makedirs(IMAGES_DIR, exist_ok=True)
+    save_path = os.path.join(IMAGES_DIR, safe_name)
+    f.save(save_path)
+    return jsonify({"url": f"/images/{safe_name}", "filename": safe_name})
+
+
 @app.route("/api/images/<filename>", methods=["DELETE"])
 def api_delete_image(filename):
     path = os.path.join(IMAGES_DIR, filename)

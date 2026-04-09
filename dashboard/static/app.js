@@ -1176,10 +1176,12 @@ function renderCardNewsEditor() {
             <button id="card-save-draft" class="flex-1 py-2 bg-green-700 text-white text-sm rounded hover:bg-green-600">큐에 Draft 저장</button>
             <button id="card-regenerate" class="px-4 py-2 bg-gray-700 text-gray-300 text-sm rounded hover:bg-gray-600">재생성</button>
           </div>
+          <p class="text-[10px] text-gray-600 mb-2">슬라이드를 다운로드해서 디자인 툴에서 편집 후, 완성본을 다시 업로드하세요.</p>
           <div class="flex gap-2">
-            <button disabled class="flex-1 py-2 bg-[#00C4CC]/20 text-[#00C4CC] text-xs rounded border border-[#00C4CC]/30 opacity-60 cursor-not-allowed">Canva에서 편집 (준비 중)</button>
-            <button disabled class="flex-1 py-2 bg-white/5 text-gray-400 text-xs rounded border border-gray-700 opacity-60 cursor-not-allowed">Figma에서 편집 (준비 중)</button>
+            <button id="card-download-slides" class="flex-1 py-2 bg-gray-700 text-gray-300 text-xs rounded hover:bg-gray-600">슬라이드 다운로드</button>
+            <button id="card-upload-finished" class="flex-1 py-2 bg-purple-700 text-white text-xs rounded hover:bg-purple-600">편집본 업로드</button>
           </div>
+          <input type="file" id="card-upload-input" multiple accept="image/*" class="hidden">
         ` : `
           <div class="flex items-center justify-center h-64 text-gray-600">
             <div class="text-center">
@@ -2144,6 +2146,44 @@ function bindEvents() {
   };
   const regenBtn = document.getElementById("card-regenerate");
   if (regenBtn) regenBtn.onclick = () => { if (S.cardEditor) { S.cardEditor.result = null; render(); } };
+  const downloadBtn = document.getElementById("card-download-slides");
+  if (downloadBtn) downloadBtn.onclick = () => {
+    const slides = S.cardEditor?.result?.slides || [];
+    slides.forEach((url, i) => {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `slide-${String(i + 1).padStart(2, "0")}.png`;
+      a.click();
+    });
+    showToast(`${slides.length}장 다운로드`, "success");
+  };
+  const uploadFinished = document.getElementById("card-upload-finished");
+  const uploadInput = document.getElementById("card-upload-input");
+  if (uploadFinished && uploadInput) {
+    uploadFinished.onclick = () => uploadInput.click();
+    uploadInput.onchange = async () => {
+      const files = [...uploadInput.files];
+      if (!files.length) return;
+      uploadFinished.textContent = "업로드 중..."; uploadFinished.disabled = true;
+      const uploaded = [];
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+        try {
+          const res = await fetch("/api/images/upload", { method: "POST", headers: authHeaders(), body: formData });
+          const d = await res.json();
+          if (d.url) uploaded.push(d.url);
+        } catch (e) { /* skip */ }
+      }
+      uploadFinished.textContent = "편집본 업로드"; uploadFinished.disabled = false;
+      uploadInput.value = "";
+      if (uploaded.length) {
+        if (S.cardEditor) S.cardEditor.result = { ...S.cardEditor.result, slides: uploaded, totalSlides: uploaded.length };
+        showToast(`${uploaded.length}장 업로드 완료 — Draft 저장 가능`, "success");
+        render();
+      } else { showToast("업로드 실패", "error"); }
+    };
+  }
 
   // Sample Community
   const fetchCommunity = document.getElementById("fetch-community");
