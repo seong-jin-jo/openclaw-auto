@@ -1022,7 +1022,14 @@ function renderInstagramQueue(allPosts) {
         const label = f === "all" ? "All" : f === "with-image" ? "With Image" : f.charAt(0).toUpperCase() + f.slice(1);
         return `<button data-filter="${f}" class="px-3 py-1 text-xs rounded ${igFilter === f ? "bg-blue-600/30 text-blue-300 border border-blue-600/30" : "text-gray-500 hover:bg-gray-800"}">${label}</button>`;
       }).join("")}</div>
-      <span class="text-xs text-gray-500">${igPosts.length} posts</span>
+      <div class="flex gap-2 items-center">
+        ${igPosts.filter(p => p.status === "draft" || p.status === "approved").length > 0 ? `<label class="flex items-center gap-1 text-xs text-gray-400 cursor-pointer"><input type="checkbox" id="ig-select-all" ${S.selectedIds.size > 0 ? "checked" : ""} class="rounded border-gray-600"> All</label>` : ""}
+        ${S.selectedIds.size > 0 ? `
+          <button id="ig-bulk-approve" class="px-3 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve (${S.selectedIds.size})</button>
+          <button id="ig-bulk-delete" class="px-3 py-1 text-xs bg-red-700 text-white rounded hover:bg-red-600">Delete (${S.selectedIds.size})</button>
+        ` : ""}
+        <span class="text-xs text-gray-500">${igPosts.length} posts</span>
+      </div>
     </div>
     <div class="space-y-3">
       ${igPosts.length === 0 ? `<div class="card p-8 text-center"><p class="text-gray-500 text-sm">No posts${igFilter === "with-image" ? " with images" : ""}</p></div>` : ""}
@@ -1043,6 +1050,7 @@ function renderInstagramPost(p) {
     <div class="card p-4">
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
+          ${p.status === "draft" || p.status === "approved" ? `<input type="checkbox" data-select="${p.id}" ${S.selectedIds.has(p.id) ? "checked" : ""} class="rounded border-gray-600 w-3.5 h-3.5">` : ""}
           <span class="text-[10px] px-2 py-0.5 rounded ${sc[p.status] || "bg-gray-700 text-gray-300"}">${p.status}</span>
           <span class="text-[10px] px-1.5 py-0.5 rounded ${igBadge[igStatus]}">IG: ${igStatus}</span>
           ${isCard ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-900/40 text-purple-300">Card ${slides.length} slides</span>` : ""}
@@ -1910,6 +1918,28 @@ function bindEvents() {
     saveR2.textContent = "Update"; saveR2.disabled = false;
     if (r?.ok) { showToast("R2 Storage 설정 저장됨", "success"); loadR2Config(); }
     else showToast(r?.error || "저장 실패", "error");
+  };
+
+  // Instagram bulk actions
+  const igSelectAll = document.getElementById("ig-select-all");
+  if (igSelectAll) igSelectAll.onchange = () => {
+    const posts = (S.queue || []).filter(p => (p.status === "draft" || p.status === "approved") && p.imageUrl);
+    if (igSelectAll.checked) posts.forEach(p => S.selectedIds.add(p.id));
+    else S.selectedIds.clear();
+    render();
+  };
+  const igBulkApprove = document.getElementById("ig-bulk-approve");
+  if (igBulkApprove) igBulkApprove.onclick = async () => {
+    const ids = [...S.selectedIds];
+    const r = await API.post("/api/queue/bulk-approve", { ids });
+    if (r) { showToast(`${r.approved || ids.length}개 승인`, "success"); S.selectedIds.clear(); loadQueue("all"); }
+  };
+  const igBulkDelete = document.getElementById("ig-bulk-delete");
+  if (igBulkDelete) igBulkDelete.onclick = async () => {
+    if (!confirm(`${S.selectedIds.size}개 삭제?`)) return;
+    const ids = [...S.selectedIds];
+    const r = await API.post("/api/queue/bulk-delete", { ids });
+    if (r) { showToast(`${r.deleted || ids.length}개 삭제`, "success"); S.selectedIds.clear(); loadQueue("all"); }
   };
 
   // Edit Slides — load card into Create tab
