@@ -1523,25 +1523,26 @@ function renderSettingsDesign() {
 
         <div class="mb-3">
           <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
-            <li><a href="https://www.canva.com/developers/" target="_blank" class="text-blue-400 hover:underline">canva.com/developers</a> 접속 → 로그인</li>
-            <li>좌측 메뉴 <strong class="text-gray-300">Your integrations</strong> 클릭</li>
-            <li><strong class="text-gray-300">Create an integration</strong> 버튼 → 이름 입력 (예: marketing-hub) → Type: Private 선택 → 약관 동의 체크 → <strong class="text-gray-300">Create integration</strong></li>
-            <li>생성된 앱 페이지에서 <strong class="text-gray-300">Client ID</strong> 값 복사</li>
-            <li><strong class="text-gray-300">Generate secret</strong> 버튼 클릭 → 표시된 Secret 즉시 복사 (페이지 벗어나면 재확인 불가)</li>
+            <li><a href="https://www.canva.com/developers/" target="_blank" class="text-blue-400 hover:underline">canva.com/developers</a> 접속 → Canva 계정으로 로그인 (포털은 영어)</li>
+            <li>좌측 메뉴에서 <strong class="text-gray-300">Your integrations</strong> (내 통합) 클릭</li>
+            <li>우측 상단 <strong class="text-gray-300">Create an integration</strong> (통합 만들기) 버튼 클릭</li>
+            <li>이름 입력 (예: marketing-hub) → Type: <strong class="text-gray-300">Private</strong> (비공개) 선택 → 약관 체크 → <strong class="text-gray-300">Create integration</strong></li>
+            <li>생성된 앱의 설정 페이지 → <strong class="text-gray-300">Credentials</strong> (자격 증명) 섹션에서 <strong class="text-gray-300">Client ID</strong> 복사</li>
+            <li><strong class="text-gray-300">Generate secret</strong> (시크릿 생성) 버튼 → 표시된 값 즉시 복사 (페이지 벗어나면 재확인 불가!)</li>
             <li>아래 폼에 Client ID + Secret 입력 → Connect</li>
           </ol>
           <details class="mt-2 text-[10px]">
             <summary class="text-blue-400 hover:text-blue-300 cursor-pointer">더 알아보기</summary>
             <div class="mt-2 p-3 rounded bg-gray-900/50 text-gray-500 space-y-1.5">
               <p>Canva Connect API로 에셋 업로드 → 템플릿 기반 디자인 생성 → 편집 → Export PNG 플로우를 자동화합니다.</p>
-              <p class="font-medium text-gray-400 mt-2">Scopes 설정 (앱 페이지 > Scopes 탭)</p>
-              <p>체크할 항목:</p>
+              <p class="font-medium text-gray-400 mt-2">Scopes 설정</p>
+              <p>앱 설정 페이지 좌측 메뉴 <strong>Scopes</strong> 클릭 → <strong>Reading and writing</strong> 섹션에서 체크:</p>
               <p class="pl-2">✅ <code class="bg-gray-800 px-1 rounded">design:content</code> Read and Write — 디자인 생성/수정</p>
               <p class="pl-2">✅ <code class="bg-gray-800 px-1 rounded">design:meta</code> Read — 디자인 메타데이터</p>
               <p class="pl-2">✅ <code class="bg-gray-800 px-1 rounded">asset</code> Read and Write — 이미지 업로드</p>
-              <p class="pl-2">✅ <code class="bg-gray-800 px-1 rounded">brandtemplate:meta</code> Read</p>
-              <p class="pl-2">✅ <code class="bg-gray-800 px-1 rounded">brandtemplate:content</code> Read</p>
-              <p class="pl-2">✅ <code class="bg-gray-800 px-1 rounded">profile</code> Read</p>
+              <p class="pl-2">✅ <code class="bg-gray-800 px-1 rounded">brandtemplate:meta</code> Read — 템플릿 읽기</p>
+              <p class="pl-2">✅ <code class="bg-gray-800 px-1 rounded">brandtemplate:content</code> Read — 템플릿 내용</p>
+              <p class="pl-2">✅ <code class="bg-gray-800 px-1 rounded">profile</code> Read — 프로필 정보</p>
               <p class="font-medium text-gray-400 mt-2">OAuth Redirect URL (앱 페이지 > Authentication 탭)</p>
               <p>URL 1 필드에 입력: <code class="bg-gray-800 px-1 rounded">https://대시보드주소/api/canva/callback</code></p>
               <p>Return navigation 스위치 ON → Return URL도 동일하게 설정</p>
@@ -1576,10 +1577,17 @@ function renderSettingsDesign() {
 
         <div class="mb-3">
           <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
-            <li><a href="https://www.figma.com" target="_blank" class="text-blue-400 hover:underline">figma.com</a> 접속 → 로그인 → 좌상단 계정 아이콘 클릭 → <strong class="text-gray-300">Settings</strong></li>
-            <li>Settings 페이지에서 <strong class="text-gray-300">Security</strong> 탭 클릭</li>
-            <li>아래로 스크롤 → <strong class="text-gray-300">Personal access tokens</strong> 섹션 → <strong class="text-gray-300">Generate new token</strong> 클릭</li>
-            <li>토큰 이름 입력 (예: marketing-hub) → Enter → 표시된 토큰 <strong class="text-red-400">즉시 복사</strong> (페이지 벗어나면 다시 볼 수 없음)</li>
+            <li><a href="https://www.figma.com" target="_blank" class="text-blue-400 hover:underline">figma.com</a> 접속 → 로그인 → 좌상단 계정 아이콘 → <strong class="text-gray-300">Settings</strong></li>
+            <li><strong class="text-gray-300">Security</strong> 탭 → 아래로 스크롤 → <strong class="text-gray-300">Personal access tokens</strong></li>
+            <li><strong class="text-gray-300">Generate new token</strong> 클릭 → 이름 입력 (예: marketing-hub)</li>
+            <li>Scopes (권한) 설정 — 다음을 체크:
+              <div class="pl-2 mt-1 space-y-0.5">
+                <p>✅ <code class="bg-gray-800 px-1 rounded">file_content:read</code> — 파일 내용 읽기 (PNG Export에 필요)</p>
+                <p>✅ <code class="bg-gray-800 px-1 rounded">file_dev_resources:write</code> — 리소스 쓰기 (MCP 사용 시)</p>
+                <p>✅ <code class="bg-gray-800 px-1 rounded">files:read</code> — 파일 접근</p>
+              </div>
+            </li>
+            <li>Enter 또는 생성 클릭 → 표시된 토큰 <strong class="text-red-400">즉시 복사</strong> (페이지 벗어나면 재확인 불가!)</li>
             <li>아래 폼에 토큰 입력 → Connect</li>
           </ol>
           <details class="mt-2 text-[10px]">
