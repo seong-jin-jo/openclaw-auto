@@ -2172,6 +2172,62 @@ def api_cron_runs():
 # ══ D-Edu Custom APIs ══
 # ════════════════════════════════════════
 
+KEYWORD_BANK_PATH = DATA_DIR / "keyword-bank.json"
+
+
+@app.route("/api/keyword-bank")
+def api_keyword_bank():
+    bank = read_json(KEYWORD_BANK_PATH) or {"keywords": []}
+    return jsonify(bank)
+
+
+@app.route("/api/keyword-bank/add", methods=["POST"])
+def api_keyword_bank_add():
+    data = get_json_body()
+    keywords = data.get("keywords", [])
+    source = data.get("source", "manual")
+    if not keywords:
+        return jsonify({"error": "keywords required"}), 400
+    bank = read_json(KEYWORD_BANK_PATH) or {"keywords": []}
+    existing = {k["keyword"] for k in bank["keywords"]}
+    added = 0
+    for kw in keywords:
+        entry = kw if isinstance(kw, dict) else {"keyword": kw}
+        if entry.get("keyword") and entry["keyword"] not in existing:
+            entry.setdefault("source", source)
+            entry.setdefault("addedAt", datetime.now(timezone.utc).isoformat())
+            entry.setdefault("used", False)
+            bank["keywords"].append(entry)
+            existing.add(entry["keyword"])
+            added += 1
+    write_json(KEYWORD_BANK_PATH, bank)
+    logger.info("Keyword bank: added %d keywords from %s", added, source)
+    return jsonify({"ok": True, "added": added, "total": len(bank["keywords"])})
+
+
+@app.route("/api/keyword-bank/remove", methods=["POST"])
+def api_keyword_bank_remove():
+    data = get_json_body()
+    keyword = data.get("keyword", "")
+    bank = read_json(KEYWORD_BANK_PATH) or {"keywords": []}
+    before = len(bank["keywords"])
+    bank["keywords"] = [k for k in bank["keywords"] if k.get("keyword") != keyword]
+    write_json(KEYWORD_BANK_PATH, bank)
+    return jsonify({"ok": True, "removed": before - len(bank["keywords"])})
+
+
+@app.route("/api/keyword-bank/mark-used", methods=["POST"])
+def api_keyword_bank_mark_used():
+    data = get_json_body()
+    keyword = data.get("keyword", "")
+    bank = read_json(KEYWORD_BANK_PATH) or {"keywords": []}
+    for k in bank["keywords"]:
+        if k.get("keyword") == keyword:
+            k["used"] = True
+            k["usedAt"] = datetime.now(timezone.utc).isoformat()
+    write_json(KEYWORD_BANK_PATH, bank)
+    return jsonify({"ok": True})
+
 
 SLACK_TEMPLATE_PATH = DATA_DIR / "slack-template.json"
 

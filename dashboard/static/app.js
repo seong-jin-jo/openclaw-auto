@@ -158,7 +158,7 @@ const S = {
   channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [],
   tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
-  sidebarCollapsed: { data: false, research: false }, showDetail: null, editingChannel: null, slackTemplate: "", slackReportPreview: "",
+  sidebarCollapsed: { data: false, research: false }, showDetail: null, editingChannel: null, slackTemplate: "", slackReportPreview: "", keywordBank: [],
   channelGuide: null, channelKeywords: null, notificationSettings: null, tenantInfo: null, chatChannels: null, communityPosts: [], r2Config: null,
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null, expandedPopular: null,
@@ -1760,6 +1760,30 @@ function bindEvents() {
     };
   });
 
+  // Keyword bank → blog keywords
+  document.querySelectorAll("[data-bank-to-blog]").forEach(el => {
+    el.onclick = () => {
+      const kw = el.dataset.bankToBlog;
+      const ta = document.getElementById("blog-keywords-textarea");
+      if (ta && !ta.value.split("\n").includes(kw)) {
+        ta.value = ta.value.trim() + "\n" + kw;
+        el.classList.add("opacity-50"); el.disabled = true;
+        showToast(`"${kw}" 추가됨`, "info");
+      }
+    };
+  });
+  const loadBankBtn = document.getElementById("load-from-bank");
+  if (loadBankBtn) loadBankBtn.onclick = async () => { await loadKeywordBank(); };
+
+  // Add to keyword bank
+  document.querySelectorAll("[data-add-keyword]").forEach(el => {
+    el.onclick = async () => {
+      const kw = el.dataset.addKeyword;
+      const r = await API.post("/api/keyword-bank/add", { keywords: [kw], source: S.page });
+      if (r?.ok) { showToast(`"${kw}" → Keyword Bank (${r.total}개)`, "success"); el.textContent = "✓"; el.disabled = true; }
+    };
+  });
+
   // Notification toggles (in channel page)
   document.querySelectorAll("[data-notif-toggle]").forEach(el => {
     el.onchange = async () => {
@@ -1953,7 +1977,7 @@ function navigate(page) {
   else if (page === "keyword-planner") { loadKwPlannerConfig(); render(); }
   else if (page === "naver-trends") { loadNaverDatalabConfig(); render(); }
   else if (page === "google-trends") render();
-  else if (page === "blog") { loadBlogQueue(); loadOverview(); loadBlogGuide(); loadBlogKeywords(); }
+  else if (page === "blog") { loadBlogQueue(); loadOverview(); loadBlogGuide(); loadBlogKeywords(); loadKeywordBank(); }
   else if (CH_LABELS[page]) { loadOverview(); loadChannelGuideAndKeywords(); if (page === "slack") loadSlackTemplate(); }
   else if (page === "settings") { loadSettings(); loadKeywords(); loadLlmConfig(); loadOverview(); loadNotifSettings(); loadTenantAndChat(); }
   render();
@@ -2705,7 +2729,7 @@ function renderBlogPerformance() {
               <td class="text-gray-400 text-right py-2">${r.impressions}</td>
               <td class="text-gray-400 text-right py-2">${r.ctr}%</td>
               <td class="text-gray-400 text-right py-2">${r.position}</td>
-              <td class="text-right py-2"><button data-add-keyword="${esc(r.key)}" class="text-[10px] text-blue-400 hover:text-blue-300">+ Blog KW</button></td>
+              <td class="text-right py-2"><button data-add-keyword="${esc(r.key)}" class="text-[10px] text-blue-400 hover:text-blue-300">+ Bank</button></td>
             </tr>`;
           }).join("")}</tbody>
         </table>
@@ -2772,7 +2796,7 @@ function renderSearchConsole() {
               <td class="text-gray-400 text-right py-2">${r.impressions}</td>
               <td class="text-gray-400 text-right py-2 ${lowCtr ? "text-yellow-400" : ""}">${r.ctr}%</td>
               <td class="text-gray-400 text-right py-2">${r.position}</td>
-              ${dim === "query" ? `<td class="text-right py-2"><button data-add-keyword="${esc(r.key)}" class="text-[10px] text-blue-400 hover:text-blue-300">+ Keywords</button></td>` : ""}
+              ${dim === "query" ? `<td class="text-right py-2"><button data-add-keyword="${esc(r.key)}" class="text-[10px] text-blue-400 hover:text-blue-300">+ Bank</button></td>` : ""}
             </tr>`;
           }).join("")}</tbody>
         </table>` : `<p class="text-gray-600 text-sm">No data for this period</p>`}
@@ -2987,7 +3011,7 @@ function kwResultsTable() {
       <td class="text-gray-400 text-right py-2">${r.mobileSearches?.toLocaleString()}</td>
       <td class="text-white text-right py-2 font-medium">${r.totalSearches?.toLocaleString()}</td>
       <td class="text-right py-2 ${comp[r.competition] || "text-gray-400"}">${r.competition || "-"}</td>
-      <td class="text-right py-2"><button data-add-keyword="${esc(r.keyword)}" class="text-[10px] text-blue-400 hover:text-blue-300">+ Blog KW</button></td>
+      <td class="text-right py-2"><button data-add-keyword="${esc(r.keyword)}" class="text-[10px] text-blue-400 hover:text-blue-300">+ Bank</button></td>
     </tr>`).join("")}</tbody>
   </table>`;
 }
@@ -3276,10 +3300,21 @@ function renderBlogConfig() {
     <div class="card p-4 mt-4">
       <div class="flex items-center justify-between mb-3">
         <span class="text-sm font-medium text-white">Blog SEO Keywords</span>
-        <span class="text-[10px] text-gray-500">학생/학부모 검색어 (한 줄에 하나)</span>
+        <div class="flex gap-2">
+          <button id="load-from-bank" class="px-2 py-1 text-[10px] bg-purple-700 text-white rounded hover:bg-purple-600">Keyword Bank에서 불러오기</button>
+          <span class="text-[10px] text-gray-500">학생/학부모 검색어</span>
+        </div>
       </div>
+      ${S.keywordBank?.length ? `
+        <div class="mb-3 p-3 rounded bg-purple-900/10 border border-purple-800/30">
+          <p class="text-[10px] text-purple-300 mb-2">Keyword Bank (${S.keywordBank.length}개) — 클릭하여 추가</p>
+          <div class="flex flex-wrap gap-1">${S.keywordBank.filter(k => !k.used).map(k => `<button data-bank-to-blog="${esc(k.keyword)}" class="text-[10px] px-2 py-0.5 rounded bg-purple-900/30 text-purple-300 hover:bg-purple-800/50 border border-purple-800/30">${esc(k.keyword)} <span class="text-gray-500">${k.totalSearches ? k.totalSearches.toLocaleString() : ""}</span></button>`).join("")}</div>
+        </div>
+      ` : ""}
       <textarea id="blog-keywords-textarea" rows="8" class="w-full bg-gray-800 text-gray-200 text-xs p-3 rounded border border-gray-700 font-mono">${esc((S.blogKeywords || []).join("\n"))}</textarea>
-      <button id="save-blog-keywords" class="mt-2 px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save Keywords</button>
+      <div class="flex gap-2 mt-2">
+        <button id="save-blog-keywords" class="px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save Keywords</button>
+      </div>
     </div>`;
 }
 
@@ -3440,4 +3475,10 @@ async function loadBlogQueue() { const d = await API.get("/api/blog-queue"); if 
 async function loadSlackTemplate() {
   const d = await API.get("/api/slack-template");
   if (d) { S.slackTemplate = d.template || ""; render(); }
+}
+
+// ── Keyword Bank ──
+async function loadKeywordBank() {
+  const d = await API.get("/api/keyword-bank");
+  if (d) { S.keywordBank = d.keywords || []; render(); }
 }
