@@ -34,6 +34,19 @@ function drawBackground(ctx: CanvasRenderingContext2D, style: Style) {
     ctx.fillStyle = s.bg;
   }
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+  // Subtle decorative circle for depth
+  if (style === "tech" || style === "gradient" || style === "warm") {
+    ctx.fillStyle = s.accent;
+    ctx.globalAlpha = 0.04;
+    ctx.beginPath();
+    ctx.arc(WIDTH * 0.85, HEIGHT * 0.2, 300, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(WIDTH * 0.1, HEIGHT * 0.85, 200, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
 }
 
 function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, lineHeight: number): string[] {
@@ -102,82 +115,97 @@ function renderSlide(
     ctx.textAlign = "left";
   };
 
+  // Content area: between top safe zone and footer
+  const SAFE_TOP = 160;
+  const SAFE_BOTTOM = 120;
+  const CONTENT_HEIGHT = HEIGHT - SAFE_TOP - SAFE_BOTTOM;
+  const CX = WIDTH / 2; // center x
+
   if (isTitle) {
-    // Badge
+    // Badge — centered
+    const badgeW = 160;
     ctx.fillStyle = s.badge;
-    drawRoundRect(ctx, PADDING, 280, 160, 36, 18);
+    drawRoundRect(ctx, CX - badgeW / 2, SAFE_TOP + CONTENT_HEIGHT * 0.15, badgeW, 36, 18);
     ctx.fill();
     ctx.fillStyle = s.accent;
     ctx.font = `bold 18px ${FONT_FAMILY}`;
-    ctx.fillText("CARD NEWS", PADDING + 20, 304);
+    ctx.textAlign = "center";
+    ctx.fillText("CARD NEWS", CX, SAFE_TOP + CONTENT_HEIGHT * 0.15 + 24);
 
-    // Title
+    // Title — vertically centered
     ctx.fillStyle = s.text;
-    ctx.font = `bold 56px ${FONT_FAMILY}`;
-    const titleLines = wrapText(ctx, title, WIDTH - PADDING * 2, 72);
-    let y = 380;
+    ctx.font = `bold 52px ${FONT_FAMILY}`;
+    const titleLines = wrapText(ctx, title, WIDTH - PADDING * 2, 68);
+    const titleBlockH = titleLines.length * 68;
+    let y = SAFE_TOP + CONTENT_HEIGHT * 0.35;
     for (const line of titleLines) {
-      ctx.fillText(line, PADDING, y);
-      y += 72;
+      ctx.fillText(line, CX, y);
+      y += 68;
     }
 
-    // Accent underline
+    // Accent line
     ctx.fillStyle = s.accent;
-    ctx.fillRect(PADDING, y + 10, 80, 4);
+    ctx.fillRect(CX - 40, y + 16, 80, 4);
 
     // Subtitle
     ctx.fillStyle = s.sub;
-    ctx.font = `30px ${FONT_FAMILY}`;
-    ctx.fillText(body || "스와이프하여 확인하세요 →", PADDING, y + 60);
+    ctx.font = `28px ${FONT_FAMILY}`;
+    ctx.fillText(body || "스와이프하여 확인하세요 →", CX, y + 64);
+    ctx.textAlign = "left";
 
     drawFooter();
   } else if (isEnd) {
-    // CTA card
+    // CTA — centered card
+    const cardH = 260;
+    const cardY = SAFE_TOP + (CONTENT_HEIGHT - cardH) / 2;
     ctx.fillStyle = s.accent;
-    ctx.globalAlpha = 0.1;
-    drawRoundRect(ctx, PADDING, HEIGHT / 2 - 140, WIDTH - PADDING * 2, 280, 24);
+    ctx.globalAlpha = 0.08;
+    drawRoundRect(ctx, PADDING + 20, cardY, WIDTH - PADDING * 2 - 40, cardH, 20);
     ctx.fill();
     ctx.globalAlpha = 1;
 
     ctx.fillStyle = s.accent;
-    ctx.font = `bold 44px ${FONT_FAMILY}`;
-    const endLines = wrapText(ctx, body || "더 알고 싶다면?", WIDTH - PADDING * 2 - 60, 56);
-    let y = HEIGHT / 2 - (endLines.length * 56) / 2;
+    ctx.font = `bold 42px ${FONT_FAMILY}`;
     ctx.textAlign = "center";
+    const endLines = wrapText(ctx, body || "더 알고 싶다면?", WIDTH - PADDING * 2 - 80, 54);
+    let y = cardY + (cardH - endLines.length * 54 - 50) / 2 + 50;
     for (const line of endLines) {
-      ctx.fillText(line, WIDTH / 2, y);
-      y += 56;
+      ctx.fillText(line, CX, y);
+      y += 54;
     }
 
     ctx.fillStyle = s.sub;
-    ctx.font = `28px ${FONT_FAMILY}`;
-    ctx.fillText("프로필 링크에서 확인하세요", WIDTH / 2, y + 40);
+    ctx.font = `26px ${FONT_FAMILY}`;
+    ctx.fillText("프로필 링크에서 확인하세요", CX, y + 30);
     ctx.textAlign = "left";
 
     drawFooter();
   } else {
-    // Content slide — number badge + body
+    // Content slide — number + text, vertically centered
+    ctx.font = `34px ${FONT_FAMILY}`;
+    const bodyLines = wrapText(ctx, body, WIDTH - PADDING * 2 - 20, 52);
+    const blockH = bodyLines.length * 52 + 70; // number circle + gap + text
+    const startY = SAFE_TOP + (CONTENT_HEIGHT - blockH) / 2;
+
     // Number circle
     ctx.fillStyle = s.accent;
     ctx.beginPath();
-    ctx.arc(PADDING + 28, PADDING + 28, 28, 0, Math.PI * 2);
+    ctx.arc(CX, startY + 24, 26, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = "#ffffff";
-    ctx.font = `bold 24px ${FONT_FAMILY}`;
+    ctx.font = `bold 22px ${FONT_FAMILY}`;
     ctx.textAlign = "center";
-    ctx.fillText(`${slideNum - 1}`, PADDING + 28, PADDING + 36);
-    ctx.textAlign = "left";
+    ctx.fillText(`${slideNum - 1}`, CX, startY + 32);
 
-    // Body text with better line height
+    // Body text — centered
     ctx.fillStyle = s.text;
     ctx.font = `34px ${FONT_FAMILY}`;
-    const bodyLines = wrapText(ctx, body, WIDTH - PADDING * 2, 50);
-    let y = PADDING + 100;
+    let y = startY + 80;
     for (const line of bodyLines) {
-      if (y > HEIGHT - PADDING - 80) break;
-      ctx.fillText(line, PADDING, y);
-      y += 50;
+      ctx.fillText(line, CX, y);
+      y += 52;
     }
+    ctx.textAlign = "left";
 
     drawFooter();
   }
