@@ -1512,15 +1512,26 @@ function renderSettingsDesign() {
         <p class="text-[10px] text-gray-600 mb-3">에셋 업로드 → 템플릿 기반 디자인 생성 → 편집 → Export PNG</p>
         <details class="mb-3 text-[10px]">
           <summary class="text-blue-400 hover:text-blue-300 cursor-pointer">Setup Guide</summary>
-          <div class="mt-2 p-2 rounded bg-gray-900/50 text-gray-500 space-y-1">
-            <p>1. <a href="https://www.canva.dev" target="_blank" class="text-blue-400">canva.dev</a> 접속 → Create an app</p>
-            <p>2. App name 입력, 용도 선택</p>
-            <p>3. OAuth Settings에서 Redirect URL 설정</p>
-            <p>4. Client ID + Client Secret 복사</p>
-            <p>5. Scopes: <code class="bg-gray-800 px-1 rounded">design:content:read design:content:write asset:read asset:write</code></p>
+          <div class="mt-2 p-3 rounded bg-gray-900/50 text-gray-500 space-y-1.5">
+            <p class="font-medium text-gray-400">1. 개발자 포털 접속</p>
+            <p class="pl-3"><a href="https://www.canva.com/developers/" target="_blank" class="text-blue-400 hover:underline">canva.com/developers</a> → 로그인 → <strong>Your integrations</strong></p>
+            <p class="font-medium text-gray-400">2. 앱 생성</p>
+            <p class="pl-3"><strong>Create an integration</strong> 클릭 → 이름 입력 (예: marketing-hub)</p>
+            <p class="pl-3">Type: <strong>Private</strong> (팀 전용) 또는 Public</p>
+            <p class="font-medium text-gray-400">3. Client ID + Secret 복사</p>
+            <p class="pl-3">Configuration 탭 > <strong>Client ID</strong> 메모</p>
+            <p class="pl-3"><strong>Generate secret</strong> 클릭 → Secret 복사</p>
+            <p class="pl-3 text-yellow-500">⚠ Secret은 생성 시 한 번만 표시됨</p>
+            <p class="font-medium text-gray-400">4. Scopes 설정</p>
+            <p class="pl-3">Scopes 탭에서 다음을 활성화:</p>
+            <p class="pl-3"><code class="bg-gray-800 px-1 rounded">design:content:read</code> <code class="bg-gray-800 px-1 rounded">design:content:write</code></p>
+            <p class="pl-3"><code class="bg-gray-800 px-1 rounded">asset:read</code> <code class="bg-gray-800 px-1 rounded">asset:write</code></p>
+            <p class="pl-3"><code class="bg-gray-800 px-1 rounded">design:meta:read</code> <code class="bg-gray-800 px-1 rounded">profile:read</code></p>
+            <p class="font-medium text-gray-400">5. OAuth Redirect URL</p>
+            <p class="pl-3">Authentication 탭 > Redirect URL: <code class="bg-gray-800 px-1 rounded">https://your-dashboard-url/api/canva/callback</code></p>
           </div>
         </details>
-        <p class="text-[10px] text-yellow-500">연동 준비 중</p>
+        <p class="text-[10px] text-yellow-500">연동 준비 중 — 위 Setup 완료 후 알려주세요</p>
       </div>
       <div class="card p-5">
         <div class="flex items-center gap-2 mb-3">
@@ -1531,11 +1542,20 @@ function renderSettingsDesign() {
         <p class="text-[10px] text-gray-600 mb-3">MCP로 프레임 생성 → 디자이너 편집 → REST API로 PNG Export</p>
         <details class="mb-3 text-[10px]">
           <summary class="text-blue-400 hover:text-blue-300 cursor-pointer">Setup Guide</summary>
-          <div class="mt-2 p-2 rounded bg-gray-900/50 text-gray-500 space-y-1">
-            <p>1. <a href="https://www.figma.com/developers" target="_blank" class="text-blue-400">figma.com/developers</a> → Personal Access Token 생성</p>
-            <p>2. MCP 서버 설정: <code class="bg-gray-800 px-1 rounded">npx figma-mcp-server</code></p>
-            <p>3. Token을 아래에 입력</p>
-            <p>4. 카드뉴스 파일용 Figma File URL 지정</p>
+          <div class="mt-2 p-3 rounded bg-gray-900/50 text-gray-500 space-y-1.5">
+            <p class="font-medium text-gray-400">1. Personal Access Token 생성</p>
+            <p class="pl-3">Figma 좌상단 계정 메뉴 → <strong>Settings</strong> → <strong>Security</strong> 탭</p>
+            <p class="pl-3">Personal access tokens 섹션 → <strong>Generate new token</strong></p>
+            <p class="pl-3">이름 입력 (예: marketing-hub) → Enter</p>
+            <p class="pl-3 text-yellow-500">⚠ 토큰은 생성 직후에만 표시됨 — 즉시 복사!</p>
+            <p class="font-medium text-gray-400">2. 카드뉴스 파일 준비</p>
+            <p class="pl-3">Figma에서 새 파일 생성 (예: "Card News Templates")</p>
+            <p class="pl-3">1080×1350px 프레임 생성 (Instagram 4:5)</p>
+            <p class="pl-3">파일 URL 복사 (예: figma.com/design/xxxxxxx/...)</p>
+            <p class="font-medium text-gray-400">3. MCP 서버 (선택)</p>
+            <p class="pl-3">AI가 Figma에 직접 디자인을 생성하려면 MCP 서버 필요:</p>
+            <p class="pl-3"><code class="bg-gray-800 px-1 rounded">npx @anthropic-ai/figma-mcp-server</code></p>
+            <p class="pl-3"><a href="https://developers.figma.com/docs/figma-mcp-server/" target="_blank" class="text-blue-400 hover:underline">Figma MCP Docs</a></p>
           </div>
         </details>
         <p class="text-[10px] text-yellow-500">연동 준비 중</p>
