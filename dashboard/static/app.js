@@ -1087,7 +1087,8 @@ function renderInstagramPost(p) {
       ${!isEditing ? `
         <div class="flex gap-2 pt-2 border-t border-gray-800/50">
           ${p.status === "draft" ? `<button data-approve="${p.id}" class="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>` : ""}
-          ${p.status === "draft" || p.status === "approved" ? `<button data-edit="${p.id}" class="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button>` : ""}
+          ${p.status === "draft" || p.status === "approved" ? `<button data-edit="${p.id}" class="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit Caption</button>` : ""}
+          ${isCard && (p.status === "draft" || p.status === "approved") ? `<button data-edit-card="${p.id}" class="px-3 py-1.5 text-xs bg-purple-700 text-white rounded hover:bg-purple-600">Edit Slides</button>` : ""}
           ${p.status === "draft" ? `<button data-delete="${p.id}" class="px-3 py-1.5 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">Delete</button>` : ""}
           ${!p.imageUrl && (p.status === "draft" || p.status === "approved") ? `<button data-pick-image="${p.id}" class="px-3 py-1.5 text-xs bg-purple-700 text-white rounded hover:bg-purple-600">Add Image</button>` : ""}
         </div>
@@ -1118,7 +1119,7 @@ function renderCardNewsEditor() {
             <div>
               <label class="text-[10px] text-gray-500 block mb-1">스타일</label>
               <div class="flex gap-2">
-                ${["dark", "light", "gradient"].map(s => `<button data-card-style="${s}" class="px-3 py-1.5 text-xs rounded ${ed.style === s ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}">${s}</button>`).join("")}
+                ${["dark", "light", "gradient", "tech", "warm"].map(s => `<button data-card-style="${s}" class="px-3 py-1.5 text-xs rounded ${ed.style === s ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}">${s}</button>`).join("")}
               </div>
             </div>
             <div>
@@ -1790,6 +1791,28 @@ function bindEvents() {
     if (r?.ok) { showToast("R2 Storage 설정 저장됨", "success"); loadR2Config(); }
     else showToast(r?.error || "저장 실패", "error");
   };
+
+  // Edit Slides — load card into Create tab
+  document.querySelectorAll("[data-edit-card]").forEach(el => {
+    el.onclick = () => {
+      const postId = el.dataset.editCard;
+      const post = (S.queue || []).find(p => p.id === postId);
+      if (!post) return;
+      S.cardEditor = {
+        title: post.topic?.replace("instagram-card", "").trim() || "",
+        slides: [""], // will be loaded from images
+        style: "dark",
+        ending: "",
+        caption: post.text || "",
+        hashtags: (post.hashtags || []).map(h => "#" + h).join(" "),
+        generating: false,
+        result: post.imageUrls ? { slides: post.imageUrls, batchId: post.cardBatchId, totalSlides: post.imageUrls.length } : null,
+        editingPostId: postId,
+      };
+      S.subTab = "create";
+      render();
+    };
+  });
 
   // Card News Editor — AI Outline
   const aiOutlineBtn = document.getElementById("card-ai-outline");

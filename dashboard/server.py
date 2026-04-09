@@ -639,7 +639,7 @@ def api_queue_add():
         "approvedAt": None, "scheduledAt": None, "publishedAt": None,
         "threadsMediaId": None, "error": None,
         "abVariant": "A", "model": "manual",
-        "imageUrl": data.get("imageUrl"),
+        "imageUrl": data.get("imageUrl") or (data.get("imageUrls") or [None])[0],
         "imageUrls": data.get("imageUrls"),
         "cardBatchId": data.get("cardBatchId"),
         "engagement": None,
