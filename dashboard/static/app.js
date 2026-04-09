@@ -1522,25 +1522,31 @@ function renderSettingsDesign() {
         </div>
 
         <div class="mb-3">
-          <ol class="text-[10px] text-gray-400 space-y-1 list-decimal list-inside">
-            <li><a href="https://www.canva.com/developers/" target="_blank" class="text-blue-400 hover:underline">canva.com/developers</a> → Your integrations → Create an integration</li>
-            <li>Configuration 탭 → Client ID 메모 + Generate secret → Secret 복사</li>
-            <li>Scopes 탭 → design:content, asset read/write 활성화</li>
-            <li>아래 폼에 입력 후 Connect</li>
+          <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
+            <li><a href="https://www.canva.com/developers/" target="_blank" class="text-blue-400 hover:underline">canva.com/developers</a> 접속 → 로그인</li>
+            <li>좌측 메뉴 <strong class="text-gray-300">Your integrations</strong> 클릭</li>
+            <li><strong class="text-gray-300">Create an integration</strong> 버튼 → 이름 입력 (예: marketing-hub) → Type: Private 선택 → 약관 동의 체크 → <strong class="text-gray-300">Create integration</strong></li>
+            <li>생성된 앱 페이지에서 <strong class="text-gray-300">Client ID</strong> 값 복사</li>
+            <li><strong class="text-gray-300">Generate secret</strong> 버튼 클릭 → 표시된 Secret 즉시 복사 (페이지 벗어나면 재확인 불가)</li>
+            <li>아래 폼에 Client ID + Secret 입력 → Connect</li>
           </ol>
           <details class="mt-2 text-[10px]">
             <summary class="text-blue-400 hover:text-blue-300 cursor-pointer">더 알아보기</summary>
             <div class="mt-2 p-3 rounded bg-gray-900/50 text-gray-500 space-y-1.5">
               <p>Canva Connect API로 에셋 업로드 → 템플릿 기반 디자인 생성 → 편집 → Export PNG 플로우를 자동화합니다.</p>
+              <p class="font-medium text-gray-400 mt-2">Scopes 설정 (앱 페이지 > Scopes 탭)</p>
+              <p>체크할 항목:</p>
+              <p class="pl-2">✅ <code class="bg-gray-800 px-1 rounded">design:content</code> Read and Write — 디자인 생성/수정</p>
+              <p class="pl-2">✅ <code class="bg-gray-800 px-1 rounded">design:meta</code> Read — 디자인 메타데이터</p>
+              <p class="pl-2">✅ <code class="bg-gray-800 px-1 rounded">asset</code> Read and Write — 이미지 업로드</p>
+              <p class="pl-2">✅ <code class="bg-gray-800 px-1 rounded">brandtemplate:meta</code> Read</p>
+              <p class="pl-2">✅ <code class="bg-gray-800 px-1 rounded">brandtemplate:content</code> Read</p>
+              <p class="pl-2">✅ <code class="bg-gray-800 px-1 rounded">profile</code> Read</p>
+              <p class="font-medium text-gray-400 mt-2">OAuth Redirect URL (앱 페이지 > Authentication 탭)</p>
+              <p>URL 1 필드에 입력: <code class="bg-gray-800 px-1 rounded">https://대시보드주소/api/canva/callback</code></p>
+              <p>Return navigation 스위치 ON → Return URL도 동일하게 설정</p>
               <p class="font-medium text-gray-400 mt-2">앱 유형</p>
-              <p>Private: 팀 전용. Public: 모든 Canva 유저 사용 가능.</p>
-              <p class="font-medium text-gray-400 mt-2">필요 Scopes</p>
-              <p><code class="bg-gray-800 px-1 rounded">design:content:read</code> <code class="bg-gray-800 px-1 rounded">design:content:write</code> — 디자인 생성/수정</p>
-              <p><code class="bg-gray-800 px-1 rounded">asset:read</code> <code class="bg-gray-800 px-1 rounded">asset:write</code> — 이미지 업로드</p>
-              <p><code class="bg-gray-800 px-1 rounded">design:meta:read</code> <code class="bg-gray-800 px-1 rounded">profile:read</code> — 메타데이터</p>
-              <p class="font-medium text-gray-400 mt-2">OAuth Redirect URL</p>
-              <p>Authentication 탭에서 설정: <code class="bg-gray-800 px-1 rounded">https://your-dashboard/api/canva/callback</code></p>
-              <p class="text-yellow-500 mt-2">⚠ Secret은 생성 시 한 번만 표시됨</p>
+              <p>Private: 내 팀만 사용. Public: Canva 마켓플레이스에 공개 (심사 필요).</p>
             </div>
           </details>
         </div>
@@ -1569,25 +1575,28 @@ function renderSettingsDesign() {
         </div>
 
         <div class="mb-3">
-          <ol class="text-[10px] text-gray-400 space-y-1 list-decimal list-inside">
-            <li>Figma 좌상단 계정 메뉴 → Settings → Security 탭</li>
-            <li>Personal access tokens → Generate new token → 이름 입력 → Enter</li>
-            <li>토큰 즉시 복사 (페이지 벗어나면 다시 볼 수 없음)</li>
-            <li>아래 폼에 입력 후 Connect</li>
+          <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
+            <li><a href="https://www.figma.com" target="_blank" class="text-blue-400 hover:underline">figma.com</a> 접속 → 로그인 → 좌상단 계정 아이콘 클릭 → <strong class="text-gray-300">Settings</strong></li>
+            <li>Settings 페이지에서 <strong class="text-gray-300">Security</strong> 탭 클릭</li>
+            <li>아래로 스크롤 → <strong class="text-gray-300">Personal access tokens</strong> 섹션 → <strong class="text-gray-300">Generate new token</strong> 클릭</li>
+            <li>토큰 이름 입력 (예: marketing-hub) → Enter → 표시된 토큰 <strong class="text-red-400">즉시 복사</strong> (페이지 벗어나면 다시 볼 수 없음)</li>
+            <li>아래 폼에 토큰 입력 → Connect</li>
           </ol>
           <details class="mt-2 text-[10px]">
             <summary class="text-blue-400 hover:text-blue-300 cursor-pointer">더 알아보기</summary>
             <div class="mt-2 p-3 rounded bg-gray-900/50 text-gray-500 space-y-1.5">
-              <p>Figma MCP로 AI가 프레임/텍스트/이미지를 직접 생성하고, REST API로 편집 결과를 PNG Export합니다.</p>
-              <p class="font-medium text-gray-400 mt-2">Personal Access Token</p>
-              <p>토큰 하나로 Figma 계정의 모든 파일에 접근 가능. 신뢰할 수 있는 환경에서만 사용.</p>
-              <p class="font-medium text-gray-400 mt-2">카드뉴스 파일</p>
-              <p>Figma에서 새 파일 생성 → 1080×1350px 프레임 (Instagram 4:5) → URL 복사</p>
-              <p class="font-medium text-gray-400 mt-2">MCP 서버 (선택)</p>
-              <p>AI가 Figma에 직접 디자인을 생성하려면 필요:</p>
-              <p><code class="bg-gray-800 px-1 rounded">npx @anthropic-ai/figma-mcp-server</code></p>
-              <p><a href="https://developers.figma.com/docs/figma-mcp-server/" target="_blank" class="text-blue-400 hover:underline">Figma MCP Docs</a></p>
-              <p class="text-yellow-500 mt-2">⚠ 토큰은 생성 직후에만 표시됨</p>
+              <p>Figma REST API로 디자인을 PNG Export하고, MCP 서버로 AI가 직접 Figma 캔버스에 디자인을 생성합니다.</p>
+              <p class="font-medium text-gray-400 mt-2">Personal Access Token 주의</p>
+              <p>토큰 하나로 Figma 계정의 <strong>모든 파일</strong>에 접근 가능합니다. 신뢰할 수 있는 환경에서만 사용하세요. 통합당 토큰 1개씩 생성 권장.</p>
+              <p class="font-medium text-gray-400 mt-2">카드뉴스 파일 준비 (선택)</p>
+              <p>Figma에서 새 디자인 파일 생성 → Frame tool(F)로 1080×1350px 프레임 추가 → 브랜드 컬러/로고 배치 → 파일 URL 복사하여 위 폼에 입력</p>
+              <p class="font-medium text-gray-400 mt-2">Figma MCP 서버 (선택 — AI 자동 생성용)</p>
+              <p>AI가 Figma에 직접 프레임/텍스트/이미지를 생성하려면 MCP 서버가 필요합니다.</p>
+              <p>설치: Remote MCP 서버 (권장) — Figma가 호스팅, 별도 설치 불필요</p>
+              <p>또는 로컬: <code class="bg-gray-800 px-1 rounded">npx @anthropic-ai/figma-mcp-server</code> (Figma 데스크톱 앱 필요)</p>
+              <p><a href="https://developers.figma.com/docs/figma-mcp-server/" target="_blank" class="text-blue-400 hover:underline">Figma MCP Server Docs →</a></p>
+              <p class="font-medium text-gray-400 mt-2">사용 흐름</p>
+              <p>1. 카드뉴스 초안 생성 (대시보드) → 2. "Figma에서 편집" 클릭 → 3. Figma에서 리터치 → 4. "편집본 가져오기" → 5. 발행</p>
             </div>
           </details>
         </div>
