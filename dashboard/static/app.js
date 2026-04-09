@@ -2165,76 +2165,9 @@ function renderImages() {
       <span class="text-[10px] px-2 py-1 rounded ${r2Connected ? "bg-green-900/40 text-green-400" : "bg-yellow-900/40 text-yellow-400"}">${r2Connected ? "R2 Connected" : "R2 Not configured"}</span>
     </div>
 
-    <!-- R2 Storage Settings -->
-    <div class="card p-5 mb-6">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-sm font-medium text-gray-300">Cloud Storage (Cloudflare R2)</h3>
-        ${r2Connected ? `<span class="text-[10px] text-green-400">Bucket: ${esc(r2.bucket || "")}</span>` : ""}
-      </div>
-      <details class="mb-3">
-        <summary class="text-[10px] text-blue-400 hover:text-blue-300 cursor-pointer">Setup Guide — R2 설정 전체 가이드</summary>
-        <div class="mt-2 p-3 rounded bg-gray-900/50 text-[10px] text-gray-500 space-y-2">
-          <p class="font-medium text-gray-300">Step 1. 버킷 생성</p>
-          <p class="pl-3">dash.cloudflare.com > R2 Object Storage > Create bucket</p>
-          <p class="pl-3">이름 입력 (예: marketing-images) > Create bucket</p>
-
-          <p class="font-medium text-gray-300">Step 2. 퍼블릭 액세스 활성화</p>
-          <p class="pl-3">생성된 버킷 클릭 > <strong>Settings</strong> 탭</p>
-          <p class="pl-3"><strong>Public Development URL</strong> 항목에서 <strong>Enable</strong> 클릭</p>
-          <p class="pl-3">확인창에 <code class="bg-gray-800 px-1 rounded">allow</code> 입력 > Allow</p>
-          <p class="pl-3">활성화 후 표시되는 URL이 <strong>Public URL</strong>입니다 (예: https://pub-xxx.r2.dev)</p>
-          <p class="pl-3 text-yellow-500">⚠ r2.dev는 개발용 (rate limit 있음). 프로덕션은 커스텀 도메인 연결 권장</p>
-
-          <p class="font-medium text-gray-300">Step 3. API 토큰 생성</p>
-          <p class="pl-3">R2 Overview 페이지 우측 <strong>Account Details</strong></p>
-          <p class="pl-3">S3 API 옆 <strong>Manage</strong> 클릭</p>
-          <p class="pl-3"><strong>Create Account API token</strong> 클릭 (User API token도 가능)</p>
-          <p class="pl-3 text-gray-400">- Token name: 아무 이름 (예: marketing-hub)</p>
-          <p class="pl-3 text-gray-400">- Permissions: <strong>Object Read & Write</strong> 선택</p>
-          <p class="pl-3 text-gray-400">- Specify bucket(s): 위에서 만든 버킷 선택</p>
-          <p class="pl-3 text-gray-400">- TTL: 기본값 (무기한) 유지</p>
-          <p class="pl-3 text-gray-400">- Client IP Address Filtering: 비워두기 (제한 없음)</p>
-          <p class="pl-3 text-gray-400">- <strong>Create API Token</strong> 클릭</p>
-
-          <p class="font-medium text-gray-300">Step 4. 값 복사 (이 화면을 벗어나면 Secret을 다시 볼 수 없음!)</p>
-          <p class="pl-3">- <strong>Access Key ID</strong>: 표시된 값 복사 → 아래 폼에 입력</p>
-          <p class="pl-3">- <strong>Secret Access Key</strong>: 표시된 값 복사 → 아래 폼에 입력</p>
-
-          <p class="font-medium text-gray-300">Step 5. S3 Endpoint 확인</p>
-          <p class="pl-3">R2 Overview > Account Details에 표시된 S3 API 주소</p>
-          <p class="pl-3">형식: <code class="bg-gray-800 px-1 rounded">https://&lt;account-id&gt;.r2.cloudflarestorage.com</code></p>
-
-          <p class="font-medium text-gray-300">아래 폼에 입력할 값 정리</p>
-          <div class="pl-3 mt-1 p-2 rounded bg-gray-800/50 space-y-0.5">
-            <p><strong>Access Key ID</strong>: Step 4에서 복사한 값</p>
-            <p><strong>Secret Access Key</strong>: Step 4에서 복사한 값</p>
-            <p><strong>Bucket Name</strong>: Step 1에서 만든 버킷 이름</p>
-            <p><strong>S3 Endpoint</strong>: Step 5의 https://xxx.r2.cloudflarestorage.com</p>
-            <p><strong>Public URL</strong>: Step 2에서 활성화 후 표시된 https://pub-xxx.r2.dev</p>
-          </div>
-        </div>
-      </details>
-      ${(() => {
-        const editing = S.editingChannel === "r2";
-        const editable = editing || !r2Connected;
-        return `
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-[10px] text-gray-500">Credentials</span>
-          ${r2Connected && !editing ? '<button id="edit-r2" class="text-[10px] text-blue-400 hover:text-blue-300">Edit Credentials</button>' : ""}
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          ${credField("r2-access-key", "Access Key ID", "", false, r2.accessKeyId || "", editable)}
-          ${credField("r2-secret-key", "Secret Access Key", "", true, r2.secretAccessKey || "", editable)}
-          ${credField("r2-bucket", "Bucket Name", "", false, r2.bucket || "", editable)}
-          ${credField("r2-endpoint", "S3 Endpoint", "https://<account-id>.r2.cloudflarestorage.com", false, r2.endpoint || "", editable)}
-          ${credField("r2-public-url", "Public URL", "https://your-bucket.r2.dev", false, r2.publicUrl || "", editable)}
-        </div>
-        ${editable ? '<div class="flex gap-2 mt-4">' +
-          '<button id="save-r2-config" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">' + (r2Connected ? "Update" : "Connect") + '</button>' +
-          (r2Connected && editing ? '<button id="cancel-edit-r2" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>' : "") +
-          '</div>' : ""}`;
-      })()}
-    </div>
+    ${!r2Connected ? `<div class="card p-4 mb-6 border-yellow-800/30 bg-yellow-900/10">
+      <p class="text-[10px] text-yellow-400">R2 Storage 미설정 — 이미지 발행이 안 됩니다. <a data-nav="settings" class="text-blue-400 hover:underline cursor-pointer">Settings > Storage</a>에서 설정하세요.</p>
+    </div>` : ""}
     ${S.images.length === 0 ? `
       <div class="card p-12 text-center">
         <svg class="w-12 h-12 text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
