@@ -276,7 +276,6 @@ function render() {
   else if (S.page === "google-trends") app.innerHTML = renderGoogleTrends();
   else if (S.page === "blog-edit") app.innerHTML = renderBlogEditor();
   else if (S.page === "blog") app.innerHTML = renderBlog();
-  else if (S.page === "zeroone_community") app.innerHTML = renderZeroOneCommunity();
   else if (CH_LABELS[S.page]) app.innerHTML = renderGenericChannel(S.page);
   else if (S.page === "settings") app.innerHTML = renderSettings();
   bindEvents();
@@ -288,7 +287,7 @@ function render() {
   }
 }
 
-const CH_LABELS = { instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", bluesky: "Bluesky", pinterest: "Pinterest", tumblr: "Tumblr", tiktok: "TikTok", youtube: "YouTube", telegram: "Telegram", discord: "Discord", slack: "Slack", line: "LINE", naver_blog: "Naver Blog", midjourney: "Midjourney", zeroone_community: "ZeroOne Community" };
+const CH_LABELS = { instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", bluesky: "Bluesky", pinterest: "Pinterest", tumblr: "Tumblr", tiktok: "TikTok", youtube: "YouTube", telegram: "Telegram", discord: "Discord", slack: "Slack", line: "LINE", naver_blog: "Naver Blog", midjourney: "Midjourney" };
 const CH_STATUS_BADGE = { live: "bg-green-900/50 text-green-400", connected: "bg-blue-900/50 text-blue-400", available: "", soon: "" };
 const CH_STATUS_LABEL = { live: "Live", connected: "Connected", available: "", soon: "" };
 
@@ -401,8 +400,7 @@ function renderSidebar() {
         ])}
 
         ${sidebarGroup("custom", "Custom Integration", [
-          { key: "blog", label: "Blog", icon: "B", nav: true },
-          { key: "zeroone_community", label: "ZeroOne Community", icon: "Z", nav: true },
+          { key: "blog", label: "D-Edu Blog", icon: "B", nav: true },
           { label: "Custom API", icon: "+", soon: true },
           { label: "RSS Feed", icon: "R", soon: true },
         ])}
@@ -1956,7 +1954,6 @@ function navigate(page) {
   else if (page === "naver-trends") { loadNaverDatalabConfig(); render(); }
   else if (page === "google-trends") render();
   else if (page === "blog") { loadBlogQueue(); loadOverview(); loadBlogGuide(); loadBlogKeywords(); }
-  else if (page === "zeroone_community") { /* manual load via button */ }
   else if (CH_LABELS[page]) { loadOverview(); loadChannelGuideAndKeywords(); if (page === "slack") loadSlackTemplate(); }
   else if (page === "settings") { loadSettings(); loadKeywords(); loadLlmConfig(); loadOverview(); loadNotifSettings(); loadTenantAndChat(); }
   render();
