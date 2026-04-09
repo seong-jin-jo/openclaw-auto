@@ -1615,7 +1615,6 @@ function renderSettingsDesign() {
         </div>
         <div class="space-y-3">
           ${credField("figma-token", "Personal Access Token", "", true, figma.accessToken || "", figmaEditable)}
-          ${credField("figma-file-url", "Card News File URL (선택)", "figma.com/design/xxx/...", false, figma.fileUrl || "", figmaEditable)}
         </div>
         ${figmaEditable ? `<div class="flex gap-2 mt-4">
           <button id="save-figma" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${figmaConnected ? "Update" : "Connect"}</button>
