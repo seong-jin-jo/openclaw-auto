@@ -159,6 +159,10 @@ const S = {
   tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
   sidebarCollapsed: { data: false, research: false }, showDetail: null, editingChannel: null, slackTemplate: "", slackReportPreview: "", keywordBank: [],
+  gscAnalytics: null, gscDays: 28, gscDimension: "query", gaAnalytics: null, gaDays: 28, gaConfigured: false, gaPropertyId: "", gaEditing: false,
+  blogStats: null, blogDetailId: null, blogEditing: false, blogGuide: "", blogKeywords: [],
+  gscConfig: null, gscEditing: false, nsaData: null, kwResearch: null, naverTrend: null, googleTrend: null,
+  kwPlannerConfigured: false, kwPlannerEditing: false, naverDatalabConfigured: false, naverDatalabEditing: false,
   channelGuide: null, channelKeywords: null, notificationSettings: null, tenantInfo: null, chatChannels: null, communityPosts: [], r2Config: null,
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null, expandedPopular: null,
@@ -3212,6 +3216,32 @@ function renderBlog() {
         <p class="text-[10px] text-gray-500 mt-2 border-t border-gray-800 pt-2">Settings에서 Content Generation / Auto Publish 토글로 자동화를 끄고 켤 수 있습니다. Content Guide에서 타겟, 톤, 주제를 수정하세요.</p>
       </div>
     </details>
+
+    ${S.keywordBank?.filter(k => !k.used).length ? `
+    <div class="card p-4 mb-4 border-l-2 border-purple-600">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm font-medium text-gray-300">추천 키워드</span>
+        <button data-nav="keyword-planner" class="text-[10px] text-blue-400 hover:text-blue-300">더 많은 키워드 찾기 →</button>
+      </div>
+      <p class="text-[10px] text-gray-500 mb-2">Keyword Research에서 수집된 키워드입니다. 이 키워드로 글을 작성하면 검색 유입이 늘어납니다.</p>
+      <div class="flex flex-wrap gap-1.5">
+        ${S.keywordBank.filter(k => !k.used).slice(0, 10).map(k => `
+          <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] border border-purple-800/30 bg-purple-900/20 text-purple-300">
+            ${esc(k.keyword)}
+            ${k.totalSearches ? `<span class="text-gray-500">${k.totalSearches >= 1000 ? Math.round(k.totalSearches/1000) + "K" : k.totalSearches}</span>` : ""}
+            ${k.competition ? `<span class="text-gray-600">${k.competition}</span>` : ""}
+          </span>
+        `).join("")}
+      </div>
+    </div>
+    ` : `
+    <div class="card p-4 mb-4 border-l-2 border-gray-700">
+      <div class="flex items-center justify-between">
+        <p class="text-[10px] text-gray-500">아직 수집된 키워드가 없습니다. Keyword Research에서 검색량이 높은 키워드를 찾아보세요.</p>
+        <button data-nav="keyword-planner" class="text-[10px] text-blue-400 hover:text-blue-300 whitespace-nowrap">키워드 찾기 →</button>
+      </div>
+    </div>
+    `}
 
     <h3 class="text-sm font-medium text-gray-400 mb-3">Queue</h3>
     ${posts.length === 0 ? `<div class="card p-8 text-center"><p class="text-gray-500 text-sm">블로그 글이 없습니다.</p></div>` : ""}
