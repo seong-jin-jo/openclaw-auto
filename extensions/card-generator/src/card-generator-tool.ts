@@ -19,8 +19,8 @@ const STYLES: Record<Style, { bg: string | string[]; text: string; accent: strin
   dark: { bg: "#0f0f0f", text: "#f5f5f5", accent: "#6366f1", sub: "#9ca3af", badge: "#1e1b4b" },
   light: { bg: "#fafafa", text: "#1a1a1a", accent: "#4f46e5", sub: "#6b7280", badge: "#eef2ff" },
   gradient: { bg: ["#1e1b4b", "#312e81"], text: "#f5f5f5", accent: "#a5b4fc", sub: "#c7d2fe", badge: "#312e81" },
-  tech: { bg: ["#0c0a09", "#1c1917"], text: "#fafaf9", accent: "#22d3ee", sub: "#a8a29e", badge: "#164e63" },
-  warm: { bg: ["#1a1a2e", "#16213e"], text: "#f8fafc", accent: "#f59e0b", sub: "#94a3b8", badge: "#78350f" },
+  tech: { bg: ["#0a1628", "#162033"], text: "#f0f4f8", accent: "#38bdf8", sub: "#94a3b8", badge: "#0c4a6e" },
+  warm: { bg: ["#1e1225", "#2a1f30"], text: "#faf5ff", accent: "#f59e0b", sub: "#a8a29e", badge: "#78350f" },
 };
 
 function drawBackground(ctx: CanvasRenderingContext2D, style: Style) {
@@ -122,22 +122,27 @@ function renderSlide(
   const CX = WIDTH / 2; // center x
 
   if (isTitle) {
-    // Badge — centered
+    // Measure total block height: badge(36) + gap(40) + title + gap(30) + line(4) + gap(30) + subtitle(28)
+    ctx.font = `bold 52px ${FONT_FAMILY}`;
+    const titleLines = wrapText(ctx, title, WIDTH - PADDING * 2, 68);
+    const titleH = titleLines.length * 68;
+    const totalBlock = 36 + 40 + titleH + 30 + 4 + 30 + 28;
+    const blockStart = SAFE_TOP + (CONTENT_HEIGHT - totalBlock) / 2;
+
+    // Badge
     const badgeW = 160;
     ctx.fillStyle = s.badge;
-    drawRoundRect(ctx, CX - badgeW / 2, SAFE_TOP + CONTENT_HEIGHT * 0.15, badgeW, 36, 18);
+    drawRoundRect(ctx, CX - badgeW / 2, blockStart, badgeW, 36, 18);
     ctx.fill();
     ctx.fillStyle = s.accent;
     ctx.font = `bold 18px ${FONT_FAMILY}`;
     ctx.textAlign = "center";
-    ctx.fillText("CARD NEWS", CX, SAFE_TOP + CONTENT_HEIGHT * 0.15 + 24);
+    ctx.fillText("CARD NEWS", CX, blockStart + 24);
 
-    // Title — vertically centered
+    // Title
     ctx.fillStyle = s.text;
     ctx.font = `bold 52px ${FONT_FAMILY}`;
-    const titleLines = wrapText(ctx, title, WIDTH - PADDING * 2, 68);
-    const titleBlockH = titleLines.length * 68;
-    let y = SAFE_TOP + CONTENT_HEIGHT * 0.35;
+    let y = blockStart + 36 + 40 + 52;
     for (const line of titleLines) {
       ctx.fillText(line, CX, y);
       y += 68;
@@ -145,12 +150,12 @@ function renderSlide(
 
     // Accent line
     ctx.fillStyle = s.accent;
-    ctx.fillRect(CX - 40, y + 16, 80, 4);
+    ctx.fillRect(CX - 40, y + 10, 80, 4);
 
     // Subtitle
     ctx.fillStyle = s.sub;
     ctx.font = `28px ${FONT_FAMILY}`;
-    ctx.fillText(body || "스와이프하여 확인하세요 →", CX, y + 64);
+    ctx.fillText(body || "스와이프하여 확인하세요 →", CX, y + 50);
     ctx.textAlign = "left";
 
     drawFooter();
