@@ -159,7 +159,7 @@ const S = {
   tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
   sidebarCollapsed: {}, showDetail: null, editingChannel: null,
-  channelGuide: null, channelKeywords: null, notificationSettings: null, tenantInfo: null, chatChannels: null, communityPosts: [], r2Config: null,
+  channelGuide: null, channelKeywords: null, notificationSettings: null, tenantInfo: null, chatChannels: null, communityPosts: [], r2Config: null, designTools: null,
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null, expandedPopular: null,
 };
@@ -1164,9 +1164,13 @@ function renderCardNewsEditor() {
             `).join("")}
           </div>
           <p class="text-[10px] text-gray-500 mb-4">${result.totalSlides} slides · batch: ${result.batchId}</p>
-          <div class="flex gap-2">
+          <div class="flex gap-2 mb-3">
             <button id="card-save-draft" class="flex-1 py-2 bg-green-700 text-white text-sm rounded hover:bg-green-600">큐에 Draft 저장</button>
             <button id="card-regenerate" class="px-4 py-2 bg-gray-700 text-gray-300 text-sm rounded hover:bg-gray-600">재생성</button>
+          </div>
+          <div class="flex gap-2">
+            <button disabled class="flex-1 py-2 bg-[#00C4CC]/20 text-[#00C4CC] text-xs rounded border border-[#00C4CC]/30 opacity-60 cursor-not-allowed">Canva에서 편집 (준비 중)</button>
+            <button disabled class="flex-1 py-2 bg-white/5 text-gray-400 text-xs rounded border border-gray-700 opacity-60 cursor-not-allowed">Figma에서 편집 (준비 중)</button>
           </div>
         ` : `
           <div class="flex items-center justify-center h-64 text-gray-600">
@@ -1416,6 +1420,34 @@ function renderSettings() {
               <button id="btn-change-pw" class="px-4 py-2 text-xs bg-gray-800 text-gray-300 rounded hover:bg-gray-700">Change Token</button>
             </div>
           ` : `<p class="text-[10px] text-gray-600 mt-3">DASHBOARD_AUTH_TOKEN 환경변수 설정 시 로그인 활성화</p>`}
+        </div>
+        <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-3">Design Tools</h3>
+          <p class="text-[10px] text-gray-600 mb-3">카드뉴스 리터치용 디자인 툴 연동. 연결하면 Create 탭에서 "편집" 버튼 활성화.</p>
+          <div class="space-y-3">
+            <div class="p-3 rounded bg-gray-900/50">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="w-5 h-5 rounded bg-[#00C4CC] flex items-center justify-center text-[8px] font-bold text-white">C</span>
+                  <span class="text-xs text-gray-300">Canva</span>
+                </div>
+                <span class="text-[10px] ${S.designTools?.canva ? "text-green-400" : "text-gray-600"}">${S.designTools?.canva ? "Connected" : ""}</span>
+              </div>
+              <p class="text-[10px] text-gray-500">Canva Connect API — OAuth 연동 필요. <a href="https://www.canva.dev/docs/connect/" target="_blank" class="text-blue-400 hover:underline">Developer Docs</a></p>
+              <p class="text-[10px] text-yellow-500 mt-1">준비 중</p>
+            </div>
+            <div class="p-3 rounded bg-gray-900/50">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="w-5 h-5 rounded bg-black flex items-center justify-center text-[10px] font-bold text-white">F</span>
+                  <span class="text-xs text-gray-300">Figma</span>
+                </div>
+                <span class="text-[10px] ${S.designTools?.figma ? "text-green-400" : "text-gray-600"}">${S.designTools?.figma ? "Connected" : ""}</span>
+              </div>
+              <p class="text-[10px] text-gray-500">Figma MCP + REST API — Personal Access Token 필요. <a href="https://developers.figma.com/docs/figma-mcp-server/" target="_blank" class="text-blue-400 hover:underline">MCP Docs</a></p>
+              <p class="text-[10px] text-yellow-500 mt-1">준비 중</p>
+            </div>
+          </div>
         </div>
         <div class="card p-5">
           <h3 class="text-sm font-medium text-gray-300 mb-3">Interactive Chat</h3>
