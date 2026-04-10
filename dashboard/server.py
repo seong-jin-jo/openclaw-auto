@@ -343,9 +343,119 @@ def api_design_tools_canva():
 def api_design_tools_figma():
     body = get_json_body()
     data = read_json(DESIGN_TOOLS_PATH) or {}
-    data["figma"] = {"accessToken": body.get("accessToken", ""), "fileUrl": body.get("fileUrl", "")}
+    existing = data.get("figma", {})
+    data["figma"] = {
+        "accessToken": body.get("accessToken", existing.get("accessToken", "")),
+        "mcpEnabled": existing.get("mcpEnabled", False),
+    }
     write_json(DESIGN_TOOLS_PATH, data)
     return jsonify({"ok": True})
+
+
+@app.route("/api/design-tools/figma-mcp", methods=["POST"])
+def api_design_tools_figma_mcp():
+    """Toggle Figma MCP server in openclaw.json."""
+    body = get_json_body()
+    enabled = body.get("enabled", False)
+
+    # Update design-tools.json
+    dt = read_json(DESIGN_TOOLS_PATH) or {}
+    if "figma" not in dt:
+        dt["figma"] = {}
+    dt["figma"]["mcpEnabled"] = enabled
+    write_json(DESIGN_TOOLS_PATH, dt)
+
+    # Update openclaw.json mcp.servers
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path) or {}
+    if "mcp" not in config:
+        config["mcp"] = {}
+    if "servers" not in config["mcp"]:
+        config["mcp"]["servers"] = {}
+
+    if enabled:
+        config["mcp"]["servers"]["figma"] = {
+            "url": "https://mcp.figma.com/mcp",
+            "transport": "streamable-http",
+        }
+    else:
+        config["mcp"]["servers"].pop("figma", None)
+
+    write_json(config_path, config)
+    logger.info("Figma MCP %s", "enabled" if enabled else "disabled")
+    return jsonify({"ok": True, "mcpEnabled": enabled})
+
+
+# ── Figma MCP ──
+@app.route("/api/figma/create-slides", methods=["POST"])
+def api_figma_create_slides():
+    """Use gateway agent + Figma MCP to create card slides in Figma."""
+    import subprocess
+    data = get_json_body()
+    title = data.get("title", "")
+    slides = data.get("slides", [])
+    style = data.get("style", "dark")
+
+    slides_text = "\n".join([f"슬라이드 {i+1}: {s}" for i, s in enumerate(slides)])
+    msg = f"""Figma MCP 서버를 사용하여 카드뉴스를 생성하라:
+
+제목: {title}
+스타일: {style}
+{slides_text}
+
+1. 새 Figma 페이지 또는 기존 파일에 1080x1350px 프레임을 슬라이드 수만큼 생성
+2. 각 프레임에 배경색 적용 (dark=#0f0f0f, tech=#0a1628, gradient=#1e1b4b)
+3. 첫 프레임: "CARD NEWS" 뱃지 + 제목 텍스트 (볼드 52px)
+4. 중간 프레임: 넘버 + 본문 텍스트 (34px) 중앙 정렬
+5. 마지막 프레임: CTA 텍스트 + "@code_zero_to_one"
+6. 생성 완료 후 Figma 파일 URL을 출력하라."""
+
+    try:
+        result = subprocess.run(
+            ["docker", "exec", "marketing-ai-openclaw-gateway-1",
+             "node", "dist/index.js", "agent", "--agent", "main", "--message", msg],
+            capture_output=True, text=True, timeout=120,
+        )
+        output = result.stdout.strip()
+        # Try to find Figma URL in output
+        import re
+        url_match = re.search(r'https://www\.figma\.com/\S+', output)
+        return jsonify({
+            "success": True,
+            "figmaUrl": url_match.group(0) if url_match else None,
+            "output": output[-300:],
+        })
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "Figma 생성 타임아웃"}), 504
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/figma/export", methods=["POST"])
+def api_figma_export():
+    """Export PNG from Figma file using REST API."""
+    import urllib.request
+    data = get_json_body()
+    file_key = data.get("fileKey", "")
+    node_ids = data.get("nodeIds", "")  # comma-separated
+
+    dt = read_json(DESIGN_TOOLS_PATH) or {}
+    token = dt.get("figma", {}).get("accessToken", "")
+    if not token:
+        return jsonify({"error": "Figma token not set"}), 400
+    if not file_key:
+        return jsonify({"error": "fileKey required"}), 400
+
+    try:
+        url = f"https://api.figma.com/v1/images/{file_key}?format=png&scale=2"
+        if node_ids:
+            url += f"&ids={node_ids}"
+        req = urllib.request.Request(url, headers={"X-Figma-Token": token})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = json.loads(resp.read())
+            return jsonify({"success": True, "images": result.get("images", {})})
+    except Exception as e:
+        return jsonify({"error": str(e)[:200]}), 500
 
 
 # ── Card News ──

@@ -1176,9 +1176,10 @@ function renderCardNewsEditor() {
             <button id="card-save-draft" class="flex-1 py-2 bg-green-700 text-white text-sm rounded hover:bg-green-600">큐에 Draft 저장</button>
             <button id="card-regenerate" class="px-4 py-2 bg-gray-700 text-gray-300 text-sm rounded hover:bg-gray-600">재생성</button>
           </div>
-          <p class="text-[10px] text-gray-600 mb-2">슬라이드를 다운로드해서 디자인 툴에서 편집 후, 완성본을 다시 업로드하세요.</p>
+          <p class="text-[10px] text-gray-600 mb-2">디자인 툴에서 리터치 후 완성본을 가져오세요.</p>
           <div class="flex gap-2">
-            <button id="card-download-slides" class="flex-1 py-2 bg-gray-700 text-gray-300 text-xs rounded hover:bg-gray-600">슬라이드 다운로드</button>
+            ${S.designTools?.figma?.mcpEnabled ? `<button id="card-figma-push" class="flex-1 py-2 bg-indigo-700 text-white text-xs rounded hover:bg-indigo-600">Figma에 올리기</button>` : ""}
+            <button id="card-download-slides" class="flex-1 py-2 bg-gray-700 text-gray-300 text-xs rounded hover:bg-gray-600">다운로드</button>
             <button id="card-upload-finished" class="flex-1 py-2 bg-purple-700 text-white text-xs rounded hover:bg-purple-600">편집본 업로드</button>
           </div>
           <input type="file" id="card-upload-input" multiple accept="image/*" class="hidden">
@@ -1663,6 +1664,22 @@ function renderSettingsDesign() {
           <button id="save-figma" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${figmaConnected ? "Update" : "Connect"}</button>
           ${figmaConnected && figmaEditing ? '<button id="cancel-edit-figma" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>' : ""}
         </div>` : ""}
+
+        ${figmaConnected ? `
+        <div class="mt-4 pt-4 border-t border-gray-800/50">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs text-gray-300">MCP 서버 (AI → Figma 쓰기)</p>
+              <p class="text-[10px] text-gray-600">활성화하면 AI가 Figma에 카드뉴스 프레임을 자동 생성합니다</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="figma-mcp-toggle" ${figma.mcpEnabled ? "checked" : ""} class="sr-only peer">
+              <div class="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+            </label>
+          </div>
+          ${figma.mcpEnabled ? '<p class="text-[10px] text-green-400 mt-2">MCP 활성 — gateway 재시작 후 적용. Create 탭에서 "Figma에 올리기" 사용 가능.</p>' : ""}
+        </div>
+        ` : ""}
       </div>
     </div>`;
 }
@@ -2074,6 +2091,16 @@ function bindEvents() {
     else showToast(r?.error || "저장 실패", "error");
   };
 
+  // Figma MCP toggle
+  const figmaMcpToggle = document.getElementById("figma-mcp-toggle");
+  if (figmaMcpToggle) figmaMcpToggle.onchange = async () => {
+    const r = await API.post("/api/design-tools/figma-mcp", { enabled: figmaMcpToggle.checked });
+    if (r?.ok) {
+      showToast(figmaMcpToggle.checked ? "Figma MCP 활성화 — gateway 재시작 필요" : "Figma MCP 비활성화", "success");
+      loadDesignTools();
+    } else showToast(r?.error || "설정 실패", "error");
+  };
+
   // Instagram bulk actions
   const igSelectAll = document.getElementById("ig-select-all");
   if (igSelectAll) igSelectAll.onchange = () => {
@@ -2187,6 +2214,21 @@ function bindEvents() {
   };
   const regenBtn = document.getElementById("card-regenerate");
   if (regenBtn) regenBtn.onclick = () => { if (S.cardEditor) { S.cardEditor.result = null; render(); } };
+  const figmaPush = document.getElementById("card-figma-push");
+  if (figmaPush) figmaPush.onclick = async () => {
+    const ed = S.cardEditor;
+    if (!ed?.result?.slides?.length) return;
+    figmaPush.textContent = "Figma 생성 중..."; figmaPush.disabled = true;
+    const r = await API.post("/api/figma/create-slides", {
+      title: ed.title, slides: ed.slides.filter(s => s.trim()), style: ed.style,
+      imageUrls: ed.result.slides, batchId: ed.result.batchId,
+    });
+    figmaPush.textContent = "Figma에 올리기"; figmaPush.disabled = false;
+    if (r?.success) {
+      showToast("Figma에 슬라이드 생성 완료", "success");
+      if (r.figmaUrl) window.open(r.figmaUrl, "_blank");
+    } else showToast(r?.error || "Figma 생성 실패", "error");
+  };
   const downloadBtn = document.getElementById("card-download-slides");
   if (downloadBtn) downloadBtn.onclick = () => {
     const slides = S.cardEditor?.result?.slides || [];
