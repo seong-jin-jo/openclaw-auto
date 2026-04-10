@@ -97,12 +97,12 @@ function migratePost(post: Post): Post {
         publishedAt: post.publishedAt ?? null,
         error: post.status === "failed" ? (post.error ?? null) : null,
       },
-      x: { status: "pending", tweetId: null, publishedAt: null, error: null },
-      instagram: { status: "pending", publishedAt: null, error: null },
+      x: { status: "skipped", tweetId: null, publishedAt: null, error: null },
+      instagram: { status: post.imageUrl ? "pending" : "skipped", publishedAt: null, error: null },
     };
   }
   if (post.channels && !post.channels.instagram) {
-    post.channels.instagram = { status: "pending", publishedAt: null, error: null };
+    post.channels.instagram = { status: post.imageUrl ? "pending" : "skipped", publishedAt: null, error: null };
   }
   return post;
 }
