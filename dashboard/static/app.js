@@ -1667,17 +1667,34 @@ function renderSettingsDesign() {
 
         ${figmaConnected ? `
         <div class="mt-4 pt-4 border-t border-gray-800/50">
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between mb-2">
             <div>
               <p class="text-xs text-gray-300">MCP 서버 (AI → Figma 쓰기)</p>
-              <p class="text-[10px] text-gray-600">활성화하면 AI가 Figma에 카드뉴스 프레임을 자동 생성합니다</p>
+              <p class="text-[10px] text-gray-600">AI가 Figma에 카드뉴스 프레임을 자동 생성</p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" id="figma-mcp-toggle" ${figma.mcpEnabled ? "checked" : ""} class="sr-only peer">
               <div class="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
             </label>
           </div>
-          ${figma.mcpEnabled ? '<p class="text-[10px] text-green-400 mt-2">MCP 활성 — gateway 재시작 후 적용. Create 탭에서 "Figma에 올리기" 사용 가능.</p>' : ""}
+          ${figma.mcpEnabled && !figma.mcpAccessToken ? `
+            <div class="p-3 rounded bg-yellow-900/10 border border-yellow-800/30 space-y-2 text-[10px]">
+              <p class="text-yellow-400 font-medium">MCP OAuth 토큰 필요</p>
+              <p class="text-gray-500">Figma MCP는 OAuth 인증이 필요합니다. 아래 명령을 <strong>로컬 터미널</strong>에서 한 번 실행하세요:</p>
+              <div class="p-2 rounded bg-gray-800 font-mono text-gray-400">
+                <p>npx tsx https://raw.githubusercontent.com/rexdotsh/figma-mcp-oauth-bypass/main/figma-oauth.ts</p>
+              </div>
+              <p class="text-gray-500">브라우저에서 Figma 로그인 → Allow → 터미널에 표시된 4개 값 복사:</p>
+              <div class="space-y-2 mt-2">
+                ${credField("figma-mcp-access-token", "MCP Access Token", "", true, "", true)}
+                ${credField("figma-mcp-refresh-token", "MCP Refresh Token", "", true, "", true)}
+                ${credField("figma-mcp-client-id", "MCP Client ID", "", false, "", true)}
+                ${credField("figma-mcp-client-secret", "MCP Client Secret", "", true, "", true)}
+              </div>
+              <button id="save-figma-mcp-tokens" class="w-full mt-2 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">MCP 토큰 저장</button>
+            </div>
+          ` : ""}
+          ${figma.mcpEnabled && figma.mcpAccessToken ? '<p class="text-[10px] text-green-400 mt-1">MCP 연결됨 — gateway 재시작 후 적용. Create 탭에서 "Figma에 올리기" 사용 가능.</p>' : ""}
         </div>
         ` : ""}
       </div>
@@ -2091,7 +2108,22 @@ function bindEvents() {
     else showToast(r?.error || "저장 실패", "error");
   };
 
-  // Figma MCP toggle
+  // Figma MCP toggle + token save
+  const saveFigmaMcp = document.getElementById("save-figma-mcp-tokens");
+  if (saveFigmaMcp) saveFigmaMcp.onclick = async () => {
+    const data = {
+      mcpAccessToken: document.getElementById("figma-mcp-access-token")?.value?.trim(),
+      mcpRefreshToken: document.getElementById("figma-mcp-refresh-token")?.value?.trim(),
+      mcpClientId: document.getElementById("figma-mcp-client-id")?.value?.trim(),
+      mcpClientSecret: document.getElementById("figma-mcp-client-secret")?.value?.trim(),
+    };
+    if (!data.mcpAccessToken) { showToast("Access Token을 입력하세요", "warning"); return; }
+    saveFigmaMcp.textContent = "Saving..."; saveFigmaMcp.disabled = true;
+    const r = await API.post("/api/design-tools/figma-mcp-tokens", data);
+    saveFigmaMcp.textContent = "MCP 토큰 저장"; saveFigmaMcp.disabled = false;
+    if (r?.ok) { showToast("Figma MCP 토큰 저장됨 — gateway 재시작 필요", "success"); loadDesignTools(); }
+    else showToast(r?.error || "저장 실패", "error");
+  };
   const figmaMcpToggle = document.getElementById("figma-mcp-toggle");
   if (figmaMcpToggle) figmaMcpToggle.onchange = async () => {
     const r = await API.post("/api/design-tools/figma-mcp", { enabled: figmaMcpToggle.checked });

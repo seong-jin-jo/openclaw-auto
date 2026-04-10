@@ -386,6 +386,49 @@ def api_design_tools_figma_mcp():
     return jsonify({"ok": True, "mcpEnabled": enabled})
 
 
+@app.route("/api/design-tools/figma-mcp-tokens", methods=["POST"])
+def api_design_tools_figma_mcp_tokens():
+    """Save Figma MCP OAuth tokens and update openclaw.json with auth headers."""
+    body = get_json_body()
+    access_token = body.get("mcpAccessToken", "")
+    refresh_token = body.get("mcpRefreshToken", "")
+    client_id = body.get("mcpClientId", "")
+    client_secret = body.get("mcpClientSecret", "")
+
+    if not access_token:
+        return jsonify({"error": "Access Token required"}), 400
+
+    # Save to design-tools.json
+    dt = read_json(DESIGN_TOOLS_PATH) or {}
+    if "figma" not in dt:
+        dt["figma"] = {}
+    dt["figma"]["mcpAccessToken"] = access_token
+    dt["figma"]["mcpRefreshToken"] = refresh_token
+    dt["figma"]["mcpClientId"] = client_id
+    dt["figma"]["mcpClientSecret"] = client_secret
+    dt["figma"]["mcpEnabled"] = True
+    write_json(DESIGN_TOOLS_PATH, dt)
+
+    # Update openclaw.json with MCP server + auth header
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path) or {}
+    if "mcp" not in config:
+        config["mcp"] = {}
+    if "servers" not in config["mcp"]:
+        config["mcp"]["servers"] = {}
+
+    config["mcp"]["servers"]["figma"] = {
+        "url": "https://mcp.figma.com/mcp",
+        "transport": "streamable-http",
+        "headers": {
+            "Authorization": f"Bearer {access_token}",
+        },
+    }
+    write_json(config_path, config)
+    logger.info("Figma MCP tokens saved + openclaw.json updated")
+    return jsonify({"ok": True})
+
+
 # ── Figma MCP ──
 @app.route("/api/figma/create-slides", methods=["POST"])
 def api_figma_create_slides():
