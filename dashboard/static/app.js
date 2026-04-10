@@ -1581,32 +1581,73 @@ function renderSettingsDesign() {
           <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
             <li><a href="https://www.figma.com" target="_blank" class="text-blue-400 hover:underline">figma.com</a> 접속 → 로그인 → 좌상단 계정 아이콘 → <strong class="text-gray-300">Settings</strong></li>
             <li><strong class="text-gray-300">Security</strong> 탭 → 아래로 스크롤 → <strong class="text-gray-300">Personal access tokens</strong></li>
-            <li><strong class="text-gray-300">Generate new token</strong> 클릭 → 이름 입력 (예: marketing-hub)</li>
-            <li>Scopes (권한) 설정 — 다음을 체크:
-              <div class="pl-2 mt-1 space-y-0.5">
-                <p>✅ <code class="bg-gray-800 px-1 rounded">file_content:read</code> — 파일 내용 읽기 (PNG Export에 필요)</p>
-                <p>✅ <code class="bg-gray-800 px-1 rounded">file_dev_resources:write</code> — 리소스 쓰기 (MCP 사용 시)</p>
-                <p>✅ <code class="bg-gray-800 px-1 rounded">files:read</code> — 파일 접근</p>
-              </div>
-            </li>
-            <li>Enter 또는 생성 클릭 → 표시된 토큰 <strong class="text-red-400">즉시 복사</strong> (페이지 벗어나면 재확인 불가!)</li>
-            <li>아래 폼에 토큰 입력 → Connect</li>
+            <li><strong class="text-gray-300">Generate new token</strong> → 이름 입력 → Scopes에서 <code class="bg-gray-800 px-1 rounded">file_content:read</code>, <code class="bg-gray-800 px-1 rounded">files:read</code> 체크</li>
+            <li>Enter → 표시된 토큰 <strong class="text-red-400">즉시 복사</strong> (페이지 벗어나면 재확인 불가!) → 아래 폼에 입력 → Connect</li>
           </ol>
+
+          <details class="mt-3 text-[10px]">
+            <summary class="text-blue-400 hover:text-blue-300 cursor-pointer">MCP 서버 연결 (AI가 Figma에 직접 쓰기)</summary>
+            <div class="mt-2 p-3 rounded bg-gray-900/50 text-gray-500 space-y-2">
+              <p class="text-gray-300 font-medium">MCP란?</p>
+              <p>AI Agent가 Figma 캔버스에 직접 프레임/텍스트/이미지를 생성하는 프로토콜. REST API는 읽기만 가능하지만, MCP는 <strong>쓰기</strong>가 됩니다.</p>
+
+              <p class="text-gray-300 font-medium mt-3">Remote MCP 서버 (권장 — 설치 불필요)</p>
+              <p>Figma가 호스팅하는 서버에 연결. 별도 프로그램 설치 없이 URL만 등록하면 됩니다.</p>
+
+              <p class="text-gray-400 font-medium mt-2">연결 방법 — Claude Code에서:</p>
+              <div class="p-2 rounded bg-gray-800 font-mono mt-1 space-y-1">
+                <p class="text-green-400"># 방법 1: 플러그인 (가장 쉬움)</p>
+                <p>claude plugin install figma@claude-plugins-official</p>
+                <p class="text-green-400 mt-2"># 방법 2: 수동 등록</p>
+                <p>claude mcp add --transport http figma https://mcp.figma.com/mcp</p>
+              </div>
+              <p class="mt-1">실행 후 브라우저에서 Figma 로그인 → <strong>Allow Access</strong> 클릭</p>
+
+              <p class="text-gray-400 font-medium mt-2">VS Code에서:</p>
+              <p>⌘+Shift+P → "MCP: Open User Configuration" → 아래 JSON 추가:</p>
+              <div class="p-2 rounded bg-gray-800 font-mono mt-1">
+                <p>"figma": { "url": "https://mcp.figma.com/mcp", "type": "http" }</p>
+              </div>
+
+              <p class="text-gray-400 font-medium mt-2">OpenClaw Gateway에서:</p>
+              <p>config/openclaw.json에 MCP 서버 등록 (지원되는 경우):</p>
+              <div class="p-2 rounded bg-gray-800 font-mono mt-1">
+                <p>"mcp": { "figma": { "url": "https://mcp.figma.com/mcp" } }</p>
+              </div>
+
+              <p class="text-gray-300 font-medium mt-3">MCP로 할 수 있는 것</p>
+              <p>✅ 프레임/텍스트/이미지 생성 및 수정</p>
+              <p>✅ 컴포넌트, 변수, Auto Layout 활용</p>
+              <p>✅ 디자인 시스템을 기반으로 일관된 디자인</p>
+              <p>✅ 현재 Beta 무료 (이후 사용량 기반 유료)</p>
+
+              <p class="text-gray-300 font-medium mt-3">REST API vs MCP 차이</p>
+              <div class="mt-1 space-y-0.5">
+                <p><strong>REST API</strong> (위에서 입력한 토큰): 파일 읽기 + PNG Export만 가능. 쓰기 불가.</p>
+                <p><strong>MCP 서버</strong>: 읽기 + <strong>쓰기</strong>. AI가 직접 캔버스에 디자인 생성/수정.</p>
+                <p>→ 둘 다 필요: MCP로 생성, REST API로 Export</p>
+              </div>
+
+              <p class="text-gray-300 font-medium mt-3">자동화 흐름</p>
+              <p>1. 카드뉴스 텍스트 입력 (대시보드)</p>
+              <p>2. AI Agent가 MCP로 Figma에 슬라이드 프레임 자동 생성</p>
+              <p>3. 디자이너가 Figma에서 리터치</p>
+              <p>4. REST API로 PNG Export → R2 업로드 → 큐 저장</p>
+              <p>5. Instagram 캐러셀 발행</p>
+            </div>
+          </details>
+
           <details class="mt-2 text-[10px]">
             <summary class="text-blue-400 hover:text-blue-300 cursor-pointer">더 알아보기</summary>
             <div class="mt-2 p-3 rounded bg-gray-900/50 text-gray-500 space-y-1.5">
-              <p>Figma REST API로 디자인을 PNG Export하고, MCP 서버로 AI가 직접 Figma 캔버스에 디자인을 생성합니다.</p>
-              <p class="font-medium text-gray-400 mt-2">Personal Access Token 주의</p>
-              <p>토큰 하나로 Figma 계정의 <strong>모든 파일</strong>에 접근 가능합니다. 신뢰할 수 있는 환경에서만 사용하세요. 통합당 토큰 1개씩 생성 권장.</p>
-              <p class="font-medium text-gray-400 mt-2">카드뉴스 파일 준비 (선택)</p>
-              <p>Figma에서 새 디자인 파일 생성 → Frame tool(F)로 1080×1350px 프레임 추가 → 브랜드 컬러/로고 배치 → 파일 URL 복사하여 위 폼에 입력</p>
-              <p class="font-medium text-gray-400 mt-2">Figma MCP 서버 (선택 — AI 자동 생성용)</p>
-              <p>AI가 Figma에 직접 프레임/텍스트/이미지를 생성하려면 MCP 서버가 필요합니다.</p>
-              <p>설치: Remote MCP 서버 (권장) — Figma가 호스팅, 별도 설치 불필요</p>
-              <p>또는 로컬: <code class="bg-gray-800 px-1 rounded">npx @anthropic-ai/figma-mcp-server</code> (Figma 데스크톱 앱 필요)</p>
-              <p><a href="https://developers.figma.com/docs/figma-mcp-server/" target="_blank" class="text-blue-400 hover:underline">Figma MCP Server Docs →</a></p>
-              <p class="font-medium text-gray-400 mt-2">사용 흐름</p>
-              <p>1. 카드뉴스 초안 생성 (대시보드) → 2. "Figma에서 편집" 클릭 → 3. Figma에서 리터치 → 4. "편집본 가져오기" → 5. 발행</p>
+              <p class="font-medium text-gray-400">Personal Access Token 주의</p>
+              <p>토큰 하나로 Figma 계정의 <strong>모든 파일</strong>에 접근 가능. 신뢰할 수 있는 환경에서만 사용. 통합당 토큰 1개 생성 권장.</p>
+              <p class="font-medium text-gray-400 mt-2">Scopes (권한) 상세</p>
+              <p><code class="bg-gray-800 px-1 rounded">file_content:read</code> — 파일 노드/레이어 읽기, PNG Export에 필수</p>
+              <p><code class="bg-gray-800 px-1 rounded">files:read</code> — 파일 목록 접근</p>
+              <p><code class="bg-gray-800 px-1 rounded">file_dev_resources:write</code> — 개발 리소스 쓰기 (선택)</p>
+              <p class="font-medium text-gray-400 mt-2">지원 MCP 클라이언트</p>
+              <p>Claude Code, VS Code (Copilot), Cursor, Codex — <a href="https://developers.figma.com/docs/figma-mcp-server/" target="_blank" class="text-blue-400 hover:underline">전체 목록</a></p>
             </div>
           </details>
         </div>
