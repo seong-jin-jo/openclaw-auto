@@ -456,7 +456,7 @@ def api_figma_mcp_start_oauth():
     try:
         # 1. Register OAuth client with Figma (pretend to be Claude Code)
         reg_data = json.dumps({
-            "client_name": "Claude Code (figma)",
+            "client_name": "Claude Code",
             "redirect_uris": [request.host_url.rstrip("/") + "/api/figma-mcp/callback"],
             "grant_types": ["authorization_code", "refresh_token"],
             "response_types": ["code"],
