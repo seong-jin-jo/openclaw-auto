@@ -431,6 +431,23 @@ def api_design_tools_figma_mcp_tokens():
     return jsonify({"ok": True})
 
 
+# ── Gateway Control ──
+@app.route("/api/gateway/restart", methods=["POST"])
+def api_gateway_restart():
+    """Restart the openclaw-gateway container."""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["docker", "restart", "marketing-ai-openclaw-gateway-1"],
+            capture_output=True, text=True, timeout=30,
+        )
+        if result.returncode == 0:
+            return jsonify({"ok": True, "message": "Gateway 재시작 완료. 15초 후 사용 가능."})
+        return jsonify({"error": result.stderr[:200]}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)[:200]}), 500
+
+
 # ── Figma MCP OAuth (dashboard-based) ──
 @app.route("/api/figma-mcp/start-oauth")
 def api_figma_mcp_start_oauth():

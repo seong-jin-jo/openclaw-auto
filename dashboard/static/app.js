@@ -1685,7 +1685,12 @@ function renderSettingsDesign() {
               <p class="text-gray-600">클릭하면 Figma 로그인 페이지가 새 탭으로 열립니다. Allow 클릭 후 자동 완료.</p>
             </div>
           ` : ""}
-          ${figma.mcpEnabled && figma.mcpAccessToken ? '<p class="text-[10px] text-green-400 mt-1">MCP 연결됨 — gateway 재시작 후 적용. Create 탭에서 "Figma에 올리기" 사용 가능.</p>' : ""}
+          ${figma.mcpEnabled && figma.mcpAccessToken ? `
+            <div class="flex items-center justify-between mt-2">
+              <p class="text-[10px] text-green-400">MCP 연결됨</p>
+              <button id="restart-gateway-figma" class="px-3 py-1 text-[10px] bg-yellow-700 text-white rounded hover:bg-yellow-600">Gateway 재시작</button>
+            </div>
+          ` : ""}
         </div>
         ` : ""}
       </div>
@@ -2098,6 +2103,17 @@ function bindEvents() {
     if (r?.ok) { showToast("Figma 설정 저장됨", "success"); S.editingChannel = null; loadDesignTools(); }
     else showToast(r?.error || "저장 실패", "error");
   };
+
+  // Gateway restart
+  document.querySelectorAll("[id^='restart-gateway']").forEach(el => {
+    el.onclick = async () => {
+      el.textContent = "재시작 중..."; el.disabled = true;
+      const r = await API.post("/api/gateway/restart");
+      el.textContent = "Gateway 재시작"; el.disabled = false;
+      if (r?.ok) showToast("Gateway 재시작 완료. 15초 후 사용 가능.", "success");
+      else showToast(r?.error || "재시작 실패", "error");
+    };
+  });
 
   // Figma MCP OAuth + toggle
   const figmaMcpOAuth = document.getElementById("figma-mcp-oauth-btn");
