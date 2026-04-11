@@ -1678,25 +1678,11 @@ function renderSettingsDesign() {
             </label>
           </div>
           ${figma.mcpEnabled && !figma.mcpAccessToken ? `
-            <div class="p-3 rounded bg-yellow-900/10 border border-yellow-800/30 space-y-2 text-[10px]">
-              <p class="text-yellow-400 font-medium">MCP OAuth 토큰 필요 (초기 1회)</p>
-              <p class="text-gray-500">Figma MCP는 OAuth 인증이 필요합니다. <strong>로컬 PC 터미널</strong>에서 아래를 실행하세요 (Node.js 필요):</p>
-              <div class="p-2 rounded bg-gray-800 font-mono text-gray-400 text-[9px] break-all">
-                <p>npx tsx https://raw.githubusercontent.com/rexdotsh/figma-mcp-oauth-bypass/main/figma-oauth.ts</p>
-              </div>
-              <ol class="text-gray-500 list-decimal list-inside space-y-1 mt-2">
-                <li>터미널에 URL이 표시되고 브라우저가 자동으로 열림</li>
-                <li>Figma 로그인 → <strong>Allow Access</strong> 클릭</li>
-                <li>"Done! You can close this tab" 표시되면 브라우저 닫기</li>
-                <li>터미널에 4개 값이 표시됨 → 아래에 붙여넣기</li>
-              </ol>
-              <div class="space-y-2 mt-2">
-                ${credField("figma-mcp-access-token", "MCP Access Token", "", true, "", true)}
-                ${credField("figma-mcp-refresh-token", "MCP Refresh Token", "", true, "", true)}
-                ${credField("figma-mcp-client-id", "MCP Client ID", "", false, "", true)}
-                ${credField("figma-mcp-client-secret", "MCP Client Secret", "", true, "", true)}
-              </div>
-              <button id="save-figma-mcp-tokens" class="w-full mt-2 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">MCP 토큰 저장</button>
+            <div class="p-3 rounded bg-yellow-900/10 border border-yellow-800/30 space-y-3 text-[10px]">
+              <p class="text-yellow-400 font-medium">MCP 연결 필요</p>
+              <p class="text-gray-500">Figma 계정으로 로그인하여 MCP 접근을 허용합니다.</p>
+              <button id="figma-mcp-oauth-btn" class="w-full py-2.5 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-500 font-medium">Figma 계정으로 MCP 연결</button>
+              <p class="text-gray-600">클릭하면 Figma 로그인 페이지가 새 탭으로 열립니다. Allow 클릭 후 자동 완료.</p>
             </div>
           ` : ""}
           ${figma.mcpEnabled && figma.mcpAccessToken ? '<p class="text-[10px] text-green-400 mt-1">MCP 연결됨 — gateway 재시작 후 적용. Create 탭에서 "Figma에 올리기" 사용 가능.</p>' : ""}
@@ -2113,21 +2099,29 @@ function bindEvents() {
     else showToast(r?.error || "저장 실패", "error");
   };
 
-  // Figma MCP toggle + token save
-  const saveFigmaMcp = document.getElementById("save-figma-mcp-tokens");
-  if (saveFigmaMcp) saveFigmaMcp.onclick = async () => {
-    const data = {
-      mcpAccessToken: document.getElementById("figma-mcp-access-token")?.value?.trim(),
-      mcpRefreshToken: document.getElementById("figma-mcp-refresh-token")?.value?.trim(),
-      mcpClientId: document.getElementById("figma-mcp-client-id")?.value?.trim(),
-      mcpClientSecret: document.getElementById("figma-mcp-client-secret")?.value?.trim(),
-    };
-    if (!data.mcpAccessToken) { showToast("Access Token을 입력하세요", "warning"); return; }
-    saveFigmaMcp.textContent = "Saving..."; saveFigmaMcp.disabled = true;
-    const r = await API.post("/api/design-tools/figma-mcp-tokens", data);
-    saveFigmaMcp.textContent = "MCP 토큰 저장"; saveFigmaMcp.disabled = false;
-    if (r?.ok) { showToast("Figma MCP 토큰 저장됨 — gateway 재시작 필요", "success"); loadDesignTools(); }
-    else showToast(r?.error || "저장 실패", "error");
+  // Figma MCP OAuth + toggle
+  const figmaMcpOAuth = document.getElementById("figma-mcp-oauth-btn");
+  if (figmaMcpOAuth) figmaMcpOAuth.onclick = async () => {
+    figmaMcpOAuth.textContent = "연결 준비 중..."; figmaMcpOAuth.disabled = true;
+    const r = await API.get("/api/figma-mcp/start-oauth");
+    if (r?.authUrl) {
+      window.open(r.authUrl, "_blank");
+      showToast("Figma 로그인 페이지가 열렸습니다. Allow 클릭 후 자동 완료됩니다.", "info");
+      // Poll for completion
+      const poll = setInterval(async () => {
+        const dt = await API.get("/api/design-tools");
+        if (dt?.figma?.mcpAccessToken) {
+          clearInterval(poll);
+          showToast("Figma MCP 연결 완료! Gateway 재시작 필요.", "success");
+          S.designTools = dt;
+          render();
+        }
+      }, 3000);
+      setTimeout(() => clearInterval(poll), 120000); // 2min timeout
+    } else {
+      showToast(r?.error || "OAuth 시작 실패", "error");
+    }
+    figmaMcpOAuth.textContent = "Figma 계정으로 MCP 연결"; figmaMcpOAuth.disabled = false;
   };
   const figmaMcpToggle = document.getElementById("figma-mcp-toggle");
   if (figmaMcpToggle) figmaMcpToggle.onchange = async () => {

@@ -429,6 +429,125 @@ def api_design_tools_figma_mcp_tokens():
     return jsonify({"ok": True})
 
 
+# ── Figma MCP OAuth (dashboard-based) ──
+@app.route("/api/figma-mcp/start-oauth")
+def api_figma_mcp_start_oauth():
+    """Start Figma MCP OAuth flow — register client + return auth URL."""
+    import urllib.request, hashlib, secrets
+    try:
+        # 1. Register OAuth client with Figma (pretend to be Claude Code)
+        reg_data = json.dumps({
+            "client_name": "Claude Code (figma)",
+            "redirect_uris": [request.host_url.rstrip("/") + "/api/figma-mcp/callback"],
+            "grant_types": ["authorization_code", "refresh_token"],
+            "response_types": ["code"],
+            "token_endpoint_auth_method": "none",
+        }).encode()
+        req = urllib.request.Request("https://api.figma.com/v1/oauth/mcp/register",
+            data=reg_data,
+            headers={"Content-Type": "application/json", "User-Agent": "claude-cli/2.1.2 (external, cli)"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            reg = json.loads(resp.read())
+        client_id = reg["client_id"]
+        client_secret = reg.get("client_secret", "")
+
+        # 2. Generate PKCE
+        code_verifier = secrets.token_urlsafe(32)
+        code_challenge = hashlib.sha256(code_verifier.encode()).digest()
+        import base64
+        code_challenge_b64 = base64.urlsafe_b64encode(code_challenge).rstrip(b"=").decode()
+        state = secrets.token_hex(16)
+
+        # Store in session-like temp file
+        oauth_state = {
+            "clientId": client_id, "clientSecret": client_secret,
+            "codeVerifier": code_verifier, "state": state,
+        }
+        write_json(Path(DATA_DIR) / "figma-oauth-state.json", oauth_state)
+
+        # 3. Build auth URL
+        redirect_uri = request.host_url.rstrip("/") + "/api/figma-mcp/callback"
+        auth_url = (f"https://www.figma.com/oauth/mcp?client_id={client_id}"
+                    f"&redirect_uri={urllib.parse.quote(redirect_uri)}"
+                    f"&response_type=code&scope=mcp:connect&state={state}"
+                    f"&code_challenge={code_challenge_b64}&code_challenge_method=S256")
+
+        return jsonify({"authUrl": auth_url})
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@app.route("/api/figma-mcp/callback")
+def api_figma_mcp_callback():
+    """OAuth callback from Figma — exchange code for tokens."""
+    import urllib.request, urllib.parse
+    code = request.args.get("code")
+    state = request.args.get("state")
+    error = request.args.get("error")
+
+    if error:
+        return f"<h2>Figma OAuth Error: {error}</h2><p><a href='javascript:window.close()'>Close</a></p>", 400
+
+    # Load stored state
+    oauth_state = read_json(Path(DATA_DIR) / "figma-oauth-state.json")
+    if not oauth_state or oauth_state.get("state") != state:
+        return "<h2>State mismatch</h2>", 400
+
+    # Exchange code for tokens
+    try:
+        redirect_uri = request.host_url.rstrip("/") + "/api/figma-mcp/callback"
+        token_data = urllib.parse.urlencode({
+            "grant_type": "authorization_code",
+            "client_id": oauth_state["clientId"],
+            "client_secret": oauth_state["clientSecret"],
+            "code": code,
+            "redirect_uri": redirect_uri,
+            "code_verifier": oauth_state["codeVerifier"],
+        }).encode()
+        req = urllib.request.Request("https://api.figma.com/v1/oauth/token",
+            data=token_data,
+            headers={"Content-Type": "application/x-www-form-urlencoded", "User-Agent": "claude-cli/2.1.2 (external, cli)"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            tokens = json.loads(resp.read())
+
+        # Save tokens
+        dt = read_json(DESIGN_TOOLS_PATH) or {}
+        if "figma" not in dt:
+            dt["figma"] = {}
+        dt["figma"]["mcpAccessToken"] = tokens["access_token"]
+        dt["figma"]["mcpRefreshToken"] = tokens.get("refresh_token", "")
+        dt["figma"]["mcpClientId"] = oauth_state["clientId"]
+        dt["figma"]["mcpClientSecret"] = oauth_state["clientSecret"]
+        dt["figma"]["mcpEnabled"] = True
+        write_json(DESIGN_TOOLS_PATH, dt)
+
+        # Update openclaw.json
+        config_path = CONFIG_DIR / "openclaw.json"
+        config = read_json(config_path) or {}
+        if "mcp" not in config:
+            config["mcp"] = {}
+        if "servers" not in config["mcp"]:
+            config["mcp"]["servers"] = {}
+        config["mcp"]["servers"]["figma"] = {
+            "url": "https://mcp.figma.com/mcp",
+            "transport": "streamable-http",
+            "headers": {"Authorization": f"Bearer {tokens['access_token']}"},
+        }
+        write_json(config_path, config)
+
+        # Cleanup
+        os.remove(os.path.join(DATA_DIR, "figma-oauth-state.json"))
+
+        return """<html><body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh">
+        <div style="text-align:center">
+          <h2 style="color:#22c55e">Figma MCP 연결 완료!</h2>
+          <p style="color:#9ca3af">이 탭을 닫고 대시보드로 돌아가세요.</p>
+          <p style="color:#6b7280;font-size:12px">Gateway 재시작 후 사용 가능</p>
+        </div></body></html>"""
+    except Exception as e:
+        return f"<h2>Token exchange failed: {e}</h2>", 500
+
+
 # ── Figma MCP ──
 @app.route("/api/figma/create-slides", methods=["POST"])
 def api_figma_create_slides():
