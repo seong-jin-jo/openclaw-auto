@@ -137,7 +137,7 @@ def check_auth():
     if request.method == "OPTIONS":
         return
     # 정적 파일: 항상 허용
-    if request.path == "/" or request.path.startswith("/images/") or (not request.path.startswith("/api/") and request.path.endswith((".js", ".css", ".ico", ".png", ".svg", ".html"))):
+    if request.path == "/" or request.path.startswith("/images/") or request.path.startswith("/videos/") or (not request.path.startswith("/api/") and request.path.endswith((".js", ".css", ".ico", ".png", ".svg", ".html", ".mp4"))):
         return
     # API: 인증 필요
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
