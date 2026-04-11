@@ -1679,12 +1679,17 @@ function renderSettingsDesign() {
           </div>
           ${figma.mcpEnabled && !figma.mcpAccessToken ? `
             <div class="p-3 rounded bg-yellow-900/10 border border-yellow-800/30 space-y-2 text-[10px]">
-              <p class="text-yellow-400 font-medium">MCP OAuth 토큰 필요</p>
-              <p class="text-gray-500">Figma MCP는 OAuth 인증이 필요합니다. 아래 명령을 <strong>로컬 터미널</strong>에서 한 번 실행하세요:</p>
-              <div class="p-2 rounded bg-gray-800 font-mono text-gray-400">
+              <p class="text-yellow-400 font-medium">MCP OAuth 토큰 필요 (초기 1회)</p>
+              <p class="text-gray-500">Figma MCP는 OAuth 인증이 필요합니다. <strong>로컬 PC 터미널</strong>에서 아래를 실행하세요 (Node.js 필요):</p>
+              <div class="p-2 rounded bg-gray-800 font-mono text-gray-400 text-[9px] break-all">
                 <p>npx tsx https://raw.githubusercontent.com/rexdotsh/figma-mcp-oauth-bypass/main/figma-oauth.ts</p>
               </div>
-              <p class="text-gray-500">브라우저에서 Figma 로그인 → Allow → 터미널에 표시된 4개 값 복사:</p>
+              <ol class="text-gray-500 list-decimal list-inside space-y-1 mt-2">
+                <li>터미널에 URL이 표시되고 브라우저가 자동으로 열림</li>
+                <li>Figma 로그인 → <strong>Allow Access</strong> 클릭</li>
+                <li>"Done! You can close this tab" 표시되면 브라우저 닫기</li>
+                <li>터미널에 4개 값이 표시됨 → 아래에 붙여넣기</li>
+              </ol>
               <div class="space-y-2 mt-2">
                 ${credField("figma-mcp-access-token", "MCP Access Token", "", true, "", true)}
                 ${credField("figma-mcp-refresh-token", "MCP Refresh Token", "", true, "", true)}
@@ -2636,9 +2641,9 @@ function renderGenericChannel(key) {
     naver_blog: { fields: ["blogId", "username", "apiKey"], labels: ["Blog ID", "네이버 Username", "API Key (XML-RPC)"],
       quick: ["네이버 블로그 관리 > 글쓰기 API 설정", "Blog ID, Username 확인", "XML-RPC API Key 발급", "위 폼에 입력"],
       detail: "네이버 블로그는 공식 REST API가 없습니다. 레거시 XML-RPC 방식으로 발행하며, 안정성이 보장되지 않습니다. 비공식 방식." },
-    midjourney: { fields: ["discordToken", "channelId", "serverId"], labels: ["Discord Token", "Channel ID (미드저니 봇 채널)", "Server ID (Discord 서버)"],
-      quick: ["Discord 서버에 Midjourney 봇 초대 (midjourney.com/app)", "개발자 모드 ON: Discord 설정 > 고급 > 개발자 모드 활성화", "서버 이름 우클릭 > 서버 ID 복사", "미드저니 봇이 있는 채널 우클릭 > 채널 ID 복사", "Discord Token: 봇 토큰 또는 유저 토큰 입력 (discord.com/developers > Applications > Bot > Token)", "위 폼에 3개 값 입력 후 Connect"],
-      detail: "Midjourney Discord 연동으로 /imagine 명령을 자동 전송하고 생성된 이미지를 수집합니다.\n\n⚠️ 유저 토큰 사용 시 Discord TOS 위반 리스크가 있습니다. 봇 토큰 사용을 권장합니다.\n\n봇 토큰 발급: discord.com/developers > New Application > Bot > Reset Token\n봇을 서버에 초대: OAuth2 > URL Generator > bot 권한 선택 > 생성된 URL로 초대\n\n필요 권한: Read Messages, Send Messages, Read Message History.\n\n이미지 생성 시간: 30~90초. 자동 업스케일 지원.\n\nMidjourney 구독 필요 (Basic $10/월, Standard $30/월)." },
+    midjourney: { fields: ["discordToken", "channelId", "serverId"], labels: ["Discord Token (유저 토큰)", "Channel ID (미드저니 봇 채널)", "Server ID (Discord 서버)"],
+      quick: ["<a href='https://midjourney.com/app' target='_blank' class='text-blue-400'>midjourney.com/app</a>에서 구독 확인 (Basic 이상)", "Discord 설정 > 고급 > <strong>개발자 모드</strong> ON", "미드저니 봇이 있는 서버 이름 우클릭 > <strong>서버 ID 복사</strong>", "미드저니 봇이 있는 채널 우클릭 > <strong>채널 ID 복사</strong>", "Discord Token 발급: <a href='https://discord.com/app' target='_blank' class='text-blue-400'>discord.com/app</a> 접속 (브라우저) > F12 > Console 탭 > 아래 코드 붙여넣기 후 Enter:<br><code class='bg-gray-800 px-1 rounded text-[9px] break-all'>(webpackChunkdiscord_app.push([[''],{},e=>{m=[];for(let c in e.c)m.push(e.c[c])}]),m).find(m=>m?.exports?.default?.getToken).exports.default.getToken()</code><br>출력되는 문자열이 Discord Token", "위 폼에 3개 값 입력 후 Connect"],
+      detail: "Midjourney Discord 연동으로 /imagine 명령을 자동 전송하고 생성된 이미지를 수집합니다.\n\n⚠️ Discord 유저 토큰 사용 — Discord TOS 위반 리스크가 있습니다. 자동화 속도를 제한하여 사용하세요.\n\nDiscord Token이란?\n봇 토큰이 아닌 '유저 토큰'입니다. 브라우저에서 Discord에 로그인한 상태에서 개발자 콘솔로 추출합니다.\n\n다른 방법으로 Token 찾기:\n1. discord.com/app > F12 > Network 탭 > Fetch/XHR 필터 > 아무 요청 클릭 > Headers > Authorization 값\n2. F12 > Application > Local Storage > discord.com > 'token' 검색\n\nChannel ID / Server ID:\n개발자 모드를 ON하면 우클릭 메뉴에 'ID 복사' 항목이 생깁니다.\n\n이미지 생성 시간: 30~90초. 자동 업스케일 지원.\nMidjourney 구독 필요 (Basic $10/월, Standard $30/월)." },
   };
 
   const sg = setupGuides[key] || { fields: [], labels: [], quick: ["Setup guide가 아직 준비되지 않았습니다."], detail: "" };
