@@ -158,7 +158,7 @@ const S = {
   channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [],
   tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
-  sidebarCollapsed: { data: false, research: false }, showDetail: null, editingChannel: null, slackTemplate: "", slackReportPreview: "", keywordBank: [],
+  sidebarCollapsed: { data: false, research: false }, showDetail: null, editingChannel: null, slackTemplate: "", slackReportPreview: "", keywordBank: [], videos: [], videoSlides: null, videoGenerating: false,
   gscAnalytics: null, gscDays: 28, gscDimension: "query", gaAnalytics: null, gaDays: 28, gaConfigured: false, gaPropertyId: "", gaEditing: false,
   blogStats: null, blogDetailId: null, blogEditing: false, blogGuide: "", blogKeywords: [],
   gscConfig: null, gscEditing: false, nsaData: null, kwResearch: null, naverTrend: null, googleTrend: null,
@@ -278,6 +278,7 @@ function render() {
   else if (S.page === "keyword-planner") app.innerHTML = renderKeywordPlanner();
   else if (S.page === "naver-trends") app.innerHTML = renderNaverTrends();
   else if (S.page === "google-trends") app.innerHTML = renderGoogleTrends();
+  else if (S.page === "videos") app.innerHTML = renderVideos();
   else if (S.page === "blog-edit") app.innerHTML = renderBlogEditor();
   else if (S.page === "blog") app.innerHTML = renderBlog();
   else if (CH_LABELS[S.page]) app.innerHTML = renderGenericChannel(S.page);
@@ -414,6 +415,11 @@ function renderSidebar() {
           <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
           Images
           <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-gray-800 text-gray-500">${S.images.length}</span>
+        </button>
+        <button data-nav="videos" class="sidebar-item ${S.page === "videos" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
+          <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          Videos
+          <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-gray-800 text-gray-500">${S.videos?.length || 0}</span>
         </button>
         ${(() => { const mj = S.channelConfig.midjourney || {}; const mjStatus = mj.connected ? "text-green-400" : "text-gray-500"; return `
         <button data-nav="midjourney" class="sidebar-item ${S.page === "midjourney" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
@@ -1779,6 +1785,50 @@ function bindEvents() {
   const loadBankBtn = document.getElementById("load-from-bank");
   if (loadBankBtn) loadBankBtn.onclick = async () => { await loadKeywordBank(); };
 
+  // Video events
+  const videoFromBlog = document.getElementById("video-from-blog");
+  if (videoFromBlog) videoFromBlog.onclick = async () => {
+    const blogPosts = S.blogQueue?.filter(p => p.content) || [];
+    if (blogPosts.length === 0) { showToast("Blog Queue에 글이 없습니다. d-edu 글에서 추출합니다.", "info"); }
+    // Use latest d-edu article
+    const stats = await API.get("/api/blog-stats");
+    if (stats?.articles?.[0]) {
+      const a = stats.articles[0];
+      const r = await API.post("/api/video/script-from-blog", { title: a.title, content: a.title });
+      if (r?.slides) { S.videoSlides = r.slides; render(); }
+    }
+  };
+  const videoAddSlide = document.getElementById("video-add-slide");
+  if (videoAddSlide) videoAddSlide.onclick = () => {
+    if (!S.videoSlides) S.videoSlides = [];
+    S.videoSlides.push({ text: "", duration: 4, imageUrl: "" });
+    render();
+  };
+  document.querySelectorAll("[data-slide-remove]").forEach(el => {
+    el.onclick = () => { S.videoSlides.splice(parseInt(el.dataset.slideRemove), 1); if (S.videoSlides.length === 0) S.videoSlides = null; render(); };
+  });
+  const videoGenerate = document.getElementById("video-generate");
+  if (videoGenerate) videoGenerate.onclick = async () => {
+    // 슬라이드 입력값 수집
+    const slides = S.videoSlides.map((s, i) => ({
+      text: document.querySelector(`[data-slide-text="${i}"]`)?.value || s.text,
+      imageUrl: document.querySelector(`[data-slide-image="${i}"]`)?.value || "",
+      duration: parseInt(document.querySelector(`[data-slide-duration="${i}"]`)?.value) || 4,
+    }));
+    S.videoGenerating = true; render();
+    const r = await API.post("/api/video/generate", { slides });
+    S.videoGenerating = false;
+    if (r?.ok) { showToast("비디오 생성 완료!", "success"); S.videoSlides = null; loadVideos(); }
+    else { showToast(r?.error || "생성 실패", "error"); render(); }
+  };
+  document.querySelectorAll("[data-video-delete]").forEach(el => {
+    el.onclick = async () => {
+      if (!confirm("삭제?")) return;
+      const r = await API.post("/api/video/delete", { filename: el.dataset.videoDelete });
+      if (r?.ok) { showToast("삭제됨", "success"); loadVideos(); }
+    };
+  });
+
   // Add to keyword bank
   document.querySelectorAll("[data-add-keyword]").forEach(el => {
     el.onclick = async () => {
@@ -1974,6 +2024,7 @@ function navigate(page) {
   else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); loadChannelGuideAndKeywords(); }
   else if (page === "instagram") { loadOverview(); loadQueue("all"); loadChannelSettings(); loadCronRuns(); loadChannelGuideAndKeywords(); }
   else if (page === "images") { loadImages(); loadR2Config(); }
+  else if (page === "videos") loadVideos();
   else if (page === "blog-performance") { loadBlogStats(); loadGscAnalytics(); }
   else if (page === "search-console") { loadGscConfig(); loadGscAnalytics(); }
   else if (page === "search-advisor") loadNsaData();
@@ -3511,4 +3562,74 @@ async function loadSlackTemplate() {
 async function loadKeywordBank() {
   const d = await API.get("/api/keyword-bank");
   if (d) { S.keywordBank = d.keywords || []; render(); }
+}
+
+// ── Videos Page ──
+async function loadVideos() { const d = await API.get("/api/video/list"); if (d) { S.videos = d.videos || []; render(); } }
+
+function renderVideos() {
+  return `<div class="px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-bold text-white">Videos</h2>
+        <p class="text-xs text-gray-500 mt-1">숏폼 비디오 생성 + 관리</p>
+      </div>
+      <span class="text-sm text-gray-500">${S.videos.length} videos</span>
+    </div>
+
+    <div class="card p-3 mb-6 border-l-2 border-purple-600"><p class="text-[11px] text-gray-400">블로그 글을 숏폼 비디오로 변환합니다. 검정 배경 + 자막 + 배경 이미지. 스크립트를 편집하고 Generate를 누르면 MP4가 생성됩니다.</p></div>
+
+    <!-- 생성 UI -->
+    <div class="card p-5 mb-6">
+      <h3 class="text-sm font-medium text-gray-300 mb-3">새 비디오 만들기</h3>
+      <div class="flex gap-2 mb-3">
+        <button id="video-from-blog" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">블로그 글에서 스크립트 추출</button>
+        <button id="video-add-slide" class="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">+ 슬라이드 추가</button>
+      </div>
+
+      ${S.videoSlides ? `
+        <div class="space-y-2 mb-3" id="video-slides">
+          ${S.videoSlides.map((s, i) => `
+            <div class="flex gap-2 items-start p-2 rounded bg-gray-900/50">
+              <span class="text-[10px] text-gray-600 mt-2 w-4">${i + 1}</span>
+              <div class="flex-1 space-y-1">
+                <input type="text" data-slide-text="${i}" value="${esc(s.text)}" class="w-full bg-gray-800 text-gray-200 text-xs p-1.5 rounded border border-gray-700" placeholder="자막 텍스트">
+                <div class="flex gap-2">
+                  <input type="text" data-slide-image="${i}" value="${esc(s.imageUrl || "")}" class="flex-1 bg-gray-800 text-gray-300 text-[10px] p-1 rounded border border-gray-700" placeholder="이미지 URL (선택)">
+                  <input type="number" data-slide-duration="${i}" value="${s.duration}" class="w-16 bg-gray-800 text-gray-300 text-[10px] p-1 rounded border border-gray-700" min="2" max="15">
+                  <span class="text-[10px] text-gray-600 self-center">초</span>
+                  <button data-slide-remove="${i}" class="text-[10px] text-red-400 hover:text-red-300">삭제</button>
+                </div>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+        <div class="flex gap-2">
+          <button id="video-generate" class="px-4 py-2 text-xs ${S.videoGenerating ? "bg-gray-600" : "bg-purple-700 hover:bg-purple-600"} text-white rounded" ${S.videoGenerating ? "disabled" : ""}>${S.videoGenerating ? "Generating..." : "Generate Video"}</button>
+          <span class="text-[10px] text-gray-500 self-center">총 ${S.videoSlides.reduce((a, s) => a + (s.duration || 4), 0)}초 · ${S.videoSlides.length}슬라이드</span>
+        </div>
+      ` : `<p class="text-xs text-gray-600">블로그 글에서 스크립트를 추출하거나, 슬라이드를 직접 추가하세요.</p>`}
+    </div>
+
+    <!-- 비디오 목록 -->
+    ${S.videos.length === 0 ? `<div class="card p-8 text-center"><p class="text-gray-500 text-sm">생성된 비디오가 없습니다</p></div>` : `
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        ${S.videos.map(v => `
+          <div class="card overflow-hidden">
+            <video src="${v.url}" class="w-full aspect-[9/16] max-h-[400px] bg-black object-contain" controls></video>
+            <div class="p-3">
+              <p class="text-xs text-gray-300 truncate">${esc(v.filename)}</p>
+              <div class="flex items-center justify-between mt-1">
+                <span class="text-[10px] text-gray-500">${(v.size / 1024).toFixed(0)}KB</span>
+                <div class="flex gap-2">
+                  <a href="${v.url}" download class="text-[10px] text-blue-400 hover:text-blue-300">Download</a>
+                  <button data-video-delete="${esc(v.filename)}" class="text-[10px] text-red-400 hover:text-red-300">Delete</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    `}
+  </div>`;
 }

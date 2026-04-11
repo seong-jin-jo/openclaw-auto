@@ -2267,6 +2267,20 @@ def serve_video(filename):
     return send_from_directory(str(VIDEO_OUTPUT_DIR), filename)
 
 
+@app.route("/api/video/delete", methods=["POST"])
+def api_video_delete():
+    data = get_json_body()
+    filename = data.get("filename", "")
+    if not filename or ".." in filename:
+        return jsonify({"error": "invalid filename"}), 400
+    filepath = VIDEO_OUTPUT_DIR / filename
+    if filepath.exists():
+        filepath.unlink()
+        logger.info("Video deleted: %s", filename)
+        return jsonify({"ok": True})
+    return jsonify({"error": "not found"}), 404
+
+
 @app.route("/api/video/list")
 def api_video_list():
     VIDEO_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
