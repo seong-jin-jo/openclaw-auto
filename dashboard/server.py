@@ -2168,14 +2168,14 @@ def verify_channel(channel, cfg):
                 return {"verified": False, "error": "Channel ID is empty"}
             if not server_id:
                 return {"verified": False, "error": "Server ID is empty"}
-            # Verify by fetching channel info
+            # Verify by fetching user info (channel endpoint needs User-Agent)
             req = urllib.request.Request(
-                f"https://discord.com/api/v10/channels/{channel_id}",
-                headers={"Authorization": token})
+                "https://discord.com/api/v10/users/@me",
+                headers={"Authorization": token, "User-Agent": "Mozilla/5.0", "Content-Type": "application/json"})
             with urllib.request.urlopen(req, timeout=5) as resp:
                 data = json.loads(resp.read())
-                ch_name = data.get("name", channel_id)
-                return {"verified": True, "account": f"#{ch_name}"}
+                username = data.get("username", "unknown")
+                return {"verified": True, "account": f"@{username}"}
 
         else:
             # Generic: just check if any key has value
