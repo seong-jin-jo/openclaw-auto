@@ -128,9 +128,11 @@ def check_auth():
         return  # 토큰 미설정 시 인증 비활성화
     if request.method == "OPTIONS":
         return
-    # 정적 파일: 항상 허용
+    # 정적 파일 + OAuth 콜백: 항상 허용
     if request.path == "/" or request.path.startswith("/images/") or (not request.path.startswith("/api/") and request.path.endswith((".js", ".css", ".ico", ".png", ".svg", ".html"))):
         return
+    if request.path == "/api/figma-mcp/callback":
+        return  # Figma OAuth 콜백은 인증 없이 접근 허용
     # API: 인증 필요
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
 
