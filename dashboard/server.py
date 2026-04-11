@@ -2172,6 +2172,148 @@ def api_cron_runs():
 # ══ D-Edu Custom APIs ══
 # ════════════════════════════════════════
 
+
+# ── API: Video Generation ──
+VIDEO_OUTPUT_DIR = DATA_DIR / "videos"
+
+
+@app.route("/api/video/generate", methods=["POST"])
+def api_video_generate():
+    """Generate short-form video from slides"""
+    import subprocess
+    import tempfile
+    import time as _time
+
+    data = get_json_body()
+    slides = data.get("slides", [])
+    if not slides:
+        return jsonify({"error": "slides required"}), 400
+
+    VIDEO_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = tempfile.mkdtemp()
+
+    try:
+        input_args = []
+        filter_parts = []
+
+        for i, slide in enumerate(slides):
+            duration = slide.get("duration", 4)
+            text = slide.get("text", "").replace("'", "\u2019").replace('"', '\\"').replace(":", "\\:").replace("%", "%%")
+            image_url = slide.get("imageUrl", "")
+            img_path = None
+
+            if image_url:
+                try:
+                    import urllib.request
+                    img_path = f"{tmp}/img_{i}.jpg"
+                    req = urllib.request.Request(image_url, headers={"User-Agent": "Mozilla/5.0"})
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        with open(img_path, "wb") as f:
+                            f.write(resp.read())
+                except:
+                    img_path = None
+
+            # 모든 슬라이드를 개별 mp4로 먼저 생성, 나중에 concat
+            slide_path = f"{tmp}/slide_{i}.mp4"
+            if img_path:
+                subprocess.run([
+                    "ffmpeg", "-y", "-loop", "1", "-t", str(duration), "-i", img_path,
+                    "-vf", f"scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black,"
+                           f"drawtext=text='{text}':fontfile=/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc:"
+                           f"fontsize=42:fontcolor=white:x=(w-text_w)/2:y=h-250:borderw=3:bordercolor=black",
+                    "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", "30", slide_path
+                ], capture_output=True, timeout=30)
+            else:
+                subprocess.run([
+                    "ffmpeg", "-y", "-f", "lavfi", "-t", str(duration),
+                    "-i", f"color=c=black:s=1080x1920:d={duration}",
+                    "-vf", f"drawtext=text='{text}':fontfile=/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc:"
+                           f"fontsize=48:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:borderw=3:bordercolor=black",
+                    "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", "30", slide_path
+                ], capture_output=True, timeout=30)
+
+        total_dur = sum(s.get("duration", 4) for s in slides)
+        output_name = f"video_{int(_time.time())}.mp4"
+        output_path = str(VIDEO_OUTPUT_DIR / output_name)
+
+        # Create concat list
+        concat_list = f"{tmp}/concat.txt"
+        with open(concat_list, "w") as f:
+            for i in range(len(slides)):
+                f.write(f"file '{tmp}/slide_{i}.mp4'\n")
+
+        cmd = ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_list,
+               "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", "30", output_path]
+
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        if result.returncode != 0:
+            # FFmpeg stderr에서 실제 에러 라인만 추출
+            err_lines = [l for l in result.stderr.split("\n") if "Error" in l or "error" in l or "Invalid" in l or "No such" in l]
+            err_msg = "\n".join(err_lines[-3:]) if err_lines else result.stderr[-300:]
+            logger.error("FFmpeg error: %s", err_msg)
+            return jsonify({"error": f"FFmpeg: {err_msg[:300]}"}), 500
+
+        logger.info("Video generated: %s (%ds, %d slides)", output_name, total_dur, len(slides))
+        return jsonify({"ok": True, "filename": output_name, "url": f"/videos/{output_name}",
+                        "duration": total_dur, "slides": len(slides)})
+    except Exception as e:
+        logger.error("Video generation failed: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/videos/<path:filename>")
+def serve_video(filename):
+    VIDEO_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    return send_from_directory(str(VIDEO_OUTPUT_DIR), filename)
+
+
+@app.route("/api/video/list")
+def api_video_list():
+    VIDEO_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    videos = []
+    for f in sorted(VIDEO_OUTPUT_DIR.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True):
+        if f.suffix == ".mp4":
+            videos.append({"filename": f.name, "url": f"/videos/{f.name}",
+                           "size": f.stat().st_size, "createdAt": f.stat().st_mtime})
+    return jsonify({"videos": videos})
+
+
+@app.route("/api/video/script-from-blog", methods=["POST"])
+def api_video_script_from_blog():
+    """블로그 글에서 숏폼 스크립트 자동 추출"""
+    data = get_json_body()
+    content = data.get("content", "")
+    title = data.get("title", "")
+    if not content:
+        return jsonify({"error": "content required"}), 400
+
+    import re
+    text = content
+    try:
+        doc = json.loads(content) if content.strip().startswith("{") else None
+        if doc and doc.get("type") == "doc":
+            text = ""
+            for node in doc.get("content", []):
+                if node["type"] == "heading":
+                    text += "\n## " + "".join(t.get("text", "") for t in node.get("content", []))
+                elif node["type"] == "paragraph":
+                    text += "\n" + "".join(t.get("text", "") for t in node.get("content", []))
+    except:
+        text = re.sub(r"<[^>]+>", "", content)
+
+    sections = re.split(r"\n##\s*", text)
+    slides = [{"text": title, "duration": 4, "imageQuery": ""}]
+    for section in sections[1:6]:
+        lines = section.strip().split("\n")
+        heading = lines[0].strip() if lines else ""
+        if heading:
+            slides.append({"text": heading[:40], "duration": 5, "imageQuery": heading})
+    slides.append({"text": "자세한 내용은 프로필 링크에서", "duration": 3, "imageQuery": ""})
+
+    return jsonify({"title": title, "slides": slides,
+                    "totalDuration": sum(s["duration"] for s in slides)})
+
+
 KEYWORD_BANK_PATH = DATA_DIR / "keyword-bank.json"
 
 
