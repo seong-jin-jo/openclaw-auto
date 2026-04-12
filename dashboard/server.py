@@ -2177,15 +2177,78 @@ def api_cron_runs():
 VIDEO_OUTPUT_DIR = DATA_DIR / "videos"
 
 
+ELEVENLABS_CONFIG_PATH = DATA_DIR / "elevenlabs-config.json"
+
+
+@app.route("/api/elevenlabs-config")
+def api_elevenlabs_config():
+    cfg = read_json(ELEVENLABS_CONFIG_PATH) or {}
+    return jsonify({"configured": bool(cfg.get("apiKey")), "apiKey": cfg.get("apiKey", ""), "voiceId": cfg.get("voiceId", "")})
+
+
+@app.route("/api/elevenlabs-config", methods=["POST"])
+def api_elevenlabs_config_update():
+    data = get_json_body()
+    write_json(ELEVENLABS_CONFIG_PATH, {"apiKey": data.get("apiKey", ""), "voiceId": data.get("voiceId", "")})
+    logger.info("ElevenLabs config saved")
+    return jsonify({"ok": True})
+
+
+@app.route("/api/elevenlabs-voices")
+def api_elevenlabs_voices():
+    cfg = read_json(ELEVENLABS_CONFIG_PATH) or {}
+    api_key = cfg.get("apiKey", "")
+    if not api_key:
+        return jsonify({"error": "API key not set", "voices": []})
+    try:
+        import urllib.request
+        req = urllib.request.Request("https://api.elevenlabs.io/v1/voices", headers={"xi-api-key": api_key})
+        resp = urllib.request.urlopen(req, timeout=10)
+        data = json.loads(resp.read())
+        voices = [{"id": v["voice_id"], "name": v["name"], "category": v.get("category", "")} for v in data.get("voices", [])]
+        return jsonify({"voices": voices})
+    except Exception as e:
+        return jsonify({"error": str(e), "voices": []})
+
+
+def _generate_tts(text, output_path):
+    """ElevenLabs TTS → MP3"""
+    cfg = read_json(ELEVENLABS_CONFIG_PATH) or {}
+    api_key = cfg.get("apiKey", "")
+    voice_id = cfg.get("voiceId", "iP95p4xoKVk53GoZ742B")  # default: Chris
+    if not api_key:
+        return False
+
+    import urllib.request
+    body = json.dumps({
+        "text": text,
+        "model_id": "eleven_multilingual_v2",
+        "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}
+    }).encode()
+    req = urllib.request.Request(
+        f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+        data=body,
+        headers={"xi-api-key": api_key, "Content-Type": "application/json"}
+    )
+    try:
+        resp = urllib.request.urlopen(req, timeout=30)
+        with open(output_path, "wb") as f:
+            f.write(resp.read())
+        return True
+    except:
+        return False
+
+
 @app.route("/api/video/generate", methods=["POST"])
 def api_video_generate():
-    """Generate short-form video from slides"""
+    """Generate short-form video from slides with optional TTS"""
     import subprocess
     import tempfile
     import time as _time
 
     data = get_json_body()
     slides = data.get("slides", [])
+    tts_enabled = data.get("ttsEnabled", True)
     if not slides:
         return jsonify({"error": "slides required"}), 400
 
@@ -2253,9 +2316,27 @@ def api_video_generate():
             logger.error("FFmpeg error: %s", err_msg)
             return jsonify({"error": f"FFmpeg: {err_msg[:300]}"}), 500
 
-        logger.info("Video generated: %s (%ds, %d slides)", output_name, total_dur, len(slides))
+        # TTS: 전체 스크립트를 음성으로 변환 후 영상에 합성
+        has_audio = False
+        if tts_enabled:
+            full_script = ". ".join(s.get("text", "") for s in slides if s.get("text"))
+            tts_path = f"{tmp}/narration.mp3"
+            if _generate_tts(full_script, tts_path):
+                # 영상 + 음성 합성
+                final_path = str(VIDEO_OUTPUT_DIR / f"final_{int(_time.time())}.mp4")
+                merge_cmd = ["ffmpeg", "-y", "-i", output_path, "-i", tts_path,
+                             "-c:v", "copy", "-c:a", "aac", "-b:a", "128k",
+                             "-shortest", final_path]
+                merge_result = subprocess.run(merge_cmd, capture_output=True, text=True, timeout=60)
+                if merge_result.returncode == 0:
+                    import shutil
+                    shutil.move(final_path, output_path)
+                    has_audio = True
+                    logger.info("TTS audio merged")
+
+        logger.info("Video generated: %s (%ds, %d slides, audio=%s)", output_name, total_dur, len(slides), has_audio)
         return jsonify({"ok": True, "filename": output_name, "url": f"/videos/{output_name}",
-                        "duration": total_dur, "slides": len(slides)})
+                        "duration": total_dur, "slides": len(slides), "hasAudio": has_audio})
     except Exception as e:
         logger.error("Video generation failed: %s", e)
         return jsonify({"error": str(e)}), 500
