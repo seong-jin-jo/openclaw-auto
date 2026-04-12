@@ -1100,6 +1100,11 @@ function renderInstagramPost(p) {
           ${p.status === "draft" ? `<button data-delete="${p.id}" class="px-3 py-1.5 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">Delete</button>` : ""}
           ${!p.imageUrl && (p.status === "draft" || p.status === "approved") ? `<button data-pick-image="${p.id}" class="px-3 py-1.5 text-xs bg-purple-700 text-white rounded hover:bg-purple-600">Add Image</button>` : ""}
         </div>
+        ${p.status === "draft" && slides.length > 0 ? `
+        <div class="flex gap-2 mt-2">
+          ${S.designTools?.figma?.mcpAccessToken ? `<button data-queue-figma-push="${p.id}" class="px-2 py-1 text-[10px] bg-indigo-900 text-indigo-300 rounded border border-indigo-700 hover:bg-indigo-800">Figma에 올리기</button>` : ""}
+          ${S.designTools?.figma?.mcpAccessToken ? `<button data-queue-figma-pull="${p.id}" class="px-2 py-1 text-[10px] bg-indigo-900/50 text-indigo-400 rounded border border-indigo-800 hover:bg-indigo-900">Figma에서 가져오기</button>` : ""}
+        </div>` : ""}
       ` : ""}
     </div>`;
 }
@@ -1164,25 +1169,46 @@ function renderCardNewsEditor() {
       <div class="card p-5">
         <h3 class="text-sm font-medium text-gray-300 mb-4">프리뷰</h3>
         ${result ? `
-          <div class="flex gap-2 overflow-x-auto pb-3 mb-4" style="scrollbar-width:thin">
-            ${result.slides.map((s, i) => `
-              <div class="flex-shrink-0 w-40 h-50 rounded-lg overflow-hidden border border-gray-700">
-                <img src="${esc(s)}" alt="Slide ${i + 1}" class="w-full h-full object-cover">
-              </div>
-            `).join("")}
-          </div>
-          <p class="text-[10px] text-gray-500 mb-4">${result.totalSlides} slides · batch: ${result.batchId}</p>
-          <div class="flex gap-2 mb-3">
-            <button id="card-save-draft" class="flex-1 py-2 bg-green-700 text-white text-sm rounded hover:bg-green-600">큐에 Draft 저장</button>
-            <button id="card-regenerate" class="px-4 py-2 bg-gray-700 text-gray-300 text-sm rounded hover:bg-gray-600">재생성</button>
-          </div>
-          <p class="text-[10px] text-gray-600 mb-2">디자인 툴에서 리터치 후 완성본을 가져오세요.</p>
-          <div class="flex gap-2">
-            ${S.designTools?.figma?.mcpEnabled ? `<button id="card-figma-push" class="flex-1 py-2 bg-indigo-700 text-white text-xs rounded hover:bg-indigo-600">Figma에 올리기</button>` : ""}
-            <button id="card-download-slides" class="flex-1 py-2 bg-gray-700 text-gray-300 text-xs rounded hover:bg-gray-600">다운로드</button>
-            <button id="card-upload-finished" class="flex-1 py-2 bg-purple-700 text-white text-xs rounded hover:bg-purple-600">편집본 업로드</button>
+          <div class="mb-3">
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-[10px] text-gray-500">${result.slides.length} slides</p>
+              <button id="card-add-image" class="text-[10px] text-blue-400 hover:text-blue-300">+ 이미지 추가</button>
+            </div>
+            <div class="flex gap-2 overflow-x-auto pb-2" style="scrollbar-width:thin">
+              ${result.slides.map((s, i) => `
+                <div class="flex-shrink-0 relative group">
+                  <div class="w-32 h-40 rounded-lg overflow-hidden border border-gray-700">
+                    <img src="${esc(s)}" alt="Slide ${i + 1}" class="w-full h-full object-cover">
+                  </div>
+                  <button data-remove-slide="${i}" class="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">✕</button>
+                  <span class="absolute bottom-1 left-1 text-[9px] bg-black/60 text-white px-1 rounded">${i + 1}</span>
+                </div>
+              `).join("")}
+            </div>
           </div>
           <input type="file" id="card-upload-input" multiple accept="image/*" class="hidden">
+
+          <div class="space-y-2 mb-3">
+            <div class="flex gap-2">
+              <button id="card-save-draft" class="flex-1 py-2 bg-green-700 text-white text-xs rounded hover:bg-green-600">큐에 Draft 저장</button>
+              <button id="card-regenerate" class="px-3 py-2 bg-gray-700 text-gray-300 text-xs rounded hover:bg-gray-600">재생성</button>
+            </div>
+            <div class="flex gap-2">
+              ${S.designTools?.figma?.mcpAccessToken ? `<button id="card-figma-push" class="flex-1 py-2 bg-indigo-700 text-white text-xs rounded hover:bg-indigo-600">Figma에 올리기</button>` : ""}
+              ${S.designTools?.figma?.mcpAccessToken ? `<button id="card-figma-pull" class="flex-1 py-2 bg-indigo-900 text-indigo-300 text-xs rounded hover:bg-indigo-800 border border-indigo-700">Figma에서 가져오기</button>` : ""}
+            </div>
+            <div class="flex gap-2">
+              <button id="card-upload-finished" class="flex-1 py-2 bg-purple-900 text-purple-300 text-xs rounded hover:bg-purple-800 border border-purple-700">편집본 업로드</button>
+              <button id="card-download-slides" class="flex-1 py-2 bg-gray-800 text-gray-400 text-xs rounded hover:bg-gray-700">다운로드</button>
+            </div>
+            <details class="text-[10px]">
+              <summary class="text-gray-500 cursor-pointer hover:text-gray-400">미드저니 배경 생성 (선택)</summary>
+              <div class="mt-2 flex gap-2">
+                <input id="mj-bg-prompt" type="text" placeholder="배경 이미지 프롬프트 (영문 권장)" class="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300">
+                <button id="mj-bg-generate" class="px-3 py-1.5 bg-amber-700 text-white text-xs rounded hover:bg-amber-600 flex-shrink-0">생성</button>
+              </div>
+            </details>
+          </div>
         ` : `
           <div class="flex items-center justify-center h-64 text-gray-600">
             <div class="text-center">
@@ -2170,6 +2196,38 @@ function bindEvents() {
     if (r) { showToast(`${r.deleted || ids.length}개 삭제`, "success"); S.selectedIds.clear(); loadQueue("all"); }
   };
 
+  // Queue: Figma push/pull for draft posts
+  document.querySelectorAll("[data-queue-figma-push]").forEach(el => {
+    el.onclick = async () => {
+      const post = (S.queue || []).find(p => p.id === el.dataset.queueFigmaPush);
+      if (!post?.imageUrls?.length) { showToast("슬라이드가 없습니다", "warning"); return; }
+      el.textContent = "올리는 중..."; el.disabled = true;
+      const r = await API.post("/api/figma/create-slides", {
+        title: post.topic || "", slides: [post.text?.substring(0, 50) || ""], style: "tech",
+        imageUrls: post.imageUrls, batchId: post.cardBatchId || "",
+      });
+      el.textContent = "Figma에 올리기"; el.disabled = false;
+      if (r?.success) {
+        showToast("Figma에 올림", "success");
+        if (r.figmaUrl) window.open(r.figmaUrl, "_blank");
+      } else showToast(r?.error || "실패", "error");
+    };
+  });
+  document.querySelectorAll("[data-queue-figma-pull]").forEach(el => {
+    el.onclick = async () => {
+      const postId = el.dataset.queueFigmaPull;
+      const fileUrl = prompt("Figma 파일 URL:");
+      if (!fileUrl) return;
+      const match = fileUrl.match(/figma\.com\/(?:design|file)\/([^/]+)/);
+      if (!match) { showToast("올바른 Figma URL이 아닙니다", "error"); return; }
+      el.textContent = "가져오는 중..."; el.disabled = true;
+      const r = await API.post("/api/figma/export-to-queue", { fileKey: match[1], postId });
+      el.textContent = "Figma에서 가져오기"; el.disabled = false;
+      if (r?.ok) { showToast(`${r.count}장 가져옴`, "success"); loadQueue("all"); }
+      else showToast(r?.error || "실패", "error");
+    };
+  });
+
   // Edit Slides — load card into Create tab
   document.querySelectorAll("[data-edit-card]").forEach(el => {
     el.onclick = () => {
@@ -2261,6 +2319,70 @@ function bindEvents() {
   };
   const regenBtn = document.getElementById("card-regenerate");
   if (regenBtn) regenBtn.onclick = () => { if (S.cardEditor) { S.cardEditor.result = null; render(); } };
+  // Slide management
+  document.querySelectorAll("[data-remove-slide]").forEach(el => {
+    el.onclick = () => {
+      const idx = parseInt(el.dataset.removeSlide);
+      if (S.cardEditor?.result?.slides) {
+        S.cardEditor.result.slides.splice(idx, 1);
+        S.cardEditor.result.totalSlides = S.cardEditor.result.slides.length;
+        render();
+      }
+    };
+  });
+  const addImageBtn = document.getElementById("card-add-image");
+  if (addImageBtn) addImageBtn.onclick = () => document.getElementById("card-upload-input")?.click();
+
+  // Figma pull
+  const figmaPull = document.getElementById("card-figma-pull");
+  if (figmaPull) figmaPull.onclick = async () => {
+    const fileUrl = prompt("Figma 파일 URL을 입력하세요:");
+    if (!fileUrl) return;
+    const match = fileUrl.match(/figma\.com\/(?:design|file)\/([^/]+)/);
+    if (!match) { showToast("올바른 Figma URL이 아닙니다", "error"); return; }
+    figmaPull.textContent = "가져오는 중..."; figmaPull.disabled = true;
+    const r = await API.post("/api/figma/export", { fileKey: match[1] });
+    figmaPull.textContent = "Figma에서 가져오기"; figmaPull.disabled = false;
+    if (r?.success && r.images) {
+      const urls = Object.values(r.images).filter(u => u);
+      if (urls.length && S.cardEditor?.result) {
+        // Download and upload each image
+        for (const imgUrl of urls) {
+          try {
+            const resp = await fetch(imgUrl);
+            const blob = await resp.blob();
+            const formData = new FormData();
+            formData.append("file", blob, "figma-export.png");
+            const upResp = await fetch("/api/images/upload", { method: "POST", headers: authHeaders(), body: formData });
+            const upData = await upResp.json();
+            if (upData.url) S.cardEditor.result.slides.push(upData.url);
+          } catch(e) { /* skip */ }
+        }
+        S.cardEditor.result.totalSlides = S.cardEditor.result.slides.length;
+        showToast(`Figma에서 ${urls.length}장 가져옴`, "success");
+        render();
+      } else showToast("Export할 프레임이 없습니다", "warning");
+    } else showToast(r?.error || "Export 실패", "error");
+  };
+
+  // Midjourney background
+  const mjBgGen = document.getElementById("mj-bg-generate");
+  if (mjBgGen) mjBgGen.onclick = async () => {
+    const prompt = document.getElementById("mj-bg-prompt")?.value?.trim();
+    if (!prompt) { showToast("프롬프트를 입력하세요", "warning"); return; }
+    mjBgGen.textContent = "생성 중..."; mjBgGen.disabled = true;
+    const r = await API.post("/api/midjourney/generate", { prompt: prompt + " --ar 4:5" });
+    mjBgGen.textContent = "생성"; mjBgGen.disabled = false;
+    if (r?.success && r.imagePath) {
+      if (S.cardEditor?.result) {
+        S.cardEditor.result.slides.push(r.imagePath);
+        S.cardEditor.result.totalSlides = S.cardEditor.result.slides.length;
+      }
+      showToast("미드저니 이미지 추가됨", "success");
+      render();
+    } else showToast(r?.error || "미드저니 생성 실패", "error");
+  };
+
   const figmaPush = document.getElementById("card-figma-push");
   if (figmaPush) figmaPush.onclick = async () => {
     const ed = S.cardEditor;
@@ -2308,8 +2430,13 @@ function bindEvents() {
       uploadFinished.textContent = "편집본 업로드"; uploadFinished.disabled = false;
       uploadInput.value = "";
       if (uploaded.length) {
-        if (S.cardEditor) S.cardEditor.result = { ...S.cardEditor.result, slides: uploaded, totalSlides: uploaded.length };
-        showToast(`${uploaded.length}장 업로드 완료 — Draft 저장 가능`, "success");
+        if (S.cardEditor?.result) {
+          S.cardEditor.result.slides = [...S.cardEditor.result.slides, ...uploaded];
+          S.cardEditor.result.totalSlides = S.cardEditor.result.slides.length;
+        } else if (S.cardEditor) {
+          S.cardEditor.result = { slides: uploaded, totalSlides: uploaded.length, batchId: "upload" };
+        }
+        showToast(`${uploaded.length}장 추가됨 (총 ${S.cardEditor?.result?.slides?.length || uploaded.length}장)`, "success");
         render();
       } else { showToast("업로드 실패", "error"); }
     };
