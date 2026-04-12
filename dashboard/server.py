@@ -639,6 +639,105 @@ def api_figma_export():
         return jsonify({"error": str(e)[:200]}), 500
 
 
+# ── Figma Export to Queue ──
+@app.route("/api/figma/export-to-queue", methods=["POST"])
+def api_figma_export_to_queue():
+    """Export Figma frames as PNG and update a queue post's imageUrls."""
+    import urllib.request
+    data = get_json_body()
+    file_key = data.get("fileKey", "")
+    post_id = data.get("postId", "")
+    if not file_key or not post_id:
+        return jsonify({"error": "fileKey and postId required"}), 400
+
+    dt = read_json(DESIGN_TOOLS_PATH) or {}
+    token = dt.get("figma", {}).get("accessToken", "")
+    if not token:
+        return jsonify({"error": "Figma token not set"}), 400
+
+    try:
+        # Get file structure to find frame node IDs
+        url = f"https://api.figma.com/v1/files/{file_key}?depth=1"
+        req = urllib.request.Request(url, headers={"X-Figma-Token": token, "User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            file_data = json.loads(resp.read())
+
+        # Find all frame nodes on the first page
+        page = file_data.get("document", {}).get("children", [{}])[0]
+        frames = [c for c in page.get("children", []) if c.get("type") == "FRAME"]
+        if not frames:
+            return jsonify({"error": "No frames found in file"}), 400
+
+        node_ids = ",".join(f["id"] for f in frames)
+
+        # Export as PNG
+        export_url = f"https://api.figma.com/v1/images/{file_key}?ids={node_ids}&format=png&scale=2"
+        req2 = urllib.request.Request(export_url, headers={"X-Figma-Token": token, "User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req2, timeout=30) as resp2:
+            export_data = json.loads(resp2.read())
+
+        images = export_data.get("images", {})
+        if not images:
+            return jsonify({"error": "Export returned no images"}), 500
+
+        # Download each image and save locally
+        new_urls = []
+        import uuid
+        for node_id, img_url in sorted(images.items()):
+            if not img_url:
+                continue
+            req3 = urllib.request.Request(img_url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req3, timeout=30) as resp3:
+                img_data = resp3.read()
+            filename = f"figma-{uuid.uuid4().hex[:8]}.png"
+            save_path = os.path.join(IMAGES_DIR, filename)
+            os.makedirs(IMAGES_DIR, exist_ok=True)
+            with open(save_path, "wb") as f:
+                f.write(img_data)
+            new_urls.append(f"/images/{filename}")
+
+        # Update queue post
+        queue = read_json(QUEUE_PATH) or {"version": 2, "posts": []}
+        for p in queue["posts"]:
+            if p["id"] == post_id:
+                p["imageUrls"] = new_urls
+                p["imageUrl"] = new_urls[0] if new_urls else p.get("imageUrl")
+                break
+        write_json(QUEUE_PATH, queue)
+
+        return jsonify({"ok": True, "count": len(new_urls)})
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+# ── Midjourney ──
+@app.route("/api/midjourney/generate", methods=["POST"])
+def api_midjourney_generate():
+    """Generate image via Midjourney through gateway agent."""
+    import subprocess
+    data = get_json_body()
+    prompt = data.get("prompt", "").strip()
+    if not prompt:
+        return jsonify({"error": "prompt required"}), 400
+    msg = f'midjourney_image tool로 action=imagine, prompt="{prompt}", auto_upscale=false 실행하라. 결과의 imagePath를 출력하라.'
+    try:
+        result = subprocess.run(
+            ["docker", "exec", "marketing-ai-openclaw-gateway-1",
+             "node", "dist/index.js", "agent", "--agent", "main", "--message", msg],
+            capture_output=True, text=True, timeout=180,
+        )
+        output = result.stdout.strip()
+        import re
+        path_match = re.search(r'/images/[^\s"\']+\.png', output)
+        if path_match:
+            return jsonify({"success": True, "imagePath": path_match.group(0)})
+        return jsonify({"error": "이미지 경로를 찾을 수 없음", "output": output[-300:]}), 500
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "미드저니 생성 타임아웃 (3분)"}), 504
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ── Card News ──
 @app.route("/api/card-news/outline", methods=["POST"])
 def api_card_news_outline():
