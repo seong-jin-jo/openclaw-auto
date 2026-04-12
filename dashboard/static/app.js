@@ -1100,10 +1100,12 @@ function renderInstagramPost(p) {
           ${p.status === "draft" ? `<button data-delete="${p.id}" class="px-3 py-1.5 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">Delete</button>` : ""}
           ${!p.imageUrl && (p.status === "draft" || p.status === "approved") ? `<button data-pick-image="${p.id}" class="px-3 py-1.5 text-xs bg-purple-700 text-white rounded hover:bg-purple-600">Add Image</button>` : ""}
         </div>
-        ${p.status === "draft" && slides.length > 0 ? `
-        <div class="flex gap-2 mt-2">
-          ${S.designTools?.figma?.mcpAccessToken ? `<button data-queue-figma-push="${p.id}" class="px-2 py-1 text-[10px] bg-indigo-900 text-indigo-300 rounded border border-indigo-700 hover:bg-indigo-800">Figma에 올리기</button>` : ""}
+        ${p.status === "draft" || p.status === "approved" ? `
+        <div class="flex gap-2 mt-2 flex-wrap">
+          ${S.designTools?.figma?.mcpAccessToken && slides.length > 0 ? `<button data-queue-figma-push="${p.id}" class="px-2 py-1 text-[10px] bg-indigo-900 text-indigo-300 rounded border border-indigo-700 hover:bg-indigo-800">Figma에 올리기</button>` : ""}
           ${S.designTools?.figma?.mcpAccessToken ? `<button data-queue-figma-pull="${p.id}" class="px-2 py-1 text-[10px] bg-indigo-900/50 text-indigo-400 rounded border border-indigo-800 hover:bg-indigo-900">Figma에서 가져오기</button>` : ""}
+          <button data-queue-mj="${p.id}" class="px-2 py-1 text-[10px] bg-amber-900/50 text-amber-400 rounded border border-amber-800 hover:bg-amber-900">미드저니 추가</button>
+          <button data-queue-upload="${p.id}" class="px-2 py-1 text-[10px] bg-purple-900/50 text-purple-400 rounded border border-purple-800 hover:bg-purple-900">이미지 추가</button>
         </div>` : ""}
       ` : ""}
     </div>`;
@@ -2228,6 +2230,46 @@ function bindEvents() {
     };
   });
 
+  // Queue: Midjourney add
+  document.querySelectorAll("[data-queue-mj]").forEach(el => {
+    el.onclick = async () => {
+      const postId = el.dataset.queueMj;
+      const prompt = window.prompt("미드저니 프롬프트 (영문 권장):");
+      if (!prompt) return;
+      el.textContent = "생성 중..."; el.disabled = true;
+      const r = await API.post("/api/midjourney/generate", { prompt: prompt + " --ar 4:5" });
+      el.textContent = "미드저니 추가"; el.disabled = false;
+      if (r?.success && r.imagePath) {
+        await API.post(`/api/queue/${postId}/add-image`, { imageUrl: r.imagePath });
+        showToast("미드저니 이미지 추가됨", "success");
+        loadQueue("all");
+      } else showToast(r?.error || "미드저니 생성 실패", "error");
+    };
+  });
+
+  // Queue: Image upload
+  document.querySelectorAll("[data-queue-upload]").forEach(el => {
+    el.onclick = () => {
+      const postId = el.dataset.queueUpload;
+      const input = document.createElement("input");
+      input.type = "file"; input.multiple = true; input.accept = "image/*";
+      input.onchange = async () => {
+        for (const file of input.files) {
+          const formData = new FormData();
+          formData.append("file", file);
+          try {
+            const res = await fetch("/api/images/upload", { method: "POST", headers: authHeaders(), body: formData });
+            const d = await res.json();
+            if (d.url) await API.post(`/api/queue/${postId}/add-image`, { imageUrl: d.url });
+          } catch(e) {}
+        }
+        showToast(`${input.files.length}장 추가됨`, "success");
+        loadQueue("all");
+      };
+      input.click();
+    };
+  });
+
   // Edit Slides — load card into Create tab
   document.querySelectorAll("[data-edit-card]").forEach(el => {
     el.onclick = () => {
@@ -2472,7 +2514,7 @@ function navigate(page) {
   if (page === "overview") loadOverview();
   else if (page === "threads") { S.subTab = "queue"; loadQueue(S.queueFilter); loadGrowth(); loadImages(); }
   else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); loadChannelGuideAndKeywords(); }
-  else if (page === "instagram") { loadOverview(); loadQueue("all"); loadChannelSettings(); loadCronRuns(); loadChannelGuideAndKeywords(); }
+  else if (page === "instagram") { loadOverview(); loadQueue("all"); loadChannelSettings(); loadCronRuns(); loadChannelGuideAndKeywords(); loadDesignTools(); }
   else if (page === "images") { loadImages(); loadR2Config(); }
   else if (page === "blog") loadBlogQueue();
   else if (page === "sample_community") { /* manual load via button */ }

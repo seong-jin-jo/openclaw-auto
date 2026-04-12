@@ -1083,6 +1083,26 @@ def api_queue_add():
     return jsonify({"success": True, "post": post})
 
 
+@app.route("/api/queue/<post_id>/add-image", methods=["POST"])
+def api_queue_add_image(post_id):
+    """Add an image to a queue post's imageUrls."""
+    data = get_json_body()
+    image_url = data.get("imageUrl", "")
+    if not image_url:
+        return jsonify({"error": "imageUrl required"}), 400
+    queue = read_json(QUEUE_PATH) or {"version": 2, "posts": []}
+    for p in queue["posts"]:
+        if p["id"] == post_id:
+            if not p.get("imageUrls"):
+                p["imageUrls"] = []
+            p["imageUrls"].append(image_url)
+            if not p.get("imageUrl"):
+                p["imageUrl"] = image_url
+            write_json(QUEUE_PATH, queue)
+            return jsonify({"ok": True, "count": len(p["imageUrls"])})
+    return jsonify({"error": "Post not found"}), 404
+
+
 @app.route("/api/queue/<post_id>/approve", methods=["POST"])
 def api_approve(post_id):
     queue = read_json(QUEUE_PATH)
