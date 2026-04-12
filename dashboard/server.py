@@ -657,7 +657,7 @@ def api_figma_export_to_queue():
 
     try:
         # Get file structure to find frame node IDs
-        url = f"https://api.figma.com/v1/files/{file_key}?depth=1"
+        url = f"https://api.figma.com/v1/files/{file_key}?depth=2"
         req = urllib.request.Request(url, headers={"X-Figma-Token": token, "User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=15) as resp:
             file_data = json.loads(resp.read())
