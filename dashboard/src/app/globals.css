@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-surface: #0a0a0a;
+  --color-card: #141414;
+}
+
+body {
+  background: #0a0a0a;
+  color: #e5e7eb;
+}
+
+.sidebar-item { transition: all 0.15s; }
+.sidebar-item:hover { background: rgba(255,255,255,0.05); }
+.sidebar-item.active { background: rgba(59,130,246,0.15); border-right: 2px solid #3b82f6; }
+
+.card { background: #141414; border: 1px solid #1e1e1e; border-radius: 12px; }
+.card:hover { border-color: #2a2a2a; }
+
+.channel-card { cursor: pointer; transition: all 0.2s; }
+.channel-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+
+.pulse-dot { width: 8px; height: 8px; border-radius: 50%; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+/* Scrollbar — Flask 완전 동일 */
+aside { overflow-y: auto; scrollbar-width: thin; scrollbar-color: #333 transparent; }
+aside::-webkit-scrollbar { width: 4px; }
+aside::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+aside::-webkit-scrollbar-track { background: transparent; }
+
+/* Blog article preview — Flask 완전 동일 */
+.blog-article-preview { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+.blog-article-body { color: #333; font-size: 1rem; line-height: 1.85; }
+.blog-article-body h1 { font-size: 1.5rem; font-weight: 800; color: #111; margin: 2rem 0 0.75rem; }
+.blog-article-body h2 { font-size: 1.25rem; font-weight: 700; color: #111; margin: 2rem 0 0.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e5e7eb; }
+.blog-article-body h3 { font-size: 1.1rem; font-weight: 600; color: #222; margin: 1.5rem 0 0.5rem; }
+.blog-article-body p { margin: 0.75rem 0; color: #444; }
+.blog-article-body strong { color: #111; font-weight: 600; }
+.blog-article-body em { color: #555; font-style: italic; }
+.blog-article-body a { color: #2563eb; text-decoration: underline; text-underline-offset: 2px; }
+.blog-article-body a:hover { color: #1d4ed8; }
+.blog-article-body ul, .blog-article-body ol { margin: 0.75rem 0; padding-left: 1.5rem; color: #444; }
+.blog-article-body li { margin: 0.4rem 0; }
+.blog-article-body li strong { color: #222; }
+.blog-article-body img { width: 100%; border-radius: 8px; margin: 1.5rem 0; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.blog-article-body blockquote { border-left: 3px solid #3b82f6; padding: 0.5rem 1rem; margin: 1rem 0; background: #f0f7ff; color: #333; border-radius: 0 8px 8px 0; }
+
+/* Mobile responsive — Flask 완전 동일 */
+@media (max-width: 768px) {
+  body { flex-direction: column; }
+  aside { width: 100% !important; height: auto !important; position: relative !important; border-right: none !important; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  aside nav { display: flex; flex-wrap: wrap; gap: 2px; padding: 8px; }
+  aside nav > div { display: none; }
+  aside nav > button { flex: none; }
+}

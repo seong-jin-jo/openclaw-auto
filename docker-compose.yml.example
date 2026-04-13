@@ -35,12 +35,10 @@ services:
     volumes:
       - ./data:/app/data
       - ./config:/app/config
-      - ./dashboard/server.py:/app/server.py
-      - ./dashboard/static:/app/static
     env_file: .env
     environment:
       DATA_DIR: /app/data
       CONFIG_DIR: /app/config
-      DASHBOARD_PORT: "${DASHBOARD_PORT:-34560}"
+      PORT: "${DASHBOARD_PORT:-34560}"
       DASHBOARD_AUTH_TOKEN: ${DASHBOARD_AUTH_TOKEN:-}
     restart: unless-stopped

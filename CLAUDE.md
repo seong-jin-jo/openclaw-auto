@@ -130,50 +130,11 @@ data/
 | `threads-fetch-trending` | 주1회 | Haiku | 외부 인기글 수집 |
 | `threads-track-growth` | 매일 | Haiku | 팔로워 추적 |
 
-## UI 규칙 (공통 인터페이스)
+## UI 규칙
 
-### 사이드바
-- 카테고리: Social / Video / Blog / Messaging / Data & SEO / Custom Integration
-- 연결된 채널(Live/Connected) 있는 카테고리: **자동 열림**
-- 카운터: `연결수/전체수` 표시 (연결 있으면 초록)
-- Coming Soon: 클릭 불가, 회색
+→ **[docs/ui-rules.md](docs/ui-rules.md)** 참고
 
-### Credentials (모든 채널 공통)
-- 기본: **readonly** (값 표시만)
-- "Edit" 클릭 → 수정 모드 (Update + Cancel)
-- 저장 시 API 검증 → 성공하면 보기 모드 복귀
-- Show/Hide 토글: secret 필드에 적용
-- 토큰 전체 값은 title 속성으로 호버 시 확인 가능
-
-### Setup Guide (모든 채널 공통)
-- **Quick Setup**: 따라만 하면 동작하는 단계별 가이드 (항상 표시)
-- **더 알아보기**: 키 역할, OAuth 구조, 비용 등 상세 설명 (토글)
-- 줄바꿈: `whitespace-pre-wrap` 적용
-- 대상: 일반인 (개발자 용어 최소화)
-
-### Content (채널별)
-- Content Guide + Keywords: 채널별 독립 편집
-- "공통에서 복사" 버튼으로 동기화
-- 없으면 공통 가이드 자동 사용
-
-### Analytics (채널별)
-- 크론 안 돌아도 이전 데이터 표시
-- 크론 에러 시: "자동화 일시 중단 — 최신 데이터가 아닐 수 있습니다" 경고
-- 데이터 없으면 안내 메시지
-
-### Home (전역)
-- 채널 아이콘 그리드 (연결된 것 초록 도트)
-- 주간 성과 / 크론 상태 / Alerts / 활동 타임라인
-
-### Settings (전역)
-- AI Engine: LLM 모델 + 크론잡별 오버라이드
-- Notifications: 이벤트별 알림 채널 + 주간 리포트 발송
-- Interactive Chat: 양방향 봇 설정
-- Account: 로그인/로그아웃
-
-### 카테고리 분류 기준
-- **공통 플랫폼** (Social/Video/Blog/Messaging/Data): 모든 서비스에서 사용
-- **Custom Integration**: 특정 도메인/사업에 종속 (자체 사이트 블로그, 커스텀 API 등)
+CLAUDE.md와 별도 관리. 모든 fork가 공유하는 대시보드 UI/UX 기준.
 
 ## 대시보드
 
