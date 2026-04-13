@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   if (!keyData) return Response.json({ error: "GSC service account not configured", rows: [] });
 
   const { searchParams } = new URL(request.url);
-  const siteUrl = searchParams.get("site") || "sc-domain:d-edu.site";
+  const siteUrl = searchParams.get("site") || "";
   const days = parseInt(searchParams.get("days") || "28", 10);
   const dimension = searchParams.get("dimension") || "query";
 

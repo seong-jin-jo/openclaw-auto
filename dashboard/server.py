@@ -588,7 +588,7 @@ def api_figma_create_slides():
 2. 각 프레임에 배경색 적용 (dark=#0f0f0f, tech=#0a1628, gradient=#1e1b4b)
 3. 첫 프레임: "CARD NEWS" 뱃지 + 제목 텍스트 (볼드 52px)
 4. 중간 프레임: 넘버 + 본문 텍스트 (34px) 중앙 정렬
-5. 마지막 프레임: CTA 텍스트 + "@code_zero_to_one"
+5. 마지막 프레임: CTA 텍스트 + "@your_threads_handle"
 6. 생성 완료 후 Figma 파일 URL을 출력하라."""
 
     try:

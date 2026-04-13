@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     const cookie = loginRes.headers.get("set-cookie") || "";
     const authMatch = cookie.match(/Authorization=([^;]+)/);
     if (!authMatch) {
-      return Response.json({ error: "d-edu login failed" }, { status: 500 });
+      return Response.json({ error: "Blog login failed" }, { status: 500 });
     }
     const authToken = authMatch[1];
     const authHeaders = {
