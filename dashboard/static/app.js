@@ -977,7 +977,7 @@ function renderChannelX() {
 
 function renderChannelInstagram() {
   const connected = S.channelConfig.instagram?.connected;
-  const tabs = connected ? ["queue", "create", "settings"] : ["settings"];
+  const tabs = connected ? ["queue", "editor", "settings"] : ["settings"];
   const allPosts = S.queue || [];
 
   return `<div class="px-8 py-6">
@@ -990,7 +990,7 @@ function renderChannelInstagram() {
       ${tabs.map(t => `<button data-subtab="${t}" class="px-3 py-1.5 text-sm rounded ${S.subTab === t ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"}">${t.charAt(0).toUpperCase() + t.slice(1)}</button>`).join("")}
     </div>
     ${S.subTab === "queue" && connected ? renderInstagramQueue(allPosts) : ""}
-    ${S.subTab === "create" && connected ? renderCardNewsEditor() : ""}
+    ${S.subTab === "editor" && connected ? renderCardNewsEditor() : ""}
     ${S.subTab === "settings" ? renderInstagramSettings() : ""}
   </div>`;
 }
@@ -1095,18 +1095,8 @@ function renderInstagramPost(p) {
       ${!isEditing ? `
         <div class="flex gap-2 pt-2 border-t border-gray-800/50">
           ${p.status === "draft" ? `<button data-approve="${p.id}" class="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>` : ""}
-          ${p.status === "draft" || p.status === "approved" ? `<button data-edit="${p.id}" class="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit Caption</button>` : ""}
-          ${isCard && (p.status === "draft" || p.status === "approved") ? `<button data-edit-card="${p.id}" class="px-3 py-1.5 text-xs bg-purple-700 text-white rounded hover:bg-purple-600">Edit Slides</button>` : ""}
+          ${p.status === "draft" || p.status === "approved" ? `<button data-edit-card="${p.id}" class="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button>` : ""}
           ${p.status === "draft" ? `<button data-delete="${p.id}" class="px-3 py-1.5 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">Delete</button>` : ""}
-          ${!p.imageUrl && (p.status === "draft" || p.status === "approved") ? `<button data-pick-image="${p.id}" class="px-3 py-1.5 text-xs bg-purple-700 text-white rounded hover:bg-purple-600">Add Image</button>` : ""}
-        </div>
-        ${p.status === "draft" || p.status === "approved" ? `
-        <div class="flex gap-2 mt-2 flex-wrap">
-          ${S.designTools?.figma?.mcpAccessToken && slides.length > 0 ? `<button data-queue-figma-push="${p.id}" class="px-2 py-1 text-[10px] bg-indigo-900 text-indigo-300 rounded border border-indigo-700 hover:bg-indigo-800">Figma에 올리기</button>` : ""}
-          ${S.designTools?.figma?.mcpAccessToken ? `<button data-queue-figma-pull="${p.id}" class="px-2 py-1 text-[10px] bg-indigo-900/50 text-indigo-400 rounded border border-indigo-800 hover:bg-indigo-900">Figma에서 가져오기</button>` : ""}
-          <button data-queue-mj="${p.id}" class="px-2 py-1 text-[10px] bg-amber-900/50 text-amber-400 rounded border border-amber-800 hover:bg-amber-900">미드저니 추가</button>
-          <button data-queue-upload="${p.id}" class="px-2 py-1 text-[10px] bg-purple-900/50 text-purple-400 rounded border border-purple-800 hover:bg-purple-900">이미지 추가</button>
-        </div>` : ""}
       ` : ""}
     </div>`;
 }
@@ -1117,6 +1107,7 @@ function renderCardNewsEditor() {
   const result = ed.result;
 
   return `
+    ${ed.editingPostId ? `<button id="back-to-queue" class="text-gray-500 hover:text-gray-300 text-xs mb-3 block">← Queue로 돌아가기</button>` : ""}
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <!-- Left: Editor -->
       <div class="space-y-4">
@@ -1174,15 +1165,22 @@ function renderCardNewsEditor() {
           <div class="mb-3">
             <div class="flex items-center justify-between mb-2">
               <p class="text-[10px] text-gray-500">${result.slides.length} slides</p>
-              <button id="card-add-image" class="text-[10px] text-blue-400 hover:text-blue-300">+ 이미지 추가</button>
+              <div class="flex gap-2">
+                <button id="card-add-image" class="text-[10px] text-blue-400 hover:text-blue-300">+ 이미지 추가</button>
+                <button id="card-download-slides" class="text-[10px] text-gray-500 hover:text-gray-400">다운로드</button>
+              </div>
             </div>
             <div class="flex gap-2 overflow-x-auto pb-2" style="scrollbar-width:thin">
               ${result.slides.map((s, i) => `
-                <div class="flex-shrink-0 relative group">
+                <div class="flex-shrink-0 relative group" style="min-width:128px">
                   <div class="w-32 h-40 rounded-lg overflow-hidden border border-gray-700">
                     <img src="${esc(s)}" alt="Slide ${i + 1}" class="w-full h-full object-cover">
                   </div>
-                  <button data-remove-slide="${i}" class="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">✕</button>
+                  <div class="absolute -top-1 -right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    ${i > 0 ? `<button data-move-slide="${i}:-1" class="w-5 h-5 bg-gray-700 text-white rounded-full text-[10px] flex items-center justify-center">←</button>` : ""}
+                    ${i < result.slides.length - 1 ? `<button data-move-slide="${i}:1" class="w-5 h-5 bg-gray-700 text-white rounded-full text-[10px] flex items-center justify-center">→</button>` : ""}
+                    <button data-remove-slide="${i}" class="w-5 h-5 bg-red-600 text-white rounded-full text-[10px] flex items-center justify-center">✕</button>
+                  </div>
                   <span class="absolute bottom-1 left-1 text-[9px] bg-black/60 text-white px-1 rounded">${i + 1}</span>
                 </div>
               `).join("")}
@@ -1191,22 +1189,18 @@ function renderCardNewsEditor() {
           <input type="file" id="card-upload-input" multiple accept="image/*" class="hidden">
 
           <div class="space-y-2 mb-3">
+            <button id="card-save-draft" class="w-full py-2 bg-green-700 text-white text-sm rounded hover:bg-green-600">${ed.editingPostId ? "Draft 업데이트" : "큐에 Draft 저장"}</button>
             <div class="flex gap-2">
-              <button id="card-save-draft" class="flex-1 py-2 bg-green-700 text-white text-xs rounded hover:bg-green-600">큐에 Draft 저장</button>
-              <button id="card-regenerate" class="px-3 py-2 bg-gray-700 text-gray-300 text-xs rounded hover:bg-gray-600">재생성</button>
+              ${S.designTools?.figma?.mcpAccessToken ? `<button id="card-figma-push" class="flex-1 py-1.5 bg-indigo-700 text-white text-xs rounded hover:bg-indigo-600">Figma에 올리기</button>` : ""}
+              ${S.designTools?.figma?.mcpAccessToken ? `<button id="card-figma-pull" class="flex-1 py-1.5 bg-indigo-900 text-indigo-300 text-xs rounded hover:bg-indigo-800 border border-indigo-700">Figma에서 가져오기</button>` : ""}
             </div>
             <div class="flex gap-2">
-              ${S.designTools?.figma?.mcpAccessToken ? `<button id="card-figma-push" class="flex-1 py-2 bg-indigo-700 text-white text-xs rounded hover:bg-indigo-600">Figma에 올리기</button>` : ""}
-              ${S.designTools?.figma?.mcpAccessToken ? `<button id="card-figma-pull" class="flex-1 py-2 bg-indigo-900 text-indigo-300 text-xs rounded hover:bg-indigo-800 border border-indigo-700">Figma에서 가져오기</button>` : ""}
-            </div>
-            <div class="flex gap-2">
-              <button id="card-upload-finished" class="flex-1 py-2 bg-purple-900 text-purple-300 text-xs rounded hover:bg-purple-800 border border-purple-700">편집본 업로드</button>
-              <button id="card-download-slides" class="flex-1 py-2 bg-gray-800 text-gray-400 text-xs rounded hover:bg-gray-700">다운로드</button>
+              <button id="card-regenerate" class="flex-1 py-1.5 bg-gray-700 text-gray-300 text-xs rounded hover:bg-gray-600">카드 재생성</button>
             </div>
             <details class="text-[10px]">
-              <summary class="text-gray-500 cursor-pointer hover:text-gray-400">미드저니 배경 생성 (선택)</summary>
+              <summary class="text-gray-500 cursor-pointer hover:text-gray-400">미드저니 이미지 추가 (선택)</summary>
               <div class="mt-2 flex gap-2">
-                <input id="mj-bg-prompt" type="text" placeholder="배경 이미지 프롬프트 (영문 권장)" class="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300">
+                <input id="mj-bg-prompt" type="text" placeholder="이미지 프롬프트 (영문 권장)" class="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300">
                 <button id="mj-bg-generate" class="px-3 py-1.5 bg-amber-700 text-white text-xs rounded hover:bg-amber-600 flex-shrink-0">생성</button>
               </div>
             </details>
@@ -2287,7 +2281,7 @@ function bindEvents() {
         result: post.imageUrls ? { slides: post.imageUrls, batchId: post.cardBatchId, totalSlides: post.imageUrls.length } : null,
         editingPostId: postId,
       };
-      S.subTab = "create";
+      S.subTab = "editor";
       render();
     };
   });
@@ -2361,15 +2355,29 @@ function bindEvents() {
   };
   const regenBtn = document.getElementById("card-regenerate");
   if (regenBtn) regenBtn.onclick = () => { if (S.cardEditor) { S.cardEditor.result = null; render(); } };
+  // Back to queue from editor
+  const backToQueue = document.getElementById("back-to-queue");
+  if (backToQueue) backToQueue.onclick = () => { S.subTab = "queue"; S.cardEditor = null; loadQueue("all"); render(); };
+
   // Slide management
   document.querySelectorAll("[data-remove-slide]").forEach(el => {
     el.onclick = () => {
+      if (S.cardEditor?._mjGenerating) { showToast("미드저니 생성 중 — 완료 후 삭제하세요", "warning"); return; }
       const idx = parseInt(el.dataset.removeSlide);
       if (S.cardEditor?.result?.slides) {
         S.cardEditor.result.slides.splice(idx, 1);
         S.cardEditor.result.totalSlides = S.cardEditor.result.slides.length;
         render();
       }
+    };
+  });
+  document.querySelectorAll("[data-move-slide]").forEach(el => {
+    el.onclick = () => {
+      const [idx, dir] = el.dataset.moveSlide.split(":").map(Number);
+      const slides = S.cardEditor?.result?.slides;
+      if (!slides || idx + dir < 0 || idx + dir >= slides.length) return;
+      [slides[idx], slides[idx + dir]] = [slides[idx + dir], slides[idx]];
+      render();
     };
   });
   const addImageBtn = document.getElementById("card-add-image");
@@ -2412,9 +2420,11 @@ function bindEvents() {
   if (mjBgGen) mjBgGen.onclick = async () => {
     const prompt = document.getElementById("mj-bg-prompt")?.value?.trim();
     if (!prompt) { showToast("프롬프트를 입력하세요", "warning"); return; }
-    mjBgGen.textContent = "생성 중..."; mjBgGen.disabled = true;
+    mjBgGen.textContent = "생성 중 (1~2분)..."; mjBgGen.disabled = true;
+    if (S.cardEditor) S.cardEditor._mjGenerating = true;
     const r = await API.post("/api/midjourney/generate", { prompt: prompt + " --ar 4:5" });
     mjBgGen.textContent = "생성"; mjBgGen.disabled = false;
+    if (S.cardEditor) S.cardEditor._mjGenerating = false;
     if (r?.success && r.imagePath) {
       if (S.cardEditor?.result) {
         S.cardEditor.result.slides.push(r.imagePath);
