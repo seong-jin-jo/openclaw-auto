@@ -42,3 +42,7 @@ __pycache__/
 
 # Docker Compose (서비스별 포트/이미지 설정, .example에서 복사)
 docker-compose.yml
+config/credentials/
+config/subagents/
+config/telegram/
+tenants/

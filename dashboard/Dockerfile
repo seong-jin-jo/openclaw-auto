@@ -1,11 +1,15 @@
-FROM python:3.12-slim
+FROM node:20-alpine AS builder
 WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && \
-    curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-27.5.1.tgz | tar xz --strip-components=1 -C /usr/local/bin docker/docker && \
-    rm -rf /var/lib/apt/lists/*
-RUN pip install --upgrade pip
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY package.json package-lock.json ./
+RUN npm ci
 COPY . .
-EXPOSE 34661
-CMD ["python3", "server.py"]
+RUN npm run build
+
+FROM node:20-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public 2>/dev/null || true
+EXPOSE 34560
+CMD ["node", "server.js"]
