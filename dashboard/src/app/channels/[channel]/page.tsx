@@ -5,6 +5,7 @@ import { MESSAGING_CHANNELS, DATA_CHANNELS, CH_LABELS } from "@/lib/constants";
 import { ChannelPage } from "@/components/channel/ChannelPage";
 import { MessagingPage } from "@/components/channel/MessagingPage";
 import { DataChannelPage } from "@/components/channel/DataChannelPage";
+import { InstagramPage } from "@/components/channel/InstagramPage";
 
 export default function ChannelRoute({ params }: { params: Promise<{ channel: string }> }) {
   const { channel } = use(params);
@@ -16,6 +17,10 @@ export default function ChannelRoute({ params }: { params: Promise<{ channel: st
         <p className="text-[var(--text-muted)]">Unknown channel: {channel}</p>
       </div>
     );
+  }
+
+  if (channel === "instagram") {
+    return <InstagramPage />;
   }
 
   if (DATA_CHANNELS.includes(channel)) {

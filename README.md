@@ -8,7 +8,7 @@ AI 에이전트가 콘텐츠를 자동 생성하고, 검수 후 멀티채널로 
 |------|------|----------|
 | v1.0 | 2026-03-30 | **Threads 자동화** — 콘텐츠 생성/발행/분석 + 피드백 루프 + 대시보드 |
 | v2.0 | 2026-04-06 | **멀티채널 플랫폼** — X 동시 발행, 20개+ 채널, credential 검증, LLM 설정, 카드뉴스, 이미지 파이프라인 |
-| v3.0 | 예정 | **Threads + X 동시 발행 실운영** — multi-channel-publish, 공통 인터페이스 |
+| v3.0 | 2026-04-14 | **Next.js 전환 + 기능 통합** — Flask→Next.js 마이그레이션, Instagram 카드뉴스, Figma MCP, Midjourney, Design Tools, R2 Storage UI |
 | v4.0 | 예정 | **SaaS 출시** — 온보딩, 성과 리포트, 멀티 테넌트, 결제 |
 
 <details>
