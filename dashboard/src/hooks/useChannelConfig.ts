@@ -32,3 +32,11 @@ export function useChatChannels() {
 export function useTenantInfo() {
   return useSWR<TenantInfo>("/api/tenant-info", fetcher);
 }
+
+export function useDesignTools() {
+  return useSWR("/api/design-tools", fetcher);
+}
+
+export function useR2Config() {
+  return useSWR("/api/r2-config", fetcher);
+}

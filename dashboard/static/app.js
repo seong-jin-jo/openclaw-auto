@@ -268,7 +268,6 @@ function render() {
   else if (S.page === "instagram") app.innerHTML = renderChannelInstagram();
   else if (S.page === "images") app.innerHTML = renderImages();
   else if (S.page === "blog") app.innerHTML = renderBlog();
-  else if (S.page === "zeroone_community") app.innerHTML = renderZeroOneCommunity();
   else if (CH_LABELS[S.page]) app.innerHTML = renderGenericChannel(S.page);
   else if (S.page === "settings") app.innerHTML = renderSettings();
   bindEvents();
@@ -280,7 +279,7 @@ function render() {
   }
 }
 
-const CH_LABELS = { instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", bluesky: "Bluesky", pinterest: "Pinterest", tumblr: "Tumblr", tiktok: "TikTok", youtube: "YouTube", telegram: "Telegram", discord: "Discord", slack: "Slack", line: "LINE", naver_blog: "Naver Blog", midjourney: "Midjourney", zeroone_community: "ZeroOne Community" };
+const CH_LABELS = { instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", bluesky: "Bluesky", pinterest: "Pinterest", tumblr: "Tumblr", tiktok: "TikTok", youtube: "YouTube", telegram: "Telegram", discord: "Discord", slack: "Slack", line: "LINE", naver_blog: "Naver Blog", midjourney: "Midjourney" };
 const CH_STATUS_BADGE = { live: "bg-green-900/50 text-green-400", connected: "bg-blue-900/50 text-blue-400", available: "", soon: "" };
 const CH_STATUS_LABEL = { live: "Live", connected: "Connected", available: "", soon: "" };
 
@@ -387,7 +386,6 @@ function renderSidebar() {
 
         ${sidebarGroup("custom", "Custom Integration", [
           { key: "blog", label: "Blog", icon: "B", nav: true },
-          { key: "zeroone_community", label: "ZeroOne Community", icon: "Z", nav: true },
           { label: "Custom API", icon: "+", soon: true },
           { label: "RSS Feed", icon: "R", soon: true },
         ])}
@@ -2521,24 +2519,7 @@ function bindEvents() {
     };
   }
 
-  // ZeroOne Community
-  const fetchCommunity = document.getElementById("fetch-community");
-  if (fetchCommunity) fetchCommunity.onclick = async () => {
-    fetchCommunity.textContent = "수집 중..."; fetchCommunity.disabled = true;
-    await loadCommunityPosts();
-    fetchCommunity.textContent = "새 글 수집"; fetchCommunity.disabled = false;
-  };
-  document.querySelectorAll("[data-community-draft]").forEach(el => {
-    el.onclick = async () => {
-      const postId = el.dataset.communityDraft;
-      const tone = el.dataset.tone;
-      el.textContent = "생성중..."; el.disabled = true;
-      const r = await API.post("/api/custom/zeroone-community/draft", { postId: parseInt(postId), tone });
-      el.disabled = false; el.textContent = tone === "curate" ? "큐레이션" : tone === "summary" ? "요약" : "토론유도";
-      if (r?.ok) showToast("Draft 생성 완료 — 큐에서 확인", "success");
-      else showToast(r?.error || "Draft 생성 실패", "error");
-    };
-  });
+  // Custom Integration handlers — fork에서 서비스별 추가
 
   // Blog actions
   document.querySelectorAll("[data-blog-approve]").forEach(el => { el.onclick = () => approveBlogPost(el.dataset.blogApprove); });
@@ -2554,7 +2535,7 @@ function navigate(page) {
   else if (page === "instagram") { loadOverview(); loadQueue("all"); loadChannelSettings(); loadCronRuns(); loadChannelGuideAndKeywords(); loadDesignTools(); }
   else if (page === "images") { loadImages(); loadR2Config(); }
   else if (page === "blog") loadBlogQueue();
-  else if (page === "zeroone_community") { /* manual load via button */ }
+  // Custom Integration pages — fork에서 추가
   else if (CH_LABELS[page]) { loadOverview(); loadChannelGuideAndKeywords(); }
   else if (page === "settings") { loadSettings(); loadKeywords(); loadLlmConfig(); loadOverview(); loadNotifSettings(); loadTenantAndChat(); loadR2Config(); }
   render();
@@ -3015,53 +2996,8 @@ function renderGenericChannel(key) {
   </div>`;
 }
 
-// ── ZeroOne Community ──
-async function loadCommunityPosts() {
-  const data = await API.get("/api/custom/zeroone-community");
-  if (data) { S.communityPosts = [...(data.popularItems || []), ...(data.items || [])]; render(); }
-}
-
-function renderZeroOneCommunity() {
-  const posts = S.communityPosts || [];
-  return `<div class="px-8 py-6">
-    <button data-nav="overview" class="text-gray-500 hover:text-gray-300 text-sm mb-1">&larr; Back</button>
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h2 class="text-xl font-semibold text-white">ZeroOne Community</h2>
-        <p class="text-xs text-gray-500">커뮤니티 글 수집 → Threads/Instagram draft 생성</p>
-      </div>
-      <button id="fetch-community" class="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">새 글 수집</button>
-    </div>
-    ${posts.length === 0 ? `<div class="card p-8 text-center"><p class="text-gray-500 text-sm">수집 버튼을 눌러 커뮤니티 글을 불러오세요</p></div>` : ""}
-    <div class="space-y-3">
-      ${posts.map(p => `
-        <div class="card p-4">
-          <div class="flex items-start justify-between mb-2">
-            <div class="flex items-center gap-2">
-              <span class="text-[10px] px-2 py-0.5 rounded bg-indigo-900/40 text-indigo-300">${esc(p.board || "free")}</span>
-              <span class="text-xs font-medium text-gray-200">${esc(p.title)}</span>
-            </div>
-            <a href="https://www.zeroone.it.kr/community/${p.postId}" target="_blank" class="text-[10px] text-blue-400 hover:underline">원문 &rarr;</a>
-          </div>
-          <p class="text-sm text-gray-400 mb-2 line-clamp-2">${esc(p.excerpt || "")}</p>
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3 text-[10px] text-gray-500">
-              <span>${esc(p.author?.name || "")} (${esc(p.author?.role || "")})</span>
-              <span>views: ${p.stats?.viewCount || 0}</span>
-              <span>likes: ${p.stats?.likeCount || 0}</span>
-              <span>comments: ${p.stats?.commentCount || 0}</span>
-            </div>
-            <div class="flex gap-1">
-              <button data-community-draft="${p.postId}" data-tone="curate" class="px-2 py-1 text-[10px] bg-purple-700 text-white rounded hover:bg-purple-600">큐레이션</button>
-              <button data-community-draft="${p.postId}" data-tone="summary" class="px-2 py-1 text-[10px] bg-blue-700 text-white rounded hover:bg-blue-600">요약</button>
-              <button data-community-draft="${p.postId}" data-tone="discuss" class="px-2 py-1 text-[10px] bg-green-700 text-white rounded hover:bg-green-600">토론유도</button>
-            </div>
-          </div>
-        </div>
-      `).join("")}
-    </div>
-  </div>`;
-}
+// Custom Integration pages — fork에서 서비스별 render 함수 추가
+// 예: function renderMyService() { ... }
 
 // ── Blog ──
 async function loadBlogQueue() { const d = await API.get("/api/blog-queue"); if (d) S.blogQueue = d.posts || []; render(); }

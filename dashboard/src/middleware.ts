@@ -10,6 +10,9 @@ export function middleware(request: NextRequest) {
   // Allow OPTIONS (CORS preflight)
   if (request.method === "OPTIONS") return NextResponse.next();
 
+  // Allow Figma OAuth callback without auth
+  if (request.nextUrl.pathname === "/api/figma-mcp/callback") return NextResponse.next();
+
   const token = request.headers.get("Authorization")?.replace("Bearer ", "") || "";
   if (token !== authToken) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -17,6 +17,7 @@ export const CH_LABELS: Record<string, string> = {
   kakao: "Kakao",
   whatsapp: "WhatsApp",
   naver_blog: "Naver Blog",
+  midjourney: "Midjourney",
   medium: "Medium",
   substack: "Substack",
   google_analytics: "Google Analytics",
@@ -91,6 +92,7 @@ export const IMPLEMENTED_PLUGINS: string[] = [
   "tiktok",
   "youtube",
   "naver_blog",
+  "midjourney",
 ];
 
 /** Automation feature definitions */
