@@ -996,12 +996,11 @@ function renderChannelInstagram() {
 }
 
 function renderInstagramQueue(allPosts) {
-  const filters = ["all", "with-image", "draft", "approved", "published"];
+  const filters = ["all", "draft", "approved", "published"];
   const igFilter = S.queueFilter || "all";
 
   let filtered = allPosts;
-  if (igFilter === "with-image") filtered = allPosts.filter(p => p.imageUrl);
-  else if (igFilter === "draft") filtered = allPosts.filter(p => p.status === "draft");
+  if (igFilter === "draft") filtered = allPosts.filter(p => p.status === "draft");
   else if (igFilter === "approved") filtered = allPosts.filter(p => p.status === "approved");
   else if (igFilter === "published") filtered = allPosts.filter(p => p.status === "published" || p.channels?.instagram?.status === "published");
 
@@ -1011,10 +1010,9 @@ function renderInstagramQueue(allPosts) {
   const igPending = allPosts.filter(p => p.imageUrl && p.status === "approved" && p.channels?.instagram?.status === "pending").length;
 
   return `
-    <div class="grid grid-cols-4 gap-3 mb-6">
+    <div class="grid grid-cols-3 gap-3 mb-6">
       <div class="card p-3 text-center"><p class="text-lg font-bold text-white">${allPosts.length}</p><p class="text-[10px] text-gray-500">Total</p></div>
-      <div class="card p-3 text-center"><p class="text-lg font-bold text-purple-400">${withImg}</p><p class="text-[10px] text-gray-500">With Image</p></div>
-      <div class="card p-3 text-center"><p class="text-lg font-bold text-blue-400">${igPending}</p><p class="text-[10px] text-gray-500">Ready to Publish</p></div>
+      <div class="card p-3 text-center"><p class="text-lg font-bold text-blue-400">${igPending}</p><p class="text-[10px] text-gray-500">Ready</p></div>
       <div class="card p-3 text-center"><p class="text-lg font-bold text-green-400">${igPublished}</p><p class="text-[10px] text-gray-500">Published</p></div>
     </div>
     <div class="flex items-center justify-between mb-4">
@@ -1170,17 +1168,13 @@ function renderCardNewsEditor() {
                 <button id="card-download-slides" class="text-[10px] text-gray-500 hover:text-gray-400">다운로드</button>
               </div>
             </div>
-            <div class="flex gap-2 overflow-x-auto pb-2" style="scrollbar-width:thin">
+            <div id="slides-container" class="flex gap-2 overflow-x-auto pb-2" style="scrollbar-width:thin">
               ${result.slides.map((s, i) => `
-                <div class="flex-shrink-0 relative group" style="min-width:128px">
-                  <div class="w-32 h-40 rounded-lg overflow-hidden border border-gray-700">
-                    <img src="${esc(s)}" alt="Slide ${i + 1}" class="w-full h-full object-cover">
+                <div class="flex-shrink-0 relative group" draggable="true" data-slide-idx="${i}" style="min-width:128px">
+                  <div class="w-32 h-40 rounded-lg overflow-hidden border border-gray-700 cursor-pointer" data-preview-slide="${i}">
+                    <img src="${esc(s)}" alt="Slide ${i + 1}" class="w-full h-full object-cover pointer-events-none">
                   </div>
-                  <div class="absolute -top-1 -right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    ${i > 0 ? `<button data-move-slide="${i}:-1" class="w-5 h-5 bg-gray-700 text-white rounded-full text-[10px] flex items-center justify-center">←</button>` : ""}
-                    ${i < result.slides.length - 1 ? `<button data-move-slide="${i}:1" class="w-5 h-5 bg-gray-700 text-white rounded-full text-[10px] flex items-center justify-center">→</button>` : ""}
-                    <button data-remove-slide="${i}" class="w-5 h-5 bg-red-600 text-white rounded-full text-[10px] flex items-center justify-center">✕</button>
-                  </div>
+                  <button data-remove-slide="${i}" class="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">✕</button>
                   <span class="absolute bottom-1 left-1 text-[9px] bg-black/60 text-white px-1 rounded">${i + 1}</span>
                 </div>
               `).join("")}
@@ -2355,6 +2349,47 @@ function bindEvents() {
   };
   const regenBtn = document.getElementById("card-regenerate");
   if (regenBtn) regenBtn.onclick = () => { if (S.cardEditor) { S.cardEditor.result = null; render(); } };
+  // Slide drag & drop reorder
+  const slidesContainer = document.getElementById("slides-container");
+  if (slidesContainer) {
+    let dragIdx = null;
+    slidesContainer.querySelectorAll("[data-slide-idx]").forEach(el => {
+      el.addEventListener("dragstart", e => {
+        dragIdx = parseInt(el.dataset.slideIdx);
+        el.style.opacity = "0.4";
+        e.dataTransfer.effectAllowed = "move";
+      });
+      el.addEventListener("dragend", () => { el.style.opacity = "1"; });
+      el.addEventListener("dragover", e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; });
+      el.addEventListener("drop", e => {
+        e.preventDefault();
+        const dropIdx = parseInt(el.dataset.slideIdx);
+        if (dragIdx !== null && dragIdx !== dropIdx && S.cardEditor?.result?.slides) {
+          const slides = S.cardEditor.result.slides;
+          const [moved] = slides.splice(dragIdx, 1);
+          slides.splice(dropIdx, 0, moved);
+          render();
+        }
+        dragIdx = null;
+      });
+    });
+  }
+
+  // Slide image preview (click to enlarge)
+  document.querySelectorAll("[data-preview-slide]").forEach(el => {
+    el.onclick = () => {
+      const idx = parseInt(el.dataset.previewSlide);
+      const src = S.cardEditor?.result?.slides?.[idx];
+      if (!src) return;
+      const overlay = document.createElement("div");
+      overlay.className = "fixed inset-0 z-50 bg-black/80 flex items-center justify-center cursor-pointer";
+      overlay.style.backdropFilter = "blur(4px)";
+      overlay.innerHTML = `<img src="${src}" class="max-h-[90vh] max-w-[90vw] rounded-lg shadow-2xl">`;
+      overlay.onclick = () => overlay.remove();
+      document.body.appendChild(overlay);
+    };
+  });
+
   // Back to queue from editor
   const backToQueue = document.getElementById("back-to-queue");
   if (backToQueue) backToQueue.onclick = () => { S.subTab = "queue"; S.cardEditor = null; loadQueue("all"); render(); };
@@ -2371,15 +2406,7 @@ function bindEvents() {
       }
     };
   });
-  document.querySelectorAll("[data-move-slide]").forEach(el => {
-    el.onclick = () => {
-      const [idx, dir] = el.dataset.moveSlide.split(":").map(Number);
-      const slides = S.cardEditor?.result?.slides;
-      if (!slides || idx + dir < 0 || idx + dir >= slides.length) return;
-      [slides[idx], slides[idx + dir]] = [slides[idx + dir], slides[idx]];
-      render();
-    };
-  });
+  // (drag & drop replaces arrow buttons for slide reorder)
   const addImageBtn = document.getElementById("card-add-image");
   if (addImageBtn) addImageBtn.onclick = () => document.getElementById("card-upload-input")?.click();
 
