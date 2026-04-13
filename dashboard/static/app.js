@@ -2909,7 +2909,8 @@ function renderGenericChannel(key) {
         </div>
       </div>
 
-      <!-- Content Guide + Keywords (채널별) -->
+      ${!["telegram", "discord", "slack", "line", "kakao", "whatsapp"].includes(key) ? `
+      <!-- Content Guide + Keywords (콘텐츠 발행 채널만) -->
       <div class="card p-5">
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-sm font-medium text-gray-300">Content Guide <span class="text-[10px] text-gray-600">(${label})</span></h3>
@@ -2931,6 +2932,7 @@ function renderGenericChannel(key) {
         </div>
         <textarea id="keywords-textarea" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300" rows="5">${(S.channelKeywords?.keywords || S.keywords).join("\n")}</textarea>
       </div>
+      ` : ""}
 
       ${["instagram"].includes(key) ? `
       <!-- Queue (이미지 콘텐츠) -->
