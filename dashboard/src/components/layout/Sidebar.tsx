@@ -62,7 +62,7 @@ function SidebarGroup({
         items.map((i, idx) => {
           const href = i.key === "blog" ? "/blog" : i.key ? `/channels/${i.key}` : "#";
           const isActive = i.key === "blog" ? pathname === "/blog" : pathname === `/channels/${i.key}`;
-          const textColor = i.status === "Live" ? "text-gray-300" : i.status === "Connected" ? "text-gray-300" : "text-gray-300";
+          const textColor = i.status === "Live" || i.status === "Connected" ? "text-gray-300" : "text-gray-500";
           return (
             <Link
               key={i.key || `${i.label}-${idx}`}

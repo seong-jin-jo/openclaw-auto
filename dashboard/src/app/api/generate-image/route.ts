@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import { dataPath, configPath } from "@/lib/file-io";
@@ -10,13 +10,14 @@ export async function POST(request: Request) {
     return Response.json({ error: "prompt required (max 500 chars)" }, { status: 400 });
   }
 
-  const safePrompt = prompt.replace(/'/g, "\\'").replace(/"/g, '\\"');
-  const msg = `image_generate tool로 "${safePrompt}" 이미지를 생성하라. 생성된 이미지를 /home/node/data/images/ 폴더에 저장하라.`;
+  const msg = `image_generate tool로 "${prompt}" 이미지를 생성하라. 생성된 이미지를 /home/node/data/images/ 폴더에 저장하라.`;
+  const container = process.env.GATEWAY_CONTAINER || "openclaw-gateway";
 
   let stdout = "";
   try {
-    stdout = execSync(
-      `docker exec ${process.env.GATEWAY_CONTAINER || "openclaw-gateway"} node dist/index.js agent --agent main --message "${msg.replace(/"/g, '\\"')}"`,
+    stdout = execFileSync(
+      "docker",
+      ["exec", container, "node", "dist/index.js", "agent", "--agent", "main", "--message", msg],
       { timeout: 120000, encoding: "utf-8" },
     );
   } catch (e) {
