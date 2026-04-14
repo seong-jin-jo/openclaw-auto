@@ -129,6 +129,25 @@ export function DesignToolsSettings() {
               <li><strong className="text-gray-300">Generate secret</strong> -- 표시된 값 즉시 복사</li>
               <li>아래 폼에 Client ID + Secret 입력 -- Connect</li>
             </ol>
+            <details className="mt-2 text-[10px]">
+              <summary className="text-blue-400 hover:text-blue-300 cursor-pointer">더 알아보기</summary>
+              <div className="mt-2 p-3 rounded bg-gray-900/50 text-gray-500 space-y-1.5">
+                <p>Canva Connect API로 에셋 업로드 -- 템플릿 기반 디자인 생성 -- 편집 -- Export PNG 플로우를 자동화합니다.</p>
+                <p className="font-medium text-gray-400 mt-2">Scopes 설정</p>
+                <p>앱 설정 페이지 좌측 메뉴 <strong>Scopes</strong> 클릭 -- <strong>Reading and writing</strong> 섹션에서 체크:</p>
+                <p className="pl-2"><code className="bg-gray-800 px-1 rounded">design:content</code> Read and Write -- 디자인 생성/수정</p>
+                <p className="pl-2"><code className="bg-gray-800 px-1 rounded">design:meta</code> Read -- 디자인 메타데이터</p>
+                <p className="pl-2"><code className="bg-gray-800 px-1 rounded">asset</code> Read and Write -- 이미지 업로드</p>
+                <p className="pl-2"><code className="bg-gray-800 px-1 rounded">brandtemplate:meta</code> Read -- 템플릿 읽기</p>
+                <p className="pl-2"><code className="bg-gray-800 px-1 rounded">brandtemplate:content</code> Read -- 템플릿 내용</p>
+                <p className="pl-2"><code className="bg-gray-800 px-1 rounded">profile</code> Read -- 프로필 정보</p>
+                <p className="font-medium text-gray-400 mt-2">OAuth Redirect URL (앱 페이지 &gt; Authentication 탭)</p>
+                <p>URL 1 필드에 입력: <code className="bg-gray-800 px-1 rounded">{`https://대시보드주소/api/canva/callback`}</code></p>
+                <p>Return navigation 스위치 ON -- Return URL도 동일하게 설정</p>
+                <p className="font-medium text-gray-400 mt-2">앱 유형</p>
+                <p>Private: 내 팀만 사용. Public: Canva 마켓플레이스에 공개 (심사 필요).</p>
+              </div>
+            </details>
           </div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] text-gray-500">Credentials</span>
@@ -175,9 +194,63 @@ export function DesignToolsSettings() {
               <div className="mt-2 p-3 rounded bg-gray-900/50 text-gray-500 space-y-2">
                 <p className="text-gray-300 font-medium">MCP란?</p>
                 <p>AI Agent가 Figma 캔버스에 직접 프레임/텍스트/이미지를 생성하는 프로토콜. REST API는 읽기만 가능하지만, MCP는 <strong>쓰기</strong>가 됩니다.</p>
+
+                <p className="text-gray-300 font-medium mt-3">Remote MCP 서버 (권장 -- 설치 불필요)</p>
+                <p>Figma가 호스팅하는 서버에 연결. 별도 프로그램 설치 없이 URL만 등록하면 됩니다.</p>
+
+                <p className="text-gray-400 font-medium mt-2">연결 방법 -- Claude Code에서:</p>
+                <div className="p-2 rounded bg-gray-800 font-mono mt-1 space-y-1">
+                  <p className="text-green-400"># 방법 1: 플러그인 (가장 쉬움)</p>
+                  <p>claude plugin install figma@claude-plugins-official</p>
+                  <p className="text-green-400 mt-2"># 방법 2: 수동 등록</p>
+                  <p>claude mcp add --transport http figma https://mcp.figma.com/mcp</p>
+                </div>
+                <p className="mt-1">실행 후 브라우저에서 Figma 로그인 -- <strong>Allow Access</strong> 클릭</p>
+
+                <p className="text-gray-400 font-medium mt-2">VS Code에서:</p>
+                <p>Cmd+Shift+P -- &quot;MCP: Open User Configuration&quot; -- 아래 JSON 추가:</p>
+                <div className="p-2 rounded bg-gray-800 font-mono mt-1">
+                  <p>{`"figma": { "url": "https://mcp.figma.com/mcp", "type": "http" }`}</p>
+                </div>
+
+                <p className="text-gray-400 font-medium mt-2">OpenClaw Gateway에서:</p>
+                <p>config/openclaw.json에 MCP 서버 등록 (지원되는 경우):</p>
+                <div className="p-2 rounded bg-gray-800 font-mono mt-1">
+                  <p>{`"mcp": { "figma": { "url": "https://mcp.figma.com/mcp" } }`}</p>
+                </div>
+
+                <p className="text-gray-300 font-medium mt-3">MCP로 할 수 있는 것</p>
+                <p>프레임/텍스트/이미지 생성 및 수정</p>
+                <p>컴포넌트, 변수, Auto Layout 활용</p>
+                <p>디자인 시스템을 기반으로 일관된 디자인</p>
+                <p>현재 Beta 무료 (이후 사용량 기반 유료)</p>
+
                 <p className="text-gray-300 font-medium mt-3">REST API vs MCP 차이</p>
-                <p><strong>REST API</strong>: 파일 읽기 + PNG Export만 가능.</p>
-                <p><strong>MCP 서버</strong>: 읽기 + <strong>쓰기</strong>. AI가 직접 캔버스에 디자인 생성/수정.</p>
+                <div className="mt-1 space-y-0.5">
+                  <p><strong>REST API</strong> (위에서 입력한 토큰): 파일 읽기 + PNG Export만 가능. 쓰기 불가.</p>
+                  <p><strong>MCP 서버</strong>: 읽기 + <strong>쓰기</strong>. AI가 직접 캔버스에 디자인 생성/수정.</p>
+                  <p>-- 둘 다 필요: MCP로 생성, REST API로 Export</p>
+                </div>
+
+                <p className="text-gray-300 font-medium mt-3">자동화 흐름</p>
+                <p>1. 카드뉴스 텍스트 입력 (대시보드)</p>
+                <p>2. AI Agent가 MCP로 Figma에 슬라이드 프레임 자동 생성</p>
+                <p>3. 디자이너가 Figma에서 리터치</p>
+                <p>4. REST API로 PNG Export -- R2 업로드 -- 큐 저장</p>
+                <p>5. Instagram 캐러셀 발행</p>
+              </div>
+            </details>
+            <details className="mt-2 text-[10px]">
+              <summary className="text-blue-400 hover:text-blue-300 cursor-pointer">더 알아보기</summary>
+              <div className="mt-2 p-3 rounded bg-gray-900/50 text-gray-500 space-y-1.5">
+                <p className="font-medium text-gray-400">Personal Access Token 주의</p>
+                <p>토큰 하나로 Figma 계정의 <strong>모든 파일</strong>에 접근 가능. 신뢰할 수 있는 환경에서만 사용. 통합당 토큰 1개 생성 권장.</p>
+                <p className="font-medium text-gray-400 mt-2">Scopes (권한) 상세</p>
+                <p><code className="bg-gray-800 px-1 rounded">file_content:read</code> -- 파일 노드/레이어 읽기, PNG Export에 필수</p>
+                <p><code className="bg-gray-800 px-1 rounded">files:read</code> -- 파일 목록 접근</p>
+                <p><code className="bg-gray-800 px-1 rounded">file_dev_resources:write</code> -- 개발 리소스 쓰기 (선택)</p>
+                <p className="font-medium text-gray-400 mt-2">지원 MCP 클라이언트</p>
+                <p>Claude Code, VS Code (Copilot), Cursor, Codex -- <a href="https://developers.figma.com/docs/figma-mcp-server/" target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">전체 목록</a></p>
               </div>
             </details>
           </div>

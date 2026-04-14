@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import useSWR from "swr";
 import { fetcher, apiPost } from "@/lib/api";
-import { useChannelConfig } from "@/hooks/useChannelConfig";
+import { useChannelConfig, useDesignTools } from "@/hooks/useChannelConfig";
 import { useToast } from "@/components/layout/Toast";
 import { useUIStore } from "@/store/ui-store";
 import { AUTOMATION_FEATURES } from "@/lib/constants";
@@ -195,6 +195,10 @@ interface CardEditorState {
 
 function CardNewsEditor({ onReload }: { onReload: () => void }) {
   const { showToast } = useToast();
+  const { data: designToolsData } = useDesignTools();
+  const designTools = (designToolsData || {}) as Record<string, Record<string, unknown>>;
+  const hasFigmaMcp = !!designTools.figma?.mcpAccessToken;
+  const [mjGenerating, setMjGenerating] = useState(false);
   const [ed, setEd] = useState<CardEditorState>({
     title: "", slides: [""], style: "dark", ending: "", caption: "", hashtags: "",
     generating: false, outlining: false, result: null,
@@ -373,6 +377,14 @@ function CardNewsEditor({ onReload }: { onReload: () => void }) {
                     + 이미지 추가
                     <input type="file" multiple accept="image/*" className="hidden" onChange={handleUpload} />
                   </label>
+                  <button onClick={() => {
+                    if (!ed.result) return;
+                    ed.result.slides.forEach((url, i) => {
+                      const a = document.createElement("a");
+                      a.href = url; a.download = `slide-${i + 1}.png`; a.target = "_blank";
+                      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                    });
+                  }} className="text-[10px] text-gray-500 hover:text-gray-400">다운로드</button>
                 </div>
               </div>
               <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: "thin" }}>
@@ -389,7 +401,61 @@ function CardNewsEditor({ onReload }: { onReload: () => void }) {
             </div>
             <div className="space-y-2 mb-3">
               <button onClick={saveDraft} className="w-full py-2 bg-green-700 text-white text-sm rounded hover:bg-green-600">큐에 Draft 저장</button>
+              {hasFigmaMcp && (
+                <div className="flex gap-2">
+                  <button onClick={async () => {
+                    if (!ed.result) return;
+                    try {
+                      const r = await apiPost<{ ok: boolean }>("/api/figma/push-card", {
+                        slides: ed.result.slides,
+                        title: (document.getElementById("card-title") as HTMLInputElement)?.value || "",
+                      });
+                      if (r?.ok) showToast("Figma에 올리기 완료", "success");
+                    } catch (e) { showToast((e as Error).message, "error"); }
+                  }} className="flex-1 py-1.5 bg-indigo-700 text-white text-xs rounded hover:bg-indigo-600">Figma에 올리기</button>
+                  <button onClick={async () => {
+                    const url = window.prompt("Figma 파일 URL을 입력하세요:");
+                    if (!url) return;
+                    const match = url.match(/figma\.com\/(?:file|design)\/([^/]+)/);
+                    if (!match) { showToast("올바른 Figma URL이 아닙니다", "error"); return; }
+                    try {
+                      const r = await apiPost<{ ok: boolean; slides?: string[]; count?: number }>("/api/figma/export-to-queue", { fileKey: match[1] });
+                      if (r?.ok) {
+                        if (r.slides) {
+                          setEd(prev => ({ ...prev, result: { slides: r.slides!, totalSlides: r.slides!.length, batchId: prev.result?.batchId || "figma" } }));
+                        }
+                        showToast(`${r.count || 0}장 가져옴`, "success");
+                      }
+                    } catch (e) { showToast((e as Error).message, "error"); }
+                  }} className="flex-1 py-1.5 bg-indigo-900 text-indigo-300 text-xs rounded hover:bg-indigo-800 border border-indigo-700">Figma에서 가져오기</button>
+                </div>
+              )}
               <button onClick={() => setEd(prev => ({ ...prev, result: null }))} className="w-full py-1.5 bg-gray-700 text-gray-300 text-xs rounded hover:bg-gray-600">카드 재생성</button>
+              <details className="text-[10px]">
+                <summary className="text-gray-500 cursor-pointer hover:text-gray-400">미드저니 이미지 추가 (선택)</summary>
+                <div className="mt-2 flex gap-2">
+                  <input id="mj-bg-prompt" type="text" placeholder="이미지 프롬프트 (영문 권장)" className="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300" />
+                  <button onClick={async () => {
+                    const prompt = (document.getElementById("mj-bg-prompt") as HTMLInputElement)?.value?.trim();
+                    if (!prompt) { showToast("프롬프트를 입력하세요", "warning"); return; }
+                    setMjGenerating(true);
+                    try {
+                      const r = await apiPost<{ success: boolean; imagePath?: string }>("/api/midjourney/generate", { prompt: prompt + " --ar 4:5" });
+                      if (r?.success && r.imagePath) {
+                        setEd(prev => {
+                          const currentSlides = prev.result?.slides || [];
+                          const newSlides = [...currentSlides, r.imagePath!];
+                          return { ...prev, result: { slides: newSlides, totalSlides: newSlides.length, batchId: prev.result?.batchId || "mj" } };
+                        });
+                        showToast("미드저니 이미지 추가됨", "success");
+                      } else { showToast("미드저니 생성 실패", "error"); }
+                    } catch (e) { showToast((e as Error).message, "error"); }
+                    finally { setMjGenerating(false); }
+                  }} disabled={mjGenerating} className={`px-3 py-1.5 bg-amber-700 text-white text-xs rounded hover:bg-amber-600 flex-shrink-0 ${mjGenerating ? "opacity-50 cursor-wait" : ""}`}>
+                    {mjGenerating ? "생성중..." : "생성"}
+                  </button>
+                </div>
+              </details>
             </div>
           </>
         ) : (
@@ -412,6 +478,7 @@ function InstagramSettings({ channelConfig, channelSettings }: {
 }) {
   const { showToast } = useToast();
   const [showToken, setShowToken] = useState(false);
+  const [expandedFeature, setExpandedFeature] = useState<string | null>(null);
   const ch = channelConfig as { keys?: Record<string, string>; connected?: boolean };
   const keys = ch.keys || {};
   const hasKeys = Object.values(keys).some(v => v);
@@ -419,6 +486,15 @@ function InstagramSettings({ channelConfig, channelSettings }: {
   const cs = (channelSettings as Record<string, Record<string, boolean>>)?.instagram || {};
   const features = ((channelSettings as Record<string, unknown>)?.features || []) as Array<{ key: string; label: string; description: string }>;
   const igFeatures = ["content_generation", "auto_publish", "instagram_carousel", "image_generation"];
+
+  // Cron run history for Instagram automation
+  const { data: cronRunsData } = useSWR("/api/cron-runs", fetcher);
+  const cronRuns = ((((cronRunsData as Record<string, unknown>)?.runs || []) as Array<Record<string, unknown>>));
+
+  const IG_FEATURE_CRON: Record<string, string> = {
+    content_generation: "instagram-generate-drafts",
+    auto_publish: "instagram-auto-publish",
+  };
 
   const handleSave = async () => {
     const token = (document.getElementById("ch-instagram-accessToken") as HTMLInputElement)?.value?.trim();
@@ -466,27 +542,80 @@ function InstagramSettings({ channelConfig, channelSettings }: {
       </div>
       <div className="card p-5">
         <h3 className="text-sm font-medium text-gray-300 mb-4">Automation</h3>
-        <div className="space-y-2">
-          {features.filter(f => igFeatures.includes(f.key)).map(f => (
-            <div key={f.key} className="flex items-center gap-3 py-2.5 border-b border-gray-800/50 last:border-0">
-              <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                <input
-                  type="checkbox"
-                  defaultChecked={!!cs[f.key]}
-                  onChange={async (e) => {
-                    const r = await apiPost(`/api/channel-settings/instagram`, { [f.key]: e.target.checked });
-                    if (r) showToast(`Instagram ${f.key} ${e.target.checked ? "ON" : "OFF"}`, "success");
-                  }}
-                  className="sr-only peer"
-                />
-                <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
-              </label>
-              <div className="flex-1 min-w-0">
-                <span className="text-xs text-gray-300">{f.label}</span>
-                <p className="text-[10px] text-gray-600">{f.description}</p>
+        <div className="space-y-0">
+          {features.filter(f => igFeatures.includes(f.key)).map(f => {
+            const cronName = IG_FEATURE_CRON[f.key];
+            const featureRuns = cronName ? cronRuns.filter((r) => r.jobName === cronName) : [];
+            const lastRun = featureRuns[0] as Record<string, unknown> | undefined;
+            const expanded = expandedFeature === f.key;
+            const sc = lastRun ? (lastRun.status === "ok" ? "text-green-400" : "text-red-400") : "";
+            const ago = lastRun?.finishedAt ? fmtAgo(new Date(lastRun.finishedAt as string).toISOString()) : "";
+
+            return (
+              <div key={f.key} className="border-b border-gray-800/50 last:border-0">
+                <div
+                  className="flex items-center gap-3 py-2.5 cursor-pointer"
+                  onClick={() => setExpandedFeature(expanded ? null : f.key)}
+                >
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      defaultChecked={!!cs[f.key]}
+                      onChange={async (e) => {
+                        const r = await apiPost(`/api/channel-settings/instagram`, { [f.key]: e.target.checked });
+                        if (r) showToast(`Instagram ${f.key} ${e.target.checked ? "ON" : "OFF"}`, "success");
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                  </label>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-300">{f.label}</span>
+                      {lastRun && (
+                        <>
+                          <span className={`text-[10px] ${sc}`}>{lastRun.status === "ok" ? "\u2713" : "\u2717"}</span>
+                          <span className="text-[10px] text-gray-600">{ago}</span>
+                        </>
+                      )}
+                      {featureRuns.length > 0 && (
+                        <svg className={`w-3 h-3 text-gray-600 ml-auto transition-transform ${expanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-gray-600">{f.description}</p>
+                  </div>
+                </div>
+                {expanded && (
+                  <div className="ml-12 mb-3 space-y-1.5">
+                    {featureRuns.length > 0 ? (
+                      featureRuns.slice(0, 10).map((r, i) => {
+                        const ts = r.finishedAt ? new Date(r.finishedAt as string).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+                        return (
+                          <div key={i} className="flex items-start gap-2 py-1">
+                            <span className={`text-[10px] mt-0.5 ${r.status === "ok" ? "text-green-400" : "text-red-400"}`}>
+                              {r.status === "ok" ? "\u2713" : "\u2717"}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-gray-500">{ts}</span>
+                                <span className="text-[10px] text-gray-700">{String(r.model || "")}</span>
+                                <span className="text-[10px] text-gray-700 ml-auto">{Math.round(Number(r.durationMs) / 1000)}s</span>
+                              </div>
+                              <p className="text-[10px] text-gray-500 break-words">{String(r.summary || "")}</p>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-[10px] text-gray-600">실행 이력 없음</p>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
