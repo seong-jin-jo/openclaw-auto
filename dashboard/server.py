@@ -438,7 +438,7 @@ def api_gateway_restart():
     import subprocess
     try:
         result = subprocess.run(
-            ["docker", "restart", "marketing-ai-openclaw-gateway-1"],
+            ["docker", "restart", os.environ.get("GATEWAY_CONTAINER", "openclaw-gateway")],
             capture_output=True, text=True, timeout=30,
         )
         if result.returncode == 0:
@@ -593,7 +593,7 @@ def api_figma_create_slides():
 
     try:
         result = subprocess.run(
-            ["docker", "exec", "marketing-ai-openclaw-gateway-1",
+            ["docker", "exec", os.environ.get("GATEWAY_CONTAINER", "openclaw-gateway"),
              "node", "dist/index.js", "agent", "--agent", "main", "--message", msg],
             capture_output=True, text=True, timeout=120,
         )
@@ -722,7 +722,7 @@ def api_midjourney_generate():
     msg = f'midjourney_image tool로 action=imagine, prompt="{prompt}", auto_upscale=false 실행하라. 결과의 imagePath를 출력하라.'
     try:
         result = subprocess.run(
-            ["docker", "exec", "marketing-ai-openclaw-gateway-1",
+            ["docker", "exec", os.environ.get("GATEWAY_CONTAINER", "openclaw-gateway"),
              "node", "dist/index.js", "agent", "--agent", "main", "--message", msg],
             capture_output=True, text=True, timeout=180,
         )
@@ -762,7 +762,7 @@ def api_card_news_outline():
 
     try:
         result = subprocess.run(
-            ["docker", "exec", "marketing-ai-openclaw-gateway-1",
+            ["docker", "exec", os.environ.get("GATEWAY_CONTAINER", "openclaw-gateway"),
              "node", "dist/index.js", "agent", "--agent", "main", "--message", msg],
             capture_output=True, text=True, timeout=60,
         )
@@ -803,7 +803,7 @@ def api_card_news_generate():
 
     try:
         result = subprocess.run(
-            ["docker", "exec", "marketing-ai-openclaw-gateway-1",
+            ["docker", "exec", os.environ.get("GATEWAY_CONTAINER", "openclaw-gateway"),
              "node", "dist/index.js", "agent", "--agent", "main", "--message", msg],
             capture_output=True, text=True, timeout=60,
         )
@@ -901,7 +901,7 @@ def api_generate_image():
     msg = f'image_generate tool로 "{safe_prompt}" 이미지를 생성하라. 생성된 이미지를 /home/node/data/images/ 폴더에 저장하라.'
     try:
         result = subprocess.run(
-            ["docker", "exec", "marketing-ai-openclaw-gateway-1",
+            ["docker", "exec", os.environ.get("GATEWAY_CONTAINER", "openclaw-gateway"),
              "node", "dist/index.js", "agent", "--agent", "main", "--message", msg],
             capture_output=True, text=True, timeout=120,
         )
@@ -946,7 +946,7 @@ def api_generate_card():
     msg = f'card_generate tool 호출: action="generate", title="{title}", slides={slides_json}, style="{style}"'
     try:
         result = subprocess.run(
-            ["docker", "exec", "marketing-ai-openclaw-gateway-1",
+            ["docker", "exec", os.environ.get("GATEWAY_CONTAINER", "openclaw-gateway"),
              "node", "dist/index.js", "agent", "--agent", "main",
              "--session-id", f"card-api-{os.getpid()}", "--message", msg],
             capture_output=True, text=True, timeout=60,

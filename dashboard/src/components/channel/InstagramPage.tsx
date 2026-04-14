@@ -674,11 +674,10 @@ export function InstagramPage() {
   const { data: channelSettingsData } = useSWR("/api/channel-settings", fetcher);
   const channelSettings = (channelSettingsData || { features: AUTOMATION_FEATURES, settings: {} }) as Record<string, unknown>;
 
-  const tabs = connected ? ["queue", "editor", "settings"] : ["settings"];
+  const tabs = ["queue", "editor", "settings"];
 
   useEffect(() => {
-    if (!connected) setSubTab("settings");
-    else if (!tabs.includes(subTab)) setSubTab("queue");
+    if (!tabs.includes(subTab)) setSubTab("queue");
   }, [connected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const reload = useCallback(() => { mutateQueue(); mutateConfig(); }, [mutateQueue, mutateConfig]);
@@ -701,17 +700,33 @@ export function InstagramPage() {
         ))}
       </div>
 
-      {subTab === "queue" && connected && (
-        <InstagramQueue
-          posts={posts}
-          filter={filter}
-          setFilter={setFilter}
-          selectedIds={selectedIds}
-          setSelectedIds={setSelectedIds}
-          onReload={reload}
-        />
+      {subTab === "queue" && (
+        connected ? (
+          <InstagramQueue
+            posts={posts}
+            filter={filter}
+            setFilter={setFilter}
+            selectedIds={selectedIds}
+            setSelectedIds={setSelectedIds}
+            onReload={reload}
+          />
+        ) : (
+          <div className="card p-8 text-center">
+            <p className="text-gray-500 text-sm mb-2">Instagram 계정을 연결하면 큐를 사용할 수 있습니다</p>
+            <button onClick={() => setSubTab("settings")} className="text-xs text-blue-400 hover:text-blue-300">Settings에서 연결하기</button>
+          </div>
+        )
       )}
-      {subTab === "editor" && connected && <CardNewsEditor onReload={reload} />}
+      {subTab === "editor" && (
+        connected ? (
+          <CardNewsEditor onReload={reload} />
+        ) : (
+          <div className="card p-8 text-center">
+            <p className="text-gray-500 text-sm mb-2">Instagram 계정을 연결하면 카드뉴스 에디터를 사용할 수 있습니다</p>
+            <button onClick={() => setSubTab("settings")} className="text-xs text-blue-400 hover:text-blue-300">Settings에서 연결하기</button>
+          </div>
+        )
+      )}
       {subTab === "settings" && <InstagramSettings channelConfig={igCfg} channelSettings={channelSettings} />}
     </div>
   );

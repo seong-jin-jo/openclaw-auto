@@ -45,7 +45,7 @@ export function ChannelPage({ channel }: ChannelPageProps) {
   if (isThreads) {
     tabs = TABS_FULL;
   } else if (isX) {
-    tabs = connected ? ["queue", "analytics", "settings"] : ["settings"];
+    tabs = ["queue", "analytics", "settings"];
   } else {
     // Generic channels have no tabs — just show settings-like layout directly
     tabs = [];
@@ -57,11 +57,7 @@ export function ChannelPage({ channel }: ChannelPageProps) {
       // Generic channels have no tabs
       return;
     }
-    if (isX && !connected) {
-      setSubTab("settings");
-    } else {
-      setSubTab("queue");
-    }
+    setSubTab("queue");
   }, [channel, setSubTab, isX, isGeneric, connected]);
 
   const handleCredSave = async (newKeys: Record<string, string>) => {
@@ -128,8 +124,21 @@ export function ChannelPage({ channel }: ChannelPageProps) {
         </div>
       )}
 
-      {subTab === "queue" && !isGeneric && (isX ? connected : true) && <QueueList />}
-      {subTab === "analytics" && !isGeneric && (isX ? connected : true) && <AnalyticsTab />}
+      {subTab === "queue" && !isGeneric && (
+        connected || isThreads ? <QueueList /> : (
+          <div className="card p-8 text-center">
+            <p className="text-gray-500 text-sm mb-2">채널을 연결하면 큐를 사용할 수 있습니다</p>
+            <button onClick={() => setSubTab("settings")} className="text-xs text-blue-400 hover:text-blue-300">Settings에서 연결하기</button>
+          </div>
+        )
+      )}
+      {subTab === "analytics" && !isGeneric && (
+        connected || isThreads ? <AnalyticsTab /> : (
+          <div className="card p-8 text-center">
+            <p className="text-gray-500 text-sm">채널을 연결하면 분석 데이터를 볼 수 있습니다</p>
+          </div>
+        )
+      )}
       {subTab === "growth" && isThreads && <GrowthTab />}
       {subTab === "popular" && isThreads && <PopularTab expandedPopular={expandedPopular} setExpandedPopular={setExpandedPopular} />}
 

@@ -2,7 +2,7 @@ import { execSync } from "child_process";
 
 export async function POST() {
   try {
-    execSync("docker restart marketing-ai-openclaw-gateway-1", {
+    execSync(`docker restart ${process.env.GATEWAY_CONTAINER || "openclaw-gateway"}`, {
       timeout: 30000,
     });
     return Response.json({ ok: true, message: "Gateway 재시작 완료. 15초 후 사용 가능." });

@@ -22,7 +22,7 @@ export async function POST(request: Request) {
 
   try {
     execSync(
-      `docker exec marketing-ai-openclaw-gateway-1 node dist/index.js agent --agent main --message ${JSON.stringify(msg)}`,
+      `docker exec ${process.env.GATEWAY_CONTAINER || "openclaw-gateway"} node dist/index.js agent --agent main --message ${JSON.stringify(msg)}`,
       { timeout: 60000 },
     );
   } catch (e) {
