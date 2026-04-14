@@ -23,6 +23,9 @@ export const CH_LABELS: Record<string, string> = {
   google_analytics: "Google Analytics",
   search_console: "Search Console",
   google_business: "Google Business",
+  seo_keywords: "SEO Keywords",
+  custom_api: "Custom API",
+  rss: "RSS Feed",
 };
 
 /** Channel categories for sidebar */
