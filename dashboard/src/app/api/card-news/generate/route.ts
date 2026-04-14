@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import { DATA_DIR } from "@/lib/file-io";
 
 const IMAGES_DIR = path.join(DATA_DIR, "images");
@@ -19,10 +19,12 @@ export async function POST(request: Request) {
   let msg = `card_generate tool로 action=generate, title="${title}", slides=${slidesJson}, style="${style}"`;
   if (ending) msg += `, ending="${ending}"`;
   msg += " 를 실행하라. 결과의 files와 batchId를 그대로 출력하라.";
+  const container = process.env.GATEWAY_CONTAINER || "openclaw-gateway";
 
   try {
-    execSync(
-      `docker exec ${process.env.GATEWAY_CONTAINER || "openclaw-gateway"} node dist/index.js agent --agent main --message ${JSON.stringify(msg)}`,
+    execFileSync(
+      "docker",
+      ["exec", container, "node", "dist/index.js", "agent", "--agent", "main", "--message", msg],
       { timeout: 60000 },
     );
   } catch (e) {

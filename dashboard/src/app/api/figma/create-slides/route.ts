@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 
 export async function POST(request: Request) {
   const data = await request.json();
@@ -19,10 +19,12 @@ ${slidesText}
 4. 중간 프레임: 넘버 + 본문 텍스트 (34px) 중앙 정렬
 5. 마지막 프레임: CTA 텍스트 + "@your_threads_handle"
 6. 생성 완료 후 Figma 파일 URL을 출력하라.`;
+  const container = process.env.GATEWAY_CONTAINER || "openclaw-gateway";
 
   try {
-    const result = execSync(
-      `docker exec ${process.env.GATEWAY_CONTAINER || "openclaw-gateway"} node dist/index.js agent --agent main --message ${JSON.stringify(msg)}`,
+    const result = execFileSync(
+      "docker",
+      ["exec", container, "node", "dist/index.js", "agent", "--agent", "main", "--message", msg],
       { timeout: 120000 },
     ).toString().trim();
 

@@ -1,8 +1,9 @@
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 
 export async function POST() {
+  const container = process.env.GATEWAY_CONTAINER || "openclaw-gateway";
   try {
-    execSync(`docker restart ${process.env.GATEWAY_CONTAINER || "openclaw-gateway"}`, {
+    execFileSync("docker", ["restart", container], {
       timeout: 30000,
     });
     return Response.json({ ok: true, message: "Gateway 재시작 완료. 15초 후 사용 가능." });
