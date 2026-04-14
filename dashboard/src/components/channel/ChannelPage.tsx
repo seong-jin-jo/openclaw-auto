@@ -522,16 +522,23 @@ function AutomationSection({ channel, expandedFeature, setExpandedFeature }: {
   const jobs = (((cronJobs as Record<string, unknown>)?.jobs || cronJobs || []) as Array<Record<string, unknown>>);
   const runs = ((((cronRuns as Record<string, unknown>)?.runs || []) as Array<Record<string, unknown>>));
 
-  const FEATURE_CRON: Record<string, string> = {
-    content_generation: "threads-generate-drafts",
-    auto_publish: "threads-auto-publish",
-    insights_collection: "threads-collect-insights",
-    auto_like_replies: "threads-collect-insights",
-    low_engagement_cleanup: "threads-collect-insights",
-    trending_collection: "threads-fetch-trending",
-    follower_tracking: "threads-track-growth",
-    trending_rewrite: "threads-rewrite-trending",
+  const FEATURE_CRON_MAP: Record<string, Record<string, string>> = {
+    threads: {
+      content_generation: "threads-generate-drafts",
+      auto_publish: "threads-auto-publish",
+      insights_collection: "threads-collect-insights",
+      auto_like_replies: "threads-collect-insights",
+      low_engagement_cleanup: "threads-collect-insights",
+      trending_collection: "threads-fetch-trending",
+      follower_tracking: "threads-track-growth",
+      trending_rewrite: "threads-rewrite-trending",
+    },
+    instagram: {
+      content_generation: "instagram-generate-drafts",
+      auto_publish: "instagram-auto-publish",
+    },
   };
+  const FEATURE_CRON = FEATURE_CRON_MAP[channel] || FEATURE_CRON_MAP.threads;
 
   const shownCronEditors = new Set<string>();
 

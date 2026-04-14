@@ -37,10 +37,13 @@ export default function SettingsPage() {
 
       {activeTab === "channels" && <ChannelsSettings />}
       {activeTab === "ai" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <AIEngine />
-          <ClaudeToken />
-        </div>
+        <>
+          <p className="text-[10px] text-gray-500 mb-4">모든 채널의 콘텐츠 자동 생성 + 트렌드 분석에 사용됩니다.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <AIEngine />
+            <ClaudeToken />
+          </div>
+        </>
       )}
       {activeTab === "storage" && <StorageSettings />}
       {activeTab === "design" && <DesignToolsSettings />}

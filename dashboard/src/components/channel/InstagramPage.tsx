@@ -58,6 +58,24 @@ function InstagramQueue({ posts, filter, setFilter, selectedIds, setSelectedIds,
           ))}
         </div>
         <div className="flex gap-2 items-center">
+          {filtered.filter(p => p.status === "draft" || p.status === "approved").length > 0 && (
+            <label className="flex items-center gap-1 text-xs text-gray-400 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selectedIds.size > 0}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    const selectablePosts = filtered.filter(p => (p.status === "draft" || p.status === "approved") && p.imageUrl);
+                    setSelectedIds(new Set(selectablePosts.map(p => p.id)));
+                  } else {
+                    setSelectedIds(new Set());
+                  }
+                }}
+                className="rounded border-gray-600"
+              />
+              All
+            </label>
+          )}
           {selectedIds.size > 0 && (
             <>
               <button onClick={bulkApprove} className="px-3 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve ({selectedIds.size})</button>

@@ -264,28 +264,35 @@ export default function HomePage() {
         <div className={`card p-5 ${alerts.length ? "" : "col-span-1"}`}>
           <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">AI Engine</h3>
           {claude ? (
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Claude</span>
-                <span className={claude.healthy ? "text-green-400" : "text-red-400"}>
-                  {claude.healthy ? "Healthy" : "Expiring"}
-                </span>
+            <>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Claude</span>
+                  <span className={claude.healthy ? "text-green-400" : "text-red-400"}>
+                    {claude.healthy ? "Healthy" : "Error"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Token</span>
+                  <span className="text-gray-400 font-mono text-xs">{String(claude.tokenPreview || "...")}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Errors</span>
+                  <span className={(claude.errorCount as number) > 0 ? "text-red-400" : "text-gray-300"}>{String(claude.errorCount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Last used</span>
+                  <span className="text-gray-300">
+                    {claude.lastUsed ? fmtAgo(new Date(claude.lastUsed as number).toISOString()) : "-"}
+                  </span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Token</span>
-                <span className="text-gray-300">{String(claude.remainingHours)}h remaining</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Errors</span>
-                <span className="text-gray-300">{String(claude.errorCount)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Last used</span>
-                <span className="text-gray-300">
-                  {claude.lastUsed ? fmtAgo(new Date(claude.lastUsed as number).toISOString()) : "-"}
-                </span>
-              </div>
-            </div>
+              {!claude.healthy && (
+                <Link href="/settings" className="block mt-2 text-[10px] text-red-400 hover:text-red-300">
+                  Settings에서 토큰 재등록 필요 &rarr;
+                </Link>
+              )}
+            </>
           ) : (
             <p className="text-xs text-gray-600">No data</p>
           )}

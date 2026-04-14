@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import { useLlmConfig } from "@/hooks/useChannelConfig";
-import { useTokenStatus } from "@/hooks/useOverview";
 import { apiPost } from "@/lib/api";
 import { useToast } from "@/components/layout/Toast";
 
 export function AIEngine() {
   const { data: llmConfig, mutate } = useLlmConfig();
-  const { data: tokenStatus } = useTokenStatus();
+  // tokenStatus unused – Claude token card is separate
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
 
@@ -17,8 +16,6 @@ export function AIEngine() {
   const primary = (llm?.primary as string) || "";
   const fallbacks = (llm?.fallbacks as string[]) || [];
   const jobModels = (llm?.jobModels as Record<string, string>) || {};
-  const claude = (tokenStatus as Record<string, unknown>)?.claude as Record<string, unknown> | undefined;
-
   const [selectedPrimary, setSelectedPrimary] = useState<string | null>(null);
   const [jobOverrides, setJobOverrides] = useState<Record<string, string>>({});
 
@@ -44,7 +41,7 @@ export function AIEngine() {
 
   return (
     <div className="card p-5">
-      <h3 className="text-sm font-medium text-gray-300 mb-4">AI Engine (LLM)</h3>
+      <h3 className="text-sm font-medium text-gray-300 mb-4">LLM Model</h3>
       <div className="space-y-3">
         <div>
           <label className="text-[10px] text-gray-500 block mb-1">Primary Model</label>
@@ -62,17 +59,8 @@ export function AIEngine() {
           <label className="text-[10px] text-gray-500 block mb-1">Fallback Models</label>
           <p className="text-xs text-gray-400">{fallbacks.join(" \u2192 ") || "none"}</p>
         </div>
-        {claude && (
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Token</span>
-            <span className={claude.healthy ? "text-green-400" : "text-red-400"}>
-              {String(claude.remainingHours)}h remaining
-            </span>
-          </div>
-        )}
-
-        <div className="border-t border-gray-800/50 pt-3 mt-3">
-          <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Per-Job Model Override</p>
+        <div className="border-t border-gray-800/50 pt-3">
+          <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Per-Job Override</p>
           <div className="space-y-2">
             {Object.entries(jobModels).map(([job, model]) => (
               <div key={job} className="flex items-center justify-between gap-2">
@@ -99,7 +87,7 @@ export function AIEngine() {
           disabled={saving}
           className="w-full mt-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500 disabled:opacity-50"
         >
-          {saving ? "Saving..." : "Save LLM Config"}
+          {saving ? "Saving..." : "Save"}
         </button>
       </div>
     </div>

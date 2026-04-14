@@ -21,7 +21,7 @@ export function Account() {
       <div className="space-y-2 text-sm">
         <div className="flex justify-between">
           <span className="text-gray-500">Auth</span>
-          <span className="text-gray-300">{hasAuth ? "Token (localStorage)" : "No auth"}</span>
+          <span className="text-gray-300">{hasAuth ? "Token set" : "No auth"}</span>
         </div>
       </div>
       {hasAuth ? (
@@ -33,9 +33,7 @@ export function Account() {
             Change Token
           </button>
         </div>
-      ) : (
-        <p className="text-[10px] text-gray-600 mt-3">DASHBOARD_AUTH_TOKEN 환경변수 설정 시 로그인 활성화</p>
-      )}
+      ) : null}
     </div>
   );
 }
