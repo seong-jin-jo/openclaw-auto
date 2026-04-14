@@ -56,28 +56,28 @@ export const setupGuides: Record<string, SetupGuide> = {
     fields: ["accessToken", "userId"],
     labels: ["Graph API Access Token", "Instagram Business User ID"],
     quick: [
-      "Instagram을 Business 또는 Creator 계정으로 전환",
+      "Instagram을 Business 또는 Creator 계정으로 전환 (프로필 > 설정 > 프로페셔널 계정)",
       "Facebook Page 생성 후 Instagram 계정과 연결",
       "developers.facebook.com > 앱 만들기 (비즈니스 유형)",
       "Instagram Graph API + Instagram Content Publishing 제품 추가",
-      "테스터 등록: 앱 역할 > Instagram Testers에 자기 계정 추가",
-      "Graph API Explorer에서 토큰 생성",
-      "User ID 찾기: GET /{페이지ID}?fields=instagram_business_account",
+      "테스터 등록: 앱 역할 > Instagram Testers에 자기 계정 추가 → Instagram 앱에서 수락",
+      "Graph API Explorer에서 instagram_basic + instagram_content_publish 권한으로 토큰 생성",
+      "⚠️ User ID 찾기: Graph API Explorer에서 GET /me/accounts → 페이지 ID 확인 → GET /{페이지ID}?fields=instagram_business_account → 그 안의 id가 User ID (앱 ID와 다름!)",
     ],
     detail:
-      "주의: 앱 ID와 User ID는 다릅니다. 반드시 instagram_business_account.id를 넣으세요.\n\n앱 시크릿(App Secret)은 대시보드에 입력 불필요 — 장기 토큰 교환 시에만 사용.\n\n토큰 유효기간: 단기 1시간, 장기 60일.\n\n지원: 단일 이미지, 캐러셀(카드뉴스 2~10장), 릴스(영상 URL).",
+      "⚠️ 주의: 앱 ID ≠ User ID. 앱 ID(숫자)를 넣으면 에러 납니다. 반드시 instagram_business_account.id를 넣으세요.\n\n앱 시크릿(App Secret)은 대시보드에 입력 불필요 — 장기 토큰 교환 시에만 사용.\n\nAccess Token만 입력하면 됩니다. 테스터 모드에서는 App Review 없이 자기 계정에 발행 가능.\n\n토큰 유효기간: 단기 1시간, 장기 60일.\n\n지원: 단일 이미지, 캐러셀(카드뉴스 2~10장), 릴스(영상 URL).",
   },
   linkedin: {
     fields: ["accessToken", "personUrn"],
     labels: ["OAuth 2.0 Access Token", "Person URN (urn:li:person:xxx)"],
     quick: [
-      "LinkedIn Partner Program 신청",
+      "LinkedIn Partner Program 신청 (learn.microsoft.com/linkedin)",
       "승인 후 앱 생성 > OAuth 2.0 설정",
       "Access Token 발급",
       "Person URN 확인 (API /v2/me 호출)",
     ],
     detail:
-      "LinkedIn은 Partner Program 승인이 필요합니다. Person URN은 urn:li:person:xxxx 형태의 사용자 고유 식별자.",
+      "LinkedIn은 Partner Program 승인이 필요합니다. 자가 신청 후 승인 기간이 불확실합니다. Person URN은 urn:li:person:xxxx 형태의 사용자 고유 식별자.",
   },
   pinterest: {
     fields: ["accessToken", "boardId"],
@@ -130,13 +130,13 @@ export const setupGuides: Record<string, SetupGuide> = {
     fields: ["botToken", "chatId"],
     labels: ["Bot Token (@BotFather에서 발급)", "Chat ID (선택 — 알림 발송용)"],
     quick: [
-      "Telegram 앱에서 @BotFather 검색 > 대화 시작",
-      "/newbot 입력 > 봇 이름/username 입력",
-      "Bot Token (긴 문자열) 복사 > 위 폼에 붙여넣기",
-      "알림도 받고 싶으면: Chat ID도 입력 (더 알아보기 참고)",
+      "Telegram에서 @BotFather 검색 > /newbot 명령",
+      "봇 이름 + username 설정 > Bot Token 복사",
+      "양방향 대화만 할 경우: Bot Token만 입력하면 완료",
+      "알림도 받으려면: Chat ID 입력 (아래 '더 알아보기' 참고)",
     ],
     detail:
-      "Bot Token\nTelegram에서 @BotFather에게 /newbot 명령을 보내면 봇이 만들어지고 Token이 발급됩니다.\nToken은 봇의 비밀번호 같은 것입니다. 무료.\n\n내 봇 찾는 법\n@BotFather와 대화한 곳에 봇 username이 나와있습니다 (예: @my_marketing_bot).\nTelegram 검색창에서 그 이름을 검색하면 봇이 나옵니다.\n\nChat ID란?\n봇이 알림을 보낼 대상(나 또는 그룹)의 고유 번호입니다.\n- Bot Token만 있으면: 내가 봇에게 먼저 말해야 대화 가능\n- Chat ID도 있으면: 봇이 먼저 알림을 보낼 수 있음 (바이럴, 에러, 주간 리포트)\n\nChat ID 확인하는 법 (가장 쉬운 방법)\n1. Telegram 검색창에서 @RawDataBot 검색\n2. 대화 시작 > 아무 메시지 보내기\n3. 봇이 응답한 메시지에서 'Chat id' 숫자를 복사\n4. 위 폼 Chat ID에 붙여넣기\n\n단체방에서 사용\n봇을 그룹에 초대하면 그룹 멤버 누구나 봇에게 명령할 수 있습니다.\n그룹의 Chat ID는 보통 -100으로 시작하는 숫자입니다.\n\n양방향 대화 (Interactive Chat)\nSettings > Interactive Chat에서 Bot Token을 설정하면\n봇에게 '이번 주 성과 보여줘' 같은 자연어 명령을 보낼 수 있습니다.\nAgent가 Tool을 호출하고 결과를 Telegram으로 응답합니다.\n대시보드 없이 모바일에서 마케팅 관리 가능.",
+      "Bot Token\n@BotFather에게 /newbot 하면 발급되는 봇 전용 비밀번호입니다. 무료.\n\nChat ID란?\n봇이 '알림'을 보낼 장소입니다.\n- 없으면: 내가 봇에게 먼저 말해야 대화 가능\n- 있으면: 봇이 먼저 알림을 보낼 수 있음 (바이럴 감지, 주간 리포트 등)\n\nChat ID 확인하는 법\n1. 봇에게 아무 메시지를 보냅니다\n2. 브라우저에서 아래 주소 접속:\n   https://api.telegram.org/bot여기에토큰/getUpdates\n3. 결과에서 \"chat\":{\"id\": 숫자} ← 이 숫자가 Chat ID\n\n또는 Telegram에서 @RawDataBot 에게 메시지 보내면 바로 Chat ID를 알려줍니다.\n\n양방향 대화\nSettings > Interactive Chat에서 Bot Token을 설정하면, 봇에게 '이번 주 성과 보여줘' 같은 명령을 보낼 수 있습니다.",
   },
   discord: {
     fields: ["webhookUrl"],
@@ -154,14 +154,14 @@ export const setupGuides: Record<string, SetupGuide> = {
     fields: ["webhookUrl"],
     labels: ["Incoming Webhook URL"],
     quick: [
-      "api.slack.com/apps 접속",
+      "api.slack.com/apps 접속 (docs.slack.dev로 리디렉션 시 api.slack.com/apps 직접 입력)",
       "Create New App > From scratch > 이름 + Workspace 선택",
       "왼쪽 메뉴 Incoming Webhooks > 활성화 (ON)",
-      "Add New Webhook to Workspace > 채널 선택 > Allow",
-      "생성된 Webhook URL 복사 > 위 폼에 붙여넣기",
+      "Add New Webhook to Workspace > 메시지 받을 채널 선택 > Allow",
+      "생성된 Webhook URL 복사 (https://hooks.slack.com/...) > 위 폼에 붙여넣기",
     ],
     detail:
-      "Slack '앱'은 Workspace에 기능을 추가하는 단위입니다. 여기서는 Incoming Webhook만 사용합니다 — 앱을 만들면 Webhook URL이 생성되고, 이 URL로 POST 요청을 보내면 지정 채널에 메시지가 표시됩니다. 양방향 대화가 필요하면 Bot Token + App Token이 추가로 필요합니다 (Settings > Interactive Chat 참고).",
+      "Slack '앱'은 Workspace에 기능을 추가하는 단위입니다. 봇, Webhook, 슬래시 명령어 등을 묶어서 관리합니다. 여기서는 Incoming Webhook만 사용합니다 — 앱을 만들면 Webhook URL이 생성되고, 이 URL로 POST 요청을 보내면 지정 채널에 메시지가 표시됩니다. Slack mrkdwn 포맷 지원. 양방향 대화가 필요하면 Bot Token + App Token이 추가로 필요합니다 (Settings > Interactive Chat 참고).",
   },
   line: {
     fields: ["channelAccessToken"],
@@ -198,5 +198,19 @@ export const setupGuides: Record<string, SetupGuide> = {
     labels: ["Access Token", "Phone Number ID"],
     quick: ["Setup guide가 아직 준비되지 않았습니다."],
     detail: "",
+  },
+  midjourney: {
+    fields: ["discordToken", "channelId", "serverId"],
+    labels: ["Discord Token (유저 토큰)", "Channel ID (미드저니 봇 채널)", "Server ID (Discord 서버)"],
+    quick: [
+      '<a href=\'https://midjourney.com/app\' target=\'_blank\' class=\'text-blue-400\'>midjourney.com/app</a>에서 구독 확인 (Basic 이상)',
+      'Discord 설정 > 고급 > <strong>개발자 모드</strong> ON',
+      '미드저니 봇이 있는 서버 이름 우클릭 > <strong>서버 ID 복사</strong>',
+      '미드저니 봇이 있는 채널 우클릭 > <strong>채널 ID 복사</strong>',
+      'Discord Token 발급: <a href=\'https://discord.com/app\' target=\'_blank\' class=\'text-blue-400\'>discord.com/app</a> 접속 (브라우저) > F12 > Console 탭 > 아래 코드 붙여넣기 후 Enter:<br><code class=\'bg-gray-800 px-1 rounded text-[9px] break-all\'>(function(){const o=XMLHttpRequest.prototype.setRequestHeader;XMLHttpRequest.prototype.setRequestHeader=function(n,v){if(n.toLowerCase()===\'authorization\')console.log(\'[Token]\',v);return o.apply(this,arguments)}})()</code><br>실행 후 Discord에서 아무 채널 클릭 → Console에 <code class=\'bg-gray-800 px-1 rounded\'>[Token] MTxx...</code> 출력됨',
+      "위 폼에 3개 값 입력 후 Connect",
+    ],
+    detail:
+      "Midjourney Discord 연동으로 /imagine 명령을 자동 전송하고 생성된 이미지를 수집합니다.\n\n⚠️ Discord 유저 토큰 사용 — Discord TOS 위반 리스크가 있습니다. 자동화 속도를 제한하여 사용하세요.\n\nDiscord Token이란?\n봇 토큰이 아닌 '유저 토큰'입니다. 브라우저에서 Discord에 로그인한 상태에서 개발자 콘솔로 추출합니다.\n\n다른 방법으로 Token 찾기:\n1. discord.com/app > F12 > Network 탭 > Fetch/XHR 필터 > 아무 요청 클릭 > Headers > Authorization 값\n2. F12 > Application > Local Storage > discord.com > 'token' 검색\n\nChannel ID / Server ID:\n개발자 모드를 ON하면 우클릭 메뉴에 'ID 복사' 항목이 생깁니다.\n\n이미지 생성 시간: 30~90초. 자동 업스케일 지원.\nMidjourney 구독 필요 (Basic $10/월, Standard $30/월).",
   },
 };
