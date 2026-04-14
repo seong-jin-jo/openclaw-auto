@@ -5,9 +5,7 @@ services:
       dockerfile: Dockerfile
       network: host
       args:
-        # 공통 extensions (모든 서비스)
         OPENCLAW_EXTENSIONS: "threads-publish threads-queue threads-style threads-insights threads-search threads-growth x-publish image-upload"
-        # Custom extensions 추가 시: "... blog-queue sample-blog seo-keywords card-generator"
         OPENCLAW_INSTALL_BROWSER: "1"
     volumes:
       - ./config:/home/node/.openclaw
@@ -40,5 +38,7 @@ services:
       DATA_DIR: /app/data
       CONFIG_DIR: /app/config
       PORT: "${DASHBOARD_PORT:-34560}"
+      HOSTNAME: "0.0.0.0"
       DASHBOARD_AUTH_TOKEN: ${DASHBOARD_AUTH_TOKEN:-}
+      GATEWAY_CONTAINER: ${GATEWAY_CONTAINER:-openclaw-gateway}
     restart: unless-stopped
