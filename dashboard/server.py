@@ -36,6 +36,14 @@ NOTIFICATION_LOG_PATH = DATA_DIR / "notification-log.json"
 CONFIG_DIR = Path(os.environ.get("CONFIG_DIR", Path(__file__).resolve().parent.parent / "config"))
 CRON_JOBS_PATH = CONFIG_DIR / "cron" / "jobs.json"
 CHANNEL_SETTINGS_PATH = Path(DATA_DIR) / "channel-settings.json"
+BLOG_GUIDE_PATH = DATA_DIR / "blog-prompt-guide.txt"
+BLOG_KEYWORDS_PATH = DATA_DIR / "blog-keywords.txt"
+GSC_KEY_PATH = DATA_DIR / "gsc-service-account.json"
+NSA_DATA_PATH = DATA_DIR / "nsa-data.json"
+GA_CONFIG_PATH = DATA_DIR / "ga-config.json"
+NAVER_DATALAB_CONFIG_PATH = DATA_DIR / "naver-datalab-config.json"
+SLACK_CONFIG_PATH = DATA_DIR / "slack-config.json"
+
 
 AUTOMATION_FEATURES = [
     {"key": "content_generation",    "label": "Content Generation",    "description": "prompt-guide 기반 글 배치 생성 → draft 저장", "detail": "6시간마다 prompt-guide.txt + style-data.json + popular-posts.txt를 참고하여 draftsPerBatch개(기본 5) 글을 자동 생성합니다. 대시보드에서 검수/승인 후 발행됩니다.", "default": True},
@@ -128,11 +136,9 @@ def check_auth():
         return  # 토큰 미설정 시 인증 비활성화
     if request.method == "OPTIONS":
         return
-    # 정적 파일 + OAuth 콜백: 항상 허용
-    if request.path == "/" or request.path.startswith("/images/") or (not request.path.startswith("/api/") and request.path.endswith((".js", ".css", ".ico", ".png", ".svg", ".html"))):
+    # 정적 파일: 항상 허용
+    if request.path == "/" or request.path.startswith("/images/") or request.path.startswith("/videos/") or (not request.path.startswith("/api/") and request.path.endswith((".js", ".css", ".ico", ".png", ".svg", ".html", ".mp4"))):
         return
-    if request.path == "/api/figma-mcp/callback":
-        return  # Figma OAuth 콜백은 인증 없이 접근 허용
     # API: 인증 필요
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
 
@@ -325,419 +331,6 @@ def api_images():
     return jsonify(files)
 
 
-# ── Design Tools ──
-DESIGN_TOOLS_PATH = Path(DATA_DIR) / "design-tools.json"
-
-@app.route("/api/design-tools")
-def api_design_tools_get():
-    data = read_json(DESIGN_TOOLS_PATH) or {}
-    return jsonify(data)
-
-@app.route("/api/design-tools/canva", methods=["POST"])
-def api_design_tools_canva():
-    body = get_json_body()
-    data = read_json(DESIGN_TOOLS_PATH) or {}
-    data["canva"] = {"clientId": body.get("clientId", ""), "clientSecret": body.get("clientSecret", "")}
-    write_json(DESIGN_TOOLS_PATH, data)
-    return jsonify({"ok": True})
-
-@app.route("/api/design-tools/figma", methods=["POST"])
-def api_design_tools_figma():
-    body = get_json_body()
-    data = read_json(DESIGN_TOOLS_PATH) or {}
-    existing = data.get("figma", {})
-    data["figma"] = {
-        "accessToken": body.get("accessToken", existing.get("accessToken", "")),
-        "mcpEnabled": existing.get("mcpEnabled", False),
-    }
-    write_json(DESIGN_TOOLS_PATH, data)
-    return jsonify({"ok": True})
-
-
-@app.route("/api/design-tools/figma-mcp", methods=["POST"])
-def api_design_tools_figma_mcp():
-    """Toggle Figma MCP server in openclaw.json."""
-    body = get_json_body()
-    enabled = body.get("enabled", False)
-
-    # Update design-tools.json
-    dt = read_json(DESIGN_TOOLS_PATH) or {}
-    if "figma" not in dt:
-        dt["figma"] = {}
-    dt["figma"]["mcpEnabled"] = enabled
-    write_json(DESIGN_TOOLS_PATH, dt)
-
-    # Update openclaw.json mcp.servers
-    config_path = CONFIG_DIR / "openclaw.json"
-    config = read_json(config_path) or {}
-    if "mcp" not in config:
-        config["mcp"] = {}
-    if "servers" not in config["mcp"]:
-        config["mcp"]["servers"] = {}
-
-    if enabled:
-        config["mcp"]["servers"]["figma"] = {
-            "url": "https://mcp.figma.com/mcp",
-            "transport": "streamable-http",
-        }
-    else:
-        config["mcp"]["servers"].pop("figma", None)
-
-    write_json(config_path, config)
-    logger.info("Figma MCP %s", "enabled" if enabled else "disabled")
-    return jsonify({"ok": True, "mcpEnabled": enabled})
-
-
-@app.route("/api/design-tools/figma-mcp-tokens", methods=["POST"])
-def api_design_tools_figma_mcp_tokens():
-    """Save Figma MCP OAuth tokens and update openclaw.json with auth headers."""
-    body = get_json_body()
-    access_token = body.get("mcpAccessToken", "")
-    refresh_token = body.get("mcpRefreshToken", "")
-    client_id = body.get("mcpClientId", "")
-    client_secret = body.get("mcpClientSecret", "")
-
-    if not access_token:
-        return jsonify({"error": "Access Token required"}), 400
-
-    # Save to design-tools.json
-    dt = read_json(DESIGN_TOOLS_PATH) or {}
-    if "figma" not in dt:
-        dt["figma"] = {}
-    dt["figma"]["mcpAccessToken"] = access_token
-    dt["figma"]["mcpRefreshToken"] = refresh_token
-    dt["figma"]["mcpClientId"] = client_id
-    dt["figma"]["mcpClientSecret"] = client_secret
-    dt["figma"]["mcpEnabled"] = True
-    write_json(DESIGN_TOOLS_PATH, dt)
-
-    # Update openclaw.json with MCP server + auth header
-    config_path = CONFIG_DIR / "openclaw.json"
-    config = read_json(config_path) or {}
-    if "mcp" not in config:
-        config["mcp"] = {}
-    if "servers" not in config["mcp"]:
-        config["mcp"]["servers"] = {}
-
-    config["mcp"]["servers"]["figma"] = {
-        "url": "https://mcp.figma.com/mcp",
-        "transport": "streamable-http",
-        "headers": {
-            "Authorization": f"Bearer {access_token}",
-        },
-    }
-    write_json(config_path, config)
-    logger.info("Figma MCP tokens saved + openclaw.json updated")
-    return jsonify({"ok": True})
-
-
-# ── Gateway Control ──
-@app.route("/api/gateway/restart", methods=["POST"])
-def api_gateway_restart():
-    """Restart the openclaw-gateway container."""
-    import subprocess
-    try:
-        result = subprocess.run(
-            ["docker", "restart", os.environ.get("GATEWAY_CONTAINER", "openclaw-gateway")],
-            capture_output=True, text=True, timeout=30,
-        )
-        if result.returncode == 0:
-            return jsonify({"ok": True, "message": "Gateway 재시작 완료. 15초 후 사용 가능."})
-        return jsonify({"error": result.stderr[:200]}), 500
-    except Exception as e:
-        return jsonify({"error": str(e)[:200]}), 500
-
-
-# ── Figma MCP OAuth (dashboard-based) ──
-@app.route("/api/figma-mcp/start-oauth")
-def api_figma_mcp_start_oauth():
-    """Start Figma MCP OAuth flow — register client + return auth URL."""
-    import urllib.request, hashlib, secrets
-    try:
-        # 1. Register OAuth client with Figma (pretend to be Claude Code)
-        reg_data = json.dumps({
-            "client_name": "Claude Code",
-            "redirect_uris": [request.host_url.rstrip("/") + "/api/figma-mcp/callback"],
-            "grant_types": ["authorization_code", "refresh_token"],
-            "response_types": ["code"],
-            "token_endpoint_auth_method": "none",
-        }).encode()
-        req = urllib.request.Request("https://api.figma.com/v1/oauth/mcp/register",
-            data=reg_data,
-            headers={"Content-Type": "application/json", "User-Agent": "claude-cli/2.1.2 (external, cli)"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            reg = json.loads(resp.read())
-        client_id = reg["client_id"]
-        client_secret = reg.get("client_secret", "")
-
-        # 2. Generate PKCE
-        code_verifier = secrets.token_urlsafe(32)
-        code_challenge = hashlib.sha256(code_verifier.encode()).digest()
-        import base64
-        code_challenge_b64 = base64.urlsafe_b64encode(code_challenge).rstrip(b"=").decode()
-        state = secrets.token_hex(16)
-
-        # Store in session-like temp file
-        oauth_state = {
-            "clientId": client_id, "clientSecret": client_secret,
-            "codeVerifier": code_verifier, "state": state,
-        }
-        write_json(Path(DATA_DIR) / "figma-oauth-state.json", oauth_state)
-
-        # 3. Build auth URL
-        redirect_uri = request.host_url.rstrip("/") + "/api/figma-mcp/callback"
-        auth_url = (f"https://www.figma.com/oauth/mcp?client_id={client_id}"
-                    f"&redirect_uri={urllib.parse.quote(redirect_uri)}"
-                    f"&response_type=code&scope=mcp:connect&state={state}"
-                    f"&code_challenge={code_challenge_b64}&code_challenge_method=S256")
-
-        return jsonify({"authUrl": auth_url})
-    except Exception as e:
-        return jsonify({"error": str(e)[:300]}), 500
-
-
-@app.route("/api/figma-mcp/callback")
-def api_figma_mcp_callback():
-    """OAuth callback from Figma — exchange code for tokens."""
-    import urllib.request, urllib.parse
-    code = request.args.get("code")
-    state = request.args.get("state")
-    error = request.args.get("error")
-
-    if error:
-        return f"<h2>Figma OAuth Error: {error}</h2><p><a href='javascript:window.close()'>Close</a></p>", 400
-
-    # Load stored state
-    oauth_state = read_json(Path(DATA_DIR) / "figma-oauth-state.json")
-    if not oauth_state or oauth_state.get("state") != state:
-        return "<h2>State mismatch</h2>", 400
-
-    # Exchange code for tokens
-    try:
-        redirect_uri = request.host_url.rstrip("/") + "/api/figma-mcp/callback"
-        token_data = urllib.parse.urlencode({
-            "grant_type": "authorization_code",
-            "client_id": oauth_state["clientId"],
-            "client_secret": oauth_state["clientSecret"],
-            "code": code,
-            "redirect_uri": redirect_uri,
-            "code_verifier": oauth_state["codeVerifier"],
-        }).encode()
-        req = urllib.request.Request("https://api.figma.com/v1/oauth/token",
-            data=token_data,
-            headers={"Content-Type": "application/x-www-form-urlencoded", "User-Agent": "claude-cli/2.1.2 (external, cli)"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            tokens = json.loads(resp.read())
-
-        # Save tokens
-        dt = read_json(DESIGN_TOOLS_PATH) or {}
-        if "figma" not in dt:
-            dt["figma"] = {}
-        dt["figma"]["mcpAccessToken"] = tokens["access_token"]
-        dt["figma"]["mcpRefreshToken"] = tokens.get("refresh_token", "")
-        dt["figma"]["mcpClientId"] = oauth_state["clientId"]
-        dt["figma"]["mcpClientSecret"] = oauth_state["clientSecret"]
-        dt["figma"]["mcpEnabled"] = True
-        write_json(DESIGN_TOOLS_PATH, dt)
-
-        # Update openclaw.json
-        config_path = CONFIG_DIR / "openclaw.json"
-        config = read_json(config_path) or {}
-        if "mcp" not in config:
-            config["mcp"] = {}
-        if "servers" not in config["mcp"]:
-            config["mcp"]["servers"] = {}
-        config["mcp"]["servers"]["figma"] = {
-            "url": "https://mcp.figma.com/mcp",
-            "transport": "streamable-http",
-            "headers": {"Authorization": f"Bearer {tokens['access_token']}"},
-        }
-        write_json(config_path, config)
-
-        # Cleanup
-        os.remove(os.path.join(DATA_DIR, "figma-oauth-state.json"))
-
-        return """<html><body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh">
-        <div style="text-align:center">
-          <h2 style="color:#22c55e">Figma MCP 연결 완료!</h2>
-          <p style="color:#9ca3af">이 탭을 닫고 대시보드로 돌아가세요.</p>
-          <p style="color:#6b7280;font-size:12px">Gateway 재시작 후 사용 가능</p>
-        </div></body></html>"""
-    except Exception as e:
-        return f"<h2>Token exchange failed: {e}</h2>", 500
-
-
-# ── Figma MCP ──
-@app.route("/api/figma/create-slides", methods=["POST"])
-def api_figma_create_slides():
-    """Use gateway agent + Figma MCP to create card slides in Figma."""
-    import subprocess
-    data = get_json_body()
-    title = data.get("title", "")
-    slides = data.get("slides", [])
-    style = data.get("style", "dark")
-
-    slides_text = "\n".join([f"슬라이드 {i+1}: {s}" for i, s in enumerate(slides)])
-    msg = f"""Figma MCP 서버를 사용하여 카드뉴스를 생성하라:
-
-제목: {title}
-스타일: {style}
-{slides_text}
-
-1. 새 Figma 페이지 또는 기존 파일에 1080x1350px 프레임을 슬라이드 수만큼 생성
-2. 각 프레임에 배경색 적용 (dark=#0f0f0f, tech=#0a1628, gradient=#1e1b4b)
-3. 첫 프레임: "CARD NEWS" 뱃지 + 제목 텍스트 (볼드 52px)
-4. 중간 프레임: 넘버 + 본문 텍스트 (34px) 중앙 정렬
-5. 마지막 프레임: CTA 텍스트 + "@your_threads_handle"
-6. 생성 완료 후 Figma 파일 URL을 출력하라."""
-
-    try:
-        result = subprocess.run(
-            ["docker", "exec", os.environ.get("GATEWAY_CONTAINER", "openclaw-gateway"),
-             "node", "dist/index.js", "agent", "--agent", "main", "--message", msg],
-            capture_output=True, text=True, timeout=120,
-        )
-        output = result.stdout.strip()
-        # Try to find Figma URL in output
-        import re
-        url_match = re.search(r'https://www\.figma\.com/\S+', output)
-        return jsonify({
-            "success": True,
-            "figmaUrl": url_match.group(0) if url_match else None,
-            "output": output[-300:],
-        })
-    except subprocess.TimeoutExpired:
-        return jsonify({"error": "Figma 생성 타임아웃"}), 504
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/api/figma/export", methods=["POST"])
-def api_figma_export():
-    """Export PNG from Figma file using REST API."""
-    import urllib.request
-    data = get_json_body()
-    file_key = data.get("fileKey", "")
-    node_ids = data.get("nodeIds", "")  # comma-separated
-
-    dt = read_json(DESIGN_TOOLS_PATH) or {}
-    token = dt.get("figma", {}).get("accessToken", "")
-    if not token:
-        return jsonify({"error": "Figma token not set"}), 400
-    if not file_key:
-        return jsonify({"error": "fileKey required"}), 400
-
-    try:
-        url = f"https://api.figma.com/v1/images/{file_key}?format=png&scale=2"
-        if node_ids:
-            url += f"&ids={node_ids}"
-        req = urllib.request.Request(url, headers={"X-Figma-Token": token})
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            result = json.loads(resp.read())
-            return jsonify({"success": True, "images": result.get("images", {})})
-    except Exception as e:
-        return jsonify({"error": str(e)[:200]}), 500
-
-
-# ── Figma Export to Queue ──
-@app.route("/api/figma/export-to-queue", methods=["POST"])
-def api_figma_export_to_queue():
-    """Export Figma frames as PNG and update a queue post's imageUrls."""
-    import urllib.request
-    data = get_json_body()
-    file_key = data.get("fileKey", "")
-    post_id = data.get("postId", "")
-    if not file_key or not post_id:
-        return jsonify({"error": "fileKey and postId required"}), 400
-
-    dt = read_json(DESIGN_TOOLS_PATH) or {}
-    token = dt.get("figma", {}).get("accessToken", "")
-    if not token:
-        return jsonify({"error": "Figma token not set"}), 400
-
-    try:
-        # Get file structure to find frame node IDs
-        url = f"https://api.figma.com/v1/files/{file_key}?depth=2"
-        req = urllib.request.Request(url, headers={"X-Figma-Token": token, "User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            file_data = json.loads(resp.read())
-
-        # Find all frame nodes on the first page
-        page = file_data.get("document", {}).get("children", [{}])[0]
-        frames = [c for c in page.get("children", []) if c.get("type") == "FRAME"]
-        if not frames:
-            return jsonify({"error": "No frames found in file"}), 400
-
-        node_ids = ",".join(f["id"] for f in frames)
-
-        # Export as PNG
-        export_url = f"https://api.figma.com/v1/images/{file_key}?ids={node_ids}&format=png&scale=2"
-        req2 = urllib.request.Request(export_url, headers={"X-Figma-Token": token, "User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req2, timeout=30) as resp2:
-            export_data = json.loads(resp2.read())
-
-        images = export_data.get("images", {})
-        if not images:
-            return jsonify({"error": "Export returned no images"}), 500
-
-        # Download each image and save locally
-        new_urls = []
-        import uuid
-        for node_id, img_url in sorted(images.items()):
-            if not img_url:
-                continue
-            req3 = urllib.request.Request(img_url, headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(req3, timeout=30) as resp3:
-                img_data = resp3.read()
-            filename = f"figma-{uuid.uuid4().hex[:8]}.png"
-            save_path = os.path.join(IMAGES_DIR, filename)
-            os.makedirs(IMAGES_DIR, exist_ok=True)
-            with open(save_path, "wb") as f:
-                f.write(img_data)
-            new_urls.append(f"/images/{filename}")
-
-        # Update queue post
-        queue = read_json(QUEUE_PATH) or {"version": 2, "posts": []}
-        for p in queue["posts"]:
-            if p["id"] == post_id:
-                p["imageUrls"] = new_urls
-                p["imageUrl"] = new_urls[0] if new_urls else p.get("imageUrl")
-                break
-        write_json(QUEUE_PATH, queue)
-
-        return jsonify({"ok": True, "count": len(new_urls)})
-    except Exception as e:
-        return jsonify({"error": str(e)[:300]}), 500
-
-
-# ── Midjourney ──
-@app.route("/api/midjourney/generate", methods=["POST"])
-def api_midjourney_generate():
-    """Generate image via Midjourney through gateway agent."""
-    import subprocess
-    data = get_json_body()
-    prompt = data.get("prompt", "").strip()
-    if not prompt:
-        return jsonify({"error": "prompt required"}), 400
-    msg = f'midjourney_image tool로 action=imagine, prompt="{prompt}", auto_upscale=false 실행하라. 결과의 imagePath를 출력하라.'
-    try:
-        result = subprocess.run(
-            ["docker", "exec", os.environ.get("GATEWAY_CONTAINER", "openclaw-gateway"),
-             "node", "dist/index.js", "agent", "--agent", "main", "--message", msg],
-            capture_output=True, text=True, timeout=180,
-        )
-        output = result.stdout.strip()
-        import re
-        path_match = re.search(r'/images/[^\s"\']+\.png', output)
-        if path_match:
-            return jsonify({"success": True, "imagePath": path_match.group(0)})
-        return jsonify({"error": "이미지 경로를 찾을 수 없음", "output": output[-300:]}), 500
-    except subprocess.TimeoutExpired:
-        return jsonify({"error": "미드저니 생성 타임아웃 (3분)"}), 504
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
 # ── Card News ──
 @app.route("/api/card-news/outline", methods=["POST"])
 def api_card_news_outline():
@@ -762,7 +355,7 @@ def api_card_news_outline():
 
     try:
         result = subprocess.run(
-            ["docker", "exec", os.environ.get("GATEWAY_CONTAINER", "openclaw-gateway"),
+            ["docker", "exec", "marketing-ai-openclaw-gateway-1",
              "node", "dist/index.js", "agent", "--agent", "main", "--message", msg],
             capture_output=True, text=True, timeout=60,
         )
@@ -803,7 +396,7 @@ def api_card_news_generate():
 
     try:
         result = subprocess.run(
-            ["docker", "exec", os.environ.get("GATEWAY_CONTAINER", "openclaw-gateway"),
+            ["docker", "exec", "marketing-ai-openclaw-gateway-1",
              "node", "dist/index.js", "agent", "--agent", "main", "--message", msg],
             capture_output=True, text=True, timeout=60,
         )
@@ -840,10 +433,80 @@ def api_card_news_generate():
     })
 
 
+# ── Custom: Sample Community ──
+@app.route("/api/custom/sample-community")
+def api_sample_community():
+    """Proxy Sample community posts API."""
+    import urllib.request
+    try:
+        url = "https://api.example.com/api/v1/community/posts"
+        req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "Mozilla/5.0 OpenClaw-Marketing"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read())
+            return jsonify(data.get("content", {}))
+    except Exception as e:
+        return jsonify({"error": str(e)[:200], "popularItems": [], "items": []}), 500
 
-# Custom Integration API 자리 — fork에서 서비스별 커스텀 엔드포인트 추가
-# 예: @app.route("/api/custom/my-service")
 
+@app.route("/api/custom/sample-community/draft", methods=["POST"])
+def api_sample_community_draft():
+    """Create a queue draft from a community post."""
+    import urllib.request
+    body = get_json_body()
+    post_id = body.get("postId")
+    tone = body.get("tone", "curate")  # curate, summary, discuss
+    if not post_id:
+        return jsonify({"error": "postId required"}), 400
+
+    # Fetch post detail
+    try:
+        url = f"https://api.example.com/api/v1/community/posts/{post_id}"
+        req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "Mozilla/5.0 OpenClaw-Marketing"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read())
+            post = data.get("content", {})
+    except Exception as e:
+        return jsonify({"error": f"Failed to fetch post: {e}"}), 500
+
+    title = post.get("title", "")
+    excerpt = post.get("excerpt", "") or post.get("body", "")[:200]
+    author = post.get("author", {}).get("name", "")
+    community_url = f"https://www.example.com/community/{post_id}"
+
+    # Generate draft text based on tone
+    if tone == "curate":
+        text = f"제로원 커뮤니티에서 흥미로운 글 발견 👀\n\n\"{title}\"\nby {author}\n\n{excerpt[:100]}...\n\n자세한 내용은 제로원 커뮤니티에서 확인하세요\n{community_url}"
+    elif tone == "summary":
+        text = f"{title}\n\n{excerpt[:200]}\n\n원문: {community_url}"
+    else:  # discuss
+        text = f"{title}\n\n{excerpt[:100]}...\n\n여러분은 어떻게 생각하세요? 💬\n\n자세한 글: {community_url}"
+
+    # Add to queue
+    import uuid, time
+    queue_path = Path(DATA_DIR) / "queue.json"
+    queue = read_json(queue_path) or {"version": 2, "posts": []}
+    new_post = {
+        "id": str(uuid.uuid4()),
+        "text": text,
+        "originalText": None,
+        "topic": "sample-community",
+        "hashtags": ["제로원", "개발자커뮤니티", "Sample"],
+        "status": "draft",
+        "generatedAt": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "approvedAt": None,
+        "scheduledAt": None,
+        "publishedAt": None,
+        "threadsMediaId": None,
+        "error": None,
+        "abVariant": "A",
+        "model": "manual",
+        "imageUrl": post.get("previewImageUrl"),
+        "engagement": None,
+    }
+    queue["posts"].append(new_post)
+    write_json(queue_path, queue)
+    logger.info("Community draft created: postId=%s tone=%s", post_id, tone)
+    return jsonify({"ok": True, "postId": new_post["id"]})
 
 
 @app.route("/api/card-slides/<batch_id>")
@@ -860,25 +523,6 @@ def api_card_slides(batch_id):
         if f.startswith(prefix) and f.endswith(".png"):
             slides.append({"filename": f, "url": f"/images/{f}"})
     return jsonify({"batchId": batch_id, "slides": slides})
-
-
-@app.route("/api/images/upload", methods=["POST"])
-def api_upload_image():
-    """Upload image file to local images directory."""
-    if "file" not in request.files:
-        return jsonify({"error": "No file"}), 400
-    f = request.files["file"]
-    if not f.filename:
-        return jsonify({"error": "Empty filename"}), 400
-    ext = os.path.splitext(f.filename)[1].lower()
-    if ext not in (".jpg", ".jpeg", ".png", ".gif", ".webp"):
-        return jsonify({"error": f"Unsupported format: {ext}"}), 400
-    import uuid
-    safe_name = f"{uuid.uuid4().hex[:12]}{ext}"
-    os.makedirs(IMAGES_DIR, exist_ok=True)
-    save_path = os.path.join(IMAGES_DIR, safe_name)
-    f.save(save_path)
-    return jsonify({"url": f"/images/{safe_name}", "filename": safe_name})
 
 
 @app.route("/api/images/<filename>", methods=["DELETE"])
@@ -901,7 +545,7 @@ def api_generate_image():
     msg = f'image_generate tool로 "{safe_prompt}" 이미지를 생성하라. 생성된 이미지를 /home/node/data/images/ 폴더에 저장하라.'
     try:
         result = subprocess.run(
-            ["docker", "exec", os.environ.get("GATEWAY_CONTAINER", "openclaw-gateway"),
+            ["docker", "exec", "marketing-ai-openclaw-gateway-1",
              "node", "dist/index.js", "agent", "--agent", "main", "--message", msg],
             capture_output=True, text=True, timeout=120,
         )
@@ -946,7 +590,7 @@ def api_generate_card():
     msg = f'card_generate tool 호출: action="generate", title="{title}", slides={slides_json}, style="{style}"'
     try:
         result = subprocess.run(
-            ["docker", "exec", os.environ.get("GATEWAY_CONTAINER", "openclaw-gateway"),
+            ["docker", "exec", "marketing-ai-openclaw-gateway-1",
              "node", "dist/index.js", "agent", "--agent", "main",
              "--session-id", f"card-api-{os.getpid()}", "--message", msg],
             capture_output=True, text=True, timeout=60,
@@ -1003,7 +647,7 @@ def api_queue_add():
         "approvedAt": None, "scheduledAt": None, "publishedAt": None,
         "threadsMediaId": None, "error": None,
         "abVariant": "A", "model": "manual",
-        "imageUrl": data.get("imageUrl") or (data.get("imageUrls") or [None])[0],
+        "imageUrl": data.get("imageUrl"),
         "imageUrls": data.get("imageUrls"),
         "cardBatchId": data.get("cardBatchId"),
         "engagement": None,
@@ -1011,26 +655,6 @@ def api_queue_add():
     queue["posts"].append(post)
     write_json(QUEUE_PATH, queue)
     return jsonify({"success": True, "post": post})
-
-
-@app.route("/api/queue/<post_id>/add-image", methods=["POST"])
-def api_queue_add_image(post_id):
-    """Add an image to a queue post's imageUrls."""
-    data = get_json_body()
-    image_url = data.get("imageUrl", "")
-    if not image_url:
-        return jsonify({"error": "imageUrl required"}), 400
-    queue = read_json(QUEUE_PATH) or {"version": 2, "posts": []}
-    for p in queue["posts"]:
-        if p["id"] == post_id:
-            if not p.get("imageUrls"):
-                p["imageUrls"] = []
-            p["imageUrls"].append(image_url)
-            if not p.get("imageUrl"):
-                p["imageUrl"] = image_url
-            write_json(QUEUE_PATH, queue)
-            return jsonify({"ok": True, "count": len(p["imageUrls"])})
-    return jsonify({"error": "Post not found"}), 404
 
 
 @app.route("/api/queue/<post_id>/approve", methods=["POST"])
@@ -2355,14 +1979,14 @@ def verify_channel(channel, cfg):
                 return {"verified": False, "error": "Channel ID is empty"}
             if not server_id:
                 return {"verified": False, "error": "Server ID is empty"}
-            # Verify by fetching user info (channel endpoint needs User-Agent)
+            # Verify by fetching channel info
             req = urllib.request.Request(
-                "https://discord.com/api/v10/users/@me",
-                headers={"Authorization": token, "User-Agent": "Mozilla/5.0", "Content-Type": "application/json"})
+                f"https://discord.com/api/v10/channels/{channel_id}",
+                headers={"Authorization": token})
             with urllib.request.urlopen(req, timeout=5) as resp:
                 data = json.loads(resp.read())
-                username = data.get("username", "unknown")
-                return {"verified": True, "account": f"@{username}"}
+                ch_name = data.get("name", channel_id)
+                return {"verified": True, "account": f"#{ch_name}"}
 
         else:
             # Generic: just check if any key has value
@@ -2542,6 +2166,1372 @@ def api_cron_runs():
             continue
     runs.sort(key=lambda r: r.get("finishedAt", 0), reverse=True)
     return jsonify({"runs": runs[:30]})
+
+
+# ════════════════════════════════════════
+# ══ Sample Custom APIs ══
+# ════════════════════════════════════════
+
+
+# ── API: Video Generation ──
+VIDEO_OUTPUT_DIR = DATA_DIR / "videos"
+
+
+ELEVENLABS_CONFIG_PATH = DATA_DIR / "elevenlabs-config.json"
+
+
+@app.route("/api/elevenlabs-config")
+def api_elevenlabs_config():
+    cfg = read_json(ELEVENLABS_CONFIG_PATH) or {}
+    return jsonify({"configured": bool(cfg.get("apiKey")), "apiKey": cfg.get("apiKey", ""), "voiceId": cfg.get("voiceId", "")})
+
+
+@app.route("/api/elevenlabs-config", methods=["POST"])
+def api_elevenlabs_config_update():
+    data = get_json_body()
+    write_json(ELEVENLABS_CONFIG_PATH, {"apiKey": data.get("apiKey", ""), "voiceId": data.get("voiceId", "")})
+    logger.info("ElevenLabs config saved")
+    return jsonify({"ok": True})
+
+
+@app.route("/api/elevenlabs-voices")
+def api_elevenlabs_voices():
+    cfg = read_json(ELEVENLABS_CONFIG_PATH) or {}
+    api_key = cfg.get("apiKey", "")
+    if not api_key:
+        return jsonify({"error": "API key not set", "voices": []})
+    try:
+        import urllib.request
+        req = urllib.request.Request("https://api.elevenlabs.io/v1/voices", headers={"xi-api-key": api_key})
+        resp = urllib.request.urlopen(req, timeout=10)
+        data = json.loads(resp.read())
+        voices = [{"id": v["voice_id"], "name": v["name"], "category": v.get("category", "")} for v in data.get("voices", [])]
+        return jsonify({"voices": voices})
+    except Exception as e:
+        return jsonify({"error": str(e), "voices": []})
+
+
+def _generate_tts(text, output_path):
+    """ElevenLabs TTS → MP3"""
+    cfg = read_json(ELEVENLABS_CONFIG_PATH) or {}
+    api_key = cfg.get("apiKey", "")
+    voice_id = cfg.get("voiceId", "iP95p4xoKVk53GoZ742B")  # default: Chris
+    if not api_key:
+        return False
+
+    import urllib.request
+    body = json.dumps({
+        "text": text,
+        "model_id": "eleven_multilingual_v2",
+        "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}
+    }).encode()
+    req = urllib.request.Request(
+        f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+        data=body,
+        headers={"xi-api-key": api_key, "Content-Type": "application/json"}
+    )
+    try:
+        resp = urllib.request.urlopen(req, timeout=30)
+        with open(output_path, "wb") as f:
+            f.write(resp.read())
+        return True
+    except:
+        return False
+
+
+@app.route("/api/video/generate", methods=["POST"])
+def api_video_generate():
+    """Generate short-form video from slides with optional TTS"""
+    import subprocess
+    import tempfile
+    import time as _time
+
+    data = get_json_body()
+    slides = data.get("slides", [])
+    tts_enabled = data.get("ttsEnabled", True)
+    if not slides:
+        return jsonify({"error": "slides required"}), 400
+
+    VIDEO_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = tempfile.mkdtemp()
+
+    try:
+        input_args = []
+        filter_parts = []
+
+        for i, slide in enumerate(slides):
+            duration = slide.get("duration", 4)
+            text = slide.get("text", "").replace("'", "\u2019").replace('"', '\\"').replace(":", "\\:").replace("%", "%%")
+            image_url = slide.get("imageUrl", "")
+            img_path = None
+
+            if image_url:
+                try:
+                    import urllib.request
+                    img_path = f"{tmp}/img_{i}.jpg"
+                    req = urllib.request.Request(image_url, headers={"User-Agent": "Mozilla/5.0"})
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        with open(img_path, "wb") as f:
+                            f.write(resp.read())
+                except:
+                    img_path = None
+
+            # 모든 슬라이드를 개별 mp4로 먼저 생성, 나중에 concat
+            slide_path = f"{tmp}/slide_{i}.mp4"
+            if img_path:
+                subprocess.run([
+                    "ffmpeg", "-y", "-loop", "1", "-t", str(duration), "-i", img_path,
+                    "-vf", f"scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black,"
+                           f"drawtext=text='{text}':fontfile=/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc:"
+                           f"fontsize=42:fontcolor=white:x=(w-text_w)/2:y=h-250:borderw=3:bordercolor=black",
+                    "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", "30", slide_path
+                ], capture_output=True, timeout=30)
+            else:
+                subprocess.run([
+                    "ffmpeg", "-y", "-f", "lavfi", "-t", str(duration),
+                    "-i", f"color=c=black:s=1080x1920:d={duration}",
+                    "-vf", f"drawtext=text='{text}':fontfile=/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc:"
+                           f"fontsize=48:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:borderw=3:bordercolor=black",
+                    "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", "30", slide_path
+                ], capture_output=True, timeout=30)
+
+        total_dur = sum(s.get("duration", 4) for s in slides)
+        output_name = f"video_{int(_time.time())}.mp4"
+        output_path = str(VIDEO_OUTPUT_DIR / output_name)
+
+        # Create concat list
+        concat_list = f"{tmp}/concat.txt"
+        with open(concat_list, "w") as f:
+            for i in range(len(slides)):
+                f.write(f"file '{tmp}/slide_{i}.mp4'\n")
+
+        cmd = ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_list,
+               "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", "30", output_path]
+
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        if result.returncode != 0:
+            # FFmpeg stderr에서 실제 에러 라인만 추출
+            err_lines = [l for l in result.stderr.split("\n") if "Error" in l or "error" in l or "Invalid" in l or "No such" in l]
+            err_msg = "\n".join(err_lines[-3:]) if err_lines else result.stderr[-300:]
+            logger.error("FFmpeg error: %s", err_msg)
+            return jsonify({"error": f"FFmpeg: {err_msg[:300]}"}), 500
+
+        # TTS: 전체 스크립트를 음성으로 변환 후 영상에 합성
+        has_audio = False
+        if tts_enabled:
+            full_script = ". ".join(s.get("text", "") for s in slides if s.get("text"))
+            tts_path = f"{tmp}/narration.mp3"
+            if _generate_tts(full_script, tts_path):
+                # 영상 + 음성 합성
+                final_path = str(VIDEO_OUTPUT_DIR / f"final_{int(_time.time())}.mp4")
+                merge_cmd = ["ffmpeg", "-y", "-i", output_path, "-i", tts_path,
+                             "-c:v", "copy", "-c:a", "aac", "-b:a", "128k",
+                             "-shortest", final_path]
+                merge_result = subprocess.run(merge_cmd, capture_output=True, text=True, timeout=60)
+                if merge_result.returncode == 0:
+                    import shutil
+                    shutil.move(final_path, output_path)
+                    has_audio = True
+                    logger.info("TTS audio merged")
+
+        logger.info("Video generated: %s (%ds, %d slides, audio=%s)", output_name, total_dur, len(slides), has_audio)
+        return jsonify({"ok": True, "filename": output_name, "url": f"/videos/{output_name}",
+                        "duration": total_dur, "slides": len(slides), "hasAudio": has_audio})
+    except Exception as e:
+        logger.error("Video generation failed: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/videos/<path:filename>")
+def serve_video(filename):
+    VIDEO_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    return send_from_directory(str(VIDEO_OUTPUT_DIR), filename)
+
+
+@app.route("/api/video/delete", methods=["POST"])
+def api_video_delete():
+    data = get_json_body()
+    filename = data.get("filename", "")
+    if not filename or ".." in filename:
+        return jsonify({"error": "invalid filename"}), 400
+    filepath = VIDEO_OUTPUT_DIR / filename
+    if filepath.exists():
+        filepath.unlink()
+        logger.info("Video deleted: %s", filename)
+        return jsonify({"ok": True})
+    return jsonify({"error": "not found"}), 404
+
+
+@app.route("/api/video/list")
+def api_video_list():
+    VIDEO_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    videos = []
+    for f in sorted(VIDEO_OUTPUT_DIR.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True):
+        if f.suffix == ".mp4":
+            videos.append({"filename": f.name, "url": f"/videos/{f.name}",
+                           "size": f.stat().st_size, "createdAt": f.stat().st_mtime})
+    return jsonify({"videos": videos})
+
+
+@app.route("/api/video/script-from-blog", methods=["POST"])
+def api_video_script_from_blog():
+    """블로그 글에서 숏폼 스크립트 자동 추출"""
+    data = get_json_body()
+    content = data.get("content", "")
+    title = data.get("title", "")
+    if not content:
+        return jsonify({"error": "content required"}), 400
+
+    import re
+    text = content
+    try:
+        doc = json.loads(content) if content.strip().startswith("{") else None
+        if doc and doc.get("type") == "doc":
+            text = ""
+            for node in doc.get("content", []):
+                if node["type"] == "heading":
+                    text += "\n## " + "".join(t.get("text", "") for t in node.get("content", []))
+                elif node["type"] == "paragraph":
+                    text += "\n" + "".join(t.get("text", "") for t in node.get("content", []))
+    except:
+        text = re.sub(r"<[^>]+>", "", content)
+
+    sections = re.split(r"\n##\s*", text)
+    slides = [{"text": title, "duration": 4, "imageQuery": ""}]
+    for section in sections[1:6]:
+        lines = section.strip().split("\n")
+        heading = lines[0].strip() if lines else ""
+        if heading:
+            slides.append({"text": heading[:40], "duration": 5, "imageQuery": heading})
+    slides.append({"text": "자세한 내용은 프로필 링크에서", "duration": 3, "imageQuery": ""})
+
+    return jsonify({"title": title, "slides": slides,
+                    "totalDuration": sum(s["duration"] for s in slides)})
+
+
+# ── API: YouTube OAuth ──
+YOUTUBE_TOKEN_PATH = DATA_DIR / "youtube-token.json"
+
+
+@app.route("/api/youtube/auth-url")
+def api_youtube_auth_url():
+    """Generate YouTube OAuth URL — user clicks this to authorize"""
+    config = read_json(CONFIG_DIR / "openclaw.json") or {}
+    yt_cfg = config.get("plugins", {}).get("entries", {}).get("youtube-publish", {}).get("config", {})
+    client_id = yt_cfg.get("clientId", "") or request.args.get("clientId", "")
+    client_secret = yt_cfg.get("clientSecret", "")
+
+    if not client_id:
+        return jsonify({"error": "YouTube OAuth Client ID가 설정되지 않았습니다. YouTube Settings에서 입력하세요."})
+
+    redirect_uri = request.host_url.rstrip("/") + "/api/youtube/callback"
+    auth_url = (
+        f"https://accounts.google.com/o/oauth2/v2/auth"
+        f"?client_id={client_id}"
+        f"&redirect_uri={urllib.parse.quote(redirect_uri)}"
+        f"&response_type=code"
+        f"&scope=https://www.googleapis.com/auth/youtube.upload"
+        f"&access_type=offline"
+        f"&prompt=consent"
+    )
+    return jsonify({"authUrl": auth_url, "redirectUri": redirect_uri})
+
+
+@app.route("/api/youtube/callback")
+def api_youtube_callback():
+    """OAuth callback — exchange code for tokens"""
+    import urllib.request as _urllib_req
+
+    code = request.args.get("code", "")
+    if not code:
+        return "Authorization failed — no code", 400
+
+    config = read_json(CONFIG_DIR / "openclaw.json") or {}
+    yt_cfg = config.get("plugins", {}).get("entries", {}).get("youtube-publish", {}).get("config", {})
+    client_id = yt_cfg.get("clientId", "")
+    client_secret = yt_cfg.get("clientSecret", "")
+    redirect_uri = request.host_url.rstrip("/") + "/api/youtube/callback"
+
+    try:
+        token_body = urllib.parse.urlencode({
+            "code": code,
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "redirect_uri": redirect_uri,
+            "grant_type": "authorization_code",
+        }).encode()
+        token_req = _urllib_req.Request("https://oauth2.googleapis.com/token", data=token_body,
+                                        headers={"Content-Type": "application/x-www-form-urlencoded"})
+        token_resp = _urllib_req.urlopen(token_req, timeout=10)
+        tokens = json.loads(token_resp.read())
+
+        # Save tokens
+        write_json(YOUTUBE_TOKEN_PATH, tokens)
+
+        # Also save access token to openclaw.json for youtube-publish extension
+        config["plugins"]["entries"].setdefault("youtube-publish", {"enabled": True, "config": {}})
+        config["plugins"]["entries"]["youtube-publish"]["config"]["accessToken"] = tokens.get("access_token", "")
+        config["plugins"]["entries"]["youtube-publish"]["enabled"] = True
+        write_json(CONFIG_DIR / "openclaw.json", config)
+
+        logger.info("YouTube OAuth success")
+        return f"""<html><body style="background:#0a0a0a;color:white;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh">
+        <div style="text-align:center"><h2>YouTube 연결 완료!</h2><p style="color:#888">이 창을 닫고 대시보드로 돌아가세요.</p>
+        <script>setTimeout(()=>window.close(),2000)</script></div></body></html>"""
+    except Exception as e:
+        logger.error("YouTube OAuth failed: %s", e)
+        return f"Authorization failed: {e}", 500
+
+
+@app.route("/api/youtube/status")
+def api_youtube_status():
+    tokens = read_json(YOUTUBE_TOKEN_PATH)
+    if not tokens or not tokens.get("access_token"):
+        return jsonify({"connected": False})
+    return jsonify({"connected": True, "hasRefreshToken": bool(tokens.get("refresh_token"))})
+
+
+@app.route("/api/youtube/refresh", methods=["POST"])
+def api_youtube_refresh():
+    """Refresh YouTube access token"""
+    import urllib.request as _urllib_req
+
+    tokens = read_json(YOUTUBE_TOKEN_PATH)
+    if not tokens or not tokens.get("refresh_token"):
+        return jsonify({"error": "No refresh token"}), 400
+
+    config = read_json(CONFIG_DIR / "openclaw.json") or {}
+    yt_cfg = config.get("plugins", {}).get("entries", {}).get("youtube-publish", {}).get("config", {})
+    client_id = yt_cfg.get("clientId", "")
+    client_secret = yt_cfg.get("clientSecret", "")
+
+    try:
+        body = urllib.parse.urlencode({
+            "refresh_token": tokens["refresh_token"],
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "grant_type": "refresh_token",
+        }).encode()
+        req = _urllib_req.Request("https://oauth2.googleapis.com/token", data=body,
+                                  headers={"Content-Type": "application/x-www-form-urlencoded"})
+        resp = _urllib_req.urlopen(req, timeout=10)
+        new_tokens = json.loads(resp.read())
+        tokens["access_token"] = new_tokens["access_token"]
+        write_json(YOUTUBE_TOKEN_PATH, tokens)
+
+        config["plugins"]["entries"]["youtube-publish"]["config"]["accessToken"] = new_tokens["access_token"]
+        write_json(CONFIG_DIR / "openclaw.json", config)
+
+        logger.info("YouTube token refreshed")
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ── API: Video Publish (YouTube Shorts / TikTok) ──
+@app.route("/api/video/publish", methods=["POST"])
+def api_video_publish():
+    """Publish video to YouTube Shorts"""
+    import urllib.request
+
+    data = get_json_body()
+    filename = data.get("filename", "")
+    title = data.get("title", "")
+    description = data.get("description", "")
+    tags = data.get("tags", [])
+    platform = data.get("platform", "youtube")
+
+    if not filename:
+        return jsonify({"error": "filename required"}), 400
+
+    video_path = VIDEO_OUTPUT_DIR / filename
+    if not video_path.exists():
+        return jsonify({"error": "video not found"}), 404
+
+    if platform == "youtube":
+        # YouTube Data API v3 — resumable upload
+        config = read_json(CONFIG_DIR / "openclaw.json") or {}
+        yt_cfg = config.get("plugins", {}).get("entries", {}).get("youtube-publish", {}).get("config", {})
+        access_token = yt_cfg.get("accessToken", "")
+        if not access_token:
+            return jsonify({"error": "YouTube 크리덴셜이 설정되지 않았습니다. YouTube 채널 Settings에서 Access Token을 입력하세요."}), 400
+
+        try:
+            # Step 1: Initialize resumable upload
+            metadata = json.dumps({
+                "snippet": {
+                    "title": title or filename,
+                    "description": description or "Generated by Marketing Hub",
+                    "tags": tags or [],
+                    "categoryId": "27",  # Education
+                },
+                "status": {
+                    "privacyStatus": "public",
+                    "selfDeclaredMadeForKids": False,
+                    "madeForKids": False,
+                }
+            }).encode()
+
+            init_req = urllib.request.Request(
+                "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status",
+                data=metadata,
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Content-Type": "application/json; charset=UTF-8",
+                    "X-Upload-Content-Type": "video/mp4",
+                    "X-Upload-Content-Length": str(video_path.stat().st_size),
+                }
+            )
+            init_resp = urllib.request.urlopen(init_req, timeout=15)
+            upload_url = init_resp.headers.get("Location")
+
+            if not upload_url:
+                return jsonify({"error": "Failed to get upload URL"}), 500
+
+            # Step 2: Upload video
+            with open(video_path, "rb") as f:
+                video_data = f.read()
+
+            upload_req = urllib.request.Request(
+                upload_url,
+                data=video_data,
+                headers={"Content-Type": "video/mp4"},
+                method="PUT"
+            )
+            upload_resp = urllib.request.urlopen(upload_req, timeout=120)
+            result = json.loads(upload_resp.read())
+
+            video_id = result.get("id", "")
+            logger.info("YouTube upload success: %s", video_id)
+            return jsonify({
+                "ok": True,
+                "platform": "youtube",
+                "videoId": video_id,
+                "url": f"https://youtube.com/shorts/{video_id}",
+            })
+        except urllib.error.HTTPError as e:
+            err = e.read().decode()
+            logger.error("YouTube upload failed: %d %s", e.code, err[:200])
+            return jsonify({"error": f"YouTube API {e.code}: {err[:200]}"}), 500
+        except Exception as e:
+            logger.error("YouTube upload failed: %s", e)
+            return jsonify({"error": str(e)}), 500
+
+    elif platform == "tiktok":
+        return jsonify({"error": "TikTok 발행은 앱 심사 후 사용 가능합니다."})
+
+    return jsonify({"error": f"Unknown platform: {platform}"}), 400
+
+
+KEYWORD_BANK_PATH = DATA_DIR / "keyword-bank.json"
+
+
+@app.route("/api/keyword-bank")
+def api_keyword_bank():
+    bank = read_json(KEYWORD_BANK_PATH) or {"keywords": []}
+    return jsonify(bank)
+
+
+@app.route("/api/keyword-bank/add", methods=["POST"])
+def api_keyword_bank_add():
+    data = get_json_body()
+    keywords = data.get("keywords", [])
+    source = data.get("source", "manual")
+    if not keywords:
+        return jsonify({"error": "keywords required"}), 400
+    bank = read_json(KEYWORD_BANK_PATH) or {"keywords": []}
+    existing = {k["keyword"] for k in bank["keywords"]}
+    added = 0
+    for kw in keywords:
+        entry = kw if isinstance(kw, dict) else {"keyword": kw}
+        if entry.get("keyword") and entry["keyword"] not in existing:
+            entry.setdefault("source", source)
+            entry.setdefault("addedAt", datetime.now(timezone.utc).isoformat())
+            entry.setdefault("used", False)
+            bank["keywords"].append(entry)
+            existing.add(entry["keyword"])
+            added += 1
+    write_json(KEYWORD_BANK_PATH, bank)
+    logger.info("Keyword bank: added %d keywords from %s", added, source)
+    return jsonify({"ok": True, "added": added, "total": len(bank["keywords"])})
+
+
+@app.route("/api/keyword-bank/remove", methods=["POST"])
+def api_keyword_bank_remove():
+    data = get_json_body()
+    keyword = data.get("keyword", "")
+    bank = read_json(KEYWORD_BANK_PATH) or {"keywords": []}
+    before = len(bank["keywords"])
+    bank["keywords"] = [k for k in bank["keywords"] if k.get("keyword") != keyword]
+    write_json(KEYWORD_BANK_PATH, bank)
+    return jsonify({"ok": True, "removed": before - len(bank["keywords"])})
+
+
+@app.route("/api/keyword-bank/mark-used", methods=["POST"])
+def api_keyword_bank_mark_used():
+    data = get_json_body()
+    keyword = data.get("keyword", "")
+    bank = read_json(KEYWORD_BANK_PATH) or {"keywords": []}
+    for k in bank["keywords"]:
+        if k.get("keyword") == keyword:
+            k["used"] = True
+            k["usedAt"] = datetime.now(timezone.utc).isoformat()
+    write_json(KEYWORD_BANK_PATH, bank)
+    return jsonify({"ok": True})
+
+
+SLACK_TEMPLATE_PATH = DATA_DIR / "slack-template.json"
+
+DEFAULT_SLACK_TEMPLATE = """📈 주간 마케팅 리포트
+━━━━━━━━━━━━━━━━
+📝 *Blog (example.com)*
+  발행: {blog_articles}건 | 총 조회수: {blog_views} | 일간 +{blog_delta}
+  Top: {blog_top}
+  → <{dashboard_url}/#blog-performance|Blog Performance 보기>
+
+🔍 *Google Search Console* (7일)
+  클릭: {gsc_clicks} | 노출: {gsc_impressions} | CTR: {gsc_ctr}%
+  Top: {gsc_top_keywords}
+  → <{dashboard_url}/#search-console|Search Console 보기>
+
+📊 *Google Analytics* (7일)
+  세션: {ga_sessions} | 페이지뷰: {ga_pageviews}
+  → <{dashboard_url}/#google-analytics|Google Analytics 보기>
+━━━━━━━━━━━━━━━━
+Generated by <{dashboard_url}|Marketing Hub>"""
+
+
+@app.route("/api/slack-template")
+def api_slack_template():
+    tmpl = read_json(SLACK_TEMPLATE_PATH)
+    return jsonify({"template": tmpl.get("template", DEFAULT_SLACK_TEMPLATE) if tmpl else DEFAULT_SLACK_TEMPLATE})
+
+
+@app.route("/api/slack-template", methods=["POST"])
+def api_slack_template_update():
+    data = get_json_body()
+    write_json(SLACK_TEMPLATE_PATH, {"template": data.get("template", DEFAULT_SLACK_TEMPLATE)})
+    logger.info("Slack template updated")
+    return jsonify({"ok": True})
+
+
+@app.route("/api/slack-report-preview")
+def api_slack_report_preview():
+    """주간 리포트를 템플릿에 적용하여 미리보기"""
+    tmpl_data = read_json(SLACK_TEMPLATE_PATH)
+    template = tmpl_data.get("template", DEFAULT_SLACK_TEMPLATE) if tmpl_data else DEFAULT_SLACK_TEMPLATE
+
+    # Collect data
+    dashboard_url = request.host_url.rstrip("/")
+    vars = {"dashboard_url": dashboard_url, "blog_articles": 0, "blog_views": 0, "blog_delta": 0, "blog_top": "-",
+            "gsc_clicks": 0, "gsc_impressions": 0, "gsc_ctr": "0", "gsc_top_keywords": "-",
+            "ga_sessions": 0, "ga_pageviews": 0}
+
+    try:
+        blog_resp = api_blog_stats()
+        blog = blog_resp.get_json()
+        if not blog.get("error"):
+            vars["blog_articles"] = blog.get("totalArticles", 0)
+            vars["blog_views"] = blog.get("totalViews", 0)
+            vars["blog_delta"] = blog.get("dailyDelta", 0)
+            vars["blog_top"] = (blog.get("topArticle") or {}).get("title", "-")[:30]
+    except: pass
+
+    try:
+        with app.test_request_context("/api/gsc-analytics?days=7&dimension=query"):
+            gsc_resp = api_gsc_analytics()
+            gsc = gsc_resp.get_json()
+            if not gsc.get("error"):
+                vars["gsc_clicks"] = gsc.get("totalClicks", 0)
+                vars["gsc_impressions"] = gsc.get("totalImpressions", 0)
+                vars["gsc_ctr"] = gsc.get("avgCtr", 0)
+                top_kw = gsc.get("rows", [])[:3]
+                vars["gsc_top_keywords"] = ", ".join(f'{r["key"]}({r["clicks"]})' for r in top_kw) or "-"
+    except: pass
+
+    try:
+        with app.test_request_context("/api/ga-analytics?days=7"):
+            ga_resp = api_ga_analytics()
+            ga = ga_resp.get_json()
+            if not ga.get("error"):
+                vars["ga_sessions"] = f'{ga.get("totalSessions", 0):,}'
+                vars["ga_pageviews"] = f'{ga.get("totalPageviews", 0):,}'
+    except: pass
+
+    report = template.format(**vars)
+    return jsonify({"report": report, "variables": vars})
+
+
+@app.route("/api/slack-send-custom", methods=["POST"])
+def api_slack_send_custom():
+    """커스텀 템플릿으로 Slack 발송"""
+    # webhook URL 가져오기
+    config = read_json(CONFIG_DIR / "openclaw.json") or {}
+    slack_cfg = config.get("plugins", {}).get("entries", {}).get("slack-publish", {}).get("config", {})
+    webhook_url = slack_cfg.get("webhookUrl", "")
+    if not webhook_url:
+        cfg = read_json(SLACK_CONFIG_PATH) or {}
+        webhook_url = cfg.get("webhookUrl", "")
+    if not webhook_url:
+        return jsonify({"error": "Slack webhook not configured"}), 400
+
+    preview_resp = api_slack_report_preview()
+    report = preview_resp.get_json().get("report", "No data")
+
+    try:
+        import urllib.request
+        payload = json.dumps({"text": report}).encode()
+        req = urllib.request.Request(webhook_url, data=payload, headers={"Content-Type": "application/json"})
+        urllib.request.urlopen(req, timeout=10)
+        logger.info("Custom Slack report sent")
+        return jsonify({"ok": True, "report": report})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+def _gsc_get_access_token(key_data, scope):
+    """Get Google OAuth2 access token from service account key"""
+    import urllib.request
+    import time
+    import base64
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
+
+    now = int(time.time())
+    header = base64.urlsafe_b64encode(json.dumps({"alg": "RS256", "typ": "JWT"}).encode()).rstrip(b"=")
+    claim = base64.urlsafe_b64encode(json.dumps({
+        "iss": key_data["client_email"],
+        "scope": scope,
+        "aud": "https://oauth2.googleapis.com/token",
+        "iat": now, "exp": now + 3600,
+    }).encode()).rstrip(b"=")
+    signing_input = header + b"." + claim
+    pk = serialization.load_pem_private_key(key_data["private_key"].encode(), password=None)
+    sig = pk.sign(signing_input, asym_padding.PKCS1v15(), hashes.SHA256())
+    jwt_token = signing_input + b"." + base64.urlsafe_b64encode(sig).rstrip(b"=")
+
+    token_req = urllib.request.Request(
+        "https://oauth2.googleapis.com/token",
+        data=f"grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion={jwt_token.decode()}".encode(),
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    token_resp = urllib.request.urlopen(token_req, timeout=10)
+    return json.loads(token_resp.read()).get("access_token")
+
+# ── API: Blog Stats (proxy to example.com) ──
+@app.route("/api/blog-stats")
+def api_blog_stats():
+    """Fetch article stats directly from example.com API"""
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path) or {}
+    blog_cfg = config.get("plugins", {}).get("entries", {}).get("sample-blog", {}).get("config", {})
+    api_base = blog_cfg.get("apiBaseUrl", "")
+    email = blog_cfg.get("email", "")
+    password = blog_cfg.get("password", "")
+    if not api_base or not email:
+        return jsonify({"error": "Blog not configured", "articles": [], "totalViews": 0, "totalArticles": 0})
+
+    try:
+        import urllib.request
+        # Login
+        login_data = json.dumps({"email": email, "password": password}).encode()
+        login_req = urllib.request.Request(f"{api_base}/api/auth/login", login_data, {"Content-Type": "application/json"})
+        login_resp = urllib.request.urlopen(login_req, timeout=10)
+        cookie = login_resp.headers.get("Set-Cookie", "")
+        import re as _re
+        auth_match = _re.search(r"Authorization=([^;]+)", cookie)
+        if not auth_match:
+            return jsonify({"error": "Login failed", "articles": [], "totalViews": 0, "totalArticles": 0})
+        auth_token = auth_match.group(1)
+
+        # Fetch articles
+        list_req = urllib.request.Request(
+            f"{api_base}/api/admin/column-articles?status=APPROVED&page=0&size=100",
+            headers={"Cookie": f"Authorization={auth_token}"}
+        )
+        list_resp = urllib.request.urlopen(list_req, timeout=10)
+        data = json.loads(list_resp.read())
+        content = data.get("data", {}).get("content", [])
+
+        articles = []
+        total_views = 0
+        for a in content:
+            views = a.get("viewCount", 0) or 0
+            total_views += views
+            articles.append({
+                "id": a.get("id"),
+                "title": a.get("title", ""),
+                "viewCount": views,
+                "tags": a.get("tags", []),
+                "regDate": a.get("regDate", ""),
+            })
+        articles.sort(key=lambda x: x["viewCount"], reverse=True)
+        avg_views = round(total_views / len(articles)) if articles else 0
+        top = articles[0] if articles else None
+
+        # Tag aggregation
+        tag_stats = {}
+        for a in articles:
+            for tag in a.get("tags", []):
+                if tag not in tag_stats:
+                    tag_stats[tag] = {"count": 0, "totalViews": 0}
+                tag_stats[tag]["count"] += 1
+                tag_stats[tag]["totalViews"] += a["viewCount"]
+        for t in tag_stats.values():
+            t["avgViews"] = round(t["totalViews"] / t["count"]) if t["count"] else 0
+        top_tags = sorted(tag_stats.items(), key=lambda x: x[1]["avgViews"], reverse=True)[:15]
+
+        # Save daily snapshot
+        history_path = DATA_DIR / "blog-analytics-history.json"
+        history = read_json(history_path) or {"snapshots": []}
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        existing = [s for s in history["snapshots"] if s.get("date") == today]
+        snapshot = {"date": today, "totalViews": total_views, "totalArticles": len(articles),
+                    "articles": [{"id": a["id"], "viewCount": a["viewCount"]} for a in articles]}
+        if existing:
+            existing[0].update(snapshot)
+        else:
+            history["snapshots"].append(snapshot)
+            history["snapshots"] = history["snapshots"][-90:]  # keep 90 days
+        write_json(history_path, history)
+
+        # Calculate daily delta
+        yesterday = [(s) for s in history["snapshots"] if s["date"] < today]
+        prev_views = yesterday[-1]["totalViews"] if yesterday else 0
+        daily_delta = total_views - prev_views
+
+        return jsonify({
+            "totalArticles": len(articles),
+            "totalViews": total_views,
+            "avgViews": avg_views,
+            "dailyDelta": daily_delta,
+            "topArticle": top,
+            "articles": articles,
+            "topTags": [{"tag": t, **v} for t, v in top_tags],
+            "history": [{"date": s["date"], "totalViews": s["totalViews"]} for s in history["snapshots"][-14:]],
+        })
+    except Exception as e:
+        logger.error("Blog stats fetch failed: %s", e)
+        return jsonify({"error": str(e), "articles": [], "totalViews": 0, "totalArticles": 0})
+
+
+# ── API: Blog Guide & Keywords ──
+@app.route("/api/blog-guide")
+def api_blog_guide():
+    try:
+        with open(BLOG_GUIDE_PATH, "r", encoding="utf-8") as f:
+            return jsonify({"guide": f.read()})
+    except FileNotFoundError:
+        return jsonify({"guide": ""})
+
+
+@app.route("/api/blog-guide", methods=["POST"])
+def api_blog_guide_update():
+    data = get_json_body()
+    guide = data.get("guide", "")
+    if not isinstance(guide, str):
+        return jsonify({"error": "guide must be a string"}), 400
+    with open(BLOG_GUIDE_PATH, "w", encoding="utf-8") as f:
+        f.write(guide)
+    logger.info("Blog guide updated (%d chars)", len(guide))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/blog-keywords")
+def api_blog_keywords():
+    try:
+        with open(BLOG_KEYWORDS_PATH, "r", encoding="utf-8") as f:
+            lines = [l.strip() for l in f if l.strip() and not l.startswith("#")]
+        return jsonify({"keywords": lines})
+    except FileNotFoundError:
+        return jsonify({"keywords": []})
+
+
+@app.route("/api/blog-keywords", methods=["POST"])
+def api_blog_keywords_update():
+    data = get_json_body()
+    keywords = data.get("keywords", [])
+    if not isinstance(keywords, list):
+        return jsonify({"error": "keywords must be an array"}), 400
+    with open(BLOG_KEYWORDS_PATH, "w", encoding="utf-8") as f:
+        f.write("# Blog SEO 키워드 — 학생/학부모 대상 (한 줄에 하나, #=주석)\n")
+        for kw in keywords:
+            f.write(f"{kw}\n")
+    logger.info("Blog keywords updated: %d keywords", len(keywords))
+    return jsonify({"ok": True, "count": len(keywords)})
+
+# ── API: GSC Service Account ──
+GSC_KEY_PATH = DATA_DIR / "gsc-service-account.json"
+
+
+@app.route("/api/gsc-config")
+def api_gsc_config():
+    key_data = read_json(GSC_KEY_PATH)
+    if key_data is None:
+        return jsonify({"configured": False, "email": ""})
+    return jsonify({"configured": True, "email": key_data.get("client_email", "")})
+
+
+@app.route("/api/gsc-config", methods=["POST"])
+def api_gsc_config_update():
+    data = get_json_body()
+    key_json = data.get("keyJson", "")
+    if not key_json:
+        return jsonify({"error": "keyJson is required"}), 400
+    try:
+        parsed = json.loads(key_json) if isinstance(key_json, str) else key_json
+        if "client_email" not in parsed or "private_key" not in parsed:
+            return jsonify({"error": "Invalid service account JSON: missing client_email or private_key"}), 400
+        write_json(GSC_KEY_PATH, parsed)
+        logger.info("GSC service account configured: %s", parsed.get("client_email", ""))
+        return jsonify({"ok": True, "email": parsed.get("client_email", "")})
+    except json.JSONDecodeError:
+        return jsonify({"error": "Invalid JSON format"}), 400
+
+
+
+
+@app.route("/api/gsc-index", methods=["POST"])
+def api_gsc_index_request():
+    key_data = read_json(GSC_KEY_PATH)
+    if key_data is None:
+        return jsonify({"error": "GSC service account not configured"}), 400
+    data = get_json_body()
+    url = data.get("url", "")
+    if not url:
+        return jsonify({"error": "url is required"}), 400
+    try:
+        import urllib.request
+        access_token = _gsc_get_access_token(key_data, "https://www.googleapis.com/auth/indexing")
+        index_req = urllib.request.Request(
+            "https://indexing.googleapis.com/v3/urlNotifications:publish",
+            data=json.dumps({"url": url, "type": "URL_UPDATED"}).encode(),
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+        )
+        result = json.loads(urllib.request.urlopen(index_req, timeout=10).read())
+        logger.info("GSC index requested: %s", url)
+        return jsonify({"ok": True, "url": url, "result": result})
+    except Exception as e:
+        logger.error("GSC index request failed: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/gsc-analytics")
+def api_gsc_analytics():
+    """Fetch search analytics from Google Search Console"""
+    key_data = read_json(GSC_KEY_PATH)
+    if key_data is None:
+        return jsonify({"error": "GSC service account not configured", "rows": []})
+    site_url = request.args.get("site", "sc-domain:example.com")
+    days = int(request.args.get("days", "28"))
+    dimension = request.args.get("dimension", "query")  # query or page
+
+    try:
+        import urllib.request
+        access_token = _gsc_get_access_token(key_data, "https://www.googleapis.com/auth/webmasters.readonly")
+
+        end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        start_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+
+        body = json.dumps({
+            "startDate": start_date,
+            "endDate": end_date,
+            "dimensions": [dimension],
+            "rowLimit": 50,
+        }).encode()
+        api_url = f"https://www.googleapis.com/webmasters/v3/sites/{urllib.parse.quote(site_url, safe='')}/searchAnalytics/query"
+        req = urllib.request.Request(api_url, data=body, headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}",
+        })
+        resp = urllib.request.urlopen(req, timeout=15)
+        result = json.loads(resp.read())
+
+        rows = []
+        total_clicks = 0
+        total_impressions = 0
+        for r in result.get("rows", []):
+            clicks = r.get("clicks", 0)
+            impressions = r.get("impressions", 0)
+            total_clicks += clicks
+            total_impressions += impressions
+            rows.append({
+                "key": r["keys"][0] if r.get("keys") else "",
+                "clicks": clicks,
+                "impressions": impressions,
+                "ctr": round(r.get("ctr", 0) * 100, 1),
+                "position": round(r.get("position", 0), 1),
+            })
+
+        avg_ctr = round((total_clicks / total_impressions * 100) if total_impressions > 0 else 0, 1)
+        avg_position = round(sum(r["position"] for r in rows) / len(rows), 1) if rows else 0
+
+        # Cache to file
+        cache = {"fetchedAt": datetime.now(timezone.utc).isoformat(), "days": days, "dimension": dimension,
+                 "totalClicks": total_clicks, "totalImpressions": total_impressions, "avgCtr": avg_ctr, "avgPosition": avg_position, "rows": rows}
+        cache_path = DATA_DIR / "gsc-analytics.json"
+        write_json(cache_path, cache)
+
+        return jsonify(cache)
+    except Exception as e:
+        logger.error("GSC analytics failed: %s", e)
+        # Return cached data if available
+        cache_path = DATA_DIR / "gsc-analytics.json"
+        cached = read_json(cache_path)
+        if cached:
+            cached["cached"] = True
+            return jsonify(cached)
+        return jsonify({"error": str(e), "rows": []})
+
+# ── API: Naver Search Advisor (manual data) ──
+NSA_DATA_PATH = DATA_DIR / "nsa-data.json"
+
+
+@app.route("/api/nsa-data")
+def api_nsa_data():
+    data = read_json(NSA_DATA_PATH)
+    if data is None:
+        return jsonify({"clicks": 0, "impressions": 0, "ctr": 0, "position": 0, "keywords": [], "savedAt": None})
+    return jsonify(data)
+
+
+@app.route("/api/nsa-data", methods=["POST"])
+def api_nsa_data_update():
+    data = get_json_body()
+    data["savedAt"] = datetime.now(timezone.utc).isoformat()
+    write_json(NSA_DATA_PATH, data)
+    logger.info("NSA data saved")
+    return jsonify({"ok": True})
+
+# ── API: Keyword Research Config ──
+@app.route("/api/kw-planner-config")
+def api_kw_planner_config():
+    config = read_json(CONFIG_DIR / "openclaw.json") or {}
+    seo_cfg = config.get("plugins", {}).get("entries", {}).get("seo-keywords", {}).get("config", {})
+    cid = seo_cfg.get("naverClientId", "") or os.environ.get("NAVER_SEARCHAD_CLIENT_ID", "")
+    secret = seo_cfg.get("naverClientSecret", "") or os.environ.get("NAVER_SEARCHAD_CLIENT_SECRET", "")
+    customer = seo_cfg.get("naverCustomerId", "") or os.environ.get("NAVER_SEARCHAD_CUSTOMER_ID", "")
+    return jsonify({"configured": bool(cid), "clientId": cid, "clientSecret": secret, "customerId": customer})
+
+
+@app.route("/api/kw-planner-config", methods=["POST"])
+def api_kw_planner_config_update():
+    data = get_json_body()
+    client_id = data.get("clientId", "")
+    client_secret = data.get("clientSecret", "")
+    customer_id = data.get("customerId", "")
+    if not client_id or not client_secret or not customer_id:
+        return jsonify({"error": "All 3 fields required"}), 400
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path) or {}
+    plugins = config.setdefault("plugins", {}).setdefault("entries", {})
+    p = plugins.setdefault("seo-keywords", {"enabled": True, "config": {}})
+    p["config"]["naverClientId"] = client_id
+    p["config"]["naverClientSecret"] = client_secret
+    p["config"]["naverCustomerId"] = customer_id
+    p["enabled"] = True
+    write_json(config_path, config)
+    logger.info("Keyword Planner config saved")
+    return jsonify({"ok": True})
+
+
+NAVER_DATALAB_CONFIG_PATH = DATA_DIR / "naver-datalab-config.json"
+
+
+@app.route("/api/naver-datalab-config")
+def api_naver_datalab_config():
+    cfg = read_json(NAVER_DATALAB_CONFIG_PATH) or {}
+    cid = cfg.get("clientId", "") or os.environ.get("NAVER_CLIENT_ID", "")
+    secret = cfg.get("clientSecret", "") or os.environ.get("NAVER_CLIENT_SECRET", "")
+    return jsonify({"configured": bool(cid), "clientId": cid, "clientSecret": secret})
+
+
+@app.route("/api/naver-datalab-config", methods=["POST"])
+def api_naver_datalab_config_update():
+    data = get_json_body()
+    client_id = data.get("clientId", "")
+    client_secret = data.get("clientSecret", "")
+    if not client_id or not client_secret:
+        return jsonify({"error": "Client ID and Secret required"}), 400
+    write_json(NAVER_DATALAB_CONFIG_PATH, {"clientId": client_id, "clientSecret": client_secret})
+    os.environ["NAVER_CLIENT_ID"] = client_id
+    os.environ["NAVER_CLIENT_SECRET"] = client_secret
+    logger.info("Naver Datalab config saved")
+    return jsonify({"ok": True})
+
+# ── API: Naver Keyword Research ──
+@app.route("/api/keyword-research", methods=["POST"])
+def api_keyword_research():
+    """Analyze keywords via Naver Search Ad API"""
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path) or {}
+    seo_cfg = config.get("plugins", {}).get("entries", {}).get("seo-keywords", {}).get("config", {})
+    client_id = seo_cfg.get("naverClientId", "") or os.environ.get("NAVER_SEARCHAD_CLIENT_ID", "")
+    client_secret = seo_cfg.get("naverClientSecret", "") or os.environ.get("NAVER_SEARCHAD_CLIENT_SECRET", "")
+    customer_id = seo_cfg.get("naverCustomerId", "") or os.environ.get("NAVER_SEARCHAD_CUSTOMER_ID", "")
+
+    if not client_id or not client_secret or not customer_id:
+        return jsonify({"error": "네이버 검색광고 API 키가 설정되지 않았습니다. Settings에서 설정하거나 .env에 NAVER_SEARCHAD_* 환경변수를 추가하세요.", "results": []})
+
+    data = get_json_body()
+    keywords = data.get("keywords", [])
+    if not keywords:
+        return jsonify({"error": "keywords required", "results": []})
+
+    try:
+        import urllib.request
+        import hmac
+        import hashlib
+        import base64
+        import time
+
+        timestamp = str(int(time.time() * 1000))
+        method = "GET"
+        uri = "/keywordstool"
+        message = f"{timestamp}.{method}.{uri}"
+        signature = base64.b64encode(hmac.new(client_secret.encode(), message.encode(), hashlib.sha256).digest()).decode()
+
+        # 네이버 SA API는 공백 포함 키워드 거부 → 공백 제거하여 전송
+        processed = [kw.strip().replace(" ", "") for kw in keywords[:5]]
+        hint = ",".join(processed)
+        url = f"https://api.searchad.naver.com{uri}?hintKeywords={urllib.parse.quote(hint)}&showDetail=1"
+        req = urllib.request.Request(
+            url,
+            headers={
+                "X-Timestamp": timestamp,
+                "X-API-KEY": client_id,
+                "X-Customer": customer_id,
+                "X-Signature": signature,
+            }
+        )
+        try:
+            resp = urllib.request.urlopen(req, timeout=10)
+        except urllib.error.HTTPError as e:
+            err_body = e.read().decode()
+            logger.error("Naver SearchAd API error %d: %s", e.code, err_body[:300])
+            return jsonify({"error": f"네이버 API {e.code}: {err_body[:200]}", "results": []})
+        result = json.loads(resp.read())
+
+        results = []
+        for kw in result.get("keywordList", []):
+            pc = int(kw.get("monthlyPcQcCnt", 0)) if isinstance(kw.get("monthlyPcQcCnt"), (int, float)) else 0
+            mobile = int(kw.get("monthlyMobileQcCnt", 0)) if isinstance(kw.get("monthlyMobileQcCnt"), (int, float)) else 0
+            results.append({
+                "keyword": kw.get("relKeyword", ""),
+                "pcSearches": pc,
+                "mobileSearches": mobile,
+                "totalSearches": pc + mobile,
+                "competition": kw.get("compIdx", ""),
+            })
+        results.sort(key=lambda x: x["totalSearches"], reverse=True)
+        logger.info("Keyword research: %d results for %s", len(results), keywords)
+        return jsonify({"results": results, "total": len(results)})
+    except Exception as e:
+        logger.error("Keyword research failed: %s", e)
+        return jsonify({"error": str(e), "results": []})
+
+# ── API: Naver Datalab Trend ──
+@app.route("/api/naver-trend", methods=["POST"])
+def api_naver_trend():
+    """Fetch search trend from Naver Datalab API"""
+    dl_cfg = read_json(NAVER_DATALAB_CONFIG_PATH) or {}
+    client_id = dl_cfg.get("clientId", "") or os.environ.get("NAVER_CLIENT_ID", "")
+    client_secret = dl_cfg.get("clientSecret", "") or os.environ.get("NAVER_CLIENT_SECRET", "")
+    if not client_id or not client_secret:
+        return jsonify({"error": "Naver Datalab 페이지에서 API 키를 설정하세요", "results": []})
+
+    data = get_json_body()
+    keywords = data.get("keywords", [])
+    if not keywords:
+        return jsonify({"error": "keywords required", "results": []})
+
+    try:
+        import urllib.request
+        end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        start_date = (datetime.now(timezone.utc) - timedelta(days=90)).strftime("%Y-%m-%d")
+
+        body = json.dumps({
+            "startDate": start_date,
+            "endDate": end_date,
+            "timeUnit": "week",
+            "keywordGroups": [{"groupName": kw, "keywords": [kw]} for kw in keywords[:5]],
+        }).encode()
+
+        req = urllib.request.Request(
+            "https://openapi.naver.com/v1/datalab/search",
+            data=body,
+            headers={
+                "Content-Type": "application/json",
+                "X-Naver-Client-Id": client_id,
+                "X-Naver-Client-Secret": client_secret,
+            }
+        )
+        try:
+            resp = urllib.request.urlopen(req, timeout=10)
+        except urllib.error.HTTPError as e:
+            err_body = e.read().decode()
+            logger.error("Naver Datalab API error %d: %s", e.code, err_body[:300])
+            return jsonify({"error": f"네이버 Datalab API {e.code}: {err_body[:200]}", "results": []})
+        result = json.loads(resp.read())
+
+        results = []
+        for group in result.get("results", []):
+            results.append({
+                "title": group.get("title", ""),
+                "data": [{"period": d.get("period", ""), "ratio": d.get("ratio", 0)} for d in group.get("data", [])],
+            })
+        return jsonify({"results": results})
+    except Exception as e:
+        logger.error("Naver trend failed: %s", e)
+        return jsonify({"error": str(e), "results": []})
+
+# ── API: Google Trends ──
+@app.route("/api/google-trend", methods=["POST"])
+def api_google_trend():
+    """Fetch search trend — currently redirects to Google Trends web (no API key configured)"""
+    # Google Trends API (Alpha) requires special access
+    # For now, suggest using the web interface
+    return jsonify({
+        "error": "Google Trends API는 Alpha 단계입니다. trends.google.com/trends/explore?geo=KR 에서 직접 확인하세요.",
+        "results": [],
+        "webUrl": "https://trends.google.com/trends/explore?geo=KR&cat=958",
+    })
+
+# ── API: Google Analytics ──
+GA_CONFIG_PATH = DATA_DIR / "ga-config.json"
+
+
+@app.route("/api/ga-config")
+def api_ga_config():
+    cfg = read_json(GA_CONFIG_PATH)
+    if cfg is None:
+        return jsonify({"configured": False, "propertyId": ""})
+    return jsonify({"configured": bool(cfg.get("propertyId")), "propertyId": cfg.get("propertyId", "")})
+
+
+@app.route("/api/ga-config", methods=["POST"])
+def api_ga_config_update():
+    data = get_json_body()
+    pid = data.get("propertyId", "")
+    if not pid:
+        return jsonify({"error": "propertyId required"}), 400
+    write_json(GA_CONFIG_PATH, {"propertyId": pid})
+    logger.info("GA config saved: %s", pid)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/ga-analytics")
+def api_ga_analytics():
+    key_data = read_json(GSC_KEY_PATH)
+    ga_cfg = read_json(GA_CONFIG_PATH)
+    if key_data is None:
+        return jsonify({"error": "Service account not configured"})
+    if ga_cfg is None or not ga_cfg.get("propertyId"):
+        return jsonify({"error": "GA4 Property ID not configured"})
+
+    property_id = ga_cfg["propertyId"]
+    days = int(request.args.get("days", "28"))
+
+    try:
+        import urllib.request
+        access_token = _gsc_get_access_token(key_data, "https://www.googleapis.com/auth/analytics.readonly")
+
+        end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        start_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+
+        # GA4 Data API - runReport
+        body = json.dumps({
+            "dateRanges": [{"startDate": start_date, "endDate": end_date}],
+            "metrics": [
+                {"name": "sessions"},
+                {"name": "screenPageViews"},
+                {"name": "averageSessionDuration"},
+                {"name": "bounceRate"},
+            ],
+            "dimensions": [{"name": "sessionDefaultChannelGroup"}],
+            "limit": 20,
+        }).encode()
+
+        api_url = f"https://analyticsdata.googleapis.com/v1beta/properties/{property_id}:runReport"
+        req = urllib.request.Request(api_url, data=body, headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}",
+        })
+        resp = urllib.request.urlopen(req, timeout=15)
+        result = json.loads(resp.read())
+
+        total_sessions = 0
+        total_pageviews = 0
+        sources = []
+        for row in result.get("rows", []):
+            source = row["dimensionValues"][0]["value"]
+            sessions = int(row["metricValues"][0]["value"])
+            pageviews = int(row["metricValues"][1]["value"])
+            total_sessions += sessions
+            total_pageviews += pageviews
+            sources.append({"source": source, "sessions": sessions, "pageviews": pageviews})
+        sources.sort(key=lambda x: x["sessions"], reverse=True)
+
+        # Get totals from first row metadata or sum
+        totals = result.get("totals", [{}])
+        avg_duration = "0"
+        bounce_rate = "0"
+        if totals and totals[0].get("metricValues"):
+            avg_duration = str(round(float(totals[0]["metricValues"][2]["value"]), 1))
+            bounce_rate = str(round(float(totals[0]["metricValues"][3]["value"]) * 100, 1))
+
+        # Page-level report
+        page_body = json.dumps({
+            "dateRanges": [{"startDate": start_date, "endDate": end_date}],
+            "metrics": [{"name": "screenPageViews"}, {"name": "averageSessionDuration"}],
+            "dimensions": [{"name": "pagePath"}],
+            "dimensionFilter": {"filter": {"fieldName": "pagePath", "stringFilter": {"matchType": "CONTAINS", "value": "/community/column"}}},
+            "orderBys": [{"metric": {"metricName": "screenPageViews"}, "desc": True}],
+            "limit": 20,
+        }).encode()
+        page_req = urllib.request.Request(api_url, data=page_body, headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}",
+        })
+        page_resp = urllib.request.urlopen(page_req, timeout=15)
+        page_result = json.loads(page_resp.read())
+
+        pages = []
+        for row in page_result.get("rows", []):
+            pages.append({
+                "path": row["dimensionValues"][0]["value"],
+                "views": int(row["metricValues"][0]["value"]),
+                "avgDuration": round(float(row["metricValues"][1]["value"]), 1),
+            })
+
+        return jsonify({
+            "totalSessions": total_sessions,
+            "totalPageviews": total_pageviews,
+            "avgDuration": avg_duration,
+            "bounceRate": bounce_rate,
+            "sources": sources,
+            "pages": pages,
+            "days": days,
+        })
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode()
+        logger.error("GA analytics failed: %d %s", e.code, err_body[:300])
+        if e.code == 403:
+            return jsonify({"error": "GA4 접근 권한 없음 — analytics.google.com → 관리 → 속성 접근 관리 → 서비스 계정(google-search-console@sample-479013...) 뷰어 추가 필요"})
+        return jsonify({"error": f"GA4 API {e.code}: {err_body[:200]}"})
+    except Exception as e:
+        logger.error("GA analytics failed: %s", e)
+        return jsonify({"error": str(e)})
+
+# ── API: Blog Image Upload (proxy to sample presigned URL) ──
+@app.route("/api/blog-upload-image", methods=["POST"])
+def api_blog_upload_image():
+    """Upload image URL to sample via presigned URL, return mediaId"""
+    config_path = CONFIG_DIR / "openclaw.json"
+    config = read_json(config_path) or {}
+    blog_cfg = config.get("plugins", {}).get("entries", {}).get("sample-blog", {}).get("config", {})
+    api_base = blog_cfg.get("apiBaseUrl", "")
+    email = blog_cfg.get("email", "")
+    password = blog_cfg.get("password", "")
+    if not api_base or not email:
+        return jsonify({"error": "Blog not configured"}), 400
+
+    data = get_json_body()
+    image_url = data.get("imageUrl", "")
+    if not image_url:
+        return jsonify({"error": "imageUrl is required"}), 400
+
+    try:
+        import urllib.request
+
+        # Login to sample
+        login_data = json.dumps({"email": email, "password": password}).encode()
+        login_req = urllib.request.Request(f"{api_base}/api/auth/login", login_data, {"Content-Type": "application/json"})
+        login_resp = urllib.request.urlopen(login_req, timeout=10)
+        cookie = login_resp.headers.get("Set-Cookie", "")
+        import re as _re
+        auth_match = _re.search(r"Authorization=([^;]+)", cookie)
+        if not auth_match:
+            return jsonify({"error": "sample login failed"}), 500
+        auth_token = auth_match.group(1)
+        auth_headers = {"Cookie": f"Authorization={auth_token}", "Content-Type": "application/json"}
+
+        # Download image (follow redirects)
+        img_req = urllib.request.Request(image_url, headers={"User-Agent": "Mozilla/5.0"})
+        img_resp = urllib.request.urlopen(img_req, timeout=30)
+        img_data = img_resp.read()
+        content_type = img_resp.headers.get("Content-Type", "image/png").split(";")[0].strip()
+        if content_type not in ("image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"):
+            content_type = "image/png"
+        from pathlib import PurePosixPath
+        fname = PurePosixPath(urllib.parse.urlparse(image_url).path).name or f"image-{int(__import__('time').time())}.png"
+        if not fname.lower().endswith((".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg")):
+            ext = {"image/jpeg": ".jpg", "image/png": ".png", "image/gif": ".gif", "image/webp": ".webp"}.get(content_type, ".png")
+            fname = f"image-{int(__import__('time').time())}{ext}"
+        logger.info("Blog image download: %s (%d bytes, %s)", fname, len(img_data), content_type)
+
+        # Presign
+        presign_body = json.dumps({"mediaAssetList": [{"fileName": fname, "contentType": content_type, "sizeBytes": len(img_data)}]}).encode()
+        presign_req = urllib.request.Request(f"{api_base}/api/common/media/presign-batch", presign_body, auth_headers)
+        presign_resp = urllib.request.urlopen(presign_req, timeout=10)
+        presign_result = json.loads(presign_resp.read())
+        asset = presign_result["data"]["mediaAssetList"][0]
+        media_id = asset["mediaId"]
+        logger.info("Blog image presign OK: %s", media_id)
+
+        # Upload to S3
+        upload_req = urllib.request.Request(asset["uploadUrl"], img_data, method="PUT")
+        upload_req.add_header("Content-Type", content_type)
+        for k, v in asset.get("headers", {}).items():
+            upload_req.add_header(k, v)
+        urllib.request.urlopen(upload_req, timeout=30)
+
+        logger.info("Blog image uploaded: %s → %s", fname, media_id)
+        return jsonify({"ok": True, "mediaId": media_id, "fileName": fname})
+    except Exception as e:
+        logger.error("Blog image upload failed: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+# ── API: Slack Notification ──
+SLACK_CONFIG_PATH = DATA_DIR / "slack-config.json"
+
+
+@app.route("/api/slack-config")
+def api_slack_config():
+    cfg = read_json(SLACK_CONFIG_PATH) or {}
+    return jsonify({"configured": bool(cfg.get("webhookUrl")), "webhookUrl": cfg.get("webhookUrl", "")})
+
+
+@app.route("/api/slack-config", methods=["POST"])
+def api_slack_config_update():
+    data = get_json_body()
+    url = data.get("webhookUrl", "")
+    if not url or not url.startswith("https://hooks.slack.com/"):
+        return jsonify({"error": "Invalid Slack Webhook URL. https://hooks.slack.com/... 형식이어야 합니다."}), 400
+    write_json(SLACK_CONFIG_PATH, {"webhookUrl": url})
+    logger.info("Slack webhook configured")
+    return jsonify({"ok": True})
+
+
+@app.route("/api/slack-test", methods=["POST"])
+def api_slack_test():
+    cfg = read_json(SLACK_CONFIG_PATH) or {}
+    webhook_url = cfg.get("webhookUrl", "")
+    if not webhook_url:
+        oc = read_json(CONFIG_DIR / "openclaw.json") or {}
+        webhook_url = oc.get("plugins", {}).get("entries", {}).get("slack-publish", {}).get("config", {}).get("webhookUrl", "")
+    if not webhook_url:
+        return jsonify({"error": "Slack webhook not configured"}), 400
+    try:
+        import urllib.request
+        payload = json.dumps({"text": "✅ Marketing Hub 연결 테스트 성공!"}).encode()
+        req = urllib.request.Request(webhook_url, data=payload, headers={"Content-Type": "application/json"})
+        urllib.request.urlopen(req, timeout=10)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 
 
 if __name__ == "__main__":

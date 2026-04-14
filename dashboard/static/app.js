@@ -158,8 +158,12 @@ const S = {
   channelConfig: { threads: {}, x: {} }, images: [], blogQueue: [],
   tokenStatus: null, alerts: [], weekly: null, llmConfig: null,
   channelSettings: { features: [], settings: {} }, cronRuns: [],
-  sidebarCollapsed: {}, showDetail: null, editingChannel: null,
-  channelGuide: null, channelKeywords: null, notificationSettings: null, tenantInfo: null, chatChannels: null, communityPosts: [], r2Config: null, designTools: null, settingsTab: "channels",
+  sidebarCollapsed: { data: false, research: false }, showDetail: null, editingChannel: null, slackTemplate: "", slackReportPreview: "", keywordBank: [], videos: [], videoSlides: null, videoGenerating: false,
+  gscAnalytics: null, gscDays: 28, gscDimension: "query", gaAnalytics: null, gaDays: 28, gaConfigured: false, gaPropertyId: "", gaEditing: false,
+  blogStats: null, blogDetailId: null, blogEditing: false, blogGuide: "", blogKeywords: [],
+  gscConfig: null, gscEditing: false, nsaData: null, kwResearch: null, naverTrend: null, googleTrend: null,
+  kwPlannerConfigured: false, kwPlannerEditing: false, naverDatalabConfigured: false, naverDatalabEditing: false,
+  channelGuide: null, channelKeywords: null, notificationSettings: null, tenantInfo: null, chatChannels: null, communityPosts: [], r2Config: null,
   queueFilter: "all", loading: false,
   editingPost: null, selectedIds: new Set(), imagePickerPostId: null, expandedFeature: null, expandedPopular: null,
 };
@@ -267,6 +271,15 @@ function render() {
   else if (S.page === "x") app.innerHTML = renderChannelX();
   else if (S.page === "instagram") app.innerHTML = renderChannelInstagram();
   else if (S.page === "images") app.innerHTML = renderImages();
+  else if (S.page === "blog-performance") app.innerHTML = renderBlogPerformance();
+  else if (S.page === "search-console") app.innerHTML = renderSearchConsole();
+  else if (S.page === "search-advisor") app.innerHTML = renderSearchAdvisor();
+  else if (S.page === "google-analytics") app.innerHTML = renderGoogleAnalytics();
+  else if (S.page === "keyword-planner") app.innerHTML = renderKeywordPlanner();
+  else if (S.page === "naver-trends") app.innerHTML = renderNaverTrends();
+  else if (S.page === "google-trends") app.innerHTML = renderGoogleTrends();
+  else if (S.page === "videos") app.innerHTML = renderVideos();
+  else if (S.page === "blog-edit") app.innerHTML = renderBlogEditor();
   else if (S.page === "blog") app.innerHTML = renderBlog();
   else if (CH_LABELS[S.page]) app.innerHTML = renderGenericChannel(S.page);
   else if (S.page === "settings") app.innerHTML = renderSettings();
@@ -341,7 +354,7 @@ function renderSidebar() {
       <div class="px-4 py-5 border-b border-gray-800/50">
         <div class="flex items-center gap-2">
           <h1 class="text-base font-semibold text-white tracking-tight">Marketing Hub</h1>
-          <a href="https://www.threads.net/" target="_blank" rel="noopener" class="text-gray-500 hover:text-white transition-colors" title="Threads">
+          <a href="https://www.threads.net/@sample" target="_blank" rel="noopener" class="text-gray-500 hover:text-white transition-colors" title="Threads">
             <svg width="14" height="14" viewBox="0 0 192 192" fill="currentColor"><path d="M141.537 88.988a66.667 66.667 0 0 0-2.518-1.143c-1.482-27.307-16.403-42.94-41.457-43.1h-.398c-15.09 0-27.701 6.494-35.174 18.033l12.626 8.657c5.58-8.432 14.39-11.18 22.55-11.18h.27c8.736.054 15.322 2.593 19.58 7.543 3.098 3.603 5.17 8.564 6.207 14.88a84.463 84.463 0 0 0-24.478-2.26c-28.04 1.588-46.072 17.2-44.828 38.823.636 11.06 6.348 20.587 16.087 26.834 8.235 5.286 18.852 7.87 29.884 7.273 14.566-.787 25.993-6.395 33.99-16.672 6.075-7.806 9.977-17.782 11.756-30.168 7.057 4.26 12.3 9.848 15.287 16.7 5.07 11.637 5.367 30.735-10.4 46.483-13.836 13.81-30.477 19.782-52.477 19.958-24.416-.195-42.862-7.988-54.83-23.16C39.32 152.595 32.87 132.376 32.66 108c.21-24.376 6.66-44.595 19.176-60.082C63.795 32.633 82.24 24.84 106.657 24.645c24.584.2 43.285 8.028 55.573 23.273 6.028 7.482 10.575 16.644 13.584 27.283l14.868-3.936c-3.538-12.496-8.96-23.379-16.234-32.409C159.396 20.263 137.058 10.812 106.717 10.6h-.078C76.322 10.812 54.282 20.316 39.52 39.13 23.478 59.546 15.375 86.757 15.13 108l.002.283c.245 21.243 8.348 48.454 24.39 68.87 14.762 18.814 36.802 28.318 67.143 28.53h.078c26.006-.2 46.643-8.082 63.29-24.163 22.095-21.358 21.478-47.567 14.568-63.42-4.954-11.377-14.452-20.548-27.064-26.112z"/></svg>
           </a>
         </div>
@@ -377,15 +390,22 @@ function renderSidebar() {
           { label: "WhatsApp", icon: "W", soon: true },
         ])}
 
-        ${sidebarGroup("data", "Data & SEO", [
-          { label: "Google Analytics", icon: "GA", soon: true },
-          { label: "Search Console", icon: "SC", soon: true },
-          { label: "SEO Keywords", icon: "KW", soon: true },
-          { label: "Google Business", icon: "GB", soon: true },
+        ${sidebarGroup("data", "Data & Analytics", [
+          { key: "blog-performance", label: "Blog Performance", icon: "B", nav: true },
+          { key: "search-console", label: "Google Search Console", icon: "SC", nav: true },
+          { key: "search-advisor", label: "Naver Search Advisor", icon: "N", nav: true },
+          { key: "google-analytics", label: "Google Analytics", icon: "GA", nav: true },
+          { label: "Google Business Profile", icon: "GB", soon: true },
+        ])}
+
+        ${sidebarGroup("research", "Keyword Research", [
+          { key: "keyword-planner", label: "Naver Keyword Planner", icon: "K", nav: true },
+          { key: "naver-trends", label: "Naver Datalab", icon: "N", nav: true },
+          { key: "google-trends", label: "Google Trends", icon: "G", nav: true },
         ])}
 
         ${sidebarGroup("custom", "Custom Integration", [
-          { key: "blog", label: "Blog", icon: "B", nav: true },
+          { key: "blog", label: "Sample Blog", icon: "B", nav: true },
           { label: "Custom API", icon: "+", soon: true },
           { label: "RSS Feed", icon: "R", soon: true },
         ])}
@@ -395,6 +415,11 @@ function renderSidebar() {
           <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
           Images
           <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-gray-800 text-gray-500">${S.images.length}</span>
+        </button>
+        <button data-nav="videos" class="sidebar-item ${S.page === "videos" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
+          <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          Videos
+          <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-gray-800 text-gray-500">${S.videos?.length || 0}</span>
         </button>
         ${(() => { const mj = S.channelConfig.midjourney || {}; const mjStatus = mj.connected ? "text-green-400" : "text-gray-500"; return `
         <button data-nav="midjourney" class="sidebar-item ${S.page === "midjourney" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3">
@@ -975,7 +1000,7 @@ function renderChannelX() {
 
 function renderChannelInstagram() {
   const connected = S.channelConfig.instagram?.connected;
-  const tabs = connected ? ["queue", "editor", "settings"] : ["settings"];
+  const tabs = connected ? ["queue", "create", "settings"] : ["settings"];
   const allPosts = S.queue || [];
 
   return `<div class="px-8 py-6">
@@ -988,17 +1013,18 @@ function renderChannelInstagram() {
       ${tabs.map(t => `<button data-subtab="${t}" class="px-3 py-1.5 text-sm rounded ${S.subTab === t ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"}">${t.charAt(0).toUpperCase() + t.slice(1)}</button>`).join("")}
     </div>
     ${S.subTab === "queue" && connected ? renderInstagramQueue(allPosts) : ""}
-    ${S.subTab === "editor" && connected ? renderCardNewsEditor() : ""}
+    ${S.subTab === "create" && connected ? renderCardNewsEditor() : ""}
     ${S.subTab === "settings" ? renderInstagramSettings() : ""}
   </div>`;
 }
 
 function renderInstagramQueue(allPosts) {
-  const filters = ["all", "draft", "approved", "published"];
+  const filters = ["all", "with-image", "draft", "approved", "published"];
   const igFilter = S.queueFilter || "all";
 
   let filtered = allPosts;
-  if (igFilter === "draft") filtered = allPosts.filter(p => p.status === "draft");
+  if (igFilter === "with-image") filtered = allPosts.filter(p => p.imageUrl);
+  else if (igFilter === "draft") filtered = allPosts.filter(p => p.status === "draft");
   else if (igFilter === "approved") filtered = allPosts.filter(p => p.status === "approved");
   else if (igFilter === "published") filtered = allPosts.filter(p => p.status === "published" || p.channels?.instagram?.status === "published");
 
@@ -1008,9 +1034,10 @@ function renderInstagramQueue(allPosts) {
   const igPending = allPosts.filter(p => p.imageUrl && p.status === "approved" && p.channels?.instagram?.status === "pending").length;
 
   return `
-    <div class="grid grid-cols-3 gap-3 mb-6">
+    <div class="grid grid-cols-4 gap-3 mb-6">
       <div class="card p-3 text-center"><p class="text-lg font-bold text-white">${allPosts.length}</p><p class="text-[10px] text-gray-500">Total</p></div>
-      <div class="card p-3 text-center"><p class="text-lg font-bold text-blue-400">${igPending}</p><p class="text-[10px] text-gray-500">Ready</p></div>
+      <div class="card p-3 text-center"><p class="text-lg font-bold text-purple-400">${withImg}</p><p class="text-[10px] text-gray-500">With Image</p></div>
+      <div class="card p-3 text-center"><p class="text-lg font-bold text-blue-400">${igPending}</p><p class="text-[10px] text-gray-500">Ready to Publish</p></div>
       <div class="card p-3 text-center"><p class="text-lg font-bold text-green-400">${igPublished}</p><p class="text-[10px] text-gray-500">Published</p></div>
     </div>
     <div class="flex items-center justify-between mb-4">
@@ -1018,14 +1045,7 @@ function renderInstagramQueue(allPosts) {
         const label = f === "all" ? "All" : f === "with-image" ? "With Image" : f.charAt(0).toUpperCase() + f.slice(1);
         return `<button data-filter="${f}" class="px-3 py-1 text-xs rounded ${igFilter === f ? "bg-blue-600/30 text-blue-300 border border-blue-600/30" : "text-gray-500 hover:bg-gray-800"}">${label}</button>`;
       }).join("")}</div>
-      <div class="flex gap-2 items-center">
-        ${igPosts.filter(p => p.status === "draft" || p.status === "approved").length > 0 ? `<label class="flex items-center gap-1 text-xs text-gray-400 cursor-pointer"><input type="checkbox" id="ig-select-all" ${S.selectedIds.size > 0 ? "checked" : ""} class="rounded border-gray-600"> All</label>` : ""}
-        ${S.selectedIds.size > 0 ? `
-          <button id="ig-bulk-approve" class="px-3 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve (${S.selectedIds.size})</button>
-          <button id="ig-bulk-delete" class="px-3 py-1 text-xs bg-red-700 text-white rounded hover:bg-red-600">Delete (${S.selectedIds.size})</button>
-        ` : ""}
-        <span class="text-xs text-gray-500">${igPosts.length} posts</span>
-      </div>
+      <span class="text-xs text-gray-500">${igPosts.length} posts</span>
     </div>
     <div class="space-y-3">
       ${igPosts.length === 0 ? `<div class="card p-8 text-center"><p class="text-gray-500 text-sm">No posts${igFilter === "with-image" ? " with images" : ""}</p></div>` : ""}
@@ -1046,7 +1066,6 @@ function renderInstagramPost(p) {
     <div class="card p-4">
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
-          ${p.status === "draft" || p.status === "approved" ? `<input type="checkbox" data-select="${p.id}" ${S.selectedIds.has(p.id) ? "checked" : ""} class="rounded border-gray-600 w-3.5 h-3.5">` : ""}
           <span class="text-[10px] px-2 py-0.5 rounded ${sc[p.status] || "bg-gray-700 text-gray-300"}">${p.status}</span>
           <span class="text-[10px] px-1.5 py-0.5 rounded ${igBadge[igStatus]}">IG: ${igStatus}</span>
           ${isCard ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-900/40 text-purple-300">Card ${slides.length} slides</span>` : ""}
@@ -1091,8 +1110,10 @@ function renderInstagramPost(p) {
       ${!isEditing ? `
         <div class="flex gap-2 pt-2 border-t border-gray-800/50">
           ${p.status === "draft" ? `<button data-approve="${p.id}" class="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>` : ""}
-          ${p.status === "draft" || p.status === "approved" ? `<button data-edit-card="${p.id}" class="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button>` : ""}
+          ${p.status === "draft" || p.status === "approved" ? `<button data-edit="${p.id}" class="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button>` : ""}
           ${p.status === "draft" ? `<button data-delete="${p.id}" class="px-3 py-1.5 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">Delete</button>` : ""}
+          ${!p.imageUrl && (p.status === "draft" || p.status === "approved") ? `<button data-pick-image="${p.id}" class="px-3 py-1.5 text-xs bg-purple-700 text-white rounded hover:bg-purple-600">Add Image</button>` : ""}
+        </div>
       ` : ""}
     </div>`;
 }
@@ -1103,7 +1124,6 @@ function renderCardNewsEditor() {
   const result = ed.result;
 
   return `
-    ${ed.editingPostId ? `<button id="back-to-queue" class="text-gray-500 hover:text-gray-300 text-xs mb-3 block">← Queue로 돌아가기</button>` : ""}
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <!-- Left: Editor -->
       <div class="space-y-4">
@@ -1121,7 +1141,7 @@ function renderCardNewsEditor() {
             <div>
               <label class="text-[10px] text-gray-500 block mb-1">스타일</label>
               <div class="flex gap-2">
-                ${["dark", "light", "gradient", "tech", "warm"].map(s => `<button data-card-style="${s}" class="px-3 py-1.5 text-xs rounded ${ed.style === s ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}">${s}</button>`).join("")}
+                ${["dark", "light", "gradient"].map(s => `<button data-card-style="${s}" class="px-3 py-1.5 text-xs rounded ${ed.style === s ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}">${s}</button>`).join("")}
               </div>
             </div>
             <div>
@@ -1158,44 +1178,17 @@ function renderCardNewsEditor() {
       <div class="card p-5">
         <h3 class="text-sm font-medium text-gray-300 mb-4">프리뷰</h3>
         ${result ? `
-          <div class="mb-3">
-            <div class="flex items-center justify-between mb-2">
-              <p class="text-[10px] text-gray-500">${result.slides.length} slides</p>
-              <div class="flex gap-2">
-                <button id="card-add-image" class="text-[10px] text-blue-400 hover:text-blue-300">+ 이미지 추가</button>
-                <button id="card-download-slides" class="text-[10px] text-gray-500 hover:text-gray-400">다운로드</button>
+          <div class="flex gap-2 overflow-x-auto pb-3 mb-4" style="scrollbar-width:thin">
+            ${result.slides.map((s, i) => `
+              <div class="flex-shrink-0 w-40 h-50 rounded-lg overflow-hidden border border-gray-700">
+                <img src="${esc(s)}" alt="Slide ${i + 1}" class="w-full h-full object-cover">
               </div>
-            </div>
-            <div id="slides-container" class="flex gap-2 overflow-x-auto pb-2" style="scrollbar-width:thin">
-              ${result.slides.map((s, i) => `
-                <div class="flex-shrink-0 relative group" draggable="true" data-slide-idx="${i}" style="min-width:128px">
-                  <div class="w-32 h-40 rounded-lg overflow-hidden border border-gray-700 cursor-pointer" data-preview-slide="${i}">
-                    <img src="${esc(s)}" alt="Slide ${i + 1}" class="w-full h-full object-cover pointer-events-none">
-                  </div>
-                  <button data-remove-slide="${i}" class="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">✕</button>
-                  <span class="absolute bottom-1 left-1 text-[9px] bg-black/60 text-white px-1 rounded">${i + 1}</span>
-                </div>
-              `).join("")}
-            </div>
+            `).join("")}
           </div>
-          <input type="file" id="card-upload-input" multiple accept="image/*" class="hidden">
-
-          <div class="space-y-2 mb-3">
-            <button id="card-save-draft" class="w-full py-2 bg-green-700 text-white text-sm rounded hover:bg-green-600">${ed.editingPostId ? "Draft 업데이트" : "큐에 Draft 저장"}</button>
-            <div class="flex gap-2">
-              ${S.designTools?.figma?.mcpAccessToken ? `<button id="card-figma-push" class="flex-1 py-1.5 bg-indigo-700 text-white text-xs rounded hover:bg-indigo-600">Figma에 올리기</button>` : ""}
-              ${S.designTools?.figma?.mcpAccessToken ? `<button id="card-figma-pull" class="flex-1 py-1.5 bg-indigo-900 text-indigo-300 text-xs rounded hover:bg-indigo-800 border border-indigo-700">Figma에서 가져오기</button>` : ""}
-            </div>
-            <div class="flex gap-2">
-              <button id="card-regenerate" class="flex-1 py-1.5 bg-gray-700 text-gray-300 text-xs rounded hover:bg-gray-600">카드 재생성</button>
-            </div>
-            <details class="text-[10px]">
-              <summary class="text-gray-500 cursor-pointer hover:text-gray-400">미드저니 이미지 추가 (선택)</summary>
-              <div class="mt-2 flex gap-2">
-                <input id="mj-bg-prompt" type="text" placeholder="이미지 프롬프트 (영문 권장)" class="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300">
-                <button id="mj-bg-generate" class="px-3 py-1.5 bg-amber-700 text-white text-xs rounded hover:bg-amber-600 flex-shrink-0">생성</button>
-              </div>
-            </details>
+          <p class="text-[10px] text-gray-500 mb-4">${result.totalSlides} slides · batch: ${result.batchId}</p>
+          <div class="flex gap-2">
+            <button id="card-save-draft" class="flex-1 py-2 bg-green-700 text-white text-sm rounded hover:bg-green-600">큐에 Draft 저장</button>
+            <button id="card-regenerate" class="px-4 py-2 bg-gray-700 text-gray-300 text-sm rounded hover:bg-gray-600">재생성</button>
           </div>
         ` : `
           <div class="flex items-center justify-center h-64 text-gray-600">
@@ -1346,377 +1339,33 @@ function renderXSettings() {
     </div>`;
 }
 
-// ── Settings Page ──
+// ── Settings Page (Channel Connections) ──
 function renderSettings() {
-  const stab = S.settingsTab || "channels";
-  const settingsTabs = [
-    { key: "channels", label: "Channels", desc: "발행 채널 연결" },
-    { key: "ai", label: "AI Engine", desc: "LLM 모델 + 토큰" },
-    { key: "storage", label: "Storage", desc: "이미지 저장소" },
-    { key: "design", label: "Design Tools", desc: "Canva / Figma" },
-    { key: "system", label: "System", desc: "크론 + 계정" },
-  ];
-
   return `<div class="px-8 py-6">
     <h2 class="text-xl font-semibold text-white mb-1">Settings</h2>
-    <p class="text-sm text-gray-500 mb-6">서비스 설정 — 각 항목이 어디에서 사용되는지 확인하세요</p>
-    <div class="flex gap-1 mb-6 border-b border-gray-800/50 pb-3">
-      ${settingsTabs.map(t => `<button data-settings-tab="${t.key}" class="px-3 py-1.5 text-sm rounded ${stab === t.key ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"}">${t.label}</button>`).join("")}
-    </div>
-
-    ${(() => { try {
-      if (stab === "channels") return renderSettingsChannels();
-      if (stab === "ai") return renderSettingsAI();
-      if (stab === "storage") return renderSettingsStorage();
-      if (stab === "design") return renderSettingsDesign();
-      if (stab === "system") return renderSettingsSystem();
-      return "";
-    } catch(e) { return `<div class="card p-5"><p class="text-red-400 text-sm">Render error: ${e.message}</p></div>`; } })()}
-  </div>`;
-}
-
-function renderSettingsChannels() {
-  const chRow = (key, icon, iconClass, label, sub) => {
-    const ch = S.channelConfig[key] || {};
-    const connected = ch.connected || ch.enabled;
-    return `<div class="flex items-center justify-between p-3 rounded-lg bg-gray-900/50 cursor-pointer hover:bg-gray-800/50" data-nav="${key}">
-      <div class="flex items-center gap-3"><span class="w-6 h-6 rounded ${iconClass} flex items-center justify-center text-[8px] font-bold text-white">${icon}</span><div><p class="text-xs text-gray-300">${label}</p><p class="text-[10px] text-gray-600">${sub}</p></div></div>
-      <span class="text-[10px] ${connected ? "text-green-400" : "text-gray-600"}">${connected ? "Connected" : ""}</span>
-    </div>`;
-  };
-  return `
-    <p class="text-[10px] text-gray-500 mb-4">콘텐츠를 발행할 SNS 채널. 클릭하면 해당 채널 설정으로 이동합니다.</p>
+    <p class="text-sm text-gray-500 mb-6">Channel connections & system status</p>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div class="card p-5">
-        <h3 class="text-sm font-medium text-gray-300 mb-3">Social</h3>
-        <div class="space-y-2">
-          ${chRow("threads", "T", "bg-gradient-to-br from-purple-500 to-pink-500", "Threads", S.channelConfig.threads?.userId ? "ID: " + S.channelConfig.threads.userId : "")}
-          ${chRow("x", "X", "bg-gray-700", "X (Twitter)", S.channelConfig.x?.connected ? "OAuth 1.0a" : "")}
-          ${chRow("instagram", "IG", "bg-gradient-to-br from-yellow-400 via-pink-500 to-purple-600", "Instagram", S.channelConfig.instagram?.userId ? "ID: " + S.channelConfig.instagram.userId : "")}
-        </div>
-      </div>
-      <div class="card p-5">
-        <h3 class="text-sm font-medium text-gray-300 mb-3">Messaging & Others</h3>
-        <div class="space-y-2">
-          ${chRow("telegram", "TG", "bg-blue-500", "Telegram", "")}
-          ${chRow("discord", "DC", "bg-indigo-600", "Discord", "")}
-          ${chRow("slack", "SL", "bg-green-700", "Slack", "")}
-        </div>
-      </div>
-    </div>`;
-}
-
-function renderSettingsAI() {
-  return `
-    <p class="text-[10px] text-gray-500 mb-4">모든 채널의 콘텐츠 자동 생성 + 트렌드 분석에 사용됩니다.</p>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div class="card p-5">
-        <h3 class="text-sm font-medium text-gray-300 mb-4">LLM Model</h3>
-        ${S.llmConfig ? `
-          <div class="space-y-3">
-            <div>
-              <label class="text-[10px] text-gray-500 block mb-1">Primary Model</label>
-              <select id="llm-primary" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300">
-                ${(S.llmConfig.available || []).map(m => `<option value="${m}" ${m === S.llmConfig.primary ? "selected" : ""}>${m}</option>`).join("")}
-              </select>
-            </div>
-            <div>
-              <label class="text-[10px] text-gray-500 block mb-1">Fallback Models</label>
-              <p class="text-xs text-gray-400">${(S.llmConfig.fallbacks || []).join(" → ") || "none"}</p>
-            </div>
-            <div class="border-t border-gray-800/50 pt-3">
-              <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Per-Job Override</p>
-              <div class="space-y-2">
-                ${Object.entries(S.llmConfig.jobModels || {}).map(([job, model]) => `
-                  <div class="flex items-center justify-between gap-2">
-                    <span class="text-[10px] text-gray-400 flex-shrink-0 w-40 truncate">${job}</span>
-                    <select data-job-model="${job}" class="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-[10px] text-gray-300">
-                      <option value="" ${!model || model === S.llmConfig.primary ? "selected" : ""}>Default</option>
-                      ${(S.llmConfig.available || []).filter(m => m !== S.llmConfig.primary).map(m => `<option value="${m}" ${m === model ? "selected" : ""}>${m.split("/").pop()}</option>`).join("")}
-                    </select>
-                  </div>
-                `).join("")}
-              </div>
-            </div>
-            <button id="save-llm-config" class="w-full mt-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">Save</button>
-          </div>
-        ` : `<p class="text-xs text-gray-600">Loading...</p>`}
-      </div>
-      <div class="card p-5">
-        <h3 class="text-sm font-medium text-gray-300 mb-4">Claude Token</h3>
-        ${S.tokenStatus?.claude ? `
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-[10px] px-2 py-0.5 rounded ${S.tokenStatus.claude.healthy ? "bg-green-900/40 text-green-400" : "bg-red-900/40 text-red-400"}">${S.tokenStatus.claude.healthy ? "Healthy" : "Error"}</span>
-            <span class="text-[10px] text-gray-600">${S.tokenStatus.claude.type || "token"}</span>
-          </div>
-          <div class="space-y-1 text-[10px] mb-3">
-            <div class="flex justify-between"><span class="text-gray-500">Errors</span><span class="${S.tokenStatus.claude.errorCount > 0 ? "text-red-400" : "text-gray-400"}">${S.tokenStatus.claude.errorCount}</span></div>
-            <div class="flex justify-between"><span class="text-gray-500">Last used</span><span class="text-gray-400">${S.tokenStatus.claude.lastUsed ? fmtAgo(new Date(S.tokenStatus.claude.lastUsed).toISOString()) : "-"}</span></div>
-          </div>
-        ` : ""}
+        <h3 class="text-sm font-medium text-gray-300 mb-4">Connected Channels</h3>
         <div class="space-y-3">
-          ${credField("claude-token-input", "Setup Token 또는 API Key", "", true, S.tokenStatus?.claude?.tokenPreview || "")}
-          <details class="text-[10px]">
-            <summary class="text-blue-400 hover:text-blue-300 cursor-pointer">Setup Guide</summary>
-            <div class="mt-2 p-2 rounded bg-gray-900/50 text-gray-500 space-y-1">
-              <p>1. 터미널에서 <code class="bg-gray-800 px-1 rounded">claude setup-token</code> 실행</p>
-              <p>2. 브라우저에서 Anthropic 로그인</p>
-              <p>3. 생성된 <code class="bg-gray-800 px-1 rounded">sk-ant-oat01-...</code> 토큰 복사</p>
-              <p>4. 위 필드에 붙여넣기 → Update Token</p>
-            </div>
-          </details>
-          <button id="save-claude-token" class="w-full py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${S.tokenStatus?.claude?.tokenPreview ? "Update Token" : "Connect"}</button>
-        </div>
-      </div>
-    </div>`;
-}
-
-function renderSettingsStorage() {
-  const r2 = S.r2Config || {};
-  const r2Connected = !!(r2.bucket && r2.accessKeyId);
-  const editing = S.editingChannel === "r2";
-  const editable = editing || !r2Connected;
-  return `
-    <p class="text-[10px] text-gray-500 mb-4">Instagram, Threads 등 이미지 발행 시 공용 업로드 저장소. 모든 채널에서 사용됩니다.</p>
-    <div class="card p-5">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-sm font-medium text-gray-300">Cloudflare R2</h3>
-        <span class="text-[10px] px-2 py-0.5 rounded ${r2Connected ? "bg-green-900/40 text-green-400" : "bg-yellow-900/40 text-yellow-400"}">${r2Connected ? "Connected" : "Not configured"}</span>
-      </div>
-      <details class="mb-3 text-[10px]">
-        <summary class="text-blue-400 hover:text-blue-300 cursor-pointer">Setup Guide — R2 설정법</summary>
-        <div class="mt-2 p-3 rounded bg-gray-900/50 text-gray-500 space-y-1.5">
-          <p class="font-medium text-gray-400">1. 버킷 생성</p>
-          <p class="pl-3">dash.cloudflare.com > R2 > Create bucket</p>
-          <p class="font-medium text-gray-400">2. 퍼블릭 액세스</p>
-          <p class="pl-3">버킷 > Settings > Public Development URL > Enable > <code class="bg-gray-800 px-1 rounded">allow</code> 입력</p>
-          <p class="font-medium text-gray-400">3. API 토큰</p>
-          <p class="pl-3">R2 Overview > Account Details > S3 API > Manage > Create Account API token</p>
-          <p class="pl-3">Permission: Object Read & Write, Bucket 선택, TTL 기본값</p>
-          <p class="pl-3 text-yellow-500">⚠ Secret Access Key는 생성 시 한 번만 표시됨</p>
-          <p class="font-medium text-gray-400">4. 아래 입력</p>
-          <p class="pl-3">Access Key ID, Secret, Bucket, S3 Endpoint, Public URL</p>
-        </div>
-      </details>
-      <div class="flex items-center justify-between mb-3">
-        <span class="text-[10px] text-gray-500">Credentials</span>
-        ${r2Connected && !editing ? '<button id="edit-r2" class="text-[10px] text-blue-400 hover:text-blue-300">Edit</button>' : ""}
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        ${credField("r2-access-key", "Access Key ID", "", false, r2.accessKeyId || "", editable)}
-        ${credField("r2-secret-key", "Secret Access Key", "", true, r2.secretAccessKey || "", editable)}
-        ${credField("r2-bucket", "Bucket Name", "", false, r2.bucket || "", editable)}
-        ${credField("r2-endpoint", "S3 Endpoint", "", false, r2.endpoint || "", editable)}
-        ${credField("r2-public-url", "Public URL", "", false, r2.publicUrl || "", editable)}
-      </div>
-      ${editable ? `<div class="flex gap-2 mt-4">
-        <button id="save-r2-config" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${r2Connected ? "Update" : "Connect"}</button>
-        ${r2Connected && editing ? '<button id="cancel-edit-r2" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>' : ""}
-      </div>` : ""}
-    </div>`;
-}
-
-function renderSettingsDesign() {
-  const canva = S.designTools?.canva || {};
-  const figma = S.designTools?.figma || {};
-  const canvaConnected = !!canva.clientId;
-  const figmaConnected = !!figma.accessToken;
-  const canvaEditing = S.editingChannel === "canva";
-  const figmaEditing = S.editingChannel === "figma";
-  const canvaEditable = canvaEditing || !canvaConnected;
-  const figmaEditable = figmaEditing || !figmaConnected;
-
-  return `
-    <p class="text-[10px] text-gray-500 mb-4">Instagram 카드뉴스를 전문 툴에서 리터치 후 가져오기. 연결하면 Create 탭에서 "편집" 버튼이 활성화됩니다.</p>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div class="card p-5">
-        <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center gap-2">
-            <span class="w-6 h-6 rounded bg-[#00C4CC] flex items-center justify-center text-[9px] font-bold text-white">C</span>
-            <h3 class="text-sm font-medium text-gray-300">Canva</h3>
+          <div class="flex items-center justify-between p-3 rounded-lg bg-gray-900/50 cursor-pointer hover:bg-gray-800/50" data-nav="threads">
+            <div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-[8px] font-bold text-white">T</span><div><p class="text-xs text-gray-300">Threads</p><p class="text-[10px] text-gray-600">${S.channelConfig.threads?.userId ? "ID: " + S.channelConfig.threads.userId : ""}</p></div></div>
+            <span class="text-[10px] ${S.channelConfig.threads?.connected ? "text-green-400" : "text-gray-600"}">${S.channelConfig.threads?.connected ? "Connected" : "Not connected"}</span>
           </div>
-          <span class="text-[10px] px-2 py-0.5 rounded ${canvaConnected ? "bg-green-900/40 text-green-400" : "bg-gray-800 text-gray-500"}">${canvaConnected ? "Connected" : "Not connected"}</span>
-        </div>
-
-        <div class="mb-3">
-          <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
-            <li><a href="https://www.canva.com/developers/" target="_blank" class="text-blue-400 hover:underline">canva.com/developers</a> 접속 → Canva 계정으로 로그인 (포털은 영어)</li>
-            <li>좌측 메뉴에서 <strong class="text-gray-300">Your integrations</strong> (내 통합) 클릭</li>
-            <li>우측 상단 <strong class="text-gray-300">Create an integration</strong> (통합 만들기) 버튼 클릭</li>
-            <li>이름 입력 (예: marketing-hub) → Type: <strong class="text-gray-300">Private</strong> (비공개) 선택 → 약관 체크 → <strong class="text-gray-300">Create integration</strong></li>
-            <li>생성된 앱의 설정 페이지 → <strong class="text-gray-300">Credentials</strong> (자격 증명) 섹션에서 <strong class="text-gray-300">Client ID</strong> 복사</li>
-            <li><strong class="text-gray-300">Generate secret</strong> (시크릿 생성) 버튼 → 표시된 값 즉시 복사 (페이지 벗어나면 재확인 불가!)</li>
-            <li>아래 폼에 Client ID + Secret 입력 → Connect</li>
-          </ol>
-          <details class="mt-2 text-[10px]">
-            <summary class="text-blue-400 hover:text-blue-300 cursor-pointer">더 알아보기</summary>
-            <div class="mt-2 p-3 rounded bg-gray-900/50 text-gray-500 space-y-1.5">
-              <p>Canva Connect API로 에셋 업로드 → 템플릿 기반 디자인 생성 → 편집 → Export PNG 플로우를 자동화합니다.</p>
-              <p class="font-medium text-gray-400 mt-2">Scopes 설정</p>
-              <p>앱 설정 페이지 좌측 메뉴 <strong>Scopes</strong> 클릭 → <strong>Reading and writing</strong> 섹션에서 체크:</p>
-              <p class="pl-2">✅ <code class="bg-gray-800 px-1 rounded">design:content</code> Read and Write — 디자인 생성/수정</p>
-              <p class="pl-2">✅ <code class="bg-gray-800 px-1 rounded">design:meta</code> Read — 디자인 메타데이터</p>
-              <p class="pl-2">✅ <code class="bg-gray-800 px-1 rounded">asset</code> Read and Write — 이미지 업로드</p>
-              <p class="pl-2">✅ <code class="bg-gray-800 px-1 rounded">brandtemplate:meta</code> Read — 템플릿 읽기</p>
-              <p class="pl-2">✅ <code class="bg-gray-800 px-1 rounded">brandtemplate:content</code> Read — 템플릿 내용</p>
-              <p class="pl-2">✅ <code class="bg-gray-800 px-1 rounded">profile</code> Read — 프로필 정보</p>
-              <p class="font-medium text-gray-400 mt-2">OAuth Redirect URL (앱 페이지 > Authentication 탭)</p>
-              <p>URL 1 필드에 입력: <code class="bg-gray-800 px-1 rounded">https://대시보드주소/api/canva/callback</code></p>
-              <p>Return navigation 스위치 ON → Return URL도 동일하게 설정</p>
-              <p class="font-medium text-gray-400 mt-2">앱 유형</p>
-              <p>Private: 내 팀만 사용. Public: Canva 마켓플레이스에 공개 (심사 필요).</p>
-            </div>
-          </details>
-        </div>
-
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-[10px] text-gray-500">Credentials</span>
-          ${canvaConnected && !canvaEditing ? '<button id="edit-canva" class="text-[10px] text-blue-400 hover:text-blue-300">Edit</button>' : ""}
-        </div>
-        <div class="space-y-3">
-          ${credField("canva-client-id", "Client ID", "", false, canva.clientId || "", canvaEditable)}
-          ${credField("canva-client-secret", "Client Secret", "", true, canva.clientSecret || "", canvaEditable)}
-        </div>
-        ${canvaEditable ? `<div class="flex gap-2 mt-4">
-          <button id="save-canva" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${canvaConnected ? "Update" : "Connect"}</button>
-          ${canvaConnected && canvaEditing ? '<button id="cancel-edit-canva" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>' : ""}
-        </div>` : ""}
-      </div>
-
-      <div class="card p-5">
-        <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center gap-2">
-            <span class="w-6 h-6 rounded bg-black border border-gray-700 flex items-center justify-center text-[10px] font-bold text-white">F</span>
-            <h3 class="text-sm font-medium text-gray-300">Figma</h3>
+          <div class="flex items-center justify-between p-3 rounded-lg bg-gray-900/50 cursor-pointer hover:bg-gray-800/50" data-nav="x">
+            <div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-gray-700 flex items-center justify-center text-[9px] font-bold text-white">X</span><div><p class="text-xs text-gray-300">X (Twitter)</p><p class="text-[10px] text-gray-600">${S.channelConfig.x?.connected ? "OAuth 1.0a" : ""}</p></div></div>
+            <span class="text-[10px] ${S.channelConfig.x?.connected ? "text-blue-400" : "text-gray-600"}">${S.channelConfig.x?.connected ? "Connected" : ""}</span>
           </div>
-          <span class="text-[10px] px-2 py-0.5 rounded ${figmaConnected ? "bg-green-900/40 text-green-400" : "bg-gray-800 text-gray-500"}">${figmaConnected ? "Connected" : "Not connected"}</span>
-        </div>
-
-        <div class="mb-3">
-          <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
-            <li><a href="https://www.figma.com" target="_blank" class="text-blue-400 hover:underline">figma.com</a> 접속 → 로그인 → 좌상단 계정 아이콘 → <strong class="text-gray-300">Settings</strong></li>
-            <li><strong class="text-gray-300">Security</strong> 탭 → 아래로 스크롤 → <strong class="text-gray-300">Personal access tokens</strong></li>
-            <li><strong class="text-gray-300">Generate new token</strong> → 이름 입력 → Scopes에서 <code class="bg-gray-800 px-1 rounded">file_content:read</code>, <code class="bg-gray-800 px-1 rounded">files:read</code> 체크</li>
-            <li>Enter → 표시된 토큰 <strong class="text-red-400">즉시 복사</strong> (페이지 벗어나면 재확인 불가!) → 아래 폼에 입력 → Connect</li>
-          </ol>
-
-          <details class="mt-3 text-[10px]">
-            <summary class="text-blue-400 hover:text-blue-300 cursor-pointer">MCP 서버 연결 (AI가 Figma에 직접 쓰기)</summary>
-            <div class="mt-2 p-3 rounded bg-gray-900/50 text-gray-500 space-y-2">
-              <p class="text-gray-300 font-medium">MCP란?</p>
-              <p>AI Agent가 Figma 캔버스에 직접 프레임/텍스트/이미지를 생성하는 프로토콜. REST API는 읽기만 가능하지만, MCP는 <strong>쓰기</strong>가 됩니다.</p>
-
-              <p class="text-gray-300 font-medium mt-3">Remote MCP 서버 (권장 — 설치 불필요)</p>
-              <p>Figma가 호스팅하는 서버에 연결. 별도 프로그램 설치 없이 URL만 등록하면 됩니다.</p>
-
-              <p class="text-gray-400 font-medium mt-2">연결 방법 — Claude Code에서:</p>
-              <div class="p-2 rounded bg-gray-800 font-mono mt-1 space-y-1">
-                <p class="text-green-400"># 방법 1: 플러그인 (가장 쉬움)</p>
-                <p>claude plugin install figma@claude-plugins-official</p>
-                <p class="text-green-400 mt-2"># 방법 2: 수동 등록</p>
-                <p>claude mcp add --transport http figma https://mcp.figma.com/mcp</p>
-              </div>
-              <p class="mt-1">실행 후 브라우저에서 Figma 로그인 → <strong>Allow Access</strong> 클릭</p>
-
-              <p class="text-gray-400 font-medium mt-2">VS Code에서:</p>
-              <p>⌘+Shift+P → "MCP: Open User Configuration" → 아래 JSON 추가:</p>
-              <div class="p-2 rounded bg-gray-800 font-mono mt-1">
-                <p>"figma": { "url": "https://mcp.figma.com/mcp", "type": "http" }</p>
-              </div>
-
-              <p class="text-gray-400 font-medium mt-2">OpenClaw Gateway에서:</p>
-              <p>config/openclaw.json에 MCP 서버 등록 (지원되는 경우):</p>
-              <div class="p-2 rounded bg-gray-800 font-mono mt-1">
-                <p>"mcp": { "figma": { "url": "https://mcp.figma.com/mcp" } }</p>
-              </div>
-
-              <p class="text-gray-300 font-medium mt-3">MCP로 할 수 있는 것</p>
-              <p>✅ 프레임/텍스트/이미지 생성 및 수정</p>
-              <p>✅ 컴포넌트, 변수, Auto Layout 활용</p>
-              <p>✅ 디자인 시스템을 기반으로 일관된 디자인</p>
-              <p>✅ 현재 Beta 무료 (이후 사용량 기반 유료)</p>
-
-              <p class="text-gray-300 font-medium mt-3">REST API vs MCP 차이</p>
-              <div class="mt-1 space-y-0.5">
-                <p><strong>REST API</strong> (위에서 입력한 토큰): 파일 읽기 + PNG Export만 가능. 쓰기 불가.</p>
-                <p><strong>MCP 서버</strong>: 읽기 + <strong>쓰기</strong>. AI가 직접 캔버스에 디자인 생성/수정.</p>
-                <p>→ 둘 다 필요: MCP로 생성, REST API로 Export</p>
-              </div>
-
-              <p class="text-gray-300 font-medium mt-3">자동화 흐름</p>
-              <p>1. 카드뉴스 텍스트 입력 (대시보드)</p>
-              <p>2. AI Agent가 MCP로 Figma에 슬라이드 프레임 자동 생성</p>
-              <p>3. 디자이너가 Figma에서 리터치</p>
-              <p>4. REST API로 PNG Export → R2 업로드 → 큐 저장</p>
-              <p>5. Instagram 캐러셀 발행</p>
-            </div>
-          </details>
-
-          <details class="mt-2 text-[10px]">
-            <summary class="text-blue-400 hover:text-blue-300 cursor-pointer">더 알아보기</summary>
-            <div class="mt-2 p-3 rounded bg-gray-900/50 text-gray-500 space-y-1.5">
-              <p class="font-medium text-gray-400">Personal Access Token 주의</p>
-              <p>토큰 하나로 Figma 계정의 <strong>모든 파일</strong>에 접근 가능. 신뢰할 수 있는 환경에서만 사용. 통합당 토큰 1개 생성 권장.</p>
-              <p class="font-medium text-gray-400 mt-2">Scopes (권한) 상세</p>
-              <p><code class="bg-gray-800 px-1 rounded">file_content:read</code> — 파일 노드/레이어 읽기, PNG Export에 필수</p>
-              <p><code class="bg-gray-800 px-1 rounded">files:read</code> — 파일 목록 접근</p>
-              <p><code class="bg-gray-800 px-1 rounded">file_dev_resources:write</code> — 개발 리소스 쓰기 (선택)</p>
-              <p class="font-medium text-gray-400 mt-2">지원 MCP 클라이언트</p>
-              <p>Claude Code, VS Code (Copilot), Cursor, Codex — <a href="https://developers.figma.com/docs/figma-mcp-server/" target="_blank" class="text-blue-400 hover:underline">전체 목록</a></p>
-            </div>
-          </details>
-        </div>
-
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-[10px] text-gray-500">Credentials</span>
-          ${figmaConnected && !figmaEditing ? '<button id="edit-figma" class="text-[10px] text-blue-400 hover:text-blue-300">Edit</button>' : ""}
-        </div>
-        <div class="space-y-3">
-          ${credField("figma-token", "Personal Access Token", "", true, figma.accessToken || "", figmaEditable)}
-        </div>
-        ${figmaEditable ? `<div class="flex gap-2 mt-4">
-          <button id="save-figma" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${figmaConnected ? "Update" : "Connect"}</button>
-          ${figmaConnected && figmaEditing ? '<button id="cancel-edit-figma" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>' : ""}
-        </div>` : ""}
-
-        ${figmaConnected ? `
-        <div class="mt-4 pt-4 border-t border-gray-800/50">
-          <div class="flex items-center justify-between mb-2">
-            <div>
-              <p class="text-xs text-gray-300">MCP 서버 (AI → Figma 쓰기)</p>
-              <p class="text-[10px] text-gray-600">AI가 Figma에 카드뉴스 프레임을 자동 생성</p>
-            </div>
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" id="figma-mcp-toggle" ${figma.mcpEnabled ? "checked" : ""} class="sr-only peer">
-              <div class="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
-            </label>
+          <div class="flex items-center justify-between p-3 rounded-lg bg-gray-900/50 cursor-pointer hover:bg-gray-800/50" data-nav="instagram">
+            <div class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-gradient-to-br from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center text-[8px] font-bold text-white">IG</span><div><p class="text-xs text-gray-300">Instagram</p><p class="text-[10px] text-gray-600">${S.channelConfig.instagram?.userId ? "ID: " + S.channelConfig.instagram.userId : ""}</p></div></div>
+            <span class="text-[10px] ${S.channelConfig.instagram?.connected ? "text-green-400" : "text-gray-600"}">${S.channelConfig.instagram?.connected ? "Connected" : "Not connected"}</span>
           </div>
-          ${figma.mcpEnabled && !figma.mcpAccessToken ? `
-            <div class="p-3 rounded bg-yellow-900/10 border border-yellow-800/30 space-y-3 text-[10px]">
-              <p class="text-yellow-400 font-medium">MCP 연결 필요</p>
-              <p class="text-gray-500">Figma 계정으로 로그인하여 MCP 접근을 허용합니다.</p>
-              <button id="figma-mcp-oauth-btn" class="w-full py-2.5 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-500 font-medium">Figma 계정으로 MCP 연결</button>
-              <p class="text-gray-600">클릭하면 Figma 로그인 페이지가 새 탭으로 열립니다. Allow 클릭 후 자동 완료.</p>
-            </div>
-          ` : ""}
-          ${figma.mcpEnabled && figma.mcpAccessToken ? `
-            <div class="flex items-center justify-between mt-2">
-              <p class="text-[10px] text-green-400">MCP 연결됨</p>
-              <button id="restart-gateway-figma" class="px-3 py-1 text-[10px] bg-yellow-700 text-white rounded hover:bg-yellow-600">Gateway 재시작</button>
-            </div>
-          ` : ""}
         </div>
-        ` : ""}
+        <p class="text-[10px] text-gray-600 mt-4">Click a channel to manage its settings</p>
       </div>
-    </div>`;
-}
-
-function renderSettingsSystem() {
-  return `
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div class="card p-5">
-        <h3 class="text-sm font-medium text-gray-300 mb-4">Cron Status</h3>
-        <p class="text-[10px] text-gray-500 mb-3">자동화 작업 실행 현황</p>
+      <div class="space-y-4">
+        <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-4">System Status</h3>
           <div class="space-y-2.5">
             ${S.cronJobs.map(j => {
               const dot = j.lastStatus === "ok" ? "bg-green-500" : j.lastStatus === "error" ? "bg-red-500" : "bg-gray-600";
@@ -1724,19 +1373,110 @@ function renderSettingsSystem() {
             }).join("")}
           </div>
         </div>
-      </div>
-      <div class="space-y-4">
+        <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-4">AI Engine (LLM)</h3>
+          ${S.llmConfig ? `
+            <div class="space-y-3">
+              <div>
+                <label class="text-[10px] text-gray-500 block mb-1">Primary Model</label>
+                <select id="llm-primary" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300">
+                  ${(S.llmConfig.available || []).map(m => `<option value="${m}" ${m === S.llmConfig.primary ? "selected" : ""}>${m}</option>`).join("")}
+                </select>
+              </div>
+              <div>
+                <label class="text-[10px] text-gray-500 block mb-1">Fallback Models</label>
+                <p class="text-xs text-gray-400">${(S.llmConfig.fallbacks || []).join(" → ") || "none"}</p>
+              </div>
+              <div class="mt-3 p-3 rounded-lg bg-gray-900/50 border border-gray-800/30">
+                <div class="flex items-center justify-between mb-3">
+                  <h4 class="text-xs font-medium text-gray-300">Claude Token</h4>
+                  ${S.tokenStatus?.claude ? `
+                    <span class="text-[10px] px-2 py-0.5 rounded ${S.tokenStatus.claude.healthy ? "bg-green-900/40 text-green-400" : "bg-red-900/40 text-red-400"}">${S.tokenStatus.claude.healthy ? "Healthy" : "Error"} · ${S.tokenStatus.claude.type || "token"}</span>
+                  ` : ""}
+                </div>
+                ${S.tokenStatus?.claude ? `
+                  <div class="space-y-1 text-[10px] mb-3">
+                    <div class="flex justify-between"><span class="text-gray-500">Errors</span><span class="${S.tokenStatus.claude.errorCount > 0 ? "text-red-400" : "text-gray-400"}">${S.tokenStatus.claude.errorCount}</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500">Last used</span><span class="text-gray-400">${S.tokenStatus.claude.lastUsed ? fmtAgo(new Date(S.tokenStatus.claude.lastUsed).toISOString()) : "-"}</span></div>
+                    ${S.tokenStatus.claude.errorHint ? `<p class="text-red-400 mt-1">${S.tokenStatus.claude.errorHint}</p>` : ""}
+                  </div>
+                ` : ""}
+                <div class="space-y-3">
+                  ${credField("claude-token-input", "Setup Token 또는 API Key", "", true, S.tokenStatus?.claude?.tokenPreview || "")}
+                  <p class="text-[10px] text-gray-600">다른 터미널에서 <code class="bg-gray-800 px-1 rounded">claude setup-token</code> 실행 후 토큰을 붙여넣으세요.</p>
+                  <button id="save-claude-token" class="w-full py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${S.tokenStatus?.claude?.tokenPreview ? "Update Token" : "Connect"}</button>
+                </div>
+              </div>
+
+              <div class="border-t border-gray-800/50 pt-3 mt-3">
+                <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Per-Job Model Override</p>
+                <div class="space-y-2">
+                  ${Object.entries(S.llmConfig.jobModels || {}).map(([job, model]) => `
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="text-[10px] text-gray-400 flex-shrink-0 w-40 truncate">${job}</span>
+                      <select data-job-model="${job}" class="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-[10px] text-gray-300">
+                        <option value="" ${!model || model === S.llmConfig.primary ? "selected" : ""}>Default (${(S.llmConfig.primary || "").split("/").pop()})</option>
+                        ${(S.llmConfig.available || []).filter(m => m !== S.llmConfig.primary).map(m => `<option value="${m}" ${m === model ? "selected" : ""}>${m.split("/").pop()}</option>`).join("")}
+                      </select>
+                    </div>
+                  `).join("")}
+                </div>
+              </div>
+
+              <button id="save-llm-config" class="w-full mt-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">Save LLM Config</button>
+            </div>
+          ` : `<p class="text-xs text-gray-600">Loading...</p>`}
+        </div>
         <div class="card p-5">
           <h3 class="text-sm font-medium text-gray-300 mb-4">Account</h3>
           <div class="space-y-2 text-sm">
-            <div class="flex justify-between"><span class="text-gray-500">Auth</span><span class="text-gray-300">${getAuthToken() ? "Token set" : "No auth"}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Auth</span><span class="text-gray-300">${getAuthToken() ? "Token (localStorage)" : "No auth"}</span></div>
           </div>
           ${getAuthToken() ? `
             <div class="flex gap-2 mt-4">
               <button id="btn-logout" class="px-4 py-2 text-xs bg-gray-800 text-gray-300 rounded hover:bg-gray-700">Logout</button>
               <button id="btn-change-pw" class="px-4 py-2 text-xs bg-gray-800 text-gray-300 rounded hover:bg-gray-700">Change Token</button>
             </div>
-          ` : ""}
+          ` : `<p class="text-[10px] text-gray-600 mt-3">DASHBOARD_AUTH_TOKEN 환경변수 설정 시 로그인 활성화</p>`}
+        </div>
+        <div class="card p-5">
+          <h3 class="text-sm font-medium text-gray-300 mb-3">Interactive Chat</h3>
+          <p class="text-[10px] text-gray-600 mb-3">봇으로 Agent와 대화 — "이번 주 성과 보여줘", "다음 글 승인해", "X에 글 올려"</p>
+          ${S.chatChannels ? `
+            <div class="space-y-3">
+              <!-- Telegram -->
+              <div class="p-3 rounded bg-gray-900/50">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs text-gray-300">Telegram</span>
+                  <span class="text-[10px] ${S.chatChannels.telegram?.configured ? "text-green-400" : "text-gray-600"}">${S.chatChannels.telegram?.configured ? "Connected" : ""}</span>
+                </div>
+                ${S.chatChannels.telegram?.configured ? `
+                  <p class="text-[10px] text-green-400/70">양방향 대화 활성. Gateway 재시작 후 봇에게 메시지를 보내면 Agent가 응답합니다.</p>
+                ` : `
+                  <div class="flex gap-2">
+                    <input id="chat-telegram-token" type="password" placeholder="Bot Token (@BotFather)" class="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-[11px] text-gray-300 font-mono">
+                    <button id="setup-chat-telegram" class="px-3 py-1 bg-blue-600 text-white text-[10px] rounded hover:bg-blue-500">Connect</button>
+                  </div>
+                  <p class="text-[10px] text-gray-600 mt-1">@BotFather → /newbot → 토큰 복사</p>
+                `}
+              </div>
+              <!-- Slack -->
+              <div class="p-3 rounded bg-gray-900/50">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs text-gray-300">Slack <span class="text-[10px] text-gray-600">(양방향은 Bot+App Token 필요)</span></span>
+                  <span class="text-[10px] ${S.chatChannels.slack?.configured ? "text-green-400" : "text-gray-600"}">${S.chatChannels.slack?.configured ? "Connected" : ""}</span>
+                </div>
+                ${!S.chatChannels.slack?.configured ? `<p class="text-[10px] text-gray-600">Slack 양방향은 Bot Token(xoxb-) + App Token(xapp-) 필요. 일방향 알림은 Webhook으로 가능.</p>` : `<p class="text-[10px] text-green-400/70">양방향 대화 활성</p>`}
+              </div>
+              <!-- Discord -->
+              <div class="p-3 rounded bg-gray-900/50">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs text-gray-300">Discord</span>
+                  <span class="text-[10px] ${S.chatChannels.discord?.configured ? "text-green-400" : "text-gray-600"}">${S.chatChannels.discord?.configured ? "Connected" : ""}</span>
+                </div>
+              </div>
+            </div>
+          ` : `<p class="text-xs text-gray-600">Loading...</p>`}
         </div>
         <div class="card p-5">
           <h3 class="text-sm font-medium text-gray-300 mb-4">Notifications</h3>
@@ -1753,7 +1493,7 @@ function renderSettingsSystem() {
                     </div>
                     <select data-notif-channel="${evt}" class="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-[10px] text-gray-300">
                       <option value="">Off</option>
-                      ${["telegram", "discord", "slack"].map(ch => `<option value="${ch}" ${ns.channels?.includes(ch) ? "selected" : ""}>${ch}</option>`).join("")}
+                      ${["telegram", "discord", "slack", "line"].map(ch => `<option value="${ch}" ${ns.channels?.includes(ch) ? "selected" : ""}>${ch}</option>`).join("")}
                     </select>
                   </div>`;
               }).join("")}
@@ -1761,11 +1501,13 @@ function renderSettingsSystem() {
             <div class="flex gap-2 mt-3">
               <button id="save-notif-settings" class="flex-1 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-500">Save</button>
               <button id="test-notif" class="px-4 py-2 bg-gray-800 text-gray-300 text-xs rounded hover:bg-gray-700">Test</button>
+              <button id="send-weekly-report" class="px-4 py-2 bg-green-800 text-green-300 text-xs rounded hover:bg-green-700">주간 리포트 발송</button>
             </div>
           ` : `<p class="text-xs text-gray-600">Loading...</p>`}
         </div>
       </div>
-    </div>`;
+    </div>
+  </div>`;
 }
 
 // ── Event Binding ──
@@ -2028,6 +1770,140 @@ function bindEvents() {
     };
   });
 
+  // Keyword bank → blog keywords
+  document.querySelectorAll("[data-bank-to-blog]").forEach(el => {
+    el.onclick = () => {
+      const kw = el.dataset.bankToBlog;
+      const ta = document.getElementById("blog-keywords-textarea");
+      if (ta && !ta.value.split("\n").includes(kw)) {
+        ta.value = ta.value.trim() + "\n" + kw;
+        el.classList.add("opacity-50"); el.disabled = true;
+        showToast(`"${kw}" 추가됨`, "info");
+      }
+    };
+  });
+  const loadBankBtn = document.getElementById("load-from-bank");
+  if (loadBankBtn) loadBankBtn.onclick = async () => { await loadKeywordBank(); };
+
+  // YouTube OAuth
+  const ytConnect = document.getElementById("youtube-connect");
+  if (ytConnect) ytConnect.onclick = async () => {
+    const r = await API.get("/api/youtube/auth-url");
+    if (r?.authUrl) window.open(r.authUrl, "_blank", "width=600,height=700");
+    else showToast(r?.error || "Failed", "error");
+  };
+  const ytStatus = document.getElementById("youtube-status");
+  if (ytStatus) {
+    API.get("/api/youtube/status").then(d => {
+      if (d?.connected) ytStatus.innerHTML = '<span class="text-green-400">YouTube 연결됨</span>';
+      else ytStatus.innerHTML = '<span class="text-gray-500">미연결 — 위 버튼 클릭</span>';
+    });
+  }
+
+  // Video events
+  const videoFromBlog = document.getElementById("video-from-blog");
+  if (videoFromBlog) videoFromBlog.onclick = async () => {
+    const blogPosts = S.blogQueue?.filter(p => p.content) || [];
+    if (blogPosts.length === 0) { showToast("Blog Queue에 글이 없습니다. sample 글에서 추출합니다.", "info"); }
+    // Use latest sample article
+    const stats = await API.get("/api/blog-stats");
+    if (stats?.articles?.[0]) {
+      const a = stats.articles[0];
+      const r = await API.post("/api/video/script-from-blog", { title: a.title, content: a.title });
+      if (r?.slides) { S.videoSlides = r.slides; render(); }
+    }
+  };
+  const videoAddSlide = document.getElementById("video-add-slide");
+  if (videoAddSlide) videoAddSlide.onclick = () => {
+    if (!S.videoSlides) S.videoSlides = [];
+    S.videoSlides.push({ text: "", duration: 4, imageUrl: "" });
+    render();
+  };
+  document.querySelectorAll("[data-slide-remove]").forEach(el => {
+    el.onclick = () => { S.videoSlides.splice(parseInt(el.dataset.slideRemove), 1); if (S.videoSlides.length === 0) S.videoSlides = null; render(); };
+  });
+  const videoGenerate = document.getElementById("video-generate");
+  if (videoGenerate) videoGenerate.onclick = async () => {
+    // 슬라이드 입력값 수집
+    const slides = S.videoSlides.map((s, i) => ({
+      text: document.querySelector(`[data-slide-text="${i}"]`)?.value || s.text,
+      imageUrl: document.querySelector(`[data-slide-image="${i}"]`)?.value || "",
+      duration: parseInt(document.querySelector(`[data-slide-duration="${i}"]`)?.value) || 4,
+    }));
+    S.videoGenerating = true; render();
+    const r = await API.post("/api/video/generate", { slides });
+    S.videoGenerating = false;
+    if (r?.ok) { showToast("비디오 생성 완료!", "success"); S.videoSlides = null; loadVideos(); }
+    else { showToast(r?.error || "생성 실패", "error"); render(); }
+  };
+  document.querySelectorAll("[data-video-publish]").forEach(el => {
+    el.onclick = async () => {
+      const title = prompt("YouTube Shorts 제목을 입력하세요", "중학생 공부법");
+      if (!title) return;
+      el.textContent = "Uploading..."; el.disabled = true;
+      const r = await API.post("/api/video/publish", { filename: el.dataset.videoPublish, title, platform: "youtube" });
+      el.textContent = "YouTube Shorts"; el.disabled = false;
+      if (r?.ok) showToast(`YouTube 업로드 완료: ${r.url}`, "success");
+      else showToast(r?.error || "업로드 실패", "error");
+    };
+  });
+  document.querySelectorAll("[data-video-delete]").forEach(el => {
+    el.onclick = async () => {
+      if (!confirm("삭제?")) return;
+      const r = await API.post("/api/video/delete", { filename: el.dataset.videoDelete });
+      if (r?.ok) { showToast("삭제됨", "success"); loadVideos(); }
+    };
+  });
+
+  // Add to keyword bank
+  document.querySelectorAll("[data-add-keyword]").forEach(el => {
+    el.onclick = async () => {
+      const kw = el.dataset.addKeyword;
+      const r = await API.post("/api/keyword-bank/add", { keywords: [kw], source: S.page });
+      if (r?.ok) { showToast(`"${kw}" → Keyword Bank (${r.total}개)`, "success"); el.textContent = "✓"; el.disabled = true; }
+    };
+  });
+
+  // Notification toggles (in channel page)
+  document.querySelectorAll("[data-notif-toggle]").forEach(el => {
+    el.onchange = async () => {
+      const evt = el.dataset.notifToggle;
+      const ch = el.dataset.notifCh;
+      const ns = S.notificationSettings || {};
+      if (!ns[evt]) ns[evt] = { enabled: false, channels: [] };
+      if (el.checked) {
+        if (!ns[evt].channels.includes(ch)) ns[evt].channels.push(ch);
+        ns[evt].enabled = true;
+      } else {
+        ns[evt].channels = ns[evt].channels.filter(c => c !== ch);
+        ns[evt].enabled = ns[evt].channels.length > 0;
+      }
+      const r = await API.post("/api/notification-settings", ns);
+      if (r?.ok) { S.notificationSettings = ns; showToast(`${evt} → ${ch} ${el.checked ? "ON" : "OFF"}`, "success"); }
+    };
+  });
+
+  // Slack template
+  const saveSlackTmpl = document.getElementById("save-slack-template");
+  if (saveSlackTmpl) saveSlackTmpl.onclick = async () => {
+    const tmpl = document.getElementById("slack-template")?.value;
+    const r = await API.post("/api/slack-template", { template: tmpl });
+    if (r?.ok) showToast("템플릿 저장됨", "success");
+  };
+  const previewSlackReport = document.getElementById("slack-preview-report");
+  if (previewSlackReport) previewSlackReport.onclick = async () => {
+    const r = await API.get("/api/slack-report-preview");
+    if (r?.report) { S.slackReportPreview = r.report; render(); }
+  };
+  const sendSlackCustom = document.getElementById("send-slack-custom-report");
+  if (sendSlackCustom) sendSlackCustom.onclick = async () => {
+    sendSlackCustom.textContent = "Sending..."; sendSlackCustom.disabled = true;
+    const r = await API.post("/api/slack-send-custom");
+    sendSlackCustom.textContent = "Send Report"; sendSlackCustom.disabled = false;
+    if (r?.ok) showToast("리포트 전송됨", "success");
+    else showToast(r?.error || "실패", "error");
+  };
+
   // Detail toggle
   document.querySelectorAll("[data-toggle-detail]").forEach(el => { el.onclick = () => { S.showDetail = S.showDetail === el.dataset.toggleDetail ? null : el.dataset.toggleDetail; render(); }; });
 
@@ -2051,22 +1927,6 @@ function bindEvents() {
     };
   });
 
-  // Settings tabs
-  document.querySelectorAll("[data-settings-tab]").forEach(el => {
-    el.onclick = () => {
-      S.settingsTab = el.dataset.settingsTab;
-      const loaders = {
-        channels: () => loadOverview(),
-        ai: () => { loadLlmConfig(); loadOverview(); },
-        storage: () => loadR2Config(),
-        design: () => loadDesignTools(),
-        system: () => { loadOverview(); loadNotifSettings(); },
-      };
-      (loaders[el.dataset.settingsTab] || (() => {}))();
-      render();
-    };
-  });
-
   // R2 Storage Config
   const editR2 = document.getElementById("edit-r2");
   if (editR2) editR2.onclick = () => { S.editingChannel = "r2"; render(); };
@@ -2087,196 +1947,6 @@ function bindEvents() {
     if (r?.ok) { showToast("R2 Storage 설정 저장됨", "success"); loadR2Config(); }
     else showToast(r?.error || "저장 실패", "error");
   };
-
-  // Design Tools credentials
-  const editCanva = document.getElementById("edit-canva");
-  if (editCanva) editCanva.onclick = () => { S.editingChannel = "canva"; render(); };
-  const cancelCanva = document.getElementById("cancel-edit-canva");
-  if (cancelCanva) cancelCanva.onclick = () => { S.editingChannel = null; render(); };
-  const saveCanva = document.getElementById("save-canva");
-  if (saveCanva) saveCanva.onclick = async () => {
-    const data = { clientId: document.getElementById("canva-client-id")?.value?.trim(), clientSecret: document.getElementById("canva-client-secret")?.value?.trim() };
-    if (!data.clientId) { showToast("Client ID를 입력하세요", "warning"); return; }
-    saveCanva.textContent = "Saving..."; saveCanva.disabled = true;
-    const r = await API.post("/api/design-tools/canva", data);
-    saveCanva.textContent = "Connect"; saveCanva.disabled = false;
-    if (r?.ok) { showToast("Canva 설정 저장됨", "success"); S.editingChannel = null; loadDesignTools(); }
-    else showToast(r?.error || "저장 실패", "error");
-  };
-  const editFigma = document.getElementById("edit-figma");
-  if (editFigma) editFigma.onclick = () => { S.editingChannel = "figma"; render(); };
-  const cancelFigma = document.getElementById("cancel-edit-figma");
-  if (cancelFigma) cancelFigma.onclick = () => { S.editingChannel = null; render(); };
-  const saveFigma = document.getElementById("save-figma");
-  if (saveFigma) saveFigma.onclick = async () => {
-    const data = { accessToken: document.getElementById("figma-token")?.value?.trim(), fileUrl: document.getElementById("figma-file-url")?.value?.trim() };
-    if (!data.accessToken) { showToast("Access Token을 입력하세요", "warning"); return; }
-    saveFigma.textContent = "Saving..."; saveFigma.disabled = true;
-    const r = await API.post("/api/design-tools/figma", data);
-    saveFigma.textContent = "Connect"; saveFigma.disabled = false;
-    if (r?.ok) { showToast("Figma 설정 저장됨", "success"); S.editingChannel = null; loadDesignTools(); }
-    else showToast(r?.error || "저장 실패", "error");
-  };
-
-  // Gateway restart
-  document.querySelectorAll("[id^='restart-gateway']").forEach(el => {
-    el.onclick = async () => {
-      el.textContent = "재시작 중..."; el.disabled = true;
-      const r = await API.post("/api/gateway/restart");
-      el.textContent = "Gateway 재시작"; el.disabled = false;
-      if (r?.ok) showToast("Gateway 재시작 완료. 15초 후 사용 가능.", "success");
-      else showToast(r?.error || "재시작 실패", "error");
-    };
-  });
-
-  // Figma MCP OAuth + toggle
-  const figmaMcpOAuth = document.getElementById("figma-mcp-oauth-btn");
-  if (figmaMcpOAuth) figmaMcpOAuth.onclick = async () => {
-    figmaMcpOAuth.textContent = "연결 준비 중..."; figmaMcpOAuth.disabled = true;
-    const r = await API.get("/api/figma-mcp/start-oauth");
-    if (r?.authUrl) {
-      window.open(r.authUrl, "_blank");
-      showToast("Figma 로그인 페이지가 열렸습니다. Allow 클릭 후 자동 완료됩니다.", "info");
-      // Poll for completion
-      const poll = setInterval(async () => {
-        const dt = await API.get("/api/design-tools");
-        if (dt?.figma?.mcpAccessToken) {
-          clearInterval(poll);
-          showToast("Figma MCP 연결 완료! Gateway 재시작 필요.", "success");
-          S.designTools = dt;
-          render();
-        }
-      }, 3000);
-      setTimeout(() => clearInterval(poll), 120000); // 2min timeout
-    } else {
-      showToast(r?.error || "OAuth 시작 실패", "error");
-    }
-    figmaMcpOAuth.textContent = "Figma 계정으로 MCP 연결"; figmaMcpOAuth.disabled = false;
-  };
-  const figmaMcpToggle = document.getElementById("figma-mcp-toggle");
-  if (figmaMcpToggle) figmaMcpToggle.onchange = async () => {
-    const r = await API.post("/api/design-tools/figma-mcp", { enabled: figmaMcpToggle.checked });
-    if (r?.ok) {
-      showToast(figmaMcpToggle.checked ? "Figma MCP 활성화 — gateway 재시작 필요" : "Figma MCP 비활성화", "success");
-      loadDesignTools();
-    } else showToast(r?.error || "설정 실패", "error");
-  };
-
-  // Instagram bulk actions
-  const igSelectAll = document.getElementById("ig-select-all");
-  if (igSelectAll) igSelectAll.onchange = () => {
-    const posts = (S.queue || []).filter(p => (p.status === "draft" || p.status === "approved") && p.imageUrl);
-    if (igSelectAll.checked) posts.forEach(p => S.selectedIds.add(p.id));
-    else S.selectedIds.clear();
-    render();
-  };
-  const igBulkApprove = document.getElementById("ig-bulk-approve");
-  if (igBulkApprove) igBulkApprove.onclick = async () => {
-    const ids = [...S.selectedIds];
-    const r = await API.post("/api/queue/bulk-approve", { ids });
-    if (r) { showToast(`${r.approved || ids.length}개 승인`, "success"); S.selectedIds.clear(); loadQueue("all"); }
-  };
-  const igBulkDelete = document.getElementById("ig-bulk-delete");
-  if (igBulkDelete) igBulkDelete.onclick = async () => {
-    if (!confirm(`${S.selectedIds.size}개 삭제?`)) return;
-    const ids = [...S.selectedIds];
-    const r = await API.post("/api/queue/bulk-delete", { ids });
-    if (r) { showToast(`${r.deleted || ids.length}개 삭제`, "success"); S.selectedIds.clear(); loadQueue("all"); }
-  };
-
-  // Queue: Figma push/pull for draft posts
-  document.querySelectorAll("[data-queue-figma-push]").forEach(el => {
-    el.onclick = async () => {
-      const post = (S.queue || []).find(p => p.id === el.dataset.queueFigmaPush);
-      if (!post?.imageUrls?.length) { showToast("슬라이드가 없습니다", "warning"); return; }
-      el.textContent = "올리는 중..."; el.disabled = true;
-      const r = await API.post("/api/figma/create-slides", {
-        title: post.topic || "", slides: [post.text?.substring(0, 50) || ""], style: "tech",
-        imageUrls: post.imageUrls, batchId: post.cardBatchId || "",
-      });
-      el.textContent = "Figma에 올리기"; el.disabled = false;
-      if (r?.success) {
-        showToast("Figma에 올림", "success");
-        if (r.figmaUrl) window.open(r.figmaUrl, "_blank");
-      } else showToast(r?.error || "실패", "error");
-    };
-  });
-  document.querySelectorAll("[data-queue-figma-pull]").forEach(el => {
-    el.onclick = async () => {
-      const postId = el.dataset.queueFigmaPull;
-      const fileUrl = prompt("Figma 파일 URL:");
-      if (!fileUrl) return;
-      const match = fileUrl.match(/figma\.com\/(?:design|file)\/([^/]+)/);
-      if (!match) { showToast("올바른 Figma URL이 아닙니다", "error"); return; }
-      el.textContent = "가져오는 중..."; el.disabled = true;
-      const r = await API.post("/api/figma/export-to-queue", { fileKey: match[1], postId });
-      el.textContent = "Figma에서 가져오기"; el.disabled = false;
-      if (r?.ok) { showToast(`${r.count}장 가져옴`, "success"); loadQueue("all"); }
-      else showToast(r?.error || "실패", "error");
-    };
-  });
-
-  // Queue: Midjourney add
-  document.querySelectorAll("[data-queue-mj]").forEach(el => {
-    el.onclick = async () => {
-      const postId = el.dataset.queueMj;
-      const prompt = window.prompt("미드저니 프롬프트 (영문 권장):");
-      if (!prompt) return;
-      el.textContent = "생성 중..."; el.disabled = true;
-      const r = await API.post("/api/midjourney/generate", { prompt: prompt + " --ar 4:5" });
-      el.textContent = "미드저니 추가"; el.disabled = false;
-      if (r?.success && r.imagePath) {
-        await API.post(`/api/queue/${postId}/add-image`, { imageUrl: r.imagePath });
-        showToast("미드저니 이미지 추가됨", "success");
-        loadQueue("all");
-      } else showToast(r?.error || "미드저니 생성 실패", "error");
-    };
-  });
-
-  // Queue: Image upload
-  document.querySelectorAll("[data-queue-upload]").forEach(el => {
-    el.onclick = () => {
-      const postId = el.dataset.queueUpload;
-      const input = document.createElement("input");
-      input.type = "file"; input.multiple = true; input.accept = "image/*";
-      input.onchange = async () => {
-        for (const file of input.files) {
-          const formData = new FormData();
-          formData.append("file", file);
-          try {
-            const res = await fetch("/api/images/upload", { method: "POST", headers: authHeaders(), body: formData });
-            const d = await res.json();
-            if (d.url) await API.post(`/api/queue/${postId}/add-image`, { imageUrl: d.url });
-          } catch(e) {}
-        }
-        showToast(`${input.files.length}장 추가됨`, "success");
-        loadQueue("all");
-      };
-      input.click();
-    };
-  });
-
-  // Edit Slides — load card into Create tab
-  document.querySelectorAll("[data-edit-card]").forEach(el => {
-    el.onclick = () => {
-      const postId = el.dataset.editCard;
-      const post = (S.queue || []).find(p => p.id === postId);
-      if (!post) return;
-      S.cardEditor = {
-        title: post.topic?.replace("instagram-card", "").trim() || "",
-        slides: [""], // will be loaded from images
-        style: "dark",
-        ending: "",
-        caption: post.text || "",
-        hashtags: (post.hashtags || []).map(h => "#" + h).join(" "),
-        generating: false,
-        result: post.imageUrls ? { slides: post.imageUrls, batchId: post.cardBatchId, totalSlides: post.imageUrls.length } : null,
-        editingPostId: postId,
-      };
-      S.subTab = "editor";
-      render();
-    };
-  });
 
   // Card News Editor — AI Outline
   const aiOutlineBtn = document.getElementById("card-ai-outline");
@@ -2347,179 +2017,25 @@ function bindEvents() {
   };
   const regenBtn = document.getElementById("card-regenerate");
   if (regenBtn) regenBtn.onclick = () => { if (S.cardEditor) { S.cardEditor.result = null; render(); } };
-  // Slide drag & drop reorder
-  const slidesContainer = document.getElementById("slides-container");
-  if (slidesContainer) {
-    let dragIdx = null;
-    slidesContainer.querySelectorAll("[data-slide-idx]").forEach(el => {
-      el.addEventListener("dragstart", e => {
-        dragIdx = parseInt(el.dataset.slideIdx);
-        el.style.opacity = "0.4";
-        e.dataTransfer.effectAllowed = "move";
-      });
-      el.addEventListener("dragend", () => { el.style.opacity = "1"; });
-      el.addEventListener("dragover", e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; });
-      el.addEventListener("drop", e => {
-        e.preventDefault();
-        const dropIdx = parseInt(el.dataset.slideIdx);
-        if (dragIdx !== null && dragIdx !== dropIdx && S.cardEditor?.result?.slides) {
-          const slides = S.cardEditor.result.slides;
-          const [moved] = slides.splice(dragIdx, 1);
-          slides.splice(dropIdx, 0, moved);
-          render();
-        }
-        dragIdx = null;
-      });
-    });
-  }
 
-  // Slide image preview (click to enlarge)
-  document.querySelectorAll("[data-preview-slide]").forEach(el => {
-    el.onclick = () => {
-      const idx = parseInt(el.dataset.previewSlide);
-      const src = S.cardEditor?.result?.slides?.[idx];
-      if (!src) return;
-      const overlay = document.createElement("div");
-      overlay.className = "fixed inset-0 z-50 bg-black/80 flex items-center justify-center cursor-pointer";
-      overlay.style.backdropFilter = "blur(4px)";
-      overlay.innerHTML = `<img src="${src}" class="max-h-[90vh] max-w-[90vw] rounded-lg shadow-2xl">`;
-      overlay.onclick = () => overlay.remove();
-      document.body.appendChild(overlay);
+  // Sample Community
+  const fetchCommunity = document.getElementById("fetch-community");
+  if (fetchCommunity) fetchCommunity.onclick = async () => {
+    fetchCommunity.textContent = "수집 중..."; fetchCommunity.disabled = true;
+    await loadCommunityPosts();
+    fetchCommunity.textContent = "새 글 수집"; fetchCommunity.disabled = false;
+  };
+  document.querySelectorAll("[data-community-draft]").forEach(el => {
+    el.onclick = async () => {
+      const postId = el.dataset.communityDraft;
+      const tone = el.dataset.tone;
+      el.textContent = "생성중..."; el.disabled = true;
+      const r = await API.post("/api/custom/sample-community/draft", { postId: parseInt(postId), tone });
+      el.disabled = false; el.textContent = tone === "curate" ? "큐레이션" : tone === "summary" ? "요약" : "토론유도";
+      if (r?.ok) showToast("Draft 생성 완료 — 큐에서 확인", "success");
+      else showToast(r?.error || "Draft 생성 실패", "error");
     };
   });
-
-  // Back to queue from editor
-  const backToQueue = document.getElementById("back-to-queue");
-  if (backToQueue) backToQueue.onclick = () => { S.subTab = "queue"; S.cardEditor = null; loadQueue("all"); render(); };
-
-  // Slide management
-  document.querySelectorAll("[data-remove-slide]").forEach(el => {
-    el.onclick = () => {
-      if (S.cardEditor?._mjGenerating) { showToast("미드저니 생성 중 — 완료 후 삭제하세요", "warning"); return; }
-      const idx = parseInt(el.dataset.removeSlide);
-      if (S.cardEditor?.result?.slides) {
-        S.cardEditor.result.slides.splice(idx, 1);
-        S.cardEditor.result.totalSlides = S.cardEditor.result.slides.length;
-        render();
-      }
-    };
-  });
-  // (drag & drop replaces arrow buttons for slide reorder)
-  const addImageBtn = document.getElementById("card-add-image");
-  if (addImageBtn) addImageBtn.onclick = () => document.getElementById("card-upload-input")?.click();
-
-  // Figma pull
-  const figmaPull = document.getElementById("card-figma-pull");
-  if (figmaPull) figmaPull.onclick = async () => {
-    const fileUrl = prompt("Figma 파일 URL을 입력하세요:");
-    if (!fileUrl) return;
-    const match = fileUrl.match(/figma\.com\/(?:design|file)\/([^/]+)/);
-    if (!match) { showToast("올바른 Figma URL이 아닙니다", "error"); return; }
-    figmaPull.textContent = "가져오는 중..."; figmaPull.disabled = true;
-    const r = await API.post("/api/figma/export", { fileKey: match[1] });
-    figmaPull.textContent = "Figma에서 가져오기"; figmaPull.disabled = false;
-    if (r?.success && r.images) {
-      const urls = Object.values(r.images).filter(u => u);
-      if (urls.length && S.cardEditor?.result) {
-        // Download and upload each image
-        for (const imgUrl of urls) {
-          try {
-            const resp = await fetch(imgUrl);
-            const blob = await resp.blob();
-            const formData = new FormData();
-            formData.append("file", blob, "figma-export.png");
-            const upResp = await fetch("/api/images/upload", { method: "POST", headers: authHeaders(), body: formData });
-            const upData = await upResp.json();
-            if (upData.url) S.cardEditor.result.slides.push(upData.url);
-          } catch(e) { /* skip */ }
-        }
-        S.cardEditor.result.totalSlides = S.cardEditor.result.slides.length;
-        showToast(`Figma에서 ${urls.length}장 가져옴`, "success");
-        render();
-      } else showToast("Export할 프레임이 없습니다", "warning");
-    } else showToast(r?.error || "Export 실패", "error");
-  };
-
-  // Midjourney background
-  const mjBgGen = document.getElementById("mj-bg-generate");
-  if (mjBgGen) mjBgGen.onclick = async () => {
-    const prompt = document.getElementById("mj-bg-prompt")?.value?.trim();
-    if (!prompt) { showToast("프롬프트를 입력하세요", "warning"); return; }
-    mjBgGen.textContent = "생성 중 (1~2분)..."; mjBgGen.disabled = true;
-    if (S.cardEditor) S.cardEditor._mjGenerating = true;
-    const r = await API.post("/api/midjourney/generate", { prompt: prompt + " --ar 4:5" });
-    mjBgGen.textContent = "생성"; mjBgGen.disabled = false;
-    if (S.cardEditor) S.cardEditor._mjGenerating = false;
-    if (r?.success && r.imagePath) {
-      if (S.cardEditor?.result) {
-        S.cardEditor.result.slides.push(r.imagePath);
-        S.cardEditor.result.totalSlides = S.cardEditor.result.slides.length;
-      }
-      showToast("미드저니 이미지 추가됨", "success");
-      render();
-    } else showToast(r?.error || "미드저니 생성 실패", "error");
-  };
-
-  const figmaPush = document.getElementById("card-figma-push");
-  if (figmaPush) figmaPush.onclick = async () => {
-    const ed = S.cardEditor;
-    if (!ed?.result?.slides?.length) return;
-    figmaPush.textContent = "Figma 생성 중..."; figmaPush.disabled = true;
-    const r = await API.post("/api/figma/create-slides", {
-      title: ed.title, slides: ed.slides.filter(s => s.trim()), style: ed.style,
-      imageUrls: ed.result.slides, batchId: ed.result.batchId,
-    });
-    figmaPush.textContent = "Figma에 올리기"; figmaPush.disabled = false;
-    if (r?.success) {
-      showToast("Figma에 슬라이드 생성 완료", "success");
-      if (r.figmaUrl) window.open(r.figmaUrl, "_blank");
-    } else showToast(r?.error || "Figma 생성 실패", "error");
-  };
-  const downloadBtn = document.getElementById("card-download-slides");
-  if (downloadBtn) downloadBtn.onclick = () => {
-    const slides = S.cardEditor?.result?.slides || [];
-    slides.forEach((url, i) => {
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `slide-${String(i + 1).padStart(2, "0")}.png`;
-      a.click();
-    });
-    showToast(`${slides.length}장 다운로드`, "success");
-  };
-  const uploadFinished = document.getElementById("card-upload-finished");
-  const uploadInput = document.getElementById("card-upload-input");
-  if (uploadFinished && uploadInput) {
-    uploadFinished.onclick = () => uploadInput.click();
-    uploadInput.onchange = async () => {
-      const files = [...uploadInput.files];
-      if (!files.length) return;
-      uploadFinished.textContent = "업로드 중..."; uploadFinished.disabled = true;
-      const uploaded = [];
-      for (const file of files) {
-        const formData = new FormData();
-        formData.append("file", file);
-        try {
-          const res = await fetch("/api/images/upload", { method: "POST", headers: authHeaders(), body: formData });
-          const d = await res.json();
-          if (d.url) uploaded.push(d.url);
-        } catch (e) { /* skip */ }
-      }
-      uploadFinished.textContent = "편집본 업로드"; uploadFinished.disabled = false;
-      uploadInput.value = "";
-      if (uploaded.length) {
-        if (S.cardEditor?.result) {
-          S.cardEditor.result.slides = [...S.cardEditor.result.slides, ...uploaded];
-          S.cardEditor.result.totalSlides = S.cardEditor.result.slides.length;
-        } else if (S.cardEditor) {
-          S.cardEditor.result = { slides: uploaded, totalSlides: uploaded.length, batchId: "upload" };
-        }
-        showToast(`${uploaded.length}장 추가됨 (총 ${S.cardEditor?.result?.slides?.length || uploaded.length}장)`, "success");
-        render();
-      } else { showToast("업로드 실패", "error"); }
-    };
-  }
-
-  // Custom Integration handlers — fork에서 서비스별 추가
 
   // Blog actions
   document.querySelectorAll("[data-blog-approve]").forEach(el => { el.onclick = () => approveBlogPost(el.dataset.blogApprove); });
@@ -2532,12 +2048,19 @@ function navigate(page) {
   if (page === "overview") loadOverview();
   else if (page === "threads") { S.subTab = "queue"; loadQueue(S.queueFilter); loadGrowth(); loadImages(); }
   else if (page === "x") { S.subTab = S.channelConfig.x?.connected ? "queue" : "settings"; loadOverview(); loadChannelGuideAndKeywords(); }
-  else if (page === "instagram") { loadOverview(); loadQueue("all"); loadChannelSettings(); loadCronRuns(); loadChannelGuideAndKeywords(); loadDesignTools(); }
+  else if (page === "instagram") { loadOverview(); loadQueue("all"); loadChannelSettings(); loadCronRuns(); loadChannelGuideAndKeywords(); }
   else if (page === "images") { loadImages(); loadR2Config(); }
-  else if (page === "blog") loadBlogQueue();
-  // Custom Integration pages — fork에서 추가
-  else if (CH_LABELS[page]) { loadOverview(); loadChannelGuideAndKeywords(); }
-  else if (page === "settings") { loadSettings(); loadKeywords(); loadLlmConfig(); loadOverview(); loadNotifSettings(); loadTenantAndChat(); loadR2Config(); }
+  else if (page === "videos") loadVideos();
+  else if (page === "blog-performance") { loadBlogStats(); loadGscAnalytics(); }
+  else if (page === "search-console") { loadGscConfig(); loadGscAnalytics(); }
+  else if (page === "search-advisor") loadNsaData();
+  else if (page === "google-analytics") { loadGaConfig(); loadGaAnalytics(); }
+  else if (page === "keyword-planner") { loadKwPlannerConfig(); render(); }
+  else if (page === "naver-trends") { loadNaverDatalabConfig(); render(); }
+  else if (page === "google-trends") render();
+  else if (page === "blog") { loadBlogQueue(); loadOverview(); loadBlogGuide(); loadBlogKeywords(); loadKeywordBank(); }
+  else if (CH_LABELS[page]) { loadOverview(); loadChannelGuideAndKeywords(); if (page === "slack") loadSlackTemplate(); }
+  else if (page === "settings") { loadSettings(); loadKeywords(); loadLlmConfig(); loadOverview(); loadNotifSettings(); loadTenantAndChat(); }
   render();
 }
 
@@ -2654,10 +2177,6 @@ async function loadImages() {
   const data = await API.get("/api/images");
   if (data) S.images = data;
 }
-async function loadDesignTools() {
-  const data = await API.get("/api/design-tools");
-  if (data) { S.designTools = data; render(); }
-}
 async function loadR2Config() {
   const data = await API.get("/api/r2-config");
   if (data) { S.r2Config = data; render(); }
@@ -2681,9 +2200,76 @@ function renderImages() {
       <span class="text-[10px] px-2 py-1 rounded ${r2Connected ? "bg-green-900/40 text-green-400" : "bg-yellow-900/40 text-yellow-400"}">${r2Connected ? "R2 Connected" : "R2 Not configured"}</span>
     </div>
 
-    ${!r2Connected ? `<div class="card p-4 mb-6 border-yellow-800/30 bg-yellow-900/10">
-      <p class="text-[10px] text-yellow-400">R2 Storage 미설정 — 이미지 발행이 안 됩니다. <a data-nav="settings" class="text-blue-400 hover:underline cursor-pointer">Settings > Storage</a>에서 설정하세요.</p>
-    </div>` : ""}
+    <!-- R2 Storage Settings -->
+    <div class="card p-5 mb-6">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-medium text-gray-300">Cloud Storage (Cloudflare R2)</h3>
+        ${r2Connected ? `<span class="text-[10px] text-green-400">Bucket: ${esc(r2.bucket || "")}</span>` : ""}
+      </div>
+      <details class="mb-3">
+        <summary class="text-[10px] text-blue-400 hover:text-blue-300 cursor-pointer">Setup Guide — R2 설정 전체 가이드</summary>
+        <div class="mt-2 p-3 rounded bg-gray-900/50 text-[10px] text-gray-500 space-y-2">
+          <p class="font-medium text-gray-300">Step 1. 버킷 생성</p>
+          <p class="pl-3">dash.cloudflare.com > R2 Object Storage > Create bucket</p>
+          <p class="pl-3">이름 입력 (예: marketing-images) > Create bucket</p>
+
+          <p class="font-medium text-gray-300">Step 2. 퍼블릭 액세스 활성화</p>
+          <p class="pl-3">생성된 버킷 클릭 > <strong>Settings</strong> 탭</p>
+          <p class="pl-3"><strong>Public Development URL</strong> 항목에서 <strong>Enable</strong> 클릭</p>
+          <p class="pl-3">확인창에 <code class="bg-gray-800 px-1 rounded">allow</code> 입력 > Allow</p>
+          <p class="pl-3">활성화 후 표시되는 URL이 <strong>Public URL</strong>입니다 (예: https://pub-xxx.r2.dev)</p>
+          <p class="pl-3 text-yellow-500">⚠ r2.dev는 개발용 (rate limit 있음). 프로덕션은 커스텀 도메인 연결 권장</p>
+
+          <p class="font-medium text-gray-300">Step 3. API 토큰 생성</p>
+          <p class="pl-3">R2 Overview 페이지 우측 <strong>Account Details</strong></p>
+          <p class="pl-3">S3 API 옆 <strong>Manage</strong> 클릭</p>
+          <p class="pl-3"><strong>Create Account API token</strong> 클릭 (User API token도 가능)</p>
+          <p class="pl-3 text-gray-400">- Token name: 아무 이름 (예: marketing-hub)</p>
+          <p class="pl-3 text-gray-400">- Permissions: <strong>Object Read & Write</strong> 선택</p>
+          <p class="pl-3 text-gray-400">- Specify bucket(s): 위에서 만든 버킷 선택</p>
+          <p class="pl-3 text-gray-400">- TTL: 기본값 (무기한) 유지</p>
+          <p class="pl-3 text-gray-400">- Client IP Address Filtering: 비워두기 (제한 없음)</p>
+          <p class="pl-3 text-gray-400">- <strong>Create API Token</strong> 클릭</p>
+
+          <p class="font-medium text-gray-300">Step 4. 값 복사 (이 화면을 벗어나면 Secret을 다시 볼 수 없음!)</p>
+          <p class="pl-3">- <strong>Access Key ID</strong>: 표시된 값 복사 → 아래 폼에 입력</p>
+          <p class="pl-3">- <strong>Secret Access Key</strong>: 표시된 값 복사 → 아래 폼에 입력</p>
+
+          <p class="font-medium text-gray-300">Step 5. S3 Endpoint 확인</p>
+          <p class="pl-3">R2 Overview > Account Details에 표시된 S3 API 주소</p>
+          <p class="pl-3">형식: <code class="bg-gray-800 px-1 rounded">https://&lt;account-id&gt;.r2.cloudflarestorage.com</code></p>
+
+          <p class="font-medium text-gray-300">아래 폼에 입력할 값 정리</p>
+          <div class="pl-3 mt-1 p-2 rounded bg-gray-800/50 space-y-0.5">
+            <p><strong>Access Key ID</strong>: Step 4에서 복사한 값</p>
+            <p><strong>Secret Access Key</strong>: Step 4에서 복사한 값</p>
+            <p><strong>Bucket Name</strong>: Step 1에서 만든 버킷 이름</p>
+            <p><strong>S3 Endpoint</strong>: Step 5의 https://xxx.r2.cloudflarestorage.com</p>
+            <p><strong>Public URL</strong>: Step 2에서 활성화 후 표시된 https://pub-xxx.r2.dev</p>
+          </div>
+        </div>
+      </details>
+      ${(() => {
+        const editing = S.editingChannel === "r2";
+        const editable = editing || !r2Connected;
+        return `
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-[10px] text-gray-500">Credentials</span>
+          ${r2Connected && !editing ? '<button id="edit-r2" class="text-[10px] text-blue-400 hover:text-blue-300">Edit Credentials</button>' : ""}
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          ${credField("r2-access-key", "Access Key ID", "", false, r2.accessKeyId || "", editable)}
+          ${credField("r2-secret-key", "Secret Access Key", "", true, r2.secretAccessKey || "", editable)}
+          ${credField("r2-bucket", "Bucket Name", "", false, r2.bucket || "", editable)}
+          ${credField("r2-endpoint", "S3 Endpoint", "https://<account-id>.r2.cloudflarestorage.com", false, r2.endpoint || "", editable)}
+          ${credField("r2-public-url", "Public URL", "https://your-bucket.r2.dev", false, r2.publicUrl || "", editable)}
+        </div>
+        ${editable ? '<div class="flex gap-2 mt-4">' +
+          '<button id="save-r2-config" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">' + (r2Connected ? "Update" : "Connect") + '</button>' +
+          (r2Connected && editing ? '<button id="cancel-edit-r2" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>' : "") +
+          '</div>' : ""}`;
+      })()}
+    </div>
     ${S.images.length === 0 ? `
       <div class="card p-12 text-center">
         <svg class="w-12 h-12 text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -2820,9 +2406,9 @@ function renderGenericChannel(key) {
     tiktok: { fields: ["accessToken"], labels: ["OAuth Access Token"],
       quick: ["developers.tiktok.com > 앱 생성", "Content Posting API 권한 신청", "앱 심사 제출 (심사 전 비공개 포스트만 가능)", "심사 통과 후 Access Token 발급"],
       detail: "TikTok은 앱 심사가 필수입니다. 심사 전에는 모든 포스트가 비공개로만 생성됩니다. 영상/사진 콘텐츠 위주이며, 15건/일 제한." },
-    youtube: { fields: ["accessToken"], labels: ["Google OAuth 2.0 Access Token"],
-      quick: ["console.cloud.google.com > YouTube Data API v3 활성화", "OAuth 2.0 클라이언트 생성 > Access Token 발급", "영상 업로드만 가능 (커뮤니티 글 API 미지원)"],
-      detail: "YouTube Data API는 영상 업로드에 사용됩니다. 커뮤니티 글 작성 API는 공식적으로 존재하지 않습니다. 일일 10,000 quota units 제한." },
+    youtube: { fields: ["clientId", "clientSecret"], labels: ["OAuth Client ID", "OAuth Client Secret"],
+      quick: ["console.cloud.google.com > YouTube Data API v3 활성화", "사용자 인증 정보 > OAuth 2.0 클라이언트 ID 만들기 (웹 애플리케이션)", "승인된 리디렉션 URI에 대시보드 URL + /api/youtube/callback 추가", "Client ID와 Client Secret을 위 폼에 입력 후 Connect", "YouTube 연결 버튼 클릭 → Google 로그인 → 승인"],
+      detail: "YouTube Data API v3로 Shorts 영상을 업로드합니다. OAuth 2.0 인증이 필요하며, 최초 1회 Google 로그인 후 자동 토큰 갱신됩니다. 일일 10,000 quota units 제한. 커뮤니티 글 API는 미지원." },
     telegram: { fields: ["botToken", "chatId"], labels: ["Bot Token (@BotFather에서 발급)", "Chat ID (선택 — 알림 발송용)"],
       quick: ["Telegram에서 @BotFather 검색 > /newbot 명령", "봇 이름 + username 설정 > Bot Token 복사", "양방향 대화만 할 경우: Bot Token만 입력하면 완료", "알림도 받으려면: Chat ID 입력 (아래 '더 알아보기' 참고)"],
       detail: "Bot Token\n@BotFather에게 /newbot 하면 발급되는 봇 전용 비밀번호입니다. 무료.\n\nChat ID란?\n봇이 '알림'을 보낼 장소입니다.\n- 없으면: 내가 봇에게 먼저 말해야 대화 가능\n- 있으면: 봇이 먼저 알림을 보낼 수 있음 (바이럴 감지, 주간 리포트 등)\n\nChat ID 확인하는 법\n1. 봇에게 아무 메시지를 보냅니다\n2. 브라우저에서 아래 주소 접속:\n   https://api.telegram.org/bot여기에토큰/getUpdates\n3. 결과에서 \"chat\":{\"id\": 숫자} ← 이 숫자가 Chat ID\n\n또는 Telegram에서 @RawDataBot 에게 메시지 보내면 바로 Chat ID를 알려줍니다.\n\n양방향 대화\nSettings > Interactive Chat에서 Bot Token을 설정하면, 봇에게 '이번 주 성과 보여줘' 같은 명령을 보낼 수 있습니다." },
@@ -2838,9 +2424,9 @@ function renderGenericChannel(key) {
     naver_blog: { fields: ["blogId", "username", "apiKey"], labels: ["Blog ID", "네이버 Username", "API Key (XML-RPC)"],
       quick: ["네이버 블로그 관리 > 글쓰기 API 설정", "Blog ID, Username 확인", "XML-RPC API Key 발급", "위 폼에 입력"],
       detail: "네이버 블로그는 공식 REST API가 없습니다. 레거시 XML-RPC 방식으로 발행하며, 안정성이 보장되지 않습니다. 비공식 방식." },
-    midjourney: { fields: ["discordToken", "channelId", "serverId"], labels: ["Discord Token (유저 토큰)", "Channel ID (미드저니 봇 채널)", "Server ID (Discord 서버)"],
-      quick: ["<a href='https://midjourney.com/app' target='_blank' class='text-blue-400'>midjourney.com/app</a>에서 구독 확인 (Basic 이상)", "Discord 설정 > 고급 > <strong>개발자 모드</strong> ON", "미드저니 봇이 있는 서버 이름 우클릭 > <strong>서버 ID 복사</strong>", "미드저니 봇이 있는 채널 우클릭 > <strong>채널 ID 복사</strong>", "Discord Token 발급: <a href='https://discord.com/app' target='_blank' class='text-blue-400'>discord.com/app</a> 접속 (브라우저) > F12 > Console 탭 > 아래 코드 붙여넣기 후 Enter:<br><code class='bg-gray-800 px-1 rounded text-[9px] break-all'>(function(){const o=XMLHttpRequest.prototype.setRequestHeader;XMLHttpRequest.prototype.setRequestHeader=function(n,v){if(n.toLowerCase()==='authorization')console.log('[Token]',v);return o.apply(this,arguments)}})()</code><br>실행 후 Discord에서 아무 채널 클릭 → Console에 <code class='bg-gray-800 px-1 rounded'>[Token] MTxx...</code> 출력됨", "위 폼에 3개 값 입력 후 Connect"],
-      detail: "Midjourney Discord 연동으로 /imagine 명령을 자동 전송하고 생성된 이미지를 수집합니다.\n\n⚠️ Discord 유저 토큰 사용 — Discord TOS 위반 리스크가 있습니다. 자동화 속도를 제한하여 사용하세요.\n\nDiscord Token이란?\n봇 토큰이 아닌 '유저 토큰'입니다. 브라우저에서 Discord에 로그인한 상태에서 개발자 콘솔로 추출합니다.\n\n다른 방법으로 Token 찾기:\n1. discord.com/app > F12 > Network 탭 > Fetch/XHR 필터 > 아무 요청 클릭 > Headers > Authorization 값\n2. F12 > Application > Local Storage > discord.com > 'token' 검색\n\nChannel ID / Server ID:\n개발자 모드를 ON하면 우클릭 메뉴에 'ID 복사' 항목이 생깁니다.\n\n이미지 생성 시간: 30~90초. 자동 업스케일 지원.\nMidjourney 구독 필요 (Basic $10/월, Standard $30/월)." },
+    midjourney: { fields: ["discordToken", "channelId", "serverId"], labels: ["Discord Token", "Channel ID (미드저니 봇 채널)", "Server ID (Discord 서버)"],
+      quick: ["Discord 서버에 Midjourney 봇 초대 (midjourney.com/app)", "개발자 모드 ON: Discord 설정 > 고급 > 개발자 모드 활성화", "서버 이름 우클릭 > 서버 ID 복사", "미드저니 봇이 있는 채널 우클릭 > 채널 ID 복사", "Discord Token: 봇 토큰 또는 유저 토큰 입력 (discord.com/developers > Applications > Bot > Token)", "위 폼에 3개 값 입력 후 Connect"],
+      detail: "Midjourney Discord 연동으로 /imagine 명령을 자동 전송하고 생성된 이미지를 수집합니다.\n\n⚠️ 유저 토큰 사용 시 Discord TOS 위반 리스크가 있습니다. 봇 토큰 사용을 권장합니다.\n\n봇 토큰 발급: discord.com/developers > New Application > Bot > Reset Token\n봇을 서버에 초대: OAuth2 > URL Generator > bot 권한 선택 > 생성된 URL로 초대\n\n필요 권한: Read Messages, Send Messages, Read Message History.\n\n이미지 생성 시간: 30~90초. 자동 업스케일 지원.\n\nMidjourney 구독 필요 (Basic $10/월, Standard $30/월)." },
   };
 
   const sg = setupGuides[key] || { fields: [], labels: [], quick: ["Setup guide가 아직 준비되지 않았습니다."], detail: "" };
@@ -2890,9 +2476,8 @@ function renderGenericChannel(key) {
         </div>
       </div>
 
-      ${!["telegram", "discord", "slack", "line", "kakao", "whatsapp"].includes(key) ? `
       <!-- Content Guide + Keywords (콘텐츠 발행 채널만) -->
-      <div class="card p-5">
+      ${!["telegram", "discord", "slack", "line"].includes(key) ? `<div class="card p-5">
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-sm font-medium text-gray-300">Content Guide <span class="text-[10px] text-gray-600">(${label})</span></h3>
           <div class="flex gap-2">
@@ -2912,8 +2497,7 @@ function renderGenericChannel(key) {
           </div>
         </div>
         <textarea id="keywords-textarea" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300" rows="5">${(S.channelKeywords?.keywords || S.keywords).join("\n")}</textarea>
-      </div>
-      ` : ""}
+      </div>` : ""}
 
       ${["instagram"].includes(key) ? `
       <!-- Queue (이미지 콘텐츠) -->
@@ -2969,12 +2553,41 @@ function renderGenericChannel(key) {
             const enabled = S.notificationSettings?.[evt]?.channels?.includes(key);
             return `<div class="flex items-center justify-between p-2 rounded bg-gray-900/50">
               <span class="text-xs text-gray-400">${label2}</span>
-              <span class="text-[10px] ${enabled ? "text-green-400" : "text-gray-600"}">${enabled ? "ON" : "OFF"}</span>
+              <label class="relative cursor-pointer"><input type="checkbox" data-notif-toggle="${evt}" data-notif-ch="${key}" ${enabled ? "checked" : ""} class="sr-only peer"><div class="w-8 h-4 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-full"></div></label>
             </div>`;
           }).join("")}
         </div>
-        <p class="text-[10px] text-gray-600 mt-2">Settings > Notifications에서 변경</p>
       </div>
+      ${key === "youtube" && hasKeys ? `
+      <div class="card p-5">
+        <h3 class="text-sm font-medium text-gray-300 mb-3">YouTube 연결</h3>
+        <p class="text-[10px] text-gray-500 mb-3">Client ID/Secret 입력 후, 아래 버튼으로 Google 계정 인증을 완료하세요.</p>
+        <button id="youtube-connect" class="px-4 py-2 bg-red-700 text-white text-xs rounded hover:bg-red-600">Google 계정으로 YouTube 연결</button>
+        <p class="text-[10px] text-gray-600 mt-2" id="youtube-status"></p>
+      </div>
+      ` : ""}
+      ${key === "slack" ? `
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-medium text-gray-300">주간 리포트 템플릿</h3>
+          <button id="slack-preview-report" class="text-[10px] text-blue-400 hover:text-blue-300">Preview</button>
+        </div>
+        <textarea id="slack-template" rows="12" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-xs text-gray-300 font-mono mb-2" placeholder="Loading...">${esc(S.slackTemplate || "")}</textarea>
+        <div class="flex gap-2">
+          <button id="save-slack-template" class="px-4 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-500">Save Template</button>
+          <button id="send-slack-custom-report" class="px-4 py-2 bg-purple-700 text-white text-xs rounded hover:bg-purple-600">Send Report</button>
+        </div>
+        <details class="mt-2"><summary class="text-[10px] text-blue-400 cursor-pointer">사용 가능한 변수</summary>
+          <div class="text-[10px] text-gray-500 mt-1 font-mono space-y-0.5">
+            <div>{blog_articles} {blog_views} {blog_delta} {blog_top}</div>
+            <div>{gsc_clicks} {gsc_impressions} {gsc_ctr} {gsc_top_keywords}</div>
+            <div>{ga_sessions} {ga_pageviews}</div>
+            <div>{dashboard_url}</div>
+          </div>
+        </details>
+        ${S.slackReportPreview ? `<div class="mt-3 p-3 rounded bg-gray-900/80 border border-gray-800"><pre class="text-[10px] text-gray-300 whitespace-pre-wrap">${esc(S.slackReportPreview)}</pre></div>` : ""}
+      </div>
+      ` : ""}
       <div class="card p-5">
         <h3 class="text-sm font-medium text-gray-300 mb-3">테스트 발송</h3>
         <div class="flex gap-2">
@@ -2996,8 +2609,53 @@ function renderGenericChannel(key) {
   </div>`;
 }
 
-// Custom Integration pages — fork에서 서비스별 render 함수 추가
-// 예: function renderMyService() { ... }
+// ── Sample Community ──
+async function loadCommunityPosts() {
+  const data = await API.get("/api/custom/sample-community");
+  if (data) { S.communityPosts = [...(data.popularItems || []), ...(data.items || [])]; render(); }
+}
+
+function renderSampleCommunity() {
+  const posts = S.communityPosts || [];
+  return `<div class="px-8 py-6">
+    <button data-nav="overview" class="text-gray-500 hover:text-gray-300 text-sm mb-1">&larr; Back</button>
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-semibold text-white">Sample Community</h2>
+        <p class="text-xs text-gray-500">커뮤니티 글 수집 → Threads/Instagram draft 생성</p>
+      </div>
+      <button id="fetch-community" class="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">새 글 수집</button>
+    </div>
+    ${posts.length === 0 ? `<div class="card p-8 text-center"><p class="text-gray-500 text-sm">수집 버튼을 눌러 커뮤니티 글을 불러오세요</p></div>` : ""}
+    <div class="space-y-3">
+      ${posts.map(p => `
+        <div class="card p-4">
+          <div class="flex items-start justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] px-2 py-0.5 rounded bg-indigo-900/40 text-indigo-300">${esc(p.board || "free")}</span>
+              <span class="text-xs font-medium text-gray-200">${esc(p.title)}</span>
+            </div>
+            <a href="https://www.example.com/community/${p.postId}" target="_blank" class="text-[10px] text-blue-400 hover:underline">원문 &rarr;</a>
+          </div>
+          <p class="text-sm text-gray-400 mb-2 line-clamp-2">${esc(p.excerpt || "")}</p>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3 text-[10px] text-gray-500">
+              <span>${esc(p.author?.name || "")} (${esc(p.author?.role || "")})</span>
+              <span>views: ${p.stats?.viewCount || 0}</span>
+              <span>likes: ${p.stats?.likeCount || 0}</span>
+              <span>comments: ${p.stats?.commentCount || 0}</span>
+            </div>
+            <div class="flex gap-1">
+              <button data-community-draft="${p.postId}" data-tone="curate" class="px-2 py-1 text-[10px] bg-purple-700 text-white rounded hover:bg-purple-600">큐레이션</button>
+              <button data-community-draft="${p.postId}" data-tone="summary" class="px-2 py-1 text-[10px] bg-blue-700 text-white rounded hover:bg-blue-600">요약</button>
+              <button data-community-draft="${p.postId}" data-tone="discuss" class="px-2 py-1 text-[10px] bg-green-700 text-white rounded hover:bg-green-600">토론유도</button>
+            </div>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  </div>`;
+}
 
 // ── Blog ──
 async function loadBlogQueue() { const d = await API.get("/api/blog-queue"); if (d) S.blogQueue = d.posts || []; render(); }
@@ -3053,3 +2711,960 @@ window.addEventListener("hashchange", () => {
   const hash = window.location.hash.replace("#", "");
   if (hash && hash !== S.page) { S.page = hash; render(); }
 });
+
+
+// ════════════════════════════════════════
+// ══ Sample Custom Pages ══
+// ════════════════════════════════════════
+
+async function loadBlogStats() { const d = await API.get("/api/blog-stats"); if (d) { S.blogStats = d; render(); } }
+
+async function loadGaAnalytics() {
+  const d = await API.get(`/api/ga-analytics?days=${S.gaDays}`);
+  if (d) { S.gaAnalytics = d; render(); }
+}
+
+async function loadGscAnalytics() {
+  const d = await API.get(`/api/gsc-analytics?days=${S.gscDays}&dimension=${S.gscDimension}`);
+  if (d) { S.gscAnalytics = d; render(); }
+}
+
+async function loadGscConfig() { const d = await API.get("/api/gsc-config"); if (d) S.gscConfig = d; }
+
+async function loadGaConfig() { const d = await API.get("/api/ga-config"); if (d) { S.gaConfigured = d.configured; S.gaPropertyId = d.propertyId || ""; render(); } }
+
+async function loadSlackConfig() { const d = await API.get("/api/slack-config"); if (d) { S.slackConfigured = d.configured; S.slackWebhookUrl = d.webhookUrl || ""; render(); } }
+
+async function loadNsaData() { const d = await API.get("/api/nsa-data"); if (d) { S.nsaData = d; render(); } }
+
+async function loadKwPlannerConfig() { const d = await API.get("/api/kw-planner-config"); if (d) { S.kwPlannerConfigured = d.configured; S.kwPlannerKeys = d; render(); } }
+
+async function loadNaverDatalabConfig() { const d = await API.get("/api/naver-datalab-config"); if (d) { S.naverDatalabConfigured = d.configured; S.naverDatalabKeys = d; render(); } }
+
+async function loadBlogGuide() { const d = await API.get("/api/blog-guide"); if (d) { S.blogGuide = d.guide || ""; render(); } }
+
+async function loadBlogKeywords() { const d = await API.get("/api/blog-keywords"); if (d) { S.blogKeywords = d.keywords || []; render(); } }
+
+function renderBlogPerformance() {
+  const bs = S.blogStats;
+  const g = S.gscAnalytics;
+  return `<div class="px-8 py-6">
+    <h2 class="text-xl font-bold text-white mb-1">Blog Performance</h2>
+    <p class="text-xs text-gray-500 mb-2">example.com 칼럼 성과</p>
+    <div class="card p-3 mb-6 border-l-2 border-blue-600"><p class="text-[11px] text-gray-400">발행된 칼럼의 조회수와 검색 유입을 추적합니다. 글별로 sample 조회수 + Google 검색 클릭/노출을 통합해서 봅니다.</p></div>
+
+    ${!bs || bs.error ? `<div class="card p-4 text-center text-xs text-gray-500">${bs?.error || "Loading..."}</div>` : `
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Published</div><div class="text-xl font-bold text-white">${bs.totalArticles}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Total Views</div><div class="text-xl font-bold text-white">${bs.totalViews}</div>${bs.dailyDelta != null ? `<div class="text-[10px] ${bs.dailyDelta >= 0 ? "text-green-400" : "text-red-400"}">${bs.dailyDelta >= 0 ? "+" : ""}${bs.dailyDelta} today</div>` : ""}</div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Avg Views</div><div class="text-xl font-bold text-white">${bs.avgViews}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Search Clicks</div><div class="text-xl font-bold text-white">${g?.totalClicks ?? "-"}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Impressions</div><div class="text-xl font-bold text-white">${g?.totalImpressions ?? "-"}</div></div>
+      </div>
+
+      ${bs.history?.length > 1 ? `<div class="card p-4 mb-6">
+        <h3 class="text-xs font-medium text-gray-400 mb-3">Views Trend (14 days)</h3>
+        <div class="flex items-end gap-1 h-20">${bs.history.map((h, i) => {
+          const max = Math.max(...bs.history.map(x => x.totalViews)) || 1;
+          const pct = Math.max(4, (h.totalViews / max) * 100);
+          const prev = i > 0 ? bs.history[i-1].totalViews : h.totalViews;
+          const delta = h.totalViews - prev;
+          return `<div class="flex-1 flex flex-col items-center gap-0.5">
+            <div class="w-full rounded-t ${delta > 0 ? "bg-green-600" : delta < 0 ? "bg-red-600" : "bg-gray-600"}" style="height:${pct}%" title="${h.date}: ${h.totalViews} views (${delta >= 0 ? "+" : ""}${delta})"></div>
+            <span class="text-[8px] text-gray-600">${h.date.slice(5)}</span>
+          </div>`;
+        }).join("")}</div>
+      </div>` : ""}
+
+      ${bs.topTags?.length ? `<div class="card p-4 mb-6">
+        <h3 class="text-xs font-medium text-gray-400 mb-3">Tag Performance</h3>
+        <div class="flex flex-wrap gap-2">${bs.topTags.map(t => `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs border border-gray-800 bg-gray-900 text-gray-400">#${esc(t.tag)} <span class="text-[10px] text-gray-500">${t.count}posts ${t.avgViews}avg</span></span>`).join("")}</div>
+      </div>` : ""}
+
+      <div class="card p-4 mb-6">
+        <h3 class="text-xs font-medium text-gray-400 mb-3">Articles</h3>
+        ${bs.articles?.length ? `<table class="w-full text-sm">
+          <thead><tr class="text-[10px] text-gray-500 uppercase border-b border-gray-800">
+            <th class="text-left py-2">Title</th>
+            <th class="text-right py-2">Views</th>
+            <th class="text-right py-2">Search Clicks</th>
+            <th class="text-right py-2">Impressions</th>
+            <th class="text-right py-2">Actions</th>
+          </tr></thead>
+          <tbody>${bs.articles.map(a => {
+            const gscRow = (g?.rows || []).find(r => r.key?.includes("/column/" + a.id));
+            return `<tr class="border-b border-gray-800/30">
+              <td class="text-gray-200 py-2"><a href="https://www.example.com/community/column/${a.id}" target="_blank" class="hover:text-white truncate block max-w-xs">${esc(a.title)}</a></td>
+              <td class="text-gray-400 text-right py-2">${a.viewCount}</td>
+              <td class="text-gray-400 text-right py-2">${gscRow ? gscRow.clicks : "-"}</td>
+              <td class="text-gray-400 text-right py-2">${gscRow ? gscRow.impressions : "-"}</td>
+              <td class="text-right py-2">${S.gscConfig?.configured ? `<button data-gsc-index="https://www.example.com/community/column/${a.id}" class="text-[10px] text-blue-400 hover:text-blue-300">Index</button>` : ""}</td>
+            </tr>`;
+          }).join("")}</tbody>
+        </table>` : `<p class="text-gray-600 text-sm">No articles</p>`}
+      </div>
+
+      ${g?.rows?.length ? `<div class="card p-4">
+        <h3 class="text-xs font-medium text-gray-400 mb-3">Search Keywords (Google)</h3>
+        <table class="w-full text-sm">
+          <thead><tr class="text-[10px] text-gray-500 uppercase border-b border-gray-800">
+            <th class="text-left py-2">Keyword</th><th class="text-right py-2">Clicks</th><th class="text-right py-2">Imp</th><th class="text-right py-2">CTR</th><th class="text-right py-2">Pos</th><th class="text-right py-2"></th>
+          </tr></thead>
+          <tbody>${g.rows.filter(r => r.key).slice(0, 15).map(r => {
+            const lowCtr = r.impressions >= 5 && r.ctr < 5;
+            return `<tr class="border-b border-gray-800/30${lowCtr ? " bg-yellow-900/10" : ""}">
+              <td class="text-gray-200 py-2">${esc(r.key)}${lowCtr ? ` <span class="text-[9px] text-yellow-400">CTR low</span>` : ""}</td>
+              <td class="text-gray-400 text-right py-2">${r.clicks}</td>
+              <td class="text-gray-400 text-right py-2">${r.impressions}</td>
+              <td class="text-gray-400 text-right py-2">${r.ctr}%</td>
+              <td class="text-gray-400 text-right py-2">${r.position}</td>
+              <td class="text-right py-2"><button data-add-keyword="${esc(r.key)}" class="text-[10px] text-blue-400 hover:text-blue-300">+ Bank</button></td>
+            </tr>`;
+          }).join("")}</tbody>
+        </table>
+      </div>` : ""}
+    `}
+  </div>`;
+}
+
+function renderSearchConsole() {
+  const g = S.gscAnalytics;
+  const days = S.gscDays;
+  const dim = S.gscDimension;
+  return `<div class="px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-bold text-white">Google Search Console</h2>
+        <p class="text-xs text-gray-500 mt-1">Google 검색 성과</p>
+      </div>
+      <div class="flex gap-2">
+        ${[7,28,90].map(d => `<button data-gsc-days="${d}" class="px-3 py-1 text-xs rounded ${days === d ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-800"}">${d}d</button>`).join("")}
+        <span class="text-gray-700 mx-1">|</span>
+        ${["query","page"].map(d => `<button data-gsc-dim="${d}" class="px-3 py-1 text-xs rounded ${dim === d ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-800"}">${d === "query" ? "Keywords" : "Pages"}</button>`).join("")}
+      </div>
+    </div>
+    <div class="card p-3 mb-6 border-l-2 border-blue-600"><p class="text-[11px] text-gray-400">구글 검색에서 사이트가 어떤 키워드로 노출/클릭되는지 확인합니다. 노출은 높은데 클릭이 낮은 키워드는 제목 개선이 필요합니다.</p></div>
+    ${!g || g.error ? `<div class="card p-8 text-center"><p class="text-gray-500 text-sm">${g?.error || "Loading..."}</p>${!S.gscConfig?.configured ? `<p class="text-xs text-gray-600 mt-2">아래에서 서비스 계정 키를 설정하세요</p>` : ""}</div>` : `
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Clicks</div><div class="text-xl font-bold text-white">${g.totalClicks}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Impressions</div><div class="text-xl font-bold text-white">${g.totalImpressions?.toLocaleString()}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Avg CTR</div><div class="text-xl font-bold text-white">${g.avgCtr}%</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Avg Position</div><div class="text-xl font-bold text-white">${g.avgPosition}</div></div>
+      </div>
+      ${(() => {
+        const insights = [];
+        if (dim === "query" && g.rows?.length) {
+          const lowCtr = g.rows.filter(r => r.impressions >= 10 && r.ctr < 3);
+          if (lowCtr.length) insights.push(`<span class="text-yellow-400">${lowCtr.length}개 키워드</span>가 노출은 되지만 클릭이 낮습니다 — 제목/설명 개선 필요`);
+          const topKw = g.rows.filter(r => r.clicks > 0 && r.position <= 5);
+          if (topKw.length) insights.push(`<span class="text-green-400">${topKw.length}개 키워드</span>가 상위 5위 안에 있습니다`);
+        }
+        return insights.length ? `<div class="card p-3 mb-4 border-l-2 border-blue-600"><div class="text-xs text-gray-300 space-y-1">${insights.map(i => `<div>${i}</div>`).join("")}</div></div>` : "";
+      })()}
+      <div class="card p-4">
+        <h3 class="text-xs font-medium text-gray-400 mb-3">${dim === "query" ? "Top Keywords" : "Top Pages"}</h3>
+        ${g.rows?.length ? `<table class="w-full text-sm">
+          <thead><tr class="text-[10px] text-gray-500 uppercase border-b border-gray-800">
+            <th class="text-left py-2">${dim === "query" ? "Keyword" : "Page"}</th>
+            <th class="text-right py-2">Clicks</th>
+            <th class="text-right py-2">Impressions</th>
+            <th class="text-right py-2">CTR</th>
+            <th class="text-right py-2">Position</th>
+            ${dim === "query" ? `<th class="text-right py-2"></th>` : ""}
+          </tr></thead>
+          <tbody>${g.rows.map(r => {
+            const lowCtr = r.impressions >= 10 && r.ctr < 3;
+            const highPos = r.position > 10;
+            return `<tr class="border-b border-gray-800/30${lowCtr ? " bg-yellow-900/10" : ""}">
+              <td class="text-gray-200 py-2 max-w-xs truncate">
+                ${esc(r.key)}
+                ${lowCtr && dim === "query" ? `<span class="text-[9px] text-yellow-400 ml-1">CTR low</span>` : ""}
+                ${highPos && dim === "query" ? `<span class="text-[9px] text-orange-400 ml-1">pos ${r.position}</span>` : ""}
+              </td>
+              <td class="text-gray-400 text-right py-2">${r.clicks}</td>
+              <td class="text-gray-400 text-right py-2">${r.impressions}</td>
+              <td class="text-gray-400 text-right py-2 ${lowCtr ? "text-yellow-400" : ""}">${r.ctr}%</td>
+              <td class="text-gray-400 text-right py-2">${r.position}</td>
+              ${dim === "query" ? `<td class="text-right py-2"><button data-add-keyword="${esc(r.key)}" class="text-[10px] text-blue-400 hover:text-blue-300">+ Bank</button></td>` : ""}
+            </tr>`;
+          }).join("")}</tbody>
+        </table>` : `<p class="text-gray-600 text-sm">No data for this period</p>`}
+      </div>
+      ${g.cached ? `<p class="text-[10px] text-gray-600 mt-2">Cached data from ${g.fetchedAt?.slice(0,16) || "unknown"}</p>` : ""}
+    `}
+    <div class="mt-8">
+      ${renderSeoSection()}
+    </div>
+  </div>`;
+}
+
+function renderSeoSection() {
+  const g = S.gscConfig || {};
+  const editing = S.gscEditing || false;
+  return `
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div class="card p-4">
+        <div class="flex items-center gap-2">
+          <span class="w-5 h-5 rounded bg-blue-900 flex items-center justify-center text-[10px] font-bold text-blue-300">G</span>
+          <span class="text-sm font-medium text-white">Google Search Console</span>
+          <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-green-900/50 text-green-400">Registered</span>
+        </div>
+        <p class="text-[10px] text-gray-500 mt-2">도메인 인증 완료. 검색 성과는 search.google.com/search-console 에서 확인.</p>
+      </div>
+      <div class="card p-4">
+        <div class="flex items-center gap-2">
+          <span class="w-5 h-5 rounded bg-green-900 flex items-center justify-center text-[10px] font-bold text-green-300">N</span>
+          <span class="text-sm font-medium text-white">Naver Search Advisor</span>
+          <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-green-900/50 text-green-400">Registered</span>
+        </div>
+        <p class="text-[10px] text-gray-500 mt-2">등록 완료. 검색 성과는 searchadvisor.naver.com 에서 확인.</p>
+      </div>
+    </div>
+    <div class="card p-4">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="w-5 h-5 rounded bg-blue-900 flex items-center justify-center text-[10px] font-bold text-blue-300">G</span>
+        <span class="text-sm font-medium text-white">Indexing API</span>
+        <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${g.configured ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}">${g.configured ? g.email : "Not set"}</span>
+        ${g.configured && !editing ? `<button id="gsc-edit-key" class="text-[10px] text-blue-400 hover:text-blue-300">Edit</button>` : ""}
+      </div>
+      ${g.configured && !editing ? `
+        <div class="text-xs text-gray-400 space-y-1">
+          <div><span class="text-gray-600">Email:</span> ${esc(g.email)}</div>
+          <div><span class="text-gray-600">Status:</span> <span class="text-green-400">Connected</span> — 글 목록에서 "Index" 버튼으로 색인 요청 가능</div>
+        </div>
+      ` : `
+        <label class="text-xs text-gray-500 block mb-1">Service Account JSON Key</label>
+        <textarea id="gsc-key-json" rows="4" class="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700 font-mono mb-2" placeholder='JSON 키 붙여넣기 또는 파일 업로드'></textarea>
+        <div class="flex gap-2">
+          <button id="save-gsc-key" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
+          <label class="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600 cursor-pointer">
+            Upload JSON <input type="file" id="gsc-key-file" accept=".json" class="hidden">
+          </label>
+          ${g.configured ? `<button id="gsc-cancel-edit" class="px-3 py-1.5 text-xs bg-gray-800 text-gray-400 rounded hover:bg-gray-700">Cancel</button>` : ""}
+        </div>
+        <p class="text-[10px] text-gray-600 mt-2">Google Cloud → 서비스 계정 → 키 → JSON 다운로드. 새 글 발행 후 구글에 색인 요청 자동화에 사용.</p>
+      `}
+    </div>`;
+}
+
+function renderSearchAdvisor() {
+  const nsa = S.nsaData;
+  return `<div class="px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-bold text-white">Naver Search Advisor</h2>
+        <p class="text-xs text-gray-500 mt-1">네이버 검색 성과 — example.com</p>
+      </div>
+      <a href="https://searchadvisor.naver.com/console/board?siteUrl=https%3A%2F%2Fexample.com%2F" target="_blank" class="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">네이버 Search Advisor 열기 &rarr;</a>
+    </div>
+
+    <div class="card p-3 mb-6 border-l-2 border-green-600">
+      <div class="text-[11px] text-gray-400 mb-1">네이버 검색에서 사이트가 어떻게 노출되는지 확인합니다. searchadvisor.naver.com에서 데이터를 확인하고 아래에 수동 입력하세요.</div>
+      <div class="text-xs text-gray-300">네이버 Search Advisor는 공식 API가 없어서 자동 수집이 불가합니다.</div>
+      <div class="text-xs text-gray-500">아래에서 수동으로 데이터를 입력하면 Blog Performance와 함께 추적할 수 있습니다.</div>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div class="card p-4">
+        <label class="text-[10px] text-gray-500 block mb-1">Clicks (최근 28일)</label>
+        <input id="nsa-clicks" type="number" value="${nsa?.clicks ?? ""}" class="w-full bg-gray-800 text-white text-xl font-bold p-1 rounded border border-gray-700">
+      </div>
+      <div class="card p-4">
+        <label class="text-[10px] text-gray-500 block mb-1">Impressions</label>
+        <input id="nsa-impressions" type="number" value="${nsa?.impressions ?? ""}" class="w-full bg-gray-800 text-white text-xl font-bold p-1 rounded border border-gray-700">
+      </div>
+      <div class="card p-4">
+        <label class="text-[10px] text-gray-500 block mb-1">Avg CTR (%)</label>
+        <input id="nsa-ctr" type="number" step="0.1" value="${nsa?.ctr ?? ""}" class="w-full bg-gray-800 text-white text-xl font-bold p-1 rounded border border-gray-700">
+      </div>
+      <div class="card p-4">
+        <label class="text-[10px] text-gray-500 block mb-1">Avg Position</label>
+        <input id="nsa-position" type="number" step="0.1" value="${nsa?.position ?? ""}" class="w-full bg-gray-800 text-white text-xl font-bold p-1 rounded border border-gray-700">
+      </div>
+    </div>
+
+    <div class="card p-4 mb-4">
+      <h3 class="text-xs font-medium text-gray-400 mb-3">Top Keywords (수동 입력)</h3>
+      <textarea id="nsa-keywords" rows="6" class="w-full bg-gray-800 text-gray-200 text-xs p-3 rounded border border-gray-700 font-mono" placeholder="키워드, 클릭, 노출, CTR, 순위 (한 줄에 하나)&#10;예: 과외 관리, 5, 120, 4.2, 3.5&#10;학생 관리 앱, 3, 80, 3.8, 5.2">${(nsa?.keywords || []).map(k => `${k.query}, ${k.clicks}, ${k.impressions}, ${k.ctr}, ${k.position}`).join("\n")}</textarea>
+    </div>
+
+    <div class="flex gap-2">
+      <button id="save-nsa-data" class="px-4 py-2 text-xs bg-green-700 text-white rounded hover:bg-green-600">Save Data</button>
+      <span class="text-[10px] text-gray-600 self-center">${nsa?.savedAt ? `Last saved: ${nsa.savedAt.slice(0,16)}` : "Not saved yet"}</span>
+    </div>
+
+  </div>`;
+}
+
+function renderGoogleAnalytics() {
+  const ga = S.gaAnalytics;
+  const days = S.gaDays;
+  return `<div class="px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-bold text-white">Google Analytics</h2>
+        <p class="text-xs text-gray-500 mt-1">example.com 방문자 분석</p>
+      </div>
+      <div class="flex gap-2">
+        ${[7,28,90].map(d => `<button data-ga-days="${d}" class="px-3 py-1 text-xs rounded ${days === d ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-800"}">${d}d</button>`).join("")}
+      </div>
+    </div>
+    <div class="card p-3 mb-6 border-l-2 border-blue-600"><p class="text-[11px] text-gray-400">사이트 방문자 수, 유입 경로(검색/직접/SNS), 체류시간을 분석합니다. 칼럼 페이지별 성과를 확인할 수 있습니다.</p></div>
+    <div>
+    </div>
+    <div class="card p-5 mb-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-medium text-gray-300">Credentials</h3>
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] px-1.5 py-0.5 rounded-full ${S.gaConfigured ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}">${S.gaConfigured ? "Connected" : "Not set"}</span>
+          ${S.gaConfigured && !S.gaEditing ? `<button id="edit-ga-config" class="text-[10px] text-blue-400 hover:text-blue-300">Edit</button>` : ""}
+        </div>
+      </div>
+      ${!S.gaConfigured || S.gaEditing ? `
+        <div class="space-y-3 mb-3">
+          ${credField("ga-property-id", "Property ID", "(숫자)", false, S.gaPropertyId || "", true)}
+        </div>
+        <div class="flex gap-2">
+          <button id="save-ga-config" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${S.gaConfigured ? "Update" : "Connect"}</button>
+          ${S.gaConfigured && S.gaEditing ? `<button id="cancel-ga-edit" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>` : ""}
+        </div>
+
+        <div class="mt-4 border-t border-gray-800/50 pt-3">
+          <h3 class="text-sm font-medium text-gray-300 mb-3">Setup Guide</h3>
+          <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
+            <li><a href="https://console.cloud.google.com/apis/api/analyticsdata.googleapis.com" target="_blank" class="text-blue-400 hover:underline">Google Cloud Console</a> → <strong class="text-gray-300">Google Analytics Data API</strong> 사용 설정 (필수!)</li>
+            <li><a href="https://analytics.google.com" target="_blank" class="text-blue-400 hover:underline">analytics.google.com</a> 접속</li>
+            <li>좌측 하단 <strong class="text-gray-300">⚙ 관리</strong> → <strong class="text-gray-300">속성 설정</strong> → <strong class="text-gray-300">속성 ID</strong> (숫자) 복사</li>
+            <li>같은 관리 페이지 → <strong class="text-gray-300">속성 접근 관리</strong> → <strong class="text-gray-300">+</strong></li>
+            <li>이메일: <span class="text-gray-300 font-mono text-[9px]">google-search-console@sample-479013.iam.gserviceaccount.com</span> → 역할: <strong class="text-gray-300">뷰어</strong></li>
+            <li>위 폼에 Property ID 입력 후 Connect</li>
+          </ol>
+          <details class="mt-2"><summary class="text-[10px] text-blue-400 cursor-pointer">더 알아보기</summary>
+            <p class="text-[10px] text-gray-500 mt-1 whitespace-pre-wrap">GA4 Data API를 사용합니다. 2가지 설정이 모두 필요합니다:
+
+1) Google Cloud Console에서 "Google Analytics Data API" 활성화 (사용 버튼)
+2) GA4 속성 접근 관리에서 서비스 계정에 뷰어 권한 추가
+
+403 에러 원인:
+- "API has not been used" → Cloud Console에서 API 활성화 필요
+- "Permission denied" → GA4에서 서비스 계정 뷰어 추가 필요
+
+Property ID는 숫자입니다 (예: 516671158). GA4 관리 → 속성 설정에서 확인.</p>
+          </details>
+        </div>
+      ` : `<p class="text-xs text-gray-400">Property ID: ${S.gaPropertyId || ""}</p>`}
+    </div>
+
+    ${!ga || ga.error ? `<div class="card p-8 text-center">
+      <p class="text-gray-500 text-sm">${ga?.error || "데이터 로딩 중..."}</p>
+    </div>` : `
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Sessions</div><div class="text-xl font-bold text-white">${ga.totalSessions?.toLocaleString() ?? 0}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Pageviews</div><div class="text-xl font-bold text-white">${ga.totalPageviews?.toLocaleString() ?? 0}</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Avg Duration</div><div class="text-xl font-bold text-white">${ga.avgDuration ?? "-"}s</div></div>
+        <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Bounce Rate</div><div class="text-xl font-bold text-white">${ga.bounceRate ?? "-"}%</div></div>
+      </div>
+      ${ga.sources?.length ? `<div class="card p-4 mb-6"><h3 class="text-xs font-medium text-gray-400 mb-3">Traffic Sources</h3>
+        <div class="space-y-2">${ga.sources.map(s => `
+          <div class="flex items-center gap-3">
+            <span class="text-xs text-gray-300 w-32">${esc(s.source)}</span>
+            <div class="flex-1 bg-gray-800 rounded-full h-2"><div class="bg-blue-600 rounded-full h-2" style="width:${Math.min(100, (s.sessions / (ga.totalSessions || 1)) * 100)}%"></div></div>
+            <span class="text-xs text-gray-500 w-16 text-right">${s.sessions}</span>
+          </div>
+        `).join("")}</div>
+      </div>` : ""}
+      ${ga.pages?.length ? `<div class="card p-4"><h3 class="text-xs font-medium text-gray-400 mb-3">Top Pages</h3>
+        <table class="w-full text-sm"><thead><tr class="text-[10px] text-gray-500 uppercase border-b border-gray-800">
+          <th class="text-left py-2">Page</th><th class="text-right py-2">Views</th><th class="text-right py-2">Avg Time</th>
+        </tr></thead><tbody>${ga.pages.map(p => `<tr class="border-b border-gray-800/30">
+          <td class="text-gray-200 py-2 truncate max-w-xs">${esc(p.path)}</td>
+          <td class="text-gray-400 text-right py-2">${p.views}</td>
+          <td class="text-gray-400 text-right py-2">${p.avgDuration}s</td>
+        </tr>`).join("")}</tbody></table>
+      </div>` : ""}
+    `}
+  </div>`;
+}
+
+function kwResultsTable() {
+  if (!S.kwResearch?.results?.length) return S.kwResearch?.error ? `<p class="text-xs text-red-400 mt-3">${esc(S.kwResearch.error)}</p>` : "";
+  const comp = {"높음":"text-red-400","중간":"text-yellow-400","낮음":"text-green-400","high":"text-red-400","medium":"text-yellow-400","low":"text-green-400"};
+  return `<table class="w-full text-sm mt-4">
+    <thead><tr class="text-[10px] text-gray-500 uppercase border-b border-gray-800">
+      <th class="text-left py-2">Keyword</th><th class="text-right py-2">PC</th><th class="text-right py-2">Mobile</th>
+      <th class="text-right py-2">Total</th><th class="text-right py-2">Competition</th><th class="text-right py-2"></th>
+    </tr></thead>
+    <tbody>${S.kwResearch.results.slice(0, 30).map(r => `<tr class="border-b border-gray-800/30">
+      <td class="text-gray-200 py-2">${esc(r.keyword)}</td>
+      <td class="text-gray-400 text-right py-2">${r.pcSearches?.toLocaleString()}</td>
+      <td class="text-gray-400 text-right py-2">${r.mobileSearches?.toLocaleString()}</td>
+      <td class="text-white text-right py-2 font-medium">${r.totalSearches?.toLocaleString()}</td>
+      <td class="text-right py-2 ${comp[r.competition] || "text-gray-400"}">${r.competition || "-"}</td>
+      <td class="text-right py-2"><button data-add-keyword="${esc(r.keyword)}" class="text-[10px] text-blue-400 hover:text-blue-300">+ Bank</button></td>
+    </tr>`).join("")}</tbody>
+  </table>`;
+}
+
+function renderKeywordPlanner() {
+  const configured = S.kwPlannerConfigured;
+  const editing = S.kwPlannerEditing;
+  const editable = !configured || editing;
+  return `<div class="px-8 py-6">
+    <h2 class="text-xl font-bold text-white mb-1">Naver Keyword Planner</h2>
+    <p class="text-xs text-gray-500 mb-2">네이버 검색광고 API — 키워드 검색량 + 경쟁도</p>
+    <div class="card p-3 mb-6 border-l-2 border-purple-600"><p class="text-[11px] text-gray-400">키워드의 월간 검색량(PC/모바일)과 경쟁도를 조회합니다. 검색량 높고 경쟁 낮은 키워드를 찾아 "+ Blog KW" 버튼으로 Blog Keywords에 추가하세요.</p></div>
+
+    <div class="card p-5 mb-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-medium text-gray-300">Credentials</h3>
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] px-1.5 py-0.5 rounded-full ${configured ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}">${configured ? "Connected" : "Not set"}</span>
+          ${configured && !editing ? `<button id="edit-kw-planner-config" class="text-[10px] text-blue-400 hover:text-blue-300">Edit Credentials</button>` : ""}
+        </div>
+      </div>
+      <div class="space-y-3 mb-3">
+        ${credField("naver-searchad-customer", "Customer ID", "(숫자)", false, S.kwPlannerKeys?.customerId || "", editable)}
+        ${credField("naver-searchad-id", "액세스라이선스", "(API Key)", false, S.kwPlannerKeys?.clientId || "", editable)}
+        ${credField("naver-searchad-secret", "비밀키", "(Secret Key)", true, S.kwPlannerKeys?.clientSecret || "", editable)}
+      </div>
+      ${editable ? `
+        <div class="flex gap-2">
+          <button id="save-kw-planner-config" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${configured ? "Update" : "Connect"}</button>
+          ${configured && editing ? `<button id="cancel-kw-planner-edit" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>` : ""}
+        </div>
+      ` : ""}
+
+      <div class="mt-4 border-t border-gray-800/50 pt-3">
+        <h3 class="text-sm font-medium text-gray-300 mb-3">Setup Guide</h3>
+        <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
+          <li><a href="https://searchad.naver.com" target="_blank" class="text-blue-400 hover:underline">searchad.naver.com</a> 접속 → 네이버 로그인</li>
+          <li>상단 <strong class="text-gray-300">도구</strong> → <strong class="text-gray-300">API 관리</strong></li>
+          <li>API 키 발급 → <strong class="text-gray-300">액세스라이선스</strong>(API Key), <strong class="text-gray-300">비밀키</strong>(Secret Key) 복사</li>
+          <li>API 관리 페이지 상단에서 <strong class="text-gray-300">CUSTOMER_ID</strong> (숫자) 확인</li>
+          <li>위 폼에 3개 입력 후 Connect</li>
+        </ol>
+        <details class="mt-2"><summary class="text-[10px] text-blue-400 cursor-pointer">더 알아보기</summary>
+          <p class="text-[10px] text-gray-500 mt-1">네이버 검색광고 키워드도구 API를 사용합니다. 광고 집행 없이도 API 키 발급이 가능합니다. 키워드별 월간 PC/모바일 검색량, 경쟁 정도, 연관 키워드를 반환합니다. 무료이며 일일 호출 한도가 있습니다.</p>
+        </details>
+      </div>
+    </div>
+
+    <div class="card p-4">
+      <div class="flex gap-2 mb-2">
+        <input id="kw-research-input" type="text" placeholder="키워드 입력 (쉼표로 구분, 최대 5개)" class="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
+        <button id="kw-research-btn" class="px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Analyze</button>
+        <button id="kw-research-blog" class="px-4 py-2 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600 whitespace-nowrap">Blog Keywords</button>
+      </div>
+      ${kwResultsTable()}
+    </div>
+  </div>`;
+}
+
+function renderNaverTrends() {
+  const configured = S.naverDatalabConfigured;
+  const editing = S.naverDatalabEditing;
+  const editable = !configured || editing;
+  return `<div class="px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-bold text-white">Naver Datalab</h2>
+        <p class="text-xs text-gray-500 mt-1">네이버 검색 트렌드</p>
+      </div>
+      <a href="https://datalab.naver.com" target="_blank" class="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">네이버 데이터랩 열기 &rarr;</a>
+    </div>
+    <div class="card p-3 mb-4 border-l-2 border-green-600"><p class="text-[11px] text-gray-400">키워드 검색 트렌드를 시기별로 확인합니다. 시험 시즌, 방학 등 시즌 키워드를 미리 파악해서 콘텐츠를 준비하세요.</p></div>
+
+    <div class="card p-5 mb-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-medium text-gray-300">Credentials</h3>
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] px-1.5 py-0.5 rounded-full ${configured ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}">${configured ? "Connected" : "Not set"}</span>
+          ${configured && !editing ? `<button id="edit-naver-datalab-config" class="text-[10px] text-blue-400 hover:text-blue-300">Edit Credentials</button>` : ""}
+        </div>
+      </div>
+      <div class="space-y-3 mb-3">
+        ${credField("naver-datalab-id", "Client ID", "", false, S.naverDatalabKeys?.clientId || "", editable)}
+        ${credField("naver-datalab-secret", "Client Secret", "", true, S.naverDatalabKeys?.clientSecret || "", editable)}
+      </div>
+      ${editable ? `
+        <div class="flex gap-2">
+          <button id="save-naver-datalab-config" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">${configured ? "Update" : "Connect"}</button>
+          ${configured && editing ? `<button id="cancel-naver-datalab-edit" class="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">Cancel</button>` : ""}
+        </div>
+      ` : ""}
+
+      <div class="mt-4 border-t border-gray-800/50 pt-3">
+        <h3 class="text-sm font-medium text-gray-300 mb-3">Setup Guide</h3>
+        <ol class="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
+          <li><a href="https://developers.naver.com" target="_blank" class="text-blue-400 hover:underline">developers.naver.com</a> 접속 → 네이버 로그인</li>
+          <li><strong class="text-gray-300">Application</strong> → <strong class="text-gray-300">애플리케이션 등록</strong></li>
+          <li>사용 API에서 <strong class="text-gray-300">"데이터랩 (검색어트렌드)"</strong> 체크</li>
+          <li><strong class="text-gray-300">Client ID</strong>, <strong class="text-gray-300">Client Secret</strong> 복사</li>
+          <li>위 폼에 입력 후 Connect</li>
+        </ol>
+        <details class="mt-2"><summary class="text-[10px] text-blue-400 cursor-pointer">더 알아보기</summary>
+          <p class="text-[10px] text-gray-500 mt-1">네이버 통합 검색어 트렌드 API를 사용합니다. 최대 5개 키워드의 상대적 검색량 변화를 주간/월간 단위로 조회합니다. 성별, 연령대별 필터 가능. 무료.</p>
+        </details>
+      </div>
+    </div>
+
+    <div class="card p-4 mb-4">
+      <div class="flex gap-2 mb-2">
+        <input id="naver-trend-input" type="text" placeholder="키워드 입력 (쉼표로 구분, 최대 5개)" class="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
+        <button id="naver-trend-btn" class="px-4 py-2 text-xs bg-green-600 text-white rounded hover:bg-green-500">Trend</button>
+      </div>
+      ${S.naverTrend?.error ? `<div class="mt-3"><p class="text-xs text-red-400">${esc(S.naverTrend.error)}</p>${S.naverTrend.error.includes("401") || S.naverTrend.error.includes("Scopes") ? `<p class="text-[10px] text-yellow-400 mt-1">→ developers.naver.com → 내 앱 → 수정 → 사용 API에서 "데이터랩 (검색어트렌드)" 체크 → 저장</p>` : ""}</div>` : ""}
+      ${S.naverTrend?.results?.length ? `
+        <div class="mt-4">
+          <h4 class="text-xs font-medium text-gray-400 mb-2">Search Trend (relative)</h4>
+          ${S.naverTrend.results.map(group => `
+            <div class="mb-3">
+              <span class="text-xs text-gray-300">${esc(group.title)}</span>
+              <div class="flex items-end gap-0.5 h-16 mt-1">${(group.data || []).slice(-30).map(d => {
+                const pct = Math.max(2, d.ratio);
+                return `<div class="flex-1 bg-green-600 rounded-t" style="height:${pct}%" title="${d.period}: ${d.ratio}"></div>`;
+              }).join("")}</div>
+            </div>
+          `).join("")}
+        </div>
+      ` : ""}
+    </div>
+  </div>`;
+}
+
+function renderGoogleTrends() {
+  return `<div class="px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-bold text-white">Google Trends</h2>
+        <p class="text-xs text-gray-500 mt-1">구글 검색 트렌드</p>
+      </div>
+      <a href="https://trends.google.com/trends/explore?geo=KR&cat=958" target="_blank" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Google Trends 열기 &rarr;</a>
+    </div>
+    <div class="card p-4 mb-4">
+      <div class="flex gap-2 mb-2">
+        <input id="google-trend-input" type="text" placeholder="키워드 입력 (쉼표로 구분)" class="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
+        <button id="google-trend-btn" class="px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Trend</button>
+      </div>
+      <p class="text-[10px] text-gray-600">Google Trends API (Alpha) 키 필요. 또는 pytrends 라이브러리 사용.</p>
+      <div class="card p-3 mt-3 border-l-2 border-blue-600"><p class="text-[11px] text-gray-400">글로벌/한국 검색 트렌드를 확인합니다. 상승 중인 주제를 선점하세요. 교육(카테고리 958) 트렌드로 바로 이동할 수 있습니다.</p></div>
+      ${S.googleTrend?.error ? `<p class="text-xs text-red-400 mt-3">${esc(S.googleTrend.error)}</p>` : ""}
+      ${S.googleTrend?.results?.length ? `
+        <div class="mt-4 space-y-2">${S.googleTrend.results.map(r => `
+          <div class="flex items-center gap-3 text-xs">
+            <span class="text-gray-300 w-48 truncate">${esc(r.query)}</span>
+            <div class="flex-1 bg-gray-800 rounded-full h-2"><div class="bg-blue-600 rounded-full h-2" style="width:${r.value}%"></div></div>
+            <span class="text-gray-500 w-12 text-right">${r.value}</span>
+          </div>
+        `).join("")}</div>
+      ` : ""}
+    </div>
+  </div>`;
+}
+
+function renderBlogStats() {
+  const s = S.blogStats;
+  if (!s || s.error) return `<div class="card p-4 text-center text-xs text-gray-500">${s?.error || "Loading stats..."}</div>`;
+  return `
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Published</div><div class="text-xl font-bold text-white">${s.totalArticles}</div></div>
+      <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Total Views</div><div class="text-xl font-bold text-white">${s.totalViews}</div></div>
+      <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Avg Views</div><div class="text-xl font-bold text-white">${s.avgViews}</div></div>
+      <div class="card p-4"><div class="text-[10px] text-gray-500 mb-1">Top Article</div><div class="text-xs text-gray-300 truncate">${s.topArticle ? esc(s.topArticle.title) : "-"}</div>${s.topArticle ? `<div class="text-[10px] text-gray-500">${s.topArticle.viewCount} views</div>` : ""}</div>
+    </div>
+    ${s.articles?.length ? `<div class="card p-4"><h4 class="text-xs font-medium text-gray-400 mb-2">Articles on example.com</h4>
+      <div class="space-y-1">${s.articles.map(a => `<div class="flex justify-between items-center text-xs border-b border-gray-800/30 py-1.5">
+        <a href="https://www.example.com/community/column/${a.id}" target="_blank" class="text-gray-300 hover:text-white truncate flex-1 mr-3">${esc(a.title)}</a>
+        <span class="text-gray-500 whitespace-nowrap mr-2">${a.viewCount} views</span>
+        ${S.gscConfig?.configured ? `<button data-gsc-index="https://www.example.com/community/column/${a.id}" class="text-[10px] text-blue-400 hover:text-blue-300 whitespace-nowrap">Index</button>` : ""}
+      </div>`).join("")}</div></div>` : ""}`;
+}
+
+function renderBlog() {
+  const posts = S.blogQueue || [];
+  const sc = { draft: "bg-yellow-900/40 text-yellow-300", approved: "bg-blue-900/40 text-blue-300", published: "bg-green-900/40 text-green-300", failed: "bg-red-900/40 text-red-300" };
+  return `<div class="px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div><h2 class="text-xl font-bold text-white">Blog (Sample)</h2><p class="text-xs text-gray-500 mt-1">학생/학부모 대상 SEO 칼럼 자동화</p></div>
+      <span class="text-sm text-gray-500">${posts.length} in queue</span>
+    </div>
+
+    <details class="card p-4 mb-6">
+      <summary class="text-sm font-medium text-gray-300 cursor-pointer">SEO 콘텐츠 자동화 플로우</summary>
+      <div class="mt-3 text-[11px] text-gray-400 space-y-2">
+        <div class="flex items-start gap-2"><span class="text-blue-400 font-bold">1.</span><div><strong class="text-gray-300">키워드 수집</strong> — Naver Keyword Planner에서 검색량 높고 경쟁 낮은 키워드를 찾아 Blog Keywords에 추가</div></div>
+        <div class="flex items-start gap-2"><span class="text-blue-400 font-bold">2.</span><div><strong class="text-gray-300">트렌드 확인</strong> — Naver Datalab에서 시즌 키워드 파악 (시험, 방학 등)</div></div>
+        <div class="flex items-start gap-2"><span class="text-blue-400 font-bold">3.</span><div><strong class="text-gray-300">콘텐츠 생산</strong> — AI가 Blog Keywords + Content Guide 기반으로 칼럼 draft 자동 생성 (12시간마다)</div></div>
+        <div class="flex items-start gap-2"><span class="text-blue-400 font-bold">4.</span><div><strong class="text-gray-300">검수 + 발행</strong> — 아래 Queue에서 draft 확인 → 클릭해서 수정 → Approve → example.com에 자동 발행 (8시간마다)</div></div>
+        <div class="flex items-start gap-2"><span class="text-blue-400 font-bold">5.</span><div><strong class="text-gray-300">검색 노출</strong> — Google Search Console에서 색인 요청 → 24시간 내 검색 노출</div></div>
+        <div class="flex items-start gap-2"><span class="text-blue-400 font-bold">6.</span><div><strong class="text-gray-300">결과 분석</strong> — Blog Performance에서 조회수 + 검색 클릭 추적 → 잘 되는 키워드 더 밀기</div></div>
+        <p class="text-[10px] text-gray-500 mt-2 border-t border-gray-800 pt-2">Settings에서 Content Generation / Auto Publish 토글로 자동화를 끄고 켤 수 있습니다. Content Guide에서 타겟, 톤, 주제를 수정하세요.</p>
+      </div>
+    </details>
+
+    ${S.keywordBank?.filter(k => !k.used).length ? `
+    <div class="card p-4 mb-4 border-l-2 border-purple-600">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm font-medium text-gray-300">추천 키워드</span>
+        <button data-nav="keyword-planner" class="text-[10px] text-blue-400 hover:text-blue-300">더 많은 키워드 찾기 →</button>
+      </div>
+      <p class="text-[10px] text-gray-500 mb-2">Keyword Research에서 수집된 키워드입니다. 이 키워드로 글을 작성하면 검색 유입이 늘어납니다.</p>
+      <div class="flex flex-wrap gap-1.5">
+        ${S.keywordBank.filter(k => !k.used).slice(0, 10).map(k => `
+          <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] border border-purple-800/30 bg-purple-900/20 text-purple-300">
+            ${esc(k.keyword)}
+            ${k.totalSearches ? `<span class="text-gray-500">${k.totalSearches >= 1000 ? Math.round(k.totalSearches/1000) + "K" : k.totalSearches}</span>` : ""}
+            ${k.competition ? `<span class="text-gray-600">${k.competition}</span>` : ""}
+          </span>
+        `).join("")}
+      </div>
+    </div>
+    ` : `
+    <div class="card p-4 mb-4 border-l-2 border-gray-700">
+      <div class="flex items-center justify-between">
+        <p class="text-[10px] text-gray-500">아직 수집된 키워드가 없습니다. Keyword Research에서 검색량이 높은 키워드를 찾아보세요.</p>
+        <button data-nav="keyword-planner" class="text-[10px] text-blue-400 hover:text-blue-300 whitespace-nowrap">키워드 찾기 →</button>
+      </div>
+    </div>
+    `}
+
+    <h3 class="text-sm font-medium text-gray-400 mb-3">Queue</h3>
+    ${posts.length === 0 ? `<div class="card p-8 text-center"><p class="text-gray-500 text-sm">블로그 글이 없습니다.</p></div>` : ""}
+    <div class="space-y-3">
+    ${posts.map(p => `
+      <div class="card p-4 cursor-pointer hover:border-gray-600 transition-colors" data-blog-detail="${p.id}">
+        <div class="flex items-start justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] px-1.5 py-0.5 rounded ${sc[p.status] || "bg-gray-700 text-gray-300"}">${esc(p.status)}</span>
+            ${p.seoKeyword ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-900/40 text-cyan-300">${esc(p.seoKeyword)}</span>` : ""}
+            ${p.blogPostUrl ? `<a href="${esc(p.blogPostUrl)}" target="_blank" class="text-[10px] text-blue-400 hover:underline" onclick="event.stopPropagation()">View &rarr;</a>` : ""}
+          </div>
+          <div class="flex items-center gap-2">
+            ${p.viewCount != null ? `<span class="text-[10px] text-gray-500">views: ${p.viewCount}</span>` : ""}
+            <span class="text-[10px] text-gray-600">${fmtDate(p.generatedAt)}</span>
+          </div>
+        </div>
+        <h3 class="text-sm font-medium text-gray-200 mb-1">${esc(p.title || "")}</h3>
+        <p class="text-xs text-gray-500 mb-2">${esc((p.content || "").replace(/<[^>]*>/g, "").slice(0, 150))}...</p>
+        ${p.tags?.length ? `<div class="flex flex-wrap gap-1 mb-2">${p.tags.slice(0, 8).map(t => `<span class="text-[10px] text-cyan-400">#${esc(t)}</span>`).join("")}${p.tags.length > 8 ? `<span class="text-[10px] text-gray-600">+${p.tags.length - 8}</span>` : ""}</div>` : ""}
+        <div class="flex gap-2 mt-2" onclick="event.stopPropagation()">
+          ${p.status === "draft" ? `<button data-blog-approve="${p.id}" class="px-2 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>` : ""}
+          ${p.status !== "published" ? `<button data-blog-delete="${p.id}" class="px-2 py-1 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">Delete</button>` : ""}
+        </div>
+      </div>
+    `).join("")}
+    </div>
+    <div class="mt-8">
+      <h3 class="text-lg font-bold text-white mb-4">Blog Settings</h3>
+      ${renderBlogConfig()}
+    </div>
+  </div>`;
+}
+
+function renderBlogConfig() {
+  const cfg = S.channelConfig.blog || {};
+  return `
+    <div class="card p-4">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="w-5 h-5 rounded bg-blue-900 flex items-center justify-center text-[9px] font-bold text-blue-300">B</span>
+        <span class="text-sm font-medium text-white">Sample Blog Connection</span>
+        <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${cfg.connected ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}">${cfg.connected ? "Connected" : "Not set"}</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div>
+          <label class="text-xs text-gray-500 block mb-1">API Base URL</label>
+          <input id="blog-apiBaseUrl" type="text" value="${esc(cfg.apiBaseUrl || "https://api.example.com")}" class="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 block mb-1">Email</label>
+          <input id="blog-email" type="text" value="${esc(cfg.email || "")}" placeholder="account@example.com" class="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 block mb-1">Password</label>
+          <div class="flex gap-1">
+            <input id="blog-password" type="password" value="${esc(cfg.password || "")}" class="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700">
+            <button data-toggle-vis="blog-password" class="px-2 text-[10px] text-gray-500 hover:text-white bg-gray-800 rounded border border-gray-700">Show</button>
+          </div>
+        </div>
+      </div>
+      <button id="save-blog-config" class="mt-3 px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save Connection</button>
+    </div>
+    <div class="card p-4 mt-4">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm font-medium text-white">Blog Automation</span>
+      </div>
+      <div class="space-y-3">
+        <label class="flex items-center justify-between">
+          <div><span class="text-xs text-gray-300">Content Generation</span><p class="text-[10px] text-gray-600">학생/학부모 대상 칼럼 자동 생성 (12시간마다)</p></div>
+          <div class="relative"><input type="checkbox" id="blog-toggle-generate" ${S.cronJobs.find(j=>j.name==="blog-generate-drafts")?.enabled !== false ? "checked" : ""} class="sr-only peer"><div class="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 cursor-pointer after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div></div>
+        </label>
+        <label class="flex items-center justify-between">
+          <div><span class="text-xs text-gray-300">Auto Publish</span><p class="text-[10px] text-gray-600">승인된 글을 example.com에 자동 발행 (8시간마다)</p></div>
+          <div class="relative"><input type="checkbox" id="blog-toggle-publish" ${S.cronJobs.find(j=>j.name==="blog-auto-publish")?.enabled !== false ? "checked" : ""} class="sr-only peer"><div class="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 cursor-pointer after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div></div>
+        </label>
+      </div>
+    </div>
+    <div class="card p-4 mt-4">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm font-medium text-white">Blog Content Guide</span>
+        <span class="text-[10px] text-gray-500">학생/학부모 대상 콘텐츠 전략</span>
+      </div>
+      <textarea id="blog-guide-textarea" rows="10" class="w-full bg-gray-800 text-gray-200 text-xs p-3 rounded border border-gray-700 font-mono leading-relaxed">${esc(S.blogGuide || "")}</textarea>
+      <button id="save-blog-guide" class="mt-2 px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save Guide</button>
+    </div>
+    <div class="card p-4 mt-4">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm font-medium text-white">Blog SEO Keywords</span>
+        <div class="flex gap-2">
+          <button id="load-from-bank" class="px-2 py-1 text-[10px] bg-purple-700 text-white rounded hover:bg-purple-600">Keyword Bank에서 불러오기</button>
+          <span class="text-[10px] text-gray-500">학생/학부모 검색어</span>
+        </div>
+      </div>
+      ${S.keywordBank?.length ? `
+        <div class="mb-3 p-3 rounded bg-purple-900/10 border border-purple-800/30">
+          <p class="text-[10px] text-purple-300 mb-2">Keyword Bank (${S.keywordBank.length}개) — 클릭하여 추가</p>
+          <div class="flex flex-wrap gap-1">${S.keywordBank.filter(k => !k.used).map(k => `<button data-bank-to-blog="${esc(k.keyword)}" class="text-[10px] px-2 py-0.5 rounded bg-purple-900/30 text-purple-300 hover:bg-purple-800/50 border border-purple-800/30">${esc(k.keyword)} <span class="text-gray-500">${k.totalSearches ? k.totalSearches.toLocaleString() : ""}</span></button>`).join("")}</div>
+        </div>
+      ` : ""}
+      <textarea id="blog-keywords-textarea" rows="8" class="w-full bg-gray-800 text-gray-200 text-xs p-3 rounded border border-gray-700 font-mono">${esc((S.blogKeywords || []).join("\n"))}</textarea>
+      <div class="flex gap-2 mt-2">
+        <button id="save-blog-keywords" class="px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save Keywords</button>
+      </div>
+    </div>`;
+}
+
+function renderBlogEditor() {
+  const p = S.blogQueue.find(x => x.id === S.blogDetailId);
+  if (!p) { S.page = "blog"; return renderBlog(); }
+  const sc = { draft: "bg-yellow-900/40 text-yellow-300", approved: "bg-blue-900/40 text-blue-300", published: "bg-green-900/40 text-green-300", failed: "bg-red-900/40 text-red-300" };
+  const canEdit = p.status === "draft" || p.status === "approved";
+
+  if (S.blogEditing) {
+    // ── Edit mode: split layout ──
+    return `<div class="flex flex-col h-screen">
+      <div class="flex items-center justify-between px-6 py-3 border-b border-gray-800 bg-[#0e0e0e]">
+        <div class="flex items-center gap-3">
+          <button id="blog-back" class="text-gray-500 hover:text-white text-sm">&larr; Back</button>
+          <span class="text-[10px] px-2 py-0.5 rounded ${sc[p.status] || "bg-gray-700 text-gray-300"}">${p.status}</span>
+          <span class="text-sm text-white font-medium">${esc(p.title || "Untitled")}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="blog-toggle-edit" class="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Preview</button>
+          <button id="blog-save-edit" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
+          ${p.status === "draft" ? `<button data-blog-approve="${p.id}" class="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>` : ""}
+        </div>
+      </div>
+      <div class="flex-1 flex overflow-hidden">
+        <div class="w-1/2 border-r border-gray-800 flex flex-col">
+          <div class="px-4 py-3 space-y-2 border-b border-gray-800 bg-[#111]">
+            <input id="blog-edit-title" type="text" value="${esc(p.title || "")}" placeholder="Title" class="w-full bg-transparent text-white text-lg font-bold p-0 border-0 outline-none placeholder-gray-600">
+            <div class="flex gap-2">
+              <input id="blog-edit-keyword" type="text" value="${esc(p.seoKeyword || "")}" placeholder="SEO Keyword" class="flex-1 bg-gray-800 text-cyan-300 text-xs p-1.5 rounded border border-gray-700">
+              <input id="blog-edit-tags" type="text" value="${esc((p.tags || []).join(", "))}" placeholder="Tags (comma separated)" class="flex-1 bg-gray-800 text-gray-300 text-xs p-1.5 rounded border border-gray-700">
+            </div>
+            <div class="flex gap-2 items-center">
+              <label class="text-[10px] text-gray-500">Thumbnail</label>
+              <input id="blog-edit-thumbnail" type="text" value="${esc(p.thumbnailUrl || "")}" placeholder="이미지 URL 붙여넣기 (미드저니 등)" class="flex-1 bg-gray-800 text-gray-300 text-xs p-1.5 rounded border border-gray-700">
+              <button id="blog-upload-thumb" class="px-2 py-1.5 text-[10px] bg-purple-700 text-white rounded hover:bg-purple-600 whitespace-nowrap">Upload</button>
+              <label class="px-2 py-1.5 text-[10px] bg-gray-700 text-gray-300 rounded hover:bg-gray-600 cursor-pointer whitespace-nowrap">
+                File <input type="file" id="blog-thumb-file" accept="image/*" class="hidden">
+              </label>
+            </div>
+            ${p.thumbnailUrl ? `<img src="${esc(p.thumbnailUrl)}" class="mt-1 h-16 rounded border border-gray-700 object-cover">` : ""}
+          </div>
+          <textarea id="blog-edit-content" class="flex-1 bg-[#0a0a0a] text-gray-200 text-sm p-4 border-0 outline-none resize-none font-mono leading-relaxed" placeholder="Write HTML or Markdown...">${esc(p.content || "")}</textarea>
+        </div>
+        <div class="w-1/2 overflow-y-auto bg-[#fafafa]">
+          <div id="blog-live-preview" class="max-w-2xl mx-auto px-8 py-10 blog-article-preview"></div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ── Preview mode: article-style full page ──
+  return `<div class="flex flex-col min-h-screen">
+    <div class="flex items-center justify-between px-6 py-3 border-b border-gray-800 bg-[#0e0e0e] sticky top-0 z-10">
+      <div class="flex items-center gap-3">
+        <button id="blog-back" class="text-gray-500 hover:text-white text-sm">&larr; Back</button>
+        <span class="text-[10px] px-2 py-0.5 rounded ${sc[p.status] || "bg-gray-700 text-gray-300"}">${p.status}</span>
+        ${p.seoKeyword ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-900/40 text-cyan-300">${esc(p.seoKeyword)}</span>` : ""}
+        ${p.viewCount != null ? `<span class="text-[10px] text-gray-500">views ${p.viewCount}</span>` : ""}
+      </div>
+      <div class="flex items-center gap-2">
+        ${canEdit ? `<button id="blog-toggle-edit" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Edit</button>` : ""}
+        ${p.status === "draft" ? `<button data-blog-approve="${p.id}" class="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>` : ""}
+        ${p.status !== "published" ? `<button data-blog-delete="${p.id}" class="px-3 py-1.5 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">Delete</button>` : ""}
+        ${p.blogPostUrl ? `<a href="${esc(p.blogPostUrl)}" target="_blank" class="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">View on Site &rarr;</a>` : ""}
+      </div>
+    </div>
+    <div class="flex-1 bg-[#fafafa] overflow-y-auto">
+      <article class="max-w-2xl mx-auto px-8 py-10 blog-article-preview">
+        ${p.thumbnailUrl ? `<img src="${esc(p.thumbnailUrl)}" alt="" class="w-full rounded-lg mb-8 shadow-md">` : ""}
+        <h1 style="font-size:1.75rem;font-weight:800;color:#111;line-height:1.3;margin-bottom:0.75rem">${esc(p.title || "")}</h1>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.5rem">
+          ${(p.tags || []).map(t => `<span style="font-size:0.7rem;padding:2px 8px;border-radius:9999px;background:#e0f2fe;color:#0369a1">#${esc(t)}</span>`).join("")}
+        </div>
+        <div style="font-size:0.75rem;color:#888;margin-bottom:2rem">
+          ${p.model ? p.model : ""} ${p.generatedAt ? "| " + fmtDate(p.generatedAt) : ""}
+        </div>
+        <div class="blog-article-body">${p.content || ""}</div>
+      </article>
+    </div>
+  </div>`;
+}
+
+function openBlogDetail(id) { S.blogDetailId = id; S.blogEditing = false; S.page = "blog-edit"; render(); bindBlogEditorEvents(); }
+
+function bindBlogEditorEvents() {
+  setTimeout(() => {
+    document.getElementById("blog-back")?.addEventListener("click", () => { S.blogDetailId = null; S.blogEditing = false; S.page = "blog"; loadBlogQueue(); });
+    document.getElementById("blog-toggle-edit")?.addEventListener("click", () => { S.blogEditing = !S.blogEditing; render(); bindBlogEditorEvents(); });
+    document.getElementById("blog-save-edit")?.addEventListener("click", () => saveBlogPost(S.blogDetailId));
+    document.querySelectorAll("[data-blog-approve]").forEach(el => { el.onclick = () => approveBlogPost(el.dataset.blogApprove); });
+    document.querySelectorAll("[data-blog-delete]").forEach(el => { el.onclick = () => deleteBlogPost(el.dataset.blogDelete); });
+
+    // Thumbnail upload
+    const uploadThumbBtn = document.getElementById("blog-upload-thumb");
+    if (uploadThumbBtn) uploadThumbBtn.onclick = async () => {
+      const urlInput = document.getElementById("blog-edit-thumbnail");
+      if (!urlInput?.value) { showToast("URL을 입력하세요", "warning"); return; }
+      uploadThumbBtn.textContent = "Uploading..."; uploadThumbBtn.disabled = true;
+      const r = await API.post("/api/blog-upload-image", { imageUrl: urlInput.value });
+      uploadThumbBtn.textContent = "Upload"; uploadThumbBtn.disabled = false;
+      if (r?.ok) { showToast("이미지 업로드 완료", "success"); /* mediaId를 저장 */ }
+      else showToast(r?.error || "업로드 실패", "error");
+    };
+    const thumbFile = document.getElementById("blog-thumb-file");
+    if (thumbFile) thumbFile.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        // Show preview by creating object URL
+        const urlInput = document.getElementById("blog-edit-thumbnail");
+        if (urlInput) urlInput.value = URL.createObjectURL(file);
+        showToast("파일 선택됨 — Upload 버튼을 눌러 업로드하세요", "info");
+      };
+      reader.readAsDataURL(file);
+    };
+
+    // Live preview in edit mode
+    const editor = document.getElementById("blog-edit-content");
+    const preview = document.getElementById("blog-live-preview");
+    if (editor && preview) {
+      const updatePreview = () => {
+        const title = document.getElementById("blog-edit-title")?.value || "";
+        const thumb = document.getElementById("blog-edit-thumbnail")?.value || "";
+        preview.innerHTML = `
+          ${thumb ? `<img src="${esc(thumb)}" alt="" style="width:100%;border-radius:8px;margin-bottom:2rem;box-shadow:0 2px 8px rgba(0,0,0,0.1)">` : ""}
+          <h1 style="font-size:1.75rem;font-weight:800;color:#111;line-height:1.3;margin-bottom:1.5rem">${esc(title)}</h1>
+          <div class="blog-article-body">${editor.value}</div>`;
+      };
+      editor.addEventListener("input", updatePreview);
+      document.getElementById("blog-edit-title")?.addEventListener("input", updatePreview);
+      document.getElementById("blog-edit-thumbnail")?.addEventListener("input", updatePreview);
+      updatePreview();
+    }
+  }, 0);
+}
+
+async function saveBlogPost(id) {
+  const title = document.getElementById("blog-edit-title")?.value;
+  const content = document.getElementById("blog-edit-content")?.value;
+  const seoKeyword = document.getElementById("blog-edit-keyword")?.value;
+  const thumbnailUrl = document.getElementById("blog-edit-thumbnail")?.value || "";
+  const tagsRaw = document.getElementById("blog-edit-tags")?.value || "";
+  const tags = tagsRaw.split(",").map(t => t.trim()).filter(Boolean);
+  const payload = { title, content, seoKeyword, tags };
+  if (thumbnailUrl) payload.thumbnailUrl = thumbnailUrl;
+  const r = await API.post("/api/blog-queue/" + id + "/update", payload);
+  if (r) { showToast("Saved", "success"); loadBlogQueue(); setTimeout(() => bindBlogEditorEvents(), 100); }
+}
+
+async function approveBlogPost(id) { const r = await API.post("/api/blog-queue/" + id + "/approve"); if (r) { showToast("블로그 글 승인", "success"); S.blogDetailId = null; loadBlogQueue(); } }
+
+async function deleteBlogPost(id) { if (!confirm("삭제?")) return; const r = await API.post("/api/blog-queue/" + id + "/delete"); if (r) { showToast("삭제 완료", "success"); S.blogDetailId = null; loadBlogQueue(); } }
+
+async function loadBlogQueue() { const d = await API.get("/api/blog-queue"); if (d) S.blogQueue = d.posts || []; render(); }
+// ── Slack Template ──
+async function loadSlackTemplate() {
+  const d = await API.get("/api/slack-template");
+  if (d) { S.slackTemplate = d.template || ""; render(); }
+}
+
+// ── Keyword Bank ──
+async function loadKeywordBank() {
+  const d = await API.get("/api/keyword-bank");
+  if (d) { S.keywordBank = d.keywords || []; render(); }
+}
+
+// ── Videos Page ──
+async function loadVideos() { const d = await API.get("/api/video/list"); if (d) { S.videos = d.videos || []; render(); } }
+
+function renderVideos() {
+  return `<div class="px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-bold text-white">Videos</h2>
+        <p class="text-xs text-gray-500 mt-1">숏폼 비디오 생성 + 관리</p>
+      </div>
+      <span class="text-sm text-gray-500">${S.videos.length} videos</span>
+    </div>
+
+    <div class="card p-3 mb-6 border-l-2 border-purple-600"><p class="text-[11px] text-gray-400">블로그 글을 숏폼 비디오로 변환합니다. 검정 배경 + 자막 + 배경 이미지. 스크립트를 편집하고 Generate를 누르면 MP4가 생성됩니다.</p></div>
+
+    <!-- 생성 UI -->
+    <div class="card p-5 mb-6">
+      <h3 class="text-sm font-medium text-gray-300 mb-3">새 비디오 만들기</h3>
+      <div class="flex gap-2 mb-3">
+        <button id="video-from-blog" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">블로그 글에서 스크립트 추출</button>
+        <button id="video-add-slide" class="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">+ 슬라이드 추가</button>
+      </div>
+
+      ${S.videoSlides ? `
+        <div class="space-y-2 mb-3" id="video-slides">
+          ${S.videoSlides.map((s, i) => `
+            <div class="flex gap-2 items-start p-2 rounded bg-gray-900/50">
+              <span class="text-[10px] text-gray-600 mt-2 w-4">${i + 1}</span>
+              <div class="flex-1 space-y-1">
+                <input type="text" data-slide-text="${i}" value="${esc(s.text)}" class="w-full bg-gray-800 text-gray-200 text-xs p-1.5 rounded border border-gray-700" placeholder="자막 텍스트">
+                <div class="flex gap-2">
+                  <input type="text" data-slide-image="${i}" value="${esc(s.imageUrl || "")}" class="flex-1 bg-gray-800 text-gray-300 text-[10px] p-1 rounded border border-gray-700" placeholder="이미지 URL (선택)">
+                  <input type="number" data-slide-duration="${i}" value="${s.duration}" class="w-16 bg-gray-800 text-gray-300 text-[10px] p-1 rounded border border-gray-700" min="2" max="15">
+                  <span class="text-[10px] text-gray-600 self-center">초</span>
+                  <button data-slide-remove="${i}" class="text-[10px] text-red-400 hover:text-red-300">삭제</button>
+                </div>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+        <div class="flex gap-2">
+          <button id="video-generate" class="px-4 py-2 text-xs ${S.videoGenerating ? "bg-gray-600" : "bg-purple-700 hover:bg-purple-600"} text-white rounded" ${S.videoGenerating ? "disabled" : ""}>${S.videoGenerating ? "Generating..." : "Generate Video"}</button>
+          <span class="text-[10px] text-gray-500 self-center">총 ${S.videoSlides.reduce((a, s) => a + (s.duration || 4), 0)}초 · ${S.videoSlides.length}슬라이드</span>
+        </div>
+      ` : `<p class="text-xs text-gray-600">블로그 글에서 스크립트를 추출하거나, 슬라이드를 직접 추가하세요.</p>`}
+    </div>
+
+    <!-- 비디오 목록 -->
+    ${S.videos.length === 0 ? `<div class="card p-8 text-center"><p class="text-gray-500 text-sm">생성된 비디오가 없습니다</p></div>` : `
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        ${S.videos.map(v => `
+          <div class="card overflow-hidden">
+            <video src="${v.url}" class="w-full aspect-[9/16] max-h-[400px] bg-black object-contain" controls></video>
+            <div class="p-3">
+              <p class="text-xs text-gray-300 truncate">${esc(v.filename)}</p>
+              <div class="flex items-center justify-between mt-1">
+                <span class="text-[10px] text-gray-500">${(v.size / 1024).toFixed(0)}KB</span>
+                <div class="flex gap-2">
+                  <button data-video-publish="${esc(v.filename)}" class="text-[10px] text-purple-400 hover:text-purple-300">YouTube Shorts</button>
+                  <a href="${v.url}" download class="text-[10px] text-blue-400 hover:text-blue-300">Download</a>
+                  <button data-video-delete="${esc(v.filename)}" class="text-[10px] text-red-400 hover:text-red-300">Delete</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    `}
+  </div>`;
+}
