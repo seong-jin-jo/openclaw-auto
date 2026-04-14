@@ -106,6 +106,7 @@ export function PostCard({ post, channelConfig, onRefresh, onPickImage }: PostCa
         <div className="flex gap-1">
           {channelBadge("T", channels.threads)}
           {channelBadge("X", channels.x)}
+          {channelBadge("IG", channels.instagram)}
         </div>
       </div>
 
@@ -154,23 +155,30 @@ export function PostCard({ post, channelConfig, onRefresh, onPickImage }: PostCa
       {(post.status === "draft" || post.status === "approved") && (
         <div className="flex items-center gap-3 mb-2 text-xs">
           <span className="text-gray-600">Publish to:</span>
-          {["threads", "x"].map((ch) => {
+          {["threads", "x", "instagram"].map((ch) => {
             const chCfg = channelConfig[ch] || {};
             const enabled = chCfg.connected || chCfg.enabled;
             if (!enabled) return null;
             const checked = channels[ch]?.status !== "skipped";
-            const limit = ch === "x" ? 280 : 500;
+            const limit = ch === "x" ? 280 : ch === "instagram" ? 2200 : 500;
             const over = post.text.length > limit;
+            const noImage = ch === "instagram" && !post.imageUrl;
+            const chLabel = ch === "threads" ? "T" : ch === "x" ? "X" : "IG";
             return (
-              <label key={ch} className={`flex items-center gap-1 ${over ? "text-yellow-500" : "text-gray-400"}`}>
+              <label
+                key={ch}
+                className={`flex items-center gap-1 ${noImage ? "text-gray-600 line-through" : over ? "text-yellow-500" : "text-gray-400"}`}
+                title={noImage ? "Instagram은 이미지 필수" : undefined}
+              >
                 <input
                   type="checkbox"
-                  checked={checked}
+                  checked={checked && !noImage}
+                  disabled={noImage}
                   onChange={(e) => handleToggleChannel(ch, e.target.checked)}
                   className="rounded border-gray-600 w-3 h-3"
                 />
-                {ch === "threads" ? "T" : "X"}
-                {over && ` (${post.text.length}/${limit})`}
+                {chLabel}
+                {noImage ? " (no img)" : over ? ` (${post.text.length}/${limit})` : ""}
               </label>
             );
           })}

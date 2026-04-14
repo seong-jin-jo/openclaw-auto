@@ -271,13 +271,12 @@ export function Sidebar() {
           items={[
             { key: "blog", label: "Blog", icon: "B", nav: true },
             { label: "Custom API", icon: "+", soon: true },
-            { label: "Webhook", icon: "W", soon: true },
             { label: "RSS Feed", icon: "R", soon: true },
           ]}
         />
 
         <div className="px-3 mt-5 mb-2">
-          <span className="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Assets</span>
+          <span className="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Assets & Tools</span>
         </div>
         <Link
           href="/images"
@@ -294,6 +293,19 @@ export function Sidebar() {
           Images
           <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-gray-800 text-gray-500">{imageCount}</span>
         </Link>
+        {(() => {
+          const mjCfg = cfg.midjourney || {};
+          return (
+            <Link
+              href="/channels/midjourney"
+              className={`sidebar-item ${pathname === "/channels/midjourney" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3`}
+            >
+              <span className="w-4 h-4 rounded bg-indigo-900/50 flex items-center justify-center text-[8px] font-bold text-indigo-300">MJ</span>
+              Midjourney
+              <span className={`ml-auto w-2 h-2 rounded-full ${mjCfg.connected ? "bg-green-500" : "bg-gray-700"}`} />
+            </Link>
+          );
+        })()}
 
         <div className="px-3 mt-5 mb-2">
           <span className="text-[10px] font-medium text-gray-600 uppercase tracking-wider">System</span>
