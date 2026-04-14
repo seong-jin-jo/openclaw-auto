@@ -171,3 +171,25 @@
 - **상태 명확**: 연결/미연결/에러 상태를 색상으로 즉시 구분
 - **모바일 대응**: 사이드바 → 가로 탭, 카드 1열 배치
 - **캐시 버스팅**: `app.js?v=X.X` 버전 파라미터
+
+## 13. Instagram 카드뉴스
+
+- **Editor**: 슬라이드 편집기 (텍스트 + 이미지 + 스타일)
+- **Queue**: 캐러셀 미리보기 + 일괄 선택/승인/삭제
+
+## 14. Design Tools
+
+- Settings 내 Design Tools 탭
+- Canva/Figma 크레덴셜 입력
+- Figma MCP OAuth 연결
+
+## 15. Settings 5탭 구조
+
+```
+Settings
+├── Channels      — 채널 연결 현황
+├── AI Engine     — LLM 모델 + 크론잡별 오버라이드
+├── Storage       — R2 스토리지 설정
+├── Design Tools  — Canva/Figma 연동
+└── System        — 크론 상태 + 알림 + 계정
+```

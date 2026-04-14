@@ -2,12 +2,17 @@
 
 Claude Agent와 개발자가 참고하는 기술 문서. 사용법은 README.md 참고.
 
+## 공통 레포 정책
+
+이 레포는 서비스 중립적 공통 플랫폼. 코드, 커밋, PR에 특정 서비스 URL/사용자명/브랜드명/API 키를 포함하지 않는다. Custom Integration은 fork에서 추가.
+
 ## 아키텍처
 
 ```
 OpenClaw Cron → Claude Agent → Tool Registry
                                  ├── threads_publish   (Threads API 발행)
                                  ├── x_publish          (X API v2, OAuth 1.0a)
+                                 ├── instagram_publish  (Instagram Graph API)
                                  ├── threads_queue      (queue.json CRUD, 멀티채널)
                                  ├── threads_style      (style-data.json RAG)
                                  ├── threads_insights   (반응 수집 + 터진 글 감지)
@@ -15,9 +20,64 @@ OpenClaw Cron → Claude Agent → Tool Registry
                                  ├── threads_growth     (팔로워 추적)
                                  ├── image_upload       (R2 이미지 업로드)
                                  ├── card_generator     (카드뉴스 생성)
+                                 ├── midjourney_image   (Midjourney 이미지 생성)
                                  ├── blog_queue         (블로그 큐)
                                  └── 14개 채널 publish extensions
 ```
+
+## 대시보드
+
+Next.js (App Router) + TypeScript. 구조:
+
+```
+dashboard/src/
+  app/                    # App Router — 페이지 + API routes
+    api/                  #   REST API endpoints (channel-config, queue, guide, keywords 등)
+    channels/             #   채널별 페이지 (Queue/Analytics/Growth/Popular/Settings)
+    blog/                 #   블로그 관리
+    images/               #   에셋 갤러리
+    settings/             #   채널 연결, AI Engine, Notifications, Account
+    page.tsx              #   Marketing Home
+    layout.tsx            #   루트 레이아웃 + 사이드바
+  components/             # React 컴포넌트 (공유 UI)
+  lib/                    # 유틸리티, 상수, API 헬퍼, 채널 설정
+  hooks/                  # 커스텀 React hooks
+  types/                  # TypeScript 타입 정의
+  store/                  # 상태 관리
+
+dashboard/legacy/         # Flask 호환용 (점진적 제거 예정)
+  server.py               #   Flask API 서버
+  static/                 #   레거시 프론트엔드
+```
+
+주요 페이지:
+- Marketing Home: 채널 그리드 + 주간 성과 + 크론 상태 + 활동 타임라인
+- 채널별 페이지: Queue / Analytics / Growth / Popular / Settings (credential + guide + keywords)
+- Settings: 채널 연결 + AI Engine + Notifications + Account
+- Blog / Images 탭
+
+인증: `DASHBOARD_AUTH_TOKEN` 설정 시 로그인 필수. 미인증 시 랜딩페이지.
+
+## 레거시 전환 로드맵
+
+### Phase 1 (현재): Flask + Next.js 병행
+- `dashboard/legacy/server.py` — Flask API 서버 (기존 크론잡/extension이 호출)
+- `dashboard/src/` — Next.js 프론트엔드 + API routes (신규 기능)
+- 두 서버가 동시에 실행, Next.js가 일부 API를 Flask로 프록시
+
+### Phase 2: Docker를 Next.js로 전환
+- Next.js API routes가 Flask API를 완전 대체
+- `server.py`의 모든 엔드포인트를 `src/app/api/`로 마이그레이션
+- Docker Compose에서 Flask 컨테이너 제거
+
+### Phase 3: legacy/ 삭제
+- `dashboard/legacy/` 디렉토리 완전 제거
+- Next.js 단일 서버로 운영
+
+### fork 주의사항
+- 새 기능은 반드시 `src/`에 추가
+- `server.py` 수정 시 `src/app/api/`에도 동일 기능 반영 (이중 구현)
+- Phase 2 전환 시 `server.py` 코드는 삭제 대상
 
 ## 멀티채널 발행 구조
 
@@ -27,6 +87,7 @@ OpenClaw Cron → Claude Agent → Tool Registry
 2. 각 글에 대해:
    ├── Threads: threads_publish → update_channel(threads, published)
    ├── X: 280자 자동 압축 → x_publish → update_channel(x, published)
+   ├── Instagram: 이미지 첨부 → instagram_publish → update_channel(instagram, published)
    └── 채널 비활성/미연결 → update_channel(channel, skipped)
 3. 모든 채널 완료 → top-level status 자동 갱신
 4. cleanup: 오래된 published/failed 정리
@@ -71,10 +132,20 @@ data/
 ### Credential 검증
 저장 시 `verify_channel(channel, config)` 호출 → 실제 API로 유효성 확인.
 - Threads: `GET /me?fields=username`
+- Instagram: `GET /me?fields=username` (Graph API)
 - Bluesky: `POST createSession`
 - Telegram: `GET /bot{token}/getMe`
 - Facebook: `GET /{pageId}?fields=name`
 - X: 4개 키 존재 여부 (OAuth 서명 생략)
+
+## 새 채널 추가
+
+1. `extensions/PLATFORM-publish/` 생성 (4파일: package.json, plugin.json, index.ts, tool.ts)
+2. `src/app/api/channel-config/route.ts` — `OTHER_CHANNELS`에 채널 추가
+3. `src/lib/verify-channel.ts` — 검증 로직 추가
+4. `src/lib/setup-guides.ts` — quick + detail 가이드 추가
+5. `src/lib/constants.ts` — `CH_LABELS` + `IMPLEMENTED_PLUGINS`에 추가
+6. Docker 리빌드 (`OPENCLAW_EXTENSIONS`에 포함)
 
 ## AI 엔진 (LLM)
 
@@ -92,15 +163,6 @@ data/
 - 대시보드 Settings > AI Engine에서 GUI 설정
 
 인증: Claude Code Max Plan (OAuth, 자동 refresh). 사용량 한도 초과 시 크론 정지.
-
-## 새 채널 추가
-
-1. `extensions/PLATFORM-publish/` 생성 (4파일: package.json, plugin.json, index.ts, tool.ts)
-2. `server.py > IMPLEMENTED_PLUGINS`에 추가
-3. `server.py > verify_channel()`에 검증 로직 추가
-4. `app.js > setupGuides`에 quick + detail 추가
-5. `threads-queue-tool.ts > Channels` 타입에 채널 추가
-6. Docker 리빌드 (OPENCLAW_EXTENSIONS에 포함)
 
 ## 환경 변수
 
@@ -135,97 +197,3 @@ data/
 → **[docs/ui-rules.md](docs/ui-rules.md)** 참고
 
 CLAUDE.md와 별도 관리. 모든 fork가 공유하는 대시보드 UI/UX 기준.
-
-## 대시보드
-
-Flask + Vanilla JS SPA. 구조:
-- Marketing Home: 채널 그리드 + 주간 성과 + 크론 상태 + 활동 타임라인
-- 채널별 페이지: Queue / Analytics / Growth / Popular / Settings (credential + guide + keywords)
-- Settings: 채널 연결 + AI Engine + Notifications + Account
-- Blog / Images 탭
-
-인증: `DASHBOARD_AUTH_TOKEN` 설정 시 로그인 필수. 미인증 시 랜딩페이지.
-
-## 사업화 설계
-
-### 타겟
-자영업자 (카페/미용실/식당/피트니스). 월 10-20만원 구독.
-
-### 온보딩 플로우
-```
-첫 접속 → 업종 선택 (카페/미용실/식당/...) 
-  → prompt-guide + keywords 자동 설정 (업종별 템플릿)
-  → 채널 선택 (Threads/X/Instagram/...)
-  → credential 입력 (Setup Guide 따라하기)
-  → 자동화 시작
-```
-
-### 비용 구조
-- Claude API: Max Plan 공유 or 고객별 API 키
-- X API: 종량제 (PPU), 고객 부담
-- 호스팅: Docker 인스턴스 or 멀티테넌트 공유
-
-### Messaging 채널 상세
-
-**즉시 사용 가능 (무료):**
-- Telegram: @BotFather → Bot Token + Chat ID. 완전 무료, 양방향 대화 가능
-- Discord: 채널 설정 > 웹후크 URL. 완전 무료, 일방향
-- Slack: api.slack.com > Incoming Webhook. 완전 무료, 일방향
-
-**연동 가능 (유료/계약):**
-- LINE: developers.line.biz > Messaging API. 무료 500건/월, 이후 건당 과금. 브로드캐스트 방식
-- Kakao Channel: 알림톡(템플릿 승인 필요) + 친구톡(마케팅). 직접 API 없음, 리셀러(알리고/솔라피) 통해 연동. 건당 과금
-- WhatsApp: BSP(Business Solution Provider) 계약 필요. 건당 $0.02~$0.22. 템플릿 사전 승인
-
-**자영업자 우선순위:**
-한국: Kakao > LINE > Telegram
-글로벌: WhatsApp > Telegram > LINE
-
-### Messaging 활용
-1. **콘텐츠 발행**: 카카오/LINE/Telegram 채널에 마케팅 콘텐츠 자동 발송
-2. **알림**: 발행 완료/바이럴/에러 → Telegram/Slack/Discord로 관리자 알림
-3. **대화 (양방향)**: OpenClaw 내장 채널 기능으로 Agent와 대화 가능 (Telegram 봇 등)
-
-알림 설정: `data/notification-settings.json`
-```json
-{ "onPublish": { "enabled": true, "channels": ["telegram"] },
-  "onViral": { "enabled": true, "channels": ["slack"] },
-  "onError": { "enabled": true, "channels": ["slack"] } }
-```
-API: `GET/POST /api/notification-settings`, `POST /api/send-notification`
-
-### 멀티 테넌트
-
-**현재** (Phase 1): 프로젝트별 독립 인스턴스
-```
-/home/sj/marketing-AI-dark/    ← 고객 A (독립 Docker)
-/home/sj/marketing-AI-tenant1/   ← 고객 B (독립 Docker)
-```
-
-**Phase 2** (v3.0): tenant 라우팅
-```
-/app/tenants/
-  tenant-001/config/ + data/   ← 고객 A
-  tenant-002/config/ + data/   ← 고객 B
-```
-- 로그인 토큰에 tenant ID 포함: `tenant-001:password`
-- server.py에서 DATA_DIR/CONFIG_DIR를 tenant별 분기
-- 같은 대시보드 + extension으로 여러 고객 서비스
-
-**Phase 3** (v4.0 SaaS): 회원가입 + DB + 결제
-- 회원가입 → tenant 자동 생성
-- flat file → DB 전환 (Supabase/PostgreSQL)
-- Stripe 결제 연동
-
-### 기술 전환 고려 (v4.0 시점)
-
-**DB 전환:**
-- 현재: flat file (queue.json, growth.json) — 동시 접근 문제, 검색/집계 불가
-- SQLite (가장 간단) 또는 PostgreSQL/Supabase (SaaS 대비)
-- 마이그레이션: queue.json → posts 테이블, growth.json → metrics 테이블
-
-**Next.js 전환:**
-- 현재: Flask + Vanilla JS (app.js 2000줄+, 컴포넌트 분리 불가)
-- Next.js + React → 컴포넌트 분리, SSR/SEO, TypeScript (extension과 통일)
-- 예상 공수: 3-5일 풀타임
-- 추천 시점: v3.0 완료 후, v4.0 SaaS 준비 단계

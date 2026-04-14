@@ -2,9 +2,9 @@
   "version": 1,
   "jobs": [
     {
-      "id": "75f0f87c-3ea4-46e5-afcd-29f86f5564d1",
-      "name": "threads-generate-drafts",
-      "description": "Threads 콘텐츠 배치 생성 (6시간마다)",
+      "id": "00000000-0000-0000-0000-000000000001",
+      "name": "generate-drafts",
+      "description": "콘텐츠 배치 생성 (6시간마다)",
       "enabled": true,
       "schedule": {
         "kind": "every",
@@ -14,7 +14,7 @@
       "wakeMode": "now",
       "payload": {
         "kind": "agentTurn",
-        "message": "다음을 수행하라:\n1. threads_style tool로 action=read하여 스타일 데이터 확인\n2. /home/node/data/popular-posts.txt 파일을 읽어 인기글 패턴 확인\n3. /home/node/data/prompt-guide.txt 파일을 읽어 콘텐츠 가이드 확인. 이 가이드의 타겟/톤/유형/언어/길이 지침을 반드시 따라라.\n4. 위 데이터를 참고하여 글 5개를 생성. prompt-guide.txt의 지침을 최우선으로 따르되, topic과 hashtags도 지정.\n5. 각 글을 threads_queue tool로 action=add하여 draft로 저장.\n6. model 파라미터에 현재 모델명 기록.\n7. 실패한 글은 건너뛰고 최소 3개 이상 생성."
+        "message": "다음을 수행하라:\n1. 스타일 데이터와 인기글 패턴을 확인\n2. prompt-guide.txt를 읽어 콘텐츠 가이드 확인\n3. 가이드에 따라 글 5개를 생성하여 draft로 저장\n4. 실패한 글은 건너뛰고 최소 3개 이상 생성"
       },
       "delivery": {
         "mode": "none",
@@ -22,19 +22,20 @@
       }
     },
     {
-      "id": "f05fa155-a37a-43a1-99e5-c1852b350160",
-      "name": "threads-auto-publish",
-      "description": "승인된 글 자동 발행 (4시간마다 1개)",
+      "id": "00000000-0000-0000-0000-000000000002",
+      "name": "multi-channel-publish",
+      "description": "승인된 글 멀티채널 발행 (2시간마다)",
       "enabled": true,
       "schedule": {
         "kind": "every",
-        "everyMs": 14400000
+        "everyMs": 7200000
       },
       "sessionTarget": "isolated",
       "wakeMode": "now",
       "payload": {
         "kind": "agentTurn",
-        "message": "다음을 수행하라:\n1. threads_queue tool로 action=get_approved 실행\n2. 결과가 없으면 종료\n3. 결과가 있으면 첫 번째 글 1개를 threads_publish tool로 발행하라. text 파라미터에 해당 글의 text를 넣어라.\n4. 발행 성공하면 threads_queue tool로 action=update, id에 해당 글 id, status를 published, threadsMediaId를 발행 결과의 id로 업데이트\n5. 발행 실패하면 threads_queue tool로 action=update, status를 failed, error에 에러 내용 기록\n6. threads_queue tool로 action=cleanup 실행"
+        "message": "승인된 글을 확인하고, 활성화된 각 채널로 발행하라. 채널별 성공/실패를 기록하고, 완료 후 오래된 글을 정리하라.",
+        "model": "anthropic/claude-haiku-4-5"
       },
       "delivery": {
         "mode": "none",
@@ -42,9 +43,9 @@
       }
     },
     {
-      "id": "a1b2c3d4-5678-4321-abcd-111111111111",
-      "name": "threads-collect-insights",
-      "description": "발행된 글 반응 수집 + 터진 글 감지 (6시간마다)",
+      "id": "00000000-0000-0000-0000-000000000003",
+      "name": "collect-insights",
+      "description": "발행된 글 반응 수집 + 바이럴 감지 (6시간마다)",
       "enabled": true,
       "schedule": {
         "kind": "every",
@@ -54,7 +55,8 @@
       "wakeMode": "now",
       "payload": {
         "kind": "agentTurn",
-        "message": "threads_insights tool로 action=collect 실행하여 발행된 글의 반응(views/likes/replies/reposts/quotes)을 수집하고, 터진 글을 자동 감지하여 popular-posts.txt와 style-data.json에 피드하라."
+        "message": "발행된 글의 반응(views/likes/replies/reposts)을 수집하고, 바이럴 글을 자동 감지하여 인기글 데이터에 반영하라.",
+        "model": "anthropic/claude-haiku-4-5"
       },
       "delivery": {
         "mode": "none",
@@ -62,9 +64,9 @@
       }
     },
     {
-      "id": "a1b2c3d4-5678-4321-abcd-222222222222",
-      "name": "threads-fetch-trending",
-      "description": "외부 인기글 수집 (주 1회 월요일) — keyword_search 심사 승인 후 enable",
+      "id": "00000000-0000-0000-0000-000000000004",
+      "name": "fetch-trending",
+      "description": "외부 인기글 수집 (주 1회)",
       "enabled": false,
       "schedule": {
         "kind": "every",
@@ -74,7 +76,8 @@
       "wakeMode": "now",
       "payload": {
         "kind": "agentTurn",
-        "message": "threads_search tool로 action=fetch 실행하여 search-keywords.txt의 키워드로 Threads 인기글을 검색하고 popular-posts.txt를 업데이트하라."
+        "message": "search-keywords.txt의 키워드로 인기글을 검색하고 popular-posts.txt를 업데이트하라.",
+        "model": "anthropic/claude-haiku-4-5"
       },
       "delivery": {
         "mode": "none",
@@ -82,8 +85,8 @@
       }
     },
     {
-      "id": "a1b2c3d4-5678-4321-abcd-333333333333",
-      "name": "threads-track-growth",
+      "id": "00000000-0000-0000-0000-000000000005",
+      "name": "track-growth",
       "description": "팔로워 수/증감 추적 (매일 1회)",
       "enabled": true,
       "schedule": {
@@ -94,7 +97,8 @@
       "wakeMode": "now",
       "payload": {
         "kind": "agentTurn",
-        "message": "threads_growth tool로 action=track 실행하여 Threads 팔로워 수와 프로필 조회수를 수집하고 growth.json을 업데이트하라."
+        "message": "팔로워 수와 프로필 조회수를 수집하고 growth.json을 업데이트하라.",
+        "model": "anthropic/claude-haiku-4-5"
       },
       "delivery": {
         "mode": "none",
