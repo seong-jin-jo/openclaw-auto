@@ -191,8 +191,8 @@ function InstagramPostCard({ post: p, selectedIds, setSelectedIds, onReload, onE
       {!editing && (
         <div className="flex gap-2 pt-2 border-t border-gray-800/50">
           {p.status === "draft" && <button onClick={approve} className="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>}
-          {(p.status === "draft" || p.status === "approved") && onEditInEditor && <button onClick={() => onEditInEditor(p.id)} className="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button>}
-          {(p.status === "draft" || p.status === "approved") && !onEditInEditor && <button onClick={() => setEditing(true)} className="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button>}
+          {onEditInEditor && <button onClick={() => onEditInEditor(p.id)} className="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button>}
+          {!onEditInEditor && <button onClick={() => setEditing(true)} className="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button>}
           {p.status === "draft" && <button onClick={del} className="px-3 py-1.5 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">Delete</button>}
         </div>
       )}
