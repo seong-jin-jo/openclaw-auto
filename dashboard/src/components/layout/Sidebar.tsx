@@ -6,6 +6,7 @@ import useSWR from "swr";
 import { useChannelConfig } from "@/hooks/useChannelConfig";
 import { useCronStatus } from "@/hooks/useOverview";
 import { CH_LABELS, IMPLEMENTED_PLUGINS } from "@/lib/constants";
+import { getChannelIcon } from "@/lib/channel-icons";
 import { useUIStore } from "@/store/ui-store";
 import { fetcher } from "@/lib/api";
 
@@ -70,9 +71,9 @@ function SidebarGroup({
               className={`sidebar-item ${isActive ? "active" : ""} w-full text-left px-4 py-1.5 text-sm ${textColor} flex items-center gap-3`}
             >
               <span
-                className={`w-4 h-4 rounded ${i.iconClass || "bg-gray-800 text-gray-400"} flex items-center justify-center text-[9px] font-bold`}
+                className={`w-4 h-4 rounded ${i.iconClass || "text-gray-400"} flex items-center justify-center`}
               >
-                {i.icon}
+                {i.key ? getChannelIcon(i.key) : <span className="text-[9px] font-bold">{i.icon}</span>}
               </span>
               {i.label}
               {i.status && (
