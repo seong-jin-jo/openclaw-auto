@@ -11,5 +11,4 @@ ENV NODE_ENV=production
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
-EXPOSE 34560
-CMD ["node", "server.js"]
+CMD ["sh", "-c", "PORT=${DASHBOARD_PORT:-34560} node server.js"]

@@ -250,6 +250,65 @@ export function Sidebar() {
           ]}
         />
 
+        {/* ── Fork-only: Data & Analytics ── */}
+        <div className="px-3 mt-5 mb-2">
+          <span className="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Data & Analytics</span>
+        </div>
+        <Link
+          href="/blog-performance"
+          className={`sidebar-item ${pathname === "/blog-performance" ? "active" : ""} w-full text-left px-4 py-1.5 text-sm text-gray-300 flex items-center gap-3`}
+        >
+          <span className="w-4 h-4 rounded bg-emerald-900/50 flex items-center justify-center text-[9px] font-bold text-emerald-300">BP</span>
+          Blog Performance
+        </Link>
+        <Link
+          href="/search-console"
+          className={`sidebar-item ${pathname === "/search-console" ? "active" : ""} w-full text-left px-4 py-1.5 text-sm text-gray-300 flex items-center gap-3`}
+        >
+          <span className="w-4 h-4 rounded bg-blue-900/50 flex items-center justify-center text-[9px] font-bold text-blue-300">SC</span>
+          Search Console
+        </Link>
+        <Link
+          href="/google-analytics"
+          className={`sidebar-item ${pathname === "/google-analytics" ? "active" : ""} w-full text-left px-4 py-1.5 text-sm text-gray-300 flex items-center gap-3`}
+        >
+          <span className="w-4 h-4 rounded bg-orange-900/50 flex items-center justify-center text-[9px] font-bold text-orange-300">GA</span>
+          Google Analytics
+        </Link>
+
+        {/* ── Fork-only: Keyword Research ── */}
+        <div className="px-3 mt-5 mb-2">
+          <span className="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Keyword Research</span>
+        </div>
+        <Link
+          href="/keyword-planner"
+          className={`sidebar-item ${pathname === "/keyword-planner" ? "active" : ""} w-full text-left px-4 py-1.5 text-sm text-gray-300 flex items-center gap-3`}
+        >
+          <span className="w-4 h-4 rounded bg-cyan-900/50 flex items-center justify-center text-[9px] font-bold text-cyan-300">KP</span>
+          Keyword Planner
+        </Link>
+        <Link
+          href="/search-advisor"
+          className={`sidebar-item ${pathname === "/search-advisor" ? "active" : ""} w-full text-left px-4 py-1.5 text-sm text-gray-300 flex items-center gap-3`}
+        >
+          <span className="w-4 h-4 rounded bg-green-900/50 flex items-center justify-center text-[9px] font-bold text-green-300">SA</span>
+          Search Advisor
+        </Link>
+        <Link
+          href="/naver-trends"
+          className={`sidebar-item ${pathname === "/naver-trends" ? "active" : ""} w-full text-left px-4 py-1.5 text-sm text-gray-300 flex items-center gap-3`}
+        >
+          <span className="w-4 h-4 rounded bg-green-900/50 flex items-center justify-center text-[9px] font-bold text-green-300">NT</span>
+          Naver Trends
+        </Link>
+        <Link
+          href="/google-trends"
+          className={`sidebar-item ${pathname === "/google-trends" ? "active" : ""} w-full text-left px-4 py-1.5 text-sm text-gray-300 flex items-center gap-3`}
+        >
+          <span className="w-4 h-4 rounded bg-blue-900/50 flex items-center justify-center text-[9px] font-bold text-blue-300">GT</span>
+          Google Trends
+        </Link>
+
         <SidebarGroup
           groupKey="custom"
           title="Custom Integration"
