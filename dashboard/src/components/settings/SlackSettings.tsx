@@ -26,6 +26,7 @@ export function SlackSettings() {
 
   const [webhookUrl, setWebhookUrl] = useState("");
   const [editing, setEditing] = useState(false);
+  const [showWebhook, setShowWebhook] = useState(false);
   const [template, setTemplate] = useState("");
   const [editingTmpl, setEditingTmpl] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
@@ -92,31 +93,49 @@ export function SlackSettings() {
       <div className="card p-4">
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs text-gray-400">Webhook URL</span>
-          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${config?.configured ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}`}>
-            {config?.configured ? "Connected" : "Not set"}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${config?.configured ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}`}>
+              {config?.configured ? "Connected" : "Not set"}
+            </span>
+            {config?.configured && !editing && (
+              <button onClick={() => setEditing(true)} className="text-[10px] text-blue-400 hover:text-blue-300">Edit</button>
+            )}
+          </div>
         </div>
-        {!config?.configured || editing ? (
-          <div className="space-y-2">
+        <div className="space-y-2">
+          <div className="relative">
             <input
+              type={showWebhook ? "text" : "password"}
               value={webhookUrl || config?.webhookUrl || ""}
+              readOnly={!(!config?.configured || editing)}
               onChange={(e) => setWebhookUrl(e.target.value)}
               placeholder="https://hooks.slack.com/services/..."
-              className="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700 font-mono"
+              title={webhookUrl || config?.webhookUrl || ""}
+              className={`w-full ${!config?.configured || editing ? "bg-gray-900" : "bg-gray-900/50 cursor-default"} border border-gray-700 rounded px-3 py-2 pr-16 text-[11px] text-gray-300 placeholder-gray-600 font-mono`}
             />
+            <button
+              type="button"
+              onClick={() => setShowWebhook(!showWebhook)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 hover:text-gray-300"
+            >
+              {showWebhook ? "Hide" : "Show"}
+            </button>
+          </div>
+          {!config?.configured || editing ? (
             <div className="flex gap-2">
-              <button onClick={saveWebhook} className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
+              <button onClick={saveWebhook} className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">
+                {config?.configured ? "Update" : "Save"}
+              </button>
               {editing && (
                 <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded">Cancel</button>
               )}
             </div>
-          </div>
-        ) : (
-          <div className="flex gap-2">
-            <button onClick={testWebhook} className="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">Test</button>
-            <button onClick={() => setEditing(true)} className="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button>
-          </div>
-        )}
+          ) : (
+            <div className="flex gap-2">
+              <button onClick={testWebhook} className="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">Test</button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Template */}
