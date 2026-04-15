@@ -33,6 +33,7 @@ export async function GET() {
         healthy = !!(v.token);
       }
 
+      const tokenStr = (v.token as string) || "";
       result.claude = {
         profile: activeKey,
         type: tokenType,
@@ -41,6 +42,7 @@ export async function GET() {
         healthy,
         errorCount: stats.errorCount || 0,
         lastUsed: stats.lastUsed || null,
+        token: tokenStr,
       };
     }
   }
