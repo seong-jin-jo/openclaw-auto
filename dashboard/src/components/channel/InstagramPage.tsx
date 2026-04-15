@@ -294,10 +294,23 @@ function CardNewsEditor({ onReload }: { onReload: () => void }) {
     setEd(prev => ({ ...prev, slides: updated }));
   };
   const removeResultSlide = (idx: number) => {
+    if (mjGenerating) { showToast("미드저니 생성 중 — 완료 후 삭제하세요", "warning"); return; }
     if (!ed.result) return;
     const newSlides = [...ed.result.slides];
     newSlides.splice(idx, 1);
     setEd(prev => ({ ...prev, result: prev.result ? { ...prev.result, slides: newSlides, totalSlides: newSlides.length } : null }));
+  };
+
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [previewImg, setPreviewImg] = useState<string | null>(null);
+
+  const handleDrop = (dropIdx: number) => {
+    if (dragIdx === null || dragIdx === dropIdx || !ed.result) return;
+    const slides = [...ed.result.slides];
+    const [moved] = slides.splice(dragIdx, 1);
+    slides.splice(dropIdx, 0, moved);
+    setEd(prev => ({ ...prev, result: prev.result ? { ...prev.result, slides } : null }));
+    setDragIdx(null);
   };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -407,11 +420,20 @@ function CardNewsEditor({ onReload }: { onReload: () => void }) {
               </div>
               <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: "thin" }}>
                 {ed.result.slides.map((s, i) => (
-                  <div key={i} className="flex-shrink-0 relative group" style={{ minWidth: 128 }}>
-                    <div className="w-32 h-40 rounded-lg overflow-hidden border border-gray-700">
-                      <img src={s} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
+                  <div
+                    key={`${s}-${i}`}
+                    className={`flex-shrink-0 relative group ${dragIdx === i ? "opacity-40" : ""}`}
+                    style={{ minWidth: 128 }}
+                    draggable
+                    onDragStart={() => setDragIdx(i)}
+                    onDragEnd={() => setDragIdx(null)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => handleDrop(i)}
+                  >
+                    <div className="w-32 h-40 rounded-lg overflow-hidden border border-gray-700 cursor-pointer" onClick={() => setPreviewImg(s)}>
+                      <img src={s} alt={`Slide ${i + 1}`} className="w-full h-full object-cover pointer-events-none" />
                     </div>
-                    <button onClick={() => removeResultSlide(i)} className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">x</button>
+                    <button onClick={() => removeResultSlide(i)} className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">✕</button>
                     <span className="absolute bottom-1 left-1 text-[9px] bg-black/60 text-white px-1 rounded">{i + 1}</span>
                   </div>
                 ))}
@@ -485,6 +507,17 @@ function CardNewsEditor({ onReload }: { onReload: () => void }) {
           </div>
         )}
       </div>
+
+      {/* Image preview modal */}
+      {previewImg && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center cursor-pointer"
+          style={{ backdropFilter: "blur(4px)" }}
+          onClick={() => setPreviewImg(null)}
+        >
+          <img src={previewImg} className="max-h-[90vh] max-w-[90vw] rounded-lg shadow-2xl" alt="Preview" />
+        </div>
+      )}
     </div>
   );
 }
