@@ -31,8 +31,11 @@ export function ClaudeToken() {
       const r = await apiPost<{ ok: boolean; type: string }>("/api/claude-token", { token });
       if (r?.ok) {
         showToast(`Claude 토큰 업데이트 완료 (${r.type})`, "success");
+        // 저장한 값 유지 — mutate 전에 tokenValue를 보존
+        const savedToken = token;
         setEditing(false);
-        mutate();
+        await mutate();
+        setTokenValue(savedToken);
       }
     } catch (e) { showToast((e as Error).message, "error"); }
     finally { setSaving(false); }
