@@ -78,17 +78,6 @@ export function PostCard({ post, channelConfig, onRefresh, onPickImage }: PostCa
     } catch (e) { showToast(`실패: ${(e as Error).message}`, "error"); }
   };
 
-  const handleToggleChannel = async (ch: string, checked: boolean) => {
-    try {
-      const channelUpdate = {
-        ...channels,
-        [ch]: { ...(channels[ch] || {}), status: checked ? "pending" : "skipped" },
-      };
-      await apiPost(`/api/queue/${post.id}/update`, { channels: channelUpdate });
-      onRefresh();
-    } catch { /* ignore */ }
-  };
-
   return (
     <div className="card p-4">
       {/* Header */}
@@ -105,8 +94,6 @@ export function PostCard({ post, channelConfig, onRefresh, onPickImage }: PostCa
         </div>
         <div className="flex gap-1">
           {channelBadge("T", channels.threads)}
-          {channelBadge("X", channels.x)}
-          {channelBadge("IG", channels.instagram)}
         </div>
       </div>
 
@@ -149,40 +136,6 @@ export function PostCard({ post, channelConfig, onRefresh, onPickImage }: PostCa
         </>
       ) : (
         <p className="text-sm text-gray-200 mb-2 whitespace-pre-wrap">{post.text}</p>
-      )}
-
-      {/* Channel publish toggles */}
-      {(post.status === "draft" || post.status === "approved") && (
-        <div className="flex items-center gap-3 mb-2 text-xs">
-          <span className="text-gray-600">Publish to:</span>
-          {["threads", "x", "instagram"].map((ch) => {
-            const chCfg = channelConfig[ch] || {};
-            const enabled = chCfg.connected || chCfg.enabled;
-            if (!enabled) return null;
-            const checked = channels[ch]?.status !== "skipped";
-            const limit = ch === "x" ? 280 : ch === "instagram" ? 2200 : 500;
-            const over = post.text.length > limit;
-            const noImage = ch === "instagram" && !post.imageUrl;
-            const chLabel = ch === "threads" ? "T" : ch === "x" ? "X" : "IG";
-            return (
-              <label
-                key={ch}
-                className={`flex items-center gap-1 ${noImage ? "text-gray-600 line-through" : over ? "text-yellow-500" : "text-gray-400"}`}
-                title={noImage ? "Instagram은 이미지 필수" : undefined}
-              >
-                <input
-                  type="checkbox"
-                  checked={checked && !noImage}
-                  disabled={noImage}
-                  onChange={(e) => handleToggleChannel(ch, e.target.checked)}
-                  className="rounded border-gray-600 w-3 h-3"
-                />
-                {chLabel}
-                {noImage ? " (no img)" : over ? ` (${post.text.length}/${limit})` : ""}
-              </label>
-            );
-          })}
-        </div>
       )}
 
       {/* Hashtags */}

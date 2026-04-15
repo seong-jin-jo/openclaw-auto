@@ -522,7 +522,7 @@ function AutomationSection({ channel, expandedFeature, setExpandedFeature }: {
   expandedFeature: string | null;
   setExpandedFeature: (key: string | null) => void;
 }) {
-  const { data: channelSettings } = useSWR(`/api/channel-settings/${channel}`, fetcher);
+  const { data: channelSettings, mutate: mutateSettings } = useSWR(`/api/channel-settings/${channel}`, fetcher);
   const { data: cronJobs } = useSWR("/api/cron-status", fetcher);
   const { data: cronRuns } = useSWR("/api/cron-runs", fetcher);
   const { showToast } = useToast();
@@ -554,6 +554,7 @@ function AutomationSection({ channel, expandedFeature, setExpandedFeature }: {
   const handleToggle = async (key: string, checked: boolean) => {
     try {
       await apiPost(`/api/channel-settings/${channel}`, { [key]: checked });
+      mutateSettings();
       showToast(`${key} ${checked ? "ON" : "OFF"}`, "success");
     } catch (e) { showToast(`실패: ${(e as Error).message}`, "error"); }
   };
