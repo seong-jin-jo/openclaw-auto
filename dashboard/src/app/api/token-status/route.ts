@@ -9,16 +9,36 @@ export async function GET() {
   if (auth) {
     const profiles = (auth.profiles as Record<string, Record<string, unknown>>) || {};
     const usageStats = (auth.usageStats as Record<string, Record<string, unknown>>) || {};
-    for (const [k, v] of Object.entries(profiles)) {
+    const lastGood = (auth.lastGood as Record<string, string>) || {};
+
+    // Find active profile — lastGood.anthropic or first available
+    const activeKey = lastGood.anthropic || Object.keys(profiles)[0];
+    const v = activeKey ? profiles[activeKey] : null;
+
+    if (v) {
+      const tokenType = v.type as string || "unknown";
       const exp = (v.expires as number) || 0;
-      const remainingH = (exp / 1000 - Date.now() / 1000) / 3600;
-      const stats = usageStats[k] || {};
+      const stats = usageStats[activeKey] || {};
+
+      let healthy: boolean;
+      let remainingHours: number | null;
+
+      if (tokenType === "oauth" && exp > 0) {
+        // OAuth — check expiry
+        remainingHours = Math.round(((exp / 1000 - Date.now() / 1000) / 3600) * 10) / 10;
+        healthy = remainingHours > 1;
+      } else {
+        // setup-token or api-key — no expiry, check if token exists
+        remainingHours = null;
+        healthy = !!(v.token);
+      }
+
       result.claude = {
-        profile: k,
-        type: v.type,
-        expiresAt: exp,
-        remainingHours: Math.round(remainingH * 10) / 10,
-        healthy: remainingH > 1,
+        profile: activeKey,
+        type: tokenType,
+        expiresAt: exp || null,
+        remainingHours,
+        healthy,
         errorCount: stats.errorCount || 0,
         lastUsed: stats.lastUsed || null,
       };
