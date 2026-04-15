@@ -18,6 +18,12 @@ function readChannelSettings(): ChannelSettingsData {
   return data;
 }
 
+export async function GET(_request: Request, { params }: { params: Promise<{ channel: string }> }) {
+  const { channel } = await params;
+  const data = readChannelSettings();
+  return Response.json(data[channel] || {});
+}
+
 export async function POST(request: Request, { params }: { params: Promise<{ channel: string }> }) {
   const { channel } = await params;
   const body = await request.json();
