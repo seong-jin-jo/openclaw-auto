@@ -60,36 +60,27 @@ function SidebarGroup({
       </button>
       {!collapsed &&
         items.map((i, idx) => {
-          if (i.nav && !i.soon && i.key) {
-            const href = i.key === "blog" ? "/blog" : `/channels/${i.key}`;
-            const isActive = i.key === "blog" ? pathname === "/blog" : pathname === `/channels/${i.key}`;
-            return (
-              <Link
-                key={i.key}
-                href={href}
-                className={`sidebar-item ${isActive ? "active" : ""} w-full text-left px-4 py-1.5 text-sm text-gray-300 flex items-center gap-3`}
-              >
-                <span
-                  className={`w-4 h-4 rounded ${i.iconClass || "bg-gray-800 text-gray-400"} flex items-center justify-center text-[9px] font-bold`}
-                >
-                  {i.icon}
-                </span>
-                {i.label}
-                {i.status && (
-                  <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${i.statusClass || "bg-gray-800 text-gray-500"}`}>
-                    {i.status}
-                  </span>
-                )}
-              </Link>
-            );
-          }
+          const href = i.key === "blog" ? "/blog" : i.key ? `/channels/${i.key}` : "#";
+          const isActive = i.key === "blog" ? pathname === "/blog" : pathname === `/channels/${i.key}`;
+          const textColor = i.status === "Live" || i.status === "Connected" ? "text-gray-300" : "text-gray-500";
           return (
-            <div key={`${i.label}-${idx}`} className="px-4 py-1 text-[12px] text-gray-700 flex items-center gap-3 opacity-40">
-              <span className="w-4 h-4 rounded bg-gray-800 flex items-center justify-center text-[8px] font-bold text-gray-600">
+            <Link
+              key={i.key || `${i.label}-${idx}`}
+              href={href}
+              className={`sidebar-item ${isActive ? "active" : ""} w-full text-left px-4 py-1.5 text-sm ${textColor} flex items-center gap-3`}
+            >
+              <span
+                className={`w-4 h-4 rounded ${i.iconClass || "bg-gray-800 text-gray-400"} flex items-center justify-center text-[9px] font-bold`}
+              >
                 {i.icon}
               </span>
-              {i.label} <span className="ml-auto text-[9px] text-gray-800">Soon</span>
-            </div>
+              {i.label}
+              {i.status && (
+                <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${i.statusClass || "bg-gray-800 text-gray-500"}`}>
+                  {i.status}
+                </span>
+              )}
+            </Link>
           );
         })}
     </div>
@@ -102,10 +93,6 @@ function chSidebarItem(key: string, channelConfig: Record<string, Record<string,
   const status = (ch.status as string) || "soon";
   const label = CH_LABELS[key] || key;
   const isImplemented = IMPLEMENTED_PLUGINS.includes(key);
-
-  if (!isImplemented) {
-    return { label, icon: label[0], soon: true };
-  }
 
   if (status === "live") {
     return {
@@ -127,10 +114,8 @@ function chSidebarItem(key: string, channelConfig: Record<string, Record<string,
       statusClass: "bg-blue-900/50 text-blue-400",
     };
   }
-  if (status === "available" || isImplemented) {
-    return { key, label, icon: label[0], nav: true };
-  }
-  return { label, icon: label[0], soon: true };
+  // 미연결 — 클릭 가능, 흰 글씨
+  return { key, label, icon: label[0], nav: true };
 }
 
 /* ── Main Sidebar ── */
@@ -249,8 +234,8 @@ export function Sidebar() {
           title="Messaging"
           items={[
             ...["telegram", "discord", "slack", "line"].map((ch) => chSidebarItem(ch, cfg)),
-            { label: "Kakao Channel", icon: "K", soon: true },
-            { label: "WhatsApp", icon: "W", soon: true },
+            { key: "kakao", label: "Kakao Channel", icon: "K", nav: true },
+            { key: "whatsapp", label: "WhatsApp", icon: "W", nav: true },
           ]}
         />
 
@@ -258,10 +243,10 @@ export function Sidebar() {
           groupKey="data"
           title="Data & SEO"
           items={[
-            { label: "Google Analytics", icon: "GA", soon: true },
-            { label: "Search Console", icon: "SC", soon: true },
-            { label: "SEO Keywords", icon: "KW", soon: true },
-            { label: "Google Business", icon: "GB", soon: true },
+            { key: "google_analytics", label: "Google Analytics", icon: "GA", nav: true },
+            { key: "search_console", label: "Search Console", icon: "SC", nav: true },
+            { key: "seo_keywords", label: "SEO Keywords", icon: "KW", nav: true },
+            { key: "google_business", label: "Google Business", icon: "GB", nav: true },
           ]}
         />
 
@@ -270,8 +255,8 @@ export function Sidebar() {
           title="Custom Integration"
           items={[
             { key: "blog", label: "Blog", icon: "B", nav: true },
-            { label: "Custom API", icon: "+", soon: true },
-            { label: "RSS Feed", icon: "R", soon: true },
+            { key: "custom_api", label: "Custom API", icon: "+", nav: true },
+            { key: "rss", label: "RSS Feed", icon: "R", nav: true },
           ]}
         />
 
@@ -292,6 +277,20 @@ export function Sidebar() {
           </svg>
           Images
           <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-gray-800 text-gray-500">{imageCount}</span>
+        </Link>
+        <Link
+          href="/videos"
+          className={`sidebar-item ${pathname === "/videos" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3`}
+        >
+          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+            />
+          </svg>
+          Videos
         </Link>
         {(() => {
           const mjCfg = cfg.midjourney || {};

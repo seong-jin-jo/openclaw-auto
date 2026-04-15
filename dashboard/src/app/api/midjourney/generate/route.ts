@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 
 export async function POST(request: Request) {
   const data = await request.json();
@@ -6,10 +6,12 @@ export async function POST(request: Request) {
   if (!prompt) return Response.json({ error: "prompt required" }, { status: 400 });
 
   const msg = `midjourney_image tool로 action=imagine, prompt="${prompt}", auto_upscale=false 실행하라. 결과의 imagePath를 출력하라.`;
+  const container = process.env.GATEWAY_CONTAINER || "openclaw-gateway";
 
   try {
-    const result = execSync(
-      `docker exec ${process.env.GATEWAY_CONTAINER || "openclaw-gateway"} node dist/index.js agent --agent main --message ${JSON.stringify(msg)}`,
+    const result = execFileSync(
+      "docker",
+      ["exec", container, "node", "dist/index.js", "agent", "--agent", "main", "--message", msg],
       { timeout: 180000 },
     ).toString().trim();
 

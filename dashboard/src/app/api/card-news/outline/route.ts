@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 
 export async function POST(request: Request) {
   const data = await request.json();
@@ -18,22 +18,22 @@ export async function POST(request: Request) {
 {"slides": ["슬라이드1 내용", "슬라이드2 내용", ...], "caption": "Instagram 캡션", "hashtags": ["태그1", "태그2", ...]}`;
 
   try {
-    const result = execSync(
-      `docker exec ${process.env.GATEWAY_CONTAINER || "openclaw-gateway"} node dist/index.js agent --agent main --message ${JSON.stringify(msg)}`,
-      { timeout: 60000 },
-    ).toString().trim();
+    const container = process.env.GATEWAY_CONTAINER || "openclaw-gateway";
+    const result = execFileSync("docker", [
+      "exec", container, "node", "dist/index.js", "agent", "--agent", "main", "--message", msg,
+    ], { timeout: 120000 }).toString().trim();
 
     const jsonMatch = result.match(/\{[\s\S]*"slides"[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
       return Response.json({ success: true, ...parsed });
     }
-    return Response.json({ error: "AI 응답에서 JSON을 추출할 수 없음", raw: result.slice(-300) }, { status: 500 });
+    return Response.json({ error: "AI 응답에서 JSON을 추출할 수 없음", raw: result.slice(-500) }, { status: 500 });
   } catch (e) {
-    if (e instanceof Error && e.message.includes("TIMEOUT")) {
-      return Response.json({ error: "AI outline generation timed out" }, { status: 504 });
-    }
     const msg2 = e instanceof Error ? e.message : String(e);
-    return Response.json({ error: msg2.slice(0, 200) }, { status: 500 });
+    if (msg2.includes("TIMEOUT") || msg2.includes("timed out")) {
+      return Response.json({ error: "AI outline generation timed out (2분 제한)" }, { status: 504 });
+    }
+    return Response.json({ error: msg2.slice(0, 500) }, { status: 500 });
   }
 }

@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import { dataPath } from "@/lib/file-io";
@@ -15,10 +15,12 @@ export async function POST(request: Request) {
 
   const slidesJson = JSON.stringify(slides);
   const msg = `card_generate tool 호출: action="generate", title="${title}", slides=${slidesJson}, style="${style}"`;
+  const container = process.env.GATEWAY_CONTAINER || "openclaw-gateway";
 
   try {
-    execSync(
-      `docker exec ${process.env.GATEWAY_CONTAINER || "openclaw-gateway"} node dist/index.js agent --agent main --session-id card-api-${process.pid} --message "${msg.replace(/"/g, '\\"')}"`,
+    execFileSync(
+      "docker",
+      ["exec", container, "node", "dist/index.js", "agent", "--agent", "main", "--session-id", `card-api-${process.pid}`, "--message", msg],
       { timeout: 60000, encoding: "utf-8" },
     );
   } catch (e) {
