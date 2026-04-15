@@ -18,7 +18,7 @@ function InstagramQueue({ posts, filter, setFilter, selectedIds, setSelectedIds,
   selectedIds: Set<string>;
   setSelectedIds: (s: Set<string>) => void;
   onReload: () => void;
-  onEditInEditor: (post: QueuePost) => void;
+  onEditInEditor?: (postId: string) => void;
 }) {
   const { showToast } = useToast();
 
@@ -98,10 +98,10 @@ function InstagramQueue({ posts, filter, setFilter, selectedIds, setSelectedIds,
 
 /* ---------- Instagram Post Card ---------- */
 function InstagramPostCard({ post: p, selectedIds, setSelectedIds, onReload, onEditInEditor }: {
-  post: QueuePost; selectedIds: Set<string>; setSelectedIds: (s: Set<string>) => void; onReload: () => void; onEditInEditor: (post: QueuePost) => void;
+  post: QueuePost; selectedIds: Set<string>; setSelectedIds: (s: Set<string>) => void; onReload: () => void; onEditInEditor?: (postId: string) => void;
 }) {
   const { showToast } = useToast();
-  // inline editing removed — Edit goes to Editor tab
+  const [editing, setEditing] = useState(false);
   const sc: Record<string, string> = { draft: "bg-yellow-900/50 text-yellow-300", approved: "bg-blue-900/50 text-blue-300", published: "bg-green-900/50 text-green-300", failed: "bg-red-900/50 text-red-300" };
   const igStatus = p.channels?.instagram?.status || "pending";
   const igBadge: Record<string, string> = { published: "bg-green-900/40 text-green-400", failed: "bg-red-900/40 text-red-400", pending: "bg-gray-800 text-gray-500", skipped: "bg-gray-800 text-gray-600" };
@@ -119,6 +119,13 @@ function InstagramPostCard({ post: p, selectedIds, setSelectedIds, onReload, onE
     showToast("삭제 완료", "success");
     onReload();
   };
+  const save = async (text: string) => {
+    await apiPost(`/api/queue/${p.id}/update`, { text });
+    showToast("수정 완료", "success");
+    setEditing(false);
+    onReload();
+  };
+
   return (
     <div className="card p-4">
       <div className="flex items-center justify-between mb-3">
@@ -163,7 +170,17 @@ function InstagramPostCard({ post: p, selectedIds, setSelectedIds, onReload, onE
         {p.model && <span className="text-[10px] text-gray-600">{p.model}</span>}
       </div>
 
-      <p className="text-sm text-gray-300 mb-2 whitespace-pre-wrap line-clamp-4">{p.text}</p>
+      {editing ? (
+        <>
+          <textarea id="ig-edit-textarea" className="w-full bg-gray-800 text-gray-200 text-sm p-2 rounded border border-gray-700 mb-2" rows={4} defaultValue={p.text} />
+          <div className="flex gap-2">
+            <button onClick={() => { const ta = document.getElementById("ig-edit-textarea") as HTMLTextAreaElement; if (ta) save(ta.value); }} className="px-2 py-1 text-xs bg-blue-600 text-white rounded">Save</button>
+            <button onClick={() => setEditing(false)} className="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded">Cancel</button>
+          </div>
+        </>
+      ) : (
+        <p className="text-sm text-gray-300 mb-2 whitespace-pre-wrap line-clamp-4">{p.text}</p>
+      )}
 
       {(p.hashtags?.length ?? 0) > 0 && (
         <div className="flex flex-wrap gap-1 mb-3">
@@ -171,11 +188,14 @@ function InstagramPostCard({ post: p, selectedIds, setSelectedIds, onReload, onE
         </div>
       )}
 
-      <div className="flex gap-2 pt-2 border-t border-gray-800/50">
-        {p.status === "draft" && <button onClick={approve} className="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>}
-        {(p.status === "draft" || p.status === "approved") && <button onClick={() => onEditInEditor(p)} className="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button>}
-        {p.status === "draft" && <button onClick={del} className="px-3 py-1.5 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">Delete</button>}
-      </div>
+      {!editing && (
+        <div className="flex gap-2 pt-2 border-t border-gray-800/50">
+          {p.status === "draft" && <button onClick={approve} className="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>}
+          {onEditInEditor && <button onClick={() => onEditInEditor(p.id)} className="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button>}
+          {!onEditInEditor && <button onClick={() => setEditing(true)} className="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button>}
+          {p.status === "draft" && <button onClick={del} className="px-3 py-1.5 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">Delete</button>}
+        </div>
+      )}
     </div>
   );
 }
@@ -191,31 +211,17 @@ interface CardEditorState {
   generating: boolean;
   outlining: boolean;
   result: { slides: string[]; batchId?: string; totalSlides: number } | null;
-  editingPostId?: string;
 }
 
-function CardNewsEditor({ onReload, editingPost, onBack }: { onReload: () => void; editingPost?: QueuePost | null; onBack?: () => void }) {
+function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: () => void; editingPostId?: string | null; onBackToQueue?: () => void }) {
   const { showToast } = useToast();
   const { data: designToolsData } = useDesignTools();
   const designTools = (designToolsData || {}) as Record<string, Record<string, unknown>>;
   const hasFigmaMcp = !!designTools.figma?.mcpAccessToken;
   const [mjGenerating, setMjGenerating] = useState(false);
-  const [ed, setEd] = useState<CardEditorState>(() => {
-    if (editingPost) {
-      return {
-        title: editingPost.topic?.replace("instagram-card", "").trim() || "",
-        slides: [""],
-        style: "dark",
-        ending: "",
-        caption: editingPost.text || "",
-        hashtags: (editingPost.hashtags || []).map((h: string) => "#" + h).join(" "),
-        generating: false,
-        outlining: false,
-        result: editingPost.imageUrls?.length ? { slides: editingPost.imageUrls, batchId: editingPost.cardBatchId || "", totalSlides: editingPost.imageUrls.length } : null,
-        editingPostId: editingPost.id,
-      };
-    }
-    return { title: "", slides: [""], style: "dark", ending: "", caption: "", hashtags: "", generating: false, outlining: false, result: null };
+  const [ed, setEd] = useState<CardEditorState>({
+    title: "", slides: [""], style: "dark", ending: "", caption: "", hashtags: "",
+    generating: false, outlining: false, result: null,
   });
 
   const aiOutline = async () => {
@@ -265,15 +271,22 @@ function CardNewsEditor({ onReload, editingPost, onBack }: { onReload: () => voi
     const hashStr = (document.getElementById("card-hashtags") as HTMLInputElement)?.value || "";
     const hashtags = hashStr.split(/[#\s]+/).filter(h => h.trim());
     try {
-      const r = await apiPost<{ success: boolean }>("/api/queue/add", {
-        text: caption, topic: "instagram-card", hashtags,
-        imageUrl: ed.result.slides[0], imageUrls: ed.result.slides, cardBatchId: ed.result.batchId,
-      });
-      if (r?.success) {
-        showToast("큐에 Draft 저장됨", "success");
-        setEd({ title: "", slides: [""], style: "dark", ending: "", caption: "", hashtags: "", generating: false, outlining: false, result: null });
-        onReload();
+      if (editingPostId) {
+        await apiPost(`/api/queue/${editingPostId}/update`, {
+          text: caption, hashtags,
+          imageUrl: ed.result.slides[0], imageUrls: ed.result.slides, cardBatchId: ed.result.batchId,
+        });
+        showToast("Draft 업데이트됨", "success");
+      } else {
+        const r = await apiPost<{ success: boolean }>("/api/queue/add", {
+          text: caption, topic: "instagram-card", hashtags,
+          imageUrl: ed.result.slides[0], imageUrls: ed.result.slides, cardBatchId: ed.result.batchId,
+        });
+        if (r?.success) showToast("큐에 Draft 저장됨", "success");
       }
+      setEd({ title: "", slides: [""], style: "dark", ending: "", caption: "", hashtags: "", generating: false, outlining: false, result: null });
+      onReload();
+      if (editingPostId && onBackToQueue) onBackToQueue();
     } catch (e) { showToast((e as Error).message, "error"); }
   };
 
@@ -296,10 +309,8 @@ function CardNewsEditor({ onReload, editingPost, onBack }: { onReload: () => voi
     newSlides.splice(idx, 1);
     setEd(prev => ({ ...prev, result: prev.result ? { ...prev.result, slides: newSlides, totalSlides: newSlides.length } : null }));
   };
-
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [previewImg, setPreviewImg] = useState<string | null>(null);
-
   const handleDrop = (dropIdx: number) => {
     if (dragIdx === null || dragIdx === dropIdx || !ed.result) return;
     const slides = [...ed.result.slides];
@@ -335,8 +346,8 @@ function CardNewsEditor({ onReload, editingPost, onBack }: { onReload: () => voi
 
   return (
     <>
-    {onBack && ed.editingPostId && (
-      <button onClick={onBack} className="text-gray-500 hover:text-gray-300 text-xs mb-3 block">← Queue로 돌아가기</button>
+    {editingPostId && onBackToQueue && (
+      <button onClick={onBackToQueue} className="text-gray-500 hover:text-gray-300 text-xs mb-3 block">← Queue로 돌아가기</button>
     )}
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Left: Editor */}
@@ -440,7 +451,7 @@ function CardNewsEditor({ onReload, editingPost, onBack }: { onReload: () => voi
               </div>
             </div>
             <div className="space-y-2 mb-3">
-              <button onClick={saveDraft} className="w-full py-2 bg-green-700 text-white text-sm rounded hover:bg-green-600">큐에 Draft 저장</button>
+              <button onClick={saveDraft} className="w-full py-2 bg-green-700 text-white text-sm rounded hover:bg-green-600">{editingPostId ? "Draft 업데이트" : "큐에 Draft 저장"}</button>
               {hasFigmaMcp && (
                 <div className="flex gap-2">
                   <button onClick={async () => {
@@ -507,14 +518,8 @@ function CardNewsEditor({ onReload, editingPost, onBack }: { onReload: () => voi
           </div>
         )}
       </div>
-
-      {/* Image preview modal */}
       {previewImg && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center cursor-pointer"
-          style={{ backdropFilter: "blur(4px)" }}
-          onClick={() => setPreviewImg(null)}
-        >
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center cursor-pointer" style={{ backdropFilter: "blur(4px)" }} onClick={() => setPreviewImg(null)}>
           <img src={previewImg} className="max-h-[90vh] max-w-[90vw] rounded-lg shadow-2xl" alt="Preview" />
         </div>
       )}
@@ -695,6 +700,7 @@ export function InstagramPage() {
   const { subTab, setSubTab } = useUIStore();
   const [filter, setFilter] = useState("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
 
   const cfg = (channelConfig || {}) as Record<string, Record<string, unknown>>;
   const igCfg = cfg.instagram || {};
@@ -715,12 +721,6 @@ export function InstagramPage() {
   }, [connected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const reload = useCallback(() => { mutateQueue(); mutateConfig(); }, [mutateQueue, mutateConfig]);
-  const [editingPost, setEditingPost] = useState<QueuePost | null>(null);
-
-  const handleEditInEditor = useCallback((post: QueuePost) => {
-    setEditingPost(post);
-    setSubTab("editor");
-  }, [setSubTab]);
 
   return (
     <div className="px-8 py-6">
@@ -749,7 +749,7 @@ export function InstagramPage() {
             selectedIds={selectedIds}
             setSelectedIds={setSelectedIds}
             onReload={reload}
-            onEditInEditor={handleEditInEditor}
+            onEditInEditor={(postId) => { setEditingPostId(postId); setSubTab("editor"); }}
           />
         ) : (
           <div className="card p-8 text-center">
@@ -760,7 +760,7 @@ export function InstagramPage() {
       )}
       {subTab === "editor" && (
         connected ? (
-          <CardNewsEditor onReload={reload} editingPost={editingPost} onBack={() => { setEditingPost(null); setSubTab("queue"); }} />
+          <CardNewsEditor onReload={reload} editingPostId={editingPostId} onBackToQueue={() => { setEditingPostId(null); setSubTab("queue"); }} />
         ) : (
           <div className="card p-8 text-center">
             <p className="text-gray-500 text-sm mb-2">Instagram 계정을 연결하면 카드뉴스 에디터를 사용할 수 있습니다</p>
