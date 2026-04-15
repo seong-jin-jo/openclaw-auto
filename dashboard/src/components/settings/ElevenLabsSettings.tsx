@@ -24,14 +24,18 @@ export function ElevenLabsSettings() {
   const [apiKey, setApiKey] = useState("");
   const [voiceId, setVoiceId] = useState("");
   const [editing, setEditing] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
   const [voices, setVoices] = useState<Voice[]>([]);
   const [loadingVoices, setLoadingVoices] = useState(false);
+
+  const apiKeyValue = apiKey || config?.apiKey || "";
+  const voiceIdValue = voiceId || config?.voiceId || "";
 
   const save = async () => {
     try {
       await apiPost("/api/elevenlabs-config", {
-        apiKey: apiKey || config?.apiKey || "",
-        voiceId: voiceId || config?.voiceId || "",
+        apiKey: apiKeyValue,
+        voiceId: voiceIdValue,
       });
       showToast("ElevenLabs config saved", "success");
       mutate();
@@ -58,6 +62,8 @@ export function ElevenLabsSettings() {
     }
   };
 
+  const isEditable = !config?.configured || editing;
+
   return (
     <div className="card p-4">
       <div className="flex items-center justify-between mb-3">
@@ -65,32 +71,52 @@ export function ElevenLabsSettings() {
           <span className="w-5 h-5 rounded bg-purple-900 flex items-center justify-center text-[10px] font-bold text-purple-300">11</span>
           <span className="text-sm font-medium text-white">ElevenLabs TTS</span>
         </div>
-        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${config?.configured ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}`}>
-          {config?.configured ? "Configured" : "Not set"}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${config?.configured ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}`}>
+            {config?.configured ? "Configured" : "Not set"}
+          </span>
+          {config?.configured && !editing && (
+            <button onClick={() => setEditing(true)} className="text-[10px] text-blue-400 hover:text-blue-300">Edit</button>
+          )}
+        </div>
       </div>
 
-      {!config?.configured || editing ? (
-        <div className="space-y-3">
-          <div>
-            <label className="text-[10px] text-gray-500 block mb-1">API Key</label>
+      <div className="space-y-3">
+        <div>
+          <label className="text-xs text-gray-400 block mb-0.5">API Key</label>
+          <div className="relative">
             <input
-              type="password"
-              value={apiKey || config?.apiKey || ""}
+              type={showApiKey ? "text" : "password"}
+              value={apiKeyValue}
+              readOnly={!isEditable}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder="xi-..."
-              className="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700 font-mono"
+              title={apiKeyValue}
+              className={`w-full ${isEditable ? "bg-gray-900" : "bg-gray-900/50 cursor-default"} border border-gray-700 rounded px-3 py-2 pr-16 text-[11px] text-gray-300 placeholder-gray-600 font-mono`}
             />
+            <button
+              type="button"
+              onClick={() => setShowApiKey(!showApiKey)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 hover:text-gray-300"
+            >
+              {showApiKey ? "Hide" : "Show"}
+            </button>
           </div>
-          <div>
-            <label className="text-[10px] text-gray-500 block mb-1">Voice ID</label>
-            <div className="flex gap-2">
+        </div>
+        <div>
+          <label className="text-xs text-gray-400 block mb-0.5">Voice ID</label>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
               <input
-                value={voiceId || config?.voiceId || ""}
+                value={voiceIdValue}
+                readOnly={!isEditable}
                 onChange={(e) => setVoiceId(e.target.value)}
                 placeholder="Voice ID (optional)"
-                className="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700 font-mono"
+                title={voiceIdValue}
+                className={`w-full ${isEditable ? "bg-gray-900" : "bg-gray-900/50 cursor-default"} border border-gray-700 rounded px-3 py-2 text-[11px] text-gray-300 placeholder-gray-600 font-mono`}
               />
+            </div>
+            {isEditable && (
               <button
                 onClick={loadVoices}
                 disabled={loadingVoices}
@@ -98,34 +124,33 @@ export function ElevenLabsSettings() {
               >
                 {loadingVoices ? "..." : "Browse"}
               </button>
-            </div>
+            )}
           </div>
-          {voices.length > 0 && (
-            <div className="max-h-32 overflow-auto border border-gray-700 rounded">
-              {voices.map((v) => (
-                <button
-                  key={v.id}
-                  onClick={() => setVoiceId(v.id)}
-                  className={`w-full text-left px-2 py-1 text-xs hover:bg-gray-800 ${voiceId === v.id ? "bg-gray-800 text-white" : "text-gray-400"}`}
-                >
-                  {v.name} <span className="text-gray-600">({v.category})</span>
-                </button>
-              ))}
-            </div>
-          )}
+        </div>
+        {voices.length > 0 && isEditable && (
+          <div className="max-h-32 overflow-auto border border-gray-700 rounded">
+            {voices.map((v) => (
+              <button
+                key={v.id}
+                onClick={() => setVoiceId(v.id)}
+                className={`w-full text-left px-2 py-1 text-xs hover:bg-gray-800 ${voiceId === v.id ? "bg-gray-800 text-white" : "text-gray-400"}`}
+              >
+                {v.name} <span className="text-gray-600">({v.category})</span>
+              </button>
+            ))}
+          </div>
+        )}
+        {isEditable && (
           <div className="flex gap-2">
-            <button onClick={save} className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
+            <button onClick={save} className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">
+              {config?.configured ? "Update" : "Save"}
+            </button>
             {editing && (
               <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded">Cancel</button>
             )}
           </div>
-        </div>
-      ) : (
-        <div className="flex gap-2">
-          <span className="text-xs text-gray-500">Voice: {config.voiceId || "default"}</span>
-          <button onClick={() => setEditing(true)} className="ml-auto text-[10px] text-blue-400 hover:text-blue-300">Edit</button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
