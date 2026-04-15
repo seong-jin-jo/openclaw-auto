@@ -37,11 +37,24 @@ export async function POST(request: Request) {
     }, { status: 400 });
   }
 
+  // 기존 OAuth 프로필 제거 — Gateway가 새 토큰만 사용하도록
+  for (const key of Object.keys(profiles)) {
+    if (key !== "anthropic:default") {
+      delete profiles[key];
+    }
+  }
+
   usageStats["anthropic:default"] = {
     errorCount: 0,
     lastUsed: Date.now(),
   };
   lastGood["anthropic"] = "anthropic:default";
+
+  // 다른 provider의 lastGood도 정리
+  for (const key of Object.keys(lastGood)) {
+    if (key === "anthropic") continue;
+    delete lastGood[key];
+  }
 
   auth.profiles = profiles;
   auth.usageStats = usageStats;
