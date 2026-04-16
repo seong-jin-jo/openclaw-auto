@@ -6,6 +6,7 @@ COPY . .
 RUN npm run build
 
 FROM node:20-alpine
+RUN apk add --no-cache docker-cli
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=builder /app/.next/standalone ./
