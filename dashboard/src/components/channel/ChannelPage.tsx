@@ -584,13 +584,14 @@ function AutomationSection({ channel, expandedFeature, setExpandedFeature }: {
         return (
           <div key={f.key} className="border-b border-gray-800/50 last:border-0">
             <div className="flex items-center gap-3 py-2.5 cursor-pointer" onClick={() => setExpandedFeature(expanded ? null : f.key)}>
-              <label className="relative inline-flex items-center cursor-pointer shrink-0" onClick={(e) => e.stopPropagation()}>
-                <input type="checkbox" checked={!!(cs[f.key])} onChange={(e) => handleToggle(f.key, e.target.checked)} className="sr-only peer" />
+              <label className={`relative inline-flex items-center shrink-0 ${(f as Record<string,unknown>).implemented === false ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`} onClick={(e) => e.stopPropagation()}>
+                <input type="checkbox" checked={!!(cs[f.key])} onChange={(e) => (f as Record<string,unknown>).implemented !== false && handleToggle(f.key, e.target.checked)} disabled={(f as Record<string,unknown>).implemented === false} className="sr-only peer" />
                 <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
               </label>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-300">{f.label}</span>
+                  <span className={`text-xs ${(f as Record<string,unknown>).implemented === false ? "text-gray-600" : "text-gray-300"}`}>{f.label}</span>
+                  {(f as Record<string,unknown>).implemented === false && <span className="text-[9px] text-gray-700">Coming Soon</span>}
                   {hours && <span className="text-[10px] text-gray-600">{hours}h</span>}
                   {lastRun && (
                     <>

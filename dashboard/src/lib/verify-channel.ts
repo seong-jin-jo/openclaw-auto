@@ -72,7 +72,15 @@ export async function verifyChannel(channel: string, cfg: Record<string, string>
       if (!webhookUrl || !webhookUrl.startsWith("https://discord.com/api/webhooks/")) {
         return { verified: false, error: "Invalid Discord Webhook URL" };
       }
-      return { verified: true, account: "(Webhook configured)" };
+      // 실제 webhook 검증 — GET으로 webhook 정보 확인
+      try {
+        const res = await fetch(webhookUrl, { signal: AbortSignal.timeout(5000) });
+        const data = await res.json();
+        if (res.ok && data.name) return { verified: true, account: data.name };
+        return { verified: false, error: `Webhook invalid (${res.status})` };
+      } catch {
+        return { verified: true, account: "(Webhook URL saved — verification skipped)" };
+      }
     }
 
     if (channel === "slack") {
@@ -80,13 +88,37 @@ export async function verifyChannel(channel: string, cfg: Record<string, string>
       if (!webhookUrl || !webhookUrl.startsWith("https://hooks.slack.com/")) {
         return { verified: false, error: "Invalid Slack Webhook URL" };
       }
-      return { verified: true, account: "(Webhook configured)" };
+      // 실제 webhook 검증 — 빈 POST로 응답 확인
+      try {
+        const res = await fetch(webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: "" }),
+          signal: AbortSignal.timeout(5000),
+        });
+        // Slack은 빈 text면 400 반환하지만 webhook은 유효
+        if (res.status === 400 || res.ok) return { verified: true, account: "(Webhook verified)" };
+        return { verified: false, error: `Webhook invalid (${res.status})` };
+      } catch {
+        return { verified: true, account: "(Webhook URL saved — verification skipped)" };
+      }
     }
 
     if (channel === "line") {
       const token = cfg.channelAccessToken || "";
       if (!token) return { verified: false, error: "Channel Access Token is empty" };
-      return { verified: true, account: "(Token saved)" };
+      // 실제 API 검증
+      try {
+        const res = await fetch("https://api.line.me/v2/bot/info", {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: AbortSignal.timeout(5000),
+        });
+        const data = await res.json();
+        if (res.ok) return { verified: true, account: data.displayName || data.basicId || "(Connected)" };
+        return { verified: false, error: `LINE API error (${res.status})` };
+      } catch {
+        return { verified: true, account: "(Token saved — verification skipped)" };
+      }
     }
 
     // Generic: check if any key has value
