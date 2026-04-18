@@ -171,7 +171,7 @@ export default function BlogPage() {
               <div className="flex items-start gap-2"><span className="text-blue-400 font-bold">1.</span><div><strong className="text-gray-300">키워드 수집</strong> — Keyword Planner에서 검색량 높은 키워드를 찾아 Blog Keywords에 추가</div></div>
               <div className="flex items-start gap-2"><span className="text-blue-400 font-bold">2.</span><div><strong className="text-gray-300">트렌드 확인</strong> — Naver Trends에서 시즌 키워드 파악 (시험, 방학 등)</div></div>
               <div className="flex items-start gap-2"><span className="text-blue-400 font-bold">3.</span><div><strong className="text-gray-300">콘텐츠 생산</strong> — AI가 Blog Keywords + Content Guide 기반으로 칼럼 draft 자동 생성</div></div>
-              <div className="flex items-start gap-2"><span className="text-blue-400 font-bold">4.</span><div><strong className="text-gray-300">검수 + 발행</strong> — Queue에서 draft 확인 → 클릭하여 수정 → Approve → example.com에 자동 발행</div></div>
+              <div className="flex items-start gap-2"><span className="text-blue-400 font-bold">4.</span><div><strong className="text-gray-300">검수 + 발행</strong> — Queue에서 draft 확인 → 클릭하여 수정 → Approve → 블로그에 자동 발행</div></div>
               <div className="flex items-start gap-2"><span className="text-blue-400 font-bold">5.</span><div><strong className="text-gray-300">검색 노출</strong> — Search Console에서 색인 요청 → 검색 노출</div></div>
               <div className="flex items-start gap-2"><span className="text-blue-400 font-bold">6.</span><div><strong className="text-gray-300">결과 분석</strong> — Blog Performance에서 조회수 + 검색 클릭 추적</div></div>
               <p className="text-[10px] text-gray-500 mt-2 border-t border-gray-800 pt-2">Settings 탭에서 Content Guide와 Keywords를 수정하세요.</p>
@@ -301,7 +301,7 @@ export default function BlogPage() {
             <div className="space-y-3">
               {[
                 { id: "blog-generate-drafts", label: "Content Generation", desc: "학생/학부모 대상 칼럼 자동 생성" },
-                { id: "blog-auto-publish", label: "Auto Publish", desc: "승인된 글을 example.com에 자동 발행" },
+                { id: "blog-auto-publish", label: "Auto Publish", desc: "승인된 글을 블로그에 자동 발행" },
               ].map((job) => {
                 const cron = cronJobs.find((j) => j.id === job.id || j.name === job.id) as Record<string, unknown> | undefined;
                 const enabled = cron?.enabled !== false;
