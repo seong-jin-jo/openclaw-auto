@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChannelsSettings } from "@/components/settings/ChannelsSettings";
 import { AIEngine } from "@/components/settings/AIEngine";
+import { LlmModel } from "@/components/settings/LlmModel";
 import { ClaudeToken } from "@/components/settings/ClaudeToken";
 import { StorageSettings } from "@/components/settings/StorageSettings";
 import { DesignToolsSettings } from "@/components/settings/DesignToolsSettings";
@@ -46,10 +47,11 @@ export default function SettingsPage() {
       {activeTab === "ai" && (
         <>
           <p className="text-[10px] text-gray-500 mb-4">모든 채널의 콘텐츠 자동 생성 + 트렌드 분석에 사용됩니다.</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <AIEngine />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <LlmModel />
             <ClaudeToken />
           </div>
+          <AIEngine />
         </>
       )}
       {activeTab === "storage" && <StorageSettings />}

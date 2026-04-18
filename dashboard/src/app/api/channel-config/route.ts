@@ -14,7 +14,7 @@ interface OpenClawConfig {
 const IMPLEMENTED_PLUGINS = new Set([
   "facebook-publish", "bluesky-publish", "instagram-publish", "linkedin-publish",
   "pinterest-publish", "tumblr-publish", "tiktok-publish", "youtube-publish",
-  "telegram-publish", "discord-publish", "line-publish", "naver-blog-publish",
+  "telegram-publish", "discord-publish", "slack-publish", "line-publish", "naver-blog-publish",
 ]);
 
 const OTHER_CHANNELS: Record<string, { plugin: string; keyField: string }> = {
@@ -28,6 +28,7 @@ const OTHER_CHANNELS: Record<string, { plugin: string; keyField: string }> = {
   youtube: { plugin: "youtube-publish", keyField: "accessToken" },
   telegram: { plugin: "telegram-publish", keyField: "botToken" },
   discord: { plugin: "discord-publish", keyField: "webhookUrl" },
+  slack: { plugin: "slack-publish", keyField: "webhookUrl" },
   line: { plugin: "line-publish", keyField: "channelAccessToken" },
   naver_blog: { plugin: "naver-blog-publish", keyField: "blogId" },
 };

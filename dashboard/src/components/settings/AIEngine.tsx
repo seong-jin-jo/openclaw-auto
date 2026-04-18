@@ -1,128 +1,41 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useLlmConfig } from "@/hooks/useChannelConfig";
-import { apiPost } from "@/lib/api";
+import useSWR from "swr";
+import { apiPost, fetcher } from "@/lib/api";
 import { useToast } from "@/components/layout/Toast";
 
+interface RuntimeData {
+  mode: "gateway" | "cli";
+}
+
 export function AIEngine() {
-  const { data: llmConfig, mutate } = useLlmConfig();
+  const { data: runtimeData, mutate } = useSWR<RuntimeData>("/api/ai-runtime", fetcher);
   const { showToast } = useToast();
-  const [saving, setSaving] = useState(false);
-  const [editing, setEditing] = useState(false);
 
-  const llm = llmConfig as Record<string, unknown> | undefined;
-  const available = (llm?.available as string[]) || [];
-  const primary = (llm?.primary as string) || "";
-  const fallbacks = (llm?.fallbacks as string[]) || [];
-  const jobModels = (llm?.jobModels as Record<string, string>) || {};
+  const mode = runtimeData?.mode || "gateway";
 
-  const [selectedPrimary, setSelectedPrimary] = useState("");
-  const [jobOverrides, setJobOverrides] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    setSelectedPrimary(primary);
-    setJobOverrides({});
-  }, [primary]);
-
-  const hasConfig = !!primary;
-  const editable = editing || !hasConfig;
-
-  const handleSave = async () => {
-    setSaving(true);
+  const handleModeSwitch = async (newMode: string) => {
     try {
-      const mergedJobModels = { ...jobModels, ...jobOverrides };
-      const r = await apiPost<{ primary: string }>("/api/llm-config", {
-        primary: selectedPrimary,
-        jobModels: mergedJobModels,
-      });
-      if (r) {
-        showToast(`LLM 설정 저장: ${r.primary?.split("/").pop()}`, "success");
-        setEditing(false);
-        mutate();
-      }
-    } catch (e) { showToast(`저장 실패: ${(e as Error).message}`, "error"); }
-    finally { setSaving(false); }
+      await apiPost("/api/ai-runtime", { action: "set-mode", mode: newMode });
+      showToast(newMode === "cli" ? "Claude CLI (Plan Usage)" : "OpenClaw Gateway", "success");
+      mutate();
+    } catch (e) { showToast(`실패: ${(e as Error).message}`, "error"); }
   };
-
-  if (!llm) return <div className="card p-5"><p className="text-xs text-gray-600">Loading...</p></div>;
 
   return (
     <div className="card p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-gray-300">LLM Model</h3>
-        {hasConfig && !editing && (
-          <button onClick={() => setEditing(true)} className="text-[10px] text-blue-400 hover:text-blue-300">Edit</button>
-        )}
+      <h3 className="text-sm font-medium text-gray-300 mb-3">Runtime</h3>
+      <div className="grid grid-cols-2 gap-2">
+        <button onClick={() => handleModeSwitch("gateway")} className={`p-3 rounded border text-left transition-colors ${mode === "gateway" ? "border-blue-600 bg-blue-950/30" : "border-gray-700 hover:border-gray-600"}`}>
+          <div className="text-xs font-medium text-gray-200">OpenClaw Gateway</div>
+          <div className="text-[10px] text-gray-500 mt-0.5">Extra Usage 과금</div>
+        </button>
+        <button onClick={() => handleModeSwitch("cli")} className={`p-3 rounded border text-left transition-colors ${mode === "cli" ? "border-green-600 bg-green-950/30" : "border-gray-700 hover:border-gray-600"}`}>
+          <div className="text-xs font-medium text-gray-200">Claude CLI</div>
+          <div className="text-[10px] text-green-500/70 mt-0.5">Plan Usage (Max Plan)</div>
+        </button>
       </div>
-      <div className="space-y-3">
-        <div>
-          <label className="text-[10px] text-gray-500 block mb-1">Primary Model</label>
-          {editable ? (
-            <select
-              value={selectedPrimary}
-              onChange={(e) => setSelectedPrimary(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300"
-            >
-              {available.map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-          ) : (
-            <div className="w-full bg-gray-900/50 border border-gray-700 rounded px-3 py-2 text-[11px] text-gray-300 font-mono cursor-default">
-              {primary || "-"}
-            </div>
-          )}
-        </div>
-        <div>
-          <label className="text-[10px] text-gray-500 block mb-1">Fallback Models</label>
-          <p className="text-xs text-gray-400">{fallbacks.join(" → ") || "none"}</p>
-        </div>
-        <div className="border-t border-gray-800/50 pt-3">
-          <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Per-Job Override</p>
-          <div className="space-y-2">
-            {Object.entries(jobModels).map(([job, model]) => (
-              <div key={job} className="flex items-center justify-between gap-2">
-                <span className="text-[10px] text-gray-400 flex-shrink-0 w-40 truncate">{job}</span>
-                {editable ? (
-                  <select
-                    value={jobOverrides[job] ?? model ?? ""}
-                    onChange={(e) => setJobOverrides((prev) => ({ ...prev, [job]: e.target.value }))}
-                    className="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-[10px] text-gray-300"
-                  >
-                    <option value="">Default ({selectedPrimary.split("/").pop()})</option>
-                    {available.filter((m) => m !== selectedPrimary).map((m) => (
-                      <option key={m} value={m}>{m.split("/").pop()}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <span className="text-[10px] text-gray-400 font-mono">{(model || primary).split("/").pop()}</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {editable && (
-          <div className="flex gap-2 mt-3">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500 disabled:opacity-50"
-            >
-              {saving ? "Saving..." : hasConfig ? "Update" : "Save"}
-            </button>
-            {hasConfig && editing && (
-              <button
-                onClick={() => { setEditing(false); setSelectedPrimary(primary); setJobOverrides({}); }}
-                className="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700"
-              >
-                Cancel
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+      <p className="text-[10px] text-gray-600 mt-3">각 크론잡의 On/Off는 채널별 설정에서 관리합니다.</p>
     </div>
   );
 }

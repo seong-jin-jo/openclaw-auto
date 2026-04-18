@@ -1,7 +1,7 @@
 "use client";
 
 import { useChannelConfig, useNotifSettings, useChatChannels } from "@/hooks/useChannelConfig";
-import { apiPost } from "@/lib/api";
+import { apiPost, fetcher } from "@/lib/api";
 import { useToast } from "@/components/layout/Toast";
 import { useUIStore } from "@/store/ui-store";
 import { CH_LABELS, CH_STATUS_LABEL } from "@/lib/constants";
@@ -9,6 +9,7 @@ import { setupGuides } from "@/lib/setup-guides";
 import { CredentialForm } from "@/components/shared/CredentialForm";
 import { SetupGuide } from "@/components/shared/SetupGuide";
 import { useState } from "react";
+import useSWR from "swr";
 import Link from "next/link";
 
 interface MessagingPageProps {
@@ -152,7 +153,84 @@ export function MessagingPage({ channel }: MessagingPageProps) {
             </div>
           )}
         </div>
+
+        {/* Slack-only: Weekly Report Template */}
+        {channel === "slack" && <SlackReportSection />}
       </div>
+    </div>
+  );
+}
+
+/* ── Slack Report Template Section ── */
+function SlackReportSection() {
+  const { data: tmplData, mutate: mutateTmpl } = useSWR<{ template: string }>("/api/slack-template", fetcher);
+  const { showToast } = useToast();
+  const [template, setTemplate] = useState<string | null>(null);
+  const [preview, setPreview] = useState("");
+  const [sendingReport, setSendingReport] = useState(false);
+
+  const tmplValue = template ?? tmplData?.template ?? "";
+
+  const handleSave = async () => {
+    try {
+      await apiPost("/api/slack-template", { template: tmplValue });
+      showToast("템플릿 저장 완료", "success");
+      mutateTmpl();
+    } catch (e) { showToast(`실패: ${(e as Error).message}`, "error"); }
+  };
+
+  const handlePreview = async () => {
+    try {
+      const res = await fetch("/api/slack-report-preview", { headers: { Authorization: `Bearer ${localStorage.getItem("auth_token") || ""}` } });
+      const data = await res.json();
+      if (data?.report) setPreview(data.report);
+      else showToast(data?.error || "미리보기 실패", "error");
+    } catch (e) { showToast(`실패: ${(e as Error).message}`, "error"); }
+  };
+
+  const handleSendReport = async () => {
+    setSendingReport(true);
+    try {
+      const res = await apiPost<{ ok?: boolean; error?: string }>("/api/slack-send-custom");
+      if (res?.ok) showToast("리포트 발송 완료", "success");
+      else showToast(res?.error || "발송 실패", "error");
+    } catch (e) { showToast(`실패: ${(e as Error).message}`, "error"); }
+    finally { setSendingReport(false); }
+  };
+
+  return (
+    <div className="card p-5 md:col-span-2">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-medium text-gray-300">주간 리포트 템플릿</h3>
+        <button onClick={handlePreview} className="text-[10px] text-blue-400 hover:text-blue-300">Preview</button>
+      </div>
+      <textarea
+        value={tmplValue}
+        onChange={(e) => setTemplate(e.target.value)}
+        rows={12}
+        className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-xs text-gray-300 font-mono mb-2"
+        placeholder="Loading..."
+      />
+      <div className="flex gap-2">
+        <button onClick={handleSave} className="px-4 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-500">Save Template</button>
+        <button onClick={handleSendReport} disabled={sendingReport} className="px-4 py-2 bg-purple-700 text-white text-xs rounded hover:bg-purple-600 disabled:opacity-50">
+          {sendingReport ? "Sending..." : "Send Report"}
+        </button>
+      </div>
+      <details className="mt-2">
+        <summary className="text-[10px] text-blue-400 cursor-pointer">사용 가능한 변수</summary>
+        <div className="text-[10px] text-gray-500 mt-1 font-mono space-y-0.5">
+          <div>{"{blog_articles}"} {"{blog_views}"} {"{blog_delta}"} {"{blog_top}"}</div>
+          <div>{"{gsc_clicks}"} {"{gsc_impressions}"} {"{gsc_ctr}"} {"{gsc_top_keywords}"}</div>
+          <div>{"{ga_sessions}"} {"{ga_pageviews}"}</div>
+          <div>{"{dashboard_url}"}</div>
+        </div>
+      </details>
+      {preview && (
+        <div className="mt-3 p-3 rounded bg-gray-900/80 border border-gray-800">
+          <pre className="text-[10px] text-gray-300 whitespace-pre-wrap">{preview}</pre>
+        </div>
+      )}
     </div>
   );
 }
