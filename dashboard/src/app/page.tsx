@@ -2,8 +2,10 @@
 
 import { useOverview, useCronStatus, useActivity, useAlerts, useWeeklySummary, useTokenStatus, useAgentLogs } from "@/hooks/useOverview";
 import { useChannelConfig } from "@/hooks/useChannelConfig";
+import { useOnboardingStatus } from "@/hooks/useOnboarding";
 import { fmtAgo, fmtTime } from "@/lib/format";
 import { useUIStore } from "@/store/ui-store";
+import { OnboardingWizard } from "@/components/shared/OnboardingWizard";
 import Link from "next/link";
 
 function card(title: string, value: string | number, sub?: string) {
@@ -41,6 +43,8 @@ export default function HomePage() {
   const { data: agentLogData } = useAgentLogs();
   const { data: channelConfig } = useChannelConfig();
   const { dismissedOnboarding, dismissOnboarding } = useUIStore();
+  const { data: onboardingData, mutate: mutateOnboarding } = useOnboardingStatus();
+  const onboardingStatus = onboardingData as { completed?: boolean } | undefined;
 
   const o = overview as Record<string, unknown> | undefined;
   const cfg = (channelConfig || {}) as unknown as Record<string, Record<string, unknown>>;
@@ -59,35 +63,17 @@ export default function HomePage() {
 
   // Onboarding check
   const connectedCount = Object.values(cfg).filter((c) => c.connected || c.status === "live").length;
+  const showOnboarding = onboardingStatus && !onboardingStatus.completed && connectedCount === 0 && !dismissedOnboarding;
 
-  if (connectedCount === 0 && !dismissedOnboarding) {
+  if (showOnboarding) {
     return (
-      <div className="px-8 py-6">
-        <div className="max-w-2xl mx-auto text-center py-12">
-          <h2 className="text-2xl font-bold text-white mb-3">마케팅 자동화를 시작하세요</h2>
-          <p className="text-gray-400 mb-8">채널을 연결하면 AI가 콘텐츠를 자동 생성하고, 발행하고, 반응을 분석합니다.</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <Link href="/channels/threads" className="card p-6 hover:border-purple-500/50 transition text-left">
-              <span className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold mb-3">T</span>
-              <h3 className="text-sm font-medium text-white">Threads</h3>
-              <p className="text-[10px] text-gray-500 mt-1">텍스트/이미지 SNS 발행</p>
-            </Link>
-            <Link href="/channels/x" className="card p-6 hover:border-gray-600 transition text-left">
-              <span className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center text-white font-bold mb-3">X</span>
-              <h3 className="text-sm font-medium text-white">X (Twitter)</h3>
-              <p className="text-[10px] text-gray-500 mt-1">280자 트윗 자동 발행</p>
-            </Link>
-            <Link href="/channels/telegram" className="card p-6 hover:border-blue-500/50 transition text-left">
-              <span className="w-10 h-10 rounded-lg bg-blue-900/50 flex items-center justify-center text-blue-400 font-bold mb-3">TG</span>
-              <h3 className="text-sm font-medium text-white">Telegram</h3>
-              <p className="text-[10px] text-gray-500 mt-1">알림 + 양방향 명령</p>
-            </Link>
-          </div>
-          <button onClick={dismissOnboarding} className="text-xs text-gray-600 hover:text-gray-400">
-            나중에 설정하기
-          </button>
-        </div>
-      </div>
+      <OnboardingWizard
+        onComplete={() => {
+          mutateOnboarding();
+          dismissOnboarding();
+        }}
+        onDismiss={dismissOnboarding}
+      />
     );
   }
 
