@@ -1,0 +1,9 @@
+# 핵심 파일 — PR에서 수정 시 리뷰 필수
+dashboard/src/lib/file-io.ts @seong-jin-jo
+dashboard/src/lib/verify-channel.ts @seong-jin-jo
+dashboard/src/lib/constants.ts @seong-jin-jo
+dashboard/src/components/shared/CredentialForm.tsx @seong-jin-jo
+dashboard/src/middleware.ts @seong-jin-jo
+docs/ui-rules.md @seong-jin-jo
+docs/feature-spec.md @seong-jin-jo
+.github/ @seong-jin-jo
