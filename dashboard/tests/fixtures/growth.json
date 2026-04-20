@@ -1,0 +1,11 @@
+{
+  "records": [
+    { "date": "2026-04-01", "followers": 1000 },
+    { "date": "2026-04-02", "followers": 1010 },
+    { "date": "2026-04-03", "followers": 1025 },
+    { "date": "2026-04-04", "followers": 1030 },
+    { "date": "2026-04-05", "followers": 1045 },
+    { "date": "2026-04-06", "followers": 1060 },
+    { "date": "2026-04-07", "followers": 1080 }
+  ]
+}

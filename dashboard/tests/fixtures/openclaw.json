@@ -1,0 +1,15 @@
+{
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "anthropic/claude-sonnet-4-6",
+        "fallbacks": ["google/gemini-2.5-flash"]
+      }
+    }
+  },
+  "channels": {
+    "threads": { "enabled": true },
+    "x": { "enabled": true },
+    "instagram": { "enabled": false }
+  }
+}

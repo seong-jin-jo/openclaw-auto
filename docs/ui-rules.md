@@ -183,13 +183,62 @@
 - Canva/Figma 크레덴셜 입력
 - Figma MCP OAuth 연결
 
-## 15. Settings 5탭 구조
+## 15. Settings 8탭 구조
 
 ```
 Settings
 ├── Channels      — 채널 연결 현황
-├── AI Engine     — LLM 모델 + 크론잡별 오버라이드
+├── AI Engine     — LLM 모델 + 토큰 + Runtime 전환
 ├── Storage       — R2 스토리지 설정
-├── Design Tools  — Canva/Figma 연동
-└── System        — 크론 상태 + 알림 + 계정
+├── Design Tools  — Canva / Figma 연동
+├── Notifications — Slack 알림 설정
+├── Keywords      — 키워드 뱅크 + KW Planner
+├── Video / TTS   — ElevenLabs 설정
+└── System        — 크론 상태 + 계정
 ```
+
+## 16. 온보딩 위저드
+
+- **3단계**: 업종 선택 → 채널 선택 → 채널 연결
+- **진입 조건**: 온보딩 미완료 + 연결된 채널 0개
+- **스텝 표시기**: 보라색 progress bar (3칸, `bg-purple-500` / `bg-gray-700`)
+- **업종**: 8개 (카페, 뷰티, 음식점, 피트니스, 쇼핑, 테크, 교육, 기타)
+- **채널**: 5개 주요 채널 (Threads, X, Instagram, Facebook, Telegram)
+- **3단계**: 선택한 첫 번째 채널의 Credential 입력 + Setup Guide 표시
+- **"나중에 설정하기"** 건너뛰기 버튼 (UI 상태로만 기억, 새로고침 시 다시 표시)
+- **배경**: 전체 화면 오버레이 (`bg-black/70 backdrop-blur-sm`)
+
+## 17. AI 제안 UI
+
+- **버튼**: 보라색 "AI 제안" 버튼 (Content Guide + Keywords 편집기에 배치)
+- **로딩**: 버튼 비활성화 + "제안 중..." 텍스트
+- **Content Guide 제안 결과**: 보라색 테두리 박스에 전체 가이드 텍스트 표시
+  - 버튼: "적용하기" (현재 편집 영역에 덮어쓰기) / "닫기"
+- **Keywords 제안 결과**: 태그 형태로 개별 키워드 표시
+  - 개별 클릭으로 키워드 추가 가능
+  - "모두 추가" 버튼
+- **공통 패턴**: 제안 결과는 즉시 저장하지 않음 — 사용자가 "적용" 후 별도 "저장" 필요
+
+## 18. Coming Soon 표시
+
+- 미구현 자동화 feature: 토글 비활성화 (`opacity-40`) + "Coming Soon" 텍스트
+- 구현된 것만 토글 ON/OFF 가능
+- `AUTOMATION_FEATURES` 배열의 `implemented` 플래그로 구분
+- 비활성 feature 클릭 시 아무 동작 없음 (비활성 스타일로 시각적 차단)
+
+## 19. 채널 아이콘
+
+- **SVG 브랜드 로고**: `src/lib/channel-icons.tsx`에 정의
+- 등록된 채널: SVG 인라인 아이콘 (14x14 기본, currentColor)
+- **미등록 채널**: 채널명 첫 글자 fallback (예: "F" for Facebook, "BS" for Bluesky)
+- Marketing Home 채널 그리드: 아이콘 + 라벨 + 연결 상태 도트
+- 사이드바: 아이콘 + 채널명 + 상태 뱃지
+
+## 20. Runtime 모드
+
+- **위치**: Settings > AI Engine 탭
+- **UI**: 2열 카드 형태 (`grid-cols-2`)
+- **Gateway**: 파란 테두리 + 파란 배경 (`border-blue-600 bg-blue-950/30`), "Extra Usage 과금" 설명
+- **Claude CLI**: 초록 테두리 + 초록 배경 (`border-green-600 bg-green-950/30`), "Plan Usage (Max Plan)" 설명
+- **비선택 카드**: 회색 테두리 (`border-gray-700`), hover 시 밝아짐
+- **전환**: 클릭 즉시 `/api/ai-runtime`에 POST → 성공 시 토스트

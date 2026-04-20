@@ -1,0 +1,15 @@
+{
+  "threads": {
+    "content_generation": true,
+    "auto_publish": true,
+    "insights_collection": true,
+    "auto_like_replies": true,
+    "trending_collection": true,
+    "follower_tracking": true
+  },
+  "x": {
+    "content_generation": false,
+    "auto_publish": false,
+    "insights_collection": false
+  }
+}
