@@ -21,7 +21,7 @@ export function writeJson(filePath: string, data: unknown): void {
   if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, "{}", "utf-8");
   let release: (() => void) | null = null;
   try {
-    release = lockfile.lockSync(filePath, { retries: { retries: 3, minTimeout: 100, maxTimeout: 1000 } });
+    release = lockfile.lockSync(filePath);
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
   } finally {
     if (release) release();

@@ -42,6 +42,7 @@ try:
         runtime = json.load(f)
     if runtime.get("mode") != "cli":
         sys.exit(0)
+    enabled_jobs = set(runtime.get("enabledJobs", []))
 except:
     sys.exit(0)
 
@@ -66,7 +67,8 @@ def every_ms_to_hours(ms):
 
 def should_run(job):
     """Check if job is due based on everyMs schedule"""
-    if not job.get("enabled"):
+    name = job.get("name", "")
+    if name not in enabled_jobs:
         return False
     sched = job.get("schedule", {})
     every_ms = sched.get("everyMs", 21600000)
@@ -110,17 +112,36 @@ for job in jobs_data.get("jobs", []):
         log_file = os.path.join(log_dir, f"{name}-{now.strftime('%Y%m%d-%H%M')}.log")
 
         result = subprocess.run(
-            ["claude", "-p", prompt, "--allowedTools", "Read,Write,Bash", "--permission-mode", "auto", "--max-turns", "20"],
+            ["claude", "-p", prompt, "--allowedTools", "Read,Write,Bash", "--dangerously-skip-permissions", "--max-turns", "20", "--output-format", "json"],
             capture_output=True,
             text=True,
             timeout=300,
             cwd=base_dir,
         )
 
-        output = result.stdout + ("\n--- STDERR ---\n" + result.stderr if result.stderr else "")
+        # Parse JSON output for model info
+        model_name = ""
+        cost_usd = 0
+        output = result.stdout
+        try:
+            jout = json.loads(result.stdout)
+            output = jout.get("result", result.stdout)
+            model_usage = jout.get("modelUsage", {})
+            if model_usage:
+                model_name = list(model_usage.keys())[0]
+                first = list(model_usage.values())[0]
+                cost_usd = first.get("costUSD", 0)
+            if jout.get("is_error"):
+                output = jout.get("result", "error")
+        except:
+            pass
+        if result.stderr:
+            output += "\n--- STDERR ---\n" + result.stderr
         status = "ok" if result.returncode == 0 else "error"
 
         with open(log_file, "w") as f:
+            if model_name:
+                f.write(f"[model: {model_name} | cost: ${cost_usd:.4f}]\n")
             f.write(output)
 
         # Update job state in jobs.json
@@ -129,11 +150,30 @@ for job in jobs_data.get("jobs", []):
         state["lastRunStatus"] = status
         state["lastStatus"] = status
         state["lastError"] = output[:500] if status == "error" else ""
+        state["lastModel"] = model_name
+        state["lastCostUSD"] = round(cost_usd, 4)
         if status == "ok":
             state["consecutiveErrors"] = 0
         else:
             state["consecutiveErrors"] = state.get("consecutiveErrors", 0) + 1
         job["state"] = state
+
+        # Update model field in queue posts created by this run
+        if model_name and status == "ok" and "generate" in name:
+            queue_file = os.path.join(base_dir, "data", "blog-queue.json" if "blog" in name else "queue.json")
+            try:
+                with open(queue_file) as qf:
+                    qdata = json.load(qf)
+                changed = False
+                for p in qdata.get("posts", []):
+                    if p.get("model") in ("claude-cli", "", None) and p.get("status") == "draft":
+                        p["model"] = model_name
+                        changed = True
+                if changed:
+                    with open(queue_file, "w") as qf:
+                        json.dump(qdata, qf, indent=2, ensure_ascii=False)
+            except:
+                pass
 
         # Keep only last 20 logs per job
         logs = sorted(Path(log_dir).glob(f"{name}-*.log"))

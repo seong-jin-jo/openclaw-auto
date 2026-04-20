@@ -22,6 +22,7 @@ export function fmtAgo(iso: unknown): string {
   const d = new Date(typeof iso === "number" ? iso : String(iso));
   if (isNaN(d.getTime())) return "";
   const diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 0) return "just now";
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
