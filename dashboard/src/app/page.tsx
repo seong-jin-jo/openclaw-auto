@@ -1,6 +1,6 @@
 "use client";
 
-import { useOverview, useCronStatus, useActivity, useAlerts, useWeeklySummary, useTokenStatus, useAgentLogs } from "@/hooks/useOverview";
+import { useOverview, useCronStatus, useActivity, useAlerts, useWeeklySummary, useTokenStatus, useAgentLogs, useUsage } from "@/hooks/useOverview";
 import { useChannelConfig } from "@/hooks/useChannelConfig";
 import { useOnboardingStatus } from "@/hooks/useOnboarding";
 import { fmtAgo, fmtTime } from "@/lib/format";
@@ -41,6 +41,7 @@ export default function HomePage() {
   const { data: weeklyData } = useWeeklySummary();
   const { data: tokenData } = useTokenStatus();
   const { data: agentLogData } = useAgentLogs();
+  const { data: usageData } = useUsage();
   const { data: channelConfig } = useChannelConfig();
   const { dismissedOnboarding, dismissOnboarding } = useUIStore();
   const { data: onboardingData, mutate: mutateOnboarding } = useOnboardingStatus();
@@ -54,6 +55,7 @@ export default function HomePage() {
   const weekly = weeklyData as Record<string, unknown> | undefined;
   const tokenStatus = tokenData as Record<string, unknown> | undefined;
   const agentLogs = (((agentLogData as Record<string, unknown>)?.logs || []) as Array<Record<string, unknown>>);
+  const usage = usageData as { today?: Record<string, number>; thisWeek?: Record<string, number> } | undefined;
 
   if (!o) return <div className="px-8 py-6"><p className="text-gray-500">Loading...</p></div>;
 
@@ -119,6 +121,49 @@ export default function HomePage() {
         {card("Queue", (sc.draft || 0) + (sc.approved || 0), `${sc.draft || 0} drafts`)}
         {card("Engagement", weekly?.engagementRate ? `${weekly.engagementRate}%` : "-", "this week")}
       </div>
+
+      {/* Usage */}
+      {usage && (
+        <div className="card p-5 mb-6">
+          <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-4">Usage</h3>
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <p className="text-[10px] text-gray-500 mb-2">Today</p>
+              <div className="flex items-center gap-4">
+                <div>
+                  <p className="text-xl font-bold text-white">{usage.today?.aiGenerations || 0}</p>
+                  <p className="text-[10px] text-gray-500">generations</p>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-white">{usage.today?.publications || 0}</p>
+                  <p className="text-[10px] text-gray-500">publications</p>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-gray-400">{usage.today?.cronRuns || 0}</p>
+                  <p className="text-[10px] text-gray-500">cron runs</p>
+                </div>
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-500 mb-2">This Week</p>
+              <div className="flex items-center gap-4">
+                <div>
+                  <p className="text-xl font-bold text-white">{usage.thisWeek?.aiGenerations || 0}</p>
+                  <p className="text-[10px] text-gray-500">generations</p>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-white">{usage.thisWeek?.publications || 0}</p>
+                  <p className="text-[10px] text-gray-500">publications</p>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-gray-400">{usage.thisWeek?.cronRuns || 0}</p>
+                  <p className="text-[10px] text-gray-500">cron runs</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Weekly Performance */}
       {weekly && (
