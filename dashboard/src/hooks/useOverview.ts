@@ -30,3 +30,7 @@ export function useTokenStatus() {
 export function useAgentLogs() {
   return useSWR("/api/agent-logs", fetcher);
 }
+
+export function useUsage() {
+  return useSWR("/api/usage", fetcher);
+}
