@@ -1,6 +1,6 @@
 "use client";
 
-import { useOverview, useCronStatus, useActivity, useAlerts, useWeeklySummary, useTokenStatus, useAgentLogs, useUsage } from "@/hooks/useOverview";
+import { useOverview, useCronStatus, useActivity, useAlerts, useWeeklySummary, useTokenStatus, useAgentLogs, useUsage, useErrors } from "@/hooks/useOverview";
 import { useChannelConfig } from "@/hooks/useChannelConfig";
 import { useOnboardingStatus } from "@/hooks/useOnboarding";
 import { fmtAgo, fmtTime } from "@/lib/format";
@@ -42,6 +42,7 @@ export default function HomePage() {
   const { data: tokenData } = useTokenStatus();
   const { data: agentLogData } = useAgentLogs();
   const { data: usageData } = useUsage();
+  const { data: errorData } = useErrors();
   const { data: channelConfig } = useChannelConfig();
   const { dismissedOnboarding, dismissOnboarding } = useUIStore();
   const { data: onboardingData, mutate: mutateOnboarding } = useOnboardingStatus();
@@ -56,6 +57,8 @@ export default function HomePage() {
   const tokenStatus = tokenData as Record<string, unknown> | undefined;
   const agentLogs = (((agentLogData as Record<string, unknown>)?.logs || []) as Array<Record<string, unknown>>);
   const usage = usageData as { today?: Record<string, number>; thisWeek?: Record<string, number> } | undefined;
+  const errInfo = errorData as { last24h?: number } | undefined;
+  const errorCount24h = errInfo?.last24h || 0;
 
   if (!o) return <div className="px-8 py-6"><p className="text-gray-500">Loading...</p></div>;
 
@@ -83,6 +86,18 @@ export default function HomePage() {
 
   return (
     <div className="px-8 py-6">
+      {/* Error Indicator */}
+      {errorCount24h > 0 && (
+        <div className="mb-4 px-4 py-3 rounded-xl bg-red-900/20 border border-red-900/40 flex items-center gap-3">
+          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
+            {errorCount24h}
+          </span>
+          <span className="text-sm text-red-300">
+            최근 24시간 에러 {errorCount24h}건 발생
+          </span>
+        </div>
+      )}
+
       {/* Channel Grid */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">

@@ -6,6 +6,7 @@ import { ToastContainer } from "@/components/layout/Toast";
 import { LoginModal } from "@/components/shared/LoginModal";
 import { AuthGate } from "@/components/shared/AuthGate";
 import { ImagePickerModal } from "@/components/queue/ImagePickerModal";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 
 export const metadata: Metadata = {
   title: "Marketing Hub",
@@ -19,7 +20,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <AuthGate>
             <Sidebar />
-            <main className="flex-1 min-h-screen overflow-y-auto">{children}</main>
+            <main className="flex-1 min-h-screen overflow-y-auto">
+              <ErrorBoundary>{children}</ErrorBoundary>
+            </main>
           </AuthGate>
           <ToastContainer />
           <LoginModal />

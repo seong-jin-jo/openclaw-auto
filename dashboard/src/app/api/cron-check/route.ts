@@ -80,6 +80,24 @@ export async function POST() {
     }
   }
 
+  // Record new cron errors to error-log
+  if (newErrors.length) {
+    const errorLogPath = dataPath("error-log.json");
+    const errorLog = readJson<{ errors: Array<Record<string, unknown>> }>(errorLogPath) || { errors: [] };
+    for (const errName of newErrors) {
+      errorLog.errors.unshift({
+        id: `err_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        source: "cron",
+        message: `크론 에러: ${errName}`,
+        timestamp: new Date().toISOString(),
+      });
+    }
+    if (errorLog.errors.length > 200) {
+      errorLog.errors = errorLog.errors.slice(0, 200);
+    }
+    writeJson(errorLogPath, errorLog);
+  }
+
   // Update state
   state.lastCronErrors = currentErrors;
   state.lastViralIds = viralIds;

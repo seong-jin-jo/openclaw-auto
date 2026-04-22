@@ -34,3 +34,7 @@ export function useAgentLogs() {
 export function useUsage() {
   return useSWR("/api/usage", fetcher);
 }
+
+export function useErrors() {
+  return useSWR("/api/errors", fetcher);
+}
