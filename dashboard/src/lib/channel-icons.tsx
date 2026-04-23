@@ -80,7 +80,7 @@ export const channelIcons: Record<string, React.ReactNode> = {
   ),
   midjourney: (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z"/>
+      <path d="M8.5 2A6.5 6.5 0 002 8.5 6.5 6.5 0 008.5 15h1.043l-1.29 3.227a1.5 1.5 0 001.393 2.073h4.708a1.5 1.5 0 001.393-2.073L14.457 15H15.5A6.5 6.5 0 0022 8.5 6.5 6.5 0 0015.5 2h-7z"/>
     </svg>
   ),
   google_analytics: (
@@ -89,18 +89,19 @@ export const channelIcons: Record<string, React.ReactNode> = {
     </svg>
   ),
   search_console: (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+      <path d="M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z"/>
     </svg>
   ),
   google_business: (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 11.5A2.5 2.5 0 019.5 9 2.5 2.5 0 0112 6.5 2.5 2.5 0 0114.5 9a2.5 2.5 0 01-2.5 2.5M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7z"/>
     </svg>
   ),
   seo_keywords: (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M11.5 9C11.5 7.62 12.62 6.5 14 6.5s2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5S11.5 10.38 11.5 9M14 13c-2.33 0-7 1.17-7 3.5V18h14v-1.5c0-2.33-4.67-3.5-7-3.5M7.5 9C7.5 7.62 8.62 6.5 10 6.5V5C7.79 5 6 6.79 6 9s1.79 4 4 4v-1.5C8.62 11.5 7.5 10.38 7.5 9"/>
     </svg>
   ),
   kakao: (
@@ -116,6 +117,16 @@ export const channelIcons: Record<string, React.ReactNode> = {
   medium: (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
       <path d="M13.54 12a6.8 6.8 0 01-6.77 6.82A6.8 6.8 0 010 12a6.8 6.8 0 016.77-6.82A6.8 6.8 0 0113.54 12zM20.96 12c0 3.54-1.51 6.42-3.38 6.42-1.87 0-3.39-2.88-3.39-6.42s1.52-6.42 3.39-6.42 3.38 2.88 3.38 6.42M24 12c0 3.17-.53 5.75-1.19 5.75-.66 0-1.19-2.58-1.19-5.75s.53-5.75 1.19-5.75C23.47 6.25 24 8.83 24 12z"/>
+    </svg>
+  ),
+  blog: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+    </svg>
+  ),
+  substack: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M22.539 8.242H1.46V5.406h21.08v2.836zM1.46 10.812V24L12 18.11 22.54 24V10.812H1.46zM22.54 0H1.46v2.836h21.08V0z"/>
     </svg>
   ),
   custom_api: (
