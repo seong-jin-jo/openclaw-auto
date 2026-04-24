@@ -16,9 +16,13 @@ export interface Post {
   publishedAt?: string;
   generatedAt?: string;
   imageUrl?: string;
+  imageUrls?: string[];
+  cardBatchId?: string;
   topic?: string;
   model?: string;
   hashtags?: string[];
+  tags?: string[];
+  seoKeyword?: string;
   channels?: Record<string, ChannelStatus>;
   engagement?: {
     views?: number;

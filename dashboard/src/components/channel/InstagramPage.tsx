@@ -7,198 +7,14 @@ import { useChannelConfig, useDesignTools } from "@/hooks/useChannelConfig";
 import { useToast } from "@/components/layout/Toast";
 import { useUIStore } from "@/store/ui-store";
 import { AUTOMATION_FEATURES } from "@/lib/constants";
+import { setupGuides } from "@/lib/setup-guides";
+import { CredentialForm } from "@/components/shared/CredentialForm";
+import { SetupGuide } from "@/components/shared/SetupGuide";
+import { ContentGuide } from "./ContentGuide";
+import { KeywordsEditor } from "./KeywordsEditor";
+import { QueueList } from "@/components/queue/QueueList";
 import { fmtAgo } from "@/lib/format";
 import Link from "next/link";
-
-/* ---------- Instagram Queue ---------- */
-function InstagramQueue({ posts, filter, setFilter, selectedIds, setSelectedIds, onReload, onEditInEditor }: {
-  posts: QueuePost[];
-  filter: string;
-  setFilter: (f: string) => void;
-  selectedIds: Set<string>;
-  setSelectedIds: (s: Set<string>) => void;
-  onReload: () => void;
-  onEditInEditor?: (postId: string) => void;
-}) {
-  const { showToast } = useToast();
-
-  let filtered = posts;
-  if (filter === "draft") filtered = posts.filter(p => p.status === "draft");
-  else if (filter === "approved") filtered = posts.filter(p => p.status === "approved");
-  else if (filter === "published") filtered = posts.filter(p => p.status === "published" || p.channels?.instagram?.status === "published");
-
-  const igPublished = posts.filter(p => p.channels?.instagram?.status === "published").length;
-  const igPending = posts.filter(p => p.imageUrl && p.status === "approved" && p.channels?.instagram?.status === "pending").length;
-  const filters = ["all", "draft", "approved", "published"];
-
-  const bulkApprove = async () => {
-    const ids = [...selectedIds];
-    const r = await apiPost<{ approved: number }>("/api/queue/bulk-approve", { ids });
-    if (r) { showToast(`${r.approved || ids.length}개 승인`, "success"); setSelectedIds(new Set()); onReload(); }
-  };
-  const bulkDelete = async () => {
-    if (!confirm(`${selectedIds.size}개 삭제?`)) return;
-    const ids = [...selectedIds];
-    const r = await apiPost<{ deleted: number }>("/api/queue/bulk-delete", { ids });
-    if (r) { showToast(`${r.deleted || ids.length}개 삭제`, "success"); setSelectedIds(new Set()); onReload(); }
-  };
-
-  return (
-    <>
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="card p-3 text-center"><p className="text-lg font-bold text-white">{posts.length}</p><p className="text-[10px] text-gray-500">Total</p></div>
-        <div className="card p-3 text-center"><p className="text-lg font-bold text-blue-400">{igPending}</p><p className="text-[10px] text-gray-500">Ready</p></div>
-        <div className="card p-3 text-center"><p className="text-lg font-bold text-green-400">{igPublished}</p><p className="text-[10px] text-gray-500">Published</p></div>
-      </div>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex gap-1">
-          {filters.map(f => (
-            <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1 text-xs rounded ${filter === f ? "bg-blue-600/30 text-blue-300 border border-blue-600/30" : "text-gray-500 hover:bg-gray-800"}`}>
-              {f.charAt(0).toUpperCase() + f.slice(1)}
-            </button>
-          ))}
-        </div>
-        <div className="flex gap-2 items-center">
-          {filtered.filter(p => p.status === "draft" || p.status === "approved").length > 0 && (
-            <label className="flex items-center gap-1 text-xs text-gray-400 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={selectedIds.size > 0}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    const selectablePosts = filtered.filter(p => (p.status === "draft" || p.status === "approved") && p.imageUrl);
-                    setSelectedIds(new Set(selectablePosts.map(p => p.id)));
-                  } else {
-                    setSelectedIds(new Set());
-                  }
-                }}
-                className="rounded border-gray-600"
-              />
-              All
-            </label>
-          )}
-          {selectedIds.size > 0 && (
-            <>
-              <button onClick={bulkApprove} className="px-3 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve ({selectedIds.size})</button>
-              <button onClick={bulkDelete} className="px-3 py-1 text-xs bg-red-700 text-white rounded hover:bg-red-600">Delete ({selectedIds.size})</button>
-            </>
-          )}
-          <span className="text-xs text-gray-500">{filtered.length} posts</span>
-        </div>
-      </div>
-      <div className="space-y-3">
-        {filtered.length === 0 && <div className="card p-8 text-center"><p className="text-gray-500 text-sm">No posts</p></div>}
-        {filtered.map(p => (
-          <InstagramPostCard key={p.id} post={p} selectedIds={selectedIds} setSelectedIds={setSelectedIds} onReload={onReload} onEditInEditor={onEditInEditor} />
-        ))}
-      </div>
-    </>
-  );
-}
-
-/* ---------- Instagram Post Card ---------- */
-function InstagramPostCard({ post: p, selectedIds, setSelectedIds, onReload, onEditInEditor }: {
-  post: QueuePost; selectedIds: Set<string>; setSelectedIds: (s: Set<string>) => void; onReload: () => void; onEditInEditor?: (postId: string) => void;
-}) {
-  const { showToast } = useToast();
-  const [editing, setEditing] = useState(false);
-  const sc: Record<string, string> = { draft: "bg-yellow-900/50 text-yellow-300", approved: "bg-blue-900/50 text-blue-300", published: "bg-green-900/50 text-green-300", failed: "bg-red-900/50 text-red-300" };
-  const igStatus = p.channels?.instagram?.status || "pending";
-  const igBadge: Record<string, string> = { published: "bg-green-900/40 text-green-400", failed: "bg-red-900/40 text-red-400", pending: "bg-gray-800 text-gray-500", skipped: "bg-gray-800 text-gray-600" };
-  const slides = p.imageUrls || (p.imageUrl ? [p.imageUrl] : []);
-  const isCard = slides.length > 1 || !!p.cardBatchId;
-
-  const approve = async () => {
-    await apiPost(`/api/queue/${p.id}/approve`, { hours: 2 });
-    showToast("승인 완료", "success");
-    onReload();
-  };
-  const del = async () => {
-    if (!confirm("정말 삭제?")) return;
-    await apiPost(`/api/queue/${p.id}/delete`);
-    showToast("삭제 완료", "success");
-    onReload();
-  };
-  const save = async (text: string) => {
-    await apiPost(`/api/queue/${p.id}/update`, { text });
-    showToast("수정 완료", "success");
-    setEditing(false);
-    onReload();
-  };
-
-  return (
-    <div className="card p-4">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          {(p.status === "draft" || p.status === "approved") && (
-            <input
-              type="checkbox"
-              checked={selectedIds.has(p.id)}
-              onChange={(e) => {
-                const next = new Set(selectedIds);
-                if (e.target.checked) next.add(p.id); else next.delete(p.id);
-                setSelectedIds(next);
-              }}
-              className="rounded border-gray-600 w-3.5 h-3.5"
-            />
-          )}
-          <span className={`text-[10px] px-2 py-0.5 rounded ${sc[p.status] || "bg-gray-700 text-gray-300"}`}>{p.status}</span>
-          <span className={`text-[10px] px-1.5 py-0.5 rounded ${igBadge[igStatus] || "bg-gray-800 text-gray-500"}`}>IG: {igStatus}</span>
-          {isCard && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-900/40 text-purple-300">Card {slides.length} slides</span>}
-        </div>
-        <span className="text-[10px] text-gray-600">{p.id.slice(0, 8)}</span>
-      </div>
-
-      {slides.length > 0 ? (
-        <div className="mb-3">
-          <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: "thin", scrollbarColor: "#374151 transparent" }}>
-            {slides.map((s, i) => (
-              <div key={i} className="flex-shrink-0 w-36 h-44 rounded-lg overflow-hidden border border-gray-800">
-                <img src={s} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="mb-3 w-36 h-44 rounded-lg border border-dashed border-gray-700 bg-gray-900/30 flex items-center justify-center">
-          <span className="text-gray-600 text-xs">No Image</span>
-        </div>
-      )}
-
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-xs font-medium text-gray-300">{p.topic || "general"}</span>
-        {p.model && <span className="text-[10px] text-gray-600">{p.model}</span>}
-      </div>
-
-      {editing ? (
-        <>
-          <textarea id="ig-edit-textarea" className="w-full bg-gray-800 text-gray-200 text-sm p-2 rounded border border-gray-700 mb-2" rows={4} defaultValue={p.text} />
-          <div className="flex gap-2">
-            <button onClick={() => { const ta = document.getElementById("ig-edit-textarea") as HTMLTextAreaElement; if (ta) save(ta.value); }} className="px-2 py-1 text-xs bg-blue-600 text-white rounded">Save</button>
-            <button onClick={() => setEditing(false)} className="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded">Cancel</button>
-          </div>
-        </>
-      ) : (
-        <p className="text-sm text-gray-300 mb-2 whitespace-pre-wrap line-clamp-4">{p.text}</p>
-      )}
-
-      {(p.hashtags?.length ?? 0) > 0 && (
-        <div className="flex flex-wrap gap-1 mb-3">
-          {(p.hashtags ?? []).map((h, i) => <span key={i} className="text-[10px] text-blue-400">#{h}</span>)}
-        </div>
-      )}
-
-      {!editing && (
-        <div className="flex gap-2 pt-2 border-t border-gray-800/50">
-          {p.status === "draft" && <button onClick={approve} className="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>}
-          {onEditInEditor && <button onClick={() => onEditInEditor(p.id)} className="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button>}
-          {!onEditInEditor && <button onClick={() => setEditing(true)} className="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button>}
-          {p.status === "draft" && <button onClick={del} className="px-3 py-1.5 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">Delete</button>}
-        </div>
-      )}
-    </div>
-  );
-}
 
 /* ---------- Card News Editor ---------- */
 interface CardEditorState {
@@ -529,190 +345,210 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
 }
 
 /* ---------- Instagram Settings ---------- */
-function InstagramSettings({ channelConfig, channelSettings }: {
-  channelConfig: Record<string, unknown>;
-  channelSettings: Record<string, unknown>;
-}) {
+function InstagramSettings() {
   const { showToast } = useToast();
-  const [showToken, setShowToken] = useState(false);
+  const { data: channelConfig, mutate: mutateConfig } = useChannelConfig();
   const [expandedFeature, setExpandedFeature] = useState<string | null>(null);
-  const ch = channelConfig as { keys?: Record<string, string>; connected?: boolean };
-  const keys = ch.keys || {};
-  const hasKeys = Object.values(keys).some(v => v);
 
-  const cs = (channelSettings as Record<string, Record<string, boolean>>)?.instagram || {};
-  const features = ((channelSettings as Record<string, unknown>)?.features || []) as Array<{ key: string; label: string; description: string }>;
-  const igFeatures = ["content_generation", "auto_publish", "instagram_carousel", "image_generation"];
+  const cfg = (channelConfig || {}) as Record<string, Record<string, unknown>>;
+  const igCfg = cfg.instagram || {};
+  const keys = (igCfg.keys || {}) as Record<string, string>;
+  const connected = !!igCfg.connected;
+  const sg = setupGuides.instagram || { fields: [], labels: [], quick: ["Setup guide 준비 중"], detail: "" };
 
-  // Cron run history for Instagram automation
+  const handleCredSave = async (newKeys: Record<string, string>) => {
+    const r = await apiPost<{ verified?: boolean; error?: string; account?: string }>("/api/channel-config/instagram", newKeys);
+    if (r?.verified) {
+      showToast(`Instagram 연결 완료${r.account ? " — " + r.account : ""}`, "success");
+      mutateConfig();
+    } else {
+      showToast(`연결 실패: ${r?.error || "Invalid credentials"}`, "error");
+      throw new Error(r?.error || "Verification failed");
+    }
+  };
+
+  // Automation
+  const { data: channelSettings, mutate: mutateSettings } = useSWR("/api/channel-settings/instagram", fetcher);
+  const { data: cronJobs } = useSWR("/api/cron-status", fetcher);
   const { data: cronRunsData } = useSWR("/api/cron-runs", fetcher);
-  const cronRuns = ((((cronRunsData as Record<string, unknown>)?.runs || []) as Array<Record<string, unknown>>));
+  const cs = (channelSettings as Record<string, unknown>) || {};
+  const jobs = (((cronJobs as Record<string, unknown>)?.jobs || cronJobs || []) as Array<Record<string, unknown>>);
+  const runs = ((((cronRunsData as Record<string, unknown>)?.runs || []) as Array<Record<string, unknown>>));
 
   const IG_FEATURE_CRON: Record<string, string> = {
     content_generation: "instagram-generate-drafts",
     auto_publish: "instagram-auto-publish",
   };
 
-  const handleSave = async () => {
-    const token = (document.getElementById("ch-instagram-accessToken") as HTMLInputElement)?.value?.trim();
-    const userId = (document.getElementById("ch-instagram-userId") as HTMLInputElement)?.value?.trim();
-    const data: Record<string, string> = {};
-    if (token) data.accessToken = token;
-    if (userId) data.userId = userId;
-    const r = await apiPost<{ verified?: boolean; error?: string; account?: string }>("/api/channel-config/instagram", data);
-    if (r?.verified) showToast(`Instagram 연결 완료${r.account ? " -- " + r.account : ""}`, "success");
-    else showToast(`연결 실패: ${r?.error || "Invalid credentials"}`, "error");
+  const handleToggle = async (key: string, checked: boolean) => {
+    try {
+      await apiPost("/api/channel-settings/instagram", { [key]: checked });
+      mutateSettings();
+      showToast(`${key} ${checked ? "ON" : "OFF"}`, "success");
+    } catch (e) { showToast(`실패: ${(e as Error).message}`, "error"); }
   };
+
+  const shownCronEditors = new Set<string>();
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Credentials */}
       <div className="card p-5">
-        <h3 className="text-sm font-medium text-gray-300 mb-4">Credentials</h3>
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs text-gray-400 block mb-0.5">Graph API Access Token</label>
-            <div className="relative">
-              <input id="ch-instagram-accessToken" type={showToken ? "text" : "password"} defaultValue={keys.accessToken || ""} placeholder="Graph API Access Token" className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 pr-16 text-[11px] text-gray-300 placeholder-gray-600 font-mono" />
-              <button type="button" onClick={() => setShowToken(!showToken)} className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 hover:text-gray-300">{showToken ? "Hide" : "Show"}</button>
+        <CredentialForm
+          channelKey="instagram"
+          fields={sg.fields}
+          labels={sg.labels}
+          currentKeys={keys}
+          onSave={handleCredSave}
+          title="Instagram Graph API"
+          badge={{ text: "Graph API", color: "purple" }}
+          connectLabel="Connect Instagram"
+        />
+      </div>
+
+      {/* Channel Info + Setup Guide */}
+      <div className="space-y-4">
+        <div className="card p-5">
+          <h3 className="text-sm font-medium text-gray-300 mb-3">Channel Info</h3>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-500">Status</span>
+              <span className={connected ? "text-green-400" : "text-yellow-400"}>
+                {connected ? "Connected" : "Not connected"}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Character Limit</span>
+              <span className="text-gray-300">2,200</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Image Format</span>
+              <span className="text-gray-300">Carousel / Single</span>
             </div>
           </div>
-          <div>
-            <label className="text-xs text-gray-400 block mb-0.5">Instagram Business User ID</label>
-            <input id="ch-instagram-userId" type="text" defaultValue={keys.userId || ""} placeholder="Instagram Business User ID" className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-[11px] text-gray-300 placeholder-gray-600 font-mono" />
-          </div>
         </div>
-        <button onClick={handleSave} className="w-full mt-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">
-          {hasKeys ? "Update" : "Connect"}
-        </button>
-        <div className="mt-4 card p-4 bg-gray-900/50">
-          <h4 className="text-xs font-medium text-gray-400 mb-2">Setup Guide</h4>
-          <ol className="text-[10px] text-gray-500 space-y-1 list-decimal list-inside">
-            <li>Instagram을 Business/Creator 계정으로 전환</li>
-            <li>Facebook Page 생성 후 Instagram 계정 연결</li>
-            <li>developers.facebook.com &gt; 앱 만들기</li>
-            <li>Instagram Graph API + Content Publishing 제품 추가</li>
-            <li>테스터 등록 후 Instagram 앱에서 수락</li>
-            <li>Graph API Explorer에서 토큰 생성</li>
-            <li>{`GET /me/accounts -> 페이지 ID -> GET /{페이지ID}?fields=instagram_business_account -> id가 User ID`}</li>
-          </ol>
+        <div className="card p-5">
+          <SetupGuide quick={sg.quick} detail={sg.detail} />
         </div>
       </div>
+
+      {/* Automation */}
       <div className="card p-5">
         <h3 className="text-sm font-medium text-gray-300 mb-4">Automation</h3>
-        <div className="space-y-0">
-          {features.filter(f => igFeatures.includes(f.key)).map(f => {
-            const cronName = IG_FEATURE_CRON[f.key];
-            const featureRuns = cronName ? cronRuns.filter((r) => r.jobName === cronName) : [];
-            const lastRun = featureRuns[0] as Record<string, unknown> | undefined;
-            const expanded = expandedFeature === f.key;
-            const sc = lastRun ? (lastRun.status === "ok" ? "text-green-400" : "text-red-400") : "";
-            const ago = lastRun?.finishedAt ? fmtAgo(new Date(lastRun.finishedAt as string).toISOString()) : "";
+        {AUTOMATION_FEATURES.map((f) => {
+          const cronName = IG_FEATURE_CRON[f.key];
+          const featureRuns = cronName ? runs.filter((r) => r.jobName === cronName) : [];
+          const lastRun = featureRuns[0];
+          const expanded = expandedFeature === f.key;
+          const job = cronName ? jobs.find((j) => j.id === cronName) as Record<string, unknown> | undefined : undefined;
+          const hours = job?.everyMs ? Math.round((job.everyMs as number) / 3600000) : null;
+          const showInterval = cronName && !shownCronEditors.has(cronName);
+          if (cronName) shownCronEditors.add(cronName);
 
-            return (
-              <div key={f.key} className="border-b border-gray-800/50 last:border-0">
-                <div
-                  className="flex items-center gap-3 py-2.5 cursor-pointer"
-                  onClick={() => setExpandedFeature(expanded ? null : f.key)}
-                >
-                  <label className="relative inline-flex items-center cursor-pointer shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <input
-                      type="checkbox"
-                      defaultChecked={!!cs[f.key]}
-                      onChange={async (e) => {
-                        const r = await apiPost(`/api/channel-settings/instagram`, { [f.key]: e.target.checked });
-                        if (r) showToast(`Instagram ${f.key} ${e.target.checked ? "ON" : "OFF"}`, "success");
-                      }}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
-                  </label>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-300">{f.label}</span>
-                      {lastRun && (
-                        <>
-                          <span className={`text-[10px] ${sc}`}>{lastRun.status === "ok" ? "\u2713" : "\u2717"}</span>
-                          <span className="text-[10px] text-gray-600">{ago}</span>
-                        </>
-                      )}
-                      {featureRuns.length > 0 && (
-                        <svg className={`w-3 h-3 text-gray-600 ml-auto transition-transform ${expanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-gray-600">{f.description}</p>
-                  </div>
-                </div>
-                {expanded && (
-                  <div className="ml-12 mb-3 space-y-1.5">
-                    {featureRuns.length > 0 ? (
-                      featureRuns.slice(0, 10).map((r, i) => {
-                        const ts = r.finishedAt ? new Date(r.finishedAt as string).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
-                        return (
-                          <div key={i} className="flex items-start gap-2 py-1">
-                            <span className={`text-[10px] mt-0.5 ${r.status === "ok" ? "text-green-400" : "text-red-400"}`}>
-                              {r.status === "ok" ? "\u2713" : "\u2717"}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-gray-500">{ts}</span>
-                                <span className="text-[10px] text-gray-700">{String(r.model || "")}</span>
-                                <span className="text-[10px] text-gray-700 ml-auto">{Math.round(Number(r.durationMs) / 1000)}s</span>
-                              </div>
-                              <p className="text-[10px] text-gray-500 break-words">{String(r.summary || "")}</p>
-                            </div>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <p className="text-[10px] text-gray-600">실행 이력 없음</p>
+          const isImplemented = (f as Record<string, unknown>).implemented !== false;
+          const showComingSoon = !isImplemented || (!cronName && !["content_generation", "auto_publish"].includes(f.key));
+
+          return (
+            <div key={f.key} className="border-b border-gray-800/50 last:border-0">
+              <div className="flex items-center gap-3 py-2.5 cursor-pointer" onClick={() => setExpandedFeature(expanded ? null : f.key)}>
+                <label className={`relative inline-flex items-center shrink-0 ${showComingSoon ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`} onClick={(e) => e.stopPropagation()}>
+                  <input type="checkbox" checked={!!(cs[f.key])} onChange={(e) => !showComingSoon && handleToggle(f.key, e.target.checked)} disabled={showComingSoon} className="sr-only peer" />
+                  <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                </label>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs ${showComingSoon ? "text-gray-600" : "text-gray-300"}`}>{f.label}</span>
+                    {showComingSoon && <span className="text-[9px] text-gray-700">Coming Soon</span>}
+                    {hours && <span className="text-[10px] text-gray-600">{hours}h</span>}
+                    {lastRun && (
+                      <>
+                        <span className={`text-[10px] ${lastRun.status === "ok" ? "text-green-400" : "text-red-400"}`}>
+                          {lastRun.status === "ok" ? "\u2713" : "\u2717"}
+                        </span>
+                        <span className="text-[10px] text-gray-600">{lastRun.finishedAt ? fmtAgo(lastRun.finishedAt) : ""}</span>
+                      </>
+                    )}
+                    {(featureRuns.length > 0 || hours) && (
+                      <svg className={`w-3 h-3 text-gray-600 ml-auto transition-transform ${expanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
                     )}
                   </div>
-                )}
+                  <p className="text-[10px] text-gray-600">{f.description}</p>
+                </div>
               </div>
-            );
-          })}
-        </div>
+              {expanded && (
+                <div className="ml-12 mb-3 space-y-1.5">
+                  {showInterval && hours && (
+                    <div className="flex items-center gap-2 py-1.5 px-2 bg-gray-900/50 rounded mb-2" onClick={(e) => e.stopPropagation()}>
+                      <span className="text-[10px] text-gray-400">Interval</span>
+                      <select
+                        defaultValue={hours}
+                        onChange={async (e) => {
+                          const h = parseInt(e.target.value, 10);
+                          if (confirm(`주기를 ${h}h으로 변경?`)) {
+                            try {
+                              await apiPost(`/api/cron/${cronName}/interval`, { hours: h });
+                              showToast(`주기 변경: ${h}h`, "success");
+                            } catch (err) { showToast(`실패: ${(err as Error).message}`, "error"); }
+                          }
+                        }}
+                        className="bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-[10px] text-gray-300"
+                      >
+                        {[1, 2, 3, 4, 6, 8, 12, 24, 48, 168].map((h) => (
+                          <option key={h} value={h}>{h < 24 ? `${h}h` : h === 24 ? "1d" : h === 48 ? "2d" : "7d"}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  {featureRuns.length > 0 ? (
+                    featureRuns.slice(0, 10).map((r, i) => {
+                      const ts = r.finishedAt ? new Date(r.finishedAt as string).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+                      return (
+                        <div key={i} className="flex items-start gap-2 py-1">
+                          <span className={`text-[10px] mt-0.5 ${r.status === "ok" ? "text-green-400" : "text-red-400"}`}>
+                            {r.status === "ok" ? "\u2713" : "\u2717"}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-gray-500">{ts}</span>
+                              <span className="text-[10px] text-gray-700">{String(r.model || "")}</span>
+                              <span className="text-[10px] text-gray-700 ml-auto">{Math.round(Number(r.durationMs) / 1000)}s</span>
+                            </div>
+                            <p className="text-[10px] text-gray-500 break-words">{String(r.summary || "")}</p>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-[10px] text-gray-600">실행 이력 없음</p>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
+
+      {/* Content Guide + Keywords */}
+      <ContentGuide channel="instagram" />
+      <KeywordsEditor channel="instagram" />
     </div>
   );
-}
-
-/* ---------- Types ---------- */
-interface QueuePost {
-  id: string;
-  text: string;
-  status: string;
-  topic?: string;
-  model?: string;
-  hashtags?: string[];
-  imageUrl?: string;
-  imageUrls?: string[];
-  cardBatchId?: string;
-  channels?: Record<string, { status?: string }>;
-  generatedAt?: string;
 }
 
 /* ---------- Main Instagram Page ---------- */
 export function InstagramPage() {
   const { data: channelConfig, mutate: mutateConfig } = useChannelConfig();
   const { subTab, setSubTab } = useUIStore();
-  const [filter, setFilter] = useState("all");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
 
   const cfg = (channelConfig || {}) as Record<string, Record<string, unknown>>;
   const igCfg = cfg.instagram || {};
   const connected = !!igCfg.connected;
 
-  // Load queue
-  const { data: queueData, mutate: mutateQueue } = useSWR("/api/queue", fetcher);
-  const posts = (((queueData as Record<string, unknown>)?.posts || []) as QueuePost[]);
-
-  // Load channel settings
-  const { data: channelSettingsData } = useSWR("/api/channel-settings", fetcher);
-  const channelSettings = (channelSettingsData || { features: AUTOMATION_FEATURES, settings: {} }) as Record<string, unknown>;
+  // Load queue for reload callback
+  const { mutate: mutateQueue } = useSWR("/api/queue", fetcher);
 
   const tabs = ["queue", "editor", "settings"];
 
@@ -742,13 +578,9 @@ export function InstagramPage() {
 
       {subTab === "queue" && (
         connected ? (
-          <InstagramQueue
-            posts={posts}
-            filter={filter}
-            setFilter={setFilter}
-            selectedIds={selectedIds}
-            setSelectedIds={setSelectedIds}
-            onReload={reload}
+          <QueueList
+            variant="visual"
+            charLimit={2200}
             onEditInEditor={(postId) => { setEditingPostId(postId); setSubTab("editor"); }}
           />
         ) : (
@@ -768,7 +600,7 @@ export function InstagramPage() {
           </div>
         )
       )}
-      {subTab === "settings" && <InstagramSettings channelConfig={igCfg} channelSettings={channelSettings} />}
+      {subTab === "settings" && <InstagramSettings />}
     </div>
   );
 }
