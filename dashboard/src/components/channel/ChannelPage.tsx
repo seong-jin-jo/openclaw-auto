@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import useSWR from "swr";
 import { fetcher, apiPost } from "@/lib/api";
-import { useChannelConfig, useNotifSettings, useChatChannels } from "@/hooks/useChannelConfig";
+import { useChannelConfig } from "@/hooks/useChannelConfig";
 import { useToast } from "@/components/layout/Toast";
 import { useUIStore } from "@/store/ui-store";
 import { CH_LABELS, CH_STATUS_LABEL, AUTOMATION_FEATURES } from "@/lib/constants";
@@ -18,11 +18,21 @@ import Link from "next/link";
 
 interface ChannelPageProps {
   channel: string;
+  variant?: "text" | "blog" | "video";
 }
 
-const TABS_FULL = ["queue", "analytics", "growth", "popular", "settings"];
+const CHAR_LIMITS: Record<string, number> = {
+  x: 280,
+  threads: 500,
+  facebook: 63206,
+  linkedin: 3000,
+  bluesky: 300,
+  pinterest: 500,
+  tumblr: 4096,
+  instagram: 2200,
+};
 
-export function ChannelPage({ channel }: ChannelPageProps) {
+export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
   const label = CH_LABELS[channel] || channel;
   const { data: channelConfig, mutate: mutateConfig } = useChannelConfig();
   const { showToast } = useToast();
@@ -34,31 +44,23 @@ export function ChannelPage({ channel }: ChannelPageProps) {
   const connected = !!cfg?.connected;
   const sg = setupGuides[channel] || { fields: [], labels: [], quick: ["Setup guide 준비 중"], detail: "" };
 
-  // Determine tabs based on channel type
   const isThreads = channel === "threads";
-  const isX = channel === "x";
 
-  const isGeneric = !isThreads && !isX;
-  const isMessaging = ["telegram", "discord", "slack", "line", "kakao", "whatsapp"].includes(channel);
-
+  // Build tabs: all channels get queue/analytics/settings. Threads also gets growth/popular.
+  const baseTabs = ["queue", "analytics", "settings"];
   let tabs: string[];
   if (isThreads) {
-    tabs = TABS_FULL;
-  } else if (isX) {
-    tabs = ["queue", "analytics", "settings"];
+    tabs = ["queue", "analytics", "growth", "popular", "settings"];
   } else {
-    // Generic channels have no tabs — just show settings-like layout directly
-    tabs = [];
+    tabs = baseTabs;
   }
 
   // Reset subTab when channel changes
   useEffect(() => {
-    if (isGeneric) {
-      // Generic channels have no tabs
-      return;
+    if (!tabs.includes(subTab)) {
+      setSubTab("queue");
     }
-    setSubTab("queue");
-  }, [channel, setSubTab, isX, isGeneric, connected]);
+  }, [channel]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCredSave = async (newKeys: Record<string, string>) => {
     const r = await apiPost<{ verified?: boolean; error?: string; account?: string }>(`/api/channel-config/${channel}`, newKeys);
@@ -71,11 +73,6 @@ export function ChannelPage({ channel }: ChannelPageProps) {
     }
   };
 
-  // Channel-specific icon
-  const iconClass = isThreads
-    ? "bg-gradient-to-br from-purple-500 to-pink-500"
-    : "bg-gray-800";
-
   // Growth data for threads header
   const { data: growthData } = useSWR(isThreads ? "/api/growth" : null, fetcher);
   const growth = (((growthData as Record<string, unknown>)?.records || []) as Array<Record<string, unknown>>);
@@ -84,80 +81,72 @@ export function ChannelPage({ channel }: ChannelPageProps) {
   const { data: threadsUsernameData } = useSWR(isThreads ? "/api/threads-username" : null, fetcher);
   const threadsUsername = (threadsUsernameData as Record<string, unknown>)?.username as string || "";
 
+  const charLimit = CHAR_LIMITS[channel];
+  const postVariant = variant === "blog" ? "blog" as const : "text" as const;
+
   return (
     <div className="px-8 py-6">
       <Link href="/" className="text-gray-500 hover:text-gray-300 text-sm mb-1 inline-block">
         &larr; Back
       </Link>
       <div className="flex items-center gap-3 mb-6">
-        <span className={`w-8 h-8 rounded-lg ${iconClass} flex items-center justify-center text-sm font-bold text-white`}>
-          {isThreads ? "T" : isX ? "X" : label[0]}
+        <span className={`w-8 h-8 rounded-lg ${isThreads ? "bg-gradient-to-br from-purple-500 to-pink-500" : "bg-gray-800"} flex items-center justify-center text-sm font-bold text-white`}>
+          {label[0]}
         </span>
         <div>
-          <h2 className="text-xl font-semibold text-white">
-            {isThreads ? "Threads" : isX ? "X (Twitter)" : label}
-          </h2>
+          <h2 className="text-xl font-semibold text-white">{label}</h2>
           <p className="text-xs text-gray-500">
             {isThreads
               ? `${cfg?.userId ? "ID: " + cfg.userId : ""} ${growth.length ? " \u00B7 " + (growth[growth.length - 1] as Record<string, unknown>).followers + " followers" : ""}`
-              : isX
-              ? connected ? "Connected" : "Not connected"
-              : CH_STATUS_LABEL[status] || status}
+              : connected ? "Connected" : CH_STATUS_LABEL[status] || status}
           </p>
         </div>
       </div>
 
-      {/* Tabs (only for Threads/X, generic channels have no tabs) */}
-      {tabs.length > 0 && (
-        <div className="flex gap-1 mb-6 border-b border-gray-800/50 pb-3">
-          {tabs.map((t) => (
-            <button
-              key={t}
-              onClick={() => setSubTab(t)}
-              className={`px-3 py-1.5 text-sm rounded ${
-                subTab === t ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"
-              }`}
-            >
-              {t.charAt(0).toUpperCase() + t.slice(1)}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Tabs */}
+      <div className="flex gap-1 mb-6 border-b border-gray-800/50 pb-3">
+        {tabs.map((t) => (
+          <button
+            key={t}
+            onClick={() => setSubTab(t)}
+            className={`px-3 py-1.5 text-sm rounded ${
+              subTab === t ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"
+            }`}
+          >
+            {t.charAt(0).toUpperCase() + t.slice(1)}
+          </button>
+        ))}
+      </div>
 
-      {subTab === "queue" && !isGeneric && (
-        connected || isThreads ? <QueueList /> : (
+      {/* Queue Tab */}
+      {subTab === "queue" && (
+        connected || isThreads ? (
+          <QueueList variant={postVariant} charLimit={charLimit} showSeo={variant === "blog"} />
+        ) : (
           <div className="card p-8 text-center">
             <p className="text-gray-500 text-sm mb-2">채널을 연결하면 큐를 사용할 수 있습니다</p>
             <button onClick={() => setSubTab("settings")} className="text-xs text-blue-400 hover:text-blue-300">Settings에서 연결하기</button>
           </div>
         )
       )}
-      {subTab === "analytics" && !isGeneric && (
+
+      {/* Analytics Tab */}
+      {subTab === "analytics" && (
         connected || isThreads ? <AnalyticsTab /> : (
           <div className="card p-8 text-center">
             <p className="text-gray-500 text-sm">채널을 연결하면 분석 데이터를 볼 수 있습니다</p>
           </div>
         )
       )}
+
+      {/* Growth Tab (Threads only) */}
       {subTab === "growth" && isThreads && <GrowthTab />}
+
+      {/* Popular Tab (Threads only) */}
       {subTab === "popular" && isThreads && <PopularTab expandedPopular={expandedPopular} setExpandedPopular={setExpandedPopular} />}
 
-      {/* Generic channel inline layout (no tabs) — matches Flask renderGenericChannel */}
-      {isGeneric && (
-        <GenericChannelLayout
-          channel={channel}
-          label={label}
-          status={status}
-          keys={keys}
-          connected={connected}
-          sg={sg}
-          isMessaging={isMessaging}
-          onSave={handleCredSave}
-        />
-      )}
-
-      {/* Settings tab for Threads/X */}
-      {subTab === "settings" && !isGeneric && (
+      {/* Settings Tab */}
+      {subTab === "settings" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Credentials */}
           <div className="card p-5">
@@ -167,10 +156,10 @@ export function ChannelPage({ channel }: ChannelPageProps) {
               labels={sg.labels}
               currentKeys={keys}
               onSave={handleCredSave}
-              title={isThreads ? "Threads API Credentials" : isX ? "OAuth 1.0 Keys" : undefined}
-              badge={isThreads ? { text: "Long-lived Token", color: "purple" } : isX ? { text: "OAuth 1.0a", color: "blue" } : undefined}
-              connectLabel={isThreads ? "Connect Threads" : isX ? "Connect X Account" : undefined}
-              fieldGroups={isX ? [
+              title={isThreads ? "Threads API Credentials" : channel === "x" ? "OAuth 1.0 Keys" : undefined}
+              badge={isThreads ? { text: "Long-lived Token", color: "purple" } : channel === "x" ? { text: "OAuth 1.0a", color: "blue" } : undefined}
+              connectLabel={isThreads ? "Connect Threads" : channel === "x" ? "Connect X Account" : undefined}
+              fieldGroups={channel === "x" ? [
                 { title: "소비자 키 (Consumer Keys)", fieldIndices: [0, 1] },
                 { title: "액세스 토큰 (Access Token)", fieldIndices: [2, 3] },
               ] : undefined}
@@ -180,14 +169,12 @@ export function ChannelPage({ channel }: ChannelPageProps) {
           {/* Channel Info + Setup Guide */}
           <div className="space-y-4">
             <div className="card p-5">
-              <h3 className="text-sm font-medium text-gray-300 mb-3">
-                {isThreads ? "Threads Channel Info" : "X Channel Info"}
-              </h3>
+              <h3 className="text-sm font-medium text-gray-300 mb-3">Channel Info</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Status</span>
-                  <span className={connected ? "text-green-400" : "text-yellow-400"}>
-                    {connected ? "Connected" : "Not connected"}
+                  <span className={connected ? "text-green-400" : status === "connected" ? "text-blue-400" : "text-yellow-400"}>
+                    {connected ? "Connected" : CH_STATUS_LABEL[status] || "Not connected"}
                   </span>
                 </div>
                 {isThreads && (
@@ -197,21 +184,13 @@ export function ChannelPage({ channel }: ChannelPageProps) {
                       <span className="text-gray-300">{threadsUsername ? "@" + threadsUsername : "-"}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Character Limit</span>
-                      <span className="text-gray-300">500</span>
-                    </div>
-                    <div className="flex justify-between">
                       <span className="text-gray-500">Token Validity</span>
                       <span className="text-gray-300">60일 (갱신 필요)</span>
                     </div>
                   </>
                 )}
-                {isX && (
+                {channel === "x" && (
                   <>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Character Limit</span>
-                      <span className="text-gray-300">280</span>
-                    </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Auth Method</span>
                       <span className="text-gray-300">OAuth 1.0a (User Context)</span>
@@ -222,18 +201,25 @@ export function ChannelPage({ channel }: ChannelPageProps) {
                     </div>
                   </>
                 )}
+                {charLimit && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Character Limit</span>
+                    <span className="text-gray-300">{charLimit}</span>
+                  </div>
+                )}
               </div>
             </div>
-            {/* Threads: NO setup guide. X: inline setup guide with warning */}
-            {isX && (
-              <div className="card p-5">
-                <SetupGuide quick={sg.quick} detail={sg.detail} warning="* 권한 변경 후 반드시 액세스 토큰을 재생성해야 합니다" />
-              </div>
-            )}
+            <div className="card p-5">
+              <SetupGuide
+                quick={sg.quick}
+                detail={sg.detail}
+                warning={channel === "x" ? "* 권한 변경 후 반드시 액세스 토큰을 재생성해야 합니다" : undefined}
+              />
+            </div>
           </div>
 
-          {/* Automation (Threads only) */}
-          {isThreads && <AutomationSection channel={channel} expandedFeature={expandedFeature} setExpandedFeature={setExpandedFeature} />}
+          {/* Automation */}
+          <AutomationSection channel={channel} expandedFeature={expandedFeature} setExpandedFeature={setExpandedFeature} />
 
           {/* Parameters (Threads only) */}
           {isThreads && <ParametersSection />}
@@ -466,7 +452,7 @@ function PopularTab({ expandedPopular, setExpandedPopular }: { expandedPopular: 
           placeholder="인기글 텍스트를 붙여넣기"
         />
         <div className="flex gap-2">
-          <input value={url} onChange={(e) => setUrl(e.target.value)} type="text" placeholder="Threads URL (선택)" className="flex-1 bg-gray-900 text-gray-200 text-xs p-2 rounded border border-gray-700" />
+          <input value={url} onChange={(e) => setUrl(e.target.value)} type="text" placeholder="URL (선택)" className="flex-1 bg-gray-900 text-gray-200 text-xs p-2 rounded border border-gray-700" />
           <input value={topic} onChange={(e) => setTopic(e.target.value)} type="text" placeholder="키워드/주제" className="w-28 bg-gray-900 text-gray-200 text-xs p-2 rounded border border-gray-700" />
           <button onClick={handleAdd} className="px-3 py-1.5 text-xs bg-purple-600 text-white rounded hover:bg-purple-500 shrink-0">Add</button>
         </div>
@@ -499,7 +485,7 @@ function PopularTab({ expandedPopular, setExpandedPopular }: { expandedPopular: 
                     {p.engagement ? <span className="text-[10px] text-gray-500">{String(p.engagement)}</span> : null}
                     {p.url ? (
                       <a href={String(p.url)} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-400 hover:text-blue-300" onClick={(e) => e.stopPropagation()}>
-                        Threads에서 보기 &rarr;
+                        원본 보기 &rarr;
                       </a>
                     ) : null}
                     <button className="text-[10px] text-red-400 hover:text-red-300 ml-auto" onClick={(e) => { e.stopPropagation(); handleDelete(i); }}>
@@ -547,7 +533,7 @@ function AutomationSection({ channel, expandedFeature, setExpandedFeature }: {
       auto_publish: "instagram-auto-publish",
     },
   };
-  const FEATURE_CRON = FEATURE_CRON_MAP[channel] || FEATURE_CRON_MAP.threads;
+  const FEATURE_CRON = FEATURE_CRON_MAP[channel] || {};
 
   const shownCronEditors = new Set<string>();
 
@@ -581,17 +567,22 @@ function AutomationSection({ channel, expandedFeature, setExpandedFeature }: {
         const showInterval = cronName && !shownCronEditors.has(cronName);
         if (cronName) shownCronEditors.add(cronName);
 
+        // For channels without cron mapping, show as "Coming Soon"
+        const hasCronMapping = !!FEATURE_CRON[f.key];
+        const isImplemented = (f as Record<string, unknown>).implemented !== false;
+        const showComingSoon = !isImplemented || (!hasCronMapping && !["content_generation", "auto_publish"].includes(f.key));
+
         return (
           <div key={f.key} className="border-b border-gray-800/50 last:border-0">
             <div className="flex items-center gap-3 py-2.5 cursor-pointer" onClick={() => setExpandedFeature(expanded ? null : f.key)}>
-              <label className={`relative inline-flex items-center shrink-0 ${(f as Record<string,unknown>).implemented === false ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`} onClick={(e) => e.stopPropagation()}>
-                <input type="checkbox" checked={!!(cs[f.key])} onChange={(e) => (f as Record<string,unknown>).implemented !== false && handleToggle(f.key, e.target.checked)} disabled={(f as Record<string,unknown>).implemented === false} className="sr-only peer" />
+              <label className={`relative inline-flex items-center shrink-0 ${showComingSoon ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`} onClick={(e) => e.stopPropagation()}>
+                <input type="checkbox" checked={!!(cs[f.key])} onChange={(e) => !showComingSoon && handleToggle(f.key, e.target.checked)} disabled={showComingSoon} className="sr-only peer" />
                 <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
               </label>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className={`text-xs ${(f as Record<string,unknown>).implemented === false ? "text-gray-600" : "text-gray-300"}`}>{f.label}</span>
-                  {(f as Record<string,unknown>).implemented === false && <span className="text-[9px] text-gray-700">Coming Soon</span>}
+                  <span className={`text-xs ${showComingSoon ? "text-gray-600" : "text-gray-300"}`}>{f.label}</span>
+                  {showComingSoon && <span className="text-[9px] text-gray-700">Coming Soon</span>}
                   {hours && <span className="text-[10px] text-gray-600">{hours}h</span>}
                   {lastRun && (
                     <>
@@ -712,144 +703,6 @@ function ParametersSection() {
           />
         </div>
       ))}
-    </div>
-  );
-}
-
-/* ── Generic Channel Layout (no tabs) — matches Flask renderGenericChannel ── */
-function GenericChannelLayout({
-  channel,
-  label,
-  status,
-  keys,
-  connected,
-  sg,
-  isMessaging,
-  onSave,
-}: {
-  channel: string;
-  label: string;
-  status: string;
-  keys: Record<string, string>;
-  connected: boolean;
-  sg: { fields: string[]; labels: string[]; quick: string[]; detail: string };
-  isMessaging: boolean;
-  onSave: (keys: Record<string, string>) => Promise<void>;
-}) {
-  const { data: notifSettings } = useNotifSettings();
-  const { data: chatChannels } = useChatChannels();
-  const { showToast } = useToast();
-  const [testMsg, setTestMsg] = useState("Marketing Hub 테스트 메시지");
-  const [sending, setSending] = useState(false);
-
-  const handleTestSend = async () => {
-    setSending(true);
-    try {
-      const r = await apiPost<{ ok?: boolean; error?: string }>("/api/send-notification", { channel, message: testMsg });
-      if (r?.ok) showToast(`${channel} 전송 완료`, "success");
-      else showToast(`전송 실패: ${r?.error || "unknown"}`, "error");
-    } catch (e) { showToast(`전송 실패: ${(e as Error).message}`, "error"); }
-    finally { setSending(false); }
-  };
-
-  const hasKeys = Object.values(keys).some((v) => v);
-  const chatConfigured = chatChannels?.[channel]?.configured;
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {/* Credentials */}
-      <div className="card p-5">
-        <CredentialForm
-          channelKey={channel}
-          fields={sg.fields}
-          labels={sg.labels}
-          currentKeys={keys}
-          onSave={onSave}
-        />
-      </div>
-
-      {/* Channel Info + Setup Guide */}
-      <div className="space-y-4">
-        <div className="card p-5">
-          <h3 className="text-sm font-medium text-gray-300 mb-3">Channel Info</h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Status</span>
-              <span className={status === "live" ? "text-green-400" : status === "connected" ? "text-blue-400" : "text-gray-500"}>
-                {status === "live" ? "Live" : status === "connected" ? "Connected" : "Not connected"}
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="card p-5">
-          <SetupGuide quick={sg.quick} detail={sg.detail} />
-        </div>
-      </div>
-
-      {/* Content Guide + Keywords (only for non-messaging channels) */}
-      {!isMessaging && (
-        <>
-          <ContentGuide channel={channel} />
-          <KeywordsEditor channel={channel} />
-        </>
-      )}
-
-      {/* Messaging-specific sections */}
-      {isMessaging && (
-        <>
-          <div className="card p-5">
-            <h3 className="text-sm font-medium text-gray-300 mb-3">알림 발송</h3>
-            <p className="text-[10px] text-gray-600 mb-3">이 채널로 마케팅 알림을 자동 발송할 수 있습니다.</p>
-            <div className="space-y-2">
-              {[
-                { evt: "onPublish", label2: "글 발행 시" },
-                { evt: "onViral", label2: "바이럴 감지 시" },
-                { evt: "onError", label2: "크론 에러 시" },
-                { evt: "weeklyReport", label2: "주간 리포트" },
-              ].map(({ evt, label2 }) => {
-                const enabled = (notifSettings as Record<string, { channels?: string[] }> | undefined)?.[evt]?.channels?.includes(channel);
-                return (
-                  <div key={evt} className="flex items-center justify-between p-2 rounded bg-gray-900/50">
-                    <span className="text-xs text-gray-400">{label2}</span>
-                    <span className={`text-[10px] ${enabled ? "text-green-400" : "text-gray-600"}`}>{enabled ? "ON" : "OFF"}</span>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="text-[10px] text-gray-600 mt-2">Settings &gt; Notifications에서 변경</p>
-          </div>
-
-          <div className="card p-5">
-            <h3 className="text-sm font-medium text-gray-300 mb-3">테스트 발송</h3>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={testMsg}
-                onChange={(e) => setTestMsg(e.target.value)}
-                className="flex-1 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300"
-              />
-              <button
-                onClick={handleTestSend}
-                disabled={sending}
-                className="px-4 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-500 disabled:opacity-50"
-              >
-                {sending ? "Sending..." : "Send"}
-              </button>
-            </div>
-            {chatConfigured ? (
-              <div className="mt-3 p-2 rounded bg-green-900/20 border border-green-800/20">
-                <p className="text-[10px] text-green-400">Interactive Chat 연결됨 — 이 채널에서 Agent와 대화 가능</p>
-              </div>
-            ) : (
-              <div className="mt-3 p-2 rounded bg-gray-900/50">
-                <p className="text-[10px] text-gray-500">
-                  Interactive Chat: Gateway에서 <code>openclaw channels setup {channel}</code>로 양방향 대화 활성화
-                </p>
-              </div>
-            )}
-          </div>
-        </>
-      )}
     </div>
   );
 }

@@ -7,6 +7,9 @@ import { MessagingPage } from "@/components/channel/MessagingPage";
 import { DataChannelPage } from "@/components/channel/DataChannelPage";
 import { InstagramPage } from "@/components/channel/InstagramPage";
 
+const BLOG_CHANNELS = ["naver_blog", "medium", "substack"];
+const VIDEO_CHANNELS = ["tiktok", "youtube"];
+
 export default function ChannelRoute({ params }: { params: Promise<{ channel: string }> }) {
   const { channel } = use(params);
 
@@ -29,6 +32,14 @@ export default function ChannelRoute({ params }: { params: Promise<{ channel: st
 
   if (MESSAGING_CHANNELS.includes(channel)) {
     return <MessagingPage channel={channel} />;
+  }
+
+  if (BLOG_CHANNELS.includes(channel)) {
+    return <ChannelPage channel={channel} variant="blog" />;
+  }
+
+  if (VIDEO_CHANNELS.includes(channel)) {
+    return <ChannelPage channel={channel} variant="video" />;
   }
 
   return <ChannelPage channel={channel} />;

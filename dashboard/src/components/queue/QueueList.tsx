@@ -5,11 +5,19 @@ import { useChannelConfig } from "@/hooks/useChannelConfig";
 import { useUIStore } from "@/store/ui-store";
 import { useToast } from "@/components/layout/Toast";
 import { apiPost } from "@/lib/api";
-import { PostCard } from "./PostCard";
+import { UnifiedPostCard } from "./UnifiedPostCard";
+import type { UnifiedPostCardProps } from "./UnifiedPostCard";
 
 const FILTERS = ["all", "draft", "approved", "published", "failed"];
 
-export function QueueList() {
+interface QueueListProps {
+  variant?: UnifiedPostCardProps["variant"];
+  charLimit?: number;
+  showSeo?: boolean;
+  onEditInEditor?: (postId: string) => void;
+}
+
+export function QueueList({ variant = "text", charLimit, showSeo, onEditInEditor }: QueueListProps) {
   const { queueFilter, setQueueFilter, selectedIds, selectAll, clearSelection, setImagePickerPostId } = useUIStore();
   const { data, mutate } = useQueue(queueFilter);
   const { data: channelConfig } = useChannelConfig();
@@ -44,7 +52,7 @@ export function QueueList() {
     } catch (e) { showToast(`실패: ${(e as Error).message}`, "error"); }
   };
 
-  const cfg = (channelConfig || {}) as Record<string, { connected?: boolean; enabled?: boolean; status?: string }>;
+  const cfg = (channelConfig || {}) as Record<string, Record<string, unknown>>;
 
   return (
     <div>
@@ -90,7 +98,19 @@ export function QueueList() {
         {sorted.length === 0 ? (
           <p className="text-gray-600 text-sm">No posts</p>
         ) : (
-          sorted.map((p) => <PostCard key={p.id} post={p} channelConfig={cfg} onRefresh={() => mutate()} onPickImage={(postId) => setImagePickerPostId(postId)} />)
+          sorted.map((p) => (
+            <UnifiedPostCard
+              key={p.id}
+              post={p}
+              channelConfig={cfg}
+              variant={variant}
+              charLimit={charLimit}
+              showSeo={showSeo}
+              onRefresh={() => mutate()}
+              onEditInEditor={onEditInEditor}
+              onPickImage={(postId) => setImagePickerPostId(postId)}
+            />
+          ))
         )}
       </div>
     </div>
