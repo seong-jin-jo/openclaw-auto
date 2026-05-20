@@ -1,0 +1,185 @@
+# postAGI 4 서비스 동시 운영 — Tenant / DC / Tenant / tenant
+# Tenant는 기존 docker-compose.yml.example 그대로 (port 18789/34560 유지)
+# 본 파일은 4 신규 인스턴스만 정의. 같은 image 공유 (build 1회).
+#
+# 포트 매핑:
+#   Tenant    gateway 18790 / dashboard 34561
+#   DC      gateway 18791 / dashboard 34562
+#   Tenant  gateway 18792 / dashboard 34563
+#   폴리     gateway 18793 / dashboard 34564
+#
+# 가동 전 1회 작업:
+#   ./bootstrap-postagi-4tenants.sh  (data/config 디렉토리 생성 + templates 복사)
+#
+# 가동:
+#   docker-compose -f docker-compose.postagi-4tenants.yml up -d
+
+x-gateway-base: &gateway-base
+  build:
+    context: ./openclaw
+    dockerfile: Dockerfile
+    network: host
+    args:
+      OPENCLAW_EXTENSIONS: "threads-publish threads-queue threads-style threads-insights threads-search threads-growth x-publish image-upload instagram-publish card-generator"
+      OPENCLAW_INSTALL_BROWSER: "1"
+  image: openclaw-auto/gateway:postagi
+  network_mode: host
+  init: true
+  restart: unless-stopped
+
+x-dashboard-base: &dashboard-base
+  build:
+    context: ./dashboard
+    network: host
+  image: openclaw-auto/dashboard:postagi
+  network_mode: host
+  restart: unless-stopped
+
+services:
+  # ─────────────── Tenant ───────────────
+  openclaw-gateway-tenant2:
+    <<: *gateway-base
+    container_name: openclaw-gateway-tenant2
+    volumes:
+      - ./config-tenant2:/home/node/.openclaw
+      - ./data-tenant2:/home/node/data
+    env_file: .env.tenant2
+    environment:
+      HOME: /home/node
+      TZ: Asia/Seoul
+    command: ["node", "dist/index.js", "gateway", "--bind", "loopback", "--port", "18790"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:18790/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  openclaw-dashboard-tenant2:
+    <<: *dashboard-base
+    container_name: openclaw-dashboard-tenant2
+    volumes:
+      - ./data-tenant2:/app/data
+      - ./config-tenant2:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file: .env.tenant2
+    environment:
+      DATA_DIR: /app/data
+      CONFIG_DIR: /app/config
+      PORT: "34561"
+      HOSTNAME: "0.0.0.0"
+      GATEWAY_CONTAINER: openclaw-gateway-tenant2
+      GATEWAY_PORT: "18790"
+    depends_on:
+      - openclaw-gateway-tenant2
+
+  # ─────────────── DC ───────────────
+  openclaw-gateway-dc:
+    <<: *gateway-base
+    container_name: openclaw-gateway-dc
+    volumes:
+      - ./config-dc:/home/node/.openclaw
+      - ./data-dc:/home/node/data
+    env_file: .env.dc
+    environment:
+      HOME: /home/node
+      TZ: Asia/Seoul
+    command: ["node", "dist/index.js", "gateway", "--bind", "loopback", "--port", "18791"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:18791/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  openclaw-dashboard-dc:
+    <<: *dashboard-base
+    container_name: openclaw-dashboard-dc
+    volumes:
+      - ./data-dc:/app/data
+      - ./config-dc:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file: .env.dc
+    environment:
+      DATA_DIR: /app/data
+      CONFIG_DIR: /app/config
+      PORT: "34562"
+      HOSTNAME: "0.0.0.0"
+      GATEWAY_CONTAINER: openclaw-gateway-dc
+      GATEWAY_PORT: "18791"
+    depends_on:
+      - openclaw-gateway-dc
+
+  # ─────────────── Tenant ───────────────
+  openclaw-gateway-tenant3:
+    <<: *gateway-base
+    container_name: openclaw-gateway-tenant3
+    volumes:
+      - ./config-tenant3:/home/node/.openclaw
+      - ./data-tenant3:/home/node/data
+    env_file: .env.tenant3
+    environment:
+      HOME: /home/node
+      TZ: Asia/Seoul
+    command: ["node", "dist/index.js", "gateway", "--bind", "loopback", "--port", "18792"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:18792/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  openclaw-dashboard-tenant3:
+    <<: *dashboard-base
+    container_name: openclaw-dashboard-tenant3
+    volumes:
+      - ./data-tenant3:/app/data
+      - ./config-tenant3:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file: .env.tenant3
+    environment:
+      DATA_DIR: /app/data
+      CONFIG_DIR: /app/config
+      PORT: "34563"
+      HOSTNAME: "0.0.0.0"
+      GATEWAY_CONTAINER: openclaw-gateway-tenant3
+      GATEWAY_PORT: "18792"
+    depends_on:
+      - openclaw-gateway-tenant3
+
+  # ─────────────── tenant ───────────────
+  openclaw-gateway-tenant4:
+    <<: *gateway-base
+    container_name: openclaw-gateway-tenant4
+    volumes:
+      - ./config-tenant4:/home/node/.openclaw
+      - ./data-tenant4:/home/node/data
+    env_file: .env.tenant4
+    environment:
+      HOME: /home/node
+      TZ: Asia/Seoul
+    command: ["node", "dist/index.js", "gateway", "--bind", "loopback", "--port", "18793"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:18793/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  openclaw-dashboard-tenant4:
+    <<: *dashboard-base
+    container_name: openclaw-dashboard-tenant4
+    volumes:
+      - ./data-tenant4:/app/data
+      - ./config-tenant4:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file: .env.tenant4
+    environment:
+      DATA_DIR: /app/data
+      CONFIG_DIR: /app/config
+      PORT: "34564"
+      HOSTNAME: "0.0.0.0"
+      GATEWAY_CONTAINER: openclaw-gateway-tenant4
+      GATEWAY_PORT: "18793"
+    depends_on:
+      - openclaw-gateway-tenant4
