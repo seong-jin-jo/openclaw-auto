@@ -1,0 +1,26 @@
+{
+  "_comment": "Multi-instance tenants. dashboard/src/app/services/page.tsx에서 로드.",
+  "_usage": "cp data/tenants.json.example data/tenants.json — fork-local 편집 (data/* gitignore).",
+  "tenants": [
+    {
+      "slug": "service-a",
+      "name": "Service A",
+      "emoji": "🅰️",
+      "dashboardPort": 34561,
+      "gatewayPort": 18790,
+      "publicUrl": "https://dash-a.example.com",
+      "channels": ["instagram"],
+      "status": "active"
+    },
+    {
+      "slug": "service-b",
+      "name": "Service B",
+      "emoji": "🅱️",
+      "dashboardPort": 34562,
+      "gatewayPort": 18791,
+      "publicUrl": "https://dash-b.example.com",
+      "channels": ["x"],
+      "status": "pending"
+    }
+  ]
+}

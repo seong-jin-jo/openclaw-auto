@@ -89,16 +89,16 @@ cat >> "${COMPOSE_FILE}" <<EOF
 EOF
 echo "  ✓ docker-compose.postagi-4tenants.yml 에 service 2개 추가"
 
-# 5. marketing-hub/tenants.json 자동 갱신
-HUB_JSON="marketing-hub/tenants.json"
+# 5. data/tenants.json 자동 갱신 (dashboard /services 페이지 로드용)
+HUB_JSON="data/tenants.json"
 if [ -f "${HUB_JSON}" ]; then
   python3 -c "
 import json, sys
 with open('${HUB_JSON}') as f: d = json.load(f)
-slugs = [t['slug'] for t in d['tenants']]
+slugs = [t['slug'] for t in d.get('tenants', [])]
 if '${SLUG}' in slugs:
     sys.exit(0)
-d['tenants'].append({
+d.setdefault('tenants', []).append({
     'slug': '${SLUG}',
     'name': '${SLUG}',
     'emoji': '✨',
@@ -109,8 +109,10 @@ d['tenants'].append({
     'status': 'pending'
 })
 with open('${HUB_JSON}', 'w') as f: json.dump(d, f, indent=2, ensure_ascii=False)
-print('  ✓ marketing-hub/tenants.json 갱신')
+print('  ✓ data/tenants.json 갱신 (dashboard 재빌드 시 /services에 즉시 노출)')
 " || echo "  ⚠ tenants.json 자동 갱신 실패 (python3 없음?) — 수동 추가 필요"
+else
+  echo "  ⚠ data/tenants.json 부재 — bootstrap-postagi-4tenants.sh 먼저 실행"
 fi
 
 echo ""

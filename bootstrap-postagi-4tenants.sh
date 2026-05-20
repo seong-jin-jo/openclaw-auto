@@ -62,6 +62,22 @@ EOF
   fi
 done
 
+# 5. data/tenants.json — dashboard /services 페이지 로드용 (fork-local, gitignore)
+if [ ! -f "data/tenants.json" ]; then
+  cat > "data/tenants.json" <<'EOF'
+{
+  "tenants": [
+    { "slug": "tenant1",  "name": "Tenant", "emoji": "💘", "dashboardPort": 34560, "gatewayPort": 18789, "publicUrl": "https://marketing-tenant1.example.com", "channels": ["instagram","threads"], "status": "active" },
+    { "slug": "tenant2",   "name": "Tenant",   "emoji": "緣", "dashboardPort": 34561, "gatewayPort": 18790, "publicUrl": "https://marketing-tenant2.example.com", "channels": ["instagram","threads"], "status": "active" },
+    { "slug": "dc",     "name": "Tenant",    "emoji": "🖤", "dashboardPort": 34562, "gatewayPort": 18791, "publicUrl": "https://marketing-dc.example.com", "channels": ["x"], "status": "pending" },
+    { "slug": "tenant3", "name": "Tenant",        "emoji": "📷", "dashboardPort": 34563, "gatewayPort": 18792, "publicUrl": "https://marketing-tenant3.example.com", "channels": ["instagram"], "status": "waiting-meta-review" },
+    { "slug": "tenant4",   "name": "tenant",     "emoji": "∞", "dashboardPort": 34564, "gatewayPort": 18793, "publicUrl": "https://marketing-tenant4.example.com", "channels": ["x"], "status": "waiting-legal-opinion" }
+  ]
+}
+EOF
+  echo "  ✓ data/tenants.json generated (5 tenants: tenant1+tenant2+dc+tenant3+tenant4)"
+fi
+
 echo ""
 echo "============================================================"
 echo "✅ 4 tenants 초기화 완료"
