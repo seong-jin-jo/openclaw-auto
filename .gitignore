@@ -2,6 +2,12 @@
 .env
 openclaw/.env
 
+# 테넌트별 시크릿/런타임 (로컬 관리 — .env.{slug} 토큰·API키, config-{slug}/ 게이트웨이 토큰, data-{slug}/ 런타임 복사본)
+.env.*
+!.env.example
+config-*/
+data-*/
+
 # 실제 설정 파일 (토큰 포함, 서버에서 example에서 복사)
 config/openclaw.json
 config/cron/jobs.json
@@ -48,3 +54,4 @@ config/telegram/
 tenants/
 !data/templates/
 !data/templates/**
+.gstack/

@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { Logo, PREVIEW_PLATFORMS, type PreviewPlatform } from "@/components/studio/PlatformPreview";
 import { useOverview, useCronStatus, useActivity, useAlerts, useWeeklySummary, useTokenStatus, useAgentLogs, useUsage, useErrors } from "@/hooks/useOverview";
 import { useChannelConfig } from "@/hooks/useChannelConfig";
 import { useOnboardingStatus } from "@/hooks/useOnboarding";
@@ -45,6 +47,7 @@ export default function HomePage() {
   const { data: errorData } = useErrors();
   const { data: channelConfig } = useChannelConfig();
   const { dismissedOnboarding, dismissOnboarding } = useUIStore();
+  const [focus, setFocus] = useState<PreviewPlatform | "all">("all");
   const { data: onboardingData, mutate: mutateOnboarding } = useOnboardingStatus();
   const onboardingStatus = onboardingData as { completed?: boolean } | undefined;
 
@@ -86,6 +89,29 @@ export default function HomePage() {
 
   return (
     <div className="px-8 py-6">
+      {/* Marketing Home — 전 플랫폼 종합 + 로고 클릭 시 플랫폼 집중 */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <div><h2 className="text-lg font-semibold text-white">Marketing Home</h2><p className="text-xs text-gray-500">전 플랫폼 종합 성과 · 로고 클릭 시 플랫폼별 분석 집중</p></div>
+        </div>
+        <div className="flex gap-2 flex-wrap mb-4">
+          <button onClick={() => setFocus("all")} className={`px-3 py-2 rounded-lg text-xs font-medium ${focus === "all" ? "bg-purple-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>전체</button>
+          {PREVIEW_PLATFORMS.map((p) => (
+            <button key={p.key} onClick={() => setFocus(p.key)} title={p.label} className={`px-3 py-2 rounded-lg flex items-center gap-1.5 ${focus === p.key ? "bg-purple-600 ring-1 ring-purple-400" : "bg-gray-800 hover:bg-gray-700"}`}>
+              <Logo p={p.key} /><span className="text-xs text-gray-300">{p.label}</span>
+            </button>
+          ))}
+        </div>
+        {/* 종합/플랫폼 지표 — 실 성과데이터는 채널 insights(게이트웨이) 연동 시 채움 */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {card(focus === "all" ? "총 발행" : `${PREVIEW_PLATFORMS.find((p) => p.key === focus)?.label} 발행`, totalPub)}
+          {card("도달(Reach)", "—", "insights 연동 시")}
+          {card("참여(Engagement)", "—", "insights 연동 시")}
+          {card("팔로워 증감", "—", "insights 연동 시")}
+        </div>
+        {focus !== "all" && <p className="text-[11px] text-gray-600 mt-2">📊 {PREVIEW_PLATFORMS.find((p) => p.key === focus)?.label} 집중 분석 — 채널 연결 후 실데이터 표시</p>}
+      </div>
+
       {/* Error Indicator */}
       {errorCount24h > 0 && (
         <div className="mb-4 px-4 py-3 rounded-xl bg-red-900/20 border border-red-900/40 flex items-center gap-3">
@@ -97,36 +123,6 @@ export default function HomePage() {
           </span>
         </div>
       )}
-
-      {/* Channel Grid */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white">Channels</h2>
-          <span className="text-xs text-gray-600">{connectedCount} connected</span>
-        </div>
-        <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-3">
-          {ALL_CHANNELS.map((ch) => {
-            const chCfg = cfg[ch.key] || {};
-            const status = (chCfg.status as string) || (chCfg.connected ? "live" : "available");
-            const isLive = status === "live" || !!chCfg.connected;
-            return (
-              <Link
-                key={ch.key}
-                href={`/channels/${ch.key}`}
-                className="flex flex-col items-center gap-1.5 p-3 rounded-xl hover:bg-gray-800/50 transition group"
-              >
-                <div
-                  className={`w-10 h-10 rounded-xl ${ch.iconClass || (isLive ? "bg-gray-700 text-white" : "bg-gray-800/50 text-gray-600")} flex items-center justify-center text-xs font-bold ${isLive ? "ring-1 ring-green-800/50" : ""}`}
-                >
-                  {ch.icon}
-                </div>
-                <span className={`text-[10px] ${isLive ? "text-gray-300" : "text-gray-600"}`}>{ch.label}</span>
-                {isLive && <div className="w-1 h-1 rounded-full bg-green-500" />}
-              </Link>
-            );
-          })}
-        </div>
-      </div>
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">

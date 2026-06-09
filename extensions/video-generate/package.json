@@ -1,0 +1,12 @@
+{
+  "name": "@openclaw/video-generate",
+  "version": "2026.6.8",
+  "private": true,
+  "description": "OpenClaw short-form video generator (Shorts/Reels/TikTok) — agent tool wrapping the dashboard ffmpeg+TTS pipeline, with a Higgsfield MCP branch",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

@@ -42,10 +42,36 @@ async function generateTts(text: string, outputPath: string): Promise<boolean> {
   }
 }
 
+// 효과음/배경음(BGM) 다운로드 — MyInstants 등 직접 URL 또는 data/sfx/ 로컬 파일 경로
+async function resolveAudioInput(src: string, tmpDir: string): Promise<string | null> {
+  if (!src) return null;
+  // 로컬 라이브러리: /sfx/{name} → data/sfx/{name}
+  if (src.startsWith("/sfx/")) {
+    const local = dataPath(path.join("sfx", src.replace("/sfx/", "")));
+    return fs.existsSync(local) ? local : null;
+  }
+  if (/^https?:\/\//.test(src)) {
+    try {
+      const res = await fetch(src, { headers: { "User-Agent": "Mozilla/5.0" }, signal: AbortSignal.timeout(15000) });
+      if (!res.ok) return null;
+      const buf = Buffer.from(await res.arrayBuffer());
+      const out = path.join(tmpDir, "bgm_src");
+      fs.writeFileSync(out, buf);
+      return out;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 export async function POST(request: Request) {
   const data = await request.json();
   const slides: Slide[] = data.slides || [];
   const ttsEnabled = data.ttsEnabled !== false;
+  const bgmUrl: string = data.bgmUrl || ""; // 효과음/배경음 URL 또는 /sfx/{name}
+  const bgmVolume: number =
+    typeof data.bgmVolume === "number" && data.bgmVolume >= 0 && data.bgmVolume <= 1 ? data.bgmVolume : 0.25;
 
   if (!slides.length) {
     return Response.json({ error: "slides required" }, { status: 400 });
@@ -111,24 +137,53 @@ export async function POST(request: Request) {
       "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", "30", outputPath,
     ], { timeout: 120000 });
 
-    // TTS merge
+    // ── 오디오 스테이지: 내레이션(TTS) + 효과음/배경음(BGM) 믹스 ──
     let hasAudio = false;
+    let hasNarration = false;
+    let hasBgm = false;
+
+    // 1) TTS 내레이션
+    let ttsPath: string | null = null;
     if (ttsEnabled) {
       const fullScript = slides.map((s) => s.text || "").filter(Boolean).join(". ");
-      const ttsPath = path.join(tmp, "narration.mp3");
-      if (await generateTts(fullScript, ttsPath)) {
-        const finalPath = path.join(VIDEO_OUTPUT_DIR, `final_${Date.now()}.mp4`);
-        try {
+      const candidate = path.join(tmp, "narration.mp3");
+      if (fullScript && (await generateTts(fullScript, candidate))) {
+        ttsPath = candidate;
+        hasNarration = true;
+      }
+    }
+
+    // 2) 효과음/배경음
+    const bgmPath = await resolveAudioInput(bgmUrl, tmp);
+    hasBgm = !!bgmPath;
+
+    if (ttsPath || bgmPath) {
+      const finalPath = path.join(VIDEO_OUTPUT_DIR, `final_${Date.now()}.mp4`);
+      try {
+        if (ttsPath && bgmPath) {
+          // 내레이션 + BGM(저음량 루프) 동시 믹스 → 영상 길이에 맞춤
+          execFileSync("ffmpeg", [
+            "-y", "-i", outputPath, "-i", ttsPath, "-stream_loop", "-1", "-i", bgmPath,
+            "-filter_complex", `[2:a]volume=${bgmVolume}[bg];[1:a][bg]amix=inputs=2:duration=first:dropout_transition=0[a]`,
+            "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "128k", "-shortest", finalPath,
+          ], { timeout: 90000 });
+        } else if (ttsPath) {
           execFileSync("ffmpeg", [
             "-y", "-i", outputPath, "-i", ttsPath,
-            "-c:v", "copy", "-c:a", "aac", "-b:a", "128k",
-            "-shortest", finalPath,
+            "-c:v", "copy", "-c:a", "aac", "-b:a", "128k", "-shortest", finalPath,
           ], { timeout: 60000 });
-          fs.renameSync(finalPath, outputPath);
-          hasAudio = true;
-        } catch {
-          // audio merge failed, keep video without audio
+        } else if (bgmPath) {
+          // BGM/효과음만 (저음량 루프)
+          execFileSync("ffmpeg", [
+            "-y", "-i", outputPath, "-stream_loop", "-1", "-i", bgmPath,
+            "-filter_complex", `[1:a]volume=${bgmVolume}[a]`,
+            "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "128k", "-shortest", finalPath,
+          ], { timeout: 60000 });
         }
+        fs.renameSync(finalPath, outputPath);
+        hasAudio = true;
+      } catch {
+        // 오디오 믹스 실패 → 무음 영상 유지
       }
     }
 
@@ -139,6 +194,8 @@ export async function POST(request: Request) {
       duration: totalDur,
       slides: slides.length,
       hasAudio,
+      hasNarration,
+      hasBgm,
     });
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 });

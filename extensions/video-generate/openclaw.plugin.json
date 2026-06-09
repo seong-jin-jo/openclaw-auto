@@ -1,0 +1,15 @@
+{
+  "id": "video-generate",
+  "name": "Video Generate",
+  "description": "Generate short-form (Shorts/Reels/TikTok) videos from slides via the dashboard ffmpeg+TTS pipeline. engine=higgsfield는 Higgsfield MCP로 생성한 클립을 후처리(자막/효과음)하는 경로.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "dashboardUrl": {
+        "type": "string",
+        "description": "Dashboard base URL the gateway calls for ffmpeg rendering. network_mode=host에선 http://127.0.0.1:{DASHBOARD_PORT}. 미설정 시 VIDEO_DASHBOARD_URL env 또는 http://127.0.0.1:34560(tenant1)."
+      }
+    }
+  }
+}

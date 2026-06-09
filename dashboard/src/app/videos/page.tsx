@@ -29,10 +29,12 @@ export default function VideosPage() {
     { text: "", duration: 4, imageUrl: "" },
   ]);
   const [ttsEnabled, setTtsEnabled] = useState(true);
+  const [bgmUrl, setBgmUrl] = useState(""); // 효과음/배경음 URL 또는 /sfx/{name}
   const [generating, setGenerating] = useState(false);
   const [publishingFile, setPublishingFile] = useState<string | null>(null);
   const [publishTitle, setPublishTitle] = useState("");
   const [publishDesc, setPublishDesc] = useState("");
+  const [previewFile, setPreviewFile] = useState<string | null>(null); // 인라인 임베드 플레이어 (발행 전 미리보기)
 
   const videos = data?.videos || [];
 
@@ -47,6 +49,7 @@ export default function VideosPage() {
       const res = await apiPost<{ ok: boolean; filename: string; error?: string }>("/api/video/generate", {
         slides: validSlides,
         ttsEnabled,
+        bgmUrl: bgmUrl.trim() || undefined,
       });
       if (res?.ok) {
         showToast(`Video generated: ${res.filename}`, "success");
@@ -163,9 +166,12 @@ export default function VideosPage() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <a href={v.url} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">
-                      Preview
-                    </a>
+                    <button
+                      onClick={() => setPreviewFile(previewFile === v.filename ? null : v.filename)}
+                      className={`px-2 py-1 text-xs rounded ${previewFile === v.filename ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+                    >
+                      {previewFile === v.filename ? "Hide" : "미리보기"}
+                    </button>
                     {ytStatus?.connected && (
                       publishingFile === v.filename ? (
                         <div className="flex gap-1 items-center">
@@ -189,6 +195,18 @@ export default function VideosPage() {
                     </button>
                   </div>
                 </div>
+                {previewFile === v.filename && (
+                  <div className="mt-3 flex justify-center">
+                    {/* 세로 쇼츠/릴스 임베드 플레이어 — 발행 전 검수용 */}
+                    <video
+                      key={v.url}
+                      src={v.url}
+                      controls
+                      playsInline
+                      className="rounded-lg bg-black w-full max-w-[260px] aspect-[9/16] object-contain"
+                    />
+                  </div>
+                )}
               </div>
             ))
           )}
@@ -246,6 +264,15 @@ export default function VideosPage() {
             <span className="text-[10px] text-gray-600">
               Total: {slides.reduce((s, sl) => s + sl.duration, 0)}s
             </span>
+          </div>
+          <div className="flex items-center gap-2 mb-4">
+            <label className="text-xs text-gray-400 w-20">효과음/BGM</label>
+            <input
+              value={bgmUrl}
+              onChange={(e) => setBgmUrl(e.target.value)}
+              placeholder="음원 URL 또는 /sfx/whoosh.mp3 (선택)"
+              className="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700"
+            />
           </div>
           <button
             onClick={handleGenerate}
