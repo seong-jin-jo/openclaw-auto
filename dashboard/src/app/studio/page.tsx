@@ -5,6 +5,8 @@ import useSWR from "swr";
 import { fetcher, apiPost } from "@/lib/api";
 import { useToast } from "@/components/layout/Toast";
 import { PlatformPreview, type PreviewPlatform } from "@/components/studio/PlatformPreview";
+import { useUIStore } from "@/store/ui-store";
+import { BrandSetupWizard } from "@/components/shared/BrandSetupWizard";
 
 interface TextVariants {
   threads?: string; x?: string;
@@ -35,8 +37,15 @@ export default function StudioPage() {
   const { data: acct, mutate: mutateAcct } = useSWR<{ credits?: number; needsLogin?: boolean }>("/api/higgsfield/status", fetcher);
   const { data: hist, mutate: mutateHist } = useSWR<{ drafts: Array<Record<string, unknown>> }>("/api/studio/drafts", fetcher);
 
+  const { activeWorkspace } = useUIStore();
+  const { data: brandData, mutate: mutateBrand } = useSWR<{ guide: { prompt_guide?: string } | null }>(
+    activeWorkspace ? `/api/studio/brand-setup?tenant_id=${activeWorkspace.id}` : null, fetcher);
+  const [showWizard, setShowWizard] = useState(false);
+
   const [idea, setIdea] = useState("");
   const [guide, setGuide] = useState("");
+  // 활성 워크스페이스 브랜드 가이드 → 생성에 자동 주입(P3)
+  useEffect(() => { if (brandData?.guide?.prompt_guide) setGuide(brandData.guide.prompt_guide); }, [brandData]);
   const [withVideo, setWithVideo] = useState(true);
   const [videoModel, setVideoModel] = useState("minimax_hailuo");
   const [busy, setBusy] = useState<string | null>(null);
@@ -147,13 +156,21 @@ export default function StudioPage() {
 
   return (
     <div className="px-6 py-5">
+      {showWizard && activeWorkspace && (
+        <BrandSetupWizard
+          workspace={activeWorkspace}
+          onComplete={() => { setShowWizard(false); mutateBrand(); showToast("브랜드 가이드 저장됨"); }}
+          onDismiss={() => setShowWizard(false)}
+        />
+      )}
       {/* 상단 바 */}
       <div className="flex items-center gap-3 flex-wrap mb-4">
         <b className="text-lg text-white">OSMU Studio</b>
         <input value={idea} onChange={(e) => setIdea(e.target.value)} placeholder="글감 / 콘텐츠 주제 입력" className="flex-1 min-w-[260px] bg-gray-800 text-gray-100 text-sm p-2.5 rounded border border-gray-700" />
         <select value={videoModel} onChange={(e) => setVideoModel(e.target.value)} className="bg-gray-800 text-gray-300 text-xs p-2 rounded border border-gray-700"><option value="minimax_hailuo">Minimax 6cr</option><option value="veo3_1_lite">Veo3.1 8cr</option><option value="kling3_0">Kling3 10cr</option><option value="marketing_studio_video">MS UGC광고 ~40cr</option></select>
         <label className="flex items-center gap-1.5 text-xs text-gray-400"><input type="checkbox" checked={withVideo} onChange={(e) => setWithVideo(e.target.checked)} />영상</label>
-        <button onClick={runOSMU} disabled={!!busy} className="px-4 py-2 text-sm bg-purple-600 text-white rounded disabled:opacity-50">{busy || "OSMU 생성"}</button>
+        {activeWorkspace && <button onClick={() => setShowWizard(true)} className="text-xs px-2.5 py-2 rounded border border-purple-500/40 text-purple-300 hover:bg-purple-600/10" title="브랜드 톤 설정">{brandData?.guide?.prompt_guide ? "🎨 브랜드 ✓" : "🎨 브랜드 설정"}</button>}
+        <button onClick={runOSMU} disabled={!!busy} className="px-4 py-2 text-sm bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg shadow-lg shadow-purple-900/30 disabled:opacity-50">{busy || "OSMU 생성"}</button>
         {text && <button onClick={() => save("draft")} className="px-3 py-2 text-sm bg-gray-700 text-gray-100 rounded">💾 Save</button>}
         {text && <button onClick={publish} disabled={pub.running} className="px-3 py-2 text-sm bg-green-600 text-white rounded disabled:opacity-50">🚀 Publish ({ALL.filter((p) => includes[p]).length})</button>}
         <div className="relative">
@@ -202,11 +219,11 @@ export default function StudioPage() {
           ) : (
             GROUPS.map((g) => (
               <div key={g.title}>
-                <div className="flex items-center gap-2 mb-3"><span className="text-sm font-semibold text-gray-200">{g.title}</span><span className="text-[10px] text-gray-600">{g.platforms.map((p) => LABEL[p]).join(" · ")} · 클릭해서 편집</span><div className="flex-1 h-px bg-gray-800" /></div>
+                <div className="flex items-center gap-2 mb-3"><span className="text-sm font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{g.title}</span><span className="text-[10px] text-gray-600">{g.platforms.map((p) => LABEL[p]).join(" · ")} · 클릭해서 편집</span><div className="flex-1 h-px bg-gradient-to-r from-purple-500/40 to-transparent" /></div>
                 <div className="flex gap-5 flex-nowrap overflow-x-auto items-start pb-2">
                   {g.platforms.map((p) => (
                     <div key={p} className="group cursor-pointer" onClick={() => setEditing(p)}>
-                      <div className={`rounded-2xl transition ${editing === p ? "ring-2 ring-purple-500" : "group-hover:ring-1 group-hover:ring-gray-600"}`}>
+                      <div className={`rounded-2xl transition ${editing === p ? "ring-2 ring-pink-500 shadow-[0_0_24px_rgba(236,72,153,0.35)]" : "group-hover:ring-1 group-hover:ring-purple-500/50"}`}>
                         <PlatformPreview platform={p} text={text} media={media} headerRight={
                           <label onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-[10px] text-gray-400 cursor-default">
                             <input type="checkbox" checked={!!includes[p]} onChange={(e) => setIncludes((x) => ({ ...x, [p]: e.target.checked }))} />발행
@@ -240,8 +257,8 @@ export default function StudioPage() {
       {editing && text && (
         <>
           <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setEditing(null)} />
-          <div className="fixed top-0 right-0 h-screen bg-[#141414] border-l border-gray-800 z-40 flex" style={{ width: drawerW }}>
-            <div onMouseDown={() => (dragRef.current = true)} className="w-1.5 h-full cursor-ew-resize bg-gray-800 hover:bg-purple-600 shrink-0" title="드래그해서 크기 조절" />
+          <div className="fixed top-0 right-0 h-screen bg-[#141414]/95 backdrop-blur-xl border-l border-purple-500/20 z-40 flex shadow-[0_0_40px_rgba(168,85,247,0.15)]" style={{ width: drawerW }}>
+            <div onMouseDown={() => (dragRef.current = true)} className="w-1.5 h-full cursor-ew-resize bg-gradient-to-b from-purple-600 to-pink-600 opacity-40 hover:opacity-100 shrink-0" title="드래그해서 크기 조절" />
             <div className="flex-1 overflow-auto p-5">
               <div className="flex items-center justify-between mb-4"><b className="text-base text-white">{LABEL[editing]} 편집</b><button onClick={() => setEditing(null)} className="text-gray-400 text-lg">✕</button></div>
 
