@@ -2,7 +2,29 @@
 
 import { create } from "zustand";
 
+// 활성 워크스페이스(테넌트) — 멀티테넌트 컨텍스트. localStorage persist.
+export interface Workspace {
+  id: string;
+  slug: string;
+  name: string;
+  tier?: string; // team | private(19금)
+}
+
+const WS_KEY = "active_workspace";
+function loadWorkspace(): Workspace | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(WS_KEY);
+    return raw ? (JSON.parse(raw) as Workspace) : null;
+  } catch {
+    return null;
+  }
+}
+
 interface UIState {
+  activeWorkspace: Workspace | null;
+  setActiveWorkspace: (w: Workspace | null) => void;
+
   subTab: string;
   queueFilter: string;
   sidebarCollapsed: Record<string, boolean>;
@@ -31,6 +53,7 @@ interface UIState {
 }
 
 export const useUIStore = create<UIState>((set) => ({
+  activeWorkspace: loadWorkspace(),
   subTab: "queue",
   queueFilter: "all",
   sidebarCollapsed: {},
@@ -43,6 +66,13 @@ export const useUIStore = create<UIState>((set) => ({
   expandedPopular: null,
   dismissedOnboarding: false,
 
+  setActiveWorkspace: (w) => {
+    if (typeof window !== "undefined") {
+      if (w) localStorage.setItem(WS_KEY, JSON.stringify(w));
+      else localStorage.removeItem(WS_KEY);
+    }
+    set({ activeWorkspace: w });
+  },
   setSubTab: (tab) => set({ subTab: tab }),
   setQueueFilter: (filter) => set({ queueFilter: filter }),
   toggleSidebar: (key) =>

@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useSWR from "swr";
 import { useChannelConfig } from "@/hooks/useChannelConfig";
 import { useCronStatus } from "@/hooks/useOverview";
 import { CH_LABELS, IMPLEMENTED_PLUGINS } from "@/lib/constants";
 import { getChannelIcon } from "@/lib/channel-icons";
-import { useUIStore } from "@/store/ui-store";
-import { fetcher } from "@/lib/api";
+import { useUIStore, type Workspace } from "@/store/ui-store";
+import { fetcher, apiPost } from "@/lib/api";
 
 /* ── Sidebar Group ── */
 function SidebarGroup({
@@ -120,31 +120,57 @@ function chSidebarItem(key: string, channelConfig: Record<string, Record<string,
   return { key, label, icon: label[0], nav: true };
 }
 
-/* ── 서비스 전환 (격리된 인스턴스로 이동) ── */
-interface Tenant { slug: string; name: string; emoji: string; dashboardPort: number; publicUrl: string; status: string }
-function ServiceSwitcher() {
-  const { data } = useSWR<{ tenants?: Tenant[] }>("/api/tenants", fetcher);
+/* ── 워크스페이스 전환 (멀티테넌트, 같은 인스턴스 내) ── */
+function WorkspaceSwitcher() {
+  const { data, mutate } = useSWR<{ workspaces?: Workspace[] }>("/api/workspaces", fetcher);
+  const { activeWorkspace, setActiveWorkspace } = useUIStore();
   const [open, setOpen] = useState(false);
-  const tenants = data?.tenants || [];
-  const go = (t: Tenant) => {
-    const loc = typeof window !== "undefined" ? window.location : null;
-    const url = loc && loc.hostname === "localhost" ? `http://localhost:${t.dashboardPort}` : t.publicUrl;
-    window.location.href = url;
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const workspaces = data?.workspaces || [];
+
+  // 활성 워크스페이스 없으면 첫 번째 자동 선택
+  useEffect(() => {
+    if (!activeWorkspace && workspaces.length > 0) setActiveWorkspace(workspaces[0]);
+  }, [activeWorkspace, workspaces, setActiveWorkspace]);
+
+  const create = async () => {
+    if (!name.trim() || busy) return;
+    setBusy(true);
+    try {
+      const slug = name.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
+      const r = await apiPost<{ workspace?: Workspace }>("/api/workspaces", { slug, name: name.trim() });
+      if (r?.workspace) { await mutate(); setActiveWorkspace(r.workspace); }
+      setName(""); setAdding(false); setOpen(false);
+    } finally { setBusy(false); }
   };
+
   return (
     <div className="relative mt-1">
-      <button onClick={() => setOpen((v) => !v)} className="text-xs text-gray-400 hover:text-white flex items-center gap-1">
-        <span>openclaw-auto</span><span className="text-gray-600">· 서비스 전환 ▾</span>
+      <button onClick={() => setOpen((v) => !v)} className="text-xs flex items-center gap-1 hover:opacity-80">
+        <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent font-medium">{activeWorkspace?.name || "워크스페이스 선택"}</span>
+        <span className="text-gray-600">▾</span>
       </button>
       {open && (
         <div className="absolute left-0 top-6 z-50 w-52 rounded-lg border border-gray-800 bg-[#141414] p-1 shadow-xl">
-          {tenants.map((t) => (
-            <button key={t.slug} onClick={() => go(t)} className="w-full text-left px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-800 rounded flex items-center gap-2">
-              <span>{t.emoji}</span><span className="flex-1 truncate">{t.name}</span>
-              <span className={`text-[9px] ${t.status === "active" ? "text-green-500" : "text-gray-600"}`}>●</span>
+          {workspaces.map((w) => (
+            <button key={w.id} onClick={() => { setActiveWorkspace(w); setOpen(false); }} className={`w-full text-left px-2 py-1.5 text-xs rounded flex items-center gap-2 ${activeWorkspace?.id === w.id ? "bg-gray-800 text-white" : "text-gray-300 hover:bg-gray-800"}`}>
+              <span className="flex-1 truncate">{w.name}</span>
+              {activeWorkspace?.id === w.id && <span className="text-[9px] text-green-500">●</span>}
             </button>
           ))}
-          <div className="text-[9px] text-gray-600 px-2 py-1 border-t border-gray-800 mt-1">각 서비스 = 완전 격리된 인스턴스</div>
+          {workspaces.length === 0 && <div className="text-[10px] text-gray-600 px-2 py-1.5">워크스페이스 없음 — 등록하세요</div>}
+          <div className="border-t border-gray-800 mt-1 pt-1">
+            {adding ? (
+              <div className="px-1 py-1 flex gap-1">
+                <input autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && create()} placeholder="워크스페이스 이름" className="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-200 min-w-0" />
+                <button onClick={create} disabled={busy} className="text-xs px-2 py-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded disabled:opacity-50">{busy ? "..." : "생성"}</button>
+              </div>
+            ) : (
+              <button onClick={() => setAdding(true)} className="w-full text-left px-2 py-1.5 text-xs text-purple-400 hover:bg-gray-800 rounded">+ 새 워크스페이스</button>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -212,7 +238,7 @@ export function Sidebar() {
             </svg>
           </a>
         </div>
-        <ServiceSwitcher />
+        <WorkspaceSwitcher />
       </div>
 
       <nav className="flex-1 py-3">
