@@ -18,10 +18,14 @@ interface ChannelCred { token: string; userId?: string }
 // 테넌트 채널 자격증명 resolve: integrations(kind=channel,label=platform) → env 폴백
 export async function getChannelCred(tenantId: string, platform: string): Promise<ChannelCred | null> {
   const sql = db();
-  const [row] = await sql<{ secret_enc: string; meta: { userId?: string } | null }[]>`
-    SELECT secret_enc, meta FROM integrations
+  const key = process.env.OSMU_SECRET_KEY;
+  // L2: 암호화된 secret_enc 복호화(armor→pgp_sym_decrypt). 토큰은 메모리에만.
+  const [row] = await sql<{ token: string | null; meta: { userId?: string } | null }[]>`
+    SELECT CASE WHEN secret_enc <> '' AND ${key ?? ""} <> ''
+             THEN pgp_sym_decrypt(dearmor(secret_enc), ${key ?? ""}) ELSE NULL END AS token, meta
+    FROM integrations
     WHERE tenant_id = ${tenantId} AND kind = 'channel' AND label = ${platform}`;
-  if (row?.secret_enc) return { token: row.secret_enc, userId: row.meta?.userId };
+  if (row?.token) return { token: row.token, userId: row.meta?.userId };
   // dev 폴백(단일 env — 중앙 대시보드엔 테넌트별 env 없음)
   if (platform === "threads" && process.env.THREADS_ACCESS_TOKEN) {
     return { token: process.env.THREADS_ACCESS_TOKEN, userId: process.env.THREADS_USER_ID };

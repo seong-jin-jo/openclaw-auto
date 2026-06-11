@@ -23,11 +23,14 @@ export async function POST(request: Request) {
   if (!tenant_id || !kind || !label) {
     return Response.json({ error: "tenant_id, kind, label required" }, { status: 400 });
   }
+  const key = process.env.OSMU_SECRET_KEY;
+  if (!key) return Response.json({ error: "OSMU_SECRET_KEY 미설정 — 시크릿 암호화 불가" }, { status: 500 });
   try {
     const sql = db();
+    // L2: secret을 pgcrypto로 암호화 저장(armor=TEXT). 평문 적재 금지.
     await sql`
       INSERT INTO integrations (tenant_id, kind, label, secret_enc, meta)
-      VALUES (${tenant_id}, ${kind}, ${label}, ${secret ?? ""}, ${JSON.stringify(meta ?? {})}::jsonb)
+      VALUES (${tenant_id}, ${kind}, ${label}, armor(pgp_sym_encrypt(${secret ?? ""}, ${key})), ${sql.json(meta ?? {})})
       ON CONFLICT (tenant_id, kind, label) DO UPDATE
         SET secret_enc = EXCLUDED.secret_enc, meta = EXCLUDED.meta`;
     return Response.json({ ok: true });

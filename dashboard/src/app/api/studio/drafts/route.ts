@@ -43,23 +43,23 @@ export async function POST(request: Request) {
   const body = await request.json();
   const tenantId = body.tenant_id;
   if (!tenantId) return Response.json({ error: "tenant_id required" }, { status: 400 });
-  const payload = JSON.stringify({
+  const payload = {
     text: body.text ?? null, img: body.img ?? null, vid: body.vid ?? null,
     includes: body.includes ?? {},
-  });
+  };
   const status = body.status || "draft";
   const idea = body.idea || "";
   try {
     const sql = db();
     if (body.id) {
       const [row] = await sql<{ id: string }[]>`
-        UPDATE drafts SET idea = ${idea}, payload = ${payload}::jsonb, status = ${status}, updated_at = now()
+        UPDATE drafts SET idea = ${idea}, payload = ${sql.json(payload)}, status = ${status}, updated_at = now()
         WHERE id = ${body.id} AND tenant_id = ${tenantId} RETURNING id`;
       if (row) return Response.json({ ok: true, id: row.id });
     }
     const [row] = await sql<{ id: string }[]>`
       INSERT INTO drafts (tenant_id, idea, payload, status)
-      VALUES (${tenantId}, ${idea}, ${payload}::jsonb, ${status}) RETURNING id`;
+      VALUES (${tenantId}, ${idea}, ${sql.json(payload)}, ${status}) RETURNING id`;
     return Response.json({ ok: true, id: row.id });
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 });

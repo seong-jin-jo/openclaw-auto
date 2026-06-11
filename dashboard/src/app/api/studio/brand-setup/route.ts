@@ -46,11 +46,11 @@ export async function POST(request: Request) {
     const { stdout } = await execFileP(CLAUDE_BIN, ["-p", prompt], { timeout: 120000, maxBuffer: 8 * 1024 * 1024 });
     const m = stdout.match(/\{[\s\S]*\}/);
     if (!m) return Response.json({ error: "JSON 추출 실패", raw: stdout.slice(-400) }, { status: 502 });
-    const parsed = JSON.parse(m[0]) as { prompt_guide?: string; visual_rules?: unknown };
+    const parsed = JSON.parse(m[0]) as { prompt_guide?: string; visual_rules?: Record<string, unknown> };
     const sql = db();
     await sql`
       INSERT INTO brand_guides (tenant_id, prompt_guide, visual_rules, source, synced_at)
-      VALUES (${tenant_id}, ${parsed.prompt_guide || ""}, ${JSON.stringify(parsed.visual_rules ?? {})}::jsonb, 'wizard', now())
+      VALUES (${tenant_id}, ${parsed.prompt_guide || ""}, ${sql.json((parsed.visual_rules ?? {}) as Parameters<typeof sql.json>[0])}, 'wizard', now())
       ON CONFLICT (tenant_id) DO UPDATE
         SET prompt_guide = EXCLUDED.prompt_guide,
             visual_rules = EXCLUDED.visual_rules,
