@@ -34,10 +34,9 @@ const isVideo = (p: PreviewPlatform) => p === "shorts" || p === "reels" || p ===
 
 export default function StudioPage() {
   const { showToast } = useToast();
-  const { data: acct, mutate: mutateAcct } = useSWR<{ credits?: number; needsLogin?: boolean }>("/api/higgsfield/status", fetcher);
-  const { data: hist, mutate: mutateHist } = useSWR<{ drafts: Array<Record<string, unknown>> }>("/api/studio/drafts", fetcher);
-
   const { activeWorkspace } = useUIStore();
+  const { data: acct, mutate: mutateAcct } = useSWR<{ credits?: number; needsLogin?: boolean }>("/api/higgsfield/status", fetcher);
+  const { data: hist, mutate: mutateHist } = useSWR<{ drafts: Array<Record<string, unknown>> }>(activeWorkspace ? `/api/studio/drafts?tenant_id=${activeWorkspace.id}` : null, fetcher);
   const { data: brandData, mutate: mutateBrand } = useSWR<{ guide: { prompt_guide?: string } | null }>(
     activeWorkspace ? `/api/studio/brand-setup?tenant_id=${activeWorkspace.id}` : null, fetcher);
   const [showWizard, setShowWizard] = useState(false);
@@ -121,7 +120,7 @@ export default function StudioPage() {
     } finally { setBusy(null); }
   }
   async function save(status: "draft" | "published" | "stopped" = "draft") {
-    const r = await apiPost<{ id?: string }>("/api/studio/drafts", { id: draftId, idea, text, img, vid, includes, status, publishedAt: status === "published" ? new Date().toISOString() : undefined });
+    const r = await apiPost<{ id?: string }>("/api/studio/drafts", { tenant_id: activeWorkspace?.id, id: draftId, idea, text, img, vid, includes, status, publishedAt: status === "published" ? new Date().toISOString() : undefined });
     if (r?.id) setDraftId(r.id); mutateHist(); return r?.id;
   }
   async function publish() {

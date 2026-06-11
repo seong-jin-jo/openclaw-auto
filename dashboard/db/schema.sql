@@ -47,3 +47,25 @@ CREATE TABLE IF NOT EXISTS drafts (
 
 CREATE INDEX IF NOT EXISTS idx_drafts_tenant ON drafts(tenant_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_integrations_tenant ON integrations(tenant_id);
+
+-- 발행된 게시물 + 성과(insights). 실발행 시 1행, collect로 metrics 갱신.
+CREATE TABLE IF NOT EXISTS published_posts (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id     UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  draft_id      UUID,                          -- 원 초안(선택)
+  platform      TEXT NOT NULL,                 -- threads | x | instagram | ...
+  external_id   TEXT,                          -- threadsMediaId / tweetId / mediaId
+  permalink     TEXT,
+  text          TEXT,
+  status        TEXT NOT NULL DEFAULT 'published', -- published | failed
+  error         TEXT,
+  published_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- 성과(insights) — collect가 갱신
+  views         INTEGER,
+  likes         INTEGER,
+  replies       INTEGER,
+  reposts       INTEGER,
+  metrics_at    TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_pubposts_tenant ON published_posts(tenant_id, published_at DESC);
+

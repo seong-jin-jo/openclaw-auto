@@ -1,42 +1,67 @@
-import { readJson, writeJson, dataPath } from "@/lib/file-io";
+import { db } from "@/lib/db";
 
-// Studio 초안/발행 이력 저장소. data/studio/drafts.json
-interface Draft {
+// Studio 초안/발행 이력 — Supabase drafts 테이블(테넌트별). payload jsonb에 본문 보관.
+interface DraftRow {
   id: string;
+  tenant_id: string;
   idea: string;
-  text: unknown;
-  img?: { file: string; localPath: string } | null;
-  vid?: { file: string } | null;
-  includes: Record<string, boolean>;
-  status: "draft" | "published" | "stopped";
-  savedAt: string;
-  publishedAt?: string;
-}
-const FILE = "studio/drafts.json";
-
-export async function GET() {
-  const drafts = readJson<Draft[]>(dataPath(FILE)) || [];
-  return Response.json({ drafts: drafts.slice().reverse().slice(0, 50) });
+  payload: { text?: unknown; img?: unknown; vid?: unknown; includes?: Record<string, boolean> };
+  status: string;
+  created_at: string;
+  updated_at: string;
 }
 
+// GET /api/studio/drafts?tenant_id=... — 워크스페이스 초안 목록(최근 50)
+export async function GET(request: Request) {
+  const tenantId = new URL(request.url).searchParams.get("tenant_id");
+  if (!tenantId) return Response.json({ drafts: [] });
+  try {
+    const sql = db();
+    const rows = await sql<DraftRow[]>`
+      SELECT id, tenant_id, idea, payload, status, created_at, updated_at
+      FROM drafts WHERE tenant_id = ${tenantId}
+      ORDER BY updated_at DESC LIMIT 50`;
+    // 기존 Studio 형식과 호환되게 평탄화
+    const drafts = rows.map((r) => ({
+      id: r.id,
+      idea: r.idea,
+      text: r.payload?.text ?? null,
+      img: r.payload?.img ?? null,
+      vid: r.payload?.vid ?? null,
+      includes: r.payload?.includes ?? {},
+      status: r.status,
+      savedAt: r.updated_at,
+    }));
+    return Response.json({ drafts });
+  } catch (e) {
+    return Response.json({ drafts: [], error: String(e) }, { status: 500 });
+  }
+}
+
+// POST /api/studio/drafts — 초안 저장/갱신 { tenant_id, id?, idea, text, img, vid, includes, status }
 export async function POST(request: Request) {
   const body = await request.json();
-  const drafts = readJson<Draft[]>(dataPath(FILE)) || [];
-  const now = new Date().toISOString();
-  let draft: Draft;
-  if (body.id) {
-    // 기존 갱신
-    const idx = drafts.findIndex((d) => d.id === body.id);
-    draft = { ...(idx >= 0 ? drafts[idx] : ({} as Draft)), ...body, savedAt: now };
-    if (idx >= 0) drafts[idx] = draft; else drafts.push(draft);
-  } else {
-    draft = {
-      id: `d_${Date.now()}`, idea: body.idea || "", text: body.text ?? null,
-      img: body.img ?? null, vid: body.vid ?? null, includes: body.includes ?? {},
-      status: body.status || "draft", savedAt: now, publishedAt: body.publishedAt,
-    };
-    drafts.push(draft);
+  const tenantId = body.tenant_id;
+  if (!tenantId) return Response.json({ error: "tenant_id required" }, { status: 400 });
+  const payload = JSON.stringify({
+    text: body.text ?? null, img: body.img ?? null, vid: body.vid ?? null,
+    includes: body.includes ?? {},
+  });
+  const status = body.status || "draft";
+  const idea = body.idea || "";
+  try {
+    const sql = db();
+    if (body.id) {
+      const [row] = await sql<{ id: string }[]>`
+        UPDATE drafts SET idea = ${idea}, payload = ${payload}::jsonb, status = ${status}, updated_at = now()
+        WHERE id = ${body.id} AND tenant_id = ${tenantId} RETURNING id`;
+      if (row) return Response.json({ ok: true, id: row.id });
+    }
+    const [row] = await sql<{ id: string }[]>`
+      INSERT INTO drafts (tenant_id, idea, payload, status)
+      VALUES (${tenantId}, ${idea}, ${payload}::jsonb, ${status}) RETURNING id`;
+    return Response.json({ ok: true, id: row.id });
+  } catch (e) {
+    return Response.json({ error: String(e) }, { status: 500 });
   }
-  writeJson(dataPath(FILE), drafts);
-  return Response.json({ ok: true, id: draft.id, draft });
 }
