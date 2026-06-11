@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import useSWR from "swr";
+import { fetcher, apiPost } from "@/lib/api";
 import { Logo, PREVIEW_PLATFORMS, type PreviewPlatform } from "@/components/studio/PlatformPreview";
 import { useOverview, useCronStatus, useActivity, useAlerts, useWeeklySummary, useTokenStatus, useAgentLogs, useUsage, useErrors } from "@/hooks/useOverview";
 import { useChannelConfig } from "@/hooks/useChannelConfig";
@@ -9,6 +11,11 @@ import { fmtAgo, fmtTime } from "@/lib/format";
 import { useUIStore } from "@/store/ui-store";
 import { OnboardingWizard } from "@/components/shared/OnboardingWizard";
 import Link from "next/link";
+
+interface PostRow {
+  id: string; platform: string; permalink?: string; text?: string; status: string; error?: string;
+  published_at: string; views?: number; likes?: number; replies?: number; reposts?: number;
+}
 
 function card(title: string, value: string | number, sub?: string) {
   return (
@@ -46,8 +53,12 @@ export default function HomePage() {
   const { data: usageData } = useUsage();
   const { data: errorData } = useErrors();
   const { data: channelConfig } = useChannelConfig();
-  const { dismissedOnboarding, dismissOnboarding } = useUIStore();
+  const { dismissedOnboarding, dismissOnboarding, activeWorkspace } = useUIStore();
   const [focus, setFocus] = useState<PreviewPlatform | "all">("all");
+  // 발행물 성과(성과 페이지 통합) — 활성 워크스페이스의 published_posts
+  const { data: metricsData, mutate: mutateMetrics } = useSWR<{ posts?: PostRow[] }>(
+    activeWorkspace ? `/api/metrics?tenant_id=${activeWorkspace.id}` : null, fetcher);
+  const [collecting, setCollecting] = useState(false);
   const { data: onboardingData, mutate: mutateOnboarding } = useOnboardingStatus();
   const onboardingStatus = onboardingData as { completed?: boolean } | undefined;
 
@@ -87,17 +98,27 @@ export default function HomePage() {
 
   const claude = tokenStatus?.claude as Record<string, unknown> | undefined;
 
+  const posts = metricsData?.posts || [];
+  const publishedPosts = posts.filter((p) => p.status === "published");
+  const sumMetric = (k: keyof PostRow) => publishedPosts.reduce((a, p) => a + (Number(p[k]) || 0), 0);
+  const collectMetrics = async () => {
+    if (!activeWorkspace || collecting) return;
+    setCollecting(true);
+    try { await apiPost("/api/metrics", { tenant_id: activeWorkspace.id }); await mutateMetrics(); }
+    finally { setCollecting(false); }
+  };
+
   return (
     <div className="px-8 py-6">
       {/* Marketing Home — 전 플랫폼 종합 + 로고 클릭 시 플랫폼 집중 */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
-          <div><h2 className="text-lg font-semibold text-white">Marketing Home</h2><p className="text-xs text-gray-500">전 플랫폼 종합 성과 · 로고 클릭 시 플랫폼별 분석 집중</p></div>
+          <div><h2 className="text-lg font-semibold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">성과</h2><p className="text-xs text-gray-500">{activeWorkspace?.name ? `${activeWorkspace.name} · ` : ""}전 플랫폼 종합 + 발행물별 성과 · 로고 클릭 시 플랫폼 집중</p></div>
         </div>
         <div className="flex gap-2 flex-wrap mb-4">
-          <button onClick={() => setFocus("all")} className={`px-3 py-2 rounded-lg text-xs font-medium ${focus === "all" ? "bg-purple-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>전체</button>
+          <button onClick={() => setFocus("all")} className={`px-3 py-2 rounded-lg text-xs font-medium ${focus === "all" ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>전체</button>
           {PREVIEW_PLATFORMS.map((p) => (
-            <button key={p.key} onClick={() => setFocus(p.key)} title={p.label} className={`px-3 py-2 rounded-lg flex items-center gap-1.5 ${focus === p.key ? "bg-purple-600 ring-1 ring-purple-400" : "bg-gray-800 hover:bg-gray-700"}`}>
+            <button key={p.key} onClick={() => setFocus(p.key)} title={p.label} className={`px-3 py-2 rounded-lg flex items-center gap-1.5 ${focus === p.key ? "bg-gradient-to-r from-purple-600 to-pink-600 ring-1 ring-pink-400" : "bg-gray-800 hover:bg-gray-700"}`}>
               <Logo p={p.key} /><span className="text-xs text-gray-300">{p.label}</span>
             </button>
           ))}
@@ -111,6 +132,50 @@ export default function HomePage() {
         </div>
         {focus !== "all" && <p className="text-[11px] text-gray-600 mt-2">📊 {PREVIEW_PLATFORMS.find((p) => p.key === focus)?.label} 집중 분석 — 채널 연결 후 실데이터 표시</p>}
       </div>
+
+      {/* 발행물 성과 — 실제 발행물별 조회·좋아요 (성과 페이지 통합) */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide">📈 발행물 성과</h3>
+          <button onClick={collectMetrics} disabled={collecting || !activeWorkspace} className="px-3 py-1.5 text-xs bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg disabled:opacity-50">{collecting ? "수집 중…" : "🔄 성과 수집"}</button>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
+          {card("발행물", publishedPosts.length)}
+          {card("조회", sumMetric("views"))}
+          {card("좋아요", sumMetric("likes"))}
+          {card("답글", sumMetric("replies"))}
+          {card("리포스트", sumMetric("reposts"))}
+        </div>
+        <div className="card overflow-hidden">
+          <table className="w-full text-sm">
+            <thead><tr className="text-[11px] text-gray-500 border-b border-gray-800">
+              <th className="text-left p-3">플랫폼</th><th className="text-left p-3">내용</th>
+              <th className="p-3">상태</th><th className="p-3">조회</th><th className="p-3">좋아요</th>
+              <th className="p-3">답글</th><th className="p-3">발행</th>
+            </tr></thead>
+            <tbody>
+              {posts.map((p) => (
+                <tr key={p.id} className="border-b border-gray-900 text-gray-300">
+                  <td className="p-3 text-xs">{p.platform}</td>
+                  <td className="p-3 text-xs max-w-xs truncate">
+                    {p.permalink ? <a href={p.permalink} target="_blank" rel="noopener noreferrer" className="hover:underline text-purple-300">{p.text?.slice(0, 50) || "(게시물)"} ↗</a> : (p.text?.slice(0, 50) || "—")}
+                    {p.status === "failed" && <span className="text-red-400 text-[10px] block">{p.error?.slice(0, 60)}</span>}
+                  </td>
+                  <td className="p-3 text-center"><span className={`text-[10px] px-2 py-0.5 rounded-full ${p.status === "published" ? "bg-green-900/50 text-green-400" : "bg-red-900/40 text-red-400"}`}>{p.status}</span></td>
+                  <td className="p-3 text-center text-xs">{p.views ?? "—"}</td>
+                  <td className="p-3 text-center text-xs">{p.likes ?? "—"}</td>
+                  <td className="p-3 text-center text-xs">{p.replies ?? "—"}</td>
+                  <td className="p-3 text-center text-[10px] text-gray-500">{fmtAgo(p.published_at)}</td>
+                </tr>
+              ))}
+              {posts.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-gray-600 text-xs">아직 발행물이 없습니다. Studio에서 발행하세요.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 운영 현황 — 큐·팔로워·바이럴·자동화·채널 */}
+      <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">운영 현황</h3>
 
       {/* Error Indicator */}
       {errorCount24h > 0 && (
