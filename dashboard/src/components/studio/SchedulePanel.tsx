@@ -1,0 +1,148 @@
+"use client";
+
+import { useState } from "react";
+import useSWR from "swr";
+import { fetcher, apiPost } from "@/lib/api";
+import { useToast } from "@/components/layout/Toast";
+
+// P6 예약 발행 패널 — Studio 발행 영역에 토글로 노출.
+// 날짜/시간 picker + 플랫폼 체크 → POST /api/schedule, 예약 목록은 SWR로 표시.
+// draftId가 있으면 그 초안을 예약(없으면 현 작업물을 먼저 저장해야 함을 안내).
+
+interface ScheduleItem {
+  id: string;
+  draftId: string | null;
+  platforms: string[];
+  scheduledAt: string;
+  status: string;
+}
+
+const PLATFORMS = ["threads", "x", "facebook", "instagram", "shorts", "reels", "tiktok"] as const;
+const LABEL: Record<string, string> = {
+  threads: "Threads", x: "X", facebook: "Facebook", instagram: "Instagram",
+  shorts: "Shorts", reels: "Reels", tiktok: "TikTok",
+};
+
+// datetime-local 입력값(로컬 시각, "YYYY-MM-DDTHH:mm") → ISO-8601 문자열.
+function toIso(local: string): string | null {
+  if (!local) return null;
+  const d = new Date(local);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+// 기본값: 1시간 뒤(로컬), datetime-local 포맷.
+function defaultLocal(): string {
+  const d = new Date(Date.now() + 60 * 60 * 1000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export function SchedulePanel({
+  tenantId,
+  draftId,
+  defaultPlatforms,
+}: {
+  tenantId: string;
+  draftId: string | null;
+  defaultPlatforms?: string[];
+}) {
+  const { showToast } = useToast();
+  const { data, mutate } = useSWR<{ schedules: ScheduleItem[] }>(
+    tenantId ? `/api/schedule?tenant_id=${tenantId}` : null,
+    fetcher,
+  );
+  const [when, setWhen] = useState<string>(defaultLocal());
+  const [sel, setSel] = useState<Record<string, boolean>>(() => {
+    const base = defaultPlatforms && defaultPlatforms.length ? defaultPlatforms : ["threads"];
+    return Object.fromEntries(PLATFORMS.map((p) => [p, base.includes(p)]));
+  });
+  const [saving, setSaving] = useState(false);
+
+  async function submit() {
+    const platforms = PLATFORMS.filter((p) => sel[p]);
+    if (!platforms.length) { showToast("예약할 플랫폼을 선택하세요", "error"); return; }
+    const iso = toIso(when);
+    if (!iso) { showToast("예약 시각을 입력하세요", "error"); return; }
+    if (Date.parse(iso) <= Date.now()) { showToast("예약 시각은 미래여야 합니다", "error"); return; }
+    if (!draftId) { showToast("먼저 💾 Save로 초안을 저장한 뒤 예약하세요", "error"); return; }
+    setSaving(true);
+    try {
+      const r = await apiPost<{ ok?: boolean; error?: string }>("/api/schedule", {
+        tenant_id: tenantId, draft_id: draftId, platforms, scheduled_at: iso,
+      });
+      if (r?.ok) { showToast("예약 등록됨 ✓", "success"); mutate(); }
+      else showToast(r?.error || "예약 실패", "error");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "예약 실패", "error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const schedules = data?.schedules || [];
+
+  return (
+    <div className="card p-4 mb-4 border border-purple-500/20">
+      <div className="flex items-center gap-2 mb-3">
+        <b className="text-sm text-white">🗓️ 예약 발행</b>
+        <span className="text-[10px] text-gray-500">미래 시각에 멀티채널 자동 발행</span>
+      </div>
+
+      <div className="flex flex-wrap items-end gap-3 mb-3">
+        <div>
+          <label className="block text-[11px] text-gray-400 mb-1">예약 시각</label>
+          <input
+            type="datetime-local"
+            value={when}
+            onChange={(e) => setWhen(e.target.value)}
+            className="bg-gray-800 text-gray-100 text-sm p-2 rounded border border-gray-700"
+          />
+        </div>
+        <div className="flex-1 min-w-[220px]">
+          <label className="block text-[11px] text-gray-400 mb-1">플랫폼</label>
+          <div className="flex flex-wrap gap-2">
+            {PLATFORMS.map((p) => (
+              <label key={p} className="flex items-center gap-1 text-[11px] text-gray-300 bg-gray-800 px-2 py-1 rounded border border-gray-700 cursor-pointer">
+                <input type="checkbox" checked={!!sel[p]} onChange={(e) => setSel((x) => ({ ...x, [p]: e.target.checked }))} />
+                {LABEL[p]}
+              </label>
+            ))}
+          </div>
+        </div>
+        <button
+          onClick={submit}
+          disabled={saving}
+          className="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-500 text-white rounded-lg disabled:opacity-50"
+        >
+          {saving ? "예약 중…" : "예약"}
+        </button>
+      </div>
+
+      {/* 예약 목록 */}
+      <div className="border-t border-gray-800 pt-2">
+        <div className="text-[11px] text-gray-500 mb-1.5">예약 목록 ({schedules.length})</div>
+        {schedules.length === 0 ? (
+          <p className="text-xs text-gray-600">예약 없음</p>
+        ) : (
+          <div className="space-y-1.5 max-h-48 overflow-y-auto">
+            {schedules.map((s) => (
+              <div key={s.id} className="flex items-center justify-between bg-gray-900/60 rounded px-2.5 py-1.5">
+                <div className="min-w-0">
+                  <div className="text-xs text-gray-200">{new Date(s.scheduledAt).toLocaleString("ko-KR")}</div>
+                  <div className="text-[10px] text-gray-500 truncate">{(s.platforms || []).map((p) => LABEL[p] || p).join(" · ")}</div>
+                </div>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${
+                  s.status === "published" ? "bg-green-900/50 text-green-400"
+                    : s.status === "canceled" ? "bg-gray-800 text-gray-500"
+                    : "bg-yellow-900/40 text-yellow-300"
+                }`}>
+                  {s.status === "published" ? "발행됨" : s.status === "canceled" ? "취소" : "예약됨"}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

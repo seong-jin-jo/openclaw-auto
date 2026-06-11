@@ -1,0 +1,12 @@
+{
+  "name": "@openclaw/longform-to-shorts",
+  "version": "2026.6.11",
+  "private": true,
+  "description": "OpenClaw 롱폼→숏폼 소싱 플러그인 (claude -p 청킹으로 숏폼 후보 추출)",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

@@ -1,171 +1,236 @@
-import { readJson, dataPath } from "@/lib/file-io";
-import { readSettings } from "@/app/api/settings/route";
+import { db, withTenant, type Tenant, type Tier } from "@/lib/db";
 
-interface Post {
+// GET /api/analytics — 성과 분석 집계 (DB-backed, 멀티테넌트)
+//   ?tenant_id=<UUID>  → 해당 테넌트 단일 상세 분석 (withTenant 경유 = L1 RLS)
+//   (tenant_id 없음)   → 크로스테넌트 뷰: 전 테넌트 요약 비교 (tenants는 RLS 제외라 bare db()로 목록 후 테넌트별 withTenant)
+//   ?tier=team|private → 기본 team (P4 tier 라우팅). 잘못된 값은 team으로 폴백.
+//
+// 단방향 읽기 전용. published_posts(플랫폼별 합계 + 터진 글 top) + growth_metrics(채널별 최근 팔로워).
+
+// postgres.js는 bigint/numeric을 문자열로 돌려줄 수 있어 방어적으로 숫자 변환.
+function num(v: unknown): number {
+  const n = Number(v ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+type PlatformAggRow = {
+  platform: string;
+  published: unknown;
+  views: unknown;
+  likes: unknown;
+  replies: unknown;
+  reposts: unknown;
+};
+
+type TopPostRow = {
   id: string;
-  text: string;
-  status?: string;
-  topic?: string;
-  hashtags?: string[];
-  publishedAt?: string;
-  engagement?: {
-    views?: number;
-    likes?: number;
-    replies?: number;
-    reposts?: number;
-    quotes?: number;
-  };
+  platform: string;
+  permalink: string | null;
+  text: string | null;
+  views: unknown;
+  likes: unknown;
+  replies: unknown;
+  reposts: unknown;
+  published_at: string;
+};
+
+type FollowerRow = {
+  channel: string;
+  followers: unknown;
+  following: unknown;
+  recorded_at: string;
+};
+
+type TotalsRow = {
+  published: unknown;
+  views: unknown;
+  likes: unknown;
+  replies: unknown;
+  reposts: unknown;
+};
+
+// 단일 테넌트 상세 집계 — withTenant 트랜잭션 내에서 RLS 적용.
+async function tenantDetail(tenantId: string, tier: Tier) {
+  return withTenant(
+    tenantId,
+    async (sql) => {
+      // 플랫폼별 합계 (발행수 + views/likes/replies/reposts)
+      const platforms = await sql<PlatformAggRow[]>`
+        SELECT platform,
+               COUNT(*) FILTER (WHERE status = 'published') AS published,
+               COALESCE(SUM(views), 0)    AS views,
+               COALESCE(SUM(likes), 0)    AS likes,
+               COALESCE(SUM(replies), 0)  AS replies,
+               COALESCE(SUM(reposts), 0)  AS reposts
+        FROM published_posts
+        WHERE tenant_id = ${tenantId}
+        GROUP BY platform
+        ORDER BY COALESCE(SUM(views), 0) DESC`;
+
+      // 터진 글 top 10 (views 내림차순)
+      const top = await sql<TopPostRow[]>`
+        SELECT id, platform, permalink, text, views, likes, replies, reposts, published_at
+        FROM published_posts
+        WHERE tenant_id = ${tenantId} AND status = 'published'
+        ORDER BY COALESCE(views, 0) DESC, published_at DESC
+        LIMIT 10`;
+
+      // 채널별 최근 팔로워(가장 최근 1행만)
+      const followers = await sql<FollowerRow[]>`
+        SELECT DISTINCT ON (channel) channel, followers, following, recorded_at
+        FROM growth_metrics
+        WHERE tenant_id = ${tenantId}
+        ORDER BY channel, recorded_at DESC`;
+
+      return { platforms, top, followers };
+    },
+    tier,
+  );
 }
 
-interface QueueData {
-  posts: Post[];
+// 테넌트 1건 요약(크로스테넌트 행) — totals + 팔로워 합.
+async function tenantSummary(tenantId: string, tier: Tier) {
+  return withTenant(
+    tenantId,
+    async (sql) => {
+      const [totals] = await sql<TotalsRow[]>`
+        SELECT COUNT(*) FILTER (WHERE status = 'published') AS published,
+               COALESCE(SUM(views), 0)    AS views,
+               COALESCE(SUM(likes), 0)    AS likes,
+               COALESCE(SUM(replies), 0)  AS replies,
+               COALESCE(SUM(reposts), 0)  AS reposts
+        FROM published_posts
+        WHERE tenant_id = ${tenantId}`;
+
+      // 채널별 최근 팔로워의 합 = 총 팔로워
+      const [fol] = await sql<{ followers: unknown }[]>`
+        SELECT COALESCE(SUM(followers), 0) AS followers
+        FROM (
+          SELECT DISTINCT ON (channel) channel, followers
+          FROM growth_metrics
+          WHERE tenant_id = ${tenantId}
+          ORDER BY channel, recorded_at DESC
+        ) latest`;
+
+      return {
+        published: num(totals?.published),
+        views: num(totals?.views),
+        likes: num(totals?.likes),
+        replies: num(totals?.replies),
+        reposts: num(totals?.reposts),
+        followers: num(fol?.followers),
+      };
+    },
+    tier,
+  );
 }
 
-interface HistoryData {
-  posts: Post[];
-}
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const tenantId = url.searchParams.get("tenant_id");
+  const tierParam = url.searchParams.get("tier");
+  const tier: Tier = tierParam === "private" ? "private" : "team"; // 기본 team
 
-function hourlyPerformance(postStats: Array<Record<string, unknown>>) {
-  const hours: Record<number, { count: number; views: number; likes: number }> = {};
-  for (const p of postStats) {
-    const publishedAt = p.publishedAt as string;
-    if (!publishedAt) continue;
+  // ── 단일 테넌트 상세 ──
+  if (tenantId) {
     try {
-      const h = new Date(publishedAt).getUTCHours();
-      if (!hours[h]) hours[h] = { count: 0, views: 0, likes: 0 };
-      hours[h].count++;
-      hours[h].views += (p.views as number) || 0;
-      hours[h].likes += (p.likes as number) || 0;
-    } catch {
-      continue;
-    }
-  }
-  const result: Record<number, { count: number; avgViews: number; avgLikes: number }> = {};
-  for (const [h, d] of Object.entries(hours)) {
-    const c = d.count;
-    result[Number(h)] = {
-      count: c,
-      avgViews: Math.round(d.views / c),
-      avgLikes: Math.round(d.likes / c),
-    };
-  }
-  return result;
-}
+      const { platforms, top, followers } = await tenantDetail(tenantId, tier);
 
-export async function GET() {
-  const queue = readJson<QueueData>(dataPath("queue.json"));
-  if (!queue) {
-    return Response.json({ error: "queue.json not found" }, { status: 404 });
-  }
+      const totals = platforms.reduce(
+        (acc, p) => {
+          acc.published += num(p.published);
+          acc.views += num(p.views);
+          acc.likes += num(p.likes);
+          acc.replies += num(p.replies);
+          acc.reposts += num(p.reposts);
+          return acc;
+        },
+        { published: 0, views: 0, likes: 0, replies: 0, reposts: 0 },
+      );
 
-  const posts = queue.posts || [];
-  const published = posts.filter((p) => p.status === "published");
-
-  // Merge archived posts from analytics-history.json
-  const history = readJson<HistoryData>(dataPath("analytics-history.json"));
-  const archived = history?.posts || [];
-
-  // Per-post engagement (archived + current)
-  const postStats: Array<Record<string, unknown>> = [];
-
-  for (const p of archived) {
-    const eng = p.engagement || {};
-    postStats.push({
-      id: p.id,
-      text: (p.text || "").slice(0, 80),
-      topic: p.topic || "",
-      publishedAt: p.publishedAt,
-      views: eng.views || 0,
-      likes: eng.likes || 0,
-      replies: eng.replies || 0,
-      reposts: eng.reposts || 0,
-      quotes: eng.quotes || 0,
-      archived: true,
-    });
-  }
-
-  for (const p of published) {
-    const eng = p.engagement || {};
-    postStats.push({
-      id: p.id,
-      text: (p.text || "").slice(0, 80),
-      topic: p.topic || "",
-      publishedAt: p.publishedAt,
-      views: eng.views || 0,
-      likes: eng.likes || 0,
-      replies: eng.replies || 0,
-      reposts: eng.reposts || 0,
-      quotes: eng.quotes || 0,
-    });
-  }
-
-  // Topic stats
-  const topicStats: Record<string, { count: number; views: number; likes: number; replies: number; avgViews?: number; avgLikes?: number; avgReplies?: number }> = {};
-  for (const p of postStats) {
-    const topic = (p.topic as string) || "unknown";
-    if (!topicStats[topic]) topicStats[topic] = { count: 0, views: 0, likes: 0, replies: 0 };
-    topicStats[topic].count++;
-    topicStats[topic].views += (p.views as number) || 0;
-    topicStats[topic].likes += (p.likes as number) || 0;
-    topicStats[topic].replies += (p.replies as number) || 0;
-  }
-  for (const topic of Object.keys(topicStats)) {
-    const c = topicStats[topic].count;
-    if (c > 0) {
-      topicStats[topic].avgViews = Math.round(topicStats[topic].views / c);
-      topicStats[topic].avgLikes = Math.round(topicStats[topic].likes / c);
-      topicStats[topic].avgReplies = Math.round(topicStats[topic].replies / c);
+      return Response.json({
+        tenant_id: tenantId,
+        totals,
+        platforms: platforms.map((p) => ({
+          platform: p.platform,
+          published: num(p.published),
+          views: num(p.views),
+          likes: num(p.likes),
+          replies: num(p.replies),
+          reposts: num(p.reposts),
+        })),
+        topPosts: top.map((t) => ({
+          id: t.id,
+          platform: t.platform,
+          permalink: t.permalink,
+          text: (t.text ?? "").slice(0, 120),
+          views: num(t.views),
+          likes: num(t.likes),
+          replies: num(t.replies),
+          reposts: num(t.reposts),
+          publishedAt: t.published_at,
+        })),
+        followers: followers.map((f) => ({
+          channel: f.channel,
+          followers: num(f.followers),
+          following: num(f.following),
+          recordedAt: f.recorded_at,
+        })),
+      });
+    } catch (e) {
+      return Response.json(
+        { tenant_id: tenantId, totals: null, platforms: [], topPosts: [], followers: [], error: String(e) },
+        { status: 500 },
+      );
     }
   }
 
-  // Hashtag stats
-  const hashtagStats: Record<string, { count: number; views: number; likes: number; avgViews?: number; avgLikes?: number }> = {};
-  for (const p of [...published, ...archived]) {
-    const eng = p.engagement || {};
-    const views = eng.views || 0;
-    const likes = eng.likes || 0;
-    for (let tag of p.hashtags || []) {
-      tag = tag.replace(/^#/, "");
-      if (!hashtagStats[tag]) hashtagStats[tag] = { count: 0, views: 0, likes: 0 };
-      hashtagStats[tag].count++;
-      hashtagStats[tag].views += views;
-      hashtagStats[tag].likes += likes;
-    }
-  }
-  for (const tag of Object.keys(hashtagStats)) {
-    const c = hashtagStats[tag].count;
-    if (c > 0) {
-      hashtagStats[tag].avgViews = Math.round(hashtagStats[tag].views / c);
-      hashtagStats[tag].avgLikes = Math.round(hashtagStats[tag].likes / c);
-    }
-  }
+  // ── 크로스테넌트 뷰 (tenant_id 없음) ──
+  try {
+    // tenants는 RLS 제외 — bare db()로 활성 테넌트 목록 조회.
+    const sql = db();
+    const tenants = await sql<Tenant[]>`
+      SELECT id, slug, name, status, created_at
+      FROM tenants WHERE status = 'active' ORDER BY created_at`;
 
-  // Summary
-  const totalViews = postStats.reduce((s, p) => s + ((p.views as number) || 0), 0);
-  const totalLikes = postStats.reduce((s, p) => s + ((p.likes as number) || 0), 0);
-  const settings = readSettings();
-  const vt = settings.viralThreshold ?? 500;
-  const viralCount = postStats.filter((p) => ((p.views as number) || 0) >= vt).length;
+    // 테넌트별 요약을 각각 withTenant(RLS)로 집계.
+    const rows = await Promise.all(
+      tenants.map(async (t) => {
+        try {
+          const s = await tenantSummary(t.id, tier);
+          return { tenant_id: t.id, slug: t.slug, name: t.name, ...s };
+        } catch (e) {
+          return {
+            tenant_id: t.id,
+            slug: t.slug,
+            name: t.name,
+            published: 0,
+            views: 0,
+            likes: 0,
+            replies: 0,
+            reposts: 0,
+            followers: 0,
+            error: String(e),
+          };
+        }
+      }),
+    );
 
-  return Response.json({
-    summary: {
-      totalPublished: published.length,
-      totalViews,
-      totalLikes,
-      avgViews: published.length ? Math.round(totalViews / published.length) : 0,
-      avgLikes: published.length ? Math.round(totalLikes / published.length) : 0,
-      viralCount,
-      viralThreshold: vt,
-    },
-    posts: postStats,
-    topics: topicStats,
-    hashtags: hashtagStats,
-    hourlyPerformance: hourlyPerformance(postStats),
-    statusCounts: {
-      draft: posts.filter((p) => p.status === "draft").length,
-      approved: posts.filter((p) => p.status === "approved").length,
-      published: posts.filter((p) => p.status === "published").length,
-      failed: posts.filter((p) => p.status === "failed").length,
-    },
-  });
+    const grand = rows.reduce(
+      (acc, r) => {
+        acc.published += r.published;
+        acc.views += r.views;
+        acc.likes += r.likes;
+        acc.replies += r.replies;
+        acc.reposts += r.reposts;
+        acc.followers += r.followers;
+        return acc;
+      },
+      { published: 0, views: 0, likes: 0, replies: 0, reposts: 0, followers: 0 },
+    );
+
+    return Response.json({ crossTenant: true, totals: grand, tenants: rows });
+  } catch (e) {
+    return Response.json({ crossTenant: true, totals: null, tenants: [], error: String(e) }, { status: 500 });
+  }
 }

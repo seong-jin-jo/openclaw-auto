@@ -1,0 +1,31 @@
+{
+  "id": "sync-insights",
+  "name": "Sync Insights",
+  "description": "로컬 게이트웨이 insights(queue.json engagement + growth)를 Supabase published_posts/growth_metrics로 단방향 멱등 upsert. 키 = tenant_id+channel+external_post_id.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "databaseUrl": {
+        "type": "string",
+        "description": "Supabase/Postgres 연결 문자열. 미설정 시 env DATABASE_URL 사용. 하드코딩 금지(서비스 중립)."
+      },
+      "tenantId": {
+        "type": "string",
+        "description": "업서트 대상 테넌트 UUID. 미설정 시 env OSMU_TENANT_ID 사용."
+      },
+      "queuePath": {
+        "type": "string",
+        "description": "queue.json 경로. 기본 data/queue.json."
+      },
+      "historyPath": {
+        "type": "string",
+        "description": "analytics-history.json 경로. 기본 data/analytics-history.json."
+      },
+      "growthPath": {
+        "type": "string",
+        "description": "growth.json 경로. 기본 data/growth.json."
+      }
+    }
+  }
+}

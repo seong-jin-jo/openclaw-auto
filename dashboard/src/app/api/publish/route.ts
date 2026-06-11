@@ -1,5 +1,5 @@
 import { withTenant } from "@/lib/db";
-import { getChannelCred, publishThreads, publishInstagram, type PublishResult } from "@/lib/publish";
+import { getChannelCred, publishThreads, publishInstagram, publishX, publishFacebook, type PublishResult } from "@/lib/publish";
 
 // POST /api/publish — 한 플랫폼 실발행 { tenant_id, platform, text, image_url?, draft_id? }
 // 발행 후 published_posts에 기록(성과 수집 대상). 토큰 없으면 명확한 에러(크래시 X).
@@ -19,9 +19,12 @@ export async function POST(request: Request) {
     result = await publishThreads(cred, text || "", image_url);
   } else if (platform === "instagram") {
     result = await publishInstagram(cred, text || "", image_url);
-  } else if (platform === "x" || platform === "facebook") {
-    // OAuth1.0a(X) / Graph(FB)는 게이트웨이 publish 익스텐션 재사용(P5). 직접발행 미구현.
-    result = { ok: false, error: `${platform} 직접발행 미구현 — 게이트웨이 ${platform}_publish 경유(P5)` };
+  } else if (platform === "x") {
+    // X API v2 + OAuth1.0a 직접발행(P5). text only, 280자 자동 절단.
+    result = await publishX(cred, text || "");
+  } else if (platform === "facebook") {
+    // Facebook 페이지 Graph API 직접발행(P5). image_url 있으면 /photos, 없으면 /feed.
+    result = await publishFacebook(cred, text || "", image_url);
   } else {
     result = { ok: false, error: `${platform} 미지원` };
   }

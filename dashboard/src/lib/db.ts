@@ -4,15 +4,24 @@ import postgres from "postgres";
 // 연결정보는 env DATABASE_URL. 하드코딩 금지(CLAUDE.md 서비스 중립).
 // 예: postgres://user@localhost:5432/openclaw_osmu
 
-let _sql: ReturnType<typeof postgres> | null = null;
+// P4: tier별 Supabase 프로젝트 라우팅.
+//   team    → DATABASE_URL (팀 공유 프로젝트, RLS로 테넌트 행 격리)
+//   private → PRIVATE_DATABASE_URL (19금 물리 분리 프로젝트, sj_wsl에만 존재)
+// 19금 격리 핵심: 팀 WSL엔 PRIVATE_DATABASE_URL이 없어 db('private')가 throw → 조회 불가.
+export type Tier = "team" | "private";
 
-export function db() {
-  if (!_sql) {
-    const url = process.env.DATABASE_URL;
-    if (!url) throw new Error("DATABASE_URL 미설정 — Postgres 연결 불가");
-    _sql = postgres(url, { max: 5, idle_timeout: 20 });
+// tier별 연결 인스턴스 캐시(요청마다 새 풀 생성 방지).
+const _sqls = new Map<Tier, ReturnType<typeof postgres>>();
+
+export function db(tier: Tier = "team") {
+  let sql = _sqls.get(tier);
+  if (!sql) {
+    const url = tier === "private" ? process.env.PRIVATE_DATABASE_URL : process.env.DATABASE_URL;
+    if (!url) throw new Error(`${tier} DATABASE_URL 미설정 — Postgres 연결 불가`);
+    sql = postgres(url, { max: 5, idle_timeout: 20 });
+    _sqls.set(tier, sql);
   }
-  return _sql;
+  return sql;
 }
 
 // L1: RLS 방어심층. 매 요청 트랜잭션에서
@@ -21,8 +30,13 @@ export function db() {
 //      RLS를 우회하지 못하도록 비우회 role로 강등. txn 종료 시 자동 복원(SET LOCAL).
 // 모든 테넌트-스코프 쿼리는 db() 직접 대신 이 래퍼 경유. (인증모델 a: tenantId=활성 워크스페이스)
 // rls.sql(role 생성·GRANT·정책) 적용된 DB에서만 동작 — 미적용 DB면 SET ROLE에서 throw.
-export async function withTenant<T>(tenantId: string, fn: (tx: ReturnType<typeof db>) => Promise<T>): Promise<T> {
-  const sql = db();
+// tier 인자(기본 'team')로 tier별 프로젝트 라우팅. 기존 2-인자 호출부는 그대로 team 동작.
+export async function withTenant<T>(
+  tenantId: string,
+  fn: (tx: ReturnType<typeof db>) => Promise<T>,
+  tier: Tier = "team",
+): Promise<T> {
+  const sql = db(tier);
   return sql.begin(async (tx) => {
     await tx`SELECT set_config('app.tenant_id', ${tenantId}, true)`;
     await tx`SET LOCAL ROLE osmu_service`;

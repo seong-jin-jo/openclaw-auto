@@ -6,11 +6,28 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { dataPath } from "@/lib/file-io";
+import { MEDIA_ROOT, tenantMediaDir, assetUrl } from "@/lib/storage";
 
 const execFileP = promisify(execFile);
 export const HF_BIN = process.env.HIGGSFIELD_BIN || "higgsfield";
-export const STUDIO_DIR = dataPath("studio");
+// 미디어 루트(data/studio) — 테넌트별 격리는 studioDir(tenantId)로. STUDIO_DIR 자체는 루트(genlog 등 비격리 메타용).
+export const STUDIO_DIR = MEDIA_ROOT;
+
+// 테넌트별 스튜디오 디렉토리(data/studio/{tenantId}/). 생성물은 이 경로에 저장해 테넌트 격리.
+export function studioDir(tenantId: string): string {
+  return tenantMediaDir(tenantId);
+}
+
+// 미디어 파일명 — 타임스탬프(Date.now) 대신 crypto.randomUUID로 열거 불가능하게.
+export function mediaFilename(ext: string): string {
+  const clean = String(ext || "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase() || "bin";
+  return `${crypto.randomUUID()}.${clean}`;
+}
+
+// asset 라우트용 테넌트 에셋 URL 재노출(호출부 편의).
+export { assetUrl };
 
 // CLI는 진행로그를 stderr로, 결과 JSON을 stdout으로 — 단 섞일 수 있어 JSON 블록만 추출.
 export function extractJson(stdout: string): unknown {

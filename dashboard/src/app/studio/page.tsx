@@ -8,6 +8,7 @@ import { PlatformPreview, type PreviewPlatform } from "@/components/studio/Platf
 import { useUIStore } from "@/store/ui-store";
 import { BrandSetupWizard } from "@/components/shared/BrandSetupWizard";
 import { ChannelConnect } from "@/components/studio/ChannelConnect";
+import { SchedulePanel } from "@/components/studio/SchedulePanel";
 
 interface TextVariants {
   threads?: string; x?: string;
@@ -42,6 +43,8 @@ export default function StudioPage() {
     activeWorkspace ? `/api/studio/brand-setup?tenant_id=${activeWorkspace.id}` : null, fetcher);
   const [showWizard, setShowWizard] = useState(false);
   const [showChannels, setShowChannels] = useState(false);
+  const [showSchedule, setShowSchedule] = useState(false); // P6 예약 발행 패널 토글
+  const [autoGen, setAutoGen] = useState(false);           // P8 AI 자동초안 진행중
 
   const [idea, setIdea] = useState("");
   const [guide, setGuide] = useState("");
@@ -121,6 +124,23 @@ export default function StudioPage() {
       showToast("OSMU 생성 완료", "success");
     } finally { setBusy(null); }
   }
+  // P8: AI 자동초안 — 브랜드 가이드 + 글감을 소스로 후보 초안 N개를 생성(status=draft).
+  // 게이트웨이 크론(generate-drafts)의 수동 대응. /api/sourcing 재사용(longform→후보 청킹).
+  async function autoGenerate() {
+    if (!activeWorkspace) { showToast("워크스페이스를 선택하세요", "error"); return; }
+    const seed = [guide, idea].filter(Boolean).join("\n\n").trim();
+    if (seed.length < 50) { showToast("브랜드 가이드 설정 또는 글감을 더 입력하세요 (최소 50자)", "error"); return; }
+    setAutoGen(true);
+    try {
+      const r = await apiPost<{ ok?: boolean; savedDrafts?: number; error?: string }>("/api/sourcing", {
+        tenant_id: activeWorkspace.id, longform_text: seed, count: 5,
+      });
+      if (r?.ok) { showToast(`AI 자동초안 ${r.savedDrafts ?? 0}개 생성됨 — 발행 이력에서 확인`, "success"); mutateHist(); }
+      else showToast(r?.error || "자동초안 생성 실패", "error");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "자동초안 생성 실패", "error");
+    } finally { setAutoGen(false); }
+  }
   async function save(status: "draft" | "published" | "stopped" = "draft") {
     const r = await apiPost<{ id?: string }>("/api/studio/drafts", { tenant_id: activeWorkspace?.id, id: draftId, idea, text, img, vid, includes, status, publishedAt: status === "published" ? new Date().toISOString() : undefined });
     if (r?.id) setDraftId(r.id); mutateHist(); return r?.id;
@@ -192,8 +212,10 @@ export default function StudioPage() {
         {activeWorkspace && <button onClick={() => setShowWizard(true)} className="text-xs px-2.5 py-2 rounded border border-purple-500/40 text-purple-300 hover:bg-purple-600/10" title="브랜드 톤 설정">{brandData?.guide?.prompt_guide ? "🎨 브랜드 ✓" : "🎨 브랜드 설정"}</button>}
         {activeWorkspace && <button onClick={() => setShowChannels(true)} className="text-xs px-2.5 py-2 rounded border border-purple-500/40 text-purple-300 hover:bg-purple-600/10" title="채널 토큰 연결">🔗 채널</button>}
         <button onClick={runOSMU} disabled={!!busy} className="px-4 py-2 text-sm bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg shadow-lg shadow-purple-900/30 disabled:opacity-50">{busy || "OSMU 생성"}</button>
+        {activeWorkspace && <button onClick={autoGenerate} disabled={autoGen} className="px-3 py-2 text-sm rounded border border-purple-500/40 text-purple-300 hover:bg-purple-600/10 disabled:opacity-50" title="브랜드 가이드 기반 자동초안 생성">{autoGen ? "생성 중…" : "✨ AI 자동초안"}</button>}
         {text && <button onClick={() => save("draft")} className="px-3 py-2 text-sm bg-gray-700 text-gray-100 rounded">💾 Save</button>}
         {text && <button onClick={publish} disabled={pub.running} className="px-3 py-2 text-sm bg-green-600 text-white rounded disabled:opacity-50">🚀 Publish ({ALL.filter((p) => includes[p]).length})</button>}
+        {text && activeWorkspace && <button onClick={() => setShowSchedule((v) => !v)} className={`px-3 py-2 text-sm rounded border ${showSchedule ? "border-purple-500 text-purple-200 bg-purple-600/15" : "border-purple-500/40 text-purple-300 hover:bg-purple-600/10"}`} title="예약 발행">🗓️ 예약</button>}
         <div className="relative">
           <button onClick={() => setShowTx((v) => !v)} className="text-xs text-gray-500 hover:text-gray-300" title="사용 이력 보기">
             크레딧 <b className={acct?.needsLogin ? "text-red-400" : "text-green-400"}>{acct?.needsLogin ? "로그인필요" : acct?.credits?.toFixed(2) ?? "..."}</b> ▾
@@ -230,6 +252,15 @@ export default function StudioPage() {
             })}</div>
           </div>
         </div>
+      )}
+
+      {/* 예약 발행 패널 (P6) — 토글 시 노출. 현 작업물의 선택 플랫폼 + 저장된 draftId 사용. */}
+      {showSchedule && activeWorkspace && (
+        <SchedulePanel
+          tenantId={activeWorkspace.id}
+          draftId={draftId}
+          defaultPlatforms={ALL.filter((p) => includes[p])}
+        />
       )}
 
       <div className="flex gap-6">

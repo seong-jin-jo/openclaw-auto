@@ -104,6 +104,28 @@
         "mode": "none",
         "channel": "last"
       }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000006",
+      "name": "osmu-generate-drafts",
+      "description": "P8 자동초안: brand_guides(톤)+viral_signals → generate_drafts 도구로 Supabase drafts 적재 (6시간마다). 멀티테넌트 staggered — 테넌트별 config 디렉토리에서 startOffsetMs를 다르게 두어 동시 폭주 방지.",
+      "enabled": false,
+      "schedule": {
+        "kind": "every",
+        "everyMs": 21600000,
+        "startOffsetMs": 0
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "generate_drafts 도구를 action=generate로 호출해 브랜드 가이드와 최근 시그널 기반 자동초안 5개를 생성하고 drafts(status=draft)에 적재하라. 생성 결과(saved/errors)를 요약 보고하라. 이미지/영상 생성은 호출하지 말 것(Higgsfield 크레딧 절약 — 텍스트 초안만).",
+        "model": "anthropic/claude-haiku-4-5"
+      },
+      "delivery": {
+        "mode": "none",
+        "channel": "last"
+      }
     }
   ]
 }

@@ -1,0 +1,15 @@
+{
+  "name": "@openclaw/generate-drafts",
+  "version": "2026.6.11",
+  "private": true,
+  "description": "OpenClaw 자동초안 생성 플러그인 — brand_guides + viral_signals → claude -p → drafts(status=draft)",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "dependencies": {
+    "postgres": "^3.4.4"
+  }
+}

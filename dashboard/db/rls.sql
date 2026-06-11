@@ -24,7 +24,7 @@ END $$;
 DO $$
 DECLARE t text;
 BEGIN
-  FOREACH t IN ARRAY ARRAY['brand_guides','integrations','drafts','published_posts'] LOOP
+  FOREACH t IN ARRAY ARRAY['brand_guides','integrations','drafts','published_posts','schedules','growth_metrics','viral_signals'] LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', t);
     EXECUTE format('DROP POLICY IF EXISTS tenant_iso ON %I', t);

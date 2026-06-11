@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS tenants (
   slug        TEXT NOT NULL UNIQUE,            -- URL/식별용 (예: tenant1)
   name        TEXT NOT NULL,                   -- 표시명 (예: Tenant)
   status      TEXT NOT NULL DEFAULT 'active',  -- active | paused
+  tier        TEXT NOT NULL DEFAULT 'team',    -- team | private — tier별 Supabase 프로젝트 라우팅(team=공유, private=19금 물리분리)
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -68,4 +69,42 @@ CREATE TABLE IF NOT EXISTS published_posts (
   metrics_at    TIMESTAMPTZ
 );
 CREATE INDEX IF NOT EXISTS idx_pubposts_tenant ON published_posts(tenant_id, published_at DESC);
+
+-- P6 예약: 초안을 미래 시각에 멀티채널 발행 예약. 스케줄러가 scheduled_at 도래 시 발행.
+CREATE TABLE IF NOT EXISTS schedules (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id     UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  draft_id      UUID,                          -- 원 초안(선택)
+  platforms     TEXT[],                        -- 발행 대상 채널 목록
+  scheduled_at  TIMESTAMPTZ NOT NULL,          -- 예약 발행 시각
+  status        TEXT NOT NULL DEFAULT 'scheduled', -- scheduled | published | canceled
+  payload       JSONB,                         -- 발행 페이로드 스냅샷
+  created_at    TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_schedules_tenant ON schedules(tenant_id, scheduled_at);
+
+-- P7 팔로워추적: 채널별 팔로워/팔로잉 시계열 롤업. growth 추세 시각화.
+CREATE TABLE IF NOT EXISTS growth_metrics (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id     UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  channel       TEXT NOT NULL,                 -- threads | x | instagram | ...
+  followers     INTEGER,
+  following     INTEGER,
+  recorded_at   TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at    TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_growth_metrics_tenant ON growth_metrics(tenant_id, recorded_at DESC);
+
+-- P9 트렌드/터진글: 외부 인기글·트렌드 시그널 수집. score로 랭킹, content 생성 소스로 활용.
+CREATE TABLE IF NOT EXISTS viral_signals (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id     UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  source        TEXT,                          -- 수집 출처 (search | trending | ...)
+  external_ref  TEXT,                          -- 외부 글 식별자/URL
+  content       TEXT,                          -- 본문/요약
+  score         NUMERIC,                       -- 화제성 점수
+  captured_at   TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at    TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_viral_signals_tenant ON viral_signals(tenant_id, captured_at DESC);
 

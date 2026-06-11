@@ -1,0 +1,15 @@
+{
+  "name": "@openclaw/sync-insights",
+  "version": "2026.6.11",
+  "private": true,
+  "description": "OpenClaw 로컬 게이트웨이 insights → Supabase 단방향 upsert(published_posts/growth_metrics) 플러그인",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "dependencies": {
+    "postgres": "^3.4.4"
+  }
+}

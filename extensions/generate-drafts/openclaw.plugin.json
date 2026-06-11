@@ -1,0 +1,35 @@
+{
+  "id": "generate-drafts",
+  "name": "Generate Drafts",
+  "description": "brand_guides(톤) + viral_signals(최근 시그널)를 소비해 claude -p로 자동초안 N개 생성 → drafts(status=draft) 적재. 게이트웨이 크론(generate-drafts)이 주기 호출. 기본 Haiku.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "databaseUrl": {
+        "type": "string",
+        "description": "Supabase/Postgres 연결 문자열. 미설정 시 env DATABASE_URL 사용. 하드코딩 금지(서비스 중립)."
+      },
+      "tenantId": {
+        "type": "string",
+        "description": "생성 대상 테넌트 UUID. 미설정 시 env OSMU_TENANT_ID 사용."
+      },
+      "claudeBin": {
+        "type": "string",
+        "description": "claude CLI 경로. 미설정 시 env CLAUDE_BIN 또는 'claude'."
+      },
+      "model": {
+        "type": "string",
+        "description": "claude --model. 미설정 시 env GENERATE_DRAFTS_MODEL 또는 'claude-haiku-4-5'(생성 배치=저가)."
+      },
+      "count": {
+        "type": "number",
+        "description": "1회 생성 초안 수(기본 5)."
+      },
+      "signalLimit": {
+        "type": "number",
+        "description": "영감으로 참조할 최근 viral_signals 수(기본 8)."
+      }
+    }
+  }
+}

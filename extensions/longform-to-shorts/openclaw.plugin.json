@@ -1,0 +1,39 @@
+{
+  "id": "longform-to-shorts",
+  "name": "Longform to Shorts",
+  "description": "Chunk a long article/transcript/URL with claude -p and extract N short-form candidates (hook + body). Saves to shorts-candidates.json.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "claudeBin": {
+        "type": "string",
+        "description": "Path to the claude CLI binary. Defaults to env CLAUDE_BIN or 'claude'."
+      },
+      "model": {
+        "type": "string",
+        "description": "Model id passed to claude -p (--model). Optional; uses CLI default if unset."
+      },
+      "candidatesPath": {
+        "type": "string",
+        "description": "Path to shorts-candidates.json output. Defaults to data/shorts-candidates.json."
+      },
+      "chunkChars": {
+        "type": "number",
+        "description": "Max characters per chunk fed to claude -p. Default: 6000."
+      },
+      "maxCandidates": {
+        "type": "number",
+        "description": "Max short-form candidates to keep across all chunks. Default: 8."
+      },
+      "perChunk": {
+        "type": "number",
+        "description": "How many candidates to extract per chunk. Default: 3."
+      },
+      "timeoutMs": {
+        "type": "number",
+        "description": "claude -p timeout per chunk in ms. Default: 120000."
+      }
+    }
+  }
+}
