@@ -7,6 +7,7 @@ import { useToast } from "@/components/layout/Toast";
 import { PlatformPreview, type PreviewPlatform } from "@/components/studio/PlatformPreview";
 import { useUIStore } from "@/store/ui-store";
 import { BrandSetupWizard } from "@/components/shared/BrandSetupWizard";
+import { ChannelConnect } from "@/components/studio/ChannelConnect";
 
 interface TextVariants {
   threads?: string; x?: string;
@@ -40,6 +41,7 @@ export default function StudioPage() {
   const { data: brandData, mutate: mutateBrand } = useSWR<{ guide: { prompt_guide?: string } | null }>(
     activeWorkspace ? `/api/studio/brand-setup?tenant_id=${activeWorkspace.id}` : null, fetcher);
   const [showWizard, setShowWizard] = useState(false);
+  const [showChannels, setShowChannels] = useState(false);
 
   const [idea, setIdea] = useState("");
   const [guide, setGuide] = useState("");
@@ -123,26 +125,44 @@ export default function StudioPage() {
     const r = await apiPost<{ id?: string }>("/api/studio/drafts", { tenant_id: activeWorkspace?.id, id: draftId, idea, text, img, vid, includes, status, publishedAt: status === "published" ? new Date().toISOString() : undefined });
     if (r?.id) setDraftId(r.id); mutateHist(); return r?.id;
   }
+  // 플랫폼별 발행 텍스트 추출
+  function platformText(p: PreviewPlatform): string {
+    if (!text) return "";
+    if (p === "threads" || p === "facebook") return text.threads || "";
+    if (p === "x") return text.x || "";
+    if (p === "instagram") return text.instagram?.caption || "";
+    return [text.shorts?.hook, text.shorts?.body, text.shorts?.cta].filter(Boolean).join("\n") || text.threads || "";
+  }
+
   async function publish() {
     if (!text) return;
-    await save("draft");
+    if (!activeWorkspace) { showToast("워크스페이스를 선택하세요", "error"); return; }
+    const did = await save("draft");
     const targets = ALL.filter((p) => includes[p]);
     if (!targets.length) { showToast("발행할 플랫폼을 선택하세요", "error"); return; }
     cancelRef.current = false;
     const status: Record<string, PubStatus> = {}; targets.forEach((p) => (status[p] = "wait"));
     const urls: Record<string, string> = {};
+    const errs: string[] = [];
     setPub({ running: true, status: { ...status }, urls: {} });
     for (const p of targets) {
       if (cancelRef.current) break;
       status[p] = "doing"; setPub({ running: true, status: { ...status }, urls: { ...urls } });
-      await new Promise((r) => setTimeout(r, 700));
-      // ⚠️ 실 발행 연동 시 여기서 반환되는 게시물 permalink를 urls[p]에 저장. 현재는 플랫폼 위치 URL(시뮬).
-      urls[p] = POST_URL[p] || "#";
+      try {
+        // 실 발행: /api/publish (테넌트 채널 토큰). 토큰 없으면 graceful 에러.
+        const r = await apiPost<{ ok?: boolean; permalink?: string; error?: string }>("/api/publish", {
+          tenant_id: activeWorkspace.id, platform: p, text: platformText(p), image_url: img?.url, draft_id: did,
+        });
+        if (r?.ok) urls[p] = r.permalink || POST_URL[p] || "#";
+        else errs.push(`${LABEL[p]}: ${r?.error || "실패"}`);
+      } catch (e) { errs.push(`${LABEL[p]}: ${e instanceof Error ? e.message : "오류"}`); }
       status[p] = "done"; setPub({ running: true, status: { ...status }, urls: { ...urls } });
     }
     const stopped = cancelRef.current; setPub({ running: false, status: { ...status }, urls: { ...urls } });
     await save(stopped ? "stopped" : "published");
-    showToast(stopped ? "발행 중지됨" : "발행 완료 (로컬 시뮬)", stopped ? "error" : "success");
+    if (stopped) showToast("발행 중지됨", "error");
+    else if (errs.length) showToast(`발행 결과 — ${errs.join(" / ")}`.slice(0, 180), "error");
+    else showToast("발행 완료 ✓", "success");
   }
   function loadDraft(d: Record<string, unknown>) {
     setIdea((d.idea as string) || ""); setText((d.text as TextVariants) || null);
@@ -162,6 +182,7 @@ export default function StudioPage() {
           onDismiss={() => setShowWizard(false)}
         />
       )}
+      {showChannels && activeWorkspace && <ChannelConnect workspace={activeWorkspace} onClose={() => setShowChannels(false)} />}
       {/* 상단 바 */}
       <div className="flex items-center gap-3 flex-wrap mb-4">
         <b className="text-lg text-white">OSMU Studio</b>
@@ -169,6 +190,7 @@ export default function StudioPage() {
         <select value={videoModel} onChange={(e) => setVideoModel(e.target.value)} className="bg-gray-800 text-gray-300 text-xs p-2 rounded border border-gray-700"><option value="minimax_hailuo">Minimax 6cr</option><option value="veo3_1_lite">Veo3.1 8cr</option><option value="kling3_0">Kling3 10cr</option><option value="marketing_studio_video">MS UGC광고 ~40cr</option></select>
         <label className="flex items-center gap-1.5 text-xs text-gray-400"><input type="checkbox" checked={withVideo} onChange={(e) => setWithVideo(e.target.checked)} />영상</label>
         {activeWorkspace && <button onClick={() => setShowWizard(true)} className="text-xs px-2.5 py-2 rounded border border-purple-500/40 text-purple-300 hover:bg-purple-600/10" title="브랜드 톤 설정">{brandData?.guide?.prompt_guide ? "🎨 브랜드 ✓" : "🎨 브랜드 설정"}</button>}
+        {activeWorkspace && <button onClick={() => setShowChannels(true)} className="text-xs px-2.5 py-2 rounded border border-purple-500/40 text-purple-300 hover:bg-purple-600/10" title="채널 토큰 연결">🔗 채널</button>}
         <button onClick={runOSMU} disabled={!!busy} className="px-4 py-2 text-sm bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg shadow-lg shadow-purple-900/30 disabled:opacity-50">{busy || "OSMU 생성"}</button>
         {text && <button onClick={() => save("draft")} className="px-3 py-2 text-sm bg-gray-700 text-gray-100 rounded">💾 Save</button>}
         {text && <button onClick={publish} disabled={pub.running} className="px-3 py-2 text-sm bg-green-600 text-white rounded disabled:opacity-50">🚀 Publish ({ALL.filter((p) => includes[p]).length})</button>}
@@ -291,7 +313,7 @@ export default function StudioPage() {
         </>
       )}
 
-      <div className="mt-6 text-[11px] text-gray-600">⚠️ 실제 발행은 채널 연결+게이트웨이 필요(현재 발행 진행 UX는 로컬 시뮬). 🛣️ 시나리오2 트렌드 대기 · 시나리오3 롱폼분할 조사중</div>
+      <div className="mt-6 text-[11px] text-gray-600">⚠️ 실 발행: 채널 토큰 연결 시 실제 게시(Threads/Instagram 직접 / X·영상은 게이트웨이 P5). 성과는 발행 후 수집. 🛣️ 시나리오2 트렌드 대기 · 시나리오3 롱폼분할 조사중</div>
     </div>
   );
 }
