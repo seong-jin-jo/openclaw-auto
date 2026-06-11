@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { withTenant } from "@/lib/db";
 import { getChannelCred, publishThreads, publishInstagram, type PublishResult } from "@/lib/publish";
 
 // POST /api/publish — 한 플랫폼 실발행 { tenant_id, platform, text, image_url?, draft_id? }
@@ -28,12 +28,11 @@ export async function POST(request: Request) {
 
   // published_posts 기록(성공/실패 모두)
   try {
-    const sql = db();
-    await sql`
+    await withTenant(tenant_id, (sql) => sql`
       INSERT INTO published_posts (tenant_id, draft_id, platform, external_id, permalink, text, status, error)
       VALUES (${tenant_id}, ${draft_id ?? null}, ${platform}, ${result.externalId ?? null},
               ${result.permalink ?? null}, ${text ?? null},
-              ${result.ok ? "published" : "failed"}, ${result.error ?? null})`;
+              ${result.ok ? "published" : "failed"}, ${result.error ?? null})`);
   } catch (e) {
     // 기록 실패는 발행 결과에 영향 X (로그만)
     return Response.json({ ...result, recordError: String(e) });

@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { withTenant } from "@/lib/db";
 
 // 대시보드 직접 발행(게이트웨이 docker 불필요). 토큰=integrations 테이블(테넌트별) → env 폴백(dev).
 // 게이트웨이 extensions/{ch}-publish 로직 포팅. 실발행은 실 토큰 필요.
@@ -17,14 +17,13 @@ interface ChannelCred { token: string; userId?: string }
 
 // 테넌트 채널 자격증명 resolve: integrations(kind=channel,label=platform) → env 폴백
 export async function getChannelCred(tenantId: string, platform: string): Promise<ChannelCred | null> {
-  const sql = db();
   const key = process.env.OSMU_SECRET_KEY;
-  // L2: 암호화된 secret_enc 복호화(armor→pgp_sym_decrypt). 토큰은 메모리에만.
-  const [row] = await sql<{ token: string | null; meta: { userId?: string } | null }[]>`
+  // L1+L2: withTenant 트랜잭션(RLS) 안에서 암호화 secret 복호화. 토큰은 메모리에만.
+  const [row] = await withTenant(tenantId, (sql) => sql<{ token: string | null; meta: { userId?: string } | null }[]>`
     SELECT CASE WHEN secret_enc <> '' AND ${key ?? ""} <> ''
              THEN pgp_sym_decrypt(dearmor(secret_enc), ${key ?? ""}) ELSE NULL END AS token, meta
     FROM integrations
-    WHERE tenant_id = ${tenantId} AND kind = 'channel' AND label = ${platform}`;
+    WHERE tenant_id = ${tenantId} AND kind = 'channel' AND label = ${platform}`);
   if (row?.token) return { token: row.token, userId: row.meta?.userId };
   // dev 폴백(단일 env — 중앙 대시보드엔 테넌트별 env 없음)
   if (platform === "threads" && process.env.THREADS_ACCESS_TOKEN) {

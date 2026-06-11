@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { withTenant } from "@/lib/db";
 
 // Studio 초안/발행 이력 — Supabase drafts 테이블(테넌트별). payload jsonb에 본문 보관.
 interface DraftRow {
@@ -16,11 +16,10 @@ export async function GET(request: Request) {
   const tenantId = new URL(request.url).searchParams.get("tenant_id");
   if (!tenantId) return Response.json({ drafts: [] });
   try {
-    const sql = db();
-    const rows = await sql<DraftRow[]>`
+    const rows = await withTenant(tenantId, (sql) => sql<DraftRow[]>`
       SELECT id, tenant_id, idea, payload, status, created_at, updated_at
       FROM drafts WHERE tenant_id = ${tenantId}
-      ORDER BY updated_at DESC LIMIT 50`;
+      ORDER BY updated_at DESC LIMIT 50`);
     // 기존 Studio 형식과 호환되게 평탄화
     const drafts = rows.map((r) => ({
       id: r.id,
@@ -50,17 +49,19 @@ export async function POST(request: Request) {
   const status = body.status || "draft";
   const idea = body.idea || "";
   try {
-    const sql = db();
-    if (body.id) {
+    const id = await withTenant(tenantId, async (sql) => {
+      if (body.id) {
+        const [row] = await sql<{ id: string }[]>`
+          UPDATE drafts SET idea = ${idea}, payload = ${sql.json(payload)}, status = ${status}, updated_at = now()
+          WHERE id = ${body.id} AND tenant_id = ${tenantId} RETURNING id`;
+        if (row) return row.id;
+      }
       const [row] = await sql<{ id: string }[]>`
-        UPDATE drafts SET idea = ${idea}, payload = ${sql.json(payload)}, status = ${status}, updated_at = now()
-        WHERE id = ${body.id} AND tenant_id = ${tenantId} RETURNING id`;
-      if (row) return Response.json({ ok: true, id: row.id });
-    }
-    const [row] = await sql<{ id: string }[]>`
-      INSERT INTO drafts (tenant_id, idea, payload, status)
-      VALUES (${tenantId}, ${idea}, ${sql.json(payload)}, ${status}) RETURNING id`;
-    return Response.json({ ok: true, id: row.id });
+        INSERT INTO drafts (tenant_id, idea, payload, status)
+        VALUES (${tenantId}, ${idea}, ${sql.json(payload)}, ${status}) RETURNING id`;
+      return row.id;
+    });
+    return Response.json({ ok: true, id });
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 });
   }

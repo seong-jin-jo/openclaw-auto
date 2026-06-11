@@ -1,6 +1,6 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
-import { db } from "@/lib/db";
+import { withTenant } from "@/lib/db";
 
 const execFileP = promisify(execFile);
 const CLAUDE_BIN = process.env.CLAUDE_BIN || "claude";
@@ -10,10 +10,9 @@ export async function GET(request: Request) {
   const tenantId = new URL(request.url).searchParams.get("tenant_id");
   if (!tenantId) return Response.json({ error: "tenant_id required" }, { status: 400 });
   try {
-    const sql = db();
-    const [row] = await sql`
+    const [row] = await withTenant(tenantId, (sql) => sql`
       SELECT prompt_guide, visual_rules, source, synced_at
-      FROM brand_guides WHERE tenant_id = ${tenantId}`;
+      FROM brand_guides WHERE tenant_id = ${tenantId}`);
     return Response.json({ guide: row || null });
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 });
@@ -47,15 +46,14 @@ export async function POST(request: Request) {
     const m = stdout.match(/\{[\s\S]*\}/);
     if (!m) return Response.json({ error: "JSON 추출 실패", raw: stdout.slice(-400) }, { status: 502 });
     const parsed = JSON.parse(m[0]) as { prompt_guide?: string; visual_rules?: Record<string, unknown> };
-    const sql = db();
-    await sql`
+    await withTenant(tenant_id, (sql) => sql`
       INSERT INTO brand_guides (tenant_id, prompt_guide, visual_rules, source, synced_at)
       VALUES (${tenant_id}, ${parsed.prompt_guide || ""}, ${sql.json((parsed.visual_rules ?? {}) as Parameters<typeof sql.json>[0])}, 'wizard', now())
       ON CONFLICT (tenant_id) DO UPDATE
         SET prompt_guide = EXCLUDED.prompt_guide,
             visual_rules = EXCLUDED.visual_rules,
             source = 'wizard',
-            synced_at = now()`;
+            synced_at = now()`);
     return Response.json({ ok: true, guide: { prompt_guide: parsed.prompt_guide, visual_rules: parsed.visual_rules } });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
