@@ -14,6 +14,12 @@ GRANT USAGE ON SCHEMA public TO osmu_service;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO osmu_service;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO osmu_service;
 
+-- 앱 접속 role(Supabase=postgres, 로컬=현재 유저)이 SET LOCAL ROLE osmu_service 할 수 있게 멤버십 부여.
+-- ⚠️ Supabase postgres는 rolbypassrls=true라 그냥 두면 RLS 우회 → withTenant가 osmu_service로 전환해야 강제됨.
+DO $$ BEGIN
+  EXECUTE format('GRANT osmu_service TO %I', current_user);
+END $$;
+
 -- 데이터 테이블 RLS FORCE + tenant_id 정책 (tenants는 운영자 목록조회라 제외 — P4서 매핑정교화)
 DO $$
 DECLARE t text;
