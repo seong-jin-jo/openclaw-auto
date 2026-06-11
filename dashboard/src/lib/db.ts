@@ -15,6 +15,16 @@ export function db() {
   return _sql;
 }
 
+// L1: RLS 방어심층. 매 요청 트랜잭션에서 SET LOCAL app.tenant_id → RLS 정책이 그 테넌트 행만 허용.
+// 모든 테넌트-스코프 쿼리는 db() 직접 대신 이 래퍼 경유. (인증모델 a: tenantId=활성 워크스페이스)
+export async function withTenant<T>(tenantId: string, fn: (tx: ReturnType<typeof db>) => Promise<T>): Promise<T> {
+  const sql = db();
+  return sql.begin(async (tx) => {
+    await tx`SELECT set_config('app.tenant_id', ${tenantId}, true)`;
+    return fn(tx as unknown as ReturnType<typeof db>);
+  }) as Promise<T>;
+}
+
 export type Tenant = {
   id: string;
   slug: string;
