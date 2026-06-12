@@ -7,7 +7,6 @@ import { useToast } from "@/components/layout/Toast";
 import { PlatformPreview, type PreviewPlatform } from "@/components/studio/PlatformPreview";
 import { useUIStore } from "@/store/ui-store";
 import { BrandSetupWizard } from "@/components/shared/BrandSetupWizard";
-import { ChannelConnect } from "@/components/studio/ChannelConnect";
 import { RepoConnect } from "@/components/studio/RepoConnect";
 import { SchedulePanel } from "@/components/studio/SchedulePanel";
 
@@ -43,7 +42,6 @@ export default function StudioPage() {
   const { data: brandData, mutate: mutateBrand } = useSWR<{ guide: { prompt_guide?: string } | null }>(
     activeWorkspace ? `/api/studio/brand-setup?tenant_id=${activeWorkspace.id}` : null, fetcher);
   const [showWizard, setShowWizard] = useState(false);
-  const [showChannels, setShowChannels] = useState(false);
   const [showRepo, setShowRepo] = useState(false); // 레포 위키 연동 모달
   const [showSchedule, setShowSchedule] = useState(false); // P6 예약 발행 패널 토글
   const [autoGen, setAutoGen] = useState(false);           // P8 AI 자동초안 진행중
@@ -204,7 +202,6 @@ export default function StudioPage() {
           onDismiss={() => setShowWizard(false)}
         />
       )}
-      {showChannels && activeWorkspace && <ChannelConnect workspace={activeWorkspace} onClose={() => setShowChannels(false)} />}
       {showRepo && activeWorkspace && <RepoConnect workspace={activeWorkspace} onSynced={() => { mutateBrand(); showToast("브랜드 가이드 갱신됨"); }} onClose={() => setShowRepo(false)} />}
       {/* 상단 바 */}
       <div className="flex items-center gap-3 flex-wrap mb-4">
@@ -213,7 +210,6 @@ export default function StudioPage() {
         <select value={videoModel} onChange={(e) => setVideoModel(e.target.value)} className="bg-gray-800 text-gray-300 text-xs p-2 rounded border border-gray-700"><option value="minimax_hailuo">Minimax 6cr</option><option value="veo3_1_lite">Veo3.1 8cr</option><option value="kling3_0">Kling3 10cr</option><option value="marketing_studio_video">MS UGC광고 ~40cr</option></select>
         <label className="flex items-center gap-1.5 text-xs text-gray-400"><input type="checkbox" checked={withVideo} onChange={(e) => setWithVideo(e.target.checked)} />영상</label>
         {activeWorkspace && <button onClick={() => setShowWizard(true)} className="text-xs px-2.5 py-2 rounded border border-purple-500/40 text-purple-300 hover:bg-purple-600/10" title="브랜드 톤 설정">{brandData?.guide?.prompt_guide ? "🎨 브랜드 ✓" : "🎨 브랜드 설정"}</button>}
-        {activeWorkspace && <button onClick={() => setShowChannels(true)} className="text-xs px-2.5 py-2 rounded border border-purple-500/40 text-purple-300 hover:bg-purple-600/10" title="채널 토큰 연결">🔗 채널</button>}
         {activeWorkspace && <button onClick={() => setShowRepo(true)} className="text-xs px-2.5 py-2 rounded border border-purple-500/40 text-purple-300 hover:bg-purple-600/10" title="GitHub 레포 위키 연동 → 브랜드 가이드">📚 위키</button>}
         <button onClick={runOSMU} disabled={!!busy} className="px-4 py-2 text-sm bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg shadow-lg shadow-purple-900/30 disabled:opacity-50">{busy || "OSMU 생성"}</button>
         {activeWorkspace && <button onClick={autoGenerate} disabled={autoGen} className="px-3 py-2 text-sm rounded border border-purple-500/40 text-purple-300 hover:bg-purple-600/10 disabled:opacity-50" title="브랜드 가이드 기반 자동초안 생성">{autoGen ? "생성 중…" : "✨ AI 자동초안"}</button>}

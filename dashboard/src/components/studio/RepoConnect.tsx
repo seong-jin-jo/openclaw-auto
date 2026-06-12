@@ -62,12 +62,12 @@ export function RepoConnect({ workspace, onSynced, onClose }: { workspace: Works
         <div className="space-y-3">
           <div>
             <label className="text-[11px] text-gray-500">레포 (owner/name)</label>
-            <input value={repo} onChange={(e) => setRepo(e.target.value)} placeholder="seong-jin-jo/postAGI"
+            <input value={repo} onChange={(e) => setRepo(e.target.value)} placeholder="owner/repo"
               className="w-full mt-1 px-3 py-2 text-sm bg-gray-900 border border-gray-800 rounded-lg text-gray-200 focus:border-purple-500 outline-none" />
           </div>
           <div>
             <label className="text-[11px] text-gray-500">파일 경로 (여러 개는 쉼표로)</label>
-            <input value={path} onChange={(e) => setPath(e.target.value)} placeholder="wiki/1. Tenant/마케팅팀/마케팅.md, wiki/1. Tenant/기획팀/기획.md"
+            <input value={path} onChange={(e) => setPath(e.target.value)} placeholder="docs/brand.md, docs/marketing.md"
               className="w-full mt-1 px-3 py-2 text-sm bg-gray-900 border border-gray-800 rounded-lg text-gray-200 focus:border-purple-500 outline-none" />
           </div>
           <div>
