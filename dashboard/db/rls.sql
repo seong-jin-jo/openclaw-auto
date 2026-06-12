@@ -14,6 +14,16 @@ GRANT USAGE ON SCHEMA public TO osmu_service;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO osmu_service;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO osmu_service;
 
+-- pgcrypto(armor/dearmor/pgp_sym_*)는 Supabase에서 'extensions' 스키마에 산다.
+-- osmu_service에 USAGE/EXECUTE 없으면 SET ROLE 후 복호화가 'function does not exist'로 throw.
+-- (로컬 brew postgres는 pgcrypto가 public이라 extensions 스키마 없음 → 조건부)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'extensions') THEN
+    EXECUTE 'GRANT USAGE ON SCHEMA extensions TO osmu_service';
+    EXECUTE 'GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA extensions TO osmu_service';
+  END IF;
+END $$;
+
 -- 앱 접속 role(Supabase=postgres, 로컬=현재 유저)이 SET LOCAL ROLE osmu_service 할 수 있게 멤버십 부여.
 -- ⚠️ Supabase postgres는 rolbypassrls=true라 그냥 두면 RLS 우회 → withTenant가 osmu_service로 전환해야 강제됨.
 DO $$ BEGIN

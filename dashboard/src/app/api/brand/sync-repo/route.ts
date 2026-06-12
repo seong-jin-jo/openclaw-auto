@@ -9,6 +9,33 @@ const CLAUDE_BIN = process.env.CLAUDE_BIN || "claude";
 // 레포 위키 → 브랜드 가이드 인입. 소스(repo,path,ref)는 brand_guides에 저장.
 // 생성기는 brand_guides만 읽음 — 레포 직접 안 봄(인입↔생성 분리).
 
+// 비공개 레포 토큰 resolve (integrations kind='repo_token', label='github', pgcrypto 복호화=L2 재사용)
+async function getRepoToken(tenantId: string): Promise<string | null> {
+  const key = process.env.OSMU_SECRET_KEY;
+  if (!key) return null;
+  const [row] = await withTenant(tenantId, (sql) => sql<{ token: string | null }[]>`
+    SELECT CASE WHEN secret_enc <> '' THEN pgp_sym_decrypt(dearmor(secret_enc), ${key}) ELSE NULL END AS token
+    FROM integrations WHERE tenant_id = ${tenantId} AND kind = 'repo_token' AND label = 'github'`);
+  return row?.token || null;
+}
+
+// 파일 1개 fetch: 토큰 있으면 GitHub API(공개+비공개), 없으면 public raw. 한글/공백 경로 인코딩.
+async function fetchRepoFile(repo: string, path: string, ref: string, token: string | null): Promise<{ ok: boolean; text?: string; status: number }> {
+  const encPath = path.split("/").map(encodeURIComponent).join("/");
+  try {
+    if (token) {
+      const url = `https://api.github.com/repos/${repo}/contents/${encPath}?ref=${encodeURIComponent(ref)}`;
+      const resp = await fetch(url, { headers: { "User-Agent": "osmu-sync", Authorization: `Bearer ${token}`, Accept: "application/vnd.github.raw" } });
+      return resp.ok ? { ok: true, text: await resp.text(), status: 200 } : { ok: false, status: resp.status };
+    }
+    const url = `https://raw.githubusercontent.com/${repo}/${ref}/${encPath}`;
+    const resp = await fetch(url, { headers: { "User-Agent": "osmu-sync" } });
+    return resp.ok ? { ok: true, text: await resp.text(), status: 200 } : { ok: false, status: resp.status };
+  } catch {
+    return { ok: false, status: 0 };
+  }
+}
+
 interface BrandRow {
   prompt_guide?: string; visual_rules?: unknown; source?: string;
   source_repo?: string; source_path?: string; source_ref?: string;
@@ -40,25 +67,28 @@ export async function POST(request: Request) {
   if (!/^[\w.-]+\/[\w.-]+$/.test(String(repo))) {
     return Response.json({ error: "repo 형식은 owner/name" }, { status: 400 });
   }
-  const safePath = String(path).replace(/^\/+/, "");
-  if (safePath.includes("..")) return Response.json({ error: "path에 .. 불가" }, { status: 400 });
+  // path: 쉼표/줄바꿈으로 여러 파일 지원
+  const paths = String(path).split(/[,\n]/).map((p) => p.trim().replace(/^\/+/, "")).filter(Boolean);
+  if (paths.length === 0) return Response.json({ error: "path 필요" }, { status: 400 });
+  if (paths.some((p) => p.includes(".."))) return Response.json({ error: "path에 .. 불가" }, { status: 400 });
+  const joinedPath = paths.join(", ");
   const branch = (ref && String(ref).trim()) || "main";
 
-  // 1) public raw fetch
-  const rawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/${safePath}`;
-  let markdown: string;
-  try {
-    const resp = await fetch(rawUrl, { headers: { "User-Agent": "osmu-sync" } });
-    if (!resp.ok) {
-      return Response.json({
-        error: `레포 파일을 못 가져옴(${resp.status}). public 레포·경로·브랜치 확인 (private은 추후 토큰 지원)`,
-        url: rawUrl,
-      }, { status: 400 });
-    }
-    markdown = await resp.text();
-  } catch (e) {
-    return Response.json({ error: `fetch 실패: ${String(e).slice(0, 200)}` }, { status: 502 });
+  // 1) fetch — 비공개 레포 토큰 있으면 GitHub API, 없으면 public raw. 다중파일 합치기.
+  const token = await getRepoToken(tenant_id);
+  const parts: string[] = [];
+  const failed: string[] = [];
+  for (const p of paths) {
+    const r = await fetchRepoFile(repo, p, branch, token);
+    if (r.ok && r.text) parts.push(paths.length > 1 ? `## ${p}\n\n${r.text}` : r.text);
+    else failed.push(`${p}(${r.status})`);
   }
+  if (parts.length === 0) {
+    return Response.json({
+      error: `파일을 못 가져옴: ${failed.join(", ")}. ${token ? "토큰 권한·경로·브랜치 확인" : "public 레포·경로·브랜치 확인 (비공개는 GitHub 토큰 등록)"}`,
+    }, { status: 400 });
+  }
+  const markdown = parts.join("\n\n---\n\n");
   if (markdown.trim().length < 30) {
     return Response.json({ error: "문서가 너무 짧음(30자 미만)" }, { status: 400 });
   }
@@ -68,7 +98,7 @@ export async function POST(request: Request) {
   const [existing] = await withTenant(tenant_id, (sql) => sql<BrandRow[]>`
     SELECT source_hash FROM brand_guides WHERE tenant_id = ${tenant_id}`);
   if (existing?.source_hash === hash) {
-    return Response.json({ ok: true, skipped: true, reason: "원문 변경 없음", repo, path: safePath, ref: branch });
+    return Response.json({ ok: true, skipped: true, reason: "원문 변경 없음", repo, path: joinedPath, ref: branch });
   }
 
   // 3) claude -p 증류 (위저드와 동일 출력 스키마 — brand_guides 정합)
@@ -94,12 +124,12 @@ ${input}
     await withTenant(tenant_id, (sql) => sql`
       INSERT INTO brand_guides (tenant_id, prompt_guide, visual_rules, source, source_repo, source_path, source_ref, source_hash, synced_at)
       VALUES (${tenant_id}, ${parsed.prompt_guide || ""}, ${sql.json((parsed.visual_rules ?? {}) as Parameters<typeof sql.json>[0])},
-              'repo', ${repo}, ${safePath}, ${branch}, ${hash}, now())
+              'repo', ${repo}, ${joinedPath}, ${branch}, ${hash}, now())
       ON CONFLICT (tenant_id) DO UPDATE
         SET prompt_guide = EXCLUDED.prompt_guide, visual_rules = EXCLUDED.visual_rules,
             source = 'repo', source_repo = EXCLUDED.source_repo, source_path = EXCLUDED.source_path,
             source_ref = EXCLUDED.source_ref, source_hash = EXCLUDED.source_hash, synced_at = now()`);
-    return Response.json({ ok: true, repo, path: safePath, ref: branch, guide: { prompt_guide: parsed.prompt_guide, visual_rules: parsed.visual_rules } });
+    return Response.json({ ok: true, repo, path: joinedPath, ref: branch, guide: { prompt_guide: parsed.prompt_guide, visual_rules: parsed.visual_rules } });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return Response.json({ error: msg.slice(0, 400) }, { status: 502 });

@@ -19,6 +19,7 @@ export function RepoConnect({ workspace, onSynced, onClose }: { workspace: Works
   const [repo, setRepo] = useState(cur?.source_repo || "");
   const [path, setPath] = useState(cur?.source_path || "");
   const [ref, setRef] = useState(cur?.source_ref || "main");
+  const [token, setToken] = useState(""); // 비공개 레포 GitHub 토큰(선택)
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -26,6 +27,11 @@ export function RepoConnect({ workspace, onSynced, onClose }: { workspace: Works
     if (!repo.trim() || !path.trim() || busy) return;
     setBusy(true); setMsg("");
     try {
+      // 비공개 레포 토큰 입력 시 먼저 integrations에 암호화 저장
+      if (token.trim()) {
+        await apiPost("/api/integrations", { tenant_id: workspace.id, kind: "repo_token", label: "github", secret: token.trim(), meta: {} });
+        setToken("");
+      }
       const r = await apiPost<{ ok?: boolean; skipped?: boolean; reason?: string; error?: string }>(
         "/api/brand/sync-repo", { tenant_id: workspace.id, repo: repo.trim(), path: path.trim(), ref: ref.trim() || "main" });
       if (r?.ok) {
@@ -60,13 +66,18 @@ export function RepoConnect({ workspace, onSynced, onClose }: { workspace: Works
               className="w-full mt-1 px-3 py-2 text-sm bg-gray-900 border border-gray-800 rounded-lg text-gray-200 focus:border-purple-500 outline-none" />
           </div>
           <div>
-            <label className="text-[11px] text-gray-500">파일 경로</label>
-            <input value={path} onChange={(e) => setPath(e.target.value)} placeholder="wiki/1. Tenant/마케팅팀/마케팅.md"
+            <label className="text-[11px] text-gray-500">파일 경로 (여러 개는 쉼표로)</label>
+            <input value={path} onChange={(e) => setPath(e.target.value)} placeholder="wiki/1. Tenant/마케팅팀/마케팅.md, wiki/1. Tenant/기획팀/기획.md"
               className="w-full mt-1 px-3 py-2 text-sm bg-gray-900 border border-gray-800 rounded-lg text-gray-200 focus:border-purple-500 outline-none" />
           </div>
           <div>
             <label className="text-[11px] text-gray-500">브랜치 (기본 main)</label>
             <input value={ref} onChange={(e) => setRef(e.target.value)} placeholder="main"
+              className="w-full mt-1 px-3 py-2 text-sm bg-gray-900 border border-gray-800 rounded-lg text-gray-200 focus:border-purple-500 outline-none" />
+          </div>
+          <div>
+            <label className="text-[11px] text-gray-500">GitHub 토큰 (비공개 레포만 · 한 번 저장하면 재입력 불필요)</label>
+            <input value={token} onChange={(e) => setToken(e.target.value)} type="password" placeholder="ghp_… (fine-grained, contents 읽기)"
               className="w-full mt-1 px-3 py-2 text-sm bg-gray-900 border border-gray-800 rounded-lg text-gray-200 focus:border-purple-500 outline-none" />
           </div>
         </div>
