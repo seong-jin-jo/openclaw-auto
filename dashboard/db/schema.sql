@@ -112,3 +112,16 @@ CREATE TABLE IF NOT EXISTS viral_signals (
 );
 CREATE INDEX IF NOT EXISTS idx_viral_signals_tenant ON viral_signals(tenant_id, captured_at DESC);
 
+
+-- 테넌트 API 토큰(인증모델 b). 포크 프론트가 이 토큰으로 중앙 API 호출 → 서버가 tenant 못박음.
+-- 원문은 발급 시 1회만 노출, 저장은 sha256 해시. RLS 제외(토큰→tenant 해석은 tenant 컨텍스트 진입 전이라).
+CREATE TABLE IF NOT EXISTS tenant_tokens (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id     UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  token_hash    TEXT NOT NULL UNIQUE,           -- sha256(raw)
+  label         TEXT,                            -- 용도 메모 (예: 'tenant3-frontend')
+  last_used_at  TIMESTAMPTZ,
+  revoked       BOOLEAN NOT NULL DEFAULT false,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_tenant_tokens_hash ON tenant_tokens(token_hash);
