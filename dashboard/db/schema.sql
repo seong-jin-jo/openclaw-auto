@@ -20,6 +20,10 @@ CREATE TABLE IF NOT EXISTS brand_guides (
   prompt_guide  TEXT,                          -- 톤·금지어·hook·페르소나 (claude -p 증류 산출)
   visual_rules  JSONB,                         -- { colors[], typography, forbidden[] }
   source        TEXT,                          -- wizard | repo | paste
+  source_repo   TEXT,                          -- repo 인입 시 'owner/name'
+  source_path   TEXT,                          -- repo 인입 시 파일 경로 (예: wiki/Tenant/마케팅.md)
+  source_ref    TEXT,                          -- repo 브랜치/태그 (기본 main)
+  source_hash   TEXT,                          -- 원문 해시 — 동일하면 재증류 skip
   synced_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
