@@ -27,11 +27,19 @@ export function middleware(request: NextRequest) {
   if (request.nextUrl.pathname === "/api/figma-mcp/callback") return NextResponse.next();
 
   const token = request.headers.get("Authorization")?.replace("Bearer ", "") || "";
-  if (token !== authToken) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
-  return NextResponse.next();
+  // 운영자 토큰 = 전체 접근(대시보드)
+  if (token === authToken) return NextResponse.next();
+
+  // 인증모델 b: 테넌트 토큰(osmu_ prefix)은 데이터 라우트만 통과 → 라우트가 resolveTenantToken으로
+  // 실제 검증·tenant 스코프(effectiveTenantId). Edge라 DB 조회 불가 → 여기선 형태만 보고 통과.
+  // 운영자 전용 라우트(토큰 발급·워크스페이스 목록)는 테넌트 토큰 차단.
+  const path = request.nextUrl.pathname;
+  const OPERATOR_PATHS = ["/api/tenant-tokens", "/api/workspaces"];
+  const isOperatorPath = OPERATOR_PATHS.some((p) => path.startsWith(p));
+  if (token.startsWith("osmu_") && !isOperatorPath) return NextResponse.next();
+
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 
 export const config = {

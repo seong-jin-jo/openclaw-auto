@@ -67,3 +67,26 @@ describe("middleware 토큰 검증 분기", () => {
     expect(res.status).toBe(401);
   });
 });
+
+describe("middleware 테넌트 토큰(인증모델 b) 분기", () => {
+  it("osmu_ 토큰 + 데이터 라우트 → 통과(라우트가 resolveTenantToken으로 검증)", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
+    const res = middleware(apiRequest({ Authorization: "Bearer osmu_xxx" }));
+    expect(isPass(res)).toBe(true);
+  });
+
+  it("osmu_ 토큰 + 운영자 라우트(tenant-tokens) → 401 차단", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
+    const req = new NextRequest("http://localhost/api/tenant-tokens", { headers: { Authorization: "Bearer osmu_xxx" } });
+    expect(middleware(req).status).toBe(401);
+  });
+
+  it("osmu_ 토큰 + 워크스페이스 목록 → 401 차단(운영자 전용)", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
+    const req = new NextRequest("http://localhost/api/workspaces", { headers: { Authorization: "Bearer osmu_xxx" } });
+    expect(middleware(req).status).toBe(401);
+  });
+});

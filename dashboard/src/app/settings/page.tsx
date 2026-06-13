@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChannelsSettings } from "@/components/settings/ChannelsSettings";
 import { ChannelConnect } from "@/components/studio/ChannelConnect";
+import { TenantTokensSettings } from "@/components/settings/TenantTokensSettings";
 import { useUIStore } from "@/store/ui-store";
 import { AIEngine } from "@/components/settings/AIEngine";
 import { LlmModel } from "@/components/settings/LlmModel";
@@ -21,6 +22,7 @@ const SETTINGS_TABS = [
   { key: "storage", label: "Storage", desc: "이미지 저장소" },
   { key: "design", label: "Design Tools", desc: "Canva / Figma" },
   { key: "notifications", label: "Notifications", desc: "Slack 알림" },
+  { key: "tokens", label: "API 토큰", desc: "포크 접근 토큰" },
   { key: "keywords", label: "Keywords", desc: "키워드 뱅크 + API" },
   { key: "video", label: "Video / TTS", desc: "ElevenLabs 설정" },
   { key: "system", label: "System", desc: "크론 + 계정" },
@@ -72,6 +74,7 @@ export default function SettingsPage() {
           <AIEngine />
         </>
       )}
+      {activeTab === "tokens" && <TenantTokensSettings />}
       {activeTab === "storage" && <StorageSettings />}
       {activeTab === "design" && <DesignToolsSettings />}
       {activeTab === "notifications" && <SlackSettings />}
