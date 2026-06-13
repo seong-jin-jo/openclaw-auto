@@ -71,6 +71,25 @@ git fetch upstream && git merge upstream/main
 
 토큰을 잃어버려도 피해는 **그 워크스페이스 하나**로 한정되며, 운영자가 **Settings → API 토큰 → 폐기**로 즉시 무효화합니다.
 
+## 7. 팀별 배포 예시 (sample / sample)
+
+각 팀은 자기 도메인(`marketing.{team}.it.kr`)에 포크를 띄우고, `OSMU_API_BASE`만 공통 중앙으로.
+
+| 팀 | 배포 도메인(예) | `.env` 서버 설정 |
+|---|---|---|
+| sample | `marketing.example.com` | `OSMU_API_BASE=<중앙 URL>` · `OSMU_TENANT_TOKEN=<sample 토큰>` |
+| sample | `marketing.example.com` 등 | `OSMU_API_BASE=<중앙 URL>` · `OSMU_TENANT_TOKEN=<sample 토큰>` |
+
+- **`<중앙 URL>`**: 운영자(중앙) 인스턴스의 고정 공개 주소(터널/도메인). 두 팀 공통.
+- **토큰**: 운영자가 Settings → API 토큰에서 팀별 발급. 서버 env에만(브라우저 노출 X).
+- 토큰은 자기 워크스페이스 데이터에만 접근 — 서로의 데이터 못 봄(검증됨).
+
+## 8. 진화 단계 (참고)
+
+- **Phase 1(지금)**: 포크가 프론트만 띄움(프록시), 데이터는 중앙. ← 이 문서
+- **Phase 2**: 백엔드까지 중앙 호스팅 → 팀은 순수 client(도메인 유지). 데이터 계층 동일.
+- **Phase 3**: 외부 고객 대상 결제 + 클라우드 호스팅 SaaS.
+
 ---
 
-> Phase 2(외부 고객)에선 프론트까지 중앙이 호스팅(풀 SaaS)하여 포크가 불필요해집니다. 데이터 계층은 동일.
+> 데이터 계층(중앙 Supabase + RLS)은 Phase 1~3 동일 → 단계 전환 시 재설계 없음.
