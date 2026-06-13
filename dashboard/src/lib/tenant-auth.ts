@@ -39,8 +39,23 @@ export async function resolveTenantFromRequest(request: Request): Promise<string
   return resolveTenantToken(raw);
 }
 
-// 유효 tenantId 결정 — 토큰이 있으면 그게 권위(클라 fallback 무시), 없으면 fallback(단일운영자 모드).
+// Host 헤더 → tenant_id (커스텀 도메인 CNAME, 호스팅 멀티테넌트). tenants.domain 매핑.
+// localhost/빈 host는 skip(운영자 중앙 도메인·dev → fallback 사용).
+export async function resolveTenantByHost(request: Request): Promise<string | null> {
+  const host = (request.headers.get("host") || "").split(":")[0].toLowerCase();
+  if (!host || host === "localhost" || host === "127.0.0.1") return null;
+  const sql = db();
+  const [row] = await sql<{ id: string }[]>`
+    SELECT id FROM tenants WHERE domain = ${host} AND status = 'active' LIMIT 1`;
+  return row?.id || null;
+}
+
+// 유효 tenantId 결정. 우선순위: ① API 토큰(명시) > ② 커스텀 도메인(Host) > ③ 클라 fallback(운영자 워크스페이스 선택).
+// 테넌트 CNAME으로 접속하면 Host가 테넌트를 못박아 남의 데이터 못 봄. 중앙 도메인은 fallback(운영자 전체 관리).
 export async function effectiveTenantId(request: Request, fallback?: string | null): Promise<string | null> {
   const fromToken = await resolveTenantFromRequest(request);
-  return fromToken || fallback || null;
+  if (fromToken) return fromToken;
+  const fromHost = await resolveTenantByHost(request);
+  if (fromHost) return fromHost;
+  return fallback || null;
 }

@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS tenants (
   name        TEXT NOT NULL,                   -- 표시명 (예: Tenant)
   status      TEXT NOT NULL DEFAULT 'active',  -- active | paused
   tier        TEXT NOT NULL DEFAULT 'team',    -- team | private — tier별 Supabase 프로젝트 라우팅(team=공유, private=19금 물리분리)
+  domain      TEXT UNIQUE,                     -- 커스텀 도메인(CNAME). Host 헤더 → 이 테넌트로 매핑(호스팅 멀티테넌트)
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

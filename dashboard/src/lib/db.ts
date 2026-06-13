@@ -49,5 +49,6 @@ export type Tenant = {
   slug: string;
   name: string;
   status: string;
+  domain?: string | null;
   created_at: string;
 };

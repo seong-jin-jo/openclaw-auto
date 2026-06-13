@@ -6,7 +6,7 @@ export async function GET() {
   try {
     const sql = db();
     const rows = await sql<Tenant[]>`
-      SELECT id, slug, name, status, created_at
+      SELECT id, slug, name, status, domain, created_at
       FROM tenants WHERE status = 'active' ORDER BY created_at`;
     return Response.json({ workspaces: rows });
   } catch (e) {
@@ -17,16 +17,18 @@ export async function GET() {
 // POST /api/workspaces — 워크스페이스 등록 { slug, name }
 export async function POST(req: Request) {
   try {
-    const { slug, name } = await req.json();
+    const { slug, name, domain } = await req.json();
     if (!slug || !name) {
       return Response.json({ error: "slug, name 필수" }, { status: 400 });
     }
     const clean = String(slug).trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
+    const dom = domain ? (String(domain).trim().toLowerCase() || null) : null;
     const sql = db();
+    // domain 미전달 시 기존값 보존(COALESCE). 커스텀 도메인(CNAME) → Host 매핑.
     const [row] = await sql<Tenant[]>`
-      INSERT INTO tenants (slug, name) VALUES (${clean}, ${String(name).trim()})
-      ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name
-      RETURNING id, slug, name, status, created_at`;
+      INSERT INTO tenants (slug, name, domain) VALUES (${clean}, ${String(name).trim()}, ${dom})
+      ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name, domain = COALESCE(EXCLUDED.domain, tenants.domain)
+      RETURNING id, slug, name, status, domain, created_at`;
     return Response.json({ workspace: row });
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 });
