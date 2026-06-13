@@ -1,11 +1,12 @@
 import { withTenant } from "@/lib/db";
+import { effectiveTenantId } from "@/lib/tenant-auth";
 import { getChannelCred } from "@/lib/publish";
 
 const THREADS_API = "https://graph.threads.net/v1.0";
 
 // GET /api/metrics?tenant_id=... — 발행물 + 성과 목록(성과 대시보드)
 export async function GET(request: Request) {
-  const tenantId = new URL(request.url).searchParams.get("tenant_id");
+  const tenantId = await effectiveTenantId(request, new URL(request.url).searchParams.get("tenant_id"));
   if (!tenantId) return Response.json({ posts: [] });
   try {
     const posts = await withTenant(tenantId, (sql) => sql`
@@ -21,7 +22,8 @@ export async function GET(request: Request) {
 
 // POST /api/metrics — 성과 수집 { tenant_id } (Threads insights). 토큰 필요.
 export async function POST(request: Request) {
-  const { tenant_id } = await request.json();
+  const __b = await request.json();
+  const tenant_id = await effectiveTenantId(request, __b.tenant_id);
   if (!tenant_id) return Response.json({ error: "tenant_id required" }, { status: 400 });
   const cred = await getChannelCred(tenant_id, "threads");
   if (!cred) return Response.json({ ok: false, error: "threads 채널 미연결" }, { status: 400 });

@@ -1,6 +1,7 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { withTenant } from "@/lib/db";
+import { effectiveTenantId } from "@/lib/tenant-auth";
 
 // P9 롱폼→숏폼 소싱 API.
 // POST: 긴 글(longform_text) → claude -p 청킹으로 숏폼 후보 N개(훅+본문) 추출.
@@ -118,7 +119,7 @@ async function runClaudeChunk(prompt: string): Promise<ShortCandidate[]> {
 // save !== false 이면 viral_signals 1행 + drafts N행 저장(withTenant 경유).
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
-  const tenantId = body.tenant_id;
+  const tenantId = await effectiveTenantId(request, body.tenant_id);
   const longform: string = typeof body.longform_text === "string" ? body.longform_text.trim() : "";
   if (!tenantId) return Response.json({ error: "tenant_id required" }, { status: 400 });
   if (!longform || longform.length < 50) {
@@ -204,7 +205,7 @@ export async function POST(request: Request) {
 
 // GET /api/sourcing?tenant_id=... — 워크스페이스 viral_signals 목록(최근 50)
 export async function GET(request: Request) {
-  const tenantId = new URL(request.url).searchParams.get("tenant_id");
+  const tenantId = await effectiveTenantId(request, new URL(request.url).searchParams.get("tenant_id"));
   if (!tenantId) return Response.json({ signals: [] });
   try {
     const rows = await withTenant(tenantId, (sql) => sql<ViralSignalRow[]>`

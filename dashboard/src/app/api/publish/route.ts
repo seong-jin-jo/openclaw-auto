@@ -1,10 +1,13 @@
 import { withTenant } from "@/lib/db";
+import { effectiveTenantId } from "@/lib/tenant-auth";
 import { getChannelCred, publishThreads, publishInstagram, publishX, publishFacebook, type PublishResult } from "@/lib/publish";
 
 // POST /api/publish — 한 플랫폼 실발행 { tenant_id, platform, text, image_url?, draft_id? }
 // 발행 후 published_posts에 기록(성과 수집 대상). 토큰 없으면 명확한 에러(크래시 X).
 export async function POST(request: Request) {
-  const { tenant_id, platform, text, image_url, draft_id } = await request.json();
+  const __b = await request.json();
+  const { platform, text, image_url, draft_id } = __b;
+  const tenant_id = await effectiveTenantId(request, __b.tenant_id);
   if (!tenant_id || !platform) {
     return Response.json({ error: "tenant_id, platform required" }, { status: 400 });
   }

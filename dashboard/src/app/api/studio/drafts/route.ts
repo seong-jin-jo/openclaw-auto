@@ -1,4 +1,5 @@
 import { withTenant } from "@/lib/db";
+import { effectiveTenantId } from "@/lib/tenant-auth";
 
 // Studio 초안/발행 이력 — Supabase drafts 테이블(테넌트별). payload jsonb에 본문 보관.
 interface DraftRow {
@@ -13,7 +14,7 @@ interface DraftRow {
 
 // GET /api/studio/drafts?tenant_id=... — 워크스페이스 초안 목록(최근 50)
 export async function GET(request: Request) {
-  const tenantId = new URL(request.url).searchParams.get("tenant_id");
+  const tenantId = await effectiveTenantId(request, new URL(request.url).searchParams.get("tenant_id"));
   if (!tenantId) return Response.json({ drafts: [] });
   try {
     const rows = await withTenant(tenantId, (sql) => sql<DraftRow[]>`
@@ -40,7 +41,7 @@ export async function GET(request: Request) {
 // POST /api/studio/drafts — 초안 저장/갱신 { tenant_id, id?, idea, text, img, vid, includes, status }
 export async function POST(request: Request) {
   const body = await request.json();
-  const tenantId = body.tenant_id;
+  const tenantId = await effectiveTenantId(request, body.tenant_id);
   if (!tenantId) return Response.json({ error: "tenant_id required" }, { status: 400 });
   const payload = {
     text: body.text ?? null, img: body.img ?? null, vid: body.vid ?? null,

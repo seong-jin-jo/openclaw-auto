@@ -2,6 +2,7 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import crypto from "node:crypto";
 import { withTenant } from "@/lib/db";
+import { effectiveTenantId } from "@/lib/tenant-auth";
 
 const execFileP = promisify(execFile);
 const CLAUDE_BIN = process.env.CLAUDE_BIN || "claude";
@@ -44,7 +45,7 @@ interface BrandRow {
 
 // GET /api/brand/sync-repo?tenant_id=... — 현재 레포 소스 정보
 export async function GET(request: Request) {
-  const tenantId = new URL(request.url).searchParams.get("tenant_id");
+  const tenantId = await effectiveTenantId(request, new URL(request.url).searchParams.get("tenant_id"));
   if (!tenantId) return Response.json({ error: "tenant_id required" }, { status: 400 });
   try {
     const [row] = await withTenant(tenantId, (sql) => sql<BrandRow[]>`
@@ -59,7 +60,9 @@ export async function GET(request: Request) {
 // POST /api/brand/sync-repo — { tenant_id, repo:'owner/name', path, ref? }
 // public 레포 raw fetch → claude -p 증류 → brand_guides upsert(source='repo').
 export async function POST(request: Request) {
-  const { tenant_id, repo, path, ref } = await request.json();
+  const __b = await request.json();
+  const { repo, path, ref } = __b;
+  const tenant_id = await effectiveTenantId(request, __b.tenant_id);
   if (!tenant_id || !repo || !path) {
     return Response.json({ error: "tenant_id, repo, path required" }, { status: 400 });
   }

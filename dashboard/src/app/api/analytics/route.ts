@@ -1,4 +1,5 @@
 import { db, withTenant, type Tenant, type Tier } from "@/lib/db";
+import { effectiveTenantId } from "@/lib/tenant-auth";
 
 // GET /api/analytics — 성과 분석 집계 (DB-backed, 멀티테넌트)
 //   ?tenant_id=<UUID>  → 해당 테넌트 단일 상세 분석 (withTenant 경유 = L1 RLS)
@@ -127,7 +128,7 @@ async function tenantSummary(tenantId: string, tier: Tier) {
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const tenantId = url.searchParams.get("tenant_id");
+  const tenantId = await effectiveTenantId(request, url.searchParams.get("tenant_id"));
   const tierParam = url.searchParams.get("tier");
   const tier: Tier = tierParam === "private" ? "private" : "team"; // 기본 team
 

@@ -1,10 +1,11 @@
 import { withTenant } from "@/lib/db";
+import { effectiveTenantId } from "@/lib/tenant-auth";
 
 // 테넌트 통합(채널 토큰 / AI 키 / MCP). secret_enc = pgcrypto 암호화.
 // 모든 쿼리는 withTenant 경유(L1 RLS 방어심층 — app.tenant_id 트랜잭션 스코프).
 // GET /api/integrations?tenant_id=... — 목록(시크릿 마스킹)
 export async function GET(request: Request) {
-  const tenantId = new URL(request.url).searchParams.get("tenant_id");
+  const tenantId = await effectiveTenantId(request, new URL(request.url).searchParams.get("tenant_id"));
   if (!tenantId) return Response.json({ integrations: [] });
   try {
     const rows = await withTenant(tenantId, (sql) => sql<{ id: string; kind: string; label: string; meta: unknown; has_secret: boolean }[]>`
@@ -19,7 +20,9 @@ export async function GET(request: Request) {
 // POST /api/integrations — 저장/갱신 { tenant_id, kind, label, secret, meta? }
 // 예: { kind:'channel', label:'threads', secret:'<access_token>', meta:{userId:'...'} }
 export async function POST(request: Request) {
-  const { tenant_id, kind, label, secret, meta } = await request.json();
+  const __b = await request.json();
+  const { kind, label, secret, meta } = __b;
+  const tenant_id = await effectiveTenantId(request, __b.tenant_id);
   if (!tenant_id || !kind || !label) {
     return Response.json({ error: "tenant_id, kind, label required" }, { status: 400 });
   }

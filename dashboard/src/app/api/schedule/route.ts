@@ -1,4 +1,5 @@
 import { withTenant } from "@/lib/db";
+import { effectiveTenantId } from "@/lib/tenant-auth";
 
 // P6 예약 발행 API — schedules 테이블(테넌트별, RLS 방어심층).
 //   GET  ?tenant_id=...           → 워크스페이스 예약 목록(최근 50)
@@ -29,7 +30,7 @@ interface ScheduleBody {
 
 // GET /api/schedule?tenant_id=... — 워크스페이스 예약 목록(예정 시각 오름차순, 최근 50)
 export async function GET(request: Request) {
-  const tenantId = new URL(request.url).searchParams.get("tenant_id");
+  const tenantId = await effectiveTenantId(request, new URL(request.url).searchParams.get("tenant_id"));
   if (!tenantId) return Response.json({ schedules: [] });
   try {
     const rows = await withTenant(tenantId, (sql) => sql<ScheduleRow[]>`
@@ -54,7 +55,7 @@ export async function GET(request: Request) {
 // POST /api/schedule — 예약 생성
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as ScheduleBody;
-  const tenantId = body.tenant_id;
+  const tenantId = await effectiveTenantId(request, body.tenant_id);
   const platforms = body.platforms;
   const scheduledAt = body.scheduled_at;
 

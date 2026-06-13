@@ -1,13 +1,14 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { withTenant } from "@/lib/db";
+import { effectiveTenantId } from "@/lib/tenant-auth";
 
 const execFileP = promisify(execFile);
 const CLAUDE_BIN = process.env.CLAUDE_BIN || "claude";
 
 // GET /api/studio/brand-setup?tenant_id=... — 워크스페이스 브랜드 가이드 조회
 export async function GET(request: Request) {
-  const tenantId = new URL(request.url).searchParams.get("tenant_id");
+  const tenantId = await effectiveTenantId(request, new URL(request.url).searchParams.get("tenant_id"));
   if (!tenantId) return Response.json({ error: "tenant_id required" }, { status: 400 });
   try {
     const [row] = await withTenant(tenantId, (sql) => sql`
@@ -22,7 +23,9 @@ export async function GET(request: Request) {
 // POST /api/studio/brand-setup — 6문항 → claude -p 증류 → brand_guides upsert
 // body: { tenant_id, answers: { service, target, tone, banned, hooks, visual } }
 export async function POST(request: Request) {
-  const { tenant_id, answers } = await request.json();
+  const __b = await request.json();
+  const { answers } = __b;
+  const tenant_id = await effectiveTenantId(request, __b.tenant_id);
   if (!tenant_id || !answers) {
     return Response.json({ error: "tenant_id, answers required" }, { status: 400 });
   }
