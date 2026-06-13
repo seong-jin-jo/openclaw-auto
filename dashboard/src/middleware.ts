@@ -4,6 +4,18 @@ export function middleware(request: NextRequest) {
   const authToken = process.env.DASHBOARD_AUTH_TOKEN;
   const isApi = request.nextUrl.pathname.startsWith("/api/");
 
+  // 프록시 모드(포크 셀프호스트, Phase 1): OSMU_API_BASE 설정 시 모든 /api를 중앙 인스턴스로
+  // 토큰 붙여 그대로 전달(얇은 프록시). 토큰(OSMU_TENANT_TOKEN)은 서버 env에만 — 브라우저 노출 0.
+  // DB·로직 없음. 중앙이 resolveTenantToken으로 검증 + RLS 스코프.
+  const apiBase = process.env.OSMU_API_BASE;
+  if (apiBase && isApi) {
+    const dest = new URL(request.nextUrl.pathname + request.nextUrl.search, apiBase);
+    const headers = new Headers(request.headers);
+    const tok = process.env.OSMU_TENANT_TOKEN;
+    if (tok) headers.set("Authorization", `Bearer ${tok}`);
+    return NextResponse.rewrite(dest, { request: { headers } });
+  }
+
   // L0-1: AUTH_TOKEN 미설정 시 전 API 공개 = 격리 근본구멍. prod는 fail-closed(503).
   // dev(NODE_ENV!=production) 또는 명시적 OSMU_AUTH_OPTIONAL=1 일 때만 무인증 허용.
   if (!authToken) {

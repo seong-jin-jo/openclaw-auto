@@ -68,6 +68,23 @@ describe("middleware 토큰 검증 분기", () => {
   });
 });
 
+describe("middleware 프록시 모드(포크 셀프호스트) 분기", () => {
+  it("OSMU_API_BASE 설정 → /api를 중앙으로 rewrite(토큰 서버에서 부착)", () => {
+    vi.stubEnv("OSMU_API_BASE", "https://central.example.com");
+    vi.stubEnv("OSMU_TENANT_TOKEN", "osmu_secret");
+    const res = middleware(apiRequest());
+    expect(res.headers.get("x-middleware-rewrite")).toContain("https://central.example.com/api/queue");
+  });
+
+  it("OSMU_API_BASE 미설정 → 프록시 안 함(통상 처리)", () => {
+    vi.stubEnv("OSMU_API_BASE", "");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "");
+    vi.stubEnv("NODE_ENV", "development");
+    const res = middleware(apiRequest());
+    expect(res.headers.get("x-middleware-rewrite")).toBeNull();
+  });
+});
+
 describe("middleware 테넌트 토큰(인증모델 b) 분기", () => {
   it("osmu_ 토큰 + 데이터 라우트 → 통과(라우트가 resolveTenantToken으로 검증)", () => {
     vi.stubEnv("NODE_ENV", "production");
