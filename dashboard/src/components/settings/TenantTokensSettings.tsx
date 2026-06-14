@@ -64,7 +64,7 @@ export function TenantTokensSettings() {
         <h3 className="text-sm font-semibold text-white mb-1">커스텀 도메인 (CNAME) · {activeWorkspace.name}</h3>
         <p className="text-xs text-gray-500 mb-3">이 도메인을 중앙 인스턴스로 CNAME하면, 그 도메인 접속이 <b className="text-gray-300">Host 헤더</b>로 이 워크스페이스로 자동 매핑됩니다(토큰 없이도 스코프). 현재: <span className="text-purple-300">{curWs?.domain || "(미설정)"}</span></p>
         <div className="flex gap-2">
-          <input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder={curWs?.domain || "openclaw.example.com"}
+          <input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder={curWs?.domain || "marketing.example.com"}
             className="flex-1 px-3 py-2 text-sm bg-gray-900 border border-gray-800 rounded-lg text-gray-200 focus:border-purple-500 outline-none" />
           <button onClick={saveDomain} className="px-4 py-2 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-lg whitespace-nowrap">도메인 저장</button>
         </div>
