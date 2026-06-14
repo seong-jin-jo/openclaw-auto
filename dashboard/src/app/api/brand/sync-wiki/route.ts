@@ -75,6 +75,9 @@ export async function POST(request: Request) {
         ON CONFLICT (tenant_id, path) DO UPDATE
           SET title = EXCLUDED.title, content = EXCLUDED.content, hash = EXCLUDED.hash, updated_at = now()`;
     }
+    // ⚠️ 트리가 truncated(초대형 레포)면 일부 .md만 받은 것 → DELETE 시 트리에 안 잡힌
+    // 기존 문서가 삭제됨(데이터 손실). truncated면 삭제 skip(부분 동기화만).
+    if (truncated) return 0;
     const keepPaths = docs.map((d) => d.path);
     const del = await sql`DELETE FROM wiki_docs WHERE tenant_id = ${tenant_id} AND path <> ALL(${keepPaths}) RETURNING path`;
     return del.length;

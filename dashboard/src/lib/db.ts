@@ -44,6 +44,19 @@ export async function withTenant<T>(
   }) as Promise<T>;
 }
 
+// 테넌트 tier를 서버에서 도출(tenants.tier). 클라가 ?tier= 로 못 정하게 — 19금 물리격리 강제.
+// tenants는 RLS 제외라 bare db()로 조회. 없으면 안전하게 'team'.
+export async function tenantTier(tenantId: string): Promise<Tier> {
+  if (!tenantId) return "team";
+  try {
+    const sql = db();
+    const [row] = await sql<{ tier: string }[]>`SELECT tier FROM tenants WHERE id = ${tenantId} LIMIT 1`;
+    return row?.tier === "private" ? "private" : "team";
+  } catch {
+    return "team";
+  }
+}
+
 export type Tenant = {
   id: string;
   slug: string;

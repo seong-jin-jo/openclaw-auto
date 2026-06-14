@@ -1,4 +1,4 @@
-import { db, withTenant, type Tenant, type Tier } from "@/lib/db";
+import { db, withTenant, tenantTier, type Tenant, type Tier } from "@/lib/db";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 
 // GET /api/analytics — 성과 분석 집계 (DB-backed, 멀티테넌트)
@@ -129,8 +129,8 @@ async function tenantSummary(tenantId: string, tier: Tier) {
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const tenantId = await effectiveTenantId(request, url.searchParams.get("tenant_id"));
-  const tierParam = url.searchParams.get("tier");
-  const tier: Tier = tierParam === "private" ? "private" : "team"; // 기본 team
+  // tier는 클라 입력(?tier=) 금지 — 서버의 tenants.tier에서 도출(19금 물리격리 강제).
+  const tier: Tier = tenantId ? await tenantTier(tenantId) : "team";
 
   // ── 단일 테넌트 상세 ──
   if (tenantId) {
@@ -190,15 +190,15 @@ export async function GET(request: Request) {
   try {
     // tenants는 RLS 제외 — bare db()로 활성 테넌트 목록 조회.
     const sql = db();
-    const tenants = await sql<Tenant[]>`
-      SELECT id, slug, name, status, created_at
+    const tenants = await sql<(Tenant & { tier?: string })[]>`
+      SELECT id, slug, name, status, tier, created_at
       FROM tenants WHERE status = 'active' ORDER BY created_at`;
 
-    // 테넌트별 요약을 각각 withTenant(RLS)로 집계.
+    // 테넌트별 요약을 각각 withTenant(RLS)로 집계. tier는 각 테넌트의 서버값(클라 무관).
     const rows = await Promise.all(
       tenants.map(async (t) => {
         try {
-          const s = await tenantSummary(t.id, tier);
+          const s = await tenantSummary(t.id, t.tier === "private" ? "private" : "team");
           return { tenant_id: t.id, slug: t.slug, name: t.name, ...s };
         } catch (e) {
           return {
