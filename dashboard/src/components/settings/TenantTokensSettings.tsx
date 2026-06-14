@@ -12,15 +12,32 @@ interface TokenRow {
   last_used_at?: string; revoked: boolean; created_at: string;
 }
 
+interface WsRow { id: string; slug: string; name: string; domain?: string | null }
+
 export function TenantTokensSettings() {
   const { activeWorkspace } = useUIStore();
   const { data, mutate } = useSWR<{ tokens?: TokenRow[] }>(
     activeWorkspace ? `/api/tenant-tokens?tenant_id=${activeWorkspace.id}` : null, fetcher);
+  // 커스텀 도메인(CNAME) — 워크스페이스 목록에서 현재 domain 조회
+  const { data: wsData, mutate: mutateWs } = useSWR<{ workspaces?: WsRow[] }>("/api/workspaces", fetcher);
+  const curWs = (wsData?.workspaces || []).find((w) => w.id === activeWorkspace?.id);
+  const [domain, setDomain] = useState("");
+  const [domainMsg, setDomainMsg] = useState("");
   const [label, setLabel] = useState("");
   const [busy, setBusy] = useState(false);
   const [issued, setIssued] = useState(""); // 발급 직후 원문(1회 표시)
 
   const tokens = data?.tokens || [];
+
+  const saveDomain = async () => {
+    if (!activeWorkspace || !curWs) return;
+    setDomainMsg("");
+    const r = await apiPost<{ workspace?: WsRow; error?: string }>("/api/workspaces", {
+      slug: curWs.slug, name: curWs.name, domain: domain.trim(),
+    });
+    if (r?.workspace) { await mutateWs(); setDomain(""); setDomainMsg(`✓ 도메인 설정됨: ${r.workspace.domain || "(없음)"}`); }
+    else setDomainMsg(r?.error || "설정 실패");
+  };
 
   const issue = async () => {
     if (!activeWorkspace || busy) return;
@@ -42,6 +59,18 @@ export function TenantTokensSettings() {
 
   return (
     <div className="max-w-2xl">
+      {/* 커스텀 도메인(CNAME) — 이 도메인으로 접속 시 Host로 이 워크스페이스 자동 판별 */}
+      <div className="mb-6 p-4 rounded-xl border border-gray-800 bg-gray-900/40">
+        <h3 className="text-sm font-semibold text-white mb-1">커스텀 도메인 (CNAME) · {activeWorkspace.name}</h3>
+        <p className="text-xs text-gray-500 mb-3">이 도메인을 중앙 인스턴스로 CNAME하면, 그 도메인 접속이 <b className="text-gray-300">Host 헤더</b>로 이 워크스페이스로 자동 매핑됩니다(토큰 없이도 스코프). 현재: <span className="text-purple-300">{curWs?.domain || "(미설정)"}</span></p>
+        <div className="flex gap-2">
+          <input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder={curWs?.domain || "openclaw.example.com"}
+            className="flex-1 px-3 py-2 text-sm bg-gray-900 border border-gray-800 rounded-lg text-gray-200 focus:border-purple-500 outline-none" />
+          <button onClick={saveDomain} className="px-4 py-2 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-lg whitespace-nowrap">도메인 저장</button>
+        </div>
+        {domainMsg && <p className={`text-xs mt-2 ${domainMsg.startsWith("✓") ? "text-green-400" : "text-red-400"}`}>{domainMsg}</p>}
+      </div>
+
       <h3 className="text-sm font-semibold text-white mb-1">API 토큰 · {activeWorkspace.name}</h3>
       <p className="text-xs text-gray-500 mb-4">포크(프론트만 띄우는 배포)가 중앙 API를 호출할 때 쓰는 토큰입니다. 발급 후 포크의 <code className="text-purple-300">OSMU_TENANT_TOKEN</code>에 넣으세요. 이 토큰은 해당 워크스페이스 데이터에만 접근합니다.</p>
 
