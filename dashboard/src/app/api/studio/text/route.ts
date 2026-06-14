@@ -1,18 +1,23 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
+import { effectiveTenantId } from "@/lib/tenant-auth";
+import { retrieveWikiContext } from "@/lib/wiki-retrieve";
 
 const execFileP = promisify(execFile);
 const CLAUDE_BIN = process.env.CLAUDE_BIN || "claude";
 
 // POST /api/studio/text — 글감 1개 → 플랫폼별 텍스트 변형(OSMU).
-// body: { idea, guide? } guide=브랜드 톤(prompt-guide 발췌, 선택)
+// body: { idea, guide?, tenant_id? } guide=브랜드 톤(선택). tenant_id 있으면 위키에서 관련 문서 검색해 사실 근거 주입.
 export async function POST(request: Request) {
-  const { idea, guide = "" } = await request.json();
+  const { idea, guide = "", tenant_id } = await request.json();
   if (!idea || typeof idea !== "string") {
     return Response.json({ error: "idea required" }, { status: 400 });
   }
+  // 위키 근거: 글감으로 관련 위키 문서 top-K 검색 → 프롬프트 주입(사실 기반 생성)
+  const tenantId = await effectiveTenantId(request, tenant_id);
+  const wiki = tenantId ? await retrieveWikiContext(tenantId, idea) : "";
   const prompt = `너는 SNS 마케팅 카피라이터다. 아래 글감을 플랫폼 특성에 맞춰 변형하라.
-${guide ? `브랜드 톤 가이드:\n${guide}\n` : ""}
+${guide ? `브랜드 톤 가이드:\n${guide}\n` : ""}${wiki ? `\n=== 위키 참조(아래 사실에 근거해 작성, 없는 내용 지어내기 금지) ===\n${wiki}\n===\n` : ""}
 글감: "${idea}"
 
 규칙: 100% 한국어, AI가 쓴 티 금지, 후킹 첫 문장, 과한 이모지 금지.

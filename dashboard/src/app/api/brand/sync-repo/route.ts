@@ -3,39 +3,14 @@ import { promisify } from "util";
 import crypto from "node:crypto";
 import { withTenant } from "@/lib/db";
 import { effectiveTenantId } from "@/lib/tenant-auth";
+import { getRepoToken, fetchRepoFile } from "@/lib/github";
 
 const execFileP = promisify(execFile);
 const CLAUDE_BIN = process.env.CLAUDE_BIN || "claude";
 
 // 레포 위키 → 브랜드 가이드 인입. 소스(repo,path,ref)는 brand_guides에 저장.
 // 생성기는 brand_guides만 읽음 — 레포 직접 안 봄(인입↔생성 분리).
-
-// 비공개 레포 토큰 resolve (integrations kind='repo_token', label='github', pgcrypto 복호화=L2 재사용)
-async function getRepoToken(tenantId: string): Promise<string | null> {
-  const key = process.env.OSMU_SECRET_KEY;
-  if (!key) return null;
-  const [row] = await withTenant(tenantId, (sql) => sql<{ token: string | null }[]>`
-    SELECT CASE WHEN secret_enc <> '' THEN pgp_sym_decrypt(dearmor(secret_enc), ${key}) ELSE NULL END AS token
-    FROM integrations WHERE tenant_id = ${tenantId} AND kind = 'repo_token' AND label = 'github'`);
-  return row?.token || null;
-}
-
-// 파일 1개 fetch: 토큰 있으면 GitHub API(공개+비공개), 없으면 public raw. 한글/공백 경로 인코딩.
-async function fetchRepoFile(repo: string, path: string, ref: string, token: string | null): Promise<{ ok: boolean; text?: string; status: number }> {
-  const encPath = path.split("/").map(encodeURIComponent).join("/");
-  try {
-    if (token) {
-      const url = `https://api.github.com/repos/${repo}/contents/${encPath}?ref=${encodeURIComponent(ref)}`;
-      const resp = await fetch(url, { headers: { "User-Agent": "osmu-sync", Authorization: `Bearer ${token}`, Accept: "application/vnd.github.raw" } });
-      return resp.ok ? { ok: true, text: await resp.text(), status: 200 } : { ok: false, status: resp.status };
-    }
-    const url = `https://raw.githubusercontent.com/${repo}/${ref}/${encPath}`;
-    const resp = await fetch(url, { headers: { "User-Agent": "osmu-sync" } });
-    return resp.ok ? { ok: true, text: await resp.text(), status: 200 } : { ok: false, status: resp.status };
-  } catch {
-    return { ok: false, status: 0 };
-  }
-}
+// GitHub fetch 헬퍼(getRepoToken/fetchRepoFile)는 lib/github로 이관(sync-wiki 공용).
 
 interface BrandRow {
   prompt_guide?: string; visual_rules?: unknown; source?: string;

@@ -98,7 +98,7 @@ export default function StudioPage() {
   const upIg = (patch: Partial<NonNullable<TextVariants["instagram"]>>) => setText((p) => ({ ...(p || {}), instagram: { ...(p?.instagram || {}), ...patch } }));
 
   async function genText() {
-    const r = await apiPost<TextVariants & { ok?: boolean; error?: string }>("/api/studio/text", { idea, guide });
+    const r = await apiPost<TextVariants & { ok?: boolean; error?: string }>("/api/studio/text", { idea, guide, tenant_id: activeWorkspace?.id });
     if (!r?.ok) { showToast(r?.error || "텍스트 생성 실패", "error"); return null; }
     setText(r); return r;
   }
