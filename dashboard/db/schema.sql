@@ -3,6 +3,7 @@
 -- 적용: psql -d openclaw_osmu -f db/schema.sql
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto; -- gen_random_uuid
+CREATE EXTENSION IF NOT EXISTS pg_trgm;  -- 위키 문서 trigram 검색(한글 부분매칭)
 
 -- 테넌트(워크스페이스). 내부 단계는 하드인증 없음 — 등록=워크스페이스 생성.
 CREATE TABLE IF NOT EXISTS tenants (
@@ -126,3 +127,18 @@ CREATE TABLE IF NOT EXISTS tenant_tokens (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_tenant_tokens_hash ON tenant_tokens(token_hash);
+
+-- 위키 문서 전체 인입(폴더 통째). 생성 시 pg_trgm으로 관련 문서 검색→프롬프트 주입(사실 기반).
+-- 문서별 1행, hash로 증분 동기화. 테넌트별 RLS.
+CREATE TABLE IF NOT EXISTS wiki_docs (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id   UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  path        TEXT NOT NULL,                    -- 'wiki/제품/기능.md'
+  title       TEXT,                             -- 첫 H1 또는 파일명
+  content     TEXT,                             -- 원문(.md 전체)
+  hash        TEXT,                             -- sha256(content) — 증분 동기화
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (tenant_id, path)
+);
+CREATE INDEX IF NOT EXISTS idx_wiki_docs_trgm ON wiki_docs USING gin (content gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_wiki_docs_tenant ON wiki_docs(tenant_id);
