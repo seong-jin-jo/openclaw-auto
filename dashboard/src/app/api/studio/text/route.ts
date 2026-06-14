@@ -1,7 +1,7 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { effectiveTenantId } from "@/lib/tenant-auth";
-import { retrieveWikiContext } from "@/lib/wiki-retrieve";
+import { getWikiContext } from "@/lib/wiki-retrieve";
 
 const execFileP = promisify(execFile);
 const CLAUDE_BIN = process.env.CLAUDE_BIN || "claude";
@@ -13,9 +13,9 @@ export async function POST(request: Request) {
   if (!idea || typeof idea !== "string") {
     return Response.json({ error: "idea required" }, { status: 400 });
   }
-  // 위키 근거: 글감으로 관련 위키 문서 top-K 검색 → 프롬프트 주입(사실 기반 생성)
+  // 위키 근거: 위키 전체 주입(작으면) 또는 관련 top-K(크면 자동 폴백) → 프롬프트 주입(사실 기반 생성)
   const tenantId = await effectiveTenantId(request, tenant_id);
-  const wiki = tenantId ? await retrieveWikiContext(tenantId, idea) : "";
+  const { text: wiki } = tenantId ? await getWikiContext(tenantId, idea) : { text: "" };
   const prompt = `너는 SNS 마케팅 카피라이터다. 아래 글감을 플랫폼 특성에 맞춰 변형하라.
 ${guide ? `브랜드 톤 가이드:\n${guide}\n` : ""}${wiki ? `\n=== 위키 참조(아래 사실에 근거해 작성, 없는 내용 지어내기 금지) ===\n${wiki}\n===\n` : ""}
 글감: "${idea}"
