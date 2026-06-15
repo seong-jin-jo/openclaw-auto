@@ -219,6 +219,15 @@ export function UnifiedPostCard({
         </>
       )}
 
+      {/* Quality indicators */}
+      {post.status === "draft" && (
+        <div className="flex gap-1 mb-2 flex-wrap">
+          {post.text.length < 30 && <span className="text-[9px] px-1.5 py-0.5 rounded bg-yellow-900/40 text-yellow-400">짧음</span>}
+          {(!post.hashtags || post.hashtags.length === 0) && <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-500">해시태그 없음</span>}
+          {variant === "visual" && !post.imageUrl && <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-900/40 text-red-400">이미지 필요</span>}
+        </div>
+      )}
+
       {/* SEO keyword badge (blog only) */}
       {showSeo && post.seoKeyword && (
         <div className="mb-2">

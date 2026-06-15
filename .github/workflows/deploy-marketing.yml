@@ -1,0 +1,29 @@
+name: Deploy openclaw (marketing VM)
+on:
+  workflow_dispatch:
+    inputs:
+      services:
+        description: '띄울 서비스 (compose 서비스명 공백구분, 비우면 전체)'
+        required: false
+        default: ''
+jobs:
+  deploy:
+    runs-on: [self-hosted, marketing_runner]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: 영속 config/data 복원 (~/openclaw-persist → 체크아웃)
+        run: |
+          shopt -s nullglob
+          for d in "$HOME"/openclaw-persist/config-* "$HOME"/openclaw-persist/data-*; do
+            cp -a "$d" ./ && echo "복원: $(basename "$d")"
+          done
+          for f in "$HOME"/openclaw-persist/.env.*; do
+            [ -f "$f" ] && cp -a "$f" ./ && echo "복원: $(basename "$f")"
+          done
+      - name: 이미지 빌드 (gateway + dashboard)
+        run: docker compose -f docker-compose.postagi-4tenants.yml build
+      - name: 기동
+        run: docker compose -f docker-compose.postagi-4tenants.yml up -d ${{ github.event.inputs.services }}
+      - name: 상태
+        run: docker compose -f docker-compose.postagi-4tenants.yml ps
