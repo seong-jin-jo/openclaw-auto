@@ -18,6 +18,9 @@ jobs:
           for d in "$HOME"/openclaw-persist/config-* "$HOME"/openclaw-persist/data-*; do
             cp -a "$d" ./ && echo "복원: $(basename "$d")"
           done
+          for f in "$HOME"/openclaw-persist/.env.*; do
+            [ -f "$f" ] && cp -a "$f" ./ && echo "복원: $(basename "$f")"
+          done
       - name: 이미지 빌드 (gateway + dashboard)
         run: docker compose -f docker-compose.postagi-4tenants.yml build
       - name: 기동
