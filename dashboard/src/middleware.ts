@@ -51,6 +51,11 @@ export function middleware(request: NextRequest) {
   const isOperatorPath = OPERATOR_PATHS.some((p) => path.startsWith(p));
   if (token.startsWith("osmu_") && !isOperatorPath) return NextResponse.next();
 
+  // 고객 로그인 세션(Supabase JWT, 헤더.페이로드.서명) — 데이터 라우트만 통과.
+  // Edge라 서명검증 불가 → 형태만 보고 통과, 라우트가 resolveTenantBySession으로 실제 검증·스코프.
+  const looksLikeJwt = token.split(".").length === 3 && token.length > 40;
+  if (looksLikeJwt && !isOperatorPath) return NextResponse.next();
+
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 
