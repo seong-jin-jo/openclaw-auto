@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { db } from "@/lib/db";
+import { getUserFromToken } from "@/lib/supabase";
 
 // 인증모델 b — 테넌트 API 토큰. 포크 프론트가 Bearer 토큰으로 중앙 API 호출 →
 // 서버가 토큰을 tenant_id로 해석해 withTenant(tenant)로 못박음(클라가 tenant_id 못 속임).
@@ -50,9 +51,35 @@ export async function resolveTenantByHost(request: Request): Promise<string | nu
   return row?.id || null;
 }
 
-// 유효 tenantId 결정. 우선순위: ① API 토큰(명시) > ② 커스텀 도메인(Host) > ③ 클라 fallback(운영자 워크스페이스 선택).
-// 테넌트 CNAME으로 접속하면 Host가 테넌트를 못박아 남의 데이터 못 봄. 중앙 도메인은 fallback(운영자 전체 관리).
+// 로그인 세션(Supabase Auth JWT) → tenant. Authorization: Bearer <jwt>(osmu_ 아님)에서 추출·검증.
+// 고객 셀프서브: 가입/로그인한 사람의 테넌트로 스코프. 유저는 있으나 테넌트 없으면(첫 로그인) 자동 생성.
+export async function resolveTenantBySession(request: Request): Promise<string | null> {
+  const raw = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") || "";
+  if (!raw || raw.startsWith("osmu_")) return null; // osmu_는 테넌트 토큰 경로(별개)
+  const user = await getUserFromToken(raw);
+  if (!user) return null;
+  return ensureTenantForUser(user.id, user.email ?? null);
+}
+
+// auth 유저 → tenant(owner_auth_id 매핑). 없으면 생성(첫 로그인 셀프서브 온보딩).
+// tenants는 RLS 제외라 bare db(). slug 충돌은 base+난수로 회피.
+export async function ensureTenantForUser(authId: string, email: string | null): Promise<string> {
+  const sql = db();
+  const [existing] = await sql<{ id: string }[]>`SELECT id FROM tenants WHERE owner_auth_id = ${authId} LIMIT 1`;
+  if (existing) return existing.id;
+  const base = (email?.split("@")[0] || "user").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 24) || "user";
+  const slug = `${base}-${crypto.randomBytes(3).toString("hex")}`;
+  const [row] = await sql<{ id: string }[]>`
+    INSERT INTO tenants (slug, name, status, tier, owner_auth_id)
+    VALUES (${slug}, ${email || slug}, 'active', 'team', ${authId}) RETURNING id`;
+  return row.id;
+}
+
+// 유효 tenantId 결정. 우선순위: ① 로그인 세션 > ② API 토큰 > ③ 커스텀 도메인(Host) > ④ 클라 fallback(운영자).
+// 고객은 로그인 세션으로, 포크는 osmu_ 토큰으로, CNAME은 Host로, 운영자 중앙은 fallback으로 스코프.
 export async function effectiveTenantId(request: Request, fallback?: string | null): Promise<string | null> {
+  const fromSession = await resolveTenantBySession(request);
+  if (fromSession) return fromSession;
   const fromToken = await resolveTenantFromRequest(request);
   if (fromToken) return fromToken;
   const fromHost = await resolveTenantByHost(request);
