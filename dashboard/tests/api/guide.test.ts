@@ -20,7 +20,7 @@ afterEach(() => {
 describe('GET /api/guide', () => {
   it('returns the common guide', async () => {
     const { GET } = await import('@/app/api/guide/route');
-    const res = await GET();
+    const res = await GET(new Request('http://localhost/api/guide'));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.guide).toBe('Common guide content');
