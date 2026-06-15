@@ -10,11 +10,8 @@ jobs:
   deploy:
     runs-on: [self-hosted, marketing_runner]
     steps:
-      - name: Checkout (with openclaw submodule)
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          token: ${{ secrets.GH_PAT }}
       - name: 영속 config/data 복원 (~/openclaw-persist → 체크아웃)
         run: |
           shopt -s nullglob
