@@ -1,5 +1,7 @@
 import { readJson, writeJson, dataPath } from "@/lib/file-io";
 import path from "path";
+import { effectiveTenantId } from "@/lib/tenant-auth";
+import { runWithTenant } from "@/lib/tenant-context";
 
 interface DailyUsage {
   aiGenerations: number;
@@ -27,6 +29,9 @@ function emptyDay(): DailyUsage {
 }
 
 export async function POST(req: Request) {
+  // 테넌트 컨텍스트로 감싸 파일 격리 (본문 로직 불변)
+  const __t = await effectiveTenantId(req, null);
+  return runWithTenant(__t, async () => {
   let body: { event?: string; count?: number };
   try {
     body = await req.json();
@@ -68,4 +73,5 @@ export async function POST(req: Request) {
   writeJson(filePath, data);
 
   return Response.json({ ok: true, date: todayStr, field, newValue: data.daily[todayStr][field] });
+  });
 }

@@ -1,5 +1,7 @@
 import { readJson, writeJson, configPath } from "@/lib/file-io";
 import { verifyChannel } from "@/lib/verify-channel";
+import { effectiveTenantId } from "@/lib/tenant-auth";
+import { runWithTenant } from "@/lib/tenant-context";
 
 interface OpenClawConfig {
   plugins?: {
@@ -27,6 +29,9 @@ const PLUGIN_MAP: Record<string, string> = {
 };
 
 export async function POST(request: Request, { params }: { params: Promise<{ channel: string }> }) {
+  // 테넌트 컨텍스트로 감싸 파일 I/O를 테넌트별로 격리
+  const __t = await effectiveTenantId(request, null);
+  return runWithTenant(__t, async () => {
   const { channel } = await params;
   const data = await request.json();
   const cfgPath = configPath("openclaw.json");
@@ -91,4 +96,5 @@ export async function POST(request: Request, { params }: { params: Promise<{ cha
   p.enabled = result.verified;
   writeJson(cfgPath, config);
   return Response.json({ ok: true, enabled: p.enabled, ...result });
+  });
 }

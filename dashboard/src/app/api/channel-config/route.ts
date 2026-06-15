@@ -1,4 +1,6 @@
 import { readJson, configPath } from "@/lib/file-io";
+import { effectiveTenantId } from "@/lib/tenant-auth";
+import { runWithTenant } from "@/lib/tenant-context";
 
 interface PluginEntry {
   enabled?: boolean;
@@ -33,7 +35,10 @@ const OTHER_CHANNELS: Record<string, { plugin: string; keyField: string }> = {
   naver_blog: { plugin: "naver-blog-publish", keyField: "blogId" },
 };
 
-export async function GET() {
+export async function GET(request: Request) {
+  // 테넌트 컨텍스트로 감싸 파일 I/O를 테넌트별로 격리
+  const __t = await effectiveTenantId(request, null);
+  return runWithTenant(__t, async () => {
   const config = readJson<OpenClawConfig>(configPath("openclaw.json")) || {};
   const plugins = config.plugins?.entries || {};
   const channels: Record<string, Record<string, unknown>> = {};
@@ -110,4 +115,5 @@ export async function GET() {
   };
 
   return Response.json(channels);
+  });
 }

@@ -1,5 +1,7 @@
 import { readJson, readText, dataPath } from "@/lib/file-io";
 import { readSettings } from "@/app/api/settings/route";
+import { effectiveTenantId } from "@/lib/tenant-auth";
+import { runWithTenant } from "@/lib/tenant-context";
 
 interface QueueData {
   posts: Array<{
@@ -48,7 +50,10 @@ function parsePopularPosts(): Array<Record<string, string>> {
   return posts;
 }
 
-export async function GET() {
+export async function GET(request?: Request) {
+  // 테넌트 컨텍스트로 감싸 파일 격리 (본문 로직 불변)
+  const __t = request ? await effectiveTenantId(request, null) : null;
+  return runWithTenant(__t, async () => {
   const queue = readJson<QueueData>(dataPath("queue.json")) || { posts: [] };
   const posts = queue.posts || [];
 
@@ -105,5 +110,6 @@ export async function GET() {
     popularPostsCount: popular.length,
     popularSourceCounts,
     channelCounts,
+  });
   });
 }

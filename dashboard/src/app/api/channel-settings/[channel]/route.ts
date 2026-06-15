@@ -1,5 +1,7 @@
 import { readJson, writeJson, dataPath, configPath } from "@/lib/file-io";
 import { AUTOMATION_FEATURES } from "@/lib/constants";
+import { effectiveTenantId } from "@/lib/tenant-auth";
+import { runWithTenant } from "@/lib/tenant-context";
 
 interface ChannelSettingsData {
   [channel: string]: Record<string, boolean>;
@@ -37,12 +39,19 @@ function readChannelSettings(): ChannelSettingsData {
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ channel: string }> }) {
+  // 테넌트 컨텍스트로 감싸 파일 I/O를 테넌트별로 격리
+  const __t = await effectiveTenantId(_request, null);
+  return runWithTenant(__t, async () => {
   const { channel } = await params;
   const data = readChannelSettings();
   return Response.json(data[channel] || {});
+  });
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ channel: string }> }) {
+  // 테넌트 컨텍스트로 감싸 파일 I/O를 테넌트별로 격리
+  const __t = await effectiveTenantId(request, null);
+  return runWithTenant(__t, async () => {
   const { channel } = await params;
   const body = await request.json();
   const data = readChannelSettings();
@@ -81,4 +90,5 @@ export async function POST(request: Request, { params }: { params: Promise<{ cha
   }
 
   return Response.json({ ok: true, settings: data[channel] });
+  });
 }

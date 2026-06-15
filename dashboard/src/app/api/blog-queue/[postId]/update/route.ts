@@ -1,26 +1,32 @@
 import { readJson, writeJson, dataPath } from "@/lib/file-io";
+import { effectiveTenantId } from "@/lib/tenant-auth";
+import { runWithTenant } from "@/lib/tenant-context";
 
 interface BlogQueueData { posts: Array<Record<string, unknown>> }
 
+// 테넌트 컨텍스트로 감싸 파일을 data/tenants/{id}/ 로 격리(운영자=공유 루트).
 export async function POST(request: Request, { params }: { params: Promise<{ postId: string }> }) {
-  const { postId } = await params;
-  const queue = readJson<BlogQueueData>(dataPath("blog-queue.json"));
-  if (!queue) return Response.json({ error: "blog-queue.json not found" }, { status: 404 });
+  const __t = await effectiveTenantId(request, null);
+  return runWithTenant(__t, async () => {
+    const { postId } = await params;
+    const queue = readJson<BlogQueueData>(dataPath("blog-queue.json"));
+    if (!queue) return Response.json({ error: "blog-queue.json not found" }, { status: 404 });
 
-  const data = await request.json();
-  for (const post of queue.posts || []) {
-    if (post.id === postId) {
-      for (const key of ["title", "content", "seoKeyword", "category", "thumbnailUrl"]) {
-        if (key in data && typeof data[key] === "string") {
-          post[key] = data[key];
+    const data = await request.json();
+    for (const post of queue.posts || []) {
+      if (post.id === postId) {
+        for (const key of ["title", "content", "seoKeyword", "category", "thumbnailUrl"]) {
+          if (key in data && typeof data[key] === "string") {
+            post[key] = data[key];
+          }
         }
+        if ("tags" in data && Array.isArray(data.tags)) {
+          post.tags = data.tags.map(String);
+        }
+        writeJson(dataPath("blog-queue.json"), queue);
+        return Response.json({ ok: true, post });
       }
-      if ("tags" in data && Array.isArray(data.tags)) {
-        post.tags = data.tags.map(String);
-      }
-      writeJson(dataPath("blog-queue.json"), queue);
-      return Response.json({ ok: true, post });
     }
-  }
-  return Response.json({ error: "post not found" }, { status: 404 });
+    return Response.json({ error: "post not found" }, { status: 404 });
+  });
 }

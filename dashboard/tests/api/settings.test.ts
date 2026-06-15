@@ -16,7 +16,7 @@ afterEach(() => {
 describe('GET /api/settings', () => {
   it('returns settings with defaults when no file exists', async () => {
     const { GET } = await import('@/app/api/settings/route');
-    const res = await GET();
+    const res = await GET(new Request('http://localhost/api/settings'));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.viralThreshold).toBe(500);
@@ -27,7 +27,7 @@ describe('GET /api/settings', () => {
   it('merges saved settings with defaults', async () => {
     copyFixture(tmpDir, 'settings.json');
     const { GET } = await import('@/app/api/settings/route');
-    const res = await GET();
+    const res = await GET(new Request('http://localhost/api/settings'));
     const body = await res.json();
     expect(body.viralThreshold).toBe(500);
     expect(body.minLikes).toBe(10);

@@ -1,4 +1,6 @@
 import { readJson, configPath } from "@/lib/file-io";
+import { effectiveTenantId } from "@/lib/tenant-auth";
+import { runWithTenant } from "@/lib/tenant-context";
 
 interface OpenClawConfig {
   plugins?: {
@@ -6,7 +8,10 @@ interface OpenClawConfig {
   };
 }
 
+// 테넌트 컨텍스트로 감싸 파일을 data/tenants/{id}/ 로 격리(운영자=공유 루트).
 export async function POST(request: Request) {
+  const __t = await effectiveTenantId(request, null);
+  return runWithTenant(__t, async () => {
   const config = readJson<OpenClawConfig>(configPath("openclaw.json")) || {};
   const blogCfg = config.plugins?.entries?.["sample-blog"]?.config || {};
   const apiBase = blogCfg.apiBaseUrl || "";
@@ -92,4 +97,5 @@ export async function POST(request: Request) {
     const msg = e instanceof Error ? e.message : String(e);
     return Response.json({ error: msg }, { status: 500 });
   }
+  });
 }

@@ -19,7 +19,7 @@ afterEach(() => {
 describe('GET /api/keywords', () => {
   it('returns keyword list', async () => {
     const { GET } = await import('@/app/api/keywords/route');
-    const res = await GET();
+    const res = await GET(new Request('http://localhost/api/keywords'));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.keywords).toEqual(['marketing', 'AI', 'automation']);

@@ -1,4 +1,6 @@
 import { readJson, writeJson, dataPath } from "@/lib/file-io";
+import { effectiveTenantId } from "@/lib/tenant-auth";
+import { runWithTenant } from "@/lib/tenant-context";
 
 interface ErrorEntry {
   id: string;
@@ -19,7 +21,10 @@ function getErrorLog(): ErrorLog {
   return readJson<ErrorLog>(dataPath("error-log.json")) || { errors: [] };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  // 테넌트 컨텍스트로 감싸 파일 격리 (본문 로직 불변)
+  const __t = await effectiveTenantId(request, null);
+  return runWithTenant(__t, async () => {
   const log = getErrorLog();
   const now = Date.now();
   const last24h = log.errors.filter(
@@ -31,9 +36,13 @@ export async function GET() {
     total: log.errors.length,
     last24h,
   });
+  });
 }
 
 export async function POST(req: Request) {
+  // 테넌트 컨텍스트로 감싸 파일 격리 (본문 로직 불변)
+  const __t = await effectiveTenantId(req, null);
+  return runWithTenant(__t, async () => {
   const body = await req.json();
   const { source, message, stack, context } = body as {
     source?: string;
@@ -64,4 +73,5 @@ export async function POST(req: Request) {
   writeJson(dataPath("error-log.json"), log);
 
   return Response.json({ ok: true, id: entry.id });
+  });
 }

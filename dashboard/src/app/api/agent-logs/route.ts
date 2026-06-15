@@ -1,8 +1,13 @@
 import { readJson, configPath } from "@/lib/file-io";
 import fs from "fs";
 import path from "path";
+import { effectiveTenantId } from "@/lib/tenant-auth";
+import { runWithTenant } from "@/lib/tenant-context";
 
-export async function GET() {
+export async function GET(request: Request) {
+  // 테넌트 컨텍스트로 감싸 파일 격리 (본문 로직 불변)
+  const __t = await effectiveTenantId(request, null);
+  return runWithTenant(__t, async () => {
   const sessionsDir = configPath("agents", "main", "sessions");
   const logs: Array<Record<string, unknown>> = [];
 
@@ -72,4 +77,5 @@ export async function GET() {
   });
 
   return Response.json({ logs: logs.slice(0, 20) });
+  });
 }

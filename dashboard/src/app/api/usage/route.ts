@@ -1,5 +1,7 @@
 import { readJson, dataPath } from "@/lib/file-io";
 import path from "path";
+import { effectiveTenantId } from "@/lib/tenant-auth";
+import { runWithTenant } from "@/lib/tenant-context";
 
 interface DailyUsage {
   aiGenerations: number;
@@ -31,7 +33,10 @@ function toDateStr(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  // 테넌트 컨텍스트로 감싸 파일 격리 (본문 로직 불변)
+  const __t = await effectiveTenantId(request, null);
+  return runWithTenant(__t, async () => {
   const filePath = path.join(dataPath(""), "usage.json");
   const data = readJson<UsageFile>(filePath) || { daily: {} };
   const daily = data.daily || {};
@@ -79,5 +84,6 @@ export async function GET() {
     thisWeek: sumDays(weekDays),
     thisMonth: sumDays(monthDays),
     daily: recentDaily,
+  });
   });
 }
