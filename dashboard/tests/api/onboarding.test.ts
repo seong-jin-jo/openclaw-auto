@@ -18,7 +18,7 @@ afterEach(() => {
 describe('GET /api/onboarding', () => {
   it('returns completed: false when no settings exist', async () => {
     const { GET } = await import('@/app/api/onboarding/route');
-    const res = await GET();
+    const res = await GET(new Request('http://localhost/api/onboarding'));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.completed).toBe(false);
@@ -30,7 +30,7 @@ describe('GET /api/onboarding', () => {
       JSON.stringify({ onboardingComplete: true, industry: 'cafe' })
     );
     const { GET } = await import('@/app/api/onboarding/route');
-    const res = await GET();
+    const res = await GET(new Request('http://localhost/api/onboarding'));
     const body = await res.json();
     expect(body.completed).toBe(true);
     expect(body.industry).toBe('cafe');

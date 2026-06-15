@@ -1,4 +1,6 @@
-import { readJson, writeJson, readText, writeText, dataPath } from "@/lib/file-io";
+import { readJson, writeJson, readText, writeText, dataPath, sharedDataPath } from "@/lib/file-io";
+import { effectiveTenantId } from "@/lib/tenant-auth";
+import { runWithTenant } from "@/lib/tenant-context";
 import path from "path";
 
 interface SettingsJson {
@@ -18,11 +20,14 @@ const VALID_INDUSTRIES = [
   "general",
 ];
 
-export async function GET() {
-  const settings = readJson<SettingsJson>(dataPath("settings.json"));
-  return Response.json({
-    completed: settings?.onboardingComplete === true,
-    industry: settings?.industry,
+export async function GET(request: Request) {
+  const tenantId = await effectiveTenantId(request, null);
+  return runWithTenant(tenantId, () => {
+    const settings = readJson<SettingsJson>(dataPath("settings.json"));
+    return Response.json({
+      completed: settings?.onboardingComplete === true,
+      industry: settings?.industry,
+    });
   });
 }
 
@@ -47,24 +52,22 @@ export async function POST(request: Request) {
     );
   }
 
-  // Copy template files to data/
-  const templatesDir = path.resolve(dataPath("templates"));
+  // 업종 템플릿은 공유(sharedDataPath), 복사 결과물은 테넌트별(dataPath, runWithTenant 안).
+  const templatesDir = path.resolve(sharedDataPath("templates"));
   const promptGuide = readText(path.join(templatesDir, `${industry}.prompt-guide.txt`));
   const searchKeywords = readText(path.join(templatesDir, `${industry}.search-keywords.txt`));
 
-  if (promptGuide) {
-    writeText(dataPath("prompt-guide.txt"), promptGuide);
-  }
-  if (searchKeywords) {
-    writeText(dataPath("search-keywords.txt"), searchKeywords);
-  }
+  const tenantId = await effectiveTenantId(request, null);
+  return runWithTenant(tenantId, () => {
+    if (promptGuide) writeText(dataPath("prompt-guide.txt"), promptGuide);
+    if (searchKeywords) writeText(dataPath("search-keywords.txt"), searchKeywords);
 
-  // Update settings.json
-  const existing = readJson<SettingsJson>(dataPath("settings.json")) || {};
-  existing.onboardingComplete = true;
-  existing.industry = industry;
-  existing.channels = channels;
-  writeJson(dataPath("settings.json"), existing);
+    const existing = readJson<SettingsJson>(dataPath("settings.json")) || {};
+    existing.onboardingComplete = true;
+    existing.industry = industry;
+    existing.channels = channels;
+    writeJson(dataPath("settings.json"), existing);
 
-  return Response.json({ ok: true });
+    return Response.json({ ok: true });
+  });
 }

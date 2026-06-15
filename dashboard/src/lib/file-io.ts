@@ -60,3 +60,8 @@ export function dataPath(name: string): string {
 export function configPath(...parts: string[]): string {
   return path.join(CONFIG_DIR, tenantSeg(), ...parts);
 }
+
+/** 공유 데이터 경로 — 테넌트 컨텍스트 무시하고 항상 공유 루트. 공유 템플릿/에셋 읽기용. */
+export function sharedDataPath(name: string): string {
+  return path.join(DATA_DIR, name);
+}
