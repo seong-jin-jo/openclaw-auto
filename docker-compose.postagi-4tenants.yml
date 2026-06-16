@@ -237,6 +237,6 @@ services:
     environment:
       DATA_DIR: /app/data
       CONFIG_DIR: /app/config
-      PORT: "18789"
+      DASHBOARD_PORT: "18789"
       HOSTNAME: "0.0.0.0"
       NODE_ENV: production
