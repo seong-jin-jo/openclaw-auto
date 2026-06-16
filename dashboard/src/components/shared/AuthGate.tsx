@@ -72,8 +72,8 @@ function LandingPage() {
   }, [token]);
 
   const scrollToLogin = useCallback(() => {
-    setShowLogin(true);
-    setTimeout(() => loginRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
+    // 고객 가입/로그인 페이지로 (이메일·비번·구글). 운영자 토큰은 아래 보조 옵션.
+    window.location.href = "/login";
   }, []);
 
   return (
@@ -286,42 +286,43 @@ function LandingPage() {
 
           <div className="text-center mb-6">
             <h3 className="text-lg font-bold text-white mb-2">시작하기</h3>
-            <p className="text-xs text-gray-500">Auth Token을 입력하여 대시보드에 접속하세요</p>
+            <p className="text-xs text-gray-500">이메일로 가입하고 내 브랜드 콘텐츠를 자동 생성·발행하세요</p>
           </div>
 
+          {/* 고객 가입/로그인 — 이메일·비번·구글 (중앙정렬된 /login 페이지) */}
+          <a
+            href="/login"
+            className="block w-full py-3 rounded-lg text-white font-semibold text-sm text-center transition-all"
+            style={{ background: "linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%)" }}
+          >
+            로그인 / 회원가입 →
+          </a>
+
+          {/* 운영자 보조 — 토큰 접속 */}
           {showLogin ? (
-            <div>
+            <div className="mt-4">
               <input
                 type="password"
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && doLogin()}
-                placeholder="Auth Token"
-                className="w-full bg-gray-900 text-gray-200 text-sm p-3.5 rounded-lg border border-gray-700 focus:border-purple-500 focus:outline-none transition-colors mb-4"
+                placeholder="운영자 Auth Token"
+                className="w-full bg-gray-900 text-gray-200 text-sm p-3 rounded-lg border border-gray-700 focus:border-purple-500 focus:outline-none transition-colors mb-2"
                 autoFocus
               />
               <button
                 onClick={doLogin}
-                className="w-full py-3 rounded-lg text-white font-semibold text-sm transition-all"
-                style={{ background: "linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%)" }}
-                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
-                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+                className="w-full py-2.5 rounded-lg text-gray-200 font-medium text-sm bg-gray-800 hover:bg-gray-700 transition-all"
               >
-                무료로 시작하기
+                운영자 토큰으로 접속
               </button>
-              <p className="text-[10px] text-gray-600 text-center mt-3">
-                DASHBOARD_AUTH_TOKEN 환경 변수에 설정한 토큰을 입력하세요
-              </p>
             </div>
           ) : (
             <button
               onClick={() => setShowLogin(true)}
-              className="w-full py-3 rounded-lg text-white font-semibold text-sm transition-all"
-              style={{ background: "linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%)" }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+              className="w-full mt-3 text-[11px] text-gray-600 hover:text-gray-400 transition-colors"
             >
-              무료로 시작하기
+              운영자세요? 토큰으로 접속
             </button>
           )}
         </div>
