@@ -34,7 +34,11 @@ jobs:
           EOF
           echo ".env.osmu rendered ($(grep -c . .env.osmu) lines)"
       - name: 이미지 빌드 (gateway + dashboard)
-        run: docker compose -f docker-compose.postagi-4tenants.yml build
+        # NEXT_PUBLIC_* 는 빌드 시점 인라인 → 고객 로그인용 supabase 공개키를 빌드 arg로 전달(공개키라 baking 안전).
+        run: |
+          docker compose -f docker-compose.postagi-4tenants.yml build \
+            --build-arg NEXT_PUBLIC_SUPABASE_URL="${{ secrets.OSMU_SUPABASE_URL }}" \
+            --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY="${{ secrets.OSMU_SUPABASE_ANON_KEY }}"
       - name: 기동
         run: docker compose -f docker-compose.postagi-4tenants.yml up -d ${{ github.event.inputs.services }}
       - name: 상태
