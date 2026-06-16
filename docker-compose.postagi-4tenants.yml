@@ -220,3 +220,23 @@ services:
       GATEWAY_PORT: "18789"
     depends_on:
       - openclaw-gateway-tenant1
+
+  # ─────────────── OSMU SaaS 대시보드(멀티테넌트, 고객 로그인) ───────────────
+  # 공개 URL: openclaw.example.com → localhost:18789(VM)
+  # per-service(tenant1/tenant5/..)와 별개. 고객은 /login으로 자기 테넌트 격리. 게이트웨이는 고객별 동적 프로비저닝.
+  # ⚠️ .env.osmu 필수(DASHBOARD_AUTH_TOKEN=운영자잠금 + NEXT_PUBLIC_SUPABASE_* + DATABASE_URL + OSMU_SECRET_KEY).
+  # ⚠️ 18789는 tenant1 게이트웨이와 같은 포트 → 둘 중 하나만(SaaS 모델이 per-service 대체).
+  openclaw-dashboard-osmu:
+    <<: *dashboard-base
+    container_name: openclaw-dashboard-osmu
+    volumes:
+      - ./data-osmu:/app/data
+      - ./config-osmu:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file: .env.osmu
+    environment:
+      DATA_DIR: /app/data
+      CONFIG_DIR: /app/config
+      PORT: "18789"
+      HOSTNAME: "0.0.0.0"
+      NODE_ENV: production
