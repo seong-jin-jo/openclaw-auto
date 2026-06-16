@@ -122,7 +122,11 @@ function chSidebarItem(key: string, channelConfig: Record<string, Record<string,
 
 /* ── 워크스페이스 전환 (멀티테넌트, 같은 인스턴스 내) ── */
 function WorkspaceSwitcher() {
-  const { data, mutate } = useSWR<{ workspaces?: Workspace[] }>("/api/workspaces", fetcher);
+  // 고객/운영자 모드 판별: 고객은 자기 테넌트 1개만, 운영자만 전체 목록·전환·생성.
+  const { data: me } = useSWR<{ isOperator?: boolean; tenant?: Workspace | null }>("/api/me", fetcher);
+  const isOperator = me?.isOperator === true;
+  // 운영자만 전체 워크스페이스 조회(고객은 호출 안 함 → 남의 서비스명 노출 0)
+  const { data, mutate } = useSWR<{ workspaces?: Workspace[] }>(isOperator ? "/api/workspaces" : null, fetcher);
   const { activeWorkspace, setActiveWorkspace } = useUIStore();
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -130,10 +134,20 @@ function WorkspaceSwitcher() {
   const [busy, setBusy] = useState(false);
   const workspaces = data?.workspaces || [];
 
-  // 활성 워크스페이스 없으면 첫 번째 자동 선택
+  // 활성 워크스페이스: 고객=자기 테넌트 고정 / 운영자=첫 워크스페이스 자동선택
   useEffect(() => {
-    if (!activeWorkspace && workspaces.length > 0) setActiveWorkspace(workspaces[0]);
-  }, [activeWorkspace, workspaces, setActiveWorkspace]);
+    if (!isOperator && me?.tenant) { setActiveWorkspace(me.tenant); return; }
+    if (isOperator && !activeWorkspace && workspaces.length > 0) setActiveWorkspace(workspaces[0]);
+  }, [isOperator, me, activeWorkspace, workspaces, setActiveWorkspace]);
+
+  // 고객 모드: 스위처·목록·생성 전부 숨기고 자기 워크스페이스명만 표시(남의 서비스명 0)
+  if (!isOperator) {
+    return (
+      <div className="mt-1 text-xs">
+        <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent font-medium">{me?.tenant?.name || activeWorkspace?.name || "내 워크스페이스"}</span>
+      </div>
+    );
+  }
 
   const create = async () => {
     if (!name.trim() || busy) return;

@@ -10,6 +10,7 @@ import { useOnboardingStatus } from "@/hooks/useOnboarding";
 import { fmtAgo, fmtTime } from "@/lib/format";
 import { useUIStore } from "@/store/ui-store";
 import { OnboardingWizard } from "@/components/shared/OnboardingWizard";
+import { ChannelConnectBanner } from "@/components/shared/ChannelConnectBanner";
 import Link from "next/link";
 
 interface PostRow {
@@ -110,6 +111,8 @@ export default function HomePage() {
 
   return (
     <div className="px-8 py-6">
+      {/* 미연결 채널 알림 — 발행 전 연결 유도 */}
+      <ChannelConnectBanner />
       {/* Marketing Home — 전 플랫폼 종합 + 로고 클릭 시 플랫폼 집중 */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
