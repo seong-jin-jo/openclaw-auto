@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { getAuthToken, setAuthToken } from "@/lib/auth";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 
 /* ─── Pipeline step colors (Tailwind v4 can't do dynamic classes) ─── */
 const PIPELINE_STEPS = [
@@ -357,16 +360,31 @@ function LandingPage() {
  * If token exists, render children (sidebar + content).
  */
 export function AuthGate({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [hasToken, setHasToken] = useState<boolean | null>(null);
 
   useEffect(() => {
     setHasToken(!!getAuthToken());
   }, []);
 
-  // SSR: render nothing until we check localStorage
+  // 로그인/가입 페이지는 인증 없이 풀스크린으로(고객 진입점) — 사이드바·게이트 없이.
+  if (pathname === "/login" || pathname === "/signup") {
+    return <main className="min-h-screen w-full">{children}</main>;
+  }
+
+  // SSR: localStorage 확인 전엔 아무것도 안 그림
   if (hasToken === null) return null;
 
+  // 미인증: 랜딩(마케팅 + 로그인/회원가입 CTA → /login)
   if (!hasToken) return <LandingPage />;
 
-  return <>{children}</>;
+  // 인증됨: 사이드바 + 콘텐츠
+  return (
+    <div className="flex min-h-screen w-full">
+      <Sidebar />
+      <main className="flex-1 min-h-screen overflow-y-auto">
+        <ErrorBoundary>{children}</ErrorBoundary>
+      </main>
+    </div>
+  );
 }
