@@ -6,6 +6,7 @@ import { ChannelConnect } from "@/components/studio/ChannelConnect";
 import { TenantTokensSettings } from "@/components/settings/TenantTokensSettings";
 import { useUIStore } from "@/store/ui-store";
 import { AIEngine } from "@/components/settings/AIEngine";
+import { AiKeySettings } from "@/components/settings/AiKeySettings";
 import { LlmModel } from "@/components/settings/LlmModel";
 import { ClaudeToken } from "@/components/settings/ClaudeToken";
 import { StorageSettings } from "@/components/settings/StorageSettings";
@@ -67,6 +68,8 @@ export default function SettingsPage() {
       {activeTab === "ai" && (
         <>
           <p className="text-[10px] text-gray-500 mb-4">모든 채널의 콘텐츠 자동 생성 + 트렌드 분석에 사용됩니다.</p>
+          {/* 고객 셀프서브: 내 Anthropic 키 등록 → 생성이 내 키·내 과금으로 */}
+          <div className="mb-6"><AiKeySettings /></div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <LlmModel />
             <ClaudeToken />

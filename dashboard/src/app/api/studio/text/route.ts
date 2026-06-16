@@ -1,10 +1,6 @@
-import { execFile } from "child_process";
-import { promisify } from "util";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { getWikiContext } from "@/lib/wiki-retrieve";
-
-const execFileP = promisify(execFile);
-const CLAUDE_BIN = process.env.CLAUDE_BIN || "claude";
+import { generateText } from "@/lib/anthropic";
 
 // POST /api/studio/text — 글감 1개 → 플랫폼별 텍스트 변형(OSMU).
 // body: { idea, guide?, tenant_id? } guide=브랜드 톤(선택). tenant_id 있으면 위키에서 관련 문서 검색해 사실 근거 주입.
@@ -30,7 +26,8 @@ ${guide ? `브랜드 톤 가이드:\n${guide}\n` : ""}${wiki ? `\n=== 위키 참
  "image_prompt": "히어로 이미지 생성용 영문 프롬프트(텍스트 없이, 플랫 일러스트)"
 }`;
   try {
-    const { stdout } = await execFileP(CLAUDE_BIN, ["-p", prompt], { timeout: 120000, maxBuffer: 8 * 1024 * 1024 });
+    // 고객이 자기 Anthropic 키 등록 시 그 키로(고객 과금), 없으면 공유 claude -p
+    const stdout = await generateText(prompt, tenantId);
     const m = stdout.match(/\{[\s\S]*\}/);
     if (!m) return Response.json({ error: "JSON 추출 실패", raw: stdout.slice(-400) }, { status: 502 });
     return Response.json({ ok: true, ...JSON.parse(m[0]) });
