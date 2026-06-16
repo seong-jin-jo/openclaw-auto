@@ -21,6 +21,18 @@ jobs:
           for f in "$HOME"/openclaw-persist/.env.*; do
             [ -f "$f" ] && cp -a "$f" ./ && echo "복원: $(basename "$f")"
           done
+      - name: OSMU SaaS .env 렌더 (GitHub Secrets → .env.osmu)
+        if: ${{ contains(github.event.inputs.services, 'osmu') }}
+        run: |
+          umask 077
+          cat > .env.osmu <<EOF
+          DASHBOARD_AUTH_TOKEN=${{ secrets.OSMU_DASHBOARD_AUTH_TOKEN }}
+          NEXT_PUBLIC_SUPABASE_URL=${{ secrets.OSMU_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.OSMU_SUPABASE_ANON_KEY }}
+          DATABASE_URL=${{ secrets.OSMU_DATABASE_URL }}
+          OSMU_SECRET_KEY=${{ secrets.OSMU_SECRET_KEY }}
+          EOF
+          echo ".env.osmu rendered ($(grep -c . .env.osmu) lines)"
       - name: 이미지 빌드 (gateway + dashboard)
         run: docker compose -f docker-compose.postagi-4tenants.yml build
       - name: 기동
