@@ -43,3 +43,16 @@ jobs:
         run: docker compose -f docker-compose.postagi-4tenants.yml up -d ${{ github.event.inputs.services }}
       - name: 상태
         run: docker compose -f docker-compose.postagi-4tenants.yml ps
+      - name: OSMU 스모크 게이트 (로그인 흐름 자동검증 — 깨지면 배포 FAIL)
+        # 이 3개 버그(로그인死/인증게이트異常/supabase 빌드미주입)가 격노 유발 → 자동 차단.
+        if: ${{ contains(github.event.inputs.services, 'osmu') }}
+        run: |
+          sleep 12
+          L=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:18789/login || echo 000)
+          M=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:18789/api/me || echo 000)
+          echo "login=$L api/me=$M"
+          [ "$L" = "200" ] || { echo "::error::/login HTTP $L — 로그인 페이지 死"; exit 1; }
+          [ "$M" = "401" ] || { echo "::error::/api/me HTTP $M — 인증 게이트 이상(401이어야 안전)"; exit 1; }
+          docker exec openclaw-dashboard-osmu sh -c 'grep -rlq gvtsyyltgwqplrqegrxo .next 2>/dev/null' \
+            || { echo "::error::NEXT_PUBLIC supabase URL 빌드 미주입 — 가입/로그인 死(supabaseUrl required)"; exit 1; }
+          echo "✅ 스모크 통과: 로그인페이지·인증게이트·supabase 빌드주입 정상"
