@@ -25,7 +25,12 @@
 
 **원칙**: 하나의 사이트/앱에서 관리하되, 화면(UI)과 DB가 테넌트별로 **완전히 격리**되어야 한다.
 
-**현재 실제 배포 (2026-06 handoff 기준)**
+**현재 실제 배포 (2026-06 handoff 기준, 0차 필수 참고)**:
+**상세 전체 (터널, GHA, 빌드 규칙, 버그, 스모크, 교훈)**: `wiki/learnings/2026-06-19-openclaw-osmu-handoff.md` **반드시 먼저 읽을 것**.
+- 공개: cloudflared 터널 (Proxmox) → localhost:18789
+- 배포: self-hosted GHA (marketing_runner) + 수동 `gh workflow run deploy-marketing.yml -f services="openclaw-dashboard-osmu"`
+- 시크릿: GitHub Secrets only
+- 0차 작업 시 이 모델(터널 + GHA 수동 + build-arg + DASHBOARD_PORT + 스모크)을 절대 깨지 않게.
 - 공개: cloudflared 터널 (Proxmox VM 100.80.25.40 → 192.168.1.110) → localhost:18789
 - 배포: GitHub Actions self-hosted runner (`marketing_runner`) + 수동 `gh workflow run deploy-marketing.yml -f services="openclaw-dashboard-osmu"`
 - Compose: `docker-compose.postagi-4tenants.yml` 의 `openclaw-dashboard-osmu` (포트 18789)

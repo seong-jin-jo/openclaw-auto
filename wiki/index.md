@@ -10,14 +10,14 @@
 - [How to contribute / use this wiki](#how-to)
 - [Reference: Structure](#reference-structure)
 - [Why this wiki? (Explanation)](#explanation)
-- Subsections (proposed full structure):
-  - [architecture/](./architecture/) — technical reference & explanation
-  - [decisions/](./decisions/) — ADRs and key choices
-  - [product/](./product/) — vision, features, shorts factory
+- Subsections (deeper benchmark-informed structure for solid AI SaaS):
+  - [architecture/](./architecture/) — technical reference & explanation (Obsidian-style markdown for AI/RAG/gstack agents)
+  - [decisions/](./decisions/) — ADRs (001 wiki+gstack, 002 adoption, 003 dual-wiki moat + hybrid pricing for retention)
+  - [product/](./product/) — vision, features, shorts factory, pricing (hybrid based on 2026 AI SaaS data: retention, Opus gaps)
   - [ops/](./ops/) — running the system (cron, deploy, tenant)
-  - [guides/](./guides/) — how-tos, especially gstack procedures
+  - [guides/](./guides/) — how-tos, especially gstack procedures + "benchmark deeply then decide"
   - [learnings/](./learnings/) — patterns, pitfalls captured via gstack
-  - [reference/](./reference/) — quick lookup tables (env, commands)
+  - [reference/](./reference/) — env, channels, **benchmarking.md** (deeper: competitors like Opus/Jasper, pricing/retention data, wiki tools Obsidian/Notion, moats, gstack velocity)
 
 ## Overview
 
@@ -107,13 +107,14 @@ Start here when using gstack: "Load gstack. Read wiki/index.md and wiki/guides/g
 
 ```
 wiki/
-├── index.md                 # This file
+├── index.md                 # This file (start here)
 ├── architecture/            # System design, data flow, cron, extensions
 ├── decisions/               # ADRs (Architecture Decision Records)
 ├── product/                 # SaaS vision, shorts factory, studio
 ├── ops/                     # Cron, docker, deploy, env, multi-tenant
 ├── guides/                  # How-tos for common tasks
-└── learnings/               # Patterns, pitfalls, preferences (from gstack /learn)
+├── learnings/               # Patterns, pitfalls, preferences (from gstack /learn)
+└── reference/               # Env vars, channel status, benchmarking
 ```
 
 ## Explanation

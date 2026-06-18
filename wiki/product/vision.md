@@ -41,7 +41,16 @@
 
 **Pricing**: 지금은 "존재만 하면 다행" 수준. 고객들이 에러 상황을 제대로 설명 못 하고, 인프라 다운/에러로 환불·소송까지 가는 상황이 훨씬 큰 위험. Pricing 집착은 나중에.
 
-**Onboarding 현실 + 현재 운영 제약 (handoff 반영)**: 
+**Onboarding 현실 + 현재 운영 제약 (handoff 반영, 0차 필수)**: 
+- API 토큰 발급/등록이 병목.
+- 현재 라이브: cloudflared 터널 (Proxmox) + self-hosted GHA (marketing_runner) + 수동 `gh workflow run deploy-marketing.yml -f services="openclaw-dashboard-osmu"` (포트 18789).
+- **빌드/배포 규칙 절대 준수** (handoff에서 고친 치명 버그):
+  1. NEXT_PUBLIC_* 는 반드시 build-arg (런타임 .env만 주면 supabaseUrl required로 죽음).
+  2. 포트는 DASHBOARD_PORT (기본 34560, PORT 무시).
+  3. AuthGate: /login /signup 은 LandingPage 덮어쓰지 않게.
+- 스모크 게이트 존재 (deploy 후 /login 200 + /api/me 401 + supabase URL 확인).
+- **전체 상세 (배포, 시크릿, 버그, 스모크, 교훈)**: `wiki/learnings/2026-06-19-openclaw-osmu-handoff.md` **0차 작업 전 반드시 전체 읽기**.
+- CF for SaaS (Custom Hostnames)는 고객 커스텀 도메인용 (0차 안정 후).
 - API 토큰 발급/등록이 병목.
 - 현재 라이브: cloudflared 터널 + self-hosted GHA 수동 트리거 (`deploy-marketing.yml` services="openclaw-dashboard-osmu").
 - 빌드 규칙 필수 준수 (아래 고친 버그 참고).

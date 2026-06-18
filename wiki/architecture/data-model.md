@@ -26,6 +26,13 @@ This is the reference for all persistent state. Most data is tenant-scoped for S
 - `growth_metrics`: daily follower counts per channel.
 - `drafts`: candidate shorts/posts saved for review.
 
+### Usage & Billing (v4 SaaS - new for hybrid pricing)
+- `usage_events`: tenant_id, type (generation, short_video_min, priority_model, etc.), quantity, timestamp, cost_units.
+- `subscriptions`: tenant_id, tier (starter/pro/team), base_price, current_period_start/end, status.
+- `usage_quotas`: per tenant/month limits (shorts_included, generations, etc.) + overage tracking.
+- Aggregates: monthly usage summary for invoicing/expansion signals.
+- Goal: Support base subscription predictability + usage add-ons for >110% NRR expansion. Tenant-isolated (RLS). Cron will aggregate for billing reports.
+
 ### Automation State
 - `cron-runs`, `cron-status`.
 - Settings per tenant/channel (credentials, guide, keywords, toggles).

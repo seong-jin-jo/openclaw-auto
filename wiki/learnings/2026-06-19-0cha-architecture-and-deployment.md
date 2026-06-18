@@ -78,6 +78,13 @@ SoloClaw 강력 추천 (솔로 + Claw + 숏폼 공장 포지셔닝). 0차 동안
 - 실제 라이브: cloudflared 터널 (Proxmox) + self-hosted GHA (marketing_runner) + 수동 `gh workflow run deploy-marketing.yml -f services="openclaw-dashboard-osmu"` (포트 18789).
 - 시크릿: GitHub Secrets only. 빌드 규칙 엄수 (NEXT_PUBLIC_* 는 build-arg, DASHBOARD_PORT 사용).
 - 이미 고쳐진 치명 버그 + 스모크 게이트 존재.
+- **전체 상세**: `wiki/learnings/2026-06-19-openclaw-osmu-handoff.md` **0차 작업 전 필수 전체 읽기**.
+- 0차 작업은 이 현재 배포 모델(터널 + GHA 수동 + build-arg 규칙 + DASHBOARD_PORT + 스모크)을 깨지 않으면서 진행.
+- CF for SaaS (Custom Hostnames)는 고객용 커스텀 도메인 단계 (0차 안정 후)에서 적용.
+- Multi-tenant (Supabase + RLS) 는 이미 동작 중. 0차는 그 위에 multi-repo wiki pulling, 에러 설명력, Shorts Factory 안정화를 얹는다.
+- 실제 라이브: cloudflared 터널 (Proxmox) + self-hosted GHA (marketing_runner) + 수동 `gh workflow run deploy-marketing.yml -f services="openclaw-dashboard-osmu"` (포트 18789).
+- 시크릿: GitHub Secrets only. 빌드 규칙 엄수 (NEXT_PUBLIC_* 는 build-arg, DASHBOARD_PORT 사용).
+- 이미 고쳐진 치명 버그 + 스모크 게이트 존재.
 - **전체 상세**: `wiki/learnings/2026-06-19-openclaw-osmu-handoff.md` 필수 선행 읽기.
 - 0차 작업은 이 현재 배포 모델을 깨지 않으면서 진행. CF SaaS Custom Hostnames 는 고객 커스텀 도메인 단계(1차)에서 본격.
 
