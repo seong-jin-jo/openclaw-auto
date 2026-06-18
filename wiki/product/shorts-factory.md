@@ -8,7 +8,9 @@ Goal: Turn longform knowledge (wiki pages, blogs, transcripts) + trends into hig
 - **video-generate**: slides[] (text, duration, optional imageUrl) → ffmpeg 1080x1920 + optional ElevenLabs narration + BGM. Called from dashboard API.
 - **Studio**: Supports "shorts" variant output + withVideo toggle (Higgsfield / minimax paths mentioned).
 - Publish: YouTube video upload works in dashboard; TikTok extension is limited (audit required).
-- Sources today: manual idea or blog queue. Wiki (brand) can be used for facts.
+- Sources: manual idea, blog queue, **or now project wiki/ via /api/sourcing with wiki_path** (e.g. "product/shorts-factory.md").
+
+**New integration (gstack procedure step)**: Project wiki pages can now be used directly as longform source for shorts candidates. This wires our dev knowledge base into the shorts factory for e.g. project update posts, announcement variants, or testing. (Separate from tenant Brand Wiki facts injection.)
 
 ## Target Flow (wiki + gstack driven)
 

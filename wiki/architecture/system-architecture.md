@@ -1,5 +1,10 @@
 # System Architecture
 
+**이 문서는 wiki/ 의 공식 아키텍처 레퍼런스입니다.** 
+root CLAUDE.md 는 이제 고수준 포인터 역할만 합니다 (상세는 wiki/ 참조).
+
+gstack 사용 시 항상 "Load gstack. Read wiki/architecture/system-architecture.md + wiki/index.md 먼저" 하세요.
+
 ## High Level
 
 ```

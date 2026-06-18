@@ -132,8 +132,9 @@ dashboard/                   # 웹 대시보드 (Next.js + TypeScript)
     store/                   #   상태 관리
   legacy/                    #   Flask 호환용 (점진적 제거 예정)
 
-docs/                        # UI 규칙 등 공유 문서 (점진 wiki/ 로 마이그레이션)
+docs/                        # 레거시 공유 문서 (점진 wiki/ 로 마이그레이션 중)
 wiki/                        # **Project Wiki** — 개발 지식 Single Source of Truth (gstack 절차로 유지)
+                             # 이 폴더가 모든 상세 아키텍처, 제품 비전, 가이드, 결정, learnings의 출발점입니다.
 config/                      # 설정 템플릿 (.example)
 data/                        # 런타임 데이터 (.gitignore)
 openclaw/                    # OpenClaw 오픈소스 (git submodule)

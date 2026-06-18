@@ -196,6 +196,15 @@ data/
 
 → **[docs/ui-rules.md](docs/ui-rules.md)** 참고
 
+**중요**: 이 CLAUDE.md는 고수준 기술 개요와 환경 변수 중심입니다. 
+**상세 지식, 아키텍처, 결정, 가이드, 제품 비전은 모두 `wiki/` 로 이동/유지관리**됩니다.
+
+wiki/ 가 이 프로젝트의 Single Source of Truth입니다.
+- 작업 전: 반드시 wiki/ 관련 섹션 읽기
+- gstack 사용 시: "Load gstack. Read wiki/index.md + relevant pages first"
+
+자세한 내용은 wiki/index.md 와 하위 폴더들을 참조하세요.
+
 CLAUDE.md와 별도 관리. 모든 fork가 공유하는 대시보드 UI/UX 기준.
 
 ## Project Wiki (지식 조직화)
