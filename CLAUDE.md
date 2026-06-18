@@ -197,3 +197,56 @@ data/
 → **[docs/ui-rules.md](docs/ui-rules.md)** 참고
 
 CLAUDE.md와 별도 관리. 모든 fork가 공유하는 대시보드 UI/UX 기준.
+
+## Project Wiki (지식 조직화)
+
+이 프로젝트의 개발 지식은 `wiki/` 디렉토리를 **Single Source of Truth**로 사용한다.
+
+- **항상 작업 시작 전 wiki/ 읽기**: 아키텍처, 결정(ADR), 가이드, learnings 확인.
+- 제품용 Brand Wiki (tenant wiki_docs, 콘텐츠 생성 grounding)와 **구분**.
+- 구조: wiki/index.md, wiki/architecture/, wiki/decisions/ (ADR), wiki/product/, wiki/ops/, wiki/guides/, wiki/learnings/.
+- 기존 CLAUDE.md / docs/ / README 내용은 wiki/ 로 점진 마이그레이션.
+- gstack /document-generate 와 /learn 으로 유지보수.
+- 검색: 간단 md + (필요시 grep 또는 향후 RAG).
+
+## gstack Development Process (Garry Tan의 gstack 절차)
+
+모든 **중대 작업** (새 기능, 리팩터, wiki 개선, shorts factory 확대, 아키텍처 변경)은 gstack 절차를 **항상** 따른다.
+
+### 표준 파이프라인
+1. **Load gstack** + `/office-hours` — 아이디어 브레인스톰 (6 forcing questions).
+2. `/plan-ceo-review` — 비전/스코프 검토.
+3. `/plan-eng-review` + `/plan-design-review` + `/plan-devex-review` — 기술/디자인/DX.
+4. `/autoplan` — 종합 실행 계획 생성 (CEO+Eng+Design+QA).
+5. 계획 승인 후 구현 (gstack-lite: 모든 파일 읽기 → 5줄 플랜 → self-review).
+6. `/review` (코드) + `/qa` (gstack browse로 실제 플로우 테스트 + annotated screenshots) + `/cso` (보안).
+7. `/ship` 또는 `/land-and-deploy`.
+8. `/learn` 으로 패턴/함정/선호 기록 + `/document-generate` 로 문서 보강. wiki/ 업데이트.
+
+### OpenClaw + gstack 연동
+- OpenClaw가 Claude Code 세션 spawn 시 gstack 주입.
+- AGENTS.md 또는 호출 시 "Load gstack. Run /X" 명시.
+- Dispatch tiers:
+  - Simple: 10줄 이하.
+  - Medium: gstack-lite.
+  - Heavy/Full/Plan: 해당 스킬 전체 파이프라인.
+
+### Skill Routing (gstack 추천)
+When the user's request matches an available skill, invoke it via the Skill tool. When in doubt, invoke the skill.
+
+Key routing rules:
+- Product ideas/brainstorming → /office-hours
+- Strategy/scope → /plan-ceo-review
+- Architecture → /plan-eng-review
+- Design system/plan review → /design-consultation or /plan-design-review
+- Full review pipeline → /autoplan
+- Bugs/errors → /investigate
+- QA/testing → /qa or /qa-only (browse 사용)
+- Code review/diff → /review
+- Visual polish → /design-review
+- Ship/deploy/PR → /ship or /land-and-deploy
+- Docs generate → /document-generate
+- Learnings manage → /learn
+- Save/restore context → /context-save or /context-restore
+
+이 절차로 "AI가 가상 엔지니어링 팀처럼" 동작하게 한다. Boil the Ocean (완전성) 원칙 준수.
