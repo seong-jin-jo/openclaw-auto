@@ -38,12 +38,35 @@
 - 대안: ClawFactory, SoloForge, ShortsClaw.
 - 이름은 0차 진행하면서 가정하고, 나중에 최종 확정.
 
-### 현재 최우선 과제 (0차)
-- 신뢰성 + 에러 설명력 (사용자가 "왜 이런 에러가 났는지" 설명할 수 있게)
-- 온보딩 마찰 최소화 (API 토큰 과정)
-- Multi-repo wiki context pulling 안정화
-- Shorts Factory (숏폼 생산 공장) 안정 동작
-- 테넌트 완전 격리 + Custom Hostnames 동작 검증
+### 현재 최우선 과제 (0차) — 더 세밀한 태스크
+1. **Tenant Isolation 완벽화**
+   - 단일 앱 + UI/DB 완전 격리 (RLS + withTenant 강제).
+   - 크로스-테넌트 누출 테스트.
+
+2. **Cloudflare Custom Hostnames (배포 핵심)**
+   - Fallback origin + hostname→tenant 매핑.
+   - 예: marketing.example.com (고객 CNAME → 우리 origin).
+   - SSL/routing 검증 (2개 도메인 무료).
+
+3. **Multi-repo Wiki Context Pulling**
+   - 다른 레포 위키 포인팅해서 context 끌어오기 (0차에 포함).
+   - Product wiki (`wiki/`) + 외부 위키 동시 사용.
+
+4. **Reliability & Error Handling**
+   - 에러를 "사용자가 설명 가능"하게 (상세 로그 + 친화적 메시지).
+   - 재현성 확보, 인프라 안정.
+
+5. **Shorts Factory + Loop 안정화**
+   - Wiki context로 숏폼 후보 → 발행 → 인사이트까지 안정 동작.
+   - 사용자가 실제 가치 (시간 절감 or 부수입) 체감.
+
+6. **Onboarding 마찰 최소화**
+   - API 토큰 과정 가이드 (메뉴얼 or 셀프).
+
+**0차 완료 기준**: 위 성공 기준 (vision.md 참조) 만족 시 1차 이동. gstack 절차 엄수.
+
+### Product Name
+SoloClaw 강력 추천 (솔로 + Claw + 숏폼 공장 포지셔닝). 0차 동안 가정 사용, 이름 확정은 별도 review.
 
 ## Why this matters
 이전에는 1000명+ 유료, 높은 가격대, 강한 리텐션 중심으로 생각했으나, 현실은:

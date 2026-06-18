@@ -53,6 +53,13 @@ External: Threads/X/IG/YouTube/TikTok APIs + R2 + ElevenLabs + Midjourney
 - Brand setup (guide + wiki/repo sync)
 - Tenants/workspaces
 
+**0차 아키텍처 포커스 (2026-06-19)**
+- 단일 앱 + 테넌트 완전 격리 (UI + DB, RLS + withTenant).
+- Cloudflare Custom Hostnames 지원 (고객 도메인 직접 사용).
+- Multi-repo wiki context pulling (다른 레포 위키를 product context로).
+- Reliability: 에러를 사용자가 설명/재현 가능하게.
+- Shorts Factory + automation loop을 operator(0차)의 다중 서비스에서 안정 동작.
+
 ## Data Flow for Shorts Factory (target)
 
 Longform (wiki page / blog) → longform_to_shorts → candidates

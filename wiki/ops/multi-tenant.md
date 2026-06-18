@@ -47,12 +47,50 @@
 - UI: effectiveTenantId로 모든 요청/화면 격리. 한 테넌트 데이터가 다른 화면에 절대 노출 안 됨.
 - R2: per-tenant prefix 또는 별도 bucket policy.
 
-**구현 로드맵 (0차)**:
-1. Fallback origin + basic Custom Hostname 매핑.
-2. Hostname resolver 미들웨어 (req.hostname → tenant lookup).
-3. SSL 자동화 확인 + 테스트 (2개 도메인).
-4. 테넌트별 완전 격리 검증 (DB + UI).
-5. 문서화 (이 파일 + deploy 가이드).
+**0차 구현 상세 계획 (더 세밀하게 다듬음)**:
+
+**1. Tenant Isolation 완벽화 (단일 앱 + 완전 격리)**
+   - DB: 모든 주요 테이블에 tenant_id 강제 + RLS 정책 철저 적용 + withTenant() wrapper 누락 방지.
+   - UI: 모든 라우트/컴포넌트에서 effectiveTenantId 기반 격리. 한 테넌트 데이터가 다른 화면에 절대 보이지 않게.
+   - 테스트: 여러 테넌트 시뮬레이션으로 크로스-테넌트 누출 방지 검증.
+   - 현재 상태 점검: data-model.md와 schema.sql 기반으로 gaps 찾기.
+
+**2. Cloudflare for SaaS (Custom Hostnames) 구현**
+   - Fallback origin 설정 (우리가 관리하는 단일 origin).
+   - Custom Hostname 등록 자동화/매핑 (hostname → tenant_id lookup, 미들웨어 또는 CF Worker).
+   - 예시: marketing.example.com → 우리 origin, 고객은 CNAME 설정.
+   - SSL: CF 자동 발급 확인.
+   - 테스트: 1-2개 도메인으로 end-to-end (routing + isolation).
+   - 한계: 2개까지 무료, 이후 유료 고려.
+
+**3. Multi-repo Wiki Context Pulling (0차 핵심)**
+   - 사용자가 가진 다른 레포/노트 위키를 포인팅해서 context 끌어오기.
+   - 여기 product wiki (`wiki/`) + 외부 레포 위키 동시 지원.
+   - 구현: sourcing/route.ts 등에서 repo URL + path 지원 강화, RAG/주입 로직.
+   - 안정성: 에러 시 명확한 메시지 + fallback.
+
+**4. Reliability & Error Handling (에러 설명 가능하게)**
+   - 모든 에러 (발행 실패, 기록 미노출, API 에러 등)에 대해:
+     - 상세 로그 (traceable).
+     - 사용자에게 "무엇이 왜 실패했는지" 설명 가능한 메시지.
+   - Debug/재현 모드 추가 (사용자가 에러를 operator에게 쉽게 전달).
+   - 인프라 모니터링 (크론, API 다운 방지).
+
+**5. Shorts Factory + Automation Loop 안정화 (0차 검증)**
+   - Wiki context (자신의 서비스 + product wiki)로 숏폼 후보 생성 → 검토 → 발행 → 인사이트까지 풀 루프.
+   - Multi-channel (text + video) 동작 확인.
+   - 사용자가 실제 서비스에서 "시간 절감 or 부수입 가능" 체감할 수준으로.
+
+**6. Onboarding 마찰 최소화 (토큰 과정)**
+   - API 토큰 발급/등록을 더 가이드화 (메뉴얼 or 셀프 트라이).
+   - 0차에서는 operator(본인)가 쉽게 여러 서비스 등록할 수 있게.
+
+**7. 0차 완료 기준 + 전환**
+   - 위 성공 기준 만족 시 1차로 (1명 사용자 유치).
+   - SoloClaw 이름 가정 하에 브랜딩 최소 적용.
+   - 모든 변경은 gstack 절차 (read wiki → plan → implement → review) 따름.
+
+자세한 Cloudflare 설정은 별도 `wiki/ops/deploy.md`에 문서화 예정.
 - Cron: tenant-aware execution + rate limit.
 
 자세한 Cloudflare 설정과 코드는 `wiki/ops/deploy.md` (추가 예정)와 architecture 문서 참조.
