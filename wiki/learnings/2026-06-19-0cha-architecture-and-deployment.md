@@ -74,6 +74,13 @@ SoloClaw 강력 추천 (솔로 + Claw + 숏폼 공장 포지셔닝). 0차 동안
 - 신뢰성과 사용성(에러 대응, 온보딩)이 가격보다 훨씬 중요.
 - 실제 운영자가 먼저 잘 써야 진짜 제품이 나옴.
 
-**다음 단계**: 0차 plan에 따라 Cloudflare Custom Hostnames + tenant isolation + multi-repo wiki pulling을 안정화.
+**운영 현실 반영 (handoff 2026-06-19)**:
+- 실제 라이브: cloudflared 터널 (Proxmox) + self-hosted GHA (marketing_runner) + 수동 `gh workflow run deploy-marketing.yml -f services="openclaw-dashboard-osmu"` (포트 18789).
+- 시크릿: GitHub Secrets only. 빌드 규칙 엄수 (NEXT_PUBLIC_* 는 build-arg, DASHBOARD_PORT 사용).
+- 이미 고쳐진 치명 버그 + 스모크 게이트 존재.
+- **전체 상세**: `wiki/learnings/2026-06-19-openclaw-osmu-handoff.md` 필수 선행 읽기.
+- 0차 작업은 이 현재 배포 모델을 깨지 않으면서 진행. CF SaaS Custom Hostnames 는 고객 커스텀 도메인 단계(1차)에서 본격.
+
+**다음 단계**: 위 0차 plan 태스크를 gstack 절차대로 (read wiki → plan → implement with comments → verify) 진행. 배포 시 반드시 스모크 게이트 통과 확인.
 
 이 문서는 gstack CEO review 결과를 wiki에 직접 반영한 결과물이다.

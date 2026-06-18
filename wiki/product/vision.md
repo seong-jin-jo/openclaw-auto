@@ -41,7 +41,11 @@
 
 **Pricing**: 지금은 "존재만 하면 다행" 수준. 고객들이 에러 상황을 제대로 설명 못 하고, 인프라 다운/에러로 환불·소송까지 가는 상황이 훨씬 큰 위험. Pricing 집착은 나중에.
 
-**Onboarding 현실**: API 토큰 발급 + 등록 과정이 큰 병목. 설치/메뉴얼 돈받기(예: 60만) vs 셀프 따라하기 옵션 고민 중.
+**Onboarding 현실 + 현재 운영 제약 (handoff 반영)**: 
+- API 토큰 발급/등록이 병목.
+- 현재 라이브: cloudflared 터널 + self-hosted GHA 수동 트리거 (`deploy-marketing.yml` services="openclaw-dashboard-osmu").
+- 빌드 규칙 필수 준수 (아래 고친 버그 참고).
+- 상세: `wiki/learnings/2026-06-19-openclaw-osmu-handoff.md`
 
 **Wiki 전략 업데이트**:
 - 이 `wiki/` = 상품 자체의 지식 베이스 (제품 위키).
@@ -65,10 +69,16 @@
 - vision, onboarding wizard, 도메인 예시 등 일관되게 업데이트.
 - "숏폼생산공장" aspect를 부제나 기능 강조로 풀기.
 
-**최우선 해결 과제**:
-- 에러 발생 시 사용자에게 명확히 설명되고, 대응 가능한 구조 (기록 안 보임, 발행 실패, API 에러 등).
-- 안정성 (인프라 다운 방지, 재현성).
-- 가치 체감: 기존에 귀찮았던 시간/비용 압도적 절감, 또는 불가능했던 자동화(숏폼 부수입 등)를 가능하게.
+**최우선 해결 과제 (0차 + handoff 교훈)**:
+- **에러 설명력**: 사용자가 "왜 이런 에러가 났는지" 설명할 수 있게 (상세 로그 + 친화적 메시지). 재현성 확보.
+- **배포/빌드 규칙 절대 준수** (handoff에서 고친 치명 버그):
+  1. NEXT_PUBLIC_* 는 build-arg 로만 주입 (런타임 .env 만으로는 빈값 → supabaseUrl required 죽음).
+  2. 포트는 DASHBOARD_PORT (기본 34560). PORT 무시됨.
+  3. AuthGate: /login /signup 은 LandingPage 덮어쓰지 않게 (usePathname 통과).
+- **스모크 게이트 유지**: deploy 후 /login 200 + /api/me 401 + supabase URL 주입 확인.
+- 안정성 (인프라 다운 방지, 크론/발행 재현성).
+- 가치 체감: 시간/비용 절감 + 숏폼 부수입 가능.
+- 상세 운영 컨텍스트: wiki/learnings/2026-06-19-openclaw-osmu-handoff.md 필수 선행 읽기.
 
 (기존 고액 SaaS/리텐션 목표는 장기 그림으로 미뤄둠. 지금은 0차/1차에 집중)
 (위 내용은 0차/1차 달성 후 참고할 장기 모델. 현재는 신뢰성·온보딩·1명 사용자 존재에 집중. Pricing은 "존재만 해도 OK" 단계.)

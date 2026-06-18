@@ -25,29 +25,32 @@
 
 **원칙**: 하나의 사이트/앱에서 관리하되, 화면(UI)과 DB가 테넌트별로 **완전히 격리**되어야 한다.
 
-**추천 배포 모델: Cloudflare for SaaS (Custom Hostnames)** — 0차에서 정답으로 채택
-- 이게 정답: "고객이 자기 도메인 꽂게" 하는 전용 기능.
-- 실제 동작 예 (marketing.example.com):
-  1. 우리 CF 계정에서 `marketing.example.com`을 Custom Hostname으로 등록.
-  2. 고객(sample) 계정에서 CNAME을 우리의 fallback origin으로 설정.
-  3. CF가 교차계정 라우팅 + SSL 자동 발급/관리.
-- 장점:
-  - 멀티테넌트 SaaS의 표준.
-  - 고객 브랜딩 완전 지원.
-  - 2개 도메인까지 무료 한도 내.
-- 구현 포인트:
-  - Fallback origin (우리가 관리).
-  - Hostname → tenant 매핑.
-  - CF Custom Hostnames API/설정.
+**현재 실제 배포 (2026-06 handoff 기준)**
+- 공개: cloudflared 터널 (Proxmox VM 100.80.25.40 → 192.168.1.110) → localhost:18789
+- 배포: GitHub Actions self-hosted runner (`marketing_runner`) + 수동 `gh workflow run deploy-marketing.yml -f services="openclaw-dashboard-osmu"`
+- Compose: `docker-compose.postagi-4tenants.yml` 의 `openclaw-dashboard-osmu` (포트 18789)
+- 시크릿: GitHub Secrets만 사용 (.env.osmu 렌더). VM에 secrets 파일 없음.
+- 상세 운영 컨텍스트: `wiki/learnings/2026-06-19-openclaw-osmu-handoff.md` 참조.
 
-이 모델을 0차에서 먼저 안정화한다. 단일 앱 + 완전 테넌트 격리 + 고객 도메인 지원.
+**추천 미래 배포 모델: Cloudflare for SaaS (Custom Hostnames)**
+- 0차/1차 고객용 정답: 고객이 자기 도메인을 직접 꽂을 수 있게.
+- 예: marketing.example.com
+  - 우리 CF에서 Custom Hostname 등록 → 고객 CNAME → fallback origin.
+  - CF가 cross-account routing + SSL.
+- 2개 도메인까지 무료.
+- 현재는 터널 + self-hosted GHA 로 운영 중. CF SaaS 는 고객 커스텀 도메인 단계에서 적용.
+
+이 모델을 0차에서 점진적으로 안정화 (현재 배포 방식 깨지 않게 주의). 단일 앱 + 완전 테넌트 격리 유지.
 
 **테넌트 격리 세부**:
 - DB: 모든 테이블에 `tenant_id`, RLS (Row Level Security) + `withTenant()` wrapper 강제.
 - UI: effectiveTenantId로 모든 요청/화면 격리. 한 테넌트 데이터가 다른 화면에 절대 노출 안 됨.
 - R2: per-tenant prefix 또는 별도 bucket policy.
 
-**0차 구현 상세 계획 (더 세밀하게 다듬음)**:
+**0차 구현 상세 계획 (handoff 현실 반영, 더 세밀하게 다듬음)**:
+
+**⚠️ 필수 선행**: `wiki/learnings/2026-06-19-openclaw-osmu-handoff.md` 전체 읽기. 
+현재 라이브(터널 + self-hosted GHA 수동 + build-arg 규칙 + DASHBOARD_PORT + 스모크 게이트)를 절대 깨지 않게 해야 함.
 
 **1. Tenant Isolation 완벽화 (단일 앱 + 완전 격리)**
    - DB: 모든 주요 테이블에 tenant_id 강제 + RLS 정책 철저 적용 + withTenant() wrapper 누락 방지.
