@@ -25,7 +25,8 @@ export async function POST(request: Request) {
         if (src.type === "github" && src.owner && src.repo && src.path) {
           const ref = src.ref || "main";
           const url = `https://raw.githubusercontent.com/${src.owner}/${src.repo}/${ref}/${src.path}`;
-          const headers = src.token ? { Authorization: `token ${src.token}` } : {};
+          const headers: Record<string, string> = {};
+          if (src.token) headers.Authorization = `token ${src.token}`;
           const res = await fetch(url, { headers });
           if (res.ok) content = await res.text();
         } else if (src.type === "local" && src.path) {
