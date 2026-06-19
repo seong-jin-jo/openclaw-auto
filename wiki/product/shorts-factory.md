@@ -10,24 +10,30 @@ Goal: Turn longform knowledge (wiki pages, blogs, transcripts) + trends into hig
 - Publish: YouTube video upload works in dashboard; TikTok extension is limited (audit required).
 - Sources: manual idea, blog queue, **or now project wiki/ via /api/sourcing with wiki_path** (e.g. "product/shorts-factory.md").
 
-**New integration (gstack procedure step)**: Project wiki pages can now be used directly as longform source for shorts candidates. This wires our dev knowledge base into the shorts factory for e.g. project update posts, announcement variants, or testing. (Separate from tenant Brand Wiki facts injection.)
+**New integration (gstack procedure step)**: Project wiki pages can now be used directly as longform source for shorts candidates. This wires our dev knowledge base into the shorts factory for e.g. project update posts, announcement variants, or testing. (Separate from tenant Brand Wiki facts injection).
+
+**0차 Video Repurposing 추가 (2026-06)**: 기존 긴 영상(로컬 파일, YouTube URL)을 외부 전문 클리핑 API (Reap, Ssemble 등)로 잘라 Shorts 후보를 받음. OSMU에서 위키 컨텍스트 + 브랜드 톤으로 살짝 다듬고, 텍스트 변형과 함께 멀티채널 발행. (Hybrid 모델: 클리핑 품질은 외부, refinement + unified publish + brand grounding은 OSMU가 담당. text longform 경로는 그대로 유지)
 
 ## Target Flow (wiki + gstack driven) + Differentiation vs Opus
 
-1. Source: project wiki/ (via wiki_path), tenant Brand Wiki page, longform URL, or blog.
-2. Explode with longform_to_shorts — **enriched by dual-wiki facts** (brand voice + real facts injected to reduce hallucination).
-3. Select / edit in studio → generate image prompt or card (fact-checked).
-4. Render video (ffmpeg base or advanced).
-5. Review (drafts or new shorts queue) — **quality scoring** that incorporates source fidelity + virality signals.
+**두 가지 Source 유형 지원 (0차):**
+- **Text Longform Sources**: wiki, blog, transcript, topic → longform-to-shorts (텍스트 청킹) → script → video.
+- **Video Sources (Repurposing)**: 기존 긴 영상 (로컬 파일 / YouTube URL) → 외부 클리핑 API (Reap/Ssemble) → 후보 클립 수신 → OSMU에서 위키/브랜드 톤 다듬기 (caption/hook refinement) → publish.
+
+1. Source: project wiki/ (via wiki_path), tenant Brand Wiki page, longform URL, blog, **또는 기존 long video (file/YouTube URL)**.
+2. (Text) Explode with longform_to_shorts — **enriched by dual-wiki facts**. (Video) 외부 클리퍼 호출로 후보 클립 확보.
+3. Select / edit in studio → (Text) generate image prompt or card. (Video) 클립 다듬기 + 위키로 brand tone/hook 보강.
+4. Render / finalize video (ffmpeg base, advanced, or external clip).
+5. Review (drafts or new shorts queue) — **quality scoring** that incorporates source fidelity + virality signals + brand consistency.
 6. Publish to video channels + cross-post text (optimized per platform).
 7. Collect performance → insights loop → update style RAG + prompts + tenant wiki.
 
 **Key Differentiation vs Opus (20-40% discard problem)**:
-- **Facts Grounding**: Tenant Brand Wiki + project context injected → higher factual accuracy and brand consistency. Opus has no equivalent (clips often feel generic or wrong on context).
-- **Agentic + Multi-channel**: Full loop (longform → shorts video + text variants) decided dynamically. Not video-clip-only.
+- **Facts Grounding + Brand Tone**: Tenant Brand Wiki + project context injected (text path) 또는 클립 수신 후 OSMU refinement (video path) → higher factual accuracy and brand consistency. Opus has no equivalent (clips often feel generic or wrong on context).
+- **Agentic + Multi-channel**: Full loop (text longform or video source → shorts video + text variants) decided dynamically. Not pure video-clip-only.
 - **Learning Flywheel**: Performance data (viral_signals) feeds back into better hooks, style, and future generations per brand.
-- **Quality Controls**: Planned review step + source quote preservation + post-publish reaction collection. Goal: meaningfully beat the 20-40% discard rate.
-- **Wiki as Source**: Direct use of internal knowledge (product/shorts-factory.md example) for authentic content.
+- **Hybrid Quality Controls**: Planned review step + source quote preservation + post-publish reaction collection. External clipping quality + OSMU wiki/brand refinement으로 20-40% discard 극복 목표.
+- **Wiki as Source + Refinement**: Text는 직접 wiki longform, Video는 클립 후 wiki로 다듬기. 내부 지식 + 브랜드 톤을 일관되게 적용.
 
 See reference/benchmarking.md for Opus gaps and ADR-003 for moat connection.
 

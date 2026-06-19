@@ -25,15 +25,19 @@
 
 ## Current Phase Priorities (gstack CEO Review 반영, 2026-06)
 
-**0차 (현재 최우선, 완벽히 먼저)**: 운영자(나)가 여러 서비스의 wiki/context를 끌어와서 마케팅 콘텐츠 자동화를 **안정적으로 직접 운영**하는 상태를 만드는 것.
+**0차 (현재 최우선, 완벽히 먼저)**: 운영자(나)가 OSMU를 통해 **토픽/소스 → 텍스트 + 이미지 + 영상(숏폼)** 후보를 잘 뽑아 발행하고, 위키 컨텍스트 + 브랜드 톤(후킹)을 제대로 적용하며, **롱폼 영상 소스(로컬 파일 + YouTube URL)를 외부 클리퍼로 잘라 OSMU로 가져와 다듬고 멀티채널로 뿌리는** 상태를 만드는 것. (Hybrid: 전문 클리핑은 외부 API 활용, OSMU는 브랜드/위키 refinement + unified distribution 담당)
 
-**0차 성공 기준 (완벽히 잘 돌아가는 상태)**:
-- 여러 레포의 wiki를 context로 안정적으로 로드하고 프롬프트에 주입.
-- Shorts Factory + multi-channel publish 루프가 에러 없이 (또는 에러가 명확히 설명 가능하게) 동작.
-- 사용자가 "이 에러가 왜 났는지"를 스스로 설명하거나 로그로 재현 가능.
-- 인프라/크론/발행이 재현성 있게 안정.
-- 온보딩 (토큰 등록 등) 마찰이 최소화되어 혼자서도 셋업 가능.
-- SoloClaw (가정 이름)로 자신의 콘텐츠를 실제로 생산/발행하면서 시간 절감이나 부수입 가능성을 체감.
+**0차 성공 기준 (완벽히 잘 돌아가는 상태, 진행 중 검증)**:
+- 토픽/아이디어 → 플랫폼별 텍스트 변형 + 이미지 + 영상(숏폼) 후보가 한 번에 생성되어 발행 준비됨. (studio + sourcing + video)
+- 위키 컨텍스트 + 브랜드 톤(후킹, 말투, 사실)이 제대로 주입되어 후보가 브랜드 일관성을 가짐. (sourcing/studio text, clip refinement)
+- 롱폼 소스(로컬 파일, YouTube 긴 영상 URL) → AI 클리핑(외부 Reap/Ssemble 등) → OSMU에서 다듬기(위키/톤) → 영상플랫폼 + 텍스트 크로스포스트까지 동작. (new repurpose flow)
+- 여러 레포 wiki context 로드 + 프롬프트 주입 (0차 multi-repo context_sources + wiki_path 이미 완료).
+- Shorts Factory + multi-channel publish 루프가 에러 없이 (또는 에러가 명확히 설명 가능하게) 동작. (notes + partial)
+- 사용자가 "이 에러가 왜 났는지"를 스스로 설명하거나 로그로 재현 가능. (enhanced in sourcing/studio/video/longform)
+- 인프라/크론/발행이 재현성 있게 안정. (handoff smoke + constraints respected)
+- 온보딩 (토큰 등록 등) 마찰이 최소화되어 혼자서도 셋업 가능. (notes)
+- SoloClaw (가정 이름)로 자신의 콘텐츠(특히 기존 롱폼 영상 소스)를 실제로 생산/발행하면서 시간 절감 체감.
+- handoff 제약 (GHA, build, PORT, smoke) 준수.
 
 **1차 (PMF)**: 0차가 완벽히 된 후, 단 1명이라도 결제해서 쓰거나 초기 이벤트로 자기 사용량만 내고 실제로 쓰는 사람이 '존재'하는 것.
 

@@ -9,15 +9,16 @@ Studio is the "power user" surface for one-off or assisted generation, complemen
 - For 1000+ subscriber startups: power users (founders, marketers) use Studio for high-leverage posts while cron handles volume.
 
 ## Core Flow
-1. Enter idea or load from blog/wiki.
+1. Enter idea or load from blog/wiki. **또는 기존 Long Video (로컬 파일 / YouTube URL) 입력 (0차 Video Repurposing)**.
 2. Select brand guide (or let wiki provide facts).
 3. Generate:
    - Text variants for Threads / X / IG / Shorts hook-body-cta.
    - Image prompt.
-   - (Optional) Video via Higgsfield/Midjourney or ffmpeg path.
-4. Edit, preview per platform.
+   - (Optional) Video via Higgsfield/Midjourney or ffmpeg path **또는 외부 클리핑 API로 기존 영상에서 후보 Shorts 추출 후 OSMU refinement**.
+4. Edit, preview per platform (wiki/brand tone 반영).
 5. Save as draft or export to queue.
 6. (New) wiki_path support via sourcing for pulling project knowledge directly.
+7. (0차 추가) Long video repurpose: 클립 후보 수신 → 위키 컨텍스트로 다듬기 → queue로.
 
 **Wiki Integration** (recent):
 - Tenant Brand Wiki injected for "facts only, no invention".

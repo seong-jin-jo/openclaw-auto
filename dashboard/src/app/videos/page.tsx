@@ -22,6 +22,7 @@ export default function VideosPage() {
   const { data, mutate } = useSWR<{ videos: Video[] }>("/api/video/list", fetcher);
   const { data: ytStatus } = useSWR<{ connected: boolean }>("/api/youtube/status", fetcher);
   const { data: elConfig } = useSWR<{ configured: boolean }>("/api/elevenlabs-config", fetcher);
+  const { data: clipConfig } = useSWR<{ configured: boolean; provider?: string }>("/api/clipping-config", fetcher);
   const { showToast } = useToast();
 
   const [tab, setTab] = useState<"list" | "generate">("list");
@@ -35,6 +36,13 @@ export default function VideosPage() {
   const [publishTitle, setPublishTitle] = useState("");
   const [publishDesc, setPublishDesc] = useState("");
   const [previewFile, setPreviewFile] = useState<string | null>(null); // 인라인 임베드 플레이어 (발행 전 미리보기)
+
+  // 0차 Long Video Repurpose (external clipper + OSMU refine)
+  const [repurposeUrl, setRepurposeUrl] = useState("");
+  const [repurposeFile, setRepurposeFile] = useState<File | null>(null);
+  const [repurposing, setRepurposing] = useState(false);
+  const [repurposeClips, setRepurposeClips] = useState<any[]>([]);
+  const [refiningClip, setRefiningClip] = useState<string | null>(null);
 
   const videos = data?.videos || [];
 
@@ -95,6 +103,97 @@ export default function VideosPage() {
     }
   };
 
+  // 0차: Repurpose long video via external + OSMU refine
+  const handleRepurpose = async () => {
+    setRepurposing(true);
+    try {
+      let payload: any = {};
+      if (repurposeUrl) {
+        payload.videoUrl = repurposeUrl;
+      } else if (repurposeFile) {
+        // upload first
+        const form = new FormData();
+        form.append("file", repurposeFile);
+        const up = await fetch("/api/video/upload", { method: "POST", body: form }).then(r => r.json());
+        if (!up?.filename) throw new Error("upload failed");
+        payload.uploadRef = up.filename;
+      } else {
+        showToast("URL 또는 파일을 입력하세요", "error");
+        return;
+      }
+
+      const r = await apiPost("/api/video/repurpose", payload);
+      if (r?.ok) {
+        setRepurposeClips(r.clips || []);
+        showToast(`${r.clips?.length || 0} clips received from ${r.provider}`, "success");
+      } else {
+        showToast(r?.error || "Repurpose failed", "error");
+      }
+    } catch (e) {
+      showToast(`Error: ${(e as Error).message}`, "error");
+    } finally {
+      setRepurposing(false);
+    }
+  };
+
+  const refineClip = async (idx: number) => {
+    const clip = repurposeClips[idx];
+    if (!clip) return;
+    setRefiningClip(clip.id);
+    try {
+      const r = await apiPost("/api/video/refine-clip", {
+        caption: clip.caption || clip.title,
+        hook: clip.title,
+        // tenant_id handled server side via auth if needed
+      });
+      if (r?.ok) {
+        const next = [...repurposeClips];
+        next[idx] = {
+          ...clip,
+          caption: r.refinedCaption || clip.caption,
+          title: r.refinedHook || clip.title,
+        };
+        setRepurposeClips(next);
+        showToast("Refined with wiki/brand tone", "success");
+      }
+    } catch (e) {
+      showToast(`Refine error: ${(e as Error).message}`, "error");
+    } finally {
+      setRefiningClip(null);
+    }
+  };
+
+  const addClipToLibrary = async (clip: any) => {
+    try {
+      // 0차: download clip to library if possible
+      let filename = clip.id || `clip-${Date.now()}`;
+      try {
+        const res = await fetch(clip.url);
+        if (res.ok) {
+          const buf = await res.arrayBuffer();
+          const upForm = new FormData();
+          upForm.append("file", new Blob([buf], { type: "video/mp4" }), `${filename}.mp4`);
+          const up = await fetch("/api/video/upload", { method: "POST", body: upForm }).then(r => r.json());
+          if (up?.filename) filename = up.filename;
+        }
+      } catch {}
+
+      // Also create a queue entry with video + basic text (refined caption as base)
+      await apiPost("/api/queue/add", {
+        text: clip.caption || clip.title || "Shorts clip",
+        topic: "video-repurpose",
+        videoFilename: filename,
+        videoUrl: clip.url,
+        hashtags: [],
+      });
+
+      showToast(`Clip + entry added. Check Queue.`, "success");
+      mutate();
+    } catch (e) {
+      showToast(`Added reference: ${clip.url}`, "success");
+    }
+  };
+
   const addSlide = () => setSlides([...slides, { text: "", duration: 4, imageUrl: "" }]);
   const removeSlide = (i: number) => setSlides(slides.filter((_, idx) => idx !== i));
   const updateSlide = (i: number, field: keyof SlideInput, value: string | number) => {
@@ -145,6 +244,68 @@ export default function VideosPage() {
             {elConfig?.configured ? "Configured" : "Not set"}
           </div>
         </div>
+        <div className="card p-3">
+          <div className="text-[10px] text-gray-500 mb-1">Video Clipper (0차)</div>
+          <div className={`text-sm font-medium ${clipConfig?.configured ? "text-green-400" : "text-gray-500"}`}>
+            {clipConfig?.configured ? (clipConfig.provider || "Ready") : "Not set (mock mode)"}
+          </div>
+        </div>
+      </div>
+
+      {/* 0차: Long Video Repurpose (external clipper + OSMU brand/wiki refine) */}
+      <div className="card p-4 mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-sm font-medium">Repurpose Long Video (0차)</span>
+          <span className="text-[10px] text-gray-500">External (Reap/Ssemble) → OSMU refine + publish</span>
+        </div>
+        <div className="flex flex-wrap gap-2 items-center mb-3">
+          <input
+            value={repurposeUrl}
+            onChange={(e) => { setRepurposeUrl(e.target.value); setRepurposeFile(null); }}
+            placeholder="YouTube long URL (e.g. https://youtube.com/watch?v=...)"
+            className="flex-1 min-w-[280px] bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700"
+          />
+          <label className="cursor-pointer text-xs px-3 py-1.5 bg-gray-700 rounded hover:bg-gray-600">
+            Local file
+            <input type="file" accept="video/*" className="hidden" onChange={(e) => {
+              const f = e.target.files?.[0] || null;
+              setRepurposeFile(f);
+              setRepurposeUrl("");
+            }} />
+          </label>
+          <button onClick={handleRepurpose} disabled={repurposing} className="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 rounded disabled:opacity-50">
+            {repurposing ? "Clipping..." : "Clip"}
+          </button>
+        </div>
+        {repurposeFile && <div className="text-[10px] text-green-400 mb-2">Selected: {repurposeFile.name}</div>}
+
+        {repurposeClips.length > 0 && (
+          <div className="space-y-2 mt-2">
+            <div className="text-xs text-gray-400">Clips ({repurposeClips.length}) — preview, edit, refine with wiki, then add to flow</div>
+            {repurposeClips.map((c, i) => (
+              <div key={c.id || i} className="bg-gray-800 rounded p-3 text-xs flex gap-3 items-start">
+                <div className="w-40">
+                  {c.url && <video src={c.url} controls className="w-full rounded bg-black" style={{ maxHeight: 120 }} />}
+                </div>
+                <div className="flex-1 space-y-1">
+                  <input className="w-full bg-gray-900 p-1 rounded" value={c.title || ""} onChange={e => {
+                    const next = [...repurposeClips]; next[i].title = e.target.value; setRepurposeClips(next);
+                  }} />
+                  <textarea className="w-full bg-gray-900 p-1 rounded" rows={2} value={c.caption || ""} onChange={e => {
+                    const next = [...repurposeClips]; next[i].caption = e.target.value; setRepurposeClips(next);
+                  }} />
+                  <div className="flex gap-2">
+                    <button onClick={() => refineClip(i)} disabled={refiningClip === c.id} className="text-[10px] px-2 py-0.5 bg-purple-700 rounded">
+                      {refiningClip === c.id ? "Refining..." : "Refine with Wiki/Brand"}
+                    </button>
+                    <button onClick={() => addClipToLibrary(c)} className="text-[10px] px-2 py-0.5 bg-green-700 rounded">Add to Queue / Publish</button>
+                    {c.viralScore && <span className="text-[10px] text-gray-500 self-center">score: {c.viralScore}</span>}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {tab === "list" && (
