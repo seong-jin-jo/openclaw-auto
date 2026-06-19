@@ -122,7 +122,7 @@ export default function VideosPage() {
         return;
       }
 
-      const r = await apiPost("/api/video/repurpose", payload);
+      const r = await apiPost<{ ok?: boolean; clips?: any[]; provider?: string; error?: string }>("/api/video/repurpose", payload);
       if (r?.ok) {
         setRepurposeClips(r.clips || []);
         showToast(`${r.clips?.length || 0} clips received from ${r.provider}`, "success");
@@ -141,7 +141,7 @@ export default function VideosPage() {
     if (!clip) return;
     setRefiningClip(clip.id);
     try {
-      const r = await apiPost("/api/video/refine-clip", {
+      const r = await apiPost<{ ok?: boolean; refinedCaption?: string; refinedHook?: string; error?: string }>("/api/video/refine-clip", {
         caption: clip.caption || clip.title,
         hook: clip.title,
         // tenant_id handled server side via auth if needed
