@@ -1,5 +1,10 @@
+import { verifyXCredentials } from "@/lib/publish";
+
 interface VerifyResult {
   verified: boolean;
+  // verified=false지만 네트워크 등으로 "확인 불가"(키는 저장됨)일 때 true. UI에서 앰버로 구분.
+  unverified?: boolean;
+  reason?: string;
   account?: string;
   error?: string;
 }
@@ -43,7 +48,15 @@ export async function verifyChannel(channel: string, cfg: Record<string, string>
       const required = ["apiKey", "apiKeySecret", "accessToken", "accessTokenSecret"];
       const missing = required.filter((k) => !cfg[k]);
       if (missing.length) return { verified: false, error: `Missing: ${missing.join(", ")}` };
-      return { verified: true, account: "(OAuth 1.0a keys saved)" };
+      // 실검증: OAuth1 서명 GET verify_credentials(read-only). 키 존재만 보던 기존 동작 대체.
+      const r = await verifyXCredentials({
+        apiKey: cfg.apiKey, apiSecret: cfg.apiKeySecret,
+        accessToken: cfg.accessToken, accessSecret: cfg.accessTokenSecret,
+      });
+      if (r.ok) return { verified: true, account: r.account };
+      if (r.networkError) return { verified: false, unverified: true, reason: "네트워크 확인 실패 — 키는 저장됨" };
+      if (r.status === 403) return { verified: false, unverified: true, reason: "X API 접근 제한(앱 권한 확인) — 키는 저장됨" };
+      return { verified: false, error: `X 인증 실패(${r.status ?? "?"})` };
     }
 
     if (channel === "instagram") {
@@ -79,7 +92,7 @@ export async function verifyChannel(channel: string, cfg: Record<string, string>
         if (res.ok && data.name) return { verified: true, account: data.name };
         return { verified: false, error: `Webhook invalid (${res.status})` };
       } catch {
-        return { verified: true, account: "(Webhook URL saved — verification skipped)" };
+        return { verified: false, unverified: true, reason: "네트워크 확인 실패 — Webhook URL은 저장됨" };
       }
     }
 
@@ -100,7 +113,7 @@ export async function verifyChannel(channel: string, cfg: Record<string, string>
         if (res.status === 400 || res.ok) return { verified: true, account: "(Webhook verified)" };
         return { verified: false, error: `Webhook invalid (${res.status})` };
       } catch {
-        return { verified: true, account: "(Webhook URL saved — verification skipped)" };
+        return { verified: false, unverified: true, reason: "네트워크 확인 실패 — Webhook URL은 저장됨" };
       }
     }
 
@@ -117,7 +130,7 @@ export async function verifyChannel(channel: string, cfg: Record<string, string>
         if (res.ok) return { verified: true, account: data.displayName || data.basicId || "(Connected)" };
         return { verified: false, error: `LINE API error (${res.status})` };
       } catch {
-        return { verified: true, account: "(Token saved — verification skipped)" };
+        return { verified: false, unverified: true, reason: "네트워크 확인 실패 — 토큰은 저장됨" };
       }
     }
 
@@ -126,9 +139,9 @@ export async function verifyChannel(channel: string, cfg: Record<string, string>
     return { verified: hasAny, account: hasAny ? "(credentials saved)" : "" };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    // DNS/network errors — save anyway with warning
+    // DNS/network errors — 확인 "불가"(키는 저장되되 verified=false, 비활성 유지가 안전). UI는 앰버 표시.
     if (msg.includes("fetch failed") || msg.includes("ENOTFOUND") || msg.includes("name resolution")) {
-      return { verified: true, account: "(saved — verification skipped due to network)", error: msg.slice(0, 200) };
+      return { verified: false, unverified: true, reason: "네트워크 확인 실패 — 저장됨(검증 미완)", error: msg.slice(0, 200) };
     }
     return { verified: false, error: msg.slice(0, 200) };
   }

@@ -78,11 +78,15 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
       headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify(keys),
     });
-    const d = await res.json().catch(() => ({}));
+    const d = await res.json().catch(() => ({})) as { verified?: boolean; unverified?: boolean; reason?: string; account?: string; error?: string };
     if (!res.ok) {
-      throw new Error((d as { error?: string }).error || "저장 실패");
+      throw new Error(d.error || "저장 실패");
     }
-    setConnectedAccount((d as { account?: string }).account || null);
+    // 검증 실패(네트워크 아님)면 진행 막기 — 잘못된 키로 온보딩 통과 방지.
+    if (!d.verified && !d.unverified) {
+      throw new Error(d.error || "검증 실패 — 키를 확인하세요");
+    }
+    setConnectedAccount(d.account || (d.unverified ? `저장됨 · 미검증${d.reason ? " — " + d.reason : ""}` : null));
     setCredentialsSaved(true);
   };
 

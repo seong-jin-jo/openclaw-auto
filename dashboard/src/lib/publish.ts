@@ -122,7 +122,28 @@ function xPercentEncode(str: string): string {
   );
 }
 
-interface XKeys { apiKey: string; apiSecret: string; accessToken: string; accessSecret: string }
+export interface XKeys { apiKey: string; apiSecret: string; accessToken: string; accessSecret: string }
+
+// X 자격 실검증(OAuth1 서명된 read-only GET). 발행 없이 키 유효성·계정 확인.
+// ok=true면 @screen_name. networkError면 네트워크로 확인 불가(키는 보존). status로 인증 실패 구분.
+export async function verifyXCredentials(
+  k: XKeys,
+): Promise<{ ok: boolean; account?: string; status?: number; networkError?: boolean }> {
+  const url = "https://api.twitter.com/1.1/account/verify_credentials.json";
+  const auth = buildXOAuthHeader("GET", url, k);
+  try {
+    const resp = await fetch(url, { method: "GET", headers: { Authorization: auth }, signal: AbortSignal.timeout(5000) });
+    if (resp.ok) {
+      const d = (await resp.json()) as { screen_name?: string };
+      return { ok: true, account: d.screen_name ? `@${d.screen_name}` : "(X 연결됨)" };
+    }
+    return { ok: false, status: resp.status };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/fetch failed|ENOTFOUND|name resolution|timeout|aborted|abort/i.test(msg)) return { ok: false, networkError: true };
+    return { ok: false };
+  }
+}
 
 function buildXOAuthHeader(method: string, url: string, k: XKeys): string {
   const oauth: Record<string, string> = {

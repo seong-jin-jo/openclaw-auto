@@ -17,7 +17,7 @@ const LABELS: Record<string, string> = {
   bluesky: "Bluesky", telegram: "Telegram", discord: "Discord", slack: "Slack", line: "LINE",
 };
 
-interface VerifyResult { verified?: boolean; account?: string; error?: string }
+interface VerifyResult { verified?: boolean; unverified?: boolean; reason?: string; account?: string; error?: string }
 
 export function ChannelConnect({ workspace, onClose }: { workspace: Workspace; onClose: () => void }) {
   const { data: cfg, mutate } = useChannelConfig();
@@ -103,8 +103,10 @@ export function ChannelConnect({ workspace, onClose }: { workspace: Workspace; o
                 <div className="mt-3 text-xs">
                   {result.verified ? (
                     <p className="text-green-400">✓ 연결 완료{result.account ? ` — ${result.account}` : ""}</p>
+                  ) : result.unverified ? (
+                    <p className="text-amber-400">⚠ 저장됨 · 미검증{result.reason ? ` — ${result.reason}` : ""} (네트워크 복구 후 “연결 테스트”로 재확인)</p>
                   ) : (
-                    <p className="text-amber-400">⚠ 검증 실패{result.error ? `: ${result.error}` : " — 키를 확인하세요"}</p>
+                    <p className="text-red-400">✗ 검증 실패{result.error ? `: ${result.error}` : " — 키를 확인하세요"}</p>
                   )}
                 </div>
               )}
