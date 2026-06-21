@@ -1,4 +1,4 @@
-import { readJson, writeJson, dataPath } from "@/lib/file-io";
+import { mutateJson, dataPath } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
 
@@ -12,10 +12,10 @@ export async function POST(request: Request) {
     const { id } = await request.json();
     if (!id) return Response.json({ error: "id required" }, { status: 400 });
 
-    const path = dataPath("blog-queue.json");
-    const queue = readJson<BlogQueue>(path) || { posts: [] };
-    queue.posts = queue.posts.filter((p) => p.id !== id);
-    writeJson(path, queue);
+    await mutateJson<BlogQueue>(dataPath("blog-queue.json"), (queue) => {
+      queue.posts = queue.posts.filter((p) => p.id !== id);
+      return queue;
+    }, { posts: [] });
     return Response.json({ ok: true });
   });
 }

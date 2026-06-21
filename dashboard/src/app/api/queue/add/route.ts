@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { readJson, writeJson, dataPath } from "@/lib/file-io";
+import { mutateJson, dataPath } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
 
@@ -36,9 +36,6 @@ export async function POST(request: Request) {
 
     if (!text) return Response.json({ error: "text required" }, { status: 400 });
 
-    const queue = readJson<{ version: number; posts: QueuePost[] }>(dataPath("queue.json"))
-      || { version: 2, posts: [] };
-
     const imageUrls: string[] | null = data.imageUrls || null;
 
     const post: QueuePost = {
@@ -65,8 +62,11 @@ export async function POST(request: Request) {
       engagement: null,
     };
 
-    queue.posts.push(post);
-    writeJson(dataPath("queue.json"), queue);
+    await mutateJson<{ version: number; posts: QueuePost[] }>(
+      dataPath("queue.json"),
+      (queue) => { queue.posts.push(post); return queue; },
+      { version: 2, posts: [] },
+    );
     return Response.json({ success: true, post });
   });
 }

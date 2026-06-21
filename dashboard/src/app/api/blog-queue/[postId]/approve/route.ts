@@ -1,4 +1,4 @@
-import { readJson, writeJson, dataPath } from "@/lib/file-io";
+import { mutateJson, dataPath } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
 
@@ -9,19 +9,20 @@ export async function POST(request: Request, { params }: { params: Promise<{ pos
   const __t = await effectiveTenantId(request, null);
   return runWithTenant(__t, async () => {
     const { postId } = await params;
-    const queue = readJson<BlogQueueData>(dataPath("blog-queue.json"));
-    if (!queue) return Response.json({ error: "blog-queue.json not found" }, { status: 404 });
-
-    for (const post of queue.posts || []) {
-      if (post.id === postId) {
-        post.status = "approved";
-        const now = new Date().toISOString();
-        post.approvedAt = now;
-        post.scheduledAt = now;
-        writeJson(dataPath("blog-queue.json"), queue);
-        return Response.json({ ok: true, post });
+    let found: Record<string, unknown> | null = null;
+    await mutateJson<BlogQueueData>(dataPath("blog-queue.json"), (queue) => {
+      for (const post of queue.posts || []) {
+        if (post.id === postId) {
+          post.status = "approved";
+          const now = new Date().toISOString();
+          post.approvedAt = now;
+          post.scheduledAt = now;
+          found = post;
+        }
       }
-    }
-    return Response.json({ error: "post not found" }, { status: 404 });
+      return queue;
+    }, { posts: [] });
+    if (!found) return Response.json({ error: "post not found" }, { status: 404 });
+    return Response.json({ ok: true, post: found });
   });
 }

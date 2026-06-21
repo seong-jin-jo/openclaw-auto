@@ -1,7 +1,7 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
 import crypto from "crypto";
-import { readJson, writeJson, dataPath } from "@/lib/file-io";
+import { readJson, mutateJson, dataPath } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
 
@@ -75,32 +75,35 @@ export async function POST(request: Request, { params }: { params: Promise<{ pos
     if (variants.length === 0) return Response.json({ error: "변형 후보 0개" }, { status: 502 });
 
     const now = new Date().toISOString().replace(/\.\d+Z$/, "");
-    for (const text of variants) {
-      queue.posts.push({
-        id: crypto.randomUUID(),
-        text,
-        originalText: null,
-        topic: src.topic || "video-variant",
-        hashtags: src.hashtags || [],
-        status: "draft",
-        generatedAt: now,
-        approvedAt: null,
-        scheduledAt: null,
-        publishedAt: null,
-        threadsMediaId: null,
-        error: null,
-        abVariant: "A",
-        model: "variant",
-        imageUrl: null,
-        imageUrls: null,
-        cardBatchId: null,
-        videoFilename: src.videoFilename || null,
-        videoUrl: src.videoUrl || null,
-        videoThumbnail: src.videoThumbnail || null,
-        engagement: null,
-      } as QueuePost);
-    }
-    writeJson(dataPath("queue.json"), queue);
+    // 느린 claude 호출은 위에서 끝났으므로, 여기선 in-memory merge+write만 락 안에서(락을 외부호출에 안 걺).
+    const newPosts: QueuePost[] = variants.map((text) => ({
+      id: crypto.randomUUID(),
+      text,
+      originalText: null,
+      topic: src.topic || "video-variant",
+      hashtags: src.hashtags || [],
+      status: "draft",
+      generatedAt: now,
+      approvedAt: null,
+      scheduledAt: null,
+      publishedAt: null,
+      threadsMediaId: null,
+      error: null,
+      abVariant: "A",
+      model: "variant",
+      imageUrl: null,
+      imageUrls: null,
+      cardBatchId: null,
+      videoFilename: src.videoFilename || null,
+      videoUrl: src.videoUrl || null,
+      videoThumbnail: src.videoThumbnail || null,
+      engagement: null,
+    } as QueuePost));
+    await mutateJson<{ version: number; posts: QueuePost[] }>(
+      dataPath("queue.json"),
+      (q) => { q.posts.push(...newPosts); return q; },
+      { version: 2, posts: [] },
+    );
     return Response.json({ ok: true, created: variants.length });
   });
 }

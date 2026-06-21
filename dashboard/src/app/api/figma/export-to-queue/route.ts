@@ -1,12 +1,16 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { readJson, writeJson, dataPath, DATA_DIR } from "@/lib/file-io";
+import { readJson, mutateJson, dataPath, DATA_DIR } from "@/lib/file-io";
+import { effectiveTenantId } from "@/lib/tenant-auth";
+import { runWithTenant } from "@/lib/tenant-context";
 
 const IMAGES_DIR = path.join(DATA_DIR, "images");
-const QUEUE_PATH = dataPath("queue.json");
 
 export async function POST(request: Request) {
+  // 테넌트별 파일 격리 컨텍스트로 래핑(기존엔 누락돼 항상 공유 루트에 기록되는 버그였음).
+  const __t = await effectiveTenantId(request, null);
+  return runWithTenant(__t, async () => {
   const data = await request.json();
   const fileKey = data.fileKey || "";
   const postId = data.postId || "";
@@ -67,19 +71,22 @@ export async function POST(request: Request) {
       imageUrl?: string;
       [key: string]: unknown;
     }
-    const queue = readJson<{ version: number; posts: QueuePost[] }>(QUEUE_PATH) || { version: 2, posts: [] };
-    for (const p of queue.posts) {
-      if (p.id === postId) {
-        p.imageUrls = newUrls;
-        if (newUrls.length) p.imageUrl = newUrls[0];
-        break;
+    // 느린 figma fetch/download는 위에서 끝남 → 여기선 in-memory 갱신+write만 락 안에서.
+    await mutateJson<{ version: number; posts: QueuePost[] }>(dataPath("queue.json"), (queue) => {
+      for (const p of queue.posts) {
+        if (p.id === postId) {
+          p.imageUrls = newUrls;
+          if (newUrls.length) p.imageUrl = newUrls[0];
+          break;
+        }
       }
-    }
-    writeJson(QUEUE_PATH, queue);
+      return queue;
+    }, { version: 2, posts: [] });
 
     return Response.json({ ok: true, count: newUrls.length });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return Response.json({ error: msg.slice(0, 300) }, { status: 500 });
   }
+  });
 }

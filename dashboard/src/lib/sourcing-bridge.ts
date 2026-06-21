@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { readJson, writeJson, dataPath } from "@/lib/file-io";
+import { mutateJson, dataPath } from "@/lib/file-io";
 import { withTenant } from "@/lib/db";
 import { runWithTenant } from "@/lib/tenant-context";
 
@@ -30,43 +30,49 @@ export async function importShortDraftsToQueue(tenantId: string): Promise<{ impo
 
   const now = new Date().toISOString().replace(/\.\d+Z$/, "");
 
-  // 파일 쓰기는 runWithTenant로 감싸 테넌트 디렉터리에 격리.
-  const importedIds = runWithTenant(tenantId, () => {
-    const queue = readJson<{ version: number; posts: Record<string, unknown>[] }>(dataPath("queue.json"))
-      || { version: 2, posts: [] };
-    const ids: string[] = [];
-    for (const d of drafts) {
-      const p = d.payload || {};
-      const text = (p.body || p.caption || p.hook || d.idea || "").toString().trim();
-      if (!text) continue;
-      queue.posts.push({
-        id: crypto.randomUUID(),
-        text,
-        originalText: null,
-        topic: "sourcing",
-        hashtags: Array.isArray(p.hashtags) ? p.hashtags : [],
-        status: "draft",
-        generatedAt: now,
-        approvedAt: null,
-        scheduledAt: null,
-        publishedAt: null,
-        threadsMediaId: null,
-        error: null,
-        abVariant: "A",
-        model: "sourcing",
-        imageUrl: null,
-        imageUrls: null,
-        cardBatchId: null,
-        videoFilename: null,
-        videoUrl: null,
-        videoThumbnail: null,
-        engagement: null,
-      });
-      ids.push(d.id);
-    }
-    if (ids.length) writeJson(dataPath("queue.json"), queue);
-    return ids;
-  });
+  // 새 큐 포스트를 먼저 in-memory로 구성(외부 I/O 없음).
+  const newPosts: Record<string, unknown>[] = [];
+  const importedIds: string[] = [];
+  for (const d of drafts) {
+    const p = d.payload || {};
+    const text = (p.body || p.caption || p.hook || d.idea || "").toString().trim();
+    if (!text) continue;
+    newPosts.push({
+      id: crypto.randomUUID(),
+      text,
+      originalText: null,
+      topic: "sourcing",
+      hashtags: Array.isArray(p.hashtags) ? p.hashtags : [],
+      status: "draft",
+      generatedAt: now,
+      approvedAt: null,
+      scheduledAt: null,
+      publishedAt: null,
+      threadsMediaId: null,
+      error: null,
+      abVariant: "A",
+      model: "sourcing",
+      imageUrl: null,
+      imageUrls: null,
+      cardBatchId: null,
+      videoFilename: null,
+      videoUrl: null,
+      videoThumbnail: null,
+      engagement: null,
+    });
+    importedIds.push(d.id);
+  }
+
+  // 파일 쓰기는 runWithTenant로 테넌트 디렉터리에 격리 + mutateJson으로 원자·직렬화.
+  if (newPosts.length) {
+    await runWithTenant(tenantId, () =>
+      mutateJson<{ version: number; posts: Record<string, unknown>[] }>(
+        dataPath("queue.json"),
+        (queue) => { queue.posts.push(...newPosts); return queue; },
+        { version: 2, posts: [] },
+      ),
+    );
+  }
 
   // import 스탬프(멱등). 파일 쓰기 성공 후에만 마킹.
   if (importedIds.length) {

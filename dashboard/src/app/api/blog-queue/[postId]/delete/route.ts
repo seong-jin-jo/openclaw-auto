@@ -1,4 +1,4 @@
-import { readJson, writeJson, dataPath } from "@/lib/file-io";
+import { mutateJson, dataPath } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
 
@@ -9,16 +9,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ pos
   const __t = await effectiveTenantId(request, null);
   return runWithTenant(__t, async () => {
     const { postId } = await params;
-    const queue = readJson<BlogQueueData>(dataPath("blog-queue.json"));
-    if (!queue) return Response.json({ error: "blog-queue.json not found" }, { status: 404 });
-
-    const before = queue.posts.length;
-    queue.posts = queue.posts.filter((p) => p.id !== postId);
-    if (queue.posts.length === before) {
-      return Response.json({ error: "post not found" }, { status: 404 });
-    }
-
-    writeJson(dataPath("blog-queue.json"), queue);
+    let removed = false;
+    await mutateJson<BlogQueueData>(dataPath("blog-queue.json"), (queue) => {
+      const before = queue.posts.length;
+      queue.posts = queue.posts.filter((p) => p.id !== postId);
+      removed = queue.posts.length !== before;
+      return queue;
+    }, { posts: [] });
+    if (!removed) return Response.json({ error: "post not found" }, { status: 404 });
     return Response.json({ ok: true });
   });
 }

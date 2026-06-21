@@ -1,4 +1,4 @@
-import { readJson, writeJson, dataPath } from "@/lib/file-io";
+import { mutateJson, dataPath } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
 
@@ -8,25 +8,25 @@ export async function POST(request: Request) {
   // 테넌트별 파일 격리 컨텍스트로 래핑
   const __t = await effectiveTenantId(request, null);
   return runWithTenant(__t, async () => {
-    const queue = readJson<QueueData>(dataPath("queue.json"));
-    if (!queue) return Response.json({ error: "queue.json not found" }, { status: 404 });
-
     const data = await request.json();
     const ids: string[] = data.ids || [];
     const intervalHours = data.intervalHours ?? 2;
     const now = Date.now();
     let approved = 0;
 
-    for (const post of queue.posts || []) {
-      if (ids.includes(post.id as string) && post.status === "draft") {
-        post.status = "approved";
-        post.approvedAt = new Date(now).toISOString();
-        post.scheduledAt = new Date(now + intervalHours * 3600000 * approved).toISOString();
-        approved++;
+    await mutateJson<QueueData>(dataPath("queue.json"), (queue) => {
+      approved = 0;
+      for (const post of queue.posts || []) {
+        if (ids.includes(post.id as string) && post.status === "draft") {
+          post.status = "approved";
+          post.approvedAt = new Date(now).toISOString();
+          post.scheduledAt = new Date(now + intervalHours * 3600000 * approved).toISOString();
+          approved++;
+        }
       }
-    }
+      return queue;
+    }, { posts: [] });
 
-    writeJson(dataPath("queue.json"), queue);
     return Response.json({ ok: true, approved });
   });
 }

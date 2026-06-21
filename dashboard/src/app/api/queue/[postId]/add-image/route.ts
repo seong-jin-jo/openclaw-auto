@@ -1,4 +1,4 @@
-import { readJson, writeJson, dataPath } from "@/lib/file-io";
+import { mutateJson, dataPath } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
 
@@ -22,19 +22,20 @@ export async function POST(
 
     if (!imageUrl) return Response.json({ error: "imageUrl required" }, { status: 400 });
 
-    const queue = readJson<{ version: number; posts: QueuePost[] }>(dataPath("queue.json"))
-      || { version: 2, posts: [] };
-
-    for (const p of queue.posts) {
-      if (p.id === postId) {
-        if (!p.imageUrls) p.imageUrls = [];
-        p.imageUrls.push(imageUrl);
-        if (!p.imageUrl) p.imageUrl = imageUrl;
-        writeJson(dataPath("queue.json"), queue);
-        return Response.json({ ok: true, count: p.imageUrls.length });
+    let count = -1;
+    await mutateJson<{ version: number; posts: QueuePost[] }>(dataPath("queue.json"), (queue) => {
+      for (const p of queue.posts) {
+        if (p.id === postId) {
+          if (!p.imageUrls) p.imageUrls = [];
+          p.imageUrls.push(imageUrl);
+          if (!p.imageUrl) p.imageUrl = imageUrl;
+          count = p.imageUrls.length;
+        }
       }
-    }
+      return queue;
+    }, { version: 2, posts: [] });
 
-    return Response.json({ error: "Post not found" }, { status: 404 });
+    if (count < 0) return Response.json({ error: "Post not found" }, { status: 404 });
+    return Response.json({ ok: true, count });
   });
 }
