@@ -1,12 +1,11 @@
-# postAGI 4 서비스 동시 운영 — Tenant / DC / Tenant / tenant
-# Tenant는 기존 docker-compose.yml.example 그대로 (port 18789/34560 유지)
-# 본 파일은 4 신규 인스턴스만 정의. 같은 image 공유 (build 1회).
+# 멀티 테넌트 동시 운영 (브랜드/도메인은 fork-local — 슬러그는 예시)
+# 기본 인스턴스는 docker-compose.yml.example 그대로 (port 18789/34560 유지)
+# 본 파일은 신규 인스턴스를 정의. 같은 image 공유 (build 1회).
 #
-# 포트 매핑:
-#   Tenant    gateway 18790 / dashboard 34561
-#   DC      gateway 18791 / dashboard 34562
-#   Tenant  gateway 18792 / dashboard 34563
-#   폴리     gateway 18793 / dashboard 34564
+# 포트 매핑 (예시):
+#   tenant2  gateway 18790 / dashboard 34561
+#   tenant3  gateway 18792 / dashboard 34563
+#   tenant4  gateway 18793 / dashboard 34564
 #
 # 가동 전 1회 작업:
 #   ./bootstrap-postagi-4tenants.sh  (data/config 디렉토리 생성 + templates 복사)
@@ -110,7 +109,7 @@ services:
     depends_on:
       - openclaw-gateway-tenant3
 
-  # ─────────────── tenant ───────────────
+  # ─────────────── tenant (tenant4) ───────────────
   openclaw-gateway-tenant4:
     <<: *gateway-base
     container_name: openclaw-gateway-tenant4

@@ -9,7 +9,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;  -- 위키 문서 trigram 검색(한글 
 CREATE TABLE IF NOT EXISTS tenants (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   slug        TEXT NOT NULL UNIQUE,            -- URL/식별용 (예: tenant1)
-  name        TEXT NOT NULL,                   -- 표시명 (예: Tenant)
+  name        TEXT NOT NULL,                   -- 표시명 (예: Tenant One)
   status      TEXT NOT NULL DEFAULT 'active',  -- active | paused
   tier        TEXT NOT NULL DEFAULT 'starter',    -- starter | pro | team (ADR-003 hybrid pricing)
   domain      TEXT UNIQUE,                     -- 커스텀 도메인(CNAME). Host 헤더 → 이 테넌트로 매핑(호스팅 멀티테넌트)
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS brand_guides (
   visual_rules  JSONB,                         -- { colors[], typography, forbidden[] }
   source        TEXT,                          -- wizard | repo | paste
   source_repo   TEXT,                          -- repo 인입 시 'owner/name'
-  source_path   TEXT,                          -- repo 인입 시 파일 경로 (예: wiki/Tenant/마케팅.md)
+  source_path   TEXT,                          -- repo 인입 시 파일 경로 (예: wiki/brand/마케팅.md)
   source_ref    TEXT,                          -- repo 브랜치/태그 (기본 main)
   source_hash   TEXT,                          -- 원문 해시 — 동일하면 재증류 skip
   synced_at     TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS tenant_tokens (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id     UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   token_hash    TEXT NOT NULL UNIQUE,           -- sha256(raw)
-  label         TEXT,                            -- 용도 메모 (예: 'tenant3-frontend')
+  label         TEXT,                            -- 용도 메모 (예: 'tenant-frontend')
   last_used_at  TIMESTAMPTZ,
   revoked       BOOLEAN NOT NULL DEFAULT false,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()

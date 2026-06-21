@@ -1,5 +1,5 @@
 #!/bin/bash
-# postAGI 4 서비스(Tenant/DC/Tenant/폴리) openclaw 인스턴스 초기 셋업
+# 멀티 테넌트 openclaw 인스턴스 초기 셋업 (브랜드/도메인은 fork-local data/tenants.json에서 설정)
 # - 각 서비스용 data-{slug}/, config-{slug}/ 디렉토리 생성
 # - templates/{slug}.prompt-guide.txt → data-{slug}/prompt-guide.txt 복사
 # - .env.{slug} 자동 생성 (포트/토큰 placeholder)
@@ -66,14 +66,14 @@ if [ ! -f "data/tenants.json" ]; then
   cat > "data/tenants.json" <<'EOF'
 {
   "tenants": [
-    { "slug": "tenant1",  "name": "Tenant", "emoji": "💘", "dashboardPort": 34560, "gatewayPort": 18789, "publicUrl": "https://marketing-tenant1.example.com", "channels": ["instagram","threads"], "status": "active" },
-    { "slug": "tenant2",   "name": "Tenant",   "emoji": "緣", "dashboardPort": 34561, "gatewayPort": 18790, "publicUrl": "https://marketing-tenant2.example.com", "channels": ["instagram","threads"], "status": "active" },
-    { "slug": "tenant3", "name": "Tenant",        "emoji": "📷", "dashboardPort": 34563, "gatewayPort": 18792, "publicUrl": "https://marketing-tenant3.example.com", "channels": ["instagram"], "status": "waiting-meta-review" },
-    { "slug": "tenant4",   "name": "tenant",     "emoji": "∞", "dashboardPort": 34564, "gatewayPort": 18793, "publicUrl": "https://marketing-tenant4.example.com", "channels": ["x"], "status": "waiting-legal-opinion" }
+    { "slug": "tenant1", "name": "Tenant One",   "emoji": "🅰", "dashboardPort": 34560, "gatewayPort": 18789, "publicUrl": "https://marketing-tenant1.example.com", "channels": ["instagram","threads"], "status": "active" },
+    { "slug": "tenant2", "name": "Tenant Two",   "emoji": "🅱", "dashboardPort": 34561, "gatewayPort": 18790, "publicUrl": "https://marketing-tenant2.example.com", "channels": ["instagram","threads"], "status": "active" },
+    { "slug": "tenant3", "name": "Tenant Three", "emoji": "🅲", "dashboardPort": 34563, "gatewayPort": 18792, "publicUrl": "https://marketing-tenant3.example.com", "channels": ["instagram"], "status": "pending" },
+    { "slug": "tenant4", "name": "Tenant Four",  "emoji": "🅳", "dashboardPort": 34564, "gatewayPort": 18793, "publicUrl": "https://marketing-tenant4.example.com", "channels": ["x"], "status": "pending" }
   ]
 }
 EOF
-  echo "  ✓ data/tenants.json generated (4 tenants: tenant1+tenant2+tenant3+tenant4)"
+  echo "  ✓ data/tenants.json generated (example tenants — edit for your fork)"
 fi
 
 echo ""
@@ -83,9 +83,9 @@ echo "============================================================"
 echo ""
 echo "다음:"
 echo "  1. docker-compose -f docker-compose.postagi-4tenants.yml up -d"
-echo "  2. Cloudflare Tunnel 라우트 추가:"
+echo "  2. Cloudflare Tunnel 라우트 추가 (예시 — 실제 도메인은 fork-local):"
 echo "     marketing-tenant2.example.com    → localhost:34561"
-echo "     marketing-tenant3.example.com  → localhost:34563"
-echo "     marketing-tenant4.example.com      → localhost:34564"
+echo "     marketing-tenant3.example.com    → localhost:34563"
+echo "     marketing-tenant4.example.com    → localhost:34564"
 echo "  3. 각 dashboard → Settings → 채널 credential 입력 (IG/X/Threads)"
 echo "  4. Settings → Automation ON → cron 6시간 자동 발행 시작"

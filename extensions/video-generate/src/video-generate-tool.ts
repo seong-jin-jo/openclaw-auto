@@ -15,7 +15,7 @@ function resolveDashboardUrl(api: OpenClawPluginApi): string {
   const fromCfg = typeof pluginCfg.dashboardUrl === "string" && pluginCfg.dashboardUrl.trim();
   if (fromCfg) return fromCfg.replace(/\/+$/, "");
   if (process.env.VIDEO_DASHBOARD_URL) return process.env.VIDEO_DASHBOARD_URL.replace(/\/+$/, "");
-  const port = process.env.DASHBOARD_PORT || "34560"; // tenant1 기본
+  const port = process.env.DASHBOARD_PORT || "34560"; // 기본 인스턴스
   return `http://127.0.0.1:${port}`;
 }
 

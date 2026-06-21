@@ -1,47 +1,46 @@
-# postAGI 4 서비스 멀티 인스턴스 운영 가이드
+# 멀티 인스턴스 운영 가이드
 
-> Tenant는 기존 `docker-compose.yml` 인스턴스 1개 그대로.
-> Tenant / Tenant / tenant (DC는 삭제됨) 서비스는 본 가이드로 **별도 인스턴스**로 운영. (0차에서는 osmu SaaS 중심)
-> 각 서비스 = 별도 인스타/X 본계정 + 별도 채널 credential + 별도 cron 일정.
+> 1 인스턴스 = 1 서비스(테넌트). 각 테넌트는 별도 본계정 + 별도 채널 credential + 별도 cron 일정으로 운영.
+> 실제 브랜드명/도메인/핸들은 공개 레포에 넣지 않는다 — fork-local `data/tenants.json`과 `.env.{slug}`에서 설정.
+> (0차에서는 osmu SaaS 단일 대시보드 중심, 멀티 인스턴스는 선택)
 
-## 왜 인스턴스 4개인가
+## 왜 인스턴스 분리인가
 
-openclaw v3.0 설계는 **1 인스턴스 = 1 서비스** (멀티 테넌트는 v4.0 예정).
-4 서비스 동시 운영 + 각자 다른 본계정 = 4 컨테이너 분리가 정합.
+openclaw v3.0 설계는 **1 인스턴스 = 1 서비스** (네이티브 멀티 테넌트는 v4.0 예정).
+여러 서비스를 서로 다른 본계정으로 동시 운영하려면 컨테이너 분리가 정합.
 
-| 서비스 | 본계정 | 주 채널 | Dashboard 포트 | Gateway 포트 |
+| 테넌트(예시) | 슬러그 | 주 채널 | Dashboard 포트 | Gateway 포트 |
 |---|---|---|---|---|
-| Tenant (기존) | @tenant | 기존 박힘 | 34560 | 18789 |
-| **Tenant** (신규) | @tenant | IG + Threads | **34561** | 18790 |
-| **DC** (신규) | @tenant_official | X (Twitter) | **34562** | 18791 |
-| **Tenant** (신규) | @tenant | IG | **34563** | 18792 |
-| **폴리** (신규) | @tenant | X | **34564** | 18793 |
+| Tenant One (기존) | tenant1 | IG + Threads | 34560 | 18789 |
+| Tenant Two | tenant2 | IG + Threads | 34561 | 18790 |
+| Tenant Three | tenant3 | IG | 34563 | 18792 |
+| Tenant Four | tenant4 | X | 34564 | 18793 |
+
+> 슬러그·포트·채널은 fork에서 자유롭게 정의. 위 표는 예시.
 
 ## 1회 셋업 (~5분)
 
 ```bash
-cd ~/sj_code_master/postAGI/openclaw-auto
+cd <repo-root>
 
 # 1. data/config 디렉토리 + templates 복사 + .env.{slug} 자동 생성
 bash bootstrap-postagi-4tenants.sh
 
-# 2. 4 인스턴스 가동 (build 1회 + 8 컨테이너 시작, ~5분)
+# 2. 인스턴스 가동 (build 1회 + 컨테이너 시작, ~5분)
 docker-compose -f docker-compose.postagi-4tenants.yml up -d --build
 
 # 3. 컨테이너 상태 확인
 docker-compose -f docker-compose.postagi-4tenants.yml ps
 ```
 
-## Cloudflare Tunnel 라우트 추가 (4건)
+## Cloudflare Tunnel 라우트 추가
 
-`cloudflared` config 또는 dashboard에서:
+`cloudflared` config 또는 dashboard에서 (도메인은 예시 — 실제 값은 fork-local):
 
 ```yaml
 ingress:
   - hostname: marketing-tenant2.example.com
     service: http://localhost:34561
-  - hostname: marketing-dc.example.com
-    service: http://localhost:34562
   - hostname: marketing-tenant3.example.com
     service: http://localhost:34563
   - hostname: marketing-tenant4.example.com
@@ -50,24 +49,23 @@ ingress:
 
 (또는 임시 — `ssh -L 34561:localhost:34561 user@server` 로컬 포워딩만으로도 가능)
 
-## 채널 credential 입력 (서비스별)
+## 채널 credential 입력 (테넌트별)
 
-각 dashboard 접속 → Settings → Channels:
+각 dashboard 접속 → Settings → Channels에서 입력:
 
-| 서비스 | 입력할 것 |
+| 채널 | 입력할 것 |
 |---|---|
-| Tenant | Instagram Graph API access token (`@tenant`) + Threads access token |
-| DC | X API key/secret + Bearer token (`@tenant_official`) |
-| Tenant | Instagram Graph API access token (`@tenant`) |
-| 폴리 | X API key/secret + Bearer token (`@tenant`) |
+| Instagram | Instagram Graph API access token |
+| Threads | Threads access token |
+| X | X API key/secret + Bearer token |
 
-> Meta App Review 통과 전이면 Tenant은 채널 미연결 — dashboard에서 manual 콘텐츠 생성만 가능.
+> Meta App Review 통과 전이면 Instagram 채널 미연결 — dashboard에서 manual 콘텐츠 생성만 가능.
 
 ## prompt-guide 활성화
 
-각 서비스 dashboard → Settings → Content Guide:
-- 이미 `data-{slug}/prompt-guide.txt`에 박혀 있음 (bootstrap 스크립트가 자동 복사)
-- 채널별 오버라이드 필요하면 dashboard에서 직접 편집 (예: Tenant Threads는 살짝 다른 톤)
+각 테넌트 dashboard → Settings → Content Guide:
+- `data-{slug}/prompt-guide.txt`에 박혀 있음 (bootstrap 스크립트가 자동 복사)
+- 채널별 오버라이드 필요하면 dashboard에서 직접 편집
 
 ## Cron 자동화 ON
 
@@ -76,7 +74,7 @@ ingress:
 - 발행: 2시간 주기 (승인된 글)
 - 반응 수집: 6시간 주기
 
-서비스별로 Tenant만 ON / DC는 수동 / Tenant은 Meta 통과 후 ON / 폴리는 Legal Opinion 후 ON.
+> 테넌트별로 단계적 ON 권장 — 채널 검수(Meta 등)/법무 검토가 필요한 서비스는 통과 후 활성화.
 
 ## 메모리 / 디스크 예상
 
@@ -88,23 +86,11 @@ ingress:
 
 WSL2 런너에서 충분 (16GB+ 권장).
 
-## 운영 단계별 권장
-
-| 단계 | 인스턴스 |
-|---|---|
-| 이번 주 | **Tenant만 ON** (Meta 검수/Legal 대기 중인 Tenant/폴리는 컨테이너만 떠있게) |
-| 3주 후 | Tenant ON (Meta 검수 통과 시) |
-| 4-8주 후 | 폴리 ON (Legal Opinion 통과 시) |
-| DC | 인플루언서 funnel은 1:1 DM이라 **수동 권장** — openclaw는 일상 게시만 |
-
 ## 트러블슈팅
 
 - **dashboard 접근 불가** — Cloudflare Tunnel 라우트 + 포트 매핑 확인
 - **콘텐츠 생성 실패** — AI Engine 설정에서 Claude/GPT API 키 입력 확인
 - **발행 실패** — Settings → Channels의 access token 만료 여부 확인 (보통 60일)
-- **포트 충돌** — Tenant(34560)과 겹치지 않게 34561~34564 사용
-
-## 관련 commits
-
-- `df55158` — postAGI 4 서비스 prompt-guide templates 추가
-- (본 작업) `docker-compose.postagi-4tenants.yml` + `bootstrap-postagi-4tenants.sh` + 본 docs
+- **포트 충돌** — 기본 인스턴스(34560)와 겹치지 않게 34561~ 사용
+</content>
+</invoke>

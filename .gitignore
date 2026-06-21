@@ -58,4 +58,10 @@ config/telegram/
 tenants/
 !data/templates/
 !data/templates/**
+# 브랜드 전용 prompt-guide/keywords 는 fork-local (업종 일반 템플릿만 추적)
+data/templates/tenant1.*
+data/templates/tenant5.*
+data/templates/tenant3.*
+data/templates/tenant4.*
+data/templates/tenant2.*
 .gstack/

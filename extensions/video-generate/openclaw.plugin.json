@@ -8,7 +8,7 @@
     "properties": {
       "dashboardUrl": {
         "type": "string",
-        "description": "Dashboard base URL the gateway calls for ffmpeg rendering. network_mode=host에선 http://127.0.0.1:{DASHBOARD_PORT}. 미설정 시 VIDEO_DASHBOARD_URL env 또는 http://127.0.0.1:34560(tenant1)."
+        "description": "Dashboard base URL the gateway calls for ffmpeg rendering. network_mode=host에선 http://127.0.0.1:{DASHBOARD_PORT}. 미설정 시 VIDEO_DASHBOARD_URL env 또는 http://127.0.0.1:34560(기본)."
       }
     }
   }
