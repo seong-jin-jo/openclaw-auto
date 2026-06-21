@@ -11,6 +11,9 @@ import { fmtAgo, fmtTime } from "@/lib/format";
 import { useUIStore } from "@/store/ui-store";
 import { OnboardingWizard } from "@/components/shared/OnboardingWizard";
 import { ChannelConnectBanner } from "@/components/shared/ChannelConnectBanner";
+import { TenantIsolationBanner } from "@/components/shared/TenantIsolationBanner";
+import { OnboardingChecklist } from "@/components/shared/OnboardingChecklist";
+import { PipelineTimeline } from "@/components/home/PipelineTimeline";
 import Link from "next/link";
 
 interface PostRow {
@@ -60,6 +63,8 @@ export default function HomePage() {
   const { data: metricsData, mutate: mutateMetrics } = useSWR<{ posts?: PostRow[] }>(
     activeWorkspace ? `/api/metrics?tenant_id=${activeWorkspace.id}` : null, fetcher);
   const [collecting, setCollecting] = useState(false);
+  const [ideas, setIdeas] = useState<string[] | null>(null);
+  const [loadingIdeas, setLoadingIdeas] = useState(false);
   const { data: onboardingData, mutate: mutateOnboarding } = useOnboardingStatus();
   const onboardingStatus = onboardingData as { completed?: boolean } | undefined;
 
@@ -71,7 +76,12 @@ export default function HomePage() {
   const weekly = weeklyData as Record<string, unknown> | undefined;
   const tokenStatus = tokenData as Record<string, unknown> | undefined;
   const agentLogs = (((agentLogData as Record<string, unknown>)?.logs || []) as Array<Record<string, unknown>>);
-  const usage = usageData as { today?: Record<string, number>; thisWeek?: Record<string, number> } | undefined;
+  const usage = usageData as { 
+    today?: Record<string, number>; 
+    thisWeek?: Record<string, number>; 
+    tier?: string; 
+    quota?: any 
+  } | undefined;
   const errInfo = errorData as { last24h?: number } | undefined;
   const errorCount24h = errInfo?.last24h || 0;
 
@@ -108,11 +118,31 @@ export default function HomePage() {
     try { await apiPost("/api/metrics", { tenant_id: activeWorkspace.id }); await mutateMetrics(); }
     finally { setCollecting(false); }
   };
+  const generateIdeas = async () => {
+    if (loadingIdeas) return;
+    setLoadingIdeas(true); setIdeas(null);
+    try {
+      const r = await apiPost<{ ideas?: string[]; note?: string }>("/api/suggestions");
+      setIdeas(r?.ideas?.length ? r.ideas : (r?.note ? [r.note] : ["아이디어를 생성하지 못했습니다."]));
+    } catch (e) { setIdeas([`실패: ${(e as Error).message}`]); }
+    finally { setLoadingIdeas(false); }
+  };
 
   return (
     <div className="px-8 py-6">
       {/* 미연결 채널 알림 — 발행 전 연결 유도 */}
       <ChannelConnectBanner />
+      {/* 테넌트 격리 신뢰 배지 — 실제 RLS 증명 */}
+      <TenantIsolationBanner />
+      {/* 시작 체크리스트 — 가치 체감까지 4단계 */}
+      <OnboardingChecklist />
+      {/* 콘텐츠 파이프라인 퍼널 — 생성→검수→배포→성과 */}
+      <PipelineTimeline
+        draft={sc.draft || 0}
+        approved={sc.approved || 0}
+        published={publishedPosts.length}
+        performing={publishedPosts.filter((p) => p.views != null).length}
+      />
       {/* Marketing Home — 전 플랫폼 종합 + 로고 클릭 시 플랫폼 집중 */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
@@ -140,8 +170,21 @@ export default function HomePage() {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide">📈 발행물 성과</h3>
-          <button onClick={collectMetrics} disabled={collecting || !activeWorkspace} className="px-3 py-1.5 text-xs bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg disabled:opacity-50">{collecting ? "수집 중…" : "🔄 성과 수집"}</button>
+          <div className="flex gap-2">
+            <button onClick={generateIdeas} disabled={loadingIdeas} className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg disabled:opacity-50">{loadingIdeas ? "분석 중…" : "💡 성과 기반 다음 아이디어"}</button>
+            <button onClick={collectMetrics} disabled={collecting || !activeWorkspace} className="px-3 py-1.5 text-xs bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg disabled:opacity-50">{collecting ? "수집 중…" : "🔄 성과 수집"}</button>
+          </div>
         </div>
+        {ideas && (
+          <div className="mb-3 p-3 rounded-xl border border-gray-800 bg-gray-900/40">
+            <p className="text-xs text-gray-400 mb-1.5">성과 상위 글 패턴 기반 추천</p>
+            <ul className="space-y-1">
+              {ideas.map((idea, i) => (
+                <li key={i} className="text-xs text-gray-300">• {idea}</li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
           {card("발행물", publishedPosts.length)}
           {card("조회", sumMetric("views"))}
@@ -201,17 +244,24 @@ export default function HomePage() {
         {card("Engagement", weekly?.engagementRate ? `${weekly.engagementRate}%` : "-", "this week")}
       </div>
 
-      {/* Usage */}
+      {/* Usage (hybrid pricing aligned - ADR-003) */}
       {usage && (
         <div className="card p-5 mb-6">
-          <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-4">Usage</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide">Usage</h3>
+            {usage.tier && (
+              <span className="text-[10px] px-2 py-0.5 bg-blue-900/50 rounded text-blue-300">
+                {usage.tier} tier
+              </span>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-6">
             <div>
               <p className="text-[10px] text-gray-500 mb-2">Today</p>
               <div className="flex items-center gap-4">
                 <div>
                   <p className="text-xl font-bold text-white">{usage.today?.aiGenerations || 0}</p>
-                  <p className="text-[10px] text-gray-500">generations</p>
+                  <p className="text-[10px] text-gray-500">generations / shorts</p>
                 </div>
                 <div>
                   <p className="text-xl font-bold text-white">{usage.today?.publications || 0}</p>
@@ -228,7 +278,7 @@ export default function HomePage() {
               <div className="flex items-center gap-4">
                 <div>
                   <p className="text-xl font-bold text-white">{usage.thisWeek?.aiGenerations || 0}</p>
-                  <p className="text-[10px] text-gray-500">generations</p>
+                  <p className="text-[10px] text-gray-500">generations / shorts</p>
                 </div>
                 <div>
                   <p className="text-xl font-bold text-white">{usage.thisWeek?.publications || 0}</p>
@@ -241,6 +291,12 @@ export default function HomePage() {
               </div>
             </div>
           </div>
+          {usage.quota && (
+            <p className="text-[10px] text-gray-500 mt-2">
+              Quota (this month): shorts {usage.quota.shorts_used}/{usage.quota.shorts_included} · gens {usage.quota.generations_used}/{usage.quota.generations_included}
+            </p>
+          )}
+          <p className="text-[9px] text-gray-500 mt-1">Base subscription + usage add-ons (see Settings for upgrade)</p>
         </div>
       )}
 

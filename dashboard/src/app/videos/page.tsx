@@ -18,6 +18,38 @@ interface SlideInput {
   imageUrl: string;
 }
 
+// 같은 출처(/videos/...) 영상에서 첫 프레임을 캡처해 썸네일 data URL 생성. best-effort.
+// 교차출처(provider http url)는 canvas가 taint되어 toDataURL이 throw → null 반환.
+function captureThumbnail(src: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    try {
+      const video = document.createElement("video");
+      video.crossOrigin = "anonymous";
+      video.muted = true;
+      video.preload = "metadata";
+      video.src = src;
+      const done = (val: string | null) => { video.src = ""; resolve(val); };
+      const timer = setTimeout(() => done(null), 6000);
+      video.addEventListener("loadeddata", () => {
+        try { video.currentTime = Math.min(1, (video.duration || 2) / 2); } catch { /* ignore */ }
+      });
+      video.addEventListener("seeked", () => {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = video.videoWidth || 360;
+          canvas.height = video.videoHeight || 640;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { clearTimeout(timer); return done(null); }
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          clearTimeout(timer);
+          done(canvas.toDataURL("image/jpeg", 0.6));
+        } catch { clearTimeout(timer); done(null); }
+      });
+      video.addEventListener("error", () => { clearTimeout(timer); done(null); });
+    } catch { resolve(null); }
+  });
+}
+
 export default function VideosPage() {
   const { data, mutate } = useSWR<{ videos: Video[] }>("/api/video/list", fetcher);
   const { data: ytStatus } = useSWR<{ connected: boolean }>("/api/youtube/status", fetcher);
@@ -163,20 +195,30 @@ export default function VideosPage() {
     }
   };
 
-  const addClipToLibrary = async (clip: any) => {
+  // 클립을 로컬에 적재 + Queue 항목 생성. 썸네일(첫프레임)도 best-effort 캡처해 같이 저장.
+  // opts.silent: 배치 추가 시 클립별 토스트 억제. 성공 여부 반환.
+  const addClipToLibrary = async (clip: any, opts?: { silent?: boolean }): Promise<boolean> => {
     try {
-      // 0차: download clip to library if possible
       let filename = clip.id || `clip-${Date.now()}`;
-      try {
-        const res = await fetch(clip.url);
-        if (res.ok) {
-          const buf = await res.arrayBuffer();
-          const upForm = new FormData();
-          upForm.append("file", new Blob([buf], { type: "video/mp4" }), `${filename}.mp4`);
-          const up = await fetch("/api/video/upload", { method: "POST", body: upForm }).then(r => r.json());
-          if (up?.filename) filename = up.filename;
-        }
-      } catch {}
+      const isLocalFilename = clip.url && !clip.url.startsWith('http') && !clip.url.startsWith('/');
+      if (isLocalFilename) {
+        filename = clip.url;
+      } else {
+        try {
+          const res = await fetch(clip.url);
+          if (res.ok) {
+            const buf = await res.arrayBuffer();
+            const upForm = new FormData();
+            upForm.append("file", new Blob([buf], { type: "video/mp4" }), `${filename}.mp4`);
+            const up = await fetch("/api/video/upload", { method: "POST", body: upForm }).then(r => r.json());
+            if (up?.filename) filename = up.filename;
+          }
+        } catch {}
+      }
+
+      // 로컬 파일이면 same-origin이라 썸네일 캡처 가능(교차출처면 null).
+      const localUrl = `/videos/${filename}`;
+      const thumb = await captureThumbnail(localUrl);
 
       // Also create a queue entry with video + basic text (refined caption as base)
       await apiPost("/api/queue/add", {
@@ -184,13 +226,36 @@ export default function VideosPage() {
         topic: "video-repurpose",
         videoFilename: filename,
         videoUrl: clip.url,
+        videoThumbnail: thumb,
         hashtags: [],
       });
 
-      showToast(`Clip + entry added. Check Queue.`, "success");
-      mutate();
+      if (!opts?.silent) { showToast(`Clip + entry added. Check Queue.`, "success"); mutate(); }
+      return true;
     } catch (e) {
-      showToast(`Added reference: ${clip.url}`, "success");
+      if (!opts?.silent) showToast(`Added reference: ${clip.url}`, "success");
+      return false;
+    }
+  };
+
+  const [addingAll, setAddingAll] = useState(false);
+  // 원클릭: 모든 클립을 동시성 3으로 Queue에 추가. 부분 실패 허용(성공 카운트 토스트).
+  const addAllClipsToQueue = async () => {
+    if (addingAll || repurposeClips.length === 0) return;
+    setAddingAll(true);
+    let ok = 0;
+    try {
+      const clips = [...repurposeClips];
+      const CONCURRENCY = 3;
+      for (let i = 0; i < clips.length; i += CONCURRENCY) {
+        const batch = clips.slice(i, i + CONCURRENCY);
+        const results = await Promise.all(batch.map((c) => addClipToLibrary(c, { silent: true })));
+        ok += results.filter(Boolean).length;
+      }
+      showToast(`${ok}/${clips.length}개 클립을 Queue에 추가했습니다. Queue 확인.`, ok > 0 ? "success" : "error");
+      mutate();
+    } finally {
+      setAddingAll(false);
     }
   };
 
@@ -258,6 +323,18 @@ export default function VideosPage() {
           <span className="text-sm font-medium">Repurpose Long Video (0차)</span>
           <span className="text-[10px] text-gray-500">External (Reap/Ssemble) → OSMU refine + publish</span>
         </div>
+        <div className="mb-2 text-[10px]">
+          Set clipping key (one time): 
+          <input id="clip-provider" placeholder="reap or ssemble" className="bg-gray-800 p-1 mx-1 w-20" defaultValue="reap" />
+          <input id="clip-key" placeholder="your api key" className="bg-gray-800 p-1 mx-1 w-48" />
+          <button onClick={async () => {
+            const prov = (document.getElementById('clip-provider') as HTMLInputElement)?.value || '';
+            const key = (document.getElementById('clip-key') as HTMLInputElement)?.value || '';
+            if (!key) return;
+            await apiPost('/api/clipping-config', { provider: prov, apiKey: key });
+            alert('Key set. Now clip.');
+          }} className="px-2 py-0.5 text-xs bg-gray-700 rounded">Set Key</button>
+        </div>
         <div className="flex flex-wrap gap-2 items-center mb-3">
           <input
             value={repurposeUrl}
@@ -265,27 +342,24 @@ export default function VideosPage() {
             placeholder="YouTube long URL (e.g. https://youtube.com/watch?v=...)"
             className="flex-1 min-w-[280px] bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700"
           />
-          <label className="cursor-pointer text-xs px-3 py-1.5 bg-gray-700 rounded hover:bg-gray-600">
-            Local file
-            <input type="file" accept="video/*" className="hidden" onChange={(e) => {
-              const f = e.target.files?.[0] || null;
-              setRepurposeFile(f);
-              setRepurposeUrl("");
-            }} />
-          </label>
           <button onClick={handleRepurpose} disabled={repurposing} className="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 rounded disabled:opacity-50">
             {repurposing ? "Clipping..." : "Clip"}
           </button>
         </div>
-        {repurposeFile && <div className="text-[10px] text-green-400 mb-2">Selected: {repurposeFile.name}</div>}
+        <div className="text-[10px] text-gray-500 mb-2">Local long video: upload to YT first or use public URL (local file support for input limited; output clips saved locally)</div>
 
         {repurposeClips.length > 0 && (
           <div className="space-y-2 mt-2">
-            <div className="text-xs text-gray-400">Clips ({repurposeClips.length}) — preview, edit, refine with wiki, then add to flow</div>
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-gray-400">Clips ({repurposeClips.length}) — preview, edit, refine with wiki, then add to flow</div>
+              <button onClick={addAllClipsToQueue} disabled={addingAll} className="text-[10px] px-3 py-1 bg-green-700 hover:bg-green-600 rounded disabled:opacity-50">
+                {addingAll ? "추가 중…" : `전체 큐에 추가 (${repurposeClips.length})`}
+              </button>
+            </div>
             {repurposeClips.map((c, i) => (
               <div key={c.id || i} className="bg-gray-800 rounded p-3 text-xs flex gap-3 items-start">
                 <div className="w-40">
-                  {c.url && <video src={c.url} controls className="w-full rounded bg-black" style={{ maxHeight: 120 }} />}
+                  {c.url && <video src={c.url.startsWith('http') ? c.url : `/videos/${c.url}`} controls className="w-full rounded bg-black" style={{ maxHeight: 120 }} />}
                 </div>
                 <div className="flex-1 space-y-1">
                   <input className="w-full bg-gray-900 p-1 rounded" value={c.title || ""} onChange={e => {

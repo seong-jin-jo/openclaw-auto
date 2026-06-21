@@ -57,6 +57,41 @@ describe("L1 RLS 교차테넌트 격리 (라이브 Supabase)", () => {
     }
   });
 
+  // 새로 RLS-보호된 빌링 테이블도 동일하게 교차테넌트 0이어야 함(usage_events/usage_quotas/subscriptions).
+  it("osmu_service + 타테넌트 컨텍스트 → 빌링 테이블 교차조회 0", async (ctx) => {
+    const sql = await tryConnect();
+    if (!sql) return ctx.skip();
+    try {
+      const tenants = await sql<{ id: string }[]>`select id from tenants order by id`;
+      if (tenants.length < 2) return ctx.skip();
+
+      let asserted = 0;
+      for (const table of ["usage_events", "usage_quotas", "subscriptions"]) {
+        // 해당 테이블에 데이터를 가진 테넌트 탐색. 없으면 그 테이블은 건너뜀.
+        const owners = await sql<{ tenant_id: string }[]>`
+          select tenant_id from ${sql(table)} group by tenant_id`;
+        if (owners.length === 0) continue;
+        const ownerId = owners[0].tenant_id;
+        const other = tenants.find((t) => t.id !== ownerId);
+        if (!other) continue;
+
+        await sql.begin(async (tx) => {
+          await tx`set local role osmu_service`;
+          await tx`select set_config('app.tenant_id', ${other.id}, true)`;
+          const cross = await tx<{ c: number }[]>`select count(*)::int as c from ${tx(table)}`;
+          expect(cross[0].c, `${table} 교차테넌트 조회`).toBe(0);
+          await tx`select set_config('app.tenant_id', ${ownerId}, true)`;
+          const own = await tx<{ c: number }[]>`select count(*)::int as c from ${tx(table)}`;
+          expect(own[0].c, `${table} 자기 조회`).toBeGreaterThan(0);
+        });
+        asserted++;
+      }
+      if (asserted === 0) return ctx.skip();
+    } finally {
+      await sql.end({ timeout: 5 });
+    }
+  });
+
   it("WITH CHECK: 타테넌트 tenant_id INSERT 거부 (롤백)", async (ctx) => {
     const sql = await tryConnect();
     if (!sql) return ctx.skip();
@@ -71,6 +106,25 @@ describe("L1 RLS 교차테넌트 격리 (라이브 Supabase)", () => {
           await tx`set local role osmu_service`;
           await tx`select set_config('app.tenant_id', ${a.id}, true)`;
           await tx`insert into drafts (tenant_id, idea) values (${b.id}, 'rls-cross-insert-test')`;
+        }),
+      ).rejects.toThrow();
+    } finally {
+      await sql.end({ timeout: 5 });
+    }
+  });
+
+  it("WITH CHECK: usage_events 타테넌트 INSERT 거부 (롤백)", async (ctx) => {
+    const sql = await tryConnect();
+    if (!sql) return ctx.skip();
+    try {
+      const tenants = await sql<{ id: string }[]>`select id from tenants order by id`;
+      if (tenants.length < 2) return ctx.skip();
+      const [a, b] = tenants;
+      await expect(
+        sql.begin(async (tx) => {
+          await tx`set local role osmu_service`;
+          await tx`select set_config('app.tenant_id', ${a.id}, true)`;
+          await tx`insert into usage_events (tenant_id, event_type, quantity) values (${b.id}, 'rls-cross-insert-test', 1)`;
         }),
       ).rejects.toThrow();
     } finally {

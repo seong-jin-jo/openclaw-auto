@@ -5,6 +5,7 @@ import { setupGuides } from "@/lib/setup-guides";
 import { CredentialForm } from "./CredentialForm";
 import { SetupGuide } from "./SetupGuide";
 import { apiPost } from "@/lib/api";
+import { authHeaders } from "@/lib/auth";
 
 const INDUSTRIES = [
   { key: "cafe", icon: "\u2615", name: "\uCE74\uD398", desc: "\uCE74\uD398 \xB7 \uB514\uC800\uD2B8 \xB7 \uC74C\uB8CC" },
@@ -37,6 +38,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [credentialsSaved, setCredentialsSaved] = useState(false);
+  const [connectedAccount, setConnectedAccount] = useState<string | null>(null);
 
   const toggleChannel = (key: string) => {
     setSelectedChannels((prev) =>
@@ -70,15 +72,17 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
 
   const handleCredentialSave = async (keys: Record<string, string>) => {
     const firstChannel = selectedChannels[0];
-    const res = await fetch("/api/channel-config", {
+    // 검증 경로: /api/channel-config/{channel} 에 flat keys 전송 → 실제 API verify + 계정 echo.
+    const res = await fetch(`/api/channel-config/${firstChannel}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ channel: firstChannel, keys }),
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(keys),
     });
+    const d = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const d = await res.json().catch(() => ({}));
       throw new Error((d as { error?: string }).error || "저장 실패");
     }
+    setConnectedAccount((d as { account?: string }).account || null);
     setCredentialsSaved(true);
   };
 
@@ -200,7 +204,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <p className="text-sm text-green-400 font-medium">채널이 연결되었습니다</p>
+                  <p className="text-sm text-green-400 font-medium">채널이 연결되었습니다{connectedAccount ? ` — ${connectedAccount}` : ""}</p>
                   <p className="text-xs text-gray-500 mt-1">완료를 눌러 대시보드로 이동하세요</p>
                 </div>
               )}

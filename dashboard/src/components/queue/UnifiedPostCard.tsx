@@ -72,6 +72,7 @@ export function UnifiedPostCard({
   const { showToast } = useToast();
   const { editingPost, setEditingPost, selectedIds, toggleSelect } = useUIStore();
   const [editText, setEditText] = useState(post.text);
+  const [makingVariants, setMakingVariants] = useState(false);
   const isEditing = editingPost === post.id;
   const isSelected = selectedIds.has(post.id);
   const channels = post.channels || {};
@@ -103,6 +104,17 @@ export function UnifiedPostCard({
       showToast("삭제 완료", "success");
       onRefresh();
     } catch (e) { showToast(`삭제 실패: ${(e as Error).message}`, "error"); }
+  };
+
+  const handleMakeVariants = async () => {
+    if (makingVariants) return;
+    setMakingVariants(true);
+    try {
+      const r = await apiPost<{ created: number }>(`/api/queue/${post.id}/variants`, { count: 3 });
+      showToast(`텍스트 변형 ${r?.created ?? 0}개 생성됨 (같은 영상)`, "success");
+      onRefresh();
+    } catch (e) { showToast(`변형 생성 실패: ${(e as Error).message}`, "error"); }
+    finally { setMakingVariants(false); }
   };
 
   const handleRemoveImage = async () => {
@@ -184,6 +196,30 @@ export function UnifiedPostCard({
             )}
           </div>
         ) : null
+      )}
+
+      {/* Video for repurposed clips */}
+      {(post.videoFilename || post.videoUrl) && (
+        <div className="mb-2">
+          <video
+            src={post.videoUrl || `/videos/${post.videoFilename}`}
+            poster={post.videoThumbnail || undefined}
+            controls
+            preload="none"
+            className="w-full rounded border border-gray-800"
+            style={{ maxHeight: 200 }}
+          />
+          {post.status === "draft" && (
+            <button
+              onClick={handleMakeVariants}
+              disabled={makingVariants}
+              className="mt-1.5 px-2 py-1 text-xs bg-purple-900/50 text-purple-300 rounded hover:bg-purple-800 disabled:opacity-50"
+              title="이 클립을 그대로 두고 텍스트(캡션)만 다르게 한 변형을 큐에 추가"
+            >
+              {makingVariants ? "변형 생성 중…" : "이 클립으로 텍스트 변형 3개 생성"}
+            </button>
+          )}
+        </div>
       )}
 
       {/* Text / Edit */}
@@ -284,6 +320,9 @@ export function UnifiedPostCard({
           )}
           {post.status !== "published" && (
             <button onClick={handleDelete} className="px-2 py-1 text-xs bg-red-900/50 text-red-300 rounded hover:bg-red-800">Delete</button>
+          )}
+          {post.status === "published" && (
+            <a href="/" className="px-2 py-1 text-xs bg-purple-900/40 text-purple-300 rounded hover:bg-purple-800">성과 보기 →</a>
           )}
         </div>
       )}

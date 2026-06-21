@@ -18,6 +18,9 @@ export interface Post {
   imageUrl?: string;
   imageUrls?: string[];
   cardBatchId?: string;
+  videoFilename?: string | null;
+  videoUrl?: string | null;
+  videoThumbnail?: string | null;
   topic?: string;
   model?: string;
   hashtags?: string[];

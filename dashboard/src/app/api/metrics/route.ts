@@ -1,8 +1,20 @@
 import { withTenant } from "@/lib/db";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { getChannelCred } from "@/lib/publish";
+import { readJson, writeJson, dataPath } from "@/lib/file-io";
+import { runWithTenant } from "@/lib/tenant-context";
 
 const THREADS_API = "https://graph.threads.net/v1.0";
+
+// 온보딩 체크리스트용: 성과 수집을 한 번이라도 돌리면 "analytics 확인" 단계 완료로 표시.
+function markAnalyticsViewed(tenantId: string) {
+  try {
+    runWithTenant(tenantId, () => {
+      const s = readJson<Record<string, unknown>>(dataPath("settings.json")) || {};
+      if (s.analyticsViewed !== true) { s.analyticsViewed = true; writeJson(dataPath("settings.json"), s); }
+    });
+  } catch { /* 비차단 */ }
+}
 
 // GET /api/metrics?tenant_id=... — 발행물 + 성과 목록(성과 대시보드)
 export async function GET(request: Request) {
@@ -50,6 +62,7 @@ export async function POST(request: Request) {
       }
       return { updated: n, total: rows.length };
     });
+    markAnalyticsViewed(tenant_id);
     return Response.json({ ok: true, updated, total });
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 });

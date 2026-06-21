@@ -2,6 +2,7 @@ import { readJson, dataPath } from "@/lib/file-io";
 import path from "path";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
+import { withTenant } from "@/lib/db";
 
 interface DailyUsage {
   aiGenerations: number;
@@ -79,11 +80,29 @@ export async function GET(request: Request) {
     }
   }
 
+  // Include tier and basic quota info for hybrid pricing (ADR-003)
+  let tier = "starter";
+  let quotaInfo: any = null;
+  try {
+    if (__t) await withTenant(__t, async (sql) => {
+      const [t] = await sql`SELECT tier FROM tenants WHERE id = ${__t} LIMIT 1`;
+      if (t?.tier) tier = t.tier;
+
+      const monthStr = todayStr.slice(0, 7);
+      const [q] = await sql`
+        SELECT * FROM usage_quotas 
+        WHERE tenant_id = ${__t} AND period = ${monthStr} LIMIT 1`;
+      if (q) quotaInfo = q;
+    });
+  } catch {}
+
   return Response.json({
     today: todayData,
     thisWeek: sumDays(weekDays),
     thisMonth: sumDays(monthDays),
     daily: recentDaily,
+    tier,
+    quota: quotaInfo,
   });
   });
 }

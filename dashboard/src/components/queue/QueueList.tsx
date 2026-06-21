@@ -1,10 +1,11 @@
 "use client";
 
+import useSWR from "swr";
 import { useQueue } from "@/hooks/useQueue";
 import { useChannelConfig } from "@/hooks/useChannelConfig";
 import { useUIStore } from "@/store/ui-store";
 import { useToast } from "@/components/layout/Toast";
-import { apiPost } from "@/lib/api";
+import { apiPost, fetcher } from "@/lib/api";
 import { UnifiedPostCard } from "./UnifiedPostCard";
 import type { UnifiedPostCardProps } from "./UnifiedPostCard";
 
@@ -22,6 +23,16 @@ export function QueueList({ variant = "text", charLimit, showSeo, onEditInEditor
   const { data, mutate } = useQueue(queueFilter);
   const { data: channelConfig } = useChannelConfig();
   const { showToast } = useToast();
+  // 소싱(롱폼→숏폼) DB drafts 중 아직 큐로 안 가져온 개수.
+  const { data: srcPending, mutate: mutatePending } = useSWR<{ pending: number }>("/api/sourcing/import-to-queue", fetcher);
+
+  const handleImportFromSourcing = async () => {
+    try {
+      const r = await apiPost<{ imported: number }>("/api/sourcing/import-to-queue");
+      showToast(`소싱 후보 ${r?.imported ?? 0}개를 큐로 가져왔습니다`, "success");
+      mutate(); mutatePending();
+    } catch (e) { showToast(`가져오기 실패: ${(e as Error).message}`, "error"); }
+  };
 
   const posts = data?.posts || [];
 
@@ -74,6 +85,11 @@ export function QueueList({ variant = "text", charLimit, showSeo, onEditInEditor
           ))}
         </div>
         <div className="flex gap-2 items-center">
+          {(srcPending?.pending ?? 0) > 0 && (
+            <button onClick={handleImportFromSourcing} className="px-3 py-1 text-xs bg-indigo-700/60 text-indigo-200 rounded hover:bg-indigo-600">
+              소싱에서 가져오기 ({srcPending!.pending})
+            </button>
+          )}
           {selectableIds.length > 0 && (
             <label className="flex items-center gap-1 text-xs text-gray-400 cursor-pointer">
               <input type="checkbox" checked={selectedIds.size > 0} onChange={handleSelectAll} className="rounded border-gray-600" />

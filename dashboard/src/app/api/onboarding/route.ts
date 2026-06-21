@@ -1,12 +1,25 @@
-import { readJson, writeJson, readText, writeText, dataPath, sharedDataPath } from "@/lib/file-io";
+import { readJson, writeJson, readText, writeText, dataPath, configPath, sharedDataPath } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
+import { withTenant } from "@/lib/db";
 import path from "path";
 
 interface SettingsJson {
   onboardingComplete?: boolean;
   industry?: string;
+  analyticsViewed?: boolean;
   [key: string]: unknown;
+}
+
+interface OpenClawCfg {
+  plugins?: { entries?: Record<string, { enabled?: boolean }> };
+}
+
+// openclaw.json에서 enabled된 publish 플러그인이 하나라도 있으면 채널 연결됨으로 간주.
+function hasConnectedChannel(): boolean {
+  const cfg = readJson<OpenClawCfg>(configPath("openclaw.json"));
+  const entries = cfg?.plugins?.entries || {};
+  return Object.entries(entries).some(([name, p]) => name.endsWith("-publish") && p?.enabled === true);
 }
 
 const VALID_INDUSTRIES = [
@@ -22,12 +35,42 @@ const VALID_INDUSTRIES = [
 
 export async function GET(request: Request) {
   const tenantId = await effectiveTenantId(request, null);
-  return runWithTenant(tenantId, () => {
+  // 파일 기반 신호(설정·채널)는 runWithTenant 안에서 읽는다.
+  const fileSignals = runWithTenant(tenantId, () => {
     const settings = readJson<SettingsJson>(dataPath("settings.json"));
-    return Response.json({
+    return {
       completed: settings?.onboardingComplete === true,
       industry: settings?.industry,
-    });
+      channelConnected: hasConnectedChannel(),
+      analyticsViewed: settings?.analyticsViewed === true,
+    };
+  });
+
+  // DB 카운트(위키·발행)는 withTenant. 폴링되므로 실패 시 0으로 폴백.
+  let wikiCount = 0;
+  let publishCount = 0;
+  if (tenantId) {
+    try {
+      const counts = await withTenant(tenantId, async (sql) => {
+        const [w] = await sql<{ c: number }[]>`SELECT count(*)::int AS c FROM wiki_docs`;
+        const [p] = await sql<{ c: number }[]>`SELECT count(*)::int AS c FROM published_posts`;
+        return { wiki: w.c, pub: p.c };
+      });
+      wikiCount = counts.wiki;
+      publishCount = counts.pub;
+    } catch { /* DB 미연결 — 0 유지 */ }
+  }
+
+  return Response.json({
+    ...fileSignals,
+    wikiCount,
+    publishCount,
+    checklist: {
+      channel: fileSignals.channelConnected,
+      wiki: wikiCount > 0,
+      published: publishCount > 0,
+      analytics: fileSignals.analyticsViewed,
+    },
   });
 }
 

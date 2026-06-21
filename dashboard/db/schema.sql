@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS tenants (
   slug        TEXT NOT NULL UNIQUE,            -- URL/식별용 (예: tenant1)
   name        TEXT NOT NULL,                   -- 표시명 (예: Tenant)
   status      TEXT NOT NULL DEFAULT 'active',  -- active | paused
-  tier        TEXT NOT NULL DEFAULT 'team',    -- team | private — tier별 Supabase 프로젝트 라우팅(team=공유, private=19금 물리분리)
+  tier        TEXT NOT NULL DEFAULT 'starter',    -- starter | pro | team (ADR-003 hybrid pricing)
   domain      TEXT UNIQUE,                     -- 커스텀 도메인(CNAME). Host 헤더 → 이 테넌트로 매핑(호스팅 멀티테넌트)
   owner_auth_id UUID UNIQUE,                    -- Supabase Auth 유저 → 테넌트 매핑(고객 셀프서브 로그인). 첫 로그인 시 자동 생성
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -143,3 +143,40 @@ CREATE TABLE IF NOT EXISTS wiki_docs (
 );
 CREATE INDEX IF NOT EXISTS idx_wiki_docs_trgm ON wiki_docs USING gin (content gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_wiki_docs_tenant ON wiki_docs(tenant_id);
+
+-- Usage & Billing for Hybrid SaaS Pricing (ADR-003)
+-- Track events for base + usage billing. Aggregate for quotas and overage.
+CREATE TABLE IF NOT EXISTS usage_events (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id     UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  event_type    TEXT NOT NULL,                   -- aiGeneration, shortsVideoMinute, publication, priorityModel, apiCall, etc.
+  quantity      NUMERIC NOT NULL DEFAULT 1,      -- count or minutes
+  meta          JSONB,                           -- e.g. { model, source: 'shorts', wiki_path }
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_usage_events_tenant ON usage_events(tenant_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_usage_events_type ON usage_events(tenant_id, event_type, created_at);
+
+-- Current subscription state per tenant (for base pricing + tier)
+CREATE TABLE IF NOT EXISTS subscriptions (
+  tenant_id         UUID PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE,
+  tier              TEXT NOT NULL DEFAULT 'starter',  -- starter | pro | team
+  base_price        NUMERIC,                          -- monthly base in cents or won units
+  status            TEXT NOT NULL DEFAULT 'active',   -- active | past_due | canceled
+  current_period_start TIMESTAMPTZ,
+  current_period_end   TIMESTAMPTZ,
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Monthly quotas & usage summary (for enforcement and dashboard)
+CREATE TABLE IF NOT EXISTS usage_quotas (
+  tenant_id         UUID PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE,
+  period            TEXT NOT NULL,                   -- YYYY-MM
+  shorts_included   INTEGER DEFAULT 50,
+  shorts_used       INTEGER DEFAULT 0,
+  generations_included INTEGER DEFAULT 1000,
+  generations_used  INTEGER DEFAULT 0,
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (tenant_id, period)
+);
+CREATE INDEX IF NOT EXISTS idx_usage_quotas_tenant_period ON usage_quotas(tenant_id, period);

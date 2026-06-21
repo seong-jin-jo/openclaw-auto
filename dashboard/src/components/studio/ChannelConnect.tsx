@@ -1,69 +1,118 @@
 "use client";
 
 import { useState } from "react";
-import useSWR from "swr";
-import { fetcher, apiPost } from "@/lib/api";
+import { setupGuides } from "@/lib/setup-guides";
+import { useChannelConfig } from "@/hooks/useChannelConfig";
+import { authHeaders } from "@/lib/auth";
+import { CredentialForm } from "@/components/shared/CredentialForm";
+import { SetupGuide } from "@/components/shared/SetupGuide";
 import type { Workspace } from "@/store/ui-store";
 
-// 채널 토큰 연결 모달 → integrations 저장. 연결되면 실발행 가능.
-const CHANNELS = [
-  { key: "threads", label: "Threads", needUser: true, userLabel: "User ID", hint: "Meta 개발자 콘솔 → Threads access token(60일) + user id" },
-  { key: "instagram", label: "Instagram", needUser: true, userLabel: "IG User ID", hint: "Instagram Graph API access token + ig user id" },
-];
+// 채널 연결 모달 — 검증 경로(/api/channel-config/{channel})로 통일.
+// 저장 시 실제 API로 credential을 verify하고 계정(@username)을 echo. OnboardingWizard와 동일 경로.
+// "연결 테스트"는 빈 body POST → 저장된 creds로 verify만 재실행(부작용 없음).
+const CHANNELS = ["threads", "instagram", "x", "facebook", "bluesky", "telegram", "discord", "slack", "line"];
+const LABELS: Record<string, string> = {
+  threads: "Threads", instagram: "Instagram", x: "X", facebook: "Facebook",
+  bluesky: "Bluesky", telegram: "Telegram", discord: "Discord", slack: "Slack", line: "LINE",
+};
 
-interface IntegrationRow { id: string; kind: string; label: string; has_secret: boolean }
+interface VerifyResult { verified?: boolean; account?: string; error?: string }
 
 export function ChannelConnect({ workspace, onClose }: { workspace: Workspace; onClose: () => void }) {
-  const { data, mutate } = useSWR<{ integrations?: IntegrationRow[] }>(`/api/integrations?tenant_id=${workspace.id}`, fetcher);
-  const connected = new Set((data?.integrations || []).filter((i) => i.kind === "channel" && i.has_secret).map((i) => i.label));
+  const { data: cfg, mutate } = useChannelConfig();
   const [platform, setPlatform] = useState("threads");
-  const [token, setToken] = useState("");
-  const [userId, setUserId] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
+  const [result, setResult] = useState<VerifyResult | null>(null);
+  const [testing, setTesting] = useState(false);
 
-  const ch = CHANNELS.find((c) => c.key === platform)!;
+  const guide = setupGuides[platform];
+  const chCfg = (cfg?.[platform] as { connected?: boolean; keys?: Record<string, string> }) || {};
+  const currentKeys = chCfg.keys || {};
 
-  const save = async () => {
-    if (!token.trim() || busy) return;
-    setBusy(true); setMsg("");
+  const post = async (body: Record<string, string>): Promise<VerifyResult> => {
+    const res = await fetch(`/api/channel-config/${platform}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(body),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error((d as { error?: string }).error || "저장 실패");
+    return d as VerifyResult;
+  };
+
+  const handleSave = async (keys: Record<string, string>) => {
+    setResult(null);
+    const r = await post(keys);
+    setResult(r);
+    await mutate();
+  };
+
+  const testConnection = async () => {
+    if (testing) return;
+    setTesting(true); setResult(null);
     try {
-      const r = await apiPost<{ ok?: boolean; error?: string }>("/api/integrations", {
-        tenant_id: workspace.id, kind: "channel", label: platform,
-        secret: token.trim(), meta: ch.needUser ? { userId: userId.trim() } : {},
-      });
-      if (r?.ok) { await mutate(); setToken(""); setUserId(""); setMsg(`${ch.label} 연결됨 ✓`); }
-      else setMsg(r?.error || "저장 실패");
-    } finally { setBusy(false); }
+      const r = await post({}); // 빈 body → 저장된 creds로 verify만 재실행
+      setResult(r);
+    } catch (e) {
+      setResult({ error: (e as Error).message });
+    } finally { setTesting(false); }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="w-full max-w-md rounded-2xl border border-purple-500/20 bg-[#141414]/95 backdrop-blur-xl p-6 shadow-[0_0_40px_rgba(168,85,247,0.15)]">
+      <div className="w-full max-w-2xl rounded-2xl border border-purple-500/20 bg-[#141414]/95 backdrop-blur-xl p-6 shadow-[0_0_40px_rgba(168,85,247,0.15)] max-h-[88vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-1">
           <h2 className="text-lg font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">채널 연결</h2>
           <button onClick={onClose} className="text-gray-500 text-sm">✕</button>
         </div>
-        <p className="text-xs text-gray-500 mb-4">{workspace.name} · 토큰 연결 시 실제 발행됩니다</p>
+        <p className="text-xs text-gray-500 mb-4">{workspace.name} · 입력 후 저장하면 실제 API로 검증되고 계정이 확인됩니다</p>
 
-        <div className="flex gap-2 mb-3">
-          {CHANNELS.map((c) => (
-            <button key={c.key} onClick={() => setPlatform(c.key)} className={`px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 ${platform === c.key ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white" : "bg-gray-800 text-gray-400"}`}>
-              {c.label}{connected.has(c.key) && <span className="text-green-400">✓</span>}
-            </button>
-          ))}
+        <div className="flex gap-2 mb-4 flex-wrap">
+          {CHANNELS.map((c) => {
+            const connected = Boolean((cfg?.[c] as { connected?: boolean })?.connected);
+            return (
+              <button key={c} onClick={() => { setPlatform(c); setResult(null); }}
+                className={`px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 ${platform === c ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white" : "bg-gray-800 text-gray-400"}`}>
+                {LABELS[c] || c}{connected && <span className="text-green-400">✓</span>}
+              </button>
+            );
+          })}
         </div>
 
-        <div className="space-y-2">
-          <input value={token} onChange={(e) => setToken(e.target.value)} placeholder={`${ch.label} access token`} className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200" />
-          {ch.needUser && <input value={userId} onChange={(e) => setUserId(e.target.value)} placeholder={ch.userLabel} className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200" />}
-          <p className="text-[10px] text-gray-600">{ch.hint}</p>
-        </div>
-
-        {msg && <p className={`text-xs mt-2 ${msg.includes("✓") ? "text-green-400" : "text-red-400"}`}>{msg}</p>}
-        <div className="flex justify-end mt-4">
-          <button onClick={save} disabled={busy} className="px-4 py-2 text-sm bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg disabled:opacity-50">{busy ? "저장 중…" : "연결 저장"}</button>
-        </div>
+        {guide ? (
+          <div className="grid md:grid-cols-2 gap-4">
+            {/* 연결 중 인라인 가이드 — 따라만 하면 되도록 */}
+            <div className="card p-4">
+              <p className="text-xs font-medium text-gray-300 mb-2">{LABELS[platform]} 연결 방법</p>
+              <SetupGuide quick={guide.quick} detail={guide.detail} />
+            </div>
+            <div className="card p-4">
+              <CredentialForm
+                channelKey={platform}
+                fields={guide.fields}
+                labels={guide.labels}
+                currentKeys={currentKeys}
+                onSave={handleSave}
+                connectLabel="연결 + 검증"
+              />
+              <button onClick={testConnection} disabled={testing}
+                className="mt-3 w-full py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded disabled:opacity-50">
+                {testing ? "테스트 중…" : "연결 테스트 (저장된 키 재검증)"}
+              </button>
+              {result && (
+                <div className="mt-3 text-xs">
+                  {result.verified ? (
+                    <p className="text-green-400">✓ 연결 완료{result.account ? ` — ${result.account}` : ""}</p>
+                  ) : (
+                    <p className="text-amber-400">⚠ 검증 실패{result.error ? `: ${result.error}` : " — 키를 확인하세요"}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs text-gray-500">이 채널은 아직 가이드가 준비되지 않았습니다.</p>
+        )}
       </div>
     </div>
   );

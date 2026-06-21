@@ -21,6 +21,9 @@ interface QueuePost {
   imageUrl: string | null;
   imageUrls?: string[] | null;
   cardBatchId?: string | null;
+  videoFilename?: string | null;
+  videoUrl?: string | null;
+  videoThumbnail?: string | null;
   engagement: null;
 }
 
@@ -56,6 +59,9 @@ export async function POST(request: Request) {
       imageUrl: data.imageUrl || (imageUrls ? imageUrls[0] : null) || null,
       imageUrls,
       cardBatchId: data.cardBatchId || null,
+      videoFilename: data.videoFilename || null,
+      videoUrl: data.videoUrl || null,
+      videoThumbnail: data.videoThumbnail || null,
       engagement: null,
     };
 
