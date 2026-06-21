@@ -10,6 +10,9 @@ import { UnifiedPostCard } from "./UnifiedPostCard";
 import type { UnifiedPostCardProps } from "./UnifiedPostCard";
 
 const FILTERS = ["all", "draft", "approved", "published", "failed"];
+const FILTER_LABELS: Record<string, string> = {
+  all: "전체", draft: "초안", approved: "승인됨", published: "발행됨", failed: "실패",
+};
 
 interface QueueListProps {
   variant?: UnifiedPostCardProps["variant"];
@@ -67,9 +70,9 @@ export function QueueList({ variant = "text", charLimit, showSeo, onEditInEditor
 
   return (
     <div>
-      {/* Filters + Bulk actions */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex gap-1">
+      {/* Filters + Bulk actions — 모바일에서 줄바꿈 */}
+      <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
+        <div className="flex gap-1 flex-wrap">
           {FILTERS.map((f) => (
             <button
               key={f}
@@ -80,11 +83,11 @@ export function QueueList({ variant = "text", charLimit, showSeo, onEditInEditor
                   : "text-gray-500 hover:bg-gray-800"
               }`}
             >
-              {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
+              {FILTER_LABELS[f] || f}
             </button>
           ))}
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center flex-wrap">
           {(srcPending?.pending ?? 0) > 0 && (
             <button onClick={handleImportFromSourcing} className="px-3 py-1 text-xs bg-indigo-700/60 text-indigo-200 rounded hover:bg-indigo-600">
               소싱에서 가져오기 ({srcPending!.pending})
@@ -93,16 +96,16 @@ export function QueueList({ variant = "text", charLimit, showSeo, onEditInEditor
           {selectableIds.length > 0 && (
             <label className="flex items-center gap-1 text-xs text-gray-400 cursor-pointer">
               <input type="checkbox" checked={selectedIds.size > 0} onChange={handleSelectAll} className="rounded border-gray-600" />
-              All
+              전체
             </label>
           )}
           {selectedIds.size > 0 && (
             <>
               <button onClick={handleBulkApprove} className="px-3 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">
-                Approve ({selectedIds.size})
+                승인 ({selectedIds.size})
               </button>
               <button onClick={handleBulkDelete} className="px-3 py-1 text-xs bg-red-700 text-white rounded hover:bg-red-600">
-                Delete ({selectedIds.size})
+                삭제 ({selectedIds.size})
               </button>
             </>
           )}
@@ -112,7 +115,7 @@ export function QueueList({ variant = "text", charLimit, showSeo, onEditInEditor
       {/* Posts */}
       <div className="space-y-3">
         {sorted.length === 0 ? (
-          <p className="text-gray-600 text-sm">No posts</p>
+          <p className="text-gray-600 text-sm">글이 없습니다</p>
         ) : (
           sorted.map((p) => (
             <UnifiedPostCard

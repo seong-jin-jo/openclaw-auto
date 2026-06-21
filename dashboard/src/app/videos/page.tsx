@@ -75,6 +75,9 @@ export default function VideosPage() {
   const [repurposing, setRepurposing] = useState(false);
   const [repurposeClips, setRepurposeClips] = useState<any[]>([]);
   const [refiningClip, setRefiningClip] = useState<string | null>(null);
+  const [clipProvider, setClipProvider] = useState("reap");
+  const [clipKey, setClipKey] = useState("");
+  const [savingKey, setSavingKey] = useState(false);
 
   const videos = data?.videos || [];
 
@@ -272,21 +275,21 @@ export default function VideosPage() {
     <div className="px-8 py-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-bold text-white">Videos</h2>
-          <p className="text-xs text-gray-500 mt-1">Short-form video generation and publishing</p>
+          <h2 className="text-xl font-bold text-white">영상</h2>
+          <p className="text-xs text-gray-500 mt-1">숏폼 영상 생성·발행</p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setTab("list")}
             className={`px-3 py-1.5 text-xs rounded ${tab === "list" ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"}`}
           >
-            Library ({videos.length})
+            라이브러리 ({videos.length})
           </button>
           <button
             onClick={() => setTab("generate")}
             className={`px-3 py-1.5 text-xs rounded ${tab === "generate" ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"}`}
           >
-            + Generate
+            + 생성
           </button>
         </div>
       </div>
@@ -294,25 +297,25 @@ export default function VideosPage() {
       {/* Status cards */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="card p-3">
-          <div className="text-[10px] text-gray-500 mb-1">Videos</div>
+          <div className="text-[10px] text-gray-500 mb-1">영상</div>
           <div className="text-lg font-bold text-white">{videos.length}</div>
         </div>
         <div className="card p-3">
           <div className="text-[10px] text-gray-500 mb-1">YouTube</div>
           <div className={`text-sm font-medium ${ytStatus?.connected ? "text-green-400" : "text-gray-500"}`}>
-            {ytStatus?.connected ? "Connected" : "Not connected"}
+            {ytStatus?.connected ? "연결됨" : "미연결"}
           </div>
         </div>
         <div className="card p-3">
           <div className="text-[10px] text-gray-500 mb-1">TTS (ElevenLabs)</div>
           <div className={`text-sm font-medium ${elConfig?.configured ? "text-green-400" : "text-gray-500"}`}>
-            {elConfig?.configured ? "Configured" : "Not set"}
+            {elConfig?.configured ? "설정됨" : "미설정"}
           </div>
         </div>
         <div className="card p-3">
-          <div className="text-[10px] text-gray-500 mb-1">Video Clipper (0차)</div>
+          <div className="text-[10px] text-gray-500 mb-1">영상 클리퍼 (0차)</div>
           <div className={`text-sm font-medium ${clipConfig?.configured ? "text-green-400" : "text-gray-500"}`}>
-            {clipConfig?.configured ? (clipConfig.provider || "Ready") : "Not set (mock mode)"}
+            {clipConfig?.configured ? (clipConfig.provider || "준비됨") : "미설정 (mock 모드)"}
           </div>
         </div>
       </div>
@@ -323,17 +326,26 @@ export default function VideosPage() {
           <span className="text-sm font-medium">Repurpose Long Video (0차)</span>
           <span className="text-[10px] text-gray-500">External (Reap/Ssemble) → OSMU refine + publish</span>
         </div>
-        <div className="mb-2 text-[10px]">
-          Set clipping key (one time): 
-          <input id="clip-provider" placeholder="reap or ssemble" className="bg-gray-800 p-1 mx-1 w-20" defaultValue="reap" />
-          <input id="clip-key" placeholder="your api key" className="bg-gray-800 p-1 mx-1 w-48" />
-          <button onClick={async () => {
-            const prov = (document.getElementById('clip-provider') as HTMLInputElement)?.value || '';
-            const key = (document.getElementById('clip-key') as HTMLInputElement)?.value || '';
-            if (!key) return;
-            await apiPost('/api/clipping-config', { provider: prov, apiKey: key });
-            alert('Key set. Now clip.');
-          }} className="px-2 py-0.5 text-xs bg-gray-700 rounded">Set Key</button>
+        <div className="mb-2 text-[10px] flex flex-wrap items-center gap-1">
+          <span>클리핑 API 키 설정 (최초 1회):</span>
+          <input value={clipProvider} onChange={(e) => setClipProvider(e.target.value)} placeholder="reap 또는 ssemble" className="bg-gray-800 p-1 w-24" />
+          <input value={clipKey} onChange={(e) => setClipKey(e.target.value)} placeholder="API 키" className="bg-gray-800 p-1 w-48" />
+          <button
+            disabled={savingKey || !clipKey.trim()}
+            onClick={async () => {
+              setSavingKey(true);
+              try {
+                await apiPost('/api/clipping-config', { provider: clipProvider.trim(), apiKey: clipKey.trim() });
+                showToast('키 저장됨. 이제 클립을 만드세요.', 'success');
+                setClipKey('');
+              } catch (e) {
+                showToast(`키 저장 실패: ${(e as Error).message}`, 'error');
+              } finally { setSavingKey(false); }
+            }}
+            className="px-2 py-0.5 text-xs bg-gray-700 rounded disabled:opacity-50"
+          >
+            {savingKey ? '저장 중…' : '키 저장'}
+          </button>
         </div>
         <div className="flex flex-wrap gap-2 items-center mb-3">
           <input

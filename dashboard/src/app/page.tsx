@@ -248,16 +248,16 @@ export default function HomePage() {
       {usage && (
         <div className="card p-5 mb-6">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide">Usage</h3>
+            <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide">사용량</h3>
             {usage.tier && (
               <span className="text-[10px] px-2 py-0.5 bg-blue-900/50 rounded text-blue-300">
                 {usage.tier} tier
               </span>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-              <p className="text-[10px] text-gray-500 mb-2">Today</p>
+              <p className="text-[10px] text-gray-500 mb-2">오늘</p>
               <div className="flex items-center gap-4">
                 <div>
                   <p className="text-xl font-bold text-white">{usage.today?.aiGenerations || 0}</p>
@@ -274,7 +274,7 @@ export default function HomePage() {
               </div>
             </div>
             <div>
-              <p className="text-[10px] text-gray-500 mb-2">This Week</p>
+              <p className="text-[10px] text-gray-500 mb-2">이번 주</p>
               <div className="flex items-center gap-4">
                 <div>
                   <p className="text-xl font-bold text-white">{usage.thisWeek?.aiGenerations || 0}</p>
