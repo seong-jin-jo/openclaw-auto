@@ -71,32 +71,35 @@
    - 테스트: 1-2개 도메인으로 end-to-end (routing + isolation).
    - 한계: 2개까지 무료, 이후 유료 고려.
 
-**3. Multi-repo Wiki Context Pulling (0차 핵심)**
+**3. Multi-repo Wiki Context Pulling (0차 핵심, 대부분 완료)**
    - 사용자가 가진 다른 레포/노트 위키를 포인팅해서 context 끌어오기.
    - 여기 product wiki (`wiki/`) + 외부 레포 위키 동시 지원.
-   - 구현: sourcing/route.ts 등에서 repo URL + path 지원 강화, RAG/주입 로직.
-   - 안정성: 에러 시 명확한 메시지 + fallback.
+   - 구현: sourcing/route.ts + studio/text 에 context_sources 배열 추가 (github raw fetch, local). longform + facts에 append. (0차: operator의 다른 서비스 wiki context).
+   - 안정성: errors 배열 수집 + explainable msg (handoff).
+   - 상태: sourcing/studio 완료 (2026-06-19) + 로컬 wiki 시뮬 검증 성공 (verify-0cha-context.sh + node sim). Next: operator 실제 다른 레포 context_sources 호출.
+   - longform-to-shorts/video: context note + explainable errors.
 
-**4. Reliability & Error Handling (에러 설명 가능하게)**
-   - 모든 에러 (발행 실패, 기록 미노출, API 에러 등)에 대해:
-     - 상세 로그 (traceable).
-     - 사용자에게 "무엇이 왜 실패했는지" 설명 가능한 메시지.
-   - Debug/재현 모드 추가 (사용자가 에러를 operator에게 쉽게 전달).
-   - 인프라 모니터링 (크론, API 다운 방지).
+**4. Reliability & Error Handling (에러 설명 가능하게, 진행 중)**
+   - sourcing/studio/longform/video: explainable errors + hints (handoff).
+   - 상태: sourcing/studio/video enhanced. longform notes.
+   - Next: more in publish/insights, debug mode.
 
-**5. Shorts Factory + Automation Loop 안정화 (0차 검증)**
+**5. Shorts Factory + Automation Loop 안정화 (0차 검증, 진행 중)**
    - Wiki context (자신의 서비스 + product wiki)로 숏폼 후보 생성 → 검토 → 발행 → 인사이트까지 풀 루프.
    - Multi-channel (text + video) 동작 확인.
    - 사용자가 실제 서비스에서 "시간 절감 or 부수입 가능" 체감할 수준으로.
+   - 상태: context in sourcing/studio/video + longform/video 에러 수집 구조 코드 검증 완료 (per-chunk errors 반환, TTS graceful fail). Next: operator full loop (longform → video) 실행 + recovery 테스트.
 
-**6. Onboarding 마찰 최소화 (토큰 과정)**
+**6. Onboarding 마찰 최소화 (토큰 과정, notes)**
    - API 토큰 발급/등록을 더 가이드화 (메뉴얼 or 셀프 트라이).
    - 0차에서는 operator(본인)가 쉽게 여러 서비스 등록할 수 있게.
+   - SoloClaw assumption documented in vision. Minimal friction notes added.
 
-**7. 0차 완료 기준 + 전환**
+**7. 0차 완료 기준 + 전환 (진행 중)**
    - 위 성공 기준 만족 시 1차로 (1명 사용자 유치).
    - SoloClaw 이름 가정 하에 브랜딩 최소 적용.
    - 모든 변경은 gstack 절차 (read wiki → plan → implement → review) 따름.
+   - 상태: multi-repo 구현+시뮬 검증, error explainable, E2E 스크립트, Shorts 구조 검증 완료. Verify + operator 실행 next. Transition when handoff + vision criteria met (see handoff checklist).
 
 자세한 Cloudflare 설정은 별도 `wiki/ops/deploy.md`에 문서화 예정.
 - Cron: tenant-aware execution + rate limit.

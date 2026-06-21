@@ -1,7 +1,7 @@
 # postAGI 4 서비스 멀티 인스턴스 운영 가이드
 
 > Tenant는 기존 `docker-compose.yml` 인스턴스 1개 그대로.
-> Tenant / Tenant / Tenant / tenant 4 서비스는 본 가이드로 **별도 인스턴스 4개**로 운영.
+> Tenant / Tenant / tenant (DC는 삭제됨) 서비스는 본 가이드로 **별도 인스턴스**로 운영. (0차에서는 osmu SaaS 중심)
 > 각 서비스 = 별도 인스타/X 본계정 + 별도 채널 credential + 별도 cron 일정.
 
 ## 왜 인스턴스 4개인가

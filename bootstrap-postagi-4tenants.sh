@@ -11,12 +11,11 @@ cd "$(dirname "$0")"
 
 declare -A PORTS=(
   ["tenant2"]="34561:18790"
-  ["dc"]="34562:18791"
   ["tenant3"]="34563:18792"
   ["tenant4"]="34564:18793"
 )
 
-for slug in tenant2 dc tenant3 tenant4; do
+for slug in tenant2 tenant3 tenant4; do
   echo "===== ${slug} ====="
 
   # 1. 디렉토리 생성
@@ -69,13 +68,12 @@ if [ ! -f "data/tenants.json" ]; then
   "tenants": [
     { "slug": "tenant1",  "name": "Tenant", "emoji": "💘", "dashboardPort": 34560, "gatewayPort": 18789, "publicUrl": "https://marketing-tenant1.example.com", "channels": ["instagram","threads"], "status": "active" },
     { "slug": "tenant2",   "name": "Tenant",   "emoji": "緣", "dashboardPort": 34561, "gatewayPort": 18790, "publicUrl": "https://marketing-tenant2.example.com", "channels": ["instagram","threads"], "status": "active" },
-    { "slug": "dc",     "name": "Tenant",    "emoji": "🖤", "dashboardPort": 34562, "gatewayPort": 18791, "publicUrl": "https://marketing-dc.example.com", "channels": ["x"], "status": "pending" },
     { "slug": "tenant3", "name": "Tenant",        "emoji": "📷", "dashboardPort": 34563, "gatewayPort": 18792, "publicUrl": "https://marketing-tenant3.example.com", "channels": ["instagram"], "status": "waiting-meta-review" },
     { "slug": "tenant4",   "name": "tenant",     "emoji": "∞", "dashboardPort": 34564, "gatewayPort": 18793, "publicUrl": "https://marketing-tenant4.example.com", "channels": ["x"], "status": "waiting-legal-opinion" }
   ]
 }
 EOF
-  echo "  ✓ data/tenants.json generated (5 tenants: tenant1+tenant2+dc+tenant3+tenant4)"
+  echo "  ✓ data/tenants.json generated (4 tenants: tenant1+tenant2+tenant3+tenant4)"
 fi
 
 echo ""
@@ -87,7 +85,6 @@ echo "다음:"
 echo "  1. docker-compose -f docker-compose.postagi-4tenants.yml up -d"
 echo "  2. Cloudflare Tunnel 라우트 추가:"
 echo "     marketing-tenant2.example.com    → localhost:34561"
-echo "     marketing-dc.example.com        → localhost:34562"
 echo "     marketing-tenant3.example.com  → localhost:34563"
 echo "     marketing-tenant4.example.com      → localhost:34564"
 echo "  3. 각 dashboard → Settings → 채널 credential 입력 (IG/X/Threads)"

@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "e2e": "bash scripts/verify-e2e.sh",
+    "e2e:local": "bash scripts/verify-e2e.sh http://localhost:3456"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",

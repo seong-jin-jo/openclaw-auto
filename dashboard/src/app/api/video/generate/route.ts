@@ -4,6 +4,10 @@ import path from "path";
 import os from "os";
 import { readJson, dataPath } from "@/lib/file-io";
 
+// 0차: Shorts Factory stabilization - support wiki context injection (from sourcing/studio), explainable errors.
+// Respect handoff: no PORT changes, build constraints. See wiki/learnings/2026-06-19-openclaw-osmu-handoff.md
+// Multi-channel with text+video for operator's services.
+
 const VIDEO_OUTPUT_DIR = dataPath("videos");
 
 interface ElevenLabsConfig {
@@ -37,7 +41,9 @@ async function generateTts(text: string, outputPath: string): Promise<boolean> {
     const buf = Buffer.from(await res.arrayBuffer());
     fs.writeFileSync(outputPath, buf);
     return true;
-  } catch {
+  } catch (e) {
+    // 0차: explainable error
+    console.error("[0차 video] TTS error:", e);
     return false;
   }
 }

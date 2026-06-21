@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import { readJson, dataPath } from "./file-io";
 
 export interface ClippingConfig {
@@ -8,7 +10,7 @@ export interface ClippingConfig {
 
 export interface ClipCandidate {
   id: string;
-  url: string; // final clip url (may be temp from provider)
+  url: string; // local filename after save, or original for reference
   title?: string;
   caption?: string;
   viralScore?: number;
@@ -26,6 +28,23 @@ const CONFIG_PATH = dataPath("clipping-config.json");
 
 export function getClippingConfig(): ClippingConfig {
   return readJson<ClippingConfig>(CONFIG_PATH) || {};
+}
+
+async function downloadClipToLocal(originalUrl: string, clipId: string): Promise<string> {
+  try {
+    const videosDir = dataPath("videos");
+    if (!fs.existsSync(videosDir)) fs.mkdirSync(videosDir, { recursive: true });
+    const filename = `clip-${clipId}-${Date.now()}.mp4`;
+    const filePath = path.join(videosDir, filename);
+    const res = await fetch(originalUrl);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const buf = Buffer.from(await res.arrayBuffer());
+    fs.writeFileSync(filePath, buf);
+    return filename; // return filename, UI will use as /videos/filename or the list style
+  } catch (e) {
+    console.error("Failed to download clip, using original url", e);
+    return originalUrl; // fallback
+  }
 }
 
 async function callReap(apiKey: string, videoUrl: string, options: any = {}): Promise<RepurposeResult> {
@@ -69,7 +88,7 @@ async function callReap(apiKey: string, videoUrl: string, options: any = {}): Pr
   const data = await res.json();
 
   // Normalize - Reap returns clips array in their format
-  const clips: ClipCandidate[] = (data.clips || data.results || []).map((c: any, i: number) => ({
+  const rawClips = (data.clips || data.results || []).map((c: any, i: number) => ({
     id: c.id || `reap-${i}`,
     url: c.url || c.downloadUrl || c.videoUrl,
     title: c.title,
@@ -77,6 +96,11 @@ async function callReap(apiKey: string, videoUrl: string, options: any = {}): Pr
     viralScore: c.viral_score || c.score,
     duration: c.duration,
   })).filter((c: any) => c.url);
+
+  const clips: ClipCandidate[] = await Promise.all(rawClips.map(async (c: any) => ({
+    ...c,
+    url: await downloadClipToLocal(c.url, c.id),
+  })));
 
   return { provider: "reap", clips, raw: data };
 }
@@ -123,7 +147,7 @@ async function callSsemble(apiKey: string, videoUrl: string, options: any = {}):
   const final = await res.json();
   const shorts = final.data?.shorts || [];
 
-  const clips: ClipCandidate[] = shorts.map((s: any, i: number) => ({
+  const rawClips = shorts.map((s: any, i: number) => ({
     id: s.id || `ssemble-${i}`,
     url: s.video_url,
     title: s.title,
@@ -131,6 +155,11 @@ async function callSsemble(apiKey: string, videoUrl: string, options: any = {}):
     viralScore: s.viral_score,
     duration: s.duration,
   })).filter((c: any) => c.url);
+
+  const clips: ClipCandidate[] = await Promise.all(rawClips.map(async (c: any) => ({
+    ...c,
+    url: await downloadClipToLocal(c.url, c.id),
+  })));
 
   return { provider: "ssemble", clips, raw: final };
 }

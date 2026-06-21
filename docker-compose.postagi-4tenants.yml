@@ -73,43 +73,6 @@ services:
     depends_on:
       - openclaw-gateway-tenant2
 
-  # ─────────────── DC ───────────────
-  openclaw-gateway-dc:
-    <<: *gateway-base
-    container_name: openclaw-gateway-dc
-    volumes:
-      - ./config-dc:/home/node/.openclaw
-      - ./data-dc:/home/node/data
-    env_file: .env.dc
-    environment:
-      HOME: /home/node
-      TZ: Asia/Seoul
-    command: ["node", "dist/index.js", "gateway", "--bind", "loopback", "--port", "18791", "--allow-unconfigured"]
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:18791/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-
-  openclaw-dashboard-dc:
-    <<: *dashboard-base
-    container_name: openclaw-dashboard-dc
-    volumes:
-      - ./data-dc:/app/data
-      - ./config-dc:/app/config
-      - /var/run/docker.sock:/var/run/docker.sock
-    env_file: .env.dc
-    environment:
-      DATA_DIR: /app/data
-      CONFIG_DIR: /app/config
-      PORT: "34562"
-      HOSTNAME: "0.0.0.0"
-      GATEWAY_CONTAINER: openclaw-gateway-dc
-      GATEWAY_PORT: "18791"
-    depends_on:
-      - openclaw-gateway-dc
-
   # ─────────────── Tenant ───────────────
   openclaw-gateway-tenant3:
     <<: *gateway-base

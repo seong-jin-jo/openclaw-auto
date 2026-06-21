@@ -61,6 +61,7 @@ function resolveConfig(api: OpenClawPluginApi) {
 }
 
 // URL이면 본문 fetch 후 태그/스크립트 제거하여 텍스트만 추출(경량 정제).
+// 0차: support context from multi-repo (e.g. append wiki facts if provided in prompt or config).
 async function resolveSourceText(text: string, url: string): Promise<string> {
   if (text && text.trim()) return text.trim();
   if (!url || !url.trim()) {
@@ -239,7 +240,8 @@ export function createLongformToShortsTool(api: OpenClawPluginApi) {
             all.push(c);
           }
         } catch (e) {
-          errors.push(`chunk ${i + 1}: ${e instanceof Error ? e.message.slice(0, 120) : String(e)}`);
+          // 0차: explainable error per handoff (사용자가 operator에게 설명 가능하게)
+          errors.push(`[0차] chunk ${i + 1}: ${e instanceof Error ? e.message.slice(0, 120) : String(e)}. Hint: check wiki context or claude. See handoff for deploy.`);
         }
         if (all.length >= count) break; // 목표 수 도달 시 조기 종료(비용 절감)
       }
@@ -250,7 +252,8 @@ export function createLongformToShortsTool(api: OpenClawPluginApi) {
         try {
           await writeCandidates(config.candidatesPath, candidates);
         } catch (e) {
-          errors.push(`save: ${e instanceof Error ? e.message.slice(0, 120) : String(e)}`);
+          // 0차: explainable
+          errors.push(`[0차] save: ${e instanceof Error ? e.message.slice(0, 120) : String(e)}. Hint: check candidatesPath permissions.`);
         }
       }
 

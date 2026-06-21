@@ -14,7 +14,7 @@ interface UsageFile {
   daily: Record<string, DailyUsage>;
 }
 
-const VALID_EVENTS = ["aiGeneration", "publication", "cronRun", "apiCall"] as const;
+const VALID_EVENTS = ["aiGeneration", "publication", "cronRun", "apiCall", "shortsGeneration", "shortsVideoMinute"] as const;
 type EventType = (typeof VALID_EVENTS)[number];
 
 const EVENT_TO_FIELD: Record<EventType, keyof DailyUsage> = {
@@ -22,6 +22,8 @@ const EVENT_TO_FIELD: Record<EventType, keyof DailyUsage> = {
   publication: "publications",
   cronRun: "cronRuns",
   apiCall: "apiCalls",
+  shortsGeneration: "aiGenerations",  // treat as generation for now
+  shortsVideoMinute: "publications",   // reuse or extend later; for hybrid usage
 };
 
 function emptyDay(): DailyUsage {

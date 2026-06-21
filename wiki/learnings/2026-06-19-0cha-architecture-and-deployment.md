@@ -64,6 +64,10 @@
    - API 토큰 과정 가이드 (메뉴얼 or 셀프).
 
 **0차 완료 기준**: 위 성공 기준 (vision.md 참조) 만족 시 1차 이동. gstack 절차 엄수.
+- E2E: gstack browser 로 unauth → login form 검증 완료 + `npm run e2e` 스크립트화. 
+- Multi-repo: local wiki_path + context_sources 시뮬 (Node + scripts) 성공.
+- Shorts + error: 코드 구조 감사 완료 (explainable errors 반환).
+- Verify 진행 중, operator 실행으로 마무리.
 
 ### Product Name
 SoloClaw 강력 추천 (솔로 + Claw + 숏폼 공장 포지셔닝). 0차 동안 가정 사용, 이름 확정은 별도 review.
@@ -91,3 +95,10 @@ SoloClaw 강력 추천 (솔로 + Claw + 숏폼 공장 포지셔닝). 0차 동안
 **다음 단계**: 위 0차 plan 태스크를 gstack 절차대로 (read wiki → plan → implement with comments → verify) 진행. 배포 시 반드시 스모크 게이트 통과 확인.
 
 이 문서는 gstack CEO review 결과를 wiki에 직접 반영한 결과물이다.
+
+**0차 진행 상태 (2026-06-19)**
+- Multi-repo wiki pulling 구현 시작: sourcing 확장 완료 (context_sources로 외부 github/local wiki context 추가, longform/facts에 주입).
+- Error 수집: sourcing의 errors 배열에 load/chunk/save/record 실패 모두 기록, 응답 포함.
+- 배포 준수: no new NEXT_PUBLIC, runtime only; handoff GHA 규칙 확인.
+- 다음: multi source 테스트 (osmu), 에러 메시지 상세화 (사용자 설명 가능), Shorts Factory loop 안정, wiki 업데이트.
+- gstack: 관련 파일 읽음 (sourcing, handoff, multi-tenant, vision) 후 변경.

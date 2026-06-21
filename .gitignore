@@ -35,6 +35,10 @@ data/*
 # 로그
 *.log
 
+# 빌드 산출물 / 의존성 (최상위 — 추적 안 함)
+node_modules/
+dist-runtime/
+
 # Python
 __pycache__/
 *.pyc

@@ -65,12 +65,31 @@ const CHANNEL_ICONS = [
 function LandingPage() {
   const [token, setToken] = useState("");
   const [showLogin, setShowLogin] = useState(false);
+  const [operatorError, setOperatorError] = useState("");
   const loginRef = useRef<HTMLDivElement>(null);
 
-  const doLogin = useCallback(() => {
-    if (token.trim()) {
-      setAuthToken(token.trim());
+  const doLogin = useCallback(async () => {
+    const t = token.trim();
+    if (!t) return;
+    setOperatorError("");
+    try {
+      // Validate operator token before trusting it (wrong token should not unlock broken UI)
+      const res = await fetch("/api/me", {
+        headers: { Authorization: `Bearer ${t}` },
+      });
+      if (!res.ok) {
+        setOperatorError("운영자 토큰이 유효하지 않습니다. 다시 확인해주세요.");
+        return;
+      }
+      const data = await res.json();
+      if (!data?.isOperator) {
+        setOperatorError("이 토큰은 운영자 모드가 아닙니다.");
+        return;
+      }
+      setAuthToken(t);
       window.location.reload();
+    } catch (e) {
+      setOperatorError("토큰 확인 중 오류가 발생했습니다.");
     }
   }, [token]);
 
@@ -319,6 +338,9 @@ function LandingPage() {
               >
                 운영자 토큰으로 접속
               </button>
+              {operatorError && (
+                <p className="mt-2 text-xs text-red-400">{operatorError}</p>
+              )}
             </div>
           ) : (
             <button
