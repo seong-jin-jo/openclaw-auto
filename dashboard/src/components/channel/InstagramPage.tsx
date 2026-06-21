@@ -428,7 +428,7 @@ function InstagramSettings() {
           </div>
         </div>
         <div className="card p-5">
-          <SetupGuide quick={sg.quick} detail={sg.detail} />
+          <SetupGuide quick={sg.quick} detail={sg.detail} images={sg.images} />
         </div>
       </div>
 

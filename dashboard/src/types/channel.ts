@@ -19,6 +19,8 @@ export interface SetupGuide {
   labels: string[];
   quick: string[];
   detail: string;
+  // 선택: 단계별 스크린샷/GIF(없으면 텍스트만). 에셋은 public/onboarding/ 에 사용자가 채움.
+  images?: { src: string; alt: string }[];
 }
 
 export interface ChannelGuideData {

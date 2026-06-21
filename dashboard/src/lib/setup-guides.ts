@@ -14,6 +14,11 @@ export const setupGuides: Record<string, SetupGuide> = {
     ],
     detail:
       "Access Token으로 Threads에 글을 발행합니다. Long-lived Token은 60일 유효이며 갱신이 필요합니다. User ID는 Threads 사용자 고유 번호입니다.",
+    // TODO(에셋): 아래 경로에 실제 콘솔 스크린샷을 넣으면 자동 표시됨(없으면 텍스트만). public/onboarding/threads/*
+    images: [
+      { src: "/onboarding/threads/1-app.png", alt: "Threads API 앱 생성 화면" },
+      { src: "/onboarding/threads/2-token.png", alt: "Long-lived Access Token 발급 화면" },
+    ],
   },
   x: {
     fields: ["apiKey", "apiKeySecret", "accessToken", "accessTokenSecret"],
@@ -26,6 +31,11 @@ export const setupGuides: Record<string, SetupGuide> = {
       "왼쪽 폼에 4개 키 입력 &gt; Connect",
     ],
     detail: "* 권한 변경 후 반드시 액세스 토큰을 재생성해야 합니다",
+    // TODO(에셋): public/onboarding/x/*
+    images: [
+      { src: "/onboarding/x/1-app-permissions.png", alt: "X 앱 권한 Read and write 설정" },
+      { src: "/onboarding/x/2-keys.png", alt: "Keys and tokens 4개 키 발급" },
+    ],
   },
   facebook: {
     fields: ["accessToken", "pageId"],
@@ -66,6 +76,11 @@ export const setupGuides: Record<string, SetupGuide> = {
     ],
     detail:
       "⚠️ 주의: 앱 ID ≠ User ID. 앱 ID(숫자)를 넣으면 에러 납니다. 반드시 instagram_business_account.id를 넣으세요.\n\n앱 시크릿(App Secret)은 대시보드에 입력 불필요 — 장기 토큰 교환 시에만 사용.\n\nAccess Token만 입력하면 됩니다. 테스터 모드에서는 App Review 없이 자기 계정에 발행 가능.\n\n토큰 유효기간: 단기 1시간, 장기 60일.\n\n지원: 단일 이미지, 캐러셀(카드뉴스 2~10장), 릴스(영상 URL).",
+    // TODO(에셋): public/onboarding/instagram/*
+    images: [
+      { src: "/onboarding/instagram/1-business.png", alt: "Instagram 프로페셔널 계정 전환" },
+      { src: "/onboarding/instagram/2-userid.png", alt: "instagram_business_account.id 확인" },
+    ],
   },
   linkedin: {
     fields: ["accessToken", "personUrn"],

@@ -84,7 +84,7 @@ export function ChannelConnect({ workspace, onClose }: { workspace: Workspace; o
             {/* 연결 중 인라인 가이드 — 따라만 하면 되도록 */}
             <div className="card p-4">
               <p className="text-xs font-medium text-gray-300 mb-2">{LABELS[platform]} 연결 방법</p>
-              <SetupGuide quick={guide.quick} detail={guide.detail} />
+              <SetupGuide quick={guide.quick} detail={guide.detail} images={guide.images} />
             </div>
             <div className="card p-4">
               <CredentialForm

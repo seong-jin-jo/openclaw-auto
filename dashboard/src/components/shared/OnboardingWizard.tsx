@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { setupGuides } from "@/lib/setup-guides";
 import { CredentialForm } from "./CredentialForm";
 import { SetupGuide } from "./SetupGuide";
@@ -40,6 +40,23 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
   const [credentialsSaved, setCredentialsSaved] = useState(false);
   const [connectedAccount, setConnectedAccount] = useState<string | null>(null);
 
+  // 입력 자동저장: 새로고침/이탈해도 업종·채널 선택 복원(온보딩 마찰 감소). 완료 시 클리어.
+  const DRAFT_KEY = "osmu_onboarding_draft";
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const d = JSON.parse(raw) as { industry?: string; channels?: string[] };
+        if (d.industry) setIndustry(d.industry);
+        if (Array.isArray(d.channels)) setSelectedChannels(d.channels);
+      }
+    } catch { /* ignore */ }
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ industry, channels: selectedChannels })); } catch { /* ignore */ }
+  }, [industry, selectedChannels]);
+  const clearDraft = () => { try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ } };
+
   const toggleChannel = (key: string) => {
     setSelectedChannels((prev) =>
       prev.includes(key) ? prev.filter((c) => c !== key) : [...prev, key]
@@ -66,6 +83,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
         setSaving(false);
       }
     } else if (step === 3) {
+      clearDraft();
       onComplete();
     }
   };
@@ -187,7 +205,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
           {step === 3 && guide && (
             <div className="space-y-6">
               <div className="card p-4">
-                <SetupGuide quick={guide.quick} detail={guide.detail} />
+                <SetupGuide quick={guide.quick} detail={guide.detail} images={guide.images} />
               </div>
               {!credentialsSaved && (
                 <div className="card p-4">
@@ -219,7 +237,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
         {/* Footer */}
         <div className="px-6 py-4 border-t border-gray-800/50 flex items-center justify-between">
           <button
-            onClick={step === 3 ? onComplete : onDismiss}
+            onClick={step === 3 ? () => { clearDraft(); onComplete(); } : onDismiss}
             className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
           >
             나중에 설정하기

@@ -217,6 +217,7 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
               <SetupGuide
                 quick={sg.quick}
                 detail={sg.detail}
+                images={sg.images}
                 warning={channel === "x" ? "* 권한 변경 후 반드시 액세스 토큰을 재생성해야 합니다" : undefined}
               />
             </div>
