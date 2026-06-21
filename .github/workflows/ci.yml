@@ -1,0 +1,67 @@
+name: CI (dashboard)
+
+# repo-root에 둬야 GitHub가 읽음(dashboard/.github/는 무시됨). dashboard/** 변경 PR·push:main 게이트.
+# self-hosted runner에서 node:20 컨테이너 + postgres 서비스로 실행 → 격리 테스트가 실제 assert(skip 아님).
+on:
+  push:
+    branches: [main]
+    paths: ['dashboard/**', '.github/workflows/ci.yml']
+  pull_request:
+    paths: ['dashboard/**', '.github/workflows/ci.yml']
+
+# 같은 ref의 이전 CI는 취소. (deploy 워크플로는 건드리지 않음 — 단일 marketing_runner가 잡을 자연 직렬화)
+concurrency:
+  group: osmu-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: dashboard
+
+jobs:
+  verify:
+    runs-on: [self-hosted, marketing_runner]
+    container:
+      image: node:20-bookworm
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # 컨테이너 잡이라 서비스는 docker 네트워크에서 서비스명(postgres)으로 도달.
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/testdb
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build   # NEXT_PUBLIC_SUPABASE_* 미설정도 빌드 OK(런타임만 영향)
+
+      - name: Install psql client
+        run: apt-get update && apt-get install -y --no-install-recommends postgresql-client
+
+      - name: "Apply schema → seed → rls (순서 중요 — seed가 FORCE RLS 전)"
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/schema.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/seed-test-tenants.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/rls.sql
+
+      - name: Test (격리 테스트가 DB 연결로 실제 assert)
+        run: npx vitest run
