@@ -78,8 +78,15 @@ export default function VideosPage() {
   const [clipProvider, setClipProvider] = useState("reap");
   const [clipKey, setClipKey] = useState("");
   const [savingKey, setSavingKey] = useState(false);
+  // OSMU 팬아웃: 클립을 큐에 넣을 때 텍스트 글(스레드/캡션)도 함께 생성 → 1 소스 → 영상+텍스트 멀티채널
+  const [fanoutText, setFanoutText] = useState(true);
 
   const videos = data?.videos || [];
+
+  // 추천순(바이럴 점수 desc) 정렬 — 점수는 "우선순위 힌트"일 뿐(보장 아님). 빈 화면 대신 완성 클립 그리드를 히어로로.
+  const rankedClips = [...repurposeClips].sort(
+    (a, b) => (Number(b?.viralScore) || 0) - (Number(a?.viralScore) || 0)
+  );
 
   const handleGenerate = async () => {
     const validSlides = slides.filter((s) => s.text.trim());
@@ -200,7 +207,7 @@ export default function VideosPage() {
 
   // 클립을 로컬에 적재 + Queue 항목 생성. 썸네일(첫프레임)도 best-effort 캡처해 같이 저장.
   // opts.silent: 배치 추가 시 클립별 토스트 억제. 성공 여부 반환.
-  const addClipToLibrary = async (clip: any, opts?: { silent?: boolean }): Promise<boolean> => {
+  const addClipToLibrary = async (clip: any, opts?: { silent?: boolean; fanout?: boolean }): Promise<boolean> => {
     try {
       let filename = clip.id || `clip-${Date.now()}`;
       const isLocalFilename = clip.url && !clip.url.startsWith('http') && !clip.url.startsWith('/');
@@ -233,7 +240,25 @@ export default function VideosPage() {
         hashtags: [],
       });
 
-      if (!opts?.silent) { showToast(`Clip + entry added. Check Queue.`, "success"); mutate(); }
+      // OSMU 팬아웃: 같은 소스에서 텍스트 전용 글도 큐에 생성(영상 없는 채널/스레드용).
+      // 멀티채널 발행 엔진이 채널별로 압축/변형하므로 hook+caption을 베이스 텍스트로 넣는다.
+      if (opts?.fanout ?? fanoutText) {
+        const hook = (clip.title || "").trim();
+        const body = (clip.caption || "").trim();
+        const text = [hook, body].filter(Boolean).join("\n\n") || "Shorts 텍스트 글";
+        try {
+          await apiPost("/api/queue/add", {
+            text,
+            topic: "video-repurpose-text",
+            hashtags: [],
+          });
+        } catch { /* 텍스트 팬아웃 실패는 클립 추가를 막지 않음 */ }
+      }
+
+      if (!opts?.silent) {
+        showToast(`Queue 추가됨${(opts?.fanout ?? fanoutText) ? " (영상+텍스트)" : ""}. Queue 확인.`, "success");
+        mutate();
+      }
       return true;
     } catch (e) {
       if (!opts?.silent) showToast(`Added reference: ${clip.url}`, "success");
@@ -360,36 +385,70 @@ export default function VideosPage() {
         </div>
         <div className="text-[10px] text-gray-500 mb-2">Local long video: upload to YT first or use public URL (local file support for input limited; output clips saved locally)</div>
 
-        {repurposeClips.length > 0 && (
-          <div className="space-y-2 mt-2">
-            <div className="flex items-center justify-between">
-              <div className="text-xs text-gray-400">Clips ({repurposeClips.length}) — preview, edit, refine with wiki, then add to flow</div>
-              <button onClick={addAllClipsToQueue} disabled={addingAll} className="text-[10px] px-3 py-1 bg-green-700 hover:bg-green-600 rounded disabled:opacity-50">
-                {addingAll ? "추가 중…" : `전체 큐에 추가 (${repurposeClips.length})`}
-              </button>
-            </div>
-            {repurposeClips.map((c, i) => (
-              <div key={c.id || i} className="bg-gray-800 rounded p-3 text-xs flex gap-3 items-start">
-                <div className="w-40">
-                  {c.url && <video src={c.url.startsWith('http') ? c.url : `/videos/${c.url}`} controls className="w-full rounded bg-black" style={{ maxHeight: 120 }} />}
-                </div>
-                <div className="flex-1 space-y-1">
-                  <input className="w-full bg-gray-900 p-1 rounded" value={c.title || ""} onChange={e => {
-                    const next = [...repurposeClips]; next[i].title = e.target.value; setRepurposeClips(next);
-                  }} />
-                  <textarea className="w-full bg-gray-900 p-1 rounded" rows={2} value={c.caption || ""} onChange={e => {
-                    const next = [...repurposeClips]; next[i].caption = e.target.value; setRepurposeClips(next);
-                  }} />
-                  <div className="flex gap-2">
-                    <button onClick={() => refineClip(i)} disabled={refiningClip === c.id} className="text-[10px] px-2 py-0.5 bg-purple-700 rounded">
-                      {refiningClip === c.id ? "Refining..." : "Refine with Wiki/Brand"}
-                    </button>
-                    <button onClick={() => addClipToLibrary(c)} className="text-[10px] px-2 py-0.5 bg-green-700 rounded">Add to Queue / Publish</button>
-                    {c.viralScore && <span className="text-[10px] text-gray-500 self-center">score: {c.viralScore}</span>}
-                  </div>
-                </div>
+        {repurposeClips.length === 0 ? (
+          <div className="mt-2 rounded border border-dashed border-gray-700 bg-gray-900/40 p-5 text-center">
+            <p className="text-xs text-gray-400">긴 영상 링크를 붙여넣으면 <span className="text-gray-200">완성된 세로 클립</span>이 추천순 그리드로 나옵니다.</p>
+            <p className="text-[10px] text-gray-600 mt-1">각 클립 → 한 번에 큐로. 팬아웃 켜면 영상+텍스트 글이 함께 멀티채널 큐에 들어갑니다.</p>
+          </div>
+        ) : (
+          <div className="space-y-3 mt-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="text-xs text-gray-300">완성 클립 <span className="text-white font-semibold">{rankedClips.length}</span>개 · <span className="text-gray-500">추천순</span></div>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-1 text-[10px] text-gray-400">
+                  <input type="checkbox" checked={fanoutText} onChange={(e) => setFanoutText(e.target.checked)} className="rounded" />
+                  OSMU 팬아웃(영상+텍스트)
+                </label>
+                <button onClick={addAllClipsToQueue} disabled={addingAll} className="text-[10px] px-3 py-1 bg-green-700 hover:bg-green-600 rounded disabled:opacity-50">
+                  {addingAll ? "추가 중…" : `전체 큐에 추가 (${rankedClips.length})`}
+                </button>
               </div>
-            ))}
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {rankedClips.map((c, rank) => {
+                const oi = repurposeClips.indexOf(c); // 정렬 전 원본 인덱스(편집/refine 대상)
+                const src = c.url ? (c.url.startsWith("http") ? c.url : `/videos/${c.url}`) : "";
+                return (
+                  <div key={c.id || oi} className="relative bg-gray-800 rounded-lg overflow-hidden flex flex-col">
+                    {/* 9:16 프리뷰 + 랭크/점수 오버레이 */}
+                    <div className="relative bg-black aspect-[9/16]">
+                      {src && <video src={src} controls playsInline className="w-full h-full object-contain" />}
+                      <span className="absolute top-1.5 left-1.5 text-[10px] font-bold bg-black/70 text-white rounded px-1.5 py-0.5">#{rank + 1}</span>
+                      {c.viralScore != null && (
+                        <span className="absolute top-1.5 right-1.5 text-[10px] bg-black/70 text-amber-300 rounded px-1.5 py-0.5" title="추천 우선순위 힌트(보장 아님)">
+                          ★ {Number(c.viralScore).toFixed(1)}
+                        </span>
+                      )}
+                    </div>
+                    {/* 편집 + 액션 */}
+                    <div className="p-2 space-y-1 text-xs flex flex-col flex-1">
+                      <input
+                        className="w-full bg-gray-900 p-1 rounded text-[11px]"
+                        placeholder="훅(첫 문장)"
+                        value={c.title || ""}
+                        onChange={(e) => { const next = [...repurposeClips]; next[oi] = { ...next[oi], title: e.target.value }; setRepurposeClips(next); }}
+                      />
+                      <textarea
+                        className="w-full bg-gray-900 p-1 rounded text-[11px]"
+                        rows={2}
+                        placeholder="캡션"
+                        value={c.caption || ""}
+                        onChange={(e) => { const next = [...repurposeClips]; next[oi] = { ...next[oi], caption: e.target.value }; setRepurposeClips(next); }}
+                      />
+                      <div className="flex gap-1 mt-auto pt-1">
+                        <button onClick={() => refineClip(oi)} disabled={refiningClip === c.id} className="flex-1 text-[10px] px-1 py-1 bg-purple-700 hover:bg-purple-600 rounded disabled:opacity-50">
+                          {refiningClip === c.id ? "다듬는 중…" : "Wiki/브랜드 톤"}
+                        </button>
+                        <button onClick={() => addClipToLibrary(c)} className="flex-1 text-[10px] px-1 py-1 bg-green-700 hover:bg-green-600 rounded">
+                          큐에 추가
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
