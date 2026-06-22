@@ -5,30 +5,11 @@ import { runWithTenant } from "@/lib/tenant-context";
 import { generateText } from "@/lib/anthropic";
 import { getWikiContext } from "@/lib/wiki-retrieve";
 import { mirrorQueuePost } from "@/lib/queue-store";
+import { parseDrafts } from "@/lib/seed-parse";
 
 // POST /api/queue/seed — "빈 화면 박멸": 브랜드 톤 기반 초안 N개를 한 번에 생성해 draft 큐에 적재.
 // 연결 직후 인박스가 비어있지 않게 → approve-don't-author 루프의 첫 콘텐츠.
 // body: { count?: number }  (기본 7 = 한 주치)
-interface SeedDraft { text: string; hashtags?: string[]; topic?: string }
-
-function parseDrafts(raw: string): SeedDraft[] {
-  // 코드펜스/잡텍스트 제거 후 JSON 배열만 추출
-  const s = raw.indexOf("["), e = raw.lastIndexOf("]");
-  if (s === -1 || e === -1 || e <= s) return [];
-  try {
-    const arr = JSON.parse(raw.slice(s, e + 1));
-    if (!Array.isArray(arr)) return [];
-    return arr
-      .map((d) => ({
-        text: typeof d?.text === "string" ? d.text.trim() : "",
-        hashtags: Array.isArray(d?.hashtags) ? d.hashtags.filter((h: unknown) => typeof h === "string") : [],
-        topic: typeof d?.topic === "string" ? d.topic : "ai-seed",
-      }))
-      .filter((d) => d.text.length > 0);
-  } catch {
-    return [];
-  }
-}
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
