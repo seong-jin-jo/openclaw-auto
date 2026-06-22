@@ -4,6 +4,14 @@ import { useState, useEffect, useCallback } from "react";
 import useSWR from "swr";
 import { fetcher, apiPost } from "@/lib/api";
 import { useToast } from "@/components/layout/Toast";
+import type { VoiceTone } from "@/lib/voice-tone";
+
+const TONE_SLIDERS: { key: keyof VoiceTone; left: string; right: string }[] = [
+  { key: "formal", left: "격식", right: "구어" },
+  { key: "humor", left: "진지", right: "유머" },
+  { key: "energy", left: "담백", right: "열정" },
+  { key: "length", left: "짧게", right: "길게" },
+];
 
 interface Post {
   id: string;
@@ -52,6 +60,23 @@ export default function InboxPage() {
     } catch (e) {
       showToast(`오류: ${(e as Error).message}`, "error");
     } finally { setSavingSrc(false); }
+  };
+
+  // 브랜드 보이스 슬라이더(제품-grounded와 함께 생성 톤 제어).
+  const { data: toneData, mutate: mutateTone } = useSWR<{ tone: VoiceTone }>("/api/voice-tone", fetcher);
+  const [showTone, setShowTone] = useState(false);
+  const [tone, setTone] = useState<VoiceTone | null>(null);
+  useEffect(() => { if (toneData?.tone && !tone) setTone(toneData.tone); }, [toneData, tone]);
+  const [savingTone, setSavingTone] = useState(false);
+  const saveTone = async () => {
+    if (!tone) return;
+    setSavingTone(true);
+    try {
+      const r = await apiPost<{ ok?: boolean }>("/api/voice-tone", tone);
+      if (r?.ok) { showToast("보이스 톤 저장됨. 다음 생성부터 반영됩니다.", "success"); await mutateTone(); }
+    } catch (e) {
+      showToast(`오류: ${(e as Error).message}`, "error");
+    } finally { setSavingTone(false); }
   };
 
   // 빈 화면 박멸: 브랜드 톤 기반 초안 한 묶음 생성 → 인박스 즉시 채움.
@@ -151,6 +176,33 @@ export default function InboxPage() {
             <input value={srcForm.token} onChange={(e) => setSrcForm({ ...srcForm, token: e.target.value })} placeholder="token (비공개 repo만)" type="password" className="bg-gray-800 p-1.5 rounded border border-gray-700 col-span-2" />
             <button onClick={saveSrc} disabled={savingSrc} className="col-span-2 py-1.5 bg-blue-600 hover:bg-blue-500 rounded disabled:opacity-50">
               {savingSrc ? "저장 중…" : "연결 저장"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* 브랜드 보이스 슬라이더: 보이고 조절 가능해 신뢰. 생성 톤 제어 */}
+      <div className="mb-4 text-xs">
+        <button onClick={() => setShowTone((v) => !v)} className="text-gray-400 hover:text-gray-200">
+          🎚 보이스 톤 {tone ? `(격식${100 - tone.formal}·유머${tone.humor}·열정${tone.energy})` : ""}
+          <span className="ml-1 text-gray-600">{showTone ? "▲" : "▼"}</span>
+        </button>
+        {showTone && tone && (
+          <div className="mt-2 card p-3 space-y-3">
+            {TONE_SLIDERS.map(({ key, left, right }) => (
+              <div key={key}>
+                <div className="flex justify-between text-[10px] text-gray-500 mb-1">
+                  <span>{left}</span><span>{right}</span>
+                </div>
+                <input
+                  type="range" min={0} max={100} value={tone[key]}
+                  onChange={(e) => setTone({ ...tone, [key]: Number(e.target.value) })}
+                  className="w-full accent-purple-500"
+                />
+              </div>
+            ))}
+            <button onClick={saveTone} disabled={savingTone} className="w-full py-1.5 bg-purple-600 hover:bg-purple-500 rounded disabled:opacity-50">
+              {savingTone ? "저장 중…" : "톤 저장"}
             </button>
           </div>
         )}
