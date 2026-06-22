@@ -20,8 +20,11 @@ interface Post {
 
 // "Approve, don't author" — AI가 쓰고 사람은 승인만. 한 주치 초안을 90초에 스와이프 승인하는 모바일 우선 인박스.
 // 검토 대상 = status=draft. 승인 → /approve, 거절 → /delete. 액션 후 다음 카드로.
+interface ProductSource { type?: string; owner?: string; repo?: string; path?: string; ref?: string; token?: string }
+
 export default function InboxPage() {
   const { data, mutate, isLoading } = useSWR<{ posts: Post[] }>("/api/queue?status=draft", fetcher);
+  const { data: psData, mutate: mutatePsrc } = useSWR<{ source: ProductSource | null }>("/api/product-source", fetcher);
   const { showToast } = useToast();
 
   const posts = data?.posts || [];
@@ -30,6 +33,26 @@ export default function InboxPage() {
   const [busy, setBusy] = useState(false);
   const [approved, setApproved] = useState(0);
   const [seeding, setSeeding] = useState(false);
+
+  // 제품 소스(제품-grounded 생성): repo changelog/README를 근거로 seed가 글 생성.
+  const psrc = psData?.source || null;
+  const [showSrc, setShowSrc] = useState(false);
+  const [srcForm, setSrcForm] = useState({ owner: "", repo: "", path: "CHANGELOG.md", ref: "main", token: "" });
+  const [savingSrc, setSavingSrc] = useState(false);
+  const saveSrc = async () => {
+    if (!srcForm.owner.trim() || !srcForm.repo.trim() || !srcForm.path.trim()) {
+      showToast("owner/repo/path를 입력하세요", "error");
+      return;
+    }
+    setSavingSrc(true);
+    try {
+      const r = await apiPost<{ ok?: boolean; error?: string }>("/api/product-source", { type: "github", ...srcForm });
+      if (r?.ok) { showToast("제품 소스 연결됨. 이제 생성하면 제품 기반으로 작성됩니다.", "success"); setShowSrc(false); await mutatePsrc(); }
+      else showToast(r?.error || "저장 실패", "error");
+    } catch (e) {
+      showToast(`오류: ${(e as Error).message}`, "error");
+    } finally { setSavingSrc(false); }
+  };
 
   // 빈 화면 박멸: 브랜드 톤 기반 초안 한 묶음 생성 → 인박스 즉시 채움.
   const seedDrafts = async () => {
@@ -111,6 +134,26 @@ export default function InboxPage() {
       <div className="mb-4">
         <h2 className="text-xl font-bold text-white">승인 인박스</h2>
         <p className="text-xs text-gray-500 mt-1">AI가 쓴 초안을 빠르게 승인하세요. 승인한 글만 발행됩니다.</p>
+      </div>
+
+      {/* 제품 소스(제품-grounded): repo를 연결하면 "방금 만든 것"을 자동 홍보하는 글이 생성됨 */}
+      <div className="mb-4 text-xs">
+        <button onClick={() => setShowSrc((v) => !v)} className="text-gray-400 hover:text-gray-200">
+          {psrc?.owner ? `🔗 제품 소스: ${psrc.owner}/${psrc.repo}/${psrc.path}` : "🔗 제품 소스 연결 (선택 — repo 기반 생성)"}
+          <span className="ml-1 text-gray-600">{showSrc ? "▲" : "▼"}</span>
+        </button>
+        {showSrc && (
+          <div className="mt-2 card p-3 grid grid-cols-2 gap-2">
+            <input value={srcForm.owner} onChange={(e) => setSrcForm({ ...srcForm, owner: e.target.value })} placeholder="owner (예: my-gh-id)" className="bg-gray-800 p-1.5 rounded border border-gray-700" />
+            <input value={srcForm.repo} onChange={(e) => setSrcForm({ ...srcForm, repo: e.target.value })} placeholder="repo (예: my-product)" className="bg-gray-800 p-1.5 rounded border border-gray-700" />
+            <input value={srcForm.path} onChange={(e) => setSrcForm({ ...srcForm, path: e.target.value })} placeholder="path (예: CHANGELOG.md)" className="bg-gray-800 p-1.5 rounded border border-gray-700" />
+            <input value={srcForm.ref} onChange={(e) => setSrcForm({ ...srcForm, ref: e.target.value })} placeholder="ref (main)" className="bg-gray-800 p-1.5 rounded border border-gray-700" />
+            <input value={srcForm.token} onChange={(e) => setSrcForm({ ...srcForm, token: e.target.value })} placeholder="token (비공개 repo만)" type="password" className="bg-gray-800 p-1.5 rounded border border-gray-700 col-span-2" />
+            <button onClick={saveSrc} disabled={savingSrc} className="col-span-2 py-1.5 bg-blue-600 hover:bg-blue-500 rounded disabled:opacity-50">
+              {savingSrc ? "저장 중…" : "연결 저장"}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 진행률 */}
