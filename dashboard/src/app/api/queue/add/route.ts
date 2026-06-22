@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { mutateJson, dataPath } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
+import { mirrorQueuePost } from "@/lib/queue-store";
 
 interface QueuePost {
   id: string;
@@ -67,6 +68,8 @@ export async function POST(request: Request) {
       (queue) => { queue.posts.push(post); return queue; },
       { version: 2, posts: [] },
     );
+    // P4 dual-write: DB 그림자 복제(best-effort, 실패해도 위 json 쓰기엔 영향 없음 — 무중단).
+    await mirrorQueuePost(__t, post as unknown as { id: string; [k: string]: unknown });
     return Response.json({ success: true, post });
   });
 }

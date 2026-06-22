@@ -1,6 +1,7 @@
 import { mutateJson, dataPath } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
+import { mirrorQueueDelete } from "@/lib/queue-store";
 
 interface QueueData { posts: Array<Record<string, unknown>> }
 
@@ -17,6 +18,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ pos
       return queue;
     }, { posts: [] });
     if (!removed) return Response.json({ error: "post not found" }, { status: 404 });
+    // P4 dual-write: 삭제 미러(best-effort, 무중단).
+    await mirrorQueueDelete(__t, postId);
     return Response.json({ ok: true });
   });
 }

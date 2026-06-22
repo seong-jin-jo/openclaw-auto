@@ -77,6 +77,26 @@ CREATE TABLE IF NOT EXISTS published_posts (
 );
 CREATE INDEX IF NOT EXISTS idx_pubposts_tenant ON published_posts(tenant_id, published_at DESC);
 
+-- P4: 발행 큐(현 data/queue.json v2 → 이주). expand/contract 1단계 = dual-write(읽기/cron은 json 유지, 무중단).
+-- id는 queue.json 항목 id(UUID)와 1:1. payload에 원 항목 무손실 스냅샷.
+CREATE TABLE IF NOT EXISTS queue_posts (
+  id            UUID PRIMARY KEY,                  -- queue.json post.id와 동일(default 없음)
+  tenant_id     UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  text          TEXT,
+  topic         TEXT,
+  status        TEXT NOT NULL DEFAULT 'draft',     -- draft | approved | published | failed
+  hashtags      TEXT[],
+  channels      JSONB,                             -- v2 멀티채널 발행 상태
+  payload       JSONB,                             -- 원 queue.json 항목 스냅샷(무손실)
+  generated_at  TIMESTAMPTZ,
+  approved_at   TIMESTAMPTZ,
+  scheduled_at  TIMESTAMPTZ,
+  published_at  TIMESTAMPTZ,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_queue_posts_tenant ON queue_posts(tenant_id, status, generated_at DESC);
+
 -- P6 예약: 초안을 미래 시각에 멀티채널 발행 예약. 스케줄러가 scheduled_at 도래 시 발행.
 CREATE TABLE IF NOT EXISTS schedules (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
