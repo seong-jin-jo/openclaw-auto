@@ -39,6 +39,9 @@ data/*
 node_modules/
 dist-runtime/
 
+# 민감어 denylist (fork-local — 목록 자체가 민감, 공개 안 함)
+**/sensitive-denylist.local.json
+
 # Python
 __pycache__/
 *.pyc
