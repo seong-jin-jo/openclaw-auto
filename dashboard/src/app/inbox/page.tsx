@@ -29,6 +29,22 @@ export default function InboxPage() {
   const [scheduleHours, setScheduleHours] = useState(0);
   const [busy, setBusy] = useState(false);
   const [approved, setApproved] = useState(0);
+  const [seeding, setSeeding] = useState(false);
+
+  // 빈 화면 박멸: 브랜드 톤 기반 초안 한 묶음 생성 → 인박스 즉시 채움.
+  const seedDrafts = async () => {
+    if (seeding) return;
+    setSeeding(true);
+    try {
+      const r = await apiPost<{ ok?: boolean; added?: number; error?: string }>("/api/queue/seed", { count: 7 });
+      if (r?.ok) { showToast(`${r.added}개 초안 생성됨`, "success"); setIdx(0); await mutate(); }
+      else showToast(r?.error || "생성 실패", "error");
+    } catch (e) {
+      showToast(`오류: ${(e as Error).message}`, "error");
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   // posts가 줄어들면 idx 보정
   useEffect(() => {
@@ -112,8 +128,16 @@ export default function InboxPage() {
         <div className="card p-8 text-center text-gray-500 text-sm">불러오는 중…</div>
       ) : posts.length === 0 ? (
         <div className="card p-8 text-center">
-          <p className="text-gray-300 text-sm">검토할 초안이 없습니다 🎉</p>
-          <p className="text-[11px] text-gray-500 mt-2">크론이 새 초안을 생성하거나, Studio/영상에서 만든 글이 여기로 모입니다.</p>
+          <p className="text-gray-300 text-sm">검토할 초안이 없습니다</p>
+          <p className="text-[11px] text-gray-500 mt-2">AI가 브랜드 톤으로 한 묶음 만들어 드릴게요. 검토만 하면 됩니다.</p>
+          <button
+            onClick={seedDrafts}
+            disabled={seeding}
+            className="mt-4 px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-500 disabled:opacity-50"
+          >
+            {seeding ? "생성 중…" : "AI로 한 주치 초안 생성"}
+          </button>
+          <p className="text-[10px] text-gray-600 mt-3">크론·Studio·영상에서 만든 글도 여기로 모입니다.</p>
         </div>
       ) : !current ? (
         <div className="card p-8 text-center text-gray-500 text-sm">모두 검토 완료.</div>
