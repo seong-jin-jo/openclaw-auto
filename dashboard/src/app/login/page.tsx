@@ -60,7 +60,13 @@ export default function LoginPage() {
     try {
       const sb = createBrowserSupabase();
       if (mode === "signup") {
-        const { data, error } = await sb.auth.signUp({ email, password: pw });
+        // 이메일 확인 후 반드시 이 앱(현재 origin)의 /login으로 복귀 — Supabase Site URL 기본값에 의존 금지.
+        // (Supabase Auth > URL Configuration > Redirect URLs 허용목록에 이 origin이 등록돼 있어야 적용됨)
+        const { data, error } = await sb.auth.signUp({
+          email,
+          password: pw,
+          options: { emailRedirectTo: `${window.location.origin}/login` },
+        });
         if (error) { setMsg(error.message); return; }
         if (data.session) { setAuthToken(data.session.access_token); window.location.href = "/"; }
         else { setPending(email); startCooldown(60); }
@@ -79,7 +85,7 @@ export default function LoginPage() {
     setBusy(true); setMsg("");
     try {
       const sb = createBrowserSupabase();
-      const { error } = await sb.auth.resend({ type: "signup", email: pending });
+      const { error } = await sb.auth.resend({ type: "signup", email: pending, options: { emailRedirectTo: `${window.location.origin}/login` } });
       if (error) { setMsg(error.message); startCooldown(60); return; }
       setMsg("인증 메일을 다시 보냈습니다. 받은편지함을 확인해주세요.");
       startCooldown(60);
@@ -89,10 +95,22 @@ export default function LoginPage() {
   };
 
   const google = async () => {
-    const sb = createBrowserSupabase();
-    // Use current origin so it works in prod (tunnel) and local dev
-    const redirectTo = window.location.origin;
-    await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
+    setMsg("");
+    try {
+      const sb = createBrowserSupabase();
+      // Use current origin so it works in prod (tunnel) and local dev
+      const redirectTo = `${window.location.origin}/login`;
+      const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
+      if (error) {
+        setMsg(
+          /provider is not enabled|Unsupported provider/i.test(error.message)
+            ? "Google 로그인이 아직 설정되지 않았습니다. 이메일로 가입해주세요."
+            : error.message,
+        );
+      }
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : String(e));
+    }
   };
 
   // 가입 후 확인 대기 화면 — 막다른 골목 대신 재전송 + 명확한 다음 단계 안내.
