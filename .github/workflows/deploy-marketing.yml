@@ -10,6 +10,11 @@ jobs:
   deploy:
     runs-on: [self-hosted, marketing_runner]
     steps:
+      - name: 워크스페이스 root-owned 잔재 정리 (checkout 전 — 이전 docker 실행이 남긴 root 파일로 clean 실패 방지)
+        run: |
+          if [ -d "$GITHUB_WORKSPACE" ]; then
+            docker run --rm -v "$GITHUB_WORKSPACE":/w alpine:3 sh -c 'rm -rf /w/.[!.]* /w/..?* /w/* 2>/dev/null || true' || true
+          fi
       - name: Checkout
         uses: actions/checkout@v4
       - name: 영속 config/data 복원 (~/openclaw-persist → 체크아웃)
