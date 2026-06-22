@@ -1,4 +1,5 @@
 import { withTenant } from "./db";
+import { readJson, dataPath } from "./file-io";
 
 // P4 expand/contract — 1단계: queue.json 쓰기를 DB queue_posts에 "그림자 복제"(dual-write).
 //
@@ -56,6 +57,26 @@ export async function mirrorQueuePost(tenantId: string | null, post: QueueMirror
   } catch (e) {
     if (process.env.OSMU_DEBUG) console.error("[queue-store] mirror skip:", (e as Error).message);
   }
+}
+
+// P4 backfill: 현 queue.json 전체를 DB로 미러(멱등 upsert). read-switch 전 DB를 완전한 그림자로.
+// runWithTenant 컨텍스트 안에서 호출(테넌트별 queue.json). best-effort 합산 결과 반환.
+export async function backfillQueueToDb(tenantId: string | null): Promise<{ total: number; mirrored: number; skipped: number }> {
+  const q = readJson<{ posts: Array<Record<string, unknown>> }>(dataPath("queue.json")) || { posts: [] };
+  const posts = q.posts || [];
+  let mirrored = 0;
+  let skipped = 0;
+  for (const p of posts) {
+    const id = p?.id;
+    if (!isUuid(tenantId) || !isUuid(id)) { skipped++; continue; }
+    try {
+      await mirrorQueuePost(tenantId, p as { id: string; [k: string]: unknown });
+      mirrored++;
+    } catch {
+      skipped++;
+    }
+  }
+  return { total: posts.length, mirrored, skipped };
 }
 
 // 삭제 미러(거절/삭제 시). best-effort.
