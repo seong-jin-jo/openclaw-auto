@@ -7,6 +7,7 @@ import { getWikiContext } from "@/lib/wiki-retrieve";
 import { mirrorQueuePost } from "@/lib/queue-store";
 import { parseDrafts } from "@/lib/seed-parse";
 import { fetchSourceText, type ContextSource } from "@/lib/context-source";
+import { getTopPostExamples } from "@/lib/voice-examples";
 
 // POST /api/queue/seed — "빈 화면 박멸": 브랜드 톤 기반 초안 N개를 한 번에 생성해 draft 큐에 적재.
 // 연결 직후 인박스가 비어있지 않게 → approve-don't-author 루프의 첫 콘텐츠.
@@ -30,8 +31,16 @@ export async function POST(request: Request) {
       else if (error && process.env.OSMU_DEBUG) console.error("[seed] product-source:", error);
     }
 
+    // 자기개선 보이스: 반응 좋았던 내 글을 few-shot으로 → 톤/구조 학습.
+    const examples = getTopPostExamples(3);
+    const voiceBlock = examples.length
+      ? `\n=== 내 계정에서 반응이 좋았던 글(이 톤·길이·문장구조를 학습하되, 주제는 새로 다양하게) ===\n${examples
+          .map((e, i) => `예시${i + 1} (조회 ${e.views}):\n${e.text}`)
+          .join("\n---\n")}\n===\n`
+      : "";
+
     const prompt = `너는 이 브랜드의 SNS 마케터다. 바로 검토·발행 가능한 짧은 초안 ${count}개를 만들어라.
-${guide ? `브랜드 톤 가이드:\n${guide}\n` : ""}${wiki ? `\n=== 위키 참조(사실 근거, 없는 내용 지어내기 금지) ===\n${wiki}\n===\n` : ""}${product ? `\n=== 제품 문서/변경(README·changelog 등 — 이 사실에 근거해 "방금 만든 것/업데이트"를 자연스럽게 홍보) ===\n${product}\n===\n` : ""}
+${guide ? `브랜드 톤 가이드:\n${guide}\n` : ""}${wiki ? `\n=== 위키 참조(사실 근거, 없는 내용 지어내기 금지) ===\n${wiki}\n===\n` : ""}${product ? `\n=== 제품 문서/변경(README·changelog 등 — 이 사실에 근거해 "방금 만든 것/업데이트"를 자연스럽게 홍보) ===\n${product}\n===\n` : ""}${voiceBlock}
 규칙:
 - 100% 한국어, AI가 쓴 티 절대 금지(~죠?/여러분! 금지), 구어체 OK, 첫 줄 훅.
 - 콘텐츠 유형 섞기: 정보성 / 일상 / 질문형(반응유도) / 통찰 / 가벼운 논쟁. 서로 다른 주제.
