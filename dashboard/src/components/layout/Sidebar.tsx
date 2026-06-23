@@ -316,12 +316,30 @@ export function Sidebar() {
 
         <SidebarGroup
           groupKey="social"
-          title="Channels"
+          title="Social"
           items={[
             threadsItem,
             xItem,
-            chSidebarItem("instagram", cfg),
+            ...["instagram", "facebook", "linkedin", "bluesky", "pinterest", "tumblr"].map((ch) => chSidebarItem(ch, cfg)),
           ]}
+        />
+
+        <SidebarGroup
+          groupKey="video"
+          title="Video"
+          items={["tiktok", "youtube"].map((ch) => chSidebarItem(ch, cfg))}
+        />
+
+        <SidebarGroup
+          groupKey="blog"
+          title="Blog"
+          items={[chSidebarItem("naver_blog", cfg)]}
+        />
+
+        <SidebarGroup
+          groupKey="messaging"
+          title="Messaging"
+          items={["telegram", "discord", "slack", "line"].map((ch) => chSidebarItem(ch, cfg))}
         />
 
         <SidebarGroup
@@ -446,6 +464,20 @@ export function Sidebar() {
 
       <div className="px-4 py-3 border-t border-border/50 space-y-2">
         <ThemeToggle />
+        <button
+          onClick={async () => {
+            try {
+              const { createBrowserSupabase } = await import("@/lib/supabase");
+              await createBrowserSupabase().auth.signOut();
+            } catch { /* env 미설정/세션 없음 무시 */ }
+            try { localStorage.removeItem("dashboard_auth_token"); } catch { /* ignore */ }
+            window.location.href = "/login";
+          }}
+          className="w-full flex items-center gap-2 px-1 py-1 text-xs text-subtle hover:text-danger transition-colors"
+          title="로그아웃"
+        >
+          <span>⎋</span> 로그아웃
+        </button>
         <div className="flex items-center gap-2">
           <div className={`pulse-dot ${cronOk === cronTotal ? "bg-green-500" : "bg-yellow-500"}`} />
           <span className="text-xs text-subtle">

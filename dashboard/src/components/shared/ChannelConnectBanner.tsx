@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useChannelConfig } from "@/hooks/useChannelConfig";
-import { OSMU_CHANNELS, CH_LABELS } from "@/lib/constants";
+import { IMPLEMENTED_PLUGINS, CH_LABELS } from "@/lib/constants";
 
 // 미연결 채널을 직관적으로 알리고 연결 화면으로 유도. 구현된 채널 중 status가 live/connected가
 // 아닌 것 = 연결 필요. 0개면 안 보임. 클릭 → Settings 채널 탭.
@@ -10,7 +10,7 @@ export function ChannelConnectBanner() {
   const { data } = useChannelConfig();
   if (!data) return null;
 
-  const unconnected = OSMU_CHANNELS.filter((k) => {
+  const unconnected = IMPLEMENTED_PLUGINS.filter((k) => k !== "midjourney").filter((k) => {
     const s = (data[k]?.status as string) || "";
     return s !== "live" && s !== "connected";
   });
