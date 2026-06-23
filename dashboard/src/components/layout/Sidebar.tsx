@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import useSWR from "swr";
 import { useChannelConfig } from "@/hooks/useChannelConfig";
 import { useCronStatus } from "@/hooks/useOverview";
@@ -132,11 +132,17 @@ function WorkspaceSwitcher() {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
-  const workspaces = data?.workspaces || [];
+  // data?.workspaces || [] 를 매 렌더 새 배열로 만들면 아래 useEffect dep가 매번 바뀌어
+  // 무한 루프(React #185) 유발 → 메모이즈로 안정화.
+  const workspaces = useMemo(() => data?.workspaces || [], [data]);
 
-  // 활성 워크스페이스: 고객=자기 테넌트 고정 / 운영자=첫 워크스페이스 자동선택
+  // 활성 워크스페이스: 고객=자기 테넌트 고정 / 운영자=첫 워크스페이스 자동선택.
+  // ⚠️ 반드시 "값이 실제로 바뀔 때만" set — 무조건 set하면 set→재렌더→effect→set 무한 루프(React #185).
   useEffect(() => {
-    if (!isOperator && me?.tenant) { setActiveWorkspace(me.tenant); return; }
+    if (!isOperator && me?.tenant) {
+      if (activeWorkspace?.id !== me.tenant.id) setActiveWorkspace(me.tenant);
+      return;
+    }
     if (isOperator && !activeWorkspace && workspaces.length > 0) setActiveWorkspace(workspaces[0]);
   }, [isOperator, me, activeWorkspace, workspaces, setActiveWorkspace]);
 
