@@ -47,32 +47,32 @@ export function BrandSetupWizard({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="w-full max-w-lg rounded-2xl border border-purple-500/20 bg-[#141414]/95 backdrop-blur-xl p-6 shadow-[0_0_40px_rgba(168,85,247,0.15)] max-h-[90vh] overflow-y-auto">
-        <h2 className="text-lg font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+      <div className="w-full max-w-lg rounded-2xl border border-accent bg-surface/95 backdrop-blur-xl p-6 shadow-[0_0_40px_rgba(168,85,247,0.15)] max-h-[90vh] overflow-y-auto">
+        <h2 className="text-lg font-bold bg-gradient-to-r from-accent to-accent-hover bg-clip-text text-transparent">
           {workspace.name} 브랜드 설정
         </h2>
-        <p className="text-xs text-gray-500 mb-4">6문항 → AI가 브랜드 톤 가이드로 증류 → 생성에 자동 반영</p>
+        <p className="text-xs text-subtle mb-4">6문항 → AI가 브랜드 톤 가이드로 증류 → 생성에 자동 반영</p>
         <div className="space-y-3">
           {FIELDS.map((f) => (
             <div key={f.key}>
-              <label className="text-xs text-gray-400">{f.label}</label>
+              <label className="text-xs text-subtle">{f.label}</label>
               <textarea
                 value={answers[f.key] || ""}
                 onChange={(e) => setAnswers((a) => ({ ...a, [f.key]: e.target.value }))}
                 placeholder={f.ph}
                 rows={2}
-                className="mt-1 w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 resize-none focus:border-purple-500 outline-none"
+                className="mt-1 w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-muted resize-none focus:border-accent outline-none"
               />
             </div>
           ))}
         </div>
         {err && <p className="text-xs text-red-400 mt-3">{err}</p>}
         <div className="flex items-center justify-between mt-5">
-          <button onClick={onDismiss} className="text-xs text-gray-500 hover:text-gray-300">나중에</button>
+          <button onClick={onDismiss} className="text-xs text-subtle hover:text-muted">나중에</button>
           <button
             onClick={submit}
             disabled={busy}
-            className="px-4 py-2 text-sm bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg shadow-lg shadow-purple-900/30 disabled:opacity-50"
+            className="px-4 py-2 text-sm bg-accent hover:from-accent hover:to-accent-hover text-text rounded-lg shadow-lg shadow-purple-900/30 disabled:opacity-50"
           >
             {busy ? "AI 증류 중…" : "브랜드 가이드 생성"}
           </button>

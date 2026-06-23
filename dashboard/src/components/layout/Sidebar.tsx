@@ -10,6 +10,7 @@ import { CH_LABELS, IMPLEMENTED_PLUGINS } from "@/lib/constants";
 import { getChannelIcon } from "@/lib/channel-icons";
 import { useUIStore, type Workspace } from "@/store/ui-store";
 import { fetcher, apiPost } from "@/lib/api";
+import { ThemeToggle } from "./ThemeToggle";
 
 /* ── Sidebar Group ── */
 function SidebarGroup({
@@ -43,15 +44,15 @@ function SidebarGroup({
         onClick={() => toggleSidebar(groupKey)}
         className="px-3 mb-1 w-full flex items-center justify-between cursor-pointer hover:opacity-80"
       >
-        <span className="text-[10px] font-medium text-gray-600 uppercase tracking-wider">{title}</span>
+        <span className="text-[10px] font-medium text-subtle uppercase tracking-wider">{title}</span>
         <span className="flex items-center gap-1">
           {totalCount > 0 && (
-            <span className={`text-[9px] ${liveCount > 0 ? "text-green-600" : "text-gray-700"}`}>
+            <span className={`text-[9px] ${liveCount > 0 ? "text-green-600" : "text-subtle"}`}>
               {liveCount}/{totalCount}
             </span>
           )}
           <svg
-            className={`w-3 h-3 text-gray-700 transition-transform ${collapsed ? "" : "rotate-180"}`}
+            className={`w-3 h-3 text-subtle transition-transform ${collapsed ? "" : "rotate-180"}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -64,7 +65,7 @@ function SidebarGroup({
         items.map((i, idx) => {
           const href = i.key === "blog" ? "/blog" : i.key ? `/channels/${i.key}` : "#";
           const isActive = i.key === "blog" ? pathname === "/blog" : pathname === `/channels/${i.key}`;
-          const textColor = i.status === "Live" || i.status === "Connected" ? "text-gray-300" : "text-gray-500";
+          const textColor = i.status === "Live" || i.status === "Connected" ? "text-muted" : "text-subtle";
           return (
             <Link
               key={i.key || `${i.label}-${idx}`}
@@ -72,13 +73,13 @@ function SidebarGroup({
               className={`sidebar-item ${isActive ? "active" : ""} w-full text-left px-4 py-1.5 text-sm ${textColor} flex items-center gap-3`}
             >
               <span
-                className={`w-4 h-4 rounded ${i.iconClass || "text-gray-400"} flex items-center justify-center`}
+                className={`w-4 h-4 rounded ${i.iconClass || "text-subtle"} flex items-center justify-center`}
               >
                 {i.key ? getChannelIcon(i.key) : <span className="text-[9px] font-bold">{i.icon}</span>}
               </span>
               {i.label}
               {i.status && (
-                <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${i.statusClass || "bg-gray-800 text-gray-500"}`}>
+                <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${i.statusClass || "bg-surface-2 text-subtle"}`}>
                   {i.status}
                 </span>
               )}
@@ -113,7 +114,7 @@ function chSidebarItem(key: string, channelConfig: Record<string, Record<string,
       icon: label[0],
       nav: true,
       status: "Connected" as const,
-      statusClass: "bg-blue-900/50 text-blue-400",
+      statusClass: "bg-blue-900/50 text-accent",
     };
   }
   // 미연결 — 클릭 가능, 흰 글씨
@@ -150,7 +151,7 @@ function WorkspaceSwitcher() {
   if (!isOperator) {
     return (
       <div className="mt-1 text-xs">
-        <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent font-medium">{me?.tenant?.name || activeWorkspace?.name || "내 워크스페이스"}</span>
+        <span className="bg-gradient-to-r from-accent to-accent-hover bg-clip-text text-transparent font-medium">{me?.tenant?.name || activeWorkspace?.name || "내 워크스페이스"}</span>
       </div>
     );
   }
@@ -169,26 +170,26 @@ function WorkspaceSwitcher() {
   return (
     <div className="relative mt-1">
       <button onClick={() => setOpen((v) => !v)} className="text-xs flex items-center gap-1 hover:opacity-80">
-        <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent font-medium">{activeWorkspace?.name || "워크스페이스 선택"}</span>
-        <span className="text-gray-600">▾</span>
+        <span className="bg-gradient-to-r from-accent to-accent-hover bg-clip-text text-transparent font-medium">{activeWorkspace?.name || "워크스페이스 선택"}</span>
+        <span className="text-subtle">▾</span>
       </button>
       {open && (
-        <div className="absolute left-0 top-6 z-50 w-52 rounded-lg border border-gray-800 bg-[#141414] p-1 shadow-xl">
+        <div className="absolute left-0 top-6 z-50 w-52 rounded-lg border border-border bg-surface p-1 shadow-xl">
           {workspaces.map((w) => (
-            <button key={w.id} onClick={() => { setActiveWorkspace(w); setOpen(false); }} className={`w-full text-left px-2 py-1.5 text-xs rounded flex items-center gap-2 ${activeWorkspace?.id === w.id ? "bg-gray-800 text-white" : "text-gray-300 hover:bg-gray-800"}`}>
+            <button key={w.id} onClick={() => { setActiveWorkspace(w); setOpen(false); }} className={`w-full text-left px-2 py-1.5 text-xs rounded flex items-center gap-2 ${activeWorkspace?.id === w.id ? "bg-surface-2 text-text" : "text-muted hover:bg-surface-2"}`}>
               <span className="flex-1 truncate">{w.name}</span>
               {activeWorkspace?.id === w.id && <span className="text-[9px] text-green-500">●</span>}
             </button>
           ))}
-          {workspaces.length === 0 && <div className="text-[10px] text-gray-600 px-2 py-1.5">워크스페이스 없음 — 등록하세요</div>}
-          <div className="border-t border-gray-800 mt-1 pt-1">
+          {workspaces.length === 0 && <div className="text-[10px] text-subtle px-2 py-1.5">워크스페이스 없음 — 등록하세요</div>}
+          <div className="border-t border-border mt-1 pt-1">
             {adding ? (
               <div className="px-1 py-1 flex gap-1">
-                <input autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && create()} placeholder="워크스페이스 이름" className="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-200 min-w-0" />
-                <button onClick={create} disabled={busy} className="text-xs px-2 py-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded disabled:opacity-50">{busy ? "..." : "생성"}</button>
+                <input autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && create()} placeholder="워크스페이스 이름" className="flex-1 bg-surface border border-border rounded px-2 py-1 text-xs text-muted min-w-0" />
+                <button onClick={create} disabled={busy} className="text-xs px-2 py-1 bg-accent text-text rounded disabled:opacity-50">{busy ? "..." : "생성"}</button>
               </div>
             ) : (
-              <button onClick={() => setAdding(true)} className="w-full text-left px-2 py-1.5 text-xs text-purple-400 hover:bg-gray-800 rounded">+ 새 워크스페이스</button>
+              <button onClick={() => setAdding(true)} className="w-full text-left px-2 py-1.5 text-xs text-accent hover:bg-surface-2 rounded">+ 새 워크스페이스</button>
             )}
           </div>
         </div>
@@ -215,12 +216,12 @@ export function Sidebar() {
     key: "threads",
     label: "Threads",
     icon: "T",
-    iconClass: "bg-gradient-to-br from-purple-500 to-pink-500 text-white",
+    iconClass: "bg-accent text-text",
     nav: true,
     status: (cfg.threads?.connected ? "Live" : "Off") as string,
     statusClass: cfg.threads?.connected
       ? "bg-green-900/50 text-green-400"
-      : "bg-gray-800 text-gray-500",
+      : "bg-surface-2 text-subtle",
   };
 
   // Build X item specially
@@ -237,30 +238,33 @@ export function Sidebar() {
     statusClass: cfg.x?.connected
       ? cfg.x?.enabled
         ? "bg-green-900/50 text-green-400"
-        : "bg-blue-900/50 text-blue-400"
+        : "bg-blue-900/50 text-accent"
       : "",
   };
 
   return (
-    <aside className="w-56 border-r border-gray-800/50 flex flex-col h-screen sticky top-0" style={{ background: "#0e0e0e" }}>
-      <div className="px-4 py-5 border-b border-gray-800/50">
+    <aside className="w-56 border-r border-border/50 flex flex-col h-screen sticky top-0" style={{ background: "var(--surface)" }}>
+      <div className="px-4 py-5 border-b border-border/50">
         <div className="flex items-center gap-2">
-          {/* 로고: 실제 로고로 교체하려면 public/logo.svg 추가 후 <img src="/logo.svg" .../>로 바꾸면 됨. (스레드 로고 제거) */}
-          <span className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold shadow-sm select-none">O</span>
-          <h1 className="text-base font-semibold text-white tracking-tight">Marketing Hub</h1>
+          {/* 로고 — 스택형(채널 레이어) 마크. 실 로고는 public/logo.svg 교체. */}
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-muted shrink-0" aria-label="Marketing Hub">
+            <rect x="3" y="3" width="13" height="13" rx="4.2" fill="currentColor" opacity="0.3" />
+            <rect x="8" y="8" width="13" height="13" rx="4.2" fill="var(--accent)" />
+          </svg>
+          <h1 className="text-base font-semibold text-text tracking-tight">Marketing Hub</h1>
         </div>
         <WorkspaceSwitcher />
       </div>
 
       <nav className="flex-1 py-3">
         <div className="px-3 mb-2">
-          <span className="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Overview</span>
+          <span className="text-[10px] font-medium text-subtle uppercase tracking-wider">Overview</span>
         </div>
         <Link
           href="/"
-          className={`sidebar-item ${pathname === "/" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3`}
+          className={`sidebar-item ${pathname === "/" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-muted flex items-center gap-3`}
         >
-          <span className="text-pink-400">
+          <span className="text-accent">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
             </svg>
@@ -271,21 +275,21 @@ export function Sidebar() {
 
         <Link
           href="/studio"
-          className={`sidebar-item ${pathname === "/studio" ? "active" : ""} w-full text-left px-4 py-2 text-sm flex items-center gap-3 ${pathname === "/studio" ? "text-white" : "text-gray-200"}`}
+          className={`sidebar-item ${pathname === "/studio" ? "active" : ""} w-full text-left px-4 py-2 text-sm flex items-center gap-3 ${pathname === "/studio" ? "text-text" : "text-muted"}`}
         >
-          <span className="text-purple-400">
+          <span className="text-accent">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                 d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L22 12l-6.714 2.143L13 21l-2.286-6.857L4 12l6.714-2.143L13 3z" />
             </svg>
           </span>
           OSMU Studio
-          <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full bg-purple-900/50 text-purple-300">NEW</span>
+          <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full bg-accent-soft text-accent">NEW</span>
         </Link>
 
         <Link
           href="/inbox"
-          className={`sidebar-item ${pathname === "/inbox" ? "active" : ""} w-full text-left px-4 py-2 text-sm flex items-center gap-3 ${pathname === "/inbox" ? "text-white" : "text-gray-200"}`}
+          className={`sidebar-item ${pathname === "/inbox" ? "active" : ""} w-full text-left px-4 py-2 text-sm flex items-center gap-3 ${pathname === "/inbox" ? "text-text" : "text-muted"}`}
         >
           <span className="text-green-400">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -299,9 +303,9 @@ export function Sidebar() {
 
         <Link
           href="/calendar"
-          className={`sidebar-item ${pathname === "/calendar" ? "active" : ""} w-full text-left px-4 py-2 text-sm flex items-center gap-3 ${pathname === "/calendar" ? "text-white" : "text-gray-200"}`}
+          className={`sidebar-item ${pathname === "/calendar" ? "active" : ""} w-full text-left px-4 py-2 text-sm flex items-center gap-3 ${pathname === "/calendar" ? "text-text" : "text-muted"}`}
         >
-          <span className="text-blue-400">
+          <span className="text-accent">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                 d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
@@ -312,37 +316,11 @@ export function Sidebar() {
 
         <SidebarGroup
           groupKey="social"
-          title="Social"
+          title="Channels"
           items={[
             threadsItem,
             xItem,
-            ...["instagram", "facebook", "linkedin", "bluesky", "pinterest", "tumblr"].map((ch) => chSidebarItem(ch, cfg)),
-          ]}
-        />
-
-        <SidebarGroup
-          groupKey="video"
-          title="Video"
-          items={["tiktok", "youtube"].map((ch) => chSidebarItem(ch, cfg))}
-        />
-
-        <SidebarGroup
-          groupKey="blog"
-          title="Blog"
-          items={[
-            chSidebarItem("naver_blog", cfg),
-            { label: "Medium", icon: "M", soon: true },
-            { label: "Substack", icon: "S", soon: true },
-          ]}
-        />
-
-        <SidebarGroup
-          groupKey="messaging"
-          title="Messaging"
-          items={[
-            ...["telegram", "discord", "slack", "line"].map((ch) => chSidebarItem(ch, cfg)),
-            { key: "kakao", label: "Kakao Channel", icon: "K", nav: true },
-            { key: "whatsapp", label: "WhatsApp", icon: "W", nav: true },
+            chSidebarItem("instagram", cfg),
           ]}
         />
 
@@ -359,7 +337,7 @@ export function Sidebar() {
 
         {/* ── Data & Analytics ── */}
         <div className="px-3 mt-5 mb-2">
-          <span className="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Data & Analytics</span>
+          <span className="text-[10px] font-medium text-subtle uppercase tracking-wider">Data & Analytics</span>
         </div>
         {[
           { href: "/blog-performance", key: "blog_performance", label: "Blog Performance" },
@@ -367,15 +345,15 @@ export function Sidebar() {
           { href: "/google-analytics", key: "google_analytics", label: "Google Analytics" },
         ].map((item) => (
           <Link key={item.key} href={item.href}
-            className={`sidebar-item ${pathname === item.href ? "active" : ""} w-full text-left px-4 py-1.5 text-sm text-gray-300 flex items-center gap-3`}>
-            <span className="w-4 h-4 rounded text-gray-400 flex items-center justify-center">{getChannelIcon(item.key)}</span>
+            className={`sidebar-item ${pathname === item.href ? "active" : ""} w-full text-left px-4 py-1.5 text-sm text-muted flex items-center gap-3`}>
+            <span className="w-4 h-4 rounded text-subtle flex items-center justify-center">{getChannelIcon(item.key)}</span>
             {item.label}
           </Link>
         ))}
 
         {/* ── Keyword Research ── */}
         <div className="px-3 mt-5 mb-2">
-          <span className="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Keyword Research</span>
+          <span className="text-[10px] font-medium text-subtle uppercase tracking-wider">Keyword Research</span>
         </div>
         {[
           { href: "/keyword-planner", key: "keyword_planner", label: "Keyword Planner" },
@@ -384,8 +362,8 @@ export function Sidebar() {
           { href: "/google-trends", key: "google_trends", label: "Google Trends" },
         ].map((item) => (
           <Link key={item.key} href={item.href}
-            className={`sidebar-item ${pathname === item.href ? "active" : ""} w-full text-left px-4 py-1.5 text-sm text-gray-300 flex items-center gap-3`}>
-            <span className="w-4 h-4 rounded text-gray-400 flex items-center justify-center">{getChannelIcon(item.key)}</span>
+            className={`sidebar-item ${pathname === item.href ? "active" : ""} w-full text-left px-4 py-1.5 text-sm text-muted flex items-center gap-3`}>
+            <span className="w-4 h-4 rounded text-subtle flex items-center justify-center">{getChannelIcon(item.key)}</span>
             {item.label}
           </Link>
         ))}
@@ -401,13 +379,13 @@ export function Sidebar() {
         />
 
         <div className="px-3 mt-5 mb-2">
-          <span className="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Assets & Tools</span>
+          <span className="text-[10px] font-medium text-subtle uppercase tracking-wider">Assets & Tools</span>
         </div>
         <Link
           href="/images"
-          className={`sidebar-item ${pathname === "/images" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3`}
+          className={`sidebar-item ${pathname === "/images" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-muted flex items-center gap-3`}
         >
-          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -416,13 +394,13 @@ export function Sidebar() {
             />
           </svg>
           Images
-          <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-gray-800 text-gray-500">{imageCount}</span>
+          <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-surface-2 text-subtle">{imageCount}</span>
         </Link>
         <Link
           href="/videos"
-          className={`sidebar-item ${pathname === "/videos" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3`}
+          className={`sidebar-item ${pathname === "/videos" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-muted flex items-center gap-3`}
         >
-          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -437,23 +415,23 @@ export function Sidebar() {
           return (
             <Link
               href="/channels/midjourney"
-              className={`sidebar-item ${pathname === "/channels/midjourney" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3`}
+              className={`sidebar-item ${pathname === "/channels/midjourney" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-muted flex items-center gap-3`}
             >
               <span className="w-4 h-4 rounded bg-indigo-900/50 flex items-center justify-center text-[8px] font-bold text-indigo-300">MJ</span>
               Midjourney
-              <span className={`ml-auto w-2 h-2 rounded-full ${mjCfg.connected ? "bg-green-500" : "bg-gray-700"}`} />
+              <span className={`ml-auto w-2 h-2 rounded-full ${mjCfg.connected ? "bg-green-500" : "bg-surface-2"}`} />
             </Link>
           );
         })()}
 
         <div className="px-3 mt-5 mb-2">
-          <span className="text-[10px] font-medium text-gray-600 uppercase tracking-wider">System</span>
+          <span className="text-[10px] font-medium text-subtle uppercase tracking-wider">System</span>
         </div>
         <Link
           href="/settings"
-          className={`sidebar-item ${pathname === "/settings" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-gray-300 flex items-center gap-3`}
+          className={`sidebar-item ${pathname === "/settings" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-muted flex items-center gap-3`}
         >
-          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -466,10 +444,11 @@ export function Sidebar() {
         </Link>
       </nav>
 
-      <div className="px-4 py-3 border-t border-gray-800/50 space-y-2">
+      <div className="px-4 py-3 border-t border-border/50 space-y-2">
+        <ThemeToggle />
         <div className="flex items-center gap-2">
           <div className={`pulse-dot ${cronOk === cronTotal ? "bg-green-500" : "bg-yellow-500"}`} />
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-subtle">
             {cronOk}/{cronTotal} crons ok
           </span>
         </div>

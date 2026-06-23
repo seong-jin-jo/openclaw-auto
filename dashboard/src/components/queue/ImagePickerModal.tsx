@@ -64,17 +64,17 @@ export function ImagePickerModal() {
     >
       <div className="card p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto mx-4">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-white">Select Image</h3>
-          <button onClick={() => setImagePickerPostId(null)} className="text-gray-400 hover:text-white text-xl">&times;</button>
+          <h3 className="text-lg font-semibold text-text">Select Image</h3>
+          <button onClick={() => setImagePickerPostId(null)} className="text-subtle hover:text-text text-xl">&times;</button>
         </div>
 
         {/* Generate New */}
-        <div className="mb-4 p-3 rounded-lg border border-gray-800 bg-gray-900/50">
+        <div className="mb-4 p-3 rounded-lg border border-border bg-surface/50">
           <div className="flex items-center gap-2 mb-2">
-            <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            <span className="text-xs text-gray-300">Generate New</span>
+            <span className="text-xs text-muted">Generate New</span>
           </div>
           <div className="flex gap-2">
             <input
@@ -83,17 +83,17 @@ export function ImagePickerModal() {
               onChange={(e) => setGenPrompt(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
               placeholder="이미지 설명 (예: AI와 협업하는 개발자 일러스트)"
-              className="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700"
+              className="flex-1 bg-surface-2 text-muted text-xs p-2 rounded border border-border"
             />
             <button
               onClick={handleGenerate}
               disabled={generating}
-              className="px-3 py-1.5 text-xs bg-purple-600 text-white rounded hover:bg-purple-500 shrink-0 disabled:opacity-50"
+              className="px-3 py-1.5 text-xs bg-accent text-text rounded hover:bg-accent-hover shrink-0 disabled:opacity-50"
             >
               {generating ? "Generating..." : "Generate"}
             </button>
           </div>
-          {genStatus && <div className="mt-2 text-[10px] text-gray-500">{genStatus}</div>}
+          {genStatus && <div className="mt-2 text-[10px] text-subtle">{genStatus}</div>}
         </div>
 
         {/* Remove current */}
@@ -108,7 +108,7 @@ export function ImagePickerModal() {
 
         {/* Image grid */}
         {imgList.length === 0 ? (
-          <p className="text-gray-500 text-sm text-center py-8">
+          <p className="text-subtle text-sm text-center py-8">
             No images available. Generate one above or upload images to data/images/
           </p>
         ) : (
@@ -120,14 +120,14 @@ export function ImagePickerModal() {
                 className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
                   currentImage === img.url
                     ? "border-blue-500 ring-2 ring-blue-500/30"
-                    : "border-gray-800 hover:border-blue-500"
+                    : "border-border hover:border-blue-500"
                 }`}
               >
-                <div className="aspect-square bg-gray-900">
+                <div className="aspect-square bg-surface">
                   <img src={img.url} className="w-full h-full object-cover" loading="lazy" alt={img.filename} />
                 </div>
                 <div className="p-2">
-                  <p className="text-[10px] text-gray-400 truncate" title={img.filename}>{img.filename}</p>
+                  <p className="text-[10px] text-subtle truncate" title={img.filename}>{img.filename}</p>
                 </div>
               </div>
             ))}

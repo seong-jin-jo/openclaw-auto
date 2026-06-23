@@ -38,18 +38,18 @@ export function TestSendCard({ channel }: TestSendCardProps) {
 
   return (
     <div className="card p-5">
-      <h3 className="text-sm font-medium text-gray-200 mb-3">테스트 발송</h3>
+      <h3 className="text-sm font-medium text-muted mb-3">테스트 발송</h3>
       <div className="flex gap-2">
         <input
           type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          className="flex-1 bg-gray-900 border border-[#1e1e1e] rounded px-3 py-2 text-sm text-gray-400"
+          className="flex-1 bg-surface border border-[#1e1e1e] rounded px-3 py-2 text-sm text-subtle"
         />
         <button
           onClick={handleSend}
           disabled={sending}
-          className="px-4 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-500 disabled:opacity-50"
+          className="px-4 py-2 bg-accent text-text text-xs rounded hover:bg-accent-hover disabled:opacity-50"
         >
           {sending ? "Sending..." : "Send"}
         </button>
@@ -61,8 +61,8 @@ export function TestSendCard({ channel }: TestSendCardProps) {
           </p>
         </div>
       ) : (
-        <div className="mt-3 p-2 rounded bg-gray-900/50">
-          <p className="text-[10px] text-gray-600">
+        <div className="mt-3 p-2 rounded bg-surface/50">
+          <p className="text-[10px] text-subtle">
             Interactive Chat: Gateway에서 <code>openclaw channels setup {channel}</code>로 양방향 대화 활성화
           </p>
         </div>

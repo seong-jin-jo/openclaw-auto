@@ -19,11 +19,11 @@ const INDUSTRIES = [
 ];
 
 const CHANNELS = [
-  { key: "threads", label: "Threads", icon: "T", iconClass: "bg-gradient-to-br from-purple-500 to-pink-500 text-white" },
-  { key: "x", label: "X", icon: "X", iconClass: "bg-gray-700 text-white" },
-  { key: "instagram", label: "Instagram", icon: "IG", iconClass: "bg-gradient-to-br from-pink-500 to-orange-400 text-white" },
-  { key: "facebook", label: "Facebook", icon: "F", iconClass: "bg-blue-600 text-white" },
-  { key: "telegram", label: "Telegram", icon: "TG", iconClass: "bg-blue-500 text-white" },
+  { key: "threads", label: "Threads", icon: "T", iconClass: "bg-accent text-text" },
+  { key: "x", label: "X", icon: "X", iconClass: "bg-surface-2 text-text" },
+  { key: "instagram", label: "Instagram", icon: "IG", iconClass: "bg-gradient-to-br from-pink-500 to-orange-400 text-text" },
+  { key: "facebook", label: "Facebook", icon: "F", iconClass: "bg-accent text-text" },
+  { key: "telegram", label: "Telegram", icon: "TG", iconClass: "bg-blue-500 text-text" },
 ];
 
 interface OnboardingWizardProps {
@@ -113,23 +113,23 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="w-full max-w-2xl mx-4 bg-[#111] border border-gray-800 rounded-2xl shadow-2xl overflow-hidden">
+      <div className="w-full max-w-2xl mx-4 bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 border-b border-gray-800/50">
+        <div className="px-6 pt-6 pb-4 border-b border-border/50">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-bold text-white">마케팅 자동화 시작하기</h2>
+            <h2 className="text-lg font-bold text-text">마케팅 자동화 시작하기</h2>
             <div className="flex items-center gap-2">
               {[1, 2, 3].map((s) => (
                 <div
                   key={s}
                   className={`w-8 h-1 rounded-full transition-colors ${
-                    s <= step ? "bg-purple-500" : "bg-gray-700"
+                    s <= step ? "bg-accent" : "bg-surface-2"
                   }`}
                 />
               ))}
             </div>
           </div>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-subtle">
             {step === 1 && "업종을 선택하면 맞춤 콘텐츠 가이드가 자동 설정됩니다"}
             {step === 2 && "콘텐츠를 발행할 채널을 선택하세요"}
             {step === 3 && "첫 번째 채널을 연결하세요"}
@@ -147,13 +147,13 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
                   onClick={() => setIndustry(ind.key)}
                   className={`p-4 rounded-xl border text-left transition-all ${
                     industry === ind.key
-                      ? "border-purple-500 bg-purple-500/10 ring-1 ring-purple-500/30"
-                      : "border-gray-800 bg-gray-900/50 hover:border-gray-600"
+                      ? "border-accent bg-accent-soft ring-1 ring-accent/30"
+                      : "border-border bg-surface/50 hover:border-border"
                   }`}
                 >
                   <span className="text-2xl block mb-2">{ind.icon}</span>
-                  <p className="text-sm font-medium text-white">{ind.name}</p>
-                  <p className="text-[10px] text-gray-500 mt-0.5">{ind.desc}</p>
+                  <p className="text-sm font-medium text-text">{ind.name}</p>
+                  <p className="text-[10px] text-subtle mt-0.5">{ind.desc}</p>
                 </button>
               ))}
             </div>
@@ -168,8 +168,8 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
                   onClick={() => toggleChannel(ch.key)}
                   className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all ${
                     selectedChannels.includes(ch.key)
-                      ? "border-purple-500 bg-purple-500/10"
-                      : "border-gray-800 bg-gray-900/50 hover:border-gray-600"
+                      ? "border-accent bg-accent-soft"
+                      : "border-border bg-surface/50 hover:border-border"
                   }`}
                 >
                   <div
@@ -178,17 +178,17 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
                     {ch.icon}
                   </div>
                   <div className="flex-1 text-left">
-                    <p className="text-sm font-medium text-white">{ch.label}</p>
+                    <p className="text-sm font-medium text-text">{ch.label}</p>
                   </div>
                   <div
                     className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
                       selectedChannels.includes(ch.key)
-                        ? "border-purple-500 bg-purple-500"
-                        : "border-gray-600"
+                        ? "border-accent bg-accent"
+                        : "border-border"
                     }`}
                   >
                     {selectedChannels.includes(ch.key) && (
-                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <svg className="w-3 h-3 text-text" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                     )}
@@ -227,7 +227,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
                     </svg>
                   </div>
                   <p className="text-sm text-green-400 font-medium">채널이 연결되었습니다{connectedAccount ? ` — ${connectedAccount}` : ""}</p>
-                  <p className="text-xs text-gray-500 mt-1">완료를 눌러 대시보드로 이동하세요</p>
+                  <p className="text-xs text-subtle mt-1">완료를 눌러 대시보드로 이동하세요</p>
                 </div>
               )}
             </div>
@@ -235,10 +235,10 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-800/50 flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-border/50 flex items-center justify-between">
           <button
             onClick={step === 3 ? () => { clearDraft(); onComplete(); } : onDismiss}
-            className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
+            className="text-xs text-subtle hover:text-subtle transition-colors"
           >
             나중에 설정하기
           </button>
@@ -246,7 +246,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
             {step > 1 && (
               <button
                 onClick={() => setStep(step - 1)}
-                className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+                className="px-4 py-2 text-sm text-subtle hover:text-text transition-colors"
               >
                 이전
               </button>
@@ -258,7 +258,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
                 (step === 2 && selectedChannels.length === 0) ||
                 saving
               }
-              className="px-6 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-2 bg-accent text-text text-sm rounded-lg hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               {saving ? "저장 중..." : step === 3 ? "완료" : "다음"}
             </button>

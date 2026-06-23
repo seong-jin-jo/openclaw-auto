@@ -99,7 +99,7 @@ function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-bg">
 
       {/* ────── Hero ────── */}
       <section className="relative overflow-hidden">
@@ -117,27 +117,27 @@ function LandingPage() {
             100% 무료 — 모든 기능 제한 없음
           </div>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-tight mb-6 tracking-tight">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-text leading-tight mb-6 tracking-tight">
             AI가 SNS 마케팅을
             <br />
-            <span className="bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-accent via-blue-400 to-cyan-400 bg-clip-text text-transparent">
               자동화합니다
             </span>
           </h1>
 
-          <p className="text-lg sm:text-xl text-gray-400 max-w-2xl mb-3 leading-relaxed">
+          <p className="text-lg sm:text-xl text-subtle max-w-2xl mb-3 leading-relaxed">
             검수만 하세요. 콘텐츠 생성부터 발행, 반응 분석까지
             <br className="hidden sm:block" />
             AI가 처리합니다.
           </p>
-          <p className="text-sm text-gray-600 mb-10">
+          <p className="text-sm text-subtle mb-10">
             20+ 채널 · 24/7 자동 운영 · 피드백 루프
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={scrollToLogin}
-              className="px-8 py-3 rounded-lg text-white font-semibold text-sm transition-all"
+              className="px-8 py-3 rounded-lg text-text font-semibold text-sm transition-all"
               style={{ background: "linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%)" }}
               onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
               onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
@@ -148,7 +148,7 @@ function LandingPage() {
               href="https://github.com/openclaw"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-8 py-3 rounded-lg text-gray-300 font-medium text-sm border border-gray-700 hover:border-gray-500 hover:text-white transition-all"
+              className="px-8 py-3 rounded-lg text-muted font-medium text-sm border border-border hover:border-border hover:text-text transition-all"
             >
               GitHub에서 보기
             </a>
@@ -157,10 +157,10 @@ function LandingPage() {
       </section>
 
       {/* ────── Channel Marquee ────── */}
-      <section className="py-8 border-t border-b border-gray-800/50">
+      <section className="py-8 border-t border-b border-border/50">
         <div className="flex flex-wrap justify-center gap-3 max-w-4xl mx-auto px-6">
           {CHANNEL_ICONS.map((ch) => (
-            <span key={ch} className="px-3 py-1 text-xs rounded-full bg-gray-800/60 text-gray-500 border border-gray-800">
+            <span key={ch} className="px-3 py-1 text-xs rounded-full bg-surface-2/60 text-subtle border border-border">
               {ch}
             </span>
           ))}
@@ -170,9 +170,9 @@ function LandingPage() {
       {/* ────── Pipeline ────── */}
       <section className="max-w-5xl mx-auto px-6 py-20">
         <div className="text-center mb-14">
-          <p className="text-xs font-semibold tracking-widest uppercase text-purple-400 mb-3">How It Works</p>
-          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">완전 자동화 파이프라인</h2>
-          <p className="text-sm text-gray-500">설정 한 번이면 24/7 자동 운영</p>
+          <p className="text-xs font-semibold tracking-widest uppercase text-accent mb-3">How It Works</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-text mb-3">완전 자동화 파이프라인</h2>
+          <p className="text-sm text-subtle">설정 한 번이면 24/7 자동 운영</p>
         </div>
 
         {/* Desktop: horizontal */}
@@ -186,11 +186,11 @@ function LandingPage() {
                 >
                   {s.num}
                 </div>
-                <p className="text-sm font-semibold text-white mb-1">{s.label}</p>
-                <p className="text-xs text-gray-500">{s.desc}</p>
+                <p className="text-sm font-semibold text-text mb-1">{s.label}</p>
+                <p className="text-xs text-subtle">{s.desc}</p>
               </div>
               {i < PIPELINE_STEPS.length - 1 && (
-                <div className="flex items-center pt-5 text-gray-700 text-xl select-none">&rarr;</div>
+                <div className="flex items-center pt-5 text-subtle text-xl select-none">&rarr;</div>
               )}
             </div>
           ))}
@@ -208,12 +208,12 @@ function LandingPage() {
                   {s.num}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">{s.label}</p>
-                  <p className="text-xs text-gray-500">{s.desc}</p>
+                  <p className="text-sm font-semibold text-text">{s.label}</p>
+                  <p className="text-xs text-subtle">{s.desc}</p>
                 </div>
               </div>
               {i < PIPELINE_STEPS.length - 1 && (
-                <div className="ml-6 h-4 border-l border-gray-800" />
+                <div className="ml-6 h-4 border-l border-border" />
               )}
             </div>
           ))}
@@ -223,22 +223,22 @@ function LandingPage() {
       {/* ────── Features ────── */}
       <section className="max-w-5xl mx-auto px-6 py-20">
         <div className="text-center mb-14">
-          <p className="text-xs font-semibold tracking-widest uppercase text-blue-400 mb-3">Features</p>
-          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">마케팅에 필요한 모든 것</h2>
-          <p className="text-sm text-gray-500">채널 관리부터 콘텐츠 생성, 분석까지 한 곳에서</p>
+          <p className="text-xs font-semibold tracking-widest uppercase text-accent mb-3">Features</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-text mb-3">마케팅에 필요한 모든 것</h2>
+          <p className="text-sm text-subtle">채널 관리부터 콘텐츠 생성, 분석까지 한 곳에서</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {FEATURES.map((f) => (
-            <div key={f.title} className="card p-6 hover:border-gray-700 transition-colors group">
+            <div key={f.title} className="card p-6 hover:border-border transition-colors group">
               <div className="text-2xl mb-4">{f.icon}</div>
-              <h3 className="text-sm font-semibold text-white mb-2 group-hover:text-blue-300 transition-colors">
+              <h3 className="text-sm font-semibold text-text mb-2 group-hover:text-accent transition-colors">
                 {f.title}
               </h3>
-              <p className="text-xs text-gray-500 leading-relaxed mb-4">{f.desc}</p>
+              <p className="text-xs text-subtle leading-relaxed mb-4">{f.desc}</p>
               <div className="flex flex-wrap gap-1.5">
                 {f.tags.map((t) => (
-                  <span key={t} className="text-[10px] px-2 py-0.5 rounded bg-gray-800/80 text-gray-500">
+                  <span key={t} className="text-[10px] px-2 py-0.5 rounded bg-surface-2/80 text-subtle">
                     {t}
                   </span>
                 ))}
@@ -252,8 +252,8 @@ function LandingPage() {
       <section className="max-w-3xl mx-auto px-6 py-20">
         <div className="text-center mb-14">
           <p className="text-xs font-semibold tracking-widest uppercase text-green-400 mb-3">Pricing</p>
-          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">심플한 요금제</h2>
-          <p className="text-sm text-gray-500">지금은 모든 기능이 무료입니다</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-text mb-3">심플한 요금제</h2>
+          <p className="text-sm text-subtle">지금은 모든 기능이 무료입니다</p>
         </div>
 
         <div className="card p-8 max-w-md mx-auto text-center relative overflow-hidden">
@@ -266,8 +266,8 @@ function LandingPage() {
             모든 기능 무료
           </div>
 
-          <h3 className="text-3xl font-bold text-white mb-1">Free</h3>
-          <p className="text-sm text-gray-500 mb-8">₩0 / 월</p>
+          <h3 className="text-3xl font-bold text-text mb-1">Free</h3>
+          <p className="text-sm text-subtle mb-8">₩0 / 월</p>
 
           <ul className="text-left space-y-3 mb-8">
             {[
@@ -278,7 +278,7 @@ function LandingPage() {
               "카드뉴스 에디터",
               "실시간 대시보드",
             ].map((item) => (
-              <li key={item} className="flex items-center gap-3 text-sm text-gray-300">
+              <li key={item} className="flex items-center gap-3 text-sm text-muted">
                 <span className="text-green-400 text-base">✓</span>
                 {item}
               </li>
@@ -287,7 +287,7 @@ function LandingPage() {
 
           <button
             onClick={scrollToLogin}
-            className="w-full py-3 rounded-lg text-white font-semibold text-sm transition-all"
+            className="w-full py-3 rounded-lg text-text font-semibold text-sm transition-all"
             style={{ background: "linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%)" }}
             onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
             onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
@@ -295,7 +295,7 @@ function LandingPage() {
             무료로 시작하기
           </button>
 
-          <p className="text-[10px] text-gray-600 mt-4">추후 Pro / Business 플랜 추가 예정</p>
+          <p className="text-[10px] text-subtle mt-4">추후 Pro / Business 플랜 추가 예정</p>
         </div>
       </section>
 
@@ -307,14 +307,14 @@ function LandingPage() {
             style={{ background: "linear-gradient(90deg, transparent, #7c3aed, #3b82f6, transparent)" }} />
 
           <div className="text-center mb-6">
-            <h3 className="text-lg font-bold text-white mb-2">시작하기</h3>
-            <p className="text-xs text-gray-500">이메일로 가입하고 내 브랜드 콘텐츠를 자동 생성·발행하세요</p>
+            <h3 className="text-lg font-bold text-text mb-2">시작하기</h3>
+            <p className="text-xs text-subtle">이메일로 가입하고 내 브랜드 콘텐츠를 자동 생성·발행하세요</p>
           </div>
 
           {/* 고객 가입/로그인 — 이메일·비번·구글 (중앙정렬된 /login 페이지) */}
           <a
             href="/login"
-            className="block w-full py-3 rounded-lg text-white font-semibold text-sm text-center transition-all"
+            className="block w-full py-3 rounded-lg text-text font-semibold text-sm text-center transition-all"
             style={{ background: "linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%)" }}
           >
             로그인 / 회원가입 →
@@ -329,12 +329,12 @@ function LandingPage() {
                 onChange={(e) => setToken(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && doLogin()}
                 placeholder="운영자 Auth Token"
-                className="w-full bg-gray-900 text-gray-200 text-sm p-3 rounded-lg border border-gray-700 focus:border-purple-500 focus:outline-none transition-colors mb-2"
+                className="w-full bg-surface text-muted text-sm p-3 rounded-lg border border-border focus:border-accent focus:outline-none transition-colors mb-2"
                 autoFocus
               />
               <button
                 onClick={doLogin}
-                className="w-full py-2.5 rounded-lg text-gray-200 font-medium text-sm bg-gray-800 hover:bg-gray-700 transition-all"
+                className="w-full py-2.5 rounded-lg text-muted font-medium text-sm bg-surface-2 hover:bg-surface-2 transition-all"
               >
                 운영자 토큰으로 접속
               </button>
@@ -345,7 +345,7 @@ function LandingPage() {
           ) : (
             <button
               onClick={() => setShowLogin(true)}
-              className="w-full mt-3 text-[11px] text-gray-600 hover:text-gray-400 transition-colors"
+              className="w-full mt-3 text-[11px] text-subtle hover:text-subtle transition-colors"
             >
               운영자세요? 토큰으로 접속
             </button>
@@ -354,19 +354,19 @@ function LandingPage() {
       </section>
 
       {/* ────── Footer ────── */}
-      <footer className="border-t border-gray-800/50 py-10">
+      <footer className="border-t border-border/50 py-10">
         <div className="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-gray-600">
+          <p className="text-xs text-subtle">
             Powered by{" "}
             <a href="https://openclaw.ai" target="_blank" rel="noopener noreferrer"
-              className="text-gray-500 hover:text-gray-300 transition-colors">
+              className="text-subtle hover:text-muted transition-colors">
               OpenClaw
             </a>
             {" "}+ Claude
           </p>
           <div className="flex items-center gap-6">
             <a href="https://github.com/openclaw" target="_blank" rel="noopener noreferrer"
-              className="text-xs text-gray-600 hover:text-gray-300 transition-colors">
+              className="text-xs text-subtle hover:text-muted transition-colors">
               GitHub
             </a>
           </div>

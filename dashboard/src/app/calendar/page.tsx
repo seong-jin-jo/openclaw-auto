@@ -17,9 +17,9 @@ interface Post {
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 const STATUS_COLOR: Record<string, string> = {
-  draft: "bg-gray-600",
-  approved: "bg-blue-600",
-  scheduled: "bg-blue-600",
+  draft: "bg-surface-2",
+  approved: "bg-accent",
+  scheduled: "bg-accent",
   published: "bg-green-600",
   failed: "bg-red-600",
 };
@@ -77,21 +77,21 @@ export default function CalendarPage() {
     <div className="px-4 sm:px-8 py-6">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-xl font-bold text-white">발행 캘린더</h2>
-          <p className="text-xs text-gray-500 mt-1">예약·발행된 글을 한눈에. 큐와 같은 데이터, 다른 뷰.</p>
+          <h2 className="text-xl font-bold text-text">발행 캘린더</h2>
+          <p className="text-xs text-subtle mt-1">예약·발행된 글을 한눈에. 큐와 같은 데이터, 다른 뷰.</p>
         </div>
         <div className="flex items-center gap-2 text-sm">
-          <button onClick={() => move(-1)} className="px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300">←</button>
-          <span className="text-white font-medium w-28 text-center">{ym.y}년 {ym.m + 1}월</span>
-          <button onClick={() => move(1)} className="px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300">→</button>
-          <button onClick={() => { setYm({ y: today.getFullYear(), m: today.getMonth() }); setSelected(null); }} className="ml-1 px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-400 text-xs">오늘</button>
+          <button onClick={() => move(-1)} className="px-2 py-1 rounded bg-surface-2 hover:bg-surface-2 text-muted">←</button>
+          <span className="text-text font-medium w-28 text-center">{ym.y}년 {ym.m + 1}월</span>
+          <button onClick={() => move(1)} className="px-2 py-1 rounded bg-surface-2 hover:bg-surface-2 text-muted">→</button>
+          <button onClick={() => { setYm({ y: today.getFullYear(), m: today.getMonth() }); setSelected(null); }} className="ml-1 px-2 py-1 rounded bg-surface-2 hover:bg-surface-2 text-subtle text-xs">오늘</button>
         </div>
       </div>
 
       {/* 요일 */}
       <div className="grid grid-cols-7 gap-1 mb-1">
         {WEEKDAYS.map((w, i) => (
-          <div key={w} className={`text-[10px] text-center py-1 ${i === 0 ? "text-red-400" : i === 6 ? "text-blue-400" : "text-gray-500"}`}>{w}</div>
+          <div key={w} className={`text-[10px] text-center py-1 ${i === 0 ? "text-red-400" : i === 6 ? "text-accent" : "text-subtle"}`}>{w}</div>
         ))}
       </div>
 
@@ -106,17 +106,17 @@ export default function CalendarPage() {
             <button
               key={k}
               onClick={() => setSelected(selected === k ? null : k)}
-              className={`aspect-square sm:aspect-[4/3] rounded p-1 text-left flex flex-col border ${selected === k ? "border-blue-500" : "border-transparent"} ${isToday ? "bg-blue-900/20" : "bg-gray-900/40"} hover:bg-gray-800/60`}
+              className={`aspect-square sm:aspect-[4/3] rounded p-1 text-left flex flex-col border ${selected === k ? "border-blue-500" : "border-transparent"} ${isToday ? "bg-blue-900/20" : "bg-surface/40"} hover:bg-surface-2/60`}
             >
-              <span className={`text-[10px] ${isToday ? "text-blue-300 font-bold" : "text-gray-400"}`}>{day}</span>
+              <span className={`text-[10px] ${isToday ? "text-accent font-bold" : "text-subtle"}`}>{day}</span>
               <div className="flex-1 overflow-hidden mt-0.5 space-y-0.5">
                 {dayPosts.slice(0, 2).map((p) => (
                   <div key={p.id} className="flex items-center gap-1">
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_COLOR[p.status || "draft"] || "bg-gray-600"}`} />
-                    <span className="text-[9px] text-gray-400 truncate">{(p.text || "").slice(0, 18) || "글"}</span>
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_COLOR[p.status || "draft"] || "bg-surface-2"}`} />
+                    <span className="text-[9px] text-subtle truncate">{(p.text || "").slice(0, 18) || "글"}</span>
                   </div>
                 ))}
-                {dayPosts.length > 2 && <div className="text-[9px] text-gray-500">+{dayPosts.length - 2}</div>}
+                {dayPosts.length > 2 && <div className="text-[9px] text-subtle">+{dayPosts.length - 2}</div>}
               </div>
             </button>
           );
@@ -124,9 +124,9 @@ export default function CalendarPage() {
       </div>
 
       {/* 범례 */}
-      <div className="flex flex-wrap gap-3 mt-3 text-[10px] text-gray-500">
-        <span><span className="inline-block w-2 h-2 rounded-full bg-gray-600 mr-1" />초안</span>
-        <span><span className="inline-block w-2 h-2 rounded-full bg-blue-600 mr-1" />예약/승인</span>
+      <div className="flex flex-wrap gap-3 mt-3 text-[10px] text-subtle">
+        <span><span className="inline-block w-2 h-2 rounded-full bg-surface-2 mr-1" />초안</span>
+        <span><span className="inline-block w-2 h-2 rounded-full bg-accent mr-1" />예약/승인</span>
         <span><span className="inline-block w-2 h-2 rounded-full bg-green-600 mr-1" />발행</span>
         <span><span className="inline-block w-2 h-2 rounded-full bg-red-600 mr-1" />실패</span>
       </div>
@@ -134,17 +134,17 @@ export default function CalendarPage() {
       {/* 선택 날짜 목록 */}
       {selected && (
         <div className="mt-5">
-          <h3 className="text-sm text-gray-300 mb-2">{selected} · {selectedPosts.length}건</h3>
+          <h3 className="text-sm text-muted mb-2">{selected} · {selectedPosts.length}건</h3>
           {selectedPosts.length === 0 ? (
-            <p className="text-xs text-gray-600">이 날짜에 글이 없습니다.</p>
+            <p className="text-xs text-subtle">이 날짜에 글이 없습니다.</p>
           ) : (
             <div className="space-y-2">
               {selectedPosts.map((p) => (
                 <div key={p.id} className="card p-3 text-xs flex items-start gap-2">
-                  <span className={`w-2 h-2 rounded-full mt-1 shrink-0 ${STATUS_COLOR[p.status || "draft"] || "bg-gray-600"}`} />
+                  <span className={`w-2 h-2 rounded-full mt-1 shrink-0 ${STATUS_COLOR[p.status || "draft"] || "bg-surface-2"}`} />
                   <div className="flex-1">
-                    <p className="text-gray-200 line-clamp-2 whitespace-pre-wrap">{p.text || "(내용 없음)"}</p>
-                    <p className="text-[10px] text-gray-600 mt-1">{p.status || "draft"}</p>
+                    <p className="text-muted line-clamp-2 whitespace-pre-wrap">{p.text || "(내용 없음)"}</p>
+                    <p className="text-[10px] text-subtle mt-1">{p.status || "draft"}</p>
                   </div>
                 </div>
               ))}

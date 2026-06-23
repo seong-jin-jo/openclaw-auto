@@ -43,7 +43,7 @@ export function TenantIsolationBanner() {
       <button
         onClick={verify}
         disabled={busy}
-        className="text-xs px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white whitespace-nowrap disabled:opacity-50"
+        className="text-xs px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-text whitespace-nowrap disabled:opacity-50"
       >
         {busy ? "확인 중…" : proof ? "다시 확인" : "격리 증명 보기"}
       </button>

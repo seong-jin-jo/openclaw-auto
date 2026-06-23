@@ -157,24 +157,24 @@ export default function InboxPage() {
   return (
     <div className="px-4 sm:px-8 py-6 max-w-lg mx-auto">
       <div className="mb-4">
-        <h2 className="text-xl font-bold text-white">승인 인박스</h2>
-        <p className="text-xs text-gray-500 mt-1">AI가 쓴 초안을 빠르게 승인하세요. 승인한 글만 발행됩니다.</p>
+        <h2 className="text-xl font-bold text-text">승인 인박스</h2>
+        <p className="text-xs text-subtle mt-1">AI가 쓴 초안을 빠르게 승인하세요. 승인한 글만 발행됩니다.</p>
       </div>
 
       {/* 제품 소스(제품-grounded): repo를 연결하면 "방금 만든 것"을 자동 홍보하는 글이 생성됨 */}
       <div className="mb-4 text-xs">
-        <button onClick={() => setShowSrc((v) => !v)} className="text-gray-400 hover:text-gray-200">
+        <button onClick={() => setShowSrc((v) => !v)} className="text-subtle hover:text-muted">
           {psrc?.owner ? `🔗 제품 소스: ${psrc.owner}/${psrc.repo}/${psrc.path}` : "🔗 제품 소스 연결 (선택 — repo 기반 생성)"}
-          <span className="ml-1 text-gray-600">{showSrc ? "▲" : "▼"}</span>
+          <span className="ml-1 text-subtle">{showSrc ? "▲" : "▼"}</span>
         </button>
         {showSrc && (
           <div className="mt-2 card p-3 grid grid-cols-2 gap-2">
-            <input value={srcForm.owner} onChange={(e) => setSrcForm({ ...srcForm, owner: e.target.value })} placeholder="owner (예: my-gh-id)" className="bg-gray-800 p-1.5 rounded border border-gray-700" />
-            <input value={srcForm.repo} onChange={(e) => setSrcForm({ ...srcForm, repo: e.target.value })} placeholder="repo (예: my-product)" className="bg-gray-800 p-1.5 rounded border border-gray-700" />
-            <input value={srcForm.path} onChange={(e) => setSrcForm({ ...srcForm, path: e.target.value })} placeholder="path (예: CHANGELOG.md)" className="bg-gray-800 p-1.5 rounded border border-gray-700" />
-            <input value={srcForm.ref} onChange={(e) => setSrcForm({ ...srcForm, ref: e.target.value })} placeholder="ref (main)" className="bg-gray-800 p-1.5 rounded border border-gray-700" />
-            <input value={srcForm.token} onChange={(e) => setSrcForm({ ...srcForm, token: e.target.value })} placeholder="token (비공개 repo만)" type="password" className="bg-gray-800 p-1.5 rounded border border-gray-700 col-span-2" />
-            <button onClick={saveSrc} disabled={savingSrc} className="col-span-2 py-1.5 bg-blue-600 hover:bg-blue-500 rounded disabled:opacity-50">
+            <input value={srcForm.owner} onChange={(e) => setSrcForm({ ...srcForm, owner: e.target.value })} placeholder="owner (예: my-gh-id)" className="bg-surface-2 p-1.5 rounded border border-border" />
+            <input value={srcForm.repo} onChange={(e) => setSrcForm({ ...srcForm, repo: e.target.value })} placeholder="repo (예: my-product)" className="bg-surface-2 p-1.5 rounded border border-border" />
+            <input value={srcForm.path} onChange={(e) => setSrcForm({ ...srcForm, path: e.target.value })} placeholder="path (예: CHANGELOG.md)" className="bg-surface-2 p-1.5 rounded border border-border" />
+            <input value={srcForm.ref} onChange={(e) => setSrcForm({ ...srcForm, ref: e.target.value })} placeholder="ref (main)" className="bg-surface-2 p-1.5 rounded border border-border" />
+            <input value={srcForm.token} onChange={(e) => setSrcForm({ ...srcForm, token: e.target.value })} placeholder="token (비공개 repo만)" type="password" className="bg-surface-2 p-1.5 rounded border border-border col-span-2" />
+            <button onClick={saveSrc} disabled={savingSrc} className="col-span-2 py-1.5 bg-accent hover:bg-accent-hover rounded disabled:opacity-50">
               {savingSrc ? "저장 중…" : "연결 저장"}
             </button>
           </div>
@@ -183,25 +183,25 @@ export default function InboxPage() {
 
       {/* 브랜드 보이스 슬라이더: 보이고 조절 가능해 신뢰. 생성 톤 제어 */}
       <div className="mb-4 text-xs">
-        <button onClick={() => setShowTone((v) => !v)} className="text-gray-400 hover:text-gray-200">
+        <button onClick={() => setShowTone((v) => !v)} className="text-subtle hover:text-muted">
           🎚 보이스 톤 {tone ? `(격식${100 - tone.formal}·유머${tone.humor}·열정${tone.energy})` : ""}
-          <span className="ml-1 text-gray-600">{showTone ? "▲" : "▼"}</span>
+          <span className="ml-1 text-subtle">{showTone ? "▲" : "▼"}</span>
         </button>
         {showTone && tone && (
           <div className="mt-2 card p-3 space-y-3">
             {TONE_SLIDERS.map(({ key, left, right }) => (
               <div key={key}>
-                <div className="flex justify-between text-[10px] text-gray-500 mb-1">
+                <div className="flex justify-between text-[10px] text-subtle mb-1">
                   <span>{left}</span><span>{right}</span>
                 </div>
                 <input
                   type="range" min={0} max={100} value={tone[key]}
                   onChange={(e) => setTone({ ...tone, [key]: Number(e.target.value) })}
-                  className="w-full accent-purple-500"
+                  className="w-full accent-accent"
                 />
               </div>
             ))}
-            <button onClick={saveTone} disabled={savingTone} className="w-full py-1.5 bg-purple-600 hover:bg-purple-500 rounded disabled:opacity-50">
+            <button onClick={saveTone} disabled={savingTone} className="w-full py-1.5 bg-accent hover:bg-accent-hover rounded disabled:opacity-50">
               {savingTone ? "저장 중…" : "톤 저장"}
             </button>
           </div>
@@ -210,39 +210,39 @@ export default function InboxPage() {
 
       {/* 진행률 */}
       <div className="flex items-center justify-between mb-3 text-xs">
-        <span className="text-gray-400">
+        <span className="text-subtle">
           {posts.length > 0 ? `${idx + 1} / ${posts.length}` : "0 / 0"} 검토 중
         </span>
         <span className="text-green-400">{approved}건 승인됨</span>
       </div>
-      <div className="h-1 bg-gray-800 rounded mb-5 overflow-hidden">
+      <div className="h-1 bg-surface-2 rounded mb-5 overflow-hidden">
         <div className="h-full bg-green-600 transition-all" style={{ width: posts.length ? `${(idx / posts.length) * 100}%` : "0%" }} />
       </div>
 
       {isLoading ? (
-        <div className="card p-8 text-center text-gray-500 text-sm">불러오는 중…</div>
+        <div className="card p-8 text-center text-subtle text-sm">불러오는 중…</div>
       ) : posts.length === 0 ? (
         <div className="card p-8 text-center">
-          <p className="text-gray-300 text-sm">검토할 초안이 없습니다</p>
-          <p className="text-[11px] text-gray-500 mt-2">AI가 브랜드 톤으로 한 묶음 만들어 드릴게요. 검토만 하면 됩니다.</p>
+          <p className="text-muted text-sm">검토할 초안이 없습니다</p>
+          <p className="text-[11px] text-subtle mt-2">AI가 브랜드 톤으로 한 묶음 만들어 드릴게요. 검토만 하면 됩니다.</p>
           <button
             onClick={seedDrafts}
             disabled={seeding}
-            className="mt-4 px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-500 disabled:opacity-50"
+            className="mt-4 px-4 py-2 text-sm bg-green-600 text-text rounded-lg hover:bg-green-500 disabled:opacity-50"
           >
             {seeding ? "생성 중…" : "AI로 한 주치 초안 생성"}
           </button>
-          <p className="text-[10px] text-gray-600 mt-3">크론·Studio·영상에서 만든 글도 여기로 모입니다.</p>
+          <p className="text-[10px] text-subtle mt-3">크론·Studio·영상에서 만든 글도 여기로 모입니다.</p>
         </div>
       ) : !current ? (
-        <div className="card p-8 text-center text-gray-500 text-sm">모두 검토 완료.</div>
+        <div className="card p-8 text-center text-subtle text-sm">모두 검토 완료.</div>
       ) : (
         <div className="card p-4">
           {/* 채널 칩 */}
           {channels.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-3">
               {channels.map((ch) => (
-                <span key={ch} className="text-[10px] px-2 py-0.5 rounded-full bg-gray-800 text-gray-300">{ch}</span>
+                <span key={ch} className="text-[10px] px-2 py-0.5 rounded-full bg-surface-2 text-muted">{ch}</span>
               ))}
             </div>
           )}
@@ -255,25 +255,25 @@ export default function InboxPage() {
           )}
 
           {/* 본문 */}
-          <p className="text-sm text-gray-100 whitespace-pre-wrap leading-relaxed min-h-[80px]">{current.text || "(내용 없음)"}</p>
+          <p className="text-sm text-text whitespace-pre-wrap leading-relaxed min-h-[80px]">{current.text || "(내용 없음)"}</p>
 
           {/* 해시태그 */}
           {current.hashtags && current.hashtags.length > 0 && (
-            <p className="text-[11px] text-blue-400 mt-2">{current.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}</p>
+            <p className="text-[11px] text-accent mt-2">{current.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}</p>
           )}
 
-          <div className="mt-3 text-[10px] text-gray-600 flex items-center justify-between">
+          <div className="mt-3 text-[10px] text-subtle flex items-center justify-between">
             <span>{current.topic || "post"}</span>
             <span>{current.generatedAt ? new Date(current.generatedAt).toLocaleString("ko-KR") : ""}</span>
           </div>
 
           {/* 예약 시점 */}
           <div className="mt-4 flex items-center gap-2 text-xs">
-            <label className="text-gray-400">발행 시점</label>
+            <label className="text-subtle">발행 시점</label>
             <select
               value={scheduleHours}
               onChange={(e) => setScheduleHours(Number(e.target.value))}
-              className="bg-gray-800 text-gray-200 text-xs p-1.5 rounded border border-gray-700"
+              className="bg-surface-2 text-muted text-xs p-1.5 rounded border border-border"
             >
               <option value={0}>지금(다음 발행 주기)</option>
               <option value={2}>2시간 뒤</option>
@@ -295,12 +295,12 @@ export default function InboxPage() {
             <button
               onClick={approve}
               disabled={busy}
-              className="py-3 rounded-lg bg-green-600 text-white hover:bg-green-500 text-sm font-medium disabled:opacity-50"
+              className="py-3 rounded-lg bg-green-600 text-text hover:bg-green-500 text-sm font-medium disabled:opacity-50"
             >
               승인 <span className="text-[10px] opacity-80">(A)</span>
             </button>
           </div>
-          <p className="text-[10px] text-gray-600 text-center mt-2">단축키: A 승인 · R 거절 · ← → 이동</p>
+          <p className="text-[10px] text-subtle text-center mt-2">단축키: A 승인 · R 거절 · ← → 이동</p>
         </div>
       )}
     </div>

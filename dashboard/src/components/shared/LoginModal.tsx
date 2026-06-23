@@ -32,22 +32,22 @@ export function LoginModal() {
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
       <div className="card p-6 w-80">
-        <h2 className="text-sm font-medium text-white mb-1">Login Required</h2>
-        <p className="text-[10px] text-gray-500 mb-3">이 작업을 수행하려면 로그인이 필요합니다.</p>
+        <h2 className="text-sm font-medium text-text mb-1">Login Required</h2>
+        <p className="text-[10px] text-subtle mb-3">이 작업을 수행하려면 로그인이 필요합니다.</p>
         <input
           type="password"
           value={token}
           onChange={(e) => setToken(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleLogin()}
           placeholder="Auth Token"
-          className="w-full bg-gray-900 text-gray-200 text-sm p-3 rounded border border-gray-700 mb-3"
+          className="w-full bg-surface text-muted text-sm p-3 rounded border border-border mb-3"
           autoFocus
         />
         <div className="flex gap-2">
-          <button onClick={handleLogin} className="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500">
+          <button onClick={handleLogin} className="flex-1 py-2 bg-accent text-text text-sm rounded hover:bg-accent-hover">
             Login
           </button>
-          <button onClick={() => setShow(false)} className="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700">
+          <button onClick={() => setShow(false)} className="px-4 py-2 bg-surface-2 text-muted text-sm rounded hover:bg-surface-2">
             Cancel
           </button>
         </div>

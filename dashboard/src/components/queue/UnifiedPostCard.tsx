@@ -9,7 +9,7 @@ import type { Post } from "@/types/queue";
 
 const STATUS_CLASS: Record<string, string> = {
   draft: "bg-yellow-900/50 text-yellow-300",
-  approved: "bg-blue-900/50 text-blue-300",
+  approved: "bg-blue-900/50 text-accent",
   published: "bg-green-900/50 text-green-300",
   failed: "bg-red-900/50 text-red-300",
 };
@@ -17,8 +17,8 @@ const STATUS_CLASS: Record<string, string> = {
 const CHANNEL_BADGE_CLASS: Record<string, string> = {
   published: "bg-green-900/40 text-green-400",
   failed: "bg-red-900/40 text-red-400",
-  pending: "bg-gray-800 text-gray-500",
-  skipped: "bg-gray-800 text-gray-600",
+  pending: "bg-surface-2 text-subtle",
+  skipped: "bg-surface-2 text-subtle",
 };
 
 const CHANNEL_BADGE_LABELS: Record<string, string> = {
@@ -42,7 +42,7 @@ function channelBadge(channelKey: string, ch: { status?: string } | undefined) {
   const label = CHANNEL_BADGE_LABELS[channelKey] || channelKey.toUpperCase().slice(0, 3);
   const status = ch.status || "pending";
   return (
-    <span className={`text-[10px] px-1.5 py-0.5 rounded ${CHANNEL_BADGE_CLASS[status] || "bg-gray-700 text-gray-300"}`}>
+    <span className={`text-[10px] px-1.5 py-0.5 rounded ${CHANNEL_BADGE_CLASS[status] || "bg-surface-2 text-muted"}`}>
       {label}: {status}
     </span>
   );
@@ -133,18 +133,18 @@ export function UnifiedPostCard({
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
           {(post.status === "draft" || post.status === "approved") && (
-            <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(post.id)} className="rounded border-gray-600" />
+            <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(post.id)} className="rounded border-border" />
           )}
-          <span className={`text-[10px] px-2 py-0.5 rounded ${STATUS_CLASS[post.status] || "bg-gray-700 text-gray-300"}`}>
+          <span className={`text-[10px] px-2 py-0.5 rounded ${STATUS_CLASS[post.status] || "bg-surface-2 text-muted"}`}>
             {post.status}
           </span>
           {isCard && variant === "visual" && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-900/40 text-purple-300">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent-soft text-accent">
               Card {slides.length} slides
             </span>
           )}
-          <span className="text-xs text-gray-500">{post.topic || ""}</span>
-          {post.model && <span className="text-xs text-gray-600">{post.model}</span>}
+          <span className="text-xs text-subtle">{post.topic || ""}</span>
+          {post.model && <span className="text-xs text-subtle">{post.model}</span>}
         </div>
         <div className="flex gap-1 flex-wrap justify-end">
           {Object.entries(channels).map(([key, ch]) => (
@@ -160,33 +160,33 @@ export function UnifiedPostCard({
           <div className="mb-3">
             <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: "thin", scrollbarColor: "#374151 transparent" }}>
               {slides.map((s, i) => (
-                <div key={i} className="flex-shrink-0 w-36 h-44 rounded-lg overflow-hidden border border-gray-800">
+                <div key={i} className="flex-shrink-0 w-36 h-44 rounded-lg overflow-hidden border border-border">
                   <img src={s} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
                 </div>
               ))}
             </div>
           </div>
         ) : (
-          <div className="mb-3 w-36 h-44 rounded-lg border border-dashed border-gray-700 bg-gray-900/30 flex items-center justify-center">
-            <span className="text-gray-600 text-xs">No Image</span>
+          <div className="mb-3 w-36 h-44 rounded-lg border border-dashed border-border bg-surface/30 flex items-center justify-center">
+            <span className="text-subtle text-xs">No Image</span>
           </div>
         )
       ) : variant === "blog" ? (
         /* Blog: small thumbnail */
         post.imageUrl ? (
           <div className="mb-2 float-right ml-3" style={{ maxWidth: 120 }}>
-            <img src={post.imageUrl} alt="Thumbnail" className="w-full rounded border border-gray-800" />
+            <img src={post.imageUrl} alt="Thumbnail" className="w-full rounded border border-border" />
           </div>
         ) : null
       ) : (
         /* Text: medium image */
         post.imageUrl ? (
           <div className="mb-2 relative group/img" style={{ maxWidth: 480 }}>
-            <img src={post.imageUrl} alt="Post image" className="w-full rounded-lg border border-gray-800" style={{ display: "block" }} />
+            <img src={post.imageUrl} alt="Post image" className="w-full rounded-lg border border-border" style={{ display: "block" }} />
             {post.status === "draft" && (
               <button
                 onClick={handleRemoveImage}
-                className="absolute top-2 right-2 p-1 bg-red-900/80 rounded text-red-300 hover:text-white opacity-0 group-hover/img:opacity-100 transition-opacity"
+                className="absolute top-2 right-2 p-1 bg-red-900/80 rounded text-red-300 hover:text-text opacity-0 group-hover/img:opacity-100 transition-opacity"
                 title="이미지 제거"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -206,14 +206,14 @@ export function UnifiedPostCard({
             poster={post.videoThumbnail || undefined}
             controls
             preload="none"
-            className="w-full rounded border border-gray-800"
+            className="w-full rounded border border-border"
             style={{ maxHeight: 200 }}
           />
           {post.status === "draft" && (
             <button
               onClick={handleMakeVariants}
               disabled={makingVariants}
-              className="mt-1.5 px-2 py-1 text-xs bg-purple-900/50 text-purple-300 rounded hover:bg-purple-800 disabled:opacity-50"
+              className="mt-1.5 px-2 py-1 text-xs bg-accent-soft text-accent rounded hover:bg-accent-hover disabled:opacity-50"
               title="이 클립을 그대로 두고 텍스트(캡션)만 다르게 한 변형을 큐에 추가"
             >
               {makingVariants ? "변형 생성 중…" : "이 클립으로 텍스트 변형 3개 생성"}
@@ -228,19 +228,19 @@ export function UnifiedPostCard({
           <textarea
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
-            className="w-full bg-gray-800 text-gray-200 text-sm p-2 rounded border border-gray-700 mb-2"
+            className="w-full bg-surface-2 text-muted text-sm p-2 rounded border border-border mb-2"
             rows={4}
           />
           {charLimit && (
-            <p className={`text-[10px] mb-1 ${editText.length > charLimit ? "text-red-400" : "text-gray-600"}`}>
+            <p className={`text-[10px] mb-1 ${editText.length > charLimit ? "text-red-400" : "text-subtle"}`}>
               {editText.length}/{charLimit}
             </p>
           )}
           <div className="flex gap-2">
-            <button onClick={handleSave} className="px-2 py-1 text-xs bg-blue-600 text-white rounded">Save</button>
-            <button onClick={() => setEditingPost(null)} className="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded">Cancel</button>
+            <button onClick={handleSave} className="px-2 py-1 text-xs bg-accent text-text rounded">Save</button>
+            <button onClick={() => setEditingPost(null)} className="px-2 py-1 text-xs bg-surface-2 text-muted rounded">Cancel</button>
             {onPickImage && (
-              <button onClick={() => onPickImage(post.id)} className="px-2 py-1 text-xs bg-purple-700 text-white rounded hover:bg-purple-600">
+              <button onClick={() => onPickImage(post.id)} className="px-2 py-1 text-xs bg-accent text-text rounded hover:bg-accent-hover">
                 {post.imageUrl ? "Change Image" : "Add Image"}
               </button>
             )}
@@ -248,7 +248,7 @@ export function UnifiedPostCard({
         </>
       ) : (
         <>
-          <p className={`text-sm text-gray-200 mb-2 whitespace-pre-wrap ${variant === "visual" ? "line-clamp-4" : ""}`}>{post.text}</p>
+          <p className={`text-sm text-muted mb-2 whitespace-pre-wrap ${variant === "visual" ? "line-clamp-4" : ""}`}>{post.text}</p>
           {charWarning && (
             <p className="text-[10px] text-red-400 mb-1">{post.text.length}/{charLimit} 글자 초과</p>
           )}
@@ -259,7 +259,7 @@ export function UnifiedPostCard({
       {post.status === "draft" && (
         <div className="flex gap-1 mb-2 flex-wrap">
           {post.text.length < 30 && <span className="text-[9px] px-1.5 py-0.5 rounded bg-yellow-900/40 text-yellow-400">짧음</span>}
-          {(!post.hashtags || post.hashtags.length === 0) && <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-500">해시태그 없음</span>}
+          {(!post.hashtags || post.hashtags.length === 0) && <span className="text-[9px] px-1.5 py-0.5 rounded bg-surface-2 text-subtle">해시태그 없음</span>}
           {variant === "visual" && !post.imageUrl && <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-900/40 text-red-400">이미지 필요</span>}
         </div>
       )}
@@ -275,17 +275,17 @@ export function UnifiedPostCard({
       {((post.hashtags && post.hashtags.length > 0) || (post.tags && post.tags.length > 0)) && (
         <div className="flex flex-wrap gap-1 mb-2">
           {(post.hashtags || []).map((h) => (
-            <span key={h} className="text-xs text-blue-400">#{h}</span>
+            <span key={h} className="text-xs text-accent">#{h}</span>
           ))}
           {(post.tags || []).map((t) => (
-            <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400">{t}</span>
+            <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-surface-2 text-subtle">{t}</span>
           ))}
         </div>
       )}
 
       {/* Engagement (published only) */}
       {post.engagement?.views != null && (
-        <div className="flex gap-4 text-xs text-gray-500">
+        <div className="flex gap-4 text-xs text-subtle">
           <span>views: {post.engagement.views}</span>
           <span>likes: {post.engagement.likes || 0}</span>
           <span>replies: {post.engagement.replies || 0}</span>
@@ -293,11 +293,11 @@ export function UnifiedPostCard({
       )}
 
       {/* Dates */}
-      <div className="flex flex-wrap gap-3 text-xs text-gray-600 mt-1">
+      <div className="flex flex-wrap gap-3 text-xs text-subtle mt-1">
         {post.generatedAt && <span>생성: {fmtTime(post.generatedAt)}</span>}
         {post.approvedAt && <span>승인: {fmtTime(post.approvedAt)}</span>}
         {post.scheduledAt && post.status === "approved" && (
-          <span className="text-blue-400">발행예정: {fmtTime(post.scheduledAt)}</span>
+          <span className="text-accent">발행예정: {fmtTime(post.scheduledAt)}</span>
         )}
         {post.publishedAt && (
           <span className="text-green-400">발행: {fmtTime(post.publishedAt)}</span>
@@ -306,23 +306,23 @@ export function UnifiedPostCard({
 
       {/* Actions */}
       {!isEditing && (
-        <div className="flex gap-2 mt-2 pt-2 border-t border-gray-800/50">
+        <div className="flex gap-2 mt-2 pt-2 border-t border-border/50">
           {post.status === "draft" && (
-            <button onClick={handleApprove} className="px-2 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">Approve</button>
+            <button onClick={handleApprove} className="px-2 py-1 text-xs bg-green-700 text-text rounded hover:bg-green-600">Approve</button>
           )}
           {onEditInEditor ? (
-            <button onClick={() => onEditInEditor(post.id)} className="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button>
+            <button onClick={() => onEditInEditor(post.id)} className="px-2 py-1 text-xs bg-surface-2 text-muted rounded hover:bg-surface-2">Edit</button>
           ) : (
-            <button onClick={() => { setEditText(post.text); setEditingPost(post.id); }} className="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Edit</button>
+            <button onClick={() => { setEditText(post.text); setEditingPost(post.id); }} className="px-2 py-1 text-xs bg-surface-2 text-muted rounded hover:bg-surface-2">Edit</button>
           )}
           {onPickImage && post.status === "draft" && !onEditInEditor && (
-            <button onClick={() => onPickImage(post.id)} className="px-2 py-1 text-xs bg-purple-900/50 text-purple-300 rounded hover:bg-purple-800">Image</button>
+            <button onClick={() => onPickImage(post.id)} className="px-2 py-1 text-xs bg-accent-soft text-accent rounded hover:bg-accent-hover">Image</button>
           )}
           {post.status !== "published" && (
             <button onClick={handleDelete} className="px-2 py-1 text-xs bg-red-900/50 text-red-300 rounded hover:bg-red-800">Delete</button>
           )}
           {post.status === "published" && (
-            <a href="/" className="px-2 py-1 text-xs bg-purple-900/40 text-purple-300 rounded hover:bg-purple-800">성과 보기 →</a>
+            <a href="/" className="px-2 py-1 text-xs bg-accent-soft text-accent rounded hover:bg-accent-hover">성과 보기 →</a>
           )}
         </div>
       )}

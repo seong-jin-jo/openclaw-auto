@@ -16,8 +16,8 @@ export function SetupGuide({ quick, detail, warning, images }: SetupGuideProps) 
 
   return (
     <div>
-      <h3 className="text-sm font-medium text-gray-300 mb-3">연결 가이드</h3>
-      <ol className="text-[10px] text-gray-400 space-y-1.5 list-decimal list-inside">
+      <h3 className="text-sm font-medium text-muted mb-3">연결 가이드</h3>
+      <ol className="text-[10px] text-subtle space-y-1.5 list-decimal list-inside">
         {quick.map((step, i) => (
           <li key={i} dangerouslySetInnerHTML={{ __html: step }} />
         ))}
@@ -32,7 +32,7 @@ export function SetupGuide({ quick, detail, warning, images }: SetupGuideProps) 
               alt={img.alt}
               loading="lazy"
               onError={() => setHidden((h) => ({ ...h, [img.src]: true }))}
-              className="w-full rounded border border-gray-800"
+              className="w-full rounded border border-border"
             />
           ))}
         </div>
@@ -44,13 +44,13 @@ export function SetupGuide({ quick, detail, warning, images }: SetupGuideProps) 
         <>
           <button
             onClick={() => setShowDetail(!showDetail)}
-            className="text-[10px] text-blue-400 hover:text-blue-300 mt-3 block"
+            className="text-[10px] text-accent hover:text-accent mt-3 block"
           >
             {showDetail ? "접기" : "더 알아보기"}
           </button>
           {showDetail && (
-            <div className="mt-2 p-3 rounded bg-gray-900/50">
-              <p className="text-[10px] text-gray-500 leading-relaxed whitespace-pre-wrap">{detail}</p>
+            <div className="mt-2 p-3 rounded bg-surface/50">
+              <p className="text-[10px] text-subtle leading-relaxed whitespace-pre-wrap">{detail}</p>
             </div>
           )}
         </>

@@ -46,16 +46,16 @@ export function ClaudeToken() {
   return (
     <div className="card p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-gray-300">Claude Token</h3>
+        <h3 className="text-sm font-medium text-muted">Claude Token</h3>
         <div className="flex items-center gap-2">
           {claude && (
             <span className={`text-[10px] px-2 py-0.5 rounded ${claude.healthy ? "bg-green-900/40 text-green-400" : "bg-red-900/40 text-red-400"}`}>
               {claude.healthy ? "Healthy" : "Error"}
             </span>
           )}
-          {claude && <span className="text-[10px] text-gray-600">{String(claude.type || "token")}</span>}
+          {claude && <span className="text-[10px] text-subtle">{String(claude.type || "token")}</span>}
           {hasToken && !editing && (
-            <button onClick={() => setEditing(true)} className="text-[10px] text-blue-400 hover:text-blue-300">Edit</button>
+            <button onClick={() => setEditing(true)} className="text-[10px] text-accent hover:text-accent">Edit</button>
           )}
         </div>
       </div>
@@ -63,19 +63,19 @@ export function ClaudeToken() {
       {claude && (
         <div className="space-y-1 text-[10px] mb-3">
           <div className="flex justify-between">
-            <span className="text-gray-500">Errors</span>
-            <span className={Number(claude.errorCount) > 0 ? "text-red-400" : "text-gray-400"}>{String(claude.errorCount)}</span>
+            <span className="text-subtle">Errors</span>
+            <span className={Number(claude.errorCount) > 0 ? "text-red-400" : "text-subtle"}>{String(claude.errorCount)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">Last used</span>
-            <span className="text-gray-400">{claude.lastUsed ? fmtAgo(claude.lastUsed) : "-"}</span>
+            <span className="text-subtle">Last used</span>
+            <span className="text-subtle">{claude.lastUsed ? fmtAgo(claude.lastUsed) : "-"}</span>
           </div>
         </div>
       )}
 
       <div className="space-y-3">
         <div>
-          <label className="text-xs text-gray-400 block mb-0.5">Setup Token 또는 API Key</label>
+          <label className="text-xs text-subtle block mb-0.5">Setup Token 또는 API Key</label>
           <div className="relative">
             <input
               type={showToken ? "text" : "password"}
@@ -84,13 +84,13 @@ export function ClaudeToken() {
               readOnly={!editable}
               title={tokenValue}
               placeholder="sk-ant-oat01-... or sk-ant-api..."
-              className={`w-full ${editable ? "bg-gray-900" : "bg-gray-900/50 cursor-default"} border border-gray-700 rounded px-3 py-2 pr-16 text-[11px] text-gray-300 placeholder-gray-600 font-mono`}
+              className={`w-full ${editable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-[11px] text-muted placeholder-gray-600 font-mono`}
             />
             {tokenValue && (
               <button
                 type="button"
                 onClick={() => setShowToken(!showToken)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 hover:text-gray-300"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-subtle hover:text-muted"
               >
                 {showToken ? "Hide" : "Show"}
               </button>
@@ -98,11 +98,11 @@ export function ClaudeToken() {
           </div>
         </div>
         <details className="text-[10px]">
-          <summary className="text-blue-400 hover:text-blue-300 cursor-pointer">Setup Guide</summary>
-          <div className="mt-2 p-2 rounded bg-gray-900/50 text-gray-500 space-y-1">
-            <p>1. 터미널에서 <code className="bg-gray-800 px-1 rounded">claude setup-token</code> 실행</p>
+          <summary className="text-accent hover:text-accent cursor-pointer">Setup Guide</summary>
+          <div className="mt-2 p-2 rounded bg-surface/50 text-subtle space-y-1">
+            <p>1. 터미널에서 <code className="bg-surface-2 px-1 rounded">claude setup-token</code> 실행</p>
             <p>2. 브라우저에서 Anthropic 로그인</p>
-            <p>3. 생성된 <code className="bg-gray-800 px-1 rounded">sk-ant-oat01-...</code> 토큰 복사</p>
+            <p>3. 생성된 <code className="bg-surface-2 px-1 rounded">sk-ant-oat01-...</code> 토큰 복사</p>
             <p>4. 위 필드에 붙여넣기 → Update Token</p>
           </div>
         </details>
@@ -111,14 +111,14 @@ export function ClaudeToken() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500 disabled:opacity-50"
+              className="flex-1 py-2 bg-accent text-text text-sm rounded hover:bg-accent-hover disabled:opacity-50"
             >
               {saving ? "Updating..." : hasToken ? "Update Token" : "Connect"}
             </button>
             {hasToken && editing && (
               <button
                 onClick={() => { setEditing(false); setTokenValue(currentToken); }}
-                className="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700"
+                className="px-4 py-2 bg-surface-2 text-muted text-sm rounded hover:bg-surface-2"
               >
                 Cancel
               </button>

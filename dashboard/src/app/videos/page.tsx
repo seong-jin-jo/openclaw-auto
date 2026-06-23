@@ -300,19 +300,19 @@ export default function VideosPage() {
     <div className="px-8 py-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-bold text-white">영상</h2>
-          <p className="text-xs text-gray-500 mt-1">숏폼 영상 생성·발행</p>
+          <h2 className="text-xl font-bold text-text">영상</h2>
+          <p className="text-xs text-subtle mt-1">숏폼 영상 생성·발행</p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setTab("list")}
-            className={`px-3 py-1.5 text-xs rounded ${tab === "list" ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"}`}
+            className={`px-3 py-1.5 text-xs rounded ${tab === "list" ? "bg-accent text-text" : "text-subtle hover:bg-surface-2"}`}
           >
             라이브러리 ({videos.length})
           </button>
           <button
             onClick={() => setTab("generate")}
-            className={`px-3 py-1.5 text-xs rounded ${tab === "generate" ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"}`}
+            className={`px-3 py-1.5 text-xs rounded ${tab === "generate" ? "bg-accent text-text" : "text-subtle hover:bg-surface-2"}`}
           >
             + 생성
           </button>
@@ -322,24 +322,24 @@ export default function VideosPage() {
       {/* Status cards */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="card p-3">
-          <div className="text-[10px] text-gray-500 mb-1">영상</div>
-          <div className="text-lg font-bold text-white">{videos.length}</div>
+          <div className="text-[10px] text-subtle mb-1">영상</div>
+          <div className="text-lg font-bold text-text">{videos.length}</div>
         </div>
         <div className="card p-3">
-          <div className="text-[10px] text-gray-500 mb-1">YouTube</div>
-          <div className={`text-sm font-medium ${ytStatus?.connected ? "text-green-400" : "text-gray-500"}`}>
+          <div className="text-[10px] text-subtle mb-1">YouTube</div>
+          <div className={`text-sm font-medium ${ytStatus?.connected ? "text-green-400" : "text-subtle"}`}>
             {ytStatus?.connected ? "연결됨" : "미연결"}
           </div>
         </div>
         <div className="card p-3">
-          <div className="text-[10px] text-gray-500 mb-1">TTS (ElevenLabs)</div>
-          <div className={`text-sm font-medium ${elConfig?.configured ? "text-green-400" : "text-gray-500"}`}>
+          <div className="text-[10px] text-subtle mb-1">TTS (ElevenLabs)</div>
+          <div className={`text-sm font-medium ${elConfig?.configured ? "text-green-400" : "text-subtle"}`}>
             {elConfig?.configured ? "설정됨" : "미설정"}
           </div>
         </div>
         <div className="card p-3">
-          <div className="text-[10px] text-gray-500 mb-1">영상 클리퍼 (0차)</div>
-          <div className={`text-sm font-medium ${clipConfig?.configured ? "text-green-400" : "text-gray-500"}`}>
+          <div className="text-[10px] text-subtle mb-1">영상 클리퍼 (0차)</div>
+          <div className={`text-sm font-medium ${clipConfig?.configured ? "text-green-400" : "text-subtle"}`}>
             {clipConfig?.configured ? (clipConfig.provider || "준비됨") : "미설정 (mock 모드)"}
           </div>
         </div>
@@ -349,12 +349,12 @@ export default function VideosPage() {
       <div className="card p-4 mb-6">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-sm font-medium">Repurpose Long Video (0차)</span>
-          <span className="text-[10px] text-gray-500">External (Reap/Ssemble) → OSMU refine + publish</span>
+          <span className="text-[10px] text-subtle">External (Reap/Ssemble) → OSMU refine + publish</span>
         </div>
         <div className="mb-2 text-[10px] flex flex-wrap items-center gap-1">
           <span>클리핑 API 키 설정 (최초 1회):</span>
-          <input value={clipProvider} onChange={(e) => setClipProvider(e.target.value)} placeholder="reap 또는 ssemble" className="bg-gray-800 p-1 w-24" />
-          <input value={clipKey} onChange={(e) => setClipKey(e.target.value)} placeholder="API 키" className="bg-gray-800 p-1 w-48" />
+          <input value={clipProvider} onChange={(e) => setClipProvider(e.target.value)} placeholder="reap 또는 ssemble" className="bg-surface-2 p-1 w-24" />
+          <input value={clipKey} onChange={(e) => setClipKey(e.target.value)} placeholder="API 키" className="bg-surface-2 p-1 w-48" />
           <button
             disabled={savingKey || !clipKey.trim()}
             onClick={async () => {
@@ -367,7 +367,7 @@ export default function VideosPage() {
                 showToast(`키 저장 실패: ${(e as Error).message}`, 'error');
               } finally { setSavingKey(false); }
             }}
-            className="px-2 py-0.5 text-xs bg-gray-700 rounded disabled:opacity-50"
+            className="px-2 py-0.5 text-xs bg-surface-2 rounded disabled:opacity-50"
           >
             {savingKey ? '저장 중…' : '키 저장'}
           </button>
@@ -377,25 +377,25 @@ export default function VideosPage() {
             value={repurposeUrl}
             onChange={(e) => { setRepurposeUrl(e.target.value); setRepurposeFile(null); }}
             placeholder="YouTube long URL (e.g. https://youtube.com/watch?v=...)"
-            className="flex-1 min-w-[280px] bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700"
+            className="flex-1 min-w-[280px] bg-surface-2 text-muted text-xs p-2 rounded border border-border"
           />
-          <button onClick={handleRepurpose} disabled={repurposing} className="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 rounded disabled:opacity-50">
+          <button onClick={handleRepurpose} disabled={repurposing} className="px-3 py-1.5 text-xs bg-accent hover:bg-accent-hover rounded disabled:opacity-50">
             {repurposing ? "Clipping..." : "Clip"}
           </button>
         </div>
-        <div className="text-[10px] text-gray-500 mb-2">Local long video: upload to YT first or use public URL (local file support for input limited; output clips saved locally)</div>
+        <div className="text-[10px] text-subtle mb-2">Local long video: upload to YT first or use public URL (local file support for input limited; output clips saved locally)</div>
 
         {repurposeClips.length === 0 ? (
-          <div className="mt-2 rounded border border-dashed border-gray-700 bg-gray-900/40 p-5 text-center">
-            <p className="text-xs text-gray-400">긴 영상 링크를 붙여넣으면 <span className="text-gray-200">완성된 세로 클립</span>이 추천순 그리드로 나옵니다.</p>
-            <p className="text-[10px] text-gray-600 mt-1">각 클립 → 한 번에 큐로. 팬아웃 켜면 영상+텍스트 글이 함께 멀티채널 큐에 들어갑니다.</p>
+          <div className="mt-2 rounded border border-dashed border-border bg-surface/40 p-5 text-center">
+            <p className="text-xs text-subtle">긴 영상 링크를 붙여넣으면 <span className="text-muted">완성된 세로 클립</span>이 추천순 그리드로 나옵니다.</p>
+            <p className="text-[10px] text-subtle mt-1">각 클립 → 한 번에 큐로. 팬아웃 켜면 영상+텍스트 글이 함께 멀티채널 큐에 들어갑니다.</p>
           </div>
         ) : (
           <div className="space-y-3 mt-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="text-xs text-gray-300">완성 클립 <span className="text-white font-semibold">{rankedClips.length}</span>개 · <span className="text-gray-500">추천순</span></div>
+              <div className="text-xs text-muted">완성 클립 <span className="text-text font-semibold">{rankedClips.length}</span>개 · <span className="text-subtle">추천순</span></div>
               <div className="flex items-center gap-3">
-                <label className="flex items-center gap-1 text-[10px] text-gray-400">
+                <label className="flex items-center gap-1 text-[10px] text-subtle">
                   <input type="checkbox" checked={fanoutText} onChange={(e) => setFanoutText(e.target.checked)} className="rounded" />
                   OSMU 팬아웃(영상+텍스트)
                 </label>
@@ -410,11 +410,11 @@ export default function VideosPage() {
                 const oi = repurposeClips.indexOf(c); // 정렬 전 원본 인덱스(편집/refine 대상)
                 const src = c.url ? (c.url.startsWith("http") ? c.url : `/videos/${c.url}`) : "";
                 return (
-                  <div key={c.id || oi} className="relative bg-gray-800 rounded-lg overflow-hidden flex flex-col">
+                  <div key={c.id || oi} className="relative bg-surface-2 rounded-lg overflow-hidden flex flex-col">
                     {/* 9:16 프리뷰 + 랭크/점수 오버레이 */}
                     <div className="relative bg-black aspect-[9/16]">
                       {src && <video src={src} controls playsInline className="w-full h-full object-contain" />}
-                      <span className="absolute top-1.5 left-1.5 text-[10px] font-bold bg-black/70 text-white rounded px-1.5 py-0.5">#{rank + 1}</span>
+                      <span className="absolute top-1.5 left-1.5 text-[10px] font-bold bg-black/70 text-text rounded px-1.5 py-0.5">#{rank + 1}</span>
                       {c.viralScore != null && (
                         <span className="absolute top-1.5 right-1.5 text-[10px] bg-black/70 text-amber-300 rounded px-1.5 py-0.5" title="추천 우선순위 힌트(보장 아님)">
                           ★ {Number(c.viralScore).toFixed(1)}
@@ -424,20 +424,20 @@ export default function VideosPage() {
                     {/* 편집 + 액션 */}
                     <div className="p-2 space-y-1 text-xs flex flex-col flex-1">
                       <input
-                        className="w-full bg-gray-900 p-1 rounded text-[11px]"
+                        className="w-full bg-surface p-1 rounded text-[11px]"
                         placeholder="훅(첫 문장)"
                         value={c.title || ""}
                         onChange={(e) => { const next = [...repurposeClips]; next[oi] = { ...next[oi], title: e.target.value }; setRepurposeClips(next); }}
                       />
                       <textarea
-                        className="w-full bg-gray-900 p-1 rounded text-[11px]"
+                        className="w-full bg-surface p-1 rounded text-[11px]"
                         rows={2}
                         placeholder="캡션"
                         value={c.caption || ""}
                         onChange={(e) => { const next = [...repurposeClips]; next[oi] = { ...next[oi], caption: e.target.value }; setRepurposeClips(next); }}
                       />
                       <div className="flex gap-1 mt-auto pt-1">
-                        <button onClick={() => refineClip(oi)} disabled={refiningClip === c.id} className="flex-1 text-[10px] px-1 py-1 bg-purple-700 hover:bg-purple-600 rounded disabled:opacity-50">
+                        <button onClick={() => refineClip(oi)} disabled={refiningClip === c.id} className="flex-1 text-[10px] px-1 py-1 bg-accent hover:bg-accent-hover rounded disabled:opacity-50">
                           {refiningClip === c.id ? "다듬는 중…" : "Wiki/브랜드 톤"}
                         </button>
                         <button onClick={() => addClipToLibrary(c)} className="flex-1 text-[10px] px-1 py-1 bg-green-700 hover:bg-green-600 rounded">
@@ -457,15 +457,15 @@ export default function VideosPage() {
         <div className="space-y-3">
           {videos.length === 0 ? (
             <div className="card p-8 text-center">
-              <p className="text-gray-500 text-sm">No videos yet. Generate one to get started.</p>
+              <p className="text-subtle text-sm">No videos yet. Generate one to get started.</p>
             </div>
           ) : (
             videos.map((v) => (
               <div key={v.filename} className="card p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="text-sm font-medium text-gray-200">{v.filename}</h3>
-                    <p className="text-[10px] text-gray-500 mt-1">
+                    <h3 className="text-sm font-medium text-muted">{v.filename}</h3>
+                    <p className="text-[10px] text-subtle mt-1">
                       {(v.size / 1024 / 1024).toFixed(1)} MB
                       {" | "}
                       {new Date(v.createdAt).toLocaleString("ko-KR")}
@@ -474,7 +474,7 @@ export default function VideosPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setPreviewFile(previewFile === v.filename ? null : v.filename)}
-                      className={`px-2 py-1 text-xs rounded ${previewFile === v.filename ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+                      className={`px-2 py-1 text-xs rounded ${previewFile === v.filename ? "bg-accent text-text" : "bg-surface-2 text-muted hover:bg-surface-2"}`}
                     >
                       {previewFile === v.filename ? "Hide" : "미리보기"}
                     </button>
@@ -485,13 +485,13 @@ export default function VideosPage() {
                             value={publishTitle}
                             onChange={(e) => setPublishTitle(e.target.value)}
                             placeholder="Title"
-                            className="px-2 py-1 text-xs bg-gray-800 text-white rounded border border-gray-700 w-32"
+                            className="px-2 py-1 text-xs bg-surface-2 text-text rounded border border-border w-32"
                           />
-                          <button onClick={() => handlePublish(v.filename)} className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-500">Upload</button>
-                          <button onClick={() => setPublishingFile(null)} className="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded">Cancel</button>
+                          <button onClick={() => handlePublish(v.filename)} className="px-2 py-1 text-xs bg-red-600 text-text rounded hover:bg-red-500">Upload</button>
+                          <button onClick={() => setPublishingFile(null)} className="px-2 py-1 text-xs bg-surface-2 text-muted rounded">Cancel</button>
                         </div>
                       ) : (
-                        <button onClick={() => { setPublishingFile(v.filename); setPublishTitle(v.filename.replace(".mp4", "")); }} className="px-2 py-1 text-xs bg-red-700 text-white rounded hover:bg-red-600">
+                        <button onClick={() => { setPublishingFile(v.filename); setPublishTitle(v.filename.replace(".mp4", "")); }} className="px-2 py-1 text-xs bg-red-700 text-text rounded hover:bg-red-600">
                           YouTube
                         </button>
                       )
@@ -521,23 +521,23 @@ export default function VideosPage() {
 
       {tab === "generate" && (
         <div className="card p-6">
-          <h3 className="text-sm font-medium text-gray-300 mb-4">Slide Editor</h3>
+          <h3 className="text-sm font-medium text-muted mb-4">Slide Editor</h3>
           <div className="space-y-3 mb-4">
             {slides.map((s, i) => (
               <div key={i} className="flex gap-2 items-start">
-                <span className="text-[10px] text-gray-600 mt-2 w-5">{i + 1}</span>
+                <span className="text-[10px] text-subtle mt-2 w-5">{i + 1}</span>
                 <textarea
                   value={s.text}
                   onChange={(e) => updateSlide(i, "text", e.target.value)}
                   placeholder="Slide text..."
-                  className="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700"
+                  className="flex-1 bg-surface-2 text-muted text-xs p-2 rounded border border-border"
                   rows={2}
                 />
                 <input
                   type="number"
                   value={s.duration}
                   onChange={(e) => updateSlide(i, "duration", Number(e.target.value))}
-                  className="w-14 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700"
+                  className="w-14 bg-surface-2 text-muted text-xs p-2 rounded border border-border"
                   min={1}
                   max={30}
                   title="Duration (seconds)"
@@ -546,7 +546,7 @@ export default function VideosPage() {
                   value={s.imageUrl}
                   onChange={(e) => updateSlide(i, "imageUrl", e.target.value)}
                   placeholder="Image URL (optional)"
-                  className="w-40 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700"
+                  className="w-40 bg-surface-2 text-muted text-xs p-2 rounded border border-border"
                 />
                 {slides.length > 1 && (
                   <button onClick={() => removeSlide(i)} className="text-red-400 hover:text-red-300 text-sm mt-1">x</button>
@@ -555,10 +555,10 @@ export default function VideosPage() {
             ))}
           </div>
           <div className="flex items-center gap-4 mb-4">
-            <button onClick={addSlide} className="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">
+            <button onClick={addSlide} className="px-3 py-1.5 text-xs bg-surface-2 text-muted rounded hover:bg-surface-2">
               + Add Slide
             </button>
-            <label className="flex items-center gap-2 text-xs text-gray-400">
+            <label className="flex items-center gap-2 text-xs text-subtle">
               <input
                 type="checkbox"
                 checked={ttsEnabled}
@@ -567,23 +567,23 @@ export default function VideosPage() {
               />
               TTS Narration {!elConfig?.configured && "(not configured)"}
             </label>
-            <span className="text-[10px] text-gray-600">
+            <span className="text-[10px] text-subtle">
               Total: {slides.reduce((s, sl) => s + sl.duration, 0)}s
             </span>
           </div>
           <div className="flex items-center gap-2 mb-4">
-            <label className="text-xs text-gray-400 w-20">효과음/BGM</label>
+            <label className="text-xs text-subtle w-20">효과음/BGM</label>
             <input
               value={bgmUrl}
               onChange={(e) => setBgmUrl(e.target.value)}
               placeholder="음원 URL 또는 /sfx/whoosh.mp3 (선택)"
-              className="flex-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700"
+              className="flex-1 bg-surface-2 text-muted text-xs p-2 rounded border border-border"
             />
           </div>
           <button
             onClick={handleGenerate}
             disabled={generating}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-500 disabled:opacity-50"
+            className="px-4 py-2 text-sm bg-accent text-text rounded hover:bg-accent-hover disabled:opacity-50"
           >
             {generating ? "Generating..." : "Generate Video"}
           </button>

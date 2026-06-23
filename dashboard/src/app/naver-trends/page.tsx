@@ -46,14 +46,14 @@ export default function NaverTrendsPage() {
   return (
     <div className="px-8 py-6">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-white">Naver Trends</h2>
-        <p className="text-xs text-gray-500 mt-1">네이버 데이터랩 검색어 트렌드 (최근 90일)</p>
+        <h2 className="text-xl font-bold text-text">Naver Trends</h2>
+        <p className="text-xs text-subtle mt-1">네이버 데이터랩 검색어 트렌드 (최근 90일)</p>
       </div>
 
       {!configured && (
         <div className="card p-4 mb-4 border border-yellow-800/50">
           <p className="text-xs text-yellow-400">네이버 개발자센터 API 키가 필요합니다.</p>
-          <p className="text-[10px] text-gray-500 mt-1">.env에 NAVER_CLIENT_ID, NAVER_CLIENT_SECRET를 추가하세요.</p>
+          <p className="text-[10px] text-subtle mt-1">.env에 NAVER_CLIENT_ID, NAVER_CLIENT_SECRET를 추가하세요.</p>
         </div>
       )}
 
@@ -64,13 +64,13 @@ export default function NaverTrendsPage() {
             value={inputKws}
             onChange={(e) => setInputKws(e.target.value)}
             placeholder="키워드 입력 (쉼표 구분, 최대 5개)"
-            className="flex-1 bg-gray-800 text-gray-200 text-sm px-3 py-2 rounded border border-gray-700"
+            className="flex-1 bg-surface-2 text-muted text-sm px-3 py-2 rounded border border-border"
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           />
           <button
             onClick={handleSearch}
             disabled={searching}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-500 disabled:opacity-50"
+            className="px-4 py-2 text-sm bg-accent text-text rounded hover:bg-accent-hover disabled:opacity-50"
           >
             {searching ? "조회 중..." : "트렌드 조회"}
           </button>
@@ -80,13 +80,13 @@ export default function NaverTrendsPage() {
       {/* Results */}
       {results.length === 0 ? (
         <div className="card p-8 text-center">
-          <p className="text-gray-500 text-sm">키워드를 입력하고 트렌드를 조회하세요.</p>
+          <p className="text-subtle text-sm">키워드를 입력하고 트렌드를 조회하세요.</p>
         </div>
       ) : (
         <div className="space-y-6">
           {results.map((r) => (
             <div key={r.title} className="card p-4">
-              <h3 className="text-sm font-medium text-gray-200 mb-3">{r.title}</h3>
+              <h3 className="text-sm font-medium text-muted mb-3">{r.title}</h3>
               <div className="flex items-end gap-1 h-24">
                 {r.data.map((d) => (
                   <div key={d.period} className="flex-1 flex flex-col items-center gap-1">
@@ -95,7 +95,7 @@ export default function NaverTrendsPage() {
                       style={{ height: `${(d.ratio / maxRatio) * 80}px` }}
                       title={`${d.period}: ${d.ratio}`}
                     />
-                    <span className="text-[8px] text-gray-600 truncate w-full text-center">
+                    <span className="text-[8px] text-subtle truncate w-full text-center">
                       {d.period.slice(5)}
                     </span>
                   </div>

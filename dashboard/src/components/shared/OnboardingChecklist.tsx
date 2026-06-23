@@ -24,10 +24,10 @@ export function OnboardingChecklist() {
   if (done >= STEPS.length) return null; // 전부 완료 → 숨김
 
   return (
-    <div className="mb-4 px-4 py-3 rounded-xl border border-purple-700/40 bg-purple-900/15">
+    <div className="mb-4 px-4 py-3 rounded-xl border border-accent bg-accent-soft">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm text-purple-200">🚀 시작 체크리스트 — 여기까지 하면 혼자서도 가치를 체감합니다</span>
-        <span className="text-xs text-purple-400/80">{done}/{STEPS.length}</span>
+        <span className="text-sm text-accent">🚀 시작 체크리스트 — 여기까지 하면 혼자서도 가치를 체감합니다</span>
+        <span className="text-xs text-accent/80">{done}/{STEPS.length}</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {STEPS.map((s) => {
@@ -35,7 +35,7 @@ export function OnboardingChecklist() {
           return (
             <Link key={s.key} href={s.href}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition ${
-                ok ? "bg-green-900/30 text-green-300" : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                ok ? "bg-green-900/30 text-green-300" : "bg-surface-2 text-muted hover:bg-surface-2"
               }`}>
               <span>{ok ? "✓" : "○"}</span>{s.label}
             </Link>

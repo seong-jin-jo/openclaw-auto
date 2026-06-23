@@ -32,19 +32,19 @@ export function AIEngine() {
 
   return (
     <div className="card p-5">
-      <h3 className="text-sm font-medium text-gray-300 mb-3">Runtime</h3>
+      <h3 className="text-sm font-medium text-muted mb-3">Runtime</h3>
       <div className="grid grid-cols-2 gap-2">
-        <button onClick={() => handleModeSwitch("gateway")} disabled={switching} className={`p-3 rounded border text-left transition-colors disabled:opacity-50 ${mode === "gateway" ? "border-blue-600 bg-blue-950/30" : "border-gray-700 hover:border-gray-600"}`}>
-          <div className="text-xs font-medium text-gray-200">OpenClaw Gateway</div>
-          <div className="text-[10px] text-gray-500 mt-0.5">Extra Usage 과금</div>
+        <button onClick={() => handleModeSwitch("gateway")} disabled={switching} className={`p-3 rounded border text-left transition-colors disabled:opacity-50 ${mode === "gateway" ? "border-blue-600 bg-blue-950/30" : "border-border hover:border-border"}`}>
+          <div className="text-xs font-medium text-muted">OpenClaw Gateway</div>
+          <div className="text-[10px] text-subtle mt-0.5">Extra Usage 과금</div>
         </button>
-        <button onClick={() => handleModeSwitch("cli")} disabled={switching} className={`p-3 rounded border text-left transition-colors disabled:opacity-50 ${mode === "cli" ? "border-green-600 bg-green-950/30" : "border-gray-700 hover:border-gray-600"}`}>
-          <div className="text-xs font-medium text-gray-200">Claude CLI</div>
+        <button onClick={() => handleModeSwitch("cli")} disabled={switching} className={`p-3 rounded border text-left transition-colors disabled:opacity-50 ${mode === "cli" ? "border-green-600 bg-green-950/30" : "border-border hover:border-border"}`}>
+          <div className="text-xs font-medium text-muted">Claude CLI</div>
           <div className="text-[10px] text-green-500/70 mt-0.5">Plan Usage (Max Plan)</div>
         </button>
       </div>
       {switching && <p className="text-[10px] text-yellow-400 mt-2">전환 중... Gateway 재시작 포함 (~15초)</p>}
-      <p className="text-[10px] text-gray-600 mt-3">전환 시 Gateway 자동 재시작. 크론잡 상태 자동 이관.</p>
+      <p className="text-[10px] text-subtle mt-3">전환 시 Gateway 자동 재시작. 크론잡 상태 자동 이관.</p>
     </div>
   );
 }

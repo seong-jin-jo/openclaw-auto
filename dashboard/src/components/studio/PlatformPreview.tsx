@@ -35,13 +35,13 @@ export function Logo({ p }: { p: PreviewPlatform }) {
 function Frame({ p, label, w, children, headerRight }: { p: PreviewPlatform; label: string; w: number; children: React.ReactNode; headerRight?: React.ReactNode }) {
   return (
     <div style={{ width: w }}>
-      <div className="flex items-center gap-1.5 mb-1.5 px-0.5"><Logo p={p} /><span className="text-xs font-bold text-gray-200">{label}</span>{headerRight && <div className="ml-auto">{headerRight}</div>}</div>
+      <div className="flex items-center gap-1.5 mb-1.5 px-0.5"><Logo p={p} /><span className="text-xs font-bold text-muted">{label}</span>{headerRight && <div className="ml-auto">{headerRight}</div>}</div>
       {children}
     </div>
   );
 }
 
-function Av({ s = 40 }: { s?: number }) { return <div style={{ width: s, height: s }} className="rounded-full shrink-0 bg-gradient-to-br from-purple-500 to-pink-500" />; }
+function Av({ s = 40 }: { s?: number }) { return <div style={{ width: s, height: s }} className="rounded-full shrink-0 bg-accent" />; }
 const P = (d: string, f = false) => <svg className="w-[18px] h-[18px]" fill={f ? "currentColor" : "none"} stroke="currentColor" strokeWidth={1.7} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d={d} /></svg>;
 const I = {
   heart: "M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z",
@@ -57,14 +57,14 @@ function IgCarousel({ cards }: { cards: { type: "img" | "text"; v: string }[] })
   const [i, setI] = useState(0);
   const n = cards.length; const cur = cards[i];
   return (
-    <div className="relative bg-gray-950 aspect-square">
-      {n === 0 ? <div className="w-full h-full grid place-items-center text-gray-600 text-sm">카드 생성 대기</div>
+    <div className="relative bg-surface aspect-square">
+      {n === 0 ? <div className="w-full h-full grid place-items-center text-subtle text-sm">카드 생성 대기</div>
         : cur.type === "img" ? <img src={cur.v} alt="" className="w-full h-full object-cover" />
-        : <div className="w-full h-full grid place-items-center p-7 bg-gradient-to-br from-[#a83c3c] to-[#5a1f1f]"><p className="text-white text-xl font-bold text-center leading-snug">{cur.v}</p></div>}
+        : <div className="w-full h-full grid place-items-center p-7 bg-gradient-to-br from-[#a83c3c] to-[#5a1f1f]"><p className="text-text text-xl font-bold text-center leading-snug">{cur.v}</p></div>}
       {n > 1 && <>
-        <button onClick={(e) => { e.stopPropagation(); setI((x) => (x - 1 + n) % n); }} className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 text-white">‹</button>
-        <button onClick={(e) => { e.stopPropagation(); setI((x) => (x + 1) % n); }} className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 text-white">›</button>
-        <span className="absolute top-3 right-3 text-[11px] text-white bg-black/50 px-2 py-0.5 rounded-full">{i + 1}/{n}</span>
+        <button onClick={(e) => { e.stopPropagation(); setI((x) => (x - 1 + n) % n); }} className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 text-text">‹</button>
+        <button onClick={(e) => { e.stopPropagation(); setI((x) => (x + 1) % n); }} className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 text-text">›</button>
+        <span className="absolute top-3 right-3 text-[11px] text-text bg-black/50 px-2 py-0.5 rounded-full">{i + 1}/{n}</span>
         <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">{cards.map((_, k) => <span key={k} className={`w-1.5 h-1.5 rounded-full ${k === i ? "bg-blue-500" : "bg-white/50"}`} />)}</div>
       </>}
     </div>
@@ -73,7 +73,7 @@ function IgCarousel({ cards }: { cards: { type: "img" | "text"; v: string }[] })
 
 function VideoRail({ kind }: { kind: "shorts" | "reels" | "tiktok" }) {
   return (
-    <div className="absolute right-2 bottom-24 flex flex-col items-center gap-4 text-white drop-shadow z-10">
+    <div className="absolute right-2 bottom-24 flex flex-col items-center gap-4 text-text drop-shadow z-10">
       {kind === "tiktok" && <div className="relative mb-1"><Av s={36} /><span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-[#fe2c55] grid place-items-center text-[10px]">+</span></div>}
       <div className="flex flex-col items-center">{P(I.heart, true)}<span className="text-[10px] mt-0.5">12.4K</span></div>
       <div className="flex flex-col items-center">{P(I.chat)}<span className="text-[10px] mt-0.5">318</span></div>
@@ -90,27 +90,27 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
 
   if (platform === "threads") return (
     <Frame p="threads" label="Threads" w={CARD_W} headerRight={headerRight}>
-      <div className="bg-black text-white rounded-xl border border-[#222] px-4 py-3">
+      <div className="bg-black text-text rounded-xl border border-[#222] px-4 py-3">
         <div className="flex gap-3"><Av />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1 text-[15px]"><b>{handle}</b><span className="text-gray-500 text-sm ml-1">1시간</span><div className="ml-auto text-gray-500">{P(I.more)}</div></div>
-            <p className="text-[15px] whitespace-pre-wrap leading-[1.45] mt-0.5">{text.threads || <span className="text-gray-600">텍스트…</span>}</p>
+            <div className="flex items-center gap-1 text-[15px]"><b>{handle}</b><span className="text-subtle text-sm ml-1">1시간</span><div className="ml-auto text-subtle">{P(I.more)}</div></div>
+            <p className="text-[15px] whitespace-pre-wrap leading-[1.45] mt-0.5">{text.threads || <span className="text-subtle">텍스트…</span>}</p>
             {img && <img src={img} alt="" className="mt-2 rounded-2xl border border-[#222] w-full max-h-80 object-cover" />}
             <div className="flex gap-5 mt-3">{P(I.heart)}{P(I.chat)}{P(I.repost)}{P(I.send)}</div>
-            <div className="text-gray-500 text-sm mt-2">답글 18개 · 좋아요 124개</div>
+            <div className="text-subtle text-sm mt-2">답글 18개 · 좋아요 124개</div>
           </div></div>
       </div>
     </Frame>
   );
   if (platform === "x") return (
     <Frame p="x" label="X" w={CARD_W} headerRight={headerRight}>
-      <div className="bg-black text-white rounded-xl border border-[#222] px-4 py-3">
+      <div className="bg-black text-text rounded-xl border border-[#222] px-4 py-3">
         <div className="flex gap-3"><Av />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1 text-[15px]"><b>{handle}</b><span className="text-[#1d9bf0]">✓</span><span className="text-gray-500 ml-1">@{handle} · 1분</span><div className="ml-auto text-gray-500">{P(I.more)}</div></div>
-            <p className="text-[15px] whitespace-pre-wrap leading-[1.4] mt-0.5">{text.x || <span className="text-gray-600">텍스트…</span>}</p>
+            <div className="flex items-center gap-1 text-[15px]"><b>{handle}</b><span className="text-[#1d9bf0]">✓</span><span className="text-subtle ml-1">@{handle} · 1분</span><div className="ml-auto text-subtle">{P(I.more)}</div></div>
+            <p className="text-[15px] whitespace-pre-wrap leading-[1.4] mt-0.5">{text.x || <span className="text-subtle">텍스트…</span>}</p>
             {img && <img src={img} alt="" className="mt-2 rounded-2xl border border-[#222] w-full max-h-80 object-cover" />}
-            <div className="flex justify-between mt-3 text-gray-500 text-[13px]">
+            <div className="flex justify-between mt-3 text-subtle text-[13px]">
               <span className="flex items-center gap-1.5">{P(I.chat)}24</span><span className="flex items-center gap-1.5">{P(I.repost)}57</span>
               <span className="flex items-center gap-1.5">{P(I.heart)}312</span><span className="flex items-center gap-1.5">{P(I.bookmark)}</span><span className="flex items-center gap-1.5">{P(I.share)}</span>
             </div></div></div>
@@ -119,12 +119,12 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
   );
   if (platform === "facebook") return (
     <Frame p="facebook" label="Facebook" w={CARD_W} headerRight={headerRight}>
-      <div className="bg-white text-[#050505] rounded-lg border border-gray-300 overflow-hidden">
-        <div className="flex items-center gap-2 px-3 pt-3"><Av /><div><div className="font-semibold text-[15px] leading-tight">{handle}</div><div className="text-gray-500 text-xs">방금 · 🌐</div></div><div className="ml-auto text-gray-500">{P(I.more)}</div></div>
-        <p className="px-3 py-2 text-[15px] whitespace-pre-wrap leading-snug">{text.threads || <span className="text-gray-400">텍스트…</span>}</p>
+      <div className="bg-white text-[#050505] rounded-lg border border-border overflow-hidden">
+        <div className="flex items-center gap-2 px-3 pt-3"><Av /><div><div className="font-semibold text-[15px] leading-tight">{handle}</div><div className="text-subtle text-xs">방금 · 🌐</div></div><div className="ml-auto text-subtle">{P(I.more)}</div></div>
+        <p className="px-3 py-2 text-[15px] whitespace-pre-wrap leading-snug">{text.threads || <span className="text-subtle">텍스트…</span>}</p>
         {img && <img src={img} alt="" className="w-full max-h-80 object-cover" />}
-        <div className="flex items-center justify-between px-3 py-1.5 text-gray-500 text-[13px] border-b border-gray-200"><span>👍❤️ 248</span><span>댓글 32 · 공유 12</span></div>
-        <div className="flex text-gray-600 text-sm font-medium">{["좋아요", "댓글", "공유"].map((l) => <div key={l} className="flex-1 text-center py-2 hover:bg-gray-100">{l}</div>)}</div>
+        <div className="flex items-center justify-between px-3 py-1.5 text-subtle text-[13px] border-b border-border"><span>👍❤️ 248</span><span>댓글 32 · 공유 12</span></div>
+        <div className="flex text-subtle text-sm font-medium">{["좋아요", "댓글", "공유"].map((l) => <div key={l} className="flex-1 text-center py-2 hover:bg-surface-2">{l}</div>)}</div>
       </div>
     </Frame>
   );
@@ -132,12 +132,12 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
     const cards = [...(img ? [{ type: "img" as const, v: img }] : []), ...(text.instagram?.slides || []).map((s) => ({ type: "text" as const, v: s }))];
     return (
       <Frame p="instagram" label="Instagram" w={CARD_W} headerRight={headerRight}>
-        <div className="bg-black text-white rounded-lg border border-[#222] overflow-hidden">
-          <div className="flex items-center gap-2.5 px-3 py-2.5"><Av s={32} /><b className="text-sm">{handle}</b><span className="text-gray-500 text-xs">· 팔로우</span><div className="ml-auto text-gray-400">{P(I.more)}</div></div>
+        <div className="bg-black text-text rounded-lg border border-[#222] overflow-hidden">
+          <div className="flex items-center gap-2.5 px-3 py-2.5"><Av s={32} /><b className="text-sm">{handle}</b><span className="text-subtle text-xs">· 팔로우</span><div className="ml-auto text-subtle">{P(I.more)}</div></div>
           <IgCarousel cards={cards} />
           <div className="flex items-center gap-4 px-3 pt-2.5">{P(I.heart)}{P(I.chat)}{P(I.send)}<div className="ml-auto">{P(I.bookmark)}</div></div>
           <div className="px-3 pt-1.5 text-sm font-semibold">좋아요 1,284개</div>
-          <div className="px-3 pt-1 pb-3 text-sm"><b>{handle}</b> <span className="text-gray-200">{text.instagram?.caption}</span>
+          <div className="px-3 pt-1 pb-3 text-sm"><b>{handle}</b> <span className="text-muted">{text.instagram?.caption}</span>
             <div className="text-[#5b9bd5] mt-0.5">{(text.instagram?.hashtags || []).map((h) => `#${h.replace(/^#/, "")}`).join(" ")}</div></div>
         </div>
       </Frame>
@@ -151,13 +151,13 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
       <div className="relative rounded-2xl overflow-hidden bg-black aspect-[9/16] border border-[#222]">
         {vid ? <video key={vid} src={vid} controls playsInline preload="metadata" className="w-full h-full object-cover" />
           : img ? <img src={img} alt="" className="w-full h-full object-cover" />
-          : <div className="w-full h-full grid place-items-center text-gray-600 text-xs">영상 생성 대기</div>}
+          : <div className="w-full h-full grid place-items-center text-subtle text-xs">영상 생성 대기</div>}
         {!vid && <>
-          {k === "shorts" && <div className="absolute top-3 left-3 flex items-center gap-1 text-white font-bold text-sm">▶ Shorts</div>}
-          {k === "reels" && <div className="absolute top-3 left-3 right-3 flex justify-between text-white text-sm"><span>←</span><b>Reels</b><span>📷</span></div>}
-          {k === "tiktok" && <div className="absolute top-3 left-0 right-0 flex justify-center gap-4 text-white/80 text-sm"><span>팔로잉</span><b className="text-white border-b-2 border-white pb-0.5">추천</b></div>}
+          {k === "shorts" && <div className="absolute top-3 left-3 flex items-center gap-1 text-text font-bold text-sm">▶ Shorts</div>}
+          {k === "reels" && <div className="absolute top-3 left-3 right-3 flex justify-between text-text text-sm"><span>←</span><b>Reels</b><span>📷</span></div>}
+          {k === "tiktok" && <div className="absolute top-3 left-0 right-0 flex justify-center gap-4 text-text/80 text-sm"><span>팔로잉</span><b className="text-text border-b-2 border-white pb-0.5">추천</b></div>}
           <VideoRail kind={k} />
-          <div className="absolute left-3 right-12 bottom-3 text-white">
+          <div className="absolute left-3 right-12 bottom-3 text-text">
             <div className="text-sm font-bold">@{handle}</div>
             <div className="text-[12px] leading-snug line-clamp-2 opacity-95">{cap}</div>
             {k === "tiktok" && <div className="text-[11px] mt-1 opacity-90">🎵 original sound - {handle}</div>}

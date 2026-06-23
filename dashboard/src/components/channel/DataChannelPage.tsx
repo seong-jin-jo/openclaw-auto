@@ -36,16 +36,16 @@ export function DataChannelPage({ channel }: DataChannelPageProps) {
 
   return (
     <div className="px-8 py-6">
-      <Link href="/" className="text-gray-600 hover:text-gray-400 text-sm mb-1 inline-block">
+      <Link href="/" className="text-subtle hover:text-subtle text-sm mb-1 inline-block">
         &larr; Back
       </Link>
       <div className="flex items-center gap-3 mb-6">
-        <span className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center text-sm font-bold text-white">
+        <span className="w-8 h-8 rounded-lg bg-surface-2 flex items-center justify-center text-sm font-bold text-text">
           {label[0]}
         </span>
         <div>
-          <h2 className="text-xl font-semibold text-gray-200">{label}</h2>
-          <p className="text-xs text-gray-600">{CH_STATUS_LABEL[status] || status}</p>
+          <h2 className="text-xl font-semibold text-muted">{label}</h2>
+          <p className="text-xs text-subtle">{CH_STATUS_LABEL[status] || status}</p>
         </div>
       </div>
 

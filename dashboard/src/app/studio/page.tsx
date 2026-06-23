@@ -205,31 +205,31 @@ export default function StudioPage() {
       {showRepo && activeWorkspace && <RepoConnect workspace={activeWorkspace} onSynced={() => { mutateBrand(); showToast("브랜드 가이드 갱신됨"); }} onClose={() => setShowRepo(false)} />}
       {/* 상단 바 */}
       <div className="flex items-center gap-3 flex-wrap mb-4">
-        <b className="text-lg text-white">OSMU Studio</b>
-        <input value={idea} onChange={(e) => setIdea(e.target.value)} placeholder="글감 / 콘텐츠 주제 입력" className="flex-1 min-w-[260px] bg-gray-800 text-gray-100 text-sm p-2.5 rounded border border-gray-700" />
-        <select value={videoModel} onChange={(e) => setVideoModel(e.target.value)} className="bg-gray-800 text-gray-300 text-xs p-2 rounded border border-gray-700"><option value="minimax_hailuo">Minimax 6cr</option><option value="veo3_1_lite">Veo3.1 8cr</option><option value="kling3_0">Kling3 10cr</option><option value="marketing_studio_video">MS UGC광고 ~40cr</option></select>
-        <label className="flex items-center gap-1.5 text-xs text-gray-400"><input type="checkbox" checked={withVideo} onChange={(e) => setWithVideo(e.target.checked)} />영상</label>
-        {activeWorkspace && <button onClick={() => setShowWizard(true)} className="text-xs px-2.5 py-2 rounded border border-purple-500/40 text-purple-300 hover:bg-purple-600/10" title="브랜드 톤 설정">{brandData?.guide?.prompt_guide ? "🎨 브랜드 ✓" : "🎨 브랜드 설정"}</button>}
-        {activeWorkspace && <button onClick={() => setShowRepo(true)} className="text-xs px-2.5 py-2 rounded border border-purple-500/40 text-purple-300 hover:bg-purple-600/10" title="GitHub 레포 위키 연동 → 브랜드 가이드">📚 위키</button>}
-        <button onClick={runOSMU} disabled={!!busy} className="px-4 py-2 text-sm bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg shadow-lg shadow-purple-900/30 disabled:opacity-50">{busy || "OSMU 생성"}</button>
-        {activeWorkspace && <button onClick={autoGenerate} disabled={autoGen} className="px-3 py-2 text-sm rounded border border-purple-500/40 text-purple-300 hover:bg-purple-600/10 disabled:opacity-50" title="브랜드 가이드 기반 자동초안 생성">{autoGen ? "생성 중…" : "✨ AI 자동초안"}</button>}
-        {text && <button onClick={() => save("draft")} className="px-3 py-2 text-sm bg-gray-700 text-gray-100 rounded">💾 Save</button>}
-        {text && <button onClick={publish} disabled={pub.running} className="px-3 py-2 text-sm bg-green-600 text-white rounded disabled:opacity-50">🚀 Publish ({ALL.filter((p) => includes[p]).length})</button>}
-        {text && activeWorkspace && <button onClick={() => setShowSchedule((v) => !v)} className={`px-3 py-2 text-sm rounded border ${showSchedule ? "border-purple-500 text-purple-200 bg-purple-600/15" : "border-purple-500/40 text-purple-300 hover:bg-purple-600/10"}`} title="예약 발행">🗓️ 예약</button>}
+        <b className="text-lg text-text">OSMU Studio</b>
+        <input value={idea} onChange={(e) => setIdea(e.target.value)} placeholder="글감 / 콘텐츠 주제 입력" className="flex-1 min-w-[260px] bg-surface-2 text-text text-sm p-2.5 rounded border border-border" />
+        <select value={videoModel} onChange={(e) => setVideoModel(e.target.value)} className="bg-surface-2 text-muted text-xs p-2 rounded border border-border"><option value="minimax_hailuo">Minimax 6cr</option><option value="veo3_1_lite">Veo3.1 8cr</option><option value="kling3_0">Kling3 10cr</option><option value="marketing_studio_video">MS UGC광고 ~40cr</option></select>
+        <label className="flex items-center gap-1.5 text-xs text-subtle"><input type="checkbox" checked={withVideo} onChange={(e) => setWithVideo(e.target.checked)} />영상</label>
+        {activeWorkspace && <button onClick={() => setShowWizard(true)} className="text-xs px-2.5 py-2 rounded border border-accent text-accent hover:bg-accent-soft" title="브랜드 톤 설정">{brandData?.guide?.prompt_guide ? "🎨 브랜드 ✓" : "🎨 브랜드 설정"}</button>}
+        {activeWorkspace && <button onClick={() => setShowRepo(true)} className="text-xs px-2.5 py-2 rounded border border-accent text-accent hover:bg-accent-soft" title="GitHub 레포 위키 연동 → 브랜드 가이드">📚 위키</button>}
+        <button onClick={runOSMU} disabled={!!busy} className="px-4 py-2 text-sm bg-accent hover:from-accent hover:to-accent-hover text-text rounded-lg shadow-lg shadow-purple-900/30 disabled:opacity-50">{busy || "OSMU 생성"}</button>
+        {activeWorkspace && <button onClick={autoGenerate} disabled={autoGen} className="px-3 py-2 text-sm rounded border border-accent text-accent hover:bg-accent-soft disabled:opacity-50" title="브랜드 가이드 기반 자동초안 생성">{autoGen ? "생성 중…" : "✨ AI 자동초안"}</button>}
+        {text && <button onClick={() => save("draft")} className="px-3 py-2 text-sm bg-surface-2 text-text rounded">💾 Save</button>}
+        {text && <button onClick={publish} disabled={pub.running} className="px-3 py-2 text-sm bg-green-600 text-text rounded disabled:opacity-50">🚀 Publish ({ALL.filter((p) => includes[p]).length})</button>}
+        {text && activeWorkspace && <button onClick={() => setShowSchedule((v) => !v)} className={`px-3 py-2 text-sm rounded border ${showSchedule ? "border-accent text-accent bg-accent-soft" : "border-accent text-accent hover:bg-accent-soft"}`} title="예약 발행">🗓️ 예약</button>}
         <div className="relative">
-          <button onClick={() => setShowTx((v) => !v)} className="text-xs text-gray-500 hover:text-gray-300" title="사용 이력 보기">
+          <button onClick={() => setShowTx((v) => !v)} className="text-xs text-subtle hover:text-muted" title="사용 이력 보기">
             크레딧 <b className={acct?.needsLogin ? "text-red-400" : "text-green-400"}>{acct?.needsLogin ? "로그인필요" : acct?.credits?.toFixed(2) ?? "..."}</b> ▾
           </button>
           {showTx && (
             <div className="absolute right-0 top-7 z-50 w-72 max-h-80 overflow-y-auto card p-3 shadow-xl">
-              <div className="flex justify-between items-center mb-2"><b className="text-xs text-gray-200">크레딧 사용 이력</b><button onClick={() => setShowTx(false)} className="text-gray-500 text-xs">✕</button></div>
-              {!tx ? <p className="text-[11px] text-gray-500">불러오는 중…</p>
-                : (tx.items || []).length === 0 ? <p className="text-[11px] text-gray-500">내역 없음</p>
+              <div className="flex justify-between items-center mb-2"><b className="text-xs text-muted">크레딧 사용 이력</b><button onClick={() => setShowTx(false)} className="text-subtle text-xs">✕</button></div>
+              {!tx ? <p className="text-[11px] text-subtle">불러오는 중…</p>
+                : (tx.items || []).length === 0 ? <p className="text-[11px] text-subtle">내역 없음</p>
                 : (tx.items || []).map((t, i) => (
-                  <div key={i} className="flex justify-between items-center border-t border-gray-800 py-1.5 text-[11px]">
-                    <div className="min-w-0 pr-2"><div className="text-gray-200">{t.display_name}</div>
-                      {t.output && <div className="text-purple-300 truncate">{t.outputKind === "video" ? "🎬" : "🖼️"} {t.output}</div>}
-                      <div className="text-gray-600">{String(t.created_at || "").slice(5, 16).replace("T", " ")}</div></div>
+                  <div key={i} className="flex justify-between items-center border-t border-border py-1.5 text-[11px]">
+                    <div className="min-w-0 pr-2"><div className="text-muted">{t.display_name}</div>
+                      {t.output && <div className="text-accent truncate">{t.outputKind === "video" ? "🎬" : "🖼️"} {t.output}</div>}
+                      <div className="text-subtle">{String(t.created_at || "").slice(5, 16).replace("T", " ")}</div></div>
                     <span className={Number(t.credits) < 0 ? "text-red-400" : "text-green-400"}>{Number(t.credits) > 0 ? "+" : ""}{t.credits}</span>
                   </div>
                 ))}
@@ -241,10 +241,10 @@ export default function StudioPage() {
       {/* 발행 진행 */}
       {(pub.running || pubPct > 0) && (
         <div className="card p-3 mb-4 flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full grid place-items-center shrink-0" style={{ background: `conic-gradient(#16a34a ${pubPct}%, #333 ${pubPct}%)` }}><div className="w-9 h-9 rounded-full bg-[#0a0a0a] grid place-items-center text-[11px] font-bold text-green-400">{pubPct}%</div></div>
-          <div className="flex-1"><div className="flex justify-between"><b className="text-sm text-gray-100">{pub.running ? "발행 중…" : pubPct === 100 ? "발행 완료" : "중지됨"}</b>{pub.running && <button onClick={() => (cancelRef.current = true)} className="px-3 py-1 text-xs bg-red-700 text-white rounded">■ 중지</button>}</div>
+          <div className="w-12 h-12 rounded-full grid place-items-center shrink-0" style={{ background: `conic-gradient(#16a34a ${pubPct}%, #333 ${pubPct}%)` }}><div className="w-9 h-9 rounded-full bg-bg grid place-items-center text-[11px] font-bold text-green-400">{pubPct}%</div></div>
+          <div className="flex-1"><div className="flex justify-between"><b className="text-sm text-text">{pub.running ? "발행 중…" : pubPct === 100 ? "발행 완료" : "중지됨"}</b>{pub.running && <button onClick={() => (cancelRef.current = true)} className="px-3 py-1 text-xs bg-red-700 text-text rounded">■ 중지</button>}</div>
             <div className="flex gap-1.5 mt-1.5 flex-wrap">{Object.entries(pub.status).map(([k, s]) => {
-              const cls = `text-[10px] px-2 py-0.5 rounded-full ${s === "done" ? "bg-green-900/50 text-green-400" : s === "doing" ? "bg-yellow-900/40 text-yellow-300" : "bg-gray-800 text-gray-500"}`;
+              const cls = `text-[10px] px-2 py-0.5 rounded-full ${s === "done" ? "bg-green-900/50 text-green-400" : s === "doing" ? "bg-yellow-900/40 text-yellow-300" : "bg-surface-2 text-subtle"}`;
               const txt = `${s === "done" ? "✓ " : s === "doing" ? "⟳ " : ""}${LABEL[k]}`;
               return s === "done" && pub.urls[k]
                 ? <a key={k} href={pub.urls[k]} target="_blank" rel="noopener noreferrer" className={`${cls} hover:underline`} title="게시물 보기">{txt} ↗</a>
@@ -267,17 +267,17 @@ export default function StudioPage() {
         {/* 본문: 유형별 세로 분류 (생성 전엔 안내) */}
         <div className="flex-1 min-w-0 space-y-7">
           {!text ? (
-            <div className="text-sm text-gray-600 py-12 text-center">글감을 입력하고 OSMU 생성을 누르거나, 오른쪽 발행 이력에서 불러오세요.</div>
+            <div className="text-sm text-subtle py-12 text-center">글감을 입력하고 OSMU 생성을 누르거나, 오른쪽 발행 이력에서 불러오세요.</div>
           ) : (
             GROUPS.map((g) => (
               <div key={g.title}>
-                <div className="flex items-center gap-2 mb-3"><span className="text-sm font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{g.title}</span><span className="text-[10px] text-gray-600">{g.platforms.map((p) => LABEL[p]).join(" · ")} · 클릭해서 편집</span><div className="flex-1 h-px bg-gradient-to-r from-purple-500/40 to-transparent" /></div>
+                <div className="flex items-center gap-2 mb-3"><span className="text-sm font-bold bg-gradient-to-r from-accent to-accent-hover bg-clip-text text-transparent">{g.title}</span><span className="text-[10px] text-subtle">{g.platforms.map((p) => LABEL[p]).join(" · ")} · 클릭해서 편집</span><div className="flex-1 h-px bg-gradient-to-r from-accent/40 to-transparent" /></div>
                 <div className="flex gap-5 flex-nowrap overflow-x-auto items-start pb-2">
                   {g.platforms.map((p) => (
                     <div key={p} className="group cursor-pointer" onClick={() => setEditing(p)}>
-                      <div className={`rounded-2xl transition ${editing === p ? "ring-2 ring-pink-500 shadow-[0_0_24px_rgba(236,72,153,0.35)]" : "group-hover:ring-1 group-hover:ring-purple-500/50"}`}>
+                      <div className={`rounded-2xl transition ${editing === p ? "ring-2 ring-accent shadow-[0_0_24px_rgba(236,72,153,0.35)]" : "group-hover:ring-1 group-hover:ring-accent/50"}`}>
                         <PlatformPreview platform={p} text={text} media={media} headerRight={
-                          <label onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-[10px] text-gray-400 cursor-default">
+                          <label onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-[10px] text-subtle cursor-default">
                             <input type="checkbox" checked={!!includes[p]} onChange={(e) => setIncludes((x) => ({ ...x, [p]: e.target.checked }))} />발행
                           </label>
                         } />
@@ -292,14 +292,14 @@ export default function StudioPage() {
 
         {/* 발행 이력 */}
           <div className="w-52 shrink-0 card p-3 h-fit">
-            <b className="text-sm text-gray-100">📜 발행 이력</b>
-            <p className="text-[10px] text-gray-500 mt-1 mb-2">클릭→수정 후 재발행</p>
-            {(hist?.drafts || []).length === 0 && <p className="text-xs text-gray-600">없음</p>}
+            <b className="text-sm text-text">📜 발행 이력</b>
+            <p className="text-[10px] text-subtle mt-1 mb-2">클릭→수정 후 재발행</p>
+            {(hist?.drafts || []).length === 0 && <p className="text-xs text-subtle">없음</p>}
             {(hist?.drafts || []).map((d) => (
-              <div key={String(d.id)} className="border-t border-gray-800 py-2">
-                <div className="text-xs text-gray-200 truncate">{String(d.idea || "(없음)")}</div>
-                <div className="text-[10px] text-gray-500">{String(d.savedAt || "").slice(5, 16).replace("T", " ")} · {d.status === "published" ? "✅" : d.status === "stopped" ? "⏸" : "📝"}</div>
-                <button onClick={() => loadDraft(d)} className="mt-1 text-[10px] px-2 py-0.5 bg-gray-700 text-gray-300 rounded">불러오기</button>
+              <div key={String(d.id)} className="border-t border-border py-2">
+                <div className="text-xs text-muted truncate">{String(d.idea || "(없음)")}</div>
+                <div className="text-[10px] text-subtle">{String(d.savedAt || "").slice(5, 16).replace("T", " ")} · {d.status === "published" ? "✅" : d.status === "stopped" ? "⏸" : "📝"}</div>
+                <button onClick={() => loadDraft(d)} className="mt-1 text-[10px] px-2 py-0.5 bg-surface-2 text-muted rounded">불러오기</button>
               </div>
             ))}
           </div>
@@ -309,42 +309,42 @@ export default function StudioPage() {
       {editing && text && (
         <>
           <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setEditing(null)} />
-          <div className="fixed top-0 right-0 h-screen bg-[#141414]/95 backdrop-blur-xl border-l border-purple-500/20 z-40 flex shadow-[0_0_40px_rgba(168,85,247,0.15)]" style={{ width: drawerW }}>
-            <div onMouseDown={() => (dragRef.current = true)} className="w-1.5 h-full cursor-ew-resize bg-gradient-to-b from-purple-600 to-pink-600 opacity-40 hover:opacity-100 shrink-0" title="드래그해서 크기 조절" />
+          <div className="fixed top-0 right-0 h-screen bg-surface/95 backdrop-blur-xl border-l border-accent z-40 flex shadow-[0_0_40px_rgba(168,85,247,0.15)]" style={{ width: drawerW }}>
+            <div onMouseDown={() => (dragRef.current = true)} className="w-1.5 h-full cursor-ew-resize bg-gradient-to-b from-accent to-accent-hover opacity-40 hover:opacity-100 shrink-0" title="드래그해서 크기 조절" />
             <div className="flex-1 overflow-auto p-5">
-              <div className="flex items-center justify-between mb-4"><b className="text-base text-white">{LABEL[editing]} 편집</b><button onClick={() => setEditing(null)} className="text-gray-400 text-lg">✕</button></div>
+              <div className="flex items-center justify-between mb-4"><b className="text-base text-text">{LABEL[editing]} 편집</b><button onClick={() => setEditing(null)} className="text-subtle text-lg">✕</button></div>
 
               {/* 편집 필드 */}
               <div className="space-y-3 mb-5">
-                {(editing === "threads" || editing === "facebook") && <textarea value={text.threads || ""} onChange={(e) => upText({ threads: e.target.value })} className="w-full bg-gray-800 text-gray-100 text-sm p-3 rounded border border-gray-700" rows={6} />}
-                {editing === "x" && <div><textarea value={text.x || ""} onChange={(e) => upText({ x: e.target.value })} className="w-full bg-gray-800 text-gray-100 text-sm p-3 rounded border border-gray-700" rows={5} /><span className={`text-[11px] ${(text.x || "").length > 280 ? "text-red-400" : "text-gray-600"}`}>{(text.x || "").length}/280</span></div>}
+                {(editing === "threads" || editing === "facebook") && <textarea value={text.threads || ""} onChange={(e) => upText({ threads: e.target.value })} className="w-full bg-surface-2 text-text text-sm p-3 rounded border border-border" rows={6} />}
+                {editing === "x" && <div><textarea value={text.x || ""} onChange={(e) => upText({ x: e.target.value })} className="w-full bg-surface-2 text-text text-sm p-3 rounded border border-border" rows={5} /><span className={`text-[11px] ${(text.x || "").length > 280 ? "text-red-400" : "text-subtle"}`}>{(text.x || "").length}/280</span></div>}
                 {editing === "instagram" && <>
-                  <textarea value={text.instagram?.caption || ""} onChange={(e) => upIg({ caption: e.target.value })} placeholder="캡션" className="w-full bg-gray-800 text-gray-100 text-sm p-3 rounded border border-gray-700" rows={3} />
-                  <div><label className="text-[11px] text-gray-400">해시태그 (쉼표)</label><input value={(text.instagram?.hashtags || []).join(", ")} onChange={(e) => upIg({ hashtags: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} className="w-full bg-gray-800 text-blue-300 text-xs p-2 rounded border border-gray-700" /></div>
-                  <div><label className="text-[11px] text-gray-400">카드 슬라이드</label>{(text.instagram?.slides || []).map((s, i) => <input key={i} value={s} onChange={(e) => { const sl = [...(text.instagram?.slides || [])]; sl[i] = e.target.value; upIg({ slides: sl }); }} className="w-full mt-1 bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700" />)}</div>
+                  <textarea value={text.instagram?.caption || ""} onChange={(e) => upIg({ caption: e.target.value })} placeholder="캡션" className="w-full bg-surface-2 text-text text-sm p-3 rounded border border-border" rows={3} />
+                  <div><label className="text-[11px] text-subtle">해시태그 (쉼표)</label><input value={(text.instagram?.hashtags || []).join(", ")} onChange={(e) => upIg({ hashtags: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} className="w-full bg-surface-2 text-accent text-xs p-2 rounded border border-border" /></div>
+                  <div><label className="text-[11px] text-subtle">카드 슬라이드</label>{(text.instagram?.slides || []).map((s, i) => <input key={i} value={s} onChange={(e) => { const sl = [...(text.instagram?.slides || [])]; sl[i] = e.target.value; upIg({ slides: sl }); }} className="w-full mt-1 bg-surface-2 text-muted text-xs p-2 rounded border border-border" />)}</div>
                 </>}
                 {isVideo(editing) && <>
-                  {(["hook", "body", "cta"] as const).map((kk) => <div key={kk}><label className="text-[11px] text-gray-400">{kk.toUpperCase()}</label><input value={text.shorts?.[kk] || ""} onChange={(e) => upText({ shorts: { ...(text.shorts || {}), [kk]: e.target.value } })} className="w-full bg-gray-800 text-gray-200 text-sm p-2 rounded border border-gray-700" /></div>)}
-                  <div className="flex gap-2 items-center"><select value={videoModel} onChange={(e) => setVideoModel(e.target.value)} className="bg-gray-800 text-gray-300 text-xs p-1.5 rounded border border-gray-700"><option value="minimax_hailuo">Minimax 6cr</option><option value="veo3_1_lite">Veo3.1 8cr</option><option value="marketing_studio_video">MS UGC광고 ~40cr</option></select>{img && <button onClick={() => genVideo(img.localPath)} disabled={!!busy} className="text-xs px-2 py-1.5 bg-gray-700 text-gray-300 rounded disabled:opacity-50">{vid ? "영상 재생성" : "영상 생성"}</button>}</div>
+                  {(["hook", "body", "cta"] as const).map((kk) => <div key={kk}><label className="text-[11px] text-subtle">{kk.toUpperCase()}</label><input value={text.shorts?.[kk] || ""} onChange={(e) => upText({ shorts: { ...(text.shorts || {}), [kk]: e.target.value } })} className="w-full bg-surface-2 text-muted text-sm p-2 rounded border border-border" /></div>)}
+                  <div className="flex gap-2 items-center"><select value={videoModel} onChange={(e) => setVideoModel(e.target.value)} className="bg-surface-2 text-muted text-xs p-1.5 rounded border border-border"><option value="minimax_hailuo">Minimax 6cr</option><option value="veo3_1_lite">Veo3.1 8cr</option><option value="marketing_studio_video">MS UGC광고 ~40cr</option></select>{img && <button onClick={() => genVideo(img.localPath)} disabled={!!busy} className="text-xs px-2 py-1.5 bg-surface-2 text-muted rounded disabled:opacity-50">{vid ? "영상 재생성" : "영상 생성"}</button>}</div>
                 </>}
 
                 {/* 비주얼 프롬프트 — 어떤 프롬프트로 생성됐는지 */}
                 {!isVideo(editing) && <div>
-                  <label className="text-[11px] text-purple-300">🎨 비주얼 프롬프트 <span className="text-gray-500">— 이 프롬프트로 이미지 생성됨</span></label>
-                  <textarea value={text.image_prompt || ""} onChange={(e) => upText({ image_prompt: e.target.value })} className="w-full bg-gray-800 text-gray-300 text-xs p-2 rounded border border-gray-700" rows={3} />
-                  <button onClick={() => genImage(text.image_prompt || idea)} disabled={!!busy} className="mt-1 text-xs px-2 py-1 bg-gray-700 text-gray-300 rounded disabled:opacity-50">이미지 재생성</button>
+                  <label className="text-[11px] text-accent">🎨 비주얼 프롬프트 <span className="text-subtle">— 이 프롬프트로 이미지 생성됨</span></label>
+                  <textarea value={text.image_prompt || ""} onChange={(e) => upText({ image_prompt: e.target.value })} className="w-full bg-surface-2 text-muted text-xs p-2 rounded border border-border" rows={3} />
+                  <button onClick={() => genImage(text.image_prompt || idea)} disabled={!!busy} className="mt-1 text-xs px-2 py-1 bg-surface-2 text-muted rounded disabled:opacity-50">이미지 재생성</button>
                 </div>}
-                <button onClick={() => genText()} disabled={!!busy} className="text-xs px-2 py-1 bg-gray-700 text-gray-300 rounded disabled:opacity-50">텍스트 전체 재생성</button>
+                <button onClick={() => genText()} disabled={!!busy} className="text-xs px-2 py-1 bg-surface-2 text-muted rounded disabled:opacity-50">텍스트 전체 재생성</button>
               </div>
 
               {/* 큰 미리보기 */}
-              <div><div className="text-[11px] text-gray-500 mb-2">미리보기</div><div className="bg-[#050505] rounded-lg p-4 flex justify-center"><PlatformPreview platform={editing} text={text} media={media} /></div></div>
+              <div><div className="text-[11px] text-subtle mb-2">미리보기</div><div className="bg-bg rounded-lg p-4 flex justify-center"><PlatformPreview platform={editing} text={text} media={media} /></div></div>
             </div>
           </div>
         </>
       )}
 
-      <div className="mt-6 text-[11px] text-gray-600">⚠️ 실 발행: 채널 토큰 연결 시 실제 게시(Threads/Instagram 직접 / X·영상은 게이트웨이 P5). 성과는 발행 후 수집. 🛣️ 시나리오2 트렌드 대기 · 시나리오3 롱폼분할 조사중</div>
+      <div className="mt-6 text-[11px] text-subtle">⚠️ 실 발행: 채널 토큰 연결 시 실제 게시(Threads/Instagram 직접 / X·영상은 게이트웨이 P5). 성과는 발행 후 수집. 🛣️ 시나리오2 트렌드 대기 · 시나리오3 롱폼분할 조사중</div>
     </div>
   );
 }

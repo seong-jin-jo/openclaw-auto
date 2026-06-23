@@ -29,8 +29,8 @@ const STATUS_LABEL: Record<string, string> = {
 const STATUS_COLOR: Record<string, string> = {
   active: "text-emerald-400",
   pending: "text-amber-400",
-  "waiting-meta-review": "text-gray-500",
-  "waiting-legal-opinion": "text-gray-500",
+  "waiting-meta-review": "text-subtle",
+  "waiting-legal-opinion": "text-subtle",
 };
 
 export default function ServicesPage() {
@@ -59,14 +59,14 @@ export default function ServicesPage() {
 
   if (loading) {
     return (
-      <div className="p-8 text-gray-400">tenants 로드 중...</div>
+      <div className="p-8 text-subtle">tenants 로드 중...</div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-8 text-gray-400">
-        <h1 className="text-xl text-gray-200 mb-4">전체 서비스</h1>
+      <div className="p-8 text-subtle">
+        <h1 className="text-xl text-muted mb-4">전체 서비스</h1>
         <p className="text-red-400 mb-2">tenants 로드 실패: {error}</p>
         <p className="text-sm">
           fork-only data 파일이 박혀있는지 확인 — <code className="text-amber-400">data/tenants.json</code>
@@ -77,11 +77,11 @@ export default function ServicesPage() {
 
   if (tenants.length === 0) {
     return (
-      <div className="p-8 text-gray-400">
-        <h1 className="text-xl text-gray-200 mb-4">전체 서비스</h1>
+      <div className="p-8 text-subtle">
+        <h1 className="text-xl text-muted mb-4">전체 서비스</h1>
         <p className="mb-3">등록된 tenants가 없습니다.</p>
         <p className="text-sm mb-2">fork에서 <code className="text-amber-400">data/tenants.json</code> 박기:</p>
-        <pre className="bg-gray-900 p-3 text-xs text-gray-300 rounded">{`{
+        <pre className="bg-surface p-3 text-xs text-muted rounded">{`{
   "tenants": [
     {
       "slug": "service-a",
@@ -98,14 +98,14 @@ export default function ServicesPage() {
   }
 
   return (
-    <div className="flex h-screen bg-[#0a0a0a]">
+    <div className="flex h-screen bg-bg">
       {/* 좌측 탭 */}
-      <aside className="w-60 border-r border-gray-800 bg-[#0d0d0d] flex flex-col">
-        <div className="p-4 border-b border-gray-800 flex items-center justify-between">
-          <h2 className="text-xs uppercase tracking-wider text-gray-500 font-semibold">전체 서비스</h2>
+      <aside className="w-60 border-r border-border bg-surface flex flex-col">
+        <div className="p-4 border-b border-border flex items-center justify-between">
+          <h2 className="text-xs uppercase tracking-wider text-subtle font-semibold">전체 서비스</h2>
           <button
             onClick={() => setShowAdd(true)}
-            className="text-gray-500 hover:text-emerald-400 text-lg leading-none w-6 h-6 flex items-center justify-center"
+            className="text-subtle hover:text-emerald-400 text-lg leading-none w-6 h-6 flex items-center justify-center"
             title="새 서비스 추가"
           >
             +
@@ -118,15 +118,15 @@ export default function ServicesPage() {
                 onClick={() => setActive(t.slug)}
                 className={`w-full text-left px-4 py-3 flex items-center gap-3 border-l-2 transition-colors ${
                   active === t.slug
-                    ? "bg-gray-900 border-emerald-500 text-gray-100"
-                    : "border-transparent text-gray-400 hover:bg-gray-900/50"
+                    ? "bg-surface border-emerald-500 text-text"
+                    : "border-transparent text-subtle hover:bg-surface/50"
                 }`}
               >
                 <span className="text-lg w-6 text-center">{t.emoji || "•"}</span>
                 <span className="flex-1 min-w-0">
                   <span className="block text-sm truncate">{t.name}</span>
                   <span
-                    className={`block text-[10px] mt-0.5 tracking-wider ${STATUS_COLOR[t.status || "pending"] || "text-gray-500"}`}
+                    className={`block text-[10px] mt-0.5 tracking-wider ${STATUS_COLOR[t.status || "pending"] || "text-subtle"}`}
                   >
                     {STATUS_LABEL[t.status || ""] || t.status || ""}
                   </span>
@@ -147,7 +147,7 @@ export default function ServicesPage() {
             className="w-full h-full border-0"
           />
         ) : (
-          <div className="flex items-center justify-center h-full text-gray-400">
+          <div className="flex items-center justify-center h-full text-subtle">
             서비스를 선택하세요
           </div>
         )}
@@ -202,11 +202,11 @@ docker-compose -f docker-compose.postagi-4tenants.yml up -d openclaw-gateway-${s
 
   return (
     <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50">
-      <div className="bg-[#0d0d0d] border border-gray-800 rounded p-6 w-[480px] max-w-[90vw]">
+      <div className="bg-surface border border-border rounded p-6 w-[480px] max-w-[90vw]">
         <h2 className="text-emerald-400 mb-4 text-base">새 서비스 추가</h2>
         <form onSubmit={submit} className="space-y-3">
           <div>
-            <label className="block text-[10px] uppercase tracking-wider text-gray-500 mb-1">
+            <label className="block text-[10px] uppercase tracking-wider text-subtle mb-1">
               slug (영문 소문자)
             </label>
             <input
@@ -214,25 +214,25 @@ docker-compose -f docker-compose.postagi-4tenants.yml up -d openclaw-gateway-${s
               pattern="[a-z0-9]+"
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
-              className="w-full px-3 py-2 bg-black border border-gray-800 text-gray-200 rounded text-sm"
+              className="w-full px-3 py-2 bg-black border border-border text-muted rounded text-sm"
               placeholder="예: nova"
             />
           </div>
           <div>
-            <label className="block text-[10px] uppercase tracking-wider text-gray-500 mb-1">
+            <label className="block text-[10px] uppercase tracking-wider text-subtle mb-1">
               표시명
             </label>
             <input
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 bg-black border border-gray-800 text-gray-200 rounded text-sm"
+              className="w-full px-3 py-2 bg-black border border-border text-muted rounded text-sm"
               placeholder="예: Nova App"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] uppercase tracking-wider text-gray-500 mb-1">
+              <label className="block text-[10px] uppercase tracking-wider text-subtle mb-1">
                 이모지
               </label>
               <input
@@ -240,17 +240,17 @@ docker-compose -f docker-compose.postagi-4tenants.yml up -d openclaw-gateway-${s
                 maxLength={2}
                 value={emoji}
                 onChange={(e) => setEmoji(e.target.value)}
-                className="w-full px-3 py-2 bg-black border border-gray-800 text-gray-200 rounded text-sm"
+                className="w-full px-3 py-2 bg-black border border-border text-muted rounded text-sm"
               />
             </div>
             <div>
-              <label className="block text-[10px] uppercase tracking-wider text-gray-500 mb-1">
+              <label className="block text-[10px] uppercase tracking-wider text-subtle mb-1">
                 주 채널
               </label>
               <select
                 value={channel}
                 onChange={(e) => setChannel(e.target.value)}
-                className="w-full px-3 py-2 bg-black border border-gray-800 text-gray-200 rounded text-sm"
+                className="w-full px-3 py-2 bg-black border border-border text-muted rounded text-sm"
               >
                 <option value="instagram">Instagram</option>
                 <option value="x">X (Twitter)</option>
@@ -259,14 +259,14 @@ docker-compose -f docker-compose.postagi-4tenants.yml up -d openclaw-gateway-${s
             </div>
           </div>
           <div>
-            <label className="block text-[10px] uppercase tracking-wider text-gray-500 mb-1">
+            <label className="block text-[10px] uppercase tracking-wider text-subtle mb-1">
               dashboard 도메인
             </label>
             <input
               required
               value={domain}
               onChange={(e) => setDomain(e.target.value)}
-              className="w-full px-3 py-2 bg-black border border-gray-800 text-gray-200 rounded text-sm"
+              className="w-full px-3 py-2 bg-black border border-border text-muted rounded text-sm"
               placeholder="예: marketing-nova.example.com"
             />
           </div>
@@ -274,7 +274,7 @@ docker-compose -f docker-compose.postagi-4tenants.yml up -d openclaw-gateway-${s
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-400 text-sm hover:text-gray-200"
+              className="px-4 py-2 text-subtle text-sm hover:text-muted"
             >
               취소
             </button>
@@ -287,7 +287,7 @@ docker-compose -f docker-compose.postagi-4tenants.yml up -d openclaw-gateway-${s
           </div>
         </form>
         {cmd && (
-          <pre className="mt-4 p-3 bg-black border border-gray-800 rounded text-xs text-emerald-400 whitespace-pre-wrap break-all">
+          <pre className="mt-4 p-3 bg-black border border-border rounded text-xs text-emerald-400 whitespace-pre-wrap break-all">
             {cmd}
             {"\n\n"}✓ 클립보드 복사됨 — 터미널에 붙여넣기
           </pre>

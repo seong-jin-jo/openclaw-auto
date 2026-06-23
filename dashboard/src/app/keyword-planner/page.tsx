@@ -67,8 +67,8 @@ export default function KeywordPlannerPage() {
   return (
     <div className="px-8 py-6">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-white">Keyword Planner</h2>
-        <p className="text-xs text-gray-500 mt-1">네이버 검색광고 API 기반 키워드 검색량 조회</p>
+        <h2 className="text-xl font-bold text-text">Keyword Planner</h2>
+        <p className="text-xs text-subtle mt-1">네이버 검색광고 API 기반 키워드 검색량 조회</p>
       </div>
 
       {/* Search */}
@@ -78,13 +78,13 @@ export default function KeywordPlannerPage() {
             value={inputKws}
             onChange={(e) => setInputKws(e.target.value)}
             placeholder="키워드 입력 (쉼표 또는 줄바꿈 구분, 최대 5개)"
-            className="flex-1 bg-gray-800 text-gray-200 text-sm px-3 py-2 rounded border border-gray-700"
+            className="flex-1 bg-surface-2 text-muted text-sm px-3 py-2 rounded border border-border"
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           />
           <button
             onClick={handleSearch}
             disabled={searching}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-500 disabled:opacity-50"
+            className="px-4 py-2 text-sm bg-accent text-text rounded hover:bg-accent-hover disabled:opacity-50"
           >
             {searching ? "조회 중..." : "조회"}
           </button>
@@ -94,18 +94,18 @@ export default function KeywordPlannerPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Results */}
         <div className="lg:col-span-2">
-          <h3 className="text-sm font-medium text-gray-300 mb-3">
+          <h3 className="text-sm font-medium text-muted mb-3">
             검색 결과 {results.length > 0 && `(${results.length})`}
           </h3>
           {results.length === 0 ? (
             <div className="card p-8 text-center">
-              <p className="text-gray-500 text-sm">키워드를 입력하고 조회하세요.</p>
+              <p className="text-subtle text-sm">키워드를 입력하고 조회하세요.</p>
             </div>
           ) : (
             <div className="card overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-800 text-gray-500 text-[10px]">
+                  <tr className="border-b border-border text-subtle text-[10px]">
                     <th className="text-left px-4 py-2">키워드</th>
                     <th className="text-right px-4 py-2">PC</th>
                     <th className="text-right px-4 py-2">모바일</th>
@@ -116,11 +116,11 @@ export default function KeywordPlannerPage() {
                 </thead>
                 <tbody>
                   {results.map((r) => (
-                    <tr key={r.keyword} className="border-b border-gray-800/50 hover:bg-gray-900/50">
-                      <td className="px-4 py-2 text-gray-300 text-xs">{r.keyword}</td>
-                      <td className="px-4 py-2 text-right text-gray-300 text-xs">{r.pcSearches.toLocaleString()}</td>
-                      <td className="px-4 py-2 text-right text-gray-300 text-xs">{r.mobileSearches.toLocaleString()}</td>
-                      <td className="px-4 py-2 text-right text-white text-xs font-medium">{r.totalSearches.toLocaleString()}</td>
+                    <tr key={r.keyword} className="border-b border-border/50 hover:bg-surface/50">
+                      <td className="px-4 py-2 text-muted text-xs">{r.keyword}</td>
+                      <td className="px-4 py-2 text-right text-muted text-xs">{r.pcSearches.toLocaleString()}</td>
+                      <td className="px-4 py-2 text-right text-muted text-xs">{r.mobileSearches.toLocaleString()}</td>
+                      <td className="px-4 py-2 text-right text-text text-xs font-medium">{r.totalSearches.toLocaleString()}</td>
                       <td className={`px-4 py-2 text-right text-xs ${compColor(r.competition)}`}>{r.competition || "-"}</td>
                       <td className="px-4 py-2 text-right">
                         {bankSet.has(r.keyword) ? (
@@ -142,17 +142,17 @@ export default function KeywordPlannerPage() {
 
         {/* Keyword Bank */}
         <div>
-          <h3 className="text-sm font-medium text-gray-300 mb-3">
+          <h3 className="text-sm font-medium text-muted mb-3">
             Keyword Bank ({bank.filter((b) => !b.used).length})
           </h3>
           {bank.length === 0 ? (
-            <div className="card p-4 text-center"><p className="text-gray-500 text-xs">키워드 뱅크가 비어 있습니다.</p></div>
+            <div className="card p-4 text-center"><p className="text-subtle text-xs">키워드 뱅크가 비어 있습니다.</p></div>
           ) : (
             <div className="space-y-1">
               {bank.filter((b) => !b.used).slice(0, 20).map((b) => (
                 <div key={b.keyword} className="card p-2 flex items-center justify-between">
-                  <span className="text-xs text-gray-300">{b.keyword}</span>
-                  <span className="text-[10px] text-gray-600">{b.source}</span>
+                  <span className="text-xs text-muted">{b.keyword}</span>
+                  <span className="text-[10px] text-subtle">{b.source}</span>
                 </div>
               ))}
             </div>

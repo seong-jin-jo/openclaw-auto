@@ -87,18 +87,18 @@ export function SlackSettings() {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-medium text-white">Slack Notifications</h3>
+      <h3 className="text-sm font-medium text-text">Slack Notifications</h3>
 
       {/* Webhook Config */}
       <div className="card p-4">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs text-gray-400">Webhook URL</span>
+          <span className="text-xs text-subtle">Webhook URL</span>
           <div className="flex items-center gap-2">
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${config?.configured ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"}`}>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${config?.configured ? "bg-green-900/50 text-green-400" : "bg-surface-2 text-subtle"}`}>
               {config?.configured ? "Connected" : "Not set"}
             </span>
             {config?.configured && !editing && (
-              <button onClick={() => setEditing(true)} className="text-[10px] text-blue-400 hover:text-blue-300">Edit</button>
+              <button onClick={() => setEditing(true)} className="text-[10px] text-accent hover:text-accent">Edit</button>
             )}
           </div>
         </div>
@@ -111,28 +111,28 @@ export function SlackSettings() {
               onChange={(e) => setWebhookUrl(e.target.value)}
               placeholder="https://hooks.slack.com/services/..."
               title={webhookUrl || config?.webhookUrl || ""}
-              className={`w-full ${!config?.configured || editing ? "bg-gray-900" : "bg-gray-900/50 cursor-default"} border border-gray-700 rounded px-3 py-2 pr-16 text-[11px] text-gray-300 placeholder-gray-600 font-mono`}
+              className={`w-full ${!config?.configured || editing ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-[11px] text-muted placeholder-gray-600 font-mono`}
             />
             <button
               type="button"
               onClick={() => setShowWebhook(!showWebhook)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 hover:text-gray-300"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-subtle hover:text-muted"
             >
               {showWebhook ? "Hide" : "Show"}
             </button>
           </div>
           {!config?.configured || editing ? (
             <div className="flex gap-2">
-              <button onClick={saveWebhook} className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">
+              <button onClick={saveWebhook} className="px-3 py-1.5 text-xs bg-accent text-text rounded hover:bg-accent-hover">
                 {config?.configured ? "Update" : "Save"}
               </button>
               {editing && (
-                <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded">Cancel</button>
+                <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-xs bg-surface-2 text-muted rounded">Cancel</button>
               )}
             </div>
           ) : (
             <div className="flex gap-2">
-              <button onClick={testWebhook} className="px-3 py-1.5 text-xs bg-green-700 text-white rounded hover:bg-green-600">Test</button>
+              <button onClick={testWebhook} className="px-3 py-1.5 text-xs bg-green-700 text-text rounded hover:bg-green-600">Test</button>
             </div>
           )}
         </div>
@@ -141,9 +141,9 @@ export function SlackSettings() {
       {/* Template */}
       <div className="card p-4">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs text-gray-400">Report Template</span>
+          <span className="text-xs text-subtle">Report Template</span>
           {!editingTmpl && (
-            <button onClick={() => { setTemplate(tmpl?.template || ""); setEditingTmpl(true); }} className="text-[10px] text-blue-400 hover:text-blue-300">Edit</button>
+            <button onClick={() => { setTemplate(tmpl?.template || ""); setEditingTmpl(true); }} className="text-[10px] text-accent hover:text-accent">Edit</button>
           )}
         </div>
         {editingTmpl ? (
@@ -152,20 +152,20 @@ export function SlackSettings() {
               value={template}
               onChange={(e) => setTemplate(e.target.value)}
               rows={10}
-              className="w-full bg-gray-800 text-gray-200 text-xs p-3 rounded border border-gray-700 font-mono"
+              className="w-full bg-surface-2 text-muted text-xs p-3 rounded border border-border font-mono"
             />
-            <p className="text-[10px] text-gray-600">
+            <p className="text-[10px] text-subtle">
               Variables: {"{blog_articles}"}, {"{blog_views}"}, {"{blog_delta}"}, {"{blog_top}"},
               {"{gsc_clicks}"}, {"{gsc_impressions}"}, {"{gsc_ctr}"}, {"{gsc_top_keywords}"},
               {"{ga_sessions}"}, {"{ga_pageviews}"}, {"{dashboard_url}"}
             </p>
             <div className="flex gap-2">
-              <button onClick={saveTemplate} className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Save</button>
-              <button onClick={() => setEditingTmpl(false)} className="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded">Cancel</button>
+              <button onClick={saveTemplate} className="px-3 py-1.5 text-xs bg-accent text-text rounded hover:bg-accent-hover">Save</button>
+              <button onClick={() => setEditingTmpl(false)} className="px-3 py-1.5 text-xs bg-surface-2 text-muted rounded">Cancel</button>
             </div>
           </div>
         ) : (
-          <pre className="text-[10px] text-gray-500 whitespace-pre-wrap max-h-32 overflow-auto">{tmpl?.template?.slice(0, 300)}...</pre>
+          <pre className="text-[10px] text-subtle whitespace-pre-wrap max-h-32 overflow-auto">{tmpl?.template?.slice(0, 300)}...</pre>
         )}
       </div>
 
@@ -173,16 +173,16 @@ export function SlackSettings() {
       {config?.configured && (
         <div className="card p-4">
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-xs text-gray-400">Report Preview & Send</span>
+            <span className="text-xs text-subtle">Report Preview & Send</span>
           </div>
           <div className="flex gap-2 mb-3">
-            <button onClick={loadPreview} className="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600">Preview Report</button>
-            <button onClick={sendReport} disabled={sending} className="px-3 py-1.5 text-xs bg-purple-700 text-white rounded hover:bg-purple-600 disabled:opacity-50">
+            <button onClick={loadPreview} className="px-3 py-1.5 text-xs bg-surface-2 text-muted rounded hover:bg-surface-2">Preview Report</button>
+            <button onClick={sendReport} disabled={sending} className="px-3 py-1.5 text-xs bg-accent text-text rounded hover:bg-accent-hover disabled:opacity-50">
               {sending ? "Sending..." : "Send to Slack"}
             </button>
           </div>
           {preview && (
-            <pre className="bg-gray-800 text-gray-300 text-[10px] p-3 rounded whitespace-pre-wrap max-h-48 overflow-auto">{preview}</pre>
+            <pre className="bg-surface-2 text-muted text-[10px] p-3 rounded whitespace-pre-wrap max-h-48 overflow-auto">{preview}</pre>
           )}
         </div>
       )}

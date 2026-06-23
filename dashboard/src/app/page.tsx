@@ -24,15 +24,15 @@ interface PostRow {
 function card(title: string, value: string | number, sub?: string) {
   return (
     <div className="card p-4">
-      <p className="text-[11px] text-gray-500 uppercase tracking-wide">{title}</p>
-      <p className="text-2xl font-bold text-white mt-1">{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+      <p className="text-[11px] text-subtle uppercase tracking-wide">{title}</p>
+      <p className="text-2xl font-bold text-text mt-1">{value}</p>
+      {sub && <p className="text-xs text-subtle mt-1">{sub}</p>}
     </div>
   );
 }
 
 const ALL_CHANNELS = [
-  { key: "threads", label: "Threads", icon: "T", iconClass: "bg-gradient-to-br from-purple-500 to-pink-500 text-white" },
+  { key: "threads", label: "Threads", icon: "T", iconClass: "bg-accent text-text" },
   { key: "x", label: "X", icon: "X" },
   { key: "instagram", label: "Instagram", icon: "IG" },
   { key: "facebook", label: "Facebook", icon: "F" },
@@ -85,7 +85,7 @@ export default function HomePage() {
   const errInfo = errorData as { last24h?: number } | undefined;
   const errorCount24h = errInfo?.last24h || 0;
 
-  if (!o) return <div className="px-8 py-6"><p className="text-gray-500">Loading...</p></div>;
+  if (!o) return <div className="px-8 py-6"><p className="text-subtle">Loading...</p></div>;
 
   const sc = (o.statusCounts || {}) as Record<string, number>;
   const cc = (o.channelCounts || {}) as Record<string, number>;
@@ -146,13 +146,13 @@ export default function HomePage() {
       {/* Marketing Home — 전 플랫폼 종합 + 로고 클릭 시 플랫폼 집중 */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
-          <div><h2 className="text-lg font-semibold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">성과</h2><p className="text-xs text-gray-500">{activeWorkspace?.name ? `${activeWorkspace.name} · ` : ""}전 플랫폼 종합 + 발행물별 성과 · 로고 클릭 시 플랫폼 집중</p></div>
+          <div><h2 className="text-lg font-semibold bg-gradient-to-r from-accent to-accent-hover bg-clip-text text-transparent">성과</h2><p className="text-xs text-subtle">{activeWorkspace?.name ? `${activeWorkspace.name} · ` : ""}전 플랫폼 종합 + 발행물별 성과 · 로고 클릭 시 플랫폼 집중</p></div>
         </div>
         <div className="flex gap-2 flex-wrap mb-4">
-          <button onClick={() => setFocus("all")} className={`px-3 py-2 rounded-lg text-xs font-medium ${focus === "all" ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>전체</button>
+          <button onClick={() => setFocus("all")} className={`px-3 py-2 rounded-lg text-xs font-medium ${focus === "all" ? "bg-accent text-text" : "bg-surface-2 text-subtle hover:bg-surface-2"}`}>전체</button>
           {PREVIEW_PLATFORMS.map((p) => (
-            <button key={p.key} onClick={() => setFocus(p.key)} title={p.label} className={`px-3 py-2 rounded-lg flex items-center gap-1.5 ${focus === p.key ? "bg-gradient-to-r from-purple-600 to-pink-600 ring-1 ring-pink-400" : "bg-gray-800 hover:bg-gray-700"}`}>
-              <Logo p={p.key} /><span className="text-xs text-gray-300">{p.label}</span>
+            <button key={p.key} onClick={() => setFocus(p.key)} title={p.label} className={`px-3 py-2 rounded-lg flex items-center gap-1.5 ${focus === p.key ? "bg-accent ring-1 ring-accent" : "bg-surface-2 hover:bg-surface-2"}`}>
+              <Logo p={p.key} /><span className="text-xs text-muted">{p.label}</span>
             </button>
           ))}
         </div>
@@ -163,24 +163,24 @@ export default function HomePage() {
           {card("참여(Engagement)", "—", "insights 연동 시")}
           {card("팔로워 증감", "—", "insights 연동 시")}
         </div>
-        {focus !== "all" && <p className="text-[11px] text-gray-600 mt-2">📊 {PREVIEW_PLATFORMS.find((p) => p.key === focus)?.label} 집중 분석 — 채널 연결 후 실데이터 표시</p>}
+        {focus !== "all" && <p className="text-[11px] text-subtle mt-2">📊 {PREVIEW_PLATFORMS.find((p) => p.key === focus)?.label} 집중 분석 — 채널 연결 후 실데이터 표시</p>}
       </div>
 
       {/* 발행물 성과 — 실제 발행물별 조회·좋아요 (성과 페이지 통합) */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide">📈 발행물 성과</h3>
+          <h3 className="text-xs font-medium text-subtle uppercase tracking-wide">📈 발행물 성과</h3>
           <div className="flex gap-2">
-            <button onClick={generateIdeas} disabled={loadingIdeas} className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg disabled:opacity-50">{loadingIdeas ? "분석 중…" : "💡 성과 기반 다음 아이디어"}</button>
-            <button onClick={collectMetrics} disabled={collecting || !activeWorkspace} className="px-3 py-1.5 text-xs bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg disabled:opacity-50">{collecting ? "수집 중…" : "🔄 성과 수집"}</button>
+            <button onClick={generateIdeas} disabled={loadingIdeas} className="px-3 py-1.5 text-xs bg-surface-2 hover:bg-surface-2 text-muted rounded-lg disabled:opacity-50">{loadingIdeas ? "분석 중…" : "💡 성과 기반 다음 아이디어"}</button>
+            <button onClick={collectMetrics} disabled={collecting || !activeWorkspace} className="px-3 py-1.5 text-xs bg-accent text-text rounded-lg disabled:opacity-50">{collecting ? "수집 중…" : "🔄 성과 수집"}</button>
           </div>
         </div>
         {ideas && (
-          <div className="mb-3 p-3 rounded-xl border border-gray-800 bg-gray-900/40">
-            <p className="text-xs text-gray-400 mb-1.5">성과 상위 글 패턴 기반 추천</p>
+          <div className="mb-3 p-3 rounded-xl border border-border bg-surface/40">
+            <p className="text-xs text-subtle mb-1.5">성과 상위 글 패턴 기반 추천</p>
             <ul className="space-y-1">
               {ideas.map((idea, i) => (
-                <li key={i} className="text-xs text-gray-300">• {idea}</li>
+                <li key={i} className="text-xs text-muted">• {idea}</li>
               ))}
             </ul>
           </div>
@@ -194,39 +194,39 @@ export default function HomePage() {
         </div>
         <div className="card overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="text-[11px] text-gray-500 border-b border-gray-800">
+            <thead><tr className="text-[11px] text-subtle border-b border-border">
               <th className="text-left p-3">플랫폼</th><th className="text-left p-3">내용</th>
               <th className="p-3">상태</th><th className="p-3">조회</th><th className="p-3">좋아요</th>
               <th className="p-3">답글</th><th className="p-3">발행</th>
             </tr></thead>
             <tbody>
               {posts.map((p) => (
-                <tr key={p.id} className="border-b border-gray-900 text-gray-300">
+                <tr key={p.id} className="border-b border-border text-muted">
                   <td className="p-3 text-xs">{p.platform}</td>
                   <td className="p-3 text-xs max-w-xs truncate">
-                    {p.permalink ? <a href={p.permalink} target="_blank" rel="noopener noreferrer" className="hover:underline text-purple-300">{p.text?.slice(0, 50) || "(게시물)"} ↗</a> : (p.text?.slice(0, 50) || "—")}
+                    {p.permalink ? <a href={p.permalink} target="_blank" rel="noopener noreferrer" className="hover:underline text-accent">{p.text?.slice(0, 50) || "(게시물)"} ↗</a> : (p.text?.slice(0, 50) || "—")}
                     {p.status === "failed" && <span className="text-red-400 text-[10px] block">{p.error?.slice(0, 60)}</span>}
                   </td>
                   <td className="p-3 text-center"><span className={`text-[10px] px-2 py-0.5 rounded-full ${p.status === "published" ? "bg-green-900/50 text-green-400" : "bg-red-900/40 text-red-400"}`}>{p.status}</span></td>
                   <td className="p-3 text-center text-xs">{p.views ?? "—"}</td>
                   <td className="p-3 text-center text-xs">{p.likes ?? "—"}</td>
                   <td className="p-3 text-center text-xs">{p.replies ?? "—"}</td>
-                  <td className="p-3 text-center text-[10px] text-gray-500">{fmtAgo(p.published_at)}</td>
+                  <td className="p-3 text-center text-[10px] text-subtle">{fmtAgo(p.published_at)}</td>
                 </tr>
               ))}
-              {posts.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-gray-600 text-xs">아직 발행물이 없습니다. Studio에서 발행하세요.</td></tr>}
+              {posts.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-subtle text-xs">아직 발행물이 없습니다. Studio에서 발행하세요.</td></tr>}
             </tbody>
           </table>
         </div>
       </div>
 
       {/* 운영 현황 — 큐·팔로워·바이럴·자동화·채널 */}
-      <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">운영 현황</h3>
+      <h3 className="text-xs font-medium text-subtle uppercase tracking-wide mb-3">운영 현황</h3>
 
       {/* Error Indicator */}
       {errorCount24h > 0 && (
         <div className="mb-4 px-4 py-3 rounded-xl bg-red-900/20 border border-red-900/40 flex items-center gap-3">
-          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
+          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-red-500 text-text text-xs font-bold flex items-center justify-center">
             {errorCount24h}
           </span>
           <span className="text-sm text-red-300">
@@ -248,100 +248,100 @@ export default function HomePage() {
       {usage && (
         <div className="card p-5 mb-6">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide">사용량</h3>
+            <h3 className="text-xs font-medium text-subtle uppercase tracking-wide">사용량</h3>
             {usage.tier && (
-              <span className="text-[10px] px-2 py-0.5 bg-blue-900/50 rounded text-blue-300">
+              <span className="text-[10px] px-2 py-0.5 bg-blue-900/50 rounded text-accent">
                 {usage.tier} tier
               </span>
             )}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-              <p className="text-[10px] text-gray-500 mb-2">오늘</p>
+              <p className="text-[10px] text-subtle mb-2">오늘</p>
               <div className="flex items-center gap-4">
                 <div>
-                  <p className="text-xl font-bold text-white">{usage.today?.aiGenerations || 0}</p>
-                  <p className="text-[10px] text-gray-500">generations / shorts</p>
+                  <p className="text-xl font-bold text-text">{usage.today?.aiGenerations || 0}</p>
+                  <p className="text-[10px] text-subtle">generations / shorts</p>
                 </div>
                 <div>
-                  <p className="text-xl font-bold text-white">{usage.today?.publications || 0}</p>
-                  <p className="text-[10px] text-gray-500">publications</p>
+                  <p className="text-xl font-bold text-text">{usage.today?.publications || 0}</p>
+                  <p className="text-[10px] text-subtle">publications</p>
                 </div>
                 <div>
-                  <p className="text-xl font-bold text-gray-400">{usage.today?.cronRuns || 0}</p>
-                  <p className="text-[10px] text-gray-500">cron runs</p>
+                  <p className="text-xl font-bold text-subtle">{usage.today?.cronRuns || 0}</p>
+                  <p className="text-[10px] text-subtle">cron runs</p>
                 </div>
               </div>
             </div>
             <div>
-              <p className="text-[10px] text-gray-500 mb-2">이번 주</p>
+              <p className="text-[10px] text-subtle mb-2">이번 주</p>
               <div className="flex items-center gap-4">
                 <div>
-                  <p className="text-xl font-bold text-white">{usage.thisWeek?.aiGenerations || 0}</p>
-                  <p className="text-[10px] text-gray-500">generations / shorts</p>
+                  <p className="text-xl font-bold text-text">{usage.thisWeek?.aiGenerations || 0}</p>
+                  <p className="text-[10px] text-subtle">generations / shorts</p>
                 </div>
                 <div>
-                  <p className="text-xl font-bold text-white">{usage.thisWeek?.publications || 0}</p>
-                  <p className="text-[10px] text-gray-500">publications</p>
+                  <p className="text-xl font-bold text-text">{usage.thisWeek?.publications || 0}</p>
+                  <p className="text-[10px] text-subtle">publications</p>
                 </div>
                 <div>
-                  <p className="text-xl font-bold text-gray-400">{usage.thisWeek?.cronRuns || 0}</p>
-                  <p className="text-[10px] text-gray-500">cron runs</p>
+                  <p className="text-xl font-bold text-subtle">{usage.thisWeek?.cronRuns || 0}</p>
+                  <p className="text-[10px] text-subtle">cron runs</p>
                 </div>
               </div>
             </div>
           </div>
           {usage.quota && (
-            <p className="text-[10px] text-gray-500 mt-2">
+            <p className="text-[10px] text-subtle mt-2">
               Quota (this month): shorts {usage.quota.shorts_used}/{usage.quota.shorts_included} · gens {usage.quota.generations_used}/{usage.quota.generations_included}
             </p>
           )}
-          <p className="text-[9px] text-gray-500 mt-1">Base subscription + usage add-ons (see Settings for upgrade)</p>
+          <p className="text-[9px] text-subtle mt-1">Base subscription + usage add-ons (see Settings for upgrade)</p>
         </div>
       )}
 
       {/* Weekly Performance */}
       {weekly && (
         <div className="card p-5 mb-6">
-          <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-4">This Week</h3>
+          <h3 className="text-xs font-medium text-subtle uppercase tracking-wide mb-4">This Week</h3>
           <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <div>
-              <p className="text-[10px] text-gray-500">Published</p>
-              <p className="text-xl font-bold text-white">{String(weekly.published)}</p>
+              <p className="text-[10px] text-subtle">Published</p>
+              <p className="text-xl font-bold text-text">{String(weekly.published)}</p>
             </div>
             <div>
-              <p className="text-[10px] text-gray-500">Views</p>
-              <p className="text-xl font-bold text-white">{(weekly.views as number)?.toLocaleString?.() || "0"}</p>
+              <p className="text-[10px] text-subtle">Views</p>
+              <p className="text-xl font-bold text-text">{(weekly.views as number)?.toLocaleString?.() || "0"}</p>
             </div>
             <div>
-              <p className="text-[10px] text-gray-500">Likes</p>
-              <p className="text-xl font-bold text-white">{String(weekly.likes)}</p>
+              <p className="text-[10px] text-subtle">Likes</p>
+              <p className="text-xl font-bold text-text">{String(weekly.likes)}</p>
             </div>
             <div>
-              <p className="text-[10px] text-gray-500">Replies</p>
-              <p className="text-xl font-bold text-white">{String(weekly.replies)}</p>
+              <p className="text-[10px] text-subtle">Replies</p>
+              <p className="text-xl font-bold text-text">{String(weekly.replies)}</p>
             </div>
             <div>
-              <p className="text-[10px] text-gray-500">Eng. Rate</p>
-              <p className={`text-xl font-bold ${(weekly.engagementRate as number) > 3 ? "text-green-400" : "text-white"}`}>
+              <p className="text-[10px] text-subtle">Eng. Rate</p>
+              <p className={`text-xl font-bold ${(weekly.engagementRate as number) > 3 ? "text-green-400" : "text-text"}`}>
                 {String(weekly.engagementRate)}%
               </p>
             </div>
             <div>
-              <p className="text-[10px] text-gray-500">Drafts</p>
-              <p className="text-xl font-bold text-gray-400">{String(weekly.drafted)}</p>
+              <p className="text-[10px] text-subtle">Drafts</p>
+              <p className="text-xl font-bold text-subtle">{String(weekly.drafted)}</p>
             </div>
           </div>
           {(weekly.published as number) > 0 ? (
-            <div className="mt-4 pt-3 border-t border-gray-800/50">
+            <div className="mt-4 pt-3 border-t border-border/50">
               <div className="flex items-center gap-6 text-xs">
-                <span className="text-gray-500">Channel breakdown:</span>
-                <span className="text-purple-400">Threads: {(weekly.channels as Record<string, number>)?.threads || 0}</span>
-                <span className="text-gray-300">X: {(weekly.channels as Record<string, number>)?.x || 0}</span>
+                <span className="text-subtle">Channel breakdown:</span>
+                <span className="text-accent">Threads: {(weekly.channels as Record<string, number>)?.threads || 0}</span>
+                <span className="text-muted">X: {(weekly.channels as Record<string, number>)?.x || 0}</span>
               </div>
             </div>
           ) : (
-            <p className="text-xs text-gray-600 mt-3">
+            <p className="text-xs text-subtle mt-3">
               이번 주 발행된 글이 없습니다. Queue에서 draft를 승인하면 자동 발행됩니다.
             </p>
           )}
@@ -351,17 +351,17 @@ export default function HomePage() {
       {/* Cron + Activity */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="card p-5">
-          <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Automation Status</h3>
+          <h3 className="text-xs font-medium text-subtle uppercase tracking-wide mb-3">Automation Status</h3>
           <div className="space-y-2.5">
             {cronJobs.map((j, i) => {
-              const dot = j.lastStatus === "ok" ? "bg-green-500" : j.lastStatus === "error" ? "bg-red-500" : "bg-gray-600";
+              const dot = j.lastStatus === "ok" ? "bg-green-500" : j.lastStatus === "error" ? "bg-red-500" : "bg-surface-2";
               return (
                 <div key={i} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className={`w-1.5 h-1.5 rounded-full ${dot}`} />
-                    <span className="text-xs text-gray-300">{String(j.name)}</span>
+                    <span className="text-xs text-muted">{String(j.name)}</span>
                   </div>
-                  <span className="text-[10px] text-gray-500">
+                  <span className="text-[10px] text-subtle">
                     {j.lastStatus === "error" ? (
                       <span className="text-red-400">error</span>
                     ) : (
@@ -374,13 +374,13 @@ export default function HomePage() {
           </div>
         </div>
         <div className="card p-5 col-span-2">
-          <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Recent Activity</h3>
+          <h3 className="text-xs font-medium text-subtle uppercase tracking-wide mb-3">Recent Activity</h3>
           <div className="space-y-3">
             {activity.length > 0
               ? activity.slice(0, 6).map((e, i) => {
                   const icons: Record<string, string> = {
                     publish: "bg-green-900/40 text-green-400",
-                    draft: "bg-purple-900/40 text-purple-400",
+                    draft: "bg-accent-soft text-accent",
                     viral: "bg-yellow-900/40 text-yellow-400",
                   };
                   const labels: Record<string, string> = {
@@ -391,20 +391,20 @@ export default function HomePage() {
                   const type = e.type as string;
                   return (
                     <div key={i} className="flex gap-3 items-start">
-                      <div className={`mt-0.5 w-6 h-6 rounded ${icons[type] || "bg-gray-800 text-gray-400"} flex items-center justify-center flex-shrink-0`}>
+                      <div className={`mt-0.5 w-6 h-6 rounded ${icons[type] || "bg-surface-2 text-subtle"} flex items-center justify-center flex-shrink-0`}>
                         <span className="text-[9px]">{labels[type] || "?"}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-300 truncate">
+                        <p className="text-xs text-muted truncate">
                           {String(e.text)}
                           {type === "viral" ? ` — ${e.views} views` : ""}
                         </p>
-                        <p className="text-[10px] text-gray-600 mt-0.5">{fmtAgo(e.at)}</p>
+                        <p className="text-[10px] text-subtle mt-0.5">{fmtAgo(e.at)}</p>
                       </div>
                     </div>
                   );
                 })
-              : <p className="text-xs text-gray-600">No recent activity</p>}
+              : <p className="text-xs text-subtle">No recent activity</p>}
           </div>
         </div>
       </div>
@@ -420,7 +420,7 @@ export default function HomePage() {
                   <span className={`text-[10px] ${a.severity === "error" ? "text-red-400" : "text-yellow-400"}`}>
                     {a.severity === "error" ? "\u25CF" : "\u25B2"}
                   </span>
-                  <span className="text-xs text-gray-300">{String(a.message)}</span>
+                  <span className="text-xs text-muted">{String(a.message)}</span>
                 </div>
               ))}
             </div>
@@ -428,27 +428,27 @@ export default function HomePage() {
         )}
 
         <div className={`card p-5 ${alerts.length ? "" : "col-span-1"}`}>
-          <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">AI Engine</h3>
+          <h3 className="text-xs font-medium text-subtle uppercase tracking-wide mb-3">AI Engine</h3>
           {claude ? (
             <>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Claude</span>
+                  <span className="text-subtle">Claude</span>
                   <span className={claude.healthy ? "text-green-400" : "text-red-400"}>
                     {claude.healthy ? "Healthy" : "Error"}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Token</span>
-                  <span className="text-gray-400 font-mono text-xs">{String(claude.tokenPreview || "...")}</span>
+                  <span className="text-subtle">Token</span>
+                  <span className="text-subtle font-mono text-xs">{String(claude.tokenPreview || "...")}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Errors</span>
-                  <span className={(claude.errorCount as number) > 0 ? "text-red-400" : "text-gray-300"}>{String(claude.errorCount)}</span>
+                  <span className="text-subtle">Errors</span>
+                  <span className={(claude.errorCount as number) > 0 ? "text-red-400" : "text-muted"}>{String(claude.errorCount)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Last used</span>
-                  <span className="text-gray-300">
+                  <span className="text-subtle">Last used</span>
+                  <span className="text-muted">
                     {claude.lastUsed ? fmtAgo(new Date(claude.lastUsed as number).toISOString()) : "-"}
                   </span>
                 </div>
@@ -460,28 +460,28 @@ export default function HomePage() {
               )}
             </>
           ) : (
-            <p className="text-xs text-gray-600">No data</p>
+            <p className="text-xs text-subtle">No data</p>
           )}
         </div>
 
         <div className={`card p-5 ${alerts.length ? "" : "col-span-1"}`}>
-          <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Channels Status</h3>
+          <h3 className="text-xs font-medium text-subtle uppercase tracking-wide mb-3">Channels Status</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-500">Threads</span>
-              <span className={tokenStatus?.threads && (tokenStatus.threads as Record<string, unknown>).connected ? "text-green-400" : "text-gray-600"}>
+              <span className="text-subtle">Threads</span>
+              <span className={tokenStatus?.threads && (tokenStatus.threads as Record<string, unknown>).connected ? "text-green-400" : "text-subtle"}>
                 {tokenStatus?.threads && (tokenStatus.threads as Record<string, unknown>).connected ? "Connected" : "Off"}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">X (Twitter)</span>
+              <span className="text-subtle">X (Twitter)</span>
               <span className={tokenStatus?.x && (tokenStatus.x as Record<string, unknown>).connected ? "text-green-400" : "text-yellow-400"}>
                 {tokenStatus?.x && (tokenStatus.x as Record<string, unknown>).connected ? "Connected" : ""}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Blog</span>
-              <span className="text-gray-300">Active</span>
+              <span className="text-subtle">Blog</span>
+              <span className="text-muted">Active</span>
             </div>
           </div>
         </div>
@@ -490,37 +490,37 @@ export default function HomePage() {
       {/* Agent Activity Log */}
       {agentLogs.length > 0 && (
         <div className="card p-5 mb-6">
-          <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Agent Activity</h3>
+          <h3 className="text-xs font-medium text-subtle uppercase tracking-wide mb-3">Agent Activity</h3>
           <div className="space-y-3">
             {agentLogs.slice(0, 5).map((log, i) => {
               const messages = (log.messages || []) as Array<Record<string, string>>;
               return (
-                <div key={i} className="p-2 rounded bg-gray-900/50">
+                <div key={i} className="p-2 rounded bg-surface/50">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       <span
                         className={`text-[10px] px-1.5 py-0.5 rounded ${
                           log.channel === "telegram"
-                            ? "bg-blue-900/40 text-blue-400"
+                            ? "bg-blue-900/40 text-accent"
                             : log.channel
-                            ? "bg-gray-800 text-gray-400"
-                            : "bg-purple-900/40 text-purple-400"
+                            ? "bg-surface-2 text-subtle"
+                            : "bg-accent-soft text-accent"
                         }`}
                       >
                         {String(log.channel || "cron")}
                       </span>
-                      <span className="text-[10px] text-gray-600">{String(log.sessionId)}</span>
+                      <span className="text-[10px] text-subtle">{String(log.sessionId)}</span>
                     </div>
-                    <span className="text-[10px] text-gray-600">
+                    <span className="text-[10px] text-subtle">
                       {log.startedAt ? fmtAgo(log.startedAt) : ""}
                     </span>
                   </div>
                   {messages.map((m, j) => (
                     <div key={j} className="flex gap-2 mt-1">
-                      <span className={`text-[9px] ${m.role === "user" ? "text-blue-400" : "text-green-400"} flex-shrink-0`}>
+                      <span className={`text-[9px] ${m.role === "user" ? "text-accent" : "text-green-400"} flex-shrink-0`}>
                         {m.role === "user" ? "\u2192" : "\u2190"}
                       </span>
-                      <p className="text-[10px] text-gray-400 truncate">{m.text}</p>
+                      <p className="text-[10px] text-subtle truncate">{m.text}</p>
                     </div>
                   ))}
                 </div>

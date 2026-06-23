@@ -7,5 +7,5 @@ import { useRouter } from "next/navigation";
 export default function PerformanceRedirect() {
   const router = useRouter();
   useEffect(() => { router.replace("/"); }, [router]);
-  return <div className="px-8 py-6"><p className="text-gray-500">성과는 홈으로 통합되었습니다…</p></div>;
+  return <div className="px-8 py-6"><p className="text-subtle">성과는 홈으로 통합되었습니다…</p></div>;
 }

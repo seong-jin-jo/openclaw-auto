@@ -55,47 +55,47 @@ export function TenantTokensSettings() {
     await mutate();
   };
 
-  if (!activeWorkspace) return <p className="text-sm text-gray-500">워크스페이스를 선택하세요.</p>;
+  if (!activeWorkspace) return <p className="text-sm text-subtle">워크스페이스를 선택하세요.</p>;
 
   return (
     <div className="max-w-2xl">
       {/* 커스텀 도메인(CNAME) — 이 도메인으로 접속 시 Host로 이 워크스페이스 자동 판별 */}
-      <div className="mb-6 p-4 rounded-xl border border-gray-800 bg-gray-900/40">
-        <h3 className="text-sm font-semibold text-white mb-1">커스텀 도메인 (CNAME) · {activeWorkspace.name}</h3>
-        <p className="text-xs text-gray-500 mb-3">이 도메인을 중앙 인스턴스로 CNAME하면, 그 도메인 접속이 <b className="text-gray-300">Host 헤더</b>로 이 워크스페이스로 자동 매핑됩니다(토큰 없이도 스코프). 현재: <span className="text-purple-300">{curWs?.domain || "(미설정)"}</span></p>
+      <div className="mb-6 p-4 rounded-xl border border-border bg-surface/40">
+        <h3 className="text-sm font-semibold text-text mb-1">커스텀 도메인 (CNAME) · {activeWorkspace.name}</h3>
+        <p className="text-xs text-subtle mb-3">이 도메인을 중앙 인스턴스로 CNAME하면, 그 도메인 접속이 <b className="text-muted">Host 헤더</b>로 이 워크스페이스로 자동 매핑됩니다(토큰 없이도 스코프). 현재: <span className="text-accent">{curWs?.domain || "(미설정)"}</span></p>
         <div className="flex gap-2">
           <input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder={curWs?.domain || "marketing.example.com"}
-            className="flex-1 px-3 py-2 text-sm bg-gray-900 border border-gray-800 rounded-lg text-gray-200 focus:border-purple-500 outline-none" />
-          <button onClick={saveDomain} className="px-4 py-2 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-lg whitespace-nowrap">도메인 저장</button>
+            className="flex-1 px-3 py-2 text-sm bg-surface border border-border rounded-lg text-muted focus:border-accent outline-none" />
+          <button onClick={saveDomain} className="px-4 py-2 text-sm bg-surface-2 hover:bg-surface-2 text-text rounded-lg whitespace-nowrap">도메인 저장</button>
         </div>
         {domainMsg && <p className={`text-xs mt-2 ${domainMsg.startsWith("✓") ? "text-green-400" : "text-red-400"}`}>{domainMsg}</p>}
       </div>
 
-      <h3 className="text-sm font-semibold text-white mb-1">API 토큰 · {activeWorkspace.name}</h3>
-      <p className="text-xs text-gray-500 mb-4">포크(프론트만 띄우는 배포)가 중앙 API를 호출할 때 쓰는 토큰입니다. 발급 후 포크의 <code className="text-purple-300">OSMU_TENANT_TOKEN</code>에 넣으세요. 이 토큰은 해당 워크스페이스 데이터에만 접근합니다.</p>
+      <h3 className="text-sm font-semibold text-text mb-1">API 토큰 · {activeWorkspace.name}</h3>
+      <p className="text-xs text-subtle mb-4">포크(프론트만 띄우는 배포)가 중앙 API를 호출할 때 쓰는 토큰입니다. 발급 후 포크의 <code className="text-accent">OSMU_TENANT_TOKEN</code>에 넣으세요. 이 토큰은 해당 워크스페이스 데이터에만 접근합니다.</p>
 
       <div className="flex gap-2 mb-3">
         <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="용도 메모 (예: marketing-team-frontend)"
-          className="flex-1 px-3 py-2 text-sm bg-gray-900 border border-gray-800 rounded-lg text-gray-200 focus:border-purple-500 outline-none" />
-        <button onClick={issue} disabled={busy} className="px-4 py-2 text-sm bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg disabled:opacity-50 whitespace-nowrap">{busy ? "발급 중…" : "토큰 발급"}</button>
+          className="flex-1 px-3 py-2 text-sm bg-surface border border-border rounded-lg text-muted focus:border-accent outline-none" />
+        <button onClick={issue} disabled={busy} className="px-4 py-2 text-sm bg-accent text-text rounded-lg disabled:opacity-50 whitespace-nowrap">{busy ? "발급 중…" : "토큰 발급"}</button>
       </div>
 
       {issued && (
         <div className="mb-4 p-3 rounded-lg bg-green-900/15 border border-green-800/40">
           <p className="text-[11px] text-green-300 mb-1">발급됨 — 지금만 표시됩니다. 복사해 안전히 보관하세요:</p>
-          <code className="block text-xs text-gray-100 break-all bg-black/40 p-2 rounded select-all">{issued}</code>
+          <code className="block text-xs text-text break-all bg-black/40 p-2 rounded select-all">{issued}</code>
         </div>
       )}
 
-      <div className="border border-gray-800 rounded-lg divide-y divide-gray-900">
-        {tokens.length === 0 && <p className="p-3 text-xs text-gray-600">발급된 토큰이 없습니다.</p>}
+      <div className="border border-border rounded-lg divide-y divide-gray-900">
+        {tokens.length === 0 && <p className="p-3 text-xs text-subtle">발급된 토큰이 없습니다.</p>}
         {tokens.map((t) => (
           <div key={t.id} className="flex items-center justify-between p-3 text-sm">
             <div className="min-w-0">
-              <span className={`text-xs ${t.revoked ? "text-gray-600 line-through" : "text-gray-200"}`}>{t.label || "(메모 없음)"}</span>
-              <span className="text-[10px] text-gray-600 ml-2">{fmtAgo(t.created_at)}{t.last_used_at ? ` · 최근사용 ${fmtAgo(t.last_used_at)}` : " · 미사용"}</span>
+              <span className={`text-xs ${t.revoked ? "text-subtle line-through" : "text-muted"}`}>{t.label || "(메모 없음)"}</span>
+              <span className="text-[10px] text-subtle ml-2">{fmtAgo(t.created_at)}{t.last_used_at ? ` · 최근사용 ${fmtAgo(t.last_used_at)}` : " · 미사용"}</span>
             </div>
-            {t.revoked ? <span className="text-[10px] text-gray-600">폐기됨</span>
+            {t.revoked ? <span className="text-[10px] text-subtle">폐기됨</span>
               : <button onClick={() => revoke(t.id)} className="text-[11px] text-red-400 hover:text-red-300 whitespace-nowrap">폐기</button>}
           </div>
         ))}

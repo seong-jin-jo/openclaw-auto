@@ -82,27 +82,27 @@ export function SchedulePanel({
   const schedules = data?.schedules || [];
 
   return (
-    <div className="card p-4 mb-4 border border-purple-500/20">
+    <div className="card p-4 mb-4 border border-accent">
       <div className="flex items-center gap-2 mb-3">
-        <b className="text-sm text-white">🗓️ 예약 발행</b>
-        <span className="text-[10px] text-gray-500">미래 시각에 멀티채널 자동 발행</span>
+        <b className="text-sm text-text">🗓️ 예약 발행</b>
+        <span className="text-[10px] text-subtle">미래 시각에 멀티채널 자동 발행</span>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 mb-3">
         <div>
-          <label className="block text-[11px] text-gray-400 mb-1">예약 시각</label>
+          <label className="block text-[11px] text-subtle mb-1">예약 시각</label>
           <input
             type="datetime-local"
             value={when}
             onChange={(e) => setWhen(e.target.value)}
-            className="bg-gray-800 text-gray-100 text-sm p-2 rounded border border-gray-700"
+            className="bg-surface-2 text-text text-sm p-2 rounded border border-border"
           />
         </div>
         <div className="flex-1 min-w-[220px]">
-          <label className="block text-[11px] text-gray-400 mb-1">플랫폼</label>
+          <label className="block text-[11px] text-subtle mb-1">플랫폼</label>
           <div className="flex flex-wrap gap-2">
             {PLATFORMS.map((p) => (
-              <label key={p} className="flex items-center gap-1 text-[11px] text-gray-300 bg-gray-800 px-2 py-1 rounded border border-gray-700 cursor-pointer">
+              <label key={p} className="flex items-center gap-1 text-[11px] text-muted bg-surface-2 px-2 py-1 rounded border border-border cursor-pointer">
                 <input type="checkbox" checked={!!sel[p]} onChange={(e) => setSel((x) => ({ ...x, [p]: e.target.checked }))} />
                 {LABEL[p]}
               </label>
@@ -112,28 +112,28 @@ export function SchedulePanel({
         <button
           onClick={submit}
           disabled={saving}
-          className="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-500 text-white rounded-lg disabled:opacity-50"
+          className="px-4 py-2 text-sm bg-accent hover:bg-accent-hover text-text rounded-lg disabled:opacity-50"
         >
           {saving ? "예약 중…" : "예약"}
         </button>
       </div>
 
       {/* 예약 목록 */}
-      <div className="border-t border-gray-800 pt-2">
-        <div className="text-[11px] text-gray-500 mb-1.5">예약 목록 ({schedules.length})</div>
+      <div className="border-t border-border pt-2">
+        <div className="text-[11px] text-subtle mb-1.5">예약 목록 ({schedules.length})</div>
         {schedules.length === 0 ? (
-          <p className="text-xs text-gray-600">예약 없음</p>
+          <p className="text-xs text-subtle">예약 없음</p>
         ) : (
           <div className="space-y-1.5 max-h-48 overflow-y-auto">
             {schedules.map((s) => (
-              <div key={s.id} className="flex items-center justify-between bg-gray-900/60 rounded px-2.5 py-1.5">
+              <div key={s.id} className="flex items-center justify-between bg-surface/60 rounded px-2.5 py-1.5">
                 <div className="min-w-0">
-                  <div className="text-xs text-gray-200">{new Date(s.scheduledAt).toLocaleString("ko-KR")}</div>
-                  <div className="text-[10px] text-gray-500 truncate">{(s.platforms || []).map((p) => LABEL[p] || p).join(" · ")}</div>
+                  <div className="text-xs text-muted">{new Date(s.scheduledAt).toLocaleString("ko-KR")}</div>
+                  <div className="text-[10px] text-subtle truncate">{(s.platforms || []).map((p) => LABEL[p] || p).join(" · ")}</div>
                 </div>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${
                   s.status === "published" ? "bg-green-900/50 text-green-400"
-                    : s.status === "canceled" ? "bg-gray-800 text-gray-500"
+                    : s.status === "canceled" ? "bg-surface-2 text-subtle"
                     : "bg-yellow-900/40 text-yellow-300"
                 }`}>
                   {s.status === "published" ? "발행됨" : s.status === "canceled" ? "취소" : "예약됨"}

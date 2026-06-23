@@ -36,14 +36,14 @@ export default function SettingsPage() {
 
   return (
     <div className="px-8 py-6">
-      <h2 className="text-xl font-semibold text-white mb-1">Settings</h2>
-      <p className="text-sm text-gray-500 mb-6">서비스 설정 -- 각 항목이 어디에서 사용되는지 확인하세요</p>
-      <div className="flex gap-1 mb-6 border-b border-gray-800/50 pb-3 flex-wrap">
+      <h2 className="text-xl font-semibold text-text mb-1">Settings</h2>
+      <p className="text-sm text-subtle mb-6">서비스 설정 -- 각 항목이 어디에서 사용되는지 확인하세요</p>
+      <div className="flex gap-1 mb-6 border-b border-border/50 pb-3 flex-wrap">
         {SETTINGS_TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setActiveTab(t.key)}
-            className={`px-3 py-1.5 text-sm rounded ${activeTab === t.key ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"}`}
+            className={`px-3 py-1.5 text-sm rounded ${activeTab === t.key ? "bg-accent text-text" : "text-subtle hover:bg-surface-2"}`}
           >
             {t.label}
           </button>
@@ -53,13 +53,13 @@ export default function SettingsPage() {
       {activeTab === "channels" && (
         <>
           {/* OSMU 테넌트 발행용 채널 토큰(integrations) — 워크스페이스별 */}
-          <div className="mb-6 p-4 rounded-xl border border-purple-500/30 bg-purple-900/10 flex items-center justify-between">
+          <div className="mb-6 p-4 rounded-xl border border-accent bg-accent-soft flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-semibold text-purple-200">OSMU 채널 토큰 {activeWorkspace?.name ? `· ${activeWorkspace.name}` : ""}</h3>
-              <p className="text-xs text-gray-500 mt-0.5">활성 워크스페이스의 발행용 채널 토큰(Threads/Instagram)을 연결합니다. Studio 발행이 이 토큰을 사용합니다.</p>
+              <h3 className="text-sm font-semibold text-accent">OSMU 채널 토큰 {activeWorkspace?.name ? `· ${activeWorkspace.name}` : ""}</h3>
+              <p className="text-xs text-subtle mt-0.5">활성 워크스페이스의 발행용 채널 토큰(Threads/Instagram)을 연결합니다. Studio 발행이 이 토큰을 사용합니다.</p>
             </div>
             <button onClick={() => setShowConnect(true)} disabled={!activeWorkspace}
-              className="px-3 py-2 text-xs bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg disabled:opacity-50 whitespace-nowrap">🔗 채널 토큰 연결</button>
+              className="px-3 py-2 text-xs bg-accent text-text rounded-lg disabled:opacity-50 whitespace-nowrap">🔗 채널 토큰 연결</button>
           </div>
           <ChannelsSettings />
         </>
@@ -67,7 +67,7 @@ export default function SettingsPage() {
       {showConnect && activeWorkspace && <ChannelConnect workspace={activeWorkspace} onClose={() => setShowConnect(false)} />}
       {activeTab === "ai" && (
         <>
-          <p className="text-[10px] text-gray-500 mb-4">모든 채널의 콘텐츠 자동 생성 + 트렌드 분석에 사용됩니다.</p>
+          <p className="text-[10px] text-subtle mb-4">모든 채널의 콘텐츠 자동 생성 + 트렌드 분석에 사용됩니다.</p>
           {/* 고객 셀프서브: 내 Anthropic 키 등록 → 생성이 내 키·내 과금으로 */}
           <div className="mb-6"><AiKeySettings /></div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">

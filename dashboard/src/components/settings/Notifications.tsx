@@ -66,29 +66,29 @@ export function Notifications() {
     finally { setSendingReport(false); }
   };
 
-  if (!settings) return <div className="card p-5"><p className="text-xs text-gray-600">Loading...</p></div>;
+  if (!settings) return <div className="card p-5"><p className="text-xs text-subtle">Loading...</p></div>;
 
   return (
     <div className="card p-5">
-      <h3 className="text-sm font-medium text-gray-300 mb-4">Notifications</h3>
+      <h3 className="text-sm font-medium text-muted mb-4">Notifications</h3>
       <div className="space-y-3">
         {Object.entries(EVENT_LABELS).map(([evt, label]) => {
           const v = getEvt(evt);
           return (
-            <div key={evt} className="flex items-center justify-between p-2 rounded bg-gray-900/50">
+            <div key={evt} className="flex items-center justify-between p-2 rounded bg-surface/50">
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   checked={v.enabled}
                   onChange={(e) => setOverrides((prev) => ({ ...prev, [evt]: { ...v, enabled: e.target.checked } }))}
-                  className="rounded border-gray-600 w-3 h-3"
+                  className="rounded border-border w-3 h-3"
                 />
-                <span className="text-xs text-gray-300">{label}</span>
+                <span className="text-xs text-muted">{label}</span>
               </div>
               <select
                 value={v.channel}
                 onChange={(e) => setOverrides((prev) => ({ ...prev, [evt]: { ...v, channel: e.target.value } }))}
-                className="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-[10px] text-gray-300"
+                className="bg-surface border border-border rounded px-2 py-1 text-[10px] text-muted"
               >
                 <option value="">Off</option>
                 {MESSAGING_OPTIONS.map((ch) => (
@@ -100,10 +100,10 @@ export function Notifications() {
         })}
       </div>
       <div className="flex gap-2 mt-3">
-        <button onClick={handleSave} disabled={saving} className="flex-1 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-500 disabled:opacity-50">
+        <button onClick={handleSave} disabled={saving} className="flex-1 py-2 bg-accent text-text text-xs rounded hover:bg-accent-hover disabled:opacity-50">
           {saving ? "Saving..." : "Save"}
         </button>
-        <button onClick={handleTest} className="px-4 py-2 bg-gray-800 text-gray-300 text-xs rounded hover:bg-gray-700">
+        <button onClick={handleTest} className="px-4 py-2 bg-surface-2 text-muted text-xs rounded hover:bg-surface-2">
           Test
         </button>
         <button onClick={handleSendReport} disabled={sendingReport} className="px-4 py-2 bg-green-800 text-green-300 text-xs rounded hover:bg-green-700 disabled:opacity-50">

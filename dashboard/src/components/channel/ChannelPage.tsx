@@ -93,16 +93,16 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
 
   return (
     <div className="px-8 py-6">
-      <Link href="/" className="text-gray-500 hover:text-gray-300 text-sm mb-1 inline-block">
+      <Link href="/" className="text-subtle hover:text-muted text-sm mb-1 inline-block">
         &larr; Back
       </Link>
       <div className="flex items-center gap-3 mb-6">
-        <span className={`w-8 h-8 rounded-lg ${isThreads ? "bg-gradient-to-br from-purple-500 to-pink-500" : "bg-gray-800"} flex items-center justify-center text-sm font-bold text-white`}>
+        <span className={`w-8 h-8 rounded-lg ${isThreads ? "bg-accent" : "bg-surface-2"} flex items-center justify-center text-sm font-bold text-text`}>
           {label[0]}
         </span>
         <div>
-          <h2 className="text-xl font-semibold text-white">{label}</h2>
-          <p className="text-xs text-gray-500">
+          <h2 className="text-xl font-semibold text-text">{label}</h2>
+          <p className="text-xs text-subtle">
             {isThreads
               ? `${cfg?.userId ? "ID: " + cfg.userId : ""} ${growth.length ? " \u00B7 " + (growth[growth.length - 1] as Record<string, unknown>).followers + " followers" : ""}`
               : connected ? "Connected" : CH_STATUS_LABEL[status] || status}
@@ -111,13 +111,13 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 border-b border-gray-800/50 pb-3">
+      <div className="flex gap-1 mb-6 border-b border-border/50 pb-3">
         {tabs.map((t) => (
           <button
             key={t}
             onClick={() => setSubTab(t)}
             className={`px-3 py-1.5 text-sm rounded ${
-              subTab === t ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"
+              subTab === t ? "bg-accent text-text" : "text-subtle hover:bg-surface-2"
             }`}
           >
             {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -131,8 +131,8 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
           <QueueList variant={postVariant} charLimit={charLimit} showSeo={variant === "blog"} />
         ) : (
           <div className="card p-8 text-center">
-            <p className="text-gray-500 text-sm mb-2">채널을 연결하면 큐를 사용할 수 있습니다</p>
-            <button onClick={() => setSubTab("settings")} className="text-xs text-blue-400 hover:text-blue-300">Settings에서 연결하기</button>
+            <p className="text-subtle text-sm mb-2">채널을 연결하면 큐를 사용할 수 있습니다</p>
+            <button onClick={() => setSubTab("settings")} className="text-xs text-accent hover:text-accent">Settings에서 연결하기</button>
           </div>
         )
       )}
@@ -141,7 +141,7 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
       {subTab === "analytics" && (
         connected || isThreads ? <AnalyticsTab /> : (
           <div className="card p-8 text-center">
-            <p className="text-gray-500 text-sm">채널을 연결하면 분석 데이터를 볼 수 있습니다</p>
+            <p className="text-subtle text-sm">채널을 연결하면 분석 데이터를 볼 수 있습니다</p>
           </div>
         )
       )}
@@ -164,7 +164,7 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
               currentKeys={keys}
               onSave={handleCredSave}
               title={isThreads ? "Threads API Credentials" : channel === "x" ? "OAuth 1.0 Keys" : undefined}
-              badge={isThreads ? { text: "Long-lived Token", color: "purple" } : channel === "x" ? { text: "OAuth 1.0a", color: "blue" } : undefined}
+              badge={isThreads ? { text: "Long-lived Token", color: "blue" } : channel === "x" ? { text: "OAuth 1.0a", color: "blue" } : undefined}
               connectLabel={isThreads ? "Connect Threads" : channel === "x" ? "Connect X Account" : undefined}
               fieldGroups={channel === "x" ? [
                 { title: "소비자 키 (Consumer Keys)", fieldIndices: [0, 1] },
@@ -176,42 +176,42 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
           {/* Channel Info + Setup Guide */}
           <div className="space-y-4">
             <div className="card p-5">
-              <h3 className="text-sm font-medium text-gray-300 mb-3">Channel Info</h3>
+              <h3 className="text-sm font-medium text-muted mb-3">Channel Info</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Status</span>
-                  <span className={connected ? "text-green-400" : status === "connected" ? "text-blue-400" : "text-yellow-400"}>
+                  <span className="text-subtle">Status</span>
+                  <span className={connected ? "text-green-400" : status === "connected" ? "text-accent" : "text-yellow-400"}>
                     {connected ? "Connected" : CH_STATUS_LABEL[status] || "Not connected"}
                   </span>
                 </div>
                 {isThreads && (
                   <>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Username</span>
-                      <span className="text-gray-300">{threadsUsername ? "@" + threadsUsername : "-"}</span>
+                      <span className="text-subtle">Username</span>
+                      <span className="text-muted">{threadsUsername ? "@" + threadsUsername : "-"}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Token Validity</span>
-                      <span className="text-gray-300">60일 (갱신 필요)</span>
+                      <span className="text-subtle">Token Validity</span>
+                      <span className="text-muted">60일 (갱신 필요)</span>
                     </div>
                   </>
                 )}
                 {channel === "x" && (
                   <>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Auth Method</span>
-                      <span className="text-gray-300">OAuth 1.0a (User Context)</span>
+                      <span className="text-subtle">Auth Method</span>
+                      <span className="text-muted">OAuth 1.0a (User Context)</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Permission</span>
-                      <span className="text-gray-300">Read and Write 필수</span>
+                      <span className="text-subtle">Permission</span>
+                      <span className="text-muted">Read and Write 필수</span>
                     </div>
                   </>
                 )}
                 {charLimit && (
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Character Limit</span>
-                    <span className="text-gray-300">{charLimit}</span>
+                    <span className="text-subtle">Character Limit</span>
+                    <span className="text-muted">{charLimit}</span>
                   </div>
                 )}
               </div>
@@ -246,7 +246,7 @@ function AnalyticsTab() {
   const { data } = useSWR("/api/analytics", fetcher);
   const { data: cronData } = useSWR("/api/cron-status", fetcher);
   const a = data as Record<string, unknown> | undefined;
-  if (!a) return <p className="text-gray-500">Loading...</p>;
+  if (!a) return <p className="text-subtle">Loading...</p>;
 
   const s = (a.summary || {}) as Record<string, unknown>;
   const posts = ((a.posts || []) as Record<string, unknown>[]).sort(
@@ -272,8 +272,8 @@ function AnalyticsTab() {
         </div>
       )}
       {(s.totalPublished as number) === 0 && (
-        <div className="p-3 rounded bg-gray-900/50 mb-4">
-          <p className="text-xs text-gray-500">아직 발행된 글이 없습니다. Queue에서 draft를 승인하면 자동 발행됩니다.</p>
+        <div className="p-3 rounded bg-surface/50 mb-4">
+          <p className="text-xs text-subtle">아직 발행된 글이 없습니다. Queue에서 draft를 승인하면 자동 발행됩니다.</p>
         </div>
       )}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -284,18 +284,18 @@ function AnalyticsTab() {
           ["Avg Likes", s.avgLikes],
         ].map(([label, val]) => (
           <div key={String(label)} className="card p-4">
-            <p className="text-[11px] text-gray-500 uppercase tracking-wide">{String(label)}</p>
-            <p className="text-2xl font-bold text-white mt-1">{String(val ?? 0)}</p>
+            <p className="text-[11px] text-subtle uppercase tracking-wide">{String(label)}</p>
+            <p className="text-2xl font-bold text-text mt-1">{String(val ?? 0)}</p>
           </div>
         ))}
       </div>
 
       {Object.keys(topics).length > 0 && (
         <div className="card p-4 mb-6">
-          <h3 className="text-xs font-medium text-gray-400 mb-3">Topic Performance</h3>
+          <h3 className="text-xs font-medium text-subtle mb-3">Topic Performance</h3>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[10px] text-gray-500 uppercase">
+              <tr className="text-[10px] text-subtle uppercase">
                 <th className="text-left py-1">Topic</th>
                 <th className="text-right py-1">Posts</th>
                 <th className="text-right py-1">Avg Views</th>
@@ -304,11 +304,11 @@ function AnalyticsTab() {
             </thead>
             <tbody>
               {Object.entries(topics).map(([t, stats]) => (
-                <tr key={t} className="border-t border-gray-800/50">
-                  <td className="text-gray-200 py-1">{t}</td>
-                  <td className="text-gray-400 text-right py-1">{stats.count}</td>
-                  <td className="text-gray-400 text-right py-1">{stats.avgViews || 0}</td>
-                  <td className="text-gray-400 text-right py-1">{stats.avgLikes || 0}</td>
+                <tr key={t} className="border-t border-border/50">
+                  <td className="text-muted py-1">{t}</td>
+                  <td className="text-subtle text-right py-1">{stats.count}</td>
+                  <td className="text-subtle text-right py-1">{stats.avgViews || 0}</td>
+                  <td className="text-subtle text-right py-1">{stats.avgLikes || 0}</td>
                 </tr>
               ))}
             </tbody>
@@ -318,21 +318,21 @@ function AnalyticsTab() {
 
       {Object.keys(hashtags).length > 0 && (
         <div className="card p-4 mb-6">
-          <h3 className="text-xs font-medium text-gray-400 mb-3">Hashtag Performance</h3>
+          <h3 className="text-xs font-medium text-subtle mb-3">Hashtag Performance</h3>
           <div className="flex flex-wrap gap-2">
             {Object.entries(hashtags)
               .sort((a, b) => (b[1].avgViews || 0) - (a[1].avgViews || 0))
               .map(([t, stats]) => (
                 <span
                   key={t}
-                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs border border-gray-800 ${
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs border border-border ${
                     (stats.avgViews || 0) >= vt
                       ? "bg-yellow-900/30 border-yellow-700/50 text-yellow-300"
-                      : "bg-gray-900 text-gray-400"
+                      : "bg-surface text-subtle"
                   }`}
                 >
                   #{t}{" "}
-                  <span className="text-[10px] text-gray-500">
+                  <span className="text-[10px] text-subtle">
                     {stats.count}posts {stats.avgViews || 0}v {stats.avgLikes || 0}l
                   </span>
                 </span>
@@ -343,35 +343,35 @@ function AnalyticsTab() {
 
       {posts.length > 0 && (
         <div className="card p-4">
-          <h3 className="text-xs font-medium text-gray-400 mb-3">Post Performance</h3>
+          <h3 className="text-xs font-medium text-subtle mb-3">Post Performance</h3>
           <div className="space-y-2">
             {posts.map((p, i) => {
               const views = (p.views as number) || 0;
               const isViral = views >= vt;
               return (
-                <div key={i} className="flex items-start gap-3 py-2 border-b border-gray-800/50 last:border-0">
+                <div key={i} className="flex items-start gap-3 py-2 border-b border-border/50 last:border-0">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-200 truncate" title={String(p.text || "")}>
+                    <p className="text-xs text-muted truncate" title={String(p.text || "")}>
                       {String(p.text || "")}
                     </p>
                     <div className="flex items-center gap-3 mt-1">
-                      <span className="text-[10px] text-gray-600">{String(p.topic || "")}</span>
-                      <span className="text-[10px] text-gray-600">{p.publishedAt ? fmtTime(p.publishedAt) : ""}</span>
-                      {!!p.archived && <span className="text-[10px] text-gray-700">archived</span>}
+                      <span className="text-[10px] text-subtle">{String(p.topic || "")}</span>
+                      <span className="text-[10px] text-subtle">{p.publishedAt ? fmtTime(p.publishedAt) : ""}</span>
+                      {!!p.archived && <span className="text-[10px] text-subtle">archived</span>}
                     </div>
                   </div>
                   <div className="flex gap-4 text-right shrink-0">
                     <div>
-                      <p className={`text-xs ${isViral ? "text-yellow-400 font-medium" : "text-gray-300"}`}>{views}</p>
-                      <p className="text-[10px] text-gray-600">views</p>
+                      <p className={`text-xs ${isViral ? "text-yellow-400 font-medium" : "text-muted"}`}>{views}</p>
+                      <p className="text-[10px] text-subtle">views</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-300">{String(p.likes || 0)}</p>
-                      <p className="text-[10px] text-gray-600">likes</p>
+                      <p className="text-xs text-muted">{String(p.likes || 0)}</p>
+                      <p className="text-[10px] text-subtle">likes</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-300">{String(p.replies || 0)}</p>
-                      <p className="text-[10px] text-gray-600">replies</p>
+                      <p className="text-xs text-muted">{String(p.replies || 0)}</p>
+                      <p className="text-[10px] text-subtle">replies</p>
                     </div>
                   </div>
                 </div>
@@ -388,16 +388,16 @@ function AnalyticsTab() {
 function GrowthTab() {
   const { data } = useSWR("/api/growth", fetcher);
   const records = (((data as Record<string, unknown>)?.records || []) as Array<{ date: string; followers: number; delta: number }>);
-  if (!records.length) return <p className="text-gray-600 text-sm">No growth data</p>;
+  if (!records.length) return <p className="text-subtle text-sm">No growth data</p>;
 
   return (
     <div className="card p-4">
-      <h3 className="text-xs font-medium text-gray-400 mb-3">Follower History</h3>
+      <h3 className="text-xs font-medium text-subtle mb-3">Follower History</h3>
       <div className="space-y-1">
         {records.slice(-14).map((r) => (
-          <div key={r.date} className="flex justify-between text-xs border-b border-gray-800/50 py-1">
-            <span className="text-gray-300">{r.date}</span>
-            <span className="text-gray-200">{r.followers}</span>
+          <div key={r.date} className="flex justify-between text-xs border-b border-border/50 py-1">
+            <span className="text-muted">{r.date}</span>
+            <span className="text-muted">{r.followers}</span>
             <span className={r.delta >= 0 ? "text-green-400" : "text-red-400"}>
               {r.delta >= 0 ? "+" : ""}{r.delta}
             </span>
@@ -418,9 +418,9 @@ function PopularTab({ expandedPopular, setExpandedPopular }: { expandedPopular: 
   const [topic, setTopic] = useState("");
 
   const SOURCE_COLORS: Record<string, string> = {
-    external: "bg-purple-900/50 text-purple-300",
+    external: "bg-accent-soft text-accent",
     "own-viral": "bg-green-900/50 text-green-300",
-    manual: "bg-gray-700 text-gray-300",
+    manual: "bg-surface-2 text-muted",
   };
 
   const handleAdd = async () => {
@@ -447,52 +447,52 @@ function PopularTab({ expandedPopular, setExpandedPopular }: { expandedPopular: 
     <>
       <div className="card p-4 mb-4">
         <div className="flex items-center gap-2 mb-3">
-          <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          <span className="text-xs text-gray-300">Add External Post</span>
+          <span className="text-xs text-muted">Add External Post</span>
         </div>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          className="w-full bg-gray-900 text-gray-200 text-xs p-2 rounded border border-gray-700 mb-2"
+          className="w-full bg-surface text-muted text-xs p-2 rounded border border-border mb-2"
           rows={3}
           placeholder="인기글 텍스트를 붙여넣기"
         />
         <div className="flex gap-2">
-          <input value={url} onChange={(e) => setUrl(e.target.value)} type="text" placeholder="URL (선택)" className="flex-1 bg-gray-900 text-gray-200 text-xs p-2 rounded border border-gray-700" />
-          <input value={topic} onChange={(e) => setTopic(e.target.value)} type="text" placeholder="키워드/주제" className="w-28 bg-gray-900 text-gray-200 text-xs p-2 rounded border border-gray-700" />
-          <button onClick={handleAdd} className="px-3 py-1.5 text-xs bg-purple-600 text-white rounded hover:bg-purple-500 shrink-0">Add</button>
+          <input value={url} onChange={(e) => setUrl(e.target.value)} type="text" placeholder="URL (선택)" className="flex-1 bg-surface text-muted text-xs p-2 rounded border border-border" />
+          <input value={topic} onChange={(e) => setTopic(e.target.value)} type="text" placeholder="키워드/주제" className="w-28 bg-surface text-muted text-xs p-2 rounded border border-border" />
+          <button onClick={handleAdd} className="px-3 py-1.5 text-xs bg-accent text-text rounded hover:bg-accent-hover shrink-0">Add</button>
         </div>
       </div>
       <div className="space-y-2">
         {popular.length === 0 ? (
-          <p className="text-gray-600 text-sm">No popular posts</p>
+          <p className="text-subtle text-sm">No popular posts</p>
         ) : (
           popular.map((p, i) => {
             const open = expandedPopular === i;
             return (
-              <div key={i} className="card overflow-hidden cursor-pointer hover:bg-gray-800/20 transition-colors" onClick={() => setExpandedPopular(open ? null : i)}>
+              <div key={i} className="card overflow-hidden cursor-pointer hover:bg-surface-2/20 transition-colors" onClick={() => setExpandedPopular(open ? null : i)}>
                 <div className="flex items-center gap-2 px-4 pt-3 pb-1">
-                  <span className={`text-xs px-2 py-0.5 rounded ${SOURCE_COLORS[String(p.source)] || "bg-gray-700 text-gray-300"}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded ${SOURCE_COLORS[String(p.source)] || "bg-surface-2 text-muted"}`}>
                     {String(p.source || "?")}
                   </span>
-                  {p.topic ? <span className="text-[10px] text-gray-500">{String(p.topic)}</span> : null}
+                  {p.topic ? <span className="text-[10px] text-subtle">{String(p.topic)}</span> : null}
                   {p.likes && String(p.likes) !== "0" ? <span className="text-[10px] text-yellow-500">{String(p.likes)} likes</span> : null}
-                  {p.username ? <span className="text-[10px] text-gray-600">@{String(p.username)}</span> : null}
-                  <span className="text-[10px] text-gray-700 ml-auto">{String(p.collected || "")}</span>
-                  <svg className={`w-3 h-3 text-gray-600 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {p.username ? <span className="text-[10px] text-subtle">@{String(p.username)}</span> : null}
+                  <span className="text-[10px] text-subtle ml-auto">{String(p.collected || "")}</span>
+                  <svg className={`w-3 h-3 text-subtle transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>
-                <p className={`text-xs text-gray-300 px-4 pb-3 ${open ? "whitespace-pre-wrap" : "truncate"}`}>
+                <p className={`text-xs text-muted px-4 pb-3 ${open ? "whitespace-pre-wrap" : "truncate"}`}>
                   {String(p.text || "")}
                 </p>
                 {open && (
-                  <div className="px-4 pb-3 flex items-center gap-3 border-t border-gray-800/50 pt-2">
-                    {p.engagement ? <span className="text-[10px] text-gray-500">{String(p.engagement)}</span> : null}
+                  <div className="px-4 pb-3 flex items-center gap-3 border-t border-border/50 pt-2">
+                    {p.engagement ? <span className="text-[10px] text-subtle">{String(p.engagement)}</span> : null}
                     {p.url ? (
-                      <a href={String(p.url)} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-400 hover:text-blue-300" onClick={(e) => e.stopPropagation()}>
+                      <a href={String(p.url)} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:text-accent" onClick={(e) => e.stopPropagation()}>
                         원본 보기 &rarr;
                       </a>
                     ) : null}
@@ -564,7 +564,7 @@ function AutomationSection({ channel, expandedFeature, setExpandedFeature }: {
 
   return (
     <div className="card p-5">
-      <h3 className="text-sm font-medium text-gray-300 mb-4">Automation</h3>
+      <h3 className="text-sm font-medium text-muted mb-4">Automation</h3>
       {AUTOMATION_FEATURES.map((f) => {
         const featureRuns = runs.filter((r) => r.jobName === FEATURE_CRON[f.key]);
         const lastRun = featureRuns[0];
@@ -581,43 +581,43 @@ function AutomationSection({ channel, expandedFeature, setExpandedFeature }: {
         const showComingSoon = !isImplemented || (!hasCronMapping && !["content_generation", "auto_publish"].includes(f.key));
 
         return (
-          <div key={f.key} className="border-b border-gray-800/50 last:border-0">
+          <div key={f.key} className="border-b border-border/50 last:border-0">
             <div className="flex items-center gap-3 py-2.5 cursor-pointer" onClick={() => setExpandedFeature(expanded ? null : f.key)}>
               <label className={`relative inline-flex items-center shrink-0 ${showComingSoon ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`} onClick={(e) => e.stopPropagation()}>
                 <input type="checkbox" checked={!!(cs[f.key])} onChange={(e) => !showComingSoon && handleToggle(f.key, e.target.checked)} disabled={showComingSoon} className="sr-only peer" />
-                <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                <div className="w-9 h-5 bg-surface-2 rounded-full peer peer-checked:bg-accent after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
               </label>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className={`text-xs ${showComingSoon ? "text-gray-600" : "text-gray-300"}`}>{f.label}</span>
-                  {showComingSoon && <span className="text-[9px] text-gray-700">Coming Soon</span>}
-                  {hours && <span className="text-[10px] text-gray-600">{hours}h</span>}
+                  <span className={`text-xs ${showComingSoon ? "text-subtle" : "text-muted"}`}>{f.label}</span>
+                  {showComingSoon && <span className="text-[9px] text-subtle">Coming Soon</span>}
+                  {hours && <span className="text-[10px] text-subtle">{hours}h</span>}
                   {lastRun && (
                     <>
                       <span className={`text-[10px] ${lastRun.status === "ok" ? "text-green-400" : "text-red-400"}`}>
                         {lastRun.status === "ok" ? "\u2713" : "\u2717"}
                       </span>
-                      <span className="text-[10px] text-gray-600">{lastRun.finishedAt ? fmtAgo(lastRun.finishedAt) : ""}</span>
+                      <span className="text-[10px] text-subtle">{lastRun.finishedAt ? fmtAgo(lastRun.finishedAt) : ""}</span>
                     </>
                   )}
                   {(featureRuns.length > 0 || hours) && (
-                    <svg className={`w-3 h-3 text-gray-600 ml-auto transition-transform ${expanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={`w-3 h-3 text-subtle ml-auto transition-transform ${expanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   )}
                 </div>
-                <p className="text-[10px] text-gray-600">{f.description}</p>
+                <p className="text-[10px] text-subtle">{f.description}</p>
               </div>
             </div>
             {expanded && (
               <div className="ml-12 mb-3 space-y-1.5">
                 {showInterval && hours && (
-                  <div className="flex items-center gap-2 py-1.5 px-2 bg-gray-900/50 rounded mb-2" onClick={(e) => e.stopPropagation()}>
-                    <span className="text-[10px] text-gray-400">Interval</span>
+                  <div className="flex items-center gap-2 py-1.5 px-2 bg-surface/50 rounded mb-2" onClick={(e) => e.stopPropagation()}>
+                    <span className="text-[10px] text-subtle">Interval</span>
                     <select
                       defaultValue={hours}
                       onChange={(e) => handleIntervalChange(cronName!, parseInt(e.target.value, 10))}
-                      className="bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-[10px] text-gray-300"
+                      className="bg-surface-2 border border-border rounded px-1.5 py-0.5 text-[10px] text-muted"
                     >
                       {[1, 2, 3, 4, 6, 8, 12, 24, 48, 168].map((h) => (
                         <option key={h} value={h}>{h < 24 ? `${h}h` : h === 24 ? "1d" : h === 48 ? "2d" : "7d"}</option>
@@ -632,13 +632,13 @@ function AutomationSection({ channel, expandedFeature, setExpandedFeature }: {
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-gray-500">
+                        <span className="text-[10px] text-subtle">
                           {r.finishedAt ? new Date(r.finishedAt as string).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }) : ""}
                         </span>
-                        <span className="text-[10px] text-gray-700">{String(r.model || "")}</span>
-                        <span className="text-[10px] text-gray-700 ml-auto">{r.durationMs ? `${Math.round((r.durationMs as number) / 1000)}s` : ""}</span>
+                        <span className="text-[10px] text-subtle">{String(r.model || "")}</span>
+                        <span className="text-[10px] text-subtle ml-auto">{r.durationMs ? `${Math.round((r.durationMs as number) / 1000)}s` : ""}</span>
                       </div>
-                      <p className="text-[10px] text-gray-500 break-words">{String(r.summary || "")}</p>
+                      <p className="text-[10px] text-subtle break-words">{String(r.summary || "")}</p>
                     </div>
                   </div>
                 ))}
@@ -691,23 +691,23 @@ function ParametersSection() {
   return (
     <div className="card p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-gray-300">Parameters</h3>
-        <button onClick={handleSave} disabled={saving} className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500 disabled:opacity-50">
+        <h3 className="text-sm font-medium text-muted">Parameters</h3>
+        <button onClick={handleSave} disabled={saving} className="px-3 py-1 text-xs bg-accent text-text rounded hover:bg-accent-hover disabled:opacity-50">
           {saving ? "Saving..." : "Save"}
         </button>
       </div>
       {PARAMS.map((p) => (
-        <div key={p.key} className="flex items-center justify-between py-2 border-b border-gray-800/50 last:border-0">
+        <div key={p.key} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
           <div>
-            <p className="text-xs text-gray-300">{p.label}</p>
-            <p className="text-[10px] text-gray-600">{p.desc}</p>
+            <p className="text-xs text-muted">{p.label}</p>
+            <p className="text-[10px] text-subtle">{p.desc}</p>
           </div>
           <input
             type="number"
             value={vals[p.key] ?? (s[p.key] ?? "")}
             onChange={(e) => setVals((prev) => ({ ...prev, [p.key]: e.target.value }))}
             min={0}
-            className="w-20 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-gray-300 text-right"
+            className="w-20 bg-surface border border-border rounded px-2 py-1 text-sm text-muted text-right"
           />
         </div>
       ))}

@@ -57,16 +57,16 @@ export function MessagingPage({ channel }: MessagingPageProps) {
 
   return (
     <div className="px-8 py-6">
-      <Link href="/" className="text-gray-500 hover:text-gray-300 text-sm mb-1 inline-block">
+      <Link href="/" className="text-subtle hover:text-muted text-sm mb-1 inline-block">
         &larr; Back
       </Link>
       <div className="flex items-center gap-3 mb-6">
-        <span className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center text-sm font-bold text-white">
+        <span className="w-8 h-8 rounded-lg bg-surface-2 flex items-center justify-center text-sm font-bold text-text">
           {label[0]}
         </span>
         <div>
-          <h2 className="text-xl font-semibold text-white">{label}</h2>
-          <p className="text-xs text-gray-500">{CH_STATUS_LABEL[status] || status}</p>
+          <h2 className="text-xl font-semibold text-text">{label}</h2>
+          <p className="text-xs text-subtle">{CH_STATUS_LABEL[status] || status}</p>
         </div>
       </div>
 
@@ -85,11 +85,11 @@ export function MessagingPage({ channel }: MessagingPageProps) {
         {/* Channel Info + Setup Guide */}
         <div className="space-y-4">
           <div className="card p-5">
-            <h3 className="text-sm font-medium text-gray-300 mb-3">Channel Info</h3>
+            <h3 className="text-sm font-medium text-muted mb-3">Channel Info</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">Status</span>
-                <span className={status === "live" ? "text-green-400" : status === "connected" ? "text-blue-400" : "text-gray-500"}>
+                <span className="text-subtle">Status</span>
+                <span className={status === "live" ? "text-green-400" : status === "connected" ? "text-accent" : "text-subtle"}>
                   {status === "live" ? "Live" : status === "connected" ? "Connected" : "Not connected"}
                 </span>
               </div>
@@ -102,8 +102,8 @@ export function MessagingPage({ channel }: MessagingPageProps) {
 
         {/* Notification status */}
         <div className="card p-5">
-          <h3 className="text-sm font-medium text-gray-300 mb-3">알림 발송</h3>
-          <p className="text-[10px] text-gray-600 mb-3">이 채널로 마케팅 알림을 자동 발송할 수 있습니다.</p>
+          <h3 className="text-sm font-medium text-muted mb-3">알림 발송</h3>
+          <p className="text-[10px] text-subtle mb-3">이 채널로 마케팅 알림을 자동 발송할 수 있습니다.</p>
           <div className="space-y-2">
             {[
               { evt: "onPublish", label2: "글 발행 시" },
@@ -113,30 +113,30 @@ export function MessagingPage({ channel }: MessagingPageProps) {
             ].map(({ evt, label2 }) => {
               const enabled = (notifSettings as Record<string, { channels?: string[] }> | undefined)?.[evt]?.channels?.includes(channel);
               return (
-                <div key={evt} className="flex items-center justify-between p-2 rounded bg-gray-900/50">
-                  <span className="text-xs text-gray-400">{label2}</span>
-                  <span className={`text-[10px] ${enabled ? "text-green-400" : "text-gray-600"}`}>{enabled ? "ON" : "OFF"}</span>
+                <div key={evt} className="flex items-center justify-between p-2 rounded bg-surface/50">
+                  <span className="text-xs text-subtle">{label2}</span>
+                  <span className={`text-[10px] ${enabled ? "text-green-400" : "text-subtle"}`}>{enabled ? "ON" : "OFF"}</span>
                 </div>
               );
             })}
           </div>
-          <p className="text-[10px] text-gray-600 mt-2">Settings &gt; Notifications에서 변경</p>
+          <p className="text-[10px] text-subtle mt-2">Settings &gt; Notifications에서 변경</p>
         </div>
 
         {/* Test send */}
         <div className="card p-5">
-          <h3 className="text-sm font-medium text-gray-300 mb-3">테스트 발송</h3>
+          <h3 className="text-sm font-medium text-muted mb-3">테스트 발송</h3>
           <div className="flex gap-2">
             <input
               type="text"
               value={testMsg}
               onChange={(e) => setTestMsg(e.target.value)}
-              className="flex-1 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300"
+              className="flex-1 bg-surface border border-border rounded px-3 py-2 text-sm text-muted"
             />
             <button
               onClick={handleTestSend}
               disabled={sending}
-              className="px-4 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-500 disabled:opacity-50"
+              className="px-4 py-2 bg-accent text-text text-xs rounded hover:bg-accent-hover disabled:opacity-50"
             >
               {sending ? "Sending..." : "Send"}
             </button>
@@ -146,8 +146,8 @@ export function MessagingPage({ channel }: MessagingPageProps) {
               <p className="text-[10px] text-green-400">Interactive Chat 연결됨 — 이 채널에서 Agent와 대화 가능</p>
             </div>
           ) : (
-            <div className="mt-3 p-2 rounded bg-gray-900/50">
-              <p className="text-[10px] text-gray-500">
+            <div className="mt-3 p-2 rounded bg-surface/50">
+              <p className="text-[10px] text-subtle">
                 Interactive Chat: Gateway에서 <code>openclaw channels setup {channel}</code>로 양방향 대화 활성화
               </p>
             </div>
@@ -201,25 +201,25 @@ function SlackReportSection() {
   return (
     <div className="card p-5 md:col-span-2">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-gray-300">주간 리포트 템플릿</h3>
-        <button onClick={handlePreview} className="text-[10px] text-blue-400 hover:text-blue-300">Preview</button>
+        <h3 className="text-sm font-medium text-muted">주간 리포트 템플릿</h3>
+        <button onClick={handlePreview} className="text-[10px] text-accent hover:text-accent">Preview</button>
       </div>
       <textarea
         value={tmplValue}
         onChange={(e) => setTemplate(e.target.value)}
         rows={12}
-        className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-xs text-gray-300 font-mono mb-2"
+        className="w-full bg-surface border border-border rounded px-3 py-2 text-xs text-muted font-mono mb-2"
         placeholder="Loading..."
       />
       <div className="flex gap-2">
-        <button onClick={handleSave} className="px-4 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-500">Save Template</button>
-        <button onClick={handleSendReport} disabled={sendingReport} className="px-4 py-2 bg-purple-700 text-white text-xs rounded hover:bg-purple-600 disabled:opacity-50">
+        <button onClick={handleSave} className="px-4 py-2 bg-accent text-text text-xs rounded hover:bg-accent-hover">Save Template</button>
+        <button onClick={handleSendReport} disabled={sendingReport} className="px-4 py-2 bg-accent text-text text-xs rounded hover:bg-accent-hover disabled:opacity-50">
           {sendingReport ? "Sending..." : "Send Report"}
         </button>
       </div>
       <details className="mt-2">
-        <summary className="text-[10px] text-blue-400 cursor-pointer">사용 가능한 변수</summary>
-        <div className="text-[10px] text-gray-500 mt-1 font-mono space-y-0.5">
+        <summary className="text-[10px] text-accent cursor-pointer">사용 가능한 변수</summary>
+        <div className="text-[10px] text-subtle mt-1 font-mono space-y-0.5">
           <div>{"{blog_articles}"} {"{blog_views}"} {"{blog_delta}"} {"{blog_top}"}</div>
           <div>{"{gsc_clicks}"} {"{gsc_impressions}"} {"{gsc_ctr}"} {"{gsc_top_keywords}"}</div>
           <div>{"{ga_sessions}"} {"{ga_pageviews}"}</div>
@@ -227,8 +227,8 @@ function SlackReportSection() {
         </div>
       </details>
       {preview && (
-        <div className="mt-3 p-3 rounded bg-gray-900/80 border border-gray-800">
-          <pre className="text-[10px] text-gray-300 whitespace-pre-wrap">{preview}</pre>
+        <div className="mt-3 p-3 rounded bg-surface/80 border border-border">
+          <pre className="text-[10px] text-muted whitespace-pre-wrap">{preview}</pre>
         </div>
       )}
     </div>

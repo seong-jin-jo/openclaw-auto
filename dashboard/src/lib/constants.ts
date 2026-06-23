@@ -78,6 +78,10 @@ export const CH_STATUS_LABEL: Record<string, string> = {
   soon: "Coming Soon",
 };
 
+// OSMU 1차 정식 제공 채널 (실배포 OPENCLAW_EXTENSIONS = threads/x/instagram publish).
+// UI(사이드바·연결배너·그리드)는 이 집합만 노출. 나머지는 추후/포크.
+export const OSMU_CHANNELS: string[] = ["threads", "x", "instagram"];
+
 /** Implemented plugins — channels with extensions */
 export const IMPLEMENTED_PLUGINS: string[] = [
   "threads",

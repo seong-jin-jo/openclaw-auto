@@ -79,12 +79,12 @@ export default function SearchAdvisorPage() {
     <div className="px-8 py-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-bold text-white">Search Advisor</h2>
-          <p className="text-xs text-gray-500 mt-1">네이버 서치어드바이저 검색 성과 데이터</p>
+          <h2 className="text-xl font-bold text-text">Search Advisor</h2>
+          <p className="text-xs text-subtle mt-1">네이버 서치어드바이저 검색 성과 데이터</p>
         </div>
         <button
           onClick={() => setShowPaste(!showPaste)}
-          className="px-3 py-1.5 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600"
+          className="px-3 py-1.5 text-xs bg-surface-2 text-muted rounded hover:bg-surface-2"
         >
           {showPaste ? "닫기" : "데이터 붙여넣기"}
         </button>
@@ -92,19 +92,19 @@ export default function SearchAdvisorPage() {
 
       {showPaste && (
         <div className="card p-4 mb-6">
-          <p className="text-xs text-gray-400 mb-2">
+          <p className="text-xs text-subtle mb-2">
             네이버 서치어드바이저 → 검색 분석 → 표 데이터를 복사하여 붙여넣기 (탭 구분)
           </p>
           <textarea
             value={pasteText}
             onChange={(e) => setPasteText(e.target.value)}
             placeholder="키워드(탭)클릭수(탭)노출수(탭)CTR(탭)순위&#10;중학생공부법&#9;12&#9;340&#9;3.5&#9;8.2"
-            className="w-full bg-gray-800 text-gray-200 text-xs p-3 rounded border border-gray-700 mb-2"
+            className="w-full bg-surface-2 text-muted text-xs p-3 rounded border border-border mb-2"
             rows={6}
           />
           <button
             onClick={handlePaste}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-500"
+            className="px-4 py-2 text-sm bg-accent text-text rounded hover:bg-accent-hover"
           >저장</button>
         </div>
       )}
@@ -112,38 +112,38 @@ export default function SearchAdvisorPage() {
       {/* Summary */}
       <div className="grid grid-cols-4 gap-3 mb-6">
         <div className="card p-3">
-          <div className="text-[10px] text-gray-500 mb-1">클릭수</div>
-          <div className="text-lg font-bold text-white">{stats.clicks.toLocaleString()}</div>
+          <div className="text-[10px] text-subtle mb-1">클릭수</div>
+          <div className="text-lg font-bold text-text">{stats.clicks.toLocaleString()}</div>
         </div>
         <div className="card p-3">
-          <div className="text-[10px] text-gray-500 mb-1">노출수</div>
-          <div className="text-lg font-bold text-white">{stats.impressions.toLocaleString()}</div>
+          <div className="text-[10px] text-subtle mb-1">노출수</div>
+          <div className="text-lg font-bold text-text">{stats.impressions.toLocaleString()}</div>
         </div>
         <div className="card p-3">
-          <div className="text-[10px] text-gray-500 mb-1">CTR</div>
-          <div className="text-lg font-bold text-white">{stats.ctr}%</div>
+          <div className="text-[10px] text-subtle mb-1">CTR</div>
+          <div className="text-lg font-bold text-text">{stats.ctr}%</div>
         </div>
         <div className="card p-3">
-          <div className="text-[10px] text-gray-500 mb-1">평균 순위</div>
-          <div className="text-lg font-bold text-white">{stats.position}</div>
+          <div className="text-[10px] text-subtle mb-1">평균 순위</div>
+          <div className="text-lg font-bold text-text">{stats.position}</div>
         </div>
       </div>
 
       {stats.savedAt && (
-        <p className="text-[10px] text-gray-600 mb-3">마지막 업데이트: {new Date(stats.savedAt).toLocaleString("ko-KR")}</p>
+        <p className="text-[10px] text-subtle mb-3">마지막 업데이트: {new Date(stats.savedAt).toLocaleString("ko-KR")}</p>
       )}
 
       {/* Keywords table */}
       {(stats.keywords || []).length === 0 ? (
         <div className="card p-8 text-center">
-          <p className="text-gray-500 text-sm">저장된 데이터가 없습니다.</p>
-          <p className="text-[10px] text-gray-600 mt-1">네이버 서치어드바이저에서 데이터를 복사하여 붙여넣기 하세요.</p>
+          <p className="text-subtle text-sm">저장된 데이터가 없습니다.</p>
+          <p className="text-[10px] text-subtle mt-1">네이버 서치어드바이저에서 데이터를 복사하여 붙여넣기 하세요.</p>
         </div>
       ) : (
         <div className="card overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-800 text-gray-500 text-[10px]">
+              <tr className="border-b border-border text-subtle text-[10px]">
                 <th className="text-left px-4 py-2">키워드</th>
                 <th className="text-right px-4 py-2">클릭</th>
                 <th className="text-right px-4 py-2">노출</th>
@@ -153,12 +153,12 @@ export default function SearchAdvisorPage() {
             </thead>
             <tbody>
               {stats.keywords.map((kw) => (
-                <tr key={kw.keyword} className="border-b border-gray-800/50 hover:bg-gray-900/50">
-                  <td className="px-4 py-2 text-gray-300 text-xs">{kw.keyword}</td>
-                  <td className="px-4 py-2 text-right text-gray-300 text-xs">{kw.clicks}</td>
-                  <td className="px-4 py-2 text-right text-gray-300 text-xs">{kw.impressions.toLocaleString()}</td>
-                  <td className="px-4 py-2 text-right text-gray-300 text-xs">{kw.ctr}%</td>
-                  <td className="px-4 py-2 text-right text-gray-300 text-xs">{kw.position}</td>
+                <tr key={kw.keyword} className="border-b border-border/50 hover:bg-surface/50">
+                  <td className="px-4 py-2 text-muted text-xs">{kw.keyword}</td>
+                  <td className="px-4 py-2 text-right text-muted text-xs">{kw.clicks}</td>
+                  <td className="px-4 py-2 text-right text-muted text-xs">{kw.impressions.toLocaleString()}</td>
+                  <td className="px-4 py-2 text-right text-muted text-xs">{kw.ctr}%</td>
+                  <td className="px-4 py-2 text-right text-muted text-xs">{kw.position}</td>
                 </tr>
               ))}
             </tbody>

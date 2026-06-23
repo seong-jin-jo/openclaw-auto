@@ -17,8 +17,8 @@ function CredField({ id, label, desc, isSecret = false, value, editable, onChang
 
   return (
     <div>
-      <label className="text-xs text-gray-400 block mb-0.5">
-        {label} {desc && <span className="text-gray-600">{desc}</span>}
+      <label className="text-xs text-subtle block mb-0.5">
+        {label} {desc && <span className="text-subtle">{desc}</span>}
       </label>
       <div className="relative">
         <input
@@ -29,13 +29,13 @@ function CredField({ id, label, desc, isSecret = false, value, editable, onChang
           readOnly={!editable}
           onChange={(e) => onChange(e.target.value)}
           title={value}
-          className={`w-full ${editable ? "bg-gray-900" : "bg-gray-900/50 cursor-default"} border border-gray-700 rounded px-3 py-2 pr-16 text-[11px] text-gray-300 placeholder-gray-600 font-mono`}
+          className={`w-full ${editable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-[11px] text-muted placeholder-gray-600 font-mono`}
         />
         {isSecret && (
           <button
             type="button"
             onClick={() => setVisible(!visible)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 hover:text-gray-300"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-subtle hover:text-muted"
           >
             {visible ? "Hide" : "Show"}
           </button>
@@ -101,7 +101,7 @@ export function CredentialForm({ channelKey, fields, labels, currentKeys, onSave
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-gray-300">{title || "Credentials"}</h3>
+        <h3 className="text-sm font-medium text-muted">{title || "Credentials"}</h3>
         <div className="flex items-center gap-2">
           {badge && (
             <span className={`text-[10px] px-2 py-0.5 rounded bg-${badge.color}-900/30 text-${badge.color}-400 border border-${badge.color}-800/30`}>
@@ -109,7 +109,7 @@ export function CredentialForm({ channelKey, fields, labels, currentKeys, onSave
             </span>
           )}
           {hasKeys && !editing && (
-            <button onClick={() => setEditing(true)} className="text-[10px] text-blue-400 hover:text-blue-300">
+            <button onClick={() => setEditing(true)} className="text-[10px] text-accent hover:text-accent">
               {channelKey === "threads" || channelKey === "x" ? "Edit" : "Edit Credentials"}
             </button>
           )}
@@ -118,8 +118,8 @@ export function CredentialForm({ channelKey, fields, labels, currentKeys, onSave
       {fieldGroups ? (
         <div className="space-y-4">
           {fieldGroups.map((group, gi) => (
-            <div key={gi} className={gi < fieldGroups.length - 1 ? "border-b border-gray-800/50 pb-3" : ""}>
-              <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-2">{group.title}</p>
+            <div key={gi} className={gi < fieldGroups.length - 1 ? "border-b border-border/50 pb-3" : ""}>
+              <p className="text-[10px] text-subtle uppercase tracking-wide mb-2">{group.title}</p>
               {group.fieldIndices.map((idx, j) => (
                 <div key={fields[idx]} className={j > 0 ? "mt-2" : ""}>
                   {renderField(idx)}
@@ -138,7 +138,7 @@ export function CredentialForm({ channelKey, fields, labels, currentKeys, onSave
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500 disabled:opacity-50"
+            className="flex-1 py-2 bg-accent text-text text-sm rounded hover:bg-accent-hover disabled:opacity-50"
           >
             {saving ? "Verifying..." : hasKeys ? "Update" : (connectLabel || "Connect")}
           </button>
@@ -150,7 +150,7 @@ export function CredentialForm({ channelKey, fields, labels, currentKeys, onSave
                 fields.forEach((f) => (v[f] = currentKeys[f] || ""));
                 setValues(v);
               }}
-              className="px-4 py-2 bg-gray-800 text-gray-300 text-sm rounded hover:bg-gray-700"
+              className="px-4 py-2 bg-surface-2 text-muted text-sm rounded hover:bg-surface-2"
             >
               Cancel
             </button>

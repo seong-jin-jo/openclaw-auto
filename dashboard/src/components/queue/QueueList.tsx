@@ -79,8 +79,8 @@ export function QueueList({ variant = "text", charLimit, showSeo, onEditInEditor
               onClick={() => setQueueFilter(f)}
               className={`px-3 py-1 text-xs rounded ${
                 queueFilter === f
-                  ? "bg-blue-600/30 text-blue-300 border border-blue-600/30"
-                  : "text-gray-500 hover:bg-gray-800"
+                  ? "bg-accent/30 text-accent border border-blue-600/30"
+                  : "text-subtle hover:bg-surface-2"
               }`}
             >
               {FILTER_LABELS[f] || f}
@@ -94,17 +94,17 @@ export function QueueList({ variant = "text", charLimit, showSeo, onEditInEditor
             </button>
           )}
           {selectableIds.length > 0 && (
-            <label className="flex items-center gap-1 text-xs text-gray-400 cursor-pointer">
-              <input type="checkbox" checked={selectedIds.size > 0} onChange={handleSelectAll} className="rounded border-gray-600" />
+            <label className="flex items-center gap-1 text-xs text-subtle cursor-pointer">
+              <input type="checkbox" checked={selectedIds.size > 0} onChange={handleSelectAll} className="rounded border-border" />
               전체
             </label>
           )}
           {selectedIds.size > 0 && (
             <>
-              <button onClick={handleBulkApprove} className="px-3 py-1 text-xs bg-green-700 text-white rounded hover:bg-green-600">
+              <button onClick={handleBulkApprove} className="px-3 py-1 text-xs bg-green-700 text-text rounded hover:bg-green-600">
                 승인 ({selectedIds.size})
               </button>
-              <button onClick={handleBulkDelete} className="px-3 py-1 text-xs bg-red-700 text-white rounded hover:bg-red-600">
+              <button onClick={handleBulkDelete} className="px-3 py-1 text-xs bg-red-700 text-text rounded hover:bg-red-600">
                 삭제 ({selectedIds.size})
               </button>
             </>
@@ -115,7 +115,7 @@ export function QueueList({ variant = "text", charLimit, showSeo, onEditInEditor
       {/* Posts */}
       <div className="space-y-3">
         {sorted.length === 0 ? (
-          <p className="text-gray-600 text-sm">글이 없습니다</p>
+          <p className="text-subtle text-sm">글이 없습니다</p>
         ) : (
           sorted.map((p) => (
             <UnifiedPostCard

@@ -60,27 +60,27 @@ export function KeywordBankSettings() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-white">Keyword Bank</h3>
-        <span className="text-[10px] text-gray-500">{keywords.length} total | {keywords.filter((k) => !k.used).length} unused</span>
+        <h3 className="text-sm font-medium text-text">Keyword Bank</h3>
+        <span className="text-[10px] text-subtle">{keywords.length} total | {keywords.filter((k) => !k.used).length} unused</span>
       </div>
 
       {/* Add keywords */}
       <div className="card p-4">
-        <label className="text-[10px] text-gray-500 block mb-1">Add keywords (one per line)</label>
+        <label className="text-[10px] text-subtle block mb-1">Add keywords (one per line)</label>
         <textarea
           value={newKeywords}
           onChange={(e) => setNewKeywords(e.target.value)}
           rows={3}
-          className="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded border border-gray-700 font-mono mb-2"
+          className="w-full bg-surface-2 text-muted text-xs p-2 rounded border border-border font-mono mb-2"
           placeholder="keyword 1&#10;keyword 2&#10;keyword 3"
         />
-        <button onClick={handleAdd} className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">Add</button>
+        <button onClick={handleAdd} className="px-3 py-1.5 text-xs bg-accent text-text rounded hover:bg-accent-hover">Add</button>
       </div>
 
       {/* Filter */}
       <div className="flex gap-1">
         {(["all", "unused", "used"] as const).map((f) => (
-          <button key={f} onClick={() => setFilter(f)} className={`px-2 py-1 text-[10px] rounded ${filter === f ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-800"}`}>
+          <button key={f} onClick={() => setFilter(f)} className={`px-2 py-1 text-[10px] rounded ${filter === f ? "bg-accent text-text" : "text-subtle hover:bg-surface-2"}`}>
             {f}
           </button>
         ))}
@@ -89,14 +89,14 @@ export function KeywordBankSettings() {
       {/* Keyword list */}
       <div className="card p-4 max-h-80 overflow-auto">
         {filtered.length === 0 ? (
-          <p className="text-gray-600 text-xs text-center">No keywords</p>
+          <p className="text-subtle text-xs text-center">No keywords</p>
         ) : (
           <div className="space-y-1">
             {filtered.map((k) => (
-              <div key={k.keyword} className="flex items-center justify-between py-1 border-b border-gray-800/30">
+              <div key={k.keyword} className="flex items-center justify-between py-1 border-b border-border/30">
                 <div className="flex items-center gap-2">
-                  <span className={`text-xs ${k.used ? "text-gray-600 line-through" : "text-gray-300"}`}>{k.keyword}</span>
-                  <span className="text-[9px] text-gray-600">{k.source}</span>
+                  <span className={`text-xs ${k.used ? "text-subtle line-through" : "text-muted"}`}>{k.keyword}</span>
+                  <span className="text-[9px] text-subtle">{k.source}</span>
                 </div>
                 <div className="flex gap-1">
                   {!k.used && (

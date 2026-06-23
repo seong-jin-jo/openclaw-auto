@@ -163,29 +163,29 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
   return (
     <>
     {editingPostId && onBackToQueue && (
-      <button onClick={onBackToQueue} className="text-gray-500 hover:text-gray-300 text-xs mb-3 block">← Queue로 돌아가기</button>
+      <button onClick={onBackToQueue} className="text-subtle hover:text-muted text-xs mb-3 block">← Queue로 돌아가기</button>
     )}
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Left: Editor */}
       <div className="space-y-4">
         <div className="card p-5">
-          <h3 className="text-sm font-medium text-gray-300 mb-4">카드뉴스 만들기</h3>
+          <h3 className="text-sm font-medium text-muted mb-4">카드뉴스 만들기</h3>
           <div className="space-y-3">
             <div>
-              <label className="text-[10px] text-gray-500 block mb-1">주제 입력</label>
+              <label className="text-[10px] text-subtle block mb-1">주제 입력</label>
               <div className="flex gap-2">
-                <input id="card-title" type="text" defaultValue={ed.title} placeholder="예: AI 코딩 도구 비교 2026" className="flex-1 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300" />
-                <button onClick={aiOutline} disabled={ed.outlining} className={`px-3 py-2 bg-purple-700 text-white text-xs rounded hover:bg-purple-600 flex-shrink-0 ${ed.outlining ? "opacity-50 cursor-wait" : ""}`}>
+                <input id="card-title" type="text" defaultValue={ed.title} placeholder="예: AI 코딩 도구 비교 2026" className="flex-1 bg-surface border border-border rounded px-3 py-2 text-sm text-muted" />
+                <button onClick={aiOutline} disabled={ed.outlining} className={`px-3 py-2 bg-accent text-text text-xs rounded hover:bg-accent-hover flex-shrink-0 ${ed.outlining ? "opacity-50 cursor-wait" : ""}`}>
                   {ed.outlining ? "생성중..." : "AI 초안"}
                 </button>
               </div>
-              <p className="text-[10px] text-gray-600 mt-1">주제 입력 후 &quot;AI 초안&quot; 클릭하면 슬라이드 내용을 자동 생성합니다</p>
+              <p className="text-[10px] text-subtle mt-1">주제 입력 후 &quot;AI 초안&quot; 클릭하면 슬라이드 내용을 자동 생성합니다</p>
             </div>
             <div>
-              <label className="text-[10px] text-gray-500 block mb-1">스타일</label>
+              <label className="text-[10px] text-subtle block mb-1">스타일</label>
               <div className="flex gap-2">
                 {["dark", "light", "gradient", "tech", "warm"].map(s => (
-                  <button key={s} onClick={() => setEd(prev => ({ ...prev, style: s }))} className={`px-3 py-1.5 text-xs rounded ${ed.style === s ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>
+                  <button key={s} onClick={() => setEd(prev => ({ ...prev, style: s }))} className={`px-3 py-1.5 text-xs rounded ${ed.style === s ? "bg-accent text-text" : "bg-surface-2 text-subtle hover:bg-surface-2"}`}>
                     {s}
                   </button>
                 ))}
@@ -193,45 +193,45 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-[10px] text-gray-500">슬라이드 (각 장의 텍스트)</label>
-                <button onClick={addSlide} className="text-[10px] text-blue-400 hover:text-blue-300">+ 슬라이드 추가</button>
+                <label className="text-[10px] text-subtle">슬라이드 (각 장의 텍스트)</label>
+                <button onClick={addSlide} className="text-[10px] text-accent hover:text-accent">+ 슬라이드 추가</button>
               </div>
               <div className="space-y-2">
                 {ed.slides.map((s, i) => (
                   <div key={i} className="flex gap-2">
-                    <span className="text-[10px] text-gray-600 mt-2 w-4">{i + 1}</span>
-                    <textarea data-card-slide={i} className="flex-1 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300" rows={3} placeholder={`슬라이드 ${i + 1} 내용`} defaultValue={s} />
+                    <span className="text-[10px] text-subtle mt-2 w-4">{i + 1}</span>
+                    <textarea data-card-slide={i} className="flex-1 bg-surface border border-border rounded px-3 py-2 text-sm text-muted" rows={3} placeholder={`슬라이드 ${i + 1} 내용`} defaultValue={s} />
                     {ed.slides.length > 1 && <button onClick={() => removeSlide(i)} className="text-red-400 hover:text-red-300 text-xs mt-2">x</button>}
                   </div>
                 ))}
               </div>
             </div>
             <div>
-              <label className="text-[10px] text-gray-500 block mb-1">엔딩 슬라이드</label>
-              <input id="card-ending" type="text" defaultValue={ed.ending} placeholder="자세한 내용은 프로필 링크에서 확인하세요" className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300" />
+              <label className="text-[10px] text-subtle block mb-1">엔딩 슬라이드</label>
+              <input id="card-ending" type="text" defaultValue={ed.ending} placeholder="자세한 내용은 프로필 링크에서 확인하세요" className="w-full bg-surface border border-border rounded px-3 py-2 text-sm text-muted" />
             </div>
-            <button onClick={generate} disabled={ed.generating} className={`w-full py-2.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-500 ${ed.generating ? "opacity-50 cursor-wait" : ""}`}>
+            <button onClick={generate} disabled={ed.generating} className={`w-full py-2.5 bg-accent text-text text-sm rounded hover:bg-accent-hover ${ed.generating ? "opacity-50 cursor-wait" : ""}`}>
               {ed.generating ? "생성 중..." : "카드뉴스 생성"}
             </button>
           </div>
         </div>
         <div className="card p-5">
-          <h3 className="text-sm font-medium text-gray-300 mb-3">캡션 &amp; 해시태그</h3>
-          <textarea id="card-caption" className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300 mb-2" rows={4} placeholder="Instagram 캡션을 입력하세요" defaultValue={ed.caption} />
-          <input id="card-hashtags" type="text" defaultValue={ed.hashtags} placeholder="#AI #코딩 #개발 ..." className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-300" />
+          <h3 className="text-sm font-medium text-muted mb-3">캡션 &amp; 해시태그</h3>
+          <textarea id="card-caption" className="w-full bg-surface border border-border rounded px-3 py-2 text-sm text-muted mb-2" rows={4} placeholder="Instagram 캡션을 입력하세요" defaultValue={ed.caption} />
+          <input id="card-hashtags" type="text" defaultValue={ed.hashtags} placeholder="#AI #코딩 #개발 ..." className="w-full bg-surface border border-border rounded px-3 py-2 text-sm text-muted" />
         </div>
       </div>
 
       {/* Right: Preview */}
       <div className="card p-5">
-        <h3 className="text-sm font-medium text-gray-300 mb-4">프리뷰</h3>
+        <h3 className="text-sm font-medium text-muted mb-4">프리뷰</h3>
         {ed.result ? (
           <>
             <div className="mb-3">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] text-gray-500">{ed.result.slides.length} slides</p>
+                <p className="text-[10px] text-subtle">{ed.result.slides.length} slides</p>
                 <div className="flex gap-2">
-                  <label className="text-[10px] text-blue-400 hover:text-blue-300 cursor-pointer">
+                  <label className="text-[10px] text-accent hover:text-accent cursor-pointer">
                     + 이미지 추가
                     <input type="file" multiple accept="image/*" className="hidden" onChange={handleUpload} />
                   </label>
@@ -242,7 +242,7 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
                       a.href = url; a.download = `slide-${i + 1}.png`; a.target = "_blank";
                       document.body.appendChild(a); a.click(); document.body.removeChild(a);
                     });
-                  }} className="text-[10px] text-gray-500 hover:text-gray-400">다운로드</button>
+                  }} className="text-[10px] text-subtle hover:text-subtle">다운로드</button>
                 </div>
               </div>
               <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: "thin" }}>
@@ -257,17 +257,17 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={() => handleDrop(i)}
                   >
-                    <div className="w-32 h-40 rounded-lg overflow-hidden border border-gray-700 cursor-pointer" onClick={() => setPreviewImg(s)}>
+                    <div className="w-32 h-40 rounded-lg overflow-hidden border border-border cursor-pointer" onClick={() => setPreviewImg(s)}>
                       <img src={s} alt={`Slide ${i + 1}`} className="w-full h-full object-cover pointer-events-none" />
                     </div>
-                    <button onClick={() => removeResultSlide(i)} className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">✕</button>
-                    <span className="absolute bottom-1 left-1 text-[9px] bg-black/60 text-white px-1 rounded">{i + 1}</span>
+                    <button onClick={() => removeResultSlide(i)} className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-text rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">✕</button>
+                    <span className="absolute bottom-1 left-1 text-[9px] bg-black/60 text-text px-1 rounded">{i + 1}</span>
                   </div>
                 ))}
               </div>
             </div>
             <div className="space-y-2 mb-3">
-              <button onClick={saveDraft} className="w-full py-2 bg-green-700 text-white text-sm rounded hover:bg-green-600">{editingPostId ? "Draft 업데이트" : "큐에 Draft 저장"}</button>
+              <button onClick={saveDraft} className="w-full py-2 bg-green-700 text-text text-sm rounded hover:bg-green-600">{editingPostId ? "Draft 업데이트" : "큐에 Draft 저장"}</button>
               {hasFigmaMcp && (
                 <div className="flex gap-2">
                   <button onClick={async () => {
@@ -279,7 +279,7 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
                       });
                       if (r?.ok) showToast("Figma에 올리기 완료", "success");
                     } catch (e) { showToast((e as Error).message, "error"); }
-                  }} className="flex-1 py-1.5 bg-indigo-700 text-white text-xs rounded hover:bg-indigo-600">Figma에 올리기</button>
+                  }} className="flex-1 py-1.5 bg-indigo-700 text-text text-xs rounded hover:bg-indigo-600">Figma에 올리기</button>
                   <button onClick={async () => {
                     const url = window.prompt("Figma 파일 URL을 입력하세요:");
                     if (!url) return;
@@ -297,11 +297,11 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
                   }} className="flex-1 py-1.5 bg-indigo-900 text-indigo-300 text-xs rounded hover:bg-indigo-800 border border-indigo-700">Figma에서 가져오기</button>
                 </div>
               )}
-              <button onClick={() => setEd(prev => ({ ...prev, result: null }))} className="w-full py-1.5 bg-gray-700 text-gray-300 text-xs rounded hover:bg-gray-600">카드 재생성</button>
+              <button onClick={() => setEd(prev => ({ ...prev, result: null }))} className="w-full py-1.5 bg-surface-2 text-muted text-xs rounded hover:bg-surface-2">카드 재생성</button>
               <details className="text-[10px]">
-                <summary className="text-gray-500 cursor-pointer hover:text-gray-400">미드저니 이미지 추가 (선택)</summary>
+                <summary className="text-subtle cursor-pointer hover:text-subtle">미드저니 이미지 추가 (선택)</summary>
                 <div className="mt-2 flex gap-2">
-                  <input id="mj-bg-prompt" type="text" placeholder="이미지 프롬프트 (영문 권장)" className="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300" />
+                  <input id="mj-bg-prompt" type="text" placeholder="이미지 프롬프트 (영문 권장)" className="flex-1 bg-surface border border-border rounded px-2 py-1.5 text-xs text-muted" />
                   <button onClick={async () => {
                     const prompt = (document.getElementById("mj-bg-prompt") as HTMLInputElement)?.value?.trim();
                     if (!prompt) { showToast("프롬프트를 입력하세요", "warning"); return; }
@@ -318,7 +318,7 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
                       } else { showToast("미드저니 생성 실패", "error"); }
                     } catch (e) { showToast((e as Error).message, "error"); }
                     finally { setMjGenerating(false); }
-                  }} disabled={mjGenerating} className={`px-3 py-1.5 bg-amber-700 text-white text-xs rounded hover:bg-amber-600 flex-shrink-0 ${mjGenerating ? "opacity-50 cursor-wait" : ""}`}>
+                  }} disabled={mjGenerating} className={`px-3 py-1.5 bg-amber-700 text-text text-xs rounded hover:bg-amber-600 flex-shrink-0 ${mjGenerating ? "opacity-50 cursor-wait" : ""}`}>
                     {mjGenerating ? "생성중..." : "생성"}
                   </button>
                 </div>
@@ -326,7 +326,7 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
             </div>
           </>
         ) : (
-          <div className="flex items-center justify-center h-64 text-gray-600">
+          <div className="flex items-center justify-center h-64 text-subtle">
             <div className="text-center">
               <p className="text-sm mb-1">카드뉴스를 생성하면 여기에 프리뷰가 표시됩니다</p>
               <p className="text-[10px]">제목 + 슬라이드 텍스트 입력 후 &quot;카드뉴스 생성&quot; 클릭</p>
@@ -401,7 +401,7 @@ function InstagramSettings() {
           currentKeys={keys}
           onSave={handleCredSave}
           title="Instagram Graph API"
-          badge={{ text: "Graph API", color: "purple" }}
+          badge={{ text: "Graph API", color: "blue" }}
           connectLabel="Connect Instagram"
         />
       </div>
@@ -409,21 +409,21 @@ function InstagramSettings() {
       {/* Channel Info + Setup Guide */}
       <div className="space-y-4">
         <div className="card p-5">
-          <h3 className="text-sm font-medium text-gray-300 mb-3">Channel Info</h3>
+          <h3 className="text-sm font-medium text-muted mb-3">Channel Info</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-500">Status</span>
+              <span className="text-subtle">Status</span>
               <span className={connected ? "text-green-400" : "text-yellow-400"}>
                 {connected ? "Connected" : "Not connected"}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Character Limit</span>
-              <span className="text-gray-300">2,200</span>
+              <span className="text-subtle">Character Limit</span>
+              <span className="text-muted">2,200</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Image Format</span>
-              <span className="text-gray-300">Carousel / Single</span>
+              <span className="text-subtle">Image Format</span>
+              <span className="text-muted">Carousel / Single</span>
             </div>
           </div>
         </div>
@@ -434,7 +434,7 @@ function InstagramSettings() {
 
       {/* Automation */}
       <div className="card p-5">
-        <h3 className="text-sm font-medium text-gray-300 mb-4">Automation</h3>
+        <h3 className="text-sm font-medium text-muted mb-4">Automation</h3>
         {AUTOMATION_FEATURES.map((f) => {
           const cronName = IG_FEATURE_CRON[f.key];
           const featureRuns = cronName ? runs.filter((r) => r.jobName === cronName) : [];
@@ -449,39 +449,39 @@ function InstagramSettings() {
           const showComingSoon = !isImplemented || (!cronName && !["content_generation", "auto_publish"].includes(f.key));
 
           return (
-            <div key={f.key} className="border-b border-gray-800/50 last:border-0">
+            <div key={f.key} className="border-b border-border/50 last:border-0">
               <div className="flex items-center gap-3 py-2.5 cursor-pointer" onClick={() => setExpandedFeature(expanded ? null : f.key)}>
                 <label className={`relative inline-flex items-center shrink-0 ${showComingSoon ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`} onClick={(e) => e.stopPropagation()}>
                   <input type="checkbox" checked={!!(cs[f.key])} onChange={(e) => !showComingSoon && handleToggle(f.key, e.target.checked)} disabled={showComingSoon} className="sr-only peer" />
-                  <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                  <div className="w-9 h-5 bg-surface-2 rounded-full peer peer-checked:bg-accent after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
                 </label>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className={`text-xs ${showComingSoon ? "text-gray-600" : "text-gray-300"}`}>{f.label}</span>
-                    {showComingSoon && <span className="text-[9px] text-gray-700">Coming Soon</span>}
-                    {hours && <span className="text-[10px] text-gray-600">{hours}h</span>}
+                    <span className={`text-xs ${showComingSoon ? "text-subtle" : "text-muted"}`}>{f.label}</span>
+                    {showComingSoon && <span className="text-[9px] text-subtle">Coming Soon</span>}
+                    {hours && <span className="text-[10px] text-subtle">{hours}h</span>}
                     {lastRun && (
                       <>
                         <span className={`text-[10px] ${lastRun.status === "ok" ? "text-green-400" : "text-red-400"}`}>
                           {lastRun.status === "ok" ? "\u2713" : "\u2717"}
                         </span>
-                        <span className="text-[10px] text-gray-600">{lastRun.finishedAt ? fmtAgo(lastRun.finishedAt) : ""}</span>
+                        <span className="text-[10px] text-subtle">{lastRun.finishedAt ? fmtAgo(lastRun.finishedAt) : ""}</span>
                       </>
                     )}
                     {(featureRuns.length > 0 || hours) && (
-                      <svg className={`w-3 h-3 text-gray-600 ml-auto transition-transform ${expanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className={`w-3 h-3 text-subtle ml-auto transition-transform ${expanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     )}
                   </div>
-                  <p className="text-[10px] text-gray-600">{f.description}</p>
+                  <p className="text-[10px] text-subtle">{f.description}</p>
                 </div>
               </div>
               {expanded && (
                 <div className="ml-12 mb-3 space-y-1.5">
                   {showInterval && hours && (
-                    <div className="flex items-center gap-2 py-1.5 px-2 bg-gray-900/50 rounded mb-2" onClick={(e) => e.stopPropagation()}>
-                      <span className="text-[10px] text-gray-400">Interval</span>
+                    <div className="flex items-center gap-2 py-1.5 px-2 bg-surface/50 rounded mb-2" onClick={(e) => e.stopPropagation()}>
+                      <span className="text-[10px] text-subtle">Interval</span>
                       <select
                         defaultValue={hours}
                         onChange={async (e) => {
@@ -493,7 +493,7 @@ function InstagramSettings() {
                             } catch (err) { showToast(`실패: ${(err as Error).message}`, "error"); }
                           }
                         }}
-                        className="bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-[10px] text-gray-300"
+                        className="bg-surface-2 border border-border rounded px-1.5 py-0.5 text-[10px] text-muted"
                       >
                         {[1, 2, 3, 4, 6, 8, 12, 24, 48, 168].map((h) => (
                           <option key={h} value={h}>{h < 24 ? `${h}h` : h === 24 ? "1d" : h === 48 ? "2d" : "7d"}</option>
@@ -511,17 +511,17 @@ function InstagramSettings() {
                           </span>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-[10px] text-gray-500">{ts}</span>
-                              <span className="text-[10px] text-gray-700">{String(r.model || "")}</span>
-                              <span className="text-[10px] text-gray-700 ml-auto">{Math.round(Number(r.durationMs) / 1000)}s</span>
+                              <span className="text-[10px] text-subtle">{ts}</span>
+                              <span className="text-[10px] text-subtle">{String(r.model || "")}</span>
+                              <span className="text-[10px] text-subtle ml-auto">{Math.round(Number(r.durationMs) / 1000)}s</span>
                             </div>
-                            <p className="text-[10px] text-gray-500 break-words">{String(r.summary || "")}</p>
+                            <p className="text-[10px] text-subtle break-words">{String(r.summary || "")}</p>
                           </div>
                         </div>
                       );
                     })
                   ) : (
-                    <p className="text-[10px] text-gray-600">실행 이력 없음</p>
+                    <p className="text-[10px] text-subtle">실행 이력 없음</p>
                   )}
                 </div>
               )}
@@ -560,17 +560,17 @@ export function InstagramPage() {
 
   return (
     <div className="px-8 py-6">
-      <Link href="/" className="text-gray-500 hover:text-gray-300 text-sm mb-1 inline-block">&larr; Back</Link>
+      <Link href="/" className="text-subtle hover:text-muted text-sm mb-1 inline-block">&larr; Back</Link>
       <div className="flex items-center gap-3 mb-6">
-        <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center text-sm font-bold text-white">IG</span>
+        <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-400 to-purple-600 flex items-center justify-center text-sm font-bold text-text">IG</span>
         <div>
-          <h2 className="text-xl font-semibold text-white">Instagram</h2>
-          <p className="text-xs text-gray-500">{connected ? "Connected" : "Not connected"} {igCfg.userId ? ` · ID: ${igCfg.userId}` : ""}</p>
+          <h2 className="text-xl font-semibold text-text">Instagram</h2>
+          <p className="text-xs text-subtle">{connected ? "Connected" : "Not connected"} {igCfg.userId ? ` · ID: ${igCfg.userId}` : ""}</p>
         </div>
       </div>
-      <div className="flex gap-1 mb-6 border-b border-gray-800/50 pb-3">
+      <div className="flex gap-1 mb-6 border-b border-border/50 pb-3">
         {tabs.map(t => (
-          <button key={t} onClick={() => setSubTab(t)} className={`px-3 py-1.5 text-sm rounded ${subTab === t ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800"}`}>
+          <button key={t} onClick={() => setSubTab(t)} className={`px-3 py-1.5 text-sm rounded ${subTab === t ? "bg-accent text-text" : "text-subtle hover:bg-surface-2"}`}>
             {t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
         ))}
@@ -585,8 +585,8 @@ export function InstagramPage() {
           />
         ) : (
           <div className="card p-8 text-center">
-            <p className="text-gray-500 text-sm mb-2">Instagram 계정을 연결하면 큐를 사용할 수 있습니다</p>
-            <button onClick={() => setSubTab("settings")} className="text-xs text-blue-400 hover:text-blue-300">Settings에서 연결하기</button>
+            <p className="text-subtle text-sm mb-2">Instagram 계정을 연결하면 큐를 사용할 수 있습니다</p>
+            <button onClick={() => setSubTab("settings")} className="text-xs text-accent hover:text-accent">Settings에서 연결하기</button>
           </div>
         )
       )}
@@ -595,8 +595,8 @@ export function InstagramPage() {
           <CardNewsEditor onReload={reload} editingPostId={editingPostId} onBackToQueue={() => { setEditingPostId(null); setSubTab("queue"); }} />
         ) : (
           <div className="card p-8 text-center">
-            <p className="text-gray-500 text-sm mb-2">Instagram 계정을 연결하면 카드뉴스 에디터를 사용할 수 있습니다</p>
-            <button onClick={() => setSubTab("settings")} className="text-xs text-blue-400 hover:text-blue-300">Settings에서 연결하기</button>
+            <p className="text-subtle text-sm mb-2">Instagram 계정을 연결하면 카드뉴스 에디터를 사용할 수 있습니다</p>
+            <button onClick={() => setSubTab("settings")} className="text-xs text-accent hover:text-accent">Settings에서 연결하기</button>
           </div>
         )
       )}
