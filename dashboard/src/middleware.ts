@@ -4,6 +4,16 @@ export function middleware(request: NextRequest) {
   const authToken = process.env.DASHBOARD_AUTH_TOKEN;
   const isApi = request.nextUrl.pathname.startsWith("/api/");
 
+  // 페이지(HTML) 문서 요청: 항상 최신 HTML을 받게 no-store.
+  // 재배포 후 브라우저가 옛 HTML(이전 빌드의 죽은 JS 청크명)을 캐시 → 청크 404 →
+  // "This page couldn't load"(ChunkLoadError) 나는 것을 차단. 해시된 _next 정적 청크는
+  // matcher에서 제외되어 그대로 영구 캐시(불변). API는 아래 기존 로직.
+  if (!isApi) {
+    const res = NextResponse.next();
+    res.headers.set("Cache-Control", "no-store, must-revalidate");
+    return res;
+  }
+
   // 프록시 모드(포크 셀프호스트, Phase 1): OSMU_API_BASE 설정 시 모든 /api를 중앙 인스턴스로
   // 토큰 붙여 그대로 전달(얇은 프록시). 토큰(OSMU_TENANT_TOKEN)은 서버 env에만 — 브라우저 노출 0.
   // DB·로직 없음. 중앙이 resolveTenantToken으로 검증 + RLS 스코프.
@@ -60,5 +70,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: "/api/:path*",
+  // 페이지 + API 모두 통과(정적 자산·이미지·favicon 제외 → 청크는 영구캐시 유지).
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
