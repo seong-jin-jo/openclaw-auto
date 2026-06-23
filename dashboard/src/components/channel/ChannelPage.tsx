@@ -55,12 +55,15 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
     tabs = baseTabs;
   }
 
-  // Reset subTab when channel changes
+  // 채널 진입 시 기본 탭: 미연결이면 '연결(설정)' 탭으로 보내 키를 바로 입력하게(연결됨이면 큐).
+  // 예전엔 무조건 queue로 빠져 채널 세팅 자체가 불가능했음.
   useEffect(() => {
-    if (!tabs.includes(subTab)) {
-      setSubTab("queue");
-    }
+    setSubTab(connected ? "queue" : "settings");
   }, [channel]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 연결 상태가 뒤늦게 로드돼 현재 탭이 채널에 없으면 보정
+  useEffect(() => {
+    if (!tabs.includes(subTab)) setSubTab(connected ? "queue" : "settings");
+  }, [tabs, subTab, connected, setSubTab]);
 
   const handleCredSave = async (newKeys: Record<string, string>) => {
     const r = await apiPost<{ verified?: boolean; unverified?: boolean; reason?: string; error?: string; account?: string }>(`/api/channel-config/${channel}`, newKeys);
