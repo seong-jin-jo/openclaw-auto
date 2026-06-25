@@ -1,17 +1,12 @@
 "use client";
 
 import { useChannelConfig } from "@/hooks/useChannelConfig";
-import { CH_LABELS } from "@/lib/constants";
+import { CH_LABELS, PUBLISH_CHANNEL_GROUPS } from "@/lib/constants";
 import { getChannelIcon } from "@/lib/channel-icons";
 import Link from "next/link";
 
-// OSMU가 가진 전 채널(extensions). 클릭 → 채널 연결 화면.
-const GROUPS: { title: string; channels: string[] }[] = [
-  { title: "Social", channels: ["threads", "x", "instagram", "facebook", "linkedin", "bluesky", "pinterest", "tumblr"] },
-  { title: "Video", channels: ["tiktok", "youtube"] },
-  { title: "Blog", channels: ["naver_blog"] },
-  { title: "Messaging", channels: ["telegram", "discord", "slack", "line"] },
-];
+// 발행 채널 그룹은 constants의 PUBLISH_CHANNEL_GROUPS 단일 소스를 사용(사이드바와 동일).
+const GROUPS = PUBLISH_CHANNEL_GROUPS;
 
 function ChRow({ channelKey, label, sub, connected }: {
   channelKey: string; label: string; sub: string; connected: boolean;

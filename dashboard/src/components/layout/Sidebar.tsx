@@ -6,7 +6,7 @@ import { useState, useEffect, useMemo } from "react";
 import useSWR from "swr";
 import { useChannelConfig } from "@/hooks/useChannelConfig";
 import { useCronStatus } from "@/hooks/useOverview";
-import { CH_LABELS, IMPLEMENTED_PLUGINS } from "@/lib/constants";
+import { CH_LABELS, IMPLEMENTED_PLUGINS, PUBLISH_CHANNEL_GROUPS } from "@/lib/constants";
 import { getChannelIcon } from "@/lib/channel-icons";
 import { useUIStore, type Workspace } from "@/store/ui-store";
 import { fetcher, apiPost } from "@/lib/api";
@@ -323,33 +323,18 @@ export function Sidebar() {
           발행 캘린더
         </Link>
 
-        <SidebarGroup
-          groupKey="social"
-          title="Social"
-          items={[
-            threadsItem,
-            xItem,
-            ...["instagram", "facebook", "linkedin", "bluesky", "pinterest", "tumblr"].map((ch) => chSidebarItem(ch, cfg)),
-          ]}
-        />
-
-        <SidebarGroup
-          groupKey="video"
-          title="Video"
-          items={["tiktok", "youtube"].map((ch) => chSidebarItem(ch, cfg))}
-        />
-
-        <SidebarGroup
-          groupKey="blog"
-          title="Blog"
-          items={[chSidebarItem("naver_blog", cfg)]}
-        />
-
-        <SidebarGroup
-          groupKey="messaging"
-          title="Messaging"
-          items={["telegram", "discord", "slack", "line"].map((ch) => chSidebarItem(ch, cfg))}
-        />
+        {/* 발행 채널 그룹 — constants의 PUBLISH_CHANNEL_GROUPS 단일 소스(Settings>Channels와 동일).
+            threads/x는 연결상태 뱃지가 특수해 별도 아이템 유지. */}
+        {PUBLISH_CHANNEL_GROUPS.map((g) => (
+          <SidebarGroup
+            key={g.key}
+            groupKey={g.key}
+            title={g.title}
+            items={g.channels.map((ch) =>
+              ch === "threads" ? threadsItem : ch === "x" ? xItem : chSidebarItem(ch, cfg),
+            )}
+          />
+        ))}
 
         {/* "Data & SEO" 채널 그룹 제거 — /channels/* 빈 연결폼으로 가던 죽은 항목이었음.
             동작하는 읽기 대시보드는 아래 "Data & Analytics" 섹션이 제공(사이드바=연결가능 원칙). */}

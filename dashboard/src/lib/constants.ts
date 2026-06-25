@@ -28,33 +28,14 @@ export const CH_LABELS: Record<string, string> = {
   rss: "RSS Feed",
 };
 
-/** Channel categories for sidebar */
-export const CHANNEL_CATEGORIES = [
-  {
-    key: "social",
-    label: "Social",
-    channels: ["threads", "x", "instagram", "facebook", "linkedin", "bluesky", "pinterest", "tumblr"],
-  },
-  {
-    key: "video",
-    label: "Video",
-    channels: ["tiktok", "youtube"],
-  },
-  {
-    key: "blog",
-    label: "Blog",
-    channels: ["naver_blog", "medium", "substack"],
-  },
-  {
-    key: "messaging",
-    label: "Messaging",
-    channels: ["telegram", "discord", "slack", "line", "kakao", "whatsapp"],
-  },
-  {
-    key: "data",
-    label: "Data & SEO",
-    channels: ["google_analytics", "search_console", "google_business"],
-  },
+/** 발행 채널 그룹 — 사이드바와 Settings>Channels의 단일 소스(SSOT).
+ * "사이드바=연결가능" 원칙: 여기 있는 채널만 실제 연결 가능한 발행 채널로 노출한다.
+ * (Data&SEO/medium/substack/kakao/whatsapp 등 미연결·읽기전용은 제외 — 드리프트 방지.) */
+export const PUBLISH_CHANNEL_GROUPS = [
+  { key: "social", title: "Social", channels: ["threads", "x", "instagram", "facebook", "linkedin", "bluesky", "pinterest", "tumblr"] },
+  { key: "video", title: "Video", channels: ["tiktok", "youtube"] },
+  { key: "blog", title: "Blog", channels: ["naver_blog"] },
+  { key: "messaging", title: "Messaging", channels: ["telegram", "discord", "slack", "line"] },
 ] as const;
 
 /** Messaging channels — no Content Guide/Keywords */
