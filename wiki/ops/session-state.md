@@ -18,12 +18,18 @@
 1. **3사업(ZERO-ONE·D-EDU·CUPID) 알리는 open-claw 마케팅 자동화를 테넌트별 독립 + API 토큰
    각각 연결해 안정적으로 돌게.**  → **정렬 ✅** (멀티테넌트 발행 루프 = 현 세션 작업의 본령).
    완료선 = 실제로 배포돼 crontab으로 *돌아가는 것*. **진행: publish-due 전체 스윕·드라이버·E2E
-   완료, push 완료. 남음: 배포 + crontab 등록(운영자 액션).**
+   완료, push 완료, 배포 success(2026-06-25 18:07Z 런 28190543127, 1m28s, 스모크 게이트 통과).
+   코드측 완료. 남음: crontab 등록(`publish-due-cron.sh` 주기 호출 — 운영자 액션, 레포 밖).**
 2. **GA4 분석·리포팅·슬랙 알림을 MARKETING이 중앙 통합** (GA4 Data API로 4사업 property 읽기.
-   수집 태그는 각 앱이 심음).  → **정렬 ❌ 갭** — 현 백로그엔 "GA/GSC OAuth connect UI 보류"만
-   있고 directive가 원하는 **운영자용 GA4 Data API 중앙 리포팅/슬랙**은 미착수. **다음 빌드로 승격.**
+   수집 태그는 각 앱이 심음).  → **정렬 ❌ 갭 → 다음 빌드 승격, 설계 완료.**
+   사용자 결정(2026-06-26): **계획만, 구현 다음 세션.** 설계 박제 = `wiki/product/plan-ga4-slack-central.md`.
+   핵심: GA4 Data API 호출·서비스계정·슬랙 7종이 **이미 레포에 있음**(`ga-analytics`/`ga-config`/
+   `slack-*`/`weekly-report`) → 확장. 빠진 것 = 단일→4 property, 중앙 비교 뷰, weekly-report에 GA4 연결.
+   상품화 통찰: 내부 4앱 중앙 뷰 = 고객별 성과의 동일 멀티테넌트 GA4 연결의 두 뷰.
 
 **공통 갭:** 이 대시보드 앱 자체에도 gtag 수집 태그 6월 내 심기(MARKETING도 OUTPUT 노출원).
+**다음 액션 후보(사용자 확인 대기):** ① 4앱 gtag 심김 여부 크로스체크(GA4 Phase1 선행조건) /
+② 다음 세션에 GA4 Phase1 `/autoplan` 착수.
 
 **Plan A/B 설계 기준:** "시리즈A CTO 면접관이 감탄할 물건인가" = 멀티테넌트+RLS+GA4 Data API 통합이
 정확히 그 시그니처. 현 방향은 포폴 관점에서도 정렬됨.
