@@ -163,6 +163,14 @@ code-review(high) 7건 전부 반영(교차계정 토큰 클로버, tenantError 
     (미통제, 자영업자) = **pull+스냅샷+RLS 격리(sync)** — MCP 절대 안 열게(CX 사망·인젝션/유출 표면).
     상품화 갭 = `sync-wiki`가 repo 소스만 → **비-repo 커넥터 필요**(URL 크롤/파일 업로드/Notion·Google Doc
     OAuth/붙여넣기) 같은 `wiki_docs`+`brand_guides` 파이프라인 재사용. 근거: brain `cto/ai/concept-brain-MCP-federation` §6.
+  - **정제된 결론(2026-06-26): "두 시스템" 아님 — 하나의 그라운딩 store + 소스 어댑터.** `brand_guides.source`
+    필드가 이미 `wizard | repo | paste`로 다중 어댑터 구조 증명(생성기는 store만 읽음, 인입↔생성 분리).
+    · **외부 비개발자용 = `wizard` 어댑터가 이미 있음**(`/api/studio/brand-setup`, 6문항→`claude -p` 증류).
+      상품화 = 새 시스템 X, **wizard 확장**(필드↑·홈페이지 크롤 AI 부트스트랩·코칭). ← 6월 상품화 우선.
+    · **사내 = repo-sync(있음) + brain MCP(별도 ~/brain-mcp, 있음).** **대시보드에 MCP 새로 구현 불필요**
+      (오버빌드 방지). 전략·톤은 운영자가 brain 읽어 wizard/prompt-guide에 반영.
+    · MCP가 사내서 효율적 이유: 복사·sync 유지비 0 / 항상 최신 / synapse 풍부검색 / 프라이버시 중복 0 /
+      양끝 통제. 외부선 이 5개가 전부 뒤집힘(마찰·인젝션·유출). → 그래서 사내 MCP·외부 sync로 갈림.
 
 ## 사용자 액션 (Claude 불가)
 
