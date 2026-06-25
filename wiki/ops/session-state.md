@@ -151,6 +151,13 @@ code-review(high) 7건 전부 반영(교차계정 토큰 클로버, tenantError 
   (운영자 액션, 레포 밖 — Supabase 콘솔 설정과 동급). 등록 전엔 예약이 `scheduled`로 대기(SchedulePanel 정직 표시).
 - **GA/GSC 실제 OAuth 연결** — 백엔드 config API는 있으나 connect UI 미구현. 현재는 사이드바에서
   죽은 항목 제거 + 읽기 대시보드만 유지.
+- **brand-wiki 인입(JOGON 엔진 축2, 2026-06-26 논의)** — 4앱 wiki를 마케팅 콘텐츠 그라운딩으로 끌어옴.
+  메커니즘 **이미 있음**: `/api/brand/sync-wiki`(테넌트별 `wiki_docs` 인입 + `brand_guides` 톤 증류,
+  Studio가 pg_trgm 그라운딩). 2층 구분 — 제품 사실=각 repo wiki→sync-wiki로 DB 인입 /
+  전략·톤·페르소나=brain(로컬 stdio, **DB로 절대 안 넣음·프라이버시 1선**, MARKETING Claude가 읽어 prompt-guide 작성).
+  repo 상태(확인됨): D-EDU `idealstudy/mvp-back` wiki 310md ✅, CUPID `seong-jin-jo/postAGI` wiki 103md ✅,
+  ZERO-ONE ❌ GitHub repo 없음(push 선행). 블로커: 배포 환경 DB 필요, private repo 토큰(getRepoToken),
+  서버 `claude -p`(CLAUDE_BIN). 착수 후보: ZERO-ONE push / 배포 환경서 D-EDU·CUPID 테넌트 생성+sync 검증.
 
 ## 사용자 액션 (Claude 불가)
 
