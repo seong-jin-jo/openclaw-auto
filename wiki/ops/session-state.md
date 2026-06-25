@@ -144,6 +144,19 @@ code-review(high) 7건 전부 반영(교차계정 토큰 클로버, tenantError 
 - **다음 액션**: 이 변경 + Codex 미push 커밋 2개를 함께 commit→push→`deploy-marketing.yml` 배포→browse 라이브검증.
   (배포는 outward-facing — 사용자 승인 후.)
 
+## brand 그라운딩 구현 현황 (2026-06-26 코드 검증)
+
+**구현됨(코드+UI+생성주입):** 사내 repo 위키 가져오기(`RepoConnect.tsx`+`/api/brand/sync-wiki`·`sync-repo`),
+wizard 6문항(`BrandSetupWizard.tsx`+`/api/studio/brand-setup`), 생성 그라운딩(`studio/text`가
+`brand_guides`(톤)+`wiki_docs`(사실, `lib/wiki-retrieve` `withTenant`)+`context_sources`(0차 multi-repo
+즉석 fetch) 주입, "사실 근거·지어내기 금지" 프롬프트).
+**미구현:** 외부 **Notion 커넥터(grep 0)**, URL크롤·업로드 커넥터, AI 전략코칭·톤검수(Flow B).
+
+**"웹 켜고 4앱 즉시 데모"는 ❌ — 빠진 4개:** (a) `wiki_docs`/`brand_guides`는 Postgres+RLS →
+**로컬 DB 없어 배포 환경에서만** 동작 (b) 앱별 **테넌트 생성+sync 실행 셋업 미완**(기능 있으나 데이터 비어있음)
+(c) **ZERO-ONE GitHub repo 부재**(push 선행, D-EDU·CUPID는 repo 있음) (d) Notion 미구현.
+→ 데모하려면 배포 환경에서 앱별 테넌트 만들고 sync-wiki 1회 돌려 데이터 적재해야 함.
+
 ## 다음 단계 / 보류
 
 - **실발행 루프 crontab 등록 [P0 잔여]** — 엔드포인트·스윕 모드·드라이버 스크립트는 완비됨.
