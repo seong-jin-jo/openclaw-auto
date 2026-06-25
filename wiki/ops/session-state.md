@@ -158,6 +158,11 @@ code-review(high) 7건 전부 반영(교차계정 토큰 클로버, tenantError 
   repo 상태(확인됨): D-EDU `idealstudy/mvp-back` wiki 310md ✅, CUPID `seong-jin-jo/postAGI` wiki 103md ✅,
   ZERO-ONE ❌ GitHub repo 없음(push 선행). 블로커: 배포 환경 DB 필요, private repo 토큰(getRepoToken),
   서버 `claude -p`(CLAUDE_BIN). 착수 후보: ZERO-ONE push / 배포 환경서 D-EDU·CUPID 테넌트 생성+sync 검증.
+  - **결정(권고, ADR 미작성·사용자 확인 대기)**: brand 그라운딩 방식 = **신뢰 경계로 가름.**
+    사내(통제 가능, 신선도 중요) = **MCP/federation**(무인 크론엔 nightly sync 스냅샷 병행). 외부 고객
+    (미통제, 자영업자) = **pull+스냅샷+RLS 격리(sync)** — MCP 절대 안 열게(CX 사망·인젝션/유출 표면).
+    상품화 갭 = `sync-wiki`가 repo 소스만 → **비-repo 커넥터 필요**(URL 크롤/파일 업로드/Notion·Google Doc
+    OAuth/붙여넣기) 같은 `wiki_docs`+`brand_guides` 파이프라인 재사용. 근거: brain `cto/ai/concept-brain-MCP-federation` §6.
 
 ## 사용자 액션 (Claude 불가)
 
