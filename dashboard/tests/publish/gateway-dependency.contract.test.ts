@@ -2,12 +2,11 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "fs";
 import path from "path";
 
-// ── 발행 루프의 "갭"을 통과 테스트로 박제 (Layer 3) ──────────────────────────
-// 사실: 이 레포에는 예약/승인된 글을 도래 시각에 자동 발행하는 스케줄러가 없다.
-//   - queue.json approved + scheduledAt → 외부 OpenClaw 게이트웨이 크론이 발행.
-//   - schedules 테이블 status='scheduled' → 동일 외부 크론이 발행.
-//   - 레포 내 유일한 실발행·기록 경로 = /api/publish (유저 트리거, 동기) → published_posts.
-// 누군가 레포 내 스케줄러를 추가하면 이 테스트가 깨진다 → 숨은 동작 변경이 diff로 드러난다.
+// ── 발행 루프 계약 (Layer 3) ──────────────────────────────────────────────
+// 레포 내 실발행 경로는 두 가지뿐이어야 한다.
+//   - /api/publish: Studio 등 유저 트리거 동기 발행.
+//   - /api/schedule/publish-due: cron/gateway가 도래 예약을 claim해 발행.
+// 새 실발행 경로가 생기면 이 테스트가 깨져 숨은 동작 변경이 diff로 드러난다.
 
 const API_DIR = path.resolve(__dirname, "../../src/app/api");
 
@@ -28,31 +27,29 @@ const routes = walkRoutes(API_DIR).map((f) => ({
 
 const PUBLISH_FNS = /\b(publishThreads|publishInstagram|publishX|publishFacebook)\b/;
 
-describe("발행 루프 — 외부 게이트웨이 의존 계약", () => {
-  it("published_posts에 INSERT하는 라우트는 /api/publish 하나뿐 (동기 유저 트리거)", () => {
+describe("발행 루프 — 명시된 실발행 경로 계약", () => {
+  it("published_posts에 INSERT하는 라우트는 명시된 실발행 경로뿐", () => {
     const inserters = routes
       .filter((r) => /INSERT\s+INTO\s+published_posts/i.test(r.src))
       .map((r) => r.rel);
-    expect(inserters).toEqual(["publish/route.ts"]);
+    expect(inserters.sort()).toEqual(["publish/route.ts", "schedule/publish-due/route.ts"].sort());
   });
 
-  it("실 publish*() 함수를 호출하는 라우트는 /api/publish 하나뿐", () => {
+  it("실 publish*() 함수를 호출하는 라우트는 명시된 실발행 경로뿐", () => {
     const callers = routes.filter((r) => PUBLISH_FNS.test(r.src)).map((r) => r.rel);
-    expect(callers).toEqual(["publish/route.ts"]);
+    expect(callers.sort()).toEqual(["publish/route.ts", "schedule/publish-due/route.ts"].sort());
   });
 
-  it("schedules 테이블을 다루는 라우트는 발행을 수행하지 않는다 (스케줄러 부재)", () => {
+  it("/api/schedule 생성/조회 라우트는 발행을 수행하지 않는다", () => {
     const scheduleRoutes = routes.filter((r) => /\bschedules\b/.test(r.src));
-    // schedule/route.ts는 존재(INSERT/SELECT)하되, publish*를 호출하지 않아야 한다.
     expect(scheduleRoutes.map((r) => r.rel)).toContain("schedule/route.ts");
-    for (const r of scheduleRoutes) {
+    for (const r of scheduleRoutes.filter((r) => r.rel !== "schedule/publish-due/route.ts")) {
       expect(PUBLISH_FNS.test(r.src), `${r.rel}가 publish*를 호출하면 안 됨`).toBe(false);
     }
   });
 
-  it("도래한 예약을 긁어 발행하는 스케줄러 패턴이 레포에 없다", () => {
-    // 'scheduled_at <= now()' 류로 도래 예약을 selecting하는 라우트가 없어야 함
+  it("도래 예약을 긁어 발행하는 스케줄러 패턴은 /api/schedule/publish-due 하나뿐", () => {
     const due = routes.filter((r) => /scheduled_at\s*<=?\s*now\(\)/i.test(r.src)).map((r) => r.rel);
-    expect(due).toEqual([]);
+    expect(due).toEqual(["schedule/publish-due/route.ts"]);
   });
 });

@@ -29,6 +29,7 @@ External: Threads/X/IG/YouTube/TikTok APIs + R2 + ElevenLabs + Midjourney
 
 **2. Publishing**
 - multi-channel-publish cron
+- schedule-publish-due dashboard cron endpoint for Studio reservations
 - Per-channel extensions (threads-publish, x-publish, instagram-publish, tiktok-publish, youtube-publish...)
 - Queue schema v2 with per-channel status
 

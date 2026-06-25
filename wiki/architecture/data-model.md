@@ -12,6 +12,10 @@ This is the reference for all persistent state. Most data is tenant-scoped for S
 ### Content & Queue (v2)
 - `queue.json` (legacy) / `drafts` table — status, channels: { threads: {status, publishedAt, ...}, ... }
 - Per-post: idea, payload (JSON with hook/body etc.), images.
+- `schedules` — Studio reservation rows. Status lifecycle:
+  `scheduled` → `processing` → `published` / `partial` / `failed` (or `canceled`).
+  `POST /api/schedule/publish-due` claims due rows per tenant and writes platform results back into `payload.publishResults`.
+- `published_posts` — one row per platform publish attempt, including failed attempts for auditability.
 
 ### Brand Knowledge (Wiki)
 - **Tenant Brand Wiki** (for AI content):
@@ -35,6 +39,8 @@ This is the reference for all persistent state. Most data is tenant-scoped for S
 
 ### Automation State
 - `cron-runs`, `cron-status`.
+- `schedules` is the durable reservation queue for Studio; cron/gateway should call
+  `POST /api/schedule/publish-due` per tenant to process due reservations.
 - Settings per tenant/channel (credentials, guide, keywords, toggles).
 - `prompt-guide.txt` + `.channel.txt` overrides (in data/ or DB).
 

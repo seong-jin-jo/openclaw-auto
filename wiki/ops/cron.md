@@ -8,6 +8,7 @@ All background work is driven by cron definitions in `config/cron/jobs.json` (or
 |-----|----------|-------|-------------|
 | threads-generate-drafts | 6h | Sonnet/Opus | prompt-guide + keywords + wiki context → batch drafts |
 | multi-channel-publish | 2h | Haiku | approved queue items → publish to all connected channels (per-channel optimization) |
+| schedule-publish-due | 5-15m | n/a | dashboard `POST /api/schedule/publish-due` claims tenant due schedules → direct publish + `published_posts` records |
 | instagram-generate-drafts | 6h | Sonnet | card news specific generation |
 | instagram-auto-publish | 2h | Haiku | image posts for IG |
 | threads-collect-insights | 6h | Haiku | views/likes/replies + viral detection + auto like/reply |
@@ -15,10 +16,20 @@ All background work is driven by cron definitions in `config/cron/jobs.json` (or
 | threads-track-growth | daily | Haiku | follower count history |
 
 ## How It Works
-1. Cron container calls OpenClaw gateway with job payload (including model override).
-2. Agent uses registered tools (from extensions).
+1. Cron container calls OpenClaw gateway with job payload (including model override), or calls a dashboard cron endpoint directly.
+2. Agent uses registered tools (from extensions), while dashboard direct-publish jobs use tenant credentials from DB integrations.
 3. Results written to data/ or DB (tenant-scoped).
 4. Cleanup of old published/failed items.
+
+## Schedule Publish Due
+
+`POST /api/schedule/publish-due` is the in-repo due scheduler for Studio reservations.
+
+- Scope: one tenant per request. The route resolves tenant via session/JWT, `osmu_` token, host, or operator fallback `tenant_id`.
+- Claiming: due `schedules` rows (`status='scheduled'` and `scheduled_at <= now()`) are atomically moved to `processing` with `FOR UPDATE SKIP LOCKED`.
+- Publishing: supported platforms use the same direct publish functions as `/api/publish` (`threads`, `x`, `instagram`, `facebook`).
+- Recording: each platform result creates a `published_posts` row with `published` or `failed`.
+- Final schedule status: `published`, `partial`, or `failed`. Unsupported/unconnected platforms are recorded as failed instead of pretending to publish.
 
 ## Configuration
 - Per-tenant automation toggles in dashboard Settings.

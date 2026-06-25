@@ -44,6 +44,23 @@
   가능하거나 기준이 불명확하면 사용자에게 어느 handoff source를 따를지 묻고 진행한다.
   `AGENTS.md`, `CLAUDE.md`, Stop hook 메시지를 "user-confirmed handoff basis" 기준으로
   수정했다.
+- 현재 handoff 기준: 사용자가 `2.1.187 작업 진행하자`고 지정. `tmux list-panes`상 이 레포의
+  `2.1.187`은 `marketing-claw:0.0`(`cwd=/Users/sj/sj_code_master/openclaw-auto`,
+  title=`osmu-dashboard-trust-ux-ia-fixes`)이며, `tmux capture-pane` 확인 결과 마지막 pending
+  지시는 `Stop 훅으로 리마인더 걸어줘`. 해당 작업은 Codex가 이어받아 `1ad43ed5`
+  (`docs: Codex/Claude handoff harness enforce`)로 커밋 완료했고 tracked worktree는 clean.
+  다음 실제 작업은 이 파일의 보류 항목 중 P0인 **실발행 루프(cross-repo gateway/cron)** 검토부터
+  진행한다.
+- 실발행 루프 진행 중: `dashboard/tests/publish/schedule-publish-due.test.ts`를 먼저 추가했고,
+  route 부재로 실패하는 것을 확인했다. 이후 `POST /api/schedule/publish-due`를 구현해
+  테넌트별 due `schedules`를 `processing`으로 claim(`FOR UPDATE SKIP LOCKED`)하고,
+  `threads`/`x`/`instagram`/`facebook`을 기존 직접발행 함수로 발행한 뒤 플랫폼별
+  `published_posts` 기록과 schedule `published`/`partial`/`failed` 마감을 수행한다.
+  `dashboard/tests/publish/gateway-dependency.contract.test.ts`는 새 실발행 경로를 명시적으로
+  허용하도록 업데이트했고, `SchedulePanel`은 새 상태를 정직하게 표시한다.
+- 실발행 루프 검증: `cd dashboard && npm run test:publish`, `npm run test`, `npx tsc --noEmit`
+  모두 통과. `npm run build`는 샌드박스에서 Turbopack 포트 바인딩 제한으로 실패했으나,
+  권한 승인 후 재실행해 통과했다(Next middleware deprecation + 기존 NFT trace warning만 남음).
 
 ## 지금까지 (직전 작업 = OSMU 대시보드 신뢰·UX·IA 복구)
 
@@ -54,8 +71,8 @@
 
 **완료 (배포·라이브 검증됨):**
 - **발행 E2E 하네스** — `dashboard/tests/publish/`: happy/skip/invalid 분기, 승인 scheduledAt,
-  예약 검증, **게이트웨이 의존 contract**(예약/승인은 외부 OpenClaw 게이트웨이 없으면 영영
-  pending임을 정적+행위로 박제), DB-gated `published_posts` 라운드트립. `npm run test:publish`.
+  예약 검증, due schedule 실발행 루프 contract, DB-gated `published_posts` 라운드트립.
+  `npm run test:publish`.
 - **로그아웃 항상 노출** — 사이드바 nav `overflow-y-auto` + footer `shrink-0`.
 - **단일 로그인** — 고객 `/login`(Supabase) 단일 진입, 운영자는 `/operator`로 분리(랜딩서 비번
   박스 제거). `/api/me`가 토큰 종류로 운영자/고객 구분(고객 JWT를 운영자로 둔갑 금지),
@@ -74,8 +91,8 @@ code-review(high) 7건 전부 반영(교차계정 토큰 클로버, tenantError 
 
 ## 다음 단계 / 보류
 
-- **실발행 루프(cross-repo)** — 예약/승인 글을 도래 시각에 실제 발행하는 cron/게이트웨이는
-  이 레포 밖(openclaw 게이트웨이). contract 테스트가 갭을 박제 중. 실발행 중단 위험 → 별도 세션.
+- **실발행 루프 운영 연결** — 레포 내부 due publisher(`/api/schedule/publish-due`)는 추가됨.
+  남은 일은 배포/게이트웨이 cron이 테넌트별로 이 endpoint를 호출하도록 연결하는 것.
 - **GA/GSC 실제 OAuth 연결** — 백엔드 config API는 있으나 connect UI 미구현. 현재는 사이드바에서
   죽은 항목 제거 + 읽기 대시보드만 유지.
 

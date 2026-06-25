@@ -23,6 +23,24 @@ const LABEL: Record<string, string> = {
   shorts: "Shorts", reels: "Reels", tiktok: "TikTok",
 };
 
+function statusLabel(status: string): string {
+  if (status === "published") return "발행됨";
+  if (status === "partial") return "일부 실패";
+  if (status === "failed") return "실패";
+  if (status === "processing") return "처리 중";
+  if (status === "canceled") return "취소";
+  return "예약됨";
+}
+
+function statusClass(status: string): string {
+  if (status === "published") return "bg-success/15 text-success";
+  if (status === "partial") return "bg-warning/15 text-warning";
+  if (status === "failed") return "bg-danger/15 text-danger";
+  if (status === "processing") return "bg-accent/15 text-accent";
+  if (status === "canceled") return "bg-surface-2 text-subtle";
+  return "bg-warning/15 text-warning";
+}
+
 // datetime-local 입력값(로컬 시각, "YYYY-MM-DDTHH:mm") → ISO-8601 문자열.
 function toIso(local: string): string | null {
   if (!local) return null;
@@ -136,12 +154,8 @@ export function SchedulePanel({
                   <div className="text-xs text-muted">{new Date(s.scheduledAt).toLocaleString("ko-KR")}</div>
                   <div className="text-[10px] text-subtle truncate">{(s.platforms || []).map((p) => LABEL[p] || p).join(" · ")}</div>
                 </div>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${
-                  s.status === "published" ? "bg-green-900/50 text-green-400"
-                    : s.status === "canceled" ? "bg-surface-2 text-subtle"
-                    : "bg-warning/15 text-warning"
-                }`}>
-                  {s.status === "published" ? "발행됨" : s.status === "canceled" ? "취소" : "예약됨"}
+                <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${statusClass(s.status)}`}>
+                  {statusLabel(s.status)}
                 </span>
               </div>
             ))}
