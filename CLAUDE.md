@@ -21,6 +21,24 @@ Claude Agent와 개발자가 참고하는 기술 문서. 사용법은 README.md 
 
 품질 > 실행 속도. 증명 없이 다음으로 넘어가지 않는다. 막히면 멈추고 보고(추측 금지).
 
+### Agent/tmux 핸드오프 규칙
+
+- **Claude/Codex가 작업을 시작/재개/전환할 때:** 먼저 `CLAUDE.md`,
+  `wiki/ops/session-state.md`, `git status --short --untracked-files=no`를 읽고, 사용자가
+  지목한 tmux pane 또는 이 레포/태스크와 관련된 pane을 `tmux list-panes` +
+  `tmux capture-pane`으로 확인한다. 단, **무엇을 기준으로 이어갈지는 사용자가 정한다.**
+  tmux pane과 `session-state.md` 둘 다 가능하거나 기준이 불명확하면, 에이전트가 추론으로
+  선택하지 말고 사용자에게 어느 handoff source를 따를지 묻고 진행한다.
+- **전환은 세션 시작 때만 발생하지 않는다.** Codex가 새 작업을 시작한 뒤 Claude가 이어받거나,
+  Claude가 작업 중 Codex가 이어받을 수 있다. 따라서 작업 중에도 새 태스크 착수, 방향 전환,
+  의미 있는 구현 단위 완료, 장시간 작업, 멈춤/보고 직전마다 `wiki/ops/session-state.md`를
+  갱신한다.
+- **다시 Claude/Codex tmux 세션으로 돌려줄 때:** 종료 전 `wiki/ops/session-state.md`에
+  현재 태스크, 사용자가 선택한 handoff 기준(tmux pane id 또는 `session-state.md`), 변경 파일,
+  검증/보류, 정확한 다음 액션을 적어 둔다. 다음 에이전트는 이 파일만 읽어도 30초 안에 재개
+  가능해야 한다. tmux transcript는 보조 맥락일 뿐, 재개에 필요한 핵심 상태는 항상 파일에 남긴다.
+- `.claude/settings.json`의 `Stop` hook은 최종 보고 직전 이 체크리스트를 한 번 막아서 상기한다.
+
 ## 공통 레포 정책
 
 이 레포는 서비스 중립적 공통 플랫폼. 코드, 커밋, PR에 특정 서비스 URL/사용자명/브랜드명/API 키를 포함하지 않는다. Custom Integration은 fork에서 추가.

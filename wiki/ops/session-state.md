@@ -5,11 +5,52 @@
 
 **최종 갱신:** 2026-06-25 · 브랜치 `main` · 배포 라이브.
 
+## 현재 세션 (Codex/Claude 핸드오프 표준화)
+
+- 루트 `AGENTS.md` 추가. Codex/Claude 공통 진입 규칙으로 `CLAUDE.md` →
+  `wiki/ops/session-state.md` → `git status --short --untracked-files=no` →
+  관련 diff 확인 순서를 고정했다.
+- 작업 중/완료 전 `wiki/ops/session-state.md` 갱신, 관련 `wiki/` 문서 반영,
+  검증 결과 기록을 Codex 쪽에서도 따르도록 문서화했다.
+- 최근 세션 확인: 작업 시작 기준 커밋은 `d20d5dfc`이며, `CLAUDE.md` 최상위에 작업 하네스
+  3규칙(E2E 선통과, wiki 문서화, 재실행 가능 기록)을 추가하고 이 파일을 신설했다.
+- 이번 변경 전 tracked working tree는 clean 상태였다. 이번 변경은 문서/핸드오프 규칙만
+  추가한 doc-only 작업이라 빌드/테스트는 실행하지 않았다.
+- 같은 tmux의 `marketing-claw:0.0` 패널에서 남은 사용자 지시가 `Stop 훅으로 리마인더 걸어줘`
+  임을 확인하고, `.claude/settings.json`에 `Stop` hook을 추가했다. 새 스크립트는
+  `.claude/hooks/stop-harness-reminder.sh`: 첫 Stop 시 작업 하네스 체크리스트(E2E/검증,
+  관련 wiki, session-state)를 `decision:block`으로 한 번 상기시키고, `stop_hook_active=true`
+  재진입 때는 `{}`로 통과해 무한 루프를 피한다.
+- Stop hook 검증: `bash -n .claude/hooks/stop-harness-reminder.sh`, `.claude/settings.json`
+  JSON parse, `stop_hook_active=false`/`true` 샘플 입력 모두 통과. 코드/대시보드 동작 변경은
+  없어 dashboard build/test는 실행하지 않았다.
+- tmux↔session-state 핸드오프를 명문화했다. Codex가 `marketing-claw:0.0` pane을
+  `tmux capture-pane -p -t marketing-claw:0.0 -S -80`로 확인해 마지막 지시
+  `Stop 훅으로 리마인더 걸어줘`를 이어받았고, 루트 `AGENTS.md`/`CLAUDE.md`에
+  "tmux pane은 휘발성 takeover context, `wiki/ops/session-state.md`는 durable return
+  context" 원칙을 추가했다. Stop hook 메시지도 tmux pane id + 해석한 다음 액션 기록을
+  요구하도록 강화했다.
+- 추가 검증: 강화 후 `bash -n .claude/hooks/stop-harness-reminder.sh`, `.claude/settings.json`
+  JSON parse, `stop_hook_active=false`/`true` 샘플 입력 모두 통과. 문서/하네스 변경이라
+  dashboard build/test는 실행하지 않았다.
+- 사용자 피드백 반영: handoff는 세션 시작 때만 일어나는 게 아니라 Codex가 새 작업을 진행한
+  뒤 Claude가 돌아오는 식으로 언제든 발생할 수 있다. 루트 `AGENTS.md`의 시작 섹션을
+  `Start / Resume / Take Over`로 바꾸고, 작업 중 새 태스크 착수/방향 전환/의미 있는 구현 단위
+  완료/멈춤 직전마다 `session-state.md`를 갱신하도록 강화했다. `CLAUDE.md`와 Stop hook
+  메시지도 "mid-task transfer 가능, transcript가 아니라 session-state로 재개 가능해야 함"을
+  명시하도록 수정했다.
+- 추가 사용자 피드백 반영: 에이전트는 다른 tmux pane을 이어갈 수 있는지 확인할 수 있지만,
+  **무엇을 기준으로 이어갈지는 사용자가 정한다.** tmux pane과 `session-state.md`가 모두
+  가능하거나 기준이 불명확하면 사용자에게 어느 handoff source를 따를지 묻고 진행한다.
+  `AGENTS.md`, `CLAUDE.md`, Stop hook 메시지를 "user-confirmed handoff basis" 기준으로
+  수정했다.
+
 ## 지금까지 (직전 작업 = OSMU 대시보드 신뢰·UX·IA 복구)
 
 고객 온보딩 중 제기된 9개 이슈를 P0(신뢰)→P1(UX)→P2(IA) 순으로 처리하고 배포 완료.
 
-커밋 흐름: `012b3f35`(P0–P2) → `ac931c15`(채널 SSOT + 발행 하네스 층). 2회 배포 모두 success.
+커밋 흐름: `012b3f35`(P0–P2) → `ac931c15`(채널 SSOT + 발행 하네스 층) →
+`d20d5dfc`(작업 하네스 3규칙 루트 코드화 + wiki 반영). 앞 2회 배포 모두 success.
 
 **완료 (배포·라이브 검증됨):**
 - **발행 E2E 하네스** — `dashboard/tests/publish/`: happy/skip/invalid 분기, 승인 scheduledAt,
