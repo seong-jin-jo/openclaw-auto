@@ -38,6 +38,21 @@ export const PUBLISH_CHANNEL_GROUPS = [
   { key: "messaging", title: "Messaging", channels: ["telegram", "discord", "slack", "line"] },
 ] as const;
 
+/**
+ * 예약 발행이 실제로 지원하는 플랫폼 SSOT.
+ * SchedulePanel(UI 체크박스)과 publish-due 백엔드(SUPPORTED_PLATFORMS)가 같은 목록을 공유한다.
+ * "노출=발행가능" 원칙 — 여기 없는 플랫폼은 예약 UI에 노출하지 않는다.
+ * 영상(shorts/reels/tiktok)은 텍스트 예약 루프가 아직 못 다루므로 제외(드리프트 방지).
+ */
+export const SCHEDULABLE_PLATFORMS = ["threads", "x", "facebook", "instagram"] as const;
+export type SchedulablePlatform = (typeof SCHEDULABLE_PLATFORMS)[number];
+export const SCHEDULABLE_PLATFORM_LABELS: Record<SchedulablePlatform, string> = {
+  threads: "Threads",
+  x: "X",
+  facebook: "Facebook",
+  instagram: "Instagram",
+};
+
 /** Messaging channels — no Content Guide/Keywords */
 export const MESSAGING_CHANNELS = ["telegram", "discord", "slack", "line", "kakao", "whatsapp"];
 

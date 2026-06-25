@@ -11,6 +11,8 @@ const H = vi.hoisted(() => ({
     payload: Record<string, unknown> | null;
     draft_payload: Record<string, unknown> | null;
   }>,
+  dueTenants: [] as string[], // 운영자 전체 스윕 시 db()가 돌려줄 due 테넌트 id
+  claimedTenants: [] as string[], // processTenant가 호출된 테넌트 추적
   inserts: [] as unknown[][],
   updates: [] as unknown[][],
 }));
@@ -20,7 +22,16 @@ vi.mock("@/lib/tenant-auth", () => ({
 }));
 
 vi.mock("@/lib/db", () => ({
-  withTenant: vi.fn(async (_tenantId: string, cb: (sql: unknown) => unknown) => {
+  // 운영자 전체 스윕에서 due 테넌트 id를 긁는 RLS 우회 service-role 커넥션.
+  db: vi.fn(() => (strings: TemplateStringsArray) => {
+    const text = strings.join("?");
+    if (/SELECT\s+DISTINCT\s+tenant_id/i.test(text)) {
+      return Promise.resolve(H.dueTenants.map((tenant_id) => ({ tenant_id })));
+    }
+    return Promise.resolve([]);
+  }),
+  withTenant: vi.fn(async (tenantId: string, cb: (sql: unknown) => unknown) => {
+    H.claimedTenants.push(tenantId);
     const sql = Object.assign(
       (strings: TemplateStringsArray, ...vals: unknown[]) => {
         const text = strings.join("?");
@@ -49,12 +60,12 @@ vi.mock("@/lib/publish", () => ({
   publishFacebook: vi.fn(async () => ({ ok: true, externalId: "fb-1" })),
 }));
 
-async function publishDue(body: Record<string, unknown> = {}) {
+async function publishDue(body: Record<string, unknown> = {}, headers: Record<string, string> = {}) {
   const { POST } = await import("@/app/api/schedule/publish-due/route");
   const res = await POST(
     new Request("http://localhost/api/schedule/publish-due", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...headers },
       body: JSON.stringify(body),
     }),
   );
@@ -63,8 +74,11 @@ async function publishDue(body: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.resetModules();
+  delete process.env.DASHBOARD_AUTH_TOKEN;
   H.tenantId = "tenant-1";
   H.rows = [];
+  H.dueTenants = [];
+  H.claimedTenants = [];
   H.inserts = [];
   H.updates = [];
 });
@@ -131,5 +145,56 @@ describe("POST /api/schedule/publish-due — 예약 실발행 루프", () => {
     expect(body.schedules[0].status).toBe("partial");
     expect(H.inserts).toHaveLength(2);
     expect(H.updates[0]).toContain("partial");
+  });
+});
+
+describe("POST /api/schedule/publish-due — 운영자 전체 테넌트 스윕", () => {
+  it("tenant_id 없음 + 운영자 토큰 불일치 → 400, DB 접근 없음", async () => {
+    H.tenantId = null;
+    process.env.DASHBOARD_AUTH_TOKEN = "op-secret";
+    const { status, body } = await publishDue({}, { Authorization: "Bearer wrong-token" });
+    expect(status).toBe(400);
+    expect(body.error).toMatch(/tenant_id/);
+    expect(H.claimedTenants).toHaveLength(0);
+  });
+
+  it("운영자 토큰 + due 테넌트들 → 각 테넌트를 순회 발행하고 합계를 반환", async () => {
+    H.tenantId = null; // effectiveTenantId 미해석 → 운영자 분기
+    process.env.DASHBOARD_AUTH_TOKEN = "op-secret";
+    H.dueTenants = ["tenant-a", "tenant-b"];
+    H.rows = [
+      {
+        id: "sched-x",
+        draft_id: "draft-x",
+        platforms: ["threads"],
+        payload: { text: "body" },
+        draft_payload: null,
+      },
+    ];
+
+    const { status, body } = await publishDue({}, { Authorization: "Bearer op-secret" });
+
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.mode).toBe("all-tenants");
+    expect(body.tenantCount).toBe(2);
+    expect(body.processed).toBe(2); // 테넌트당 1건 × 2
+    // 각 테넌트가 자기 스코프(withTenant)로 처리됐는지 — 순서·집합 모두 due 테넌트와 일치(크로스테넌트 누수 방지).
+    expect([...new Set(H.claimedTenants)]).toEqual(["tenant-a", "tenant-b"]);
+    for (const t of H.claimedTenants) expect(["tenant-a", "tenant-b"]).toContain(t);
+  });
+
+  it("운영자 토큰 + due 테넌트 0개 → processed=0, 발행 없음", async () => {
+    H.tenantId = null;
+    process.env.DASHBOARD_AUTH_TOKEN = "op-secret";
+    H.dueTenants = [];
+
+    const { status, body } = await publishDue({}, { Authorization: "Bearer op-secret" });
+
+    expect(status).toBe(200);
+    expect(body.mode).toBe("all-tenants");
+    expect(body.processed).toBe(0);
+    expect(H.claimedTenants).toHaveLength(0);
+    expect(H.inserts).toHaveLength(0);
   });
 });

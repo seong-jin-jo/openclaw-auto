@@ -1,5 +1,6 @@
-import { withTenant } from "@/lib/db";
+import { db, withTenant } from "@/lib/db";
 import { effectiveTenantId } from "@/lib/tenant-auth";
+import { SCHEDULABLE_PLATFORMS } from "@/lib/constants";
 import {
   getChannelCred,
   publishFacebook,
@@ -10,6 +11,10 @@ import {
 } from "@/lib/publish";
 
 // POST /api/schedule/publish-due — cron/gateway용 예약 실발행 루프.
+// 두 가지 호출 방식:
+//   ① 테넌트 스코프: 로그인 세션/테넌트 토큰/tenant_id로 한 테넌트의 due를 처리(고객/포크).
+//   ② 운영자 전체 스윕: tenant_id 없이 운영자 토큰(DASHBOARD_AUTH_TOKEN)으로 호출하면
+//      due schedule이 있는 모든 테넌트를 순회한다 — 단일 크론(curl)이 전 테넌트를 발행하는 진입점.
 // 테넌트별 due schedules를 processing으로 claim해 중복 발행을 막고, 플랫폼별 결과를
 // published_posts에 기록한 뒤 schedule 상태를 published/partial/failed로 닫는다.
 
@@ -30,21 +35,43 @@ interface PlatformPublishResult extends PublishResult {
   platform: string;
 }
 
-const SUPPORTED_PLATFORMS = new Set(["threads", "x", "instagram", "facebook"]);
+// 발행 가능한 플랫폼은 constants.ts SSOT(SchedulePanel UI와 단일 소스). 여기 없는 platform은
+// "미지원"으로 떨궈 정직하게 실패 기록한다(UI에선 애초에 노출 안 됨).
+const SUPPORTED_PLATFORMS = new Set<string>(SCHEDULABLE_PLATFORMS);
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 25;
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as PublishDueBody;
-  const tenantId = await effectiveTenantId(request, body.tenant_id);
-  if (!tenantId) return Response.json({ error: "tenant_id required" }, { status: 400 });
-
   const limit = clampLimit(body.limit);
-  const rows = await claimDueSchedules(tenantId, limit);
-  if (rows.length === 0) {
-    return Response.json({ ok: true, processed: 0, schedules: [] });
+
+  const tenantId = await effectiveTenantId(request, body.tenant_id);
+  if (tenantId) {
+    const schedules = await processTenant(tenantId, limit);
+    return Response.json({ ok: true, processed: schedules.length, schedules });
   }
 
+  // 테넌트 미해석 — 운영자 토큰이면 전체 테넌트 스윕(단일 크론 진입점), 아니면 400.
+  const raw = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") || "";
+  const operatorToken = process.env.DASHBOARD_AUTH_TOKEN || "";
+  if (operatorToken && raw === operatorToken) {
+    const tenantIds = await dueTenantIds();
+    const tenants = [];
+    let processed = 0;
+    for (const tid of tenantIds) {
+      const schedules = await processTenant(tid, limit);
+      processed += schedules.length;
+      tenants.push({ tenantId: tid, processed: schedules.length, schedules });
+    }
+    return Response.json({ ok: true, mode: "all-tenants", tenantCount: tenants.length, processed, tenants });
+  }
+
+  return Response.json({ error: "tenant_id required" }, { status: 400 });
+}
+
+// 한 테넌트의 due schedule을 claim→발행→기록→마감. 반환: 처리한 스케줄 요약 목록.
+async function processTenant(tenantId: string, limit: number) {
+  const rows = await claimDueSchedules(tenantId, limit);
   const schedules = [];
   for (const row of rows) {
     const platforms = Array.isArray(row.platforms) ? row.platforms : [];
@@ -64,8 +91,17 @@ export async function POST(request: Request) {
     await finishSchedule(tenantId, row.id, status, results);
     schedules.push({ id: row.id, status, results });
   }
+  return schedules;
+}
 
-  return Response.json({ ok: true, processed: schedules.length, schedules });
+// due schedule이 하나라도 있는 테넌트 id 목록. RLS 우회 service-role(db())로 전 테넌트 스캔 —
+// 운영자 전체 스윕 전용(테넌트 스코프 쿼리가 아니므로 withTenant 미사용).
+async function dueTenantIds(): Promise<string[]> {
+  const sql = db();
+  const rows = await sql<{ tenant_id: string }[]>`
+    SELECT DISTINCT tenant_id FROM schedules
+    WHERE status = 'scheduled' AND scheduled_at <= now()`;
+  return rows.map((r) => r.tenant_id);
 }
 
 function clampLimit(value: unknown): number {

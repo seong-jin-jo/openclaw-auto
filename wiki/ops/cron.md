@@ -25,11 +25,36 @@ All background work is driven by cron definitions in `config/cron/jobs.json` (or
 
 `POST /api/schedule/publish-due` is the in-repo due scheduler for Studio reservations.
 
-- Scope: one tenant per request. The route resolves tenant via session/JWT, `osmu_` token, host, or operator fallback `tenant_id`.
+두 가지 호출 방식이 있다:
+
+- **① 테넌트 스코프** — 세션/JWT, `osmu_` 토큰, host, 또는 운영자 fallback `tenant_id`로
+  한 테넌트의 due만 처리(고객/포크 프론트가 호출).
+- **② 운영자 전체 스윕** — `tenant_id` 없이 운영자 토큰(`Authorization: Bearer $DASHBOARD_AUTH_TOKEN`)으로
+  호출하면 due가 있는 **모든 테넌트**를 순회한다. 단일 크론(curl)이 전 테넌트를 발행할 수 있는 진입점.
+  RLS 우회 service-role로 `SELECT DISTINCT tenant_id`를 긁은 뒤, 각 테넌트는 `withTenant` 스코프로
+  격리 처리(크로스테넌트 누수 없음). 응답에 `mode:"all-tenants"`, `tenantCount`, `processed` 포함.
+
 - Claiming: due `schedules` rows (`status='scheduled'` and `scheduled_at <= now()`) are atomically moved to `processing` with `FOR UPDATE SKIP LOCKED`.
-- Publishing: supported platforms use the same direct publish functions as `/api/publish` (`threads`, `x`, `instagram`, `facebook`).
+- Publishing: 발행 가능한 플랫폼은 **`constants.SCHEDULABLE_PLATFORMS` SSOT**(threads/x/facebook/instagram).
+  SchedulePanel UI 체크박스와 백엔드 `SUPPORTED_PLATFORMS`가 이 단일 소스를 공유 — 영상(shorts/reels/tiktok)은
+  텍스트 예약 루프가 못 다루므로 UI에서도 노출하지 않는다("노출=발행가능" 원칙, 정직성).
 - Recording: each platform result creates a `published_posts` row with `published` or `failed`.
 - Final schedule status: `published`, `partial`, or `failed`. Unsupported/unconnected platforms are recorded as failed instead of pretending to publish.
+
+### 크론 연결 (운영 wiring)
+
+엔드포인트는 만들어졌지만 **이걸 호출하는 주체가 있어야 예약이 실제로 발행된다.** 두 경로 중 하나:
+
+1. **배포 호스트 crontab / 게이트웨이 스케줄러** — `dashboard/scripts/publish-due-cron.sh`를 주기 호출.
+   ```cron
+   */10 * * * * DASHBOARD_AUTH_TOKEN=… BASE_URL=http://localhost:3456 \
+     /app/dashboard/scripts/publish-due-cron.sh >> /var/log/publish-due.log 2>&1
+   ```
+   스크립트는 운영자 토큰으로 `POST /api/schedule/publish-due`(전체 스윕)를 친다.
+2. **OpenClaw 게이트웨이 agentTurn cron** — 게이트웨이가 도래 예약을 직접 발행하는 경우(외부 레포).
+
+> ⚠️ crontab 등록 자체는 배포 호스트/운영자 액션이다(Supabase 콘솔 설정처럼 레포 밖). 등록 전에는
+> 예약이 `scheduled`로 대기만 한다 — SchedulePanel이 이를 정직하게 표시한다.
 
 ## Configuration
 - Per-tenant automation toggles in dashboard Settings.

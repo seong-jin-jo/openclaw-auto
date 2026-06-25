@@ -4,6 +4,7 @@ import { useState } from "react";
 import useSWR from "swr";
 import { fetcher, apiPost } from "@/lib/api";
 import { useToast } from "@/components/layout/Toast";
+import { SCHEDULABLE_PLATFORMS, SCHEDULABLE_PLATFORM_LABELS } from "@/lib/constants";
 
 // P6 예약 발행 패널 — Studio 발행 영역에 토글로 노출.
 // 날짜/시간 picker + 플랫폼 체크 → POST /api/schedule, 예약 목록은 SWR로 표시.
@@ -17,11 +18,11 @@ interface ScheduleItem {
   status: string;
 }
 
-const PLATFORMS = ["threads", "x", "facebook", "instagram", "shorts", "reels", "tiktok"] as const;
-const LABEL: Record<string, string> = {
-  threads: "Threads", x: "X", facebook: "Facebook", instagram: "Instagram",
-  shorts: "Shorts", reels: "Reels", tiktok: "TikTok",
-};
+// 예약 가능한 플랫폼은 constants.ts의 SSOT를 그대로 쓴다(백엔드 publish-due와 단일 소스).
+// 과거 shorts/reels/tiktok을 노출했으나 백엔드가 못 받아 "미지원"으로 영영 미발행되던
+// 정직성 버그를 SSOT로 제거했다.
+const PLATFORMS = SCHEDULABLE_PLATFORMS;
+const LABEL: Record<string, string> = SCHEDULABLE_PLATFORM_LABELS;
 
 function statusLabel(status: string): string {
   if (status === "published") return "발행됨";

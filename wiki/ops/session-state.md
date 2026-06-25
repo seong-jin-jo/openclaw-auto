@@ -89,10 +89,37 @@
 code-review(high) 7건 전부 반영(교차계정 토큰 클로버, tenantError 재시도, dev 운영자 콘솔,
 운영자 로그아웃 목적지, 핫패스 DB I/O, 대비 토큰화).
 
+## 핸드오프 상태 (2026-06-26, Claude — 발행 루프 갭 2건 해소)
+
+- **handoff 기준**: tmux `marketing-claw:0.0` pane은 이 세션 자체이고 대기 지시 공란 →
+  durable source `wiki/ops/session-state.md`가 기준(불명확성 없음).
+- 직전: Codex가 due publisher `bacc1243` + handoff 문서 `1ad43ed5` 커밋(둘 다 미push였음).
+  재진입 시 발견한 갭 2건을 이번에 **닫음**:
+  1. **[P1 해소] UI/백엔드 플랫폼 불일치** — `constants.SCHEDULABLE_PLATFORMS` SSOT 신설
+     (threads/x/facebook/instagram). `SchedulePanel`(UI)과 `publish-due`(백엔드)가 같은 소스를 소비.
+     과거 shorts/reels/tiktok 노출→"미지원" 영영 미발행 정직성 버그 제거. drift 방지 contract
+     테스트 `tests/publish/platform-ssot.contract.test.ts`(3) 추가.
+  2. **[P0 부분해소] publish-due caller 부재** — `publish-due`에 **운영자 전체 테넌트 스윕** 모드 추가:
+     `tenant_id` 없이 운영자 토큰으로 호출 시 RLS 우회 service-role로 `SELECT DISTINCT tenant_id`(due)
+     → 각 테넌트 `withTenant` 격리 처리. 단일 크론이 전 테넌트를 발행할 진입점.
+     `dashboard/scripts/publish-due-cron.sh`(curl 드라이버) 추가, `wiki/ops/cron.md`에 crontab wiring 문서화.
+     테스트 `schedule-publish-due.test.ts`에 운영자 스윕 3 케이스(토큰 불일치 400 / 다중 테넌트 순회 /
+     due 0건) 추가.
+- **검증(로컬, 실행 증거)**: `npm run test:publish` → 30 passed, 2 skipped(DB-gated).
+  `npm run test`(전체) → 123 passed, 8 skipped. `npx tsc --noEmit` exit 0. `npm run build` ✓ Compiled.
+  DB-gated/실발행은 로컬 Postgres·크레덴셜 없음 → 배포 환경에서 browse + (운영자) crontab 등록 후 검증.
+- **변경 파일**: `src/lib/constants.ts`(+SSOT), `src/components/studio/SchedulePanel.tsx`(SSOT 소비),
+  `src/app/api/schedule/publish-due/route.ts`(SSOT + 전체 스윕), `scripts/publish-due-cron.sh`(신규),
+  `tests/publish/platform-ssot.contract.test.ts`(신규), `tests/publish/schedule-publish-due.test.ts`(+3),
+  `wiki/ops/cron.md`.
+- **다음 액션**: 이 변경 + Codex 미push 커밋 2개를 함께 commit→push→`deploy-marketing.yml` 배포→browse 라이브검증.
+  (배포는 outward-facing — 사용자 승인 후.)
+
 ## 다음 단계 / 보류
 
-- **실발행 루프 운영 연결** — 레포 내부 due publisher(`/api/schedule/publish-due`)는 추가됨.
-  남은 일은 배포/게이트웨이 cron이 테넌트별로 이 endpoint를 호출하도록 연결하는 것.
+- **실발행 루프 crontab 등록 [P0 잔여]** — 엔드포인트·스윕 모드·드라이버 스크립트는 완비됨.
+  남은 건 **배포 호스트 crontab(또는 게이트웨이)이 `publish-due-cron.sh`를 주기 호출하도록 등록**하는 것
+  (운영자 액션, 레포 밖 — Supabase 콘솔 설정과 동급). 등록 전엔 예약이 `scheduled`로 대기(SchedulePanel 정직 표시).
 - **GA/GSC 실제 OAuth 연결** — 백엔드 config API는 있으나 connect UI 미구현. 현재는 사이드바에서
   죽은 항목 제거 + 읽기 대시보드만 유지.
 
