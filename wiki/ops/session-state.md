@@ -3,7 +3,30 @@
 > 이 문서는 **작업 하네스 규칙 #3**(루트 CLAUDE.md)에 따라 항상 최신으로 유지한다.
 > 세션이 죽거나 재실행돼도 이걸 읽으면 30초 안에 이어갈 수 있어야 한다.
 
-**최종 갱신:** 2026-06-25 · 브랜치 `main` · 배포 라이브.
+**최종 갱신:** 2026-06-26 · 브랜치 `main` · 배포 라이브.
+
+## 🧭 회장님 directive 정렬 (2026-06 · brain federation)
+
+> brain `wiki/business/decision-2026-06-4사업-OUTPUT-집중.md` (회장님 명령, active). brain은
+> read-only이므로 directive 완료 체크는 **이 venture STATE**로 닫는다(directive 운영 규칙).
+> 이 레포 = **MARKETING (open-claw / JOGON)** venture.
+
+**6월 One Thing(전 사업 공통): OUTPUT.** 완벽보다 노출, 기획보다 배포, 추측보다 데이터.
+성공 기준 = ①배포·게시됨 ②유저 유입 ③데이터로 보임.
+
+**MARKETING 섹션 명령 2개:**
+1. **3사업(ZERO-ONE·D-EDU·CUPID) 알리는 open-claw 마케팅 자동화를 테넌트별 독립 + API 토큰
+   각각 연결해 안정적으로 돌게.**  → **정렬 ✅** (멀티테넌트 발행 루프 = 현 세션 작업의 본령).
+   완료선 = 실제로 배포돼 crontab으로 *돌아가는 것*. **진행: publish-due 전체 스윕·드라이버·E2E
+   완료, push 완료. 남음: 배포 + crontab 등록(운영자 액션).**
+2. **GA4 분석·리포팅·슬랙 알림을 MARKETING이 중앙 통합** (GA4 Data API로 4사업 property 읽기.
+   수집 태그는 각 앱이 심음).  → **정렬 ❌ 갭** — 현 백로그엔 "GA/GSC OAuth connect UI 보류"만
+   있고 directive가 원하는 **운영자용 GA4 Data API 중앙 리포팅/슬랙**은 미착수. **다음 빌드로 승격.**
+
+**공통 갭:** 이 대시보드 앱 자체에도 gtag 수집 태그 6월 내 심기(MARKETING도 OUTPUT 노출원).
+
+**Plan A/B 설계 기준:** "시리즈A CTO 면접관이 감탄할 물건인가" = 멀티테넌트+RLS+GA4 Data API 통합이
+정확히 그 시그니처. 현 방향은 포폴 관점에서도 정렬됨.
 
 ## 현재 세션 (Codex/Claude 핸드오프 표준화)
 
