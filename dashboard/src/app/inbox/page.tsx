@@ -158,7 +158,7 @@ export default function InboxPage() {
     <div className="px-4 sm:px-8 py-6 max-w-lg mx-auto">
       <div className="mb-4">
         <h2 className="text-xl font-bold text-text">승인 인박스</h2>
-        <p className="text-xs text-subtle mt-1">AI가 쓴 초안을 빠르게 승인하세요. 승인한 글만 발행됩니다.</p>
+        <p className="text-xs text-subtle mt-1">검수 승인 · AI·크론·Studio가 만든 초안을 승인·거절. 승인하면 예약 시각에 자동 발행 파이프라인이 게시합니다.</p>
       </div>
 
       {/* 제품 소스(제품-grounded): repo를 연결하면 "방금 만든 것"을 자동 홍보하는 글이 생성됨 */}

@@ -8,6 +8,7 @@
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:publish": "vitest run tests/publish",
     "e2e": "bash scripts/verify-e2e.sh",
     "e2e:local": "bash scripts/verify-e2e.sh http://localhost:3456"
   },

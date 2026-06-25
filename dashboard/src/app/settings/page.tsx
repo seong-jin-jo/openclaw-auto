@@ -13,6 +13,7 @@ import { StorageSettings } from "@/components/settings/StorageSettings";
 import { DesignToolsSettings } from "@/components/settings/DesignToolsSettings";
 import { SystemSettings } from "@/components/settings/SystemSettings";
 import { SlackSettings } from "@/components/settings/SlackSettings";
+import { Notifications } from "@/components/settings/Notifications";
 import { ElevenLabsSettings } from "@/components/settings/ElevenLabsSettings";
 import { KeywordBankSettings } from "@/components/settings/KeywordBankSettings";
 import { KwPlannerSettings } from "@/components/settings/KwPlannerSettings";
@@ -22,8 +23,8 @@ const SETTINGS_TABS = [
   { key: "ai", label: "AI Engine", desc: "LLM 모델 + 토큰" },
   { key: "storage", label: "Storage", desc: "이미지 저장소" },
   { key: "design", label: "Design Tools", desc: "Canva / Figma" },
-  { key: "notifications", label: "Notifications", desc: "Slack 알림" },
-  { key: "tokens", label: "API 토큰", desc: "포크 접근 토큰" },
+  { key: "notifications", label: "Notifications", desc: "발행/터짐/에러 알림 + Slack" },
+  { key: "tokens", label: "Fork 연동", desc: "셀프호스트 포크용 토큰 (고급)" },
   { key: "keywords", label: "Keywords", desc: "키워드 뱅크 + API" },
   { key: "video", label: "Video / TTS", desc: "ElevenLabs 설정" },
   { key: "system", label: "System", desc: "크론 + 계정" },
@@ -80,7 +81,12 @@ export default function SettingsPage() {
       {activeTab === "tokens" && <TenantTokensSettings />}
       {activeTab === "storage" && <StorageSettings />}
       {activeTab === "design" && <DesignToolsSettings />}
-      {activeTab === "notifications" && <SlackSettings />}
+      {activeTab === "notifications" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Notifications />
+          <SlackSettings />
+        </div>
+      )}
       {activeTab === "keywords" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <KeywordBankSettings />

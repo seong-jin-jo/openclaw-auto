@@ -83,10 +83,15 @@ export function SchedulePanel({
 
   return (
     <div className="card p-4 mb-4 border border-accent">
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-1">
         <b className="text-sm text-text">🗓️ 예약 발행</b>
         <span className="text-[10px] text-subtle">미래 시각에 멀티채널 자동 발행</span>
       </div>
+      {/* 정직 표기: 예약은 DB에 적재되고, 실제 게시는 자동화 파이프라인(크론)이 수행한다.
+          파이프라인 미연결 시 '예약됨' 상태로 대기 — 가짜 '발행됨' 표시 안 함. */}
+      <p className="text-[10px] text-subtle mb-3">
+        예약은 저장되고, 자동화 파이프라인이 예약 시각에 발행합니다. 파이프라인 미연결 시 <b className="text-warning">예약됨</b>으로 대기합니다.
+      </p>
 
       <div className="flex flex-wrap items-end gap-3 mb-3">
         <div>
@@ -134,7 +139,7 @@ export function SchedulePanel({
                 <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${
                   s.status === "published" ? "bg-green-900/50 text-green-400"
                     : s.status === "canceled" ? "bg-surface-2 text-subtle"
-                    : "bg-yellow-900/40 text-yellow-300"
+                    : "bg-warning/15 text-warning"
                 }`}>
                   {s.status === "published" ? "발행됨" : s.status === "canceled" ? "취소" : "예약됨"}
                 </span>

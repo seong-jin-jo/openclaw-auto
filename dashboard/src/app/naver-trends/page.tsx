@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BackButton } from "@/components/shared/BackButton";
 import useSWR from "swr";
 import { fetcher, apiPost } from "@/lib/api";
 import { useToast } from "@/components/layout/Toast";
@@ -46,6 +47,7 @@ export default function NaverTrendsPage() {
   return (
     <div className="px-8 py-6">
       <div className="mb-6">
+        <BackButton />
         <h2 className="text-xl font-bold text-text">Naver Trends</h2>
         <p className="text-xs text-subtle mt-1">네이버 데이터랩 검색어 트렌드 (최근 90일)</p>
       </div>

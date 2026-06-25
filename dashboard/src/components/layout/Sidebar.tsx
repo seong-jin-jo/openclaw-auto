@@ -104,7 +104,7 @@ function chSidebarItem(key: string, channelConfig: Record<string, Record<string,
       icon: label[0],
       nav: true,
       status: "Live" as const,
-      statusClass: "bg-green-900/50 text-green-400",
+      statusClass: "bg-success/15 text-success",
     };
   }
   if (status === "connected") {
@@ -114,7 +114,7 @@ function chSidebarItem(key: string, channelConfig: Record<string, Record<string,
       icon: label[0],
       nav: true,
       status: "Connected" as const,
-      statusClass: "bg-blue-900/50 text-accent",
+      statusClass: "bg-accent/15 text-accent",
     };
   }
   // 미연결 — 클릭 가능, 흰 글씨
@@ -124,7 +124,7 @@ function chSidebarItem(key: string, channelConfig: Record<string, Record<string,
 /* ── 워크스페이스 전환 (멀티테넌트, 같은 인스턴스 내) ── */
 function WorkspaceSwitcher() {
   // 고객/운영자 모드 판별: 고객은 자기 테넌트 1개만, 운영자만 전체 목록·전환·생성.
-  const { data: me } = useSWR<{ isOperator?: boolean; tenant?: Workspace | null }>("/api/me", fetcher);
+  const { data: me, mutate: mutateMe } = useSWR<{ isOperator?: boolean; tenant?: Workspace | null; tenantError?: boolean }>("/api/me", fetcher);
   const isOperator = me?.isOperator === true;
   // 운영자만 전체 워크스페이스 조회(고객은 호출 안 함 → 남의 서비스명 노출 0)
   const { data, mutate } = useSWR<{ workspaces?: Workspace[] }>(isOperator ? "/api/workspaces" : null, fetcher);
@@ -149,6 +149,15 @@ function WorkspaceSwitcher() {
 
   // 고객 모드: 스위처·목록·생성 전부 숨기고 자기 워크스페이스명만 표시(남의 서비스명 0)
   if (!isOperator) {
+    // 테넌트 해석 실패(세션 만료/일시적 DB 오류 등) — 운영자 등록 UI 대신 재시도 경로 제공.
+    // (SWR revalidateOnFocus=false라 자동 복구가 안 되므로 명시적 재시도 버튼이 필요.)
+    if (me?.tenantError) {
+      return (
+        <button onClick={() => mutateMe()} className="mt-1 text-xs text-subtle hover:text-muted">
+          워크스페이스 연결 확인 중… <span className="underline">다시 시도</span>
+        </button>
+      );
+    }
     return (
       <div className="mt-1 text-xs">
         <span className="bg-gradient-to-r from-accent to-accent-hover bg-clip-text text-transparent font-medium">{me?.tenant?.name || activeWorkspace?.name || "내 워크스페이스"}</span>
@@ -220,7 +229,7 @@ export function Sidebar() {
     nav: true,
     status: (cfg.threads?.connected ? "Live" : "Off") as string,
     statusClass: cfg.threads?.connected
-      ? "bg-green-900/50 text-green-400"
+      ? "bg-success/15 text-success"
       : "bg-surface-2 text-subtle",
   };
 
@@ -237,8 +246,8 @@ export function Sidebar() {
       : ("" as string),
     statusClass: cfg.x?.connected
       ? cfg.x?.enabled
-        ? "bg-green-900/50 text-green-400"
-        : "bg-blue-900/50 text-accent"
+        ? "bg-success/15 text-success"
+        : "bg-accent/15 text-accent"
       : "",
   };
 
@@ -256,7 +265,7 @@ export function Sidebar() {
         <WorkspaceSwitcher />
       </div>
 
-      <nav className="flex-1 py-3">
+      <nav className="flex-1 min-h-0 overflow-y-auto py-3">
         <div className="px-3 mb-2">
           <span className="text-[10px] font-medium text-subtle uppercase tracking-wider">Overview</span>
         </div>
@@ -342,16 +351,8 @@ export function Sidebar() {
           items={["telegram", "discord", "slack", "line"].map((ch) => chSidebarItem(ch, cfg))}
         />
 
-        <SidebarGroup
-          groupKey="data"
-          title="Data & SEO"
-          items={[
-            { key: "google_analytics", label: "Google Analytics", icon: "GA", nav: true },
-            { key: "search_console", label: "Search Console", icon: "SC", nav: true },
-            { key: "seo_keywords", label: "SEO Keywords", icon: "KW", nav: true },
-            { key: "google_business", label: "Google Business", icon: "GB", nav: true },
-          ]}
-        />
+        {/* "Data & SEO" 채널 그룹 제거 — /channels/* 빈 연결폼으로 가던 죽은 항목이었음.
+            동작하는 읽기 대시보드는 아래 "Data & Analytics" 섹션이 제공(사이드바=연결가능 원칙). */}
 
         {/* ── Data & Analytics ── */}
         <div className="px-3 mt-5 mb-2">
@@ -386,13 +387,12 @@ export function Sidebar() {
           </Link>
         ))}
 
+        {/* Custom Integration: custom_api/rss는 연결 미구현(빈 페이지)이라 제거. Blog만 노출(→/blog 동작). */}
         <SidebarGroup
           groupKey="custom"
           title="Custom Integration"
           items={[
             { key: "blog", label: "Blog", icon: "B", nav: true },
-            { key: "custom_api", label: "Custom API", icon: "+", nav: true },
-            { key: "rss", label: "RSS Feed", icon: "R", nav: true },
           ]}
         />
 
@@ -462,16 +462,22 @@ export function Sidebar() {
         </Link>
       </nav>
 
-      <div className="px-4 py-3 border-t border-border/50 space-y-2">
+      <div className="shrink-0 px-4 py-3 border-t border-border/50 space-y-2">
         <ThemeToggle />
         <button
           onClick={async () => {
+            // 운영자 토큰(비-JWT)으로 들어왔으면 로그아웃 후 운영자 콘솔로, 고객은 /login으로.
+            let wasOperator = false;
+            try {
+              const t = localStorage.getItem("dashboard_auth_token") || "";
+              wasOperator = !!t && t.split(".").length !== 3;
+            } catch { /* ignore */ }
             try {
               const { createBrowserSupabase } = await import("@/lib/supabase");
               await createBrowserSupabase().auth.signOut();
             } catch { /* env 미설정/세션 없음 무시 */ }
             try { localStorage.removeItem("dashboard_auth_token"); } catch { /* ignore */ }
-            window.location.href = "/login";
+            window.location.href = wasOperator ? "/operator" : "/login";
           }}
           className="w-full flex items-center gap-2 px-1 py-1 text-xs text-subtle hover:text-danger transition-colors"
           title="로그아웃"

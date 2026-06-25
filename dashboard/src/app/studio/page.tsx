@@ -205,7 +205,10 @@ export default function StudioPage() {
       {showRepo && activeWorkspace && <RepoConnect workspace={activeWorkspace} onSynced={() => { mutateBrand(); showToast("브랜드 가이드 갱신됨"); }} onClose={() => setShowRepo(false)} />}
       {/* 상단 바 */}
       <div className="flex items-center gap-3 flex-wrap mb-4">
-        <b className="text-lg text-text">OSMU Studio</b>
+        <div className="mr-1">
+          <b className="text-lg text-text">OSMU Studio</b>
+          <p className="text-[10px] text-subtle leading-tight">직접 저작 · 생성→즉시 발행/예약</p>
+        </div>
         <input value={idea} onChange={(e) => setIdea(e.target.value)} placeholder="글감 / 콘텐츠 주제 입력" className="flex-1 min-w-[260px] bg-surface-2 text-text text-sm p-2.5 rounded border border-border" />
         <select value={videoModel} onChange={(e) => setVideoModel(e.target.value)} className="bg-surface-2 text-muted text-xs p-2 rounded border border-border"><option value="minimax_hailuo">Minimax 6cr</option><option value="veo3_1_lite">Veo3.1 8cr</option><option value="kling3_0">Kling3 10cr</option><option value="marketing_studio_video">MS UGC광고 ~40cr</option></select>
         <label className="flex items-center gap-1.5 text-xs text-subtle"><input type="checkbox" checked={withVideo} onChange={(e) => setWithVideo(e.target.checked)} />영상</label>

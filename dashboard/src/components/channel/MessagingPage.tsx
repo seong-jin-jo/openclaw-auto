@@ -10,7 +10,7 @@ import { CredentialForm } from "@/components/shared/CredentialForm";
 import { SetupGuide } from "@/components/shared/SetupGuide";
 import { useState } from "react";
 import useSWR from "swr";
-import Link from "next/link";
+import { BackButton } from "@/components/shared/BackButton";
 
 interface MessagingPageProps {
   channel: string;
@@ -57,9 +57,7 @@ export function MessagingPage({ channel }: MessagingPageProps) {
 
   return (
     <div className="px-8 py-6">
-      <Link href="/" className="text-subtle hover:text-muted text-sm mb-1 inline-block">
-        &larr; Back
-      </Link>
+      <BackButton />
       <div className="flex items-center gap-3 mb-6">
         <span className="w-8 h-8 rounded-lg bg-surface-2 flex items-center justify-center text-sm font-bold text-text">
           {label[0]}

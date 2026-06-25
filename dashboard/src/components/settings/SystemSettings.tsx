@@ -3,7 +3,6 @@
 import { useCronStatus } from "@/hooks/useOverview";
 import { fmtTime } from "@/lib/format";
 import { Account } from "./Account";
-import { Notifications } from "./Notifications";
 
 export function SystemSettings() {
   const { data: cronData } = useCronStatus();
@@ -37,7 +36,6 @@ export function SystemSettings() {
       </div>
       <div className="space-y-4">
         <Account />
-        <Notifications />
       </div>
     </div>
   );

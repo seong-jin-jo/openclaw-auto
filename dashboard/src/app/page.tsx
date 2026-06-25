@@ -11,7 +11,6 @@ import { fmtAgo, fmtTime } from "@/lib/format";
 import { useUIStore } from "@/store/ui-store";
 import { OnboardingWizard } from "@/components/shared/OnboardingWizard";
 import { ChannelConnectBanner } from "@/components/shared/ChannelConnectBanner";
-import { TenantIsolationBanner } from "@/components/shared/TenantIsolationBanner";
 import { OnboardingChecklist } from "@/components/shared/OnboardingChecklist";
 import { PipelineTimeline } from "@/components/home/PipelineTimeline";
 import Link from "next/link";
@@ -132,8 +131,6 @@ export default function HomePage() {
     <div className="px-8 py-6">
       {/* 미연결 채널 알림 — 발행 전 연결 유도 */}
       <ChannelConnectBanner />
-      {/* 테넌트 격리 신뢰 배지 — 실제 RLS 증명 */}
-      <TenantIsolationBanner />
       {/* 시작 체크리스트 — 가치 체감까지 4단계 */}
       <OnboardingChecklist />
       {/* 콘텐츠 파이프라인 퍼널 — 생성→검수→배포→성과 */}

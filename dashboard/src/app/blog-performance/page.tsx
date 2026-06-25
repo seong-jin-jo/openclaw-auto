@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BackButton } from "@/components/shared/BackButton";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api";
 
@@ -43,6 +44,7 @@ export default function BlogPerformancePage() {
   return (
     <div className="px-8 py-6">
       <div className="mb-6">
+        <BackButton />
         <h2 className="text-xl font-bold text-text">Blog Performance</h2>
         <p className="text-xs text-subtle mt-1">블로그 게시물 조회수 및 성과 분석</p>
       </div>

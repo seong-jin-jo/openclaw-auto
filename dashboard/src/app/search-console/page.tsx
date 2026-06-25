@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BackButton } from "@/components/shared/BackButton";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api";
 
@@ -39,6 +40,7 @@ export default function SearchConsolePage() {
     <div className="px-8 py-6">
       <div className="flex items-center justify-between mb-6">
         <div>
+          <BackButton />
           <h2 className="text-xl font-bold text-text">Search Console</h2>
           <p className="text-xs text-subtle mt-1">Google 검색 성과</p>
         </div>

@@ -14,7 +14,7 @@ import { ContentGuide } from "./ContentGuide";
 import { KeywordsEditor } from "./KeywordsEditor";
 import { QueueList } from "@/components/queue/QueueList";
 import { fmtAgo, fmtTime } from "@/lib/format";
-import Link from "next/link";
+import { BackButton } from "@/components/shared/BackButton";
 
 interface ChannelPageProps {
   channel: string;
@@ -93,9 +93,7 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
 
   return (
     <div className="px-8 py-6">
-      <Link href="/" className="text-subtle hover:text-muted text-sm mb-1 inline-block">
-        &larr; Back
-      </Link>
+      <BackButton />
       <div className="flex items-center gap-3 mb-6">
         <span className={`w-8 h-8 rounded-lg ${isThreads ? "bg-accent" : "bg-surface-2"} flex items-center justify-center text-sm font-bold text-text`}>
           {label[0]}

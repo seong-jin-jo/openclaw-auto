@@ -1,15 +1,15 @@
 "use client";
 
-import { ThemeProvider } from "next-themes";
 import { SWRConfig } from "swr";
 import { ToastProvider } from "./Toast";
 
+// 테마는 data-theme(layout FOUC 스크립트 + ThemeToggle + globals.css)로 직접 관리한다.
+// next-themes ThemeProvider는 class 기반 + defaultTheme="dark"라 data-theme 시스템과 충돌해
+// 제거. (라이트 기본을 dark로 덮어쓰던 잔재 — 사용처 0, dark: 변형 0 확인.)
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-      <SWRConfig value={{ revalidateOnFocus: false, errorRetryCount: 2 }}>
-        <ToastProvider>{children}</ToastProvider>
-      </SWRConfig>
-    </ThemeProvider>
+    <SWRConfig value={{ revalidateOnFocus: false, errorRetryCount: 2 }}>
+      <ToastProvider>{children}</ToastProvider>
+    </SWRConfig>
   );
 }

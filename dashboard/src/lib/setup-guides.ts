@@ -7,13 +7,15 @@ export const setupGuides: Record<string, SetupGuide> = {
     fields: ["accessToken", "userId"],
     labels: ["Access Token", "User ID"],
     quick: [
-      "developers.facebook.com > Threads API 앱 생성",
-      "Long-lived Access Token 발급",
-      "User ID 확인",
-      "위 폼에 입력 후 Connect",
+      '1. <a href="https://developers.facebook.com" target="_blank" class="text-accent hover:underline">developers.facebook.com</a> 로그인 → 우상단 <strong class="text-text">내 앱</strong> → <strong class="text-text">앱 만들기</strong>',
+      '2. 앱 유형에서 <strong class="text-text">Threads</strong> 선택 → 앱 이름 입력 후 생성',
+      '3. 좌측 메뉴 <strong class="text-text">Threads API</strong> → <strong class="text-text">설정/사용 사례 맞춤설정</strong>에서 본인 Threads 계정을 테스터로 추가·연결',
+      '4. <strong class="text-text">Access Token 생성</strong> 클릭 → 권한(threads_basic, threads_content_publish) 동의 → 나오는 <strong class="text-text">토큰 문자열 복사</strong>',
+      '5. 같은 화면의 <strong class="text-text">User ID</strong>(긴 숫자) 복사 <span class="text-subtle">— 앱 ID 아님, Threads 계정 고유번호</span>',
+      "6. 왼쪽 폼에 Access Token + User ID 붙여넣고 Connect",
     ],
     detail:
-      "Access Token으로 Threads에 글을 발행합니다. Long-lived Token은 60일 유효이며 갱신이 필요합니다. User ID는 Threads 사용자 고유 번호입니다.",
+      "Access Token으로 Threads에 글을 자동 발행합니다. 토큰 생성 시 Long-lived(60일) 옵션을 쓰면 더 오래 유효하며, 만료 전 갱신이 필요합니다. ⚠️ User ID에 '앱 ID'(짧은 숫자)를 넣으면 발행이 실패합니다 — Threads 계정 고유번호(긴 숫자)를 넣으세요.",
     // TODO(에셋): 아래 경로에 실제 콘솔 스크린샷을 넣으면 자동 표시됨(없으면 텍스트만). public/onboarding/threads/*
     images: [
       { src: "/onboarding/threads/1-app.png", alt: "Threads API 앱 생성 화면" },
@@ -24,10 +26,10 @@ export const setupGuides: Record<string, SetupGuide> = {
     fields: ["apiKey", "apiKeySecret", "accessToken", "accessTokenSecret"],
     labels: ["소비자 키 (API Key)", "소비자 시크릿 (API Key Secret)", "액세스 토큰 (Access Token)", "액세스 토큰 시크릿 (Access Token Secret)"],
     quick: [
-      '<a href="https://developer.x.com" target="_blank" class="text-blue-400 hover:underline">developer.x.com</a> &gt; Dashboard &gt; Create App',
-      'App Settings &gt; <strong class="text-gray-300">User authentication settings</strong> &gt; Edit<div class="ml-4 mt-0.5 text-gray-500">- App permissions: <strong class="text-gray-300">Read and write</strong><br>- Type of App: Web App<br>- Website URL: https://example.com<br>- Callback URL: https://example.com/callback</div>',
-      'Keys and tokens &gt; <strong class="text-gray-300">소비자 키</strong> &gt; 재생성 &gt; Key + Secret 복사',
-      'Keys and tokens &gt; <strong class="text-gray-300">액세스 토큰</strong> &gt; 생성 (Read+Write) &gt; Token + Secret 복사',
+      '<a href="https://developer.x.com" target="_blank" class="text-accent hover:underline">developer.x.com</a> &gt; Dashboard &gt; Create App',
+      'App Settings &gt; <strong class="text-text">User authentication settings</strong> &gt; Edit<div class="ml-4 mt-0.5 text-subtle">- App permissions: <strong class="text-text">Read and write</strong><br>- Type of App: Web App<br>- Website URL: https://example.com<br>- Callback URL: https://example.com/callback</div>',
+      'Keys and tokens &gt; <strong class="text-text">소비자 키</strong> &gt; 재생성 &gt; Key + Secret 복사',
+      'Keys and tokens &gt; <strong class="text-text">액세스 토큰</strong> &gt; 생성 (Read+Write) &gt; Token + Secret 복사',
       "왼쪽 폼에 4개 키 입력 &gt; Connect",
     ],
     detail: "* 권한 변경 후 반드시 액세스 토큰을 재생성해야 합니다",
@@ -205,24 +207,34 @@ export const setupGuides: Record<string, SetupGuide> = {
   kakao: {
     fields: ["restApiKey", "channelId"],
     labels: ["REST API Key", "Channel ID"],
-    quick: ["Setup guide가 아직 준비되지 않았습니다."],
-    detail: "",
+    quick: [
+      '1. <a href="https://developers.kakao.com" target="_blank" class="text-accent hover:underline">developers.kakao.com</a> 로그인 → 내 애플리케이션 → 애플리케이션 추가하기',
+      '2. 앱 → <strong class="text-text">앱 키</strong>에서 <strong class="text-text">REST API 키</strong> 복사',
+      '3. 카카오톡 채널 관리자센터에서 <strong class="text-text">채널 ID</strong> 확인 (메시지 발송 대상)',
+      "4. 왼쪽 폼에 REST API Key + Channel ID 입력 후 Connect",
+    ],
+    detail: "카카오 비즈니스 채널과 메시지 API 사용 신청이 필요할 수 있습니다. 발송 권한·템플릿 승인 정책은 카카오 정책을 따릅니다.",
   },
   whatsapp: {
     fields: ["accessToken", "phoneNumberId"],
     labels: ["Access Token", "Phone Number ID"],
-    quick: ["Setup guide가 아직 준비되지 않았습니다."],
-    detail: "",
+    quick: [
+      '1. <a href="https://developers.facebook.com" target="_blank" class="text-accent hover:underline">developers.facebook.com</a> → 앱 만들기 → <strong class="text-text">WhatsApp</strong> 제품 추가',
+      '2. WhatsApp → <strong class="text-text">API 설정</strong>에서 <strong class="text-text">임시 액세스 토큰</strong> 복사 (영구 토큰은 시스템 사용자로 발급)',
+      '3. 같은 화면의 <strong class="text-text">Phone Number ID</strong> 복사 (전화번호 자체 아님)',
+      "4. 왼쪽 폼에 Access Token + Phone Number ID 입력 후 Connect",
+    ],
+    detail: "WhatsApp Business Platform(Cloud API) 기준입니다. 임시 토큰은 24시간이라, 실운영은 시스템 사용자 영구 토큰을 권장합니다.",
   },
   midjourney: {
     fields: ["discordToken", "channelId", "serverId"],
     labels: ["Discord Token (유저 토큰)", "Channel ID (미드저니 봇 채널)", "Server ID (Discord 서버)"],
     quick: [
-      '<a href=\'https://midjourney.com/app\' target=\'_blank\' class=\'text-blue-400\'>midjourney.com/app</a>에서 구독 확인 (Basic 이상)',
+      '<a href=\'https://midjourney.com/app\' target=\'_blank\' class=\'text-accent hover:underline\'>midjourney.com/app</a>에서 구독 확인 (Basic 이상)',
       'Discord 설정 > 고급 > <strong>개발자 모드</strong> ON',
       '미드저니 봇이 있는 서버 이름 우클릭 > <strong>서버 ID 복사</strong>',
       '미드저니 봇이 있는 채널 우클릭 > <strong>채널 ID 복사</strong>',
-      'Discord Token 발급: <a href=\'https://discord.com/app\' target=\'_blank\' class=\'text-blue-400\'>discord.com/app</a> 접속 (브라우저) > F12 > Console 탭 > 아래 코드 붙여넣기 후 Enter:<br><code class=\'bg-gray-800 px-1 rounded text-[9px] break-all\'>(function(){const o=XMLHttpRequest.prototype.setRequestHeader;XMLHttpRequest.prototype.setRequestHeader=function(n,v){if(n.toLowerCase()===\'authorization\')console.log(\'[Token]\',v);return o.apply(this,arguments)}})()</code><br>실행 후 Discord에서 아무 채널 클릭 → Console에 <code class=\'bg-gray-800 px-1 rounded\'>[Token] MTxx...</code> 출력됨',
+      'Discord Token 발급: <a href=\'https://discord.com/app\' target=\'_blank\' class=\'text-accent hover:underline\'>discord.com/app</a> 접속 (브라우저) > F12 > Console 탭 > 아래 코드 붙여넣기 후 Enter:<br><code class=\'bg-surface-2 text-text px-1 rounded text-[9px] break-all\'>(function(){const o=XMLHttpRequest.prototype.setRequestHeader;XMLHttpRequest.prototype.setRequestHeader=function(n,v){if(n.toLowerCase()===\'authorization\')console.log(\'[Token]\',v);return o.apply(this,arguments)}})()</code><br>실행 후 Discord에서 아무 채널 클릭 → Console에 <code class=\'bg-surface-2 text-text px-1 rounded\'>[Token] MTxx...</code> 출력됨',
       "위 폼에 3개 값 입력 후 Connect",
     ],
     detail:

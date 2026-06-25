@@ -11,8 +11,7 @@
 
 ## 코딩 규칙
 
-- Tailwind 하드코딩 클래스 사용 (CSS 변수 미사용)
-- 다크 테마 기본: `bg-[#0a0a0a]`, `text-gray-300`, `bg-gray-900`
+- **시맨틱 토큰 사용**(라이트 기본 + 다크 토글). `globals.css`의 `:root`/`[data-theme="dark"]` CSS 변수를 Tailwind 유틸로 노출: `bg-bg` / `bg-surface` / `bg-surface-2` / `text-text` / `text-muted` / `text-subtle` / `border-border` / `bg-accent text-accent-fg` / `text-success` / `text-warning` / `text-danger`. 테마는 `data-theme`로 전환(layout FOUC 스크립트 + `ThemeToggle`). **하드코딩 다크 클래스 금지**(`bg-gray-900`, `text-amber-200`, `*-900/50` 등 — 라이트에서 깨짐). next-themes 미사용.
 - 한국어 UI 텍스트
 - `"use client"` 모든 컴포넌트에 필수
 - SWR로 서버 데이터, Zustand로 UI 상태

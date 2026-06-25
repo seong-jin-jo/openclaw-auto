@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BackButton } from "@/components/shared/BackButton";
 import useSWR from "swr";
 import { fetcher, apiPost } from "@/lib/api";
 import { useToast } from "@/components/layout/Toast";
@@ -67,6 +68,7 @@ export default function KeywordPlannerPage() {
   return (
     <div className="px-8 py-6">
       <div className="mb-6">
+        <BackButton />
         <h2 className="text-xl font-bold text-text">Keyword Planner</h2>
         <p className="text-xs text-subtle mt-1">네이버 검색광고 API 기반 키워드 검색량 조회</p>
       </div>

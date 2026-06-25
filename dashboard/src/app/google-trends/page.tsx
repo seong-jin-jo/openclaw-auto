@@ -1,9 +1,12 @@
 "use client";
 
+import { BackButton } from "@/components/shared/BackButton";
+
 export default function GoogleTrendsPage() {
   return (
     <div className="px-8 py-6">
       <div className="mb-6">
+        <BackButton />
         <h2 className="text-xl font-bold text-text">Google Trends</h2>
         <p className="text-xs text-subtle mt-1">Google Trends 데이터 확인</p>
       </div>

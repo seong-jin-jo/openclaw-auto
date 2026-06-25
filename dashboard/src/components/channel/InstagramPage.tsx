@@ -14,7 +14,7 @@ import { ContentGuide } from "./ContentGuide";
 import { KeywordsEditor } from "./KeywordsEditor";
 import { QueueList } from "@/components/queue/QueueList";
 import { fmtAgo } from "@/lib/format";
-import Link from "next/link";
+import { BackButton } from "@/components/shared/BackButton";
 
 /* ---------- Card News Editor ---------- */
 interface CardEditorState {
@@ -560,7 +560,7 @@ export function InstagramPage() {
 
   return (
     <div className="px-8 py-6">
-      <Link href="/" className="text-subtle hover:text-muted text-sm mb-1 inline-block">&larr; Back</Link>
+      <BackButton />
       <div className="flex items-center gap-3 mb-6">
         <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-400 to-purple-600 flex items-center justify-center text-sm font-bold text-text">IG</span>
         <div>

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { usePathname } from "next/navigation";
-import { getAuthToken, setAuthToken } from "@/lib/auth";
+import { getAuthToken, setAuthToken, clearAuthToken } from "@/lib/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 
@@ -63,38 +63,8 @@ const CHANNEL_ICONS = [
 
 /* ─── Landing Page ─── */
 function LandingPage() {
-  const [token, setToken] = useState("");
-  const [showLogin, setShowLogin] = useState(false);
-  const [operatorError, setOperatorError] = useState("");
-  const loginRef = useRef<HTMLDivElement>(null);
-
-  const doLogin = useCallback(async () => {
-    const t = token.trim();
-    if (!t) return;
-    setOperatorError("");
-    try {
-      // Validate operator token before trusting it (wrong token should not unlock broken UI)
-      const res = await fetch("/api/me", {
-        headers: { Authorization: `Bearer ${t}` },
-      });
-      if (!res.ok) {
-        setOperatorError("운영자 토큰이 유효하지 않습니다. 다시 확인해주세요.");
-        return;
-      }
-      const data = await res.json();
-      if (!data?.isOperator) {
-        setOperatorError("이 토큰은 운영자 모드가 아닙니다.");
-        return;
-      }
-      setAuthToken(t);
-      window.location.reload();
-    } catch (e) {
-      setOperatorError("토큰 확인 중 오류가 발생했습니다.");
-    }
-  }, [token]);
-
   const scrollToLogin = useCallback(() => {
-    // 고객 가입/로그인 페이지로 (이메일·비번·구글). 운영자 토큰은 아래 보조 옵션.
+    // 고객 가입/로그인 페이지로 (이메일·비번·구글). 운영자 진입은 /operator로 분리.
     window.location.href = "/login";
   }, []);
 
@@ -300,7 +270,7 @@ function LandingPage() {
       </section>
 
       {/* ────── Login ────── */}
-      <section ref={loginRef} className="max-w-md mx-auto px-6 py-20">
+      <section className="max-w-md mx-auto px-6 py-20">
         <div className="card p-8 relative overflow-hidden">
           {/* Top accent line */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-[2px]"
@@ -320,36 +290,13 @@ function LandingPage() {
             로그인 / 회원가입 →
           </a>
 
-          {/* 운영자 보조 — 토큰 접속 */}
-          {showLogin ? (
-            <div className="mt-4">
-              <input
-                type="password"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && doLogin()}
-                placeholder="운영자 Auth Token"
-                className="w-full bg-surface text-muted text-sm p-3 rounded-lg border border-border focus:border-accent focus:outline-none transition-colors mb-2"
-                autoFocus
-              />
-              <button
-                onClick={doLogin}
-                className="w-full py-2.5 rounded-lg text-muted font-medium text-sm bg-surface-2 hover:bg-surface-2 transition-all"
-              >
-                운영자 토큰으로 접속
-              </button>
-              {operatorError && (
-                <p className="mt-2 text-xs text-red-400">{operatorError}</p>
-              )}
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowLogin(true)}
-              className="w-full mt-3 text-[11px] text-subtle hover:text-subtle transition-colors"
-            >
-              운영자세요? 토큰으로 접속
-            </button>
-          )}
+          {/* 운영자 진입은 /operator로 분리 — 고객 화면엔 비번 박스 노출 안 함 */}
+          <a
+            href="/operator"
+            className="block w-full mt-3 text-center text-[11px] text-subtle hover:text-muted transition-colors"
+          >
+            운영자세요? 운영자 콘솔로 →
+          </a>
         </div>
       </section>
 
@@ -389,8 +336,46 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     setHasToken(!!getAuthToken());
   }, []);
 
-  // 로그인/가입 페이지는 인증 없이 풀스크린으로(고객 진입점) — 사이드바·게이트 없이.
-  if (pathname === "/login" || pathname === "/signup") {
+  // Supabase 세션 ↔ localStorage 토큰 스냅샷 동기화.
+  // 수동 스냅샷은 자동갱신이 안 돼 만료(~1h) 후에도 "로그인됨"으로 보여 전 API가 401이 된다.
+  // getSession으로 갱신된 토큰을 스냅샷에 반영하고, onAuthStateChange로 계속 동기화.
+  // SIGNED_OUT이면 스냅샷 제거 → 랜딩으로.
+  useEffect(() => {
+    let unsub: (() => void) | undefined;
+    // 운영자 토큰(DASHBOARD_AUTH_TOKEN, 비-JWT)이 저장돼 있으면 Supabase 세션 동기화에서 제외한다.
+    // 같은 localStorage 키를 공유하므로, 남아있던 고객 세션으로 운영자 토큰을 덮어쓰면
+    // 운영자가 그 고객 테넌트로 스코프되는 교차계정 권한 혼동이 생긴다.
+    const isJwt = (t: string) => t.split(".").length === 3 && t.length > 40;
+    const operatorActive = () => { const t = getAuthToken(); return !!t && !isJwt(t); };
+    (async () => {
+      try {
+        const { createBrowserSupabase } = await import("@/lib/supabase");
+        const sb = createBrowserSupabase();
+        const { data: { session } } = await sb.auth.getSession();
+        if (session?.access_token && !operatorActive()) {
+          setAuthToken(session.access_token);
+          setHasToken(true);
+        }
+        const { data } = sb.auth.onAuthStateChange((event, sess) => {
+          if (operatorActive()) return; // 운영자 세션엔 관여하지 않음
+          if (sess?.access_token) {
+            setAuthToken(sess.access_token);
+            setHasToken(true);
+          } else if (event === "SIGNED_OUT") {
+            clearAuthToken();
+            setHasToken(false);
+          }
+        });
+        unsub = () => data.subscription.unsubscribe();
+      } catch {
+        /* supabase env 미설정/dev — 무시(운영자 토큰 경로는 영향 없음) */
+      }
+    })();
+    return () => unsub?.();
+  }, []);
+
+  // 로그인/가입/운영자 콘솔은 인증 없이 풀스크린으로(진입점) — 사이드바·게이트 없이.
+  if (pathname === "/login" || pathname === "/signup" || pathname === "/operator") {
     return <main className="min-h-screen w-full">{children}</main>;
   }
 
