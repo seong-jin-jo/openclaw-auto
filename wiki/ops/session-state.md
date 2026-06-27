@@ -5,11 +5,26 @@
 
 **최종 갱신:** 2026-06-26 · 브랜치 `main` · 배포 라이브.
 
-## 🧭 회장님 directive 정렬 (2026-06 · brain federation)
+## 🧭 회장님 directive 정렬 (brain federation)
 
-> brain `wiki/business/decision-2026-06-4사업-OUTPUT-집중.md` (회장님 명령, active). brain은
-> read-only이므로 directive 완료 체크는 **이 venture STATE**로 닫는다(directive 운영 규칙).
-> 이 레포 = **MARKETING (open-claw / JOGON)** venture.
+> brain `wiki/business/timeline-회장-directive-log.md`(append-only 명령 로그) +
+> `decision-2026-06-4사업-OUTPUT-집중`(active). brain read-only → 완료 체크는 **이 venture STATE**.
+> 이 레포 = **MARKETING (open-claw / JOGON)** venture. 연간 bet = "INTERNAL→SPIN-OFF 멀티에이전트
+> 마케팅 스튜디오"(내부 검증 후 B2C 분사 — `plan-2026-연간-이정표`).
+
+### 7월·하반기 directive (2026-06-27 directive log) — 현 작업과 직결
+- **6월 리마인드**: 마케팅 **5계정**(ZERO-ONE·D-EDU·**JOGON경제**·**CUPID 2개(Romeo/Dark)**) 등록 →
+  콘텐츠 생성·발행 안정 가동. ⚠️ **4가 아니라 5**(CUPID=Romeo클린+Dark BDSM 분리).
+- **★7월**: 6월 출력 안정화 + **무료 제공으로 멀티테넌트 축적** — "5계정 안정화 + 주변 관심자에게
+  무료 제공." → **내가 만든 셀프서브 코어가 정확히 이 명령.** 무료티어 = 운영자 claude -p(내 Max)로
+  돌리는 게 자연스러움(고객은 점진 자기 키). A2 온보딩 위저드 = 7월 *획득 레버*로 우선순위 상승.
+- **하반기(H2)**: JOGON/마케팅 = **'대신 사업해드립니다'** — 마케팅 프로그램 판매 + 앱·웹 외주 +
+  종합 컨설팅(기획+개발+마케팅) = 본인 직업. 이 레포 = 그 엔진/레버.
+- **메타**: `concept-아이디어-투입-자동-사업-파이프라인` — 아이디어→기획→개발→인프라→마케팅→데이터
+  자동 라인. 이 레포 = 그 "마케팅·데이터" 단. 트랙분리(신규0→1 / 운영1→N), 사람 검증 게이트.
+- **정렬 판정**: 셀프서브 코어(A1/A3/B0/B1 완료, A2 남음) = 7월 명령과 **정확히 일치, 오히려 검증됨.**
+
+### 6월 MARKETING 명령 2개 (진행)
 
 **6월 One Thing(전 사업 공통): OUTPUT.** 완벽보다 노출, 기획보다 배포, 추측보다 데이터.
 성공 기준 = ①배포·게시됨 ②유저 유입 ③데이터로 보임.
@@ -161,9 +176,14 @@ code-review(high) 7건 전부 반영(교차계정 토큰 클로버, tenantError 
   검증 → 잘못된 키 400 거부(저장 안 함). AiKeySettings가 에러 노출. 테스트 `tests/brand/integrations-anthropic-verify.test.ts`(3).
 - **검증(누적)**: 전체 132 pass/8 skip, tsc 0, build ✓. (A1+A3+B0+B1 한 묶음.)
 - **남음**: A2 OnboardingWizard 선형확장(채널→키→브랜드→위키→첫생성) — UI 큰 작업, browse QA는 인프라 후.
-- **SJ 액션(인프라 — 이거 끝나야 라이브 셀프서브 드라이런 가능)**: ① `apply-schema.sh`로 배포 DB 프로비저닝
-  ② `OSMU_SECRET_KEY` 시크릿 확인(없으면 토큰 등록부터 깨짐) ③ 호스트 `~/.claude` Max 인증 + 재배포(claude 폴백)
-  ④ Supabase 콘솔 Email confirm/redirect. → 그 후 내가 테스트 계정 1개로 가입→키→sync(CUPID public)→생성 드라이런.
+- **★시크릿 현황(2026-06-27 `gh secret list` 확인)**: `OSMU_SECRET_KEY`·`OSMU_DATABASE_URL`·
+  `OSMU_DASHBOARD_AUTH_TOKEN`·`OSMU_SUPABASE_URL`·`OSMU_SUPABASE_ANON_KEY` **전부 2026-06-16에 설정됨.**
+  → **OSMU_SECRET_KEY 재생성 금지**(기존 암호화 토큰 복호화 불가됨). #2는 이미 완료.
+- **남은 진짜 미지수(축소됨)**: ① 그 DB에 스키마/RLS/pg_trgm이 실제 적용됐는지(미지 — `apply-schema.sh`는 멱등이라
+  돌려도 안전) ② B0(claude CLI+~/.claude) 반영 재배포 ③ Supabase Email confirm/redirect 콘솔 토글(가입 되면 스킵).
+- **확정 방법**: 라이브 probe(operator 토큰+URL 필요 — 둘 다 SJ 보유) — curl로 워크스페이스 생성/키 등록 시도해
+  어디서 막히는지 확인하면 "이미 된 것 vs 할 것" 갈림.
+- **그 후**: 내가 테스트 계정 1개로 가입→키→sync(CUPID public)→생성 드라이런으로 끊김 0 증명.
 
 ## brand 그라운딩 구현 현황 (2026-06-26 코드 검증)
 
