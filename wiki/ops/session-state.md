@@ -188,8 +188,11 @@ code-review(high) 7건 전부 반영(교차계정 토큰 클로버, tenantError 
   (시각 검증은 배포 후 browse — 컴포넌트 렌더 테스트 하네스 없음).
 - **★제품 원칙(회장 2026-06-28)**: "얼마나 *편하게* 해주는지"가 핵심 — 홍보 메시지로도 쓰고, 기획·개발
   내내 디자인 가치로 박는다(고객이 plumbing 안 만지게, 연결 버튼 하나로). GA4/슬랙=플랫폼이 인터페이스.
+- **A2 배포**: `gh workflow run deploy-marketing.yml`(런 28294936895, 2026-06-27 큐). 배포 후 A2 화면 browse 검수 예정.
 - **남은 "셋다" 중**: ② GA4/슬랙 "연결" 버튼(OAuth) = 다음 코드(큰 작업—Google/Slack OAuth 콜백·토큰저장).
-  ③ 라이브 probe = operator URL+토큰 필요(SJ 보유) — 주면 즉시 진단.
+  ③ 라이브 probe = operator URL+토큰 필요(SJ 보유) — 주면 즉시 진단(`curl /api/me`).
+- **정확한 다음 액션**: (a) 배포 완료 확인 후 A2 browse 검수 (b) GA4/슬랙 OAuth 연결 빌드 착수 또는
+  (c) SJ가 URL/토큰 주면 라이브 probe→셀프서브 드라이런. 사용자 선택 대기.
 - **★시크릿 현황(2026-06-27 `gh secret list` 확인)**: `OSMU_SECRET_KEY`·`OSMU_DATABASE_URL`·
   `OSMU_DASHBOARD_AUTH_TOKEN`·`OSMU_SUPABASE_URL`·`OSMU_SUPABASE_ANON_KEY` **전부 2026-06-16에 설정됨.**
   → **OSMU_SECRET_KEY 재생성 금지**(기존 암호화 토큰 복호화 불가됨). #2는 이미 완료.
