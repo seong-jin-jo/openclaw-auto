@@ -1,10 +1,6 @@
-import { execFile } from "child_process";
-import { promisify } from "util";
 import { withTenant } from "@/lib/db";
 import { effectiveTenantId } from "@/lib/tenant-auth";
-
-const execFileP = promisify(execFile);
-const CLAUDE_BIN = process.env.CLAUDE_BIN || "claude";
+import { generateText } from "@/lib/anthropic";
 
 // GET /api/studio/brand-setup?tenant_id=... — 워크스페이스 브랜드 가이드 조회
 export async function GET(request: Request) {
@@ -20,7 +16,8 @@ export async function GET(request: Request) {
   }
 }
 
-// POST /api/studio/brand-setup — 6문항 → claude -p 증류 → brand_guides upsert
+// POST /api/studio/brand-setup — 6문항 → generateText 증류 → brand_guides upsert.
+// generateText는 테넌트가 등록한 Anthropic 키 우선(고객 과금·격리), 없으면 claude -p 폴백(내부/운영자).
 // body: { tenant_id, answers: { service, target, tone, banned, hooks, visual } }
 export async function POST(request: Request) {
   const __b = await request.json();
@@ -45,7 +42,7 @@ export async function POST(request: Request) {
  "visual_rules": {"colors": ["#hex 또는 색이름", ...], "typography": "서체/타이포 느낌", "forbidden": ["금지 비주얼 요소", ...]}
 }`;
   try {
-    const { stdout } = await execFileP(CLAUDE_BIN, ["-p", prompt], { timeout: 120000, maxBuffer: 8 * 1024 * 1024 });
+    const stdout = await generateText(prompt, tenant_id);
     const m = stdout.match(/\{[\s\S]*\}/);
     if (!m) return Response.json({ error: "JSON 추출 실패", raw: stdout.slice(-400) }, { status: 502 });
     const parsed = JSON.parse(m[0]) as { prompt_guide?: string; visual_rules?: Record<string, unknown> };

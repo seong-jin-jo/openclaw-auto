@@ -144,6 +144,20 @@ code-review(high) 7건 전부 반영(교차계정 토큰 클로버, tenantError 
 - **다음 액션**: 이 변경 + Codex 미push 커밋 2개를 함께 commit→push→`deploy-marketing.yml` 배포→browse 라이브검증.
   (배포는 outward-facing — 사용자 승인 후.)
 
+## 셀프서브 코어 플랜 실행 중 (2026-06-27) — 플랜 승인됨
+
+플랜: `~/.claude/plans/graceful-puzzling-whistle.md`("셀프서브 마케팅 플랫폼 코어"). 완료선 = 비-기술
+담당자가 가입→키등록→위키연결→생성까지 혼자 끊김없이. 결정: 내부 4앱=`claude -p`(공짜), 고객=점진 API 키.
+
+- **★A1 키스톤픽스 = 완료·검증·커밋(다음 커밋).** 브랜드 증류 3라우트(`studio/brand-setup`,
+  `brand/sync-wiki`, `brand/sync-repo`)의 `claude -p` 하드코딩 → `generateText(prompt, tenantId)` 통일.
+  고객 키 등록 시 그 키로 증류(502 해소), 미등록 시 claude -p 폴백. 검증: `tests/brand/*`(6) +
+  전체 129 pass/8 skip, tsc 0, build ✓. 문서: `wiki/reference/brand-grounding.md`.
+- **다음 (플랜 순서)**: B0 Dockerfile claude CLI 설치+인증(폴백용), B1 `apply-schema.sh`(스키마+rls+pg_trgm),
+  B2 `OSMU_SECRET_KEY` 확인, B3 Supabase Email/redirect(SJ), A2 OnboardingWizard 선형확장(키→브랜드→위키),
+  A3 Anthropic 키 검증. 그 후 라이브 셀프서브 드라이런(테스트 계정 1개로 가입→키→sync→생성).
+- **SJ 액션 필요**: 배포 DB에 apply-schema 적용, `OSMU_SECRET_KEY`·Max 인증 토큰 제공, Supabase 콘솔.
+
 ## brand 그라운딩 구현 현황 (2026-06-26 코드 검증)
 
 **구현됨(코드+UI+생성주입):** 사내 repo 위키 가져오기(`RepoConnect.tsx`+`/api/brand/sync-wiki`·`sync-repo`),

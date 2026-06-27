@@ -1,12 +1,8 @@
-import { execFile } from "child_process";
-import { promisify } from "util";
 import crypto from "node:crypto";
 import { withTenant } from "@/lib/db";
 import { effectiveTenantId } from "@/lib/tenant-auth";
+import { generateText } from "@/lib/anthropic";
 import { getRepoToken, fetchRepoFile, listWikiFiles, extractTitle } from "@/lib/github";
-
-const execFileP = promisify(execFile);
-const CLAUDE_BIN = process.env.CLAUDE_BIN || "claude";
 
 // 위키 폴더 전체 인입 → wiki_docs(테넌트별). 생성 시 pg_trgm으로 검색해 사실 기반 콘텐츠.
 // 인입↔생성 분리: 여기선 저장만. 검색·주입은 lib/wiki-retrieve + studio/text.
@@ -83,7 +79,8 @@ export async function POST(request: Request) {
     return del.length;
   });
 
-  // 4) 톤 재증류(best-effort) — 전체 문서 제목+선두 발췌 다이제스트 → claude -p → brand_guides
+  // 4) 톤 재증류(best-effort) — 전체 문서 제목+선두 발췌 다이제스트 → generateText → brand_guides
+  //    (테넌트 Anthropic 키 우선, 없으면 claude -p 폴백. 실패해도 wiki_docs 저장은 유지.)
   let toneUpdated = false;
   try {
     const digest = docs.map((d) => `## ${d.title}\n${d.content.slice(0, 400)}`).join("\n\n").slice(0, 16000);
@@ -93,7 +90,7 @@ ${digest}
 === 위키 문서 모음 끝 ===
 출력은 JSON만:
 { "prompt_guide": "콘텐츠 생성 시 주입할 브랜드 톤 가이드(한국어 5~10줄: 보이스·톤·페르소나·핵심 hook·금지표현)", "visual_rules": {"colors": [], "typography": "", "forbidden": []} }`;
-    const { stdout } = await execFileP(CLAUDE_BIN, ["-p", prompt], { timeout: 120000, maxBuffer: 8 * 1024 * 1024 });
+    const stdout = await generateText(prompt, tenant_id);
     const m = stdout.match(/\{[\s\S]*\}/);
     if (m) {
       const parsed = JSON.parse(m[0]) as { prompt_guide?: string; visual_rules?: Record<string, unknown> };

@@ -1,12 +1,8 @@
-import { execFile } from "child_process";
-import { promisify } from "util";
 import crypto from "node:crypto";
 import { withTenant } from "@/lib/db";
 import { effectiveTenantId } from "@/lib/tenant-auth";
+import { generateText } from "@/lib/anthropic";
 import { getRepoToken, fetchRepoFile } from "@/lib/github";
-
-const execFileP = promisify(execFile);
-const CLAUDE_BIN = process.env.CLAUDE_BIN || "claude";
 
 // 레포 위키 → 브랜드 가이드 인입. 소스(repo,path,ref)는 brand_guides에 저장.
 // 생성기는 brand_guides만 읽음 — 레포 직접 안 봄(인입↔생성 분리).
@@ -79,7 +75,8 @@ export async function POST(request: Request) {
     return Response.json({ ok: true, skipped: true, reason: "원문 변경 없음", repo, path: joinedPath, ref: branch });
   }
 
-  // 3) claude -p 증류 (위저드와 동일 출력 스키마 — brand_guides 정합)
+  // 3) generateText 증류 (위저드와 동일 출력 스키마 — brand_guides 정합)
+  //    테넌트 Anthropic 키 우선, 없으면 claude -p 폴백.
   const input = markdown.slice(0, 20000); // 과대 프롬프트 방지
   const prompt = `너는 브랜드 전략가다. 아래 "마케팅 위키 문서"를 SNS 마케팅 콘텐츠 생성용 "브랜드 가이드"로 증류하라.
 
@@ -93,7 +90,7 @@ ${input}
  "visual_rules": {"colors": ["#hex 또는 색이름", ...], "typography": "서체/타이포 느낌", "forbidden": ["금지 비주얼 요소", ...]}
 }`;
   try {
-    const { stdout } = await execFileP(CLAUDE_BIN, ["-p", prompt], { timeout: 120000, maxBuffer: 8 * 1024 * 1024 });
+    const stdout = await generateText(prompt, tenant_id);
     const m = stdout.match(/\{[\s\S]*\}/);
     if (!m) return Response.json({ error: "JSON 추출 실패", raw: stdout.slice(-400) }, { status: 502 });
     const parsed = JSON.parse(m[0]) as { prompt_guide?: string; visual_rules?: Record<string, unknown> };
