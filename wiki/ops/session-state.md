@@ -188,7 +188,11 @@ code-review(high) 7건 전부 반영(교차계정 토큰 클로버, tenantError 
   (시각 검증은 배포 후 browse — 컴포넌트 렌더 테스트 하네스 없음).
 - **★제품 원칙(회장 2026-06-28)**: "얼마나 *편하게* 해주는지"가 핵심 — 홍보 메시지로도 쓰고, 기획·개발
   내내 디자인 가치로 박는다(고객이 plumbing 안 만지게, 연결 버튼 하나로). GA4/슬랙=플랫폼이 인터페이스.
-- **A2 배포**: `gh workflow run deploy-marketing.yml`(런 28294936895, 2026-06-27 큐). 배포 후 A2 화면 browse 검수 예정.
+- **A2 배포 success**(런 28294936895, 4m13s) — 온보딩 라이브. 화면 browse 검수는 URL/토큰 시.
+- **셀프서브 E2E 층 완성**: `tests/brand/studio-text-grounding.test.ts`(4) — 생성이 브랜드가이드+위키사실을
+  실제 프롬프트에 주입하고 "지어내기 금지" 강제하는지 단언(셀프서브 payoff). `tests/brand/*` 총 13개로
+  키검증→브랜드증류→생성그라운딩 전 경로 커버. 라이브 드라이런용 `scripts/verify-selfserve-e2e.sh`(browse,
+  URL/토큰 생기면 한 줄). 전체 136 pass/8 skip, tsc 0, build ✓. **라이브 풀플로우 검증만 URL/토큰 대기.**
 - **남은 "셋다" 중**: ② GA4/슬랙 "연결" 버튼(OAuth) = 다음 코드(큰 작업—Google/Slack OAuth 콜백·토큰저장).
   ③ 라이브 probe = operator URL+토큰 필요(SJ 보유) — 주면 즉시 진단(`curl /api/me`).
 - **정확한 다음 액션**: (a) 배포 완료 확인 후 A2 browse 검수 (b) GA4/슬랙 OAuth 연결 빌드 착수 또는
