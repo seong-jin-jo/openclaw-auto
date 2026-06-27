@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { setupGuides } from "@/lib/setup-guides";
 import { CredentialForm } from "./CredentialForm";
 import { SetupGuide } from "./SetupGuide";
+import { FreeEventBanner } from "./FreeEventBanner";
 import { apiPost } from "@/lib/api";
 import { authHeaders } from "@/lib/auth";
 
@@ -83,6 +84,8 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
         setSaving(false);
       }
     } else if (step === 3) {
+      setStep(4);
+    } else if (step === 4) {
       clearDraft();
       onComplete();
     }
@@ -119,7 +122,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-lg font-bold text-text">마케팅 자동화 시작하기</h2>
             <div className="flex items-center gap-2">
-              {[1, 2, 3].map((s) => (
+              {[1, 2, 3, 4].map((s) => (
                 <div
                   key={s}
                   className={`w-8 h-1 rounded-full transition-colors ${
@@ -133,6 +136,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
             {step === 1 && "업종을 선택하면 맞춤 콘텐츠 가이드가 자동 설정됩니다"}
             {step === 2 && "콘텐츠를 발행할 채널을 선택하세요"}
             {step === 3 && "첫 번째 채널을 연결하세요"}
+            {step === 4 && "이제 콘텐츠를 만들 차례예요 — 바로 시작할 수 있어요"}
           </p>
         </div>
 
@@ -221,15 +225,47 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
               )}
               {credentialsSaved && (
                 <div className="text-center py-4">
-                  <div className="w-12 h-12 rounded-full bg-green-900/30 flex items-center justify-center mx-auto mb-3">
-                    <svg className="w-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <div className="w-12 h-12 rounded-full bg-success/15 flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-6 h-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <p className="text-sm text-green-400 font-medium">채널이 연결되었습니다{connectedAccount ? ` — ${connectedAccount}` : ""}</p>
-                  <p className="text-xs text-subtle mt-1">완료를 눌러 대시보드로 이동하세요</p>
+                  <p className="text-sm text-success font-medium">채널이 연결되었습니다{connectedAccount ? ` — ${connectedAccount}` : ""}</p>
+                  <p className="text-xs text-subtle mt-1">다음을 눌러 콘텐츠 만들 준비로 넘어가세요</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Step 4: 콘텐츠 만들 준비 — 무료 이벤트 안내 + 다음 할 일(브랜드/생성) */}
+          {step === 4 && (
+            <div className="space-y-4">
+              <FreeEventBanner />
+              <p className="text-sm text-text">
+                준비 끝! 이제 <b>브랜드를 알려주면</b> 그 톤·사실에 맞는 콘텐츠가 자동으로 만들어져요.
+                지금 바로 해보거나, 나중에 스튜디오에서 해도 됩니다.
+              </p>
+              <div className="grid gap-2">
+                <a href="/studio?setup=brand" onClick={clearDraft}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-accent bg-accent-soft hover:bg-accent/15 transition-colors">
+                  <span className="text-xl">🎨</span>
+                  <div>
+                    <p className="text-sm font-medium text-text">브랜드 설정하기</p>
+                    <p className="text-[11px] text-subtle">6가지만 답하면 끝 — 또는 내 위키/홈페이지 연결</p>
+                  </div>
+                </a>
+                <a href="/studio" onClick={clearDraft}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-border bg-surface/50 hover:border-accent transition-colors">
+                  <span className="text-xl">✍️</span>
+                  <div>
+                    <p className="text-sm font-medium text-text">바로 콘텐츠 만들기</p>
+                    <p className="text-[11px] text-subtle">주제만 적으면 초안이 나와요</p>
+                  </div>
+                </a>
+              </div>
+              <p className="text-[11px] text-subtle">
+                내 Claude(Anthropic) 키가 있으면 설정 → AI Engine에서 등록할 수 있어요(선택).
+              </p>
             </div>
           )}
         </div>
@@ -237,7 +273,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
         {/* Footer */}
         <div className="px-6 py-4 border-t border-border/50 flex items-center justify-between">
           <button
-            onClick={step === 3 ? () => { clearDraft(); onComplete(); } : onDismiss}
+            onClick={step >= 3 ? () => { clearDraft(); onComplete(); } : onDismiss}
             className="text-xs text-subtle hover:text-subtle transition-colors"
           >
             나중에 설정하기
@@ -260,7 +296,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
               }
               className="px-6 py-2 bg-accent text-text text-sm rounded-lg hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              {saving ? "저장 중..." : step === 3 ? "완료" : "다음"}
+              {saving ? "저장 중..." : step === 4 ? "완료" : "다음"}
             </button>
           </div>
         </div>

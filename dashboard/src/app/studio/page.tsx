@@ -50,6 +50,12 @@ export default function StudioPage() {
   const [guide, setGuide] = useState("");
   // 활성 워크스페이스 브랜드 가이드 → 생성에 자동 주입(P3)
   useEffect(() => { if (brandData?.guide?.prompt_guide) setGuide(brandData.guide.prompt_guide); }, [brandData]);
+  // 온보딩 위저드에서 "브랜드 설정하기"(/studio?setup=brand)로 오면 브랜드 위저드 자동 오픈.
+  useEffect(() => {
+    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("setup") === "brand") {
+      setShowWizard(true);
+    }
+  }, []);
   const [withVideo, setWithVideo] = useState(true);
   const [videoModel, setVideoModel] = useState("minimax_hailuo");
   const [busy, setBusy] = useState<string | null>(null);

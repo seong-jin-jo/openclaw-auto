@@ -4,6 +4,7 @@ import { useState } from "react";
 import useSWR from "swr";
 import { fetcher, apiPost } from "@/lib/api";
 import { useUIStore } from "@/store/ui-store";
+import { FreeEventBanner } from "@/components/shared/FreeEventBanner";
 
 // 고객 Anthropic(Claude) 키 등록. 저장 시 콘텐츠 생성이 이 키로 호출(고객 과금·격리).
 // 미등록이면 운영자 공유 엔진(claude -p) 사용. integrations(kind='anthropic')에 암호화 저장.
@@ -35,11 +36,12 @@ export function AiKeySettings() {
 
   return (
     <div className="max-w-2xl p-4 rounded-xl border border-border bg-surface/40">
+      <div className="mb-3"><FreeEventBanner /></div>
       <h3 className="text-sm font-semibold text-text mb-1">내 Claude(Anthropic) 키 · {activeWorkspace.name}</h3>
       <p className="text-xs text-subtle mb-3">
         내 Anthropic API 키를 등록하면 콘텐츠 생성이 <b className="text-muted">내 키·내 과금</b>으로 동작합니다(미등록 시 공유 엔진).
         키는 암호화 저장되며 발급은 <span className="text-accent">console.anthropic.com → API Keys</span>.
-        현재: <span className={hasKey ? "text-green-400" : "text-subtle"}>{hasKey ? "등록됨" : "미등록(공유 엔진 사용)"}</span>
+        현재: <span className={hasKey ? "text-success" : "text-subtle"}>{hasKey ? "등록됨(내 과금)" : "미등록(무료 이벤트 — 운영자 부담)"}</span>
       </p>
       <div className="flex gap-2">
         <input type="password" value={key} onChange={(e) => setKey(e.target.value)} placeholder="sk-ant-..."
@@ -48,7 +50,7 @@ export function AiKeySettings() {
           {busy ? "저장 중…" : "키 저장"}
         </button>
       </div>
-      {msg && <p className={`text-xs mt-2 ${msg.startsWith("✓") ? "text-green-400" : "text-red-400"}`}>{msg}</p>}
+      {msg && <p className={`text-xs mt-2 ${msg.startsWith("✓") ? "text-success" : "text-danger"}`}>{msg}</p>}
     </div>
   );
 }

@@ -181,7 +181,15 @@ code-review(high) 7건 전부 반영(교차계정 토큰 클로버, tenantError 
 - **A3 완료·검증·커밋**: `/api/integrations` POST가 `kind='anthropic'` 키를 저장 전 실호출(max_tokens:1)로
   검증 → 잘못된 키 400 거부(저장 안 함). AiKeySettings가 에러 노출. 테스트 `tests/brand/integrations-anthropic-verify.test.ts`(3).
 - **검증(누적)**: 전체 132 pass/8 skip, tsc 0, build ✓. (A1+A3+B0+B1 한 묶음.)
-- **남음**: A2 OnboardingWizard 선형확장(채널→키→브랜드→위키→첫생성) — UI 큰 작업, browse QA는 인프라 후.
+- **A2 완료·커밋(다음)**: `OnboardingWizard` 4스텝으로 확장(업종→채널→채널연결→**콘텐츠 만들 준비**).
+  4스텝 = `FreeEventBanner`(무료 서비스 이벤트 명시) + "브랜드 설정하기"(`/studio?setup=brand` 자동오픈)·
+  "바로 콘텐츠" CTA. `AiKeySettings`에 FreeEventBanner + 상태문구 "미등록(무료 이벤트—운영자 부담)" +
+  theme-blind 색→시맨틱. 신규 `components/shared/FreeEventBanner.tsx`. 검증: tsc 0, 132 pass/8 skip, build ✓
+  (시각 검증은 배포 후 browse — 컴포넌트 렌더 테스트 하네스 없음).
+- **★제품 원칙(회장 2026-06-28)**: "얼마나 *편하게* 해주는지"가 핵심 — 홍보 메시지로도 쓰고, 기획·개발
+  내내 디자인 가치로 박는다(고객이 plumbing 안 만지게, 연결 버튼 하나로). GA4/슬랙=플랫폼이 인터페이스.
+- **남은 "셋다" 중**: ② GA4/슬랙 "연결" 버튼(OAuth) = 다음 코드(큰 작업—Google/Slack OAuth 콜백·토큰저장).
+  ③ 라이브 probe = operator URL+토큰 필요(SJ 보유) — 주면 즉시 진단.
 - **★시크릿 현황(2026-06-27 `gh secret list` 확인)**: `OSMU_SECRET_KEY`·`OSMU_DATABASE_URL`·
   `OSMU_DASHBOARD_AUTH_TOKEN`·`OSMU_SUPABASE_URL`·`OSMU_SUPABASE_ANON_KEY` **전부 2026-06-16에 설정됨.**
   → **OSMU_SECRET_KEY 재생성 금지**(기존 암호화 토큰 복호화 불가됨). #2는 이미 완료.
