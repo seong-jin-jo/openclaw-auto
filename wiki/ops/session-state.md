@@ -153,10 +153,17 @@ code-review(high) 7건 전부 반영(교차계정 토큰 클로버, tenantError 
   `brand/sync-wiki`, `brand/sync-repo`)의 `claude -p` 하드코딩 → `generateText(prompt, tenantId)` 통일.
   고객 키 등록 시 그 키로 증류(502 해소), 미등록 시 claude -p 폴백. 검증: `tests/brand/*`(6) +
   전체 129 pass/8 skip, tsc 0, build ✓. 문서: `wiki/reference/brand-grounding.md`.
-- **다음 (플랜 순서)**: B0 Dockerfile claude CLI 설치+인증(폴백용), B1 `apply-schema.sh`(스키마+rls+pg_trgm),
-  B2 `OSMU_SECRET_KEY` 확인, B3 Supabase Email/redirect(SJ), A2 OnboardingWizard 선형확장(키→브랜드→위키),
-  A3 Anthropic 키 검증. 그 후 라이브 셀프서브 드라이런(테스트 계정 1개로 가입→키→sync→생성).
-- **SJ 액션 필요**: 배포 DB에 apply-schema 적용, `OSMU_SECRET_KEY`·Max 인증 토큰 제공, Supabase 콘솔.
+- **B0 완료(코드)**: `Dockerfile`에 claude CLI(`@anthropic-ai/claude-code`) 설치 + compose에
+  `${HOME}/.claude:/root/.claude:ro` 마운트(폴백 인증). 적용/인증은 SJ(호스트 사전 인증 + 재배포).
+- **B1 완료(코드)**: `dashboard/scripts/apply-schema.sh`(멱등: schema→[--seed]→rls, pg_trgm·osmu_service 검증).
+  SJ가 `DATABASE_URL=… bash dashboard/scripts/apply-schema.sh`로 배포 DB에 적용.
+- **A3 완료·검증·커밋**: `/api/integrations` POST가 `kind='anthropic'` 키를 저장 전 실호출(max_tokens:1)로
+  검증 → 잘못된 키 400 거부(저장 안 함). AiKeySettings가 에러 노출. 테스트 `tests/brand/integrations-anthropic-verify.test.ts`(3).
+- **검증(누적)**: 전체 132 pass/8 skip, tsc 0, build ✓. (A1+A3+B0+B1 한 묶음.)
+- **남음**: A2 OnboardingWizard 선형확장(채널→키→브랜드→위키→첫생성) — UI 큰 작업, browse QA는 인프라 후.
+- **SJ 액션(인프라 — 이거 끝나야 라이브 셀프서브 드라이런 가능)**: ① `apply-schema.sh`로 배포 DB 프로비저닝
+  ② `OSMU_SECRET_KEY` 시크릿 확인(없으면 토큰 등록부터 깨짐) ③ 호스트 `~/.claude` Max 인증 + 재배포(claude 폴백)
+  ④ Supabase 콘솔 Email confirm/redirect. → 그 후 내가 테스트 계정 1개로 가입→키→sync(CUPID public)→생성 드라이런.
 
 ## brand 그라운딩 구현 현황 (2026-06-26 코드 검증)
 

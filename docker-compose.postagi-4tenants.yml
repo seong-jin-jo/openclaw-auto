@@ -195,6 +195,9 @@ services:
       - ./data-osmu:/app/data
       - ./config-osmu:/app/config
       - /var/run/docker.sock:/var/run/docker.sock
+      # claude CLI 폴백 인증(테넌트 Anthropic 키 미등록 시 `claude -p`). 호스트가 사전 인증된 ~/.claude 필요.
+      # 테넌트가 자기 API 키 등록 시 이 경로 불필요(HTTP API로 감). 인증 없으면 폴백만 502(고객 키 경로는 정상).
+      - ${HOME}/.claude:/root/.claude:ro
     env_file: .env.osmu
     environment:
       DATA_DIR: /app/data
