@@ -28,6 +28,10 @@
   - (미적용·후속) 구조 교정: 테넌트 생성을 읽기 경로에서 제거(로그인/온보딩 1회 프로비저닝). 멱등으로 안전해져 위험은 해소, 정리는 후속.
 - **인프라 접근**: `ssh marketing-vm`(192.168.1.110, 키 `~/.ssh/postagi_onprem`). 라이브=`openclaw.sj-onpremise-cloudflare-tunnel.cloud`.
 - **검증**: tests/brand health(2) 포함 전체 139 pass/8 skip, tsc 0, build ✓.
+- **라이브 검증(2026-06-28)**: 재배포 success(런 28331761475). `/api/health`→`{ok:true,db:up,ms:99}` 200.
+  컨테이너 `Up (healthy)`(healthcheck 적용됨), CPU 0.00%. 장애 완전 해소.
+- **남은 SJ 인프라 액션(L4/L5 완성)**: ① `docker compose -f docker-compose.postagi-4tenants.yml up -d autoheal`
+  (워치독 기동 — 아직 미실행) ② `health-alert.sh` crontab 등록 + `SLACK_WEBHOOK_URL`(운영 장애 알림 켜기).
 
 ## 🧭 회장님 directive 정렬 (brain federation)
 
