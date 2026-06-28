@@ -28,21 +28,30 @@ export default function LoginPage() {
   // 클라가 URL 해시를 파싱(detectSessionInUrl 기본 on)하므로 mount 시 세션을 거둬 토큰 저장 후 진입.
   useEffect(() => {
     // supabase env 미설정 시 createBrowserSupabase가 throw → 페이지 死 방지(가드).
+    let unsub: (() => void) | undefined;
     try {
       const sb = createBrowserSupabase();
       const hash = window.location.hash || "";
       const hadHashToken = hash.includes("access_token");
+      const enter = (accessToken: string) => {
+        setAuthToken(accessToken);
+        if (hadHashToken) history.replaceState(null, "", window.location.pathname);
+        window.location.href = "/";
+      };
       sb.auth.getSession().then(({ data }) => {
-        if (data.session) {
-          setAuthToken(data.session.access_token);
-          if (hadHashToken) history.replaceState(null, "", window.location.pathname);
-          window.location.href = "/";
-        }
+        if (data.session) enter(data.session.access_token);
       }).catch(() => { /* ignore */ });
+      // 다른 탭에서 이메일 확인/로그인하면 이 탭도 자동 진입 — "이메일 확인" pending 화면이
+      // 막다른 골목이 되지 않게(가입 confirm 후 원본 탭도 로그인 처리). Supabase는 세션을
+      // localStorage로 탭 간 동기화하므로 onAuthStateChange가 SIGNED_IN을 받는다.
+      const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
+        if (session?.access_token) enter(session.access_token);
+      });
+      unsub = () => sub.subscription.unsubscribe();
     } catch (e) {
       if (typeof console !== "undefined") console.error("[login] supabase init:", e);
     }
-    return () => { if (cooldownTimer.current) clearInterval(cooldownTimer.current); };
+    return () => { unsub?.(); if (cooldownTimer.current) clearInterval(cooldownTimer.current); };
   }, []);
 
   const startCooldown = (secs: number) => {
