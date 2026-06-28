@@ -5,6 +5,21 @@
 
 **최종 갱신:** 2026-06-26 · 브랜치 `main` · 배포 라이브.
 
+## 🚨 장애 (2026-06-28) — 가입 테넌트 중복키 폭주 → CPU100% → 524
+
+- **증상**: 라이브 전 엔드포인트 8s 타임아웃(524), "업종선택 500", 컨테이너는 Up 24h.
+- **진단(marketing-vm SSH, 읽기전용)**: `openclaw-dashboard-osmu` **CPU 100.4% 고착**, 로그에
+  `duplicate key ... tenants_owner_auth_id_key (owner_auth_id=e6baa000-...)` 폭주. DB·스키마는 정상.
+- **근본원인**: `ensureTenantForUser` 동시 첫로그인 레이스 — SELECT 둘 다 빈값→INSERT 충돌→throw→500
+  →클라 재시도 폭주→CPU100%→응답불가. ("업종선택 500"도 동일.)
+- **수정(완료·커밋)**: `src/lib/tenant-auth.ts` INSERT를 `ON CONFLICT (owner_auth_id) DO UPDATE
+  RETURNING id` 멱등 upsert로 — 중복이어도 throw 없이 기존 id 반환. 회귀가드
+  `tests/brand/tenant-idempotent.contract.test.ts`. tsc 0.
+- **남은 조치(프로덕션 — 승인 필요)**: ① `docker restart openclaw-dashboard-osmu`(즉시 복구)
+  ② 수정 재배포(영구). classifier가 prod 재시작 차단 → 사용자 승인 후 진행.
+- **인프라 접근**: `ssh marketing-vm`(192.168.1.110, 키 `~/.ssh/postagi_onprem`)로 컨테이너 진단 가능.
+  라이브 호스트 = `openclaw.sj-onpremise-cloudflare-tunnel.cloud`.
+
 ## 🧭 회장님 directive 정렬 (brain federation)
 
 > brain `wiki/business/timeline-회장-directive-log.md`(append-only 명령 로그) +

@@ -63,6 +63,9 @@ export async function resolveTenantBySession(request: Request): Promise<string |
 
 // auth 유저 → tenant(owner_auth_id 매핑). 없으면 생성(첫 로그인 셀프서브 온보딩).
 // tenants는 RLS 제외라 bare db(). slug 충돌은 base+난수로 회피.
+// ⚠️ 멱등·레이스 안전: 동시 첫로그인(여러 요청 병렬)이면 SELECT가 둘 다 비어 INSERT가 충돌해
+//   unique 위반 throw → 500 → 클라 재시도 폭주 → CPU 100% 고착(2026-06-28 장애). 그래서
+//   ON CONFLICT (owner_auth_id) DO UPDATE ... RETURNING로 중복이어도 기존 id를 throw 없이 반환한다.
 export async function ensureTenantForUser(authId: string, email: string | null): Promise<string> {
   const sql = db();
   const [existing] = await sql<{ id: string }[]>`SELECT id FROM tenants WHERE owner_auth_id = ${authId} LIMIT 1`;
@@ -71,7 +74,9 @@ export async function ensureTenantForUser(authId: string, email: string | null):
   const slug = `${base}-${crypto.randomBytes(3).toString("hex")}`;
   const [row] = await sql<{ id: string }[]>`
     INSERT INTO tenants (slug, name, status, tier, owner_auth_id)
-    VALUES (${slug}, ${email || slug}, 'active', 'team', ${authId}) RETURNING id`;
+    VALUES (${slug}, ${email || slug}, 'active', 'team', ${authId})
+    ON CONFLICT (owner_auth_id) DO UPDATE SET owner_auth_id = EXCLUDED.owner_auth_id
+    RETURNING id`;
   return row.id;
 }
 
