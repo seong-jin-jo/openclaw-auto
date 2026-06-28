@@ -33,6 +33,17 @@
 - **남은 SJ 인프라 액션(L4/L5 완성)**: ① `docker compose -f docker-compose.postagi-4tenants.yml up -d autoheal`
   (워치독 기동 — 아직 미실행) ② `health-alert.sh` crontab 등록 + `SLACK_WEBHOOK_URL`(운영 장애 알림 켜기).
 
+## 사용자 피드백 처리 (2026-06-28)
+
+- **업종선택 500** → 장애와 동일 원인(테넌트 race). **해결·배포**.
+- **가입 confirm 후 원본 탭 미로그인** → `login/page.tsx`에 `onAuthStateChange` 추가(탭간 동기화 자동진입).
+  **수정·배포**(브라우저 전용 흐름 → 라이브 browse 검증 대상, 단위테스트 불가).
+- **구글 로그인 안 됨** → 코드 정상(미설정 시 안내까지). **Supabase 콘솔 Google provider 미활성이 원인 → SJ 액션**:
+  Supabase > Authentication > Providers > Google 활성 + Google Cloud OAuth client(ID/secret) + redirect
+  `https://<live>/login` 허용. (코드로 불가.)
+- **연결 도우미 챗봇** → 미답(비용·운영부담 낮음, 기존 키+셋업가이드 RAG 재사용 — 다음 설계).
+- **슬랙 알림 목적지** → 사용자가 만든 채널의 **Incoming Webhook URL**을 `SLACK_WEBHOOK_URL`로 → `health-alert.sh`가 거기로 POST.
+
 ## 🧭 회장님 directive 정렬 (brain federation)
 
 > brain `wiki/business/timeline-회장-directive-log.md`(append-only 명령 로그) +
