@@ -15,10 +15,19 @@
 - **수정(완료·커밋)**: `src/lib/tenant-auth.ts` INSERT를 `ON CONFLICT (owner_auth_id) DO UPDATE
   RETURNING id` 멱등 upsert로 — 중복이어도 throw 없이 기존 id 반환. 회귀가드
   `tests/brand/tenant-idempotent.contract.test.ts`. tsc 0.
-- **남은 조치(프로덕션 — 승인 필요)**: ① `docker restart openclaw-dashboard-osmu`(즉시 복구)
-  ② 수정 재배포(영구). classifier가 prod 재시작 차단 → 사용자 승인 후 진행.
-- **인프라 접근**: `ssh marketing-vm`(192.168.1.110, 키 `~/.ssh/postagi_onprem`)로 컨테이너 진단 가능.
-  라이브 호스트 = `openclaw.sj-onpremise-cloudflare-tunnel.cloud`.
+- **복구 완료**: `docker restart`로 CPU 100%→0.01%, /login 200·/api/me 401 정상화. 수정본 재배포 success(런 28328484498) → **L1 멱등 upsert 라이브**.
+- **구조적 RCA**: 부작용(쓰기=테넌트생성)이 계속 폴링되는 읽기 경로(/api/me→effectiveTenantId→ensureTenantForUser)에 박혀,
+  첫 로그인 시 대시보드 첫 로드의 동시 API 버스트가 TOCTOU 레이스→중복키 throw→500→재요청으로 레이스 창이 안 닫혀 자가증폭→CPU100%→524.
+  (claude/B0 무관 확정 — 로그에 claude 에러 0.)
+- **재발방지 다층(defense in depth)**:
+  - L1 멱등 upsert(ON CONFLICT) — **완료·배포**(근본 차단).
+  - L2 형제 경로 ON CONFLICT 감사 + 회귀 contract 테스트 — 완료.
+  - L3 클라 재시도 한도 — **이미 충족**(`Providers` SWRConfig `errorRetryCount:2, revalidateOnFocus:false`).
+  - L4 `/api/health`(DB핑·부작용0) + 컨테이너 healthcheck + **autoheal 워치독**(unhealthy 자동재시작; restart:unless-stopped는 hang 무력) — **코드 완료, 재배포로 적용**.
+  - L5 `scripts/health-alert.sh`(외부 업타임→슬랙 경보, 연속 N회) — 코드 완료. **운영 알림 지금까지 0이었음**(슬랙은 마케팅 리포트용뿐). SJ: crontab 등록 + SLACK_WEBHOOK_URL.
+  - (미적용·후속) 구조 교정: 테넌트 생성을 읽기 경로에서 제거(로그인/온보딩 1회 프로비저닝). 멱등으로 안전해져 위험은 해소, 정리는 후속.
+- **인프라 접근**: `ssh marketing-vm`(192.168.1.110, 키 `~/.ssh/postagi_onprem`). 라이브=`openclaw.sj-onpremise-cloudflare-tunnel.cloud`.
+- **검증**: tests/brand health(2) 포함 전체 139 pass/8 skip, tsc 0, build ✓.
 
 ## 🧭 회장님 directive 정렬 (brain federation)
 

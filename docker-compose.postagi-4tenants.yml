@@ -188,9 +188,25 @@ services:
   # per-service(tenant1/tenant5/..)와 별개. 고객은 /login으로 자기 테넌트 격리. 게이트웨이는 고객별 동적 프로비저닝.
   # ⚠️ .env.osmu 필수(DASHBOARD_AUTH_TOKEN=운영자잠금 + NEXT_PUBLIC_SUPABASE_* + DATABASE_URL + OSMU_SECRET_KEY).
   # ⚠️ 18789는 tenant1 게이트웨이와 같은 포트 → 둘 중 하나만(SaaS 모델이 per-service 대체).
+  # autoheal 워치독 — healthcheck가 unhealthy로 표시한 컨테이너를 자동 재시작(L4 재발방지).
+  # restart:unless-stopped는 프로세스 종료만 재시작 → 100% CPU hang엔 무력(2026-06-28 장애).
+  # AUTOHEAL_CONTAINER_LABEL로 라벨 단 컨테이너만 감시.
+  autoheal:
+    image: willfarrell/autoheal:latest
+    container_name: openclaw-autoheal
+    restart: unless-stopped
+    environment:
+      AUTOHEAL_CONTAINER_LABEL: autoheal
+      AUTOHEAL_INTERVAL: "15"
+      AUTOHEAL_START_PERIOD: "60"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
   openclaw-dashboard-osmu:
     <<: *dashboard-base
     container_name: openclaw-dashboard-osmu
+    labels:
+      autoheal: "true"   # autoheal 워치독이 unhealthy 시 자동 재시작
     volumes:
       - ./data-osmu:/app/data
       - ./config-osmu:/app/config
@@ -205,3 +221,11 @@ services:
       DASHBOARD_PORT: "18789"
       HOSTNAME: "0.0.0.0"
       NODE_ENV: production
+    # 헬스체크(L4 재발방지) — hang/DB불가 감지. unhealthy 자동재시작은 autoheal 워치독이 수행
+    # (restart:unless-stopped는 프로세스 *종료*만 재시작 → 100% CPU hang엔 무력했음. 2026-06-28 장애).
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:18789/api/health"]
+      interval: 30s
+      timeout: 8s
+      retries: 3
+      start_period: 40s

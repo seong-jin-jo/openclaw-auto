@@ -4,6 +4,9 @@ export function middleware(request: NextRequest) {
   const authToken = process.env.DASHBOARD_AUTH_TOKEN;
   const isApi = request.nextUrl.pathname.startsWith("/api/");
 
+  // /api/health — 무인증 공개(컨테이너 healthcheck + 외부 업타임 모니터). 부작용 0, 이 인스턴스 직접 체크.
+  if (request.nextUrl.pathname === "/api/health") return NextResponse.next();
+
   // 페이지(HTML) 문서 요청: 항상 최신 HTML을 받게 no-store.
   // 재배포 후 브라우저가 옛 HTML(이전 빌드의 죽은 JS 청크명)을 캐시 → 청크 404 →
   // "This page couldn't load"(ChunkLoadError) 나는 것을 차단. 해시된 _next 정적 청크는
