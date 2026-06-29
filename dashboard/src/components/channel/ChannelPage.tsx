@@ -9,7 +9,11 @@ import { useUIStore } from "@/store/ui-store";
 import { CH_LABELS, CH_STATUS_LABEL, AUTOMATION_FEATURES } from "@/lib/constants";
 import { setupGuides } from "@/lib/setup-guides";
 import { CredentialForm } from "@/components/shared/CredentialForm";
+import { SocialConnectButton } from "@/components/channel/SocialConnectButton";
 import { SetupGuide } from "@/components/shared/SetupGuide";
+
+// OAuth "연결" 버튼을 제공하는 채널(ADR-004 — 비번/토큰 없이 버튼만). 점진 확장.
+const OAUTH_CONNECT: Record<string, string> = { instagram: "Instagram" };
 import { ContentGuide } from "./ContentGuide";
 import { KeywordsEditor } from "./KeywordsEditor";
 import { QueueList } from "@/components/queue/QueueList";
@@ -186,6 +190,12 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Credentials */}
           <div className="card p-5">
+            {OAUTH_CONNECT[channel] && (
+              <div className="mb-4">
+                <SocialConnectButton provider={channel} label={OAUTH_CONNECT[channel]} />
+                <p className="text-[10px] text-subtle mt-2">또는 아래에서 토큰을 직접 입력(고급).</p>
+              </div>
+            )}
             <CredentialForm
               channelKey={channel}
               fields={sg.fields}

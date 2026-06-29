@@ -1,0 +1,51 @@
+"use client";
+
+import { useState } from "react";
+import { useUIStore } from "@/store/ui-store";
+import { authHeaders } from "@/lib/auth";
+
+// 소셜 OAuth "연결" 버튼 (ADR-004) — 고객은 비번/토큰 개념 없이 이 버튼만.
+// 클릭 → /api/connect/{provider}로 동의 URL 받아 팝업으로 열기 → provider 공식 페이지에서 로그인/동의 →
+// callback이 토큰을 받아 테넌트별 저장. 팝업이 닫히면 부모가 채널 설정을 새로고침하면 됨.
+export function SocialConnectButton({ provider, label }: { provider: string; label: string }) {
+  const { activeWorkspace } = useUIStore();
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const connect = async () => {
+    if (!activeWorkspace || busy) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      const r = await fetch(`/api/connect/${provider}?tenant_id=${activeWorkspace.id}`, { headers: authHeaders() });
+      const d = (await r.json()) as { authUrl?: string; error?: string };
+      if (d.authUrl) {
+        window.open(d.authUrl, "_blank", "width=620,height=760");
+        setMsg("새 창에서 로그인·동의를 완료하면 연결됩니다.");
+      } else {
+        setMsg(d.error || "연결 URL 생성 실패");
+      }
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "연결 실패");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-lg border border-accent/40 bg-accent/10 p-3">
+      <p className="text-xs text-muted mb-2">
+        🔗 <b className="text-text">{label} 연결</b> — 버튼 한 번이면 끝. 비밀번호·토큰 입력 없이
+        {label} 공식 로그인으로 안전하게 연결됩니다.
+      </p>
+      <button
+        onClick={connect}
+        disabled={busy}
+        className="px-4 py-2 text-sm bg-accent text-text rounded-lg hover:bg-accent-hover disabled:opacity-50"
+      >
+        {busy ? "여는 중…" : `${label} 연결`}
+      </button>
+      {msg && <p className="text-[11px] text-subtle mt-2">{msg}</p>}
+    </div>
+  );
+}

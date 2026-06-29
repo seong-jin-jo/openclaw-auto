@@ -51,6 +51,18 @@
 - **전체 가이드 step-by-step 재작성** → 미착수. "Client ID/Secret+연결" 모델로 통일 + 채널별 따라하기 수준. (큼.)
 - **슬랙 알림 목적지** → 사용자가 만든 채널의 **Incoming Webhook URL**을 `SLACK_WEBHOOK_URL`로 → `health-alert.sh`가 거기로 POST.
 
+## (B) 소셜 OAuth "연결" 빌드 (2026-06-30) — ADR-004 구현
+
+고객이 비번/토큰 개념 없이 "연결" 버튼만 → OAuth → 우리가 토큰 받아 테넌트별 저장. **코어 완성·검증:**
+- `lib/social-connect.ts`(PROVIDERS=instagram, buildAuthUrl, exchangeInstagramCode 단기→장기),
+  `api/connect/[provider]`(auth-url, state=tenantId), `api/connect/[provider]/callback`(토큰교환→
+  `integrations`(kind=channel,label=instagram) pgcrypto 저장), `middleware`에 콜백 공개 허용,
+  `SocialConnectButton`+ChannelPage Instagram 설정 배선. E2E `tests/brand/social-connect.test.ts`(5).
+  검증: 144 pass/8 skip, tsc 0, build ✓. **라이브 미검증**(배포후 browse).
+- **남은 wiring(라이브 동작 위해)**: ① 배포 env `IG_APP_ID`/`IG_APP_SECRET`(우리 Meta 앱 자격증명)
+  ② Meta 앱에 redirect URI `https://<live>/api/connect/instagram/callback` 등록(콘솔, 1회)
+  ③ 외부 고객 발행하려면 App Review. ④ Threads/Facebook provider 추가(같은 shape).
+
 ## Meta(Facebook/Threads/Instagram) 토큰 셋업 (2026-06-30, 진행중)
 
 - 기존 FB 개발자 계정 유실 → 새 앱 생성. 앱ID `1553503759757107`, 비즈니스 `정성컴퍼니`(business_id 1285496690057733).

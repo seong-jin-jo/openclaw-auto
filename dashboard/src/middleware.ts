@@ -51,6 +51,11 @@ export function middleware(request: NextRequest) {
   // Allow Figma OAuth callback without auth
   if (request.nextUrl.pathname === "/api/figma-mcp/callback") return NextResponse.next();
 
+  // 소셜 OAuth 연결 콜백(provider 리다이렉트 — 인증 헤더 없음). state(tenantId)로 스코프.
+  if (request.nextUrl.pathname.startsWith("/api/connect/") && request.nextUrl.pathname.endsWith("/callback")) {
+    return NextResponse.next();
+  }
+
   const token = request.headers.get("Authorization")?.replace("Bearer ", "") || "";
 
   // 운영자 토큰 = 전체 접근(대시보드)
