@@ -32,6 +32,42 @@ const CHAR_LIMITS: Record<string, number> = {
   instagram: 2200,
 };
 
+// 미연결 채널 탭 — 콘텐츠를 살짝 블러(모자이크)로 가리고 연결 유도 모달을 띄운다.
+// 빈 화면 대신 "여기 뭔가 있다 → 연결하면 보인다"를 보여줘 연결 전환을 높인다.
+function ConnectGate({ label, onConnect }: { label: string; onConnect: () => void }) {
+  return (
+    <div className="relative min-h-[260px]">
+      {/* 블러 미리보기(실데이터 아님 — 모자이크 느낌의 자리표시) */}
+      <div className="blur-sm select-none pointer-events-none opacity-60" aria-hidden>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          {["Published", "Views", "Avg Views", "Avg Likes"].map((l) => (
+            <div key={l} className="card p-4">
+              <p className="text-[11px] text-subtle uppercase tracking-wide">{l}</p>
+              <p className="text-2xl font-bold text-text mt-1">—</p>
+            </div>
+          ))}
+        </div>
+        <div className="card p-4 space-y-2">
+          {[80, 60, 70].map((w, i) => (
+            <div key={i} className="h-3 rounded bg-surface-2" style={{ width: `${w}%` }} />
+          ))}
+        </div>
+      </div>
+      {/* 연결 유도 모달 */}
+      <div className="absolute inset-0 flex items-center justify-center p-4">
+        <div className="card p-6 text-center max-w-xs border border-accent/40 bg-surface shadow-xl">
+          <div className="text-3xl mb-2">🔗</div>
+          <p className="text-sm font-medium text-text mb-1">{label} 아직 연결 안 됨</p>
+          <p className="text-xs text-subtle mb-4">연결하면 이 채널의 발행·분석을 바로 쓸 수 있어요.</p>
+          <button onClick={onConnect} className="px-4 py-2 text-sm bg-accent text-text rounded-lg hover:bg-accent-hover">
+            연결하기
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
   const label = CH_LABELS[channel] || channel;
   const { data: channelConfig, mutate: mutateConfig } = useChannelConfig();
@@ -128,19 +164,14 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
         connected || isThreads ? (
           <QueueList variant={postVariant} charLimit={charLimit} showSeo={variant === "blog"} />
         ) : (
-          <div className="card p-8 text-center">
-            <p className="text-subtle text-sm mb-2">채널을 연결하면 큐를 사용할 수 있습니다</p>
-            <button onClick={() => setSubTab("settings")} className="text-xs text-accent hover:text-accent">Settings에서 연결하기</button>
-          </div>
+          <ConnectGate label={label} onConnect={() => setSubTab("settings")} />
         )
       )}
 
       {/* Analytics Tab */}
       {subTab === "analytics" && (
         connected || isThreads ? <AnalyticsTab /> : (
-          <div className="card p-8 text-center">
-            <p className="text-subtle text-sm">채널을 연결하면 분석 데이터를 볼 수 있습니다</p>
-          </div>
+          <ConnectGate label={label} onConnect={() => setSubTab("settings")} />
         )
       )}
 
