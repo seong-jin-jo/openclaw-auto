@@ -31,3 +31,9 @@ GStack 브라우저로 Meta 콘솔을 운전하는 건 **우리 자신의 계정
   integrations) → publish/insights는 저장된 토큰으로. (per-tenant OAuth 연결 빌드 = 기존 백로그.)
 - 내부 5브랜드(지금): 우리 앱에 각 계정 테스터 추가 + 토큰 발급(에이전트 브라우저로 우리가 운전 가능).
 - 관련: [[reference/brand-grounding]], ADR-003(pricing), `wiki/ops/session-state.md` Meta 셋업.
+
+## 실증 (2026-06-29) — 콘솔 스크립트 운전의 한계
+에이전트가 GStack 브라우저로 Meta 콘솔의 IG 권한 추가를 시도한 결과: 스냅샷 ref가 SPA 재렌더마다
+바뀌어 "추가" 버튼 클릭이 반복 빗나가고, 그 과정에서 `instagram_branded_content_creator`가 의도치
+않게 추가되는 오클릭 발생. 결론 재확인: **콘솔 UI 스크립팅은 불안정·실앱에 부작용 위험 → 고객 온보딩
+메커니즘으로 부적합. 우리 자체 계정도 민감 토글은 사람이 눈으로 클릭(페어)이 안전. 제품 자동화는 OAuth.**
