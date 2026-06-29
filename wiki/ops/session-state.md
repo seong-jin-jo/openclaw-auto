@@ -51,6 +51,19 @@
 - **전체 가이드 step-by-step 재작성** → 미착수. "Client ID/Secret+연결" 모델로 통일 + 채널별 따라하기 수준. (큼.)
 - **슬랙 알림 목적지** → 사용자가 만든 채널의 **Incoming Webhook URL**을 `SLACK_WEBHOOK_URL`로 → `health-alert.sh`가 거기로 POST.
 
+## Meta(Facebook/Threads/Instagram) 토큰 셋업 (2026-06-30, 진행중)
+
+- 기존 FB 개발자 계정 유실 → 새 앱 생성. 앱ID `1553503759757107`, 비즈니스 `정성컴퍼니`(business_id 1285496690057733).
+  대시보드: Threads API 이용사례 ✅, Instagram 이용사례 ○ 미완. 앱 역할: 관리자(페북개발), IG/Threads 테스터=teamconnectors 1계정뿐.
+- **앱 모델 결정**: Meta "앱"=API 클라이언트 단위(App ID/Secret+제품+역할+토큰발급, 사용량·심사도 앱 단위).
+  토큰은 (앱×계정)마다 발급. → **네 브랜드(ZERO-ONE·D-EDU·CUPID×2 등)는 앱 하나 + 각 계정을 테스터로 추가**가 정답.
+  외부 SaaS 고객은 테스터 불가(50한계+남의계정) → **App Review + 고객 OAuth**(상품화 단계, per-tenant 연결 빌드와 연결).
+- **내가 할 수 있는 것**: ① Meta 콘솔 운전 = `setup-browser-cookies`(사용자 Chromium 쿠키 임포트)+`browse`로 가능하나
+  2FA/캡차/동적UI로 깨질 수 있어 페어 방식 권장(민감: 실계정). ② **토큰 4값 받으면 OSMU 등록+verify_channel 검증=자동화 가능**
+  (THREADS_ACCESS_TOKEN/USER_ID, INSTAGRAM_ACCESSTOKEN/USERID → 채널 Live).
+- **다음 액션(사용자 선택 대기)**: (가) 5브랜드 계정 테스터 추가→토큰 발급(사용자) (나) Chrome 세션으로 내가 운전 시도.
+  토큰 확보 후 내가 OSMU 등록·검증.
+
 ## 🧭 회장님 directive 정렬 (brain federation)
 
 > brain `wiki/business/timeline-회장-directive-log.md`(append-only 명령 로그) +
