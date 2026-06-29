@@ -42,6 +42,13 @@
   Supabase > Authentication > Providers > Google 활성 + Google Cloud OAuth client(ID/secret) + redirect
   `https://<live>/login` 허용. (코드로 불가.)
 - **연결 도우미 챗봇** → 미답(비용·운영부담 낮음, 기존 키+셋업가이드 RAG 재사용 — 다음 설계).
+- **성과 미연결 앱 블러+모달** → **완료·배포**(`ChannelPage` `ConnectGate`: Queue/Analytics 미연결 분기를 블러
+  미리보기+'연결하기' 모달로. tsc0/build✓, 시각=배포후 browse). 커밋 76051dc6.
+- **YouTube 연결(비만료)** → 개념 확정: **Client ID/Secret + "Google 연결"(refresh token 자동갱신)**이 정답,
+  Access Token 직접입력은 1h 만료라 폐기. OAuth 라우트(auth-url/callback/refresh) 존재하나 **글로벌 저장 +
+  연결버튼이 videos에 묻힘 + 채널 Settings는 accessToken paste**. 진짜 해법=채널 Settings에 per-tenant "Google
+  연결" 버튼(integrations에 refresh token 저장) + publish 익스텐션이 per-tenant 토큰 읽기(크로스레포). **미착수(큰 빌드).**
+- **전체 가이드 step-by-step 재작성** → 미착수. "Client ID/Secret+연결" 모델로 통일 + 채널별 따라하기 수준. (큼.)
 - **슬랙 알림 목적지** → 사용자가 만든 채널의 **Incoming Webhook URL**을 `SLACK_WEBHOOK_URL`로 → `health-alert.sh`가 거기로 POST.
 
 ## 🧭 회장님 directive 정렬 (brain federation)
