@@ -69,6 +69,12 @@
   클릭 ref로 안 잡힘 + App Secret/계정별 토큰은 민감+계정인증이라 자동화 불가 영역. → **페어 분담 결정**:
   사용자가 그 창에서 클릭(콘솔·계정인증), 나는 스크린샷 떠서 다음 클릭 안내 + 토큰 4값 확보 시 OSMU 등록/검증.
   현재 대기: 사용자가 Instagram 이용사례 행 클릭.
+- **Meta IG 진행(2026-06-29)**: browse 텍스트 셀렉터로 운전 가능 확인(`click "text=..."`). Instagram Business
+  이용사례 API-Setup 페이지에서 **필수 권한 추가 완료**(basic/comments/messages). IG 테스터 4계정 이미 등록됨
+  (계정명·IG user ID는 공개 레포라 미기재 — 세션 채팅에만). 각 계정 "토큰 생성" 버튼 존재.
+  **대기 결정**: ① DARK CUPID 계정 이 앱에서 분리(별도 앱 — 정책 ban 블래스트반경) ② `instagram_business_content_publish`
+  권한 확인(발행용, 필수목록엔 없음) ③ 토큰 핸들링 (a)OSMU UI 붙여넣기 vs (b)나한테 줘서 API 등록.
+  토큰 확보 후: OSMU `/api/channel-config/{threads,instagram}` 등록 + verify_channel 검증 → 채널 Live.
 
 ## 🧭 회장님 directive 정렬 (brain federation)
 
