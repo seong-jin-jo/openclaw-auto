@@ -75,6 +75,10 @@
   **대기 결정**: ① DARK CUPID 계정 이 앱에서 분리(별도 앱 — 정책 ban 블래스트반경) ② `instagram_business_content_publish`
   권한 확인(발행용, 필수목록엔 없음) ③ 토큰 핸들링 (a)OSMU UI 붙여넣기 vs (b)나한테 줘서 API 등록.
   토큰 확보 후: OSMU `/api/channel-config/{threads,instagram}` 등록 + verify_channel 검증 → 채널 Live.
+- **IG 권한 추가 자동화 실패(2026-06-29)**: browse ref가 SPA 재렌더마다 흔들려 "추가" 클릭 반복 빗나감
+  (content_publish 미추가 확인). `instagram_branded_content_creator` 오클릭 추가 정황 → 블라인드 클릭 중단(실앱 위험).
+  교훈 ADR-004에 실증 기록. **대기(사용자 클릭)**: content_publish `+추가` / manage_insights `+추가` /
+  branded_content_creator 추가됐으면 제거. 그 후 STEP3 토큰 생성 → OSMU 등록. 민감 토글은 페어(사람 클릭)로.
 
 ## 🧭 회장님 directive 정렬 (brain federation)
 
