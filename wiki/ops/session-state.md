@@ -63,6 +63,12 @@
   (THREADS_ACCESS_TOKEN/USER_ID, INSTAGRAM_ACCESSTOKEN/USERID → 채널 Live).
 - **다음 액션(사용자 선택 대기)**: (가) 5브랜드 계정 테스터 추가→토큰 발급(사용자) (나) Chrome 세션으로 내가 운전 시도.
   토큰 확보 후 내가 OSMU 등록·검증.
+- **GStack 브라우저 연결됨(2026-06-29)**: `~/.claude/skills/gstack/browse/dist/browse connect`(headed, 포트 34567).
+  Playwright Chromium 설치함(ms-playwright/chromium-1208). 사용자가 그 창에서 Meta 로그인 완료, 앱
+  대시보드(정성컴퍼니, app 1553503759757107) 진입. **한계 확인**: Meta SPA의 이용사례 행이 browse 스냅샷에
+  클릭 ref로 안 잡힘 + App Secret/계정별 토큰은 민감+계정인증이라 자동화 불가 영역. → **페어 분담 결정**:
+  사용자가 그 창에서 클릭(콘솔·계정인증), 나는 스크린샷 떠서 다음 클릭 안내 + 토큰 4값 확보 시 OSMU 등록/검증.
+  현재 대기: 사용자가 Instagram 이용사례 행 클릭.
 
 ## 🧭 회장님 directive 정렬 (brain federation)
 
