@@ -67,6 +67,12 @@
   ② Meta 앱에 redirect URI `https://<live>/api/connect/instagram/callback` 등록(콘솔, 1회)
   ③ 외부 고객 발행하려면 App Review. ④ Threads/Facebook provider 추가(같은 shape).
 
+## ⛔ Meta 브라우저 자동운전 중단 (2026-07-01 — 사고)
+GStack 브라우저로 Meta 콘솔 운전 중 **Meta가 개발자 계정을 "비정상 활동"으로 플래그**("계정 확인 필요").
+봇 탐지. **Meta 콘솔 자동 운전 영구 금지**(ADR-004 실사고 기록). 콘솔 셋업(env·redirect URI·권한·테스터·
+계정확인/2FA)은 **사용자 본인 수동**. 제품 자동화는 OAuth 연결 버튼(콘솔 미접촉, 코드 완성)만. 계정 복구는
+계정주만 가능. 라이브 qa 선행조건(env·redirect)도 사용자 콘솔 작업.
+
 ## Meta(Facebook/Threads/Instagram) 토큰 셋업 (2026-06-30, 진행중)
 
 - 기존 FB 개발자 계정 유실 → 새 앱 생성. 앱ID `1553503759757107`, 비즈니스 `정성컴퍼니`(business_id 1285496690057733).
