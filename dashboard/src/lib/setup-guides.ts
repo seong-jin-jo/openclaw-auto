@@ -7,15 +7,12 @@ export const setupGuides: Record<string, SetupGuide> = {
     fields: ["accessToken", "userId"],
     labels: ["Access Token", "User ID"],
     quick: [
-      '1. <a href="https://developers.facebook.com" target="_blank" class="text-accent hover:underline">developers.facebook.com</a> 로그인 → 우상단 <strong class="text-text">내 앱</strong> → <strong class="text-text">앱 만들기</strong>',
-      '2. 앱 유형에서 <strong class="text-text">Threads</strong> 선택 → 앱 이름 입력 후 생성',
-      '3. 좌측 메뉴 <strong class="text-text">Threads API</strong> → <strong class="text-text">설정/사용 사례 맞춤설정</strong>에서 본인 Threads 계정을 테스터로 추가·연결',
-      '4. <strong class="text-text">Access Token 생성</strong> 클릭 → 권한(threads_basic, threads_content_publish) 동의 → 나오는 <strong class="text-text">토큰 문자열 복사</strong>',
-      '5. 같은 화면의 <strong class="text-text">User ID</strong>(긴 숫자) 복사 <span class="text-subtle">— 앱 ID 아님, Threads 계정 고유번호</span>',
-      "6. 왼쪽 폼에 Access Token + User ID 붙여넣고 Connect",
+      '✅ <strong class="text-text">위 "Threads 연결" 버튼 한 번</strong> → Threads 공식 로그인·동의 → 끝. <span class="text-subtle">토큰 개념 몰라도 됩니다. 발급·60일 갱신을 우리가 처리.</span>',
+      '— 아래는 직접 토큰 입력(고급)만 필요할 때 —',
+      '수동: developers.facebook.com → 앱(Threads) → Access Token 생성(threads_basic, threads_content_publish 동의) → 토큰 + User ID(긴 숫자, 앱 ID 아님)를 아래 폼에.',
     ],
     detail:
-      "Access Token으로 Threads에 글을 자동 발행합니다. 토큰 생성 시 Long-lived(60일) 옵션을 쓰면 더 오래 유효하며, 만료 전 갱신이 필요합니다. ⚠️ User ID에 '앱 ID'(짧은 숫자)를 넣으면 발행이 실패합니다 — Threads 계정 고유번호(긴 숫자)를 넣으세요.",
+      '추천: 위 "Threads 연결" 버튼이면 끝납니다(비번·토큰 입력 없이 공식 로그인, 토큰 자동 발급·갱신). 직접 토큰 입력은 고급 사용자용 — ⚠️ User ID에 앱 ID(짧은 숫자)를 넣으면 발행 실패, Threads 계정 고유번호(긴 숫자)를 넣으세요.',
     // TODO(에셋): 아래 경로에 실제 콘솔 스크린샷을 넣으면 자동 표시됨(없으면 텍스트만). public/onboarding/threads/*
     images: [
       { src: "/onboarding/threads/1-app.png", alt: "Threads API 앱 생성 화면" },
@@ -43,14 +40,12 @@ export const setupGuides: Record<string, SetupGuide> = {
     fields: ["accessToken", "pageId"],
     labels: ["Page Access Token", "Page ID"],
     quick: [
-      "developers.facebook.com 접속 > 앱 만들기",
-      "Use cases > Facebook Login 추가",
-      "Settings > Page Access Token 발급",
-      "Page ID 확인 (페이지 정보에서)",
-      "위 폼에 입력 후 Connect",
+      '✅ <strong class="text-text">위 "Facebook 연결" 버튼 한 번</strong> → Facebook 공식 로그인·동의 → 페이지 자동 연결. <span class="text-subtle">페이지 토큰을 우리가 받아 처리(직접 발급 불필요).</span>',
+      '— 아래는 직접 입력(고급) —',
+      "수동: developers.facebook.com → 앱 → Page Access Token 발급 + Page ID 확인 → 아래 폼에.",
     ],
     detail:
-      "Access Token으로 Facebook Page에 글을 발행합니다. Page Access Token은 페이지 관리자 권한이 필요하며, 60일 유효 (long-lived). Page ID는 페이지 고유 번호입니다.",
+      '추천: 위 "Facebook 연결" 버튼이면 페이지 토큰까지 자동입니다(공식 로그인, 비번 우리 안 거침). 페이지 관리자 권한 필요, 토큰 60일(long-lived). 직접 입력은 고급용.',
   },
   bluesky: {
     fields: ["handle", "appPassword"],
@@ -68,16 +63,13 @@ export const setupGuides: Record<string, SetupGuide> = {
     fields: ["accessToken", "userId"],
     labels: ["Graph API Access Token", "Instagram Business User ID"],
     quick: [
-      "Instagram을 Business 또는 Creator 계정으로 전환 (프로필 > 설정 > 프로페셔널 계정)",
-      "Facebook Page 생성 후 Instagram 계정과 연결",
-      "developers.facebook.com > 앱 만들기 (비즈니스 유형)",
-      "Instagram Graph API + Instagram Content Publishing 제품 추가",
-      "테스터 등록: 앱 역할 > Instagram Testers에 자기 계정 추가 → Instagram 앱에서 수락",
-      "Graph API Explorer에서 instagram_basic + instagram_content_publish 권한으로 토큰 생성",
-      "⚠️ User ID 찾기: Graph API Explorer에서 GET /me/accounts → 페이지 ID 확인 → GET /{페이지ID}?fields=instagram_business_account → 그 안의 id가 User ID (앱 ID와 다름!)",
+      '✅ <strong class="text-text">위 "Instagram 연결" 버튼 한 번</strong> → 프로페셔널(비즈니스/크리에이터) 계정으로 공식 로그인·동의 → 끝. <span class="text-subtle">토큰·User ID를 우리가 받아 처리. 토큰 개념 몰라도 됩니다.</span>',
+      "선행: Instagram이 프로페셔널 계정이어야 함(프로필 > 설정 > 프로페셔널 계정으로 전환).",
+      '— 아래는 직접 토큰 입력(고급) —',
+      "수동: developers.facebook.com 앱 → Instagram 권한으로 토큰 생성 + instagram_business_account.id(User ID, 앱 ID 아님)를 아래 폼에.",
     ],
     detail:
-      "⚠️ 주의: 앱 ID ≠ User ID. 앱 ID(숫자)를 넣으면 에러 납니다. 반드시 instagram_business_account.id를 넣으세요.\n\n앱 시크릿(App Secret)은 대시보드에 입력 불필요 — 장기 토큰 교환 시에만 사용.\n\nAccess Token만 입력하면 됩니다. 테스터 모드에서는 App Review 없이 자기 계정에 발행 가능.\n\n토큰 유효기간: 단기 1시간, 장기 60일.\n\n지원: 단일 이미지, 캐러셀(카드뉴스 2~10장), 릴스(영상 URL).",
+      '추천: 위 "Instagram 연결" 버튼이면 끝(공식 로그인, 비번·토큰 우리 안 받음, 자동 발급·갱신). 단 Instagram이 프로페셔널 계정이어야 함. 직접 입력(고급) 시 ⚠️ 앱 ID ≠ User ID — instagram_business_account.id를 넣으세요. 지원: 단일/캐러셀(2~10장)/릴스.',
     // TODO(에셋): public/onboarding/instagram/*
     images: [
       { src: "/onboarding/instagram/1-business.png", alt: "Instagram 프로페셔널 계정 전환" },
