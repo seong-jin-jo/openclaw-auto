@@ -38,6 +38,8 @@ beforeEach(() => {
   ];
   process.env.IG_APP_ID = "ig-app-123";
   process.env.IG_APP_SECRET = "ig-secret";
+  process.env.THREADS_APP_ID = "th-app-456";
+  process.env.THREADS_APP_SECRET = "th-secret";
   process.env.OSMU_SECRET_KEY = "enc-key";
   vi.stubGlobal("fetch", vi.fn(async (url: string) => {
     H.fetchCalls.push(String(url));
@@ -90,6 +92,18 @@ describe("GET /api/connect/instagram/callback — 토큰교환·저장", () => {
     // 장기토큰이 저장됨(단기 아님)
     expect(H.inserts).toHaveLength(1);
     expect(JSON.stringify(H.inserts[0])).toContain("LONGLIVED60D");
+  });
+
+  it("threads — graph.threads.net로 교환 후 저장(같은 코드 경로)", async () => {
+    const { GET } = await import("@/app/api/connect/[provider]/callback/route");
+    const res = await GET(
+      new Request("https://app.example/api/connect/threads/callback?code=THCODE&state=tenant-1"),
+      params("threads"),
+    );
+    expect(res.status).toBe(200);
+    expect(H.fetchCalls[0]).toContain("graph.threads.net/oauth/access_token");
+    expect(H.fetchCalls[1]).toContain("graph.threads.net/access_token");
+    expect(JSON.stringify(H.inserts[0])).toContain("threads");
   });
 
   it("state(tenant) 누락 → 저장 안 함", async () => {

@@ -1,5 +1,5 @@
 import { withTenant } from "@/lib/db";
-import { getProvider, exchangeInstagramCode } from "@/lib/social-connect";
+import { getProvider, exchangeCode } from "@/lib/social-connect";
 
 // GET /api/connect/{provider}/callback?code=...&state=<tenantId>
 // provider OAuth 리다이렉트(인증 없음 — middleware 공개). state로 테넌트 식별 → code를 토큰 교환 →
@@ -27,10 +27,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
   if (!key) return resultHtml("연결 실패", "OSMU_SECRET_KEY 미설정 — 토큰 암호화 불가");
 
   try {
-    let tok;
-    if (provider === "instagram") tok = await exchangeInstagramCode(code, origin);
-    else return resultHtml("연결 실패", `${provider} 토큰 교환 미구현`);
-
+    const tok = await exchangeCode(provider, code, origin);
     if (!tok.accessToken) return resultHtml("연결 실패", tok.error || "토큰 교환 실패");
 
     // 테넌트별 채널 cred 저장(발행 경로 getChannelCred가 읽음). 토큰은 pgcrypto 암호화.

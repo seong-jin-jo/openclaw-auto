@@ -12,20 +12,32 @@ export interface ProviderConfig {
   scopes: string[];
   appIdEnv: string;
   appSecretEnv: string;
+  tokenUrl: string;      // 단기 토큰 교환(POST form)
+  longTokenUrl: string;  // 장기 토큰 교환(GET)
+  longGrant: string;     // ig_exchange_token | th_exchange_token
 }
 
+// Instagram·Threads는 같은 OAuth shape(단기→장기 교환). provider별 엔드포인트만 다름.
 export const PROVIDERS: Record<string, ProviderConfig> = {
   instagram: {
     label: "instagram",
     authorizeUrl: "https://www.instagram.com/oauth/authorize",
-    scopes: [
-      "instagram_business_basic",
-      "instagram_business_content_publish",
-      "instagram_business_manage_insights",
-      "instagram_business_manage_comments",
-    ],
+    scopes: ["instagram_business_basic", "instagram_business_content_publish", "instagram_business_manage_insights", "instagram_business_manage_comments"],
     appIdEnv: "IG_APP_ID",
     appSecretEnv: "IG_APP_SECRET",
+    tokenUrl: "https://api.instagram.com/oauth/access_token",
+    longTokenUrl: "https://graph.instagram.com/access_token",
+    longGrant: "ig_exchange_token",
+  },
+  threads: {
+    label: "threads",
+    authorizeUrl: "https://threads.net/oauth/authorize",
+    scopes: ["threads_basic", "threads_content_publish", "threads_manage_insights"],
+    appIdEnv: "THREADS_APP_ID",
+    appSecretEnv: "THREADS_APP_SECRET",
+    tokenUrl: "https://graph.threads.net/oauth/access_token",
+    longTokenUrl: "https://graph.threads.net/access_token",
+    longGrant: "th_exchange_token",
   },
 };
 
@@ -58,24 +70,28 @@ export interface ExchangedToken {
   error?: string;
 }
 
-// code → 단기 토큰(+user_id) → 장기 토큰 교환(Instagram). fetch 주입 가능(테스트).
-export async function exchangeInstagramCode(
+// code → 단기 토큰(+user_id) → 장기 토큰 교환. Instagram·Threads 공통(provider 엔드포인트만 다름).
+// fetch 주입 가능(테스트).
+export async function exchangeCode(
+  providerName: string,
   code: string,
   origin: string,
   f: typeof fetch = fetch,
 ): Promise<ExchangedToken> {
-  const clientId = process.env.IG_APP_ID || "";
-  const clientSecret = process.env.IG_APP_SECRET || "";
-  if (!clientId || !clientSecret) return { accessToken: "", error: "IG_APP_ID/SECRET 미설정" };
+  const p = getProvider(providerName);
+  if (!p) return { accessToken: "", error: `unknown provider: ${providerName}` };
+  const clientId = process.env[p.appIdEnv] || "";
+  const clientSecret = process.env[p.appSecretEnv] || "";
+  if (!clientId || !clientSecret) return { accessToken: "", error: `${p.appIdEnv}/${p.appSecretEnv} 미설정` };
   // 1) 단기 토큰
-  const shortRes = await f("https://api.instagram.com/oauth/access_token", {
+  const shortRes = await f(p.tokenUrl, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       client_id: clientId,
       client_secret: clientSecret,
       grant_type: "authorization_code",
-      redirect_uri: redirectUri(origin, "instagram"),
+      redirect_uri: redirectUri(origin, providerName),
       code,
     }).toString(),
   });
@@ -83,7 +99,7 @@ export async function exchangeInstagramCode(
   if (!short.access_token) return { accessToken: "", error: short.error_message || "단기 토큰 교환 실패" };
   // 2) 장기 토큰(60일)
   const longRes = await f(
-    `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${encodeURIComponent(clientSecret)}&access_token=${encodeURIComponent(short.access_token)}`,
+    `${p.longTokenUrl}?grant_type=${p.longGrant}&client_secret=${encodeURIComponent(clientSecret)}&access_token=${encodeURIComponent(short.access_token)}`,
   );
   const long = (await longRes.json()) as { access_token?: string };
   return { accessToken: long.access_token || short.access_token, userId: short.user_id ? String(short.user_id) : undefined };
