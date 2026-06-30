@@ -13,7 +13,7 @@ import { SocialConnectButton } from "@/components/channel/SocialConnectButton";
 import { SetupGuide } from "@/components/shared/SetupGuide";
 
 // OAuth "연결" 버튼을 제공하는 채널(ADR-004 — 비번/토큰 없이 버튼만). 점진 확장.
-const OAUTH_CONNECT: Record<string, string> = { instagram: "Instagram", threads: "Threads" };
+const OAUTH_CONNECT: Record<string, string> = { instagram: "Instagram", threads: "Threads", facebook: "Facebook" };
 import { ContentGuide } from "./ContentGuide";
 import { KeywordsEditor } from "./KeywordsEditor";
 import { QueueList } from "@/components/queue/QueueList";

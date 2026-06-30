@@ -41,7 +41,20 @@ export const PROVIDERS: Record<string, ProviderConfig> = {
   },
 };
 
+// Facebook은 페이지 토큰 흐름이 다름(user token → /me/accounts → page token). 별도 config.
+export const FACEBOOK = {
+  label: "facebook",
+  authorizeUrl: "https://www.facebook.com/v21.0/dialog/oauth",
+  scopes: ["pages_show_list", "pages_manage_posts", "pages_read_engagement"],
+  appIdEnv: "FB_APP_ID",
+  appSecretEnv: "FB_APP_SECRET",
+};
+
 export function getProvider(name: string): ProviderConfig | null {
+  if (name === "facebook") {
+    // FACEBOOK는 별도 흐름이나 auth-url 구성은 동일 필드만 필요 — shim.
+    return { ...FACEBOOK, tokenUrl: "", longTokenUrl: "", longGrant: "" } as ProviderConfig;
+  }
   return PROVIDERS[name] || null;
 }
 
@@ -103,4 +116,28 @@ export async function exchangeCode(
   );
   const long = (await longRes.json()) as { access_token?: string };
   return { accessToken: long.access_token || short.access_token, userId: short.user_id ? String(short.user_id) : undefined };
+}
+
+// Facebook: code → user token → 장기 user token → /me/accounts → 첫 페이지 토큰+id.
+// 저장값 = 페이지 토큰(발행용) + meta.pageId. (다중 페이지면 첫 번째 — 향후 선택 UI.)
+const FB_V = "https://graph.facebook.com/v21.0";
+export async function exchangeFacebookCode(code: string, origin: string, f: typeof fetch = fetch): Promise<ExchangedToken> {
+  const clientId = process.env.FB_APP_ID || "";
+  const clientSecret = process.env.FB_APP_SECRET || "";
+  if (!clientId || !clientSecret) return { accessToken: "", error: "FB_APP_ID/SECRET 미설정" };
+  const cb = redirectUri(origin, "facebook");
+  // 1) user token
+  const tRes = await f(`${FB_V}/oauth/access_token?client_id=${clientId}&client_secret=${clientSecret}&redirect_uri=${encodeURIComponent(cb)}&code=${encodeURIComponent(code)}`);
+  const t = (await tRes.json()) as { access_token?: string; error?: { message?: string } };
+  if (!t.access_token) return { accessToken: "", error: t.error?.message || "user 토큰 교환 실패" };
+  // 2) 장기 user token
+  const lRes = await f(`${FB_V}/oauth/access_token?grant_type=fb_exchange_token&client_id=${clientId}&client_secret=${clientSecret}&fb_exchange_token=${encodeURIComponent(t.access_token)}`);
+  const l = (await lRes.json()) as { access_token?: string };
+  const userToken = l.access_token || t.access_token;
+  // 3) 페이지 토큰
+  const pRes = await f(`${FB_V}/me/accounts?access_token=${encodeURIComponent(userToken)}`);
+  const p = (await pRes.json()) as { data?: Array<{ access_token?: string; id?: string }> };
+  const page = p.data?.[0];
+  if (!page?.access_token) return { accessToken: "", error: "연결된 Facebook 페이지가 없음(페이지 권한 확인)" };
+  return { accessToken: page.access_token, userId: page.id };
 }

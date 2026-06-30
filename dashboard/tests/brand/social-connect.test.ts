@@ -106,6 +106,26 @@ describe("GET /api/connect/instagram/callback — 토큰교환·저장", () => {
     expect(JSON.stringify(H.inserts[0])).toContain("threads");
   });
 
+  it("facebook — user→장기→/me/accounts 페이지 토큰 저장", async () => {
+    H.fetchSeq = [
+      { status: 200, body: { access_token: "FB_USER" } },               // user token
+      { status: 200, body: { access_token: "FB_USER_LONG" } },          // 장기 user
+      { status: 200, body: { data: [{ access_token: "PAGE_TOKEN", id: "990011" }] } }, // pages
+    ];
+    process.env.FB_APP_ID = "fb-app";
+    process.env.FB_APP_SECRET = "fb-secret";
+    const { GET } = await import("@/app/api/connect/[provider]/callback/route");
+    const res = await GET(
+      new Request("https://app.example/api/connect/facebook/callback?code=FBCODE&state=tenant-1"),
+      params("facebook"),
+    );
+    expect(res.status).toBe(200);
+    expect(H.fetchCalls[2]).toContain("/me/accounts");
+    // 페이지 토큰이 저장됨(user 토큰 아님)
+    expect(JSON.stringify(H.inserts[0])).toContain("PAGE_TOKEN");
+    expect(JSON.stringify(H.inserts[0])).toContain("990011");
+  });
+
   it("state(tenant) 누락 → 저장 안 함", async () => {
     const { GET } = await import("@/app/api/connect/[provider]/callback/route");
     const res = await GET(
