@@ -3,7 +3,20 @@
 > 이 문서는 **작업 하네스 규칙 #3**(루트 CLAUDE.md)에 따라 항상 최신으로 유지한다.
 > 세션이 죽거나 재실행돼도 이걸 읽으면 30초 안에 이어갈 수 있어야 한다.
 
-**최종 갱신:** 2026-06-30 · 브랜치 `main` · 배포 라이브.
+**최종 갱신:** 2026-07-02 · 브랜치 `main` · 배포 라이브(health 200).
+
+## 🔄 재개 요약 (여기부터 30초)
+**현재 태스크:** 소셜 OAuth "연결" 기능 라이브화 + 첫 라이브 연결→발행 검증.
+**완료(코드·배포):** 연결 3종(IG/Threads/FB) `api/connect/*`+`SocialConnectButton`+E2E7, IG 버튼 InstagramPage
+누락버그 수정(배포 success 28548027372), `IG_APP_ID/SECRET` gh secret+env 배포, 가이드 "연결버튼 먼저" 재작성.
+전체 146 pass/8 skip, tsc0, build✓, 라이브 health 200.
+**막힘/다음(사용자 액션):**
+1. Meta 콘솔 IG **redirect URI 등록**: `https://openclaw.sj-onpremise-cloudflare-tunnel.cloud/api/connect/instagram/callback` (`/callback` 필수).
+2. OSMU IG 설정 새로고침 → **"Instagram 연결"** 버튼(방금 배포) → **테스터 계정** 로그인 → 토큰 자동.
+3. Threads/FB 켜기: 각 `THREADS/FB_APP_ID/SECRET` 제공 → 내가 gh secret+배포+각 redirect.
+**미검증:** IG 버튼 authed 화면 육안 렌더, 라이브 연결/발행 풀 E2E(토큰 0이라 물리적 불가).
+**규율:** Meta 콘솔 자동운전 금지(계정 플래그 사고, ADR-004). 배포는 pipeline qa단계 — ship은 /approve qa 후.
+**⚠️** App Secret 채팅 노출됨 → rotate 권장(rotate 시 gh secret 재설정).
 
 > ⚙️ **Stage Controller 등록됨**(2026-06-30, `pipeline-state.md` = 단계 진실원). 현재 단계 = **qa**.
 > plan~build ADOPT(라이브 앱). **신규 기능 배포(ship)는 `/approve qa` 후에만** — 과거 게이트 없는 자동
@@ -79,9 +92,9 @@
 - **★버그 수정(2026-07-02)**: Instagram "연결" 버튼이 **IG 설정화면에 안 떴음** — Instagram은 `ChannelPage`가
   아니라 `InstagramPage.tsx`(channels/[channel]/page.tsx:26)를 쓰는데 SocialConnectButton을 ChannelPage에만
   달아서 누락. 사용자가 accessToken 입력란만 봄(정확한 지적, 내가 렌더 미검증하고 "있다"고 오보). `InstagramPage`에
-  버튼 추가·커밋(b5328cad). tsc0/build✓(로컬). **배포는 queued(러너 대기) — 라이브 반영 미완, 버튼 렌더 미검증.**
-  다음: 배포 완료 후 사용자가 IG 설정 새로고침 → "Instagram 연결" 버튼 확인. **교훈: 채널별 컴포넌트 분기
-  (Instagram=InstagramPage, Data/Messaging 특수) 확인 후 배선 + 렌더 직접 검증.** Threads/FB는 ChannelPage라 OK.
+  버튼 추가·커밋(14a3e668). tsc0/build✓. **배포 success(런 28548027372) — 코드 라이브.** 단 authed IG 화면
+  육안 렌더는 미검증(사용자 새로고침 확인). **교훈: 채널별 컴포넌트 분기(Instagram=InstagramPage, Data/Messaging
+  특수) 확인 후 배선 + 렌더 직접 검증.** Threads/FB는 ChannelPage라 OK.
 - **연결 버튼 라이브 확인(2026-07-02)**: 사용자가 Threads "연결" 클릭 → `{"error":"THREADS_APP_ID 미설정"}`
   = 버튼이 라이브 `/api/connect/threads` 우리 엔드포인트에 실제 도달함을 증명(배선 OK). IG는 시크릿 있어 동작 예상,
   Threads/FB는 각 APP_ID/SECRET gh secret 넣으면 활성. redirect URI(provider별 `.../api/connect/{p}/callback`) 콘솔 등록 선행.
