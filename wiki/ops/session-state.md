@@ -69,7 +69,11 @@
   시크릿은 사용자 Meta 콘솔에서 복사 → `gh secret set IG_APP_SECRET -R seong-jin-jo/openclaw-auto` → 내가 배포 →
   redirect URI `https://<live>/api/connect/instagram/callback` 사용자 콘솔 등록 → "연결" 버튼 라이브 테스트.
   (THREADS_APP_ID/SECRET·FB_APP_ID/SECRET도 각 provider 라이브 시 동일.)
-- **다음 액션**: 사용자가 IG App Secret 제공/설정 → 내가 gh secret+배포 → 대시보드 "Instagram 연결" 로그인→토큰자동 검증.
+- **진행(2026-07-01)**: IG_APP_ID/IG_APP_SECRET gh secret 등록 완료, `deploy-marketing.yml` .env.osmu 렌더에
+  IG/THREADS/FB_APP_* 추가, 배포 트리거됨. ⚠️ App Secret이 채팅에 노출됨 → **사용자 rotate 권장**(rotate 시 gh secret 재설정 필요).
+- **다음 액션(사용자)**: Meta 콘솔에 redirect URI `https://openclaw.sj-onpremise-cloudflare-tunnel.cloud/api/connect/instagram/callback`
+  등록(Instagram 로그인 API 설정) → 배포 완료 후 OSMU "Instagram 연결" 버튼을 테스터 계정으로 눌러 로그인→토큰자동 검증.
+  Threads/FB는 각 APP_ID/SECRET gh secret 설정 시 동일 활성. **미검증**(라이브 연결 아직 안 밟음).
 - 외부 고객 발행은 App Review(앱 1회) — 그 후 고객은 로그인+동의만(테스터·콘솔작업 0). ADR-004.
 
 ## ⛔ Meta 브라우저 자동운전 중단 (2026-07-01 — 사고)
