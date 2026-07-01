@@ -74,6 +74,10 @@
 - **다음 액션(사용자)**: Meta 콘솔에 redirect URI `https://openclaw.sj-onpremise-cloudflare-tunnel.cloud/api/connect/instagram/callback`
   등록(Instagram 로그인 API 설정) → 배포 완료 후 OSMU "Instagram 연결" 버튼을 테스터 계정으로 눌러 로그인→토큰자동 검증.
   Threads/FB는 각 APP_ID/SECRET gh secret 설정 시 동일 활성. **미검증**(라이브 연결 아직 안 밟음).
+- **배포 success**(런 28509299279, IG env 반영) + 라이브 `/api/health` 200(db:up). E2E 하네스 green(146 pass/8 skip,
+  스크립트 verify-e2e/publish/selfserve + npm test/test:publish/e2e/e2e:publish 다 걸림).
+- **라이브 풀 발행 E2E(위키→생성→IG/Threads 게시) 블로커 = 토큰 0**. redirect URI 등록 + "연결" 로그인(테스터)로
+  토큰 생기면 그때 라이브 발행까지 밟아 증명 가능. 그 전엔 물리적으로 실게시 불가(가짜 green 금지).
 - 외부 고객 발행은 App Review(앱 1회) — 그 후 고객은 로그인+동의만(테스터·콘솔작업 0). ADR-004.
 
 ## ⛔ Meta 브라우저 자동운전 중단 (2026-07-01 — 사고)
