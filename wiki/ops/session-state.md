@@ -76,6 +76,10 @@
   Threads/FB는 각 APP_ID/SECRET gh secret 설정 시 동일 활성. **미검증**(라이브 연결 아직 안 밟음).
 - **배포 success**(런 28509299279, IG env 반영) + 라이브 `/api/health` 200(db:up). E2E 하네스 green(146 pass/8 skip,
   스크립트 verify-e2e/publish/selfserve + npm test/test:publish/e2e/e2e:publish 다 걸림).
+- **★버그 수정(2026-07-02)**: Instagram "연결" 버튼이 **IG 설정화면에 안 떴음** — Instagram은 `ChannelPage`가
+  아니라 `InstagramPage.tsx`(channels/[channel]/page.tsx:26)를 쓰는데 SocialConnectButton을 ChannelPage에만
+  달아서 누락. 사용자가 accessToken 입력란만 봄(정확한 지적, 내가 렌더 미검증하고 "있다"고 오보). `InstagramPage`에
+  버튼 추가·커밋·배포. **교훈: 채널별 컴포넌트 분기(Instagram/Data/Messaging 특수) 확인 후 배선.** Threads/FB는 ChannelPage라 OK.
 - **연결 버튼 라이브 확인(2026-07-02)**: 사용자가 Threads "연결" 클릭 → `{"error":"THREADS_APP_ID 미설정"}`
   = 버튼이 라이브 `/api/connect/threads` 우리 엔드포인트에 실제 도달함을 증명(배선 OK). IG는 시크릿 있어 동작 예상,
   Threads/FB는 각 APP_ID/SECRET gh secret 넣으면 활성. redirect URI(provider별 `.../api/connect/{p}/callback`) 콘솔 등록 선행.
