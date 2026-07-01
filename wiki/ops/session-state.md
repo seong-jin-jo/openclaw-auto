@@ -79,6 +79,12 @@
 - **연결 버튼 라이브 확인(2026-07-02)**: 사용자가 Threads "연결" 클릭 → `{"error":"THREADS_APP_ID 미설정"}`
   = 버튼이 라이브 `/api/connect/threads` 우리 엔드포인트에 실제 도달함을 증명(배선 OK). IG는 시크릿 있어 동작 예상,
   Threads/FB는 각 APP_ID/SECRET gh secret 넣으면 활성. redirect URI(provider별 `.../api/connect/{p}/callback`) 콘솔 등록 선행.
+- **redirect URI 정정(2026-07-02)**: 콜백 URL 승인에 등록할 것은 **`/callback` 붙은 것**:
+  `https://openclaw.sj-onpremise-cloudflare-tunnel.cloud/api/connect/instagram/callback`. 라이브 curl 검증:
+  `/callback`=200(정상, code없어 "code/state 누락" HTML), `/api/connect/instagram`(auth-url)=401(로그인필요·정상).
+  사용자가 본 Unauthorized = auth-url을 브라우저로 직접 연 것(콜백 아님). 콜백·미들웨어 공개 배선 정상.
+- **테스터 필요성 = 모드 의존**: dev(미검수)면 로그인 계정이 앱 테스터+수락 필요(현재 5브랜드). App Review 통과+Live면
+  아무 유저나 로그인+동의만(테스터 단계 없음) = 상품화 관문 = App Review.
 - **라이브 풀 발행 E2E(위키→생성→IG/Threads 게시) 블로커 = 토큰 0**. redirect URI 등록 + "연결" 로그인(테스터)로
   토큰 생기면 그때 라이브 발행까지 밟아 증명 가능. 그 전엔 물리적으로 실게시 불가(가짜 green 금지).
 - 외부 고객 발행은 App Review(앱 1회) — 그 후 고객은 로그인+동의만(테스터·콘솔작업 0). ADR-004.
