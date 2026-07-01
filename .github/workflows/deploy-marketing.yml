@@ -36,6 +36,12 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.OSMU_SUPABASE_ANON_KEY }}
           DATABASE_URL=${{ secrets.OSMU_DATABASE_URL }}
           OSMU_SECRET_KEY=${{ secrets.OSMU_SECRET_KEY }}
+          IG_APP_ID=${{ secrets.IG_APP_ID }}
+          IG_APP_SECRET=${{ secrets.IG_APP_SECRET }}
+          THREADS_APP_ID=${{ secrets.THREADS_APP_ID }}
+          THREADS_APP_SECRET=${{ secrets.THREADS_APP_SECRET }}
+          FB_APP_ID=${{ secrets.FB_APP_ID }}
+          FB_APP_SECRET=${{ secrets.FB_APP_SECRET }}
           EOF
           echo ".env.osmu rendered ($(grep -c . .env.osmu) lines)"
       - name: 이미지 빌드 (gateway + dashboard)
