@@ -14,7 +14,9 @@
 1. Meta 콘솔 IG **redirect URI 등록**: `https://openclaw.sj-onpremise-cloudflare-tunnel.cloud/api/connect/instagram/callback` (`/callback` 필수).
 2. OSMU IG 설정 새로고침 → **"Instagram 연결"** 버튼(방금 배포) → **테스터 계정** 로그인 → 토큰 자동.
 3. Threads/FB 켜기: 각 `THREADS/FB_APP_ID/SECRET` 제공 → 내가 gh secret+배포+각 redirect.
-**미검증:** IG 버튼 authed 화면 육안 렌더, 라이브 연결/발행 풀 E2E(토큰 0이라 물리적 불가).
+**미검증:** 라이브 연결/발행 풀 E2E(토큰 0이라 물리적 불가 — 사용자 redirect 등록+로그인 후 가능).
+**검증됨(2026-07-02 재점검, 직접 관찰):** 배포 컨테이너 번들 chunks에 "Instagram 연결" 문자열 존재(버튼 배포 확인),
+컨테이너 env에 IG_APP_ID/IG_APP_SECRET 실림, health 200. Threads "미설정" 에러는 THREADS_APP_ID가 빈값 렌더라 정상.
 **규율:** Meta 콘솔 자동운전 금지(계정 플래그 사고, ADR-004). 배포는 pipeline qa단계 — ship은 /approve qa 후.
 **⚠️** App Secret 채팅 노출됨 → rotate 권장(rotate 시 gh secret 재설정).
 
