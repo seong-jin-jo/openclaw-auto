@@ -9,6 +9,7 @@ import { useUIStore } from "@/store/ui-store";
 import { AUTOMATION_FEATURES } from "@/lib/constants";
 import { setupGuides } from "@/lib/setup-guides";
 import { CredentialForm } from "@/components/shared/CredentialForm";
+import { SocialConnectButton } from "@/components/channel/SocialConnectButton";
 import { SetupGuide } from "@/components/shared/SetupGuide";
 import { ContentGuide } from "./ContentGuide";
 import { KeywordsEditor } from "./KeywordsEditor";
@@ -394,6 +395,10 @@ function InstagramSettings() {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Credentials */}
       <div className="card p-5">
+        <div className="mb-4">
+          <SocialConnectButton provider="instagram" label="Instagram" />
+          <p className="text-[10px] text-subtle mt-2">또는 아래에서 토큰을 직접 입력(고급).</p>
+        </div>
         <CredentialForm
           channelKey="instagram"
           fields={sg.fields}
