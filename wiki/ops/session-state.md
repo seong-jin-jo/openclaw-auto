@@ -76,6 +76,9 @@
   Threads/FB는 각 APP_ID/SECRET gh secret 설정 시 동일 활성. **미검증**(라이브 연결 아직 안 밟음).
 - **배포 success**(런 28509299279, IG env 반영) + 라이브 `/api/health` 200(db:up). E2E 하네스 green(146 pass/8 skip,
   스크립트 verify-e2e/publish/selfserve + npm test/test:publish/e2e/e2e:publish 다 걸림).
+- **연결 버튼 라이브 확인(2026-07-02)**: 사용자가 Threads "연결" 클릭 → `{"error":"THREADS_APP_ID 미설정"}`
+  = 버튼이 라이브 `/api/connect/threads` 우리 엔드포인트에 실제 도달함을 증명(배선 OK). IG는 시크릿 있어 동작 예상,
+  Threads/FB는 각 APP_ID/SECRET gh secret 넣으면 활성. redirect URI(provider별 `.../api/connect/{p}/callback`) 콘솔 등록 선행.
 - **라이브 풀 발행 E2E(위키→생성→IG/Threads 게시) 블로커 = 토큰 0**. redirect URI 등록 + "연결" 로그인(테스터)로
   토큰 생기면 그때 라이브 발행까지 밟아 증명 가능. 그 전엔 물리적으로 실게시 불가(가짜 green 금지).
 - 외부 고객 발행은 App Review(앱 1회) — 그 후 고객은 로그인+동의만(테스터·콘솔작업 0). ADR-004.
