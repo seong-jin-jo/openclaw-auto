@@ -63,9 +63,14 @@
   `integrations`(kind=channel,label=instagram) pgcrypto 저장), `middleware`에 콜백 공개 허용,
   `SocialConnectButton`+ChannelPage Instagram 설정 배선. E2E `tests/brand/social-connect.test.ts`(5).
   검증: 144 pass/8 skip, tsc 0, build ✓. **라이브 미검증**(배포후 browse).
-- **남은 wiring(라이브 동작 위해)**: ① 배포 env `IG_APP_ID`/`IG_APP_SECRET`(우리 Meta 앱 자격증명)
-  ② Meta 앱에 redirect URI `https://<live>/api/connect/instagram/callback` 등록(콘솔, 1회)
-  ③ 외부 고객 발행하려면 App Review. ④ Threads/Facebook provider 추가(같은 shape).
+- **연결 3종 완성(2026-07-01)**: Instagram·Threads·Facebook 모두 코드+E2E(7) 완료, 가이드도 "연결 버튼 먼저"로 재작성.
+  전체 146 pass/8 skip, tsc 0, build ✓. **미배포**(qa 게이트 — /approve qa 후).
+- **★현재 단일 블로커(라이브 데모)**: 배포 env에 **`IG_APP_SECRET`** 미설정. IG_APP_ID=`1534059948198965`(공개),
+  시크릿은 사용자 Meta 콘솔에서 복사 → `gh secret set IG_APP_SECRET -R seong-jin-jo/openclaw-auto` → 내가 배포 →
+  redirect URI `https://<live>/api/connect/instagram/callback` 사용자 콘솔 등록 → "연결" 버튼 라이브 테스트.
+  (THREADS_APP_ID/SECRET·FB_APP_ID/SECRET도 각 provider 라이브 시 동일.)
+- **다음 액션**: 사용자가 IG App Secret 제공/설정 → 내가 gh secret+배포 → 대시보드 "Instagram 연결" 로그인→토큰자동 검증.
+- 외부 고객 발행은 App Review(앱 1회) — 그 후 고객은 로그인+동의만(테스터·콘솔작업 0). ADR-004.
 
 ## ⛔ Meta 브라우저 자동운전 중단 (2026-07-01 — 사고)
 GStack 브라우저로 Meta 콘솔 운전 중 **Meta가 개발자 계정을 "비정상 활동"으로 플래그**("계정 확인 필요").
