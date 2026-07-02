@@ -14,7 +14,7 @@
    - (a) Mac 터미널에서 `claude setup-token` → 나온 토큰을 나한테(또는 VM env `CLAUDE_CODE_OAUTH_TOKEN`) → 내가 배선
    - (b) Anthropic API 키를 각 워크스페이스 Settings→AI Engine에 등록
 4. **OSMU → Instagram 채널 → "Instagram 연결"**(테스터 계정: zero_to_one_ai 등) → 로그인·동의 → 토큰 자동. 성공하면 나한테 "연결됨" — 위키→생성→실발행 풀 E2E 바로 밟는다.
-5. **VM 운영 배선 승인**(classifier가 차단해 대기): autoheal 기동 + publish-due crontab. "걸어" 한마디면 내가 실행:
+5. **VM 운영 배선 승인**(classifier 차단 — 2026-07-02 "고치고 보고" 지시로 재시도했으나 재차단, **명시적 "VM 배선 걸어" 필요**): autoheal 기동 + publish-due crontab. 한마디면 내가 실행:
    - `cd /home/marketing/actions-runner-oc/_work/openclaw-auto/openclaw-auto && docker compose -f docker-compose.postagi-4tenants.yml up -d autoheal`
    - crontab: `*/10 * * * * <래퍼>` (래퍼가 .env.osmu에서 토큰 로드 — 준비돼 있음)
 6. (선택) **Threads/FB 연결 켜기**: Meta 콘솔의 Threads App ID/Secret (+FB) 주면 내가 gh secret+배포+콜백 안내.
