@@ -27,9 +27,17 @@
 즉 서버측 완전 정상. 사용자가 본 에러 = 배포 전/캐시된 옛 팝업. → **하드 리프레시 후 재클릭** 안내함.
 그래도 나면 팝업 URL/스샷 요청(캐시 아닌 다른 문제).
 
+**🔴 IG 블로커 정밀화(2026-07-03):** 로그인·프로전환까지 성공 후 **콜백 되돌림 단계에서** "Invalid
+redirect_uri" 발생(사용자 실측). 우리측 authUrl/redirect_uri는 정상(끝까지 curl 검증). 원인 = Meta
+콘솔에서 redirect URI가 **"Instagram API with Instagram login" 전용 필드(Business login settings >
+Valid OAuth Redirect URIs)** 에 등록 안 됨(다른 필드에 있으면 authorize는 통과, 최종 콜백서 불일치).
+→ 콘솔 경로 안내함. 사용자 스샷으로 필드 위치 확인 대기(콘솔 화면 추측 금지). Meta 콘솔=사용자 수동(ADR-004).
+
 **남은 것(사용자만 가능):**
-1. **Instagram 연결 로그인** — 하드리프레시(Cmd+Shift+R)→"Instagram 연결" 재클릭→인스타 로그인 화면에서
-   **테스터 계정(zero_to_one_ai 등)** 로그인·동의 → 토큰 자동. 성공 시 "연결됨" → 내가 실발행 풀 E2E.
+1. **Instagram redirect URI 등록 위치 수정** — developers.facebook.com → 앱 → Instagram → API setup
+   with Instagram login → Business login settings → Valid OAuth Redirect URIs 에
+   `https://openclaw.sj-onpremise-cloudflare-tunnel.cloud/api/connect/instagram/callback`(끝슬래시X) → Save.
+   그 후 재로그인 → "연결됨" → 내가 실발행 풀 E2E.
 2. **Supabase Email Confirm OFF**(지인 가입용): `https://supabase.com/dashboard/project/gvtsyyltgwqplrqegrxo/auth/providers`
    → Email → "Confirm email" OFF → Save.
 3. (선택) **Threads/FB 켜기**: gh secret `THREADS_APP_ID/SECRET`·`FB_APP_ID/SECRET` **미설정 확인**
