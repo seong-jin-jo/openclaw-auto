@@ -36,6 +36,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.OSMU_SUPABASE_ANON_KEY }}
           DATABASE_URL=${{ secrets.OSMU_DATABASE_URL }}
           OSMU_SECRET_KEY=${{ secrets.OSMU_SECRET_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN=${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           IG_APP_ID=${{ secrets.IG_APP_ID }}
           IG_APP_SECRET=${{ secrets.IG_APP_SECRET }}
           THREADS_APP_ID=${{ secrets.THREADS_APP_ID }}
