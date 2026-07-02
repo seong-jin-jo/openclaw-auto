@@ -46,6 +46,9 @@ override_expires: ""
 
 ## 승인 로그 (append-only)
 2026-06-30 — ADOPTED(pre-harness) — plan·design·eng-design·build 기존 산출물 인정, current=qa.
+2026-07-03 — HOTFIX 배포(게이트 예외) — 이미 라이브인 IG 연결의 "Invalid redirect_uri"(프록시 뒤
+  origin=0.0.0.0 실측) 수정. 신규 스코프 아님·라이브 깨짐 복구. 커밋 e8603547, run 28611637538,
+  라이브 redirect_uri 정상 검증. vitest 9 pass·tsc0. qa 게이트는 유지(IG 로그인→실발행 E2E 후 /approve qa).
 
 ## Blocked / Notes
 - 라이브 QA 증거 수집 필요: 배포 환경 browse로 셀프서브 happy/edge + OAuth 연결 화면.

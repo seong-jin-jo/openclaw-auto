@@ -215,6 +215,7 @@ data/
 | `OPENCLAW_GATEWAY_TOKEN` | Gateway 인증 |
 | `DASHBOARD_PORT` | 대시보드 포트 (기본 3456) |
 | `DASHBOARD_AUTH_TOKEN` | 대시보드 로그인 토큰. 미설정 시 인증 비활성화 |
+| `OSMU_PUBLIC_URL` | 정본 공개 URL. OAuth redirect_uri를 이 값으로 고정(프록시 뒤 내부주소 오염 방지). 미설정 시 x-forwarded-*→request.url fallback |
 | `VIRAL_THRESHOLD` | 터진 글 기준 views (기본 500) |
 
 ## Cron Jobs
