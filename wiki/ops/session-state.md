@@ -15,12 +15,21 @@
 - **IG redirect URI** — 사용자가 Meta 콘솔에 `.../api/connect/instagram/callback` 등록(스샷 확인).
 - 버튼 죽는 버그(청크520)·가입 딥링크 — 수정·라이브 검증.
 
+**✅ 추가 해결(2026-07-03, 라이브 검증):**
+- **"Invalid redirect_uri" 버그** — 프록시 뒤 `new URL(request.url).origin`이 `0.0.0.0:18789`를
+  잡아 Meta 등록값과 불일치(실측). `publicOrigin()`(OSMU_PUBLIC_URL>x-forwarded-*>request) 도입,
+  auth-url·callback 통일. gh secret `OSMU_PUBLIC_URL` 설정, 배포(run 28611637538 success).
+  라이브 redirect_uri = `https://openclaw.../api/connect/instagram/callback` 확인. 커밋 e8603547.
+  회귀 테스트 2개(9 pass). 배포 서비스명은 `openclaw-dashboard-osmu`(단축 'osmu' 아님 — 오타 주의).
+
 **남은 것(사용자만 가능):**
-1. **Instagram 연결 로그인** — OSMU IG 채널 → "Instagram 연결" → **테스터 계정(zero_to_one_ai 등)** 로그인·동의
-   → 토큰 자동. (계정 크레덴셜 필요 = 나 불가.) 성공 시 "연결됨" → 내가 실발행 풀 E2E.
+1. **Instagram 연결 로그인** — OSMU IG 채널 → "Instagram 연결"(이제 redirect 정상) → **테스터 계정
+   (zero_to_one_ai 등)** 로그인·동의 → 토큰 자동. 성공 시 "연결됨" → 내가 실발행 풀 E2E.
 2. **Supabase Email Confirm OFF**(지인 가입용): `https://supabase.com/dashboard/project/gvtsyyltgwqplrqegrxo/auth/providers`
    → Email → "Confirm email" OFF → Save.
-3. (선택) **Threads/FB 켜기**: Meta 콘솔 Threads App ID/Secret(+FB) 주면 내가 배선.
+3. (선택) **Threads/FB 켜기**: gh secret `THREADS_APP_ID/SECRET`·`FB_APP_ID/SECRET` **미설정 확인**
+   (컨테이너 env MISSING 실측). Threads는 IG와 별개 앱 자격증명(developers.facebook.com Threads
+   use-case). 값 주면 IG와 같은 코드 경로로 배선 + redirect URI `.../api/connect/{threads,facebook}/callback` 등록.
 4. (보안) 채팅 노출된 IG App Secret·claude oat 토큰·인스타 비번 rotate 권장.
 
 ## 밤샘 오토런 결과 (2026-07-02)
