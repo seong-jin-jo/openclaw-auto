@@ -116,6 +116,7 @@ export async function exchangeCode(
   const clientSecret = process.env[p.appSecretEnv] || "";
   if (!clientId || !clientSecret) return { accessToken: "", error: `${p.appIdEnv}/${p.appSecretEnv} 미설정` };
   // 1) 단기 토큰
+  const ru = redirectUri(origin, providerName);
   const shortRes = await f(p.tokenUrl, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -123,12 +124,18 @@ export async function exchangeCode(
       client_id: clientId,
       client_secret: clientSecret,
       grant_type: "authorization_code",
-      redirect_uri: redirectUri(origin, providerName),
+      redirect_uri: ru,
       code,
     }).toString(),
   });
-  const short = (await shortRes.json()) as { access_token?: string; user_id?: string; error_message?: string };
-  if (!short.access_token) return { accessToken: "", error: short.error_message || "단기 토큰 교환 실패" };
+  const shortText = await shortRes.text();
+  let short: { access_token?: string; user_id?: string; error_message?: string } = {};
+  try { short = JSON.parse(shortText); } catch { /* non-json */ }
+  if (!short.access_token) {
+    // 임시 디버그(2026-07-03 redirect_uri mismatch 추적): 우리가 보낸 ru + 인스타 raw 응답을 노출.
+    console.error("[connect] short-token 실패", { ru, status: shortRes.status, body: shortText.slice(0, 300) });
+    return { accessToken: "", error: `${short.error_message || "단기 토큰 교환 실패"} | sent_redirect_uri=${ru} | ig=${shortText.slice(0, 160)}` };
+  }
   // 2) 장기 토큰(60일)
   const longRes = await f(
     `${p.longTokenUrl}?grant_type=${p.longGrant}&client_secret=${encodeURIComponent(clientSecret)}&access_token=${encodeURIComponent(short.access_token)}`,
