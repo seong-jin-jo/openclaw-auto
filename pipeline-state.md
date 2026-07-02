@@ -26,12 +26,12 @@ override_expires: ""
 > `/approve`로만 통과한다. **배포(gh workflow / ship)는 `/approve qa` 후에만.** (과거 게이트 없는
 > 자동 배포 = 하네스 위반, 재발 금지.)
 
-## qa 단계 산출물/증거 (requires_evidence)
-- [ ] docs/qa-tracker.md
-- [ ] prod-health-200 (라이브 /api/health 200 — ✅ 실측됨 2026-06-28)
-- [ ] prod-demo-login-200 (라이브 가입→로그인→대시보드 — 미검증)
-- [ ] e2e-happy (셀프서브 가입→키→브랜드→생성, OAuth 연결 — 라이브 미검증)
-- [ ] e2e-edge (잘못된 키/토큰/미연결 분기 — vitest는 통과, 라이브 미검증)
+## qa 단계 산출물/증거 (requires_evidence) — 상세 docs/qa-tracker.md
+- [x] docs/qa-tracker.md (2026-07-02 밤샘 QA 작성)
+- [x] prod-health-200 (반복 실측 ✅)
+- [ ] prod-demo-login-200 (운영자 ✅ / 고객가입은 Supabase Email Confirm ON에 막힘 — 아침 토글 후 재검)
+- [ ] e2e-happy (vitest ✅ + IG auth-url 라이브 ✅ / 생성 502=claude 미인증·발행은 토큰0 — 아침 3·4번 후 재검)
+- [x] e2e-edge (vitest 146 pass + 라이브 에러분기 일관 실측)
 
 ## 최근 build (qa 대기 중 — ship 전 /approve qa 필요)
 - 셀프서브 코어: A1 증류 generateText 통일, A2 온보딩 위저드, A3 키검증, /api/health+autoheal+슬랙경보,
