@@ -36,11 +36,20 @@ OAuth 리디렉션 URI** 에 같은 값 추가. Meta 콘솔=사용자 수동(ADR
 사용자에게 "이용 사례 > Instagram" 화면 스샷 요청(정확한 칸 확인, 추측 금지). 코드 유지(path#1 Instagram
 Login이 FB Page 불필요 → 셀프서브에 맞음, FB Login path로 안 바꿈).
 
-**남은 것(사용자만 가능):**
-1. **Instagram redirect URI 등록 위치 수정** — developers.facebook.com → 앱 → Instagram → API setup
-   with Instagram login → Business login settings → Valid OAuth Redirect URIs 에
+**✅ 방식 확정(실측, 2026-07-03):** FB 로그인 전환 검토했으나 `1534059948198965`가 Facebook Login
+client_id로는 `PLATFORM__INVALID_APP_ID`(그건 인스타 전용 앱ID). FB로 가면 다른 Meta App ID+시크릿+
+연결된 FB페이지가 더 필요 → 현행 Instagram Login 방식이 최소마찰. 유지 확정.
+**✅ 발행 경로 선반영(커밋 4438a3ca, 배포 success):** 테넌트 연결 토큰(Instagram Login)은
+`graph.instagram.com`로 media/media_publish, 레거시 env는 `graph.facebook.com` 유지. callback이
+meta.api 플래그 저장. → 연결 성공 즉시 발행 호환. Meta redirect 위치는 Meta 공식문서로 확정(아래).
+
+**남은 것(사용자만 가능 — API 없음, Meta 콘솔 로그인 필요, 자동조작 금지):**
+1. **Instagram redirect URI를 인스타 전용 칸에 등록** (Meta 공식문서 확인한 정확 위치):
+   App Dashboard → **Instagram** → **API setup with Instagram login** → **"3. Set up Instagram
+   business login"** → **Business login settings** → **OAuth Redirect URIs** 에
    `https://openclaw.sj-onpremise-cloudflare-tunnel.cloud/api/connect/instagram/callback`(끝슬래시X) → Save.
-   그 후 재로그인 → "연결됨" → 내가 실발행 풀 E2E.
+   (사용자가 넣은 "앱 설정>고급 설정>콜백 URL 승인"은 **Facebook 로그인용**이라 instagram.com/oauth 흐름이
+   안 봄.) → 재로그인 → "연결됨" → 내가 실발행 풀 E2E.
 2. **Supabase Email Confirm OFF**(지인 가입용): `https://supabase.com/dashboard/project/gvtsyyltgwqplrqegrxo/auth/providers`
    → Email → "Confirm email" OFF → Save.
 3. (선택) **Threads/FB 켜기**: gh secret `THREADS_APP_ID/SECRET`·`FB_APP_ID/SECRET` **미설정 확인**
