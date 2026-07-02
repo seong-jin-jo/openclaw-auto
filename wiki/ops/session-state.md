@@ -55,10 +55,15 @@ meta.api 플래그 저장. → 연결 성공 즉시 발행 호환. Meta redirect
   (스샷: scratchpad/meta_ig_*.png)
 - 참고: "앱 설정>고급 설정>콜백 URL 승인"은 Facebook 로그인용이라 무관(그대로 둠).
 
-**남은 것(계정 로그인 = 사용자 세션):**
-1. OSMU 로그인(이 브라우저는 OSMU 미로그인) → IG 채널 Settings → **"Instagram 연결"** 클릭 →
-   인스타 계정 로그인·동의 → 토큰 저장(meta.api=instagram_login) → "연결됨".
-   그 후 내가 위키→생성→graph.instagram.com 실발행 풀 E2E.
+**✅ 연결 플로우 정식 검증(2026-07-03, gstack 브라우저):** OSMU 로그인 후 IG 채널 Settings →
+"Instagram 연결" 클릭 → 새 탭에 **state=587cee76...(테넌트ID) 포함** authorize URL 정상 생성,
+redirect 에러 없이 인스타 로그인 도달. connect 코드 경로 라이브 정상.
+
+**남은 것(계정 로그인 = 사용자 세션, 봇 자동화 금지선):**
+1. 인스타 로그인 단계에서 **reCAPTCHA(신호등) 등장** → 봇으로 못 넘음(=계정 플래그선, ADR-004).
+   **사용자가 그 브라우저 창에서 직접**: CAPTCHA 풀기 → 인스타 계정 로그인 → 동의 → 콜백이 state로
+   토큰 저장(meta.api=instagram_login) → "연결됨".
+2. 그 후 내가: 토큰 저장 확인(integrations) → 위키→생성→graph.instagram.com 실발행 풀 E2E.
 2. **Supabase Email Confirm OFF**(지인 가입용): `https://supabase.com/dashboard/project/gvtsyyltgwqplrqegrxo/auth/providers`
    → Email → "Confirm email" OFF → Save.
 3. (선택) **Threads/FB 켜기**: gh secret `THREADS_APP_ID/SECRET`·`FB_APP_ID/SECRET` **미설정 확인**
