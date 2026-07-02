@@ -5,7 +5,8 @@ import { withTenant } from "@/lib/db";
 // 게이트웨이 extensions/{ch}-publish 로직 포팅. 실발행은 실 토큰 필요.
 
 const THREADS_API = "https://graph.threads.net/v1.0";
-const IG_API = "https://graph.facebook.com/v21.0";
+const IG_API = "https://graph.facebook.com/v21.0";           // 레거시 env(INSTAGRAM_ACCESSTOKEN) = Facebook Graph
+const IG_LOGIN_API = "https://graph.instagram.com/v21.0";    // 테넌트 연결(Instagram Login API) 토큰
 const FB_API = "https://graph.facebook.com/v21.0";
 const X_API = "https://api.twitter.com/2";
 
@@ -94,13 +95,15 @@ export async function publishThreads(cred: ChannelCred, text: string, imageUrl?:
 export async function publishInstagram(cred: ChannelCred, caption: string, imageUrl?: string): Promise<PublishResult> {
   if (!cred.userId) return { ok: false, error: "INSTAGRAM_USERID(meta.userId) 없음" };
   if (!imageUrl) return { ok: false, error: "Instagram은 이미지 필수" };
-  const create = await fetch(`${IG_API}/${cred.userId}/media`, {
+  // 테넌트가 "연결"(Instagram Login API)로 붙인 토큰은 graph.instagram.com, 레거시 env는 graph.facebook.com.
+  const base = cred.meta?.api === "instagram_login" ? IG_LOGIN_API : IG_API;
+  const create = await fetch(`${base}/${cred.userId}/media`, {
     method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ image_url: imageUrl, caption, access_token: cred.token }),
   });
   if (!create.ok) return { ok: false, error: `IG container 실패(${create.status}): ${(await create.text()).slice(0, 200)}` };
   const { id: creationId } = (await create.json()) as { id: string };
-  const pub = await fetch(`${IG_API}/${cred.userId}/media_publish`, {
+  const pub = await fetch(`${base}/${cred.userId}/media_publish`, {
     method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ creation_id: creationId, access_token: cred.token }),
   });

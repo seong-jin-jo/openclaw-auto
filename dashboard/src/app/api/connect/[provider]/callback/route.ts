@@ -35,11 +35,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
     if (!tok.accessToken) return resultHtml("연결 실패", tok.error || "토큰 교환 실패");
 
     // 테넌트별 채널 cred 저장(발행 경로 getChannelCred가 읽음). 토큰은 pgcrypto 암호화.
+    // instagram/threads = Instagram Login API 계열 → 발행 시 graph.instagram.com/graph.threads.net 사용을
+    // publish.ts가 알도록 meta.api 플래그. facebook은 Graph(페이지) 경로.
+    const apiFlag = provider === "instagram" ? "instagram_login" : provider === "threads" ? "threads_login" : "facebook_graph";
     await withTenant(tenantId, (sql) => sql`
       INSERT INTO integrations (tenant_id, kind, label, secret_enc, meta)
       VALUES (${tenantId}, 'channel', ${cfg.label},
               armor(pgp_sym_encrypt(${tok.accessToken}, ${key})),
-              ${sql.json({ userId: tok.userId ?? null, connectedAt: null } as Parameters<typeof sql.json>[0])})
+              ${sql.json({ userId: tok.userId ?? null, api: apiFlag, connectedAt: null } as Parameters<typeof sql.json>[0])})
       ON CONFLICT (tenant_id, kind, label) DO UPDATE
         SET secret_enc = EXCLUDED.secret_enc, meta = EXCLUDED.meta`);
 
