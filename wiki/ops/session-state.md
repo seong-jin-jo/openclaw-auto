@@ -22,9 +22,14 @@
   라이브 redirect_uri = `https://openclaw.../api/connect/instagram/callback` 확인. 커밋 e8603547.
   회귀 테스트 2개(9 pass). 배포 서비스명은 `openclaw-dashboard-osmu`(단축 'osmu' 아님 — 오타 주의).
 
+**✅ IG 플로우 직접 재현 검증(2026-07-03):** 라이브 authUrl을 curl -L로 끝까지 추적 → 인스타가 302로
+동의 페이지 거쳐 `/accounts/login/`(username/Password)까지 정상 도착, **"Invalid redirect_uri" 안 뜸**.
+즉 서버측 완전 정상. 사용자가 본 에러 = 배포 전/캐시된 옛 팝업. → **하드 리프레시 후 재클릭** 안내함.
+그래도 나면 팝업 URL/스샷 요청(캐시 아닌 다른 문제).
+
 **남은 것(사용자만 가능):**
-1. **Instagram 연결 로그인** — OSMU IG 채널 → "Instagram 연결"(이제 redirect 정상) → **테스터 계정
-   (zero_to_one_ai 등)** 로그인·동의 → 토큰 자동. 성공 시 "연결됨" → 내가 실발행 풀 E2E.
+1. **Instagram 연결 로그인** — 하드리프레시(Cmd+Shift+R)→"Instagram 연결" 재클릭→인스타 로그인 화면에서
+   **테스터 계정(zero_to_one_ai 등)** 로그인·동의 → 토큰 자동. 성공 시 "연결됨" → 내가 실발행 풀 E2E.
 2. **Supabase Email Confirm OFF**(지인 가입용): `https://supabase.com/dashboard/project/gvtsyyltgwqplrqegrxo/auth/providers`
    → Email → "Confirm email" OFF → Save.
 3. (선택) **Threads/FB 켜기**: gh secret `THREADS_APP_ID/SECRET`·`FB_APP_ID/SECRET` **미설정 확인**
