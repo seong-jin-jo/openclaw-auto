@@ -26,6 +26,15 @@ export default function LoginPage() {
 
   // 이메일 확인/OAuth 복귀 감지: Supabase는 #access_token=...&refresh_token=... 으로 되돌아온다.
   // 클라가 URL 해시를 파싱(detectSessionInUrl 기본 on)하므로 mount 시 세션을 거둬 토큰 저장 후 진입.
+  // /login?mode=signup · /signup 딥링크 — useState 초기값은 SSR/하이드레이션 타이밍에 따라
+  // 적용이 안 될 수 있어(라이브 실측 2026-07-02), mount 후 URL 기준으로 한 번 더 동기화.
+  useEffect(() => {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      if (p.get("mode") === "signup" || window.location.pathname === "/signup") setMode("signup");
+    } catch { /* ignore */ }
+  }, []);
+
   useEffect(() => {
     // supabase env 미설정 시 createBrowserSupabase가 throw → 페이지 死 방지(가드).
     let unsub: (() => void) | undefined;

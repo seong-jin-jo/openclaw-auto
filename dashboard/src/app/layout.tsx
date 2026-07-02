@@ -22,6 +22,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               "(function(){try{var t=localStorage.getItem('theme');document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}})();",
           }}
         />
+        {/* 청크 로드 실패 자동복구: Cloudflare 터널이 간헐 520으로 /_next 청크를 떨구면
+            하이드레이션이 통째로 실패해 모든 버튼이 죽는다(2026-07-02 라이브 QA 실측 —
+            "구글 로그인 안 먹음"의 앱측 원인). 스크립트 리소스 에러를 캡처 단계에서 잡아
+            15초 가드로 1회 자동 새로고침 — 지속 장애면 루프 안 돌고 멈춤. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var K='osmu_chunk_reload';window.addEventListener('error',function(e){var t=e.target;if(t&&t.tagName==='SCRIPT'&&t.src&&t.src.indexOf('/_next/')>-1){var n=Date.now(),l=+(sessionStorage.getItem(K)||0);if(n-l>15000){sessionStorage.setItem(K,String(n));location.reload();}}},true);}catch(_){}})();",
+          }}
+        />
       </head>
       <body className="min-h-screen">
         <Providers>
