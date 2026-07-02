@@ -1,7 +1,7 @@
 # ADR-001: Introduce Project Wiki for Organization and Adopt gstack Procedures for Product Development
 
 **Date**: 2026-06 (during planning session)
-**Status**: Accepted
+**Status**: Superseded by [ADR-002](./002-gstack-and-project-wiki-adoption.md) — 같은 결정의 초안본, 002가 정본 (2026-07-02 wiki-track 정리)
 **Deciders**: User + AI agent following gstack plan
 
 ## Context

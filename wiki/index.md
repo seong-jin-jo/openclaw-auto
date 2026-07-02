@@ -12,12 +12,12 @@
 - [Why this wiki? (Explanation)](#explanation)
 - Subsections (deeper benchmark-informed structure for solid AI SaaS):
   - [architecture/](./architecture/) — technical reference & explanation (Obsidian-style markdown for AI/RAG/gstack agents)
-  - [decisions/](./decisions/) — ADRs (001 wiki+gstack, 002 adoption, 003 dual-wiki moat + hybrid pricing for retention)
-  - [product/](./product/) — vision, features, shorts factory, pricing (hybrid based on 2026 AI SaaS data: retention, Opus gaps)
-  - [ops/](./ops/) — running the system (cron, deploy, tenant)
+  - [decisions/](./decisions/index.md) — ADRs: [002](./decisions/002-gstack-and-project-wiki-adoption.md) wiki+gstack 채택(001 supersede), [003](./decisions/003-moat-and-pricing-strategy.md) dual-wiki moat+하이브리드 프라이싱, [004](./decisions/004-social-connect-oauth-not-passwords.md) OAuth 연결(비번 수집 금지, Meta 실사고 로그 포함)
+  - [product/](./product/) — vision, features, shorts factory, pricing (hybrid based on 2026 AI SaaS data: retention, Opus gaps) + plan-ga4-slack-central
+  - [ops/](./ops/) — running the system (cron, deploy, multi-tenant) + **session-state.md** (라이브 핸드오프 정본)
   - [guides/](./guides/) — how-tos, especially gstack procedures + "benchmark deeply then decide"
-  - [learnings/](./learnings/) — patterns, pitfalls captured via gstack
-  - [reference/](./reference/) — env, channels, **benchmarking.md** (deeper: competitors like Opus/Jasper, pricing/retention data, wiki tools Obsidian/Notion, moats, gstack velocity)
+  - [learnings/](./learnings/index.md) — 사고 RCA·패턴·함정 (**prompt-guide 미독 3-strike** 포함)
+  - [reference/](./reference/) — [ssot-routing.md](./reference/ssot-routing.md)(**3원 SSOT 필독**) · env-vars · channel-status · brand-grounding · **benchmarking.md**(2026 경쟁·프라이싱·리텐션 데이터)
 
 ## Overview
 
@@ -109,12 +109,12 @@ Start here when using gstack: "Load gstack. Read wiki/index.md and wiki/guides/g
 wiki/
 ├── index.md                 # This file (start here)
 ├── architecture/            # System design, data flow, cron, extensions
-├── decisions/               # ADRs (Architecture Decision Records)
-├── product/                 # SaaS vision, shorts factory, studio
-├── ops/                     # Cron, docker, deploy, env, multi-tenant
-├── guides/                  # How-tos for common tasks
-├── learnings/               # Patterns, pitfalls, preferences (from gstack /learn)
-└── reference/               # Env vars, channel status, benchmarking
+├── decisions/               # ADRs — index.md가 목차 (001은 002로 supersede)
+├── product/                 # SaaS vision, shorts factory, studio, plan-ga4-slack-central
+├── ops/                     # cron, multi-tenant, session-state.md(라이브 핸드오프 정본)
+├── guides/                  # How-tos for common tasks (gstack procedures)
+├── learnings/               # 사고 RCA·패턴 — index.md가 목차, 3-strike 승격 루프
+└── reference/               # ssot-routing(3원 SSOT 필독) · env-vars · channel-status · brand-grounding · benchmarking
 ```
 
 ## Explanation
@@ -142,6 +142,6 @@ See [guides/gstack-procedures.md](./guides/gstack-procedures.md) for the standar
 
 **Status**: This wiki has been comprehensively populated (architecture, product vision, ops, guides, decisions, learnings, reference) based on the full project state and development process discussions.
 
-Last updated: 2026-06 — full meticulous fill using current codebase + gstack procedures + SaaS scaling context (target 1,000+ subscribers at ₩100k–200k/mo).
+Last updated: 2026-07-02 (wiki-track) — ADR-004·reference 4파일·learnings 신규분 인덱스 반영, decisions/·learnings/ 서브 index 신설("2 clicks from root" 복구), 3원 SSOT 라우팅 추가. (최초 작성: 2026-06 — SaaS scaling context, target 1,000+ subscribers at ₩100k–200k/mo.)
 
 **gstack starting instruction**: "Load gstack. Read wiki/index.md and wiki/guides/gstack-procedures.md before any work."

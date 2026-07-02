@@ -8,7 +8,7 @@
 
 **Target (현실)**: 코딩/자동화 구축 능력이 없는 일반인·자영업자. 스스로 마케팅 자동화 서비스를 만들고 운영할 수 없는 사람들. API 토큰 발급/등록 과정이 큰 병목이 될 수 있음.
 
-**Product Wiki 전략**: 여기 루트 `wiki/` 는 **이 상품 자체의 지식 베이스**(제품 위키)다. 사용자가 이미 가진 다른 레포/노트 위키를 포인팅해서 컨텍스트를 끌어오는 기능은 별도 구현 필요. 상품 이름은 아직 미정 (제안 필요).
+**Product Wiki 전략**: 여기 루트 `wiki/` 는 **이 상품 자체의 지식 베이스**(제품 위키)다. 사용자가 이미 가진 다른 레포/노트 위키를 포인팅해서 컨텍스트를 끌어오는 기능은 별도 구현 필요. 상품 이름은 **가칭 SoloClaw**(아래 "상품 이름" 절 — 최종 확정은 0차 안정 후 별도 결정).
 
 **Core Value Proposition**
 - **Automation Loop** (from README): Collect trends → AI generate drafts (guided by brand wiki) → Human approve (low effort) → Multi-channel publish (optimized per platform) → Collect reactions + learn → Improve next cycle.
@@ -55,10 +55,6 @@
 - 스모크 게이트 존재 (deploy 후 /login 200 + /api/me 401 + supabase URL 확인).
 - **전체 상세 (배포, 시크릿, 버그, 스모크, 교훈)**: `wiki/learnings/2026-06-19-openclaw-osmu-handoff.md` **0차 작업 전 반드시 전체 읽기**.
 - CF for SaaS (Custom Hostnames)는 고객 커스텀 도메인용 (0차 안정 후).
-- API 토큰 발급/등록이 병목.
-- 현재 라이브: cloudflared 터널 + self-hosted GHA 수동 트리거 (`deploy-marketing.yml` services="openclaw-dashboard-osmu").
-- 빌드 규칙 필수 준수 (아래 고친 버그 참고).
-- 상세: `wiki/learnings/2026-06-19-openclaw-osmu-handoff.md`
 
 **Wiki 전략 업데이트**:
 - 이 `wiki/` = 상품 자체의 지식 베이스 (제품 위키).
@@ -84,14 +80,9 @@
 
 **최우선 해결 과제 (0차 + handoff 교훈)**:
 - **에러 설명력**: 사용자가 "왜 이런 에러가 났는지" 설명할 수 있게 (상세 로그 + 친화적 메시지). 재현성 확보.
-- **배포/빌드 규칙 절대 준수** (handoff에서 고친 치명 버그):
-  1. NEXT_PUBLIC_* 는 build-arg 로만 주입 (런타임 .env 만으로는 빈값 → supabaseUrl required 죽음).
-  2. 포트는 DASHBOARD_PORT (기본 34560). PORT 무시됨.
-  3. AuthGate: /login /signup 은 LandingPage 덮어쓰지 않게 (usePathname 통과).
-- **스모크 게이트 유지**: deploy 후 /login 200 + /api/me 401 + supabase URL 주입 확인.
+- **배포/빌드 규칙·스모크 게이트 절대 준수** — 규칙 3종(NEXT_PUBLIC_* build-arg / DASHBOARD_PORT / AuthGate)과 스모크는 위 "Onboarding 현실 + 현재 운영 제약" 절이 정본. 여기 중복 기술하지 않는다.
 - 안정성 (인프라 다운 방지, 크론/발행 재현성).
 - 가치 체감: 시간/비용 절감 + 숏폼 부수입 가능.
-- 상세 운영 컨텍스트: wiki/learnings/2026-06-19-openclaw-osmu-handoff.md 필수 선행 읽기.
 
 (기존 고액 SaaS/리텐션 목표는 장기 그림으로 미뤄둠. 지금은 0차/1차에 집중)
 (위 내용은 0차/1차 달성 후 참고할 장기 모델. 현재는 신뢰성·온보딩·1명 사용자 존재에 집중. Pricing은 "존재만 해도 OK" 단계.)

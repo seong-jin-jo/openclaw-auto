@@ -1,7 +1,7 @@
 # ADR-002: Adopt gstack for Development Process + Introduce Project Wiki for Knowledge Organization
 
 **Date**: 2026-06
-**Status**: Accepted
+**Status**: Accepted · Supersedes [ADR-001](./001-introduce-project-wiki-and-gstack-process.md) (동일 결정의 초안 — 이 문서가 정본)
 **Context**: Targeting early SaaS with 1,000+ subscribers paying ₩100k–200k/mo. Need velocity + knowledge as competitive advantage.
 
 ## Problem
