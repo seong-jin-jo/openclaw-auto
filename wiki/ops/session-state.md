@@ -27,11 +27,14 @@
 즉 서버측 완전 정상. 사용자가 본 에러 = 배포 전/캐시된 옛 팝업. → **하드 리프레시 후 재클릭** 안내함.
 그래도 나면 팝업 URL/스샷 요청(캐시 아닌 다른 문제).
 
-**🔴 IG 블로커 정밀화(2026-07-03):** 로그인·프로전환까지 성공 후 **콜백 되돌림 단계에서** "Invalid
-redirect_uri" 발생(사용자 실측). 우리측 authUrl/redirect_uri는 정상(끝까지 curl 검증). 원인 = Meta
-콘솔에서 redirect URI가 **"Instagram API with Instagram login" 전용 필드(Business login settings >
-Valid OAuth Redirect URIs)** 에 등록 안 됨(다른 필드에 있으면 authorize는 통과, 최종 콜백서 불일치).
-→ 콘솔 경로 안내함. 사용자 스샷으로 필드 위치 확인 대기(콘솔 화면 추측 금지). Meta 콘솔=사용자 수동(ADR-004).
+**🔴 IG 블로커 — 원인 확정(2026-07-03, 사용자 콘솔 스샷):** redirect URI 문자열은 **완벽히 일치**
+(`https://openclaw.../api/connect/instagram/callback`, 끝슬래시X). 단 등록 **위치가 틀림** —
+사용자가 **앱 설정 > 고급 설정 > "콜백 URL 승인"(=Facebook 로그인용 필드)** 에 넣음. 우리 흐름은
+`instagram.com/oauth/authorize`(Instagram 전용 로그인)라 Meta가 **Instagram 전용 리디렉션 필드**를
+대조 → 거긴 비어서 콜백단 튕김. **수정 위치 = 이용 사례 > Instagram > 맞춤설정 > 비즈니스 로그인 설정 >
+OAuth 리디렉션 URI** 에 같은 값 추가. Meta 콘솔=사용자 수동(ADR-004, 자동조작 계정정지 이력).
+사용자에게 "이용 사례 > Instagram" 화면 스샷 요청(정확한 칸 확인, 추측 금지). 코드 유지(path#1 Instagram
+Login이 FB Page 불필요 → 셀프서브에 맞음, FB Login path로 안 바꿈).
 
 **남은 것(사용자만 가능):**
 1. **Instagram redirect URI 등록 위치 수정** — developers.facebook.com → 앱 → Instagram → API setup
