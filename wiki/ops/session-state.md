@@ -5,20 +5,23 @@
 
 **최종 갱신:** 2026-07-02 새벽(밤샘 오토런) · `main` · 라이브 health 200.
 
-## ☀️ 아침 체크리스트 (이것만 하면 마케팅 운영 시작)
+## 진행 상태 (2026-07-03)
 
-1. **Supabase 콘솔 → Auth → "Confirm email" OFF** — 신규 가입이 메일 대기에 걸리는 것 실측됨. 지인 온보딩 마찰 #1.
-2. **Meta 콘솔 → IG 로그인 설정 → 콜백 URL 등록**(1분):
-   `https://openclaw.sj-onpremise-cloudflare-tunnel.cloud/api/connect/instagram/callback`
-3. **콘텐츠 생성 엔진 켜기(1분, 둘 중 하나)** — 지금 생성 502(컨테이너 claude 미인증 실측):
-   - (a) Mac 터미널에서 `claude setup-token` → 나온 토큰을 나한테(또는 VM env `CLAUDE_CODE_OAUTH_TOKEN`) → 내가 배선
-   - (b) Anthropic API 키를 각 워크스페이스 Settings→AI Engine에 등록
-4. **OSMU → Instagram 채널 → "Instagram 연결"**(테스터 계정: zero_to_one_ai 등) → 로그인·동의 → 토큰 자동. 성공하면 나한테 "연결됨" — 위키→생성→실발행 풀 E2E 바로 밟는다.
-5. **VM 운영 배선 승인**(classifier 차단 — 2026-07-02 "고치고 보고" 지시로 재시도했으나 재차단, **명시적 "VM 배선 걸어" 필요**): autoheal 기동 + publish-due crontab. 한마디면 내가 실행:
-   - `cd /home/marketing/actions-runner-oc/_work/openclaw-auto/openclaw-auto && docker compose -f docker-compose.postagi-4tenants.yml up -d autoheal`
-   - crontab: `*/10 * * * * <래퍼>` (래퍼가 .env.osmu에서 토큰 로드 — 준비돼 있음)
-6. (선택) **Threads/FB 연결 켜기**: Meta 콘솔의 Threads App ID/Secret (+FB) 주면 내가 gh secret+배포+콜백 안내.
-7. (보안) 채팅에 노출됐던 **IG App Secret·인스타 비번 2개 rotate** 권장.
+**✅ 해결됨(라이브 검증):**
+- **콘텐츠 생성** — `CLAUDE_CODE_OAUTH_TOKEN` gh secret+env 배선(배포 765935ca). 라이브 `/api/studio/text` →
+  실제 한국어 콘텐츠(threads/x/ig/shorts) 생성 성공. 502 해소.
+- **VM 운영 배선** — autoheal 컨테이너 Up(healthy) + publish-due crontab(*/10) 등록. 래퍼가 컨테이너 env에서
+  운영자 토큰 로드. 라이브 테스트 `all-tenants sweep 200 processed:0`(due 없어 정상).
+- **IG redirect URI** — 사용자가 Meta 콘솔에 `.../api/connect/instagram/callback` 등록(스샷 확인).
+- 버튼 죽는 버그(청크520)·가입 딥링크 — 수정·라이브 검증.
+
+**남은 것(사용자만 가능):**
+1. **Instagram 연결 로그인** — OSMU IG 채널 → "Instagram 연결" → **테스터 계정(zero_to_one_ai 등)** 로그인·동의
+   → 토큰 자동. (계정 크레덴셜 필요 = 나 불가.) 성공 시 "연결됨" → 내가 실발행 풀 E2E.
+2. **Supabase Email Confirm OFF**(지인 가입용): `https://supabase.com/dashboard/project/gvtsyyltgwqplrqegrxo/auth/providers`
+   → Email → "Confirm email" OFF → Save.
+3. (선택) **Threads/FB 켜기**: Meta 콘솔 Threads App ID/Secret(+FB) 주면 내가 배선.
+4. (보안) 채팅 노출된 IG App Secret·claude oat 토큰·인스타 비번 rotate 권장.
 
 ## 밤샘 오토런 결과 (2026-07-02)
 

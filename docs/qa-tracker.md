@@ -8,7 +8,7 @@
 |---|---|---|
 | prod-health-200 | ✅ | `GET /api/health` → `{ok:true,db:up}` 200 (반복 실측) |
 | prod-demo-login-200 | 🟡 부분 | 운영자 `/api/me` 200 `{isOperator:true}` 실측. **고객 가입 로그인은 Supabase Email Confirm ON에 막힘**(가입→"이메일 확인" 대기 실측) → 아침 토글 후 재검 |
-| e2e-happy | 🟡 부분 | vitest 146 pass(가입·키·증류·그라운딩·연결·발행분기). 라이브: 가입폼→pending 실측, IG connect auth-url 라이브 생성 실측. **생성은 502**(컨테이너 claude 미인증) |
+| e2e-happy | 🟢 대부분 | vitest 146 pass. 라이브: IG auth-url 생성 ✅, **콘텐츠 생성 라이브 성공 ✅**(CLAUDE_CODE_OAUTH_TOKEN 배선, 실제 한국어 콘텐츠). 남은 건 IG 연결 로그인(사용자)→실발행 |
 | e2e-edge | ✅(유닛)/🟡(라이브) | 잘못된 키 400·미연결 분기·state누락 등 vitest. 라이브 Threads "미설정" 에러 일관 실측 |
 
 ## 라이브 실측 결과 (2026-07-02 밤)
