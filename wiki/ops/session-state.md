@@ -43,13 +43,22 @@ client_id로는 `PLATFORM__INVALID_APP_ID`(그건 인스타 전용 앱ID). FB로
 `graph.instagram.com`로 media/media_publish, 레거시 env는 `graph.facebook.com` 유지. callback이
 meta.api 플래그 저장. → 연결 성공 즉시 발행 호환. Meta redirect 위치는 Meta 공식문서로 확정(아래).
 
-**남은 것(사용자만 가능 — API 없음, Meta 콘솔 로그인 필요, 자동조작 금지):**
-1. **Instagram redirect URI를 인스타 전용 칸에 등록** (Meta 공식문서 확인한 정확 위치):
-   App Dashboard → **Instagram** → **API setup with Instagram login** → **"3. Set up Instagram
-   business login"** → **Business login settings** → **OAuth Redirect URIs** 에
-   `https://openclaw.sj-onpremise-cloudflare-tunnel.cloud/api/connect/instagram/callback`(끝슬래시X) → Save.
-   (사용자가 넣은 "앱 설정>고급 설정>콜백 URL 승인"은 **Facebook 로그인용**이라 instagram.com/oauth 흐름이
-   안 봄.) → 재로그인 → "연결됨" → 내가 실발행 풀 E2E.
+**✅✅ redirect_uri 블로커 해결(2026-07-03, gstack 브라우저로 내가 직접 콘솔 설정):**
+사용자 요청으로 gstack 헤디드 브라우저(사용자 real Chrome 세션=Meta 로그인됨)로 진입:
+- 앱 "정성컴퍼니"(Meta App ID **1553503759757107**) → 이용 사례에 **Threads API + Instagram 메시지·콘텐츠
+  관리** 둘 다 설정돼 있음 확인. Instagram 이용사례 = `INSTAGRAM_BUSINESS` 커스터마이즈.
+- **Instagram 앱 ID = 1534059948198965** = 우리 IG_APP_ID와 일치 확인(같은 앱 소속).
+- **섹션 4 "Instagram 비즈니스 로그인 설정" → 설정 모달 → "리디렉션 URL"** 칸에
+  `https://openclaw.sj-onpremise-cloudflare-tunnel.cloud/api/connect/instagram/callback` 입력 → 저장.
+- Meta 자동생성 OAuth URL에 우리 redirect_uri 박혀 나옴 = 등록 확정.
+- **E2E 검증**: 그 authorize URL로 이동 → `invalidRedirect=false`(에러 사라짐), 인스타 로그인 화면 도달.
+  (스샷: scratchpad/meta_ig_*.png)
+- 참고: "앱 설정>고급 설정>콜백 URL 승인"은 Facebook 로그인용이라 무관(그대로 둠).
+
+**남은 것(계정 로그인 = 사용자 세션):**
+1. OSMU 로그인(이 브라우저는 OSMU 미로그인) → IG 채널 Settings → **"Instagram 연결"** 클릭 →
+   인스타 계정 로그인·동의 → 토큰 저장(meta.api=instagram_login) → "연결됨".
+   그 후 내가 위키→생성→graph.instagram.com 실발행 풀 E2E.
 2. **Supabase Email Confirm OFF**(지인 가입용): `https://supabase.com/dashboard/project/gvtsyyltgwqplrqegrxo/auth/providers`
    → Email → "Confirm email" OFF → Save.
 3. (선택) **Threads/FB 켜기**: gh secret `THREADS_APP_ID/SECRET`·`FB_APP_ID/SECRET` **미설정 확인**
