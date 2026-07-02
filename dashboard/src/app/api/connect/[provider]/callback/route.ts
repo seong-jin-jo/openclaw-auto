@@ -1,5 +1,5 @@
 import { withTenant } from "@/lib/db";
-import { getProvider, exchangeCode, exchangeFacebookCode } from "@/lib/social-connect";
+import { getProvider, exchangeCode, exchangeFacebookCode, publicOrigin } from "@/lib/social-connect";
 
 // GET /api/connect/{provider}/callback?code=...&state=<tenantId>
 // provider OAuth 리다이렉트(인증 없음 — middleware 공개). state로 테넌트 식별 → code를 토큰 교환 →
@@ -13,7 +13,9 @@ function resultHtml(title: string, sub: string): Response {
 
 export async function GET(request: Request, { params }: { params: Promise<{ provider: string }> }) {
   const { provider } = await params;
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
+  // 토큰 교환의 redirect_uri도 auth-url과 동일한 공개 origin이어야 한다(Meta가 일치 검증).
+  const origin = publicOrigin(request);
   const code = searchParams.get("code") || "";
   const tenantId = searchParams.get("state") || ""; // auth-url에서 state=tenantId로 넣음
   const err = searchParams.get("error_description") || searchParams.get("error");

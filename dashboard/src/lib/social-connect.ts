@@ -62,6 +62,25 @@ export function redirectUri(origin: string, provider: string): string {
   return `${origin}/api/connect/${provider}/callback`;
 }
 
+// 공개 origin 확정 — OAuth redirect_uri는 Meta 콘솔 등록값과 "글자까지" 일치해야 한다.
+// 리버스 프록시(Cloudflare 터널) 뒤에선 request.url이 컨테이너 내부 bind(0.0.0.0:PORT)를 가리켜
+// redirect_uri가 어긋난다("Invalid redirect_uri" 실측 2026-07-03). 그래서:
+//   1) OSMU_PUBLIC_URL (배포가 아는 정본 공개 URL) — 가장 확실, 애매함 0.
+//   2) x-forwarded-proto/host (프록시가 넘긴 원 Host).
+//   3) request.url.origin (로컬 dev fallback).
+// 도메인은 env로만 — 공개 레포에 하드코딩 금지.
+export function publicOrigin(request: Request): string {
+  const env = process.env.OSMU_PUBLIC_URL;
+  if (env) return env.replace(/\/+$/, "");
+  const h = request.headers;
+  const host = h.get("x-forwarded-host") || h.get("host");
+  if (host) {
+    const proto = h.get("x-forwarded-proto") || "https";
+    return `${proto}://${host}`;
+  }
+  return new URL(request.url).origin;
+}
+
 // OAuth 동의 URL. state = tenantId(콜백서 어느 테넌트인지 식별 — 위변조 방지는 짧은 수명+서명이 이상적이나
 // 1차는 tenantId 그대로; 콜백서 effectiveTenantId와 교차검증 가능).
 export function buildAuthUrl(provider: ProviderConfig, origin: string, providerName: string, state: string): string | null {

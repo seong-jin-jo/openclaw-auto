@@ -61,6 +61,30 @@ describe("GET /api/connect/instagram — OAuth 동의 URL", () => {
     expect(body.authUrl).toContain("api%2Fconnect%2Finstagram%2Fcallback");
   });
 
+  // 리버스 프록시 뒤 "Invalid redirect_uri" 회귀 방지(2026-07-03 실측: request.url이 0.0.0.0:PORT).
+  it("OSMU_PUBLIC_URL 설정 시 redirect_uri가 내부 request host가 아닌 공개 URL을 쓴다", async () => {
+    process.env.OSMU_PUBLIC_URL = "https://live.example";
+    const { GET } = await import("@/app/api/connect/[provider]/route");
+    // request.url은 내부 bind처럼 0.0.0.0:18789 — 여기 새면 Meta 등록값과 불일치.
+    const res = await GET(new Request("http://0.0.0.0:18789/api/connect/instagram?tenant_id=tenant-1"), params("instagram"));
+    const body = await res.json();
+    expect(body.authUrl).toContain(encodeURIComponent("https://live.example/api/connect/instagram/callback"));
+    expect(body.authUrl).not.toContain("0.0.0.0");
+    delete process.env.OSMU_PUBLIC_URL;
+  });
+
+  it("OSMU_PUBLIC_URL 없으면 x-forwarded-host/proto로 공개 origin 복원", async () => {
+    delete process.env.OSMU_PUBLIC_URL;
+    const { GET } = await import("@/app/api/connect/[provider]/route");
+    const req = new Request("http://0.0.0.0:18789/api/connect/instagram?tenant_id=tenant-1", {
+      headers: { "x-forwarded-host": "live.example", "x-forwarded-proto": "https" },
+    });
+    const res = await GET(req, params("instagram"));
+    const body = await res.json();
+    expect(body.authUrl).toContain(encodeURIComponent("https://live.example/api/connect/instagram/callback"));
+    expect(body.authUrl).not.toContain("0.0.0.0");
+  });
+
   it("지원하지 않는 provider → 400", async () => {
     const { GET } = await import("@/app/api/connect/[provider]/route");
     const res = await GET(new Request("https://app.example/api/connect/myspace?tenant_id=tenant-1"), params("myspace"));
