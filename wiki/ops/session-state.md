@@ -64,12 +64,26 @@ redirect 에러 없이 인스타 로그인 도달. connect 코드 경로 라이�
 그러나 **최종 "허용"(권한 승인) 클릭을 인스타가 봇 자동화로 막음**(로그인단 CAPTCHA + 동의단 클릭 무반응).
 DB integrations 아직 미저장(콜백 미완). 봇으로 뚫는 건 계정 플래그선이라 중단.
 
-**남은 것(사용자 = 일반 크롬에서 4클릭, 가장 확실):**
-1. 본인 Chrome(OSMU+인스타 로그인된 상태)에서: OSMU → **Instagram 채널 → Settings → "Instagram 연결"**
-   → 뜨는 인스타 화면에서 **파란 "허용" 버튼 클릭**. → 콜백이 state로 토큰 저장(meta.api=instagram_login).
-   (redirect_uri는 콘솔 등록 완료됐으므로 이제 에러 없이 진행됨.)
-2. 그 후 내가: `integrations` 저장 확인 → 위키→생성→graph.instagram.com 실발행 풀 E2E.
+**🔎 콜백 실패 원인 좁힘(2026-07-03):** gstack 브라우저로 허용까지 태워 콜백 히트 → 토큰교환에서
+`Error validating verification code. Please make sure your redirect_uri is identical...` 확인.
+- **시크릿·redirect 정상 입증**: 컨테이너 node로 더미 code 토큰교환 테스트 → `Invalid authorization code`만
+  반환(=IG_APP_SECRET 774edc1f… 유효, redirect openclaw.../callback 인정됨). 시크릿 회전 불필요.
+- 따라서 실패 = authorize때 심긴 redirect ≠ exchange때 보낸 redirect(미세 불일치). 정확 바이트 추적용
+  **디버그 배포(커밋 6691de0d)**: exchangeCode 단기토큰 실패 시 `sent_redirect_uri` + IG raw 응답을
+  에러/console.error로 노출. **진짜 콜백 1회 떠야 로그 남음.**
+- gstack 브라우저는 OSMU·인스타 세션을 반복 상실 → 콜백 재현 불안정. 운영자 토큰 주입은 activeWorkspace
+  없어 연결버튼 무동작.
+
+**남은 것:**
+1. **콜백 1회 재현**(디버그 로그 확보용): 사용자 본인 Chrome(OSMU+IG 로그인됨)에서 IG 채널 Settings →
+   "Instagram 연결" → "허용" 1회. 그럼 `docker logs openclaw-dashboard-osmu | grep "\[connect\]"`에
+   sent_redirect_uri + IG 응답이 찍힘 → 내가 그걸로 코드 한 줄 고쳐 확정.
+2. 원인 확정·수정 후 디버그 제거 → 재연결 → 토큰 저장 → 위키→생성→graph.instagram.com 실발행 E2E.
    검증쿼리: `SELECT label,meta FROM integrations WHERE tenant_id='587cee76-...' AND kind='channel'`.
+
+**다른 플랫폼 연결 현황(2026-07-03, 정직):** IG만 작업 중(위 미완). Threads=콘솔 이용사례 존재하나
+THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수동). YouTube 등=미구현. 즉 지금
+연결된 플랫폼 0.
 2. **Supabase Email Confirm OFF**(지인 가입용): `https://supabase.com/dashboard/project/gvtsyyltgwqplrqegrxo/auth/providers`
    → Email → "Confirm email" OFF → Save.
 3. (선택) **Threads/FB 켜기**: gh secret `THREADS_APP_ID/SECRET`·`FB_APP_ID/SECRET` **미설정 확인**
