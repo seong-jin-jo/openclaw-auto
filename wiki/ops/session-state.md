@@ -74,12 +74,21 @@ DB integrations 아직 미저장(콜백 미완). 봇으로 뚫는 건 계정 플
 - gstack 브라우저는 OSMU·인스타 세션을 반복 상실 → 콜백 재현 불안정. 운영자 토큰 주입은 activeWorkspace
   없어 연결버튼 무동작.
 
-**남은 것:**
-1. **콜백 1회 재현**(디버그 로그 확보용): 사용자 본인 Chrome(OSMU+IG 로그인됨)에서 IG 채널 Settings →
-   "Instagram 연결" → "허용" 1회. 그럼 `docker logs openclaw-dashboard-osmu | grep "\[connect\]"`에
-   sent_redirect_uri + IG 응답이 찍힘 → 내가 그걸로 코드 한 줄 고쳐 확정.
-2. 원인 확정·수정 후 디버그 제거 → 재연결 → 토큰 저장 → 위키→생성→graph.instagram.com 실발행 E2E.
-   검증쿼리: `SELECT label,meta FROM integrations WHERE tenant_id='587cee76-...' AND kind='channel'`.
+**✅ 백엔드 3중 검증 완료(2026-07-03, 진짜 동의 없이 직접):** 라이브 콜백에 더미 code 직접 타격
+(`curl .../api/connect/instagram/callback?code=DUMMY&state=587...`) → 디버그가
+`sent_redirect_uri=https://openclaw.sj-onpremise-cloudflare-tunnel.cloud/api/connect/instagram/callback`
+(콘솔 등록값·인정값과 동일) + IG=`Invalid authorization code`(코드만 문제, redirect·시크릿 정상) 반환.
+→ **콘솔·시크릿·exchange redirect 3개 다 정상 입증.** 앞선 "redirect_uri identical" 에러는 배포
+과도기(콘솔 등록 전/OSMU_PUBLIC_URL 반영 전) 발급 낡은 code 탓으로 추정. **새 code면 통과 예상.**
+
+**남은 것 = 인스타 실제 로그인+동의 1회(사람 게이트, 자동화 불가):**
+- 인스타가 로그인단 CAPTCHA + 동의단 클릭을 봇 차단(=계정 플래그선, ADR-004). gstack 프로필은
+  OSMU/IG 세션을 반복 상실. → 자동화로 실 consent 생성 불가. 비번 자동입력=금지선.
+- **사용자 본인 Chrome(OSMU+IG 로그인 상태)에서 IG Settings→"Instagram 연결"→"허용" 1회** 하면
+  백엔드가 검증됐으니 토큰 저장됨(meta.api=instagram_login). 실패 시 에러페이지에 디버그(sent_redirect_uri
+  +IG응답) 뜸 → 내가 읽고 수정. 성공 시 알려주면 내가 발행 E2E.
+- 디버그 코드(커밋 6691de0d) 아직 exchangeCode에 남음 — 연결 성공 확인 후 제거 예정.
+  검증쿼리: `SELECT label,meta FROM integrations WHERE tenant_id='587cee76-...' AND kind='channel'`.
 
 **다른 플랫폼 연결 현황(2026-07-03, 정직):** IG만 작업 중(위 미완). Threads=콘솔 이용사례 존재하나
 THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수동). YouTube 등=미구현. 즉 지금
