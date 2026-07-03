@@ -120,7 +120,12 @@ export async function exchangeCode(
   // slash 없는 값이 "redirect_uri identical" 에러를 내면 slash 붙은 값으로 자동 재시도한다.
   const cleanCode = code.replace(/#_.*$/, "").replace(/#.*$/, "");
   const ruBase = redirectUri(origin, providerName);
-  const candidates = ruBase.endsWith("/") ? [ruBase, ruBase.slice(0, -1)] : [ruBase, ruBase + "/"];
+  // 중요: Instagram은 첫 exchange 시도에서 code를 "소비"한다. 그리고 Meta 대시보드가 redirect_uri를
+  // trailing-slash canonical 로 저장하므로(라이브 실측: slash 없는 값→"redirect_uri identical" 에러+code소비),
+  // slash 붙은 값을 "먼저" 보내야 첫 시도에서 매칭·성공한다. 후보 = [slash, no-slash] 순.
+  const slashed = ruBase.endsWith("/") ? ruBase : ruBase + "/";
+  const bare = ruBase.endsWith("/") ? ruBase.slice(0, -1) : ruBase;
+  const candidates = [slashed, bare];
   let short: { access_token?: string; user_id?: string; error_message?: string } = {};
   let lastText = "";
   let usedRu = "";
