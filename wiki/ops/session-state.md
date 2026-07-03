@@ -81,6 +81,17 @@ DB integrations 아직 미저장(콜백 미완). 봇으로 뚫는 건 계정 플
 → **콘솔·시크릿·exchange redirect 3개 다 정상 입증.** 앞선 "redirect_uri identical" 에러는 배포
 과도기(콘솔 등록 전/OSMU_PUBLIC_URL 반영 전) 발급 낡은 code 탓으로 추정. **새 code면 통과 예상.**
 
+**🎯 진짜 원인 규명(2026-07-04): IG_APP_SECRET stale/오값 유력.**
+- 라이브 규명 시퀀스: 콘솔 redirect·테스터·authorize 다 통과하는데 **exchange만 "Error validating
+  verification code"**. authorize는 client_id만, exchange만 client_secret 사용 → 시크릿 불일치 증상.
+- **더미 code 테스트는 시크릿 검증 못 함**(실측: 맞는시크릿·틀린시크릿 둘 다 "Invalid authorization code")
+  → 앞서 "시크릿 정상" 결론은 오류였음. slash 변형도 무관(둘 다 실패).
+- 노출됐던 `774edc1f…`가 회전됐거나 Meta앱 시크릿을 잘못 넣은 것으로 추정. **fix=올바른 Instagram 앱
+  시크릿(Instagram API 설정 페이지의 "Instagram 앱 시크릿 코드")을 IG_APP_SECRET gh secret에 반영+재배포.**
+- exchange 코드는 단발 no-slash로 정리(재시도가 code 이중소비시켜 제거, 커밋 105d2265). #_ strip 포함.
+- **다음**: 올바른 시크릿 확보→`gh secret set IG_APP_SECRET`(temp파일)→배포→연결 재시도(브라우저로 내가).
+  IG 로그인/Meta 로그인은 gstack 프로필에 현재 살아있음(zero_to_one_ai). 테넌트=587cee76.
+
 **⚠️ 사용자 실동의 시도 결과(2026-07-03):** 사용자가 본인 크롬에서 로그인+동의 완료 →
 "본인 확인/사람 확인"(인스타 의심) 겪음 → 동의 후 **인스타 화면 "몇 초 후 자동으로 연결됩니다"에서 무한로딩**.
 그 문구는 **우리 코드에 없음(grep 확인)=인스타 화면**. DB 30초 폴링 → **토큰 저장 0**(콜백이 우리 서버까지
