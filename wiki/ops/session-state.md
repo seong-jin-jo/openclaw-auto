@@ -4,8 +4,11 @@
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **qa**, ship은 `/approve qa` 후). QA 증거: `docs/qa-tracker.md`.
 
 **최종 갱신:** 2026-07-04 · `main` · IG 연결 블로커=IG_APP_SECRET stale(규명 완료).
-**즉시 다음 액션:** 사용자가 Meta 콘솔에서 Instagram 앱 시크릿 재설정/표시 → 새 값을
-`gh secret set IG_APP_SECRET`(직접) 또는 채팅에 붙여주면 내가 temp파일 등록. 그 후 나: 재배포 →
+**즉시 다음 액션(2026-07-04):** 브라우저를 Instagram 앱 시크릿 필드에 띄우고 "표시" 클릭까지 함 →
+**Meta가 페북개발 계정 비밀번호 재확인 모달 요구**(passwordField 실측). 비번=사용자만 입력 가능(자동입력
+금지선). **사용자가 비번 입력해 시크릿 공개시키면**, 내가 값을 변수로만 캡처(로그 미출력)해
+`gh secret set IG_APP_SECRET` 등록 → 재배포 →
+그 후 나: 재배포 →
 gstack 브라우저로 연결 재시도(Meta·IG 세션 zero_to_one_ai 로그인됨, 동의 허용까지 자동) → integrations
 저장 확인(`tenant 587cee76`, `meta.api=instagram_login`) → 위키→생성→graph.instagram.com 실발행 E2E.
 시크릿 값은 하네스가 에이전트 로그로 반출 차단(재노출 방지) — 값 복사만 사용자 손.
