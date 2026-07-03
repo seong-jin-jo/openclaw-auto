@@ -115,26 +115,38 @@ export async function exchangeCode(
   const clientId = process.env[p.appIdEnv] || "";
   const clientSecret = process.env[p.appSecretEnv] || "";
   if (!clientId || !clientSecret) return { accessToken: "", error: `${p.appIdEnv}/${p.appSecretEnv} 미설정` };
-  // 1) 단기 토큰
-  const ru = redirectUri(origin, providerName);
-  const shortRes = await f(p.tokenUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      grant_type: "authorization_code",
-      redirect_uri: ru,
-      code,
-    }).toString(),
-  });
-  const shortText = await shortRes.text();
+  // 1) 단기 토큰. Instagram 문서: 인가 code 끝의 "#_" 는 code가 아니므로 제거.
+  // 또 Meta 대시보드가 redirect_uri에 trailing slash 를 붙여 저장하는 경우가 있어(공식 문서 경고),
+  // slash 없는 값이 "redirect_uri identical" 에러를 내면 slash 붙은 값으로 자동 재시도한다.
+  const cleanCode = code.replace(/#_.*$/, "").replace(/#.*$/, "");
+  const ruBase = redirectUri(origin, providerName);
+  const candidates = ruBase.endsWith("/") ? [ruBase, ruBase.slice(0, -1)] : [ruBase, ruBase + "/"];
   let short: { access_token?: string; user_id?: string; error_message?: string } = {};
-  try { short = JSON.parse(shortText); } catch { /* non-json */ }
+  let lastText = "";
+  let usedRu = "";
+  for (const ru of candidates) {
+    const res = await f(p.tokenUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: "authorization_code",
+        redirect_uri: ru,
+        code: cleanCode,
+      }).toString(),
+    });
+    lastText = await res.text();
+    try { short = JSON.parse(lastText); } catch { short = {}; }
+    usedRu = ru;
+    if (short.access_token) break;
+    // redirect_uri 관련 에러가 아니면(예: 만료/무효 code) 재시도 무의미 → 중단.
+    if (!/redirect_uri|verification code/i.test(lastText)) break;
+    console.error("[connect] redirect_uri 후보 실패, 다음 후보 시도", { tried: ru });
+  }
   if (!short.access_token) {
-    // 임시 디버그(2026-07-03 redirect_uri mismatch 추적): 우리가 보낸 ru + 인스타 raw 응답을 노출.
-    console.error("[connect] short-token 실패", { ru, status: shortRes.status, body: shortText.slice(0, 300) });
-    return { accessToken: "", error: `${short.error_message || "단기 토큰 교환 실패"} | sent_redirect_uri=${ru} | ig=${shortText.slice(0, 160)}` };
+    console.error("[connect] short-token 실패", { triedRu: usedRu, status: 400, body: lastText.slice(0, 300) });
+    return { accessToken: "", error: `${short.error_message || "단기 토큰 교환 실패"} | sent_redirect_uri=${usedRu} | ig=${lastText.slice(0, 160)}` };
   }
   // 2) 장기 토큰(60일)
   const longRes = await f(
