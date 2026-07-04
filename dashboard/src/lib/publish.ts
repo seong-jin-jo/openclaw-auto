@@ -103,6 +103,15 @@ export async function publishInstagram(cred: ChannelCred, caption: string, image
   });
   if (!create.ok) return { ok: false, error: `IG container 실패(${create.status}): ${(await create.text()).slice(0, 200)}` };
   const { id: creationId } = (await create.json()) as { id: string };
+  // 이미지 컨테이너는 인스타가 비동기 처리한다. status_code=FINISHED 될 때까지 폴링해야
+  // media_publish가 "Media ID is not available"(9007) 없이 성공한다.
+  for (let i = 0; i < 20; i++) {
+    const st = await fetch(`${base}/${creationId}?fields=status_code&access_token=${encodeURIComponent(cred.token)}`);
+    const { status_code } = (await st.json().catch(() => ({}))) as { status_code?: string };
+    if (status_code === "FINISHED") break;
+    if (status_code === "ERROR") return { ok: false, error: "IG 미디어 처리 실패(status ERROR — 이미지 형식/접근성 확인)" };
+    await new Promise((r) => setTimeout(r, 1500));
+  }
   const pub = await fetch(`${base}/${cred.userId}/media_publish`, {
     method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ creation_id: creationId, access_token: cred.token }),
