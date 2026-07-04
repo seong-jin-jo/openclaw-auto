@@ -5,6 +5,13 @@
 
 **최종 갱신:** 2026-07-04 · `main`(c214ad00, 전부 push됨) · 노트북 끄고 온프렘서 재개.
 
+### ✅ IG 실발행 검증 완료 (2026-07-04, DB 증거)
+`published_posts`에 tenant 587cee76 / instagram / **external_id=17938476117069923** 존재 = 인스타 실제
+게시물 ID = zero_to_one_ai 피드에 실발행됨. 폴링픽스(c214ad00) 후 성공. 직전 시도는 external_id=null(9007
+실패, 픽스 전). **IG end-to-end(연결→생성→실발행) 증명 완료.**
+연결 현황(DB): instagram(587cee76, api=instagram_login) 1개만. threads(6119a9c7)는 옛 테넌트 것·무관.
+**모든 플랫폼 연결 아님** — 다음은 Threads 복제(권한 threads_content_publish 추가→redirect→시크릿 비번게이트→OAuth).
+
 ### ⏩ 온프렘 재개 (30초)
 현재: **IG 연결 완료(DB확정)** → **IG 실발행 E2E 진행 중**. 마지막 실발행 시도가 `Media ID is not
 available(9007)` = 이미지 컨테이너 처리 전 발행. **폴링 픽스 커밋 c214ad00 push됨, 배포는 셀프호스트
