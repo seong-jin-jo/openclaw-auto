@@ -202,6 +202,7 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
               labels={sg.labels}
               currentKeys={keys}
               onSave={handleCredSave}
+              connected={connected}
               title={isThreads ? "Threads API Credentials" : channel === "x" ? "OAuth 1.0 Keys" : undefined}
               badge={isThreads ? { text: "Long-lived Token", color: "blue" } : channel === "x" ? { text: "OAuth 1.0a", color: "blue" } : undefined}
               connectLabel={isThreads ? "Connect Threads" : channel === "x" ? "Connect X Account" : undefined}
@@ -219,7 +220,7 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-subtle">Status</span>
-                  <span className={connected ? "text-green-400" : status === "connected" ? "text-accent" : "text-yellow-400"}>
+                  <span className={connected ? "text-success" : status === "connected" ? "text-accent" : "text-warning"}>
                     {connected ? "Connected" : CH_STATUS_LABEL[status] || "Not connected"}
                   </span>
                 </div>
@@ -633,7 +634,7 @@ function AutomationSection({ channel, expandedFeature, setExpandedFeature }: {
                   {hours && <span className="text-[10px] text-subtle">{hours}h</span>}
                   {lastRun && (
                     <>
-                      <span className={`text-[10px] ${lastRun.status === "ok" ? "text-green-400" : "text-red-400"}`}>
+                      <span className={`text-[10px] ${lastRun.status === "ok" ? "text-success" : "text-danger"}`}>
                         {lastRun.status === "ok" ? "\u2713" : "\u2717"}
                       </span>
                       <span className="text-[10px] text-subtle">{lastRun.finishedAt ? fmtAgo(lastRun.finishedAt) : ""}</span>
@@ -666,7 +667,7 @@ function AutomationSection({ channel, expandedFeature, setExpandedFeature }: {
                 )}
                 {featureRuns.slice(0, 10).map((r, i) => (
                   <div key={i} className="flex items-start gap-2 py-1">
-                    <span className={`text-[10px] mt-0.5 ${r.status === "ok" ? "text-green-400" : "text-red-400"}`}>
+                    <span className={`text-[10px] mt-0.5 ${r.status === "ok" ? "text-success" : "text-danger"}`}>
                       {r.status === "ok" ? "\u2713" : "\u2717"}
                     </span>
                     <div className="flex-1 min-w-0">

@@ -20,6 +20,7 @@ export function DataChannelPage({ channel }: DataChannelPageProps) {
 
   const cfg = channelConfig?.[channel];
   const status = cfg?.status || "available";
+  const connected = !!cfg?.connected;
   const keys = cfg?.keys || {};
   const sg = setupGuides[channel] || { fields: [], labels: [], quick: ["Setup guide 준비 중"], detail: "" };
 
@@ -55,6 +56,7 @@ export function DataChannelPage({ channel }: DataChannelPageProps) {
             labels={sg.labels}
             currentKeys={keys}
             onSave={handleCredSave}
+            connected={connected}
           />
         </div>
         <div className="card p-5">

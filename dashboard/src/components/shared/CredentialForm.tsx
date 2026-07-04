@@ -29,7 +29,7 @@ function CredField({ id, label, desc, isSecret = false, value, editable, onChang
           readOnly={!editable}
           onChange={(e) => onChange(e.target.value)}
           title={value}
-          className={`w-full ${editable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-[11px] text-muted placeholder-gray-600 font-mono`}
+          className={`w-full ${editable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-[11px] text-muted placeholder-subtle font-mono`}
         />
         {isSecret && (
           <button
@@ -59,11 +59,13 @@ interface CredentialFormProps {
   title?: string;
   badge?: { text: string; color: string };
   connectLabel?: string;
+  /** 연결됨 표시 — OAuth 연결(토큰이 integrations에 있어 keys가 비어도)이나 키 저장으로 연결된 상태. */
+  connected?: boolean;
   /** Group fields with section headers and borders (e.g., X's Consumer Keys / Access Token) */
   fieldGroups?: CredFieldGroup[];
 }
 
-export function CredentialForm({ channelKey, fields, labels, currentKeys, onSave, title, badge, connectLabel, fieldGroups }: CredentialFormProps) {
+export function CredentialForm({ channelKey, fields, labels, currentKeys, onSave, title, badge, connectLabel, connected, fieldGroups }: CredentialFormProps) {
   const hasKeys = Object.values(currentKeys).some((v) => v);
   const [editing, setEditing] = useState(!hasKeys);
   const [values, setValues] = useState<Record<string, string>>(() => {
@@ -103,8 +105,13 @@ export function CredentialForm({ channelKey, fields, labels, currentKeys, onSave
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-medium text-muted">{title || "Credentials"}</h3>
         <div className="flex items-center gap-2">
+          {connected && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-success/15 text-success border border-success/30">
+              연결됨
+            </span>
+          )}
           {badge && (
-            <span className={`text-[10px] px-2 py-0.5 rounded bg-${badge.color}-900/30 text-${badge.color}-400 border border-${badge.color}-800/30`}>
+            <span className="text-[10px] px-2 py-0.5 rounded bg-accent-soft text-accent border border-accent/30">
               {badge.text}
             </span>
           )}

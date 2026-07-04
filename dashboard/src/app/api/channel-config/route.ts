@@ -37,8 +37,12 @@ const OTHER_CHANNELS: Record<string, { plugin: string; keyField: string }> = {
 };
 
 export async function GET(request: Request) {
-  // 테넌트 컨텍스트로 감싸 파일 I/O를 테넌트별로 격리
-  const __t = await effectiveTenantId(request, null);
+  // 테넌트 컨텍스트로 감싸 파일 I/O를 테넌트별로 격리.
+  // tenant_id 쿼리 파라미터는 fallback으로만 존중된다 — 로그인 세션/토큰/Host로 테넌트가
+  // 먼저 해석되면(고객·포크) 파라미터는 무시되므로 고객이 남의 테넌트를 조회할 수 없다.
+  // 세션이 없는 운영자(DASHBOARD_AUTH_TOKEN)만 fallback 파라미터로 임의 테넌트 조회 가능.
+  // (metrics/studio 라우트와 동일한 확립된 패턴.)
+  const __t = await effectiveTenantId(request, new URL(request.url).searchParams.get("tenant_id"));
   return runWithTenant(__t, async () => {
   const config = readJson<OpenClawConfig>(configPath("openclaw.json")) || {};
   const plugins = config.plugins?.entries || {};

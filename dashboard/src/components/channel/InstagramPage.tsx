@@ -202,7 +202,7 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
                   <div key={i} className="flex gap-2">
                     <span className="text-[10px] text-subtle mt-2 w-4">{i + 1}</span>
                     <textarea data-card-slide={i} className="flex-1 bg-surface border border-border rounded px-3 py-2 text-sm text-muted" rows={3} placeholder={`슬라이드 ${i + 1} 내용`} defaultValue={s} />
-                    {ed.slides.length > 1 && <button onClick={() => removeSlide(i)} className="text-red-400 hover:text-red-300 text-xs mt-2">x</button>}
+                    {ed.slides.length > 1 && <button onClick={() => removeSlide(i)} className="text-danger hover:opacity-80 text-xs mt-2">x</button>}
                   </div>
                 ))}
               </div>
@@ -405,6 +405,7 @@ function InstagramSettings() {
           labels={sg.labels}
           currentKeys={keys}
           onSave={handleCredSave}
+          connected={connected}
           title="Instagram Graph API"
           badge={{ text: "Graph API", color: "blue" }}
           connectLabel="Connect Instagram"
@@ -418,10 +419,16 @@ function InstagramSettings() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-subtle">Status</span>
-              <span className={connected ? "text-green-400" : "text-yellow-400"}>
+              <span className={connected ? "text-success" : "text-warning"}>
                 {connected ? "Connected" : "Not connected"}
               </span>
             </div>
+            {igCfg.userId ? (
+              <div className="flex justify-between">
+                <span className="text-subtle">User ID</span>
+                <span className="text-muted font-mono">{String(igCfg.userId)}</span>
+              </div>
+            ) : null}
             <div className="flex justify-between">
               <span className="text-subtle">Character Limit</span>
               <span className="text-muted">2,200</span>
@@ -467,7 +474,7 @@ function InstagramSettings() {
                     {hours && <span className="text-[10px] text-subtle">{hours}h</span>}
                     {lastRun && (
                       <>
-                        <span className={`text-[10px] ${lastRun.status === "ok" ? "text-green-400" : "text-red-400"}`}>
+                        <span className={`text-[10px] ${lastRun.status === "ok" ? "text-success" : "text-danger"}`}>
                           {lastRun.status === "ok" ? "\u2713" : "\u2717"}
                         </span>
                         <span className="text-[10px] text-subtle">{lastRun.finishedAt ? fmtAgo(lastRun.finishedAt) : ""}</span>
@@ -511,7 +518,7 @@ function InstagramSettings() {
                       const ts = r.finishedAt ? new Date(r.finishedAt as string).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
                       return (
                         <div key={i} className="flex items-start gap-2 py-1">
-                          <span className={`text-[10px] mt-0.5 ${r.status === "ok" ? "text-green-400" : "text-red-400"}`}>
+                          <span className={`text-[10px] mt-0.5 ${r.status === "ok" ? "text-success" : "text-danger"}`}>
                             {r.status === "ok" ? "\u2713" : "\u2717"}
                           </span>
                           <div className="flex-1 min-w-0">

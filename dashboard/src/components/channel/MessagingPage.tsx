@@ -28,6 +28,7 @@ export function MessagingPage({ channel }: MessagingPageProps) {
 
   const cfg = channelConfig?.[channel];
   const status = cfg?.status || "available";
+  const connected = !!cfg?.connected;
   const keys = cfg?.keys || {};
   const hasKeys = Object.values(keys).some((v) => v);
   const sg = setupGuides[channel] || { fields: [], labels: [], quick: ["Setup guide 준비 중"], detail: "" };
@@ -77,6 +78,7 @@ export function MessagingPage({ channel }: MessagingPageProps) {
             labels={sg.labels}
             currentKeys={keys}
             onSave={handleCredSave}
+            connected={connected}
           />
         </div>
 
@@ -87,8 +89,8 @@ export function MessagingPage({ channel }: MessagingPageProps) {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-subtle">Status</span>
-                <span className={status === "live" ? "text-green-400" : status === "connected" ? "text-accent" : "text-subtle"}>
-                  {status === "live" ? "Live" : status === "connected" ? "Connected" : "Not connected"}
+                <span className={status === "live" ? "text-success" : (connected || status === "connected") ? "text-accent" : "text-subtle"}>
+                  {status === "live" ? "Live" : (connected || status === "connected") ? "Connected" : "Not connected"}
                 </span>
               </div>
             </div>
@@ -113,7 +115,7 @@ export function MessagingPage({ channel }: MessagingPageProps) {
               return (
                 <div key={evt} className="flex items-center justify-between p-2 rounded bg-surface/50">
                   <span className="text-xs text-subtle">{label2}</span>
-                  <span className={`text-[10px] ${enabled ? "text-green-400" : "text-subtle"}`}>{enabled ? "ON" : "OFF"}</span>
+                  <span className={`text-[10px] ${enabled ? "text-success" : "text-subtle"}`}>{enabled ? "ON" : "OFF"}</span>
                 </div>
               );
             })}
@@ -140,8 +142,8 @@ export function MessagingPage({ channel }: MessagingPageProps) {
             </button>
           </div>
           {chatConfigured ? (
-            <div className="mt-3 p-2 rounded bg-green-900/20 border border-green-800/20">
-              <p className="text-[10px] text-green-400">Interactive Chat 연결됨 — 이 채널에서 Agent와 대화 가능</p>
+            <div className="mt-3 p-2 rounded bg-success/10 border border-success/20">
+              <p className="text-[10px] text-success">Interactive Chat 연결됨 — 이 채널에서 Agent와 대화 가능</p>
             </div>
           ) : (
             <div className="mt-3 p-2 rounded bg-surface/50">

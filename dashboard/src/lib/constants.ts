@@ -61,8 +61,8 @@ export const DATA_CHANNELS = ["google_analytics", "search_console", "google_busi
 
 /** Status badge styles */
 export const CH_STATUS_BADGE: Record<string, string> = {
-  live: "bg-green-900/50 text-green-400",
-  connected: "bg-blue-900/50 text-blue-400",
+  live: "bg-success/15 text-success",
+  connected: "bg-accent-soft text-accent",
   available: "",
   soon: "",
 };
