@@ -12,6 +12,14 @@
 연결 현황(DB): instagram(587cee76, api=instagram_login) 1개만. threads(6119a9c7)는 옛 테넌트 것·무관.
 **모든 플랫폼 연결 아님** — 다음은 Threads 복제(권한 threads_content_publish 추가→redirect→시크릿 비번게이트→OAuth).
 
+### ▶ Threads — 인프라 완료, 계정 로그인만 남음 (2026-07-04)
+**완료:** THREADS_APP_ID(905965605850465)+THREADS_APP_SECRET(prefix c85a) gh secret 등록·배포·컨테이너
+반영 확인. 콜백 redirect/deauth/delete 저장(사용자). authUrl 정상 생성(threads.net/oauth, redirect 우리콜백,
+scope threads_basic+content_publish+manage_insights). 코드측 provider/publishThreads 준비됨.
+**남음(사람게이트):** Threads 로그인="Instagram 계정으로 로그인"(zero_to_one_ai 비번) → 동의 "허용".
+IG와 동일 — 비번 자동입력 금지선. 창 focus됨. 사용자 로그인+허용 후 "됐다" → 내가 DB(integrations
+threads/587cee76) 확인. **검증쿼리**: local postgres로 DATABASE_URL 조회(psql 컨테이너에 없음).
+
 ### ▶ Threads 진행 (2026-07-04 업데이트)
 **내가 완료:** Threads 앱 ID=**905965605850465** 확인 → `gh secret set THREADS_APP_ID` ✅. 설정탭에서
 리디렉션 콜백 URL=`.../api/connect/threads/callback`, 제거=`.../deauthorize`, 삭제=`.../delete` 3칸 입력함.
