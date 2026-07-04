@@ -28,6 +28,14 @@ MessagingPage의 연결배지·CredentialForm·SocialConnectButton 정합. tsc0+
 ※ 이 트랙 파일(components/channel/*, channel-config)은 서브에이전트 소유 — 메인세션 편집 금지(겹침방지).
 남은 플랫폼 연결(X/TikTok/LinkedIn/YouTube/Naver)=회장 API키 선행(서브에이전트도 못 만듦). FB=config작업.
 
+### 🚧 셀프서브 진짜 게이트 = Meta 앱검수+비즈니스인증 (2026-07-05, 실측)
+FB Login for Business "구성"(config 생성) 페이지가 4회 모두 dashboard로 튕김 + "비즈니스 인증/앱 검수/기술
+제공업체" 게이트 문구 실측. → **FB config_id 생성 자체가 Meta 앱검수/비즈니스인증 뒤에 잠김.**
+**핵심 전략사실**: 현재 IG·Threads 연결은 그 계정들이 **앱 테스터라서**(개발모드). 아무 고객이나 로그인하는
+**셀프서브는 IG/Threads/FB 공통으로 Meta 앱검수(App Review)+비즈니스인증(사업자서류, 수일~수주) 필요.**
+브라우저로 못 넘는 외부게이트(X 유료·계정생성과 동류). FB 코드는 준비완료 — 검수 통과해 config_id+시크릿 나오면 즉시 붙음.
+**회장 결정 대기**: ①앱검수/비즈니스인증 착수(장기 트랙, 사업자서류) vs ②당분간 테스터(회장 계정들)로 IG/Threads 실운영.
+
 ### ✅ FB config_id 정합 + 수동키→직접발행 브리지 완료·검증 (2026-07-05, 커밋 40b42fb6 배포됨)
 서브에이전트 산출 → 내가 재검증: verify-agent-quality PASS(WebSearch7 근거)·tsc0·vitest158pass·브리지 diff 안전
 (pgp암호화+withTenant 테넌트스코프+ON CONFLICT+가드). 배포 성공.
