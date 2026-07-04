@@ -12,6 +12,17 @@
 연결 현황(DB): instagram(587cee76, api=instagram_login) 1개만. threads(6119a9c7)는 옛 테넌트 것·무관.
 **모든 플랫폼 연결 아님** — 다음은 Threads 복제(권한 threads_content_publish 추가→redirect→시크릿 비번게이트→OAuth).
 
+### 📊 플랫폼 연결 준비도 (2026-07-04, 코드 실측)
+- **A. 원클릭 OAuth**(social-connect PROVIDERS + connect route): instagram(✅연결·발행됨)·threads·facebook.
+  대시보드 직접발행 O. Threads=권한 threads_content_publish 미추가+시크릿 비번게이트 / FB=creds+페이지 필요.
+- **B. 수동키 입력**(channel-config OTHER_CHANNELS keyField, OAuth버튼 없음): x·telegram·discord·slack·line·
+  naver_blog·bluesky·linkedin·pinterest·tumblr·tiktok·youtube. Settings에 키/토큰/웹훅 직접. 대부분 대시보드
+  직접발행 로직 없음(게이트웨이 extension 경유). 각 플랫폼 API키/OAuth앱은 회장이 발급해야.
+- **대시보드 직접 실발행(publish.ts)**: threads·instagram·x·facebook 4개만. youtube·naver 등은 발행로직 미개발.
+- **C. 미구현**: kakao·whatsapp·medium·substack (extension 없음).
+- 결론: "전 플랫폼 원클릭"은 구조상 불가. 원클릭=메타3형제뿐. 나머지는 수동키(회장 키 발급 필요)+발행로직 개발.
+- 판단대기: ①Threads/FB 원클릭 완성 ②X 키연결 ③B티어 수동배선 ④YouTube/Naver 발행로직 개발 — 스코프 회장 결정.
+
 ### ⏩ 온프렘 재개 (30초)
 현재: **IG 연결 완료(DB확정)** → **IG 실발행 E2E 진행 중**. 마지막 실발행 시도가 `Media ID is not
 available(9007)` = 이미지 컨테이너 처리 전 발행. **폴링 픽스 커밋 c214ad00 push됨, 배포는 셀프호스트
