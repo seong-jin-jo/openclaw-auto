@@ -39,10 +39,12 @@ FB-Login-for-Business SPA를 못 탐(IG/Threads는 use_cases/customize URL로 �
 근거: social-connect.ts FACEBOOK.scopes + publish.ts publishFacebook(/me/accounts→page token→발행).
 → 저장 시 **config_id 발급** → 회장이 주면 `gh secret set FB_CONFIG_ID` + FB_APP_SECRET(비번게이트) → FB 연결 내가 완료.
 실고객 셀프서브는 별도 앱검수/비즈니스인증 트랙(회장 사업자서류).
-**진행(2026-07-05 스샷)**: 회장 크롬서 구성마법사 이름·로그인버전·액세스토큰(=사용자토큰)✓, 자산=비활성(사용자토큰이라 정상),
-지금 **권한 단계**. 근데 권한 검색 기본목록이 instagram_* 위주로 뜸 → 회장에게 검색창에 "pages" 쳐서
-pages_show_list/pages_manage_posts/pages_read_engagement 체크 요청. **리스크**: 이 앱 use-case가 Threads/IG라
-Facebook 페이지 권한이 목록에 없을 수 있음 → 없으면 앱에 FB 페이지 use-case 추가 필요(별도). 회장 스샷 확인 대기.
+**진행(2026-07-05 스샷)**: 구성마법사 이름·로그인버전·액세스토큰(사용자토큰)✓, 권한단계서 회장이 "pages" 검색
+→ **결과 없음(실측)**. 즉 **이 앱엔 Facebook 페이지 권한(pages_manage_posts 등)이 아예 없음** — 이용사례가
+Threads/IG뿐이라. 우리 publishFacebook은 페이지 발행이라 이 권한 필수 → **config만으론 FB 발행 불가.**
+**FB 결론**: 앱에 Facebook 페이지 use-case 추가 + pages_manage_posts 앱검수(고급권한, 사업자인증 포함)라는
+큰 벽. IG/Threads(dev+테스터)보다 훨씬 무거움. **권고: FB 보류, 구성마법사 취소.** IG/Threads 실운영부터 완성.
+회장 결정 대기: ①FB 검수트랙 열기(장기·서류) vs ②IG/Threads 실운영 파이프라인 완성 먼저.
 
 ### 🚧 셀프서브 진짜 게이트 = Meta 앱검수+비즈니스인증 (2026-07-05, 실측)
 FB Login for Business "구성"(config 생성) 페이지가 4회 모두 dashboard로 튕김 + "비즈니스 인증/앱 검수/기술
