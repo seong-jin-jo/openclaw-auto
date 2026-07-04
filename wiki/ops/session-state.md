@@ -3,7 +3,25 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **qa**, ship은 `/approve qa` 후). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-04 · `main` · IG 연결 블로커=IG_APP_SECRET stale(규명 완료).
+**최종 갱신:** 2026-07-04 · `main`(c214ad00, 전부 push됨) · 노트북 끄고 온프렘서 재개.
+
+### ⏩ 온프렘 재개 (30초)
+현재: **IG 연결 완료(DB확정)** → **IG 실발행 E2E 진행 중**. 마지막 실발행 시도가 `Media ID is not
+available(9007)` = 이미지 컨테이너 처리 전 발행. **폴링 픽스 커밋 c214ad00 push됨, 배포는 셀프호스트
+러너(marketing VM)에서 진행 중** — 노트북 꺼도 러너가 마저 배포함. 온프렘서 먼저:
+1. 배포 완료 확인: `gh run list --workflow=deploy-marketing.yml --limit 1`
+2. **IG 실발행 재시도**(status 폴링 반영됨):
+```
+ssh marketing-vm 'TOKEN=$(docker exec openclaw-dashboard-osmu printenv DASHBOARD_AUTH_TOKEN)
+curl -s -X POST "https://openclaw.sj-onpremise-cloudflare-tunnel.cloud/api/publish" \
+ -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+ -d "{\"tenant_id\":\"587cee76-deca-480e-8fdd-808a30ec86eb\",\"platform\":\"instagram\",\"text\":\"OSMU 테스트\",\"image_url\":\"https://placehold.co/1080x1080/2266ee/ffffff/jpg?text=OSMU+TEST\"}"'
+```
+   → `ok:true, externalId=...` 나오면 zero_to_one_ai 피드에 실제 게시됨(스샷 확인, 원하면 삭제).
+3. 실발행 검증되면 → **전 플랫폼 구현**(사용자 승인함). 순서: Threads(권한 threads_content_publish 추가
+   →redirect 등록→시크릿 비번게이트→배포→OAuth) → Facebook → X(키4개 수동) → 나머지.
+
+**IG_APP_SECRET**은 콘솔 실제값(6672…)으로 gh secret 교체·배포됨(원인 해결). placehold.co=image/jpeg 200 확인.
 **즉시 다음 액션(2026-07-04):** 브라우저를 Instagram 앱 시크릿 필드에 띄우고 "표시" 클릭까지 함 →
 **Meta가 페북개발 계정 비밀번호 재확인 모달 요구**(passwordField 실측). 비번=사용자만 입력 가능(자동입력
 금지선). **사용자가 비번 입력해 시크릿 공개시키면**, 내가 값을 변수로만 캡처(로그 미출력)해
