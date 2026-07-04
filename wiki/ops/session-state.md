@@ -12,6 +12,15 @@
 연결 현황(DB): instagram(587cee76, api=instagram_login) 1개만. threads(6119a9c7)는 옛 테넌트 것·무관.
 **모든 플랫폼 연결 아님** — 다음은 Threads 복제(권한 threads_content_publish 추가→redirect→시크릿 비번게이트→OAuth).
 
+### ⚠️ Facebook 진행 — FB Login for Business 복잡성 (2026-07-04)
+- FB_APP_ID=1553503759757107(Meta앱ID) FB Login dialog 유효 확인 → `gh secret set FB_APP_ID` ✅.
+- 시크릿=앱 설정>기본 설정>"앱 시크릿 코드"(보기=비번게이트). 아직 미획득.
+- **막힘**: redirect를 고급설정 "콜백 URL 승인"에 넣고 Save Changes 했으나 **리로드 후 사라짐**(미저장).
+  이 앱은 **"비즈니스용 Facebook 로그인"(classic 아님)** → redirect는 로그인 제품의 **login configuration
+  (config_id)**에 넣어야 하고, 우리 코드 `exchangeFacebookCode`는 classic facebook.com/dialog/oauth라
+  **정합 안 될 수 있음**. 즉 FB는 시크릿만으론 안 됨 — 로그인방식 정합(코드 또는 설정) 필요 + 발행엔 FB Page 연결 필요.
+- 판단: FB는 IG/Threads보다 큰 작업. 회장 결정 대기(FB 강행 vs X/타플랫폼 키 먼저).
+
 ### ✅ Threads 연결 완료 (2026-07-04, DB 확정)
 integrations: tenant 587cee76 / threads / has_token=true / meta.api=threads_login /
 userId=27476948648629304(code_zero_to_one 계정, Threads 테스터). 콜백 성공메시지 확인.
