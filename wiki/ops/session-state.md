@@ -12,6 +12,18 @@
 연결 현황(DB): instagram(587cee76, api=instagram_login) 1개만. threads(6119a9c7)는 옛 테넌트 것·무관.
 **모든 플랫폼 연결 아님** — 다음은 Threads 복제(권한 threads_content_publish 추가→redirect→시크릿 비번게이트→OAuth).
 
+### 🧱 "전 플랫폼 연결" 시도 결과 = 크레덴셜 벽 (2026-07-04)
+회장 "크롬 익스텐션 띄워 전부 연결" 지시. 실제 해보니 **내 브라우저 조작으로 넘을 수 없는 벽**:
+- **Threads(가장 feasible)**: 콘솔서 `threads_content_publish` 권한 "추가" 클릭함(진행). 하지만 앱ID/redirect/
+  **시크릿**은 IG처럼 필요 — 특히 **시크릿은 Meta 비번게이트라 회장 손**. 그거 없이는 내가 완성 불가 →
+  콘솔 헤매기 중단. 회장이 Threads 앱 시크릿 reveal 해주면 그 한 패스에 (앱id캡처+redirect등록+gh secret+배포+OAuth) 완료.
+- **YouTube/Naver/X/TikTok/LinkedIn/Pinterest 등**: 각 플랫폼 개발자 콘솔에서 **회장 계정으로 OAuth앱 생성/
+  API키 발급**(YouTube=Google Cloud+심사, Naver=네이버개발자, X=유료 API)이 선행. **브라우저로 대신 못 만듦**
+  (회장 계정·결제·심사). 키 주면 즉시 배선.
+- **발행로직 미개발 채널(~10개)**: 연결돼도 대시보드 직접발행 안 됨 — 별도 개발 스코프.
+→ 결론(근거): "모든 플랫폼 원클릭 연결"은 이 세션에서 불가. 병목=회장 크레덴셜+심사+개발, 내 노력 아님.
+  다음 현실경로: ①회장이 Threads 시크릿 reveal→내가 Threads 완성 ②X 4키 주면 연결 ③나머지는 키 확보 순차.
+
 ### 📊 플랫폼 연결 준비도 (2026-07-04, 코드 실측)
 - **A. 원클릭 OAuth**(social-connect PROVIDERS + connect route): instagram(✅연결·발행됨)·threads·facebook.
   대시보드 직접발행 O. Threads=권한 threads_content_publish 미추가+시크릿 비번게이트 / FB=creds+페이지 필요.
