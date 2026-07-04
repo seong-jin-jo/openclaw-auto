@@ -12,6 +12,13 @@
 연결 현황(DB): instagram(587cee76, api=instagram_login) 1개만. threads(6119a9c7)는 옛 테넌트 것·무관.
 **모든 플랫폼 연결 아님** — 다음은 Threads 복제(권한 threads_content_publish 추가→redirect→시크릿 비번게이트→OAuth).
 
+### ⏳ 서브에이전트 실행 중: Settings 연결-UI + 키입력 (2026-07-04)
+회장 지적: 연결된 채널은 Settings에서 ①연결됨 표시 ②API키/UserID 입력칸이 제대로 있어야. general-purpose
+서브에이전트 위임(감사+수정, 커밋은 내가 검토후). 대상: ChannelPage/InstagramPage/DataChannelPage/
+MessagingPage의 연결배지·CredentialForm·SocialConnectButton 정합. tsc0+vitest 통과 조건. 완료시 verify후 커밋.
+※ 이 트랙 파일(components/channel/*, channel-config)은 서브에이전트 소유 — 메인세션 편집 금지(겹침방지).
+남은 플랫폼 연결(X/TikTok/LinkedIn/YouTube/Naver)=회장 API키 선행(서브에이전트도 못 만듦). FB=config작업.
+
 ### ⚠️ Facebook 진행 — FB Login for Business 복잡성 (2026-07-04)
 - FB_APP_ID=1553503759757107(Meta앱ID) FB Login dialog 유효 확인 → `gh secret set FB_APP_ID` ✅.
 - 시크릿=앱 설정>기본 설정>"앱 시크릿 코드"(보기=비번게이트). 아직 미획득.
