@@ -12,6 +12,14 @@
 연결 현황(DB): instagram(587cee76, api=instagram_login) 1개만. threads(6119a9c7)는 옛 테넌트 것·무관.
 **모든 플랫폼 연결 아님** — 다음은 Threads 복제(권한 threads_content_publish 추가→redirect→시크릿 비번게이트→OAuth).
 
+### ✅ Threads 연결 완료 (2026-07-04, DB 확정)
+integrations: tenant 587cee76 / threads / has_token=true / meta.api=threads_login /
+userId=27476948648629304(code_zero_to_one 계정, Threads 테스터). 콜백 성공메시지 확인.
+원인 패턴=IG와 동일(앱ID+시크릿+redirect). 발행(publishThreads=graph.threads.net) 아직 미검증(실발행 안 함).
+**연결 현황: IG✅(+실발행✅) · Threads✅ · 나머지 미연결.**
+**다음(전 플랫폼)**: Facebook(Meta앱=FB앱이므로 FB_APP_ID=1553503759757107 가능성, 시크릿 비번게이트+페이지연결)
+→ X(키4개 회장) → YouTube/Naver 등(회장 OAuth앱 발급). 컨트롤러 권고: FB 다음(같은 콘솔).
+
 ### ▶ Threads — 인프라 완료, 계정 로그인만 남음 (2026-07-04)
 **완료:** THREADS_APP_ID(905965605850465)+THREADS_APP_SECRET(prefix c85a) gh secret 등록·배포·컨테이너
 반영 확인. 콜백 redirect/deauth/delete 저장(사용자). authUrl 정상 생성(threads.net/oauth, redirect 우리콜백,
