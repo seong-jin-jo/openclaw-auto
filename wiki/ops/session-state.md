@@ -12,6 +12,14 @@
 연결 현황(DB): instagram(587cee76, api=instagram_login) 1개만. threads(6119a9c7)는 옛 테넌트 것·무관.
 **모든 플랫폼 연결 아님** — 다음은 Threads 복제(권한 threads_content_publish 추가→redirect→시크릿 비번게이트→OAuth).
 
+### ▶ Threads 진행 (2026-07-04 업데이트)
+**내가 완료:** Threads 앱 ID=**905965605850465** 확인 → `gh secret set THREADS_APP_ID` ✅. 설정탭에서
+리디렉션 콜백 URL=`.../api/connect/threads/callback`, 제거=`.../deauthorize`, 삭제=`.../delete` 3칸 입력함.
+**막힘:** ①"저장" 버튼 자동클릭이 Meta SPA에서 안 먹음(사람 클릭 필요) ②Threads 앱 시크릿=마스킹(보기→비번게이트).
+**사용자 2스텝(창 focus됨):** (1)설정탭 하단 "저장" 클릭 (2)시크릿 "보기"→비번→"됐다".
+→ 그럼 내가: 시크릿 캡처(무로그)→`gh secret set THREADS_APP_SECRET`→배포→Threads OAuth 연결→DB확인.
+TODO(선택): `/api/connect/threads/{deauthorize,delete}` 엔드포인트 미구현(콜백 URL만 등록, 런타임 컴플라이언스용 나중에).
+
 ### ▶ Threads 진행 중 (2026-07-04, 브라우저 세션)
 - `threads_content_publish` 권한 "추가" 클릭함(진행). Threads 설정탭(앱ID/시크릿/redirect)이 gstack
   브라우저 자동조작으로 렌더 안 됨(Meta SPA 지연) → 사용자에게 창 focus 후 수동 진입 요청:
