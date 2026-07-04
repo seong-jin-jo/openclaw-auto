@@ -1,6 +1,7 @@
 import { readJson, configPath } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
+import { withTenant } from "@/lib/db";
 
 interface PluginEntry {
   enabled?: boolean;
@@ -113,6 +114,25 @@ export async function GET(request: Request) {
     password: bCfg.password || "",
     keys: bKeys,
   };
+
+  // OAuth "연결"은 테넌트 integrations 테이블에 저장된다(플러그인 config가 아님). 대시보드 "연결됨"
+  // 배지가 이를 반영하도록, 해당 테넌트에 저장된 channel 토큰이 있으면 connected=true 로 보정한다.
+  if (__t) {
+    try {
+      const rows = await withTenant(__t, (sql) => sql<{ label: string }[]>`
+        SELECT label FROM integrations
+        WHERE tenant_id = ${__t} AND kind = 'channel' AND secret_enc <> ''`);
+      for (const { label } of rows) {
+        const ch = channels[label];
+        if (ch) {
+          ch.connected = true;
+          if (ch.status === "available" || ch.status === "soon" || !ch.status) {
+            ch.status = ch.enabled ? "live" : "connected";
+          }
+        }
+      }
+    } catch { /* DB 미가용 시 파일 기반 상태 유지 */ }
+  }
 
   return Response.json(channels);
   });
