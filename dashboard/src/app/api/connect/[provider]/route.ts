@@ -12,6 +12,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
   const tenantId = await effectiveTenantId(request, new URL(request.url).searchParams.get("tenant_id"));
   if (!tenantId) return Response.json({ error: "tenant_id required" }, { status: 400 });
 
+  // 비즈니스용 Facebook 로그인은 config_id가 필수 — 없으면 authorize URL을 만들 수 없다(명확히 안내).
+  if (provider === "facebook" && !process.env.FB_CONFIG_ID) {
+    return Response.json(
+      { error: "FB_CONFIG_ID 미설정 — 비즈니스용 Facebook 로그인 구성 ID 필요(App Dashboard에서 login configuration 생성 시 발급)" },
+      { status: 500 },
+    );
+  }
+
   const origin = publicOrigin(request);
   const authUrl = buildAuthUrl(cfg, origin, provider, tenantId);
   if (!authUrl) return Response.json({ error: `${cfg.appIdEnv} 미설정 — 플랫폼 OAuth 앱 자격증명 필요` }, { status: 500 });

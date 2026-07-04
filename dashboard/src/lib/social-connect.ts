@@ -41,13 +41,25 @@ export const PROVIDERS: Record<string, ProviderConfig> = {
   },
 };
 
-// Facebook은 페이지 토큰 흐름이 다름(user token → /me/accounts → page token). 별도 config.
+// Facebook은 "비즈니스용 Facebook 로그인"(Facebook Login for Business) 앱이다.
+// classic Facebook Login과 달리 authorize dialog에서 scope 대신 config_id를 넘긴다:
+//   "config_id has replaced scope ... we recommend that you do not use [scope]"
+//   — https://developers.facebook.com/documentation/facebook-login/facebook-login-for-business
+// config_id는 사람이 App Dashboard에서 login configuration을 만들면 발급되는 값으로,
+// 그 configuration에 pages_manage_posts / pages_show_list 등 권한·asset이 묶인다.
+// 코드는 이 값을 env FB_CONFIG_ID 로 "소비"만 한다(콘솔서 생성 → 여기서 사용).
+// 토큰 교환(exchangeFacebookCode)은 classic manual-flow와 동일 엔드포인트를 쓴다:
+//   GET graph.facebook.com/v21.0/oauth/access_token?client_id&client_secret&redirect_uri&code
+//   — https://developers.facebook.com/docs/facebook-login/guides/advanced/manual-flow/
+// 페이지 토큰 흐름(user token → /me/accounts → page token)은 그대로 유효.
 export const FACEBOOK = {
   label: "facebook",
   authorizeUrl: "https://www.facebook.com/v21.0/dialog/oauth",
+  // scope는 config_id 모델에서 미사용(참고용으로만 남김 — buildAuthUrl은 config_id를 보낸다).
   scopes: ["pages_show_list", "pages_manage_posts", "pages_read_engagement"],
   appIdEnv: "FB_APP_ID",
   appSecretEnv: "FB_APP_SECRET",
+  configIdEnv: "FB_CONFIG_ID",
 };
 
 export function getProvider(name: string): ProviderConfig | null {
@@ -86,14 +98,22 @@ export function publicOrigin(request: Request): string {
 export function buildAuthUrl(provider: ProviderConfig, origin: string, providerName: string, state: string): string | null {
   const clientId = process.env[provider.appIdEnv];
   if (!clientId) return null;
-  const p = new URLSearchParams({
+  const params: Record<string, string> = {
     client_id: clientId,
     redirect_uri: redirectUri(origin, providerName),
-    scope: provider.scopes.join(","),
     response_type: "code",
     state,
-  });
-  return `${provider.authorizeUrl}?${p.toString()}`;
+  };
+  if (providerName === "facebook") {
+    // 비즈니스용 Facebook 로그인 = scope 대신 config_id. 없으면 authorize 불가(콘솔서 발급 필요).
+    const configId = process.env[FACEBOOK.configIdEnv];
+    if (!configId) return null;
+    params.config_id = configId;
+  } else {
+    // Instagram·Threads(Instagram Login API 계열) = scope 콤마구분.
+    params.scope = provider.scopes.join(",");
+  }
+  return `${provider.authorizeUrl}?${new URLSearchParams(params).toString()}`;
 }
 
 export interface ExchangedToken {
@@ -149,6 +169,9 @@ export async function exchangeCode(
 
 // Facebook: code → user token → 장기 user token → /me/accounts → 첫 페이지 토큰+id.
 // 저장값 = 페이지 토큰(발행용) + meta.pageId. (다중 페이지면 첫 번째 — 향후 선택 UI.)
+// config_id는 authorize 단계에서만 필요하고, 토큰 교환은 classic manual-flow와 동일 엔드포인트다
+// (graph.facebook.com/v21.0/oauth/access_token, client_id+client_secret+redirect_uri+code).
+// FB_APP_SECRET가 반드시 필요(교환·장기토큰 서명). redirect_uri는 authorize와 글자까지 동일해야 한다.
 const FB_V = "https://graph.facebook.com/v21.0";
 export async function exchangeFacebookCode(code: string, origin: string, f: typeof fetch = fetch): Promise<ExchangedToken> {
   const clientId = process.env.FB_APP_ID || "";

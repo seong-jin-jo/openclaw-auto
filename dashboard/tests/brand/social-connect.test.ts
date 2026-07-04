@@ -161,3 +161,54 @@ describe("GET /api/connect/instagram/callback — 토큰교환·저장", () => {
     expect(H.inserts).toHaveLength(0);
   });
 });
+
+// 비즈니스용 Facebook 로그인(Facebook Login for Business) = authorize에 scope 대신 config_id.
+// 근거: developers.facebook.com/documentation/facebook-login/facebook-login-for-business
+describe("Facebook Login for Business — config_id authorize URL", () => {
+  it("buildAuthUrl(facebook)는 scope가 아니라 config_id를 넣는다", async () => {
+    process.env.FB_APP_ID = "fb-app-1";
+    process.env.FB_CONFIG_ID = "cfg-777";
+    const { buildAuthUrl, getProvider } = await import("@/lib/social-connect");
+    const cfg = getProvider("facebook")!;
+    const url = buildAuthUrl(cfg, "https://live.example", "facebook", "tenant-1")!;
+    expect(url).toContain("facebook.com/v21.0/dialog/oauth");
+    expect(url).toContain("config_id=cfg-777");
+    expect(url).toContain("response_type=code");
+    expect(url).toContain("state=tenant-1");
+    expect(url).toContain(encodeURIComponent("https://live.example/api/connect/facebook/callback"));
+    // config_id 모델은 scope를 보내지 않는다
+    expect(url).not.toContain("scope=");
+    expect(url).not.toContain("pages_manage_posts");
+    delete process.env.FB_CONFIG_ID;
+  });
+
+  it("FB_CONFIG_ID 없으면 buildAuthUrl(facebook)=null", async () => {
+    process.env.FB_APP_ID = "fb-app-1";
+    delete process.env.FB_CONFIG_ID;
+    const { buildAuthUrl, getProvider } = await import("@/lib/social-connect");
+    const cfg = getProvider("facebook")!;
+    expect(buildAuthUrl(cfg, "https://live.example", "facebook", "tenant-1")).toBeNull();
+  });
+
+  it("GET /api/connect/facebook — FB_CONFIG_ID 미설정 시 500 + 안내 메시지", async () => {
+    process.env.FB_APP_ID = "fb-app-1";
+    delete process.env.FB_CONFIG_ID;
+    const { GET } = await import("@/app/api/connect/[provider]/route");
+    const res = await GET(new Request("https://app.example/api/connect/facebook?tenant_id=tenant-1"), params("facebook"));
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error).toContain("FB_CONFIG_ID");
+  });
+
+  it("GET /api/connect/facebook — config_id 설정 시 authUrl 반환", async () => {
+    process.env.FB_APP_ID = "fb-app-1";
+    process.env.FB_CONFIG_ID = "cfg-777";
+    const { GET } = await import("@/app/api/connect/[provider]/route");
+    const res = await GET(new Request("https://app.example/api/connect/facebook?tenant_id=tenant-1"), params("facebook"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.authUrl).toContain("config_id=cfg-777");
+    expect(body.authUrl).not.toContain("scope=");
+    delete process.env.FB_CONFIG_ID;
+  });
+});
