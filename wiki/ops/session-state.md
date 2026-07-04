@@ -21,8 +21,13 @@ gstack 브라우저로 연결 재시도(Meta·IG 세션 zero_to_one_ai 로그인
 (req,null)) → 운영자 조회 시 connected:false 착시. 검증은 DB 직접.
 **보안 TODO**: 새 시크릿 6672ef45…가 이 세션 트랜스크립트에 노출됨(snapshot) → 검증 끝나면 콘솔에서
 1회 더 재설정하고 사용자가 직접 gh secret 등록 권장(스냅샷 반출 회피).
-**다음**: (선택) 위키→생성→graph.instagram.com **실발행 E2E**(zero_to_one_ai 실계정에 실제 게시 — 사용자
-승인 후). Threads도 콘솔 이용사례 있으니 THREADS_APP_ID/SECRET 확보 시 동일 방식으로 연결 가능.
+**대시보드 "미연결" 착시 규명·수정(2026-07-04):** 사용자가 대시보드에서 IG 미연결로 봄 → 원인 2개:
+① channel-config API가 `openclaw.json` 플러그인 config만 읽고 **테넌트 integrations(OAuth 저장처)를 안 읽음**
+   → 커밋 179086e3로 integrations도 반영(connected 보정) 배포. **라이브 배지 검증은 사용자 새로고침 대기.**
+② 토큰이 저장된 테넌트 **587cee76 = `code0to1@gmail.com`**(tenants 조회 확정). 즉 **대시보드를 그 계정으로
+   로그인**해야 보임. 다른 계정으로 보면 미연결이 맞음. (연결된 IG=zero_to_one_ai ↔ code0to1 계정.)
+**다음**: 사용자가 code0to1@gmail.com로 대시보드 새로고침 → Connected 확인. 그 후 (선택) 위키→생성→
+graph.instagram.com **실발행 E2E**(실계정 게시, 승인 후). Threads는 콘솔 이용사례 있음(시크릿 확보 시 동일 연결).
 
 ## 진행 상태 (2026-07-03)
 
