@@ -28,6 +28,14 @@ MessagingPage의 연결배지·CredentialForm·SocialConnectButton 정합. tsc0+
 ※ 이 트랙 파일(components/channel/*, channel-config)은 서브에이전트 소유 — 메인세션 편집 금지(겹침방지).
 남은 플랫폼 연결(X/TikTok/LinkedIn/YouTube/Naver)=회장 API키 선행(서브에이전트도 못 만듦). FB=config작업.
 
+### ⏳ 서브에이전트 실행중: FB OAuth 정합 + 전채널 수동키 경로 (2026-07-05)
+general-purpose 위임(agentId a6ecfa23…). ①FB를 config_id 흐름으로 코드정합(공식문서 WebSearch 근거,
+social-connect.ts/publish.ts/connect route) — FB_CONFIG_ID+FB_APP_SECRET env 소비, config 생성은 콘솔(사람).
+②전 비-OAuth 채널(X·telegram·…·youtube) 키입력→저장→connected→getChannelCred→발행 경로 검증·완성.
+조건: tsc0+vitest, 커밋X(내가 verify후), SOURCES/MODEL 푸터. 완료시 verify-agent-quality+tsc/test 재실행 검증.
+※ social-connect.ts/publish.ts/connect/*/channel-config/CredentialForm = 서브에이전트 소유, 메인 편집금지.
+FB 최종 완결엔 여전히: 콘솔서 login config 생성(config_id)+시크릿 비번게이트+FB페이지 = 회장 손 필요.
+
 ### 🔴 FB 콘솔 네비 실패 + 코드정합 필요 확정 (2026-07-04)
 gstack 브라우저가 FB 로그인 sub-page(설정/구성/config)를 못 열고 dashboard로 반복 튕김(실측). 그리고
 근본: 이 앱=비즈니스용 FB 로그인(config_id 모델) ≠ 우리 코드 exchangeFacebookCode(classic dialog/oauth).
