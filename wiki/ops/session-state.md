@@ -26,8 +26,14 @@ gstack 브라우저로 연결 재시도(Meta·IG 세션 zero_to_one_ai 로그인
    → 커밋 179086e3로 integrations도 반영(connected 보정) 배포. **라이브 배지 검증은 사용자 새로고침 대기.**
 ② 토큰이 저장된 테넌트 **587cee76 = `code0to1@gmail.com`**(tenants 조회 확정). 즉 **대시보드를 그 계정으로
    로그인**해야 보임. 다른 계정으로 보면 미연결이 맞음. (연결된 IG=zero_to_one_ai ↔ code0to1 계정.)
-**다음**: 사용자가 code0to1@gmail.com로 대시보드 새로고침 → Connected 확인. 그 후 (선택) 위키→생성→
-graph.instagram.com **실발행 E2E**(실계정 게시, 승인 후). Threads는 콘솔 이용사례 있음(시크릿 확보 시 동일 연결).
+**다음**: 사용자가 code0to1@gmail.com로 대시보드 새로고침 → Connected 확인.
+
+## 플랫폼 확장 현황 (2026-07-04, "모든 플랫폼 연결" 요청)
+- **Settings 토큰칸 빈 것 = 정상**(OAuth 토큰은 integrations에 암호화 저장, 클라에 노출 안 함. 배지가 지표).
+- **Threads 콘솔 확인**: `threads_content_publish` 권한 **미추가**(+추가 상태), 앱ID/시크릿/redirect는 "설정"
+  하위, 시크릿은 IG처럼 **비번게이트** 필요. → Threads도 IG 전체 플로우 반복(권한추가→redirect→시크릿→배포→OAuth).
+- **판단 대기(사용자)**: ①IG 실발행 E2E 먼저(비번게이트 불필요, 실계정 비가역 게시 — 승인 필요) ②Threads 강행
+  ③둘 다. 컨트롤러 권고=①(파이프라인 증명 후 복제가 시간·품질 우위). X=키4개 수동, YouTube등 미구현.
 
 ## 진행 상태 (2026-07-03)
 
