@@ -12,6 +12,16 @@
 연결 현황(DB): instagram(587cee76, api=instagram_login) 1개만. threads(6119a9c7)는 옛 테넌트 것·무관.
 **모든 플랫폼 연결 아님** — 다음은 Threads 복제(권한 threads_content_publish 추가→redirect→시크릿 비번게이트→OAuth).
 
+### ▶ Threads 진행 중 (2026-07-04, 브라우저 세션)
+- `threads_content_publish` 권한 "추가" 클릭함(진행). Threads 설정탭(앱ID/시크릿/redirect)이 gstack
+  브라우저 자동조작으로 렌더 안 됨(Meta SPA 지연) → 사용자에게 창 focus 후 수동 진입 요청:
+  좌측 Threads API 액세스 > "설정" > 앱ID(숫자, 알려줄 것)+시크릿(표시→비번게이트)+리디렉션 콜백 URL.
+- 사용자가 앱ID 알려주고 시크릿 reveal("됐다")하면 내가: 시크릿 캡처(무로그)→`gh secret set THREADS_APP_ID/SECRET`
+  →redirect `https://openclaw.sj-onpremise-cloudflare-tunnel.cloud/api/connect/threads/callback` 등록
+  →배포→Threads OAuth 연결(social-connect에 threads provider 이미 있음)→DB 확인.
+- 코드측 준비: `social-connect.ts` PROVIDERS.threads(authorizeUrl=threads.net/oauth, tokenUrl=graph.threads.net)
+  이미 존재. publish.ts publishThreads 존재. 즉 **시크릿·redirect·appid만 채우면 IG처럼 작동 예상.**
+
 ### 🧱 "전 플랫폼 연결" 시도 결과 = 크레덴셜 벽 (2026-07-04)
 회장 "크롬 익스텐션 띄워 전부 연결" 지시. 실제 해보니 **내 브라우저 조작으로 넘을 수 없는 벽**:
 - **Threads(가장 feasible)**: 콘솔서 `threads_content_publish` 권한 "추가" 클릭함(진행). 하지만 앱ID/redirect/
