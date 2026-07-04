@@ -13,6 +13,17 @@ gstack 브라우저로 연결 재시도(Meta·IG 세션 zero_to_one_ai 로그인
 저장 확인(`tenant 587cee76`, `meta.api=instagram_login`) → 위키→생성→graph.instagram.com 실발행 E2E.
 시크릿 값은 하네스가 에이전트 로그로 반출 차단(재노출 방지) — 값 복사만 사용자 손.
 
+## ✅ IG 연결 완료 (2026-07-04, DB 확정)
+근본원인=IG_APP_SECRET stale(774edc1f… → 콘솔 실제값 6672ef45…로 교체·재배포). 연결 재시도 →
+콜백 "연결 완료" + **integrations 행 확정**(로컬 postgres 드라이버로 DATABASE_URL 직접 조회):
+`tenant=587cee76, label=instagram, has_token=true, meta.api=instagram_login, userId=28428705173384372`.
+디버그 코드 제거(커밋 2f43952f). 참고: channel-config API는 tenant_id 파라미터 무시(effectiveTenantId
+(req,null)) → 운영자 조회 시 connected:false 착시. 검증은 DB 직접.
+**보안 TODO**: 새 시크릿 6672ef45…가 이 세션 트랜스크립트에 노출됨(snapshot) → 검증 끝나면 콘솔에서
+1회 더 재설정하고 사용자가 직접 gh secret 등록 권장(스냅샷 반출 회피).
+**다음**: (선택) 위키→생성→graph.instagram.com **실발행 E2E**(zero_to_one_ai 실계정에 실제 게시 — 사용자
+승인 후). Threads도 콘솔 이용사례 있으니 THREADS_APP_ID/SECRET 확보 시 동일 방식으로 연결 가능.
+
 ## 진행 상태 (2026-07-03)
 
 **✅ 해결됨(라이브 검증):**
