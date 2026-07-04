@@ -28,6 +28,13 @@ MessagingPage의 연결배지·CredentialForm·SocialConnectButton 정합. tsc0+
 ※ 이 트랙 파일(components/channel/*, channel-config)은 서브에이전트 소유 — 메인세션 편집 금지(겹침방지).
 남은 플랫폼 연결(X/TikTok/LinkedIn/YouTube/Naver)=회장 API키 선행(서브에이전트도 못 만듦). FB=config작업.
 
+### 🔴 FB 콘솔 네비 실패 + 코드정합 필요 확정 (2026-07-04)
+gstack 브라우저가 FB 로그인 sub-page(설정/구성/config)를 못 열고 dashboard로 반복 튕김(실측). 그리고
+근본: 이 앱=비즈니스용 FB 로그인(config_id 모델) ≠ 우리 코드 exchangeFacebookCode(classic dialog/oauth).
+→ **FB는 콘솔클릭 아니라 코드정합 작업**: social-connect.ts/publish.ts FB 경로를 config_id 흐름으로 재작성 +
+시크릿(비번게이트) + FB페이지 연결. 서브에이전트 위임 권고. **회장 결정 대기.**
+못 넘는 3종 확정: 네 비번(Meta), 네 결제(X 발행 API 유료 $200/mo), 네 계정생성·심사(각 플랫폼).
+
 ### ⚠️ Facebook 진행 — FB Login for Business 복잡성 (2026-07-04)
 - FB_APP_ID=1553503759757107(Meta앱ID) FB Login dialog 유효 확인 → `gh secret set FB_APP_ID` ✅.
 - 시크릿=앱 설정>기본 설정>"앱 시크릿 코드"(보기=비번게이트). 아직 미획득.
