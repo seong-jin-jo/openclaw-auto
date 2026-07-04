@@ -28,6 +28,16 @@ MessagingPage의 연결배지·CredentialForm·SocialConnectButton 정합. tsc0+
 ※ 이 트랙 파일(components/channel/*, channel-config)은 서브에이전트 소유 — 메인세션 편집 금지(겹침방지).
 남은 플랫폼 연결(X/TikTok/LinkedIn/YouTube/Naver)=회장 API키 선행(서브에이전트도 못 만듦). FB=config작업.
 
+### ✅ FB config_id 정합 + 수동키→직접발행 브리지 완료·검증 (2026-07-05, 커밋 40b42fb6 배포됨)
+서브에이전트 산출 → 내가 재검증: verify-agent-quality PASS(WebSearch7 근거)·tsc0·vitest158pass·브리지 diff 안전
+(pgp암호화+withTenant 테넌트스코프+ON CONFLICT+가드). 배포 성공.
+- FB: buildAuthUrl(facebook)이 scope→config_id(FB_CONFIG_ID). 토큰교환은 classic manual-flow와 동일(불변).
+- 수동키 브리지: Settings 키입력→openclaw.json(게이트웨이)+integrations(직접발행) 양쪽 저장 → X 등 끊긴 고리 복구.
+  대상=직접발행 함수 있는 threads/ig/x/facebook만. 나머지(telegram/youtube/naver 등)=게이트웨이 extension 경유(직접발행 미구현).
+**FB 라이브 완결에 회장 콘솔 3종(코드는 소비만):** ①login configuration 생성→FB_CONFIG_ID gh secret ②FB_APP_SECRET
+등록확인 ③Valid OAuth Redirect URIs에 `{OSMU_PUBLIC_URL}/api/connect/facebook/callback` 등록. 그 후 FB 연결 라이브검증 가능.
+**X 등**: Settings에서 키 입력하면 이제 직접발행까지 연결됨(회장 키 필요).
+
 ### ⏳ 서브에이전트 실행중: FB OAuth 정합 + 전채널 수동키 경로 (2026-07-05)
 general-purpose 위임(agentId a6ecfa23…). ①FB를 config_id 흐름으로 코드정합(공식문서 WebSearch 근거,
 social-connect.ts/publish.ts/connect route) — FB_CONFIG_ID+FB_APP_SECRET env 소비, config 생성은 콘솔(사람).
