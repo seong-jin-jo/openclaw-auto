@@ -137,8 +137,7 @@ export async function exchangeCode(
   let short: { access_token?: string; user_id?: string; error_message?: string } = {};
   try { short = JSON.parse(lastText); } catch { short = {}; }
   if (!short.access_token) {
-    console.error("[connect] short-token 실패", { ru, status: shortRes.status, body: lastText.slice(0, 300) });
-    return { accessToken: "", error: `${short.error_message || "단기 토큰 교환 실패"} | sent_redirect_uri=${ru} | ig=${lastText.slice(0, 160)}` };
+    return { accessToken: "", error: short.error_message || "단기 토큰 교환 실패" };
   }
   // 2) 장기 토큰(60일)
   const longRes = await f(
