@@ -49,9 +49,12 @@ Threads/IG뿐이라. 우리 publishFacebook은 페이지 발행이라 이 권한
 카탈로그 진입 성공(FB 로그인 sub-page와 달리 use_cases는 gstack 됨). **콘텐츠 관리(4) 카테고리에
 "페이지의 모든 부분 관리"(콘텐츠·동영상 게시, 페이지 API) use-case 발견** = 이게 pages_manage_posts 등
 페이지 발행권한 부여. 이걸 추가 중 — 근데 카드 체크박스가 커스텀 + gstack 세션이 반복 죽음(about:blank).
-**다음 액션**: 재연결→use_cases→이용사례추가→콘텐츠관리→"페이지의 모든 부분 관리" 체크→추가/저장 →
-그후 권한에 pages_* 생김 → login config 생성(config_id) → FB_CONFIG_ID+FB_APP_SECRET → FB 연결.
-주의: pages_manage_posts 고급액세스는 앱검수(회장 사업자인증으로 진행 가능).
+**✅ 완료(2026-07-05, 내가 gstack로)**: "페이지의 모든 부분 관리" use-case 추가 확정(이용사례 목록에
+Threads·Instagram·페이지관리 3개 리로드 확인). → 앱에 pages_manage_posts/show_list/read_engagement 권한 생김.
+**다음(회장 크롬, 구성 마법사)**: 권한 단계 검색창 "pages" 재시도 → pages_show_list/manage_posts/read_engagement
+체크 → 저장 → **config_id** 회장이 나한테 주기 → `gh secret set FB_CONFIG_ID`+FB_APP_SECRET(비번게이트)+
+redirect(`{OSMU_PUBLIC_URL}/api/connect/facebook/callback`) 등록 → FB 연결 내가 완료.
+주의: pages_manage_posts 고급액세스=앱검수(회장 사업자인증으로 진행). redirect 등록위치는 config에 포함될 수도(확인필요).
 
 ### 🚧 셀프서브 진짜 게이트 = Meta 앱검수+비즈니스인증 (2026-07-05, 실측)
 FB Login for Business "구성"(config 생성) 페이지가 4회 모두 dashboard로 튕김 + "비즈니스 인증/앱 검수/기술
