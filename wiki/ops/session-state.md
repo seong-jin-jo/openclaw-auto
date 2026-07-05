@@ -55,6 +55,10 @@ Threads·Instagram·페이지관리 3개 리로드 확인). → 앱에 pages_man
 체크 → 저장 → **config_id** 회장이 나한테 주기 → `gh secret set FB_CONFIG_ID`+FB_APP_SECRET(비번게이트)+
 redirect(`{OSMU_PUBLIC_URL}/api/connect/facebook/callback`) 등록 → FB 연결 내가 완료.
 주의: pages_manage_posts 고급액세스=앱검수(회장 사업자인증으로 진행). redirect 등록위치는 config에 포함될 수도(확인필요).
+**막힘(2026-07-05)**: config 마법사 "pages" 검색에 **pages_show_list만 뜸**(회장 실측). pages_manage_posts/
+read_engagement는 use-case 추가만으론 미활성 → Threads content_publish처럼 **"페이지의 모든 부분 관리"
+use-case 맞춤설정→"권한 및 기능"탭에서 pages_manage_posts·pages_read_engagement 각각 "추가"** 필요.
+내가 gstack로 그 화면 여는 중(세션 반복 죽음+훅 인터럽트로 지연). 추가되면 config 마법사에 뜸→회장 체크·저장→config_id.
 
 ### 🚧 셀프서브 진짜 게이트 = Meta 앱검수+비즈니스인증 (2026-07-05, 실측)
 FB Login for Business "구성"(config 생성) 페이지가 4회 모두 dashboard로 튕김 + "비즈니스 인증/앱 검수/기술
