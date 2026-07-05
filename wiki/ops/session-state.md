@@ -58,7 +58,11 @@ redirect(`{OSMU_PUBLIC_URL}/api/connect/facebook/callback`) 등록 → FB 연결
 **막힘(2026-07-05)**: config 마법사 "pages" 검색에 **pages_show_list만 뜸**(회장 실측). pages_manage_posts/
 read_engagement는 use-case 추가만으론 미활성 → Threads content_publish처럼 **"페이지의 모든 부분 관리"
 use-case 맞춤설정→"권한 및 기능"탭에서 pages_manage_posts·pages_read_engagement 각각 "추가"** 필요.
-내가 gstack로 그 화면 여는 중(세션 반복 죽음+훅 인터럽트로 지연). 추가되면 config 마법사에 뜸→회장 체크·저장→config_id.
+내가 gstack로 그 화면 여는 중(세션 반복 죽음+훅 인터럽트로 지연).
+**2026-07-06 진전**: gstack 재연결 성공 → PAGES_API 권한탭 도달(url use_case_enum=PAGES_API&selected_tab=permissions).
+권한 목록 확인: pages_manage_posts·pages_read_engagement·pages_show_list 등 존재, "추가" 버튼 있음.
+**남은 미세스텝**: pages_manage_posts·pages_read_engagement 각 행의 "추가" 클릭(내 regex 이스케이프 실패로 미완).
+그후 config 마법사에 3개 다 뜸 → 회장 체크·저장 → config_id. gstack 죽으면 회장 크롬서 PAGES_API 권한탭 "추가" 대체가능. 추가되면 config 마법사에 뜸→회장 체크·저장→config_id.
 
 ### 🚧 셀프서브 진짜 게이트 = Meta 앱검수+비즈니스인증 (2026-07-05, 실측)
 FB Login for Business "구성"(config 생성) 페이지가 4회 모두 dashboard로 튕김 + "비즈니스 인증/앱 검수/기술
