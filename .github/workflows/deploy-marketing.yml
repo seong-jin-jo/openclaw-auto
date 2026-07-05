@@ -27,7 +27,6 @@ jobs:
             [ -f "$f" ] && cp -a "$f" ./ && echo "복원: $(basename "$f")"
           done
       - name: OSMU SaaS .env 렌더 (GitHub Secrets → .env.osmu)
-        if: ${{ contains(github.event.inputs.services, 'osmu') }}
         run: |
           umask 077
           cat > .env.osmu <<EOF
@@ -44,6 +43,7 @@ jobs:
           THREADS_APP_SECRET=${{ secrets.THREADS_APP_SECRET }}
           FB_APP_ID=${{ secrets.FB_APP_ID }}
           FB_APP_SECRET=${{ secrets.FB_APP_SECRET }}
+          FB_CONFIG_ID=${{ secrets.FB_CONFIG_ID }}
           EOF
           echo ".env.osmu rendered ($(grep -c . .env.osmu) lines)"
       - name: 이미지 빌드 (gateway + dashboard)
@@ -58,7 +58,8 @@ jobs:
         run: docker compose -f docker-compose.postagi-4tenants.yml ps
       - name: OSMU 스모크 게이트 (로그인 흐름 자동검증 — 깨지면 배포 FAIL)
         # 이 3개 버그(로그인死/인증게이트異常/supabase 빌드미주입)가 격노 유발 → 자동 차단.
-        if: ${{ contains(github.event.inputs.services, 'osmu') }}
+        # services=empty(전체)도 OSMU가 포함 → 항상 검증. 특정 서비스만 배포 시 OSMU 제외하면 skip.
+        if: ${{ github.event.inputs.services == '' || contains(github.event.inputs.services, 'osmu') }}
         run: |
           sleep 12
           L=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:18789/login || echo 000)
