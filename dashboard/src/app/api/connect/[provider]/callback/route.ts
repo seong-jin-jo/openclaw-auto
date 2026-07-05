@@ -4,6 +4,11 @@ import { getProvider, exchangeCode, exchangeFacebookCode, publicOrigin } from "@
 // GET /api/connect/{provider}/callback?code=...&state=<tenantId>
 // provider OAuth 리다이렉트(인증 없음 — middleware 공개). state로 테넌트 식별 → code를 토큰 교환 →
 // integrations(kind='channel', label=provider)에 암호화 저장. 비번은 우리를 거치지 않음(ADR-004).
+//
+// PKCE 채널(X, TikTok): httpOnly 쿠키 pkce_{provider}에서 code_verifier 꺼내 토큰 교환 body에 포함.
+// YouTube: refresh_token을 meta.refreshToken에 추가 저장(offline.access 갱신용).
+// Slack: access_token 또는 authed_user.access_token 자동 처리(exchangeCode 내부).
+
 function resultHtml(title: string, sub: string): Response {
   const html = `<html><body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh">
     <div style="text-align:center"><h2>${title}</h2><p style="color:#888">${sub}</p>
@@ -29,20 +34,42 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
   if (!key) return resultHtml("연결 실패", "OSMU_SECRET_KEY 미설정 — 토큰 암호화 불가");
 
   try {
+    // PKCE 채널: 쿠키에서 code_verifier 꺼내기
+    let codeVerifier: string | undefined;
+    if (cfg.pkce) {
+      const cookieStr = request.headers.get("cookie") || "";
+      const cookieName = `pkce_${provider}=`;
+      const match = cookieStr.split(";").map(c => c.trim()).find(c => c.startsWith(cookieName));
+      if (match) {
+        codeVerifier = decodeURIComponent(match.slice(cookieName.length));
+      }
+    }
+
     const tok = provider === "facebook"
       ? await exchangeFacebookCode(code, origin)
-      : await exchangeCode(provider, code, origin);
+      : await exchangeCode(provider, code, origin, { codeVerifier });
     if (!tok.accessToken) return resultHtml("연결 실패", tok.error || "토큰 교환 실패");
 
+    // api 플래그: 발행 라우터가 어느 API 경로를 써야 할지 판별하는 힌트.
+    // Meta 계열은 구분자 유지, 표준 OAuth 채널은 provider 라벨 그대로.
+    const apiFlag = provider === "instagram"
+      ? "instagram_login"
+      : provider === "threads"
+      ? "threads_login"
+      : provider === "facebook"
+      ? "facebook_graph"
+      : provider;
+
+    // meta 구성: YouTube는 refresh_token 추가 저장(access_token 만료 시 갱신용).
+    const meta: Record<string, unknown> = { userId: tok.userId ?? null, api: apiFlag, connectedAt: null };
+    if (tok.refreshToken) meta.refreshToken = tok.refreshToken;
+
     // 테넌트별 채널 cred 저장(발행 경로 getChannelCred가 읽음). 토큰은 pgcrypto 암호화.
-    // instagram/threads = Instagram Login API 계열 → 발행 시 graph.instagram.com/graph.threads.net 사용을
-    // publish.ts가 알도록 meta.api 플래그. facebook은 Graph(페이지) 경로.
-    const apiFlag = provider === "instagram" ? "instagram_login" : provider === "threads" ? "threads_login" : "facebook_graph";
     await withTenant(tenantId, (sql) => sql`
       INSERT INTO integrations (tenant_id, kind, label, secret_enc, meta)
       VALUES (${tenantId}, 'channel', ${cfg.label},
               armor(pgp_sym_encrypt(${tok.accessToken}, ${key})),
-              ${sql.json({ userId: tok.userId ?? null, api: apiFlag, connectedAt: null } as Parameters<typeof sql.json>[0])})
+              ${sql.json(meta as Parameters<typeof sql.json>[0])})
       ON CONFLICT (tenant_id, kind, label) DO UPDATE
         SET secret_enc = EXCLUDED.secret_enc, meta = EXCLUDED.meta`);
 

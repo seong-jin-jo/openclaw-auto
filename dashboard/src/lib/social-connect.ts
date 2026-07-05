@@ -2,22 +2,52 @@
 // 고객이 "연결" 클릭 → provider OAuth 동의 → callback이 code를 토큰으로 교환 → integrations(per-tenant)
 // 에 저장. 비번은 절대 우리를 거치지 않음(provider 공식 페이지에서만).
 //
-// 앱 자격증명은 플랫폼 env(우리 Meta 앱 하나). 고객별 발급이 아니라 우리 앱이 OAuth 주체.
-//   IG_APP_ID / IG_APP_SECRET (Instagram Login API)
-// 향후 threads/facebook은 PROVIDERS에 추가(같은 shape).
+// 앱 자격증명은 플랫폼 env(우리 앱 하나). 고객별 발급이 아니라 우리 앱이 OAuth 주체.
+//
+// PKCE(Proof Key for Code Exchange, RFC 7636) — X·TikTok 필수.
+//   code_verifier(32바이트 랜덤 → base64url) → SHA-256 → code_challenge(base64url)
+//   verifier는 httpOnly 쿠키(10분)에 임시 저장 → callback에서 꺼내 검증.
 
 export interface ProviderConfig {
-  label: string; // integrations.label
+  label: string;            // integrations.label
   authorizeUrl: string;
   scopes: string[];
   appIdEnv: string;
   appSecretEnv: string;
-  tokenUrl: string;      // 단기 토큰 교환(POST form)
-  longTokenUrl: string;  // 장기 토큰 교환(GET)
-  longGrant: string;     // ig_exchange_token | th_exchange_token
+  tokenUrl: string;         // 단기 토큰 교환(POST form)
+  longTokenUrl: string;     // 장기 토큰 교환(GET). "" = 표준 OAuth(단계 없음)
+  longGrant: string;        // ig_exchange_token | th_exchange_token | "" (표준 OAuth)
+  pkce?: boolean;           // PKCE(RFC 7636) 필수 여부 — X, TikTok
+  scopeSeparator?: string;  // scope 구분자. 기본 "," (Meta계열). 표준 OAuth는 " "
+  extraAuthParams?: Record<string, string>; // authorize URL 추가 파라미터(YouTube: access_type, prompt)
 }
 
-// Instagram·Threads는 같은 OAuth shape(단기→장기 교환). provider별 엔드포인트만 다름.
+// ── PKCE 헬퍼(RFC 7636) ──────────────────────────────────────────────────────
+// Web Crypto API 사용(Node.js 18+·Edge Runtime 모두 지원).
+
+/** 32바이트 랜덤 base64url code_verifier (43자) */
+export function generateCodeVerifier(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return base64urlEncode(bytes);
+}
+
+/** code_verifier → SHA-256 → base64url code_challenge */
+export async function generateCodeChallenge(verifier: string): Promise<string> {
+  const data = new TextEncoder().encode(verifier);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return base64urlEncode(new Uint8Array(digest));
+}
+
+function base64urlEncode(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...Array.from(bytes)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
+}
+
+// ── Instagram·Threads (Meta LoginAPI — 단기→장기 2단계 교환) ─────────────────
+// ── 표준 OAuth 2.0 채널 (longTokenUrl/longGrant = "" → 단일 교환) ────────────
 export const PROVIDERS: Record<string, ProviderConfig> = {
   instagram: {
     label: "instagram",
@@ -38,6 +68,108 @@ export const PROVIDERS: Record<string, ProviderConfig> = {
     tokenUrl: "https://graph.threads.net/oauth/access_token",
     longTokenUrl: "https://graph.threads.net/access_token",
     longGrant: "th_exchange_token",
+  },
+  x: {
+    label: "x",
+    authorizeUrl: "https://twitter.com/i/oauth2/authorize",
+    scopes: ["tweet.read", "tweet.write", "users.read", "offline.access"],
+    appIdEnv: "X_CLIENT_ID",
+    appSecretEnv: "X_CLIENT_SECRET",
+    tokenUrl: "https://api.twitter.com/2/oauth2/token",
+    longTokenUrl: "",
+    longGrant: "",
+    pkce: true,
+    scopeSeparator: " ",
+  },
+  linkedin: {
+    label: "linkedin",
+    authorizeUrl: "https://www.linkedin.com/oauth/v2/authorization",
+    scopes: ["openid", "profile", "w_member_social"],
+    appIdEnv: "LINKEDIN_CLIENT_ID",
+    appSecretEnv: "LINKEDIN_CLIENT_SECRET",
+    tokenUrl: "https://www.linkedin.com/oauth/v2/accessToken",
+    longTokenUrl: "",
+    longGrant: "",
+    scopeSeparator: " ",
+  },
+  youtube: {
+    label: "youtube",
+    authorizeUrl: "https://accounts.google.com/o/oauth2/v2/auth",
+    scopes: ["https://www.googleapis.com/auth/youtube.upload", "https://www.googleapis.com/auth/youtube"],
+    appIdEnv: "YOUTUBE_CLIENT_ID",
+    appSecretEnv: "YOUTUBE_CLIENT_SECRET",
+    tokenUrl: "https://oauth2.googleapis.com/token",
+    longTokenUrl: "",
+    longGrant: "",
+    scopeSeparator: " ",
+    extraAuthParams: { access_type: "offline", prompt: "consent" },
+  },
+  naver_blog: {
+    label: "naver_blog",
+    authorizeUrl: "https://nid.naver.com/oauth2.0/authorize",
+    scopes: ["blog"],
+    appIdEnv: "NAVER_CLIENT_ID",
+    appSecretEnv: "NAVER_CLIENT_SECRET",
+    tokenUrl: "https://nid.naver.com/oauth2.0/token",
+    longTokenUrl: "",
+    longGrant: "",
+    scopeSeparator: " ",
+  },
+  pinterest: {
+    label: "pinterest",
+    authorizeUrl: "https://www.pinterest.com/oauth/",
+    scopes: ["boards:read", "pins:write"],
+    appIdEnv: "PINTEREST_APP_ID",
+    appSecretEnv: "PINTEREST_APP_SECRET",
+    tokenUrl: "https://api.pinterest.com/v5/oauth/token",
+    longTokenUrl: "",
+    longGrant: "",
+    scopeSeparator: " ",
+  },
+  tumblr: {
+    label: "tumblr",
+    authorizeUrl: "https://www.tumblr.com/oauth2/authorize",
+    scopes: ["write", "basic"],
+    appIdEnv: "TUMBLR_CONSUMER_KEY",
+    appSecretEnv: "TUMBLR_CONSUMER_SECRET",
+    tokenUrl: "https://api.tumblr.com/v2/oauth2/token",
+    longTokenUrl: "",
+    longGrant: "",
+    scopeSeparator: " ",
+  },
+  tiktok: {
+    label: "tiktok",
+    authorizeUrl: "https://www.tiktok.com/v2/auth/authorize/",
+    scopes: ["user.info.basic", "video.publish"],
+    appIdEnv: "TIKTOK_CLIENT_KEY",
+    appSecretEnv: "TIKTOK_CLIENT_SECRET",
+    tokenUrl: "https://open.tiktokapis.com/v2/oauth/token/",
+    longTokenUrl: "",
+    longGrant: "",
+    pkce: true,
+    scopeSeparator: ",",
+  },
+  slack: {
+    label: "slack",
+    authorizeUrl: "https://slack.com/oauth/v2/authorize",
+    scopes: ["chat:write"],
+    appIdEnv: "SLACK_CLIENT_ID",
+    appSecretEnv: "SLACK_CLIENT_SECRET",
+    tokenUrl: "https://slack.com/api/oauth.v2.access",
+    longTokenUrl: "",
+    longGrant: "",
+    scopeSeparator: " ",
+  },
+  line: {
+    label: "line",
+    authorizeUrl: "https://access.line.me/oauth2/v2.1/authorize",
+    scopes: ["profile", "openid"],
+    appIdEnv: "LINE_CLIENT_ID",
+    appSecretEnv: "LINE_CLIENT_SECRET",
+    tokenUrl: "https://api.line.me/oauth2/v2.1/token",
+    longTokenUrl: "",
+    longGrant: "",
+    scopeSeparator: " ",
   },
 };
 
@@ -93,9 +225,17 @@ export function publicOrigin(request: Request): string {
   return new URL(request.url).origin;
 }
 
-// OAuth 동의 URL. state = tenantId(콜백서 어느 테넌트인지 식별 — 위변조 방지는 짧은 수명+서명이 이상적이나
+// OAuth 동의 URL.
+// state = tenantId(콜백서 어느 테넌트인지 식별 — 위변조 방지는 짧은 수명+서명이 이상적이나
 // 1차는 tenantId 그대로; 콜백서 effectiveTenantId와 교차검증 가능).
-export function buildAuthUrl(provider: ProviderConfig, origin: string, providerName: string, state: string): string | null {
+// extraParams: 라우터가 미리 계산한 PKCE code_challenge 등 추가 파라미터(선택).
+export function buildAuthUrl(
+  provider: ProviderConfig,
+  origin: string,
+  providerName: string,
+  state: string,
+  extraParams?: Record<string, string>,
+): string | null {
   const clientId = process.env[provider.appIdEnv];
   if (!clientId) return null;
   const params: Record<string, string> = {
@@ -110,8 +250,17 @@ export function buildAuthUrl(provider: ProviderConfig, origin: string, providerN
     if (!configId) return null;
     params.config_id = configId;
   } else {
-    // Instagram·Threads(Instagram Login API 계열) = scope 콤마구분.
-    params.scope = provider.scopes.join(",");
+    // scope: provider별 구분자 사용(기본 "," = Meta계열, " " = 표준 OAuth 2.0).
+    const sep = provider.scopeSeparator ?? ",";
+    params.scope = provider.scopes.join(sep);
+  }
+  // provider 고유 추가 파라미터(YouTube: access_type=offline, prompt=consent)
+  if (provider.extraAuthParams) {
+    Object.assign(params, provider.extraAuthParams);
+  }
+  // 라우터 주입 파라미터(PKCE: code_challenge, code_challenge_method 등) — 우선순위 최상
+  if (extraParams) {
+    Object.assign(params, extraParams);
   }
   return `${provider.authorizeUrl}?${new URLSearchParams(params).toString()}`;
 }
@@ -119,15 +268,18 @@ export function buildAuthUrl(provider: ProviderConfig, origin: string, providerN
 export interface ExchangedToken {
   accessToken: string;
   userId?: string;
+  refreshToken?: string; // YouTube offline.access — integrations meta.refreshToken에 저장
   error?: string;
 }
 
-// code → 단기 토큰(+user_id) → 장기 토큰 교환. Instagram·Threads 공통(provider 엔드포인트만 다름).
+// code → 토큰 교환. Instagram·Threads는 단기→장기 2단계. 표준 OAuth 채널은 단일 교환.
+// options.codeVerifier: PKCE 채널(X, TikTok)은 callback이 쿠키에서 꺼내 전달.
 // fetch 주입 가능(테스트).
 export async function exchangeCode(
   providerName: string,
   code: string,
   origin: string,
+  options: { codeVerifier?: string } = {},
   f: typeof fetch = fetch,
 ): Promise<ExchangedToken> {
   const p = getProvider(providerName);
@@ -135,13 +287,51 @@ export async function exchangeCode(
   const clientId = process.env[p.appIdEnv] || "";
   const clientSecret = process.env[p.appSecretEnv] || "";
   if (!clientId || !clientSecret) return { accessToken: "", error: `${p.appIdEnv}/${p.appSecretEnv} 미설정` };
-  // 1) 단기 토큰. Instagram 문서: 인가 code 끝의 "#_" 는 code가 아니므로 제거.
-  // 또 Meta 대시보드가 redirect_uri에 trailing slash 를 붙여 저장하는 경우가 있어(공식 문서 경고),
-  // slash 없는 값이 "redirect_uri identical" 에러를 내면 slash 붙은 값으로 자동 재시도한다.
-  // Instagram 문서: 인가 code 끝의 "#_" 는 code가 아니므로 제거. redirect_uri는 authorize와 동일값(단발).
-  // (Instagram은 첫 exchange 시도에서 code를 소비하므로 재시도 금지 — 단발로 정확히 보낸다.)
+
+  // Instagram 문서: 인가 code 끝의 "#_" 는 code가 아니므로 제거.
   const cleanCode = code.replace(/#_.*$/, "").replace(/#.*$/, "");
   const ru = redirectUri(origin, providerName);
+
+  // ── 표준 OAuth 2.0 (단일 교환 — longTokenUrl 없음) ───────────────────────
+  if (!p.longTokenUrl) {
+    const bodyParams: Record<string, string> = {
+      client_id: clientId,
+      client_secret: clientSecret,
+      grant_type: "authorization_code",
+      redirect_uri: ru,
+      code: cleanCode,
+    };
+    // PKCE: callback이 쿠키에서 꺼낸 verifier를 주입(없으면 생략 — 비PKCE 채널)
+    if (options.codeVerifier) {
+      bodyParams.code_verifier = options.codeVerifier;
+    }
+    const res = await f(p.tokenUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams(bodyParams).toString(),
+    });
+    const text = await res.text();
+    let data: Record<string, unknown> = {};
+    try { data = JSON.parse(text); } catch { data = {}; }
+
+    // Slack 특수 처리: bot token = 최상위 access_token, user token = authed_user.access_token
+    let accessToken = (data.access_token as string) || "";
+    if (providerName === "slack") {
+      const slack = data as { access_token?: string; authed_user?: { access_token?: string } };
+      accessToken = slack.access_token || slack.authed_user?.access_token || "";
+    }
+    if (!accessToken) {
+      return { accessToken: "", error: ((data.error_description || data.error || "토큰 교환 실패") as string) };
+    }
+    return {
+      accessToken,
+      userId: data.user_id ? String(data.user_id) : undefined,
+      refreshToken: (data.refresh_token as string) || undefined, // YouTube offline
+    };
+  }
+
+  // ── Meta LoginAPI 계열 (단기→장기 2단계 교환) ─────────────────────────────
+  // redirect_uri는 authorize와 동일값(단발). Instagram은 첫 exchange 시도에서 code를 소비하므로 재시도 금지.
   const shortRes = await f(p.tokenUrl, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
