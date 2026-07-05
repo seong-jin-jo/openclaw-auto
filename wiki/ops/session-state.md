@@ -45,6 +45,13 @@ Threads/IG뿐이라. 우리 publishFacebook은 페이지 발행이라 이 권한
 **FB 결론**: 앱에 Facebook 페이지 use-case 추가 + pages_manage_posts 앱검수(고급권한, 사업자인증 포함)라는
 큰 벽. IG/Threads(dev+테스터)보다 훨씬 무거움. **권고: FB 보류, 구성마법사 취소.** IG/Threads 실운영부터 완성.
 회장 결정 대기: ①FB 검수트랙 열기(장기·서류) vs ②IG/Threads 실운영 파이프라인 완성 먼저.
+**업데이트(2026-07-05, 회장 "니가 들어가서 진행"):** 회장 사업자인증 보유. 내가 gstack로 "이용 사례 추가"
+카탈로그 진입 성공(FB 로그인 sub-page와 달리 use_cases는 gstack 됨). **콘텐츠 관리(4) 카테고리에
+"페이지의 모든 부분 관리"(콘텐츠·동영상 게시, 페이지 API) use-case 발견** = 이게 pages_manage_posts 등
+페이지 발행권한 부여. 이걸 추가 중 — 근데 카드 체크박스가 커스텀 + gstack 세션이 반복 죽음(about:blank).
+**다음 액션**: 재연결→use_cases→이용사례추가→콘텐츠관리→"페이지의 모든 부분 관리" 체크→추가/저장 →
+그후 권한에 pages_* 생김 → login config 생성(config_id) → FB_CONFIG_ID+FB_APP_SECRET → FB 연결.
+주의: pages_manage_posts 고급액세스는 앱검수(회장 사업자인증으로 진행 가능).
 
 ### 🚧 셀프서브 진짜 게이트 = Meta 앱검수+비즈니스인증 (2026-07-05, 실측)
 FB Login for Business "구성"(config 생성) 페이지가 4회 모두 dashboard로 튕김 + "비즈니스 인증/앱 검수/기술
