@@ -19,7 +19,7 @@ x-gateway-base: &gateway-base
     dockerfile: Dockerfile
     network: host
     args:
-      OPENCLAW_EXTENSIONS: "threads-publish threads-queue threads-style threads-insights threads-search threads-growth x-publish image-upload instagram-publish card-generator midjourney-image video-generate"
+      OPENCLAW_EXTENSIONS: "threads-publish threads-queue threads-style threads-insights threads-search threads-growth x-publish image-upload instagram-publish card-generator midjourney-image video-generate facebook-publish linkedin-publish youtube-publish naver-blog-publish pinterest-publish tumblr-publish tiktok-publish slack-publish line-publish bluesky-publish discord-publish telegram-publish blog-queue"
       OPENCLAW_INSTALL_BROWSER: "1"
   image: openclaw-auto/gateway:postagi
   network_mode: host

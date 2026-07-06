@@ -3,7 +3,19 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **qa**, ship은 `/approve qa` 후). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-07 · `main`(5b21197d + deploy-marketing.yml 커밋 예정) · **YouTube ✅ gh secret 등록 완료** (YOUTUBE_CLIENT_ID + YOUTUBE_CLIENT_SECRET) · 나머지 8채널 앱 등록 = 사용자 직접 처리 필요 (Slack/LinkedIn은 브라우저 자동 로그인 차단됨)
+**최종 갱신:** 2026-07-07 · `main` · **OAuth 코드+배선 완료, 시크릿 8개 등록만 남음**
+
+**완료 상태:**
+- ✅ 9채널 OAuth 코드 구현 (commit 5b21197d)
+- ✅ deploy-marketing.yml 18개 env var 추가
+- ✅ OPENCLAW_EXTENSIONS 배선 완료 (docker-compose.postagi-4tenants.yml — 13개 publisher 추가)
+- ✅ YouTube gh secret 등록
+
+**회장이 해야 할 것 (이것만):**
+- 8개 플랫폼 Developer Portal 앱 등록 → gh secret set (아래 표 참고)
+- 모든 시크릿 등록 후 배포: `gh workflow run "Deploy openclaw (marketing VM)"`
+
+**미검증:** OAuth 연결 후 실제 발행 E2E (배포 + 시크릿 등록 후 검증 필요)
 
 ---
 
