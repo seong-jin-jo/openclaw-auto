@@ -3,7 +3,199 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **qa**, ship은 `/approve qa` 후). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-04 · `main`(c214ad00, 전부 push됨) · 노트북 끄고 온프렘서 재개.
+**최종 갱신:** 2026-07-07 · `main`(5b21197d + deploy-marketing.yml 커밋 예정) · **YouTube ✅ gh secret 등록 완료** (YOUTUBE_CLIENT_ID + YOUTUBE_CLIENT_SECRET) · 나머지 8채널 앱 등록 = 사용자 직접 처리 필요 (Slack/LinkedIn은 브라우저 자동 로그인 차단됨)
+
+---
+
+### ✅ 전채널 Settings UI 점검 완료 (2026-07-06, gstack 브라우저 직접 확인)
+
+**작업**: 회장 지적 "X에는 로그인 연결 UI 자체가 없어 / 전체 점검 안하냐?" → 전 채널 Settings 탭 브라우저 직접 확인.
+
+**직접 관찰 증거 (스크린샷 / ARIA 트리 / 코드 일치):**
+
+| 채널 | 상태 | Settings UI | 비고 |
+|------|------|-------------|------|
+| Threads | ✅ Live | OAuth 재연결 버튼 + Token 폼 | DB 연결됨 |
+| Instagram | ✅ Connected (2,390 followers) | OAuth 재연결 버튼 + Token 폼 | DB 연결됨 |
+| X (Twitter) | ⚠️ 미연결 | 4개 OAuth 1.0a 키 입력 + "Connect X Account" 버튼 | **Settings 기본 탭** (미연결 시) |
+| Facebook | ⚠️ 미연결 | "Facebook 연결" OAuth 버튼 + Token 폼 | FB_CONFIG_ID 등록됨, OAuth 가능 |
+| LinkedIn | ⚠️ 미연결 | OAuth 2.0 Token + Person URN 폼 | 수동 키 입력 |
+| Bluesky | ⚠️ 미연결 | Handle + App Password 폼 | |
+| Pinterest | ⚠️ 미연결 | Token + Board ID 폼 | |
+| Tumblr | ⚠️ 미연결 | OAuth 1.0a 5개 키 + Blog Name 폼 | |
+| TikTok | ⚠️ 미연결 | Access Token 폼 | |
+| YouTube | ⚠️ 미연결 | Google OAuth Token 폼 | |
+| Naver Blog | ⚠️ 미연결 | Blog ID + Username + API Key 폼 | |
+| Telegram | ⚠️ 미연결 | Bot Token + Chat ID 폼 | |
+| Discord | ⚠️ 미연결 | Webhook URL 폼 | |
+| Slack | ⚠️ 미연결 | Webhook URL 폼 | |
+| LINE | ⚠️ 미연결 | Channel Access Token 폼 | |
+
+**X "연결 UI 없다"는 이유 파악:**
+- X는 Instagram/Facebook처럼 "클릭 한 번 → OAuth 자동 로그인" 버튼이 없음
+- `ChannelPage.tsx:101` — 미연결 채널 진입 시 `setSubTab("settings")` → Settings 기본 탭
+- `ChannelPage.tsx:171` — Queue 탭에서 미연결이면 `ConnectGate` (Settings 탭 이동 버튼) 표시
+- X가 보여주는 것: 수동 4키 입력 폼 + "Connect X Account" 저장 버튼
+- OAuth 자동 연결 버튼 없음 = Developer Portal에서 4개 키 직접 발급 + 입력 필요
+
+**코드 확인:** 모든 채널이 `IMPLEMENTED_PLUGINS` 배열에 포함, 각 채널 setup-guides에 필드 정의됨.
+
+**검증 미완료:**
+- X에 OAuth 2.0 PKCE 자동 연결 버튼 추가 여부 — 회장 결정 필요
+- 나머지 채널 실제 연결 (회장이 각 플랫폼 API 키 제공 필요)
+
+**다음 액션 (30초 재개):**
+1. 회장이 OAuth 연결 추가할 채널 우선순위 결정 → 해당 플랫폼 Developer Portal 앱 등록 (회장 손) → 내가 코드 구현
+2. 결정 보류 채널은 수동 키 입력 방식 유지
+3. Facebook OAuth 연결: "Facebook 연결" 버튼 클릭 → FB OAuth 플로우 (FB_CONFIG_ID 이미 등록됨)
+
+### 📋 "전채널 OAuth 로그인 버튼" 방향 결정 (2026-07-06, 회장 지시)
+
+**회장 의도**: 모든 채널에 "로그인 버튼 → OAuth → 토큰 자동 Settings 저장" 방식 원함. 수동 키 입력 아닌 플랫폼 로그인 방식.
+
+**기술 분석 결과 (직접 조사):**
+- **OAuth 가능 (앱 등록 + 코드 구현 필요)**: X, LinkedIn, YouTube, Naver Blog, Pinterest, Tumblr, TikTok, Slack, LINE
+- **OAuth 불가 (수동 입력이 플랫폼 표준)**: Telegram (봇토큰), Discord (Webhook), Bluesky (App Password 공식 권장)
+- **X 주의**: OAuth 로그인은 무료, 트윗 발행은 $100/월 Basic API 필요
+
+**필요 작업 (채널당 동일 패턴):**
+1. 회장이 해당 플랫폼 Developer Portal에서 OAuth 앱 등록 → Client ID + Secret 발급
+2. 내가 환경변수 배선 + `/api/connect/{provider}` + `/api/connect/{provider}/callback` 라우트 구현
+3. ChannelPage에 "로그인 연결" 버튼 추가
+
+**미결정 (회장 결정 필요)**: X 발행 API 비용 — 우리 앱 Basic tier $100/월 내기 vs 고객 각자 4키 입력 유지
+
+**방향 확정 (2026-07-06):**
+- **X 포함** 전 9개 채널 OAuth 자동 연결 버튼 추가 (X 발행은 고객이 각자 Developer Portal 등록)
+- Telegram/Discord/Bluesky → 수동 입력 유지 (플랫폼 표준)
+
+### ✅ 9개 채널 OAuth 코드 구현 완료 (커밋 5b21197d)
+
+**직접 관찰 증거:** tsc 0 오류, vitest 177 PASS (로컬 직접 실행)
+
+**구현 완료 파일:**
+- `dashboard/src/lib/social-connect.ts` — X(PKCE), LinkedIn, YouTube, Naver, Pinterest, Tumblr, TikTok(PKCE), Slack, LINE 프로바이더 추가
+- `dashboard/src/app/api/connect/[provider]/route.ts` — PKCE code_verifier httpOnly 쿠키 저장
+- `dashboard/src/app/api/connect/[provider]/callback/route.ts` — 9채널 토큰 교환 + integrations 저장
+- `dashboard/src/components/channel/ChannelPage.tsx` — OAUTH_CONNECT 12개 채널(OAuth 버튼)
+- `dashboard/tests/brand/social-connect.test.ts` — +17 신규 테스트 (177 총계)
+
+**환경변수만 등록하면 즉시 활성화.** 코드는 env 없으면 버튼 숨김, 있으면 OAuth 플로우 진입.
+
+---
+
+### 🔄 진행 중: 플랫폼 앱 등록 (회장 수동, 내가 gh secret set)
+
+**X Developer Portal** — 로그인 **대기 중**:
+- URL: `https://developer.twitter.com/en/portal/dashboard`  
+- 로그인: 이메일+비밀번호 직접 (Google/Apple SSO 이메일 충돌로 불가)
+- 앱 생성 후: OAuth 2.0 설정 → redirect URI `https://openclaw.sj-onpremise-cloudflare-tunnel.cloud/api/connect/x/callback` → Client ID/Secret 발급
+
+**등록 대기 채널 (순서대로):**
+| 채널 | Portal URL | Redirect URI | 필요 시크릿 |
+|------|-----------|--------------|------------|
+| X | developer.twitter.com | .../connect/x/callback | X_CLIENT_ID, X_CLIENT_SECRET |
+| LinkedIn | linkedin.com/developers/apps | .../connect/linkedin/callback | LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET |
+| YouTube | console.cloud.google.com | .../connect/youtube/callback | YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET |
+| Naver | developers.naver.com/apps/ | .../connect/naver_blog/callback | NAVER_CLIENT_ID, NAVER_CLIENT_SECRET |
+| Pinterest | developers.pinterest.com | .../connect/pinterest/callback | PINTEREST_APP_ID, PINTEREST_APP_SECRET |
+| Tumblr | tumblr.com/oauth/apps | .../connect/tumblr/callback | TUMBLR_CONSUMER_KEY, TUMBLR_CONSUMER_SECRET |
+| TikTok | developers.tiktok.com | .../connect/tiktok/callback | TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET |
+| Slack | api.slack.com/apps | .../connect/slack/callback | SLACK_CLIENT_ID, SLACK_CLIENT_SECRET |
+| LINE | developers.line.biz/console/ | .../connect/line/callback | LINE_CLIENT_ID, LINE_CLIENT_SECRET |
+
+**deploy-marketing.yml 업데이트 필요**: 새 env var 9종 `.env.osmu` 렌더 섹션에 추가 (앱 등록 완료 후)
+
+**진행 현황 (2026-07-06):**
+
+| 채널 | gh secret | 비고 |
+|------|-----------|------|
+| YouTube | ✅ **완료** | YOUTUBE_CLIENT_ID + YOUTUBE_CLIENT_SECRET 등록됨 |
+| X | ❌ 미등록 | developer.twitter.com 직접 로그인 필요 |
+| LinkedIn | ❌ 미등록 | 2FA(모바일 앱)로 자동화 차단 |
+| Naver Blog | ❌ 미등록 | naver 계정 로그인 필요 |
+| Pinterest | ❌ 미등록 | 직접 등록 필요 |
+| Tumblr | ❌ 미등록 | 직접 등록 필요 |
+| TikTok | ❌ 미등록 | 심사 기간 있음 |
+| Slack | ❌ 미등록 | Google OAuth rejected (Playwright 차단) |
+| LINE | ❌ 미등록 | LINE 계정 로그인 필요 |
+
+**deploy-marketing.yml**: 9개 env var 이미 추가 완료 (2026-07-07 커밋 예정). 시크릿만 등록하면 즉시 활성화.
+
+**다음 즉시 액션 (30초 재개):**
+1. 아래 표 순서대로 각 플랫폼에서 앱 등록 → `printf '%s' "<value>" | gh secret set <KEY> --repo seong-jin-jo/openclaw-auto`
+2. 모든 시크릿 등록 후 → `gh workflow run "Deploy openclaw (marketing VM)"` 으로 배포
+3. 배포 후 각 채널 Settings 탭 → "연결" 버튼 클릭해서 OAuth 흐름 확인
+
+**플랫폼별 등록 가이드 (회장 직접):**
+| 플랫폼 | URL | Redirect URI | 시크릿 이름 |
+|--------|-----|-------------|------------|
+| X | https://developer.twitter.com/en/portal/dashboard | `.../connect/x/callback` | X_CLIENT_ID, X_CLIENT_SECRET |
+| LinkedIn | https://www.linkedin.com/developers/apps | `.../connect/linkedin/callback` | LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET |
+| Naver | https://developers.naver.com/apps/ | `.../connect/naver_blog/callback` | NAVER_CLIENT_ID, NAVER_CLIENT_SECRET |
+| Pinterest | https://developers.pinterest.com/ | `.../connect/pinterest/callback` | PINTEREST_APP_ID, PINTEREST_APP_SECRET |
+| Tumblr | https://www.tumblr.com/oauth/apps | `.../connect/tumblr/callback` | TUMBLR_CONSUMER_KEY, TUMBLR_CONSUMER_SECRET |
+| TikTok | https://developers.tiktok.com/ | `.../connect/tiktok/callback` | TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET |
+| Slack | https://api.slack.com/apps → Create App → OAuth & Permissions | `.../connect/slack/callback` | SLACK_CLIENT_ID, SLACK_CLIENT_SECRET |
+| LINE | https://developers.line.biz/console/ → 채널 생성 → LINE Login | `.../connect/line/callback` | LINE_CLIENT_ID, LINE_CLIENT_SECRET |
+
+(Redirect URI 공통 prefix: `https://openclaw.sj-onpremise-cloudflare-tunnel.cloud/api/connect/`)
+
+---
+
+### ✅ 배포 복구 완료 · OSMU 전체 라이브 (2026-07-06, run 28749775595 전 스텝 ✓)
+
+**완료(직접 관찰 증거):**
+- **deploy 실패 원인 해결**: `.env.tenant1~4` 파일이 `~/openclaw-persist/`에 없었음 → SSH로 VM에서 tenant1~4 env + data/config 디렉토리 생성 후 persist 복사
+- **워크플로우 수정(커밋 290390cc)**:
+  - `.env.osmu 렌더` 단계의 `if: contains(services,'osmu')` 조건 제거 → 전체 배포 시 env 누락 방지
+  - `FB_CONFIG_ID` 시크릿 추가 (.env.osmu에 포함)
+  - 스모크게이트: `services==''` (전체배포) 시에도 OSMU 검증 포함
+- **배포 run 28749775595**: 전 스텝 ✓ (영속 복원→env렌더→빌드→기동→상태→스모크게이트 모두 통과)
+- **OSMU 대시보드 라이브**: `https://openclaw.sj-onpremise-cloudflare-tunnel.cloud`
+  - `/api/me` → `{"isOperator":true,"tenant":null}` ✓
+  - `/api/connect/facebook?tenant_id=dc` → authUrl 정상 생성 (config_id=1553247286513620 포함) ✓
+- **실행 중 컨테이너**: tenant1~4 gateway/dashboard + osmu dashboard + autoheal
+- **dc 인스턴스**: 중단됨(postagi-4tenants.yml에 dc 서비스 없음 — config/data는 persist에 보존)
+
+**플랫폼 연결 준비도:**
+| 플랫폼 | 키 상태 | 비고 |
+|--------|---------|------|
+| Instagram | ✅ IG_APP_ID/SECRET 등록 | OAuth 버튼 클릭으로 연결 가능 |
+| Threads | ✅ THREADS_APP_ID/SECRET 등록 | OAuth 버튼 클릭으로 연결 가능 |
+| Facebook | ✅ FB_APP_ID/SECRET/CONFIG_ID 등록 | OAuth 버튼 클릭으로 연결 가능 |
+| X (Twitter) | ❌ 4개 키 미입력 | 회장이 X Developer Portal 키 제공 필요 |
+| YouTube / Naver Blog / TikTok / LinkedIn | ❌ 개발자앱 미생성 | 각 플랫폼 앱 생성 후 OAuth |
+| Telegram / Discord / Slack / LINE | ❌ 토큰/웹훅 미입력 | 토큰 직접 입력 |
+
+**다음 액션(30초 재개):**
+1. OSMU 대시보드 → Settings → Instagram/Threads/Facebook "연결" 버튼 클릭 → OAuth 플로우
+   - 각 OAuth 후 Supabase integrations 테이블 확인 (`SELECT label,has_token FROM integrations WHERE kind='channel'`)
+2. X 연결: 회장이 4개 키 제공 → Settings에서 API Key / API Key Secret / Access Token / Access Token Secret 입력
+3. 기타 플랫폼: 회장 측 앱 생성 후 순차 진행
+
+**검증 필요(미검증):**
+- Instagram/Threads/Facebook OAuth 실제 토큰 교환 + integrations 저장 (아직 클릭 안 함)
+- 각 채널 발행 E2E (연결 후 진행)
+
+### ✅ FB 연결 준비 완료 — 배포 승인 대기 (2026-07-06, gstack 직접 확인)
+
+**완료(직접 관찰 증거):**
+- `FB_CONFIG_ID=1553247286513620` — gstack로 configurations 페이지 직접 확인 후 `gh secret set` 등록
+- `FB_APP_SECRET` — gstack로 기본 설정 > 앱 시크릿 코드 비번 게이트 통과 후 `gh secret set` 등록 (값 로그 미출력)
+- `FB_APP_ID` — 기존 등록 유지(1553503759757107)
+- redirect URI `https://openclaw.sj-onpremise-cloudflare-tunnel.cloud/api/connect/facebook/callback` — FB Login for Business > 설정 > 유효한 OAuth 리디렉션 URI에 추가, "Changes saved" 토스트 확인
+- FB Login 구성 `1553247286513620` — 이름/로그인버전/액세스토큰 ✅, 권한 6개 선택·저장 ✅
+- `gh secret list`로 FB_APP_ID/FB_APP_SECRET/FB_CONFIG_ID 3종 모두 존재 확인
+
+**미완(배포 승인 필요):**
+- `gh workflow run deploy-marketing.yml` — 회장 "배포해" 명령 대기(CLAUDE.md gate)
+- 배포 완료 후: gstack로 OSMU → Facebook 채널 Settings → "연결" 버튼 클릭 → OAuth → integrations DB 저장 확인
+
+**다음 액션(30초 재개):**
+1. 회장이 "배포해" → `gh workflow run deploy-marketing.yml --repo seong-jin-jo/openclaw-auto`
+2. 배포 완료 확인: `gh run list --workflow=deploy-marketing.yml --limit 1`
+3. gstack로 FB OAuth 연결 시도 → DB 확인(tenant 587cee76, label=facebook)
 
 ### ✅ IG 실발행 검증 완료 (2026-07-04, DB 증거)
 `published_posts`에 tenant 587cee76 / instagram / **external_id=17938476117069923** 존재 = 인스타 실제
