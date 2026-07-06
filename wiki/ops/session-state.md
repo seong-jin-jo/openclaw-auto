@@ -3,13 +3,17 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **qa**, ship은 `/approve qa` 후). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-07 · `main` · **OAuth 코드+배선 완료, 시크릿 8개 등록만 남음**
+**최종 갱신:** 2026-07-07 · `main` · **OAuth 코드+배선 완료 / 포털 로그인 세션 없어 자동화 차단**
 
 **완료 상태:**
 - ✅ 9채널 OAuth 코드 구현 (commit 5b21197d)
-- ✅ deploy-marketing.yml 18개 env var 추가
-- ✅ OPENCLAW_EXTENSIONS 배선 완료 (docker-compose.postagi-4tenants.yml — 13개 publisher 추가)
+- ✅ deploy-marketing.yml 18개 env var 추가 (commit 4c863e00)
+- ✅ OPENCLAW_EXTENSIONS 배선 완료 — 13개 publisher 추가 (commit 1f97cd0a)
 - ✅ YouTube gh secret 등록
+
+**현재 차단:**
+- gstack 브라우저 모든 포털 세션 만료 — 자동 로그인 불가(비밀번호/2FA 필요)
+- 8개 플랫폼(X/Naver/Pinterest/Tumblr/LINE/LinkedIn/Slack/TikTok) 앱 등록 대기
 
 **회장이 해야 할 것 (이것만):**
 - 8개 플랫폼 Developer Portal 앱 등록 → gh secret set (아래 표 참고)
