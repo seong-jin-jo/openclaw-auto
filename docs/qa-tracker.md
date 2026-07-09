@@ -145,3 +145,13 @@
 
 ## 판정
 qa = **in-progress** (ship 게이트 잠김 유지). 아침 체크리스트 1~3 처리 후 고객 가입→생성→IG 연결 라이브 재검 → `/approve qa`.
+
+## 2026-07-10 04:45 KST 배포 직전 재실행 (Fable 5, Phase 0)
+
+- `npm run test` → 37 files / 190 PASS / 8 skipped (직접 실행)
+- `npm run build` → PASS. `/api/auth/google`, `/api/operator/customers`, `/api/studio/engine-status`, `/operator/customers` 라우트 포함 확인
+- `bash scripts/verify-e2e.sh http://localhost:3459` → **PASS** (3456은 타 프로젝트 dev 점유라 3459 사용). 스크린샷 `/tmp/e2e-*.png`
+- local `/login` → `비밀번호 찾기` 렌더 확인 (grep 1)
+- local `/api/auth/google?redirect_to=...` → 400 + 한국어 안내 JSON ("Google 로그인이 아직 설정되지 않았습니다...") — Supabase raw JSON 미노출
+- 커밋 위생: `origin/main..HEAD` 7커밋 = dashboard 28 + .github 1 + docker-compose 1 + docs 1 + wiki 2 파일. `.codex/`·nested `openclaw/` 미포함 확인
+- 판정: **배포 준비 완료** — `/approve qa` 대기

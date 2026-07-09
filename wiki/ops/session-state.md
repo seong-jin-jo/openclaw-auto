@@ -808,3 +808,20 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
 - QA 증거: `docs/qa-tracker.md` · 단계: `pipeline-state.md` · 결정: `wiki/decisions/004-social-connect-oauth-not-passwords.md`
 - 라이브: `openclaw.sj-onpremise-cloudflare-tunnel.cloud` · VM: `ssh marketing-vm` · 컴포즈: `/home/marketing/actions-runner-oc/_work/openclaw-auto/openclaw-auto`
 - 상세 이력(장애 RCA·셀프서브 코어·OAuth 빌드·Meta 셋업 전체): `archive/session-2026-06.md`
+
+---
+
+### 🔄 Fable 5 런치 트랙 재개 — 계획 승인 + Phase 0 완료 (2026-07-10 04:50 KST)
+
+**핸드오프 기준(회장 확정):** primary = 런치 트랙, 배포 = QA 게이트 정상 통과, Supabase/Google 콘솔 = 회장 수행.
+**계획 정본:** `~/.claude/plans/fable-purrfect-bumblebee.md` (Phase 0~6, 회장 승인 2026-07-10).
+
+**Phase 0 완료 (배포 전 QA 증거 재확정, 전부 직접 실행):**
+- vitest 37 files/190 PASS/8 skip · build PASS(핵심 라우트 포함) · verify-e2e.sh PASS(port 3459 — 3456은 haenael-ge dev 점유)
+- local `비밀번호 찾기` 렌더 ✅, Google preflight 400 한국어 JSON ✅
+- 커밋 위생 ✅ (7커밋 = 런치 트랙만, .codex/·nested openclaw/ 미포함)
+- 증거 상세: docs/qa-tracker.md "2026-07-10 04:45 KST" 섹션
+
+**다음 액션 (Phase 1):** 회장 `/approve qa` → runner online 확인 → `git push origin main` → `gh workflow run "Deploy openclaw (marketing VM)"` → Phase 2 라이브 6항목 재검(계획 파일 표 참조).
+**병렬 (Phase 3, 회장):** Google Cloud OAuth 클라이언트 생성 + Supabase Google provider 활성화 + Redirect URL 등록 — 상세 패키지는 계획 파일 §Phase 3.
+**블록:** `/approve qa`는 회장 트리거 — 자가 승인 금지.
