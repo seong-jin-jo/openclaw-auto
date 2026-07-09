@@ -66,6 +66,13 @@ describe("middleware 토큰 검증 분기", () => {
     const res = middleware(apiRequest());
     expect(res.status).toBe(401);
   });
+
+  it("토큰 설정 + /api/auth/google → 고객 로그인 preflight 공개 통과", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
+    const req = new NextRequest("http://localhost/api/auth/google");
+    expect(isPass(middleware(req))).toBe(true);
+  });
 });
 
 describe("middleware 프록시 모드(포크 셀프호스트) 분기", () => {

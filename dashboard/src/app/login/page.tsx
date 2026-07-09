@@ -3,22 +3,20 @@
 import { useEffect, useRef, useState } from "react";
 import { createBrowserSupabase } from "@/lib/supabase";
 import { setAuthToken } from "@/lib/auth";
+import { oauthErrorMessage } from "@/lib/oauth-errors";
 
 // 고객 셀프서브 로그인/가입. 성공 시 Supabase 세션의 access token을 저장 →
 // 이후 API 호출이 Bearer로 첨부 → 서버가 검증해 그 고객 테넌트로 스코프.
 export default function LoginPage() {
   // support /signup or ?mode=signup to default to signup mode
-  const [mode, setMode] = useState<"login" | "signup">(() => {
-    if (typeof window !== 'undefined') {
-      const p = new URLSearchParams(window.location.search);
-      if (p.get('mode') === 'signup' || window.location.pathname === '/signup') return 'signup';
-    }
-    return 'login';
-  });
+  const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [recovery, setRecovery] = useState(false);
+  const [newPw, setNewPw] = useState("");
   // 가입 후 이메일 확인 대기 상태(Confirm email ON). 세션이 안 와도 막다른 골목 대신 안내.
   const [pending, setPending] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -41,9 +39,16 @@ export default function LoginPage() {
     try {
       const sb = createBrowserSupabase();
       const hash = window.location.hash || "";
+      const p = new URLSearchParams(window.location.search);
       const hadHashToken = hash.includes("access_token");
+      const isRecovery = p.get("type") === "recovery" || hash.includes("type=recovery");
       const enter = (accessToken: string) => {
         setAuthToken(accessToken);
+        if (isRecovery) {
+          setRecovery(true);
+          if (hadHashToken) history.replaceState(null, "", window.location.pathname);
+          return;
+        }
         if (hadHashToken) history.replaceState(null, "", window.location.pathname);
         window.location.href = "/";
       };
@@ -58,7 +63,7 @@ export default function LoginPage() {
       });
       unsub = () => sub.subscription.unsubscribe();
     } catch (e) {
-      if (typeof console !== "undefined") console.error("[login] supabase init:", e);
+      if (typeof console !== "undefined") console.warn("[login] supabase init:", e);
     }
     return () => { unsub?.(); if (cooldownTimer.current) clearInterval(cooldownTimer.current); };
   }, []);
@@ -117,23 +122,66 @@ export default function LoginPage() {
     } finally { setBusy(false); }
   };
 
-  const google = async () => {
-    setMsg("");
+  const sendPasswordReset = async () => {
+    if (!email.trim()) {
+      setMsg("비밀번호를 재설정할 이메일을 입력해주세요.");
+      return;
+    }
+    if (busy) return;
+    setBusy(true); setMsg("");
     try {
       const sb = createBrowserSupabase();
-      // Use current origin so it works in prod (tunnel) and local dev
-      const redirectTo = `${window.location.origin}/login`;
-      const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
+      const { error } = await sb.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/login?type=recovery`,
+      });
       if (error) {
-        setMsg(
-          /provider is not enabled|Unsupported provider/i.test(error.message)
-            ? "Google 로그인이 아직 설정되지 않았습니다. 이메일로 가입해주세요."
-            : error.message,
-        );
+        setMsg(oauthErrorMessage(error.message, "비밀번호 재설정"));
+        return;
       }
+      setResetSent(true);
+      setMsg("비밀번호 재설정 메일을 보냈습니다. 받은편지함과 스팸함을 확인해주세요.");
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : String(e));
+      setMsg(oauthErrorMessage(e instanceof Error ? e.message : String(e), "비밀번호 재설정"));
+    } finally { setBusy(false); }
+  };
+
+  const updatePassword = async () => {
+    if (newPw.length < 8) {
+      setMsg("새 비밀번호는 8자 이상으로 입력해주세요.");
+      return;
     }
+    if (busy) return;
+    setBusy(true); setMsg("");
+    try {
+      const sb = createBrowserSupabase();
+      const { error } = await sb.auth.updateUser({ password: newPw });
+      if (error) {
+        setMsg(oauthErrorMessage(error.message, "비밀번호 재설정"));
+        return;
+      }
+      setMsg("비밀번호가 변경되었습니다. 다시 로그인해주세요.");
+      setTimeout(() => { window.location.href = "/login"; }, 800);
+    } catch (e) {
+      setMsg(oauthErrorMessage(e instanceof Error ? e.message : String(e), "비밀번호 재설정"));
+    } finally { setBusy(false); }
+  };
+
+  const google = async () => {
+    setMsg("");
+    if (busy) return;
+    setBusy(true);
+    try {
+      const redirectTo = `${window.location.origin}/login`;
+      const r = await fetch(`/api/auth/google?redirect_to=${encodeURIComponent(redirectTo)}`);
+      const d = (await r.json()) as { authUrl?: string; error?: string };
+      if (!r.ok || !d.authUrl) {
+        setMsg(oauthErrorMessage(d.error || "Google 로그인 설정 확인 실패", "Google"));
+        return;
+      }
+      window.location.href = d.authUrl;
+    } catch (e) {
+      setMsg(oauthErrorMessage(e instanceof Error ? e.message : String(e), "Google"));
+    } finally { setBusy(false); }
   };
 
   // 가입 후 확인 대기 화면 — 막다른 골목 대신 재전송 + 명확한 다음 단계 안내.
@@ -161,6 +209,25 @@ export default function LoginPage() {
     );
   }
 
+  if (recovery) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bg px-4">
+        <div className="w-full max-w-sm p-6 rounded-2xl border border-border bg-surface/50">
+          <h1 className="text-lg font-semibold text-text mb-1">새 비밀번호 설정</h1>
+          <p className="text-xs text-subtle mb-5">재설정 메일로 인증되었습니다. 새 비밀번호를 입력하세요.</p>
+          <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="새 비밀번호"
+            onKeyDown={(e) => e.key === "Enter" && updatePassword()}
+            className="w-full px-3 py-2 text-sm bg-surface border border-border rounded-lg text-muted focus:border-accent outline-none" />
+          <button onClick={updatePassword} disabled={busy}
+            className="w-full mt-2 px-4 py-2 text-sm bg-accent text-text rounded-lg disabled:opacity-50">
+            {busy ? "변경 중…" : "비밀번호 변경"}
+          </button>
+          {msg && <p className="text-xs mt-3 text-amber-400">{msg}</p>}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm p-6 rounded-2xl border border-border bg-surface/50">
@@ -178,16 +245,25 @@ export default function LoginPage() {
             {busy ? "처리 중…" : mode === "login" ? "로그인" : "가입하기"}
           </button>
           <button onClick={google} className="w-full px-4 py-2 text-sm bg-surface-2 hover:bg-surface-2 text-muted rounded-lg">
-            Google로 계속
+            {busy ? "확인 중…" : "Google로 계속"}
           </button>
         </div>
 
         {msg && <p className="text-xs mt-3 text-amber-400">{msg}</p>}
+        {resetSent && <p className="text-xs mt-2 text-subtle">메일 링크는 보안을 위해 일정 시간 후 만료됩니다.</p>}
 
-        <button onClick={() => { setMode(mode === "login" ? "signup" : "login"); setMsg(""); }}
-          className="mt-4 text-xs text-subtle hover:text-muted">
-          {mode === "login" ? "계정이 없으신가요? 가입" : "이미 계정이 있으신가요? 로그인"}
-        </button>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <button onClick={() => { setMode(mode === "login" ? "signup" : "login"); setMsg(""); setResetSent(false); }}
+            className="text-xs text-subtle hover:text-muted">
+            {mode === "login" ? "계정이 없으신가요? 가입" : "이미 계정이 있으신가요? 로그인"}
+          </button>
+          {mode === "login" && (
+            <button onClick={sendPasswordReset} disabled={busy}
+              className="text-xs text-accent hover:text-accent disabled:opacity-50">
+              비밀번호 찾기
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

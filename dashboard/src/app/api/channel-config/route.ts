@@ -2,6 +2,7 @@ import { readJson, configPath } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
 import { withTenant } from "@/lib/db";
+import { maskConfigSecrets } from "@/lib/secret-mask";
 
 interface PluginEntry {
   enabled?: boolean;
@@ -58,7 +59,7 @@ export async function GET(request: Request) {
     userId: tUid,
     username: "", // loaded lazily via /api/threads-username
     connected: Boolean(tToken),
-    keys: { accessToken: tToken, userId: tUid },
+    keys: maskConfigSecrets({ accessToken: tToken, userId: tUid }),
   };
 
   // X — special handling (matches Flask exactly)
@@ -67,12 +68,12 @@ export async function GET(request: Request) {
   channels.x = {
     enabled: xp.enabled ?? false,
     connected: Boolean(xCfg.apiKey || ""),
-    keys: {
+    keys: maskConfigSecrets({
       apiKey: xCfg.apiKey || "",
       apiKeySecret: xCfg.apiKeySecret || "",
       accessToken: xCfg.accessToken || "",
       accessTokenSecret: xCfg.accessTokenSecret || "",
-    },
+    }),
   };
 
   // All other channels (matches Flask exactly)
@@ -98,7 +99,7 @@ export async function GET(request: Request) {
       status,
       enabled: p.enabled ?? false,
       connected: hasKey,
-      keys,
+      keys: maskConfigSecrets(keys),
     };
   }
 
@@ -115,8 +116,8 @@ export async function GET(request: Request) {
     connected: Boolean(bEmail),
     apiBaseUrl: bCfg.apiBaseUrl || "",
     email: bEmail,
-    password: bCfg.password || "",
-    keys: bKeys,
+    password: bCfg.password ? "********" : "",
+    keys: maskConfigSecrets(bKeys),
   };
 
   // OAuth "연결"은 테넌트 integrations 테이블에 저장된다(플러그인 config가 아님). 대시보드 "연결됨"

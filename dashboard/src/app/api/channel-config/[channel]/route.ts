@@ -3,11 +3,16 @@ import { verifyChannel } from "@/lib/verify-channel";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
 import { withTenant } from "@/lib/db";
+import { isMaskedSecret } from "@/lib/secret-mask";
 
 interface OpenClawConfig {
   plugins?: {
     entries?: Record<string, { enabled?: boolean; config?: Record<string, string> }>;
   };
+}
+
+function shouldPersistSecretInput(value: unknown): value is string {
+  return typeof value === "string" && Boolean(value.trim()) && !isMaskedSecret(value);
 }
 
 // 수동 입력 키를 대시보드 "직접 발행"(publish.ts getChannelCred)이 읽는 integrations 테이블로 브리지한다.
@@ -79,10 +84,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ cha
     for (const pname of ["threads-publish", "threads-insights", "threads-search", "threads-growth"]) {
       const p = (plugins[pname] ??= { enabled: true, config: {} });
       if (!p.config) p.config = {};
-      if (typeof data.accessToken === "string" && data.accessToken.trim()) {
+      if (shouldPersistSecretInput(data.accessToken)) {
         p.config.accessToken = data.accessToken.trim();
       }
-      if (typeof data.userId === "string" && data.userId.trim()) {
+      if (shouldPersistSecretInput(data.userId)) {
         p.config.userId = data.userId.trim();
       }
     }
@@ -102,7 +107,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cha
     const xp = (plugins["x-publish"] ??= { enabled: false, config: {} });
     if (!xp.config) xp.config = {};
     for (const key of ["apiKey", "apiKeySecret", "accessToken", "accessTokenSecret"]) {
-      if (typeof data[key] === "string" && data[key].trim()) {
+      if (shouldPersistSecretInput(data[key])) {
         xp.config[key] = data[key].trim();
       }
     }
@@ -124,7 +129,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cha
   if (!p.config) p.config = {};
 
   for (const [key, val] of Object.entries(data)) {
-    if (typeof val === "string" && val.trim()) {
+    if (shouldPersistSecretInput(val)) {
       p.config[key] = val.trim();
     }
   }

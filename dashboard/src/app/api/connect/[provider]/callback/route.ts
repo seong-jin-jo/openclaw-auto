@@ -1,5 +1,6 @@
 import { withTenant } from "@/lib/db";
 import { getProvider, exchangeCode, exchangeFacebookCode, publicOrigin } from "@/lib/social-connect";
+import { escapeHtml, oauthErrorMessage } from "@/lib/oauth-errors";
 
 // GET /api/connect/{provider}/callback?code=...&state=<tenantId>
 // provider OAuth 리다이렉트(인증 없음 — middleware 공개). state로 테넌트 식별 → code를 토큰 교환 →
@@ -10,10 +11,11 @@ import { getProvider, exchangeCode, exchangeFacebookCode, publicOrigin } from "@
 // Slack: access_token 또는 authed_user.access_token 자동 처리(exchangeCode 내부).
 
 function resultHtml(title: string, sub: string): Response {
-  const html = `<html><body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh">
-    <div style="text-align:center"><h2>${title}</h2><p style="color:#888">${sub}</p>
+  const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head>
+  <body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh">
+    <div style="text-align:center;max-width:520px;padding:24px"><h2>${escapeHtml(title)}</h2><p style="color:#aaa;line-height:1.5">${escapeHtml(sub)}</p>
     <script>setTimeout(()=>window.close(),2500)</script></div></body></html>`;
-  return new Response(html, { headers: { "Content-Type": "text/html" } });
+  return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ provider: string }> }) {
@@ -27,7 +29,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
 
   const cfg = getProvider(provider);
   if (!cfg) return resultHtml("연결 실패", `지원하지 않는 provider: ${provider}`);
-  if (err) return resultHtml("연결 취소됨", String(err).slice(0, 120));
+  if (err) return resultHtml("연결 실패", oauthErrorMessage(String(err), cfg.label).slice(0, 240));
   if (!code || !tenantId) return resultHtml("연결 실패", "code/state 누락");
 
   const key = process.env.OSMU_SECRET_KEY;
@@ -48,7 +50,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
     const tok = provider === "facebook"
       ? await exchangeFacebookCode(code, origin)
       : await exchangeCode(provider, code, origin, { codeVerifier });
-    if (!tok.accessToken) return resultHtml("연결 실패", tok.error || "토큰 교환 실패");
+    if (!tok.accessToken) return resultHtml("연결 실패", oauthErrorMessage(tok.error || "토큰 교환 실패", cfg.label).slice(0, 240));
 
     // api 플래그: 발행 라우터가 어느 API 경로를 써야 할지 판별하는 힌트.
     // Meta 계열은 구분자 유지, 표준 OAuth 채널은 provider 라벨 그대로.
@@ -61,7 +63,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
       : provider;
 
     // meta 구성: YouTube는 refresh_token 추가 저장(access_token 만료 시 갱신용).
-    const meta: Record<string, unknown> = { userId: tok.userId ?? null, api: apiFlag, connectedAt: null };
+    const meta: Record<string, unknown> = { userId: tok.userId ?? null, api: apiFlag, connectedAt: new Date().toISOString() };
     if (tok.refreshToken) meta.refreshToken = tok.refreshToken;
 
     // 테넌트별 채널 cred 저장(발행 경로 getChannelCred가 읽음). 토큰은 pgcrypto 암호화.
@@ -75,6 +77,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
 
     return resultHtml(`${cfg.label} 연결 완료!`, "이 창을 닫고 대시보드로 돌아가세요.");
   } catch (e) {
-    return resultHtml("연결 실패", (e instanceof Error ? e.message : String(e)).slice(0, 120));
+    return resultHtml("연결 실패", oauthErrorMessage(e instanceof Error ? e.message : String(e), cfg.label).slice(0, 240));
   }
 }

@@ -6,15 +6,31 @@ import { useChannelConfig } from "@/hooks/useChannelConfig";
 import { authHeaders } from "@/lib/auth";
 import { CredentialForm } from "@/components/shared/CredentialForm";
 import { SetupGuide } from "@/components/shared/SetupGuide";
+import { SocialConnectButton } from "@/components/channel/SocialConnectButton";
 import type { Workspace } from "@/store/ui-store";
 
 // 채널 연결 모달 — 검증 경로(/api/channel-config/{channel})로 통일.
 // 저장 시 실제 API로 credential을 verify하고 계정(@username)을 echo. OnboardingWizard와 동일 경로.
 // "연결 테스트"는 빈 body POST → 저장된 creds로 verify만 재실행(부작용 없음).
-const CHANNELS = ["threads", "instagram", "x", "facebook", "bluesky", "telegram", "discord", "slack", "line"];
+const CHANNELS = ["threads", "instagram", "x", "facebook", "linkedin", "youtube", "naver_blog", "pinterest", "tumblr", "tiktok", "slack", "line", "bluesky", "telegram", "discord"];
 const LABELS: Record<string, string> = {
   threads: "Threads", instagram: "Instagram", x: "X", facebook: "Facebook",
-  bluesky: "Bluesky", telegram: "Telegram", discord: "Discord", slack: "Slack", line: "LINE",
+  linkedin: "LinkedIn", youtube: "YouTube", naver_blog: "Naver Blog", pinterest: "Pinterest",
+  tumblr: "Tumblr", tiktok: "TikTok", bluesky: "Bluesky", telegram: "Telegram", discord: "Discord", slack: "Slack", line: "LINE",
+};
+const OAUTH_LABELS: Record<string, string> = {
+  threads: "Threads",
+  instagram: "Instagram",
+  x: "X (Twitter)",
+  facebook: "Facebook",
+  linkedin: "LinkedIn",
+  youtube: "YouTube",
+  naver_blog: "Naver Blog",
+  pinterest: "Pinterest",
+  tumblr: "Tumblr",
+  tiktok: "TikTok",
+  slack: "Slack",
+  line: "LINE",
 };
 
 interface VerifyResult { verified?: boolean; unverified?: boolean; reason?: string; account?: string; error?: string }
@@ -24,6 +40,7 @@ export function ChannelConnect({ workspace, onClose }: { workspace: Workspace; o
   const [platform, setPlatform] = useState("threads");
   const [result, setResult] = useState<VerifyResult | null>(null);
   const [testing, setTesting] = useState(false);
+  const [showManualCreds, setShowManualCreds] = useState(false);
 
   const guide = setupGuides[platform];
   const chCfg = (cfg?.[platform] as { connected?: boolean; keys?: Record<string, string> }) || {};
@@ -71,7 +88,7 @@ export function ChannelConnect({ workspace, onClose }: { workspace: Workspace; o
           {CHANNELS.map((c) => {
             const connected = Boolean((cfg?.[c] as { connected?: boolean })?.connected);
             return (
-              <button key={c} onClick={() => { setPlatform(c); setResult(null); }}
+              <button key={c} onClick={() => { setPlatform(c); setResult(null); setShowManualCreds(false); }}
                 className={`px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 ${platform === c ? "bg-accent text-text" : "bg-surface-2 text-subtle"}`}>
                 {LABELS[c] || c}{connected && <span className="text-green-400">✓</span>}
               </button>
@@ -87,18 +104,37 @@ export function ChannelConnect({ workspace, onClose }: { workspace: Workspace; o
               <SetupGuide quick={guide.quick} detail={guide.detail} images={guide.images} />
             </div>
             <div className="card p-4">
-              <CredentialForm
-                channelKey={platform}
-                fields={guide.fields}
-                labels={guide.labels}
-                currentKeys={currentKeys}
-                onSave={handleSave}
-                connectLabel="연결 + 검증"
-              />
-              <button onClick={testConnection} disabled={testing}
-                className="mt-3 w-full py-1.5 text-xs bg-surface-2 hover:bg-surface-2 text-muted rounded disabled:opacity-50">
-                {testing ? "테스트 중…" : "연결 테스트 (저장된 키 재검증)"}
-              </button>
+              {OAUTH_LABELS[platform] && (
+                <div className="mb-3">
+                  <SocialConnectButton provider={platform} label={OAUTH_LABELS[platform]} />
+                  <button
+                    type="button"
+                    onClick={() => setShowManualCreds((v) => !v)}
+                    className="mt-2 text-[11px] text-accent"
+                  >
+                    {showManualCreds ? "수동 입력 닫기" : "고급: 토큰 직접 입력"}
+                  </button>
+                </div>
+              )}
+              {(!OAUTH_LABELS[platform] || showManualCreds) && (
+                <>
+                  <CredentialForm
+                    channelKey={platform}
+                    fields={guide.fields}
+                    labels={guide.labels}
+                    currentKeys={currentKeys}
+                    onSave={handleSave}
+                    connectLabel="수동 연결 + 검증"
+                  />
+                  <button onClick={testConnection} disabled={testing}
+                    className="mt-3 w-full py-1.5 text-xs bg-surface-2 hover:bg-surface-2 text-muted rounded disabled:opacity-50">
+                    {testing ? "테스트 중…" : "연결 테스트 (저장된 키 재검증)"}
+                  </button>
+                </>
+              )}
+              {OAUTH_LABELS[platform] && !showManualCreds && chCfg.connected && (
+                <p className="mt-3 text-xs text-green-400">✓ OAuth 연결됨 — access token 원문은 화면에 표시하지 않습니다.</p>
+              )}
               {result && (
                 <div className="mt-3 text-xs">
                   {result.verified ? (

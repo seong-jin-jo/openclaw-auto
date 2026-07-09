@@ -3,7 +3,260 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **qa**, ship은 `/approve qa` 후). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-07 · `main` · **OAuth 코드+배선 완료 / 포털 로그인 세션 없어 자동화 차단**
+**최종 갱신:** 2026-07-10 04:17 KST · `main` · **Codex build: admin auth users + password reset email 구현**
+
+---
+
+### 🔄 Codex handoff binding — launch/OAuth/admin QA audit (2026-07-10 00:40 KST)
+
+**사용자 지정 primary:** “우리 앱 진짜 제대로 띄워서 돌려야해. `claude -p`로 돌리되 유저들이 OAuth 로그인해서 각자 사용하는 방식. 최근 admin도 구성했지? 이어하자.”
+
+**tmux pane 표식:** session `2`, window `0`의 openclaw-auto pane 2개를 확인했고 pane border에 작업 목표를 고정했다.
+- `%7` / pane 0: `launch: OAuth login, per-user claude-p, admin QA`
+- `%8` / pane 1: `paused: branding wiki/codebase review`
+
+**현재 판정:**
+- 로컬 worktree에는 2026-07-09 OAuth/admin 수정이 들어와 있고 현재 재검증도 통과했다.
+- 라이브 `https://openclaw.sj-onpremise-cloudflare-tunnel.cloud`는 아직 2026-07-05 배포 커밋(`290390c`)을 쓰는 구버전이다. 그래서 `/login`에 `비밀번호 찾기`가 없고 `/api/auth/google`이 `401 Unauthorized`를 반환한다.
+- 최신 수정은 아직 운영 배포되지 않았다. `gh run list --workflow 'Deploy openclaw (marketing VM)' --limit 5` 기준 최신 배포는 2026-07-05T17:58:21Z, run `28749775595`, headSha `290390ccd8b5e039e37c7cba73eaa12b80e1ee42`.
+
+**현 worktree 검증(직접 실행):**
+- `npm run test` in `dashboard/` → 36 files PASS, 187 PASS / 8 skipped.
+- `npm run build` in `dashboard/` → PASS. `/api/auth/google`, `/api/operator/customers`, `/api/studio/engine-status`, `/operator/customers` 포함.
+- `env PORT=3456 NEXT_PUBLIC_SUPABASE_URL=https://gvtsyyltgwqplrqegrxo.supabase.co npm run dev` → local `http://localhost:3456` Ready.
+- local `curl /login` → 200, `비밀번호 찾기` 버튼 렌더 확인.
+- local `curl /api/auth/google?...` → 400 JSON, “Google 로그인이 아직 설정되지 않았습니다...” 한국어 안내. Supabase raw JSON으로 브라우저 넘김 없음.
+- `npm run e2e:local` → PASS, screenshots `/tmp/e2e-*.png`. 로컬 anon key 미설정 warning은 남음.
+
+**라이브 검증(직접 실행):**
+- live `/login` → 200이지만 `비밀번호 찾기` 버튼 없음(구버전 HTML).
+- live `/api/auth/google?redirect_to=...` → 401 `{"error":"Unauthorized"}`. 새 public middleware가 운영에 미반영.
+- live `/api/me` → 401. 운영자 게이트 자체는 살아 있음.
+
+**현재 변경 상태 주의:**
+- `origin/main..HEAD` = 로컬이 5 commits ahead.
+- OAuth/admin 관련 신규 미추적 파일: `dashboard/src/app/api/auth/google/route.ts`, `dashboard/src/app/api/operator/customers/route.ts`, `dashboard/src/app/api/studio/engine-status/route.ts`, `dashboard/src/app/operator/customers/page.tsx`, `dashboard/src/lib/oauth-errors.ts`, `dashboard/src/lib/secret-mask.ts`, 관련 tests 4개.
+- `openclaw/` nested tree는 대량 untracked가 있으나 이번 launch/OAuth/admin 트랙과 무관. 건드리지 말 것.
+
+**다음 액션:**
+1. OAuth/admin 수정만 선별 commit한다. 브랜딩 wiki/scratchpad와 `openclaw/` 대량 untracked는 섞지 않는다.
+2. `/approve qa` 또는 명시 배포 승인 후 `gh workflow run "Deploy openclaw (marketing VM)"` 실행.
+3. 배포 후 live에서 `/login` 비밀번호 찾기, `/api/auth/google` public preflight, `/operator/customers` 운영자 토큰 조회, 실제 Google OAuth provider 설정 상태, 고객 로그인→워크스페이스→Studio 엔진 배지→채널 OAuth 연결→토큰 저장→실발행 E2E를 순서대로 재검증한다.
+4. Google OAuth를 실제로 성공시키려면 Supabase Auth Google provider 활성화와 redirect URL 등록이 필요하다. 비밀번호 재설정 메일은 운영 `NEXT_PUBLIC_SUPABASE_ANON_KEY`가 빌드 주입된 배포 후에만 실발송 검증 가능.
+
+**2026-07-10 03:31 KST 재제보 후 추가 확인:**
+- 사용자 재제보: Google 로그인 raw JSON `Unsupported provider: provider is not enabled`, 비밀번호 찾기 없음, 현재 가입자 목록 요청.
+- live `/login` 직접 curl → 200이지만 `비밀번호 찾기` 버튼 없음. live `/api/auth/google?...` → 401 `{"error":"Unauthorized"}`.
+- 운영 DB를 remote VM에서 `postgres:16` psql 컨테이너로 조회했다. DB URL/토큰은 출력하지 않았고 비밀번호 원문은 조회하지 않았다.
+- auth users 5명: `r.cupid@gmail.com`(tenant 연결/confirmed), `j.the.great.investor@gmail.com`(tenant 연결/confirmed), `code0to1@gmail.com`(tenant 연결/confirmed), `osmu.qa.overnight0702@gmail.com`(unconfirmed/tenant 없음), `qa.live.1781632644@gmail.com`(unconfirmed/tenant 없음).
+- tenants 9개: 셀프서브 연결 3개(`r-cupid-9da55f`, `j-the-great-investor-6794e3`, `code0to1-2dafcd`) + 기존 내부 tenant 6개(`--`, `dedu`, `zeroone`, `zero-one`, `okgram`, `romeo`).
+- `j.the.great.investor@gmail.com`은 존재 확인: auth id `e6baa000-cefe-4a77-9034-c600703c41c5`, tenant id `badd844f-9106-4992-ad10-41a234fceb35`, email confirmed `2026-06-28T15:47:21Z`, last sign-in `2026-06-28T15:47:44Z`.
+
+**2026-07-10 04:17 KST 추가 구현/검증:**
+- 기존 비밀번호 원문/해시 조회는 구현하지 않았다. 대신 `/operator/customers`에 auth 가입자 목록과 `비밀번호 재설정 메일` 버튼을 추가했다.
+- `GET /api/operator/customers`는 tenants + auth.users 요약을 반환한다. 반환 필드에는 password/encrypted_password 없음.
+- `POST /api/operator/customers` with `{ action: "send_password_reset", email }`은 Supabase `/auth/v1/recover`를 호출해 재설정 메일만 보낸다.
+- 검증: focused tests 4 files / 22 PASS, 전체 `npm run test` 37 files / 190 PASS / 8 skipped, `npm run build` PASS, `npm run e2e:local` PASS.
+- 다음 액션: 관련 dashboard/docs/wiki ops 변경만 선별 commit → deploy workflow 실행 → live `/login`, `/api/auth/google`, `/operator/customers`, reset email action을 직접 검증.
+
+---
+
+### 🔄 Codex audit — marketing/branding wiki handoff check (2026-07-10 KST)
+
+**사용자 지정 primary:** "마케팅 브랜딩 중심으로 위키 구성" 작업. 회장이 tmux pane 목표를 보라고 명시했으므로 tmux transcript를 primary로 보고, `session-state.md`와 `wiki/marketing/`은 보조 증거로 대조함.
+
+**확인한 tmux panes:** 현재 살아있는 `openclaw-auto` pane은 `%7`(`2:0.0`)과 `%8`(`2:0.1`)뿐. `%8`은 이 감사 요청을 받은 현재 Codex 세션이고, `%7`은 직전 "앱/OAuth/admin" 점검 세션. 과거 브랜딩 pane `%36`은 현재 tmux에는 없고, 복구 가능한 정본 맥락은 이 파일의 2026-07-08/09 브랜딩 handoff 섹션에 남아 있음.
+
+**검토 결과:**
+- 위키 구조화는 진행됨: `wiki/marketing/` 7파일 + proposals 2건이 신설되어 positioning/competitors/playbook/brand/growth-log/assets로 분리됨.
+- 마케팅 자산은 복구됨: `scratchpad/brand-visuals/`에 showcase 포함 21 files가 있고, `wiki/marketing/assets.md`가 이 위치를 가리킴.
+- 최신 방향과 정본 사이에 불일치가 있음: `wiki/marketing/brand.md`는 아직 2026-07-07의 개발자/바이브코더 build-in-public 3안을 정본 후보로 들고 있음. 반면 최신 handoff는 타겟을 자영업자/사장님으로 고치고, `사장님-홍보비서` 서사 + "지금 보시는 이 콘텐츠도 자동화로 만들었다" proof hook을 다음 작업으로 지정함.
+- 실행 자산은 아직 미확정 상태: 이름 확정, 핸들 선점, 프로필/비주얼 교체, waitlist 랜딩, 워터마크, 공개 성과 페이지, pSEO 공개 가이드는 아직 하지 않음.
+
+**의사판단 기준:**
+- 1순위: 팔 대상이 즉시 이해해야 함. 자영업자/사장님이 3초 안에 "내 가게 홍보를 대신 챙기는 것"으로 읽히는 이름/카피가 우선.
+- 2순위: 사장님을 낮춰 보지 않아야 함. 사장님은 가게와 손님을 아는 주인공, 우리는 뒤에서 글/초안/발행/반응을 챙기는 기술 비서라는 구도가 맞음.
+- 3순위: 제품 시연성이 있어야 함. "지금 보시는 이 콘텐츠도 자동화로 만들었다" proof hook을 자연스럽게 품는 안이 우선.
+- 4순위: 너무 도구명/기능명처럼 싸 보이면 감점. 외부 표현은 `홍보비서`, `오늘 올릴 글`, `초안부터 발행까지`처럼 업무 결과 언어가 우선.
+- 5순위: 기존 개발자 build-log 자산은 보조 신뢰 자료로만 살리고, 메인 채널 아이덴티티에는 올리지 않음.
+
+**추천 진행 순서:**
+1. 새 브랜드킷 3안 작성: `사장님 콘텐츠 공장`, `사장님 마케팅 비서`, `오늘 올릴 가게글` 축으로 이름/bio/슬로건/톤/콘텐츠 필러를 만든다.
+2. 3안 비교: 위 5개 기준으로 점수화하고, 추천 1안을 명시한다.
+3. 회장 선택 후에만 `wiki/marketing/brand.md` 정본 교체 및 기존 2026-07-07 제안 격하 처리.
+4. 정본 교체 후 기존 `scratchpad/brand-visuals/` 자산은 폐기/재사용 여부를 판단한다. 현재 자산은 `빌드로그 SJ` 기준이라 바로 업로드하면 안 됨.
+5. 실행은 그 다음: 핸들 검색/선점 → 프로필/bio 교체 → 첫 고정글 3개 작성 → 자동화 proof hook을 담은 첫 발행 테스트.
+
+**정확한 다음 액션:** `brand-positioning-kit`을 사용해 자영업자/사장님 타겟의 새 브랜드킷 3안을 만들고, 기존 `빌드로그 SJ` 계열은 메인 채널 후보에서 폐기/보조 창업자 로그로 격하한다. 회장 선택 전에는 `wiki/marketing/brand.md` 정본 교체, 핸들 선점, 프로필/비주얼 업로드를 하지 않는다.
+
+---
+
+### 🔄 Codex handoff binding — branding proof hook (2026-07-09)
+
+**사용자 지정 primary:** 브랜딩/마케팅 트랙. 현재는 아이데이션 상태이며, 회장이 이름은 더 고민한다고 명시함.
+
+**회장 최신 피드백:** “우리도 이 마케팅 자동화해서 보시는 이 컨텐츠도 우리가 자동화 프로그램으로 만들었다. 이렇게 딱 갈기면 호기심+설득될듯. 이름은 더 고민.”
+
+**현재 유효한 방향:**
+- 타겟은 **자영업자/사장님**. 개발자 build-log 채널이 아님.
+- 메인 감정은 **사장님 리스펙 + 홍보비서/뒤팀 + 기술적으로 탄탄한 자동화**.
+- 강한 proof hook: **“지금 보시는 이 콘텐츠도 우리가 자동화로 만들었다”**. 이 문장은 호기심과 제품 시연을 동시에 만든다.
+- 단, “자동화 프로그램”은 너무 도구/싸구려 느낌이 날 수 있으니 외부 카피에서는 `홍보비서`, `자동화`, `초안부터 발행까지 챙김` 언어로 번역하는 쪽이 더 적합.
+
+**카피 후보(아이데이션, 미확정):**
+- “지금 보신 이 콘텐츠도 저희 홍보비서가 만들고 발행했습니다.”
+- “사장님은 손님 보시고, 홍보비서는 오늘 올릴 글을 챙깁니다.”
+- “이 콘텐츠가 광고입니다. 동시에 시연입니다.”
+- “이런 가게 홍보글, 매일 직접 쓰지 마세요. 비서가 챙기게 하세요.”
+
+**아직 하지 않은 것:** `wiki/marketing/brand.md` 정본 반영, 이름 확정, 핸들 선점, 프로필/비주얼 교체. 회장이 확정하지 않았으므로 실행하지 말 것.
+
+**다음 액션:** 이름은 보류하고, 먼저 `사장님-홍보비서` 서사 + 자동화 증명 훅을 포함한 새 브랜드킷 3안을 만든다. 이후 회장 선택을 받아 wiki 정본과 자산을 갈아엎는다.
+
+---
+
+### 🔄 Codex handoff binding — tmux pane `%36` branding correction (2026-07-08)
+
+**사용자 지정 primary:** tmux pane `%36`의 브랜딩/마케팅 트랙. 최신 대화 기준으로 이전 `빌드로그 SJ` 추천은 타겟 오판이다.
+
+**회장 최신 피드백:**
+- 실제 채널 타겟은 개발자/인디해커가 아니라 **자영업자 대상 마케팅 채널**.
+- 감정 축은 좋음: **자영업자를 한껏 띄워주고, 우리는 시다바리/뒤팀/비서 역할**.
+- 단, 사장님을 무시하는 말맛은 금지. 기술적으로는 우리가 탄탄하되, 메시지는 “사장님은 가게와 손님을 아는 주인공이고 우리는 홍보 잡일을 뒤에서 굴리는 기술 비서”여야 함.
+- 네이밍은 너무 얌전한 `사장님 마케팅실`보다 이전 제안 계열이 더 낫고, **워딩/슬로건은 `사장님-비서` 서사**가 괜찮다는 판단.
+
+**현재 유효한 방향:**
+- 브랜드 감정: `사장님 리스펙 + 낮은 자세 + 뒤에서 돌아가는 탄탄한 자동화`.
+- 유력 네이밍 축: `사장님 콘텐츠 공장`, `사장님 마케팅 비서`, `오늘 올릴 가게글`, `매장 홍보 자동화`, `동네가게 마케팅`.
+- 추천 조합(아직 미확정): 브랜드/계정명은 `사장님 콘텐츠 공장` 쪽, 슬로건/카피는 `사장님-비서` 서사. 예: “사장님은 장사하세요. 홍보는 비서가 챙기겠습니다.”류.
+- `빌드로그 SJ`와 기존 founder build-in-public 3안은 **메인 채널명으로 부적합**. 이후 wiki 정본 갱신 시 폐기/보조 창업자 로그로 격하 표시 필요.
+
+**아직 하지 않은 것:** 회장이 “박아라/확정/문서 반영”을 말하지 않았으므로 `wiki/marketing/brand.md` 정본은 아직 수정하지 않았다. 아이데이션 상태로 `session-state.md`에만 기록.
+
+**다음 액션:** 다음 세션은 `brand-positioning-kit` 기준으로 자영업자 타겟의 새 브랜드킷 3안을 다시 작성한다. 반드시 `사장님-비서` 서사를 포함하고, 사장님을 낮춰 보는 뉘앙스 없이 “기술적으로 탄탄한 뒤팀” 포지션으로 쓴다. 확정 전까지 계정명/핸들/비주얼 교체 금지.
+
+---
+
+### 🔄 Codex handoff binding — tmux pane `%19` (2026-07-08)
+
+**사용자 지정 primary:** tmux pane `%19`. `tmux list-panes` 기준 `%19` = `marketing-claw:0.0`, title=`✳ self-serve-marketing-platform`, cwd=`/Users/sj/sj_code_master/openclaw-auto`.
+
+**회장 제보/요청:** Google 로그인 raw JSON, 온보딩/Settings 토큰 입력 우선 노출, Threads/Instagram Meta 권한·tester invite 에러 안내 부족, permission popup 한글 깨짐, TikTok/YouTube 등 OAuth UI 부재, Settings accessToken 박제 여부, OSMU 엔진/영상 실패 원인 불명확, Marketing Hub 유저 관리자 페이지 필요.
+
+**반영 완료(코드):**
+- OAuth/Meta 에러 mapper 추가: Google provider disabled/missing env, Meta tester invite `1349245`, Meta role 부족, redirect URI/scope/client 설정 오류를 한국어 조치 문장으로 변환.
+- `/api/connect/[provider]/callback` HTML을 `lang=ko`, `<meta charset="utf-8">`, HTML escape로 변경. 한글 깨짐/스크립트 삽입 방지.
+- 채널/온보딩/Settings 연결 UI를 OAuth 우선으로 정리. 수동 토큰 입력은 `고급: 토큰 직접 입력` 토글 뒤에만 노출.
+- OAuth 토큰은 `integrations(kind='channel')`에 암호화 저장되며 Settings에 원문 미표시. 기존 수동 `openclaw.json` 토큰도 `/api/channel-config` 응답에서 `********`로 마스킹하고, POST에서 마스크값이 기존 토큰을 덮어쓰지 않게 처리.
+- Studio 상단에 OSMU 생성 엔진 상태 표시: tenant Anthropic key 있으면 `내 Anthropic API 키`, 없으면 `공유 Claude CLI · claude -p`.
+- Studio 텍스트/이미지/영상 실패 원인을 `마지막 실패`로 노출. Higgsfield 크레딧/NSFW류는 문구 구분.
+- `/operator/customers` 운영자 유저 관리 MVP 추가: tenants, integrations, drafts/published/failed, usage_events, quotas 요약. `/api/operator` middleware 허용.
+
+**검증 완료:**
+- `npm run test -- tests/brand/oauth-errors.test.ts tests/api/channel-config-mask.test.ts tests/api/channel-config-bridge.test.ts tests/brand/social-connect.test.ts` → 4 files / 45 tests PASS.
+- `npm run build` → PASS. 기존 Turbopack NFT warning만 유지.
+- gstack `/login`: Google 클릭 시 raw 에러 대신 “Google 로그인 설정…” 안내 확인.
+- gstack `/channels/youtube`: OAuth 버튼 기본, 수동 토큰 고급 토글 확인.
+- gstack `/settings`: `OSMU 채널 OAuth` 카드 + 연결 모달 확인, TikTok 탭 OAuth 버튼 확인.
+- gstack `/studio`: `AI 공유 Claude CLI · claude -p` 배지 확인.
+- gstack `/api/connect/threads/callback?error=Invalid_Request_1349245`: `utf-8` HTML + tester invite 안내 확인. Instagram role 부족 에러도 확인.
+- gstack `/operator/customers`: 페이지 렌더 확인. local DB 미설정이라 API 500 표시(프로덕션 DB에서 재검 필요).
+
+**해결 방식 표기(요약):** raw OAuth 에러는 `oauthErrorMessage()`로 한국어 조치 문장화, callback popup은 `utf-8` HTML+escape, OAuth 지원 채널은 버튼 기본/수동 입력 고급화, 수동 토큰 API 응답은 `********` 마스킹, Studio는 `/api/studio/engine-status`로 Anthropic API vs `claude -p`를 표시, 운영자 페이지는 `/operator/customers`로 tenants/integrations/usage 집계.
+
+**남은 외부/라이브 검증:** Google provider 활성화, Meta tester invite 수락/role 부여, 각 플랫폼 OAuth client secret 등록 후 실제 OAuth 동의→토큰 저장→실발행 E2E. 로컬 `DATABASE_URL` 미설정으로 DB-backed operator data/발행 이력은 live DB에서 재검.
+
+**2026-07-09 재제보 후 추가 수정:** live gstack에서 Google 버튼 클릭 시 브라우저가 Supabase authorize endpoint로 이동하고 raw JSON(`Unsupported provider: provider is not enabled`)을 직접 렌더링하는 것을 재현. 기존 mapper는 앱으로 돌아온 에러만 처리해 이 자동 리다이렉트 케이스를 못 잡았다. 해결: `/api/auth/google` preflight route 추가 → 서버가 Supabase authorize를 `redirect: manual`로 먼저 확인 → provider disabled면 한국어 안내 반환, 3xx면 authUrl 반환. `/login` Google 버튼은 이 API를 먼저 호출하도록 변경. `/login`에 `비밀번호 찾기`/recovery 새 비밀번호 설정 폼 추가. middleware에서 `/api/auth/google` 공개 허용. `/signup`/`?mode=signup` 초기 렌더 mode 불일치 가능성 제거. 로컬 env 누락 로그는 `console.warn`으로 낮춤. 검증: focused tests 19 PASS, `npm run build` PASS, gstack `http://localhost:3457/login`에서 Google 클릭 시 raw JSON 페이지 이동 없이 앱 안내 표시 확인, `비밀번호 찾기` 버튼 노출 및 이메일 미입력 안내 확인. 회원 목록 조회는 현재 shell env에 `DATABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`/`DASHBOARD_AUTH_TOKEN`이 없어 미검증; 비밀번호 원문은 조회 불가/금지, 재설정만 가능.
+
+**2026-07-09 재검증 재실행:** `npm run test` → 36 files PASS, 187 PASS / 8 skipped. `npm run build` → PASS, `/api/auth/google` route 포함. `npm run e2e:local` → PASS, `/tmp/e2e-*.png` 생성. gstack console buffer clear 후 재실행했고 Supabase anon key 미설정은 `[warning]`으로만 표시. local gstack `http://localhost:3456/login`에서 `Google로 계속` 클릭 시 `/login`에 머물고 “Google 로그인이 아직 설정되지 않았습니다...” 안내 표시 확인. local curl `/api/auth/google?...` → HTTP 400 + 한국어 JSON 확인. `비밀번호 찾기`는 로컬 anon key 미설정 때문에 실제 메일 발송은 미검증이고 “Supabase 설정 없음” 안내 표시까지 확인. live/prod는 아직 NG: live curl `/api/auth/google?...` → HTTP 401 `Unauthorized`, live gstack `/login`에는 `비밀번호 찾기` 버튼이 없고 Google 클릭 시 Supabase raw JSON으로 이동. 스크린샷 `/tmp/openclaw-login-google-live-ng.png`, `/tmp/openclaw-login-google-reset-local.png`.
+
+---
+
+### 🔄 Codex handoff binding — tmux pane `%36` (2026-07-08)
+
+**사용자 지정 primary:** tmux pane `%36`. `tmux list-panes` 기준 `%36` = `marketing-claw:0.2`, title=`✳ Fable 위키 점검 및 마케팅 브랜딩 업데이트`, cwd=`/Users/sj/sj_code_master/openclaw-auto`.
+
+**캡처된 최신 문맥:** 회장이 `showcase.html`에 대해 “이거 너가 만든거아니야?”라고 확인했고, pane `%36`은 “store-visual-producer 에이전트가 design-html/design-review 스킬로 제작했고 메인세션은 spec 전달·검증·relay만 했다”고 답한 상태에서 대기 중.
+
+**현재 해석:** 이어갈 주 작업은 2026-07-07 브랜딩/마케팅 위키 트랙이다. 위키 감사·마케팅 섹션 신설·브랜드킷 제안·비주얼 목업은 산출됐고, 실제 계정 교체/핸들 선점/채널 운영 착수는 회장 결정 대기다.
+
+**복구한 누락 산출물:** 기존 노트는 `scratchpad/brand-visuals/showcase.html`을 repo 경로처럼 적었지만 실제 repo에 폴더가 없었다. Codex가 임시 Claude 렌더 경로 `/private/tmp/claude-501/-Users-sj-sj-code-master-openclaw-auto/20c1de30-14cd-4b24-9b3d-2100d9e8749c/scratchpad/brand-visuals/`에서 repo `scratchpad/brand-visuals/`로 복구했다. 확인: 21 files / 3.1M, `showcase.html` 포함. 같은 시각 자산을 반복 open하지 않기 위해 경로만 갱신.
+
+**변경 상태 주의:** 루트에는 기존 wiki 변경 + 신규 `wiki/marketing/` + 복구된 `scratchpad/brand-visuals/`가 있다. nested `openclaw/` repo는 별도 대량 dirty 상태라 이 브랜딩 트랙에서는 건드리지 않는다.
+
+**다음 액션:** 회장이 아래 4가지를 결정하면 바로 실행한다: ①계정 아이덴티티(3안 중 선택) ②운영 채널/언어(한국어 Threads, 영어 X, 병행) ③GitHub 오픈소스 퍼널 공개 여부 ④워터마크/서명 문구. 결정 전에는 계정 업로드·핸들 선점·외부 배포를 하지 않는다.
+
+---
+
+### 🔄 Codex handoff binding — tmux pane 0 (2026-07-07)
+
+**사용자 지정 primary:** tmux pane 0. `tmux list-panes` 기준 current window는 `marketing-claw`, pane 0은 `marketing-claw:0.0`이며 title=`✳ self-serve-marketing-platform`, cwd=`/Users/sj/sj_code_master/openclaw-auto`.
+
+**캡처된 최신 질문:** “사내는 레포 wiki 가져오고 고객은 노션 페이지 연결시켜서 컨텐츠 퀄 높이자는거지? … AI 도움 받아서 테스트하면 다 돼? 4앱에서?” → 이어받을 핵심은 **구현 상태를 추측하지 말고 코드/배선/테스트로 확인**하는 것.
+
+**현재 해석:** 제품 MCP 신규 구현은 0. 그라운딩은 snapshot store로 통일. 사내=GitHub/wiki sync 기존 경로 확인, 외부=wizard 기존 + Notion/URL/upload 커넥터 구현 여부 확인 필요. 4앱 적용은 실제 배선/시크릿/배포/브라우저 E2E로만 완료 판정.
+
+**작업 격리:** session-state 디테일은 이 레포 `wiki/ops/session-state.md`에 둔다. tmux pane title이 작업명 표시 역할을 함. 코드/DB/배포/OTP는 다른 pane 중복 작업 확인 전 실행 금지.
+
+**다음 액션:** `dashboard/` 코드에서 brand/wiki sync, wizard, Notion/URL/upload connector, 4앱 tenant 경로를 확인하고 “이미 됨/부분 구현/미구현/외부 액션 필요”로 나눈다. 검증 전 “다 된다” 금지.
+
+**Codex 확인 결과 (2026-07-08):**
+- ✅ 외부 기본 경로: `BrandSetupWizard` → `/api/studio/brand-setup` → `brand_guides(source='wizard')` 구현 확인.
+- ✅ 사내/자료형 경로: `RepoConnect` → `/api/brand/sync-wiki`(GitHub `.md` 폴더 전체 → `wiki_docs`) + `/api/brand/sync-repo`(특정 파일 → `brand_guides`) 구현 확인.
+- ✅ 생성 경로: `/api/studio/text`가 `getWikiContext(tenantId, idea)`로 `wiki_docs`를 읽어 “지어내기 금지” 위키 참조 프롬프트에 주입 확인.
+- ❌ Notion OAuth/page sync 전용 라우트·UI·테스트 없음. `notion|sync-notion|api/.*notion` 검색 결과는 문서 언급뿐. URL crawl/upload 커넥터도 brand/wiki 인입 라우트로는 미구현.
+- ⚠️ 4앱 “다 됨”은 미검증. 코드상 멀티테넌트/워크스페이스 구조와 내부 4앱 컨테이너 기록은 있으나, 각 앱별 wiki sync·콘텐츠 생성·실발행/성과까지 라이브 E2E는 아직 필요.
+- 검증: `npm run test -- tests/brand/brand-setup.test.ts tests/brand/studio-text-grounding.test.ts tests/brand/distill-backend.contract.test.ts tests/brand/integrations-anthropic-verify.test.ts tests/context-sources.test.ts` → 5 files / 16 tests PASS. `npm run build` → PASS(샌드박스 포트 제한으로 1차 실패 후 승인 실행).
+
+**gstack 직접 검증 (2026-07-08, Codex):**
+- ✅ 대상 pane 확인: tmux `%19` = `marketing-claw:0.0`, title=`✳ self-serve-marketing-platform`, cwd=`/Users/sj/sj_code_master/openclaw-auto`.
+- ✅ live `/login`: `https://openclaw.sj-onpremise-cloudflare-tunnel.cloud/login` 200, 이메일/비밀번호 로그인 + Google 로그인 UI 렌더 확인. 스크린샷 `/private/tmp/openclaw-login.png`.
+- ⚠️ live `/studio?setup=brand`: 비로그인 상태에서는 내부 Studio가 아니라 랜딩/가입 화면으로 떨어짐. Chrome cookie import는 macOS Keychain 권한 팝업에서 차단되어 live 내부 E2E는 미검증.
+- ✅ local dev + gstack: `http://localhost:3456`에서 `/operator` 더미 토큰 로그인 후 Studio 진입 확인. `DASHBOARD_AUTH_TOKEN` 미설정 dev 모드라 `/api/me`는 operator로 통과.
+- ⚠️ local DB: `/api/workspaces`와 workspace 생성은 `team DATABASE_URL 미설정 — Postgres 연결 불가`로 500. 그래서 DB-backed workspace 생성/실제 sync submit은 미검증.
+- ✅ UI 분리 검증: gstack localStorage에 `active_workspace`를 주입해 Studio UI 렌더 확인. `/studio?setup=brand`에서 브랜드 6문항 위저드 자동 오픈, `🎨 브랜드 설정`, `📚 위키`, `✨ AI 자동초안` 버튼 노출 확인. 스크린샷 `/private/tmp/openclaw-local-brand-wizard.png`.
+- ✅ GitHub wiki UI: `📚 레포 위키 연동` 모달 확인. 폴더 전체 모드(`owner/repo`, `wiki/`, `main`, GitHub token, `위키 폴더 전체 동기화`)와 특정 파일 모드(`docs/brand.md, docs/marketing.md`, `파일 가져와 톤 갱신`) 모두 렌더. repo/path 입력 시 파일 모드 동기화 버튼 활성화 확인. 스크린샷 `/private/tmp/openclaw-local-repo-connect.png`, `/private/tmp/openclaw-local-repo-connect-file.png`, `/private/tmp/openclaw-local-repo-connect-file-enabled.png`.
+
+---
+
+### 🔄 진행 중: 위키 점검 + 계정 브랜딩 + 마케팅 실무 (2026-07-07, Claude 세션)
+
+**회장 지시:** ①위키 점검·업데이트(마케팅 브랜딩 관점) ②인스타/스레드/유튜브 계정 이름·소개·ID·이미지·배너·썸네일·로고 디자인 ③잘나가는 SaaS 벤치마킹 + 위키 시스템 디벨롭 + 마케팅 실무 진행.
+
+**완료:**
+- ✅ 위키 전 페이지 감사 (git 날짜+줄수 스캔): 결함 = ①`reference/benchmarking.md` 동일 블록 3중 중복(라인 26~142)+2026-06 낡음 ②`reference/channel-status.md` X를 "Live 검증"으로 오기재 ③마케팅/브랜드 섹션 부재.
+- ✅ `reference/channel-status.md` 7/6 실감사 기준으로 재작성 (Threads Live / IG Connected / 13채널 미연결 + OAuth 9채널 코드완료 반영). 문서 수정만이라 테스트 해당 없음.
+
+**리서치 위임 2건 완료 + 검증 PASS (verify-agent-quality.sh 실행 — 스킬 1·웹리서치 21회 / 스킬 1·웹리서치 39회):**
+1. 브랜드킷 3안 (추천=안1 "빌드로그 SJ") → `wiki/marketing/proposals/2026-07-07-brand-kit.md`에 박제 (상태: 회장 미결정 제안)
+2. 벤치마크 갱신 → `wiki/marketing/proposals/2026-07-07-benchmark-refresh.md` (원자료) + marketing/ 각 페이지에 반영
+
+**위키 반영 완료:**
+- ✅ `wiki/marketing/` 신설 7파일: index / positioning("agentic" 차별화 폐기→그라운딩 3축) / competitors(2026-07 표, Postiz·Blotato 등 신규) / playbook(SaaS 성장 사례 + 0차 실무 우선순위 5) / brand(톤 확정 + 아이덴티티 3안 미결정) / growth-log(빈 원장) / assets(인벤토리)
+- ✅ `reference/benchmarking.md` 4-5회 중복 dedupe → 원자료 아카이브로 재정의 (287줄→~60줄, 원문 git 이력)
+- ✅ `wiki/index.md`·`reference/index.md` 내비 갱신, `product/vision.md`에 "agentic 폐기" 경고 포인터
+
+**✅ 비주얼 자산 10종 완료 (2026-07-07→08 야간, store-visual-producer):**
+- 로고 2종(cursor+wordmark) · 배너(safezone guide+clean) · 썸네일 3종(시리즈별) · 하이라이트 3종 + showcase.html
+- verify-agent-quality.sh PASS: design-html·design-review 2회, WebSearch 9회, 소크라 3회
+- QA: WCAG 대비 7.5~18배 통과, accent 규율 2건 수정, 168px/48px 판독 확인
+- 파일: `scratchpad/brand-visuals/*.png/html` + showcase 렌더 완료
+
+**회장 결정 대기 (open-decisions.md 등록 4건):**
+①**아이덴티티 선택** (안1/2/3 중 1 + 핸들 가용성·얼굴 노출·AI bio 명시·업로드 요일)
+②**build-in-public 채널** (한국어 Threads vs 영어 X vs 병행)
+③**오픈소스 GitHub 퍼널** (Postiz형 셀프호스트 공개 여부)
+④**워터마크 문구** (제품명 가칭 상태)
+
+**다음 액션 (회장 결정 후):**
+- 이름 확정 → 핸들 선점(3채널 동시) → 프로필 교체
+- 채널·언어 확정 → playbook 우선순위 1(도그푸딩 공개)·2(워터마크) 착수
+- showcase.html은 변경 없으므로 경로만 재안내: `/scratchpad/brand-visuals/showcase.html`
+
+**변경 파일 (신규 10개 + 수정 4개):**
+- 신규: wiki/marketing/index·positioning·competitors·playbook·brand·growth-log·assets·proposals/2건 (brand-kit·benchmark-refresh)
+- 수정: wiki/reference/benchmarking·channel-status, wiki/index·reference/index·product/vision
+- 코드 변경 없음 → 빌드/E2E 해당 없음 (문서+디자인 트랙)
 
 **완료 상태:**
 - ✅ 9채널 OAuth 코드 구현 (commit 5b21197d)

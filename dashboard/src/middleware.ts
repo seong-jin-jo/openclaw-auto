@@ -51,6 +51,9 @@ export function middleware(request: NextRequest) {
   // Allow Figma OAuth callback without auth
   if (request.nextUrl.pathname === "/api/figma-mcp/callback") return NextResponse.next();
 
+  // 고객 로그인 진입점. Google OAuth는 provider disabled raw JSON을 막기 위해 앱 서버에서 preflight한다.
+  if (request.nextUrl.pathname === "/api/auth/google") return NextResponse.next();
+
   // 소셜 OAuth 연결 콜백(provider 리다이렉트 — 인증 헤더 없음). state(tenantId)로 스코프.
   if (request.nextUrl.pathname.startsWith("/api/connect/") && request.nextUrl.pathname.endsWith("/callback")) {
     return NextResponse.next();
@@ -65,7 +68,7 @@ export function middleware(request: NextRequest) {
   // 실제 검증·tenant 스코프(effectiveTenantId). Edge라 DB 조회 불가 → 여기선 형태만 보고 통과.
   // 운영자 전용 라우트(토큰 발급·워크스페이스 목록)는 테넌트 토큰 차단.
   const path = request.nextUrl.pathname;
-  const OPERATOR_PATHS = ["/api/tenant-tokens", "/api/workspaces"];
+  const OPERATOR_PATHS = ["/api/tenant-tokens", "/api/workspaces", "/api/operator"];
   const isOperatorPath = OPERATOR_PATHS.some((p) => path.startsWith(p));
   if (token.startsWith("osmu_") && !isOperatorPath) return NextResponse.next();
 

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useUIStore } from "@/store/ui-store";
 import { authHeaders } from "@/lib/auth";
+import { oauthErrorMessage } from "@/lib/oauth-errors";
 
 // 소셜 OAuth "연결" 버튼 (ADR-004) — 고객은 비번/토큰 개념 없이 이 버튼만.
 // 클릭 → /api/connect/{provider}로 동의 URL 받아 팝업으로 열기 → provider 공식 페이지에서 로그인/동의 →
@@ -13,7 +14,11 @@ export function SocialConnectButton({ provider, label }: { provider: string; lab
   const [msg, setMsg] = useState("");
 
   const connect = async () => {
-    if (!activeWorkspace || busy) return;
+    if (!activeWorkspace) {
+      setMsg("워크스페이스를 먼저 선택하세요.");
+      return;
+    }
+    if (busy) return;
     setBusy(true);
     setMsg("");
     try {
@@ -23,10 +28,10 @@ export function SocialConnectButton({ provider, label }: { provider: string; lab
         window.open(d.authUrl, "_blank", "width=620,height=760");
         setMsg("새 창에서 로그인·동의를 완료하면 연결됩니다.");
       } else {
-        setMsg(d.error || "연결 URL 생성 실패");
+        setMsg(oauthErrorMessage(d.error || "OAuth 앱 자격증명이 아직 설정되지 않았습니다.", label));
       }
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "연결 실패");
+      setMsg(oauthErrorMessage(e instanceof Error ? e.message : "연결 실패", label));
     } finally {
       setBusy(false);
     }
@@ -35,7 +40,7 @@ export function SocialConnectButton({ provider, label }: { provider: string; lab
   return (
     <div className="rounded-lg border border-accent/40 bg-accent/10 p-3">
       <p className="text-xs text-muted mb-2">
-        🔗 <b className="text-text">{label} 연결</b> — 버튼 한 번이면 끝. 비밀번호·토큰 입력 없이
+        <b className="text-text">{label} OAuth 연결</b> — 버튼 한 번이면 끝. 비밀번호·토큰 입력 없이
         {label} 공식 로그인으로 안전하게 연결됩니다.
       </p>
       <button
@@ -43,7 +48,7 @@ export function SocialConnectButton({ provider, label }: { provider: string; lab
         disabled={busy}
         className="px-4 py-2 text-sm bg-accent text-text rounded-lg hover:bg-accent-hover disabled:opacity-50"
       >
-        {busy ? "여는 중…" : `${label} 연결`}
+        {busy ? "여는 중…" : `${label} OAuth 연결`}
       </button>
       {msg && <p className="text-[11px] text-subtle mt-2">{msg}</p>}
     </div>

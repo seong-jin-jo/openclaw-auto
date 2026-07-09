@@ -38,6 +38,10 @@ export default function StudioPage() {
   const { showToast } = useToast();
   const { activeWorkspace } = useUIStore();
   const { data: acct, mutate: mutateAcct } = useSWR<{ credits?: number; needsLogin?: boolean }>("/api/higgsfield/status", fetcher);
+  const { data: engine } = useSWR<{ mode?: string; label?: string; model?: string; error?: string }>(
+    activeWorkspace ? `/api/studio/engine-status?tenant_id=${activeWorkspace.id}` : "/api/studio/engine-status",
+    fetcher,
+  );
   const { data: hist, mutate: mutateHist } = useSWR<{ drafts: Array<Record<string, unknown>> }>(activeWorkspace ? `/api/studio/drafts?tenant_id=${activeWorkspace.id}` : null, fetcher);
   const { data: brandData, mutate: mutateBrand } = useSWR<{ guide: { prompt_guide?: string } | null }>(
     activeWorkspace ? `/api/studio/brand-setup?tenant_id=${activeWorkspace.id}` : null, fetcher);
@@ -59,6 +63,7 @@ export default function StudioPage() {
   const [withVideo, setWithVideo] = useState(true);
   const [videoModel, setVideoModel] = useState("minimax_hailuo");
   const [busy, setBusy] = useState<string | null>(null);
+  const [lastError, setLastError] = useState<string | null>(null);
   const [text, setText] = useState<TextVariants | null>(null);
   const [img, setImg] = useState<ImgResult | null>(null);
   const [vid, setVid] = useState<VidResult | null>(null);
@@ -104,24 +109,28 @@ export default function StudioPage() {
   const upIg = (patch: Partial<NonNullable<TextVariants["instagram"]>>) => setText((p) => ({ ...(p || {}), instagram: { ...(p?.instagram || {}), ...patch } }));
 
   async function genText() {
+    setLastError(null);
     const r = await apiPost<TextVariants & { ok?: boolean; error?: string }>("/api/studio/text", { idea, guide, tenant_id: activeWorkspace?.id });
-    if (!r?.ok) { showToast(r?.error || "텍스트 생성 실패", "error"); return null; }
+    if (!r?.ok) { const msg = r?.error || "텍스트 생성 실패"; setLastError(`텍스트: ${msg}`); showToast(msg, "error"); return null; }
     setText(r); return r;
   }
   async function genImage(prompt: string) {
+    setLastError(null);
     const r = await apiPost<ImgResult & { ok?: boolean; error?: string; nsfw?: boolean; credits?: boolean }>("/api/higgsfield/image", { prompt, aspectRatio: "9:16", label: idea });
-    if (!r?.ok) { showToast(r?.credits ? "크레딧 부족" : r?.nsfw ? "NSFW 차단" : (r?.error || "이미지 실패"), "error"); return null; }
+    if (!r?.ok) { const msg = r?.credits ? "Higgsfield 크레딧 부족" : r?.nsfw ? "Higgsfield NSFW 차단" : (r?.error || "이미지 실패"); setLastError(`이미지: ${msg}`); showToast(msg, "error"); return null; }
     setImg(r); mutateAcct(); return r;
   }
   async function genVideo(localPath: string) {
+    setLastError(null);
     const s = text?.shorts;
     const narration = [s?.hook, s?.body, s?.cta].filter(Boolean).join(". ");
     const r = await apiPost<VidResult & { ok?: boolean; error?: string; nsfw?: boolean; credits?: boolean }>("/api/higgsfield/video", { localPath, prompt: "subtle idle motion, gentle glow, fixed camera", model: videoModel, narration, label: idea });
-    if (!r?.ok) { showToast(r?.nsfw ? "NSFW 차단" : r?.credits ? "크레딧 부족" : (r?.error || "영상 실패"), "error"); return null; }
+    if (!r?.ok) { const msg = r?.nsfw ? "Higgsfield NSFW 차단" : r?.credits ? "Higgsfield 크레딧 부족" : (r?.error || "영상 실패"); setLastError(`영상: ${msg}`); showToast(msg, "error"); return null; }
     setVid(r); mutateAcct(); return r;
   }
   async function runOSMU() {
     if (!idea.trim()) { showToast("글감을 입력하세요", "error"); return; }
+    setLastError(null);
     setText(null); setImg(null); setVid(null); setDraftId(null);
     try {
       setBusy("텍스트 변형 생성 중..."); const t = await genText(); if (!t) return;
@@ -215,6 +224,9 @@ export default function StudioPage() {
           <b className="text-lg text-text">OSMU Studio</b>
           <p className="text-[10px] text-subtle leading-tight">직접 저작 · 생성→즉시 발행/예약</p>
         </div>
+        <div className="text-[10px] px-2 py-1 rounded border border-border bg-surface-2 text-subtle" title={engine?.error || engine?.model || ""}>
+          AI <b className="text-muted">{engine?.label || "확인 중"}</b>{engine?.mode === "claude-p" ? " · claude -p" : ""}{engine?.mode === "unknown" ? " · 확인 실패" : ""}
+        </div>
         <input value={idea} onChange={(e) => setIdea(e.target.value)} placeholder="글감 / 콘텐츠 주제 입력" className="flex-1 min-w-[260px] bg-surface-2 text-text text-sm p-2.5 rounded border border-border" />
         <select value={videoModel} onChange={(e) => setVideoModel(e.target.value)} className="bg-surface-2 text-muted text-xs p-2 rounded border border-border"><option value="minimax_hailuo">Minimax 6cr</option><option value="veo3_1_lite">Veo3.1 8cr</option><option value="kling3_0">Kling3 10cr</option><option value="marketing_studio_video">MS UGC광고 ~40cr</option></select>
         <label className="flex items-center gap-1.5 text-xs text-subtle"><input type="checkbox" checked={withVideo} onChange={(e) => setWithVideo(e.target.checked)} />영상</label>
@@ -246,6 +258,11 @@ export default function StudioPage() {
           )}
         </div>
       </div>
+      {lastError && (
+        <div className="mb-4 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
+          마지막 실패: {lastError}
+        </div>
+      )}
 
       {/* 발행 진행 */}
       {(pub.running || pubPct > 0) && (

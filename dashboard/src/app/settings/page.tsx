@@ -53,14 +53,14 @@ export default function SettingsPage() {
 
       {activeTab === "channels" && (
         <>
-          {/* OSMU 테넌트 발행용 채널 토큰(integrations) — 워크스페이스별 */}
+          {/* OSMU 테넌트 발행용 OAuth 연결(integrations) — 워크스페이스별 */}
           <div className="mb-6 p-4 rounded-xl border border-accent bg-accent-soft flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-semibold text-accent">OSMU 채널 토큰 {activeWorkspace?.name ? `· ${activeWorkspace.name}` : ""}</h3>
-              <p className="text-xs text-subtle mt-0.5">활성 워크스페이스의 발행용 채널 토큰(Threads/Instagram)을 연결합니다. Studio 발행이 이 토큰을 사용합니다.</p>
+              <h3 className="text-sm font-semibold text-accent">OSMU 채널 OAuth {activeWorkspace?.name ? `· ${activeWorkspace.name}` : ""}</h3>
+              <p className="text-xs text-subtle mt-0.5">활성 워크스페이스의 발행용 채널을 공식 로그인으로 연결합니다. 토큰 원문은 서버에 암호화 저장되고 화면에 표시하지 않습니다.</p>
             </div>
             <button onClick={() => setShowConnect(true)} disabled={!activeWorkspace}
-              className="px-3 py-2 text-xs bg-accent text-text rounded-lg disabled:opacity-50 whitespace-nowrap">🔗 채널 토큰 연결</button>
+              className="px-3 py-2 text-xs bg-accent text-text rounded-lg disabled:opacity-50 whitespace-nowrap">채널 OAuth 연결</button>
           </div>
           <ChannelsSettings />
         </>

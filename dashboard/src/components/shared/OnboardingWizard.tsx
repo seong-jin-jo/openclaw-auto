@@ -7,6 +7,7 @@ import { SetupGuide } from "./SetupGuide";
 import { FreeEventBanner } from "./FreeEventBanner";
 import { apiPost } from "@/lib/api";
 import { authHeaders } from "@/lib/auth";
+import { SocialConnectButton } from "@/components/channel/SocialConnectButton";
 
 const INDUSTRIES = [
   { key: "cafe", icon: "\u2615", name: "\uCE74\uD398", desc: "\uCE74\uD398 \xB7 \uB514\uC800\uD2B8 \xB7 \uC74C\uB8CC" },
@@ -26,6 +27,12 @@ const CHANNELS = [
   { key: "facebook", label: "Facebook", icon: "F", iconClass: "bg-accent text-text" },
   { key: "telegram", label: "Telegram", icon: "TG", iconClass: "bg-blue-500 text-text" },
 ];
+const OAUTH_LABELS: Record<string, string> = {
+  threads: "Threads",
+  x: "X (Twitter)",
+  instagram: "Instagram",
+  facebook: "Facebook",
+};
 
 interface OnboardingWizardProps {
   onComplete: () => void;
@@ -40,6 +47,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
   const [error, setError] = useState<string | null>(null);
   const [credentialsSaved, setCredentialsSaved] = useState(false);
   const [connectedAccount, setConnectedAccount] = useState<string | null>(null);
+  const [showManualCreds, setShowManualCreds] = useState(false);
 
   // 입력 자동저장: 새로고침/이탈해도 업종·채널 선택 복원(온보딩 마찰 감소). 완료 시 클리어.
   const DRAFT_KEY = "osmu_onboarding_draft";
@@ -211,7 +219,20 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
               <div className="card p-4">
                 <SetupGuide quick={guide.quick} detail={guide.detail} images={guide.images} />
               </div>
-              {!credentialsSaved && (
+              {OAUTH_LABELS[firstChannel] && !credentialsSaved && (
+                <div className="card p-4">
+                  <SocialConnectButton provider={firstChannel} label={OAUTH_LABELS[firstChannel]} />
+                  <p className="text-[11px] text-subtle mt-2">새 창에서 공식 로그인·동의를 마치면 연결됩니다. 필요할 때만 아래 수동 입력을 여세요.</p>
+                  <button
+                    type="button"
+                    onClick={() => setShowManualCreds((v) => !v)}
+                    className="mt-2 text-[11px] text-accent"
+                  >
+                    {showManualCreds ? "수동 입력 닫기" : "고급: 토큰 직접 입력"}
+                  </button>
+                </div>
+              )}
+              {!credentialsSaved && (!OAUTH_LABELS[firstChannel] || showManualCreds) && (
                 <div className="card p-4">
                   <CredentialForm
                     channelKey={firstChannel}
@@ -219,7 +240,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
                     labels={guide.labels}
                     currentKeys={{}}
                     onSave={handleCredentialSave}
-                    connectLabel="연결하기"
+                    connectLabel="수동 연결 + 검증"
                   />
                 </div>
               )}

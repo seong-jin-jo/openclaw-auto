@@ -90,6 +90,7 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
   const { data: channelConfig, mutate: mutateConfig } = useChannelConfig();
   const { showToast } = useToast();
   const { subTab, setSubTab, expandedFeature, setExpandedFeature, expandedPopular, setExpandedPopular } = useUIStore();
+  const [showManualCreds, setShowManualCreds] = useState(false);
 
   const cfg = channelConfig?.[channel];
   const status = cfg?.status || "available";
@@ -98,6 +99,7 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
   const sg = setupGuides[channel] || { fields: [], labels: [], quick: ["Setup guide 준비 중"], detail: "" };
 
   const isThreads = channel === "threads";
+  const oauthLabel = OAUTH_CONNECT[channel];
 
   // Build tabs: all channels get queue/analytics/settings. Threads also gets growth/popular.
   const baseTabs = ["queue", "analytics", "settings"];
@@ -203,27 +205,41 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Credentials */}
           <div className="card p-5">
-            {OAUTH_CONNECT[channel] && (
+            {oauthLabel && (
               <div className="mb-4">
-                <SocialConnectButton provider={channel} label={OAUTH_CONNECT[channel]} />
-                <p className="text-[10px] text-subtle mt-2">또는 아래에서 토큰을 직접 입력(고급).</p>
+                <SocialConnectButton provider={channel} label={oauthLabel} />
+                <p className="text-[10px] text-subtle mt-2">공식 OAuth가 기본 경로입니다. 토큰 직접 입력은 고급/비상용으로만 사용하세요.</p>
+                <button
+                  type="button"
+                  onClick={() => setShowManualCreds((v) => !v)}
+                  className="mt-2 text-[11px] text-accent hover:text-accent"
+                >
+                  {showManualCreds ? "수동 토큰 입력 닫기" : "고급: 토큰 직접 입력"}
+                </button>
               </div>
             )}
-            <CredentialForm
-              channelKey={channel}
-              fields={sg.fields}
-              labels={sg.labels}
-              currentKeys={keys}
-              onSave={handleCredSave}
-              connected={connected}
-              title={isThreads ? "Threads API Credentials" : channel === "x" ? "OAuth 1.0 Keys" : undefined}
-              badge={isThreads ? { text: "Long-lived Token", color: "blue" } : channel === "x" ? { text: "OAuth 1.0a", color: "blue" } : undefined}
-              connectLabel={isThreads ? "Connect Threads" : channel === "x" ? "Connect X Account" : undefined}
-              fieldGroups={channel === "x" ? [
-                { title: "소비자 키 (Consumer Keys)", fieldIndices: [0, 1] },
-                { title: "액세스 토큰 (Access Token)", fieldIndices: [2, 3] },
-              ] : undefined}
-            />
+            {(!oauthLabel || showManualCreds) && (
+              <CredentialForm
+                channelKey={channel}
+                fields={sg.fields}
+                labels={sg.labels}
+                currentKeys={keys}
+                onSave={handleCredSave}
+                connected={connected}
+                title={isThreads ? "수동 Threads 토큰" : channel === "x" ? "수동 OAuth 1.0 Keys" : "수동 Credentials"}
+                badge={isThreads ? { text: "Long-lived Token", color: "blue" } : channel === "x" ? { text: "OAuth 1.0a", color: "blue" } : undefined}
+                connectLabel={isThreads ? "Connect Threads" : channel === "x" ? "Connect X Account" : undefined}
+                fieldGroups={channel === "x" ? [
+                  { title: "소비자 키 (Consumer Keys)", fieldIndices: [0, 1] },
+                  { title: "액세스 토큰 (Access Token)", fieldIndices: [2, 3] },
+                ] : undefined}
+              />
+            )}
+            {oauthLabel && !showManualCreds && connected && (
+              <div className="rounded-lg border border-success/30 bg-success/10 p-3 text-xs text-success">
+                OAuth 연결 상태입니다. 원문 access token은 화면에 표시하지 않고 서버에 암호화 저장합니다.
+              </div>
+            )}
           </div>
 
           {/* Channel Info + Setup Guide */}

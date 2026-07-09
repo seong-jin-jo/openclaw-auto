@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { isSecretConfigKey } from "@/lib/secret-mask";
 
 interface CredFieldProps {
   id: string;
@@ -28,7 +29,7 @@ function CredField({ id, label, desc, isSecret = false, value, editable, onChang
           placeholder={label}
           readOnly={!editable}
           onChange={(e) => onChange(e.target.value)}
-          title={value}
+          title={isSecret && value ? "저장된 비밀값" : value}
           className={`w-full ${editable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-[11px] text-muted placeholder-subtle font-mono`}
         />
         {isSecret && (
@@ -92,7 +93,7 @@ export function CredentialForm({ channelKey, fields, labels, currentKeys, onSave
         key={f}
         id={`ch-${channelKey}-${f}`}
         label={labels[fieldIdx]}
-        isSecret={/secret|password|token/i.test(f)}
+        isSecret={isSecretConfigKey(f)}
         value={values[f] || ""}
         editable={editing}
         onChange={(val) => setValues((prev) => ({ ...prev, [f]: val }))}
