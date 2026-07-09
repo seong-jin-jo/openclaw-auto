@@ -3,7 +3,7 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **qa**, ship은 `/approve qa` 후). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-10 04:17 KST · `main` · **Codex build: admin auth users + password reset email 구현**
+**최종 갱신:** 2026-07-10 04:20 KST · `main` · **Codex build: admin auth users + password reset email 구현, qa 게이트 대기**
 
 ---
 
@@ -57,7 +57,9 @@
 - `GET /api/operator/customers`는 tenants + auth.users 요약을 반환한다. 반환 필드에는 password/encrypted_password 없음.
 - `POST /api/operator/customers` with `{ action: "send_password_reset", email }`은 Supabase `/auth/v1/recover`를 호출해 재설정 메일만 보낸다.
 - 검증: focused tests 4 files / 22 PASS, 전체 `npm run test` 37 files / 190 PASS / 8 skipped, `npm run build` PASS, `npm run e2e:local` PASS.
-- 다음 액션: 관련 dashboard/docs/wiki ops 변경만 선별 commit → deploy workflow 실행 → live `/login`, `/api/auth/google`, `/operator/customers`, reset email action을 직접 검증.
+- commit: `b1624ee3 fix(dashboard): ship OAuth login and operator account recovery`.
+- 차단: `git push origin main`이 stage-gate에서 `현재 'qa', approved_stages=[plan, design, eng-design, build]. 'qa' 승인 후 재시도.`로 차단됨. 원격/배포 아직 미반영.
+- 다음 액션: 회장 `/approve qa` 후 `git push origin main` → `gh workflow run "Deploy openclaw (marketing VM)"` → live `/login`, `/api/auth/google`, `/operator/customers`, reset email action 직접 검증.
 
 ---
 
