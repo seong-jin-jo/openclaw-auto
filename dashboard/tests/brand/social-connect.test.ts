@@ -27,6 +27,13 @@ vi.mock("@/lib/db", () => ({
 
 function params(provider: string) { return { params: Promise.resolve({ provider }) }; }
 
+// callback route가 서명(HMAC)·provider 바인딩된 state만 신뢰하므로(Critical/Major 하드닝,
+// 2026-07-10), 아래 callback 테스트들은 평문 state 대신 이 헬퍼로 만든 signed state를 쓴다.
+async function signedState(tenantId: string, provider: string): Promise<string> {
+  const { signState } = await import("@/lib/social-connect");
+  return signState(tenantId, provider);
+}
+
 beforeEach(() => {
   vi.resetModules();
   H.tenantId = "tenant-1";
@@ -49,7 +56,7 @@ beforeEach(() => {
 });
 
 describe("GET /api/connect/instagram — OAuth 동의 URL", () => {
-  it("authUrl에 client_id·redirect_uri·scope·state(tenant) 포함", async () => {
+  it("authUrl에 client_id·redirect_uri·scope·state(서명된 tenant) 포함", async () => {
     const { GET } = await import("@/app/api/connect/[provider]/route");
     const res = await GET(new Request("https://app.example/api/connect/instagram?tenant_id=tenant-1"), params("instagram"));
     const body = await res.json();
@@ -57,7 +64,13 @@ describe("GET /api/connect/instagram — OAuth 동의 URL", () => {
     expect(body.authUrl).toContain("instagram.com/oauth/authorize");
     expect(body.authUrl).toContain("client_id=ig-app-123");
     expect(body.authUrl).toContain("instagram_business_content_publish");
-    expect(body.authUrl).toContain("state=tenant-1");
+    // state는 이제 base64url(payload).sig로 서명되어 있어 "tenant-1"이 그대로 노출되지 않는다 —
+    // verifyState로 왕복 복원해 tenantId가 맞는지 확인한다.
+    const { verifyState } = await import("@/lib/social-connect");
+    const state = new URL(body.authUrl).searchParams.get("state")!;
+    const verified = await verifyState(state, "instagram");
+    expect(verified.valid).toBe(true);
+    expect(verified.tenantId).toBe("tenant-1");
     expect(body.authUrl).toContain("api%2Fconnect%2Finstagram%2Fcallback");
   });
 
@@ -101,9 +114,10 @@ describe("GET /api/connect/instagram — OAuth 동의 URL", () => {
 
 describe("GET /api/connect/instagram/callback — 토큰교환·저장", () => {
   it("code+state → 단기→장기 토큰 교환 후 integrations에 저장", async () => {
+    const state = await signedState("tenant-1", "instagram");
     const { GET } = await import("@/app/api/connect/[provider]/callback/route");
     const res = await GET(
-      new Request("https://app.example/api/connect/instagram/callback?code=AUTHCODE&state=tenant-1"),
+      new Request(`https://app.example/api/connect/instagram/callback?code=AUTHCODE&state=${encodeURIComponent(state)}`),
       params("instagram"),
     );
     expect(res.status).toBe(200);
@@ -119,9 +133,10 @@ describe("GET /api/connect/instagram/callback — 토큰교환·저장", () => {
   });
 
   it("threads — graph.threads.net로 교환 후 저장(같은 코드 경로)", async () => {
+    const state = await signedState("tenant-1", "threads");
     const { GET } = await import("@/app/api/connect/[provider]/callback/route");
     const res = await GET(
-      new Request("https://app.example/api/connect/threads/callback?code=THCODE&state=tenant-1"),
+      new Request(`https://app.example/api/connect/threads/callback?code=THCODE&state=${encodeURIComponent(state)}`),
       params("threads"),
     );
     expect(res.status).toBe(200);
@@ -138,9 +153,10 @@ describe("GET /api/connect/instagram/callback — 토큰교환·저장", () => {
     ];
     process.env.FB_APP_ID = "fb-app";
     process.env.FB_APP_SECRET = "fb-secret";
+    const state = await signedState("tenant-1", "facebook");
     const { GET } = await import("@/app/api/connect/[provider]/callback/route");
     const res = await GET(
-      new Request("https://app.example/api/connect/facebook/callback?code=FBCODE&state=tenant-1"),
+      new Request(`https://app.example/api/connect/facebook/callback?code=FBCODE&state=${encodeURIComponent(state)}`),
       params("facebook"),
     );
     expect(res.status).toBe(200);
@@ -224,7 +240,11 @@ describe("GET /api/connect/linkedin — authUrl", () => {
     const body = await res.json();
     expect(res.status).toBe(200);
     expect(body.authUrl).toContain("linkedin.com/oauth/v2/authorization");
-    expect(body.authUrl).toContain("state=tenant-1");
+    const { verifyState } = await import("@/lib/social-connect");
+    const state = new URL(body.authUrl).searchParams.get("state")!;
+    const verified = await verifyState(state, "linkedin");
+    expect(verified.valid).toBe(true);
+    expect(verified.tenantId).toBe("tenant-1");
     // space-separated scopes
     expect(body.authUrl).toContain("w_member_social");
     expect(body.authUrl).toContain("openid");
@@ -291,7 +311,11 @@ describe("GET /api/connect/x — PKCE", () => {
     expect(body.authUrl).toContain("twitter.com/i/oauth2/authorize");
     expect(body.authUrl).toContain("code_challenge=");
     expect(body.authUrl).toContain("code_challenge_method=S256");
-    expect(body.authUrl).toContain("state=tenant-1");
+    const { verifyState } = await import("@/lib/social-connect");
+    const state = new URL(body.authUrl).searchParams.get("state")!;
+    const verified = await verifyState(state, "x");
+    expect(verified.valid).toBe(true);
+    expect(verified.tenantId).toBe("tenant-1");
     // X scopes: space-separated
     expect(body.authUrl).toContain("tweet.read");
     delete process.env.X_CLIENT_ID;
@@ -446,9 +470,10 @@ describe("GET /api/connect/youtube/callback — refresh_token meta 저장", () =
     process.env.YOUTUBE_CLIENT_ID = "yt-client";
     process.env.YOUTUBE_CLIENT_SECRET = "yt-secret";
     H.fetchSeq = [{ status: 200, body: { access_token: "YT_ACCESS", refresh_token: "YT_REFRESH" } }];
+    const state = await signedState("tenant-1", "youtube");
     const { GET } = await import("@/app/api/connect/[provider]/callback/route");
     const res = await GET(
-      new Request("https://app.example/api/connect/youtube/callback?code=YTCODE&state=tenant-1"),
+      new Request(`https://app.example/api/connect/youtube/callback?code=YTCODE&state=${encodeURIComponent(state)}`),
       params("youtube"),
     );
     expect(res.status).toBe(200);
@@ -472,9 +497,10 @@ describe("GET /api/connect/x/callback — PKCE code_verifier 쿠키 처리", () 
       const n = H.fetchSeq.shift() || { status: 200, body: {} };
       return new Response(JSON.stringify(n.body), { status: n.status });
     }));
+    const state = await signedState("tenant-1", "x");
     const { GET } = await import("@/app/api/connect/[provider]/callback/route");
     const res = await GET(
-      new Request("https://app.example/api/connect/x/callback?code=XCODE&state=tenant-1", {
+      new Request(`https://app.example/api/connect/x/callback?code=XCODE&state=${encodeURIComponent(state)}`, {
         headers: { cookie: "pkce_x=MY_VERIFIER_VALUE" },
       }),
       params("x"),
@@ -493,9 +519,10 @@ describe("GET /api/connect/linkedin/callback — 표준 OAuth 저장", () => {
     process.env.LINKEDIN_CLIENT_ID = "li-id";
     process.env.LINKEDIN_CLIENT_SECRET = "li-secret";
     H.fetchSeq = [{ status: 200, body: { access_token: "LI_ACCESS" } }];
+    const state = await signedState("tenant-1", "linkedin");
     const { GET } = await import("@/app/api/connect/[provider]/callback/route");
     const res = await GET(
-      new Request("https://app.example/api/connect/linkedin/callback?code=LICODE&state=tenant-1"),
+      new Request(`https://app.example/api/connect/linkedin/callback?code=LICODE&state=${encodeURIComponent(state)}`),
       params("linkedin"),
     );
     expect(res.status).toBe(200);
@@ -506,5 +533,183 @@ describe("GET /api/connect/linkedin/callback — 표준 OAuth 저장", () => {
     expect(JSON.stringify(H.inserts[0])).toContain("LI_ACCESS");
     delete process.env.LINKEDIN_CLIENT_ID;
     delete process.env.LINKEDIN_CLIENT_SECRET;
+  });
+});
+
+// ── OAuth state HMAC 서명 — CSRF 방지 (2026-07-10 하드닝, Codex 2nd-pass 반영) ─
+// state=tenantId 평문(위조 가능)을 signState()/verifyState()로 서명·검증하도록 강화.
+// 서명 payload는 `base64url(JSON.stringify({t,p,ts})).sig`(2-파트) — tenantId/provider를
+// "."로 직접 이어붙이지 않고 JSON+base64url로 감싸 구분자 주입/파싱 혼동을 원천 차단한다
+// (tenantId에 "."가 섞여도 안전 — Codex 2nd-pass Major 최종 라운드, 2026-07-10).
+// OSMU_SECRET_KEY가 설정된 환경에서는 이 2-파트 형식이 아닌 state(평문 등)를 무조건 거부한다
+// (Critical — 다운그레이드 공격 차단). 위 기존 callback 테스트들은 이제 전부 signedState()
+// 헬퍼로 만든 서명 state를 쓴다(더 이상 평문 아님).
+describe("signState/verifyState — OAuth state HMAC 서명·검증", () => {
+  it("signState: OSMU_SECRET_KEY 있으면 base64url(payload).sig 2-파트로 서명, payload에 t/p/ts 포함", async () => {
+    process.env.OSMU_SECRET_KEY = "enc-key";
+    const { signState } = await import("@/lib/social-connect");
+    const state = await signState("tenant-42", "instagram");
+    const parts = state.split(".");
+    expect(parts).toHaveLength(2);
+    const payload = JSON.parse(Buffer.from(parts[0].replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf-8"));
+    expect(payload.t).toBe("tenant-42");
+    expect(payload.p).toBe("instagram");
+    expect(payload.ts).toBeGreaterThan(0);
+  });
+
+  // Major 최종 라운드 회귀 테스트 — tenantId에 "."가 섞여도(구분자 주입) 왕복이 깨지지 않아야 한다.
+  // 구현 방식(`tenantId.provider.timestamp.sig` 문자열 이어붙이기 + split("."))이었다면 이 케이스가
+  // 필드 경계를 잘못 잡아 정상 서명 state도 거부됐을 것 — JSON+base64url 직렬화라 안전하다.
+  it("tenantId에 '.'가 포함돼도 signState→verifyState 왕복이 정확히 복원된다(구분자 주입 방지)", async () => {
+    process.env.OSMU_SECRET_KEY = "enc-key";
+    const { signState, verifyState } = await import("@/lib/social-connect");
+    const trickyTenantId = "tenant.with.dots.42";
+    const state = await signState(trickyTenantId, "instagram");
+    const result = await verifyState(state, "instagram");
+    expect(result.valid).toBe(true);
+    expect(result.tenantId).toBe(trickyTenantId);
+  });
+
+  it("signState: OSMU_SECRET_KEY 없으면 평문 tenantId 그대로(로컬 dev 폴백)", async () => {
+    delete process.env.OSMU_SECRET_KEY;
+    const { signState } = await import("@/lib/social-connect");
+    const state = await signState("tenant-42", "instagram");
+    expect(state).toBe("tenant-42");
+    process.env.OSMU_SECRET_KEY = "enc-key"; // 이후 테스트 위해 복원
+  });
+
+  it("verifyState: signState로 만든 정상 state는 valid=true + 원래 tenantId 복원", async () => {
+    process.env.OSMU_SECRET_KEY = "enc-key";
+    const { signState, verifyState } = await import("@/lib/social-connect");
+    const state = await signState("tenant-42", "instagram");
+    const result = await verifyState(state, "instagram");
+    expect(result.valid).toBe(true);
+    expect(result.tenantId).toBe("tenant-42");
+  });
+
+  it("verifyState: 위조된 서명(sig 변조) → valid=false", async () => {
+    process.env.OSMU_SECRET_KEY = "enc-key";
+    const { signState, verifyState } = await import("@/lib/social-connect");
+    const state = await signState("tenant-42", "instagram");
+    const [payloadB64] = state.split(".");
+    const tampered = `${payloadB64}.deadbeef0000deadbeef0000deadbeef0000deadbeef0000deadbeef0000dead`;
+    const result = await verifyState(tampered, "instagram");
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/위조|손상/);
+  });
+
+  it("verifyState: 다른 시크릿으로 만든 state(위조 시도) → valid=false", async () => {
+    process.env.OSMU_SECRET_KEY = "attacker-key";
+    const { signState } = await import("@/lib/social-connect");
+    const forged = await signState("tenant-victim", "instagram");
+    process.env.OSMU_SECRET_KEY = "enc-key"; // 서버는 진짜 키로 검증
+    vi.resetModules();
+    const { verifyState } = await import("@/lib/social-connect");
+    const result = await verifyState(forged, "instagram");
+    expect(result.valid).toBe(false);
+  });
+
+  it("verifyState: 만료(10분 초과) state → valid=false + 만료 사유", async () => {
+    process.env.OSMU_SECRET_KEY = "enc-key";
+    const { signState, verifyState } = await import("@/lib/social-connect");
+    const elevenMinAgo = Date.now() - 11 * 60 * 1000;
+    vi.spyOn(Date, "now").mockReturnValue(elevenMinAgo);
+    const oldState = await signState("tenant-42", "instagram");
+    vi.restoreAllMocks();
+    const result = await verifyState(oldState, "instagram");
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/만료/);
+  });
+
+  // Major 하드닝 회귀 테스트 — 서명은 유효하나 발급 당시 provider와 callback URL의 provider가
+  // 다르면(cross-provider replay) 거부한다.
+  it("verifyState: 다른 provider용으로 서명된 state → valid=false(재사용 의심)", async () => {
+    process.env.OSMU_SECRET_KEY = "enc-key";
+    const { signState, verifyState } = await import("@/lib/social-connect");
+    const state = await signState("tenant-42", "instagram"); // instagram용으로 서명
+    const result = await verifyState(state, "threads"); // threads callback에서 재사용 시도
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/다른 provider|재사용/);
+  });
+
+  // Critical 하드닝 회귀 테스트 — 키가 설정된 환경(prod)에서 평문(비서명) state는
+  // "다운그레이드 공격" 통로이므로 반드시 거부해야 한다(과거엔 신뢰해 취약했던 지점).
+  it("verifyState: OSMU_SECRET_KEY 설정 상태에서 평문 state(비서명, 3-파트 아님) → valid=false(다운그레이드 거부)", async () => {
+    process.env.OSMU_SECRET_KEY = "enc-key";
+    const { verifyState } = await import("@/lib/social-connect");
+    const result = await verifyState("tenant-legacy-plain", "instagram");
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/다운그레이드|서명 형식/);
+  });
+
+  it("verifyState: OSMU_SECRET_KEY 미설정(로컬 dev)이면 평문 state를 여전히 tenantId로 신뢰(하위호환)", async () => {
+    delete process.env.OSMU_SECRET_KEY;
+    const { verifyState } = await import("@/lib/social-connect");
+    const result = await verifyState("tenant-legacy-plain", "instagram");
+    expect(result.valid).toBe(true);
+    expect(result.tenantId).toBe("tenant-legacy-plain");
+    process.env.OSMU_SECRET_KEY = "enc-key"; // 이후 테스트 위해 복원
+  });
+});
+
+describe("GET /api/connect/instagram → callback — 서명된 state 전체 왕복", () => {
+  it("connect가 서명한 state를 callback이 검증해 올바른 tenantId로 저장", async () => {
+    process.env.OSMU_SECRET_KEY = "enc-key";
+    H.tenantId = "tenant-roundtrip"; // effectiveTenantId mock이 반환할 값(라우트가 이 값을 서명함)
+    const { GET: connectGET } = await import("@/app/api/connect/[provider]/route");
+    const connectRes = await connectGET(
+      new Request("https://app.example/api/connect/instagram?tenant_id=tenant-roundtrip"),
+      params("instagram"),
+    );
+    const { authUrl } = (await connectRes.json()) as { authUrl: string };
+    const signedStateFromAuthUrl = new URL(authUrl).searchParams.get("state")!;
+    expect(signedStateFromAuthUrl.split(".")).toHaveLength(2);
+
+    const { GET: callbackGET } = await import("@/app/api/connect/[provider]/callback/route");
+    const callbackRes = await callbackGET(
+      new Request(`https://app.example/api/connect/instagram/callback?code=AUTHCODE&state=${encodeURIComponent(signedStateFromAuthUrl)}`),
+      params("instagram"),
+    );
+    expect(await callbackRes.text()).toMatch(/연결 완료/);
+    expect(JSON.stringify(H.inserts[0])).toContain("tenant-roundtrip");
+  });
+
+  it("callback: 위조된 state → '연결 실패' HTML + integrations 미저장", async () => {
+    process.env.OSMU_SECRET_KEY = "enc-key";
+    const { signState } = await import("@/lib/social-connect");
+    const validState = await signState("tenant-attacker", "instagram");
+    const [payloadB64] = validState.split(".");
+    const tamperedState = `${payloadB64}.0000000000000000000000000000000000000000000000000000000000000000`;
+    const { GET } = await import("@/app/api/connect/[provider]/callback/route");
+    const res = await GET(
+      new Request(`https://app.example/api/connect/instagram/callback?code=AUTHCODE&state=${encodeURIComponent(tamperedState)}`),
+      params("instagram"),
+    );
+    const html = await res.text();
+    expect(html).toMatch(/연결 실패/);
+    expect(H.inserts).toHaveLength(0);
+  });
+
+  it("callback: instagram용 signed state를 threads callback에 재사용 → '연결 실패'(cross-provider replay 차단)", async () => {
+    process.env.OSMU_SECRET_KEY = "enc-key";
+    H.tenantId = "tenant-cross";
+    const { GET: connectGET } = await import("@/app/api/connect/[provider]/route");
+    const connectRes = await connectGET(
+      new Request("https://app.example/api/connect/instagram?tenant_id=tenant-cross"),
+      params("instagram"),
+    );
+    const { authUrl } = (await connectRes.json()) as { authUrl: string };
+    const stateForInstagram = new URL(authUrl).searchParams.get("state")!;
+
+    process.env.THREADS_APP_ID = "th-app-456";
+    process.env.THREADS_APP_SECRET = "th-secret";
+    const { GET: callbackGET } = await import("@/app/api/connect/[provider]/callback/route");
+    const res = await callbackGET(
+      new Request(`https://app.example/api/connect/threads/callback?code=THCODE&state=${encodeURIComponent(stateForInstagram)}`),
+      params("threads"),
+    );
+    const html = await res.text();
+    expect(html).toMatch(/연결 실패/);
+    expect(H.inserts).toHaveLength(0);
   });
 });

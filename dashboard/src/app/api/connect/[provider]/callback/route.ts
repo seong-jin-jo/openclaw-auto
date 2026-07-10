@@ -1,5 +1,5 @@
 import { withTenant } from "@/lib/db";
-import { getProvider, exchangeCode, exchangeFacebookCode, publicOrigin } from "@/lib/social-connect";
+import { getProvider, exchangeCode, exchangeFacebookCode, publicOrigin, verifyState } from "@/lib/social-connect";
 import { escapeHtml, oauthErrorMessage } from "@/lib/oauth-errors";
 
 // GET /api/connect/{provider}/callback?code=...&state=<tenantId>
@@ -24,13 +24,20 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
   // 토큰 교환의 redirect_uri도 auth-url과 동일한 공개 origin이어야 한다(Meta가 일치 검증).
   const origin = publicOrigin(request);
   const code = searchParams.get("code") || "";
-  const tenantId = searchParams.get("state") || ""; // auth-url에서 state=tenantId로 넣음
+  const rawState = searchParams.get("state") || ""; // auth-url에서 signState()로 서명해 넣음(CSRF 방지)
   const err = searchParams.get("error_description") || searchParams.get("error");
 
   const cfg = getProvider(provider);
   if (!cfg) return resultHtml("연결 실패", `지원하지 않는 provider: ${provider}`);
   if (err) return resultHtml("연결 실패", oauthErrorMessage(String(err), cfg.label).slice(0, 240));
-  if (!code || !tenantId) return resultHtml("연결 실패", "code/state 누락");
+  if (!code || !rawState) return resultHtml("연결 실패", "code/state 누락");
+
+  // state 서명·provider 바인딩·만료(10분) 검증 — 위조/재사용된(다른 provider용 포함) state로
+  // 남의 테넌트에 연결되는 것을 차단.
+  const stateCheck = await verifyState(rawState, provider);
+  if (!stateCheck.valid) return resultHtml("연결 실패", stateCheck.reason || "state 검증 실패");
+  const tenantId = stateCheck.tenantId;
+  if (!tenantId) return resultHtml("연결 실패", "code/state 누락");
 
   const key = process.env.OSMU_SECRET_KEY;
   if (!key) return resultHtml("연결 실패", "OSMU_SECRET_KEY 미설정 — 토큰 암호화 불가");

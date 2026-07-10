@@ -46,6 +46,128 @@ function base64urlEncode(bytes: Uint8Array): string {
     .replace(/=/g, "");
 }
 
+function base64urlDecode(input: string): Uint8Array {
+  const b64 = input.replace(/-/g, "+").replace(/_/g, "/");
+  const pad = b64.length % 4;
+  const padded = pad === 0 ? b64 : b64 + "=".repeat(4 - pad);
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+// ── OAuth state 서명(HMAC) ───────────────────────────────────────────────────
+// state=tenantId 평문은 위조 가능(CSRF — 공격자가 남의 tenantId로 콜백을 조작해 자기 계정에
+// 연결시킬 수 있음). state를 `base64url(JSON.stringify({t,p,ts})).HMAC(OSMU_SECRET_KEY, 그 base64url문자열)`
+// 2-파트로 서명하고 callback에서 서명·payload 파싱·provider 일치·만료(10분)를 검증한다.
+// payload를 JSON으로 직렬화 후 base64url로 감싸는 이유: tenantId/provider를 "."로 직접 이어붙이면
+// (예: 구버전 `tenantId.provider.timestamp.sig`) tenantId 자체에 "."가 섞일 경우 split(".")이
+// 필드 경계를 잘못 잡아 정상 서명 state도 거부될 수 있었다(Codex 2nd-pass Major, 2026-07-10 —
+// 현재 tenantId는 UUID/slug라 실위험은 낮지만 구분자 주입/파싱 혼동은 견고성 결함). JSON+base64url은
+// 필드를 이스케이프해 직렬화하므로 tenantId/provider에 어떤 문자가 들어가도 파싱이 어긋나지 않는다.
+// OSMU_SECRET_KEY 미설정(로컬 dev)이면 서명 없이 평문 tenantId로 폴백.
+// ⚠️ 키가 설정된 환경(prod)에서는 평문/서명되지 않은 state를 절대 신뢰하지 않는다 — 신뢰하면
+// "평문 state 다운그레이드 공격"(공격자가 state=<victimTenantId>로 직접 OAuth를 열어 callback이
+// 그 값을 그대로 믿고 피해자 테넌트에 공격자 토큰을 저장)이 가능해진다(Codex 2nd-pass Critical, 2026-07-10).
+// provider를 서명 payload에 묶는 이유: 안 묶으면 유출된 signed state를 같은 테넌트의 "다른"
+// provider callback에 10분 내 재사용(cross-provider replay)할 수 있다(Codex 2nd-pass Major, 2026-07-10).
+// TODO(후속 스코프): "같은" provider에 대한 재사용(single-provider replay)까지 막으려면 state를
+// one-time nonce로 만들어 httpOnly 쿠키 또는 DB에 소비 기록을 남겨야 한다 — 이번 스코프 밖.
+const STATE_MAX_AGE_MS = 10 * 60 * 1000; // 10분
+
+async function hmacSha256Hex(key: string, message: string): Promise<string> {
+  const enc = new TextEncoder();
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(key),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", cryptoKey, enc.encode(message));
+  return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+interface StatePayload {
+  t: string;  // tenantId
+  p: string;  // provider
+  ts: number; // 발급 시각(ms epoch)
+}
+
+/** authorize URL에 실을 state 생성. 키 없으면 평문 tenantId(레거시/로컬 dev 폴백). */
+export async function signState(tenantId: string, provider: string): Promise<string> {
+  const secret = process.env.OSMU_SECRET_KEY;
+  if (!secret) return tenantId;
+  const payload: StatePayload = { t: tenantId, p: provider, ts: Date.now() };
+  const payloadB64 = base64urlEncode(new TextEncoder().encode(JSON.stringify(payload)));
+  const sig = await hmacSha256Hex(secret, payloadB64);
+  return `${payloadB64}.${sig}`;
+}
+
+export interface VerifiedState {
+  tenantId: string;
+  valid: boolean;
+  reason?: string;
+}
+
+// 상수시간 비교 — 일반 `!==` 문자열 비교는 첫 불일치 문자에서 조기 반환해 응답시간으로
+// 서명을 한 글자씩 추정하는 타이밍 공격에 취약하다(HMAC 검증에서 표준적으로 피해야 하는 패턴).
+function timingSafeEqualHex(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+/**
+ * callback이 받은 state를 검증. provider(URL의 실제 provider)와 교차검증해 다른 provider용으로
+ * 발급된 state의 재사용을 막는다.
+ *
+ * - OSMU_SECRET_KEY 미설정(로컬 dev): 서명 검증 자체가 불가하므로 state 전체를 그대로 tenantId로
+ *   신뢰한다(signState도 키 없으면 평문 tenantId를 그대로 반환하므로 왕복이 일치 — 레거시/로컬 dev 폴백).
+ * - OSMU_SECRET_KEY 설정(prod): `base64url(payload).sig` 2-파트 형식이 아닌 state는 무조건 거부한다.
+ *   키가 있는데 평문을 신뢰하면 다운그레이드 공격이 그대로 열린다 — "키 있음 + 평문 state"를
+ *   valid로 반환하면 안 된다(Codex 2nd-pass Critical, 2026-07-10).
+ *   서명은 payload를 파싱하기 "전"에 검증한다 — 인증 안 된(위조 가능한) 데이터를 먼저 파싱하지 않기 위함.
+ */
+export async function verifyState(state: string, provider: string): Promise<VerifiedState> {
+  const secret = process.env.OSMU_SECRET_KEY;
+
+  if (!secret) {
+    // 로컬 dev 폴백 — 서명 검증이 원천적으로 불가하므로 state 전체를 tenantId로 신뢰한다.
+    return { tenantId: state, valid: true };
+  }
+
+  const parts = state.split(".");
+  if (parts.length !== 2) {
+    return { tenantId: "", valid: false, reason: "state 서명 형식이 아닙니다(다운그레이드 공격 의심) — 연결을 다시 시도하세요" };
+  }
+  const [payloadB64, sig] = parts;
+
+  const expected = await hmacSha256Hex(secret, payloadB64);
+  if (!timingSafeEqualHex(expected, sig)) {
+    return { tenantId: "", valid: false, reason: "state 서명이 위조되었거나 손상되었습니다" };
+  }
+
+  let payload: Partial<StatePayload>;
+  try {
+    payload = JSON.parse(new TextDecoder().decode(base64urlDecode(payloadB64))) as Partial<StatePayload>;
+  } catch {
+    return { tenantId: "", valid: false, reason: "state payload가 손상되었습니다" };
+  }
+  if (typeof payload.t !== "string" || !payload.t || typeof payload.p !== "string" || typeof payload.ts !== "number") {
+    return { tenantId: "", valid: false, reason: "state payload 형식이 올바르지 않습니다" };
+  }
+  if (payload.p !== provider) {
+    return { tenantId: "", valid: false, reason: "state가 다른 provider용으로 발급되었습니다(재사용 의심)" };
+  }
+  const age = Date.now() - payload.ts;
+  if (!Number.isFinite(age) || age < 0 || age > STATE_MAX_AGE_MS) {
+    return { tenantId: "", valid: false, reason: "state가 만료되었습니다(10분 초과) — 연결을 다시 시도하세요" };
+  }
+  return { tenantId: payload.t, valid: true };
+}
+
 // ── Instagram·Threads (Meta LoginAPI — 단기→장기 2단계 교환) ─────────────────
 // ── 표준 OAuth 2.0 채널 (longTokenUrl/longGrant = "" → 단일 교환) ────────────
 export const PROVIDERS: Record<string, ProviderConfig> = {

@@ -82,9 +82,22 @@ jobs:
           sleep 12
           L=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:18789/login || echo 000)
           M=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:18789/api/me || echo 000)
-          echo "login=$L api/me=$M"
+          LOGIN_HTML=$(curl -s http://localhost:18789/login || echo '')
+          G=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:18789/api/auth/google?redirect_to=http://localhost:18789/" || echo 000)
+          echo "login=$L api/me=$M google=$G"
           [ "$L" = "200" ] || { echo "::error::/login HTTP $L — 로그인 페이지 死"; exit 1; }
           [ "$M" = "401" ] || { echo "::error::/api/me HTTP $M — 인증 게이트 이상(401이어야 안전)"; exit 1; }
+          # "local PASS ≠ live 반영" 재발 방지(2026-07-05 구버전 라이브 사고) — /login에 비밀번호 찾기
+          # 링크가 없으면 구버전 배포가 그대로 떠 있다는 신호.
+          echo "$LOGIN_HTML" | grep -q '비밀번호 찾기' \
+            || { echo "::error::/login HTML에 '비밀번호 찾기' 없음 — 구버전 배포 감지"; exit 1; }
+          # /api/auth/google은 인증 없이 열려있어야 하는 public preflight 라우트 — 정상 상태코드는
+          # 200(authUrl 반환) 또는 400(Google/Supabase 미설정 한국어 안내) 둘뿐이다. 401(미들웨어가
+          # 막음)은 물론 404/403/500 등 그 외 코드도 전부 "반영 안 된 배포/라우트 이상" 신호이므로
+          # 화이트리스트(200|400)만 통과시킨다(Codex 2nd-pass Minor, 2026-07-10 — 기존엔 401만 걸러
+          # 404/500/403도 통과시켰음).
+          [ "$G" = "200" ] || [ "$G" = "400" ] \
+            || { echo "::error::/api/auth/google HTTP $G — public preflight 이상(200 또는 400이어야 함, 미반영 배포/라우트 장애 감지)"; exit 1; }
           docker exec openclaw-dashboard-osmu sh -c 'grep -rlq gvtsyyltgwqplrqegrxo .next 2>/dev/null' \
             || { echo "::error::NEXT_PUBLIC supabase URL 빌드 미주입 — 가입/로그인 死(supabaseUrl required)"; exit 1; }
-          echo "✅ 스모크 통과: 로그인페이지·인증게이트·supabase 빌드주입 정상"
+          echo "✅ 스모크 통과: 로그인페이지·인증게이트·supabase 빌드주입·비밀번호찾기·google preflight 정상"

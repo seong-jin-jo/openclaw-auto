@@ -46,27 +46,35 @@ export async function GET(request: Request) {
     };
   });
 
-  // DB 카운트(위키·발행)는 withTenant. 폴링되므로 실패 시 0으로 폴백.
+  // DB 카운트(위키·발행·OAuth 연결 채널)는 withTenant. 폴링되므로 실패 시 파일 신호로 폴백.
   let wikiCount = 0;
   let publishCount = 0;
+  let dbChannelConnected = false;
   if (tenantId) {
     try {
       const counts = await withTenant(tenantId, async (sql) => {
         const [w] = await sql<{ c: number }[]>`SELECT count(*)::int AS c FROM wiki_docs`;
         const [p] = await sql<{ c: number }[]>`SELECT count(*)::int AS c FROM published_posts`;
-        return { wiki: w.c, pub: p.c };
+        // OAuth로 연결한 채널은 openclaw.json이 아니라 integrations(kind='channel')에 저장된다.
+        // 파일 기반 hasConnectedChannel()만 보면 OAuth 연결 고객의 온보딩 체크리스트가 영원히 미완으로 표시됨.
+        const [i] = await sql<{ c: number }[]>`SELECT count(*)::int AS c FROM integrations WHERE kind = 'channel'`;
+        return { wiki: w.c, pub: p.c, integrations: i.c };
       });
       wikiCount = counts.wiki;
       publishCount = counts.pub;
-    } catch { /* DB 미연결 — 0 유지 */ }
+      dbChannelConnected = counts.integrations > 0;
+    } catch { /* DB 미연결 — 파일 신호로 폴백(온보딩 자체는 깨지지 않게) */ }
   }
+
+  const channelConnected = fileSignals.channelConnected || dbChannelConnected;
 
   return Response.json({
     ...fileSignals,
+    channelConnected,
     wikiCount,
     publishCount,
     checklist: {
-      channel: fileSignals.channelConnected,
+      channel: channelConnected,
       wiki: wikiCount > 0,
       published: publishCount > 0,
       analytics: fileSignals.analyticsViewed,

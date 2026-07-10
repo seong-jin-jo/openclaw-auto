@@ -825,3 +825,19 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
 **다음 액션 (Phase 1):** 회장 `/approve qa` → runner online 확인 → `git push origin main` → `gh workflow run "Deploy openclaw (marketing VM)"` → Phase 2 라이브 6항목 재검(계획 파일 표 참조).
 **병렬 (Phase 3, 회장):** Google Cloud OAuth 클라이언트 생성 + Supabase Google provider 활성화 + Redirect URL 등록 — 상세 패키지는 계획 파일 §Phase 3.
 **블록:** `/approve qa`는 회장 트리거 — 자가 승인 금지.
+
+**2026-07-10 04:55 KST 업데이트 (Fable 5):**
+- `/approve qa` 게이트 통과(증거 재검증 + 승인로그, 🟡 2건은 배포 후 수집 의무 명기) → `git push origin main` 성공(21530d5c, 8커밋 반영).
+- ⛔ **배포 트리거 차단**: `gh workflow run "Deploy openclaw (marketing VM)"`가 auto-mode 분류기에 거부(프로덕션 배포 = 회장 직접 실행 필요). 회장이 `! gh workflow run "Deploy openclaw (marketing VM)"` 실행하면 즉시 진행.
+- 병렬 진행: Phase 5 qa 미니사이클 4건(온보딩 드리프트·발행미지원 UI 정직화·state HMAC·스모크 확장)을 code-builder에 위임, 워킹트리에서 작업 중(커밋 금지 지시 — 이번 배포와 분리).
+- 다음: 회장 배포 트리거 → Phase 2 라이브 6항목 재검 → Phase 3 콘솔(회장) → Phase 4 실발행 E2E.
+
+**2026-07-10 05:25 KST 업데이트 (Fable 5):**
+- Phase 5 code-builder 1차 산출: 4건 구현 + 테스트 15건 추가, 205 PASS/8 skip·build PASS(메인 세션이 직접 재실행으로 검증 — 관찰됨). 워킹트리 상태, 미커밋.
+- Codex 2nd-pass 보안 리뷰(고위험 인증 코드 의무): **Critical 1** — OSMU_SECRET_KEY 설정 서버에서도 평문 state 통과(다운그레이드 → 타 테넌트에 토큰 주입 가능) / **Major 1** — 서명에 provider 미바인딩(10분 내 재사용) / **Minor 1** — 스모크 preflight 검사가 401만 감지. → code-builder에 수정 재위임(진행 중).
+- ⛔ 배포는 여전히 회장 트리거 대기: `! gh workflow run "Deploy openclaw (marketing VM)"`. 이번 배포(21530d5c)는 Phase 5 변경과 무관 — 워킹트리 미커밋이라 안 딸려감.
+
+**2026-07-10 05:40 KST 업데이트 (Fable 5):**
+- Phase 5 보안 수정 2라운드: Critical(평문 다운그레이드 거부)·Minor(스모크 화이트리스트) 해결 — Codex 재확인 + 메인 세션 직접 재실행(208 PASS/8 skip·build PASS, 관찰됨).
+- Major 1건 잔존(state 직렬화 구분자 주입 — tenantId에 '.' 시 파싱 혼동, 실위험 낮음): base64url JSON 페이로드로 전환하도록 code-builder 3라운드 진행 중.
+- ⛔ 배포는 계속 회장 트리거 대기(`! gh workflow run "Deploy openclaw (marketing VM)"`). Phase 5는 전부 미커밋 — 대기 중 배포(21530d5c)와 분리 유지.

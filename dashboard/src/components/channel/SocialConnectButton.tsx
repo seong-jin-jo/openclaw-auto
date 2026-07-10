@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useUIStore } from "@/store/ui-store";
 import { authHeaders } from "@/lib/auth";
 import { oauthErrorMessage } from "@/lib/oauth-errors";
+import { SCHEDULABLE_PLATFORMS } from "@/lib/constants";
 
 // 소셜 OAuth "연결" 버튼 (ADR-004) — 고객은 비번/토큰 개념 없이 이 버튼만.
 // 클릭 → /api/connect/{provider}로 동의 URL 받아 팝업으로 열기 → provider 공식 페이지에서 로그인/동의 →
@@ -12,6 +13,10 @@ export function SocialConnectButton({ provider, label }: { provider: string; lab
   const { activeWorkspace } = useUIStore();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  // "노출=발행가능" 원칙(wiki/reference/channel-status.md) — 연결 UI는 12채널이지만
+  // 대시보드 직접 발행은 SCHEDULABLE_PLATFORMS(threads/x/instagram/facebook)뿐이다.
+  // 연결만 되고 발행이 안 되는 채널은 과장 없이 정직하게 안내한다.
+  const publishReady = (SCHEDULABLE_PLATFORMS as readonly string[]).includes(provider);
 
   const connect = async () => {
     if (!activeWorkspace) {
@@ -50,6 +55,12 @@ export function SocialConnectButton({ provider, label }: { provider: string; lab
       >
         {busy ? "여는 중…" : `${label} OAuth 연결`}
       </button>
+      {!publishReady && (
+        <p className="text-[11px] text-warning mt-2" data-testid="publish-not-ready-badge">
+          ⚠ 발행 준비 중 — 지금은 {label} 연결만 미리 가능하고, 대시보드에서 직접 발행은 아직
+          지원하지 않습니다.
+        </p>
+      )}
       {msg && <p className="text-[11px] text-subtle mt-2">{msg}</p>}
     </div>
   );

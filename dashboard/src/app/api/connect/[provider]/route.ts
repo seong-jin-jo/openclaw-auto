@@ -1,5 +1,5 @@
 import { effectiveTenantId } from "@/lib/tenant-auth";
-import { getProvider, buildAuthUrl, publicOrigin, generateCodeVerifier, generateCodeChallenge } from "@/lib/social-connect";
+import { getProvider, buildAuthUrl, publicOrigin, generateCodeVerifier, generateCodeChallenge, signState } from "@/lib/social-connect";
 
 // GET /api/connect/{provider}?tenant_id=... — OAuth "연결" 동의 URL 반환.
 // 프론트의 "연결" 버튼이 호출 → 받은 authUrl을 팝업으로 연다 → 사용자가 provider 공식 페이지에서
@@ -45,7 +45,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
     ].join("; ");
   }
 
-  const authUrl = buildAuthUrl(cfg, origin, provider, tenantId, extraParams);
+  // state = tenantId.provider.timestamp.HMAC(OSMU_SECRET_KEY) — CSRF 방지 서명(callback이 검증).
+  const state = await signState(tenantId, provider);
+  const authUrl = buildAuthUrl(cfg, origin, provider, state, extraParams);
   if (!authUrl) return Response.json({ error: `${cfg.appIdEnv} 미설정 — 플랫폼 OAuth 앱 자격증명 필요` }, { status: 500 });
 
   const headers: Record<string, string> = {};
