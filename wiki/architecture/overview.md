@@ -73,6 +73,18 @@ ChannelPage (OAUTH_CONNECT dict에 포함된 채널)
 환경변수 없으면 버튼 숨김. 있으면 즉시 활성화.
 ADR: `wiki/decisions/004-social-connect-oauth-not-passwords.md`
 
+### state 서명 (2026-07-10, commit eba54b36 — Codex 보안리뷰 3라운드)
+- state = `base64url(JSON{t: tenantId, p: provider, ts: timestamp})` + `.` + `HMAC-SHA256(OSMU_SECRET_KEY)`.
+- callback 검증 순서: HMAC 상수시간 비교(파싱 전) → JSON 파싱 → 타입 확인 → provider 교차검증 → 10분 만료.
+- **OSMU_SECRET_KEY 설정 시 비서명(평문) state는 무조건 거부** — 다운그레이드/CSRF로 타 테넌트에 토큰 주입하는 공격 차단. 키 미설정(로컬 dev)만 평문 폴백.
+- 키 회전·미설정→설정 전환 중 진행되던 OAuth 흐름은 fail-closed(재시도 안내), 오연결 없음.
+- 후속(다음 사이클): one-time nonce(동일 provider 내 10분 창 재사용 차단).
+
+### 발행 vs 연결 구분 (2026-07-10)
+- **연결(OAuth)**: 12채널. **대시보드 직접 발행**(`lib/publish.ts`, `SCHEDULABLE_PLATFORMS`): threads/instagram/x/facebook 4채널만.
+- 발행 미지원 채널은 `SocialConnectButton`에 "발행 준비 중 — 연결만 미리 가능" 배지 노출 (노출=발행가능 원칙, `tests/publish/schedulable-platforms.test.ts`로 SSOT 고정).
+- 참고: 대시보드 직접 발행과 openclaw extension 발행(`openclaw/extensions/*-publish`)은 **이원화**된 경로 — extension 경로는 크론잡(gateway)용, 대시보드 `/api/publish`는 UI용. 온보딩 채널감지는 두 소스(파일 openclaw.json + DB integrations) OR 판정(2026-07-10).
+
 ## Browser / External Sensing
 
 - Currently: raw playwright in threads-search.
