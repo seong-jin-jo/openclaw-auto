@@ -60,23 +60,10 @@
 - 이 `wiki/` = 상품 자체의 지식 베이스 (제품 위키).
 - 사용자가 가진 **다른 레포 위키를 포인팅해서 컨텍스트 끌어오는 기능**을 미리 구현해야 함 (CEO 지적).
 
-**상품 이름 (0차/1차 현실 반영)**:
-- **SoloClaw** (강력 추천 1순위)
-  - "혼자 하는 Claw"
-  - 솔로/셀프/혼자마케팅 느낌 정확히 잡음
-  - Claw 기존 브랜드 유지
-  - 숏폼 생산 공장(Shorts Factory)도 자연스럽게 담을 수 있음 (e.g. "SoloClaw — Your Personal Shorts Factory")
-
-대안:
-- ClawFactory (공장 강조 강함)
-- SoloForge (만들어내는 느낌)
-- SelfClaw / ShortsClaw
-
-**결정**: 0차 진행하면서 **SoloClaw**로 가정하고 브랜딩/문서 최소 적용. 이름 최종 확정은 0차 안정 후 별도 결정 (gstack review로). 
-
-이름이 정해지면:
-- vision, onboarding wizard, 도메인 예시 등 일관되게 업데이트.
-- "숏폼생산공장" aspect를 부제나 기능 강조로 풀기.
+**상품 이름 — 확정: OSMU(오스무)** (2026-07-10, [ADR-005](../decisions/005-brand-naming.md)):
+- 구 가칭 **SoloClaw는 기각** — soloclaw.dev가 동일 OpenClaw 생태계의 라이브 상용 서비스로 선점 확인(2026-07-10 실조사). ClawFactory/SoloForge/ShortsClaw도 도메인 선점 + Claw 종속 문제로 기각.
+- 표기·도메인 후보·근거·veto 절차의 정본 = [marketing/naming.md](../marketing/naming.md). 다른 문서에 낡은 표기(SoloClaw)가 남아 있으면 naming.md가 이긴다.
+- 숏폼 생산 공장(Shorts Factory) aspect는 부제·기능 강조로: "OSMU — 글 하나 넣으면 전 채널로" 류. 카피 정본은 [marketing/landing-copy.md](../marketing/landing-copy.md).
 
 **최우선 해결 과제 (0차 + handoff 교훈)**:
 - **에러 설명력**: 사용자가 "왜 이런 에러가 났는지" 설명할 수 있게 (상세 로그 + 친화적 메시지). 재현성 확보.
@@ -88,6 +75,8 @@
 (위 내용은 0차/1차 달성 후 참고할 장기 모델. 현재는 신뢰성·온보딩·1명 사용자 존재에 집중. Pricing은 "존재만 해도 OK" 단계.)
 
 ## Competitive Benchmarking (2026 Landscape)
+
+> **⚠️ 2026-07-07 갱신 주의**: 아래 절의 경쟁 데이터는 2026-06 기준으로 낡음. 정본 = [marketing/competitors.md](../marketing/competitors.md)(2026-07 표) + [marketing/positioning.md](../marketing/positioning.md). 특히 **"agentic runtime" 차별화 주장은 폐기됨** (Opus가 2025-08 Agent Opus로 확장, Postiz도 같은 언어 사용) — 살아남는 차별화 = 위키/사실 그라운딩 + 발행 후 학습 루프 + 셀프호스트.
 
 **Shorts/Video Repurposing Leaders** (key benchmark for our Shorts Factory):
 - **Opus Clip** (dominant, ~$215M val est., ARR est. $8-20M): Long → 10+ shorts (AI clip, virality, captions, B-roll). Pricing 2026: Free 60min (watermark), Starter $15 (150min), Pro $29 (300/mo or 3600/yr ~$0.10/min). 20-40% discard common; billing friction (cancel/charge complaints); video-primary. Strengths: Speed on clean content. Weak: No deep brand facts, high discard, unpredictable cost.

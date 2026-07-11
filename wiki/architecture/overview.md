@@ -80,8 +80,11 @@ ADR: `wiki/decisions/004-social-connect-oauth-not-passwords.md`
 - 키 회전·미설정→설정 전환 중 진행되던 OAuth 흐름은 fail-closed(재시도 안내), 오연결 없음.
 - 후속(다음 사이클): one-time nonce(동일 provider 내 10분 창 재사용 차단).
 
-### 발행 vs 연결 구분 (2026-07-10)
-- **연결(OAuth)**: 12채널. **대시보드 직접 발행**(`lib/publish.ts`, `SCHEDULABLE_PLATFORMS`): threads/instagram/x/facebook 4채널만.
+### 발행 vs 연결 구분 (2026-07-10, 발행 8채널 확장 2026-07-11)
+- **연결(OAuth)**: 12채널. **대시보드 직접 발행**(`lib/publish.ts`, `SCHEDULABLE_PLATFORMS`): **8채널**.
+  - OAuth 앱 등록형(4): threads / instagram / x / facebook — 플랫폼 앱 등록 + 토큰 교환 필요.
+  - credential·webhook 방식(4, 2026-07-11 추가): bluesky(handle+app password) / telegram(bot token+chat id) / discord(webhook URL) / slack(webhook URL) — 사용자가 Settings에서 자격증명 직접 입력, OAuth 앱 등록 불필요.
+- credential은 `channel-config/[channel]` 라우트의 `toIntegration()`이 `integrations` 테이블(pgp 암호화)로 브리지 → `getChannelCred()`가 소비. 이 매핑이 없으면 UI 수동입력↔직접발행 경로가 끊긴다.
 - 발행 미지원 채널은 `SocialConnectButton`에 "발행 준비 중 — 연결만 미리 가능" 배지 노출 (노출=발행가능 원칙, `tests/publish/schedulable-platforms.test.ts`로 SSOT 고정).
 - 참고: 대시보드 직접 발행과 openclaw extension 발행(`openclaw/extensions/*-publish`)은 **이원화**된 경로 — extension 경로는 크론잡(gateway)용, 대시보드 `/api/publish`는 UI용. 온보딩 채널감지는 두 소스(파일 openclaw.json + DB integrations) OR 판정(2026-07-10).
 

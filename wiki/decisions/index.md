@@ -9,5 +9,6 @@
 | [002](./002-gstack-and-project-wiki-adoption.md) | gstack 프로세스 + Project Wiki 채택 | Accepted | 2026-06 |
 | [003](./003-moat-and-pricing-strategy.md) | Dual-Wiki Moat + 하이브리드 프라이싱 | Proposed | 2026-06-18 |
 | [004](./004-social-connect-oauth-not-passwords.md) | 소셜 연결 = OAuth "연결" + App Review (비번 수집 금지) | Accepted (+실사고 로그: Meta 계정 플래그 06-29·07-01) | 2026-06-29 |
+| [005](./005-brand-naming.md) | 제품명 OSMU(오스무) 확정 · 계정 = AI 콘텐츠 비서(사장님 done-for-you — 구 "빌드로그 SJ"는 회장 veto) | Accepted (표시 이름 낙점 대기) | 2026-07-10 · 개정 07-11 |
 
 <sub>index 갱신: 2026-07-02 (wiki-track). ADR 추가 시 이 표에 1줄 — 표가 곧 결정 이력의 목차.</sub>

@@ -841,3 +841,87 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
 - Phase 5 보안 수정 2라운드: Critical(평문 다운그레이드 거부)·Minor(스모크 화이트리스트) 해결 — Codex 재확인 + 메인 세션 직접 재실행(208 PASS/8 skip·build PASS, 관찰됨).
 - Major 1건 잔존(state 직렬화 구분자 주입 — tenantId에 '.' 시 파싱 혼동, 실위험 낮음): base64url JSON 페이로드로 전환하도록 code-builder 3라운드 진행 중.
 - ⛔ 배포는 계속 회장 트리거 대기(`! gh workflow run "Deploy openclaw (marketing VM)"`). Phase 5는 전부 미커밋 — 대기 중 배포(21530d5c)와 분리 유지.
+
+**2026-07-10 06:05 KST 업데이트 (Fable 5) — Phase 5 완료·push:**
+- 보안 수정 3라운드 완료: Codex 최종 "결함 없음", vitest 209 PASS/8 skip·build PASS·E2E SMOKE PASSED (전부 메인 세션 직접 재실행 — 관찰됨).
+- 커밋 `eba54b36` push 완료 → 이제 origin/main에 런치 수정 + Phase 5 보안·QA 하드닝 전부 반영. **회장이 배포 트리거하면 한 번에 배포**되고, 확장된 스모크 게이트(비밀번호찾기 grep + preflight 화이트리스트)가 자동 검증.
+- 다음 액션: ① 회장 `! gh workflow run "Deploy openclaw (marketing VM)"` ② 배포 후 Phase 2 라이브 6항목 ③ 회장 Google 콘솔 3단계(A/B/C) ④ Phase 4 실발행 E2E ⑤ Phase 6 wiki 갱신(channel-status·architecture).
+- 잔여 이연 항목(다음 사이클): 8채널 발행 구현, claude -p 큐/락, FB 다중 페이지, OAuth one-time nonce.
+
+---
+
+## [branding 트랙] 비개발 wiki 전면 업그레이드 — 2026-07-10 (Fable 5 세션, 진행 중)
+
+- **무엇을**: 마케팅·브랜딩·디자인·기획 wiki 정본화 (회장 지시: SNS 이름·소개까지 사전 확정, 하위모델이 그대로 실행 가능하게). 승인된 플랜: `~/.claude/plans/fable-bright-duckling.md` (6 Phase).
+- **완료**:
+  - Phase 1: 제품명 **OSMU(오스무)** 확정 — SoloClaw는 soloclaw.dev(동일 생태계 라이브 제품) 선점으로 기각, 실조사(dig 19건·curl 6건·WebSearch 3건). 계정 **빌드로그 SJ @sjbuildlog**(YouTube 404=가용 관찰, IG는 기존 계정 리네임→Threads 자동 연동), 얼굴 비노출·raw bio·목요일 확정. 산출: `wiki/marketing/naming.md`, `wiki/decisions/005-brand-naming.md`(+index 등재), `~/.claude/harness/open-decisions.md` veto 대기 등록.
+  - Phase 2: `wiki/marketing/brand.md` 확정판 재작성, `wiki/marketing/design-system.md` 신설(팔레트/타이포/로고/규격/AI생성 프롬프트 가이드).
+- **진행 중**: Phase 3(channels/ 5파일)·Phase 4(hook-bank/content-calendar/landing-copy/gtm-plan/growth-log) — content-growth-marketer 2병렬 백그라운드 위임 중. 완료 시 verify-agent-quality.sh 검증 필수.
+- **다음 액션**: ①위임 산출 검증·반려/채택 ②Phase 5: `wiki/marketing/creative-briefs/` 신설 + `wiki/marketing/index.md` 재편 ③Phase 6: Higgsfield 에셋(CLI 인증됨, flux_2 1크레딧/장, 총 100크레딧 이내) + `assets/brand/` 저장 + assets.md 갱신 + vision.md "상품 이름" 절을 ADR-005 참조로 갱신 + playbook 미결정 3건 중 2건 해소(워터마크="Made with OSMU", 언어=한국어 우선) + 하위모델 리허설 E2E(Haiku로 Threads 글 3건 생성→톤 체크) ④커밋(브랜드명은 wiki에만, 커밋 메시지에 브랜드명 금지).
+- **검증 상태**: 코드 무변경(문서·에셋 작업) — 빌드/테스트 해당 없음. 완료 기준 E2E = 하위모델 리허설(위 ③).
+- **차단/보류**: 회장 실행 항목 = osmu.kr 도메인 등록, IG 계정 리네임(리네임 전 기존 팔로워 유입 맥락 확인 1건). veto 창구 = naming.md §4.
+- **핸드오프 기준**: 이 세션 = branding 트랙(런치 트랙 pane 0과 별개, 파일 겹침 없음 — launch는 dashboard/, 여긴 wiki/marketing/). 재개 시 이 블록 + 플랜 파일이면 충분.
+
+**2026-07-10 20:11 KST 업데이트 (Fable 5) — 배포 트리거됨:**
+- 회장 "계속 진행해" 지시로 배포 승인 해석 → `gh workflow run "Deploy openclaw (marketing VM)"` 실행 성공.
+- run `29088645737`, headSha `b9f8066c` (런치 수정 7커밋 + Phase 5 하드닝 + 확장 스모크 게이트 포함). 감시 중.
+- 다음: 배포 완료 → 확장 스모크 자동검증 → Phase 2 라이브 6항목 수동 재검 → 회장 Google 콘솔 3단계 대기.
+
+### [branding 트랙] 갱신 2026-07-10 20:20 KST
+- 위임 에이전트 2건이 세션 한도(17시 리셋)로 중단됐다가 **재개됨** (백그라운드 진행 중). 중단 전 산출 완결 확인: channels/threads·x·instagram·youtube.md 4건 + hook-bank.md + content-calendar.md (푸터까지 완결, 품질 스팟체크 통과 — 네이밍·톤·raw/safer 라벨 준수).
+- 재개 지시 범위: A=channels/blog.md 1건 / B=landing-copy.md·gtm-plan.md·growth-log.md(실험 백로그 10개) 3건.
+- 다음: 위임 산출 verify-agent-quality.sh 검증 → Phase 5(creative-briefs/ + marketing/index.md 재편) → Phase 6(Higgsfield 에셋·vision/playbook 정합·하위모델 리허설 E2E·커밋).
+- 검증 상태: 문서 작업이라 빌드/테스트 해당 없음. E2E = Phase 6 하위모델 리허설로 예정.
+
+### [branding 트랙] 갱신 2026-07-10 20:35 KST
+- Phase 3 완료·검증 PASS(verify-agent-quality: Skill 1·WebSearch 15·소크라 17): channels/ 5파일 전부 완결 (threads/x/instagram/youtube/blog).
+- 직접 편집: vision.md "상품 이름" 절 = OSMU 확정·ADR-005 참조로 교체 / playbook.md 미결정 3건 중 2건 해소(언어=한국어 우선, 워터마크="Made with OSMU"), GitHub 퍼널은 회장 미결정 유지.
+- 백그라운드 3병렬 진행 중: ①Phase 4 잔여(landing-copy·gtm-plan·growth-log 백로그) ②Phase 5(creative-briefs/ 6파일) ③Phase 6 에셋(store-visual-producer, Higgsfield 크레딧 상한 30, 최종 경로 wiki/marketing/assets/brand/).
+- 남은 것: 각 위임 verify 검증 → marketing/index.md 재편(메인) → 하위모델 리허설 E2E(Haiku) → assets 확인·open 1회 → 커밋.
+
+### [branding 트랙] 갱신 2026-07-10 20:50 KST
+- Phase 4 완료·검증 PASS(스킬 3종·WebSearch 6·소크라 8): hook-bank(H-01~45)·content-calendar(시리즈 4+30일)·landing-copy(PASONA)·gtm-plan(5단계)·growth-log(실험 백로그 10) 전부 완결.
+- 채널 현황 정본 재확인: Threads Live·IG Connected (channel-status.md 07-07). 위임 중 불일치 지적은 캘린더의 "리네임 후 재검증" 처리로 이미 올바름.
+- 진행 중: Phase 5(creative-briefs/) + Phase 6 에셋(store-visual-producer) 백그라운드 2건. 완료 시 → verify → marketing/index.md 재편(메인 직접) → Haiku 리허설 E2E → 에셋 open 1회 → 커밋.
+- 회장 실행 항목 누적: ①naming veto 검토 ②osmu.kr 등록 ③IG 리네임(+기존 팔로워 유입 맥락 확인) ④GA4 property·중앙 Data API 연결.
+
+---
+
+### 🔄 Fable 5 — 런치 트랙 ✅ 안정화 + 브랜딩 트랙 착수 (2026-07-11 KST)
+
+**핸드오프 기준:** 회장 지정 primary가 런치→브랜딩으로 전환. "마케팅 디자인 브랜딩 기획 위주 위키 전체 업그레이드, 하위모델이 100% 의도대로 진행하게 철저한 계획. /compact 예정이니 잘 기록."
+
+**런치 트랙 종결 상태 (✅ 라이브 통과):**
+- 배포 run `29088645737` success (headSha `b9f8066c`). 라이브 6항목 전부 통과(관찰됨): 비밀번호 찾기 렌더 / Google preflight 400 한국어 안내(raw JSON 해소) / health 200 / api-me 401 / operator 무토큰 401 / verify-e2e SMOKE PASSED. 증거 = docs/qa-tracker.md "2026-07-10 20:35" 섹션.
+- **잔여(회장 콘솔 대기 — 런치 트랙 재개 시):** ①Supabase Google provider 활성화(A/B/C 패키지는 qa-tracker·이전 session-state 기록) → Google 실로그인 E2E ②고객 생성→연결→실발행 루프(Phase 4) ③8채널 발행 구현·claude -p 큐(다음 사이클 이연).
+
+**브랜딩 트랙 (현재 작업):**
+- 발견된 핵심 충돌: `wiki/marketing/brand.md`(line 28-30)는 옛 타겟 "바이브코더+멘토개발자"를 서술, 그러나 `landing-copy.md`·`naming.md`(더 최근, 오늘 낮 [Fable 5] 위임 작성)는 "주=일반인/자영업자, 부=바이브코더/1인빌더"로 절충 + 제품명 **OSMU(오스무)** + 개인계정 **빌드로그 SJ/@sjbuildlog** 이원 구조. **전부 회장 최종 veto 없이 진행됨.**
+- 이미 채워진 marketing 위키(15파일): naming·landing-copy·hook-bank(12KB)·content-calendar(10KB)·gtm-plan·design-system·growth-log·competitors·positioning·playbook + channels/·creative-briefs/·proposals/.
+- Higgsfield = MCP 아니라 CLI 래퍼(`dashboard/src/lib/higgsfield.ts`), `higgsfield auth login` 필요 — 에셋 생성 단계서 확인.
+- **다음 액션:** 탐색 2건(marketing 위키 완성도 전수 + 제품/타겟 정본) 완료 → 회장에게 타겟·브랜드 최종확정 소크라테스 질문 → 하위모델 인계용 작업계획 파일 작성 → brand-positioning-kit/content-growth-marketer 위임.
+- **아이데이션 게이트:** 브랜딩은 전략·정체성이라 회장 최종확정 전 wiki 정본 박제·핸들 선점·이름 확정 금지. 현 단계 = 계획 수립.
+
+**2026-07-11 정정 (회장 지시):** 브랜딩·마케팅 트랙은 **타 세션에서 진행 중** — 이 세션은 건드리지 않는다(방금 세운 브랜딩 계획/질문 폐기). 이 세션 primary = **개발 트랙 복귀**. wiki/marketing/* 은 이 세션이 편집 금지(타 세션 소유).
+
+**2026-07-11 개발 트랙 — 발행 채널 확장 착수:**
+- 현재 태스크: 발행 함수 확장 Bluesky/Telegram/Discord/Slack (code-builder 위임 중, agentId ab070e34). 커밋 금지·테스트 통과까지.
+- 근거: `lib/publish.ts` 발행 4채널(threads/instagram/x/facebook)뿐, 연결은 12채널 = 간극. 이 4채널은 verify-channel.ts에 검증 로직 존재 + credential/webhook라 OAuth 앱등록 없이 실발행 검증 가능.
+- 변경 예정: lib/publish.ts(+4함수), getChannelCred 확장, dispatch 2곳(/api/publish, schedule/publish-due), constants SCHEDULABLE_PLATFORMS +4, tests/publish/.
+- 검증: 위임 결과 도착 시 메인 세션이 npm run test/build 직접 재실행. 실발행은 자격증명 대기로 미검증 명시 예정.
+- 블로커 없음(자기완결). 회장 손 필요 항목(Supabase Google provider)은 런치 재개 시 별도.
+- 다음 액션: code-builder 산출 → verify-agent-quality.sh → 직접 재검증 → 커밋 → (선택)LinkedIn 등 OAuth 발행 채널 다음 차수.
+
+## 2026-07-12 00:00 — 브랜딩 트랙 (Fable, 비서 피벗 캐스케이드 진행 중)
+- 완료: brand.md 재작성(AI 콘텐츠 비서 정본) · R3 정합 청소(marketing/index·wiki/index·decisions/index·playbook·gtm-plan·growth-log·design-system 로고→발행 스탬프) — 구 빌드로그 잔재는 콘텐츠 층(channels/hook-bank/calendar/landing/briefs)만 남음
+- 진행 중(백그라운드 위임 3건): ①content-growth-marketer A = channels/ 5 + landing-copy ②B = hook-bank + content-calendar(첫 주 7일 실초안 포함) + creative-briefs 6(가드레일 보존) ③store-visual-producer = Higgsfield 에셋(스탬프 모티프, 크레딧 상한 60)
+- 다음: 위임 회수 → verify-agent-quality.sh PASS → R5 Haiku 리허설 E2E → grep 빌드로그 0건 → 커밋
+- 주의: 22:40 한도로 A·B 1회 중단→리셋 후 재개됨. 표시 이름 문자열은 회장 낙점 대기(naming.md §5)
+  - 검증 상태: 완료분(brand.md·정합 7파일)은 파일 관찰로 확인, E2E(R5 Haiku 리허설)는 위임 회수 후 실행 예정 — 로컬 빌드/테스트 불필요(문서 트랙, 코드 무변경). 배포 없음. 블로커 없음(위임 3건 대기만).
+  - handoff 기준: 이 파일(session-state.md) 단독으로 재개 가능 — 백그라운드 위임이 죽어 있으면 위 3건을 동일 브리프로 재위임하면 됨(브리프 원문은 플랜 ~/.claude/plans/fable-bright-duckling.md R2·R4).
+- 2026-07-12 00:2x: 위임 A(channels 5+landing-copy) 완료·verify PASS(Skill 2·WebSearch 12)·파일 반영 grep 확인. ⛔ 회수 6건(표시이름 낙점·X핸들 변형·IG 팔로워 맥락·랜딩 오퍼/가격·운영자 서사 정합·블로그 주소)은 마감 보고에 취합. 주의: 배포 환경의 data/prompt-guide*.txt(크론 실가이드)는 레포 밖 — 비서 톤 갱신은 배포측 작업으로 별도 등록.
+- 2026-07-12 00:4x: 위임 C(Higgsfield 에셋) = 이미지 0장, 블록 — 공유 크레딧 풀 27→4cr 실시간 고갈(타 벤처 21건 사용 실측, 에이전트 진단), 실단가도 브리프 가정(1cr)과 달리 product-photoshoot 7cr/장. 재시도 조건·추천안(flux_2 1cr/장 × 3장/카테고리, 20cr 충전 후) = wiki/marketing/assets.md "2026-07-12 시도 로그" + open-decisions 등록. assets/brand/는 빈 디렉토리로 생성만 됨.
+- 2026-07-12 01:0x: 위임 B(hook-bank·calendar 첫주 7초안·briefs 6) 1차 완료(Skill 3종·WebSearch 5) — 단 verify v2(품질헌법 writing.md 필독) FAIL로 A·B 모두 반려, 두 에이전트에 writing.md 감사·수정 재지시(백그라운드 재개됨). 잔재 grep: 실잔재는 briefs/youtube.md `> sj` 뱃지 1건뿐이라 직접 `osmu ✓`로 수정 — 나머지는 전부 이력 각주. 다음: 감사 회수→verify 재실행→R5 Haiku 리허설→커밋.
+- 2026-07-12 01:2x: 위임 B 반려 해소 — writing.md·marketing.md 감사로 4건 수정(family 심리법칙 1:1 명명, D7 커버 구체화, 시리즈별 지표 신설, RUBRIC 푸터) 후 verify v2 PASS(RUBRIC 22/25) + WEAKEST_LINE 스팟체크 실확인. 남은 것: 위임 A 감사 회수→재검증, R5 리허설, 커밋.
+- 2026-07-12 01:4x: 위임 A 반려 해소 — writing.md 감사 4건 수정(고정글 개봉부 2건·랜딩 비문·verbatim 카피/근거노트 분리) 후 verify v2 PASS(RUBRIC 24/25)+스팟체크 확인. R2 전체 완료. R5 Haiku 리허설 E2E 실행 개시(wiki/marketing만 읽고 Threads 3건+썸네일 프롬프트 생성, 백그라운드). 다음: 리허설 산출 감사→(통과 시) grep 최종 스윕→커밋→마감 보고.
+- 2026-07-12 02:0x: R5 리허설 E2E 합격 — Haiku가 wiki/marketing만 읽고 Threads 3건+썸네일 프롬프트 생성: 금지어 0·비서 톤·사장님 타겟·필러 매핑 전건 통과, 지어낸 숫자 0(placeholder+출처 처리), 후크 조건 미충족 자가 검출(⛔ 처리). 발견 드리프트 1건(자칭 "우리") → creative-briefs/_base.md 금지행동 5에 "우리 금지" 규칙 추가로 봉인. R6: 최종 스윕 통과(실잔재 0, 이력 각주만) → wiki 전체 커밋 진행.
