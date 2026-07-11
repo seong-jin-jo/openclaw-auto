@@ -164,3 +164,19 @@ qa = **in-progress** (ship 게이트 잠김 유지). 아침 체크리스트 1~3 
 
 **검증(메인 세션 직접 재실행 — 관찰됨):** `npm run test` 38 files / 209 PASS / 8 skip(신규 19건 포함) · `npm run build` PASS · `verify-e2e.sh`(port 3459) **E2E SMOKE PASSED**.
 **미검증:** 라이브 반영(배포 대기), 실 OAuth 왕복(라이브 채널 필요).
+
+## 2026-07-10 20:35 KST ✅ 배포 + 라이브 재검 전항목 통과 (Fable 5, Phase 1~2)
+
+**배포:** run `29088645737` success (headSha `b9f8066c` = 런치 수정 7커밋 + Phase 5 하드닝). 확장 스모크 게이트(비밀번호찾기 grep + preflight 200/400 화이트리스트) 포함 통과.
+
+**라이브 직접 실측 (전부 관찰됨):**
+| # | 검증 | 결과 |
+|---|---|---|
+| 1 | live `/login` `비밀번호 찾기` | ✅ 1 (배포 전 0 → 해소) |
+| 2 | `GET /api/auth/google?...` | ✅ 400 (배포 전 401 → public preflight 반영) |
+| 3 | preflight body | ✅ 한국어 안내 JSON — Supabase raw JSON 미노출 (고객 제보 에러 해소) |
+| 4 | `/api/health` · `/api/me` | ✅ `{ok,db:up,ms:42}` · 401 |
+| 5 | `/api/operator/customers` 무토큰 | ✅ 401 (게이트 정상. 토큰 조회 200은 로컬 토큰 부재로 이 세션 미검증 — 2026-07-10 04:17 Codex 세션에서 검증 이력 있음) |
+| 6 | `verify-e2e.sh` (live) | ✅ **E2E SMOKE PASSED** + 스크린샷 `/tmp/e2e-*.png` |
+
+**남은 미검증 (외부 선행조건):** Google 실로그인(Supabase provider — 회장 콘솔), 비밀번호 재설정 메일 실수신(테스트 이메일 필요), 고객 생성→연결→실발행 루프(Phase 4).
