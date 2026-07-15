@@ -1,6 +1,6 @@
 import { withTenant } from "@/lib/db";
 import { effectiveTenantId } from "@/lib/tenant-auth";
-import { generateText } from "@/lib/anthropic";
+import { generateText, sharedGenerationQuotaErrorResponse, sharedAiApprovalErrorResponse } from "@/lib/anthropic";
 
 // GET /api/studio/brand-setup?tenant_id=... — 워크스페이스 브랜드 가이드 조회
 export async function GET(request: Request) {
@@ -56,6 +56,10 @@ export async function POST(request: Request) {
             synced_at = now()`);
     return Response.json({ ok: true, guide: { prompt_guide: parsed.prompt_guide, visual_rules: parsed.visual_rules } });
   } catch (e) {
+    const approvalResponse = sharedAiApprovalErrorResponse(e);
+    if (approvalResponse) return approvalResponse;
+    const quotaResponse = sharedGenerationQuotaErrorResponse(e);
+    if (quotaResponse) return quotaResponse;
     const msg = e instanceof Error ? e.message : String(e);
     return Response.json({ error: msg.slice(0, 400) }, { status: 502 });
   }

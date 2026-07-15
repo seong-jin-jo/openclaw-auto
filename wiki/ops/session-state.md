@@ -3,7 +3,38 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **qa**, ship은 `/approve qa` 후). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-10 04:20 KST · `main` · **Codex build: admin auth users + password reset email 구현, qa 게이트 대기**
+**최종 갱신:** 2026-07-15 01:50 KST · `main` · **OSMU v1.0.0 launch build 검증 중, 외부 설정/QA/배포 대기**
+
+---
+
+### 🔄 Codex handoff — OSMU v1.0.0 48시간 출시 빌드 (2026-07-15 01:50 KST)
+
+**사용자 지정 primary:** tmux pane `%7`. 목표는 2026-07-16 운영 출시 후 2026-07-16 목요일부터 Instagram/Threads 콘텐츠 발행. `openclaw/` 대량 untracked 트리는 무관하므로 건드리지 않는다.
+
+**구현됨(운영 미배포):**
+- 공개 가입자는 즉시 `active`; 공유 `claude -p` 사용권은 `tenants.shared_cli_approved_at`으로 별도 운영자 승인/회수. BYO Anthropic 키 사용자는 공유 승인 없이 사용한다.
+- `/operator/customers`에서 가입자 조회, 비밀번호 재설정 메일, 계정 pause/resume, 공유 AI approve/revoke를 제공한다. 비밀번호 원문/해시는 조회·반환하지 않는다.
+- 오류 이벤트는 고정 allowlist와 reason code만 stderr/Slack으로 전달한다. GitHub Actions 5분 health monitor는 failure/recovery 전환 때만 알림을 보낸다.
+- GA4는 명시 동의 전 script/storage 없음. 동의 후 page view와 가입/로그인/Studio 핵심 이벤트만 유한 스키마로 기록하며 OAuth 성공은 비식별 session marker로 판별한다.
+- SNS 출시팩/DM playbook/기계판 JSON은 콘텐츠 에이전트 최종 재교정 중. 허위 대기명단 표현은 제거했고, 미검증 외부 플랫폼 수치도 전부 제거하는 작업이 남아 있다. 자동 발행/콜드 DM은 금지, v1은 수동 승인·수동 발송이다.
+
+**직접 검증:**
+- `dashboard/npm test` → 62 files PASS, 540 PASS / DB 연동형 8 skipped.
+- `dashboard/npx tsc --noEmit` → PASS.
+- `dashboard/npm run build` → PASS, 161 static pages 생성. 기존 Turbopack dynamic file tracing warning 1건만 남음.
+- `git diff --check` → PASS.
+- 프로덕션 PostgreSQL schema migration은 synthetic active/pending/paused 레코드로 transaction 안에서 `MIGRATION_TRANSACTION_PASS` 확인 후 rollback. 운영 DB 값은 변경하지 않았다.
+
+**외부 설정/실경로 미검증:**
+- Supabase Google provider가 아직 disabled라 live Google OAuth는 400이다.
+- SMTP 실메일, Slack webhook 실제 수신, GA4 Measurement ID/DebugView, Instagram/Threads 계정명·프로필 이미지·게시물 업로드는 아직 관찰되지 않았다.
+- 현재 live는 구버전이다. 최신 코드 배포, 실제 신규가입→운영자 shared AI 승인→Studio 생성, 비밀번호 재설정 실메일, Google OAuth 왕복 E2E가 필요하다.
+
+**정확한 다음 액션:**
+1. 콘텐츠 에이전트 결과를 `verify-agent-quality.sh`와 JSON 계약 검사로 재검증한다.
+2. `qa-verifier`에 전체 변경 diff와 위 실험 결과를 넘겨 fresh QA를 수행하고, 고위험 인증/마이그레이션은 Codex 2nd-pass 결과와 함께 게이트 증거에 기록한다.
+3. 회장 외부 콘솔 작업이 필요한 Google OAuth·SMTP·Slack webhook·GA4 Measurement ID·Meta 프로필 업로드를 정확한 URL/클릭 경로로 묶어 요청한다.
+4. 외부 설정 후 `/approve qa` → 관련 파일만 선별 commit/push → deploy workflow 실행 → live E2E → 성공 시에만 `v1.0.0` 태그.
 
 ---
 
@@ -925,3 +956,338 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
 - 2026-07-12 01:2x: 위임 B 반려 해소 — writing.md·marketing.md 감사로 4건 수정(family 심리법칙 1:1 명명, D7 커버 구체화, 시리즈별 지표 신설, RUBRIC 푸터) 후 verify v2 PASS(RUBRIC 22/25) + WEAKEST_LINE 스팟체크 실확인. 남은 것: 위임 A 감사 회수→재검증, R5 리허설, 커밋.
 - 2026-07-12 01:4x: 위임 A 반려 해소 — writing.md 감사 4건 수정(고정글 개봉부 2건·랜딩 비문·verbatim 카피/근거노트 분리) 후 verify v2 PASS(RUBRIC 24/25)+스팟체크 확인. R2 전체 완료. R5 Haiku 리허설 E2E 실행 개시(wiki/marketing만 읽고 Threads 3건+썸네일 프롬프트 생성, 백그라운드). 다음: 리허설 산출 감사→(통과 시) grep 최종 스윕→커밋→마감 보고.
 - 2026-07-12 02:0x: R5 리허설 E2E 합격 — Haiku가 wiki/marketing만 읽고 Threads 3건+썸네일 프롬프트 생성: 금지어 0·비서 톤·사장님 타겟·필러 매핑 전건 통과, 지어낸 숫자 0(placeholder+출처 처리), 후크 조건 미충족 자가 검출(⛔ 처리). 발견 드리프트 1건(자칭 "우리") → creative-briefs/_base.md 금지행동 5에 "우리 금지" 규칙 추가로 봉인. R6: 최종 스윕 통과(실잔재 0, 이력 각주만) → wiki 전체 커밋 진행.
+- 2026-07-12 02:1x: 브랜딩 트랙 마감 — wiki 35파일 커밋 f6b18dc1 (E2E: verify v2 PASS 2건 + Haiku 리허설 합격, 증거는 위 블록들). 이월 1건 = R4 브랜드 에셋(크레딧 충전 후 assets.md 시도 로그대로 재실행). 회장 대기 = 표시 이름 낙점·크레딧 충전·osmu.kr·가격 확정(open-decisions 등록). 배포 없음. 다음 세션은 이 파일+wiki/marketing/naming.md만 읽으면 재개 가능.
+
+## 2026-07-12 05:08 KST — 런치 트랙 재개 (primary tmux pane `%7`)
+
+- **핸드오프 기준:** 회장 지시로 tmux 런치 pane `%7`을 primary, 이 파일을 보조 근거로 확정. pane 목표 = Google OAuth + 관리자 승인 + 사용자별 `claude -p` + 공개 배포 QA.
+- **실서비스 관찰:** health 200, 로그인/비밀번호 찾기 UI 렌더, Google 클릭은 raw Supabase JSON 대신 한국어 설정 안내. 임시 가입자로 `/api/me` 자기 tenant 생성과 `/api/studio/text` 실제 `claude -p` 생성 200을 관찰한 뒤 임시 auth/tenant 삭제. 운영 컨테이너 안 `claude -p`도 지정 문자열 응답 확인.
+- **DB 복구:** 운영 DB에 누락됐던 `usage_events`, `subscriptions`, `usage_quotas`를 `dashboard/db/schema.sql` + `rls.sql`로 적용. `/api/operator/customers`가 500에서 200으로 복구되어 auth 사용자 5명/워크스페이스 9개 조회 확인. 비밀번호 원문은 조회하지 않으며 관리자 재설정 메일 API만 제공.
+- **운영 안정화 코드(미커밋):** legacy tenant1 gateway/dashboard를 compose profile로 기본 기동에서 제외, 배포 workflow에 멱등 DB schema/RLS 적용과 인증된 operator/customers 200 스모크 추가. 이전 crash-loop gateway는 운영 VM에서 중지, OSMU 컨테이너는 healthy 유지.
+- **고위험 감사 발견:** 현재 middleware가 JWT 모양/osmu prefix만 보고 통과시키고 `effectiveTenantId`가 무효 토큰 뒤 client `tenant_id` fallback을 허용. 또한 156개 API 중 일부 레거시 경로가 고객 세션에도 공용 설정을 사용. 공개 배포 전 실제 JWT/osmu 검증 + fallback 차단 + tenant-aware API allowlist/legacy operator-only 정책을 code-builder에 위임 중(session `1e6fd079-3eed-4f95-9573-befd130b963c`).
+- **외부 블록:** Supabase `external.google=false`; management token/Google OAuth credential/SMTP secret 없음. 회장에게 Supabase·Google Cloud 브라우저 로그인 여부와 `r.cupid@gmail.com` 재설정 메일 실수신 테스트 허용 여부 질문함. Google/SMTP는 콘솔 설정 후 실제 로그인·메일 수신 E2E가 필요.
+- **다음 정확한 액션:** 인증 code-builder 산출 검증 → 관리자 승인(pending→active)과 공유 Claude 사용량 제한 구현 → Bluesky image SSRF/Slack 연결 방식 잔여 위험 정리 → 전체 test/build/E2E → QA 게이트 재승인 후 배포·실서비스 재검증. 현재 배포 금지.
+
+---
+
+### 🔄 진행 중 — tenant 승인 게이트(pending/active/paused) 위임 (2026-07-12)
+
+**handoff 기준 정정:** 회장이 지정한 런치 primary는 tmux pane `%7`이고, 이 파일은 보조 근거다. `%7`에는 `OSMU today launch: approval gate + Google OAuth + password reset + claude-p + prod E2E` 목표를 기록했다. 이전 위임 세션이 남긴 "별도 tmux pane 지정 없음" 표기는 사실과 달라 이 문장으로 교정했다.
+
+**작업:** 최초 위임 세션은 코드 없이 종료되어 반려했다. 현재 `claude -p --agent code-builder` 세션 `90bd6c69-567e-44d6-8b79-9e24cba2e3b0`이 OSMU 신규 가입자용 tenant 승인 게이트를 직접 구현 중이다.
+- 범위: `dashboard/` 내부만. dirty 상태인 publish/workflow/wiki/compose 관련 파일은 건드리지 않도록 명시.
+- 요구사항: tenants.status(active/paused) 재사용 + pending 신설 → ensureTenantForUser 신규 tenant는 pending 생성, 기존 active 유지 / tenant-auth AuthError에 401·403·503 + code 확장(getTenantStatus 등) / proxy.ts·tenant-aware API는 pending·paused 403(operator 영향 없음, /api/me만 통과) / operator/customers API에 approve_user·pause_user(user_id 기반, email 기반 금지) 추가 / operator UI에 승인·중지·재승인 버튼 / AuthGate 승인대기·이용중지 풀스크린 + 15초 폴링.
+- 제약: commit/push/deploy 금지, 로컬 파일 변경 + 테스트만.
+- 근거 요구: Supabase 공식 Auth 문서 WebFetch 1회 이상.
+
+**검증 상태:** 미검증 — 직접 구현 세션 실행 중. 완료 후 변경파일·보안 2차 리뷰·전체 테스트/build·실제 브라우저 E2E 결과를 이 섹션에 갱신한다.
+
+**배포 상태:** 무관(로컬 작업만, 배포 없음).
+
+**다음 액션(재개 시):**
+1. code-builder 결과 수신 후 npm test/build 실제 통과 여부를 이 파일에 기록.
+2. 결과에 ⛔ 회수 필요 항목 있으면 그 항목부터 처리.
+3. QA 증거를 갱신하고 `/approve qa` 게이트 통과 전에는 commit/push/deploy하지 않는다.
+
+---
+
+### ✅ Codex 2차 보안리뷰 반려 5건 직접 수정 완료 (2026-07-12, 메인세션 직접 — 서브에이전트 재위임 없음)
+
+**handoff 기준:** session-state.md(위 섹션과 동일 트랙 이어감).
+
+**수정 내용(직접 Edit, 5건):**
+1. `src/components/shared/AuthGate.tsx`: `gateStatus==="checking"` 동안 children/Sidebar mount 안 되게 명시적 return 추가(기존엔 checking이 fallthrough로 즉시 children 노출 — 승인게이트 우회 가능했음).
+2. 같은 파일 `poll()`: `/api/me` 401→`auth_error`, `!res.ok`(403/5xx)·네트워크 예외→`service_error`로 분리. 기존 `setGateStatus("ok")` fail-open 전부 제거. `GateStatus`에 `auth_error`/`service_error` 추가, 15초 폴링 유지.
+3. `doLogout`을 async로 변경 — JWT 고객(`isJwtToken`)이면 `createBrowserSupabase().auth.signOut()` await 후 `clearAuthToken()`, 운영자(비-JWT)는 signOut 생략하고 기존처럼 clear.
+4. `src/lib/tenant-auth.ts` `assertTenantActive` / `src/proxy.ts` `checkTenantAccess`: `status==='active'`만 통과, pending/paused는 기존 code, **null/미존재/알수없는 값은 `account_unavailable` 403으로 fail-closed**(기존엔 이 경우 조용히 통과하는 구멍이 있었음).
+5. `/api/me` 응답 `tenant` 객체에 `status` 필드 추가.
+
+**추가 테스트(신규):**
+- `tests/isolation/tenant-auth.test.ts`: status=null / status='trial'(알수없는 값) → 403 `account_unavailable` 2건 추가. 기존 active-path 테스트 2건에 `H.tenantStatus="active"` 명시(안 하면 이제 fail-closed로 정당하게 실패함 — 회귀 아님, 새 정책 반영).
+- `tests/isolation/middleware.test.ts`: proxy의 `checkTenantAccess` fail-closed(null→403 account_unavailable), pending/paused 403 코드, `/api/me` 경로는 null status여도 게이트 미적용 통과 — 4건 추가.
+- `tests/api/me.test.ts`: pending/paused/active 3개 기존 테스트에 `body.tenant.status` 값 검증 추가.
+- `tests/isolation/authgate-contract.test.ts`(신규 파일): React 렌더 하네스 없이 소스텍스트 기반으로 "checking/auth_error/service_error가 Sidebar mount보다 먼저 분기되는지", "401/!res.ok/catch가 절대 ok로 fail-open 안 하는지", "로그아웃이 JWT면 signOut 호출하는지"를 고정하는 회귀 계약 테스트 7건.
+
+**검증(직접 실행, 관찰됨):**
+- focused: `npx vitest run tests/isolation/tenant-auth.test.ts tests/isolation/middleware.test.ts tests/api/me.test.ts tests/isolation/authgate-contract.test.ts` → 4 files, 68 PASS.
+- 전체: `npx vitest run` → 43 files, 321 PASS / 8 skipped.
+- `npm run build` → PASS(전 라우트 정상 생성, `/operator/customers` 포함).
+- `git diff --check` → 위 8개 파일 화이트스페이스 이슈 없음.
+
+**self-red-team 결과:** 이번 5건 범위에서 추가로 발견된 우회는 없음(⛔ 회수 필요 없음). `allowInactive:true`는 레포 전체에서 `/api/me` 1곳만 사용함을 grep으로 직접 확인 — 다른 tenant-aware 라우트가 이 옵션으로 게이트를 우회할 여지는 현재 없다.
+
+**미실행(범위 밖, 회장 확인 필요):** commit/push/deploy는 금지 지시대로 하지 않음 — 로컬 working tree에만 존재.
+
+**다음 액션:** 회장 승인 시 이 변경분만 선별 commit(다른 dirty 파일과 섞지 말 것). 그 전엔 그대로 대기.
+
+---
+
+### ✅ Bluesky 이미지 fetch SSRF/메모리DoS 하드닝 + Slack 방식충돌 해소 (2026-07-13, 메인세션 직접 — 서브에이전트 재위임 없음)
+
+**handoff 기준:** 이 파일(session-state.md) 이어감. 범위는 `dashboard/` 내 미커밋 publish 확장 코드만 — 위 섹션들의 auth/승인게이트/quota/workflow/wiki/compose 변경은 건드리지 않음(diff 스코프 확인함).
+
+**수정 내용(직접 Edit):**
+1. `src/lib/publish.ts`:
+   - `isAllowedServerFetchImageHost()` 신설 — Bluesky uploadBlob이 서버측에서 직접 fetch하는 image URL에 대해 기존 `isSafePublicImageUrl`(사설/루프백/메타데이터 IP 리터럴 lexical 차단)만으론 못 막는 **공개 hostname DNS rebinding**을 막는 2단 가드. 조건: https·userinfo없음·기본443만·hostname이 운영자 allowlist(OSMU_PUBLIC_URL hostname 자동 + OSMU_PUBLISH_IMAGE_HOSTS 쉼표구분 exact hostname)에 정확히 일치. wildcard/suffix 매칭 없음. allowlist 비었거나 불일치면 이미지 fetch 자체를 스킵하고 텍스트만 발행(fail-closed).
+   - `readBodyWithLimit()` 신설 — 기존 `arrayBuffer()` 전체읽기(메모리 DoS 가능)를 reader 스트리밍으로 교체. Content-Length 1,000,000 초과 선언 시 body를 아예 읽지 않고 스킵(선차단). 없거나 작으면 청크 누적하며 합계가 1,000,000 초과하는 즉시 `reader.cancel()` 후 스킵 — Content-Length를 거짓으로 낮게 선언해도 실제 스트리밍 누적검사가 진짜 상한(fail-safe).
+   - `publishSlack()`에 `cred.meta?.api !== "slack_webhook"` 체크 신설 — 저장 시점에 channel-config bridge가 찍는 `meta.api==="slack_webhook"`이 없으면(OAuth 연결 콜백이 같은 integrations 행을 xoxb 토큰으로 덮어썼을 가능성) host 형식과 무관하게 즉시 거부.
+2. `src/components/studio/ChannelConnect.tsx`: `OAUTH_LABELS`에서 `slack` 제거 — Settings UI가 더 이상 Slack OAuth 버튼을 노출하지 않고 webhook `CredentialForm`이 기본으로 뜨게 함(설정 UI와 발행 로직의 방식 불일치 제거).
+3. `tests/publish/helpers/mock-fetch.ts`: 실 `ReadableStream`(pull()을 setTimeout으로 한 틱 지연 — 동기 enqueue+close면 컨트롤러가 소비 로직보다 먼저 닫혀 `reader.cancel()`이 no-op이 되는 문제를 실측 디버깅으로 확인·수정) + `bodyCancelled` 관찰 필드, `bodyChunks` MockRoute 옵션 추가.
+4. `tests/publish/publish-messaging-channels.test.ts`: allowlist 7종, Content-Length 선차단/청크초과 조기cancel/경계값(정확히 1,000,000바이트 허용) 3종, unallowlisted 공개호스트 no-fetch 1종, Slack meta 방식충돌 2종 신규 + 기존 Bluesky 이미지 테스트 4건에 allowlist 스텁(`vi.stubEnv("OSMU_PUBLISH_IMAGE_HOSTS", ...)`) 반영.
+
+**검증(직접 실행, 관찰됨):**
+- focused: `npx vitest run tests/publish/publish-messaging-channels.test.ts` → 51 PASS. `npm run test:publish` → 9 files, 85 PASS + 2 skipped.
+- 전체: `npm run test` → 45 files, 362 PASS + 8 skipped.
+- `npm run build` → PASS(Turbopack 컴파일 + tsc 타입체크. 도중 TS 5.7+ typed-array 제네릭 이슈(`Uint8Array<ArrayBufferLike>` vs fetch BodyInit) 발견해 `readBodyWithLimit` 반환타입을 `Uint8Array<ArrayBuffer>`로 명시해 해결).
+- `git diff --check`(레포 루트) → 화이트스페이스 이슈 없음.
+
+**self-red-team 결과:** URL confusion(`https://cdn.example.com@evil.com/`)은 userinfo 체크로 차단 확인. Content-Length 거짓 축소 우회는 스트리밍 실측 누적검사가 진짜 방어선이라 무력화됨(확인). 302 내부망 리다이렉트는 `redirect:"manual"`+`imgResp.ok` 체크로 여전히 차단. Slack meta 위조는 DB 직접조작 없이는 불가, 설령 meta는 맞아도 secret이 비-URL/딴호스트면 host검사가 2차 방어. ⛔ 회수 필요 없음 — 발견된 잔여 리스크는 "allowlist에 등록된 호스트 자체 인프라가 탈취되는 경우"뿐이며 이는 운영자 신뢰경계 밖(요구 범위 아님)으로 명시.
+
+**미실행(범위 밖, 지시대로):** commit/push/deploy/wiki 편집 없음 — 로컬 working tree에만 존재. 실 Bluesky/Slack 토큰을 쓴 라이브 발행 E2E는 자격증명 없어 미검증(범위 밖으로 명시했음).
+
+---
+
+### ✅ 공유 claude -p 실행 argv 노출 Critical 하드닝 + operator/customers fail-open 인증 수정 (2026-07-13, code-builder 서브에이전트 직접 구현 — 재위임 없음, Codex 2nd-pass 리뷰 1회)
+
+**handoff 기준:** 이 파일(session-state.md) 이어감. 범위는 `src/lib/anthropic.ts` + `src/app/api/operator/customers/route.ts` + 관련 테스트만 — 위 섹션들(auth/승인게이트/quota/publish/workflow/wiki/compose)의 미커밋 변경은 건드리지 않음(작업 시작/종료 시 `git status`로 스코프 확인함).
+
+**수정 내용(직접 Edit):**
+1. `src/lib/anthropic.ts`: `execFile(CLAUDE_BIN, ["-p", prompt], ...)`(prompt가 자식 프로세스 argv에 실려 `ps`로 다른 로컬 사용자에게 노출 가능 + Claude Code 툴/CLAUDE.md/skills/plugins/hooks/MCP/세션저장이 전부 열린 채로 실행되던 Critical 위험)를 `runClaudeCli(prompt)` 단일 헬퍼로 교체.
+   - `spawn(CLAUDE_BIN, ["-p","--tools","","--safe-mode","--disable-slash-commands","--no-session-persistence","--no-chrome","--model",MODEL], {cwd:os.tmpdir(), stdio:["pipe","pipe","ignore"]})`. prompt는 `child.stdin.end(prompt,"utf8")`로만 전달 — argv엔 절대 안 실림.
+   - stdout 8MiB 상한(초과 시 kill+reject), 120s timeout(SIGTERM → 3s 유예 후 SIGKILL — 좀비 방지), `settled` 플래그로 정확히 1회 settle.
+   - **Codex 2nd-pass 리뷰 반영 3건**: ①stderr는 `stdio:"ignore"`로 아예 pipe 안 함 — 비정상 종료 시 에러 메시지엔 exit code만, child 진단출력(내부경로·인증실패 상세 등) 전혀 캡처/로그/반환 안 함. ②stdin 전환으로 OS argv 길이 상한이 사라져 `assertPromptWithinCliLimit()` 신설 — UTF-8 바이트 기준 1,000,000 초과 시 spawn/큐잉(runSerializedCli)/quota reserve 전부 미실행 상태로 즉시 reject(BYO Anthropic HTTP API 경로는 미적용, 문자 수 아닌 바이트 기준이라 멀티바이트 프롬프트도 정확 계산). ③`child.stdin`의 `error`(EPIPE) 이벤트 + `end()` 동기 throw 모두 child kill + 안정된(prompt 미포함) 에러로 1회 reject, 큐(FIFO)는 다음 요청으로 정상 진행.
+2. `src/app/api/operator/customers/route.ts`: `operatorError()`가 `DASHBOARD_AUTH_TOKEN` 미설정 시 `if (operatorToken && ...)`가 falsy로 short-circuit돼 **인증 자체를 건너뛰는 fail-open**이었음(누구나 auth.users+tenants 열람, approve_user/pause_user/send_password_reset 호출 가능). 토큰 미설정→503, 불일치→401(정확 일치만)로 fail-closed 전환.
+
+**추가/갱신 테스트:**
+- `tests/anthropic-cli-safety.test.ts`(신규, 19건): argv에 prompt 없음/stdin 전달, 필수플래그(-p·빈tools·safe-mode·disable-slash-commands·no-session-persistence·no-chrome·model)·cwd=tmpdir·stdio=["pipe","pipe","ignore"], 120s timeout+SIGTERM+3s뒤SIGKILL(좀비방지)+정상종료시 유예타이머 취소, 8MiB 초과 즉시kill, spawn error, **비정상 exit는 exit code만(stderr 비노출 확인)**, close 후 뒤늦은 error 이벤트 중복settle 방지, **stdin EPIPE/동기throw → kill+안정된에러+FIFO 진행**, **1,000,000바이트 정확 허용/1초과 거부(ASCII+멀티바이트 바이트기준)/tenant경로 quota reserve 0회 확인**.
+- `tests/anthropic-queue.test.ts`, `tests/anthropic-quota.test.ts`: mock을 execFile→spawn(EventEmitter)로 전면 갱신, stderr 미캡처 반영해 실패 메시지 assertion을 `"claude CLI exited with code 1"` 고정 문자열로 수정.
+- `tests/api/operator-customers.test.ts`: 토큰 미설정 시 GET/POST(send_password_reset/approve_user) 모두 503 + DB무변이(update/insert 0회)·메일무발송 3건 추가.
+
+**검증(직접 실행, 관찰됨+테스트됨):**
+- `claude --help` 로컬 확인 + 실제 `claude -p` spawn(cwd=tmpdir, stdin prompt, 전 플래그 조합)으로 정상 응답 관찰("OK"/"PONG").
+- focused: `npx vitest run tests/anthropic-cli-safety.test.ts tests/anthropic-queue.test.ts tests/anthropic-quota.test.ts tests/anthropic-quota-routes.test.ts tests/api/operator-customers.test.ts` → 5 files, 64 PASS.
+- 전체: `npm run test` → 46 files, 383 PASS / 8 skipped, unhandled rejection 0건.
+- `npm run build` → PASS. `git diff --check` → 클린.
+- Codex 2nd-pass(`codex exec --sandbox read-only`, dev.md §4 고위험코드 크로스모델 리뷰 의무): 최초 시도는 stdin 미redirect로 hang→exit144 실패, `< /dev/null` 추가 후 재시도 성공 — stderr 노출/1MB 상한 소실/stdin 미처리 3건 지적받아 전부 반영.
+
+**self-red-team 결과:** 도구재활성화(`--tools ""`+`--safe-mode`+`--disable-slash-commands` 3중, 실측 확인) / argv유출(테스트) / stderr유출(제거+테스트) / timeout zombie·double-settle(SIGKILL fallback 테스트) / stdin EPIPE·동기throw(테스트) / 1MB 상한 멀티바이트 우회(바이트기준 테스트) / operator missing-token(503+DB무변이 테스트) 전부 커버. ⛔ 회수 필요 없음.
+
+**미실행(범위 밖, 지시대로):** commit/push/deploy/wiki 편집 없음 — 로컬 working tree에만 존재. 추가 Agent/Task/재위임도 지시대로 미실행(Codex 2nd-pass 1회만).
+
+**다음 액션:** 회장 승인 시 이 변경분(anthropic.ts + operator/customers route + 관련 테스트)만 선별 commit(다른 dirty 파일과 섞지 말 것). 그 전엔 그대로 대기.
+
+**다음 액션:** 회장 승인 시 이번 4개 파일(`src/lib/publish.ts`, `src/components/studio/ChannelConnect.tsx`, `tests/publish/helpers/mock-fetch.ts`, `tests/publish/publish-messaging-channels.test.ts`)만 선별 commit — 위 tenant 승인게이트 5건 등 다른 dirty 파일과 섞지 말 것. 그 전엔 그대로 대기.
+
+## 2026-07-12 21:4x — 랜딩 채널 나열 SSOT 교정 (Codex 2nd-pass 반려 반영)
+- 무엇을: 랜딩(AuthGate.tsx)의 발행 채널 나열이 PUBLISH_CHANNEL_GROUPS(연결 UI 범위 15개)를 SSOT로 잘못 써 과장 — 실제 예약 발행 SSOT = SCHEDULABLE_PLATFORMS 8개(Threads/X/Facebook/Instagram/Bluesky/Telegram/Discord/Slack)로 교정.
+- 변경 파일 2: dashboard/src/components/shared/AuthGate.tsx (FEATURES 발행 카드 desc/tags 8개 실명 나열·"+8" 제거, CHANNEL_ICONS 15→8, 주석 SCHEDULABLE 기준 교정) / dashboard/tests/isolation/authgate-contract.test.ts (SSOT import 교체, 정확 일치 검증 + "+N" 패딩 전면 금지 + 제외 12채널 재등장 금지).
+- 검증: vitest authgate-contract 18/18 PASS, isolation 스위트 79 PASS(6 skip=DB 의존 기존 스킵), tsc --noEmit 무오류 — 전부 로컬 직접 실행 관찰. 라이브 랜딩 육안 검증은 미실시(배포 금지 지시) = 배포 후 확인 항목.
+- 지시 준수: 커밋/wiki(제품 문서)/배포 금지 — 미커밋 working tree 상태로 둠. 다음 액션 = 회장/Codex 재검토 후 커밋 여부 결정. 이 트랙은 랜딩 정직성 계약 연장선(기존 WebFetch 근거·constants.ts SSOT 주석 체계 유지).
+## 2026-07-14 KST — OSMU v1.0.0 48시간 출시 실행 재개 (primary `%7`)
+
+- **사용자 확정 핸드오프 기준:** tmux `%7` 런치 트랙을 primary, 이 파일은 보조 기록. 7월 14~15일 빌드·QA·배포, 7월 16일 콘텐츠 발행 개시.
+- **직접 관찰된 운영 상태:** live `/api/health` HTTP 200, `marketing-vm` SSH 정상, GitHub self-hosted runner online. 운영 컨테이너의 안전 플래그 포함 `claude -p`가 `OSMU_CLAUDE_READY`를 실제 반환.
+- **확정 제품 정책:** 가입 즉시 대시보드 사용. BYO Anthropic 키는 즉시 생성 허용. 공유 `claude -p`만 관리자 승인. 기존 tenant 전체 승인 게이트를 계정 status와 공유 AI entitlement로 분리한다.
+- **확정 외부 설정:** 신규 OSMU GA4 property, 운영 Slack Incoming Webhook, Instagram+Threads 계정 `오스무 비서 (OSMU)` / `@osmu.official`(불가 시 `@osmu.secretary`). 리드는 별도 waitlist가 아니라 Supabase `auth.users` 가입 저장으로 정의.
+- **현재 외부 상태:** live Google preflight HTTP 400(provider disabled). GitHub secrets에는 Meta IG/Threads와 OSMU/Claude 값은 있으나 GA4·Slack monitoring·X 값은 없음. X는 v1 제외. 비밀번호 reset 실수신용 SMTP와 Google provider는 콘솔 설정 필요.
+- **현재 코드 증거:** auth/admin/reset/isolation/quota/publish/Claude CLI hardening 미커밋. 전체 383 PASS/8 skip 및 production build PASS 이력. `next.config.ts`에 Turbopack root 고정 후 build root 추론 경고 제거. 최신 변경 후 fresh QA/실서비스 E2E는 아직 미검증.
+- **배포 상태:** 아직 v1.0.0 미배포. fresh `/approve qa` 전 배포 금지.
+- **다음 정확한 액션:** (1) `shared_cli_approved_at` 추가·기존 active backfill·신규 tenant active 구현 (2) generateText와 operator UI/API를 shared AI 승인으로 분리 (3) Codex 고위험 2차 리뷰·실 DB 마이그레이션 테스트 (4) Slack monitoring (5) GA4 consent/events (6) SNS 템플릿 (7) Google/SMTP/Slack/GA4 콘솔 설정 (8) fresh QA→배포→live E2E→성공 SHA에 v1.0.0 tag.
+# 2026-07-14 18:35 KST - OSMU v1.0.0 auth/entitlement gate verified
+
+- Primary: tmux `openclaw-auto:0.0` pane `%7`; user-approved basis is the 48-hour launch plan in this session.
+- Implemented by Claude Sonnet code-builder, Codex 2nd-pass reviewed: new signups receive active dashboard accounts; shared `claude -p` usage is independently gated by nullable `tenants.shared_cli_approved_at`; BYO Anthropic bypasses shared entitlement; operator UI/API can approve/revoke shared AI and pause/resume accounts by validated auth UUID.
+- Agent transcript quality: `verify-agent-quality.sh ... 29d985df-...jsonl build` PASS (Skill 1, WebSearch/Fetch 24, Socratic markers 104).
+- Direct verification: focused Vitest suite 7 files / 105 tests passed. Production PostgreSQL transaction applied the new `schema.sql` twice against synthetic active/pending/paused tenants and returned `MIGRATION_TRANSACTION_PASS`, then `ROLLBACK`; active backfill, pending activation without entitlement, paused preservation, and revoke persistence were observed. Production DB remains unchanged and the new column remains uncommitted until deploy.
+- Next: delegate Slack structured error + health failure/recovery monitoring, then consent-aware GA4 funnel tracking. External values still required before live verification: Slack incoming webhook, GA4 measurement ID, Supabase Google provider enablement, and SMTP credentials.
+
+## 2026-07-14 19:05 KST — OSMU v1.0.0 모니터링(Slack 구조적 에러 + 헬스 전이 알림) 구현 완료
+
+- **handoff 기준:** tmux `openclaw-auto:0.0` pane `%7`(Codex 오케스트레이터)이 `claude -p --agent code-builder`로 위임한 단발 작업. 이 세션 자체가 그 위임된 프로세스(pid 43133대). 위 섹션들의 인증/entitlement/publish 하드닝 미커밋 변경은 건드리지 않음(작업 시작 시 `git status`로 스코프 확인, 그 변경들은 이미 트리에 있던 별개 작업).
+- **범위:** OSMU 모니터링만. wiki/pipeline-state/openclaw/ 미편집(이 append만 예외).
+
+**신규 파일:**
+- `dashboard/src/lib/observability.ts` — 서버전용 `reportFailure()`. stderr 구조적 JSON 항상 기록, `OSMU_ALERT_SLACK_WEBHOOK_URL`(신규 시크릿, 고객 Slack 연동과 완전 분리) 설정 시만 4s 타임아웃 best-effort POST. 금지키(token/secret/webhook/bearer/email/prompt/jwt/tenant/user_id/stack 등) + 값 휴리스틱(JWT형태/webhook URL/이메일/300자초과) 이중 redaction. 절대 throw 안 함 — 호출부는 `void reportFailure(...)` fire-and-forget.
+- `.github/workflows/osmu-health-monitor.yml` — `ubuntu-latest`(self-hosted 미사용), cron `*/5 * * * *` + `workflow_dispatch`, `permissions: contents:read/actions:write`만, concurrency 직렬화(`cancel-in-progress:false`), `actions/cache`로 상태(`.osmu-health-state`) 저장(매회 delete+save로 갱신), `/api/health` 체크 후 전이(failure/recovery)에만 Slack, webhook 미설정도 정상 동작(체크·상태기록 계속).
+- `dashboard/tests/observability/*.test.ts` 8개(observability/tenant-auth-alert/anthropic-alert/publish-alert/publish-due-alert/operator-mutation-alert/health-monitor-workflow.contract/deploy-env-wiring.contract) — 40 tests.
+
+**수정 파일(통합 지점, fire-and-forget로 응답 불변):**
+- `src/lib/tenant-auth.ts` — auth 검증기 503(서비스장애)만 보고, 401/403은 스팸 방지로 제외.
+- `src/lib/anthropic.ts` — 공유 `claude -p` 실행실패만 보고, quota초과/미승인 게이트는 제외.
+- `src/app/api/publish/route.ts`, `src/app/api/schedule/publish-due/route.ts` — 실발행 실패만 보고, "채널 미연결"(설정문제)은 제외. (publish-due 쪽은 이미 동일 패턴이 코드에 있어 검증 후 그대로 채택.)
+- `src/app/api/operator/customers/route.ts` POST catch — 뮤테이션 실행실패, action명만 담아 보고.
+- `.github/workflows/deploy-marketing.yml` — `.env.osmu` 렌더에 `OSMU_ALERT_SLACK_WEBHOOK_URL` 배선(작업 중 중복 라인 1건 발견해 직접 제거).
+
+**검증(직접 실행, 관찰됨+테스트됨):**
+- focused: `npx vitest run tests/observability` → 8 files / 40 PASS.
+- 전체: `npx vitest run` → 57 files / 464 PASS + 8 skipped(기존 DB의존 스킵 패턴).
+- `npx tsc --noEmit` → 클린(0 에러, 진행 중 `NODE_ENV` 직접대입 TS2540 1건 발견해 `vi.stubEnv`로 수정).
+- `npm run build` → PASS(Turbopack, `/api/publish`·`/api/operator/customers`·`/api/schedule/publish-due` 포함 전체 라우트 리스트 확인).
+- `git diff --check`(레포 루트) → 클린.
+- self-red-team(시크릿 유출/Slack 스팸/모니터링→제품장애 전이) 3축 모두 테스트로 방어 확인 — 회수 필요 없음.
+
+**주의 — 동일 트리 위 별개 대규모 미커밋 변경:** `schema.sql`/`next.config.ts`/`AuthGate.tsx`/`publish.ts`/`middleware.ts` 삭제 등 31파일 2217줄은 위 섹션들이 기록한 기존 auth/quota/entitlement 작업(내 스코프 아님, 미편집). 작업 도중 동일 태스크의 중복 세션 흔적(`publish-due-alert.test.ts`, `osmu-health-monitor.yml` 문구 차이, `deploy-marketing.yml` 시크릿 줄 중복)을 발견 — pane `%7` 로그 확인 결과 Codex가 늦게 뜬 중복 세션(pid 64656)을 이미 kill했고 남은 산출물은 검증 후 그대로 채택(내 설계와 이벤트명/구조 일치).
+
+**미실행(지시대로):** commit/push/deploy 없음 — 6개 파일 + 신규 9개 파일만 로컬 working tree.
+
+**다음 정확한 액션:** 회장/오케스트레이터 승인 시 이번 모니터링 변경분(9개 신규 + 6개 수정 파일, 위 목록)만 선별 `git add`+commit — 다른 dirty 파일과 섞지 않음. 배포 시 GitHub repo secret에 `OSMU_ALERT_SLACK_WEBHOOK_URL` 실값 등록 필요(콘솔 설정, 값은 회장이 직접 입력).
+
+## 2026-07-14 21:30 KST — OSMU 모니터링 보안 재설계(Codex 2nd-pass 반려 반영: blacklist→allowlist)
+
+- **handoff 기준:** 위 19:05 KST 섹션과 동일(tmux `openclaw-auto:0.0` pane `%7`, Codex 위임). 이 세션이 Codex 2nd-pass 리뷰 피드백을 받아 같은 작업을 재설계.
+- **반려 사유:** 최초 구현(`observability.ts` v1)이 blacklist(금지 키워드+값 휴리스틱)로 임의 context를 받아들여, `result.error`/`e.message`/요청 바디 `platform`·`action` 같은 "외부/공격자 통제 가능한 임의 텍스트"가 구조적으로 로그·Slack에 들어갈 수 있었음(값 패턴에 의존하는 방어는 우회 가능). 캐시 delete+save 방식도 공식 문서 미권장.
+- **재설계:** `observability.ts`를 닫힌세계 allowlist로 전면 교체 — 고정 이벤트명 4개, 이벤트별 고정 context 스키마(enum 또는 100~599 httpStatus 정수)만 통과, 스키마 밖 키/값은 드롭되거나 "unknown"류 안정 코드로 치환. `classifyPublishFailure`/`normalizePlatform`/`classifySharedAiFailure`/`normalizeOperatorAction` 헬퍼 신설 — 호출부(`publish/route.ts`, `schedule/publish-due/route.ts`, `anthropic.ts`, `operator/customers/route.ts`)가 원본 에러/사용자입력을 절대 그대로 넘기지 않고 이 헬퍼로 먼저 고정코드화. Slack 배달은 res.ok 검사 추가(non-2xx도 실패 취급, 응답/URL 미로그).
+- **워크플로 재설계:** GitHub 공식 문서(WebFetch 확인) — "캐시는 불변, 같은 키 덮어쓰기 불가"이고 actions/cache 저장소의 공식 권장은 "매 실행 고유 key + restore-keys prefix 복원"이지 delete+save가 아님. `gh cache delete`/`GH_TOKEN`/`actions:write` 전부 제거, `permissions: {}`로 축소(캐시 삭제 API 자체를 안 쓰므로 그 권한이 불필요해짐). key를 `${{ github.run_id }}-${{ github.run_attempt }}`로 유일화 + `restore-keys` prefix.
+- **검증(직접 실행, 관찰됨+테스트됨):** focused `npx vitest run tests/observability` → 8 files/65 PASS(적대적 입력 sk-ant/ghp_/URL/전화번호/주소/유니코드프롬프트/SQLi성 문자열/JWT 전부 드롭 확인). 전체 `npx vitest run` → 57 files/489 PASS+8 skip. `npx tsc --noEmit` 클린. `npm run build` PASS. `git diff --check` 클린.
+- **미실행:** commit/push/deploy 없음.
+- **다음 액션:** 승인 시 이번 재설계분(observability.ts 전면교체 + 5개 호출부 + workflow 재작성 + 8개 테스트)을 위 19:05 섹션 파일 목록과 합쳐 하나의 커밋으로 선별.
+
+## 2026-07-14 (계속) — OSMU v1.0.0 consent-aware GA4 트래킹 착수 (진행중, 백그라운드 위임)
+
+- **handoff 기준:** 위 섹션들과 동일 세션 연속(tmux `openclaw-auto:0.0` pane `%7`, Codex 오케스트레이터 위임). 새 pane/새 세션 전환 아님 — 별도 확인 불필요.
+- **범위:** 회장(오케스트레이터) 요청 — NEXT_PUBLIC_GA_MEASUREMENT_ID, consent mode v2(수락 전 무로드/무저장), route-aware page_view, cta_click/sign_up/login/content_generate/publish_attempt/publish_success 실 성공 경계 발화, PII 금지 closed allowlist, Docker build-arg + deploy workflow secret 배선, 포커스+풀 vitest/tsc/build 통과.
+- **진행상태:** code-builder 서브에이전트(비동기)에 전체 구현+WebFetch 공식문서+테스트+레드팀 위임, 아직 완료 통보 미수신 — **미검증**. 완료 시 직접 evidence(vitest/tsc/build/git diff) 확인 후 이 섹션에 결과 append 예정.
+- **동일 트리 위 별개 미커밋 변경(내 스코프 아님, 안 건드림):** `schema.sql`/`next.config.ts`/`AuthGate.tsx`/`publish.ts`/`middleware.ts`(삭제) 등 위 19:05·21:30 KST 섹션이 기록한 auth/entitlement/모니터링 작업분. GA4 작업은 이 파일들과 겹치지 않을 것으로 예상(레이아웃·신규 lib·Dockerfile·workflow 위주)이나, 최종 diff에서 충돌 없는지 재확인 필요.
+- **다음 정확한 액션:** (1) GA4 서브에이전트 완료 대기 (2) 완료 시 vitest/tsc/build/git diff 직접 재확인 (3) 통과분만 이 섹션에 append, 실패/미검증 항목은 별도 명시 (4) commit/deploy는 지시대로 미실행 유지.
+- **로컬 검증 상태:** 미완료 — 진행 중.
+
+## 2026-07-14 (계속2) — GA4 서브에이전트 완료, 전체 리포트 재요청 중
+
+- **handoff 기준:** 동일 세션 연속(tmux `openclaw-auto:0.0` pane `%7`).
+- **상태:** GA4 구현 서브에이전트(acd1bf50acd2f558d)가 완료 통보했으나 반환된 result 필드가 위임 설명 반복(요약 누락)이라 전체 최종 리포트(RESULT/OFFICIAL_URLS/FILES/ENV/EVIDENCE/RED_TEAM/MODEL·SOURCES)를 SendMessage로 재요청함 — 응답 대기 중, **아직 미검증**.
+- **로컬 직접 검증:** 미실행 — 서브에이전트 전체 리포트 수신 후 vitest/tsc/build/git diff를 내가 직접 재확인할 예정(에이전트 자기보고를 그대로 신뢰하지 않음, §9.2).
+- **다음 정확한 액션:** (1) 재요청 응답 수신 (2) 응답 내 EVIDENCE 섹션 명령을 직접 재실행해 재현 확인 (3) 통과 시에만 이 섹션에 결과 append, 실패 시 재위임 또는 실패 사실 명시 (4) commit/deploy 계속 보류.
+
+## 2026-07-14 (계속3) — GA4 서브에이전트 미실행 확인, 재지시
+
+- **발견:** git status 확인 결과 GA4/consent/analytics 관련 신규 파일이 전혀 없음 — 이전 두 차례 완료 통보는 실제 구현 없이 대화형 응답만 반환한 것으로 판명(tool_uses=1, duration 46~68s로 실작업 규모 아님).
+- **조치:** 서브에이전트에 "지금 즉시 WebFetch/Write/Bash로 실제 구현·테스트·빌드 실행, 완료 전까지 상태보고 금지"로 재지시, 재개.
+- **로컬 검증:** 여전히 미실행 — 실제 구현 완료 확인 전까지 GA4 관련 "완료" 주장 없음.
+- **다음 정확한 액션:** 재개된 에이전트의 완료 통보 수신 → git status로 실제 파일 생성 확인 → EVIDENCE 섹션 명령 직접 재실행 → 통과 시만 보고.
+
+## 2026-07-14 (계속4) — GA4 실작업 진행 확인(부분 파일 생성), 완료까지 재개 지시
+
+- **확인:** `dashboard/src/lib/analytics/ga.ts`, `events.ts` 실제 생성됨(consent mode v2 로직 코드 존재, 대화형 위조 아님). layout 배선/Dockerfile/workflow/call-site/테스트는 아직 미완.
+- **조치:** 완료까지 계속 실행하도록 재개 지시.
+- **로컬 검증:** 여전히 미실행 — 전체 완료 후 vitest/tsc/build/git diff 직접 재확인 예정.
+- **다음 정확한 액션:** 다음 완료 통보에서 전체 EVIDENCE 확보 여부 확인 → 통과분만 append.
+
+## 2026-07-14 (완료) — OSMU v1.0.0 consent-aware GA4 트래킹 구현 완료, 직접 재검증 통과
+
+- **handoff 기준:** 동일 세션 연속(tmux `openclaw-auto:0.0` pane `%7`).
+- **구현:** 서브에이전트(code-builder)가 consent mode v2 기반 GA4 클라이언트 트래킹 구현. 신규 파일 9개(`dashboard/src/lib/analytics/{ga,events}.ts`, `src/components/shared/{ConsentBanner,RouteTracker}.tsx`, `tests/analytics/*.test.ts` 5개), 수정 6개(`Dockerfile`, `.github/workflows/deploy-marketing.yml`, `layout.tsx`, `page.tsx`, `login/page.tsx`, `studio/page.tsx`).
+- **직접 재검증(관찰됨+테스트됨, 자기보고 그대로 신뢰 안 함 — §9.2):**
+  - `npx vitest run tests/analytics` → 5 files / 24 tests PASS (직접 실행 확인).
+  - `npx vitest run`(전체) → 62 files / 513 passed / 8 skipped / 0 failed (직접 실행 확인).
+  - `npx tsc --noEmit` → 클린, 에러 0.
+  - `unset NEXT_PUBLIC_GA_MEASUREMENT_ID && npm run build` → 성공, 전 라우트 렌더, no-op 정상.
+  - `git diff --stat` 대상 6개 파일 60줄 추가/5줄 삭제 확인 + 신규 9개 파일 untracked 확인 — 스코프 additive 정합.
+  - env/secret 배선 grep 직접 확인: `NEXT_PUBLIC_GA_MEASUREMENT_ID`(Dockerfile ARG/ENV) ← GitHub secret `OSMU_GA4_MEASUREMENT_ID`(workflow .env render + build-arg) ← `ga.ts`에서 `process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID`로 읽음. 이름 일치 확인.
+- **미검증 잔여:** 실 브라우저 E2E(가입/로그인/발행 성공 후 실제 GA 네트워크 히트 발생 여부)는 미실행 — unit/contract 테스트 + 소스 추적으로만 확인(RTL/jsdom 컴포넌트 마운트 테스트 부재, 서브에이전트가 자체 명시). GitHub secret `OSMU_GA4_MEASUREMENT_ID` 실값은 미등록(회장 콘솔 입력 필요) — 등록 전까지는 배포돼도 GA no-op으로 안전.
+- **배포 상태:** commit/push/deploy 미실행(지시대로). working tree에만 존재.
+- **다음 정확한 액션:** (1) 회장이 GitHub repo secret `OSMU_GA4_MEASUREMENT_ID`에 실제 GA4 측정ID 등록 (2) 승인 시 이번 GA4 변경분만 선별 커밋(다른 dirty 파일과 섞지 않음 — 위 세션의 auth/entitlement/모니터링 미커밋 변경과는 별개) (3) 배포 후 실 브라우저로 동의배너→수락→page_view/이벤트 네트워크 탭 직접 관찰 E2E 권장.
+
+## 2026-07-14 (Codex 재검토 반영) — GA4 트래킹 5개 결함 수정 완료, 직접 재검증 통과
+
+- **배경:** Codex 코드리뷰가 구현을 반려 — 6개 구체적 결함(①reload 시 저장된 granted consent가 스크립트를 재로드 안 함 ②accept가 RouteTracker를 즉시 재트리거 안 해 현재 페이지 page_view 누락 ③events.ts가 런타임에서 닫혀있지 않음(임의 cta_id/kind/channel/이벤트명 통과, page_path 임의 텍스트 통과) ④이메일 확인 대기(세션 없음) 성공 가입이 sign_up 누락 ⑤OAuth PKCE 콜백(?code=)이 hash 전용 감지라 login 누락 ⑥isValidMeasurementId가 소문자 g- 허용).
+- **수정(직접, 서브에이전트 미경유 — 결함이 구체적이라 내가 직접 코드 수정):**
+  - `ga.ts`: `bootstrapConsent()` 추가(default-denied 후 저장된 granted 재확인→스크립트 재로드), `onConsentChange()` pub/sub 추가, `isValidMeasurementId` 정규식에서 `/i` 플래그 제거(대문자 G- 전용).
+  - `RouteTracker.tsx`: consent-change 구독 추가 — grant 시 현재 페이지 즉시 1회 발행(내비게이션 무관), revoke 시 dedupe 리셋해 재-grant 시 재발행. dedupe ref를 두 소스(내비게이션 effect + consent-change effect)가 공유해 중복 방지.
+  - `events.ts`: `AnalyticsEvent` 파라미터를 전부 닫힌 enum(`CtaId`/`AuthMethod`/`ContentKind`/`AnalyticsChannel`)으로 변경 + 런타임 `VALIDATORS`가 멤버십 미검증 값·미지 이벤트명을 **완전 드롭**(부분 리댁션 아님). `normalizePagePath()` 신규 — 유한 라우트 템플릿 allowlist(`/channels/:channel` 포함) 밖은 전부 `/other`로 치환, 원문 경로 텍스트 전달 안 함.
+  - `login/page.tsx`: sign_up을 `data.session` 대신 `data.user`(이메일 확인 대기 포함 성공 전부) 게이트로 이동. OAuth `osmu_oauth_pending` sessionStorage 마커를 리다이렉트 직전 세팅, `enter()`에서 `oauthTrackedRef`로 1회만 소비(hash·PKCE 양쪽 커버, getSession+onAuthStateChange 중복 호출 방지).
+- **직접 재검증(관찰됨+테스트됨):**
+  - `npx vitest run tests/analytics` → 5 files / **47 tests PASS**(기존 24개 + Codex 결함별 신규 23개).
+  - `npx vitest run`(전체) → 62 files / **536 passed** / 8 skipped / 0 failed.
+  - `npx tsc --noEmit` → 클린.
+  - `unset NEXT_PUBLIC_GA_MEASUREMENT_ID && npm run build` → 성공.
+  - `git diff --stat` → 신규 파일(analytics lib/components/tests)은 untracked, `login/page.tsx`만 트래킹 diff(+32/-1, additive).
+- **미검증 잔여:** 이전과 동일 — 실 브라우저 E2E(동의→실제 GA 네트워크 히트, OAuth 왕복 실플로우)는 unit/contract 테스트+소스 추적까지만.
+- **다음 정확한 액션:** 회장 승인 시 GA4 변경분만 별도 커밋. `OSMU_GA4_MEASUREMENT_ID` GitHub secret은 여전히 미등록(등록 전까지 no-op으로 안전).
+
+## 2026-07-14 (Codex 2차 재검토 반영) — OAuth 분류 진실원 수정, 직접 재검증 통과
+
+- **배경:** Codex 2차 리뷰 — `hadHashToken` 단독을 OAuth 신호로 쓰면 이메일 확인/recovery 콜백도 `#access_token`으로 돌아와 오분류됨. `osmu_oauth_pending` 마커만이 유일한 분류 진실원이어야 함(우리가 구글 리다이렉트 직전에만 세팅하므로 PKCE·hash 둘 다 커버). 추가로 OAuth 취소/에러 콜백·이메일 로그인 경로에서 잔여 마커가 다음 무관한 이벤트를 오염시키지 않게 클리어 필요.
+- **수정:** `login/page.tsx` — enter() 조건을 `if (hadHashToken || oauthPending)` → `if (oauthPending)`로 단일화. 콜백 URL에 `error=`/`error_code=`(hash 또는 query) 있으면 즉시 마커 제거. `submit()`(이메일 로그인/가입) 최상단에서 Supabase 호출 전 마커 제거(잔여 마커로 인한 다음 이메일 로그인 오염 방지). recovery 분기 로직은 변경 없음.
+- **직접 재검증(관찰됨+테스트됨):** `npx vitest run tests/analytics` → 5 files/**51 tests PASS**(기존 47 + 신규 4: (a)hadHashToken 단독 미사용 (b)마커+세션 확정 시 1회만 (c)이메일 로그인 전 마커 클리어 (d)콜백 에러 시 마커 클리어). `npx vitest run` 전체 → 62 files/**540 passed**/8 skipped/0 failed. `npx tsc --noEmit` 클린. `unset NEXT_PUBLIC_GA_MEASUREMENT_ID && npm run build` 성공. `git diff --stat` → `login/page.tsx`만 +53/-1(additive), 신규 analytics 파일들 untracked 그대로.
+- **미검증 잔여:** 동일 — 실 브라우저 E2E 미실행.
+- **다음 정확한 액션:** 회장 승인 시 이번 GA4+OAuth 분류 수정분 커밋. `OSMU_GA4_MEASUREMENT_ID` secret 미등록 상태 유지(no-op 안전).
+
+---
+
+### 🧵 content-growth-marketer track — OSMU launch-pack 실행 (2026-07-16, 별도 트랙 — 위 Codex OAuth/admin 트랙과 무관)
+
+**handoff 기준:** 이 서브에이전트는 사람과 직접 tmux pane을 공유하지 않음 — 메인 컨트롤러가 위임한 콘텐츠 산출 태스크. tmux pane 확인 대상 아님(마케팅 wiki 문서 작업만, 코드/서버 무관).
+
+**한 일 (전부 완료, 검증됨):**
+- `wiki/marketing/launch-pack-2026-07-16.md` 신규: 확정 프로필(오스무 비서/OSMU, 핸들 @osmu.official→@osmu.secretary), Threads 고정글+Day1~Day14 발행 4편, IG 고정 캐러셀+후속 2건. 전부 risk=safer, raw 후크 미사용.
+- `wiki/marketing/dm-playbook.md` 신규: 인바운드/댓글요청/웜/후속/수신거부 6개 DM 시나리오+템플릿. 콜드·자동발송 전면 금지, 레이트리밋은 [내부정책]/[플랫폼사실] 라벨로 출처 구분.
+- `wiki/marketing/social-launch-v1.json` 신규: 기계판 큐(schema_version 1.0.0, item 8건+dm_template 6건). 전항목 `status:draft`, `requires_manual_approval:true`, 전역 `auto_send:false`/`cold_outreach:false`.
+- `wiki/marketing/naming.md`, `wiki/decisions/005-brand-naming.md`, `wiki/marketing/channels/instagram.md`, `wiki/marketing/channels/threads.md`, `wiki/marketing/index.md` 갱신: "표시 이름 낙점 대기" 문구 제거, 확정값(오스무 비서, 핸들 우선순위, v1=IG+Threads만, 계정셋업=회장 수동, DM정책) 반영.
+
+**검증(직접 실행):**
+- `python3 -c "json.load(open('wiki/marketing/social-launch-v1.json'))"` → parse OK.
+- 전 item `status=='draft'` and `requires_manual_approval==True` assert 통과, dm_template 전항목 `auto_send==False`/`cold_outreach==False` assert 통과.
+- Threads 5개 글 글자수 실측(187~361자) 500자 한도 내, IG/Threads bio 96자/85자 150자 한도 내.
+- `grep -n "여러분\|놀라운\|혁신적인\|게임체인저\|꿀팁"` → 체크리스트 헤더 1건만(실제 카피 내 금지어 0건). `grep -n "OpenClaw"` → 0건(카피 내).
+- `git status --short` → dashboard/, workflows/, 이 session-state.md 상단 Codex 섹션, pipeline-state.md, openclaw/ 전부 미변경 확인(내 트랙은 wiki/marketing/*, wiki/decisions/005만 건드림).
+
+**블로커 / 미완료 (회장 물리적 실행 대기 — naming.md §5, launch-pack §8):**
+1. `osmu.kr` 도메인 등록.
+2. Instagram 계정 리네임(`@osmu.official` 우선 시도, 실패 시 `@osmu.secretary`) — Meta 콘솔 자동 운전 금지(ADR-004 사고 이력)라 회장 수동 전용.
+3. 프로필 이미지(비서 심볼) 제작 — 이 트랙 범위 밖, design-system.md 후속 작업.
+4. IG-FOLLOW-01(카페 편 전후비교)용 실제 생성 데모 캡처 — 미실행, JSON `blocking_condition`으로 발행 차단 명시.
+5. `{N}` 팔로워 baseline 등 launch-pack의 모든 숫자 placeholder — 리네임·1주차 발행 실행 후에만 채워짐.
+
+**다음 액션:** 위 1~2번(도메인·리네임) 회장 실행 완료 시 → `naming.md` §1 확정값 갱신 → launch-pack의 `{N}` baseline 채우고 T-01부터 순차 승인 발행. 그 전까지는 이 트랙에서 추가로 할 일 없음(전부 draft 대기 상태로 완결).
+
+---
+
+### 🔍 qa-verifier fresh review — OSMU v1.0.0 launch diff (2026-07-15, review-only)
+
+**Handoff 기준:** 사용자 지정 primary = tmux pane `%7`. 이 리뷰는 review-only 지시(파일 수정/commit/deploy 금지)라 코드 변경 없음 — 이 섹션 자체가 유일한 갱신.
+
+**한 것:** 직전 "48시간 출시 빌드" 섹션의 diff(41 files, +2529/-270) 전수를 직접 git diff/Read로 재검증. tenant-auth.ts(effectiveTenantId/AuthError/assertTenantActive), operator/customers/route.ts(pause/resume/approve_shared_ai/revoke_shared_ai/operatorError fail-closed), anthropic.ts(BYO 키 bypass·shared_cli_approved_at 게이트), me/route.ts(allowInactive), proxy.ts(구 middleware.ts, authenticate-before-authorize), observability.ts(closed-world allowlist), analytics/events.ts+ga.ts+ConsentBanner.tsx(GA4 동의/finite enum), db/schema.sql(멱등 migration), deploy-marketing.yml/Dockerfile/next.config.ts/docker-compose 확인.
+
+**결과:** Critical/High 없음. **Low 1건(재현 확인):** `package.json:13` `e2e:local` 스크립트가 `http://localhost:3456`을 하드코딩해서 `npm run e2e:local -- <url>`로 추가 인자를 줘도 무시됨 — live 재검증 시 `bash scripts/verify-e2e.sh <url>`을 직접 호출해야 함(스크립트 자체는 `$1` override 지원). 나머지 검토 항목(운영자 auth/allowlist, migration 안전성, observability allowlist, GA4 동의/PII, lead 저장 경로, deploy wiring)은 코드 근거로 fail-closed 확인 — 새 결함 없음.
+
+**로컬 검증 실행 여부:** 이번 리뷰는 정적 diff 검토만 수행(review-only 지시라 npm test/build/e2e 재실행 안 함) — 직전 섹션의 "npm test 62 files 540 pass / tsc PASS / next build PASS / git diff --check PASS / migration transaction PASS"가 여전히 최신 독립 증거로 유효(diff에 그 이후 변경 없음, 이 리뷰가 새 코드 수정을 만들지 않았으므로 재실행 불필요 판단).
+
+**외부 설정/실경로 — 여전히 미검증(변화 없음):** Google OAuth provider, SMTP 실메일, Slack webhook 실수신, GA4 Measurement ID/DebugView, Instagram/Threads 계정 실업로드, live 배포(구버전 그대로).
+
+**wiki 갱신 필요 여부:** 이번 리뷰로 아키텍처/스키마/채널/인증/발행 동작 자체를 바꾸지 않았음(review-only) — `wiki/marketing/*`, `wiki/decisions/005-brand-naming.md` 등 별도 갱신 대상 없음. 코드 자체의 인증/observability/GA4 설계 근거는 이미 각 파일 인라인 주석에 상세 기록돼 있어 별도 아키텍처 문서 신설은 불필요 판단(과잉 문서화 방지).
+
+**정확한 다음 액션(변경 없음, 직전 섹션과 동일):**
+1. `package.json:13` e2e:local 하드코딩 수정 여부 판단(Low, 배포 차단 사유 아님 — 원하면 `"e2e:local": "bash scripts/verify-e2e.sh"`로 바꿔 `npm run e2e:local -- <url>`가 실제로 override 되게 고칠 수 있음, 회장 확인 필요).
+2. 회장 외부 콘솔 작업(Google OAuth·SMTP·Slack webhook·GA4 Measurement ID·Meta 프로필) 완료.
+3. 완료 후 `/approve qa` → 선별 commit/push → deploy workflow → live E2E(로그인/OAuth/operator/customers/GA4 동의) → 성공 시에만 `v1.0.0` 태그.
+
+---
+
+### 🔧 e2e:local Low finding 수정 (2026-07-15)
+
+**Handoff 기준:** 사용자 지정 primary = tmux pane `%7`.
+
+**한 것:** `dashboard/package.json:13` `e2e:local`을 `bash -c 'bash scripts/verify-e2e.sh "${1:-http://localhost:3456}"' _`로 변경 — 인자 없으면 기존처럼 `http://localhost:3456` 기본값 유지, `npm run e2e:local -- <URL>`로 전달 시 그 URL이 실제로 `verify-e2e.sh`에 전달됨(기존은 하드코딩이라 무시됨).
+
+**검증(관찰됨):** `npm run e2e:local`(인자 없음) → `BASE: http://localhost:3456`. `npm run e2e:local -- http://example.com:9999` → `BASE: http://example.com:9999`. 둘 다 실제 스크립트로 직접 실행해 stdout에서 확인(browse 바이너리 이후 단계는 대상 URL 미기동/외부망이라 실패하지만, 인자 계약 자체는 이 시점에 이미 증명됨). 기존 `dashboard/tests/`에 shell 스크립트 인자 계약 테스트 패턴 없어 최소 재현 명령으로 대체(신규 테스트 파일 추가 안 함 — 스코프 최소화).
+
+**범위:** `dashboard/package.json` 1줄만 변경. 다른 제품 코드/마케팅 문서/openclaw 미수정.
+
+**다음 액션:** 이 Low 항목 종결. 나머지는 직전 섹션 "정확한 다음 액션" 2·3번 그대로 유효.
+### ✅ 서브태스크 완료 — OSMU 프로필 이미지 v1 제작 (2026-07-15 03:05 KST, 이 세션)
+
+**핸드오프 기준**: 위 Codex 항목과 동일 — tmux pane `%7` primary, 코드/DB/openclaw 트리는 미접촉(범위 밖 유지).
+
+**한 일**: launch-pack §0 항목1 "⛔ 프로필 이미지 제작(범위 밖)" 해소. `/design-html`(직접 SVG+CSS 정적 캔버스 빌드) + `/design-review`(자체 체크리스트 적용, Chrome headless 렌더+PIL 크롭 QA) 파이프라인으로 1080×1080 완성.
+- 산출물: `scratchpad/osmu-launch-assets/profile-osmu-v1.{html,png}` + 48px/circle QA 렌더 + `.stamp.md` 사이드카.
+- **검증**: 코드/DB 변경 없음 → npm test/tsc/build 대상 아님(정적 이미지 자산). 검증은 ①WCAG 대비 계산(amber vs surface 7.99:1, vs base 8.91:1) ②Chrome headless 렌더+PIL로 48px 원형크롭 실제 눈으로 확인 — 둘 다 이 세션에서 직접 실행·관찰함.
+- **1차 버전 결함 자체발견·수정**: CSS rotate 바 조합 체크마크가 찢어진 낙서로 렌더 → SVG path로 전량 재작성.
+- Design Score B+ (self-assessed) — 감점 사유: "O+체크" 문자적 결합 대신 씰+체크 실루엣만 채택(48px 판독 우선, O 글자 넣으면 뭉개짐). **판단 필요**: 이 트레이드오프 확정 여부, 회장 미확인.
+
+**문서화**: launch-pack-2026-07-16.md §1·⛔ 항목 갱신 필요(아래 다음 액션에 포함, 이 handoff 작성 시점엔 아직 미반영이면 다음 세션이 먼저 처리).
+
+**정확한 다음 액션(이 서브태스크 한정)**:
+1. 회장이 프로필 이미지 v1 확정 여부 판단(위 O+체크 실루엣 트레이드오프).
+2. 확정되면 launch-pack-2026-07-16.md §1 "프로필 이미지: ⛔ 별도 제작 필요" 행을 이 산출물 경로로 갱신.
+3. 확정본을 실제 IG/Threads 리네임 화면에 업로드하는 것은 여전히 회장 수동 실행(naming.md §5 항목2와 동일 계열 작업).
+4. 이 서브태스크는 위 "OSMU v1.0.0 48시간 출시 빌드"의 메인 코드 검증 트랙과 별개 — 메인 트랙 다음 액션은 위 Codex 섹션 그대로 유효.

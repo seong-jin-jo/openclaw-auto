@@ -43,14 +43,23 @@ export const PUBLISH_CHANNEL_GROUPS = [
  * SchedulePanel(UI 체크박스)과 publish-due 백엔드(SUPPORTED_PLATFORMS)가 같은 목록을 공유한다.
  * "노출=발행가능" 원칙 — 여기 없는 플랫폼은 예약 UI에 노출하지 않는다.
  * 영상(shorts/reels/tiktok)은 텍스트 예약 루프가 아직 못 다루므로 제외(드리프트 방지).
+ * bluesky/telegram/discord/slack(2026-07, credential·webhook 방식) 추가 — OAuth 앱 등록형 4채널(threads/x/facebook/instagram)과
+ * 달리 자격증명 직접 입력(app password/bot token/webhook URL)만으로 발행 가능.
  */
-export const SCHEDULABLE_PLATFORMS = ["threads", "x", "facebook", "instagram"] as const;
+export const SCHEDULABLE_PLATFORMS = [
+  "threads", "x", "facebook", "instagram",
+  "bluesky", "telegram", "discord", "slack",
+] as const;
 export type SchedulablePlatform = (typeof SCHEDULABLE_PLATFORMS)[number];
 export const SCHEDULABLE_PLATFORM_LABELS: Record<SchedulablePlatform, string> = {
   threads: "Threads",
   x: "X",
   facebook: "Facebook",
   instagram: "Instagram",
+  bluesky: "Bluesky",
+  telegram: "Telegram",
+  discord: "Discord",
+  slack: "Slack",
 };
 
 /** Messaging channels — no Content Guide/Keywords */

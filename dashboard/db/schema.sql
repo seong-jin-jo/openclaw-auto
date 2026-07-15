@@ -10,12 +10,37 @@ CREATE TABLE IF NOT EXISTS tenants (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   slug        TEXT NOT NULL UNIQUE,            -- URL/식별용 (예: tenant1)
   name        TEXT NOT NULL,                   -- 표시명 (예: Tenant One)
-  status      TEXT NOT NULL DEFAULT 'active',  -- active | paused
+  status      TEXT NOT NULL DEFAULT 'active',  -- active | paused (+ 레거시 pending, 아래 백필 DO 블록이 active로 전환).
+                                                -- OSMU v1.0.0부터 신규 셀프서브 가입은 즉시 'active'로 생성(공개 대시보드) —
+                                                -- 계정 게이트는 paused/unavailable(알수없는 값)만. 공유 AI 사용 승인은
+                                                -- 별도 컬럼 shared_cli_approved_at(아래)로 분리됐다. CHECK 제약 없음, 코멘트만 갱신.
   tier        TEXT NOT NULL DEFAULT 'starter',    -- starter | pro | team (ADR-003 hybrid pricing)
   domain      TEXT UNIQUE,                     -- 커스텀 도메인(CNAME). Host 헤더 → 이 테넌트로 매핑(호스팅 멀티테넌트)
   owner_auth_id UUID UNIQUE,                    -- Supabase Auth 유저 → 테넌트 매핑(고객 셀프서브 로그인). 첫 로그인 시 자동 생성
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- OSMU v1.0.0 셀프서브 오픈: 공유 claude -p("공유 AI") 사용 승인 시각(nullable, tenants.status와
+-- 독립된 별도 entitlement). null = 미승인(BYO Anthropic 키 등록 시에만 생성 가능), 값 있음 = 운영자가
+-- 공유 CLI quota 사용을 승인. 계정 자체 접근(active/paused)과 절대 섞지 않는다 — 승인 대기가 대시보드
+-- 진입 자체를 막지 않는다(lib/anthropic.ts generateText가 quota reserve 전에 이 컬럼만 gate).
+-- 1회성 백필(멱등 — 컬럼이 "이번 실행에서 처음 추가되는" 경우에만 동작. 이미 존재하면 전체 스킵되므로
+-- schema.sql 재적용(재배포 등)이 운영자의 이후 승인/회수(shared_cli_approved_at UPDATE)를 되돌리지 않는다):
+--   · 기존 active 테넌트 → 즉시 공유 승인(now()) — 라이브 고객 워크플로 무중단.
+--   · 기존 pending 테넌트 → status만 active로 전환(계정 게이트는 이제 paused/unavailable만). 공유 AI 승인은
+--     별도 entitlement이므로 shared_cli_approved_at은 null로 남겨 운영자가 개별 승인.
+--   · paused 테넌트 → status/승인 모두 그대로(변경 없음).
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'tenants' AND column_name = 'shared_cli_approved_at'
+  ) THEN
+    ALTER TABLE tenants ADD COLUMN shared_cli_approved_at TIMESTAMPTZ;
+    UPDATE tenants SET shared_cli_approved_at = now() WHERE status = 'active';
+    UPDATE tenants SET status = 'active' WHERE status = 'pending';
+  END IF;
+END $$;
 
 -- 브랜드 컨텍스트(위저드/레포연동 산출, 표준 스키마). 생성이 이걸 읽어 톤 주입.
 CREATE TABLE IF NOT EXISTS brand_guides (

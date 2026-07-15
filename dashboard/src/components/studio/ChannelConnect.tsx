@@ -18,6 +18,10 @@ const LABELS: Record<string, string> = {
   linkedin: "LinkedIn", youtube: "YouTube", naver_blog: "Naver Blog", pinterest: "Pinterest",
   tumblr: "Tumblr", tiktok: "TikTok", bluesky: "Bluesky", telegram: "Telegram", discord: "Discord", slack: "Slack", line: "LINE",
 };
+// Slack은 이번 출시에서 OAuth 앱(xoxb 봇 토큰)이 아니라 Incoming Webhook만 정직하게 지원한다
+// (publishSlack이 meta.api==="slack_webhook"만 허용 — src/lib/publish.ts). 그래서 여기 목록에서
+// 빼 CredentialForm(webhookUrl)이 기본으로 뜨게 한다 — OAuth 버튼을 남겨두면 연결은 되는데
+// 발행은 거부되는 방식 충돌(설정 UI와 발행 로직 불일치)이 생긴다.
 const OAUTH_LABELS: Record<string, string> = {
   threads: "Threads",
   instagram: "Instagram",
@@ -29,7 +33,6 @@ const OAUTH_LABELS: Record<string, string> = {
   pinterest: "Pinterest",
   tumblr: "Tumblr",
   tiktok: "TikTok",
-  slack: "Slack",
   line: "LINE",
 };
 

@@ -1,6 +1,18 @@
 import { withTenant } from "@/lib/db";
 import { effectiveTenantId } from "@/lib/tenant-auth";
-import { getChannelCred, publishThreads, publishInstagram, publishX, publishFacebook, type PublishResult } from "@/lib/publish";
+import { reportFailure, normalizePlatform, classifyPublishFailure } from "@/lib/observability";
+import {
+  getChannelCred,
+  publishThreads,
+  publishInstagram,
+  publishX,
+  publishFacebook,
+  publishBluesky,
+  publishTelegram,
+  publishDiscord,
+  publishSlack,
+  type PublishResult,
+} from "@/lib/publish";
 
 // POST /api/publish — 한 플랫폼 실발행 { tenant_id, platform, text, image_url?, draft_id? }
 // 발행 후 published_posts에 기록(성과 수집 대상). 토큰 없으면 명확한 에러(크래시 X).
@@ -28,8 +40,29 @@ export async function POST(request: Request) {
   } else if (platform === "facebook") {
     // Facebook 페이지 Graph API 직접발행(P5). image_url 있으면 /photos, 없으면 /feed.
     result = await publishFacebook(cred, text || "", image_url);
+  } else if (platform === "bluesky") {
+    result = await publishBluesky(cred, text || "", image_url);
+  } else if (platform === "telegram") {
+    result = await publishTelegram(cred, text || "", image_url);
+  } else if (platform === "discord") {
+    result = await publishDiscord(cred, text || "", image_url);
+  } else if (platform === "slack") {
+    result = await publishSlack(cred, text || "", image_url);
   } else {
     result = { ok: false, error: `${platform} 미지원` };
+  }
+
+  // 실발행 실패 고위험 경계 — "채널 미연결"(설정 문제, 위에서 이미 400 반환)은 대상이 아니고,
+  // 여기 도달한 !ok는 플랫폼 API 호출이 실제로 실패한 경우만. fire-and-forget — 응답/상태코드 불변.
+  // platform(요청 바디 원문, 공격자 통제 가능)과 result.error(플랫폼 API 응답 본문 포함 가능한
+  // 임의 외부 텍스트)를 절대 그대로 넘기지 않고 고정 코드로만 정규화한다(observability.ts 참고).
+  if (!result.ok) {
+    const { reason, httpStatus } = classifyPublishFailure(result.error);
+    void reportFailure({
+      event: "publish_failed",
+      severity: "warning",
+      context: { platform: normalizePlatform(platform), reason, httpStatus },
+    });
   }
 
   // published_posts 기록(성공/실패 모두)

@@ -180,3 +180,29 @@ qa = **in-progress** (ship 게이트 잠김 유지). 아침 체크리스트 1~3 
 | 6 | `verify-e2e.sh` (live) | ✅ **E2E SMOKE PASSED** + 스크린샷 `/tmp/e2e-*.png` |
 
 **남은 미검증 (외부 선행조건):** Google 실로그인(Supabase provider — 회장 콘솔), 비밀번호 재설정 메일 실수신(테스트 이메일 필요), 고객 생성→연결→실발행 루프(Phase 4).
+
+## 2026-07-15 OSMU v1.0.0 출시 후보 QA
+
+**변경 범위:** 공개 가입 즉시 활성화 + 공유 Claude 별도 운영자 승인, 운영자 계정/재설정 관리, strict allowlist 기반 오류·Slack 관측, transition-only health monitor, consent-aware GA4, Instagram/Threads 수동 출시팩.
+
+**메인 세션 직접 검증:**
+- `npm test` → 62 files PASS, 540 PASS / DB 연동형 8 skipped.
+- `npx tsc --noEmit` → PASS.
+- `npm run build` → PASS, 161 static pages 생성. 기존 Turbopack dynamic tracing warning 1건만 유지.
+- `npm run e2e:local -- http://localhost:3461` → PASS. `/`, `/login`, `/signup -> /login?mode=signup`, storage clear 후 로그인 폼을 실제 브라우저로 관찰. DB env 미주입 상태의 API 503은 예상 동작.
+- `git diff --check` → PASS.
+- production PostgreSQL schema를 synthetic active/pending/paused 레코드로 transaction 안에서 적용해 `MIGRATION_TRANSACTION_PASS` 확인 후 rollback. 운영 데이터 미변경.
+- SNS JSON 계약 → content 8 + DM 6, unique IDs 14, 전부 draft/manual approval, DM auto/cold false, caption/slides/alt text Markdown 동기화, Instagram alt text 슬라이드 수 일치·100자 미만, `fail=[]`.
+
+**독립 QA:**
+- `qa-verifier` fresh review: auth/shared CLI/schema/observability/GA4/deploy 스팟체크, 관련 11 files / 123 tests PASS, Critical/High 0.
+- 위임 품질 검증: `verify-agent-quality.sh` → QA PASS(`qa-only` Skill, 근거 조사, 소크라테스/레드팀), code-builder PASS, content review PASS, visual producer PASS.
+- 발견 Low 1건(`e2e:local` URL override 무시)은 수정 후 실제 3461 브라우저 E2E로 CLOSED.
+
+**라이브/외부 미검증(배포 완료 판정 금지):**
+- Supabase Google provider 실 OAuth 왕복.
+- custom SMTP 비밀번호 재설정 메일 실수신.
+- Slack webhook 실제 알림 수신.
+- GA4 Measurement ID 주입 및 DebugView 이벤트 수신.
+- 신규 가입 lead가 production `auth.users`에 저장되는 실제 signup 경로와 tenant 생성.
+- Instagram/Threads 계정 리네임·프로필 업로드·첫 draft 수동 발행.

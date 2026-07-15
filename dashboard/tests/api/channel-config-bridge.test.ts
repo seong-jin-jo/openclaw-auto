@@ -96,9 +96,50 @@ describe("POST /api/channel-config/[channel] — integrations 브리지", () => 
     expect(JSON.stringify(H.inserts[0])).toContain("TH_TOKEN");
   });
 
-  it("직접발행 없는 채널(telegram)은 integrations 브리지 안 함(게이트웨이 전용)", async () => {
+  it("bluesky 수동 키 → integrations(secret=appPassword, meta.handle)", async () => {
+    const { POST } = await import("@/app/api/channel-config/[channel]/route");
+    const res = await POST(post("bluesky", { handle: "user.bsky.social", appPassword: "abcd-efgh-ijkl-mnop" }), params("bluesky"));
+    expect(res.status).toBe(200);
+    expect(H.inserts).toHaveLength(1);
+    const s = JSON.stringify(H.inserts[0]);
+    expect(s).toContain("abcd-efgh-ijkl-mnop");
+    expect(s).toContain("user.bsky.social");
+    expect(s).toContain("bluesky_app_password");
+  });
+
+  it("telegram 수동 키 → integrations(secret=botToken, meta.chatId) — 2026-07 직접발행 편입", async () => {
     const { POST } = await import("@/app/api/channel-config/[channel]/route");
     const res = await POST(post("telegram", { botToken: "BOT", chatId: "1" }), params("telegram"));
+    expect(res.status).toBe(200);
+    expect(H.inserts).toHaveLength(1);
+    const s = JSON.stringify(H.inserts[0]);
+    expect(s).toContain("BOT");
+    expect(s).toContain("telegram_bot");
+  });
+
+  it("discord 수동 키(webhookUrl) → integrations(secret=webhookUrl)", async () => {
+    const { POST } = await import("@/app/api/channel-config/[channel]/route");
+    const res = await POST(post("discord", { webhookUrl: "https://discord.com/api/webhooks/1/abc" }), params("discord"));
+    expect(res.status).toBe(200);
+    expect(H.inserts).toHaveLength(1);
+    const s = JSON.stringify(H.inserts[0]);
+    expect(s).toContain("discord.com/api/webhooks");
+    expect(s).toContain("discord_webhook");
+  });
+
+  it("slack 수동 키(webhookUrl) → integrations(secret=webhookUrl)", async () => {
+    const { POST } = await import("@/app/api/channel-config/[channel]/route");
+    const res = await POST(post("slack", { webhookUrl: "https://hooks.slack.com/services/T1/B1/xyz" }), params("slack"));
+    expect(res.status).toBe(200);
+    expect(H.inserts).toHaveLength(1);
+    const s = JSON.stringify(H.inserts[0]);
+    expect(s).toContain("hooks.slack.com");
+    expect(s).toContain("slack_webhook");
+  });
+
+  it("직접발행 없는 채널(pinterest)은 integrations 브리지 안 함(게이트웨이 전용)", async () => {
+    const { POST } = await import("@/app/api/channel-config/[channel]/route");
+    const res = await POST(post("pinterest", { accessToken: "PIN", boardId: "1" }), params("pinterest"));
     expect(res.status).toBe(200);
     expect(H.inserts).toHaveLength(0);
   });

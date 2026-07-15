@@ -1,6 +1,6 @@
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { getWikiContext } from "@/lib/wiki-retrieve";
-import { generateText } from "@/lib/anthropic";
+import { generateText, sharedGenerationQuotaErrorResponse, sharedAiApprovalErrorResponse } from "@/lib/anthropic";
 
 // POST /api/video/refine-clip
 // Refine an external clip's caption/hook with tenant wiki + brand guide (0차 brand tone).
@@ -57,6 +57,10 @@ JSON만 출력:
     const refined = JSON.parse(m[0]);
     return Response.json({ ok: true, ...refined });
   } catch (e: any) {
+    const approvalResponse = sharedAiApprovalErrorResponse(e);
+    if (approvalResponse) return approvalResponse;
+    const quotaResponse = sharedGenerationQuotaErrorResponse(e);
+    if (quotaResponse) return quotaResponse;
     return Response.json({ error: e.message }, { status: 500 });
   }
 }

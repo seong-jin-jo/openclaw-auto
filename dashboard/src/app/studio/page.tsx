@@ -9,6 +9,7 @@ import { useUIStore } from "@/store/ui-store";
 import { BrandSetupWizard } from "@/components/shared/BrandSetupWizard";
 import { RepoConnect } from "@/components/studio/RepoConnect";
 import { SchedulePanel } from "@/components/studio/SchedulePanel";
+import { trackEvent, type AnalyticsChannel } from "@/lib/analytics/events";
 
 interface TextVariants {
   threads?: string; x?: string;
@@ -112,6 +113,8 @@ export default function StudioPage() {
     setLastError(null);
     const r = await apiPost<TextVariants & { ok?: boolean; error?: string }>("/api/studio/text", { idea, guide, tenant_id: activeWorkspace?.id });
     if (!r?.ok) { const msg = r?.error || "텍스트 생성 실패"; setLastError(`텍스트: ${msg}`); showToast(msg, "error"); return null; }
+    // API가 성공을 확인한 뒤에만 발행 — 클릭 시점 아님.
+    trackEvent({ name: "content_generate", params: { kind: "text" } });
     setText(r); return r;
   }
   async function genImage(prompt: string) {
@@ -185,10 +188,13 @@ export default function StudioPage() {
       status[p] = "doing"; setPub({ running: true, status: { ...status }, urls: { ...urls } });
       try {
         // 실 발행: /api/publish (테넌트 채널 토큰). 토큰 없으면 graceful 에러.
+        // publish_attempt = 실제 제출 시점(클릭 즉시가 아니라 이 루프 진입 시점). publish_success는
+        // API가 ok:true를 반환한 뒤에만 — 낙관적 발행 금지.
+        trackEvent({ name: "publish_attempt", params: { channel: p as AnalyticsChannel } });
         const r = await apiPost<{ ok?: boolean; permalink?: string; error?: string }>("/api/publish", {
           tenant_id: activeWorkspace.id, platform: p, text: platformText(p), image_url: img?.url, draft_id: did,
         });
-        if (r?.ok) urls[p] = r.permalink || POST_URL[p] || "#";
+        if (r?.ok) { urls[p] = r.permalink || POST_URL[p] || "#"; trackEvent({ name: "publish_success", params: { channel: p as AnalyticsChannel } }); }
         else errs.push(`${LABEL[p]}: ${r?.error || "실패"}`);
       } catch (e) { errs.push(`${LABEL[p]}: ${e instanceof Error ? e.message : "오류"}`); }
       status[p] = "done"; setPub({ running: true, status: { ...status }, urls: { ...urls } });

@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { withTenant } from "@/lib/db";
 import { effectiveTenantId } from "@/lib/tenant-auth";
-import { generateText } from "@/lib/anthropic";
+import { generateText, sharedGenerationQuotaErrorResponse, sharedAiApprovalErrorResponse } from "@/lib/anthropic";
 import { getRepoToken, fetchRepoFile } from "@/lib/github";
 
 // 레포 위키 → 브랜드 가이드 인입. 소스(repo,path,ref)는 brand_guides에 저장.
@@ -106,6 +106,10 @@ ${input}
             source_ref = EXCLUDED.source_ref, source_hash = EXCLUDED.source_hash, synced_at = now()`);
     return Response.json({ ok: true, repo, path: joinedPath, ref: branch, guide: { prompt_guide: parsed.prompt_guide, visual_rules: parsed.visual_rules } });
   } catch (e) {
+    const approvalResponse = sharedAiApprovalErrorResponse(e);
+    if (approvalResponse) return approvalResponse;
+    const quotaResponse = sharedGenerationQuotaErrorResponse(e);
+    if (quotaResponse) return quotaResponse;
     const msg = e instanceof Error ? e.message : String(e);
     return Response.json({ error: msg.slice(0, 400) }, { status: 502 });
   }

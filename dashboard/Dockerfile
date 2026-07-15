@@ -9,6 +9,11 @@ ARG NEXT_PUBLIC_SUPABASE_URL=""
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY=""
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+# GA4 client tracking measurement ID (공개값 — 클라 번들에 baking 안전). 미설정 시
+# dashboard/src/lib/analytics/ga.ts의 gaEnabled=false → 전체 트래킹 no-op(스크립트 미로드).
+# GitHub secret 이름: OSMU_GA4_MEASUREMENT_ID (.github/workflows/deploy-marketing.yml 참고).
+ARG NEXT_PUBLIC_GA_MEASUREMENT_ID=""
+ENV NEXT_PUBLIC_GA_MEASUREMENT_ID=$NEXT_PUBLIC_GA_MEASUREMENT_ID
 RUN npm run build
 
 FROM node:20-alpine

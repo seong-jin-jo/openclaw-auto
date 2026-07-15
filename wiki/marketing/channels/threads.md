@@ -1,8 +1,9 @@
 # Threads — 채널 아이덴티티 팩
 
-**갱신: 2026-07-11 (브랜드 피벗 캐스케이드)** · 정본 계층: 이름·핸들은 [naming.md](../naming.md), 톤·필러는 [brand.md](../brand.md), 비주얼은 [design-system.md](../design-system.md). 이 파일은 Threads 운영의 실행 정본.
+**갱신: 2026-07-16 (표시 이름·핸들 확정 반영)** · 정본 계층: 이름·핸들은 [naming.md](../naming.md), 톤·필러는 [brand.md](../brand.md), 비주얼은 [design-system.md](../design-system.md). 이 파일은 Threads 운영의 실행 정본.
 
-> ⚠️ 2026-07-11: 구 "빌드로그 SJ"(개발자 build-in-public) 문안 전면 폐기 — 현재 컨셉 = **AI 콘텐츠 비서** (사장님 done-for-you, naming.md §2). 표시 이름 문자열은 회장 낙점 대기 — 이 파일은 이름을 하드코딩하지 않는다.
+> ⚠️ 2026-07-11: 구 "빌드로그 SJ"(개발자 build-in-public) 문안 전면 폐기 — 현재 컨셉 = **AI 콘텐츠 비서** (사장님 done-for-you, naming.md §2).
+> ✅ 2026-07-16: 표시 이름 **"오스무 비서" 확정**, 핸들 **1순위 `@osmu.official` → 실패 시 `@osmu.secretary`** 확정(IG 리네임에 자동 연동). 리네임 실행은 여전히 **회장이 화면에서 직접**(ADR-004 — §9).
 
 > 하위모델 규칙: 이 파일 + brand.md 톤 시스템만 읽으면 Threads 운영 가능해야 한다. bio·고정글은 아래 전문을 **그대로** 쓴다(임의 수정 금지). 판단 필요하면 만들지 말고 `⛔ 회수 필요`로 중단.
 
@@ -12,8 +13,8 @@
 
 | 항목 | 값 |
 |---|---|
-| 이름 | **naming.md §2 낙점 대기** (잠정 "오스무 비서" — 하드코딩 금지, 낙점 후 이 칸만 갱신) |
-| 핸들 | 잠정 `@osmu.official` / `@osmu.secretary` (naming.md §2) — **IG 핸들 자동 연동** (Threads 별도 설정 불가, IG 리네임이 곧 Threads 핸들) |
+| 이름 | **"오스무 비서" (OSMU)** — 확정 (naming.md §2, 2026-07-16) |
+| 핸들 | **1순위 `@osmu.official`, 확보 실패 시 2순위 `@osmu.secretary`** (naming.md §2) — **IG 핸들 자동 연동** (Threads 별도 설정 불가, IG 리네임이 곧 Threads 핸들) |
 | 프로필 이미지 | ⛔ 재제작 대상 — 구 "SJ 모노그램"(design-system §3)은 폐기 브랜드 자산. 비서 컨셉 심볼로 재작업 필요, **얼굴 비노출 유지**(naming.md §2). IG와 동일 이미지 자동 연동 |
 | 상태 | Live (자동화 동작 중 — [channel-status.md](../../reference/channel-status.md)) |
 
@@ -103,7 +104,7 @@ Threads는 해시태그 대신 **토픽 태그 1글 1개** 구조 (unsourced —
 
 ⚠️ 콘솔·앱 화면의 클릭 경로·버튼 이름은 이 문서가 추측하지 않는다. **화면은 회장 캡처로 확인** 후 안내한다.
 
-1. 표시 이름·핸들 낙점 선행 (naming.md §5) — 낙점 전 리네임 실행 금지.
+1. ~~표시 이름·핸들 낙점 선행~~ — **완료 (2026-07-16)**: 이름 "오스무 비서", 핸들 `@osmu.official`(1순위)→`@osmu.secretary`(2순위).
 2. Instagram 리네임 선행 ([instagram.md](./instagram.md) §8) — Threads 핸들은 IG 자동 연동이라 별도 확보 절차 없음.
 3. IG 리네임 후 Threads 프로필에 새 핸들 반영 여부 확인 (회장 캡처).
 4. bio가 IG에서 자동 동기화됐는지 / 별도 편집 가능한지 확인 → §2 전문 반영.
@@ -123,8 +124,7 @@ Threads는 해시태그 대신 **토픽 태그 1글 1개** 구조 (unsourced —
 ---
 ⛔ 회수 필요:
 1. Threads bio의 IG 동기화 여부 (별도 편집 가능한지) — 리네임 후 화면 캡처로 확인.
-2. 표시 이름·핸들 최종 낙점 (naming.md §5 — 회장) — 낙점 전 §1 표는 잠정.
-3. 크론 생성 가이드(`data/prompt-guide*.txt`)가 구 빌드로그 톤 기준인지 확인 — 맞으면 비서 톤으로 갱신 필요 (별도 작업).
+2. 크론 생성 가이드(`data/prompt-guide*.txt`)가 구 빌드로그 톤 기준인지 확인 — 맞으면 비서 톤으로 갱신 필요 (별도 작업).
 
 RUBRIC_SCORE: hook=5 detail=4 rhythm=4 voice=5 slop=5 total=23/25 (기준 = ~/.claude/standards/writing.md §2 — 2026-07-12 감사, 수정 0건 기준 충족: bio·고정글 첫 줄 훅 생존, 블랙리스트 0, 숫자 근거 짝)
 WEAKEST_LINE: "사장님 SNS 고민 대신 정리" (고정글 '올리는 것' 2번째) — 나머지 두 항목과 달리 실측 숫자·구체물이 없는 추상 약속

@@ -1,0 +1,142 @@
+name: OSMU Health Monitor
+
+# GitHub-hosted 5분 주기 헬스체크. 사내 전용 배포 러너(다른 워크플로가 쓰는 그 러너)는 쓰지
+# 않는다(모니터링 트래픽을 배포 인프라/네트워크에서 분리 — 그 러너가 죽어도 이 체크는 독립적으로 동작해야 함).
+# 상태 전이(정상→장애, 장애→정상)에서만 Slack 알림 — 매 실행 알림 금지(스펙 요구사항).
+#
+# 상태 저장 = GitHub Actions cache, 공식 문서가 명시한 "unique key per run + restore-keys" 패턴
+# (delete+save 방식 아님 — 캐시는 불변(immutable)이라 같은 키를 덮어쓸 수 없다는 것이 공식 문서의
+# 명시적 설명: https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/caching-dependencies-to-speed-up-workflows
+# 및 actions/cache 공식 저장소의 "Update a cache" 가이드
+# https://github.com/actions/cache/blob/main/tips-and-workarounds.md 가 "매 실행 고유 key +
+# restore-keys로 가장 가까운 이전 상태를 복원"하라고 권고 — gh cache delete로 지우고 다시 저장하는
+# 방식은 공식 권장 패턴이 아니며 delete/save 사이 레이스 창도 남는다). 이 방식은 actions/cache
+# action 자체가 별도 GITHUB_TOKEN 권한을 요구하지 않아(공식 README에 명시적 권한 요구사항 없음)
+# permissions를 비워도(전부 none) 동작한다 — cache 삭제(gh cache delete/REST API)가 필요 없어졌으므로
+# 그 삭제 엔드포인트가 요구하는 권한(REST 문서: OAuth/PAT는 repo scope,
+# https://docs.github.com/en/rest/actions/cache ; GITHUB_TOKEN 워크플로 permissions는 actions:write,
+# https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/controlling-permissions-for-github_token)
+# 자체가 불필요해졌다. 유일한 트레이드오프(공식 문서 명시 caveat): 실행마다 새 캐시 엔트리가
+# 쌓여 quota를 소비한다 — 상태 파일은 1바이트대라 실질 영향 없고, GitHub가 7일 미사용 엔트리를
+# 자동 evict한다.
+#
+# cron 5분 = GitHub Actions의 공식 최소 스케줄 간격(그보다 촘촘한 표현식은 파싱은 되지만 실행되지
+# 않거나 스킵됨 — GitHub 공식 문서 "Schedule events" 섹션, on.schedule.cron).
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch: {}
+
+# 동시 실행 방지(직렬화) — 상태 읽기→체크→쓰기 사이 레이스로 상태가 꼬이지 않게. 취소 대신
+# 대기(cancel-in-progress:false)해 모든 실행이 상태를 순서대로 관찰하게 한다.
+concurrency:
+  group: osmu-health-monitor
+  cancel-in-progress: false
+
+# 최소 권한: 체크아웃 없음(contents 불필요), cache 삭제(gh cache delete/REST API)를 쓰지 않으므로
+# actions:write도 불필요 — 이 job은 GITHUB_TOKEN을 어떤 API 호출에도 쓰지 않는다.
+permissions: {}
+
+env:
+  OSMU_HEALTH_URL: https://openclaw.sj-onpremise-cloudflare-tunnel.cloud/api/health
+  STATE_FILE: .osmu-health-state
+  STATE_KEY_PREFIX: osmu-health-state-
+
+jobs:
+  check:
+    name: Health check + Slack 상태전이 알림
+    runs-on: ubuntu-latest # 사내 전용 배포 러너 대신 GitHub 공용 러너로 고정
+    steps:
+      # 공식 권장 패턴: 매 실행 고유 key(run_id-run_attempt)로 restore를 시도해도 당연히 miss지만,
+      # restore-keys(prefix)가 가장 최근 이전 실행의 캐시를 prefix-match로 복원한다.
+      - name: 이전 상태 캐시 복원(prefix restore-keys, 없으면 unknown 취급)
+        id: restore
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.STATE_FILE }}
+          key: ${{ env.STATE_KEY_PREFIX }}${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ${{ env.STATE_KEY_PREFIX }}
+
+      - name: 이전 상태 읽기
+        id: prev
+        run: |
+          if [ -f "$STATE_FILE" ]; then
+            echo "prev=$(cat "$STATE_FILE")" >> "$GITHUB_OUTPUT"
+          else
+            echo "prev=unknown" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 헬스체크 실행
+        id: check
+        run: |
+          set +e
+          CODE=$(curl -fsS -o /dev/null -w '%{http_code}' --max-time 10 "$OSMU_HEALTH_URL")
+          CURL_EXIT=$?
+          set -e
+          if [ "$CURL_EXIT" -ne 0 ] || [ "$CODE" != "200" ]; then
+            echo "status=down" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=up" >> "$GITHUB_OUTPUT"
+          fi
+          echo "http_code=${CODE:-000}" >> "$GITHUB_OUTPUT"
+
+      - name: 상태 전이 판정(failure/recovery/none)
+        id: transition
+        run: |
+          PREV="${{ steps.prev.outputs.prev }}"
+          CUR="${{ steps.check.outputs.status }}"
+          if [ "$CUR" = "down" ] && [ "$PREV" != "down" ]; then
+            echo "kind=failure" >> "$GITHUB_OUTPUT"
+          elif [ "$CUR" = "up" ] && [ "$PREV" = "down" ]; then
+            echo "kind=recovery" >> "$GITHUB_OUTPUT"
+          else
+            echo "kind=none" >> "$GITHUB_OUTPUT"
+          fi
+
+      # webhook 미설정이어도 워크플로는 정상 동작(체크·상태기록은 계속) — secrets.* 값은 어떤 step
+      # 출력/echo/로그에도 원문으로 남기지 않는다(GITHUB_TOKEN처럼 항상 마스킹되는 built-in이 아니므로
+      # 이 스텝 밖에서는 절대 참조하지 않는다). Slack 응답이 non-2xx여도 best-effort 실패로 취급하고
+      # 응답 본문/상태코드/webhook URL은 로그하지 않는다.
+      - name: Slack 알림(상태 전이 시에만)
+        if: ${{ steps.transition.outputs.kind != 'none' }}
+        env:
+          SLACK_WEBHOOK: ${{ secrets.OSMU_ALERT_SLACK_WEBHOOK_URL }}
+          KIND: ${{ steps.transition.outputs.kind }}
+          HTTP_CODE: ${{ steps.check.outputs.http_code }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK" ]; then
+            echo "OSMU_ALERT_SLACK_WEBHOOK_URL 미설정 — 알림 스킵(체크/상태기록은 정상 수행됨)"
+            exit 0
+          fi
+          if [ "$KIND" = "failure" ]; then
+            TEXT=":rotating_light: OSMU health check FAILED (http $HTTP_CODE) — $OSMU_HEALTH_URL"
+          else
+            TEXT=":white_check_mark: OSMU health check RECOVERED (http $HTTP_CODE) — $OSMU_HEALTH_URL"
+          fi
+          BODY=$(printf '{"text":"%s"}' "$TEXT")
+          curl -fsS --max-time 5 -X POST -H 'Content-Type: application/json' -d "$BODY" "$SLACK_WEBHOOK" >/dev/null \
+            || echo "::warning::Slack 알림 발송 실패(무시 — best-effort, 체크 결과 자체는 기록됨. 응답/URL 미로그)"
+
+      - name: 새 상태 파일 기록
+        if: always()
+        run: echo -n "${{ steps.check.outputs.status }}" > "$STATE_FILE"
+
+      # 매 실행 고유 key라 언제나 새 캐시 엔트리 — 불변 제약과 충돌하지 않는다(delete 불필요).
+      - name: 새 상태 캐시 저장(고유 key)
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.STATE_FILE }}
+          key: ${{ env.STATE_KEY_PREFIX }}${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: 실행 요약
+        if: always()
+        run: |
+          {
+            echo "### OSMU Health Monitor"
+            echo "- url: $OSMU_HEALTH_URL"
+            echo "- status: ${{ steps.check.outputs.status }} (http ${{ steps.check.outputs.http_code }})"
+            echo "- prev: ${{ steps.prev.outputs.prev }}"
+            echo "- transition: ${{ steps.transition.outputs.kind }}"
+          } >> "$GITHUB_STEP_SUMMARY"

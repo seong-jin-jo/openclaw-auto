@@ -10,7 +10,7 @@
     "test:watch": "vitest",
     "test:publish": "vitest run tests/publish",
     "e2e": "bash scripts/verify-e2e.sh",
-    "e2e:local": "bash scripts/verify-e2e.sh http://localhost:3456",
+    "e2e:local": "bash -c 'bash scripts/verify-e2e.sh \"${1:-http://localhost:3456}\"' _",
     "e2e:publish": "bash scripts/verify-publish-e2e.sh"
   },
   "dependencies": {

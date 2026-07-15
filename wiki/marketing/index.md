@@ -33,6 +33,9 @@
 | [landing-copy.md](./landing-copy.md) | OSMU waitlist 랜딩 풀카피 (PASONA) | 신설 07-10 |
 | [creative-briefs/](./creative-briefs/) | 하위모델·크론 생성 브리프 6파일 | 신설 07-10 |
 | [growth-log.md](./growth-log.md) | 실험 원장 (append-only) + 백로그 10 | 백로그 설계됨, 실행 0 |
+| [launch-pack-2026-07-16.md](./launch-pack-2026-07-16.md) | v1 런칭 콘텐츠 팩(IG+Threads) — 확정 프로필·고정글·Day1 발행 시퀀스 + 후속 2건 | 신설 07-16, 전항목 draft |
+| [dm-playbook.md](./dm-playbook.md) | DM 운영 정본 — 인바운드/웜/후속/수신거부만 허용, 콜드·자동발송 전면 금지 | 신설 07-16 |
+| [social-launch-v1.json](./social-launch-v1.json) | launch-pack의 기계판 초안 큐 (schema_version 1.0.0, 전항목 draft) | 신설 07-16 |
 | [assets.md](./assets.md) | 마케팅 자산 인벤토리 | 에셋 생산 중 |
 | [proposals/](./proposals/) | 미확정 제안 보관 (brand-kit은 확정 승격 완료 — 이력 보존) | 이력 |
 

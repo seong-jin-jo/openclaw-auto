@@ -4,6 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { createBrowserSupabase } from "@/lib/supabase";
 import { setAuthToken } from "@/lib/auth";
 import { oauthErrorMessage } from "@/lib/oauth-errors";
+import { trackEvent } from "@/lib/analytics/events";
+
+// Non-PII marker set right before an OAuth redirect, consumed only once a session is confirmed
+// on return. Needed because PKCE-flow returns (Supabase `?code=...` exchange) carry no hash
+// token — the old hash-only detection silently missed PKCE logins (Codex review 2026-07-14 #5).
+// sessionStorage (not localStorage) — scoped to this tab/redirect round-trip only, no identity.
+const OAUTH_PENDING_KEY = "osmu_oauth_pending";
 
 // 고객 셀프서브 로그인/가입. 성공 시 Supabase 세션의 access token을 저장 →
 // 이후 API 호출이 Bearer로 첨부 → 서버가 검증해 그 고객 테넌트로 스코프.
@@ -21,6 +28,9 @@ export default function LoginPage() {
   const [pending, setPending] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const cooldownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  // OAuth login event de-dupe: enter() can be invoked twice (getSession() resolve +
+  // onAuthStateChange SIGNED_IN) — this guards a single `login` fire per mount regardless.
+  const oauthTrackedRef = useRef(false);
 
   // 이메일 확인/OAuth 복귀 감지: Supabase는 #access_token=...&refresh_token=... 으로 되돌아온다.
   // 클라가 URL 해시를 파싱(detectSessionInUrl 기본 on)하므로 mount 시 세션을 거둬 토큰 저장 후 진입.
@@ -42,6 +52,22 @@ export default function LoginPage() {
       const p = new URLSearchParams(window.location.search);
       const hadHashToken = hash.includes("access_token");
       const isRecovery = p.get("type") === "recovery" || hash.includes("type=recovery");
+      // Codex review 2026-07-14 (round 2): hadHashToken alone is NOT a valid OAuth signal — an
+      // email confirmation link or password-recovery callback also returns via
+      // #access_token=...&refresh_token=... (both use Supabase's implicit-flow hash mechanics),
+      // so classifying "has a hash token" as "was OAuth" mislabels those as oauth logins. The
+      // ONLY truth source for "this callback originated from our Google button" is the
+      // OAUTH_PENDING_KEY marker we set ourselves immediately before the redirect — it covers
+      // both PKCE (?code=...) and hash-based OAuth callbacks since we control both entry points.
+      const isOAuthCallbackError =
+        hash.includes("error=") || hash.includes("error_code=") ||
+        !!p.get("error") || !!p.get("error_code");
+      if (isOAuthCallbackError) {
+        // OAuth cancel/error (e.g. user closed the Google consent screen) — no session will ever
+        // arrive for this attempt. Clear the marker now so it can't leak into and mislabel the
+        // next unrelated auth event on this tab (e.g. a plain email sign-in right after).
+        try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch { /* ignore */ }
+      }
       const enter = (accessToken: string) => {
         setAuthToken(accessToken);
         if (isRecovery) {
@@ -50,6 +76,19 @@ export default function LoginPage() {
           return;
         }
         if (hadHashToken) history.replaceState(null, "", window.location.pathname);
+        // OAuth 콜백으로 세션이 확정된 순간(백엔드 확인 후) — 신규/기존 구분 불가라 login으로 기록.
+        // 분류 근거는 오직 osmu_oauth_pending 마커뿐(위 설명) — hadHashToken은 더 이상 단독으로
+        // OAuth 신호로 쓰지 않는다(이메일 확인/recovery도 해시 토큰으로 돌아오기 때문).
+        // enter()가 getSession()+onAuthStateChange 양쪽에서 호출될 수 있어 ref로 1회만 발행.
+        if (!oauthTrackedRef.current) {
+          let oauthPending = false;
+          try { oauthPending = sessionStorage.getItem(OAUTH_PENDING_KEY) === "1"; } catch { /* ignore */ }
+          if (oauthPending) {
+            oauthTrackedRef.current = true;
+            trackEvent({ name: "login", params: { method: "oauth" } });
+          }
+        }
+        try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch { /* ignore */ }
         window.location.href = "/";
       };
       sb.auth.getSession().then(({ data }) => {
@@ -85,6 +124,11 @@ export default function LoginPage() {
       return;
     }
     setBusy(true); setMsg("");
+    // Codex review 2026-07-14 (round 2): a stale OAUTH_PENDING_KEY marker (e.g. left over from a
+    // cancelled/never-completed Google redirect earlier in this tab) must not leak into a
+    // completely unrelated email sign-in/sign-up right after — clear it before every email auth
+    // attempt so `enter()`'s marker check can never mislabel this as an oauth login.
+    try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch { /* ignore */ }
     try {
       const sb = createBrowserSupabase();
       if (mode === "signup") {
@@ -96,12 +140,18 @@ export default function LoginPage() {
           options: { emailRedirectTo: `${window.location.origin}/login` },
         });
         if (error) { setMsg(error.message); return; }
+        // 백엔드(Supabase Auth)가 계정 생성을 확정(data.user)한 뒤에만 sign_up 발행 — 클릭 시점
+        // 아님. "이메일 확인 필요" 모드는 세션 없이 data.user만 오는 성공 경로라, 세션 유무와
+        // 무관하게 여기서 한 번만 발행(Codex review 2026-07-14 #4 — 이전엔 세션 있을 때만 잡아
+        // confirm-email-required 가입 성공을 놓쳤음).
+        if (data.user) trackEvent({ name: "sign_up", params: { method: "email" } });
         if (data.session) { setAuthToken(data.session.access_token); window.location.href = "/"; }
         else { setPending(email); startCooldown(60); }
       } else {
         const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
         if (error) { setMsg(error.message); return; }
-        if (data.session) { setAuthToken(data.session.access_token); window.location.href = "/"; }
+        // 백엔드가 세션을 실제로 발급한 뒤에만 login 이벤트 발행 — 클릭 시점 아님.
+        if (data.session) { setAuthToken(data.session.access_token); trackEvent({ name: "login", params: { method: "email" } }); window.location.href = "/"; }
       }
     } catch (e) {
       setMsg(e instanceof Error ? e.message : String(e));
@@ -178,6 +228,8 @@ export default function LoginPage() {
         setMsg(oauthErrorMessage(d.error || "Google 로그인 설정 확인 실패", "Google"));
         return;
       }
+      // 리다이렉트 직전 마커 세팅 — 복귀 시(PKCE ?code= 또는 hash) 세션 확정 후에만 소비.
+      try { sessionStorage.setItem(OAUTH_PENDING_KEY, "1"); } catch { /* ignore */ }
       window.location.href = d.authUrl;
     } catch (e) {
       setMsg(oauthErrorMessage(e instanceof Error ? e.message : String(e), "Google"));

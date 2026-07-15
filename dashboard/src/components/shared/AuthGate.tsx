@@ -2,25 +2,68 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { usePathname } from "next/navigation";
-import { getAuthToken, setAuthToken, clearAuthToken } from "@/lib/auth";
+import { getAuthToken, setAuthToken, clearAuthToken, authHeaders } from "@/lib/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+
+type GateStatus = "checking" | "ok" | "access_paused" | "account_unavailable" | "auth_error" | "service_error";
+
+function isJwtToken(t: string | null | undefined): boolean {
+  return !!t && t.split(".").length === 3 && t.length > 40;
+}
+
+/* ─── 정지/이용불가 풀스크린 — 로그아웃 후 랜딩(로그인 CTA)으로 보내는 게 misleading해서
+   여기서는 새로고침(재확인)과 로그아웃 두 액션만 제공 ─── */
+function GateBlockScreen({
+  title,
+  desc,
+  onRefresh,
+  onLogout,
+}: {
+  title: string;
+  desc: string;
+  onRefresh: () => void;
+  onLogout: () => void;
+}) {
+  return (
+    <div className="min-h-screen w-full bg-bg flex items-center justify-center px-6">
+      <div className="card p-8 w-full max-w-sm text-center">
+        <h1 className="text-lg font-bold text-text mb-2">{title}</h1>
+        <p className="text-sm text-subtle mb-6">{desc}</p>
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={onRefresh}
+            className="w-full py-2.5 rounded-lg text-text font-semibold text-sm bg-accent hover:bg-accent-hover transition-all"
+          >
+            새로고침
+          </button>
+          <button
+            onClick={onLogout}
+            className="w-full py-2.5 rounded-lg text-xs text-subtle hover:text-muted transition-colors"
+          >
+            로그아웃
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* ─── Pipeline step colors (Tailwind v4 can't do dynamic classes) ─── */
 const PIPELINE_STEPS = [
   { num: "1", label: "Trend Collection", desc: "외부 인기글 자동 수집", bg: "rgba(147,51,234,0.15)", fg: "#a78bfa" },
   { num: "2", label: "AI Generation", desc: "Claude가 맞춤 콘텐츠 생성", bg: "rgba(59,130,246,0.15)", fg: "#60a5fa" },
   { num: "3", label: "Human Review", desc: "대시보드에서 검수·편집", bg: "rgba(234,179,8,0.15)", fg: "#facc15" },
-  { num: "4", label: "Auto Publish", desc: "20+ 채널 동시 발행", bg: "rgba(34,197,94,0.15)", fg: "#4ade80" },
+  { num: "4", label: "Auto Publish", desc: "주요 채널 동시 발행", bg: "rgba(34,197,94,0.15)", fg: "#4ade80" },
   { num: "5", label: "Feedback Loop", desc: "반응 분석 → 자동 학습", bg: "rgba(239,68,68,0.15)", fg: "#f87171" },
 ] as const;
 
 const FEATURES = [
   {
     icon: "📡",
-    title: "20+ 채널 동시 발행",
-    desc: "Threads, X, Instagram, Facebook, LinkedIn, Bluesky, Telegram, Discord 등 20개 이상의 채널에 한 번에 발행합니다.",
-    tags: ["Threads", "X", "IG", "FB", "LinkedIn", "Bluesky", "TG", "+14"],
+    title: "주요 채널 동시 발행",
+    desc: "Threads, X, Facebook, Instagram, Bluesky, Telegram, Discord, Slack에 한 번에 예약 발행합니다.",
+    tags: ["Threads", "X", "Facebook", "Instagram", "Bluesky", "Telegram", "Discord", "Slack"],
   },
   {
     icon: "🤖",
@@ -54,11 +97,13 @@ const FEATURES = [
   },
 ] as const;
 
+// SCHEDULABLE_PLATFORMS(lib/constants.ts)의 SSOT와 1:1 — "예약 발행이 실제 지원하는 채널"만 나열한다.
+// (PUBLISH_CHANNEL_GROUPS는 연결 UI 범위일 뿐 발행 지원 목록이 아님 — LinkedIn/Pinterest/Tumblr/TikTok/
+//  YouTube/Naver Blog/LINE은 연결만 가능하고 예약 발행 미지원이라 랜딩 나열에서 제외, 지원범위 과장 방지.
+//  authgate-contract.test.ts가 이 목록을 SCHEDULABLE_PLATFORMS와 교차검증한다.)
 const CHANNEL_ICONS = [
-  "Threads", "X", "Instagram", "Facebook", "LinkedIn", "Bluesky",
-  "TikTok", "YouTube", "Telegram", "Discord", "Pinterest", "Tumblr",
-  "Medium", "Substack", "Naver Blog", "LINE", "Kakao", "Slack",
-  "RSS", "Custom API",
+  "Threads", "X", "Facebook", "Instagram",
+  "Bluesky", "Telegram", "Discord", "Slack",
 ];
 
 /* ─── Landing Page ─── */
@@ -84,7 +129,7 @@ function LandingPage() {
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium mb-8"
             style={{ background: "rgba(34,197,94,0.1)", color: "#4ade80", border: "1px solid rgba(34,197,94,0.2)" }}>
             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            100% 무료 — 모든 기능 제한 없음
+            베타 운영 중 · 가입 즉시 이용
           </div>
 
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-text leading-tight mb-6 tracking-tight">
@@ -101,7 +146,7 @@ function LandingPage() {
             AI가 처리합니다.
           </p>
           <p className="text-sm text-subtle mb-10">
-            20+ 채널 · 24/7 자동 운영 · 피드백 루프
+            주요 채널 통합 발행 · 24/7 자동 운영 · 피드백 루프
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3">
@@ -112,7 +157,7 @@ function LandingPage() {
               onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
               onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
             >
-              무료로 시작하기
+              베타 신청하기
             </button>
             <a
               href="https://github.com/openclaw"
@@ -223,7 +268,7 @@ function LandingPage() {
         <div className="text-center mb-14">
           <p className="text-xs font-semibold tracking-widest uppercase text-green-400 mb-3">Pricing</p>
           <h2 className="text-2xl sm:text-3xl font-bold text-text mb-3">심플한 요금제</h2>
-          <p className="text-sm text-subtle">지금은 모든 기능이 무료입니다</p>
+          <p className="text-sm text-subtle">베타 기간 월 기본 제공량 내 무료입니다</p>
         </div>
 
         <div className="card p-8 max-w-md mx-auto text-center relative overflow-hidden">
@@ -233,7 +278,7 @@ function LandingPage() {
 
           <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mb-6"
             style={{ background: "rgba(34,197,94,0.1)", color: "#4ade80", border: "1px solid rgba(34,197,94,0.2)" }}>
-            모든 기능 무료
+            베타 무료 제공
           </div>
 
           <h3 className="text-3xl font-bold text-text mb-1">Free</h3>
@@ -241,7 +286,7 @@ function LandingPage() {
 
           <ul className="text-left space-y-3 mb-8">
             {[
-              "무제한 채널 연결",
+              "주요 채널 연결",
               "AI 콘텐츠 자동 생성",
               "크론 자동 발행",
               "피드백 루프 · 반응 분석",
@@ -262,10 +307,10 @@ function LandingPage() {
             onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
             onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
           >
-            무료로 시작하기
+            베타 신청하기
           </button>
 
-          <p className="text-[10px] text-subtle mt-4">추후 Pro / Business 플랜 추가 예정</p>
+          <p className="text-[10px] text-subtle mt-4">가입 즉시 대시보드 이용 가능 · 공유 AI 생성은 운영자 승인 또는 자체 Anthropic 키 등록 후 · 추후 Pro / Business 플랜 추가 예정</p>
         </div>
       </section>
 
@@ -331,6 +376,8 @@ function LandingPage() {
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [hasToken, setHasToken] = useState<boolean | null>(null);
+  const [gateStatus, setGateStatus] = useState<GateStatus>("checking");
+  const isPublicPath = pathname === "/login" || pathname === "/signup" || pathname === "/operator";
 
   useEffect(() => {
     setHasToken(!!getAuthToken());
@@ -345,8 +392,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     // 운영자 토큰(DASHBOARD_AUTH_TOKEN, 비-JWT)이 저장돼 있으면 Supabase 세션 동기화에서 제외한다.
     // 같은 localStorage 키를 공유하므로, 남아있던 고객 세션으로 운영자 토큰을 덮어쓰면
     // 운영자가 그 고객 테넌트로 스코프되는 교차계정 권한 혼동이 생긴다.
-    const isJwt = (t: string) => t.split(".").length === 3 && t.length > 40;
-    const operatorActive = () => { const t = getAuthToken(); return !!t && !isJwt(t); };
+    const operatorActive = () => { const t = getAuthToken(); return !!t && !isJwtToken(t); };
     (async () => {
       try {
         const { createBrowserSupabase } = await import("@/lib/supabase");
@@ -374,8 +420,73 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return () => unsub?.();
   }, []);
 
+  // 계정 게이트: /api/me를 15초마다 폴링해 paused(정지)/accountUnavailable(알수없는 상태)만 화면분기.
+  // OSMU v1.0.0부터 active 계정은 승인 대기 없이 즉시 대시보드에 진입한다(공유 AI 사용 승인은
+  // 별도 entitlement — sharedAiApproved 플래그로 화면 내 quota 안내에만 쓰인다).
+  // 운영자가 정지를 해제하면 수동 새로고침 없이 이 폴링으로 자동 해제된다.
+  useEffect(() => {
+    if (isPublicPath || !hasToken) return;
+    let cancelled = false;
+
+    async function poll() {
+      try {
+        const res = await fetch("/api/me", { headers: authHeaders() });
+        if (cancelled) return;
+        if (res.status === 401) {
+          // 세션 만료/무효 — fail-open으로 앱을 그냥 보여주면 승인/정지 게이트를 우회할 수 있으므로
+          // 반드시 차단 화면으로 막고 안전한 로그아웃을 유도한다.
+          setGateStatus("auth_error");
+          return;
+        }
+        if (!res.ok) {
+          // 403/5xx/기타 — 상태를 신뢰할 수 없으니 fail-closed. 재시도 가능한 서비스 확인 실패 화면.
+          setGateStatus("service_error");
+          return;
+        }
+        const data = await res.json().catch(() => null);
+        if (!data) {
+          setGateStatus("service_error");
+          return;
+        }
+        if (data.accessPaused) setGateStatus("access_paused");
+        else if (data.accountUnavailable) setGateStatus("account_unavailable");
+        else setGateStatus("ok");
+      } catch {
+        if (!cancelled) setGateStatus("service_error");
+      }
+    }
+
+    poll();
+    const id = setInterval(poll, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [isPublicPath, hasToken]);
+
+  const doLogout = useCallback(async () => {
+    const t = getAuthToken();
+    // 고객(JWT) 세션은 Supabase 서버 세션도 함께 끊어야 안전한 로그아웃이다 — localStorage만
+    // 지우면 refresh token이 남아 다른 탭/재접속에서 세션이 되살아날 수 있다. 운영자(비-JWT)
+    // 토큰은 Supabase auth와 무관하므로 signOut을 호출하지 않는다.
+    if (isJwtToken(t)) {
+      try {
+        const { createBrowserSupabase } = await import("@/lib/supabase");
+        await createBrowserSupabase().auth.signOut();
+      } catch {
+        /* Supabase 세션 종료 실패해도 로컬 토큰은 반드시 지운다 */
+      }
+    }
+    clearAuthToken();
+    window.location.href = "/login";
+  }, []);
+
+  const doRefresh = useCallback(() => {
+    window.location.reload();
+  }, []);
+
   // 로그인/가입/운영자 콘솔은 인증 없이 풀스크린으로(진입점) — 사이드바·게이트 없이.
-  if (pathname === "/login" || pathname === "/signup" || pathname === "/operator") {
+  if (isPublicPath) {
     return <main className="min-h-screen w-full">{children}</main>;
   }
 
@@ -384,6 +495,59 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   // 미인증: 랜딩(마케팅 + 로그인/회원가입 CTA → /login)
   if (!hasToken) return <LandingPage />;
+
+  // 승인/정지 상태 확인 전에는 children을 절대 mount하지 않는다(fail-open 방지) — 확인 중 화면만 표시.
+  if (gateStatus === "checking") {
+    return (
+      <div className="min-h-screen w-full bg-bg flex items-center justify-center px-6">
+        <p className="text-sm text-subtle">확인 중...</p>
+      </div>
+    );
+  }
+
+  if (gateStatus === "auth_error") {
+    return (
+      <GateBlockScreen
+        title="세션이 만료되었습니다"
+        desc="보안을 위해 다시 로그인해주세요."
+        onRefresh={doRefresh}
+        onLogout={doLogout}
+      />
+    );
+  }
+
+  if (gateStatus === "service_error") {
+    return (
+      <GateBlockScreen
+        title="서비스 확인 실패"
+        desc="계정 상태를 확인하지 못했습니다. 잠시 후 다시 시도해주세요."
+        onRefresh={doRefresh}
+        onLogout={doLogout}
+      />
+    );
+  }
+
+  if (gateStatus === "access_paused") {
+    return (
+      <GateBlockScreen
+        title="계정 이용이 중지되었습니다"
+        desc="문의사항은 운영팀에 연락해주세요."
+        onRefresh={doRefresh}
+        onLogout={doLogout}
+      />
+    );
+  }
+
+  if (gateStatus === "account_unavailable") {
+    return (
+      <GateBlockScreen
+        title="계정 상태를 확인할 수 없습니다"
+        desc="일시적인 문제일 수 있습니다. 잠시 후 다시 시도하거나 운영팀에 문의해주세요."
+        onRefresh={doRefresh}
+        onLogout={doLogout}
+      />
+    );
+  }
 
   // 인증됨: 사이드바 + 콘텐츠
   return (

@@ -147,8 +147,14 @@ services:
       - openclaw-gateway-tenant4
 
   # ─────────────── tenant1 (auto-added 2026-06-08) ───────────────
+  # ⚠️ legacy — OSMU SaaS(openclaw-dashboard-osmu)가 host 포트 18789를 대체 점유한다.
+  # 이 게이트웨이도 18789를 바인드하므로 동시 기동 시 포트 충돌 → crash loop(2026-07 실사고: 1861회 재시작).
+  # profiles로 기본 `docker compose up`에서 제외. 명시 opt-in 시에만:
+  #   docker compose -f docker-compose.postagi-4tenants.yml --profile legacy-tenant1 up -d
+  # (opt-in 전 openclaw-dashboard-osmu를 먼저 내려 18789를 비워야 함 — 둘 중 하나만.)
   openclaw-gateway-tenant1:
     <<: *gateway-base
+    profiles: ["legacy-tenant1"]
     container_name: openclaw-gateway-tenant1
     volumes:
       - ./config-tenant1:/home/node/.openclaw
@@ -167,6 +173,7 @@ services:
 
   openclaw-dashboard-tenant1:
     <<: *dashboard-base
+    profiles: ["legacy-tenant1"]  # gateway-tenant1과 함께 opt-in(위 주석 참고)
     container_name: openclaw-dashboard-tenant1
     volumes:
       - ./data-tenant1:/app/data

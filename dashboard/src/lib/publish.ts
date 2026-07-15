@@ -9,12 +9,45 @@ const IG_API = "https://graph.facebook.com/v21.0";           // 레거시 env(IN
 const IG_LOGIN_API = "https://graph.instagram.com/v21.0";    // 테넌트 연결(Instagram Login API) 토큰
 const FB_API = "https://graph.facebook.com/v21.0";
 const X_API = "https://api.twitter.com/2";
+const BLUESKY_API = "https://bsky.social/xrpc";               // AT Protocol PDS(개인 서버 호스팅 시 다를 수 있음 — bsky.social 기본값)
+const TELEGRAM_API = "https://api.telegram.org";
 
 export interface PublishResult {
   ok: boolean;
   externalId?: string;
   permalink?: string;
   error?: string;
+}
+
+// SSRF 가드 1단계(lexical) — 서버가 직접 fetch하는 image_url에만 적용(현재 Bluesky uploadBlob 경로).
+// 다른 채널은 image_url을 플랫폼 API에 넘겨 "플랫폼이" 가져오므로 우리 서버 표면 아님.
+// 정당한 image_url = R2/공개 자산 URL(https). 사설·루프백·링크로컬·메타데이터 IP 리터럴 차단.
+// 이 검사만으로는 "공개 hostname이 fetch 시점에 사설 IP로 resolve"되는 DNS rebinding을 막지 못한다
+// (파싱 시점엔 hostname만 보이고 IP는 아직 안 보임) — 그래서 실제 서버-fetch 허용 여부는 이 함수
+// 단독이 아니라 아래 isAllowedServerFetchImageHost(운영자 제어 exact-host allowlist)와 AND로 판정한다.
+export function isSafePublicImageUrl(raw: string): boolean {
+  let u: URL;
+  try { u = new URL(raw); } catch { return false; }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return false;
+  // IPv6 리터럴은 WHATWG URL hostname에 대괄호가 포함됨("[::1]") — 비교 전 제거.
+  const host = u.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local")) return false;
+  // IPv6 루프백/링크로컬/ULA(+ IPv4-mapped ::ffff: 표기)
+  if (host.includes(":")) {
+    if (host === "::1" || host === "::" || host.startsWith("fe80:") || host.startsWith("fc") || host.startsWith("fd")) return false;
+    if (host.startsWith("::ffff:")) return false; // IPv4-mapped — 매핑 우회 차단(공개 IPv4는 일반 표기로 쓰면 됨)
+  }
+  // IPv4 리터럴 사설/루프백/링크로컬/메타데이터(169.254.169.254 포함)
+  const m = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (m) {
+    const [a, b] = [Number(m[1]), Number(m[2])];
+    if (a === 10 || a === 127 || a === 0) return false;
+    if (a === 169 && b === 254) return false;            // link-local + cloud metadata
+    if (a === 192 && b === 168) return false;
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a === 100 && b >= 64 && b <= 127) return false;  // CGNAT
+  }
+  return true;
 }
 
 // meta = 채널별 부가 자격증명. userId(threads/ig user, fb pageId) + X는 4키(OAuth1.0a)를 meta에 저장.
@@ -233,4 +266,325 @@ export async function publishFacebook(cred: ChannelCred, message: string, imageU
   // photos → { id, post_id }, feed → { id }
   const data = (await resp.json()) as { id?: string; post_id?: string };
   return { ok: true, externalId: data.post_id ?? data.id };
+}
+
+// ── 채널별 공식 한도(초과분은 발행 전 절단 — 플랫폼이 400으로 전체 거부하는 것보다 낫다) ──
+// Bluesky lexicon app.bsky.feed.post: text maxGraphemes=300, maxLength(UTF-8)=3000 /
+//   이미지 개당 1,000,000바이트 (https://docs.bsky.app/docs/advanced-guides/posts)
+// Telegram sendMessage text=1-4096자, sendPhoto caption=0-1024자 (https://core.telegram.org/bots/api)
+// Discord Execute Webhook content ≤2000자 (https://docs.discord.com/developers/resources/webhook)
+// Slack section block text ≤3000자 (https://docs.slack.dev/reference/block-kit/blocks/section-block)
+const REQUEST_TIMEOUT_MS = 15_000;
+const BLUESKY_MAX_GRAPHEMES = 300;
+const BLUESKY_MAX_TEXT_BYTES = 3000;
+const BLUESKY_MAX_IMAGE_BYTES = 1_000_000;
+const TELEGRAM_MAX_TEXT = 4096;
+const TELEGRAM_MAX_CAPTION = 1024;
+const DISCORD_MAX_CONTENT = 2000;
+const SLACK_MAX_SECTION_TEXT = 3000;
+
+// "문자" 셈법이 코드포인트인지 UTF-16 단위인지 플랫폼 문서에 명시가 없어 둘 다 max 이하로
+// 절단한다(서로게이트 쌍을 쪼개지 않음).
+export function truncateChars(text: string, max: number): string {
+  let out = "";
+  let units = 0;
+  let count = 0;
+  for (const cp of text ?? "") {
+    if (count >= max || units + cp.length > max) break;
+    out += cp;
+    units += cp.length;
+    count++;
+  }
+  return out;
+}
+
+// 자소(grapheme) 단위 절단 — Bluesky는 자소·UTF-8바이트 이중 한도(lexicon). ZWJ 이모지처럼
+// 다바이트 자소가 많으면 바이트 한도가 먼저 걸린다. 자소를 중간에서 쪼개지 않는다.
+export function truncateGraphemes(text: string, maxGraphemes: number, maxBytes: number): string {
+  const enc = new TextEncoder();
+  const seg = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+  let out = "";
+  let bytes = 0;
+  let count = 0;
+  for (const { segment } of seg.segment(text ?? "")) {
+    const b = enc.encode(segment).length;
+    if (count >= maxGraphemes || bytes + b > maxBytes) break;
+    out += segment;
+    bytes += b;
+    count++;
+  }
+  return out;
+}
+
+// ── credential/webhook 방식 4채널(OAuth 앱 등록 불필요) ────────────────────────
+// cred 저장 위치: channel-config bridge(toIntegration)가 integrations.secret_enc(=token)
+// + meta에 적재 → getChannelCred의 범용 분기(`if (row.token) return {...}`)가 그대로 반환.
+//   bluesky : token=appPassword,  meta.handle
+//   telegram: token=botToken,     meta.chatId
+//   discord : token=webhookUrl,   meta 없음
+//   slack   : token=webhookUrl,   meta 없음
+
+// SSRF 가드 2단계(host identity) — 서버가 직접 fetch하는 image_url은 isSafePublicImageUrl(사설
+// 리터럴 lexical 차단)만으론 부족하다: 공개 hostname이 fetch 시점에 사설/메타데이터 IP로 resolve되는
+// DNS rebinding은 파싱 단계에서 안 보인다. 그래서 "운영자가 명시적으로 신뢰하는 정확한 호스트명"만
+// 허용하는 exact-host allowlist를 별도로 둔다. 조건(모두 만족):
+//   https 스킴 · userinfo 없음(https://user:pass@host 형태 차단) · 기본 443 포트만(명시 비표준 포트 거부) ·
+//   hostname이 allowlist에 "정확히" 일치(wildcard/suffix 매칭 없음 — evil-example.com.attacker.tld 류 우회 차단).
+// allowlist 구성 = OSMU_PUBLIC_URL의 hostname(자동, 배포가 스스로를 신뢰) + OSMU_PUBLISH_IMAGE_HOSTS
+// (쉼표구분 exact hostname, 운영자가 명시 추가하는 CDN/자산 호스트). 둘 다 없으면 allowlist가 비어
+// 있어 모든 이미지 fetch가 스킵되고 텍스트만 발행된다(fail-closed).
+// 출처: OWASP SSRF Prevention Cheat Sheet(https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html)
+//   — allowlist를 denylist보다 우선하라는 권고, redirect 비활성(아래 fetch의 redirect:"manual"과 결합) (2026-07 조사)
+function serverFetchImageAllowlist(): Set<string> {
+  const hosts = new Set<string>();
+  const pub = process.env.OSMU_PUBLIC_URL;
+  if (pub) {
+    try { hosts.add(new URL(pub).hostname.toLowerCase()); } catch { /* 잘못된 OSMU_PUBLIC_URL — 무시 */ }
+  }
+  const extra = process.env.OSMU_PUBLISH_IMAGE_HOSTS;
+  if (extra) {
+    for (const raw of extra.split(",")) {
+      const h = raw.trim().toLowerCase();
+      if (h) hosts.add(h);
+    }
+  }
+  return hosts;
+}
+
+export function isAllowedServerFetchImageHost(raw: string): boolean {
+  let u: URL;
+  try { u = new URL(raw); } catch { return false; }
+  if (u.protocol !== "https:") return false;
+  if (u.username || u.password) return false;
+  // WHATWG URL은 스킴 기본 포트(https=443)를 명시해도 u.port를 빈 문자열로 정규화한다 —
+  // 그래서 u.port !== "" 는 "443이 아닌 포트를 명시"한 경우만 걸러낸다.
+  if (u.port !== "") return false;
+  return serverFetchImageAllowlist().has(u.hostname.toLowerCase());
+}
+
+// 스트리밍 body 읽기(메모리 DoS 방지) — response.arrayBuffer()로 전체를 먼저 메모리에 올린 뒤 크기를
+// 검사하면, 공격자가 매우 큰(또는 무한) body를 흘려보내는 것만으로 서버 메모리를 소진시킬 수 있다.
+// 대신 reader로 청크 단위 누적하며 합계가 maxBytes를 넘는 "즉시" reader.cancel()하고 스킵한다.
+// 출처: MDN Streams API "Using readable streams"(getReader/read/cancel),
+//       WHATWG Streams Standard(https://streams.spec.whatwg.org/) (2026-07 조사)
+// 반환 타입을 Uint8Array<ArrayBuffer>로 명시(TS 5.7+ typed array 제네릭화) — bare `Uint8Array`는
+// 기본 제네릭이 ArrayBufferLike라 fetch()의 BodyInit(Uint8Array<ArrayBuffer> 요구)에 그대로 넘길 수
+// 없다. 실제 `new Uint8Array(total)`은 항상 새 ArrayBuffer를 할당하므로 이 타입이 실체와 일치한다.
+async function readBodyWithLimit(body: ReadableStream<Uint8Array>, maxBytes: number): Promise<Uint8Array<ArrayBuffer> | null> {
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel();
+        return null;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    try { reader.releaseLock(); } catch { /* cancel 경로에서 이미 해제됐을 수 있음 — 무해 */ }
+  }
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const c of chunks) { out.set(c, offset); offset += c.byteLength; }
+  return out;
+}
+
+// Bluesky 발행 (AT Protocol). createSession(handle+appPassword→accessJwt+did) →
+// (이미지 있으면 uploadBlob) → createRecord(app.bsky.feed.post).
+// 출처: https://docs.bsky.app/docs/api/com-atproto-repo-create-record ,
+//       https://docs.bsky.app/docs/tutorials/creating-a-post (2026-07 조사)
+export async function publishBluesky(cred: ChannelCred, text: string, imageUrl?: string): Promise<PublishResult> {
+  const handle = typeof cred.meta?.handle === "string" ? cred.meta.handle : "";
+  const appPassword = cred.token;
+  if (!handle) return { ok: false, error: "Bluesky handle(meta.handle) 없음" };
+  if (!appPassword) return { ok: false, error: "Bluesky App Password 없음" };
+
+  try {
+    const session = await fetch(`${BLUESKY_API}/com.atproto.server.createSession`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identifier: handle, password: appPassword }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+    if (!session.ok) return { ok: false, error: `Bluesky 세션 실패(${session.status}): ${(await session.text()).slice(0, 200)}` };
+    const { accessJwt, did } = (await session.json()) as { accessJwt: string; did: string };
+
+    // 이미지 첨부는 선택 — 실패해도 텍스트 발행은 계속 진행(관찰 가능한 부분 실패로 둔다).
+    // SSRF: 이 경로만 서버가 직접 image_url을 fetch한다. 2단 가드 — (1) isSafePublicImageUrl:
+    // 사설/루프백/링크로컬/메타데이터 IP 리터럴 lexical 차단. (2) isAllowedServerFetchImageHost:
+    // 운영자 제어 exact-host allowlist(https+기본포트+userinfo없음+hostname 정확일치) — 공개 hostname
+    // DNS rebinding은 (1)만으론 못 막으므로 allowlist가 실질 방어선이다. allowlist 비어있거나 불일치면
+    // 이미지 fetch/업로드를 통째로 스킵하고 텍스트만 발행(fail-closed).
+    // redirect:"manual" — 공개 URL이 내부망으로 302 리다이렉트해 가드를 우회하는 것도 차단(3xx=스킵).
+    let embed: Record<string, unknown> | undefined;
+    if (imageUrl && isSafePublicImageUrl(imageUrl) && isAllowedServerFetchImageHost(imageUrl)) {
+      try {
+        const imgResp = await fetch(imageUrl, { redirect: "manual", signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+        const contentType = imgResp.headers.get("content-type") || "";
+        if (imgResp.ok && contentType.startsWith("image/") && imgResp.body) {
+          // Content-Length 선차단 — 명시돼 있고 한도 초과면 body를 아예 읽지 않는다(메모리 DoS 방지,
+          // 스트리밍 누적 검사보다도 앞서 최단경로로 스킵).
+          const clHeader = imgResp.headers.get("content-length");
+          const declaredLen = clHeader != null ? Number(clHeader) : NaN;
+          const overDeclared = Number.isFinite(declaredLen) && declaredLen > BLUESKY_MAX_IMAGE_BYTES;
+          if (!overDeclared) {
+            // Content-Length 없거나(청크 전송) 선언값이 한도 이내 — 실제 스트리밍하며 누적 검사.
+            // 합계가 개당 1,000,000바이트(공식 한도)를 넘는 즉시 reader.cancel() 후 스킵.
+            const bytes = await readBodyWithLimit(imgResp.body, BLUESKY_MAX_IMAGE_BYTES);
+            if (bytes) {
+              const upload = await fetch(`${BLUESKY_API}/com.atproto.repo.uploadBlob`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${accessJwt}`, "Content-Type": contentType },
+                body: bytes,
+                signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+              });
+              if (upload.ok) {
+                const { blob } = (await upload.json()) as { blob: unknown };
+                embed = { $type: "app.bsky.embed.images", images: [{ image: blob, alt: "" }] };
+              }
+            }
+          }
+        }
+      } catch { /* 이미지 업로드 실패 무시 — 텍스트만 발행 */ }
+    }
+
+    const body = truncateGraphemes(text, BLUESKY_MAX_GRAPHEMES, BLUESKY_MAX_TEXT_BYTES);
+    const record: Record<string, unknown> = { $type: "app.bsky.feed.post", text: body, createdAt: new Date().toISOString() };
+    if (embed) record.embed = embed;
+
+    const create = await fetch(`${BLUESKY_API}/com.atproto.repo.createRecord`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessJwt}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ repo: did, collection: "app.bsky.feed.post", record }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+    if (!create.ok) return { ok: false, error: `Bluesky 게시 실패(${create.status}): ${(await create.text()).slice(0, 200)}` };
+    const { uri } = (await create.json()) as { uri: string };
+    const rkey = uri?.split("/").pop();
+    const permalink = rkey ? `https://bsky.app/profile/${handle}/post/${rkey}` : undefined;
+    return { ok: true, externalId: uri, permalink };
+  } catch (e) {
+    // 타임아웃(AbortSignal)·네트워크 오류를 PublishResult 계약으로 강등 — 호출부(직접 발행 route)가 500 나지 않게.
+    return { ok: false, error: `Bluesky 요청 실패: ${e instanceof Error ? e.message : String(e)}` };
+  }
+}
+
+// Telegram 발행 (Bot API). 이미지 없으면 sendMessage(text), 있으면 sendPhoto(photo=imageUrl, caption=text).
+// chat_id는 meta.chatId(Settings에서 선택 입력) — 없으면 발행 대상 불명이라 명확히 에러.
+// 출처: https://core.telegram.org/bots/api#sendmessage , #sendphoto (2026-07 조사)
+export async function publishTelegram(cred: ChannelCred, text: string, imageUrl?: string): Promise<PublishResult> {
+  const token = cred.token;
+  const chatIdRaw = cred.meta?.chatId;
+  const chatId = typeof chatIdRaw === "string" || typeof chatIdRaw === "number" ? String(chatIdRaw) : "";
+  if (!token) return { ok: false, error: "Telegram Bot Token 없음" };
+  if (!chatId) return { ok: false, error: "Telegram Chat ID(meta.chatId) 없음 — Settings에서 입력 필요" };
+
+  // 공식 한도: sendMessage text 4096자 / sendPhoto caption 1024자 — 초과 시 400 거부라 절단.
+  // photo=URL은 텔레그램이 서버측에서 다운로드(5MB·가로+세로 10000 한도도 그쪽에서 검증) — 우리 표면 아님.
+  const method = imageUrl ? "sendPhoto" : "sendMessage";
+  const body: Record<string, string> = imageUrl
+    ? { chat_id: chatId, photo: imageUrl, caption: truncateChars(text ?? "", TELEGRAM_MAX_CAPTION) }
+    : { chat_id: chatId, text: truncateChars(text ?? "", TELEGRAM_MAX_TEXT) };
+
+  try {
+    const resp = await fetch(`${TELEGRAM_API}/bot${token}/${method}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+    const data = (await resp.json().catch(() => ({}))) as { ok?: boolean; description?: string; result?: { message_id?: number } };
+    if (!resp.ok || !data.ok) {
+      return { ok: false, error: `Telegram ${method} 실패(${resp.status}): ${(data.description ?? "unknown error").slice(0, 180)}` };
+    }
+    return { ok: true, externalId: data.result?.message_id != null ? String(data.result.message_id) : undefined };
+  } catch (e) {
+    return { ok: false, error: `Telegram 요청 실패: ${e instanceof Error ? e.message : String(e)}` };
+  }
+}
+
+// webhook cred 사용처 재검증 — 저장 시 verify-channel이 prefix를 검사하지만, 같은 integrations
+// 행(kind=channel,label=slack)을 OAuth 연결 콜백이 access token으로 덮어쓸 수 있다(connect/callback).
+// 비-URL/딴 호스트 secret을 서버가 fetch하지 않게(크래시·SSRF 방지) 발행 직전 호스트를 고정한다.
+function isAllowedWebhookUrl(raw: string, host: string, pathPrefix: string): boolean {
+  let u: URL;
+  try { u = new URL(raw); } catch { return false; }
+  return u.protocol === "https:" && u.hostname.toLowerCase() === host && u.pathname.startsWith(pathPrefix);
+}
+
+// Discord 발행 (Incoming Webhook). ?wait=true로 생성된 메시지 객체(id)를 응답받는다(기본은 204 No Content).
+// 이미지는 embeds[0].image.url로 첨부(별도 업로드 불필요 — 공개 URL 참조 방식).
+// 출처: https://discord.com/developers/docs/resources/webhook#execute-webhook (2026-07 조사)
+export async function publishDiscord(cred: ChannelCred, text: string, imageUrl?: string): Promise<PublishResult> {
+  const webhookUrl = cred.token;
+  if (!webhookUrl) return { ok: false, error: "Discord Webhook URL 없음" };
+  if (!isAllowedWebhookUrl(webhookUrl, "discord.com", "/api/webhooks/")) {
+    return { ok: false, error: "Discord Webhook URL 형식 아님 — Settings에서 https://discord.com/api/webhooks/... 재등록 필요" };
+  }
+
+  // 공식 한도: content 2000자("up to 2000 characters") — 초과 시 400 거부라 절단. embeds는 최대 10개(여기선 1개).
+  const body: Record<string, unknown> = { content: truncateChars(text ?? "", DISCORD_MAX_CONTENT) };
+  if (imageUrl) body.embeds = [{ image: { url: imageUrl } }];
+
+  const sep = webhookUrl.includes("?") ? "&" : "?";
+  try {
+    const resp = await fetch(`${webhookUrl}${sep}wait=true`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+    if (!resp.ok) return { ok: false, error: `Discord webhook 실패(${resp.status}): ${(await resp.text()).slice(0, 200)}` };
+    const data = (await resp.json().catch(() => ({}))) as { id?: string };
+    return { ok: true, externalId: data.id };
+  } catch (e) {
+    return { ok: false, error: `Discord 요청 실패: ${e instanceof Error ? e.message : String(e)}` };
+  }
+}
+
+// Slack 발행 (Incoming Webhook). text + 선택 image(blocks의 image 블록). 응답은 JSON이 아니라
+// 평문 "ok"라 externalId/permalink는 제공되지 않는다(Slack Incoming Webhook 사양).
+// 출처: https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/ (2026-07 조사)
+export async function publishSlack(cred: ChannelCred, text: string, imageUrl?: string): Promise<PublishResult> {
+  const webhookUrl = cred.token;
+  if (!webhookUrl) return { ok: false, error: "Slack Webhook URL 없음" };
+  // 이번 출시는 Incoming Webhook만 정직하게 지원(OAuth 앱/xoxb 봇 토큰 미지원) — ChannelConnect가
+  // Slack을 더 이상 OAUTH_LABELS에 노출하지 않지만, connect/[provider]/callback이 과거에 같은
+  // integrations 행(kind=channel,label=slack)을 xoxb 액세스 토큰으로 덮어썼을 수 있으므로 호스트뿐
+  // 아니라 저장 시점에 channel-config bridge가 찍은 meta.api==="slack_webhook"까지 요구해 OAuth
+  // 토큰/행을 명확히 거부한다(방식 충돌 = 조용한 오발행이 아니라 즉시 에러).
+  if (cred.meta?.api !== "slack_webhook") {
+    return { ok: false, error: "Slack은 Incoming Webhook만 지원 — OAuth 연결 토큰으로는 발행 불가, Settings에서 https://hooks.slack.com/... webhook 재등록 필요" };
+  }
+  if (!isAllowedWebhookUrl(webhookUrl, "hooks.slack.com", "/")) {
+    return { ok: false, error: "Slack Webhook URL 형식 아님 — OAuth 연결 토큰으로는 발행 불가, Settings에서 https://hooks.slack.com/... webhook 재등록 필요" };
+  }
+
+  const body: Record<string, unknown> = { text: text ?? "" };
+  if (imageUrl) {
+    // section 블록 text 공식 한도 3000자 — 초과 시 invalid_blocks로 전체 거부라 절단(top-level text는 명시 한도 없음).
+    body.blocks = [
+      { type: "section", text: { type: "mrkdwn", text: truncateChars(text, SLACK_MAX_SECTION_TEXT) || " " } },
+      { type: "image", image_url: imageUrl, alt_text: "attached image" },
+    ];
+  }
+
+  try {
+    const resp = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+    if (!resp.ok) return { ok: false, error: `Slack webhook 실패(${resp.status}): ${(await resp.text()).slice(0, 200)}` };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: `Slack 요청 실패: ${e instanceof Error ? e.message : String(e)}` };
+  }
 }

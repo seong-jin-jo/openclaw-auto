@@ -5,6 +5,8 @@ import { ToastContainer } from "@/components/layout/Toast";
 import { LoginModal } from "@/components/shared/LoginModal";
 import { AuthGate } from "@/components/shared/AuthGate";
 import { ImagePickerModal } from "@/components/queue/ImagePickerModal";
+import { ConsentBanner, PrivacySettingsLink } from "@/components/shared/ConsentBanner";
+import { RouteTracker } from "@/components/shared/RouteTracker";
 
 export const metadata: Metadata = {
   title: "Marketing Hub",
@@ -39,6 +41,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ToastContainer />
           <LoginModal />
           <ImagePickerModal />
+          {/* GA4 consent-gated 트래킹(dashboard/src/lib/analytics/) — 동의 전엔 완전 no-op */}
+          <RouteTracker />
+          <ConsentBanner />
+          <PrivacySettingsLink />
         </Providers>
       </body>
     </html>

@@ -33,9 +33,11 @@ jobs:
           DASHBOARD_AUTH_TOKEN=${{ secrets.OSMU_DASHBOARD_AUTH_TOKEN }}
           NEXT_PUBLIC_SUPABASE_URL=${{ secrets.OSMU_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.OSMU_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_GA_MEASUREMENT_ID=${{ secrets.OSMU_GA4_MEASUREMENT_ID }}
           DATABASE_URL=${{ secrets.OSMU_DATABASE_URL }}
           OSMU_SECRET_KEY=${{ secrets.OSMU_SECRET_KEY }}
           OSMU_PUBLIC_URL=${{ secrets.OSMU_PUBLIC_URL }}
+          OSMU_ALERT_SLACK_WEBHOOK_URL=${{ secrets.OSMU_ALERT_SLACK_WEBHOOK_URL }}
           CLAUDE_CODE_OAUTH_TOKEN=${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           IG_APP_ID=${{ secrets.IG_APP_ID }}
           IG_APP_SECRET=${{ secrets.IG_APP_SECRET }}
@@ -64,12 +66,30 @@ jobs:
           LINE_CLIENT_SECRET=${{ secrets.LINE_CLIENT_SECRET }}
           EOF
           echo ".env.osmu rendered ($(grep -c . .env.osmu) lines)"
+      - name: OSMU DB 스키마/RLS 적용 (멱등 — 앱 기동 전)
+        # usage_events/subscriptions/usage_quotas 누락으로 /api/operator/customers 500 난 실사고
+        # (2026-07-12) 재발 방지. schema.sql(IF NOT EXISTS)·rls.sql(DO+DROP POLICY IF EXISTS) 둘 다
+        # 멱등이라 매 배포 실행 안전. 접속 문자열은 step env → 컨테이너 env로만 전달(커맨드라인
+        # 인터폴레이션·echo 금지 — GitHub Actions secrets 가이드).
+        if: ${{ github.event.inputs.services == '' || contains(github.event.inputs.services, 'osmu') }}
+        env:
+          OSMU_DATABASE_URL: ${{ secrets.OSMU_DATABASE_URL }}
+        run: |
+          # -e 이름만 지정 → docker가 자기 환경에서 값을 복사(값이 argv/로그에 안 남음)
+          docker run --rm \
+            -e OSMU_DATABASE_URL \
+            -v "$GITHUB_WORKSPACE/dashboard/db":/db:ro \
+            postgres:16 \
+            sh -c 'psql "$OSMU_DATABASE_URL" -q -v ON_ERROR_STOP=1 -f /db/schema.sql \
+                && psql "$OSMU_DATABASE_URL" -q -v ON_ERROR_STOP=1 -f /db/rls.sql'
+          echo "✅ schema.sql + rls.sql 적용 완료 (멱등)"
       - name: 이미지 빌드 (gateway + dashboard)
         # NEXT_PUBLIC_* 는 빌드 시점 인라인 → 고객 로그인용 supabase 공개키를 빌드 arg로 전달(공개키라 baking 안전).
         run: |
           docker compose -f docker-compose.postagi-4tenants.yml build \
             --build-arg NEXT_PUBLIC_SUPABASE_URL="${{ secrets.OSMU_SUPABASE_URL }}" \
-            --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY="${{ secrets.OSMU_SUPABASE_ANON_KEY }}"
+            --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY="${{ secrets.OSMU_SUPABASE_ANON_KEY }}" \
+            --build-arg NEXT_PUBLIC_GA_MEASUREMENT_ID="${{ secrets.OSMU_GA4_MEASUREMENT_ID }}"
       - name: 기동
         run: docker compose -f docker-compose.postagi-4tenants.yml up -d ${{ github.event.inputs.services }}
       - name: 상태
@@ -78,6 +98,9 @@ jobs:
         # 이 3개 버그(로그인死/인증게이트異常/supabase 빌드미주입)가 격노 유발 → 자동 차단.
         # services=empty(전체)도 OSMU가 포함 → 항상 검증. 특정 서비스만 배포 시 OSMU 제외하면 skip.
         if: ${{ github.event.inputs.services == '' || contains(github.event.inputs.services, 'osmu') }}
+        env:
+          # 운영자 토큰 — /api/operator/customers 스모크용. step env로만 전달, 로그/본문 출력 금지.
+          DASHBOARD_AUTH_TOKEN: ${{ secrets.OSMU_DASHBOARD_AUTH_TOKEN }}
         run: |
           sleep 12
           L=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:18789/login || echo 000)
@@ -100,4 +123,12 @@ jobs:
             || { echo "::error::/api/auth/google HTTP $G — public preflight 이상(200 또는 400이어야 함, 미반영 배포/라우트 장애 감지)"; exit 1; }
           docker exec openclaw-dashboard-osmu sh -c 'grep -rlq gvtsyyltgwqplrqegrxo .next 2>/dev/null' \
             || { echo "::error::NEXT_PUBLIC supabase URL 빌드 미주입 — 가입/로그인 死(supabaseUrl required)"; exit 1; }
-          echo "✅ 스모크 통과: 로그인페이지·인증게이트·supabase 빌드주입·비밀번호찾기·google preflight 정상"
+          # DB 스키마 누락 회귀 감지(usage_events 등 부재 → 500 실사고 2026-07-12). 토큰은 stdin으로
+          # 헤더 전달(-H @- : argv/ps 비노출), 응답 본문은 /dev/null — 상태코드만 검사·출력.
+          OC=$(curl -s -o /dev/null -w '%{http_code}' -H @- http://localhost:18789/api/operator/customers <<CURL_HDR || echo 000
+          Authorization: Bearer $DASHBOARD_AUTH_TOKEN
+          CURL_HDR
+          )
+          echo "operator/customers=$OC"
+          [ "$OC" = "200" ] || { echo "::error::/api/operator/customers HTTP $OC — 200이어야 함(DB 스키마 누락/운영자 토큰/라우트 장애 신호)"; exit 1; }
+          echo "✅ 스모크 통과: 로그인페이지·인증게이트·supabase 빌드주입·비밀번호찾기·google preflight·operator/customers 정상"

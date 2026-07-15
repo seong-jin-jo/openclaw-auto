@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>OSMU profile artwork v1</title>
+<style>
+  @font-face {
+    font-family: 'Pretendard';
+    src: local('Pretendard');
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body {
+    width:1080px; height:1080px;
+    background:#0B0F1A;
+  }
+  body {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family: 'Pretendard', -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  }
+
+  /* canvas = the full 1080x1080 profile frame */
+  .canvas {
+    position:relative;
+    width:1080px;
+    height:1080px;
+    background:#0B0F1A;
+    overflow:hidden;
+  }
+
+  /* safe-area guide: 18% margin each edge -> content lives in center 64% (778px) */
+  .safe {
+    position:absolute;
+    top:194px; left:194px; right:194px; bottom:194px;
+    width:692px; height:692px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  /* the seal mark itself, built as layered geometric shapes (no gradients/glow) */
+  .seal {
+    position:relative;
+    width:692px;
+    height:692px;
+  }
+
+  /* outer stamp ring — bold, single-weight, amber. Survives 48px shrink because
+     stroke-width is proportionally huge (44px at 1080 canvas = ~2px at 48px, still visible
+     because it's a full ring not a hairline) */
+  .ring-outer {
+    position:absolute;
+    inset:0;
+    border-radius:50%;
+    border: 34px solid #F59E0B;
+  }
+
+  /* inner surface disc, slightly inset, dark charcoal to create depth via flat layering
+     (no gradient — two flat tones only) */
+  .ring-inner-surface {
+    position:absolute;
+    top:34px; left:34px; right:34px; bottom:34px;
+    border-radius:50%;
+    background:#151B2B;
+  }
+
+  /* mint tick-segment on the ring — small secondary accent, not equal weight to amber.
+     Placed as a single filled arc-like block at ~2 o'clock so it survives circular crop
+     center-mass while adding the secondary brand color per design-system.md */
+  .mint-notch {
+    position:absolute;
+    width:64px;
+    height:34px;
+    background:#34D399;
+    top:-2px;
+    right:150px;
+    border-radius:0 0 0 0;
+    transform: rotate(28deg);
+    transform-origin: bottom center;
+  }
+
+  /* the O + check monogram: precise SVG for both shapes (CSS-rotated bars produced
+     a broken, illegible scribble at 48px in v0 — replaced entirely). O = thick amber
+     ring (donut), check = single bold amber stroke path sitting inside the O's hole,
+     read together as one fused "stamped done" glyph. */
+  .mark {
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .mark svg { display:block; }
+
+  /* minimal secondary wordmark signature — small, sits below the seal but still
+     inside the safe area; not the primary identifier, purely a signature echo */
+  .wordmark {
+    position:absolute;
+    bottom:0;
+    left:0;
+    right:0;
+    text-align:center;
+    font-family:'JetBrains Mono', 'SF Mono', monospace;
+    font-weight:600;
+    font-size:34px;
+    letter-spacing:6px;
+    color:#94A3B8;
+  }
+</style>
+</head>
+<body>
+  <div class="canvas">
+    <div class="safe">
+      <div class="seal">
+        <div class="ring-outer"></div>
+        <div class="ring-inner-surface"></div>
+        <div class="mint-notch"></div>
+        <div class="mark">
+          <!-- viewBox 0-392, O = donut ring r=196 stroke=64 (matches prior geometry),
+               check = single bold rounded stroke path fully inside the hole (r<132),
+               apex placed slightly right of center for optical balance against the
+               mint notch on the outer ring's upper-right. -->
+          <svg width="692" height="692" viewBox="0 0 392 392">
+            <circle cx="196" cy="196" r="164" fill="none" stroke="#F59E0B" stroke-width="64"/>
+            <path d="M 118 196 L 172 250 L 268 138"
+                  fill="none" stroke="#F59E0B" stroke-width="40"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

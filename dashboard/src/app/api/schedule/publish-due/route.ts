@@ -1,5 +1,6 @@
 import { db, withTenant } from "@/lib/db";
 import { effectiveTenantId } from "@/lib/tenant-auth";
+import { reportFailure, normalizePlatform, classifyPublishFailure } from "@/lib/observability";
 import { SCHEDULABLE_PLATFORMS } from "@/lib/constants";
 import {
   getChannelCred,
@@ -7,6 +8,10 @@ import {
   publishInstagram,
   publishThreads,
   publishX,
+  publishBluesky,
+  publishTelegram,
+  publishDiscord,
+  publishSlack,
   type PublishResult,
 } from "@/lib/publish";
 
@@ -83,6 +88,19 @@ async function processTenant(tenantId: string, limit: number) {
       for (const platform of platforms) {
         const result = await publishOne(tenantId, row, platform);
         results.push({ platform, ...result });
+        // /api/publish/route.ts와 동일한 경계: "채널 미연결"(설정 문제)은 알림 대상이 아니고,
+        // 그 외 !ok(플랫폼 API 실발행 실패·미지원 플랫폼)만 fire-and-forget으로 보고한다.
+        // 응답/스케줄 상태는 이 보고와 무관 — reportFailure는 아래 로직에 어떤 영향도 주지 않는다.
+        if (!result.ok && !isConnectionMissing(result.error)) {
+          // platform(schedules.platforms 저장값)과 result.error(플랫폼 API 응답 본문 포함 가능한
+          // 임의 외부 텍스트)를 절대 그대로 넘기지 않고 고정 코드로만 정규화한다(observability.ts).
+          const { reason, httpStatus } = classifyPublishFailure(result.error);
+          void reportFailure({
+            event: "publish_failed",
+            severity: "warning",
+            context: { platform: normalizePlatform(platform), reason, httpStatus },
+          });
+        }
         await recordPublishedPost(tenantId, row, platform, result);
       }
     }
@@ -102,6 +120,12 @@ async function dueTenantIds(): Promise<string[]> {
     SELECT DISTINCT tenant_id FROM schedules
     WHERE status = 'scheduled' AND scheduled_at <= now()`;
   return rows.map((r) => r.tenant_id);
+}
+
+// "PLATFORM 채널 미연결 — Settings에서 토큰 등록 필요"(getChannelCred null) — 고객 설정 문제일 뿐
+// 인프라 장애가 아니므로 publish_failed 알림 대상에서 제외한다(/api/publish/route.ts와 동일 규칙).
+function isConnectionMissing(error?: string | null): boolean {
+  return typeof error === "string" && error.includes("채널 미연결");
 }
 
 function clampLimit(value: unknown): number {
@@ -158,6 +182,10 @@ async function publishOne(tenantId: string, row: DueScheduleRow, platform: strin
     if (platform === "instagram") return await publishInstagram(cred, text, imageUrl);
     if (platform === "x") return await publishX(cred, text);
     if (platform === "facebook") return await publishFacebook(cred, text, imageUrl);
+    if (platform === "bluesky") return await publishBluesky(cred, text, imageUrl);
+    if (platform === "telegram") return await publishTelegram(cred, text, imageUrl);
+    if (platform === "discord") return await publishDiscord(cred, text, imageUrl);
+    if (platform === "slack") return await publishSlack(cred, text, imageUrl);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
@@ -175,7 +203,10 @@ function textForPlatform(
   if (!raw || typeof raw !== "object") return "";
 
   const text = raw as Record<string, unknown>;
-  if (platform === "threads" || platform === "facebook") return stringValue(text.threads);
+  // bluesky/telegram/discord/slack은 플랫폼 전용 본문 필드가 없다 — threads 본문(공용 소셜 텍스트)을 그대로 사용.
+  if (platform === "threads" || platform === "facebook" || platform === "bluesky" || platform === "telegram" || platform === "discord" || platform === "slack") {
+    return stringValue(text.threads);
+  }
   if (platform === "x") return stringValue(text.x);
   if (platform === "instagram") {
     const ig = text.instagram;

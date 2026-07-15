@@ -13,6 +13,7 @@ interface Customer {
   tier: string;
   owner_auth_id: string | null;
   created_at: string;
+  shared_cli_approved_at: string | null;
   integrations: Array<{ kind: string; label: string | null; has_secret: boolean; connected_at?: string | null }>;
   drafts_count: number;
   published_count: number;
@@ -34,7 +35,17 @@ interface AuthUser {
   last_sign_in_at: string | null;
   tenant_id: string | null;
   tenant_slug: string | null;
+  tenant_status: string | null;
+  tenant_shared_ai_approved_at: string | null;
 }
+
+// OSMU v1.0.0: 계정(status) 게이트는 paused만(가입 즉시 active) — 레거시 pending도 방어적으로 라벨은 유지.
+const STATUS_LABEL: Record<string, string> = { pending: "승인 대기(레거시)", active: "활성", paused: "정지" };
+const STATUS_CLASS: Record<string, string> = {
+  pending: "bg-warning/15 text-warning",
+  active: "bg-success/15 text-success",
+  paused: "bg-danger/15 text-danger",
+};
 
 function fmtDate(v: string | null | undefined): string {
   if (!v) return "-";
@@ -48,6 +59,36 @@ export default function OperatorCustomersPage() {
   const authUsers = data?.authUsers || [];
   const [actionMsg, setActionMsg] = useState<Record<string, string>>({});
   const [busyEmail, setBusyEmail] = useState<string | null>(null);
+  const [busyUserId, setBusyUserId] = useState<string | null>(null);
+  const [userActionMsg, setUserActionMsg] = useState<Record<string, string>>({});
+
+  async function postCustomerAction(
+    userId: string,
+    action: "pause_user" | "resume_user" | "approve_shared_ai" | "revoke_shared_ai",
+  ) {
+    if (busyUserId) return;
+    setBusyUserId(userId);
+    setUserActionMsg((p) => ({ ...p, [userId]: "" }));
+    try {
+      const res = await fetch("/api/operator/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ action, user_id: userId }),
+      });
+      const body = await res.json().catch(() => ({})) as { error?: string; status?: string; shared_ai_approved?: boolean };
+      if (!res.ok) {
+        setUserActionMsg((p) => ({ ...p, [userId]: body.error || `실패 ${res.status}` }));
+        return;
+      }
+      const msg = body.status ? `상태 변경됨: ${body.status}` : `공유 AI 승인: ${body.shared_ai_approved ? "허용" : "회수"}`;
+      setUserActionMsg((p) => ({ ...p, [userId]: msg }));
+      mutate();
+    } catch (e) {
+      setUserActionMsg((p) => ({ ...p, [userId]: e instanceof Error ? e.message : String(e) }));
+    } finally {
+      setBusyUserId(null);
+    }
+  }
 
   async function sendReset(email: string | null) {
     if (!email || busyEmail) return;
@@ -109,6 +150,14 @@ export default function OperatorCustomersPage() {
                         {confirmed ? "이메일 확인됨" : "이메일 미확인"}
                       </span>
                       <span className="text-[10px] px-2 py-0.5 rounded bg-surface-2 text-subtle">{u.provider || "provider 없음"}</span>
+                      {u.tenant_status && (
+                        <span className={`text-[10px] px-2 py-0.5 rounded ${STATUS_CLASS[u.tenant_status] || "bg-surface-2 text-subtle"}`}>
+                          {STATUS_LABEL[u.tenant_status] || u.tenant_status}
+                        </span>
+                      )}
+                      <span className={`text-[10px] px-2 py-0.5 rounded ${u.tenant_shared_ai_approved_at ? "bg-success/15 text-success" : "bg-surface-2 text-subtle"}`}>
+                        공유 AI {u.tenant_shared_ai_approved_at ? "승인됨" : "미승인"}
+                      </span>
                     </div>
                     <p className="text-[11px] text-subtle mt-1">auth {u.id}</p>
                     <p className="text-[11px] text-subtle">
@@ -117,14 +166,51 @@ export default function OperatorCustomersPage() {
                     {u.recovery_sent_at && <p className="text-[11px] text-subtle">최근 재설정 메일 {fmtDate(u.recovery_sent_at)}</p>}
                   </div>
                   <div className="text-right">
-                    <button
-                      onClick={() => sendReset(u.email)}
-                      disabled={!u.email || busyEmail === u.email}
-                      className="px-3 py-1.5 rounded bg-surface-2 text-xs text-muted hover:bg-surface disabled:opacity-50"
-                    >
-                      {busyEmail === u.email ? "발송 중..." : "비밀번호 재설정 메일"}
-                    </button>
+                    <div className="flex flex-wrap justify-end gap-2">
+                      {u.tenant_shared_ai_approved_at ? (
+                        <button
+                          onClick={() => postCustomerAction(u.id, "revoke_shared_ai")}
+                          disabled={busyUserId === u.id}
+                          className="px-3 py-1.5 rounded bg-danger/15 text-xs text-danger hover:bg-danger/25 disabled:opacity-50"
+                        >
+                          {busyUserId === u.id ? "처리 중..." : "공유 AI 회수"}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => postCustomerAction(u.id, "approve_shared_ai")}
+                          disabled={busyUserId === u.id}
+                          className="px-3 py-1.5 rounded bg-success/15 text-xs text-success hover:bg-success/25 disabled:opacity-50"
+                        >
+                          {busyUserId === u.id ? "처리 중..." : "✓ 공유 AI 승인"}
+                        </button>
+                      )}
+                      {u.tenant_status === "paused" ? (
+                        <button
+                          onClick={() => postCustomerAction(u.id, "resume_user")}
+                          disabled={busyUserId === u.id}
+                          className="px-3 py-1.5 rounded bg-success/15 text-xs text-success hover:bg-success/25 disabled:opacity-50"
+                        >
+                          {busyUserId === u.id ? "처리 중..." : "▶ 재개"}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => postCustomerAction(u.id, "pause_user")}
+                          disabled={busyUserId === u.id}
+                          className="px-3 py-1.5 rounded bg-danger/15 text-xs text-danger hover:bg-danger/25 disabled:opacity-50"
+                        >
+                          {busyUserId === u.id ? "처리 중..." : "⏸ 정지"}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => sendReset(u.email)}
+                        disabled={!u.email || busyEmail === u.email}
+                        className="px-3 py-1.5 rounded bg-surface-2 text-xs text-muted hover:bg-surface disabled:opacity-50"
+                      >
+                        {busyEmail === u.email ? "발송 중..." : "비밀번호 재설정 메일"}
+                      </button>
+                    </div>
                     {u.email && actionMsg[u.email] && <p className="mt-1 text-[11px] text-subtle">{actionMsg[u.email]}</p>}
+                    {userActionMsg[u.id] && <p className="mt-1 text-[11px] text-subtle">{userActionMsg[u.id]}</p>}
                   </div>
                 </div>
               </div>
@@ -166,6 +252,11 @@ export default function OperatorCustomersPage() {
                 <span className={`text-[10px] px-2 py-1 rounded ${anthropic ? "bg-success/15 text-success" : "bg-surface-2 text-subtle"}`}>
                   Anthropic {anthropic ? "연결" : "공유 엔진"}
                 </span>
+                {!anthropic && (
+                  <span className={`text-[10px] px-2 py-1 rounded ${c.shared_cli_approved_at ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
+                    공유 AI {c.shared_cli_approved_at ? "승인됨" : "미승인"}
+                  </span>
+                )}
                 {channels.length ? channels.map((ch) => (
                   <span key={`${ch.kind}:${ch.label}`} className="text-[10px] px-2 py-1 rounded bg-accent-soft text-accent">
                     {ch.label} 연결

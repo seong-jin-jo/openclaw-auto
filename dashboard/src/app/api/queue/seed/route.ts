@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { mutateJson, readText, readJson, dataPath } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
-import { generateText } from "@/lib/anthropic";
+import { generateText, sharedGenerationQuotaErrorResponse, sharedAiApprovalErrorResponse } from "@/lib/anthropic";
 import { getWikiContext } from "@/lib/wiki-retrieve";
 import { mirrorQueuePost } from "@/lib/queue-store";
 import { parseDrafts } from "@/lib/seed-parse";
@@ -58,6 +58,10 @@ ${tone ? `보이스 톤(반드시 반영):\n${tone}\n` : ""}${guide ? `브랜드
     try {
       raw = await generateText(prompt, tenantId);
     } catch (e) {
+      const approvalResponse = sharedAiApprovalErrorResponse(e);
+      if (approvalResponse) return approvalResponse;
+      const quotaResponse = sharedGenerationQuotaErrorResponse(e);
+      if (quotaResponse) return quotaResponse;
       return Response.json(
         { error: `AI 생성 실패: ${(e as Error).message}. Settings에서 Claude 키를 확인하세요.` },
         { status: 502 },

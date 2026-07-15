@@ -18,8 +18,9 @@ function shouldPersistSecretInput(value: unknown): value is string {
 // 수동 입력 키를 대시보드 "직접 발행"(publish.ts getChannelCred)이 읽는 integrations 테이블로 브리지한다.
 // openclaw.json(위)은 게이트웨이 extension 경로용, integrations(아래)는 대시보드 직접 발행용 —
 // 같은 키를 두 곳에 채워야 UI 수동입력 → /api/publish 경로가 끊기지 않는다.
-// getChannelCred가 이해하는 채널(직접발행 함수 존재)만 대상: threads/instagram/x/facebook.
-// 그 외(telegram/discord/slack/line/naver_blog/tiktok/linkedin/pinterest/tumblr/youtube)는
+// getChannelCred가 이해하는 채널(직접발행 함수 존재)만 대상:
+//   threads/instagram/x/facebook(P5) + bluesky/telegram/discord/slack(credential·webhook 방식, 이번 차수).
+// 그 외(line/naver_blog/tiktok/linkedin/pinterest/tumblr/youtube)는
 // 직접발행 함수가 없어 게이트웨이 extension(openclaw.json)만으로 발행 → 브리지 불필요.
 function toIntegration(channel: string, cfg: Record<string, string>): { secret: string; meta: Record<string, unknown> } | null {
   if (channel === "threads") return { secret: cfg.accessToken || "", meta: { userId: cfg.userId || null, api: "threads_login" } };
@@ -29,6 +30,13 @@ function toIntegration(channel: string, cfg: Record<string, string>): { secret: 
     // X는 4키 OAuth1.0a — token 컬럼 미사용, 4키를 meta에 적재(publish.ts의 X 발행이 소비).
     return { secret: "", meta: { apiKey: cfg.apiKey || null, apiKeySecret: cfg.apiKeySecret || null, accessToken: cfg.accessToken || null, accessTokenSecret: cfg.accessTokenSecret || null, api: "x_oauth1" } };
   }
+  // bluesky: App Password를 secret(token)으로, handle은 meta(publishBluesky가 createSession identifier로 사용).
+  if (channel === "bluesky") return { secret: cfg.appPassword || "", meta: { handle: cfg.handle || null, api: "bluesky_app_password" } };
+  // telegram: Bot Token을 secret으로, chatId는 meta(발행 대상 채팅방 — 없으면 publishTelegram이 명확히 에러).
+  if (channel === "telegram") return { secret: cfg.botToken || "", meta: { chatId: cfg.chatId || null, api: "telegram_bot" } };
+  // discord/slack: webhook URL 자체를 secret(token)으로 — 별도 meta 불필요.
+  if (channel === "discord") return { secret: cfg.webhookUrl || "", meta: { api: "discord_webhook" } };
+  if (channel === "slack") return { secret: cfg.webhookUrl || "", meta: { api: "slack_webhook" } };
   return null;
 }
 

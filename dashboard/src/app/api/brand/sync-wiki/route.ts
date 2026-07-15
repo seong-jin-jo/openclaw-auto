@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { withTenant } from "@/lib/db";
 import { effectiveTenantId } from "@/lib/tenant-auth";
-import { generateText } from "@/lib/anthropic";
+import { generateText, sharedGenerationQuotaErrorResponse, sharedAiApprovalErrorResponse } from "@/lib/anthropic";
 import { getRepoToken, fetchRepoFile, listWikiFiles, extractTitle } from "@/lib/github";
 
 // 위키 폴더 전체 인입 → wiki_docs(테넌트별). 생성 시 pg_trgm으로 검색해 사실 기반 콘텐츠.
@@ -104,7 +104,16 @@ ${digest}
               source_ref = EXCLUDED.source_ref, synced_at = now()`);
       toneUpdated = true;
     }
-  } catch { /* 톤 증류 실패해도 문서 저장은 유지 */ }
+  } catch (e) {
+    // 톤 증류는 best-effort라 대부분의 에러는 삼키고 문서 저장 결과만 반환한다.
+    // 단, quota 초과(SharedGenerationQuotaError)/미승인(SharedAiApprovalRequiredError)은 "성공"으로
+    // 위장하면 안 되는 과금성/권한 신호라 여기서만 예외적으로 표면화한다(요구사항: 6개 라우트 모두
+    // quota는 429, 미승인은 403).
+    const approvalResponse = sharedAiApprovalErrorResponse(e);
+    if (approvalResponse) return approvalResponse;
+    const quotaResponse = sharedGenerationQuotaErrorResponse(e);
+    if (quotaResponse) return quotaResponse;
+  }
 
   return Response.json({ ok: true, count: docs.length, changed, removed, toneUpdated, truncated, failed: failed.length });
 }

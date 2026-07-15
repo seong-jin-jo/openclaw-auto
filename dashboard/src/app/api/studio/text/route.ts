@@ -1,6 +1,6 @@
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { getWikiContext } from "@/lib/wiki-retrieve";
-import { generateText } from "@/lib/anthropic";
+import { generateText, sharedGenerationQuotaErrorResponse, sharedAiApprovalErrorResponse } from "@/lib/anthropic";
 
 // POST /api/studio/text — 글감 1개 → 플랫폼별 텍스트 변형(OSMU).
 // body: { idea, guide?, tenant_id?, context_sources? } 
@@ -57,6 +57,10 @@ ${guide ? `브랜드 톤 가이드:\n${guide}\n` : ""}${wiki ? `\n=== 위키 참
     if (!m) return Response.json({ error: "JSON 추출 실패", raw: stdout.slice(-400) }, { status: 502 });
     return Response.json({ ok: true, ...JSON.parse(m[0]) });
   } catch (e) {
+    const approvalResponse = sharedAiApprovalErrorResponse(e);
+    if (approvalResponse) return approvalResponse;
+    const quotaResponse = sharedGenerationQuotaErrorResponse(e);
+    if (quotaResponse) return quotaResponse;
     const msg = e instanceof Error ? e.message : String(e);
     return Response.json({ error: msg.slice(0, 400) }, { status: 502 });
   }

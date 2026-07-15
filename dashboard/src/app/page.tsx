@@ -14,6 +14,7 @@ import { ChannelConnectBanner } from "@/components/shared/ChannelConnectBanner";
 import { OnboardingChecklist } from "@/components/shared/OnboardingChecklist";
 import { PipelineTimeline } from "@/components/home/PipelineTimeline";
 import Link from "next/link";
+import { trackEvent } from "@/lib/analytics/events";
 
 interface PostRow {
   id: string; platform: string; permalink?: string; text?: string; status: string; error?: string;
@@ -119,6 +120,7 @@ export default function HomePage() {
   };
   const generateIdeas = async () => {
     if (loadingIdeas) return;
+    trackEvent({ name: "cta_click", params: { cta_id: "generate_ideas" } });
     setLoadingIdeas(true); setIdeas(null);
     try {
       const r = await apiPost<{ ideas?: string[]; note?: string }>("/api/suggestions");

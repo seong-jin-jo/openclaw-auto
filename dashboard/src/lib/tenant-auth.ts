@@ -1,6 +1,29 @@
 import crypto from "node:crypto";
 import { db } from "@/lib/db";
-import { getUserFromToken } from "@/lib/supabase";
+import { verifySupabaseJwt } from "@/lib/supabase";
+import { reportFailure } from "@/lib/observability";
+
+// 인증 검증기/서비스 장애(503) 전용 알림 헬퍼 — 무효 토큰(401)·정지 계정(403)은 정상적인 사용자
+// 입력 결과일 뿐이라 알림 대상이 아니다(스팸 방지). "서비스가 검증 자체를 수행 못 함"(DB/Supabase
+// 연결 실패)만 고위험 장애 신호라 여기 한 곳(throw 직전)에서만 report한다 — effectiveTenantId를
+// 호출하는 모든 API route가 각자 다시 보고하지 않아도 되는 단일 경계.
+function reportAuthServiceUnavailable(reason: string): void {
+  void reportFailure({ event: "auth_service_unavailable", severity: "critical", context: { reason } });
+}
+
+// 무효/미인식 bearer 또는 검증 인프라 장애 시 던짐 — effectiveTenantId가 절대 fallback/공유 root로
+// 새지 않게 하는 타입드 에러. 401(무효·미인식) / 403(유효하지만 계정 정지·이용불가) / 503(검증기·env·DB 장애).
+// code는 안정된 machine-readable 식별자(클라가 accessPaused/accountUnavailable 화면분기에 사용).
+export class AuthError extends Error {
+  readonly status: 401 | 403 | 503;
+  readonly code: string;
+  constructor(reason: "invalid" | "unavailable" | "forbidden", message: string, code?: string) {
+    super(message);
+    this.name = "AuthError";
+    this.status = reason === "unavailable" ? 503 : reason === "forbidden" ? 403 : 401;
+    this.code = code ?? (reason === "unavailable" ? "service_unavailable" : reason === "forbidden" ? "forbidden" : "invalid_token");
+  }
+}
 
 // 인증모델 b — 테넌트 API 토큰. 포크 프론트가 Bearer 토큰으로 중앙 API 호출 →
 // 서버가 토큰을 tenant_id로 해석해 withTenant(tenant)로 못박음(클라가 tenant_id 못 속임).
@@ -33,13 +56,6 @@ export async function resolveTenantToken(raw: string | null | undefined): Promis
   return row.tenant_id;
 }
 
-// 요청에서 테넌트 해석: Authorization: Bearer <token>. 없거나 무효면 null.
-export async function resolveTenantFromRequest(request: Request): Promise<string | null> {
-  const raw = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") || "";
-  if (!raw.startsWith("osmu_")) return null; // 테넌트 토큰만(운영자 DASHBOARD_AUTH_TOKEN은 별개)
-  return resolveTenantToken(raw);
-}
-
 // Host 헤더 → tenant_id (커스텀 도메인 CNAME, 호스팅 멀티테넌트). tenants.domain 매핑.
 // localhost/빈 host는 skip(운영자 중앙 도메인·dev → fallback 사용).
 export async function resolveTenantByHost(request: Request): Promise<string | null> {
@@ -49,16 +65,6 @@ export async function resolveTenantByHost(request: Request): Promise<string | nu
   const [row] = await sql<{ id: string }[]>`
     SELECT id FROM tenants WHERE domain = ${host} AND status = 'active' LIMIT 1`;
   return row?.id || null;
-}
-
-// 로그인 세션(Supabase Auth JWT) → tenant. Authorization: Bearer <jwt>(osmu_ 아님)에서 추출·검증.
-// 고객 셀프서브: 가입/로그인한 사람의 테넌트로 스코프. 유저는 있으나 테넌트 없으면(첫 로그인) 자동 생성.
-export async function resolveTenantBySession(request: Request): Promise<string | null> {
-  const raw = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") || "";
-  if (!raw || raw.startsWith("osmu_")) return null; // osmu_는 테넌트 토큰 경로(별개)
-  const user = await getUserFromToken(raw);
-  if (!user) return null;
-  return ensureTenantForUser(user.id, user.email ?? null);
 }
 
 // auth 유저 → tenant(owner_auth_id 매핑). 없으면 생성(첫 로그인 셀프서브 온보딩).
@@ -72,6 +78,10 @@ export async function ensureTenantForUser(authId: string, email: string | null):
   if (existing) return existing.id;
   const base = (email?.split("@")[0] || "user").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 24) || "user";
   const slug = `${base}-${crypto.randomBytes(3).toString("hex")}`;
+  // OSMU v1.0.0 셀프서브 오픈: 신규 가입 = 'active'(계정 자체는 가입 즉시 이용 가능 — 공개 대시보드).
+  // 공유 claude -p("공유 AI") 사용은 tenants.shared_cli_approved_at(null=미승인, 기본값)으로 별도
+  // 게이트된다(lib/anthropic.ts) — BYO Anthropic 키를 등록하면 그 게이트와 무관하게 즉시 생성 가능.
+  // 기존 테넌트는 이 INSERT를 안 타므로 status 영향 없음(ON CONFLICT DO UPDATE는 owner_auth_id만 갱신).
   const [row] = await sql<{ id: string }[]>`
     INSERT INTO tenants (slug, name, status, tier, owner_auth_id)
     VALUES (${slug}, ${email || slug}, 'active', 'team', ${authId})
@@ -80,14 +90,86 @@ export async function ensureTenantForUser(authId: string, email: string | null):
   return row.id;
 }
 
-// 유효 tenantId 결정. 우선순위: ① 로그인 세션 > ② API 토큰 > ③ 커스텀 도메인(Host) > ④ 클라 fallback(운영자).
-// 고객은 로그인 세션으로, 포크는 osmu_ 토큰으로, CNAME은 Host로, 운영자 중앙은 fallback으로 스코프.
-export async function effectiveTenantId(request: Request, fallback?: string | null): Promise<string | null> {
-  const fromSession = await resolveTenantBySession(request);
-  if (fromSession) return fromSession;
-  const fromToken = await resolveTenantFromRequest(request);
-  if (fromToken) return fromToken;
+// 테넌트 status 조회 — 승인 게이트 판정용. DB 장애는 호출측이 AuthError(503)로 승격.
+export async function getTenantStatus(tenantId: string): Promise<string | null> {
+  const sql = db();
+  const [row] = await sql<{ status: string }[]>`SELECT status FROM tenants WHERE id = ${tenantId} LIMIT 1`;
+  return row?.status ?? null;
+}
+
+// fail-closed: status='active'만 통과. paused는 기존 code, 그 외(레거시 pending/null/미존재/
+// 알수없는 값)는 전부 account_unavailable로 403 — 레이스나 조회 실패를 "통과"로 해석하지 않는다
+// (Codex 2nd-pass 반려 수정). OSMU v1.0.0부터 계정 게이트는 paused/unavailable만 — 신규 가입은
+// ensureTenantForUser가 즉시 'active'로 생성하므로 'pending' 분기(approval_required)는 제거됐다.
+// 공유 AI 사용 승인(별도 entitlement)은 lib/anthropic.ts의 shared_cli_approved_at 게이트를 본다.
+async function assertTenantActive(tenantId: string): Promise<void> {
+  let status: string | null;
+  try {
+    status = await getTenantStatus(tenantId);
+  } catch {
+    reportAuthServiceUnavailable("tenant_status_db_unreachable");
+    throw new AuthError("unavailable", "테넌트 상태 확인 실패(DB 연결 불가)");
+  }
+  if (status === "active") return;
+  if (status === "paused") throw new AuthError("forbidden", "계정 이용이 중지되었습니다", "account_paused");
+  throw new AuthError("forbidden", "테넌트 상태를 확인할 수 없습니다", "account_unavailable");
+}
+
+// 유효 tenantId 결정.
+// Bearer가 있으면 그 토큰이 유일한 진실원이다 — 운영자 정확일치만 fallback(쿼리 tenant_id 등으로
+// 워크스페이스 선택) 허용, osmu_/JWT는 각각 매핑된 tenant만 반환, 그 외 모든 bearer는 AuthError를
+// throw해 fallback/공유 root로 새지 않는다(구 버전 버그: 무효 bearer가 조용히 fallback으로 폴스루).
+// Bearer가 아예 없을 때만 CNAME(Host) → 그래도 없으면 fallback. 단 fallback은 "운영자 토큰이
+// 아예 설정되지 않았고(=서비스가 인증을 강제할 수 없는 상태) 동시에 dev(NODE_ENV!=production)
+// 이거나 명시적 OSMU_AUTH_OPTIONAL=1"일 때만 허용한다(proxy L0-1과 동일 조건). Codex 2nd-pass
+// 반려 수정: DASHBOARD_AUTH_TOKEN이 설정된 production에서 Authorization 헤더 없이 오는 요청은
+// (프록시가 이미 401을 냈어야 정상이지만) effectiveTenantId 레벨에서도 fallback으로 새지 않게
+// 독립적으로 막는다 — 방어심층이 프록시 한 겹에만 의존하지 않도록.
+// opts.allowInactive: true면 paused/그 외 비-active 테넌트여도 403 없이 tenantId를 반환한다.
+// /api/me 같은 "테넌트 상태 자체를 조회해 화면분기해야 하는" 경로 전용 — 일반 tenant-aware API는
+// 기본값(false)으로 호출해 paused/그 외를 403(account_paused/account_unavailable)으로 막는다.
+export async function effectiveTenantId(
+  request: Request,
+  fallback?: string | null,
+  opts?: { allowInactive?: boolean },
+): Promise<string | null> {
+  const raw = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") || "";
+  const operatorToken = process.env.DASHBOARD_AUTH_TOKEN;
+
+  if (raw) {
+    if (operatorToken && raw === operatorToken) return fallback || null;
+
+    if (raw.startsWith("osmu_")) {
+      let tenantId: string | null;
+      try {
+        tenantId = await resolveTenantToken(raw);
+      } catch {
+        reportAuthServiceUnavailable("osmu_token_db_unreachable");
+        throw new AuthError("unavailable", "osmu 토큰 검증 실패(DB 연결 불가)");
+      }
+      if (!tenantId) throw new AuthError("invalid", "알 수 없거나 폐기된 osmu 토큰");
+      if (!opts?.allowInactive) await assertTenantActive(tenantId);
+      return tenantId;
+    }
+
+    const verified = await verifySupabaseJwt(raw);
+    if (verified.status === "unavailable") {
+      reportAuthServiceUnavailable("supabase_jwt_verify_unreachable");
+      throw new AuthError("unavailable", "세션 토큰 검증 불가(Supabase 연결 실패)");
+    }
+    if (verified.status === "invalid") {
+      throw new AuthError("invalid", "유효하지 않은 세션 토큰");
+    }
+    const tenantId = await ensureTenantForUser(verified.user.id, verified.user.email ?? null);
+    if (!opts?.allowInactive) await assertTenantActive(tenantId);
+    return tenantId;
+  }
+
   const fromHost = await resolveTenantByHost(request);
   if (fromHost) return fromHost;
-  return fallback || null;
+
+  const authDisabledDev = !operatorToken && (process.env.NODE_ENV !== "production" || process.env.OSMU_AUTH_OPTIONAL === "1");
+  if (authDisabledDev) return fallback || null;
+
+  throw new AuthError("invalid", "Authorization 헤더 없음 — 무인증 fallback은 auth-disabled dev에서만 허용");
 }
