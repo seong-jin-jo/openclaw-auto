@@ -206,3 +206,13 @@ qa = **in-progress** (ship 게이트 잠김 유지). 아침 체크리스트 1~3 
 - GA4 Measurement ID 주입 및 DebugView 이벤트 수신.
 - 신규 가입 lead가 production `auth.users`에 저장되는 실제 signup 경로와 tenant 생성.
 - Instagram/Threads 계정 리네임·프로필 업로드·첫 draft 수동 발행.
+
+## 2026-07-16 v1 후보 운영 배포·핵심 E2E
+
+- deploy run `29422450258` / head `b361d951` → success. DB schema/RLS, build, up, smoke 전 step success.
+- live health → 200 + DB up. live browser public E2E → PASS.
+- 운영 가입 폼 합성 사용자 생성 → auth user + confirmed email + active tenant 저장 관찰. shared AI 최초 미승인.
+- 미승인 `/api/studio/text` → 403. operator `approve_shared_ai` → 승인시각 DB 저장. 승인 후 실제 shared `claude -p` 생성 → 200, 5개 출력 키와 한국어 Threads 결과 관찰.
+- 비밀번호 재설정 UI → `r.cupid@gmail.com` 요청 성공 및 `recovery_sent_at` DB 저장. 메일함 수신은 미검증.
+- Health Monitor run `29438972593` → success, HTTP 200, up→up, state cache 저장. Slack 실수신은 webhook secret 부재로 미검증.
+- 판정: 핵심 제품 경로는 운영에서 관찰됨. Google OAuth·GA4 DebugView·Slack 실알림·SMTP 메일함 수신·Meta 실제 업로드가 남아 있어 `v1.0.0` 태그는 보류.

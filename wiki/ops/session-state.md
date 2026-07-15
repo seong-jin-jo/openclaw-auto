@@ -3,7 +3,32 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **qa**, ship은 `/approve qa` 후). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-15 01:50 KST · `main` · **OSMU v1.0.0 launch build 검증 중, 외부 설정/QA/배포 대기**
+**최종 갱신:** 2026-07-16 03:22 KST · `main` · **OSMU v1 후보 운영 배포·핵심 E2E 통과, 외부 4설정/SNS 업로드 대기**
+
+---
+
+### 🔄 Codex handoff — v1 후보 운영 배포 후 직접 E2E (2026-07-16 03:22 KST)
+
+**handoff primary:** 사용자 지정 tmux pane `%7`. 출시 커밋 `b361d951`은 `origin/main`에 push됐고 GitHub Actions deploy run `29422450258`로 운영 반영됨.
+
+**직접 관찰된 운영 증거:**
+- Deploy run success: DB schema/RLS, dashboard image build, containers up, login/auth/Google preflight/operator API smoke 전 step success.
+- live `/api/health` → HTTP 200, `{ok:true,db:"up"}`. `/login` 200 + `비밀번호 찾기`. Google preflight는 앱의 한국어 안내 400(provider disabled)로 raw JSON 누출 없음.
+- live browser E2E → `/`, `/login`, `/signup -> /login?mode=signup`, storage clear 후 로그인 폼 모두 PASS.
+- 실제 가입 lead: `osmu.qa.lead.1784132705@example.com`을 운영 가입 폼으로 생성. 운영자 API에서 auth user confirmed, tenant slug 생성, `tenant_status=active`, 최초 `shared_ai_approved_at=null` 확인.
+- 신규 사용자 생성 요청 → HTTP 403(공유 AI 미승인 안내). 운영자 API `approve_shared_ai` 후 승인시각 DB 저장, `/api/me sharedAiApproved=true`, 동일 세션 실제 `/api/studio/text` → HTTP 200 + threads/x/instagram/shorts/image_prompt 생성 관찰.
+- 비밀번호 찾기: `r.cupid@gmail.com`으로 UI 요청 → 성공 안내, 운영 auth user `recovery_sent_at=2026-07-15 18:00:07Z` 저장 확인. 메일함 실수신은 회장 확인 전 미검증.
+- Health Monitor workflow run `29438972593` success: live HTTP 200, previous/current `up`, transition `none`, state cache 저장. Slack webhook은 미설정이라 실제 알림 수신 미검증.
+- 최신 운영 가입자: auth users 6명. active tenant 4명(기존 3 + 합성 QA 1), 미확인/tenant 없음 2명. 비밀번호 필드는 조회·반환하지 않음.
+
+**외부 차단(완료/태그 금지):**
+1. Supabase Google provider disabled — Google OAuth 실왕복 불가.
+2. GA4 Measurement ID GitHub secret 없음 — consent banner/script는 live에서 no-op, DebugView 미검증.
+3. Slack Incoming Webhook GitHub secret 없음 — transition 알림 실수신 미검증.
+4. custom SMTP 메일함 실수신 미확인(요청/DB 기록은 성공).
+5. Instagram/Threads 프로필 리네임·`profile-osmu-v1.png` 업로드·첫 draft 수동 게시 미실행.
+
+**정확한 다음 액션:** 회장이 아래 외부 콘솔 4설정을 완료/값 전달 → GitHub secrets 반영 및 재배포 → Google 실로그인, reset 메일 수신, Slack ping, GA4 DebugView 직접 검증 → Meta 프로필/첫 draft 수동 업로드 → 그 뒤만 `v1.0.0` tag.
 
 ---
 
