@@ -12,37 +12,19 @@ import { trackEvent } from "@/lib/analytics/events";
 // sessionStorage (not localStorage) — scoped to this tab/redirect round-trip only, no identity.
 const OAUTH_PENDING_KEY = "osmu_oauth_pending";
 
-// 고객 셀프서브 로그인/가입. 성공 시 Supabase 세션의 access token을 저장 →
+// 고객 셀프서브 로그인 = Google OAuth 단일 경로 (회장 확정 2026-07-16: 이메일/비밀번호 가입·로그인·
+// 비밀번호 재설정 전부 제거, SMTP/Resend 도입 안 함). 성공 시 Supabase 세션의 access token을 저장 →
 // 이후 API 호출이 Bearer로 첨부 → 서버가 검증해 그 고객 테넌트로 스코프.
 export default function LoginPage() {
-  // support /signup or ?mode=signup to default to signup mode
-  const [mode, setMode] = useState<"login" | "signup">("login");
-  const [email, setEmail] = useState("");
-  const [pw, setPw] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
-  const [resetSent, setResetSent] = useState(false);
-  const [recovery, setRecovery] = useState(false);
-  const [newPw, setNewPw] = useState("");
-  // 가입 후 이메일 확인 대기 상태(Confirm email ON). 세션이 안 와도 막다른 골목 대신 안내.
-  const [pending, setPending] = useState<string | null>(null);
-  const [resendCooldown, setResendCooldown] = useState(0);
-  const cooldownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   // OAuth login event de-dupe: enter() can be invoked twice (getSession() resolve +
   // onAuthStateChange SIGNED_IN) — this guards a single `login` fire per mount regardless.
   const oauthTrackedRef = useRef(false);
 
-  // 이메일 확인/OAuth 복귀 감지: Supabase는 #access_token=...&refresh_token=... 으로 되돌아온다.
-  // 클라가 URL 해시를 파싱(detectSessionInUrl 기본 on)하므로 mount 시 세션을 거둬 토큰 저장 후 진입.
-  // /login?mode=signup · /signup 딥링크 — useState 초기값은 SSR/하이드레이션 타이밍에 따라
-  // 적용이 안 될 수 있어(라이브 실측 2026-07-02), mount 후 URL 기준으로 한 번 더 동기화.
-  useEffect(() => {
-    try {
-      const p = new URLSearchParams(window.location.search);
-      if (p.get("mode") === "signup" || window.location.pathname === "/signup") setMode("signup");
-    } catch { /* ignore */ }
-  }, []);
-
+  // OAuth 복귀 감지: Supabase는 #access_token=...&refresh_token=... 또는 PKCE ?code=... 으로
+  // 되돌아온다. 클라가 URL 해시를 파싱(detectSessionInUrl 기본 on)하므로 mount 시 세션을 거둬
+  // 토큰 저장 후 진입.
   useEffect(() => {
     // supabase env 미설정 시 createBrowserSupabase가 throw → 페이지 死 방지(가드).
     let unsub: (() => void) | undefined;
@@ -51,34 +33,20 @@ export default function LoginPage() {
       const hash = window.location.hash || "";
       const p = new URLSearchParams(window.location.search);
       const hadHashToken = hash.includes("access_token");
-      const isRecovery = p.get("type") === "recovery" || hash.includes("type=recovery");
-      // Codex review 2026-07-14 (round 2): hadHashToken alone is NOT a valid OAuth signal — an
-      // email confirmation link or password-recovery callback also returns via
-      // #access_token=...&refresh_token=... (both use Supabase's implicit-flow hash mechanics),
-      // so classifying "has a hash token" as "was OAuth" mislabels those as oauth logins. The
-      // ONLY truth source for "this callback originated from our Google button" is the
-      // OAUTH_PENDING_KEY marker we set ourselves immediately before the redirect — it covers
-      // both PKCE (?code=...) and hash-based OAuth callbacks since we control both entry points.
       const isOAuthCallbackError =
         hash.includes("error=") || hash.includes("error_code=") ||
         !!p.get("error") || !!p.get("error_code");
       if (isOAuthCallbackError) {
         // OAuth cancel/error (e.g. user closed the Google consent screen) — no session will ever
         // arrive for this attempt. Clear the marker now so it can't leak into and mislabel the
-        // next unrelated auth event on this tab (e.g. a plain email sign-in right after).
+        // next unrelated auth attempt on this tab.
         try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch { /* ignore */ }
       }
       const enter = (accessToken: string) => {
         setAuthToken(accessToken);
-        if (isRecovery) {
-          setRecovery(true);
-          if (hadHashToken) history.replaceState(null, "", window.location.pathname);
-          return;
-        }
         if (hadHashToken) history.replaceState(null, "", window.location.pathname);
         // OAuth 콜백으로 세션이 확정된 순간(백엔드 확인 후) — 신규/기존 구분 불가라 login으로 기록.
-        // 분류 근거는 오직 osmu_oauth_pending 마커뿐(위 설명) — hadHashToken은 더 이상 단독으로
-        // OAuth 신호로 쓰지 않는다(이메일 확인/recovery도 해시 토큰으로 돌아오기 때문).
+        // 분류 근거는 오직 osmu_oauth_pending 마커뿐(위 설명).
         // enter()가 getSession()+onAuthStateChange 양쪽에서 호출될 수 있어 ref로 1회만 발행.
         if (!oauthTrackedRef.current) {
           let oauthPending = false;
@@ -94,9 +62,8 @@ export default function LoginPage() {
       sb.auth.getSession().then(({ data }) => {
         if (data.session) enter(data.session.access_token);
       }).catch(() => { /* ignore */ });
-      // 다른 탭에서 이메일 확인/로그인하면 이 탭도 자동 진입 — "이메일 확인" pending 화면이
-      // 막다른 골목이 되지 않게(가입 confirm 후 원본 탭도 로그인 처리). Supabase는 세션을
-      // localStorage로 탭 간 동기화하므로 onAuthStateChange가 SIGNED_IN을 받는다.
+      // 다른 탭에서 로그인하면 이 탭도 자동 진입 — Supabase는 세션을 localStorage로 탭 간
+      // 동기화하므로 onAuthStateChange가 SIGNED_IN을 받는다.
       const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
         if (session?.access_token) enter(session.access_token);
       });
@@ -104,117 +71,8 @@ export default function LoginPage() {
     } catch (e) {
       if (typeof console !== "undefined") console.warn("[login] supabase init:", e);
     }
-    return () => { unsub?.(); if (cooldownTimer.current) clearInterval(cooldownTimer.current); };
+    return () => { unsub?.(); };
   }, []);
-
-  const startCooldown = (secs: number) => {
-    setResendCooldown(secs);
-    if (cooldownTimer.current) clearInterval(cooldownTimer.current);
-    cooldownTimer.current = setInterval(() => {
-      setResendCooldown((s) => {
-        if (s <= 1 && cooldownTimer.current) { clearInterval(cooldownTimer.current); return 0; }
-        return s - 1;
-      });
-    }, 1000);
-  };
-
-  const submit = async () => {
-    if (!email || !pw || busy) {
-      setMsg("이메일과 비밀번호를 입력해주세요.");
-      return;
-    }
-    setBusy(true); setMsg("");
-    // Codex review 2026-07-14 (round 2): a stale OAUTH_PENDING_KEY marker (e.g. left over from a
-    // cancelled/never-completed Google redirect earlier in this tab) must not leak into a
-    // completely unrelated email sign-in/sign-up right after — clear it before every email auth
-    // attempt so `enter()`'s marker check can never mislabel this as an oauth login.
-    try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch { /* ignore */ }
-    try {
-      const sb = createBrowserSupabase();
-      if (mode === "signup") {
-        // 이메일 확인 후 반드시 이 앱(현재 origin)의 /login으로 복귀 — Supabase Site URL 기본값에 의존 금지.
-        // (Supabase Auth > URL Configuration > Redirect URLs 허용목록에 이 origin이 등록돼 있어야 적용됨)
-        const { data, error } = await sb.auth.signUp({
-          email,
-          password: pw,
-          options: { emailRedirectTo: `${window.location.origin}/login` },
-        });
-        if (error) { setMsg(error.message); return; }
-        // 백엔드(Supabase Auth)가 계정 생성을 확정(data.user)한 뒤에만 sign_up 발행 — 클릭 시점
-        // 아님. "이메일 확인 필요" 모드는 세션 없이 data.user만 오는 성공 경로라, 세션 유무와
-        // 무관하게 여기서 한 번만 발행(Codex review 2026-07-14 #4 — 이전엔 세션 있을 때만 잡아
-        // confirm-email-required 가입 성공을 놓쳤음).
-        if (data.user) trackEvent({ name: "sign_up", params: { method: "email" } });
-        if (data.session) { setAuthToken(data.session.access_token); window.location.href = "/"; }
-        else { setPending(email); startCooldown(60); }
-      } else {
-        const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
-        if (error) { setMsg(error.message); return; }
-        // 백엔드가 세션을 실제로 발급한 뒤에만 login 이벤트 발행 — 클릭 시점 아님.
-        if (data.session) { setAuthToken(data.session.access_token); trackEvent({ name: "login", params: { method: "email" } }); window.location.href = "/"; }
-      }
-    } catch (e) {
-      setMsg(e instanceof Error ? e.message : String(e));
-    } finally { setBusy(false); }
-  };
-
-  const resend = async () => {
-    if (!pending || resendCooldown > 0 || busy) return;
-    setBusy(true); setMsg("");
-    try {
-      const sb = createBrowserSupabase();
-      const { error } = await sb.auth.resend({ type: "signup", email: pending, options: { emailRedirectTo: `${window.location.origin}/login` } });
-      if (error) { setMsg(error.message); startCooldown(60); return; }
-      setMsg("인증 메일을 다시 보냈습니다. 받은편지함을 확인해주세요.");
-      startCooldown(60);
-    } catch (e) {
-      setMsg(e instanceof Error ? e.message : String(e));
-    } finally { setBusy(false); }
-  };
-
-  const sendPasswordReset = async () => {
-    if (!email.trim()) {
-      setMsg("비밀번호를 재설정할 이메일을 입력해주세요.");
-      return;
-    }
-    if (busy) return;
-    setBusy(true); setMsg("");
-    try {
-      const sb = createBrowserSupabase();
-      const { error } = await sb.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/login?type=recovery`,
-      });
-      if (error) {
-        setMsg(oauthErrorMessage(error.message, "비밀번호 재설정"));
-        return;
-      }
-      setResetSent(true);
-      setMsg("비밀번호 재설정 메일을 보냈습니다. 받은편지함과 스팸함을 확인해주세요.");
-    } catch (e) {
-      setMsg(oauthErrorMessage(e instanceof Error ? e.message : String(e), "비밀번호 재설정"));
-    } finally { setBusy(false); }
-  };
-
-  const updatePassword = async () => {
-    if (newPw.length < 8) {
-      setMsg("새 비밀번호는 8자 이상으로 입력해주세요.");
-      return;
-    }
-    if (busy) return;
-    setBusy(true); setMsg("");
-    try {
-      const sb = createBrowserSupabase();
-      const { error } = await sb.auth.updateUser({ password: newPw });
-      if (error) {
-        setMsg(oauthErrorMessage(error.message, "비밀번호 재설정"));
-        return;
-      }
-      setMsg("비밀번호가 변경되었습니다. 다시 로그인해주세요.");
-      setTimeout(() => { window.location.href = "/login"; }, 800);
-    } catch (e) {
-      setMsg(oauthErrorMessage(e instanceof Error ? e.message : String(e), "비밀번호 재설정"));
-    } finally { setBusy(false); }
-  };
 
   const google = async () => {
     setMsg("");
@@ -236,86 +94,20 @@ export default function LoginPage() {
     } finally { setBusy(false); }
   };
 
-  // 가입 후 확인 대기 화면 — 막다른 골목 대신 재전송 + 명확한 다음 단계 안내.
-  if (pending) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-bg px-4">
-        <div className="w-full max-w-sm p-6 rounded-2xl border border-border bg-surface/50">
-          <h1 className="text-lg font-semibold text-text mb-1">이메일을 확인해주세요</h1>
-          <p className="text-xs text-subtle mb-1"><span className="text-muted">{pending}</span> 으로 인증 메일을 보냈습니다.</p>
-          <p className="text-xs text-subtle mb-5">메일의 링크를 클릭하면 자동으로 로그인되어 대시보드로 이동합니다. (스팸함도 확인해주세요)</p>
-
-          <button onClick={resend} disabled={busy || resendCooldown > 0}
-            className="w-full px-4 py-2 text-sm bg-surface-2 hover:bg-surface-2 text-muted rounded-lg disabled:opacity-50">
-            {resendCooldown > 0 ? `인증 메일 재전송 (${resendCooldown}s)` : "인증 메일 재전송"}
-          </button>
-
-          {msg && <p className="text-xs mt-3 text-amber-400">{msg}</p>}
-
-          <button onClick={() => { setPending(null); setMode("login"); setMsg(""); }}
-            className="mt-4 text-xs text-subtle hover:text-muted">
-            ← 로그인으로 돌아가기
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (recovery) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-bg px-4">
-        <div className="w-full max-w-sm p-6 rounded-2xl border border-border bg-surface/50">
-          <h1 className="text-lg font-semibold text-text mb-1">새 비밀번호 설정</h1>
-          <p className="text-xs text-subtle mb-5">재설정 메일로 인증되었습니다. 새 비밀번호를 입력하세요.</p>
-          <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="새 비밀번호"
-            onKeyDown={(e) => e.key === "Enter" && updatePassword()}
-            className="w-full px-3 py-2 text-sm bg-surface border border-border rounded-lg text-muted focus:border-accent outline-none" />
-          <button onClick={updatePassword} disabled={busy}
-            className="w-full mt-2 px-4 py-2 text-sm bg-accent text-text rounded-lg disabled:opacity-50">
-            {busy ? "변경 중…" : "비밀번호 변경"}
-          </button>
-          {msg && <p className="text-xs mt-3 text-amber-400">{msg}</p>}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm p-6 rounded-2xl border border-border bg-surface/50">
         <h1 className="text-lg font-semibold text-text mb-1">OSMU 마케팅 자동화</h1>
-        <p className="text-xs text-subtle mb-5">{mode === "login" ? "로그인" : "가입"}하고 내 브랜드 콘텐츠를 자동 생성·발행하세요.</p>
+        <p className="text-xs text-subtle mb-5">Google 계정으로 로그인하고 내 브랜드 콘텐츠를 자동 생성·발행하세요.</p>
 
         <div className="space-y-2">
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="이메일"
-            className="w-full px-3 py-2 text-sm bg-surface border border-border rounded-lg text-muted focus:border-accent outline-none" />
-          <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="비밀번호"
-            onKeyDown={(e) => e.key === "Enter" && submit()}
-            className="w-full px-3 py-2 text-sm bg-surface border border-border rounded-lg text-muted focus:border-accent outline-none" />
-          <button onClick={submit} disabled={busy}
-            className="w-full px-4 py-2 text-sm bg-accent text-text rounded-lg disabled:opacity-50">
-            {busy ? "처리 중…" : mode === "login" ? "로그인" : "가입하기"}
-          </button>
-          <button onClick={google} className="w-full px-4 py-2 text-sm bg-surface-2 hover:bg-surface-2 text-muted rounded-lg">
+          <button onClick={google} disabled={busy}
+            className="w-full px-4 py-2 text-sm bg-accent text-accent-fg rounded-lg disabled:opacity-50">
             {busy ? "확인 중…" : "Google로 계속"}
           </button>
         </div>
 
         {msg && <p className="text-xs mt-3 text-amber-400">{msg}</p>}
-        {resetSent && <p className="text-xs mt-2 text-subtle">메일 링크는 보안을 위해 일정 시간 후 만료됩니다.</p>}
-
-        <div className="mt-4 flex items-center justify-between gap-3">
-          <button onClick={() => { setMode(mode === "login" ? "signup" : "login"); setMsg(""); setResetSent(false); }}
-            className="text-xs text-subtle hover:text-muted">
-            {mode === "login" ? "계정이 없으신가요? 가입" : "이미 계정이 있으신가요? 로그인"}
-          </button>
-          {mode === "login" && (
-            <button onClick={sendPasswordReset} disabled={busy}
-              className="text-xs text-accent hover:text-accent disabled:opacity-50">
-              비밀번호 찾기
-            </button>
-          )}
-        </div>
       </div>
     </div>
   );

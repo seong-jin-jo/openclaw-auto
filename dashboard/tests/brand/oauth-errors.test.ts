@@ -6,6 +6,7 @@ describe("oauthErrorMessage", () => {
     const msg = oauthErrorMessage('{"code":400,"error_code":"validation_failed","msg":"Unsupported provider: provider is not enabled"}', "Google");
     expect(msg).toContain("Google 로그인이 아직 설정되지 않았습니다");
     expect(msg).not.toContain("Unsupported provider");
+    expect(msg).not.toContain("이메일로 가입");
   });
 
   it("Meta tester invite 미수락 에러를 조치 가능한 문장으로 바꾼다", () => {
@@ -18,6 +19,13 @@ describe("oauthErrorMessage", () => {
     const msg = oauthErrorMessage("supabaseUrl is required.", "Google");
     expect(msg).toContain("로그인 설정");
     expect(msg).not.toContain("supabaseUrl");
+  });
+
+  it("Supabase env missing 안내는 Google-only 정책과 맞게 'Google 로그인'을 언급하고 이메일 로그인을 언급하지 않는다", () => {
+    const msg = oauthErrorMessage("supabaseUrl is required.", "Google");
+    expect(msg).toContain("Google 로그인이 안 되면");
+    expect(msg).not.toContain("이메일 로그인");
+    expect(msg).not.toContain("이메일로 가입");
   });
 
   it("Meta 개발자 역할 권한 부족 에러를 조치 가능한 문장으로 바꾼다", () => {

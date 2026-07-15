@@ -216,3 +216,33 @@ qa = **in-progress** (ship 게이트 잠김 유지). 아침 체크리스트 1~3 
 - 비밀번호 재설정 UI → `r.cupid@gmail.com` 요청 성공 및 `recovery_sent_at` DB 저장. 메일함 수신은 미검증.
 - Health Monitor run `29438972593` → success, HTTP 200, up→up, state cache 저장. Slack 실수신은 webhook secret 부재로 미검증.
 - 판정: 핵심 제품 경로는 운영에서 관찰됨. Google OAuth·GA4 DebugView·Slack 실알림·SMTP 메일함 수신·Meta 실제 업로드가 남아 있어 `v1.0.0` 태그는 보류.
+
+## 2026-07-16 06:31 KST 외부 설정 반영·운영 재검증
+
+- Google provider 활성화 후 live preflight가 HTTP 200 + Supabase Google auth URL을 반환함을 관찰.
+- 운영 `Google로 계속` 클릭 후 `accounts.google.com` 로그인 화면과 등록된 Supabase callback URI로 이동함을 실제 브라우저에서 관찰. Google 계정 입력 후 앱 복귀는 미검증.
+- GitHub Secrets `OSMU_GA4_MEASUREMENT_ID`, `OSMU_ALERT_SLACK_WEBHOOK_URL` 저장 확인.
+- Slack webhook 실제 POST → `ok`, exit 0 관찰. 단 채팅에 노출된 URL이므로 출시 전 회전 필요.
+- 첫 deploy run `29451844552`는 잘못된 compose service 입력 `osmu`로 기동 실패. 실제 서비스명 `openclaw-dashboard-osmu`로 재실행한 run `29452057807`은 build/up/smoke 전 단계 success.
+- 운영 브라우저 GA4: 동의 전 consent storage null 및 gtag script 없음. 동의 후 `G-MEEQ2D8C1J` gtag.js HTTP 200, consent granted, config, `/login` page_view dataLayer 적재를 관찰. GA4 DebugView 수신은 미검증.
+- SMTP 공급자 credential은 로컬/GitHub에 없음. custom SMTP 설정과 실제 reset 메일 수신은 미검증.
+- 회장 보고상 Instagram 계정은 생성됨. 계정 URL·프로필 반영·첫 게시물과 Threads 상태는 화면 증거 전 미검증.
+
+## 2026-07-16 Google-only auth 전환 QA
+
+- 정책: 고객 인증은 Google OAuth 단일 경로. SMTP/Resend와 이메일/비밀번호 가입·로그인·재설정은 사용하지 않음. 운영자 비밀번호 인증은 유지.
+- 코드: 로그인 이메일 API/UI 제거, `/signup`→`/login`, 랜딩/오류 카피 Google-only화, 배포 스모크와 gstack E2E의 구 이메일 계약 제거.
+- Codex 2차 리뷰에서 `AuthGate` 이메일 카피 잔존과 배포 스모크의 `비밀번호 찾기` 필수 조건을 발견해 수정·회귀 테스트 추가.
+- 직접 검증: focused 4 files/43 PASS, full 63 files/548 PASS/8 skip, `tsc --noEmit` PASS, production build 161 pages PASS.
+- 로컬 gstack E2E: `/login` Google CTA만 표시, 이메일/비밀번호/recovery 없음, `/signup` 307→`/login`, storage clear 후 동일 UX, Google 계정 로그인 화면 이동 관찰.
+- 운영 auth users 6명은 모두 현재 `email` provider only임을 Admin API로 확인. 삭제하지 않으며 동일 이메일 Google 첫 로그인에서 identity linking/tenant 보존을 검증해야 함.
+- 미검증: 변경 코드 운영 배포, Supabase Email provider 비활성화, 실제 Google 계정 선택→앱 복귀, 기존 user/tenant 보존, 신규 Google lead 저장.
+
+### 2026-07-16 08:13 KST 독립 QA HIGH 종결
+
+- 독립 QA가 관리자 고객 화면의 `비밀번호 재설정 메일`이 제거된 고객 recovery UI를 가리키는 죽은 기능임을 발견했다.
+- API의 Supabase `/auth/v1/recover` 호출, UI 버튼/상태, `send_password_reset` 관측성 enum을 제거했다. 직접 API 호출은 400 unsupported이며 메일 fetch는 호출되지 않는다.
+- 계정 정지/재개와 공유 AI 승인/회수는 유지했다. 관련 focused 8 files/98 PASS, 전체 63 files/548 PASS/8 skip, `tsc --noEmit` PASS, production build 161 pages PASS.
+- 로컬 gstack E2E에서 `/login` Google CTA 단일 표시, 이메일/비밀번호/recovery 부재, `/signup`→`/login`, storage clear 후 동일 UX를 다시 관찰했다.
+- 로컬 E2E 서버에는 이번 실행에서 Supabase 공개 env가 없어 Google 외부 화면 이동을 재실행하지 못했다. 해당 이동은 직전 운영/로컬 실행에서 관찰됐지만, 변경 코드 배포 후 계정 선택→앱 복귀·identity linking·lead/tenant 저장은 여전히 미검증이다.
+- SMTP/Resend는 출시 선행조건이 아니다. Google-only 강제를 위해 Supabase Email provider를 비활성화해야 한다.

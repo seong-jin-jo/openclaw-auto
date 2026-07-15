@@ -6,12 +6,19 @@ import { describe, expect, it } from "vitest";
 // environment: 'node'; no existing test in this repo mounts a full React component tree —
 // see tests/setup.ts). Mounting login/page.tsx or studio/page.tsx to click-simulate a failed
 // vs successful API response is out of scope for a minimal-footprint addition, so this
-// contract test instead statically proves the two "fire only after confirmed backend success"
-// requirements by asserting the trackEvent(...) call sites are lexically inside the
+// contract test instead statically proves the "fire only after confirmed backend success"
+// requirement by asserting the trackEvent(...) call sites are lexically inside the
 // success-guarded branch, not before it / not unconditionally in the handler.
 //
 // This is deliberately a source-shape check, not a full behavioral test — see the final report
 // RED_TEAM section for what was traced by hand (the actual variables passed at each call site).
+//
+// 2026-07-16: Google-only auth decision (owner directive) removed all email/password sign-in,
+// sign-up, email-confirm resend, and password reset/recovery code from customer login UI — SMTP
+// is not being introduced. The prior "sign_up fires on data.user" / "login fires on
+// signInWithPassword session" contract tests asserted on code paths that no longer exist and are
+// removed here rather than weakened. The OAuth-only contracts below (marker set/consume timing,
+// PKCE coverage, one-shot dedupe) are unaffected and still hold.
 
 const dashboardRoot = path.resolve(__dirname, "../..");
 
@@ -19,51 +26,24 @@ function read(relPath: string): string {
   return readFileSync(path.join(dashboardRoot, relPath), "utf8");
 }
 
-describe("sign_up / publish_success fire only after confirmed API success, not on click alone", () => {
-  it("login/page.tsx: sign_up trackEvent fires after the error guard, gated on `data.user` (account actually created)", () => {
-    // 2026-07-14 Codex review #4: sign_up must fire for BOTH outcomes of a successful signUp()
-    // call — with an immediate session, and the "email confirmation required" no-session case
-    // (data.user present, data.session absent) — since both are a real created account. It must
-    // still fire strictly after the error guard, and strictly before the session/pending branch.
+describe("login/page.tsx: Google-only auth — no email/password auth surface", () => {
+  it("never calls Supabase email/password or recovery APIs from the customer login UI", () => {
     const src = read("src/app/login/page.tsx");
-    const signupBlock = src.slice(src.indexOf("mode === \"signup\""), src.indexOf("else { setPending(email)"));
-    expect(signupBlock).toContain("await sb.auth.signUp(");
-    expect(signupBlock).toContain('if (error) { setMsg(error.message); return; }');
-    const errorGuardIdx = signupBlock.indexOf("if (error) { setMsg(error.message); return; }");
-    const userGuardIdx = signupBlock.indexOf("if (data.user)");
-    const sessionGuardIdx = signupBlock.indexOf("if (data.session)");
-    const trackIdx = signupBlock.indexOf('trackEvent({ name: "sign_up"');
-    expect(userGuardIdx).toBeGreaterThan(-1);
-    expect(userGuardIdx).toBeGreaterThan(errorGuardIdx);
-    // trackEvent must be lexically inside the `if (data.user)` line (same statement), and that
-    // whole check must precede the session/pending branch — so it fires regardless of which
-    // branch (session vs. pending-confirmation) is taken next.
-    expect(trackIdx).toBeGreaterThan(userGuardIdx);
-    expect(trackIdx - userGuardIdx).toBeLessThan(80); // same statement, not a distant unconditional call
-    expect(userGuardIdx).toBeLessThan(sessionGuardIdx);
+    expect(src).not.toContain("signInWithPassword");
+    expect(src).not.toContain("auth.signUp(");
+    expect(src).not.toContain("resetPasswordForEmail");
+    expect(src).not.toContain("updateUser(");
+    expect(src).not.toContain("auth.resend(");
   });
 
-  it("login/page.tsx: sign_up is NOT unconditionally called before the error guard (no fire on failed signUp)", () => {
+  it("does not read or branch on a signup query/mode param — Google is the only entry point", () => {
     const src = read("src/app/login/page.tsx");
-    const signupBlock = src.slice(src.indexOf("mode === \"signup\""), src.indexOf("else { setPending(email)"));
-    const errorGuardIdx = signupBlock.indexOf("if (error) { setMsg(error.message); return; }");
-    const trackIdx = signupBlock.indexOf('trackEvent({ name: "sign_up"');
-    expect(trackIdx).toBeGreaterThan(errorGuardIdx);
+    expect(src).not.toContain('mode === "signup"');
+    expect(src).not.toContain('get("mode")');
   });
+});
 
-  it("login/page.tsx: login trackEvent is inside the `if (data.session)` branch, after signInWithPassword() resolves", () => {
-    const src = read("src/app/login/page.tsx");
-    const loginBlockStart = src.indexOf("signInWithPassword({ email, password: pw })");
-    const loginBlockEnd = src.indexOf("} catch (e) {", loginBlockStart);
-    const loginBlock = src.slice(loginBlockStart, loginBlockEnd);
-    const errorGuardIdx = loginBlock.indexOf("if (error) { setMsg(error.message); return; }");
-    const sessionGuardIdx = loginBlock.indexOf("if (data.session)");
-    const trackIdx = loginBlock.indexOf('trackEvent({ name: "login"');
-    expect(errorGuardIdx).toBeGreaterThanOrEqual(0);
-    expect(trackIdx).toBeGreaterThan(errorGuardIdx);
-    expect(trackIdx).toBeGreaterThan(sessionGuardIdx);
-  });
-
+describe("publish_success fires only after confirmed API success, not on click alone", () => {
   it("studio/page.tsx: publish_success trackEvent only fires inside `if (r?.ok)` after apiPost('/api/publish') resolves", () => {
     const src = read("src/app/studio/page.tsx");
     const attemptIdx = src.indexOf('trackEvent({ name: "publish_attempt"');
@@ -125,8 +105,9 @@ describe("OAuth login tracking covers PKCE (not just implicit-flow hash tokens)"
   });
 
   // 2026-07-14 Codex review round 2: hadHashToken alone is NOT a valid OAuth signal — email
-  // confirmation and password-recovery callbacks also return via #access_token=..., so the
-  // marker must be the SOLE classification truth source.
+  // confirmation and password-recovery callbacks also returned via #access_token=... under the
+  // old email-auth UI. That UI is gone (Google-only, 2026-07-16), but the marker remains the
+  // sole classification truth source (defense in depth against any future hash-returning flow).
   it("(a) the oauth-tracking condition inside enter() checks ONLY oauthPending — hadHashToken is never OR'd in", () => {
     const src = read("src/app/login/page.tsx");
     const enterBlockStart = src.indexOf("const enter = (accessToken: string)");
@@ -149,22 +130,9 @@ describe("OAuth login tracking covers PKCE (not just implicit-flow hash tokens)"
     expect(trackIdx - guardIdx).toBeLessThan(200); // same guarded block, not a distant unconditional call
   });
 
-  it("(c) the email sign-in/sign-up path clears any stale marker BEFORE calling signUp/signInWithPassword", () => {
-    const src = read("src/app/login/page.tsx");
-    const submitStart = src.indexOf("const submit = async ()");
-    const submitEnd = src.indexOf("const resend = async", submitStart);
-    const block = src.slice(submitStart, submitEnd);
-    const clearIdx = block.indexOf("sessionStorage.removeItem(OAUTH_PENDING_KEY)");
-    const signUpIdx = block.indexOf("await sb.auth.signUp(");
-    const signInIdx = block.indexOf("await sb.auth.signInWithPassword(");
-    expect(clearIdx).toBeGreaterThan(-1);
-    expect(clearIdx).toBeLessThan(signUpIdx);
-    expect(clearIdx).toBeLessThan(signInIdx);
-  });
-
   it("(d) an OAuth callback error (error=/error_code= in hash or query) clears the marker before enter() could ever consume it", () => {
     const src = read("src/app/login/page.tsx");
-    const effectStart = src.indexOf("const sb = createBrowserSupabase();", src.indexOf("useEffect(() => {\n    // supabase env"));
+    const effectStart = src.indexOf("const sb = createBrowserSupabase();", src.indexOf("useEffect(() => {"));
     const enterStart = src.indexOf("const enter = (accessToken: string)");
     const block = src.slice(effectStart, enterStart);
     expect(block).toContain("isOAuthCallbackError");

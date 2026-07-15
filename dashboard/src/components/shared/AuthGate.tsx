@@ -109,7 +109,7 @@ const CHANNEL_ICONS = [
 /* ─── Landing Page ─── */
 function LandingPage() {
   const scrollToLogin = useCallback(() => {
-    // 고객 가입/로그인 페이지로 (이메일·비번·구글). 운영자 진입은 /operator로 분리.
+    // 고객 가입/로그인 페이지로 (Google OAuth 전용). 운영자 진입은 /operator로 분리.
     window.location.href = "/login";
   }, []);
 
@@ -323,10 +323,10 @@ function LandingPage() {
 
           <div className="text-center mb-6">
             <h3 className="text-lg font-bold text-text mb-2">시작하기</h3>
-            <p className="text-xs text-subtle">이메일로 가입하고 내 브랜드 콘텐츠를 자동 생성·발행하세요</p>
+            <p className="text-xs text-subtle">Google 계정으로 시작하고 내 브랜드 콘텐츠를 자동 생성·발행하세요</p>
           </div>
 
-          {/* 고객 가입/로그인 — 이메일·비번·구글 (중앙정렬된 /login 페이지) */}
+          {/* 고객 가입/로그인 — Google OAuth 전용 (중앙정렬된 /login 페이지) */}
           <a
             href="/login"
             className="block w-full py-3 rounded-lg text-text font-semibold text-sm text-center transition-all"

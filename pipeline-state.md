@@ -4,16 +4,16 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: ship            # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design, build, qa]   # ADOPTED(pre-harness) — 성숙·배포된 앱
+current_stage: qa              # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design, build]   # Google-only auth 변경 QA 진행 중
 approved_artifacts: { qa: docs/qa-tracker.md@2026-07-16 }
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
   build:      { status: approved, artifacts_ok: true }   # dashboard/src(ADOPTED)
-  qa:         { status: approved, artifacts_ok: true }   # 2026-07-16 운영 가입·승인·실생성 E2E까지 재검증
-  ship:       { status: in-progress, artifacts_ok: false }
+  qa:         { status: in-progress, artifacts_ok: true }   # Google-only auth 로컬 E2E/독립 QA 완료, 운영 E2E/승인 대기
+  ship:       { status: pending, artifacts_ok: false }
 override: false
 override_reason: ""
 override_expires: ""
@@ -31,7 +31,19 @@ override_expires: ""
 - [x] prod-health-200 (반복 실측 ✅)
 - [x] prod-demo-login-200 (2026-07-16 운영 가입→로그인→active tenant 저장 직접 관찰)
 - [ ] e2e-happy (가입→미승인 403→운영자 승인→shared Claude 실생성 200 ✅ / Google 실로그인·SNS 실발행은 외부설정 대기)
-- [x] e2e-edge (vitest 540 pass/8 skip + 라이브 미승인 403·Google provider 400 안내 실측)
+- [x] e2e-edge (vitest 548 pass/8 skip + 라이브 미승인 403·Google provider preflight 200 실측)
+
+## 2026-07-16 Google-only auth build
+- 이메일/비밀번호 가입·로그인·확인메일·재설정 UI/API 호출 제거. `/signup`은 `/login`으로 수렴.
+- 랜딩·오류문구·배포 스모크·gstack E2E를 `Google로 계속` 단일 경로 계약으로 변경.
+- 운영자 고객 API/UI의 `send_password_reset`·Supabase `/recover` 경로와 관측성 enum을 제거. 관리자 기능은
+  계정 정지/재개와 공유 AI 승인/회수만 유지하며, 직접 API 호출도 400 unsupported로 거부한다.
+- 기존 auth user 6명은 삭제하지 않음. 조회 결과 전원 현재 `email` provider only이며, 동일 이메일 Google
+  첫 로그인 시 identity linking 및 tenant 보존을 운영에서 확인해야 함.
+- 직접 검증: Google-only/operator focused 98 PASS, full 63 files/548 PASS/8 skip, tsc PASS, build PASS(161 pages),
+  local gstack E2E PASS(`/login`, `/signup` 307, storage clear, email/password controls absent), Google 계정 화면 이동.
+- QA 게이트 재개: Supabase Email provider 비활성화, 실제 Google 계정→앱 복귀→기존 user/tenant 보존과 신규
+  lead 저장 운영 E2E 후 `/approve qa` 필요.
 
 ## 최근 build (qa 대기 중 — ship 전 /approve qa 필요)
 - 셀프서브 코어: A1 증류 generateText 통일, A2 온보딩 위저드, A3 키검증, /api/health+autoheal+슬랙경보,
@@ -61,12 +73,19 @@ override_expires: ""
   직접 증거: health 200/DB up, live browser public E2E PASS, 합성 QA 가입자 auth user+active tenant 저장,
   shared AI 미승인 403→operator 승인시각 저장→실제 `claude -p` 생성 200, password recovery 요청시각 저장,
   Health Monitor run `29438972593` HTTP 200/up 상태 캐시 저장. **ship 완료/`v1.0.0` 태그는 잠금 유지**:
-  Google provider enable·GA4 Measurement ID/DebugView·Slack webhook 실수신·custom SMTP 메일함 수신·
-  Instagram/Threads 프로필/첫 게시물 실제 업로드가 남음. (artifact: docs/qa-tracker.md 2026-07-16 섹션)
+  Google 계정 최종 OAuth 왕복·GA4 DebugView 수신·custom SMTP 메일함 수신·Instagram/Threads 프로필/첫
+  게시물 실제 확인이 남음. (artifact: docs/qa-tracker.md 2026-07-16 섹션)
+2026-07-16 06:31 KST — Google/GA4/Slack 외부 설정 반영.
+  Google preflight 200 및 실제 accounts.google.com 로그인 화면 이동 관찰. GA4/Slack GitHub secrets 저장 후
+  deploy run `29452057807` success. 운영 브라우저에서 동의 전 GA script 없음, 동의 후 G-MEEQ2D8C1J script
+  200 + consent update + page_view 적재 관찰. Slack webhook 실제 POST `ok` 관찰. Google 계정 입력 후 앱 복귀,
+  GA4 DebugView 수신은 미검증. 첫 deploy run `29451844552`는 잘못된 service 입력 `osmu`로 실패했고 실제
+  service `openclaw-dashboard-osmu`로 재실행해 시정.
 
 ## Blocked / Notes
-- Google OAuth: Supabase Google provider가 disabled. Google OAuth client + Supabase provider enable 후 실왕복 필요.
-- GA4: `OSMU_GA4_MEASUREMENT_ID` secret 없음. ID 주입·재배포·DebugView 실수신 필요.
-- Slack: `OSMU_ALERT_SLACK_WEBHOOK_URL` secret 없음. webhook 주입 후 실제 ping/transition 수신 필요.
-- SMTP: reset 요청과 DB 기록은 성공했으나 custom SMTP 및 메일함 실수신 확인 필요.
-- Meta: 프로필 리네임/이미지 업로드/첫 draft 수동 발행은 계정 소유자 화면 작업 필요.
+- Google OAuth: provider 활성화·Google 로그인 화면 이동 관찰. Google-only 코드 운영 미배포, 계정 입력→앱 복귀 실왕복 필요.
+- Email auth: Google-only 정책 강제를 위해 Supabase Email provider 비활성화 필요. 기존 6 users는 삭제 금지.
+- GA4: ID 주입·재배포·동의 기반 script/page_view 적재 관찰. GA4 DebugView 실수신 필요.
+- Slack: webhook secret 주입 및 실제 ping `ok` 관찰. 채팅에 노출된 webhook은 출시 전 회전 필요.
+- SMTP: Google-only 정책 확정으로 도입하지 않음. 비밀번호 재설정 경로 폐기.
+- Meta: 회장 보고상 Instagram 계정 생성. 프로필 URL/리네임/이미지/첫 draft 및 Threads는 미검증.

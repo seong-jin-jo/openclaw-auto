@@ -135,3 +135,26 @@ describe("AuthGate — 채널 수량 과장 회귀 방지 계약(SCHEDULABLE_PLA
     }
   });
 });
+
+// Google-only 가입 정책 회귀 방지 계약 (2026-07-16 owner directive: 이메일/비번 가입 전면 제거).
+// 고객 랜딩(LandingPage) 카피·주석이 다시 "이메일로 가입"/"이메일·비번" 류 문구를 노출하면
+// 실제로는 /login이 Google OAuth 버튼만 제공하는데 랜딩만 이메일 가입을 약속하는 정책 불일치가
+// 재발한다. 이 계약은 LandingPage 섹션(고객 대면)만 스코프한다 — 운영자(/operator) 비밀번호
+// 로그인 경로나 이 테스트 파일 자체의 과거 커밋 이력 언급은 대상이 아니다.
+describe("AuthGate — Google-only 가입 카피 회귀 방지 계약(고객 랜딩 스코프)", () => {
+  const landingBlock = () =>
+    SRC.slice(SRC.indexOf("function LandingPage()"), SRC.indexOf("export function AuthGate"));
+
+  it("LandingPage 섹션에 이메일/비밀번호 가입을 약속하는 문구가 없다", () => {
+    const block = landingBlock();
+    expect(block).not.toMatch(/이메일로\s*가입/);
+    expect(block).not.toMatch(/이메일\s*·\s*비번/);
+    expect(block).not.toMatch(/이메일\s*\/\s*비밀번호/);
+    expect(block).not.toMatch(/비밀번호(를|로)\s*(설정|입력)하고\s*가입/);
+  });
+
+  it("LandingPage 섹션은 Google 계정으로 시작함을 명시한다", () => {
+    const block = landingBlock();
+    expect(block).toMatch(/Google\s*계정으로\s*시작/);
+  });
+});

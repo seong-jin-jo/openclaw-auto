@@ -1,5 +1,4 @@
 import { db } from "@/lib/db";
-import { publicOrigin } from "@/lib/social-connect";
 import { ensureTenantForUser } from "@/lib/tenant-auth";
 import { reportFailure, normalizeOperatorAction } from "@/lib/observability";
 
@@ -31,7 +30,6 @@ interface AuthUserRow {
   created_at: string;
   email_confirmed_at: string | null;
   confirmation_sent_at: string | null;
-  recovery_sent_at: string | null;
   last_sign_in_at: string | null;
   tenant_id: string | null;
   tenant_slug: string | null;
@@ -52,40 +50,6 @@ function operatorError(request: Request): Response | null {
     return Response.json({ error: "operator token required" }, { status: 401 });
   }
   return null;
-}
-
-function supabaseBase(): string {
-  return (process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
-}
-
-function supabaseAnonKey(): string {
-  return process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-}
-
-async function sendPasswordResetEmail(email: string, request: Request): Promise<void> {
-  const base = supabaseBase();
-  const anon = supabaseAnonKey();
-  if (!base || !anon) {
-    throw new Error("Supabase URL/anon key missing");
-  }
-
-  const redirectTo = `${publicOrigin(request)}/login?type=recovery`;
-  const url = new URL(`${base}/auth/v1/recover`);
-  url.searchParams.set("redirect_to", redirectTo);
-
-  const res = await fetch(url.href, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: anon,
-      Authorization: `Bearer ${anon}`,
-    },
-    body: JSON.stringify({ email }),
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || `Supabase recover ${res.status}`);
-  }
 }
 
 export async function GET(request: Request) {
@@ -133,7 +97,6 @@ export async function GET(request: Request) {
         u.created_at::text,
         u.email_confirmed_at::text,
         u.confirmation_sent_at::text,
-        u.recovery_sent_at::text,
         u.last_sign_in_at::text,
         t.id::text AS tenant_id,
         t.slug AS tenant_slug,
@@ -204,7 +167,7 @@ export async function POST(request: Request) {
 
   let actionForReport: string | undefined;
   try {
-    const body = await request.json().catch(() => ({})) as { action?: string; email?: string; user_id?: string };
+    const body = await request.json().catch(() => ({})) as { action?: string; user_id?: string };
     actionForReport = body.action;
 
     if (body.action === "pause_user" || body.action === "resume_user") {
@@ -214,25 +177,12 @@ export async function POST(request: Request) {
       return await handleSharedAiApprovalAction(body.action, body.user_id);
     }
 
-    const email = String(body.email || "").trim().toLowerCase();
-    if (!email || !email.includes("@")) {
-      return Response.json({ error: "valid email required" }, { status: 400 });
-    }
-
-    if (body.action === "send_password_reset") {
-      await sendPasswordResetEmail(email, request);
-      return Response.json({
-        ok: true,
-        action: "send_password_reset",
-        email,
-        note: "비밀번호 원문은 조회하지 않았고 재설정 메일만 발송했습니다.",
-      });
-    }
-
+    // 고객 인증은 Google OAuth 전용(SMTP/Resend/이메일 재설정 없음) — send_password_reset을 포함한
+    // 그 외 모든 action은 미지원. 4개 user_id 기반 액션만 허용한다.
     return Response.json({ error: "unsupported action" }, { status: 400 });
   } catch (e) {
-    // 운영자 뮤테이션(정지/재개/공유AI 승인·회수/비밀번호 재설정) 실행 실패 — 고위험 경계.
-    // action(요청 바디 원문, 공격자 통제 가능)은 고정 enum으로 정규화한 값만 담고, user_id/email/
+    // 운영자 뮤테이션(정지/재개/공유AI 승인·회수) 실행 실패 — 고위험 경계.
+    // action(요청 바디 원문, 공격자 통제 가능)은 고정 enum으로 정규화한 값만 담고, user_id/
     // e.message(임의 텍스트)는 애초에 넘기지 않는다(observability.ts 스키마가 마지막 방어선).
     // 응답 status/body는 기존 그대로(fire-and-forget이 이 500 응답을 바꾸지 않는다).
     void reportFailure({

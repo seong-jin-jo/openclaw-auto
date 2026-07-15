@@ -57,7 +57,6 @@ export const OPERATOR_ACTIONS = [
   "resume_user",
   "approve_shared_ai",
   "revoke_shared_ai",
-  "send_password_reset",
   "unknown",
 ] as const;
 export const PUBLISH_PLATFORMS = [

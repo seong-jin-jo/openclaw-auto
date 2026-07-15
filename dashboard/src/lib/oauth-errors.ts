@@ -26,10 +26,10 @@ export function oauthErrorMessage(raw: string, provider?: string): string {
     if (provider && !/google/i.test(provider)) {
       return `${p}OAuth provider가 현재 서버/프로젝트에서 활성화되지 않았습니다. 앱 콘솔과 서버 설정에서 해당 provider를 켜야 합니다.`;
     }
-    return "Google 로그인이 아직 설정되지 않았습니다. 이메일로 가입하거나 관리자에게 Supabase Google provider 활성화를 요청하세요.";
+    return "Google 로그인이 아직 설정되지 않았습니다. 관리자에게 Supabase Google provider 활성화를 요청하세요.";
   }
   if (/supabaseUrl is required|supabase.*required|auth.*url.*required/i.test(msg)) {
-    return `${p}로그인 설정이 서버/환경변수에 아직 없습니다. 이메일 로그인이 안 되면 관리자에게 Supabase 설정을 확인해달라고 요청하세요.`;
+    return `${p}로그인 설정이 서버/환경변수에 아직 없습니다. Google 로그인이 안 되면 관리자에게 Supabase 설정을 확인해달라고 요청하세요.`;
   }
   if (/has not accepted the invite to test the app|1349245/i.test(msg)) {
     return `${p}테스트 사용자 초대를 아직 수락하지 않았습니다. Meta App Dashboard에서 테스터 초대 수락 후 다시 연결하세요.`;

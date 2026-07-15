@@ -110,10 +110,16 @@ jobs:
           echo "login=$L api/me=$M google=$G"
           [ "$L" = "200" ] || { echo "::error::/login HTTP $L — 로그인 페이지 死"; exit 1; }
           [ "$M" = "401" ] || { echo "::error::/api/me HTTP $M — 인증 게이트 이상(401이어야 안전)"; exit 1; }
-          # "local PASS ≠ live 반영" 재발 방지(2026-07-05 구버전 라이브 사고) — /login에 비밀번호 찾기
-          # 링크가 없으면 구버전 배포가 그대로 떠 있다는 신호.
-          echo "$LOGIN_HTML" | grep -q '비밀번호 찾기' \
-            || { echo "::error::/login HTML에 '비밀번호 찾기' 없음 — 구버전 배포 감지"; exit 1; }
+          # "local PASS ≠ live 반영" 재발 방지(2026-07-05 구버전 라이브 사고, 2026-07-16 Google-only
+          # 전환으로 마커 갱신) — /login에 'Google로 계속' CTA가 없으면 구버전 배포가 그대로 떠
+          # 있다는 신호. 반대로 이메일/비밀번호 UI가 남아 있으면 Google-only 전환이 반영 안 된
+          # 구버전이 떠 있다는 신호(Codex review blocking finding, 2026-07-16 — 배포 스모크가
+          # 옛 이메일/비밀번호 마커를 요구하면 Google-only 배포가 항상 FAIL한다).
+          echo "$LOGIN_HTML" | grep -q 'Google로 계속' \
+            || { echo "::error::/login HTML에 'Google로 계속' CTA 없음 — 구버전 배포 감지"; exit 1; }
+          if echo "$LOGIN_HTML" | grep -q '비밀번호 찾기'; then
+            echo "::error::/login HTML에 '비밀번호 찾기'(구 이메일/비밀번호 UI) 존재 — Google-only 전환 미반영"; exit 1
+          fi
           # /api/auth/google은 인증 없이 열려있어야 하는 public preflight 라우트 — 정상 상태코드는
           # 200(authUrl 반환) 또는 400(Google/Supabase 미설정 한국어 안내) 둘뿐이다. 401(미들웨어가
           # 막음)은 물론 404/403/500 등 그 외 코드도 전부 "반영 안 된 배포/라우트 이상" 신호이므로
@@ -131,4 +137,4 @@ jobs:
           )
           echo "operator/customers=$OC"
           [ "$OC" = "200" ] || { echo "::error::/api/operator/customers HTTP $OC — 200이어야 함(DB 스키마 누락/운영자 토큰/라우트 장애 신호)"; exit 1; }
-          echo "✅ 스모크 통과: 로그인페이지·인증게이트·supabase 빌드주입·비밀번호찾기·google preflight·operator/customers 정상"
+          echo "✅ 스모크 통과: 로그인페이지·인증게이트·supabase 빌드주입·Google-only(비밀번호UI無)·google preflight·operator/customers 정상"

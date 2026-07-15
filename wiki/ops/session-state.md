@@ -1,9 +1,55 @@
 # 세션 작업 상태 (재실행 가능한 핸드오프)
 
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
-> 단계 진실원: 루트 `pipeline-state.md`(현재 **qa**, ship은 `/approve qa` 후). QA 증거: `docs/qa-tracker.md`.
+> 단계 진실원: 루트 `pipeline-state.md`(현재 **qa in-progress**, Google-only auth 운영 검증 대기). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-16 03:22 KST · `main` · **OSMU v1 후보 운영 배포·핵심 E2E 통과, 외부 4설정/SNS 업로드 대기**
+**최종 갱신:** 2026-07-16 08:13 KST · `main` · **Google-only auth·관리자 recovery 제거 검증 완료, QA 승인·운영 실왕복 대기**
+
+---
+
+### Codex handoff — Google-only 관리자 recovery 제거 (2026-07-16 08:13 KST)
+
+**handoff basis:** 사용자 최신 지시인 Google OAuth 단일 인증을 기준으로 `session-state.md`와 tmux `%7` 출시 트랙을 대조했다. 두 소스 모두 같은 OSMU 출시 목표이며, 현재 Codex pane `%7`에서 이어갔다.
+
+**구현:** 관리자 고객 API/UI에서 Supabase recovery 호출, `send_password_reset` 액션·버튼·상태·관측성 enum을 제거했다. 계정 정지/재개와 공유 AI 승인/회수, 운영자 토큰 인증, 기존 auth user 레코드는 유지했다. 직접 API의 과거 reset 액션은 400 unsupported다.
+
+**직접 증거:** focused 8 files/98 PASS, full 63 files/548 PASS/8 skip, tsc PASS, production build 161 pages PASS. local gstack E2E에서 Google CTA 단일 표시, email/password/recovery 부재, `/signup`→`/login`, storage clear 후 동일 화면을 관찰했다. 이번 로컬 서버에는 Supabase 공개 env가 없어 Google 외부 이동 재검증은 미실행이며, 앞선 운영/로컬 관찰 증거만 유효하다.
+
+**정확한 다음 액션:** 관련 파일만 선별 commit → `/approve qa` → 운영 배포 → Supabase Email provider OFF → 실제 Google 계정 왕복으로 기존 user identity linking/tenant 보존 및 신규 lead 저장 관찰. GA4 DebugView, Slack webhook 회전, Instagram 프로필/첫 게시물은 ship 잔여다.
+
+---
+
+### Codex handoff — Google-only auth 전환 (2026-07-16 07:38 KST)
+
+**사용자 확정:** 고객 로그인은 Google OAuth만 사용. Resend/SMTP 및 이메일/비밀번호 가입·로그인·재설정은 폐기. 운영자 비밀번호 인증과 기존 auth user 레코드는 유지.
+
+**구현:** login/signup/AuthGate/oauth-errors, 배포 workflow, gstack E2E, 관련 계약 테스트를 Google-only로 변경. Codex 2nd-pass에서 랜딩 이메일 카피 잔존과 배포 스모크의 `비밀번호 찾기` 필수 조건을 발견해 수정.
+
+**직접 증거:** focused 43 PASS, full 548 PASS/8 skip, tsc PASS, build 161 pages PASS. local gstack E2E에서 Google CTA 단일 표시, 이메일/비밀번호/recovery 부재, `/signup`→`/login`, storage clear, 실제 accounts.google.com 이동 관찰. code-builder 근거 게이트 PASS(WebSearch 7회).
+
+**운영 데이터:** auth users 6명 모두 현재 email-only. 삭제하지 않는다. Supabase 공식 identity linking에 따라 같은 이메일 Google 첫 로그인으로 기존 user에 Google identity가 연결되는지 운영에서 직접 확인한다.
+
+**정확한 다음 액션:** 독립 QA 결과 확인 → 관련 파일 선별 commit → `/approve qa` 후 배포 → Supabase Email provider 비활성화 → 실제 Google 계정 왕복·기존 user/tenant 보존·신규 lead 저장 관찰. Instagram 계정 URL/Threads/첫 게시물과 GA4 DebugView, Slack webhook 회전은 별도 ship 잔여.
+
+---
+
+### Codex handoff — Google·GA4·Slack 운영 반영 (2026-07-16 06:31 KST)
+
+**관찰됨:** Google preflight 200과 accounts.google.com 로그인 화면 이동. GA4/Slack GitHub secrets 저장. Slack 실제 POST `ok`. deploy run `29452057807` success. GA4 동의 전 미로드, 동의 후 측정 ID script 200과 page_view dataLayer 적재.
+
+**실패·시정:** 첫 run `29451844552`에 잘못된 compose service명 `osmu`를 입력해 기동 실패. 실제 서비스명 `openclaw-dashboard-osmu`로 재실행해 성공.
+
+**남은 정확한 액션:** 회장 Google 계정으로 OAuth 완료 후 앱 복귀 확인, GA4 DebugView 확인, Instagram 프로필 URL 확인과 Threads/첫 게시물 실행. Google-only 정책 확정으로 SMTP는 도입하지 않는다. 채팅에 노출된 Slack webhook은 회전 후 secret 교체·재검증.
+
+---
+
+### Codex handoff — 외부 설정 실행 안내 전달 (2026-07-16 05:49 KST)
+
+**handoff basis:** `wiki/ops/session-state.md`와 현재 `openclaw-auto` tmux pane 목록을 확인했다. 운영 출시 트랙의 진실원은 이 파일과 `pipeline-state.md`이며, ship 차단 항목에는 변동이 없다.
+
+**이번 조치:** 회장에게 외부 콘솔 작업을 즉시 안내하지 않고 차단 상태만 반복 보고한 하네스 위반을 시정했다. Google OAuth, GA4, Slack webhook, SMTP 실메일, Instagram/Threads 설정의 정확한 URL·클릭 경로·프로젝트 입력값·완료 증거를 `wiki/ops/osmu-v1-external-setup.md`에 기록했다.
+
+**정확한 다음 액션:** 회장이 Google provider 활성화 완료, GA4 `G-...`, Slack webhook, reset 메일 수신 여부, SNS 완료 화면을 전달하면 Codex가 CLI secret 반영·재배포·운영 E2E를 즉시 실행한다. 비밀값은 wiki/pipeline-state에 기록하지 않는다.
 
 ---
 
@@ -29,6 +75,12 @@
 5. Instagram/Threads 프로필 리네임·`profile-osmu-v1.png` 업로드·첫 draft 수동 게시 미실행.
 
 **정확한 다음 액션:** 회장이 아래 외부 콘솔 4설정을 완료/값 전달 → GitHub secrets 반영 및 재배포 → Google 실로그인, reset 메일 수신, Slack ping, GA4 DebugView 직접 검증 → Meta 프로필/첫 draft 수동 업로드 → 그 뒤만 `v1.0.0` tag.
+
+**2026-07-16 05:20 KST 최신 재확인:**
+- live health 재호출 → HTTP 200, DB up, 9ms.
+- live Google preflight 재호출 → HTTP 400, provider disabled 한국어 안내. 실 Google 로그인은 여전히 불가.
+- GitHub Secrets 재조회 → 기존 Supabase/DB secrets는 존재하지만 `OSMU_GA4_MEASUREMENT_ID`, `OSMU_ALERT_SLACK_WEBHOOK_URL`은 여전히 없음.
+- 회장에게 필요한 입력은 `Google provider 활성화 완료 / GA4 G-... / Slack webhook / reset 메일 수신 여부 / Instagram·Threads 리네임 결과` 다섯 항목. 값 수신 전에는 ship 완료·`v1.0.0` 태그 금지.
 
 ---
 
@@ -1316,3 +1368,60 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
 2. 확정되면 launch-pack-2026-07-16.md §1 "프로필 이미지: ⛔ 별도 제작 필요" 행을 이 산출물 경로로 갱신.
 3. 확정본을 실제 IG/Threads 리네임 화면에 업로드하는 것은 여전히 회장 수동 실행(naming.md §5 항목2와 동일 계열 작업).
 4. 이 서브태스크는 위 "OSMU v1.0.0 48시간 출시 빌드"의 메인 코드 검증 트랙과 별개 — 메인 트랙 다음 액션은 위 Codex 섹션 그대로 유효.
+
+---
+
+### 🔎 Google-only auth 재감사 (2026-07-16, 이 세션)
+
+**핸드오프 기준**: 이번 턴은 세션 전환이 아니라 직전 턴(같은 세션)에서 위임한 재감사의 연속 — tmux pane/session-state 인계 판단 불필요.
+
+**한 일**: 직전 Google-only auth 변경(dashboard/src/app/login/page.tsx, signup/page.tsx, lib/oauth-errors.ts + 테스트 2건)을 "테스트 통과=정합" 가정 없이 code-builder 서브에이전트로 재감사 위임. Supabase identity-linking + Next.js redirect() 공식문서 WebSearch 대조, 6개 레드팀 리스크(콜백 세션마커/동일이메일 계정충돌/signup 리다이렉트/recovery hash 제거/analytics 이벤트/provider-disabled UX) 코드라인 판정.
+
+**검증(관찰됨+테스트됨)**: `npx vitest run tests/analytics/success-only-wiring.contract.test.ts tests/brand/oauth-errors.test.ts` → 15/15 PASS. verify-agent-quality.sh code-builder → PASS(WebSearch 7회, 소크라/레드팀 마커 6개, 뇌피셜 아님).
+
+**결과**: 코드 결함 없음, 수정 없음. 발견된 유일 항목은 코드가 아니라 데이터/운영 리스크.
+
+**⛔ 회수 필요 (회장 판단)**: 이 서비스에 이메일/비밀번호로 기존 가입한 고객이 실제 DB에 있는지 확인 필요 — 있으면 Google-only 전환 후 그 고객은 로그인 수단 상실. 추천: Supabase `auth.identities`에서 provider='email'만 있고 'google' identity 없는 유저 수 조회 → 0명이면 조치불필요, 있으면 Google 계정 연결 안내 발송.
+
+**다음 액션**: 위 회수 항목 회장 확인 대기. 그 외 이 서브태스크는 종결.
+
+### 🔧 Codex 리뷰 지적 2건 수정 — Google-only 랜딩 카피 (2026-07-16, 이 세션)
+
+**핸드오프 기준**: 직전 재감사와 동일 세션 연속 — tmux pane/session-state 전환 판단 불필요(같은 세션 내 이어지는 작업, 사용자에게 별도 확인 불요 사안).
+
+**한 일**: 위 재감사에서는 안 걸렸던 Codex 2nd-pass 리뷰의 신규 지적 2건 수정.
+1. `dashboard/src/components/shared/AuthGate.tsx` — 고객 랜딩(LandingPage) 카피/주석 3곳에서 "이메일로 가입"/"이메일·비번·구글" 문구를 Google OAuth 전용 문구로 교체(L112 주석, L326 CTA 서브카피, L329 주석). 운영자(/operator) 경로는 미접촉.
+2. `dashboard/src/lib/oauth-errors.ts` — Supabase env-missing 안내문의 "이메일 로그인이 안 되면"을 "Google 로그인이 안 되면"으로 교체.
+3. 회귀 방지 계약 테스트 확장: `dashboard/tests/isolation/authgate-contract.test.ts`에 LandingPage 섹션만 스코프한 신규 describe(이메일 문구 부재 + Google 문구 존재 양쪽 검증), `dashboard/tests/brand/oauth-errors.test.ts`에 env-missing 문구 계약 케이스 추가.
+
+**검증(관찰됨)**: `npx vitest run tests/isolation/authgate-contract.test.ts tests/brand/oauth-errors.test.ts tests/analytics/success-only-wiring.contract.test.ts` → 3 files/36 tests 전부 PASS. `npx tsc --noEmit` → 에러 없음. `npm run build`(Next.js production) → 성공, 전 라우트 정상 생성.
+
+**범위**: 위 4개 파일만 변경(AuthGate.tsx, oauth-errors.ts, authgate-contract.test.ts, oauth-errors.test.ts). login/signup/docs/pipeline-state 등 무관 파일 미접촉.
+
+**wiki 갱신 필요 여부**: 카피 문구 수정이며 인증 아키텍처/스키마/API 계약 변경 없음 — 별도 아키텍처 wiki 페이지 갱신 대상 아님(이 session-state 기록으로 충분).
+
+**미검증**: 프로덕션 실배포 Google OAuth 클릭 플로우(로컬 tsc/build/vitest만 수행).
+
+**미결 회수 항목(변화 없음, 위 섹션 그대로 유효)**: 기존 이메일/비밀번호 가입 고객 실존 여부 — 회장 확인 대기 중.
+
+**다음 액션**: 이 서브태스크(카피 수정) 종결. 남은 판단은 위 섹션의 ⛔ 회수 항목(기존 password 고객 실존 여부)뿐.
+
+### 🧹 QA HIGH 수정 — operator 죽은 비밀번호 재설정 기능 제거 (2026-07-16, 이 세션)
+
+**핸드오프 기준**: 직전 두 섹션과 동일 세션 연속(같은 대화, tmux pane 전환 없음) — 별도 확인 불요.
+
+**한 일**: 독립 QA가 지적한 HIGH 항목(operator 화면의 죽은 SMTP/Supabase-recover 비밀번호 재설정 기능)을 end-to-end 제거. 고객 인증은 Google OAuth 전용 유지, operator pause/resume/approve_shared_ai/revoke_shared_ai는 무변경.
+1. `dashboard/src/app/api/operator/customers/route.ts` — `publicOrigin`/`supabaseBase`/`supabaseAnonKey`/`sendPasswordResetEmail` 헬퍼 전량 삭제, POST의 email 기반 폴백·`send_password_reset` 분기 삭제. POST는 이제 `pause_user`/`resume_user`/`approve_shared_ai`/`revoke_shared_ai` 4개 user_id 액션만 처리, 그 외는 400 unsupported action. fail-closed 인증(`operatorError`)은 무변경.
+2. `dashboard/src/app/operator/customers/page.tsx` — `sendReset` 함수, `actionMsg`/`busyEmail` state, "비밀번호 재설정 메일" 버튼, `recovery_sent_at` 표시, 관련 안내 카피 제거. auth user email/provider/status 표시와 계정/공유AI 컨트롤은 유지.
+3. `dashboard/src/lib/observability.ts` — `OPERATOR_ACTIONS` enum에서 죽은 `send_password_reset` 제거(직접 관련 계약이라 함께 정리).
+4. 테스트 갱신: `dashboard/tests/api/operator-customers.test.ts`(recovery 발송 테스트를 "unsupported 400 + fetch 미호출" 검증으로 교체, fail-closed·4액션·approve_user 미지원 케이스 유지), `dashboard/tests/observability/operator-mutation-alert.test.ts`(recover-실패 케이스를 pause_user DB 예외 케이스로 교체해 alert 계약 유지 + send_password_reset=400/무알림 케이스 추가).
+
+**검증(테스트됨+관찰됨)**: `npx vitest run tests/api/operator-customers.test.ts tests/observability/operator-mutation-alert.test.ts` → 24/24 PASS. `npx vitest run tests/isolation/google-only-automation-contract.test.ts tests/isolation/authgate-contract.test.ts tests/brand/google-auth-preflight.test.ts` → 29/29 PASS(회귀 없음). `npx vitest run tests/observability/observability.test.ts` → 29/29 PASS(enum 변경 회귀 없음). `npx tsc --noEmit -p .` → 클린. `grep -rn "send_password_reset|type=recovery|auth/v1/recover"` → 코드 내 잔존 0(테스트의 "unsupported 검증" 문자열 제외).
+
+**미검증**: `npm run build`(Next production build)는 이번 서브태스크에서 별도 실행 안 함(직전 카피 수정 섹션에서 동일 코드베이스 build 성공 확인됨, tsc 클린으로 대체 확인). eslint는 이 레포에 config 없어 실행 불가(기존부터 동일).
+
+**wiki 갱신 필요 여부**: API 계약이 좁아졌을 뿐(액션 4종으로 축소) 스키마/인증/발행 아키텍처 변경 없음 — 별도 아키텍처 wiki 페이지 갱신 대상 아님.
+
+**범위**: 위 5개 파일만 변경(route.ts, page.tsx, observability.ts, operator-customers.test.ts, operator-mutation-alert.test.ts). pipeline-state.md/docs/deployment config/Google-only login 파일(login/signup/AuthGate/oauth-errors) 미접촉(요청대로).
+
+**다음 액션**: 이 서브태스크 종결. 남은 미결은 이전 섹션의 ⛔ 회수 항목(기존 이메일/비밀번호 가입 고객 실존 여부) 그대로 — 이번 작업과 무관, 회장 확인 대기 지속.

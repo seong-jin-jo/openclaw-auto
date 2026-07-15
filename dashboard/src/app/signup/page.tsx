@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 
 export default function SignupRedirect() {
-  // /signup 진입 시 /login?mode=signup 으로 보내서 동일 폼에서 가입 모드 사용
-  redirect('/login?mode=signup');
+  // Google OAuth 단일 인증 — 가입/로그인 모두 동일 화면(/login)의 "Google로 계속" 버튼 하나로 처리.
+  redirect('/login');
 }

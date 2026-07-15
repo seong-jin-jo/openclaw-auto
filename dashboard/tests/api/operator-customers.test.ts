@@ -29,7 +29,6 @@ const H = vi.hoisted(() => ({
       created_at: "2026-07-01T00:00:00Z",
       email_confirmed_at: "2026-07-01T00:01:00Z",
       confirmation_sent_at: null,
-      recovery_sent_at: null,
       last_sign_in_at: "2026-07-02T00:00:00Z",
       tenant_id: "tenant-1",
       tenant_slug: "customer-one",
@@ -82,9 +81,6 @@ vi.mock("@/lib/db", () => ({
 beforeEach(() => {
   vi.resetModules();
   vi.stubEnv("DASHBOARD_AUTH_TOKEN", "op-token");
-  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://supabase.example");
-  vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon-key");
-  vi.stubEnv("OSMU_PUBLIC_URL", "https://app.example");
   H.fetchUrl = "";
   H.fetchHeaders = {};
   H.fetchBody = "";
@@ -123,7 +119,7 @@ describe("/api/operator/customers", () => {
     expect(JSON.stringify(body)).not.toContain("password");
   });
 
-  it("운영자 액션은 Supabase recover로 재설정 메일만 발송한다", async () => {
+  it("고객 인증은 Google OAuth 전용이라 send_password_reset은 미지원 — 400이고 fetch(메일 발송)는 호출되지 않는다", async () => {
     const { POST } = await import("@/app/api/operator/customers/route");
     const res = await POST(new Request("https://app.example/api/operator/customers", {
       method: "POST",
@@ -132,12 +128,9 @@ describe("/api/operator/customers", () => {
     }));
     const body = await res.json();
 
-    expect(res.status).toBe(200);
-    expect(body.ok).toBe(true);
-    expect(H.fetchUrl).toContain("https://supabase.example/auth/v1/recover");
-    expect(H.fetchUrl).toContain("redirect_to=https%3A%2F%2Fapp.example%2Flogin%3Ftype%3Drecovery");
-    expect(H.fetchHeaders.apikey).toBe("anon-key");
-    expect(JSON.parse(H.fetchBody)).toEqual({ email: "owner@example.com" });
+    expect(res.status).toBe(400);
+    expect(body.error).toMatch(/unsupported/i);
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it("운영자 토큰이 틀리면 차단한다", async () => {
@@ -166,19 +159,6 @@ describe("/api/operator/customers", () => {
 
     expect(res.status).toBe(503);
     expect(body.error).toMatch(/not configured/i);
-  });
-
-  it("fail-closed: DASHBOARD_AUTH_TOKEN 미설정 시 POST(send_password_reset)도 503 — 메일 발송(fetch) 없음", async () => {
-    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "");
-    const { POST } = await import("@/app/api/operator/customers/route");
-    const res = await POST(new Request("https://app.example/api/operator/customers", {
-      method: "POST",
-      headers: { Authorization: "Bearer anything", "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "send_password_reset", email: "owner@example.com" }),
-    }));
-
-    expect(res.status).toBe(503);
-    expect(fetch).not.toHaveBeenCalled();
   });
 
   it("fail-closed: DASHBOARD_AUTH_TOKEN 미설정 시 POST(pause_user)도 503 — tenants UPDATE/INSERT 없음", async () => {
@@ -270,10 +250,10 @@ describe("/api/operator/customers — pause_user / resume_user (계정 게이트
     expect(body.error).toMatch(/unsupported/i);
   });
 
-  it("구 승인형 액션(approve_user)은 더 이상 지원하지 않는다 — email 없으면 400 valid email required로 폴스루", async () => {
+  it("구 승인형 액션(approve_user)은 더 이상 지원하지 않는다 — 4개 user_id 액션 외 전부 unsupported", async () => {
     const { status, body } = await postAction({ action: "approve_user", user_id: UID });
     expect(status).toBe(400);
-    expect(body.error).toMatch(/email/i);
+    expect(body.error).toMatch(/unsupported/i);
     expect(H.statusUpdateCalls.length).toBe(0);
     expect(H.insertCalls.length).toBe(0);
   });

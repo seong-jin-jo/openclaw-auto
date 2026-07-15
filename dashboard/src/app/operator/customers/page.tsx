@@ -31,7 +31,6 @@ interface AuthUser {
   created_at: string;
   email_confirmed_at: string | null;
   confirmation_sent_at: string | null;
-  recovery_sent_at: string | null;
   last_sign_in_at: string | null;
   tenant_id: string | null;
   tenant_slug: string | null;
@@ -57,8 +56,6 @@ export default function OperatorCustomersPage() {
   const { data, error, isLoading, mutate } = useSWR<{ customers: Customer[]; authUsers: AuthUser[]; error?: string }>("/api/operator/customers", fetcher);
   const customers = data?.customers || [];
   const authUsers = data?.authUsers || [];
-  const [actionMsg, setActionMsg] = useState<Record<string, string>>({});
-  const [busyEmail, setBusyEmail] = useState<string | null>(null);
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
   const [userActionMsg, setUserActionMsg] = useState<Record<string, string>>({});
 
@@ -90,37 +87,13 @@ export default function OperatorCustomersPage() {
     }
   }
 
-  async function sendReset(email: string | null) {
-    if (!email || busyEmail) return;
-    setBusyEmail(email);
-    setActionMsg((p) => ({ ...p, [email]: "" }));
-    try {
-      const res = await fetch("/api/operator/customers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ action: "send_password_reset", email }),
-      });
-      const body = await res.json().catch(() => ({})) as { error?: string };
-      if (!res.ok) {
-        setActionMsg((p) => ({ ...p, [email]: body.error || `실패 ${res.status}` }));
-        return;
-      }
-      setActionMsg((p) => ({ ...p, [email]: "재설정 메일 발송됨" }));
-      mutate();
-    } catch (e) {
-      setActionMsg((p) => ({ ...p, [email]: e instanceof Error ? e.message : String(e) }));
-    } finally {
-      setBusyEmail(null);
-    }
-  }
-
   return (
     <div className="px-8 py-6">
       <div className="flex items-end justify-between gap-4 mb-6">
         <div>
           <h2 className="text-xl font-semibold text-text mb-1">유저 관리자</h2>
           <p className="text-sm text-subtle">가입자, 워크스페이스, 연결 앱, 사용량, 생성·발행 현황을 봅니다.</p>
-          <p className="text-[11px] text-subtle mt-1">비밀번호 원문은 조회하지 않습니다. 필요한 경우 재설정 메일만 발송합니다.</p>
+          <p className="text-[11px] text-subtle mt-1">고객 인증은 Google OAuth 전용입니다. 비밀번호 원문은 조회하지 않습니다.</p>
         </div>
         <a href="/operator" className="text-xs text-subtle hover:text-muted">운영자 토큰 재입력</a>
       </div>
@@ -163,7 +136,6 @@ export default function OperatorCustomersPage() {
                     <p className="text-[11px] text-subtle">
                       tenant {u.tenant_slug || "없음"} · 가입 {fmtDate(u.created_at)} · 최근 로그인 {fmtDate(u.last_sign_in_at)}
                     </p>
-                    {u.recovery_sent_at && <p className="text-[11px] text-subtle">최근 재설정 메일 {fmtDate(u.recovery_sent_at)}</p>}
                   </div>
                   <div className="text-right">
                     <div className="flex flex-wrap justify-end gap-2">
@@ -201,15 +173,7 @@ export default function OperatorCustomersPage() {
                           {busyUserId === u.id ? "처리 중..." : "⏸ 정지"}
                         </button>
                       )}
-                      <button
-                        onClick={() => sendReset(u.email)}
-                        disabled={!u.email || busyEmail === u.email}
-                        className="px-3 py-1.5 rounded bg-surface-2 text-xs text-muted hover:bg-surface disabled:opacity-50"
-                      >
-                        {busyEmail === u.email ? "발송 중..." : "비밀번호 재설정 메일"}
-                      </button>
                     </div>
-                    {u.email && actionMsg[u.email] && <p className="mt-1 text-[11px] text-subtle">{actionMsg[u.email]}</p>}
                     {userActionMsg[u.id] && <p className="mt-1 text-[11px] text-subtle">{userActionMsg[u.id]}</p>}
                   </div>
                 </div>
