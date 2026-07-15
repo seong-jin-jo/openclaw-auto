@@ -4,16 +4,16 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: qa              # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design, build]   # Google-only auth 변경 QA 진행 중
+current_stage: ship            # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design, build, qa]   # 2026-07-16 사용자 /approve qa
 approved_artifacts: { qa: docs/qa-tracker.md@2026-07-16 }
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
   build:      { status: approved, artifacts_ok: true }   # dashboard/src(ADOPTED)
-  qa:         { status: in-progress, artifacts_ok: true }   # Google-only auth 로컬 E2E/독립 QA 완료, 운영 E2E/승인 대기
-  ship:       { status: pending, artifacts_ok: false }
+  qa:         { status: approved, artifacts_ok: true }   # 2026-07-16 사용자 /approve qa
+  ship:       { status: in-progress, artifacts_ok: false }
 override: false
 override_reason: ""
 override_expires: ""
@@ -57,6 +57,9 @@ override_expires: ""
   Meta 앱 redirect URI `https://<live>/api/connect/{provider}/callback` 등록. 그 후 배포→browse로 qa 증거.
 
 ## 승인 로그 (append-only)
+2026-07-16 — qa APPROVED — 사용자 명시 입력 `/approve qa`. 재검증 증거: Google-only/operator focused
+  98 PASS, full 63 files/548 PASS/8 skip, tsc PASS, production build 161 pages PASS, local gstack Google-only
+  E2E PASS. 운영 배포 후 Google 실왕복·SNS 연결/발행·lead 저장은 ship 단계 직접 관찰 대상으로 유지.
 2026-06-30 — ADOPTED(pre-harness) — plan·design·eng-design·build 기존 산출물 인정, current=qa.
 2026-07-03 — HOTFIX 배포(게이트 예외) — 이미 라이브인 IG 연결의 "Invalid redirect_uri"(프록시 뒤
   origin=0.0.0.0 실측) 수정. 신규 스코프 아님·라이브 깨짐 복구. 커밋 e8603547, run 28611637538,
