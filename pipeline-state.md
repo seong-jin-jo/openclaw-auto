@@ -53,6 +53,15 @@ override_expires: ""
 - QA 임시 tenant token은 revoke 후 401 확인. 공개 SNS 게시물은 회장 콘텐츠 승인 전 실행하지 않음.
 - ship 잠금 유지: Google 계정 선택→앱 복귀/lead 저장, Threads 실발행 permalink, GA4 DebugView, Slack webhook 회전.
 
+## 2026-07-17 사용자 실기기 SNS 연결 NG — ship 차단
+- 사용자 실기기에서 Threads 타계정 세션 고착, Instagram OTP rate limit, X credential 누락 500/raw JSON,
+  Facebook 앱 비활성, Bluesky `openclaw.json not found`, 영상 플랫폼 연결·발행 누락을 확인했다.
+- 기존 `Connected/Live` 증거는 provider read-only `/me`와 렌더까지만 확인한 부분 증거다. 계정 전환→2FA→동의
+  →callback→저장→실발행 전체 왕복을 보지 않았으므로 e2e-happy 충족으로 사용하지 않는다.
+- ship은 계속 `in-progress`, `artifacts_ok:false`. 수정 범위 사용자 확인 후 `/pipeline reopen build`로 재오픈하고,
+  provider별 실제 브라우저 E2E 및 공개/삭제 가능한 테스트 발행 증거를 다시 수집해야 한다.
+- 상세 NG와 재발방지 매트릭스: `docs/qa-tracker.md`의 `2026-07-17 사용자 실기기 SNS 연결 QA`.
+
 ## 최근 build (qa 대기 중 — ship 전 /approve qa 필요)
 - 셀프서브 코어: A1 증류 generateText 통일, A2 온보딩 위저드, A3 키검증, /api/health+autoheal+슬랙경보,
   성과 ConnectGate, 가입 confirm 탭.

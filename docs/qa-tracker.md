@@ -275,3 +275,20 @@ qa = **in-progress** (ship 게이트 잠김 유지). 아침 체크리스트 1~3 
 - 운영 auth user 6명(confirmed 4, unconfirmed 2), customer workspace 10개(active 10, shared AI 승인 10, integration 보유 2)를 operator API로 관찰했다. 비밀번호 원문은 Supabase에서 조회할 수 없다.
 - Health Monitor run `29497421714` success. QA tenant token revoke 후 동일 token으로 live API 401 확인. 브라우저 localStorage 및 임시 probe 파일 정리 완료.
 - ship 잔여: 실제 Google 계정 선택→앱 복귀→identity/lead 저장, Threads 공개 게시 1건과 permalink, GA4 DebugView 수신, 채팅에 노출된 Slack webhook 회전.
+
+## 2026-07-17 사용자 실기기 SNS 연결 QA — 출시 차단 NG
+
+> 증거 등급: **사용자 실기기 관찰**. 아래 항목은 재현·원인 분류 전까지 전부 ❌ NG이며, 기존 `Connected`/`Live` 판정을 출시 근거로 사용하지 않는다.
+
+- ❌ **Threads 계정 전환 불가:** Chrome에 남아 있던 다른 Meta/Threads 계정으로 `계속하기`만 제공되고 취소 외 선택지가 없어 목표 계정을 연결하지 못함.
+- ❌ **Instagram 인증 rate limit:** 인증번호 요청 한도 메시지로 로그인 완료 불가. 30초 안내가 있어도 현재 실제 재요청 성공은 미검증.
+- ❌ **X 연결 버튼 실패:** 클릭 결과 `{"error":"X_CLIENT_ID 미설정 — 플랫폼 OAuth 앱 자격증명 필요"}`. 사용자에게 비활성/설정 필요 상태를 사전 표시하지 않고 연결 가능한 버튼처럼 노출함.
+- ❌ **Facebook 앱 비활성:** Meta 화면에서 앱 비활성 상태로 차단되어 로그인·동의·callback 불가.
+- ❌ **Bluesky 연결 UX/저장 실패:** OAuth가 아닌 handle/app password 입력 방식에 대한 설명이 부족하고, 임의 입력 시 `{"error":"openclaw.json not found"}` raw 오류 노출. 멀티테넌트 DB 저장 경로 대신 존재하지 않는 파일 설정에 의존하는 결함 의심.
+- ❌ **영상 플랫폼 누락:** YouTube/TikTok/Reels/Shorts가 미리보기/영상 화면 일부에는 있으나 고객 채널 연결·발행 범위에서 제거되거나 불완전해, 사용자가 어디서 연결·발행하는지 알 수 없음. 실제 end-to-end 업로드는 미검증.
+
+### QA 재발방지 판정
+
+- 기존 QA는 `auth URL 생성`, `read-only /me 성공`, `connected/live 렌더`까지만 확인하고 **계정 전환 → 로그인/2FA → 동의 → callback → 저장 → 실제 발행** 전체 왕복을 확인하지 않았다. 따라서 `21:20 KST`의 연결 판정은 부분 증거이며 출시 완료 근거가 아니다.
+- 앞으로 provider별 E2E 매트릭스에 `새 브라우저`, `기존 타계정 세션`, `2FA/rate limit`, `앱 live 상태`, `credential 누락`, `callback`, `저장`, `재연결`, `실발행/permalink`를 각각 별도 게이트로 둔다.
+- raw JSON/파일 누락/credential 누락은 브라우저에 그대로 노출하지 않고, 연결 버튼 비활성 + 한국어 조치 안내로 수렴해야 한다.

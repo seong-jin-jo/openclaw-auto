@@ -7,6 +7,18 @@
 
 ---
 
+### Codex handoff — 사용자 실기기 SNS 연결 NG 재오픈 (2026-07-17 KST)
+
+**handoff basis:** 사용자가 이 대화에서 직접 제보한 최신 실기기 증상을 primary로 삼고, 출시 트랙 tmux `%7`과 보안리뷰 `%8`을 대조했다. `%46`은 마케팅 문서 작업이므로 이번 코드/QA 트랙과 분리한다.
+
+**현재 판정:** ship 차단. Threads 타계정 세션 고착, Instagram 인증번호 rate limit, X credential 누락 raw JSON, Facebook 앱 비활성, Bluesky 파일 설정 오류, 영상 플랫폼 연결/발행 누락이 사용자 실기기에서 확인됐다. 기존 `Connected/Live` 관찰은 계정 전환·callback·실발행을 검증하지 못한 부분 증거였으며 완료 판정을 취소한다.
+
+**기록:** `docs/qa-tracker.md`의 `2026-07-17 사용자 실기기 SNS 연결 QA`에 6건을 ❌ NG로 등록했다.
+
+**정확한 다음 액션:** provider별 UI→connect route→외부 OAuth/app 상태→callback→credential 저장→publish 경로를 코드·운영 env·공식 문서로 분해한다. 앱 내부에서 고칠 수 있는 raw error/버튼 상태/Bluesky 저장/영상 채널 노출은 수정 후보로, Meta rate limit·앱 비활성·OAuth app credential은 외부 콘솔 조치로 분리해 사용자 확인 후 build 단계로 재오픈한다.
+
+---
+
 ### Codex handoff — SNS P0 운영 재배포·직접 QA (2026-07-16 21:20 KST)
 
 **handoff basis:** 사용자 `/approve qa`와 이 파일의 운영 출시 트랙을 기준으로 `openclaw-auto:0.0` pane을 대조해 계속했다.
