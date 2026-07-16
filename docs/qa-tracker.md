@@ -292,3 +292,16 @@ qa = **in-progress** (ship 게이트 잠김 유지). 아침 체크리스트 1~3 
 - 기존 QA는 `auth URL 생성`, `read-only /me 성공`, `connected/live 렌더`까지만 확인하고 **계정 전환 → 로그인/2FA → 동의 → callback → 저장 → 실제 발행** 전체 왕복을 확인하지 않았다. 따라서 `21:20 KST`의 연결 판정은 부분 증거이며 출시 완료 근거가 아니다.
 - 앞으로 provider별 E2E 매트릭스에 `새 브라우저`, `기존 타계정 세션`, `2FA/rate limit`, `앱 live 상태`, `credential 누락`, `callback`, `저장`, `재연결`, `실발행/permalink`를 각각 별도 게이트로 둔다.
 - raw JSON/파일 누락/credential 누락은 브라우저에 그대로 노출하지 않고, 연결 버튼 비활성 + 한국어 조치 안내로 수렴해야 한다.
+
+### 결함 관리 원장 — 2026-07-17
+
+| ID | 결함 | 확정 원인 | 미확정/외부 원인 | 수정 소유자 | 종료증거 | 상태 |
+|---|---|---|---|---|---|---|
+| SNS-001 | Threads 목표 계정 전환 불가 | `window.open`이 기존 Chrome의 Threads/Meta 쿠키를 공유하고, authorize URL에 계정 전환/재인증 UX가 없음 | Meta가 현재 앱에 허용하는 계정 전환 파라미터와 실제 계정 선택 화면 | build: 연결 UX·popup 상태 / external: 목표 계정 로그인 | 기존 타계정 세션이 있는 Chrome에서 목표 계정 선택→callback→DB의 Threads userId 변경 관찰 | ❌ NG |
+| SNS-002 | Instagram 인증번호 요청 제한 | Instagram 로그인 단계에서 OTP 요청 rate limit 발생; callback까지 도달하지 못함 | 제한 해제 시점·계정 보안 상태는 Meta만 판단 | build: 재시도/cooldown 안내 / external: 계정 인증 | 목표 Instagram 계정 로그인→동의→callback→DB 저장, 반복 요청 없이 1회 왕복 관찰 | ❌ NG |
+| SNS-003 | X 연결 버튼이 500/raw error | 운영 `X_CLIENT_ID`, `X_CLIENT_SECRET` 미설정. UI는 readiness를 모르고 정적 OAuth 버튼 노출 | X Developer App 생성·요금/권한 승인 상태 | build: readiness·disabled UX / external: X app credential | credential 미설정 시 버튼 비활성+조치 안내; 설정 후 PKCE callback→DB 저장→테스트 post/permalink | ❌ NG |
+| SNS-004 | Facebook 앱 비활성 차단 | 서버 credential/config_id는 설정돼 auth URL은 생성되나 Meta가 앱 접근을 차단 | Development/Live 모드, 역할, 정책 제한, 앱 비활성 사유 중 무엇인지는 콘솔 캡처 전 미검증 | external: Meta 앱 관리자 / build: 상태 안내 | Meta 콘솔의 활성 상태 증거 + 비역할 사용자 로그인→동의→callback→Page token 저장→테스트 post | ❌ NG |
+| SNS-005 | Bluesky 수동 연결 404 | `POST /api/channel-config/bluesky`가 DB bridge 전에 tenant `openclaw.json` 존재를 강제하고 없으면 404. GET은 빈 config를 허용해 계약도 불일치 | ATProto OAuth 도입 시점 | build: DB-first 저장·오류 정규화 | config 파일 없는 신규 tenant에서 App Password 저장→createSession 검증→DB 저장→실제 post/permalink | ❌ NG |
+| SNS-006 | 영상 플랫폼 연결·발행 누락 | YouTube callback은 DB `integrations`에 저장하지만 status는 `youtube-token.json`, publish는 `openclaw.json`을 읽어 저장소가 3개로 분리. TikTok credential 없음+publish 미구현, Reels publish 분기 없음 | TikTok 앱 심사/공개 발행 승인 | build: YouTube DB 단일화·영상 UI / external: TikTok review | YouTube OAuth→DB refresh→영상 업로드→Shorts URL. TikTok/Reels는 구현 전 disabled+사유 노출 | ❌ NG |
+
+**관리 규칙:** 상태 전이는 `❌ NG → 🔧 수정됨(로컬 E2E) → 🟡 운영 미검증 → ✅ 운영 관찰`만 허용한다. unit/mock/auth URL 200은 종료증거로 인정하지 않는다. 각 ID는 코드 커밋·테스트·배포 run·실사용 증거에 동일하게 붙인다.
