@@ -28,16 +28,6 @@ export const CH_LABELS: Record<string, string> = {
   rss: "RSS Feed",
 };
 
-/** 발행 채널 그룹 — 사이드바와 Settings>Channels의 단일 소스(SSOT).
- * "사이드바=연결가능" 원칙: 여기 있는 채널만 실제 연결 가능한 발행 채널로 노출한다.
- * (Data&SEO/medium/substack/kakao/whatsapp 등 미연결·읽기전용은 제외 — 드리프트 방지.) */
-export const PUBLISH_CHANNEL_GROUPS = [
-  { key: "social", title: "Social", channels: ["threads", "x", "instagram", "facebook", "linkedin", "bluesky", "pinterest", "tumblr"] },
-  { key: "video", title: "Video", channels: ["tiktok", "youtube"] },
-  { key: "blog", title: "Blog", channels: ["naver_blog"] },
-  { key: "messaging", title: "Messaging", channels: ["telegram", "discord", "slack", "line"] },
-] as const;
-
 /**
  * 예약 발행이 실제로 지원하는 플랫폼 SSOT.
  * SchedulePanel(UI 체크박스)과 publish-due 백엔드(SUPPORTED_PLATFORMS)가 같은 목록을 공유한다.
@@ -45,12 +35,27 @@ export const PUBLISH_CHANNEL_GROUPS = [
  * 영상(shorts/reels/tiktok)은 텍스트 예약 루프가 아직 못 다루므로 제외(드리프트 방지).
  * bluesky/telegram/discord/slack(2026-07, credential·webhook 방식) 추가 — OAuth 앱 등록형 4채널(threads/x/facebook/instagram)과
  * 달리 자격증명 직접 입력(app password/bot token/webhook URL)만으로 발행 가능.
+ *
+ * /api/publish가 실제로 분기 처리하는 플랫폼과 정확히 1:1 — 이 목록에 없는 채널은
+ * POST /api/publish에서 `{platform} 미지원`으로 거부된다(src/app/api/publish/route.ts).
  */
 export const SCHEDULABLE_PLATFORMS = [
   "threads", "x", "facebook", "instagram",
   "bluesky", "telegram", "discord", "slack",
 ] as const;
 export type SchedulablePlatform = (typeof SCHEDULABLE_PLATFORMS)[number];
+
+/** 발행 채널 그룹 — 사이드바와 Settings>Channels와 ChannelConnect 모달의 단일 소스(SSOT).
+ * "사이드바=연결가능=실제 발행가능" 원칙: 여기 있는 채널만 노출한다.
+ * SCHEDULABLE_PLATFORMS(=/api/publish가 실제 지원하는 8채널)를 그대로 그룹화한 것 —
+ * OAuth 앱 등록만 돼 있고 실제 POST /api/publish 분기가 없는 나머지 7채널
+ * (linkedin/pinterest/tumblr/tiktok/youtube/naver_blog/line)은 "발행가능"으로 오인되지 않도록
+ * 여기서 제외한다(2026-07-16 P0 QA 정정 — 라벨/extension 설정은 constants 하단에 보존, 노출만 제거).
+ * video/blog 그룹은 실제 항목이 없어 삭제. */
+export const PUBLISH_CHANNEL_GROUPS = [
+  { key: "social", title: "Social", channels: ["threads", "x", "instagram", "facebook", "bluesky"] },
+  { key: "messaging", title: "Messaging", channels: ["telegram", "discord", "slack"] },
+] as const satisfies ReadonlyArray<{ key: string; title: string; channels: readonly SchedulablePlatform[] }>;
 export const SCHEDULABLE_PLATFORM_LABELS: Record<SchedulablePlatform, string> = {
   threads: "Threads",
   x: "X",

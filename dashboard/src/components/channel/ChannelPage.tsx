@@ -96,6 +96,10 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
   const status = cfg?.status || "available";
   const keys = cfg?.keys || {};
   const connected = !!cfg?.connected;
+  // instagram/threads는 저장된 토큰이 있어도 OAuth code 190(무효)이면 connected=false + reconnectRequired=true로
+  // 온다(GET /api/channel-config 라이브 검증). "인증 필요" raw 노출 대신 명확한 한국어 재연결 CTA로 안내.
+  const reconnectRequired = !!cfg?.reconnectRequired;
+  const providerUnreachable = cfg?.connectionStatus === "unverified" && cfg?.connectionError === "provider_unreachable";
   const sg = setupGuides[channel] || { fields: [], labels: [], quick: ["Setup guide 준비 중"], detail: "" };
 
   const isThreads = channel === "threads";
@@ -162,6 +166,17 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
           </p>
         </div>
       </div>
+
+      {reconnectRequired && (
+        <div className="mb-6 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
+          \u26A0 \uC7AC\uC5F0\uACB0 \uD544\uC694 \u2014 \uC800\uC7A5\uB41C \uC778\uC99D \uC815\uBCF4\uAC00 \uB9CC\uB8CC\uB418\uC5C8\uAC70\uB098 \uBB34\uD6A8\uD569\uB2C8\uB2E4. \uC544\uB798\uC5D0\uC11C OAuth\uB85C \uB2E4\uC2DC \uC5F0\uACB0\uD574\uC8FC\uC138\uC694.
+        </div>
+      )}
+      {providerUnreachable && (
+        <div className="mb-6 rounded-lg border border-border/60 bg-surface-2 p-3 text-xs text-subtle">
+          \u26A0 \uC5F0\uACB0 \uC0C1\uD0DC \uD655\uC778 \uBD88\uAC00 \u2014 {label} \uC11C\uBC84\uC5D0 \uC77C\uC2DC\uC801\uC73C\uB85C \uC5F0\uACB0\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. \uC800\uC7A5\uB41C \uC778\uC99D \uC815\uBCF4\uB294 \uC720\uC9C0\uB429\uB2C8\uB2E4. \uC7A0\uC2DC \uD6C4 \uC0C8\uB85C\uACE0\uCE68\uD574 \uB2E4\uC2DC \uD655\uC778\uD558\uC138\uC694.
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 border-b border-border/50 pb-3">
@@ -240,6 +255,11 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
                 OAuth 연결 상태입니다. 원문 access token은 화면에 표시하지 않고 서버에 암호화 저장합니다.
               </div>
             )}
+            {oauthLabel && !showManualCreds && reconnectRequired && (
+              <div className="mt-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
+                ⚠ 재연결 필요 — 저장된 토큰이 만료되었거나 무효합니다({label} 측 거부). 위 OAuth 버튼으로 다시 연결해주세요.
+              </div>
+            )}
           </div>
 
           {/* Channel Info + Setup Guide */}
@@ -250,7 +270,7 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
                 <div className="flex justify-between">
                   <span className="text-subtle">Status</span>
                   <span className={connected ? "text-success" : status === "connected" ? "text-accent" : "text-warning"}>
-                    {connected ? "Connected" : CH_STATUS_LABEL[status] || "Not connected"}
+                    {connected ? "Connected" : reconnectRequired ? "재연결 필요" : CH_STATUS_LABEL[status] || "Not connected"}
                   </span>
                 </div>
                 {isThreads && (

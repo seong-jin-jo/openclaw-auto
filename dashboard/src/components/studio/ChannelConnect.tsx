@@ -7,33 +7,26 @@ import { authHeaders } from "@/lib/auth";
 import { CredentialForm } from "@/components/shared/CredentialForm";
 import { SetupGuide } from "@/components/shared/SetupGuide";
 import { SocialConnectButton } from "@/components/channel/SocialConnectButton";
+import { CH_LABELS, PUBLISH_CHANNEL_GROUPS } from "@/lib/constants";
 import type { Workspace } from "@/store/ui-store";
 
 // 채널 연결 모달 — 검증 경로(/api/channel-config/{channel})로 통일.
 // 저장 시 실제 API로 credential을 verify하고 계정(@username)을 echo. OnboardingWizard와 동일 경로.
 // "연결 테스트"는 빈 body POST → 저장된 creds로 verify만 재실행(부작용 없음).
-const CHANNELS = ["threads", "instagram", "x", "facebook", "linkedin", "youtube", "naver_blog", "pinterest", "tumblr", "tiktok", "slack", "line", "bluesky", "telegram", "discord"];
-const LABELS: Record<string, string> = {
-  threads: "Threads", instagram: "Instagram", x: "X", facebook: "Facebook",
-  linkedin: "LinkedIn", youtube: "YouTube", naver_blog: "Naver Blog", pinterest: "Pinterest",
-  tumblr: "Tumblr", tiktok: "TikTok", bluesky: "Bluesky", telegram: "Telegram", discord: "Discord", slack: "Slack", line: "LINE",
-};
-// Slack은 이번 출시에서 OAuth 앱(xoxb 봇 토큰)이 아니라 Incoming Webhook만 정직하게 지원한다
-// (publishSlack이 meta.api==="slack_webhook"만 허용 — src/lib/publish.ts). 그래서 여기 목록에서
-// 빼 CredentialForm(webhookUrl)이 기본으로 뜨게 한다 — OAuth 버튼을 남겨두면 연결은 되는데
-// 발행은 거부되는 방식 충돌(설정 UI와 발행 로직 불일치)이 생긴다.
+// CHANNELS는 더 이상 이 파일이 소유한 15개 독립 목록이 아니라 PUBLISH_CHANNEL_GROUPS(사이드바·
+// Settings>Channels와 동일 SSOT)를 flatten — 실제 /api/publish가 지원하는 8채널만 노출한다
+// (2026-07-16 P0 QA 정정: linkedin/youtube/naver_blog/pinterest/tumblr/tiktok/line은 OAuth 등록은
+// 있어도 실발행 분기가 없어 여기서 뺐다 — 있어도 발행 안 되는 채널을 "연결가능"으로 보여주면 안 됨).
+const CHANNELS: string[] = PUBLISH_CHANNEL_GROUPS.flatMap((g) => [...g.channels]);
+const LABELS: Record<string, string> = CH_LABELS;
+// OAUTH_LABELS는 실제 end-to-end OAuth 연동이 붙어있는 4채널만(threads/instagram/x/facebook —
+// src/app/api/connect/[provider]/route.ts). bluesky/telegram/discord/slack은 OAuth 앱이 아니라
+// credential(app password/bot token/webhook URL) 직접 입력 방식이라 CredentialForm이 기본으로 뜬다.
 const OAUTH_LABELS: Record<string, string> = {
   threads: "Threads",
   instagram: "Instagram",
   x: "X (Twitter)",
   facebook: "Facebook",
-  linkedin: "LinkedIn",
-  youtube: "YouTube",
-  naver_blog: "Naver Blog",
-  pinterest: "Pinterest",
-  tumblr: "Tumblr",
-  tiktok: "TikTok",
-  line: "LINE",
 };
 
 interface VerifyResult { verified?: boolean; unverified?: boolean; reason?: string; account?: string; error?: string }

@@ -86,7 +86,8 @@ override_expires: ""
   service `openclaw-dashboard-osmu`로 재실행해 시정.
 
 ## Blocked / Notes
-- Google OAuth: provider 활성화·Google 로그인 화면 이동 관찰. Google-only 코드 운영 미배포, 계정 입력→앱 복귀 실왕복 필요.
+- SNS P0 QA remediation(2026-07-16): UI를 직접 발행 8채널로 정렬하고 Instagram/Threads provider live validation 및 재연결 상태를 구현. focused 75 PASS, full 563 PASS/8 skip, tsc/build PASS. 운영 재배포 후 code190 상태 직접 관찰 필요.
+- Google OAuth: Google-only 코드 운영 배포(run 29485147720), provider 활성화·Google 로그인 화면 이동 관찰. 계정 입력→앱 복귀 실왕복 필요.
 - Email auth: Google-only 정책 강제를 위해 Supabase Email provider 비활성화 필요. 기존 6 users는 삭제 금지.
 - GA4: ID 주입·재배포·동의 기반 script/page_view 적재 관찰. GA4 DebugView 실수신 필요.
 - Slack: webhook secret 주입 및 실제 ping `ok` 관찰. 채팅에 노출된 webhook은 출시 전 회전 필요.

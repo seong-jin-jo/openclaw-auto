@@ -3,7 +3,38 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **qa in-progress**, Google-only auth 운영 검증 대기). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-16 08:13 KST · `main` · **Google-only auth·관리자 recovery 제거 검증 완료, QA 승인·운영 실왕복 대기**
+**최종 갱신:** 2026-07-16 20:03 KST · `main` · **SNS P0 false-positive·과다노출 수정 검증 완료, 재배포·Meta 재로그인 대기**
+
+---
+
+### Codex handoff — 운영 배포·SNS 전수 QA (2026-07-16)
+
+**배포:** 사용자 `/approve qa`를 반영해 QA 승인, `70001691`까지 main push. GitHub Actions run `29485147720`이 schema/RLS, image build, up, Google-only/operator smoke를 모두 통과했다.
+
+**직접 관찰:** live health 200+DB up, login에는 Google CTA만 존재, Google 클릭은 accounts.google.com과 올바른 Supabase callback으로 이동. 운영 tenant `587cee76-...`에는 Instagram·Threads 암호화 토큰이 저장돼 있으나 플랫폼 계정 API 직접 호출은 둘 다 HTTP 400 / OAuth error 190이라 만료·무효 상태다.
+
+**❌ NG:** Instagram·Threads는 저장 토큰이 error 190으로 무효라 재OAuth 전 발행 불가. X·LinkedIn·Naver Blog·Pinterest·Tumblr·TikTok·Slack·LINE OAuth는 운영 credential 미설정으로 HTTP 500. `/api/publish` 직접 발행 분기에는 YouTube·LinkedIn·Naver Blog·Pinterest·Tumblr·TikTok·LINE이 없어 OAuth UI와 발행 기능이 불일치한다. Facebook·YouTube 동의/콜백은 아직 미검증이다.
+
+**정확한 다음 액션:** QA용 임시 tenant token으로 Instagram·Threads 저장 토큰 유효성 및 실제 발행을 확인하고 즉시 revoke. 독립 qa-verifier로 UI↔OAuth↔callback↔publish 지원 매트릭스를 재검증한 뒤, 외부 credential만 필요한 채널과 코드 구현이 필요한 채널을 분리해 보고한다.
+
+---
+
+### Claude qa-verifier — SNS 매트릭스 정적 코드리뷰 (2026-07-16, read-only)
+
+**handoff basis:** 위 Codex 핸드오프(2026-07-16 18:01)의 "다음 액션"을 이어받아 정적 코드리뷰만 수행(파일 미수정, 발행 안 함). tmux pane 대조는 하지 않음 — 사용자가 이 대화창에서 직접 지시.
+
+**구현/변경:** 없음(read-only 리뷰). 전체 리포트: `/private/tmp/osmu-sns-prod-qa.output`.
+
+**확인된 것(코드 근거):**
+- UI(`constants.ts:38-43` PUBLISH_CHANNEL_GROUPS, 15채널) vs 실제 발행 백엔드(`api/publish/route.ts:33-53`, 8채널)가 불일치. linkedin/pinterest/tumblr/tiktok/youtube/naver_blog/line(7종)은 OAuth 연결·토큰저장은 성공하나 발행 시 하드 실패 — **코드 결함**(SSOT 드리프트, constants.ts 33-34행 주석과 실제 구현 불일치).
+- `dashboard/src/app/api/integrations/route.ts:31-33`가 `has_secret`(DB 존재 여부)만으로 "연결됨" 표시, 라이브 토큰검증 없음 — Codex가 관찰한 Instagram/Threads code190 false-positive의 코드상 근거 확인.
+- YouTube: 신규 OAuth(`callback/route.ts:72-74`, DB `integrations.meta.refreshToken`)와 레거시 refresh 엔드포인트(`api/youtube/refresh/route.ts:15`, 파일 `youtube-token.json`)가 서로 다른 저장소 참조 — 갱신 원천 불가.
+- Instagram/Threads/Facebook 장기토큰 자동 재교환(refresh) 크론/로직이 코드베이스 전체에 없음 — reconnect가 유일 복구 수단.
+- X/LinkedIn/Naver/Pinterest/Tumblr/TikTok/Slack/LINE의 `/api/connect` 500은 GitHub secret 미설정에 의한 **인프라 블로커**(코드결함 아님).
+
+**미검증:** openclaw extensions(`openclaw/extensions/*-publish`) gateway fallback이 위 7채널 발행을 대신 처리하는지 여부(디렉토리 존재만 확인, 시간제약으로 스코프 밖).
+
+**정확한 다음 액션:** ①(P0, 가역·즉시) `constants.ts` PUBLISH_CHANNEL_GROUPS에서 미지원 7채널 제거해 UI 과다노출부터 차단 — 단, gateway fallback 미검증 결과에 따라 우선순위 재확인 후 진행. ②(P0, 별도스코프) `/api/publish`에 7채널 발행 분기 구현 또는 gateway 라우팅. ③(P1) YouTube refresh를 DB 기반으로 재작성, 레거시 파일 경로 폐기. ④(P1) `/api/integrations`에 라이브검증 필드 추가, Meta 토큰 자동 재교환 크론 추가.
 
 ---
 

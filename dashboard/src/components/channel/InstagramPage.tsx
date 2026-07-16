@@ -355,6 +355,9 @@ function InstagramSettings() {
   const igCfg = cfg.instagram || {};
   const keys = (igCfg.keys || {}) as Record<string, string>;
   const connected = !!igCfg.connected;
+  // 저장된 토큰이 있어도 Instagram이 OAuth code 190(무효)을 리턴하면 connected=false +
+  // reconnectRequired=true로 온다(GET /api/channel-config 라이브 검증, 2026-07-16 P0 QA 정정).
+  const reconnectRequired = !!igCfg.reconnectRequired;
   const sg = setupGuides.instagram || { fields: [], labels: [], quick: ["Setup guide 준비 중"], detail: "" };
 
   const handleCredSave = async (newKeys: Record<string, string>) => {
@@ -410,6 +413,11 @@ function InstagramSettings() {
           badge={{ text: "Graph API", color: "blue" }}
           connectLabel="Connect Instagram"
         />
+        {reconnectRequired && (
+          <div className="mt-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
+            ⚠ 재연결 필요 — 저장된 Instagram 토큰이 만료되었거나 무효합니다. 위 OAuth 버튼으로 다시 연결해주세요.
+          </div>
+        )}
       </div>
 
       {/* Channel Info + Setup Guide */}
@@ -420,7 +428,7 @@ function InstagramSettings() {
             <div className="flex justify-between">
               <span className="text-subtle">Status</span>
               <span className={connected ? "text-success" : "text-warning"}>
-                {connected ? "Connected" : "Not connected"}
+                {connected ? "Connected" : reconnectRequired ? "재연결 필요" : "Not connected"}
               </span>
             </div>
             {igCfg.userId ? (
@@ -558,6 +566,7 @@ export function InstagramPage() {
   const cfg = (channelConfig || {}) as Record<string, Record<string, unknown>>;
   const igCfg = cfg.instagram || {};
   const connected = !!igCfg.connected;
+  const reconnectRequired = !!igCfg.reconnectRequired;
 
   // Load queue for reload callback
   const { mutate: mutateQueue } = useSWR("/api/queue", fetcher);
@@ -577,7 +586,7 @@ export function InstagramPage() {
         <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-400 to-purple-600 flex items-center justify-center text-sm font-bold text-text">IG</span>
         <div>
           <h2 className="text-xl font-semibold text-text">Instagram</h2>
-          <p className="text-xs text-subtle">{connected ? "Connected" : "Not connected"} {igCfg.userId ? ` · ID: ${igCfg.userId}` : ""}</p>
+          <p className="text-xs text-subtle">{connected ? "Connected" : reconnectRequired ? "재연결 필요" : "Not connected"} {igCfg.userId ? ` · ID: ${igCfg.userId}` : ""}</p>
         </div>
       </div>
       <div className="flex gap-1 mb-6 border-b border-border/50 pb-3">

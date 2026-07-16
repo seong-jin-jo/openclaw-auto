@@ -9,6 +9,10 @@ export interface ChannelConfigEntry {
   connected?: boolean;
   username?: string;
   userId?: string;
+  /** instagram/threads 라이브 OAuth 검증 결과(GET /api/channel-config, 2026-07-16). */
+  reconnectRequired?: boolean;
+  connectionStatus?: "valid" | "invalid" | "unverified";
+  connectionError?: "oauth_token_invalid" | "provider_unreachable" | "no_token" | "server_key_missing" | null;
   [key: string]: unknown;
 }
 

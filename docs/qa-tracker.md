@@ -246,3 +246,21 @@ qa = **in-progress** (ship 게이트 잠김 유지). 아침 체크리스트 1~3 
 - 로컬 gstack E2E에서 `/login` Google CTA 단일 표시, 이메일/비밀번호/recovery 부재, `/signup`→`/login`, storage clear 후 동일 UX를 다시 관찰했다.
 - 로컬 E2E 서버에는 이번 실행에서 Supabase 공개 env가 없어 Google 외부 화면 이동을 재실행하지 못했다. 해당 이동은 직전 운영/로컬 실행에서 관찰됐지만, 변경 코드 배포 후 계정 선택→앱 복귀·identity linking·lead/tenant 저장은 여전히 미검증이다.
 - SMTP/Resend는 출시 선행조건이 아니다. Google-only 강제를 위해 Supabase Email provider를 비활성화해야 한다.
+
+## 2026-07-16 운영 배포 후 SNS 전수 QA
+
+- 배포 run `29485147720` / head `70001691` 성공. 운영 health 200+DB up, `/login` Google-only HTML, Google preflight 200과 실제 `accounts.google.com` 이동을 관찰했다.
+- 운영 테넌트 `587cee76-...`의 integrations 조회에서 Instagram·Threads가 `has_secret=true`였지만, 플랫폼 읽기 전용 계정 API 직접 호출은 두 채널 모두 HTTP 400 / OAuth error code 190을 반환했다. 저장 토큰이 만료·무효이므로 UI의 저장 여부만으로 연결됨 판정하면 안 된다. QA용 임시 tenant token은 종료 시 revoke한다.
+- ✅ OAuth preflight 200: Instagram, Threads, Facebook, YouTube.
+- ❌ NG OAuth credential 미설정(운영 HTTP 500): X, LinkedIn, Naver Blog, Pinterest, Tumblr, TikTok, Slack, LINE.
+- ❌ NG 직접 발행 구현 범위: `/api/publish`는 Threads, Instagram, X, Facebook, Bluesky, Telegram, Discord, Slack만 분기한다. YouTube·LinkedIn·Naver Blog·Pinterest·Tumblr·TikTok·LINE은 OAuth UI가 있더라도 직접 발행 분기가 없어 `미지원`이다.
+- ❌ NG Instagram·Threads: 암호화 토큰은 존재하지만 실제 API error 190으로 연결 무효. 재OAuth 전 발행 불가.
+- 🔎 진행 중: Instagram·Threads 재OAuth, Facebook·YouTube OAuth 동의/콜백, 미설정 플랫폼을 v1 차단으로 볼지 credential/발행 구현을 추가할지 분류.
+
+### 2026-07-16 20:03 KST P0 시정
+
+- 🔧 UI↔발행 불일치: 고객 UI의 발행 채널 SSOT를 `/api/publish`가 직접 지원하는 8개(Threads/X/Instagram/Facebook/Bluesky/Telegram/Discord/Slack)로 축소했다. 미지원 7개는 내부 확장 설정은 보존하되 Sidebar·Settings·ChannelConnect에서 노출하지 않는다.
+- 🔧 연결 false-positive: `GET /api/channel-config`가 Instagram·Threads 암호화 토큰을 서버에서만 복호화하고 provider read-only 계정 API로 병렬 검증한다. HTTP 400/401 또는 code 190은 `connected=false`, `reconnectRequired=true`, `oauth_token_invalid`; 네트워크/5xx는 토큰을 삭제하지 않고 `unverified/provider_unreachable`로 표시한다.
+- 🔧 UI: 일반 ChannelPage와 Instagram 전용 화면에 `재연결 필요`와 provider 일시 장애 문구를 분리했다. 토큰 원문·provider raw body는 응답/로그에 포함하지 않는다.
+- 테스트됨: focused 6 files/75 PASS, full 65 files/563 PASS/8 skip, `tsc --noEmit` PASS, production build 161 pages PASS. code-builder 위임 품질 게이트 PASS(WebSearch/Fetch 5, 소크라테스 마커 5).
+- 운영 재배포 후 실제 code190 테넌트가 `재연결 필요`로 표시되는지 확인해야 `관찰됨`으로 전환한다.
