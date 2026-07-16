@@ -30,8 +30,8 @@ override_expires: ""
 - [x] docs/qa-tracker.md (2026-07-16 운영 배포·직접 E2E 증거 갱신)
 - [x] prod-health-200 (반복 실측 ✅)
 - [x] prod-demo-login-200 (2026-07-16 운영 가입→로그인→active tenant 저장 직접 관찰)
-- [ ] e2e-happy (가입→미승인 403→운영자 승인→shared Claude 실생성 200 ✅ / Google 실로그인·SNS 실발행은 외부설정 대기)
-- [x] e2e-edge (vitest 548 pass/8 skip + 라이브 미승인 403·Google provider preflight 200 실측)
+- [ ] e2e-happy (가입→미승인 403→운영자 승인→shared Claude 실생성 200 ✅ / Google 최종 왕복·SNS 실발행은 사용자 동의/콘텐츠 승인 대기)
+- [x] e2e-edge (vitest 563 pass/8 skip + 라이브 미승인 403·Google provider preflight 200·SNS credential 비노출 실측)
 
 ## 2026-07-16 Google-only auth build
 - 이메일/비밀번호 가입·로그인·확인메일·재설정 UI/API 호출 제거. `/signup`은 `/login`으로 수렴.
@@ -43,7 +43,15 @@ override_expires: ""
 - 직접 검증: Google-only/operator focused 98 PASS, full 63 files/548 PASS/8 skip, tsc PASS, build PASS(161 pages),
   local gstack E2E PASS(`/login`, `/signup` 307, storage clear, email/password controls absent), Google 계정 화면 이동.
 - QA 게이트 재개: Supabase Email provider 비활성화, 실제 Google 계정→앱 복귀→기존 user/tenant 보존과 신규
-  lead 저장 운영 E2E 후 `/approve qa` 필요.
+  lead 저장 운영 E2E가 ship 잔여다. QA는 2026-07-16 사용자 `/approve qa`로 승인됨.
+
+## 2026-07-16 SNS P0 ship 재배포
+- 커밋 `8b1ca33f`, deploy run `29496623489` 성공. 발행 UI를 실제 `/api/publish` 지원 8채널로 제한하고
+  Instagram/Threads 저장 토큰을 provider read-only API로 검증하도록 운영 반영.
+- live API와 인증 브라우저에서 Instagram `Connected`, Threads `Live`, 비밀 필드 비노출, 미지원 7채널
+  고객 UI 비노출을 직접 관찰. Health Monitor run `29497421714` success.
+- QA 임시 tenant token은 revoke 후 401 확인. 공개 SNS 게시물은 회장 콘텐츠 승인 전 실행하지 않음.
+- ship 잠금 유지: Google 계정 선택→앱 복귀/lead 저장, Threads 실발행 permalink, GA4 DebugView, Slack webhook 회전.
 
 ## 최근 build (qa 대기 중 — ship 전 /approve qa 필요)
 - 셀프서브 코어: A1 증류 generateText 통일, A2 온보딩 위저드, A3 키검증, /api/health+autoheal+슬랙경보,

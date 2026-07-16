@@ -264,3 +264,14 @@ qa = **in-progress** (ship 게이트 잠김 유지). 아침 체크리스트 1~3 
 - 🔧 UI: 일반 ChannelPage와 Instagram 전용 화면에 `재연결 필요`와 provider 일시 장애 문구를 분리했다. 토큰 원문·provider raw body는 응답/로그에 포함하지 않는다.
 - 테스트됨: focused 6 files/75 PASS, full 65 files/563 PASS/8 skip, `tsc --noEmit` PASS, production build 161 pages PASS. code-builder 위임 품질 게이트 PASS(WebSearch/Fetch 5, 소크라테스 마커 5).
 - 운영 재배포 후 실제 code190 테넌트가 `재연결 필요`로 표시되는지 확인해야 `관찰됨`으로 전환한다.
+
+### 2026-07-16 21:20 KST P0 운영 재배포·직접 관찰
+
+- 배포 run `29496623489` / head `8b1ca33f` 성공. schema/RLS, image build, up, status, Google-only/operator smoke 전 단계 통과.
+- live `/api/health` HTTP 200, `{ok:true,db:"up"}` 직접 관찰.
+- 인증된 live `/api/channel-config`에서 Instagram·Threads 모두 provider read-only 검증 결과 `connected=true`, `connectionStatus=valid`, `reconnectRequired=false`; 응답의 token/secret/credential 명명 필드는 0개였다.
+- 운영 브라우저에서 Instagram `Connected`, Threads `Live`를 관찰했다. Sidebar/Settings 채널 목록은 직접 발행 지원 8개(Threads/X/Instagram/Facebook/Bluesky/Telegram/Discord/Slack)만 노출했다. Instagram 화면 캡처: `/private/tmp/osmu-prod-instagram.png`.
+- 앞선 provider error 190과 현재 valid 결과가 달라졌으나, 현재 서버 API와 브라우저 결과는 일치한다. 실제 공개 게시를 하지 않았으므로 `threads_content_publish`/Instagram content publish 실권한과 최종 permalink는 미검증이다.
+- 운영 auth user 6명(confirmed 4, unconfirmed 2), customer workspace 10개(active 10, shared AI 승인 10, integration 보유 2)를 operator API로 관찰했다. 비밀번호 원문은 Supabase에서 조회할 수 없다.
+- Health Monitor run `29497421714` success. QA tenant token revoke 후 동일 token으로 live API 401 확인. 브라우저 localStorage 및 임시 probe 파일 정리 완료.
+- ship 잔여: 실제 Google 계정 선택→앱 복귀→identity/lead 저장, Threads 공개 게시 1건과 permalink, GA4 DebugView 수신, 채팅에 노출된 Slack webhook 회전.

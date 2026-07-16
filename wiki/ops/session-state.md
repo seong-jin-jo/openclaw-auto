@@ -1,9 +1,25 @@
 # 세션 작업 상태 (재실행 가능한 핸드오프)
 
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
-> 단계 진실원: 루트 `pipeline-state.md`(현재 **qa in-progress**, Google-only auth 운영 검증 대기). QA 증거: `docs/qa-tracker.md`.
+> 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-16 20:03 KST · `main` · **SNS P0 false-positive·과다노출 수정 검증 완료, 재배포·Meta 재로그인 대기**
+**최종 갱신:** 2026-07-16 21:20 KST · `main` · **SNS P0 운영 재배포·연결 UI 검증 완료, Google 최종 왕복·SNS 실발행 승인 대기**
+
+---
+
+### Codex handoff — SNS P0 운영 재배포·직접 QA (2026-07-16 21:20 KST)
+
+**handoff basis:** 사용자 `/approve qa`와 이 파일의 운영 출시 트랙을 기준으로 `openclaw-auto:0.0` pane을 대조해 계속했다.
+
+**배포:** P0 수정 커밋 `8b1ca33f`를 `main`에 push. GitHub Actions run `29496623489`가 schema/RLS, image build, up, status, Google-only/operator smoke를 모두 통과했다.
+
+**직접 관찰:** live health HTTP 200/DB up. 인증된 `GET /api/channel-config`가 Instagram·Threads를 provider read-only 조회 후 `connected=true`, `connectionStatus=valid`로 반환했고 token/secret/credential 필드는 0개였다. 운영 브라우저에서 Instagram `Connected`, Threads `Live`와 발행 지원 8채널만 렌더됨을 확인했다. 앞선 error 190 관찰과 현재 결과가 달라졌으나 현재 API와 브라우저는 동일하게 valid이며, 공개 게시를 하지 않았으므로 content-publish 권한은 아직 미검증이다.
+
+**운영 현황:** auth user 6명(confirmed 4, unconfirmed 2), customer workspace 10개(active 10, shared AI 승인 10, integration 보유 2). 비밀번호 원문은 Supabase가 저장·반환하지 않는다. Health Monitor run `29497421714` 성공.
+
+**보안 정리:** QA tenant token을 revoke하고 동일 token의 운영 API 401을 확인했다. 브라우저 localStorage와 로컬/VM/container 임시 probe 파일을 제거했다.
+
+**정확한 다음 액션:** 회장이 운영 Google 로그인에서 계정 선택·동의를 완료하면 앱 복귀, 기존 identity linking 또는 신규 auth user/tenant lead 저장을 즉시 확인한다. SNS는 공개·자동삭제 불가이므로 launch pack `T-PIN-01`의 Threads 실발행을 회장이 명시 승인한 뒤 실행·permalink 확인한다. GA4 DebugView 수신과 노출된 Slack webhook 회전도 ship 잔여다.
 
 ---
 
@@ -1456,3 +1472,14 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
 **범위**: 위 5개 파일만 변경(route.ts, page.tsx, observability.ts, operator-customers.test.ts, operator-mutation-alert.test.ts). pipeline-state.md/docs/deployment config/Google-only login 파일(login/signup/AuthGate/oauth-errors) 미접촉(요청대로).
 
 **다음 액션**: 이 서브태스크 종결. 남은 미결은 이전 섹션의 ⛔ 회수 항목(기존 이메일/비밀번호 가입 고객 실존 여부) 그대로 — 이번 작업과 무관, 회장 확인 대기 지속.
+
+## 2026-07-16 — 브랜딩 트랙 재개 (Fable 마지막 세션): 공장 워딩 낙점 + 세팅 4종
+- 회장 결정(이 세션, AskUserQuestion 실답): ①워딩 비서→**공장**, 표시 이름 **"OSMU 팩토리" 직접 낙점** ②스토리 = 단독 화자(제작 스토리는 블로그/랜딩 격리) ③오늘 세팅 4종 전부(디자인 하네스·피드백 루프·바이럴 장치·크론 연결) ④Higgsfield 충전은 전부 확정 후 확신 들 때만.
+- ⚠️ 동일자 상충 해소: 다른 세션의 07-16 "오스무 비서" 낙점·launch-pack은 **후속 회장 지시로 대체** — naming.md §4·ADR-005 이력에 전/후로 기록. launch-pack 전부 draft(자동 트리거 없음, 실측)라 실계정 영향 0. **launch-pack 만든 세션은 재개 시 이 파일과 naming.md부터 읽을 것.**
+- 직접 완료: naming.md §2/§3/§4/§5(팩토리·@osmu.factory)·ADR-005 개정.
+- 백그라운드 위임 3건 실행 중: A=공장 워딩 15파일 재전파(brand·channels·landing·hook·calendar·briefs·launch-pack·json·dm·design-system·index, writing.md 필독 명시) / B=제품 DESIGN.md 컴파일(product-designer, 토큰+컴포넌트 인벤토리+벤치마크+금지 패턴) / C=feedback-loop.md+viral-mechanics.md 신설(신규 파일만, 기존 파일 접촉 금지).
+- 다음: 위임 회수→verify v2→F4(크론 prompt-guide 연결·팩토리 리허설 E2E·디자인 리허설 E2E·index 등재·커밋).
+- 2026-07-16: 위임 B(DESIGN.md 컴파일) 산출 완료 — 7섹션·토큰 15·컴포넌트 인벤토리 55·벤치마크 채택4/기각2·토큰부채 5건 정직 기록. verify v2는 design-review 등급 부재로 FAIL(스펙 문서라 렌더 대상 없음 — 에이전트 반론 타당 판단) → 해소 경로: 디자인 리허설 E2E(Haiku가 DESIGN.md만 읽고 채널 카드 목업→design-review 등급) 백그라운드 실행 중. 등급 B+ 이상이면 FAIL 해소로 간주, 미만이면 DESIGN.md 보강.
+- 2026-07-16: 위임 C(피드백 루프+바이럴) 완료·verify PASS(스킬 2·WebSearch 18·RUBRIC 22/25)·파일 실존+WEAKEST_LINE 스팟체크 확인 — feedback-loop.md(신호 6종·태그 스키마·목요일 주간 루프·자동/회장 게이트 표·에스컬레이션), viral-mechanics.md(장치 8종 V1~V8, 심리법칙·지표·리스크 상한). 회장 결정 2건(워터마크 유료화·제보자 호명) open-decisions 등록. 잔여 = A(공장 워딩 전파)·디자인 리허설.
+- 2026-07-16: 디자인 리허설 1차 회수 — 목업 자체는 토큰 100% 준수·신규 컴포넌트 0(하네스 목적 달성 신호)이나, **design-review 스킬을 스킵하고 수동 QA로 "A" 자가 등급 = 자기인증 드리프트 실측** → 반려·스킬 실호출 재지시(백그라운드). verify의 벤치마크 0회 지적은 리허설 설계상 외부 조사 금지였으므로 면제 판단(근거: 벤치마크는 DESIGN.md §5에 내장). 조치: DESIGN.md §7-5에 "스킬 실호출만 인정" 규칙 즉시 박음. 잔여 = A(공장 워딩)·디자인 리허설 재실행.
+- 2026-07-16: 디자인 리허설 재실행 완료 — design-review **스킬 실호출** 완주(렌더 스크린샷 9장+DOM 실측): Baseline B → HIGH 3건 포함 8건 지적 → 전건 수정 → **최종 Design Score A- (AI Slop A)**. 수동 자가 "A"가 과대평가였음이 실증됨(렌더 실측이 에러 상태 결함·논리 모순·이모지 슬롭을 잡음). verify의 "WebSearch 0" FAIL은 리허설이 의도적으로 외부 조사를 봉인한 설계라 면제 판단 — ⛔ 라벨로 보고, verify에 리허설 예외 플래그 필요(하네스 튜닝 후보, harness-report 주간 회부). DESIGN.md 컴파일 FAIL도 이 실등급(A-≥B)으로 운영 검증 해소. F2 완료. ⛔ 기획 회수 1건 발견: 채널 상태(Live/Connected/미연결/에러) 실시간 갱신 방식 미정의(API 폴링/크론 반영/수동) — 기획 결정 필요.
