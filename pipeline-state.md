@@ -4,16 +4,16 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: build           # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design]
+current_stage: ship            # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design, build, qa]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
-  build:      { status: in-progress, artifacts_ok: false } # ship E2E에서 tenant proxy allowlist 누락 재오픈
-  qa:         { status: pending, artifacts_ok: false }
-  ship:       { status: pending, artifacts_ok: false }
+  build:      { status: approved, artifacts_ok: true } # tenant proxy allowlist 핫픽스 + CI 재검증
+  qa:         { status: approved, artifacts_ok: true }
+  ship:       { status: in-progress, artifacts_ok: false }
 override: false
 override_reason: ""
 override_expires: ""
@@ -96,6 +96,12 @@ override_expires: ""
   Meta 앱 redirect URI `https://<live>/api/connect/{provider}/callback` 등록. 그 후 배포→browse로 qa 증거.
 
 ## 승인 로그 (append-only)
+2026-07-17 — hotfix build+qa APPROVED — 운영 Chrome에서 발견한 tenant account API 403의 교정 범위만
+  재검증. commit `15b09a2c`, GitHub Actions run `29598660707`에서 typecheck/build/PostgreSQL 16
+  schema→seed→RLS/full test 전부 성공. 로컬 focused proxy test 39 PASS, full 73 files/634 PASS/9
+  DB-env skip, production build 160 pages PASS. 사용자가 `QA승인`을 명시했으므로 QA 승인으로 반영하고,
+  기존 승인 build 범위의 회귀 핫픽스 증거도 함께 재고정해 ship으로 전환. 운영 재배포 후 동일 고객 토큰
+  Chrome E2E가 통과하기 전 ship 완료 금지. 외부 provider 2계정 OAuth·실발행은 계속 미검증.
 2026-07-17 — build REOPENED FROM SHIP — 운영 Chrome E2E에서 신규 `/api/channels/{provider}/accounts*`
   3개 경로가 proxy tenant-aware allowlist에 없어 실제 고객 osmu/JWT가 403 `이 API는 운영자 전용입니다`를
   받는 결함을 직접 관찰. hotfix→CI→build/qa 재승인→재배포 전 ship 완료 금지.
