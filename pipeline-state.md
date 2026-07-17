@@ -4,15 +4,15 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: build           # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design]
+current_stage: qa              # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design, build]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
-  build:      { status: in-progress, artifacts_ok: false } # 2026-07-17 SNS-001~006 결함 수정 재오픈
-  qa:         { status: pending, artifacts_ok: false }
+  build:      { status: approved, artifacts_ok: true } # 2026-07-17 SNS-001~007 build evidence reverified
+  qa:         { status: in-progress, artifacts_ok: false }
   ship:       { status: pending, artifacts_ok: false }
 override: false
 override_reason: ""
@@ -74,6 +74,13 @@ override_expires: ""
 - build 승인 전 미검증: production schema 적용, 실제 provider 2계정 OAuth 왕복, 기본전환 UI 직접 관찰,
   선택계정별 공개 테스트 발행 permalink/YouTube Shorts URL. `/approve build` 후 QA·배포 게이트로 이동한다.
 
+## 2026-07-17 SNS-007 QA 진행
+- build 승인을 반영해 QA로 전환했다. 실제 `upsertChannelAccount` 두 호출의 최초 연결 경쟁을 재현하는
+  PostgreSQL 통합 테스트를 추가했다. 로컬은 DB 부재로 해당 1건 skip, 전체 73 files/630 pass/9 skip,
+  `tsc --noEmit` PASS, production build 160 pages PASS다.
+- QA 자동 종료 조건: GitHub CI PostgreSQL에서 신규 동시성 테스트가 skip 없이 실행되어 2계정 저장과
+  provider 기본계정 정확히 1개를 관찰할 것. 운영 OAuth·실발행은 CI로 검증되지 않으므로 별도 미검증이다.
+
 ## 최근 build (qa 대기 중 — ship 전 /approve qa 필요)
 - 셀프서브 코어: A1 증류 generateText 통일, A2 온보딩 위저드, A3 키검증, /api/health+autoheal+슬랙경보,
   성과 ConnectGate, 가입 confirm 탭.
@@ -86,6 +93,9 @@ override_expires: ""
   Meta 앱 redirect URI `https://<live>/api/connect/{provider}/callback` 등록. 그 후 배포→browse로 qa 증거.
 
 ## 승인 로그 (append-only)
+2026-07-17 — build APPROVED — 사용자 명시 입력 `승인하다고 /approved build`. 명령 오타와 무관하게
+  build 승인 의사가 명확하므로 승인으로 처리. 재검증 증거: commit `98896f30`, full 72 files/630 PASS/8
+  DB-env skip, `tsc --noEmit` PASS, production build 160 pages PASS, `git diff --check` PASS. QA 단계로 전환.
 2026-07-17 — build REOPENED — 사용자 명시 지시 `진행해서 싹 되게해`. SNS-001~006 사용자 실기기
   결함을 수정하기 위해 ship에서 build로 재오픈. 코드 수정→로컬 E2E→실브라우저 운영 QA 후 build/qa 재승인 필요.
 2026-07-16 — qa APPROVED — 사용자 명시 입력 `/approve qa`. 재검증 증거: Google-only/operator focused

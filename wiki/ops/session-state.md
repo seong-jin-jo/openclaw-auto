@@ -1,9 +1,9 @@
 # 세션 작업 상태 (재실행 가능한 핸드오프)
 
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
-> 단계 진실원: 루트 `pipeline-state.md`(현재 **build in-progress**). QA 증거: `docs/qa-tracker.md`.
+> 단계 진실원: 루트 `pipeline-state.md`(현재 **qa in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-17 15:14 KST · build commit `98896f30` · **SNS-007 다중계정 build 승인·운영 QA 대기**
+**최종 갱신:** 2026-07-17 18:55 KST · build commit `98896f30` · **SNS-007 build 승인·실 DB CI QA 진행**
 
 ---
 
@@ -1589,3 +1589,15 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
 
 **다음 액션**: ① 회장 검토 후 커밋 여부 결정 ② 배포 후 실계정 2-account OAuth 왕복 + 선택발행 permalink 관찰로 SNS-007 `✅ 운영 관찰` 승격 ③ `wiki/architecture/data-model.md`에 `channel_accounts` 테이블 반영(스키마 변경이므로 다음 세션 회수 항목).
 - 2026-07-17: 팩토리 리허설 E2E **합격** — Haiku가 wiki만 읽고 Threads 3건+IG 카드 1건 생성: 공장 어휘 관통·비서 잔재 0·금지어 0·"우리" 0·placeholder/⛔ 규칙 준수·"샘플 데모(실고객 아님)" 정직 표기 자발 적용. F1~F4 전부 완료 → 커밋 진행.
+- 2026-07-17: **Fable 마지막 세션 마감 — 커밋 815a3693** (32파일). 완료 = 공장 워딩 전층(25파일)+크론 가이드 컴파일, DESIGN.md 정본+디자인 리허설 A- 실증, feedback-loop·viral-mechanics 정본, 리허설 E2E 2종 합격. 이월 = Higgsfield 에셋(회장 "전부 확정 확신 시 충전"), osmu.kr·IG 리네임(회장 수동), 워터마크 유료화·제보자 호명·채널 상태 갱신 방식(open-decisions). 다음 세션(Opus/GPT)은 wiki/marketing/index.md 진입지도 + /DESIGN.md + 이 파일만 읽으면 재개 가능.
+
+## 2026-07-17 독립 QA 재검증 — SNS-001~007 (commit 98896f30, qa-verifier 서브에이전트, 판정 반려)
+- 핸드오프 기준: 이번 호출은 회장이 직접 지정한 read-only QA 위임(메인세션 프롬프트 단독 실행) — tmux pane 대조 대상 없음, 별도 확인 불필요로 판단하고 진행.
+- 한 일: 98896f30 diff 39파일 직접 리뷰(`channel-accounts.ts`/`schema.sql`/`rls.sql`/OAuth callback/account API 3종/`youtube-token.ts`/`schedule*`/`AccountManager.tsx`), 자동테스트·tsc·build·git diff --check 재실행. 코드 수정/커밋/배포 없음(READ-ONLY 준수).
+- 자동 실행 결과(메인세션 재현됨): `npx tsc --noEmit` clean, `npm test` **72 files/630 pass/8 skip**, `npm run build` 160 pages PASS, `git diff --check` 공백오류 0.
+- 확인된 것: RLS `channel_accounts` FORCE 정책 적용, refresh token은 `refresh_enc`에만 암호화(meta 평문 혼입 없음), `setDefaultAccount`/`deleteChannelAccount` advisory lock+cross-tenant 404, AccountManager `dangerouslySetInnerHTML` 없음(XSS 안전), OAuth callback HTML은 `escapeHtml`+JSON escape 적용, `schedule/publish-due`가 선택계정 fallback 없이 정확히 그 계정으로만 발행.
+- 신규 발견(기존 tracker에 없던 갭): advisory lock의 **동시성 실측 테스트가 없음**(`channel-accounts.test.ts`에 concurrent race 재현 부재) — 락 패턴 자체는 표준이나 회귀 테스트로 고정되지 않음.
+- 미검증(기존 라벨과 동일, 유지): 실계정 2계정 OAuth 왕복, 프로덕션 migration 적용, 실 permalink/Shorts URL.
+- 품질 게이트: `verify-agent-quality.sh`가 Skill 0회 + WebSearch/Fetch 0회로 **FAIL**. 따라서 서브에이전트의 조건부 PASS와 blocker/high 0건 판정은 승인 근거에서 제외한다. 코드에서 직접 확인 가능한 동시성 테스트 부재만 회수했다.
+- 메인세션 조치: `tests/db/channel-accounts-concurrency.db.test.ts`를 추가해 실제 `upsertChannelAccount` 두 호출을 병렬 실행하고 2행/기본계정 1개를 검증하도록 했다. 로컬은 DB 부재로 이 1건 skip, 전체 73 files/630 pass/9 skip, tsc PASS, production build 160 pages PASS.
+- 정확한 다음 액션: 관련 파일만 커밋·push해 GitHub CI의 PostgreSQL 서비스에서 신규 테스트를 skip 없이 통과시킨다. CI 성공 후에도 실계정 2계정 OAuth 왕복·프로덕션 migration·실 permalink/Shorts URL은 운영 배포 전 미검증으로 유지한다.
