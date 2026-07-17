@@ -3,7 +3,7 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **build in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-17 15:11 KST · uncommitted · **SNS-007 다중계정 build candidate 검증 완료, build 승인·운영 QA 대기**
+**최종 갱신:** 2026-07-17 15:14 KST · build commit `98896f30` · **SNS-007 다중계정 build 승인·운영 QA 대기**
 
 ---
 
@@ -31,6 +31,10 @@ Google YouTube OAuth는 공식 `prompt=consent select_account`로 계정 선택�
 **정확한 다음 액션:** 회장 `/approve build` → 관련 코드/기술문서만 선별 commit(마케팅 dirty 제외) → QA 단계에서
 운영 migration/deploy → 인증 브라우저로 provider별 두 계정 연결·목록·기본전환·선택 발행·삭제를 직접 관찰 →
 증거 통과 후 `/approve qa`. build 승인 전 배포하지 않는다.
+
+**커밋 기준점:** `98896f30 feat(dashboard): add multi-account social publishing`. SNS/YouTube 관련 44파일만
+선별 커밋했고 `%46` 마케팅 dirty와 `dashboard/supabase/.temp/linked-project.json`은 제외했다. 따라서 다음
+액션의 `선별 commit`은 완료됐으며 실제 순서는 `/approve build` → QA migration/deploy/실브라우저 관찰이다.
 
 ---
 
@@ -1584,3 +1588,4 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
 **커밋/배포**: 지시대로 미실행(로컬 diff만).
 
 **다음 액션**: ① 회장 검토 후 커밋 여부 결정 ② 배포 후 실계정 2-account OAuth 왕복 + 선택발행 permalink 관찰로 SNS-007 `✅ 운영 관찰` 승격 ③ `wiki/architecture/data-model.md`에 `channel_accounts` 테이블 반영(스키마 변경이므로 다음 세션 회수 항목).
+- 2026-07-17: 팩토리 리허설 E2E **합격** — Haiku가 wiki만 읽고 Threads 3건+IG 카드 1건 생성: 공장 어휘 관통·비서 잔재 0·금지어 0·"우리" 0·placeholder/⛔ 규칙 준수·"샘플 데모(실고객 아님)" 정직 표기 자발 적용. F1~F4 전부 완료 → 커밋 진행.

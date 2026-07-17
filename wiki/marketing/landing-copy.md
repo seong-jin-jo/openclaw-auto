@@ -1,13 +1,13 @@
 # Landing Copy — OSMU waitlist 랜딩 풀 카피 정본
 
-**갱신: 2026-07-11 (브랜드 피벗 캐스케이드)** · 작성: content-growth-marketer (landing-page-conversion-copy 스킬 + done-for-you/대행 시장 벤치마크 WebSearch)
+**갱신: 2026-07-16 (워딩 전환: 비서→공장 "OSMU 팩토리")** · 작성: content-growth-marketer (landing-page-conversion-copy 스킬 + done-for-you/대행 시장 벤치마크 WebSearch — 공장 워딩 벤치마크 2026-07-16 추가)
 표기는 [naming.md](./naming.md), 포지셔닝 문장은 [positioning.md](./positioning.md), 톤·페르소나는 [brand.md](./brand.md), 실행 시점·지표는 [gtm-plan.md](./gtm-plan.md) 단계 3이 진실원. 이 파일은 **구현(코딩) 전 카피 정본** — 하위모델은 문구를 임의 개선하지 말고 그대로 옮긴다(오탈자 수정만 허용).
 
-> ⚠️ 2026-07-11: 구 타겟(바이브코더·개발자) 기준 카피 전면 폐기 — 현재 타겟 = **사장님·자영업자·1인 대표** (naming.md §2, brand.md §3). 화자 = AI 콘텐츠 비서(제품 인격) + 만든 사람(운영자) 병행. 문체 = 비서 보고체 담백한 합니다체 (구 개발자 반말체 폐기 — 사장님 타겟 정합).
+> ⚠️ 워딩 이력(각주): 2026-07-11 구 타겟(바이브코더·개발자) 카피 폐기 → "AI 콘텐츠 비서" 화자 → **2026-07-16 콘텐츠 공장 "OSMU 팩토리"로 재전환** (naming.md §2). 타겟 = 사장님·자영업자·1인 대표 유지. 화자 = 공장(시설, 리포트체) + 만든 사람(운영자) 병행. 문체 = 담백한 합니다체 유지.
 
 ## 0. 페이지 브리프
 
-- 제품: OSMU(오스무) — 사장님 SNS를 대신 굴리는 AI 콘텐츠 비서 (원소스 멀티유즈 자동화)
+- 제품: OSMU(오스무) — 사장님 콘텐츠를 만들어 출고하는 콘텐츠 공장 (원소스 멀티유즈 자동화). 계정/서비스 표시 이름 = "OSMU 팩토리"
 - 방문자: ①SNS 해야 하는 건 알지만 만들 시간도 감도 없는 사장님·자영업자·1인 대표(주) ②1인 브랜드·크리에이터(부)
 - 행동 목표: waitlist 이메일 1개 제출 (단일 CTA — 다른 행동 없음)
 - 구조: 신PASONA (Problem → Affinity → Solution → Offer → Narrowing → Action) — 골격 유지
@@ -17,19 +17,19 @@
 ## 1. Hero (— Solution 선행 제시형)
 
 **H1 (정본):**
-> SNS는 비서한테 맡기고, 사장님은 장사하세요
+> 사장님 콘텐츠, 공장에 맡기고 장사하세요
 
 **서브카피:**
-> 사장님 가게의 가격·메뉴·말투가 담긴 브랜드 위키를 읽고 쓰는 AI 콘텐츠 비서, 오스무(OSMU).
-> 만들고, 채널마다 맞게 올리고, 결과를 보고합니다 — 그럴싸한 헛소리를 지우러 다닐 일이 없습니다.
+> 사장님 가게의 가격·메뉴·말투가 담긴 브랜드 위키를 읽고 쓰는 콘텐츠 공장, OSMU 팩토리.
+> 만들고, 채널마다 맞게 올리고, 결과를 리포트로 보고합니다 — 그럴싸한 헛소리를 지우러 다닐 일이 없습니다.
 
 **H1 대안 A (결과형 — A/B용):**
-> 손 안 대도, 내 가게 콘텐츠가 매주 나갑니다
+> 손 안 대도, 내 가게 콘텐츠가 매주 출고됩니다
 
 **H1 대안 B (안티 페인형 — A/B용):**
 > AI 글쓰기 툴은 많습니다. 사장님 가게를 아는 건 없습니다
 
-[근거: done-for-you 카피 공통 골격 = "우리가 다 한다 → 당신은 본업만"(doneforyou.com "installed for you", Apaya "writes·designs·publishes — automatically") + 안티 제네릭 각(Venture Media "most AI tools give you generic content") — 대안 B가 이 각의 우리식 각색. 문구 복붙 없음]
+[근거: done-for-you 카피 공통 골격 = "우리가 다 한다 → 당신은 본업만"(doneforyou.com "installed for you", Apaya "writes·designs·publishes — automatically" — 계승) + 안티 제네릭 각(Venture Media "most AI tools give you generic content" — 계승, 대안 B가 이 각의 우리식 각색) + 공장 은유의 카테고리 성립("The Content Factory" — contentfac.com, WebSearch 2026-07-16: 팩토리 네이밍이 콘텐츠 서비스 시장에서 이미 통용, 단 저쪽은 사람 리테이너 대행이고 우리는 자동화 공장 — H1의 "공장에 맡기고"는 그 통용 어휘를 사장님의 '외주 맡기기' 심상(앵커링)에 접붙인 것. 문구 복붙 없음]
 
 **히어로 CTA:** 아래 §7의 CTA-A 기본.
 **히어로 입력 폼:** 이메일 1필드 + 버튼 1개. 그 외 필드 금지 (벤치마크: 1필드가 전환 최대 — 계승).
@@ -46,13 +46,13 @@
 
 ## 3. Affinity (A — 만든 사람도 같은 문제였습니다)
 
-**헤딩:** 사장님을 여기로 데려온 그 계정, 비서가 굴린 겁니다
+**헤딩:** 사장님을 여기로 데려온 그 계정, 이 공장에서 출고된 겁니다
 
 > 만든 사람(운영자)도 자기 서비스들 SNS를 돌리다 발행 루틴이 먼저 죽었습니다.
-> 그래서 비서를 만들어 자기 계정을 통째로 맡겼습니다 — 지금 이 랜딩으로 연결된 SNS 계정들의 발행을 오스무가 직접 합니다.
-> 비서가 일을 잘하는지 궁금하면, 그 계정이 꾸준히 올라오는지만 보면 됩니다. 매주 목요일 업무 보고로 숫자까지 공개합니다.
+> 그래서 공장을 지어 자기 계정을 통째로 맡겼습니다 — 지금 이 랜딩으로 연결된 SNS 계정들의 글이 OSMU 팩토리 라인에서 출고됩니다.
+> 공장이 제대로 도는지 궁금하면, 그 계정이 꾸준히 올라오는지만 보면 됩니다. 매주 목요일 주간 리포트로 숫자까지 공개합니다.
 
-(→ 계정 링크. 이 블록이 신뢰 축 — 얼굴 대신 살아있는 데모. 계정 표기·핸들은 naming.md §2 낙점 후 삽입.)
+(→ 계정 링크. 이 블록이 신뢰 축 — 얼굴 대신 살아있는 데모. 계정 표기 = "OSMU 팩토리", 핸들은 naming.md §2 우선순위 확정·실가용 확인 후 삽입.)
 
 ## 4. Solution + 기능 3축 (S)
 
@@ -65,14 +65,14 @@
 | 3 | **한 소스, 모든 채널** | 글 하나가 채널별 문법에 맞게 변형돼 나갑니다. 카드뉴스·숏폼·텍스트까지 한 큐에서 |
 
 **작동 방식 (3단계 시각화용):**
-① 가게 사실 몇 가지 입력 (가격·메뉴·말투 — 온보딩이 물어봅니다) → ② 비서가 초안 생성, 사장님은 승인만 → ③ 채널별 자동 발행 + 매주 업무 보고
+① 가게 사실 몇 가지 입력 (가격·메뉴·말투 — 온보딩이 물어봅니다) → ② 공장이 초안 생산, 사장님은 승인만 → ③ 채널별 자동 출고 + 매주 주간 리포트
 
 ## 5. Offer + 사회적 증거 (O)
 
-**헤딩:** 말 대신, 숫자로 보고합니다
+**헤딩:** 말 대신, 숫자로 리포트합니다
 
-- (0차 단계 — 고객 후기 없음. **비서가 굴리는 자사 계정 실적 블록으로 갈음**, 실측만 표기)
-- 표기 항목: `자동 발행 {N}건 · 운영 {N}주 · 월 운영비 ₩{X} 공개 중`
+- (0차 단계 — 고객 후기 없음. **공장이 굴리는 자사 계정 가동 기록 블록으로 갈음**, 실측만 표기)
+- 표기 항목: `자동 출고 {N}건 · 가동 {N}주 · 월 가동비 ₩{X} 공개 중`
 - **규칙: 실측 숫자가 없거나 4주 미만이면 이 섹션 전체 숨김.** 가짜 카운터·부풀린 수치 금지.
 - waitlist 카운터는 **실제 등록 수**가 30명 넘은 뒤에만 노출 (벤치마크: 진짜 숫자만 신뢰 신호 — 계승).
 
@@ -91,7 +91,7 @@
 **헤딩:** 지금은 소수만 받습니다
 
 > 아직 만드는 중입니다. 다듬는 동안 소수 인원부터 순서대로 초대합니다.
-> 대기자에게는 매주 목요일 비서의 업무 보고(발행 건수·반응·비용)가 갑니다 — 스팸 아니고 그게 전부입니다.
+> 대기자에게는 매주 목요일 공장 주간 리포트(출고 건수·반응·비용)가 갑니다 — 스팸 아니고 그게 전부입니다.
 
 (과장 금지 — "곧 마감"류 가짜 긴급성 금지. 진짜 제약=0차 안정화 중이라는 사실만.)
 
@@ -99,11 +99,11 @@
 
 | 안 | 버튼 문구 | 보조 문구 | 성격 |
 |---|---|---|---|
-| **CTA-A (기본)** | 비서 대기자 등록 | 자리 나면 메일 1통. 그 전까진 매주 목요일 업무 보고만 갑니다 | safer — 낮은 부담, 정직 |
+| **CTA-A (기본)** | 공장 대기자 등록 | 자리 나면 메일 1통. 그 전까진 매주 목요일 주간 리포트만 갑니다 | safer — 낮은 부담, 정직 |
 | **CTA-B (실험)** | 먼저 맡겨보기 신청 | 준비되는 순서대로 소수 초대. 초기엔 무료입니다 | 고강도 — 사용 의지 선별 |
 
 - A/B는 growth-log **실험 9**로 판정. 판정 전 기본 = CTA-A.
-- 제출 후 화면: "등록됐습니다. 다음 목요일 업무 보고에서 뵙겠습니다." + 계정 팔로우 링크 1개 (핸들은 naming.md 낙점 후). (추천인·공유 부스터는 등록 30명 이후 검토)
+- 제출 후 화면: "등록됐습니다. 다음 목요일 주간 리포트에서 뵙겠습니다." + 계정 팔로우 링크 1개 (핸들은 naming.md §2 실가용 확인 후). (추천인·공유 부스터는 등록 30명 이후 검토)
 
 ## 8. FAQ
 
@@ -122,10 +122,10 @@
 | "AI 글은 어차피 다 고쳐야 함" | Hero 서브 + 3축 1 + FAQ 1 (그라운딩) |
 | "대행이랑 뭐가 다름? 또 비싼 거 아냐?" | Problem 2번째 불릿 (대행 비용 실측) + FAQ 5 (월정액 프레임) |
 | "또 하나의 구독료" | FAQ 5 (초기 무료) + Narrowing (정직한 단계 공개) |
-| "만들다 마는 서비스 아님?" | Affinity (계정 = 살아있는 데모 + 목요일 업무 보고 = 생존 증명) |
+| "만들다 마는 서비스 아님?" | Affinity (계정 = 살아있는 데모 + 목요일 주간 리포트 = 생존 증명) |
 | "나 컴맹인데 셋업 못 할 듯" | FAQ 2·3 (시작 위키 대신 만들어줌 + 화면 단위 가이드) |
 | "계정 넘겼다가 정지당하면?" | FAQ 6·7 (승인 모드 + 공식 API·비밀번호 안 받음) |
-| "등록하면 스팸 오겠지" | CTA-A 보조 문구 ("목요일 업무 보고만 갑니다") |
+| "등록하면 스팸 오겠지" | CTA-A 보조 문구 ("목요일 주간 리포트만 갑니다") |
 
 ## 10. 구현 핸드오프 노트
 
@@ -141,8 +141,8 @@
 2. 가격 구체 숫자 — ADR-003은 Starter ₩80~100k/Pro ₩150~200k 제안 상태(Proposed). 랜딩 FAQ 5는 숫자 없이 방향만 쓰도록 해뒀으나, 유료 전환 시점 전에 확정 필요.
 3. Affinity 블록의 운영자 서사("자기 서비스들 SNS를 돌리다 발행 루틴이 죽었다") — 실제 이력과 정합한지 회장 확인 (과장 금지 원칙).
 
-RUBRIC_SCORE: hook=5 detail=5 rhythm=4 voice=5 slop=5 total=24/25 (기준 = ~/.claude/standards/writing.md §2 — 2026-07-12 감사에서 Affinity 헤딩 비문 수정 + Problem 불릿의 출처 태그를 verbatim 카피 밖 근거 노트로 분리 후 재채점)
-WEAKEST_LINE: "그런 사장님을 위해 만드는 중입니다." (FAQ 3) — 약속만 있고 구체 장면·숫자가 없음(온보딩 실화면 캡처 확보 시 교체)
+RUBRIC_SCORE: hook=5 detail=5 rhythm=4 voice=5 slop=5 total=24/25 (기준 = ~/.claude/standards/writing.md §2 — H1 "공장에 맡기고 장사하세요" 첫 줄 생존(외주 심상 앵커링), 블랙리스트 0, 숫자-출처 짝 유지)
+WEAKEST_LINE: "그런 사장님을 위해 만드는 중입니다." (FAQ 3) — 약속만 있고 구체 장면·숫자가 없음(온보딩 실화면 캡처 확보 시 교체, 구판 감사 지적 계승)
 
-SKILLS_USED: landing-page-conversion-copy — 히어로 변형·PASONA 섹션 구조·objection 표·핸드오프 노트 재작성에 사용 / instructor-profile-builder — Affinity 신뢰 블록(살아있는 데모 앵글)에 사용
-SOURCES/MODEL: claude-fable-5 (Fable 5) · 품질헌법 = ~/.claude/standards/writing.md(2026-07-12 Read) · 내부 = wiki/marketing/{naming(2026-07-11),brand(2026-07-11),positioning}.md, wiki/product/vision.md(타겟·온보딩 병목), wiki/decisions/003-moat-and-pricing-strategy.md(하이브리드 프라이싱) · 외부 벤치마크(WebSearch 2026-07-11) = apaya.com/blog/done-for-you-social-media + apaya.com/solutions/professional-services ($109/mo 단일가·월 30포스트 done-for-you 구성), doneforyou.com/services/smm-social-media-marketing ("installed for you" 골격), venturemedia.io/done-for-you-content-workflow-social-media-growth (안티 제네릭 각), soomgo.com/prices/SNS-바이럴-마케팅 (대행 평균 건당 32만원), i-boss.co.kr/ab-2110-4926 (월 광고비 200~300만 권장 관찰), sigmine.ai/blog/small-business-marketing-getting-started-202604 (소상공인 70% 인력 부족) · 계승 벤치마크 = getlaunchlist.com (1필드 폼·실카운터·전환 2%/상위 20%), flowjam.com (짧은 구조) — 문구 차용 없음, 구조만 채택
+SKILLS_USED: landing-page-conversion-copy — 히어로 변형·PASONA 섹션 구조·objection 표(구판) / hook-angle-lab — 2026-07-16 공장 H1 계열·Affinity 헤딩 재작업
+SOURCES/MODEL: claude-fable-5 (Fable 5) · 품질헌법 = ~/.claude/standards/{writing,marketing}.md(2026-07-16 Read) · 내부 = wiki/marketing/{naming(2026-07-16 공장 확정판),brand(2026-07-16 개정),positioning}.md, wiki/product/vision.md(타겟·온보딩 병목), wiki/decisions/003-moat-and-pricing-strategy.md(하이브리드 프라이싱) · 외부 벤치마크(WebSearch 2026-07-16) = contentfac.com("The Content Factory" — 팩토리 네이밍 카테고리 성립·리테이너 시세 관찰), gogumafarm.kr(제조 코드의 감성 자산화 — 곰표 리브랜딩 사례) · 계승 벤치마크(2026-07-11 조사) = apaya.com/blog/done-for-you-social-media + apaya.com/solutions/professional-services ($109/mo 단일가·월 30포스트 done-for-you 구성), doneforyou.com/services/smm-social-media-marketing ("installed for you" 골격), venturemedia.io/done-for-you-content-workflow-social-media-growth (안티 제네릭 각), soomgo.com/prices/SNS-바이럴-마케팅 (대행 평균 건당 32만원), i-boss.co.kr/ab-2110-4926 (월 광고비 200~300만 권장 관찰), sigmine.ai/blog/small-business-marketing-getting-started-202604 (소상공인 70% 인력 부족), getlaunchlist.com (1필드 폼·실카운터·전환 2%/상위 20%), flowjam.com (짧은 구조) — 문구 차용 없음, 구조만 채택

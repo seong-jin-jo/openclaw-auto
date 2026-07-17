@@ -1,18 +1,19 @@
 # Assets — 마케팅 자산 인벤토리
 
-**갱신: 2026-07-12.** 자산이 생기거나 위치가 바뀌면 이 표를 갱신한다.
+**갱신: 2026-07-16 (워딩 전환: 비서→공장 "OSMU 팩토리" 표기 반영).** 자산이 생기거나 위치가 바뀌면 이 표를 갱신한다.
 
 | 자산 | 상태 | 위치 | 비고 |
 |---|---|---|---|
-| 계정 브랜드킷 (이름/bio/비주얼 브리프) | 제안 (회장 미결정) | [proposals/2026-07-07-brand-kit.md](./proposals/2026-07-07-brand-kit.md) | 3안 + 추천 |
-| 계정 비주얼 목업 (로고·배너·썸네일·하이라이트) — **구 빌드로그 컨셉, 폐기 대상** | ⛔ 폐기 대상 (2026-07-11 컨셉 전환으로 무효 — naming.md/brand.md 참조) | [showcase.html](../../scratchpad/brand-visuals/showcase.html) + `scratchpad/brand-visuals/*.png/html` | 안 1(SJ 커서 모노그램) 기준 목업, 21 files/3.1M. **AI 콘텐츠 비서 컨셉과 불일치 — 재생성 필요, 재생성 전까지 사용 금지** |
-| AI 콘텐츠 비서 컨셉 브랜드 텍스처(아바타/배너/썸네일 배경) | ⛔ **미생산 — Higgsfield 크레딧 고갈로 차단** (2026-07-12) | — (생성 실패, 파일 없음) | 아래 "2026-07-12 시도 로그" 참조. 재시도 전 크레딧 확보 필요 |
+| 계정 브랜드킷 (이름/bio/비주얼 브리프) | 이력 보존 (확정 승격 완료 — 현행 정본은 brand.md·naming.md) | [proposals/2026-07-07-brand-kit.md](./proposals/2026-07-07-brand-kit.md) | 3안 + 추천 (구판) |
+| 계정 비주얼 목업 (로고·배너·썸네일·하이라이트) — **구 빌드로그 컨셉, 폐기 대상** | ⛔ 폐기 대상 (2026-07-11 컨셉 전환으로 무효 — naming.md/brand.md 참조) | [showcase.html](../../scratchpad/brand-visuals/showcase.html) + `scratchpad/brand-visuals/*.png/html` | 안 1(SJ 커서 모노그램) 기준 목업, 21 files/3.1M. **현행 공장 컨셉("OSMU 팩토리")과 불일치 — 재생성 필요, 재생성 전까지 사용 금지** |
+| 공장 컨셉 브랜드 텍스처(아바타/배너/썸네일 배경) | ⛔ **미생산 — Higgsfield 크레딧 고갈로 차단** (2026-07-12) | — (생성 실패, 파일 없음) | 아래 "2026-07-12 시도 로그" 참조(당시 표기 = 구 비서 컨셉 — 이력). design-system §7 프롬프트는 워딩 전환과 무관하게 유효. 재시도 전 크레딧 확보 필요 |
+| 프로필 이미지 v1 (씰+체크 = "출고 완료 도장") | 제작 완료, 회장 확정 대기 | `scratchpad/osmu-launch-assets/profile-osmu-v1.png` | launch-pack §1 — 공장 컨셉 정합, 재제작 불요 |
 | Waitlist 랜딩 | 미존재 | — | playbook 우선순위 4 |
 | "Made with" 워터마크/서명 | 미구현 | — | playbook 우선순위 2 (approve 통과 글만, 기본 off) |
 | 공개 성과 페이지 (open metrics) | 미존재 | — | playbook 우선순위 3 (insights 데이터 재노출) |
 | 채널 셋업 공개 가이드 (pSEO 시드) | 내부만 존재 | `dashboard/src/lib/setup-guides.ts` | playbook 우선순위 5 |
 
-## 2026-07-12 시도 로그 — AI 비서 컨셉 브랜드 텍스처 생성 (실패, 크레딧 고갈)
+## 2026-07-12 시도 로그 — 브랜드 텍스처 생성 (실패, 크레딧 고갈 — 당시 컨셉 표기는 구 비서 워딩, 이력)
 
 **결과: 이미지 0장 생산. `assets/brand/`는 빈 채로 남음.**
 

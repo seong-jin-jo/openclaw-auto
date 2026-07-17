@@ -1,6 +1,6 @@
-# DM Playbook — 오스무 비서 (OSMU) Instagram+Threads DM 운영 정본
+# DM Playbook — OSMU 팩토리 Instagram+Threads DM 운영 정본
 
-**갱신: 2026-07-16(품질게이트 재작업, 19/25 반려 대응)** · 최초 결정일 2026-07-14 · 출시일 2026-07-16 · 작성: content-growth-marketer (openclaw-creative-brief 스킬) · 정본 계층: [naming.md](./naming.md) §2, [ADR-005](../decisions/005-brand-naming.md), [brand.md](./brand.md) 톤.
+**갱신: 2026-07-16(품질게이트 재작업 + 워딩 전환: 비서→공장 "OSMU 팩토리" — 표기 2건만 교체, 정책 내용 무변경)** · 최초 결정일 2026-07-14 · 출시일 2026-07-16 · 작성: content-growth-marketer (openclaw-creative-brief 스킬) · 정본 계층: [naming.md](./naming.md) §2, [ADR-005](../decisions/005-brand-naming.md), [brand.md](./brand.md) 톤.
 
 **v1 운영 전제**: 수동 승인·수동 발송(크론은 초안까지만, 발송 버튼은 사람). 실제 서비스 진입 경로는 **공개 베타 가입**이며, 대기명단·대기자 등록 같은 "지금 못 들어감" 프레이밍은 이 문서 전 템플릿에서 제거했다 — 전부 "프로필 링크 가입/문의"로 통일.
 
@@ -50,7 +50,7 @@
 
 ## 3. 템플릿 (전부 초안 — 발송 전 사람 검토·개인화 의무)
 
-톤 규칙은 [brand.md](./brand.md) §4·[creative-briefs/_base.md](./creative-briefs/_base.md) §2 그대로: 담백한 비서 보고체, 굽신 콜센터 톤 금지, 이모지 0~1개, "고객님~" 금지.
+톤 규칙은 [brand.md](./brand.md) §4·[creative-briefs/_base.md](./creative-briefs/_base.md) §2 그대로: 담백한 리포트체(단 DM은 1:1 응대라 "오스무입니다" 자기소개 허용), 굽신 콜센터 톤 금지, 이모지 0~1개, "고객님~" 금지.
 
 ### D-01 — 인바운드 문의 첫 응답 (서비스 문의 일반)
 

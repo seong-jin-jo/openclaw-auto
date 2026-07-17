@@ -75,7 +75,7 @@
 | `sns_outbound` | 랜딩·성과 페이지 | `platform` | 계정 동선 |
 | `page_view` | 전 페이지 | 기본 | 유입 (source/medium으로 채널 기여 분석) |
 
-- SNS 프로필→랜딩 링크에는 UTM 고정: `utm_source={platform}&utm_medium=social&utm_campaign=osmu-secretary`.
+- SNS 프로필→랜딩 링크에는 UTM 고정: `utm_source={platform}&utm_medium=social&utm_campaign=osmu-factory`.
 - 주간 리포트: MARKETING 중앙이 Data API로 집계 — 하위모델이 각 앱 GA4 콘솔을 열지 않는다.
 
 ## 3. 단계 이동 규칙

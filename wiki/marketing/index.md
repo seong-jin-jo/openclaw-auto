@@ -1,12 +1,12 @@
 # Marketing — 섹션 지도
 
-마케팅·브랜드 지식의 정본. (신설 2026-07-07, 전면 정본화 2026-07-10, **컨셉 전환 2026-07-11** — 계정 브랜드 = AI 콘텐츠 비서·타겟 = 사장님/자영업자로 피벗, [ADR-005](../decisions/005-brand-naming.md).)
+마케팅·브랜드 지식의 정본. (신설 2026-07-07, 전면 정본화 2026-07-10, 컨셉 전환 2026-07-11, **워딩 전환 2026-07-16** — 계정 브랜드 = 콘텐츠 공장 **"OSMU 팩토리"**(구 비서 워딩 대체, 회장 직접 낙점)·타겟 = 사장님/자영업자 유지, [ADR-005](../decisions/005-brand-naming.md).)
 
 **현재 마케팅 단계: 0차** — 운영자 직접 사용(도그푸딩), PMF 전. 원칙 = **제품 사용 자체가 마케팅이 되게 설계** (0차 안정화 리소스를 뺏지 않는다). 실행 시퀀스는 [gtm-plan.md](./gtm-plan.md).
 
 ## 하위모델·크론은 이 순서로 읽는다 (진입 지도)
 
-1. **[naming.md](./naming.md)** — 이름의 유일한 진실원: 제품 **OSMU(오스무)** · 계정 **AI 콘텐츠 비서**(사장님 done-for-you — 표시 이름은 naming.md §2, 회장 낙점 대기). 다른 문서와 표기가 다르면 이 파일이 이긴다.
+1. **[naming.md](./naming.md)** — 이름의 유일한 진실원: 제품 **OSMU(오스무)** · 계정 **콘텐츠 공장 "OSMU 팩토리"**(사장님 done-for-you — 표시 이름 확정 2026-07-16, 하드코딩 가능). 다른 문서와 표기가 다르면 이 파일이 이긴다.
 2. **[brand.md](./brand.md)** — 타겟·톤 시스템·금지어·필러 5. 모든 콘텐츠의 규율.
 3. **[creative-briefs/](./creative-briefs/)** — 콘텐츠를 **생성**한다면 여기( `_base.md` → 해당 채널). 프롬프트·검증·반려 기준 자기완결.
 4. **[hook-bank.md](./hook-bank.md)** — 후크 H-01~45 참조 뱅크 (raw/safer 라벨·{N} 실측 규칙).
@@ -32,6 +32,8 @@
 | [content-calendar.md](./content-calendar.md) | 시리즈 설계 + 30일 캘린더 | 신설 07-10 |
 | [landing-copy.md](./landing-copy.md) | OSMU waitlist 랜딩 풀카피 (PASONA) | 신설 07-10 |
 | [creative-briefs/](./creative-briefs/) | 하위모델·크론 생성 브리프 6파일 | 신설 07-10 |
+| [feedback-loop.md](./feedback-loop.md) | 반응→반영 루프 정본 — 신호 6종·태그 스키마·목요일 주간 루프·자동/회장 게이트 표 | 신설 07-16 |
+| [viral-mechanics.md](./viral-mechanics.md) | 자생 성장 장치 8종(V1~V8) — 심리법칙·지표·리스크 상한, 엔게이지먼트 베이트 금지선 | 신설 07-16 |
 | [growth-log.md](./growth-log.md) | 실험 원장 (append-only) + 백로그 10 | 백로그 설계됨, 실행 0 |
 | [launch-pack-2026-07-16.md](./launch-pack-2026-07-16.md) | v1 런칭 콘텐츠 팩(IG+Threads) — 확정 프로필·고정글·Day1 발행 시퀀스 + 후속 2건 | 신설 07-16, 전항목 draft |
 | [dm-playbook.md](./dm-playbook.md) | DM 운영 정본 — 인바운드/웜/후속/수신거부만 허용, 콜드·자동발송 전면 금지 | 신설 07-16 |
