@@ -28,8 +28,8 @@ Google YouTube OAuth는 공식 `prompt=consent select_account`로 계정 선택�
 계정 연결, 기본전환 UI 직접 관찰, 선택 계정별 실발행 permalink/YouTube Shorts URL. X credential과 Facebook
 앱 활성화, Instagram OTP 제한은 외부 콘솔/계정 상태 차단이며 코드 테스트로 완료 처리하지 않는다.
 
-**정확한 다음 액션:** 회장 `/approve build` → 관련 코드/기술문서만 선별 commit(마케팅 dirty 제외) → QA 단계에서
-운영 migration/deploy → 인증 브라우저로 provider별 두 계정 연결·목록·기본전환·선택 발행·삭제를 직접 관찰 →
+**정확한 다음 액션:** 회장 `/approve build` → QA 단계에서 운영 migration/deploy → 인증 브라우저로
+provider별 두 계정 연결·목록·기본전환·선택 발행·삭제를 직접 관찰 →
 증거 통과 후 `/approve qa`. build 승인 전 배포하지 않는다.
 
 **커밋 기준점:** `98896f30 feat(dashboard): add multi-account social publishing`. SNS/YouTube 관련 44파일만
