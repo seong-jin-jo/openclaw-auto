@@ -4,16 +4,16 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: ship            # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design, build, qa]
+current_stage: build           # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
-  build:      { status: approved, artifacts_ok: true } # tenant proxy allowlist 핫픽스 + CI 재검증
-  qa:         { status: approved, artifacts_ok: true }
-  ship:       { status: in-progress, artifacts_ok: false }
+  build:      { status: in-progress, artifacts_ok: false } # 운영 OAuth popup-blocker 결함 재오픈
+  qa:         { status: pending, artifacts_ok: false }
+  ship:       { status: pending, artifacts_ok: false }
 override: false
 override_reason: ""
 override_expires: ""
@@ -96,6 +96,11 @@ override_expires: ""
   Meta 앱 redirect URI `https://<live>/api/connect/{provider}/callback` 등록. 그 후 배포→browse로 qa 증거.
 
 ## 승인 로그 (append-only)
+2026-07-18 — build REOPENED FROM SHIP — 운영 headless Chrome에서 X readiness 안내는 통과했으나
+  Facebook OAuth 버튼 클릭 후 새 target이 생성되지 않았다. 공통 `SocialConnectButton`이 auth URL fetch를
+  await한 뒤 `window.open()`을 호출해 브라우저 사용자 제스처를 잃는 popup-blocker 구조임을 코드와 운영
+  브라우저로 확인. Instagram/Threads/Facebook/YouTube 공통 영향이므로 synchronous blank popup→URL 이동
+  hotfix, 회귀 테스트, CI, build/qa 재승인, 재배포 전 ship 완료 금지.
 2026-07-17 — hotfix build+qa APPROVED — 운영 Chrome에서 발견한 tenant account API 403의 교정 범위만
   재검증. commit `15b09a2c`, GitHub Actions run `29598660707`에서 typecheck/build/PostgreSQL 16
   schema→seed→RLS/full test 전부 성공. 로컬 focused proxy test 39 PASS, full 73 files/634 PASS/9
