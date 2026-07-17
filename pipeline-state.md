@@ -4,16 +4,16 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: ship            # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design, build, qa]
+current_stage: build           # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
-  build:      { status: approved, artifacts_ok: true } # 2026-07-17 SNS-001~007 build evidence reverified
-  qa:         { status: approved, artifacts_ok: true }
-  ship:       { status: in-progress, artifacts_ok: false }
+  build:      { status: in-progress, artifacts_ok: false } # ship E2E에서 tenant proxy allowlist 누락 재오픈
+  qa:         { status: pending, artifacts_ok: false }
+  ship:       { status: pending, artifacts_ok: false }
 override: false
 override_reason: ""
 override_expires: ""
@@ -22,7 +22,7 @@ override_expires: ""
 # Pipeline State — openclaw-auto-osmu
 
 > 2026-06-30 `init --adopt`. 이 레포는 이미 라이브 배포된 멀티테넌트 마케팅 SaaS라 plan~build는
-> ADOPT(기존 인정). **현재 ship(in-progress).** 신규 기능(OAuth 연결, GA4, 가이드 등)은 build→qa→ship 게이트를
+> ADOPT(기존 인정). **현재 build(in-progress).** 신규 기능(OAuth 연결, GA4, 가이드 등)은 build→qa→ship 게이트를
 > `/approve`로만 통과한다. **배포(gh workflow / ship)는 `/approve qa` 후에만.** (과거 게이트 없는
 > 자동 배포 = 하네스 위반, 재발 금지.)
 
@@ -96,6 +96,9 @@ override_expires: ""
   Meta 앱 redirect URI `https://<live>/api/connect/{provider}/callback` 등록. 그 후 배포→browse로 qa 증거.
 
 ## 승인 로그 (append-only)
+2026-07-17 — build REOPENED FROM SHIP — 운영 Chrome E2E에서 신규 `/api/channels/{provider}/accounts*`
+  3개 경로가 proxy tenant-aware allowlist에 없어 실제 고객 osmu/JWT가 403 `이 API는 운영자 전용입니다`를
+  받는 결함을 직접 관찰. hotfix→CI→build/qa 재승인→재배포 전 ship 완료 금지.
 2026-07-17 — qa APPROVED — 사용자 명시 입력 `QA승인`. 재검증 증거: GitHub Actions run `29572377311`
   PostgreSQL 16 schema→seed→RLS 적용 성공, 73 files/626 PASS/0 skip, SNS-007 최초 동시 callback 2건과
   기본계정 1개 실 DB 관찰. 운영 OAuth·브라우저 계정전환·실발행은 ship 단계 미검증으로 유지.

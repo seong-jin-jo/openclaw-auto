@@ -1,9 +1,9 @@
 # 세션 작업 상태 (재실행 가능한 핸드오프)
 
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
-> 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
+> 단계 진실원: 루트 `pipeline-state.md`(현재 **build in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-17 19:20 KST · QA 승인 접수 · **SNS-007 운영 배포·실브라우저 QA 진행**
+**최종 갱신:** 2026-07-18 01:50 KST · ship E2E 결함 발견 · **SNS-007 tenant proxy 403 hotfix 진행**
 
 ---
 
@@ -1604,3 +1604,5 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
 - CI 결과: run `29572377311` SUCCESS. PostgreSQL 16 schema→seed→RLS 적용 성공, 전체 73 files/626 pass/0 skip. 신규 동시성 테스트는 314ms에 실제 실행되어 병렬 최초 callback 2건 저장과 기본계정 1개를 확인했다.
 - 현재 게이트: qa in-progress. 운영 배포는 실행하지 않았다. 다음 액션은 회장 `/approve qa` 1회 후 deploy workflow를 실행하고, 운영 브라우저에서 계정 목록·기본전환·선택발행을 직접 관찰하는 것이다. provider 외부 차단(X credential, Facebook app 비활성, Instagram OTP 제한)은 앱 코드 완료로 허위 처리하지 않는다.
 - QA 승인: 사용자가 `QA승인`을 명시해 pipeline을 ship in-progress로 전환한다. 배포 대상은 compose 서비스 `openclaw-dashboard-osmu`만 사용한다. 정확한 다음 액션은 승인 기록 commit/push → deploy-marketing workflow dispatch → schema/RLS·스모크 성공 확인 → 운영 브라우저/API 직접 관찰이다.
+- ship E2E 결과: deploy run `29573237891` 성공, 운영 health 200/DB up, login 200, Google preflight 200, DB backfill·계정 API·기본 재지정·cross-tenant 404는 관찰됨. 그러나 단기 tenant 토큰으로 Chrome에서 Instagram Settings를 열자 AccountManager 위치에 `이 API는 운영자 전용입니다`가 표시됐다. 원인은 `proxy.ts` TENANT_AWARE_PATHS에 신규 계정 API 3개가 빠진 것. pipeline을 build로 재오픈했다.
+- 정확한 다음 액션: proxy allowlist 3경로 추가 + osmu/JWT proxy 회귀 테스트 → full test/tsc/build → commit/push/CI → build·qa 게이트 재검증 → 재배포 → 같은 Chrome E2E PASS → 단기 QA 토큰 revoke.

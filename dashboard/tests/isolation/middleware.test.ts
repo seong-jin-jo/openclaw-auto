@@ -127,6 +127,20 @@ describe("proxy 테넌트 토큰(인증모델 b) 분기 — 실검증", () => {
     expect(isPass(res)).toBe(true);
   });
 
+  it.each([
+    "/api/channels/threads/accounts",
+    "/api/channels/threads/accounts/account-1",
+    "/api/channels/threads/accounts/account-1/default",
+  ])("osmu_ 토큰 + 다중계정 API(%s) → tenant-aware 통과", async (path) => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
+    mockResolveTenantToken.mockResolvedValue("tenant-1");
+    const req = new NextRequest(`http://localhost${path}`, {
+      headers: { Authorization: "Bearer osmu_xxx" },
+    });
+    expect(isPass(await proxy(req))).toBe(true);
+  });
+
   it("osmu_ 토큰 + 미인식/폐기 토큰 → 401", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
@@ -195,6 +209,20 @@ describe("proxy 고객 로그인 세션(Supabase JWT) 분기 — 실검증", () 
     });
     const res = await proxy(jwtRequest());
     expect(isPass(res)).toBe(true);
+  });
+
+  it("유효 JWT + 다중계정 목록 API → tenant-aware 통과", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
+    mockVerifySupabaseJwt.mockResolvedValue({
+      status: "valid",
+      user: { id: "u1", email: "a@b.com" } as import("@supabase/supabase-js").User,
+    });
+    const fakeJwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyMSJ9.deadbeefdeadbeefdeadbeefdeadbeef";
+    const req = new NextRequest("http://localhost/api/channels/instagram/accounts", {
+      headers: { Authorization: `Bearer ${fakeJwt}` },
+    });
+    expect(isPass(await proxy(req))).toBe(true);
   });
 
   it("Supabase 검증 불가(env/네트워크 장애) → 503", async () => {
