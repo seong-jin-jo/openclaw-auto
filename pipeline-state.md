@@ -80,6 +80,9 @@ override_expires: ""
   `tsc --noEmit` PASS, production build 160 pages PASS다.
 - QA 자동 종료 조건: GitHub CI PostgreSQL에서 신규 동시성 테스트가 skip 없이 실행되어 2계정 저장과
   provider 기본계정 정확히 1개를 관찰할 것. 운영 OAuth·실발행은 CI로 검증되지 않으므로 별도 미검증이다.
+- 실제 DB 증거: GitHub Actions run `29572377311`(commit `592c4741`) SUCCESS. PostgreSQL 16에
+  schema→seed→RLS 적용 후 73 files/626 pass/0 skip. 신규 동시성 테스트가 314ms에 실제 실행되어
+  병렬 최초 callback 2건 저장과 기본계정 1개를 확인했다. 운영 OAuth·실발행 미검증은 유지한다.
 
 ## 최근 build (qa 대기 중 — ship 전 /approve qa 필요)
 - 셀프서브 코어: A1 증류 generateText 통일, A2 온보딩 위저드, A3 키검증, /api/health+autoheal+슬랙경보,
