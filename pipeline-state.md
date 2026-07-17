@@ -142,6 +142,10 @@ override_expires: ""
   service `openclaw-dashboard-osmu`로 재실행해 시정.
 
 ## Blocked / Notes
+- SNS-007 tenant proxy 핫픽스 운영 배포 run `29600031321` SUCCESS. 고객 `osmu_` 토큰을 넣은 실제 Chrome에서
+  Instagram/Threads AccountManager의 계정 1개·외부 ID·기본·정상·삭제 컨트롤을 직접 관찰했다. QA 토큰은
+  revoke 후 동일 account API HTTP 401 확인 및 원문 삭제. ship은 계속 잠금: 실제 provider 2계정 OAuth,
+  기본 전환, 계정별 공개 발행 permalink/Shorts URL은 미검증.
 - SNS P0 QA remediation(2026-07-16): UI를 직접 발행 8채널로 정렬하고 Instagram/Threads provider live validation 및 재연결 상태를 구현. focused 75 PASS, full 563 PASS/8 skip, tsc/build PASS. 운영 재배포 후 code190 상태 직접 관찰 필요.
 - Google OAuth: Google-only 코드 운영 배포(run 29485147720), provider 활성화·Google 로그인 화면 이동 관찰. 계정 입력→앱 복귀 실왕복 필요.
 - Email auth: Google-only 정책 강제를 위해 Supabase Email provider 비활성화 필요. 기존 6 users는 삭제 금지.
