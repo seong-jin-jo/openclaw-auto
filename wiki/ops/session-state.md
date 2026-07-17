@@ -1,9 +1,31 @@
 # 세션 작업 상태 (재실행 가능한 핸드오프)
 
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
-> 단계 진실원: 루트 `pipeline-state.md`(현재 **build in-progress**). QA 증거: `docs/qa-tracker.md`.
+> 단계 진실원: 루트 `pipeline-state.md`(현재 **qa in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-18 04:36 KST · Claude SocialConnectButton StrictMode 버그픽스 + 회귀테스트
+**최종 갱신:** 2026-07-18 05:05 KST · qa-verifier read-only QA — commit e66e6f76 code-level 통과, 운영 popup target 관찰만 남음
+
+---
+
+### qa-verifier handoff — OAuth popup 핫픽스 e66e6f76 read-only QA (2026-07-18 05:05 KST)
+
+**handoff basis:** 메인세션이 명시 위임한 단발 qa-verifier 실행(read-only, 비대화형). tmux pane 대조 대상 없음 — 이 태스크는 세션 전환이 아니라 동일 세션 내 위임이라 별도 handoff source 질문 불필요.
+
+**작업:** commit `e66e6f76`(SocialConnectButton OAuth popup 동기 예약 핫픽스) code-level QA. 파일 수정 없음(read-only 지시).
+
+**검증(관찰됨+테스트됨):**
+- 로컬: `npx vitest run tests/components/SocialConnectButton.test.tsx` → 10/10 PASS. 전체 `npx vitest run` → 74 files/644 pass/9 skip. `npx tsc --noEmit` → clean. `npm run build` → 성공.
+- CI(실 인프라, mock 아님): `gh run view 29608715956`(commit e66e6f76 자체, self-hosted + 실 PostgreSQL 16) → success, 동일하게 10/10 + 74 files pass. 로컬-CI 결과 일치 확인.
+- Red-team 8개 시나리오(동기 오픈/차단시 미호출/에러시 close/wrong-origin·provider 무시/valid callback interval 정리/unmount race/StrictMode/resultHtml opener+XSS escape) 전부 코드 위치+테스트로 CONFIRMED.
+- WebFetch MDN Window.open()으로 "await 후 open은 activation 소멸로 차단" 근거 확인.
+
+**신규 발견(결함 아님, 범위 밖 리스크):** `callback/route.ts`의 `postMessage` targetOrigin이 `OSMU_PUBLIC_URL` 미설정 시 프록시 환경변수 fallback에 의존 — 이 값이 실제 부모 origin과 다르면 postMessage가 조용히 실패한다. 이번 diff가 만든 버그 아님, SNS-008 범위 밖.
+
+**미검증(팀도 `docs/qa-tracker.md` SNS-008에 이미 명시):** 운영 배포된 실 Chrome에서 Facebook/YouTube 버튼 클릭 → 실제 popup target 생성 → provider host 이동 직접 관찰. jsdom mock은 이 경로를 커버 못함.
+
+**정확한 다음 액션:** 운영 재배포(이미 push·CI 통과된 e66e6f76 기준) → Facebook/Instagram/Threads/YouTube 전 채널 실 Chrome에서 popup target 직접 관찰 → 단기 QA 토큰 revoke. 코드 변경 불필요(이번 QA에서 신규 결함 0건).
+
+**품질 게이트 정정:** 첫 QA 위임은 `standards/dev.md` Read 누락으로 반려, 두 번째는 QA Skill 미호출로 반려했다. 최종 stream-json 위임은 `standards/dev.md` Read, QA Skill 1회, WebSearch/Fetch 3회, 소크라/레드팀 마커 3개가 트랜스크립트에서 확인되어 `verify-agent-quality.sh ... qa` PASS. 최종 판정만 승인 근거로 사용한다.
 
 ---
 

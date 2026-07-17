@@ -152,6 +152,11 @@ override_expires: ""
   service `openclaw-dashboard-osmu`로 재실행해 시정.
 
 ## Blocked / Notes
+- SNS-008 독립 QA 최종 PASS: qa-verifier가 standards/dev.md, QA Skill, MDN, source/callback/test/CI를
+  read-only 재검증. focused 10 PASS + 관련 callback tests, full 74 files/644 PASS·9 local DB skip,
+  tsc/build/CI SUCCESS를 대조했고 blocker/high 0건, RUBRIC 23/25. `verify-agent-quality.sh`는 Skill 1회,
+  WebSearch/Fetch 3회, 소크라/레드팀 3개를 확인해 PASS. 첫 2회 위임은 각각 표준 Read/QA Skill 누락으로
+  반려되어 승인 근거에서 제외. 운영 Chrome post-fix popup target은 QA 승인·재배포 전 미검증.
 - SNS-008 OAuth popup activation build candidate commit `e66e6f76`. 운영 Chrome에서 기존 구현의 Facebook
   popup target 0개를 직접 관찰해 build 재오픈. synchronous blank popup 예약, failure/callback/unmount/
   pending-fetch/React StrictMode 생명주기를 컴포넌트 테스트 10건으로 고정했다. 메인세션 focused 10 PASS,
