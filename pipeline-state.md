@@ -147,6 +147,12 @@ override_expires: ""
   service `openclaw-dashboard-osmu`로 재실행해 시정.
 
 ## Blocked / Notes
+- SNS-008 OAuth popup activation build candidate commit `e66e6f76`. 운영 Chrome에서 기존 구현의 Facebook
+  popup target 0개를 직접 관찰해 build 재오픈. synchronous blank popup 예약, failure/callback/unmount/
+  pending-fetch/React StrictMode 생명주기를 컴포넌트 테스트 10건으로 고정했다. 메인세션 focused 10 PASS,
+  full 74 files/644 PASS·9 DB-env skip, tsc/build(160 pages) PASS. GitHub CI run `29608715956`은 Node 설치,
+  typecheck/build, PostgreSQL 16 schema→seed→RLS, full test 전부 SUCCESS. build 승인 후 QA 재배포 전에는
+  Facebook/YouTube popup target 생성이 미검증. readiness QA token은 revoke 후 HTTP 401 및 원문 삭제.
 - SNS-007 tenant proxy 핫픽스 운영 배포 run `29600031321` SUCCESS. 고객 `osmu_` 토큰을 넣은 실제 Chrome에서
   Instagram/Threads AccountManager의 계정 1개·외부 ID·기본·정상·삭제 컨트롤을 직접 관찰했다. QA 토큰은
   revoke 후 동일 account API HTTP 401 확인 및 원문 삭제. ship은 계속 잠금: 실제 provider 2계정 OAuth,

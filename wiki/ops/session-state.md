@@ -1674,6 +1674,9 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
 - 커밋/배포 미실행(지시 유지).
 - 2026-07-18 메인세션 최종 build 재검증: Codex 2nd-pass에서 pending-fetch unmount race와 React StrictMode mountedRef reset 누락을 추가 발견해 code-builder가 회귀 테스트와 함께 수정했다. 메인세션 직접 실행 결과 `SocialConnectButton.test.tsx` 10/10 PASS, 전체 74 files/644 PASS·9 DB-env skip, `tsc --noEmit` clean, production build 160 pages PASS. 위임 품질은 stream-json transcript에서 WebSearch/Fetch 4회가 확인돼 `verify-agent-quality.sh` PASS(소크라 경고만)했다.
 - 정확한 다음 액션: 관련 source/test/package/QA 원장만 커밋·push → GitHub PostgreSQL CI skip 0 확인 → 사용자 build 승인 → QA 재검증/승인 → `openclaw-dashboard-osmu` 재배포 → 동일 고객 토큰 Chrome에서 Facebook·YouTube popup target과 provider host 이동 직접 관찰 → 토큰 revoke. 실제 OAuth 로그인·동의·callback은 외부 계정 단계라 별도 미검증 유지.
+- build 후보/CI: commit `e66e6f76` push 완료. GitHub Actions run `29608715956`이 npm ci, typecheck, production build, PostgreSQL 16 schema→seed→RLS, full test 전부 SUCCESS. 로컬 직접 증거는 focused 10/10, full 74 files/644 PASS·9 DB-env skip, tsc clean, build 160 pages PASS다.
+- 보안 정리: readiness 실측에 쓴 단기 tenant token은 운영에서 revoke했고 동일 토큰의 readiness API HTTP 401을 확인했다. 로컬/marketing-vm 토큰 원문과 임시 Chrome profile/script를 삭제했다.
+- 정확한 다음 액션: 현재 pipeline은 build in-progress이며 사용자 build 승인을 기다린다. 승인 후 QA 단계에서 OSMU만 재배포하고 Facebook·YouTube popup target 생성과 provider host 이동을 실제 Chrome으로 관찰한다. callback 완료, 2계정 OAuth, 공개 발행 permalink는 외부 계정/콘텐츠 단계로 계속 미검증이다.
 
 ## 2026-07-18 메인세션: Codex 2nd-pass 지적 unmount race 수정 — connect fetch pending 중 unmount
 - 핸드오프 기준: 직전 항목들과 동일 세션 연속 작업(메인세션 직접 수행, 비위임). tmux pane과 대조할 신규 전환 신호 없음 — 세션 전환 질문 대상 아님.
