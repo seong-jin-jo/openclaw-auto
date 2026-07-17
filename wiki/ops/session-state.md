@@ -1677,6 +1677,8 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
 - build 후보/CI: commit `e66e6f76` push 완료. GitHub Actions run `29608715956`이 npm ci, typecheck, production build, PostgreSQL 16 schema→seed→RLS, full test 전부 SUCCESS. 로컬 직접 증거는 focused 10/10, full 74 files/644 PASS·9 DB-env skip, tsc clean, build 160 pages PASS다.
 - 보안 정리: readiness 실측에 쓴 단기 tenant token은 운영에서 revoke했고 동일 토큰의 readiness API HTTP 401을 확인했다. 로컬/marketing-vm 토큰 원문과 임시 Chrome profile/script를 삭제했다.
 - 정확한 다음 액션: 현재 pipeline은 build in-progress이며 사용자 build 승인을 기다린다. 승인 후 QA 단계에서 OSMU만 재배포하고 Facebook·YouTube popup target 생성과 provider host 이동을 실제 Chrome으로 관찰한다. callback 완료, 2계정 OAuth, 공개 발행 permalink는 외부 계정/콘텐츠 단계로 계속 미검증이다.
+- 사용자 `진행`을 직전 `/approve build` 판단 요청에 대한 승인으로 반영했다. 근거와 선택 결과를 직전 보고에서 명시했고 후속 응답이므로 임의 추정 승인으로 처리하지 않았다. pipeline은 QA in-progress로 전환했으며 운영 배포는 QA 승인 전 실행하지 않는다.
+- 정확한 다음 액션: qa-verifier가 OAuth popup diff와 10개 lifecycle 테스트, 전체 CI, callback opener 계약을 read-only 재검증하고 품질 verifier PASS를 받아야 한다. 이후 사용자 QA 승인 1회 → OSMU 단독 운영 배포 → Facebook/YouTube popup/provider host 직접 Chrome E2E → token revoke.
 
 ## 2026-07-18 메인세션: Codex 2nd-pass 지적 unmount race 수정 — connect fetch pending 중 unmount
 - 핸드오프 기준: 직전 항목들과 동일 세션 연속 작업(메인세션 직접 수행, 비위임). tmux pane과 대조할 신규 전환 신호 없음 — 세션 전환 질문 대상 아님.
