@@ -48,6 +48,20 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
   const publishReady = (SCHEDULABLE_PLATFORMS as readonly string[]).includes(provider);
   const supportsSwitchNote = provider in ACCOUNT_SWITCH_NOTE;
   const resolvedRef = useRef(false); // postMessage로 이미 결과를 받았는지(closed-폴링 오탐 방지)
+  const watchClosedRef = useRef<number | null>(null); // closed-폴링 interval id — unmount 시 정리
+  const mountedRef = useRef(true); // connect fetch가 pending인 동안 unmount되는 레이스 가드
+
+  // 컴포넌트 unmount 시 진행 중인 closed-폴링 interval을 정리한다 — 안 하면 팝업을 열어둔 채
+  // 페이지를 이동/언마운트해도 interval이 계속 돌며 unmount된 컴포넌트에 setState를 시도한다.
+  // React StrictMode에서 setup-cleanup-setup이 발생하면 cleanup이 mountedRef=false를 남길 수
+  // 있으니, 매 setup마다 true로 reset한다(cleanup이 최종 false로 덮음).
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (watchClosedRef.current !== null) window.clearInterval(watchClosedRef.current);
+    };
+  }, []);
 
   // 팝업 결과 postMessage 수신 + popup-blocked/closed-without-callback 추적.
   useEffect(() => {
@@ -55,6 +69,11 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
       if (ev.origin !== window.location.origin) return; // 다른 origin 메시지는 무조건 무시
       const data = ev.data;
       if (!isOAuthMessage(data) || data.provider !== provider) return;
+      // ★ 유효한 메시지 수신 — closed-폴링 interval을 즉시 정리하고 ref도 초기화
+      if (watchClosedRef.current !== null) {
+        window.clearInterval(watchClosedRef.current);
+        watchClosedRef.current = null;
+      }
       resolvedRef.current = true;
       setBusy(false);
       if (data.ok) {
@@ -113,17 +132,33 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
     if (busy || disabledByReadiness) return;
     setBusy(true);
     setMsg("");
+
+    // OAuth 팝업은 클릭 이벤트 핸들러 안에서 "동기적으로" 열어야 한다. fetch를 먼저 await하면
+    // 그 사이 브라우저의 user-activation(제스처) 토큰이 소멸해, headless/prod Chrome은
+    // window.open을 조용히 무시(팝업 0개, 에러도 없음)한다. 그래서 same-origin about:blank
+    // 팝업을 클릭 즉시 예약해두고, authUrl이 도착하면 그 예약된 창을 navigate한다.
+    // popup.opener를 끊으면 안 된다 — callback/route.ts가 window.opener.postMessage로 결과를
+    // 돌려주는 구조라 noopener/noreferrer는 기능을 깨뜨린다(리버스 탭내빙 우려는 same-origin
+    // about:blank로 열고 authUrl도 같은 앱이 발급하므로 낮음).
+    const popup = window.open("about:blank", "_blank", "width=620,height=760");
+    if (!popup) {
+      // 팝업 차단 — 아직 fetch도 안 했으니 여기서 바로 중단(네트워크 낭비 방지).
+      setMsg("팝업이 차단되었습니다. 브라우저 팝업 차단을 해제한 뒤 다시 시도해주세요.");
+      setBusy(false);
+      return;
+    }
+
     try {
       const r = await fetch(`/api/connect/${provider}?tenant_id=${activeWorkspace.id}`, { headers: authHeaders() });
       const d = (await r.json()) as { authUrl?: string; error?: string };
+      if (!mountedRef.current) {
+        // 언마운트된 뒤 fetch가 뒤늦게 resolve된 경우 — 예약해둔 팝업만 정리하고
+        // navigate/setState/interval 생성 같은 좀비 부작용은 전부 건너뛴다.
+        popup.close();
+        return;
+      }
       if (d.authUrl) {
-        const popup = window.open(d.authUrl, "_blank", "width=620,height=760");
-        if (!popup) {
-          // 팝업 차단 — postMessage를 영원히 못 받으므로 정확한 원인을 알려준다.
-          setMsg("팝업이 차단되었습니다. 브라우저 팝업 차단을 해제한 뒤 다시 시도해주세요.");
-          setBusy(false);
-          return;
-        }
+        popup.location.href = d.authUrl;
         setMsg("새 창에서 로그인·동의를 완료하면 연결됩니다.");
         resolvedRef.current = false;
         // postMessage가 오면 이 폴링은 의미 없어지지만(정상 종료), 사용자가 콜백 없이 창을
@@ -131,18 +166,23 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
         const watchClosed = window.setInterval(() => {
           if (popup.closed) {
             window.clearInterval(watchClosed);
+            watchClosedRef.current = null;
             if (!resolvedRef.current) {
               setBusy(false);
               setMsg("연결 창이 결과 없이 닫혔습니다. 다시 시도해주세요.");
             }
           }
         }, 700);
+        watchClosedRef.current = watchClosed;
         return; // busy는 postMessage/closed 감지가 최종 해제
       } else {
+        popup.close(); // authUrl 없음 — 예약해둔 빈 창을 남겨두지 않는다.
         setMsg(oauthErrorMessage(d.error || "OAuth 앱 자격증명이 아직 설정되지 않았습니다.", label));
         setBusy(false);
       }
     } catch (e) {
+      popup.close();
+      if (!mountedRef.current) return;
       setMsg(oauthErrorMessage(e instanceof Error ? e.message : "연결 실패", label));
       setBusy(false);
     }

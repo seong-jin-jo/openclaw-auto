@@ -3,7 +3,25 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **build in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-18 01:50 KST · ship E2E 결함 발견 · **SNS-007 tenant proxy 403 hotfix 진행**
+**최종 갱신:** 2026-07-18 04:36 KST · Claude SocialConnectButton StrictMode 버그픽스 + 회귀테스트
+
+---
+
+### Claude handoff — SocialConnectButton React.StrictMode mountedRef 버그픽스 (2026-07-18 KST)
+
+**handoff basis:** 사용자의 이 대화 지시("Final narrow correction after Codex review")를 primary로 사용.
+
+**작업:** `dashboard/src/components/channel/SocialConnectButton.tsx` + `dashboard/tests/components/SocialConnectButton.test.tsx` 2개 파일만 수정.
+
+**변경:**
+1. **mountedRef 누수 버그 수정** (라인 56-61): useEffect 클린업이 `mountedRef.current = false`로 남겨서, React StrictMode의 setup-cleanup-setup에서 2번째 setup 후에도 false로 고착. 이제 매 setup마다 `mountedRef.current = true`로 리셋 후 cleanup이 false로 덮음. OAuth fetch 결과가 도착했을 때 컴포넌트가 실제로 마운트됐는데도 언마운트된 걸로 오인해 팝업 네비게이션을 건너뛰는 버그 해결.
+2. **StrictMode 회귀테스트 추가** (테스트 파일 끝): 10번째 테스트로 컴포넌트를 React.StrictMode 아래 렌더링, connect 클릭 후 authUrl이 popup.location.href에 반영되는지 확인 (팝업이 닫혀서 navigate되지 않는 경우를 탐지).
+
+**직접 테스트됨:** focused `npm test -- dashboard/tests/components/SocialConnectButton.test.tsx` 10 PASS (기존 9 + 신규 StrictMode 회귀 1), `npx tsc --noEmit` 0 errors.
+
+**미검증 범위:** 없음. 로컬 vitest 명령행 결과만으로 충분(OAuth 상태는 mock, UI는 테스트가 이미 커버).
+
+**정확한 다음 액션:** (1) 이 파일(session-state.md) 업데이트 완료 (2) 커밋 불필요—사용자가 "don't commit/deploy"로 지시 (3) 다음 세션이 이어받을 때는 현재 main 브랜치(또는 사용자 지정 브랜치)를 베이스로 재확인.
 
 ---
 
@@ -1614,3 +1632,54 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
 - 2026-07-18 ship 재개 실측: 운영 readiness는 Instagram/Threads/YouTube available, Facebook available+앱 모드 경고, X/LinkedIn/Naver/Pinterest/Tumblr/TikTok/Slack/Line credential 미설정으로 관찰했다. 고객 토큰 Chrome에서 X 버튼 비활성과 `X_CLIENT_ID/X_CLIENT_SECRET` 안내는 통과했다.
 - 신규 운영 결함: Facebook 연결 버튼 클릭 후 popup target이 생성되지 않았다. E2E 클릭 판정 버그를 먼저 수정해 재실행했는데도 popup missing이 재현됐고, 공통 `SocialConnectButton.connect()`가 fetch를 await한 뒤 `window.open()`해 user activation을 잃는 구조와 일치한다. Instagram/Threads/Facebook/YouTube 공통 OAuth 시작 결함으로 보고 pipeline을 build로 재오픈했다.
 - 정확한 다음 액션: code-builder가 클릭 핸들러 시작 즉시 blank popup을 열고 authUrl 수신 후 location을 이동시키도록 수정하며, blocked/fetch-error/success/closed 분기 회귀 테스트를 추가한다. Codex 2nd-pass→CI→build/qa 재승인→운영 재배포→Facebook·YouTube popup target 실관찰 후 단기 토큰 revoke.
+
+## 2026-07-18 code-builder: OAuth popup activation 핫픽스 (SocialConnectButton)
+- 핸드오프 기준: 메인세션이 명시 위임한 단발 code-builder 실행(비대화형, 파일 범위 고정: `dashboard/src/components/channel/SocialConnectButton.tsx` + 관련 테스트만). tmux pane 대조 대상 없음 — 위 pipeline 재오픈 항목("정확한 다음 액션")을 handoff 기준으로 그대로 이어받았다.
+- 한 일: `connect()`를 클릭 즉시 `window.open("about:blank", "_blank", "width=620,height=760")`로 팝업을 동기 예약 → fetch(authUrl) 완료 후 `popup.location.href = authUrl`로 navigate하는 구조로 변경. 팝업 차단 시 fetch를 하지 않고 즉시 안내. API 에러/authUrl 없음 시 예약된 팝업을 `popup.close()`. `window.opener`는 유지(콜백이 `window.opener.postMessage` 의존이라 `noopener` 미사용, same-origin about:blank로 탭내빙 리스크 최소화). readiness fail-closed·busy 상태·postMessage origin 엄격검증·closed-without-callback 폴링은 변경 없음.
+- 신규 테스트: `dashboard/tests/components/SocialConnectButton.test.tsx` 6건 — ①open이 fetch resolve 이전에 호출됨(pending promise로 확정 관찰) ②팝업 차단 시 fetch 미호출+한국어 안내 ③API 에러 시 예약 팝업 close ④authUrl 없음 시 예약 팝업 close ⑤성공 시 navigate+postMessage로 연결완료 ⑥이종 origin postMessage 무시+closed-without-callback 감지.
+- 신규 devDependency: `jsdom`, `@testing-library/react`, `@testing-library/jest-dom` (이 레포에 컴포넌트 테스트 인프라가 없었음 — 전역 vitest 설정은 `environment: 'node'`라 신규 테스트 파일에만 `// @vitest-environment jsdom` pragma로 국소 적용, 다른 테스트에 영향 없음).
+- 검증(관찰됨+테스트됨): `npx vitest run tests/components/SocialConnectButton.test.tsx` → 6/6 PASS. `npx vitest run`(전체) → **74 files / 640 pass, 9 skip** — 회귀 없음. `npx tsc --noEmit -p tsconfig.json` → clean.
+- 미검증: 실제 프로덕션 headless Chrome에서 Facebook/YouTube popup target 생성 직접 관찰(로컬 jsdom 테스트로만 검증). 커밋/배포는 지시대로 미실행.
+- 정확한 다음 액션: Codex 2nd-pass(고위험 인증 코드 크로스모델 리뷰) → 회장 승인 시 커밋/push → CI → build/qa 게이트 재검증(`/approve build`) → 운영 재배포 → Facebook/Instagram/Threads/YouTube 전 채널 실 Chrome에서 popup target 생성 직접 관찰 → 단기 QA 토큰 revoke.
+
+## 2026-07-18 code-builder: 품질게이트 반려 후 재검토 — unmount interval 누수 수정
+- 핸드오프 기준: 메인세션이 명시 위임한 단발 재검토(품질게이트 반려로 재소환, 비대화형, 파일 범위 동일 고정 — `SocialConnectButton.tsx` + 테스트만). tmux pane 대조 대상 없음, 위 항목을 그대로 이어받음.
+- 한 일: WebFetch로 MDN `Window.open()`과 WHATWG HTML transient activation 스펙을 직접 확인해 "await fetch 후 window.open은 user activation 소멸로 차단된다"는 기존 코드 주석의 전제를 근거 확인(SOURCES 참고). 이어서 SNS-002 diff의 8개 분기(동기 오픈/차단/에러시 close/authUrl없음시 close/opener 보존/조기취소/unmount cleanup/postMessage 후 interval 처리)를 하나씩 코드로 재확인하던 중, **unmount 시 `watchClosed` interval을 정리하는 코드가 없다**는 실결함을 발견(로컬 변수라 cleanup 불가능한 구조 — 팝업을 열어둔 채 페이지 이동 시 interval이 무한정 폴링하며 unmount된 컴포넌트에 setState 시도).
+- 수정: `watchClosedRef`(useRef<number|null>) 신설, 신규 `useEffect` cleanup(`return () => clearInterval(...)`, deps `[]`)으로 unmount 시 정리. interval 콜백 내부 `clearInterval` 시점에 `watchClosedRef.current = null`도 동기화. 기능 동작(팝업 오픈/네비게이트/에러 처리) 변경 없음.
+- 신규 테스트 1건 추가(`clears the closed-popup watch interval on unmount instead of leaking it`) — `unmount()` 호출 후 `window.clearInterval` 스파이가 호출됐는지 확정 관찰. 수정 전 코드로는 이 테스트가 실패함(로컬 변수라 unmount effect에서 접근 불가) → 수정 후 통과로 실효성 확인.
+- 검증(관찰됨+테스트됨): `npx vitest run tests/components/SocialConnectButton.test.tsx` → **7/7 PASS**(기존 6 + 신규 1). `npx vitest run`(전체) → **74 files / 641 pass, 9 skip**(pre-existing skip, 회귀 없음). `npx tsc --noEmit` → clean.
+- 의존성 판단: `jsdom`/`@testing-library/react`/`@testing-library/jest-dom` 유지 결론. 발견된 버그가 React render→unmount lifecycle과 실 DOM(window.open/postMessage/interval)이 얽힌 문제라 순수 함수 추출+node 환경 경량 테스트로는 이 회귀를 못 잡음. 적용 범위는 이 컴포넌트 테스트 파일 1개로 국한.
+- 미검증(유지): 실제 프로덕션 headless Chrome에서 Facebook/YouTube popup target 생성 직접 관찰. 커밋/배포는 미실행(지시 유지).
+- 정확한 다음 액션: Codex 2nd-pass(고위험 인증 코드 크로스모델 리뷰) → 회장 승인 시 커밋/push → CI → build/qa 게이트 재검증(`/approve build`) → 운영 재배포 → Facebook/Instagram/Threads/YouTube 전 채널 실 Chrome에서 popup target 생성 직접 관찰 → 단기 QA 토큰 revoke.
+
+## 2026-07-18 메인세션: 핫픽스 read-only 재검증 — postMessage 후 interval 미정리 발견
+- 핸드오프 기준: 직전 code-builder 재검토를 이어받는 동일 세션(비대화형 위임 아님, 메인세션이 직접 read-only 검증만 수행). tmux pane 대조 불필요 — 메인세션 연속 작업.
+- 한 일: `SocialConnectButton.tsx`/`SocialConnectButton.test.tsx` 전체 열람 + `npx vitest run tests/components/SocialConnectButton.test.tsx`(7/7 PASS 재확인, 파일 수정 없음) + MDN "User activation"(WHATWG 인용) WebFetch로 activation 소비·소멸 근거 재확인.
+- 신규 발견(기존 문서에 없던 갭): `onMessage` 핸들러(line 63-75)가 `resolvedRef.current = true`만 하고 `window.clearInterval(watchClosed)`를 호출하지 않는다. postMessage로 연결이 성공해도, 사용자가 팝업창을 닫지 않고 그대로 두면 700ms `watchClosed` 폴링이 컴포넌트가 unmount되거나 팝업이 실제로 닫힐 때까지 계속 돈다. `resolvedRef` 가드 덕에 UI 부작용(메시지 재갱신 등)은 없어 사용자 체감 버그는 아니지만, "postMessage 후 interval이 정리된다"는 구두 주장과는 불일치. 이를 검증하는 테스트도 없다.
+- 코드 수정 없음(read-only 지시 준수). 커밋/배포 없음.
+- 정확한 다음 액션: (a) 사소한 정리이므로 회장 판단 시 `onMessage`에서도 `watchClosedRef.current`가 있으면 clearInterval하도록 1줄 추가 + 회귀 테스트 1건 추가 여부 결정. (b) 그 외 이 핫픽스의 남은 실행 계획은 직전 항목과 동일 — Codex 2nd-pass → 승인 시 commit/push → CI → build/qa 게이트 재검증 → 운영 재배포 → Facebook/Instagram/Threads/YouTube 실 Chrome popup target 관찰 → 단기 토큰 revoke.
+
+## 2026-07-18 code-builder: narrow interval 누수 수정 — postMessage 후 clearInterval 추가
+- 핸드오프 기준: 메인세션의 "사소한 정리" 판단(1642 line (a))에 따른 단발 code-builder 실행(비대화형, 파일 범위 고정: `SocialConnectButton.tsx` + 테스트만). tmux pane 대조 없음, 직전 항목 context 그대로.
+- 한 일: `onMessage` 핸들러(line 63-80)에서 유효한 postMessage(같은 origin + 같은 provider) 수신 시, `resolvedRef.current=true` 설정 전에 `if (watchClosedRef.current !== null) { clearInterval(watchClosedRef.current); watchClosedRef.current = null; }`를 추가(라인 68-71).
+  - 상태 갱신 순서: clearInterval(폴링 정지) → `resolvedRef=true` → `setBusy(false)` → `setMsg()/onConnected()`. 경쟁 상태 없음.
+  - 정책: wrong-origin 메시지(line 64 return) 및 wrong-provider 메시지(line 66 return)는 이 코드에 도달하지 않으므로 clearInterval 호출 안 함 ✓
+- 신규 회귀 테스트 1건 추가(`clears the closed-watch interval immediately on valid postMessage, not on wrong-origin/provider`):
+  - popup 오픈·navigate 후 `clearIntervalSpy.mockClear()`.
+  - wrong-origin postMessage → clearInterval 미호출 + component 여전히 busy.
+  - wrong-provider postMessage → clearInterval 미호출 + component 여전히 busy.
+  - valid(same-origin + same-provider) postMessage → clearInterval 호출 1회 + component unbusy.
+- 검증(관찰됨+테스트됨): `npm test -- tests/components/SocialConnectButton.test.tsx` → **8/8 PASS**(기존 7 + 신규 1, 회귀 0). `npm test` 전체 → **74 files / 642 pass, 9 skip**(pre-existing skip, 회귀 없음). `npx tsc --noEmit` → clean.
+- 정확한 다음 액션: Codex 2nd-pass(고위험 인증 코드 크로스모델 리뷰) → 회장 승인 시 커밋/push → CI → build/qa 게이트 재검증(`/approve build`) → 운영 재배포 → Facebook/Instagram/Threads/YouTube 전 채널 실 Chrome에서 popup target 생성·postMessage 연결 직접 관찰 → 단기 QA 토큰 revoke.
+- 커밋/배포 미실행(지시 유지).
+- 2026-07-18 메인세션 최종 build 재검증: Codex 2nd-pass에서 pending-fetch unmount race와 React StrictMode mountedRef reset 누락을 추가 발견해 code-builder가 회귀 테스트와 함께 수정했다. 메인세션 직접 실행 결과 `SocialConnectButton.test.tsx` 10/10 PASS, 전체 74 files/644 PASS·9 DB-env skip, `tsc --noEmit` clean, production build 160 pages PASS. 위임 품질은 stream-json transcript에서 WebSearch/Fetch 4회가 확인돼 `verify-agent-quality.sh` PASS(소크라 경고만)했다.
+- 정확한 다음 액션: 관련 source/test/package/QA 원장만 커밋·push → GitHub PostgreSQL CI skip 0 확인 → 사용자 build 승인 → QA 재검증/승인 → `openclaw-dashboard-osmu` 재배포 → 동일 고객 토큰 Chrome에서 Facebook·YouTube popup target과 provider host 이동 직접 관찰 → 토큰 revoke. 실제 OAuth 로그인·동의·callback은 외부 계정 단계라 별도 미검증 유지.
+
+## 2026-07-18 메인세션: Codex 2nd-pass 지적 unmount race 수정 — connect fetch pending 중 unmount
+- 핸드오프 기준: 직전 항목들과 동일 세션 연속 작업(메인세션 직접 수행, 비위임). tmux pane과 대조할 신규 전환 신호 없음 — 세션 전환 질문 대상 아님.
+- 한 일: Codex 2nd-pass가 지적한 레이스 — `connect()`가 팝업을 동기 예약한 뒤 `await fetch`하는 동안 컴포넌트가 unmount되면, 이후 fetch resolve 시 unmount된 컴포넌트가 예약 팝업을 navigate하고 `setState`·`setInterval`을 수행하던 결함을 수정. `mountedRef`(useRef) 신설 → 기존 interval-cleanup unmount effect에서 `mountedRef.current=false`로 전환 → `await fetch` 이후(성공/실패 양쪽) `mountedRef.current`가 false면 예약 팝업만 `close()`하고 즉시 return, navigate/setMsg/setBusy/setInterval 생성은 전부 스킵.
+- 부수 정리: qa-tracker에서 다른 의미로 쓰이는 SNS-002/SNS-004 라벨을 `SocialConnectButton.tsx`/테스트 파일 주석에서 제거하고 중립 문구로 교체(SNS-001/SNS-003은 해당 없어 유지).
+- 신규 테스트 1건("does not navigate the popup, start polling, or touch state after unmount while the connect fetch is still pending"): 수정 전 코드로 단독 실행해 `popup.close`가 전혀 호출되지 않는 실패를 직접 재현(git stash로 src만 되돌려 격리 확인) → 수정 후 통과 확인.
+- 검증(관찰됨+테스트됨): 포커스 테스트 9/9 PASS(기존 8 + 신규 1). 전체 `npx vitest run` → **74 files / 643 pass, 9 skip**(회귀 없음). `npx tsc --noEmit -p .` → clean.
+- 미검증(유지): 실제 프로덕션 headless Chrome에서 unmount race 직접 재현 관찰(로컬 jsdom 테스트로만 검증). 커밋/배포 미실행(지시 유지).
+- 정확한 다음 액션: Codex 2nd-pass 재확인(이번 수정이 지적사항을 해소했는지) → 회장 승인 시 커밋/push → CI → build/qa 게이트 재검증(`/approve build`) → 운영 재배포 → Facebook/Instagram/Threads/YouTube 전 채널 실 Chrome에서 popup target 생성 직접 관찰 → 단기 QA 토큰 revoke.
