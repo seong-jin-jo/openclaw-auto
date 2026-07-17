@@ -16,6 +16,19 @@ This is the reference for all persistent state. Most data is tenant-scoped for S
   `scheduled` → `processing` → `published` / `partial` / `failed` (or `canceled`).
   `POST /api/schedule/publish-due` claims due rows per tenant and writes platform results back into `payload.publishResults`.
 - `published_posts` — one row per platform publish attempt, including failed attempts for auditability.
+  `account_id` records the exact social account used; the nullable FK is cleared if that account is deleted.
+
+### Social Accounts
+- `channel_accounts` — provider-specific accounts owned by one tenant. A tenant can retain multiple
+  accounts for the same provider; `(tenant_id, provider, external_account_id)` is unique and a partial
+  unique index permits one default account per provider.
+- Access and refresh tokens are stored only in `secret_enc` and `refresh_enc`. API list responses expose
+  display name, handle, status, and default state but never token columns.
+- `integrations(kind='channel')` remains as a rollback-compatible mirror of the current default account.
+  Changing or deleting the default account updates this mirror in the same transaction.
+- `schedules.payload.account_ids` stores the selected account per platform. Schedule creation validates
+  tenant and provider ownership before persistence; due publishing never falls back when an explicit
+  account has been deleted, revoked, or belongs to another tenant.
 
 ### Brand Knowledge (Wiki)
 - **Tenant Brand Wiki** (for AI content):
@@ -57,6 +70,7 @@ This is the reference for all persistent state. Most data is tenant-scoped for S
 
 ## Relationships & Flows
 - Tenant → many wiki_docs, drafts, signals.
+- Tenant → many channel_accounts; schedules and published_posts may reference the selected account.
 - Draft → may reference signal_id.
 - Wiki sync updates wiki_docs → used in text generation.
 - Project wiki/ (fs) → used when wiki_path provided to sourcing (bypasses tenant for dev/internal use).

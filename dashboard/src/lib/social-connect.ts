@@ -224,7 +224,7 @@ export const PROVIDERS: Record<string, ProviderConfig> = {
     longTokenUrl: "",
     longGrant: "",
     scopeSeparator: " ",
-    extraAuthParams: { access_type: "offline", prompt: "consent" },
+    extraAuthParams: { access_type: "offline", prompt: "consent select_account" },
   },
   naver_blog: {
     label: "naver_blog",
@@ -390,7 +390,7 @@ export function buildAuthUrl(
 export interface ExchangedToken {
   accessToken: string;
   userId?: string;
-  refreshToken?: string; // YouTube offline.access — integrations meta.refreshToken에 저장
+  refreshToken?: string; // channel_accounts.refresh_enc에 암호화 저장
   error?: string;
 }
 

@@ -13,8 +13,9 @@ import { withTenant } from "@/lib/db";
 
 const H = vi.hoisted(() => ({
   tenantId: null as string | null,
-  cred: null as { token: string; userId?: string; meta?: Record<string, unknown> } | null,
+  cred: null as { token: string; userId?: string; meta?: Record<string, unknown>; accountId?: string } | null,
   inserts: [] as unknown[][],
+  getChannelCredCalls: [] as unknown[][],
 }));
 
 vi.mock("@/lib/tenant-auth", () => ({
@@ -33,11 +34,18 @@ vi.mock("@/lib/db", () => ({
 
 vi.mock("@/lib/publish", async (importActual) => {
   const actual = await importActual<typeof import("@/lib/publish")>();
-  return { ...actual, getChannelCred: vi.fn(async () => H.cred) };
+  return {
+    ...actual,
+    getChannelCred: vi.fn(async (...args: unknown[]) => {
+      H.getChannelCredCalls.push(args);
+      return H.cred;
+    }),
+  };
 });
 
-// published_posts INSERT 값 순서: [tenant_id, draft_id, platform, external_id, permalink, text, status, error]
-const I = { tenant: 0, draft: 1, platform: 2, externalId: 3, permalink: 4, text: 5, status: 6, error: 7 };
+// published_posts INSERT 값 순서:
+// [tenant_id, draft_id, platform, external_id, permalink, text, status, error, account_id]
+const I = { tenant: 0, draft: 1, platform: 2, externalId: 3, permalink: 4, text: 5, status: 6, error: 7, accountId: 8 };
 
 async function callPublish(body: Record<string, unknown>) {
   const { POST } = await import("@/app/api/publish/route");
@@ -55,6 +63,7 @@ beforeEach(() => {
   H.tenantId = "tenant-1";
   H.cred = { token: "tok", userId: "u-1" };
   H.inserts = [];
+  H.getChannelCredCalls = [];
   vi.mocked(withTenant).mockClear();
 });
 
@@ -85,6 +94,48 @@ describe("/api/publish — 입력/인증 분기", () => {
     expect(body.ok).toBe(false);
     expect(body.error).toMatch(/미연결/);
     expect(H.inserts).toHaveLength(0);
+  });
+});
+
+describe("/api/publish — SNS-007 account_id 선택 발행", () => {
+  it("account_id 지정 시 getChannelCred에 그대로 전달된다(선택계정으로만 발행)", async () => {
+    H.cred = { token: "tok", userId: "u-1", accountId: "acc-42" };
+    installFetch([
+      { match: "/threads_publish", json: { id: "media-1" } },
+      { match: "/threads", json: { id: "container-1" } },
+      { match: "fields=permalink", json: { permalink: "https://www.threads.net/@u/post/1" } },
+    ]);
+    const { status, body } = await callPublish({ platform: "threads", text: "hi", account_id: "acc-42" });
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
+    // getChannelCred(tenantId, platform, accountId) — 3번째 인자로 선택계정이 그대로 전달됐는지
+    expect(H.getChannelCredCalls[0]).toEqual(["tenant-1", "threads", "acc-42"]);
+    // published_posts.account_id에 실제 발행에 쓰인 계정(cred.accountId)이 기록되는지
+    expect(H.inserts[0][I.accountId]).toBe("acc-42");
+  });
+
+  it("account_id가 삭제/cross-tenant 계정이면(getChannelCred=null) 기본계정으로 새지 않고 명확한 에러", async () => {
+    H.cred = null;
+    const { status, body } = await callPublish({ platform: "threads", text: "hi", account_id: "gone-1" });
+    expect(status).toBe(400);
+    expect(body.ok).toBe(false);
+    expect(body.error).toMatch(/선택한.*계정을 찾을 수 없음/);
+    expect(H.getChannelCredCalls[0]).toEqual(["tenant-1", "threads", "gone-1"]);
+    expect(H.inserts).toHaveLength(0);
+  });
+
+  it("account_id 미지정 시 undefined로 전달(기본계정 경로) — 발행 성공 시 account_id 없이 기록", async () => {
+    H.cred = { token: "tok", userId: "u-1" }; // accountId 없음(기본계정 mock에선 미설정)
+    installFetch([
+      { match: "/threads_publish", json: { id: "media-2" } },
+      { match: "/threads", json: { id: "container-2" } },
+      { match: "fields=permalink", json: { permalink: "https://www.threads.net/@u/post/2" } },
+    ]);
+    const { status, body } = await callPublish({ platform: "threads", text: "hi" });
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(H.getChannelCredCalls[0]).toEqual(["tenant-1", "threads", undefined]);
+    expect(H.inserts[0][I.accountId]).toBeNull();
   });
 });
 

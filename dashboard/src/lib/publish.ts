@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { withTenant } from "@/lib/db";
+import { getSelectedChannelAccountCred } from "@/lib/channel-accounts";
 
 // 대시보드 직접 발행(게이트웨이 docker 불필요). 토큰=integrations 테이블(테넌트별) → env 폴백(dev).
 // 게이트웨이 extensions/{ch}-publish 로직 포팅. 실발행은 실 토큰 필요.
@@ -51,10 +52,22 @@ export function isSafePublicImageUrl(raw: string): boolean {
 }
 
 // meta = 채널별 부가 자격증명. userId(threads/ig user, fb pageId) + X는 4키(OAuth1.0a)를 meta에 저장.
-interface ChannelCred { token: string; userId?: string; meta?: Record<string, unknown> }
+// refreshToken: channel_accounts.refresh_enc(암호화)에서 복호화해 온 값 또는(레거시 폴백만) integrations
+// meta에 이미 평문으로 존재하던 값. 새로 평문 저장은 어디서도 하지 않는다(SNS-007 감사).
+export interface ChannelCred { token: string; userId?: string; meta?: Record<string, unknown>; accountId?: string; refreshToken?: string }
 
-// 테넌트 채널 자격증명 resolve: integrations(kind=channel,label=platform) → env 폴백
-export async function getChannelCred(tenantId: string, platform: string): Promise<ChannelCred | null> {
+// 테넌트 채널 자격증명 resolve. SNS-007: accountId(선택) → channel_accounts 기본계정 →
+// legacy integrations(kind=channel,label=platform) → env 폴백. 3계층 우선순위.
+// accountId를 명시했는데 그 계정이 없으면(삭제됨/cross-tenant) 조용히 기본/legacy로
+// 떨어지지 않고 즉시 null을 반환한다 — "선택한 계정으로 발행"이 다른 계정으로 새는 것을 방지.
+export async function getChannelCred(tenantId: string, platform: string, accountId?: string): Promise<ChannelCred | null> {
+  if (accountId) {
+    const sel = await getSelectedChannelAccountCred(tenantId, platform, accountId);
+    if (!sel) return null;
+    return { token: sel.token, userId: sel.userId, meta: sel.meta, accountId: sel.accountId, refreshToken: sel.refreshToken };
+  }
+  const defaultAcc = await getSelectedChannelAccountCred(tenantId, platform);
+
   const key = process.env.OSMU_SECRET_KEY;
   // L1+L2: withTenant 트랜잭션(RLS) 안에서 암호화 secret 복호화. 토큰은 메모리에만.
   const [row] = await withTenant(tenantId, (sql) => sql<{ token: string | null; meta: Record<string, unknown> | null }[]>`
@@ -65,11 +78,33 @@ export async function getChannelCred(tenantId: string, platform: string): Promis
   if (row) {
     const meta = (row.meta ?? {}) as Record<string, unknown>;
     const userId = typeof meta.userId === "string" ? meta.userId : undefined;
+    // 레거시 integrations 폴백 전용: 이미 예전에 평문으로 저장돼 있던 meta.refreshToken이 있으면만
+    // 읽는다(하위호환) — 새로 이 필드에 쓰는 코드는 이제 어디에도 없다(callback route에서 제거됨).
+    const refreshToken = typeof meta.refreshToken === "string" ? meta.refreshToken : undefined;
+    if (defaultAcc) {
+      return {
+        token: defaultAcc.token,
+        userId: defaultAcc.userId,
+        meta: defaultAcc.meta,
+        accountId: defaultAcc.accountId,
+        // 기존 YouTube integration의 평문 refresh token은 첫 갱신 때 refresh_enc로 승격한다.
+        refreshToken: defaultAcc.refreshToken ?? (platform === "youtube" ? refreshToken : undefined),
+      };
+    }
     // X는 token 컬럼 미사용 가능 — 4키가 meta에 적재되면 cred 인정
     if (platform === "x" && (meta.apiKey || meta.accessToken)) {
-      return { token: row.token ?? "", userId, meta };
+      return { token: row.token ?? "", userId, meta, refreshToken };
     }
-    if (row.token) return { token: row.token, userId, meta };
+    if (row.token) return { token: row.token, userId, meta, refreshToken };
+  }
+  if (defaultAcc) {
+    return {
+      token: defaultAcc.token,
+      userId: defaultAcc.userId,
+      meta: defaultAcc.meta,
+      accountId: defaultAcc.accountId,
+      refreshToken: defaultAcc.refreshToken,
+    };
   }
   // dev 폴백(단일 env — 중앙 대시보드엔 테넌트별 env 없음)
   if (platform === "threads" && process.env.THREADS_ACCESS_TOKEN) {

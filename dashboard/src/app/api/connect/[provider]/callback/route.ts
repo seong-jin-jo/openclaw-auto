@@ -1,20 +1,49 @@
-import { withTenant } from "@/lib/db";
 import { getProvider, exchangeCode, exchangeFacebookCode, publicOrigin, verifyState } from "@/lib/social-connect";
 import { escapeHtml, oauthErrorMessage } from "@/lib/oauth-errors";
+import { resolveExternalIdentity, upsertChannelAccount, syncLegacyIntegration } from "@/lib/channel-accounts";
 
 // GET /api/connect/{provider}/callback?code=...&state=<tenantId>
 // provider OAuth 리다이렉트(인증 없음 — middleware 공개). state로 테넌트 식별 → code를 토큰 교환 →
 // integrations(kind='channel', label=provider)에 암호화 저장. 비번은 우리를 거치지 않음(ADR-004).
 //
 // PKCE 채널(X, TikTok): httpOnly 쿠키 pkce_{provider}에서 code_verifier 꺼내 토큰 교환 body에 포함.
-// YouTube: refresh_token을 meta.refreshToken에 추가 저장(offline.access 갱신용).
+// YouTube: refresh_token은 upsertChannelAccount가 channel_accounts.refresh_enc에 암호화 저장한다
+// (offline.access 갱신용). meta에는 절대 평문으로 넣지 않는다 — SNS-007 감사에서 지적된 대로
+// meta는 JSONB 그대로 저장되는 필드라 여기 refreshToken을 넣으면 암호화 우회 평문 유출이 된다.
 // Slack: access_token 또는 authed_user.access_token 자동 처리(exchangeCode 내부).
 
-function resultHtml(title: string, sub: string): Response {
+// SNS-001: 팝업 콜백이 window.close()만 하면 부모 창은 "언제 끝났는지"를 알 방법이 없어
+// (부모가 타이머로 폴링하거나, 사용자가 수동 새로고침해야 함) 연결 성공/실패를 놓치거나 낡은
+// 상태를 보여줄 수 있다. postMessage로 명시적 결과를 opener에 알리고, 부모는 origin을 엄격히
+// 검증한 뒤에만 메시지를 신뢰한다(SocialConnectButton.tsx의 message 리스너와 짝).
+// JSON.stringify()의 출력은 HTML-safe가 아니다 — provider가 돌려준 에러 메시지에
+// "</script>"가 그대로 들어 있으면(예: error_description=</script><script>alert(1)</script>)
+// HTML 파서는 JS 문법을 모른 채 문자열 그대로 스캔하므로 <script> 태그가 조기 종료되고
+// 뒤 내용이 실행 가능한 HTML/JS로 주입된다(CVE급 클래식 패턴). 인라인 <script> 안에 JSON을
+// 넣을 땐 <, >, &, U+2028/U+2029(JS 문자열에서도 줄바꿈으로 파싱돼 문법 깨짐)를 반드시
+// \uXXXX로 이스케이프해야 한다. 출처: OWASP XSS Prevention Cheat Sheet "JSON Encoding" +
+// MDN JSON.stringify 문서의 "escaping for use in <script>" 권고 (2026-07-17 확인).
+function safeInlineJson(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+}
+
+function resultHtml(title: string, sub: string, opts: { provider: string; ok: boolean; origin: string }): Response {
+  const payload = safeInlineJson({ source: "osmu-oauth-connect", provider: opts.provider, ok: opts.ok, message: sub });
+  const targetOrigin = safeInlineJson(opts.origin);
   const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head>
   <body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh">
     <div style="text-align:center;max-width:520px;padding:24px"><h2>${escapeHtml(title)}</h2><p style="color:#aaa;line-height:1.5">${escapeHtml(sub)}</p>
-    <script>setTimeout(()=>window.close(),2500)</script></div></body></html>`;
+    <script>
+      try {
+        if (window.opener) { window.opener.postMessage(${payload}, ${targetOrigin}); }
+      } catch (e) { /* opener가 다른 origin이거나 이미 닫힘 — 무시하고 창은 닫는다 */ }
+      setTimeout(function(){ window.close(); }, 1200);
+    </script></div></body></html>`;
   return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
 }
 
@@ -28,19 +57,20 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
   const err = searchParams.get("error_description") || searchParams.get("error");
 
   const cfg = getProvider(provider);
-  if (!cfg) return resultHtml("연결 실패", `지원하지 않는 provider: ${provider}`);
-  if (err) return resultHtml("연결 실패", oauthErrorMessage(String(err), cfg.label).slice(0, 240));
-  if (!code || !rawState) return resultHtml("연결 실패", "code/state 누락");
+  const fail = (sub: string) => resultHtml("연결 실패", sub, { provider, ok: false, origin });
+  if (!cfg) return fail(`지원하지 않는 provider: ${provider}`);
+  if (err) return fail(oauthErrorMessage(String(err), cfg.label).slice(0, 240));
+  if (!code || !rawState) return fail("code/state 누락");
 
   // state 서명·provider 바인딩·만료(10분) 검증 — 위조/재사용된(다른 provider용 포함) state로
   // 남의 테넌트에 연결되는 것을 차단.
   const stateCheck = await verifyState(rawState, provider);
-  if (!stateCheck.valid) return resultHtml("연결 실패", stateCheck.reason || "state 검증 실패");
+  if (!stateCheck.valid) return fail(stateCheck.reason || "state 검증 실패");
   const tenantId = stateCheck.tenantId;
-  if (!tenantId) return resultHtml("연결 실패", "code/state 누락");
+  if (!tenantId) return fail("code/state 누락");
 
   const key = process.env.OSMU_SECRET_KEY;
-  if (!key) return resultHtml("연결 실패", "OSMU_SECRET_KEY 미설정 — 토큰 암호화 불가");
+  if (!key) return fail("OSMU_SECRET_KEY 미설정 — 토큰 암호화 불가");
 
   try {
     // PKCE 채널: 쿠키에서 code_verifier 꺼내기
@@ -57,7 +87,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
     const tok = provider === "facebook"
       ? await exchangeFacebookCode(code, origin)
       : await exchangeCode(provider, code, origin, { codeVerifier });
-    if (!tok.accessToken) return resultHtml("연결 실패", oauthErrorMessage(tok.error || "토큰 교환 실패", cfg.label).slice(0, 240));
+    if (!tok.accessToken) return fail(oauthErrorMessage(tok.error || "토큰 교환 실패", cfg.label).slice(0, 240));
 
     // api 플래그: 발행 라우터가 어느 API 경로를 써야 할지 판별하는 힌트.
     // Meta 계열은 구분자 유지, 표준 OAuth 채널은 provider 라벨 그대로.
@@ -69,21 +99,34 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
       ? "facebook_graph"
       : provider;
 
-    // meta 구성: YouTube는 refresh_token 추가 저장(access_token 만료 시 갱신용).
-    const meta: Record<string, unknown> = { userId: tok.userId ?? null, api: apiFlag, connectedAt: new Date().toISOString() };
-    if (tok.refreshToken) meta.refreshToken = tok.refreshToken;
+    // meta 구성: refresh_token은 여기 넣지 않는다 — upsertChannelAccount가 refresh_enc(암호화 컬럼)에
+    // 별도로 저장한다(아래 tok.refreshToken 인자). meta는 평문 JSONB라 여기 넣으면 암호화 우회가 된다.
+    const meta: Record<string, unknown> = { api: apiFlag, connectedAt: new Date().toISOString() };
 
-    // 테넌트별 채널 cred 저장(발행 경로 getChannelCred가 읽음). 토큰은 pgcrypto 암호화.
-    await withTenant(tenantId, (sql) => sql`
-      INSERT INTO integrations (tenant_id, kind, label, secret_enc, meta)
-      VALUES (${tenantId}, 'channel', ${cfg.label},
-              armor(pgp_sym_encrypt(${tok.accessToken}, ${key})),
-              ${sql.json(meta as Parameters<typeof sql.json>[0])})
-      ON CONFLICT (tenant_id, kind, label) DO UPDATE
-        SET secret_enc = EXCLUDED.secret_enc, meta = EXCLUDED.meta`);
+    // SNS-007: 저장 전 provider 토큰으로 authoritative 외부 식별자를 resolve(가능하면 실제
+    // /me·channels.list 왕복, 안 되면 토큰교환 응답의 userId, 그마저 없으면 synthetic)한다.
+    // 이 id가 channel_accounts UNIQUE(tenant_id,provider,external_account_id)의 dedup 키라
+    // 부정확하면 "재연결"이 "새 계정 추가"로 오분류된다.
+    const identity = await resolveExternalIdentity(provider, tok.accessToken, tok.userId, tenantId);
+    meta.userId = identity.externalId;
 
-    return resultHtml(`${cfg.label} 연결 완료!`, "이 창을 닫고 대시보드로 돌아가세요.");
+    const { id: accountId, isDefault } = await upsertChannelAccount({
+      tenantId,
+      provider,
+      externalId: identity.externalId,
+      displayName: identity.displayName,
+      username: identity.username,
+      accessToken: tok.accessToken,
+      refreshToken: tok.refreshToken,
+      meta,
+    });
+
+    // legacy integrations는 "현재 기본계정"만 미러링한다 — 신규 비기본 계정 추가가 기존
+    // 기본계정의 토큰을 덮어쓰면 안 된다(요구사항 2). isDefault=true일 때만 동기화.
+    if (isDefault) await syncLegacyIntegration(tenantId, provider, accountId);
+
+    return resultHtml(`${cfg.label} 연결 완료!`, "이 창을 닫고 대시보드로 돌아가세요.", { provider, ok: true, origin });
   } catch (e) {
-    return resultHtml("연결 실패", oauthErrorMessage(e instanceof Error ? e.message : String(e), cfg.label).slice(0, 240));
+    return fail(oauthErrorMessage(e instanceof Error ? e.message : String(e), cfg.label).slice(0, 240));
   }
 }

@@ -10,6 +10,7 @@ import { CH_LABELS, CH_STATUS_LABEL, AUTOMATION_FEATURES } from "@/lib/constants
 import { setupGuides } from "@/lib/setup-guides";
 import { CredentialForm } from "@/components/shared/CredentialForm";
 import { SocialConnectButton } from "@/components/channel/SocialConnectButton";
+import { AccountManager } from "@/components/channel/AccountManager";
 import { SetupGuide } from "@/components/shared/SetupGuide";
 
 // OAuth "연결" 버튼을 제공하는 채널(ADR-004 — 비번/토큰 없이 버튼만). 점진 확장.
@@ -91,6 +92,9 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
   const { showToast } = useToast();
   const { subTab, setSubTab, expandedFeature, setExpandedFeature, expandedPopular, setExpandedPopular } = useUIStore();
   const [showManualCreds, setShowManualCreds] = useState(false);
+  // SNS-007: OAuth 연결 성공 시 AccountManager를 강제 리마운트해 목록을 갱신(key bump — refresh()를
+  // 부모가 직접 호출하려면 ref forwarding이 필요한데, remount가 더 단순하고 목록 API 자체가 가벼움).
+  const [accountsRefreshTick, setAccountsRefreshTick] = useState(0);
 
   const cfg = channelConfig?.[channel];
   const status = cfg?.status || "available";
@@ -222,7 +226,20 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
           <div className="card p-5">
             {oauthLabel && (
               <div className="mb-4">
-                <SocialConnectButton provider={channel} label={oauthLabel} />
+                <SocialConnectButton
+                  provider={channel}
+                  label={oauthLabel}
+                  onConnected={() => {
+                    mutateConfig();
+                    setAccountsRefreshTick((n) => n + 1);
+                  }}
+                />
+                <AccountManager
+                  key={`${channel}-${accountsRefreshTick}`}
+                  provider={channel}
+                  label={oauthLabel}
+                  onAccountsChanged={mutateConfig}
+                />
                 <p className="text-[10px] text-subtle mt-2">공식 OAuth가 기본 경로입니다. 토큰 직접 입력은 고급/비상용으로만 사용하세요.</p>
                 <button
                   type="button"
@@ -231,6 +248,20 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
                 >
                   {showManualCreds ? "수동 토큰 입력 닫기" : "고급: 토큰 직접 입력"}
                 </button>
+              </div>
+            )}
+            {!oauthLabel && channel === "bluesky" && (
+              <div className="mb-4">
+                <AccountManager
+                  key={`bluesky-${accountsRefreshTick}`}
+                  provider="bluesky"
+                  label="Bluesky"
+                  allowManualAdd
+                  onAccountsChanged={() => {
+                    mutateConfig();
+                    setAccountsRefreshTick((n) => n + 1);
+                  }}
+                />
               </div>
             )}
             {(!oauthLabel || showManualCreds) && (

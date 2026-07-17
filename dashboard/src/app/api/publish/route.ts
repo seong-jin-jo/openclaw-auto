@@ -18,15 +18,25 @@ import {
 // 발행 후 published_posts에 기록(성과 수집 대상). 토큰 없으면 명확한 에러(크래시 X).
 export async function POST(request: Request) {
   const __b = await request.json();
-  const { platform, text, image_url, draft_id } = __b;
+  const { platform, text, image_url, draft_id, account_id } = __b;
   const tenant_id = await effectiveTenantId(request, __b.tenant_id);
   if (!tenant_id || !platform) {
     return Response.json({ error: "tenant_id, platform required" }, { status: 400 });
   }
 
-  const cred = await getChannelCred(tenant_id, platform);
+  // SNS-007: account_id 지정 시 그 계정으로만 발행 — getChannelCred는 삭제/cross-tenant면 조용히
+  // 기본계정으로 새지 않고 null을 반환하므로, 여기선 그 null을 "선택계정 미연결"로 그대로 노출한다.
+  const cred = await getChannelCred(tenant_id, platform, account_id || undefined);
   if (!cred) {
-    return Response.json({ ok: false, error: `${platform} 채널 미연결 — Settings에서 토큰 등록 필요` }, { status: 400 });
+    return Response.json(
+      {
+        ok: false,
+        error: account_id
+          ? `선택한 ${platform} 계정을 찾을 수 없음 — 삭제되었거나 다른 테넌트 소유`
+          : `${platform} 채널 미연결 — Settings에서 토큰 등록 필요`,
+      },
+      { status: 400 },
+    );
   }
 
   let result: PublishResult;
@@ -68,10 +78,10 @@ export async function POST(request: Request) {
   // published_posts 기록(성공/실패 모두)
   try {
     await withTenant(tenant_id, (sql) => sql`
-      INSERT INTO published_posts (tenant_id, draft_id, platform, external_id, permalink, text, status, error)
+      INSERT INTO published_posts (tenant_id, draft_id, platform, external_id, permalink, text, status, error, account_id)
       VALUES (${tenant_id}, ${draft_id ?? null}, ${platform}, ${result.externalId ?? null},
               ${result.permalink ?? null}, ${text ?? null},
-              ${result.ok ? "published" : "failed"}, ${result.error ?? null})`);
+              ${result.ok ? "published" : "failed"}, ${result.error ?? null}, ${cred.accountId ?? null})`);
   } catch (e) {
     // 기록 실패는 발행 결과에 영향 X (로그만)
     return Response.json({ ...result, recordError: String(e) });

@@ -25,6 +25,25 @@ vi.mock("@/lib/db", () => ({
   }),
 }));
 
+// SNS-007: callback route는 이제 integrations를 직접 INSERT하지 않고 channel-accounts.ts의
+// upsertChannelAccount(channel_accounts에 저장) → isDefault면 syncLegacyIntegration(legacy 미러링)을
+// 거친다. 이 테스트 파일은 callback route의 "provider별 토큰교환·state 검증" 로직만 검증하는
+// 것이 목적이라(channel-accounts.ts 내부 SQL 시퀀스 자체는 tests/api/channel-accounts.test.ts +
+// tests/lib/channel-accounts.test.ts가 별도로 커버) — 여기선 channel-accounts.ts를 모킹해
+// upsertChannelAccount에 전달된 input을 그대로 H.inserts에 기록한다(기존 "integrations INSERT값"
+// 검증 assertion들과 동일한 형태 유지). resolveExternalIdentity는 실 네트워크 호출 없이
+// fallbackUserId를 그대로 externalId로 반환(테스트가 이미 통제하는 tok.userId 값 보존).
+vi.mock("@/lib/channel-accounts", () => ({
+  resolveExternalIdentity: vi.fn(async (_provider: string, _token: string, fallbackUserId?: string, tenantId?: string) => ({
+    externalId: fallbackUserId || `legacy-test-${tenantId || "unknown"}`,
+  })),
+  upsertChannelAccount: vi.fn(async (input: Record<string, unknown>) => {
+    H.inserts.push([input]);
+    return { id: `acc-${H.inserts.length}`, isDefault: true };
+  }),
+  syncLegacyIntegration: vi.fn(async () => {}),
+}));
+
 function params(provider: string) { return { params: Promise.resolve({ provider }) }; }
 
 // callback route가 서명(HMAC)·provider 바인딩된 state만 신뢰하므로(Critical/Major 하드닝,
@@ -397,6 +416,15 @@ describe("exchangeCode — PKCE (code_verifier POST body 포함)", () => {
 });
 
 describe("exchangeCode — YouTube refresh_token", () => {
+  it("YouTube authorize URL이 매번 Google 계정 선택을 요구한다", async () => {
+    process.env.YOUTUBE_CLIENT_ID = "yt-client";
+    const { buildAuthUrl, getProvider } = await import("@/lib/social-connect");
+    const url = new URL(buildAuthUrl(getProvider("youtube")!, "https://app.example", "youtube", "state-1")!);
+    expect(url.searchParams.get("prompt")).toBe("consent select_account");
+    expect(url.searchParams.get("access_type")).toBe("offline");
+    delete process.env.YOUTUBE_CLIENT_ID;
+  });
+
   it("응답의 refresh_token을 ExchangedToken.refreshToken으로 반환", async () => {
     process.env.YOUTUBE_CLIENT_ID = "yt-client";
     process.env.YOUTUBE_CLIENT_SECRET = "yt-secret";
@@ -465,8 +493,8 @@ describe("exchangeCode — Slack authed_user.access_token fallback", () => {
 
 // ── callback route — 새 채널 저장 검증 ─────────────────────────────────────
 
-describe("GET /api/connect/youtube/callback — refresh_token meta 저장", () => {
-  it("refresh_token이 integrations meta에 포함됨", async () => {
+describe("GET /api/connect/youtube/callback — refresh_token 암호화 저장", () => {
+  it("refresh_token은 upsert의 전용 인자로 전달되고 meta에는 포함되지 않는다", async () => {
     process.env.YOUTUBE_CLIENT_ID = "yt-client";
     process.env.YOUTUBE_CLIENT_SECRET = "yt-secret";
     H.fetchSeq = [{ status: 200, body: { access_token: "YT_ACCESS", refresh_token: "YT_REFRESH" } }];
@@ -479,8 +507,10 @@ describe("GET /api/connect/youtube/callback — refresh_token meta 저장", () =
     expect(res.status).toBe(200);
     expect(await res.text()).toMatch(/연결 완료/);
     expect(H.inserts).toHaveLength(1);
-    expect(JSON.stringify(H.inserts[0])).toContain("YT_REFRESH");
-    expect(JSON.stringify(H.inserts[0])).toContain("youtube");
+    const input = H.inserts[0][0] as Record<string, unknown>;
+    expect(input.refreshToken).toBe("YT_REFRESH");
+    expect(input.provider).toBe("youtube");
+    expect(input.meta).not.toHaveProperty("refreshToken");
     delete process.env.YOUTUBE_CLIENT_ID;
     delete process.env.YOUTUBE_CLIENT_SECRET;
   });
@@ -711,5 +741,35 @@ describe("GET /api/connect/instagram → callback — 서명된 state 전체 왕
     const html = await res.text();
     expect(html).toMatch(/연결 실패/);
     expect(H.inserts).toHaveLength(0);
+  });
+});
+
+// finding 1 (XSS): resultHtml()이 postMessage payload를 인라인 <script> 안에
+// JSON.stringify()만으로 넣으면, provider가 돌려준(혹은 URL 경로 세그먼트로 위장된) 텍스트에
+// literal "</script>"가 있을 때 HTML 파서가 <script> 태그를 조기 종료시켜 뒤의 <script> 태그가
+// 새 실행 컨텍스트로 파싱된다 — JSON.stringify는 HTML-safe가 아니다(JS 문법 이스케이프만 함).
+// "지원하지 않는 provider" 분기는 URL path param(공격자가 완전히 통제 가능)을 오류 메시지에
+// 그대로 보간하므로 이 취약점의 실제 도달 경로다.
+describe("callback resultHtml — XSS 이스케이프 (finding 1)", () => {
+  it("provider 세그먼트에 </script><script>alert(1)</script> 페이로드를 넣어도 원문 그대로(unescaped)로 script 태그가 조기 종료되지 않는다", async () => {
+    const { GET } = await import("@/app/api/connect/[provider]/callback/route");
+    const payload = "</script><script>alert(1)</script>";
+    const res = await GET(
+      new Request("https://app.example/api/connect/evil/callback?code=x&state=y"),
+      { params: Promise.resolve({ provider: payload }) },
+    );
+    const html = await res.text();
+
+    // 1) 취약한 원문 시퀀스가 스크립트 컨텍스트 안에 살아있으면 안 된다.
+    expect(html).not.toContain("</script><script>alert(1)</script>");
+
+    // 2) 이스케이프된 형태로 인라인 스크립트 payload 안에 안전하게 들어있어야 한다 —
+    //    정확한 이스케이프 출력을 직접 확인(self-question (b) 근거).
+    expect(html).toContain("\\u003c/script\\u003e\\u003cscript\\u003ealert(1)\\u003c/script\\u003e");
+
+    // 3) 페이지 안에서 실제 <script> 여는 태그는 정확히 하나(postMessage 로직)뿐이어야 한다 —
+    //    페이로드가 태그를 조기종료해 두 번째 <script>가 생겼다면 이 카운트가 깨진다.
+    const scriptOpenTags = (html.match(/<script>/g) || []).length;
+    expect(scriptOpenTags).toBe(1);
   });
 });

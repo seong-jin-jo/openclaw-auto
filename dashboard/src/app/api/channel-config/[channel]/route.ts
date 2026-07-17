@@ -83,8 +83,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ cha
   const { channel } = await params;
   const data = await request.json();
   const cfgPath = configPath("openclaw.json");
-  const config = readJson<OpenClawConfig>(cfgPath);
-  if (!config) return Response.json({ error: "openclaw.json not found" }, { status: 404 });
+  // 신규 tenant는 아직 openclaw.json이 없을 수 있다(DB-first 저장이 SSOT, 파일은 게이트웨이용
+  // 캐시). 파일 부재를 404로 취급하면 신규 tenant가 채널 연결 자체를 못 한다(SNS-005) —
+  // 빈 config로 시작해 writeJson이 최초 파일을 만들도록 한다.
+  const config = readJson<OpenClawConfig>(cfgPath) ?? {};
 
   // Threads: update multiple plugins
   if (channel === "threads") {

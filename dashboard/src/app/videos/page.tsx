@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { fetcher, apiPost } from "@/lib/api";
 import { useToast } from "@/components/layout/Toast";
+import { SocialConnectButton } from "@/components/channel/SocialConnectButton";
+import { AccountManager } from "@/components/channel/AccountManager";
+import { useUIStore } from "@/store/ui-store";
 
 interface Video {
   filename: string;
@@ -16,6 +19,13 @@ interface SlideInput {
   text: string;
   duration: number;
   imageUrl: string;
+}
+
+interface YoutubeAccount {
+  id: string;
+  display_name: string | null;
+  username: string | null;
+  is_default: boolean;
 }
 
 // 같은 출처(/videos/...) 영상에서 첫 프레임을 캡처해 썸네일 data URL 생성. best-effort.
@@ -51,10 +61,16 @@ function captureThumbnail(src: string): Promise<string | null> {
 }
 
 export default function VideosPage() {
+  const { activeWorkspace } = useUIStore();
   const { data, mutate } = useSWR<{ videos: Video[] }>("/api/video/list", fetcher);
-  const { data: ytStatus } = useSWR<{ connected: boolean }>("/api/youtube/status", fetcher);
+  const { data: ytStatus, mutate: mutateYtStatus } = useSWR<{ connected: boolean; status?: "valid" | "invalid" | "unverified" }>("/api/youtube/status", fetcher);
   const { data: elConfig } = useSWR<{ configured: boolean }>("/api/elevenlabs-config", fetcher);
   const { data: clipConfig } = useSWR<{ configured: boolean; provider?: string }>("/api/clipping-config", fetcher);
+  const [ytAccountsTick, setYtAccountsTick] = useState(0);
+  const { data: ytAccountsData, mutate: mutateYtAccounts } = useSWR<{ accounts: YoutubeAccount[] }>(
+    activeWorkspace ? `/api/channels/youtube/accounts?tenant_id=${activeWorkspace.id}&v=${ytAccountsTick}` : null,
+    fetcher,
+  );
   const { showToast } = useToast();
 
   const [tab, setTab] = useState<"list" | "generate">("list");
@@ -67,6 +83,7 @@ export default function VideosPage() {
   const [publishingFile, setPublishingFile] = useState<string | null>(null);
   const [publishTitle, setPublishTitle] = useState("");
   const [publishDesc, setPublishDesc] = useState("");
+  const [publishAccountId, setPublishAccountId] = useState("");
   const [previewFile, setPreviewFile] = useState<string | null>(null); // 인라인 임베드 플레이어 (발행 전 미리보기)
 
   // 0차 Long Video Repurpose (external clipper + OSMU refine)
@@ -82,6 +99,11 @@ export default function VideosPage() {
   const [fanoutText, setFanoutText] = useState(true);
 
   const videos = data?.videos || [];
+  const youtubeAccounts = ytAccountsData?.accounts || [];
+
+  useEffect(() => {
+    setPublishAccountId("");
+  }, [activeWorkspace?.id]);
 
   // 추천순(바이럴 점수 desc) 정렬 — 점수는 "우선순위 힌트"일 뿐(보장 아님). 빈 화면 대신 완성 클립 그리드를 히어로로.
   const rankedClips = [...repurposeClips].sort(
@@ -133,6 +155,7 @@ export default function VideosPage() {
         title: publishTitle || filename,
         description: publishDesc,
         platform: "youtube",
+        account_id: publishAccountId || undefined,
       });
       if (res?.ok) {
         showToast(`Published to YouTube: ${res.url}`, "success");
@@ -325,17 +348,49 @@ export default function VideosPage() {
           <div className="text-[10px] text-subtle mb-1">영상</div>
           <div className="text-lg font-bold text-text">{videos.length}</div>
         </div>
-        <div className="card p-3">
+        <div className="card p-3" data-testid="youtube-connect-card">
           <div className="text-[10px] text-subtle mb-1">YouTube</div>
           <div className={`text-sm font-medium ${ytStatus?.connected ? "text-green-400" : "text-subtle"}`}>
             {ytStatus?.connected ? "연결됨" : "미연결"}
           </div>
+          {!ytStatus?.connected && (
+            <div className="mt-2">
+              <SocialConnectButton
+                provider="youtube"
+                label="YouTube"
+                onConnected={() => {
+                  void mutateYtStatus();
+                  setYtAccountsTick((n) => n + 1);
+                  void mutateYtAccounts();
+                }}
+              />
+            </div>
+          )}
+          <AccountManager
+            key={`youtube-${ytAccountsTick}`}
+            provider="youtube"
+            label="YouTube"
+            onAccountsChanged={() => {
+              setPublishAccountId("");
+              void mutateYtStatus();
+              void mutateYtAccounts();
+            }}
+          />
         </div>
         <div className="card p-3">
           <div className="text-[10px] text-subtle mb-1">TTS (ElevenLabs)</div>
           <div className={`text-sm font-medium ${elConfig?.configured ? "text-green-400" : "text-subtle"}`}>
             {elConfig?.configured ? "설정됨" : "미설정"}
           </div>
+        </div>
+        {/* SNS-006: TikTok/Reels가 "연결 가능"처럼 안 보이게 — 미충족 사유를 명시해 비활성 표시 */}
+        <div className="card p-3" data-testid="tiktok-disabled-card">
+          <div className="text-[10px] text-subtle mb-1">TikTok</div>
+          <div className="text-sm font-medium text-subtle">미구현 — TikTok 앱 심사 승인 전</div>
+        </div>
+        <div className="card p-3" data-testid="reels-disabled-card">
+          <div className="text-[10px] text-subtle mb-1">Instagram Reels</div>
+          <div className="text-sm font-medium text-subtle">미구현 — 발행 분기 없음</div>
         </div>
         <div className="card p-3">
           <div className="text-[10px] text-subtle mb-1">영상 클리퍼 (0차)</div>
@@ -487,6 +542,21 @@ export default function VideosPage() {
                             placeholder="Title"
                             className="px-2 py-1 text-xs bg-surface-2 text-text rounded border border-border w-32"
                           />
+                          {youtubeAccounts.length > 1 && (
+                            <select
+                              data-testid="youtube-publish-account-select"
+                              value={publishAccountId}
+                              onChange={(e) => setPublishAccountId(e.target.value)}
+                              className="px-2 py-1 text-xs bg-surface-2 text-text rounded border border-border max-w-32"
+                            >
+                              <option value="">기본계정</option>
+                              {youtubeAccounts.map((account) => (
+                                <option key={account.id} value={account.id}>
+                                  {account.display_name || (account.username ? `@${account.username}` : account.id.slice(0, 8))}
+                                </option>
+                              ))}
+                            </select>
+                          )}
                           <button onClick={() => handlePublish(v.filename)} className="px-2 py-1 text-xs bg-red-600 text-text rounded hover:bg-red-500">Upload</button>
                           <button onClick={() => setPublishingFile(null)} className="px-2 py-1 text-xs bg-surface-2 text-muted rounded">Cancel</button>
                         </div>

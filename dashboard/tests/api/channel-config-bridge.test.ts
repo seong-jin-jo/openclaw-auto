@@ -159,4 +159,41 @@ describe("POST /api/channel-config/[channel] — integrations 브리지", () => 
     expect(res.status).toBe(200);
     expect(H.inserts).toHaveLength(1);
   });
+
+  // SNS-005 회귀: openclaw.json 자체가 아직 없는 신규 tenant(DB에만 존재, 파일 캐시 미생성)에서
+  // bluesky를 저장하면 과거엔 404("openclaw.json not found")로 막혀 최초 연결이 불가능했다.
+  // 파일이 없어도 빈 config로 시작해 저장 성공 + integrations 브리지가 되어야 한다.
+  it("SNS-005: openclaw.json 파일이 없는 신규 tenant도 bluesky 저장이 404 없이 성공한다", async () => {
+    const dir = path.join(tmpDir, "tenants", "tenant-1");
+    fs.rmSync(path.join(dir, "openclaw.json"));
+    expect(fs.existsSync(path.join(dir, "openclaw.json"))).toBe(false);
+
+    const { POST } = await import("@/app/api/channel-config/[channel]/route");
+    const res = await POST(post("bluesky", { handle: "new.bsky.social", appPassword: "aaaa-bbbb-cccc-dddd" }), params("bluesky"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.error).toBeUndefined();
+    expect(fs.existsSync(path.join(dir, "openclaw.json"))).toBe(true);
+    expect(H.inserts).toHaveLength(1);
+    const s = JSON.stringify(H.inserts[0]);
+    expect(s).toContain("aaaa-bbbb-cccc-dddd");
+    expect(s).toContain("new.bsky.social");
+  });
+
+  // SNS-005: verifyChannel이 401/400을 던지면 raw JSON이 아니라 조치 가능한 한국어 문구로 나가야 한다.
+  it("SNS-005: bluesky 인증 실패 시 에러가 한국어로 정규화된다(raw JSON 미노출)", async () => {
+    vi.doUnmock("@/lib/verify-channel");
+    vi.resetModules();
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: false,
+      status: 401,
+      json: async () => ({ error: "AuthenticationRequired", message: "Invalid identifier or password" }),
+    })));
+    const { verifyChannel } = await import("@/lib/verify-channel");
+    const result = await verifyChannel("bluesky", { handle: "user.bsky.social", appPassword: "wrong" });
+    expect(result.verified).toBe(false);
+    expect(result.error).toContain("계정 정보가 올바르지 않습니다");
+    expect(result.error).not.toMatch(/^API error \(/);
+    vi.unstubAllGlobals();
+  });
 });

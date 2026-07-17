@@ -10,6 +10,7 @@ import { AUTOMATION_FEATURES } from "@/lib/constants";
 import { setupGuides } from "@/lib/setup-guides";
 import { CredentialForm } from "@/components/shared/CredentialForm";
 import { SocialConnectButton } from "@/components/channel/SocialConnectButton";
+import { AccountManager } from "@/components/channel/AccountManager";
 import { SetupGuide } from "@/components/shared/SetupGuide";
 import { ContentGuide } from "./ContentGuide";
 import { KeywordsEditor } from "./KeywordsEditor";
@@ -350,6 +351,7 @@ function InstagramSettings() {
   const { showToast } = useToast();
   const { data: channelConfig, mutate: mutateConfig } = useChannelConfig();
   const [expandedFeature, setExpandedFeature] = useState<string | null>(null);
+  const [accountsRefreshTick, setAccountsRefreshTick] = useState(0);
 
   const cfg = (channelConfig || {}) as Record<string, Record<string, unknown>>;
   const igCfg = cfg.instagram || {};
@@ -399,7 +401,20 @@ function InstagramSettings() {
       {/* Credentials */}
       <div className="card p-5">
         <div className="mb-4">
-          <SocialConnectButton provider="instagram" label="Instagram" />
+          <SocialConnectButton
+            provider="instagram"
+            label="Instagram"
+            onConnected={() => {
+              mutateConfig();
+              setAccountsRefreshTick((n) => n + 1);
+            }}
+          />
+          <AccountManager
+            key={`instagram-${accountsRefreshTick}`}
+            provider="instagram"
+            label="Instagram"
+            onAccountsChanged={mutateConfig}
+          />
           <p className="text-[10px] text-subtle mt-2">또는 아래에서 토큰을 직접 입력(고급).</p>
         </div>
         <CredentialForm

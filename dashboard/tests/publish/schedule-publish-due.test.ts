@@ -198,3 +198,72 @@ describe("POST /api/schedule/publish-due — 운영자 전체 테넌트 스윕",
     expect(H.inserts).toHaveLength(0);
   });
 });
+
+// published_posts INSERT 값 순서(publish-due):
+// [tenant_id, draft_id, platform, external_id, permalink, text, status, error, account_id]
+const PD_I = { accountId: 8 };
+
+describe("POST /api/schedule/publish-due — SNS-007 payload.account_ids 선택 발행", () => {
+  it("payload.account_ids[platform]이 getChannelCred(accountId)로 그대로 전달되고 published_posts.account_id에 기록된다", async () => {
+    vi.mocked(getChannelCred).mockImplementation(async (_tid, _platform, accountId) => {
+      if (accountId) return { token: "tok-selected", userId: "u-selected", accountId };
+      return { token: "tok-default", userId: "u-default", accountId: "acc-default-threads" };
+    });
+    H.rows = [
+      {
+        id: "sched-acc",
+        draft_id: "draft-acc",
+        platforms: ["threads"],
+        payload: { text: "body", account_ids: { threads: "acc-selected-1" } },
+        draft_payload: null,
+      },
+    ];
+
+    const { body } = await publishDue({ tenant_id: "tenant-1" });
+
+    expect(body.schedules[0].status).toBe("published");
+    expect(getChannelCred).toHaveBeenCalledWith("tenant-1", "threads", "acc-selected-1");
+    expect(H.inserts[0][PD_I.accountId]).toBe("acc-selected-1");
+  });
+
+  it("account_ids 미지정이면 undefined로 조회하고, 기본계정 resolve 결과(cred.accountId)를 기록한다", async () => {
+    vi.mocked(getChannelCred).mockImplementation(async () => ({ token: "tok-default", userId: "u-default", accountId: "acc-default-threads" }));
+    H.rows = [
+      {
+        id: "sched-def",
+        draft_id: "draft-def",
+        platforms: ["threads"],
+        payload: { text: "body" },
+        draft_payload: null,
+      },
+    ];
+
+    const { body } = await publishDue({ tenant_id: "tenant-1" });
+
+    expect(body.schedules[0].status).toBe("published");
+    expect(getChannelCred).toHaveBeenCalledWith("tenant-1", "threads", undefined);
+    expect(H.inserts[0][PD_I.accountId]).toBe("acc-default-threads");
+  });
+
+  it("선택계정이 삭제/cross-tenant(getChannelCred=null)면 기본계정으로 새지 않고 failed 기록 — 다른 계정으로 발행 안 함", async () => {
+    vi.mocked(getChannelCred).mockImplementation(async (_tid, _platform, accountId) => {
+      if (accountId === "gone-acc") return null; // 삭제된 계정
+      return { token: "tok-default", userId: "u-default", accountId: "acc-default-threads" };
+    });
+    H.rows = [
+      {
+        id: "sched-gone",
+        draft_id: "draft-gone",
+        platforms: ["threads"],
+        payload: { text: "body", account_ids: { threads: "gone-acc" } },
+        draft_payload: null,
+      },
+    ];
+
+    const { body } = await publishDue({ tenant_id: "tenant-1" });
+
+    expect(body.schedules[0].status).toBe("failed");
+    expect(body.schedules[0].results[0].error).toMatch(/선택한.*계정을 찾을 수 없음/);
+    expect(H.inserts[0][PD_I.accountId]).toBeNull();
+  });
+});

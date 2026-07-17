@@ -225,3 +225,88 @@ CREATE TABLE IF NOT EXISTS usage_quotas (
   UNIQUE (tenant_id, period)
 );
 CREATE INDEX IF NOT EXISTS idx_usage_quotas_tenant_period ON usage_quotas(tenant_id, period);
+
+-- SNS-007: 사이트 내 provider별 다중 계정. `integrations(kind='channel')`는 provider당 1행이라
+-- "Threads 개인+브랜드 2개 동시 연결" 같은 요구를 표현 못 한다(2026-07-17 사용자 실기기 QA).
+-- ADD-ONLY: integrations UNIQUE(tenant_id,kind,label)는 건드리지 않는다 — 기존 단일계정 rollback 경로 보존.
+-- integrations는 "그 provider의 현재 기본 계정"을 계속 미러링(dual-write)해 레거시 소비자
+-- (getChannelCred 폴백, publish-due 등 미마이그레이트 경로)가 무중단으로 동작한다.
+-- (아키텍처는 main 세션이 회장과 합의해 code-builder에 지정 — 2026-07-17, ADD table / integrations 불변.)
+CREATE TABLE IF NOT EXISTS channel_accounts (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id           UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  provider            TEXT NOT NULL,               -- threads | instagram | x | facebook | bluesky | youtube | ...
+  external_account_id TEXT NOT NULL,                -- provider가 발급한 authoritative user/channel/page id
+  display_name        TEXT,                         -- 사람이 읽는 이름(YouTube 채널명 등)
+  username            TEXT,                          -- @handle
+  secret_enc          TEXT NOT NULL,                 -- pgp_sym_encrypt(access_token) — 평문 절대 금지
+  refresh_enc         TEXT,                          -- pgp_sym_encrypt(refresh_token), nullable
+  meta                JSONB,                         -- provider별 부가 필드(X 4키, api flag 등)
+  is_default          BOOLEAN NOT NULL DEFAULT false,
+  status              TEXT NOT NULL DEFAULT 'active', -- active | expired | revoked
+  token_expires_at    TIMESTAMPTZ,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (tenant_id, provider, external_account_id)
+);
+CREATE INDEX IF NOT EXISTS idx_channel_accounts_tenant ON channel_accounts(tenant_id, provider);
+-- provider당 tenant 1개만 기본계정 — is_default=true 행에만 걸리는 partial unique index.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_channel_accounts_one_default
+  ON channel_accounts(tenant_id, provider) WHERE is_default;
+
+-- 발행/스케줄이 "이 특정 계정으로" 발행했는지 감사·선택발행 대상 — additive, nullable, SET NULL
+-- (계정 삭제돼도 과거 발행 기록 자체는 보존, 참조만 끊음).
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='published_posts' AND column_name='account_id'
+  ) THEN
+    ALTER TABLE published_posts ADD COLUMN account_id UUID REFERENCES channel_accounts(id) ON DELETE SET NULL;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='schedules' AND column_name='account_id'
+  ) THEN
+    ALTER TABLE schedules ADD COLUMN account_id UUID REFERENCES channel_accounts(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+
+-- 멱등 백필: 기존 integrations(kind='channel') 1행 → provider당 channel_accounts 1행(기본계정)으로 승격.
+-- 매 배포마다 실행 — 개별 tenant/provider 단위 idempotency는 ON CONFLICT DO NOTHING이 보장한다(이미
+-- 존재하는 행은 override하지 않음). 이러면 나중에 integrations에 새 tenant/provider가 추가돼도(레거시
+-- 코드 경로가 살아있는 한) 다음 배포에서 자동 백필된다 — global existence-guard(구버전, 테이블이 통째로
+-- 비었을 때만 동작)는 제거했다: 그 가드는 한 번이라도 다른 provider로 계정을 추가한 뒤 재배포하면 나머지
+-- legacy integrations가 영원히 백필 안 되는 결함이 있었다(2026-07-17 리뷰).
+-- 보안: 마이그레이션 SQL엔 OSMU_SECRET_KEY가 없어 여기서 pgp_sym_encrypt 불가 — refresh_enc는 반드시
+-- NULL로 남기고(평문 복사 금지), meta에서도 refreshToken 키를 제거해 plaintext가 어디에도 안 남게 한다.
+-- refresh_enc가 NULL인 legacy 계정은 코드 레벨에서 자동 refresh 금지 — 재연결(OAuth) 유도 대상.
+DO $$
+DECLARE
+  r RECORD;
+  legacy_id TEXT;
+BEGIN
+  FOR r IN
+    SELECT tenant_id, label AS provider, secret_enc, meta
+    FROM integrations
+    WHERE kind = 'channel' AND secret_enc IS NOT NULL AND secret_enc <> ''
+  LOOP
+    legacy_id := COALESCE(r.meta->>'userId', 'legacy-' || r.provider || '-' || r.tenant_id::text);
+    -- 방어: 이 tenant/provider에 channel_accounts 행이 이미 하나라도 있으면(OAuth 재연결이
+    -- 이 migration보다 먼저 계정을 만들었거나, 재배포로 다른 external_id가 이미 기본계정인 경우)
+    -- is_default=true 백필을 건너뛴다 — 안 그러면 uq_channel_accounts_one_default(partial unique)와
+    -- 충돌해 이 DO 블록 전체가 롤백된다(한 tenant 사고가 전체 배포를 막는 것 방지, 2026-07-17 발견).
+    IF NOT EXISTS (
+      SELECT 1 FROM channel_accounts WHERE tenant_id = r.tenant_id AND provider = r.provider
+    ) THEN
+      INSERT INTO channel_accounts (tenant_id, provider, external_account_id, display_name, username, secret_enc, refresh_enc, meta, is_default, status)
+      VALUES (
+        r.tenant_id, r.provider, legacy_id,
+        NULL, NULL,
+        r.secret_enc,
+        NULL, -- 평문 refresh 절대 복사 금지 — 재연결 시 upsertChannelAccount가 암호화 저장
+        (r.meta - 'refreshToken'), true, 'active'
+      )
+      ON CONFLICT (tenant_id, provider, external_account_id) DO NOTHING;
+    END IF;
+  END LOOP;
+END $$;

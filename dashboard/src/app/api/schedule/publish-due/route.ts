@@ -38,6 +38,7 @@ interface DueScheduleRow {
 
 interface PlatformPublishResult extends PublishResult {
   platform: string;
+  accountId?: string;
 }
 
 // 발행 가능한 플랫폼은 constants.ts SSOT(SchedulePanel UI와 단일 소스). 여기 없는 platform은
@@ -86,8 +87,13 @@ async function processTenant(tenantId: string, limit: number) {
       results.push({ platform: "(none)", ok: false, error: "platforms 없음" });
     } else {
       for (const platform of platforms) {
-        const result = await publishOne(tenantId, row, platform);
-        results.push({ platform, ...result });
+        const requestedAccountId = accountIdForPlatform(row.payload, platform);
+        const { resolvedAccountId, ...result } = await publishOne(tenantId, row, platform, requestedAccountId);
+        // results.accountId는 감사/응답용이라 요청값으로 폴백해도 안전(FK 아님) — 그러나 DB 기록
+        // (published_posts.account_id, 아래)은 channel_accounts를 FK 참조하므로 실제로 존재를
+        // 확인한 resolvedAccountId만 쓴다. requestedAccountId가 삭제/cross-tenant면 resolvedAccountId가
+        // undefined이므로 FK 위반(존재하지 않는 계정 참조) 없이 NULL로 기록된다.
+        results.push({ platform, accountId: resolvedAccountId ?? requestedAccountId, ...result });
         // /api/publish/route.ts와 동일한 경계: "채널 미연결"(설정 문제)은 알림 대상이 아니고,
         // 그 외 !ok(플랫폼 API 실발행 실패·미지원 플랫폼)만 fire-and-forget으로 보고한다.
         // 응답/스케줄 상태는 이 보고와 무관 — reportFailure는 아래 로직에 어떤 영향도 주지 않는다.
@@ -101,7 +107,9 @@ async function processTenant(tenantId: string, limit: number) {
             context: { platform: normalizePlatform(platform), reason, httpStatus },
           });
         }
-        await recordPublishedPost(tenantId, row, platform, result);
+        // FK-safe: 존재가 확인된 resolvedAccountId만 기록(requestedAccountId 폴백 금지 — 삭제된
+        // 계정 id를 그대로 넣으면 channel_accounts FK 위반으로 INSERT 자체가 실패한다).
+        await recordPublishedPost(tenantId, row, platform, result, resolvedAccountId);
       }
     }
 
@@ -125,7 +133,15 @@ async function dueTenantIds(): Promise<string[]> {
 // "PLATFORM 채널 미연결 — Settings에서 토큰 등록 필요"(getChannelCred null) — 고객 설정 문제일 뿐
 // 인프라 장애가 아니므로 publish_failed 알림 대상에서 제외한다(/api/publish/route.ts와 동일 규칙).
 function isConnectionMissing(error?: string | null): boolean {
-  return typeof error === "string" && error.includes("채널 미연결");
+  return typeof error === "string" && (error.includes("채널 미연결") || error.includes("선택한") && error.includes("계정을 찾을 수 없음"));
+}
+
+// SNS-007: 예약 payload.account_ids[platform] — 예약 생성 시점에 고른 계정. 없으면 undefined(기본계정 사용).
+function accountIdForPlatform(payload: Record<string, unknown> | null, platform: string): string | undefined {
+  const map = payload?.account_ids;
+  if (!map || typeof map !== "object") return undefined;
+  const v = (map as Record<string, unknown>)[platform];
+  return typeof v === "string" && v ? v : undefined;
 }
 
 function clampLimit(value: unknown): number {
@@ -164,33 +180,45 @@ async function claimDueSchedules(tenantId: string, limit: number): Promise<DueSc
   `);
 }
 
-async function publishOne(tenantId: string, row: DueScheduleRow, platform: string): Promise<PublishResult> {
+async function publishOne(
+  tenantId: string,
+  row: DueScheduleRow,
+  platform: string,
+  accountId?: string,
+): Promise<PublishResult & { resolvedAccountId?: string }> {
   if (!SUPPORTED_PLATFORMS.has(platform)) {
     return { ok: false, error: `${platform} 미지원` };
   }
 
-  const cred = await getChannelCred(tenantId, platform);
+  // accountId 지정 시 getChannelCred는 삭제/cross-tenant면 null(조용한 기본계정 폴백 없음) — /api/publish와 동일 계약.
+  const cred = await getChannelCred(tenantId, platform, accountId);
   if (!cred) {
-    return { ok: false, error: `${platform} 채널 미연결 — Settings에서 토큰 등록 필요` };
+    return {
+      ok: false,
+      error: accountId
+        ? `선택한 ${platform} 계정을 찾을 수 없음 — 삭제되었거나 다른 테넌트 소유`
+        : `${platform} 채널 미연결 — Settings에서 토큰 등록 필요`,
+    };
   }
 
   const text = textForPlatform(platform, row.payload, row.draft_payload);
   const imageUrl = imageUrlFromPayload(row.payload, row.draft_payload);
 
   try {
-    if (platform === "threads") return await publishThreads(cred, text, imageUrl);
-    if (platform === "instagram") return await publishInstagram(cred, text, imageUrl);
-    if (platform === "x") return await publishX(cred, text);
-    if (platform === "facebook") return await publishFacebook(cred, text, imageUrl);
-    if (platform === "bluesky") return await publishBluesky(cred, text, imageUrl);
-    if (platform === "telegram") return await publishTelegram(cred, text, imageUrl);
-    if (platform === "discord") return await publishDiscord(cred, text, imageUrl);
-    if (platform === "slack") return await publishSlack(cred, text, imageUrl);
+    let result: PublishResult;
+    if (platform === "threads") result = await publishThreads(cred, text, imageUrl);
+    else if (platform === "instagram") result = await publishInstagram(cred, text, imageUrl);
+    else if (platform === "x") result = await publishX(cred, text);
+    else if (platform === "facebook") result = await publishFacebook(cred, text, imageUrl);
+    else if (platform === "bluesky") result = await publishBluesky(cred, text, imageUrl);
+    else if (platform === "telegram") result = await publishTelegram(cred, text, imageUrl);
+    else if (platform === "discord") result = await publishDiscord(cred, text, imageUrl);
+    else if (platform === "slack") result = await publishSlack(cred, text, imageUrl);
+    else return { ok: false, error: `${platform} 미지원` };
+    return { ...result, resolvedAccountId: cred.accountId };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: e instanceof Error ? e.message : String(e), resolvedAccountId: cred.accountId };
   }
-
-  return { ok: false, error: `${platform} 미지원` };
 }
 
 function textForPlatform(
@@ -254,13 +282,14 @@ async function recordPublishedPost(
   row: DueScheduleRow,
   platform: string,
   result: PublishResult,
+  accountId?: string,
 ) {
   const text = textForPlatform(platform, row.payload, row.draft_payload);
   await withTenant(tenantId, (sql) => sql`
-    INSERT INTO published_posts (tenant_id, draft_id, platform, external_id, permalink, text, status, error)
+    INSERT INTO published_posts (tenant_id, draft_id, platform, external_id, permalink, text, status, error, account_id)
     VALUES (${tenantId}, ${row.draft_id ?? null}, ${platform}, ${result.externalId ?? null},
             ${result.permalink ?? null}, ${text || null},
-            ${result.ok ? "published" : "failed"}, ${result.error ?? null})
+            ${result.ok ? "published" : "failed"}, ${result.error ?? null}, ${accountId ?? null})
   `);
 }
 

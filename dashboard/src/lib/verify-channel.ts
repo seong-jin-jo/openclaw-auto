@@ -9,6 +9,23 @@ interface VerifyResult {
   error?: string;
 }
 
+// raw JSON/영문 API 오류를 화면에 그대로 노출하지 않고(SNS-005/finding 7) 조치 가능한
+// 한국어 문구로만 정규화한다. provider raw response body(원문 메시지/스택트레이스/토큰 조각)는
+// 절대 포함하지 않는다 — 상태 코드로만 분류(status code는 secret이 아니므로 안전).
+// 인증 실패(401/400) vs 일시 오류(429/5xx)를 구분해 다른 안내를 준다.
+function koreanApiError(provider: string, status: number, _data: unknown): string {
+  if (status === 401 || status === 400) {
+    return `${provider} 계정 정보가 올바르지 않습니다. 아이디(handle)와 App Password를 다시 확인해 입력해주세요.`;
+  }
+  if (status === 429) {
+    return `${provider} API 요청이 일시적으로 제한되었습니다. 잠시 후 다시 시도해주세요.`;
+  }
+  if (status >= 500) {
+    return `${provider} 서버가 일시적으로 응답하지 않습니다. 잠시 후 다시 시도해주세요.`;
+  }
+  return `${provider} 연결에 실패했습니다 (오류 코드 ${status}).`;
+}
+
 export async function verifyChannel(channel: string, cfg: Record<string, string>): Promise<VerifyResult> {
   try {
     if (channel === "threads") {
@@ -16,14 +33,14 @@ export async function verifyChannel(channel: string, cfg: Record<string, string>
       if (!token) return { verified: false, error: "Access Token is empty" };
       const res = await fetch(`https://graph.threads.net/v1.0/me?fields=username&access_token=${token}`, { signal: AbortSignal.timeout(5000) });
       const data = await res.json();
-      if (!res.ok) return { verified: false, error: `API error (${res.status}): ${JSON.stringify(data).slice(0, 200)}` };
+      if (!res.ok) return { verified: false, error: koreanApiError("Threads", res.status, data) };
       return { verified: true, account: `@${data.username || ""}` };
     }
 
     if (channel === "bluesky") {
       const handle = cfg.handle || "";
       const pw = cfg.appPassword || "";
-      if (!handle || !pw) return { verified: false, error: "Handle and App Password required" };
+      if (!handle || !pw) return { verified: false, error: "Bluesky 핸들과 App Password를 모두 입력해주세요." };
       const res = await fetch("https://bsky.social/xrpc/com.atproto.server.createSession", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -31,7 +48,7 @@ export async function verifyChannel(channel: string, cfg: Record<string, string>
         signal: AbortSignal.timeout(5000),
       });
       const data = await res.json();
-      if (!res.ok) return { verified: false, error: `API error (${res.status}): ${JSON.stringify(data).slice(0, 200)}` };
+      if (!res.ok) return { verified: false, error: koreanApiError("Bluesky", res.status, data) };
       return { verified: true, account: `@${data.handle || ""}` };
     }
 
@@ -66,7 +83,7 @@ export async function verifyChannel(channel: string, cfg: Record<string, string>
       if (!userId) return { verified: false, error: "User ID is empty" };
       const res = await fetch(`https://graph.instagram.com/v21.0/${userId}?fields=username&access_token=${token}`, { signal: AbortSignal.timeout(5000) });
       const data = await res.json();
-      if (!res.ok) return { verified: false, error: `API error (${res.status}): ${JSON.stringify(data).slice(0, 200)}` };
+      if (!res.ok) return { verified: false, error: koreanApiError("Instagram", res.status, data) };
       return { verified: true, account: `@${data.username || ""}` };
     }
 
@@ -76,7 +93,7 @@ export async function verifyChannel(channel: string, cfg: Record<string, string>
       if (!token || !pageId) return { verified: false, error: "Access Token and Page ID required" };
       const res = await fetch(`https://graph.facebook.com/v21.0/${pageId}?fields=name&access_token=${token}`, { signal: AbortSignal.timeout(5000) });
       const data = await res.json();
-      if (!res.ok) return { verified: false, error: `API error (${res.status}): ${JSON.stringify(data).slice(0, 200)}` };
+      if (!res.ok) return { verified: false, error: koreanApiError("Facebook", res.status, data) };
       return { verified: true, account: data.name || pageId };
     }
 
@@ -140,9 +157,10 @@ export async function verifyChannel(channel: string, cfg: Record<string, string>
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     // DNS/network errors — 확인 "불가"(키는 저장되되 verified=false, 비활성 유지가 안전). UI는 앰버 표시.
+    // (finding 7) 원문 에러 메시지는 URL/토큰 조각을 포함할 수 있어 사용자 노출 필드에는 넣지 않는다.
     if (msg.includes("fetch failed") || msg.includes("ENOTFOUND") || msg.includes("name resolution")) {
-      return { verified: false, unverified: true, reason: "네트워크 확인 실패 — 저장됨(검증 미완)", error: msg.slice(0, 200) };
+      return { verified: false, unverified: true, reason: "네트워크 확인 실패 — 저장됨(검증 미완)" };
     }
-    return { verified: false, error: msg.slice(0, 200) };
+    return { verified: false, error: "연결 확인 중 오류가 발생했습니다. 입력값을 다시 확인해주세요." };
   }
 }

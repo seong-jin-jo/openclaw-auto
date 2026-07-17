@@ -4,16 +4,16 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: ship            # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design, build, qa]   # 2026-07-16 사용자 /approve qa
-approved_artifacts: { qa: docs/qa-tracker.md@2026-07-16 }
+current_stage: build           # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design]
+approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
-  build:      { status: approved, artifacts_ok: true }   # dashboard/src(ADOPTED)
-  qa:         { status: approved, artifacts_ok: true }   # 2026-07-16 사용자 /approve qa
-  ship:       { status: in-progress, artifacts_ok: false }
+  build:      { status: in-progress, artifacts_ok: false } # 2026-07-17 SNS-001~006 결함 수정 재오픈
+  qa:         { status: pending, artifacts_ok: false }
+  ship:       { status: pending, artifacts_ok: false }
 override: false
 override_reason: ""
 override_expires: ""
@@ -22,7 +22,7 @@ override_expires: ""
 # Pipeline State — openclaw-auto-osmu
 
 > 2026-06-30 `init --adopt`. 이 레포는 이미 라이브 배포된 멀티테넌트 마케팅 SaaS라 plan~build는
-> ADOPT(기존 인정). **현재 ship(in-progress).** 신규 기능(OAuth 연결, GA4, 가이드 등)은 build→qa→ship 게이트를
+> ADOPT(기존 인정). **현재 build(in-progress).** 신규 기능(OAuth 연결, GA4, 가이드 등)은 build→qa→ship 게이트를
 > `/approve`로만 통과한다. **배포(gh workflow / ship)는 `/approve qa` 후에만.** (과거 게이트 없는
 > 자동 배포 = 하네스 위반, 재발 금지.)
 
@@ -61,6 +61,18 @@ override_expires: ""
 - ship은 계속 `in-progress`, `artifacts_ok:false`. 수정 범위 사용자 확인 후 `/pipeline reopen build`로 재오픈하고,
   provider별 실제 브라우저 E2E 및 공개/삭제 가능한 테스트 발행 증거를 다시 수집해야 한다.
 - 상세 NG와 재발방지 매트릭스: `docs/qa-tracker.md`의 `2026-07-17 사용자 실기기 SNS 연결 QA`.
+- 사용자 추가 지시로 SNS-007(사이트 내 provider 다중계정 목록·추가·기본 전환·개별 해제·선택 발행)을
+  동일 build에 포함. 기존 단일계정 토큰 무손실 migration과 cross-tenant 차단 E2E가 build 종료조건이다.
+
+## 2026-07-17 SNS-007 다중계정 build candidate
+- additive `channel_accounts`와 기본계정 legacy mirror, 계정 목록/기본전환/삭제 API·UI, Studio/예약/YouTube
+  선택 발행을 구현했다. 최초 동시 OAuth callback은 provider 단위 advisory lock으로 직렬화한다.
+- refresh token은 `refresh_enc`에만 암호화 저장하며 callback/meta 평문 기록을 금지했다. 예약 생성 시 선택
+  계정의 tenant/provider/status를 검증하고, 명시 계정이 유효하지 않으면 기본계정으로 fallback하지 않는다.
+- 자동 증거: `npm test` 72 files/630 pass·8 DB-env skip, `npx tsc --noEmit` PASS, production build 160 pages PASS,
+  `git diff --check` PASS. 자동 테스트를 로컬 E2E로 승격하지 않는다.
+- build 승인 전 미검증: production schema 적용, 실제 provider 2계정 OAuth 왕복, 기본전환 UI 직접 관찰,
+  선택계정별 공개 테스트 발행 permalink/YouTube Shorts URL. `/approve build` 후 QA·배포 게이트로 이동한다.
 
 ## 최근 build (qa 대기 중 — ship 전 /approve qa 필요)
 - 셀프서브 코어: A1 증류 generateText 통일, A2 온보딩 위저드, A3 키검증, /api/health+autoheal+슬랙경보,
@@ -74,6 +86,8 @@ override_expires: ""
   Meta 앱 redirect URI `https://<live>/api/connect/{provider}/callback` 등록. 그 후 배포→browse로 qa 증거.
 
 ## 승인 로그 (append-only)
+2026-07-17 — build REOPENED — 사용자 명시 지시 `진행해서 싹 되게해`. SNS-001~006 사용자 실기기
+  결함을 수정하기 위해 ship에서 build로 재오픈. 코드 수정→로컬 E2E→실브라우저 운영 QA 후 build/qa 재승인 필요.
 2026-07-16 — qa APPROVED — 사용자 명시 입력 `/approve qa`. 재검증 증거: Google-only/operator focused
   98 PASS, full 63 files/548 PASS/8 skip, tsc PASS, production build 161 pages PASS, local gstack Google-only
   E2E PASS. 운영 배포 후 Google 실왕복·SNS 연결/발행·lead 저장은 ship 단계 직접 관찰 대상으로 유지.

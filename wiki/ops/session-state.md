@@ -1,9 +1,52 @@
 # 세션 작업 상태 (재실행 가능한 핸드오프)
 
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
-> 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
+> 단계 진실원: 루트 `pipeline-state.md`(현재 **build in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-16 21:20 KST · `main` · **SNS P0 운영 재배포·연결 UI 검증 완료, Google 최종 왕복·SNS 실발행 승인 대기**
+**최종 갱신:** 2026-07-17 15:11 KST · uncommitted · **SNS-007 다중계정 build candidate 검증 완료, build 승인·운영 QA 대기**
+
+---
+
+### Codex handoff — 사이트 SNS 다중계정 관리·선택발행 (2026-07-17 04:49 KST)
+
+**handoff basis:** 사용자의 이 대화 지시를 primary로 사용했고, 출시 pane `%7` transcript를 대조했다. `%46`의 마케팅 문서 변경은 별도 트랙이므로 수정하지 않았다.
+
+**구현:** additive `channel_accounts` 테이블과 RLS/backfill, provider별 계정 목록·기본전환·삭제 API/UI,
+Studio 즉시발행·예약발행·YouTube 업로드의 계정 선택을 추가했다. callback은 외부 계정 id로 upsert하며
+최초 동시 callback은 advisory lock으로 직렬화한다. 기본전환/기본삭제/legacy integration mirror는 한
+트랜잭션이다. refresh token은 `refresh_enc`에만 암호화 저장하고 callback meta 평문 저장을 제거했다.
+예약은 tenant/provider/status 소유권을 저장 전에 검증하며 명시 계정 실패 시 fallback하지 않는다.
+Google YouTube OAuth는 공식 `prompt=consent select_account`로 계정 선택창을 요청한다.
+
+**직접 테스트됨:** focused 120 PASS, 최종 전체 `npm test` 72 files/630 PASS/8 DB-env skip,
+`npx tsc --noEmit` PASS, `npm run build` PASS(160 pages), `git diff --check` PASS. QA 원장의 기존
+`로컬 E2E` 과장 표기를 `코드 수정·테스트됨 / 실브라우저 미검증`으로 시정했다.
+로컬 dev server `http://localhost:3462`를 기동했고 `/login`과 `/videos` HTTP 200, 로그인 HTML의
+`Google로 계속` 렌더를 관찰했다. 로컬 DB/OAuth credential이 없어 다중계정 실데이터 화면은 미검증이다.
+
+**미검증/차단:** production schema 적용, 실제 provider 두 계정 OAuth 왕복, Meta 기존 쿠키 상태에서 목표
+계정 연결, 기본전환 UI 직접 관찰, 선택 계정별 실발행 permalink/YouTube Shorts URL. X credential과 Facebook
+앱 활성화, Instagram OTP 제한은 외부 콘솔/계정 상태 차단이며 코드 테스트로 완료 처리하지 않는다.
+
+**정확한 다음 액션:** 회장 `/approve build` → 관련 코드/기술문서만 선별 commit(마케팅 dirty 제외) → QA 단계에서
+운영 migration/deploy → 인증 브라우저로 provider별 두 계정 연결·목록·기본전환·선택 발행·삭제를 직접 관찰 →
+증거 통과 후 `/approve qa`. build 승인 전 배포하지 않는다.
+
+---
+
+### Claude handoff — Codex 2nd-pass findings 수정 (2026-07-17 KST, code-builder 위임)
+
+**handoff basis:** 이 대화(회장 직접 지시)를 primary로 삼음. tmux pane 대조는 이번 턴에 수행하지 않음 — 다음 세션이 tmux와 이 파일 둘 다 후보로 보이면 사용자에게 기준을 물을 것(추론 선택 금지).
+
+**작업:** `/api/connect/[provider]/callback`(XSS: `</script>` 이스케이프 미비), readiness fail-open, `/videos` YouTube connect 버튼 누락, `youtube/status` 토큰존재=connected 오판, `youtube/refresh`·`video/publish` refresh 로직 중복, `VIDEO_OUTPUT_DIR` 모듈스코프 테넌트 격리 미비, `koreanApiError` raw provider 응답 유출, permissive `[400,404]` 테스트 — 8건을 code-builder 서브에이전트로 위임 수정.
+
+**변경 파일 (uncommitted, dashboard/ 한정):** `api/connect/[provider]/callback/route.ts`, `api/youtube/status/route.ts`, `api/youtube/refresh/route.ts`, `api/video/publish/route.ts`, `videos/page.tsx`, `components/channel/SocialConnectButton.tsx`, `lib/verify-channel.ts`, `lib/oauth-errors.ts`, 신규 `lib/youtube-token.ts`(공유 refresh 헬퍼), 신규 `tests/api/youtube-ssot.test.ts`. `youtube/auth-url`·`youtube/callback` route 삭제(구 플로우, SocialConnectButton 통합 플로우로 대체). wiki/marketing·docs·pipeline-state.md는 무터치(직접 git status 대조 확인).
+
+**직접 관찰/테스트됨:** focused vitest 79 PASS, 전체 587 PASS/0 FAIL/8 skip, `tsc --noEmit` 클린, `npm run build` 성공(전 라우트 컴파일 확인). XSS 이스케이프는 정확 바이트 assertion으로 확인. status 3분류(valid/invalid/unverified)·refresh 1회+retry 1회·테넌트 파일격리(공유루트 404) 전부 테스트로 확인.
+
+**미검증 (⛔ 회수 필요 아님, 참고용 갭):** 이 레포 vitest가 jsdom/RTL 미설치라 SocialConnectButton/videos 페이지의 실제 렌더링(readiness 실패 시 버튼 disable UI)은 코드리뷰(근거확인) 수준까지만 — 브라우저 직접 관찰 안 됨. 실 Google YouTube API는 mock 검증만, 라이브 크레덴셜 미검증.
+
+**정확한 다음 액션:** (1) 회장이 이 diff를 검토 후 커밋 여부 결정 (2) 필요시 jsdom+RTL 도입해 UI 컴포넌트 렌더 테스트 보강 (3) 배포 전 실 Google 계정으로 라이브 YouTube status/refresh 1회 확인 (4) 커밋 후 `/qa` 또는 `browse`로 /videos 페이지 라이트/다크 실화면 검수.
 
 ---
 
@@ -16,6 +59,8 @@
 **기록:** `docs/qa-tracker.md`의 `2026-07-17 사용자 실기기 SNS 연결 QA`에 6건을 ❌ NG로 등록했다.
 
 **정확한 다음 액션:** provider별 UI→connect route→외부 OAuth/app 상태→callback→credential 저장→publish 경로를 코드·운영 env·공식 문서로 분해한다. 앱 내부에서 고칠 수 있는 raw error/버튼 상태/Bluesky 저장/영상 채널 노출은 수정 후보로, Meta rate limit·앱 비활성·OAuth app credential은 외부 콘솔 조치로 분리해 사용자 확인 후 build 단계로 재오픈한다.
+
+**SNS-007 추가 지시:** 사용자가 사이트에서 provider별 여러 계정을 저장·관리·전환하도록 구현하라고 명시했다. 현재 `integrations` UNIQUE와 callback upsert가 단일계정만 허용하는 구조적 원인 확인. tech-architect 설계 품질 게이트 PASS 후, 운영 롤백이 쉬운 새 `channel_accounts` additive 테이블+legacy fallback 안을 메인세션이 채택했다. 종료증거는 동일 provider 2계정 보존·기본 전환·선택 발행·기존계정 무손실·cross-tenant 거부다.
 
 ---
 
@@ -1495,3 +1540,47 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
 - 2026-07-16: 위임 C(피드백 루프+바이럴) 완료·verify PASS(스킬 2·WebSearch 18·RUBRIC 22/25)·파일 실존+WEAKEST_LINE 스팟체크 확인 — feedback-loop.md(신호 6종·태그 스키마·목요일 주간 루프·자동/회장 게이트 표·에스컬레이션), viral-mechanics.md(장치 8종 V1~V8, 심리법칙·지표·리스크 상한). 회장 결정 2건(워터마크 유료화·제보자 호명) open-decisions 등록. 잔여 = A(공장 워딩 전파)·디자인 리허설.
 - 2026-07-16: 디자인 리허설 1차 회수 — 목업 자체는 토큰 100% 준수·신규 컴포넌트 0(하네스 목적 달성 신호)이나, **design-review 스킬을 스킵하고 수동 QA로 "A" 자가 등급 = 자기인증 드리프트 실측** → 반려·스킬 실호출 재지시(백그라운드). verify의 벤치마크 0회 지적은 리허설 설계상 외부 조사 금지였으므로 면제 판단(근거: 벤치마크는 DESIGN.md §5에 내장). 조치: DESIGN.md §7-5에 "스킬 실호출만 인정" 규칙 즉시 박음. 잔여 = A(공장 워딩)·디자인 리허설 재실행.
 - 2026-07-16: 디자인 리허설 재실행 완료 — design-review **스킬 실호출** 완주(렌더 스크린샷 9장+DOM 실측): Baseline B → HIGH 3건 포함 8건 지적 → 전건 수정 → **최종 Design Score A- (AI Slop A)**. 수동 자가 "A"가 과대평가였음이 실증됨(렌더 실측이 에러 상태 결함·논리 모순·이모지 슬롭을 잡음). verify의 "WebSearch 0" FAIL은 리허설이 의도적으로 외부 조사를 봉인한 설계라 면제 판단 — ⛔ 라벨로 보고, verify에 리허설 예외 플래그 필요(하네스 튜닝 후보, harness-report 주간 회부). DESIGN.md 컴파일 FAIL도 이 실등급(A-≥B)으로 운영 검증 해소. F2 완료. ⛔ 기획 회수 1건 발견: 채널 상태(Live/Connected/미연결/에러) 실시간 갱신 방식 미정의(API 폴링/크론 반영/수동) — 기획 결정 필요.
+- 2026-07-17 00:0x: 위임 A(공장 워딩 25파일 재전파) 완료·verify PASS(RUBRIC 23/25)·독립 스팟체크(JSON 파싱·팩토리 밀도·잔재=이력 행만) 통과. F4 진행: ①크론 실경로 연결 완료 — 브리프 §2 블록을 data/prompt-guide.{threads,instagram}.txt로 컴파일(51/47줄, data/*는 gitignore라 미추적 = 서비스중립 유지, 배포 호스트에도 동일 복사 필요) ②marketing/index에 feedback-loop·viral-mechanics 등재 ③wiki/index Last updated 갱신 ④팩토리 리허설 E2E(Haiku) 백그라운드 실행 중. 다음: 리허설 채점→커밋→마감 보고.
+
+## 2026-07-17 — code-builder 위임: SNS-001/003/005/006 build 재오픈 (신규 세션, tmux pane 확인 불가 환경)
+
+**핸드오프 기준**: 이 실행은 code-builder 서브에이전트로 위임된 단발 작업 — 이 세션 자체엔 대화형으로 tmux pane과 session-state.md 중 무엇을 따를지 물을 수 있는 상위 세션이 없었다(위임 프롬프트에 명시적 기준 없음). **⛔ 회수 필요(하네스 정책)**: 다음에 이 파일을 이어받는 세션은, tmux pane 컨텍스트와 이 파일이 둘 다 존재/상이하면 반드시 회장에게 어느 쪽을 기준으로 이어갈지 먼저 물을 것 — 이번 실행은 그 확인 없이 이 파일 기준 append만 수행했다.
+
+**한 일**: `docs/qa-tracker.md`의 SNS-001(Threads 계정전환)·SNS-003(X 500/raw error)·SNS-005(Bluesky 404)·SNS-006(YouTube 3중 저장소) build 구현.
+- `dashboard/src/app/api/connect/readiness/route.ts`(신규) — 인증된 tenant 컨텍스트에서 provider별 서버 credential 존재 여부(boolean+한국어 사유, 비밀값 미노출)를 반환. `SocialConnectButton`이 마운트 시 조회해 미설정 provider는 클릭 전부터 disabled.
+- `dashboard/src/app/api/connect/[provider]/callback/route.ts` — 결과를 `window.opener.postMessage`(엄격 origin 검증)로 통지하도록 개조. `SocialConnectButton.tsx`가 메시지 수신+팝업 차단/콜백없이 닫힘 감지로 상태 갱신, threads/instagram에 "다른 계정으로 연결" 안내(공식 강제전환 파라미터 미검증 — 발명하지 않고 로그아웃/시크릿창 안내로 대체, WebSearch로 Meta 공식문서 확인함).
+- `dashboard/src/app/api/channel-config/[channel]/route.ts` — `openclaw.json` 파일 부재 시 404 대신 빈 config로 시작(신규 tenant Bluesky 저장 가능). `dashboard/src/lib/verify-channel.ts`에 `koreanApiError()` 추가(401/429/5xx 정규화).
+- YouTube SSOT 통일: `youtube/status`·`youtube/refresh`·`video/publish`(youtube 분기)를 DB `integrations`(`getChannelCred`, tenant-scoped·암호화)로 통일. 레거시 파일 기반 라우트 `youtube/callback`·`youtube/auth-url` 삭제(UI 참조 0건 확인 후 — **테넌트 격리가 없어 전 tenant가 공유파일을 썼던 토큰유출 위험**이었음, 레드팀 셀프심문 중 발견). TikTok/Reels는 `501+disabled:true+정확한 미충족 사유`, `/videos`에 비활성 카드 표시.
+
+**검증(테스트됨+관찰됨)**: `npx vitest run` → **577 pass / 8 skip (67 files)**(신규 24건 포함: connect-readiness 5, channel-config-bridge 신규 2, youtube-ssot 7, SocialConnectButton 경로는 API 계약 테스트로 커버). `npx tsc --noEmit` → clean. `npm run build` → PASS(라우트 목록에서 `/api/youtube/callback`·`/api/youtube/auth-url` 소거, `/api/connect/readiness` 등장 확인). `git diff --check` → 공백 오류 없음.
+
+**미검증**: 프로덕션 실계정(X/Bluesky/YouTube/Threads/Instagram) 왕복 OAuth E2E(로컬 DB/Supabase 없음 — 로컬 unit/contract 테스트로 대체). 배포/커밋 안 함(지시대로 미실행).
+
+**wiki 갱신 필요 여부**: 이번 변경은 API 계약 축소/통일(YouTube 저장소 단일화, readiness 신규 엔드포인트)이라 아키텍처 문서 갱신 대상이나, `wiki/marketing/**`·`wiki/decisions/**`·`docs/ui-rules.md`는 위임 지시상 접촉 금지(다른 세션 편집 중) — 기술 아키텍처 wiki(`wiki/architecture/*`) 갱신은 **다음 세션 회수 항목**으로 남긴다.
+
+**범위/미접촉 확인**: `docs/ui-rules.md`, `wiki/marketing/**`, `wiki/decisions/**`, nested `openclaw/**`, `pipeline-state.md` 전부 미접촉(git status로 확인 — 해당 파일들의 dirty 상태는 이 실행 이전부터 존재하던 타 세션 변경분).
+
+**다음 액션**: ① `docs/qa-tracker.md`의 SNS-001/003/005/006 상태를 `❌ NG → 🔧 수정됨(로컬 E2E)`로 갱신(관리 규칙상 unit/mock만으론 운영 관찰 승격 불가 — 로컬 커밋 전 검토 필요) ② `wiki/architecture/data-model.md` 등 YouTube/readiness 계약 변경분 아키텍처 문서 반영 ③ 회장 승인 시 `/code-review` 2차 패스(diff 290줄+) 후 커밋 ④ 실계정 OAuth 왕복은 배포 후 gstack browse E2E로 검증.
+
+## 2026-07-17 — code-builder: SNS-007 다중계정 완결 (직전 세션 Claude API 529로 중단분 재개)
+
+**핸드오프 기준**: code-builder 위임 단발 실행(비대화형) — 직전 세션이 만든 substantial partial diff(스키마·lib·API·테스트 대부분 이미 존재)를 이어받아 남은 blocker만 채움. tmux pane 확인 불가 환경, 이 파일 기준 append만.
+
+**한 일(직전 partial 대비 이번 세션 변경분만)**:
+1. `dashboard/db/schema.sql` backfill DO 블록에 `NOT EXISTS(tenant/provider)` 가드 추가 — 기존 코드는 tenant/provider당 이미 계정이 있어도 무조건 `is_default=true`로 insert 시도해 `uq_channel_accounts_one_default` partial unique와 충돌하면 migration 전체가 롤백되는 결함이 있었음(발견·수정).
+2. `/api/publish`가 `account_id`를 받아 `getChannelCred(tenant, platform, account_id)`로 전달, 선택계정 없음/cross-tenant면 기본계정 폴백 없이 명확한 400. `published_posts.account_id`에 실제 사용된 계정 기록.
+3. `/api/schedule`가 `account_ids`(플랫폼→계정 맵)를 받아 `payload.account_ids`에 저장 + 단일 플랫폼이면 `schedules.account_id` 컬럼도 채움(다중 플랫폼은 컬럼 표현 불가라 payload가 SSOT).
+4. `/api/schedule/publish-due`가 `payload.account_ids[platform]`을 읽어 그 계정으로만 발행. FK 안전성 버그 발견·수정: 처음엔 삭제된 계정 id를 그대로 `published_posts.account_id`에 기록하려 해서 FK 위반 가능성이 있었음 → `resolvedAccountId`(cred 조회로 실존 확인된 값)만 기록하도록 수정.
+5. `AccountManager.tsx` 신규 컴포넌트(목록/기본전환/삭제/Bluesky 수동추가) — `ChannelPage.tsx`(OAuth+bluesky 분기 모두), `InstagramPage.tsx`, `videos/page.tsx`(YouTube)에 마운트. OAuth 연결 성공 시 `key` bump로 리마운트→목록 갱신.
+6. `studio/page.tsx`·`SchedulePanel.tsx`에 플랫폼별 계정 2개 이상일 때만 뜨는 선택 드롭다운 — 실제 발행/예약 요청에 `account_id`/`account_ids`로 실림.
+7. 신규 테스트 3파일 + 확장 2파일(33건): schema NOT EXISTS 가드는 `tests/db/sns007-schema-contract.test.ts` 기존 커버, account_id 선택발행/실패분기는 `publish-route.branch.test.ts`+`schedule-route-account-ids.test.ts`(신규)+`schedule-publish-due.test.ts`에 추가.
+
+**검증(관찰됨+테스트됨)**: `npx vitest run` → **71 files / 621 pass, 8 skip**(직전 577→621, 신규 44건 순증). `npx tsc --noEmit -p .` → clean. `npm run build` → PASS(전 라우트 정상 생성, `/api/channels/[provider]/accounts` 계열 포함). `git diff --check` → 공백 오류 없음. secret 패턴 grep(sk-ant/access_token 리터럴) → 0건.
+
+**미검증**: 실계정(Threads/X/YouTube/Bluesky) 2계정 동시 OAuth 왕복, 프로덕션 배포 후 실 UI E2E(로컬 Supabase/DB 없어 전부 unit/contract 목 기반) — qa-tracker SNS-007은 `🔧 수정됨(로컬 E2E)`로 정직 표기, `✅ 운영 관찰`은 배포 후 실계정 테스트 필요.
+
+**범위**: `dashboard/db/schema.sql`, `dashboard/src/app/api/publish/route.ts`, `dashboard/src/app/api/schedule/route.ts`, `dashboard/src/app/api/schedule/publish-due/route.ts`, `dashboard/src/lib/publish.ts`, `dashboard/src/components/channel/AccountManager.tsx`(신규), `dashboard/src/components/channel/ChannelPage.tsx`, `dashboard/src/components/channel/InstagramPage.tsx`, `dashboard/src/app/videos/page.tsx`, `dashboard/src/app/studio/page.tsx`, `dashboard/src/components/studio/SchedulePanel.tsx`, `dashboard/tests/publish/*`(신규 1 + 확장 2). `docs/qa-tracker.md` SNS-007 상태 갱신. 마케팅/wiki 트랙(`wiki/marketing/**`) 미접촉.
+
+**커밋/배포**: 지시대로 미실행(로컬 diff만).
+
+**다음 액션**: ① 회장 검토 후 커밋 여부 결정 ② 배포 후 실계정 2-account OAuth 왕복 + 선택발행 permalink 관찰로 SNS-007 `✅ 운영 관찰` 승격 ③ `wiki/architecture/data-model.md`에 `channel_accounts` 테이블 반영(스키마 변경이므로 다음 세션 회수 항목).

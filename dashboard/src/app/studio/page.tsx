@@ -10,6 +10,13 @@ import { BrandSetupWizard } from "@/components/shared/BrandSetupWizard";
 import { RepoConnect } from "@/components/studio/RepoConnect";
 import { SchedulePanel } from "@/components/studio/SchedulePanel";
 import { trackEvent, type AnalyticsChannel } from "@/lib/analytics/events";
+import { authHeaders } from "@/lib/auth";
+
+// SNS-007: /api/publish가 실제로 계정별 발행을 받는 4개 플랫폼(threads/x/facebook/instagram)만
+// 계정 셀렉터를 노출한다. shorts/reels/tiktok은 /api/publish 미지원(실발행 분기 없음 — 위
+// ChannelConnect.tsx 주석과 동일 SSOT 판단)이라 대상에서 뺀다.
+const ACCOUNT_SELECTABLE = new Set(["threads", "x", "facebook", "instagram"]);
+interface AccountOption { id: string; label: string; is_default: boolean }
 
 interface TextVariants {
   threads?: string; x?: string;
@@ -75,6 +82,38 @@ export default function StudioPage() {
   const { data: tx } = useSWR<{ items?: Array<{ display_name?: string; credits?: number; action?: string; created_at?: string; output?: string | null; outputKind?: string | null }> }>(showTx ? "/api/higgsfield/transactions?size=25" : null, fetcher);
 
   const [pub, setPub] = useState<{ running: boolean; status: Record<string, PubStatus>; urls: Record<string, string> }>({ running: false, status: {}, urls: {} });
+  // SNS-007: 플랫폼별 다중계정 중 이번 발행에 쓸 계정. 미선택(undefined)이면 getChannelCred가
+  // 기본계정으로 resolve(/api/publish 계약과 동일) — 계정이 1개뿐이면 셀렉터 자체를 숨긴다.
+  const [accountsByPlatform, setAccountsByPlatform] = useState<Record<string, AccountOption[]>>({});
+  const [selectedAccounts, setSelectedAccounts] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setSelectedAccounts({});
+    if (!activeWorkspace) { setAccountsByPlatform({}); return; }
+    let cancelled = false;
+    (async () => {
+      const entries = await Promise.all(
+        Array.from(ACCOUNT_SELECTABLE).map(async (p) => {
+          try {
+            const r = await fetch(`/api/channels/${p}/accounts?tenant_id=${activeWorkspace.id}`, { headers: authHeaders() });
+            const d = await r.json();
+            if (!r.ok) return [p, []] as const;
+            const opts: AccountOption[] = (d.accounts ?? []).map((a: { id: string; display_name: string | null; username: string | null; is_default: boolean }) => ({
+              id: a.id,
+              label: a.display_name || (a.username ? `@${a.username}` : a.id.slice(0, 8)),
+              is_default: a.is_default,
+            }));
+            return [p, opts] as const;
+          } catch {
+            return [p, []] as const;
+          }
+        }),
+      );
+      if (cancelled) return;
+      setAccountsByPlatform(Object.fromEntries(entries));
+    })();
+    return () => { cancelled = true; };
+  }, [activeWorkspace]);
   const cancelRef = useRef(false);
 
   // ── 드로어 리사이즈 ──
@@ -193,6 +232,7 @@ export default function StudioPage() {
         trackEvent({ name: "publish_attempt", params: { channel: p as AnalyticsChannel } });
         const r = await apiPost<{ ok?: boolean; permalink?: string; error?: string }>("/api/publish", {
           tenant_id: activeWorkspace.id, platform: p, text: platformText(p), image_url: img?.url, draft_id: did,
+          account_id: selectedAccounts[p] || undefined,
         });
         if (r?.ok) { urls[p] = r.permalink || POST_URL[p] || "#"; trackEvent({ name: "publish_success", params: { channel: p as AnalyticsChannel } }); }
         else errs.push(`${LABEL[p]}: ${r?.error || "실패"}`);
@@ -309,9 +349,24 @@ export default function StudioPage() {
                     <div key={p} className="group cursor-pointer" onClick={() => setEditing(p)}>
                       <div className={`rounded-2xl transition ${editing === p ? "ring-2 ring-accent shadow-[0_0_24px_rgba(236,72,153,0.35)]" : "group-hover:ring-1 group-hover:ring-accent/50"}`}>
                         <PlatformPreview platform={p} text={text} media={media} headerRight={
-                          <label onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-[10px] text-subtle cursor-default">
-                            <input type="checkbox" checked={!!includes[p]} onChange={(e) => setIncludes((x) => ({ ...x, [p]: e.target.checked }))} />발행
-                          </label>
+                          <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1.5">
+                            <label className="flex items-center gap-1 text-[10px] text-subtle cursor-default">
+                              <input type="checkbox" checked={!!includes[p]} onChange={(e) => setIncludes((x) => ({ ...x, [p]: e.target.checked }))} />발행
+                            </label>
+                            {ACCOUNT_SELECTABLE.has(p) && (accountsByPlatform[p]?.length ?? 0) > 1 && (
+                              <select
+                                data-testid={`publish-account-select-${p}`}
+                                value={selectedAccounts[p] ?? ""}
+                                onChange={(e) => setSelectedAccounts((x) => ({ ...x, [p]: e.target.value }))}
+                                className="text-[10px] bg-surface-2 border border-border rounded px-1 py-0.5 text-text max-w-[90px]"
+                              >
+                                <option value="">기본계정</option>
+                                {accountsByPlatform[p].map((a) => (
+                                  <option key={a.id} value={a.id}>{a.label}</option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
                         } />
                       </div>
                     </div>

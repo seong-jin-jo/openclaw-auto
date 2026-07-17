@@ -46,5 +46,8 @@ export function oauthErrorMessage(raw: string, provider?: string): string {
   if (/client.*not configured|미설정|자격증명 필요/i.test(msg)) {
     return `${p}OAuth 앱 자격증명이 서버에 설정되지 않았습니다. Client ID와 Secret 환경변수를 등록해야 합니다.`;
   }
-  return msg || "OAuth 연결에 실패했습니다.";
+  // 분류되지 않은 메시지는 provider 원문(raw response body/스택트레이스/토큰 조각 포함 가능)일 수
+  // 있어 그대로 노출하지 않는다 — classified 카테고리 외는 항상 이 일반 문구로 대체한다
+  // (finding 7: koreanApiError류 헬퍼는 분류된 한국어 메시지만 반환해야 한다).
+  return "일시적 오류입니다 — 다시 시도해주세요. 문제가 계속되면 관리자에게 문의하세요.";
 }

@@ -1,53 +1,17 @@
-import { readJson, writeJson, configPath, dataPath } from "@/lib/file-io";
+import { effectiveTenantId } from "@/lib/tenant-auth";
+import { refreshYoutubeAccessToken } from "@/lib/youtube-token";
 
-interface YouTubeTokens {
-  access_token?: string;
-  refresh_token?: string;
-}
+// POST /api/youtube/refresh — 사용자가 수동으로 누르는 갱신 버튼. finding 5: 실제 갱신 로직은
+// lib/youtube-token.ts의 refreshYoutubeAccessToken() 단일 헬퍼 하나뿐 — /api/video/publish의
+// 자동 재시도도 같은 헬퍼를 쓴다(로직 중복 금지, 드리프트 방지).
+export async function POST(request: Request) {
+  const url = new URL(request.url);
+  const tenantId = await effectiveTenantId(request, url.searchParams.get("tenant_id"));
+  if (!tenantId) return Response.json({ error: "tenant_id required" }, { status: 400 });
 
-interface OpenClawConfig {
-  plugins?: {
-    entries?: Record<string, { enabled?: boolean; config?: Record<string, string> }>;
-  };
-}
-
-export async function POST() {
-  const tokens = readJson<YouTubeTokens>(dataPath("youtube-token.json"));
-  if (!tokens || !tokens.refresh_token) {
-    return Response.json({ error: "No refresh token" }, { status: 400 });
+  const result = await refreshYoutubeAccessToken(tenantId, url.searchParams.get("account_id") || undefined);
+  if (!result.ok) {
+    return Response.json({ error: result.error }, { status: result.status ?? 500 });
   }
-
-  const config = readJson<OpenClawConfig>(configPath("openclaw.json")) || {};
-  const ytCfg = config.plugins?.entries?.["youtube-publish"]?.config || {};
-  const clientId = ytCfg.clientId || "";
-  const clientSecret = ytCfg.clientSecret || "";
-
-  try {
-    const body = new URLSearchParams({
-      refresh_token: tokens.refresh_token,
-      client_id: clientId,
-      client_secret: clientSecret,
-      grant_type: "refresh_token",
-    });
-
-    const res = await fetch("https://oauth2.googleapis.com/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: body.toString(),
-      signal: AbortSignal.timeout(10000),
-    });
-    const newTokens = await res.json();
-    tokens.access_token = newTokens.access_token;
-    writeJson(dataPath("youtube-token.json"), tokens);
-
-    // Update openclaw.json
-    if (config.plugins?.entries?.["youtube-publish"]?.config) {
-      config.plugins.entries["youtube-publish"].config.accessToken = newTokens.access_token;
-      writeJson(configPath("openclaw.json"), config);
-    }
-
-    return Response.json({ ok: true });
-  } catch (e) {
-    return Response.json({ error: String(e) }, { status: 500 });
-  }
+  return Response.json({ ok: true });
 }

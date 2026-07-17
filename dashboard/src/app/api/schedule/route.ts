@@ -1,5 +1,6 @@
 import { withTenant } from "@/lib/db";
 import { effectiveTenantId } from "@/lib/tenant-auth";
+import { channelAccountBelongsToProvider } from "@/lib/channel-accounts";
 
 // P6 예약 발행 API — schedules 테이블(테넌트별, RLS 방어심층).
 //   GET  ?tenant_id=...           → 워크스페이스 예약 목록(최근 50)
@@ -26,6 +27,9 @@ interface ScheduleBody {
   scheduled_at?: string;
   payload?: Record<string, unknown>;
   promote?: boolean; // true면 게이트웨이 큐(promote)에도 위임 시도
+  // SNS-007: 플랫폼별 선택계정. { threads: "<accountId>", x: "<accountId>" }.
+  // publish-due가 payload.account_ids에서 그대로 읽어 그 계정으로만 발행(삭제/cross-tenant면 실패, fallback 없음).
+  account_ids?: Record<string, string>;
 }
 
 // GET /api/schedule?tenant_id=... — 워크스페이스 예약 목록(예정 시각 오름차순, 최근 50)
@@ -69,15 +73,34 @@ export async function POST(request: Request) {
   if (Number.isNaN(t)) return Response.json({ error: "scheduled_at 형식 오류(ISO-8601)" }, { status: 400 });
   if (t <= Date.now()) return Response.json({ error: "scheduled_at은 미래 시각이어야 함" }, { status: 400 });
 
-  const payload = body.payload ?? {};
+  const accountIds = body.account_ids && typeof body.account_ids === "object" && !Array.isArray(body.account_ids)
+    ? body.account_ids
+    : undefined;
+  if (accountIds) {
+    for (const [provider, accountId] of Object.entries(accountIds)) {
+      if (!platforms.includes(provider) || typeof accountId !== "string" || !accountId) {
+        return Response.json({ error: `account_ids.${provider} 값이 올바르지 않습니다.` }, { status: 400 });
+      }
+      if (!await channelAccountBelongsToProvider(tenantId, provider, accountId)) {
+        return Response.json(
+          { error: `선택한 ${provider} 계정을 찾을 수 없거나 사용할 수 없습니다.` },
+          { status: 400 },
+        );
+      }
+    }
+  }
+  const payload = accountIds ? { ...(body.payload ?? {}), account_ids: accountIds } : (body.payload ?? {});
   const draftId = body.draft_id ?? null;
+  // 단일 플랫폼 예약이면 schedules.account_id 컬럼(감사/조인용)도 함께 채운다 — 여러 플랫폼이면
+  // 플랫폼마다 계정이 다를 수 있어 단일 컬럼으로 못 담고 payload.account_ids가 SSOT.
+  const singleAccountId = platforms.length === 1 ? (accountIds?.[platforms[0]] ?? null) : null;
 
   let scheduleId: string;
   try {
     scheduleId = await withTenant(tenantId, async (sql) => {
       const [row] = await sql<{ id: string }[]>`
-        INSERT INTO schedules (tenant_id, draft_id, platforms, scheduled_at, status, payload)
-        VALUES (${tenantId}, ${draftId}, ${platforms}, ${scheduledAt}, 'scheduled', ${sql.json(payload as Parameters<typeof sql.json>[0])})
+        INSERT INTO schedules (tenant_id, draft_id, platforms, scheduled_at, status, payload, account_id)
+        VALUES (${tenantId}, ${draftId}, ${platforms}, ${scheduledAt}, 'scheduled', ${sql.json(payload as Parameters<typeof sql.json>[0])}, ${singleAccountId})
         RETURNING id`;
       return row.id;
     });
