@@ -157,6 +157,12 @@ override_expires: ""
   service `openclaw-dashboard-osmu`로 재실행해 시정.
 
 ## Blocked / Notes
+- SNS-008 운영 Chrome 부분 통과: OSMU 단독 deploy run `29639946525` SUCCESS. 단기 고객 토큰을 넣은
+  분리 Chrome에서 X credential 누락 비활성 안내, Facebook mode 경고, Facebook 클릭 후 새 target의
+  `www.facebook.com` 이동, YouTube 클릭 후 새 target의 `accounts.google.com` 이동, TikTok/Reels 미구현
+  표시를 직접 관찰했다. 증거 `docs/evidence/sns008-live-oauth-popup-e2e-20260718.png`. 토큰 revoke 후
+  동일 readiness API HTTP 401과 원문 삭제 확인. popup activation 결함은 운영에서 교정됐지만 provider
+  로그인·동의·callback/DB 저장·실 2계정 전환·공개 발행은 미검증이므로 ship/artifacts는 잠금 유지.
 - SNS-008 독립 QA 최종 PASS: qa-verifier가 standards/dev.md, QA Skill, MDN, source/callback/test/CI를
   read-only 재검증. focused 10 PASS + 관련 callback tests, full 74 files/644 PASS·9 local DB skip,
   tsc/build/CI SUCCESS를 대조했고 blocker/high 0건, RUBRIC 23/25. `verify-agent-quality.sh`는 Skill 1회,

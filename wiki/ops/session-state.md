@@ -3,7 +3,23 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-18 KST · QA 승인 기록 — OSMU 단독 배포와 운영 popup target 관찰 진행
+**최종 갱신:** 2026-07-18 21:04 KST · SNS-008 운영 popup/provider 진입 관찰, callback 이후는 미검증
+
+---
+
+### ship handoff — SNS-008 운영 배포·Chrome E2E (2026-07-18 21:04 KST)
+
+**handoff basis:** 사용자 `진행`을 직전 QA 승인 요청의 승인 의사로 반영해 `pipeline-state.md`를 ship in-progress로 전환했다. 이 세션의 primary는 기존 tmux `%7`, 진실원은 이 파일과 `pipeline-state.md`다.
+
+**운영 배포(관찰됨):** commit `41f33340` 기준 `openclaw-dashboard-osmu`만 deploy한 GitHub Actions run `29639946525`가 3m8s에 성공했다. DB schema/RLS, 이미지 빌드, 기동, 상태, OSMU 스모크 단계가 모두 성공했고 live `/login`은 HTTP 200이다.
+
+**실 Chrome E2E(관찰됨):** 단기 고객 토큰과 분리 headless Chrome에서 X `connect-x`가 disabled이고 `X_CLIENT_ID/X_CLIENT_SECRET` 누락 사유가 보임을 확인했다. Facebook `Development/Live` 경고 후 사용자 제스처 클릭으로 새 page target이 `www.facebook.com`까지 이동했다. `/videos`에서 YouTube OAuth UI, TikTok/Reels `미구현`을 확인하고 YouTube 클릭으로 새 target이 `accounts.google.com`까지 이동했다. 최종 화면: `docs/evidence/sns008-live-oauth-popup-e2e-20260718.png`.
+
+**보안 정리(관찰됨):** 단기 QA token을 운영 DB에서 revoke했고 같은 token의 readiness API가 HTTP 401임을 확인했다. 원문 임시 파일은 로컬/marketing-vm에서 삭제했다.
+
+**미검증/ship 차단:** Meta/Google 실제 로그인·동의·callback postMessage·DB 저장, 동일 provider 실제 2계정 OAuth·기본 전환·계정별 공개 발행 permalink/Shorts URL은 관찰하지 않았다. X는 운영 credential 미설정, Facebook은 사용자 실기기에서 앱 비활성, Instagram은 OTP rate limit 외부 차단이 유지된다. 따라서 ship은 `in-progress`, `artifacts_ok:false`, v1.0.0 태그 금지다.
+
+**정확한 다음 액션:** 외부 provider 조건 회수 전 자동 진행 가능한 범위는 끝났다. 다음 실사용 세션에서 Meta 앱 활성화/역할 상태와 X app credential을 확인하고, 실제 계정 로그인·동의→callback→DB 계정 저장을 관찰한다. 이후 두 번째 계정 추가→기본 전환→계정별 승인 콘텐츠 공개 발행 permalink를 수집한다. Google 최종 왕복 lead 저장, GA4 DebugView, 노출된 Slack webhook 회전도 기존 ship 잔여다.
 
 ---
 
