@@ -305,6 +305,7 @@ qa = **in-progress** (ship 게이트 잠김 유지). 아침 체크리스트 1~3 
 | SNS-006 | 영상 플랫폼 연결·발행 누락 | YouTube callback은 DB `integrations`에 저장하지만 status는 `youtube-token.json`, publish는 `openclaw.json`을 읽어 저장소가 3개로 분리. TikTok credential 없음+publish 미구현, Reels publish 분기 없음 | TikTok 앱 심사/공개 발행 승인 | build: YouTube DB 단일화·영상 UI / external: TikTok review | YouTube OAuth→DB refresh→영상 업로드→Shorts URL. TikTok/Reels는 구현 전 disabled+사유 노출 | 🔧 YouTube 코드 수정·테스트됨 / 실업로드 미검증 |
 | SNS-007 | 사이트 내 provider 다중계정 관리·전환 불가 | `integrations`가 `UNIQUE(tenant_id,kind,label)`이고 OAuth callback이 provider label로 upsert해 새 계정 연결 시 기존 계정을 덮어씀. 발행 API도 provider별 단일 credential만 조회 | 두 번째 계정 OAuth 로그인 자체는 provider 세션/2FA 제약을 통과해야 함 | eng/build: additive `channel_accounts`+계정 관리 UI/API+선택 발행 | 동일 provider 2계정 보존→기본계정 전환→각 계정 선택 발행 permalink, 기존 단일계정 무손실, cross-tenant 거부 | 🟡 운영 단일계정 UI 관찰 / 실 2계정 전환·발행 미검증 |
 | SNS-008 | OAuth 연결 클릭 후 popup 미생성 | 공통 `SocialConnectButton`이 auth URL fetch를 await한 뒤 `window.open()`을 호출해 transient user activation을 잃음 | provider 로그인·동의·callback 이후 외부 단계 | build: 클릭 즉시 blank popup 예약→URL 이동, failure/unmount/StrictMode lifecycle 정리 | 운영 Chrome에서 Facebook·YouTube 클릭 시 새 popup target 생성 및 공식 provider host 이동, callback postMessage 후 상태 갱신 | 🟡 운영 popup/provider 진입 관찰 / callback 미검증 |
+| SNS-009 | Threads `valid`인데 실발행 400 | readiness가 `/me?fields=username` 성공만 보고 저장 user ID와 토큰 실제 ID를 비교하지 않음. publish는 stale `meta.userId`를 그대로 사용 | 현재 토큰의 실제 publish scope도 수정 후 재검증 필요 | build: `/me?id` identity 검증·실제 ID 사용, mismatch 회귀 테스트 | 운영 T-PIN-01 발행 성공 + permalink, draft 중복 방지, 실패 기록 보존 | 🔧 코드 수정·테스트됨 / 운영 미배포 |
 
 **관리 규칙:** 상태 전이는 `❌ NG → 🔧 코드 수정·테스트됨 → 🔧 로컬 실브라우저 관찰 → 🟡 운영 미검증 → ✅ 운영 관찰`만 허용한다. unit/mock/auth URL 200은 E2E나 종료증거로 승격하지 않는다. 각 ID는 코드 커밋·테스트·배포 run·실사용 증거에 동일하게 붙인다.
 
@@ -328,3 +329,12 @@ qa = **in-progress** (ship 게이트 잠김 유지). 아침 체크리스트 1~3 
 - 보안: 상태 조회와 draft 생성에 쓴 단기 tenant token을 각 실행 직후 revoke했고 동일 API HTTP 401을 확인했다.
 - 브라우저 UI: `gstack browse`는 server start timeout, 대체 Chrome CDP 실행은 결과 로그를 남기지 않아 `/inbox` 렌더는 **미검증**. API 저장 증거를 UI PASS로 승격하지 않는다.
 - 다음 종료증거: 실제 사용자 로그인 세션에서 `https://openclaw.sj-onpremise-cloudflare-tunnel.cloud/inbox`를 열어 두 초안 원문 확인 → 사용자 승인 → Threads 실제 발행 permalink 관찰.
+- 실발행 재현: 정본 `T-PIN-01`을 기본 active Threads 계정으로 실제 POST했으나 provider 400 `Unsupported post request`가 발생했다. 공개 게시물은 생성되지 않았고 draft는 보존했다. 저장 계정 ID가 현재 token 권한 대상이 아니며, readiness가 id 비교 없이 username 조회 성공만으로 `valid`를 표시한 false-positive가 코드와 일치한다. 단기 token은 revoke 후 401 확인.
+
+### 2026-07-19 SNS-009 build candidate
+
+- `publishThreads`는 저장 `meta.userId`를 발행 URL에 쓰지 않고 매 발행 직전 토큰의 `GET /me?fields=id` 결과를 container/publish ID로 사용한다. 저장 user ID가 없어도 유효 토큰의 live ID로 발행할 수 있다.
+- `verifyChannel`과 `GET /api/channel-config`는 Threads live ID가 없거나 파싱되지 않으면 `valid`로 통과시키지 않는다. 저장 ID와 live ID가 다르면 `identity_mismatch`, ID 확인 불가는 `identity_unavailable`로 분리한다.
+- Threads identity/container/publish 실패 응답은 provider 원문 body를 포함하지 않고 상태 코드와 조치 문구만 반환한다.
+- 직접 검증: focused 6 files/68 PASS, `npx tsc --noEmit` PASS, production build 160 pages PASS. 전체 테스트는 75 files/653 PASS·9 skip이고, 기존 5초 제한 2건이 현재 머신의 느린 동적 import로 timeout났다. 두 테스트만 15초 제한으로 조정해 단독 2 files/36 PASS를 관찰했다.
+- 미검증: 변경 코드 CI·운영 배포, 현재 Threads token의 publish scope, T-PIN-01 공개 게시물과 permalink. 이 세 가지를 보기 전 SNS-009를 `✅ 운영 관찰`로 승격하지 않는다.

@@ -58,7 +58,9 @@ describe("GET /api/channel-config — Instagram/Threads 라이브 OAuth 검증",
       { label: "instagram", token: "IG_TOKEN", meta: { userId: "1784" } },
       { label: "threads", token: "TH_TOKEN", meta: { userId: "999" } },
     ];
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ username: "sj" }), { status: 200 }));
+    fetchMock.mockImplementation(async (url: string) => new Response(JSON.stringify(
+      url.includes("graph.threads.net") ? { id: "999", username: "sj" } : { username: "sj" },
+    ), { status: 200 }));
 
     const { GET } = await import("@/app/api/channel-config/route");
     const res = await GET(new Request("http://localhost/api/channel-config"));
@@ -73,6 +75,32 @@ describe("GET /api/channel-config — Instagram/Threads 라이브 OAuth 검증",
     // 토큰 원문이 응답에 새면 안 됨
     expect(JSON.stringify(data)).not.toContain("IG_TOKEN");
     expect(JSON.stringify(data)).not.toContain("TH_TOKEN");
+  });
+
+  it("Threads 저장 userId와 live id가 다르면 invalid + 재연결 필요", async () => {
+    H.rows = [{ label: "threads", token: "TH_TOKEN", meta: { userId: "stored-999" } }];
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ id: "live-888", username: "sj" }), { status: 200 }));
+
+    const { GET } = await import("@/app/api/channel-config/route");
+    const data = await (await GET(new Request("http://localhost/api/channel-config"))).json();
+
+    expect(data.threads.connected).toBe(false);
+    expect(data.threads.connectionStatus).toBe("invalid");
+    expect(data.threads.connectionError).toBe("identity_mismatch");
+    expect(data.threads.reconnectRequired).toBe(true);
+  });
+
+  it("Threads 응답이 200이어도 live id가 없으면 valid로 통과시키지 않는다", async () => {
+    H.rows = [{ label: "threads", token: "TH_TOKEN", meta: { userId: "stored-999" } }];
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ username: "sj" }), { status: 200 }));
+
+    const { GET } = await import("@/app/api/channel-config/route");
+    const data = await (await GET(new Request("http://localhost/api/channel-config"))).json();
+
+    expect(data.threads.connected).toBe(false);
+    expect(data.threads.connectionStatus).toBe("unverified");
+    expect(data.threads.connectionError).toBe("identity_unavailable");
+    expect(data.threads.reconnectRequired).toBe(false);
   });
 
   it("OAuth code 190(무효 토큰)이면 connected=false, status=available, reconnectRequired=true", async () => {

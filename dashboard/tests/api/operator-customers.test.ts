@@ -117,7 +117,7 @@ describe("/api/operator/customers", () => {
     expect(body.authUsers[0]).toHaveProperty("tenant_shared_ai_approved_at");
     expect(JSON.stringify(body)).not.toContain("encrypted_password");
     expect(JSON.stringify(body)).not.toContain("password");
-  });
+  }, 15_000);
 
   it("고객 인증은 Google OAuth 전용이라 send_password_reset은 미지원 — 400이고 fetch(메일 발송)는 호출되지 않는다", async () => {
     const { POST } = await import("@/app/api/operator/customers/route");

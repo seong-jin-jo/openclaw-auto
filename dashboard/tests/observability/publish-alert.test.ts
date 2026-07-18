@@ -67,6 +67,7 @@ afterEach(() => {
 describe("/api/publish — publish_failed 알림 경계", () => {
   it("발행 성공 → reportFailure 호출 안 함", async () => {
     installFetch([
+      { match: "me?fields=id", json: { id: "live-id" } },
       { match: "/threads_publish", json: { id: "media-1" } },
       { match: "/threads", json: { id: "container-1" } },
       { match: "fields=permalink", json: { permalink: "https://www.threads.net/@u/post/1" } },
@@ -87,6 +88,7 @@ describe("/api/publish — publish_failed 알림 경계", () => {
 
   it("플랫폼 API 실발행 실패 → reportFailure(warning) 고정코드만 호출, 응답 status/body는 그대로(200 + ok:false), 원문(응답 본문 텍스트)은 알림에 없다", async () => {
     installFetch([
+      { match: "me?fields=id", json: { id: "live-id" } },
       { match: "/threads", status: 500, json: { error: "boom" }, text: "container 500 boom - sk-ant-should-not-leak" },
     ]);
     const { status, body } = await callPublish({ platform: "threads", text: "hi", draft_id: "d-1" });

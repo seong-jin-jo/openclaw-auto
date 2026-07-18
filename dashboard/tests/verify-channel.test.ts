@@ -48,4 +48,40 @@ describe("verifyChannel 신뢰성", () => {
     expect(r.verified).toBe(false);
     expect(r.unverified).toBeFalsy();
   });
+
+  // SNS-009 회귀: /me?fields=username 성공만 보고 저장 userId 불일치를 놓치던 false-positive.
+  it("threads: /me id가 저장된 userId와 다르면 200이어도 verified=false", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: async () => ({ id: "live-id-999", username: "someone" }),
+    }));
+    const r = await verifyChannel("threads", { accessToken: "x", userId: "stale-id-111" });
+    expect(r.verified).toBe(false);
+    expect(r.error).toBeTruthy();
+  });
+
+  it("threads: /me id가 저장된 userId와 같으면 verified=true", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: async () => ({ id: "same-id", username: "someone" }),
+    }));
+    const r = await verifyChannel("threads", { accessToken: "x", userId: "same-id" });
+    expect(r.verified).toBe(true);
+    expect(r.account).toBe("@someone");
+  });
+
+  it("threads: 저장된 userId가 없으면(신규 연결) id 비교 없이 통과", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: async () => ({ id: "new-id", username: "someone" }),
+    }));
+    const r = await verifyChannel("threads", { accessToken: "x" });
+    expect(r.verified).toBe(true);
+  });
+
+  it("threads: 200이어도 live id가 없으면 verified=false로 fail closed", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: async () => ({ username: "someone" }),
+    }));
+    const r = await verifyChannel("threads", { accessToken: "x", userId: "stored-id" });
+    expect(r.verified).toBe(false);
+    expect(r.unverified).toBe(true);
+  });
 });

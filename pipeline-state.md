@@ -4,16 +4,16 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: ship            # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design, build, qa]
+current_stage: build           # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
-  build:      { status: approved, artifacts_ok: true } # OAuth popup lifecycle + CI 재검증
-  qa:         { status: approved, artifacts_ok: true }
-  ship:       { status: in-progress, artifacts_ok: false }
+  build:      { status: in-progress, artifacts_ok: true } # SNS-009 build candidate 검증 완료, 승인/CI 대기
+  qa:         { status: pending, artifacts_ok: false }
+  ship:       { status: pending, artifacts_ok: false }
 override: false
 override_reason: ""
 override_expires: ""
@@ -157,6 +157,15 @@ override_expires: ""
   service `openclaw-dashboard-osmu`로 재실행해 시정.
 
 ## Blocked / Notes
+- SNS-009 build candidate: 매 발행 전 Threads token `/me?fields=id`를 신뢰원으로 사용하고 저장 userId는 발행
+  URL에서 제거. readiness는 live id 누락·파싱 실패를 fail-closed하고 저장/live mismatch를 invalid 처리한다.
+  focused 68 PASS, tsc PASS, production build 160 pages PASS. full run은 653 PASS·9 skip 뒤 기존 5초 timeout
+  2건이 발생해 해당 테스트 제한을 15초로 조정했고 단독 36 PASS를 확인했다. CI·운영 배포·T-PIN-01 permalink는
+  미검증이며 `/approve build` 전 QA 전환 금지.
+- SNS-009 운영 결함으로 build 재오픈: readiness는 Threads `/me?fields=username` 200만 보고 `valid` 처리하지만,
+  publish는 저장된 stale `meta.userId`를 URL에 사용해 provider 400 `Unsupported post request` 발생. 공개 게시물
+  생성 없음, T-PIN-01 draft 보존, token revoke+401 확인. token 실제 `/me?id`와 저장 ID 비교·발행 시 실제 ID
+  사용 회귀 테스트→CI→build/qa 재승인→재배포→동일 정본 permalink 관찰 전 ship 금지.
 - SNS-008 운영 Chrome 부분 통과: OSMU 단독 deploy run `29639946525` SUCCESS. 단기 고객 토큰을 넣은
   분리 Chrome에서 X credential 누락 비활성 안내, Facebook mode 경고, Facebook 클릭 후 새 target의
   `www.facebook.com` 이동, YouTube 클릭 후 새 target의 `accounts.google.com` 이동, TikTok/Reels 미구현

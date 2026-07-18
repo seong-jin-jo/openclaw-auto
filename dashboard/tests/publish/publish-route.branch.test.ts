@@ -101,6 +101,7 @@ describe("/api/publish — SNS-007 account_id 선택 발행", () => {
   it("account_id 지정 시 getChannelCred에 그대로 전달된다(선택계정으로만 발행)", async () => {
     H.cred = { token: "tok", userId: "u-1", accountId: "acc-42" };
     installFetch([
+      { match: "me?fields=id", json: { id: "live-id" } },
       { match: "/threads_publish", json: { id: "media-1" } },
       { match: "/threads", json: { id: "container-1" } },
       { match: "fields=permalink", json: { permalink: "https://www.threads.net/@u/post/1" } },
@@ -127,6 +128,7 @@ describe("/api/publish — SNS-007 account_id 선택 발행", () => {
   it("account_id 미지정 시 undefined로 전달(기본계정 경로) — 발행 성공 시 account_id 없이 기록", async () => {
     H.cred = { token: "tok", userId: "u-1" }; // accountId 없음(기본계정 mock에선 미설정)
     installFetch([
+      { match: "me?fields=id", json: { id: "live-id" } },
       { match: "/threads_publish", json: { id: "media-2" } },
       { match: "/threads", json: { id: "container-2" } },
       { match: "fields=permalink", json: { permalink: "https://www.threads.net/@u/post/2" } },
@@ -142,6 +144,7 @@ describe("/api/publish — SNS-007 account_id 선택 발행", () => {
 describe("/api/publish — happy path (실 publish* + fetch 목)", () => {
   it("threads: container→publish→permalink, published 기록", async () => {
     installFetch([
+      { match: "me?fields=id", json: { id: "live-id" } },
       { match: "/threads_publish", json: { id: "media-1" } },
       { match: "/threads", json: { id: "container-1" } },
       { match: "fields=permalink", json: { permalink: "https://www.threads.net/@u/post/1" } },
@@ -177,7 +180,10 @@ describe("/api/publish — happy path (실 publish* + fetch 목)", () => {
 
 describe("/api/publish — 실패/기록 분기", () => {
   it("플랫폼 API 실패 → ok:false, failed 기록 + error 저장 (HTTP는 200)", async () => {
-    installFetch([{ match: "/threads", status: 400, text: "Invalid token" }]);
+    installFetch([
+      { match: "me?fields=id", json: { id: "live-id" } },
+      { match: "/threads", status: 400, text: "Invalid token" },
+    ]);
     const { status, body } = await callPublish({ platform: "threads", text: "hi" });
     // route는 result를 그대로 반환 → HTTP 200, ok:false
     expect(status).toBe(200);
@@ -190,6 +196,7 @@ describe("/api/publish — 실패/기록 분기", () => {
 
   it("DB 기록 실패 → recordError 반환, 발행 결과는 보존", async () => {
     installFetch([
+      { match: "me?fields=id", json: { id: "live-id" } },
       { match: "/threads_publish", json: { id: "media-9" } },
       { match: "/threads", json: { id: "container-9" } },
       { match: "fields=permalink", json: { permalink: "https://x" } },

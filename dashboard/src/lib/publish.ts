@@ -131,24 +131,47 @@ export async function getChannelCred(tenantId: string, platform: string, account
   return null;
 }
 
+// 저장된 meta.userId는 stale할 수 있다(SNS-009: 재연결/토큰 회전 후 갱신되지 않은 값으로
+// 발행 URL을 구성하면 provider가 400 Unsupported post request를 반환). 컨테이너 생성 전
+// 항상 토큰의 실제 신원(/me?fields=id)을 조회해 그 id로 발행한다 — 저장값은 신뢰하지 않는다.
+async function resolveThreadsIdentity(token: string): Promise<{ id: string } | { error: string }> {
+  try {
+    const res = await fetch(`${THREADS_API}/me?fields=id&access_token=${encodeURIComponent(token)}`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) {
+      // provider raw body/토큰 조각을 그대로 노출하지 않는다 — 상태코드로만 분류.
+      return { error: `Threads 계정 확인에 실패했습니다 (오류 코드 ${res.status}). 채널을 다시 연결해주세요.` };
+    }
+    const data = (await res.json()) as { id?: string };
+    if (!data.id) return { error: "Threads 계정 확인에 실패했습니다. 채널을 다시 연결해주세요." };
+    return { id: data.id };
+  } catch {
+    return { error: "Threads 계정 확인 중 네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요." };
+  }
+}
+
 // Threads 발행 (text + 선택 image). 2-step container→publish.
 export async function publishThreads(cred: ChannelCred, text: string, imageUrl?: string): Promise<PublishResult> {
-  if (!cred.userId) return { ok: false, error: "THREADS_USER_ID(meta.userId) 없음" };
+  if (!cred.token) return { ok: false, error: "Threads 채널 토큰이 없습니다. 채널을 다시 연결해주세요." };
+  const identity = await resolveThreadsIdentity(cred.token);
+  if ("error" in identity) return { ok: false, error: identity.error };
+  const threadsUserId = identity.id;
   const params: Record<string, string> = {
     media_type: imageUrl ? "IMAGE" : "TEXT", text, access_token: cred.token,
   };
   if (imageUrl) params.image_url = imageUrl;
-  const create = await fetch(`${THREADS_API}/${cred.userId}/threads`, {
+  const create = await fetch(`${THREADS_API}/${threadsUserId}/threads`, {
     method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams(params),
   });
-  if (!create.ok) return { ok: false, error: `container 실패(${create.status}): ${(await create.text()).slice(0, 200)}` };
+  if (!create.ok) return { ok: false, error: `container 실패(${create.status}): Threads 채널 권한을 확인하거나 다시 연결해주세요.` };
   const { id: containerId } = (await create.json()) as { id: string };
-  const pub = await fetch(`${THREADS_API}/${cred.userId}/threads_publish`, {
+  const pub = await fetch(`${THREADS_API}/${threadsUserId}/threads_publish`, {
     method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ creation_id: containerId, access_token: cred.token }),
   });
-  if (!pub.ok) return { ok: false, error: `publish 실패(${pub.status}): ${(await pub.text()).slice(0, 200)}` };
+  if (!pub.ok) return { ok: false, error: `publish 실패(${pub.status}): Threads 채널 권한을 확인하거나 다시 연결해주세요.` };
   const { id: mediaId } = (await pub.json()) as { id: string };
   // permalink 조회
   let permalink: string | undefined;

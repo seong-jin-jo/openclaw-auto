@@ -31,9 +31,19 @@ export async function verifyChannel(channel: string, cfg: Record<string, string>
     if (channel === "threads") {
       const token = cfg.accessToken || "";
       if (!token) return { verified: false, error: "Access Token is empty" };
-      const res = await fetch(`https://graph.threads.net/v1.0/me?fields=username&access_token=${token}`, { signal: AbortSignal.timeout(5000) });
+      // id+username 둘 다 조회 — id는 저장된 userId(meta.userId)가 실제 토큰 신원과 같은지
+      // 비교하기 위함(SNS-009: username 성공만 보고 stale userId를 valid로 오판하던 결함).
+      const res = await fetch(`https://graph.threads.net/v1.0/me?fields=id,username&access_token=${encodeURIComponent(token)}`, { signal: AbortSignal.timeout(5000) });
       const data = await res.json();
       if (!res.ok) return { verified: false, error: koreanApiError("Threads", res.status, data) };
+      const storedUserId = cfg.userId || "";
+      const liveId = typeof data.id === "string" ? data.id : "";
+      if (!liveId) {
+        return { verified: false, unverified: true, reason: "Threads 계정 ID를 확인하지 못했습니다. 잠시 후 다시 시도해주세요." };
+      }
+      if (storedUserId && storedUserId !== liveId) {
+        return { verified: false, error: "저장된 Threads 계정 정보가 현재 토큰의 실제 계정과 일치하지 않습니다. User ID를 다시 확인하거나 재연결해주세요." };
+      }
       return { verified: true, account: `@${data.username || ""}` };
     }
 

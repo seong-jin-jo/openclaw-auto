@@ -182,11 +182,33 @@ export async function GET(request: Request) {
           const ch = channels[label];
           if (!ch) return;
           try {
+            // threads는 id도 함께 조회 — 저장된 meta.userId가 이 토큰의 실제 계정과 같은지
+            // 비교해야 한다(SNS-009: username 조회 성공만으로 valid 처리하면 저장 userId가
+            // stale해도 "연결됨"으로 오판해 발행 시 잘못된 계정 URL로 400이 남).
             const url = label === "threads"
-              ? `https://graph.threads.net/v1.0/me?fields=username&access_token=${encodeURIComponent(token)}`
+              ? `https://graph.threads.net/v1.0/me?fields=id,username&access_token=${encodeURIComponent(token)}`
               : `https://graph.instagram.com/v21.0/${encodeURIComponent(userId || "me")}?fields=username&access_token=${encodeURIComponent(token)}`;
             const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
             if (res.ok) {
+              if (label === "threads") {
+                let liveId = "";
+                try { liveId = String((await res.json())?.id ?? ""); } catch { /* 아래에서 확인 불가로 처리 */ }
+                if (!liveId) {
+                  ch.connected = false;
+                  ch.connectionStatus = "unverified";
+                  ch.connectionError = "identity_unavailable";
+                  ch.reconnectRequired = false;
+                  return;
+                }
+                if (userId && userId !== liveId) {
+                  ch.connected = false;
+                  ch.status = "available";
+                  ch.reconnectRequired = true;
+                  ch.connectionStatus = "invalid";
+                  ch.connectionError = "identity_mismatch";
+                  return;
+                }
+              }
               ch.connected = true;
               ch.connectionStatus = "valid";
               ch.reconnectRequired = false;

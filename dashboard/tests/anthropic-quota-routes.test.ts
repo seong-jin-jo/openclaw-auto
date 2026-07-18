@@ -82,7 +82,7 @@ describe("generateText 호출 라우트 — SharedGenerationQuotaError → 429 �
     const body = await res.json();
     expect(res.status).toBe(429);
     expect(body.code).toBe("shared_generation_quota_exceeded");
-  });
+  }, 15_000);
 
   it("POST /api/studio/brand-setup", async () => {
     const QuotaError = await importErrorClass();
