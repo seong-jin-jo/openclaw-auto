@@ -3,7 +3,23 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-18 21:04 KST · SNS-008 운영 popup/provider 진입 관찰, callback 이후는 미검증
+**최종 갱신:** 2026-07-18 23:00 KST · OSMU 운영 QA 기록 완료, 온비서 브랜드 에셋 생성 pane `%46` 실행 중
+
+---
+
+### 멀티트랙 핸드오프 — OSMU QA 마감 + 온비서 에셋 생성 재개 (2026-07-18 23:00 KST)
+
+**handoff basis:** 사용자가 추가 질문 없이 계속 진행하라고 명시했다. OSMU 코드/QA primary는 tmux `%7`, 온비서 브랜드·마케팅 primary는 `%46`(`ai-secretary-pivot-cascade`)로 분리한다. 공유 소스 동시 편집은 피하고 `%46`이 브랜드 산출물과 최종 session-state 갱신을 소유한다.
+
+**OSMU QA 결과(관찰됨):** commit `41f33340` 운영 배포 run `29639946525` SUCCESS, live health HTTP 200/DB up. 실제 Chrome에서 X credential 누락 disabled 안내, Facebook popup→`www.facebook.com`, YouTube popup→`accounts.google.com`, 영상 플랫폼 disabled 상태를 관찰했다. QA token revoke 후 동일 token HTTP 401을 확인했다. 증거와 원장은 commit `d90af4d4`로 main push 완료했다. 실제 provider 로그인·동의·callback·2계정 전환·공개 발행은 미검증이라 ship은 in-progress다.
+
+**온비서 진행:** `%46`에 사용자의 Higgsfield credit 충전 완료와 R4 브랜드 에셋 생성 지시를 명시 전송했다. 현재 확정 OSMU 브랜드 정본을 읽고 Higgsfield 아바타·배너·썸네일 생성 준비를 실행 중이다. publish-gate의 읽기 명령 확인은 승인해 진행을 재개했다. 아직 새 에셋 파일·검증 결과·최종 open은 산출 전이다.
+
+**출시 인프라 결정(2026-07-18 사용자 질의 후 고정):** 48시간 출시 동안 대시보드는 현재 marketing VM의 `openclaw-dashboard-osmu` Docker와 Cloudflare Tunnel을 유지한다. DB는 운영 실측상 Supabase Postgres, 로그인은 Supabase Auth를 유지한다. Vercel·Neon 신규 이전은 범위 밖이다. 근거는 현재 앱의 `claude -p`, 로컬 영속 파일, 장기 작업, Docker 배포 및 OAuth callback 결합이며, 이전 시 운영 E2E를 전면 재실행해야 해 마케팅 개시를 지연시킨다.
+
+**주의:** tmux UI에서 과거 오입력 `2222₩` 해석 질문의 첫 선택지가 잘못 선택됐지만, 즉시 이어진 명시 지시 "크레딧 충전 완료, R4 에셋 생성"이 최신 명령이다. 워터마크/UGC/채널카드 소결정은 이 오선택만으로 확정 근거로 쓰지 않는다.
+
+**정확한 다음 액션:** `%46`이 Higgsfield 생성→브랜드 정본 대조 검증→최종 결과물 1개만 open→`wiki/marketing/**`와 이 파일 갱신을 끝낸다. `%7`은 코드 변경 없이 대기한다. OSMU 실제 callback/발행 QA는 Meta 앱 활성화·X credential·Instagram OTP 제한 해제·실계정 로그인 조건이 생기면 재개한다.
 
 ---
 
