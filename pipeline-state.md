@@ -4,16 +4,16 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: qa              # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design, build]
+current_stage: ship            # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design, build, qa]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
   build:      { status: approved, artifacts_ok: true } # SNS-009 network hardening + QA quality PASS
-  qa:         { status: in-progress, artifacts_ok: true }
-  ship:       { status: pending, artifacts_ok: false }
+  qa:         { status: approved, artifacts_ok: true }
+  ship:       { status: in-progress, artifacts_ok: false }
 override: false
 override_reason: ""
 override_expires: ""
@@ -96,6 +96,11 @@ override_expires: ""
   Meta 앱 redirect URI `https://<live>/api/connect/{provider}/callback` 등록. 그 후 배포→browse로 qa 증거.
 
 ## 승인 로그 (append-only)
+2026-07-19 — SNS-009 qa APPROVED — 사용자가 반복 명시한 `개발 QA 배포 진행`, `묻지 않고 빨리 진행`,
+  `빨리 되게 만들어` 지시에 따라 이번 핫픽스도 QA 증거 충족 후 ship 진행 승인으로 반영. commit `bcc32f10`,
+  GitHub Actions run `29661214375` typecheck/build/PostgreSQL schema→seed→RLS/full test SUCCESS. qa-verifier
+  blocker/high 0, QA Skill/WebFetch/dev standard 품질 PASS. OSMU 재배포 후 T-PIN-01 permalink 직접 관찰 전
+  ship 완료 금지. SNS-010은 이미지 발행 전 별도 build 필수.
 2026-07-19 — SNS-009 follow-up build APPROVED — 첫 QA가 발견한 container/publish network throw 500을
   안전한 `ok:false`로 정규화하고 malformed JSON/id 누락까지 회귀 4건으로 고정. focused 43 PASS,
   identity 9 PASS, tsc clean. 최종 qa-verifier는 `standards/dev.md` Read, QA Skill 1회, WebFetch 2회로
