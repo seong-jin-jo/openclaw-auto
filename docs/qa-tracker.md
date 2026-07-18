@@ -319,3 +319,12 @@ qa = **in-progress** (ship 게이트 잠김 유지). 아침 체크리스트 1~3 
 **SNS-008 build candidate(2026-07-18):** 운영 고객 토큰 Chrome에서 X readiness 차단 안내는 정상 렌더됐지만 Facebook OAuth 클릭 후 popup target이 생성되지 않았다. E2E 스크립트의 click 판정 오류를 먼저 고쳐 재시도해도 동일하게 재현됐고, 공통 버튼이 `await fetch` 뒤 `window.open`하는 코드와 MDN/WHATWG transient activation 규칙이 원인으로 일치했다. 클릭 핸들러에서 `about:blank` popup을 동기 예약하고 auth URL 응답 후 이동하도록 수정했다. popup blocked 시 fetch 미호출, API/JSON/network/authUrl 없음 시 popup close, valid postMessage 시 interval 정리, wrong origin/provider 무시, popup close 감지, unmount cleanup, pending fetch 중 unmount, React StrictMode setup-cleanup-setup을 컴포넌트 테스트 10건으로 고정했다. 메인세션 직접 재현은 focused 10/10, 전체 74 files/644 PASS·9 DB-env skip, tsc clean, production build 160 pages PASS.
 
 **SNS-008 운영 Chrome QA(2026-07-18):** commit `41f33340` 기준 OSMU 단독 배포 run `29639946525`가 DB/RLS, 이미지 빌드, 기동, 상태, OSMU 스모크를 포함해 성공했다. 분리된 headless Chrome과 단기 고객 토큰으로 X 버튼 비활성 및 `X_CLIENT_ID/X_CLIENT_SECRET` 사유, Facebook `Development/Live` 경고를 관찰했다. 사용자 제스처 클릭 후 Facebook 새 page target이 `www.facebook.com`, YouTube 새 page target이 `accounts.google.com`으로 이동한 것을 CDP target URL로 assertion했다. 영상 화면의 YouTube 연결 UI와 TikTok/Reels `미구현` 상태도 함께 확인했다. 화면 증거는 `docs/evidence/sns008-live-oauth-popup-e2e-20260718.png`. 단기 토큰은 즉시 revoke했고 같은 토큰의 readiness API가 HTTP 401임을 확인한 뒤 원문과 임시 파일을 삭제했다. 이 증거는 **팝업 생성과 provider 진입까지만** 종료한다. 실제 provider 로그인·동의·callback postMessage·DB 저장·2계정 전환·공개 발행은 미검증이다.
+
+## 2026-07-18 마케팅 실행 재개 — 운영 draft 큐
+
+- 사용자 지적: 개발·QA 보고가 길어지고 실제 마케팅 출고가 시작되지 않음. 기존 SNS-001~008과 별개로 실행 지연 문제를 기록한다.
+- 운영 API 직접 관찰: Instagram·Threads는 각각 `connected=true`, `connectionStatus=valid`, 기본 active 계정 1개. X 미연결, Facebook·YouTube 계정 0개.
+- 런치 정본 `T-PIN-01`(397자)과 `T-02`(273자)를 `/api/queue/add`로 생성했고, `/api/queue` 재조회에서 두 ID가 `draft`, placeholder 0건임을 확인했다. 공개 발행·승인은 하지 않았다.
+- 보안: 상태 조회와 draft 생성에 쓴 단기 tenant token을 각 실행 직후 revoke했고 동일 API HTTP 401을 확인했다.
+- 브라우저 UI: `gstack browse`는 server start timeout, 대체 Chrome CDP 실행은 결과 로그를 남기지 않아 `/inbox` 렌더는 **미검증**. API 저장 증거를 UI PASS로 승격하지 않는다.
+- 다음 종료증거: 실제 사용자 로그인 세션에서 `https://openclaw.sj-onpremise-cloudflare-tunnel.cloud/inbox`를 열어 두 초안 원문 확인 → 사용자 승인 → Threads 실제 발행 permalink 관찰.
