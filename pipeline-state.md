@@ -4,15 +4,15 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: build           # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design]
+current_stage: qa              # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design, build]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
-  build:      { status: in-progress, artifacts_ok: true } # SNS-009 build candidate 검증 완료, 승인/CI 대기
-  qa:         { status: pending, artifacts_ok: false }
+  build:      { status: approved, artifacts_ok: true } # SNS-009 network hardening + QA quality PASS
+  qa:         { status: in-progress, artifacts_ok: true }
   ship:       { status: pending, artifacts_ok: false }
 override: false
 override_reason: ""
@@ -96,6 +96,16 @@ override_expires: ""
   Meta 앱 redirect URI `https://<live>/api/connect/{provider}/callback` 등록. 그 후 배포→browse로 qa 증거.
 
 ## 승인 로그 (append-only)
+2026-07-19 — SNS-009 follow-up build APPROVED — 첫 QA가 발견한 container/publish network throw 500을
+  안전한 `ok:false`로 정규화하고 malformed JSON/id 누락까지 회귀 4건으로 고정. focused 43 PASS,
+  identity 9 PASS, tsc clean. 최종 qa-verifier는 `standards/dev.md` Read, QA Skill 1회, WebFetch 2회로
+  품질 verifier PASS, blocker/high 0, TEXT build 조건부 PASS. 사용자의 지속적 수정·출시 진행 지시 범위로
+  build 승인을 재고정해 QA로 전환. IMAGE polling/result-unknown은 SNS-010으로 분리, 이미지 발행 전 해결.
+2026-07-19 — SNS-009 build APPROVED — 사용자가 운영 발행 실패를 지적한 뒤 `아 빨리 되게 만들어`라고
+  수정·출시 진행을 명시했고, 직전부터 반복한 `묻지 않고 빨리 진행` 지시 범위 안에서 build 진행 승인으로
+  반영. 증거: commit `a48460a0`, focused 68 PASS, tsc clean, production build 160 pages PASS,
+  GitHub Actions run `29658880396` typecheck/build/PostgreSQL schema→seed→RLS/full test SUCCESS. QA로 전환하되
+  독립 검증과 운영 T-PIN-01 permalink 관찰 전 ship 완료 금지.
 2026-07-18 — qa APPROVED — 직전 보고에서 QA 승인 추천, 승인 시 OSMU 단독 배포·실 Chrome E2E,
   미승인 시 운영 popup 결함 유지라는 결과를 제시했고 사용자가 `진행`으로 응답해 QA 진행 의사를 확인.
   독립 qa-verifier blocker/high 0, RUBRIC 23/25, QA Skill 1회, WebSearch/Fetch 3회,
@@ -157,6 +167,12 @@ override_expires: ""
   service `openclaw-dashboard-osmu`로 재실행해 시정.
 
 ## Blocked / Notes
+- SNS-009 QA reopen: 첫 qa-verifier는 blocker/high 0, RUBRIC 23/25를 냈지만 Skill/WebSearch 0으로 품질
+  verifier FAIL이라 승인 근거에서 제외. 동시에 Threads container/publish fetch 네트워크 예외가 route 밖으로 throw돼
+  HTTP 500이 되는 LOW 결함을 발견했다. 안전한 `ok:false` 정규화+회귀 테스트+재CI 전 build 승인 취소.
+- SNS-010 follow-up: Meta 공식 Threads 컬렉션 기준 IMAGE container 상태 폴링과 publish 응답 단절 후 결과불명
+  처리가 없다. 현재 출시 정본 T-PIN-01은 TEXT이고 SNS-009 QA blocker/high 0이라 별도 후속으로 분리한다.
+  새로 추가했던 publish 15초 timeout은 실제 성공 오판·중복 위험 때문에 제거. 이미지 공개 발행 전 SNS-010 해결.
 - SNS-009 build candidate: 매 발행 전 Threads token `/me?fields=id`를 신뢰원으로 사용하고 저장 userId는 발행
   URL에서 제거. readiness는 live id 누락·파싱 실패를 fail-closed하고 저장/live mismatch를 invalid 처리한다.
   focused 68 PASS, tsc PASS, production build 160 pages PASS. full run은 653 PASS·9 skip 뒤 기존 5초 timeout

@@ -100,4 +100,83 @@ describe("publishThreads identity resolution (SNS-009)", () => {
     expect(result.error).toContain("container 실패(400)");
     expect(result.error).not.toContain("provider-secret-detail");
   });
+
+  it("container 생성 중 네트워크 오류 → 안전한 오류로 실패하고 publish는 호출되지 않는다", async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes("/me?fields=id")) return { ok: true, json: async () => ({ id: "live-id" }) } as Response;
+      if (String(url).includes("/threads") && !String(url).includes("_publish")) {
+        throw new Error("fetch failed: ECONNRESET graph.threads.net secret-token=tok");
+      }
+      throw new Error("publish should not be called after container network failure");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await publishThreads({ token: "tok" }, "hello");
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toBeTruthy();
+    expect(result.error).not.toContain("ECONNRESET");
+    expect(result.error).not.toContain("tok");
+    expect(result.error).not.toContain("graph.threads.net");
+    expect(fetchMock).toHaveBeenCalledTimes(2); // /me + container attempt만, publish는 호출 안 됨
+  });
+
+  it("container 응답이 200이지만 malformed JSON(id 없음) → 안전하게 실패", async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes("/me?fields=id")) return { ok: true, json: async () => ({ id: "live-id" }) } as Response;
+      if (String(url).includes("/threads") && !String(url).includes("_publish")) {
+        return { ok: true, json: async () => ({ unexpected: "shape" }) } as Response;
+      }
+      throw new Error("publish should not be called after malformed container response");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await publishThreads({ token: "tok" }, "hello");
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("publish 중 네트워크 오류 → 안전한 오류로 실패, 원문/토큰 미노출", async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes("/me?fields=id")) return { ok: true, json: async () => ({ id: "live-id" }) } as Response;
+      if (String(url).includes("/threads") && !String(url).includes("_publish")) {
+        return { ok: true, json: async () => ({ id: "container-1" }) } as Response;
+      }
+      if (String(url).includes("/threads_publish")) {
+        throw new Error("fetch failed: ETIMEDOUT access_token=tok");
+      }
+      throw new Error("permalink should not be called after publish network failure");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await publishThreads({ token: "tok" }, "hello");
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toBeTruthy();
+    expect(result.error).not.toContain("ETIMEDOUT");
+    expect(result.error).not.toContain("tok");
+    expect(fetchMock).toHaveBeenCalledTimes(3); // /me + container + publish attempt만
+  });
+
+  it("publish 응답이 200이지만 malformed JSON(id 없음) → 안전하게 실패, permalink는 호출 안 됨", async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes("/me?fields=id")) return { ok: true, json: async () => ({ id: "live-id" }) } as Response;
+      if (String(url).includes("/threads") && !String(url).includes("_publish")) {
+        return { ok: true, json: async () => ({ id: "container-1" }) } as Response;
+      }
+      if (String(url).includes("/threads_publish")) {
+        return { ok: true, json: async () => ({ unexpected: "shape" }) } as Response;
+      }
+      throw new Error("permalink should not be called after malformed publish response");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await publishThreads({ token: "tok" }, "hello");
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
 });

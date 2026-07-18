@@ -161,22 +161,42 @@ export async function publishThreads(cred: ChannelCred, text: string, imageUrl?:
     media_type: imageUrl ? "IMAGE" : "TEXT", text, access_token: cred.token,
   };
   if (imageUrl) params.image_url = imageUrl;
-  const create = await fetch(`${THREADS_API}/${threadsUserId}/threads`, {
-    method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams(params),
-  });
-  if (!create.ok) return { ok: false, error: `container 실패(${create.status}): Threads 채널 권한을 확인하거나 다시 연결해주세요.` };
-  const { id: containerId } = (await create.json()) as { id: string };
-  const pub = await fetch(`${THREADS_API}/${threadsUserId}/threads_publish`, {
-    method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ creation_id: containerId, access_token: cred.token }),
-  });
-  if (!pub.ok) return { ok: false, error: `publish 실패(${pub.status}): Threads 채널 권한을 확인하거나 다시 연결해주세요.` };
-  const { id: mediaId } = (await pub.json()) as { id: string };
-  // permalink 조회
+
+  let containerId: string;
+  try {
+    const create = await fetch(`${THREADS_API}/${threadsUserId}/threads`, {
+      method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams(params),
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!create.ok) return { ok: false, error: `container 실패(${create.status}): Threads 채널 권한을 확인하거나 다시 연결해주세요.` };
+    const createBody = (await create.json()) as { id?: string };
+    if (!createBody.id) return { ok: false, error: "Threads container 생성에 실패했습니다. 잠시 후 다시 시도해주세요." };
+    containerId = createBody.id;
+  } catch {
+    return { ok: false, error: "Threads container 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요." };
+  }
+
+  let mediaId: string;
+  try {
+    const pub = await fetch(`${THREADS_API}/${threadsUserId}/threads_publish`, {
+      method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ creation_id: containerId, access_token: cred.token }),
+    });
+    if (!pub.ok) return { ok: false, error: `publish 실패(${pub.status}): Threads 채널 권한을 확인하거나 다시 연결해주세요.` };
+    const pubBody = (await pub.json()) as { id?: string };
+    if (!pubBody.id) return { ok: false, error: "Threads 발행에 실패했습니다. 잠시 후 다시 시도해주세요." };
+    mediaId = pubBody.id;
+  } catch {
+    return { ok: false, error: "Threads 발행 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요." };
+  }
+
+  // permalink 조회 — 실패해도 발행 자체는 성공으로 간주(non-fatal)
   let permalink: string | undefined;
   try {
-    const pl = await fetch(`${THREADS_API}/${mediaId}?fields=permalink&access_token=${cred.token}`);
+    const pl = await fetch(`${THREADS_API}/${mediaId}?fields=permalink&access_token=${encodeURIComponent(cred.token)}`, {
+      signal: AbortSignal.timeout(5000),
+    });
     if (pl.ok) permalink = ((await pl.json()) as { permalink?: string }).permalink;
   } catch { /* permalink 실패 무시 */ }
   return { ok: true, externalId: mediaId, permalink };
