@@ -1,9 +1,9 @@
 # 세션 작업 상태 (재실행 가능한 핸드오프)
 
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
-> 단계 진실원: 루트 `pipeline-state.md`(현재 **qa in-progress**). QA 증거: `docs/qa-tracker.md`.
+> 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-18 05:05 KST · qa-verifier read-only QA — commit e66e6f76 code-level 통과, 운영 popup target 관찰만 남음
+**최종 갱신:** 2026-07-18 KST · QA 승인 기록 — OSMU 단독 배포와 운영 popup target 관찰 진행
 
 ---
 
@@ -26,6 +26,10 @@
 **정확한 다음 액션:** 운영 재배포(이미 push·CI 통과된 e66e6f76 기준) → Facebook/Instagram/Threads/YouTube 전 채널 실 Chrome에서 popup target 직접 관찰 → 단기 QA 토큰 revoke. 코드 변경 불필요(이번 QA에서 신규 결함 0건).
 
 **품질 게이트 정정:** 첫 QA 위임은 `standards/dev.md` Read 누락으로 반려, 두 번째는 QA Skill 미호출로 반려했다. 최종 stream-json 위임은 `standards/dev.md` Read, QA Skill 1회, WebSearch/Fetch 3회, 소크라/레드팀 마커 3개가 트랜스크립트에서 확인되어 `verify-agent-quality.sh ... qa` PASS. 최종 판정만 승인 근거로 사용한다.
+
+**QA 승인:** 직전 QA 승인 요청에 사용자가 `진행`으로 응답해 승인 의사를 확인했다. pipeline을 ship in-progress로 전환한다. 배포 대상은 `openclaw-dashboard-osmu` 하나이며, post-fix 운영 Chrome popup/provider host 관찰 전 ship 완료로 처리하지 않는다.
+
+**정확한 다음 액션:** 승인 기록 commit/push → OSMU 단독 deploy workflow → 단기 고객 token → Facebook·YouTube popup target과 provider host 실 Chrome assertion → 증거 스크린샷 1개 → token revoke/401 → QA 원장·STATE 갱신.
 
 ---
 

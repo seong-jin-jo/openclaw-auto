@@ -4,16 +4,16 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: qa              # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design, build]
+current_stage: ship            # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design, build, qa]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
   build:      { status: approved, artifacts_ok: true } # OAuth popup lifecycle + CI 재검증
-  qa:         { status: in-progress, artifacts_ok: false }
-  ship:       { status: pending, artifacts_ok: false }
+  qa:         { status: approved, artifacts_ok: true }
+  ship:       { status: in-progress, artifacts_ok: false }
 override: false
 override_reason: ""
 override_expires: ""
@@ -22,7 +22,7 @@ override_expires: ""
 # Pipeline State — openclaw-auto-osmu
 
 > 2026-06-30 `init --adopt`. 이 레포는 이미 라이브 배포된 멀티테넌트 마케팅 SaaS라 plan~build는
-> ADOPT(기존 인정). **현재 build(in-progress).** 신규 기능(OAuth 연결, GA4, 가이드 등)은 build→qa→ship 게이트를
+> ADOPT(기존 인정). **현재 ship(in-progress).** 신규 기능(OAuth 연결, GA4, 가이드 등)은 build→qa→ship 게이트를
 > `/approve`로만 통과한다. **배포(gh workflow / ship)는 `/approve qa` 후에만.** (과거 게이트 없는
 > 자동 배포 = 하네스 위반, 재발 금지.)
 
@@ -96,6 +96,11 @@ override_expires: ""
   Meta 앱 redirect URI `https://<live>/api/connect/{provider}/callback` 등록. 그 후 배포→browse로 qa 증거.
 
 ## 승인 로그 (append-only)
+2026-07-18 — qa APPROVED — 직전 보고에서 QA 승인 추천, 승인 시 OSMU 단독 배포·실 Chrome E2E,
+  미승인 시 운영 popup 결함 유지라는 결과를 제시했고 사용자가 `진행`으로 응답해 QA 진행 의사를 확인.
+  독립 qa-verifier blocker/high 0, RUBRIC 23/25, QA Skill 1회, WebSearch/Fetch 3회,
+  verify-agent-quality PASS. commit `e66e6f76`, CI run `29608715956` SUCCESS. ship으로 전환하되
+  Facebook/YouTube popup target과 provider host를 직접 관찰하기 전 ship 완료 금지.
 2026-07-18 — build APPROVED — 직전 보고에서 `/approve build` 추천, 승인 시 QA 재검증, 미승인 시
   운영 popup 결함 유지라는 결과를 평문으로 제시했고 사용자가 `진행`으로 응답해 build 진행 의사를 명확히
   확인. 증거: commit `e66e6f76`, focused 10 PASS, full 74 files/644 PASS·9 DB-env skip, tsc clean,
