@@ -4,16 +4,16 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: ship            # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design, build, qa]
+current_stage: build           # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
-  build:      { status: approved, artifacts_ok: true } # SNS-009 network hardening + QA quality PASS
-  qa:         { status: approved, artifacts_ok: true }
-  ship:       { status: in-progress, artifacts_ok: false }
+  build:      { status: in-progress, artifacts_ok: true } # SNS-011 checkout-relative volume data loss fix
+  qa:         { status: pending, artifacts_ok: false }
+  ship:       { status: pending, artifacts_ok: false }
 override: false
 override_reason: ""
 override_expires: ""
@@ -172,6 +172,12 @@ override_expires: ""
   service `openclaw-dashboard-osmu`로 재실행해 시정.
 
 ## Blocked / Notes
+- SNS-011 build REOPENED FROM SHIP: deploy workflow가 checkout 전 `$GITHUB_WORKSPACE` 전체를 삭제하지만
+  OSMU queue/config는 그 내부 상대 bind mount(`./data-osmu`, `./config-osmu`)를 사용해 배포 직후 파일이
+  초기화됐다. 운영 컨테이너 `/app/data`와 `/app/config`가 비어 있음을 직접 관찰했고 DB `queue_posts`
+  그림자 사본에는 T-PIN-01/T-02 두 draft가 남아 있다. 고정 이름 Docker volume으로 전환하고 상대 bind
+  mount 재도입 방지 계약 테스트를 추가했다. CI→build/qa 재승인→DB 사본 복구→재배포→재배포 후 초안
+  존속→T-PIN-01 실발행/permalink 전 ship 금지.
 - SNS-009 QA reopen: 첫 qa-verifier는 blocker/high 0, RUBRIC 23/25를 냈지만 Skill/WebSearch 0으로 품질
   verifier FAIL이라 승인 근거에서 제외. 동시에 Threads container/publish fetch 네트워크 예외가 route 밖으로 throw돼
   HTTP 500이 되는 LOW 결함을 발견했다. 안전한 `ok:false` 정규화+회귀 테스트+재CI 전 build 승인 취소.
