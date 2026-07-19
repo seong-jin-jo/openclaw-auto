@@ -16,6 +16,8 @@ const H = vi.hoisted(() => ({
   cred: null as { token: string; userId?: string; meta?: Record<string, unknown>; accountId?: string } | null,
   inserts: [] as unknown[][],
   getChannelCredCalls: [] as unknown[][],
+  existingPublication: null as { external_id: string | null; permalink: string | null } | null,
+  markQueuePublishedCalls: [] as unknown[][],
 }));
 
 vi.mock("@/lib/tenant-auth", () => ({
@@ -24,11 +26,22 @@ vi.mock("@/lib/tenant-auth", () => ({
 
 vi.mock("@/lib/db", () => ({
   withTenant: vi.fn(async (_tid: string, cb: (sql: unknown) => unknown) => {
-    const sql = (_s: TemplateStringsArray, ...vals: unknown[]) => {
+    const sql = (strings: TemplateStringsArray, ...vals: unknown[]) => {
+      if (strings.join(" ").includes("SELECT external_id, permalink")) {
+        return Promise.resolve(H.existingPublication ? [H.existingPublication] : []);
+      }
       H.inserts.push(vals);
       return Promise.resolve([]);
     };
+    sql.json = (value: unknown) => value;
     return cb(sql);
+  }),
+}));
+
+vi.mock("@/lib/queue-store", () => ({
+  markQueuePublished: vi.fn(async (...args: unknown[]) => {
+    H.markQueuePublishedCalls.push(args);
+    return true;
   }),
 }));
 
@@ -64,6 +77,8 @@ beforeEach(() => {
   H.cred = { token: "tok", userId: "u-1" };
   H.inserts = [];
   H.getChannelCredCalls = [];
+  H.existingPublication = null;
+  H.markQueuePublishedCalls = [];
   vi.mocked(withTenant).mockClear();
 });
 
@@ -160,6 +175,45 @@ describe("/api/publish — happy path (실 publish* + fetch 목)", () => {
     expect(v[I.platform]).toBe("threads");
     expect(v[I.externalId]).toBe("media-1");
     expect(v[I.draft]).toBe("d-1");
+  });
+
+  it("UUID draft 성공 시 queue를 published로 마킹한다", async () => {
+    installFetch([
+      { match: "me?fields=id", json: { id: "live-id" } },
+      { match: "/threads_publish", json: { id: "media-uuid" } },
+      { match: "/threads", json: { id: "container-uuid" } },
+      { match: "fields=permalink", json: { permalink: "https://www.threads.net/@u/post/uuid" } },
+    ]);
+    const draftId = "13730d99-a268-47de-9cf9-90157ea1fa79";
+    const { body } = await callPublish({ platform: "threads", text: "hi", draft_id: draftId });
+
+    expect(body.ok).toBe(true);
+    expect(H.markQueuePublishedCalls).toEqual([["tenant-1", draftId, {
+      platform: "threads",
+      externalId: "media-uuid",
+      permalink: "https://www.threads.net/@u/post/uuid",
+    }]]);
+  });
+
+  it("동일 UUID draft/platform/account 성공 기록이 있으면 외부 발행을 반복하지 않는다", async () => {
+    H.cred = { token: "tok", userId: "u-1", accountId: "11111111-1111-4111-8111-111111111111" };
+    H.existingPublication = {
+      external_id: "already-1",
+      permalink: "https://www.threads.net/@u/post/already",
+    };
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    const { body } = await callPublish({
+      platform: "threads",
+      text: "hi",
+      draft_id: "13730d99-a268-47de-9cf9-90157ea1fa79",
+      account_id: "11111111-1111-4111-8111-111111111111",
+    });
+
+    expect(body).toMatchObject({ ok: true, externalId: "already-1", alreadyPublished: true });
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(H.inserts).toHaveLength(0);
+    expect(H.markQueuePublishedCalls).toHaveLength(0);
   });
 
   it("x: 4키 OAuth1.0a 트윗 → published 기록, 280자 절단", async () => {

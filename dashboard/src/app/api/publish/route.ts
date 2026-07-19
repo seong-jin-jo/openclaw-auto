@@ -1,5 +1,6 @@
 import { withTenant } from "@/lib/db";
 import { effectiveTenantId } from "@/lib/tenant-auth";
+import { markQueuePublished } from "@/lib/queue-store";
 import { reportFailure, normalizePlatform, classifyPublishFailure } from "@/lib/observability";
 import {
   getChannelCred,
@@ -37,6 +38,35 @@ export async function POST(request: Request) {
       },
       { status: 400 },
     );
+  }
+
+  // 동일 초안·플랫폼·계정의 성공 발행을 순차 재시도에서 다시 외부 API로 보내지 않는다.
+  // UUID가 아닌 legacy draft id는 기존 동작을 유지한다.
+  const isDraftUuid = typeof draft_id === "string"
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(draft_id);
+  if (isDraftUuid) {
+    const [existing] = await withTenant(tenant_id, (sql) => sql<{
+      external_id: string | null;
+      permalink: string | null;
+    }[]>`
+      SELECT external_id, permalink
+        FROM published_posts
+       WHERE tenant_id = ${tenant_id}::uuid
+         AND draft_id = ${draft_id}::uuid
+         AND platform = ${platform}
+         AND status = 'published'
+         AND account_id IS NOT DISTINCT FROM ${cred.accountId ?? null}::uuid
+       ORDER BY published_at DESC
+       LIMIT 1
+    `);
+    if (existing) {
+      return Response.json({
+        ok: true,
+        externalId: existing.external_id ?? undefined,
+        permalink: existing.permalink ?? undefined,
+        alreadyPublished: true,
+      });
+    }
   }
 
   let result: PublishResult;
@@ -85,6 +115,18 @@ export async function POST(request: Request) {
   } catch (e) {
     // 기록 실패는 발행 결과에 영향 X (로그만)
     return Response.json({ ...result, recordError: String(e) });
+  }
+
+  if (result.ok && isDraftUuid) {
+    try {
+      await markQueuePublished(tenant_id, draft_id, {
+        platform,
+        externalId: result.externalId,
+        permalink: result.permalink,
+      });
+    } catch (e) {
+      return Response.json({ ...result, queueRecordError: String(e) });
+    }
   }
   return Response.json(result);
 }

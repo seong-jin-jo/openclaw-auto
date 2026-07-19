@@ -4,16 +4,16 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: ship            # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design, build, qa]
+current_stage: build           # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
-  build:      { status: approved, artifacts_ok: true } # SNS-011 fixed-name volume + contract test
-  qa:         { status: approved, artifacts_ok: true }
-  ship:       { status: in-progress, artifacts_ok: false }
+  build:      { status: in-progress, artifacts_ok: true } # SNS-012 publish idempotency + queue state
+  qa:         { status: pending, artifacts_ok: false }
+  ship:       { status: pending, artifacts_ok: false }
 override: false
 override_reason: ""
 override_expires: ""
@@ -177,6 +177,11 @@ override_expires: ""
   service `openclaw-dashboard-osmu`로 재실행해 시정.
 
 ## Blocked / Notes
+- SNS-012 build REOPENED FROM SHIP: `/api/publish` 성공이 `published_posts`만 기록하고 원 queue JSON/DB
+  shadow를 `published`로 전환하지 않아 UI에 draft가 남고 순차 재클릭 시 동일 외부 게시물을 다시 만들 수 있다.
+  동일 tenant+draft+platform+account 성공 기록을 외부 호출 전에 재사용하고, 첫 성공 뒤 queue JSON과
+  `queue_posts`를 함께 published로 갱신하도록 수정. focused 14 PASS, tsc PASS. CI→build/qa 재승인→재배포
+  →T-PIN-01 첫 발행과 동일 요청 재호출 `alreadyPublished:true`/외부 게시물 1개 관찰 전 ship 금지.
 - SNS-011 build REOPENED FROM SHIP: deploy workflow가 checkout 전 `$GITHUB_WORKSPACE` 전체를 삭제하지만
   OSMU queue/config는 그 내부 상대 bind mount(`./data-osmu`, `./config-osmu`)를 사용해 배포 직후 파일이
   초기화됐다. 운영 컨테이너 `/app/data`와 `/app/config`가 비어 있음을 직접 관찰했고 DB `queue_posts`

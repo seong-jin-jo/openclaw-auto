@@ -1,5 +1,6 @@
 import { withTenant } from "./db";
-import { readJson, dataPath } from "./file-io";
+import { mutateJson, readJson, dataPath } from "./file-io";
+import { runWithTenant } from "./tenant-context";
 
 // P4 expand/contract — 1단계: queue.json 쓰기를 DB queue_posts에 "그림자 복제"(dual-write).
 //
@@ -89,4 +90,46 @@ export async function mirrorQueueDelete(tenantId: string | null, postId: string)
   } catch (e) {
     if (process.env.OSMU_DEBUG) console.error("[queue-store] delete-mirror skip:", (e as Error).message);
   }
+}
+
+export async function markQueuePublished(
+  tenantId: string,
+  postId: string,
+  result: { platform: string; externalId?: string; permalink?: string },
+): Promise<boolean> {
+  if (!isUuid(tenantId) || !isUuid(postId)) return false;
+
+  let found: QueueMirrorPost | null = null;
+  const publishedAt = new Date().toISOString();
+  await runWithTenant(tenantId, () => mutateJson<{ version?: number; posts: QueueMirrorPost[] }>(
+    dataPath("queue.json"),
+    (queue) => {
+      for (const post of queue.posts || []) {
+        if (post.id !== postId) continue;
+        post.status = "published";
+        post.publishedAt = publishedAt;
+        post.publishedPlatform = result.platform;
+        post.externalId = result.externalId ?? null;
+        post.permalink = result.permalink ?? null;
+        found = post;
+      }
+      return queue;
+    },
+    { version: 2, posts: [] },
+  ));
+
+  await withTenant(tenantId, (sql) => sql`
+    UPDATE queue_posts
+       SET status = 'published', published_at = ${publishedAt},
+           payload = COALESCE(payload, '{}'::jsonb) || ${sql.json({
+             status: "published",
+             publishedAt,
+             publishedPlatform: result.platform,
+             externalId: result.externalId ?? null,
+             permalink: result.permalink ?? null,
+           } as never)},
+           updated_at = now()
+     WHERE id = ${postId}::uuid
+  `);
+  return found !== null;
 }
