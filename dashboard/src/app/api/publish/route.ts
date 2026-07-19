@@ -4,6 +4,7 @@ import { markQueuePublished } from "@/lib/queue-store";
 import { reportFailure, normalizePlatform, classifyPublishFailure } from "@/lib/observability";
 import {
   getChannelCred,
+  fetchThreadsPermalink,
   publishThreads,
   publishInstagram,
   publishX,
@@ -60,10 +61,30 @@ export async function POST(request: Request) {
        LIMIT 1
     `);
     if (existing) {
+      let permalink = existing.permalink ?? undefined;
+      if (!permalink && platform === "threads" && existing.external_id) {
+        const recoveredPermalink = await fetchThreadsPermalink(cred.token, existing.external_id);
+        if (recoveredPermalink) {
+          permalink = recoveredPermalink;
+          await withTenant(tenant_id, (sql) => sql`
+            UPDATE published_posts SET permalink = ${recoveredPermalink}
+             WHERE tenant_id = ${tenant_id}::uuid
+               AND draft_id = ${draft_id}::uuid
+               AND platform = ${platform}
+               AND status = 'published'
+               AND external_id = ${existing.external_id}
+          `);
+          await markQueuePublished(tenant_id, draft_id, {
+            platform,
+            externalId: existing.external_id,
+            permalink: recoveredPermalink,
+          });
+        }
+      }
       return Response.json({
         ok: true,
         externalId: existing.external_id ?? undefined,
-        permalink: existing.permalink ?? undefined,
+        permalink,
         alreadyPublished: true,
       });
     }

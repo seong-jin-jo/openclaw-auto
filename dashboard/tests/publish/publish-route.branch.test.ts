@@ -53,6 +53,7 @@ vi.mock("@/lib/publish", async (importActual) => {
       H.getChannelCredCalls.push(args);
       return H.cred;
     }),
+    fetchThreadsPermalink: vi.fn(async () => "https://www.threads.net/@u/post/recovered"),
   };
 });
 
@@ -218,6 +219,24 @@ describe("/api/publish — happy path (실 publish* + fetch 목)", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(H.inserts).toHaveLength(0);
     expect(H.markQueuePublishedCalls).toHaveLength(0);
+  });
+
+  it("기존 성공 기록의 permalink가 비었으면 외부 재발행 없이 URL만 복구한다", async () => {
+    H.existingPublication = { external_id: "already-no-link", permalink: null };
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    const draftId = "13730d99-a268-47de-9cf9-90157ea1fa79";
+
+    const { body } = await callPublish({ platform: "threads", text: "hi", draft_id: draftId });
+
+    expect(body).toMatchObject({
+      ok: true,
+      externalId: "already-no-link",
+      permalink: "https://www.threads.net/@u/post/recovered",
+      alreadyPublished: true,
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(H.markQueuePublishedCalls).toHaveLength(1);
   });
 
   it("x: 4키 OAuth1.0a 트윗 → published 기록, 280자 절단", async () => {

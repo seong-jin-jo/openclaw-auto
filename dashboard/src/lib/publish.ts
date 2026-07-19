@@ -177,6 +177,23 @@ async function waitForThreadsContainer(containerId: string, token: string): Prom
   return { error: "Threads container 준비 시간이 초과됐습니다. 잠시 후 다시 시도해주세요." };
 }
 
+export async function fetchThreadsPermalink(token: string, mediaId: string): Promise<string | undefined> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      const response = await fetch(
+        `${THREADS_API}/${mediaId}?fields=permalink&access_token=${encodeURIComponent(token)}`,
+        { signal: AbortSignal.timeout(5000) },
+      );
+      if (response.ok) {
+        const permalink = ((await response.json()) as { permalink?: string }).permalink;
+        if (permalink) return permalink;
+      }
+    } catch { /* retry below */ }
+    if (attempt < 4) await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  return undefined;
+}
+
 // Threads 발행 (text + 선택 image). 2-step container→publish.
 export async function publishThreads(cred: ChannelCred, text: string, imageUrl?: string): Promise<PublishResult> {
   if (!cred.token) return { ok: false, error: "Threads 채널 토큰이 없습니다. 채널을 다시 연결해주세요." };
@@ -220,14 +237,8 @@ export async function publishThreads(cred: ChannelCred, text: string, imageUrl?:
     return { ok: false, error: "Threads 발행 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요." };
   }
 
-  // permalink 조회 — 실패해도 발행 자체는 성공으로 간주(non-fatal)
-  let permalink: string | undefined;
-  try {
-    const pl = await fetch(`${THREADS_API}/${mediaId}?fields=permalink&access_token=${encodeURIComponent(cred.token)}`, {
-      signal: AbortSignal.timeout(5000),
-    });
-    if (pl.ok) permalink = ((await pl.json()) as { permalink?: string }).permalink;
-  } catch { /* permalink 실패 무시 */ }
+  // 발행 직후 media 조회가 아직 비어 있을 수 있어 짧게 재시도한다. permalink 실패는 발행 성공을 뒤집지 않는다.
+  const permalink = await fetchThreadsPermalink(cred.token, mediaId);
   return { ok: true, externalId: mediaId, permalink };
 }
 

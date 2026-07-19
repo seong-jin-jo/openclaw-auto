@@ -4,16 +4,16 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: ship            # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design, build, qa]
+current_stage: build           # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
-  build:      { status: approved, artifacts_ok: true } # SNS-010 Threads container polling
-  qa:         { status: approved, artifacts_ok: true }
-  ship:       { status: in-progress, artifacts_ok: false }
+  build:      { status: in-progress, artifacts_ok: true } # SNS-013 permalink recovery
+  qa:         { status: pending, artifacts_ok: false }
+  ship:       { status: pending, artifacts_ok: false }
 override: false
 override_reason: ""
 override_expires: ""
@@ -185,6 +185,10 @@ override_expires: ""
   service `openclaw-dashboard-osmu`로 재실행해 시정.
 
 ## Blocked / Notes
+- SNS-013 build REOPENED FROM SHIP: 폴링 배포 후 실제 T-PIN-01 발행은 DB published 1/queue published로
+  성공했지만 직후 permalink 조회가 비어 API 응답에 URL이 없었다. 외부 재발행 없이 기존 external_id의 permalink를
+  최대 5회 재조회하고 성공 기록·queue JSON/DB를 보강하는 순차 retry 복구 경로 추가. focused 27 PASS, tsc PASS.
+  운영 동일 요청 alreadyPublished:true+permalink, DB published/distinct external 1 전 ship 완료 금지.
 - SNS-010 PROMOTED TO SHIP BLOCKER: SNS-009/SNS-012 운영 배포 후 T-PIN-01 TEXT 실발행에서 container 생성은
   성공했지만 즉시 `threads_publish`가 provider 400을 반환했다. 기존 QA의 "IMAGE에만 상태 폴링 영향" 판단을
   운영 증거로 폐기. 모든 Threads container를 `FINISHED`까지 최대 20초 폴링하고 `ERROR/EXPIRED`/unknown/

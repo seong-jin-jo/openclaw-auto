@@ -309,12 +309,15 @@ qa = **in-progress** (ship 게이트 잠김 유지). 아침 체크리스트 1~3 
 | SNS-010 | Threads 컨테이너 준비 전 발행·발행 결과불명 | 모든 media container 생성 직후 상태 폴링 없이 publish하고, publish 네트워크 단절 시 실제 성공 여부를 확정할 수 없음 | Meta 응답 지연·네트워크 단절 시점 | build: FINISHED까지 status 폴링 + ERROR/EXPIRED/timeout fail-closed; 응답 단절 중복은 SNS-012 순차 방지로 일부 완화 | TEXT/이미지 게시 실 permalink, publish 응답 단절 후 중복 0건 | 🔧 TEXT 폴링 코드·테스트됨 / 운영 미배포 |
 | SNS-011 | 운영 재배포 후 tenant queue/config 파일 소실 | deploy가 checkout 전 workspace 전체를 삭제하는데 OSMU가 workspace 상대 bind mount를 사용 | 삭제된 config의 별도 백업은 없음; queue는 DB shadow 복구 가능 | build: 고정 이름 Docker volume + 상대 bind 금지 계약 테스트 | 재배포 전후 동일 queue ID/원문 유지, 컨테이너 재생성 후에도 존속 | 🔧 코드 수정·테스트됨 / 운영 재배포 미검증 |
 | SNS-012 | 실발행 성공 후 draft 잔존·재클릭 중복 | `/api/publish`가 `published_posts`만 INSERT하고 queue JSON/DB shadow 상태를 갱신하지 않으며 기존 성공 조회도 없음 | 동시 요청 레이스는 별도 DB lock 없이는 완전 차단되지 않음 | build: 계정별 기존 성공 반환 + 성공 후 queue dual-write | 첫 요청 게시 1개/queue published, 순차 동일 요청 `alreadyPublished:true`, 외부 게시물 증가 0 | 🔧 코드 수정·테스트됨 / 운영 미배포 |
+| SNS-013 | 발행 성공했지만 permalink 누락으로 검증 실패 | Meta media permalink가 발행 직후 조회에서 비어도 발행 자체는 성공 처리되며 기존 성공 retry는 URL을 보강하지 않음 | Meta permalink 가시화 지연 | build: 초기 5회 조회 + 기존 external ID URL-only 복구/DB·queue 보강 | 동일 요청 `alreadyPublished:true`+permalink, published/distinct external 1 | 🔧 코드 수정·테스트됨 / 운영 미배포 |
 
 **관리 규칙:** 상태 전이는 `❌ NG → 🔧 코드 수정·테스트됨 → 🔧 로컬 실브라우저 관찰 → 🟡 운영 미검증 → ✅ 운영 관찰`만 허용한다. unit/mock/auth URL 200은 E2E나 종료증거로 승격하지 않는다. 각 ID는 코드 커밋·테스트·배포 run·실사용 증거에 동일하게 붙인다.
 
 **SNS-011 재현·복구 근거(2026-07-19):** SNS-009 배포 run `29662640422` 직후 실제 컨테이너의 `/app/data`와 `/app/config`, compose checkout의 `data-osmu`/`config-osmu`가 모두 비어 있음을 확인했다. workflow는 checkout 전에 workspace를 전부 삭제하고, 기존 compose는 그 workspace의 상대 경로를 mount해 영속성 계약이 모순이었다. DB `queue_posts`에는 T-PIN-01(`13730d99-...`, 397자, text match)과 T-02 두 draft가 남고, T-PIN-01 `published_posts`는 failed 1건·permalink 0건이라 복구 및 단일 재발행이 가능하다. compose를 `openclaw-osmu-data`/`openclaw-osmu-config` 고정 이름 volume으로 바꾸고 `osmu-persistence.contract.test.ts` 2 PASS와 `docker compose config --quiet --no-interpolate` PASS를 확인했다. 운영 종료증거는 새 volume에 DB shadow를 복구한 뒤 재배포 전후 동일 ID 2건이 유지되는 관찰이다.
 
 **SNS-010 TEXT 운영 재현 정정(2026-07-19):** deploy run `29681690918` 후 T-PIN-01을 재발행했을 때 identity 조회와 container 생성은 통과했으나 `threads_publish`가 400으로 실패했다. 공개 성공 0, failed 기록 2, queue draft, QA token revoke/401을 확인했다. 따라서 기존 "TEXT에는 폴링의 직접 영향 없음" 판단은 철회한다. container `status`를 최대 20회/1초 간격으로 조회해 `FINISHED`만 publish하고 `ERROR`/`EXPIRED`/unknown/network/timeout은 원문·토큰 비노출 오류로 중단하도록 수정했다. focused 3 files/29 PASS, tsc PASS. 운영 permalink 전에는 종료하지 않는다.
+
+**SNS-013 운영 재현(2026-07-19):** polling 배포 run `29683491094` 후 동일 draft 발행은 DB `published=1`, distinct external ID 1, queue JSON/DB `published`로 실제 성공했다. 단, 발행 직후 permalink가 비어 검증 스크립트가 URL assertion에서 중단됐다. 토큰은 revoke됐고 외부 게시 재호출은 하지 않았다. 초기 permalink를 5회 재시도하고, 이미 성공한 draft의 순차 요청은 기존 external ID로 URL만 조회해 DB/queue를 보강하도록 수정했다. focused 27 PASS, tsc PASS.
 
 **SNS-007 구현 결정:** 기존 `integrations` UNIQUE를 즉시 제거하지 않는다. 새 `channel_accounts` 테이블을 additive로 추가하고 기존 integration을 backfill·fallback으로 유지한다. OAuth는 계정별 upsert, 기본계정 변경 시 legacy integration을 동기화한다. 롤백 시 새 테이블 사용만 중단하면 기존 단일계정 경로가 유지된다.
 
