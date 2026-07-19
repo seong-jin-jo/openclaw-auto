@@ -151,6 +151,32 @@ async function resolveThreadsIdentity(token: string): Promise<{ id: string } | {
   }
 }
 
+async function waitForThreadsContainer(containerId: string, token: string): Promise<{ ok: true } | { error: string }> {
+  for (let attempt = 0; attempt < 20; attempt++) {
+    try {
+      const res = await fetch(
+        `${THREADS_API}/${containerId}?fields=status,error_message&access_token=${encodeURIComponent(token)}`,
+        { signal: AbortSignal.timeout(5000) },
+      );
+      if (!res.ok) {
+        return { error: `Threads container 상태 확인에 실패했습니다 (오류 코드 ${res.status}). 잠시 후 다시 시도해주세요.` };
+      }
+      const body = (await res.json()) as { status?: string };
+      if (body.status === "FINISHED") return { ok: true };
+      if (body.status === "ERROR" || body.status === "EXPIRED") {
+        return { error: "Threads container 처리에 실패했습니다. 채널을 다시 연결하거나 콘텐츠를 확인해주세요." };
+      }
+      if (body.status !== "IN_PROGRESS") {
+        return { error: "Threads container 상태를 확인할 수 없습니다. 잠시 후 다시 시도해주세요." };
+      }
+    } catch {
+      return { error: "Threads container 상태 확인 중 네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요." };
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  return { error: "Threads container 준비 시간이 초과됐습니다. 잠시 후 다시 시도해주세요." };
+}
+
 // Threads 발행 (text + 선택 image). 2-step container→publish.
 export async function publishThreads(cred: ChannelCred, text: string, imageUrl?: string): Promise<PublishResult> {
   if (!cred.token) return { ok: false, error: "Threads 채널 토큰이 없습니다. 채널을 다시 연결해주세요." };
@@ -176,6 +202,9 @@ export async function publishThreads(cred: ChannelCred, text: string, imageUrl?:
   } catch {
     return { ok: false, error: "Threads container 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요." };
   }
+
+  const ready = await waitForThreadsContainer(containerId, cred.token);
+  if ("error" in ready) return { ok: false, error: ready.error };
 
   let mediaId: string;
   try {

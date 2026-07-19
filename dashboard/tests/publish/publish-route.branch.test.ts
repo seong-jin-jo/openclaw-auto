@@ -117,6 +117,7 @@ describe("/api/publish — SNS-007 account_id 선택 발행", () => {
     H.cred = { token: "tok", userId: "u-1", accountId: "acc-42" };
     installFetch([
       { match: "me?fields=id", json: { id: "live-id" } },
+      { match: "fields=status", json: { status: "FINISHED" } },
       { match: "/threads_publish", json: { id: "media-1" } },
       { match: "/threads", json: { id: "container-1" } },
       { match: "fields=permalink", json: { permalink: "https://www.threads.net/@u/post/1" } },
@@ -144,6 +145,7 @@ describe("/api/publish — SNS-007 account_id 선택 발행", () => {
     H.cred = { token: "tok", userId: "u-1" }; // accountId 없음(기본계정 mock에선 미설정)
     installFetch([
       { match: "me?fields=id", json: { id: "live-id" } },
+      { match: "fields=status", json: { status: "FINISHED" } },
       { match: "/threads_publish", json: { id: "media-2" } },
       { match: "/threads", json: { id: "container-2" } },
       { match: "fields=permalink", json: { permalink: "https://www.threads.net/@u/post/2" } },
@@ -160,6 +162,7 @@ describe("/api/publish — happy path (실 publish* + fetch 목)", () => {
   it("threads: container→publish→permalink, published 기록", async () => {
     installFetch([
       { match: "me?fields=id", json: { id: "live-id" } },
+      { match: "fields=status", json: { status: "FINISHED" } },
       { match: "/threads_publish", json: { id: "media-1" } },
       { match: "/threads", json: { id: "container-1" } },
       { match: "fields=permalink", json: { permalink: "https://www.threads.net/@u/post/1" } },
@@ -180,6 +183,7 @@ describe("/api/publish — happy path (실 publish* + fetch 목)", () => {
   it("UUID draft 성공 시 queue를 published로 마킹한다", async () => {
     installFetch([
       { match: "me?fields=id", json: { id: "live-id" } },
+      { match: "fields=status", json: { status: "FINISHED" } },
       { match: "/threads_publish", json: { id: "media-uuid" } },
       { match: "/threads", json: { id: "container-uuid" } },
       { match: "fields=permalink", json: { permalink: "https://www.threads.net/@u/post/uuid" } },
@@ -251,6 +255,7 @@ describe("/api/publish — 실패/기록 분기", () => {
   it("DB 기록 실패 → recordError 반환, 발행 결과는 보존", async () => {
     installFetch([
       { match: "me?fields=id", json: { id: "live-id" } },
+      { match: "fields=status", json: { status: "FINISHED" } },
       { match: "/threads_publish", json: { id: "media-9" } },
       { match: "/threads", json: { id: "container-9" } },
       { match: "fields=permalink", json: { permalink: "https://x" } },

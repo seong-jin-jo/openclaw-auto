@@ -17,6 +17,9 @@ describe("publishThreads identity resolution (SNS-009)", () => {
       if (String(url).includes("/me?fields=id")) {
         return { ok: true, json: async () => ({ id: "live-real-id" }) } as Response;
       }
+      if (String(url).includes("fields=status")) {
+        return { ok: true, json: async () => ({ status: "FINISHED" }) } as Response;
+      }
       if (String(url).includes("/threads_publish")) {
         return { ok: true, json: async () => ({ id: "media-1" }) } as Response;
       }
@@ -77,6 +80,7 @@ describe("publishThreads identity resolution (SNS-009)", () => {
     vi.stubGlobal("fetch", vi.fn(async (url: string) => {
       calls.push(String(url));
       if (String(url).includes("/me?fields=id")) return { ok: true, json: async () => ({ id: "live-only-id" }) } as Response;
+      if (String(url).includes("fields=status")) return { ok: true, json: async () => ({ status: "FINISHED" }) } as Response;
       if (String(url).includes("/threads_publish")) return { ok: true, json: async () => ({ id: "media-2" }) } as Response;
       if (String(url).includes("/threads")) return { ok: true, json: async () => ({ id: "container-2" }) } as Response;
       return { ok: true, json: async () => ({ permalink: "https://threads.net/p/2" }) } as Response;
@@ -141,6 +145,7 @@ describe("publishThreads identity resolution (SNS-009)", () => {
   it("publish 중 네트워크 오류 → 안전한 오류로 실패, 원문/토큰 미노출", async () => {
     const fetchMock = vi.fn(async (url: string) => {
       if (String(url).includes("/me?fields=id")) return { ok: true, json: async () => ({ id: "live-id" }) } as Response;
+      if (String(url).includes("fields=status")) return { ok: true, json: async () => ({ status: "FINISHED" }) } as Response;
       if (String(url).includes("/threads") && !String(url).includes("_publish")) {
         return { ok: true, json: async () => ({ id: "container-1" }) } as Response;
       }
@@ -157,12 +162,13 @@ describe("publishThreads identity resolution (SNS-009)", () => {
     expect(result.error).toBeTruthy();
     expect(result.error).not.toContain("ETIMEDOUT");
     expect(result.error).not.toContain("tok");
-    expect(fetchMock).toHaveBeenCalledTimes(3); // /me + container + publish attempt만
+    expect(fetchMock).toHaveBeenCalledTimes(4); // /me + container + status + publish attempt
   });
 
   it("publish 응답이 200이지만 malformed JSON(id 없음) → 안전하게 실패, permalink는 호출 안 됨", async () => {
     const fetchMock = vi.fn(async (url: string) => {
       if (String(url).includes("/me?fields=id")) return { ok: true, json: async () => ({ id: "live-id" }) } as Response;
+      if (String(url).includes("fields=status")) return { ok: true, json: async () => ({ status: "FINISHED" }) } as Response;
       if (String(url).includes("/threads") && !String(url).includes("_publish")) {
         return { ok: true, json: async () => ({ id: "container-1" }) } as Response;
       }
@@ -177,6 +183,51 @@ describe("publishThreads identity resolution (SNS-009)", () => {
 
     expect(result.ok).toBe(false);
     expect(result.error).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it("container가 IN_PROGRESS 후 FINISHED가 되면 그 뒤에만 publish한다", async () => {
+    vi.useFakeTimers();
+    let statusCalls = 0;
+    const calls: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      calls.push(String(url));
+      if (String(url).includes("/me?fields=id")) return { ok: true, json: async () => ({ id: "live-id" }) } as Response;
+      if (String(url).includes("fields=status")) {
+        statusCalls++;
+        return { ok: true, json: async () => ({ status: statusCalls === 1 ? "IN_PROGRESS" : "FINISHED" }) } as Response;
+      }
+      if (String(url).includes("/threads_publish")) return { ok: true, json: async () => ({ id: "media-ready" }) } as Response;
+      if (String(url).includes("/threads")) return { ok: true, json: async () => ({ id: "container-ready" }) } as Response;
+      return { ok: true, json: async () => ({ permalink: "https://threads.net/p/ready" }) } as Response;
+    }));
+
+    const pending = publishThreads({ token: "tok" }, "hello");
+    await vi.runAllTimersAsync();
+    const result = await pending;
+
+    expect(result.ok).toBe(true);
+    expect(statusCalls).toBe(2);
+    expect(calls.findIndex((url) => url.includes("/threads_publish")))
+      .toBeGreaterThan(calls.findIndex((url) => url.includes("fields=status")));
+    vi.useRealTimers();
+  });
+
+  it.each(["ERROR", "EXPIRED"])("container %s 상태면 publish하지 않는다", async (status) => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes("/me?fields=id")) return { ok: true, json: async () => ({ id: "live-id" }) } as Response;
+      if (String(url).includes("fields=status")) return { ok: true, json: async () => ({ status }) } as Response;
+      if (String(url).includes("/threads") && !String(url).includes("_publish")) {
+        return { ok: true, json: async () => ({ id: "container-bad" }) } as Response;
+      }
+      throw new Error("publish should not be called for terminal container failure");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await publishThreads({ token: "tok" }, "hello");
+
+    expect(result.ok).toBe(false);
+    expect(result.error).not.toContain("tok");
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 });

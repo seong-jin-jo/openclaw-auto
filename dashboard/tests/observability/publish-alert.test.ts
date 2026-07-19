@@ -68,6 +68,7 @@ describe("/api/publish — publish_failed 알림 경계", () => {
   it("발행 성공 → reportFailure 호출 안 함", async () => {
     installFetch([
       { match: "me?fields=id", json: { id: "live-id" } },
+      { match: "fields=status", json: { status: "FINISHED" } },
       { match: "/threads_publish", json: { id: "media-1" } },
       { match: "/threads", json: { id: "container-1" } },
       { match: "fields=permalink", json: { permalink: "https://www.threads.net/@u/post/1" } },

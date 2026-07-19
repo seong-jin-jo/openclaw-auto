@@ -4,16 +4,16 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: ship            # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design, build, qa]
+current_stage: build           # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
-  build:      { status: approved, artifacts_ok: true } # SNS-012 publish idempotency + queue state
-  qa:         { status: approved, artifacts_ok: true }
-  ship:       { status: in-progress, artifacts_ok: false }
+  build:      { status: in-progress, artifacts_ok: true } # SNS-010 Threads container polling
+  qa:         { status: pending, artifacts_ok: false }
+  ship:       { status: pending, artifacts_ok: false }
 override: false
 override_reason: ""
 override_expires: ""
@@ -181,6 +181,10 @@ override_expires: ""
   service `openclaw-dashboard-osmu`로 재실행해 시정.
 
 ## Blocked / Notes
+- SNS-010 PROMOTED TO SHIP BLOCKER: SNS-009/SNS-012 운영 배포 후 T-PIN-01 TEXT 실발행에서 container 생성은
+  성공했지만 즉시 `threads_publish`가 provider 400을 반환했다. 기존 QA의 "IMAGE에만 상태 폴링 영향" 판단을
+  운영 증거로 폐기. 모든 Threads container를 `FINISHED`까지 최대 20초 폴링하고 `ERROR/EXPIRED`/unknown/
+  timeout은 fail-closed하도록 구현. focused 29 PASS, tsc PASS. CI→재승인→재배포→동일 draft permalink 전 ship 금지.
 - SNS-012 build REOPENED FROM SHIP: `/api/publish` 성공이 `published_posts`만 기록하고 원 queue JSON/DB
   shadow를 `published`로 전환하지 않아 UI에 draft가 남고 순차 재클릭 시 동일 외부 게시물을 다시 만들 수 있다.
   동일 tenant+draft+platform+account 성공 기록을 외부 호출 전에 재사용하고, 첫 성공 뒤 queue JSON과
