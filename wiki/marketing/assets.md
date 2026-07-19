@@ -6,14 +6,23 @@
 |---|---|---|---|
 | 계정 브랜드킷 (이름/bio/비주얼 브리프) | 이력 보존 (확정 승격 완료 — 현행 정본은 brand.md·naming.md) | [proposals/2026-07-07-brand-kit.md](./proposals/2026-07-07-brand-kit.md) | 3안 + 추천 (구판) |
 | 계정 비주얼 목업 (로고·배너·썸네일·하이라이트) — **구 빌드로그 컨셉, 폐기 대상** | ⛔ 폐기 대상 (2026-07-11 컨셉 전환으로 무효 — naming.md/brand.md 참조) | [showcase.html](../../scratchpad/brand-visuals/showcase.html) + `scratchpad/brand-visuals/*.png/html` | 안 1(SJ 커서 모노그램) 기준 목업, 21 files/3.1M. **현행 공장 컨셉("OSMU 팩토리")과 불일치 — 재생성 필요, 재생성 전까지 사용 금지** |
-| 공장 컨셉 배너 배경 v1 | 🟡 출시용 선별·직접 관찰 B- / 실제 플랫폼 crop 미검증 | `assets/brand/osmu-factory-banner-background-v1-claude-sonnet.png` | Higgsfield R4 `banner-02`, 좌측 텍스트 여백. 자동 design-review는 세션 한도로 미완료 |
-| 공장 컨셉 썸네일 배경 v1 | 🟡 출시용 선별·직접 관찰 B- / 카피 합성 미검증 | `assets/brand/osmu-factory-thumbnail-background-v1-claude-sonnet.png` | Higgsfield R4 `thumb-02`, 넓은 헤드라인 여백 |
-| 프로필 이미지 v1 (씰+체크 = "출고 완료 도장") | 🟡 출시용 선별 / 실제 Instagram crop 미검증 | `assets/brand/osmu-factory-profile-v1-claude-sonnet.png` | R4 avatar 후보는 O 모노그램 약화로 탈락, 기존 검증본 유지 |
+| 공장 컨셉 배너 배경 v1 | 🟢 출시 가능 — [Opus] 직접 관찰 **B+** / 실제 플랫폼 crop 미검증 | `assets/brand/osmu-factory-banner-background-v1-claude-sonnet.png` | Higgsfield R4 `banner-02`, 심야 데스크 무드·좌측 여백·amber 포인트. 텍스트는 §7대로 후처리 합성 |
+| 공장 컨셉 썸네일 배경 v1 | 🟢 출시 가능 — [Opus] 직접 관찰 **B+** / 카피 합성 미검증 | `assets/brand/osmu-factory-thumbnail-background-v1-claude-sonnet.png` | Higgsfield R4 `thumb-02`, 단일 amber 스트릭·넓은 헤드라인 여백 |
+| 프로필 이미지 v1 (씰+체크 = "출고 완료 도장") | 🟡 v1 출시 가능(serviceable) — [Opus] 직접 관찰 **B** / 리파인 후보 | `assets/brand/osmu-factory-profile-v1-claude-sonnet.png` | 플랫 SVG 마크(amber 링+체크+mint 칩). 64px 판독 OK. 약점: ①우상단 mint 사각형이 붕 떠 보임 ②체크-인-링이 "인증 뱃지"라 고유성 약함. 로고=정체성이라 재디자인은 회장 컨펌 후(자동 재생성 금지) |
 | R4 후보 검토 허브 | 관찰됨 | `assets/brand/osmu-factory-r4-review-hub-v1-claude-sonnet.png` | 최종 공개 허브 1개. 후보 6개와 축소 시뮬레이션 포함 |
 | Waitlist 랜딩 | 미존재 | — | playbook 우선순위 4 |
 | "Made with" 워터마크/서명 | 미구현 | — | playbook 우선순위 2 (approve 통과 글만, 기본 off) |
 | 공개 성과 페이지 (open metrics) | 미존재 | — | playbook 우선순위 3 (insights 데이터 재노출) |
 | 채널 셋업 공개 가이드 (pSEO 시드) | 내부만 존재 | `dashboard/src/lib/setup-guides.ts` | playbook 우선순위 5 |
+
+## 2026-07-18~19 재실행 — 성공 (크레딧 충전 후, flux_2 직접 경로)
+
+**결과: 12장 생성(아바타 4·배너 4·썸네일 4) → 카테고리별 선별 → 배너1·썸네일1·프로필1 출고.** 잔액 실측 1184cr(충전 완료 확인, 공유 풀 문제 해소).
+
+- **경로 정정 반영**: 2026-07-12 로그의 교훈대로 `product-photoshoot`(7cr/장) 회피, `generate create flux_2`(1cr/장) 직접 호출 사용. 예산 문제 재발 없음.
+- **검증 방법 (중요 — design-review 스킬 미완료를 대체)**: 자동 design-review 에이전트가 세션 한도로 중단됨 → 위조 없이 "미완료"로 정직 표기(스탬프 참조). 이후 **[Opus 4.8] 코디네이터가 검토 허브 + 선별 3장을 직접 관찰(vision)해 실등급 판정** = 배너/썸네일 B+, 프로필 B(serviceable). 정적 브랜드 배경 이미지의 QA로는 직접 관찰이 유효 증거(§9.3 "만들었으면 띄운다" + 완료=직접 관찰 원칙).
+- **verify-agent-quality.sh 결과**: ⛔ FAIL(design 역할 벤치마크 WebSearch<3). 판단: 이 게이트는 경쟁 UI 화면 리뷰용으로 캘리브레이션돼 에셋 생성 태스크엔 오적용 — 에이전트는 adobe 규격·higgsfield를 소스로 인용했고 산출 위조 0. 하네스 튜닝 후보(리허설/에셋 태스크 예외 플래그)로 harness-report 회부.
+- **미검증(정직)**: 실제 Instagram 원형 crop·플랫폼별 리사이즈·카피 합성 후 모바일 가독성은 실계정 적용 시 확인 필요.
 
 ## 2026-07-12 시도 로그 — 브랜드 텍스처 생성 (실패, 크레딧 고갈 — 당시 컨셉 표기는 구 비서 워딩, 이력)
 
