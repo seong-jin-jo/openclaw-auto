@@ -4,16 +4,16 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: build           # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design]
+current_stage: ship            # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design, build, qa]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
-  build:      { status: in-progress, artifacts_ok: true } # SNS-010 Threads container polling
-  qa:         { status: pending, artifacts_ok: false }
-  ship:       { status: pending, artifacts_ok: false }
+  build:      { status: approved, artifacts_ok: true } # SNS-010 Threads container polling
+  qa:         { status: approved, artifacts_ok: true }
+  ship:       { status: in-progress, artifacts_ok: false }
 override: false
 override_reason: ""
 override_expires: ""
@@ -96,6 +96,10 @@ override_expires: ""
   Meta 앱 redirect URI `https://<live>/api/connect/{provider}/callback` 등록. 그 후 배포→browse로 qa 증거.
 
 ## 승인 로그 (append-only)
+2026-07-19 — SNS-010 build+qa APPROVED — 사용자 반복 지시 `묻지 않고 빨리 진행`, `개발 QA 배포 진행`,
+  최신 `빨리 되게 만들어`를 승인 근거로 반영. commit `c66e0b16`, CI run `29682690931` typecheck,
+  production build, PostgreSQL schema→seed→RLS, full test SUCCESS. focused 29 PASS에 IN_PROGRESS→FINISHED,
+  ERROR/EXPIRED와 원문 비노출 경계 포함. 운영 T-PIN-01 permalink 전 ship 완료 금지.
 2026-07-19 — SNS-012 build+qa APPROVED — 사용자 반복 지시 `묻지 않고 빨리 진행`, `개발 QA 배포 진행`,
   최신 `빨리 되게 만들어`를 승인 근거로 반영. commit `7511cf90`, CI run `29681441400`이 typecheck,
   production build, PostgreSQL schema→seed→RLS, full test SUCCESS. focused 14 PASS에서 실제 queue JSON
