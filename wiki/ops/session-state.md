@@ -1811,3 +1811,8 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
   TypeScript clean, production build 160 routes PASS, diff check PASS. primary는 `openclaw-auto:0.0`, 다음 액션은
   관련 파일만 commit/push→CI SUCCESS→OSMU 배포→기존 T-02 재호출 alreadyPublished/동일 URL/DB·queue 보강/
   외부 게시물 1건 유지 관찰→단기 token revoke+401이다.
+- 2026-07-20 SNS-014 CI/승인: commit `020c44d9`, GitHub Actions run `29735697748`이 typecheck, production
+  build, PostgreSQL schema→RLS, full test를 모두 성공했다. 사용자 무중단 실행 지시를 build/qa 승인으로 반영해
+  pipeline은 ship in-progress다. 다음 액션은 승인 기록 commit/push→deploy-marketing workflow를
+  `openclaw-dashboard-osmu` 단일 서비스로 dispatch→운영 기존 T-02 retry/DB·queue/permalink/중복 0/token revoke를
+  직접 관찰하는 것이다.

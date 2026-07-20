@@ -4,15 +4,15 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: build           # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design]
+current_stage: ship            # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design, build, qa]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
-  build:      { status: in-progress, artifacts_ok: true } # Instagram permalink + polling fail-closed; local QA PASS
-  qa:         { status: pending, artifacts_ok: false }
+  build:      { status: approved, artifacts_ok: true } # SNS-014 commit 020c44d9, CI 29735697748 SUCCESS
+  qa:         { status: approved, artifacts_ok: true } # local full + CI PostgreSQL/full test PASS
   ship:       { status: in-progress, artifacts_ok: false }
 override: false
 override_reason: ""
@@ -122,6 +122,11 @@ override_expires: ""
   Meta 앱 redirect URI `https://<live>/api/connect/{provider}/callback` 등록. 그 후 배포→browse로 qa 증거.
 
 ## 승인 로그 (append-only)
+2026-07-20 — SNS-014 build+qa APPROVED — 사용자의 반복 무중단 실행 지시와 최신 `고`를 승인 범위로 반영하고
+  추가 제품 승인 질문 없이 진행. commit `020c44d9`, focused 18 PASS, local full 78 files/673 PASS·9 DB-env skip,
+  TypeScript와 production 160-route build PASS. GitHub Actions run `29735697748` typecheck/build/PostgreSQL
+  schema→RLS/full test SUCCESS. OSMU 배포 후 기존 T-02 Instagram 재호출의 alreadyPublished/동일 permalink/
+  DB·queue 보강/외부 게시물 1건 유지 관찰 전 ship 완료 금지.
 2026-07-20 — GA4-002 build+qa APPROVED — 사용자의 무중단 진행 지시를 기존 승인 범위로 적용하고 추가 제품 승인
   질문 없이 진행. commit `7c84d533`, focused 18 PASS, local full 77 files/669 PASS·9 DB-env skip, TypeScript와
   production 160-page build PASS. GitHub Actions run `29728777597` typecheck/build/PostgreSQL schema→seed→RLS/
