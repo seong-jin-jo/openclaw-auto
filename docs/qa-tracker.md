@@ -524,3 +524,10 @@ Facebook 앱 활성화, Instagram 신규 로그인 OTP, YouTube 실업로드, �
 operator token까지 401로 지우는 인증 race를 관찰했다. 조회를 workspace 조건부 + `tenant_id`로 교정했다. 또한 TikTok·YouTube
 영상 직접 발행이 구현됐는데 SocialConnectButton이 “직접 발행 미지원”으로 표시하던 SSOT 드리프트를
 `VIDEO_PUBLISH_PLATFORMS`로 교정했다. focused 17 PASS, TypeScript clean, diff check PASS. 재배포 후 Chrome 재관찰 필요.
+
+**후속 운영 관찰(2026-07-21, commit `cf0be864`):** marketing VM Docker production build 161 pages PASS,
+컨테이너 `running/healthy`, DB up, Google auth URL 정상. 격리 Chrome `/videos`에서 Instagram accounts 200,
+TikTok accounts 200, readiness 200 두 번을 관찰했고 해당 navigation의 HTTP 4xx/5xx는 0건이었다. TikTok 버튼은 disabled이며
+`TIKTOK_CLIENT_KEY/TIKTOK_CLIENT_SECRET` 누락 사유가 화면에 표시되고, 낡은 “직접 발행 미지원” 문구는 없다.
+별도 `/login` Google 클릭은 실제 `accounts.google.com` identifier URL로 이동했다.
+화면 증거: `docs/evidence/sns017-tiktok-disabled-operating-20260721.png`. 운영자 브라우저 storage는 검증 후 폐기했다.

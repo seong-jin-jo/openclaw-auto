@@ -30,6 +30,16 @@ client fetcher가 operator token을 삭제했고, TikTok/YouTube에 낡은 “�
 다음 액션은 이 후속 commit을 동일 방식으로 재배포한 뒤 storage를 새로 주입한 격리 Chrome에서 401 0건과 정확한 TikTok
 credential 누락 문구를 직접 확인하는 것이다.
 
+**후속 운영 종료증거:** commit `cf0be864`를 bundle로 VM에 fast-forward, Supabase/GA build args를 보존한 Docker build
+161 pages PASS 후 dashboard만 교체했다. 컨테이너 healthy, DB up. 격리 Chrome `/videos`에서 Instagram accounts 200,
+TikTok accounts 200, readiness 200, 해당 navigation 4xx/5xx 0건. TikTok credential 누락 disabled 문구는 보이고 낡은
+“직접 발행 미지원” 문구는 없다. `/login` Google 클릭은 `accounts.google.com`까지 이동했다. 화면 증거는
+`docs/evidence/sns017-tiktok-disabled-operating-20260721.png`; 운영자 storage는 폐기했다.
+
+**남은 정확한 blocker:** TikTok 앱 credential·Content Posting API 심사와 실계정이 없어 OAuth callback·creator-info·
+SELF_ONLY 게시·status/permalink는 미검증이다. X credential, Facebook 앱 활성, Instagram OTP, YouTube 실업로드,
+동일 provider 실계정 2개 전환, GA4 DebugView도 전역 ship blocker로 남는다. 앱 내부 자동 진행분은 여기까지 운영 반영됐다.
+
 ---
 
 ### SNS-015 Instagram Reels 운영 종료 핸드오프 (2026-07-21)
