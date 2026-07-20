@@ -40,10 +40,11 @@ TikTok accounts 200, readiness 200, 해당 navigation 4xx/5xx 0건. TikTok crede
 SELF_ONLY 게시·status/permalink는 미검증이다. X credential, Facebook 앱 활성, Instagram OTP, YouTube 실업로드,
 동일 provider 실계정 2개 전환, GA4 DebugView도 전역 ship blocker로 남는다. 앱 내부 자동 진행분은 여기까지 운영 반영됐다.
 
-**배포/동기화 상태:** 로컬과 marketing VM은 증거 commit `0c017cef`로 일치하고 운영 컨테이너는 healthy다.
+**배포/동기화 상태:** 로컬과 marketing VM은 최신 commit으로 일치하고 운영 컨테이너는 healthy다.
 롤백용 stopped 컨테이너 `openclaw-dashboard-osmu-pre-cf0be864`와 `...-pre-f85906af`를 보존했다.
-`git push origin main`은 `Could not resolve host: github.com`으로 실패해 origin/main보다 로컬이 10 commits 앞이다.
-DNS 복구 후 push만 재실행하면 되며, 현재 운영 이미지는 bundle로 이미 반영되어 서비스에는 영향이 없다.
+일반 `git push`는 간헐적 `Could not resolve host: github.com`이었지만, `dig`가 반환한 현재 GitHub IP를
+일회성 `http.curloptResolve`로만 주입해 `020c44d9..9a696ee5` push에 성공했다. 로컬·`origin/main`은
+`9a696ee5`, ahead 0으로 확인했다. 영구 hosts/config 변경은 하지 않았다.
 
 **GA4 운영 관찰 추가:** 격리 Chrome storage를 초기화하고 `/login`에서 분석 동의를 클릭했다. gtag 스크립트 200,
 measurement `G-MEEQ2D8C1J`의 `page_view`와 `scroll` 이벤트가 실제 `google-analytics.com/g/collect`로 POST되어
