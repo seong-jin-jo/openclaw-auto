@@ -1816,3 +1816,10 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
   pipeline은 ship in-progress다. 다음 액션은 승인 기록 commit/push→deploy-marketing workflow를
   `openclaw-dashboard-osmu` 단일 서비스로 dispatch→운영 기존 T-02 retry/DB·queue/permalink/중복 0/token revoke를
   직접 관찰하는 것이다.
+- 2026-07-20 SNS-014 운영 종료: GitHub API dispatch 차단 후 같은 commit `020c44d9`가 checkout된 marketing VM에서
+  이미지를 직접 build하고 `openclaw-dashboard-osmu`만 재생성했다. healthy/login 200/me 401/google 200/health 200.
+  기존 T-02 Instagram retry는 alreadyPublished true+동일 permalink, queue published, token revoke 후 401. DB는
+  published 1/distinct external 1/failed 0/permalink 1, queue payload URL 존재. gstack 브라우저에서 공개 페이지의
+  계정명+273자 caption 전체+1024x768 이미지를 재관찰했다. SNS-014 종료. 다음 액션은 전체 ship 차단인 X/TikTok
+  credential, Facebook 앱 활성, Instagram 신규 로그인 OTP, YouTube 실업로드, 동일 테넌트 provider 2계정 실전환,
+  GA4 DebugView UI를 외부 조건 회수 순서대로 검증하는 것이다.

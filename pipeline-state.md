@@ -47,6 +47,15 @@ override_expires: ""
 - CI SUCCESS와 운영 T-02 `alreadyPublished:true`/동일 permalink/DB·queue URL 보강/외부 게시물 1건 유지 전
   ship 완료 금지.
 
+## 2026-07-20 SNS-014 Instagram operating close
+- commit `020c44d9`, CI run `29735697748` SUCCESS 후 marketing VM에서 동일 commit 이미지를 직접 build하고
+  `openclaw-dashboard-osmu`만 재생성했다. healthy/login 200/me 401/google 200/health 200.
+- 기존 T-02 retry는 `alreadyPublished:true`, 동일 Instagram URL, queue published, token revoke 후 401. DB는
+  published 1/distinct external 1/failed 0/permalink 1이고 queue payload에도 URL이 저장됐다.
+- 공개 브라우저가 `zero_to_one_ai`, 273자 caption 전체, 1024x768 이미지를 직접 렌더했다. SNS-014는 운영 관찰로
+  종료한다. 전체 ship은 X/TikTok credential, Facebook 앱 활성, Instagram 신규 로그인 OTP, YouTube 실업로드,
+  provider 동일 테넌트 2계정 실전환, GA4 DebugView UI가 미검증이라 in-progress 유지한다.
+
 > 2026-06-30 `init --adopt`. 이 레포는 이미 라이브 배포된 멀티테넌트 마케팅 SaaS라 plan~build는
 > ADOPT(기존 인정). **현재 ship(in-progress).** 신규 기능(OAuth 연결, GA4, 가이드 등)은 build→qa→ship 게이트를
 > `/approve`로만 통과한다. **배포(gh workflow / ship)는 `/approve qa` 후에만.** (과거 게이트 없는
