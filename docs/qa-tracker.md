@@ -540,3 +540,21 @@ TikTok accounts 200, readiness 200 두 번을 관찰했고 해당 navigation의 
   실제 POST되어 각각 HTTP 204를 반환한 것을 network에서 직접 관찰했다.
 - 판정: 클라이언트 태그·동의 후 이벤트 전송은 운영 관찰 완료. GA4 관리 콘솔 DebugView에 이벤트가 표시되는지는
   Google 계정 콘솔 화면을 열지 않았으므로 **미검증**이다. 브라우저 storage는 관찰 후 삭제했다.
+
+### 2026-07-21 SNS-017 TikTok 비동기 발행 — 독립 QA PASS
+
+**판정: 코드·자동 QA·생산 빌드 BLOCKER 0. 운영 배포 가능하며, 실 TikTok 발행은 credential·앱 심사 부재로 미검증이다.**
+
+- 최종 관찰: focused 6 files / 25 tests PASS, 전체 `npm test` 90 files / 776 PASS / 9 DB-env skip,
+  `npx tsc --noEmit` PASS, Next.js 16 Webpack production build 162 pages PASS, `git diff --check` PASS.
+- QA 발견·해소: workspace 전환 시 이전 tenant publish ID가 한 프레임 poll될 수 있던 race를 상태 자체의 workspace 태깅으로 차단했다.
+  `workspaceId` nullability를 정규화해 typecheck/build를 회복했다.
+- QA 발견·해소: provider `publish_id`와 final `post_id`를 분리하기 위해 `provider_post_id` additive schema와 완료 update/재조회
+  계약을 추가했다. 중복 POST의 완료 응답도 final post ID를 사용한다.
+- QA 발견·해소: 공개 게시의 creator-info 일시 실패 또는 final post ID 부재 시 성공 확정을 보류하고 202로 재시도한다.
+  반대로 `SELF_ONLY`는 공개 post ID가 없을 수 있으므로 저장된 privacy metadata와 `PUBLISH_COMPLETE`로 정상 종결한다.
+- 보안·격리: status lookup은 현재 tenant의 예약과 그 예약의 `account_id` 토큰만 사용하고 provider 원문 오류·token을 숨긴다.
+  5xx/429에서는 브라우저 pending을 보존하며 terminal/stale 4xx에서만 제거한다.
+- 미검증: 로컬 `DATABASE_URL` 부재로 PostgreSQL 연동형 9건과 schema seed는 skip됐다. Playwright 구성, mobile project,
+  Maestro flow는 없다. 운영 TikTok credential·Content Posting API 심사·실계정이 없어 OAuth → SELF_ONLY Direct Post →
+  status 완료 및 공개 게시 post ID/permalink의 실제 provider 왕복은 미검증이다.

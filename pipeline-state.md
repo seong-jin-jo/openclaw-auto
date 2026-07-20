@@ -109,6 +109,18 @@ override_expires: ""
 - GA4: 격리 Chrome에서 분석 동의 후 measurement `G-MEEQ2D8C1J`의 `page_view`·`scroll`이 실제
   `google-analytics.com/g/collect`로 POST되어 둘 다 HTTP 204를 직접 관찰했다. 전송은 검증됨, DebugView UI는 미검증.
 
+## 2026-07-21 SNS-017 TikTok async publication QA PASS
+- TikTok init 전에 tenant/account/content/options 기반 `published_posts` 예약을 원자적으로 잡고, provider `publish_id`와
+  final `post_id`를 `external_id`/`provider_post_id`에 분리 저장한다. privacy metadata로 공개 게시와 SELF_ONLY 완료 조건을
+  분리하고, workspace-scoped 브라우저 polling으로 새로고침 복구와 tenant 전환 격리를 보장한다.
+- 독립 QA 최종 focused 6 files/25 PASS, full 90 files/776 PASS·9 DB-env skip, TypeScript clean, Webpack production
+  build 162 pages PASS, diff check PASS. QA가 발견한 workspace race, post ID 미영속, public creator-info transient,
+  SELF_ONLY 무한 polling 가능성은 수정 후 회귀 테스트로 고정했다.
+- ship은 `in-progress`, `artifacts_ok:false` 유지한다. 운영 배포와 멱등 schema 적용 전이며, TikTok credential·Content
+  Posting API 심사·실계정이 없어 실제 OAuth/Direct Post provider 왕복은 미검증이다.
+- 다음 실행: 명시 파일 commit/push → OSMU 단독 deploy workflow → schema 컬럼, health/login/operator smoke와 live route
+  반영 관찰. credential 회수 시 SELF_ONLY와 공개 게시를 각각 실제 계정으로 E2E한다.
+
 > 2026-06-30 `init --adopt`. 이 레포는 이미 라이브 배포된 멀티테넌트 마케팅 SaaS라 plan~build는
 > ADOPT(기존 인정). **현재 ship(in-progress).** 신규 기능(OAuth 연결, GA4, 가이드 등)은 build→qa→ship 게이트를
 > `/approve`로만 통과한다. **배포(gh workflow / ship)는 `/approve qa` 후에만.** (과거 게이트 없는

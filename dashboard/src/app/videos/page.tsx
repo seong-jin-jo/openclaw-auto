@@ -117,6 +117,18 @@ export default function VideosPage() {
   const [tiktokDisableStitch, setTiktokDisableStitch] = useState(false);
   const [tiktokAiGenerated, setTiktokAiGenerated] = useState(true);
   const [publishingPlatform, setPublishingPlatform] = useState<string | null>(null);
+  // publish_id는 TikTok이 비동기 처리하는 동안 유일한 회수 키다. 탭 새로고침 뒤에도 현재
+  // workspace에 한해서만 polling을 재개한다(다른 tenant의 이전 브라우저 상태는 섞지 않는다).
+  const [tiktokPendingState, setTiktokPendingState] = useState<{
+    workspaceId: string | null;
+    entries: Record<string, string>;
+  }>({ workspaceId: null, entries: {} });
+  const pendingWorkspaceId = activeWorkspace?.id ?? null;
+  // workspace prop이 바뀐 첫 렌더부터 이전 tenant 상태를 숨긴다. useEffect가 실행되기 전의
+  // 한 프레임에도 오래된 publish_id가 새 tenant 인증으로 poll되지 않아야 한다.
+  const tiktokPending = tiktokPendingState.workspaceId === pendingWorkspaceId
+    ? tiktokPendingState.entries
+    : {};
   const [previewFile, setPreviewFile] = useState<string | null>(null); // 인라인 임베드 플레이어 (발행 전 미리보기)
 
   // 0차 Long Video Repurpose (external clipper + OSMU refine)
@@ -147,7 +159,84 @@ export default function VideosPage() {
     setPublishAccountId("");
     setTiktokAccountId("");
     setTiktokPrivacy("");
+    const workspaceId = activeWorkspace?.id;
+    const storageKey = workspaceId ? `tiktok-pending:${workspaceId}` : "";
+    if (!workspaceId) {
+      setTiktokPendingState({ workspaceId: null, entries: {} });
+      return;
+    }
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(storageKey) || "{}") as Record<string, unknown>;
+      setTiktokPendingState({
+        workspaceId,
+        entries: Object.fromEntries(
+          Object.entries(saved)
+            .filter(([, value]) => typeof value === "string")
+            .map(([filename, publishId]) => [filename, publishId as string]),
+        ),
+      });
+    } catch {
+      setTiktokPendingState({ workspaceId, entries: {} });
+    }
   }, [activeWorkspace?.id]);
+
+  const rememberTikTokPending = (filename: string, publishId: string) => {
+    const workspaceId = activeWorkspace?.id;
+    if (!workspaceId) return;
+    setTiktokPendingState((current) => {
+      const currentEntries = current.workspaceId === workspaceId ? current.entries : {};
+      const entries = { ...currentEntries, [filename]: publishId };
+      window.localStorage.setItem(`tiktok-pending:${workspaceId}`, JSON.stringify(entries));
+      return { workspaceId, entries };
+    });
+  };
+
+  const clearTikTokPending = (filename: string) => {
+    const workspaceId = activeWorkspace?.id;
+    if (!workspaceId) return;
+    setTiktokPendingState((current) => {
+      if (current.workspaceId !== workspaceId) return current;
+      const { [filename]: _removed, ...entries } = current.entries;
+      window.localStorage.setItem(`tiktok-pending:${workspaceId}`, JSON.stringify(entries));
+      return { workspaceId, entries };
+    });
+  };
+
+  useEffect(() => {
+    const entries = Object.entries(tiktokPending);
+    if (entries.length === 0) return;
+    let cancelled = false;
+    const poll = async () => {
+      await Promise.all(entries.map(async ([filename, publishId]) => {
+        try {
+          const response = await fetch(`/api/tiktok/publish-status?publish_id=${encodeURIComponent(publishId)}`, { headers: authHeaders() });
+          if (response.status === 401) {
+            window.dispatchEvent(new CustomEvent("auth:required"));
+            return;
+          }
+          const body = await response.json() as { ok?: boolean; status?: string; url?: string; error?: string };
+          if (cancelled || body.status === "processing") return;
+          if (body.status === "published") {
+            clearTikTokPending(filename);
+            showToast(body.url ? `TikTok 발행 완료: ${body.url}` : "TikTok 발행이 완료되었습니다.", "success");
+          } else if (body.status === "failed") {
+            clearTikTokPending(filename);
+            showToast(body.error || "TikTok 발행 상태를 더 이상 확인할 수 없습니다. 계정과 영상 상태를 확인해주세요.", "error");
+          } else if (response.status < 500 && response.status !== 429) {
+            // 저장된 작업이 없거나 계정이 제거된 경우에는 이 브라우저의 stale key만 정리한다.
+            // 5xx/429는 일시 오류일 수 있으므로 pending을 보존해 다음 poll에서 회수한다.
+            clearTikTokPending(filename);
+            showToast(body.error || "TikTok 발행 상태를 확인할 수 없습니다.", "error");
+          }
+        } catch {
+          // 일시 네트워크 오류는 예약을 지우지 않는다. 다음 주기의 tenant-scoped poll이 회수한다.
+        }
+      }));
+    };
+    void poll();
+    const interval = window.setInterval(() => { void poll(); }, 4000);
+    return () => { cancelled = true; window.clearInterval(interval); };
+  }, [tiktokPending, activeWorkspace?.id, showToast]);
 
   useEffect(() => {
     // TikTok UX 가이드: 공개 범위는 계정별 옵션을 보여준 뒤 사용자가 직접 선택해야 한다.
@@ -204,7 +293,7 @@ export default function VideosPage() {
     const label = platform === "reels" ? "Instagram Reels" : platform === "tiktok" ? "TikTok" : "YouTube";
     setPublishingPlatform(`${platform}:${filename}`);
     try {
-      const res = await apiPost<{ ok: boolean; processing?: boolean; url?: string; error?: string }>("/api/video/publish", {
+      const res = await apiPost<{ ok: boolean; processing?: boolean; publishId?: string; url?: string; error?: string }>("/api/video/publish", {
         filename,
         title: publishTitle || filename,
         description: publishDesc,
@@ -219,6 +308,9 @@ export default function VideosPage() {
         } : {}),
       });
       if (res?.ok) {
+        if (platform === "tiktok" && res.processing && res.publishId) {
+          rememberTikTokPending(filename, res.publishId);
+        }
         showToast(res.processing ? `${label}에서 영상을 처리 중입니다.` : `Published to ${label}: ${res.url || ""}`, "success");
         setPublishingFile(null);
       } else {
@@ -707,11 +799,11 @@ export default function VideosPage() {
                     {tiktokCreatorData?.ready && tiktokPrivacy && (
                       <button
                         data-testid="tiktok-publish-button"
-                        disabled={publishingPlatform === `tiktok:${v.filename}`}
+                        disabled={publishingPlatform === `tiktok:${v.filename}` || Boolean(tiktokPending[v.filename])}
                         onClick={() => handlePublish(v.filename, "tiktok")}
                         className="px-2 py-1 text-xs bg-surface-2 text-text rounded hover:bg-surface disabled:opacity-50"
                       >
-                        {publishingPlatform === `tiktok:${v.filename}` ? "처리 중" : "TikTok"}
+                        {publishingPlatform === `tiktok:${v.filename}` || tiktokPending[v.filename] ? "처리 중" : "TikTok"}
                       </button>
                     )}
                     <button onClick={() => handleDelete(v.filename)} className="px-2 py-1 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">

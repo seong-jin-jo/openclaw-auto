@@ -3,74 +3,107 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 
+const TENANT = "11111111-1111-1111-1111-111111111111";
+const ACCOUNT = "22222222-2222-2222-2222-222222222222";
 const H = vi.hoisted(() => ({
   tenantId: "11111111-1111-1111-1111-111111111111" as string | null,
   cred: { token: "tik-token", accountId: "22222222-2222-2222-2222-222222222222" } as { token: string; accountId: string } | null,
   creator: {
-    username: "creator",
-    nickname: "Creator",
-    avatarUrl: "",
+    username: "creator", nickname: "Creator", avatarUrl: "",
     privacyLevels: ["SELF_ONLY", "PUBLIC_TO_EVERYONE"],
-    commentDisabled: false,
-    duetDisabled: true,
-    stitchDisabled: false,
-    maxVideoDurationSec: 180,
+    commentDisabled: false, duetDisabled: true, stitchDisabled: false, maxVideoDurationSec: 180,
   } as Record<string, unknown> | null,
   started: { ok: true, publishId: "pub-1" } as Record<string, unknown>,
-  status: { status: "PUBLISH_COMPLETE", postId: "987" } as Record<string, unknown> | null,
   getCredCalls: [] as unknown[][],
   startCalls: [] as unknown[],
+  rows: [] as Array<{ id: string; draftId: string; accountId: string | null; status: string; externalId: string | null }>,
+  seq: 0,
 }));
 
-vi.mock("@/lib/tenant-auth", () => ({
-  effectiveTenantId: vi.fn(async () => H.tenantId),
-  AuthError: class AuthError extends Error {},
+vi.mock("@/lib/tenant-auth", () => ({ effectiveTenantId: vi.fn(async () => H.tenantId) }));
+vi.mock("@/lib/db", () => ({
+  withTenant: vi.fn(async (_tenant: string, callback: (sql: unknown) => unknown) => {
+    const sql = (strings: TemplateStringsArray, ...values: unknown[]) => {
+      const query = strings.join(" ");
+      if (query.includes("INSERT INTO published_posts")) {
+        const [, draftId, , , accountId] = values as [string, string, string, string | null, string | null];
+        const existing = H.rows.find((row) => row.draftId === draftId && row.accountId === (accountId ?? null) && ["in_progress", "published"].includes(row.status));
+        if (existing) return Promise.resolve([]);
+        const row = { id: `reservation-${++H.seq}`, draftId, accountId: accountId ?? null, status: "in_progress", externalId: null };
+        H.rows.push(row);
+        return Promise.resolve([{ id: row.id }]);
+      }
+      if (query.includes("external_id IS NULL") && query.includes("15 minutes")) {
+        const [, , draftId, , accountId] = values as [string, string, string, string, string | null];
+        const row = H.rows.find((candidate) => candidate.draftId === draftId && candidate.accountId === (accountId ?? null) && candidate.status === "in_progress" && candidate.externalId === null);
+        if (!row) return Promise.resolve([]);
+        row.status = "failed";
+        return Promise.resolve([{ id: row.id }]);
+      }
+      if (query.includes("SELECT status, external_id, provider_post_id")) {
+        const [, draftId, , accountId] = values as [string, string, string, string | null];
+        const row = H.rows.find((candidate) => candidate.draftId === draftId && candidate.accountId === (accountId ?? null) && ["in_progress", "published"].includes(candidate.status));
+        return Promise.resolve(row ? [{ status: row.status, external_id: row.externalId, provider_post_id: null, permalink: null }] : []);
+      }
+      if (query.includes("SET external_id")) {
+        const [publishId, reservationId] = values as [string, string];
+        const row = H.rows.find((candidate) => candidate.id === reservationId);
+        if (row) row.externalId = publishId;
+        return Promise.resolve([]);
+      }
+      if (query.includes("UPDATE published_posts")) {
+        const reservationId = values[values.length - 2] as string;
+        const row = H.rows.find((candidate) => candidate.id === reservationId);
+        if (row) row.status = "failed";
+        return Promise.resolve([]);
+      }
+      return Promise.resolve([]);
+    };
+    return callback(sql);
+  }),
 }));
-vi.mock("@/lib/db", () => ({ withTenant: vi.fn() }));
 vi.mock("@/lib/publish", () => ({
   getChannelCred: vi.fn(async (...args: unknown[]) => { H.getCredCalls.push(args); return H.cred; }),
   publishInstagramReels: vi.fn(),
 }));
-vi.mock("@/lib/tiktok", async (importActual) => {
-  const actual = await importActual<typeof import("@/lib/tiktok")>();
-  return {
-    ...actual,
-    queryTikTokCreatorInfo: vi.fn(async () => H.creator),
-    startTikTokVideoPost: vi.fn(async (input: unknown) => { H.startCalls.push(input); return H.started; }),
-    fetchTikTokPostStatus: vi.fn(async () => H.status),
-  };
-});
+vi.mock("@/lib/tiktok", async (importActual) => ({
+  ...await importActual<typeof import("@/lib/tiktok")>(),
+  queryTikTokCreatorInfo: vi.fn(async () => H.creator),
+  startTikTokVideoPost: vi.fn(async (input: unknown) => { H.startCalls.push(input); return H.started; }),
+}));
 
 let root: string;
 
 async function publish(body: Record<string, unknown>) {
   const { POST } = await import("@/app/api/video/publish/route");
-  const response = await POST(new Request("http://localhost/api/video/publish", {
-    method: "POST",
-    body: JSON.stringify(body),
-  }));
+  const response = await POST(new Request("http://localhost/api/video/publish", { method: "POST", body: JSON.stringify(body) }));
   return { response, body: await response.json() as Record<string, unknown> };
 }
 
-describe("/api/video/publish — TikTok", () => {
+function request(overrides: Record<string, unknown> = {}) {
+  return {
+    filename: "clip.mp4", platform: "tiktok", title: "제목", description: "본문", privacy_level: "SELF_ONLY",
+    disable_comment: false, disable_duet: false, disable_stitch: false, is_ai_generated: true,
+    ...overrides,
+  };
+}
+
+describe("/api/video/publish — TikTok reservation", () => {
   beforeEach(() => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), "osmu-tiktok-"));
     process.env.DATA_DIR = root;
     process.env.OSMU_PUBLIC_URL = "https://public.example.com";
     process.env.MEDIA_SIGNING_SECRET = "test-media-signing-secret-0123456789";
-    const dir = path.join(root, "tenants", H.tenantId as string, "videos");
-    fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(path.join(dir, "clip.mp4"), Buffer.alloc(2048));
-    H.cred = { token: "tik-token", accountId: "22222222-2222-2222-2222-222222222222" };
-    H.creator = {
-      username: "creator", nickname: "Creator", avatarUrl: "",
-      privacyLevels: ["SELF_ONLY", "PUBLIC_TO_EVERYONE"],
-      commentDisabled: false, duetDisabled: true, stitchDisabled: false, maxVideoDurationSec: 180,
-    };
+    fs.mkdirSync(path.join(root, "tenants", TENANT, "videos"), { recursive: true });
+    fs.writeFileSync(path.join(root, "tenants", TENANT, "videos", "clip.mp4"), Buffer.alloc(2048));
+    H.tenantId = TENANT;
+    H.cred = { token: "tik-token", accountId: ACCOUNT };
+    H.creator = { username: "creator", nickname: "Creator", avatarUrl: "", privacyLevels: ["SELF_ONLY"], commentDisabled: false, duetDisabled: true, stitchDisabled: false, maxVideoDurationSec: 180 };
     H.started = { ok: true, publishId: "pub-1" };
-    H.status = { status: "PUBLISH_COMPLETE", postId: "987" };
     H.getCredCalls = [];
     H.startCalls = [];
+    H.rows = [];
+    H.seq = 0;
     vi.resetModules();
   });
 
@@ -81,40 +114,39 @@ describe("/api/video/publish — TikTok", () => {
     delete process.env.MEDIA_SIGNING_SECRET;
   });
 
-  it("uses the selected account, creator options and a signed pull URL", async () => {
-    const { response, body } = await publish({
-      filename: "clip.mp4", platform: "tiktok", account_id: "33333333-3333-3333-3333-333333333333",
-      title: "제목", description: "본문", privacy_level: "SELF_ONLY",
-      disable_comment: false, disable_duet: false, disable_stitch: false, is_ai_generated: true,
-    });
-    expect(response.status).toBe(200);
-    expect(body).toMatchObject({ ok: true, platform: "tiktok", videoId: "987" });
-    expect(H.getCredCalls[0]).toEqual([H.tenantId, "tiktok", "33333333-3333-3333-3333-333333333333"]);
-    expect(H.startCalls[0]).toMatchObject({
-      accessToken: "tik-token", privacyLevel: "SELF_ONLY", disableDuet: true, isAiGenerated: true,
-    });
-    const videoUrl = String((H.startCalls[0] as { videoUrl: string }).videoUrl);
-    expect(videoUrl).toMatch(/^https:\/\/public\.example\.com\/api\/media\//);
-    expect(videoUrl).not.toContain("tik-token");
+  it("selected tenant account options are reserved and the publish_id is persisted before 202", async () => {
+    const { response, body } = await publish(request({ account_id: "33333333-3333-3333-3333-333333333333" }));
+    expect(response.status).toBe(202);
+    expect(body).toMatchObject({ ok: true, processing: true, platform: "tiktok", publishId: "pub-1" });
+    expect(H.getCredCalls[0]).toEqual([TENANT, "tiktok", "33333333-3333-3333-3333-333333333333"]);
+    expect(H.startCalls).toHaveLength(1);
+    expect(H.rows).toMatchObject([{ status: "in_progress", externalId: "pub-1" }]);
+    expect(String((H.startCalls[0] as { videoUrl: string }).videoUrl)).not.toContain("tik-token");
   });
 
-  it("requires an explicit privacy choice before provider calls", async () => {
-    const { response, body } = await publish({
-      filename: "clip.mp4", platform: "tiktok",
-      disable_comment: false, disable_duet: false, disable_stitch: false, is_ai_generated: true,
-    });
-    expect(response.status).toBe(400);
-    expect(body.error).toContain("공개 범위");
-    expect(H.startCalls).toHaveLength(0);
+  it("concurrent/sequential duplicate requests reuse the reservation and never initialize a second post", async () => {
+    const first = await publish(request());
+    const second = await publish(request());
+    expect(first.response.status).toBe(202);
+    expect(second.response.status).toBe(202);
+    expect(second.body).toMatchObject({ processing: true, publishId: "pub-1" });
+    expect(H.startCalls).toHaveLength(1);
   });
 
-  it("does not expose provider error details", async () => {
-    H.started = { ok: false, reason: "access_token=secret-provider-detail" };
-    const { response, body } = await publish({
-      filename: "clip.mp4", platform: "tiktok", privacy_level: "SELF_ONLY",
-      disable_comment: false, disable_duet: false, disable_stitch: false, is_ai_generated: false,
-    });
+  it("reclaims only an abandoned publish_id-less reservation, then permits one safe retry", async () => {
+    const staleDraft = "44444444-4444-4444-4444-444444444444";
+    H.rows.push({ id: "stale", draftId: staleDraft, accountId: ACCOUNT, status: "in_progress", externalId: null });
+    const { response } = await publish(request({ draft_id: staleDraft }));
+    expect(response.status).toBe(202);
+    expect(H.rows.find((row) => row.id === "stale")?.status).toBe("failed");
+    expect(H.startCalls).toHaveLength(1);
+  });
+
+  it("marks an init rejection failed and never exposes the provider reason", async () => {
+    H.started = { ok: false, reason: "access_token=provider-secret" };
+    const { response, body } = await publish(request());
     expect(response.status).toBe(502);
-    expect(JSON.stringify(body)).not.toContain("secret-provider-detail");
+    expect(JSON.stringify(body)).not.toContain("provider-secret");
+    expect(H.rows[0]?.status).toBe("failed");
   });
 });

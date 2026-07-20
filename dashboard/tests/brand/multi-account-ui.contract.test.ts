@@ -46,6 +46,11 @@ describe("SNS-007 multi-account source contracts", () => {
     expect(page).not.toContain('data-testid="tiktok-disabled-card"');
     expect(page).toContain('provider="tiktok"');
     expect(page).toContain("is_ai_generated: tiktokAiGenerated");
+    expect(page).toContain("/api/tiktok/publish-status?publish_id=");
+    expect(page).toContain("tiktok-pending:");
+    expect(page).toContain("Boolean(tiktokPending[v.filename])");
+    expect(page).toContain("tiktokPendingState.workspaceId === pendingWorkspaceId");
+    expect(page).toContain("current.workspaceId !== workspaceId");
   });
 
   it("Reels UI uses design tokens only and stays gated on Instagram connection", () => {

@@ -3,7 +3,42 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-21 04:20 KST · SNS-017 TikTok Direct Post build candidate, 운영 배포 직전
+**최종 갱신:** 2026-07-21 KST · SNS-017 TikTok 비동기 발행 독립 QA PASS, 커밋·배포 직전
+
+---
+
+### SNS-017 TikTok 비동기 발행 보강 핸드오프 (2026-07-21)
+
+**handoff basis:** 사용자가 이 대화에서 `wiki/ops/session-state.md`를 primary로 확정했고, tmux는
+오케스트레이터 화면뿐이라 재확인하지 않았다. 기존 `dashboard/src/app/api/video/publish/route.ts`의
+사용자 작업중 diff를 보존·확장했다. nested `openclaw/` 및 기타 untracked 항목은 타 작업이므로 미접촉.
+
+**구현:** `published_posts`의 기존 partial unique index를 사용해 tenant·TikTok account·파일·최종 caption·공개/상호작용
+옵션 기반 예약을 만든다. 동일 요청의 동시/순차 재시도는 외부 init을 다시 호출하지 않고 저장된 `publish_id`를 반환한다.
+publish_id 없는 15분 이상 stale 예약만 failed로 회수한다. provider의 비동기 `publish_id`는 `external_id`, 최종 게시물 ID는
+새 `provider_post_id`, 공개범위는 새 `provider_meta`에 분리 저장하며 두 컬럼은 멱등 additive schema로 배포한다.
+
+**상태 회수/UI:** 신규 `GET /api/tiktok/publish-status?publish_id=…`는 현재 tenant의 저장 예약을 먼저 찾고, 그 행의
+`account_id`와 일치하는 계정 토큰으로만 provider status를 조회한다. 공개 게시물은 final post ID와 creator username이 모두
+회수된 뒤에만 permalink와 함께 완료하고, creator-info 일시 실패는 202로 재시도한다. `SELF_ONLY`는 TikTok 완료 신호만으로
+종결해 공개 post ID 부재에 따른 무한 폴링을 막는다. provider 원문 오류·토큰은 응답하지 않는다. `/videos`는 workspace별
+localStorage에서 pending publish_id를 복원해 4초 polling하고, workspace 전환 첫 렌더부터 이전 tenant 상태를 차단한다.
+legacy integration만으로는 계정 경계를 보장할 수 없어 TikTok 시작/상태 조회를 명시적인 channel account 보유 건으로 제한했다.
+
+**독립 QA PASS:** 최종 focused 6 files/25 PASS, 전체 90 files/776 PASS·9 DB-env skip, `npx tsc --noEmit` PASS,
+Next.js 16 Webpack production build 162 pages PASS, `git diff --check` PASS. 테스트 범위는 동시·순차 duplicate,
+retry/stale recovery, init fail, 공개/SELF_ONLY status 완료 분기, provider post ID 영속, creator-info 일시 실패 재시도,
+tenant/account scope, workspace 전환과 UI polling 계약이다. QA 중 발견한 결함 4건은 수정 후 회귀 테스트로 고정했다.
+
+**미검증/차단:** 운영 `TIKTOK_CLIENT_KEY`·`TIKTOK_CLIENT_SECRET`, Content Posting API 심사 및 실계정이 없어 실제
+OAuth callback→SELF_ONLY Direct Post→provider status/permalink은 미검증이다. 코드/테스트 통과를 운영 발행 완료로
+승격하지 않는다. 실제 PostgreSQL schema/seed 검증은 로컬 `DATABASE_URL` 부재로 skip됐으며 운영 배포에서 멱등 schema 적용과
+컬럼 존재를 확인해야 한다. Playwright 구성과 mobile 대상/Maestro flow는 이 dashboard에 없어 해당 경로는 미검증이다.
+
+**정확한 다음 액션:** 명시 파일만 커밋·push하고 `openclaw-dashboard-osmu`를 배포한다. workflow의 schema step과 health/login/
+operator smoke를 확인하고 운영 DB의 `provider_post_id`·`provider_meta` 컬럼 존재를 관찰한다. credential 회수 후 격리 TikTok
+계정으로 `/videos`에서 SELF_ONLY 발행→새로고침→poll complete를 직접 관찰한다. 공개 발행은 TikTok 심사 허용 후 post ID와
+permalink까지 별도 관찰한다.
 
 ---
 

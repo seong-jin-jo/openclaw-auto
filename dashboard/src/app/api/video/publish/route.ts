@@ -11,7 +11,6 @@ import { signMediaToken } from "@/lib/media-token";
 import { canonicalPublicOrigin } from "@/lib/social-connect";
 import { MAX_VIDEO_BYTES, MAX_VIDEO_MIB } from "@/lib/video-limits";
 import {
-  fetchTikTokPostStatus,
   queryTikTokCreatorInfo,
   startTikTokVideoPost,
   TIKTOK_PRIVACY_LEVELS,
@@ -44,6 +43,16 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // runWithTenant(tenantId, ...) 컨텍스트 안에서만 dataPath()를 호출한다.
 function resolveVideoPath(filename: string): string {
   return path.join(dataPath("videos"), filename);
+}
+
+// published_posts.draft_id는 UUID라서, 동일한 발행 의도를 DB unique index로 직렬화할 수 있도록
+// 안정적인 UUID 모양의 키를 유도한다. 캡션/공개범위/상호작용 옵션 중 하나라도 달라지면 새 발행이다.
+function publishReservationKey(parts: readonly string[]): string {
+  return crypto
+    .createHash("sha256")
+    .update(parts.join("\u0000"))
+    .digest("hex")
+    .replace(/^(.{8})(.{4})(.{4})(.{4})(.{12}).*$/, "$1-$2-$3-$4-$5");
 }
 
 export async function POST(request: Request) {
@@ -210,7 +219,10 @@ export async function POST(request: Request) {
     if (platform === "tiktok") {
       if (!tenantId) return Response.json({ error: "테넌트를 확인할 수 없습니다." }, { status: 400 });
       const cred = await getChannelCred(tenantId, "tiktok", accountId);
-      if (!cred?.token) {
+      // 비동기 상태 회수는 예약에 저장한 channel_account의 토큰으로만 가능하다. 레거시 기본
+      // integration(accountId 없음)을 허용하면 그 사이 기본계정이 바뀌었을 때 다른 계정의
+      // publish_id를 조회할 수 있으므로, TikTok은 명시적인 저장 계정이 있을 때만 시작한다.
+      if (!cred?.token || !cred.accountId) {
         return Response.json(
           { error: accountId ? "선택한 TikTok 계정을 찾을 수 없습니다." : "TikTok 계정을 먼저 연결해주세요." },
           { status: 400 },
@@ -253,6 +265,97 @@ export async function POST(request: Request) {
       const token = signMediaToken(tenantId, filename, TIKTOK_MEDIA_TTL_MS);
       if (!token) return Response.json({ error: "미디어 서명 설정이 없어 TikTok에 발행할 수 없습니다." }, { status: 400 });
 
+      // TikTok은 init 후 완료까지 비동기로 진행된다. Reels와 같은 published_posts 예약을 먼저
+      // 잡아 동시 클릭/순차 재시도가 두 번째 init을 호출하지 못하게 한다. publish_id가 생긴 뒤에는
+      // external_id에 즉시 저장하므로 새로고침 뒤 상태 API가 같은 계정 토큰으로 회수할 수 있다.
+      const optionsKey = JSON.stringify({
+        privacyLevel,
+        disableComment: creator.commentDisabled || disableComment,
+        disableDuet: creator.duetDisabled || disableDuet,
+        disableStitch: creator.stitchDisabled || disableStitch,
+        isAiGenerated,
+      });
+      const explicitKey = typeof data.draft_id === "string" && data.draft_id
+        ? data.draft_id
+        : (typeof data.idempotency_key === "string" ? data.idempotency_key : "");
+      const idKey = UUID_RE.test(explicitKey)
+        ? explicitKey
+        : publishReservationKey(["osmu-tiktok-dedupe-v1", tenantId, cred.accountId || "", filename, caption, optionsKey]);
+      const reserve = () => withTenant(tenantId, (sql) => sql<{ id: string }[]>`
+        INSERT INTO published_posts (tenant_id, draft_id, platform, text, status, account_id, provider_meta)
+        VALUES (${tenantId}::uuid, ${idKey}::uuid, ${"tiktok"}, ${caption || null}, 'in_progress',
+                ${cred.accountId ?? null}::uuid, ${JSON.stringify({ privacyLevel })}::jsonb)
+        ON CONFLICT DO NOTHING
+        RETURNING id
+      `);
+
+      let reservationId: string | null = null;
+      try {
+        const [row] = await reserve();
+        reservationId = row?.id ?? null;
+      } catch {
+        return Response.json({ error: "TikTok 발행 상태를 확인할 수 없어 중단했습니다. 잠시 후 다시 시도해주세요." }, { status: 503 });
+      }
+
+      if (!reservationId) {
+        // init 호출 전 프로세스가 중단되면 publish_id 없는 예약만 남는다. 이 경우에는 상태를
+        // 회수할 방법이 없으므로, Reels와 같은 충분한 유예 뒤 failed로 닫고 다음 재시도를
+        // 허용한다. 활성 작업을 탈취하지 않도록 정상 폴링 예산보다 넉넉한 15분을 쓴다.
+        try {
+          const reclaimed = await withTenant(tenantId, (sql) => sql<{ id: string }[]>`
+            UPDATE published_posts
+               SET status = 'failed', error = ${"완료되지 않은 TikTok 예약(stale) 자동 회수"}
+             WHERE tenant_id = ${tenantId}::uuid
+               AND draft_id = ${idKey}::uuid
+               AND platform = ${"tiktok"}
+               AND status = 'in_progress'
+               AND external_id IS NULL
+               AND account_id IS NOT DISTINCT FROM ${cred.accountId ?? null}::uuid
+               AND published_at < now() - interval '15 minutes'
+            RETURNING id
+          `);
+          if (reclaimed.length > 0) {
+            const [row] = await reserve();
+            reservationId = row?.id ?? null;
+          }
+        } catch {
+          return Response.json({ error: "TikTok 발행 상태를 확인할 수 없어 중단했습니다. 잠시 후 다시 시도해주세요." }, { status: 503 });
+        }
+      }
+
+      if (!reservationId) {
+        let holder: { status: string; external_id: string | null; provider_post_id: string | null; permalink: string | null } | undefined;
+        try {
+          [holder] = await withTenant(tenantId, (sql) => sql<{
+            status: string; external_id: string | null; provider_post_id: string | null; permalink: string | null;
+          }[]>`
+            SELECT status, external_id, provider_post_id, permalink
+              FROM published_posts
+             WHERE tenant_id = ${tenantId}::uuid
+               AND draft_id = ${idKey}::uuid
+               AND platform = ${"tiktok"}
+               AND account_id IS NOT DISTINCT FROM ${cred.accountId ?? null}::uuid
+               AND status IN ('published', 'in_progress')
+             ORDER BY published_at DESC
+             LIMIT 1
+          `);
+        } catch {
+          return Response.json({ error: "TikTok 발행 상태를 확인할 수 없어 중단했습니다. 잠시 후 다시 시도해주세요." }, { status: 503 });
+        }
+        if (holder?.status === "published") {
+          return Response.json({ ok: true, platform: "tiktok", videoId: holder.provider_post_id ?? undefined, url: holder.permalink ?? undefined, alreadyPublished: true });
+        }
+        // publish_id를 이미 받은 요청이면 UI가 해당 ID로 status endpoint를 폴링한다. 외부 ID가 아직
+        // 없으면 init 네트워크 경계가 불명확하므로 새 init을 강행하지 않고 fail-closed 한다.
+        return Response.json({
+          ok: true,
+          processing: true,
+          platform: "tiktok",
+          publishId: holder?.external_id ?? undefined,
+          error: holder?.external_id ? undefined : "TikTok 발행 요청을 확인 중입니다. 잠시 후 새로고침해주세요.",
+        }, { status: 202 });
+      }
+
       const started = await startTikTokVideoPost({
         accessToken: cred.token,
         videoUrl: `${origin}/api/media/${token}`,
@@ -264,27 +367,27 @@ export async function POST(request: Request) {
         isAiGenerated: isAiGenerated!,
       });
       if (!started.ok) {
+        try {
+          await withTenant(tenantId, (sql) => sql`
+            UPDATE published_posts SET status = 'failed', error = ${"TikTok 발행 요청 실패"}
+             WHERE id = ${reservationId}::uuid AND tenant_id = ${tenantId}::uuid`);
+        } catch { /* 기록 실패가 provider 오류를 노출하지 않는다 */ }
         return Response.json({ error: "TikTok이 발행 요청을 거부했습니다. 앱 권한과 계정 상태를 확인해주세요." }, { status: 502 });
       }
 
-      // TikTok 처리는 비동기다. 짧게 상태를 확인하고, 아직 처리 중이면 publish_id를 반환해
-      // 성공을 가장하지 않는다. 중복 클릭은 UI에서 요청 중 상태로 막는다.
-      for (let attempt = 0; attempt < 3; attempt += 1) {
-        const status = await fetchTikTokPostStatus(cred.token, started.publishId);
-        if (status?.status === "PUBLISH_COMPLETE") {
-          return Response.json({
-            ok: true,
-            platform: "tiktok",
-            publishId: started.publishId,
-            videoId: status.postId,
-            url: status.postId ? `https://www.tiktok.com/@${encodeURIComponent(creator.username)}/video/${status.postId}` : undefined,
-          });
-        }
-        if (status?.status === "FAILED") {
-          return Response.json({ error: "TikTok 영상 처리에 실패했습니다. 영상 규격과 계정 권한을 확인해주세요." }, { status: 502 });
-        }
-        if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 1500));
+      try {
+        await withTenant(tenantId, (sql) => sql`
+          UPDATE published_posts
+             SET external_id = ${started.publishId}, error = null, published_at = now()
+           WHERE id = ${reservationId}::uuid AND tenant_id = ${tenantId}::uuid AND status = 'in_progress'`);
+      } catch {
+        // init 성공 후 publish_id를 잃으면 상태 회수가 불가능하고 재시도가 중복 게시할 수 있다.
+        // 따라서 성공을 반환하지 않고 사용자에게 재시도 대신 상태 확인을 요구한다.
+        return Response.json({ error: "TikTok 발행 식별자를 저장하지 못했습니다. 중복 방지를 위해 잠시 후 상태를 확인해주세요." }, { status: 503 });
       }
+
+      // 완료 확인은 tenant-scoped 상태 API가 맡는다. 요청 경로에서 provider를 폴링하면 새로고침
+      // 중복/긴 요청이 겹치고, 처리 중 버튼 복구도 할 수 없다. publish_id는 이미 DB에 영속됐다.
       return Response.json({ ok: true, processing: true, platform: "tiktok", publishId: started.publishId }, { status: 202 });
     }
     if (platform === "reels" || platform === "instagram_reels") {

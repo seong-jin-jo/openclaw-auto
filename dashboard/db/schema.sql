@@ -88,6 +88,8 @@ CREATE TABLE IF NOT EXISTS published_posts (
   draft_id      UUID,                          -- 원 초안(선택)
   platform      TEXT NOT NULL,                 -- threads | x | instagram | ...
   external_id   TEXT,                          -- threadsMediaId / tweetId / mediaId
+  provider_post_id TEXT,                       -- async provider publish_id와 분리된 최종 게시물 ID
+  provider_meta JSONB NOT NULL DEFAULT '{}'::jsonb, -- 비동기 provider 상태 판정에 필요한 비민감 옵션
   permalink     TEXT,
   text          TEXT,
   status        TEXT NOT NULL DEFAULT 'published', -- published | failed
@@ -262,6 +264,18 @@ DO $$ BEGIN
     WHERE table_schema='public' AND table_name='published_posts' AND column_name='account_id'
   ) THEN
     ALTER TABLE published_posts ADD COLUMN account_id UUID REFERENCES channel_accounts(id) ON DELETE SET NULL;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='published_posts' AND column_name='provider_post_id'
+  ) THEN
+    ALTER TABLE published_posts ADD COLUMN provider_post_id TEXT;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='published_posts' AND column_name='provider_meta'
+  ) THEN
+    ALTER TABLE published_posts ADD COLUMN provider_meta JSONB NOT NULL DEFAULT '{}'::jsonb;
   END IF;
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns
