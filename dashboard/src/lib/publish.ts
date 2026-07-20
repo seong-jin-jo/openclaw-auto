@@ -295,6 +295,106 @@ export async function publishInstagram(cred: ChannelCred, caption: string, image
   return { ok: true, externalId: mediaId, permalink };
 }
 
+// SNS-015: Instagram Reels 발행 (media_type=REELS + 프로바이더가 직접 가져갈 공개 video_url).
+// IMAGE 경로(publishInstagram)와 계약이 동일하다 — 컨테이너 생성 → status_code 폴링 →
+// FINISHED에서만 media_publish → permalink 재시도. 차이는 media_type/video_url뿐.
+// fail-closed 원칙: ERROR·타임아웃·폴링 실패에서 media_publish를 호출하지 않는다(SNS-014 회귀 방지).
+// 노출 원칙: 프로바이더 응답 본문·토큰·URL을 에러 문자열에 넣지 않는다(상태 코드만).
+export interface ReelsPollOptions {
+  attempts?: number;
+  intervalMs?: number;
+  timeoutMs?: number;
+}
+
+export async function publishInstagramReels(
+  cred: ChannelCred,
+  caption: string,
+  videoUrl: string,
+  opts: ReelsPollOptions = {},
+): Promise<PublishResult> {
+  if (!cred.userId) return { ok: false, error: "INSTAGRAM_USERID(meta.userId) 없음" };
+  if (!videoUrl) return { ok: false, error: "Reels는 공개 video URL 필수" };
+  if (!isSafePublicImageUrl(videoUrl) || !videoUrl.startsWith("https://")) {
+    return { ok: false, error: "Reels video URL이 공개 HTTPS가 아닙니다." };
+  }
+  // Meta 공식 가이드(Instagram Platform Content Publishing, developers.facebook.com/docs/
+  // instagram-platform/instagram-api-with-instagram-login/content-publishing): "querying a
+  // container's status once per minute, for no more than 5 minutes." 기본값을 그대로 따른다
+  // (60s × 5회 = 5분). 테스트는 opts로 짧게 오버라이드.
+  const attempts = opts.attempts ?? 5;
+  const intervalMs = opts.intervalMs ?? 60_000;
+  const timeoutMs = opts.timeoutMs ?? 15000;
+  // 연결 토큰(Instagram Login API)은 graph.instagram.com, 레거시 env는 graph.facebook.com.
+  const base = cred.meta?.api === "instagram_login" ? IG_LOGIN_API : IG_API;
+
+  let create: Response;
+  try {
+    create = await fetch(`${base}/${cred.userId}/media`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        media_type: "REELS",
+        video_url: videoUrl,
+        caption,
+        access_token: cred.token,
+      }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch {
+    return { ok: false, error: "IG Reels 컨테이너 요청 실패 — 잠시 후 다시 시도해주세요." };
+  }
+  if (!create.ok) return { ok: false, error: `IG Reels container 실패(${create.status})` };
+  const { id: creationId } = (await create.json().catch(() => ({}))) as { id?: string };
+  if (!creationId) return { ok: false, error: "IG Reels container 실패(응답에 컨테이너 ID 없음)" };
+
+  // 영상은 인코딩이 있어 IMAGE보다 오래 걸린다 → 더 긴 폴링 예산.
+  let finished = false;
+  for (let i = 0; i < attempts; i++) {
+    let statusCode: string | undefined;
+    try {
+      const st = await fetch(
+        `${base}/${creationId}?fields=status_code&access_token=${encodeURIComponent(cred.token)}`,
+        { signal: AbortSignal.timeout(timeoutMs) },
+      );
+      statusCode = ((await st.json().catch(() => ({}))) as { status_code?: string }).status_code;
+    } catch {
+      statusCode = undefined; // 일시 오류는 재시도 — 단, 성공으로 간주하지 않는다(fail-closed).
+    }
+    if (statusCode === "FINISHED") {
+      finished = true;
+      break;
+    }
+    if (statusCode === "ERROR") {
+      return { ok: false, error: "IG Reels 미디어 처리 실패(status ERROR — 영상 형식/길이/접근성 확인)" };
+    }
+    // EXPIRED: 24시간 내 media_publish가 호출되지 않아 컨테이너가 만료된 상태(공식 문서).
+    // ERROR와 동일하게 fail-closed — media_publish를 절대 호출하지 않는다.
+    if (statusCode === "EXPIRED") {
+      return { ok: false, error: "IG Reels 컨테이너가 만료되었습니다(status EXPIRED) — 다시 시도해주세요." };
+    }
+    if (i < attempts - 1) await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  if (!finished) return { ok: false, error: "IG Reels 미디어 처리 시간 초과 — 잠시 후 다시 시도해주세요." };
+
+  let pub: Response;
+  try {
+    pub = await fetch(`${base}/${cred.userId}/media_publish`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ creation_id: creationId, access_token: cred.token }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch {
+    return { ok: false, error: "IG Reels 발행 요청 실패 — 잠시 후 다시 시도해주세요." };
+  }
+  if (!pub.ok) return { ok: false, error: `IG Reels publish 실패(${pub.status})` };
+  const { id: mediaId } = (await pub.json().catch(() => ({}))) as { id?: string };
+  if (!mediaId) return { ok: false, error: "IG Reels publish 실패(응답에 media ID 없음)" };
+  // permalink 실패가 발행 성공을 뒤집지 않는다(SNS-014와 동일 계약).
+  const permalink = await fetchInstagramPermalink(cred, mediaId);
+  return { ok: true, externalId: mediaId, permalink };
+}
+
 // ── X(Twitter) OAuth1.0a 서명 ─────────────────────────────────────────────
 // RFC5849: 서명베이스 = METHOD&percentEnc(URL)&percentEnc(정렬파라미터).
 // POST /2/tweets는 본문이 JSON이라 서명 대상 파라미터 = oauth_* 만(쿼리·폼 없음).

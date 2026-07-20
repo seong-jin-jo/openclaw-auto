@@ -347,6 +347,18 @@ export function publicOrigin(request: Request): string {
   return new URL(request.url).origin;
 }
 
+// SNS-015: 프로바이더(Meta)가 서버 대 서버로 직접 가져가는 signed video_url 전용 origin.
+// publicOrigin()의 x-forwarded-host/host 폴백은 OAuth redirect_uri(브라우저가 같은 요청으로
+// 왕복하는 값)에는 안전하지만, 여기서는 위조 가능한 요청 헤더가 "Meta가 실제로 접근 가능한
+// 도메인"을 대신 결정하게 둘 수 없다(헤더를 조작해 내부/사설 호스트로 리다이렉트시키는
+// SSRF성 오용 방지) — OSMU_PUBLIC_URL이 없으면 폴백 없이 null로 fail-closed.
+export function canonicalPublicOrigin(): string | null {
+  const env = process.env.OSMU_PUBLIC_URL;
+  if (!env) return null;
+  const trimmed = env.replace(/\/+$/, "");
+  return trimmed.startsWith("https://") ? trimmed : null;
+}
+
 // OAuth 동의 URL.
 // state = tenantId(콜백서 어느 테넌트인지 식별 — 위변조 방지는 짧은 수명+서명이 이상적이나
 // 1차는 tenantId 그대로; 콜백서 effectiveTenantId와 교차검증 가능).

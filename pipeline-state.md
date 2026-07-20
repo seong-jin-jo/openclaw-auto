@@ -11,8 +11,8 @@ stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
-  build:      { status: approved, artifacts_ok: true } # SNS-014 commit 020c44d9, CI 29735697748 SUCCESS
-  qa:         { status: approved, artifacts_ok: true } # local full + CI PostgreSQL/full test PASS
+  build:      { status: approved, artifacts_ok: false }  # SNS-015 코드 완료·테스트됨, 운영 Reels 미검증
+  qa:         { status: approved, artifacts_ok: false }  # 자동/독립 QA PASS, 운영 permalink 전 artifacts 미충족
   ship:       { status: in-progress, artifacts_ok: false }
 override: false
 override_reason: ""
@@ -62,6 +62,13 @@ override_expires: ""
 - active channel accounts: Instagram 1, Threads 2; YouTube/Facebook/X/TikTok 0. 임시 token revoke 후 401.
 - 즉시 마케팅 가능한 운영 관찰 범위는 Instagram IMAGE와 Threads TEXT/IMAGE. 전체 v1.0.0 ship은 외부 credential/
   앱 활성/실계정 callback 및 미구현 TikTok/Reels 때문에 in-progress다.
+
+## 2026-07-20 SNS-015 Reels build reopen
+- 사용자 `빨리 작동되도록 만들어` 지시로 코드에서 해소 가능한 영상 blocker를 재개방한다.
+- YouTube 업로드 코드는 존재하지만 운영 연결 계정이 0개라 외부 OAuth 전 실업로드 불가. TikTok은 Content Posting API
+  승인과 credential이 없어 구현 완료로 위조하지 않는다.
+- 기존 active Instagram 계정을 활용한 Reels 발행을 구현한다. 종료조건은 tenant 격리, 공개 video URL 전달,
+  container FINISHED fail-closed, provider 원문 비노출, 기존 성공 중복방지, focused/full test, CI, 운영 permalink다.
 
 > 2026-06-30 `init --adopt`. 이 레포는 이미 라이브 배포된 멀티테넌트 마케팅 SaaS라 plan~build는
 > ADOPT(기존 인정). **현재 ship(in-progress).** 신규 기능(OAuth 연결, GA4, 가이드 등)은 build→qa→ship 게이트를
@@ -138,6 +145,15 @@ override_expires: ""
   Meta 앱 redirect URI `https://<live>/api/connect/{provider}/callback` 등록. 그 후 배포→browse로 qa 증거.
 
 ## 승인 로그 (append-only)
+2026-07-20 — SNS-015 build+qa APPROVED — 사용자가 반복 명시한 무중단·무질문 실행 지시(`빨리 작동되도록
+  만들어`, `묻지 않고 빨리 진행`)를 승인 범위로 반영하고 추가 제품 승인 질문 없이 진행. 증거: focused 106 PASS,
+  최신 전체 84 files/752 PASS·9 DB-env skip, `tsc --noEmit` clean, production 160-page build PASS.
+  qa-verifier 품질 게이트 PASS(Skill qa-only 1회, WebFetch 5회, standards 품질헌법 Read). 운영 DB 중복 점검
+  duplicateGroups=0·totalExtra=0을 컨트롤러가 직접 관찰. 운영 origin은 HTTPS이고 미디어 서명은 전용
+  `MEDIA_SIGNING_SECRET` 없이 `DASHBOARD_AUTH_TOKEN` 파생 폴백으로 구성(전용 시크릿=false).
+  `artifacts_ok:false` 유지 — 실제 Meta Reels permalink를 직접 관찰하기 전 ship 완료 금지. 기존 전역 ship
+  blocker(X/TikTok credential, Facebook 앱 활성, Instagram 신규 로그인 OTP, YouTube 실업로드, 동일 테넌트
+  provider 2계정 실전환, GA4 DebugView UI)는 그대로 유지된다.
 2026-07-20 — SNS-014 build+qa APPROVED — 사용자의 반복 무중단 실행 지시와 최신 `고`를 승인 범위로 반영하고
   추가 제품 승인 질문 없이 진행. commit `020c44d9`, focused 18 PASS, local full 78 files/673 PASS·9 DB-env skip,
   TypeScript와 production 160-route build PASS. GitHub Actions run `29735697748` typecheck/build/PostgreSQL

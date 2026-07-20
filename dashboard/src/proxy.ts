@@ -83,8 +83,17 @@ const TENANT_AWARE_PATHS = [
   "/api/trend-report",
   "/api/usage/record",
   "/api/usage",
+  "/api/video/delete",
+  // SNS-015 보안: "/api/video/generate"는 여기 없다(의도적). 이 라우트는 요청 본문의
+  // slide.imageUrl / bgmUrl 을 서버가 그대로 fetch하고(임의 URL = SSRF: OWASP SSRF Prevention
+  // Cheat Sheet "Avoid accepting complete URLs from users" 위반) 동기 ffmpeg를 슬라이드 수만큼
+  // 돌린다(자원 고갈). 따라서 OAuth 고객 토큰/JWT에는 노출하지 않고 운영자 전용으로 유지한다.
+  // UI(/videos)도 운영자에게만 생성 탭을 그려 403 나는 버튼을 고객에게 제안하지 않는다.
+  "/api/video/list",
+  "/api/video/publish",
   "/api/video/refine-clip",
   "/api/video/repurpose",
+  "/api/video/upload",
   "/api/voice-tone",
   "/api/weekly-report",
   "/api/weekly-summary",
@@ -171,6 +180,13 @@ export async function proxy(request: NextRequest) {
 
   // Allow Figma OAuth callback without auth
   if (request.nextUrl.pathname === "/api/figma-mcp/callback") return NextResponse.next();
+
+  // SNS-015: 서명 미디어 배달(/api/media/<token>)은 여기서 Bearer 인증을 요구하지 않는다.
+  // 이 URL을 가져가는 주체는 Meta(Instagram Reels container) 서버라 Authorization 헤더를
+  // 붙일 수 없다 — 대신 라우트 핸들러(app/api/media/[token]/route.ts)가 자체 HMAC
+  // 서명(verifyMediaToken)으로 테넌트·파일명·만료를 검증한다. 프록시는 경로 형태만
+  // 확인하고 인증/인가 판단 자체는 핸들러에 위임(우회가 아니라 검증 지점 이동).
+  if (request.nextUrl.pathname.startsWith("/api/media/")) return NextResponse.next();
 
   // 고객 로그인 진입점. Google OAuth는 provider disabled raw JSON을 막기 위해 앱 서버에서 preflight한다.
   if (request.nextUrl.pathname === "/api/auth/google") return NextResponse.next();

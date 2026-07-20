@@ -271,6 +271,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- SNS-015 동시성 멱등: (테넌트, 초안/멱등키, 플랫폼, 계정) 조합당 "진행중 또는 성공한" 발행은
+-- 최대 1건. 실패(status='failed') 행은 재시도를 막으면 안 되므로 인덱스 대상에서 제외한다.
+-- account_id는 nullable이라 COALESCE로 sentinel을 씌운다(NULL끼리는 서로 같지 않아 unique가 안 걸림).
+-- 이 인덱스가 있어야 SELECT-then-INSERT 레이스(동시 2요청이 둘 다 "없음"을 보고 둘 다 외부 발행)를
+-- INSERT ... ON CONFLICT DO NOTHING 한 방으로 닫을 수 있다 — 5분짜리 컨테이너 폴링 구간 내내
+-- 트랜잭션을 붙들지 않고도(=커넥션 점유/락 홀드 없이) 중복 외부 발행을 막는 것이 목적.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_published_posts_idem
+  ON published_posts (tenant_id, draft_id, platform, COALESCE(account_id, '00000000-0000-0000-0000-000000000000'::uuid))
+  WHERE draft_id IS NOT NULL AND status IN ('published', 'in_progress');
+
 -- 멱등 백필: 기존 integrations(kind='channel') 1행 → provider당 channel_accounts 1행(기본계정)으로 승격.
 -- 매 배포마다 실행 — 개별 tenant/provider 단위 idempotency는 ON CONFLICT DO NOTHING이 보장한다(이미
 -- 존재하는 행은 override하지 않음). 이러면 나중에 integrations에 새 tenant/provider가 추가돼도(레거시

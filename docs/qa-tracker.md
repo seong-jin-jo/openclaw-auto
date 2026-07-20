@@ -311,6 +311,7 @@ qa = **in-progress** (ship 게이트 잠김 유지). 아침 체크리스트 1~3 
 | SNS-012 | 실발행 성공 후 draft 잔존·재클릭 중복 | `/api/publish`가 `published_posts`만 INSERT하고 queue JSON/DB shadow 상태를 갱신하지 않으며 기존 성공 조회도 없음 | 동시 요청 레이스는 별도 DB lock 없이는 완전 차단되지 않음 | build: 계정별 기존 성공 반환 + 성공 후 queue dual-write | 첫 요청 게시 1개/queue published, 순차 동일 요청 `alreadyPublished:true`, 외부 게시물 증가 0 | ✅ 순차 운영 관찰 |
 | SNS-013 | 발행 성공했지만 permalink 누락으로 검증 실패 | Meta media permalink가 발행 직후 조회에서 비어도 발행 자체는 성공 처리되며 기존 성공 retry는 URL을 보강하지 않음 | Meta permalink 가시화 지연 | build: 초기 5회 조회 + 기존 external ID URL-only 복구/DB·queue 보강 | 동일 요청 `alreadyPublished:true`+permalink, published/distinct external 1 | ✅ 운영 관찰 |
 | SNS-014 | Instagram 게시 성공 후 permalink 미저장·준비 timeout fail-open | Instagram 발행 함수가 `media_publish` 성공 ID만 반환하고 permalink를 조회하지 않으며, 20회 폴링 후에도 `FINISHED`가 아니면 그대로 publish함 | Graph permalink 가시화 지연 | build: FINISHED timeout fail-closed + 성공 URL 조회 + 기존 성공 URL-only 복구 + provider 원문 비노출 | 배포 후 기존 T-02 재호출이 `alreadyPublished:true`+동일 permalink, DB/queue URL 보강, 외부 게시물 1건 유지 | ✅ 운영 관찰 |
+| SNS-015 | Instagram Reels 발행 미구현(영상 채널 공백) | `/api/video/publish`의 reels 분기가 501이었고, Meta가 가져갈 수 있는 공개 video URL 배달 경로와 영상 라우트의 tenant 격리가 없었음 | 실제 Meta Reels 컨테이너 처리 시간·`EXPIRED` 실응답은 Meta만 판단 | build: 서명 미디어 배달 + REELS 폴링 fail-closed + DB 예약 dedupe + video 라우트 tenant-aware | 운영 계정 Reels 1건 실발행 permalink, DB published/distinct external 1, 격리 브라우저 공개 영상 렌더 | 🔧 코드 수정·테스트됨 / 운영 미검증 |
 
 **관리 규칙:** 상태 전이는 `❌ NG → 🔧 코드 수정·테스트됨 → 🔧 로컬 실브라우저 관찰 → 🟡 운영 미검증 → ✅ 운영 관찰`만 허용한다. unit/mock/auth URL 200은 E2E나 종료증거로 승격하지 않는다. 각 ID는 코드 커밋·테스트·배포 run·실사용 증거에 동일하게 붙인다.
 
@@ -432,3 +433,44 @@ LinkedIn, Naver Blog, Pinterest, Tumblr, TikTok, Slack, Line은 각 OAuth creden
 - DB는 published 1, distinct external ID 1, failed 0, permalink row 1이고 queue는 published다.
 - 동일 draft+platform+account 순차 재호출은 `alreadyPublished:true`와 같은 permalink를 반환했고 외부 게시물은
   1건으로 유지됐다. 각 실행의 단기 tenant token은 폐기 후 같은 queue API가 401임을 확인했다.
+
+### 2026-07-20 SNS-015 Instagram Reels — build/QA 증거
+
+**판정: 코드 테스트됨 + QA PASS, 그러나 운영 Reels 실발행은 미검증이므로 완료가 아니다.**
+
+**구현 범위(코드 근거 확인):**
+- `POST /api/video/upload` → 테넌트 스코프 `data/videos` 저장 → 15분 만료 HMAC 서명 URL
+  `GET|HEAD /api/media/<token>`(Range 지원)로 배달 → Meta `media_type=REELS` 컨테이너 →
+  `status_code` 최대 5분 폴링(1분 간격, `ERROR`/`EXPIRED`/timeout fail-closed) → `media_publish` →
+  permalink 재조회 → DB/queue 기록.
+- 미디어 토큰은 **암호화가 아니라 서명**이다. payload는 base64url 평문 JSON(tenantId·파일명·만료)이라
+  토큰 보유자가 읽을 수 있다. 보장은 변조 불가와 만료뿐이며 기밀성은 주장하지 않는다.
+- `/api/media/*`는 프록시 Bearer 인증을 요구하지 않는다(Meta 서버가 헤더를 못 붙임). 인가 판단은
+  핸들러의 `verifyMediaToken` HMAC 검증으로 이동했다.
+- 테넌트에 열린 영상 라우트는 list/upload/delete/publish 4개다. `/api/video/generate`는 임의 URL fetch(SSRF)와
+  동기 ffmpeg 자원 고갈 위험 때문에 tenant-aware allowlist에서 의도적으로 제외한 **운영자 전용**이다.
+- 업로드·발행 공통 애플리케이션 상한은 **100 MiB**(`lib/video-limits.ts`). 이전 기록의 1GB는 오기다.
+- 중복 발행은 `published_posts` `status='in_progress'` 예약 INSERT + `draft_id` partial unique index로
+  DB에서 강제하고, 경쟁에서 진 요청은 409 `publish_in_progress`로 fail-closed 응답한다. 좀비 예약 회수 경로도 포함.
+
+**자동 검증(직접 실행, 관찰됨):**
+- focused 106 PASS(미디어 배달 Range/HEAD, proxy bypass 계약, 5라우트 cross-tenant 격리,
+  REELS 폴링·EXPIRED fail-closed, 예약 dedupe·409 경로).
+- 최신 전체 실행 84 files / 752 PASS / 9 DB-env skip, 회귀 0.
+- `npx tsc --noEmit` clean. production build 160 pages PASS.
+
+**독립 QA:**
+- qa-verifier 품질 게이트 PASS — `Skill qa-only` 1회, WebFetch 5회(Meta content-publishing, RFC 9110 등),
+  `standards/` 품질헌법 Read 증거 확인.
+- 직전 라운드의 BLOCKER 2건(미디어 경로가 프록시 인증벽에 막힘 / OAuth·osmu 사용자가 영상 라우트 5개에 403)은
+  수정 후 회귀 테스트로 고정됐다.
+
+**운영 환경 확인(컨트롤러 직접 관찰):**
+- 운영 DB 중복 점검 `duplicateGroups=0`, `totalExtra=0`.
+- 운영 origin은 HTTPS이며 미디어 서명은 전용 `MEDIA_SIGNING_SECRET` 없이 `DASHBOARD_AUTH_TOKEN` 파생 폴백으로
+  구성돼 있다(전용 시크릿 설정 여부 = false). 서명 자체는 동작하지만 전용 시크릿 분리는 미완이다.
+
+**미검증(완료 판정 금지):**
+- 실제 Meta Reels 1건 공개 발행과 permalink 회수, 격리 브라우저의 공개 영상 렌더.
+- 실 OAuth 고객 브라우저 세션의 `/videos` 전체 플로우 직접 관찰.
+- `EXPIRED` 분기의 실제 Meta 응답(현재는 공식문서 근거 구현).

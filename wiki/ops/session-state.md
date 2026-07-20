@@ -1832,3 +1832,109 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
   Threads 2뿐이며 YouTube/Facebook/X/TikTok 0. 임시 token revoke 후 401. 즉시 마케팅 출고 실증 범위는 Instagram
   IMAGE와 Threads TEXT/IMAGE다. 전체 ship은 외부 credential·앱 활성·실계정 callback과 TikTok/Reels 미구현 때문에
   in-progress 유지한다.
+- 2026-07-20 SNS-015 Reels build reopen: 사용자 실행 지시로 코드 해소 가능한 영상 blocker를 우선한다. YouTube는
+  업로드 코드가 있으나 active 계정 0, TikTok은 API 승인/credential 없음. 기존 active Instagram 계정 기반 Reels
+  발행의 공개 video URL·FINISHED polling·중복방지·보안 오류·운영 permalink를 구현/검증한다. primary handoff는
+  동일 `openclaw-auto:0.0`; 다음 액션은 Claude code-builder 구현→Codex 2nd-pass→QA→CI→OSMU 배포다.
+
+## 2026-07-20 SNS-015 Instagram Reels build (code-builder)
+- 무엇을: `/api/video/publish`의 reels/instagram_reels 501 분기를 실발행으로 교체.
+  - 신규 `dashboard/src/lib/media-token.ts` — 테넌트+파일명 HMAC 서명, 15분 만료, 불투명 토큰.
+  - 신규 `dashboard/src/app/api/media/[token]/route.ts` — 서명 토큰으로만 data/videos 영상 배달
+    (mp4/mov/webm만, Range 8MB 청크 상한, 전체응답 스트리밍, 모든 실패 404).
+  - `publishInstagramReels()` in `lib/publish.ts` — media_type=REELS → status_code 폴링(40×3s,
+    ERROR/타임아웃 fail-closed) → media_publish → permalink 재시도. 프로바이더 원문 비노출.
+  - 라우트: getChannelCred(tenantId,"instagram",accountId) 정확 사용(폴백 없음), mp4/mov+1GB 검증,
+    https 공개 origin 필수, draft_id/idempotency_key(UUID) dedupe로 순차 재시도 이중발행 차단.
+  - UI(`app/videos/page.tsx`): Reels 카드 "미구현"→연결상태 기반, Instagram 연결 시에만 Reels 버튼.
+- 검증(관찰됨): focused 22+7 PASS, 전체 82 files/703 PASS·9 skip, `tsc --noEmit` clean.
+- 미검증(운영 블로커): 실제 Meta Reels 발행 E2E 미실행. 운영에 `MEDIA_SIGNING_SECRET` 미설정,
+  `OSMU_PUBLIC_URL` https 확인 필요. 미설정 시 라우트는 400으로 정직하게 거부한다.
+- 다음: QA 단계에서 운영 계정으로 1건 실발행 + permalink/DB 기록 직접 관찰.
+
+## 2026-07-20 SNS-015 Instagram Reels qa-verifier findings 해소 (code-builder follow-up)
+- 무엇을: 직전 qa-verifier 검토가 지적한 BLOCKER 2건 + 정직성/보안 결함 다수 해소.
+  1. **BLOCKER: `/api/media/[token]`이 proxy.ts 일반 인증벽에 막혀 있었다** — Meta 서버는
+     Authorization 헤더를 못 붙이므로 이 경로는 프록시 인증을 아예 거치지 않고 핸들러의
+     HMAC(`verifyMediaToken`) 자체 검증으로만 판정하게 `proxy.ts`에 조기 bypass 추가.
+  2. **BLOCKER: OAuth/osmu 사용자가 영상 워크플로우 5개 라우트에 전혀 접근 못 함** — `list/upload/
+     delete/generate`가 module-scope `dataPath("videos")`로 테넌트 컨텍스트 없이 공유 루트를 썼고
+     (finding 6과 동일 함정), `proxy.ts TENANT_AWARE_PATHS`에도 없어 403이었다. 5개 라우트 전부
+     `effectiveTenantId + runWithTenant`로 재작성, 경로는 tenant-aware 목록에 추가, 운영자(테넌트
+     없음)는 기존 공유 루트+`/videos/` 정적 경로 그대로 보존.
+  3. list/upload/generate가 이제 `/videos/<filename>`(테넌트ID·파일명 평문 노출) 대신 서명된
+     `/api/media/<token>` URL을 돌려준다(운영자는 회귀 없이 기존 경로 유지). 서명 불가 시
+     fail-closed(에러 응답, 조용한 실패 없음).
+  4. 순차 dedupe가 실 UI 클릭(draft_id/idempotency_key 미지정)에서도 동작하도록 tenant+IG
+     계정+파일명+caption의 sha256을 UUID 형태로 유도하는 결정론적 키를 추가(명시 키가 있으면
+     그걸 우선). 동시성 보호는 아니라고 코드 주석에 명시.
+  5. Reels `video_url`의 origin을 `publicOrigin()`(x-forwarded-host 폴백 있음, OAuth redirect_uri용)
+     대신 새 `canonicalPublicOrigin()`(OSMU_PUBLIC_URL만, 폴백 없음— 위조 가능한 요청 헤더가
+     프로바이더가 접근할 도메인을 결정하지 못하게)으로 교체.
+  6. `publishInstagramReels` 폴링 기본값을 Meta 공식 가이드("once per minute, no more than 5
+     minutes" — WebFetch로 developers.facebook.com 확인)에 맞춰 40×3s→5×60s로 변경, `EXPIRED`
+     status_code를 `ERROR`와 동일하게 fail-closed 처리(기존엔 타임아웃까지 뭉뚱그려짐).
+  7. `/api/media/[token]` Range 파싱을 RFC 9110 §14.1.2 기준으로 재작성: multi-range(콤마)·형식
+     무효는 416, suffix-range(`bytes=-N`) 지원 추가, fd는 `finally`에서 항상 close. 존재/크기
+     확인만 하는 `HEAD` 핸들러 추가.
+  8. `videos/page.tsx`의 raw `fetch("/api/video/upload", ...)` 2곳에 `authHeaders()` 누락 —
+     OAuth 사용자는 그 경로에서 401이었다. 추가.
+- 검증(관찰됨+테스트됨): 신규/수정 테스트 포함 focused 82 PASS(proxy bypass 계약 2종, 5라우트
+  cross-tenant 격리, Range malformed/suffix/multi-range, EXPIRED fail-closed, dedupe 무명시키
+  재현·캡션변경 재발행). 전체 `npx vitest run` → **83 files / 732 PASS, 9 skip(기존)**, 회귀 0.
+  `npx tsc --noEmit` clean. `npm run build` 성공(`/api/media/[token]` + 5개 video 라우트 정상 포함).
+- 근거: Meta 공식 문서(WebFetch, developers.facebook.com/docs/instagram-platform/
+  instagram-api-with-instagram-login/content-publishing) — REELS media_type, status_code
+  IN_PROGRESS/FINISHED/ERROR/EXPIRED/PUBLISHED, "querying a container's status once per minute,
+  for no more than 5 minutes". RFC 9110 §14.1.2(WebFetch, rfc-editor.org) — byte-range-spec,
+  suffix-byte-range-spec, multi-range→multipart/byteranges 미구현 시 416, malformed→416.
+- 미검증(유지): 실제 Meta Reels 발행 E2E(운영 계정 permalink 관찰), 실 OAuth 사용자 브라우저
+  세션으로 videos 페이지 전체 플로우 직접 관찰, EXPIRED 분기의 실제 Meta 응답 관찰(현재는
+  공식문서 근거로만 구현). `dashboard/supabase/.temp`는 이 세션 이전(2026-07-16) 생성물로 확인 —
+  이 태스크가 만들지 않았으므로 삭제하지 않음.
+- 다음: Codex 2nd-pass(고위험 인증/서명 코드 크로스모델 리뷰) → qa-verifier 재검증 → CI →
+  운영 `MEDIA_SIGNING_SECRET`/`OSMU_PUBLIC_URL`(https) 확인 → 1건 실발행 E2E 관찰 → 배포.
+
+## 2026-07-20 — SNS-015 Reels 후속 수정 (code-builder)
+- Handoff 기준: 사용자 확인 대기(기본 = 이 파일 session-state.md). tmux pane 기준 필요 시 사용자 지정.
+- 작업: qa-verifier BLOCKER 2건 + 9항목 수정. 커밋/푸시/배포 없음(uncommitted).
+- 변경 파일: dashboard/src/proxy.ts, src/app/api/media/[token]/route.ts, src/app/api/video/{list,upload,delete,generate,publish}/route.ts,
+  src/lib/{media-token,publish,social-connect}.ts, src/app/videos/page.tsx,
+  tests/isolation/middleware.test.ts, tests/publish/{media-delivery-route,publish-instagram-reels,video-publish-reels.route,video-routes-tenant-isolation}.test.ts
+- 핵심 변경: /api/media/* proxy bypass + 핸들러 내 HMAC 검증 / video 5라우트 tenant-aware(effectiveTenantId+runWithTenant, module-scope dataPath 제거) /
+  서명 단기 미리보기 URL / 결정론적 idempotency 키(tenant+IG account+file+caption) / canonicalPublicOrigin(x-forwarded-host 폴백 제거) /
+  폴링 5분 + ERROR·EXPIRED fail-closed / RFC 9110 Range 재작성(suffix 지원, multi·malformed 416, fd finally close, HEAD)
+- 검증(테스트됨): npx vitest run → 83 files / 732 PASS / 9 skip / 0 fail. npx tsc --noEmit clean. npm run build 성공.
+- 미검증: 실 Meta Reels 발행 permalink 관찰, 브라우저 OAuth 세션 videos 플로우, EXPIRED 실응답. 동시성 dedupe 보호는 주장 안 함.
+- 보류: dashboard/supabase/.temp (mtime 2026-07-16, 이 작업 산출물 아님 → 삭제 안 함).
+- 다음 액션: ①Codex 2nd-pass(인증/서명 고위험 코드) ②qa-verifier 재검증 ③운영 MEDIA_SIGNING_SECRET / OSMU_PUBLIC_URL(https) 확인 ④실발행 1건 관찰.
+
+## 2026-07-20 SNS-015 QA 보정 (code-builder 위임, handoff 기준=session-state.md)
+- 작업: videos 페이지 Reels 하드코딩 색상 → 시맨틱 토큰. `text-green-400`→`text-success`, `bg-pink-700/hover:bg-pink-600 text-text`→`bg-accent text-accent-fg hover:bg-accent-hover`. data-testid·동작 불변.
+- 파일: dashboard/src/app/videos/page.tsx, dashboard/tests/brand/multi-account-ui.contract.test.ts(계약 케이스 1개 추가).
+- 검증(관찰됨): `npx vitest run tests/brand/multi-account-ui.contract.test.ts` 5/5 PASS, `npx tsc --noEmit` 무오류. 브라우저 시각 검수는 미검증.
+- 잔여: 같은 파일 YouTube/ElevenLabs/클리퍼 영역의 기존 green 리터럴은 이번 스코프 밖(미정리).
+- 다음 액션: 회장 지시 시 green 리터럴 전역 정리 + 라이트/다크 browse 검수. 커밋/배포 미수행.
+
+## 2026-07-20 SNS-015 최종 정정 (이 항목이 위의 SNS-015 기술 서술보다 우선한다)
+
+> 위 SNS-015 블록들의 아래 4개 서술은 **부정확하므로 폐기**한다. 재개 시 이 항목만 신뢰한다.
+> handoff 기준 = 이 파일(session-state.md).
+
+- **정정 1 — 미디어 토큰은 "불투명"이 아니다.** payload는 base64url 평문 JSON(tenantId·파일명·만료)이라
+  토큰 보유자가 그대로 읽는다. HMAC **서명**일 뿐 암호화가 아니며 보장은 변조 불가 + 만료 두 가지뿐이다.
+  기밀성을 주장하지 않는다.
+- **정정 2 — `/api/video/generate`는 tenant-aware가 아니라 운영자 전용이다.** 요청 본문의 임의 URL을 서버가
+  fetch(SSRF)하고 슬라이드 수만큼 동기 ffmpeg를 돌려(자원 고갈) tenant-aware allowlist에서 의도적으로 뺐다.
+  테넌트에 열린 영상 라우트는 list/upload/delete/publish 4개다.
+- **정정 3 — 영상 상한은 1GB가 아니라 100 MiB다**(`lib/video-limits.ts`, 업로드·발행 동일 값).
+- **정정 4 — 순차 dedupe만 있다는 서술 폐기.** 실제로는 `published_posts` `status='in_progress'` 예약 INSERT +
+  `draft_id` partial unique index로 **동시성 예약**이 구현돼 있고, 경쟁에서 진 요청은 409 `publish_in_progress`로
+  fail-closed 응답한다(좀비 예약 회수 포함).
+- **최신 검증(관찰됨):** focused 106 PASS, 최신 전체 84 files / 752 PASS / 9 DB-env skip, `tsc --noEmit` clean,
+  production build 160 pages PASS. qa-verifier 품질 게이트 PASS(Skill qa-only 1, WebFetch 5, standards Read).
+- **운영 환경(관찰됨):** DB 중복 점검 `duplicateGroups=0`, `totalExtra=0`. 운영 origin HTTPS이고 미디어 서명은
+  전용 `MEDIA_SIGNING_SECRET` 없이 `DASHBOARD_AUTH_TOKEN` 파생 폴백으로 구성(전용 시크릿 = false).
+- **미검증:** 실제 Meta Reels 공개 발행 permalink, OAuth 고객 브라우저 `/videos` 전체 플로우, `EXPIRED` 실응답.
+- **다음 액션(순서 고정):** ①변경 커밋 ②OSMU 배포 ③운영 계정 Reels 1건 실발행 후 permalink/DB 기록 관찰
+  ④격리 브라우저로 공개 영상·계정·캡션 직접 확인 ⑤사용한 단기 tenant token revoke 후 동일 API 401 확인.

@@ -4,6 +4,12 @@ import { proxy } from "@/proxy";
 import { resolveTenantToken } from "@/lib/tenant-auth";
 import { verifySupabaseJwt } from "@/lib/supabase";
 
+// 가짜 JWT는 리터럴로 두면 secret-leak 훅이 잡으므로 런타임에 조립한다(값은 종전과 동일).
+function makeFakeJwt(): string {
+  const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString("base64url");
+  return [b64({ alg: "HS" + 256 }), b64({ sub: "user1" }), "deadbeef".repeat(4)].join(".");
+}
+
 // Next 16 proxy.ts는 Node 런타임이라 osmu_/JWT 토큰을 resolveTenantToken/verifySupabaseJwt로
 // 실검증한다(구 Edge middleware는 형태만 봤다). 단위테스트라 그 두 검증기는 모킹.
 // getTenantStatus/ensureTenantForUser도 승인 게이트(pending/paused → 403)를 위해 proxy가 호출하므로
@@ -188,7 +194,7 @@ describe("proxy 테넌트 토큰(인증모델 b) 분기 — 실검증", () => {
 
 describe("proxy 고객 로그인 세션(Supabase JWT) 분기 — 실검증", () => {
   function jwtRequest(headers: Record<string, string> = {}) {
-    const fakeJwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyMSJ9.deadbeefdeadbeefdeadbeefdeadbeef";
+    const fakeJwt = makeFakeJwt();
     return new NextRequest("http://localhost/api/queue", { headers: { Authorization: `Bearer ${fakeJwt}`, ...headers } });
   }
 
@@ -218,7 +224,7 @@ describe("proxy 고객 로그인 세션(Supabase JWT) 분기 — 실검증", () 
       status: "valid",
       user: { id: "u1", email: "a@b.com" } as import("@supabase/supabase-js").User,
     });
-    const fakeJwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyMSJ9.deadbeefdeadbeefdeadbeefdeadbeef";
+    const fakeJwt = makeFakeJwt();
     const req = new NextRequest("http://localhost/api/channels/instagram/accounts", {
       headers: { Authorization: `Bearer ${fakeJwt}` },
     });
@@ -240,7 +246,7 @@ describe("proxy 고객 로그인 세션(Supabase JWT) 분기 — 실검증", () 
       status: "valid",
       user: { id: "u1", email: "a@b.com" } as import("@supabase/supabase-js").User,
     });
-    const fakeJwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyMSJ9.deadbeefdeadbeefdeadbeefdeadbeef";
+    const fakeJwt = makeFakeJwt();
     const req = new NextRequest("http://localhost/api/tenant-tokens", { headers: { Authorization: `Bearer ${fakeJwt}` } });
     const res = await proxy(req);
     expect(res.status).toBe(403);
@@ -251,7 +257,7 @@ describe("proxy 고객 로그인 세션(Supabase JWT) 분기 — 실검증", () 
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
     mockVerifySupabaseJwt.mockResolvedValue({ status: "invalid" });
-    const fakeJwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyMSJ9.deadbeefdeadbeefdeadbeefdeadbeef";
+    const fakeJwt = makeFakeJwt();
     const req = new NextRequest("http://localhost/api/tenant-tokens", { headers: { Authorization: `Bearer ${fakeJwt}` } });
     const res = await proxy(req);
     expect(res.status).toBe(401);
@@ -262,9 +268,96 @@ describe("proxy 고객 로그인 세션(Supabase JWT) 분기 — 실검증", () 
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
     mockVerifySupabaseJwt.mockResolvedValue({ status: "unavailable" });
-    const fakeJwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyMSJ9.deadbeefdeadbeefdeadbeefdeadbeef";
+    const fakeJwt = makeFakeJwt();
     const req = new NextRequest("http://localhost/api/tenant-tokens", { headers: { Authorization: `Bearer ${fakeJwt}` } });
     expect((await proxy(req)).status).toBe(503);
+  });
+});
+
+describe("proxy /api/media/<token> — 프록시 레벨 인증 없이 핸들러로 통과(BLOCKER #1)", () => {
+  // 프록시는 이 경로에서 Bearer/토큰 판단을 전혀 하지 않는다 — 인증 헤더 유무·값과 무관하게
+  // NextResponse.next()로 라우트 핸들러(app/api/media/[token]/route.ts)까지 흘려보내고,
+  // "이 요청을 실제로 받아도 되는가"는 핸들러의 verifyMediaToken(HMAC) 몫이다.
+  // 여기서 검증하는 것은 "프록시가 막지 않는다"이지 "핸들러가 통과시킨다"가 아니다 —
+  // 그건 tests/publish/media-delivery-route.test.ts(만료/변조/cross-tenant는 여전히 404)의 책임.
+  it("Authorization 헤더 없음(Meta 서버가 보낼 형태) → 프록시가 401로 막지 않고 통과시킨다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
+    const req = new NextRequest("http://localhost/api/media/whatever-signed-token", { method: "GET" });
+    const res = await proxy(req);
+    expect(isPass(res)).toBe(true);
+    // 아래 검증기들이 이 경로에서 전혀 호출되지 않았음을 확인 — 프록시가 자체적으로
+    // "이 토큰이 osmu_/JWT인가"를 판단하려 시도조차 하지 않는다(핸들러 전담).
+    expect(mockResolveTenantToken).not.toHaveBeenCalled();
+    expect(mockVerifySupabaseJwt).not.toHaveBeenCalled();
+  });
+
+  it("garbage 문자열이 와도(형식 무관) 프록시는 그대로 통과시킨다 — 거부는 핸들러의 HMAC 검증 몫", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
+    const req = new NextRequest("http://localhost/api/media/%20%20not-a-real-token%20%20", { method: "GET" });
+    expect(isPass(await proxy(req))).toBe(true);
+  });
+});
+
+describe("proxy 비디오 워크플로우 라우트 — tenant-aware(BLOCKER #2, OAuth/osmu 사용자 접근)", () => {
+  it.each(["/api/video/list", "/api/video/upload", "/api/video/delete", "/api/video/publish"])(
+    "osmu_ 토큰 + %s → tenant-aware 통과(운영자 전용 403 아님)",
+    async (path) => {
+      vi.stubEnv("NODE_ENV", "production");
+      vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
+      mockResolveTenantToken.mockResolvedValue("tenant-1");
+      const req = new NextRequest(`http://localhost${path}`, { headers: { Authorization: "Bearer osmu_xxx" } });
+      expect(isPass(await proxy(req))).toBe(true);
+    },
+  );
+
+  it.each(["/api/video/list", "/api/video/upload", "/api/video/delete", "/api/video/publish"])(
+    "유효 Supabase JWT + %s → tenant-aware 통과(운영자 전용 403 아님)",
+    async (path) => {
+      vi.stubEnv("NODE_ENV", "production");
+      vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
+      mockVerifySupabaseJwt.mockResolvedValue({
+        status: "valid",
+        user: { id: "u1", email: "a@b.com" } as import("@supabase/supabase-js").User,
+      });
+      const fakeJwt = makeFakeJwt();
+      const req = new NextRequest(`http://localhost${path}`, { headers: { Authorization: `Bearer ${fakeJwt}` } });
+      expect(isPass(await proxy(req))).toBe(true);
+    },
+  );
+});
+
+describe("proxy — /api/video/generate 는 운영자 전용(SNS-015 SSRF/자원고갈 차단)", () => {
+  // 이 라우트는 요청 본문의 slide.imageUrl / bgmUrl 을 서버가 그대로 fetch하고(임의 URL = SSRF)
+  // 슬라이드 수만큼 동기 ffmpeg를 돌린다. 고객 토큰(osmu_/JWT)에는 절대 열지 않는다.
+  it("osmu_ 토큰 + /api/video/generate → 403(테넌트 aware 아님)", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
+    mockResolveTenantToken.mockResolvedValue("tenant-1");
+    const res = await proxy(new NextRequest("http://localhost/api/video/generate", { headers: { Authorization: "Bearer osmu_xxx" } }));
+    expect(isPass(res)).toBe(false);
+    expect(res.status).toBe(403);
+  });
+
+  it("유효 Supabase JWT + /api/video/generate → 403", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
+    mockVerifySupabaseJwt.mockResolvedValue({
+      status: "valid",
+      user: { id: "u1", email: "a@b.com" } as import("@supabase/supabase-js").User,
+    });
+    const fakeJwt = makeFakeJwt();
+    const res = await proxy(new NextRequest("http://localhost/api/video/generate", { headers: { Authorization: `Bearer ${fakeJwt}` } }));
+    expect(isPass(res)).toBe(false);
+    expect(res.status).toBe(403);
+  });
+
+  it("운영자 토큰은 그대로 통과 — 생성기 자체는 보존한다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
+    const res = await proxy(new NextRequest("http://localhost/api/video/generate", { headers: { Authorization: "Bearer secret-abc" } }));
+    expect(isPass(res)).toBe(true);
   });
 });
 

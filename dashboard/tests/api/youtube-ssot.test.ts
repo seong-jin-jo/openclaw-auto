@@ -292,14 +292,18 @@ describe("POST /api/video/publish — youtube 브랜치", () => {
     expect(body.error).toContain("TikTok");
   });
 
-  it("Reels 발행도 미구현 사유를 명확히 반환한다", async () => {
+  // SNS-015: Reels는 더 이상 501(미구현)이 아니다. 단 Instagram 미연결이면 "구현됨"인 척하지 않고
+  // 조치 가능한 미연결 사유를 준다 — 정직한 비활성 상태는 유지된다.
+  it("Reels는 Instagram 미연결이면 501이 아니라 조치 가능한 미연결 사유를 반환한다", async () => {
+    H.cred = null;
     const { POST } = await import("@/app/api/video/publish/route");
     const res = await POST(new Request("http://localhost/api/video/publish", {
       method: "POST",
       body: JSON.stringify({ filename: "x.mp4", platform: "reels" }),
     }));
     const body = await res.json();
-    expect(res.status).toBe(501);
-    expect(body.disabled).toBe(true);
+    expect(res.status).toBe(400);
+    expect(body.error).toContain("Instagram");
+    expect(JSON.stringify(body)).not.toContain("not_implemented");
   });
 });

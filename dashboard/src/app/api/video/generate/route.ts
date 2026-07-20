@@ -3,12 +3,17 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { readJson, dataPath } from "@/lib/file-io";
+import { effectiveTenantId } from "@/lib/tenant-auth";
+import { runWithTenant } from "@/lib/tenant-context";
+import { signMediaToken } from "@/lib/media-token";
 
 // 0차: Shorts Factory stabilization - support wiki context injection (from sourcing/studio), explainable errors.
 // Respect handoff: no PORT changes, build constraints. See wiki/learnings/2026-06-19-openclaw-osmu-handoff.md
 // Multi-channel with text+video for operator's services.
-
-const VIDEO_OUTPUT_DIR = dataPath("videos");
+//
+// SNS-015: dataPath("videos")는 절대 모듈 스코프에서 평가하지 않는다(finding 6 — 요청/테넌트
+// 컨텍스트 밖에서 평가되면 모든 테넌트가 같은 공유 경로를 쓰게 되는 구멍). 이 파일의 모든
+// dataPath() 호출은 POST 핸들러 안, runWithTenant(tenantId, ...) 콜백 "안"에서만 일어난다.
 
 interface ElevenLabsConfig {
   apiKey?: string;
@@ -83,6 +88,19 @@ export async function POST(request: Request) {
     return Response.json({ error: "slides required" }, { status: 400 });
   }
 
+  const tenantId = await effectiveTenantId(request, null);
+  return runWithTenant(tenantId, () => generateVideo({ slides, ttsEnabled, bgmUrl, bgmVolume, tenantId }));
+}
+
+async function generateVideo(opts: {
+  slides: Slide[];
+  ttsEnabled: boolean;
+  bgmUrl: string;
+  bgmVolume: number;
+  tenantId: string | null;
+}): Promise<Response> {
+  const { slides, ttsEnabled, bgmUrl, bgmVolume, tenantId } = opts;
+  const VIDEO_OUTPUT_DIR = dataPath("videos"); // runWithTenant 컨텍스트 안 — 테넌트별 격리.
   fs.mkdirSync(VIDEO_OUTPUT_DIR, { recursive: true });
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "video-"));
 
@@ -193,10 +211,22 @@ export async function POST(request: Request) {
       }
     }
 
+    let url = `/videos/${outputName}`; // 운영자(공유 루트) — 기존 정적 경로 유지.
+    if (tenantId) {
+      const token = signMediaToken(tenantId, outputName);
+      if (!token) {
+        return Response.json(
+          { error: "미디어 서명 비밀이 설정되지 않아 결과 URL을 발급할 수 없습니다(MEDIA_SIGNING_SECRET 필요)." },
+          { status: 400 },
+        );
+      }
+      url = `/api/media/${token}`;
+    }
+
     return Response.json({
       ok: true,
       filename: outputName,
-      url: `/videos/${outputName}`,
+      url,
       duration: totalDur,
       slides: slides.length,
       hasAudio,

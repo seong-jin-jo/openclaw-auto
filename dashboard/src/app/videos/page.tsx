@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { fetcher, apiPost } from "@/lib/api";
+import { authHeaders } from "@/lib/auth";
 import { useToast } from "@/components/layout/Toast";
 import { SocialConnectButton } from "@/components/channel/SocialConnectButton";
 import { AccountManager } from "@/components/channel/AccountManager";
@@ -64,6 +65,14 @@ export default function VideosPage() {
   const { activeWorkspace } = useUIStore();
   const { data, mutate } = useSWR<{ videos: Video[] }>("/api/video/list", fetcher);
   const { data: ytStatus, mutate: mutateYtStatus } = useSWR<{ connected: boolean; status?: "valid" | "invalid" | "unverified" }>("/api/youtube/status", fetcher);
+  // SNS-015: Reels는 연결된 Instagram 계정이 있어야만 실행 가능 — 없으면 정직하게 미연결로 표시.
+  const { data: igAccounts } = useSWR<{ accounts?: unknown[] }>("/api/channels/instagram/accounts", fetcher);
+  const igConnected = Array.isArray(igAccounts?.accounts) && igAccounts.accounts.length > 0;
+  // SNS-015 보안: 슬라이드 영상 생성(/api/video/generate)은 임의 URL fetch + 동기 ffmpeg라
+  // 운영자 전용으로 남긴다(proxy.ts TENANT_AWARE_PATHS 제외). 고객(OAuth/JWT) 세션에는 403이
+  // 확정된 버튼을 아예 그리지 않는다 — "눌러봐야 실패하는 기능"을 제안하지 않기 위함.
+  const { data: me } = useSWR<{ isOperator?: boolean }>("/api/me", fetcher);
+  const canGenerate = me?.isOperator === true;
   const { data: elConfig } = useSWR<{ configured: boolean }>("/api/elevenlabs-config", fetcher);
   const { data: clipConfig } = useSWR<{ configured: boolean; provider?: string }>("/api/clipping-config", fetcher);
   const [ytAccountsTick, setYtAccountsTick] = useState(0);
@@ -148,20 +157,23 @@ export default function VideosPage() {
     }
   };
 
-  const handlePublish = async (filename: string) => {
+  // SNS-015: YouTube와 Instagram Reels가 같은 라우트를 쓰되 platform만 다르다.
+  // Reels는 account_id를 보내지 않는다 — YouTube 계정 선택값이 Instagram 계정으로 새면 안 된다.
+  const handlePublish = async (filename: string, platform: "youtube" | "reels" = "youtube") => {
+    const label = platform === "reels" ? "Instagram Reels" : "YouTube";
     try {
       const res = await apiPost<{ ok: boolean; url?: string; error?: string }>("/api/video/publish", {
         filename,
         title: publishTitle || filename,
         description: publishDesc,
-        platform: "youtube",
-        account_id: publishAccountId || undefined,
+        platform,
+        account_id: platform === "youtube" ? (publishAccountId || undefined) : undefined,
       });
       if (res?.ok) {
-        showToast(`Published to YouTube: ${res.url}`, "success");
+        showToast(`Published to ${label}: ${res.url || ""}`, "success");
         setPublishingFile(null);
       } else {
-        showToast(res?.error || "Publish failed", "error");
+        showToast(res?.error || `${label} 발행 실패`, "error");
       }
     } catch (e) {
       showToast(`Error: ${(e as Error).message}`, "error");
@@ -179,7 +191,7 @@ export default function VideosPage() {
         // upload first
         const form = new FormData();
         form.append("file", repurposeFile);
-        const up = await fetch("/api/video/upload", { method: "POST", body: form }).then(r => r.json());
+        const up = await fetch("/api/video/upload", { method: "POST", headers: authHeaders(), body: form }).then(r => r.json());
         if (!up?.filename) throw new Error("upload failed");
         payload.uploadRef = up.filename;
       } else {
@@ -243,7 +255,7 @@ export default function VideosPage() {
             const buf = await res.arrayBuffer();
             const upForm = new FormData();
             upForm.append("file", new Blob([buf], { type: "video/mp4" }), `${filename}.mp4`);
-            const up = await fetch("/api/video/upload", { method: "POST", body: upForm }).then(r => r.json());
+            const up = await fetch("/api/video/upload", { method: "POST", headers: authHeaders(), body: upForm }).then(r => r.json());
             if (up?.filename) filename = up.filename;
           }
         } catch {}
@@ -333,12 +345,15 @@ export default function VideosPage() {
           >
             라이브러리 ({videos.length})
           </button>
-          <button
-            onClick={() => setTab("generate")}
-            className={`px-3 py-1.5 text-xs rounded ${tab === "generate" ? "bg-accent text-text" : "text-subtle hover:bg-surface-2"}`}
-          >
-            + 생성
-          </button>
+          {canGenerate && (
+            <button
+              data-testid="video-generate-tab"
+              onClick={() => setTab("generate")}
+              className={`px-3 py-1.5 text-xs rounded ${tab === "generate" ? "bg-accent text-text" : "text-subtle hover:bg-surface-2"}`}
+            >
+              + 생성
+            </button>
+          )}
         </div>
       </div>
 
@@ -388,9 +403,13 @@ export default function VideosPage() {
           <div className="text-[10px] text-subtle mb-1">TikTok</div>
           <div className="text-sm font-medium text-subtle">미구현 — TikTok 앱 심사 승인 전</div>
         </div>
-        <div className="card p-3" data-testid="reels-disabled-card">
+        {/* SNS-015: Reels 발행 분기가 실제로 존재하므로 "미구현"이 아니다. 다만 Instagram 연결이
+            없으면 실행 자체가 불가하므로 그 사실을 정직하게 구분해 표시한다. */}
+        <div className="card p-3" data-testid="reels-status-card">
           <div className="text-[10px] text-subtle mb-1">Instagram Reels</div>
-          <div className="text-sm font-medium text-subtle">미구현 — 발행 분기 없음</div>
+          <div className={`text-sm font-medium ${igConnected ? "text-success" : "text-subtle"}`}>
+            {igConnected ? "발행 가능" : "Instagram 미연결 — /channels/instagram에서 연결 필요"}
+          </div>
         </div>
         <div className="card p-3">
           <div className="text-[10px] text-subtle mb-1">영상 클리퍼 (0차)</div>
@@ -566,6 +585,16 @@ export default function VideosPage() {
                         </button>
                       )
                     )}
+                    {/* SNS-015: Reels는 YouTube 연결과 무관하다 — Instagram 연결이 있을 때만 그린다. */}
+                    {igConnected && (
+                      <button
+                        data-testid="reels-publish-button"
+                        onClick={() => handlePublish(v.filename, "reels")}
+                        className="px-2 py-1 text-xs bg-accent text-accent-fg rounded hover:bg-accent-hover"
+                      >
+                        Reels
+                      </button>
+                    )}
                     <button onClick={() => handleDelete(v.filename)} className="px-2 py-1 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">
                       Delete
                     </button>
@@ -589,7 +618,7 @@ export default function VideosPage() {
         </div>
       )}
 
-      {tab === "generate" && (
+      {tab === "generate" && canGenerate && (
         <div className="card p-6">
           <h3 className="text-sm font-medium text-muted mb-4">Slide Editor</h3>
           <div className="space-y-3 mb-4">

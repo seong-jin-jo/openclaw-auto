@@ -40,9 +40,23 @@ External: Threads/X/IG/YouTube/TikTok APIs + R2 + ElevenLabs + Midjourney
 - viral_signals table
 
 **4. Video / Shorts Factory**
-- video-generate extension → dashboard /api/video/generate (ffmpeg + TTS)
 - slides model: text + duration + imageUrl
 - Higgsfield path for advanced video
+- Instagram Reels publish path (SNS-015, code tested / operating unverified):
+  `POST /api/video/upload` → tenant-scoped `data/videos` → 15분 만료 HMAC 서명 URL
+  `GET|HEAD /api/media/<token>`(Range 지원, 프록시 인증 우회 후 핸들러 자체 서명 검증) →
+  Meta `media_type=REELS` 컨테이너 생성(`video_url`은 `OSMU_PUBLIC_URL` 정본 origin만 사용) →
+  `status_code` 폴링 최대 5분(1분 간격, `ERROR`/`EXPIRED`/timeout fail-closed) →
+  `media_publish` → permalink 재조회 후 DB/queue 기록.
+- 토큰은 **암호화가 아니라 서명**이다. payload는 base64url 평문 JSON(tenantId·파일명·만료)이라
+  토큰 보유자는 내용을 읽을 수 있다. 보장은 변조 불가 + 만료 두 가지뿐이다.
+- 테넌트(고객 OAuth/JWT)에게 열린 영상 라우트는 list / upload / delete / publish 4개다.
+- `/api/video/generate`는 **운영자 전용**이다. 요청 본문의 `imageUrl`/`bgmUrl`을 서버가 그대로
+  fetch(SSRF)하고 슬라이드 수만큼 동기 ffmpeg를 돌려(자원 고갈) tenant-aware allowlist에서 의도적으로 제외했다.
+- 업로드/발행 공통 애플리케이션 상한은 100 MiB(`lib/video-limits.ts`). 프록시/플랫폼 본문 상한 뒤의 2차 방어선이다.
+- 중복 발행은 DB에서 막는다. `published_posts`에 `status='in_progress'` 예약 INSERT를 하고
+  `draft_id` 기준 partial unique index가 `published`/`in_progress`를 유일하게 강제한다.
+  경쟁에서 진 요청은 성공을 흉내내지 않고 409 `publish_in_progress`로 fail-closed 응답한다.
 
 **5. Wiki (two kinds)**
 - Product: tenant wiki_docs (GitHub sync, trgm search, prompt injection for facts)
