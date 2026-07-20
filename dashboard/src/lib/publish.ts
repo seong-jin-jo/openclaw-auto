@@ -243,6 +243,23 @@ export async function publishThreads(cred: ChannelCred, text: string, imageUrl?:
 }
 
 // Instagram 발행 (caption + 단일 image, Graph API). image_url은 공개 URL 필요.
+export async function fetchInstagramPermalink(cred: ChannelCred, mediaId: string): Promise<string | undefined> {
+  const base = cred.meta?.api === "instagram_login" ? IG_LOGIN_API : IG_API;
+  for (let i = 0; i < 5; i++) {
+    try {
+      const res = await fetch(`${base}/${mediaId}?fields=permalink&access_token=${encodeURIComponent(cred.token)}`);
+      if (res.ok) {
+        const permalink = String(((await res.json()) as { permalink?: string }).permalink ?? "");
+        if (permalink) return permalink;
+      }
+    } catch {
+      // The post is already published; permalink recovery must not reverse that success.
+    }
+    if (i < 4) await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  return undefined;
+}
+
 export async function publishInstagram(cred: ChannelCred, caption: string, imageUrl?: string): Promise<PublishResult> {
   if (!cred.userId) return { ok: false, error: "INSTAGRAM_USERID(meta.userId) 없음" };
   if (!imageUrl) return { ok: false, error: "Instagram은 이미지 필수" };
@@ -252,24 +269,30 @@ export async function publishInstagram(cred: ChannelCred, caption: string, image
     method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ image_url: imageUrl, caption, access_token: cred.token }),
   });
-  if (!create.ok) return { ok: false, error: `IG container 실패(${create.status}): ${(await create.text()).slice(0, 200)}` };
+  if (!create.ok) return { ok: false, error: `IG container 실패(${create.status})` };
   const { id: creationId } = (await create.json()) as { id: string };
   // 이미지 컨테이너는 인스타가 비동기 처리한다. status_code=FINISHED 될 때까지 폴링해야
   // media_publish가 "Media ID is not available"(9007) 없이 성공한다.
+  let finished = false;
   for (let i = 0; i < 20; i++) {
     const st = await fetch(`${base}/${creationId}?fields=status_code&access_token=${encodeURIComponent(cred.token)}`);
     const { status_code } = (await st.json().catch(() => ({}))) as { status_code?: string };
-    if (status_code === "FINISHED") break;
+    if (status_code === "FINISHED") {
+      finished = true;
+      break;
+    }
     if (status_code === "ERROR") return { ok: false, error: "IG 미디어 처리 실패(status ERROR — 이미지 형식/접근성 확인)" };
     await new Promise((r) => setTimeout(r, 1500));
   }
+  if (!finished) return { ok: false, error: "IG 미디어 처리 시간 초과 — 잠시 후 다시 시도해주세요." };
   const pub = await fetch(`${base}/${cred.userId}/media_publish`, {
     method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ creation_id: creationId, access_token: cred.token }),
   });
-  if (!pub.ok) return { ok: false, error: `IG publish 실패(${pub.status}): ${(await pub.text()).slice(0, 200)}` };
+  if (!pub.ok) return { ok: false, error: `IG publish 실패(${pub.status})` };
   const { id: mediaId } = (await pub.json()) as { id: string };
-  return { ok: true, externalId: mediaId };
+  const permalink = await fetchInstagramPermalink(cred, mediaId);
+  return { ok: true, externalId: mediaId, permalink };
 }
 
 // ── X(Twitter) OAuth1.0a 서명 ─────────────────────────────────────────────

@@ -4,15 +4,15 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: ship            # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design, build, qa]
+current_stage: build           # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
-  build:      { status: approved, artifacts_ok: true } # GA4 native Arguments command fix
-  qa:         { status: approved, artifacts_ok: true }
+  build:      { status: in-progress, artifacts_ok: true } # Instagram permalink + polling fail-closed; local QA PASS
+  qa:         { status: pending, artifacts_ok: false }
   ship:       { status: in-progress, artifacts_ok: false }
 override: false
 override_reason: ""
@@ -32,6 +32,20 @@ override_expires: ""
   timeout됐다. gtag destination과 전용 스크립트에는 측정 ID가 실제 등록돼 있어 속성 미설정이 원인이 아니었다.
 - 앱 shim이 공식 snippet의 native `arguments` 대신 rest Array를 push해 명령이 실행되지 않는 것이 원인이다.
   native Arguments 교정→focused/full test→build→CI→재배포→client_id 반환+collect 관찰 전 승인/ship 완료 금지.
+
+## 2026-07-20 Instagram publish evidence hotfix build reopen
+- 운영 T-02 IMAGE 발행은 성공했고 Graph에서 공개 permalink를 회수했지만 앱 응답/DB permalink가 비었다.
+- 컨테이너가 20회 안에 FINISHED가 아니어도 media_publish를 호출하는 fail-open과 provider 원문 오류 노출도 확인했다.
+- FINISHED timeout fail-closed, 성공 후 permalink 조회, 오류 원문 비노출을 수정·테스트·CI·배포하고 기존 media
+  permalink를 DB/queue에 보강하기 전 승인/ship 완료 금지.
+
+## 2026-07-20 SNS-014 Instagram build candidate
+- Instagram FINISHED timeout을 fail-closed로 바꾸고, 신규 성공 및 기존 성공 재호출 모두 media permalink를
+  회수하도록 수정했다. 기존 성공 분기는 외부 media_publish를 호출하지 않고 DB/queue URL만 보강한다.
+- provider raw body는 오류 응답에서 제거했다. focused 18 PASS, 전체 78 files/673 PASS·9 DB-env skip,
+  TypeScript clean, production 160-route build PASS, diff check PASS.
+- CI SUCCESS와 운영 T-02 `alreadyPublished:true`/동일 permalink/DB·queue URL 보강/외부 게시물 1건 유지 전
+  ship 완료 금지.
 
 > 2026-06-30 `init --adopt`. 이 레포는 이미 라이브 배포된 멀티테넌트 마케팅 SaaS라 plan~build는
 > ADOPT(기존 인정). **현재 ship(in-progress).** 신규 기능(OAuth 연결, GA4, 가이드 등)은 build→qa→ship 게이트를

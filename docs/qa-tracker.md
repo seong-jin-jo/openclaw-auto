@@ -306,10 +306,11 @@ qa = **in-progress** (ship 게이트 잠김 유지). 아침 체크리스트 1~3 
 | SNS-007 | 사이트 내 provider 다중계정 관리·전환 불가 | `integrations`가 `UNIQUE(tenant_id,kind,label)`이고 OAuth callback이 provider label로 upsert해 새 계정 연결 시 기존 계정을 덮어씀. 발행 API도 provider별 단일 credential만 조회 | 두 번째 계정 OAuth 로그인 자체는 provider 세션/2FA 제약을 통과해야 함 | eng/build: additive `channel_accounts`+계정 관리 UI/API+선택 발행 | 동일 provider 2계정 보존→기본계정 전환→각 계정 선택 발행 permalink, 기존 단일계정 무손실, cross-tenant 거부 | 🟡 운영 단일계정 UI 관찰 / 실 2계정 전환·발행 미검증 |
 | SNS-008 | OAuth 연결 클릭 후 popup 미생성 | 공통 `SocialConnectButton`이 auth URL fetch를 await한 뒤 `window.open()`을 호출해 transient user activation을 잃음 | provider 로그인·동의·callback 이후 외부 단계 | build: 클릭 즉시 blank popup 예약→URL 이동, failure/unmount/StrictMode lifecycle 정리 | 운영 Chrome에서 Facebook·YouTube 클릭 시 새 popup target 생성 및 공식 provider host 이동, callback postMessage 후 상태 갱신 | 🟡 운영 popup/provider 진입 관찰 / callback 미검증 |
 | SNS-009 | Threads `valid`인데 실발행 400 | readiness가 `/me?fields=username` 성공만 보고 저장 user ID와 토큰 실제 ID를 비교하지 않음. publish는 stale `meta.userId`를 그대로 사용 | 없음(TEXT 실발행 기준) | build: `/me?id` identity 검증·실제 ID 사용, mismatch 회귀 테스트 | 운영 T-PIN-01 발행 성공 + permalink, draft 중복 방지, 실패 기록 보존 | ✅ 운영 관찰 |
-| SNS-010 | Threads 컨테이너 준비 전 발행·발행 결과불명 | 모든 media container 생성 직후 상태 폴링 없이 publish하고, publish 네트워크 단절 시 실제 성공 여부를 확정할 수 없음 | IMAGE 실발행은 아직 미검증 | build: FINISHED까지 status 폴링 + ERROR/EXPIRED/timeout fail-closed; 응답 단절 중복은 SNS-012 순차 방지로 일부 완화 | TEXT/이미지 게시 실 permalink, publish 응답 단절 후 중복 0건 | 🟡 TEXT 운영 관찰 / IMAGE 미검증 |
+| SNS-010 | Threads 컨테이너 준비 전 발행·발행 결과불명 | 모든 media container 생성 직후 상태 폴링 없이 publish하고, publish 네트워크 단절 시 실제 성공 여부를 확정할 수 없음 | 응답 단절 동시성은 별도 DB lock 없이는 완전 차단되지 않음 | build: FINISHED까지 status 폴링 + ERROR/EXPIRED/timeout fail-closed; 응답 단절 중복은 SNS-012 순차 방지로 완화 | TEXT/이미지 게시 실 permalink, 순차 재호출 중복 0건 | ✅ TEXT+IMAGE 순차 운영 관찰 |
 | SNS-011 | 운영 재배포 후 tenant queue/config 파일 소실 | deploy가 checkout 전 workspace 전체를 삭제하는데 OSMU가 workspace 상대 bind mount를 사용 | 삭제된 과거 config의 별도 백업은 없음 | build: 고정 이름 Docker volume + 상대 bind 금지 계약 테스트 | 재배포 전후 동일 queue ID/원문 유지, 컨테이너 재생성 후에도 존속 | ✅ 운영 관찰 |
 | SNS-012 | 실발행 성공 후 draft 잔존·재클릭 중복 | `/api/publish`가 `published_posts`만 INSERT하고 queue JSON/DB shadow 상태를 갱신하지 않으며 기존 성공 조회도 없음 | 동시 요청 레이스는 별도 DB lock 없이는 완전 차단되지 않음 | build: 계정별 기존 성공 반환 + 성공 후 queue dual-write | 첫 요청 게시 1개/queue published, 순차 동일 요청 `alreadyPublished:true`, 외부 게시물 증가 0 | ✅ 순차 운영 관찰 |
 | SNS-013 | 발행 성공했지만 permalink 누락으로 검증 실패 | Meta media permalink가 발행 직후 조회에서 비어도 발행 자체는 성공 처리되며 기존 성공 retry는 URL을 보강하지 않음 | Meta permalink 가시화 지연 | build: 초기 5회 조회 + 기존 external ID URL-only 복구/DB·queue 보강 | 동일 요청 `alreadyPublished:true`+permalink, published/distinct external 1 | ✅ 운영 관찰 |
+| SNS-014 | Instagram 게시 성공 후 permalink 미저장·준비 timeout fail-open | Instagram 발행 함수가 `media_publish` 성공 ID만 반환하고 permalink를 조회하지 않으며, 20회 폴링 후에도 `FINISHED`가 아니면 그대로 publish함 | Graph permalink 가시화 지연 | build: FINISHED timeout fail-closed + 성공 URL 조회 + 기존 성공 URL-only 복구 + provider 원문 비노출 | 배포 후 기존 T-02 재호출이 `alreadyPublished:true`+동일 permalink, DB/queue URL 보강, 외부 게시물 1건 유지 | 🔧 코드 수정·테스트됨 / 운영 재검증 대기 |
 
 **관리 규칙:** 상태 전이는 `❌ NG → 🔧 코드 수정·테스트됨 → 🔧 로컬 실브라우저 관찰 → 🟡 운영 미검증 → ✅ 운영 관찰`만 허용한다. unit/mock/auth URL 200은 E2E나 종료증거로 승격하지 않는다. 각 ID는 코드 커밋·테스트·배포 run·실사용 증거에 동일하게 붙인다.
 
@@ -318,6 +319,14 @@ qa = **in-progress** (ship 게이트 잠김 유지). 아침 체크리스트 1~3 
 **SNS-010 TEXT 운영 재현 정정(2026-07-19):** deploy run `29681690918` 후 T-PIN-01을 재발행했을 때 identity 조회와 container 생성은 통과했으나 `threads_publish`가 400으로 실패했다. 공개 성공 0, failed 기록 2, queue draft, QA token revoke/401을 확인했다. 따라서 기존 "TEXT에는 폴링의 직접 영향 없음" 판단은 철회한다. container `status`를 최대 20회/1초 간격으로 조회해 `FINISHED`만 publish하고 `ERROR`/`EXPIRED`/unknown/network/timeout은 원문·토큰 비노출 오류로 중단하도록 수정했다. focused 3 files/29 PASS, tsc PASS. 운영 permalink 전에는 종료하지 않는다.
 
 **SNS-013 운영 재현(2026-07-19):** polling 배포 run `29683491094` 후 동일 draft 발행은 DB `published=1`, distinct external ID 1, queue JSON/DB `published`로 실제 성공했다. 단, 발행 직후 permalink가 비어 검증 스크립트가 URL assertion에서 중단됐다. 토큰은 revoke됐고 외부 게시 재호출은 하지 않았다. 초기 permalink를 5회 재시도하고, 이미 성공한 draft의 순차 요청은 기존 external ID로 URL만 조회해 DB/queue를 보강하도록 수정했다. focused 27 PASS, tsc PASS.
+
+**SNS-014 build 후보(2026-07-20):** 기존 T-02 Instagram IMAGE 발행은 공개 URL
+`https://www.instagram.com/p/DbAnPRGlKTn/`에서 계정명·273자 caption·1024x768 이미지를 브라우저로 직접
+관찰했지만 앱 응답과 `published_posts.permalink`는 비어 있었다. Instagram도 성공 직후 media permalink를 최대
+5회 조회하고, 기존 성공 재호출에서는 외부 `media_publish` 없이 external ID의 URL만 회수해 DB와 queue를 보강하도록
+수정했다. 컨테이너가 20회 안에 `FINISHED`가 아니면 publish하지 않고 timeout으로 종료하며 provider 응답 원문은
+사용자 오류에서 제거했다. focused 2 files/18 PASS, 전체 78 files/673 PASS·9 DB-env skip, TypeScript clean,
+production build 160 routes PASS, `git diff --check` PASS. CI·배포 후 기존 T-02 순차 재호출/DB·queue 보강은 미검증이다.
 
 **Threads TEXT 최종 운영 증거(2026-07-19):** deploy run `29684688750` SUCCESS 후 동일 T-PIN-01 요청이 기존 성공을 재사용해 permalink를 DB와 queue에 보강했다. DB는 published 1, distinct external ID 1, 과거 failed 2이고 queue JSON/DB는 published다. 로컬·marketing VM curl 모두 공개 URL HTTP 200, gstack 실제 브라우저가 `zero_to_one_ai` 계정의 397자 원문 전체를 직접 렌더했다: `https://www.threads.com/@zero_to_one_ai/post/Da-Kay5lD4f`. 외부 게시물 추가 생성은 0이다. 별도 최종 토큰 수명주기에서 발급 직후 queue API 200, revoke 후 같은 토큰 401을 직접 확인했다.
 
@@ -372,13 +381,15 @@ qa = **in-progress** (ship 게이트 잠김 유지). 아침 체크리스트 1~3 
 
 ### HARNESS-001 — 가역 실행 승인 반복 노출
 
-- ❌ **NG(사용자 직접 지적, 2026-07-20):** 이미 진행·build·QA 승인이 확정된 상태에서 Git/브라우저/GitHub
+- ❌ **NG(사용자 최소 5회 직접 지적, 2026-07-20):** 이미 진행·build·QA 승인이 확정된 상태에서 Git/브라우저/GitHub
   명령의 샌드박스 권한 요청을 작업 승인처럼 반복 노출했다. 가역 작업은 묻지 않고 실행한다는 하네스 규칙과 충돌한다.
 - **원인:** 제품 stage 승인과 실행환경 sandbox escalation을 보고 문구에서 분리하지 않았고, 권한 prefix를 한 번에
   확보하지 않아 승인 UI가 여러 번 발생했다.
 - **재발방지:** 기존 승인 prefix는 무질문 실행, 신규 외부 권한이 시스템상 필수일 때만 최소 범위를 한 번에 묶는다.
   제품·단계 승인은 이미 승인됐으면 다시 요청하지 않는다. 이 항목의 종료증거는 남은 배포·운영 E2E를 추가 제품 승인
   질문 없이 끝까지 수행한 실행 기록이다.
+- 🔧 **후속 관찰:** 두 번째 사용자 지적 뒤 deploy watch와 운영 브라우저 E2E는 `require_escalated` 선제 지정이나
+  제품 승인 질문 없이 수행했다. 이 규칙을 이후 작업에도 유지한다.
 
 ### GA4-002 — dataLayer 명령이 보이지만 실제 수집 0건
 
@@ -391,3 +402,16 @@ qa = **in-progress** (ship 게이트 잠김 유지). 아침 체크리스트 1~3 
   network 요청, 명령 단일 적재를 모두 직접 관찰해야 한다. DebugView UI 수신은 별도 외부 확인으로 남긴다.
 - **자동 검증:** commit `7c84d533`, focused 18 PASS, local full 77 files/669 PASS·9 DB-env skip, TypeScript,
   production 160-page build PASS. CI run `29728777597`도 typecheck/build/PostgreSQL schema→seed→RLS/full test SUCCESS.
+- ✅ **운영 종료증거:** deploy run `29730312050` SUCCESS 후 격리 브라우저의 저장 동의 상태에서 `/login`을
+  reload했다. gtag.js 200, native 명령 `default → update → js → config → page_view` 단일 적재,
+  `gtag('get', 'G-MEEQ2D8C1J', 'client_id')` callback 반환, page_view `google-analytics.com/g/collect` POST 204를
+  직접 관찰했다. GA4-002는 운영 관찰로 종료한다. GA4 DebugView UI 수신은 아직 미검증이다.
+
+### 2026-07-20 Threads IMAGE 운영 종료증거
+
+- T-02 draft를 공개 브랜드 PNG와 기본 Threads 계정으로 실제 발행해 permalink
+  `https://www.threads.com/@zero_to_one_ai/post/DbAmsuHFCoU`를 회수했다.
+- 격리 브라우저에서 `zero_to_one_ai`, 273자 본문 전체, Meta CDN 이미지 572×429를 직접 관찰했다.
+- DB는 published 1, distinct external ID 1, failed 0, permalink row 1이고 queue는 published다.
+- 동일 draft+platform+account 순차 재호출은 `alreadyPublished:true`와 같은 permalink를 반환했고 외부 게시물은
+  1건으로 유지됐다. 각 실행의 단기 tenant token은 폐기 후 같은 queue API가 401임을 확인했다.

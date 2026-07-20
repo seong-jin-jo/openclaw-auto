@@ -18,6 +18,7 @@ const H = vi.hoisted(() => ({
   getChannelCredCalls: [] as unknown[][],
   existingPublication: null as { external_id: string | null; permalink: string | null } | null,
   markQueuePublishedCalls: [] as unknown[][],
+  instagramPermalink: "https://www.instagram.com/p/recovered/",
 }));
 
 vi.mock("@/lib/tenant-auth", () => ({
@@ -54,6 +55,7 @@ vi.mock("@/lib/publish", async (importActual) => {
       return H.cred;
     }),
     fetchThreadsPermalink: vi.fn(async () => "https://www.threads.net/@u/post/recovered"),
+    fetchInstagramPermalink: vi.fn(async () => H.instagramPermalink),
   };
 });
 
@@ -80,6 +82,7 @@ beforeEach(() => {
   H.getChannelCredCalls = [];
   H.existingPublication = null;
   H.markQueuePublishedCalls = [];
+  H.instagramPermalink = "https://www.instagram.com/p/recovered/";
   vi.mocked(withTenant).mockClear();
 });
 
@@ -237,6 +240,36 @@ describe("/api/publish — happy path (실 publish* + fetch 목)", () => {
     });
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(H.markQueuePublishedCalls).toHaveLength(1);
+  });
+
+  it("Instagram 기존 성공 기록도 외부 재발행 없이 permalink와 queue만 복구한다", async () => {
+    H.cred = { token: "ig-token", userId: "ig-user", accountId: "11111111-1111-4111-8111-111111111111" };
+    H.existingPublication = { external_id: "ig-media-already", permalink: null };
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    const draftId = "13730d99-a268-47de-9cf9-90157ea1fa79";
+
+    const { body } = await callPublish({
+      platform: "instagram",
+      text: "caption",
+      image_url: "https://cdn.example/image.png",
+      draft_id: draftId,
+      account_id: "11111111-1111-4111-8111-111111111111",
+    });
+
+    expect(body).toMatchObject({
+      ok: true,
+      externalId: "ig-media-already",
+      permalink: "https://www.instagram.com/p/recovered/",
+      alreadyPublished: true,
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(H.inserts).toHaveLength(1);
+    expect(H.markQueuePublishedCalls).toEqual([["tenant-1", draftId, {
+      platform: "instagram",
+      externalId: "ig-media-already",
+      permalink: "https://www.instagram.com/p/recovered/",
+    }]]);
   });
 
   it("x: 4키 OAuth1.0a 트윗 → published 기록, 280자 절단", async () => {

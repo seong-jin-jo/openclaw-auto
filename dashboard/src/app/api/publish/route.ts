@@ -4,6 +4,7 @@ import { markQueuePublished } from "@/lib/queue-store";
 import { reportFailure, normalizePlatform, classifyPublishFailure } from "@/lib/observability";
 import {
   getChannelCred,
+  fetchInstagramPermalink,
   fetchThreadsPermalink,
   publishThreads,
   publishInstagram,
@@ -62,8 +63,10 @@ export async function POST(request: Request) {
     `);
     if (existing) {
       let permalink = existing.permalink ?? undefined;
-      if (!permalink && platform === "threads" && existing.external_id) {
-        const recoveredPermalink = await fetchThreadsPermalink(cred.token, existing.external_id);
+      if (!permalink && existing.external_id && (platform === "threads" || platform === "instagram")) {
+        const recoveredPermalink = platform === "threads"
+          ? await fetchThreadsPermalink(cred.token, existing.external_id)
+          : await fetchInstagramPermalink(cred, existing.external_id);
         if (recoveredPermalink) {
           permalink = recoveredPermalink;
           await withTenant(tenant_id, (sql) => sql`

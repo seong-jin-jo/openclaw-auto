@@ -1792,3 +1792,22 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
 - 2026-07-20 GA4-002 build/qa 승인: commit `7c84d533`, local full 669 PASS·9 DB-env skip, production build PASS,
   CI run `29728777597` typecheck/build/PostgreSQL schema→seed→RLS/full test SUCCESS. pipeline은 ship으로 전환했다.
   다음 액션은 승인 문서 commit→OSMU 재배포→운영 client_id callback/collect/page_view 직접 관찰이다.
+- 2026-07-20 GA4-002 운영 종료: deploy run `29730312050` SUCCESS. 격리 브라우저 저장 동의 reload에서 gtag.js
+  200, native command default→update→js→config→page_view 단일 적재, client_id callback 반환(length 18),
+  page_view `google-analytics.com/g/collect` POST 204를 직접 관찰했다. GA4-002는 운영 관찰로 종료하고 Google lead도
+  Google user 3/linked active tenant 3/unlinked 0 증거로 닫는다. GA4 DebugView UI는 미검증. 다음 액션은 문서
+  commit/push 후 외부 blocker(X credential, Facebook live, Instagram OTP, YouTube 실업로드, Threads IMAGE,
+  provider 2계정 실전환)로 이동한다.
+- 2026-07-20 Threads IMAGE 운영 종료: T-02를 브랜드 PNG로 실제 발행해 공개 URL
+  `https://www.threads.com/@zero_to_one_ai/post/DbAmsuHFCoU`를 회수했다. 브라우저에서 계정명+273자 본문+Meta CDN
+  이미지 572×429 렌더를 직접 관찰했다. DB published 1/distinct external 1/failed 0/permalink row 1, queue
+  published. 순차 재호출은 alreadyPublished true와 동일 URL, 외부 1건 유지. 각 단기 token은 revoke 후 401.
+  SNS-010은 TEXT+IMAGE 순차 운영 관찰로 종료한다. 사용자 승인 반복 지적은 최소 5회로 원장 정정. 다음 액션은
+  YouTube OAuth/실업로드 가능 범위와 외부 X/Meta 차단 상태를 계속 처리한다.
+- 2026-07-20 SNS-014 Instagram build 후보: 기존 T-02 Instagram IMAGE는 공개 URL
+  `https://www.instagram.com/p/DbAnPRGlKTn/`에서 계정명·273자 caption·1024x768 이미지를 직접 관찰했지만 앱/DB
+  permalink가 비었다. Instagram 신규 성공 URL 조회, 기존 성공 URL-only 복구(DB+queue), 20회 non-FINISHED
+  timeout fail-closed, provider 원문 비노출을 구현했다. focused 18 PASS, 전체 78 files/673 PASS·9 DB-env skip,
+  TypeScript clean, production build 160 routes PASS, diff check PASS. primary는 `openclaw-auto:0.0`, 다음 액션은
+  관련 파일만 commit/push→CI SUCCESS→OSMU 배포→기존 T-02 재호출 alreadyPublished/동일 URL/DB·queue 보강/
+  외부 게시물 1건 유지 관찰→단기 token revoke+401이다.
