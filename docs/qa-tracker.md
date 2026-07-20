@@ -369,3 +369,23 @@ qa = **in-progress** (ship 게이트 잠김 유지). 아침 체크리스트 1~3 
   관찰 전 상태는 `코드 수정·테스트됨`이며, GA4 DebugView 수신은 별도 미검증이다.
 - **GA4-001 CI:** commit `af50af17`, GitHub Actions run `29719316459`에서 typecheck, production build,
   PostgreSQL schema→seed→RLS, full test가 모두 성공했다. 운영 재배포·브라우저 network 관찰은 아직 미검증이다.
+
+### HARNESS-001 — 가역 실행 승인 반복 노출
+
+- ❌ **NG(사용자 직접 지적, 2026-07-20):** 이미 진행·build·QA 승인이 확정된 상태에서 Git/브라우저/GitHub
+  명령의 샌드박스 권한 요청을 작업 승인처럼 반복 노출했다. 가역 작업은 묻지 않고 실행한다는 하네스 규칙과 충돌한다.
+- **원인:** 제품 stage 승인과 실행환경 sandbox escalation을 보고 문구에서 분리하지 않았고, 권한 prefix를 한 번에
+  확보하지 않아 승인 UI가 여러 번 발생했다.
+- **재발방지:** 기존 승인 prefix는 무질문 실행, 신규 외부 권한이 시스템상 필수일 때만 최소 범위를 한 번에 묶는다.
+  제품·단계 승인은 이미 승인됐으면 다시 요청하지 않는다. 이 항목의 종료증거는 남은 배포·운영 E2E를 추가 제품 승인
+  질문 없이 끝까지 수행한 실행 기록이다.
+
+### GA4-002 — dataLayer 명령이 보이지만 실제 수집 0건
+
+- ❌ **운영 NG:** GA4-001 배포 run `29727395683` 후 저장 동의 reload에서 consent/config/page_view는 단일 순서로
+  dataLayer에 존재했지만 GA collect 요청은 0건이고 `gtag('get', ..., 'client_id')` callback도 3초 timeout됐다.
+- **확정 원인:** `rawGtag(...args)`가 일반 Array를 push했다. Google 공식 gtag snippet은 native `arguments` 객체를
+  push하며, 운영 gtag.js는 일반 Array 명령을 실행하지 않았다. destination 전용 스크립트에는 측정 ID와 GA event
+  설정이 실제 포함돼 있어 script/ID 미주입 문제는 아니다.
+- **종료증거:** native Arguments 교정 후 운영 저장 동의 reload에서 client_id callback 반환, page_view collect
+  network 요청, 명령 단일 적재를 모두 직접 관찰해야 한다. DebugView UI 수신은 별도 외부 확인으로 남긴다.

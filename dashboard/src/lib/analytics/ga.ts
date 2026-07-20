@@ -36,10 +36,12 @@ declare global {
   }
 }
 
-function rawGtag(...args: unknown[]) {
+function rawGtag() {
   if (typeof window === "undefined") return;
   window.dataLayer = window.dataLayer || [];
-  window.dataLayer.push(args);
+  // Google gtag.js recognizes command entries by the native Arguments shape used in its
+  // official snippet. A plain rest-parameter Array is retained in dataLayer but not executed.
+  window.dataLayer.push(arguments);
 }
 
 let scriptLoadStarted = false;

@@ -104,8 +104,7 @@ describe("analytics/ga — consent-gated GA4 core", () => {
     const pushed: unknown[][] = [];
     const originalPush = win.dataLayer.push.bind(win.dataLayer);
     win.dataLayer.push = (...args: unknown[]) => {
-      // ga.ts calls dataLayer.push(gtagArgsArray) — a single array argument (see rawGtag).
-      pushed.push(args[0] as unknown[]);
+      pushed.push(Array.from(args[0] as ArrayLike<unknown>));
       return originalPush(...(args as never[]));
     };
     ga.setConsent("granted");
@@ -154,11 +153,13 @@ describe("analytics/ga — consent-gated GA4 core", () => {
     ga.sendGaHit("page_view", { page_path: "/login" });
 
     expect(appended).toHaveLength(1);
-    expect(win.dataLayer?.map((entry) => (entry as unknown[])[0])).toEqual([
+    const commands = win.dataLayer?.map((entry) => Array.from(entry as ArrayLike<unknown>));
+    expect(commands?.map((entry) => entry[0])).toEqual([
       "consent", "consent", "js", "config", "event",
     ]);
-    expect(win.dataLayer?.[3]).toEqual(["config", "G-ABC1234567", { send_page_view: false }]);
-    expect(win.dataLayer?.[4]).toEqual(["event", "page_view", { page_path: "/login" }]);
+    expect(commands?.[3]).toEqual(["config", "G-ABC1234567", { send_page_view: false }]);
+    expect(commands?.[4]).toEqual(["event", "page_view", { page_path: "/login" }]);
+    expect(Array.isArray(win.dataLayer?.[4])).toBe(false);
 
     ga.bootstrapConsent();
     expect(appended).toHaveLength(1);

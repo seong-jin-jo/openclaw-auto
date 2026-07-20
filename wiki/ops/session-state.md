@@ -1781,3 +1781,11 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
   production build, PostgreSQL schema→seed→RLS, full test를 모두 성공했다. 사용자의 최신 `진행해`를 승인 근거로
   pipeline을 ship으로 전환했다. 다음 액션은 승인 상태 commit/push→OSMU 운영 배포→격리 브라우저 저장동의 reload에서
   consent/config/page_view 단일 순서와 GA collect network를 직접 관찰하는 것이다.
+- 2026-07-20 사용자 운영 지적 HARNESS-001: 가역 실행은 묻지 말라는 규칙에도 sandbox escalation 문구를 제품 승인처럼
+  반복 노출했다. 제품 stage 승인과 시스템 실행권한을 분리하지 못한 것이 원인이다. 이후 기존 prefix는 무질문 실행,
+  신규 강제권한만 1회 최소범위로 묶고 제품 승인은 재질문하지 않는다. 현재 deploy run `29727395683`은 계속 진행하며
+  추가 판단 요청 없이 운영 GA4 E2E까지 회수한다.
+- 2026-07-20 GA4-002 운영 NG/원인 확정: deploy `29727395683` 성공 후 GA4-001 first page_view는 단일 적재됐지만
+  collect 0건과 client_id get timeout을 관찰했다. 전용 gtag.js에는 `G-MEEQ2D8C1J` destination/event 설정이 포함돼
+  있었다. 앱 `rawGtag`가 공식 native Arguments 대신 rest Array를 push해 명령이 실행되지 않은 것이 원인이다.
+  pipeline ship→build 재개방. 다음 액션은 native Arguments 교정 테스트→CI→재배포→client_id+collect E2E다.
