@@ -4,15 +4,15 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: build           # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design]
+current_stage: ship            # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design, build, qa]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
-  build:      { status: in-progress, artifacts_ok: false } # GA4 returning-visitor first-hit loss
-  qa:         { status: pending, artifacts_ok: false }
+  build:      { status: approved, artifacts_ok: true } # GA4 returning-visitor first-hit fix
+  qa:         { status: approved, artifacts_ok: true }
   ship:       { status: in-progress, artifacts_ok: false }
 override: false
 override_reason: ""
@@ -102,6 +102,11 @@ override_expires: ""
   Meta 앱 redirect URI `https://<live>/api/connect/{provider}/callback` 등록. 그 후 배포→browse로 qa 증거.
 
 ## 승인 로그 (append-only)
+2026-07-20 — GA4-001 build+qa APPROVED — 사용자의 최신 `진행해`와 반복된 무중단 진행 지시를 승인 근거로
+  반영. commit `af50af17`, focused analytics 18 PASS, local full 77 files/669 PASS·9 DB-env skip, TypeScript와
+  production 160-page build PASS. GitHub Actions run `29719316459`은 typecheck/build/PostgreSQL schema→seed→RLS/
+  full test 전부 SUCCESS. 독립 Claude review의 이중 bootstrap·명령 순서·회귀 테스트 지적을 모두 반영했다.
+  운영 저장동의 reload의 page_view/collect 직접 관찰 전 ship 완료 금지.
 2026-07-19 — SNS-013 build+qa APPROVED — 사용자 반복 지시를 승인 근거로 반영. commit `809c3422`,
   CI run `29684392717` typecheck/build/PostgreSQL schema→seed→RLS/full test SUCCESS. focused 27 PASS,
   기존 성공 external ID permalink-only recovery와 외부 publish 미호출 회귀 포함. 운영 URL 회수 전 ship 완료 금지.

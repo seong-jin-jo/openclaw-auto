@@ -1777,3 +1777,7 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
   bootstrap 멱등 가드로 default/update 재적재를 막았다. focused analytics 18 PASS, TypeScript PASS. 최초 독립
   Claude review의 중간 1건(이중 bootstrap)과 낮음 2건(순서/이중호출 테스트)을 모두 반영했다. 다음 액션은 수정 후
   production build→commit/push→CI PostgreSQL/full test→build/qa 승인 고정→운영 배포와 reload network E2E다.
+- 2026-07-20 00:24 KST GA4-001 build/qa 승인: commit `af50af17`, CI run `29719316459`이 typecheck,
+  production build, PostgreSQL schema→seed→RLS, full test를 모두 성공했다. 사용자의 최신 `진행해`를 승인 근거로
+  pipeline을 ship으로 전환했다. 다음 액션은 승인 상태 commit/push→OSMU 운영 배포→격리 브라우저 저장동의 reload에서
+  consent/config/page_view 단일 순서와 GA collect network를 직접 관찰하는 것이다.
