@@ -146,6 +146,25 @@ describe("analytics/ga — consent-gated GA4 core", () => {
     expect(ga.hasAnalyticsConsent()).toBe(true);
   });
 
+  it("sendGaHit(): persisted consent lazily bootstraps before the first returning-visitor event", async () => {
+    const { win, appended } = installFakeDom();
+    const ga = await loadGa("G-ABC1234567");
+    localStorage.setItem(ga.ANALYTICS_CONSENT_STORAGE_KEY, "granted");
+
+    ga.sendGaHit("page_view", { page_path: "/login" });
+
+    expect(appended).toHaveLength(1);
+    expect(win.dataLayer?.map((entry) => (entry as unknown[])[0])).toEqual([
+      "consent", "consent", "js", "config", "event",
+    ]);
+    expect(win.dataLayer?.[3]).toEqual(["config", "G-ABC1234567", { send_page_view: false }]);
+    expect(win.dataLayer?.[4]).toEqual(["event", "page_view", { page_path: "/login" }]);
+
+    ga.bootstrapConsent();
+    expect(appended).toHaveLength(1);
+    expect(win.dataLayer).toHaveLength(5);
+  });
+
   it("bootstrapConsent(): persisted 'denied' consent stays denied, no script load", async () => {
     const { appended } = installFakeDom();
     const ga = await loadGa("G-ABC1234567");

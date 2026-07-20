@@ -43,6 +43,7 @@ function rawGtag(...args: unknown[]) {
 }
 
 let scriptLoadStarted = false;
+let bootstrapStarted = false;
 
 /** Sets Consent Mode v2 defaults to fully denied. Safe to call multiple times. No-op if disabled. */
 export function initConsentDefaults() {
@@ -127,6 +128,8 @@ export function hasAnalyticsConsent(): boolean {
  */
 export function bootstrapConsent() {
   if (!gaEnabled || typeof window === "undefined") return;
+  if (bootstrapStarted) return;
+  bootstrapStarted = true;
   initConsentDefaults();
   if (getStoredConsent() === "granted") setConsent("granted");
 }
@@ -134,5 +137,9 @@ export function bootstrapConsent() {
 /** Low-level send — used by events.ts (typed/redacted) and RouteTracker (page_view). */
 export function sendGaHit(name: string, params: Record<string, string>) {
   if (!hasAnalyticsConsent()) return;
+  // Returning visitors can hit RouteTracker before ConsentBanner's mount effect runs.
+  // Lazily bootstrap here so the first event is queued behind config instead of being
+  // silently dropped while window.gtag is still undefined.
+  if (!window.gtag) bootstrapConsent();
   window.gtag?.(("event" as const), name, params);
 }

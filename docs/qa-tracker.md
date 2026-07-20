@@ -352,3 +352,18 @@ qa = **in-progress** (ship 게이트 잠김 유지). 아침 체크리스트 1~3 
 - 미검증: 변경 코드 CI·운영 배포, 현재 Threads token의 publish scope, T-PIN-01 공개 게시물과 permalink. 이 세 가지를 보기 전 SNS-009를 `✅ 운영 관찰`로 승격하지 않는다.
 - QA 후속: Meta 공식 Threads Postman 컬렉션은 container 상태(`FINISHED`, `IN_PROGRESS`, `ERROR`, `EXPIRED`, `PUBLISHED`) 조회를 제공한다. 현재 T-PIN-01은 TEXT라 이미지 준비 폴링의 직접 영향은 없고, qa-verifier도 blocker/high 0·조건부 PASS로 분류했다. IMAGE 상태 폴링과 publish 응답 단절 후 중복 방지는 SNS-010으로 분리하되 이미지 공개 발행 전 해결한다. 이번 패치에서 새로 넣었던 `threads_publish` 15초 timeout은 응답만 늦은 실제 성공을 실패로 오판할 수 있어 제거했다.
 - 최종 자동 증거: network/malformed JSON 4개 회귀를 포함한 focused 5 files/43 PASS, identity test 9/9 PASS, `npx tsc --noEmit` clean. 최종 qa-verifier는 `standards/dev.md` Read + QA Skill 1회 + Meta WebFetch 2회가 품질 스크립트에서 확인돼 PASS했고 blocker/high 0, TEXT build 조건부 PASS로 판정했다. 운영 permalink는 여전히 미검증이다.
+
+## 2026-07-19 Google lead 및 GA4 재방문 QA
+
+- **Google lead 운영 관찰:** 운영 PostgreSQL 비식별 집계에서 auth identity는 email 6/google 3, Google 고유
+  사용자 3명, Google 사용자와 연결된 active tenant 3개, tenant 미연결 Google 사용자 0명이다. 따라서 실제
+  Google 인증 유입이 tenant lead로 저장되는 경로는 운영 데이터로 관찰됐다. 계정 이메일·토큰·DB URL은 출력하지 않았다.
+- **GA4 동의 경계 관찰:** 신규 격리 브라우저의 동의 전 네트워크에는 Google Tag/Analytics 요청이 0건이었다.
+  동의 후 `G-MEEQ2D8C1J` gtag.js 200, analytics consent granted, config, `/login` page_view dataLayer 적재를 관찰했다.
+- **GA4-001 재현:** 동의가 이미 저장된 상태로 `/login`을 reload하면 gtag.js는 200이지만 첫 page_view가 dataLayer와
+  네트워크에서 유실됐다. `RouteTracker`가 `ConsentBanner`의 bootstrap보다 먼저 실행될 수 있고 `sendGaHit`가
+  초기화 전 이벤트를 무시하는 순서 경쟁이 원인이다.
+- **GA4-001 build 후보:** 저장 동의가 있고 `window.gtag`가 없으면 `sendGaHit`가 consent/config를 1회 bootstrap한
+  뒤 이벤트를 큐잉한다. bootstrap 자체도 페이지 수명 동안 1회로 멱등화해 늦은 default 재적재를 막았다. focused
+  18 PASS, TypeScript PASS. 운영 배포 후 저장 동의 reload에서 page_view와 실제 `google-analytics.com/g/collect`
+  관찰 전 상태는 `코드 수정·테스트됨`이며, GA4 DebugView 수신은 별도 미검증이다.

@@ -4,15 +4,15 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: ship            # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design, build, qa]
+current_stage: build           # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
-  build:      { status: approved, artifacts_ok: true } # SNS-013 permalink recovery
-  qa:         { status: approved, artifacts_ok: true }
+  build:      { status: in-progress, artifacts_ok: false } # GA4 returning-visitor first-hit loss
+  qa:         { status: pending, artifacts_ok: false }
   ship:       { status: in-progress, artifacts_ok: false }
 override: false
 override_reason: ""
@@ -20,6 +20,12 @@ override_expires: ""
 ---
 
 # Pipeline State — openclaw-auto-osmu
+
+## 2026-07-19 GA4 first-hit hotfix build reopen
+- 운영 격리 브라우저에서 신규 동의 직후 `/login` page_view 적재를 관찰했지만, 동의가 저장된 재방문 reload에서는
+  `RouteTracker`가 `ConsentBanner` 초기화보다 먼저 실행되어 page_view가 유실됨을 직접 재현했다.
+- `sendGaHit()`가 저장된 동의 상태에서 `window.gtag` 미초기화면 consent/config를 먼저 bootstrap한 뒤 이벤트를
+  큐잉하도록 수정한다. focused test, typecheck, production build, 운영 재배포·network 재관찰 전 승인 금지.
 
 > 2026-06-30 `init --adopt`. 이 레포는 이미 라이브 배포된 멀티테넌트 마케팅 SaaS라 plan~build는
 > ADOPT(기존 인정). **현재 ship(in-progress).** 신규 기능(OAuth 연결, GA4, 가이드 등)은 build→qa→ship 게이트를
