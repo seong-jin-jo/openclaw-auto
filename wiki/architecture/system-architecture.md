@@ -42,7 +42,9 @@ External: Threads/X/IG/YouTube/TikTok APIs + R2 + ElevenLabs + Midjourney
 **4. Video / Shorts Factory**
 - slides model: text + duration + imageUrl
 - Higgsfield path for advanced video
-- Instagram Reels publish path (SNS-015, code tested / operating unverified):
+- Instagram Reels publish path (SNS-015, **operating observed 2026-07-21** — commit `1a6e7e5a` 운영 배포 후
+  실제 Reel permalink `https://www.instagram.com/reel/DbBPRa7iFff/` 회수, 동일 요청 재시도
+  `alreadyPublished:true` 동일 permalink, DB rows 1/published 1/distinct external 1/permalink 1/failed 0):
   `POST /api/video/upload` → tenant-scoped `data/videos` → 15분 만료 HMAC 서명 URL
   `GET|HEAD /api/media/<token>`(Range 지원, 프록시 인증 우회 후 핸들러 자체 서명 검증) →
   Meta `media_type=REELS` 컨테이너 생성(`video_url`은 `OSMU_PUBLIC_URL` 정본 origin만 사용) →

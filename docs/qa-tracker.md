@@ -311,7 +311,7 @@ qa = **in-progress** (ship 게이트 잠김 유지). 아침 체크리스트 1~3 
 | SNS-012 | 실발행 성공 후 draft 잔존·재클릭 중복 | `/api/publish`가 `published_posts`만 INSERT하고 queue JSON/DB shadow 상태를 갱신하지 않으며 기존 성공 조회도 없음 | 동시 요청 레이스는 별도 DB lock 없이는 완전 차단되지 않음 | build: 계정별 기존 성공 반환 + 성공 후 queue dual-write | 첫 요청 게시 1개/queue published, 순차 동일 요청 `alreadyPublished:true`, 외부 게시물 증가 0 | ✅ 순차 운영 관찰 |
 | SNS-013 | 발행 성공했지만 permalink 누락으로 검증 실패 | Meta media permalink가 발행 직후 조회에서 비어도 발행 자체는 성공 처리되며 기존 성공 retry는 URL을 보강하지 않음 | Meta permalink 가시화 지연 | build: 초기 5회 조회 + 기존 external ID URL-only 복구/DB·queue 보강 | 동일 요청 `alreadyPublished:true`+permalink, published/distinct external 1 | ✅ 운영 관찰 |
 | SNS-014 | Instagram 게시 성공 후 permalink 미저장·준비 timeout fail-open | Instagram 발행 함수가 `media_publish` 성공 ID만 반환하고 permalink를 조회하지 않으며, 20회 폴링 후에도 `FINISHED`가 아니면 그대로 publish함 | Graph permalink 가시화 지연 | build: FINISHED timeout fail-closed + 성공 URL 조회 + 기존 성공 URL-only 복구 + provider 원문 비노출 | 배포 후 기존 T-02 재호출이 `alreadyPublished:true`+동일 permalink, DB/queue URL 보강, 외부 게시물 1건 유지 | ✅ 운영 관찰 |
-| SNS-015 | Instagram Reels 발행 미구현(영상 채널 공백) | `/api/video/publish`의 reels 분기가 501이었고, Meta가 가져갈 수 있는 공개 video URL 배달 경로와 영상 라우트의 tenant 격리가 없었음 | 실제 Meta Reels 컨테이너 처리 시간·`EXPIRED` 실응답은 Meta만 판단 | build: 서명 미디어 배달 + REELS 폴링 fail-closed + DB 예약 dedupe + video 라우트 tenant-aware | 운영 계정 Reels 1건 실발행 permalink, DB published/distinct external 1, 격리 브라우저 공개 영상 렌더 | 🔧 코드 수정·테스트됨 / 운영 미검증 |
+| SNS-015 | Instagram Reels 발행 미구현(영상 채널 공백) | `/api/video/publish`의 reels 분기가 501이었고, Meta가 가져갈 수 있는 공개 video URL 배달 경로와 영상 라우트의 tenant 격리가 없었음 | 실제 Meta Reels 컨테이너 처리 시간·`EXPIRED` 실응답은 Meta만 판단 | build: 서명 미디어 배달 + REELS 폴링 fail-closed + DB 예약 dedupe + video 라우트 tenant-aware | 운영 계정 Reels 1건 실발행 permalink, DB published/distinct external 1, 격리 브라우저 공개 영상 렌더 | ✅ 2026-07-21 운영 관찰 종료 — Reel permalink·중복방지·DB 1건·공개 렌더 확인 |
 
 **관리 규칙:** 상태 전이는 `❌ NG → 🔧 코드 수정·테스트됨 → 🔧 로컬 실브라우저 관찰 → 🟡 운영 미검증 → ✅ 운영 관찰`만 허용한다. unit/mock/auth URL 200은 E2E나 종료증거로 승격하지 않는다. 각 ID는 코드 커밋·테스트·배포 run·실사용 증거에 동일하게 붙인다.
 
@@ -474,3 +474,25 @@ LinkedIn, Naver Blog, Pinterest, Tumblr, TikTok, Slack, Line은 각 OAuth creden
 - 실제 Meta Reels 1건 공개 발행과 permalink 회수, 격리 브라우저의 공개 영상 렌더.
 - 실 OAuth 고객 브라우저 세션의 `/videos` 전체 플로우 직접 관찰.
 - `EXPIRED` 분기의 실제 Meta 응답(현재는 공식문서 근거 구현).
+
+### 2026-07-21 SNS-015 Instagram Reels — 운영 관찰로 종료(operating observed / closed)
+
+**판정: SNS-015는 운영 관찰로 종료한다. 단 전체 v1.0.0 ship은 계속 in-progress다.**
+
+**운영 증거(컨트롤러 직접 관찰, commit `1a6e7e5a`):**
+- 운영 DB에 schema 적용, 컨테이너 healthy, live health HTTP 200 · `db: up`.
+- 실제 테넌트 업로드 수행 → 서명 미디어 `HEAD` HTTP 200, `Range: bytes=0-99` 요청에 HTTP 206 + 100 bytes 반환.
+- 실제 Instagram Reel 공개 permalink 회수: `https://www.instagram.com/reel/DbBPRa7iFff/`.
+- 동일 요청 재시도는 외부 재발행 없이 `alreadyPublished: true` + 동일 permalink 반환.
+- 운영 DB: rows 1 / published 1 / distinct external 1 / permalink 1 / failed 0.
+- 임시 테넌트 토큰은 revoke했고, 같은 토큰의 video list API가 HTTP 401임을 확인했다.
+
+**공개 브라우저 관찰(gstack, 인증 없는 공개 경로):** 계정 `zero_to_one_ai`, 한국어 제목·본문·해시태그 원문 그대로,
+`readyState=4`인 720x1280 8초 영상과 렌더된 브랜드 프레임을 직접 확인했다.
+화면 증거: `docs/evidence/sns015-instagram-reel-operating-20260721.png`.
+
+**이전 "미검증" 항목 해소:** 위 3건 중 실제 Reels 발행·permalink 회수와 공개 영상 렌더는 해소됐다.
+`EXPIRED` 분기의 실제 Meta 응답은 여전히 공식문서 근거 구현으로 남는다(운영에서 발생하지 않음).
+
+**전체 ship이 아직 in-progress인 이유(SNS-015와 무관한 외부 blocker):** X·TikTok credential 미설정,
+Facebook 앱 활성화, Instagram 신규 로그인 OTP, YouTube 실업로드, 동일 provider 실계정 2개 전환, GA4 DebugView.

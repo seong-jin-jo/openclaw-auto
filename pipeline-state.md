@@ -11,8 +11,8 @@ stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
-  build:      { status: approved, artifacts_ok: false }  # SNS-015 코드 완료·테스트됨, 운영 Reels 미검증
-  qa:         { status: approved, artifacts_ok: false }  # 자동/독립 QA PASS, 운영 permalink 전 artifacts 미충족
+  build:      { status: approved, artifacts_ok: true }   # SNS-015 운영 Reel permalink 직접 관찰(2026-07-21)
+  qa:         { status: approved, artifacts_ok: true }   # SNS-015 운영 관찰 종료. 전역 ship 잔여는 외부 blocker
   ship:       { status: in-progress, artifacts_ok: false }
 override: false
 override_reason: ""
@@ -69,6 +69,19 @@ override_expires: ""
   승인과 credential이 없어 구현 완료로 위조하지 않는다.
 - 기존 active Instagram 계정을 활용한 Reels 발행을 구현한다. 종료조건은 tenant 격리, 공개 video URL 전달,
   container FINISHED fail-closed, provider 원문 비노출, 기존 성공 중복방지, focused/full test, CI, 운영 permalink다.
+
+## 2026-07-21 SNS-015 Reels operating close (관찰됨)
+- commit `1a6e7e5a` 기준 운영 DB schema 적용, 컨테이너 healthy, live health 200 · db up.
+- 실제 테넌트 업로드 → 서명 미디어 HEAD 200, `Range: bytes=0-99` → 206 + 100 bytes.
+- 실제 Instagram Reel permalink `https://www.instagram.com/reel/DbBPRa7iFff/` 회수. 동일 요청 재시도는
+  `alreadyPublished:true` + 동일 permalink. DB rows 1/published 1/distinct external 1/permalink 1/failed 0.
+- 임시 테넌트 토큰 revoke 후 동일 video list API 401 확인.
+- gstack 공개 브라우저에서 `zero_to_one_ai`, 한국어 제목·본문·해시태그 원문, `readyState=4` 720x1280 8초 영상,
+  렌더된 브랜드 프레임을 직접 관찰. 증거 `docs/evidence/sns015-instagram-reel-operating-20260721.png`.
+- **SNS-015는 운영 관찰로 종료(closed).** 전역 ship은 계속 `in-progress` — X/TikTok credential, Facebook 앱 활성,
+  Instagram 신규 로그인 OTP, YouTube 실업로드, 동일 provider 실계정 2개 전환, GA4 DebugView가 미검증이다.
+- **정확한 다음 액션:** ①운영 관찰이 끝난 Instagram·Threads로 지금 마케팅을 개시한다 ②그와 별개 트랙으로
+  위 외부 blocker를 하나씩 회수한다. 두 작업은 서로를 기다리지 않는다.
 
 > 2026-06-30 `init --adopt`. 이 레포는 이미 라이브 배포된 멀티테넌트 마케팅 SaaS라 plan~build는
 > ADOPT(기존 인정). **현재 ship(in-progress).** 신규 기능(OAuth 연결, GA4, 가이드 등)은 build→qa→ship 게이트를

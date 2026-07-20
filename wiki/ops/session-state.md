@@ -3,7 +3,29 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-18 23:00 KST · OSMU 운영 QA 기록 완료, 온비서 브랜드 에셋 생성 pane `%46` 실행 중
+**최종 갱신:** 2026-07-21 · SNS-015 Instagram Reels 운영 관찰 종료, 전역 ship은 외부 blocker로 in-progress 유지
+
+---
+
+### SNS-015 Instagram Reels 운영 종료 핸드오프 (2026-07-21)
+
+**handoff basis:** 진실원은 이 파일 + 루트 `pipeline-state.md`. 이번 턴은 문서 갱신만 수행했고 소스/테스트/설정 변경,
+커밋·push·배포는 없다.
+
+**관찰됨 (commit `1a6e7e5a`, 컨트롤러 직접):** 운영 DB schema 적용, 컨테이너 healthy, live health HTTP 200 · db up.
+실제 테넌트 업로드 수행 후 서명 미디어 HEAD 200과 `Range: bytes=0-99` → HTTP 206 + 100 bytes.
+실제 Instagram Reel permalink `https://www.instagram.com/reel/DbBPRa7iFff/` 회수. 동일 요청 재시도는 외부 재발행
+없이 `alreadyPublished:true` + 동일 permalink. DB rows 1 / published 1 / distinct external 1 / permalink 1 / failed 0.
+임시 테넌트 토큰 revoke 후 같은 video list API HTTP 401 확인.
+
+**공개 브라우저(gstack) 관찰됨:** 계정 `zero_to_one_ai`, 한국어 제목·본문·해시태그 원문, `readyState=4` 720x1280
+8초 영상, 렌더된 브랜드 프레임. 증거 `docs/evidence/sns015-instagram-reel-operating-20260721.png`.
+
+**판정:** SNS-015는 **운영 관찰 종료(closed)**. 전체 v1.0.0 ship은 **in-progress 유지** — X/TikTok credential,
+Facebook 앱 활성, Instagram 신규 로그인 OTP, YouTube 실업로드, 동일 provider 실계정 2개 전환, GA4 DebugView 미검증.
+
+**정확한 다음 액션:** ①운영 관찰이 끝난 **Instagram·Threads로 지금 마케팅을 개시**한다. ②그와 **별개 트랙으로**
+위 외부 blocker를 회수한다(외부 콘솔·실계정 필요). 마케팅 개시는 blocker 회수를 기다리지 않는다.
 
 ---
 
