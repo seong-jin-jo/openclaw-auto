@@ -45,6 +45,10 @@ export const SCHEDULABLE_PLATFORMS = [
 ] as const;
 export type SchedulablePlatform = (typeof SCHEDULABLE_PLATFORMS)[number];
 
+// 텍스트 예약 루프와 별도인 /api/video/publish 직접 발행 provider.
+// SocialConnectButton의 "직접 발행 미지원" 표기가 실제 영상 API와 드리프트하지 않게 공유한다.
+export const VIDEO_PUBLISH_PLATFORMS = ["youtube", "tiktok"] as const;
+
 /** 발행 채널 그룹 — 사이드바와 Settings>Channels와 ChannelConnect 모달의 단일 소스(SSOT).
  * "사이드바=연결가능=실제 발행가능" 원칙: 여기 있는 채널만 노출한다.
  * SCHEDULABLE_PLATFORMS(=/api/publish가 실제 지원하는 8채널)를 그대로 그룹화한 것 —

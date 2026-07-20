@@ -61,5 +61,13 @@ describe("SNS-007 multi-account source contracts", () => {
     // 생성 탭은 운영자 전용 — 고객 세션에는 탭도 패널도 그리지 않는다.
     expect(page).toMatch(/canGenerate && \(\s*<button\s+data-testid="video-generate-tab"/);
     expect(page).toContain('tab === "generate" && canGenerate');
+    expect(page).toMatch(/activeWorkspace \? `\/api\/channels\/instagram\/accounts\?tenant_id=\$\{activeWorkspace\.id\}` : null/);
+  });
+
+  it("connect UI recognizes direct video publishing providers", () => {
+    const button = source("components/channel/SocialConnectButton.tsx");
+    const constants = source("lib/constants.ts");
+    expect(constants).toContain('VIDEO_PUBLISH_PLATFORMS = ["youtube", "tiktok"]');
+    expect(button).toContain("...VIDEO_PUBLISH_PLATFORMS");
   });
 });

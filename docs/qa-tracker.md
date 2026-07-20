@@ -519,3 +519,8 @@ Facebook 앱 활성화, Instagram 신규 로그인 OTP, YouTube 실업로드, �
 **운영 차단:** 운영 `TIKTOK_CLIENT_KEY`·`TIKTOK_CLIENT_SECRET`이 없고 TikTok 앱 Content Posting API 심사 상태를
 실계정으로 확인하지 못했다. 따라서 연결→callback→creator-info→SELF_ONLY 테스트 게시→status/permalink 회수는 미검증이며,
 운영 배포 후 UI는 credential 누락 사유를 정직하게 disabled로 보여야 한다.
+
+**1차 운영 Chrome 재발견·수정:** `/videos`가 active workspace 확정 전에 tenant 없는 Instagram accounts API를 호출해
+operator token까지 401로 지우는 인증 race를 관찰했다. 조회를 workspace 조건부 + `tenant_id`로 교정했다. 또한 TikTok·YouTube
+영상 직접 발행이 구현됐는데 SocialConnectButton이 “직접 발행 미지원”으로 표시하던 SSOT 드리프트를
+`VIDEO_PUBLISH_PLATFORMS`로 교정했다. focused 17 PASS, TypeScript clean, diff check PASS. 재배포 후 Chrome 재관찰 필요.

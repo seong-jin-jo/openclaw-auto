@@ -24,6 +24,12 @@ creator-info·SELF_ONLY 게시·status/permalink는 관찰하지 못했다. 이 
 Docker rebuild/up → live health·Google 로그인 무회귀·TikTok disabled 사유를 실제 Chrome에서 관찰한다. credential 회수 시
 격리 TikTok 계정으로 OAuth→SELF_ONLY 게시→status/permalink E2E를 즉시 실행한다.
 
+**1차 운영 Chrome 추가 발견:** `f85906af` 배포 후 `/videos`에서 tenant 없는 Instagram accounts 요청이 401을 내면서
+client fetcher가 operator token을 삭제했고, TikTok/YouTube에 낡은 “직접 발행 미지원” 경고도 보였다. active workspace가
+있을 때만 tenant-scoped Instagram 조회, `VIDEO_PUBLISH_PLATFORMS` SSOT로 수정했다. focused 17 PASS, tsc/diff clean.
+다음 액션은 이 후속 commit을 동일 방식으로 재배포한 뒤 storage를 새로 주입한 격리 Chrome에서 401 0건과 정확한 TikTok
+credential 누락 문구를 직접 확인하는 것이다.
+
 ---
 
 ### SNS-015 Instagram Reels 운영 종료 핸드오프 (2026-07-21)

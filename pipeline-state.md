@@ -101,6 +101,8 @@ override_expires: ""
   creator-info, SELF_ONLY 영상 게시, status/permalink는 미검증이다. X/Facebook/Instagram OTP/YouTube/실 2계정 전환도 기존 blocker다.
 - 다음 실행: commit을 운영 VM에 반영하고 health·Google 로그인 무회귀·TikTok credential 누락 UI를 실제 브라우저에서 관찰한다.
   credential이 회수되는 즉시 격리 계정으로 OAuth→SELF_ONLY 게시→status/permalink를 수집한다.
+- 1차 운영 Chrome에서 tenant 없는 Instagram accounts 401이 operator token을 지우는 race와 TikTok/YouTube의 낡은
+  “직접 발행 미지원” 문구를 관찰했다. workspace-scoped URL과 영상 발행 provider SSOT로 수정, focused 17 PASS·tsc clean.
 
 > 2026-06-30 `init --adopt`. 이 레포는 이미 라이브 배포된 멀티테넌트 마케팅 SaaS라 plan~build는
 > ADOPT(기존 인정). **현재 ship(in-progress).** 신규 기능(OAuth 연결, GA4, 가이드 등)은 build→qa→ship 게이트를

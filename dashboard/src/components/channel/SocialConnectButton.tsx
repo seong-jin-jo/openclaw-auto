@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useUIStore } from "@/store/ui-store";
 import { authHeaders } from "@/lib/auth";
 import { oauthErrorMessage } from "@/lib/oauth-errors";
-import { SCHEDULABLE_PLATFORMS } from "@/lib/constants";
+import { SCHEDULABLE_PLATFORMS, VIDEO_PUBLISH_PLATFORMS } from "@/lib/constants";
 
 interface Readiness { available: boolean; reason?: string }
 type ReadinessState = Readiness | "error";
@@ -43,9 +43,8 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
   const [readinessLoading, setReadinessLoading] = useState(true);
   const [showSwitchNote, setShowSwitchNote] = useState(false);
   // "노출=발행가능" 원칙(wiki/reference/channel-status.md) — 연결 UI는 12채널이지만
-  // 대시보드 직접 발행은 SCHEDULABLE_PLATFORMS(threads/x/instagram/facebook)뿐이다.
-  // 연결만 되고 발행이 안 되는 채널은 과장 없이 정직하게 안내한다.
-  const publishReady = (SCHEDULABLE_PLATFORMS as readonly string[]).includes(provider);
+  // 텍스트 예약 발행과 영상 직접 발행 중 하나라도 있으면 발행 가능으로 표시한다.
+  const publishReady = ([...SCHEDULABLE_PLATFORMS, ...VIDEO_PUBLISH_PLATFORMS] as readonly string[]).includes(provider);
   const supportsSwitchNote = provider in ACCOUNT_SWITCH_NOTE;
   const resolvedRef = useRef(false); // postMessage로 이미 결과를 받았는지(closed-폴링 오탐 방지)
   const watchClosedRef = useRef<number | null>(null); // closed-폴링 interval id — unmount 시 정리

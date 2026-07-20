@@ -75,7 +75,10 @@ export default function VideosPage() {
   const { data, mutate } = useSWR<{ videos: Video[] }>("/api/video/list", fetcher);
   const { data: ytStatus, mutate: mutateYtStatus } = useSWR<{ connected: boolean; status?: "valid" | "invalid" | "unverified" }>("/api/youtube/status", fetcher);
   // SNS-015: Reels는 연결된 Instagram 계정이 있어야만 실행 가능 — 없으면 정직하게 미연결로 표시.
-  const { data: igAccounts } = useSWR<{ accounts?: unknown[] }>("/api/channels/instagram/accounts", fetcher);
+  const { data: igAccounts } = useSWR<{ accounts?: unknown[] }>(
+    activeWorkspace ? `/api/channels/instagram/accounts?tenant_id=${activeWorkspace.id}` : null,
+    fetcher,
+  );
   const igConnected = Array.isArray(igAccounts?.accounts) && igAccounts.accounts.length > 0;
   // SNS-015 보안: 슬라이드 영상 생성(/api/video/generate)은 임의 URL fetch + 동기 ffmpeg라
   // 운영자 전용으로 남긴다(proxy.ts TENANT_AWARE_PATHS 제외). 고객(OAuth/JWT) 세션에는 403이
