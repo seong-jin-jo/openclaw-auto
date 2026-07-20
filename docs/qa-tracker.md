@@ -337,6 +337,13 @@ revoke 후 401이었다. DB는 published 1/distinct external 1/failed 0/permalin
 published+Instagram+permalink 존재다. 격리 브라우저에서 계정명, 273자 caption 전체, 1024x768 이미지를 다시 직접
 관찰했다.
 
+**출시 blocker 최신 운영 재조회(2026-07-20):** 임시 고객 토큰의 `/api/connect/readiness`에서 Instagram,
+Threads, YouTube는 available, Facebook은 available이지만 Development/Live 상태 확인 경고로 관찰됐다. X,
+LinkedIn, Naver Blog, Pinterest, Tumblr, TikTok, Slack, Line은 각 OAuth credential 미설정이다. DB active
+`channel_accounts`는 Instagram 1, Threads 2이고 YouTube/Facebook/X/TikTok은 0이다. 토큰은 폐기 후 401.
+따라서 현재 공개 마케팅 출고가 실증된 범위는 Instagram IMAGE와 Threads TEXT/IMAGE다. YouTube는 OAuth 앱 credential만
+준비됐고 실계정 callback/refresh/upload URL이 미검증이며, TikTok/Reels는 고객 UI에서도 명시적 미구현이다.
+
 **Threads TEXT 최종 운영 증거(2026-07-19):** deploy run `29684688750` SUCCESS 후 동일 T-PIN-01 요청이 기존 성공을 재사용해 permalink를 DB와 queue에 보강했다. DB는 published 1, distinct external ID 1, 과거 failed 2이고 queue JSON/DB는 published다. 로컬·marketing VM curl 모두 공개 URL HTTP 200, gstack 실제 브라우저가 `zero_to_one_ai` 계정의 397자 원문 전체를 직접 렌더했다: `https://www.threads.com/@zero_to_one_ai/post/Da-Kay5lD4f`. 외부 게시물 추가 생성은 0이다. 별도 최종 토큰 수명주기에서 발급 직후 queue API 200, revoke 후 같은 토큰 401을 직접 확인했다.
 
 **SNS-007 구현 결정:** 기존 `integrations` UNIQUE를 즉시 제거하지 않는다. 새 `channel_accounts` 테이블을 additive로 추가하고 기존 integration을 backfill·fallback으로 유지한다. OAuth는 계정별 upsert, 기본계정 변경 시 legacy integration을 동기화한다. 롤백 시 새 테이블 사용만 중단하면 기존 단일계정 경로가 유지된다.
@@ -390,7 +397,7 @@ published+Instagram+permalink 존재다. 격리 브라우저에서 계정명, 27
 
 ### HARNESS-001 — 가역 실행 승인 반복 노출
 
-- ❌ **NG(사용자 최소 5회 직접 지적, 2026-07-20):** 이미 진행·build·QA 승인이 확정된 상태에서 Git/브라우저/GitHub
+- ❌ **NG(사용자 최소 7회 직접 지적, 2026-07-20):** 이미 진행·build·QA 승인이 확정된 상태에서 Git/브라우저/GitHub
   명령의 샌드박스 권한 요청을 작업 승인처럼 반복 노출했다. 가역 작업은 묻지 않고 실행한다는 하네스 규칙과 충돌한다.
 - **원인:** 제품 stage 승인과 실행환경 sandbox escalation을 보고 문구에서 분리하지 않았고, 권한 prefix를 한 번에
   확보하지 않아 승인 UI가 여러 번 발생했다.
@@ -398,7 +405,8 @@ published+Instagram+permalink 존재다. 격리 브라우저에서 계정명, 27
   제품·단계 승인은 이미 승인됐으면 다시 요청하지 않는다. 이 항목의 종료증거는 남은 배포·운영 E2E를 추가 제품 승인
   질문 없이 끝까지 수행한 실행 기록이다.
 - 🔧 **후속 관찰:** 두 번째 사용자 지적 뒤 deploy watch와 운영 브라우저 E2E는 `require_escalated` 선제 지정이나
-  제품 승인 질문 없이 수행했다. 이 규칙을 이후 작업에도 유지한다.
+  제품 승인 질문 없이 수행했다. 다만 이후 로컬 GitHub DNS 차단에서 시스템 권한 UI가 다시 두 차례 노출돼 종료증거가
+  깨졌다. 같은 경로를 반복하지 않고 기존 허용 SSH로 marketing VM 직접 배포했으며, 권한 UI가 없는 실행만 사용한다.
 
 ### GA4-002 — dataLayer 명령이 보이지만 실제 수집 0건
 

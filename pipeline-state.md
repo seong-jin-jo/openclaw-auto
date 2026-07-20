@@ -56,6 +56,13 @@ override_expires: ""
   종료한다. 전체 ship은 X/TikTok credential, Facebook 앱 활성, Instagram 신규 로그인 OTP, YouTube 실업로드,
   provider 동일 테넌트 2계정 실전환, GA4 DebugView UI가 미검증이라 in-progress 유지한다.
 
+## 2026-07-20 launch blocker operating refresh
+- readiness available: Instagram, Threads, YouTube, Facebook(앱 모드 외부 확인 경고). credential missing: X,
+  LinkedIn, Naver Blog, Pinterest, Tumblr, TikTok, Slack, Line.
+- active channel accounts: Instagram 1, Threads 2; YouTube/Facebook/X/TikTok 0. 임시 token revoke 후 401.
+- 즉시 마케팅 가능한 운영 관찰 범위는 Instagram IMAGE와 Threads TEXT/IMAGE. 전체 v1.0.0 ship은 외부 credential/
+  앱 활성/실계정 callback 및 미구현 TikTok/Reels 때문에 in-progress다.
+
 > 2026-06-30 `init --adopt`. 이 레포는 이미 라이브 배포된 멀티테넌트 마케팅 SaaS라 plan~build는
 > ADOPT(기존 인정). **현재 ship(in-progress).** 신규 기능(OAuth 연결, GA4, 가이드 등)은 build→qa→ship 게이트를
 > `/approve`로만 통과한다. **배포(gh workflow / ship)는 `/approve qa` 후에만.** (과거 게이트 없는

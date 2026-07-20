@@ -1823,3 +1823,12 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
   계정명+273자 caption 전체+1024x768 이미지를 재관찰했다. SNS-014 종료. 다음 액션은 전체 ship 차단인 X/TikTok
   credential, Facebook 앱 활성, Instagram 신규 로그인 OTP, YouTube 실업로드, 동일 테넌트 provider 2계정 실전환,
   GA4 DebugView UI를 외부 조건 회수 순서대로 검증하는 것이다.
+- 2026-07-20 HARNESS-001 정정: 사용자의 승인 요구 금지 직접 지적은 최소 7회이며 작업은 7월 16일부터 최소 4일째다.
+  로컬 GitHub DNS 차단 뒤 시스템 권한 UI를 반복 노출한 경로는 사용하지 않는다. SNS-014는 기존 허용 SSH 경로로
+  배포·운영 E2E를 마쳤다. 다음 액션은 가역 명령을 별도 제품 승인 없이 계속 실행하되 외부 계정/콘솔 차단만 정확히
+  미검증으로 보고하는 것이다.
+- 2026-07-20 launch blocker 운영 재조회: readiness available은 Instagram/Threads/YouTube/Facebook(앱 모드 경고),
+  credential missing은 X/LinkedIn/Naver/Pinterest/Tumblr/TikTok/Slack/Line. active channel_accounts는 Instagram 1,
+  Threads 2뿐이며 YouTube/Facebook/X/TikTok 0. 임시 token revoke 후 401. 즉시 마케팅 출고 실증 범위는 Instagram
+  IMAGE와 Threads TEXT/IMAGE다. 전체 ship은 외부 credential·앱 활성·실계정 callback과 TikTok/Reels 미구현 때문에
+  in-progress 유지한다.
