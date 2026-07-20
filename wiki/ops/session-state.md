@@ -2010,3 +2010,11 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
   channel accounts Instagram 1·Threads 2·그 외 YouTube/Facebook/X/TikTok/Bluesky 0.
 - 다음 액션: 변경 커밋→marketing VM workspace 반영→GitHub 인증/DNS 회복 시 origin push.
   외부 회수는 X/TikTok 앱 credential, Facebook 앱 활성, YouTube 실제 OAuth, 동일 provider 2계정 로그인이다.
+
+### SNS-016 반영 확정
+
+- 코드/재발방지 커밋은 `52539ebd`; marketing VM 작업공간도 fast-forward로 동일 커밋을 반영했다.
+- 반영 후 재관찰: `openclaw-dashboard-osmu` running/healthy, live health 200, Google preflight 200 및
+  authUrl 존재. GitHub `origin/main` push는 로컬 DNS의 `github.com` 해석 실패로 미반영이며 서비스와 분리된 blocker다.
+- compose 전체 config는 OSMU와 무관한 `.env.tenant2`가 runner 작업공간에 없어 실패했다. OSMU 단독 런타임과
+  Google 복구에는 영향이 없지만 다음 전체 4-tenant workflow 전에 persist env 복원 여부를 확인해야 한다.
