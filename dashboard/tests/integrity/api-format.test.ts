@@ -23,7 +23,7 @@ describe("API response format integrity", () => {
     process.env.DATA_DIR = tempDir;
     process.env.CONFIG_DIR = tempDir;
     const { GET } = await import("../../src/app/api/overview/route");
-    const res = await GET();
+    const res = await GET(new Request("http://localhost/api/overview"));
     const data = await res.json();
     expect(data).toHaveProperty("statusCounts");
     expect(data).toHaveProperty("followers");

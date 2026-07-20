@@ -497,3 +497,25 @@ LinkedIn, Naver Blog, Pinterest, Tumblr, TikTok, Slack, Line은 각 OAuth creden
 
 **전체 ship이 아직 in-progress인 이유(SNS-015와 무관한 외부 blocker):** X·TikTok credential 미설정,
 Facebook 앱 활성화, Instagram 신규 로그인 OTP, YouTube 실업로드, 동일 provider 실계정 2개 전환, GA4 DebugView.
+
+### 2026-07-21 SNS-017 TikTok OAuth·Direct Post build candidate
+
+**판정: 코드·자동 QA·생산 빌드는 통과, 운영 TikTok 계정 왕복과 실게시물은 미검증이다.**
+
+- OAuth: TikTok 규격에 맞춰 authorize/token 양쪽에서 `client_key`를 사용하고 token 응답의 `open_id`를 계정 ID로 저장한다.
+- 다중계정: 기존 `channel_accounts` 계정 목록·기본 전환·삭제 UI를 TikTok에도 연결하고, 발행 시 선택한 `account_id`만 사용한다.
+- Direct Post: creator-info를 매번 조회해 계정이 허용한 공개범위만 표시·검증하고 댓글·듀엣·스티치 제한을 강제한다.
+  사용자가 공개범위를 직접 고르기 전에는 발행 버튼을 노출하지 않는다.
+- 영상 전달: 65분 만료 서명 HTTPS URL로 `PULL_FROM_URL`을 사용하며 토큰/provider 원문 오류를 응답에 노출하지 않는다.
+- 처리 상태: `PUBLISH_COMPLETE`만 게시 완료로 응답하고, provider가 계속 처리 중이면 HTTP 202 `processing:true`로 구분한다.
+- 회귀: focused 124 PASS, 최종 전체 88 files / 766 PASS / 9 DB-env skip, `tsc --noEmit` clean,
+  Next.js 16 Webpack production build 161 pages PASS, `git diff --check` PASS.
+- 빌드 중 발견한 기존 결함도 해소: route 파일의 금지된 보조 export 4건과 선택적 Request 서명 2건을 라이브러리 분리/정상 서명으로 교정했다.
+- 공식 근거: TikTok Direct Post, creator info, status API 문서
+  (`https://developers.tiktok.com/doc/content-posting-api-reference-direct-post`,
+  `https://developers.tiktok.com/doc/content-posting-api-reference-query-creator-info/`,
+  `https://developers.tiktok.com/doc/content-posting-api-reference-get-video-status`).
+
+**운영 차단:** 운영 `TIKTOK_CLIENT_KEY`·`TIKTOK_CLIENT_SECRET`이 없고 TikTok 앱 Content Posting API 심사 상태를
+실계정으로 확인하지 못했다. 따라서 연결→callback→creator-info→SELF_ONLY 테스트 게시→status/permalink 회수는 미검증이며,
+운영 배포 후 UI는 credential 누락 사유를 정직하게 disabled로 보여야 한다.

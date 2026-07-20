@@ -137,6 +137,7 @@ describe("proxy 테넌트 토큰(인증모델 b) 분기 — 실검증", () => {
     "/api/channels/threads/accounts",
     "/api/channels/threads/accounts/account-1",
     "/api/channels/threads/accounts/account-1/default",
+    "/api/tiktok/creator-info",
   ])("osmu_ 토큰 + 다중계정 API(%s) → tenant-aware 통과", async (path) => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");

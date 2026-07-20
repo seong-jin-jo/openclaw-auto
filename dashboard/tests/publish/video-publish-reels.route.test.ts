@@ -400,9 +400,11 @@ describe("/api/video/publish — Instagram Reels", () => {
     expect(H.reelsCalls.length).toBe(0);
   });
 
-  it("TikTok은 여전히 정직하게 501(미구현) 유지", async () => {
+  it("TikTok은 미연결이면 501 대신 연결 조치를 반환한다", async () => {
+    H.cred = null;
     const { status, json } = await callPublish({ filename: "clip.mp4", platform: "tiktok" });
-    expect(status).toBe(501);
-    expect(json.reason).toBe("not_implemented");
+    expect(status).toBe(400);
+    expect(String(json.error)).toContain("TikTok 계정을 먼저 연결");
+    expect(json.reason).not.toBe("not_implemented");
   });
 });

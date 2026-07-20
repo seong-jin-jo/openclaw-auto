@@ -280,16 +280,16 @@ describe("POST /api/video/publish — youtube 브랜치", () => {
     expect(H.updateCalls).toHaveLength(1); // refresh 헬퍼가 DB를 정확히 1회만 UPDATE
   });
 
-  it("TikTok 발행은 미구현 사유를 명확히 반환한다(구현됐다고 주장하지 않음)", async () => {
+  it("TikTok 발행은 미연결이면 구현 사칭 없이 연결 조치를 반환한다", async () => {
     const { POST } = await import("@/app/api/video/publish/route");
     const res = await POST(new Request("http://localhost/api/video/publish", {
       method: "POST",
       body: JSON.stringify({ filename: "x.mp4", platform: "tiktok" }),
     }));
     const body = await res.json();
-    expect(res.status).toBe(501);
-    expect(body.disabled).toBe(true);
-    expect(body.error).toContain("TikTok");
+    expect(res.status).toBe(400);
+    expect(body.error).toContain("TikTok 계정을 먼저 연결");
+    expect(JSON.stringify(body)).not.toContain("not_implemented");
   });
 
   // SNS-015: Reels는 더 이상 501(미구현)이 아니다. 단 Instagram 미연결이면 "구현됨"인 척하지 않고

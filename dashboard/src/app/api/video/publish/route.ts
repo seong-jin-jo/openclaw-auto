@@ -10,6 +10,13 @@ import { withTenant } from "@/lib/db";
 import { signMediaToken } from "@/lib/media-token";
 import { canonicalPublicOrigin } from "@/lib/social-connect";
 import { MAX_VIDEO_BYTES, MAX_VIDEO_MIB } from "@/lib/video-limits";
+import {
+  fetchTikTokPostStatus,
+  queryTikTokCreatorInfo,
+  startTikTokVideoPost,
+  TIKTOK_PRIVACY_LEVELS,
+  type TikTokPrivacyLevel,
+} from "@/lib/tiktok";
 
 // SNS-015 Reels 제약: published_posts에 기록되는 플랫폼 키(대시보드 SSOT)와 허용 영상 형식/용량.
 const REELS_PLATFORM = "instagram_reels";
@@ -24,6 +31,9 @@ const REELS_MAX_CAPTION = 2200;
 // 보내므로 YouTube의 100자 제목 규칙을 전역 적용하면 정상 캡션이 잘못 거부된다.
 const YT_MAX_TITLE = 100;
 const YT_MAX_DESCRIPTION = 5000;
+const TIKTOK_VIDEO_EXTS = new Set([".mp4", ".mov", ".webm"]);
+const TIKTOK_MAX_CAPTION = 2200;
+const TIKTOK_MEDIA_TTL_MS = 65 * 60 * 1000;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // finding 6: VIDEO_OUTPUT_DIR을 module scope 상수(`const VIDEO_OUTPUT_DIR = dataPath("videos")`)로
@@ -197,12 +207,85 @@ export async function POST(request: Request) {
       }
     }
 
-    // SNS-006: TikTok/Reels는 "구현됨"으로 오인되지 않게 정확한 미충족 사유를 준다(추측 금지).
     if (platform === "tiktok") {
-      return Response.json(
-        { error: "TikTok 발행은 아직 구현되지 않았습니다 — TikTok 앱 심사(Content Posting API) 승인 전이라 credential 자체가 없습니다.", disabled: true, reason: "not_implemented" },
-        { status: 501 },
-      );
+      if (!tenantId) return Response.json({ error: "테넌트를 확인할 수 없습니다." }, { status: 400 });
+      const cred = await getChannelCred(tenantId, "tiktok", accountId);
+      if (!cred?.token) {
+        return Response.json(
+          { error: accountId ? "선택한 TikTok 계정을 찾을 수 없습니다." : "TikTok 계정을 먼저 연결해주세요." },
+          { status: 400 },
+        );
+      }
+
+      const ext = path.extname(filename).toLowerCase();
+      if (!TIKTOK_VIDEO_EXTS.has(ext)) {
+        return Response.json({ error: "TikTok은 mp4, mov 또는 webm 영상만 지원합니다." }, { status: 400 });
+      }
+      const videoSize = fs.statSync(videoPath).size;
+      if (videoSize <= 0 || videoSize > MAX_VIDEO_BYTES) {
+        return Response.json({ error: `TikTok 영상은 0B 초과 ~ ${MAX_VIDEO_MIB}MiB여야 합니다.` }, { status: 400 });
+      }
+      const caption = (title ? `${title}\n\n` : "") + description;
+      if (caption.length > TIKTOK_MAX_CAPTION) {
+        return Response.json({ error: `TikTok 캡션은 최대 ${TIKTOK_MAX_CAPTION}자입니다(현재 ${caption.length}자).` }, { status: 400 });
+      }
+
+      const privacyLevel = scalarString(data.privacy_level) ? data.privacy_level : "";
+      if (!(TIKTOK_PRIVACY_LEVELS as readonly string[]).includes(privacyLevel)) {
+        return Response.json({ error: "TikTok 공개 범위를 직접 선택해주세요." }, { status: 400 });
+      }
+      const booleanValue = (key: string): boolean | null =>
+        typeof data[key] === "boolean" ? data[key] as boolean : null;
+      const disableComment = booleanValue("disable_comment");
+      const disableDuet = booleanValue("disable_duet");
+      const disableStitch = booleanValue("disable_stitch");
+      const isAiGenerated = booleanValue("is_ai_generated");
+      if ([disableComment, disableDuet, disableStitch, isAiGenerated].some((value) => value === null)) {
+        return Response.json({ error: "TikTok 상호작용 및 AI 생성 여부를 확인해주세요." }, { status: 400 });
+      }
+
+      const creator = await queryTikTokCreatorInfo(cred.token);
+      if (!creator || !creator.privacyLevels.includes(privacyLevel as TikTokPrivacyLevel)) {
+        return Response.json({ error: "현재 TikTok 계정에서 선택할 수 없는 공개 범위입니다." }, { status: 400 });
+      }
+      const origin = canonicalPublicOrigin();
+      if (!origin) return Response.json({ error: "TikTok 발행에는 OSMU_PUBLIC_URL 설정이 필요합니다." }, { status: 400 });
+      const token = signMediaToken(tenantId, filename, TIKTOK_MEDIA_TTL_MS);
+      if (!token) return Response.json({ error: "미디어 서명 설정이 없어 TikTok에 발행할 수 없습니다." }, { status: 400 });
+
+      const started = await startTikTokVideoPost({
+        accessToken: cred.token,
+        videoUrl: `${origin}/api/media/${token}`,
+        title: caption,
+        privacyLevel: privacyLevel as TikTokPrivacyLevel,
+        disableComment: creator.commentDisabled || disableComment!,
+        disableDuet: creator.duetDisabled || disableDuet!,
+        disableStitch: creator.stitchDisabled || disableStitch!,
+        isAiGenerated: isAiGenerated!,
+      });
+      if (!started.ok) {
+        return Response.json({ error: "TikTok이 발행 요청을 거부했습니다. 앱 권한과 계정 상태를 확인해주세요." }, { status: 502 });
+      }
+
+      // TikTok 처리는 비동기다. 짧게 상태를 확인하고, 아직 처리 중이면 publish_id를 반환해
+      // 성공을 가장하지 않는다. 중복 클릭은 UI에서 요청 중 상태로 막는다.
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const status = await fetchTikTokPostStatus(cred.token, started.publishId);
+        if (status?.status === "PUBLISH_COMPLETE") {
+          return Response.json({
+            ok: true,
+            platform: "tiktok",
+            publishId: started.publishId,
+            videoId: status.postId,
+            url: status.postId ? `https://www.tiktok.com/@${encodeURIComponent(creator.username)}/video/${status.postId}` : undefined,
+          });
+        }
+        if (status?.status === "FAILED") {
+          return Response.json({ error: "TikTok 영상 처리에 실패했습니다. 영상 규격과 계정 권한을 확인해주세요." }, { status: 502 });
+        }
+        if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+      return Response.json({ ok: true, processing: true, platform: "tiktok", publishId: started.publishId }, { status: 202 });
     }
     if (platform === "reels" || platform === "instagram_reels") {
       // SNS-015: 연결된 Instagram 계정으로 Reels 실발행.

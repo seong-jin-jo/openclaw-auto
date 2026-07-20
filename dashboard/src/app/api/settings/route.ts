@@ -1,27 +1,7 @@
 import { readJson, writeJson, dataPath } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
-
-const DEFAULT_SETTINGS: Record<string, number> = {
-  viralThreshold: 500,
-  minLikes: 10,
-  searchDays: 7,
-  maxPopularPosts: 30,
-  insightsIntervalHours: 24,
-  insightsMaxCollections: 3,
-  publishIntervalHours: 2,
-  draftsPerBatch: 5,
-  imagePerBatch: 1,
-  casualPerBatch: 1,
-  quotePerBatch: 0,
-};
-
-function readSettings(): Record<string, number> {
-  const saved = readJson<Record<string, number>>(dataPath("settings.json")) || {};
-  return { ...DEFAULT_SETTINGS, ...saved };
-}
-
-export { readSettings, DEFAULT_SETTINGS };
+import { DEFAULT_SETTINGS, readSettings } from "@/lib/settings-store";
 
 export async function GET(request: Request) {
   // 테넌트 컨텍스트로 감싸 file-io가 data/tenants/{id}/ 로 격리되도록 함

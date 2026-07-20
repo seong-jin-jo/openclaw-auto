@@ -1,5 +1,5 @@
 import { readJson, dataPath } from "@/lib/file-io";
-import { readSettings } from "@/app/api/settings/route";
+import { readSettings } from "@/lib/settings-store";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
 

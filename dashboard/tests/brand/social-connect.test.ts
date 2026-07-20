@@ -371,6 +371,9 @@ describe("GET /api/connect/tiktok — PKCE", () => {
     const body = await res.json();
     expect(res.status).toBe(200);
     expect(body.authUrl).toContain("tiktok.com");
+    const authUrl = new URL(body.authUrl);
+    expect(authUrl.searchParams.get("client_key")).toBe("tt-key");
+    expect(authUrl.searchParams.has("client_id")).toBe(false);
     expect(body.authUrl).toContain("code_challenge=");
     const cookie = res.headers.get("set-cookie") || "";
     expect(cookie).toMatch(/pkce_tiktok=/);
@@ -382,6 +385,24 @@ describe("GET /api/connect/tiktok — PKCE", () => {
 // ── exchangeCode — 표준 OAuth 채널 단위 테스트 ──────────────────────────────
 
 describe("exchangeCode — PKCE (code_verifier POST body 포함)", () => {
+  it("TikTok token 교환은 client_key와 open_id를 사용한다", async () => {
+    process.env.TIKTOK_CLIENT_KEY = "tt-key";
+    process.env.TIKTOK_CLIENT_SECRET = "tt-secret";
+    let capturedBody = "";
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, init?: RequestInit) => {
+      capturedBody = String(init?.body || "");
+      return new Response(JSON.stringify({ access_token: "TT_ACCESS", open_id: "tt-user-1" }), { status: 200 });
+    }));
+    const { exchangeCode } = await import("@/lib/social-connect");
+    const result = await exchangeCode("tiktok", "TTCODE", "https://app.example", { codeVerifier: "VERIFIER" });
+    expect(result).toMatchObject({ accessToken: "TT_ACCESS", userId: "tt-user-1" });
+    expect(capturedBody).toContain("client_key=tt-key");
+    expect(capturedBody).not.toContain("client_id=");
+    expect(capturedBody).toContain("code_verifier=VERIFIER");
+    delete process.env.TIKTOK_CLIENT_KEY;
+    delete process.env.TIKTOK_CLIENT_SECRET;
+  });
+
   it("options.codeVerifier가 POST body에 code_verifier로 포함됨", async () => {
     process.env.X_CLIENT_ID = "x-client-id";
     process.env.X_CLIENT_SECRET = "x-secret";

@@ -19,7 +19,7 @@ afterEach(() => {
 describe('GET /api/overview', () => {
   it('returns statusCounts, followers, and channel data', async () => {
     const { GET } = await import('@/app/api/overview/route');
-    const res = await GET();
+    const res = await GET(new Request("http://localhost/api/overview"));
     expect(res.status).toBe(200);
     const body = await res.json();
 
@@ -51,7 +51,7 @@ describe('GET /api/overview', () => {
     fs.unlinkSync(path.join(tmpDir, 'settings.json'));
 
     const { GET } = await import('@/app/api/overview/route');
-    const res = await GET();
+    const res = await GET(new Request("http://localhost/api/overview"));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.statusCounts.draft).toBe(0);

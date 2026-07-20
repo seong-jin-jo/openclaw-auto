@@ -20,6 +20,7 @@ export interface ProviderConfig {
   pkce?: boolean;           // PKCE(RFC 7636) 필수 여부 — X, TikTok
   scopeSeparator?: string;  // scope 구분자. 기본 "," (Meta계열). 표준 OAuth는 " "
   extraAuthParams?: Record<string, string>; // authorize URL 추가 파라미터(YouTube: access_type, prompt)
+  clientIdParam?: string;   // provider가 client_id 대신 쓰는 이름(TikTok: client_key)
 }
 
 // ── PKCE 헬퍼(RFC 7636) ──────────────────────────────────────────────────────
@@ -270,6 +271,7 @@ export const PROVIDERS: Record<string, ProviderConfig> = {
     longGrant: "",
     pkce: true,
     scopeSeparator: ",",
+    clientIdParam: "client_key",
   },
   slack: {
     label: "slack",
@@ -373,7 +375,7 @@ export function buildAuthUrl(
   const clientId = process.env[provider.appIdEnv];
   if (!clientId) return null;
   const params: Record<string, string> = {
-    client_id: clientId,
+    [provider.clientIdParam ?? "client_id"]: clientId,
     redirect_uri: redirectUri(origin, providerName),
     response_type: "code",
     state,
@@ -429,7 +431,7 @@ export async function exchangeCode(
   // ── 표준 OAuth 2.0 (단일 교환 — longTokenUrl 없음) ───────────────────────
   if (!p.longTokenUrl) {
     const bodyParams: Record<string, string> = {
-      client_id: clientId,
+      [p.clientIdParam ?? "client_id"]: clientId,
       client_secret: clientSecret,
       grant_type: "authorization_code",
       redirect_uri: ru,
@@ -459,7 +461,7 @@ export async function exchangeCode(
     }
     return {
       accessToken,
-      userId: data.user_id ? String(data.user_id) : undefined,
+      userId: data.user_id ? String(data.user_id) : (data.open_id ? String(data.open_id) : undefined),
       refreshToken: (data.refresh_token as string) || undefined, // YouTube offline
     };
   }

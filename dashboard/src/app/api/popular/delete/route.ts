@@ -1,5 +1,5 @@
 import { writeText, dataPath } from "@/lib/file-io";
-import { parsePopularPosts } from "../route";
+import { parsePopularPosts } from "@/lib/popular-posts";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
 

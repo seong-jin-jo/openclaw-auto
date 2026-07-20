@@ -1,9 +1,9 @@
 import { readJson, configPath, dataPath } from "@/lib/file-io";
 
-export async function POST() {
+export async function POST(request: Request) {
   // Get report
   const reportModule = await import("../route");
-  const reportResp = await reportModule.GET();
+  const reportResp = await reportModule.GET(request);
   const reportData = await reportResp.json();
   const reportText = reportData.report || "No data";
 

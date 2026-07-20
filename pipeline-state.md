@@ -92,6 +92,16 @@ override_expires: ""
   full 85 files/754 PASS·9 skip, TypeScript clean, production build 160 pages PASS.
 - Claude 독립 리뷰는 2회 모두 무응답/Execution error로 종료되어 **미검증**이며 출고 근거에 포함하지 않는다.
 
+## 2026-07-21 SNS-017 TikTok Direct Post build candidate
+- TikTok OAuth의 `client_key`/`open_id` 규격을 교정하고, 다중계정 선택·creator-info·공개범위 직접 선택·상호작용 제한·
+  AI 생성 표시·서명 PULL URL·비동기 상태 확인을 `/videos`와 `/api/video/publish`에 연결했다.
+- focused 124 PASS, 전체 88 files/766 PASS·9 DB-env skip, TypeScript clean, Next.js 16 Webpack production build
+  161 pages PASS, diff check PASS. 빌드가 함께 발견한 기존 route export/signature 결함도 교정했다.
+- ship은 `in-progress`, `artifacts_ok:false` 유지. 운영 TikTok credential과 앱 심사가 없어 실제 OAuth callback,
+  creator-info, SELF_ONLY 영상 게시, status/permalink는 미검증이다. X/Facebook/Instagram OTP/YouTube/실 2계정 전환도 기존 blocker다.
+- 다음 실행: commit을 운영 VM에 반영하고 health·Google 로그인 무회귀·TikTok credential 누락 UI를 실제 브라우저에서 관찰한다.
+  credential이 회수되는 즉시 격리 계정으로 OAuth→SELF_ONLY 게시→status/permalink를 수집한다.
+
 > 2026-06-30 `init --adopt`. 이 레포는 이미 라이브 배포된 멀티테넌트 마케팅 SaaS라 plan~build는
 > ADOPT(기존 인정). **현재 ship(in-progress).** 신규 기능(OAuth 연결, GA4, 가이드 등)은 build→qa→ship 게이트를
 > `/approve`로만 통과한다. **배포(gh workflow / ship)는 `/approve qa` 후에만.** (과거 게이트 없는

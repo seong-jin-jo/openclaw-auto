@@ -32,9 +32,20 @@ describe("SNS-007 multi-account source contracts", () => {
     expect(page).toContain('data-testid="youtube-publish-account-select"');
     // SNS-015: 같은 핸들러가 Reels도 처리하지만 계정 선택값은 YouTube 발행에만 실린다
     // (Instagram 발행에 YouTube 계정 id가 새면 안 된다).
-    expect(page).toContain('account_id: platform === "youtube" ? (publishAccountId || undefined) : undefined');
+    expect(page).toMatch(/account_id: platform === "youtube" \? \(publishAccountId \|\| undefined\) : platform === "tiktok"/);
     expect(route).toContain('getChannelCred(tenantId, "youtube", accountId)');
     expect(route).toContain("refreshYoutubeAccessToken(tenantId, accountId)");
+  });
+
+  it("TikTok UI exposes account switching and creator-authorized publish controls", () => {
+    const page = source("app/videos/page.tsx");
+    expect(page).toContain('data-testid="tiktok-status-card"');
+    expect(page).toContain('data-testid="tiktok-publish-account-select"');
+    expect(page).toContain('data-testid="tiktok-privacy-select"');
+    expect(page).toContain('data-testid="tiktok-publish-button"');
+    expect(page).not.toContain('data-testid="tiktok-disabled-card"');
+    expect(page).toContain('provider="tiktok"');
+    expect(page).toContain("is_ai_generated: tiktokAiGenerated");
   });
 
   it("Reels UI uses design tokens only and stays gated on Instagram connection", () => {

@@ -13,7 +13,7 @@ const ALLOWED_VIDEO_EXTS = [".mp4", ".mov", ".m4v", ".webm"];
 // 주의 — 이 검사는 multipart 파서의 메모리 할당을 막지 못한다(Request.formData()는 이 코드보다
 // 먼저 본문을 파싱한다). 1차 방어는 프록시/플랫폼의 본문 크기 제한이고, 여기는 디스크 쓰기 전
 // 되돌리는 2차 방어 겸 애플리케이션 한도다. 자세한 근거는 @/lib/video-limits.
-export const MAX_UPLOAD_BYTES = MAX_VIDEO_BYTES;
+const MAX_UPLOAD_BYTES = MAX_VIDEO_BYTES;
 const MB = 1024 * 1024;
 
 export async function POST(request: Request) {

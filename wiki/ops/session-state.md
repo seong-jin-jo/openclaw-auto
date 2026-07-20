@@ -3,7 +3,26 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-21 · SNS-015 Instagram Reels 운영 관찰 종료, 전역 ship은 외부 blocker로 in-progress 유지
+**최종 갱신:** 2026-07-21 04:20 KST · SNS-017 TikTok Direct Post build candidate, 운영 배포 직전
+
+---
+
+### SNS-017 TikTok Direct Post 핸드오프 (2026-07-21 04:20 KST)
+
+**handoff basis:** 사용자가 이 세션에서 질문 없이 전부 진행하라고 명시했다. 현재 git/worktree와 이 파일을 primary로 사용하며,
+거대한 nested `openclaw/` dirty state는 타 작업이라 손대지 않는다.
+
+**구현·검증됨:** TikTok OAuth `client_key`, token `open_id`, 다중계정 목록/기본전환/삭제/선택 발행, creator-info,
+공개범위 직접 선택, 댓글·듀엣·스티치 제한, AI 생성 표시, 65분 서명 PULL URL, Direct Post init/status와 고정 오류 문구.
+focused 124 PASS, 최종 전체 88 files/766 PASS·9 DB-env skip, TypeScript clean, Next.js 16 Webpack production build
+161 pages PASS, diff check PASS. 생산 빌드가 적발한 기존 route helper export 4건과 optional Request 2건도 교정했다.
+
+**미검증/차단:** 운영 `TIKTOK_CLIENT_KEY`·`TIKTOK_CLIENT_SECRET` 및 앱 심사 승인이 없어 실제 provider 로그인·callback·
+creator-info·SELF_ONLY 게시·status/permalink는 관찰하지 못했다. 이 범위는 코드 완료나 mock PASS로 운영 완료 처리하지 않는다.
+
+**정확한 다음 액션:** 명시 파일만 커밋 → bundle로 marketing VM 동기화 → `.env.osmu` build args를 사용해 dashboard 단독
+Docker rebuild/up → live health·Google 로그인 무회귀·TikTok disabled 사유를 실제 Chrome에서 관찰한다. credential 회수 시
+격리 TikTok 계정으로 OAuth→SELF_ONLY 게시→status/permalink E2E를 즉시 실행한다.
 
 ---
 

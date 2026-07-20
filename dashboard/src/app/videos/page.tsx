@@ -22,11 +22,20 @@ interface SlideInput {
   imageUrl: string;
 }
 
-interface YoutubeAccount {
+interface ChannelAccount {
   id: string;
   display_name: string | null;
   username: string | null;
   is_default: boolean;
+}
+
+interface TikTokCreator {
+  username: string;
+  nickname: string;
+  privacyLevels: string[];
+  commentDisabled: boolean;
+  duetDisabled: boolean;
+  stitchDisabled: boolean;
 }
 
 // 같은 출처(/videos/...) 영상에서 첫 프레임을 캡처해 썸네일 data URL 생성. best-effort.
@@ -76,8 +85,13 @@ export default function VideosPage() {
   const { data: elConfig } = useSWR<{ configured: boolean }>("/api/elevenlabs-config", fetcher);
   const { data: clipConfig } = useSWR<{ configured: boolean; provider?: string }>("/api/clipping-config", fetcher);
   const [ytAccountsTick, setYtAccountsTick] = useState(0);
-  const { data: ytAccountsData, mutate: mutateYtAccounts } = useSWR<{ accounts: YoutubeAccount[] }>(
+  const { data: ytAccountsData, mutate: mutateYtAccounts } = useSWR<{ accounts: ChannelAccount[] }>(
     activeWorkspace ? `/api/channels/youtube/accounts?tenant_id=${activeWorkspace.id}&v=${ytAccountsTick}` : null,
+    fetcher,
+  );
+  const [tiktokAccountsTick, setTiktokAccountsTick] = useState(0);
+  const { data: tiktokAccountsData, mutate: mutateTiktokAccounts } = useSWR<{ accounts: ChannelAccount[] }>(
+    activeWorkspace ? `/api/channels/tiktok/accounts?tenant_id=${activeWorkspace.id}&v=${tiktokAccountsTick}` : null,
     fetcher,
   );
   const { showToast } = useToast();
@@ -93,6 +107,13 @@ export default function VideosPage() {
   const [publishTitle, setPublishTitle] = useState("");
   const [publishDesc, setPublishDesc] = useState("");
   const [publishAccountId, setPublishAccountId] = useState("");
+  const [tiktokAccountId, setTiktokAccountId] = useState("");
+  const [tiktokPrivacy, setTiktokPrivacy] = useState("");
+  const [tiktokDisableComment, setTiktokDisableComment] = useState(false);
+  const [tiktokDisableDuet, setTiktokDisableDuet] = useState(false);
+  const [tiktokDisableStitch, setTiktokDisableStitch] = useState(false);
+  const [tiktokAiGenerated, setTiktokAiGenerated] = useState(true);
+  const [publishingPlatform, setPublishingPlatform] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<string | null>(null); // 인라인 임베드 플레이어 (발행 전 미리보기)
 
   // 0차 Long Video Repurpose (external clipper + OSMU refine)
@@ -109,10 +130,29 @@ export default function VideosPage() {
 
   const videos = data?.videos || [];
   const youtubeAccounts = ytAccountsData?.accounts || [];
+  const tiktokAccounts = tiktokAccountsData?.accounts || [];
+  const tiktokCreatorUrl = tiktokAccounts.length > 0
+    ? `/api/tiktok/creator-info${tiktokAccountId ? `?account_id=${encodeURIComponent(tiktokAccountId)}` : ""}`
+    : null;
+  const { data: tiktokCreatorData, mutate: mutateTiktokCreator } = useSWR<{
+    ready: boolean;
+    creator?: TikTokCreator;
+  }>(tiktokCreatorUrl, fetcher);
+  const tiktokCreator = tiktokCreatorData?.creator;
 
   useEffect(() => {
     setPublishAccountId("");
+    setTiktokAccountId("");
+    setTiktokPrivacy("");
   }, [activeWorkspace?.id]);
+
+  useEffect(() => {
+    // TikTok UX 가이드: 공개 범위는 계정별 옵션을 보여준 뒤 사용자가 직접 선택해야 한다.
+    setTiktokPrivacy("");
+    setTiktokDisableComment(tiktokCreator?.commentDisabled ?? false);
+    setTiktokDisableDuet(tiktokCreator?.duetDisabled ?? false);
+    setTiktokDisableStitch(tiktokCreator?.stitchDisabled ?? false);
+  }, [tiktokAccountId, tiktokCreator?.username, tiktokCreator?.commentDisabled, tiktokCreator?.duetDisabled, tiktokCreator?.stitchDisabled]);
 
   // 추천순(바이럴 점수 desc) 정렬 — 점수는 "우선순위 힌트"일 뿐(보장 아님). 빈 화면 대신 완성 클립 그리드를 히어로로.
   const rankedClips = [...repurposeClips].sort(
@@ -157,26 +197,34 @@ export default function VideosPage() {
     }
   };
 
-  // SNS-015: YouTube와 Instagram Reels가 같은 라우트를 쓰되 platform만 다르다.
-  // Reels는 account_id를 보내지 않는다 — YouTube 계정 선택값이 Instagram 계정으로 새면 안 된다.
-  const handlePublish = async (filename: string, platform: "youtube" | "reels" = "youtube") => {
-    const label = platform === "reels" ? "Instagram Reels" : "YouTube";
+  const handlePublish = async (filename: string, platform: "youtube" | "reels" | "tiktok" = "youtube") => {
+    const label = platform === "reels" ? "Instagram Reels" : platform === "tiktok" ? "TikTok" : "YouTube";
+    setPublishingPlatform(`${platform}:${filename}`);
     try {
-      const res = await apiPost<{ ok: boolean; url?: string; error?: string }>("/api/video/publish", {
+      const res = await apiPost<{ ok: boolean; processing?: boolean; url?: string; error?: string }>("/api/video/publish", {
         filename,
         title: publishTitle || filename,
         description: publishDesc,
         platform,
-        account_id: platform === "youtube" ? (publishAccountId || undefined) : undefined,
+        account_id: platform === "youtube" ? (publishAccountId || undefined) : platform === "tiktok" ? (tiktokAccountId || undefined) : undefined,
+        ...(platform === "tiktok" ? {
+          privacy_level: tiktokPrivacy,
+          disable_comment: tiktokDisableComment,
+          disable_duet: tiktokDisableDuet,
+          disable_stitch: tiktokDisableStitch,
+          is_ai_generated: tiktokAiGenerated,
+        } : {}),
       });
       if (res?.ok) {
-        showToast(`Published to ${label}: ${res.url || ""}`, "success");
+        showToast(res.processing ? `${label}에서 영상을 처리 중입니다.` : `Published to ${label}: ${res.url || ""}`, "success");
         setPublishingFile(null);
       } else {
         showToast(res?.error || `${label} 발행 실패`, "error");
       }
     } catch (e) {
       showToast(`Error: ${(e as Error).message}`, "error");
+    } finally {
+      setPublishingPlatform(null);
     }
   };
 
@@ -398,10 +446,68 @@ export default function VideosPage() {
             {elConfig?.configured ? "설정됨" : "미설정"}
           </div>
         </div>
-        {/* SNS-006: TikTok/Reels가 "연결 가능"처럼 안 보이게 — 미충족 사유를 명시해 비활성 표시 */}
-        <div className="card p-3" data-testid="tiktok-disabled-card">
+        <div className="card p-3 col-span-2" data-testid="tiktok-status-card">
           <div className="text-[10px] text-subtle mb-1">TikTok</div>
-          <div className="text-sm font-medium text-subtle">미구현 — TikTok 앱 심사 승인 전</div>
+          <div className={`text-sm font-medium ${tiktokCreatorData?.ready ? "text-success" : "text-subtle"}`}>
+            {tiktokCreatorData?.ready ? `@${tiktokCreator?.username} 발행 준비됨` : tiktokAccounts.length > 0 ? "계정 권한 확인 필요" : "미연결"}
+          </div>
+          {tiktokAccounts.length === 0 && (
+            <div className="mt-2">
+              <SocialConnectButton
+                provider="tiktok"
+                label="TikTok"
+                onConnected={() => {
+                  setTiktokAccountsTick((n) => n + 1);
+                  void mutateTiktokAccounts();
+                  void mutateTiktokCreator();
+                }}
+              />
+            </div>
+          )}
+          <AccountManager
+            key={`tiktok-${tiktokAccountsTick}`}
+            provider="tiktok"
+            label="TikTok"
+            onAccountsChanged={() => {
+              setTiktokAccountId("");
+              setTiktokPrivacy("");
+              void mutateTiktokAccounts();
+              void mutateTiktokCreator();
+            }}
+          />
+          {tiktokAccounts.length > 1 && (
+            <select
+              data-testid="tiktok-publish-account-select"
+              value={tiktokAccountId}
+              onChange={(event) => setTiktokAccountId(event.target.value)}
+              className="mt-2 w-full rounded border border-border bg-surface-2 p-1.5 text-xs text-text"
+            >
+              <option value="">기본계정</option>
+              {tiktokAccounts.map((account) => (
+                <option key={account.id} value={account.id}>{account.display_name || account.username || account.id.slice(0, 8)}</option>
+              ))}
+            </select>
+          )}
+          {tiktokCreator && (
+            <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+              <label className="col-span-2 text-subtle">
+                공개 범위
+                <select
+                  data-testid="tiktok-privacy-select"
+                  value={tiktokPrivacy}
+                  onChange={(event) => setTiktokPrivacy(event.target.value)}
+                  className="mt-1 w-full rounded border border-border bg-surface-2 p-1.5 text-text"
+                >
+                  <option value="">선택</option>
+                  {tiktokCreator.privacyLevels.map((privacy) => <option key={privacy} value={privacy}>{privacy}</option>)}
+                </select>
+              </label>
+              <label><input type="checkbox" checked={tiktokDisableComment} disabled={tiktokCreator.commentDisabled} onChange={(e) => setTiktokDisableComment(e.target.checked)} /> 댓글 끄기</label>
+              <label><input type="checkbox" checked={tiktokDisableDuet} disabled={tiktokCreator.duetDisabled} onChange={(e) => setTiktokDisableDuet(e.target.checked)} /> 듀엣 끄기</label>
+              <label><input type="checkbox" checked={tiktokDisableStitch} disabled={tiktokCreator.stitchDisabled} onChange={(e) => setTiktokDisableStitch(e.target.checked)} /> 스티치 끄기</label>
+              <label><input type="checkbox" checked={tiktokAiGenerated} onChange={(e) => setTiktokAiGenerated(e.target.checked)} /> AI 생성 영상</label>
+            </div>
+          )}
         </div>
         {/* SNS-015: Reels 발행 분기가 실제로 존재하므로 "미구현"이 아니다. 다만 Instagram 연결이
             없으면 실행 자체가 불가하므로 그 사실을 정직하게 구분해 표시한다. */}
@@ -593,6 +699,16 @@ export default function VideosPage() {
                         className="px-2 py-1 text-xs bg-accent text-accent-fg rounded hover:bg-accent-hover"
                       >
                         Reels
+                      </button>
+                    )}
+                    {tiktokCreatorData?.ready && tiktokPrivacy && (
+                      <button
+                        data-testid="tiktok-publish-button"
+                        disabled={publishingPlatform === `tiktok:${v.filename}`}
+                        onClick={() => handlePublish(v.filename, "tiktok")}
+                        className="px-2 py-1 text-xs bg-surface-2 text-text rounded hover:bg-surface disabled:opacity-50"
+                      >
+                        {publishingPlatform === `tiktok:${v.filename}` ? "처리 중" : "TikTok"}
                       </button>
                     )}
                     <button onClick={() => handleDelete(v.filename)} className="px-2 py-1 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">
