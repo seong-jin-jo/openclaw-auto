@@ -45,6 +45,11 @@ SELF_ONLY 게시·status/permalink는 미검증이다. X credential, Facebook �
 `git push origin main`은 `Could not resolve host: github.com`으로 실패해 origin/main보다 로컬이 10 commits 앞이다.
 DNS 복구 후 push만 재실행하면 되며, 현재 운영 이미지는 bundle로 이미 반영되어 서비스에는 영향이 없다.
 
+**GA4 운영 관찰 추가:** 격리 Chrome storage를 초기화하고 `/login`에서 분석 동의를 클릭했다. gtag 스크립트 200,
+measurement `G-MEEQ2D8C1J`의 `page_view`와 `scroll` 이벤트가 실제 `google-analytics.com/g/collect`로 POST되어
+각각 204를 반환했다. 태그·동의·전송은 관찰됨. Google Analytics 관리 콘솔 DebugView 표시는 미검증이며,
+검증 브라우저 storage는 삭제했다.
+
 ---
 
 ### SNS-015 Instagram Reels 운영 종료 핸드오프 (2026-07-21)

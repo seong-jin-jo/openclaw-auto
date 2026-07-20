@@ -531,3 +531,12 @@ TikTok accounts 200, readiness 200 두 번을 관찰했고 해당 navigation의 
 `TIKTOK_CLIENT_KEY/TIKTOK_CLIENT_SECRET` 누락 사유가 화면에 표시되고, 낡은 “직접 발행 미지원” 문구는 없다.
 별도 `/login` Google 클릭은 실제 `accounts.google.com` identifier URL로 이동했다.
 화면 증거: `docs/evidence/sns017-tiktok-disabled-operating-20260721.png`. 운영자 브라우저 storage는 검증 후 폐기했다.
+
+### 2026-07-21 GA4 운영 전송 관찰
+
+- 격리 Chrome에서 기존 consent/storage를 삭제하고 `/login`을 새로 열어 분석 동의를 직접 클릭했다.
+- `www.googletagmanager.com/gtag/js?id=G-MEEQ2D8C1J` HTTP 200 로드 관찰.
+- `page_view`와 `scroll(percent_scrolled=90)`이 `www.google-analytics.com/g/collect`의 동일 measurement ID로
+  실제 POST되어 각각 HTTP 204를 반환한 것을 network에서 직접 관찰했다.
+- 판정: 클라이언트 태그·동의 후 이벤트 전송은 운영 관찰 완료. GA4 관리 콘솔 DebugView에 이벤트가 표시되는지는
+  Google 계정 콘솔 화면을 열지 않았으므로 **미검증**이다. 브라우저 storage는 관찰 후 삭제했다.

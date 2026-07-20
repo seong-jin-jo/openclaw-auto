@@ -106,6 +106,8 @@ override_expires: ""
 - commit `cf0be864` 운영 Docker build 161 pages PASS, 컨테이너 healthy/DB up. 후속 Chrome에서 Instagram/TikTok accounts와
   readiness 모두 200, navigation 4xx/5xx 0건, TikTok credential 누락 disabled 문구와 Google→accounts.google.com 이동 관찰.
   증거 `docs/evidence/sns017-tiktok-disabled-operating-20260721.png`. 실 TikTok OAuth/게시만 외부 credential·앱 심사로 미검증.
+- GA4: 격리 Chrome에서 분석 동의 후 measurement `G-MEEQ2D8C1J`의 `page_view`·`scroll`이 실제
+  `google-analytics.com/g/collect`로 POST되어 둘 다 HTTP 204를 직접 관찰했다. 전송은 검증됨, DebugView UI는 미검증.
 
 > 2026-06-30 `init --adopt`. 이 레포는 이미 라이브 배포된 멀티테넌트 마케팅 SaaS라 plan~build는
 > ADOPT(기존 인정). **현재 ship(in-progress).** 신규 기능(OAuth 연결, GA4, 가이드 등)은 build→qa→ship 게이트를
