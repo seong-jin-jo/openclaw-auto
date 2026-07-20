@@ -40,6 +40,11 @@ TikTok accounts 200, readiness 200, 해당 navigation 4xx/5xx 0건. TikTok crede
 SELF_ONLY 게시·status/permalink는 미검증이다. X credential, Facebook 앱 활성, Instagram OTP, YouTube 실업로드,
 동일 provider 실계정 2개 전환, GA4 DebugView도 전역 ship blocker로 남는다. 앱 내부 자동 진행분은 여기까지 운영 반영됐다.
 
+**배포/동기화 상태:** 로컬과 marketing VM은 증거 commit `0c017cef`로 일치하고 운영 컨테이너는 healthy다.
+롤백용 stopped 컨테이너 `openclaw-dashboard-osmu-pre-cf0be864`와 `...-pre-f85906af`를 보존했다.
+`git push origin main`은 `Could not resolve host: github.com`으로 실패해 origin/main보다 로컬이 10 commits 앞이다.
+DNS 복구 후 push만 재실행하면 되며, 현재 운영 이미지는 bundle로 이미 반영되어 서비스에는 영향이 없다.
+
 ---
 
 ### SNS-015 Instagram Reels 운영 종료 핸드오프 (2026-07-21)
