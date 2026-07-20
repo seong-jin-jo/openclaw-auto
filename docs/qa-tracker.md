@@ -389,3 +389,5 @@ qa = **in-progress** (ship 게이트 잠김 유지). 아침 체크리스트 1~3 
   설정이 실제 포함돼 있어 script/ID 미주입 문제는 아니다.
 - **종료증거:** native Arguments 교정 후 운영 저장 동의 reload에서 client_id callback 반환, page_view collect
   network 요청, 명령 단일 적재를 모두 직접 관찰해야 한다. DebugView UI 수신은 별도 외부 확인으로 남긴다.
+- **자동 검증:** commit `7c84d533`, focused 18 PASS, local full 77 files/669 PASS·9 DB-env skip, TypeScript,
+  production 160-page build PASS. CI run `29728777597`도 typecheck/build/PostgreSQL schema→seed→RLS/full test SUCCESS.

@@ -1789,3 +1789,6 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
   collect 0건과 client_id get timeout을 관찰했다. 전용 gtag.js에는 `G-MEEQ2D8C1J` destination/event 설정이 포함돼
   있었다. 앱 `rawGtag`가 공식 native Arguments 대신 rest Array를 push해 명령이 실행되지 않은 것이 원인이다.
   pipeline ship→build 재개방. 다음 액션은 native Arguments 교정 테스트→CI→재배포→client_id+collect E2E다.
+- 2026-07-20 GA4-002 build/qa 승인: commit `7c84d533`, local full 669 PASS·9 DB-env skip, production build PASS,
+  CI run `29728777597` typecheck/build/PostgreSQL schema→seed→RLS/full test SUCCESS. pipeline은 ship으로 전환했다.
+  다음 액션은 승인 문서 commit→OSMU 재배포→운영 client_id callback/collect/page_view 직접 관찰이다.
