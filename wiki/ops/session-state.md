@@ -1960,3 +1960,53 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
 - **미검증:** 실제 Meta Reels 공개 발행 permalink, OAuth 고객 브라우저 `/videos` 전체 플로우, `EXPIRED` 실응답.
 - **다음 액션(순서 고정):** ①변경 커밋 ②OSMU 배포 ③운영 계정 Reels 1건 실발행 후 permalink/DB 기록 관찰
   ④격리 브라우저로 공개 영상·계정·캡션 직접 확인 ⑤사용한 단기 tenant token revoke 후 동일 API 401 확인.
+
+## 2026-07-21 02:06 KST 종료 핸드오프 — SNS-015 운영 종료
+
+- **primary/handoff basis:** `openclaw-auto:0.0`, 이 파일을 진실원으로 사용. 사용자 최신 지시는 승인 질문 없이
+  앱을 작동시키고 개발·QA·배포를 계속하라는 것.
+- **완료:** `1a6e7e5a` Reels 구현, `ff8d138a` 운영 증거 문서. marketing VM workspace와 실행 컨테이너는
+  `ff8d138a`; `openclaw-dashboard-osmu`는 running/healthy, live `/api/health` 200 + DB up.
+- **운영 직접 관찰:** 실제 업로드, 서명 미디어 HEAD 200, Range 206/100 bytes, Instagram Reel
+  `https://www.instagram.com/reel/DbBPRa7iFff/` 발행. 동일 요청은 `alreadyPublished:true`와 동일 URL,
+  DB는 rows 1/published 1/distinct external 1/permalink 1/failed 0. 단기 tenant token은 revoke 후 API 401,
+  active QA token 0.
+- **브라우저 직접 관찰:** 공개 페이지에서 `zero_to_one_ai`, 한국어 제목·본문·해시태그, readyState 4의
+  720x1280·8초 영상과 브랜드 프레임을 확인. 증거는
+  `docs/evidence/sns015-instagram-reel-operating-20260721.png`.
+- **검증:** focused 106 PASS, 최신 full 84 files/752 PASS·9 DB-env skip, TypeScript clean, production build
+  160 pages PASS. 독립 QA 품질 게이트 PASS(`qa-only` Skill 1, WebFetch 5, standards Read).
+- **남은 이슈:** GitHub DNS 해석 실패로 `git push origin main`은 실패했고 `origin/main`은 `020c44d9`에 남아 있다.
+  로컬·marketing VM의 `ff8d138a`를 DNS 복구 즉시 push해야 다음 runner cleanup의 덮어쓰기 위험이 사라진다.
+  전역 v1 ship 잔여는 X/TikTok credential, Facebook 앱 활성, Instagram 신규 로그인 OTP, YouTube 실업로드,
+  동일 provider 실계정 2개 전환, GA4 DebugView다. SNS-015 자체는 운영 관찰로 종료.
+- **정확한 다음 액션:** ①DNS 확인 후 `git push origin main`으로 `ff8d138a` 동기화 ②Instagram·Threads로
+  마케팅 즉시 실행 ③외부 blocker를 별도 트랙에서 하나씩 회수. SNS-015 재발행은 하지 않는다.
+
+## 2026-07-21 운영 재확인
+
+- 사용자 최신 지시대로 승인 질문 없이 운영 상태를 다시 확인했다.
+- **관찰됨:** `openclaw-dashboard-osmu`는 `running/healthy`; live `/api/health`는 HTTP 200 및
+  `{"ok":true,"db":"up"}`; `/login`과 `/videos`는 HTTP 200; 공개 Reel은 HTTP 200이다.
+- 최근 10분 운영 컨테이너 로그에는 출력된 오류가 없었다.
+- **외부 동기화 실패:** `git push origin main`은 로컬 DNS가 `github.com`을 해석하지 못해 실패했다.
+  서비스 실행에는 영향이 없고, `origin/main`만 `020c44d9`로 뒤처져 있다.
+- **다음 액션:** Instagram/Threads 마케팅은 즉시 실행 가능하다. DNS 복구 시 `ff8d138a`를 push하고,
+  X/TikTok/Facebook/YouTube 및 실계정 다중 전환은 외부 자격증명·앱 활성화 회수 후 실제 E2E로 닫는다.
+
+## 2026-07-21 Google 로그인 운영 긴급복구 — primary=session-state.md
+
+- 격리 gstack 브라우저에서 Google 클릭→`/api/auth/google` HTTP 500과
+  `supabaseUrl is required`를 직접 재현했다. 원인은 ff8d138a 수동 이미지 빌드 때
+  `NEXT_PUBLIC_SUPABASE_URL/ANON_KEY` build arg가 빠져 런타임 env가 있어도 클라이언트 번들은 빈 값이 된 것.
+- `.env.osmu`의 공개 Supabase 값과 GA4 ID로 운영 이미지를 재빌드하고 OSMU 컨테이너만 재생성했다.
+  **관찰됨:** running/healthy, health 200+DB up, Google preflight 200+authUrl, 실제
+  `accounts.google.com` 계정 입력 화면 이동. Slack 운영 웹훅 실발송도 `ok`.
+- 재발방지 변경: `docker-compose.postagi-4tenants.yml` 필수 Supabase build args,
+  deploy workflow `--env-file .env.osmu`, 계약 테스트 2개(기존 GA 계약 포함).
+- **검증:** focused 7 PASS, full 85 files/754 PASS·9 skip, tsc clean, 160-page production build PASS,
+  env 없는 compose config는 의도대로 fail-fast. Claude 독립 리뷰는 2회 무응답/Execution error로 미검증.
+- 운영 DB 현황(비밀 미출력): auth users 7(email 6/google 1), active tenants 11,
+  channel accounts Instagram 1·Threads 2·그 외 YouTube/Facebook/X/TikTok/Bluesky 0.
+- 다음 액션: 변경 커밋→marketing VM workspace 반영→GitHub 인증/DNS 회복 시 origin push.
+  외부 회수는 X/TikTok 앱 credential, Facebook 앱 활성, YouTube 실제 OAuth, 동일 provider 2계정 로그인이다.

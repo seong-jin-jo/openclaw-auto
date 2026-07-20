@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 // String-consistency contract: prevents the env var name from drifting between Dockerfile ARG,
-// deploy workflow secret pass-through, and the code that actually reads it (ga.ts). A typo in
+// deploy workflow env rendering, compose build args, and the code that actually reads it (ga.ts). A typo in
 // any one of these silently ships a build where GA is baked in as "" (disabled) with no error.
 
 const ENV_VAR = "NEXT_PUBLIC_GA_MEASUREMENT_ID";
@@ -23,9 +23,12 @@ describe("GA env var wiring — Dockerfile <-> workflow <-> code string consiste
     expect(dockerfile).toContain(`ENV ${ENV_VAR}=$${ENV_VAR}`);
   });
 
-  it("deploy workflow passes the same var name as a --build-arg sourced from the chosen secret", () => {
+  it("deploy renders the secret and compose passes the same env name as a build arg", () => {
     const workflow = read(".github/workflows/deploy-marketing.yml");
-    expect(workflow).toContain(`--build-arg ${ENV_VAR}="\${{ secrets.${SECRET_NAME} }}"`);
+    const compose = read("docker-compose.postagi-4tenants.yml");
+    expect(workflow).toContain(`${ENV_VAR}=\${{ secrets.${SECRET_NAME} }}`);
+    expect(workflow).toContain("docker compose --env-file .env.osmu");
+    expect(compose).toContain(`${ENV_VAR}: \${${ENV_VAR}:-}`);
   });
 
   it("ga.ts reads process.env with the exact same var name", () => {

@@ -30,6 +30,13 @@ x-dashboard-base: &dashboard-base
   build:
     context: ./dashboard
     network: host
+    # NEXT_PUBLIC_* values are baked into the Next.js client bundle. Requiring the
+    # Supabase values here makes a bare manual build fail instead of shipping a
+    # login page that can only discover the missing config in the browser.
+    args:
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?run compose with --env-file .env.osmu}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:?run compose with --env-file .env.osmu}
+      NEXT_PUBLIC_GA_MEASUREMENT_ID: ${NEXT_PUBLIC_GA_MEASUREMENT_ID:-}
   image: openclaw-auto/dashboard:postagi
   network_mode: host
   restart: unless-stopped

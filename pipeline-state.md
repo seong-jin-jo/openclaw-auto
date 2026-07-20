@@ -83,6 +83,15 @@ override_expires: ""
 - **정확한 다음 액션:** ①운영 관찰이 끝난 Instagram·Threads로 지금 마케팅을 개시한다 ②그와 별개 트랙으로
   위 외부 blocker를 하나씩 회수한다. 두 작업은 서로를 기다리지 않는다.
 
+## 2026-07-21 SNS-016 Google login manual-deploy hotfix (관찰됨)
+- 운영 격리 브라우저에서 Google 클릭이 HTTP 500, 콘솔 `supabaseUrl is required`임을 직접 재현했다.
+- 동일 commit의 수동 Docker 빌드가 workflow 전용 `--build-arg NEXT_PUBLIC_SUPABASE_*`를 빠뜨린 것이 원인이다.
+- 운영 이미지를 `.env.osmu`의 Supabase 공개값·GA4 ID로 재빌드/재기동했다. 컨테이너 healthy, DB up,
+  `/api/auth/google` 200+authUrl, 브라우저 `accounts.google.com` 계정 입력 화면 이동을 직접 관찰했다.
+- 재발방지: compose 필수 build args + workflow `--env-file .env.osmu` 단일 경로. focused 7 PASS,
+  full 85 files/754 PASS·9 skip, TypeScript clean, production build 160 pages PASS.
+- Claude 독립 리뷰는 2회 모두 무응답/Execution error로 종료되어 **미검증**이며 출고 근거에 포함하지 않는다.
+
 > 2026-06-30 `init --adopt`. 이 레포는 이미 라이브 배포된 멀티테넌트 마케팅 SaaS라 plan~build는
 > ADOPT(기존 인정). **현재 ship(in-progress).** 신규 기능(OAuth 연결, GA4, 가이드 등)은 build→qa→ship 게이트를
 > `/approve`로만 통과한다. **배포(gh workflow / ship)는 `/approve qa` 후에만.** (과거 게이트 없는
