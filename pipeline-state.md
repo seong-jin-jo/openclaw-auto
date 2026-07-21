@@ -21,13 +21,21 @@ override_expires: ""
 
 # Pipeline State — openclaw-auto-osmu
 
-## 2026-07-21 SNS-018 ship hotfix candidate
+## 2026-07-21 SNS-018 ship hotfix operating close
 - 고객 `/videos`의 잘못된 403과 테넌트 이미지 업로드·배달·삭제 불일치를 수정했다. 전역 clipping/ElevenLabs
   시크릿 경로는 운영자 전용 유지, tenant-safe YouTube/images만 허용한다.
 - HMAC 목적 분리, 타 테넌트/경로탈출 차단, 10MiB 제한, 삭제 후 no-store, 장기 예약 발행 직전 재서명,
   업로드 401 재로그인을 구현했다.
-- 증거: focused 111 PASS, full 819 PASS·9 DB-env skip, TypeScript PASS, production build 162 pages PASS,
-  독립 보안 리뷰 blocker/high 0. 운영 고객 이미지 E2E 전까지 ship 완료는 유지하지 않는다.
+- commit `15ec5d0e`, CI `29848488923`, deploy `29849273792` SUCCESS. 운영 고객 이미지 업로드 200,
+  서명 HTTPS GET 200·`image/png`·원본 SHA-256 일치, 목록 반영, 삭제 200, 같은 URL 404를 관찰했다.
+- 운영 Chrome `/videos` 재검증에서 operator-only cron 호출 403을 추가 발견해 역할 조건부 SWR로 교정했다.
+  commit `176b3bd5`, CI `29850049736`, deploy `29850058481` SUCCESS. 재배포 후 `/api/images`와
+  `/api/youtube/status`는 200, cron/clipping/ElevenLabs 요청과 전체 4xx/5xx는 0건이다. `/images`의 서명 이미지는
+  browser `complete=true`, natural size 1x1로 렌더됐다.
+- 최종 회귀: full 95 files/820 PASS·9 DB-env skip, TypeScript PASS, production build 162 pages PASS.
+  QA 이미지 삭제 후 URL 404, 단기 토큰 revoke 후 같은 토큰 401, 원문 파일 삭제까지 관찰했다.
+- SNS-018은 운영 관찰 종료. 전체 ship은 X/TikTok credential, Facebook 앱 상태, Instagram OTP,
+  YouTube 실계정 업로드와 동일 provider 2계정 전환 등 외부 provider E2E 때문에 in-progress를 유지한다.
 
 ## 2026-07-19 GA4 first-hit hotfix build reopen
 - 운영 격리 브라우저에서 신규 동의 직후 `/login` page_view 적재를 관찰했지만, 동의가 저장된 재방문 reload에서는

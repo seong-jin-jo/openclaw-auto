@@ -3,7 +3,7 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-21 KST · SNS-017 TikTok 비동기 발행 운영 배포·인프라 검증 완료
+**최종 갱신:** 2026-07-21 KST · SNS-018 고객 이미지/영상 권한 운영 E2E 종료
 
 ---
 
@@ -2156,19 +2156,25 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
   별도 결정 필요(§판단 필요, getChannelCred식 암호화 저장 마이그레이션 규모) ⑤`/api/images/upload`가
   flat 디렉토리에 쓰는 기존 결함(GET과 물리적으로 안 맞음)은 이번 스코프 밖으로 남김.
 
-## 2026-07-21 SNS-018 최신 핸드오프 — primary=openclaw-auto:0.0
+## 2026-07-21 SNS-018 최종 핸드오프 — primary=openclaw-auto:0.0
 
 - **사용자 최신 지시:** 승인 질문 없이 고객용 기능을 개발·QA·배포해 실제 작동시키기.
-- **완료된 로컬 변경:** 고객 `/videos`에서 tenant-safe YouTube status/images는 허용하고 전역
+- **구현:** 고객 `/videos`에서 tenant-safe YouTube status/images는 허용하고 전역
   clipping/ElevenLabs 시크릿 UI·요청은 숨김. 이미지 업로드·목록·삭제를 tenant context로 격리하고
   별도 HMAC 이미지 배달 경로를 추가. Instagram multipart에 bearer와 401 재로그인 이벤트를 연결.
 - **QA 보완:** 독립 QA가 찾은 30일 초과 예약 만료를 발행 직전 서명 검증·동일 tenant 재발급으로 해소했고,
   삭제 뒤 캐시 잔존을 막기 위해 배달 응답은 no-store로 고정. 잘못된 URL 인코딩도 404 처리.
-- **검증:** focused 111 PASS, full 94 files/819 PASS·9 DB-env skip, TypeScript clean, Webpack production build
-  162 pages PASS, diff check PASS. 수정 후 독립 Sonnet 보안 리뷰 blocker/high 0.
-- **미완료:** 현재 변경은 아직 커밋·푸시·운영 배포 전이다. 배포 후 임시 고객 토큰으로 `/videos` 403 소거,
-  실제 이미지 upload→signed GET→gallery render→delete→동일 URL 404를 직접 관찰해야 한다.
+- **커밋/CI/배포:** `15ec5d0e` / CI `29848488923` / deploy `29849273792` SUCCESS. 최초 운영 Chrome에서
+  Sidebar가 고객에게 operator-only cron-status를 호출하는 추가 403을 발견했고, 역할 조건부 fetch/render와
+  계약 테스트로 교정했다. 후속 `176b3bd5` / CI `29850049736` / deploy `29850058481` SUCCESS.
+- **최종 검증:** full 95 files/820 PASS·9 DB-env skip, TypeScript clean, Webpack production build 162 pages PASS.
+  고객 PNG upload 200→signed GET 200/image/png/SHA 일치→list 반영→delete 200→같은 URL 404를 관찰했다.
+  운영 Chrome `/videos`는 images/youtube 200, cron/clipping/ElevenLabs 요청 0, 전체 4xx/5xx 0이다.
+  `/images`에서 signed image complete=true/natural 1x1과 화면 카드 렌더를 직접 확인했다.
+- **보안 정리:** QA 이미지는 삭제 후 URL 404, 단기 tenant token은 revoke 후 동일 `/api/me` 401을 확인했다.
+  브라우저 storage 및 로컬/marketing-vm 원문 임시 파일을 제거했다.
 - **외부 미해결:** X/TikTok 자격증명, Facebook 앱 활성, Instagram OTP 제한, YouTube 실계정 동의·업로드,
   Bluesky 실 app-password 연결은 코드가 아니라 외부 계정/콘솔 의존이며 실제 왕복은 미검증.
-- **다음 액션:** 관련 파일만 커밋→origin/main push→`deploy-marketing.yml` service
-  `openclaw-dashboard-osmu` 실행→운영 브라우저 E2E→QA 임시 토큰 revoke+401 확인.
+- **다음 액션:** Instagram·Threads의 이미 검증된 계정으로 마케팅을 시작한다. 병렬 외부 회수는 X/TikTok 앱
+  credential·심사, Meta 앱 live/role, Instagram OTP cooldown, YouTube 실계정 동의·업로드다. R2 원격 백업은
+  현재 영속 volume을 대체하는 출시 blocker가 아니라 후속 재해복구 항목으로 관리한다.

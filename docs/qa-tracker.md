@@ -567,7 +567,7 @@ env-file 누락과 수동 컨테이너 이름 충돌은 workflow 계약 테스�
 **운영 E2E 판정:** 앱·DB·인증 경계의 운영 반영은 관찰됨. TikTok provider credential과 앱 심사가 없어 실 OAuth와
 SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open 상태를 유지한다.
 
-### 2026-07-21 SNS-018 고객 영상 403·테넌트 이미지 build/QA
+### 2026-07-21 SNS-018 고객 영상 403·테넌트 이미지 운영 종료
 
 - **재현:** 운영 고객 토큰 `/videos`에서 `/api/youtube/status`, `/api/images`, 전역
   `/api/clipping-config`, `/api/elevenlabs-config`가 403이었다. 이미지 업로드·삭제는 전역 flat 경로였고
@@ -579,8 +579,20 @@ SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open �
 - **QA 발견·해소:** 30일 토큰을 큐에 영속하면 장기 예약이 깨지는 문제를 발행 직전 HMAC 재검증·동일 테넌트
   재서명으로 보완했다. Instagram 업로드 401은 원시 오류 대신 공통 `auth:required` 재로그인 흐름으로 전환했다.
   이미지 삭제 후 캐시 잔존을 막기 위해 배달 응답은 `private, no-store`다.
-- **검증:** focused 7 files/111 PASS, 전체 94 files/819 PASS·9 DB-env skip, `tsc --noEmit` PASS,
-  Webpack production build 162 pages PASS, `git diff --check` PASS. 독립 Sonnet 보안 리뷰 blocker/high 0.
-- **미검증:** 운영 고객 브라우저의 실제 PNG 업로드→서명 URL GET→갤러리 렌더→삭제 404와 `/videos` 네트워크
-  403 소거는 배포 후 직접 관찰 전까지 미검증이다. 실제 Instagram/Threads 이미지 발행은 기존 SNS-014/010
-  운영 증거가 있으나 이번 신규 업로드 URL로 새 게시물을 만들지는 않았다.
+- **자동 검증:** 최초 focused 7 files/111 PASS, 전체 94 files/819 PASS·9 DB-env skip. 운영 Chrome 후속 결함
+  수정 뒤 전체 95 files/820 PASS·9 DB-env skip, `tsc --noEmit` PASS, Webpack production build 162 pages PASS,
+  `git diff --check` PASS. 독립 Sonnet 보안 리뷰 blocker/high 0.
+- **배포:** image 보안 commit `15ec5d0e`, CI `29848488923`, deploy `29849273792` SUCCESS. Chrome에서 발견한
+  고객의 operator-only `/api/cron-status` 403은 `Sidebar` 역할 조건부 fetch/render와 계약 테스트로 교정했다.
+  후속 commit `176b3bd5`, CI `29850049736`, deploy `29850058481` 모두 SUCCESS.
+- **운영 API E2E(관찰됨):** 고객 토큰으로 실제 PNG 업로드 200, absolute HTTPS signed URL 반환, 인증 없는
+  signed GET 200 + `image/png` + 업로드 원본과 SHA-256 일치, 고객 목록 1건 반영, 삭제 200, 삭제 뒤 같은 URL
+  404와 목록 0건을 확인했다.
+- **운영 Chrome E2E(관찰됨):** `/videos`에서 `/api/images`·`/api/youtube/status` 200, cron-status·clipping-config·
+  elevenlabs-config 요청 0건, 전체 4xx/5xx 0건. `/images`에서 signed image가 `complete=true`, naturalWidth/Height
+  1x1로 렌더되고 화면 카드에도 표시됐다.
+- **보안 종료:** 브라우저 QA 이미지를 삭제해 URL 404를 재확인했다. 단기 tenant token을 revoke한 뒤 같은
+  `/api/me` 요청이 401임을 확인했고 브라우저 storage 및 로컬/marketing-vm 원문 임시 파일을 제거했다.
+- **잔여 미검증:** 이번 신규 이미지 URL로 Instagram/Threads 새 공개 게시물을 추가 생성하지는 않았다.
+  기존 실제 Instagram Reel·Threads 게시 증거와 별개다. R2 원격 백업은 미설정이지만 현재 Docker 영속 volume의
+  업로드·배달은 운영 관찰됐으며, R2는 재해복구 강화를 위한 별도 인프라 항목이다.
