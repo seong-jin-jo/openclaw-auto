@@ -126,6 +126,10 @@ override_expires: ""
   없이 고정 이름을 점유해 교체 충돌. workflow에 앱 컨테이너 rollback rename/stop 및 기동 실패 자동 원복을 추가한다.
 - 4차 run `29819971912`: 새 컨테이너 기동·healthy 및 public health 200/db up 관찰. 후속 `compose ps`의 env-file 누락으로
   workflow만 FAIL해 status 호출도 `.env.osmu`로 통일 후 재실행한다.
+- 최종 commit `ca4596ab`: CI `29820483251` SUCCESS, deploy `29820488738` SUCCESS. 운영 container healthy,
+  PostgreSQL 신규 컬럼 2개 실조회, public health/login/Google preflight와 auth 401 경계를 직접 관찰했다.
+- ship은 `in-progress`, `artifacts_ok:false` 유지한다. TikTok credential·앱 심사 부재로 실제 OAuth→SELF_ONLY/public
+  Direct Post provider E2E가 미검증이기 때문이다. credential 회수 즉시 두 공개범위 실게시를 종료 증거로 수집한다.
 
 > 2026-06-30 `init --adopt`. 이 레포는 이미 라이브 배포된 멀티테넌트 마케팅 SaaS라 plan~build는
 > ADOPT(기존 인정). **현재 ship(in-progress).** 신규 기능(OAuth 연결, GA4, 가이드 등)은 build→qa→ship 게이트를

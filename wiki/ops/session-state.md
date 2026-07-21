@@ -3,7 +3,7 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-21 KST · SNS-017 TikTok 비동기 발행 독립 QA PASS, 커밋·배포 직전
+**최종 갱신:** 2026-07-21 KST · SNS-017 TikTok 비동기 발행 운영 배포·인프라 검증 완료
 
 ---
 
@@ -35,10 +35,9 @@ OAuth callback→SELF_ONLY Direct Post→provider status/permalink은 미검증�
 승격하지 않는다. 실제 PostgreSQL schema/seed 검증은 로컬 `DATABASE_URL` 부재로 skip됐으며 운영 배포에서 멱등 schema 적용과
 컬럼 존재를 확인해야 한다. Playwright 구성과 mobile 대상/Maestro flow는 이 dashboard에 없어 해당 경로는 미검증이다.
 
-**정확한 다음 액션:** 명시 파일만 커밋·push하고 `openclaw-dashboard-osmu`를 배포한다. workflow의 schema step과 health/login/
-operator smoke를 확인하고 운영 DB의 `provider_post_id`·`provider_meta` 컬럼 존재를 관찰한다. credential 회수 후 격리 TikTok
-계정으로 `/videos`에서 SELF_ONLY 발행→새로고침→poll complete를 직접 관찰한다. 공개 발행은 TikTok 심사 허용 후 post ID와
-permalink까지 별도 관찰한다.
+**정확한 다음 액션:** TikTok credential과 Content Posting API 심사 권한을 회수한 즉시 격리 TikTok 계정으로 `/videos`에서
+OAuth→SELF_ONLY 발행→새로고침→poll complete를 직접 관찰한다. 공개 발행은 별도 테스트로 final post ID와 permalink까지
+회수한다. 실행 후 테스트 계정 연결과 브라우저 인증 상태를 정리한다.
 
 **배포 1차 실패와 교정:** commit `57e9537e` 배포 run `29819032770`은 schema 적용과 이미지 빌드는 통과했지만 `기동`에서
 compose required `NEXT_PUBLIC_SUPABASE_URL` interpolation 오류로 실패했다. workflow가 build에는 `--env-file .env.osmu`를
@@ -53,6 +52,16 @@ compose required `NEXT_PUBLIC_SUPABASE_URL` interpolation 오류로 실패했다
 **배포 4차 부분 성공과 교정:** run `29819971912`에서 새 컨테이너는 기동되어 healthy이고 공개 `/api/health`가 HTTP 200,
 `db:up`을 반환했다. 다만 후속 `compose ps`도 required env interpolation을 수행하면서 `.env.osmu`가 없어 workflow만 FAIL했다.
 status 호출에도 동일 env file을 적용해 workflow의 최종 smoke까지 진행시킨다.
+
+**최종 운영 배포(관찰됨):** workflow/compose 교정 commit `ca4596ab`, CI run `29820483251` SUCCESS, deploy run
+`29820488738` SUCCESS. 운영 `openclaw-dashboard-osmu`는 healthy다. 실제 운영 PostgreSQL에서 `provider_post_id:text`,
+`provider_meta:jsonb` 컬럼을 조회했다. 공개 `/api/health` 200 + `db:up`, `/login` 200 + `Google로 계속`, `/api/me` 401,
+`/api/auth/google` 200 + Supabase authorize URL, 신규 `/api/tiktok/publish-status?publish_id=qa-unknown` 무인증 401을 관찰했다.
+
+**남은 미검증:** 운영에 `TIKTOK_CLIENT_KEY`·`TIKTOK_CLIENT_SECRET`과 Content Posting API 승인 계정이 없어 실제 OAuth,
+creator-info, SELF_ONLY Direct Post→새로고침 polling 완료, 공개 발행 post ID/permalink는 실행할 수 없다. 따라서 코드·DB·배포는
+검증됐지만 TikTok provider 실발행 완료로 승격하지 않는다. 다음 액션은 credential/심사 회수 즉시 격리 계정으로 두 공개범위
+E2E를 수행하는 것이다.
 
 ---
 

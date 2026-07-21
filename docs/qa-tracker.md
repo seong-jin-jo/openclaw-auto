@@ -558,3 +558,11 @@ TikTok accounts 200, readiness 200 두 번을 관찰했고 해당 navigation의 
 - 미검증: 로컬 `DATABASE_URL` 부재로 PostgreSQL 연동형 9건과 schema seed는 skip됐다. Playwright 구성, mobile project,
   Maestro flow는 없다. 운영 TikTok credential·Content Posting API 심사·실계정이 없어 OAuth → SELF_ONLY Direct Post →
   status 완료 및 공개 게시 post ID/permalink의 실제 provider 왕복은 미검증이다.
+
+**운영 배포 증거:** commit `ca4596ab`, CI run `29820483251` SUCCESS, deploy run `29820488738` SUCCESS. 운영 컨테이너
+healthy, PostgreSQL `provider_post_id:text`·`provider_meta:jsonb` 실조회, public health 200/db up, login 200,
+Google preflight 200, `/api/me` 401, 신규 TikTok status route 무인증 401을 관찰했다. deploy 과정에서 발견한 compose
+env-file 누락과 수동 컨테이너 이름 충돌은 workflow 계약 테스트 및 rollback 가능한 교체 절차로 교정했다.
+
+**운영 E2E 판정:** 앱·DB·인증 경계의 운영 반영은 관찰됨. TikTok provider credential과 앱 심사가 없어 실 OAuth와
+SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open 상태를 유지한다.
