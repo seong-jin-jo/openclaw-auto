@@ -7,8 +7,8 @@ export function useOverview() {
   return useSWR("/api/overview", fetcher);
 }
 
-export function useCronStatus() {
-  return useSWR("/api/cron-status", fetcher);
+export function useCronStatus(enabled = true) {
+  return useSWR(enabled ? "/api/cron-status" : null, fetcher);
 }
 
 export function useActivity() {

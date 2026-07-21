@@ -210,8 +210,10 @@ function WorkspaceSwitcher() {
 /* ── Main Sidebar ── */
 export function Sidebar() {
   const pathname = usePathname();
+  const { data: me } = useSWR<{ isOperator?: boolean }>("/api/me", fetcher);
+  const isOperator = me?.isOperator === true;
   const { data: channelConfig } = useChannelConfig();
-  const { data: cronData } = useCronStatus();
+  const { data: cronData } = useCronStatus(isOperator);
   const { data: images } = useSWR<unknown[]>("/api/images", fetcher);
 
   const cfg = (channelConfig || {}) as unknown as Record<string, Record<string, unknown>>;
@@ -469,12 +471,14 @@ export function Sidebar() {
         >
           <span>⎋</span> 로그아웃
         </button>
-        <div className="flex items-center gap-2">
-          <div className={`pulse-dot ${cronOk === cronTotal ? "bg-green-500" : "bg-yellow-500"}`} />
-          <span className="text-xs text-subtle">
-            {cronOk}/{cronTotal} crons ok
-          </span>
-        </div>
+        {isOperator && (
+          <div className="flex items-center gap-2">
+            <div className={`pulse-dot ${cronOk === cronTotal ? "bg-green-500" : "bg-yellow-500"}`} />
+            <span className="text-xs text-subtle">
+              {cronOk}/{cronTotal} crons ok
+            </span>
+          </div>
+        )}
       </div>
     </aside>
   );
