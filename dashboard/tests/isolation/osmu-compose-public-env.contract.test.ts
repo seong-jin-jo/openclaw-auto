@@ -12,8 +12,9 @@ describe("OSMU dashboard public build environment", () => {
     expect(compose).toContain("NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:?");
   });
 
-  it("uses the rendered OSMU env file for production image builds", () => {
+  it("uses the rendered OSMU env file for production image builds and startup", () => {
     expect(workflow).toContain("docker compose --env-file .env.osmu -f docker-compose.postagi-4tenants.yml build");
+    expect(workflow).toContain("docker compose --env-file .env.osmu -f docker-compose.postagi-4tenants.yml up -d");
     expect(workflow).not.toContain("--build-arg NEXT_PUBLIC_SUPABASE_URL");
     expect(workflow).not.toContain("--build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY");
   });

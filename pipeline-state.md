@@ -120,6 +120,8 @@ override_expires: ""
   Posting API 심사·실계정이 없어 실제 OAuth/Direct Post provider 왕복은 미검증이다.
 - 다음 실행: 명시 파일 commit/push → OSMU 단독 deploy workflow → schema 컬럼, health/login/operator smoke와 live route
   반영 관찰. credential 회수 시 SELF_ONLY와 공개 게시를 각각 실제 계정으로 E2E한다.
+- 1차 deploy run `29819032770`: DB schema와 image build PASS, compose `up` FAIL. build에서 사용한 `.env.osmu`를 up에서
+  누락해 required public Supabase env interpolation이 실패했다. workflow up 명령과 계약 테스트를 교정해 재배포한다.
 
 > 2026-06-30 `init --adopt`. 이 레포는 이미 라이브 배포된 멀티테넌트 마케팅 SaaS라 plan~build는
 > ADOPT(기존 인정). **현재 ship(in-progress).** 신규 기능(OAuth 연결, GA4, 가이드 등)은 build→qa→ship 게이트를

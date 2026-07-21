@@ -40,6 +40,11 @@ operator smoke를 확인하고 운영 DB의 `provider_post_id`·`provider_meta` 
 계정으로 `/videos`에서 SELF_ONLY 발행→새로고침→poll complete를 직접 관찰한다. 공개 발행은 TikTok 심사 허용 후 post ID와
 permalink까지 별도 관찰한다.
 
+**배포 1차 실패와 교정:** commit `57e9537e` 배포 run `29819032770`은 schema 적용과 이미지 빌드는 통과했지만 `기동`에서
+compose required `NEXT_PUBLIC_SUPABASE_URL` interpolation 오류로 실패했다. workflow가 build에는 `--env-file .env.osmu`를
+사용하면서 up에는 누락한 것이 원인이다. up에도 동일 env file을 적용하고 계약 테스트를 추가한 뒤 재배포한다. 기존 운영
+컨테이너는 교체 전 실패해 계속 이전 버전으로 동작한다.
+
 ---
 
 ### SNS-017 TikTok Direct Post 핸드오프 (2026-07-21 04:20 KST)

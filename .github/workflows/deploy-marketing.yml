@@ -89,7 +89,8 @@ jobs:
         run: |
           docker compose --env-file .env.osmu -f docker-compose.postagi-4tenants.yml build
       - name: 기동
-        run: docker compose -f docker-compose.postagi-4tenants.yml up -d ${{ github.event.inputs.services }}
+        # required NEXT_PUBLIC_* interpolation은 build와 up 모두에서 실행된다.
+        run: docker compose --env-file .env.osmu -f docker-compose.postagi-4tenants.yml up -d ${{ github.event.inputs.services }}
       - name: 상태
         run: docker compose -f docker-compose.postagi-4tenants.yml ps
       - name: OSMU 스모크 게이트 (로그인 흐름 자동검증 — 깨지면 배포 FAIL)
