@@ -46,8 +46,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
   }
 
   // state는 서명만으로 끝내지 않고 이 브라우저에만 httpOnly 쿠키로도 묶는다. callback은 이 쿠키와
-  // 정확히 일치하는 state를 한 번만 소비한다. 따라서 유효한 state URL이 유출돼도 다른 브라우저가
-  // 같은 provider callback을 재생해 피해자 tenant에 계정을 연결할 수 없다.
+  // 정확히 일치하는 state만 수락하고 응답에서 쿠키를 만료한다. 따라서 유효한 state URL이 유출돼도
+  // 다른 브라우저가 같은 provider callback을 재생해 피해자 tenant에 계정을 연결할 수 없다.
   const state = await signState(tenantId, provider);
   const authUrl = buildAuthUrl(cfg, origin, provider, state, extraParams);
   if (!authUrl) return Response.json({ error: `${cfg.appIdEnv} 미설정 — 플랫폼 OAuth 앱 자격증명 필요` }, { status: 500 });

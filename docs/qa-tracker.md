@@ -5,8 +5,8 @@
 ## 2026-07-22 셀프서비스 tenant·OAuth 격리 build 재검
 
 **수정:** OAuth auth-url의 서명 state를 callback 경로 전용 HttpOnly 쿠키에도 저장하고 callback에서
-대조한 뒤 즉시 만료시킨다. 기존 HMAC·provider·10분 만료 검증에 브라우저 요청 바인딩을 더해 같은 provider
-state 재생을 차단했다.
+대조한 뒤 즉시 만료시킨다. 기존 HMAC·provider·10분 만료 검증에 브라우저 요청 바인딩을 더해 다른 브라우저의
+state 재생을 차단했다. 동시 callback을 원자적으로 1회 소비하는 서버 nonce 저장소는 별도 스키마 결정이 필요해 현재 범위에는 포함하지 않았다.
 
 **신규 통합 계약:** `tests/isolation/self-service-tenant.db.test.ts`가 실제 PostgreSQL(RLS 적용)에서
 새 사용자 A/B provisioning, account/default 전환, integration mirror, queue/schedule/published_posts와

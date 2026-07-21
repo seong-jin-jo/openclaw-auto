@@ -45,8 +45,8 @@ function resultHtml(title: string, sub: string, opts: { provider: string; ok: bo
       setTimeout(function(){ window.close(); }, 1200);
     </script></div></body></html>`;
   const headers = new Headers({ "Content-Type": "text/html; charset=utf-8" });
-  // state는 callback을 한 번 통과하면 성공/실패와 무관하게 폐기한다. 실패 응답에서 남겨두면
-  // 네트워크 재시도·URL 유출로 같은 state를 반복 사용할 여지가 생긴다.
+  // state는 callback 응답에서 성공/실패와 무관하게 폐기한다. 실패 응답에서 남겨두면 정상적인
+  // 브라우저 재시도·URL 유출로 같은 state를 반복 사용할 여지가 생긴다.
   const isSecure = opts.origin.startsWith("https://");
   headers.append("Set-Cookie", [
     `oauth_state_${opts.provider}=`,
@@ -94,7 +94,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
   if (!stateCheck.valid) return fail(stateCheck.reason || "state 검증 실패");
   // HMAC state만 검증하면 유효기간 안의 URL을 다른 브라우저에서 재생할 수 있다. auth-url을
   // 호출한 인증 브라우저에만 심은 httpOnly state 쿠키를 대조해 OAuth callback을 원 요청에 묶고,
-  // resultHtml이 Max-Age=0으로 즉시 폐기해 같은 provider의 재생도 차단한다.
+  // resultHtml이 Max-Age=0으로 정상적인 순차 재생을 줄인다. 서버 저장 nonce가 없으므로 동시 요청
+  // 경쟁까지 원자적으로 1회 소비해야 한다면 별도 state 저장소/스키마가 필요하다.
   if (readCookie(request, `oauth_state_${provider}`) !== rawState) {
     return fail("연결 요청이 현재 브라우저와 일치하지 않거나 이미 처리되었습니다. 대시보드에서 다시 연결하세요.");
   }
