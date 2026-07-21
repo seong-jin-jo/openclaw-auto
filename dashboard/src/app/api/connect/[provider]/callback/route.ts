@@ -45,17 +45,28 @@ function resultHtml(title: string, sub: string, opts: { provider: string; ok: bo
       setTimeout(function(){ window.close(); }, 1200);
     </script></div></body></html>`;
   const headers = new Headers({ "Content-Type": "text/html; charset=utf-8" });
-  // state는 callback 응답에서 성공/실패와 무관하게 폐기한다. 실패 응답에서 남겨두면 정상적인
-  // 브라우저 재시도·URL 유출로 같은 state를 반복 사용할 여지가 생긴다.
+  // provider는 URL path param이므로, 지원 목록에 있는 값일 때만 cookie name/path에 사용한다.
+  // 그렇지 않으면 CRLF 등을 넣은 provider가 Set-Cookie 헤더를 깨거나 주입하는 경로가 될 수 있다.
+  const cfg = getProvider(opts.provider);
+  if (!cfg) return new Response(html, { headers });
+
+  // state와 PKCE verifier는 callback 응답에서 성공/실패와 무관하게 함께 폐기한다. 실패 응답에서
+  // 남겨두면 정상적인 브라우저 재시도·URL 유출로 같은 OAuth 시도를 반복할 여지가 생긴다.
   const isSecure = opts.origin.startsWith("https://");
-  headers.append("Set-Cookie", [
-    `oauth_state_${opts.provider}=`,
-    "HttpOnly",
-    "SameSite=Lax",
-    "Max-Age=0",
-    `Path=/api/connect/${opts.provider}/callback`,
-    ...(isSecure ? ["Secure"] : []),
-  ].join("; "));
+  const expiredCookies = [
+    `oauth_state_${opts.provider}`,
+    ...(cfg.pkce ? [`pkce_${opts.provider}`] : []),
+  ];
+  for (const cookieName of expiredCookies) {
+    headers.append("Set-Cookie", [
+      `${cookieName}=`,
+      "HttpOnly",
+      "SameSite=Lax",
+      "Max-Age=0",
+      `Path=/api/connect/${opts.provider}/callback`,
+      ...(isSecure ? ["Secure"] : []),
+    ].join("; "));
+  }
   return new Response(html, { headers });
 }
 

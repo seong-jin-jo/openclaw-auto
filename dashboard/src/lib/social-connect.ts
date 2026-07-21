@@ -323,7 +323,9 @@ export function getProvider(name: string): ProviderConfig | null {
     // FACEBOOK는 별도 흐름이나 auth-url 구성은 동일 필드만 필요 — shim.
     return { ...FACEBOOK, tokenUrl: "", longTokenUrl: "", longGrant: "" } as ProviderConfig;
   }
-  return PROVIDERS[name] || null;
+  // URL path param은 신뢰할 수 없다. 일반 객체의 `PROVIDERS[name]` 조회는 `toString` 같은
+  // Object.prototype 속성도 반환하므로, 지원 provider key 자체만 명시적으로 허용한다.
+  return Object.hasOwn(PROVIDERS, name) ? PROVIDERS[name] : null;
 }
 
 export function redirectUri(origin: string, provider: string): string {

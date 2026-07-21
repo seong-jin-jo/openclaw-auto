@@ -64,6 +64,21 @@ function callbackRequest(provider: string, state: string, code: string, extraCoo
   );
 }
 
+function expectExpiredCallbackCookies(response: Response, provider: "x" | "tiktok") {
+  const cookies = response.headers.getSetCookie();
+  const expectedNames = [`oauth_state_${provider}`, `pkce_${provider}`];
+  expect(cookies).toHaveLength(2);
+  for (const name of expectedNames) {
+    const cookie = cookies.find((value) => value.startsWith(`${name}=`));
+    expect(cookie).toBeDefined();
+    expect(cookie).toContain("HttpOnly");
+    expect(cookie).toContain("SameSite=Lax");
+    expect(cookie).toContain("Max-Age=0");
+    expect(cookie).toContain(`Path=/api/connect/${provider}/callback`);
+    expect(cookie).toContain("Secure");
+  }
+}
+
 beforeEach(() => {
   vi.resetModules();
   H.tenantId = "tenant-1";
@@ -131,6 +146,12 @@ describe("GET /api/connect/instagram — OAuth 동의 URL", () => {
   it("지원하지 않는 provider → 400", async () => {
     const { GET } = await import("@/app/api/connect/[provider]/route");
     const res = await GET(new Request("https://app.example/api/connect/myspace?tenant_id=tenant-1"), params("myspace"));
+    expect(res.status).toBe(400);
+  });
+
+  it("Object.prototype 이름도 지원하지 않는 provider로 거부한다", async () => {
+    const { GET } = await import("@/app/api/connect/[provider]/route");
+    const res = await GET(new Request("https://app.example/api/connect/toString?tenant_id=tenant-1"), params("toString"));
     expect(res.status).toBe(400);
   });
 
@@ -352,15 +373,17 @@ describe("GET /api/connect/x — PKCE", () => {
     delete process.env.X_CLIENT_SECRET;
   });
 
-  it("응답 Set-Cookie 헤더에 pkce_x 쿠키 포함(httpOnly)", async () => {
+  it("PKCE verifier와 state 쿠키를 별도 Set-Cookie 헤더로 발급한다", async () => {
     process.env.X_CLIENT_ID = "x-client-123";
     process.env.X_CLIENT_SECRET = "x-secret";
     const { GET } = await import("@/app/api/connect/[provider]/route");
     const res = await GET(new Request("https://app.example/api/connect/x?tenant_id=tenant-1"), params("x"));
-    const cookie = res.headers.get("set-cookie") || "";
-    expect(cookie).toMatch(/pkce_x=/);
-    expect(cookie).toContain("HttpOnly");
-    expect(cookie).toContain("Max-Age=600");
+    const cookies = res.headers.getSetCookie();
+    expect(cookies).toHaveLength(2);
+    expect(cookies.find((cookie) => cookie.startsWith("pkce_x="))).toContain("HttpOnly");
+    expect(cookies.find((cookie) => cookie.startsWith("pkce_x="))).toContain("Max-Age=600");
+    expect(cookies.find((cookie) => cookie.startsWith("oauth_state_x="))).toContain("HttpOnly");
+    expect(cookies.find((cookie) => cookie.startsWith("oauth_state_x="))).toContain("Max-Age=600");
     delete process.env.X_CLIENT_ID;
     delete process.env.X_CLIENT_SECRET;
   });
@@ -569,6 +592,45 @@ describe("GET /api/connect/x/callback — PKCE code_verifier 쿠키 처리", () 
     expect(await res.text()).toMatch(/연결 완료/);
     expect(capturedBody).toContain("code_verifier=MY_VERIFIER_VALUE");
     expect(JSON.stringify(H.inserts[0])).toContain("X_ACCESS_TOKEN");
+    expectExpiredCallbackCookies(res, "x");
+    delete process.env.X_CLIENT_ID;
+    delete process.env.X_CLIENT_SECRET;
+  });
+
+  it("provider error 결과에서도 state와 PKCE verifier를 함께 만료한다", async () => {
+    const { GET } = await import("@/app/api/connect/[provider]/callback/route");
+    const res = await GET(
+      new Request("https://app.example/api/connect/x/callback?error=access_denied"),
+      params("x"),
+    );
+    expect(await res.text()).toMatch(/연결 실패/);
+    expectExpiredCallbackCookies(res, "x");
+  });
+
+  it("state가 현재 브라우저와 불일치해도 state와 PKCE verifier를 함께 만료한다", async () => {
+    const state = await signedState("tenant-1", "x");
+    const { GET } = await import("@/app/api/connect/[provider]/callback/route");
+    const res = await GET(
+      new Request(`https://app.example/api/connect/x/callback?code=XCODE&state=${encodeURIComponent(state)}`),
+      params("x"),
+    );
+    expect(await res.text()).toMatch(/현재 브라우저와 일치하지|이미 처리/);
+    expectExpiredCallbackCookies(res, "x");
+  });
+
+  it("토큰 교환 실패 결과에서도 state와 PKCE verifier를 함께 만료한다", async () => {
+    process.env.X_CLIENT_ID = "x-client-id";
+    process.env.X_CLIENT_SECRET = "x-secret";
+    H.fetchSeq = [{ status: 400, body: { error: "invalid_grant" } }];
+    const state = await signedState("tenant-1", "x");
+    const { GET } = await import("@/app/api/connect/[provider]/callback/route");
+    const res = await GET(
+      callbackRequest("x", state, "XCODE", ["pkce_x=MY_VERIFIER_VALUE"]),
+      params("x"),
+    );
+    expect(await res.text()).toMatch(/연결 실패/);
+    expect(H.inserts).toHaveLength(0);
+    expectExpiredCallbackCookies(res, "x");
     delete process.env.X_CLIENT_ID;
     delete process.env.X_CLIENT_SECRET;
   });
@@ -832,5 +894,15 @@ describe("callback resultHtml — XSS 이스케이프 (finding 1)", () => {
     //    페이로드가 태그를 조기종료해 두 번째 <script>가 생겼다면 이 카운트가 깨진다.
     const scriptOpenTags = (html.match(/<script>/g) || []).length;
     expect(scriptOpenTags).toBe(1);
+
+    // 지원하지 않는 provider 문자열은 Set-Cookie의 name/path에 넣지 않는다. 그렇지 않으면
+    // URL path param의 CRLF/구분자가 HTTP response splitting 또는 invalid cookie가 될 수 있다.
+    expect(res.headers.getSetCookie()).toEqual([]);
+
+    const prototypeNameRes = await GET(
+      new Request("https://app.example/api/connect/toString/callback?code=x&state=y"),
+      params("toString"),
+    );
+    expect(prototypeNameRes.headers.getSetCookie()).toEqual([]);
   });
 });
