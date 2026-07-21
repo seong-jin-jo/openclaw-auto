@@ -64,7 +64,7 @@ function callbackRequest(provider: string, state: string, code: string, extraCoo
   );
 }
 
-function expectExpiredCallbackCookies(response: Response, provider: "x" | "tiktok") {
+function expectOAuthCallbackCookies(response: Response, provider: "x" | "tiktok", maxAge: "0" | "600") {
   const cookies = response.headers.getSetCookie();
   const expectedNames = [`oauth_state_${provider}`, `pkce_${provider}`];
   expect(cookies).toHaveLength(2);
@@ -73,10 +73,14 @@ function expectExpiredCallbackCookies(response: Response, provider: "x" | "tikto
     expect(cookie).toBeDefined();
     expect(cookie).toContain("HttpOnly");
     expect(cookie).toContain("SameSite=Lax");
-    expect(cookie).toContain("Max-Age=0");
+    expect(cookie).toContain(`Max-Age=${maxAge}`);
     expect(cookie).toContain(`Path=/api/connect/${provider}/callback`);
     expect(cookie).toContain("Secure");
   }
+}
+
+function expectExpiredCallbackCookies(response: Response, provider: "x" | "tiktok") {
+  expectOAuthCallbackCookies(response, provider, "0");
 }
 
 beforeEach(() => {
@@ -397,7 +401,7 @@ describe("GET /api/connect/x — PKCE", () => {
 });
 
 describe("GET /api/connect/tiktok — PKCE", () => {
-  it("authUrl에 code_challenge 포함, Set-Cookie에 pkce_tiktok", async () => {
+  it("authUrl에 code_challenge 포함, PKCE/state 쿠키를 별도 보안 헤더로 발급", async () => {
     process.env.TIKTOK_CLIENT_KEY = "tt-key";
     process.env.TIKTOK_CLIENT_SECRET = "tt-secret";
     const { GET } = await import("@/app/api/connect/[provider]/route");
@@ -409,8 +413,7 @@ describe("GET /api/connect/tiktok — PKCE", () => {
     expect(authUrl.searchParams.get("client_key")).toBe("tt-key");
     expect(authUrl.searchParams.has("client_id")).toBe(false);
     expect(body.authUrl).toContain("code_challenge=");
-    const cookie = res.headers.get("set-cookie") || "";
-    expect(cookie).toMatch(/pkce_tiktok=/);
+    expectOAuthCallbackCookies(res, "tiktok", "600");
     delete process.env.TIKTOK_CLIENT_KEY;
     delete process.env.TIKTOK_CLIENT_SECRET;
   });
@@ -633,6 +636,43 @@ describe("GET /api/connect/x/callback — PKCE code_verifier 쿠키 처리", () 
     expectExpiredCallbackCookies(res, "x");
     delete process.env.X_CLIENT_ID;
     delete process.env.X_CLIENT_SECRET;
+  });
+});
+
+describe("GET /api/connect/tiktok/callback — PKCE/state 쿠키 폐기", () => {
+  it("성공 시 code_verifier로 토큰 교환하고 두 쿠키를 별도 만료한다", async () => {
+    process.env.TIKTOK_CLIENT_KEY = "tt-key";
+    process.env.TIKTOK_CLIENT_SECRET = "tt-secret";
+    H.fetchSeq = [{ status: 200, body: { access_token: "TT_ACCESS_TOKEN", open_id: "tt-user-1" } }];
+    let capturedBody = "";
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, init?: RequestInit) => {
+      capturedBody = String(init?.body || "");
+      const n = H.fetchSeq.shift() || { status: 200, body: {} };
+      return new Response(JSON.stringify(n.body), { status: n.status });
+    }));
+    const state = await signedState("tenant-1", "tiktok");
+    const { GET } = await import("@/app/api/connect/[provider]/callback/route");
+    const res = await GET(
+      callbackRequest("tiktok", state, "TTCODE", ["pkce_tiktok=MY_TIKTOK_VERIFIER"]),
+      params("tiktok"),
+    );
+    expect(res.status).toBe(200);
+    expect(await res.text()).toMatch(/연결 완료/);
+    expect(capturedBody).toContain("code_verifier=MY_TIKTOK_VERIFIER");
+    expect(JSON.stringify(H.inserts[0])).toContain("TT_ACCESS_TOKEN");
+    expectExpiredCallbackCookies(res, "tiktok");
+    delete process.env.TIKTOK_CLIENT_KEY;
+    delete process.env.TIKTOK_CLIENT_SECRET;
+  });
+
+  it("provider error 시에도 PKCE/state 쿠키를 별도 만료한다", async () => {
+    const { GET } = await import("@/app/api/connect/[provider]/callback/route");
+    const res = await GET(
+      new Request("https://app.example/api/connect/tiktok/callback?error=access_denied"),
+      params("tiktok"),
+    );
+    expect(await res.text()).toMatch(/연결 실패/);
+    expectExpiredCallbackCookies(res, "tiktok");
   });
 });
 
