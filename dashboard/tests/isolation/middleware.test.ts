@@ -329,6 +329,76 @@ describe("proxy 비디오 워크플로우 라우트 — tenant-aware(BLOCKER #2,
   );
 });
 
+describe("proxy — /videos 페이지 의존 라우트(SNS-016 403 회귀) — tenant-aware", () => {
+  // /videos 페이지에서 유효한 osmu_ 토큰/Supabase JWT를 가진 테넌트가 403을 받던 4개 라우트 중
+  // /api/youtube/status·/api/images는 실제로 테넌트 스코프(effectiveTenantId/DB 격리)라 확인 후
+  // 허용목록에 추가했다. /api/clipping-config·/api/elevenlabs-config는 테넌트 격리가 없는 전역
+  // 단일 파일이라 의도적으로 제외 상태를 유지한다(아래 별도 describe에서 403 유지를 고정).
+  it.each(["/api/youtube/status", "/api/images"])(
+    "osmu_ 토큰 + %s → tenant-aware 통과(운영자 전용 403 아님)",
+    async (path) => {
+      vi.stubEnv("NODE_ENV", "production");
+      vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
+      mockResolveTenantToken.mockResolvedValue("tenant-1");
+      const req = new NextRequest(`http://localhost${path}`, { headers: { Authorization: "Bearer osmu_xxx" } });
+      expect(isPass(await proxy(req))).toBe(true);
+    },
+  );
+
+  it.each(["/api/youtube/status", "/api/images"])(
+    "유효 Supabase JWT + %s → tenant-aware 통과(운영자 전용 403 아님)",
+    async (path) => {
+      vi.stubEnv("NODE_ENV", "production");
+      vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
+      mockVerifySupabaseJwt.mockResolvedValue({
+        status: "valid",
+        user: { id: "u1", email: "a@b.com" } as import("@supabase/supabase-js").User,
+      });
+      const fakeJwt = makeFakeJwt();
+      const req = new NextRequest(`http://localhost${path}`, { headers: { Authorization: `Bearer ${fakeJwt}` } });
+      expect(isPass(await proxy(req))).toBe(true);
+    },
+  );
+});
+
+describe("proxy — /api/clipping-config·/api/elevenlabs-config는 운영자 전용을 유지한다(전역 단일 파일, 테넌트 격리 없음)", () => {
+  it.each(["/api/clipping-config", "/api/elevenlabs-config"])(
+    "osmu_ 토큰 + %s → 403(테넌트 aware 아님, 의도적)",
+    async (path) => {
+      vi.stubEnv("NODE_ENV", "production");
+      vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
+      mockResolveTenantToken.mockResolvedValue("tenant-1");
+      const res = await proxy(new NextRequest(`http://localhost${path}`, { headers: { Authorization: "Bearer osmu_xxx" } }));
+      expect(res.status).toBe(403);
+    },
+  );
+
+  it.each(["/api/clipping-config", "/api/elevenlabs-config"])(
+    "유효 Supabase JWT + %s → 403(테넌트 aware 아님, 의도적)",
+    async (path) => {
+      vi.stubEnv("NODE_ENV", "production");
+      vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
+      mockVerifySupabaseJwt.mockResolvedValue({
+        status: "valid",
+        user: { id: "u1", email: "a@b.com" } as import("@supabase/supabase-js").User,
+      });
+      const fakeJwt = makeFakeJwt();
+      const res = await proxy(new NextRequest(`http://localhost${path}`, { headers: { Authorization: `Bearer ${fakeJwt}` } }));
+      expect(res.status).toBe(403);
+    },
+  );
+
+  it.each(["/api/clipping-config", "/api/elevenlabs-config"])(
+    "운영자 토큰 + %s → 통과(운영자는 계속 사용 가능)",
+    async (path) => {
+      vi.stubEnv("NODE_ENV", "production");
+      vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
+      const res = await proxy(new NextRequest(`http://localhost${path}`, { headers: { Authorization: "Bearer secret-abc" } }));
+      expect(isPass(res)).toBe(true);
+    },
+  );
+});
+
 describe("proxy — /api/video/generate 는 운영자 전용(SNS-015 SSRF/자원고갈 차단)", () => {
   // 이 라우트는 요청 본문의 slide.imageUrl / bgmUrl 을 서버가 그대로 fetch하고(임의 URL = SSRF)
   // 슬라이드 수만큼 동기 ffmpeg를 돌린다. 고객 토큰(osmu_/JWT)에는 절대 열지 않는다.

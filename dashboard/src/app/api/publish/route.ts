@@ -2,6 +2,7 @@ import { withTenant } from "@/lib/db";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { markQueuePublished } from "@/lib/queue-store";
 import { reportFailure, normalizePlatform, classifyPublishFailure } from "@/lib/observability";
+import { refreshImageDeliveryUrl } from "@/lib/image-token";
 import {
   getChannelCred,
   fetchInstagramPermalink,
@@ -25,6 +26,15 @@ export async function POST(request: Request) {
   const tenant_id = await effectiveTenantId(request, __b.tenant_id);
   if (!tenant_id || !platform) {
     return Response.json({ error: "tenant_id, platform required" }, { status: 400 });
+  }
+
+  let publishImageUrl: string | undefined;
+  if (image_url) {
+    const refreshed = refreshImageDeliveryUrl(tenant_id, image_url);
+    if (!refreshed) {
+      return Response.json({ ok: false, error: "이미지 URL이 만료되었거나 유효하지 않습니다. 이미지를 다시 선택해주세요." }, { status: 400 });
+    }
+    publishImageUrl = refreshed;
   }
 
   // SNS-007: account_id 지정 시 그 계정으로만 발행 — getChannelCred는 삭제/cross-tenant면 조용히
@@ -95,23 +105,23 @@ export async function POST(request: Request) {
 
   let result: PublishResult;
   if (platform === "threads") {
-    result = await publishThreads(cred, text || "", image_url);
+    result = await publishThreads(cred, text || "", publishImageUrl);
   } else if (platform === "instagram") {
-    result = await publishInstagram(cred, text || "", image_url);
+    result = await publishInstagram(cred, text || "", publishImageUrl);
   } else if (platform === "x") {
     // X API v2 + OAuth1.0a 직접발행(P5). text only, 280자 자동 절단.
     result = await publishX(cred, text || "");
   } else if (platform === "facebook") {
     // Facebook 페이지 Graph API 직접발행(P5). image_url 있으면 /photos, 없으면 /feed.
-    result = await publishFacebook(cred, text || "", image_url);
+    result = await publishFacebook(cred, text || "", publishImageUrl);
   } else if (platform === "bluesky") {
-    result = await publishBluesky(cred, text || "", image_url);
+    result = await publishBluesky(cred, text || "", publishImageUrl);
   } else if (platform === "telegram") {
-    result = await publishTelegram(cred, text || "", image_url);
+    result = await publishTelegram(cred, text || "", publishImageUrl);
   } else if (platform === "discord") {
-    result = await publishDiscord(cred, text || "", image_url);
+    result = await publishDiscord(cred, text || "", publishImageUrl);
   } else if (platform === "slack") {
-    result = await publishSlack(cred, text || "", image_url);
+    result = await publishSlack(cred, text || "", publishImageUrl);
   } else {
     result = { ok: false, error: `${platform} 미지원` };
   }

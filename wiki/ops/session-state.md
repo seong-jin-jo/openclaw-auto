@@ -2122,3 +2122,53 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
   authUrl 존재. GitHub `origin/main` push는 로컬 DNS의 `github.com` 해석 실패로 미반영이며 서비스와 분리된 blocker다.
 - compose 전체 config는 OSMU와 무관한 `.env.tenant2`가 runner 작업공간에 없어 실패했다. OSMU 단독 런타임과
   Google 복구에는 영향이 없지만 다음 전체 4-tenant workflow 전에 persist env 복원 여부를 확인해야 한다.
+
+### SNS-016 /videos 403 버그 수정 (code-builder 세션)
+
+- **primary/handoff basis:** 이 파일(session-state.md). 이번 세션은 tmux pane 지시 없이 프롬프트로
+  직접 착수했고, tmux/session-state 이중 신호가 없어 사용자에게 별도로 묻지 않았다(모호했다면 물었을 것).
+- **작업:** 유효 osmu 토큰 테넌트가 `/videos`에서 `/api/youtube/status`·`/api/clipping-config`·
+  `/api/elevenlabs-config`·`/api/images` 4개 라우트에 403을 받는 버그. 라우트별로 실제 tenant-safe 여부를
+  코드로 확인 후 처리를 갈랐다.
+- **allowlist 추가(tenant-safe 확인됨):** `/api/youtube/status`(effectiveTenantId+getChannelCred DB),
+  `/api/images`(GET을 client-trusted tenant_id에서 effectiveTenantId 인증 유도로 리팩터 — 기존 코드가
+  IDOR이었음, 고쳐서 추가).
+- **allowlist 미추가(의도적, 운영자 전용 유지):** `/api/clipping-config`·`/api/elevenlabs-config` —
+  테넌트 격리 없는 전역 단일 파일(JSON)이고 GET이 평문 apiKey를 그대로 반환한다. 여기 추가하면 임의
+  테넌트가 전체 배포 시크릿을 읽고 덮어쓸 수 있어 SNS-015 video/generate와 동일하게 제외 유지.
+  대신 `videos/page.tsx`(SWR fetch를 canGenerate 조건부 + 키 입력 폼 숨김)·`settings/page.tsx`
+  (Video/TTS 탭을 isOperator 조건부)로 tenant 세션에서 403 자체가 나지 않게 UI를 숨겼다.
+- **변경 파일:** `dashboard/src/proxy.ts`, `dashboard/src/app/api/images/route.ts`,
+  `dashboard/src/app/videos/page.tsx`, `dashboard/src/app/settings/page.tsx`,
+  `dashboard/tests/isolation/middleware.test.ts`(회귀 테스트 추가), `dashboard/tests/api/images.test.ts`(신규).
+- **검증(관찰됨):** `npx vitest run` 91 files/789 PASS·9 skip(0 fail), `npx tsc --noEmit` clean,
+  `npm run build`(production) 성공. 신규 images 라우트 테스트로 IDOR 차단(다른 테넌트 tenant_id 쿼리를
+  보내도 자기 인증 테넌트만 조회됨)을 직접 검증.
+- **미검증:** 실 브라우저로 `/videos`를 osmu 토큰 세션에서 열어 네트워크 탭 200 확인은 로컬에
+  Supabase/DB가 없어 미실행(vitest는 `proxy()` 직접호출 단위검증이지 브라우저 E2E 아님).
+- **미배포:** 이번 세션은 로컬 변경만 있고 커밋/배포/`origin/main` push는 하지 않았다(승인 대기 아님 —
+  단순히 요청 범위가 버그 수정이었고 커밋 지시는 없었음).
+- **wiki 반영:** 채널/인증/발행 스키마 변경이 아니라(라우트 allowlist·UI 조건부 렌더) 별도
+  아키텍처 wiki 페이지 갱신 대상 없음 — 이 session-state 기록이 SSOT 반영.
+- **다음 액션:** ①사용자가 커밋을 원하면 `git add` 대상 6개 파일로 커밋 ②DNS 복구 시 기존 미반영
+  `origin/main` push(SNS-015/016 이전 항목과 동일 blocker, 이번 작업과 무관) ③원하면 배포 후 실 브라우저
+  `/videos` osmu 세션 200 확인 ④`clipping-config`/`elevenlabs-config`를 테넌트별로 진짜 열지 여부는
+  별도 결정 필요(§판단 필요, getChannelCred식 암호화 저장 마이그레이션 규모) ⑤`/api/images/upload`가
+  flat 디렉토리에 쓰는 기존 결함(GET과 물리적으로 안 맞음)은 이번 스코프 밖으로 남김.
+
+## 2026-07-21 SNS-018 최신 핸드오프 — primary=openclaw-auto:0.0
+
+- **사용자 최신 지시:** 승인 질문 없이 고객용 기능을 개발·QA·배포해 실제 작동시키기.
+- **완료된 로컬 변경:** 고객 `/videos`에서 tenant-safe YouTube status/images는 허용하고 전역
+  clipping/ElevenLabs 시크릿 UI·요청은 숨김. 이미지 업로드·목록·삭제를 tenant context로 격리하고
+  별도 HMAC 이미지 배달 경로를 추가. Instagram multipart에 bearer와 401 재로그인 이벤트를 연결.
+- **QA 보완:** 독립 QA가 찾은 30일 초과 예약 만료를 발행 직전 서명 검증·동일 tenant 재발급으로 해소했고,
+  삭제 뒤 캐시 잔존을 막기 위해 배달 응답은 no-store로 고정. 잘못된 URL 인코딩도 404 처리.
+- **검증:** focused 111 PASS, full 94 files/819 PASS·9 DB-env skip, TypeScript clean, Webpack production build
+  162 pages PASS, diff check PASS. 수정 후 독립 Sonnet 보안 리뷰 blocker/high 0.
+- **미완료:** 현재 변경은 아직 커밋·푸시·운영 배포 전이다. 배포 후 임시 고객 토큰으로 `/videos` 403 소거,
+  실제 이미지 upload→signed GET→gallery render→delete→동일 URL 404를 직접 관찰해야 한다.
+- **외부 미해결:** X/TikTok 자격증명, Facebook 앱 활성, Instagram OTP 제한, YouTube 실계정 동의·업로드,
+  Bluesky 실 app-password 연결은 코드가 아니라 외부 계정/콘솔 의존이며 실제 왕복은 미검증.
+- **다음 액션:** 관련 파일만 커밋→origin/main push→`deploy-marketing.yml` service
+  `openclaw-dashboard-osmu` 실행→운영 브라우저 E2E→QA 임시 토큰 revoke+401 확인.

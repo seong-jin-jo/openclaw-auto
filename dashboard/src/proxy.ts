@@ -39,6 +39,13 @@ const TENANT_AWARE_PATHS = [
   "/api/growth",
   "/api/guide/[channel]",
   "/api/guide",
+  // /api/images: GET이 effectiveTenantId(request)로 인증에서 테넌트를 직접 유도한다(클라이언트가
+  // 보내는 tenant_id 쿼리/헤더는 신뢰하지 않음 — 그걸 신뢰하면 다른 테넌트 id를 넣어 갤러리를
+  // 열람하는 IDOR이 된다). data/clipping-config.json·elevenlabs-config.json과 달리 이 경로는
+  // 테넌트별 하위 디렉토리(data/tenants/{tenantId}/images/)로 물리 격리된다.
+  "/api/images",
+  "/api/images/upload",
+  "/api/images/[filename]",
   "/api/integrations",
   "/api/isolation-proof",
   "/api/keyword-bank/add",
@@ -84,6 +91,11 @@ const TENANT_AWARE_PATHS = [
   "/api/trend-report",
   "/api/usage/record",
   "/api/usage",
+  // "/api/clipping-config"·"/api/elevenlabs-config"는 여기 없다(의도적). 두 라우트는
+  // data/{clipping,elevenlabs}-config.json 단일 전역 파일을 GET에서 평문 apiKey까지 그대로
+  // 되돌린다 — 테넌트 구분이 전혀 없어 허용하면 임의 테넌트가 다른 테넌트(사실상 전체 배포)의
+  // 시크릿을 읽고 덮어쓸 수 있다. getChannelCred류 테넌트별 암호화 저장으로 옮기기 전까지
+  // 운영자 전용으로 유지하고, UI는 canGenerate(=isOperator)로 입력 폼을 숨긴다.
   "/api/video/delete",
   // SNS-015 보안: "/api/video/generate"는 여기 없다(의도적). 이 라우트는 요청 본문의
   // slide.imageUrl / bgmUrl 을 서버가 그대로 fetch하고(임의 URL = SSRF: OWASP SSRF Prevention
@@ -98,6 +110,9 @@ const TENANT_AWARE_PATHS = [
   "/api/voice-tone",
   "/api/weekly-report",
   "/api/weekly-summary",
+  // /api/youtube/status: effectiveTenantId(request, tenant_id)로 테넌트를 유도하고
+  // getChannelCred(tenantId, "youtube")(DB, 테넌트별 암호화 토큰)만 읽는다 — 테넌트-safe.
+  "/api/youtube/status",
 ];
 
 const TENANT_AWARE_MATCHERS = TENANT_AWARE_PATHS.map((pattern) => {
@@ -188,6 +203,11 @@ export async function proxy(request: NextRequest) {
   // 서명(verifyMediaToken)으로 테넌트·파일명·만료를 검증한다. 프록시는 경로 형태만
   // 확인하고 인증/인가 판단 자체는 핸들러에 위임(우회가 아니라 검증 지점 이동).
   if (request.nextUrl.pathname.startsWith("/api/media/")) return NextResponse.next();
+
+  // SNS-016: 서명 이미지 배달(/api/images/deliver/<token>)도 동일한 이유로 Bearer 인증을 요구하지
+  // 않는다 — Meta/Threads가 큐에 저장된 이미지 URL을 서버 대 서버로 직접 가져간다. 인가 판단은
+  // 라우트 핸들러(app/api/images/deliver/[token]/route.ts)의 verifyImageToken이 담당한다.
+  if (request.nextUrl.pathname.startsWith("/api/images/deliver/")) return NextResponse.next();
 
   // 고객 로그인 진입점. Google OAuth는 provider disabled raw JSON을 막기 위해 앱 서버에서 preflight한다.
   if (request.nextUrl.pathname === "/api/auth/google") return NextResponse.next();

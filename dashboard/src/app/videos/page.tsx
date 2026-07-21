@@ -85,8 +85,11 @@ export default function VideosPage() {
   // 확정된 버튼을 아예 그리지 않는다 — "눌러봐야 실패하는 기능"을 제안하지 않기 위함.
   const { data: me } = useSWR<{ isOperator?: boolean }>("/api/me", fetcher);
   const canGenerate = me?.isOperator === true;
-  const { data: elConfig } = useSWR<{ configured: boolean }>("/api/elevenlabs-config", fetcher);
-  const { data: clipConfig } = useSWR<{ configured: boolean; provider?: string }>("/api/clipping-config", fetcher);
+  // clipping-config/elevenlabs-config는 테넌트별 격리가 없는 전역 단일 파일(운영자 전용 —
+  // proxy.ts TENANT_AWARE_PATHS 제외 사유 참고). 고객 세션에서 fetch하면 403만 나므로
+  // 운영자로 확인된 뒤에만 조회한다(canGenerate === false면 SWR key를 null로 비활성화).
+  const { data: elConfig } = useSWR<{ configured: boolean }>(canGenerate ? "/api/elevenlabs-config" : null, fetcher);
+  const { data: clipConfig } = useSWR<{ configured: boolean; provider?: string }>(canGenerate ? "/api/clipping-config" : null, fetcher);
   const [ytAccountsTick, setYtAccountsTick] = useState(0);
   const { data: ytAccountsData, mutate: mutateYtAccounts } = useSWR<{ accounts: ChannelAccount[] }>(
     activeWorkspace ? `/api/channels/youtube/accounts?tenant_id=${activeWorkspace.id}&v=${ytAccountsTick}` : null,
@@ -626,27 +629,31 @@ export default function VideosPage() {
           <span className="text-sm font-medium">Repurpose Long Video (0차)</span>
           <span className="text-[10px] text-subtle">External (Reap/Ssemble) → OSMU refine + publish</span>
         </div>
-        <div className="mb-2 text-[10px] flex flex-wrap items-center gap-1">
-          <span>클리핑 API 키 설정 (최초 1회):</span>
-          <input value={clipProvider} onChange={(e) => setClipProvider(e.target.value)} placeholder="reap 또는 ssemble" className="bg-surface-2 p-1 w-24" />
-          <input value={clipKey} onChange={(e) => setClipKey(e.target.value)} placeholder="API 키" className="bg-surface-2 p-1 w-48" />
-          <button
-            disabled={savingKey || !clipKey.trim()}
-            onClick={async () => {
-              setSavingKey(true);
-              try {
-                await apiPost('/api/clipping-config', { provider: clipProvider.trim(), apiKey: clipKey.trim() });
-                showToast('키 저장됨. 이제 클립을 만드세요.', 'success');
-                setClipKey('');
-              } catch (e) {
-                showToast(`키 저장 실패: ${(e as Error).message}`, 'error');
-              } finally { setSavingKey(false); }
-            }}
-            className="px-2 py-0.5 text-xs bg-surface-2 rounded disabled:opacity-50"
-          >
-            {savingKey ? '저장 중…' : '키 저장'}
-          </button>
-        </div>
+        {/* 클리핑 API 키는 운영자 전용 전역 설정(/api/clipping-config — proxy.ts 제외 사유 참고).
+            고객 세션에는 입력 폼을 그리지 않는다(눌러봐야 403 나는 버튼 금지, SNS-015 전례). */}
+        {canGenerate && (
+          <div className="mb-2 text-[10px] flex flex-wrap items-center gap-1">
+            <span>클리핑 API 키 설정 (최초 1회):</span>
+            <input value={clipProvider} onChange={(e) => setClipProvider(e.target.value)} placeholder="reap 또는 ssemble" className="bg-surface-2 p-1 w-24" />
+            <input value={clipKey} onChange={(e) => setClipKey(e.target.value)} placeholder="API 키" className="bg-surface-2 p-1 w-48" />
+            <button
+              disabled={savingKey || !clipKey.trim()}
+              onClick={async () => {
+                setSavingKey(true);
+                try {
+                  await apiPost('/api/clipping-config', { provider: clipProvider.trim(), apiKey: clipKey.trim() });
+                  showToast('키 저장됨. 이제 클립을 만드세요.', 'success');
+                  setClipKey('');
+                } catch (e) {
+                  showToast(`키 저장 실패: ${(e as Error).message}`, 'error');
+                } finally { setSavingKey(false); }
+              }}
+              className="px-2 py-0.5 text-xs bg-surface-2 rounded disabled:opacity-50"
+            >
+              {savingKey ? '저장 중…' : '키 저장'}
+            </button>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2 items-center mb-3">
           <input
             value={repurposeUrl}

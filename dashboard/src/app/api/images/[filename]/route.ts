@@ -1,15 +1,44 @@
 import fs from "fs";
 import path from "path";
 import { dataPath } from "@/lib/file-io";
+import { effectiveTenantId, AuthError } from "@/lib/tenant-auth";
+import { runWithTenant } from "@/lib/tenant-context";
+import { isSafeMediaFilename } from "@/lib/image-token";
 
-export async function DELETE(_request: Request, { params }: { params: Promise<{ filename: string }> }) {
+// DELETE /api/images/[filename] — 테넌트 격리 이미지 삭제(SNS-016).
+// 테넌트는 effectiveTenantId(req)로 인증에서 직접 유도한다(클라이언트가 보내는 tenant_id를
+// 신뢰하면 다른 테넌트 파일을 삭제하는 IDOR이 된다). filename은 단일 파일명만 허용해
+// path traversal("../")로 테넌트 dir 밖 파일을 지우는 것을 차단한다.
+export async function DELETE(request: Request, { params }: { params: Promise<{ filename: string }> }) {
   const { filename } = await params;
-  const filePath = path.join(dataPath("images"), filename);
 
-  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+  let tenantId: string | null;
+  try {
+    tenantId = await effectiveTenantId(request, null);
+  } catch (e) {
+    if (e instanceof AuthError) return Response.json({ error: e.message }, { status: e.status });
+    throw e;
+  }
+  if (!tenantId) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(filename || "");
+  } catch {
+    return Response.json({ error: "File not found" }, { status: 404 });
+  }
+  if (!isSafeMediaFilename(decoded)) {
     return Response.json({ error: "File not found" }, { status: 404 });
   }
 
-  fs.unlinkSync(filePath);
-  return Response.json({ success: true });
+  return runWithTenant(tenantId, async () => {
+    const filePath = path.join(dataPath("images"), decoded);
+
+    if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+      return Response.json({ error: "File not found" }, { status: 404 });
+    }
+
+    fs.unlinkSync(filePath);
+    return Response.json({ success: true });
+  });
 }

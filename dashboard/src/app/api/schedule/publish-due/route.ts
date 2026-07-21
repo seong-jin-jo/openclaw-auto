@@ -1,6 +1,7 @@
 import { db, withTenant } from "@/lib/db";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { reportFailure, normalizePlatform, classifyPublishFailure } from "@/lib/observability";
+import { refreshImageDeliveryUrl } from "@/lib/image-token";
 import { SCHEDULABLE_PLATFORMS } from "@/lib/constants";
 import {
   getChannelCred,
@@ -202,7 +203,19 @@ async function publishOne(
   }
 
   const text = textForPlatform(platform, row.payload, row.draft_payload);
-  const imageUrl = imageUrlFromPayload(row.payload, row.draft_payload);
+  const storedImageUrl = imageUrlFromPayload(row.payload, row.draft_payload);
+  let imageUrl: string | undefined;
+  if (storedImageUrl) {
+    const refreshed = refreshImageDeliveryUrl(tenantId, storedImageUrl);
+    if (!refreshed) {
+      return {
+        ok: false,
+        error: "예약 이미지 URL이 만료되었거나 유효하지 않습니다. 이미지를 다시 선택해주세요.",
+        resolvedAccountId: cred.accountId,
+      };
+    }
+    imageUrl = refreshed;
+  }
 
   try {
     let result: PublishResult;

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import useSWR from "swr";
+import { fetcher } from "@/lib/api";
 import { ChannelsSettings } from "@/components/settings/ChannelsSettings";
 import { ChannelConnect } from "@/components/studio/ChannelConnect";
 import { TenantTokensSettings } from "@/components/settings/TenantTokensSettings";
@@ -26,6 +28,8 @@ const SETTINGS_TABS = [
   { key: "notifications", label: "Notifications", desc: "발행/터짐/에러 알림 + Slack" },
   { key: "tokens", label: "Fork 연동", desc: "셀프호스트 포크용 토큰 (고급)" },
   { key: "keywords", label: "Keywords", desc: "키워드 뱅크 + API" },
+  // video/TTS 탭은 ElevenLabsSettings가 테넌트별 격리 없는 전역 단일 파일(/api/elevenlabs-config)을
+  // 쓰는 운영자 전용 설정이라(proxy.ts TENANT_AWARE_PATHS 제외 사유 참고) 아래에서 isOperator일 때만 노출.
   { key: "video", label: "Video / TTS", desc: "ElevenLabs 설정" },
   { key: "system", label: "System", desc: "크론 + 계정" },
 ];
@@ -34,13 +38,16 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("channels");
   const { activeWorkspace } = useUIStore();
   const [showConnect, setShowConnect] = useState(false);
+  const { data: me } = useSWR<{ isOperator?: boolean }>("/api/me", fetcher);
+  const isOperator = me?.isOperator === true;
+  const visibleTabs = SETTINGS_TABS.filter((t) => t.key !== "video" || isOperator);
 
   return (
     <div className="px-8 py-6">
       <h2 className="text-xl font-semibold text-text mb-1">Settings</h2>
       <p className="text-sm text-subtle mb-6">서비스 설정 -- 각 항목이 어디에서 사용되는지 확인하세요</p>
       <div className="flex gap-1 mb-6 border-b border-border/50 pb-3 flex-wrap">
-        {SETTINGS_TABS.map((t) => (
+        {visibleTabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setActiveTab(t.key)}
@@ -93,7 +100,7 @@ export default function SettingsPage() {
           <KwPlannerSettings />
         </div>
       )}
-      {activeTab === "video" && (
+      {activeTab === "video" && isOperator && (
         <div className="max-w-lg">
           <ElevenLabsSettings />
         </div>

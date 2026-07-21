@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import useSWR from "swr";
 import { fetcher, apiPost } from "@/lib/api";
+import { authHeaders } from "@/lib/auth";
 import { useChannelConfig, useDesignTools } from "@/hooks/useChannelConfig";
 import { useToast } from "@/components/layout/Toast";
 import { useUIStore } from "@/store/ui-store";
@@ -142,14 +143,25 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
     const files = e.target.files;
     if (!files?.length) return;
     const uploaded: string[] = [];
+    const errors: string[] = [];
     for (const file of files) {
       const formData = new FormData();
       formData.append("file", file);
       try {
-        const res = await fetch("/api/images/upload", { method: "POST", body: formData });
+        const res = await fetch("/api/images/upload", { method: "POST", body: formData, headers: authHeaders() });
+        if (res.status === 401) {
+          window.dispatchEvent(new CustomEvent("auth:required"));
+          return;
+        }
         const d = await res.json();
-        if (d.url) uploaded.push(d.url);
-      } catch { /* skip */ }
+        if (res.ok && d.url) {
+          uploaded.push(d.url);
+        } else {
+          errors.push(d.error || `${file.name}: 업로드 실패(${res.status})`);
+        }
+      } catch (err) {
+        errors.push(`${file.name}: ${(err as Error).message}`);
+      }
     }
     if (uploaded.length) {
       setEd(prev => {
@@ -158,6 +170,9 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
         return { ...prev, result: { slides: newSlides, totalSlides: newSlides.length, batchId: prev.result?.batchId || "upload" } };
       });
       showToast(`${uploaded.length}장 추가됨`, "success");
+    }
+    if (errors.length) {
+      showToast(errors[0], "error");
     }
     e.target.value = "";
   };

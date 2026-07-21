@@ -566,3 +566,21 @@ env-file 누락과 수동 컨테이너 이름 충돌은 workflow 계약 테스�
 
 **운영 E2E 판정:** 앱·DB·인증 경계의 운영 반영은 관찰됨. TikTok provider credential과 앱 심사가 없어 실 OAuth와
 SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open 상태를 유지한다.
+
+### 2026-07-21 SNS-018 고객 영상 403·테넌트 이미지 build/QA
+
+- **재현:** 운영 고객 토큰 `/videos`에서 `/api/youtube/status`, `/api/images`, 전역
+  `/api/clipping-config`, `/api/elevenlabs-config`가 403이었다. 이미지 업로드·삭제는 전역 flat 경로였고
+  업로드 반환 URL은 실제 제공 라우트가 없어 고객 이미지 발행이 끊겨 있었다.
+- **수정:** YouTube status와 images만 tenant-aware로 허용했다. 전역 평문 API key를 반환하는 clipping/ElevenLabs는
+  운영자 전용을 유지하고 고객 UI에서 요청·설정 폼을 숨겼다. 이미지 업로드·목록·삭제를
+  `data/tenants/{tenant}/images`로 격리하고, 영상과 목적 키가 분리된 HMAC 이미지 배달 URL을 추가했다.
+  업로드는 10MiB·허용 확장자·빈 파일을 차단하고, 삭제/배달은 경로 탈출과 타 테넌트를 404로 숨긴다.
+- **QA 발견·해소:** 30일 토큰을 큐에 영속하면 장기 예약이 깨지는 문제를 발행 직전 HMAC 재검증·동일 테넌트
+  재서명으로 보완했다. Instagram 업로드 401은 원시 오류 대신 공통 `auth:required` 재로그인 흐름으로 전환했다.
+  이미지 삭제 후 캐시 잔존을 막기 위해 배달 응답은 `private, no-store`다.
+- **검증:** focused 7 files/111 PASS, 전체 94 files/819 PASS·9 DB-env skip, `tsc --noEmit` PASS,
+  Webpack production build 162 pages PASS, `git diff --check` PASS. 독립 Sonnet 보안 리뷰 blocker/high 0.
+- **미검증:** 운영 고객 브라우저의 실제 PNG 업로드→서명 URL GET→갤러리 렌더→삭제 404와 `/videos` 네트워크
+  403 소거는 배포 후 직접 관찰 전까지 미검증이다. 실제 Instagram/Threads 이미지 발행은 기존 SNS-014/010
+  운영 증거가 있으나 이번 신규 업로드 URL로 새 게시물을 만들지는 않았다.

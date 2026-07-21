@@ -21,7 +21,7 @@ export default function ImagesPage() {
   const r2Connected = !!(r2.bucket && r2.accessKeyId);
 
   const handleCopyUrl = (url: string) => {
-    const full = window.location.origin + url;
+    const full = /^https?:\/\//i.test(url) ? url : window.location.origin + url;
     navigator.clipboard.writeText(full).then(() => showToast("URL 복사됨", "success"));
   };
 

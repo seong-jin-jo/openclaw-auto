@@ -21,6 +21,14 @@ override_expires: ""
 
 # Pipeline State — openclaw-auto-osmu
 
+## 2026-07-21 SNS-018 ship hotfix candidate
+- 고객 `/videos`의 잘못된 403과 테넌트 이미지 업로드·배달·삭제 불일치를 수정했다. 전역 clipping/ElevenLabs
+  시크릿 경로는 운영자 전용 유지, tenant-safe YouTube/images만 허용한다.
+- HMAC 목적 분리, 타 테넌트/경로탈출 차단, 10MiB 제한, 삭제 후 no-store, 장기 예약 발행 직전 재서명,
+  업로드 401 재로그인을 구현했다.
+- 증거: focused 111 PASS, full 819 PASS·9 DB-env skip, TypeScript PASS, production build 162 pages PASS,
+  독립 보안 리뷰 blocker/high 0. 운영 고객 이미지 E2E 전까지 ship 완료는 유지하지 않는다.
+
 ## 2026-07-19 GA4 first-hit hotfix build reopen
 - 운영 격리 브라우저에서 신규 동의 직후 `/login` page_view 적재를 관찰했지만, 동의가 저장된 재방문 reload에서는
   `RouteTracker`가 `ConsentBanner` 초기화보다 먼저 실행되어 page_view가 유실됨을 직접 재현했다.
