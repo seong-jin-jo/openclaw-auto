@@ -109,7 +109,7 @@ jobs:
             exit 1
           fi
       - name: 상태
-        run: docker compose -f docker-compose.postagi-4tenants.yml ps
+        run: docker compose --env-file .env.osmu -f docker-compose.postagi-4tenants.yml ps
       - name: OSMU 스모크 게이트 (로그인 흐름 자동검증 — 깨지면 배포 FAIL)
         # 이 3개 버그(로그인死/인증게이트異常/supabase 빌드미주입)가 격노 유발 → 자동 차단.
         # services=empty(전체)도 OSMU가 포함 → 항상 검증. 특정 서비스만 배포 시 OSMU 제외하면 skip.

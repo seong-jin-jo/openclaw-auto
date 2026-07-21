@@ -50,6 +50,10 @@ compose required `NEXT_PUBLIC_SUPABASE_URL` interpolation 오류로 실패했다
 점유해 새 compose 컨테이너와 충돌했다. workflow가 기존 앱 컨테이너만 run별 rollback 이름으로 보존·정지하고 새 기동 실패 시
 자동 원복하도록 보강한다. named volume과 DB는 삭제하지 않는다.
 
+**배포 4차 부분 성공과 교정:** run `29819971912`에서 새 컨테이너는 기동되어 healthy이고 공개 `/api/health`가 HTTP 200,
+`db:up`을 반환했다. 다만 후속 `compose ps`도 required env interpolation을 수행하면서 `.env.osmu`가 없어 workflow만 FAIL했다.
+status 호출에도 동일 env file을 적용해 workflow의 최종 smoke까지 진행시킨다.
+
 ---
 
 ### SNS-017 TikTok Direct Post 핸드오프 (2026-07-21 04:20 KST)

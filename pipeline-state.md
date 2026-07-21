@@ -124,6 +124,8 @@ override_expires: ""
   누락해 required public Supabase env interpolation이 실패했다. workflow up 명령과 계약 테스트를 교정해 재배포한다.
 - 2차 run `29819335488`은 dispatch 서비스명 오입력으로 제외. 3차 run `29819793340`은 과거 수동 컨테이너가 compose 라벨
   없이 고정 이름을 점유해 교체 충돌. workflow에 앱 컨테이너 rollback rename/stop 및 기동 실패 자동 원복을 추가한다.
+- 4차 run `29819971912`: 새 컨테이너 기동·healthy 및 public health 200/db up 관찰. 후속 `compose ps`의 env-file 누락으로
+  workflow만 FAIL해 status 호출도 `.env.osmu`로 통일 후 재실행한다.
 
 > 2026-06-30 `init --adopt`. 이 레포는 이미 라이브 배포된 멀티테넌트 마케팅 SaaS라 plan~build는
 > ADOPT(기존 인정). **현재 ship(in-progress).** 신규 기능(OAuth 연결, GA4, 가이드 등)은 build→qa→ship 게이트를

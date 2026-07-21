@@ -15,6 +15,7 @@ describe("OSMU dashboard public build environment", () => {
   it("uses the rendered OSMU env file for production image builds and startup", () => {
     expect(workflow).toContain("docker compose --env-file .env.osmu -f docker-compose.postagi-4tenants.yml build");
     expect(workflow).toContain("docker compose --env-file .env.osmu -f docker-compose.postagi-4tenants.yml up -d");
+    expect(workflow).toContain("docker compose --env-file .env.osmu -f docker-compose.postagi-4tenants.yml ps");
     expect(workflow).toContain('previous="openclaw-dashboard-osmu-pre-${GITHUB_RUN_ID}"');
     expect(workflow).toContain('docker rename "$previous" openclaw-dashboard-osmu');
     expect(workflow).toContain("docker start openclaw-dashboard-osmu");
