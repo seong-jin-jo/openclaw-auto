@@ -45,6 +45,11 @@ compose required `NEXT_PUBLIC_SUPABASE_URL` interpolation 오류로 실패했다
 사용하면서 up에는 누락한 것이 원인이다. up에도 동일 env file을 적용하고 계약 테스트를 추가한 뒤 재배포한다. 기존 운영
 컨테이너는 교체 전 실패해 계속 이전 버전으로 동작한다.
 
+**배포 2·3차 실패와 교정:** run `29819335488`은 잘못된 dispatch 입력 `osmu`로 service lookup이 실패했다. 정확한 서비스명
+`openclaw-dashboard-osmu`를 사용한 run `29819793340`은 이전 수동 배포의 healthy 컨테이너가 compose 라벨 없이 고정 이름을
+점유해 새 compose 컨테이너와 충돌했다. workflow가 기존 앱 컨테이너만 run별 rollback 이름으로 보존·정지하고 새 기동 실패 시
+자동 원복하도록 보강한다. named volume과 DB는 삭제하지 않는다.
+
 ---
 
 ### SNS-017 TikTok Direct Post 핸드오프 (2026-07-21 04:20 KST)

@@ -90,7 +90,24 @@ jobs:
           docker compose --env-file .env.osmu -f docker-compose.postagi-4tenants.yml build
       - name: 기동
         # required NEXT_PUBLIC_* interpolation은 build와 up 모두에서 실행된다.
-        run: docker compose --env-file .env.osmu -f docker-compose.postagi-4tenants.yml up -d ${{ github.event.inputs.services }}
+        run: |
+          # 과거 수동 배포 컨테이너는 compose 라벨 없이 고정 container_name만 점유할 수 있다.
+          # 앱 컨테이너만 rollback 이름으로 보존하고, 새 기동 실패 시 즉시 원복한다. named volume은 건드리지 않는다.
+          previous=""
+          if [[ "${{ github.event.inputs.services }}" == *"openclaw-dashboard-osmu"* ]] \
+             && docker container inspect openclaw-dashboard-osmu >/dev/null 2>&1; then
+            previous="openclaw-dashboard-osmu-pre-${GITHUB_RUN_ID}"
+            docker rename openclaw-dashboard-osmu "$previous"
+            docker stop "$previous"
+          fi
+          if ! docker compose --env-file .env.osmu -f docker-compose.postagi-4tenants.yml up -d ${{ github.event.inputs.services }}; then
+            if [ -n "$previous" ]; then
+              docker rm -f openclaw-dashboard-osmu >/dev/null 2>&1 || true
+              docker rename "$previous" openclaw-dashboard-osmu
+              docker start openclaw-dashboard-osmu
+            fi
+            exit 1
+          fi
       - name: 상태
         run: docker compose -f docker-compose.postagi-4tenants.yml ps
       - name: OSMU 스모크 게이트 (로그인 흐름 자동검증 — 깨지면 배포 FAIL)

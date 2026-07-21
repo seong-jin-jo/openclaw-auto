@@ -122,6 +122,8 @@ override_expires: ""
   반영 관찰. credential 회수 시 SELF_ONLY와 공개 게시를 각각 실제 계정으로 E2E한다.
 - 1차 deploy run `29819032770`: DB schema와 image build PASS, compose `up` FAIL. build에서 사용한 `.env.osmu`를 up에서
   누락해 required public Supabase env interpolation이 실패했다. workflow up 명령과 계약 테스트를 교정해 재배포한다.
+- 2차 run `29819335488`은 dispatch 서비스명 오입력으로 제외. 3차 run `29819793340`은 과거 수동 컨테이너가 compose 라벨
+  없이 고정 이름을 점유해 교체 충돌. workflow에 앱 컨테이너 rollback rename/stop 및 기동 실패 자동 원복을 추가한다.
 
 > 2026-06-30 `init --adopt`. 이 레포는 이미 라이브 배포된 멀티테넌트 마케팅 SaaS라 plan~build는
 > ADOPT(기존 인정). **현재 ship(in-progress).** 신규 기능(OAuth 연결, GA4, 가이드 등)은 build→qa→ship 게이트를
