@@ -4,22 +4,35 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: ship            # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design, build, qa]
+current_stage: qa              # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design, build]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
-  build:      { status: approved, artifacts_ok: true }   # SNS-015 운영 Reel permalink 직접 관찰(2026-07-21)
-  qa:         { status: approved, artifacts_ok: true }   # SNS-015 운영 관찰 종료. 전역 ship 잔여는 외부 blocker
-  ship:       { status: in-progress, artifacts_ok: false }
+  build:      { status: approved, artifacts_ok: true } # browser-bound OAuth state + A/B DB integration test + 826 PASS + webpack build
+  qa:         { status: in-progress, artifacts_ok: false }
+  ship:       { status: pending, artifacts_ok: false }
 override: false
 override_reason: ""
 override_expires: ""
 ---
 
 # Pipeline State — openclaw-auto-osmu
+
+## 2026-07-22 self-service OAuth SaaS build reopen
+- 사용자가 제품 목표를 재확정했다: `code0to1` 연결 도구가 아니라 누구나 Google로 가입해 독립 tenant를 받고,
+  자기 SNS 계정을 OAuth로 연결·전환·자동 발행하는 SaaS다.
+- 기존 build/qa 증거는 멀티테넌트 단위 테스트와 한 QA tenant의 실제 발행까지다. 완전히 새로운 사용자 A/B의
+  가입→provisioning→각자 OAuth 저장→발행→상호 데이터 접근 차단 운영 E2E가 없으므로 이전 build/qa 승인을 재개한다.
+- plan/design/eng-design의 멀티테넌트 아키텍처는 유지한다. build 범위는 셀프서비스 provisioning과 tenant 귀속,
+  두 사용자 교차 격리 E2E 자동화, 발견 결함 수정이다. 외부 provider 앱 Live/심사/credential은 별도 blocker다.
+- 종료증거: 신규 A/B 각각 독립 tenant와 인증 토큰, 자기 계정만 조회·전환, 상대 tenant 리소스 403/404,
+  가능한 provider의 실제 OAuth callback·발행 URL. 외부 provider 왕복을 못 한 범위는 미검증으로 명시한다.
+- build 결과: OAuth state를 callback 전용 HttpOnly 쿠키에 바인딩하고 X/TikTok PKCE verifier도 모든 callback
+  결과에서 폐기한다. 신규 A/B PostgreSQL 격리 테스트를 CI 필수 경로에 추가했다. 독립 QA에서 코드 결함은
+  없었고 TikTok 전용 회귀 누락 1건은 `0d12defb`로 보완했다. QA는 실제 CI PostgreSQL 결과 확인 중이다.
 
 ## 2026-07-21 SNS-018 ship hotfix operating close
 - 고객 `/videos`의 잘못된 403과 테넌트 이미지 업로드·배달·삭제 불일치를 수정했다. 전역 clipping/ElevenLabs

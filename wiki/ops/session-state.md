@@ -3,7 +3,77 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-21 KST · SNS-018 고객 이미지/영상 권한 운영 E2E 종료
+**최종 갱신:** 2026-07-22 KST · 셀프서비스 OAuth build 종료, 실제 PostgreSQL CI QA 진행
+
+---
+
+### 2026-07-22 제품 목표 정정 — `code0to1`은 QA tenant일 뿐
+
+**진행 재개:** 사용자 `진행해` 지시에 따라 `pipeline-state.md`를 build로 재개했다. primary는
+`openclaw-auto:0.0`이며 `openclaw-auto:0.1`은 과거 auth security review로 현재 실행 중인 writer가 아니다.
+다음 작업은 전문 code-builder가 셀프서비스 가입/provisioning, OAuth callback tenant 귀속, 두 사용자 교차
+격리 E2E를 감사·수정하는 것이다. 외부 콘솔 없이 가능한 코드·자동 QA는 멈추지 않고 진행한다.
+
+**사용자 최신 명시:** 제품은 운영자의 `code0to1@gmail.com` 계정을 연결해 대신 발행하는 도구가 아니다.
+누구나 Google로 회원가입하고 자기 SNS 계정을 OAuth로 연결해 자기 tenant 안에서 자동화하는 멀티테넌트
+SaaS가 목표다. `code0to1`은 provider API와 발행 경로를 검증한 QA fixture일 뿐 출시 완료 증거가 아니다.
+
+**정확한 제품 경계:** 플랫폼 OAuth Client ID/Secret은 서비스 운영자가 provider별로 한 번 서버에 설정한다.
+일반 사용자는 개발자 자격증명을 입력하지 않고 `연결`을 눌러 자기 SNS 계정에 동의한다. 발급된 사용자별
+access/refresh token과 계정·콘텐츠·예약·발행 기록은 tenant/account 단위로 격리한다. 사용자가 각자 OAuth
+개발자 앱 자격증명까지 제공하는 BYO OAuth 구조는 현재 목표가 아니다.
+
+**현재 증거의 한계:** 기존 Instagram Reel·Threads 게시와 SNS-018 이미지 E2E는 한 QA tenant의 운영 경로가
+실제로 동작한다는 증거다. 임의 신규 사용자가 가입해 tenant가 생성되고 자기 provider 계정을 연결·전환·발행하며
+다른 사용자 데이터에 접근하지 못한다는 셀프서비스 SaaS 전체 경로는 아직 미검증이다. 따라서 전체 ship은
+`in-progress`, `artifacts_ok:false`를 유지하고 `v1.0.0` 완료로 보고하지 않는다.
+
+**다음 액션:** 기존 `code0to1` 연결을 최종 성공 기준에서 제외한다. 완전히 새로운 사용자 A와 B 각각에 대해
+Google 가입→독립 tenant 생성→자기 SNS OAuth callback→계정 저장→기본계정 전환→자기 승인 콘텐츠 발행 URL
+회수까지 직접 관찰한다. 이어 A 토큰으로 B의 계정·이미지·초안·예약·발행 기록 접근이 403/404로 차단되고 B도
+A 데이터에 접근하지 못하는지 운영 E2E로 확인한다. 외부 provider credential·앱 Live/심사·OTP가 없으면 해당
+provider는 미검증으로 남기되, 가능한 provider부터 두 신규 사용자 왕복을 실행한다.
+
+---
+
+### 2026-07-22 셀프서비스 tenant·OAuth 경계 보강 (Codex code-builder)
+
+**handoff basis:** 사용자가 지정한 `wiki/ops/session-state.md`와 `openclaw-auto:0.0`을 primary로
+사용했다. `openclaw-auto:0.1`은 과거 auth security review라 변경하지 않았고, 기존 루트
+`pipeline-state.md`와 이 파일의 미커밋 제품목표 정정도 보존했다. `openclaw/` 및 그 밖의 대규모
+untracked 파일은 미접촉.
+
+**발견·수정:** `ensureTenantForUser()`는 유효한 Supabase JWT의 최초 `/api/me`에서
+`owner_auth_id` 기준 `ON CONFLICT` provisioning을 이미 멱등 처리한다. 반면 OAuth state는 HMAC·provider·10분
+검증만 하고 같은 provider state의 브라우저 외 재생을 막지 못했다. auth-url이 callback 전용 HttpOnly
+`oauth_state_<provider>` 쿠키를 발급하고 callback이 state와 대조한 뒤 성공·실패 모두 즉시 폐기하도록 보강했다.
+따라서 인증 사용자의 auth-url 요청에서 나온 tenant state를 다른 브라우저가 재사용해 계정을 연결하는 경로를 차단한다.
+동시 callback 경쟁까지 원자적으로 1회 소비하려면 서버 저장 nonce용 스키마가 추가로 필요하며, 현재 범위에는 포함하지 않았다.
+
+**신규 DB 통합 계약:** `dashboard/tests/isolation/self-service-tenant.db.test.ts`는 실제 PostgreSQL에서
+새 auth user A/B를 병렬 provision하고 tenant idempotency·active 상태·OAuth 계정 2개/default 전환/legacy
+integration mirror·queue_posts·schedules·published_posts·tenant filesystem images를 생성한다. 이후 B의 A 조회는
+0행이고 A 컨텍스트의 B tenant INSERT는 RLS `WITH CHECK` 위반이어야 한다. CI는 DATABASE_URL을 필수로 하므로
+이 테스트가 skip되지 않는다.
+
+**검증:** focused OAuth 50 PASS, full Vitest 96 files / 822 PASS / 10 DB-env skip, `npx tsc --noEmit` PASS,
+Next.js production build 162 routes PASS, `git diff --check` PASS. 빌드의 기존 Turbopack NFT trace warning
+(`next.config.ts` → `api/studio/text`)만 유지.
+
+**미검증/다음 액션:** 로컬은 DATABASE_URL·Docker daemon 부재라 새 A/B PostgreSQL 통합 테스트가 skip됐다.
+CI PostgreSQL에서 그 테스트 실행 결과를 확인한 뒤, 실제 신규 Google 사용자 A/B와 provider credential을 사용해
+OAuth 동의→callback→각자 발행 permalink→상호 403/404를 직접 관찰해야 한다. 외부 Google/Meta/X/TikTok
+동의·실발행은 아직 미검증이며 build/test 통과로 운영 SaaS 완료 처리하지 않는다.
+
+**독립 QA 후속:** qa-verifier가 focused 54 PASS, full 826 PASS/10 DB-env skip, TypeScript PASS,
+Webpack production build 162 routes PASS를 직접 실행했다. 코드 보안 회귀는 발견하지 못했고 TikTok 전용
+PKCE/state 쿠키 수명 테스트 누락 LOW 1건을 보고해 `0d12defb`에서 발급·성공 callback·provider error를
+56 PASS로 고정했다. qa-verifier 산출물 자체는 Codex에 제공되지 않은 `qa/browse/verify` 스킬 미호출 규칙으로
+하네스 verify FAIL이므로 품질 PASS로 과장하지 않는다. 실제 CI PostgreSQL 결과가 현재 QA 종료의 다음 증거다.
+
+**현재 다음 액션:** HEAD를 main에 push해 `.github/workflows/ci.yml`의 PostgreSQL 16 schema→seed→RLS→full
+Vitest를 실행한다. CI 성공 후 운영 배포를 실행하고 health/login/API를 직접 관찰한다. 실제 신규 Google 사용자
+A/B 및 외부 SNS 동의·실발행은 별도 운영 브라우저 증거가 없으면 계속 미검증으로 남긴다.
 
 ---
 
