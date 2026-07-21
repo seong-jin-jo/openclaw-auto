@@ -27,7 +27,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
 
   // PKCE 채널: code_verifier 생성 → SHA-256 challenge 계산 → 쿠키에 verifier 저장
   let extraParams: Record<string, string> | undefined;
-  let cookieHeader: string | undefined;
+  const cookieHeaders: string[] = [];
 
   if (cfg.pkce) {
     const verifier = generateCodeVerifier();
@@ -35,22 +35,33 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
     extraParams = { code_challenge: challenge, code_challenge_method: "S256" };
     // httpOnly 쿠키(10분) — callback GET 요청에 자동 첨부(SameSite=Lax: OAuth 리다이렉트는 top-level GET이므로 OK)
     const isSecure = origin.startsWith("https://");
-    cookieHeader = [
+    cookieHeaders.push([
       `pkce_${provider}=${encodeURIComponent(verifier)}`,
       "HttpOnly",
       "SameSite=Lax",
       "Max-Age=600",
       `Path=/api/connect/${provider}/callback`,
       ...(isSecure ? ["Secure"] : []),
-    ].join("; ");
+    ].join("; "));
   }
 
-  // state = tenantId.provider.timestamp.HMAC(OSMU_SECRET_KEY) — CSRF 방지 서명(callback이 검증).
+  // state는 서명만으로 끝내지 않고 이 브라우저에만 httpOnly 쿠키로도 묶는다. callback은 이 쿠키와
+  // 정확히 일치하는 state를 한 번만 소비한다. 따라서 유효한 state URL이 유출돼도 다른 브라우저가
+  // 같은 provider callback을 재생해 피해자 tenant에 계정을 연결할 수 없다.
   const state = await signState(tenantId, provider);
   const authUrl = buildAuthUrl(cfg, origin, provider, state, extraParams);
   if (!authUrl) return Response.json({ error: `${cfg.appIdEnv} 미설정 — 플랫폼 OAuth 앱 자격증명 필요` }, { status: 500 });
 
-  const headers: Record<string, string> = {};
-  if (cookieHeader) headers["Set-Cookie"] = cookieHeader;
+  const isSecure = origin.startsWith("https://");
+  cookieHeaders.push([
+    `oauth_state_${provider}=${encodeURIComponent(state)}`,
+    "HttpOnly",
+    "SameSite=Lax",
+    "Max-Age=600",
+    `Path=/api/connect/${provider}/callback`,
+    ...(isSecure ? ["Secure"] : []),
+  ].join("; "));
+  const headers = new Headers();
+  for (const cookie of cookieHeaders) headers.append("Set-Cookie", cookie);
   return Response.json({ authUrl }, { headers });
 }

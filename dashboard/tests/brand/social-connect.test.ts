@@ -53,6 +53,17 @@ async function signedState(tenantId: string, provider: string): Promise<string> 
   return signState(tenantId, provider);
 }
 
+function callbackRequest(provider: string, state: string, code: string, extraCookies: string[] = []): Request {
+  const cookies = [
+    `oauth_state_${provider}=${encodeURIComponent(state)}`,
+    ...extraCookies,
+  ];
+  return new Request(
+    `https://app.example/api/connect/${provider}/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`,
+    { headers: { cookie: cookies.join("; ") } },
+  );
+}
+
 beforeEach(() => {
   vi.resetModules();
   H.tenantId = "tenant-1";
@@ -136,7 +147,7 @@ describe("GET /api/connect/instagram/callback — 토큰교환·저장", () => {
     const state = await signedState("tenant-1", "instagram");
     const { GET } = await import("@/app/api/connect/[provider]/callback/route");
     const res = await GET(
-      new Request(`https://app.example/api/connect/instagram/callback?code=AUTHCODE&state=${encodeURIComponent(state)}`),
+      callbackRequest("instagram", state, "AUTHCODE"),
       params("instagram"),
     );
     expect(res.status).toBe(200);
@@ -155,7 +166,7 @@ describe("GET /api/connect/instagram/callback — 토큰교환·저장", () => {
     const state = await signedState("tenant-1", "threads");
     const { GET } = await import("@/app/api/connect/[provider]/callback/route");
     const res = await GET(
-      new Request(`https://app.example/api/connect/threads/callback?code=THCODE&state=${encodeURIComponent(state)}`),
+      callbackRequest("threads", state, "THCODE"),
       params("threads"),
     );
     expect(res.status).toBe(200);
@@ -175,7 +186,7 @@ describe("GET /api/connect/instagram/callback — 토큰교환·저장", () => {
     const state = await signedState("tenant-1", "facebook");
     const { GET } = await import("@/app/api/connect/[provider]/callback/route");
     const res = await GET(
-      new Request(`https://app.example/api/connect/facebook/callback?code=FBCODE&state=${encodeURIComponent(state)}`),
+      callbackRequest("facebook", state, "FBCODE"),
       params("facebook"),
     );
     expect(res.status).toBe(200);
@@ -522,7 +533,7 @@ describe("GET /api/connect/youtube/callback — refresh_token 암호화 저장",
     const state = await signedState("tenant-1", "youtube");
     const { GET } = await import("@/app/api/connect/[provider]/callback/route");
     const res = await GET(
-      new Request(`https://app.example/api/connect/youtube/callback?code=YTCODE&state=${encodeURIComponent(state)}`),
+      callbackRequest("youtube", state, "YTCODE"),
       params("youtube"),
     );
     expect(res.status).toBe(200);
@@ -551,9 +562,7 @@ describe("GET /api/connect/x/callback — PKCE code_verifier 쿠키 처리", () 
     const state = await signedState("tenant-1", "x");
     const { GET } = await import("@/app/api/connect/[provider]/callback/route");
     const res = await GET(
-      new Request(`https://app.example/api/connect/x/callback?code=XCODE&state=${encodeURIComponent(state)}`, {
-        headers: { cookie: "pkce_x=MY_VERIFIER_VALUE" },
-      }),
+      callbackRequest("x", state, "XCODE", ["pkce_x=MY_VERIFIER_VALUE"]),
       params("x"),
     );
     expect(res.status).toBe(200);
@@ -573,7 +582,7 @@ describe("GET /api/connect/linkedin/callback — 표준 OAuth 저장", () => {
     const state = await signedState("tenant-1", "linkedin");
     const { GET } = await import("@/app/api/connect/[provider]/callback/route");
     const res = await GET(
-      new Request(`https://app.example/api/connect/linkedin/callback?code=LICODE&state=${encodeURIComponent(state)}`),
+      callbackRequest("linkedin", state, "LICODE"),
       params("linkedin"),
     );
     expect(res.status).toBe(200);
@@ -718,11 +727,42 @@ describe("GET /api/connect/instagram → callback — 서명된 state 전체 왕
 
     const { GET: callbackGET } = await import("@/app/api/connect/[provider]/callback/route");
     const callbackRes = await callbackGET(
-      new Request(`https://app.example/api/connect/instagram/callback?code=AUTHCODE&state=${encodeURIComponent(signedStateFromAuthUrl)}`),
+      callbackRequest("instagram", signedStateFromAuthUrl, "AUTHCODE"),
       params("instagram"),
     );
     expect(await callbackRes.text()).toMatch(/연결 완료/);
     expect(JSON.stringify(H.inserts[0])).toContain("tenant-roundtrip");
+  });
+
+  it("callback: 같은 provider의 유효 state라도 auth-url 브라우저 쿠키가 없거나 다르면 저장하지 않는다", async () => {
+    process.env.OSMU_SECRET_KEY = "enc-key";
+    const state = await signedState("tenant-victim", "instagram");
+    const { GET } = await import("@/app/api/connect/[provider]/callback/route");
+    const res = await GET(
+      new Request(`https://app.example/api/connect/instagram/callback?code=ATTACKER_CODE&state=${encodeURIComponent(state)}`),
+      params("instagram"),
+    );
+    expect(await res.text()).toMatch(/현재 브라우저와 일치하지|이미 처리/);
+    expect(H.fetchCalls).toHaveLength(0);
+    expect(H.inserts).toHaveLength(0);
+    expect(res.headers.get("set-cookie")).toContain("oauth_state_instagram=");
+    expect(res.headers.get("set-cookie")).toContain("Max-Age=0");
+  });
+
+  it("auth-url은 callback 전용 httpOnly state 쿠키를 발급한다", async () => {
+    H.tenantId = "tenant-cookie-bound";
+    const { GET } = await import("@/app/api/connect/[provider]/route");
+    const res = await GET(
+      new Request("https://app.example/api/connect/instagram?tenant_id=tenant-cookie-bound"),
+      params("instagram"),
+    );
+    const { authUrl } = (await res.json()) as { authUrl: string };
+    const state = new URL(authUrl).searchParams.get("state")!;
+    const cookie = res.headers.get("set-cookie") || "";
+    expect(cookie).toContain(`oauth_state_instagram=${encodeURIComponent(state)}`);
+    expect(cookie).toContain("HttpOnly");
+    expect(cookie).toContain("SameSite=Lax");
+    expect(cookie).toContain("Max-Age=600");
   });
 
   it("callback: 위조된 state → '연결 실패' HTML + integrations 미저장", async () => {
