@@ -2,6 +2,24 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-07-22 셀프서비스 tenant·OAuth 격리 build 재검
+
+**수정:** OAuth auth-url의 서명 state를 callback 경로 전용 HttpOnly 쿠키에도 저장하고 callback에서
+대조한 뒤 즉시 만료시킨다. 기존 HMAC·provider·10분 만료 검증에 브라우저 요청 바인딩을 더해 같은 provider
+state 재생을 차단했다.
+
+**신규 통합 계약:** `tests/isolation/self-service-tenant.db.test.ts`가 실제 PostgreSQL(RLS 적용)에서
+새 사용자 A/B provisioning, account/default 전환, integration mirror, queue/schedule/published_posts와
+filesystem images 격리를 만들고 교차조회 0행·교차 INSERT 거부를 검증한다. CI에서는 DATABASE_URL 없음을
+실패로 처리한다.
+
+**관찰된 자동 검증:** focused OAuth 50 PASS · full Vitest 96 files / 822 PASS / 10 skipped · TypeScript PASS ·
+production build 162 routes PASS.
+
+**미검증:** 현재 로컬은 DATABASE_URL과 Docker daemon이 없어 새 PostgreSQL 통합 테스트는 skip됐다. 실제 신규
+Google 사용자 A/B의 가입→OAuth 동의→발행 permalink→교차 API 403/404, 그리고 Meta/X/TikTok 외부 동의는
+credential·실계정 부재로 미검증이다. ship 완료 증거로 승격하지 않는다.
+
 ## 2026-07-10 ❌ 재제보 재확인 — live Google/raw JSON + 비밀번호 찾기 없음 + 가입자 목록
 
 **사용자 재제보:** Google 로그인 클릭 시 Supabase raw JSON `Unsupported provider: provider is not enabled`가 보이고, 비밀번호 찾기 UI도 없음. 현재 가입자 목록 확인 요청.
