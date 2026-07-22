@@ -96,11 +96,17 @@ Instagram accounts 조회는 각자 tenant_id 없는 조회와 동일해 client 
 `~/.sj-agent-harness/secrets`에도 `X_CLIENT_ID`, `X_CLIENT_SECRET`, `TIKTOK_CLIENT_KEY`,
 `TIKTOK_CLIENT_SECRET`이 없다. 값은 출력하지 않았다. 외부 앱 생성·심사 전 자동 복구 가능한 기존 secret은 없다.
 
+**운영 lead 저장 관찰:** 운영자 고객 API는 auth user 7명과 tenant 11개를 반환했다. 그중 실제 Google provider
+사용자 1명은 active tenant slug와 연결돼 있어 Google 유입→Supabase auth user→tenant provisioning 저장이 운영에서
+발생했음을 확인했다. 나머지는 레거시 email provider 계정이며 비밀번호 필드는 API에 없고 원문 회수도 불가능하다.
+신규 임의 사용자 A/B가 각각 consent를 끝내는 전체 브라우저 왕복은 별도 미검증이다.
+
 **재발방지 deploy gate 진행:** 기존 smoke는 `/api/auth/google` HTTP 200만 확인해 계정선택 파라미터가
 사라진 구버전도 통과할 수 있었다. Google provider가 활성화된 200 응답이면 body의 authUrl에
 `prompt=select_account`가 반드시 있어야 배포를 통과하도록 workflow를 보강했고, Google-only/preflight focused
-9 PASS와 jq positive/negative 계약을 확인했다. 다음 액션은 commit/push→CI→dashboard 단독 재배포에서 새 smoke가
-실제로 PASS하는지 관찰하는 것이다.
+9 PASS와 jq positive/negative 계약을 확인했다. commit `ee475f1f`, CI `29895690967` SUCCESS, deploy
+`29896414859` SUCCESS. 운영 smoke가 login 200, me 401, google 200, operator customers 200과
+`google 계정선택 preflight` PASS를 출력했다. 이 재발방지 gate는 운영 반영됨이다.
 
 **독립 QA 후속:** qa-verifier가 focused 54 PASS, full 826 PASS/10 DB-env skip, TypeScript PASS,
 Webpack production build 162 routes PASS를 직접 실행했다. 코드 보안 회귀는 발견하지 못했고 TikTok 전용

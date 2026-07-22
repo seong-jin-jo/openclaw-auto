@@ -643,5 +643,8 @@ SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open �
   동일 `/api/me` 401 확인.
 - **credential inventory(근거 확인):** GitHub secret 이름은 Meta·YouTube만 존재하고 X/TikTok은 없음.
   로컬 harness secret 파일에도 X/TikTok 4개 env 이름이 없다. 실제 값은 조회·출력하지 않음.
+- **운영 lead 저장(관찰됨):** 고객 API에서 auth user 7명/tenant 11개, 실제 Google provider 사용자 1명과
+  연결된 active tenant를 확인. Google 유입의 auth user·tenant 저장은 관찰됐고 비밀번호 원문 필드는 없음.
 - **재발방지 보강:** deploy smoke가 Google preflight 200에 더해 authUrl의 `prompt=select_account`를 검사하고,
-  누락 시 배포를 실패시킨다. focused 9 PASS, jq 정상/누락 분기 확인. CI·실제 deploy smoke는 진행 중.
+  누락 시 배포를 실패시킨다. focused 9 PASS, jq 정상/누락 분기 확인. commit `ee475f1f`, CI
+  `29895690967`, deploy `29896414859` SUCCESS. 운영 smoke의 새 계정선택 gate PASS를 직접 확인.

@@ -55,9 +55,13 @@ override_expires: ""
   토큰 2개 모두 revoke 뒤 `/api/me` 401을 확인했다. 운영 API 교차격리 증거는 충족한다.
 - 비밀값 inventory에는 Meta·YouTube 앱 자격증명만 있고 X/TikTok 자격증명은 GitHub Secrets와 로컬 harness
   양쪽 모두 없다. 따라서 X/TikTok 실 OAuth·발행은 코드가 아니라 앱 생성/심사/credential 회수가 남은 외부 blocker다.
+- 운영 고객 API에서 auth user 7명과 tenant 11개를 조회했고, 실제 Google provider 사용자 1명이 active tenant와
+  연결돼 있음을 확인했다. 따라서 Google 유입→auth user→tenant lead 저장은 운영 관찰됐으며 비밀번호 원문은
+  저장·반환되지 않는다. 신규 임의 A/B Google consent 왕복은 여전히 미검증이다.
 - Google 계정전환 재발방지를 위해 deploy smoke가 preflight HTTP 200뿐 아니라 응답 authUrl의
-  `prompt=select_account`까지 검사하도록 보강했다. focused contract 9 PASS. 이 workflow 변경은 CI와 실제
-  재배포 smoke 통과 후 운영 게이트로 확정한다.
+  `prompt=select_account`까지 검사하도록 보강했다. focused contract 9 PASS, CI `29895690967` SUCCESS,
+  deploy `29896414859` SUCCESS. 운영 smoke에서 login 200/me 401/google 200/operator customers 200과
+  새 `google 계정선택 preflight` 성공 문구를 직접 확인해 운영 gate로 확정한다.
 
 ## 2026-07-21 SNS-018 ship hotfix operating close
 - 고객 `/videos`의 잘못된 403과 테넌트 이미지 업로드·배달·삭제 불일치를 수정했다. 전역 clipping/ElevenLabs
