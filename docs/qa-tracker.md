@@ -648,3 +648,19 @@ SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open �
 - **재발방지 보강:** deploy smoke가 Google preflight 200에 더해 authUrl의 `prompt=select_account`를 검사하고,
   누락 시 배포를 실패시킨다. focused 9 PASS, jq 정상/누락 분기 확인. commit `ee475f1f`, CI
   `29895690967`, deploy `29896414859` SUCCESS. 운영 smoke의 새 계정선택 gate PASS를 직접 확인.
+
+### 2026-07-22 OAuth/영상 플랫폼 운영 고객 UI 재검증
+
+- 실제 Chrome에서 운영 앱 로그인 탭, Meta/X/TikTok 개발자 콘솔 탭을 열었다. X는 로그인 화면, TikTok은
+  Email/Password 폼, Meta의 정확한 앱 dashboard는 공개 개발자 홈으로 돌아가 세 콘솔 모두 개발자 인증 입력이
+  필요한 상태임을 관찰했다.
+- 단기 tenant 토큰으로 운영 고객 UI를 직접 렌더했다. X credential 누락 disabled, Facebook 앱 모드/role 경고,
+  Instagram 기본 active 계정 1개와 계정전환 안내, Bluesky invalid App Password의 조치 가능한 오류를 관찰했다.
+  과거 raw JSON `X_CLIENT_ID 미설정` 클릭 오류와 Bluesky `openclaw.json not found`는 재현되지 않았다.
+- `/videos`에서 YouTube OAuth 버튼, TikTok credential 누락 disabled, Instagram Reels 발행 가능을 직접 관찰했다.
+  증거는 `docs/evidence/oauth-video-platforms-operating-20260722.png`이다.
+- 첫 브라우저 토큰 주입은 `browse eval` 인자 형식 오사용으로 임시 토큰이 도구 로그에 노출됐다. 즉시 revoke하고
+  동일 `/api/me` 401을 확인했다. 두 번째 실행은 mode 600 JS 파일 경유로 주입하고 종료 시 revoke/401 및 파일
+  삭제까지 확인했다. 재발방지 규칙은 inline secret 주입 금지, mode 600 파일 경유, 종료 revoke/401이다.
+- **판정:** 고객 앱 UI와 앱 측 방어는 관찰됨. X/TikTok credential·심사, Meta 개발자 로그인과 Live/test role,
+  Instagram OTP, YouTube 실제 동의·업로드, 동일 provider 실계정 2개 전환·발행은 외부 계정 입력 전까지 미검증이다.

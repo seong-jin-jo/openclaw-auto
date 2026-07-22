@@ -2292,3 +2292,34 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
 - **다음 액션:** Instagram·Threads의 이미 검증된 계정으로 마케팅을 시작한다. 병렬 외부 회수는 X/TikTok 앱
   credential·심사, Meta 앱 live/role, Instagram OTP cooldown, YouTube 실계정 동의·업로드다. R2 원격 백업은
   현재 영속 volume을 대체하는 출시 blocker가 아니라 후속 재해복구 항목으로 관리한다.
+
+## 2026-07-22 실제 Chrome/운영 고객 UI 재검증
+
+- **handoff basis:** 사용자가 이 pane에서 Chrome을 직접 열어 계속 진행하라고 지정했으므로
+  `openclaw-auto:0.0`과 이 파일의 최신 셀프서비스 OAuth 트랙을 연속 수행했다.
+- **실제 Chrome 콘솔 상태(관찰됨):** 운영 앱은 로그인된 탭이 열려 있다. X 개발자 대시보드는 X 로그인
+  화면으로 리디렉션됐고, TikTok 개발자 콘솔은 Email/Password 로그인 폼까지 도달했다. 운영 Facebook App ID의
+  정확한 dashboard URL도 Meta for Developers 공개 홈으로 돌아가 현재 Chrome에 Meta 개발자 인증 세션이 없음을
+  확인했다. Chrome의 Apple Events JavaScript와 macOS Accessibility/화면 캡처 권한은 꺼져 있어 일반 Chrome의
+  DOM 자동 클릭·캡처는 차단됐다.
+- **운영 고객 Chrome E2E(관찰됨):** 별도 브라우저 하네스에 code0to1 tenant의 단기 토큰을 넣어 실제 운영
+  `/channels/x`, `/channels/facebook`, `/channels/instagram`, `/channels/bluesky`, `/videos`를 렌더했다.
+  X 버튼은 `X_CLIENT_ID/X_CLIENT_SECRET` 누락 사유와 함께 disabled, Facebook 버튼은 clickable이지만 Meta
+  Development/Live·테스터 상태 경고, Instagram은 active 기본 계정 1개와 `다른 계정으로 연결` 안내,
+  Bluesky는 임의의 잘못된 App Password 입력 시 `openclaw.json not found`가 아니라 자격증명 재확인 오류를
+  표시했다. `/videos`는 YouTube OAuth 버튼, TikTok credential 누락 disabled, Instagram Reels `발행 가능`을
+  동시에 렌더했다.
+- **증거:** `docs/evidence/oauth-video-platforms-operating-20260722.png`를 직접 열어 영상 1건, YouTube 미연결,
+  TikTok 누락 차단, Instagram Reels 발행 가능 UI를 관찰했다. 같은 실행의 단기 토큰은 revoke 후 동일
+  `/api/me` HTTP 401을 확인했고 로컬/VM 임시 원문 파일을 삭제했다.
+- **QA 사고 및 재발방지:** 첫 토큰 주입 시 브라우저 하네스의 `eval`(파일 경로 인자)을 one-liner 명령으로
+  오사용해 임시 토큰이 도구 로그에 1회 노출됐다. 즉시 revoke/401 확인 후 폐기했고, 재실행은 권한 600의 임시
+  JS 파일을 `eval <file>`로 읽은 뒤 삭제했다. 이후 브라우저 secret 주입은 inline command 인자 금지,
+  mode 600 파일 경유 + 종료 revoke/401을 필수로 한다.
+- **미검증/외부 blocker:** X·TikTok은 개발자 계정 로그인 후 앱 생성/심사와 credential 저장이 필요하다.
+  Facebook은 Meta 개발자 로그인 후 앱 Live 또는 tester role/제품 권한 상태를 직접 확인해야 한다. Instagram
+  신규 계정 OTP 제한과 YouTube 실제 Google 동의·업로드, 동일 provider 실계정 2개 전환은 계속 미검증이다.
+- **정확한 다음 액션:** 사용자가 현재 열린 X/TikTok/Meta 개발자 탭에 로그인한다. 로그인 세션이 생기면 이
+  pane이 앱 생성·callback URL·권한·Live/test role을 설정하고 secret을 harness/GitHub에 저장한 뒤 운영 OAuth
+  callback→계정 row→기본 전환→테스트 발행까지 다시 직접 관찰한다. 코드·배포 재작업은 외부 설정 회수 전에는
+  불필요하다.
