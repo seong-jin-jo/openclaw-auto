@@ -2323,3 +2323,19 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
   pane이 앱 생성·callback URL·권한·Live/test role을 설정하고 secret을 harness/GitHub에 저장한 뒤 운영 OAuth
   callback→계정 row→기본 전환→테스트 발행까지 다시 직접 관찰한다. 코드·배포 재작업은 외부 설정 회수 전에는
   불필요하다.
+
+### 2026-07-22 22:35 KST 종료 핸드오프 체크포인트
+
+- **primary:** `openclaw-auto:0.0`; 사용자 지시대로 이 파일과 해당 pane을 연속 작업 기준으로 사용했다.
+- **현재 상태:** 운영 Chrome/OAuth UI QA 증거와 원장 갱신은 commit `af36acf3`이며 GitHub `main` 원격 HEAD도
+  동일 SHA임을 재확인했다. 이 체크포인트 갱신만 미커밋이고 다른 추적 파일 변경은 없다. 공개 health는 직전
+  확인에서 HTTP 200/DB up.
+- **검증 종료증거:** X credential 누락 disabled, Facebook 외부 앱 상태 경고, Instagram 기본 계정 1개와 계정
+  추가 안내, Bluesky invalid App Password의 조치 가능한 오류, `/videos`의 YouTube/TikTok/Reels UI를 운영 고객
+  권한 브라우저에서 직접 관찰했다. QA 토큰은 revoke 후 `/api/me` 401, 임시 secret 파일 삭제 완료.
+- **외부 대기:** Chrome에 X Developer Portal, TikTok for Developers, Meta for Developers 앱 목록을 열어뒀다.
+  세 콘솔 모두 사용자 로그인/2FA가 필요하다. Instagram 신규 계정 OTP, YouTube 실동의·업로드, 동일 provider
+  실제 2계정 전환도 아직 미검증이다.
+- **재개 트리거/정확한 다음 액션:** 사용자가 `세 콘솔 로그인함`이라고 알리면 탭 인증 상태부터 확인하고 X/TikTok
+  앱 생성·권한·callback, Meta Live/test role을 설정한다. credential은 로컬 harness/GitHub secret에만 저장하고
+  OSMU 재배포 후 실제 OAuth callback→`channel_accounts` 저장→기본 전환→provider 테스트 발행 URL을 관찰한다.
