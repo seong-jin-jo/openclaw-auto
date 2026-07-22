@@ -45,6 +45,8 @@ describe("GET /api/auth/google", () => {
     expect(res.status).toBe(200);
     expect(body.authUrl).toContain("https://example.supabase.co/auth/v1/authorize");
     expect(body.authUrl).toContain("provider=google");
+    expect(new URL(body.authUrl).searchParams.get("prompt")).toBe("select_account");
     expect(H.fetchUrl).toContain("redirect_to=https%3A%2F%2Fapp.example%2Flogin");
+    expect(new URL(H.fetchUrl).searchParams.get("prompt")).toBe("select_account");
   });
 });

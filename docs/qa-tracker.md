@@ -614,3 +614,23 @@ SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open �
 - **잔여 미검증:** 이번 신규 이미지 URL로 Instagram/Threads 새 공개 게시물을 추가 생성하지는 않았다.
   기존 실제 Instagram Reel·Threads 게시 증거와 별개다. R2 원격 백업은 미설정이지만 현재 Docker 영속 volume의
   업로드·배달은 운영 관찰됐으며, R2는 재해복구 강화를 위한 별도 인프라 항목이다.
+
+### 2026-07-22 셀프서비스 OAuth SaaS QA·운영 배포
+
+- **CI DB 격리(테스트됨):** run `29891147154` SUCCESS. PostgreSQL 16 schema→seed→RLS 적용 후 신규 사용자
+  A/B tenant provisioning, A의 다중계정/default 전환, queue/schedule/published/file 경계, 상호 조회 0행과
+  cross-tenant RLS write 거부를 `self-service-tenant.db.test.ts`에서 skip 없이 실행. 전체 96 files PASS.
+- **운영 배포(관찰됨):** deploy run `29891777778` SUCCESS. public health 200/db up, login 200,
+  무인증 `/api/me` 401, Google preflight 200와 Supabase authorize URL을 직접 확인.
+- **OAuth 시작 경로(관찰됨):** 단기 tenant token으로 Instagram, Threads, Facebook, YouTube가 각각 공식
+  authorize host와 HttpOnly `oauth_state_<provider>` cookie를 반환. Instagram state를 cookie 없는 별도 요청에서
+  callback했을 때 토큰 교환 전에 브라우저 불일치로 차단되고 state cookie `Max-Age=0` 폐기 확인.
+- **비활성 경계(관찰됨):** X는 `X_CLIENT_ID` 미설정 500, TikTok은 `TIKTOK_CLIENT_KEY` 미설정 500,
+  Bluesky는 지원하지 않는 OAuth provider 400. QA token은 매 실행 후 revoke했고 동일 `/api/me` 401 확인.
+- **미검증:** 완전히 새로운 Google 사용자 A/B의 실제 consent 왕복, 각 사용자 SNS 계정 callback 저장,
+  동일 provider 실계정 2개 UI 전환, 사용자별 실발행 permalink, 운영 API 상호 403/404. Facebook 앱 Live/심사,
+  Instagram OTP rate limit, X/TikTok credential·심사도 외부 차단으로 남는다.
+- **판정:** 코드·DB·배포 QA는 승인. 전체 v1.0.0 ship은 위 실계정 운영 E2E가 없어 in-progress 유지.
+- **Google 계정전환 후속:** 앱 로그인 preflight에도 `prompt=select_account`를 추가해 OSMU 로그아웃 후 기존
+  Google 세션이 자동 재사용되는 경로를 막았다. focused 22 PASS, 전체 96 files/828 PASS·10 local DB skip,
+  TypeScript와 Webpack production build PASS. CI·재배포·live Google redirect 확인 전에는 운영 반영 미검증.

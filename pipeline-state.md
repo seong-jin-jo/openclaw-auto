@@ -4,16 +4,16 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: qa              # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design, build]
+current_stage: ship            # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design, build, qa]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
   build:      { status: approved, artifacts_ok: true } # browser-bound OAuth state + A/B DB integration test + 826 PASS + webpack build
-  qa:         { status: in-progress, artifacts_ok: false }
-  ship:       { status: pending, artifacts_ok: false }
+  qa:         { status: approved, artifacts_ok: true } # CI PostgreSQL A/B isolation + live OAuth initiation/replay boundary
+  ship:       { status: in-progress, artifacts_ok: false }
 override: false
 override_reason: ""
 override_expires: ""
@@ -32,7 +32,21 @@ override_expires: ""
   가능한 provider의 실제 OAuth callback·발행 URL. 외부 provider 왕복을 못 한 범위는 미검증으로 명시한다.
 - build 결과: OAuth state를 callback 전용 HttpOnly 쿠키에 바인딩하고 X/TikTok PKCE verifier도 모든 callback
   결과에서 폐기한다. 신규 A/B PostgreSQL 격리 테스트를 CI 필수 경로에 추가했다. 독립 QA에서 코드 결함은
-  없었고 TikTok 전용 회귀 누락 1건은 `0d12defb`로 보완했다. QA는 실제 CI PostgreSQL 결과 확인 중이다.
+  없었고 TikTok 전용 회귀 누락 1건은 `0d12defb`로 보완했다.
+- QA/배포 결과: GitHub CI `29891147154`가 PostgreSQL 16 schema→seed→RLS와 A/B 셀프서비스 격리 테스트를
+  skip 없이 포함해 96 files PASS. deploy `29891777778`도 성공했고 운영 health 200/db up, login 200,
+  무인증 me 401, Google preflight 200을 직접 관찰했다.
+- 운영 OAuth 시작 경로: 단기 tenant token으로 Instagram·Threads·Facebook·YouTube가 각각 공식 authorize
+  domain과 HttpOnly state cookie를 반환했다. 쿠키 없는 별도 브라우저 callback 재생은 토큰 교환 전에 차단되고
+  state cookie가 Max-Age=0으로 폐기됐다. X/TikTok은 운영 credential 미설정으로 500, Bluesky는 OAuth 미지원
+  400이며 토큰은 즉시 revoke 후 me 401을 확인했다.
+- QA는 사용자 기존 `QA승인`과 반복된 무질문 진행 지시를 증거 충족 후 반영해 승인한다. ship은 실제 신규
+  Google 사용자 가입·provider 동의 callback·사용자별 실발행 permalink와 상호 운영 API 차단을 직접 보지
+  못했으므로 `in-progress`, `artifacts_ok:false`를 유지한다.
+- ship 후속에서 사이트 로그아웃 뒤 Google 계정이 자동 재사용되는 원인을 `/api/auth/google`의 계정 선택
+  파라미터 누락으로 확인했다. Supabase authorize URL에 `prompt=select_account`를 추가했고 focused 22 PASS,
+  전체 828 PASS/10 local DB skip, TypeScript, Webpack production build를 통과했다. CI·운영 재배포와 실제
+  Google authorize URL 반영을 확인하기 전까지 이 hotfix는 배포 완료로 승격하지 않는다.
 
 ## 2026-07-21 SNS-018 ship hotfix operating close
 - 고객 `/videos`의 잘못된 403과 테넌트 이미지 업로드·배달·삭제 불일치를 수정했다. 전역 clipping/ElevenLabs

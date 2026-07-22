@@ -28,6 +28,9 @@ export async function GET(request: Request) {
   const authUrl = new URL(`${base}/auth/v1/authorize`);
   authUrl.searchParams.set("provider", "google");
   authUrl.searchParams.set("redirect_to", redirectTo);
+  // Supabase forwards provider query params to Google. Always show Google's account chooser so
+  // signing out of OSMU and returning does not silently reuse the browser's previous Google user.
+  authUrl.searchParams.set("prompt", "select_account");
 
   try {
     // Supabase provider disabled 상태는 브라우저가 Supabase JSON 페이지로 이동하기 전에 서버에서 잡는다.

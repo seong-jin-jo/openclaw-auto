@@ -3,7 +3,7 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-22 KST · 셀프서비스 OAuth build 종료, 실제 PostgreSQL CI QA 진행
+**최종 갱신:** 2026-07-22 KST · 셀프서비스 OAuth QA·운영 배포 완료, 외부 실계정 ship E2E 진행
 
 ---
 
@@ -60,20 +60,38 @@ integration mirror·queue_posts·schedules·published_posts·tenant filesystem i
 Next.js production build 162 routes PASS, `git diff --check` PASS. 빌드의 기존 Turbopack NFT trace warning
 (`next.config.ts` → `api/studio/text`)만 유지.
 
-**미검증/다음 액션:** 로컬은 DATABASE_URL·Docker daemon 부재라 새 A/B PostgreSQL 통합 테스트가 skip됐다.
-CI PostgreSQL에서 그 테스트 실행 결과를 확인한 뒤, 실제 신규 Google 사용자 A/B와 provider credential을 사용해
-OAuth 동의→callback→각자 발행 permalink→상호 403/404를 직접 관찰해야 한다. 외부 Google/Meta/X/TikTok
-동의·실발행은 아직 미검증이며 build/test 통과로 운영 SaaS 완료 처리하지 않는다.
+**QA·운영 배포 증거:** CI run `29891147154` SUCCESS. PostgreSQL 16에 schema→seed→RLS를 적용한 뒤
+`self-service-tenant.db.test.ts`가 skip 없이 실행됐고 전체 96 files PASS다. deploy run `29891777778` SUCCESS.
+운영 public health 200/db up, login 200, 무인증 me 401, Google preflight 200와 Supabase authorize host를 관찰했다.
+
+**운영 OAuth 시작·재생방지 E2E:** 운영 QA tenant에 단기 토큰을 발급해 Instagram→`www.instagram.com`,
+Threads→`threads.net`, Facebook→`www.facebook.com`, YouTube→`accounts.google.com` auth URL과 provider별
+HttpOnly state cookie를 확인했다. 같은 Instagram state를 쿠키 없는 별도 브라우저 요청으로 callback했을 때
+토큰 교환 전 "현재 브라우저와 일치하지 않음" 안내가 반환됐고 state cookie도 `Max-Age=0`으로 폐기됐다.
+X는 `X_CLIENT_ID`, TikTok은 `TIKTOK_CLIENT_KEY` 미설정 500, Bluesky는 OAuth 미지원 400을 확인했다.
+모든 단기 토큰은 revoke했고 같은 토큰의 `/api/me` 401을 관찰했다.
+
+**현재 판정/다음 액션:** 코드 QA와 운영 반영은 증거 충족으로 qa approved, ship in-progress다. 실제 완전히
+새로운 Google 사용자 A/B의 계정 선택→앱 복귀→각자 tenant 생성, 각자 SNS 동의 callback→계정 전환→실발행
+permalink, 운영 API 상호 403/404는 사람 실계정 동의 없이 자동 수행할 수 없어 미검증이다. X/TikTok credential,
+Facebook 앱 Live/심사, Instagram OTP 제한을 회수하는 즉시 provider별 브라우저 실경로를 실행한다.
+
+**Google 앱 로그인 계정전환 hotfix:** 사용자 제보를 재감사해 YouTube 연결에는 이미
+`prompt=consent select_account`가 있지만 앱 자체 `/api/auth/google`에는 계정 선택 강제가 없음을 확인했다.
+Supabase authorize URL에 공식 provider query parameter `prompt=select_account`를 추가해 앱 로그아웃 후 재로그인도
+Google 계정 선택 화면을 거치게 수정했다. focused 22 PASS, 전체 96 files/828 PASS·10 local DB skip,
+TypeScript PASS, Webpack production build PASS. 독립 Claude 리뷰 호출은 출력 없이 종료돼 리뷰 증거로 쓰지 않는다.
+다음 액션은 commit/push→CI PostgreSQL→dashboard 단독 재배포→live Supabase/Google redirect의 prompt 직접 확인이다.
 
 **독립 QA 후속:** qa-verifier가 focused 54 PASS, full 826 PASS/10 DB-env skip, TypeScript PASS,
 Webpack production build 162 routes PASS를 직접 실행했다. 코드 보안 회귀는 발견하지 못했고 TikTok 전용
 PKCE/state 쿠키 수명 테스트 누락 LOW 1건을 보고해 `0d12defb`에서 발급·성공 callback·provider error를
 56 PASS로 고정했다. qa-verifier 산출물 자체는 Codex에 제공되지 않은 `qa/browse/verify` 스킬 미호출 규칙으로
-하네스 verify FAIL이므로 품질 PASS로 과장하지 않는다. 실제 CI PostgreSQL 결과가 현재 QA 종료의 다음 증거다.
+하네스 verify FAIL이므로 품질 PASS로 과장하지 않는다. 실제 CI PostgreSQL run `29891147154`로 DB 격리 증거는 보완됐다.
 
-**현재 다음 액션:** HEAD를 main에 push해 `.github/workflows/ci.yml`의 PostgreSQL 16 schema→seed→RLS→full
-Vitest를 실행한다. CI 성공 후 운영 배포를 실행하고 health/login/API를 직접 관찰한다. 실제 신규 Google 사용자
-A/B 및 외부 SNS 동의·실발행은 별도 운영 브라우저 증거가 없으면 계속 미검증으로 남긴다.
+**현재 다음 액션:** Instagram·Threads·YouTube부터 새 테스트 사용자의 실제 Google 가입→OAuth 동의→callback→
+계정 저장·전환→테스트 발행을 브라우저로 관찰한다. X/TikTok은 운영자 OAuth 앱 credential 등록 후 동일 절차,
+Facebook은 Meta 앱 Live/테스터 접근 복구 후 동일 절차를 수행한다. 실제 관찰 전에는 v1.0.0 완료로 보고하지 않는다.
 
 ---
 
