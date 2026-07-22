@@ -45,8 +45,10 @@ override_expires: ""
   못했으므로 `in-progress`, `artifacts_ok:false`를 유지한다.
 - ship 후속에서 사이트 로그아웃 뒤 Google 계정이 자동 재사용되는 원인을 `/api/auth/google`의 계정 선택
   파라미터 누락으로 확인했다. Supabase authorize URL에 `prompt=select_account`를 추가했고 focused 22 PASS,
-  전체 828 PASS/10 local DB skip, TypeScript, Webpack production build를 통과했다. CI·운영 재배포와 실제
-  Google authorize URL 반영을 확인하기 전까지 이 hotfix는 배포 완료로 승격하지 않는다.
+  전체 828 PASS/10 local DB skip, TypeScript, Webpack production build를 통과했다. CI `29893393332`와 deploy
+  `29893789257` SUCCESS. 운영 Supabase authorize와 최종 `accounts.google.com` URL 모두
+  `prompt=select_account`를 보존했고, 격리 브라우저에서 기존 세션 자동진입 없이 Google 이메일/계정 선택
+  진입 화면을 직접 관찰했다. 앱 로그인 계정전환 hotfix는 운영 반영됨으로 판정한다.
 
 ## 2026-07-21 SNS-018 ship hotfix operating close
 - 고객 `/videos`의 잘못된 403과 테넌트 이미지 업로드·배달·삭제 불일치를 수정했다. 전역 clipping/ElevenLabs

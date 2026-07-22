@@ -81,7 +81,10 @@ Facebook 앱 Live/심사, Instagram OTP 제한을 회수하는 즉시 provider�
 Supabase authorize URL에 공식 provider query parameter `prompt=select_account`를 추가해 앱 로그아웃 후 재로그인도
 Google 계정 선택 화면을 거치게 수정했다. focused 22 PASS, 전체 96 files/828 PASS·10 local DB skip,
 TypeScript PASS, Webpack production build PASS. 독립 Claude 리뷰 호출은 출력 없이 종료돼 리뷰 증거로 쓰지 않는다.
-다음 액션은 commit/push→CI PostgreSQL→dashboard 단독 재배포→live Supabase/Google redirect의 prompt 직접 확인이다.
+commit `52925362`, CI `29893393332` SUCCESS, deploy `29893789257` SUCCESS. 운영 앱 auth URL과 Supabase가
+redirect한 실제 `accounts.google.com` URL에서 모두 `prompt=select_account`를 확인했다. 격리 gstack 브라우저가
+`Google로 계속` 클릭 후 기존 계정 자동진입 없이 Google 이메일/계정 선택 진입 화면을 렌더했다. 화면 증거는
+`docs/evidence/google-account-selector-20260722.png`. 앱 로그인 계정전환 hotfix는 운영 반영됨이다.
 
 **독립 QA 후속:** qa-verifier가 focused 54 PASS, full 826 PASS/10 DB-env skip, TypeScript PASS,
 Webpack production build 162 routes PASS를 직접 실행했다. 코드 보안 회귀는 발견하지 못했고 TikTok 전용
@@ -89,9 +92,10 @@ PKCE/state 쿠키 수명 테스트 누락 LOW 1건을 보고해 `0d12defb`에서
 56 PASS로 고정했다. qa-verifier 산출물 자체는 Codex에 제공되지 않은 `qa/browse/verify` 스킬 미호출 규칙으로
 하네스 verify FAIL이므로 품질 PASS로 과장하지 않는다. 실제 CI PostgreSQL run `29891147154`로 DB 격리 증거는 보완됐다.
 
-**현재 다음 액션:** Instagram·Threads·YouTube부터 새 테스트 사용자의 실제 Google 가입→OAuth 동의→callback→
-계정 저장·전환→테스트 발행을 브라우저로 관찰한다. X/TikTok은 운영자 OAuth 앱 credential 등록 후 동일 절차,
-Facebook은 Meta 앱 Live/테스터 접근 복구 후 동일 절차를 수행한다. 실제 관찰 전에는 v1.0.0 완료로 보고하지 않는다.
+**현재 다음 액션:** Instagram·Threads·YouTube부터 새 테스트 사용자의 Google 자격증명 입력 이후 실제 가입→OAuth
+동의→callback→계정 저장·전환→테스트 발행을 브라우저로 관찰한다. X/TikTok은 운영자 OAuth 앱 credential 등록 후
+동일 절차, Facebook은 Meta 앱 Live/테스터 접근 복구 후 동일 절차를 수행한다. 실제 관찰 전에는 v1.0.0 완료로
+보고하지 않는다.
 
 ---
 

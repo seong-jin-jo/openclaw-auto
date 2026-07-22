@@ -633,4 +633,7 @@ SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open �
 - **판정:** 코드·DB·배포 QA는 승인. 전체 v1.0.0 ship은 위 실계정 운영 E2E가 없어 in-progress 유지.
 - **Google 계정전환 후속:** 앱 로그인 preflight에도 `prompt=select_account`를 추가해 OSMU 로그아웃 후 기존
   Google 세션이 자동 재사용되는 경로를 막았다. focused 22 PASS, 전체 96 files/828 PASS·10 local DB skip,
-  TypeScript와 Webpack production build PASS. CI·재배포·live Google redirect 확인 전에는 운영 반영 미검증.
+  TypeScript와 Webpack production build PASS. commit `52925362`, CI `29893393332`, deploy `29893789257` SUCCESS.
+  운영 앱 auth URL과 Supabase→Google redirect 모두 `prompt=select_account`를 보존했다. 격리 브라우저에서 기존
+  세션 자동진입 없이 Google 이메일/계정 선택 진입 화면을 직접 관찰했다. 증거:
+  `docs/evidence/google-account-selector-20260722.png`.
