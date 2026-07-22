@@ -49,6 +49,15 @@ override_expires: ""
   `29893789257` SUCCESS. 운영 Supabase authorize와 최종 `accounts.google.com` URL 모두
   `prompt=select_account`를 보존했고, 격리 브라우저에서 기존 세션 자동진입 없이 Google 이메일/계정 선택
   진입 화면을 직접 관찰했다. 앱 로그인 계정전환 hotfix는 운영 반영됨으로 판정한다.
+- 운영의 서로 다른 활성 tenant 2개에 단기 토큰을 발급해 `/api/me`가 각각 다른 tenant에 고정됨을 확인했다.
+  양쪽 `/api/isolation-proof`는 다른 활성 tenant가 10개 존재하는 상태에서도 cross-tenant drafts 0을 반환했다.
+  상대 tenant ID를 Instagram accounts 쿼리에 주입해도 각자의 무주입 응답과 byte-identical해 override가 무시됐고,
+  토큰 2개 모두 revoke 뒤 `/api/me` 401을 확인했다. 운영 API 교차격리 증거는 충족한다.
+- 비밀값 inventory에는 Meta·YouTube 앱 자격증명만 있고 X/TikTok 자격증명은 GitHub Secrets와 로컬 harness
+  양쪽 모두 없다. 따라서 X/TikTok 실 OAuth·발행은 코드가 아니라 앱 생성/심사/credential 회수가 남은 외부 blocker다.
+- Google 계정전환 재발방지를 위해 deploy smoke가 preflight HTTP 200뿐 아니라 응답 authUrl의
+  `prompt=select_account`까지 검사하도록 보강했다. focused contract 9 PASS. 이 workflow 변경은 CI와 실제
+  재배포 smoke 통과 후 운영 게이트로 확정한다.
 
 ## 2026-07-21 SNS-018 ship hotfix operating close
 - 고객 `/videos`의 잘못된 403과 테넌트 이미지 업로드·배달·삭제 불일치를 수정했다. 전역 clipping/ElevenLabs

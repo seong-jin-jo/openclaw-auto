@@ -122,7 +122,8 @@ jobs:
           L=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:18789/login || echo 000)
           M=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:18789/api/me || echo 000)
           LOGIN_HTML=$(curl -s http://localhost:18789/login || echo '')
-          G=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:18789/api/auth/google?redirect_to=http://localhost:18789/" || echo 000)
+          GOOGLE_BODY=/tmp/osmu-google-preflight.json
+          G=$(curl -s -o "$GOOGLE_BODY" -w '%{http_code}' "http://localhost:18789/api/auth/google?redirect_to=http://localhost:18789/" || echo 000)
           echo "login=$L api/me=$M google=$G"
           [ "$L" = "200" ] || { echo "::error::/login HTTP $L — 로그인 페이지 死"; exit 1; }
           [ "$M" = "401" ] || { echo "::error::/api/me HTTP $M — 인증 게이트 이상(401이어야 안전)"; exit 1; }
@@ -143,6 +144,13 @@ jobs:
           # 404/500/403도 통과시켰음).
           [ "$G" = "200" ] || [ "$G" = "400" ] \
             || { echo "::error::/api/auth/google HTTP $G — public preflight 이상(200 또는 400이어야 함, 미반영 배포/라우트 장애 감지)"; exit 1; }
+          # Google provider가 활성화된 운영(200)에서는 계정 선택 강제 파라미터도 배포 계약이다.
+          # 상태코드만 보면 구버전이 다시 배포돼도 통과하므로 authUrl 본문까지 확인한다.
+          if [ "$G" = "200" ]; then
+            jq -e '.authUrl | type == "string" and contains("prompt=select_account")' "$GOOGLE_BODY" >/dev/null \
+              || { echo "::error::Google authUrl에 prompt=select_account 없음 — 로그아웃 후 이전 계정 자동재사용 회귀"; exit 1; }
+          fi
+          rm -f "$GOOGLE_BODY"
           docker exec openclaw-dashboard-osmu sh -c 'grep -rlq gvtsyyltgwqplrqegrxo .next 2>/dev/null' \
             || { echo "::error::NEXT_PUBLIC supabase URL 빌드 미주입 — 가입/로그인 死(supabaseUrl required)"; exit 1; }
           # DB 스키마 누락 회귀 감지(usage_events 등 부재 → 500 실사고 2026-07-12). 토큰은 stdin으로
@@ -153,4 +161,4 @@ jobs:
           )
           echo "operator/customers=$OC"
           [ "$OC" = "200" ] || { echo "::error::/api/operator/customers HTTP $OC — 200이어야 함(DB 스키마 누락/운영자 토큰/라우트 장애 신호)"; exit 1; }
-          echo "✅ 스모크 통과: 로그인페이지·인증게이트·supabase 빌드주입·Google-only(비밀번호UI無)·google preflight·operator/customers 정상"
+          echo "✅ 스모크 통과: 로그인페이지·인증게이트·supabase 빌드주입·Google-only(비밀번호UI無)·google 계정선택 preflight·operator/customers 정상"

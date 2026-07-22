@@ -52,6 +52,8 @@ describe("deploy-marketing.yml 스모크 게이트 — Google-only 회귀 방지
   it("/api/auth/google preflight(200|400) 및 operator/customers(200) 게이트는 그대로 유지된다", () => {
     expect(deployWorkflow).toContain("/api/auth/google?redirect_to=");
     expect(deployWorkflow).toMatch(/\[ "\$G" = "200" \] \|\| \[ "\$G" = "400" \]/);
+    expect(deployWorkflow).toContain('contains("prompt=select_account")');
+    expect(deployWorkflow).toContain("Google authUrl에 prompt=select_account 없음");
     expect(deployWorkflow).toContain("/api/operator/customers");
     expect(deployWorkflow).toMatch(/\[ "\$OC" = "200" \]/);
   });

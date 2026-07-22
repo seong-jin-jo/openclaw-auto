@@ -637,3 +637,11 @@ SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open �
   운영 앱 auth URL과 Supabase→Google redirect 모두 `prompt=select_account`를 보존했다. 격리 브라우저에서 기존
   세션 자동진입 없이 Google 이메일/계정 선택 진입 화면을 직접 관찰했다. 증거:
   `docs/evidence/google-account-selector-20260722.png`.
+- **운영 2-tenant 격리(관찰됨):** 서로 다른 활성 tenant 두 개의 단기 토큰으로 `/api/me` 귀속이 서로 다름을
+  확인. 다른 활성 tenant 10개가 존재하지만 양쪽 isolation proof의 cross-tenant drafts는 0. 상대 tenant_id를
+  Instagram accounts 쿼리에 넣어도 각자의 무주입 응답과 동일해 client override가 무시됨. 두 토큰 revoke 후
+  동일 `/api/me` 401 확인.
+- **credential inventory(근거 확인):** GitHub secret 이름은 Meta·YouTube만 존재하고 X/TikTok은 없음.
+  로컬 harness secret 파일에도 X/TikTok 4개 env 이름이 없다. 실제 값은 조회·출력하지 않음.
+- **재발방지 보강:** deploy smoke가 Google preflight 200에 더해 authUrl의 `prompt=select_account`를 검사하고,
+  누락 시 배포를 실패시킨다. focused 9 PASS, jq 정상/누락 분기 확인. CI·실제 deploy smoke는 진행 중.

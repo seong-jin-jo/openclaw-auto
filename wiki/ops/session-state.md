@@ -86,6 +86,22 @@ redirect한 실제 `accounts.google.com` URL에서 모두 `prompt=select_account
 `Google로 계속` 클릭 후 기존 계정 자동진입 없이 Google 이메일/계정 선택 진입 화면을 렌더했다. 화면 증거는
 `docs/evidence/google-account-selector-20260722.png`. 앱 로그인 계정전환 hotfix는 운영 반영됨이다.
 
+**운영 2-tenant 교차격리 추가 증거:** `code0to1` QA tenant와 별도 활성 tenant에 각각 단기 토큰을 발급했다.
+`/api/me`는 서로 다른 tenant id에 정확히 귀속됐고, 두 `/api/isolation-proof` 모두 다른 활성 tenant 10개가
+존재하는 상태에서 crossTenant drafts 0을 반환했다. A 토큰에 B tenant_id, B 토큰에 A tenant_id를 넣은
+Instagram accounts 조회는 각자 tenant_id 없는 조회와 동일해 client override가 무시됐다. 두 토큰은 즉시 revoke,
+동일 `/api/me` 401을 확인했다. 실제 신규 Google A/B consent는 미검증이지만 운영 API 격리 자체는 관찰됐다.
+
+**credential inventory:** GitHub Actions secret 이름에는 FB/IG/Threads/YouTube가 있고 X/TikTok은 없다.
+`~/.sj-agent-harness/secrets`에도 `X_CLIENT_ID`, `X_CLIENT_SECRET`, `TIKTOK_CLIENT_KEY`,
+`TIKTOK_CLIENT_SECRET`이 없다. 값은 출력하지 않았다. 외부 앱 생성·심사 전 자동 복구 가능한 기존 secret은 없다.
+
+**재발방지 deploy gate 진행:** 기존 smoke는 `/api/auth/google` HTTP 200만 확인해 계정선택 파라미터가
+사라진 구버전도 통과할 수 있었다. Google provider가 활성화된 200 응답이면 body의 authUrl에
+`prompt=select_account`가 반드시 있어야 배포를 통과하도록 workflow를 보강했고, Google-only/preflight focused
+9 PASS와 jq positive/negative 계약을 확인했다. 다음 액션은 commit/push→CI→dashboard 단독 재배포에서 새 smoke가
+실제로 PASS하는지 관찰하는 것이다.
+
 **독립 QA 후속:** qa-verifier가 focused 54 PASS, full 826 PASS/10 DB-env skip, TypeScript PASS,
 Webpack production build 162 routes PASS를 직접 실행했다. 코드 보안 회귀는 발견하지 못했고 TikTok 전용
 PKCE/state 쿠키 수명 테스트 누락 LOW 1건을 보고해 `0d12defb`에서 발급·성공 callback·provider error를
