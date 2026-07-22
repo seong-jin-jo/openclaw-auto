@@ -2339,3 +2339,16 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
 - **재개 트리거/정확한 다음 액션:** 사용자가 `세 콘솔 로그인함`이라고 알리면 탭 인증 상태부터 확인하고 X/TikTok
   앱 생성·권한·callback, Meta Live/test role을 설정한다. credential은 로컬 harness/GitHub secret에만 저장하고
   OSMU 재배포 후 실제 OAuth callback→`channel_accounts` 저장→기본 전환→provider 테스트 발행 URL을 관찰한다.
+
+### 2026-07-23 재개 확인
+
+- 사용자 `진행해` 지시로 `openclaw-auto:0.0`과 위 체크포인트를 기준으로 재개했다.
+- 운영 직접 확인: health HTTP 200, DB up. readiness는 Instagram·Threads·Facebook·YouTube available,
+  X는 `X_CLIENT_ID/X_CLIENT_SECRET`, TikTok은 `TIKTOK_CLIENT_KEY/TIKTOK_CLIENT_SECRET` 누락으로 unavailable.
+  code0to1 tenant의 channel account는 Instagram 1(active 1), Threads 1(active 1)이다.
+- Chrome 직접 확인: X는 로그인 onboarding URL, TikTok은 `/apps/` 로그인 화면, Meta는 공개 developer 홈으로
+  남아 있어 세 개발자 콘솔 모두 인증 세션이 없다. 따라서 앱 생성·credential 발급·Meta Live/role 설정은
+  사용자의 로그인/2FA 전에는 진행할 수 없다.
+- handoff checkpoint commit `672ff45b`를 VM 우회 경로로 GitHub `main`에 push했다.
+- **정확한 다음 액션:** 사용자가 열린 X/TikTok/Meta 탭에서 로그인과 2FA만 완료하고 `세 콘솔 로그인함`을
+  알린다. 즉시 이 pane이 콘솔 설정→secret 저장→배포→실 OAuth callback/계정 전환/발행 QA를 수행한다.
