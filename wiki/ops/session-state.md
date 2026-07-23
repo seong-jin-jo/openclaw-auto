@@ -3,7 +3,7 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-24 KST · 운영자 로그인 리다이렉트 수정·비밀키 교체, 배포 대기
+**최종 갱신:** 2026-07-24 00:48 KST · 운영자 로그인 리다이렉트 수정·토큰 교체·운영 배포/Chrome E2E 종료
 
 ---
 
@@ -23,12 +23,25 @@
 `OSMU_DASHBOARD_AUTH_TOKEN` secret 양쪽에 저장했다.
 
 **검증:** focused 3 files/33 PASS, 전체 Vitest 98 files/835 PASS·10 DB-env skip, TypeScript를 포함한
-Next.js production build 165 routes PASS. 아직 새 secret을 포함한 운영 재배포와 실제 Chrome
-`/operator`→`/operator/customers` 렌더는 미검증이다.
+Next.js production build 165 routes PASS. commit `4595e950`은 GitHub `main`에 push됐고 deploy run
+`30020112816`은 checkout, secret 렌더, DB schema/RLS, image build, 기동, health, 로그인 smoke를 모두
+통과했다. 운영 API에서 새 토큰은 `/api/me` 200·`isOperator=true`, `/api/operator/customers` 200이고,
+교체 전 컨테이너에서 회수한 구 토큰은 동일 `/api/me` 401임을 원문 미출력 상태로 관찰했다.
 
-**정확한 다음 액션:** 변경 파일과 상태 문서를 commit/push하고 `openclaw-dashboard-osmu`를 재배포한다.
-배포 후 구 토큰 401, 새 토큰 `/api/me isOperator=true`, Chrome `/operator` 로그인 후 URL이
-`/operator/customers`이며 가입자·OAuth 상태판이 렌더되는 것을 직접 관찰한다.
+**운영 Chrome E2E:** 별도 Chrome에서 `/operator`를 열어 빈 storage 상태로 새 토큰을 실제 입력하고 `접속`
+버튼을 클릭했다. URL이 `/operator/customers`로 전환됐고 `유저 관리자`, 가입자 7명, 워크스페이스 11개,
+활성 11개, 연결 계정 3개, 발행 5건, 실패 5건과 중앙 OAuth 앱 4/12 준비 상태가 렌더되는 것을 직접 관찰했다.
+Romeo 기본 workspace 홈으로 빠지는 이전 결함은 재현되지 않았다. 관리자 탭은 사용자가 바로 확인하도록
+열어뒀으며 토큰 원문은 repo/wiki/도구 출력에 남기지 않았다.
+
+**교차 보안 리뷰:** Claude Haiku가 commit diff, `/api/me`, operator customers API, auth helper를 읽고
+이번 리다이렉트와 서버 API 인가 경계에는 출고 차단 결함이 없다고 판정했다. 기존 `/api/me` 운영자 토큰
+시도에 rate limit이 없는 중간 위험, 고객 관리 페이지의 사전 client guard 부재, 정적 source-match 회귀
+테스트의 행위 검증 부족을 후속으로 식별했다. API 데이터는 서버에서 계속 차단되므로 이번 복구를 막지는 않는다.
+
+**정확한 다음 액션:** 관리자 진입 복구는 운영 종료. 다음 build 트랙에서 운영자 인증 실패 rate limit·감사
+이벤트를 추가하고, `/operator/customers` 사전 role guard 및 실제 컴포넌트 행위 테스트로 보강한다. 제품 출시
+전체 잔여는 X/TikTok 중앙 OAuth credential·심사, Meta/YouTube 실계정 왕복, 동일 provider 2계정 전환·발행이다.
 
 ---
 

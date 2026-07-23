@@ -26,7 +26,11 @@ override_expires: ""
 - 검증 성공 후 `/operator/customers`로 직접 이동하도록 수정하고 회귀 테스트를 추가했다.
 - 새 운영 secret은 로컬 harness와 GitHub Actions secret에 저장했으며 원문은 repo/state에 남기지 않았다.
 - focused 33 PASS, full 835 PASS/10 DB-env skip, production build 165 routes PASS.
-- 다음 실행: commit/push/deploy 후 구 토큰 거부와 새 토큰의 실제 operator customers 렌더를 Chrome으로 관찰한다.
+- commit `4595e950`, deploy run `30020112816` SUCCESS. 운영 새 토큰 `/api/me`·customers 200,
+  구 토큰 `/api/me` 401, Chrome 실제 입력/클릭 후 `/operator/customers`와 고객 KPI 렌더를 관찰했다.
+- Claude 교차 리뷰는 변경/서버 인가 blocker 0. 기존 rate limit 부재와 client guard·행위 테스트 보강은
+  후속 build backlog이며 이번 운영 복구를 막지 않는다.
+- 다음 실행: 전체 ship 잔여인 X/TikTok credential·심사 및 provider 실계정 왕복 QA를 계속한다.
 
 ## 2026-07-23 operator observability + Meta legal pages operating close
 - 기존 운영자 고객 관리에 전체 가입자/워크스페이스/활성/연결계정/발행/실패 KPI와 `channel_accounts` 기반

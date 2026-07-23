@@ -8,9 +8,13 @@
 - [x] `/api/me` 운영자 경계와 `/api/operator/customers` 보안 회귀 33 PASS
 - [x] 전체 Vitest 835 PASS/10 DB-env skip
 - [x] TypeScript 포함 production build 165 routes PASS
-- [ ] 새 GitHub secret으로 운영 재배포
-- [ ] 구 토큰 401, 새 토큰 `isOperator=true`
-- [ ] Chrome `/operator` 로그인→`/operator/customers`와 고객 상태판 직접 렌더
+- [x] 새 GitHub secret으로 운영 재배포: run `30020112816` SUCCESS
+- [x] 구 토큰 `/api/me` 401, 새 토큰 `/api/me` 200·`isOperator=true`, customers 200
+- [x] Chrome `/operator` 실제 토큰 입력·접속 클릭→`/operator/customers`와 고객 상태판 직접 렌더
+- [x] 가입자 7, 워크스페이스 11, 활성 11, 연결 계정 3, 중앙 OAuth 4/12 준비 직접 관찰
+- [x] Claude 보안 2nd-pass: redirect/API authorization blocker 0
+- [ ] 후속: `/api/me` 운영자 토큰 실패 rate limit·감사 이벤트
+- [ ] 후속: customers client guard와 source-match 대신 컴포넌트 행위 테스트
 
 ## 2026-07-23 운영자 상태판·Meta 법정 페이지
 
