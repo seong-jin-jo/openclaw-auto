@@ -2493,3 +2493,35 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
 **진실원 상태:** naming.md(2026-07-16 공장 낙점), brand.md(공장 버전), DESIGN.md(A- 실증), wiki/marketing 정본 25파일 전파·커밋 2건(815a3693·2d9799b6).
 
 **다음 세션 입구:** session-state.md(이 파일) 먼저 읽고, 회장 판단 수집 후 진행.
+
+## 2026-07-24 Codex 인수 감사 — primary=`openclaw-auto:0.1`
+
+**사용자 확정 handoff 기준:** 현재 tmux pane 1. `tmux list-panes`에서
+`openclaw-auto:0.1`(title=`ai-secretary-pivot-cascade`)로 식별해 해당 pane만 캡처했다.
+pane은 Claude 문맥 100% 사용 후 프롬프트에 멈춰 있었고 마지막 메시지는
+`Codex는 session-state.md만 읽으면 재개 가능`이었다. 같은 레포의 `0.0`·`0.2`는 별도 pane이므로
+코드·DB·배포 실행 근거로 사용하지 않았다.
+
+**실제 Git·파일 상태(직접 관찰):**
+- `main` HEAD=`771c12ec`(이 Opus→Codex handoff 기록), fetch 후 `origin/main`=`a3bb9951`.
+  즉 제품 코드·운영 증거는 원격과 일치하고 로컬은 handoff 문서 커밋 1개만 앞선다.
+- 감사 시작 시 추적 파일 worktree와 `git diff --stat`은 clean이었고, 이 인수 기록도
+  `git diff --check`를 통과했다.
+- untracked는 2,064개(`openclaw/` 2,005, `scratchpad/` 43, `scratch-design-rehearsal/` 11,
+  그 외 5)로 대량 존재한다. 현 인수 작업 산출이 아니며 소유가 불명확하므로 삭제·추가·수정하지 않는다.
+- 파이프라인은 `ship in-progress`; plan/design/eng-design/build/qa는 approved다. 전체 ship 잔여는
+  X/TikTok credential·심사와 일부 provider 실계정 왕복 QA이며, pane 1의 브랜드 에셋 트랙과 분리한다.
+
+**정본 충돌 정정:**
+- 표시 이름은 낙점 대기가 아니다. `wiki/marketing/naming.md`의 현행 확정값은
+  **`OSMU 팩토리`**, 핸들은 `@osmu.official` 우선·`@osmu.factory` 차선이다.
+- R4 이미지 4종과 stamp는 실제 파일이 존재하고 Git 추적 중이다. 최초 자산 포함 커밋은
+  `522ad412`; `2d9799b6`은 `assets.md`·session-state 후속 문서 갱신 커밋이다.
+- `wiki/marketing/assets.md` 판정은 배너·썸네일 B+ 출시 가능, 프로필 B serviceable·선택적
+  1회 리파인 후보다. 실제 Instagram 원형 crop·플랫폼 리사이즈·카피 합성 모바일 가독성은 미검증이다.
+
+**pane 1에서 이어갈 정확한 범위:** 새 제품 코드·DB·배포가 아니라 브랜드 마감 판단 4건이다.
+① 프로필 B급 v1을 그대로 쓸지 Higgsfield 1회 리파인할지 ② 워터마크 제거를 유료 기능으로 둘지
+③ UGC 제보자 닉네임 호명을 허용할지 ④ 채널 상태를 어떤 방식으로 갱신할지.
+④의 기존 추천은 발행 크론 결과 반영이다. 회장 판단 전 정본 수정·Higgsfield 재생성은 하지 않는다.
+표시 이름은 이미 확정됐으므로 다시 묻거나 `naming.md`를 재확정하는 작업은 하지 않는다.
