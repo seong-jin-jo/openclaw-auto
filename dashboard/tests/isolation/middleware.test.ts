@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { proxy } from "@/proxy";
 import { resolveTenantToken } from "@/lib/tenant-auth";
 import { verifySupabaseJwt } from "@/lib/supabase";
+import { resetOperatorAuthRateLimitForTests } from "@/lib/operator-auth-rate-limit";
 
 // 가짜 JWT는 리터럴로 두면 secret-leak 훅이 잡으므로 런타임에 조립한다(값은 종전과 동일).
 function makeFakeJwt(): string {
@@ -49,6 +50,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
   mockResolveTenantToken.mockReset();
   mockVerifySupabaseJwt.mockReset();
+  resetOperatorAuthRateLimitForTests();
 });
 
 describe("proxy L0-1 fail-closed 분기", () => {
@@ -104,6 +106,137 @@ describe("proxy 토큰 검증 분기", () => {
     vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
     const req = new NextRequest("http://localhost/api/auth/google");
     expect(isPass(await proxy(req))).toBe(true);
+  });
+});
+
+describe("proxy /api/me 운영자 토큰 검증 rate limit", () => {
+  function meRequest(
+    bearer: string,
+    clientIp = "203.0.113.10",
+    extraHeaders: Record<string, string> = {},
+  ) {
+    return new NextRequest("http://localhost/api/me", {
+      headers: {
+        Authorization: `Bearer ${bearer}`,
+        "cf-connecting-ip": clientIp,
+        ...extraHeaders,
+      },
+    });
+  }
+
+  it("같은 client identity의 5번째 invalid operator-style Bearer를 429 + Retry-After로 막는다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "configured-operator-token");
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      expect((await proxy(meRequest(`invalid-operator-attempt-${attempt}`))).status).toBe(401);
+    }
+
+    const limited = await proxy(meRequest("invalid-operator-attempt-final"));
+    expect(limited.status).toBe(429);
+    expect(Number(limited.headers.get("Retry-After"))).toBeGreaterThan(0);
+    expect(Number(limited.headers.get("Retry-After"))).toBeLessThanOrEqual(60);
+    expect(limited.headers.get("Cache-Control")).toContain("no-store");
+    expect(await limited.json()).toEqual({ error: "Too Many Requests" });
+  });
+
+  it("서로 다른 Cloudflare client identity는 독립 bucket을 사용한다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "configured-operator-token");
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      expect((await proxy(meRequest(`invalid-a-${attempt}`, "203.0.113.11"))).status).toBe(401);
+    }
+
+    expect((await proxy(meRequest("invalid-b", "203.0.113.12"))).status).toBe(401);
+  });
+
+  it("유효 운영자 토큰은 제한되지 않고 같은 identity의 실패 window를 지운다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "configured-operator-token");
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      expect((await proxy(meRequest(`invalid-${attempt}`))).status).toBe(401);
+    }
+    expect(isPass(await proxy(meRequest("configured-operator-token")))).toBe(true);
+    expect((await proxy(meRequest("invalid-after-success"))).status).toBe(401);
+  });
+
+  it("성공한 osmu customer 인증은 operator 실패 bucket에 포함되지 않는다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "configured-operator-token");
+    mockResolveTenantToken.mockResolvedValue("tenant-1");
+
+    for (let request = 0; request < 10; request += 1) {
+      expect(isPass(await proxy(meRequest("osmu_customer_token")))).toBe(true);
+    }
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      expect((await proxy(meRequest(`invalid-${attempt}`))).status).toBe(401);
+    }
+    expect((await proxy(meRequest("invalid-final"))).status).toBe(429);
+  });
+
+  it("성공한 Supabase JWT 인증은 operator 실패 bucket에 포함되지 않는다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "configured-operator-token");
+    mockVerifySupabaseJwt.mockResolvedValue({
+      status: "valid",
+      user: { id: "u1", email: "a@b.com" } as import("@supabase/supabase-js").User,
+    });
+    const customerJwt = makeFakeJwt();
+
+    for (let request = 0; request < 10; request += 1) {
+      expect(isPass(await proxy(meRequest(customerJwt)))).toBe(true);
+    }
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      expect((await proxy(meRequest(`invalid-${attempt}`))).status).toBe(401);
+    }
+    expect((await proxy(meRequest("invalid-final"))).status).toBe(429);
+  });
+
+  it("invalid osmu/JWT 모양으로 바꿔도 /api/me 실패 bucket을 우회하지 못한다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "configured-operator-token");
+    mockResolveTenantToken.mockResolvedValue(null);
+    mockVerifySupabaseJwt.mockResolvedValue({ status: "invalid" });
+
+    expect((await proxy(meRequest("osmu_invalid_1"))).status).toBe(401);
+    expect((await proxy(meRequest("osmu_invalid_2"))).status).toBe(401);
+    expect((await proxy(meRequest(makeFakeJwt()))).status).toBe(401);
+    expect((await proxy(meRequest(makeFakeJwt()))).status).toBe(401);
+    expect((await proxy(meRequest("invalid-final"))).status).toBe(429);
+  });
+
+  it("X-Forwarded-For를 바꿔도 Cloudflare identity가 없으면 direct bucket을 우회하지 못한다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "configured-operator-token");
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const request = meRequest(`invalid-${attempt}`, "", {
+        "x-forwarded-for": `198.51.100.${attempt + 1}`,
+      });
+      expect((await proxy(request)).status).toBe(401);
+    }
+    const limited = meRequest("invalid-final", "", {
+      "x-forwarded-for": "198.51.100.99",
+    });
+    expect((await proxy(limited)).status).toBe(429);
+  });
+
+  it("다른 API의 invalid Bearer는 좁은 /api/me bucket을 소모하지 않는다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "configured-operator-token");
+
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const request = new NextRequest("http://localhost/api/queue", {
+        headers: {
+          Authorization: `Bearer invalid-${attempt}`,
+          "cf-connecting-ip": "203.0.113.10",
+        },
+      });
+      expect((await proxy(request)).status).toBe(401);
+    }
+    expect((await proxy(meRequest("first-me-failure"))).status).toBe(401);
   });
 });
 

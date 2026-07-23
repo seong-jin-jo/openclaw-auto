@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveTenantToken, ensureTenantForUser, getTenantStatus } from "@/lib/tenant-auth";
 import { verifySupabaseJwt } from "@/lib/supabase";
+import {
+  clearOperatorAuthFailures,
+  recordInvalidOperatorBearer,
+} from "@/lib/operator-auth-rate-limit";
 
 // Next 16: middleware.ts → proxy.ts(Node.js 런타임 기본, Edge 아님). 그래서 여기서 DB(resolveTenantToken)·
 // Supabase(verifySupabaseJwt) 실검증이 가능해졌다 — 구버전은 Edge라 "형태만 보고 통과"였고, 그게
@@ -149,6 +153,29 @@ async function checkTenantAccess(tenantId: string): Promise<NextResponse | null>
   return NextResponse.json({ error: "테넌트 상태를 확인할 수 없습니다", code: "account_unavailable" }, { status: 403 });
 }
 
+function invalidBearerResponse(
+  request: NextRequest,
+  path: string,
+  bearerSupplied: boolean,
+): NextResponse {
+  if (path === "/api/me" && bearerSupplied) {
+    const rateLimit = recordInvalidOperatorBearer(request);
+    if (rateLimit.limited) {
+      return NextResponse.json(
+        { error: "Too Many Requests" },
+        {
+          status: 429,
+          headers: {
+            "Cache-Control": "no-store",
+            "Retry-After": String(rateLimit.retryAfterSeconds),
+          },
+        },
+      );
+    }
+  }
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+}
+
 export async function proxy(request: NextRequest) {
   const authToken = process.env.DASHBOARD_AUTH_TOKEN;
   const isApi = request.nextUrl.pathname.startsWith("/api/");
@@ -217,12 +244,18 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") || "";
+  const path = request.nextUrl.pathname;
+  const authorization = request.headers.get("Authorization") ?? "";
+  const bearerMatch = authorization.match(/^Bearer\s+(.+)$/i);
+  const token = bearerMatch?.[1] ?? "";
+  const looksLikeJwt = token.split(".").length === 3 && token.length > 40;
 
   // 운영자 토큰 = 전체 접근(대시보드)
-  if (token === authToken) return NextResponse.next();
+  if (token === authToken) {
+    clearOperatorAuthFailures(request);
+    return NextResponse.next();
+  }
 
-  const path = request.nextUrl.pathname;
   const tenantAware = isTenantAwarePath(path);
 
   // Authenticate-before-authorize(Codex 2nd-pass 반려 수정): 레거시(비-테넌트-aware) 경로라고
@@ -237,7 +270,7 @@ export async function proxy(request: NextRequest) {
     } catch {
       return NextResponse.json({ error: "테넌트 토큰 검증 실패(DB 연결 불가)" }, { status: 503 });
     }
-    if (!tenantId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!tenantId) return invalidBearerResponse(request, path, bearerMatch !== null);
     if (!tenantAware) {
       return NextResponse.json({ error: "이 API는 운영자 전용입니다" }, { status: 403 });
     }
@@ -249,14 +282,13 @@ export async function proxy(request: NextRequest) {
   }
 
   // 고객 로그인 세션(Supabase JWT) — 서명검증까지 실행(구버전은 헤더.페이로드.서명 형태만 보고 통과).
-  const looksLikeJwt = token.split(".").length === 3 && token.length > 40;
   if (looksLikeJwt) {
     const verified = await verifySupabaseJwt(token);
     if (verified.status === "unavailable") {
       return NextResponse.json({ error: "세션 토큰 검증 불가(Supabase 연결 실패)" }, { status: 503 });
     }
     if (verified.status === "invalid") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return invalidBearerResponse(request, path, bearerMatch !== null);
     }
     if (!tenantAware) {
       return NextResponse.json({ error: "이 API는 운영자 전용입니다" }, { status: 403 });
@@ -274,7 +306,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // 운영자 로그인 UI가 검증하는 /api/me Bearer 실패를 이 인증 경계에서 제한한다. osmu_/JWT도
+  // 실제 검증에 실패한 경우에는 같은 응답으로 합류해 공격자가 형태만 바꿔 bucket을 우회하지 못한다.
+  // 성공한 customer 인증은 위에서 통과하며 이 카운터를 읽거나 소모하지 않는다.
+  return invalidBearerResponse(request, path, bearerMatch !== null);
 }
 
 export const config = {
