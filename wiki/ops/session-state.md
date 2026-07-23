@@ -49,7 +49,9 @@ Next.js 16.2.2 production build 165 routes PASS, `git diff --check` PASS. build�
 
 **미검증/게이트:** 이 build candidate는 아직 운영 배포·실 Chrome E2E를 하지 않았다. 따라서 운영자 토큰
 로그인 후 실제 `Admin` shell/고객 workspace 미노출, 고객 Video anchor 이동, provider 계정 관리 새 탭과
-재OAuth 왕복은 운영에서 미검증이다. 루트 pipeline은 `build in-progress`, QA/ship pending을 유지한다.
+재OAuth 왕복은 운영에서 미검증이다. 로컬 production server를 허용 포트 3466에서 띄워 browser E2E를
+추가하려 했으나 sandbox가 `0.0.0.0`과 `127.0.0.1` bind를 모두 `EPERM`으로 차단해 실행하지 못했다.
+루트 pipeline은 `build in-progress`, QA/ship pending을 유지한다.
 
 **정확한 다음 액션:** build 검토/승인 뒤 QA에서 운영 배포 후보를 띄우고 실제 Chrome으로
 ① persisted customer workspace가 있는 브라우저에 운영자 토큰 로그인 → Admin/고객 관리만 표시·storage 제거,
