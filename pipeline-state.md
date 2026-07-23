@@ -4,22 +4,31 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: ship            # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design, build, qa]
+current_stage: qa              # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design, build]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
-  build:      { status: approved, artifacts_ok: true } # browser-bound OAuth state + A/B DB integration test + 826 PASS + webpack build
-  qa:         { status: approved, artifacts_ok: true } # CI PostgreSQL A/B isolation + live OAuth initiation/replay boundary
-  ship:       { status: in-progress, artifacts_ok: false }
+  build:      { status: approved, artifacts_ok: true } # 858 full PASS + 174 focused PASS + tsc + 165-route build + Claude review
+  qa:         { status: in-progress, artifacts_ok: false }
+  ship:       { status: pending, artifacts_ok: false }
 override: false
 override_reason: ""
 override_expires: ""
 ---
 
 # Pipeline State — openclaw-auto-osmu
+
+## 2026-07-24 operator/customer shell hotfix reopen
+- 사용자 운영 관찰에서 operator token 로그인 뒤 Sidebar가 persisted customer workspace
+  `Romeo-n-cupid`를 표시하는 권한·정체성 혼동을 재현했다.
+- 운영자 UI는 `Admin` 단일 identity와 운영 대시보드 메뉴만 표시하고 customer workspace 상태를 지운다.
+- 고객 Sidebar에는 실제 영상 발행 경로가 있는 YouTube/TikTok 연결 메뉴를 별도 Video 그룹으로 노출한다.
+- 타사 플랫폼 세션 쿠키는 same-origin 앱이 삭제할 수 없으므로, OAuth UX는 provider 계정 관리 페이지를
+  명시적으로 열어 로그아웃/계정 전환 후 재연결하도록 구현하고 자동 로그아웃을 사칭하지 않는다.
+- build→focused/full test→production build→운영 Chrome E2E→qa 재승인→배포 순서로 진행한다.
 
 ## 2026-07-24 Threads automatic publishing operating proof
 - 운영 VM crontab의 `osmu-publish-due.sh`가 10분마다 전체 tenant의 due schedule을 처리하는 상태를 확인했다.
