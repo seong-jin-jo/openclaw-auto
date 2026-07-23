@@ -1,9 +1,61 @@
 # 세션 작업 상태 (재실행 가능한 핸드오프)
 
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
-> 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
+> 단계 진실원: 루트 `pipeline-state.md`(현재 **build in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-24 00:48 KST · 운영자 로그인 리다이렉트 수정·토큰 교체·운영 배포/Chrome E2E 종료
+**최종 갱신:** 2026-07-24 05:08 KST · 운영자/고객 shell 분리 + Video/OAuth 계정 전환 UX build candidate
+
+---
+
+### 운영자/고객 shell + OAuth 계정 전환 hotfix build candidate (2026-07-24)
+
+**handoff basis:** 사용자가 지정한 루트 `pipeline-state.md`의
+`2026-07-24 operator/customer shell hotfix reopen`과 `dashboard/CLAUDE.md`,
+`docs/ui-rules.md`, `wiki/architecture/data-model.md`, 기존 Sidebar/AuthGate/SocialConnectButton/constants를
+진실원으로 사용했다. tmux 소켓은 sandbox 권한으로 조회되지 않았지만 사용자가 작업과 기준 파일을 직접
+지정했으므로 이 명시 과제를 primary로 진행했다. 기존 미커밋 `pipeline-state.md` 변경은 되돌리거나 커밋에
+섞지 않았다.
+
+**근본 원인과 수정:** 운영자 `/api/me` identity가 확인돼도 공용 Sidebar가 persisted customer workspace를
+읽고 첫 workspace를 운영자에게 표시하며 고객 마케팅 메뉴 전체를 렌더했다. Sidebar를 `OperatorSidebar`와
+`CustomerSidebar`로 분리해 운영자는 `Admin` identity와 `/operator/customers` 고객 관리 링크만 보게 했다.
+AuthGate가 운영자 응답을 받으면 children을 열기 전에 `active_workspace`를 제거하고, Sidebar도 identity
+전환 시 재차 제거한다. 고객의 기존 성과·Studio·인박스·캘린더·Social/Messaging·분석·키워드·블로그·
+Images/Videos/Midjourney·Settings 기능은 유지했다.
+
+**Video/OAuth UX:** 고객 Sidebar에 텍스트 예약 채널과 별도인 `Video` 그룹을 추가했다. YouTube/TikTok은
+`SCHEDULABLE_PLATFORMS`나 `PUBLISH_CHANNEL_GROUPS`에 넣지 않고 기존 `VIDEO_PUBLISH_PLATFORMS`를 소비해
+`/videos#youtube-connect`, `/videos#tiktok-connect`의 실제 연결/발행 카드로 이동한다. Meta 계열
+(Threads/Instagram/Facebook), X, YouTube, TikTok의 “다른 계정” 안내는 우리 origin이 provider 도메인의
+로그인 쿠키를 지울 수 없음을 명시하고, 공식 계정/세션 관리 화면을 `noopener noreferrer` 새 탭으로 연다.
+자동 로그아웃·지원되지 않는 OAuth 파라미터를 주장하지 않으며 YouTube의 기존
+`prompt=consent select_account`는 그대로 보존했다.
+
+**변경 파일:** `dashboard/src/components/layout/Sidebar.tsx`,
+`dashboard/src/components/shared/AuthGate.tsx`,
+`dashboard/src/components/channel/SocialConnectButton.tsx`,
+`dashboard/src/app/videos/page.tsx`,
+`dashboard/tests/components/SidebarShell.test.tsx`,
+`dashboard/tests/components/SocialConnectButton.test.tsx`,
+`dashboard/tests/isolation/authgate-contract.test.ts`,
+`dashboard/tests/isolation/customer-sidebar.test.ts`. 구현+회귀 테스트 중간 커밋은
+`057f305e fix(dashboard): separate operator and customer shells`.
+
+**검증:** 테스트 선행으로 신규 기대 동작 5개가 기존 코드에서 실제 FAIL하는 것을 먼저 확인했다. 구현 후
+focused 7 files/106 PASS, 전체 Vitest 99 files/843 PASS·10 DB-env skip, `npx tsc --noEmit` PASS,
+Next.js 16.2.2 production build 165 routes PASS, `git diff --check` PASS. build에는 기존
+`next.config.ts → /api/studio/text` NFT whole-project trace 경고 1건이 있었으나 컴파일·TypeScript·165개
+페이지 생성은 성공했다.
+
+**미검증/게이트:** 이 build candidate는 아직 운영 배포·실 Chrome E2E를 하지 않았다. 따라서 운영자 토큰
+로그인 후 실제 `Admin` shell/고객 workspace 미노출, 고객 Video anchor 이동, provider 계정 관리 새 탭과
+재OAuth 왕복은 운영에서 미검증이다. 루트 pipeline은 `build in-progress`, QA/ship pending을 유지한다.
+
+**정확한 다음 액션:** build 검토/승인 뒤 QA에서 운영 배포 후보를 띄우고 실제 Chrome으로
+① persisted customer workspace가 있는 브라우저에 운영자 토큰 로그인 → Admin/고객 관리만 표시·storage 제거,
+② 신규 고객 로그인 → 기존 전체 메뉴 보존 + Video YouTube/TikTok anchor 이동,
+③ Meta/YouTube/TikTok “다른 계정” → 공식 관리 탭 열림 → 돌아와 재연결을 관찰한다. provider callback·
+계정 저장·실발행까지 보지 못한 항목은 미검증으로 남긴다.
 
 ---
 

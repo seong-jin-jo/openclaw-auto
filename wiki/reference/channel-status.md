@@ -1,6 +1,6 @@
 # Channel Status & Implementation
 
-**최종 갱신: 2026-07-07** (근거: 2026-07-06 전채널 Settings UI 브라우저 직접 감사 — `ops/session-state.md` 참고)
+**최종 갱신: 2026-07-24** (근거: operator/customer shell hotfix build candidate — `ops/session-state.md` 참고)
 
 **Live (연결 + 자동화 동작)**: Threads.
 
@@ -34,5 +34,20 @@ See extensions/ directory and dashboard/src/lib/constants.ts for IMPLEMENTED_PLU
 원칙: **사이드바에 보이는 채널은 실제 연결 가능해야 한다.** 연결 UI가 없는 채널
 (GA/GSC 미구현, custom_api/rss stub 등)은 그룹에서 빼거나 동작하는 읽기 대시보드로 라우팅한다.
 빈 연결폼/"준비 중" 노출 금지.
+
+### Video 그룹은 텍스트 예약과 분리
+
+- YouTube/TikTok 영상 직접 발행은 `/api/video/publish`와 `/videos`의 provider별 연결/발행 카드를 사용한다.
+- 고객 Sidebar의 별도 `Video` 그룹은 `VIDEO_PUBLISH_PLATFORMS = ["youtube", "tiktok"]`를 소비하고
+  `/videos#youtube-connect`, `/videos#tiktok-connect`로 이동한다.
+- 두 영상 provider를 텍스트 예약 SSOT `SCHEDULABLE_PLATFORMS` 또는 그 그룹인
+  `PUBLISH_CHANNEL_GROUPS`에 추가하지 않는다. 영상 연결 노출은 텍스트 예약 발행 지원을 뜻하지 않는다.
+
+### 운영자/고객 shell 경계
+
+- `/api/me.isOperator=true`이면 Sidebar identity는 `Admin`이고 운영자 고객 관리 메뉴만 노출한다.
+  persisted customer workspace는 AuthGate가 children mount 전에 제거하며 운영자 shell은 workspace
+  switcher·고객 마케팅 메뉴를 렌더하지 않는다.
+- 고객은 `/api/me.tenant`의 자기 workspace identity와 기존 마케팅 메뉴를 그대로 사용한다.
 
 When adding channels, follow guides/gstack-procedures.md and update this reference + product/ docs.

@@ -37,6 +37,15 @@ Feedback: insights → viral signals → style / prompt-guide updates.
 
 고객이 각 소셜 플랫폼을 직접 연결하는 OAuth 2.0 자동 연결 흐름.
 
+### UI shell 및 provider 세션 경계 (2026-07-24)
+
+- AuthGate의 `/api/me` 결과가 operator이면 persisted customer workspace를 지운 뒤 operator children을 연다.
+  Sidebar는 `Admin` + `/operator/customers` 전용 shell을 렌더하고 customer 채널/워크스페이스 UI를
+  mount하지 않는다. customer이면 `/api/me.tenant` 기반 Marketing Hub shell을 렌더한다.
+- provider 로그인 쿠키는 provider origin 소유다. 대시보드는 이를 삭제하지 않고 Meta/X/Google/TikTok
+  공식 계정 관리 화면을 새 탭으로 제공한 뒤 사용자가 돌아와 OAuth를 재시도하게 한다.
+- Google/YouTube의 `prompt=consent select_account`는 공식 계정 선택 동작으로 유지한다.
+
 ### 지원 채널 (12개)
 | 채널 | 방식 | 환경변수 | 비고 |
 |------|------|---------|------|

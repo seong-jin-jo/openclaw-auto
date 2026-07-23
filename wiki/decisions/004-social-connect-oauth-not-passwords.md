@@ -32,6 +32,24 @@ GStack 브라우저로 Meta 콘솔을 운전하는 건 **우리 자신의 계정
 - 내부 5브랜드(지금): 우리 앱에 각 계정 테스터 추가 + 토큰 발급(에이전트 브라우저로 우리가 운전 가능).
 - 관련: [[reference/brand-grounding]], ADR-003(pricing), `wiki/ops/session-state.md` Meta 셋업.
 
+## 계정 전환·provider 세션 경계 (2026-07-24 보강)
+
+- 우리 대시보드 origin은 Meta·Google·X·TikTok 등 **다른 origin이 소유한 로그인 쿠키를 삭제할 수 없다**.
+  따라서 “다른 계정 연결”을 누른 것만으로 provider 로그아웃이 됐다고 주장하지 않는다.
+- 지원되지 않거나 공식 문서에 없는 `force_authentication`·자동 로그아웃 파라미터를 추측해 붙이지 않는다.
+  Meta 계열은 Meta Accounts Center, X/TikTok은 각 계정 설정, YouTube는 Google 앱 연결 관리 화면을
+  `noopener noreferrer` 새 탭으로 열어 사용자가 계정/세션을 직접 확인한 뒤 재연결하게 한다.
+- Google/YouTube OAuth는 공식 `prompt=consent select_account`를 유지해 연결할 때 계정 선택 화면을 요청한다.
+  이 provider 지원 동작과 우리 origin에서 third-party 세션을 삭제할 수 없다는 경계는 동시에 성립한다.
+- UI의 약속은 “관리 화면을 연다 → 사용자가 전환/로그아웃한다 → 돌아와 OAuth 연결을 다시 누른다”까지다.
+  실제 provider 세션 변경이나 callback 성공은 관찰 전까지 미검증이다.
+
+근거:
+- MDN, third-party cookies: https://developer.mozilla.org/en-US/docs/Web/Privacy/Guides/Third-party_cookies
+- Meta, Accounts Center: https://www.facebook.com/help/943858526073065
+- Google OAuth web-server `prompt=select_account`:
+  https://developers.google.com/identity/protocols/oauth2/web-server
+
 ## 실증 (2026-06-29) — 콘솔 스크립트 운전의 한계
 에이전트가 GStack 브라우저로 Meta 콘솔의 IG 권한 추가를 시도한 결과: 스냅샷 ref가 SPA 재렌더마다
 바뀌어 "추가" 버튼 클릭이 반복 빗나가고, 그 과정에서 `instagram_branded_content_creator`가 의도치
