@@ -3,11 +3,11 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-23 20:25 KST · 운영자 상태판·Meta 법정 페이지 build 검증, 운영 배포 대기
+**최종 갱신:** 2026-07-23 21:15 KST · 운영자 상태판 배포·Meta 앱 게시·Facebook OAuth consent 관찰
 
 ---
 
-### OSMU 운영자 상태판·Meta 출시 준비 핸드오프 (2026-07-23 20:25 KST)
+### OSMU 운영자 상태판·Meta 출시 준비 핸드오프 (2026-07-23 21:15 KST)
 
 **handoff basis:** 사용자가 이 대화에서 승인 질문 없이 중앙 멀티테넌트 SaaS 출시 작업을 계속하라고 명시했다.
 `wiki/ops/session-state.md`와 현재 worktree를 primary로 사용한다. nested `openclaw/`의 대량 untracked 파일은 타 작업이라 미접촉이다.
@@ -22,12 +22,19 @@
 `/data-deletion`과 로그인 랜딩 footer 링크를 추가하고 AuthGate 공개 경로로 허용했다. 키체인은 더 사용하지 않으며,
 이미 로그인된 별도 Chrome profile + CDP 세션으로 외부 콘솔 작업을 이어간다.
 
-**검증:** focused 4 files/51 PASS, 전체 Vitest 97 files/834 PASS·10 DB-env skip, TypeScript PASS,
-Next.js production build 165 routes PASS, diff check PASS. 실제 PostgreSQL 운영 query와 배포된 관리자 화면·법정 페이지는 아직 미검증이다.
+**검증·배포:** focused 4 files/51 PASS, 전체 Vitest 97 files/834 PASS·10 DB-env skip, TypeScript PASS,
+Next.js production build 165 routes PASS, diff check PASS. commit `0072a0b7`, CI `30004946404`, deploy `30004961101` SUCCESS.
+운영 health 200/db up, 공개 법정 페이지 3개 HTTP 200과 실제 개인정보처리방침 렌더를 관찰했다. 운영 API와 Chrome
+`/operator/customers`에서 가입자 7, 워크스페이스 11, 활성 11, 연결계정 3, 발행 5, 실패 5와 4/12 OAuth credential 준비를 관찰했다.
 
-**정확한 다음 액션:** 변경 파일만 commit→marketing VM 경유 push→`openclaw-dashboard-osmu` 배포→운영 public 법정 페이지
-3개를 직접 렌더 확인→운영자 API에서 실제 가입자/KPI/OAuth 상태를 조회하고 `/operator/customers`를 Chrome으로 관찰한다.
-그 다음 Meta Basic 설정에 공개 URL을 입력하고 게시 화면의 남은 요구사항을 직접 회수한다.
+**Meta 운영 복구:** Basic 설정에 운영 privacy/terms/data-deletion URL을 저장했고 `Changes saved` 및 재조회 값 일치를
+확인했다. Go Live가 `모든 필수 앱 설정이 완료되었습니다`로 바뀐 뒤 게시했고 재접속에서 `게시됨`과 `게시 취소`를 관찰했다.
+운영 Facebook OAuth URL은 기존 비활성 오류 없이 `정성컴퍼니` consent 화면, 공개 법정 링크, `다른 계정으로 로그인`을 표시했다.
+개발자 개인계정이 고객 tenant에 연결되지 않도록 consent 완료는 의도적으로 하지 않았다.
+
+**정확한 다음 액션:** X 개발자 콘솔은 X 로그인, TikTok 개발자 콘솔은 TikTok developer-account 로그인에서 차단됐다.
+각 콘솔 인증이 회수되면 중앙 앱 생성→callback URL 등록→secret 저장→deploy→신규 tenant OAuth callback·계정전환·실발행을
+직접 관찰한다. YouTube도 credential은 있으나 신규 고객 실계정 consent·업로드 permalink는 미검증이다.
 
 ---
 

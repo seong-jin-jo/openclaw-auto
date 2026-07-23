@@ -10,10 +10,13 @@
 - [x] `/privacy`, `/terms`, `/data-deletion` AuthGate 공개 경로 계약
 - [x] focused 51 PASS, full Vitest 834 PASS/10 DB-env skip
 - [x] TypeScript PASS, Next.js production build 165 routes PASS
-- [ ] 운영 PostgreSQL 실제 집계 query 관찰
-- [ ] 운영 `/operator/customers` 렌더·응답 관찰
-- [ ] 운영 공개 법정 페이지 3개 렌더 관찰
-- [ ] Meta 앱 Basic 설정 URL 저장 및 Go Live 남은 조건 관찰
+- [x] 운영 PostgreSQL 실제 집계 query 관찰: 가입자 7/워크스페이스 11/연결계정 3/발행 5/실패 5
+- [x] 운영 `/operator/customers` API 200 및 Chrome 렌더 관찰
+- [x] 운영 공개 법정 페이지 3개 HTTP 200, 개인정보처리방침 Chrome 렌더 관찰
+- [x] Meta 앱 Basic 설정 URL 3개 저장·재조회, Go Live `게시됨` 관찰
+- [x] Facebook 운영 OAuth가 앱 비활성 오류 없이 consent·다른 계정 로그인 경로 표시
+- [ ] Facebook consent callback·페이지 계정 저장·실발행: 개인 개발계정을 고객 tenant에 연결하지 않아 미검증
+- [ ] X/TikTok 중앙 앱: 각 개발자 콘솔 로그인 단계에서 외부 인증 대기
 
 ## 2026-07-22 셀프서비스 tenant·OAuth 격리 build 재검
 
