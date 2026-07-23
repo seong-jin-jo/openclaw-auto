@@ -694,3 +694,27 @@ SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open �
   삭제까지 확인했다. 재발방지 규칙은 inline secret 주입 금지, mode 600 파일 경유, 종료 revoke/401이다.
 - **판정:** 고객 앱 UI와 앱 측 방어는 관찰됨. X/TikTok credential·심사, Meta 개발자 로그인과 Live/test role,
   Instagram OTP, YouTube 실제 동의·업로드, 동일 provider 실계정 2개 전환·발행은 외부 계정 입력 전까지 미검증이다.
+
+### 2026-07-24 Threads 예약→자동 발행 운영 E2E
+
+- **재현 원인:** marketing VM crontab은 `*/10 * * * * /home/marketing/osmu-publish-due.sh`로 정상 동작했지만,
+  반복 로그가 `tenantCount:0, processed:0`이었다. 자동 발행이 멈춘 것이 아니라 예약 데이터가 0건이었다.
+- **콘텐츠 중복 방지:** 기존 `@zero_to_one_ai` 공개 게시물의 가동 선언·브랜드 위키 주제와 겹친 1차 초안은
+  폐기했다. 대행 견적 분리, AI 환각 안전선, 사장님 저녁 시간 주제로 재위임했고,
+  `verify-agent-quality.sh`가 Skill 11/WebSearch 6/Socratic 10/RUBRIC 22/25로 PASS했다.
+- **운영 적재:** tenant `587cee76-deca-480e-8fdd-808a30ec86eb`에 draft 3건과 Threads schedule 3건을 생성했다.
+  GET 재조회로 세 본문이 손상 없이 저장됐고, 첫 건 01:44 KST, 후속은 7월 24·25일 20:00 KST다.
+- **실발행 관찰:** due 이후 operator all-tenant sweep이 processed 1을 반환하고 schedule
+  `e5056bc0-443e-4dea-a39d-8575bf3e294a`를 `published`로 마감했다. 결과는 external ID
+  `18002265641778373`, 공개 URL
+  `https://www.threads.com/@zero_to_one_ai/post/DbJH7KJGDS6`이다.
+- **브라우저 직접 확인:** gstack Chrome에서 공개 URL을 열어 `@zero_to_one_ai`와 3개 견적 항목을 포함한
+  원문 전체를 렌더했다. 증거: `docs/evidence/threads-auto-publish-20260724.png`.
+- **성과 수집 확인:** 운영 `/api/metrics` refresh가 `updated:1,total:3`을 반환했고, GET에서 동일 external ID,
+  permalink, 본문, `published_at=2026-07-23T16:44:52.906Z`,
+  `metrics_at=2026-07-23T16:46:22.742Z`를 재조회했다.
+- **판정:** Threads draft→schedule→due sweep→외부 발행→공개 브라우저→metrics 저장 경로는 관찰됨.
+  후속 두 schedule의 cron 자동 출고는 미래 시각이라 아직 미검증이다.
+- **남은 플랫폼:** Instagram TEXT-only는 플랫폼 계약상 불가하므로 이미지 자산이 있어야 예약 E2E가 가능하다.
+  X/TikTok은 중앙 앱 credential·심사, Facebook/YouTube는 신규 고객 실동의·callback·발행,
+  동일 provider 2계정은 전환 후 계정별 발행 permalink가 미검증이다.

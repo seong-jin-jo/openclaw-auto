@@ -21,6 +21,24 @@ override_expires: ""
 
 # Pipeline State — openclaw-auto-osmu
 
+## 2026-07-24 Threads automatic publishing operating proof
+- 운영 VM crontab의 `osmu-publish-due.sh`가 10분마다 전체 tenant의 due schedule을 처리하는 상태를 확인했다.
+  직전 무발행의 원인은 scheduler 장애가 아니라 due schedule 0건이었다.
+- 기존 공개 게시물과 겹치지 않는 OSMU 팩토리 Threads 원고 3건을 content-growth-marketer에 재위임했다.
+  품질 검증은 Skill 11회, WebSearch/Fetch 6회, Socratic 10, RUBRIC 22/25로 PASS했다.
+- code0to1 tenant에 draft 3건과 Threads schedule 3건을 만들었다. 첫 schedule
+  `e5056bc0-443e-4dea-a39d-8575bf3e294a`는 운영 all-tenant sweep에서 `published`가 됐고,
+  외부 ID `18002265641778373`, permalink
+  `https://www.threads.com/@zero_to_one_ai/post/DbJH7KJGDS6`를 반환했다.
+- gstack 실제 브라우저에서 `@zero_to_one_ai`의 발행 원문 전체를 공개 페이지로 직접 렌더했고, 운영 metrics
+  refresh도 updated 1/total 3과 해당 permalink·본문·metrics_at 저장을 반환했다.
+- 후속 2건은 2026-07-24·25 20:00 KST `scheduled` 상태다. 이틀 자동 출고를 관찰하기 전에는 두 건을
+  발행 완료로 표현하지 않는다.
+- 전체 ship은 계속 in-progress다. X/TikTok 중앙 OAuth credential·심사, Facebook/YouTube 신규 사용자 실동의·
+  발행, 동일 provider 실제 2계정 전환·발행은 미검증이다.
+- 다음 실행: 운영 cron이 후속 2건을 자동 출고하는지 permalink로 회수하고, Instagram은 이미지 자산을 만든 뒤
+  IMAGE 예약 E2E를 수행한다. 외부 콘솔 인증이 회수되면 X/TikTok과 Facebook/YouTube 실계정 E2E를 이어간다.
+
 ## 2026-07-24 operator entry hotfix build candidate
 - 운영자 토큰 검증 후 `/`로 이동해 Romeo 기본 workspace가 보이던 navigation wiring 결함을 확인했다.
 - 검증 성공 후 `/operator/customers`로 직접 이동하도록 수정하고 회귀 테스트를 추가했다.

@@ -2525,3 +2525,33 @@ pane은 Claude 문맥 100% 사용 후 프롬프트에 멈춰 있었고 마지막
 ③ UGC 제보자 닉네임 호명을 허용할지 ④ 채널 상태를 어떤 방식으로 갱신할지.
 ④의 기존 추천은 발행 크론 결과 반영이다. 회장 판단 전 정본 수정·Higgsfield 재생성은 하지 않는다.
 표시 이름은 이미 확정됐으므로 다시 묻거나 `naming.md`를 재확정하는 작업은 하지 않는다.
+
+## 2026-07-24 01:47 KST — Threads 자동 발행 가동 체크포인트
+
+- **primary/handoff 기준:** 사용자의 반복된 `묻지 말고 자동 발행 가동` 지시에 따라
+  `openclaw-auto:0.0`의 OAuth/운영 ship 트랙과 이 파일의 최신 제품 상태를 기준으로 실행했다.
+  `0.1` 브랜드 판단 트랙은 코드·DB·배포 실행 근거로 사용하지 않았다.
+- **근본 원인:** marketing VM scheduler는 이미 10분 주기로 정상 실행 중이었다. 로그의
+  `tenantCount:0, processed:0`은 장애가 아니라 due schedule 0건을 뜻했다. `/app/config`가 비어 있어
+  별도 AI 생성 cron은 없지만, DB에 적재된 예약을 출고하는 multi-tenant publisher는 운영 중이다.
+- **콘텐츠:** 기존 공개 게시물과 중복된 1차 초안은 폐기하고 대행 견적 분리, AI 환각 안전선,
+  사장님 저녁 시간 주제로 3건을 재위임했다. content 품질 검증 PASS:
+  Skill 11, WebSearch/Fetch 6, Socratic 10, RUBRIC 22/25.
+- **운영 적재:** code0to1 tenant에 draft/schedule 각 3건을 만들었다. 첫 schedule
+  `e5056bc0-443e-4dea-a39d-8575bf3e294a`는 01:44 KST due, 후속 2건은
+  2026-07-24·25 20:00 KST다. 저장 직후 GET으로 세 본문 원문을 다시 확인했다.
+- **실발행 증거:** operator all-tenant sweep이 processed 1을 반환했고 첫 schedule은 `published`,
+  external ID `18002265641778373`, permalink
+  `https://www.threads.com/@zero_to_one_ai/post/DbJH7KJGDS6`가 됐다.
+  gstack 공개 브라우저에서 `@zero_to_one_ai`와 원문 전체를 직접 렌더했다.
+- **성과 저장:** Threads insights refresh는 updated 1/total 3, metrics GET은 같은 external ID/permalink/text와
+  `published_at`, `metrics_at`을 반환했다. 첫 글의 현재 반응값 0은 발행 직후 정상 baseline이다.
+- **정정:** 01:32 콘텐츠 worker의 `awaiting_feedback`과 브랜드 불명확 판단은 이 체크포인트로 대체한다.
+  공개 계정의 기존 OSMU 팩토리 게시물을 직접 확인했으므로 같은 브랜드로 실제 출고했다.
+- **변경 범위:** 제품 코드·schema·배포 이미지는 바꾸지 않았다. 운영 DB에 draft/schedule을 적재했고
+  pipeline-state와 QA 원장을 현재 증거로 갱신했다.
+- **남은 이슈:** 후속 2건 cron 자동 출고 관찰, Instagram 이미지 예약, X/TikTok 중앙 앱 credential·심사,
+  Facebook/YouTube 신규 고객 실동의·callback·발행, 동일 provider 2계정 전환·발행.
+- **정확한 다음 액션:** 후속 두 예약이 due가 되면 cron 로그와 공개 permalink를 회수한다. 다음 실행에서는
+  Instagram 카드 자산을 생성해 IMAGE 예약 E2E를 가동한다. X/TikTok/Meta/Google 콘솔은 로그인·2FA 세션이
+  확보되는 즉시 중앙 앱 설정→secret 저장→재배포→실 OAuth/발행 QA를 수행한다.
