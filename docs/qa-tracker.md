@@ -2,6 +2,16 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-07-24 운영자 로그인 리다이렉트
+
+- [x] 검증된 운영자 세션이 `/operator/customers`로 이동하는 계약 테스트
+- [x] `/api/me` 운영자 경계와 `/api/operator/customers` 보안 회귀 33 PASS
+- [x] 전체 Vitest 835 PASS/10 DB-env skip
+- [x] TypeScript 포함 production build 165 routes PASS
+- [ ] 새 GitHub secret으로 운영 재배포
+- [ ] 구 토큰 401, 새 토큰 `isOperator=true`
+- [ ] Chrome `/operator` 로그인→`/operator/customers`와 고객 상태판 직접 렌더
+
 ## 2026-07-23 운영자 상태판·Meta 법정 페이지
 
 - [x] `/api/operator/customers` 비밀번호·credential 원문 비노출 계약

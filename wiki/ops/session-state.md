@@ -3,7 +3,61 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-23 21:15 KST · 운영자 상태판 배포·Meta 앱 게시·Facebook OAuth consent 관찰
+**최종 갱신:** 2026-07-24 KST · 운영자 로그인 리다이렉트 수정·비밀키 교체, 배포 대기
+
+---
+
+### 운영자 콘솔 진입 결함 핸드오프 (2026-07-24)
+
+**사용자 제보:** `/operator`에서 운영자 토큰을 검증해도 전체 고객 관리 화면이 아니라 기본 Romeo
+워크스페이스 홈으로 이동했다. 사용자가 새 운영 비밀키를 명시해 교체와 재배포를 요청했다.
+
+**근본 원인:** `dashboard/src/app/operator/page.tsx`가 운영자 검증 성공 후 토큰을 저장하고도
+`window.location.href = "/"`로 이동했다. `/`는 운영자 모드에서 첫/기본 workspace를 선택하는 일반 제품
+대시보드이므로 Romeo가 보이는 것이 코드상 필연이었다. 운영자 고객 관리 라우트 `/operator/customers`가
+이미 존재하지만 로그인 진입점과 연결되지 않은 navigation wiring 결함이다.
+
+**수정·secret 처리:** 성공 리다이렉트를 `/operator/customers`로 변경하고 정적 회귀 테스트를 추가했다.
+사용자가 제공한 새 값은 원문을 채팅·repo·wiki에 기록하지 않고 로컬
+`~/.sj-agent-harness/secrets/openclaw-auto.env`(600)와 GitHub Actions
+`OSMU_DASHBOARD_AUTH_TOKEN` secret 양쪽에 저장했다.
+
+**검증:** focused 3 files/33 PASS, 전체 Vitest 98 files/835 PASS·10 DB-env skip, TypeScript를 포함한
+Next.js production build 165 routes PASS. 아직 새 secret을 포함한 운영 재배포와 실제 Chrome
+`/operator`→`/operator/customers` 렌더는 미검증이다.
+
+**정확한 다음 액션:** 변경 파일과 상태 문서를 commit/push하고 `openclaw-dashboard-osmu`를 재배포한다.
+배포 후 구 토큰 401, 새 토큰 `/api/me isOperator=true`, Chrome `/operator` 로그인 후 URL이
+`/operator/customers`이며 가입자·OAuth 상태판이 렌더되는 것을 직접 관찰한다.
+
+---
+
+### 외부 OAuth 콘솔 후속 핸드오프 (2026-07-23)
+
+**사용자 확인 및 보안 처리:** 사용자가 별도 Chrome에서 외부 플랫폼 로그인을 완료했다고 알렸다. 운영자 콘솔의
+`DASHBOARD_AUTH_TOKEN`은 고객 SNS OAuth 토큰이 아니라 전체 가입자·워크스페이스를 관리하는 서버 운영 비밀키다.
+원문을 채팅에 노출하지 않고 운영 컨테이너에서 macOS 클립보드로 직접 전달했으며, `/operator` 입력창에 붙여넣는
+방식으로 안내했다.
+
+**직접 관찰:** TikTok Developers는 로그인된 `Manage apps` 화면이며 현재 앱 0개, `Connect an app` 버튼이 표시됐다.
+버튼을 직접 눌러 중앙 TikTok OAuth 앱 생성 흐름에 진입했다. X는 로그인 완료 상태가 아니라 가입 마지막
+`개인정보 설정` 화면에 남아 있고 `계속하기`가 필요하다. Meta 중앙 앱은 이전 턴에서 이미 `게시됨` 및 Facebook
+운영 OAuth consent 화면까지 관찰됐다.
+
+**브라우저 상태:** 키체인을 사용하지 않는 별도 Chrome/CDP 프로필이 계속 실행 중이다. TikTok 앱 생성 탭,
+X 가입 마무리 탭, Meta 게시 상태 탭, OSMU 운영자/로그인 탭이 열려 있다. 임시 CDP helper는
+`/private/tmp/osmu-cdp.mjs`, profile은 `/private/tmp/osmu-chrome-profile`이다. 운영자 토큰은 OSMU origin
+localStorage에서 제거한 상태이며 클립보드에만 전달했다.
+
+**남은 이슈:** TikTok 중앙 앱 이름·용도·Login Kit·Content Posting API·redirect URL을 입력하고 심사 상태를
+확인한 뒤 client key/secret을 로컬 secret과 GitHub Actions secret 양쪽에 저장·배포해야 한다. X는 가입
+`계속하기` 완료 후 Developer Portal에서 중앙 앱을 생성하고 OAuth 2.0 callback/권한을 설정해야 한다.
+두 플랫폼 모두 credential 배포 후 신규 tenant의 실제 OAuth callback→계정 저장·전환→실발행은 미검증이다.
+
+**정확한 다음 액션:** TikTok `Connect an app` 이후 실제 폼을 읽어 비가역·정책 선택은 회수하고 나머지 필드를
+채운다. X 탭은 사용자가 가입 마지막 `계속하기`를 완료한 뒤 Developer Portal 진입 여부를 재관찰한다.
+credential 생성 시 원문을 채팅·wiki·명령문에 남기지 말고 로컬 secret/GitHub secret에 직접 저장한 후
+`openclaw-dashboard-osmu`를 재배포하고 provider별 운영 E2E를 실행한다.
 
 ---
 

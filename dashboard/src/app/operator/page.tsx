@@ -28,7 +28,7 @@ export default function OperatorPage() {
         return;
       }
       setAuthToken(t);
-      window.location.href = "/";
+      window.location.href = "/operator/customers";
     } catch {
       setError("토큰 확인 중 오류가 발생했습니다.");
     } finally {

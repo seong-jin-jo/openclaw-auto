@@ -21,6 +21,13 @@ override_expires: ""
 
 # Pipeline State — openclaw-auto-osmu
 
+## 2026-07-24 operator entry hotfix build candidate
+- 운영자 토큰 검증 후 `/`로 이동해 Romeo 기본 workspace가 보이던 navigation wiring 결함을 확인했다.
+- 검증 성공 후 `/operator/customers`로 직접 이동하도록 수정하고 회귀 테스트를 추가했다.
+- 새 운영 secret은 로컬 harness와 GitHub Actions secret에 저장했으며 원문은 repo/state에 남기지 않았다.
+- focused 33 PASS, full 835 PASS/10 DB-env skip, production build 165 routes PASS.
+- 다음 실행: commit/push/deploy 후 구 토큰 거부와 새 토큰의 실제 operator customers 렌더를 Chrome으로 관찰한다.
+
 ## 2026-07-23 operator observability + Meta legal pages operating close
 - 기존 운영자 고객 관리에 전체 가입자/워크스페이스/활성/연결계정/발행/실패 KPI와 `channel_accounts` 기반
   provider별 다중계정 현황을 추가했다.
