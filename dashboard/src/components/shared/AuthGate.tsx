@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { getAuthToken, setAuthToken, clearAuthToken, authHeaders } from "@/lib/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { useUIStore } from "@/store/ui-store";
 
 type GateStatus = "checking" | "ok" | "access_paused" | "account_unavailable" | "auth_error" | "service_error";
 
@@ -386,6 +387,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [hasToken, setHasToken] = useState<boolean | null>(null);
   const [gateStatus, setGateStatus] = useState<GateStatus>("checking");
+  const setActiveWorkspace = useUIStore((state) => state.setActiveWorkspace);
   const isPublicPath = ["/login", "/signup", "/operator", "/privacy", "/terms", "/data-deletion"].includes(pathname);
 
   useEffect(() => {
@@ -457,6 +459,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           setGateStatus("service_error");
           return;
         }
+        // 운영자는 customer tenant 문맥을 갖지 않는다. persisted workspace를 children/Sidebar
+        // mount 전에 제거해 고객 identity·쿼리 스코프가 운영자 shell에 한 프레임도 섞이지 않게 한다.
+        if (data.isOperator) setActiveWorkspace(null);
         if (data.accessPaused) setGateStatus("access_paused");
         else if (data.accountUnavailable) setGateStatus("account_unavailable");
         else setGateStatus("ok");
@@ -471,7 +476,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       cancelled = true;
       clearInterval(id);
     };
-  }, [isPublicPath, hasToken]);
+  }, [isPublicPath, hasToken, setActiveWorkspace]);
 
   const doLogout = useCallback(async () => {
     const t = getAuthToken();

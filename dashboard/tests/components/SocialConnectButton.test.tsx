@@ -340,4 +340,68 @@ describe("SocialConnectButton — OAuth popup activation", () => {
     await waitFor(() => expect(popup.location.href).toBe("https://provider.example/auth"));
     expect(screen.getByText(/새 창에서 로그인/)).toBeInTheDocument();
   });
+
+  it("explains the cross-origin cookie boundary and opens Meta account management in a safe new tab", async () => {
+    const fetchMock = mockReadiness(true);
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<SocialConnectButton provider="threads" label="Threads" />);
+    await waitFor(() => expect(screen.getByTestId("connect-threads")).not.toBeDisabled());
+
+    fireEvent.click(screen.getByTestId("switch-account-threads"));
+
+    expect(screen.getByTestId("switch-account-note-threads")).toHaveTextContent(
+      /현재 앱 주소에서는 Meta.*로그인 쿠키를 지울 수 없습니다/,
+    );
+    expect(screen.getByTestId("manage-provider-account-threads")).toHaveAttribute(
+      "href",
+      "https://accountscenter.facebook.com/",
+    );
+    expect(screen.getByTestId("manage-provider-account-threads")).toHaveAttribute("target", "_blank");
+    expect(screen.getByTestId("manage-provider-account-threads")).toHaveAttribute(
+      "rel",
+      expect.stringContaining("noopener"),
+    );
+  });
+
+  it.each([
+    ["instagram", "Instagram"],
+    ["facebook", "Facebook"],
+  ])("offers the same Meta account-center action for %s", async (provider, label) => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ providers: { [provider]: { available: true } } }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<SocialConnectButton provider={provider} label={label} />);
+    await waitFor(() => expect(screen.getByTestId(`connect-${provider}`)).not.toBeDisabled());
+
+    fireEvent.click(screen.getByTestId(`switch-account-${provider}`));
+    expect(screen.getByTestId(`manage-provider-account-${provider}`)).toHaveAttribute(
+      "href",
+      "https://accountscenter.facebook.com/",
+    );
+  });
+
+  it("keeps YouTube account selection guidance and offers Google connection management", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ providers: { youtube: { available: true } } }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<SocialConnectButton provider="youtube" label="YouTube" />);
+    await waitFor(() => expect(screen.getByTestId("connect-youtube")).not.toBeDisabled());
+
+    fireEvent.click(screen.getByTestId("switch-account-youtube"));
+
+    expect(screen.getByTestId("switch-account-note-youtube")).toHaveTextContent(
+      /Google 계정 선택 화면/,
+    );
+    expect(screen.getByTestId("manage-provider-account-youtube")).toHaveAttribute(
+      "href",
+      "https://myaccount.google.com/permissions",
+    );
+  });
 });

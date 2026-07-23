@@ -509,7 +509,7 @@ export default function VideosPage() {
           <div className="text-[10px] text-subtle mb-1">영상</div>
           <div className="text-lg font-bold text-text">{videos.length}</div>
         </div>
-        <div className="card p-3" data-testid="youtube-connect-card">
+        <div id="youtube-connect" className="card p-3 scroll-mt-6" data-testid="youtube-connect-card">
           <div className="text-[10px] text-subtle mb-1">YouTube</div>
           <div className={`text-sm font-medium ${ytStatus?.connected ? "text-green-400" : "text-subtle"}`}>
             {ytStatus?.connected ? "연결됨" : "미연결"}
@@ -544,7 +544,7 @@ export default function VideosPage() {
             {elConfig?.configured ? "설정됨" : "미설정"}
           </div>
         </div>
-        <div className="card p-3 col-span-2" data-testid="tiktok-status-card">
+        <div id="tiktok-connect" className="card p-3 col-span-2 scroll-mt-6" data-testid="tiktok-status-card">
           <div className="text-[10px] text-subtle mb-1">TikTok</div>
           <div className={`text-sm font-medium ${tiktokCreatorData?.ready ? "text-success" : "text-subtle"}`}>
             {tiktokCreatorData?.ready ? `@${tiktokCreator?.username} 발행 준비됨` : tiktokAccounts.length > 0 ? "계정 권한 확인 필요" : "미연결"}

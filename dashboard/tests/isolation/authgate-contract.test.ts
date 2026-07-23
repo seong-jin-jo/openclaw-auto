@@ -51,6 +51,17 @@ describe("AuthGate — fail-open 회귀 방지 계약(소스 기반)", () => {
   it("GateStatus 타입에 auth_error/service_error가 명시적으로 존재한다", () => {
     expect(SRC).toMatch(/type GateStatus = [^;]*"auth_error"[^;]*"service_error"/);
   });
+
+  it("operator /api/me 응답은 children을 열기 전에 persisted customer workspace를 지운다", () => {
+    const pollBlock = SRC.slice(SRC.indexOf("async function poll"), SRC.indexOf("const id = setInterval"));
+    const operatorClearIdx = pollBlock.indexOf("data.isOperator");
+    const workspaceClearIdx = pollBlock.indexOf("setActiveWorkspace(null)");
+    const gateOpenIdx = pollBlock.indexOf('setGateStatus("ok")');
+
+    expect(operatorClearIdx).toBeGreaterThan(-1);
+    expect(workspaceClearIdx).toBeGreaterThan(operatorClearIdx);
+    expect(gateOpenIdx).toBeGreaterThan(workspaceClearIdx);
+  });
 });
 
 // 랜딩 카피 정직성 계약 — 현재 실제 정책(OSMU v1.0.0 공개 대시보드, 가입 즉시 계정 이용 가능,

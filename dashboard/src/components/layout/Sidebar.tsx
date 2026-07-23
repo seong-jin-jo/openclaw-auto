@@ -2,15 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import useSWR from "swr";
 import { useChannelConfig } from "@/hooks/useChannelConfig";
-import { useCronStatus } from "@/hooks/useOverview";
-import { CH_LABELS, IMPLEMENTED_PLUGINS, PUBLISH_CHANNEL_GROUPS } from "@/lib/constants";
+import {
+  CH_LABELS,
+  PUBLISH_CHANNEL_GROUPS,
+  VIDEO_PUBLISH_PLATFORMS,
+} from "@/lib/constants";
 import { getChannelIcon } from "@/lib/channel-icons";
 import { useUIStore, type Workspace } from "@/store/ui-store";
-import { fetcher, apiPost } from "@/lib/api";
+import { fetcher } from "@/lib/api";
 import { ThemeToggle } from "./ThemeToggle";
+
+interface MeResponse {
+  isOperator?: boolean;
+  tenant?: Workspace | null;
+  tenantError?: boolean;
+}
 
 /* ── Sidebar Group ── */
 function SidebarGroup({
@@ -22,6 +31,7 @@ function SidebarGroup({
   title: string;
   items: Array<{
     key?: string;
+    href?: string;
     label: string;
     icon: string;
     iconClass?: string;
@@ -63,8 +73,9 @@ function SidebarGroup({
       </button>
       {!collapsed &&
         items.map((i, idx) => {
-          const href = i.key === "blog" ? "/blog" : i.key ? `/channels/${i.key}` : "#";
-          const isActive = i.key === "blog" ? pathname === "/blog" : pathname === `/channels/${i.key}`;
+          const href = i.href ?? (i.key === "blog" ? "/blog" : i.key ? `/channels/${i.key}` : "#");
+          const hrefPath = href.split(/[?#]/, 1)[0];
+          const isActive = pathname === hrefPath;
           const textColor = i.status === "Live" || i.status === "Connected" ? "text-muted" : "text-subtle";
           return (
             <Link
@@ -95,7 +106,6 @@ function chSidebarItem(key: string, channelConfig: Record<string, Record<string,
   const ch = channelConfig[key] || {};
   const status = (ch.status as string) || "soon";
   const label = CH_LABELS[key] || key;
-  const isImplemented = IMPLEMENTED_PLUGINS.includes(key);
 
   if (status === "live") {
     return {
@@ -121,105 +131,111 @@ function chSidebarItem(key: string, channelConfig: Record<string, Record<string,
   return { key, label, icon: label[0], nav: true };
 }
 
-/* ── 워크스페이스 전환 (멀티테넌트, 같은 인스턴스 내) ── */
-function WorkspaceSwitcher() {
-  // 고객/운영자 모드 판별: 고객은 자기 테넌트 1개만, 운영자만 전체 목록·전환·생성.
-  const { data: me, mutate: mutateMe } = useSWR<{ isOperator?: boolean; tenant?: Workspace | null; tenantError?: boolean }>("/api/me", fetcher);
-  const isOperator = me?.isOperator === true;
-  // 운영자만 전체 워크스페이스 조회(고객은 호출 안 함 → 남의 서비스명 노출 0)
-  const { data, mutate } = useSWR<{ workspaces?: Workspace[] }>(isOperator ? "/api/workspaces" : null, fetcher);
+/* ── 고객 워크스페이스 identity (운영자 shell과 완전 분리) ── */
+function CustomerWorkspaceIdentity({
+  me,
+  mutateMe,
+}: {
+  me: MeResponse;
+  mutateMe: () => Promise<unknown>;
+}) {
   const { activeWorkspace, setActiveWorkspace } = useUIStore();
-  const [open, setOpen] = useState(false);
-  const [adding, setAdding] = useState(false);
-  const [name, setName] = useState("");
-  const [busy, setBusy] = useState(false);
-  // data?.workspaces || [] 를 매 렌더 새 배열로 만들면 아래 useEffect dep가 매번 바뀌어
-  // 무한 루프(React #185) 유발 → 메모이즈로 안정화.
-  const workspaces = useMemo(() => data?.workspaces || [], [data]);
 
-  // 활성 워크스페이스: 고객=자기 테넌트 고정 / 운영자=첫 워크스페이스 자동선택.
+  // 고객은 /api/me가 반환한 자기 테넌트만 활성화한다.
   // ⚠️ 반드시 "값이 실제로 바뀔 때만" set — 무조건 set하면 set→재렌더→effect→set 무한 루프(React #185).
   useEffect(() => {
-    if (!isOperator && me?.tenant) {
+    if (me.tenant) {
       if (activeWorkspace?.id !== me.tenant.id) setActiveWorkspace(me.tenant);
-      return;
     }
-    if (isOperator && !activeWorkspace && workspaces.length > 0) setActiveWorkspace(workspaces[0]);
-  }, [isOperator, me, activeWorkspace, workspaces, setActiveWorkspace]);
+  }, [me.tenant, activeWorkspace?.id, setActiveWorkspace]);
 
-  // 고객 모드: 스위처·목록·생성 전부 숨기고 자기 워크스페이스명만 표시(남의 서비스명 0)
-  if (!isOperator) {
-    // 테넌트 해석 실패(세션 만료/일시적 DB 오류 등) — 운영자 등록 UI 대신 재시도 경로 제공.
-    // (SWR revalidateOnFocus=false라 자동 복구가 안 되므로 명시적 재시도 버튼이 필요.)
-    if (me?.tenantError) {
-      return (
-        <button onClick={() => mutateMe()} className="mt-1 text-xs text-subtle hover:text-muted">
-          워크스페이스 연결 확인 중… <span className="underline">다시 시도</span>
-        </button>
-      );
-    }
+  // 테넌트 해석 실패(세션 만료/일시적 DB 오류 등) — 명시적 재시도 경로 제공.
+  if (me.tenantError) {
     return (
-      <div className="mt-1 text-xs">
-        <span className="bg-gradient-to-r from-accent to-accent-hover bg-clip-text text-transparent font-medium">{me?.tenant?.name || activeWorkspace?.name || "내 워크스페이스"}</span>
-      </div>
+      <button onClick={() => void mutateMe()} className="mt-1 text-xs text-subtle hover:text-muted">
+        워크스페이스 연결 확인 중… <span className="underline">다시 시도</span>
+      </button>
     );
   }
 
-  const create = async () => {
-    if (!name.trim() || busy) return;
-    setBusy(true);
-    try {
-      const slug = name.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
-      const r = await apiPost<{ workspace?: Workspace }>("/api/workspaces", { slug, name: name.trim() });
-      if (r?.workspace) { await mutate(); setActiveWorkspace(r.workspace); }
-      setName(""); setAdding(false); setOpen(false);
-    } finally { setBusy(false); }
-  };
-
   return (
-    <div className="relative mt-1">
-      <button onClick={() => setOpen((v) => !v)} className="text-xs flex items-center gap-1 hover:opacity-80">
-        <span className="bg-gradient-to-r from-accent to-accent-hover bg-clip-text text-transparent font-medium">{activeWorkspace?.name || "워크스페이스 선택"}</span>
-        <span className="text-subtle">▾</span>
-      </button>
-      {open && (
-        <div className="absolute left-0 top-6 z-50 w-52 rounded-lg border border-border bg-surface p-1 shadow-xl">
-          {workspaces.map((w) => (
-            <button key={w.id} onClick={() => { setActiveWorkspace(w); setOpen(false); }} className={`w-full text-left px-2 py-1.5 text-xs rounded flex items-center gap-2 ${activeWorkspace?.id === w.id ? "bg-surface-2 text-text" : "text-muted hover:bg-surface-2"}`}>
-              <span className="flex-1 truncate">{w.name}</span>
-              {activeWorkspace?.id === w.id && <span className="text-[9px] text-green-500">●</span>}
-            </button>
-          ))}
-          {workspaces.length === 0 && <div className="text-[10px] text-subtle px-2 py-1.5">워크스페이스 없음 — 등록하세요</div>}
-          <div className="border-t border-border mt-1 pt-1">
-            {adding ? (
-              <div className="px-1 py-1 flex gap-1">
-                <input autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && create()} placeholder="워크스페이스 이름" className="flex-1 bg-surface border border-border rounded px-2 py-1 text-xs text-muted min-w-0" />
-                <button onClick={create} disabled={busy} className="text-xs px-2 py-1 bg-accent text-text rounded disabled:opacity-50">{busy ? "..." : "생성"}</button>
-              </div>
-            ) : (
-              <button onClick={() => setAdding(true)} className="w-full text-left px-2 py-1.5 text-xs text-accent hover:bg-surface-2 rounded">+ 새 워크스페이스</button>
-            )}
-          </div>
-        </div>
-      )}
+    <div className="mt-1 text-xs">
+      <span className="bg-gradient-to-r from-accent to-accent-hover bg-clip-text text-transparent font-medium">
+        {me.tenant?.name || activeWorkspace?.name || "내 워크스페이스"}
+      </span>
     </div>
   );
 }
 
-/* ── Main Sidebar ── */
-export function Sidebar() {
+function SidebarFooter({ isOperator }: { isOperator: boolean }) {
+  return (
+    <div className="shrink-0 px-4 py-3 border-t border-border/50 space-y-2">
+      <ThemeToggle />
+      <button
+        onClick={async () => {
+          try {
+            const { createBrowserSupabase } = await import("@/lib/supabase");
+            await createBrowserSupabase().auth.signOut();
+          } catch { /* env 미설정/세션 없음 무시 */ }
+          try { localStorage.removeItem("dashboard_auth_token"); } catch { /* ignore */ }
+          window.location.href = isOperator ? "/operator" : "/login";
+        }}
+        className="w-full flex items-center gap-2 px-1 py-1 text-xs text-subtle hover:text-danger transition-colors"
+        title="로그아웃"
+      >
+        <span>⎋</span> 로그아웃
+      </button>
+    </div>
+  );
+}
+
+function OperatorSidebar() {
   const pathname = usePathname();
-  const { data: me } = useSWR<{ isOperator?: boolean }>("/api/me", fetcher);
-  const isOperator = me?.isOperator === true;
+
+  return (
+    <aside className="w-56 border-r border-border/50 flex flex-col h-screen sticky top-0" style={{ background: "var(--surface)" }}>
+      <div className="px-4 py-5 border-b border-border/50">
+        <div className="flex items-center gap-2">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-muted shrink-0" aria-label="Admin">
+            <rect x="3" y="3" width="18" height="18" rx="5" fill="var(--accent)" opacity="0.25" />
+            <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+          <h1 className="text-base font-semibold text-text tracking-tight">Admin</h1>
+        </div>
+        <p className="mt-1 text-xs text-subtle">운영자 콘솔</p>
+      </div>
+
+      <nav className="flex-1 min-h-0 overflow-y-auto py-3">
+        <div className="px-3 mb-2">
+          <span className="text-[10px] font-medium text-subtle uppercase tracking-wider">Operator</span>
+        </div>
+        <Link
+          href="/operator/customers"
+          className={`sidebar-item ${pathname === "/operator/customers" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-muted flex items-center gap-3`}
+        >
+          <span className="text-accent" aria-hidden>◎</span>
+          고객 관리
+        </Link>
+      </nav>
+
+      <SidebarFooter isOperator />
+    </aside>
+  );
+}
+
+/* ── Customer Sidebar ── */
+function CustomerSidebar({
+  me,
+  mutateMe,
+}: {
+  me: MeResponse;
+  mutateMe: () => Promise<unknown>;
+}) {
+  const pathname = usePathname();
   const { data: channelConfig } = useChannelConfig();
-  const { data: cronData } = useCronStatus(isOperator);
   const { data: images } = useSWR<unknown[]>("/api/images", fetcher);
 
   const cfg = (channelConfig || {}) as unknown as Record<string, Record<string, unknown>>;
-  const cronJobs = (((cronData as Record<string, unknown>)?.jobs || cronData || []) as Array<Record<string, unknown>>);
-  const cronOk = cronJobs.filter((j) => j.lastStatus === "ok").length;
-  const cronTotal = cronJobs.length;
   const imageCount = Array.isArray(images) ? images.length : 0;
 
   // Build threads item specially
@@ -264,7 +280,7 @@ export function Sidebar() {
           </svg>
           <h1 className="text-base font-semibold text-text tracking-tight">Marketing Hub</h1>
         </div>
-        <WorkspaceSwitcher />
+        <CustomerWorkspaceIdentity me={me} mutateMe={mutateMe} />
       </div>
 
       <nav className="flex-1 min-h-0 overflow-y-auto py-3">
@@ -337,6 +353,20 @@ export function Sidebar() {
             )}
           />
         ))}
+
+        {/* 영상 직접 발행은 텍스트 예약 채널과 별도 경로다.
+            /videos의 기존 provider 연결/발행 카드로 바로 이동하며 SCHEDULABLE_PLATFORMS에는 섞지 않는다. */}
+        <SidebarGroup
+          groupKey="video"
+          title="Video"
+          items={VIDEO_PUBLISH_PLATFORMS.map((provider) => ({
+            key: provider,
+            href: `/videos#${provider}-connect`,
+            label: CH_LABELS[provider],
+            icon: CH_LABELS[provider][0],
+            nav: true,
+          }))}
+        />
 
         {/* "Data & SEO" 채널 그룹 제거 — /channels/* 빈 연결폼으로 가던 죽은 항목이었음.
             동작하는 읽기 대시보드는 아래 "Data & Analytics" 섹션이 제공(사이드바=연결가능 원칙). */}
@@ -449,37 +479,23 @@ export function Sidebar() {
         </Link>
       </nav>
 
-      <div className="shrink-0 px-4 py-3 border-t border-border/50 space-y-2">
-        <ThemeToggle />
-        <button
-          onClick={async () => {
-            // 운영자 토큰(비-JWT)으로 들어왔으면 로그아웃 후 운영자 콘솔로, 고객은 /login으로.
-            let wasOperator = false;
-            try {
-              const t = localStorage.getItem("dashboard_auth_token") || "";
-              wasOperator = !!t && t.split(".").length !== 3;
-            } catch { /* ignore */ }
-            try {
-              const { createBrowserSupabase } = await import("@/lib/supabase");
-              await createBrowserSupabase().auth.signOut();
-            } catch { /* env 미설정/세션 없음 무시 */ }
-            try { localStorage.removeItem("dashboard_auth_token"); } catch { /* ignore */ }
-            window.location.href = wasOperator ? "/operator" : "/login";
-          }}
-          className="w-full flex items-center gap-2 px-1 py-1 text-xs text-subtle hover:text-danger transition-colors"
-          title="로그아웃"
-        >
-          <span>⎋</span> 로그아웃
-        </button>
-        {isOperator && (
-          <div className="flex items-center gap-2">
-            <div className={`pulse-dot ${cronOk === cronTotal ? "bg-green-500" : "bg-yellow-500"}`} />
-            <span className="text-xs text-subtle">
-              {cronOk}/{cronTotal} crons ok
-            </span>
-          </div>
-        )}
-      </div>
+      <SidebarFooter isOperator={false} />
     </aside>
   );
+}
+
+/* ── Identity-aware shell router ── */
+export function Sidebar() {
+  const { data: me, mutate } = useSWR<MeResponse>("/api/me", fetcher);
+  const setActiveWorkspace = useUIStore((state) => state.setActiveWorkspace);
+
+  // AuthGate가 operator identity를 확인할 때 먼저 지우지만, Sidebar도 직접 진입/identity 전환을
+  // 방어한다. 운영자 shell은 어떤 customer workspace도 읽거나 표시하지 않는다.
+  useEffect(() => {
+    if (me?.isOperator) setActiveWorkspace(null);
+  }, [me?.isOperator, setActiveWorkspace]);
+
+  if (!me) return null;
+  if (me.isOperator) return <OperatorSidebar />;
+  return <CustomerSidebar me={me} mutateMe={mutate} />;
 }

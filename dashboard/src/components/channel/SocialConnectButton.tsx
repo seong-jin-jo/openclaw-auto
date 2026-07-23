@@ -15,9 +15,47 @@ type ReadinessState = Readiness | "error";
 // Instagram / Instagram Platform OAuth Authorize 문서에 force_authentication류 파라미터 미기재).
 // classic Facebook Login의 `auth_type=reauthenticate`는 이 business login 플로우 문서에는
 // 없어 검증 없이 흉내내지 않는다(추측 파라미터 삽입 금지 — SNS-001 지시). 대신 정직한 안내만 한다.
-const ACCOUNT_SWITCH_NOTE: Record<string, string> = {
-  threads: "Threads/Instagram 연결은 브라우저의 기존 Meta 로그인 세션을 그대로 사용합니다. 다른 계정으로 연결하려면 이 버튼을 누르기 전에 브라우저에서 Meta/Instagram 계정을 로그아웃하거나, 시크릿(프라이빗) 창에서 연결을 진행해주세요. Meta가 공식적으로 지원하는 '계정 강제 전환' 파라미터가 없어 자동 전환은 제공하지 않습니다.",
-  instagram: "Threads/Instagram 연결은 브라우저의 기존 Meta 로그인 세션을 그대로 사용합니다. 다른 계정으로 연결하려면 이 버튼을 누르기 전에 브라우저에서 Meta/Instagram 계정을 로그아웃하거나, 시크릿(프라이빗) 창에서 연결을 진행해주세요. Meta가 공식적으로 지원하는 '계정 강제 전환' 파라미터가 없어 자동 전환은 제공하지 않습니다.",
+interface AccountSwitchHelp {
+  note: string;
+  managementUrl: string;
+  managementLabel: string;
+}
+
+const META_SWITCH_NOTE = "현재 앱 주소에서는 Meta 도메인의 로그인 쿠키를 지울 수 없습니다. Meta 계정 센터를 새 탭에서 열어 사용할 계정과 로그인 세션을 직접 확인한 뒤, 이 화면으로 돌아와 다시 연결하세요. 우리 앱은 자동 로그아웃을 수행했다고 주장하지 않습니다.";
+
+// provider 세션은 각 provider origin이 소유한다. 우리 origin에서 쿠키를 삭제하거나 로그아웃을
+// 대행하지 않고, 공식 계정/세션 관리 화면을 새 탭으로 여는 명시적 사용자 동작만 제공한다.
+const ACCOUNT_SWITCH_HELP: Record<string, AccountSwitchHelp> = {
+  threads: {
+    note: META_SWITCH_NOTE,
+    managementUrl: "https://accountscenter.facebook.com/",
+    managementLabel: "Meta 계정 센터 열기",
+  },
+  instagram: {
+    note: META_SWITCH_NOTE,
+    managementUrl: "https://accountscenter.facebook.com/",
+    managementLabel: "Meta 계정 센터 열기",
+  },
+  facebook: {
+    note: META_SWITCH_NOTE,
+    managementUrl: "https://accountscenter.facebook.com/",
+    managementLabel: "Meta 계정 센터 열기",
+  },
+  x: {
+    note: "현재 앱 주소에서는 X 도메인의 로그인 쿠키를 지울 수 없습니다. X 계정 설정을 새 탭에서 열어 사용할 세션을 확인하거나 로그아웃한 뒤 다시 연결하세요.",
+    managementUrl: "https://x.com/settings/account",
+    managementLabel: "X 계정 설정 열기",
+  },
+  youtube: {
+    note: "YouTube OAuth는 연결할 때 Google 계정 선택 화면을 표시합니다. 현재 앱 주소에서는 Google 로그인 쿠키를 지울 수 없습니다. 연결 권한을 정리하려면 Google 계정의 앱 연결 관리 화면을 새 탭에서 확인한 뒤 다시 연결하세요.",
+    managementUrl: "https://myaccount.google.com/permissions",
+    managementLabel: "Google 연결 관리 열기",
+  },
+  tiktok: {
+    note: "현재 앱 주소에서는 TikTok 도메인의 로그인 쿠키를 지울 수 없습니다. TikTok 계정 설정을 새 탭에서 열어 사용할 세션을 확인하거나 로그아웃한 뒤 다시 연결하세요.",
+    managementUrl: "https://www.tiktok.com/setting",
+    managementLabel: "TikTok 계정 설정 열기",
+  },
 };
 
 // SNS-001: 팝업 콜백(callback/route.ts)이 window.opener로 postMessage하는 결과를 검증해 받는다.
@@ -45,7 +83,7 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
   // "노출=발행가능" 원칙(wiki/reference/channel-status.md) — 연결 UI는 12채널이지만
   // 텍스트 예약 발행과 영상 직접 발행 중 하나라도 있으면 발행 가능으로 표시한다.
   const publishReady = ([...SCHEDULABLE_PLATFORMS, ...VIDEO_PUBLISH_PLATFORMS] as readonly string[]).includes(provider);
-  const supportsSwitchNote = provider in ACCOUNT_SWITCH_NOTE;
+  const accountSwitchHelp = ACCOUNT_SWITCH_HELP[provider];
   const resolvedRef = useRef(false); // postMessage로 이미 결과를 받았는지(closed-폴링 오탐 방지)
   const watchClosedRef = useRef<number | null>(null); // closed-폴링 interval id — unmount 시 정리
   const mountedRef = useRef(true); // connect fetch가 pending인 동안 unmount되는 레이스 가드
@@ -202,7 +240,7 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
       >
         {busy ? "여는 중…" : readinessLoading ? "확인 중…" : `${label} OAuth 연결`}
       </button>
-      {supportsSwitchNote && (
+      {accountSwitchHelp && (
         <div className="mt-2">
           <button
             type="button"
@@ -213,9 +251,23 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
             다른 계정으로 연결하고 싶어요
           </button>
           {showSwitchNote && (
-            <p className="text-[11px] text-muted mt-1" data-testid={`switch-account-note-${provider}`}>
-              {ACCOUNT_SWITCH_NOTE[provider]}
-            </p>
+            <div className="mt-1 space-y-2">
+              <p className="text-[11px] text-muted" data-testid={`switch-account-note-${provider}`}>
+                {accountSwitchHelp.note}
+              </p>
+              <a
+                href={accountSwitchHelp.managementUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid={`manage-provider-account-${provider}`}
+                className="inline-flex text-[11px] text-accent underline underline-offset-2"
+              >
+                {accountSwitchHelp.managementLabel} ↗
+              </a>
+              <p className="text-[10px] text-subtle">
+                새 탭에서 계정 전환·로그아웃을 마친 뒤 이 화면의 OAuth 연결을 다시 누르세요.
+              </p>
+            </div>
           )}
         </div>
       )}
