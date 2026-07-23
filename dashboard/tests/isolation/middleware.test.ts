@@ -151,32 +151,34 @@ describe("proxy /api/me 운영자 토큰 검증 rate limit", () => {
     expect((await proxy(meRequest("invalid-b", "203.0.113.12"))).status).toBe(401);
   });
 
-  it("유효 운영자 토큰은 제한되지 않고 같은 identity의 실패 window를 지운다", async () => {
+  it("유효 운영자 토큰은 이미 429인 identity도 통과시키고 실패 window를 지운다", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("DASHBOARD_AUTH_TOKEN", "configured-operator-token");
 
-    for (let attempt = 0; attempt < 4; attempt += 1) {
-      expect((await proxy(meRequest(`invalid-${attempt}`))).status).toBe(401);
-    }
-    expect(isPass(await proxy(meRequest("configured-operator-token")))).toBe(true);
-    expect((await proxy(meRequest("invalid-after-success"))).status).toBe(401);
-  });
-
-  it("성공한 osmu customer 인증은 operator 실패 bucket에 포함되지 않는다", async () => {
-    vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "configured-operator-token");
-    mockResolveTenantToken.mockResolvedValue("tenant-1");
-
-    for (let request = 0; request < 10; request += 1) {
-      expect(isPass(await proxy(meRequest("osmu_customer_token")))).toBe(true);
-    }
     for (let attempt = 0; attempt < 4; attempt += 1) {
       expect((await proxy(meRequest(`invalid-${attempt}`))).status).toBe(401);
     }
     expect((await proxy(meRequest("invalid-final"))).status).toBe(429);
+    expect(isPass(await proxy(meRequest("configured-operator-token")))).toBe(true);
+    expect((await proxy(meRequest("invalid-after-success"))).status).toBe(401);
   });
 
-  it("성공한 Supabase JWT 인증은 operator 실패 bucket에 포함되지 않는다", async () => {
+  it("성공한 osmu customer 인증은 이미 429인 identity에서도 제한되지 않는다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "configured-operator-token");
+    mockResolveTenantToken.mockResolvedValue("tenant-1");
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      expect((await proxy(meRequest(`invalid-${attempt}`))).status).toBe(401);
+    }
+    expect((await proxy(meRequest("invalid-final"))).status).toBe(429);
+    for (let request = 0; request < 10; request += 1) {
+      expect(isPass(await proxy(meRequest("osmu_customer_token")))).toBe(true);
+    }
+    expect((await proxy(meRequest("invalid-still-limited"))).status).toBe(429);
+  });
+
+  it("성공한 Supabase JWT 인증은 이미 429인 identity에서도 제한되지 않는다", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("DASHBOARD_AUTH_TOKEN", "configured-operator-token");
     mockVerifySupabaseJwt.mockResolvedValue({
@@ -185,13 +187,14 @@ describe("proxy /api/me 운영자 토큰 검증 rate limit", () => {
     });
     const customerJwt = makeFakeJwt();
 
-    for (let request = 0; request < 10; request += 1) {
-      expect(isPass(await proxy(meRequest(customerJwt)))).toBe(true);
-    }
     for (let attempt = 0; attempt < 4; attempt += 1) {
       expect((await proxy(meRequest(`invalid-${attempt}`))).status).toBe(401);
     }
     expect((await proxy(meRequest("invalid-final"))).status).toBe(429);
+    for (let request = 0; request < 10; request += 1) {
+      expect(isPass(await proxy(meRequest(customerJwt)))).toBe(true);
+    }
+    expect((await proxy(meRequest("invalid-still-limited"))).status).toBe(429);
   });
 
   it("invalid osmu/JWT 모양으로 바꿔도 /api/me 실패 bucket을 우회하지 못한다", async () => {

@@ -4,13 +4,18 @@
 
 ## 2026-07-24 운영자 토큰 검증 시도 rate limit
 
-- [ ] ❌ NG: `/api/me`의 반복 invalid operator-style Bearer가 proxy에서 매번 401만 반환하며 시도 횟수 제한이 없다.
-- [ ] proxy 401이 route-level limiter를 우회하지 않는 인증 경계 배치
-- [ ] 유효 `DASHBOARD_AUTH_TOKEN`의 기존 super-admin 의미 보존
-- [ ] 유효 customer JWT/osmu 인증은 rate limit 비적용
-- [ ] client identity별 429 + `Retry-After`, bounded memory/expiry 결정론 테스트
-- [ ] forwarded IP 신뢰 경계 확인 및 미검증 범위 기록
-- [ ] focused tests, TypeScript, production build
+- [x] 🔧 전환: `/api/me`의 반복 invalid Bearer를 route handler가 아니라 선행 `src/proxy.ts` 인증 경계에서 제한
+- [x] 유효 `DASHBOARD_AUTH_TOKEN`은 이미 제한된 identity에서도 전체 API operator로 즉시 통과하고 실패 window 초기화
+- [x] 유효 customer JWT/osmu는 이미 제한된 identity에서도 반복 통과하며 bucket 비소모
+- [x] 같은 identity 5번째 실패는 429 + `Retry-After`, 다른 identity 독립, 60초 expiry, 2,048 entries 상한
+- [x] invalid osmu/JWT 모양으로 바꿔도 검증 실패 뒤 같은 bucket에 합류해 token-shape 우회 차단
+- [x] token 원문 저장·응답 없음: limiter key는 client identity뿐, 429 body는 generic error만
+- [x] 현재 Cloudflare Tunnel topology에서 `CF-Connecting-IP`만 신뢰하고 `X-Forwarded-For` 무시
+- [x] focused 2 files/68 PASS, TypeScript PASS, full Vitest 100 files/858 PASS·10 DB-env skip
+- [x] Next.js 16.2.2 production build 165 routes PASS(proxy 포함); 기존 studio/text NFT trace 경고 1건
+- [x] Claude 보안 2nd-pass: blocking/high 결함 0
+- [ ] 로컬 실제 HTTP curl: sandbox socket bind가 `listen EPERM`으로 차단돼 미검증
+- [ ] 운영 Cloudflare 경유 실제 `401×4 → 429 + Retry-After`, 유효 operator/customer 200은 QA/배포 후 관찰 필요
 
 ## 2026-07-24 운영자 로그인 리다이렉트
 

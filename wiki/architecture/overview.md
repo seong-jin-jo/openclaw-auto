@@ -42,6 +42,18 @@ Feedback: insights → viral signals → style / prompt-guide updates.
 - AuthGate의 `/api/me` 결과가 operator이면 persisted customer workspace를 지운 뒤 operator children을 연다.
   Sidebar는 `Admin` + `/operator/customers` 전용 shell을 렌더하고 customer 채널/워크스페이스 UI를
   mount하지 않는다. customer이면 `/api/me.tenant` 기반 Marketing Hub shell을 렌더한다.
+- `/api/me`의 invalid Bearer는 route handler보다 먼저 실행되는 `src/proxy.ts` 인증 경계에서 client identity별
+  fixed window로 제한한다. 60초 안의 5번째 실패부터 `429`와 `Retry-After`를 반환하고, 최대 2,048개 identity만
+  process memory에 보관한다. Bearer 원문은 저장·응답하지 않는다. 유효 `DASHBOARD_AUTH_TOKEN`은 기존처럼
+  전체 API operator로 즉시 통과하고 실패 window를 지우며, 유효 osmu/Supabase JWT는 이미 실패 제한에 걸린
+  identity에서도 제한 없이 각 customer 경로로 통과한다.
+- 현재 production ingress가 Cloudflare Tunnel 단일 경로이므로 identity는 형식 검증된
+  `CF-Connecting-IP`만 사용한다. Cloudflare가 원본 visitor IP 복원에 권장하지 않는 `X-Forwarded-For`는
+  신뢰하지 않으며, Cloudflare header 없는 직접 요청은 하나의 보수적 `direct` bucket을 공유한다.
+  이 전제는 origin을 Tunnel 밖에서 공개하거나 다중 replica로 확장할 때 재설계해야 한다.
+- 근거: [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html),
+  [RFC 6585 §4](https://www.rfc-editor.org/rfc/rfc6585#section-4),
+  [Cloudflare HTTP headers](https://developers.cloudflare.com/fundamentals/reference/http-headers/).
 - provider 로그인 쿠키는 provider origin 소유다. 대시보드는 이를 삭제하지 않고 Meta/X/Google/TikTok
   공식 계정 관리 화면을 새 탭으로 제공한 뒤 사용자가 돌아와 OAuth를 재시도하게 한다.
 - Google/YouTube의 `prompt=consent select_account`는 공식 계정 선택 동작으로 유지한다.

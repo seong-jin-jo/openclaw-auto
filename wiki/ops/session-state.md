@@ -3,11 +3,11 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **build in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-24 05:17 KST · 운영자 토큰 검증 rate-limit 핫픽스 착수
+**최종 갱신:** 2026-07-24 05:33 KST · 운영자 토큰 검증 rate-limit build candidate
 
 ---
 
-### 운영자 토큰 검증 rate-limit 핫픽스 진행 중 (2026-07-24)
+### 운영자 토큰 검증 rate-limit build candidate (2026-07-24)
 
 **handoff basis:** 사용자가 직접 지정한 과제, 루트 `pipeline-state.md`의 build in-progress hotfix 범위,
 커밋 `057f305e`·`ccd10b6a`·`7e3244e5`를 primary로 삼았다. `CLAUDE.md`,
@@ -16,14 +16,44 @@
 있었으나 sandbox에서 capture 소켓 접근이 거부됐다. 사용자가 이 과제를 명시했으므로 다른 pane에 명령을
 보내거나 기존 작업을 회수하지 않고 이 좁은 인증 핫픽스만 진행한다.
 
-**현재 결함:** 유효 운영자 토큰은 proxy에서 즉시 통과하지만, 일반 invalid bearer는 같은 경계에서 매 요청
-401만 반환해 반복 시도를 제한하지 않는다. route-level `/api/me` limiter만 두면 proxy의 선행 401이 우회하므로
-proxy 인증 판정 경계에 배치해야 한다. 기존 미커밋 `pipeline-state.md`는 사용자 변경으로 간주해 수정·커밋하지
-않는다.
+**근본 원인/수정:** invalid bearer는 `/api/me` route handler 전에 proxy가 401로 끝내므로 route-level
+limiter는 우회된다. `src/proxy.ts`의 실제 인증 실패 합류점에 fixed-window limiter를 배치했다. 같은 client
+identity의 60초 내 5번째 실패부터 generic 429 + `Retry-After`를 반환한다. osmu/JWT 모양도 실제 verifier가
+invalid로 판정하면 같은 bucket에 합류해 token shape만 바꾸는 우회를 막는다. limiter는 bearer 원문을 저장하지
+않고 identity 최대 2,048개만 process memory에 보관하며 window 만료 후 초기화한다.
 
-**정확한 다음 액션:** client identity 신뢰 경계와 기존 배포 topology를 확인하고, 유효 customer JWT/osmu
-검증 성공은 카운트하지 않으면서 invalid operator-style bearer만 제한하는 bounded-memory limiter와 결정론
-테스트를 추가한다. 이후 focused tests, TypeScript, production build를 실행하고 이 섹션을 실제 증거로 갱신한다.
+**유지한 기존 기능:** 정확한 `DASHBOARD_AUTH_TOKEN`은 제한 상태와 무관하게 기존 super-admin 전체 API 의미로
+즉시 통과하고 해당 identity의 실패 window를 지운다. 유효 osmu/Supabase JWT는 제한 상태에서도 검증 후
+customer 경로로 통과하며 limiter를 읽거나 소모하지 않는다. health/public OAuth callback/media delivery,
+tenant-aware allowlist, account gate, operator/customer shell과 Video/OAuth UX는 변경하지 않았다.
+
+**client identity 신뢰 경계:** 현재 실제 ingress는 Cloudflare Tunnel → 단일
+`openclaw-dashboard-osmu` Node process다. Cloudflare 공식 권고에 따라 형식 검증된 `CF-Connecting-IP`만
+identity로 쓰고, client가 공급·연장할 수 있는 `X-Forwarded-For`는 무시한다. header 없는 direct 요청은
+spoof 가능한 값을 믿지 않고 하나의 `direct` bucket을 공유한다.
+
+**변경/커밋:** 코드·테스트는 `dashboard/src/lib/operator-auth-rate-limit.ts`,
+`dashboard/src/proxy.ts`, `dashboard/tests/lib/operator-auth-rate-limit.test.ts`,
+`dashboard/tests/isolation/middleware.test.ts`. 문서는 `docs/qa-tracker.md`,
+`wiki/architecture/overview.md`, 이 파일이다. 중간 커밋은 `b8da01b9`, `b47c9906`, `128cbd81`.
+기존 미커밋 `pipeline-state.md`는 사용자 변경으로 보존했고 어느 커밋에도 포함하지 않았다.
+
+**검증:** 결정론 limiter 테스트와 전체 proxy 인증 회귀 focused 2 files/68 PASS. `npx tsc --noEmit`
+PASS. 전체 Vitest 100 files/858 PASS, DB 환경 의존 기존 10건 skip. Next.js 16.2.2 production build가
+proxy TypeScript를 포함해 165 routes PASS했다. 기존 `studio/text` NFT whole-project trace 경고 1건은
+동일하게 남았다. 독립 Claude security review는 blocking/high 0으로 판정했다.
+
+**미검증/리스크:** 로컬 `next start` HTTP curl은 sandbox가 34567/34568 socket bind를 모두
+`listen EPERM`으로 거부해 직접 관찰하지 못했다. process-local Map이라 재시작 시 실패 이력이 초기화되고,
+향후 다중 replica에서는 공유되지 않는다. 2,048개를 넘는 분산 source는 oldest bucket을 밀어낼 수 있다.
+Cloudflare Tunnel 밖에서 origin을 공개하면 `CF-Connecting-IP`가 spoof 가능하므로 현재 identity 신뢰 전제가
+깨진다. 현재 운영은 단일 Tunnel/단일 process라 build 범위에서는 이 전제를 유지한다.
+
+**게이트/정확한 다음 액션:** root pipeline은 build in-progress, QA/ship 미통과다. 다음 QA 명령은
+`cd dashboard && npm test -- --run tests/lib/operator-auth-rate-limit.test.ts tests/isolation/middleware.test.ts && npx tsc --noEmit && npm run build`.
+build 승인 뒤 `openclaw-dashboard-osmu` QA 후보를 배포하고 Cloudflare 공개 URL에서 같은 identity의
+invalid bearer `401×4 → 429 + Retry-After`, 다른 identity 401, 유효 operator 200 후 실패 401,
+유효 단기 osmu/JWT 200을 직접 관찰한다. 단기 customer token은 종료 즉시 revoke 후 401을 확인한다.
 
 ---
 
