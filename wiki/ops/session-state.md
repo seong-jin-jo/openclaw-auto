@@ -2450,3 +2450,46 @@ THREADS_APP_ID/SECRET 미배선. Facebook=미배선. X=원클릭 없음(4키 수
 - handoff checkpoint commit `672ff45b`를 VM 우회 경로로 GitHub `main`에 push했다.
 - **정확한 다음 액션:** 사용자가 열린 X/TikTok/Meta 탭에서 로그인과 2FA만 완료하고 `세 콘솔 로그인함`을
   알린다. 즉시 이 pane이 콘솔 설정→secret 저장→배포→실 OAuth callback/계정 전환/발행 QA를 수행한다.
+
+### 2026-07-24 01:32 KST — code0to1 Threads 시작 게시물 3개 초안 핸드오프
+
+- **트랙/기준:** 사용자가 직접 위임한 `ZERO-ONE 공식 Threads 자동발행 시작용 게시물 3개` 과제를 primary로
+  사용했다. `CLAUDE.md`, 이 session-state, git 상태와 `openclaw-auto:0.0` pane을 확인했으며, 기존 OAuth/운영
+  트랙의 코드·DB·배포 상태는 변경하지 않았다.
+- **읽은 기반:** BRAIN `wiki/business/synthesis-4페르소나-사업-OS.md`,
+  `wiki/foundation/decision-조곤-제로원-콘텐츠-경계.md`; repo
+  `wiki/marketing/{content-calendar,brand,hook-bank}.md`,
+  `wiki/marketing/channels/threads.md`; 콘텐츠 품질헌법 writing/marketing/benchmarks와
+  hook-angle-lab, social-post-packager, viral-trend-research 스킬.
+- **산출:** 사람 검수용 JSON 배열로 Threads 게시물 3개를 채팅에 전달했다. 각도는
+  ① 공장 가동 선언·메타 데모 ② 브랜드 사실 그라운딩 ③ 의지론 대신 생산 시스템 진단이며,
+  CTA는 팔로우·댓글·공유로 1개씩 분리했다. 파일·코드·DB·외부 큐에는 초안을 저장하지 않았다.
+- **검증(관찰됨):** 게시물 길이 416자·375자·368자. 금지어 0, 숫자 placeholder 0, 아라비아 숫자 주장 0,
+  CTA 각 1개를 로컬 Node 검사로 확인했다. Meta 공식 Threads 가이드와 소규모 브랜드 Threads 사례를
+  WebSearch로 대조했다. 실제 큐 적재·예약·Threads 발행은 **미실행·미검증**이다.
+- **주의/미결:** 요청은 ZERO-ONE 공식 계정이라고 했지만 지정된 repo 마케팅 정본 4개는 계정 페르소나를
+  사장님 대상 `OSMU 팩토리`로 정의한다. 초안은 repo SSOT를 따라 OSMU 팩토리 톤으로 작성했고,
+  순수 ZERO-ONE 기술교육 계정으로 발행한다면 브랜드 불일치이므로 그대로 출고하면 안 된다.
+- **평가 상태:** `2026-07-24-zero-one-social-pack-01`, awaiting_feedback. 사용자 피드백
+  `좋음/애매/별로 + 이유 한 줄` 대기.
+- **정확한 다음 액션:** 사람이 ① code0to1 연결 계정의 실제 발행 브랜드가 OSMU 팩토리인지 ZERO-ONE인지
+  확인한다. OSMU면 전달된 JSON 3개를 큐에 draft로 적재해 사람 승인 후 예약하고, ZERO-ONE이면
+  BRAIN의 빌더/how-to 정체성으로 3개를 재작성한다. 어느 경우든 실발행 뒤 게시물 URL과 Threads insights를
+  직접 관찰하기 전에는 자동발행 완료로 보고하지 않는다.
+
+## 2026-07-24 Opus 세션 종료 — Codex로 임시 인계
+
+**마감 상태:** R4 에셋 완료(배너/썸네일 B+ 출시가능, 프로필 B serviceable, 커밋 2d9799b6), assets.md 인벤토리 갱신, 그 외 기획·디자인·콘텐츠 정본 완성(2026-07-17 현재).
+
+**미완료:** 
+- 프로필 마크 리파인 여부 = 회장 판단 (현황: B급 v1 vs 1회 리파인 후보)
+- 소결정 3건(워터마크 유료화·제보자 호명·채널카드 갱신) = 회장 미결 유지(정정되어 wiki 미반영)
+
+**Codex 담당 사항** (복귀 시까지 대기):
+- 표시 이름 최종 낙점 후 naming.md 확정(회장이 "오스무 팩토리" or 다른 명칭 결정하면 반영)
+- 소결정 3건 회장 판단(워터마크·호명·채널카드 갱신) 후 적용 여부 결정
+- 프로필 리파인 회장 지시 있으면 Higgsfield 1회 재생성(크레딧 내)
+
+**진실원 상태:** naming.md(2026-07-16 공장 낙점), brand.md(공장 버전), DESIGN.md(A- 실증), wiki/marketing 정본 25파일 전파·커밋 2건(815a3693·2d9799b6).
+
+**다음 세션 입구:** session-state.md(이 파일) 먼저 읽고, 회장 판단 수집 후 진행.
