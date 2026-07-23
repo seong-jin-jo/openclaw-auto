@@ -3,7 +3,27 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **build in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-24 05:08 KST · 운영자/고객 shell 분리 + Video/OAuth 계정 전환 UX build candidate
+**최종 갱신:** 2026-07-24 05:17 KST · 운영자 토큰 검증 rate-limit 핫픽스 착수
+
+---
+
+### 운영자 토큰 검증 rate-limit 핫픽스 진행 중 (2026-07-24)
+
+**handoff basis:** 사용자가 직접 지정한 과제, 루트 `pipeline-state.md`의 build in-progress hotfix 범위,
+커밋 `057f305e`·`ccd10b6a`·`7e3244e5`를 primary로 삼았다. `CLAUDE.md`,
+`dashboard/{AGENTS.md,CLAUDE.md,README.md}`, `dashboard/src/proxy.ts`,
+`dashboard/tests/isolation/middleware.test.ts`, 개발 품질헌법을 읽었다. tmux pane 목록에는 이 레포 pane이
+있었으나 sandbox에서 capture 소켓 접근이 거부됐다. 사용자가 이 과제를 명시했으므로 다른 pane에 명령을
+보내거나 기존 작업을 회수하지 않고 이 좁은 인증 핫픽스만 진행한다.
+
+**현재 결함:** 유효 운영자 토큰은 proxy에서 즉시 통과하지만, 일반 invalid bearer는 같은 경계에서 매 요청
+401만 반환해 반복 시도를 제한하지 않는다. route-level `/api/me` limiter만 두면 proxy의 선행 401이 우회하므로
+proxy 인증 판정 경계에 배치해야 한다. 기존 미커밋 `pipeline-state.md`는 사용자 변경으로 간주해 수정·커밋하지
+않는다.
+
+**정확한 다음 액션:** client identity 신뢰 경계와 기존 배포 topology를 확인하고, 유효 customer JWT/osmu
+검증 성공은 카운트하지 않으면서 invalid operator-style bearer만 제한하는 bounded-memory limiter와 결정론
+테스트를 추가한다. 이후 focused tests, TypeScript, production build를 실행하고 이 섹션을 실제 증거로 갱신한다.
 
 ---
 

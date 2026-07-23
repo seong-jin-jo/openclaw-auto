@@ -2,6 +2,16 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-07-24 운영자 토큰 검증 시도 rate limit
+
+- [ ] ❌ NG: `/api/me`의 반복 invalid operator-style Bearer가 proxy에서 매번 401만 반환하며 시도 횟수 제한이 없다.
+- [ ] proxy 401이 route-level limiter를 우회하지 않는 인증 경계 배치
+- [ ] 유효 `DASHBOARD_AUTH_TOKEN`의 기존 super-admin 의미 보존
+- [ ] 유효 customer JWT/osmu 인증은 rate limit 비적용
+- [ ] client identity별 429 + `Retry-After`, bounded memory/expiry 결정론 테스트
+- [ ] forwarded IP 신뢰 경계 확인 및 미검증 범위 기록
+- [ ] focused tests, TypeScript, production build
+
 ## 2026-07-24 운영자 로그인 리다이렉트
 
 - [x] 검증된 운영자 세션이 `/operator/customers`로 이동하는 계약 테스트
