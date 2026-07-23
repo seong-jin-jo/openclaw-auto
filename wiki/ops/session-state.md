@@ -3,7 +3,31 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-22 KST · 셀프서비스 OAuth QA·운영 배포 완료, 외부 실계정 ship E2E 진행
+**최종 갱신:** 2026-07-23 20:25 KST · 운영자 상태판·Meta 법정 페이지 build 검증, 운영 배포 대기
+
+---
+
+### OSMU 운영자 상태판·Meta 출시 준비 핸드오프 (2026-07-23 20:25 KST)
+
+**handoff basis:** 사용자가 이 대화에서 승인 질문 없이 중앙 멀티테넌트 SaaS 출시 작업을 계속하라고 명시했다.
+`wiki/ops/session-state.md`와 현재 worktree를 primary로 사용한다. nested `openclaw/`의 대량 untracked 파일은 타 작업이라 미접촉이다.
+
+**확인·구현:** 기존 `/operator/customers`에는 auth 가입자, 최근 로그인, tenant 상태, 연결 앱, 사용 이벤트,
+초안·발행·실패·AI 사용량, 계정 정지/재개, 공유 Claude 승인/회수가 이미 있었다. 이번 변경은 운영 KPI 6종,
+`channel_accounts` 기반 provider별 다중계정 수·기본계정·최근 연결 시각, 중앙 OAuth 앱 credential 등록상태를 비밀값 없이
+추가한다. 외부 플랫폼 Live/심사 상태는 서버 env로 알 수 없으므로 별도 확인이라고 명시해 credential 존재와 혼동하지 않는다.
+
+**Meta 실제 콘솔 관찰:** 중앙 앱 `정성컴퍼니`는 Meta 개발 모드이며 Threads·Instagram·Facebook use case는 등록돼 있다.
+게시 화면에서 개인정보처리방침 URL이 필수인데 운영 사이트에 공개 법정 페이지가 없음을 확인했다. `/privacy`, `/terms`,
+`/data-deletion`과 로그인 랜딩 footer 링크를 추가하고 AuthGate 공개 경로로 허용했다. 키체인은 더 사용하지 않으며,
+이미 로그인된 별도 Chrome profile + CDP 세션으로 외부 콘솔 작업을 이어간다.
+
+**검증:** focused 4 files/51 PASS, 전체 Vitest 97 files/834 PASS·10 DB-env skip, TypeScript PASS,
+Next.js production build 165 routes PASS, diff check PASS. 실제 PostgreSQL 운영 query와 배포된 관리자 화면·법정 페이지는 아직 미검증이다.
+
+**정확한 다음 액션:** 변경 파일만 commit→marketing VM 경유 push→`openclaw-dashboard-osmu` 배포→운영 public 법정 페이지
+3개를 직접 렌더 확인→운영자 API에서 실제 가입자/KPI/OAuth 상태를 조회하고 `/operator/customers`를 Chrome으로 관찰한다.
+그 다음 Meta Basic 설정에 공개 URL을 입력하고 게시 화면의 남은 요구사항을 직접 회수한다.
 
 ---
 

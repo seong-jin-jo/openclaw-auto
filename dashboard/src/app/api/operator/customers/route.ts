@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { ensureTenantForUser } from "@/lib/tenant-auth";
 import { reportFailure, normalizeOperatorAction } from "@/lib/observability";
+import { FACEBOOK, PROVIDERS } from "@/lib/social-connect";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -14,6 +15,12 @@ interface CustomerRow {
   created_at: string;
   shared_cli_approved_at: string | null;
   integrations: Array<{ kind: string; label: string | null; has_secret: boolean; connected_at?: string | null }>;
+  channel_accounts: Array<{
+    provider: string;
+    account_count: number;
+    default_username: string | null;
+    last_connected_at: string | null;
+  }>;
   drafts_count: number;
   published_count: number;
   failed_count: number;
@@ -21,6 +28,37 @@ interface CustomerRow {
   last_usage_at: string | null;
   shorts_used: number | null;
   generations_used: number | null;
+}
+
+interface ProviderStatus {
+  provider: string;
+  label: string;
+  credentialsConfigured: boolean;
+  missing: string[];
+  externalReview: "required" | "unknown";
+}
+
+function oauthProviderStatuses(): ProviderStatus[] {
+  const providers: ProviderStatus[] = Object.entries(PROVIDERS).map(([provider, cfg]) => {
+    const missing = [cfg.appIdEnv, cfg.appSecretEnv].filter((key) => !process.env[key]);
+    return {
+      provider,
+      label: cfg.label,
+      credentialsConfigured: missing.length === 0,
+      missing,
+      externalReview: "unknown" as const,
+    };
+  });
+  const facebookMissing = [FACEBOOK.appIdEnv, FACEBOOK.appSecretEnv, FACEBOOK.configIdEnv]
+    .filter((key) => !process.env[key]);
+  providers.push({
+    provider: "facebook",
+    label: "facebook",
+    credentialsConfigured: facebookMissing.length === 0,
+    missing: facebookMissing,
+    externalReview: "required",
+  });
+  return providers;
 }
 
 interface AuthUserRow {
@@ -78,6 +116,24 @@ export async function GET(request: Request) {
           FROM integrations i
           WHERE i.tenant_id = t.id
         ), '[]'::jsonb) AS integrations,
+        COALESCE((
+          SELECT jsonb_agg(jsonb_build_object(
+            'provider', grouped.provider,
+            'account_count', grouped.account_count,
+            'default_username', grouped.default_username,
+            'last_connected_at', grouped.last_connected_at
+          ) ORDER BY grouped.provider)
+          FROM (
+            SELECT
+              ca.provider,
+              count(*)::int AS account_count,
+              max(CASE WHEN ca.is_default THEN ca.username END) AS default_username,
+              max(ca.created_at)::text AS last_connected_at
+            FROM channel_accounts ca
+            WHERE ca.tenant_id = t.id
+            GROUP BY ca.provider
+          ) grouped
+        ), '[]'::jsonb) AS channel_accounts,
         COALESCE((SELECT count(*)::int FROM drafts d WHERE d.tenant_id = t.id), 0) AS drafts_count,
         COALESCE((SELECT count(*)::int FROM published_posts p WHERE p.tenant_id = t.id AND p.status = 'published'), 0) AS published_count,
         COALESCE((SELECT count(*)::int FROM published_posts p WHERE p.tenant_id = t.id AND p.status = 'failed'), 0) AS failed_count,
@@ -106,7 +162,16 @@ export async function GET(request: Request) {
       LEFT JOIN tenants t ON t.owner_auth_id = u.id
       ORDER BY u.created_at DESC
       LIMIT 500`;
-    return Response.json({ customers: rows, authUsers });
+    const summary = {
+      authUsers: authUsers.length,
+      workspaces: rows.length,
+      activeWorkspaces: rows.filter((row) => row.status === "active").length,
+      connectedAccounts: rows.reduce((total, row) => total + (row.channel_accounts || [])
+        .reduce((count, item) => count + Number(item.account_count || 0), 0), 0),
+      published: rows.reduce((total, row) => total + Number(row.published_count || 0), 0),
+      failed: rows.reduce((total, row) => total + Number(row.failed_count || 0), 0),
+    };
+    return Response.json({ customers: rows, authUsers, summary, oauthProviders: oauthProviderStatuses() });
   } catch (e) {
     return Response.json({ customers: [], authUsers: [], error: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }

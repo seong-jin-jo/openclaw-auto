@@ -21,6 +21,16 @@ override_expires: ""
 
 # Pipeline State — openclaw-auto-osmu
 
+## 2026-07-23 operator observability + Meta legal pages build candidate
+- 기존 운영자 고객 관리에 전체 가입자/워크스페이스/활성/연결계정/발행/실패 KPI와 `channel_accounts` 기반
+  provider별 다중계정 현황을 추가했다.
+- 중앙 OAuth 개발자 앱의 서버 credential 등록상태를 secret 원문 없이 표시한다. Meta Live/심사처럼 서버가 판정할 수
+  없는 외부 상태는 별도 확인으로 표시한다.
+- Meta 게시 필수조건인 공개 개인정보처리방침·이용약관·데이터 삭제 페이지를 추가하고 인증 없이 접근 가능하게 했다.
+- focused 51 PASS, full 834 PASS/10 DB-env skip, TypeScript PASS, production build 165 routes PASS.
+- ship은 계속 in-progress다. 운영 배포 후 실제 DB/API/UI 관찰과 Meta 콘솔 URL 저장·Live 요구사항 회수가 남았다.
+- 다음 실행: commit/push/deploy 후 public 3페이지, operator API/UI, Meta Basic/Go Live 순으로 실제 관찰한다.
+
 ## 2026-07-22 self-service OAuth SaaS build reopen
 - 사용자가 제품 목표를 재확정했다: `code0to1` 연결 도구가 아니라 누구나 Google로 가입해 독립 tenant를 받고,
   자기 SNS 계정을 OAuth로 연결·전환·자동 발행하는 SaaS다.

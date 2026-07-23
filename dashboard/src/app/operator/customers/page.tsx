@@ -15,6 +15,7 @@ interface Customer {
   created_at: string;
   shared_cli_approved_at: string | null;
   integrations: Array<{ kind: string; label: string | null; has_secret: boolean; connected_at?: string | null }>;
+  channel_accounts?: Array<{ provider: string; account_count: number; default_username: string | null; last_connected_at: string | null }>;
   drafts_count: number;
   published_count: number;
   failed_count: number;
@@ -22,6 +23,23 @@ interface Customer {
   last_usage_at: string | null;
   shorts_used: number | null;
   generations_used: number | null;
+}
+
+interface OperatorSummary {
+  authUsers: number;
+  workspaces: number;
+  activeWorkspaces: number;
+  connectedAccounts: number;
+  published: number;
+  failed: number;
+}
+
+interface OAuthProviderStatus {
+  provider: string;
+  label: string;
+  credentialsConfigured: boolean;
+  missing: string[];
+  externalReview: "required" | "unknown";
 }
 
 interface AuthUser {
@@ -53,9 +71,17 @@ function fmtDate(v: string | null | undefined): string {
 }
 
 export default function OperatorCustomersPage() {
-  const { data, error, isLoading, mutate } = useSWR<{ customers: Customer[]; authUsers: AuthUser[]; error?: string }>("/api/operator/customers", fetcher);
+  const { data, error, isLoading, mutate } = useSWR<{
+    customers: Customer[];
+    authUsers: AuthUser[];
+    summary?: OperatorSummary;
+    oauthProviders?: OAuthProviderStatus[];
+    error?: string;
+  }>("/api/operator/customers", fetcher);
   const customers = data?.customers || [];
   const authUsers = data?.authUsers || [];
+  const summary = data?.summary;
+  const oauthProviders = data?.oauthProviders || [];
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
   const [userActionMsg, setUserActionMsg] = useState<Record<string, string>>({});
 
@@ -104,6 +130,49 @@ export default function OperatorCustomersPage() {
           {data?.error || error?.message || "조회 실패"}
         </div>
       )}
+
+      {summary && (
+        <section className="mb-6 grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6" aria-label="운영 요약">
+          {[
+            ["가입자", summary.authUsers],
+            ["워크스페이스", summary.workspaces],
+            ["활성", summary.activeWorkspaces],
+            ["연결 계정", summary.connectedAccounts],
+            ["발행", summary.published],
+            ["실패", summary.failed],
+          ].map(([label, value]) => (
+            <div key={label} className="card p-3">
+              <p className="text-[11px] text-subtle">{label}</p>
+              <p className="mt-1 text-xl font-semibold text-text">{value}</p>
+            </div>
+          ))}
+        </section>
+      )}
+
+      <section className="mb-6">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-text">중앙 OAuth 개발자 앱</h3>
+            <p className="mt-1 text-[11px] text-subtle">서버 credential 등록 여부입니다. 플랫폼 Live·심사 상태는 외부 콘솔에서 별도 확인합니다.</p>
+          </div>
+          <span className="text-[11px] text-subtle">{oauthProviders.filter((item) => item.credentialsConfigured).length}/{oauthProviders.length} 준비</span>
+        </div>
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+          {oauthProviders.map((item) => (
+            <div key={item.provider} className="card flex items-start justify-between gap-3 p-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium capitalize text-text">{item.label}</p>
+                <p className="mt-1 break-words text-[11px] text-subtle">
+                  {item.credentialsConfigured ? "서버 credential 등록됨" : `미설정: ${item.missing.join(", ")}`}
+                </p>
+              </div>
+              <span className={`shrink-0 text-[10px] px-2 py-1 rounded ${item.credentialsConfigured ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
+                {item.credentialsConfigured ? "준비" : "차단"}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <section className="mb-6">
         <div className="flex items-center justify-between mb-3">
@@ -193,6 +262,7 @@ export default function OperatorCustomersPage() {
       <div className="grid gap-3">
         {customers.map((c) => {
           const channels = c.integrations.filter((i) => i.kind === "channel" && i.has_secret);
+          const channelAccounts = c.channel_accounts || [];
           const anthropic = c.integrations.some((i) => i.kind === "anthropic" && i.has_secret);
           return (
             <div key={c.id} className="card p-4">
@@ -221,9 +291,13 @@ export default function OperatorCustomersPage() {
                     공유 AI {c.shared_cli_approved_at ? "승인됨" : "미승인"}
                   </span>
                 )}
-                {channels.length ? channels.map((ch) => (
+                {channelAccounts.length ? channelAccounts.map((account) => (
+                  <span key={account.provider} className="text-[10px] px-2 py-1 rounded bg-accent-soft text-accent" title={`최근 연결 ${fmtDate(account.last_connected_at)}`}>
+                    {account.provider} {account.account_count}개{account.default_username ? ` · 기본 @${account.default_username}` : ""}
+                  </span>
+                )) : channels.length ? channels.map((ch) => (
                   <span key={`${ch.kind}:${ch.label}`} className="text-[10px] px-2 py-1 rounded bg-accent-soft text-accent">
-                    {ch.label} 연결
+                    {ch.label} 연결(legacy)
                   </span>
                 )) : (
                   <span className="text-[10px] px-2 py-1 rounded bg-surface-2 text-subtle">연결 앱 없음</span>

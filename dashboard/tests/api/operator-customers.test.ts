@@ -12,6 +12,9 @@ const H = vi.hoisted(() => ({
       created_at: "2026-07-01T00:00:00Z",
       shared_cli_approved_at: null,
       integrations: [],
+      channel_accounts: [
+        { provider: "instagram", account_count: 2, default_username: "main", last_connected_at: "2026-07-02T00:00:00Z" },
+      ],
       drafts_count: 0,
       published_count: 0,
       failed_count: 0,
@@ -115,8 +118,19 @@ describe("/api/operator/customers", () => {
     expect(body.customers[0]).toHaveProperty("shared_cli_approved_at");
     expect(body.authUsers[0].email).toBe("owner@example.com");
     expect(body.authUsers[0]).toHaveProperty("tenant_shared_ai_approved_at");
+    expect(body.summary).toEqual(expect.objectContaining({
+      authUsers: 1,
+      workspaces: 1,
+      activeWorkspaces: 1,
+      connectedAccounts: 2,
+    }));
+    expect(body.oauthProviders).toEqual(expect.arrayContaining([
+      expect.objectContaining({ provider: "x", credentialsConfigured: false }),
+      expect.objectContaining({ provider: "facebook", credentialsConfigured: false }),
+    ]));
     expect(JSON.stringify(body)).not.toContain("encrypted_password");
     expect(JSON.stringify(body)).not.toContain("password");
+    expect(JSON.stringify(body)).not.toContain("op-token");
   }, 15_000);
 
   it("고객 인증은 Google OAuth 전용이라 send_password_reset은 미지원 — 400이고 fetch(메일 발송)는 호출되지 않는다", async () => {

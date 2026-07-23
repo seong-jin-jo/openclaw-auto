@@ -357,6 +357,15 @@ function LandingPage() {
             {" "}+ Claude
           </p>
           <div className="flex items-center gap-6">
+            <a href="/privacy" className="text-xs text-subtle hover:text-muted transition-colors">
+              개인정보처리방침
+            </a>
+            <a href="/terms" className="text-xs text-subtle hover:text-muted transition-colors">
+              이용약관
+            </a>
+            <a href="/data-deletion" className="text-xs text-subtle hover:text-muted transition-colors">
+              데이터 삭제
+            </a>
             <a href="https://github.com/openclaw" target="_blank" rel="noopener noreferrer"
               className="text-xs text-subtle hover:text-muted transition-colors">
               GitHub
@@ -377,7 +386,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [hasToken, setHasToken] = useState<boolean | null>(null);
   const [gateStatus, setGateStatus] = useState<GateStatus>("checking");
-  const isPublicPath = pathname === "/login" || pathname === "/signup" || pathname === "/operator";
+  const isPublicPath = ["/login", "/signup", "/operator", "/privacy", "/terms", "/data-deletion"].includes(pathname);
 
   useEffect(() => {
     setHasToken(!!getAuthToken());

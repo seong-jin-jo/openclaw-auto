@@ -2,6 +2,19 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-07-23 운영자 상태판·Meta 법정 페이지
+
+- [x] `/api/operator/customers` 비밀번호·credential 원문 비노출 계약
+- [x] 운영 KPI와 tenant별 다중 연결계정 집계 단위 테스트
+- [x] OAuth provider credential boolean 상태와 Facebook config 상태 단위 테스트
+- [x] `/privacy`, `/terms`, `/data-deletion` AuthGate 공개 경로 계약
+- [x] focused 51 PASS, full Vitest 834 PASS/10 DB-env skip
+- [x] TypeScript PASS, Next.js production build 165 routes PASS
+- [ ] 운영 PostgreSQL 실제 집계 query 관찰
+- [ ] 운영 `/operator/customers` 렌더·응답 관찰
+- [ ] 운영 공개 법정 페이지 3개 렌더 관찰
+- [ ] Meta 앱 Basic 설정 URL 저장 및 Go Live 남은 조건 관찰
+
 ## 2026-07-22 셀프서비스 tenant·OAuth 격리 build 재검
 
 **수정:** OAuth auth-url의 서명 state를 callback 경로 전용 HttpOnly 쿠키에도 저장하고 callback에서
