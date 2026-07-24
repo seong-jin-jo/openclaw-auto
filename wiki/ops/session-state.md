@@ -3,7 +3,28 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-25 06:45 KST · operator/customer shell hotfix QA 승인, 전체 ship 계속
+**최종 갱신:** 2026-07-25 07:49 KST · 종료 핸드오프 신선도 갱신
+
+---
+
+### 종료 핸드오프 체크포인트 (2026-07-25 07:49 KST)
+
+**현재 상태:** product code와 운영 배포는 commit `85c9fe7b`, QA·pipeline 기록은 commit
+`7bf8a2e0`으로 `origin/main`에 반영됐다. 확인 시점의 tracked worktree는 clean이었다.
+primary는 `openclaw-auto:0.0`; 같은 repo의 `0.1`은 브랜드 판단 트랙, `0.2`는 별도 shell이므로
+이 제품 QA의 실행 근거로 합치지 않는다.
+
+**완료 증거:** 운영자 `Admin` 전용 shell, customer workspace 제거, 고객 Video의
+YouTube/TikTok 메뉴·카드·계정관리 링크, YouTube 계정선택 OAuth 파라미터, 운영 rate-limit
+`401×4→429`, 유효 고객·운영자 통과, 임시 토큰 revoke 후 401을 운영에서 관찰했다.
+focused 213 PASS, full 858 PASS/10 DB-env skip, TypeScript PASS, production build 165/165 PASS,
+deploy `30042980536` SUCCESS다. pipeline은 QA approved, ship in-progress다.
+
+**남은 이슈/다음 액션:** X/TikTok 중앙 OAuth 앱 credential·심사와 신규 고객의 provider별
+실 consent→callback→credential 저장→실발행 permalink가 전체 ship 종료 증거로 남았다.
+외부 개발자 콘솔 인증이 확보되면 `openclaw-auto:0.0`에서 credential 저장→재배포→플랫폼별
+실 OAuth·계정 전환·발행 URL 관찰 순서로 재개한다. 코드로 해소 가능한 이번 shell hotfix 범위는
+추가 작업 없이 운영 반영 상태다.
 
 ---
 
