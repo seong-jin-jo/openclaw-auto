@@ -4,22 +4,38 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: qa              # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design, build]
+current_stage: ship              # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design, build, qa]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
   build:      { status: approved, artifacts_ok: true } # 858 full PASS + 174 focused PASS + tsc + 165-route build + Claude review
-  qa:         { status: in-progress, artifacts_ok: false }
-  ship:       { status: pending, artifacts_ok: false }
+  qa:         { status: approved, artifacts_ok: true }
+  ship:       { status: in-progress, artifacts_ok: false }
 override: false
 override_reason: ""
 override_expires: ""
 ---
 
 # Pipeline State — openclaw-auto-osmu
+
+## 2026-07-25 operator/customer shell hotfix QA operating close
+- 운영 배포 `30042980536` 성공 뒤 공개 URL에서 운영자와 고객 shell을 각각 실제 브라우저로 관찰했다.
+- 운영자는 persisted `Romeo-n-cupid` workspace를 제거하고 `Admin`과 고객 관리만 표시했다.
+  새로고침 뒤 `/api/me`와 `/api/operator/customers`는 200, 브라우저 콘솔 오류는 0건이었다.
+- 단기 고객 토큰으로 `/videos`를 열어 Marketing Hub, YouTube/TikTok Sidebar 링크, 실제 연결 카드,
+  Google/TikTok 공식 계정관리 링크를 관찰했다. 관련 API는 모두 200이고 콘솔 오류는 0건이었다.
+- YouTube OAuth 시작 URL은 `accounts.google.com`, `prompt=consent select_account`,
+  `access_type=offline`, 운영 origin callback을 반환했다.
+- 운영 rate-limit은 동일 identity에서 invalid bearer `401×4 → 429`, `Retry-After: 59`,
+  제한 중 유효 고객 200, 운영자 200으로 window clear, 다음 invalid 401을 관찰했다.
+- QA용 고객 토큰은 revoke했고 동일 토큰의 `/api/me` 401을 확인했다. 브라우저는 운영자 Admin 상태로 원복했다.
+- 독립 QA 재실행은 focused 213 PASS, full 858 PASS/10 DB-env skip, TypeScript PASS,
+  Webpack production build 165/165 pages PASS, 운영 health 200/db up이다.
+- 이 hotfix의 QA는 승인한다. 전체 ship은 X/TikTok 중앙 앱 credential·심사와 신규 고객의 외부 provider
+  실 consent→callback→credential 저장→발행 permalink가 미검증이므로 `in-progress`를 유지한다.
 
 ## 2026-07-24 operator/customer shell hotfix reopen
 - 사용자 운영 관찰에서 operator token 로그인 뒤 Sidebar가 persisted customer workspace

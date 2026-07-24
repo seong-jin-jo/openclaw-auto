@@ -2,6 +2,101 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-07-25 operator/customer shell hotfix — 운영 배포 독립 QA
+
+**대상:** production `main` commit `85c9fe7b`와 선행 hotfix 범위
+`057f305e..128cbd81` (`Sidebar.tsx`, `AuthGate.tsx`, `SocialConnectButton.tsx`,
+`proxy.ts`, `operator-auth-rate-limit.ts` 및 관련 테스트).
+
+**판정:** operator/customer shell 격리와 `/api/me` invalid Bearer 제한은 🔧 전환 가능하다.
+외부 provider의 실제 consent→callback→credential 저장→publish는 이번 증거가 다루지 않았으므로
+⬜ 미검증을 유지한다. 전체 ship 승인으로 확대 해석하지 않는다.
+
+### 검증 순서와 결과
+
+| 단계 | 결과 | 증거 |
+|---|---|---|
+| 1. 코드 수정 내역 | ✅ 근거 확인 | `057f305e^..85c9fe7b` diff에서 운영자/고객 shell 분리, Video 링크, 공식 계정관리 링크, `/api/me` rate limiter와 회귀 테스트를 추적했다. |
+| 2. backend build/test | 해당 없음 | 이번 변경은 `dashboard/` Next.js 단일 surface이며 별도 backend 빌드 대상이 없다. API route/proxy는 아래 Vitest·production build에 포함했다. |
+| 3. web build/test | ✅ 테스트됨 | focused 10 files / **213 PASS**; full Vitest **100 files / 858 PASS / 10 DB-env skip**; `npx tsc --noEmit` PASS; `next build --webpack` **165/165 pages PASS**, `/api/me`, `/api/operator/customers`, `/api/connect/[provider]`, `/videos`, Proxy 포함. 기본 Turbopack은 sandbox의 process/port bind `EPERM`으로 중단돼 코드 FAIL로 판정하지 않았다. |
+| 4. mobile typecheck | 해당 없음 | 대상 dashboard에 mobile project/typecheck 계약이 없다. |
+| 5. curl health | ✅ 관찰됨 | 독립 curl `GET /api/health` → **HTTP 200**, `{"ok":true,"db":"up","ms":9}`. `/login` → **200**. |
+| 6. seed | ⬜ 미검증 | 이 세션에 `DATABASE_URL`이 없어 실제 PostgreSQL seed는 실행하지 않았다. full suite의 seed parser **4 PASS**는 SQL 구문 해석 증거일 뿐 실제 seed 대체 증거로 쓰지 않는다. |
+| 7. 주요 API curl | ✅/⬜ 분리 | 독립 curl 무인증 `/api/me` → **401** generic `Unauthorized`. 아래 operator/customer/rate-limit 운영 curl은 컨트롤러 직접 관찰 증거를 대조 기록했다. 외부 provider callback/publish API는 미검증. |
+| 8. Playwright | ⬜ 미실행 | 대상 dashboard에 Playwright config/dependency가 없다. 컨트롤러의 운영 Chrome 직접 관찰을 UI E2E 증거로 사용하되 Playwright PASS로 표기하지 않는다. |
+| 9. Maestro | 해당 없음 | Maestro binary는 있으나 대상 dashboard용 flow와 mobile surface가 없다. `optional:true`로 실패를 숨긴 항목도 없다. |
+| 10. tracker 기록 | ✅ | 이 항목에 자동검증·운영 관찰·미검증 경계를 분리 기록했다. |
+
+### 🔧 전환 가능 TC와 운영 증거
+
+- [x] **SHELL-OP-001 — 운영자 shell 격리:** 컨트롤러가 새로고침 뒤 `/api/me` **200**,
+  `/api/operator/customers` **200**, 콘솔 오류 **0**을 관찰했다. 화면은 `Admin` 전용 shell만
+  표시했고 persisted `active_workspace`와 customer workspace identity를 제거했다. 독립 렌더 회귀
+  테스트는 `Romeo-n-cupid`, `Marketing Hub`, 고객 메뉴 미노출과 localStorage 삭제까지 PASS했다.
+- [x] **SHELL-CU-001 — 고객 shell 보존:** 단기 customer token으로 `/videos` **200**,
+  Marketing Hub, YouTube/TikTok Sidebar 링크, 각 provider 공식 계정관리 링크와 관련 API 전부
+  **200**, 콘솔 오류 **0**을 컨트롤러가 관찰했다. 렌더 테스트는 `/videos#youtube-connect`,
+  `/videos#tiktok-connect`가 실제 connection card id로 끝나는 import/UI chain을 PASS했다.
+- [x] **OAUTH-YT-001 — YouTube 시작 URL:** 운영 authUrl host가
+  `accounts.google.com`이고 `prompt=consent select_account`, `access_type=offline`임을 컨트롤러가
+  관찰했다. 코드·테스트도 같은 URL parameter 계약을 고정한다.
+- [x] **AUTH-RL-001 — invalid operator Bearer 제한:** 동일 운영 identity에서 invalid 요청
+  **401×4 → 429**, `Retry-After: 59`; 제한 중 valid customer **200**; valid operator **200**으로
+  failure window clear; 다음 invalid **401**을 컨트롤러가 관찰했다. focused/full 회귀 테스트는
+  customer 성공 요청이 limiter를 소모하거나 차단하지 않고, token 원문을 저장·응답하지 않으며,
+  generic 429만 반환하는 계약을 PASS했다.
+- [x] **AUTH-REVOKE-001 — 단기 customer token 폐기:** revoke 뒤 동일 token의 `/api/me`가
+  **401**임을 컨트롤러가 관찰했다.
+- [x] **401 텍스트 노출 방지:** 변경 UI source에는 `401`, `Unauthorized`, `인증 필요` 사용자
+  문구가 없고, 운영 Chrome 콘솔 오류도 0이었다. API 경계의 401 JSON은 UI 텍스트로 노출하지 않는다.
+
+### ⬜ 유지 / ❌ NG
+
+- ⬜ **외부 provider 실동의·callback·publish:** Meta/Google/TikTok 등 실제 계정의 consent,
+  callback, credential 저장, 실발행 permalink는 이번 hotfix QA에서 직접 관찰하지 않았다.
+- ⬜ **실 DB seed:** `DATABASE_URL` 부재로 실행하지 않았다.
+- ⬜ **Playwright/Maestro:** dashboard용 실행 자산이 없어 PASS 주장을 하지 않는다.
+- ❌ **신규 NG 없음:** hotfix 범위의 focused/full regression, typecheck, Webpack production build,
+  공개 health 및 제공된 운영 관찰 증거에서 blocker/high 회귀는 발견하지 못했다.
+
+### 페르소나 결정 1문항
+
+**Q. 운영자가 고객 workspace 문맥을 유지한 채 Marketing Hub를 함께 봐야 하는가?**
+**A. 아니오.** 운영자는 `Admin` + 고객 관리만, 고객은 자기 tenant의 Marketing Hub만 본다.
+두 identity가 같은 persisted `active_workspace`를 공유하면 권한·정체성 혼동이 재발하므로
+`/api/me` identity 확정 뒤 shell과 workspace 상태를 분리한다. 단, repo에
+`docs/ONE_THING.md`, `docs/test-plan.md`, 별도 페르소나 결정 문서는 존재하지 않아 이 답은
+`pipeline-state.md`와 `wiki/architecture/overview.md`의 확정 경계를 근거로 했다.
+
+### 벤치마크·레드팀·셀프심문
+
+- **차용:** OWASP의 최대 시도 수·관찰 window·lockout/DoS 균형과 generic error 원칙,
+  Cloudflare의 `CF-Connecting-IP` origin 의미, Google OAuth의 `access_type=offline` 및
+  space-delimited `prompt`, Playwright의 auto-retrying web-first assertion 원칙을 대조했다.
+- **차별화/제약:** shared operator token이라 token 값을 bucket key로 쓰지 않고 현재 단일
+  Cloudflare Tunnel topology의 client identity를 사용한다. process-local fixed window이므로
+  origin 공개 또는 multi-replica 전환 시 distributed limiter로 재설계해야 한다.
+- **레드팀:** 공격자가 token shape를 osmu/JWT로 바꾸거나 customer 정상 요청을 lockout시키는 경로,
+  운영자 shell에 한 프레임 customer workspace가 남는 경로를 우선 공격했다. 회귀 테스트와 운영
+  401/429/200 sequence가 해당 경계를 견뎠다.
+- **셀프심문:** “이 판정이 틀렸다면 가장 그럴듯한 이유는 외부 OAuth 시작 성공을 callback/publish
+  성공으로 과대평가한 것”이다. 그래서 authUrl과 앱 shell만 🔧로 전환하고 외부
+  consent/callback/publish는 ⬜로 유지했다.
+
+**SOURCES:** `CLAUDE.md`; `pipeline-state.md`; `wiki/architecture/overview.md`;
+`dashboard/src/components/layout/Sidebar.tsx`; `dashboard/src/components/shared/AuthGate.tsx`;
+`dashboard/src/components/channel/SocialConnectButton.tsx`; `dashboard/src/proxy.ts`;
+`dashboard/src/lib/operator-auth-rate-limit.ts`; 관련 Vitest; OWASP Authentication Cheat Sheet
+<https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html>;
+Cloudflare HTTP headers <https://developers.cloudflare.com/fundamentals/reference/http-headers/>;
+Google OAuth web-server guide
+<https://developers.google.com/identity/protocols/oauth2/web-server>;
+Playwright assertions <https://playwright.dev/docs/test-assertions>.
+
+**MODEL:** gpt-codex/GPT-5 · agent=qa-verifier · 2026-07-25 06:37 KST
+**SKILLS_USED:** 없음
+**SKILLS_SKIPPED:** 매칭되는 QA 전용 스킬 없음
+
 ## 2026-07-24 운영자 토큰 검증 시도 rate limit
 
 - [x] 🔧 전환: `/api/me`의 반복 invalid Bearer를 route handler가 아니라 선행 `src/proxy.ts` 인증 경계에서 제한
@@ -15,7 +110,8 @@
 - [x] Next.js 16.2.2 production build 165 routes PASS(proxy 포함); 기존 studio/text NFT trace 경고 1건
 - [x] Claude 보안 2nd-pass: blocking/high 결함 0
 - [ ] 로컬 실제 HTTP curl: sandbox socket bind가 `listen EPERM`으로 차단돼 미검증
-- [ ] 운영 Cloudflare 경유 실제 `401×4 → 429 + Retry-After`, 유효 operator/customer 200은 QA/배포 후 관찰 필요
+- [x] 2026-07-25 운영 Cloudflare 경유 실제 `401×4 → 429 + Retry-After: 59`, 제한 중 유효 customer 200,
+  유효 operator 200 후 window clear와 다음 invalid 401 관찰
 
 ## 2026-07-24 운영자 로그인 리다이렉트
 
@@ -28,7 +124,8 @@
 - [x] Chrome `/operator` 실제 토큰 입력·접속 클릭→`/operator/customers`와 고객 상태판 직접 렌더
 - [x] 가입자 7, 워크스페이스 11, 활성 11, 연결 계정 3, 중앙 OAuth 4/12 준비 직접 관찰
 - [x] Claude 보안 2nd-pass: redirect/API authorization blocker 0
-- [ ] 후속: `/api/me` 운영자 토큰 실패 rate limit·감사 이벤트
+- [x] 후속: `/api/me` 운영자 토큰 실패 rate limit 운영 관찰(2026-07-25)
+- [ ] 후속: 운영자 인증 실패 감사 이벤트
 - [ ] 후속: customers client guard와 source-match 대신 컴포넌트 행위 테스트
 
 ## 2026-07-23 운영자 상태판·Meta 법정 페이지

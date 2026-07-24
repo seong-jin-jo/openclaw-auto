@@ -1,9 +1,59 @@
 # 세션 작업 상태 (재실행 가능한 핸드오프)
 
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
-> 단계 진실원: 루트 `pipeline-state.md`(현재 **build in-progress**). QA 증거: `docs/qa-tracker.md`.
+> 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-24 05:33 KST · 운영자 토큰 검증 rate-limit build candidate
+**최종 갱신:** 2026-07-25 06:45 KST · operator/customer shell hotfix QA 승인, 전체 ship 계속
+
+---
+
+### controller operating checkpoint (2026-07-25 06:45 KST)
+
+**primary/handoff basis:** 사용자의 반복된 무질문 진행 지시, `openclaw-auto:0.0` pane 캡처,
+이 파일과 root pipeline을 함께 확인해 같은 shell hotfix 트랙을 이어받았다.
+
+**운영 직접 관찰:** 운영자 새로고침은 `/api/me`·`/api/operator/customers` 200, 콘솔 오류 0,
+`Admin` 전용 shell과 `active_workspace` 제거. 단기 고객 토큰의 `/videos`는 Marketing Hub,
+YouTube/TikTok 메뉴·카드·공식 계정관리 링크와 관련 API 200, 콘솔 오류 0. YouTube OAuth 시작 URL은
+Google 계정 선택과 offline consent 파라미터를 보존했다. rate-limit은 401×4→429/Retry-After 59,
+제한 중 고객 200, 운영자 clear 200, 이후 invalid 401을 관찰했다. 단기 토큰은 revoke 후 401,
+브라우저는 운영자 Admin 상태로 원복했다.
+
+**게이트/다음 액션:** hotfix QA는 승인해 pipeline을 `ship in-progress`로 이동했다. 전체 제품에서 남은
+종료 증거는 X/TikTok 중앙 앱 credential·심사와 신규 고객의 provider별 실동의·callback·credential 저장·
+실발행 permalink다. 코드로 해소 가능한 shell·계정전환 안내·영상 메뉴·인증 제한 범위는 운영 반영됐다.
+
+---
+
+### operator/customer shell hotfix 운영 배포 독립 QA (2026-07-25)
+
+**handoff basis:** 사용자가 commit `85c9fe7b`와 기반 파일을 직접 지정해 이 과제를 primary로 삼았다.
+tmux 소켓은 sandbox 권한으로 조회되지 않았다. `CLAUDE.md`, `pipeline-state.md`,
+`wiki/architecture/overview.md`, hotfix 코드·테스트, `docs/qa-tracker.md`, 개발 품질헌법을 읽었다.
+요청된 `docs/test-plan.md`, `docs/ONE_THING.md`, 별도 페르소나 결정 문서는 repo에 존재하지 않았다.
+
+**독립 검증:** hotfix focused 10 files/213 PASS, full Vitest 100 files/858 PASS/10 DB-env skip,
+`npx tsc --noEmit` PASS. 기본 Turbopack build는 sandbox process/port bind `EPERM`으로 중단됐고,
+동일 source의 `next build --webpack`은 165/165 pages와 Proxy를 생성해 PASS했다. 독립 curl은 운영
+`/api/health` 200 `db:up`, `/login` 200, 무인증 `/api/me` 401 generic 응답을 관찰했다.
+`DATABASE_URL`이 없어 실제 seed는 미검증이고 seed parser 4 PASS를 대체 증거로 쓰지 않았다.
+dashboard에는 Playwright config/dependency와 Maestro flow/mobile surface가 없어 둘 다 PASS로 표기하지 않았다.
+
+**운영 증거 대조 판정:** 컨트롤러가 제공한 운영 Chrome/curl 증거와 source/import chain을 대조했다.
+operator 새로고침 `/api/me`·`/api/operator/customers` 200, Admin 전용 shell, persisted
+`active_workspace` 제거, 콘솔 오류 0; customer `/videos`와 관련 API 200, Marketing Hub,
+YouTube/TikTok 링크·공식 계정관리 링크, 콘솔 오류 0; YouTube authUrl의
+`accounts.google.com`, `prompt=consent select_account`, `access_type=offline`; invalid Bearer
+401×4→429/Retry-After 59, 제한 중 customer 200, operator 200 clear, 다음 invalid 401; 단기 token
+revoke 뒤 `/api/me` 401이 코드·회귀 계약과 일치했다. shell/rate-limit은 🔧 전환 가능으로 판정했다.
+
+**문서 변경:** 코드 변경 없음. `docs/qa-tracker.md` 최상단에 2026-07-25 독립 QA 항목을 추가하고,
+기존 2026-07-24 rate-limit의 운영 미검증 checkbox를 관찰 완료로 갱신했다. 이 핸드오프 항목만 추가했다.
+
+**미검증/정확한 다음 액션:** 외부 provider 실제 consent→callback→credential 저장→publish permalink는
+관찰하지 않았으므로 전체 ship 근거가 아니다. 실 DB seed도 미검증이다. 다음 QA는 provider별 실계정
+동의·callback·저장·발행을 별도 증거로 닫고, `docs/test-plan.md`/`docs/ONE_THING.md` 부재를 문서 체계
+소유자가 보완할지 결정하는 것이다.
 
 ---
 
