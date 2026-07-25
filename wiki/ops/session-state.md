@@ -3,7 +3,42 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-25 07:49 KST · 종료 핸드오프 신선도 갱신
+**최종 갱신:** 2026-07-25 20:18 KST · TikTok 재인증 QA 승인 및 Threads 20시 자동 발행 관찰
+
+---
+
+### TikTok 명시적 재인증 강제 QA 승인 + Threads 자동 발행 증거 (2026-07-25 20:18 KST)
+
+**handoff basis:** 사용자 명령과 이 파일의 OAuth/운영 ship 트랙을 기준으로 이어받았다.
+`tmux list-panes -a`로 `openclaw-auto:0.0`·`0.1`·`0.2`를 직접 확인했고, 제품 코드·DB·배포는
+현재 primary인 `0.0` 트랙만 기준으로 진행했다.
+
+**TikTok 변경:** commit `cea30fe0`은 TikTok provider에만
+`extraAuthParams: { disable_auto_auth: "1" }`을 추가하고 URL 계약 테스트를 고정했다.
+TikTok 공식 Login Kit Web 원문에서 이 값이 유효 세션에도 authorization page를 항상 표시하는
+계약임을 확인했다. 타사 쿠키 삭제나 강제 로그아웃을 사칭하지 않으며 기존 공식 계정관리 링크를 유지한다.
+
+**검증 결과: PASS with caveats.** diff는 `dashboard/src/lib/social-connect.ts:275`(TikTok
+`ProviderConfig.extraAuthParams: { disable_auto_auth: "1" }` 1줄) +
+`dashboard/tests/brand/social-connect.test.ts:415`(assertion 1줄) 2파일 뿐. 적용부
+(`:397-398`)가 provider별 config 객체에서만 읽어 다른 provider(X/Instagram/YouTube)로
+leakage 없음을 정적 리뷰로 확인. TikTok 관련 6개 테스트 74/74 PASS, 전체 vitest
+858 PASS/10 skip(868, pipeline-state 자체보고 수치와 일치), `tsc --noEmit` clean,
+`next build` exit 0.
+
+**Threads 20시 자동 발행(관찰됨):** schedule
+`ea086bbb-8aaa-4165-ab93-04560f05d81b`가 20:00 KST 뒤 자동으로 `published`가 됐다.
+external ID `18108077243008891`, permalink
+`https://www.threads.com/@zero_to_one_ai/post/DbNqEMelEgJ`를 반환했다. gstack 브라우저에서
+`@zero_to_one_ai`와 "제일 비싼 건 대행비가 아니라 사장님 저녁 시간임."으로 시작하는 원문 전체를
+공개 페이지에서 직접 렌더했다. `/api/metrics`는 `updated:1,total:5`를 반환했고 같은 external ID,
+permalink, 본문, `published_at=2026-07-25T11:00:07.744Z`,
+`metrics_at=2026-07-25T11:13:40.530Z` 저장을 재조회했다.
+
+**미검증·다음 액션:** 중앙 TikTok credential이 없어 운영 authUrl과 실제
+consent→callback→계정 저장·발행은 미검증이다. QA는 승인했고 다음 실행은 commit push,
+`deploy-marketing.yml`의 `openclaw-dashboard-osmu` 배포, public health/login/operator/customer
+smoke다. 배포 후에도 credential 부재 경계를 숨기지 않는다.
 
 ---
 

@@ -21,6 +21,25 @@ override_expires: ""
 
 # Pipeline State — openclaw-auto-osmu
 
+## 2026-07-25 TikTok explicit re-authorization build reopen
+- 사용자 실기기에서 기존 TikTok 브라우저 세션이 자동 재사용돼 다른 계정 선택이 어려운 문제를 다시 다룬다.
+- 타사 쿠키를 우리 origin이 삭제할 수 없는 경계와 공식 계정 설정 링크는 그대로 유지한다.
+- TikTok 공식 Login Kit Web의 `disable_auto_auth=1`을 authorize URL에 추가해 유효한 기존 세션에서도
+  authorization 화면을 항상 표시하도록 한다. 계정 로그아웃 자체를 사칭하지 않는다.
+- 종료 증거는 URL 계약 테스트, 기존 OAuth/PKCE 회귀, 전체 테스트·build, 운영 authUrl 파라미터 관찰이다.
+  운영 credential이 없으면 provider consent/callback은 계속 미검증으로 명시한다.
+- build commit `cea30fe0`: TikTok provider 전용 `disable_auto_auth=1`과 URL 계약 회귀 테스트를 추가했다.
+  테스트 선행 실패 1건(`null`), 수정 후 OAuth focused 70/70 PASS, 전체 858 PASS/10 DB-env skip,
+  TypeScript PASS, production build 165/165 routes PASS, `git diff --check` PASS다.
+- code-builder 품질 검증은 근거·공식문서·소크라테스 마커 기준 PASS했다. 실제 운영 authUrl과
+  consent→callback은 중앙 TikTok credential 부재로 아직 미검증이며 QA/배포 후에도 이 경계를 유지한다.
+- 독립 qa-verifier(Sonnet)는 변경 2파일 격리와 provider별 config 병합을 검토하고 TikTok 관련
+  74/74 PASS, 전체 858 PASS/10 skip, `tsc --noEmit` PASS, `next build` exit 0을 재현해
+  `PASS with caveats`로 판정했다. TikTok 공식 Login Kit Web 문서의 `disable_auto_auth=1` 계약은
+  컨트롤러와 code-builder가 원문에서 재확인했다.
+- QA 승인. ship은 배포·health/UI smoke까지 진행하되 중앙 TikTok credential이 없으므로 운영 authUrl과
+  실 consent→callback→계정 저장은 계속 미검증으로 남긴다.
+
 ## 2026-07-25 operator/customer shell hotfix QA operating close
 - 운영 배포 `30042980536` 성공 뒤 공개 URL에서 운영자와 고객 shell을 각각 실제 브라우저로 관찰했다.
 - 운영자는 persisted `Romeo-n-cupid` workspace를 제거하고 `Admin`과 고객 관리만 표시했다.

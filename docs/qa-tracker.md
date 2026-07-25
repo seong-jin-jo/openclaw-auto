@@ -830,3 +830,20 @@ SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open �
 - **남은 플랫폼:** Instagram TEXT-only는 플랫폼 계약상 불가하므로 이미지 자산이 있어야 예약 E2E가 가능하다.
   X/TikTok은 중앙 앱 credential·심사, Facebook/YouTube는 신규 고객 실동의·callback·발행,
   동일 provider 2계정은 전환 후 계정별 발행 permalink가 미검증이다.
+
+### 2026-07-25 TikTok 재인증 URL 계약 + Threads 두 번째 자동 발행
+
+- **TikTok build:** commit `cea30fe0`에서 TikTok authorize URL에 provider 전용
+  `disable_auto_auth=1`을 추가했다. 테스트 선행 실패는 `null` 1건, 수정 뒤 OAuth focused
+  70/70 PASS, 전체 858 PASS/10 DB-env skip, TypeScript PASS, production build 165/165 routes PASS다.
+- **독립 QA:** Sonnet qa-verifier가 변경 2파일과 provider별 병합 경계를 검토했다. TikTok 관련
+  74/74 PASS, 전체 858 PASS/10 skip, `tsc --noEmit` PASS, `next build` exit 0으로
+  `PASS with caveats` 판정했다. 공식 TikTok Login Kit Web 원문에서 `disable_auto_auth=1` 계약을 확인했다.
+- **미검증 경계:** 중앙 `TIKTOK_CLIENT_KEY`/`TIKTOK_CLIENT_SECRET`가 없어 운영 authUrl,
+  provider consent, callback 저장, 실 발행은 실행할 수 없다. 코드·테스트 통과와 실 OAuth 완료를 혼동하지 않는다.
+- **Threads 자동 발행 관찰:** schedule `ea086bbb-8aaa-4165-ab93-04560f05d81b`가
+  `published`로 전환됐고 external ID `18108077243008891`, 공개 permalink
+  `https://www.threads.com/@zero_to_one_ai/post/DbNqEMelEgJ`를 반환했다. 공개 브라우저에서
+  계정과 원문 전체를 렌더했다.
+- **성과 저장 관찰:** 운영 `/api/metrics`는 `updated:1,total:5`를 반환했고 해당 게시물의
+  `published_at=2026-07-25T11:00:07.744Z`, `metrics_at=2026-07-25T11:13:40.530Z`를 재조회했다.
