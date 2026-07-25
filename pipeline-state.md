@@ -39,6 +39,14 @@ override_expires: ""
   컨트롤러와 code-builder가 원문에서 재확인했다.
 - QA 승인. ship은 배포·health/UI smoke까지 진행하되 중앙 TikTok credential이 없으므로 운영 authUrl과
   실 consent→callback→계정 저장은 계속 미검증으로 남긴다.
+- 운영 deploy run `30156828520`은 commit `e37ada41` 기준으로 2분 31초 만에 SUCCESS했다.
+  이미지 build, 컨테이너 기동, login/auth/Google 계정선택/operator API 자동 스모크가 모두 통과했다.
+- 공개 URL에서 `/api/health` 200(`ok:true,db:up`), `/login` 200, `/api/operator/customers` 200을
+  재관찰했다. 실제 브라우저 운영자 로그인은 `/operator/customers`로 이동했고 `Admin` 단일 셸,
+  가입자 7명·워크스페이스 11개·연결 계정 3개·발행 8건·중앙 OAuth 4/12 준비를 렌더했다.
+  안정화 뒤 브라우저 콘솔 오류는 0건이었다.
+- 이 TikTok URL 계약 변경은 운영 배포됐다. 다만 readiness는 중앙 credential 누락을 정확히 반환하므로
+  실제 운영 TikTok authUrl·consent·callback·발행은 미검증이며 전체 ship은 `in-progress`를 유지한다.
 
 ## 2026-07-25 operator/customer shell hotfix QA operating close
 - 운영 배포 `30042980536` 성공 뒤 공개 URL에서 운영자와 고객 shell을 각각 실제 브라우저로 관찰했다.

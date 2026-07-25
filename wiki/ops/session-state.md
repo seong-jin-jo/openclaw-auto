@@ -3,7 +3,7 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-25 20:18 KST · TikTok 재인증 QA 승인 및 Threads 20시 자동 발행 관찰
+**최종 갱신:** 2026-07-25 21:00 KST · TikTok 재인증 운영 배포 및 실서비스 스모크
 
 ---
 
@@ -36,9 +36,27 @@ permalink, 본문, `published_at=2026-07-25T11:00:07.744Z`,
 `metrics_at=2026-07-25T11:13:40.530Z` 저장을 재조회했다.
 
 **미검증·다음 액션:** 중앙 TikTok credential이 없어 운영 authUrl과 실제
-consent→callback→계정 저장·발행은 미검증이다. QA는 승인했고 다음 실행은 commit push,
-`deploy-marketing.yml`의 `openclaw-dashboard-osmu` 배포, public health/login/operator/customer
-smoke다. 배포 후에도 credential 부재 경계를 숨기지 않는다.
+consent→callback→계정 저장·발행은 미검증이다. QA 승인·운영 배포·public
+health/login/operator smoke는 아래 증거로 닫았고, credential 부재 경계는 숨기지 않는다.
+
+**배포·실서비스 관찰:** commit `e37ada41`을 push하고 deploy run `30156828520`으로
+`openclaw-dashboard-osmu`를 배포했다. run은 2분 31초 SUCCESS이며 이미지 build, 기동,
+login/auth/Google 계정선택/operator API 스모크가 모두 통과했다. 공개 URL
+`https://openclaw.sj-onpremise-cloudflare-tunnel.cloud`에서 health 200(`ok:true,db:up`),
+login 200, operator customers 200을 재확인했다.
+
+실제 gstack 브라우저에서 운영자 폼을 제출해 `/operator/customers` 이동을 관찰했다.
+화면은 `Admin` 단일 identity와 운영자 콘솔만 표시하고 가입자 7명, 워크스페이스 11개,
+활성 11개, 연결 계정 3개, 발행 8건, 실패 5건, 중앙 OAuth 4/12 준비를 렌더했다.
+화면 안정화 뒤 콘솔 오류는 0건이었다. readiness의 TikTok은 중앙
+`TIKTOK_CLIENT_KEY`/`TIKTOK_CLIENT_SECRET` 누락으로 `available:false`를 정확히 반환한다.
+따라서 재인증 파라미터 코드는 운영 배포됐지만 실 TikTok 왕복은 아직 미검증이다.
+
+**정확한 다음 액션:** TikTok Developer 앱 생성·Login Kit/Content Posting 제품 승인 후 중앙
+client key/secret을 GitHub secrets와 운영 env에 넣고 재배포한다. 그때 신규 고객 브라우저에서
+기존 세션→authorization page 표시→계정 선택→callback 저장→계정별 발행 permalink까지 직접 관찰한다.
+X도 동일하게 중앙 개발자 앱 credential·심사가 필요하다. Meta/YouTube는 credential은 준비됐지만
+신규 고객 실 consent→callback→발행과 동일 provider 2계정 전환 발행은 계속 미검증이다.
 
 ---
 

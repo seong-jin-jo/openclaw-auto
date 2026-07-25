@@ -847,3 +847,11 @@ SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open �
   계정과 원문 전체를 렌더했다.
 - **성과 저장 관찰:** 운영 `/api/metrics`는 `updated:1,total:5`를 반환했고 해당 게시물의
   `published_at=2026-07-25T11:00:07.744Z`, `metrics_at=2026-07-25T11:13:40.530Z`를 재조회했다.
+- **운영 배포:** deploy run `30156828520`, head `e37ada41`, 2분 31초 SUCCESS. 이미지 build,
+  컨테이너 기동, login/auth/Google 계정선택/operator API 자동 스모크가 모두 통과했다.
+- **공개 스모크:** health 200(`ok:true,db:up`), login 200, operator customers 200.
+  운영자 실브라우저 로그인은 `/operator/customers`로 이동했고 `Admin` 단일 셸,
+  가입자 7명·워크스페이스 11개·연결 계정 3개·발행 8건·중앙 OAuth 4/12 준비를 렌더했다.
+  안정화 뒤 콘솔 오류 0건.
+- **배포 후 TikTok 경계:** readiness는 credential 누락으로 `available:false`를 반환한다.
+  변경 코드는 운영 이미지에 포함됐지만 실제 authUrl·consent·callback·발행은 계속 미검증이다.
