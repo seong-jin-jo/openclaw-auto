@@ -401,7 +401,7 @@ describe("GET /api/connect/x — PKCE", () => {
 });
 
 describe("GET /api/connect/tiktok — PKCE", () => {
-  it("authUrl에 code_challenge 포함, PKCE/state 쿠키를 별도 보안 헤더로 발급", async () => {
+  it("authUrl에 explicit re-authorization·code_challenge 포함, PKCE/state 쿠키를 별도 보안 헤더로 발급", async () => {
     process.env.TIKTOK_CLIENT_KEY = "tt-key";
     process.env.TIKTOK_CLIENT_SECRET = "tt-secret";
     const { GET } = await import("@/app/api/connect/[provider]/route");
@@ -412,6 +412,7 @@ describe("GET /api/connect/tiktok — PKCE", () => {
     const authUrl = new URL(body.authUrl);
     expect(authUrl.searchParams.get("client_key")).toBe("tt-key");
     expect(authUrl.searchParams.has("client_id")).toBe(false);
+    expect(authUrl.searchParams.get("disable_auto_auth")).toBe("1");
     expect(body.authUrl).toContain("code_challenge=");
     expectOAuthCallbackCookies(res, "tiktok", "600");
     delete process.env.TIKTOK_CLIENT_KEY;

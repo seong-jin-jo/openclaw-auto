@@ -272,6 +272,7 @@ export const PROVIDERS: Record<string, ProviderConfig> = {
     pkce: true,
     scopeSeparator: ",",
     clientIdParam: "client_key",
+    extraAuthParams: { disable_auto_auth: "1" },
   },
   slack: {
     label: "slack",
