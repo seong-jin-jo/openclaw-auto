@@ -1,12 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { fetcher, apiPost } from "@/lib/api";
 import { authHeaders } from "@/lib/auth";
 import { useToast } from "@/components/layout/Toast";
-import { SocialConnectButton } from "@/components/channel/SocialConnectButton";
-import { AccountManager } from "@/components/channel/AccountManager";
 import { useUIStore } from "@/store/ui-store";
 
 interface Video {
@@ -73,7 +72,7 @@ function captureThumbnail(src: string): Promise<string | null> {
 export default function VideosPage() {
   const { activeWorkspace } = useUIStore();
   const { data, mutate } = useSWR<{ videos: Video[] }>("/api/video/list", fetcher);
-  const { data: ytStatus, mutate: mutateYtStatus } = useSWR<{ connected: boolean; status?: "valid" | "invalid" | "unverified" }>("/api/youtube/status", fetcher);
+  const { data: ytStatus } = useSWR<{ connected: boolean; status?: "valid" | "invalid" | "unverified" }>("/api/youtube/status", fetcher);
   // SNS-015: Reels는 연결된 Instagram 계정이 있어야만 실행 가능 — 없으면 정직하게 미연결로 표시.
   const { data: igAccounts } = useSWR<{ accounts?: unknown[] }>(
     activeWorkspace ? `/api/channels/instagram/accounts?tenant_id=${activeWorkspace.id}` : null,
@@ -90,14 +89,12 @@ export default function VideosPage() {
   // 운영자로 확인된 뒤에만 조회한다(canGenerate === false면 SWR key를 null로 비활성화).
   const { data: elConfig } = useSWR<{ configured: boolean }>(canGenerate ? "/api/elevenlabs-config" : null, fetcher);
   const { data: clipConfig } = useSWR<{ configured: boolean; provider?: string }>(canGenerate ? "/api/clipping-config" : null, fetcher);
-  const [ytAccountsTick, setYtAccountsTick] = useState(0);
-  const { data: ytAccountsData, mutate: mutateYtAccounts } = useSWR<{ accounts: ChannelAccount[] }>(
-    activeWorkspace ? `/api/channels/youtube/accounts?tenant_id=${activeWorkspace.id}&v=${ytAccountsTick}` : null,
+  const { data: ytAccountsData } = useSWR<{ accounts: ChannelAccount[] }>(
+    activeWorkspace ? `/api/channels/youtube/accounts?tenant_id=${activeWorkspace.id}` : null,
     fetcher,
   );
-  const [tiktokAccountsTick, setTiktokAccountsTick] = useState(0);
-  const { data: tiktokAccountsData, mutate: mutateTiktokAccounts } = useSWR<{ accounts: ChannelAccount[] }>(
-    activeWorkspace ? `/api/channels/tiktok/accounts?tenant_id=${activeWorkspace.id}&v=${tiktokAccountsTick}` : null,
+  const { data: tiktokAccountsData } = useSWR<{ accounts: ChannelAccount[] }>(
+    activeWorkspace ? `/api/channels/tiktok/accounts?tenant_id=${activeWorkspace.id}` : null,
     fetcher,
   );
   const { showToast } = useToast();
@@ -152,7 +149,7 @@ export default function VideosPage() {
   const tiktokCreatorUrl = tiktokAccounts.length > 0
     ? `/api/tiktok/creator-info${tiktokAccountId ? `?account_id=${encodeURIComponent(tiktokAccountId)}` : ""}`
     : null;
-  const { data: tiktokCreatorData, mutate: mutateTiktokCreator } = useSWR<{
+  const { data: tiktokCreatorData } = useSWR<{
     ready: boolean;
     creator?: TikTokCreator;
   }>(tiktokCreatorUrl, fetcher);
@@ -509,34 +506,21 @@ export default function VideosPage() {
           <div className="text-[10px] text-subtle mb-1">영상</div>
           <div className="text-lg font-bold text-text">{videos.length}</div>
         </div>
-        <div id="youtube-connect" className="card p-3 scroll-mt-6" data-testid="youtube-connect-card">
-          <div className="text-[10px] text-subtle mb-1">YouTube</div>
-          <div className={`text-sm font-medium ${ytStatus?.connected ? "text-green-400" : "text-subtle"}`}>
-            {ytStatus?.connected ? "연결됨" : "미연결"}
-          </div>
-          {!ytStatus?.connected && (
-            <div className="mt-2">
-              <SocialConnectButton
-                provider="youtube"
-                label="YouTube"
-                onConnected={() => {
-                  void mutateYtStatus();
-                  setYtAccountsTick((n) => n + 1);
-                  void mutateYtAccounts();
-                }}
-              />
+        <div className="card p-3" data-testid="youtube-connect-card">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-[10px] text-subtle mb-1">YouTube</div>
+              <div className={`text-sm font-medium ${ytStatus?.connected ? "text-success" : "text-subtle"}`}>
+                {ytStatus?.connected ? `연결됨 · ${youtubeAccounts.length}개 계정` : "미연결"}
+              </div>
             </div>
-          )}
-          <AccountManager
-            key={`youtube-${ytAccountsTick}`}
-            provider="youtube"
-            label="YouTube"
-            onAccountsChanged={() => {
-              setPublishAccountId("");
-              void mutateYtStatus();
-              void mutateYtAccounts();
-            }}
-          />
+            <Link
+              href="/channels/youtube"
+              className="shrink-0 text-[11px] text-accent hover:text-accent-hover"
+            >
+              채널 관리 →
+            </Link>
+          </div>
         </div>
         <div className="card p-3">
           <div className="text-[10px] text-subtle mb-1">TTS (ElevenLabs)</div>
@@ -544,35 +528,21 @@ export default function VideosPage() {
             {elConfig?.configured ? "설정됨" : "미설정"}
           </div>
         </div>
-        <div id="tiktok-connect" className="card p-3 col-span-2 scroll-mt-6" data-testid="tiktok-status-card">
-          <div className="text-[10px] text-subtle mb-1">TikTok</div>
-          <div className={`text-sm font-medium ${tiktokCreatorData?.ready ? "text-success" : "text-subtle"}`}>
-            {tiktokCreatorData?.ready ? `@${tiktokCreator?.username} 발행 준비됨` : tiktokAccounts.length > 0 ? "계정 권한 확인 필요" : "미연결"}
-          </div>
-          {tiktokAccounts.length === 0 && (
-            <div className="mt-2">
-              <SocialConnectButton
-                provider="tiktok"
-                label="TikTok"
-                onConnected={() => {
-                  setTiktokAccountsTick((n) => n + 1);
-                  void mutateTiktokAccounts();
-                  void mutateTiktokCreator();
-                }}
-              />
+        <div className="card p-3 col-span-2" data-testid="tiktok-status-card">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-[10px] text-subtle mb-1">TikTok</div>
+              <div className={`text-sm font-medium ${tiktokCreatorData?.ready ? "text-success" : "text-subtle"}`}>
+                {tiktokCreatorData?.ready ? `@${tiktokCreator?.username} 발행 준비됨` : tiktokAccounts.length > 0 ? "계정 권한 확인 필요" : "미연결"}
+              </div>
             </div>
-          )}
-          <AccountManager
-            key={`tiktok-${tiktokAccountsTick}`}
-            provider="tiktok"
-            label="TikTok"
-            onAccountsChanged={() => {
-              setTiktokAccountId("");
-              setTiktokPrivacy("");
-              void mutateTiktokAccounts();
-              void mutateTiktokCreator();
-            }}
-          />
+            <Link
+              href="/channels/tiktok"
+              className="shrink-0 text-[11px] text-accent hover:text-accent-hover"
+            >
+              채널 관리 →
+            </Link>
+          </div>
           {tiktokAccounts.length > 1 && (
             <select
               data-testid="tiktok-publish-account-select"

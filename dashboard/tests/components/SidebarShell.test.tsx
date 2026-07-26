@@ -83,7 +83,7 @@ describe("Sidebar operator/customer shell separation", () => {
     expect(localStorage.getItem("active_workspace")).toBeNull();
   });
 
-  it("preserves the customer marketing shell and exposes separate Video links to existing connection cards", () => {
+  it("preserves the customer marketing shell and exposes independent YouTube and TikTok management links", () => {
     mocks.pathname.mockReturnValue("/");
     mocks.swr.mockImplementation((key: string | null) => {
       if (key === "/api/me") {
@@ -107,11 +107,11 @@ describe("Sidebar operator/customer shell separation", () => {
     expect(screen.getByText("Video")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "YouTube" })).toHaveAttribute(
       "href",
-      "/videos#youtube-connect",
+      "/channels/youtube",
     );
     expect(screen.getByRole("link", { name: "TikTok" })).toHaveAttribute(
       "href",
-      "/videos#tiktok-connect",
+      "/channels/tiktok",
     );
   });
 });

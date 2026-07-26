@@ -3,7 +3,76 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-25 21:00 KST · TikTok 재인증 운영 배포 및 실서비스 스모크
+**최종 갱신:** 2026-07-26 14:43 KST · 독립 재검증 PASS, 커밋/배포 대기
+
+### 독립 재검증 PASS (2026-07-26 14:43 KST)
+
+**handoff basis:** 이전 컨트롤러 세션에서 이어받은 동일 uncommitted diff. tmux pane 전환·별도
+세션 인계 없이 같은 세션 내에서 진행했으므로 pane 기준 확인은 해당 없음.
+
+**검증 대상:** uncommitted diff 16 files (Admin 중앙 OAuth 설정 UX, `/channels/[channel]`
+독립 YouTube/TikTok 관리, canonical base64url 서명 재검증, operator GET 401 재인증 통일).
+
+**결과:** focused 52/52 PASS. `npm test` 2회 중 1회 867 PASS/10 skip 완전 그린, 1회는
+diff 밖 파일 `tests/observability/observability.test.ts` 1건 실패 — 단독 실행 3/3 PASS로
+diff발 회귀가 아닌 기존 cross-file flake로 격리 확인(tracker 기록 대상, 이번 diff 차단 아님).
+`npx tsc --noEmit` clean. `npm run build`(Turbopack) 190 routes 성공, 기존 NFT warning 1건만.
+`git diff --check` clean. secret 비노출(`requiredSecrets`는 env var 이름만, 값 없음)과
+tenant/provider/account 경계를 코드+테스트로 직접 확인했다.
+
+**미검증(변동 없음):** 운영 배포 후 Admin OAuth 체크리스트 실제 렌더, `/channels/youtube`·
+`/channels/tiktok` 브라우저 관찰, 401 재인증 브라우저 E2E, 외부 provider 실 consent→callback
+(중앙 TikTok/X credential 부재로 기존과 동일).
+
+**다음 액션:** intended files만 커밋 → push → 운영 배포 → Admin OAuth 체크리스트/채널 페이지/
+401 재인증을 실제 브라우저로 관찰. `docs/qa-tracker.md`에 이번 재검증 STAMP 항목 추가 필요.
+
+---
+
+### 중앙 OAuth 설정 UX + 영상 채널 독립 관리 (2026-07-26)
+
+**handoff basis:** 사용자 대화와 `openclaw-auto:0.0` pane을 primary로 확인했다. `0.1`은 별도
+브랜드 트랙이라 제품 코드 근거로 사용하지 않았다. 시작 시 worktree는 clean이고
+`main=origin/main=a6239753`이었다.
+
+**확정 구조:** 중앙 OAuth Client ID/Secret은 운영자가 플랫폼별 한 번 등록한다. 이후 모든
+멀티테넌트 사용자는 자기 플랫폼 계정으로 OAuth consent를 수행하고 tenant별 암호화 토큰을 저장한다.
+운영자 토큰은 이 중앙 앱 credential과 다른 값이다.
+
+**보안·UX 결정:** Admin DB에 원문 Client Secret을 받는 입력폼은 만들지 않는다. Admin은 플랫폼별
+credential 준비 상태, callback URL, 필요한 secret 이름, 공식 콘솔 링크를 보여준다. 원문 secret은
+GitHub/운영 secret store에만 저장한다.
+
+**확인된 결함:** YouTube/TikTok 데이터·계정 API는 이미 provider별로 분리돼 있지만 Sidebar 두 항목이
+모두 `/videos#...`로 이동하고 `/videos`가 연결·계정관리 UI까지 중복 소유한다. 각 항목을
+`/channels/youtube`, `/channels/tiktok` 독립 관리 화면으로 전환한다. `/videos`에는 공용 영상
+라이브러리와 발행 대상 선택·플랫폼별 발행 옵션만 남긴다.
+
+**구현 결과:** Sidebar의 YouTube/TikTok을 각각 `/channels/youtube`,
+`/channels/tiktok`으로 분리했다. `/videos`에서는 OAuth 연결·계정 추가/삭제/기본계정 관리를
+제거하고 공용 영상 라이브러리, provider별 발행 계정 선택, YouTube/TikTok 발행 옵션과 TikTok
+비동기 상태 회수는 유지했다. 운영자 API·화면은 secret 값 없이 설정 여부, 누락/필수 secret 이름,
+정본 callback URL, 공식 콘솔·문서 링크와 복사 기능을 제공한다.
+
+**빌드 증거:** code-builder 위임 품질검증 PASS. 테스트 선행 6건 실패 뒤 focused 36/36 PASS,
+전체 863 PASS/10 DB-env skip, `tsc --noEmit` PASS, production build 165 routes PASS.
+첫 build의 Turbopack port bind 실패는 sandbox 제약이었고 코드 변경 없이 재실행해 PASS했다.
+
+**첫 독립 QA:** 변경 직접 36/36, OAuth·tenant·영상 회귀 270/270, TypeScript와 build는
+통과했지만 전체 suite에서 서명 토큰 변조 테스트가 간헐 200을 반환했고, operator GET 401이
+`Unauthorized` 원문을 렌더하는 경로를 찾아 QA NG로 판정했다. base64url 실패는 독립 반복에서
+누적 3회 재현됐다. 첫 qa-verifier transcript는 QA skill 호출 불가로 harness 품질검증도 FAIL이다.
+
+**차단 결함 수정:** 별도 code-builder가 테스트 우선으로 이미지·영상 서명 토큰에 canonical
+base64url 재인코딩 검사를 추가하고, GET 401을 stale token 삭제→`auth:required` 이벤트→typed
+error로 통일했다. 운영자 화면은 이 인증 오류를 일반 오류 박스에 표시하지 않는다. focused
+60/60, 전체 867 PASS/10 DB-env skip, `tsc --noEmit`, production build 165 routes,
+`git diff --check`가 모두 통과했다. credential 값과 tenant/account 경계는 변경하지 않았다.
+
+**다음 액션:** 새 독립 QA를 재위임해 수정본과 전체 회귀를 확인한다. PASS 뒤 intended files만
+커밋·push·운영 배포하고 Admin OAuth 체크리스트, 401 재인증, 고객 YouTube/TikTok 독립 페이지를
+실제 브라우저로 관찰한다. X/TikTok 중앙 credential·외부 심사가 없으면 실제 provider
+consent→callback→발행은 계속 미검증으로 기록한다.
 
 ---
 

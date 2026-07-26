@@ -354,14 +354,14 @@ function CustomerSidebar({
           />
         ))}
 
-        {/* 영상 직접 발행은 텍스트 예약 채널과 별도 경로다.
-            /videos의 기존 provider 연결/발행 카드로 바로 이동하며 SCHEDULABLE_PLATFORMS에는 섞지 않는다. */}
+        {/* 영상 채널 계정 관리는 provider별 독립 경로다.
+            공용 영상 라이브러리/발행 작업실(/videos)과 SCHEDULABLE_PLATFORMS에는 섞지 않는다. */}
         <SidebarGroup
           groupKey="video"
           title="Video"
           items={VIDEO_PUBLISH_PLATFORMS.map((provider) => ({
             key: provider,
-            href: `/videos#${provider}-connect`,
+            href: `/channels/${provider}`,
             label: CH_LABELS[provider],
             icon: CH_LABELS[provider][0],
             nav: true,

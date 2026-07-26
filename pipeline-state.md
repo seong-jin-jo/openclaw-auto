@@ -4,14 +4,14 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: ship              # plan|design|eng-design|build|qa|ship
+current_stage: ship               # plan|design|eng-design|build|qa|ship
 approved_stages: [plan, design, eng-design, build, qa]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
-  build:      { status: approved, artifacts_ok: true } # 858 full PASS + 174 focused PASS + tsc + 165-route build + Claude review
+  build:      { status: approved, artifacts_ok: true }
   qa:         { status: approved, artifacts_ok: true }
   ship:       { status: in-progress, artifacts_ok: false }
 override: false
@@ -20,6 +20,32 @@ override_expires: ""
 ---
 
 # Pipeline State — openclaw-auto-osmu
+
+## 2026-07-26 central OAuth setup UX + video channel management build reopen
+- 사용자 확정: 중앙 OAuth 개발자 앱은 운영자가 플랫폼당 한 번 등록하고, 멀티테넌트 고객은 각자
+  OAuth 동의로 자기 계정 토큰을 저장하는 SaaS 구조를 유지한다.
+- 보안 결정: 원문 Client Secret을 Admin 앱·DB에 저장하는 입력폼은 만들지 않는다. Admin에는
+  credential 준비 상태, 정확한 callback URL, 필요한 secret 이름, 공식 개발자 콘솔 링크를 시각화한다.
+  원문 secret은 GitHub Actions/운영 env의 secret store에만 둔다.
+- YouTube/TikTok 내부 토큰·계정 저장은 이미 provider별로 분리돼 있으나 Sidebar가 둘 다 `/videos`
+  앵커로 보내고 `/videos`가 연결·계정관리까지 중복 소유한다. 각 Sidebar는 `/channels/youtube`,
+  `/channels/tiktok` 독립 관리 화면으로 이동한다.
+- `/videos`는 공용 영상 라이브러리·발행 작업실로 유지하되 OAuth 연결·계정 추가/삭제/기본계정 관리는
+  각 채널 페이지로 위임하고, 발행 대상 선택·플랫폼별 발행 옵션만 유지한다.
+- 종료 증거: navigation/UI 계약 테스트 선행 실패→PASS, operator API secret 비노출 회귀,
+  focused/full tests, TypeScript, production build, 운영 배포 뒤 Admin·고객 브라우저 E2E다.
+- build 승인 증거: code-builder 위임 품질검증 PASS. 요구 계약 6건의 선행 실패를 확인한 뒤
+  focused 36/36 PASS, 전체 863 PASS/10 DB-env skip, `tsc --noEmit` PASS,
+  production build 165 routes PASS를 재현했다. QA는 독립 verifier와 운영 브라우저 관찰로 진행한다.
+- 첫 독립 QA는 focused 36/36, 관련 회귀 270/270, TypeScript/build를 통과했지만 전체 suite의
+  비정규 base64url 서명 수용 간헐 실패와 operator GET 401 원문 렌더 경로를 발견해 NG로 판정했다.
+- 별도 code-builder가 두 차단 결함을 tests-first로 수정했다. 이미지·영상 서명은 canonical
+  base64url만 수용하고, GET 401은 `auth:required` 재인증 경로로 통일했다. focused 60/60,
+  전체 867 PASS/10 DB-env skip, TypeScript, production build 165 routes, diff check가 통과했다.
+  독립 Sonnet `/qa`는 focused 52/52, 전체 867 PASS/10 skip 그린 run, TypeScript, production
+  build, diff check와 secret 비노출·tenant/provider/account 경계를 재검증해 PASS했다. 별도 전체
+  run의 observability 1건은 단독 3회 PASS로 cross-file flake로 격리했다. QA를 승인하고 ship으로
+  이동한다. 운영 Admin/customer 브라우저 관찰과 외부 provider 실왕복은 ship 증거로 남긴다.
 
 ## 2026-07-25 TikTok explicit re-authorization build reopen
 - 사용자 실기기에서 기존 TikTok 브라우저 세션이 자동 재사용돼 다른 계정 선택이 어려운 문제를 다시 다룬다.

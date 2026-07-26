@@ -85,6 +85,7 @@ export function verifyMediaToken(token: string, now: number = Date.now()): Media
   const expected = crypto.createHmac("sha256", key).update(body).digest();
   const got = unb64u(sig);
   if (got.length !== expected.length) return null;
+  if (b64u(got) !== sig) return null;
   if (!crypto.timingSafeEqual(got, expected)) return null;
   let parsed: { v?: number; t?: string; f?: string; e?: number };
   try {

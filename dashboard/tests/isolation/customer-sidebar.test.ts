@@ -14,8 +14,9 @@ describe("customer sidebar isolation", () => {
     expect(sidebar).not.toContain("useCronStatus");
   });
 
-  it("keeps video publishing separate from text scheduling and links to the existing video UX", () => {
+  it("keeps video publishing separate from text scheduling and links each provider to its own channel page", () => {
     expect(sidebar).toContain("VIDEO_PUBLISH_PLATFORMS.map");
-    expect(sidebar).toContain('href: `/videos#${provider}-connect`');
+    expect(sidebar).toContain('href: `/channels/${provider}`');
+    expect(sidebar).not.toContain('href: `/videos#${provider}-connect`');
   });
 });

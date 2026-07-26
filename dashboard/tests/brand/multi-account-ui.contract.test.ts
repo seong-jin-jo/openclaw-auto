@@ -37,14 +37,23 @@ describe("SNS-007 multi-account source contracts", () => {
     expect(route).toContain("refreshYoutubeAccessToken(tenantId, accountId)");
   });
 
-  it("TikTok UI exposes account switching and creator-authorized publish controls", () => {
+  it("video workspace delegates YouTube/TikTok connection and account ownership to channel pages", () => {
+    const page = source("app/videos/page.tsx");
+    expect(page).not.toContain('from "@/components/channel/SocialConnectButton"');
+    expect(page).not.toContain('from "@/components/channel/AccountManager"');
+    expect(page).not.toContain("<SocialConnectButton");
+    expect(page).not.toContain("<AccountManager");
+    expect(page).toContain('href="/channels/youtube"');
+    expect(page).toContain('href="/channels/tiktok"');
+  });
+
+  it("TikTok video publishing preserves account switching and creator-authorized publish controls", () => {
     const page = source("app/videos/page.tsx");
     expect(page).toContain('data-testid="tiktok-status-card"');
     expect(page).toContain('data-testid="tiktok-publish-account-select"');
     expect(page).toContain('data-testid="tiktok-privacy-select"');
     expect(page).toContain('data-testid="tiktok-publish-button"');
     expect(page).not.toContain('data-testid="tiktok-disabled-card"');
-    expect(page).toContain('provider="tiktok"');
     expect(page).toContain("is_ai_generated: tiktokAiGenerated");
     expect(page).toContain("/api/tiktok/publish-status?publish_id=");
     expect(page).toContain("tiktok-pending:");

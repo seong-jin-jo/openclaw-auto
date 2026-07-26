@@ -133,6 +133,51 @@ describe("/api/operator/customers", () => {
     expect(JSON.stringify(body)).not.toContain("op-token");
   }, 15_000);
 
+  it("중앙 OAuth 메타데이터는 정본 공개 origin의 정확한 callback·필수 secret 이름·공식 링크만 반환한다", async () => {
+    vi.stubEnv("OSMU_PUBLIC_URL", "https://public.example/");
+    vi.stubEnv("YOUTUBE_CLIENT_ID", "secret-client-id-value");
+    vi.stubEnv("YOUTUBE_CLIENT_SECRET", "secret-client-secret-value");
+    const { GET } = await import("@/app/api/operator/customers/route");
+    const res = await GET(new Request("http://internal:3000/api/operator/customers", {
+      headers: {
+        Authorization: "Bearer op-token",
+        "x-forwarded-host": "forwarded.example",
+        "x-forwarded-proto": "https",
+      },
+    }));
+    const body = await res.json();
+    const youtube = body.oauthProviders.find((item: { provider: string }) => item.provider === "youtube");
+
+    expect(res.status).toBe(200);
+    expect(youtube).toEqual(expect.objectContaining({
+      provider: "youtube",
+      credentialsConfigured: true,
+      callbackUrl: "https://public.example/api/connect/youtube/callback",
+      requiredSecrets: ["YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_SECRET"],
+      consoleUrl: expect.stringMatching(/^https:\/\//),
+      docsUrl: expect.stringMatching(/^https:\/\//),
+    }));
+    expect(JSON.stringify(body)).not.toContain("secret-client-id-value");
+    expect(JSON.stringify(body)).not.toContain("secret-client-secret-value");
+  });
+
+  it("정본 공개 URL이 없으면 신뢰된 forwarded request origin으로 provider별 callback을 만든다", async () => {
+    vi.stubEnv("OSMU_PUBLIC_URL", "");
+    const { GET } = await import("@/app/api/operator/customers/route");
+    const res = await GET(new Request("http://internal:3000/api/operator/customers", {
+      headers: {
+        Authorization: "Bearer op-token",
+        "x-forwarded-host": "tenant.example",
+        "x-forwarded-proto": "https",
+      },
+    }));
+    const body = await res.json();
+    const tiktok = body.oauthProviders.find((item: { provider: string }) => item.provider === "tiktok");
+
+    expect(tiktok.callbackUrl).toBe("https://tenant.example/api/connect/tiktok/callback");
+    expect(tiktok.requiredSecrets).toEqual(["TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET"]);
+  });
+
   it("고객 인증은 Google OAuth 전용이라 send_password_reset은 미지원 — 400이고 fetch(메일 발송)는 호출되지 않는다", async () => {
     const { POST } = await import("@/app/api/operator/customers/route");
     const res = await POST(new Request("https://app.example/api/operator/customers", {

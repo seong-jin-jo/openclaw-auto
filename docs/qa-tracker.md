@@ -2,6 +2,101 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-07-26 중앙 OAuth 설정 UX + 영상 채널 독립 관리 — 독립 QA
+
+**STAMP:** 2026-07-26 14:20 KST · Codex QA verifier · 기준:
+`pipeline-state.md` 2026-07-26 섹션, `CLAUDE.md`,
+`wiki/decisions/004-social-connect-oauth-not-passwords.md`,
+`wiki/architecture/data-model.md`, IETF RFC 9700, Google OAuth web-server,
+TikTok Login Kit Web.
+
+**한 줄 판정:** 첫 독립 QA는 전체 test 간헐 실패와 401 오류 노출로 NG였다. 이후 별도
+code-builder가 두 결함을 tests-first로 수정해 focused 60/60, 전체 867 PASS/10 skip,
+TypeScript와 production build를 통과했다. 독립 Sonnet `/qa`도 focused 52/52, 전체
+867 PASS/10 skip 그린 run, TypeScript, production build, diff check를 재현해 **QA PASS**했다.
+운영 브라우저 E2E는 아직 미검증이다.
+
+**독립 재검증 STAMP:** 2026-07-26 14:43 KST · Claude Sonnet 5 · `/qa` skill 호출 확인.
+전체 suite 두 번째 실행에서 diff 밖 `observability.test.ts` 1건이 실패했으나 단독 3회 모두
+PASS해 cross-file flake로 격리했다. 그린 전체 run이 별도로 존재하며 이번 diff 차단으로 판정하지 않는다.
+
+### 검증 순서와 결과
+
+| 단계 | 결과 | 직접 증거 |
+|---|---|---|
+| 1. 코드 수정 내역 | ✅ 근거 확인 | Admin OAuth 메타데이터/API·UI, Sidebar YouTube/TikTok 독립 링크, `/videos` 계정관리 제거와 발행 기능 보존 diff를 전수 리뷰했다. |
+| 2. backend build/test | 해당 없음 | 별도 backend 프로젝트가 없고 Next.js API route는 focused/full Vitest와 production build 대상이다. |
+| 3. web build/test | ❌ NG | 변경 직접 5 files/36 PASS, 관련 회귀 22 files/270 PASS. 전체는 **100 files PASS, 1 file FAIL; 862 PASS, 1 FAIL, 10 DB-env skip**. `npx tsc --noEmit` PASS, `npm run build` PASS(165/165 routes, 기존 NFT warning 1건). |
+| 4. mobile typecheck | 해당 없음 | dashboard는 web-only이며 mobile project/typecheck 계약이 없다. |
+| 5. curl health | ⬜ 미검증 | production server는 sandbox `listen EPERM`, 외부 curl은 DNS 차단으로 HTTP 000이라 현재 uncommitted source의 health HTTP 코드를 관찰하지 못했다. |
+| 6. seed | ⬜ 미검증 | `DATABASE_URL` 부재. `bash scripts/apply-schema.sh --seed`는 대상 DB 미지정으로 exit 2 fail-closed. parser 테스트를 실 seed 대체 증거로 쓰지 않는다. |
+| 7. 주요 API curl | ⬜/✅ 분리 | curl은 위 제약으로 미검증. 대신 operator route 직접 호출 테스트에서 인증 401/503 fail-closed, 정상 200, callback/secret-name 메타데이터, secret 값 비노출을 관찰했다. curl PASS로 표기하지 않는다. |
+| 8. Playwright | ⬜ 미실행 | package/config/dependency가 없다. `npx` 자동설치를 증거로 사용하지 않았다. |
+| 9. Maestro | 해당 없음/FAIL | mobile surface와 flow가 없다. 로컬 binary 확인은 sandbox가 `~/.maestro/deps/applesimutils` 권한 변경을 거부해 실패했다. `optional:true`로 숨기지 않는다. |
+| 10. tracker 기록 | ✅ | 이 항목에 PASS/FAIL, 결함, 미검증 경계를 기록했다. |
+
+### 요구사항별 판정
+
+- 🔧 **OAUTH-SETUP-UX — 코드·테스트됨:** 운영자 API는 `DASHBOARD_AUTH_TOKEN` 인증을 먼저
+  통과한 뒤 provider별 `credentialsConfigured`, `missing`, `requiredSecrets`, 정본 callback,
+  공식 console/docs URL만 반환한다. stubbed Client ID/Secret 원문은 직렬화 응답에 없음을 테스트했다.
+  Admin OAuth 섹션에는 `<input>`/`<textarea>`가 없고 secret 이름과 callback 복사만 있다.
+- 🔧 **TENANT-OAUTH-TOKEN — import chain 확인 + 테스트됨:** 중앙 provider env →
+  OAuth consent/callback → `upsertChannelAccount(tenantId, provider, externalId)` →
+  `secret_enc`/`refresh_enc`의 `pgp_sym_encrypt` 끝점을 확인했다. 계정 목록 응답은 token 컬럼을
+  선택하지 않는다. tenant/account/provider 격리와 영상 발행 회귀 focused 270 PASS.
+- 🔧 **VIDEO-OWNERSHIP — 코드·테스트됨:** Sidebar YouTube/TikTok은 각각
+  `/channels/youtube`, `/channels/tiktok`으로 이동하고 동적 channel route가
+  `ChannelPage variant="video"`의 `SocialConnectButton` + `AccountManager`를 소유한다.
+  `/videos`는 이 두 연결 컴포넌트를 제거했지만 YouTube 발행 계정 선택, TikTok 계정 선택·공개범위·
+  댓글/듀엣/스티치·AI 표시 옵션, `/api/tiktok/publish-status` polling을 유지한다.
+- ⬜ **운영 UI/E2E:** 아직 운영 미배포이므로 Admin 체크리스트 렌더, customer 독립 채널 화면,
+  실제 provider consent→callback→tenant token 저장→발행은 미검증이다.
+
+### 결함
+
+1. **MEDIUM · QA-20260726-01 · 전체 suite 비결정 실패**
+   - 위치: `dashboard/src/lib/image-token.ts:37-38,65-68`;
+     `dashboard/tests/publish/image-delivery-route.test.ts:63`.
+   - 재현: `npm test`에서 변조 토큰 기대 404가 200. 해당 파일 반복 실행에서도 누적 3회 재현.
+   - 근본 원인: HMAC-SHA256 서명은 padding 없는 base64url 43자이며 마지막 문자는 데이터 4비트와
+     pad 2비트를 담는다. verifier는 decode한 32바이트만 비교한다. 테스트가 마지막 문자를 고정 `x`로
+     바꾸면 일부 서명에서는 다른 문자열이 같은 바이트로 decode되어 유효 서명으로 통과한다.
+     HMAC 위조 증거는 아니지만 canonical encoding을 강제하지 않는 계약과 확률적 mutation 테스트가
+     충돌해 전체 QA가 비결정적으로 실패한다.
+   - 조치: 이미지·영상 verifier 모두 `b64u(got) === sig`를 비교 전에 강제하고 동일 바이트 alias를
+     결정적으로 만드는 회귀 테스트를 추가했다. 수정본 전체 suite는 867 PASS/10 skip.
+2. **MEDIUM · QA-20260726-02 · 401 raw text 노출 경로**
+   - 위치: `dashboard/src/lib/api.ts:8-10`;
+     `dashboard/src/app/operator/customers/page.tsx:139-142`.
+   - 재현: operator API 401 시 공통 fetcher가 token을 지우고 `Error("Unauthorized")`를 던지며,
+     operator page가 `error.message`를 그대로 렌더한다. 요구된 401 인증 raw text 비노출 계약에
+     위배된다. 로컬 브라우저는 server bind 차단으로 직접 관찰하지 못했지만 source 합류점은 확정했다.
+   - 조치: GET fetcher도 stale token 제거 후 `auth:required`를 dispatch하고 typed auth error를
+     던지며, 운영자 화면은 해당 오류를 일반 error box에 렌더하지 않도록 테스트와 함께 수정했다.
+
+### 페르소나 결정 1문항
+
+**문항:** 운영자와 tenant 사용자는 각각 무엇을 한 번/매번 해야 하는가?
+**답:** 운영자는 provider별 개발자 앱 credential과 exact callback을 전역 한 번 설정하고 원문 secret은
+운영 secret store에서만 관리한다. 각 tenant 사용자는 자기 provider 계정으로 OAuth 동의하고,
+그 결과 토큰은 tenant/provider/account 스코프로 암호화 저장된다. Admin UI가 tenant 비밀번호·token 또는
+중앙 Client Secret 값을 받거나 보여주면 안 된다.
+
+**레드팀/셀프심문:** focused PASS만 보고 승인하면 전체 suite flake와 운영 미검증을 숨기게 된다.
+가장 그럴듯한 반론은 image-token 실패가 이번 diff 밖이라는 점이지만, 사용자가 full `npm test`를
+필수 종료조건으로 지정했고 regression 우선 규칙도 있으므로 전체 QA를 PASS로 올릴 수 없다.
+
+SKILLS_USED: 없음 / SKILLS_SKIPPED: 매칭 QA 스킬 없음
+
+SOURCES: `CLAUDE.md`; `pipeline-state.md` 2026-07-26; `docs/qa-tracker.md`;
+`wiki/decisions/004-social-connect-oauth-not-passwords.md`; `wiki/architecture/data-model.md`;
+https://www.rfc-editor.org/rfc/rfc9700.html;
+https://developers.google.com/identity/protocols/oauth2/web-server;
+https://developers.tiktok.com/doc/login-kit-web
+
+MODEL: gpt-5/Codex (runtime exact model ID not exposed)
+
 ## 2026-07-25 operator/customer shell hotfix — 운영 배포 독립 QA
 
 **대상:** production `main` commit `85c9fe7b`와 선행 hotfix 범위

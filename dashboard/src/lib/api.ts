@@ -2,12 +2,24 @@
 
 import { authHeaders, clearAuthToken } from "./auth";
 
+export class AuthRequiredError extends Error {
+  constructor() {
+    super("Authentication required");
+    this.name = "AuthRequiredError";
+  }
+}
+
+export function isAuthRequiredError(error: unknown): boolean {
+  return error instanceof Error && error.name === "AuthRequiredError";
+}
+
 /** SWR fetcher */
 export async function fetcher<T>(url: string): Promise<T> {
   const res = await fetch(url, { headers: authHeaders() });
   if (res.status === 401) {
     clearAuthToken();
-    throw new Error("Unauthorized");
+    window.dispatchEvent(new CustomEvent("auth:required"));
+    throw new AuthRequiredError();
   }
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();

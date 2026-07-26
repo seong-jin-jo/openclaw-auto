@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import useSWR from "swr";
-import { fetcher } from "@/lib/api";
+import { fetcher, isAuthRequiredError } from "@/lib/api";
 import { authHeaders } from "@/lib/auth";
 
 interface Customer {
@@ -39,6 +39,10 @@ interface OAuthProviderStatus {
   label: string;
   credentialsConfigured: boolean;
   missing: string[];
+  requiredSecrets: string[];
+  callbackUrl: string;
+  consoleUrl: string;
+  docsUrl: string;
   externalReview: "required" | "unknown";
 }
 
@@ -82,8 +86,16 @@ export default function OperatorCustomersPage() {
   const authUsers = data?.authUsers || [];
   const summary = data?.summary;
   const oauthProviders = data?.oauthProviders || [];
+  const visibleError = data?.error || (!isAuthRequiredError(error) ? error?.message : null);
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
   const [userActionMsg, setUserActionMsg] = useState<Record<string, string>>({});
+  const [copiedValue, setCopiedValue] = useState<string | null>(null);
+
+  async function copySetupValue(value: string) {
+    await navigator.clipboard.writeText(value);
+    setCopiedValue(value);
+    window.setTimeout(() => setCopiedValue((current) => current === value ? null : current), 1500);
+  }
 
   async function postCustomerAction(
     userId: string,
@@ -125,9 +137,9 @@ export default function OperatorCustomersPage() {
       </div>
 
       {isLoading && <p className="text-sm text-subtle">불러오는 중…</p>}
-      {(error || data?.error) && (
+      {visibleError && (
         <div className="rounded-lg border border-danger/30 bg-danger/10 p-3 text-xs text-danger mb-4">
-          {data?.error || error?.message || "조회 실패"}
+          {visibleError}
         </div>
       )}
 
@@ -153,22 +165,65 @@ export default function OperatorCustomersPage() {
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <h3 className="text-sm font-semibold text-text">중앙 OAuth 개발자 앱</h3>
-            <p className="mt-1 text-[11px] text-subtle">서버 credential 등록 여부입니다. 플랫폼 Live·심사 상태는 외부 콘솔에서 별도 확인합니다.</p>
+            <p className="mt-1 text-[11px] text-subtle">원문 credential은 받거나 표시하지 않습니다. 아래 이름으로 운영 secret store에 등록하고, callback은 글자까지 동일하게 외부 콘솔에 입력하세요.</p>
           </div>
           <span className="text-[11px] text-subtle">{oauthProviders.filter((item) => item.credentialsConfigured).length}/{oauthProviders.length} 준비</span>
         </div>
-        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-3 xl:grid-cols-2">
           {oauthProviders.map((item) => (
-            <div key={item.provider} className="card flex items-start justify-between gap-3 p-3">
-              <div className="min-w-0">
-                <p className="text-sm font-medium capitalize text-text">{item.label}</p>
-                <p className="mt-1 break-words text-[11px] text-subtle">
-                  {item.credentialsConfigured ? "서버 credential 등록됨" : `미설정: ${item.missing.join(", ")}`}
-                </p>
+            <div key={item.provider} className="card p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium capitalize text-text">{item.label}</p>
+                  <p className="mt-1 break-words text-[11px] text-subtle">
+                    {item.credentialsConfigured ? "운영 secret store 등록 확인됨" : `미설정: ${item.missing.join(", ")}`}
+                  </p>
+                </div>
+                <span className={`shrink-0 text-[10px] px-2 py-1 rounded ${item.credentialsConfigured ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
+                  {item.credentialsConfigured ? "준비" : "차단"}
+                </span>
               </div>
-              <span className={`shrink-0 text-[10px] px-2 py-1 rounded ${item.credentialsConfigured ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
-                {item.credentialsConfigured ? "준비" : "차단"}
-              </span>
+              <div className="mt-3 space-y-3">
+                <div>
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-subtle">Callback URL</p>
+                  <div className="mt-1 flex items-start gap-2">
+                    <code className="min-w-0 flex-1 break-all rounded bg-surface-2 px-2 py-1.5 text-[11px] text-muted">
+                      {item.callbackUrl}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => void copySetupValue(item.callbackUrl)}
+                      className="shrink-0 rounded border border-border px-2 py-1.5 text-[10px] text-accent hover:bg-surface-2"
+                    >
+                      {copiedValue === item.callbackUrl ? "복사됨" : "복사"}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-subtle">Required secret names</p>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {item.requiredSecrets.map((secretName) => (
+                      <button
+                        key={secretName}
+                        type="button"
+                        onClick={() => void copySetupValue(secretName)}
+                        className="rounded bg-surface-2 px-2 py-1 font-mono text-[10px] text-muted hover:text-accent"
+                        title={`${secretName} 이름 복사`}
+                      >
+                        {secretName}{copiedValue === secretName ? " ✓" : ""}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-3 text-[11px]">
+                  <a href={item.consoleUrl} target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent-hover">
+                    개발자 콘솔 ↗
+                  </a>
+                  <a href={item.docsUrl} target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent-hover">
+                    공식 문서 ↗
+                  </a>
+                </div>
+              </div>
             </div>
           ))}
         </div>

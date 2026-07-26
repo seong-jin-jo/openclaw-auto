@@ -4,6 +4,19 @@ import { signMediaToken, verifyMediaToken } from "@/lib/media-token";
 
 // SNS-016: 서명 이미지 배달 토큰 — 만료·변조·purpose 분리(영상 토큰과 교차 재생 불가) 계약.
 const SECRET = "test-media-signing-secret-0123456789";
+const BASE64URL_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+function nonCanonicalSignatureAlias(token: string): string {
+  const [body, signature] = token.split(".");
+  const lastIndex = BASE64URL_ALPHABET.indexOf(signature.at(-1)!);
+  expect(lastIndex).toBeGreaterThanOrEqual(0);
+  // HMAC-SHA256 is 32 bytes: its final base64url symbol has four data bits
+  // and two zero pad bits, so changing only those low two bits is an alias.
+  expect(lastIndex & 0b000011).toBe(0);
+  const alias = `${signature.slice(0, -1)}${BASE64URL_ALPHABET[lastIndex | 1]}`;
+  expect(Buffer.from(alias, "base64url")).toEqual(Buffer.from(signature, "base64url"));
+  return `${body}.${alias}`;
+}
 
 describe("image-token", () => {
   beforeEach(() => {
@@ -34,6 +47,14 @@ describe("image-token", () => {
     expect(verifyImageToken(`${forgedBody}.${sig}`)).toBeNull();
     expect(verifyImageToken(`${body}.${sig.slice(0, -2)}AA`)).toBeNull();
     expect(verifyImageToken(body)).toBeNull();
+  });
+
+  it("canonical 서명은 통과하고 같은 바이트의 non-canonical base64url alias는 거부한다", () => {
+    const canonical = signImageToken("tenantA", "photo.png")!;
+    const alias = nonCanonicalSignatureAlias(canonical);
+
+    expect(verifyImageToken(canonical)).toMatchObject({ tenantId: "tenantA", filename: "photo.png" });
+    expect(verifyImageToken(alias)).toBeNull();
   });
 
   it("경로 traversal 파일명과 불량 테넌트는 서명 자체를 거부한다", () => {
