@@ -46,6 +46,16 @@ override_expires: ""
   build, diff check와 secret 비노출·tenant/provider/account 경계를 재검증해 PASS했다. 별도 전체
   run의 observability 1건은 단독 3회 PASS로 cross-file flake로 격리했다. QA를 승인하고 ship으로
   이동한다. 운영 Admin/customer 브라우저 관찰과 외부 provider 실왕복은 ship 증거로 남긴다.
+- commit `d94c564e`, deploy run `30191941597` SUCCESS. Admin 중앙 OAuth 체크리스트와 집계를
+  운영 브라우저에서 관찰했고 안정화 뒤 콘솔 오류 0건이었다. 고객 YouTube 독립 채널도 렌더됐지만
+  사용하지 않는 operator-only cron API 2개가 403을 내는 운영 결함을 발견했다.
+- cron 매핑이 없는 YouTube/TikTok에는 `/api/cron-status`, `/api/cron-runs` SWR key를 null로
+  해 요청을 만들지 않는 핫픽스를 tests-first로 구현했다. focused 4/4, 전체 871 PASS/10 skip,
+  TypeScript, production build 165 routes, diff check PASS. 재배포 후 고객 브라우저 Network/console
+  재관찰 전까지 ship은 in-progress다.
+- 독립 Claude Sonnet `/qa`가 핫픽스 diff를 리뷰하고 focused 4/4, 전체 871 PASS/10 skip,
+  TypeScript, production build를 직접 재실행해 PASS했다. API route·인가 코드는 변경되지 않았다.
+  커밋·재배포 뒤 YouTube/TikTok Network/console 관찰이 다음 ship 증거다.
 
 ## 2026-07-25 TikTok explicit re-authorization build reopen
 - 사용자 실기기에서 기존 TikTok 브라우저 세션이 자동 재사용돼 다른 계정 선택이 어려운 문제를 다시 다룬다.

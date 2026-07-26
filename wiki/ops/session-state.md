@@ -3,7 +3,33 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-26 14:43 KST · 독립 재검증 PASS, 커밋/배포 대기
+**최종 갱신:** 2026-07-26 22:34 KST · 영상 채널 403 핫픽스 독립 QA PASS, 재배포 대기
+
+### 운영 배포 + 영상 채널 cron 403 핫픽스 (2026-07-26 22:27 KST)
+
+**배포:** commit `d94c564e`를 main에 push했고 deploy run `30191941597`이 2분 31초
+SUCCESS했다. DB schema/RLS, 이미지 build, 기동, 상태, login/Google/operator 스모크가 모두 통과했다.
+
+**운영 관찰:** Admin `/operator/customers`에서 Admin 전용 shell, 가입자 7·워크스페이스 11·
+활성 11·연결 계정 3·발행 8·실패 5와 중앙 OAuth 4/12 준비를 렌더했다. 12개 provider 모두
+callback URL, required secret 이름, 공식 콘솔/문서 링크가 보였고 secret 원문은 없었다.
+새로고침 뒤 콘솔 오류는 0건이었다. 운영 API도 200과 같은 집계를 반환했다.
+
+**고객 관찰:** 단기 code0to1 tenant 토큰으로 `/channels/youtube`를 열어 독립 YouTube OAuth
+연결, 계정관리, 채널 설정과 별도 Sidebar YouTube/TikTok 링크를 렌더했다. 고객 스코프 API와
+readiness/accounts는 200이었다. 다만 영상 채널에 쓰지 않는 operator-only `/api/cron-status`,
+`/api/cron-runs`가 각각 403을 내 콘솔 오류 2건을 직접 발견했다.
+
+**핫픽스:** 별도 code-builder가 cron 매핑이 없는 YouTube/TikTok 채널에는 두 SWR key를 `null`로
+만들어 요청 자체를 제거했다. Threads/Instagram 매핑과 UI는 보존한다. tests-first RED 2건 뒤
+focused 4/4, 전체 871 PASS/10 DB-env skip, TypeScript, production build 165 routes,
+diff check가 통과했다. 위임 산출물 품질검증도 PASS했다. 독립 Claude Sonnet `/qa`가 focused 4/4,
+전체 871 PASS/10 skip, TypeScript와 production build를 직접 재실행해 PASS했다.
+제품 1파일과 신규 테스트 1파일이 현재 uncommitted다.
+
+**다음 액션:** 핫픽스 커밋/push→OSMU 재배포→같은 임시 tenant로 YouTube/TikTok에서
+cron 요청 0건·콘솔 오류 0건, `/videos` 발행 작업실 보존을 관찰한다. 이후 임시 토큰을 revoke하고
+동일 토큰 `/api/me` 401을 확인한다.
 
 ### 독립 재검증 PASS (2026-07-26 14:43 KST)
 

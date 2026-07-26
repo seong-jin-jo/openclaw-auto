@@ -20,6 +20,17 @@ TypeScript와 production build를 통과했다. 독립 Sonnet `/qa`도 focused 5
 전체 suite 두 번째 실행에서 diff 밖 `observability.test.ts` 1건이 실패했으나 단독 3회 모두
 PASS해 cross-file flake로 격리했다. 그린 전체 run이 별도로 존재하며 이번 diff 차단으로 판정하지 않는다.
 
+**운영 1차 배포 STAMP:** commit `d94c564e`, deploy `30191941597` SUCCESS. Admin 중앙 OAuth
+설정 UI/API와 secret 비노출은 운영에서 관찰했다. 고객 `/channels/youtube`는 독립 관리 화면을
+렌더했지만 불필요한 global cron API 2개가 403을 내 QA 재오픈했다. cron 매핑 없는 영상 채널의
+SWR key를 null로 바꾼 핫픽스는 RED 2→focused 4/4, 전체 871 PASS/10 skip, TypeScript/build/diff
+check PASS다. 재배포 후 Network/console 관찰 전에는 운영 결함 해소로 판정하지 않는다.
+
+**영상 cron 핫픽스 독립 QA STAMP:** 2026-07-26 22:34 KST · Claude Sonnet `/qa`.
+focused 4/4, 전체 103 files·871 PASS/10 DB-env skip, `tsc --noEmit`, production build를
+독립 재실행해 PASS했다. YouTube/TikTok은 null SWR key, Threads/Instagram은 기존 cron endpoint
+key를 유지하며 API route·인가 코드는 변경되지 않았다. 운영 재배포 후 Network/console은 미검증이다.
+
 ### 검증 순서와 결과
 
 | 단계 | 결과 | 직접 증거 |

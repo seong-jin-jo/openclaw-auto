@@ -50,6 +50,23 @@ const CHAR_LIMITS: Record<string, number> = {
   instagram: 2200,
 };
 
+const FEATURE_CRON_MAP: Record<string, Record<string, string>> = {
+  threads: {
+    content_generation: "threads-generate-drafts",
+    auto_publish: "threads-auto-publish",
+    insights_collection: "threads-collect-insights",
+    auto_like_replies: "threads-collect-insights",
+    low_engagement_cleanup: "threads-collect-insights",
+    trending_collection: "threads-fetch-trending",
+    follower_tracking: "threads-track-growth",
+    trending_rewrite: "threads-rewrite-trending",
+  },
+  instagram: {
+    content_generation: "instagram-generate-drafts",
+    auto_publish: "instagram-auto-publish",
+  },
+};
+
 // 미연결 채널 탭 — 콘텐츠를 살짝 블러(모자이크)로 가리고 연결 유도 모달을 띄운다.
 // 빈 화면 대신 "여기 뭔가 있다 → 연결하면 보인다"를 보여줘 연결 전환을 높인다.
 function ConnectGate({ label, onConnect }: { label: string; onConnect: () => void }) {
@@ -636,32 +653,16 @@ function AutomationSection({ channel, expandedFeature, setExpandedFeature }: {
   expandedFeature: string | null;
   setExpandedFeature: (key: string | null) => void;
 }) {
+  const FEATURE_CRON = FEATURE_CRON_MAP[channel] || {};
+  const channelHasCronMapping = Object.keys(FEATURE_CRON).length > 0;
   const { data: channelSettings, mutate: mutateSettings } = useSWR(`/api/channel-settings/${channel}`, fetcher);
-  const { data: cronJobs } = useSWR("/api/cron-status", fetcher);
-  const { data: cronRuns } = useSWR("/api/cron-runs", fetcher);
+  const { data: cronJobs } = useSWR(channelHasCronMapping ? "/api/cron-status" : null, fetcher);
+  const { data: cronRuns } = useSWR(channelHasCronMapping ? "/api/cron-runs" : null, fetcher);
   const { showToast } = useToast();
 
   const cs = (channelSettings as Record<string, unknown>) || {};
   const jobs = (((cronJobs as Record<string, unknown>)?.jobs || cronJobs || []) as Array<Record<string, unknown>>);
   const runs = ((((cronRuns as Record<string, unknown>)?.runs || []) as Array<Record<string, unknown>>));
-
-  const FEATURE_CRON_MAP: Record<string, Record<string, string>> = {
-    threads: {
-      content_generation: "threads-generate-drafts",
-      auto_publish: "threads-auto-publish",
-      insights_collection: "threads-collect-insights",
-      auto_like_replies: "threads-collect-insights",
-      low_engagement_cleanup: "threads-collect-insights",
-      trending_collection: "threads-fetch-trending",
-      follower_tracking: "threads-track-growth",
-      trending_rewrite: "threads-rewrite-trending",
-    },
-    instagram: {
-      content_generation: "instagram-generate-drafts",
-      auto_publish: "instagram-auto-publish",
-    },
-  };
-  const FEATURE_CRON = FEATURE_CRON_MAP[channel] || {};
 
   const shownCronEditors = new Set<string>();
 
