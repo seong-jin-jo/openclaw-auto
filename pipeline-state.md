@@ -56,6 +56,11 @@ override_expires: ""
 - 독립 Claude Sonnet `/qa`가 핫픽스 diff를 리뷰하고 focused 4/4, 전체 871 PASS/10 skip,
   TypeScript, production build를 직접 재실행해 PASS했다. API route·인가 코드는 변경되지 않았다.
   커밋·재배포 뒤 YouTube/TikTok Network/console 관찰이 다음 ship 증거다.
+- commit `9e25ab6c`, deploy run `30204883783` SUCCESS. 고객 운영 브라우저에서 YouTube/TikTok
+  독립 화면 모두 cron-status/cron-runs 요청 0건, 콘솔 오류 0건을 관찰했다. `/videos`는 공용
+  라이브러리·provider별 채널 관리 링크만 유지했고 콘솔 오류 0건이었다. 임시 고객 토큰은 revoke
+  200 뒤 동일 토큰 `/api/me` 401을 확인하고 로컬 원문을 삭제했다. 이 운영 403 결함은 해소됐다.
+  전체 ship은 중앙 OAuth credential 8개와 외부 provider 실 consent/callback/publish가 남아 in-progress다.
 
 ## 2026-07-25 TikTok explicit re-authorization build reopen
 - 사용자 실기기에서 기존 TikTok 브라우저 세션이 자동 재사용돼 다른 계정 선택이 어려운 문제를 다시 다룬다.

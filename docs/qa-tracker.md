@@ -31,6 +31,13 @@ focused 4/4, 전체 103 files·871 PASS/10 DB-env skip, `tsc --noEmit`, producti
 독립 재실행해 PASS했다. YouTube/TikTok은 null SWR key, Threads/Instagram은 기존 cron endpoint
 key를 유지하며 API route·인가 코드는 변경되지 않았다. 운영 재배포 후 Network/console은 미검증이다.
 
+**영상 cron 핫픽스 운영 E2E STAMP:** commit `9e25ab6c`, deploy `30204883783` SUCCESS.
+고객 토큰으로 `/channels/youtube`와 `/channels/tiktok`을 각각 새로고침해 두 화면 모두
+`/api/cron-status`·`/api/cron-runs` 요청 0건, 콘솔 오류 0건을 관찰했다. 두 채널의 설정·readiness·
+계정 API는 200이었다. `/videos`는 공용 라이브러리와 provider별 `채널 관리` 링크를 렌더하고
+연결 관리 UI를 중복하지 않았으며 콘솔 오류 0건이었다. 임시 고객 토큰은 revoke 200 뒤 동일 토큰
+`/api/me` 401을 확인하고 로컬 원문 파일을 삭제했다. TikTok 실 OAuth는 중앙 credential 부재로 미검증이다.
+
 ### 검증 순서와 결과
 
 | 단계 | 결과 | 직접 증거 |
