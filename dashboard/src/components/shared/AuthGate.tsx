@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { getAuthToken, setAuthToken, clearAuthToken, authHeaders } from "@/lib/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
@@ -385,6 +385,7 @@ function LandingPage() {
  */
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [hasToken, setHasToken] = useState<boolean | null>(null);
   const [gateStatus, setGateStatus] = useState<GateStatus>("checking");
   const setActiveWorkspace = useUIStore((state) => state.setActiveWorkspace);
@@ -461,7 +462,15 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         }
         // 운영자는 customer tenant 문맥을 갖지 않는다. persisted workspace를 children/Sidebar
         // mount 전에 제거해 고객 identity·쿼리 스코프가 운영자 shell에 한 프레임도 섞이지 않게 한다.
-        if (data.isOperator) setActiveWorkspace(null);
+        if (data.isOperator) {
+          setActiveWorkspace(null);
+          if (pathname !== "/operator/customers") {
+            // Operator and customer shells are mutually exclusive. Keep the gate closed
+            // until App Router replaces the customer route with the Admin entry point.
+            router.replace("/operator/customers");
+            return;
+          }
+        }
         if (data.accessPaused) setGateStatus("access_paused");
         else if (data.accountUnavailable) setGateStatus("account_unavailable");
         else setGateStatus("ok");
@@ -476,7 +485,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       cancelled = true;
       clearInterval(id);
     };
-  }, [isPublicPath, hasToken, setActiveWorkspace]);
+  }, [isPublicPath, hasToken, pathname, router, setActiveWorkspace]);
 
   const doLogout = useCallback(async () => {
     const t = getAuthToken();

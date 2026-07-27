@@ -1,6 +1,6 @@
 "use client";
 
-import { authHeaders, clearAuthToken } from "./auth";
+import { clearAuthToken, getAuthToken } from "./auth";
 
 export class AuthRequiredError extends Error {
   constructor() {
@@ -13,12 +13,29 @@ export function isAuthRequiredError(error: unknown): boolean {
   return error instanceof Error && error.name === "AuthRequiredError";
 }
 
+function requestAuth(): { token: string; headers: Record<string, string> } {
+  const token = getAuthToken();
+  return {
+    token,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  };
+}
+
+function handleUnauthorized(requestToken: string, clearToken: boolean): void {
+  // A response belongs to the credential snapshot used when its request started.
+  // If login refreshed/replaced that credential meanwhile, the old 401 must not
+  // invalidate the newer identity or open the global login modal.
+  if (getAuthToken() !== requestToken) return;
+  if (clearToken) clearAuthToken();
+  window.dispatchEvent(new CustomEvent("auth:required"));
+}
+
 /** SWR fetcher */
 export async function fetcher<T>(url: string): Promise<T> {
-  const res = await fetch(url, { headers: authHeaders() });
+  const auth = requestAuth();
+  const res = await fetch(url, { headers: auth.headers });
   if (res.status === 401) {
-    clearAuthToken();
-    window.dispatchEvent(new CustomEvent("auth:required"));
+    handleUnauthorized(auth.token, true);
     throw new AuthRequiredError();
   }
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -28,14 +45,14 @@ export async function fetcher<T>(url: string): Promise<T> {
 /** POST helper for mutations */
 export async function apiPost<T = unknown>(url: string, body?: unknown): Promise<T | null> {
   try {
+    const auth = requestAuth();
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...authHeaders() },
+      headers: { "Content-Type": "application/json", ...auth.headers },
       body: body ? JSON.stringify(body) : undefined,
     });
     if (res.status === 401) {
-      // trigger login modal via event
-      window.dispatchEvent(new CustomEvent("auth:required"));
+      handleUnauthorized(auth.token, false);
       return null;
     }
     if (!res.ok) {
@@ -50,12 +67,13 @@ export async function apiPost<T = unknown>(url: string, body?: unknown): Promise
 
 /** DELETE helper */
 export async function apiDelete<T = unknown>(url: string): Promise<T | null> {
+  const auth = requestAuth();
   const res = await fetch(url, {
     method: "DELETE",
-    headers: authHeaders(),
+    headers: auth.headers,
   });
   if (res.status === 401) {
-    window.dispatchEvent(new CustomEvent("auth:required"));
+    handleUnauthorized(auth.token, false);
     return null;
   }
   if (!res.ok) throw new Error(`Delete failed: ${res.status}`);

@@ -15,8 +15,15 @@ interface ImageItem {
 export function ImagePickerModal() {
   const { imagePickerPostId, setImagePickerPostId } = useUIStore();
   const { showToast } = useToast();
-  const { data: images, mutate: mutateImages } = useSWR<ImageItem[]>("/api/images", fetcher);
-  const { data: queueData } = useSWR<{ posts: Array<Record<string, unknown>> }>("/api/queue", fetcher);
+  const isOpen = imagePickerPostId !== null;
+  const { data: images, mutate: mutateImages } = useSWR<ImageItem[]>(
+    isOpen ? "/api/images" : null,
+    fetcher,
+  );
+  const { data: queueData } = useSWR<{ posts: Array<Record<string, unknown>> }>(
+    isOpen ? "/api/queue" : null,
+    fetcher,
+  );
   const [genPrompt, setGenPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
   const [genStatus, setGenStatus] = useState("");

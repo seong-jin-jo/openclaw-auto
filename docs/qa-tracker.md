@@ -968,3 +968,22 @@ SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open �
   안정화 뒤 콘솔 오류 0건.
 - **배포 후 TikTok 경계:** readiness는 credential 누락으로 `available:false`를 반환한다.
   변경 코드는 운영 이미지에 포함됐지만 실제 authUrl·consent·callback·발행은 계속 미검증이다.
+
+### 2026-07-28 운영자 로그인 전역 모달 인증 경합
+
+- **운영 재현(관찰됨):** 공개 홈과 운영자 로그인 전환 중 닫힌 전역 `ImagePickerModal`이
+  `/api/images`·`/api/queue`를 호출했다. 로그인 전 시작된 401이 새 운영자 토큰 저장 뒤 도착해
+  공통 fetcher가 새 토큰을 삭제하고 `Login Required`를 띄웠다.
+- **이전 QA 누락:** 안정화된 `/operator/customers`만 확인하고 실제 토큰 입력 직후와
+  identity별 route matrix를 종료조건에 넣지 않았다. 이 때문에 운영자 토큰으로 고객 shell이
+  잠시 mount되는 경로와 로그인 race를 발견하지 못했다.
+- **수정:** 닫힌 modal은 SWR null key로 보호 API를 호출하지 않는다. 공통 API helper는 요청 시점
+  토큰과 응답 시점 토큰이 같을 때만 401 로그아웃을 수행한다. 운영자 identity는 고객 보호 경로의
+  children을 mount하지 않고 `/operator/customers`로 이동한다.
+- **자동 검증(테스트됨):** tests-first focused 35/35, 전체 880 PASS/10 DB-env skip,
+  TypeScript PASS, production build 165/165 routes PASS, diff check clean.
+- **독립 QA(테스트됨):** Claude Sonnet이 변경을 독립 검토하고 focused 11/11,
+  `tsc --noEmit` PASS를 재현했다. stale 401 새 토큰 보존, 동일 토큰 401 로그아웃 유지,
+  닫힌 modal 무요청, 운영자 redirect, 고객 `/videos` 보존을 확인했다.
+- **배포 전 판정:** build/QA 승인. 운영 배포 뒤 실제 운영자 로그인 폼 제출, 공개 홈 무요청,
+  운영자 route matrix, 15초 이상 안정화 동안 401/429·Login Required 0건은 미검증이며 ship 종료증거다.

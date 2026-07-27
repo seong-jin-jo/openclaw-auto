@@ -21,6 +21,24 @@ override_expires: ""
 
 # Pipeline State — openclaw-auto-osmu
 
+## 2026-07-28 operator login modal race build reopen
+- 운영 재현: 인증 전에도 전역 `ImagePickerModal`이 `/api/images`·`/api/queue`를 요청하고 401을
+  `auth:required`로 전파한다. 운영자 로그인 직전 시작된 응답이 토큰 저장 뒤 도착하면 공통 fetcher가
+  새 토큰까지 지워 랜딩과 Login Required 모달로 되돌린다.
+- 기존 확정 구조는 유지한다: 운영자는 Admin 전용 shell만 사용하고 고객 Marketing Hub를 함께 보지 않는다.
+- 수정 범위: 닫힌 modal의 보호 API 요청 금지, 요청 시점보다 나중에 저장된 토큰을 stale 401이 지우지
+  못하도록 인증 경합 차단, 운영자 identity가 비운영자 protected path를 열면 children mount 전
+  `/operator/customers`로 이동.
+- 종료 증거: tests-first 회귀, full test/typecheck/build, 독립 인증 QA, 운영자 로그인 뒤
+  `/operator/customers`·`/`·`/videos`·`/channels/youtube` 순회에서 Login Required 0건,
+  customer API 401/429 반복 0건, Admin redirect/shell 직접 관찰.
+- build 증거: code-builder 위임 품질검증 PASS. 닫힌 modal의 SWR null key, 요청별 인증 토큰
+  snapshot, 운영자 전용 route redirect를 구현했다. focused 35/35, 전체 880 PASS/10 DB-env skip,
+  TypeScript, production build 165 routes, diff check가 통과했다.
+- QA 승인 증거: 독립 Claude Sonnet이 변경과 렌더 분기를 직독하고 focused 11/11과
+  `tsc --noEmit`을 재실행해 PASS했다. 같은-token 401 로그아웃, stale 401의 새 토큰 보존,
+  운영자/customer route 격리를 모두 확인했다. 운영 배포와 실브라우저 로그인 전환은 ship 증거로 남긴다.
+
 ## 2026-07-26 central OAuth setup UX + video channel management build reopen
 - 사용자 확정: 중앙 OAuth 개발자 앱은 운영자가 플랫폼당 한 번 등록하고, 멀티테넌트 고객은 각자
   OAuth 동의로 자기 계정 토큰을 저장하는 SaaS 구조를 유지한다.
