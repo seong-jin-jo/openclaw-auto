@@ -987,3 +987,19 @@ SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open �
   닫힌 modal 무요청, 운영자 redirect, 고객 `/videos` 보존을 확인했다.
 - **배포 전 판정:** build/QA 승인. 운영 배포 뒤 실제 운영자 로그인 폼 제출, 공개 홈 무요청,
   운영자 route matrix, 15초 이상 안정화 동안 401/429·Login Required 0건은 미검증이며 ship 종료증거다.
+- **운영 배포(관찰됨):** commit `87dae325`, deploy run `30287931603` SUCCESS. 이미지 build, 기동,
+  상태, 자동 로그인 smoke를 모두 통과했다.
+- **공개 홈(관찰됨):** 브라우저 storage를 비우고 `/`를 새로 열었을 때 랜딩만 렌더됐고
+  `Login Required`, `/api/images`, `/api/queue`, 콘솔 오류가 모두 0건이었다.
+- **운영자 로그인(관찰됨):** `/operator`의 실제 토큰 입력 폼을 제출해 `/operator/customers`로 이동,
+  Admin 단일 shell과 가입자 7명·워크스페이스 11개를 렌더했다. 로그인 전환의 `/api/me`와
+  `/api/operator/customers`는 200이며 401·콘솔 오류는 0건이었다.
+- **운영자 route matrix(관찰됨):** 운영자 상태로 `/`, `/videos`, `/channels/youtube`를 각각 직접 열었다.
+  세 경로 모두 고객 sidebar를 mount하지 않고 `/operator/customers`로 복귀했으며 Login Required,
+  `/api/images`·`/api/queue` 401/429, 콘솔 오류가 0건이었다. 이후 20초 동안 `/api/me` 2회 모두 200.
+- **고객 회귀(관찰됨):** 단기 code0to1 tenant token으로 운영 `/videos`가 그대로 유지되고 Admin이
+  표시되지 않으며 video/channel/image API가 모두 200, 콘솔 오류가 0건이었다. 토큰은 revoke 200 뒤
+  동일 `/api/me` 401을 확인하고 브라우저용 임시 비밀 파일까지 삭제했다.
+- **판정:** 운영자 로그인 전역 모달 결함은 종료. 전체 v1.0.0 ship은 중앙 OAuth credential이 없는
+  8개 provider와 provider별 신규 고객 실 consent→callback→계정 저장→발행 permalink가 미검증이라
+  계속 in-progress다.

@@ -38,6 +38,15 @@ override_expires: ""
 - QA 승인 증거: 독립 Claude Sonnet이 변경과 렌더 분기를 직독하고 focused 11/11과
   `tsc --noEmit`을 재실행해 PASS했다. 같은-token 401 로그아웃, stale 401의 새 토큰 보존,
   운영자/customer route 격리를 모두 확인했다. 운영 배포와 실브라우저 로그인 전환은 ship 증거로 남긴다.
+- ship 증거: commit `87dae325`, deploy run `30287931603` SUCCESS. 저장소를 비운 공개 홈은
+  Login Required·보호 API 요청·콘솔 오류가 0건이었다. 실제 운영자 토큰 폼 제출은
+  `/operator/customers` Admin 전용 shell로 이동했고, 운영자 상태에서 `/`·`/videos`·
+  `/channels/youtube`는 고객 shell mount 없이 모두 Admin으로 복귀했다. 각 경로의 Login Required,
+  `/api/images`·`/api/queue` 401/429, 콘솔 오류가 0건이었다. 20초 안정화 중 `/api/me` 2회도 200이었다.
+- 고객 회귀: 단기 tenant token으로 운영 `/videos`를 열어 고객 경로 유지, Admin 오인식 없음,
+  관련 API 200과 콘솔 오류 0건을 관찰했다. 토큰 revoke 200 뒤 동일 토큰 `/api/me` 401을 확인하고
+  임시 비밀 파일을 삭제했다. 이 핫픽스는 종료했으며 전체 ship은 외부 OAuth 8개 credential·심사와
+  provider별 실 consent/callback/발행 증거가 없어 in-progress를 유지한다.
 
 ## 2026-07-26 central OAuth setup UX + video channel management build reopen
 - 사용자 확정: 중앙 OAuth 개발자 앱은 운영자가 플랫폼당 한 번 등록하고, 멀티테넌트 고객은 각자
