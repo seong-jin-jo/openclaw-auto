@@ -1,7 +1,8 @@
 import { db } from "@/lib/db";
 import { ensureTenantForUser } from "@/lib/tenant-auth";
 import { reportFailure, normalizeOperatorAction } from "@/lib/observability";
-import { FACEBOOK, PROVIDERS, publicOrigin } from "@/lib/social-connect";
+import { publicOrigin } from "@/lib/social-connect";
+import { listOAuthCredentialMetadata } from "@/lib/oauth-app-credentials";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -28,103 +29,6 @@ interface CustomerRow {
   last_usage_at: string | null;
   shorts_used: number | null;
   generations_used: number | null;
-}
-
-interface ProviderStatus {
-  provider: string;
-  label: string;
-  credentialsConfigured: boolean;
-  missing: string[];
-  requiredSecrets: string[];
-  callbackUrl: string;
-  consoleUrl: string;
-  docsUrl: string;
-  externalReview: "required" | "unknown";
-}
-
-const OAUTH_PROVIDER_SETUP: Record<string, { consoleUrl: string; docsUrl: string }> = {
-  instagram: {
-    consoleUrl: "https://developers.facebook.com/apps/",
-    docsUrl: "https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/business-login",
-  },
-  threads: {
-    consoleUrl: "https://developers.facebook.com/apps/",
-    docsUrl: "https://developers.facebook.com/docs/threads/get-started/get-started-with-oauth",
-  },
-  x: {
-    consoleUrl: "https://developer.x.com/en/portal/dashboard",
-    docsUrl: "https://docs.x.com/fundamentals/authentication/oauth-2-0/authorization-code",
-  },
-  linkedin: {
-    consoleUrl: "https://www.linkedin.com/developers/apps",
-    docsUrl: "https://learn.microsoft.com/en-us/linkedin/shared/authentication/authorization-code-flow",
-  },
-  youtube: {
-    consoleUrl: "https://console.cloud.google.com/auth/clients",
-    docsUrl: "https://developers.google.com/youtube/v3/guides/auth/server-side-web-apps",
-  },
-  naver_blog: {
-    consoleUrl: "https://developers.naver.com/apps/",
-    docsUrl: "https://developers.naver.com/docs/login/api/api.md",
-  },
-  pinterest: {
-    consoleUrl: "https://developers.pinterest.com/apps/",
-    docsUrl: "https://developers.pinterest.com/docs/getting-started/set-up-authentication-and-authorization/",
-  },
-  tumblr: {
-    consoleUrl: "https://www.tumblr.com/oauth/apps",
-    docsUrl: "https://www.tumblr.com/docs/en/api/v2#oauth2-authorization",
-  },
-  tiktok: {
-    consoleUrl: "https://developers.tiktok.com/apps/",
-    docsUrl: "https://developers.tiktok.com/doc/login-kit-web",
-  },
-  slack: {
-    consoleUrl: "https://api.slack.com/apps",
-    docsUrl: "https://docs.slack.dev/authentication/installing-with-oauth/",
-  },
-  line: {
-    consoleUrl: "https://developers.line.biz/console/",
-    docsUrl: "https://developers.line.biz/en/docs/line-login/integrate-line-login/",
-  },
-  facebook: {
-    consoleUrl: "https://developers.facebook.com/apps/",
-    docsUrl: "https://developers.facebook.com/docs/facebook-login/facebook-login-for-business",
-  },
-};
-
-function oauthProviderStatuses(request: Request): ProviderStatus[] {
-  const origin = publicOrigin(request);
-  const providers: ProviderStatus[] = Object.entries(PROVIDERS).map(([provider, cfg]) => {
-    const requiredSecrets = [cfg.appIdEnv, cfg.appSecretEnv];
-    const missing = requiredSecrets.filter((key) => !process.env[key]);
-    const setup = OAUTH_PROVIDER_SETUP[provider];
-    return {
-      provider,
-      label: cfg.label,
-      credentialsConfigured: missing.length === 0,
-      missing,
-      requiredSecrets,
-      callbackUrl: `${origin}/api/connect/${provider}/callback`,
-      consoleUrl: setup.consoleUrl,
-      docsUrl: setup.docsUrl,
-      externalReview: "unknown" as const,
-    };
-  });
-  const facebookSecrets = [FACEBOOK.appIdEnv, FACEBOOK.appSecretEnv, FACEBOOK.configIdEnv];
-  const facebookMissing = facebookSecrets.filter((key) => !process.env[key]);
-  providers.push({
-    provider: "facebook",
-    label: "facebook",
-    credentialsConfigured: facebookMissing.length === 0,
-    missing: facebookMissing,
-    requiredSecrets: facebookSecrets,
-    callbackUrl: `${origin}/api/connect/facebook/callback`,
-    consoleUrl: OAUTH_PROVIDER_SETUP.facebook.consoleUrl,
-    docsUrl: OAUTH_PROVIDER_SETUP.facebook.docsUrl,
-    externalReview: "required",
-  });
-  return providers;
 }
 
 interface AuthUserRow {
@@ -237,7 +141,8 @@ export async function GET(request: Request) {
       published: rows.reduce((total, row) => total + Number(row.published_count || 0), 0),
       failed: rows.reduce((total, row) => total + Number(row.failed_count || 0), 0),
     };
-    return Response.json({ customers: rows, authUsers, summary, oauthProviders: oauthProviderStatuses(request) });
+    const oauthProviders = await listOAuthCredentialMetadata(publicOrigin(request));
+    return Response.json({ customers: rows, authUsers, summary, oauthProviders });
   } catch (e) {
     return Response.json({ customers: [], authUsers: [], error: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }

@@ -208,6 +208,7 @@ describe("GET /api/connect/instagram/callback — 토큰교환·저장", () => {
     ];
     process.env.FB_APP_ID = "fb-app";
     process.env.FB_APP_SECRET = "fb-secret";
+    process.env.FB_CONFIG_ID = "fb-config";
     const state = await signedState("tenant-1", "facebook");
     const { GET } = await import("@/app/api/connect/[provider]/callback/route");
     const res = await GET(
@@ -219,6 +220,9 @@ describe("GET /api/connect/instagram/callback — 토큰교환·저장", () => {
     // 페이지 토큰이 저장됨(user 토큰 아님)
     expect(JSON.stringify(H.inserts[0])).toContain("PAGE_TOKEN");
     expect(JSON.stringify(H.inserts[0])).toContain("990011");
+    delete process.env.FB_APP_ID;
+    delete process.env.FB_APP_SECRET;
+    delete process.env.FB_CONFIG_ID;
   });
 
   it("state(tenant) 누락 → 저장 안 함", async () => {
@@ -238,10 +242,11 @@ describe("GET /api/connect/instagram/callback — 토큰교환·저장", () => {
 describe("Facebook Login for Business — config_id authorize URL", () => {
   it("buildAuthUrl(facebook)는 scope가 아니라 config_id를 넣는다", async () => {
     process.env.FB_APP_ID = "fb-app-1";
+    process.env.FB_APP_SECRET = "fb-secret-1";
     process.env.FB_CONFIG_ID = "cfg-777";
     const { buildAuthUrl, getProvider } = await import("@/lib/social-connect");
     const cfg = getProvider("facebook")!;
-    const url = buildAuthUrl(cfg, "https://live.example", "facebook", "tenant-1")!;
+    const url = (await buildAuthUrl(cfg, "https://live.example", "facebook", "tenant-1"))!;
     expect(url).toContain("facebook.com/v21.0/dialog/oauth");
     expect(url).toContain("config_id=cfg-777");
     expect(url).toContain("response_type=code");
@@ -250,6 +255,7 @@ describe("Facebook Login for Business — config_id authorize URL", () => {
     // config_id 모델은 scope를 보내지 않는다
     expect(url).not.toContain("scope=");
     expect(url).not.toContain("pages_manage_posts");
+    delete process.env.FB_APP_SECRET;
     delete process.env.FB_CONFIG_ID;
   });
 
@@ -258,7 +264,7 @@ describe("Facebook Login for Business — config_id authorize URL", () => {
     delete process.env.FB_CONFIG_ID;
     const { buildAuthUrl, getProvider } = await import("@/lib/social-connect");
     const cfg = getProvider("facebook")!;
-    expect(buildAuthUrl(cfg, "https://live.example", "facebook", "tenant-1")).toBeNull();
+    expect(await buildAuthUrl(cfg, "https://live.example", "facebook", "tenant-1")).toBeNull();
   });
 
   it("GET /api/connect/facebook — FB_CONFIG_ID 미설정 시 500 + 안내 메시지", async () => {
@@ -273,6 +279,7 @@ describe("Facebook Login for Business — config_id authorize URL", () => {
 
   it("GET /api/connect/facebook — config_id 설정 시 authUrl 반환", async () => {
     process.env.FB_APP_ID = "fb-app-1";
+    process.env.FB_APP_SECRET = "fb-secret-1";
     process.env.FB_CONFIG_ID = "cfg-777";
     const { GET } = await import("@/app/api/connect/[provider]/route");
     const res = await GET(new Request("https://app.example/api/connect/facebook?tenant_id=tenant-1"), params("facebook"));
@@ -280,6 +287,7 @@ describe("Facebook Login for Business — config_id authorize URL", () => {
     const body = await res.json();
     expect(body.authUrl).toContain("config_id=cfg-777");
     expect(body.authUrl).not.toContain("scope=");
+    delete process.env.FB_APP_SECRET;
     delete process.env.FB_CONFIG_ID;
   });
 });
@@ -477,11 +485,13 @@ describe("exchangeCode — PKCE (code_verifier POST body 포함)", () => {
 describe("exchangeCode — YouTube refresh_token", () => {
   it("YouTube authorize URL이 매번 Google 계정 선택을 요구한다", async () => {
     process.env.YOUTUBE_CLIENT_ID = "yt-client";
+    process.env.YOUTUBE_CLIENT_SECRET = "yt-secret";
     const { buildAuthUrl, getProvider } = await import("@/lib/social-connect");
-    const url = new URL(buildAuthUrl(getProvider("youtube")!, "https://app.example", "youtube", "state-1")!);
+    const url = new URL((await buildAuthUrl(getProvider("youtube")!, "https://app.example", "youtube", "state-1"))!);
     expect(url.searchParams.get("prompt")).toBe("consent select_account");
     expect(url.searchParams.get("access_type")).toBe("offline");
     delete process.env.YOUTUBE_CLIENT_ID;
+    delete process.env.YOUTUBE_CLIENT_SECRET;
   });
 
   it("응답의 refresh_token을 ExchangedToken.refreshToken으로 반환", async () => {

@@ -8,6 +8,8 @@
 //   code_verifier(32바이트 랜덤 → base64url) → SHA-256 → code_challenge(base64url)
 //   verifier는 httpOnly 쿠키(10분)에 임시 저장 → callback에서 꺼내 검증.
 
+import { resolveOAuthCredentialSet } from "@/lib/oauth-app-credentials";
+
 export interface ProviderConfig {
   label: string;            // integrations.label
   authorizeUrl: string;
@@ -368,14 +370,16 @@ export function canonicalPublicOrigin(): string | null {
 // state = tenantId(콜백서 어느 테넌트인지 식별 — 위변조 방지는 짧은 수명+서명이 이상적이나
 // 1차는 tenantId 그대로; 콜백서 effectiveTenantId와 교차검증 가능).
 // extraParams: 라우터가 미리 계산한 PKCE code_challenge 등 추가 파라미터(선택).
-export function buildAuthUrl(
+export async function buildAuthUrl(
   provider: ProviderConfig,
   origin: string,
   providerName: string,
   state: string,
   extraParams?: Record<string, string>,
-): string | null {
-  const clientId = process.env[provider.appIdEnv];
+): Promise<string | null> {
+  const credentials = await resolveOAuthCredentialSet(providerName);
+  if (!credentials?.complete) return null;
+  const clientId = credentials.values.clientId;
   if (!clientId) return null;
   const params: Record<string, string> = {
     [provider.clientIdParam ?? "client_id"]: clientId,
@@ -385,7 +389,7 @@ export function buildAuthUrl(
   };
   if (providerName === "facebook") {
     // 비즈니스용 Facebook 로그인 = scope 대신 config_id. 없으면 authorize 불가(콘솔서 발급 필요).
-    const configId = process.env[FACEBOOK.configIdEnv];
+    const configId = credentials.values.configId;
     if (!configId) return null;
     params.config_id = configId;
   } else {
@@ -423,9 +427,12 @@ export async function exchangeCode(
 ): Promise<ExchangedToken> {
   const p = getProvider(providerName);
   if (!p) return { accessToken: "", error: `unknown provider: ${providerName}` };
-  const clientId = process.env[p.appIdEnv] || "";
-  const clientSecret = process.env[p.appSecretEnv] || "";
-  if (!clientId || !clientSecret) return { accessToken: "", error: `${p.appIdEnv}/${p.appSecretEnv} 미설정` };
+  const credentials = await resolveOAuthCredentialSet(providerName);
+  const clientId = credentials?.complete ? credentials.values.clientId || "" : "";
+  const clientSecret = credentials?.complete ? credentials.values.clientSecret || "" : "";
+  if (!clientId || !clientSecret) {
+    return { accessToken: "", error: `${p.label} OAuth 앱 자격증명(${p.appIdEnv}/${p.appSecretEnv}) 미설정 또는 불완전` };
+  }
 
   // Instagram 문서: 인가 code 끝의 "#_" 는 code가 아니므로 제거.
   const cleanCode = code.replace(/#_.*$/, "").replace(/#.*$/, "");
@@ -503,9 +510,10 @@ export async function exchangeCode(
 // FB_APP_SECRET가 반드시 필요(교환·장기토큰 서명). redirect_uri는 authorize와 글자까지 동일해야 한다.
 const FB_V = "https://graph.facebook.com/v21.0";
 export async function exchangeFacebookCode(code: string, origin: string, f: typeof fetch = fetch): Promise<ExchangedToken> {
-  const clientId = process.env.FB_APP_ID || "";
-  const clientSecret = process.env.FB_APP_SECRET || "";
-  if (!clientId || !clientSecret) return { accessToken: "", error: "FB_APP_ID/SECRET 미설정" };
+  const credentials = await resolveOAuthCredentialSet("facebook");
+  const clientId = credentials?.complete ? credentials.values.clientId || "" : "";
+  const clientSecret = credentials?.complete ? credentials.values.clientSecret || "" : "";
+  if (!clientId || !clientSecret) return { accessToken: "", error: "Facebook OAuth 앱 자격증명 미설정 또는 불완전" };
   const cb = redirectUri(origin, "facebook");
   // 1) user token
   const tRes = await f(`${FB_V}/oauth/access_token?client_id=${clientId}&client_secret=${clientSecret}&redirect_uri=${encodeURIComponent(cb)}&code=${encodeURIComponent(code)}`);

@@ -1,5 +1,6 @@
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { PROVIDERS, FACEBOOK } from "@/lib/social-connect";
+import { resolveOAuthCredentialSet } from "@/lib/oauth-app-credentials";
 
 // GET /api/connect/readiness?tenant_id=... — 고객 UI가 "연결" 버튼을 그리기 전에 먼저 물어보는
 // 서버 준비상태 계약(SNS-001/SNS-003/SNS-004). 서버 credential(OAuth 앱 ID/Secret)이 없는
@@ -16,21 +17,19 @@ export async function GET(request: Request) {
   const result: Record<string, { available: boolean; reason?: string }> = {};
 
   for (const [name, cfg] of Object.entries(PROVIDERS)) {
-    const hasId = Boolean(process.env[cfg.appIdEnv]);
-    const hasSecret = Boolean(process.env[cfg.appSecretEnv]);
-    result[name] = hasId && hasSecret
+    const credentials = await resolveOAuthCredentialSet(name);
+    result[name] = credentials?.complete
       ? { available: true }
       : { available: false, reason: `서버에 ${name} OAuth 앱 자격증명(${cfg.appIdEnv}/${cfg.appSecretEnv})이 아직 설정되지 않았습니다. 관리자에게 문의해주세요.` };
   }
 
   // Facebook은 config_id 모델(비즈니스용 로그인) — FB_APP_ID/SECRET 외에 FB_CONFIG_ID도 필요.
-  const fbHasId = Boolean(process.env[FACEBOOK.appIdEnv]);
-  const fbHasSecret = Boolean(process.env[FACEBOOK.appSecretEnv]);
-  const fbHasConfig = Boolean(process.env.FB_CONFIG_ID);
-  if (!fbHasId || !fbHasSecret) {
-    result.facebook = { available: false, reason: "서버에 Facebook OAuth 앱 자격증명(FB_APP_ID/FB_APP_SECRET)이 아직 설정되지 않았습니다. 관리자에게 문의해주세요." };
-  } else if (!fbHasConfig) {
-    result.facebook = { available: false, reason: "Facebook 비즈니스 로그인 구성(FB_CONFIG_ID)이 아직 설정되지 않았습니다. App Dashboard에서 login configuration을 만들어야 합니다." };
+  const facebook = await resolveOAuthCredentialSet("facebook");
+  if (!facebook?.complete) {
+    result.facebook = {
+      available: false,
+      reason: `서버에 Facebook OAuth 앱 자격증명(${FACEBOOK.appIdEnv}/${FACEBOOK.appSecretEnv}/${FACEBOOK.configIdEnv})이 아직 설정되지 않았거나 일부만 설정됐습니다. 관리자에게 문의해주세요.`,
+    };
   } else {
     // App Dashboard에서 앱이 Development/제한 모드거나 역할이 없는 사용자는 서버에서 미리 알 수
     // 없다(SNS-004) — credential은 갖췄으나 실제 접근 가능 여부는 "확인 불가"로 정직하게 표시한다.
