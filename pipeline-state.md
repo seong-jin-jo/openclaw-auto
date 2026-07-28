@@ -21,6 +21,19 @@ override_expires: ""
 
 # Pipeline State — openclaw-auto-osmu
 
+## 2026-07-28 operator canonical token recovery
+- 사용자 운영 재현: 안내받은 canonical 운영자 토큰으로 `/operator` 폼 제출 시 invalid-token 문구.
+- 근본 원인: 운영 secret store의 값과 사용자 안내값의 첫 글자 대소문자가 달랐고, API는 정확 일치
+  비교다. 직전 QA가 secret store 값으로만 통과해 실제 사용자 입력 계약을 검증하지 않았다.
+- 복구: GitHub Actions secret과 로컬 secret inventory를 canonical 값으로 동기화하고
+  deploy run `30359455514`로 OSMU 대시보드를 재배포했다.
+- 운영 증거: canonical 값으로 `/api/me` 200 `isOperator:true`,
+  `/api/operator/customers` 200. 새 Chrome target의 `/operator` 실제 폼 제출은
+  `/operator/customers`로 이동해 `Admin`·`고객 관리`를 렌더했다. invalid-token 문구,
+  4xx/5xx response, console error는 모두 0건이다.
+- 재발 방지: 운영자 접근 종료조건은 secret store API 스모크와 사용자 안내 canonical 값의
+  새 브라우저 폼 제출을 각각 요구한다. 이 운영자 결함은 닫혔으나 아래 전체 QA FAIL과 ship 잠금은 유지한다.
+
 ## 2026-07-28 full production flow QA reopen
 - 범위: 공개 7 routes, 고객 25 routes, 운영자 5 routes, 고객 핵심 API 10개,
   중앙 OAuth 12 provider preflight, GA4 consent, Google auth preflight.

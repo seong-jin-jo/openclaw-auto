@@ -2,6 +2,26 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-07-28 운영자 토큰 대소문자 불일치 복구
+
+**한 줄 판정:** 사용자가 안내받아 입력한 canonical 운영자 토큰과 운영 secret의 첫 글자
+대소문자가 달라 `/operator` 로그인이 거부됐다. GitHub Actions secret과 로컬 secret inventory를
+canonical 값으로 통일하고 운영 대시보드를 재배포한 뒤 실제 폼 제출까지 PASS했다.
+
+**근본 원인:** 운영 API는 `DASHBOARD_AUTH_TOKEN`을 정확 일치 비교한다. 직전 운영 검증은
+secret store에 있던 값으로만 API와 폼을 통과시켰고, 사용자에게 안내한 문자열을 별도 입력 계약으로
+검증하지 않았다. 따라서 서버 내부 일관성은 PASS였지만 실제 운영자 입력값과의 불일치를 놓쳤다.
+
+**운영 증거:** deploy run `30359455514` SUCCESS. canonical secret으로 `/api/me`는 HTTP 200과
+`isOperator:true`, `/api/operator/customers`는 HTTP 200을 반환했다. 새 Chrome target에서
+local/session storage를 비운 뒤 `/operator` 폼에 canonical 값을 제출했고
+`/operator/customers`로 이동했다. `Admin`·`고객 관리`가 렌더됐고 invalid-token 문구,
+4xx/5xx response, console error는 각각 0건이었다.
+
+**재발 방지:** 운영자 접근 QA는 앞으로 (1) secret store API 스모크와 (2) 운영자에게 안내된
+canonical 입력값의 새 브라우저 폼 제출을 별도 종료조건으로 둔다. secret 원문은 QA 원장·로그·
+스크린샷에 기록하지 않는다.
+
 ## 2026-07-26 중앙 OAuth 설정 UX + 영상 채널 독립 관리 — 독립 QA
 
 **STAMP:** 2026-07-26 14:20 KST · Codex QA verifier · 기준:
