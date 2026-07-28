@@ -30,6 +30,21 @@ This is the reference for all persistent state. Most data is tenant-scoped for S
   tenant and provider ownership before persistence; due publishing never falls back when an explicit
   account has been deleted, revoked, or belongs to another tenant.
 
+### Global OAuth App Credentials
+- `oauth_app_credentials` is global operator state, not tenant data. It has one row per provider and
+  stores Client ID, Client Secret, and the provider-specific configuration ID (Facebook only) as
+  individually armored `pgp_sym_encrypt` values using `OSMU_SECRET_KEY`.
+- `oauth_credential_audit` records only provider, `update`/`reveal`/`delete` action, and timestamp.
+  It has no secret, masked value, request body, tenant, or customer-visible policy.
+- Both tables use `ENABLE/FORCE ROW LEVEL SECURITY` with no customer policy. They are deliberately
+  excluded from the tenant policy loop, so `withTenant()`/`osmu_service` cannot read or mutate them.
+- `resolveOAuthCredentialSet()` is the only runtime lookup path. A complete DB set wins. With no DB row,
+  a complete legacy environment-variable set remains available. A partial DB row fails closed and is
+  never completed field-by-field from env. A missing additive table (`42P01`) is the deployment/rollback
+  compatibility exception and falls back to env; DB/auth/decryption failures remain fail-closed.
+- Authorize URL creation, Facebook configuration ID, callback token exchange, customer readiness, and
+  Admin readiness all consume the same resolved set.
+
 ### Brand Knowledge (Wiki)
 - **Tenant Brand Wiki** (for AI content):
   - `wiki_docs` (DB): tenant_id, path, title, content, hash, updated_at.
@@ -79,6 +94,8 @@ This is the reference for all persistent state. Most data is tenant-scoped for S
 - All queries go through `withTenant()` + RLS policies.
 - No cross-tenant leakage.
 - Credentials and guides isolated.
+- Exception by design: central OAuth developer-app credentials are global operator infrastructure.
+  They never use a tenant policy and are reachable only from exact operator Bearer routes.
 
 ## Evolution Notes (gstack context)
 - Moved from pure file-based (queue.json) to hybrid DB for SaaS.

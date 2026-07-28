@@ -41,6 +41,15 @@ override_expires: ""
 - 종료 증거: schema/RLS 멱등 적용, 암호화 원문 비노출·operator-only CRUD/reveal 감사·env fallback
   회귀 테스트, 전체 test/typecheck/build, 운영 배포 후 Admin 저장→마스킹 조회→reveal→customer
   authorize URL이 새 Client ID를 사용→callback exchange가 같은 secret을 사용하는 실제 관찰.
+- build commits `68c251bb`·`0850ecaa`·`a27a24b7`·`9702b0f2`: additive encrypted tables/RLS,
+  중앙 resolver, exact operator Bearer + no-store metadata/atomic upsert/explicit reveal, Admin 카드 입력·
+  source/updated time·공식 링크/단계·30초 자동삭제를 tests-first로 구현했다.
+- 자동 증거: OAuth focused 105/105 + 보강 7/7, 전체 112 files 908 PASS/10 DB-env skip,
+  `tsc --noEmit` PASS, Next.js 16.2.2 webpack production build 166/166 pages PASS.
+  기본 Turbopack은 샌드박스 worker port bind EPERM이라 이 환경에서 미검증이다.
+- 직접 DB 멱등 적용은 임시 Postgres bootstrap이 샌드박스 SysV shared-memory 제한으로 3회 모두
+  코드 실행 전 중단돼 미검증이다. schema/RLS contract 2/2는 PASS했지만 QA 환경에서 2회 적용,
+  운영 Admin 저장→마스킹→reveal→감사→고객 authorize/callback 실왕복 전까지 qa/ship은 잠금 유지.
 
 ## 2026-07-28 operator canonical token recovery
 - 사용자 운영 재현: 안내받은 canonical 운영자 토큰으로 `/operator` 폼 제출 시 invalid-token 문구.

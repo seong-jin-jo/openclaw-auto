@@ -32,6 +32,22 @@ GStack 브라우저로 Meta 콘솔을 운전하는 건 **우리 자신의 계정
 - 내부 5브랜드(지금): 우리 앱에 각 계정 테스터 추가 + 토큰 발급(에이전트 브라우저로 우리가 운전 가능).
 - 관련: [[reference/brand-grounding]], ADR-003(pricing), `wiki/ops/session-state.md` Meta 셋업.
 
+## 중앙 개발자 앱 credential 운영 (2026-07-28 보강)
+
+- 고객별 `channel_accounts` access/refresh token과 운영자의 중앙 OAuth App ID/Secret은 다른
+  보안 경계다. 전자는 tenant 소유, 후자는 모든 tenant의 OAuth 진입에 쓰는 전역 인프라다.
+- 운영자는 Admin의 provider 카드에서 callback·공식 콘솔/문서·필수 필드·설정 단계를 확인하고,
+  중앙 값을 전체 세트 단위로 등록/교체한다. 저장은 `oauth_app_credentials`에 각 필드별
+  pgcrypto 암호화로만 한다.
+- 기본 조회는 source(DB/env), 설정 여부, 마스킹 값, 갱신시각만 반환한다. 원문은 정확한 운영자
+  Bearer를 다시 요구하는 explicit reveal에서만 no-store 응답으로 반환하고 30초 뒤 UI 메모리에서
+  지운다. update/reveal은 `oauth_credential_audit`에 secret 없이 기록한다.
+- 런타임은 `resolveOAuthCredentialSet()`만 사용한다. DB 완전 세트 우선 → DB 행이 없으면 기존 env
+  완전 세트 fallback → DB 일부만 있으면 env와 섞지 않고 fail-closed다.
+- 2026-07-26의 “Admin은 secret 이름/준비상태만 표시하고 원문 입력을 받지 않는다” 운영 결정은
+  회장의 2026-07-28 명시 지시로 이 절에서 대체됐다. 고객 UI/tenant token에는 중앙 입력·조회
+  endpoint를 노출하지 않는 원칙은 유지한다.
+
 ## 계정 전환·provider 세션 경계 (2026-07-24 보강)
 
 - 우리 대시보드 origin은 Meta·Google·X·TikTok 등 **다른 origin이 소유한 로그인 쿠키를 삭제할 수 없다**.

@@ -2,6 +2,32 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-07-28 Admin 중앙 OAuth credential manager
+
+**상태 전이:** ❌ NG(중앙 credential 8/12 미등록인데 Admin 입력/수정 경로 없음) → 🔧 build
+구현·자동 검증. 운영 DB 적용·Admin 실브라우저 저장→마스킹→reveal→고객 OAuth 왕복 전에는
+QA/ship PASS로 닫지 않는다.
+
+- **tests-first:** 신규 스키마/resolver/operator API/UI 계약 RED 4 files, resolver runtime 배선
+  RED 4 assertions을 먼저 관찰한 뒤 구현했다.
+- **집중 검증(테스트됨):** OAuth 관련 10 files 105/105 PASS. 후속 Facebook DB-set callback과
+  atomic encryption SQL 보강 7/7 PASS.
+- **전체 회귀(테스트됨):** 112/112 files, 908 PASS/10 DB-env skip. TypeScript `tsc --noEmit`
+  PASS.
+- **production build(테스트됨):** 기본 Turbopack은 샌드박스 내부 CSS worker port bind가 EPERM으로
+  중단됐다. 동일 Next.js 16.2.2 webpack production build는 compile·TypeScript·static generation
+  166/166 pages와 `/api/operator/oauth-credentials` route 생성을 PASS했다.
+- **DB/RLS 직접 적용(미검증):** 임시 Postgres `initdb`를 3회 시도했지만 이 샌드박스가 SysV shared
+  memory `shmget`을 거부해 bootstrap 전에 중단됐다. schema/RLS 멱등성과 no-customer-policy는
+  contract tests 2/2로 확인했지만 실제 DB 2회 적용 증거는 QA 환경에서 다시 확보해야 한다.
+- **보안 레드팀(근거 확인):** partial DB set은 env와 혼합하지 않고 fail-closed, missing additive
+  table만 rollback-safe env fallback이다. tenant/wrong/non-exact Bearer는 401, normal GET은
+  masked+no-store, reveal은 explicit+no-store+감사+30초 자동삭제다. update/reveal audit SQL에는
+  secret 값이 없고, React 렌더는 외부 단계·원문을 문자열로 escape한다.
+- **남은 실제 경로:** 운영 DB schema/RLS 2회 적용 → Admin 저장/마스킹/reveal/감사 재조회 →
+  고객 authorize URL의 새 Client ID → callback exchange의 동일 Secret → provider 실 consent와
+  계정 저장. 이 관찰 전에는 운영 완료가 아니다.
+
 ## 2026-07-28 운영자 토큰 대소문자 불일치 복구
 
 **상태 전이:** ❌ NG(사용자 운영 재현) → 🔧 복구 관찰됨. 자동 재발방지 자산 구현 전에는
