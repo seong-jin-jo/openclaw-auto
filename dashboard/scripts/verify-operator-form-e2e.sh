@@ -7,6 +7,7 @@ set +x
 umask 077
 
 SECRET_FILE="${OPENCLAW_SECRET_FILE:-$HOME/.sj-agent-harness/secrets/openclaw-auto.env}"
+SECRET_DIR="$(dirname "$SECRET_FILE")"
 BASE_URL="${OSMU_BASE_URL:-https://openclaw.sj-onpremise-cloudflare-tunnel.cloud}"
 TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/osmu-operator-form.XXXXXX")"
 export BROWSE_STATE_FILE="$TMP_ROOT/gstack/browse.json"
@@ -41,11 +42,19 @@ read_canonical_token() {
   [ -r "$SECRET_FILE" ] || fail "secret inventory is unreadable"
   [ ! -L "$SECRET_FILE" ] || fail "secret inventory must not be a symlink"
   if stat -f '%Lp' "$SECRET_FILE" >/dev/null 2>&1; then
+    [ "$(stat -f '%Lp' "$SECRET_DIR")" = "700" ] ||
+      fail "secret inventory directory permissions must be 700"
+    [ "$(stat -f '%u' "$SECRET_DIR")" = "$(id -u)" ] ||
+      fail "secret inventory directory must be owned by the current user"
     [ "$(stat -f '%Lp' "$SECRET_FILE")" = "600" ] ||
       fail "secret inventory permissions must be 600"
     [ "$(stat -f '%u' "$SECRET_FILE")" = "$(id -u)" ] ||
       fail "secret inventory must be owned by the current user"
   else
+    [ "$(stat -c '%a' "$SECRET_DIR")" = "700" ] ||
+      fail "secret inventory directory permissions must be 700"
+    [ "$(stat -c '%u' "$SECRET_DIR")" = "$(id -u)" ] ||
+      fail "secret inventory directory must be owned by the current user"
     [ "$(stat -c '%a' "$SECRET_FILE")" = "600" ] ||
       fail "secret inventory permissions must be 600"
     [ "$(stat -c '%u' "$SECRET_FILE")" = "$(id -u)" ] ||
@@ -75,6 +84,7 @@ elif [ -x "$(git rev-parse --show-toplevel 2>/dev/null || true)/.claude/skills/g
 else
   fail "gstack browse binary not found"
 fi
+command -v jq >/dev/null 2>&1 || fail "jq binary not found"
 
 read_canonical_token
 
@@ -117,6 +127,7 @@ case "$FINAL_URL" in
   "${BASE_URL%/}/operator/customers"*) ;;
   *) fail "did not reach /operator/customers" ;;
 esac
+"$B" wait --networkidle >/dev/null
 
 RENDER_OK="$(
   "$B" js \
@@ -125,7 +136,8 @@ RENDER_OK="$(
 [ "$RENDER_OK" = "true" ] || fail "Admin/customer-management shell did not render"
 
 INVALID_PRESENT="$(
-  "$B" js "document.body.innerText.includes('운영자 토큰이 유효하지')"
+  "$B" js \
+    "document.body.innerText.includes('운영자 토큰이 유효하지') || document.body.innerText.includes('이 토큰은 운영자 모드가 아닙니다')"
 )"
 [ "$INVALID_PRESENT" = "false" ] || fail "invalid-token copy is visible"
 

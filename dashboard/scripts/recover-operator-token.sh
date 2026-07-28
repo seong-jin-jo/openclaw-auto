@@ -10,6 +10,7 @@ set +x
 umask 077
 
 SECRET_FILE="${OPENCLAW_SECRET_FILE:-$HOME/.sj-agent-harness/secrets/openclaw-auto.env}"
+SECRET_DIR="$(dirname "$SECRET_FILE")"
 REPO="${OSMU_GITHUB_REPOSITORY:-seong-jin-jo/openclaw-auto}"
 WORKFLOW="${OSMU_DEPLOY_WORKFLOW:-deploy-marketing.yml}"
 REF="${OSMU_DEPLOY_REF:-main}"
@@ -84,7 +85,7 @@ authenticated_status() {
   local path="$1"
   local output_file="$2"
   printf 'Authorization: Bearer %s\n' "$TOKEN" |
-    curl --silent --show-error --location \
+    curl --silent --show-error \
       --connect-timeout 15 --max-time 45 \
       --output "$output_file" --write-out '%{http_code}' \
       -H @- "${BASE_URL%/}${path}"
@@ -98,6 +99,10 @@ require_command jq
 [ -r "$SECRET_FILE" ] || fail "secret inventory is not readable: $SECRET_FILE"
 # Reject symbolic link indirection so the reviewed path remains the real plaintext source.
 [ ! -L "$SECRET_FILE" ] || fail "secret inventory must not be a symlink"
+[ "$(stat_mode "$SECRET_DIR")" = "700" ] ||
+  fail "secret inventory directory permissions must be 700"
+[ "$(stat_uid "$SECRET_DIR")" = "$(id -u)" ] ||
+  fail "secret inventory directory must be owned by the current user"
 [ "$(stat_mode "$SECRET_FILE")" = "600" ] ||
   fail "secret inventory permissions must be 600"
 [ "$(stat_uid "$SECRET_FILE")" = "$(id -u)" ] ||

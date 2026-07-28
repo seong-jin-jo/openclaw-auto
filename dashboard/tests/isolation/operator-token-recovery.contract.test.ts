@@ -120,6 +120,7 @@ case "\${1:-}" in
   network)
     [ "\${2:-}" = "--clear" ] || printf '(no network requests)\\n'
     ;;
+  wait) ;;
   console)
     [ "\${2:-}" = "--clear" ] || printf '(no console errors)\\n'
     ;;
