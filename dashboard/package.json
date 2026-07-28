@@ -11,7 +11,9 @@
     "test:publish": "vitest run tests/publish",
     "e2e": "bash scripts/verify-e2e.sh",
     "e2e:local": "bash -c 'bash scripts/verify-e2e.sh \"${1:-http://localhost:3456}\"' _",
-    "e2e:publish": "bash scripts/verify-publish-e2e.sh"
+    "e2e:publish": "bash scripts/verify-publish-e2e.sh",
+    "e2e:operator": "bash scripts/verify-operator-form-e2e.sh",
+    "ops:recover-operator-token": "bash scripts/recover-operator-token.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
