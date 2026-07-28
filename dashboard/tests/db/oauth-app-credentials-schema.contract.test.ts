@@ -26,7 +26,7 @@ describe("global OAuth app credential schema contract", () => {
     expect(rls).toContain("ALTER TABLE oauth_credential_audit ENABLE ROW LEVEL SECURITY");
     expect(rls).toContain("ALTER TABLE oauth_credential_audit FORCE ROW LEVEL SECURITY");
 
-    const tenantPolicyLoop = rls.match(/FOREACH t IN ARRAY ARRAY\[(.*?)\] LOOP/s)?.[1] || "";
+    const tenantPolicyLoop = rls.match(/FOREACH t IN ARRAY ARRAY\[([\s\S]*?)\] LOOP/)?.[1] || "";
     expect(tenantPolicyLoop).not.toContain("oauth_app_credentials");
     expect(tenantPolicyLoop).not.toContain("oauth_credential_audit");
   });

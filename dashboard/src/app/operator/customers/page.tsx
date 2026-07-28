@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { fetcher, isAuthRequiredError } from "@/lib/api";
 import { authHeaders } from "@/lib/auth";
@@ -37,12 +37,25 @@ interface OperatorSummary {
 interface OAuthProviderStatus {
   provider: string;
   label: string;
+  complete: boolean;
   credentialsConfigured: boolean;
   missing: string[];
   requiredSecrets: string[];
+  fields: Array<{
+    key: "clientId" | "clientSecret" | "configId";
+    env: string;
+    label: string;
+    secret: boolean;
+    configured: boolean;
+    maskedValue: string | null;
+  }>;
+  source: "db" | "env";
+  updatedAt: string | null;
   callbackUrl: string;
   consoleUrl: string;
   docsUrl: string;
+  setupSteps: string[];
+  setupSource: "official" | "generic";
   externalReview: "required" | "unknown";
 }
 
@@ -90,11 +103,98 @@ export default function OperatorCustomersPage() {
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
   const [userActionMsg, setUserActionMsg] = useState<Record<string, string>>({});
   const [copiedValue, setCopiedValue] = useState<string | null>(null);
+  const [busyProvider, setBusyProvider] = useState<string | null>(null);
+  const [oauthActionMsg, setOauthActionMsg] = useState<Record<string, string>>({});
+  const [credentialInputs, setCredentialInputs] = useState<Record<string, Record<string, string>>>({});
+  const [revealedValues, setRevealedValues] = useState<Record<string, Record<string, string>>>({});
+  const revealTimers = useRef<Record<string, number>>({});
+
+  useEffect(() => () => {
+    for (const timer of Object.values(revealTimers.current)) window.clearTimeout(timer);
+  }, []);
 
   async function copySetupValue(value: string) {
     await navigator.clipboard.writeText(value);
     setCopiedValue(value);
     window.setTimeout(() => setCopiedValue((current) => current === value ? null : current), 1500);
+  }
+
+  function updateCredentialInput(provider: string, key: string, value: string) {
+    setCredentialInputs((current) => ({
+      ...current,
+      [provider]: { ...(current[provider] || {}), [key]: value },
+    }));
+  }
+
+  function hideCredentialValues(provider: string) {
+    if (revealTimers.current[provider]) window.clearTimeout(revealTimers.current[provider]);
+    delete revealTimers.current[provider];
+    setRevealedValues((current) => {
+      const next = { ...current };
+      delete next[provider];
+      return next;
+    });
+  }
+
+  async function saveCredentialSet(item: OAuthProviderStatus) {
+    if (busyProvider) return;
+    const values = credentialInputs[item.provider] || {};
+    if (item.fields.some((field) => !values[field.key]?.trim())) {
+      setOauthActionMsg((current) => ({ ...current, [item.provider]: "모든 필드를 한 세트로 입력해주세요." }));
+      return;
+    }
+    setBusyProvider(item.provider);
+    setOauthActionMsg((current) => ({ ...current, [item.provider]: "" }));
+    try {
+      const res = await fetch("/api/operator/oauth-credentials", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ provider: item.provider, values }),
+        cache: "no-store",
+      });
+      const body = await res.json().catch(() => ({})) as { error?: string };
+      if (!res.ok) {
+        setOauthActionMsg((current) => ({ ...current, [item.provider]: body.error || `저장 실패 ${res.status}` }));
+        return;
+      }
+      setCredentialInputs((current) => ({ ...current, [item.provider]: {} }));
+      hideCredentialValues(item.provider);
+      setOauthActionMsg((current) => ({ ...current, [item.provider]: "암호화 저장했습니다." }));
+      await mutate();
+    } catch {
+      setOauthActionMsg((current) => ({ ...current, [item.provider]: "저장 요청에 실패했습니다." }));
+    } finally {
+      setBusyProvider(null);
+    }
+  }
+
+  async function revealCredentialSet(provider: string) {
+    if (busyProvider) return;
+    setBusyProvider(provider);
+    setOauthActionMsg((current) => ({ ...current, [provider]: "" }));
+    try {
+      const res = await fetch("/api/operator/oauth-credentials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ action: "reveal", provider }),
+        cache: "no-store",
+      });
+      const body = await res.json().catch(() => ({})) as { error?: string; values?: Record<string, string> };
+      if (!res.ok || !body.values) {
+        setOauthActionMsg((current) => ({ ...current, [provider]: body.error || `확인 실패 ${res.status}` }));
+        return;
+      }
+      setRevealedValues((current) => ({ ...current, [provider]: body.values || {} }));
+      if (revealTimers.current[provider]) window.clearTimeout(revealTimers.current[provider]);
+      revealTimers.current[provider] = window.setTimeout(() => {
+        hideCredentialValues(provider);
+      }, 30_000);
+      setOauthActionMsg((current) => ({ ...current, [provider]: "30초 후 원문을 자동으로 숨깁니다." }));
+    } catch {
+      setOauthActionMsg((current) => ({ ...current, [provider]: "원문 확인 요청에 실패했습니다." }));
+    } finally {
+      setBusyProvider(null);
+    }
   }
 
   async function postCustomerAction(
@@ -165,7 +265,7 @@ export default function OperatorCustomersPage() {
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <h3 className="text-sm font-semibold text-text">중앙 OAuth 개발자 앱</h3>
-            <p className="mt-1 text-[11px] text-subtle">원문 credential은 받거나 표시하지 않습니다. 아래 이름으로 운영 secret store에 등록하고, callback은 글자까지 동일하게 외부 콘솔에 입력하세요.</p>
+            <p className="mt-1 text-[11px] text-subtle">운영자 전용 암호화 저장소입니다. 기본 화면은 마스킹하며, 원문은 명시적으로 확인한 뒤 30초 후 자동 삭제합니다.</p>
           </div>
           <span className="text-[11px] text-subtle">{oauthProviders.filter((item) => item.credentialsConfigured).length}/{oauthProviders.length} 준비</span>
         </div>
@@ -176,8 +276,9 @@ export default function OperatorCustomersPage() {
                 <div className="min-w-0">
                   <p className="text-sm font-medium capitalize text-text">{item.label}</p>
                   <p className="mt-1 break-words text-[11px] text-subtle">
-                    {item.credentialsConfigured ? "운영 secret store 등록 확인됨" : `미설정: ${item.missing.join(", ")}`}
+                    {item.credentialsConfigured ? `${item.source === "db" ? "Admin DB" : "운영 환경변수"}에서 완전한 세트 확인` : `미설정/불완전: ${item.missing.join(", ")}`}
                   </p>
+                  <p className="mt-1 text-[10px] text-subtle">출처 {item.source.toUpperCase()} · 갱신 {fmtDate(item.updatedAt)}</p>
                 </div>
                 <span className={`shrink-0 text-[10px] px-2 py-1 rounded ${item.credentialsConfigured ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
                   {item.credentialsConfigured ? "준비" : "차단"}
@@ -200,20 +301,77 @@ export default function OperatorCustomersPage() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-subtle">Required secret names</p>
-                  <div className="mt-1 flex flex-wrap gap-1.5">
-                    {item.requiredSecrets.map((secretName) => (
-                      <button
-                        key={secretName}
-                        type="button"
-                        onClick={() => void copySetupValue(secretName)}
-                        className="rounded bg-surface-2 px-2 py-1 font-mono text-[10px] text-muted hover:text-accent"
-                        title={`${secretName} 이름 복사`}
-                      >
-                        {secretName}{copiedValue === secretName ? " ✓" : ""}
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10px] font-medium uppercase tracking-wide text-subtle">Required fields</p>
+                    {revealedValues[item.provider] ? (
+                      <button type="button" onClick={() => hideCredentialValues(item.provider)} className="text-[10px] text-danger hover:underline">
+                        숨기기
                       </button>
-                    ))}
+                    ) : item.credentialsConfigured ? (
+                      <button
+                        type="button"
+                        onClick={() => void revealCredentialSet(item.provider)}
+                        disabled={busyProvider === item.provider}
+                        className="text-[10px] text-accent hover:underline disabled:opacity-50"
+                      >
+                        원문 확인
+                      </button>
+                    ) : null}
                   </div>
+                  <div className="mt-2 grid gap-2">
+                    {item.fields.map((field) => {
+                      const revealed = revealedValues[item.provider]?.[field.key];
+                      return (
+                        <div key={field.key} className="rounded border border-border bg-surface-2 p-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <label htmlFor={`${item.provider}-${field.key}`} className="text-[11px] font-medium text-muted">
+                              {field.label}
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => void copySetupValue(field.env)}
+                              className="font-mono text-[9px] text-subtle hover:text-accent"
+                              title={`${field.env} 이름 복사`}
+                            >
+                              {field.env}{copiedValue === field.env ? " ✓" : ""}
+                            </button>
+                          </div>
+                          <p className={`mt-1 break-all font-mono text-[10px] ${revealed ? "text-danger" : "text-subtle"}`}>
+                            {revealed || field.maskedValue || "미설정"}
+                          </p>
+                          <input
+                            id={`${item.provider}-${field.key}`}
+                            type="password"
+                            autoComplete="new-password"
+                            value={credentialInputs[item.provider]?.[field.key] || ""}
+                            onChange={(event) => updateCredentialInput(item.provider, field.key, event.target.value)}
+                            placeholder={field.configured ? "새 값으로 교체" : `${field.label} 입력`}
+                            className="mt-2 w-full rounded border border-border bg-surface px-2 py-1.5 text-xs text-text outline-none focus:border-accent"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-subtle">Console setup</p>
+                  <ol className="mt-1 list-decimal space-y-1 pl-4 text-[10px] leading-relaxed text-subtle">
+                    {item.setupSteps.map((step) => <li key={step}>{step}</li>)}
+                  </ol>
+                  {item.setupSource === "generic" && (
+                    <p className="mt-1 text-[10px] text-warning">일반 경로: 외부 콘솔 UI가 바뀔 수 있어 공식 문서와 현재 화면을 함께 확인하세요.</p>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void saveCredentialSet(item)}
+                    disabled={busyProvider === item.provider}
+                    className="rounded bg-accent px-3 py-1.5 text-[11px] text-accent-fg hover:opacity-90 disabled:opacity-50"
+                  >
+                    {busyProvider === item.provider ? "처리 중…" : item.credentialsConfigured ? "전체 세트 업데이트" : "전체 세트 저장"}
+                  </button>
+                  {oauthActionMsg[item.provider] && <p className="text-[10px] text-subtle">{oauthActionMsg[item.provider]}</p>}
                 </div>
                 <div className="flex flex-wrap gap-3 text-[11px]">
                   <a href={item.consoleUrl} target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent-hover">

@@ -290,7 +290,17 @@ export async function resolveOAuthCredentialSet(provider: string): Promise<Resol
   try {
     const row = await loadStoredCredential(provider);
     return resolveCredentialSet(definition, row);
-  } catch {
+  } catch (error) {
+    // expand/contract 배포 또는 명시적 rollback으로 additive table이 아직/더 이상 없으면 기존 env
+    // credential 세트를 계속 쓴다. 반면 DB 장애·복호화 실패·권한 오류는 env로 우회하지 않고 fail-closed.
+    if (
+      error
+      && typeof error === "object"
+      && "code" in error
+      && (error as { code?: unknown }).code === "42P01"
+    ) {
+      return resolveCredentialSet(definition, null);
+    }
     // DB row 조회/복호화가 실패했는데 env로 우회하면 DB 우선 계약과 partial fail-closed를 깨뜨린다.
     return {
       provider,

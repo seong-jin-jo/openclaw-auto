@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  OAUTH_CREDENTIAL_DEFINITIONS,
   resolveCredentialSet,
   type OAuthCredentialDefinition,
   type StoredOAuthCredentialRow,
 } from "@/lib/oauth-app-credentials";
+import { FACEBOOK, PROVIDERS } from "@/lib/social-connect";
 
 const definition: OAuthCredentialDefinition = {
   provider: "facebook",
@@ -25,6 +27,12 @@ function dbRow(values: Partial<Record<"clientId" | "clientSecret" | "configId", 
 }
 
 describe("OAuth credential resolver set semantics", () => {
+  it("keeps the resolver allowlist aligned with every supported OAuth provider", () => {
+    expect(Object.keys(OAUTH_CREDENTIAL_DEFINITIONS).sort()).toEqual(
+      [...Object.keys(PROVIDERS), FACEBOOK.label].sort(),
+    );
+  });
+
   it("a complete DB set wins over a complete env set", () => {
     const result = resolveCredentialSet(
       definition,

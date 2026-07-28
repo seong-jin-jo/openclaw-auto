@@ -50,7 +50,7 @@ describe("social OAuth uses the central credential resolver", () => {
       values: { clientId: "db-x-id", clientSecret: "db-x-secret" },
     };
     let tokenBody = "";
-    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+    const fetchMock = vi.fn(async (_url: URL | RequestInfo, init?: RequestInit) => {
       tokenBody = String(init?.body || "");
       return new Response(JSON.stringify({ access_token: "ACCESS" }), { status: 200 });
     });
