@@ -1003,3 +1003,43 @@ SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open �
 - **판정:** 운영자 로그인 전역 모달 결함은 종료. 전체 v1.0.0 ship은 중앙 OAuth credential이 없는
   8개 provider와 provider별 신규 고객 실 consent→callback→계정 저장→발행 permalink가 미검증이라
   계속 in-progress다.
+
+### 2026-07-28 전체 운영 플로우 재검사
+
+- **검사 범위:** 공개 7 routes, 고객 25 routes, 운영자 5 routes, 고객 핵심 API 10개,
+  중앙 OAuth 12 provider preflight, Google auth preflight, GA4 consent.
+- **자동 검증(테스트됨):** controller가 현재 `main`에서 전체 105/105 files,
+  880 PASS/10 DB-env skip을 재현했다. `tsc --noEmit` PASS. 샌드박스 기본 build는
+  localhost bind EPERM으로 실패했지만 제한 밖 동일 `npm run build`는 165/165 pages PASS했다.
+- **공개 인증(관찰됨):** `/login`은 Google CTA만 있고 email/password/recovery 입력이 없다.
+  `/signup`은 `/login`으로 이동한다. `/api/auth/google`은 Supabase auth host와
+  `prompt=select_account`를 반환한다. 다만 홈→로그인 이동 시 Supabase client 중복 경고가 발생한다.
+- **GA4(관찰됨):** 분석 동의 클릭 뒤 localStorage consent=`granted`, `gtag` 함수와 dataLayer가 생성됐다.
+  `gtag.js?id=G-MEEQ2D8C1J` 200과 GA collect `page_view` 204를 직접 확인했다.
+- **운영자(관찰됨):** `/operator/customers`와 운영자 상태의 `/`,`/studio`,`/videos`,
+  `/channels/youtube`는 모두 Admin 단일 shell로 수렴했다. bad HTTP·console error 0,
+  16초 안정화 뒤에도 Login Required 0.
+- **고객 core API(관찰됨):** `/api/me`,`overview`,`queue`,`schedule`,`metrics`,`images`,
+  `video/list`,`integrations`,`connect/readiness`는 200. `/api/workspaces`는 운영자 전용이라 403.
+- **고객 UI FAIL(관찰됨+근거 확인):** home, Studio, Threads, Telegram, Discord, Slack,
+  Images, Blog, Google Analytics, Search Advisor, Naver Trends가 고객 bearer로 operator-only API를
+  호출해 403과 콘솔 오류를 만든다. `proxy.ts`의 tenant-aware allowlist에 없는 전역 파일/secret/
+  cron API를 고객 UI가 호출하는 권한 계약 불일치다.
+- **안내 자산 FAIL(관찰됨):** Threads/X 연결 안내가 존재하지 않는
+  `/onboarding/threads/*.png`, `/onboarding/x/*.png` 4개를 요청해 404.
+- **오탐 제거:** 연속 페이지 이동의 지연 응답이 섞인 Inbox와 Blog Performance는 각각 분리된
+  새 브라우저에서 재실행해 bad HTTP 0, console error 0으로 확인했다.
+- **OAuth readiness(관찰됨):** Instagram, Threads, YouTube, Facebook은 공식 authorize host를
+  반환했다. X, LinkedIn, Naver Blog, Pinterest, Tumblr, TikTok, Slack, LINE은 중앙 credential
+  미설정 500으로 실제 사용자 연결 불가.
+- **false-success blocker(근거 확인):** YouTube upload PUT non-2xx/empty ID,
+  Telegram/Discord/Slack/LINE notification HTTP non-2xx, Slack test/send HTTP non-2xx를 성공으로
+  기록할 수 있다. provider 발행 성공 뒤 DB/queue 기록 실패도 `ok:true`를 유지해 UI가
+  `publish_success`를 기록할 수 있다.
+- **토큰 종료:** 전체 E2E와 격리 재검사에 쓴 단기 tenant token은 각각 revoke 200 뒤
+  동일 `/api/me` 401을 확인했다. 원문 비밀 파일은 만들지 않았다.
+- **미검증:** 실제 신규 Google 계정 consent→callback→auth user/tenant 저장, 실제 DB RLS 10건,
+  provider별 consent/cancel/refresh, 동일 provider 다중계정 전환, 현재 배포의 새 실발행 permalink,
+  GA4 DebugView UI, Slack 메시지 실제 도착.
+- **판정:** 전체 고객 플로우 QA FAIL. 자동 테스트·빌드 통과는 운영 UI/API 권한 불일치와
+  외부 성공 오판을 가리지 못했다. 결함 수정·재배포 뒤 동일 route matrix를 재실행하기 전 출하 금지.

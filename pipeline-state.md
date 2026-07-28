@@ -4,22 +4,51 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: ship               # plan|design|eng-design|build|qa|ship
-approved_stages: [plan, design, eng-design, build, qa]
+current_stage: qa                 # plan|design|eng-design|build|qa|ship
+approved_stages: [plan, design, eng-design, build]
 approved_artifacts: {}
 stages:
   plan:       { status: approved, artifacts_ok: true }   # README/feature-spec/USERFLOW 존재(ADOPTED)
   design:     { status: approved, artifacts_ok: true }   # ui-rules/channel-ui-spec(ADOPTED)
   eng-design: { status: approved, artifacts_ok: true }   # CLAUDE.md/wiki/architecture(ADOPTED)
   build:      { status: approved, artifacts_ok: true }
-  qa:         { status: approved, artifacts_ok: true }
-  ship:       { status: in-progress, artifacts_ok: false }
+  qa:         { status: in-progress, artifacts_ok: false }
+  ship:       { status: pending, artifacts_ok: false }
 override: false
 override_reason: ""
 override_expires: ""
 ---
 
 # Pipeline State — openclaw-auto-osmu
+
+## 2026-07-28 full production flow QA reopen
+- 범위: 공개 7 routes, 고객 25 routes, 운영자 5 routes, 고객 핵심 API 10개,
+  중앙 OAuth 12 provider preflight, GA4 consent, Google auth preflight.
+- 자동 증거: controller 재실행 `npm test` 105/105 files, 880 PASS/10 DB-env skip,
+  `tsc --noEmit` PASS, 제한 밖 `npm run build` 165/165 static pages PASS.
+- 운영 PASS: 공개 Google-only login과 `/signup`→`/login`, 운영자 Admin shell/route 격리,
+  고객 core API 9개 200(`/api/workspaces`는 운영자 전용 403), GA4 consent 뒤
+  gtag load·page_view collect 204, Google authUrl Supabase host·`prompt=select_account`,
+  operator token 안정화, 임시 tenant token revoke 200→`/api/me` 401.
+- 운영 FAIL: 고객이 실제로 여는 화면에서 운영자 전용 API 호출이 발생한다. 확정 경로는
+  home(`/api/cron-status`,`/api/token-status`), Studio(`/api/higgsfield/status`),
+  Threads automation(`/api/cron-status`,`/api/cron-runs`),
+  Telegram/Discord/Slack(`/api/notification-settings`,`/api/chat-channels`, Slack template),
+  Images(`/api/r2-config`), Blog(`/api/cron-status`), Google Analytics(`/api/ga-analytics`),
+  Search Advisor(`/api/nsa-data`), Naver Trends(`/api/naver-datalab-config`). 고객 bearer에는
+  proxy가 의도적으로 403을 반환하며 브라우저 콘솔 오류가 난다.
+- 운영 404: `setup-guides.ts`가 존재하지 않는 Threads/X onboarding PNG 4개를 렌더한다.
+- 격리 재검증: 연속 SPA 이동에서 늦게 도착한 요청이 섞였던 `/inbox`와 `/blog-performance`는
+  각각 새 브라우저로 재검사해 bad HTTP 0·console error 0으로 오탐 제거했다.
+- 소스 blocker: current-token 401의 전역 LoginModal이 Google 고객에게 수동 Auth Token 입력을
+  요구한다. YouTube upload PUT non-2xx/empty id와 고객 messaging webhook non-2xx를 성공으로
+  기록할 수 있다. provider 발행 성공 뒤 DB/queue 기록 실패도 `ok:true`를 유지해 UI analytics가
+  성공으로 오판할 수 있다.
+- 외부 경계: OAuth preflight는 Instagram/Threads/YouTube/Facebook 4개 200, 나머지 8개는
+  credential 미설정 500. 신규 Google user consent→callback→auth user/tenant row, provider별
+  실제 consent/callback/account switch/publish permalink는 이번 실행에서 미검증.
+- 판정: QA 승인 철회, ship 잠금. 위 고객 403/404와 false-success 계약을 tests-first로 수정하고
+  같은 전체 운영 route matrix 4xx/5xx·console error 0을 재관찰하기 전 출하 금지.
 
 ## 2026-07-28 operator login modal race build reopen
 - 운영 재현: 인증 전에도 전역 `ImagePickerModal`이 `/api/images`·`/api/queue`를 요청하고 401을
