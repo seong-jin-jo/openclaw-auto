@@ -21,6 +21,27 @@ override_expires: ""
 
 # Pipeline State — openclaw-auto-osmu
 
+## 2026-07-28 Admin central OAuth credential manager build reopen
+- 사용자 확정: 미등록 provider마다 정확한 개발자 콘솔 URL, 콘솔 작업 순서, callback URL,
+  필요한 Client ID/Secret/추가값을 Admin에 표시한다. 운영자는 Admin에서 값을 일괄 등록·수정하고
+  저장값을 확인할 수 있어야 한다.
+- 이전 결정 변경: 2026-07-26의 “Admin은 secret 이름·준비상태만 표시하고 원문 입력을 받지 않는다”를
+  이번 사용자 지시가 명시적으로 대체한다.
+- 보안 계약: 전역 `oauth_app_credentials` additive table에 `OSMU_SECRET_KEY` 기반 pgcrypto 암호화로
+  저장한다. 기본 GET은 source, 설정 여부, 마지막 갱신시각, 마스킹 값만 반환한다. 원문 확인은 운영자
+  Bearer 재검증을 거친 별도 reveal action으로만 반환하고 reveal/update/delete를 감사 테이블에 기록한다.
+  secret 원문은 로그·오류·분석·Git·일반 고객 API에 남기지 않는다.
+- 런타임 계약: DB credential을 우선하고 기존 process env는 무중단 fallback으로 유지한다.
+  authorize URL 생성, callback code exchange, customer readiness, Admin readiness가 모두 같은 resolver를
+  사용해야 한다. DB 일부 필드만 설정된 상태에서 env와 필드별 혼합하지 않고 provider credential set
+  단위로 완전성을 판정해 fail-closed한다.
+- UI 계약: provider 카드마다 외부 콘솔 URL·공식 문서·정확한 callback·설정 단계·필드별 입력/수정,
+  기본 마스킹, 명시적 확인/숨김, 저장 상태와 마지막 갱신시각을 제공한다. Facebook의 config ID처럼
+  provider별 추가 필드도 metadata에서 렌더한다.
+- 종료 증거: schema/RLS 멱등 적용, 암호화 원문 비노출·operator-only CRUD/reveal 감사·env fallback
+  회귀 테스트, 전체 test/typecheck/build, 운영 배포 후 Admin 저장→마스킹 조회→reveal→customer
+  authorize URL이 새 Client ID를 사용→callback exchange가 같은 secret을 사용하는 실제 관찰.
+
 ## 2026-07-28 operator canonical token recovery
 - 사용자 운영 재현: 안내받은 canonical 운영자 토큰으로 `/operator` 폼 제출 시 invalid-token 문구.
 - 근본 원인: 운영 secret store의 값과 사용자 안내값의 첫 글자 대소문자가 달랐고, API는 정확 일치
