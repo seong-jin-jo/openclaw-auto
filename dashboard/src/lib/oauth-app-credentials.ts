@@ -388,7 +388,10 @@ export async function upsertOAuthCredentialSet(
         ${provider},
         armor(pgp_sym_encrypt(${clientId}, ${key})),
         armor(pgp_sym_encrypt(${clientSecret}, ${key})),
-        ${configId ? tx`armor(pgp_sym_encrypt(${configId}, ${key}))` : null},
+        CASE WHEN ${configId}::text IS NULL
+          THEN NULL
+          ELSE armor(pgp_sym_encrypt(${configId}, ${key}))
+        END,
         now()
       )
       ON CONFLICT (provider) DO UPDATE SET

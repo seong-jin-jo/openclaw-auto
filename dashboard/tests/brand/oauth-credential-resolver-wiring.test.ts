@@ -62,6 +62,32 @@ describe("social OAuth uses the central credential resolver", () => {
     expect(tokenBody).toContain("client_secret=db-x-secret");
   });
 
+  it("Facebook callback exchange uses the same resolved DB app set", async () => {
+    H.credentials.facebook = {
+      complete: true,
+      source: "db",
+      values: { clientId: "db-facebook-id", clientSecret: "db-facebook-secret", configId: "db-config-id" },
+    };
+    const calls: string[] = [];
+    const responses = [
+      { access_token: "USER" },
+      { access_token: "LONG_USER" },
+      { data: [{ access_token: "PAGE", id: "page-1" }] },
+    ];
+    const fetchMock = vi.fn(async (input: URL | RequestInfo) => {
+      calls.push(String(input));
+      return Response.json(responses.shift() || {});
+    });
+    const { exchangeFacebookCode } = await import("@/lib/social-connect");
+    const result = await exchangeFacebookCode("code", "https://app.example", fetchMock);
+
+    expect(result).toEqual(expect.objectContaining({ accessToken: "PAGE", userId: "page-1" }));
+    expect(calls[0]).toContain("client_id=db-facebook-id");
+    expect(calls[0]).toContain("client_secret=db-facebook-secret");
+    expect(calls[1]).toContain("client_id=db-facebook-id");
+    expect(calls[1]).toContain("client_secret=db-facebook-secret");
+  });
+
   it("partial resolver result fails closed before any provider request", async () => {
     H.credentials.x = {
       complete: false,
