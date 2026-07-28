@@ -1092,3 +1092,20 @@ SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open �
   GA4 DebugView UI, Slack 메시지 실제 도착.
 - **판정:** 전체 고객 플로우 QA FAIL. 자동 테스트·빌드 통과는 운영 UI/API 권한 불일치와
   외부 성공 오판을 가리지 못했다. 결함 수정·재배포 뒤 동일 route matrix를 재실행하기 전 출하 금지.
+
+### 2026-07-29 중앙 OAuth 자격증명 관리자 독립 보안리뷰 Major
+
+- **판정:** 🔧 수정·자동검증 통과, 실 PostgreSQL RLS 재검증 대기. commits
+  `68c251bb..0ffefb39`의 중앙 OAuth 자격증명 관리자에서
+  전역 테이블 RLS owner 접근 차단, RLS 적용 순서 rollback, env 원문 reveal, readiness N+1 복호화
+  쿼리의 Major 4건이 확인됐다.
+- **수정 범위:** 전역 테이블은 RLS default-deny/no customer policy를 유지하면서 owner/BYPASSRLS
+  연결만 접근하도록 NO FORCE 전환, tenant policy 적용 뒤 guarded global ALTER, DB-source 전용 reveal,
+  list/readiness bulk resolve, DB row DELETE+audit+Admin 버튼, 저장소 장애 UI 분리.
+- **종료 증거:** tests-first focused/full test, TypeScript, webpack build와 secret 비로그·exact operator
+  Bearer·no-store 회귀를 재검증하기 전까지 QA/ship은 잠금 유지한다.
+- **자동검증:** focused 32/32, 전체 112 files 917 PASS/10 DB-env skip, `tsc --noEmit`,
+  Next.js 16.2.2 webpack build 166/166 routes, `git diff --check` PASS.
+- **미검증:** 임시 PostgreSQL은 sandbox `shmget` 차단으로 `initdb` bootstrap 전에 2회 중단됐다.
+  owner/BYPASSRLS 1행 접근, `osmu_service` 0행·쓰기 거부, 전역 테이블 부재 상태의 tenant policy
+  적용은 QA DB에서 직접 관찰해야 한다.

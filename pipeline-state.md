@@ -50,6 +50,14 @@ override_expires: ""
 - 직접 DB 멱등 적용은 임시 Postgres bootstrap이 샌드박스 SysV shared-memory 제한으로 3회 모두
   코드 실행 전 중단돼 미검증이다. schema/RLS contract 2/2는 PASS했지만 QA 환경에서 2회 적용,
   운영 Admin 저장→마스킹→reveal→감사→고객 authorize/callback 실왕복 전까지 qa/ship은 잠금 유지.
+- 독립 Opus 보안리뷰에서 RLS owner 접근/롤백 순서, env 원문 reveal, readiness N+1 복호화의
+  Major 4건을 발견했다. commit `50529a93`에서 global table `NO FORCE`+default-deny,
+  tenant loop 뒤 `to_regclass` guard, DB-source 전용 reveal, bulk resolver, DELETE+audit,
+  저장소 장애 UX로 수정했다.
+- 수정 후 자동 증거: focused 32/32, 전체 112 files 917 PASS/10 DB-env skip,
+  `tsc --noEmit` PASS, webpack production build 166/166 routes PASS. Opus 후속 리뷰도
+  Critical/Major 0, 관련 23/23 PASS로 판정했다. 운영 DB RLS·Admin 실브라우저 저장/조회는
+  배포 후 직접 관찰 전까지 미검증이며 qa/ship 잠금을 유지한다.
 
 ## 2026-07-28 operator canonical token recovery
 - 사용자 운영 재현: 안내받은 canonical 운영자 토큰으로 `/operator` 폼 제출 시 invalid-token 문구.
