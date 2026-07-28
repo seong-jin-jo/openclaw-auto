@@ -57,6 +57,7 @@ interface OAuthProviderStatus {
   setupSteps: string[];
   setupSource: "official" | "generic";
   externalReview: "required" | "unknown";
+  unavailableReason?: "credential_store_unavailable";
 }
 
 interface AuthUser {
@@ -137,7 +138,7 @@ export default function OperatorCustomersPage() {
   }
 
   async function saveCredentialSet(item: OAuthProviderStatus) {
-    if (busyProvider) return;
+    if (busyProvider || item.unavailableReason) return;
     const values = credentialInputs[item.provider] || {};
     if (item.fields.some((field) => !values[field.key]?.trim())) {
       setOauthActionMsg((current) => ({ ...current, [item.provider]: "모든 필드를 한 세트로 입력해주세요." }));
@@ -168,8 +169,10 @@ export default function OperatorCustomersPage() {
     }
   }
 
-  async function revealCredentialSet(provider: string) {
+  async function revealCredentialSet(item: OAuthProviderStatus) {
     if (busyProvider) return;
+    if (item.source !== "db") return;
+    const provider = item.provider;
     setBusyProvider(provider);
     setOauthActionMsg((current) => ({ ...current, [provider]: "" }));
     try {
@@ -192,6 +195,37 @@ export default function OperatorCustomersPage() {
       setOauthActionMsg((current) => ({ ...current, [provider]: "30초 후 원문을 자동으로 숨깁니다." }));
     } catch {
       setOauthActionMsg((current) => ({ ...current, [provider]: "원문 확인 요청에 실패했습니다." }));
+    } finally {
+      setBusyProvider(null);
+    }
+  }
+
+  async function deleteCredentialSet(item: OAuthProviderStatus) {
+    if (busyProvider || item.source !== "db" || item.unavailableReason) return;
+    if (!window.confirm(`${item.label}의 Admin DB 저장값을 삭제하고 운영 환경변수 fallback으로 되돌릴까요?`)) return;
+    setBusyProvider(item.provider);
+    setOauthActionMsg((current) => ({ ...current, [item.provider]: "" }));
+    try {
+      const res = await fetch("/api/operator/oauth-credentials", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ provider: item.provider }),
+        cache: "no-store",
+      });
+      const body = await res.json().catch(() => ({})) as { error?: string; deleted?: boolean };
+      if (!res.ok) {
+        setOauthActionMsg((current) => ({ ...current, [item.provider]: body.error || `삭제 실패 ${res.status}` }));
+        return;
+      }
+      hideCredentialValues(item.provider);
+      setCredentialInputs((current) => ({ ...current, [item.provider]: {} }));
+      setOauthActionMsg((current) => ({
+        ...current,
+        [item.provider]: body.deleted ? "DB 저장값을 삭제했습니다." : "삭제할 DB 저장값이 없습니다.",
+      }));
+      await mutate();
+    } catch {
+      setOauthActionMsg((current) => ({ ...current, [item.provider]: "삭제 요청에 실패했습니다." }));
     } finally {
       setBusyProvider(null);
     }
@@ -276,12 +310,16 @@ export default function OperatorCustomersPage() {
                 <div className="min-w-0">
                   <p className="text-sm font-medium capitalize text-text">{item.label}</p>
                   <p className="mt-1 break-words text-[11px] text-subtle">
-                    {item.credentialsConfigured ? `${item.source === "db" ? "Admin DB" : "운영 환경변수"}에서 완전한 세트 확인` : `미설정/불완전: ${item.missing.join(", ")}`}
+                    {item.unavailableReason
+                      ? "자격증명 저장소 장애입니다. 기존 값을 다시 입력하지 마세요. DB 복구 후 새로고침하세요."
+                      : item.credentialsConfigured
+                        ? `${item.source === "db" ? "Admin DB" : "운영 환경변수"}에서 완전한 세트 확인`
+                        : `미설정/불완전: ${item.missing.join(", ")}`}
                   </p>
                   <p className="mt-1 text-[10px] text-subtle">출처 {item.source.toUpperCase()} · 갱신 {fmtDate(item.updatedAt)}</p>
                 </div>
-                <span className={`shrink-0 text-[10px] px-2 py-1 rounded ${item.credentialsConfigured ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
-                  {item.credentialsConfigured ? "준비" : "차단"}
+                <span className={`shrink-0 text-[10px] px-2 py-1 rounded ${item.unavailableReason ? "bg-danger/15 text-danger" : item.credentialsConfigured ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
+                  {item.unavailableReason ? "저장소 장애" : item.credentialsConfigured ? "준비" : "차단"}
                 </span>
               </div>
               <div className="mt-3 space-y-3">
@@ -307,10 +345,10 @@ export default function OperatorCustomersPage() {
                       <button type="button" onClick={() => hideCredentialValues(item.provider)} className="text-[10px] text-danger hover:underline">
                         숨기기
                       </button>
-                    ) : item.credentialsConfigured ? (
+                    ) : item.source === "db" && item.credentialsConfigured ? (
                       <button
                         type="button"
-                        onClick={() => void revealCredentialSet(item.provider)}
+                        onClick={() => void revealCredentialSet(item)}
                         disabled={busyProvider === item.provider}
                         className="text-[10px] text-accent hover:underline disabled:opacity-50"
                       >
@@ -345,7 +383,8 @@ export default function OperatorCustomersPage() {
                             autoComplete="new-password"
                             value={credentialInputs[item.provider]?.[field.key] || ""}
                             onChange={(event) => updateCredentialInput(item.provider, field.key, event.target.value)}
-                            placeholder={field.configured ? "새 값으로 교체" : `${field.label} 입력`}
+                            disabled={Boolean(item.unavailableReason)}
+                            placeholder={item.unavailableReason ? "저장소 복구 후 사용" : field.configured ? "새 값으로 교체" : `${field.label} 입력`}
                             className="mt-2 w-full rounded border border-border bg-surface px-2 py-1.5 text-xs text-text outline-none focus:border-accent"
                           />
                         </div>
@@ -363,14 +402,26 @@ export default function OperatorCustomersPage() {
                   )}
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void saveCredentialSet(item)}
-                    disabled={busyProvider === item.provider}
-                    className="rounded bg-accent px-3 py-1.5 text-[11px] text-accent-fg hover:opacity-90 disabled:opacity-50"
-                  >
-                    {busyProvider === item.provider ? "처리 중…" : item.credentialsConfigured ? "전체 세트 업데이트" : "전체 세트 저장"}
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void saveCredentialSet(item)}
+                      disabled={Boolean(item.unavailableReason) || busyProvider === item.provider}
+                      className="rounded bg-accent px-3 py-1.5 text-[11px] text-accent-fg hover:opacity-90 disabled:opacity-50"
+                    >
+                      {busyProvider === item.provider ? "처리 중…" : item.credentialsConfigured ? "전체 세트 업데이트" : "전체 세트 저장"}
+                    </button>
+                    {item.source === "db" && !item.unavailableReason && (
+                      <button
+                        type="button"
+                        onClick={() => void deleteCredentialSet(item)}
+                        disabled={busyProvider === item.provider}
+                        className="rounded border border-danger/30 px-3 py-1.5 text-[11px] text-danger hover:bg-danger/10 disabled:opacity-50"
+                      >
+                        DB 저장값 삭제
+                      </button>
+                    )}
+                  </div>
                   {oauthActionMsg[item.provider] && <p className="text-[10px] text-subtle">{oauthActionMsg[item.provider]}</p>}
                 </div>
                 <div className="flex flex-wrap gap-3 text-[11px]">

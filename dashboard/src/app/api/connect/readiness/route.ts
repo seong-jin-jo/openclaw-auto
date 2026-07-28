@@ -1,6 +1,9 @@
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { PROVIDERS, FACEBOOK } from "@/lib/social-connect";
-import { resolveOAuthCredentialSet } from "@/lib/oauth-app-credentials";
+import { resolveOAuthCredentialSets } from "@/lib/oauth-app-credentials";
+
+const CREDENTIAL_STORE_UNAVAILABLE_REASON =
+  "OAuth 자격증명 저장소에 일시적으로 연결할 수 없습니다. 관리자 복구 후 다시 시도해주세요.";
 
 // GET /api/connect/readiness?tenant_id=... — 고객 UI가 "연결" 버튼을 그리기 전에 먼저 물어보는
 // 서버 준비상태 계약(SNS-001/SNS-003/SNS-004). 서버 credential(OAuth 앱 ID/Secret)이 없는
@@ -15,17 +18,25 @@ export async function GET(request: Request) {
   if (!tenantId) return Response.json({ error: "tenant_id required" }, { status: 400 });
 
   const result: Record<string, { available: boolean; reason?: string }> = {};
+  const credentialsByProvider = await resolveOAuthCredentialSets([
+    ...Object.keys(PROVIDERS),
+    "facebook",
+  ]);
 
   for (const [name, cfg] of Object.entries(PROVIDERS)) {
-    const credentials = await resolveOAuthCredentialSet(name);
-    result[name] = credentials?.complete
+    const credentials = credentialsByProvider[name];
+    result[name] = credentials?.reason === "credential_store_unavailable"
+      ? { available: false, reason: CREDENTIAL_STORE_UNAVAILABLE_REASON }
+      : credentials?.complete
       ? { available: true }
       : { available: false, reason: `서버에 ${name} OAuth 앱 자격증명(${cfg.appIdEnv}/${cfg.appSecretEnv})이 아직 설정되지 않았습니다. 관리자에게 문의해주세요.` };
   }
 
   // Facebook은 config_id 모델(비즈니스용 로그인) — FB_APP_ID/SECRET 외에 FB_CONFIG_ID도 필요.
-  const facebook = await resolveOAuthCredentialSet("facebook");
-  if (!facebook?.complete) {
+  const facebook = credentialsByProvider.facebook;
+  if (facebook?.reason === "credential_store_unavailable") {
+    result.facebook = { available: false, reason: CREDENTIAL_STORE_UNAVAILABLE_REASON };
+  } else if (!facebook?.complete) {
     result.facebook = {
       available: false,
       reason: `서버에 Facebook OAuth 앱 자격증명(${FACEBOOK.appIdEnv}/${FACEBOOK.appSecretEnv}/${FACEBOOK.configIdEnv})이 아직 설정되지 않았거나 일부만 설정됐습니다. 관리자에게 문의해주세요.`,

@@ -230,7 +230,8 @@ CREATE INDEX IF NOT EXISTS idx_usage_quotas_tenant_period ON usage_quotas(tenant
 
 -- 운영자 전용 중앙 OAuth 개발자 앱 credential. tenant 소유 데이터가 아닌 전역 1행/provider.
 -- 각 required field는 OSMU_SECRET_KEY로 개별 pgcrypto 암호화한 armored text만 저장한다.
--- 고객 토큰/withTenant 경로에는 정책을 만들지 않으며 db/rls.sql에서 RLS FORCE + no policy로 닫는다.
+-- 고객 토큰/withTenant 경로에는 정책을 만들지 않으며 db/rls.sql에서 ENABLE RLS + no policy로 닫는다.
+-- bare table owner/BYPASSRLS 운영자 연결은 NO FORCE 기본 동작으로 접근한다.
 CREATE TABLE IF NOT EXISTS oauth_app_credentials (
   provider          TEXT PRIMARY KEY,
   client_id_enc     TEXT NOT NULL,

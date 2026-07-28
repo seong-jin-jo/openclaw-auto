@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const H = vi.hoisted(() => ({
   upserts: [] as Array<{ provider: string; values: Record<string, string> }>,
   reveals: [] as string[],
+  deletes: [] as string[],
+  revealSource: "db" as "db" | "env",
 }));
 
 vi.mock("@/lib/oauth-app-credentials", async () => {
@@ -31,7 +33,14 @@ vi.mock("@/lib/oauth-app-credentials", async () => {
     }),
     revealOAuthCredentialSet: vi.fn(async (provider: string) => {
       H.reveals.push(provider);
-      return { provider, values: { clientId: "raw-id", clientSecret: "raw-secret" } };
+      if (H.revealSource === "env") {
+        throw new actual.OAuthCredentialSourceNotRevealableError();
+      }
+      return { provider, source: "db", values: { clientId: "raw-id", clientSecret: "raw-secret" } };
+    }),
+    deleteOAuthCredentialSet: vi.fn(async (provider: string) => {
+      H.deletes.push(provider);
+      return { deleted: true };
     }),
   };
 });
@@ -42,6 +51,8 @@ beforeEach(() => {
   vi.stubEnv("OSMU_SECRET_KEY", "encryption-key");
   H.upserts = [];
   H.reveals = [];
+  H.deletes = [];
+  H.revealSource = "db";
 });
 
 afterEach(() => {
@@ -132,5 +143,44 @@ describe("/api/operator/oauth-credentials", () => {
     expect(res.headers.get("Cache-Control")).toContain("no-store");
     expect(body.values).toEqual({ clientId: "raw-id", clientSecret: "raw-secret" });
     expect(H.reveals).toEqual(["x"]);
+  });
+
+  it("POST reveal refuses env-source credentials without returning raw values", async () => {
+    H.revealSource = "env";
+    const { POST } = await import("@/app/api/operator/oauth-credentials/route");
+    const res = await POST(new Request("https://app.example/api/operator/oauth-credentials", {
+      method: "POST",
+      headers: operatorHeaders,
+      body: JSON.stringify({ action: "reveal", provider: "x" }),
+    }));
+    const text = await res.text();
+
+    expect(res.status).toBe(409);
+    expect(res.headers.get("Cache-Control")).toContain("no-store");
+    expect(text).not.toContain("raw-id");
+    expect(text).not.toContain("raw-secret");
+  });
+
+  it("DELETE requires exact operator auth, deletes one DB set, audits in storage, and never echoes secrets", async () => {
+    const { DELETE } = await import("@/app/api/operator/oauth-credentials/route");
+    const unauthorized = await DELETE(new Request("https://app.example/api/operator/oauth-credentials", {
+      method: "DELETE",
+      headers: { Authorization: "bearer operator-token", "Content-Type": "application/json" },
+      body: JSON.stringify({ provider: "x" }),
+    }));
+    expect(unauthorized.status).toBe(401);
+
+    const res = await DELETE(new Request("https://app.example/api/operator/oauth-credentials", {
+      method: "DELETE",
+      headers: operatorHeaders,
+      body: JSON.stringify({ provider: "x" }),
+    }));
+    const text = await res.text();
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Cache-Control")).toContain("no-store");
+    expect(H.deletes).toEqual(["x"]);
+    expect(text).not.toContain("raw-id");
+    expect(text).not.toContain("raw-secret");
   });
 });

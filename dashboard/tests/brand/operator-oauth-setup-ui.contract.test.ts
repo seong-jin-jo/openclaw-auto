@@ -19,7 +19,7 @@ describe("operator central OAuth setup UI contract", () => {
     expect(page).toContain("navigator.clipboard.writeText");
   });
 
-  it("supports credential input/update plus explicit reveal/hide with automatic raw-value clearing", () => {
+  it("supports credential input/update plus DB-only reveal/hide with automatic raw-value clearing", () => {
     const oauthSection = page.slice(
       page.indexOf("중앙 OAuth 개발자 앱"),
       page.indexOf("Auth 가입자"),
@@ -30,5 +30,19 @@ describe("operator central OAuth setup UI contract", () => {
     expect(page).toContain("window.setTimeout");
     expect(page).toContain("setRevealedValues");
     expect(page).toContain("setCredentialInputs");
+    expect(oauthSection).toContain('item.source === "db"');
+    expect(oauthSection).not.toMatch(/item\.credentialsConfigured\s*\?\s*\([\s\S]{0,300}원문 확인/);
+  });
+
+  it("offers audited DB deletion and treats storage outages as recovery events rather than re-entry prompts", () => {
+    const oauthSection = page.slice(
+      page.indexOf("중앙 OAuth 개발자 앱"),
+      page.indexOf("Auth 가입자"),
+    );
+    expect(page).toContain('method: "DELETE"');
+    expect(oauthSection).toContain("DB 저장값 삭제");
+    expect(oauthSection).toContain("item.unavailableReason");
+    expect(oauthSection).toContain("기존 값을 다시 입력하지 마세요");
+    expect(oauthSection).toContain("disabled={Boolean(item.unavailableReason)");
   });
 });

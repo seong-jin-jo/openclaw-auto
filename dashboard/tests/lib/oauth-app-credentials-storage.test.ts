@@ -4,6 +4,7 @@ const H = vi.hoisted(() => ({
   queries: [] as Array<{ sql: string; values: unknown[] }>,
   selectResult: [] as unknown[],
   selectError: null as unknown,
+  deleteResult: [] as unknown[],
   beginCount: 0,
 }));
 
@@ -12,6 +13,9 @@ vi.mock("@/lib/db", () => {
     vi.fn(async (strings: TemplateStringsArray, ...values: unknown[]) => {
       const sql = Array.from(strings).join(" ");
       H.queries.push({ sql, values });
+      if (sql.includes("DELETE FROM oauth_app_credentials")) {
+        return H.deleteResult;
+      }
       if (sql.includes("FROM oauth_app_credentials")) {
         if (H.selectError) throw H.selectError;
         return H.selectResult;
@@ -40,6 +44,7 @@ beforeEach(() => {
   H.queries = [];
   H.selectResult = [];
   H.selectError = null;
+  H.deleteResult = [];
   H.beginCount = 0;
 });
 
@@ -82,6 +87,70 @@ describe("OAuth credential encrypted storage and audit", () => {
     expect(audit?.sql).toContain("'reveal'");
     expect(audit?.sql).not.toContain("db-secret");
     expect(audit?.values).toEqual(["x"]);
+  });
+
+  it("never reveals env-source credentials and does not create a reveal audit row", async () => {
+    H.selectResult = [];
+    const {
+      OAuthCredentialSourceNotRevealableError,
+      revealOAuthCredentialSet,
+    } = await import("@/lib/oauth-app-credentials");
+
+    await expect(revealOAuthCredentialSet("x")).rejects.toBeInstanceOf(
+      OAuthCredentialSourceNotRevealableError,
+    );
+    expect(H.queries.some((query) => query.sql.includes("oauth_credential_audit"))).toBe(false);
+  });
+
+  it("bulk-resolves every requested provider with one decrypt query while preserving env fallback per missing row", async () => {
+    vi.stubEnv("SLACK_CLIENT_ID", "env-slack-id");
+    vi.stubEnv("SLACK_CLIENT_SECRET", "env-slack-secret");
+    H.selectResult = [{
+      provider: "x",
+      client_id: "db-x-id",
+      client_secret: "db-x-secret",
+      config_id: null,
+      updated_at: "2026-07-28T00:00:00.000Z",
+    }];
+    const { resolveOAuthCredentialSets } = await import("@/lib/oauth-app-credentials");
+    const resolved = await resolveOAuthCredentialSets(["x", "slack"]);
+
+    expect(H.queries.filter((query) => query.sql.includes("FROM oauth_app_credentials"))).toHaveLength(1);
+    expect(resolved.x).toEqual(expect.objectContaining({
+      complete: true,
+      source: "db",
+      values: { clientId: "db-x-id", clientSecret: "db-x-secret" },
+    }));
+    expect(resolved.slack).toEqual(expect.objectContaining({
+      complete: true,
+      source: "env",
+      values: { clientId: "env-slack-id", clientSecret: "env-slack-secret" },
+    }));
+  });
+
+  it("builds the full Admin metadata list from one bulk credential query", async () => {
+    const { listOAuthCredentialMetadata, OAUTH_CREDENTIAL_DEFINITIONS } = await import(
+      "@/lib/oauth-app-credentials"
+    );
+    const metadata = await listOAuthCredentialMetadata("https://app.example");
+
+    expect(metadata).toHaveLength(Object.keys(OAUTH_CREDENTIAL_DEFINITIONS).length);
+    expect(H.queries.filter((query) => query.sql.includes("FROM oauth_app_credentials"))).toHaveLength(1);
+  });
+
+  it("deletes one DB set and writes a secret-free delete audit in the same transaction", async () => {
+    H.deleteResult = [{ provider: "x" }];
+    const { deleteOAuthCredentialSet } = await import("@/lib/oauth-app-credentials");
+    const result = await deleteOAuthCredentialSet("x");
+
+    expect(result).toEqual({ deleted: true });
+    expect(H.beginCount).toBe(1);
+    const deleteQuery = H.queries.find((query) => query.sql.includes("DELETE FROM oauth_app_credentials"));
+    const auditQuery = H.queries.find((query) => query.sql.includes("oauth_credential_audit"));
+    expect(deleteQuery?.values).toEqual(["x"]);
+    expect(auditQuery?.sql).toContain("'delete'");
+    expect(auditQuery?.values).toEqual(["x"]);
+    expect(JSON.stringify(H.queries)).not.toContain("env-secret");
   });
 
   it("missing additive table is a rollback-safe env fallback, but other DB errors fail closed", async () => {

@@ -30,17 +30,6 @@ DO $$ BEGIN
   EXECUTE format('GRANT osmu_service TO %I', current_user);
 END $$;
 
--- 전역 운영자 OAuth credential/audit는 tenant_id가 없고 고객 정책도 없다.
--- RLS FORCE + policy 0개라 osmu_service(withTenant/customer token)는 항상 0행/거부된다.
--- 운영자 서버 경로만 bare db()의 privileged migration/app connection으로 접근한다.
-ALTER TABLE oauth_app_credentials ENABLE ROW LEVEL SECURITY;
-ALTER TABLE oauth_app_credentials FORCE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS tenant_iso ON oauth_app_credentials;
-
-ALTER TABLE oauth_credential_audit ENABLE ROW LEVEL SECURITY;
-ALTER TABLE oauth_credential_audit FORCE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS tenant_iso ON oauth_credential_audit;
-
 -- 데이터 테이블 RLS FORCE + tenant_id 정책 (tenants는 운영자 목록조회라 제외 — P4서 매핑정교화)
 DO $$
 DECLARE t text;
@@ -53,4 +42,23 @@ BEGIN
       'CREATE POLICY tenant_iso ON %I USING (tenant_id = current_setting(''app.tenant_id'', true)::uuid) WITH CHECK (tenant_id = current_setting(''app.tenant_id'', true)::uuid)',
       t);
   END LOOP;
+END $$;
+
+-- 전역 운영자 OAuth credential/audit는 tenant_id가 없고 고객 정책도 없다.
+-- ENABLE RLS + policy 0개(default deny)라 osmu_service(withTenant/customer token)는 항상 0행/거부된다.
+-- NO FORCE로 bare table owner/BYPASSRLS app connection만 운영자 서버 경로에서 접근한다.
+-- additive schema rollback으로 전역 테이블이 없어도 위 tenant policy loop는 먼저 끝나야 하므로
+-- 각 ALTER는 tenant loop 뒤의 to_regclass guard 안에서만 실행한다.
+DO $$ BEGIN
+  IF to_regclass('public.oauth_app_credentials') IS NOT NULL THEN
+    EXECUTE 'ALTER TABLE oauth_app_credentials ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'ALTER TABLE oauth_app_credentials NO FORCE ROW LEVEL SECURITY';
+    EXECUTE 'DROP POLICY IF EXISTS tenant_iso ON oauth_app_credentials';
+  END IF;
+
+  IF to_regclass('public.oauth_credential_audit') IS NOT NULL THEN
+    EXECUTE 'ALTER TABLE oauth_credential_audit ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'ALTER TABLE oauth_credential_audit NO FORCE ROW LEVEL SECURITY';
+    EXECUTE 'DROP POLICY IF EXISTS tenant_iso ON oauth_credential_audit';
+  END IF;
 END $$;

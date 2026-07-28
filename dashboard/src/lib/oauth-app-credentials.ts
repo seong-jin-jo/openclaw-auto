@@ -40,6 +40,13 @@ export interface ResolvedOAuthCredentialSet {
   reason?: "credential_store_unavailable";
 }
 
+export class OAuthCredentialSourceNotRevealableError extends Error {
+  constructor() {
+    super("only DB-stored OAuth credentials can be revealed");
+    this.name = "OAuthCredentialSourceNotRevealableError";
+  }
+}
+
 const baseFields = (idEnv: string, secretEnv: string, idLabel = "Client ID", secretLabel = "Client Secret"): OAuthCredentialFieldDefinition[] => [
   { key: "clientId", env: idEnv, label: idLabel, secret: false },
   { key: "clientSecret", env: secretEnv, label: secretLabel, secret: true },
@@ -264,11 +271,11 @@ export function resolveCredentialSet(
   };
 }
 
-async function loadStoredCredential(provider: string): Promise<StoredOAuthCredentialRow | null> {
-  if (!process.env.DATABASE_URL) return null;
+async function loadStoredCredentials(providers: string[]): Promise<StoredOAuthCredentialRow[]> {
+  if (!process.env.DATABASE_URL || providers.length === 0) return [];
   const key = process.env.OSMU_SECRET_KEY || "";
   const sql = db();
-  const [row] = await sql<StoredOAuthCredentialRow[]>`
+  return sql<StoredOAuthCredentialRow[]>`
     SELECT
       provider,
       CASE WHEN client_id_enc <> '' AND ${key} <> ''
@@ -279,40 +286,68 @@ async function loadStoredCredential(provider: string): Promise<StoredOAuthCreden
         THEN pgp_sym_decrypt(dearmor(config_id_enc), ${key}) ELSE NULL END AS config_id,
       updated_at::text
     FROM oauth_app_credentials
-    WHERE provider = ${provider}
-    LIMIT 1`;
-  return row || null;
+    WHERE provider = ANY(${providers})`;
+}
+
+function isUndefinedTableError(error: unknown): boolean {
+  return Boolean(
+    error
+    && typeof error === "object"
+    && "code" in error
+    && (error as { code?: unknown }).code === "42P01",
+  );
+}
+
+function unavailableCredentialSet(definition: OAuthCredentialDefinition): ResolvedOAuthCredentialSet {
+  return {
+    provider: definition.provider,
+    complete: false,
+    source: "db",
+    values: {},
+    configured: [],
+    missing: definition.fields.map((field) => field.key),
+    updatedAt: null,
+    reason: "credential_store_unavailable",
+  };
+}
+
+export async function resolveOAuthCredentialSets(
+  providers: string[],
+): Promise<Record<string, ResolvedOAuthCredentialSet>> {
+  const definitions = [...new Set(providers)]
+    .map((provider) => getOAuthCredentialDefinition(provider))
+    .filter((definition): definition is OAuthCredentialDefinition => Boolean(definition));
+  if (definitions.length === 0) return {};
+
+  try {
+    const rows = await loadStoredCredentials(definitions.map((definition) => definition.provider));
+    const rowsByProvider = new Map(rows.map((row) => [row.provider, row]));
+    return Object.fromEntries(definitions.map((definition) => [
+      definition.provider,
+      resolveCredentialSet(definition, rowsByProvider.get(definition.provider) || null),
+    ]));
+  } catch (error) {
+    // expand/contract 배포 또는 명시적 rollback으로 additive table이 아직/더 이상 없으면 기존 env
+    // credential 세트를 계속 쓴다. 반면 DB 장애·복호화 실패·권한 오류는 env로 우회하지 않고 fail-closed.
+    if (isUndefinedTableError(error)) {
+      return Object.fromEntries(definitions.map((definition) => [
+        definition.provider,
+        resolveCredentialSet(definition, null),
+      ]));
+    }
+    // DB row 조회/복호화가 실패했는데 env로 우회하면 DB 우선 계약과 partial fail-closed를 깨뜨린다.
+    return Object.fromEntries(definitions.map((definition) => [
+      definition.provider,
+      unavailableCredentialSet(definition),
+    ]));
+  }
 }
 
 export async function resolveOAuthCredentialSet(provider: string): Promise<ResolvedOAuthCredentialSet | null> {
   const definition = getOAuthCredentialDefinition(provider);
   if (!definition) return null;
-  try {
-    const row = await loadStoredCredential(provider);
-    return resolveCredentialSet(definition, row);
-  } catch (error) {
-    // expand/contract 배포 또는 명시적 rollback으로 additive table이 아직/더 이상 없으면 기존 env
-    // credential 세트를 계속 쓴다. 반면 DB 장애·복호화 실패·권한 오류는 env로 우회하지 않고 fail-closed.
-    if (
-      error
-      && typeof error === "object"
-      && "code" in error
-      && (error as { code?: unknown }).code === "42P01"
-    ) {
-      return resolveCredentialSet(definition, null);
-    }
-    // DB row 조회/복호화가 실패했는데 env로 우회하면 DB 우선 계약과 partial fail-closed를 깨뜨린다.
-    return {
-      provider,
-      complete: false,
-      source: "db",
-      values: {},
-      configured: [],
-      missing: definition.fields.map((field) => field.key),
-      updatedAt: null,
-      reason: "credential_store_unavailable",
-    };
-  }
+  const resolved = await resolveOAuthCredentialSets([provider]);
+  return resolved[provider] || null;
 }
 
 function maskedValue(configured: boolean): string | null {
@@ -320,8 +355,12 @@ function maskedValue(configured: boolean): string | null {
 }
 
 export async function listOAuthCredentialMetadata(origin: string) {
-  return Promise.all(Object.values(OAUTH_CREDENTIAL_DEFINITIONS).map(async (definition) => {
-    const resolved = await resolveOAuthCredentialSet(definition.provider);
+  const definitions = Object.values(OAUTH_CREDENTIAL_DEFINITIONS);
+  const resolvedByProvider = await resolveOAuthCredentialSets(
+    definitions.map((definition) => definition.provider),
+  );
+  return definitions.map((definition) => {
+    const resolved = resolvedByProvider[definition.provider];
     const configured = new Set(resolved?.configured || []);
     return {
       provider: definition.provider,
@@ -345,7 +384,7 @@ export async function listOAuthCredentialMetadata(origin: string) {
       externalReview: definition.externalReview || "unknown",
       unavailableReason: resolved?.reason,
     };
-  }));
+  });
 }
 
 export function validateOAuthCredentialValues(
@@ -407,6 +446,23 @@ export async function upsertOAuthCredentialSet(
   }) as Promise<{ updatedAt: string }>;
 }
 
+export async function deleteOAuthCredentialSet(provider: string): Promise<{ deleted: boolean }> {
+  if (!getOAuthCredentialDefinition(provider)) throw new Error("unknown OAuth provider");
+  const sql = db();
+  return sql.begin(async (tx) => {
+    const [deleted] = await tx<{ provider: string }[]>`
+      DELETE FROM oauth_app_credentials
+      WHERE provider = ${provider}
+      RETURNING provider`;
+    if (deleted) {
+      await tx`
+        INSERT INTO oauth_credential_audit (provider, action)
+        VALUES (${provider}, 'delete')`;
+    }
+    return { deleted: Boolean(deleted) };
+  }) as Promise<{ deleted: boolean }>;
+}
+
 export async function revealOAuthCredentialSet(provider: string): Promise<{
   provider: string;
   source: OAuthCredentialSource;
@@ -414,6 +470,7 @@ export async function revealOAuthCredentialSet(provider: string): Promise<{
 }> {
   const resolved = await resolveOAuthCredentialSet(provider);
   if (!resolved?.complete) throw new Error("credential set unavailable");
+  if (resolved.source !== "db") throw new OAuthCredentialSourceNotRevealableError();
   if (!process.env.DATABASE_URL) throw new Error("audit store unavailable");
   const sql = db();
   await sql`
