@@ -244,6 +244,26 @@ describe("OAuth credential encrypted storage and audit", () => {
     expect(H.queries.filter((query) => query.sql.includes("FROM oauth_app_credentials"))).toHaveLength(1);
   });
 
+  it.each(["DATABASE_URL", "OSMU_SECRET_KEY"])(
+    "marks every Admin provider unavailable without querying or trusting env fallback when %s is absent",
+    async (name) => {
+      vi.stubEnv(name, "");
+      const { listOAuthCredentialMetadata, OAUTH_CREDENTIAL_DEFINITIONS } = await import(
+        "@/lib/oauth-app-credentials"
+      );
+
+      const metadata = await listOAuthCredentialMetadata("https://app.example");
+
+      expect(metadata).toHaveLength(Object.keys(OAUTH_CREDENTIAL_DEFINITIONS).length);
+      expect(metadata.every((item) => (
+        item.credentialsConfigured === false
+        && item.complete === false
+        && item.unavailableReason === "credential_store_unavailable"
+      ))).toBe(true);
+      expect(H.queries).toEqual([]);
+    },
+  );
+
   it("deletes one DB set and writes a secret-free delete audit in the same transaction", async () => {
     H.deleteResult = [{ provider: "x" }];
     const { deleteOAuthCredentialSet } = await import("@/lib/oauth-app-credentials");

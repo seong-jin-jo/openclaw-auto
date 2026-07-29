@@ -156,10 +156,10 @@ describe("operator OAuth credential UI lifecycle", () => {
 
     fireEvent.change(clientId, { target: { value: "pasted-id" } });
     fireEvent.change(clientSecret, { target: { value: "pasted-secret" } });
-    fireEvent.click(screen.getByRole("button", { name: "Client ID 표시" }));
+    fireEvent.click(screen.getByRole("button", { name: "Client ID 입력값 표시" }));
     expect(clientId).toHaveAttribute("type", "text");
     expect(clientSecret).toHaveAttribute("type", "password");
-    expect(screen.getByRole("button", { name: "Client ID 숨김" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Client ID 입력값 숨김" })).toBeInTheDocument();
   });
 
   it("saves a complete unset provider set, refreshes metadata, and shows a Korean card error on failure", async () => {

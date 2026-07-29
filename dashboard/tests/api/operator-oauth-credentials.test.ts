@@ -102,6 +102,25 @@ describe("/api/operator/oauth-credentials", () => {
     expect(text).not.toContain("raw-secret");
   });
 
+  it.each(["OSMU_SECRET_KEY", "DATABASE_URL"])(
+    "GET fails closed with 503 and does not resolve metadata when %s is unavailable",
+    async (name) => {
+      vi.stubEnv(name, "");
+      const credentials = await import("@/lib/oauth-app-credentials");
+      const metadata = vi.mocked(credentials.listOAuthCredentialMetadata);
+      const { GET } = await import("@/app/api/operator/oauth-credentials/route");
+      const res = await GET(new Request("https://app.example/api/operator/oauth-credentials", {
+        headers: operatorHeaders,
+      }));
+      const body = await res.json();
+
+      expect(res.status).toBe(503);
+      expect(res.headers.get("Cache-Control")).toContain("no-store");
+      expect(body.error).toMatch(/[가-힣]/);
+      expect(metadata).not.toHaveBeenCalled();
+    },
+  );
+
   it("rejects tenant/wrong tokens and non-exact Bearer syntax", async () => {
     const { GET } = await import("@/app/api/operator/oauth-credentials/route");
     for (const authorization of ["Bearer tenant-token", "bearer operator-token", "Bearer  operator-token"]) {
@@ -316,4 +335,23 @@ describe("/api/operator/oauth-credentials", () => {
     expect(text).not.toContain("raw-id");
     expect(text).not.toContain("raw-secret");
   });
+
+  it.each(["OSMU_SECRET_KEY", "DATABASE_URL"])(
+    "DELETE fails closed with 503 and does not touch storage when %s is unavailable",
+    async (name) => {
+      vi.stubEnv(name, "");
+      const { DELETE } = await import("@/app/api/operator/oauth-credentials/route");
+      const res = await DELETE(new Request("https://app.example/api/operator/oauth-credentials", {
+        method: "DELETE",
+        headers: operatorHeaders,
+        body: JSON.stringify({ provider: "x" }),
+      }));
+      const body = await res.json();
+
+      expect(res.status).toBe(503);
+      expect(res.headers.get("Cache-Control")).toContain("no-store");
+      expect(body.error).toMatch(/[가-힣]/);
+      expect(H.deletes).toEqual([]);
+    },
+  );
 });
