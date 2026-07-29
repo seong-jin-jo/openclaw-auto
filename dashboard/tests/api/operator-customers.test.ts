@@ -84,6 +84,8 @@ vi.mock("@/lib/db", () => ({
 beforeEach(() => {
   vi.resetModules();
   vi.stubEnv("DASHBOARD_AUTH_TOKEN", "op-token");
+  vi.stubEnv("DATABASE_URL", "postgres://test");
+  vi.stubEnv("OSMU_SECRET_KEY", "credential-test-key");
   H.fetchUrl = "";
   H.fetchHeaders = {};
   H.fetchBody = "";
