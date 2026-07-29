@@ -40,13 +40,6 @@ export interface ResolvedOAuthCredentialSet {
   reason?: "credential_store_unavailable";
 }
 
-export class OAuthCredentialSourceNotRevealableError extends Error {
-  constructor() {
-    super("only DB-stored OAuth credentials can be revealed");
-    this.name = "OAuthCredentialSourceNotRevealableError";
-  }
-}
-
 export class OAuthCredentialEnvIncompleteError extends Error {
   readonly missing: string[];
 

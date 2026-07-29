@@ -6,7 +6,6 @@ import {
   listOAuthCredentialMetadata,
   OAuthCredentialAlreadyStoredError,
   OAuthCredentialEnvIncompleteError,
-  OAuthCredentialSourceNotRevealableError,
   revealOAuthCredentialSet,
   upsertOAuthCredentialSet,
   validateOAuthCredentialValues,
@@ -100,9 +99,6 @@ export async function POST(request: Request) {
     }
     return jsonNoStore({ error: "지원하지 않는 자격증명 요청입니다." }, { status: 400 });
   } catch (error) {
-    if (error instanceof OAuthCredentialSourceNotRevealableError) {
-      return jsonNoStore({ error: "DB에 저장한 자격증명만 원문 확인할 수 있습니다." }, { status: 409 });
-    }
     if (error instanceof OAuthCredentialEnvIncompleteError) {
       return jsonNoStore({
         error: "환경변수 세트가 불완전합니다. 누락 값을 서버 환경에서 먼저 설정하세요.",
