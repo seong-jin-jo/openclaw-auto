@@ -42,9 +42,8 @@ describe("operator central OAuth setup UI contract", () => {
     expect(oauthSection).toContain("환경변수로 보호");
     expect(oauthSection).not.toContain("암호화 DB로 가져오기");
     expect(page).not.toContain('action: "import-env"');
-    expect(page).not.toContain("window.confirm");
+    expect(page).not.toContain("importCredentialSet");
     expect(page).toContain("await mutate()");
-    expect(oauthSection).toContain('item.source === "env"');
     expect(page).toContain('action: "reveal"');
   });
 

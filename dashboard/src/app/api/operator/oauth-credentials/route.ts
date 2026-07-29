@@ -39,24 +39,28 @@ export async function GET(request: Request) {
     const providers = await listOAuthCredentialMetadata(publicOrigin(request));
     return jsonNoStore({ providers });
   } catch {
-    return jsonNoStore({ error: "credential metadata unavailable" }, { status: 500 });
+    return jsonNoStore({ error: "자격증명 상태를 불러오지 못했습니다." }, { status: 500 });
   }
 }
 
 export async function PUT(request: Request) {
   const authError = operatorAuthError(request);
   if (authError) return authError;
-  if (!process.env.OSMU_SECRET_KEY) {
-    return jsonNoStore({ error: "credential encryption unavailable" }, { status: 503 });
+  if (!process.env.OSMU_SECRET_KEY || !process.env.DATABASE_URL) {
+    return jsonNoStore({
+      error: "암호화 키 또는 데이터베이스 연결이 설정되지 않았습니다.",
+    }, { status: 503 });
   }
   try {
     const body = await request.json().catch(() => null) as { provider?: unknown; values?: unknown } | null;
     const validated = validateOAuthCredentialValues(body?.provider, body?.values);
-    if (!validated.ok) return jsonNoStore({ error: "invalid credential set" }, { status: 400 });
+    if (!validated.ok) {
+      return jsonNoStore({ error: "자격증명 전체 세트의 필드와 값을 확인해주세요." }, { status: 400 });
+    }
     const result = await upsertOAuthCredentialSet(validated.provider, validated.values);
     return jsonNoStore({ ok: true, provider: validated.provider, updatedAt: result.updatedAt });
   } catch {
-    return jsonNoStore({ error: "credential update failed" }, { status: 500 });
+    return jsonNoStore({ error: "자격증명 저장 중 데이터베이스 오류가 발생했습니다." }, { status: 500 });
   }
 }
 
@@ -69,15 +73,22 @@ export async function POST(request: Request) {
     action = String(body?.action || "");
     const provider = String(body?.provider || "");
     if (!getOAuthCredentialDefinition(provider)) {
-      return jsonNoStore({ error: "invalid credential action request" }, { status: 400 });
+      return jsonNoStore({ error: "지원하지 않는 자격증명 요청입니다." }, { status: 400 });
     }
     if (action === "reveal") {
+      if (!process.env.OSMU_SECRET_KEY || !process.env.DATABASE_URL) {
+        return jsonNoStore({
+          error: "암호화 키 또는 데이터베이스 연결이 설정되지 않았습니다.",
+        }, { status: 503 });
+      }
       const revealed = await revealOAuthCredentialSet(provider);
       return jsonNoStore(revealed);
     }
     if (action === "import-env") {
       if (!process.env.OSMU_SECRET_KEY || !process.env.DATABASE_URL) {
-        return jsonNoStore({ error: "credential encryption store unavailable" }, { status: 503 });
+        return jsonNoStore({
+          error: "암호화 키 또는 데이터베이스 연결이 설정되지 않았습니다.",
+        }, { status: 503 });
       }
       const imported = await importOAuthCredentialSetFromEnv(provider);
       return jsonNoStore({
@@ -87,7 +98,7 @@ export async function POST(request: Request) {
         updatedAt: imported.updatedAt,
       });
     }
-    return jsonNoStore({ error: "invalid credential action request" }, { status: 400 });
+    return jsonNoStore({ error: "지원하지 않는 자격증명 요청입니다." }, { status: 400 });
   } catch (error) {
     if (error instanceof OAuthCredentialSourceNotRevealableError) {
       return jsonNoStore({ error: "DB에 저장한 자격증명만 원문 확인할 수 있습니다." }, { status: 409 });
@@ -104,7 +115,9 @@ export async function POST(request: Request) {
       }, { status: 409 });
     }
     return jsonNoStore({
-      error: action === "reveal" ? "credential reveal failed" : "credential import failed",
+      error: action === "reveal"
+        ? "자격증명 원문 확인 중 데이터베이스 오류가 발생했습니다."
+        : "환경변수 자격증명을 가져오는 중 데이터베이스 오류가 발생했습니다.",
     }, { status: 500 });
   }
 }
@@ -121,6 +134,6 @@ export async function DELETE(request: Request) {
     const result = await deleteOAuthCredentialSet(provider);
     return jsonNoStore({ ok: true, provider, deleted: result.deleted });
   } catch {
-    return jsonNoStore({ error: "credential delete failed" }, { status: 500 });
+    return jsonNoStore({ error: "자격증명 삭제 중 데이터베이스 오류가 발생했습니다." }, { status: 500 });
   }
 }

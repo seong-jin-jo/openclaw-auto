@@ -13,7 +13,32 @@ vi.mock("swr", () => ({
   default: (...args: unknown[]) => mocks.swr(...args),
 }));
 
-const envProvider = {
+interface TestOAuthProvider {
+  provider: string;
+  label: string;
+  complete: boolean;
+  credentialsConfigured: boolean;
+  missing: string[];
+  requiredSecrets: string[];
+  fields: Array<{
+    key: "clientId" | "clientSecret" | "configId";
+    env: string;
+    label: string;
+    secret: boolean;
+    configured: boolean;
+    maskedValue: string | null;
+  }>;
+  source: "env" | "db";
+  updatedAt: string | null;
+  callbackUrl: string;
+  consoleUrl: string;
+  docsUrl: string;
+  setupSteps: string[];
+  setupSource: "official" | "generic";
+  externalReview: "required" | "unknown";
+}
+
+const envProvider: TestOAuthProvider = {
   provider: "x",
   label: "X",
   complete: true,
@@ -38,17 +63,17 @@ const envProvider = {
       maskedValue: "••••••••",
     },
   ],
-  source: "env" as "env" | "db",
-  updatedAt: null as string | null,
+  source: "env",
+  updatedAt: null,
   callbackUrl: "https://app.example/api/connect/x/callback",
   consoleUrl: "https://console.x.com/",
   docsUrl: "https://docs.x.com/fundamentals/authentication/oauth-2-0/authorization-code",
   setupSteps: ["OAuth 2.0 활성화"],
   setupSource: "official",
   externalReview: "unknown",
-} as const;
+};
 
-function swrResult(provider = envProvider) {
+function swrResult(provider: TestOAuthProvider = envProvider) {
   return {
     data: {
       customers: [],

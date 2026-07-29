@@ -259,7 +259,7 @@ describe("/api/operator/oauth-credentials", () => {
   it.each([
     ["incomplete", 409, "환경변수 세트가 불완전합니다"],
     ["already-db", 409, "이미 DB에 저장된 자격증명"],
-    ["unavailable", 500, "credential import failed"],
+    ["unavailable", 500, "환경변수 자격증명을 가져오는 중 데이터베이스 오류"],
   ] as const)("POST import-env fails closed for %s state", async (failure, status, expectedError) => {
     H.importFailure = failure;
     const { POST } = await import("@/app/api/operator/oauth-credentials/route");

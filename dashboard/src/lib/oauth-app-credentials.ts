@@ -431,7 +431,7 @@ export async function upsertOAuthCredentialSet(
 ): Promise<{ updatedAt: string }> {
   const definition = getOAuthCredentialDefinition(provider);
   const key = process.env.OSMU_SECRET_KEY || "";
-  if (!definition || !key) throw new Error("credential store unavailable");
+  if (!definition || !process.env.DATABASE_URL || !key) throw new Error("credential store unavailable");
   const clientId = values.clientId;
   const clientSecret = values.clientSecret;
   const configId = definition.fields.some((field) => field.key === "configId") ? values.configId : null;
@@ -536,14 +536,93 @@ export async function revealOAuthCredentialSet(provider: string): Promise<{
   provider: string;
   source: OAuthCredentialSource;
   values: Partial<Record<OAuthCredentialFieldKey, string>>;
+  imported: boolean;
 }> {
-  const resolved = await resolveOAuthCredentialSet(provider);
-  if (!resolved?.complete) throw new Error("credential set unavailable");
-  if (resolved.source !== "db") throw new OAuthCredentialSourceNotRevealableError();
-  if (!process.env.DATABASE_URL) throw new Error("audit store unavailable");
+  const definition = getOAuthCredentialDefinition(provider);
+  const key = process.env.OSMU_SECRET_KEY || "";
+  if (!definition) throw new Error("unknown OAuth provider");
+  if (!process.env.DATABASE_URL || !key) throw new Error("credential store unavailable");
   const sql = db();
-  await sql`
-    INSERT INTO oauth_credential_audit (provider, action)
-    VALUES (${provider}, 'reveal')`;
-  return { provider, source: resolved.source, values: resolved.values };
+  return sql.begin(async (tx) => {
+    const loadDbRow = async (): Promise<StoredOAuthCredentialRow | null> => {
+      const [row] = await tx<StoredOAuthCredentialRow[]>`
+        SELECT
+          provider,
+          CASE WHEN client_id_enc <> ''
+            THEN pgp_sym_decrypt(dearmor(client_id_enc), ${key}) ELSE NULL END AS client_id,
+          CASE WHEN client_secret_enc <> ''
+            THEN pgp_sym_decrypt(dearmor(client_secret_enc), ${key}) ELSE NULL END AS client_secret,
+          CASE WHEN config_id_enc IS NOT NULL AND config_id_enc <> ''
+            THEN pgp_sym_decrypt(dearmor(config_id_enc), ${key}) ELSE NULL END AS config_id,
+          updated_at::text
+        FROM oauth_app_credentials
+        WHERE provider = ${provider}
+        FOR UPDATE`;
+      return row || null;
+    };
+
+    let row = await loadDbRow();
+    let imported = false;
+    if (!row) {
+      const values: Partial<Record<OAuthCredentialFieldKey, string>> = {};
+      const missing: string[] = [];
+      for (const field of definition.fields) {
+        const value = process.env[field.env]?.trim() || "";
+        if (!value || value.length > 4096 || /[\u0000\r\n]/.test(value)) {
+          missing.push(field.env);
+          continue;
+        }
+        values[field.key] = value;
+      }
+      if (missing.length > 0) throw new OAuthCredentialEnvIncompleteError(missing);
+
+      const clientId = values.clientId as string;
+      const clientSecret = values.clientSecret as string;
+      const configId = definition.fields.some((field) => field.key === "configId")
+        ? values.configId as string
+        : null;
+      const [inserted] = await tx<{ updated_at: string }[]>`
+        INSERT INTO oauth_app_credentials (
+          provider, client_id_enc, client_secret_enc, config_id_enc, updated_at
+        ) VALUES (
+          ${provider},
+          armor(pgp_sym_encrypt(${clientId}, ${key})),
+          armor(pgp_sym_encrypt(${clientSecret}, ${key})),
+          CASE WHEN ${configId}::text IS NULL
+            THEN NULL
+            ELSE armor(pgp_sym_encrypt(${configId}, ${key}))
+          END,
+          now()
+        )
+        ON CONFLICT (provider) DO NOTHING
+        RETURNING updated_at::text`;
+      if (inserted) {
+        imported = true;
+        await tx`
+          INSERT INTO oauth_credential_audit (provider, action)
+          VALUES (${provider}, 'import')`;
+      }
+      // 충돌 시에도 기존 DB 행이 정본이다. env로 덮어쓰거나 env 원문을 바로 응답하지 않고
+      // 같은 트랜잭션에서 DB 행을 다시 잠가 복호화한 결과만 reveal한다.
+      row = await loadDbRow();
+    }
+
+    if (!row) throw new Error("credential set unavailable");
+    const resolved = resolveCredentialSet(definition, row, {});
+    if (!resolved.complete || resolved.source !== "db") throw new Error("credential set unavailable");
+    await tx`
+      INSERT INTO oauth_credential_audit (provider, action)
+      VALUES (${provider}, 'reveal')`;
+    return {
+      provider,
+      source: resolved.source,
+      values: resolved.values,
+      imported,
+    };
+  }) as Promise<{
+    provider: string;
+    source: OAuthCredentialSource;
+    values: Partial<Record<OAuthCredentialFieldKey, string>>;
+    imported: boolean;
+  }>;
 }

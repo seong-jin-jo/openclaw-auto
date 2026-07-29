@@ -107,6 +107,7 @@ export default function OperatorCustomersPage() {
   const [busyProvider, setBusyProvider] = useState<string | null>(null);
   const [oauthActionMsg, setOauthActionMsg] = useState<Record<string, string>>({});
   const [credentialInputs, setCredentialInputs] = useState<Record<string, Record<string, string>>>({});
+  const [visibleCredentialInputs, setVisibleCredentialInputs] = useState<Record<string, Record<string, boolean>>>({});
   const [revealedValues, setRevealedValues] = useState<Record<string, Record<string, string>>>({});
   const revealTimers = useRef<Record<string, number>>({});
 
@@ -125,6 +126,24 @@ export default function OperatorCustomersPage() {
       ...current,
       [provider]: { ...(current[provider] || {}), [key]: value },
     }));
+  }
+
+  function toggleCredentialInputVisibility(provider: string, key: string) {
+    setVisibleCredentialInputs((current) => ({
+      ...current,
+      [provider]: {
+        ...(current[provider] || {}),
+        [key]: !current[provider]?.[key],
+      },
+    }));
+  }
+
+  function hideCredentialInputs(provider: string) {
+    setVisibleCredentialInputs((current) => {
+      const next = { ...current };
+      delete next[provider];
+      return next;
+    });
   }
 
   function hideCredentialValues(provider: string) {
@@ -159,6 +178,7 @@ export default function OperatorCustomersPage() {
         return;
       }
       setCredentialInputs((current) => ({ ...current, [item.provider]: {} }));
+      hideCredentialInputs(item.provider);
       hideCredentialValues(item.provider);
       setOauthActionMsg((current) => ({ ...current, [item.provider]: "암호화 저장했습니다." }));
       await mutate();
@@ -170,8 +190,7 @@ export default function OperatorCustomersPage() {
   }
 
   async function revealCredentialSet(item: OAuthProviderStatus) {
-    if (busyProvider) return;
-    if (item.source !== "db") return;
+    if (busyProvider || !item.credentialsConfigured || item.unavailableReason) return;
     const provider = item.provider;
     setBusyProvider(provider);
     setOauthActionMsg((current) => ({ ...current, [provider]: "" }));
@@ -182,7 +201,11 @@ export default function OperatorCustomersPage() {
         body: JSON.stringify({ action: "reveal", provider }),
         cache: "no-store",
       });
-      const body = await res.json().catch(() => ({})) as { error?: string; values?: Record<string, string> };
+      const body = await res.json().catch(() => ({})) as {
+        error?: string;
+        values?: Record<string, string>;
+        imported?: boolean;
+      };
       if (!res.ok || !body.values) {
         setOauthActionMsg((current) => ({ ...current, [provider]: body.error || `확인 실패 ${res.status}` }));
         return;
@@ -192,55 +215,15 @@ export default function OperatorCustomersPage() {
       revealTimers.current[provider] = window.setTimeout(() => {
         hideCredentialValues(provider);
       }, 30_000);
-      setOauthActionMsg((current) => ({ ...current, [provider]: "30초 후 원문을 자동으로 숨깁니다." }));
-    } catch {
-      setOauthActionMsg((current) => ({ ...current, [provider]: "원문 확인 요청에 실패했습니다." }));
-    } finally {
-      setBusyProvider(null);
-    }
-  }
-
-  async function importCredentialSet(item: OAuthProviderStatus) {
-    if (
-      busyProvider
-      || item.source !== "env"
-      || !item.credentialsConfigured
-      || item.unavailableReason
-    ) return;
-    if (!window.confirm(
-      `${item.label}의 완전한 서버 환경변수 세트를 암호화 DB로 가져올까요?\n`
-      + "값은 화면이나 응답에 표시되지 않으며, 가져온 뒤에만 운영자 원문 확인을 사용할 수 있습니다.",
-    )) return;
-    const provider = item.provider;
-    setBusyProvider(provider);
-    setOauthActionMsg((current) => ({ ...current, [provider]: "" }));
-    try {
-      const res = await fetch("/api/operator/oauth-credentials", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ action: "import-env", provider }),
-        cache: "no-store",
-      });
-      const body = await res.json().catch(() => ({})) as { error?: string };
-      if (!res.ok) {
-        setOauthActionMsg((current) => ({
-          ...current,
-          [provider]: body.error || `가져오기 실패 ${res.status}`,
-        }));
-        return;
-      }
-      hideCredentialValues(provider);
-      setCredentialInputs((current) => ({ ...current, [provider]: {} }));
       await mutate();
       setOauthActionMsg((current) => ({
         ...current,
-        [provider]: "암호화 DB로 가져왔습니다. 이제 원문 확인을 사용할 수 있습니다.",
+        [provider]: body.imported
+          ? "환경변수를 암호화 DB로 옮겼습니다. 원문은 30초 후 자동으로 숨깁니다."
+          : "원문은 30초 후 자동으로 숨깁니다.",
       }));
     } catch {
-      setOauthActionMsg((current) => ({
-        ...current,
-        [provider]: "환경변수 가져오기 요청에 실패했습니다.",
-      }));
+      setOauthActionMsg((current) => ({ ...current, [provider]: "원문 확인 요청에 실패했습니다." }));
     } finally {
       setBusyProvider(null);
     }
@@ -265,6 +248,7 @@ export default function OperatorCustomersPage() {
       }
       hideCredentialValues(item.provider);
       setCredentialInputs((current) => ({ ...current, [item.provider]: {} }));
+      hideCredentialInputs(item.provider);
       setOauthActionMsg((current) => ({
         ...current,
         [item.provider]: body.deleted ? "DB 저장값을 삭제했습니다." : "삭제할 DB 저장값이 없습니다.",
@@ -361,7 +345,7 @@ export default function OperatorCustomersPage() {
                       : item.credentialsConfigured
                         ? item.source === "db"
                           ? "Admin DB에서 완전한 세트 확인"
-                          : "완전한 세트가 환경변수로 보호되어 있습니다. 원문은 HTTP로 직접 표시하지 않습니다."
+                          : "완전한 세트가 환경변수로 보호되어 있습니다. 원문 확인 시 암호화 DB로 옮긴 뒤 표시합니다."
                         : `미설정/불완전: ${item.missing.join(", ")}`}
                   </p>
                   <p className="mt-1 text-[10px] text-subtle">출처 {item.source.toUpperCase()} · 갱신 {fmtDate(item.updatedAt)}</p>
@@ -393,7 +377,7 @@ export default function OperatorCustomersPage() {
                       <button type="button" onClick={() => hideCredentialValues(item.provider)} className="text-[10px] text-danger hover:underline">
                         숨기기
                       </button>
-                    ) : item.source === "db" && item.credentialsConfigured ? (
+                    ) : item.credentialsConfigured && !item.unavailableReason ? (
                       <button
                         type="button"
                         onClick={() => void revealCredentialSet(item)}
@@ -413,21 +397,31 @@ export default function OperatorCustomersPage() {
                             <label htmlFor={`${item.provider}-${field.key}`} className="text-[11px] font-medium text-muted">
                               {field.label}
                             </label>
-                            <button
-                              type="button"
-                              onClick={() => void copySetupValue(field.env)}
-                              className="font-mono text-[9px] text-subtle hover:text-accent"
-                              title={`${field.env} 이름 복사`}
-                            >
-                              {field.env}{copiedValue === field.env ? " ✓" : ""}
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => void copySetupValue(field.env)}
+                                className="font-mono text-[9px] text-subtle hover:text-accent"
+                                title={`${field.env} 이름 복사`}
+                              >
+                                {field.env}{copiedValue === field.env ? " ✓" : ""}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => toggleCredentialInputVisibility(item.provider, field.key)}
+                                aria-label={`${field.label} ${visibleCredentialInputs[item.provider]?.[field.key] ? "숨김" : "표시"}`}
+                                className="text-[9px] text-accent hover:underline"
+                              >
+                                {visibleCredentialInputs[item.provider]?.[field.key] ? "입력값 숨김" : "입력값 표시"}
+                              </button>
+                            </div>
                           </div>
                           <p className={`mt-1 break-all font-mono text-[10px] ${revealed ? "text-danger" : "text-subtle"}`}>
                             {revealed || field.maskedValue || "미설정"}
                           </p>
                           <input
                             id={`${item.provider}-${field.key}`}
-                            type="password"
+                            type={visibleCredentialInputs[item.provider]?.[field.key] ? "text" : "password"}
                             autoComplete="new-password"
                             value={credentialInputs[item.provider]?.[field.key] || ""}
                             onChange={(event) => updateCredentialInput(item.provider, field.key, event.target.value)}
@@ -459,16 +453,6 @@ export default function OperatorCustomersPage() {
                     >
                       {busyProvider === item.provider ? "처리 중…" : item.credentialsConfigured ? "전체 세트 업데이트" : "전체 세트 저장"}
                     </button>
-                    {item.source === "env" && item.credentialsConfigured && !item.unavailableReason && (
-                      <button
-                        type="button"
-                        onClick={() => void importCredentialSet(item)}
-                        disabled={busyProvider === item.provider}
-                        className="rounded border border-accent/30 px-3 py-1.5 text-[11px] text-accent hover:bg-accent-soft disabled:opacity-50"
-                      >
-                        {busyProvider === item.provider ? "가져오는 중…" : "암호화 DB로 가져오기"}
-                      </button>
-                    )}
                     {item.source === "db" && !item.unavailableReason && (
                       <button
                         type="button"
