@@ -19,7 +19,7 @@ describe("operator central OAuth setup UI contract", () => {
     expect(page).toContain("navigator.clipboard.writeText");
   });
 
-  it("supports credential input/update plus DB-only reveal/hide with automatic raw-value clearing", () => {
+  it("supports credential input/update plus one-button reveal/hide with automatic raw-value clearing", () => {
     const oauthSection = page.slice(
       page.indexOf("중앙 OAuth 개발자 앱"),
       page.indexOf("Auth 가입자"),
@@ -30,23 +30,33 @@ describe("operator central OAuth setup UI contract", () => {
     expect(page).toContain("window.setTimeout");
     expect(page).toContain("setRevealedValues");
     expect(page).toContain("setCredentialInputs");
-    expect(oauthSection).toContain('item.source === "db"');
-    expect(oauthSection).not.toMatch(/item\.credentialsConfigured\s*\?\s*\([\s\S]{0,300}원문 확인/);
+    expect(oauthSection).toContain("item.credentialsConfigured");
+    expect(oauthSection).not.toContain('item.source === "db" && item.credentialsConfigured');
   });
 
-  it("marks env values as protected and offers an explicit confirmed import before DB-only reveal", () => {
+  it("marks env values as protected and imports them only inside the single reveal request", () => {
     const oauthSection = page.slice(
       page.indexOf("중앙 OAuth 개발자 앱"),
       page.indexOf("Auth 가입자"),
     );
     expect(oauthSection).toContain("환경변수로 보호");
-    expect(oauthSection).toContain("암호화 DB로 가져오기");
-    expect(page).toContain('action: "import-env"');
-    expect(page).toContain("window.confirm");
+    expect(oauthSection).not.toContain("암호화 DB로 가져오기");
+    expect(page).not.toContain('action: "import-env"');
+    expect(page).not.toContain("window.confirm");
     expect(page).toContain("await mutate()");
     expect(oauthSection).toContain('item.source === "env"');
-    expect(oauthSection).toContain('item.source === "db" && item.credentialsConfigured');
-    expect(page).not.toContain("자동으로 가져");
+    expect(page).toContain('action: "reveal"');
+  });
+
+  it("adds independent show/hide controls for pasted values while keeping every field hidden by default", () => {
+    const oauthSection = page.slice(
+      page.indexOf("중앙 OAuth 개발자 앱"),
+      page.indexOf("Auth 가입자"),
+    );
+    expect(oauthSection).toContain('type={visibleCredentialInputs');
+    expect(oauthSection).toContain("표시");
+    expect(oauthSection).toContain("숨김");
+    expect(oauthSection).toContain("toggleCredentialInputVisibility");
   });
 
   it("offers audited DB deletion and treats storage outages as recovery events rather than re-entry prompts", () => {

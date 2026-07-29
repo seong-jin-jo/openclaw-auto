@@ -61,7 +61,7 @@ function swrResult(provider = envProvider) {
   };
 }
 
-describe("operator OAuth env import UI lifecycle", () => {
+describe("operator OAuth credential UI lifecycle", () => {
   beforeEach(() => {
     localStorage.clear();
     localStorage.setItem("dashboard_auth_token", "operator-token");
@@ -74,34 +74,35 @@ describe("operator OAuth env import UI lifecycle", () => {
     vi.unstubAllGlobals();
   });
 
-  it("requires confirmation, posts only provider/action, refreshes metadata, then exposes DB-only reveal", async () => {
+  it("reveals a complete env set with one button/request and refreshes DB-backed metadata", async () => {
     const initial = swrResult();
     mocks.swr.mockReturnValue(initial);
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     const fetchMock = vi.fn().mockResolvedValue(Response.json({
-      ok: true,
       provider: "x",
       source: "db",
-      updatedAt: "2026-07-29T00:00:00.000Z",
+      values: { clientId: "raw-id", clientSecret: "raw-secret" },
+      imported: true,
     }));
     vi.stubGlobal("fetch", fetchMock);
 
     const view = render(<OperatorCustomersPage />);
     expect(screen.getByText(/환경변수로 보호/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "원문 확인" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "원문 확인" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "암호화 DB로 가져오기" })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "암호화 DB로 가져오기" }));
+    fireEvent.click(screen.getByRole("button", { name: "원문 확인" }));
     await waitFor(() => expect(initial.mutate).toHaveBeenCalledTimes(1));
-    expect(window.confirm).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith("/api/operator/oauth-credentials", expect.objectContaining({
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: "Bearer operator-token",
       },
-      body: JSON.stringify({ action: "import-env", provider: "x" }),
+      body: JSON.stringify({ action: "reveal", provider: "x" }),
       cache: "no-store",
     }));
+    expect(screen.getByText("raw-id")).toBeInTheDocument();
+    expect(screen.getByText("raw-secret")).toBeInTheDocument();
 
     mocks.swr.mockReturnValue(swrResult({
       ...envProvider,
@@ -109,19 +110,68 @@ describe("operator OAuth env import UI lifecycle", () => {
       updatedAt: "2026-07-29T00:00:00.000Z",
     }));
     view.rerender(<OperatorCustomersPage />);
-    expect(screen.queryByRole("button", { name: "암호화 DB로 가져오기" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "원문 확인" })).toBeInTheDocument();
+    expect(screen.getByText(/Admin DB에서 완전한 세트/)).toBeInTheDocument();
   });
 
-  it("does not import when the operator cancels confirmation", () => {
-    mocks.swr.mockReturnValue(swrResult());
-    vi.spyOn(window, "confirm").mockReturnValue(false);
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
+  it("toggles each pasted field independently and keeps values hidden by default", () => {
+    mocks.swr.mockReturnValue(swrResult({
+      ...envProvider,
+      complete: false,
+      credentialsConfigured: false,
+      missing: ["X_CLIENT_ID", "X_CLIENT_SECRET"],
+      fields: envProvider.fields.map((field) => ({ ...field, configured: false, maskedValue: null })),
+    }));
+    vi.stubGlobal("fetch", vi.fn());
 
     render(<OperatorCustomersPage />);
-    fireEvent.click(screen.getByRole("button", { name: "암호화 DB로 가져오기" }));
+    const clientId = screen.getByLabelText("Client ID");
+    const clientSecret = screen.getByLabelText("Client Secret");
+    expect(clientId).toHaveAttribute("type", "password");
+    expect(clientSecret).toHaveAttribute("type", "password");
 
-    expect(fetchMock).not.toHaveBeenCalled();
+    fireEvent.change(clientId, { target: { value: "pasted-id" } });
+    fireEvent.change(clientSecret, { target: { value: "pasted-secret" } });
+    fireEvent.click(screen.getByRole("button", { name: "Client ID 표시" }));
+    expect(clientId).toHaveAttribute("type", "text");
+    expect(clientSecret).toHaveAttribute("type", "password");
+    expect(screen.getByRole("button", { name: "Client ID 숨김" })).toBeInTheDocument();
+  });
+
+  it("saves a complete unset provider set, refreshes metadata, and shows a Korean card error on failure", async () => {
+    const unsetProvider = {
+      ...envProvider,
+      complete: false,
+      credentialsConfigured: false,
+      missing: ["X_CLIENT_ID", "X_CLIENT_SECRET"],
+      fields: envProvider.fields.map((field) => ({ ...field, configured: false, maskedValue: null })),
+    };
+    const initial = swrResult(unsetProvider);
+    mocks.swr.mockReturnValue(initial);
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json({ error: "암호화 키 또는 데이터베이스 연결이 설정되지 않았습니다." }, { status: 503 }))
+      .mockResolvedValueOnce(Response.json({ ok: true, provider: "x", updatedAt: "2026-07-30T00:00:00.000Z" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = render(<OperatorCustomersPage />);
+    fireEvent.change(screen.getByLabelText("Client ID"), { target: { value: "new-id" } });
+    fireEvent.change(screen.getByLabelText("Client Secret"), { target: { value: "new-secret" } });
+    fireEvent.click(screen.getByRole("button", { name: "전체 세트 저장" }));
+    expect(await screen.findByText("암호화 키 또는 데이터베이스 연결이 설정되지 않았습니다.")).toBeInTheDocument();
+    expect(initial.mutate).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "전체 세트 저장" }));
+    await waitFor(() => expect(initial.mutate).toHaveBeenCalledTimes(1));
+    expect(fetchMock).toHaveBeenLastCalledWith("/api/operator/oauth-credentials", expect.objectContaining({
+      method: "PUT",
+      body: JSON.stringify({ provider: "x", values: { clientId: "new-id", clientSecret: "new-secret" } }),
+    }));
+
+    mocks.swr.mockReturnValue(swrResult({
+      ...envProvider,
+      source: "db",
+      updatedAt: "2026-07-30T00:00:00.000Z",
+    }));
+    view.rerender(<OperatorCustomersPage />);
+    expect(screen.getByText(/Admin DB에서 완전한 세트/)).toBeInTheDocument();
   });
 });

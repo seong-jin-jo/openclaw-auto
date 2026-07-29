@@ -5,7 +5,8 @@ const H = vi.hoisted(() => ({
   imports: [] as string[],
   reveals: [] as string[],
   deletes: [] as string[],
-  revealSource: "db" as "db" | "env",
+  credentialSource: "db" as "db" | "env",
+  credentialsComplete: true,
   importFailure: null as null | "incomplete" | "already-db" | "unavailable",
 }));
 
@@ -20,8 +21,9 @@ vi.mock("@/lib/oauth-app-credentials", async () => {
         { key: "clientId", env: "X_CLIENT_ID", label: "Client ID", secret: false, configured: true, maskedValue: "••••••••" },
         { key: "clientSecret", env: "X_CLIENT_SECRET", label: "Client Secret", secret: true, configured: true, maskedValue: "••••••••" },
       ],
-      complete: true,
-      source: "db",
+      complete: H.credentialsComplete,
+      credentialsConfigured: H.credentialsComplete,
+      source: H.credentialSource,
       updatedAt: "2026-07-28T00:00:00.000Z",
       callbackUrl: "https://app.example/api/connect/x/callback",
       consoleUrl: "https://console.x.com/",
@@ -31,6 +33,8 @@ vi.mock("@/lib/oauth-app-credentials", async () => {
     }]),
     upsertOAuthCredentialSet: vi.fn(async (provider: string, values: Record<string, string>) => {
       H.upserts.push({ provider, values });
+      H.credentialSource = "db";
+      H.credentialsComplete = true;
       return { updatedAt: "2026-07-28T00:00:00.000Z" };
     }),
     importOAuthCredentialSetFromEnv: vi.fn(async (provider: string) => {
@@ -48,10 +52,10 @@ vi.mock("@/lib/oauth-app-credentials", async () => {
     }),
     revealOAuthCredentialSet: vi.fn(async (provider: string) => {
       H.reveals.push(provider);
-      if (H.revealSource === "env") {
-        throw new actual.OAuthCredentialSourceNotRevealableError();
-      }
-      return { provider, source: "db", values: { clientId: "raw-id", clientSecret: "raw-secret" } };
+      const imported = H.credentialSource === "env";
+      H.credentialSource = "db";
+      H.credentialsComplete = true;
+      return { provider, source: "db", values: { clientId: "raw-id", clientSecret: "raw-secret" }, imported };
     }),
     deleteOAuthCredentialSet: vi.fn(async (provider: string) => {
       H.deletes.push(provider);
@@ -69,7 +73,8 @@ beforeEach(() => {
   H.imports = [];
   H.reveals = [];
   H.deletes = [];
-  H.revealSource = "db";
+  H.credentialSource = "db";
+  H.credentialsComplete = true;
   H.importFailure = null;
 });
 
@@ -123,6 +128,29 @@ describe("/api/operator/oauth-credentials", () => {
     expect(res.headers.get("Cache-Control")).toContain("no-store");
   });
 
+  it("PUT for an unset provider makes the next metadata response complete and DB-backed", async () => {
+    H.credentialSource = "env";
+    H.credentialsComplete = false;
+    const { GET, PUT } = await import("@/app/api/operator/oauth-credentials/route");
+    const put = await PUT(new Request("https://app.example/api/operator/oauth-credentials", {
+      method: "PUT",
+      headers: operatorHeaders,
+      body: JSON.stringify({ provider: "x", values: { clientId: "new-id", clientSecret: "new-secret" } }),
+    }));
+    const get = await GET(new Request("https://app.example/api/operator/oauth-credentials", {
+      headers: operatorHeaders,
+    }));
+    const body = await get.json();
+
+    expect(put.status).toBe(200);
+    expect(get.status).toBe(200);
+    expect(body.providers[0]).toEqual(expect.objectContaining({
+      source: "db",
+      complete: true,
+      credentialsConfigured: true,
+    }));
+  });
+
   it("PUT rejects unknown providers, partial sets, unknown fields, and missing encryption key", async () => {
     const { PUT } = await import("@/app/api/operator/oauth-credentials/route");
     const bodies = [
@@ -163,21 +191,44 @@ describe("/api/operator/oauth-credentials", () => {
     expect(H.reveals).toEqual(["x"]);
   });
 
-  it("POST reveal refuses env-source credentials without returning raw values", async () => {
-    H.revealSource = "env";
+  it("POST reveal atomically imports env-source credentials and returns the DB reveal in one request", async () => {
+    H.credentialSource = "env";
     const { POST } = await import("@/app/api/operator/oauth-credentials/route");
     const res = await POST(new Request("https://app.example/api/operator/oauth-credentials", {
       method: "POST",
       headers: operatorHeaders,
       body: JSON.stringify({ action: "reveal", provider: "x" }),
     }));
-    const text = await res.text();
+    const body = await res.json();
 
-    expect(res.status).toBe(409);
+    expect(res.status).toBe(200);
     expect(res.headers.get("Cache-Control")).toContain("no-store");
-    expect(text).not.toContain("raw-id");
-    expect(text).not.toContain("raw-secret");
+    expect(body).toEqual({
+      provider: "x",
+      source: "db",
+      values: { clientId: "raw-id", clientSecret: "raw-secret" },
+      imported: true,
+    });
+    expect(H.reveals).toEqual(["x"]);
   });
+
+  it.each(["OSMU_SECRET_KEY", "DATABASE_URL"])(
+    "POST reveal fails closed with a Korean 503 reason when %s is unavailable",
+    async (name) => {
+      vi.stubEnv(name, "");
+      const { POST } = await import("@/app/api/operator/oauth-credentials/route");
+      const res = await POST(new Request("https://app.example/api/operator/oauth-credentials", {
+        method: "POST",
+        headers: operatorHeaders,
+        body: JSON.stringify({ action: "reveal", provider: "x" }),
+      }));
+      const body = await res.json();
+
+      expect(res.status).toBe(503);
+      expect(body.error).toMatch(/[가-힣]/);
+      expect(H.reveals).toEqual([]);
+    },
+  );
 
   it("POST import-env requires exact operator auth, explicit action, and returns no-store metadata without env values", async () => {
     const { POST } = await import("@/app/api/operator/oauth-credentials/route");

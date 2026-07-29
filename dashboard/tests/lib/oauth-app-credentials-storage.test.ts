@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const H = vi.hoisted(() => ({
   queries: [] as Array<{ sql: string; values: unknown[] }>,
   selectResult: [] as unknown[],
+  selectResults: [] as unknown[][],
   selectError: null as unknown,
   deleteResult: [] as unknown[],
   insertResult: [{ updated_at: "2026-07-28T00:00:00.000Z" }] as unknown[],
@@ -19,6 +20,7 @@ vi.mock("@/lib/db", () => {
       }
       if (sql.includes("FROM oauth_app_credentials")) {
         if (H.selectError) throw H.selectError;
+        if (H.selectResults.length > 0) return H.selectResults.shift();
         return H.selectResult;
       }
       if (sql.includes("INSERT INTO oauth_app_credentials")) {
@@ -44,6 +46,7 @@ beforeEach(() => {
   vi.stubEnv("X_CLIENT_SECRET", "env-secret");
   H.queries = [];
   H.selectResult = [];
+  H.selectResults = [];
   H.selectError = null;
   H.deleteResult = [];
   H.insertResult = [{ updated_at: "2026-07-28T00:00:00.000Z" }];
@@ -151,17 +154,58 @@ describe("OAuth credential encrypted storage and audit", () => {
     expect(audit?.values).toEqual(["x"]);
   });
 
-  it("never reveals env-source credentials and does not create a reveal audit row", async () => {
-    H.selectResult = [];
-    const {
-      OAuthCredentialSourceNotRevealableError,
-      revealOAuthCredentialSet,
-    } = await import("@/lib/oauth-app-credentials");
+  it("atomically imports a complete env set and reveals the DB round-trip with both secret-free audits", async () => {
+    H.selectResults = [
+      [],
+      [{
+        provider: "x",
+        client_id: "env-id",
+        client_secret: "env-secret",
+        config_id: null,
+        updated_at: "2026-07-30T00:00:00.000Z",
+      }],
+    ];
+    const { revealOAuthCredentialSet } = await import("@/lib/oauth-app-credentials");
 
-    await expect(revealOAuthCredentialSet("x")).rejects.toBeInstanceOf(
-      OAuthCredentialSourceNotRevealableError,
-    );
-    expect(H.queries.some((query) => query.sql.includes("oauth_credential_audit"))).toBe(false);
+    const result = await revealOAuthCredentialSet("x");
+
+    expect(result).toEqual({
+      provider: "x",
+      source: "db",
+      values: { clientId: "env-id", clientSecret: "env-secret" },
+      imported: true,
+    });
+    expect(H.beginCount).toBe(1);
+    const insert = H.queries.find((query) => query.sql.includes("INSERT INTO oauth_app_credentials"));
+    expect(insert?.sql).toContain("ON CONFLICT (provider) DO NOTHING");
+    const audits = H.queries.filter((query) => query.sql.includes("oauth_credential_audit"));
+    expect(audits).toHaveLength(2);
+    expect(audits[0]?.sql).toContain("'import'");
+    expect(audits[1]?.sql).toContain("'reveal'");
+    expect(JSON.stringify(audits)).not.toContain("env-secret");
+  });
+
+  it("reveals an existing DB set without overwriting it from env", async () => {
+    H.selectResult = [{
+      provider: "x",
+      client_id: "db-id",
+      client_secret: "db-secret",
+      config_id: null,
+      updated_at: "2026-07-30T00:00:00.000Z",
+    }];
+    const { revealOAuthCredentialSet } = await import("@/lib/oauth-app-credentials");
+
+    const result = await revealOAuthCredentialSet("x");
+
+    expect(result).toEqual(expect.objectContaining({
+      source: "db",
+      values: { clientId: "db-id", clientSecret: "db-secret" },
+      imported: false,
+    }));
+    expect(H.queries.some((query) => query.sql.includes("INSERT INTO oauth_app_credentials"))).toBe(false);
+    const audits = H.queries.filter((query) => query.sql.includes("oauth_credential_audit"));
+    expect(audits).toHaveLength(1);
+    expect(audits[0]?.sql).toContain("'reveal'");
   });
 
   it("bulk-resolves every requested provider with one decrypt query while preserving env fallback per missing row", async () => {
