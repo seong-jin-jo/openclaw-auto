@@ -42,6 +42,45 @@ describe("operator GET authentication handling", () => {
     window.removeEventListener("auth:required", onAuthRequired);
   });
 
+  it("customer JWT 401 requests Google/Supabase reauthentication instead of the Auth Token modal", async () => {
+    const jwt = `${"a".repeat(24)}.${"b".repeat(24)}.${"c".repeat(24)}`;
+    localStorage.setItem("dashboard_auth_token", jwt);
+    const onCustomerReauth = vi.fn();
+    const onManualToken = vi.fn();
+    window.addEventListener("auth:customer-reauth-required", onCustomerReauth);
+    window.addEventListener("auth:required", onManualToken);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 401 })));
+
+    await expect(fetcher("/api/images")).rejects.toMatchObject({ name: "AuthRequiredError" });
+    expect(onCustomerReauth).toHaveBeenCalledTimes(1);
+    expect(onManualToken).not.toHaveBeenCalled();
+
+    window.removeEventListener("auth:customer-reauth-required", onCustomerReauth);
+    window.removeEventListener("auth:required", onManualToken);
+  });
+
+  it("stale customer JWT 401 cannot reauthenticate or clear a newer customer session", async () => {
+    const oldJwt = `${"a".repeat(24)}.${"b".repeat(24)}.${"c".repeat(24)}`;
+    const newJwt = `${"d".repeat(24)}.${"e".repeat(24)}.${"f".repeat(24)}`;
+    localStorage.setItem("dashboard_auth_token", oldJwt);
+    const onCustomerReauth = vi.fn();
+    window.addEventListener("auth:customer-reauth-required", onCustomerReauth);
+    let resolveRequest!: (response: Response) => void;
+    vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise<Response>((resolve) => {
+      resolveRequest = resolve;
+    })));
+
+    const request = fetcher("/api/images");
+    setAuthToken(newJwt);
+    resolveRequest(new Response(null, { status: 401 }));
+
+    await expect(request).rejects.toMatchObject({ name: "AuthRequiredError" });
+    expect(localStorage.getItem("dashboard_auth_token")).toBe(newJwt);
+    expect(onCustomerReauth).not.toHaveBeenCalled();
+
+    window.removeEventListener("auth:customer-reauth-required", onCustomerReauth);
+  });
+
   it.each([
     { label: "an unauthenticated pre-login request", requestToken: "", expectedHeaders: {} },
     {

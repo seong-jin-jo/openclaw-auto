@@ -14,11 +14,8 @@ interface ImageItem {
 
 export default function ImagesPage() {
   const { data, mutate } = useSWR<ImageItem[]>("/api/images", fetcher);
-  const { data: r2Data } = useSWR("/api/r2-config", fetcher);
   const { showToast } = useToast();
   const images = data || [];
-  const r2 = (r2Data || {}) as Record<string, string>;
-  const r2Connected = !!(r2.bucket && r2.accessKeyId);
 
   const handleCopyUrl = (url: string) => {
     const full = /^https?:\/\//i.test(url) ? url : window.location.origin + url;
@@ -41,19 +38,7 @@ export default function ImagesPage() {
           <h2 className="text-xl font-bold text-text">Images</h2>
           <p className="text-sm text-subtle mt-1">{images.length}개 이미지 — AI 생성 이미지 갤러리</p>
         </div>
-        <span className={`text-[10px] px-2 py-1 rounded ${r2Connected ? "bg-green-900/40 text-green-400" : "bg-yellow-900/40 text-yellow-400"}`}>
-          {r2Connected ? "R2 Connected" : "R2 Not configured"}
-        </span>
       </div>
-
-      {!r2Connected && (
-        <div className="card p-4 mb-6 border-yellow-800/30 bg-yellow-900/10">
-          <p className="text-[10px] text-yellow-400">
-            R2 Storage 미설정 — 이미지 발행이 안 됩니다.{" "}
-            <a href="/settings" className="text-accent hover:underline cursor-pointer">Settings &gt; Storage</a>에서 설정하세요.
-          </p>
-        </div>
-      )}
 
       {images.length === 0 ? (
         <div className="card p-12 text-center">

@@ -13,11 +13,6 @@ export const setupGuides: Record<string, SetupGuide> = {
     ],
     detail:
       '추천: 위 "Threads 연결" 버튼이면 끝납니다(비번·토큰 입력 없이 공식 로그인, 토큰 자동 발급·갱신). 직접 토큰 입력은 고급 사용자용 — ⚠️ User ID에 앱 ID(짧은 숫자)를 넣으면 발행 실패, Threads 계정 고유번호(긴 숫자)를 넣으세요.',
-    // TODO(에셋): 아래 경로에 실제 콘솔 스크린샷을 넣으면 자동 표시됨(없으면 텍스트만). public/onboarding/threads/*
-    images: [
-      { src: "/onboarding/threads/1-app.png", alt: "Threads API 앱 생성 화면" },
-      { src: "/onboarding/threads/2-token.png", alt: "Long-lived Access Token 발급 화면" },
-    ],
   },
   x: {
     fields: ["apiKey", "apiKeySecret", "accessToken", "accessTokenSecret"],
@@ -30,11 +25,6 @@ export const setupGuides: Record<string, SetupGuide> = {
       "왼쪽 폼에 4개 키 입력 &gt; Connect",
     ],
     detail: "* 권한 변경 후 반드시 액세스 토큰을 재생성해야 합니다",
-    // TODO(에셋): public/onboarding/x/*
-    images: [
-      { src: "/onboarding/x/1-app-permissions.png", alt: "X 앱 권한 Read and write 설정" },
-      { src: "/onboarding/x/2-keys.png", alt: "Keys and tokens 4개 키 발급" },
-    ],
   },
   facebook: {
     fields: ["accessToken", "pageId"],
@@ -70,11 +60,6 @@ export const setupGuides: Record<string, SetupGuide> = {
     ],
     detail:
       '추천: 위 "Instagram 연결" 버튼이면 끝(공식 로그인, 비번·토큰 우리 안 받음, 자동 발급·갱신). 단 Instagram이 프로페셔널 계정이어야 함. 직접 입력(고급) 시 ⚠️ 앱 ID ≠ User ID — instagram_business_account.id를 넣으세요. 지원: 단일/캐러셀(2~10장)/릴스.',
-    // TODO(에셋): public/onboarding/instagram/*
-    images: [
-      { src: "/onboarding/instagram/1-business.png", alt: "Instagram 프로페셔널 계정 전환" },
-      { src: "/onboarding/instagram/2-userid.png", alt: "instagram_business_account.id 확인" },
-    ],
   },
   linkedin: {
     fields: ["accessToken", "personUrn"],

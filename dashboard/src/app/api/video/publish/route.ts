@@ -201,8 +201,25 @@ export async function POST(request: Request) {
           body: videoData,
           signal: AbortSignal.timeout(120000),
         });
-        const result = await uploadRes.json();
-        const videoId = result.id || "";
+        if (!uploadRes.ok) {
+          return Response.json(
+            { error: `YouTube 영상 업로드 실패 (오류 코드 ${uploadRes.status}).` },
+            { status: 502 },
+          );
+        }
+        let result: unknown;
+        try {
+          result = await uploadRes.json();
+        } catch {
+          return Response.json({ error: "YouTube 업로드 응답을 확인할 수 없습니다." }, { status: 502 });
+        }
+        const videoId =
+          result && typeof result === "object" && typeof (result as { id?: unknown }).id === "string"
+            ? (result as { id: string }).id.trim()
+            : "";
+        if (!videoId) {
+          return Response.json({ error: "YouTube 업로드 결과에 영상 ID가 없습니다." }, { status: 502 });
+        }
 
         return Response.json({
           ok: true,

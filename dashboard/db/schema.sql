@@ -244,9 +244,15 @@ CREATE TABLE IF NOT EXISTS oauth_app_credentials (
 CREATE TABLE IF NOT EXISTS oauth_credential_audit (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   provider    TEXT NOT NULL,
-  action      TEXT NOT NULL CHECK (action IN ('update', 'reveal', 'delete')),
+  action      TEXT NOT NULL CHECK (action IN ('update', 'import', 'reveal', 'delete')),
   occurred_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- 기존 배포의 CHECK에도 env→암호화 DB 가져오기 감사를 additive하게 허용한다.
+ALTER TABLE oauth_credential_audit
+  DROP CONSTRAINT IF EXISTS oauth_credential_audit_action_check;
+ALTER TABLE oauth_credential_audit
+  ADD CONSTRAINT oauth_credential_audit_action_check
+  CHECK (action IN ('update', 'import', 'reveal', 'delete'));
 CREATE INDEX IF NOT EXISTS idx_oauth_credential_audit_provider_time
   ON oauth_credential_audit(provider, occurred_at DESC);
 

@@ -2,7 +2,12 @@
 
 import { useRef, useState, useEffect, useCallback } from "react";
 import useSWR from "swr";
-import { fetcher, apiPost } from "@/lib/api";
+import {
+  fetcher,
+  apiPost,
+  isExternalPublishPersistenceError,
+  type ExternalPublishPersistenceFailure,
+} from "@/lib/api";
 import { useToast } from "@/components/layout/Toast";
 import { PlatformPreview, type PreviewPlatform } from "@/components/studio/PlatformPreview";
 import { useUIStore } from "@/store/ui-store";
@@ -27,6 +32,7 @@ interface TextVariants {
 interface ImgResult { url: string; file: string; localPath: string }
 interface VidResult { url: string; file: string; model: string }
 type PubStatus = "wait" | "doing" | "done";
+type PublishReconciliation = ExternalPublishPersistenceFailure["persistence"]["reconciliation"];
 
 const GROUPS: { title: string; platforms: PreviewPlatform[] }[] = [
   { title: "✍️ 텍스트", platforms: ["threads", "x", "facebook"] },
@@ -76,6 +82,7 @@ export default function StudioPage() {
   const [img, setImg] = useState<ImgResult | null>(null);
   const [vid, setVid] = useState<VidResult | null>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
+  const [publishReconciliation, setPublishReconciliation] = useState<PublishReconciliation | null>(null);
   const [includes, setIncludes] = useState<Record<string, boolean>>(Object.fromEntries(ALL.map((p) => [p, true])));
   const [editing, setEditing] = useState<PreviewPlatform | null>(null);
   const [showTx, setShowTx] = useState(false);
@@ -135,14 +142,15 @@ export default function StudioPage() {
         const w = JSON.parse(raw);
         setIdea(w.idea || ""); setText(w.text || null); setImg(w.img || null); setVid(w.vid || null);
         if (w.includes) setIncludes(w.includes); setDraftId(w.draftId || null);
+        setPublishReconciliation(w.publishReconciliation || null);
       }
     } catch { /* noop */ }
     setHydrated(true);
   }, []);
   useEffect(() => {
     if (!hydrated) return; // 첫 렌더(복원 전) 빈 상태로 덮어쓰기 방지
-    try { localStorage.setItem("studio_work", JSON.stringify({ idea, text, img, vid, includes, draftId })); } catch { /* noop */ }
-  }, [hydrated, idea, text, img, vid, includes, draftId]);
+    try { localStorage.setItem("studio_work", JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliation })); } catch { /* noop */ }
+  }, [hydrated, idea, text, img, vid, includes, draftId, publishReconciliation]);
 
   const media = { imgUrl: img?.file, vidUrl: vid?.file };
   const upText = (patch: Partial<TextVariants>) => setText((p) => ({ ...(p || {}), ...patch }));
@@ -173,7 +181,7 @@ export default function StudioPage() {
   async function runOSMU() {
     if (!idea.trim()) { showToast("글감을 입력하세요", "error"); return; }
     setLastError(null);
-    setText(null); setImg(null); setVid(null); setDraftId(null);
+    setText(null); setImg(null); setVid(null); setDraftId(null); setPublishReconciliation(null);
     try {
       setBusy("텍스트 변형 생성 중..."); const t = await genText(); if (!t) return;
       setBusy("히어로 이미지 생성 중..."); const image = await genImage(t.image_prompt || idea);
@@ -198,8 +206,22 @@ export default function StudioPage() {
       showToast(e instanceof Error ? e.message : "자동초안 생성 실패", "error");
     } finally { setAutoGen(false); }
   }
-  async function save(status: "draft" | "published" | "stopped" = "draft") {
-    const r = await apiPost<{ id?: string }>("/api/studio/drafts", { tenant_id: activeWorkspace?.id, id: draftId, idea, text, img, vid, includes, status, publishedAt: status === "published" ? new Date().toISOString() : undefined });
+  async function save(
+    status: "draft" | "published" | "partial" | "stopped" = "draft",
+    reconciliation: PublishReconciliation | null = publishReconciliation,
+  ) {
+    const r = await apiPost<{ id?: string }>("/api/studio/drafts", {
+      tenant_id: activeWorkspace?.id,
+      id: draftId,
+      idea,
+      text,
+      img,
+      vid,
+      includes,
+      status,
+      publishReconciliation: reconciliation,
+      publishedAt: status === "published" ? new Date().toISOString() : undefined,
+    });
     if (r?.id) setDraftId(r.id); mutateHist(); return r?.id;
   }
   // 플랫폼별 발행 텍스트 추출
@@ -214,6 +236,10 @@ export default function StudioPage() {
   async function publish() {
     if (!text) return;
     if (!activeWorkspace) { showToast("워크스페이스를 선택하세요", "error"); return; }
+    if (publishReconciliation?.retryPublish === false) {
+      showToast("외부 게시가 이미 완료된 항목입니다. 재발행하지 말고 내부 기록을 먼저 복구하세요.", "error");
+      return;
+    }
     const did = await save("draft");
     const targets = ALL.filter((p) => includes[p]);
     if (!targets.length) { showToast("발행할 플랫폼을 선택하세요", "error"); return; }
@@ -221,6 +247,7 @@ export default function StudioPage() {
     const status: Record<string, PubStatus> = {}; targets.forEach((p) => (status[p] = "wait"));
     const urls: Record<string, string> = {};
     const errs: string[] = [];
+    let pendingReconciliation: PublishReconciliation | null = null;
     setPub({ running: true, status: { ...status }, urls: {} });
     for (const p of targets) {
       if (cancelRef.current) break;
@@ -236,11 +263,33 @@ export default function StudioPage() {
         });
         if (r?.ok) { urls[p] = r.permalink || POST_URL[p] || "#"; trackEvent({ name: "publish_success", params: { channel: p as AnalyticsChannel } }); }
         else errs.push(`${LABEL[p]}: ${r?.error || "실패"}`);
-      } catch (e) { errs.push(`${LABEL[p]}: ${e instanceof Error ? e.message : "오류"}`); }
+      } catch (e) {
+        if (isExternalPublishPersistenceError(e)) {
+          pendingReconciliation = e.payload.persistence.reconciliation;
+          setPublishReconciliation(pendingReconciliation);
+          if (e.payload.permalink) urls[p] = e.payload.permalink;
+          errs.push(`${LABEL[p]}: 외부 게시 완료·내부 기록 복구 필요 (재발행 금지)`);
+        } else {
+          errs.push(`${LABEL[p]}: ${e instanceof Error ? e.message : "오류"}`);
+        }
+      }
       status[p] = "done"; setPub({ running: true, status: { ...status }, urls: { ...urls } });
+      if (pendingReconciliation) break;
     }
     const stopped = cancelRef.current; setPub({ running: false, status: { ...status }, urls: { ...urls } });
-    await save(stopped ? "stopped" : "published");
+    if (pendingReconciliation) {
+      try {
+        await save("partial", pendingReconciliation);
+      } catch {
+        // The same storage incident can prevent the draft write too. The state was
+        // already copied to localStorage-bound React state, so keep the no-republish
+        // guard active and tell the operator that server-side recovery metadata is absent.
+        errs.push("복구 정보 서버 저장 실패·현재 브라우저에만 보존됨");
+      }
+    } else {
+      await save(stopped ? "stopped" : "published", null);
+      if (!stopped) setPublishReconciliation(null);
+    }
     if (stopped) showToast("발행 중지됨", "error");
     else if (errs.length) showToast(`발행 결과 — ${errs.join(" / ")}`.slice(0, 180), "error");
     else showToast("발행 완료 ✓", "success");
@@ -249,7 +298,13 @@ export default function StudioPage() {
     setIdea((d.idea as string) || ""); setText((d.text as TextVariants) || null);
     setImg((d.img as ImgResult) || null); setVid((d.vid as VidResult) || null);
     setIncludes((d.includes as Record<string, boolean>) || includes); setDraftId(d.id as string);
-    showToast("불러옴 — 수정 후 재발행 가능", "success");
+    setPublishReconciliation((d.publishReconciliation as PublishReconciliation) || null);
+    showToast(
+      d.publishReconciliation
+        ? "외부 게시 완료·내부 기록 복구 필요 — 재발행 금지"
+        : "불러옴 — 수정 후 재발행 가능",
+      d.publishReconciliation ? "error" : "success",
+    );
   }
   const pubPct = (() => { const v = Object.values(pub.status); return v.length ? Math.round((v.filter((s) => s === "done").length / v.length) * 100) : 0; })();
   const LABEL: Record<string, string> = { threads: "Threads", x: "X", facebook: "Facebook", instagram: "Instagram", shorts: "Shorts", reels: "Reels", tiktok: "TikTok" };
@@ -385,7 +440,7 @@ export default function StudioPage() {
             {(hist?.drafts || []).map((d) => (
               <div key={String(d.id)} className="border-t border-border py-2">
                 <div className="text-xs text-muted truncate">{String(d.idea || "(없음)")}</div>
-                <div className="text-[10px] text-subtle">{String(d.savedAt || "").slice(5, 16).replace("T", " ")} · {d.status === "published" ? "✅" : d.status === "stopped" ? "⏸" : "📝"}</div>
+                <div className="text-[10px] text-subtle">{String(d.savedAt || "").slice(5, 16).replace("T", " ")} · {d.status === "published" ? "✅" : d.status === "partial" ? "⚠️ 복구 필요·재발행 금지" : d.status === "stopped" ? "⏸" : "📝"}</div>
                 <button onClick={() => loadDraft(d)} className="mt-1 text-[10px] px-2 py-0.5 bg-surface-2 text-muted rounded">불러오기</button>
               </div>
             ))}

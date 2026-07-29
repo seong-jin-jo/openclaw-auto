@@ -42,11 +42,25 @@ GStack 브라우저로 Meta 콘솔을 운전하는 건 **우리 자신의 계정
 - 기본 조회는 source(DB/env), 설정 여부, 마스킹 값, 갱신시각만 반환한다. 원문은 정확한 운영자
   Bearer를 다시 요구하는 explicit reveal에서만 no-store 응답으로 반환하고 30초 뒤 UI 메모리에서
   지운다. update/reveal은 `oauth_credential_audit`에 secret 없이 기록한다.
+- 기존 운영 환경변수 세트의 원문은 HTTP reveal로 반환하지 않는다. Admin에서 운영자가
+  `암호화 DB로 가져오기`를 확인한 경우에만 서버가 해당 provider의 **완전한 env 세트 전체**를
+  `oauth_app_credentials`에 암호화 INSERT하고 secret 없는 `import` 감사 행을 같은 트랜잭션에
+  기록한다. 기존 DB 행은 덮어쓰지 않으며, env 일부 누락·DB/암호화 키 장애에서는 아무 필드도
+  저장하거나 혼합하지 않는다. 성공 후 metadata source가 DB로 바뀐 뒤 기존 DB-only reveal을 쓴다.
 - 런타임은 `resolveOAuthCredentialSet()`만 사용한다. DB 완전 세트 우선 → DB 행이 없으면 기존 env
   완전 세트 fallback → DB 일부만 있으면 env와 섞지 않고 fail-closed다.
 - 2026-07-26의 “Admin은 secret 이름/준비상태만 표시하고 원문 입력을 받지 않는다” 운영 결정은
   회장의 2026-07-28 명시 지시로 이 절에서 대체됐다. 고객 UI/tenant token에는 중앙 입력·조회
   endpoint를 노출하지 않는 원칙은 유지한다.
+
+보안 벤치마크:
+- OWASP Secrets Management Cheat Sheet의 최소권한, 암호화 저장, secret 비로깅, lifecycle 감사
+  원칙을 차용했다:
+  https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html
+- 민감 응답 캐시 방지는 OWASP REST Security Cheat Sheet의 `Cache-Control: no-store`를 적용했다:
+  https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html
+- 차별화: env secret을 브라우저로 먼저 reveal한 뒤 재전송하지 않고, 서버 내부에서 provider 전체
+  세트를 원자적으로 암호화 DB에 이동시켜 HTTP 노출면과 필드 혼합 가능성을 함께 제거했다.
 
 ## 계정 전환·provider 세션 경계 (2026-07-24 보강)
 

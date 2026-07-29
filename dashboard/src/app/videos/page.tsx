@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import useSWR from "swr";
-import { fetcher, apiPost } from "@/lib/api";
-import { authHeaders } from "@/lib/auth";
+import { fetcher, apiPost, handleUnauthorizedResponse } from "@/lib/api";
+import { authHeaders, getAuthToken } from "@/lib/auth";
 import { useToast } from "@/components/layout/Toast";
 import { useUIStore } from "@/store/ui-store";
 
@@ -209,9 +209,13 @@ export default function VideosPage() {
     const poll = async () => {
       await Promise.all(entries.map(async ([filename, publishId]) => {
         try {
-          const response = await fetch(`/api/tiktok/publish-status?publish_id=${encodeURIComponent(publishId)}`, { headers: authHeaders() });
+          const requestToken = getAuthToken();
+          const response = await fetch(
+            `/api/tiktok/publish-status?publish_id=${encodeURIComponent(publishId)}`,
+            { headers: requestToken ? { Authorization: `Bearer ${requestToken}` } : {} },
+          );
           if (response.status === 401) {
-            window.dispatchEvent(new CustomEvent("auth:required"));
+            handleUnauthorizedResponse(requestToken, false);
             return;
           }
           const body = await response.json() as { ok?: boolean; status?: string; url?: string; error?: string };

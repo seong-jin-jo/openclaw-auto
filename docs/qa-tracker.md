@@ -2,6 +2,46 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-07-29 고객 운영 플로우 차단 결함 — 독립 QA
+
+**판정:** 로컬 제품 QA PASS. 운영 배포·실브라우저는 미검증이므로 ship PASS가 아니다.
+
+- tests-first RED: 최초 고객 경계/외부 실패 20건, 첫 독립 QA가 찾은 회귀 10건,
+  AuthGate `SIGNED_OUT` micro-race 2건을 각각 실제 실패로 관찰했다.
+- 최종 focused auth/영향 회귀 57/57, 독립 계약 감사 9/9, 전체 dashboard 115 files
+  948 PASS/10 DB-env skip, `tsc --noEmit`, Next.js webpack production build 166/166,
+  `git diff --check`가 통과했다.
+- 고객 화면은 operator-only global cron/token/secret/file API를 더 이상 요청하지 않으며 Proxy
+  allowlist는 변경하지 않았다. tenant-safe 자동화는 `/api/channel-settings/{channel}`로 유지한다.
+  연결된 Instagram Editor는 global `/api/design-tools` 없이 core editor·queue 기능을 유지하고,
+  global Figma push/import만 숨긴다. setup guide의 존재하지 않는 image reference는 0개다.
+- AuthGate는 401 reauth owner token과 local-scope sign-out으로 이전 요청의 늦은
+  `SIGNED_OUT`가 갱신된 Google/Supabase JWT를 지우지 못하게 한다. owner 없는 정상 고객
+  `SIGNED_OUT`과 operator token 경로는 기존대로 동작한다.
+- YouTube upload와 Telegram/Discord/Slack/LINE notification 실패는 HTTP/body/ID 계약을
+  fail-closed로 판정한다.
+- **미검증:** 실제 운영 다중 탭 auth interleaving, 고객/운영자 전체 route matrix, 외부 provider
+  전송, Admin OAuth UI 저장→마스킹→reveal→delete, DB 환경 의존 10 tests.
+- **하네스 상태:** Codex 환경에 qa/browse/verify Skill이 없어 QA 역할 품질 skill gate는 FAIL.
+  제품 판정은 독립 diff·테스트·TypeScript·production build 증거로만 PASS했다.
+
+## 2026-07-29 기존 OAuth env 자격증명 확인 + 발행 부분성공 계약
+
+**판정:** 통합 로컬 제품 QA PASS, 운영·실 DB 미검증으로 ship 보류.
+
+- 운영 제보 URL은 `raw/inbox/2026-07-29-admin-oauth-credential-visibility-url.md`에 보존했다.
+- env credential은 HTTP로 reveal하지 않고 operator explicit action으로 암호화 DB에 전체 세트를
+  원자적 import한다. 기존 DB 미덮어쓰기, incomplete/already-DB/store-unavailable fail-closed,
+  secret-free audit, no-store API/UI lifecycle 계약을 테스트했다.
+- 외부 게시 성공+내부 기록 실패는 HTTP 500과 `externalPublished:true`,
+  `retryPublish:false`, 안정된 persistence/reconciliation metadata를 반환한다. external id와
+  permalink를 보존하고 Studio success analytics·중복 외부 재발행을 차단한다.
+- 독립 통합 검증: focused 48 files 464 PASS/2 skip, 전체 117 files 966 PASS/10 DB-env skip,
+  TypeScript, webpack 166/166, diff check, conflict marker, secret scan PASS.
+- **미검증:** 운영 schema audit `import` constraint 적용, 실 transaction rollback, Admin
+  import→DB metadata→30초 reveal→hide, 실제 provider success 뒤 DB/queue 장애 복구.
+- **하네스:** qa/browse/verify Skill 미설치와 실브라우저/DB 도구 부재로 ship 증거는 아니다.
+
 ## 2026-07-28 Admin 중앙 OAuth credential manager
 
 **상태 전이:** ❌ NG(중앙 credential 8/12 미등록인데 Admin 입력/수정 경로 없음) → 🔧 build

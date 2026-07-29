@@ -200,6 +200,52 @@ export default function OperatorCustomersPage() {
     }
   }
 
+  async function importCredentialSet(item: OAuthProviderStatus) {
+    if (
+      busyProvider
+      || item.source !== "env"
+      || !item.credentialsConfigured
+      || item.unavailableReason
+    ) return;
+    if (!window.confirm(
+      `${item.label}의 완전한 서버 환경변수 세트를 암호화 DB로 가져올까요?\n`
+      + "값은 화면이나 응답에 표시되지 않으며, 가져온 뒤에만 운영자 원문 확인을 사용할 수 있습니다.",
+    )) return;
+    const provider = item.provider;
+    setBusyProvider(provider);
+    setOauthActionMsg((current) => ({ ...current, [provider]: "" }));
+    try {
+      const res = await fetch("/api/operator/oauth-credentials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ action: "import-env", provider }),
+        cache: "no-store",
+      });
+      const body = await res.json().catch(() => ({})) as { error?: string };
+      if (!res.ok) {
+        setOauthActionMsg((current) => ({
+          ...current,
+          [provider]: body.error || `가져오기 실패 ${res.status}`,
+        }));
+        return;
+      }
+      hideCredentialValues(provider);
+      setCredentialInputs((current) => ({ ...current, [provider]: {} }));
+      await mutate();
+      setOauthActionMsg((current) => ({
+        ...current,
+        [provider]: "암호화 DB로 가져왔습니다. 이제 원문 확인을 사용할 수 있습니다.",
+      }));
+    } catch {
+      setOauthActionMsg((current) => ({
+        ...current,
+        [provider]: "환경변수 가져오기 요청에 실패했습니다.",
+      }));
+    } finally {
+      setBusyProvider(null);
+    }
+  }
+
   async function deleteCredentialSet(item: OAuthProviderStatus) {
     if (busyProvider || item.source !== "db" || item.unavailableReason) return;
     if (!window.confirm(`${item.label}의 Admin DB 저장값을 삭제하고 운영 환경변수 fallback으로 되돌릴까요?`)) return;
@@ -313,7 +359,9 @@ export default function OperatorCustomersPage() {
                     {item.unavailableReason
                       ? "자격증명 저장소 장애입니다. 기존 값을 다시 입력하지 마세요. DB 복구 후 새로고침하세요."
                       : item.credentialsConfigured
-                        ? `${item.source === "db" ? "Admin DB" : "운영 환경변수"}에서 완전한 세트 확인`
+                        ? item.source === "db"
+                          ? "Admin DB에서 완전한 세트 확인"
+                          : "완전한 세트가 환경변수로 보호되어 있습니다. 원문은 HTTP로 직접 표시하지 않습니다."
                         : `미설정/불완전: ${item.missing.join(", ")}`}
                   </p>
                   <p className="mt-1 text-[10px] text-subtle">출처 {item.source.toUpperCase()} · 갱신 {fmtDate(item.updatedAt)}</p>
@@ -411,6 +459,16 @@ export default function OperatorCustomersPage() {
                     >
                       {busyProvider === item.provider ? "처리 중…" : item.credentialsConfigured ? "전체 세트 업데이트" : "전체 세트 저장"}
                     </button>
+                    {item.source === "env" && item.credentialsConfigured && !item.unavailableReason && (
+                      <button
+                        type="button"
+                        onClick={() => void importCredentialSet(item)}
+                        disabled={busyProvider === item.provider}
+                        className="rounded border border-accent/30 px-3 py-1.5 text-[11px] text-accent hover:bg-accent-soft disabled:opacity-50"
+                      >
+                        {busyProvider === item.provider ? "가져오는 중…" : "암호화 DB로 가져오기"}
+                      </button>
+                    )}
                     {item.source === "db" && !item.unavailableReason && (
                       <button
                         type="button"

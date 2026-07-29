@@ -34,8 +34,13 @@ This is the reference for all persistent state. Most data is tenant-scoped for S
 - `oauth_app_credentials` is global operator state, not tenant data. It has one row per provider and
   stores Client ID, Client Secret, and the provider-specific configuration ID (Facebook only) as
   individually armored `pgp_sym_encrypt` values using `OSMU_SECRET_KEY`.
-- `oauth_credential_audit` records only provider, `update`/`reveal`/`delete` action, and timestamp.
+- `oauth_credential_audit` records only provider, `update`/`import`/`reveal`/`delete` action, and timestamp.
   It has no secret, masked value, request body, tenant, or customer-visible policy.
+- A complete legacy env set can be moved to encrypted storage only by the exact operator-authenticated
+  `import-env` action. The server inserts the whole provider set with `ON CONFLICT DO NOTHING` and writes
+  a secret-free `import` audit row in the same transaction. It never returns env values over HTTP,
+  overwrites an existing DB row, or combines partial env and DB fields. Missing env fields,
+  `DATABASE_URL`, `OSMU_SECRET_KEY`, or DB availability fail closed before any usable mixed set exists.
 - Both tables use `ENABLE/FORCE ROW LEVEL SECURITY` with no customer policy. They are deliberately
   excluded from the tenant policy loop, so `withTenant()`/`osmu_service` cannot read or mutate them.
 - `resolveOAuthCredentialSet()` is the only runtime lookup path. A complete DB set wins. With no DB row,

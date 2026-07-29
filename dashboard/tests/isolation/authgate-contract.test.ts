@@ -10,8 +10,10 @@ import { SCHEDULABLE_PLATFORMS, SCHEDULABLE_PLATFORM_LABELS } from "../../src/li
 const SRC = readFileSync(resolve(__dirname, "../../src/components/shared/AuthGate.tsx"), "utf-8");
 
 describe("AuthGate — fail-open 회귀 방지 계약(소스 기반)", () => {
-  it("poll()의 401 분기는 auth_error로 설정하고 ok로 fail-open하지 않는다", () => {
-    expect(SRC).toMatch(/res\.status === 401[\s\S]{0,200}setGateStatus\("auth_error"\)/);
+  it("poll()의 401 분기는 역할별 재인증으로 닫히고 ok로 fail-open하지 않는다", () => {
+    const branch = SRC.match(/res\.status === 401([\s\S]{0,240})return;/)?.[1] || "";
+    expect(branch).toContain("reauthenticateCurrentIdentity");
+    expect(branch).not.toContain('setGateStatus("ok")');
   });
 
   it("poll()의 !res.ok(403/5xx 등) 분기는 service_error로 설정하고 ok로 fail-open하지 않는다", () => {

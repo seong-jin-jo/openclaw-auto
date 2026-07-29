@@ -23,12 +23,18 @@ export async function POST() {
   }
 
   try {
-    await fetch(webhookUrl, {
+    const res = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: "Marketing Hub connection test successful!" }),
       signal: AbortSignal.timeout(10000),
     });
+    if (!res.ok) {
+      return Response.json(
+        { error: `Slack webhook rejected the test (${res.status})` },
+        { status: 502 },
+      );
+    }
     return Response.json({ ok: true });
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 });

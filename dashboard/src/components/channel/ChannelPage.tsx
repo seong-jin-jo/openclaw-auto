@@ -6,7 +6,7 @@ import { fetcher, apiPost } from "@/lib/api";
 import { useChannelConfig } from "@/hooks/useChannelConfig";
 import { useToast } from "@/components/layout/Toast";
 import { useUIStore } from "@/store/ui-store";
-import { CH_LABELS, CH_STATUS_LABEL, AUTOMATION_FEATURES } from "@/lib/constants";
+import { CH_LABELS, CH_STATUS_LABEL } from "@/lib/constants";
 import { setupGuides } from "@/lib/setup-guides";
 import { CredentialForm } from "@/components/shared/CredentialForm";
 import { SocialConnectButton } from "@/components/channel/SocialConnectButton";
@@ -31,8 +31,9 @@ const OAUTH_CONNECT: Record<string, string> = {
 import { ContentGuide } from "./ContentGuide";
 import { KeywordsEditor } from "./KeywordsEditor";
 import { QueueList } from "@/components/queue/QueueList";
-import { fmtAgo, fmtTime } from "@/lib/format";
+import { fmtTime } from "@/lib/format";
 import { BackButton } from "@/components/shared/BackButton";
+import { TenantAutomationSettings } from "./TenantAutomationSettings";
 
 interface ChannelPageProps {
   channel: string;
@@ -48,23 +49,6 @@ const CHAR_LIMITS: Record<string, number> = {
   pinterest: 500,
   tumblr: 4096,
   instagram: 2200,
-};
-
-const FEATURE_CRON_MAP: Record<string, Record<string, string>> = {
-  threads: {
-    content_generation: "threads-generate-drafts",
-    auto_publish: "threads-auto-publish",
-    insights_collection: "threads-collect-insights",
-    auto_like_replies: "threads-collect-insights",
-    low_engagement_cleanup: "threads-collect-insights",
-    trending_collection: "threads-fetch-trending",
-    follower_tracking: "threads-track-growth",
-    trending_rewrite: "threads-rewrite-trending",
-  },
-  instagram: {
-    content_generation: "instagram-generate-drafts",
-    auto_publish: "instagram-auto-publish",
-  },
 };
 
 // 미연결 채널 탭 — 콘텐츠를 살짝 블러(모자이크)로 가리고 연결 유도 모달을 띄운다.
@@ -107,7 +91,7 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
   const label = CH_LABELS[channel] || channel;
   const { data: channelConfig, mutate: mutateConfig } = useChannelConfig();
   const { showToast } = useToast();
-  const { subTab, setSubTab, expandedFeature, setExpandedFeature, expandedPopular, setExpandedPopular } = useUIStore();
+  const { subTab, setSubTab, expandedPopular, setExpandedPopular } = useUIStore();
   const [showManualCreds, setShowManualCreds] = useState(false);
   // SNS-007: OAuth 연결 성공 시 AccountManager를 강제 리마운트해 목록을 갱신(key bump — refresh()를
   // 부모가 직접 호출하려면 ref forwarding이 필요한데, remount가 더 단순하고 목록 API 자체가 가벼움).
@@ -363,8 +347,8 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
             </div>
           </div>
 
-          {/* Automation */}
-          <AutomationSection channel={channel} expandedFeature={expandedFeature} setExpandedFeature={setExpandedFeature} />
+          {/* Tenant-scoped automation — no global cron status/run access. */}
+          <TenantAutomationSettings channel={channel} />
 
           {/* Parameters (Threads only) */}
           {isThreads && <ParametersSection />}
@@ -381,7 +365,6 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
 /* ── Analytics Tab ── */
 function AnalyticsTab() {
   const { data } = useSWR("/api/analytics", fetcher);
-  const { data: cronData } = useSWR("/api/cron-status", fetcher);
   const a = data as Record<string, unknown> | undefined;
   if (!a) return <p className="text-subtle">Loading...</p>;
 
@@ -393,21 +376,8 @@ function AnalyticsTab() {
   const hashtags = (a.hashtags || {}) as Record<string, { count: number; avgViews?: number; avgLikes?: number }>;
   const vt = (s.viralThreshold as number) || 500;
 
-  // Check cron status
-  const cronJobs = (((cronData as Record<string, unknown>)?.jobs || cronData || []) as Array<Record<string, unknown>>);
-  const insightsCron = cronJobs.find((j) => j.id === "threads-collect-insights" || (j.name as string)?.includes("반응"));
-  const cronError = insightsCron && insightsCron.lastStatus === "error";
-  const lastRun = insightsCron?.lastRunAt ? fmtAgo(new Date(insightsCron.lastRunAt as string).toISOString()) : null;
-
   return (
     <>
-      {cronError && (
-        <div className="p-3 rounded bg-yellow-900/20 border border-yellow-800/20 mb-4">
-          <p className="text-[10px] text-yellow-400/80">
-            자동화 일시 중단 — 데이터가 최신이 아닐 수 있습니다{lastRun ? ` (마지막 수집: ${lastRun})` : ""}
-          </p>
-        </div>
-      )}
       {(s.totalPublished as number) === 0 && (
         <div className="p-3 rounded bg-surface/50 mb-4">
           <p className="text-xs text-subtle">아직 발행된 글이 없습니다. Queue에서 draft를 승인하면 자동 발행됩니다.</p>
@@ -644,131 +614,6 @@ function PopularTab({ expandedPopular, setExpandedPopular }: { expandedPopular: 
         )}
       </div>
     </>
-  );
-}
-
-/* ── Automation Section ── */
-function AutomationSection({ channel, expandedFeature, setExpandedFeature }: {
-  channel: string;
-  expandedFeature: string | null;
-  setExpandedFeature: (key: string | null) => void;
-}) {
-  const FEATURE_CRON = FEATURE_CRON_MAP[channel] || {};
-  const channelHasCronMapping = Object.keys(FEATURE_CRON).length > 0;
-  const { data: channelSettings, mutate: mutateSettings } = useSWR(`/api/channel-settings/${channel}`, fetcher);
-  const { data: cronJobs } = useSWR(channelHasCronMapping ? "/api/cron-status" : null, fetcher);
-  const { data: cronRuns } = useSWR(channelHasCronMapping ? "/api/cron-runs" : null, fetcher);
-  const { showToast } = useToast();
-
-  const cs = (channelSettings as Record<string, unknown>) || {};
-  const jobs = (((cronJobs as Record<string, unknown>)?.jobs || cronJobs || []) as Array<Record<string, unknown>>);
-  const runs = ((((cronRuns as Record<string, unknown>)?.runs || []) as Array<Record<string, unknown>>));
-
-  const shownCronEditors = new Set<string>();
-
-  const handleToggle = async (key: string, checked: boolean) => {
-    try {
-      await apiPost(`/api/channel-settings/${channel}`, { [key]: checked });
-      mutateSettings();
-      showToast(`${key} ${checked ? "ON" : "OFF"}`, "success");
-    } catch (e) { showToast(`실패: ${(e as Error).message}`, "error"); }
-  };
-
-  const handleIntervalChange = async (jobName: string, hours: number) => {
-    const label = hours < 24 ? `${hours}시간` : hours === 24 ? "1일" : hours === 48 ? "2일" : "7일";
-    if (!confirm(`주기를 ${label}으로 변경하시겠습니까?`)) return;
-    try {
-      await apiPost(`/api/cron/${jobName}/interval`, { hours });
-      showToast(`주기 변경: ${hours}h`, "success");
-    } catch (e) { showToast(`실패: ${(e as Error).message}`, "error"); }
-  };
-
-  return (
-    <div className="card p-5">
-      <h3 className="text-sm font-medium text-muted mb-4">Automation</h3>
-      {AUTOMATION_FEATURES.map((f) => {
-        const featureRuns = runs.filter((r) => r.jobName === FEATURE_CRON[f.key]);
-        const lastRun = featureRuns[0];
-        const expanded = expandedFeature === f.key;
-        const cronName = FEATURE_CRON[f.key];
-        const job = jobs.find((j) => j.id === cronName) as Record<string, unknown> | undefined;
-        const hours = job?.everyMs ? Math.round((job.everyMs as number) / 3600000) : null;
-        const showInterval = cronName && !shownCronEditors.has(cronName);
-        if (cronName) shownCronEditors.add(cronName);
-
-        // For channels without cron mapping, show as "Coming Soon"
-        const hasCronMapping = !!FEATURE_CRON[f.key];
-        const isImplemented = (f as Record<string, unknown>).implemented !== false;
-        const showComingSoon = !isImplemented || (!hasCronMapping && !["content_generation", "auto_publish"].includes(f.key));
-
-        return (
-          <div key={f.key} className="border-b border-border/50 last:border-0">
-            <div className="flex items-center gap-3 py-2.5 cursor-pointer" onClick={() => setExpandedFeature(expanded ? null : f.key)}>
-              <label className={`relative inline-flex items-center shrink-0 ${showComingSoon ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`} onClick={(e) => e.stopPropagation()}>
-                <input type="checkbox" checked={!!(cs[f.key])} onChange={(e) => !showComingSoon && handleToggle(f.key, e.target.checked)} disabled={showComingSoon} className="sr-only peer" />
-                <div className="w-9 h-5 bg-surface-2 rounded-full peer peer-checked:bg-accent after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
-              </label>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs ${showComingSoon ? "text-subtle" : "text-muted"}`}>{f.label}</span>
-                  {showComingSoon && <span className="text-[9px] text-subtle">Coming Soon</span>}
-                  {hours && <span className="text-[10px] text-subtle">{hours}h</span>}
-                  {lastRun && (
-                    <>
-                      <span className={`text-[10px] ${lastRun.status === "ok" ? "text-success" : "text-danger"}`}>
-                        {lastRun.status === "ok" ? "\u2713" : "\u2717"}
-                      </span>
-                      <span className="text-[10px] text-subtle">{lastRun.finishedAt ? fmtAgo(lastRun.finishedAt) : ""}</span>
-                    </>
-                  )}
-                  {(featureRuns.length > 0 || hours) && (
-                    <svg className={`w-3 h-3 text-subtle ml-auto transition-transform ${expanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  )}
-                </div>
-                <p className="text-[10px] text-subtle">{f.description}</p>
-              </div>
-            </div>
-            {expanded && (
-              <div className="ml-12 mb-3 space-y-1.5">
-                {showInterval && hours && (
-                  <div className="flex items-center gap-2 py-1.5 px-2 bg-surface/50 rounded mb-2" onClick={(e) => e.stopPropagation()}>
-                    <span className="text-[10px] text-subtle">Interval</span>
-                    <select
-                      defaultValue={hours}
-                      onChange={(e) => handleIntervalChange(cronName!, parseInt(e.target.value, 10))}
-                      className="bg-surface-2 border border-border rounded px-1.5 py-0.5 text-[10px] text-muted"
-                    >
-                      {[1, 2, 3, 4, 6, 8, 12, 24, 48, 168].map((h) => (
-                        <option key={h} value={h}>{h < 24 ? `${h}h` : h === 24 ? "1d" : h === 48 ? "2d" : "7d"}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                {featureRuns.slice(0, 10).map((r, i) => (
-                  <div key={i} className="flex items-start gap-2 py-1">
-                    <span className={`text-[10px] mt-0.5 ${r.status === "ok" ? "text-success" : "text-danger"}`}>
-                      {r.status === "ok" ? "\u2713" : "\u2717"}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-subtle">
-                          {r.finishedAt ? new Date(r.finishedAt as string).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }) : ""}
-                        </span>
-                        <span className="text-[10px] text-subtle">{String(r.model || "")}</span>
-                        <span className="text-[10px] text-subtle ml-auto">{r.durationMs ? `${Math.round((r.durationMs as number) / 1000)}s` : ""}</span>
-                      </div>
-                      <p className="text-[10px] text-subtle break-words">{String(r.summary || "")}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
   );
 }
 

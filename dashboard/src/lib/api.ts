@@ -9,6 +9,55 @@ export class AuthRequiredError extends Error {
   }
 }
 
+export class ApiResponseError<T = unknown> extends Error {
+  readonly status: number;
+  readonly payload: T;
+
+  constructor(status: number, payload: T, message: string) {
+    super(message);
+    this.name = "ApiResponseError";
+    this.status = status;
+    this.payload = payload;
+  }
+}
+
+export interface ExternalPublishPersistenceFailure {
+  ok: false;
+  externalPublished: true;
+  externalId?: string;
+  permalink?: string;
+  error: string;
+  persistence: {
+    ok: false;
+    stage: "publication_record" | "queue_record";
+    publicationRecorded: boolean;
+    queueRecorded: false;
+    error: {
+      code: "PUBLICATION_RECORD_FAILED" | "QUEUE_RECORD_FAILED";
+      message: string;
+    };
+    reconciliation: {
+      required: true;
+      action: "repair_persistence_only";
+      retryPublish: false;
+      draftId: string | null;
+      platform: string;
+      accountId: string | null;
+      externalId: string | null;
+      permalink: string | null;
+    };
+  };
+}
+
+export function isExternalPublishPersistenceError(
+  error: unknown,
+): error is ApiResponseError<ExternalPublishPersistenceFailure> {
+  if (!(error instanceof ApiResponseError)) return false;
+  const payload = error.payload as Partial<ExternalPublishPersistenceFailure> | null;
+  return payload?.externalPublished === true
+    && payload?.persistence?.reconciliation?.retryPublish === false;
+}
+
 export function isAuthRequiredError(error: unknown): boolean {
   return error instanceof Error && error.name === "AuthRequiredError";
 }
@@ -21,11 +70,20 @@ function requestAuth(): { token: string; headers: Record<string, string> } {
   };
 }
 
-function handleUnauthorized(requestToken: string, clearToken: boolean): void {
+export function handleUnauthorizedResponse(requestToken: string, clearToken: boolean): void {
   // A response belongs to the credential snapshot used when its request started.
   // If login refreshed/replaced that credential meanwhile, the old 401 must not
   // invalidate the newer identity or open the global login modal.
   if (getAuthToken() !== requestToken) return;
+  const isCustomerJwt = requestToken.split(".").length === 3 && requestToken.length > 40;
+  if (isCustomerJwt) {
+    // Customer auth is Google/Supabase-only. A rejected JWT must never fall back to
+    // the legacy manual Auth Token modal; AuthGate signs out the stale Supabase
+    // session and routes to /login. Keep the token until that handler can identify
+    // the session type and sign out its refresh session.
+    window.dispatchEvent(new CustomEvent("auth:customer-reauth-required"));
+    return;
+  }
   if (clearToken) clearAuthToken();
   window.dispatchEvent(new CustomEvent("auth:required"));
 }
@@ -35,7 +93,7 @@ export async function fetcher<T>(url: string): Promise<T> {
   const auth = requestAuth();
   const res = await fetch(url, { headers: auth.headers });
   if (res.status === 401) {
-    handleUnauthorized(auth.token, true);
+    handleUnauthorizedResponse(auth.token, true);
     throw new AuthRequiredError();
   }
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -52,12 +110,12 @@ export async function apiPost<T = unknown>(url: string, body?: unknown): Promise
       body: body ? JSON.stringify(body) : undefined,
     });
     if (res.status === 401) {
-      handleUnauthorized(auth.token, false);
+      handleUnauthorizedResponse(auth.token, false);
       return null;
     }
     if (!res.ok) {
-      const d = await res.json().catch(() => ({}));
-      throw new Error((d as { error?: string }).error || `Request failed: ${res.status}`);
+      const d = await res.json().catch(() => ({})) as { error?: string };
+      throw new ApiResponseError(res.status, d, d.error || `Request failed: ${res.status}`);
     }
     return res.json();
   } catch (e) {
@@ -73,7 +131,7 @@ export async function apiDelete<T = unknown>(url: string): Promise<T | null> {
     headers: auth.headers,
   });
   if (res.status === 401) {
-    handleUnauthorized(auth.token, false);
+    handleUnauthorizedResponse(auth.token, false);
     return null;
   }
   if (!res.ok) throw new Error(`Delete failed: ${res.status}`);

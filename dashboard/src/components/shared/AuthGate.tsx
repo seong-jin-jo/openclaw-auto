@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { getAuthToken, setAuthToken, clearAuthToken, authHeaders } from "@/lib/auth";
+import { getAuthToken, setAuthToken, clearAuthToken } from "@/lib/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { useUIStore } from "@/store/ui-store";
@@ -388,12 +388,56 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [hasToken, setHasToken] = useState<boolean | null>(null);
   const [gateStatus, setGateStatus] = useState<GateStatus>("checking");
+  const reauthInFlight = useRef(false);
+  const reauthOwnerToken = useRef<string | null>(null);
   const setActiveWorkspace = useUIStore((state) => state.setActiveWorkspace);
   const isPublicPath = ["/login", "/signup", "/operator", "/privacy", "/terms", "/data-deletion"].includes(pathname);
 
   useEffect(() => {
     setHasToken(!!getAuthToken());
   }, []);
+
+  const reauthenticateCurrentIdentity = useCallback(async (expectedToken?: string) => {
+    if (expectedToken !== undefined && getAuthToken() !== expectedToken) return;
+    if (reauthInFlight.current) return;
+    reauthInFlight.current = true;
+    const token = expectedToken ?? getAuthToken();
+    const customerJwt = isJwtToken(token);
+    if (customerJwt) {
+      // Supabase emits SIGNED_OUT from signOut(). This operation owns that event:
+      // the auth-state listener must not independently clear a replacement session.
+      reauthOwnerToken.current = token;
+      try {
+        const { createBrowserSupabase } = await import("@/lib/supabase");
+        if (getAuthToken() !== token) {
+          if (reauthOwnerToken.current === token) reauthOwnerToken.current = null;
+          reauthInFlight.current = false;
+          return;
+        }
+        // Reauthenticate only this rejected browser session. A global sign-out can
+        // revoke a replacement session that completed while this request was pending.
+        await createBrowserSupabase().auth.signOut({ scope: "local" });
+      } catch {
+        // Provider sign-out failure must not retain a JWT already rejected by our API.
+      }
+    }
+    if (getAuthToken() !== token) {
+      if (reauthOwnerToken.current === token) reauthOwnerToken.current = null;
+      reauthInFlight.current = false;
+      return;
+    }
+    clearAuthToken();
+    setHasToken(false);
+    setGateStatus("checking");
+    if (reauthOwnerToken.current === token) reauthOwnerToken.current = null;
+    router.replace(customerJwt ? "/login" : "/operator");
+  }, [router]);
+
+  useEffect(() => {
+    const handler = () => { void reauthenticateCurrentIdentity(); };
+    window.addEventListener("auth:customer-reauth-required", handler);
+    return () => window.removeEventListener("auth:customer-reauth-required", handler);
+  }, [reauthenticateCurrentIdentity]);
 
   // Supabase 세션 ↔ localStorage 토큰 스냅샷 동기화.
   // 수동 스냅샷은 자동갱신이 안 돼 만료(~1h) 후에도 "로그인됨"으로 보여 전 API가 401이 된다.
@@ -420,6 +464,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             setAuthToken(sess.access_token);
             setHasToken(true);
           } else if (event === "SIGNED_OUT") {
+            // A 401-triggered signOut owns its SIGNED_OUT event and will clear only
+            // if its failed request token is still current after signOut resolves.
+            // With no owner, this is a legitimate user/provider sign-out.
+            if (reauthOwnerToken.current) return;
             clearAuthToken();
             setHasToken(false);
           }
@@ -442,12 +490,15 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
     async function poll() {
       try {
-        const res = await fetch("/api/me", { headers: authHeaders() });
+        const requestToken = getAuthToken();
+        const res = await fetch("/api/me", {
+          headers: requestToken ? { Authorization: `Bearer ${requestToken}` } : {},
+        });
         if (cancelled) return;
         if (res.status === 401) {
-          // 세션 만료/무효 — fail-open으로 앱을 그냥 보여주면 승인/정지 게이트를 우회할 수 있으므로
-          // 반드시 차단 화면으로 막고 안전한 로그아웃을 유도한다.
-          setGateStatus("auth_error");
+          // Customer JWTs re-enter the only supported login path (Google/Supabase).
+          // Operator tokens retain their separate /operator credential entry.
+          void reauthenticateCurrentIdentity(requestToken);
           return;
         }
         if (!res.ok) {
@@ -485,7 +536,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       cancelled = true;
       clearInterval(id);
     };
-  }, [isPublicPath, hasToken, pathname, router, setActiveWorkspace]);
+  }, [isPublicPath, hasToken, pathname, reauthenticateCurrentIdentity, router, setActiveWorkspace]);
 
   const doLogout = useCallback(async () => {
     const t = getAuthToken();

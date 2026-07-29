@@ -4,7 +4,7 @@ import { useState } from "react";
 import useSWR from "swr";
 import { fetcher, apiPost } from "@/lib/api";
 import { Logo, PREVIEW_PLATFORMS, type PreviewPlatform } from "@/components/studio/PlatformPreview";
-import { useOverview, useCronStatus, useActivity, useAlerts, useWeeklySummary, useTokenStatus, useAgentLogs, useUsage, useErrors } from "@/hooks/useOverview";
+import { useOverview, useActivity, useAlerts, useWeeklySummary, useAgentLogs, useUsage, useErrors } from "@/hooks/useOverview";
 import { useChannelConfig } from "@/hooks/useChannelConfig";
 import { useOnboardingStatus } from "@/hooks/useOnboarding";
 import { fmtAgo, fmtTime } from "@/lib/format";
@@ -13,7 +13,6 @@ import { OnboardingWizard } from "@/components/shared/OnboardingWizard";
 import { ChannelConnectBanner } from "@/components/shared/ChannelConnectBanner";
 import { OnboardingChecklist } from "@/components/shared/OnboardingChecklist";
 import { PipelineTimeline } from "@/components/home/PipelineTimeline";
-import Link from "next/link";
 import { trackEvent } from "@/lib/analytics/events";
 
 interface PostRow {
@@ -48,11 +47,9 @@ const ALL_CHANNELS = [
 
 export default function HomePage() {
   const { data: overview } = useOverview();
-  const { data: cronData } = useCronStatus();
   const { data: activityData } = useActivity();
   const { data: alertData } = useAlerts();
   const { data: weeklyData } = useWeeklySummary();
-  const { data: tokenData } = useTokenStatus();
   const { data: agentLogData } = useAgentLogs();
   const { data: usageData } = useUsage();
   const { data: errorData } = useErrors();
@@ -70,11 +67,9 @@ export default function HomePage() {
 
   const o = overview as Record<string, unknown> | undefined;
   const cfg = (channelConfig || {}) as unknown as Record<string, Record<string, unknown>>;
-  const cronJobs = (((cronData as Record<string, unknown>)?.jobs || cronData || []) as Array<Record<string, unknown>>);
   const activity = (((activityData as Record<string, unknown>)?.events || []) as Array<Record<string, unknown>>);
   const alerts = (((alertData as Record<string, unknown>)?.alerts || []) as Array<Record<string, unknown>>);
   const weekly = weeklyData as Record<string, unknown> | undefined;
-  const tokenStatus = tokenData as Record<string, unknown> | undefined;
   const agentLogs = (((agentLogData as Record<string, unknown>)?.logs || []) as Array<Record<string, unknown>>);
   const usage = usageData as { 
     today?: Record<string, number>; 
@@ -106,8 +101,6 @@ export default function HomePage() {
       />
     );
   }
-
-  const claude = tokenStatus?.claude as Record<string, unknown> | undefined;
 
   const posts = metricsData?.posts || [];
   const publishedPosts = posts.filter((p) => p.status === "published");
@@ -347,32 +340,9 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Cron + Activity */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      {/* Tenant-scoped activity. Global cron controls remain operator-only. */}
+      <div className="mb-6">
         <div className="card p-5">
-          <h3 className="text-xs font-medium text-subtle uppercase tracking-wide mb-3">Automation Status</h3>
-          <div className="space-y-2.5">
-            {cronJobs.map((j, i) => {
-              const dot = j.lastStatus === "ok" ? "bg-green-500" : j.lastStatus === "error" ? "bg-red-500" : "bg-surface-2";
-              return (
-                <div key={i} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-1.5 h-1.5 rounded-full ${dot}`} />
-                    <span className="text-xs text-muted">{String(j.name)}</span>
-                  </div>
-                  <span className="text-[10px] text-subtle">
-                    {j.lastStatus === "error" ? (
-                      <span className="text-red-400">error</span>
-                    ) : (
-                      j.nextRunAt ? fmtTime(j.nextRunAt) : ""
-                    )}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-        <div className="card p-5 col-span-2">
           <h3 className="text-xs font-medium text-subtle uppercase tracking-wide mb-3">Recent Activity</h3>
           <div className="space-y-3">
             {activity.length > 0
@@ -408,8 +378,8 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Alerts + Token Status */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      {/* Tenant alerts + connected-channel state. Global token/secret health stays operator-only. */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {alerts.length > 0 && (
           <div className={`card p-5 ${alerts.some((a) => a.severity === "error") ? "border-red-900/50" : "border-yellow-900/50"}`}>
             <h3 className="text-xs font-medium text-red-400 uppercase tracking-wide mb-3">Alerts</h3>
@@ -427,55 +397,18 @@ export default function HomePage() {
         )}
 
         <div className={`card p-5 ${alerts.length ? "" : "col-span-1"}`}>
-          <h3 className="text-xs font-medium text-subtle uppercase tracking-wide mb-3">AI Engine</h3>
-          {claude ? (
-            <>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-subtle">Claude</span>
-                  <span className={claude.healthy ? "text-green-400" : "text-red-400"}>
-                    {claude.healthy ? "Healthy" : "Error"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-subtle">Token</span>
-                  <span className="text-subtle font-mono text-xs">{String(claude.tokenPreview || "...")}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-subtle">Errors</span>
-                  <span className={(claude.errorCount as number) > 0 ? "text-red-400" : "text-muted"}>{String(claude.errorCount)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-subtle">Last used</span>
-                  <span className="text-muted">
-                    {claude.lastUsed ? fmtAgo(new Date(claude.lastUsed as number).toISOString()) : "-"}
-                  </span>
-                </div>
-              </div>
-              {!claude.healthy && (
-                <Link href="/settings" className="block mt-2 text-[10px] text-red-400 hover:text-red-300">
-                  Settings에서 토큰 재등록 필요 &rarr;
-                </Link>
-              )}
-            </>
-          ) : (
-            <p className="text-xs text-subtle">No data</p>
-          )}
-        </div>
-
-        <div className={`card p-5 ${alerts.length ? "" : "col-span-1"}`}>
           <h3 className="text-xs font-medium text-subtle uppercase tracking-wide mb-3">Channels Status</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-subtle">Threads</span>
-              <span className={tokenStatus?.threads && (tokenStatus.threads as Record<string, unknown>).connected ? "text-green-400" : "text-subtle"}>
-                {tokenStatus?.threads && (tokenStatus.threads as Record<string, unknown>).connected ? "Connected" : "Off"}
+              <span className={cfg.threads?.connected ? "text-green-400" : "text-subtle"}>
+                {cfg.threads?.connected ? "Connected" : "Off"}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-subtle">X (Twitter)</span>
-              <span className={tokenStatus?.x && (tokenStatus.x as Record<string, unknown>).connected ? "text-green-400" : "text-yellow-400"}>
-                {tokenStatus?.x && (tokenStatus.x as Record<string, unknown>).connected ? "Connected" : ""}
+              <span className={cfg.x?.connected ? "text-green-400" : "text-yellow-400"}>
+                {cfg.x?.connected ? "Connected" : "Off"}
               </span>
             </div>
             <div className="flex justify-between">

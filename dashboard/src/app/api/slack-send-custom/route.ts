@@ -29,15 +29,27 @@ export async function POST(request: Request) {
     const previewRes = await fetch(`${origin}/api/slack-report-preview`, {
       signal: AbortSignal.timeout(10000),
     });
+    if (!previewRes.ok) {
+      return Response.json(
+        { error: `Slack report preview failed (${previewRes.status})` },
+        { status: 502 },
+      );
+    }
     const preview = await previewRes.json();
     const report: string = preview.report || "No data";
 
-    await fetch(webhookUrl, {
+    const deliveryRes = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: report }),
       signal: AbortSignal.timeout(10000),
     });
+    if (!deliveryRes.ok) {
+      return Response.json(
+        { error: `Slack webhook rejected the report (${deliveryRes.status})` },
+        { status: 502 },
+      );
+    }
 
     return Response.json({ ok: true, report });
   } catch (e) {

@@ -35,7 +35,17 @@ export async function sendNotification(channel: string, message: string): Promis
         body: JSON.stringify({ chat_id: chatId, text: message }),
         signal: AbortSignal.timeout(10000),
       });
-      const data = await res.json();
+      if (!res.ok) {
+        const error = `Telegram delivery failed (${res.status})`;
+        logNotification(channel, message, false, error);
+        return { ok: false, error };
+      }
+      const data = await res.json() as { ok?: boolean };
+      if (data.ok !== true) {
+        const error = "Telegram delivery rejected";
+        logNotification(channel, message, false, error);
+        return { ok: false, error };
+      }
       logNotification(channel, message, true);
       return { ok: true };
     }
@@ -46,12 +56,17 @@ export async function sendNotification(channel: string, message: string): Promis
       if (!url) return { ok: false, error: `${channel} not configured` };
 
       const payload = channel === "slack" ? { text: message } : { content: message };
-      await fetch(url, {
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
         signal: AbortSignal.timeout(10000),
       });
+      if (!res.ok) {
+        const error = `${channel} delivery failed (${res.status})`;
+        logNotification(channel, message, false, error);
+        return { ok: false, error };
+      }
       logNotification(channel, message, true);
       return { ok: true };
     }
@@ -61,12 +76,17 @@ export async function sendNotification(channel: string, message: string): Promis
       const token = cfg.channelAccessToken || "";
       if (!token) return { ok: false, error: "LINE not configured" };
 
-      await fetch("https://api.line.me/v2/bot/message/broadcast", {
+      const res = await fetch("https://api.line.me/v2/bot/message/broadcast", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ messages: [{ type: "text", text: message }] }),
         signal: AbortSignal.timeout(10000),
       });
+      if (!res.ok) {
+        const error = `LINE delivery failed (${res.status})`;
+        logNotification(channel, message, false, error);
+        return { ok: false, error };
+      }
       logNotification(channel, message, true);
       return { ok: true };
     }

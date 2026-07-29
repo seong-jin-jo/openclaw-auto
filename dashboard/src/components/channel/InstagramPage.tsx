@@ -2,12 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import useSWR from "swr";
-import { fetcher, apiPost } from "@/lib/api";
-import { authHeaders } from "@/lib/auth";
-import { useChannelConfig, useDesignTools } from "@/hooks/useChannelConfig";
+import { fetcher, apiPost, handleUnauthorizedResponse } from "@/lib/api";
+import { getAuthToken } from "@/lib/auth";
+import { useChannelConfig } from "@/hooks/useChannelConfig";
 import { useToast } from "@/components/layout/Toast";
 import { useUIStore } from "@/store/ui-store";
-import { AUTOMATION_FEATURES } from "@/lib/constants";
 import { setupGuides } from "@/lib/setup-guides";
 import { CredentialForm } from "@/components/shared/CredentialForm";
 import { SocialConnectButton } from "@/components/channel/SocialConnectButton";
@@ -16,8 +15,8 @@ import { SetupGuide } from "@/components/shared/SetupGuide";
 import { ContentGuide } from "./ContentGuide";
 import { KeywordsEditor } from "./KeywordsEditor";
 import { QueueList } from "@/components/queue/QueueList";
-import { fmtAgo } from "@/lib/format";
 import { BackButton } from "@/components/shared/BackButton";
+import { TenantAutomationSettings } from "./TenantAutomationSettings";
 
 /* ---------- Card News Editor ---------- */
 interface CardEditorState {
@@ -34,9 +33,6 @@ interface CardEditorState {
 
 function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: () => void; editingPostId?: string | null; onBackToQueue?: () => void }) {
   const { showToast } = useToast();
-  const { data: designToolsData } = useDesignTools();
-  const designTools = (designToolsData || {}) as Record<string, Record<string, unknown>>;
-  const hasFigmaMcp = !!designTools.figma?.mcpAccessToken;
   const [mjGenerating, setMjGenerating] = useState(false);
   const [ed, setEd] = useState<CardEditorState>({
     title: "", slides: [""], style: "dark", ending: "", caption: "", hashtags: "",
@@ -148,9 +144,14 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
       const formData = new FormData();
       formData.append("file", file);
       try {
-        const res = await fetch("/api/images/upload", { method: "POST", body: formData, headers: authHeaders() });
+        const requestToken = getAuthToken();
+        const res = await fetch("/api/images/upload", {
+          method: "POST",
+          body: formData,
+          headers: requestToken ? { Authorization: `Bearer ${requestToken}` } : {},
+        });
         if (res.status === 401) {
-          window.dispatchEvent(new CustomEvent("auth:required"));
+          handleUnauthorizedResponse(requestToken, false);
           return;
         }
         const d = await res.json();
@@ -285,35 +286,6 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
             </div>
             <div className="space-y-2 mb-3">
               <button onClick={saveDraft} className="w-full py-2 bg-green-700 text-text text-sm rounded hover:bg-green-600">{editingPostId ? "Draft 업데이트" : "큐에 Draft 저장"}</button>
-              {hasFigmaMcp && (
-                <div className="flex gap-2">
-                  <button onClick={async () => {
-                    if (!ed.result) return;
-                    try {
-                      const r = await apiPost<{ ok: boolean }>("/api/figma/push-card", {
-                        slides: ed.result.slides,
-                        title: (document.getElementById("card-title") as HTMLInputElement)?.value || "",
-                      });
-                      if (r?.ok) showToast("Figma에 올리기 완료", "success");
-                    } catch (e) { showToast((e as Error).message, "error"); }
-                  }} className="flex-1 py-1.5 bg-indigo-700 text-text text-xs rounded hover:bg-indigo-600">Figma에 올리기</button>
-                  <button onClick={async () => {
-                    const url = window.prompt("Figma 파일 URL을 입력하세요:");
-                    if (!url) return;
-                    const match = url.match(/figma\.com\/(?:file|design)\/([^/]+)/);
-                    if (!match) { showToast("올바른 Figma URL이 아닙니다", "error"); return; }
-                    try {
-                      const r = await apiPost<{ ok: boolean; slides?: string[]; count?: number }>("/api/figma/export-to-queue", { fileKey: match[1] });
-                      if (r?.ok) {
-                        if (r.slides) {
-                          setEd(prev => ({ ...prev, result: { slides: r.slides!, totalSlides: r.slides!.length, batchId: prev.result?.batchId || "figma" } }));
-                        }
-                        showToast(`${r.count || 0}장 가져옴`, "success");
-                      }
-                    } catch (e) { showToast((e as Error).message, "error"); }
-                  }} className="flex-1 py-1.5 bg-indigo-900 text-indigo-300 text-xs rounded hover:bg-indigo-800 border border-indigo-700">Figma에서 가져오기</button>
-                </div>
-              )}
               <button onClick={() => setEd(prev => ({ ...prev, result: null }))} className="w-full py-1.5 bg-surface-2 text-muted text-xs rounded hover:bg-surface-2">카드 재생성</button>
               <details className="text-[10px]">
                 <summary className="text-subtle cursor-pointer hover:text-subtle">미드저니 이미지 추가 (선택)</summary>
@@ -365,7 +337,6 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
 function InstagramSettings() {
   const { showToast } = useToast();
   const { data: channelConfig, mutate: mutateConfig } = useChannelConfig();
-  const [expandedFeature, setExpandedFeature] = useState<string | null>(null);
   const [accountsRefreshTick, setAccountsRefreshTick] = useState(0);
 
   const cfg = (channelConfig || {}) as Record<string, Record<string, unknown>>;
@@ -387,29 +358,6 @@ function InstagramSettings() {
       throw new Error(r?.error || "Verification failed");
     }
   };
-
-  // Automation
-  const { data: channelSettings, mutate: mutateSettings } = useSWR("/api/channel-settings/instagram", fetcher);
-  const { data: cronJobs } = useSWR("/api/cron-status", fetcher);
-  const { data: cronRunsData } = useSWR("/api/cron-runs", fetcher);
-  const cs = (channelSettings as Record<string, unknown>) || {};
-  const jobs = (((cronJobs as Record<string, unknown>)?.jobs || cronJobs || []) as Array<Record<string, unknown>>);
-  const runs = ((((cronRunsData as Record<string, unknown>)?.runs || []) as Array<Record<string, unknown>>));
-
-  const IG_FEATURE_CRON: Record<string, string> = {
-    content_generation: "instagram-generate-drafts",
-    auto_publish: "instagram-auto-publish",
-  };
-
-  const handleToggle = async (key: string, checked: boolean) => {
-    try {
-      await apiPost("/api/channel-settings/instagram", { [key]: checked });
-      mutateSettings();
-      showToast(`${key} ${checked ? "ON" : "OFF"}`, "success");
-    } catch (e) { showToast(`실패: ${(e as Error).message}`, "error"); }
-  };
-
-  const shownCronEditors = new Set<string>();
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -482,103 +430,7 @@ function InstagramSettings() {
         </div>
       </div>
 
-      {/* Automation */}
-      <div className="card p-5">
-        <h3 className="text-sm font-medium text-muted mb-4">Automation</h3>
-        {AUTOMATION_FEATURES.map((f) => {
-          const cronName = IG_FEATURE_CRON[f.key];
-          const featureRuns = cronName ? runs.filter((r) => r.jobName === cronName) : [];
-          const lastRun = featureRuns[0];
-          const expanded = expandedFeature === f.key;
-          const job = cronName ? jobs.find((j) => j.id === cronName) as Record<string, unknown> | undefined : undefined;
-          const hours = job?.everyMs ? Math.round((job.everyMs as number) / 3600000) : null;
-          const showInterval = cronName && !shownCronEditors.has(cronName);
-          if (cronName) shownCronEditors.add(cronName);
-
-          const isImplemented = (f as Record<string, unknown>).implemented !== false;
-          const showComingSoon = !isImplemented || (!cronName && !["content_generation", "auto_publish"].includes(f.key));
-
-          return (
-            <div key={f.key} className="border-b border-border/50 last:border-0">
-              <div className="flex items-center gap-3 py-2.5 cursor-pointer" onClick={() => setExpandedFeature(expanded ? null : f.key)}>
-                <label className={`relative inline-flex items-center shrink-0 ${showComingSoon ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`} onClick={(e) => e.stopPropagation()}>
-                  <input type="checkbox" checked={!!(cs[f.key])} onChange={(e) => !showComingSoon && handleToggle(f.key, e.target.checked)} disabled={showComingSoon} className="sr-only peer" />
-                  <div className="w-9 h-5 bg-surface-2 rounded-full peer peer-checked:bg-accent after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
-                </label>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs ${showComingSoon ? "text-subtle" : "text-muted"}`}>{f.label}</span>
-                    {showComingSoon && <span className="text-[9px] text-subtle">Coming Soon</span>}
-                    {hours && <span className="text-[10px] text-subtle">{hours}h</span>}
-                    {lastRun && (
-                      <>
-                        <span className={`text-[10px] ${lastRun.status === "ok" ? "text-success" : "text-danger"}`}>
-                          {lastRun.status === "ok" ? "\u2713" : "\u2717"}
-                        </span>
-                        <span className="text-[10px] text-subtle">{lastRun.finishedAt ? fmtAgo(lastRun.finishedAt) : ""}</span>
-                      </>
-                    )}
-                    {(featureRuns.length > 0 || hours) && (
-                      <svg className={`w-3 h-3 text-subtle ml-auto transition-transform ${expanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    )}
-                  </div>
-                  <p className="text-[10px] text-subtle">{f.description}</p>
-                </div>
-              </div>
-              {expanded && (
-                <div className="ml-12 mb-3 space-y-1.5">
-                  {showInterval && hours && (
-                    <div className="flex items-center gap-2 py-1.5 px-2 bg-surface/50 rounded mb-2" onClick={(e) => e.stopPropagation()}>
-                      <span className="text-[10px] text-subtle">Interval</span>
-                      <select
-                        defaultValue={hours}
-                        onChange={async (e) => {
-                          const h = parseInt(e.target.value, 10);
-                          if (confirm(`주기를 ${h}h으로 변경?`)) {
-                            try {
-                              await apiPost(`/api/cron/${cronName}/interval`, { hours: h });
-                              showToast(`주기 변경: ${h}h`, "success");
-                            } catch (err) { showToast(`실패: ${(err as Error).message}`, "error"); }
-                          }
-                        }}
-                        className="bg-surface-2 border border-border rounded px-1.5 py-0.5 text-[10px] text-muted"
-                      >
-                        {[1, 2, 3, 4, 6, 8, 12, 24, 48, 168].map((h) => (
-                          <option key={h} value={h}>{h < 24 ? `${h}h` : h === 24 ? "1d" : h === 48 ? "2d" : "7d"}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                  {featureRuns.length > 0 ? (
-                    featureRuns.slice(0, 10).map((r, i) => {
-                      const ts = r.finishedAt ? new Date(r.finishedAt as string).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
-                      return (
-                        <div key={i} className="flex items-start gap-2 py-1">
-                          <span className={`text-[10px] mt-0.5 ${r.status === "ok" ? "text-success" : "text-danger"}`}>
-                            {r.status === "ok" ? "\u2713" : "\u2717"}
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] text-subtle">{ts}</span>
-                              <span className="text-[10px] text-subtle">{String(r.model || "")}</span>
-                              <span className="text-[10px] text-subtle ml-auto">{Math.round(Number(r.durationMs) / 1000)}s</span>
-                            </div>
-                            <p className="text-[10px] text-subtle break-words">{String(r.summary || "")}</p>
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <p className="text-[10px] text-subtle">실행 이력 없음</p>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      <TenantAutomationSettings channel="instagram" />
 
       {/* Content Guide + Keywords */}
       <ContentGuide channel="instagram" />

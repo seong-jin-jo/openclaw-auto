@@ -47,6 +47,23 @@ export class OAuthCredentialSourceNotRevealableError extends Error {
   }
 }
 
+export class OAuthCredentialEnvIncompleteError extends Error {
+  readonly missing: string[];
+
+  constructor(missing: string[]) {
+    super("environment OAuth credential set is incomplete");
+    this.name = "OAuthCredentialEnvIncompleteError";
+    this.missing = missing;
+  }
+}
+
+export class OAuthCredentialAlreadyStoredError extends Error {
+  constructor() {
+    super("OAuth credential set is already stored in DB");
+    this.name = "OAuthCredentialAlreadyStoredError";
+  }
+}
+
 const baseFields = (idEnv: string, secretEnv: string, idLabel = "Client ID", secretLabel = "Client Secret"): OAuthCredentialFieldDefinition[] => [
   { key: "clientId", env: idEnv, label: idLabel, secret: false },
   { key: "clientSecret", env: secretEnv, label: secretLabel, secret: true },
@@ -442,6 +459,58 @@ export async function upsertOAuthCredentialSet(
     await tx`
       INSERT INTO oauth_credential_audit (provider, action)
       VALUES (${provider}, 'update')`;
+    return { updatedAt: row.updated_at };
+  }) as Promise<{ updatedAt: string }>;
+}
+
+export async function importOAuthCredentialSetFromEnv(
+  provider: string,
+): Promise<{ updatedAt: string }> {
+  const definition = getOAuthCredentialDefinition(provider);
+  const key = process.env.OSMU_SECRET_KEY || "";
+  if (!definition) throw new Error("unknown OAuth provider");
+  if (!process.env.DATABASE_URL || !key) throw new Error("credential store unavailable");
+
+  const values: Partial<Record<OAuthCredentialFieldKey, string>> = {};
+  const missing: string[] = [];
+  for (const field of definition.fields) {
+    const value = process.env[field.env]?.trim() || "";
+    if (!value || value.length > 4096 || /[\u0000\r\n]/.test(value)) {
+      missing.push(field.env);
+      continue;
+    }
+    values[field.key] = value;
+  }
+  if (missing.length > 0) throw new OAuthCredentialEnvIncompleteError(missing);
+
+  const clientId = values.clientId as string;
+  const clientSecret = values.clientSecret as string;
+  const configId = definition.fields.some((field) => field.key === "configId")
+    ? values.configId as string
+    : null;
+  const sql = db();
+  return sql.begin(async (tx) => {
+    // DO NOTHING은 동시 import까지 포함해 기존 DB 세트를 절대 덮어쓰지 않는 원자적 경계다.
+    // env 값은 이 INSERT의 암호화 파라미터로만 전달하고 응답·오류·감사 행에는 포함하지 않는다.
+    const [row] = await tx<{ updated_at: string }[]>`
+      INSERT INTO oauth_app_credentials (
+        provider, client_id_enc, client_secret_enc, config_id_enc, updated_at
+      ) VALUES (
+        ${provider},
+        armor(pgp_sym_encrypt(${clientId}, ${key})),
+        armor(pgp_sym_encrypt(${clientSecret}, ${key})),
+        CASE WHEN ${configId}::text IS NULL
+          THEN NULL
+          ELSE armor(pgp_sym_encrypt(${configId}, ${key}))
+        END,
+        now()
+      )
+      ON CONFLICT (provider) DO NOTHING
+      RETURNING updated_at::text`;
+    if (!row) throw new OAuthCredentialAlreadyStoredError();
+    await tx`
+      INSERT INTO oauth_credential_audit (provider, action)
+      VALUES (${provider}, 'import')`;
     return { updatedAt: row.updated_at };
   }) as Promise<{ updatedAt: string }>;
 }

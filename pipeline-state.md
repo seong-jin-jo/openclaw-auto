@@ -21,6 +21,44 @@ override_expires: ""
 
 # Pipeline State — openclaw-auto-osmu
 
+## 2026-07-29 customer production blocker build + independent QA
+- `2026-07-28 full production flow QA reopen`에서 확인한 고객 화면의 operator-only 전역 API 403,
+  존재하지 않는 onboarding 이미지, Google 고객 401 수동 token UX, YouTube/notification HTTP
+  false-success를 tests-first로 수정했다. 고객 Proxy allowlist는 넓히지 않았다.
+- 고객 화면은 전역 cron/token/secret/file 제어를 제거하되 tenant-safe queue·analytics·settings·
+  credentials·image gallery·blog 기능을 유지한다. tenant 자동화는
+  `/api/channel-settings/{channel}` GET/POST로 복구했고 global cron API는 호출하지 않는다.
+  tenant 저장소가 없는 GA/Search Advisor/Naver Trends는 정직한 비활성 안내로 전환했다.
+- customer JWT 401은 Supabase local sign-out→`/login`, operator token은 `/operator` 경로를
+  유지한다. reauth operation owner token으로 old 401→signOut pending→new SIGNED_IN/JWT→old
+  SIGNED_OUT micro-race가 새 세션을 삭제하지 못하도록 막았다.
+- YouTube resumable PUT non-2xx·invalid JSON·빈 ID, Telegram HTTP/body `ok:false`,
+  Discord/Slack/LINE 및 Slack test/custom non-2xx는 fail-closed한다. 외부 발행 성공 뒤
+  DB/queue 기록 실패의 `/api/publish` 계약은 사용자 결정 전이라 변경하지 않았다.
+- tests-first RED는 최초 20건, 독립 QA 리테이크 10건, auth micro-race 2건을 실제 재현했다.
+  최종 code-builder 전체 115 files 948 PASS/10 DB-env skip, `tsc --noEmit`, webpack build
+  166/166, diff check PASS. 최종 독립 QA도 focused 57/57, 계약 감사 9/9, 전체 948 PASS/10 skip,
+  TypeScript, webpack 166/166, diff check PASS로 제품 QA를 승인했다.
+- **판정 경계:** QA 전용 Skill이 현재 Codex 환경에 없어 harness skill gate는 FAIL이며, 위 PASS는
+  독립 코드·테스트·빌드 증거 등급이다. 운영 배포·실 Supabase browser race·전체 route matrix와
+  Admin OAuth UI 저장→reveal→delete는 미검증이다. qa/ship 잠금은 유지한다.
+
+## 2026-07-29 env OAuth import + publish partial-success contract
+- 사용자 운영 제보: `/operator/customers`에서 기존 등록 Client ID/Secret을 확인할 수 없었다.
+  원인은 기존 세트가 env source이고 보안상 DB source에만 reveal을 허용한 UI/API 계약이다.
+- 해결 계약: env 원문을 HTTP로 직접 반환하지 않는다. exact operator 인증의 explicit
+  `import-env` action이 완전한 env 세트를 서버 내부에서 pgcrypto 암호화 DB로 원자적 import하고,
+  secret-free audit를 남긴 뒤 기존 DB-only reveal을 사용한다. 기존 DB 행은 덮어쓰지 않는다.
+- 발행 계약: 외부 게시 성공 뒤 publication/queue 기록 실패는 HTTP 500,
+  `ok:false`, `externalPublished:true`, external id/permalink, persistence stage,
+  `repair_persistence_only`, `retryPublish:false`를 반환한다. UI는 성공 analytics와 외부 재발행을
+  차단하고 queue만 멱등 복구한다.
+- 독립 통합 QA: focused 48 files 464 PASS/2 DB skip, 전체 117 files 966 PASS/10 DB-env skip,
+  `tsc --noEmit`, webpack production build 166/166, diff/충돌/secret scan PASS.
+- **판정 경계:** 제품 코드 QA PASS. 실 DB schema-first 적용·transaction rollback, 운영 Admin
+  import→reveal 클릭, 실제 부분성공 장애 E2E는 미검증이다. QA Skill 미설치 harness FAIL도 유지한다.
+  ship 전환 금지.
+
 ## 2026-07-28 Admin central OAuth credential manager build reopen
 - 사용자 확정: 미등록 provider마다 정확한 개발자 콘솔 URL, 콘솔 작업 순서, callback URL,
   필요한 Client ID/Secret/추가값을 Admin에 표시한다. 운영자는 Admin에서 값을 일괄 등록·수정하고

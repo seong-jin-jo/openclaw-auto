@@ -38,7 +38,6 @@ export default function BlogPage() {
   const { data: guideData, mutate: mutateGuide } = useSWR<{ guide: string }>("/api/blog-guide", fetcher);
   const { data: kwData, mutate: mutateKw } = useSWR<{ keywords: string[] }>("/api/blog-keywords", fetcher);
   const { data: bankData } = useSWR<{ keywords: KeywordBankItem[] }>("/api/keyword-bank", fetcher);
-  const { data: cronData } = useSWR("/api/cron-status", fetcher);
   const { showToast } = useToast();
 
   const [tab, setTab] = useState<"queue" | "editor" | "settings">("queue");
@@ -53,7 +52,6 @@ export default function BlogPage() {
 
   const posts = queueData?.posts || [];
   const bank = (bankData?.keywords || []).filter((k) => !k.used);
-  const cronJobs = ((cronData as Record<string, unknown>)?.jobs || cronData || []) as Array<Record<string, unknown>>;
 
   useEffect(() => {
     if (guideData?.guide && !guideLoaded) {
@@ -125,13 +123,6 @@ export default function BlogPage() {
       await apiPost("/api/blog-keywords", { keywords: kws });
       showToast(`${kws.length}개 키워드 저장`, "success");
       mutateKw();
-    } catch (e) { showToast(`실패: ${(e as Error).message}`, "error"); }
-  };
-
-  const handleCronToggle = async (jobId: string, enabled: boolean) => {
-    try {
-      await apiPost(`/api/cron/toggle`, { jobId, enabled });
-      showToast(`${jobId} ${enabled ? "ON" : "OFF"}`, "success");
     } catch (e) { showToast(`실패: ${(e as Error).message}`, "error"); }
   };
 
@@ -295,42 +286,6 @@ export default function BlogPage() {
       {/* Settings Tab */}
       {tab === "settings" && (
         <div className="space-y-6">
-          {/* Automation toggles */}
-          <div className="card p-4">
-            <h3 className="text-sm font-medium text-text mb-3">Blog Automation</h3>
-            <div className="space-y-3">
-              {[
-                { id: "blog-generate-drafts", label: "Content Generation", desc: "학생/학부모 대상 칼럼 자동 생성" },
-                { id: "blog-auto-publish", label: "Auto Publish", desc: "승인된 글을 블로그에 자동 발행" },
-              ].map((job) => {
-                const cron = cronJobs.find((j) => j.id === job.id || j.name === job.id) as Record<string, unknown> | undefined;
-                const enabled = cron?.enabled !== false;
-                return (
-                  <label key={job.id} className="flex items-center justify-between">
-                    <div>
-                      <span className="text-xs text-muted">{job.label}</span>
-                      <p className="text-[10px] text-subtle">{job.desc}</p>
-                      {cron && (
-                        <p className="text-[10px] text-subtle">
-                          Status: <span className={cron.lastStatus === "ok" ? "text-green-400" : cron.lastStatus === "error" ? "text-red-400" : "text-subtle"}>{String(cron.lastStatus || "unknown")}</span>
-                        </p>
-                      )}
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="checkbox"
-                        checked={enabled}
-                        onChange={(e) => handleCronToggle(job.id, e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-9 h-5 bg-surface-2 rounded-full peer peer-checked:bg-accent cursor-pointer after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
-                    </div>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-
           {/* Content Guide */}
           <div className="card p-4">
             <div className="flex items-center justify-between mb-3">

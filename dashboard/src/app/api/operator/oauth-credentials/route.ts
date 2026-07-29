@@ -2,7 +2,10 @@ import { publicOrigin } from "@/lib/social-connect";
 import {
   deleteOAuthCredentialSet,
   getOAuthCredentialDefinition,
+  importOAuthCredentialSetFromEnv,
   listOAuthCredentialMetadata,
+  OAuthCredentialAlreadyStoredError,
+  OAuthCredentialEnvIncompleteError,
   OAuthCredentialSourceNotRevealableError,
   revealOAuthCredentialSet,
   upsertOAuthCredentialSet,
@@ -60,19 +63,49 @@ export async function PUT(request: Request) {
 export async function POST(request: Request) {
   const authError = operatorAuthError(request);
   if (authError) return authError;
+  let action = "";
   try {
     const body = await request.json().catch(() => null) as { action?: unknown; provider?: unknown } | null;
+    action = String(body?.action || "");
     const provider = String(body?.provider || "");
-    if (body?.action !== "reveal" || !getOAuthCredentialDefinition(provider)) {
-      return jsonNoStore({ error: "invalid reveal request" }, { status: 400 });
+    if (!getOAuthCredentialDefinition(provider)) {
+      return jsonNoStore({ error: "invalid credential action request" }, { status: 400 });
     }
-    const revealed = await revealOAuthCredentialSet(provider);
-    return jsonNoStore(revealed);
+    if (action === "reveal") {
+      const revealed = await revealOAuthCredentialSet(provider);
+      return jsonNoStore(revealed);
+    }
+    if (action === "import-env") {
+      if (!process.env.OSMU_SECRET_KEY || !process.env.DATABASE_URL) {
+        return jsonNoStore({ error: "credential encryption store unavailable" }, { status: 503 });
+      }
+      const imported = await importOAuthCredentialSetFromEnv(provider);
+      return jsonNoStore({
+        ok: true,
+        provider,
+        source: "db",
+        updatedAt: imported.updatedAt,
+      });
+    }
+    return jsonNoStore({ error: "invalid credential action request" }, { status: 400 });
   } catch (error) {
     if (error instanceof OAuthCredentialSourceNotRevealableError) {
       return jsonNoStore({ error: "DB에 저장한 자격증명만 원문 확인할 수 있습니다." }, { status: 409 });
     }
-    return jsonNoStore({ error: "credential reveal failed" }, { status: 500 });
+    if (error instanceof OAuthCredentialEnvIncompleteError) {
+      return jsonNoStore({
+        error: "환경변수 세트가 불완전합니다. 누락 값을 서버 환경에서 먼저 설정하세요.",
+        missing: error.missing,
+      }, { status: 409 });
+    }
+    if (error instanceof OAuthCredentialAlreadyStoredError) {
+      return jsonNoStore({
+        error: "이미 DB에 저장된 자격증명이 있습니다. 환경변수로 덮어쓰지 않았습니다.",
+      }, { status: 409 });
+    }
+    return jsonNoStore({
+      error: action === "reveal" ? "credential reveal failed" : "credential import failed",
+    }, { status: 500 });
   }
 }
 

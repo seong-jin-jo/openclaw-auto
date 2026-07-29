@@ -18,6 +18,63 @@ import {
   type PublishResult,
 } from "@/lib/publish";
 
+type PersistenceStage = "publication_record" | "queue_record";
+
+function partialPersistenceFailure(
+  result: PublishResult,
+  input: {
+    stage: PersistenceStage;
+    draftId: unknown;
+    platform: string;
+    accountId?: string;
+  },
+): Response {
+  const publicationRecorded = input.stage === "queue_record";
+  const code = input.stage === "publication_record"
+    ? "PUBLICATION_RECORD_FAILED"
+    : "QUEUE_RECORD_FAILED";
+  const message = input.stage === "publication_record"
+    ? "외부 게시에는 성공했지만 발행 기록 저장에 실패했습니다."
+    : "외부 게시와 발행 기록 저장에는 성공했지만 queue 상태 저장에 실패했습니다.";
+
+  return Response.json(
+    {
+      ok: false,
+      externalPublished: true,
+      externalId: result.externalId,
+      permalink: result.permalink,
+      error: `${message} 같은 콘텐츠를 다시 게시하지 말고 내부 기록만 복구하세요.`,
+      persistence: {
+        ok: false,
+        stage: input.stage,
+        publicationRecorded,
+        queueRecorded: false,
+        error: {
+          code,
+          message,
+        },
+        reconciliation: {
+          required: true,
+          action: "repair_persistence_only",
+          retryPublish: false,
+          draftId: typeof input.draftId === "string" ? input.draftId : null,
+          platform: input.platform,
+          accountId: input.accountId ?? null,
+          externalId: result.externalId ?? null,
+          permalink: result.permalink ?? null,
+        },
+      },
+    },
+    {
+      // RFC 9110 §15.6.1: the provider fulfilled its side effect, but this server
+      // could not fulfill the complete request because its own persistence failed.
+      // 502 would be incorrect because the upstream response was valid and successful.
+      status: 500,
+      headers: { "Cache-Control": "no-store" },
+    },
+  );
+}
+
 // POST /api/publish — 한 플랫폼 실발행 { tenant_id, platform, text, image_url?, draft_id? }
 // 발행 후 published_posts에 기록(성과 수집 대상). 토큰 없으면 명확한 에러(크래시 X).
 export async function POST(request: Request) {
@@ -79,20 +136,54 @@ export async function POST(request: Request) {
           : await fetchInstagramPermalink(cred, existing.external_id);
         if (recoveredPermalink) {
           permalink = recoveredPermalink;
-          await withTenant(tenant_id, (sql) => sql`
-            UPDATE published_posts SET permalink = ${recoveredPermalink}
-             WHERE tenant_id = ${tenant_id}::uuid
-               AND draft_id = ${draft_id}::uuid
-               AND platform = ${platform}
-               AND status = 'published'
-               AND external_id = ${existing.external_id}
-          `);
-          await markQueuePublished(tenant_id, draft_id, {
+          try {
+            await withTenant(tenant_id, (sql) => sql`
+              UPDATE published_posts SET permalink = ${recoveredPermalink}
+               WHERE tenant_id = ${tenant_id}::uuid
+                 AND draft_id = ${draft_id}::uuid
+                 AND platform = ${platform}
+                 AND status = 'published'
+                 AND external_id = ${existing.external_id}
+            `);
+          } catch {
+            return partialPersistenceFailure(
+              { ok: true, externalId: existing.external_id ?? undefined, permalink },
+              {
+                stage: "publication_record",
+                draftId: draft_id,
+                platform,
+                accountId: cred.accountId,
+              },
+            );
+          }
+        }
+      }
+      const existingResult: PublishResult = {
+        ok: true,
+        externalId: existing.external_id ?? undefined,
+        permalink,
+      };
+      try {
+        const queueRecorded = await markQueuePublished(tenant_id, draft_id, {
+          platform,
+          externalId: existing.external_id ?? undefined,
+          permalink,
+        });
+        if (!queueRecorded) {
+          return partialPersistenceFailure(existingResult, {
+            stage: "queue_record",
+            draftId: draft_id,
             platform,
-            externalId: existing.external_id,
-            permalink: recoveredPermalink,
+            accountId: cred.accountId,
           });
         }
+      } catch {
+        return partialPersistenceFailure(existingResult, {
+          stage: "queue_record",
+          draftId: draft_id,
+          platform,
+          accountId: cred.accountId,
+        });
       }
       return Response.json({
         ok: true,
@@ -146,20 +237,50 @@ export async function POST(request: Request) {
       VALUES (${tenant_id}, ${draft_id ?? null}, ${platform}, ${result.externalId ?? null},
               ${result.permalink ?? null}, ${text ?? null},
               ${result.ok ? "published" : "failed"}, ${result.error ?? null}, ${cred.accountId ?? null})`);
-  } catch (e) {
-    // 기록 실패는 발행 결과에 영향 X (로그만)
-    return Response.json({ ...result, recordError: String(e) });
+  } catch {
+    if (result.ok) {
+      return partialPersistenceFailure(result, {
+        stage: "publication_record",
+        draftId: draft_id,
+        platform,
+        accountId: cred.accountId,
+      });
+    }
+    return Response.json(
+      {
+        ...result,
+        persistence: {
+          ok: false,
+          stage: "publication_record",
+          error: { code: "PUBLICATION_RECORD_FAILED", message: "실패한 발행 시도 기록 저장에 실패했습니다." },
+        },
+      },
+      { status: 500, headers: { "Cache-Control": "no-store" } },
+    );
   }
 
   if (result.ok && isDraftUuid) {
     try {
-      await markQueuePublished(tenant_id, draft_id, {
+      const queueRecorded = await markQueuePublished(tenant_id, draft_id, {
         platform,
         externalId: result.externalId,
         permalink: result.permalink,
       });
-    } catch (e) {
-      return Response.json({ ...result, queueRecordError: String(e) });
+      if (!queueRecorded) {
+        return partialPersistenceFailure(result, {
+          stage: "queue_record",
+          draftId: draft_id,
+          platform,
+          accountId: cred.accountId,
+        });
+      }
+    } catch {
+      return partialPersistenceFailure(result, {
+        stage: "queue_record",
+        draftId: draft_id,
+        platform,
+        accountId: cred.accountId,
+      });
     }
   }
   return Response.json(result);

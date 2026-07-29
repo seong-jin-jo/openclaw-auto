@@ -6,7 +6,13 @@ interface DraftRow {
   id: string;
   tenant_id: string;
   idea: string;
-  payload: { text?: unknown; img?: unknown; vid?: unknown; includes?: Record<string, boolean> };
+  payload: {
+    text?: unknown;
+    img?: unknown;
+    vid?: unknown;
+    includes?: Record<string, boolean>;
+    publishReconciliation?: unknown;
+  };
   status: string;
   created_at: string;
   updated_at: string;
@@ -29,6 +35,7 @@ export async function GET(request: Request) {
       img: r.payload?.img ?? null,
       vid: r.payload?.vid ?? null,
       includes: r.payload?.includes ?? {},
+      publishReconciliation: r.payload?.publishReconciliation ?? null,
       status: r.status,
       savedAt: r.updated_at,
     }));
@@ -46,6 +53,7 @@ export async function POST(request: Request) {
   const payload = {
     text: body.text ?? null, img: body.img ?? null, vid: body.vid ?? null,
     includes: body.includes ?? {},
+    publishReconciliation: body.publishReconciliation ?? null,
   };
   const status = body.status || "draft";
   const idea = body.idea || "";

@@ -32,6 +32,19 @@ External: Threads/X/IG/YouTube/TikTok APIs + R2 + ElevenLabs + Midjourney
 - schedule-publish-due dashboard cron endpoint for Studio reservations
 - Per-channel extensions (threads-publish, x-publish, instagram-publish, tiktok-publish, youtube-publish...)
 - Queue schema v2 with per-channel status
+- 대시보드 `POST /api/publish`는 외부 provider 게시와 내부 `published_posts` + queue 반영이 모두
+  확인되어야만 `200 {ok:true}`다. 외부 게시는 성공했지만 어느 영속화 단계가 실패하면
+  [RFC 9110 §15.6.1](https://www.rfc-editor.org/rfc/rfc9110.html#name-500-internal-server-error)
+  `500`을 반환한다(`502`가 아닌 이유: provider 응답은 유효한 성공이고 실패 주체가 우리 서버이기
+  때문). 본문은 `ok:false`, `externalPublished:true`, 외부 ID/permalink, 실패 단계와 안정된 오류
+  코드, `repair_persistence_only`/`retryPublish:false` reconciliation 식별자를 보존한다. raw DB/파일
+  오류는 노출하지 않는다.
+- Studio는 위 partial response를 일반 실패로 버리지 않는다. 외부 URL과 reconciliation을 draft
+  payload/local state에 보존하고 상태를 `partial`로 표시하며, 내부 기록을 복구하기 전 같은 draft를
+  다시 provider에 보내지 않는다. 이미 `published_posts` 성공 행이 있는 재요청은 외부 발행 없이
+  queue만 멱등 복구한다. `publish_success` 분석 이벤트는 외부+내부 성공이 모두 확인된 경우에만
+  발생한다. 재시도 안전성은 같은 키의 재요청이 side effect를 중복 생성하지 않아야 한다는
+  [Stripe idempotent request 원칙](https://docs.stripe.com/api/idempotent_requests)을 따른다.
 
 **3. Insights & Learning**
 - threads-insights, sync-insights
@@ -84,6 +97,10 @@ Longform (wiki page / blog) → longform_to_shorts → candidates
 → video_generate (ffmpeg base)
 → Drafts → Approve → Publish (YouTube/TikTok + cross post)
 → Performance (gstack browse or API) → learnings → next prompt
+
+YouTube resumable upload의 최종 PUT은 HTTP 성공 응답이고, 응답 JSON이 파싱되며, 공백이 아닌
+video `id`가 있을 때만 발행 성공으로 기록한다. non-2xx, invalid JSON, empty ID는 모두 `502` 발행
+실패로 반환해 queue 상태가 성공으로 오염되지 않게 한다.
 
 ## gstack Integration (now in this repo)
 

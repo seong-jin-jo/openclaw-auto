@@ -1,9 +1,88 @@
 # 세션 작업 상태 (재실행 가능한 핸드오프)
 
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
-> 단계 진실원: 루트 `pipeline-state.md`(현재 **ship in-progress**). QA 증거: `docs/qa-tracker.md`.
+> 단계 진실원: 루트 `pipeline-state.md`(현재 **QA in-progress, ship pending**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-26 22:34 KST · 영상 채널 403 핫픽스 독립 QA PASS, 재배포 대기
+**최종 갱신:** 2026-07-28 21:37 KST · 운영자 canonical 토큰 복구·운영 폼 PASS, 전체 QA는 계속 FAIL
+
+### 운영자 canonical 토큰 불일치 복구 (2026-07-28)
+
+**사용자 재현/원인:** `/operator`에 안내받은 값을 입력하면 invalid-token 문구가 나왔다.
+운영 secret store 값은 첫 글자 대소문자가 다른 9자리 값이었고, API는 정확 일치 비교라 거부했다.
+이전 QA가 secret store 값 자체로만 폼을 통과시켜 사용자에게 안내된 canonical 입력값과의 불일치를
+검증하지 않은 것이 누락 원인이다.
+
+**복구/운영 증거:** GitHub Actions `OSMU_DASHBOARD_AUTH_TOKEN`과 로컬 secret inventory를
+canonical 값으로 통일했다. deploy run `30359455514`가 1분 1초 SUCCESS했고 workflow의
+operator/customers smoke도 통과했다. 운영에서 canonical 값으로 `/api/me` 200
+`isOperator:true`, `/api/operator/customers` 200을 재관찰했다.
+
+**실브라우저 증거:** 새 Chrome target에서 storage를 비우고 `/operator` 폼을 제출해
+`/operator/customers` 이동, `Admin`·`고객 관리` 렌더를 직접 관찰했다. invalid-token 문구,
+4xx/5xx response, console error는 모두 0건이었다.
+
+**재발 방지/다음 액션:** 운영자 로그인 종료조건을 secret store API 스모크와 사용자 안내 canonical
+값의 새 브라우저 폼 제출 두 가지로 분리한다. 운영자 로그인 결함은 닫혔지만 아래 전체 고객 플로우
+QA FAIL과 ship 잠금은 유지한다. 다음 작업은 고객 UI/API 403과 false-success 계약 수정이다.
+
+### 전체 운영 플로우 QA (2026-07-28)
+
+**범위/증거:** 공개 7·고객 25·운영자 5 routes, 고객 API 10개, OAuth 12 provider,
+Google auth preflight, GA4 consent를 운영에서 직접 검사했다. 현재 main 전체 테스트는
+105/105 files, 880 PASS/10 DB skip, TypeScript PASS, 제한 밖 production build 165/165 PASS.
+
+**판정:** 운영자 shell과 최근 Login Required race는 PASS. 전체 고객 플로우는 FAIL이다.
+home/Studio/Threads/messaging/Images/Blog/GA/Search Advisor/Naver Trends가 고객 bearer로
+운영자 전용 API를 호출해 403을 내고, Threads/X onboarding 이미지 4개는 404다. Inbox와
+Blog Performance는 격리 브라우저에서 오류 0으로 오탐 제거했다.
+
+**추가 blocker:** current-token 401 수동 Auth Token 모달, YouTube upload와 messaging webhook의
+HTTP 실패 성공 오판, provider 성공 뒤 DB/queue 기록 실패의 `ok:true` 유지가 소스에서 확인됐다.
+중앙 OAuth는 4/12만 ready이며 나머지 8개는 credential 미설정이다.
+
+**통과 증거:** GA4 동의 후 gtag load와 page_view collect 204, Google auth preflight의
+Supabase host·`prompt=select_account`, 고객 core API 9개 200, 운영자 route 5개 오류 0.
+QA용 tenant token은 revoke 200 뒤 `/api/me` 401을 확인했다.
+
+**다음 액션:** QA 승인을 철회하고 ship을 잠갔다. 고객 UI/API 권한 불일치, missing assets,
+401 UX, false-success 계약을 tests-first로 수정한 뒤 full test/build, 독립 QA, 재배포,
+동일 전체 route matrix 4xx/5xx·console error 0을 재관찰한다. 외부 credential 8개와 신규 Google
+실가입/provider별 실발행은 별도 외부 차단으로 유지한다.
+
+**위임 검증 상태:** rollout
+`2026-07-28T05-31-35-019fa546-9b02-7923-a95d-5182141c9c3a`의 qa-verifier 산출물은
+하네스 품질 검증 FAIL이다. 역할별 QA 스킬 실행 증거가 없어 독립 PASS 근거로 출고하지 않는다.
+위 전체 플로우 FAIL 판정은 컨트롤러가 운영 브라우저에서 직접 관찰한 route/API/GA4 증거와
+전체 테스트·TypeScript·production build 결과에 근거한다. 다음 독립 QA는 P1 수정 뒤 새
+qa-verifier로 재위임하고 품질 검증 PASS까지 확보해야 한다.
+
+### 운영자 로그인 뒤 전역 Login Required 결함 (2026-07-28)
+
+**운영 재현:** 운영자 진입 전에도 root layout의 닫힌 `ImagePickerModal`이 `/api/images`와
+`/api/queue`를 요청한다. 두 401이 공통 fetcher에서 토큰 삭제와 `auth:required`를 발생시켜 공개
+홈에도 Login Required가 뜬다. 로그인 직전 시작된 401이 토큰 저장 뒤 도착하면 새 운영자 토큰도
+삭제하는 race가 있다. 운영자 토큰으로 고객 path를 열 때 고객 children을 mount하는 경로도 확인했다.
+
+**QA 누락 원인:** 이전 QA는 `/operator/customers` 안정화 뒤 콘솔만 확인했고, 토큰 입력 직후부터
+홈·고객 path를 운영자 identity로 순회하지 않았다. 따라서 로그인 진입 race와 identity별 route
+matrix가 종료조건에 없었다.
+
+**구현·QA:** code-builder가 lazy modal fetch, stale-401 token 보호, operator→Admin redirect를
+tests-first로 구현했다. focused 35/35, 전체 880 PASS/10 DB-env skip, TypeScript, production build
+165 routes가 통과했다. 독립 Claude Sonnet도 focused 11/11과 TypeScript를 재실행해 PASS했다.
+
+**운영 종료증거:** commit `87dae325`, deploy run `30287931603` SUCCESS. 공개 홈은 보호 API
+요청·Login Required·콘솔 오류 0건이었다. 실제 운영자 토큰 폼 제출은 Admin 전용 shell로 이동했고,
+운영자 상태의 `/`·`/videos`·`/channels/youtube`는 고객 shell 없이 모두 Admin으로 복귀했다.
+Login Required·401/429·콘솔 오류 0건, 20초 안정화 중 `/api/me` 2회 200을 관찰했다.
+
+**고객 회귀:** 단기 tenant token으로 `/videos` 고객 경로와 관련 API 200을 관찰했다. Admin 오인식,
+Login Required, 콘솔 오류는 0건이었다. 토큰 revoke 200 뒤 동일 토큰 `/api/me` 401을 확인하고
+임시 비밀 파일을 삭제했다.
+
+**다음 액션:** 운영자 로그인 모달 결함은 닫혔다. 전체 v1.0.0 ship은 중앙 OAuth 4/12 준비 상태로,
+누락된 X/TikTok 등 8개 provider credential·심사와 provider별 신규 고객 consent→callback→계정 저장→
+실발행 permalink를 순차 확보한다. 기존 다른 세션의 SNS 계정 설정 기록은 보존한다.
 
 ### 운영 배포 + 영상 채널 cron 403 핫픽스 (2026-07-26 22:27 KST)
 
@@ -27,9 +106,15 @@ diff check가 통과했다. 위임 산출물 품질검증도 PASS했다. 독립 
 전체 871 PASS/10 skip, TypeScript와 production build를 직접 재실행해 PASS했다.
 제품 1파일과 신규 테스트 1파일이 현재 uncommitted다.
 
-**다음 액션:** 핫픽스 커밋/push→OSMU 재배포→같은 임시 tenant로 YouTube/TikTok에서
-cron 요청 0건·콘솔 오류 0건, `/videos` 발행 작업실 보존을 관찰한다. 이후 임시 토큰을 revoke하고
-동일 토큰 `/api/me` 401을 확인한다.
+**운영 종료증거:** commit `9e25ab6c`, deploy run `30204883783`이 DB schema/RLS, 이미지 build,
+기동, 상태, 로그인 스모크를 모두 통과했다. 고객 운영 브라우저에서 YouTube/TikTok 독립 화면 모두
+cron-status/cron-runs 요청 0건·콘솔 오류 0건을 관찰했고 설정/readiness/account API는 200이었다.
+`/videos`는 공용 영상 라이브러리와 provider별 `채널 관리` 링크만 유지하고 콘솔 오류 0건이었다.
+단기 고객 토큰은 revoke 200 뒤 같은 토큰 `/api/me` 401을 확인하고 로컬 원문 파일을 삭제했다.
+
+**다음 액션:** 영상 채널 403 핫픽스는 닫혔다. Admin 4/12 중앙 OAuth 준비 상태에서 누락된
+X/TikTok 등 8개 provider의 개발자 앱 credential을 GitHub Actions secret store에 등록하고 재배포한 뒤,
+신규 tenant의 실제 consent→callback→계정 저장→실발행 permalink를 provider별로 관찰한다.
 
 ### 독립 재검증 PASS (2026-07-26 14:43 KST)
 
@@ -2878,3 +2963,182 @@ pane은 Claude 문맥 100% 사용 후 프롬프트에 멈춰 있었고 마지막
 - **정확한 다음 액션:** 후속 두 예약이 due가 되면 cron 로그와 공개 permalink를 회수한다. 다음 실행에서는
   Instagram 카드 자산을 생성해 IMAGE 예약 E2E를 가동한다. X/TikTok/Meta/Google 콘솔은 로그인·2FA 세션이
   확보되는 즉시 중앙 앱 설정→secret 저장→재배포→실 OAuth/발행 QA를 수행한다.
+
+## 2026-07-26 Opus 세션 — SNS 계정 실세팅 착수
+
+**회장 지시:** SNS 계정 생성 완료(j.the.great.creator@gmail.com / OSMU), 로컬 관리 + 프로필 세팅 위임. 자격증명 = `~/.sj-agent-harness/secrets/osmu-sns.env`(권한 600, git 밖).
+**확정(2026-07-26 회장):** ①표시 이름 = "OSMU 팩토리"(정본값) ②채널 = 전부(IG/Threads/FB/TikTok/YouTube) ③세팅 = 내가 직접 로그인.
+**전략 분리(내 권고, open-decisions 등록):** AI 성인 인플루언서·조회수 파밍은 OSMU 팩토리 계정에 안 얹음 — 성인=연좌밴으로 본체 사망 리스크, 완전 격리 필요. 이 세션은 OSMU 팩토리 순수 세팅만.
+**미해결 확인:** geulmat-sns.env(오늘 13:57 타 세션 생성)가 이 OSMU 계정과 동일한지 별개 벤처인지 — 세팅 중 계정 실물로 교차 확인 예정(§8 격리).
+**다음 액션:** claude-in-chrome 로드 → 계정 실물 확인 → 채널별 프로필(표시이름·bio·프사·배너) 세팅. 재료 = channels/*.md bio + assets/brand/(프사 B급·배너 B+).
+- 2026-07-28: SNS 세팅 착수 — claude-in-chrome 탭 navigate 3회 소멸(익스텐션-크롬 연결 불안정) → 자동 로그인 보류(브라우저 규칙). 대신 세팅 시트(scratchpad/osmu-sns-setup-sheet.html) 생성·open: 채널별 표시이름·핸들·bio·고정글·프사·배너 완비. IG=정본 완비 즉시가능, Threads=자동연동, FB=파생초안(정본없음), TikTok/YouTube=영상 파이프라인 갭으로 프로필 선점만 권장. 다음: 브라우저 복구 후 IG부터 세팅 / FB·TikTok 채널팩 위임 여부 회장 판단 / 프사 리파인 여부.
+
+## 2026-07-28 — /qa 독립검토: 운영자 인증 race 핫픽스 (uncommitted)
+
+**handoff 기준:** 이번 태스크는 사용자가 `/qa` 커맨드로 특정 파일 3개+테스트 3개 범위를 직접 지정해 호출했다.
+tmux pane 지목이나 별도 handoff 소스 제시가 없었고 이 세션 자체 연속 작업이라 tmux/session-state 간 기준 충돌이 없었다 — 물을 필요 없이 이 파일 최신 상태를 그대로 이어받아 갱신한다.
+**태스크:** dashboard/src/components/queue/ImagePickerModal.tsx, dashboard/src/components/shared/AuthGate.tsx, dashboard/src/lib/api.ts + 신규/수정 테스트 3개(operator-get-auth.test.tsx, AuthGateRouting.test.tsx, ImagePickerModal.test.tsx) 독립 QA 리뷰. **코드/문서 수정 금지** 지시 — 이 세션은 관찰만 수행했다(실제 수정은 아직 uncommitted 상태로 남아있음, 커밋 안 함).
+**검증 상태(관찰됨/테스트됨):**
+- `npx vitest run` 대상 3파일 = 11/11 PASS.
+- `npx tsc --noEmit` = 에러 0.
+- 목표 5개(무토큰/구토큰 401이 새 토큰 무효화 안 함 / 닫힌 모달이 보호 API 미호출 / 운영자가 `/,/videos,/channels/youtube`에서 고객 shell 미mount하고 `/operator/customers`로 리다이렉트 / 고객 identity는 `/videos` 유지 / 동일 토큰 401은 기존 로그아웃 동작 유지) 전부 diff 로직 직독 + 테스트 그린으로 확인.
+**미검증 범위:** 실브라우저 E2E(gstack browse) 미실행 — unit/component 레벨만. Supabase 세션 동기화 useEffect와의 상호작용은 diff 범위 밖이라 별도 미검증.
+**배포 상태:** 미배포. 대상 3개 소스 파일은 여전히 **uncommitted**(git status 상 M) — 이 세션은 커밋하지 않았다.
+**다음 액션:** 회장/세션 오너가 이 uncommitted 변경을 커밋할지 결정. 커밋 시 커밋 메시지에 QA 검증 근거(vitest 11/11, tsc clean) 명시 권장. 이후 필요 시 gstack browse로 실브라우저 로그인 레이스 E2E 보강 검토.
+
+## 2026-07-29 OAuth credential manager 독립 보안 QA 리뷰 (READ-ONLY)
+- 핸드오프 기준: 이 파일(session-state.md). tmux pane 기준 지시 없었음 — 다음 세션이 다른 기준을 원하면 사용자에게 확인할 것.
+- 태스크: commits 68c251bb..0ffefb39(중앙 Admin OAuth credential manager) 독립 보안 리뷰. **파일 수정 없음**(사용자 지시 READ-ONLY). 이 노트만 append.
+- 검증 실행: `npx vitest run tests/lib/oauth-app-credentials*.test.ts tests/api/operator-oauth-credentials.test.ts tests/api/connect-readiness-resolver.test.ts tests/brand/oauth-credential-resolver-wiring.test.ts tests/db/oauth-app-credentials-schema.contract.test.ts` → 6 files / 21 tests PASS (관찰됨).
+- 결과: Critical 0 / Major 4 / Minor 4.
+  - M1 `db/rls.sql:37-38` + `src/lib/oauth-app-credentials.ts:267-285` — FORCE RLS + policy 0개라 비-BYPASSRLS role에서 SELECT가 에러 없이 0행 → "저장 없음"으로 오해돼 조용히 env 폴백. fail-closed(:293-315)는 throw만 잡음.
+  - M2 `db/rls.sql:36-45` — 새 ALTER 4줄이 가드 없이 tenant_iso 루프(:47-60) **앞**에 있음. CI/배포 모두 ON_ERROR_STOP=1이라 롤백(테이블 부재) 시 13개 테이블 tenant_iso 미적용 채 실패. 코드(:294-302)가 지원 선언한 rollback 시나리오와 모순.
+  - M3 `src/lib/oauth-app-credentials.ts:410-423` — reveal이 source=env일 때 process.env secret 원문을 HTTP 응답으로 반환(신규 노출면). audit에 actor/IP 컬럼 없음.
+  - M4 `src/app/api/connect/readiness/route.ts:19-32` — 고객 hot path에서 provider 13개 **순차** DB 왕복 + pgp_sym_decrypt, 캐시 없음. db() 풀 max:5 포화 위험.
+  - m1 operator 토큰 비교가 customers/route.ts(:56, 대소문자 무시 정규식)와 불일치 + 비고정시간(`oauth-credentials/route.ts:24`).
+  - m2 `unavailableReason`(:346)이 UI에서 미렌더 → DB 장애를 "미설정"으로 오진.
+  - m3 `missing`(:338)이 source=db일 때도 env 변수명 보고.
+  - m4 DELETE 경로 부재(audit CHECK엔 'delete' 존재) → DB 행을 지워 env로 되돌릴 UI 수단 없음.
+- 미검증(공백): 실 Postgres schema/rls 멱등 적용, pgcrypto 암호화 왕복, osmu_service RLS 거부 실측, DB 출처 credential의 authorize→callback 실왕복, audit 조회 경로, Turbopack 빌드. schema contract 테스트는 SQL 문자열 매칭일 뿐 DB 미기동.
+- 다음 액션(사용자 결정 대기): M1·M2 필수 수정 여부. 추천 = ①rls.sql 새 ALTER를 to_regclass 가드 + tenant_iso 루프 뒤로 이동 ②리졸버가 0행과 RLS 거부를 구분 ③실 Postgres DB 테스트 추가(공백 1~3 동시 해소). 결정 전까지 qa/ship 게이트 잠금 유지.
+
+## 2026-07-29 02:20 KST — 중앙 OAuth credential manager 운영 배포·실 API/DB QA
+
+- **primary:** `openclaw-auto:0.0` OAuth/운영 배포 트랙과 이 파일의 최신 OAuth 기록. 사용자가 반복해서
+  가역 실행은 묻지 말고 진행하라고 지시했으며, 종료 지시 후 이 handoff만 갱신하고 작업을 중단했다.
+- **배포:** local `main`의 `1c3ea172`까지 GitHub `main`에 push했다. GitHub Actions
+  `deploy-marketing.yml` run `30381608500`, job `90350547463`이 SUCCESS했다. 실제 workflow에서
+  checkout, 운영 DB schema/RLS 적용, 이미지 build, 기동, 상태, 로그인·Google 계정선택·운영자 API
+  smoke가 모두 통과했다.
+- **운영 API E2E:** 운영자 미인증 GET 401, 인증 GET 200, `Cache-Control: no-store`, 12개 provider의
+  console/docs/callback/setup/field metadata 계약을 확인했다. DB row가 없던 Instagram을 임시 대상으로
+  PUT 저장 → GET DB source+전 필드 마스킹 → POST reveal 원문 일치 → DELETE → 기존 env fallback 복구를
+  실제 운영 API에서 수행했다. secret 원문은 출력하지 않았다.
+- **운영 DB/RLS E2E:** `oauth_app_credentials`, `oauth_credential_audit` 2개 테이블 존재,
+  RLS enabled, FORCE off, policy 0개를 실측했다. owner/BYPASS 운영 연결은 조회 가능했고,
+  `SET LOCAL ROLE osmu_service`는 credential 0행, INSERT 거부였다. QA 종료 시 credential row 0,
+  audit row 3(update/reveal/delete)이며 임시 credential은 남지 않았다.
+- **자동 검증 기반:** focused 32/32, 전체 112 files 917 PASS/10 DB-env skip, TypeScript,
+  webpack production build 166/166 routes PASS. 독립 Opus follow-up은 Critical/Major 0,
+  관련 23/23 PASS. code-builder 품질 검증 PASS.
+- **미완료/미검증:** 실제 Admin 브라우저에서 12개 카드 렌더와 버튼 클릭
+  저장→마스킹→reveal→삭제 UI E2E를 작성하던 중 사용자가 세션 중단을 지시했다. `apply_patch`가
+  중단되어 `/private/tmp/verify-osmu-oauth-admin-ui-live.sh`는 완성/실행되지 않았다. API와 DB 실경로는
+  검증됐지만 이 최종 UI 클릭 경로는 미검증이다. 실제 제3자 OAuth consent→callback은 플랫폼별 실
+  Client ID/Secret 등록 전까지 미검증이다.
+- **정확한 다음 액션:** 다음 세션은 새 Admin UI 전용 gstack E2E 하나만 완성해 운영
+  `/operator/customers`에서 12 cards/console links/setup/callback/inputs와
+  저장→reveal→delete 복구, HTTP 4xx/5xx 0, console error 0을 직접 관찰한다. 그 뒤 이 증거를
+  `docs/qa-tracker.md`와 `pipeline-state.md`에 반영한다.
+
+## 2026-07-29 04:09 KST — pane0 승인 반복·하네스 READ-ONLY 진단
+
+- **요청/기준:** 사용자가 `openclaw-auto:0.0` Codex pane을 primary로 지목해 현재 작업상황과
+  “가역 실행은 승인받지 말라”는 지시를 14회 반복했는데도 승인창이 계속 뜬 원인을 조사했다.
+  `CLAUDE.md`, 이 핸드오프, root/nested git 상태, 지정 pane transcript, Codex session JSONL,
+  `~/.codex/config.toml`, 전역 Codex hooks와 harness 로그를 읽었다. 제품 코드·배포·하네스 설정은
+  변경하지 않았다.
+- **확정 원인:** pane0는 `codex resume 019f4783-434d-7d00-a857-2b3e9cf134de`로 실행됐고
+  해당 thread settings는 14번째 지시 뒤에도 `approval_policy:on-request`,
+  `approvals_reviewer:user`였다. 전역 `~/.codex/config.toml`에는 top-level
+  `approval_policy`가 없어 오래된 재개 세션 정책이 유지됐다. 자연어 “승인받지 마”는 이 런타임
+  정책을 바꾸지 않는데, 컨트롤러가 이를 확인·교정하지 않고 말로만 반복 수락한 것이 직접 운영 실패다.
+- **현재 승인창 분리:** `/private/tmp/verify-osmu-oauth-admin-ui-live.sh` 신규 편집 직전에 나온
+  `Would you like to make the following edits?`는 Codex 자체 승인 UI다. 같은 시각 harness 로그에
+  stage/publish/eng-design/artifact-stamp `ask`가 없고 temp 경로는 artifact stamp 제외 대상이라,
+  이번 팝업은 제품 stage-gate가 원인이 아니다.
+- **공식 동작 확인:** 로컬 최신 Codex manual과 CLI help에서 무승인 정책은
+  `approval_policy="never"` 또는 `-a never`로 실행해야 하며, sandbox 권한은 별개임을 확인했다.
+  `never`만 켜고 필요한 network/Git/SSH/Docker 권한이 없으면 묻지 않고 실패한다.
+- **하네스 drift:** `~/.codex/AGENTS.md`와 `~/.claude/CLAUDE.md` 정본은
+  “Claude 권장 / Codex 컨트롤러 허용”인데 현재 Stage Controller 주입문에는 Codex를 2nd-pass
+  전용으로 적어 역할 정책도 불일치한다. 이번 승인창의 직접 원인은 아니지만 동기화 결함이다.
+- **작업상태:** root `HEAD=origin/main=1c3ea172`, root tracked dirty는 이 핸드오프뿐이다.
+  pipeline은 `qa in-progress`, `ship pending`; 위 02:20 기록의 운영 API/DB 증거는 유효하고
+  Admin 실제 브라우저 UI 클릭 E2E는 미검증이다. 별도 nested `openclaw/` repo는
+  tracked 6,569 files 변경(1,297,874 insertions/395,003 deletions)이 있어 이 OAuth 트랙이
+  소유권 확인 없이 건드리면 안 된다.
+- **다음 액션:** 하네스 수정 권한이 주어지면 ①운영 pane launcher에 scoped permission profile과
+  `auto_review` 또는 전용 `never` 정책 고정 ②`resume` wrapper에서 실제 thread settings 검사 및
+  `on-request+user` 재개 차단 ③사용자 승인창 반복 로깅·2회째 중단 ④Codex 역할 주입문 정본 동기화
+  ⑤오래된 세션 resume→temp edit→push/deploy에서 사용자 승인창 0, QA 미승인 배포 차단 유지 회귀
+  테스트 순으로 보정한다. 이번 진단 턴에는 적용하지 않았다.
+
+## 2026-07-29 04:48 KST — 고객 운영 플로우 출시 차단 결함 build
+
+- **handoff 기준:** 사용자가 이 `openclaw-auto:0.0` pane에서 “진행해”라고 명시해, 이 파일 최신
+  상태와 `pipeline-state.md`의 2026-07-28 전체 운영 플로우 QA를 기준으로 이어받았다. 별도
+  `openclaw-auto:0.1` SNS/AI 비서 트랙과 nested `openclaw/` 대규모 dirty repo는 건드리지 않았다.
+- **Admin OAuth UI QA:** 별도 `qa-verifier`가 운영 `/operator` 문서 로드까지만 관찰했다. 현재
+  sandbox에서 Chrome launch `SIGABRT`, CDP/gstack localhost `EPERM`, 운영 DNS 실패로 인증 뒤
+  12개 카드와 저장→마스킹→reveal→삭제 UI 클릭, network/console 계측은 **미검증 유지**다.
+  secret·운영 row·제품 코드는 변경하지 않았다.
+- **구현 범위:** `code-builder`가 tests-first로 ①고객 화면의 전역 operator-only
+  cron/token/secret/file 요청 제거(Proxy allowlist 완화 없음) ②Threads/X의 존재하지 않는
+  onboarding 이미지 참조 제거 ③customer JWT 401은 Supabase sign-out→`/login`, operator token은
+  기존 `/operator` 유지 ④YouTube resumable PUT non-2xx·invalid JSON·빈 ID 실패 처리
+  ⑤Telegram HTTP/body `ok`, Discord/Slack/LINE 및 Slack test/custom non-2xx 실패 처리를 구현했다.
+  GA/Search Advisor/Naver Trends는 tenant 저장소가 없어 고객 화면을 비활성 안내로 전환했다.
+  `/api/publish`의 외부 발행 성공 뒤 DB/queue 기록 실패 계약은 회장 결정 전이라 수정하지 않았다.
+- **개발 증거:** tests-first RED 20건을 재현한 뒤 focused 52/52, 영향 회귀 42/42, 전체 dashboard
+  115 files 942 PASS/10 DB-env skip, `tsc --noEmit`, webpack production build 166/166,
+  `git diff --check`를 통과했다. 공식 Google YouTube·Telegram·Slack·WHATWG/MDN Fetch 문서를
+  실제 재조사한 retake에서도 focused 52/52가 통과했고 code-builder 품질검증 PASS를 확보했다.
+- **현재 상태:** 제품 코드·테스트·기술 wiki는 uncommitted이며 commit/deploy하지 않았다.
+  독립 `qa-verifier`가 현재 diff와 전체 회귀를 재실행 중이다. 개발자 자기검증은 QA 승인이나
+  운영 완료 근거로 사용하지 않는다.
+- **정확한 다음 액션:** 독립 QA PASS와 품질검증 PASS를 확보한다. 그 뒤 회장이
+  `/api/publish` 기록 실패 계약을 `ok:false + externalPublished:true + reconciliation metadata`로
+  확정하면 해당 계약을 별도 tests-first 수정한다. 모든 코드 범위가 닫힌 뒤에만 commit/push,
+  운영 배포, 고객·운영자 전체 route matrix와 Admin OAuth UI 실브라우저 E2E를 재관찰한다.
+
+### 2026-07-29 05:23 KST — 독립 QA 리테이크 종결
+
+- 첫 독립 QA는 tenant automation 삭제, Instagram global design-tools 403, Instagram 누락 이미지,
+  AuthGate stale-401 race 4건을 찾아 FAIL했다. 첫 리테이크 뒤에도 signOut pending 중 새 JWT가
+  들어온 다음 old `SIGNED_OUT`가 최신 session을 지우는 micro-race를 추가로 찾아 재반려했다.
+- 최종 수정은 reauth owner token과 Supabase local-scope sign-out을 사용한다. exact
+  `old 401→signOut pending→new SIGNED_IN/JWT→old SIGNED_OUT→signOut resolve` 테스트에서
+  새 JWT 유지·token clear 0·redirect 0을 확인했다. owner 없는 정상 고객 logout과 operator token
+  경로도 회귀 통과했다.
+- 최종 독립 증거: focused 57/57, 계약 감사 9/9, 전체 115 files 948 PASS/10 DB-env skip,
+  `tsc --noEmit`, webpack production build 166/166, `git diff --check` PASS. 이전 3개 회귀도
+  모두 닫혔다. qa-verifier는 제품 QA PASS로 판정했다.
+- **경계:** QA 전용 Skill 미설치로 harness skill status는 FAIL이다. 운영 배포·실브라우저
+  Supabase race·전체 route matrix·Admin OAuth UI는 계속 미검증이며 commit/push/deploy하지 않았다.
+- **다음 액션:** 회장이 `/api/publish` persistence 실패 계약을 확정하면 마지막 tests-first 수정을
+  수행한 뒤 전체 QA를 다시 돌린다. 미확정이면 현재 변경을 commit할지 별도 결정한 뒤 운영 배포와
+  실브라우저 QA로 넘어간다.
+
+### 2026-07-29 — 운영 env OAuth 확인 제보부터 통합 QA
+
+- 회장이 운영 `/operator/customers`에서 기존 OAuth Client ID/Secret 확인 불가를 제보하고 남은
+  작업 연속 진행을 지시했다. URL을 `raw/inbox/`에 보존했다. 운영 HTML은 curl 200을 관찰했으나
+  인증 API 재시도는 sandbox DNS 실패로 미관찰했다.
+- 확정 원인: 기존 credential은 env source이고 UI/API는 DB source만 reveal한다. env 원문 직접
+  HTTP 반환 대신 operator explicit `import-env`로 완전한 세트를 암호화 DB에 원자적 import하고
+  감사한 뒤 기존 30초 reveal을 사용하도록 구현했다.
+- 회장 지시를 앞선 추천 계약 승인으로 해석해 `/api/publish` 부분성공도 HTTP 500,
+  `ok:false`, `externalPublished:true`, persistence/reconciliation metadata,
+  `retryPublish:false`로 수정했다.
+- 병렬 code-builder 두 개가 공유 source에서 webpack build를 동시에 시도해 한쪽이 lock에 걸렸다.
+  코드 실패는 아니며 이후 build를 직렬화했다. 재발 방지: 공유 소스 build는 통합 QA 한 명만 실행한다.
+- 최종 독립 통합 QA: focused 464 PASS/2 DB skip, 전체 966 PASS/10 DB-env skip, TypeScript,
+  webpack 166/166, diff/conflict/secret scan PASS. 제품 결함·교차 diff 충돌은 발견하지 않았다.
+- **경계:** qa/browse/verify Skill 미설치 harness FAIL, 실 DB/browser/curl 증거 미확보,
+  신규 파일 untracked 상태라 ship은 보류다. 다음은 의도 파일 명시 commit→push 후 schema-first
+  배포 게이트 확인→운영 import/reveal 및 고객 route matrix 직접 관찰이다.
+
+### 2026-07-29 — commit 단계 sandbox 차단
+
+- 통합 QA 뒤 의도한 tracked 파일과 신규 dashboard 컴포넌트/테스트, `raw/inbox` URL 기록만
+  명시적으로 stage하려 했다. 기존부터 dirty인 이 handoff와 `dashboard/supabase/.temp`,
+  nested `openclaw/`는 제외 대상으로 확인했다.
+- 현재 Codex permission profile이 repo 파일 쓰기는 허용하지만 `.git`은 read-only라
+  `.git/index.lock` 생성이 `Operation not permitted`로 거부됐다. 따라서 `git add`·commit·push·
+  deploy는 실행되지 않았고 staged 파일도 0개다.
+- 다른 tmux pane을 이용한 sandbox 우회나 회장에게 로컬 명령 실행을 떠넘기지 않았다.
+- **정확한 다음 액션:** Git metadata write가 허용된 컨트롤러가 이 파일의 직전 통합 QA 증거를
+  기준으로 의도 파일을 명시 stage하되 `wiki/ops/session-state.md`의 기존 외부 변경,
+  `dashboard/supabase/.temp`, nested `openclaw/`를 분리 검토한다. commit/push 뒤 schema-first
+  배포하고 운영 `/operator/customers` env→DB import→reveal과 전체 route matrix를 관찰한다.

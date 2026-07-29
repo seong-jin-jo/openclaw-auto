@@ -5,6 +5,7 @@ const H = vi.hoisted(() => ({
   selectResult: [] as unknown[],
   selectError: null as unknown,
   deleteResult: [] as unknown[],
+  insertResult: [{ updated_at: "2026-07-28T00:00:00.000Z" }] as unknown[],
   beginCount: 0,
 }));
 
@@ -21,7 +22,7 @@ vi.mock("@/lib/db", () => {
         return H.selectResult;
       }
       if (sql.includes("INSERT INTO oauth_app_credentials")) {
-        return [{ updated_at: "2026-07-28T00:00:00.000Z" }];
+        return H.insertResult;
       }
       return [];
     }),
@@ -45,6 +46,7 @@ beforeEach(() => {
   H.selectResult = [];
   H.selectError = null;
   H.deleteResult = [];
+  H.insertResult = [{ updated_at: "2026-07-28T00:00:00.000Z" }];
   H.beginCount = 0;
 });
 
@@ -69,6 +71,66 @@ describe("OAuth credential encrypted storage and audit", () => {
     expect(sql).toContain("INSERT INTO oauth_credential_audit");
     expect(sql).toContain("'update'");
     expect(sql).not.toContain("new-client-secret");
+  });
+
+  it("imports one complete env set into encrypted DB storage and audits import without secret values", async () => {
+    const { importOAuthCredentialSetFromEnv } = await import("@/lib/oauth-app-credentials");
+    const result = await importOAuthCredentialSetFromEnv("x");
+
+    expect(result.updatedAt).toBe("2026-07-28T00:00:00.000Z");
+    expect(H.beginCount).toBe(1);
+    const insert = H.queries.find((query) => query.sql.includes("INSERT INTO oauth_app_credentials"));
+    const audit = H.queries.find((query) => query.sql.includes("oauth_credential_audit"));
+    expect(insert?.sql).toContain("pgp_sym_encrypt");
+    expect(insert?.sql).toContain("ON CONFLICT (provider) DO NOTHING");
+    expect(insert?.values).toContain("env-id");
+    expect(insert?.values).toContain("env-secret");
+    expect(audit?.sql).toContain("'import'");
+    expect(audit?.values).toEqual(["x"]);
+    expect(audit?.sql).not.toContain("env-id");
+    expect(audit?.sql).not.toContain("env-secret");
+  });
+
+  it("refuses incomplete env sets before opening a transaction or issuing SQL", async () => {
+    vi.stubEnv("X_CLIENT_SECRET", "");
+    const {
+      importOAuthCredentialSetFromEnv,
+      OAuthCredentialEnvIncompleteError,
+    } = await import("@/lib/oauth-app-credentials");
+
+    await expect(importOAuthCredentialSetFromEnv("x")).rejects.toBeInstanceOf(
+      OAuthCredentialEnvIncompleteError,
+    );
+    expect(H.beginCount).toBe(0);
+    expect(H.queries).toEqual([]);
+  });
+
+  it("never overwrites or mixes an existing DB set during env import", async () => {
+    H.insertResult = [];
+    const {
+      importOAuthCredentialSetFromEnv,
+      OAuthCredentialAlreadyStoredError,
+    } = await import("@/lib/oauth-app-credentials");
+
+    await expect(importOAuthCredentialSetFromEnv("x")).rejects.toBeInstanceOf(
+      OAuthCredentialAlreadyStoredError,
+    );
+    expect(H.beginCount).toBe(1);
+    expect(H.queries.some((query) => query.sql.includes("oauth_credential_audit"))).toBe(false);
+    const insert = H.queries.find((query) => query.sql.includes("INSERT INTO oauth_app_credentials"));
+    expect(insert?.sql).not.toContain("DO UPDATE");
+  });
+
+  it.each([
+    ["DATABASE_URL", ""],
+    ["OSMU_SECRET_KEY", ""],
+  ])("fails closed without SQL when %s is unavailable", async (name, value) => {
+    vi.stubEnv(name, value);
+    const { importOAuthCredentialSetFromEnv } = await import("@/lib/oauth-app-credentials");
+
+    await expect(importOAuthCredentialSetFromEnv("x")).rejects.toThrow("credential store unavailable");
+    expect(H.beginCount).toBe(0);
+    expect(H.queries).toEqual([]);
   });
 
   it("audits reveal without placing any secret value in audit SQL", async () => {

@@ -2,9 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const H = vi.hoisted(() => ({
   upserts: [] as Array<{ provider: string; values: Record<string, string> }>,
+  imports: [] as string[],
   reveals: [] as string[],
   deletes: [] as string[],
   revealSource: "db" as "db" | "env",
+  importFailure: null as null | "incomplete" | "already-db" | "unavailable",
 }));
 
 vi.mock("@/lib/oauth-app-credentials", async () => {
@@ -31,6 +33,19 @@ vi.mock("@/lib/oauth-app-credentials", async () => {
       H.upserts.push({ provider, values });
       return { updatedAt: "2026-07-28T00:00:00.000Z" };
     }),
+    importOAuthCredentialSetFromEnv: vi.fn(async (provider: string) => {
+      H.imports.push(provider);
+      if (H.importFailure === "incomplete") {
+        throw new actual.OAuthCredentialEnvIncompleteError(["X_CLIENT_SECRET"]);
+      }
+      if (H.importFailure === "already-db") {
+        throw new actual.OAuthCredentialAlreadyStoredError();
+      }
+      if (H.importFailure === "unavailable") {
+        throw new Error("credential store unavailable");
+      }
+      return { updatedAt: "2026-07-28T00:00:00.000Z" };
+    }),
     revealOAuthCredentialSet: vi.fn(async (provider: string) => {
       H.reveals.push(provider);
       if (H.revealSource === "env") {
@@ -48,11 +63,14 @@ vi.mock("@/lib/oauth-app-credentials", async () => {
 beforeEach(() => {
   vi.resetModules();
   vi.stubEnv("DASHBOARD_AUTH_TOKEN", "operator-token");
+  vi.stubEnv("DATABASE_URL", "postgres://test");
   vi.stubEnv("OSMU_SECRET_KEY", "encryption-key");
   H.upserts = [];
+  H.imports = [];
   H.reveals = [];
   H.deletes = [];
   H.revealSource = "db";
+  H.importFailure = null;
 });
 
 afterEach(() => {
@@ -160,6 +178,70 @@ describe("/api/operator/oauth-credentials", () => {
     expect(text).not.toContain("raw-id");
     expect(text).not.toContain("raw-secret");
   });
+
+  it("POST import-env requires exact operator auth, explicit action, and returns no-store metadata without env values", async () => {
+    const { POST } = await import("@/app/api/operator/oauth-credentials/route");
+    const unauthorized = await POST(new Request("https://app.example/api/operator/oauth-credentials", {
+      method: "POST",
+      headers: { Authorization: "Bearer tenant-token", "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "import-env", provider: "x" }),
+    }));
+    expect(unauthorized.status).toBe(401);
+    expect(unauthorized.headers.get("Cache-Control")).toContain("no-store");
+    expect(H.imports).toEqual([]);
+
+    const res = await POST(new Request("https://app.example/api/operator/oauth-credentials", {
+      method: "POST",
+      headers: operatorHeaders,
+      body: JSON.stringify({ action: "import-env", provider: "x" }),
+    }));
+    const text = await res.text();
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Cache-Control")).toContain("no-store");
+    expect(H.imports).toEqual(["x"]);
+    expect(text).toContain('"source":"db"');
+    expect(text).not.toContain("env-id");
+    expect(text).not.toContain("env-secret");
+  });
+
+  it.each([
+    ["incomplete", 409, "환경변수 세트가 불완전합니다"],
+    ["already-db", 409, "이미 DB에 저장된 자격증명"],
+    ["unavailable", 500, "credential import failed"],
+  ] as const)("POST import-env fails closed for %s state", async (failure, status, expectedError) => {
+    H.importFailure = failure;
+    const { POST } = await import("@/app/api/operator/oauth-credentials/route");
+    const res = await POST(new Request("https://app.example/api/operator/oauth-credentials", {
+      method: "POST",
+      headers: operatorHeaders,
+      body: JSON.stringify({ action: "import-env", provider: "x" }),
+    }));
+    const text = await res.text();
+
+    expect(res.status).toBe(status);
+    expect(res.headers.get("Cache-Control")).toContain("no-store");
+    expect(text).toContain(expectedError);
+    expect(text).not.toContain("env-id");
+    expect(text).not.toContain("env-secret");
+  });
+
+  it.each(["OSMU_SECRET_KEY", "DATABASE_URL"])(
+    "POST import-env refuses missing %s before reading or importing env credentials",
+    async (name) => {
+      vi.stubEnv(name, "");
+      const { POST } = await import("@/app/api/operator/oauth-credentials/route");
+      const res = await POST(new Request("https://app.example/api/operator/oauth-credentials", {
+        method: "POST",
+        headers: operatorHeaders,
+        body: JSON.stringify({ action: "import-env", provider: "x" }),
+      }));
+
+      expect(res.status).toBe(503);
+      expect(res.headers.get("Cache-Control")).toContain("no-store");
+      expect(H.imports).toEqual([]);
+    },
+  );
 
   it("DELETE requires exact operator auth, deletes one DB set, audits in storage, and never echoes secrets", async () => {
     const { DELETE } = await import("@/app/api/operator/oauth-credentials/route");

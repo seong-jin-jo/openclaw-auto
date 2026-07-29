@@ -66,6 +66,34 @@ describe("publish_success fires only after confirmed API success, not on click a
     const errsLine = src.slice(elseIdx, errsLineEnd);
     expect(errsLine).not.toContain("publish_success");
   });
+
+  it("studio/page.tsx: externalPublished partial failure is reconciled without automatic external republish or publish_success", () => {
+    const src = read("src/app/studio/page.tsx");
+    const publishStart = src.indexOf("async function publish()");
+    const publishEnd = src.indexOf("function loadDraft(", publishStart);
+    const block = src.slice(publishStart, publishEnd);
+    const preflightGuard = block.indexOf("publishReconciliation?.retryPublish === false");
+    const apiCall = block.indexOf('apiPost<{ ok?: boolean; permalink?: string; error?: string }>("/api/publish"');
+    const partialGuard = block.indexOf("isExternalPublishPersistenceError(e)");
+    const preserveUrl = block.indexOf("e.payload.permalink", partialGuard);
+    const stopLoop = block.indexOf("break", partialGuard);
+    const persistPartial = block.indexOf('save("partial", pendingReconciliation)');
+
+    expect(preflightGuard).toBeGreaterThan(-1);
+    expect(preflightGuard).toBeLessThan(apiCall);
+    expect(partialGuard).toBeGreaterThan(-1);
+    expect(preserveUrl).toBeGreaterThan(partialGuard);
+    expect(stopLoop).toBeGreaterThan(partialGuard);
+    expect(persistPartial).toBeGreaterThan(stopLoop);
+    expect(block.slice(partialGuard, stopLoop)).not.toContain('name: "publish_success"');
+    expect(block).not.toContain("retryPublish(");
+  });
+
+  it("studio draft API persists and restores reconciliation metadata across reloads", () => {
+    const src = read("src/app/api/studio/drafts/route.ts");
+    expect(src).toContain("publishReconciliation: body.publishReconciliation ?? null");
+    expect(src).toContain("publishReconciliation: r.payload?.publishReconciliation ?? null");
+  });
 });
 
 describe("OAuth login tracking covers PKCE (not just implicit-flow hash tokens)", () => {

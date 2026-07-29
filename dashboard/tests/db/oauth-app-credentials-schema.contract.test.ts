@@ -16,6 +16,7 @@ describe("global OAuth app credential schema contract", () => {
 
     expect(schema).toContain("CREATE TABLE IF NOT EXISTS oauth_credential_audit");
     expect(schema).toMatch(/action\s+TEXT NOT NULL/);
+    expect(schema).toMatch(/action IN \('update', 'import', 'reveal', 'delete'\)/);
     expect(schema).toMatch(/occurred_at\s+TIMESTAMPTZ NOT NULL DEFAULT now\(\)/);
     expect(schema).not.toMatch(/oauth_credential_audit[\s\S]{0,500}(secret|credential)_enc/i);
   });

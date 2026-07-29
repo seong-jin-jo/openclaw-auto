@@ -42,6 +42,22 @@ Feedback: insights → viral signals → style / prompt-guide updates.
 - AuthGate의 `/api/me` 결과가 operator이면 persisted customer workspace를 지운 뒤 operator children을 연다.
   Sidebar는 `Admin` + `/operator/customers` 전용 shell을 렌더하고 customer 채널/워크스페이스 UI를
   mount하지 않는다. customer이면 `/api/me.tenant` 기반 Marketing Hub shell을 렌더한다.
+- customer Marketing Hub는 tenant-aware API만 호출한다. global cron/token/secret/file API는
+  operator-only이며 `src/proxy.ts` customer allowlist에 추가하지 않는다. 따라서 customer 화면에서는
+  Home의 global token/cron 상태, 채널별 cron 제어, Messaging의 global notification/Slack report,
+  Images의 R2 설정, Blog의 cron 제어를 렌더하지 않는다. tenant queue·성과·가이드·credential 등
+  tenant-safe 기능은 유지하며, 채널 자동화 enable/disable은 tenant
+  `/api/channel-settings/{channel}`만 사용한다. Instagram 카드뉴스 editor도 tenant 생성·업로드·queue
+  기능은 유지하되 global `/api/design-tools`에 의존하는 Figma 제어는 customer 화면에 렌더하지 않는다.
+- GA4·Search Advisor·Naver Trends의 현재 구현은 각각 global file/credential을 사용하므로 customer
+  화면에서는 연결 대기 상태만 보여준다. 고객별 저장소와 credential 계약이 생기기 전까지 global
+  API를 customer에게 노출하지 않는다.
+- 현재 bearer snapshot에서 발생한 customer JWT 401은 global token modal을 열지 않고
+  `auth:customer-reauth-required`로 Supabase 세션을 sign-out한 뒤 `/login`으로 보낸다. operator
+  token 401만 `/operator`의 수동 token 입력 흐름을 유지한다. 요청 도중 token이 바뀐 stale 401은
+  새 세션을 로그아웃시키지 않는다.
+- setup guide의 screenshot은 실제 public asset이 존재할 때만 경로를 선언한다. 이미지가 없는
+  Threads/X/Instagram 가이드는 깨진 placeholder 경로 대신 텍스트 단계만 제공한다.
 - `/api/me`의 invalid Bearer는 route handler보다 먼저 실행되는 `src/proxy.ts` 인증 경계에서 client identity별
   fixed window로 제한한다. 60초 안의 5번째 실패부터 `429`와 `Retry-After`를 반환하고, 최대 2,048개 identity만
   process memory에 보관한다. Bearer 원문은 저장·응답하지 않는다. 유효 `DASHBOARD_AUTH_TOKEN`은 기존처럼

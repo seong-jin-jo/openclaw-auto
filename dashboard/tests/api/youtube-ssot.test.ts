@@ -243,6 +243,60 @@ describe("POST /api/video/publish — youtube 브랜치", () => {
     expect(body.videoId).toBe("VIDEO123");
   });
 
+  it("upload PUT non-2xx는 video id가 든 JSON이어도 실패한다", async () => {
+    H.cred = { token: "VALID_AT", meta: {} };
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      if (url.toString().includes("uploadType=resumable")) {
+        return { ok: true, status: 200, headers: { get: () => "https://upload.example/non-2xx" } };
+      }
+      return { ok: false, status: 500, json: async () => ({ id: "MUST_NOT_SUCCEED" }) };
+    }));
+    const { POST } = await import("@/app/api/video/publish/route");
+    const res = await POST(new Request("http://localhost/api/video/publish", {
+      method: "POST",
+      body: JSON.stringify({ filename: "x.mp4", platform: "youtube" }),
+    }));
+
+    expect(res.status).toBe(502);
+    expect(await res.json()).not.toEqual(expect.objectContaining({ ok: true }));
+  });
+
+  it("upload PUT의 성공 응답이 invalid JSON이면 실패한다", async () => {
+    H.cred = { token: "VALID_AT", meta: {} };
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      if (url.toString().includes("uploadType=resumable")) {
+        return { ok: true, status: 200, headers: { get: () => "https://upload.example/invalid-json" } };
+      }
+      return { ok: true, status: 201, json: async () => { throw new SyntaxError("invalid json"); } };
+    }));
+    const { POST } = await import("@/app/api/video/publish/route");
+    const res = await POST(new Request("http://localhost/api/video/publish", {
+      method: "POST",
+      body: JSON.stringify({ filename: "x.mp4", platform: "youtube" }),
+    }));
+
+    expect(res.status).toBe(502);
+    expect(await res.json()).not.toEqual(expect.objectContaining({ ok: true }));
+  });
+
+  it("upload PUT의 성공 응답에 유효한 video id가 없으면 실패한다", async () => {
+    H.cred = { token: "VALID_AT", meta: {} };
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      if (url.toString().includes("uploadType=resumable")) {
+        return { ok: true, status: 200, headers: { get: () => "https://upload.example/empty-id" } };
+      }
+      return { ok: true, status: 201, json: async () => ({ id: "   " }) };
+    }));
+    const { POST } = await import("@/app/api/video/publish/route");
+    const res = await POST(new Request("http://localhost/api/video/publish", {
+      method: "POST",
+      body: JSON.stringify({ filename: "x.mp4", platform: "youtube" }),
+    }));
+
+    expect(res.status).toBe(502);
+    expect(await res.json()).not.toEqual(expect.objectContaining({ ok: true }));
+  });
+
   it("finding 5: init에서 401이면 refresh 헬퍼를 정확히 1회 호출하고 1회만 재시도해 성공한다", async () => {
     H.cred = { token: "EXPIRED_AT", refreshToken: "RT", meta: {} };
     process.env.YOUTUBE_CLIENT_ID = "cid";

@@ -17,7 +17,9 @@ const H = vi.hoisted(() => ({
   inserts: [] as unknown[][],
   getChannelCredCalls: [] as unknown[][],
   existingPublication: null as { external_id: string | null; permalink: string | null } | null,
+  publicationRecordError: null as Error | null,
   markQueuePublishedCalls: [] as unknown[][],
+  queueRecordError: null as Error | null,
   instagramPermalink: "https://www.instagram.com/p/recovered/",
 }));
 
@@ -28,8 +30,12 @@ vi.mock("@/lib/tenant-auth", () => ({
 vi.mock("@/lib/db", () => ({
   withTenant: vi.fn(async (_tid: string, cb: (sql: unknown) => unknown) => {
     const sql = (strings: TemplateStringsArray, ...vals: unknown[]) => {
-      if (strings.join(" ").includes("SELECT external_id, permalink")) {
+      const query = strings.join(" ");
+      if (query.includes("SELECT external_id, permalink")) {
         return Promise.resolve(H.existingPublication ? [H.existingPublication] : []);
+      }
+      if (query.includes("INSERT INTO published_posts") && H.publicationRecordError) {
+        return Promise.reject(H.publicationRecordError);
       }
       H.inserts.push(vals);
       return Promise.resolve([]);
@@ -42,6 +48,7 @@ vi.mock("@/lib/db", () => ({
 vi.mock("@/lib/queue-store", () => ({
   markQueuePublished: vi.fn(async (...args: unknown[]) => {
     H.markQueuePublishedCalls.push(args);
+    if (H.queueRecordError) throw H.queueRecordError;
     return true;
   }),
 }));
@@ -81,7 +88,9 @@ beforeEach(() => {
   H.inserts = [];
   H.getChannelCredCalls = [];
   H.existingPublication = null;
+  H.publicationRecordError = null;
   H.markQueuePublishedCalls = [];
+  H.queueRecordError = null;
   H.instagramPermalink = "https://www.instagram.com/p/recovered/";
   vi.mocked(withTenant).mockClear();
 });
@@ -203,7 +212,7 @@ describe("/api/publish — happy path (실 publish* + fetch 목)", () => {
     }]]);
   });
 
-  it("동일 UUID draft/platform/account 성공 기록이 있으면 외부 발행을 반복하지 않는다", async () => {
+  it("동일 UUID draft/platform/account 성공 기록이 있으면 외부 발행 없이 queue만 멱등 복구한다", async () => {
     H.cred = { token: "tok", userId: "u-1", accountId: "11111111-1111-4111-8111-111111111111" };
     H.existingPublication = {
       external_id: "already-1",
@@ -221,7 +230,11 @@ describe("/api/publish — happy path (실 publish* + fetch 목)", () => {
     expect(body).toMatchObject({ ok: true, externalId: "already-1", alreadyPublished: true });
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(H.inserts).toHaveLength(0);
-    expect(H.markQueuePublishedCalls).toHaveLength(0);
+    expect(H.markQueuePublishedCalls).toEqual([["tenant-1", "13730d99-a268-47de-9cf9-90157ea1fa79", {
+      platform: "threads",
+      externalId: "already-1",
+      permalink: "https://www.threads.net/@u/post/already",
+    }]]);
   });
 
   it("기존 성공 기록의 permalink가 비었으면 외부 재발행 없이 URL만 복구한다", async () => {
@@ -304,7 +317,12 @@ describe("/api/publish — 실패/기록 분기", () => {
     expect(H.inserts[0][I.error]).toMatch(/container 실패/);
   });
 
-  it("DB 기록 실패 → recordError 반환, 발행 결과는 보존", async () => {
+  it("외부 발행 성공 뒤 DB 기록 실패 → 500 partial failure + 재발행 금지 복구 메타데이터", async () => {
+    H.cred = {
+      token: "tok",
+      userId: "u-1",
+      accountId: "11111111-1111-4111-8111-111111111111",
+    };
     installFetch([
       { match: "me?fields=id", json: { id: "live-id" } },
       { match: "fields=status", json: { status: "FINISHED" } },
@@ -312,14 +330,89 @@ describe("/api/publish — 실패/기록 분기", () => {
       { match: "/threads", json: { id: "container-9" } },
       { match: "fields=permalink", json: { permalink: "https://x" } },
     ]);
-    vi.mocked(withTenant).mockImplementationOnce(async () => {
-      throw new Error("db down");
+    H.publicationRecordError = new Error("db down");
+    const { status, body } = await callPublish({
+      platform: "threads",
+      text: "hi",
+      draft_id: "13730d99-a268-47de-9cf9-90157ea1fa79",
+      account_id: "11111111-1111-4111-8111-111111111111",
     });
-    const { status, body } = await callPublish({ platform: "threads", text: "hi" });
-    expect(status).toBe(200);
-    expect(body.ok).toBe(true); // 발행은 성공
-    expect(body.externalId).toBe("media-9");
-    expect(body.recordError).toMatch(/db down/);
+    expect(status).toBe(500);
+    expect(body).toMatchObject({
+      ok: false,
+      externalPublished: true,
+      externalId: "media-9",
+      permalink: "https://x",
+      persistence: {
+        ok: false,
+        stage: "publication_record",
+        error: {
+          code: "PUBLICATION_RECORD_FAILED",
+        },
+        reconciliation: {
+          required: true,
+          action: "repair_persistence_only",
+          retryPublish: false,
+          draftId: "13730d99-a268-47de-9cf9-90157ea1fa79",
+          platform: "threads",
+          accountId: "11111111-1111-4111-8111-111111111111",
+          externalId: "media-9",
+          permalink: "https://x",
+        },
+      },
+    });
+    expect(JSON.stringify(body)).not.toContain("db down");
+  });
+
+  it("외부 발행·publication 기록 성공 뒤 queue 기록 실패 → 500 partial failure + 외부 식별자 보존", async () => {
+    H.cred = {
+      token: "tok",
+      userId: "u-1",
+      accountId: "11111111-1111-4111-8111-111111111111",
+    };
+    H.queueRecordError = new Error("queue disk unavailable");
+    installFetch([
+      { match: "me?fields=id", json: { id: "live-id" } },
+      { match: "fields=status", json: { status: "FINISHED" } },
+      { match: "/threads_publish", json: { id: "media-queue-9" } },
+      { match: "/threads", json: { id: "container-queue-9" } },
+      { match: "fields=permalink", json: { permalink: "https://www.threads.net/@u/post/queue-9" } },
+    ]);
+    const draftId = "13730d99-a268-47de-9cf9-90157ea1fa79";
+    const { status, body } = await callPublish({
+      platform: "threads",
+      text: "hi",
+      draft_id: draftId,
+      account_id: "11111111-1111-4111-8111-111111111111",
+    });
+
+    expect(status).toBe(500);
+    expect(body).toMatchObject({
+      ok: false,
+      externalPublished: true,
+      externalId: "media-queue-9",
+      permalink: "https://www.threads.net/@u/post/queue-9",
+      persistence: {
+        ok: false,
+        stage: "queue_record",
+        error: {
+          code: "QUEUE_RECORD_FAILED",
+        },
+        reconciliation: {
+          required: true,
+          action: "repair_persistence_only",
+          retryPublish: false,
+          draftId,
+          platform: "threads",
+          accountId: "11111111-1111-4111-8111-111111111111",
+          externalId: "media-queue-9",
+          permalink: "https://www.threads.net/@u/post/queue-9",
+        },
+      },
+    });
+    expect(H.inserts).toHaveLength(1);
+    expect(H.inserts[0][I.status]).toBe("published");
+    expect(JSON.stringify(body)).not.toContain("queue disk unavailable");
   });
 
   it("미지원 플랫폼 → ok:false, failed 기록", async () => {

@@ -3,6 +3,11 @@
 > 출처: brain `business/decision-2026-06-4사업-OUTPUT-집중` 명령② + 사용자 상품화 논의(2026-06-26).
 > 상태: **설계(계획만) — 구현은 다음 세션.** 이 레포(MARKETING/JOGON)가 중앙 통합 주체.
 
+> 2026-07-29 보안 경계: 현재 `ga-config`/`ga-analytics`와 Slack report 설정·preview·custom
+> send는 global 운영자 자산이다. customer UI에서는 이 컨트롤과 API 호출을 숨겼으며 customer
+> proxy allowlist도 넓히지 않았다. 고객용 GA4/Slack 리포팅은 아래 Phase 2의 per-tenant 저장소와
+> credential 계약이 구현된 뒤 다시 노출한다.
+
 ## One Thing
 4앱(ZERO-ONE·D-EDU·CUPID·JOGON) 마케팅 성과를 **한 곳에서** 본다 + 주간 슬랙 알림.
 directive 하이브리드 결정 준수: **수집 태그(gtag)는 각 앱이 분산**, **분석·리포팅·슬랙은 MARKETING 중앙**.
@@ -38,6 +43,10 @@ SJ가 4 property를 다 소유 → **OAuth 불필요, 서비스계정 + property
    GA4 property ID + 서비스계정 grant(또는 OAuth) 연결.
 2. 테넌트별 성과 대시보드 + **테넌트별 슬랙 알림**(이미 slack-config가 테넌트 스코프면 재사용).
 3. 운영자 크로스-테넌트 뷰 = Phase 1 중앙 뷰를 "전 테넌트" 모드로(= publish-due 운영자 스윕과 동형).
+
+알림 전송 성공은 provider 응답 계약으로 fail-closed 판정한다. Telegram은 HTTP 2xx와 JSON
+`ok: true`가 모두 필요하고 Discord/Slack/LINE은 HTTP 2xx가 필요하다. Slack test/custom send도
+non-2xx를 성공으로 응답하지 않는다.
 
 ## 선행 조건 (directive 공통 — 각 앱이 함)
 **gtag 수집 태그를 4앱이 각자 자기 웹에 심어야 GA4에 데이터가 쌓인다.** 이 대시보드 앱도 포함.
