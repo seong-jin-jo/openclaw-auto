@@ -3142,3 +3142,14 @@ tmux pane 지목이나 별도 handoff 소스 제시가 없었고 이 세션 자�
   기준으로 의도 파일을 명시 stage하되 `wiki/ops/session-state.md`의 기존 외부 변경,
   `dashboard/supabase/.temp`, nested `openclaw/`를 분리 검토한다. commit/push 뒤 schema-first
   배포하고 운영 `/operator/customers` env→DB import→reveal과 전체 route matrix를 관찰한다.
+
+### 2026-07-29 — commit 성공, push 정책 차단
+
+- 회장이 commit/push 허용을 재확인한 뒤 Git metadata write가 열려 의도 파일 50개를 명시 stage했다.
+  `dashboard/supabase/.temp`와 nested `openclaw/` 대규모 untracked 변경은 제외했다.
+- local commit `0a50063c`(`fix(dashboard): close customer flow and oauth admin blockers`) 생성 성공.
+- `git push origin main`은 GitHub 인증 전 실행 정책이 approval required로 판정했으나 현재
+  AskForApproval=Never라 프로세스 생성 자체가 거부됐다. origin/main과 운영에는 아직 미반영이다.
+- **다음 액션:** 네트워크 변경 명령을 실행할 수 있는 컨트롤러가 `0a50063c`와 후속 상태 commit을
+  push한다. 그 뒤 schema-first workflow 성공, 운영 Admin import→reveal, 고객 route matrix,
+  실제 publish partial recovery를 관찰한다.

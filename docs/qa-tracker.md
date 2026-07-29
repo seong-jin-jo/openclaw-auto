@@ -42,6 +42,14 @@
   import→DB metadata→30초 reveal→hide, 실제 provider success 뒤 DB/queue 장애 복구.
 - **하네스:** qa/browse/verify Skill 미설치와 실브라우저/DB 도구 부재로 ship 증거는 아니다.
 
+### ❌ NG — Codex push 정책 차단
+
+- 로컬 commit `0a50063c` 생성은 관찰됐다.
+- `git push origin main`은 GitHub 인증 단계 이전에 실행 정책이 “approval required”로 분류했고,
+  현재 approval policy가 `Never`라 프로세스 생성 자체가 거부됐다.
+- 따라서 원격 main·운영 배포·실브라우저 검증은 미반영/미검증이다. 로컬 commit 존재를 배포
+  완료의 대리지표로 사용하지 않는다.
+
 ## 2026-07-28 Admin 중앙 OAuth credential manager
 
 **상태 전이:** ❌ NG(중앙 credential 8/12 미등록인데 Admin 입력/수정 경로 없음) → 🔧 build
