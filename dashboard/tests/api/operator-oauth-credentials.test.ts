@@ -65,6 +65,7 @@ vi.mock("@/lib/oauth-app-credentials", async () => {
 });
 
 beforeEach(() => {
+  vi.clearAllMocks();
   vi.resetModules();
   vi.stubEnv("DASHBOARD_AUTH_TOKEN", "operator-token");
   vi.stubEnv("DATABASE_URL", "postgres://test");

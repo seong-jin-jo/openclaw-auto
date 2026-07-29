@@ -31,9 +31,18 @@ function operatorAuthError(request: Request): Response | null {
   return null;
 }
 
+function credentialStoreError(): Response | null {
+  if (process.env.OSMU_SECRET_KEY && process.env.DATABASE_URL) return null;
+  return jsonNoStore({
+    error: "암호화 키 또는 데이터베이스 연결이 설정되지 않았습니다.",
+  }, { status: 503 });
+}
+
 export async function GET(request: Request) {
   const authError = operatorAuthError(request);
   if (authError) return authError;
+  const storeError = credentialStoreError();
+  if (storeError) return storeError;
   try {
     const providers = await listOAuthCredentialMetadata(publicOrigin(request));
     return jsonNoStore({ providers });
@@ -45,11 +54,8 @@ export async function GET(request: Request) {
 export async function PUT(request: Request) {
   const authError = operatorAuthError(request);
   if (authError) return authError;
-  if (!process.env.OSMU_SECRET_KEY || !process.env.DATABASE_URL) {
-    return jsonNoStore({
-      error: "암호화 키 또는 데이터베이스 연결이 설정되지 않았습니다.",
-    }, { status: 503 });
-  }
+  const storeError = credentialStoreError();
+  if (storeError) return storeError;
   try {
     const body = await request.json().catch(() => null) as { provider?: unknown; values?: unknown } | null;
     const validated = validateOAuthCredentialValues(body?.provider, body?.values);
@@ -66,6 +72,8 @@ export async function PUT(request: Request) {
 export async function POST(request: Request) {
   const authError = operatorAuthError(request);
   if (authError) return authError;
+  const storeError = credentialStoreError();
+  if (storeError) return storeError;
   let action = "";
   try {
     const body = await request.json().catch(() => null) as { action?: unknown; provider?: unknown } | null;
@@ -75,20 +83,10 @@ export async function POST(request: Request) {
       return jsonNoStore({ error: "지원하지 않는 자격증명 요청입니다." }, { status: 400 });
     }
     if (action === "reveal") {
-      if (!process.env.OSMU_SECRET_KEY || !process.env.DATABASE_URL) {
-        return jsonNoStore({
-          error: "암호화 키 또는 데이터베이스 연결이 설정되지 않았습니다.",
-        }, { status: 503 });
-      }
       const revealed = await revealOAuthCredentialSet(provider);
       return jsonNoStore(revealed);
     }
     if (action === "import-env") {
-      if (!process.env.OSMU_SECRET_KEY || !process.env.DATABASE_URL) {
-        return jsonNoStore({
-          error: "암호화 키 또는 데이터베이스 연결이 설정되지 않았습니다.",
-        }, { status: 503 });
-      }
       const imported = await importOAuthCredentialSetFromEnv(provider);
       return jsonNoStore({
         ok: true,
@@ -121,6 +119,8 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   const authError = operatorAuthError(request);
   if (authError) return authError;
+  const storeError = credentialStoreError();
+  if (storeError) return storeError;
   try {
     const body = await request.json().catch(() => null) as { provider?: unknown } | null;
     const provider = String(body?.provider || "");

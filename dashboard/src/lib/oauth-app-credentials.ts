@@ -366,9 +366,12 @@ function maskedValue(configured: boolean): string | null {
 
 export async function listOAuthCredentialMetadata(origin: string) {
   const definitions = Object.values(OAUTH_CREDENTIAL_DEFINITIONS);
-  const resolvedByProvider = await resolveOAuthCredentialSets(
-    definitions.map((definition) => definition.provider),
-  );
+  const resolvedByProvider = process.env.DATABASE_URL && process.env.OSMU_SECRET_KEY
+    ? await resolveOAuthCredentialSets(definitions.map((definition) => definition.provider))
+    : Object.fromEntries(definitions.map((definition) => [
+      definition.provider,
+      unavailableCredentialSet(definition),
+    ]));
   return definitions.map((definition) => {
     const resolved = resolvedByProvider[definition.provider];
     const configured = new Set(resolved?.configured || []);

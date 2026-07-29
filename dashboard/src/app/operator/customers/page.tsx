@@ -409,7 +409,7 @@ export default function OperatorCustomersPage() {
                               <button
                                 type="button"
                                 onClick={() => toggleCredentialInputVisibility(item.provider, field.key)}
-                                aria-label={`${field.label} ${visibleCredentialInputs[item.provider]?.[field.key] ? "숨김" : "표시"}`}
+                                aria-label={`${field.label} ${visibleCredentialInputs[item.provider]?.[field.key] ? "입력값 숨김" : "입력값 표시"}`}
                                 className="text-[9px] text-accent hover:underline"
                               >
                                 {visibleCredentialInputs[item.provider]?.[field.key] ? "입력값 숨김" : "입력값 표시"}
