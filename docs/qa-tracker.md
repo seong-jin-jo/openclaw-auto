@@ -1157,3 +1157,26 @@ SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open �
 - **미검증:** 임시 PostgreSQL은 sandbox `shmget` 차단으로 `initdb` bootstrap 전에 2회 중단됐다.
   owner/BYPASSRLS 1행 접근, `osmu_service` 0행·쓰기 거부, 전역 테이블 부재 상태의 tenant policy
   적용은 QA DB에서 직접 관찰해야 한다.
+
+### 2026-07-30 중앙 OAuth 원문 확인·미설정 등록 정상화
+
+- **❌ NG 재현:** 운영 `/operator/customers`의 설정 완료 4개 provider는 모두 source=env라
+  원문 확인 버튼이 없었고, 별도 `import-env` 요청은 구버전 운영 빌드에서 400을 반환했다.
+  미설정 카드의 입력은 항상 password라 붙여넣은 값을 필드별로 검증할 수 없었다.
+- **근본 원인:** UI가 env→DB import와 DB reveal을 두 단계 버튼으로 분리했고,
+  `revealOAuthCredentialSet()`이 env source를 무조건 거부했다. 저장소 부재 에러도 일부 경로에서
+  500 영문 응답으로 뭉개져 카드가 정확한 운영 사유를 표시하지 못했다.
+- **🔧 변경:** 단일 `원문 확인` 요청이 같은 DB 트랜잭션에서 완전한 env 세트를
+  `ON CONFLICT DO NOTHING`으로 암호화 import하고, 권위 있는 DB 행을 `FOR UPDATE` 재조회한 뒤
+  reveal한다. insert가 일어난 경우에만 `import`, 모든 성공 reveal에 `reveal` 감사 행을 남긴다.
+  기존 DB 행은 env로 덮어쓰지 않는다. 입력 필드는 기본 숨김·필드별 표시/숨김, PUT 성공 뒤
+  metadata 즉시 갱신, 400/500/503 한국어 카드 사유를 적용했다.
+- **RED→GREEN:** focused 4 files/37 tests에서 최초 9 FAIL로 결함을 재현했고, 최종 37/37 PASS.
+  전체 117 files에서 972 PASS/10 DB-env skip, `npx tsc --noEmit` exit 0,
+  `git diff --check` PASS.
+- **빌드:** 요구된 `npm run build`는 Turbopack의 sandbox port bind `EPERM`으로 exit 1.
+  원인 기반 webpack production build는 compile·TypeScript·static generation 166/166,
+  exit 0으로 통과했다. 실패를 제품 성공으로 치환하지 않는다.
+- **미검증/게이트:** 실제 PostgreSQL pgcrypto import→reveal·동시 conflict, 운영 브라우저의
+  설정 완료 4개 원문 확인, 미설정 provider 저장→source DB·준비 전환, 30초 자동 숨김,
+  audit 행은 미검증이다. push·배포는 실행하지 않았고 qa/ship 잠금을 유지한다.
