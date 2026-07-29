@@ -3153,3 +3153,20 @@ tmux pane 지목이나 별도 handoff 소스 제시가 없었고 이 세션 자�
 - **다음 액션:** 네트워크 변경 명령을 실행할 수 있는 컨트롤러가 `0a50063c`와 후속 상태 commit을
   push한다. 그 뒤 schema-first workflow 성공, 운영 Admin import→reveal, 고객 route matrix,
   실제 publish partial recovery를 관찰한다.
+
+### 2026-07-29 18:31 KST — 새 승인 가능 세션으로 push 인계
+
+- **현재 Git:** local `main=00d05302`, `origin/main=1c3ea172`. 로컬에는 제품 commit
+  `0a50063c`와 상태 commit `00d05302` 두 개가 원격보다 앞서 있다. tracked worktree는 clean이다.
+- **이전 push 실패 원인:** 현재 세션이 `codex -a never`로 실행돼 `git push`가 GitHub 인증 전에
+  `approval required by policy, but AskForApproval is set to Never`로 차단됐다. 회장 승인은 이미
+  명시적으로 받았다.
+- **회장 안내:** 기존 세션을 resume하지 말고 repo에서
+  `codex -s workspace-write -a on-request`로 새 세션을 연다. 새 세션은 이 파일을 읽고
+  `git push origin main`을 실행하며 승인창이 뜨면 회장이 승인한다.
+- **push 종료증거:** `git ls-remote origin refs/heads/main` SHA와 local `git rev-parse HEAD`가
+  모두 `00d05302`여야 한다.
+- **push 뒤 다음 액션:** deploy workflow를 schema-first로 실행·감시한다. 성공 뒤 운영
+  `/operator/customers`에서 env credential의 `암호화 DB로 가져오기`→source DB→`원문 확인`→
+  30초 자동 숨김을 실제 브라우저로 관찰하고, 공개·고객·운영자 route matrix의 4xx/5xx·console
+  error 0을 재검증한다. 실제 관찰 전에는 배포/기능 완료라고 보고하지 않는다.
