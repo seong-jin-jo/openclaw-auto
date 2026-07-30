@@ -4,7 +4,7 @@
 
 ## 2026-07-31 배포 후 운영자 브라우저 세션 소실
 
-**상태:** ❌ NG — tests-first RED 재현. 수정·push·재배포 전.
+**상태:** 🔧 build 수정·focused 회귀 통과. 전체 검증·push·재배포 전.
 
 - 배포 전 같은 Chrome의 `/operator/customers`는 운영자 콘솔을 렌더했으나, commit
   `7233b859` 배포 후 같은 URL이 마케팅 랜딩을 렌더했다.
@@ -21,6 +21,12 @@
 - **대조군:** 운영자 토큰만 있는 `/operator/customers`에
   `INITIAL_SESSION(null)`·`SIGNED_OUT(null)`만 전달한 테스트는 통과했다. 따라서 null 초기
   이벤트 자체가 아니라 cleanup 뒤 생존한 stale async effect가 재현 원인이다.
+- **수정:** AuthGate의 pathname별 Supabase effect run에 cancellation 소유권을 추가했다.
+  cleanup 뒤에는 늦은 `getSession()` 결과·listener 등록·auth callback을 모두 폐기한다. 활성
+  run의 운영자 경로 우선, 고객 JWT 승격, identity 변경 workspace 제거 조건은 변경하지 않았다.
+- **GREEN 증거:** AuthGate focused **13/13 PASS**. 지정 회귀
+  `AuthGateRouting`·`SidebarShell`·`operator-get-auth`·`tests/isolation/*`는
+  **16 files, 171 passed / 7 skipped**다.
 - handoff 기준은 사용자 위임 프롬프트와 부모 컨트롤러 pane `openclaw-auto:0.1`.
   build gate는 approved, qa/ship은 잠금 유지다.
 

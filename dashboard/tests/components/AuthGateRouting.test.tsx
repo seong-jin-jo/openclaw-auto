@@ -162,7 +162,7 @@ describe("AuthGate operator route separation", () => {
       resolvePreOperatorSession({ data: { session: { access_token: customerJwt } } });
       await Promise.resolve();
     });
-    await waitFor(() => expect(mocks.authStateCallbacks).toHaveLength(2));
+    expect(mocks.authStateCallbacks).toHaveLength(1);
 
     act(() => {
       mocks.authStateCallbacks[0]?.("SIGNED_OUT", null);

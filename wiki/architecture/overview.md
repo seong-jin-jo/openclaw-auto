@@ -78,6 +78,10 @@ Feedback: insights → viral signals → style / prompt-guide updates.
 - `/operator*`에서는 운영자 토큰을 보존하고, 고객 경로에 Supabase 세션이 확립되면 고객 JWT를
   승격한다. identity 전환·로그아웃은 `active_workspace`를 제거한다. 고객 JWT tenant와 connect
   쿼리 tenant가 다르면 JWT tenant를 사용하며 값 없는 구조적 mismatch 로그만 남긴다.
+- AuthGate의 Supabase 초기화는 pathname별 effect run으로 소유권을 나눈다. cleanup된 run은
+  늦게 끝난 `getSession()` 결과를 적용하지 않고 listener를 새로 등록하지 않으며, 이미 받은
+  callback도 무시한다. 따라서 이전 customer path의 stale run이 `/operator*` 운영자 토큰 우선
+  규칙을 덮어쓰지 못한다.
 
 ### 지원 채널 (12개)
 | 채널 | 방식 | 환경변수 | 비고 |

@@ -84,6 +84,10 @@ GStack 브라우저로 Meta 콘솔을 운전하는 건 **우리 자신의 계정
 - identity 경계는 path와 세션을 함께 본다. `/operator*`에서는 의도적인 운영자 토큰을 Supabase
   세션보다 우선한다. 고객 로그인/고객 화면에서 Supabase 세션이 확립되면 잔존 운영자 토큰 대신
   고객 JWT를 승격하며, 운영자↔고객·고객 A↔고객 B 전환과 로그아웃 때 `active_workspace`를 비운다.
+- path가 바뀌거나 AuthGate가 unmount된 뒤 완료된 Supabase `getSession()` 결과와 그 run의
+  `onAuthStateChange` callback은 폐기한다. 이전 customer path의 비동기 초기화가
+  `/operator*`에 도착해 운영자 토큰을 고객 JWT로 교체하거나 뒤이은 `SIGNED_OUT`으로 지우면
+  위 identity 우선순위가 순서에 따라 뒤집히기 때문이다.
 - `/api/connect/{provider}`와 `/api/connect/readiness`는 고객 JWT가 확정한 tenant와 쿼리
   `tenant_id`가 다르면 JWT tenant를 계속 사용하면서 `oauth_connect_tenant_mismatch` 사실만
   구조 로그로 남긴다. tenant id·Bearer·secret 값은 로그에 포함하지 않는다.

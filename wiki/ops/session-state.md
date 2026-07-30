@@ -22,10 +22,16 @@ focused `AuthGateRouting.test.tsx`는 **13 tests 중 1 failed / 12 passed**로 �
 `INITIAL_SESSION(null)`/`SIGNED_OUT(null)`은 통과해 null 이벤트 자체는 원인이 아니다.
 제품 소스 수정·push·배포는 아직 없다.
 
-**다음 정확한 액션:** RED 테스트와 문서 체크포인트를 커밋한 뒤, effect cleanup 시 cancellation을
-표시하고 `getSession()` 완료·구독 등록·auth callback이 모두 stale run이면 무시하도록 최소
-수정한다. 고객 경로 JWT 승격, identity 전환/로그아웃 workspace 제거, 현재 운영자 경로 우선은
-그대로 유지하고 focused→지정 회귀→전체 요구 명령 순으로 검증한다.
+**수정/GREEN:** RED checkpoint commit은 `18010894`. AuthGate의 pathname별 Supabase effect에
+cancellation 소유권을 추가해 cleanup 뒤 완료된 `getSession()` 결과, listener 등록, auth
+callback을 모두 폐기한다. 활성 run의 고객 JWT 승격·identity 전환/로그아웃 workspace 제거·
+운영자 경로 우선 조건은 변경하지 않았다. AuthGate focused **13/13 PASS**, 지정 회귀
+`AuthGateRouting`·`SidebarShell`·`operator-get-auth`·`tests/isolation/*`는
+**16 files, 171 passed / 7 skipped**다.
+
+**다음 정확한 액션:** diff와 보안 속성을 재검토해 수정 커밋을 만든 뒤 요구된
+`tsc --noEmit`, 전체 `vitest run`, `next build --webpack`, `git diff --check`를 실행한다.
+실 운영 브라우저·push·배포는 이번 위임 범위 밖이며 미검증으로 남긴다.
 
 ### 배치 D build 산출 — P1-7/P1-8/P2-9 자동 검증 통과 (2026-07-30)
 

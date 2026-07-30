@@ -445,6 +445,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   // getSession으로 갱신된 토큰을 스냅샷에 반영하고, onAuthStateChange로 계속 동기화.
   // SIGNED_OUT이면 스냅샷 제거 → 랜딩으로.
   useEffect(() => {
+    let cancelled = false;
     let unsub: (() => void) | undefined;
     // 운영자 콘솔에서는 비-JWT 운영자 토큰을 Supabase 세션보다 우선한다. 반대로 고객 로그인/
     // 고객 화면에서 Supabase 세션이 확립되면 잔존 운영자 토큰보다 고객 JWT를 승격한다.
@@ -452,6 +453,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     const operatorConsoleActive = pathname.startsWith("/operator");
     const operatorActive = () => { const t = getAuthToken(); return !!t && !isJwtToken(t); };
     const promoteCustomerSession = (accessToken: string) => {
+      if (cancelled) return;
       if (getAuthToken() !== accessToken) setActiveWorkspace(null);
       setAuthToken(accessToken);
       setHasToken(true);
@@ -461,10 +463,14 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         const { createBrowserSupabase } = await import("@/lib/supabase");
         const sb = createBrowserSupabase();
         const { data: { session } } = await sb.auth.getSession();
+        // pathname 변경/unmount 뒤 완료된 초기화는 이전 경로의 identity 정책을 적용하거나
+        // auth listener를 되살리면 안 된다.
+        if (cancelled) return;
         if (session?.access_token && (!operatorActive() || !operatorConsoleActive)) {
           promoteCustomerSession(session.access_token);
         }
         const { data } = sb.auth.onAuthStateChange((event, sess) => {
+          if (cancelled) return;
           if (sess?.access_token) {
             if (operatorActive() && operatorConsoleActive) return;
             promoteCustomerSession(sess.access_token);
@@ -479,12 +485,19 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             setHasToken(false);
           }
         });
+        if (cancelled) {
+          data.subscription.unsubscribe();
+          return;
+        }
         unsub = () => data.subscription.unsubscribe();
       } catch {
         /* supabase env 미설정/dev — 무시(운영자 토큰 경로는 영향 없음) */
       }
     })();
-    return () => unsub?.();
+    return () => {
+      cancelled = true;
+      unsub?.();
+    };
   }, [pathname, setActiveWorkspace]);
 
   // 계정 게이트: /api/me를 15초마다 폴링해 paused(정지)/accountUnavailable(알수없는 상태)만 화면분기.
