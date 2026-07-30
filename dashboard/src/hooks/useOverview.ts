@@ -31,8 +31,8 @@ export function useAgentLogs() {
   return useSWR("/api/agent-logs", fetcher);
 }
 
-export function useUsage() {
-  return useSWR("/api/usage", fetcher);
+export function useUsage(tenantId?: string) {
+  return useSWR(tenantId ? `/api/usage?tenant_id=${tenantId}` : "/api/usage", fetcher);
 }
 
 export function useErrors() {

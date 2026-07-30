@@ -302,9 +302,13 @@ export async function POST(request: Request) {
   // shortsGeneration counts as generation activity; later can track video minutes on render
   try {
     const recordUrl = new URL("/api/usage/record", request.url);
+    const authorization = request.headers.get("authorization");
     await fetch(recordUrl.toString(), {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        ...(authorization ? { authorization } : {}),
+      },
       body: JSON.stringify({ event: "shortsGeneration", count: Math.max(1, finalCandidates.length) }),
     });
   } catch (e) {

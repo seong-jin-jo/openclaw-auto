@@ -274,6 +274,31 @@ async function recordSharedGenerationEvent(tenantId: string): Promise<void> {
   }
 }
 
+// BYO Anthropic HTTP API는 고객 자신의 키/과금 경로라 usage_quotas reserve 대상은 아니지만,
+// Anthropic 응답이 제공하는 실제 input/output token을 usage_events 정본에 남긴다.
+// 생성은 이미 provider에서 성공·과금된 뒤이므로 원장 장애가 응답을 실패시켜 재시도/이중과금을
+// 유발하지 않게 shared CLI 이벤트와 동일한 best-effort 정책을 쓴다.
+async function recordByokGenerationEvent(
+  tenantId: string,
+  usage: { input_tokens?: number; output_tokens?: number } | undefined,
+): Promise<void> {
+  const inputTokens = Number.isFinite(usage?.input_tokens) ? Math.max(0, Number(usage?.input_tokens)) : 0;
+  const outputTokens = Number.isFinite(usage?.output_tokens) ? Math.max(0, Number(usage?.output_tokens)) : 0;
+  try {
+    await withTenant(tenantId, (sql) => sql`
+      INSERT INTO usage_events (tenant_id, event_type, quantity, meta)
+      VALUES (${tenantId}, 'aiGeneration', 1, ${sql.json({
+        source: "byo-anthropic-api",
+        model: MODEL,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        total_tokens: inputTokens + outputTokens,
+      })})`);
+  } catch (e) {
+    if (process.env.OSMU_DEBUG) console.error("[anthropic] BYOK usage_events 기록 실패(무시):", e);
+  }
+}
+
 // 테넌트 + 공유 CLI 경로 전용: 큐 실행 "직전"이 아니라 "그 작업이 실제로 시작될 때" reserve한다
 // (runSerializedCli에 넘기는 task 내부에서 reserve) — 대기 중인 여러 요청이 한꺼번에 quota를
 // 선점해 쌓이지 않고, 실제로 실행 순서가 돌아온 요청만 그 시점의 최신 사용량으로 reserve된다.
@@ -346,7 +371,7 @@ async function assertSharedAiApproved(tenantId: string): Promise<void> {
 // SharedGenerationQuotaError throw.
 export async function generateText(prompt: string, tenantId: string | null): Promise<string> {
   const apiKey = tenantId ? await getAnthropicKey(tenantId) : null;
-  if (apiKey) {
+  if (apiKey && tenantId) {
     const res = await fetch(ANTHROPIC_API, {
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
@@ -355,7 +380,11 @@ export async function generateText(prompt: string, tenantId: string | null): Pro
       signal: AbortSignal.timeout(120000),
     });
     if (!res.ok) throw new Error(`Anthropic API ${res.status}: ${(await res.text()).slice(0, 200)}`);
-    const data = (await res.json()) as { content?: { text?: string }[] };
+    const data = (await res.json()) as {
+      content?: { text?: string }[];
+      usage?: { input_tokens?: number; output_tokens?: number };
+    };
+    await recordByokGenerationEvent(tenantId, data.usage);
     return data?.content?.[0]?.text || "";
   }
   assertPromptWithinCliLimit(prompt);

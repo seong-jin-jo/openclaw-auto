@@ -1,5 +1,3 @@
-import { readJson, dataPath } from "@/lib/file-io";
-import path from "path";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
 import { withTenant } from "@/lib/db";
@@ -11,98 +9,119 @@ interface DailyUsage {
   apiCalls: number;
 }
 
-interface UsageFile {
-  daily: Record<string, DailyUsage>;
+interface UsageRow {
+  day: string;
+  event_type: string;
+  quantity: number | string;
 }
 
 function emptyDay(): DailyUsage {
   return { aiGenerations: 0, publications: 0, cronRuns: 0, apiCalls: 0 };
 }
 
-function sumDays(days: DailyUsage[]): DailyUsage {
-  const result = emptyDay();
-  for (const d of days) {
-    result.aiGenerations += d.aiGenerations || 0;
-    result.publications += d.publications || 0;
-    result.cronRuns += d.cronRuns || 0;
-    result.apiCalls += d.apiCalls || 0;
+function addUsage(target: DailyUsage, eventType: string, rawQuantity: number | string): void {
+  const quantity = Number(rawQuantity) || 0;
+  if (eventType === "aiGeneration" || eventType === "shortsGeneration") {
+    target.aiGenerations += quantity;
+  } else if (eventType === "publication" || eventType === "shortsVideoMinute") {
+    target.publications += quantity;
+  } else if (eventType === "cronRun") {
+    target.cronRuns += quantity;
+  } else if (eventType === "apiCall") {
+    target.apiCalls += quantity;
   }
-  return result;
 }
 
-function toDateStr(d: Date): string {
-  return d.toISOString().slice(0, 10);
+function toDateStr(date: Date): string {
+  return date.toISOString().slice(0, 10);
 }
 
 export async function GET(request: Request) {
-  // 테넌트 컨텍스트로 감싸 파일 격리 (본문 로직 불변)
-  const __t = await effectiveTenantId(request, null);
-  return runWithTenant(__t, async () => {
-  const filePath = path.join(dataPath(""), "usage.json");
-  const data = readJson<UsageFile>(filePath) || { daily: {} };
-  const daily = data.daily || {};
+  const tenantId = await effectiveTenantId(request, null);
+  return runWithTenant(tenantId, async () => {
+    const now = new Date();
+    const todayStr = toDateStr(now);
+    const monthStr = todayStr.slice(0, 7);
 
-  const now = new Date();
-  const todayStr = toDateStr(now);
+    const monday = new Date(now);
+    const mondayOffset = monday.getUTCDay() === 0 ? 6 : monday.getUTCDay() - 1;
+    monday.setUTCDate(monday.getUTCDate() - mondayOffset);
+    const mondayStr = toDateStr(monday);
 
-  // This week (Mon-Sun)
-  const dayOfWeek = now.getDay();
-  const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - mondayOffset);
-  const mondayStr = toDateStr(monday);
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 29);
+    const thirtyDaysAgoStr = toDateStr(thirtyDaysAgo);
+    const monthStartStr = `${monthStr}-01`;
+    const queryStart = monthStartStr < thirtyDaysAgoStr ? monthStartStr : thirtyDaysAgoStr;
 
-  // This month
-  const monthStr = todayStr.slice(0, 7); // YYYY-MM
-
-  const todayData = daily[todayStr] || emptyDay();
-
-  const weekDays: DailyUsage[] = [];
-  const monthDays: DailyUsage[] = [];
-
-  for (const [dateStr, usage] of Object.entries(daily)) {
-    if (dateStr >= mondayStr && dateStr <= todayStr) {
-      weekDays.push(usage);
+    if (!tenantId) {
+      return Response.json({
+        source: "usage_events",
+        today: emptyDay(),
+        thisWeek: emptyDay(),
+        thisMonth: emptyDay(),
+        daily: {},
+        tier: "starter",
+        quota: null,
+      });
     }
-    if (dateStr.startsWith(monthStr)) {
-      monthDays.push(usage);
+
+    try {
+      let tier = "starter";
+      let quota: Record<string, unknown> | null = null;
+      let rows: UsageRow[] = [];
+
+      await withTenant(tenantId, async (sql) => {
+        rows = await sql<UsageRow[]>`
+          SELECT
+            to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS day,
+            event_type,
+            SUM(quantity)::float8 AS quantity
+          FROM usage_events
+          WHERE tenant_id = ${tenantId}
+            AND created_at >= ${queryStart}::date
+          GROUP BY day, event_type
+          ORDER BY day DESC`;
+
+        const [tenant] = await sql<{ tier: string }[]>`
+          SELECT tier FROM tenants WHERE id = ${tenantId} LIMIT 1`;
+        if (tenant?.tier) tier = tenant.tier;
+
+        const [quotaRow] = await sql<Record<string, unknown>[]>`
+          SELECT * FROM usage_quotas
+          WHERE tenant_id = ${tenantId} AND period = ${monthStr} LIMIT 1`;
+        if (quotaRow) quota = quotaRow;
+      });
+
+      const today = emptyDay();
+      const thisWeek = emptyDay();
+      const thisMonth = emptyDay();
+      const daily: Record<string, DailyUsage> = {};
+
+      for (const row of rows) {
+        if (row.day === todayStr) addUsage(today, row.event_type, row.quantity);
+        if (row.day >= mondayStr && row.day <= todayStr) addUsage(thisWeek, row.event_type, row.quantity);
+        if (row.day.startsWith(monthStr)) addUsage(thisMonth, row.event_type, row.quantity);
+        if (row.day >= thirtyDaysAgoStr && row.day <= todayStr) {
+          daily[row.day] ||= emptyDay();
+          addUsage(daily[row.day], row.event_type, row.quantity);
+        }
+      }
+
+      return Response.json({
+        source: "usage_events",
+        today,
+        thisWeek,
+        thisMonth,
+        daily,
+        tier,
+        quota,
+      });
+    } catch {
+      return Response.json(
+        { error: "사용량 DB 원장을 읽을 수 없습니다.", source: "usage_events" },
+        { status: 503 },
+      );
     }
-  }
-
-  // Build last 30 days for the daily breakdown
-  const recentDaily: Record<string, DailyUsage> = {};
-  for (let i = 0; i < 30; i++) {
-    const d = new Date(now);
-    d.setDate(now.getDate() - i);
-    const ds = toDateStr(d);
-    if (daily[ds]) {
-      recentDaily[ds] = daily[ds];
-    }
-  }
-
-  // Include tier and basic quota info for hybrid pricing (ADR-003)
-  let tier = "starter";
-  let quotaInfo: any = null;
-  try {
-    if (__t) await withTenant(__t, async (sql) => {
-      const [t] = await sql`SELECT tier FROM tenants WHERE id = ${__t} LIMIT 1`;
-      if (t?.tier) tier = t.tier;
-
-      const monthStr = todayStr.slice(0, 7);
-      const [q] = await sql`
-        SELECT * FROM usage_quotas 
-        WHERE tenant_id = ${__t} AND period = ${monthStr} LIMIT 1`;
-      if (q) quotaInfo = q;
-    });
-  } catch {}
-
-  return Response.json({
-    today: todayData,
-    thisWeek: sumDays(weekDays),
-    thisMonth: sumDays(monthDays),
-    daily: recentDaily,
-    tier,
-    quota: quotaInfo,
-  });
   });
 }

@@ -90,5 +90,7 @@ describe("GET /api/usage — usage_events DB 정본", () => {
     expect(recordRoute).toContain("usage_events");
     expect(recordRoute).toContain("usage.json");
     expect(recordRoute).toContain("legacy mirror");
+    const sourcingRoute = fs.readFileSync(path.join(process.cwd(), "src/app/api/sourcing/route.ts"), "utf8");
+    expect(sourcingRoute).toContain('request.headers.get("authorization")');
   });
 });

@@ -46,15 +46,15 @@ const ALL_CHANNELS = [
 ];
 
 export default function HomePage() {
+  const { dismissedOnboarding, dismissOnboarding, activeWorkspace } = useUIStore();
   const { data: overview } = useOverview();
   const { data: activityData } = useActivity();
   const { data: alertData } = useAlerts();
   const { data: weeklyData } = useWeeklySummary();
   const { data: agentLogData } = useAgentLogs();
-  const { data: usageData } = useUsage();
+  const { data: usageData } = useUsage(activeWorkspace?.id);
   const { data: errorData } = useErrors();
   const { data: channelConfig } = useChannelConfig();
-  const { dismissedOnboarding, dismissOnboarding, activeWorkspace } = useUIStore();
   const [focus, setFocus] = useState<PreviewPlatform | "all">("all");
   // 발행물 성과(성과 페이지 통합) — 활성 워크스페이스의 published_posts
   const { data: metricsData, mutate: mutateMetrics } = useSWR<{ posts?: PostRow[] }>(

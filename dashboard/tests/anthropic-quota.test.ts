@@ -346,11 +346,13 @@ describe("공유 claude -p 월별 quota — 성공 이벤트 기록", () => {
     expect(H.events[0].meta).toMatchObject({ source: "shared-claude-cli" });
   });
 
-  it("BYO 키 경로는 shared-claude-cli 이벤트를 남기지 않는다", async () => {
+  it("BYO 키 경로는 shared-claude-cli가 아니라 byo-anthropic-api 이벤트를 남긴다", async () => {
     H.byoKey = "sk-byo";
     vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ content: [{ text: "byo" }] }) })));
     const { generateText } = await importAnthropic();
     await generateText("x", "tenant-1");
-    expect(H.events).toHaveLength(0);
+    expect(H.events).toHaveLength(1);
+    expect(H.events[0].meta).toMatchObject({ source: "byo-anthropic-api" });
+    expect(H.events[0].meta).not.toMatchObject({ source: "shared-claude-cli" });
   });
 });
