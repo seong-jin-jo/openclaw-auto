@@ -4,7 +4,7 @@
 
 ## 2026-07-31 배포 후 운영자 브라우저 세션 소실
 
-**상태:** 🔧 build 수정·focused 회귀 통과. 전체 검증·push·재배포 전.
+**상태:** 🔧 로컬 build 수정·전체 자동 검증 통과. 운영 push·재배포·실브라우저 재검증 전.
 
 - 배포 전 같은 Chrome의 `/operator/customers`는 운영자 콘솔을 렌더했으나, commit
   `7233b859` 배포 후 같은 URL이 마케팅 랜딩을 렌더했다.
@@ -27,6 +27,13 @@
 - **GREEN 증거:** AuthGate focused **13/13 PASS**. 지정 회귀
   `AuthGateRouting`·`SidebarShell`·`operator-get-auth`·`tests/isolation/*`는
   **16 files, 171 passed / 7 skipped**다.
+- **전체 자동 증거:** `npx tsc --noEmit` exit 0·출력 0줄,
+  `npx vitest run` **123 files, 1016 passed / 10 skipped**,
+  `npx next build --webpack` Next.js 16.2.2·compile 17.2s·TypeScript 24.7s·
+  static pages **166/166**, `git diff --check` exit 0.
+- **커밋:** RED `18010894`, 수정 `3b64d198`. push·배포는 실행하지 않았다.
+- **미검증:** 운영 배포 뒤 실제 Chrome의 `/operator/customers` 토큰 보존·Admin 렌더,
+  실제 Supabase auth client의 route-change event timing, 다중 탭/BroadcastChannel 경로.
 - handoff 기준은 사용자 위임 프롬프트와 부모 컨트롤러 pane `openclaw-auto:0.1`.
   build gate는 approved, qa/ship은 잠금 유지다.
 

@@ -29,9 +29,21 @@ callback을 모두 폐기한다. 활성 run의 고객 JWT 승격·identity 전�
 `AuthGateRouting`·`SidebarShell`·`operator-get-auth`·`tests/isolation/*`는
 **16 files, 171 passed / 7 skipped**다.
 
-**다음 정확한 액션:** diff와 보안 속성을 재검토해 수정 커밋을 만든 뒤 요구된
-`tsc --noEmit`, 전체 `vitest run`, `next build --webpack`, `git diff --check`를 실행한다.
-실 운영 브라우저·push·배포는 이번 위임 범위 밖이며 미검증으로 남긴다.
+**최종 로컬 자동 검증:** 수정 commit `3b64d198`. `npx tsc --noEmit` exit 0·출력 0줄,
+`npx vitest run` **123 files, 1016 passed / 10 skipped**, `npx next build --webpack`
+Next.js 16.2.2·compile 17.2s·TypeScript 24.7s·static pages **166/166**,
+`git diff --check` exit 0. 기준선 123 files·1014 PASS·10 skip에서 신규 경계 2건만 증가했고
+기존 회귀는 없다.
+
+**레드팀/경계:** cancellation이 활성 customer run까지 죽이는지 검토했다. pathname 변경 시
+이전 run만 cancelled되고 새 run이 같은 persisted Supabase session으로 다시 초기화되므로 고객
+JWT 승격은 유지된다. callback 등록 직후 cleanup되는 경계도 즉시 unsubscribe하며 callback
+자체가 cancelled run이면 no-op이다. 부모 Claude의 고위험 인증 2nd-pass는 아직 대기다.
+
+**다음 정확한 액션:** 부모 컨트롤러가 commits `18010894`·`3b64d198`의 diff와 위 자동
+증거를 독립 재검증한다. 이번 위임은 push·배포 금지라 운영 Chrome `/operator/customers`,
+실 Supabase event timing, 다중 탭/BroadcastChannel은 미검증이며, 승인된 별도 배포 단계 뒤
+실브라우저로 토큰 보존·Admin 렌더를 재관찰해야 한다. qa/ship 잠금은 유지한다.
 
 ### 배치 D build 산출 — P1-7/P1-8/P2-9 자동 검증 통과 (2026-07-30)
 
