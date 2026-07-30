@@ -3,6 +3,30 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **QA in-progress, ship pending**). QA 증거: `docs/qa-tracker.md`.
 
+### 운영자 브라우저 세션 소실 회귀 조사 (2026-07-31)
+
+**확정 handoff 기준:** 사용자 위임 프롬프트와 부모 컨트롤러 pane
+`openclaw-auto:0.1`. pane은 commit `7233b859` 배포 뒤 `/operator/customers`가 랜딩으로
+회귀하고 localStorage의 `dashboard_auth_token`이 사라진 운영 관찰을 기록한 뒤 이 조사 결과를
+대기 중이다. tracked worktree는 착수 전 clean, `pipeline-state.md`의 build는 approved이고
+qa in-progress/ship pending이다.
+
+**RED 재현:** `~/.claude/standards/dev.md`,
+`/Users/sj/.claude/plans/wiki-1-mellow-wadler.md`, `dashboard/CLAUDE.md`, 인증 구현과
+배치 C commits `77364236`·`44bf592a`를 읽었다. Supabase 공식 문서상
+`INITIAL_SESSION`은 저장 세션 초기화 이벤트이고, `SIGNED_OUT`은 실제 로그아웃/만료 이벤트다.
+focused `AuthGateRouting.test.tsx`는 **13 tests 중 1 failed / 12 passed**로 재현됐다.
+`/login`에서 시작한 `getSession()`이 `/operator/customers` 전환 cleanup 뒤 늦게 완료되며
+이전 경로 closure가 고객 JWT를 승격하고 stale 구독을 등록했고, 이어진 `SIGNED_OUT`이
+`dashboard_auth_token`을 `null`로 만들었다. 대조군인 순수 운영자 토큰 +
+`INITIAL_SESSION(null)`/`SIGNED_OUT(null)`은 통과해 null 이벤트 자체는 원인이 아니다.
+제품 소스 수정·push·배포는 아직 없다.
+
+**다음 정확한 액션:** RED 테스트와 문서 체크포인트를 커밋한 뒤, effect cleanup 시 cancellation을
+표시하고 `getSession()` 완료·구독 등록·auth callback이 모두 stale run이면 무시하도록 최소
+수정한다. 고객 경로 JWT 승격, identity 전환/로그아웃 workspace 제거, 현재 운영자 경로 우선은
+그대로 유지하고 focused→지정 회귀→전체 요구 명령 순으로 검증한다.
+
 ### 배치 D build 산출 — P1-7/P1-8/P2-9 자동 검증 통과 (2026-07-30)
 
 **확정 handoff 기준:** 사용자 위임 프롬프트와 승인 계획

@@ -2,6 +2,28 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-07-31 배포 후 운영자 브라우저 세션 소실
+
+**상태:** ❌ NG — tests-first RED 재현. 수정·push·재배포 전.
+
+- 배포 전 같은 Chrome의 `/operator/customers`는 운영자 콘솔을 렌더했으나, commit
+  `7233b859` 배포 후 같은 URL이 마케팅 랜딩을 렌더했다.
+- 관찰 당시 localStorage에 `dashboard_auth_token`과 `active_workspace`가 모두 없었다.
+  같은 운영자 토큰의 서버 Bearer 요청은 `/api/health`와
+  `/api/operator/oauth-credentials`에서 200이므로 서버 토큰 검증 실패로 닫지 않는다.
+- 조사 기준: 운영자 토큰만 있는 `/operator*`에서 Supabase `INITIAL_SESSION`/`SIGNED_OUT`가
+  토큰을 지우지 않아야 하며, 고객 JWT 승격·identity 전환/로그아웃 workspace 제거·운영자 경로
+  우선의 세 보안 속성을 모두 보존한다.
+- **RED 증거:** `AuthGateRouting.test.tsx` focused **13 tests 중 1 failed / 12 passed**.
+  `/login`에서 시작한 비동기 `getSession()`이 `/operator/customers` 전환 cleanup 뒤 늦게
+  완료되면 이전 경로 closure가 고객 JWT를 승격하고 구독까지 등록한다. 이어진 `SIGNED_OUT`은
+  운영자 토큰이 이미 JWT로 바뀌었다고 판정해 `dashboard_auth_token`을 `null`로 만들었다.
+- **대조군:** 운영자 토큰만 있는 `/operator/customers`에
+  `INITIAL_SESSION(null)`·`SIGNED_OUT(null)`만 전달한 테스트는 통과했다. 따라서 null 초기
+  이벤트 자체가 아니라 cleanup 뒤 생존한 stale async effect가 재현 원인이다.
+- handoff 기준은 사용자 위임 프롬프트와 부모 컨트롤러 pane `openclaw-auto:0.1`.
+  build gate는 approved, qa/ship은 잠금 유지다.
+
 ## 2026-07-30 배치 D — 채널 한도·내레이션 표기·사용량 DB 원장
 
 **상태 전이:** ❌ NG(한도 4중복/Facebook 카피 재사용, 무음 폴백 은폐, BYOK 토큰 미집계·

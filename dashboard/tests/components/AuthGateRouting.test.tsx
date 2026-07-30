@@ -10,8 +10,10 @@ const mocks = vi.hoisted(() => ({
   pathname: vi.fn(() => "/"),
   replace: vi.fn(),
   signOut: vi.fn(),
+  getSession: vi.fn(),
   sessionToken: null as string | null,
   authStateCallback: null as null | ((event: string, session: { access_token?: string } | null) => void),
+  authStateCallbacks: [] as Array<(event: string, session: { access_token?: string } | null) => void>,
   router: null as { replace: ReturnType<typeof vi.fn> } | null,
 }));
 mocks.router = { replace: mocks.replace };
@@ -32,14 +34,11 @@ vi.mock("@/components/shared/ErrorBoundary", () => ({
 vi.mock("@/lib/supabase", () => ({
   createBrowserSupabase: () => ({
     auth: {
-      getSession: vi.fn(async () => ({
-        data: {
-          session: mocks.sessionToken ? { access_token: mocks.sessionToken } : null,
-        },
-      })),
+      getSession: mocks.getSession,
       signOut: mocks.signOut,
       onAuthStateChange: vi.fn((callback) => {
         mocks.authStateCallback = callback;
+        mocks.authStateCallbacks.push(callback);
         return {
         data: { subscription: { unsubscribe: vi.fn() } },
         };
@@ -56,8 +55,15 @@ describe("AuthGate operator route separation", () => {
     mocks.replace.mockReset();
     mocks.signOut.mockReset();
     mocks.signOut.mockResolvedValue({ error: null });
+    mocks.getSession.mockReset();
+    mocks.getSession.mockImplementation(async () => ({
+      data: {
+        session: mocks.sessionToken ? { access_token: mocks.sessionToken } : null,
+      },
+    }));
     mocks.sessionToken = null;
     mocks.authStateCallback = null;
+    mocks.authStateCallbacks = [];
     useUIStore.setState({
       activeWorkspace: { id: "customer-1", slug: "customer", name: "Customer" },
     });
@@ -103,6 +109,68 @@ describe("AuthGate operator route separation", () => {
     });
     expect(mocks.replace).not.toHaveBeenCalled();
     expect(screen.getByTestId("sidebar")).toBeInTheDocument();
+  });
+
+  it("preserves an operator-only browser session through null Supabase initial and sign-out events", async () => {
+    mocks.pathname.mockReturnValue("/operator/customers");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(Response.json({ isOperator: true, tenant: null })),
+    );
+
+    render(<AuthGate><div>operator console</div></AuthGate>);
+
+    await waitFor(() => {
+      expect(screen.getByText("operator console")).toBeInTheDocument();
+      expect(mocks.authStateCallback).not.toBeNull();
+    });
+
+    act(() => {
+      mocks.authStateCallback?.("INITIAL_SESSION", null);
+      mocks.authStateCallback?.("SIGNED_OUT", null);
+    });
+
+    expect(localStorage.getItem("dashboard_auth_token")).toBe("operator-token");
+    expect(screen.getByText("operator console")).toBeInTheDocument();
+    expect(screen.queryByText("베타 신청하기")).not.toBeInTheDocument();
+  });
+
+  it("keeps the operator token when pre-operator Supabase initialization resolves after navigation", async () => {
+    const customerJwt = `${"d".repeat(24)}.${"e".repeat(24)}.${"f".repeat(24)}`;
+    let resolvePreOperatorSession!: (value: {
+      data: { session: { access_token: string } | null };
+    }) => void;
+    mocks.pathname.mockReturnValue("/login");
+    mocks.getSession
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        resolvePreOperatorSession = resolve;
+      }))
+      .mockResolvedValueOnce({ data: { session: null } });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(Response.json({ isOperator: true, tenant: null })),
+    );
+
+    const view = render(<AuthGate><div>operator console</div></AuthGate>);
+    await waitFor(() => expect(mocks.getSession).toHaveBeenCalledTimes(1));
+
+    mocks.pathname.mockReturnValue("/operator/customers");
+    view.rerender(<AuthGate><div>operator console</div></AuthGate>);
+    await waitFor(() => expect(mocks.getSession).toHaveBeenCalledTimes(2));
+
+    await act(async () => {
+      resolvePreOperatorSession({ data: { session: { access_token: customerJwt } } });
+      await Promise.resolve();
+    });
+    await waitFor(() => expect(mocks.authStateCallbacks).toHaveLength(2));
+
+    act(() => {
+      mocks.authStateCallbacks[0]?.("SIGNED_OUT", null);
+    });
+
+    expect(localStorage.getItem("dashboard_auth_token")).toBe("operator-token");
+    expect(screen.getByText("operator console")).toBeInTheDocument();
+    expect(screen.queryByText("베타 신청하기")).not.toBeInTheDocument();
   });
 
   it("preserves the customer Marketing Hub path for a customer identity", async () => {
