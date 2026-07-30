@@ -3481,3 +3481,50 @@ audit 행, 로그 secret 비노출. Slack Redirect URL 등록도 아직 완료�
 ③Claude가 Client ID 입력 → 사용자가 Client Secret 붙여넣기 → 저장 → 상태 `준비`/`출처 DB` 관찰
 ④네이버는 확장 사이트 권한 허용이 필요하므로 사용자에게 허용 요청 ⑤나머지 6개 플랫폼 반복.
 증거 확보 전 완료 보고·`/approve qa` 금지.
+
+### 멀티테넌트 OAuth 모델 확인 + 정렬 위임 (2026-07-30)
+
+**사용자 질문/지시:** ①이 Client ID/Secret이 회장 자동화용이 아니라 가입 고객이 직접 로그인해
+자동화하기 위한 중앙 세팅임을 이해하는가 ②고객은 어떤 과정으로 API 키 발급 없이 자동화되는가
+③관리자 페이지를 준비된 것 → 준비 안 된 것 순으로 정렬 ④인스타·스레드·유튜브·페북이 됐으면
+거의 다 된 것인가 ⑤Slack은 중앙 앱을 만들어 고객 Slack에 뿌리는 구조인가.
+
+**코드 근거로 확인한 사실(증거등급=근거 확인):**
+- 구조는 **중앙 앱 1개 : 고객 N명 토큰**이다. 운영자가 플랫폼별 중앙 OAuth 앱 Client ID/Secret을
+  저장하면, 고객은 "연결" 클릭 → 플랫폼 OAuth 로그인·동의 → 우리 Callback
+  `/api/connect/{provider}/callback` 수신 → 그 고객 전용 access token을 테넌트별 저장한다.
+  고객은 API 키를 직접 발급하지 않는다.
+- `app/api/connect/readiness/route.ts`가 자격증명 미보유 provider를 비활성 + "관리자에게
+  문의해주세요" 사유로 내려, 고객이 눌러본 뒤 500을 보는 것을 막는다. 즉 중앙 앱 미등록이면
+  해당 채널은 고객 화면에서 아예 클릭되지 않는다.
+- `lib/social-connect.ts` PROVIDERS = instagram·threads·x·linkedin·youtube·naver_blog·
+  pinterest·tumblr·tiktok·slack·line (11) + facebook은 config_id 모델 별도 = 총 12.
+- **Slack은 웹훅이 아니라 정식 OAuth provider다**: `authorizeUrl https://slack.com/oauth/v2/authorize`,
+  `tokenUrl https://slack.com/api/oauth.v2.access`, scope `chat:write`. 고객이 연결하면 우리 중앙
+  앱이 **고객 자기 워크스페이스**에 설치되고 그 워크스페이스 토큰으로 발행한다.
+- **문서 결함 발견:** `lib/constants.ts:36` 주석은 Slack을 "credential·webhook 방식"으로 분류하는데
+  실제 구현은 OAuth다. 주석/구현 불일치이므로 정리 대상으로 등록한다.
+
+**판단(컨트롤러):** 4개 확보는 트래픽 상위 채널을 덮은 것은 맞으나 완성이 아니다. 그 4개는
+`출처 ENV`라 운영 화면에서 원문 확인·교체가 불가하고 새 코드는 push만 됐다. 한국 시장 기준
+**네이버 블로그 + X**를 더해 실전 6개를 1차 완성선으로 제안했다(회장 확인 대기).
+
+**정렬 위임:** `codex-delegate.sh code-builder`에 위임(백그라운드). 기준 = ①unavailableReason
+장애 먼저 ②credentialsConfigured 준비 ③미설정, 같은 그룹은 정의 선언 순서 유지(stable),
+UI 계층(page.tsx)에서 정렬하고 API 응답 순서는 건드리지 않으며 그룹 소제목으로 경계를 보이게,
+`N/12 준비` 카운트 유지. tests-first + 품질헌법 선독 + WebSearch 벤치마크를 명시 주입했다.
+
+**검증 상태:** 이번 턴은 코드 조사·위임이라 새로 실행한 테스트가 없다. 직전 컨트롤러 직접 검증은
+`npx tsc --noEmit` exit 0 / `npx vitest run` 117 files 978 PASS·10 skipped /
+`npx next build --webpack` 166/166 / `git diff --check` PASS다.
+
+**배포 상태:** 미배포. push는 `14a8437c`까지 완료. 운영은 구버전이며 "원문 확인" 버튼이 없다.
+`gh workflow run deploy-marketing.yml`은 권한 분류기 차단 상태로 사용자 승인이 필요하다.
+
+**미검증:** 배포 후 원문 확인·정렬 반영, 미설정 provider 실제 등록, 30초 자동 숨김, audit 행,
+로그 secret 비노출, 실 DB 동시성, Slack Redirect URL 등록.
+
+**정확한 다음 액션:** ①정렬 산출 수령 → `verify-agent-quality.sh` → 컨트롤러가 tsc/test/build
+재실행 ②사용자 배포 승인 후 배포 ③Slack Redirect URL 등록 + Client ID 입력(Secret은 사용자가
+붙여넣음 — Claude는 secret 필드 입력 불가) ④네이버는 크롬 확장 사이트 권한 허용 요청 후 진행
+⑤`constants.ts` Slack 분류 주석 정정 ⑥실브라우저 증거 확보 후에만 qa-tracker 갱신·`/approve qa`.
