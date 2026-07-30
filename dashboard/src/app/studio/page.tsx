@@ -51,7 +51,12 @@ const isVideo = (p: PreviewPlatform) => p === "shorts" || p === "reels" || p ===
 export default function StudioPage() {
   const { showToast } = useToast();
   const { activeWorkspace } = useUIStore();
-  const { data: acct, mutate: mutateAcct } = useSWR<{ credits?: number; needsLogin?: boolean }>("/api/higgsfield/status", fetcher);
+  const { data: me } = useSWR<{ isOperator?: boolean }>("/api/me", fetcher);
+  const canGenerate = me?.isOperator === true;
+  const { data: acct, mutate: mutateAcct } = useSWR<{ credits?: number; needsLogin?: boolean }>(
+    canGenerate ? "/api/higgsfield/status" : null,
+    fetcher,
+  );
   const { data: engine } = useSWR<{ mode?: string; label?: string; model?: string; error?: string }>(
     activeWorkspace ? `/api/studio/engine-status?tenant_id=${activeWorkspace.id}` : "/api/studio/engine-status",
     fetcher,
@@ -86,7 +91,10 @@ export default function StudioPage() {
   const [includes, setIncludes] = useState<Record<string, boolean>>(Object.fromEntries(ALL.map((p) => [p, true])));
   const [editing, setEditing] = useState<PreviewPlatform | null>(null);
   const [showTx, setShowTx] = useState(false);
-  const { data: tx } = useSWR<{ items?: Array<{ display_name?: string; credits?: number; action?: string; created_at?: string; output?: string | null; outputKind?: string | null }> }>(showTx ? "/api/higgsfield/transactions?size=25" : null, fetcher);
+  const { data: tx } = useSWR<{ items?: Array<{ display_name?: string; credits?: number; action?: string; created_at?: string; output?: string | null; outputKind?: string | null }> }>(
+    canGenerate && showTx ? "/api/higgsfield/transactions?size=25" : null,
+    fetcher,
+  );
 
   const [pub, setPub] = useState<{
     running: boolean;
@@ -171,12 +179,20 @@ export default function StudioPage() {
     setText(r); return r;
   }
   async function genImage(prompt: string) {
+    if (!canGenerate) {
+      showToast("이미지 생성은 운영자 전용 기능입니다.", "error");
+      return null;
+    }
     setLastError(null);
     const r = await apiPost<ImgResult & { ok?: boolean; error?: string; nsfw?: boolean; credits?: boolean }>("/api/higgsfield/image", { prompt, aspectRatio: "9:16", label: idea });
     if (!r?.ok) { const msg = r?.credits ? "Higgsfield 크레딧 부족" : r?.nsfw ? "Higgsfield NSFW 차단" : (r?.error || "이미지 실패"); setLastError(`이미지: ${msg}`); showToast(msg, "error"); return null; }
     setImg(r); mutateAcct(); return r;
   }
   async function genVideo(localPath: string) {
+    if (!canGenerate) {
+      showToast("영상 생성은 운영자 전용 기능입니다.", "error");
+      return null;
+    }
     setLastError(null);
     const s = text?.shorts;
     const narration = [s?.hook, s?.body, s?.cta].filter(Boolean).join(". ");
@@ -190,9 +206,11 @@ export default function StudioPage() {
     setText(null); setImg(null); setVid(null); setDraftId(null); setPublishReconciliation(null);
     try {
       setBusy("텍스트 변형 생성 중..."); const t = await genText(); if (!t) return;
-      setBusy("히어로 이미지 생성 중..."); const image = await genImage(t.image_prompt || idea);
-      if (image && withVideo) { setBusy("숏폼 영상 생성 중 (1~2분)..."); await genVideo(image.localPath); }
-      showToast("OSMU 생성 완료", "success");
+      if (canGenerate) {
+        setBusy("히어로 이미지 생성 중..."); const image = await genImage(t.image_prompt || idea);
+        if (image && withVideo) { setBusy("숏폼 영상 생성 중 (1~2분)..."); await genVideo(image.localPath); }
+      }
+      showToast(canGenerate ? "OSMU 생성 완료" : "텍스트 생성 완료", "success");
     } finally { setBusy(null); }
   }
   // P8: AI 자동초안 — 브랜드 가이드 + 글감을 소스로 후보 초안 N개를 생성(status=draft).
@@ -368,8 +386,8 @@ export default function StudioPage() {
           AI <b className="text-muted">{engine?.label || "확인 중"}</b>{engine?.mode === "claude-p" ? " · claude -p" : ""}{engine?.mode === "unknown" ? " · 확인 실패" : ""}
         </div>
         <input value={idea} onChange={(e) => setIdea(e.target.value)} placeholder="글감 / 콘텐츠 주제 입력" className="flex-1 min-w-[260px] bg-surface-2 text-text text-sm p-2.5 rounded border border-border" />
-        <select value={videoModel} onChange={(e) => setVideoModel(e.target.value)} className="bg-surface-2 text-muted text-xs p-2 rounded border border-border"><option value="minimax_hailuo">Minimax 6cr</option><option value="veo3_1_lite">Veo3.1 8cr</option><option value="kling3_0">Kling3 10cr</option><option value="marketing_studio_video">MS UGC광고 ~40cr</option></select>
-        <label className="flex items-center gap-1.5 text-xs text-subtle"><input type="checkbox" checked={withVideo} onChange={(e) => setWithVideo(e.target.checked)} />영상</label>
+        {canGenerate && <select value={videoModel} onChange={(e) => setVideoModel(e.target.value)} className="bg-surface-2 text-muted text-xs p-2 rounded border border-border"><option value="minimax_hailuo">Minimax 6cr</option><option value="veo3_1_lite">Veo3.1 8cr</option><option value="kling3_0">Kling3 10cr</option><option value="marketing_studio_video">MS UGC광고 ~40cr</option></select>}
+        {canGenerate && <label className="flex items-center gap-1.5 text-xs text-subtle"><input type="checkbox" checked={withVideo} onChange={(e) => setWithVideo(e.target.checked)} />영상</label>}
         {activeWorkspace && <button onClick={() => setShowWizard(true)} className="text-xs px-2.5 py-2 rounded border border-accent text-accent hover:bg-accent-soft" title="브랜드 톤 설정">{brandData?.guide?.prompt_guide ? "🎨 브랜드 ✓" : "🎨 브랜드 설정"}</button>}
         {activeWorkspace && <button onClick={() => setShowRepo(true)} className="text-xs px-2.5 py-2 rounded border border-accent text-accent hover:bg-accent-soft" title="GitHub 레포 위키 연동 → 브랜드 가이드">📚 위키</button>}
         <button onClick={runOSMU} disabled={!!busy} className="px-4 py-2 text-sm bg-accent hover:from-accent hover:to-accent-hover text-text rounded-lg shadow-lg shadow-purple-900/30 disabled:opacity-50">{busy || "OSMU 생성"}</button>
@@ -377,9 +395,9 @@ export default function StudioPage() {
         {text && <button onClick={() => save("draft")} className="px-3 py-2 text-sm bg-surface-2 text-text rounded">💾 Save</button>}
         {text && <button onClick={publish} disabled={pub.running} className="px-3 py-2 text-sm bg-green-600 text-text rounded disabled:opacity-50">🚀 Publish ({ALL.filter((p) => includes[p]).length})</button>}
         {text && activeWorkspace && <button onClick={() => setShowSchedule((v) => !v)} className={`px-3 py-2 text-sm rounded border ${showSchedule ? "border-accent text-accent bg-accent-soft" : "border-accent text-accent hover:bg-accent-soft"}`} title="예약 발행">🗓️ 예약</button>}
-        <div className="relative">
+        {canGenerate && <div className="relative">
           <button onClick={() => setShowTx((v) => !v)} className="text-xs text-subtle hover:text-muted" title="사용 이력 보기">
-            크레딧 <b className={acct?.needsLogin ? "text-red-400" : "text-green-400"}>{acct?.needsLogin ? "로그인필요" : acct?.credits?.toFixed(2) ?? "..."}</b> ▾
+            크레딧 <b className={acct?.needsLogin ? "text-danger" : "text-success"}>{acct?.needsLogin ? "로그인필요" : acct?.credits?.toFixed(2) ?? "..."}</b> ▾
           </button>
           {showTx && (
             <div className="absolute right-0 top-7 z-50 w-72 max-h-80 overflow-y-auto card p-3 shadow-xl">
@@ -391,13 +409,18 @@ export default function StudioPage() {
                     <div className="min-w-0 pr-2"><div className="text-muted">{t.display_name}</div>
                       {t.output && <div className="text-accent truncate">{t.outputKind === "video" ? "🎬" : "🖼️"} {t.output}</div>}
                       <div className="text-subtle">{String(t.created_at || "").slice(5, 16).replace("T", " ")}</div></div>
-                    <span className={Number(t.credits) < 0 ? "text-red-400" : "text-green-400"}>{Number(t.credits) > 0 ? "+" : ""}{t.credits}</span>
+                    <span className={Number(t.credits) < 0 ? "text-danger" : "text-success"}>{Number(t.credits) > 0 ? "+" : ""}{t.credits}</span>
                   </div>
                 ))}
             </div>
           )}
-        </div>
+        </div>}
       </div>
+      {!canGenerate && me && (
+        <div className="mb-4 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
+          이미지·영상 생성과 Higgsfield 크레딧은 운영자 전용 기능입니다.
+        </div>
+      )}
       {lastError && (
         <div className="mb-4 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
           마지막 실패: {lastError}
@@ -435,7 +458,7 @@ export default function StudioPage() {
           {!text ? (
             <div className="text-sm text-subtle py-12 text-center">글감을 입력하고 OSMU 생성을 누르거나, 오른쪽 발행 이력에서 불러오세요.</div>
           ) : (
-            GROUPS.map((g) => (
+            GROUPS.filter((g) => canGenerate || !g.platforms.some(isVideo)).map((g) => (
               <div key={g.title}>
                 <div className="flex items-center gap-2 mb-3"><span className="text-sm font-bold bg-gradient-to-r from-accent to-accent-hover bg-clip-text text-transparent">{g.title}</span><span className="text-[10px] text-subtle">{g.platforms.map((p) => LABEL[p]).join(" · ")} · 클릭해서 편집</span><div className="flex-1 h-px bg-gradient-to-r from-accent/40 to-transparent" /></div>
                 <div className="flex gap-5 flex-nowrap overflow-x-auto items-start pb-2">
@@ -506,11 +529,11 @@ export default function StudioPage() {
                 </>}
                 {isVideo(editing) && <>
                   {(["hook", "body", "cta"] as const).map((kk) => <div key={kk}><label className="text-[11px] text-subtle">{kk.toUpperCase()}</label><input value={text.shorts?.[kk] || ""} onChange={(e) => upText({ shorts: { ...(text.shorts || {}), [kk]: e.target.value } })} className="w-full bg-surface-2 text-muted text-sm p-2 rounded border border-border" /></div>)}
-                  <div className="flex gap-2 items-center"><select value={videoModel} onChange={(e) => setVideoModel(e.target.value)} className="bg-surface-2 text-muted text-xs p-1.5 rounded border border-border"><option value="minimax_hailuo">Minimax 6cr</option><option value="veo3_1_lite">Veo3.1 8cr</option><option value="marketing_studio_video">MS UGC광고 ~40cr</option></select>{img && <button onClick={() => genVideo(img.localPath)} disabled={!!busy} className="text-xs px-2 py-1.5 bg-surface-2 text-muted rounded disabled:opacity-50">{vid ? "영상 재생성" : "영상 생성"}</button>}</div>
+                  {canGenerate && <div className="flex gap-2 items-center"><select value={videoModel} onChange={(e) => setVideoModel(e.target.value)} className="bg-surface-2 text-muted text-xs p-1.5 rounded border border-border"><option value="minimax_hailuo">Minimax 6cr</option><option value="veo3_1_lite">Veo3.1 8cr</option><option value="marketing_studio_video">MS UGC광고 ~40cr</option></select>{img && <button onClick={() => genVideo(img.localPath)} disabled={!!busy} className="text-xs px-2 py-1.5 bg-surface-2 text-muted rounded disabled:opacity-50">{vid ? "영상 재생성" : "영상 생성"}</button>}</div>}
                 </>}
 
                 {/* 비주얼 프롬프트 — 어떤 프롬프트로 생성됐는지 */}
-                {!isVideo(editing) && <div>
+                {canGenerate && !isVideo(editing) && <div>
                   <label className="text-[11px] text-accent">🎨 비주얼 프롬프트 <span className="text-subtle">— 이 프롬프트로 이미지 생성됨</span></label>
                   <textarea value={text.image_prompt || ""} onChange={(e) => upText({ image_prompt: e.target.value })} className="w-full bg-surface-2 text-muted text-xs p-2 rounded border border-border" rows={3} />
                   <button onClick={() => genImage(text.image_prompt || idea)} disabled={!!busy} className="mt-1 text-xs px-2 py-1 bg-surface-2 text-muted rounded disabled:opacity-50">이미지 재생성</button>

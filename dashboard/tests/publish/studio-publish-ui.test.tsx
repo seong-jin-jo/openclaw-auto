@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
   fetcher: vi.fn(),
   showToast: vi.fn(),
   swr: vi.fn(),
+  swrKeys: [] as Array<string | null>,
+  isOperator: true,
   workspace: { id: "tenant-a", name: "Tenant A" },
 }));
 
@@ -88,7 +90,13 @@ describe("Studio publish result integrity", () => {
     mocks.fetcher.mockReset();
     mocks.showToast.mockReset();
     mocks.swr.mockReset();
+    mocks.swrKeys.length = 0;
+    mocks.isOperator = true;
     mocks.swr.mockImplementation((key: string | null) => {
+      mocks.swrKeys.push(key);
+      if (key === "/api/me") {
+        return { data: { isOperator: mocks.isOperator }, mutate: vi.fn() };
+      }
       if (key === "/api/studio/drafts?tenant_id=tenant-a") {
         return { data: { drafts: [] }, mutate: vi.fn() };
       }
@@ -144,5 +152,72 @@ describe("Studio publish result integrity", () => {
     expect(screen.getByText("일부 발행 실패")).toBeInTheDocument();
     expect(screen.getByText("X 계정 미연결")).toBeInTheDocument();
     expect(draftSaveStatuses()).toEqual(["draft", "partial"]);
+  });
+});
+
+describe("Studio Higgsfield operator boundary", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    mocks.apiPost.mockReset();
+    mocks.fetcher.mockReset();
+    mocks.showToast.mockReset();
+    mocks.swr.mockReset();
+    mocks.swrKeys.length = 0;
+    mocks.isOperator = false;
+    mocks.swr.mockImplementation((key: string | null) => {
+      mocks.swrKeys.push(key);
+      if (key === "/api/me") {
+        return { data: { isOperator: false }, mutate: vi.fn() };
+      }
+      if (key === "/api/studio/drafts?tenant_id=tenant-a") {
+        return { data: { drafts: [] }, mutate: vi.fn() };
+      }
+      if (key === "/api/studio/brand-setup?tenant_id=tenant-a") {
+        return { data: { guide: null }, mutate: vi.fn() };
+      }
+      return { data: undefined, mutate: vi.fn() };
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ accounts: [] })));
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("uses null SWR keys, hides Higgsfield controls, and never requests Higgsfield for a non-operator", async () => {
+    mocks.apiPost.mockImplementation(async (path: string) => {
+      if (path === "/api/studio/text") {
+        return {
+          ok: true,
+          threads: "Threads 본문",
+          x: "X 본문",
+          instagram: { caption: "Instagram 본문" },
+          shorts: { hook: "hook", body: "body", cta: "cta" },
+          image_prompt: "이미지 프롬프트",
+        };
+      }
+      if (path.startsWith("/api/higgsfield/")) {
+        return { ok: false, error: "운영자 전용" };
+      }
+      throw new Error(`unexpected path: ${path}`);
+    });
+
+    render(<StudioPage />);
+    fireEvent.change(screen.getByPlaceholderText("글감 / 콘텐츠 주제 입력"), {
+      target: { value: "고객용 텍스트 생성" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "OSMU 생성" }));
+
+    await waitFor(() => {
+      expect(mocks.apiPost).toHaveBeenCalledWith("/api/studio/text", expect.any(Object));
+    });
+    expect(mocks.swrKeys.filter((key) => key?.startsWith("/api/higgsfield/"))).toEqual([]);
+    expect(mocks.apiPost.mock.calls.map(([path]) => path).filter((path) => (
+      String(path).startsWith("/api/higgsfield/")
+    ))).toEqual([]);
+    expect(screen.getByText("이미지·영상 생성과 Higgsfield 크레딧은 운영자 전용 기능입니다.")).toBeInTheDocument();
+    expect(screen.queryByTitle("사용 이력 보기")).not.toBeInTheDocument();
   });
 });
