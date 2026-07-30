@@ -144,9 +144,11 @@ describe("Sidebar operator/customer shell separation", () => {
     render(<Sidebar />);
     screen.getByRole("button", { name: /로그아웃/ }).click();
 
-    await waitFor(() => expect(mocks.signOut).toHaveBeenCalledTimes(1));
-    expect(localStorage.getItem("dashboard_auth_token")).toBeNull();
-    expect(localStorage.getItem("active_workspace")).toBeNull();
-    expect(useUIStore.getState().activeWorkspace).toBeNull();
+    await waitFor(() => {
+      expect(mocks.signOut).toHaveBeenCalledTimes(1);
+      expect(localStorage.getItem("dashboard_auth_token")).toBeNull();
+      expect(localStorage.getItem("active_workspace")).toBeNull();
+      expect(useUIStore.getState().activeWorkspace).toBeNull();
+    });
   });
 });

@@ -427,11 +427,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       return;
     }
     clearAuthToken();
+    setActiveWorkspace(null);
     setHasToken(false);
     setGateStatus("checking");
     if (reauthOwnerToken.current === token) reauthOwnerToken.current = null;
     router.replace(customerJwt ? "/login" : "/operator");
-  }, [router]);
+  }, [router, setActiveWorkspace]);
 
   useEffect(() => {
     const handler = () => { void reauthenticateCurrentIdentity(); };
@@ -445,30 +446,36 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   // SIGNED_OUT이면 스냅샷 제거 → 랜딩으로.
   useEffect(() => {
     let unsub: (() => void) | undefined;
-    // 운영자 토큰(DASHBOARD_AUTH_TOKEN, 비-JWT)이 저장돼 있으면 Supabase 세션 동기화에서 제외한다.
-    // 같은 localStorage 키를 공유하므로, 남아있던 고객 세션으로 운영자 토큰을 덮어쓰면
-    // 운영자가 그 고객 테넌트로 스코프되는 교차계정 권한 혼동이 생긴다.
+    // 운영자 콘솔에서는 비-JWT 운영자 토큰을 Supabase 세션보다 우선한다. 반대로 고객 로그인/
+    // 고객 화면에서 Supabase 세션이 확립되면 잔존 운영자 토큰보다 고객 JWT를 승격한다.
+    // 두 identity가 같은 localStorage 키를 공유하므로 path 경계를 함께 봐야 한다.
+    const operatorConsoleActive = pathname.startsWith("/operator");
     const operatorActive = () => { const t = getAuthToken(); return !!t && !isJwtToken(t); };
+    const promoteCustomerSession = (accessToken: string) => {
+      if (getAuthToken() !== accessToken) setActiveWorkspace(null);
+      setAuthToken(accessToken);
+      setHasToken(true);
+    };
     (async () => {
       try {
         const { createBrowserSupabase } = await import("@/lib/supabase");
         const sb = createBrowserSupabase();
         const { data: { session } } = await sb.auth.getSession();
-        if (session?.access_token && !operatorActive()) {
-          setAuthToken(session.access_token);
-          setHasToken(true);
+        if (session?.access_token && (!operatorActive() || !operatorConsoleActive)) {
+          promoteCustomerSession(session.access_token);
         }
         const { data } = sb.auth.onAuthStateChange((event, sess) => {
-          if (operatorActive()) return; // 운영자 세션엔 관여하지 않음
           if (sess?.access_token) {
-            setAuthToken(sess.access_token);
-            setHasToken(true);
+            if (operatorActive() && operatorConsoleActive) return;
+            promoteCustomerSession(sess.access_token);
           } else if (event === "SIGNED_OUT") {
+            if (operatorActive()) return; // Supabase sign-out은 운영자 토큰을 폐기하지 않는다.
             // A 401-triggered signOut owns its SIGNED_OUT event and will clear only
             // if its failed request token is still current after signOut resolves.
             // With no owner, this is a legitimate user/provider sign-out.
             if (reauthOwnerToken.current) return;
             clearAuthToken();
+            setActiveWorkspace(null);
             setHasToken(false);
           }
         });
@@ -478,7 +485,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       }
     })();
     return () => unsub?.();
-  }, []);
+  }, [pathname, setActiveWorkspace]);
 
   // 계정 게이트: /api/me를 15초마다 폴링해 paused(정지)/accountUnavailable(알수없는 상태)만 화면분기.
   // OSMU v1.0.0부터 active 계정은 승인 대기 없이 즉시 대시보드에 진입한다(공유 AI 사용 승인은
@@ -552,8 +559,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       }
     }
     clearAuthToken();
+    setActiveWorkspace(null);
     window.location.href = "/login";
-  }, []);
+  }, [setActiveWorkspace]);
 
   const doRefresh = useCallback(() => {
     window.location.reload();

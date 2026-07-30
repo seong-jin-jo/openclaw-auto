@@ -13,6 +13,7 @@ import {
 import { getChannelIcon } from "@/lib/channel-icons";
 import { useUIStore, type Workspace } from "@/store/ui-store";
 import { fetcher } from "@/lib/api";
+import { clearAuthToken, getAuthToken } from "@/lib/auth";
 import { ThemeToggle } from "./ThemeToggle";
 
 interface MeResponse {
@@ -143,8 +144,9 @@ function CustomerWorkspaceIdentity({
 
   // 고객은 /api/me가 반환한 자기 테넌트만 활성화한다.
   // ⚠️ 반드시 "값이 실제로 바뀔 때만" set — 무조건 set하면 set→재렌더→effect→set 무한 루프(React #185).
+  // 로그아웃 직후에는 이전 /api/me 응답이 남아 있어도 workspace를 다시 persist하지 않는다.
   useEffect(() => {
-    if (me.tenant) {
+    if (me.tenant && getAuthToken()) {
       if (activeWorkspace?.id !== me.tenant.id) setActiveWorkspace(me.tenant);
     }
   }, [me.tenant, activeWorkspace?.id, setActiveWorkspace]);
@@ -168,6 +170,8 @@ function CustomerWorkspaceIdentity({
 }
 
 function SidebarFooter({ isOperator }: { isOperator: boolean }) {
+  const setActiveWorkspace = useUIStore((state) => state.setActiveWorkspace);
+
   return (
     <div className="shrink-0 px-4 py-3 border-t border-border/50 space-y-2">
       <ThemeToggle />
@@ -177,7 +181,8 @@ function SidebarFooter({ isOperator }: { isOperator: boolean }) {
             const { createBrowserSupabase } = await import("@/lib/supabase");
             await createBrowserSupabase().auth.signOut();
           } catch { /* env 미설정/세션 없음 무시 */ }
-          try { localStorage.removeItem("dashboard_auth_token"); } catch { /* ignore */ }
+          clearAuthToken();
+          setActiveWorkspace(null);
           window.location.href = isOperator ? "/operator" : "/login";
         }}
         className="w-full flex items-center gap-2 px-1 py-1 text-xs text-subtle hover:text-danger transition-colors"

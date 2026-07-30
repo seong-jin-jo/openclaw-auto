@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const AUTH_TOKEN = process.env.DASHBOARD_AUTH_TOKEN || "";
+const AUTH_TOKEN_KEY = "dashboard_auth_token";
+const ACTIVE_WORKSPACE_KEY = "active_workspace";
 
 /** Server-side: check Bearer token in API routes */
 export function checkAuth(req: NextRequest): NextResponse | null {
@@ -17,17 +19,23 @@ export function checkAuth(req: NextRequest): NextResponse | null {
 /** Client-side auth helpers */
 export function getAuthToken(): string {
   if (typeof window === "undefined") return "";
-  return localStorage.getItem("dashboard_auth_token") || "";
+  return localStorage.getItem(AUTH_TOKEN_KEY) || "";
 }
 
 export function setAuthToken(token: string): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem("dashboard_auth_token", token);
+  const previous = localStorage.getItem(AUTH_TOKEN_KEY);
+  if (previous && previous !== token) {
+    // 운영자↔고객 또는 고객 A↔고객 B identity 전환에서 이전 tenant 선택을 재사용하지 않는다.
+    localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
+  }
+  localStorage.setItem(AUTH_TOKEN_KEY, token);
 }
 
 export function clearAuthToken(): void {
   if (typeof window === "undefined") return;
-  localStorage.removeItem("dashboard_auth_token");
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
 }
 
 export function authHeaders(): Record<string, string> {
