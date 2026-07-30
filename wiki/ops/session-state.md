@@ -3699,3 +3699,39 @@ qa in-progress·ship pending을 유지한다. 다음은 컨트롤러 품질검�
 계정 재선택 + `active_workspace` 로그아웃 삭제 + 운영자 토큰 잔존 시 고객 JWT 승격 + `countAccounts`
 데드코드 제거) ③배치 D(P1-7 글자수 SSOT·Facebook 카피 분리, P1-8 무음 표기, P2-9 사용량 집계)
 ④사용자 배포 승인 후 배포 ⑤실브라우저 8항목 관찰 후에만 qa-tracker 갱신·`/approve qa`.
+
+### OSMU 1차 결함 배치 B build 산출 (2026-07-30)
+
+**handoff 기준:** 사용자가 직접 지정한 배치 B 과제와 승인 계획
+`/Users/sj/.claude/plans/wiki-1-mellow-wadler.md`를 primary로 사용했다. tmux pane은 샌드박스가
+소켓 접근을 거부해 조회하지 못했다. 시작 당시 추적 파일 worktree는 clean이었다.
+
+**항목별 커밋:** `ceecf81b` P0-4 위키 sync 실패 배너 → `bc5b7485` P0-5 GitHub branch·권한·키
+진단. P0-4는 `ApiResponseError.payload.error`와 네트워크 TypeError를 분리하고 message tone 상태 +
+`text-success`/`text-danger`로 전환했다. P0-5는 default branch 조회(실패 시 main→master), slash ref
+보존, Trees 200의 folder mismatch/.md 없음 분기, private PAT 권한·OSMU_SECRET_KEY·복호화·GitHub Wiki
+사유 분기, `studio/text`·`sourcing`의 Contents API + Bearer 통일을 반영했다. 발행 UI·OAuth·글자수는
+수정하지 않았다.
+
+**RED→GREEN(테스트됨):**
+- P0-4 RED 2/2: 서버 400·네트워크 예외가 모두 unhandled rejection이고 배너 없음. GREEN 2/2:
+  서버 문자열·네트워크 안내가 danger 시맨틱 토큰 배너로 렌더.
+- P0-5 RED 5건: `feature/x`가 `%2F`, master 기본 브랜치 실패, 키 미설정 오진, folder mismatch 오진,
+  Studio private context가 raw+`token` 스킴. GREEN 신규 11/11 + 기존 quota 계약 16/16.
+
+**전체 자동 검증(테스트됨):** `npx tsc --noEmit` exit 0·출력 0줄,
+`npx vitest run` **120 files / 998 PASS / 10 skipped**(기준선 118/985 대비 파일 +2, PASS +13),
+`npx next build --webpack` Next.js 16.2.2·compile 19.6s·static pages **166/166**,
+`git diff --check` exit 0. 기존 테스트 회귀 0건.
+
+**벤치마크 근거 확인:** GitHub 공식 REST 문서 기준 Trees의 ref/recursive 계약, Trees·Contents의
+fine-grained PAT `Contents: read`, Repositories의 `default_branch`, private 인증 실패 404 규약을
+적용했다. Authorization은 기존 `Bearer`를 유지했다.
+
+**배포/게이트:** push·배포하지 않았다. pipeline은 qa in-progress·ship pending이다. Testing Library로
+실제 DOM 배너, Route Handler 직접 호출로 branch/진단 응답을 관찰했지만 운영 private repo·실브라우저
+동기화·운영 배포는 미검증이다.
+
+**정확한 다음 액션:** 컨트롤러가 diff·품질 게이트를 독립 재검증한 뒤 배치 C(P0-6)로 진행한다.
+전체 배치 종료 후 사용자 배포 승인 → 운영에서 잘못된 repo/branch/token, master repo, slash branch를
+각각 실브라우저로 확인하고 나서만 qa-tracker와 `/approve qa`를 판단한다.

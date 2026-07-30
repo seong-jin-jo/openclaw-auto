@@ -22,6 +22,23 @@
 3라우트를 `generateText(prompt, tenantId)`로 통일 → 셀프서브가 고객 키만으로 끝까지 동작.
 회귀 방지: `tests/brand/distill-backend.contract.test.ts`(claude -p 재등장 차단) + `brand-setup.test.ts`.
 
+### GitHub repo 어댑터 오류 계약 (2026-07-30)
+
+- `RepoConnect`는 non-2xx의 서버 `error`를 danger 배너로 표시하고, 네트워크 예외는 별도 한국어
+  안내로 구분한다. 성공/실패 색은 메시지 문자열이 아니라 `ok | error` 상태와
+  `text-success | text-danger` 시맨틱 토큰으로 결정한다.
+- 브랜치를 비우면 GitHub Repositories API의 `default_branch`를 사용한다. 메타데이터 조회 실패 시에만
+  `main` → `master` 순서로 시도하며, `feature/x` 같은 slash ref는 Trees path에서 slash를 보존한다.
+- Trees 200 결과는 `폴더 밖에는 .md가 있음`과 `레포 전체에 .md가 없음`을 구분한다. 404는 저장 토큰
+  유무와 레포 메타데이터 결과에 따라 레포/브랜치 또는 private 권한 조치로 안내한다. GitHub의 private
+  리소스 인증 실패도 404가 될 수 있으므로, PAT에는 대상 레포와 `Contents: read`가 필요하다.
+- `OSMU_SECRET_KEY` 미설정과 저장 PAT 복호화 실패는 일반 404로 숨기지 않는다. 복호화 로그에는 토큰
+  원문을 남기지 않으며 사용자는 관리자에게 키 설정 또는 PAT 재저장을 요청하게 한다.
+- GitHub Wiki clone(`repo.wiki.git`)은 REST Trees 대상이 아니므로 지원하지 않는다. 문서는 일반 레포의
+  `.md` 폴더로 옮겨야 한다.
+- `sync-wiki`, `studio/text`, `sourcing`의 GitHub 파일 읽기는 모두 Contents API +
+  `Authorization: Bearer`로 통일한다.
+
 ## 셀프서브 전제조건 (플랫폼 = 운영자)
 - DB: 스키마 + RLS(`osmu_service`) + **pg_trgm** 확장 적용(`wiki-retrieve`가 word_similarity 사용).
 - `OSMU_SECRET_KEY`: 고객 토큰(Anthropic 키·GitHub PAT) pgp 암호화 — **없으면 토큰 등록부터 실패**.
