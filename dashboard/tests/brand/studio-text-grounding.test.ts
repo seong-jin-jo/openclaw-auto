@@ -41,7 +41,7 @@ async function studioText(body: Record<string, unknown>) {
 }
 
 const OK_JSON = JSON.stringify({
-  threads: "스레드 본문", x: "x본문",
+  threads: "스레드 본문", facebook: "페이스북 전용 본문", x: "x본문",
   instagram: { caption: "ig", hashtags: ["#a"], slides: ["s1"] },
   shorts: { hook: "h", body: "b", cta: "c" }, image_prompt: "img",
 });
@@ -71,10 +71,13 @@ describe("POST /api/studio/text — 브랜드+위키 그라운딩 주입 (셀프
     expect(status).toBe(200);
     expect(body.ok).toBe(true);
     expect(body.threads).toBeTruthy();
+    expect(body.facebook).toBe("페이스북 전용 본문");
+    expect(body.facebook).not.toBe(body.threads);
     // 핵심: 브랜드 가이드 + 위키 사실이 실제로 프롬프트에 들어갔다
     expect(H.genPrompt).toContain("친근한 반말 톤");
     expect(H.genPrompt).toContain("흑임자 라떼");
     expect(H.genPrompt).toContain("지어내기 금지"); // 사실 근거 강제 문구
+    expect(H.genPrompt).toContain('"facebook"');
     // 생성은 테넌트 스코프(고객 키 우선 경로)로 호출됨
     expect(H.genTenant).toBe("tenant-1");
   });
