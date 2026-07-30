@@ -81,6 +81,17 @@ describe("operator GET authentication handling", () => {
     window.removeEventListener("auth:customer-reauth-required", onCustomerReauth);
   });
 
+  it("a fresh login clears an orphaned workspace even when no previous auth token remains", () => {
+    localStorage.setItem(
+      "active_workspace",
+      JSON.stringify({ id: "stale-tenant", slug: "stale", name: "Stale" }),
+    );
+
+    setAuthToken(`${"d".repeat(24)}.${"e".repeat(24)}.${"f".repeat(24)}`);
+
+    expect(localStorage.getItem("active_workspace")).toBeNull();
+  });
+
   it.each([
     { label: "an unauthenticated pre-login request", requestToken: "", expectedHeaders: {} },
     {

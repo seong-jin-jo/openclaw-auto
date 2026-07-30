@@ -25,7 +25,7 @@ export function getAuthToken(): string {
 export function setAuthToken(token: string): void {
   if (typeof window === "undefined") return;
   const previous = localStorage.getItem(AUTH_TOKEN_KEY);
-  if (previous && previous !== token) {
+  if (previous !== token) {
     // 운영자↔고객 또는 고객 A↔고객 B identity 전환에서 이전 tenant 선택을 재사용하지 않는다.
     localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
   }
