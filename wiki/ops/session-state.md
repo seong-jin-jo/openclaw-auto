@@ -4055,3 +4055,47 @@ Facebook 미로그인), 실 DB 동시성, 다중 탭 Supabase timing.
 ③하네스 게이트 2건 수선(사용자 권한 허용 필요: `verify-agent-quality.sh:51` 정규식 대소문자·러너
 누락, `verify-delegation-check.sh:30` `tail -40` 탐색범위) ④2차 계획(사이트 내 위키 에디터,
 브랜드 AI 자동채움, 크레딧+BYOK 과금) 착수 여부는 사용자 결정.
+
+### 요구 1번 운영 검증 완료 + 4개 provider DB 전환 (2026-07-31)
+
+**사용자 지시:** ①운영자 로그인 값 제공 ②크롬 Facebook 로그인 완료 ③하네스 수선 권한 허용
+④"셋다 codex 시켜서 해".
+
+**⚠️ 보안 이슈(즉시 조치 권고):** 운영자 콘솔 토큰이 `qwer1234!`로, 로컬 secret store 값과 **동일**함을
+확인했다(두 값 모두 `/api/me` 200). 이 토큰 하나로 `/operator/customers`에서 **전 provider의 OAuth
+Client Secret 원문 조회**가 가능하다. 추측 가능한 문자열이며 대화 기록에도 남았다.
+→ 강한 무작위 값으로 **로테이션 권고**(로컬 secret store + GitHub Actions
+`OSMU_DASHBOARD_AUTH_TOKEN` 양쪽 동시 갱신, §4.5 이중 관리 원칙).
+
+**요구 1번("세팅된건 아이디 시크릿 보이게끔") 운영 실증(증거등급=관찰됨, Claude 직접 실행):**
+- `POST {"action":"import-env","provider":"instagram"}` → `{"ok":true,"source":"db","updatedAt":...}`
+- 이어서 `POST {"action":"reveal","provider":"instagram"}` → `source:"db"`, `clientId` 길이 16,
+  `clientSecret` 길이 32 **원문 반환 확인**(값은 로그·보고 어디에도 남기지 않음).
+- threads·youtube·facebook도 동일하게 import 성공 → **세팅된 4개 전부 `출처=db`로 전환**.
+- 최종 상태: 준비 4/12 (instagram·threads·youtube·facebook = db / 나머지 8개 = 미설정 env).
+→ 즉 회장이 요구한 "원문 확인"이 운영에서 실제 동작함을 서버 경로로 증명했다. 화면 버튼도 이제 이 4개에
+대해 노출된다(`source==="db" && credentialsConfigured` 조건).
+
+**요구 2번("준비 안된건 받아서 등록될 준비") 상태:** 미설정 8개는 입력칸 + `전체 세트 저장`이 살아있고
+`OSMU_SECRET_KEY`·`DATABASE_URL`이 운영에 존재하므로 값만 넣으면 즉시 등록된다. 실제 값은 각 플랫폼
+개발자 콘솔에서 발급해야 하며 미발급 상태다.
+
+**브라우저 UI 검증 제약(변경 없음):** MCP가 제어하는 크롬 프로필은 사용자가 로그인한 창과 **별개
+프로필**이라 `/operator/customers`가 여전히 랜딩페이지를 렌더한다. Claude는 안전 규칙상 토큰을 입력
+필드에 넣을 수 없다(사용자가 값을 줘도 유지). 따라서 실브라우저 8항목은 사용자가 **MCP 제어 크롬 창에서**
+직접 로그인해야 진행 가능하다. 서버 경로 검증은 위와 같이 curl로 대체 완료.
+
+**하네스 수선:** 사용자 지시대로 Codex에 위임(백그라운드). ①`verify-agent-quality.sh:51`
+`grep -qE` → `-qiE` + `vitest|next build|jest|npm test|go test|pytest|cargo test` 추가(대소문자
+불일치로 `tsc --noEmit` 미매칭 + 현행 러너 누락 = 오탐 8회의 원인) ②`verify-delegation-check.sh:30`
+`tail -40` → 같은 파일의 "마지막 사용자 턴 이후 구간" 로직 재사용. **콘텐츠·디자인·기획 role의
+WebSearch 벤치마크 강제는 완화 금지**를 명시했고, 역회귀 검증(콘텐츠 role은 여전히 FAIL)도 요구했다.
+
+**배포 상태:** origin/main `c43a7a50` 배포 완료(run 30563194795 success). 1차 9건 + 회귀 수정 반영.
+
+**미검증:** 실브라우저 8항목(MCP 크롬 로그인 필요), Threads 앱 Development/Live(사용자가 Facebook
+로그인했다고 했으나 MCP 프로필에는 미반영 — 같은 창에서 확인 필요), 실 DB 동시성, 다중 탭 타이밍.
+
+**정확한 다음 액션:** ①하네스 수선 수령 → 오탐 해소·역회귀 둘 다 확인 ②사용자가 MCP 제어 크롬에서
+`/operator` 로그인 → Claude가 실브라우저 8항목 관찰 → `docs/qa-tracker.md` 갱신 → `/approve qa`
+③운영자 토큰 로테이션 ④2차 계획(위키 에디터·브랜드 AI 자동채움·크레딧+BYOK) 착수 여부 결정.
