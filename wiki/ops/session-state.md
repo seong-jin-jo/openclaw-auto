@@ -3528,3 +3528,35 @@ UI 계층(page.tsx)에서 정렬하고 API 응답 순서는 건드리지 않으�
 재실행 ②사용자 배포 승인 후 배포 ③Slack Redirect URL 등록 + Client ID 입력(Secret은 사용자가
 붙여넣음 — Claude는 secret 필드 입력 불가) ④네이버는 크롬 확장 사이트 권한 허용 요청 후 진행
 ⑤`constants.ts` Slack 분류 주석 정정 ⑥실브라우저 증거 확보 후에만 qa-tracker 갱신·`/approve qa`.
+
+### 정렬 구현 수령 + 독립 재검증 (2026-07-30)
+
+**Codex 산출:** 커밋 `b6649288` "feat(operator): prioritize OAuth credential status cards".
+2파일 159 insert/5 delete(`page.tsx` 47줄, brand contract 테스트 117줄).
+
+**구현 확인(컨트롤러가 diff 직접 정독):** `groupOAuthProvidersForDisplay()`가 카드를
+`저장소 장애 N개` → `준비 완료 N개` → `미설정 N개` 3그룹으로 나누고, 빈 그룹은 렌더하지 않으며
+각 그룹에 `aria-labelledby`를 붙였다. 같은 그룹 내 순서는 기존 정의 순서를 유지하고 정렬은 UI
+계층에서만 수행해 API 응답 순서 계약은 건드리지 않았다. `N/12 준비` 헤더 카운트는 유지된다.
+
+**컨트롤러 독립 재검증(증거등급=테스트됨, Claude 직접 실행):** `npx tsc --noEmit` exit 0 /
+`npx vitest run` **117 files 981 PASS, 10 skipped**(정렬 테스트 3건 순증) /
+`npx next build --webpack` Compiled successfully 15.6s + static pages **166/166** /
+`git diff --check` PASS.
+
+**품질 게이트 3회 연속 동일 FAIL(하네스 결함):** `verify-agent-quality.sh`가 `Skill 0회 +
+WebSearch/Fetch 0회`로 반려했다. codex-delegate 워커 환경에 웹 검색 도구가 없어 이 축은 구조적으로
+충족 불가하다. 3회 누적을 `~/.claude/harness/mistake-ledger.md`에 `[proxy]`로 등록했다(강화안:
+구현계열 role은 벤치마크 축을 Read 근거+테스트 증거로 대체하거나 codex-delegate에 웹 경로 부여).
+현재는 컨트롤러가 ⛔라벨 + 직접 재검증으로 대체 출고한다.
+
+**배포 상태:** 미배포. 로컬 HEAD는 `b6649288`이며 origin/main(`14a8437c`)보다 앞선다.
+운영은 여전히 구버전이라 "원문 확인" 버튼도 정렬도 화면에 없다. 배포 승인 대기.
+
+**미검증:** 배포 후 정렬·원문 확인 렌더, 미설정 provider 실제 등록, 30초 자동 숨김, audit 행,
+로그 secret 비노출, Slack Redirect URL 등록, 실 DB 동시성.
+
+**정확한 다음 액션:** ①사용자 배포 승인 → push + `deploy-marketing.yml` ②배포 후 실브라우저로
+정렬 3그룹·원문 확인·등록·자동 숨김 관찰 ③Slack Redirect URL 등록 + Client ID 입력(Secret은
+사용자 붙여넣기) ④네이버 확장 권한 허용 후 진행 ⑤`constants.ts` Slack 분류 주석 정정
+⑥증거 확보 후에만 qa-tracker 갱신·`/approve qa`.
