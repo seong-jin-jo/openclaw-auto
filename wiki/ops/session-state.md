@@ -4014,3 +4014,44 @@ Development/Live 상태(브라우저가 Facebook 미로그인 — 사용자 로�
 ②사용자가 `/operator` 로그인 또는 Facebook 로그인 해주면 실브라우저 8항목 + Threads 앱 상태 확인
 ③하네스 게이트 2건 수선(사용자 권한 허용 필요 — `verify-agent-quality.sh:51` 정규식,
 `verify-delegation-check.sh:30` 탐색범위) ④증거 확보 후에만 qa-tracker 갱신·`/approve qa`.
+
+### 운영자 세션 회귀 수정·재배포 완료 (2026-07-31)
+
+**재현·원인(Codex, 컨트롤러 재검증):** 회귀는 실제로 재현됐다 —
+`dashboard/tests/components/AuthGateRouting.test.tsx:114` RED에서 **1 failed / 12 passed**로
+토큰이 `null`이 되는 것을 관찰했다. 원인은 `dashboard/src/components/shared/AuthGate.tsx:447`
+부근에서 **이전 pathname effect가 cleanup된 뒤에도 늦게 도착한 Supabase `getSession()` 결과와
+구독을 적용**한 것이다. 그 결과 고객 JWT 승격 후 `SIGNED_OUT`이 운영자 토큰을 삭제했다.
+`clearAuthToken()`은 기존부터 토큰을 지웠으므로 **직접 원인이 아니었다**(초기 의심은 빗나갔음).
+
+**수정:** cleanup된 effect의 세션 결과·listener 등록·callback을 모두 폐기하고 unsubscribe한다.
+배치 C가 닫은 보안 속성 3가지(고객 JWT 승격 / identity 전환·로그아웃 시 `active_workspace` 제거 /
+운영자 경로에서 운영자 토큰 우선)는 보존됐다. 커밋 `18010894`(RED) → `3b64d198`(수정) →
+`c43a7a50`(증거·문서). 6파일 40 insert/7 delete.
+
+**컨트롤러 독립 재검증(증거등급=테스트됨, Claude 직접 실행):** `npx tsc --noEmit` exit 0 /
+`npx vitest run` **123 files 1016 PASS, 10 skipped** / `npx next build --webpack`
+Compiled successfully 17.3s + static pages **166/166** / `git diff --check` PASS.
+
+**재배포 완료:** `git push origin main` = `7233b859..c43a7a50`, 배포 run **30563194795
+completed success**. 배포 후 `/api/health` 200 `{"ok":true,"db":"up","ms":63}`.
+
+**실화면 관찰:** `/operator`가 **운영자 콘솔 로그인 폼**("운영자 콘솔 / DASHBOARD_AUTH_TOKEN으로
+접속하세요" + Auth Token 입력 + 접속 버튼 + "← 고객 로그인으로")으로 정상 렌더된다.
+스크린샷: `/var/folders/18/01vfd1vd44z8yc13lsmrgl4m0000gn/T/claude-chrome-screenshots-78urEJ/screenshot-1785430666291-0.jpg`
+
+**남은 제약(중요):** 이번 수정은 **앞으로의 토큰 축출을 막는 것**이며, 이미 지워진 브라우저 세션은
+복구되지 않는다. 재로그인이 필요한데 **Claude는 토큰을 입력 필드에 넣을 수 없다**(안전 규칙).
+따라서 계획서 검증 절의 실브라우저 8항목은 사용자가 `/operator`에서 토큰을 붙여넣어 로그인해야
+진행 가능하다. 서버 경로는 curl Bearer로 검증 가능하며 이미 200을 확인했다.
+
+**배포 상태:** 최신 배포 완료. origin/main = `c43a7a50`. 운영에 1차 9건 + 회귀 수정 전부 반영됨.
+
+**미검증:** 실브라우저 8항목(사용자 로그인 필요), Threads 앱 Development/Live 상태(브라우저가
+Facebook 미로그인), 실 DB 동시성, 다중 탭 Supabase timing.
+
+**정확한 다음 액션:** ①사용자가 `/operator` 로그인 → Claude가 실브라우저 8항목 관찰 →
+`docs/qa-tracker.md` 갱신 → `/approve qa` 판단 ②사용자가 Facebook 로그인 → Threads 앱 상태 확인
+③하네스 게이트 2건 수선(사용자 권한 허용 필요: `verify-agent-quality.sh:51` 정규식 대소문자·러너
+누락, `verify-delegation-check.sh:30` `tail -40` 탐색범위) ④2차 계획(사이트 내 위키 에디터,
+브랜드 AI 자동채움, 크레딧+BYOK 과금) 착수 여부는 사용자 결정.
