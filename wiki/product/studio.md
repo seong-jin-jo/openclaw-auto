@@ -16,9 +16,24 @@ Studio is the "power user" surface for one-off or assisted generation, complemen
    - Image prompt.
    - (Optional) Video via Higgsfield/Midjourney or ffmpeg path **또는 외부 클리핑 API로 기존 영상에서 후보 Shorts 추출 후 OSMU refinement**.
 4. Edit, preview per platform (wiki/brand tone 반영).
-5. Save as draft or export to queue.
+5. Save as draft or publish to the four Studio-supported targets (Threads / X / Facebook / Instagram).
 6. (New) wiki_path support via sourcing for pulling project knowledge directly.
 7. (0차 추가) Long video repurpose: 클립 후보 수신 → 위키 컨텍스트로 다듬기 → queue로.
+
+## Generation and publish boundaries
+
+- Higgsfield image/video generation, credit balance, and transaction history are operator-only.
+  Studio first confirms `/api/me`; customer sessions receive no `/api/higgsfield/*` SWR key or
+  generation request and see a Korean operator-only notice. The proxy allowlist remains closed
+  because the credit pool and generation log are not tenant-isolated.
+- Studio publish supports Threads, X, Facebook, and Instagram. These four targets default ON.
+  Shorts, Reels, and TikTok remain generation/preview outputs in Studio, default OFF, and show
+  `발행 미지원(생성 전용)` instead of a publish selector.
+- Publish progress counts only confirmed `ok:true` results. A failed target carries a danger-token
+  badge and its server reason. Mixed or all-failed runs persist as `partial`, never `published`;
+  only an all-success run displays `발행 완료` and stores `published`.
+- The existing external-publish/internal-record failure path remains a reconciliation state:
+  it stores `partial`, preserves the permalink/recovery metadata, and blocks automatic republish.
 
 **Wiki Integration** (recent):
 - Tenant Brand Wiki injected for "facts only, no invention".

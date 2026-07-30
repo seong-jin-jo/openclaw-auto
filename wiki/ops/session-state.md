@@ -3622,3 +3622,35 @@ P0-4 이후는 파일 충돌 방지를 위해 다음 배치로 분리한다.
 ④배치 D(P1-7 글자수 SSOT, P1-8 무음 표기, P2-9 사용량) 위임 ⑤전체 통과 후 사용자 배포 승인 받아
 배포 ⑥계획서 "검증" 절의 실브라우저 8항목을 Claude가 크롬으로 직접 관찰한 뒤에만 qa-tracker 갱신·
 `/approve qa`. 증거 전 완료 보고 금지.
+
+### OSMU 1차 결함 배치 A build 산출 (2026-07-30)
+
+**handoff 기준:** 사용자가 직접 지정한 위임 과제와 승인 계획
+`/Users/sj/.claude/plans/wiki-1-mellow-wadler.md`를 primary로 사용했다. tmux pane은 샌드박스가
+소켓 접근을 거부해 조회하지 못했으며, 시작 당시 추적 파일 worktree는 clean이었다.
+
+**항목별 커밋:** `506f36c2` P0-1 발행 결과 정직화 → `0756b087` P0-2 Higgsfield 운영자 경계 →
+`ea88094e` P0-3 Studio 지원 채널 기본 선택. 소스/테스트 변경은
+`dashboard/src/app/studio/page.tsx`, `dashboard/tests/publish/studio-publish-ui.test.tsx` 두 파일이다.
+`dashboard/src/proxy.ts`와 P0-4 이후 대상은 수정하지 않았다.
+
+**RED→GREEN 증거(테스트됨):**
+- P0-1 RED 2/2: 전 채널 실패의 `0%`와 혼합 결과의 `50%`를 찾지 못해 실패. GREEN 2/2:
+  전부 실패는 0%/`발행 실패`/draft `partial`, 혼합은 50%/`일부 발행 실패`/실패 사유/`partial`.
+- P0-2 RED 1/1: 비운영자 렌더에서 `/api/higgsfield/status` SWR key가 관찰됨. GREEN:
+  Higgsfield SWR key 0·POST 0, 전용 안내와 관련 UI 비노출.
+- P0-3 RED 1/1: 기본 버튼 `Publish (4)` 부재. GREEN: 기본 요청이
+  Threads/X/Facebook/Instagram 4건이고 Shorts/Reels/TikTok은 생성 전용 라벨.
+
+**전체 자동 검증(테스트됨):** `npx tsc --noEmit` exit 0·출력 0줄,
+`npx vitest run` 118 files / 985 PASS / 10 skipped(총 995), `npx next build --webpack`
+Next.js 16.2.2·compile 18.7s·static pages 166/166, `git diff --check` exit 0.
+
+**보존 확인:** `publish_success`는 계속 `r.ok` 내부에서만 발화한다. 외부 게시 성공+내부 기록 실패는
+permalink/reconciliation을 보존하고 `partial` 저장·재발행 금지한다. 계정 선택·발행 이력·예약·편집
+드로어·생성 프리뷰는 유지했다.
+
+**배포/게이트:** push·배포하지 않았다. 자동 테스트·production build만 관찰했으며 실제 고객 브라우저
+403 비노출, 실제 전부/부분 실패 화면, 운영자 Higgsfield 생성, 운영 배포는 미검증이다. pipeline은
+qa in-progress·ship pending을 유지한다. 다음은 컨트롤러 품질검증 후 배치 B(P0-4·P0-5)이며, 전체
+배치 종료 뒤 운영 배포와 계획서의 실브라우저 검증을 수행한다.
