@@ -175,12 +175,29 @@ describe("공유 claude -p 월별 quota — limit 파싱", () => {
 describe("공유 claude -p 월별 quota — bypass 경로", () => {
   it("BYO Anthropic 키 등록 테넌트는 quota를 소비하지 않는다", async () => {
     H.byoKey = "sk-byo";
-    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ content: [{ text: "byo-out" }] }) })));
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        content: [{ text: "byo-out" }],
+        usage: { input_tokens: 123, output_tokens: 45 },
+      }),
+    })));
     const { generateText } = await importAnthropic();
     const out = await generateText("x", "tenant-byo");
     expect(out).toBe("byo-out");
     expect(H.quotas.has("tenant-byo")).toBe(false);
     expect(H.started).toHaveLength(0); // CLI 자체가 안 돎
+    expect(H.events).toHaveLength(1);
+    expect(H.events[0]).toMatchObject({
+      tenantId: "tenant-byo",
+      quantity: 1,
+      meta: {
+        source: "byo-anthropic-api",
+        input_tokens: 123,
+        output_tokens: 45,
+        total_tokens: 168,
+      },
+    });
   });
 
   it("tenantId=null(운영자 내부 호출)은 quota 대상이 아니다 — CLI는 실행하되 usage_quotas 미접촉", async () => {
