@@ -46,7 +46,7 @@ describe("채널 글자수 SSOT", () => {
     expect(studio).toContain("text.facebook");
     expect(preview).toContain("text.facebook");
     expect(preview).toContain("@/lib/channel-text-limits");
-    expect(preview).toContain("data-testid={`character-count-${platform}`}");
+    expect(preview).toContain("data-testid={`character-count-${p}`}");
   });
 });
 

@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { withTenant } from "@/lib/db";
 import { getSelectedChannelAccountCred } from "@/lib/channel-accounts";
+import { CHANNEL_TEXT_LIMITS, countTextCharacters } from "@/lib/channel-text-limits";
 
 // 대시보드 직접 발행(게이트웨이 docker 불필요). 토큰=integrations 테이블(테넌트별) → env 폴백(dev).
 // 게이트웨이 extensions/{ch}-publish 로직 포팅. 실발행은 실 토큰 필요.
@@ -196,6 +197,13 @@ export async function fetchThreadsPermalink(token: string, mediaId: string): Pro
 
 // Threads 발행 (text + 선택 image). 2-step container→publish.
 export async function publishThreads(cred: ChannelCred, text: string, imageUrl?: string): Promise<PublishResult> {
+  const length = countTextCharacters(text);
+  if (length > CHANNEL_TEXT_LIMITS.threads) {
+    return {
+      ok: false,
+      error: `Threads 본문이 공식 상한 ${CHANNEL_TEXT_LIMITS.threads}자를 초과했습니다 (${length}/${CHANNEL_TEXT_LIMITS.threads}). 내용을 줄인 뒤 다시 발행해주세요.`,
+    };
+  }
   if (!cred.token) return { ok: false, error: "Threads 채널 토큰이 없습니다. 채널을 다시 연결해주세요." };
   const identity = await resolveThreadsIdentity(cred.token);
   if ("error" in identity) return { ok: false, error: identity.error };
@@ -471,7 +479,7 @@ export async function publishX(cred: ChannelCred, text: string): Promise<Publish
     return { ok: false, error: "X 4키(apiKey/apiSecret/accessToken/accessSecret) 누락" };
   }
   // 280자 초과 시 자르기(멀티바이트 안전 — 코드포인트 단위)
-  const body = [...(text ?? "")].slice(0, 280).join("");
+  const body = [...(text ?? "")].slice(0, CHANNEL_TEXT_LIMITS.x).join("");
   const url = `${X_API}/tweets`;
   const auth = buildXOAuthHeader("POST", url, keys);
   const resp = await fetch(url, {
@@ -487,6 +495,13 @@ export async function publishX(cred: ChannelCred, text: string): Promise<Publish
 
 // Facebook 페이지 발행 (Graph API). imageUrl 있으면 /photos(caption), 없으면 /feed(message).
 export async function publishFacebook(cred: ChannelCred, message: string, imageUrl?: string): Promise<PublishResult> {
+  const length = countTextCharacters(message);
+  if (length > CHANNEL_TEXT_LIMITS.facebook) {
+    return {
+      ok: false,
+      error: `Facebook 본문이 공식 상한 ${CHANNEL_TEXT_LIMITS.facebook}자를 초과했습니다 (${length}/${CHANNEL_TEXT_LIMITS.facebook}). 내용을 줄인 뒤 다시 발행해주세요.`,
+    };
+  }
   const pageId = cred.userId;
   if (!pageId) return { ok: false, error: "Facebook pageId(meta.userId) 없음" };
   if (!cred.token) return { ok: false, error: "Facebook access token 없음" };
@@ -516,13 +531,13 @@ export async function publishFacebook(cred: ChannelCred, message: string, imageU
 // Discord Execute Webhook content ≤2000자 (https://docs.discord.com/developers/resources/webhook)
 // Slack section block text ≤3000자 (https://docs.slack.dev/reference/block-kit/blocks/section-block)
 const REQUEST_TIMEOUT_MS = 15_000;
-const BLUESKY_MAX_GRAPHEMES = 300;
+const BLUESKY_MAX_GRAPHEMES = CHANNEL_TEXT_LIMITS.bluesky;
 const BLUESKY_MAX_TEXT_BYTES = 3000;
 const BLUESKY_MAX_IMAGE_BYTES = 1_000_000;
-const TELEGRAM_MAX_TEXT = 4096;
-const TELEGRAM_MAX_CAPTION = 1024;
-const DISCORD_MAX_CONTENT = 2000;
-const SLACK_MAX_SECTION_TEXT = 3000;
+const TELEGRAM_MAX_TEXT = CHANNEL_TEXT_LIMITS.telegram;
+const TELEGRAM_MAX_CAPTION = CHANNEL_TEXT_LIMITS.telegramCaption;
+const DISCORD_MAX_CONTENT = CHANNEL_TEXT_LIMITS.discord;
+const SLACK_MAX_SECTION_TEXT = CHANNEL_TEXT_LIMITS.slack;
 
 // "문자" 셈법이 코드포인트인지 UTF-16 단위인지 플랫폼 문서에 명시가 없어 둘 다 max 이하로
 // 절단한다(서로게이트 쌍을 쪼개지 않음).

@@ -1,3 +1,5 @@
+import { CHANNEL_TEXT_LIMITS } from "@/lib/channel-text-limits";
+
 export async function POST(request: Request) {
   const data = await request.json();
   const text = (data.text || "") as string;
@@ -16,10 +18,10 @@ export async function POST(request: Request) {
   }
 
   // 채널별 글자수
-  const LIMITS: Record<string, number> = { x: 280, threads: 500, instagram: 2200, linkedin: 3000 };
   for (const ch of channels) {
-    if (LIMITS[ch] && text.length > LIMITS[ch]) {
-      warnings.push({ type: "over_limit", message: `${ch} 글자수 초과 (${text.length}/${LIMITS[ch]})` });
+    const limit = CHANNEL_TEXT_LIMITS[ch as keyof typeof CHANNEL_TEXT_LIMITS];
+    if (limit && text.length > limit) {
+      warnings.push({ type: "over_limit", message: `${ch} 글자수 초과 (${text.length}/${limit})` });
     }
   }
 

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { channelTextLimit, countTextCharacters } from "@/lib/channel-text-limits";
 
 export interface PreviewText {
-  threads?: string; x?: string;
+  threads?: string; facebook?: string; x?: string;
   instagram?: { caption?: string; hashtags?: string[]; slides?: string[] };
   shorts?: { hook?: string; body?: string; cta?: string };
 }
@@ -32,10 +33,31 @@ export function Logo({ p }: { p: PreviewPlatform }) {
   return <svg className={c} viewBox="0 0 24 24" fill="#fff"><path d="M16 3c.3 2.3 1.8 4.1 4 4.4v3c-1.5 0-2.9-.4-4.1-1.2v6.1a5.7 5.7 0 11-5.7-5.7c.3 0 .6 0 .9.1v3.1a2.7 2.7 0 102 2.6V3z"/></svg>;
 }
 
-function Frame({ p, label, w, children, headerRight }: { p: PreviewPlatform; label: string; w: number; children: React.ReactNode; headerRight?: React.ReactNode }) {
+function Frame({ p, label, w, children, headerRight, characterCount }: {
+  p: PreviewPlatform;
+  label: string;
+  w: number;
+  children: React.ReactNode;
+  headerRight?: React.ReactNode;
+  characterCount?: { current: number; limit: number };
+}) {
   return (
     <div style={{ width: w }}>
-      <div className="flex items-center gap-1.5 mb-1.5 px-0.5"><Logo p={p} /><span className="text-xs font-bold text-muted">{label}</span>{headerRight && <div className="ml-auto">{headerRight}</div>}</div>
+      <div className="flex items-center gap-1.5 mb-1.5 px-0.5">
+        <Logo p={p} />
+        <span className="text-xs font-bold text-muted">{label}</span>
+        <div className="ml-auto flex items-center gap-2">
+          {characterCount && (
+            <span
+              data-testid={`character-count-${p}`}
+              className={`text-[10px] ${characterCount.current > characterCount.limit ? "text-danger" : "text-subtle"}`}
+            >
+              {characterCount.current}/{characterCount.limit}
+            </span>
+          )}
+          {headerRight}
+        </div>
+      </div>
       {children}
     </div>
   );
@@ -87,9 +109,20 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
   const handle = brand.replace(/^@/, "");
   const img = media.imgUrl; const vid = media.vidUrl;
   const label = PREVIEW_PLATFORMS.find((x) => x.key === platform)?.label || platform;
+  const previewBody = platform === "threads"
+    ? text.threads || ""
+    : platform === "facebook"
+      ? text.facebook || ""
+      : platform === "x"
+        ? text.x || ""
+        : platform === "instagram"
+          ? text.instagram?.caption || ""
+          : "";
+  const limit = channelTextLimit(platform);
+  const characterCount = limit ? { current: countTextCharacters(previewBody), limit } : undefined;
 
   if (platform === "threads") return (
-    <Frame p="threads" label="Threads" w={CARD_W} headerRight={headerRight}>
+    <Frame p="threads" label="Threads" w={CARD_W} headerRight={headerRight} characterCount={characterCount}>
       <div className="bg-black text-text rounded-xl border border-[#222] px-4 py-3">
         <div className="flex gap-3"><Av />
           <div className="flex-1 min-w-0">
@@ -103,7 +136,7 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
     </Frame>
   );
   if (platform === "x") return (
-    <Frame p="x" label="X" w={CARD_W} headerRight={headerRight}>
+    <Frame p="x" label="X" w={CARD_W} headerRight={headerRight} characterCount={characterCount}>
       <div className="bg-black text-text rounded-xl border border-[#222] px-4 py-3">
         <div className="flex gap-3"><Av />
           <div className="flex-1 min-w-0">
@@ -118,10 +151,10 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
     </Frame>
   );
   if (platform === "facebook") return (
-    <Frame p="facebook" label="Facebook" w={CARD_W} headerRight={headerRight}>
+    <Frame p="facebook" label="Facebook" w={CARD_W} headerRight={headerRight} characterCount={characterCount}>
       <div className="bg-white text-[#050505] rounded-lg border border-border overflow-hidden">
         <div className="flex items-center gap-2 px-3 pt-3"><Av /><div><div className="font-semibold text-[15px] leading-tight">{handle}</div><div className="text-subtle text-xs">방금 · 🌐</div></div><div className="ml-auto text-subtle">{P(I.more)}</div></div>
-        <p className="px-3 py-2 text-[15px] whitespace-pre-wrap leading-snug">{text.threads || <span className="text-subtle">텍스트…</span>}</p>
+        <p className="px-3 py-2 text-[15px] whitespace-pre-wrap leading-snug">{text.facebook || <span className="text-subtle">텍스트…</span>}</p>
         {img && <img src={img} alt="" className="w-full max-h-80 object-cover" />}
         <div className="flex items-center justify-between px-3 py-1.5 text-subtle text-[13px] border-b border-border"><span>👍❤️ 248</span><span>댓글 32 · 공유 12</span></div>
         <div className="flex text-subtle text-sm font-medium">{["좋아요", "댓글", "공유"].map((l) => <div key={l} className="flex-1 text-center py-2 hover:bg-surface-2">{l}</div>)}</div>
@@ -131,7 +164,7 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
   if (platform === "instagram") {
     const cards = [...(img ? [{ type: "img" as const, v: img }] : []), ...(text.instagram?.slides || []).map((s) => ({ type: "text" as const, v: s }))];
     return (
-      <Frame p="instagram" label="Instagram" w={CARD_W} headerRight={headerRight}>
+      <Frame p="instagram" label="Instagram" w={CARD_W} headerRight={headerRight} characterCount={characterCount}>
         <div className="bg-black text-text rounded-lg border border-[#222] overflow-hidden">
           <div className="flex items-center gap-2.5 px-3 py-2.5"><Av s={32} /><b className="text-sm">{handle}</b><span className="text-subtle text-xs">· 팔로우</span><div className="ml-auto text-subtle">{P(I.more)}</div></div>
           <IgCarousel cards={cards} />

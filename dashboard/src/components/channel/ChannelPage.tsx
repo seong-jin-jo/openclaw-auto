@@ -34,22 +34,12 @@ import { QueueList } from "@/components/queue/QueueList";
 import { fmtTime } from "@/lib/format";
 import { BackButton } from "@/components/shared/BackButton";
 import { TenantAutomationSettings } from "./TenantAutomationSettings";
+import { channelTextLimit } from "@/lib/channel-text-limits";
 
 interface ChannelPageProps {
   channel: string;
   variant?: "text" | "blog" | "video";
 }
-
-const CHAR_LIMITS: Record<string, number> = {
-  x: 280,
-  threads: 500,
-  facebook: 63206,
-  linkedin: 3000,
-  bluesky: 300,
-  pinterest: 500,
-  tumblr: 4096,
-  instagram: 2200,
-};
 
 // 미연결 채널 탭 — 콘텐츠를 살짝 블러(모자이크)로 가리고 연결 유도 모달을 띄운다.
 // 빈 화면 대신 "여기 뭔가 있다 → 연결하면 보인다"를 보여줘 연결 전환을 높인다.
@@ -152,7 +142,7 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
   const { data: threadsUsernameData } = useSWR(isThreads ? "/api/threads-username" : null, fetcher);
   const threadsUsername = (threadsUsernameData as Record<string, unknown>)?.username as string || "";
 
-  const charLimit = CHAR_LIMITS[channel];
+  const charLimit = channelTextLimit(channel);
   const postVariant = variant === "blog" ? "blog" as const : "text" as const;
 
   return (

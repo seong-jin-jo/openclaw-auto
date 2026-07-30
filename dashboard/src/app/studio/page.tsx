@@ -25,7 +25,7 @@ const ACCOUNT_SELECTABLE = PUBLISH_SUPPORTED;
 interface AccountOption { id: string; label: string; is_default: boolean }
 
 interface TextVariants {
-  threads?: string; x?: string;
+  threads?: string; facebook?: string; x?: string;
   instagram?: { caption?: string; hashtags?: string[]; slides?: string[] };
   shorts?: { hook?: string; body?: string; cta?: string };
   image_prompt?: string;
@@ -261,7 +261,8 @@ export default function StudioPage() {
   // 플랫폼별 발행 텍스트 추출
   function platformText(p: PreviewPlatform): string {
     if (!text) return "";
-    if (p === "threads" || p === "facebook") return text.threads || "";
+    if (p === "threads") return text.threads || "";
+    if (p === "facebook") return text.facebook || "";
     if (p === "x") return text.x || "";
     if (p === "instagram") return text.instagram?.caption || "";
     return [text.shorts?.hook, text.shorts?.body, text.shorts?.cta].filter(Boolean).join("\n") || text.threads || "";
@@ -534,7 +535,8 @@ export default function StudioPage() {
 
               {/* 편집 필드 */}
               <div className="space-y-3 mb-5">
-                {(editing === "threads" || editing === "facebook") && <textarea value={text.threads || ""} onChange={(e) => upText({ threads: e.target.value })} className="w-full bg-surface-2 text-text text-sm p-3 rounded border border-border" rows={6} />}
+                {editing === "threads" && <textarea value={text.threads || ""} onChange={(e) => upText({ threads: e.target.value })} className="w-full bg-surface-2 text-text text-sm p-3 rounded border border-border" rows={6} />}
+                {editing === "facebook" && <textarea value={text.facebook || ""} onChange={(e) => upText({ facebook: e.target.value })} className="w-full bg-surface-2 text-text text-sm p-3 rounded border border-border" rows={6} />}
                 {editing === "x" && <div><textarea value={text.x || ""} onChange={(e) => upText({ x: e.target.value })} className="w-full bg-surface-2 text-text text-sm p-3 rounded border border-border" rows={5} /><span className={`text-[11px] ${(text.x || "").length > 280 ? "text-red-400" : "text-subtle"}`}>{(text.x || "").length}/280</span></div>}
                 {editing === "instagram" && <>
                   <textarea value={text.instagram?.caption || ""} onChange={(e) => upIg({ caption: e.target.value })} placeholder="캡션" className="w-full bg-surface-2 text-text text-sm p-3 rounded border border-border" rows={3} />

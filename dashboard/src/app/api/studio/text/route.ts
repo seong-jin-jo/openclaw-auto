@@ -2,6 +2,7 @@ import { effectiveTenantId } from "@/lib/tenant-auth";
 import { getWikiContext } from "@/lib/wiki-retrieve";
 import { generateText, sharedGenerationQuotaErrorResponse, sharedAiApprovalErrorResponse } from "@/lib/anthropic";
 import { fetchRepoFile } from "@/lib/github";
+import { CHANNEL_TEXT_LIMITS } from "@/lib/channel-text-limits";
 
 // POST /api/studio/text — 글감 1개 → 플랫폼별 텍스트 변형(OSMU).
 // body: { idea, guide?, tenant_id?, context_sources? } 
@@ -47,8 +48,9 @@ ${guide ? `브랜드 톤 가이드:\n${guide}\n` : ""}${wiki ? `\n=== 위키 참
 규칙: 100% 한국어, AI가 쓴 티 금지, 후킹 첫 문장, 과한 이모지 금지.
 출력은 JSON만(다른 텍스트 없이):
 {
- "threads": "Threads용 본문 (~500자, 구어체, 첫 줄 훅)",
- "x": "X용 (280자 이내, 압축)",
+ "threads": "Threads용 본문 (${CHANNEL_TEXT_LIMITS.threads}자 이내, 구어체, 첫 줄 훅)",
+ "facebook": "Facebook용 본문 (${CHANNEL_TEXT_LIMITS.facebook}자 이내, Threads 문장을 재사용하지 말고 Facebook 독자 맥락에 맞춰 독립 작성)",
+ "x": "X용 (${CHANNEL_TEXT_LIMITS.x}자 이내, 압축)",
  "instagram": {"caption": "IG 캡션", "hashtags": ["태그", ...], "slides": ["카드1(표지 훅)", "카드2", "카드3", "카드4(CTA)"]},
  "shorts": {"hook": "0~3초 훅", "body": "3~20초 3포인트", "cta": "20~30초 CTA"},
  "image_prompt": "히어로 이미지 생성용 영문 프롬프트(텍스트 없이, 플랫 일러스트)"
