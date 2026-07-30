@@ -36,13 +36,37 @@ export async function POST(request: Request) {
     // 무음 클립에 내레이션 음성 합성 (성공 시 사운드 영상, 실패/비-mac이면 무음 유지)
     let finalName = `vidsilent_${ts}.mp4`;
     let hasAudio = false;
+    const narrationRequested = Boolean(narration && String(narration).trim());
+    let narrationReason: "server_tts_unavailable" | "audio_mix_failed" | undefined;
     if (narration && String(narration).trim()) {
       const soundName = `vid_${ts}.mp4`;
-      const ok = await addNarration(silentPath, String(narration), path.join(STUDIO_DIR, soundName));
-      if (ok) { finalName = soundName; hasAudio = true; }
+      const narrationResult = await addNarration(silentPath, String(narration), path.join(STUDIO_DIR, soundName));
+      if (narrationResult.ok) {
+        finalName = soundName;
+        hasAudio = true;
+      } else if (narrationResult.reason !== "narration_empty") {
+        narrationReason = narrationResult.reason;
+      }
     }
     logGen("video", model, label);
-    return Response.json({ ok: true, url, file: `/api/higgsfield/asset/${finalName}`, model, hasAudio });
+    const narrationMessage = narrationReason === "server_tts_unavailable"
+      ? "내레이션 없이 생성됨 (서버에 TTS 실행기가 없음)"
+      : narrationReason === "audio_mix_failed"
+        ? "내레이션 없이 생성됨 (TTS 오디오 합성 실패)"
+        : undefined;
+    return Response.json({
+      ok: true,
+      url,
+      file: `/api/higgsfield/asset/${finalName}`,
+      model,
+      hasAudio,
+      narration: {
+        requested: narrationRequested,
+        included: hasAudio,
+        ...(narrationReason ? { reason: narrationReason } : {}),
+        ...(narrationMessage ? { message: narrationMessage } : {}),
+      },
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return Response.json({ error: msg.slice(0, 400), nsfw: /nsfw/i.test(msg), credits: /not enough credits/i.test(msg) }, { status: 502 });

@@ -26,11 +26,15 @@ interface Slide {
   imageUrl?: string;
 }
 
-async function generateTts(text: string, outputPath: string): Promise<boolean> {
+type ElevenLabsTtsResult =
+  | { ok: true }
+  | { ok: false; reason: "elevenlabs_key_missing" | "elevenlabs_request_failed" };
+
+async function generateTts(text: string, outputPath: string): Promise<ElevenLabsTtsResult> {
   const cfg = readJson<ElevenLabsConfig>(dataPath("elevenlabs-config.json")) || {};
   const apiKey = cfg.apiKey || "";
   const voiceId = cfg.voiceId || "iP95p4xoKVk53GoZ742B";
-  if (!apiKey) return false;
+  if (!apiKey) return { ok: false, reason: "elevenlabs_key_missing" };
 
   try {
     const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
@@ -43,13 +47,14 @@ async function generateTts(text: string, outputPath: string): Promise<boolean> {
       }),
       signal: AbortSignal.timeout(30000),
     });
+    if (!res.ok) return { ok: false, reason: "elevenlabs_request_failed" };
     const buf = Buffer.from(await res.arrayBuffer());
     fs.writeFileSync(outputPath, buf);
-    return true;
+    return { ok: true };
   } catch (e) {
     // 0차: explainable error
     console.error("[0차 video] TTS error:", e);
-    return false;
+    return { ok: false, reason: "elevenlabs_request_failed" };
   }
 }
 
@@ -165,15 +170,21 @@ async function generateVideo(opts: {
     let hasAudio = false;
     let hasNarration = false;
     let hasBgm = false;
+    let narrationReason: "elevenlabs_key_missing" | "elevenlabs_request_failed" | undefined;
 
     // 1) TTS 내레이션
     let ttsPath: string | null = null;
     if (ttsEnabled) {
       const fullScript = slides.map((s) => s.text || "").filter(Boolean).join(". ");
       const candidate = path.join(tmp, "narration.mp3");
-      if (fullScript && (await generateTts(fullScript, candidate))) {
-        ttsPath = candidate;
-        hasNarration = true;
+      if (fullScript) {
+        const ttsResult = await generateTts(fullScript, candidate);
+        if (ttsResult.ok) {
+          ttsPath = candidate;
+          hasNarration = true;
+        } else {
+          narrationReason = ttsResult.reason;
+        }
       }
     }
 
@@ -223,6 +234,11 @@ async function generateVideo(opts: {
       url = `/api/media/${token}`;
     }
 
+    const narrationMessage = narrationReason === "elevenlabs_key_missing"
+      ? "내레이션 없이 생성됨 (ElevenLabs 키 미설정)"
+      : narrationReason === "elevenlabs_request_failed"
+        ? "내레이션 없이 생성됨 (ElevenLabs TTS 요청 실패)"
+        : undefined;
     return Response.json({
       ok: true,
       filename: outputName,
@@ -232,6 +248,12 @@ async function generateVideo(opts: {
       hasAudio,
       hasNarration,
       hasBgm,
+      narration: {
+        requested: ttsEnabled,
+        included: hasNarration,
+        ...(narrationReason ? { reason: narrationReason } : {}),
+        ...(narrationMessage ? { message: narrationMessage } : {}),
+      },
     });
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 });

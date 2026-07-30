@@ -263,13 +263,21 @@ export default function VideosPage() {
     }
     setGenerating(true);
     try {
-      const res = await apiPost<{ ok: boolean; filename: string; error?: string }>("/api/video/generate", {
+      const res = await apiPost<{
+        ok: boolean;
+        filename: string;
+        error?: string;
+        narration?: { requested: boolean; included: boolean; reason?: string; message?: string };
+      }>("/api/video/generate", {
         slides: validSlides,
         ttsEnabled,
         bgmUrl: bgmUrl.trim() || undefined,
       });
       if (res?.ok) {
-        showToast(`Video generated: ${res.filename}`, "success");
+        showToast(
+          res.narration?.message || `Video generated: ${res.filename}`,
+          res.narration?.message ? "warning" : "success",
+        );
         setTab("list");
         mutate();
       } else {

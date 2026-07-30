@@ -31,7 +31,13 @@ interface TextVariants {
   image_prompt?: string;
 }
 interface ImgResult { url: string; file: string; localPath: string }
-interface VidResult { url: string; file: string; model: string }
+interface VidResult {
+  url: string;
+  file: string;
+  model: string;
+  hasAudio?: boolean;
+  narration?: { requested: boolean; included: boolean; reason?: string; message?: string };
+}
 type PubStatus = "wait" | "doing" | "done" | "failed";
 type PublishReconciliation = ExternalPublishPersistenceFailure["persistence"]["reconciliation"];
 
@@ -435,6 +441,11 @@ export default function StudioPage() {
       {lastError && (
         <div className="mb-4 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
           마지막 실패: {lastError}
+        </div>
+      )}
+      {vid?.narration?.message && (
+        <div className="mb-4 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
+          {vid.narration.message}
         </div>
       )}
 

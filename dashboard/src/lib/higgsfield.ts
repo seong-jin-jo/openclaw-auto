@@ -70,15 +70,19 @@ export function readGenLog(): Array<{ ts: number; kind: string; model: string; l
 export const FFMPEG_BIN = process.env.FFMPEG_BIN || "ffmpeg";
 export const SAY_BIN = process.env.SAY_BIN || "say"; // macOS TTS (로컬). prod linux는 ElevenLabs로 교체 예정.
 
+export type NarrationResult =
+  | { ok: true }
+  | { ok: false; reason: "narration_empty" | "server_tts_unavailable" | "audio_mix_failed" };
+
 // 무음 Higgsfield 클립에 내레이션 음성 입히기. 성공 시 outPath에 사운드 영상 생성, true.
 // 영상을 내레이션 길이에 맞춰 루프(-stream_loop)하여 음성이 잘리지 않게.
-export async function addNarration(videoPath: string, text: string, outPath: string): Promise<boolean> {
-  if (!text || !text.trim()) return false;
+export async function addNarration(videoPath: string, text: string, outPath: string): Promise<NarrationResult> {
+  if (!text || !text.trim()) return { ok: false, reason: "narration_empty" };
   const aiff = `${outPath}.narr.aiff`;
   try {
     await execFileP(SAY_BIN, ["-v", "Yuna", "-r", "205", "-o", aiff, text.slice(0, 600)], { timeout: 60000 });
   } catch {
-    return false; // say 미존재(비-macOS) → 무음 유지
+    return { ok: false, reason: "server_tts_unavailable" }; // say 미존재(비-macOS) → 무음 유지
   }
   try {
     await execFileP(FFMPEG_BIN, [
@@ -87,9 +91,9 @@ export async function addNarration(videoPath: string, text: string, outPath: str
       "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k",
       "-shortest", outPath,
     ], { timeout: 120000 });
-    return true;
+    return { ok: true };
   } catch {
-    return false;
+    return { ok: false, reason: "audio_mix_failed" };
   } finally {
     try { fs.unlinkSync(aiff); } catch { /* noop */ }
   }
