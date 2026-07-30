@@ -3654,3 +3654,48 @@ permalink/reconciliation을 보존하고 `partial` 저장·재발행 금지한�
 403 비노출, 실제 전부/부분 실패 화면, 운영자 Higgsfield 생성, 운영 배포는 미검증이다. pipeline은
 qa in-progress·ship pending을 유지한다. 다음은 컨트롤러 품질검증 후 배치 B(P0-4·P0-5)이며, 전체
 배치 종료 뒤 운영 배포와 계획서의 실브라우저 검증을 수행한다.
+
+### 배치 A 완료·검증 + 배치 B 착수 (2026-07-30)
+
+**배치 A 산출(항목별 커밋, 지시대로 분리):**
+- `506f36c2` fix(studio): report partial publish results honestly — P0-1
+- `0756b087` fix(studio): gate Higgsfield tools to operators — P0-2
+- `ea88094e` fix(studio): default to supported publish channels — P0-3
+- `b6327fba` docs(studio): record batch A behavior and evidence
+변경 = `dashboard/src/app/studio/page.tsx` 156줄 + 신규 테스트 `dashboard/tests/publish/studio-publish-ui.test.tsx` 257줄
+(2파일 373 insert/40 delete). push·배포 없음.
+
+**구현 확인(컨트롤러가 diff 직접 정독):**
+- P0-1: `PubStatus`에 `"failed"` 추가, `status[p] = failureReason ? "failed" : "done"`,
+  `save(stopped ? "stopped" : errs.length ? "partial" : "published", null)`, `pubFailed` 카운트로
+  헤더 문구 분기, 채널 뱃지가 `✓`/`✕`/`⟳`로 갈리고 실패 뱃지에 사유 텍스트를 붙인다.
+  하드코딩 색(`#16a34a`, `text-green-400`, `bg-red-700`)을 시맨틱 토큰(`var(--success)`,
+  `text-success`, `bg-danger/10 text-danger`)으로 교체했다.
+- P0-2: `const canGenerate = me?.isOperator === true` 도입 후 `/api/higgsfield/status`·
+  `/transactions?size=25` SWR key를 `canGenerate` 조건으로 null 처리, 이미지 생성 호출부에
+  `if (!canGenerate)` 가드 + "운영자 전용 기능" 토스트. proxy 화이트리스트는 건드리지 않았다.
+- P0-3: `PUBLISH_SUPPORTED = new Set(["threads","x","facebook","instagram"])` 단일 출처 도입,
+  `normalizeIncludes()`가 미지원 채널을 항상 false로 정규화(저장된 워크스페이스 값도 통과 시 정규화),
+  `selectedPublishTargets()`가 지원 채널만 반환 → `api/publish/route.ts:214` "미지원" 상시 3건이 사라진다.
+
+**컨트롤러 독립 재검증(증거등급=테스트됨, Claude 직접 실행):** `npx tsc --noEmit` exit 0 /
+`npx vitest run` **118 files 985 PASS, 10 skipped**(기준선 117/981 대비 파일 +1, 테스트 +4) /
+`npx next build --webpack` Compiled successfully 15.4s + static pages **166/166** /
+`git diff --check` PASS. 기존 테스트 회귀 0건.
+
+**품질 게이트 4회 연속 동일 FAIL:** `Skill 0회 + WebSearch/Fetch 0회`. Codex 워커에 웹 검색 도구가
+없어 구조적으로 충족 불가(이미 `mistake-ledger.md`에 `[proxy]` 3-strike 등록됨). 컨트롤러가
+⛔라벨 + 직접 재검증으로 대체 출고 중. 게이트 수선 여부는 사용자 결정 대기.
+
+**현재 실행:** 배치 B(P0-4 위키 sync 에러 표시 · P0-5 GitHub 404 원인 분기)를 위임(백그라운드).
+기준선 118 files 985 PASS를 깨뜨리지 말 것을 명시하고, Authorization 스킴은 이미 `Bearer`로 정상이니
+바꾸지 말라고 못 박았다.
+
+**배포 상태:** 미배포. origin/main `14a8437c`. 운영 화면은 구버전.
+
+**미검증:** 실브라우저 8항목(계획서 검증 절), 운영 배포 후 동작, 실 DB 경로.
+
+**정확한 다음 액션:** ①배치 B 수령 → 게이트 → 컨트롤러 재검증 ②배치 C(P0-6 Threads/Instagram
+계정 재선택 + `active_workspace` 로그아웃 삭제 + 운영자 토큰 잔존 시 고객 JWT 승격 + `countAccounts`
+데드코드 제거) ③배치 D(P1-7 글자수 SSOT·Facebook 카피 분리, P1-8 무음 표기, P2-9 사용량 집계)
+④사용자 배포 승인 후 배포 ⑤실브라우저 8항목 관찰 후에만 qa-tracker 갱신·`/approve qa`.
