@@ -3560,3 +3560,65 @@ WebSearch/Fetch 0회`로 반려했다. codex-delegate 워커 환경에 웹 검�
 정렬 3그룹·원문 확인·등록·자동 숨김 관찰 ③Slack Redirect URL 등록 + Client ID 입력(Secret은
 사용자 붙여넣기) ④네이버 확장 권한 허용 후 진행 ⑤`constants.ts` Slack 분류 주석 정정
 ⑥증거 확보 후에만 qa-tracker 갱신·`/approve qa`.
+
+### OSMU 1차 결함 계획 승인 + 배치 A 착수 (2026-07-30)
+
+**사용자 지시:** 운영 화면을 직접 써보며 12개 항목 제기(위키 연동 5건, 브랜드 설정 AI 자동채움,
+OSMU 생성·발행 6건). 개발·QA는 Codex 위임, Claude는 컨트롤러.
+
+**승인된 계획서:** `/Users/sj/.claude/plans/wiki-1-mellow-wadler.md` (사용자 승인 완료).
+사용자 확정 방향 3가지 = ①버그 먼저, 신기능은 2차 분리 ②브랜드 컨텍스트는 "AI 초안 → 사이트 내
+위키 수정" 둘 다(GitHub는 개발자용 부가 옵션으로 강등) ③AI 과금은 BYOK + 우리 키·크레딧 충전 둘 다.
+
+**Explore 3병렬 조사로 확정한 사실(증거등급=근거 확인, 파일:줄 인용은 계획서 참조):**
+- **P0-1 발행 거짓 성공(최악):** `app/studio/page.tsx:276`이 성공·실패 구분 없이 `status[p]="done"`
+  → `:309` 진행률·`:372` "발행 완료"가 전 채널 실패에도 100%. `:290`이 `errs.length`를 안 보고
+  `save("published")` → 이력에 `✅ published`로 박혀 **데이터 무결성까지 오염**.
+- **P0-2 고객 Studio 403:** `/api/higgsfield/*`가 `proxy.ts:15` 화이트리스트 밖(`:275`,`:294` 403)인데
+  `studio/page.tsx:89`가 `isOperator` 검사 없이 호출. 1차는 권한을 넓히지 않고
+  `videos/page.tsx:85-91`의 `canGenerate` 패턴 이식으로 정직히 차단(Higgsfield 크레딧이 운영자
+  1계정 공용이고 `genlog.json` 테넌트 격리 없음 — `lib/higgsfield.ts:2-4,56`).
+- **P0-3:** `studio/page.tsx:42` ALL 7개 vs `:86` 전부 true 초기화 → `api/publish/route.ts:214`
+  "미지원" 3건 상시 발생.
+- **P0-4 위키 sync 에러 미표시:** `RepoConnect.tsx:40-53`에 `catch`가 없는데 `lib/api.ts:116-119`
+  `apiPost`는 throw → 서버 메시지가 unhandled rejection으로 소멸, `:46`·`:51`은 죽은 코드.
+- **P0-5 GitHub 404 오진:** Authorization 스킴은 `lib/github.ts:21`·`:39` **`Bearer`로 정상**이라
+  fine-grained PAT 호환 문제가 아니다. 실제 원인은 `:37` `encodeURIComponent(ref)`가 슬래시 브랜치를
+  깨뜨림 / `sync-wiki/route.ts:37` 기본 ref `"main"` 하드코딩 / private+토큰 미해결 시 GitHub가 404 /
+  `:7-8` `OSMU_SECRET_KEY` 없으면 로그도 없이 인증 포기인데 메시지가 "공개여부 확인"으로 **정반대
+  디버깅 유도** / `getRepoToken` try/catch 부재로 복호화 예외가 500 / GitHub Wiki(`repo.wiki.git`)는
+  REST Trees 미지원.
+- **P0-6 테넌트 격리 — 사용자 의심과 다름:** 격리는 깨지지 않았다. `code_zero_to_one` 화면은 우리
+  화면이 아니라 `threads.net/oauth/authorize`가 브라우저 threads.net 세션으로 렌더한 **Threads 자신의
+  동의 화면**이다(`SocialConnectButton.tsx:180-198`, `social-connect.ts:189`). 테넌트는 화면에
+  없고 서명된 `state`에만 실린다(HMAC-SHA256 + provider 바인딩 + 10분 만료 + state 쿠키 일치 4중).
+  읽기 유출 경로 없음(`withTenant` + `WHERE tenant_id` 이중 + RLS FORCE 13테이블, 실 DB 교차조회
+  테스트 0행). **진짜 원인 = threads/instagram authorize에 계정 재선택 파라미터 누락**(youtube
+  `social-connect.ts:230`에는 있음). **별건 진짜 위험 = 쓰기 오기입 1건**: `tenant-auth.ts:140`
+  운영자 토큰이 클라 `tenant_id` 채택 + `AuthGate.tsx:449-462` 운영자 토큰 잔존 시 고객 JWT 미승격
+  + `ui-store.ts:13-22` 로그아웃이 `active_workspace` 미삭제 → 잘못된 테넌트에 저장 가능(유출 아님,
+  운영자 브라우저 한정).
+- **P1-7 글자수 — 사용자 지시에 근거로 반박:** 상한 차이는 플랫폼 공식 한도로 정당하다
+  (`lib/publish.ts:513-520`). 전부 같게 맞추면 X는 280에서 잘리고 Threads는 500을 못 쓴다. 실제 결함은
+  같은 숫자 4파일 복제 / Facebook 상한 모순 / **Facebook 본문이 Threads 500자 카피 재사용**
+  (`studio/page.tsx:231`, 생성 프롬프트에 facebook 키 없음).
+- **P1-8:** `lib/higgsfield.ts:71,81` macOS `say` 부재 시 무음 폴백을 사용자에게 숨김.
+- **P2-9:** DB `usage_events`/`usage_quotas`가 있는데 대시보드는 파일 `data/usage.json`을 읽는
+  2중 원장 + BYOK 경로 사용량 미집계 + 토큰 수 전무.
+
+**현재 실행:** 배치 A(P0-1·P0-2·P0-3)를 `codex-delegate.sh code-builder`에 위임(백그라운드).
+계획서 경로 + `standards/dev.md` 선독 의무 + tests-first + 항목별 커밋 + push·배포 금지를 주입했다.
+P0-4 이후는 파일 충돌 방지를 위해 다음 배치로 분리한다.
+
+**검증 상태:** 이번 턴은 조사·계획·위임이라 새로 실행한 테스트 없음. 기준선(컨트롤러 직접 실행 기록)
+= `tsc --noEmit` exit 0 / `vitest run` 117 files 981 PASS·10 skip / `next build --webpack` 166/166 /
+`git diff --check` PASS.
+
+**배포 상태:** 미배포. origin/main은 `14a8437c`, 로컬은 정렬 커밋 `b6649288` 이후 진행 중.
+운영 화면은 구버전이라 "원문 확인" 버튼·정렬 모두 없음. 배포 승인은 여전히 미회수.
+
+**정확한 다음 액션:** ①배치 A 수령 → `verify-agent-quality.sh` → 컨트롤러가 tsc/vitest/build 재실행
+②배치 B(P0-4·P0-5 위키·GitHub) 위임 ③배치 C(P0-6 OAuth 계정 재선택 + 오기입 차단) 위임
+④배치 D(P1-7 글자수 SSOT, P1-8 무음 표기, P2-9 사용량) 위임 ⑤전체 통과 후 사용자 배포 승인 받아
+배포 ⑥계획서 "검증" 절의 실브라우저 8항목을 Claude가 크롬으로 직접 관찰한 뒤에만 qa-tracker 갱신·
+`/approve qa`. 증거 전 완료 보고 금지.
