@@ -3814,3 +3814,47 @@ OAuth state HMAC/provider/10분/cookie 검증, tenant-auth/RLS 격리 테스트,
 계정 선택, 운영자→고객 실브라우저 전환에서 Bearer/workspace, 운영 서버 mismatch 로그 수집은
 배포 전이라 미검증이다. 컨트롤러가 diff·고위험 인증 2nd-pass를 독립 재검증한 뒤 배치 D로 진행하고,
 전체 배치가 끝난 뒤 사용자 배포 승인→계획서 실브라우저 8항목을 관찰한다. qa/ship 잠금 유지.
+
+### 배치 C 완료·검증 + 배치 D(마지막) 착수 (2026-07-30)
+
+**배치 C 산출(P0-6, 수정 단위 커밋 6개):** `de38cd44` test(oauth) RED /
+`577fb5de` fix(oauth): clarify Meta account switching / `77364236` fix(auth): reset workspace
+across identity changes / `42865d06` fix(security): audit connect tenant mismatches /
+`7d4d92e7` refactor(channels): remove unused global account count /
+`44bf592a` fix(auth): clear orphaned workspace on fresh login / `47f2825d` docs(oauth) 경계 기록.
+13파일 183 insert/36 delete. 신규 `dashboard/src/lib/connect-tenant-audit.ts`.
+
+**구현 확인(컨트롤러가 diff 직접 정독):**
+- **Meta 계정 전환 — Codex가 정직한 판단을 했다.** Threads/Instagram OAuth에 계정 강제 선택
+  파라미터가 없어 **지어내지 않고** 안내 방식으로 처리했다. 문구에 경계를 명시한다:
+  `"현재 앱 주소에서는 Meta 도메인의 로그인 쿠키를 지울 수 없습니다. 우리 앱은 자동 로그아웃을
+  수행했다고 주장하지 않습니다."` + "다른 Threads 계정으로 연결하려면 threads.net에서 먼저
+  로그아웃하세요" 안내. 즉 사용자가 본 증상의 원인을 화면에서 설명한다.
+- 신원 경계: 로그아웃·identity 전환 시 `active_workspace` 제거(`Sidebar.tsx`, `AuthGate.tsx`,
+  `lib/auth.ts`), 신규 로그인 시 orphaned workspace 정리. 운영자 콘솔 흐름은 유지.
+- `/api/connect/*` tenant 불일치를 `lib/connect-tenant-audit.ts`로 감사(값 미로깅).
+- `channel-accounts.ts`의 tenant 필터 없는 `countAccounts()` 데드코드 제거.
+
+**컨트롤러 독립 재검증(증거등급=테스트됨, Claude 직접 실행):** `npx tsc --noEmit` exit 0 /
+`npx vitest run` **120 files 1003 PASS, 10 skipped**(배치 B 기준선 998 대비 +5) /
+`npx next build --webpack` Compiled successfully 13.0s + static pages **166/166** /
+`git diff --check` PASS. **기존 격리 테스트 4종(social-connect state 계약, tenant-auth,
+rls.isolation, self-service-tenant) 회귀 0건.**
+
+**품질 게이트 6회 연속 동일 FAIL:** `Skill 0회 + WebSearch/Fetch 0회`(Codex 워커 웹 도구 부재).
+추가로 확인된 하네스 결함: `~/.claude/hooks/verify-delegation-check.sh:30`이 전사 **마지막 40줄**에서만
+`검증실패 보고` 라벨을 찾으므로, 도구 호출이 많은 턴에서는 라벨을 붙여도 종료가 차단된다
+(작업량이 많을수록 반드시 걸리는 구조). 수선 대상 2건으로 사용자 결정 대기.
+
+**현재 실행:** 배치 D(마지막)를 위임 — P1-7 글자수 SSOT 상수화 + Facebook 전용 본문 생성 +
+Threads/Facebook 초과 사전처리 + 채널별 카운터 / P1-8 무음 폴백 사유 표기 / P2-9 BYOK 토큰
+집계 + 사용량 화면을 DB(usage_events) 기준으로 전환. **숫자 통일 금지**(플랫폼 공식 한도가 근거)를
+명시했고 기준선 120 files 1003 PASS 회귀 금지를 못 박았다.
+
+**배포 상태:** 미배포. origin/main `14a8437c`. 운영 화면은 구버전.
+
+**미검증:** 실브라우저 8항목(계획서 검증 절), 운영 배포 후 동작, 실 DB 경로, Threads 앱
+Development/Live 상태(사용자 콘솔 확인 필요).
+
+**정확한 다음 액션:** ①배치 D 수령 → 게이트 → 컨트롤러 재검증 ②사용자 배포 승인 후 push + 배포
+③실브라우저 8항목 직접 관찰 ④그 증거로 `docs/qa-tracker.md` 갱신 후에만 `/approve qa`.
