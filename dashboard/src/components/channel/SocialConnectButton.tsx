@@ -21,23 +21,23 @@ interface AccountSwitchHelp {
   managementLabel: string;
 }
 
-const META_SWITCH_NOTE = "현재 앱 주소에서는 Meta 도메인의 로그인 쿠키를 지울 수 없습니다. Meta 계정 센터를 새 탭에서 열어 사용할 계정과 로그인 세션을 직접 확인한 뒤, 이 화면으로 돌아와 다시 연결하세요. 우리 앱은 자동 로그아웃을 수행했다고 주장하지 않습니다.";
+const META_SWITCH_BOUNDARY = "현재 앱 주소에서는 Meta 도메인의 로그인 쿠키를 지울 수 없습니다. 우리 앱은 자동 로그아웃을 수행했다고 주장하지 않습니다.";
 
 // provider 세션은 각 provider origin이 소유한다. 우리 origin에서 쿠키를 삭제하거나 로그아웃을
 // 대행하지 않고, 공식 계정/세션 관리 화면을 새 탭으로 여는 명시적 사용자 동작만 제공한다.
 const ACCOUNT_SWITCH_HELP: Record<string, AccountSwitchHelp> = {
   threads: {
-    note: META_SWITCH_NOTE,
+    note: `다른 Threads 계정으로 연결하려면 threads.net에서 먼저 로그아웃하세요. Meta 계정 센터에서 사용할 계정과 로그인 세션을 확인한 뒤 이 화면으로 돌아와 다시 연결하세요. ${META_SWITCH_BOUNDARY}`,
     managementUrl: "https://accountscenter.facebook.com/",
     managementLabel: "Meta 계정 센터 열기",
   },
   instagram: {
-    note: META_SWITCH_NOTE,
+    note: `다른 Instagram 계정으로 연결하려면 instagram.com에서 먼저 로그아웃하세요. Meta 계정 센터에서 사용할 계정과 로그인 세션을 확인한 뒤 이 화면으로 돌아와 다시 연결하세요. ${META_SWITCH_BOUNDARY}`,
     managementUrl: "https://accountscenter.facebook.com/",
     managementLabel: "Meta 계정 센터 열기",
   },
   facebook: {
-    note: META_SWITCH_NOTE,
+    note: `Meta 계정 센터에서 사용할 계정과 로그인 세션을 직접 확인한 뒤 이 화면으로 돌아와 다시 연결하세요. ${META_SWITCH_BOUNDARY}`,
     managementUrl: "https://accountscenter.facebook.com/",
     managementLabel: "Meta 계정 센터 열기",
   },
