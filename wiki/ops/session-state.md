@@ -3447,3 +3447,37 @@ import/reveal/update audit 행, 응답·로그 secret 비노출, 실 PostgreSQL 
 **정확한 다음 액션:** ①사용자에게 `deploy-marketing.yml` 실행 승인을 받아 배포 ②배포 후
 `/operator/customers`에서 위 미검증 6항목을 실브라우저로 직접 관찰 ③그 증거로 `docs/qa-tracker.md`
 갱신 후에만 `/approve qa` 판단. 증거 전 완료 보고 금지. qa/ship 잠금 유지.
+
+### 크롬 실브라우저 진행 착수 + 경계 확인 (2026-07-30)
+
+**사용자 지시:** Claude가 크롬을 직접 몰아 각 플랫폼 콘솔에서 값을 받아 붙여넣어라. 로그인이 필요하면
+사용자에게 말하면 띄워준다.
+
+**실브라우저 관찰(증거등급=관찰됨, Claude 직접):**
+- `/operator/customers` 접속 성공. 운영자 세션이 이미 로그인 상태였다. 헤더 `4/12 준비`.
+- Instagram/Threads/YouTube/Facebook 카드는 `출처 ENV`, 상태 `준비`. **`원문 확인` 버튼이 화면에
+  존재하지 않음**을 accessibility tree 검색으로 확인했다 → 운영 빌드가 구버전이라는 실화면 증거다.
+  즉 사용자 요구 ①(세팅된 것 ID/Secret 보이게)은 **배포 없이는 불가**하다.
+- 미설정 카드(X·LinkedIn·Naver Blog 등)는 `미설정` 표시와 함께 Client ID/Secret 입력칸과
+  `전체 세트 저장` 버튼이 이미 살아있다 → 요구 ②(미설정 등록 준비)는 **현재 배포로도 동작 가능**하다.
+  저장하면 source가 db가 되어 구버전에서도 원문 확인이 가능해진다.
+- `https://developers.naver.com/apps/#/register` 는 Chrome 확장 사이트 권한 제한으로 **차단**됐다
+  ("This site is not allowed due to safety restrictions"). `https://api.slack.com/apps` 는 허용됐다.
+- Slack은 이미 로그인 상태이며 워크스페이스 `J.the.great.CEO`에 앱 **`OSMU-marketing`**
+  (App ID `A0BJFTMDT7S`)이 존재한다. Basic Information에서 Client ID를 확인했고 Client Secret은
+  마스킹 + `Show` 버튼 상태다. OAuth & Permissions 화면으로 이동해 Redirect URL 등록을 시도하던 중이다.
+
+**Claude 실행 경계(반드시 인수인계):** Claude는 안전 규칙상 **Client Secret·API 키·토큰 값을 필드에
+입력할 수 없다**. Client ID(공개 식별자)·Callback URL 등록·콘솔 탐색·저장 후 검증은 수행 가능하다.
+따라서 플랫폼당 Client Secret 한 필드는 사용자가 직접 붙여넣어야 한다. 이 경계는 사용자가 명시적으로
+요청해도 유지된다.
+
+**미검증:** 배포 후 env 4개 원문 확인, 미설정 provider 실제 등록·저장, 30초 자동 숨김,
+audit 행, 로그 secret 비노출. Slack Redirect URL 등록도 아직 완료하지 않았다.
+
+**정확한 다음 액션:** ①사용자 배포 승인 후 `gh workflow run deploy-marketing.yml --ref main`
+(권한 분류기 차단 상태) ②Slack OAuth & Permissions에 Redirect URL
+`https://openclaw.sj-onpremise-cloudflare-tunnel.cloud/api/connect/slack/callback` 등록
+③Claude가 Client ID 입력 → 사용자가 Client Secret 붙여넣기 → 저장 → 상태 `준비`/`출처 DB` 관찰
+④네이버는 확장 사이트 권한 허용이 필요하므로 사용자에게 허용 요청 ⑤나머지 6개 플랫폼 반복.
+증거 확보 전 완료 보고·`/approve qa` 금지.
