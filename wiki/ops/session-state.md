@@ -3,6 +3,25 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **QA in-progress, ship pending**). QA 증거: `docs/qa-tracker.md`.
 
+### 배치 D build 진행 — P1-7 GREEN, P1-8 착수 (2026-07-30)
+
+**확정 handoff 기준:** 사용자 위임 프롬프트와 승인 계획
+`/Users/sj/.claude/plans/wiki-1-mellow-wadler.md`의 P1-7/P1-8/P2-9. 부모 컨트롤러 pane은
+`openclaw-auto:0.1`이며 배치 D 수령 대기 상태임을 확인했다. tracked worktree는 착수 전 clean.
+
+**P1-7 결과:** `5ee1872b` RED 테스트 → `823029d3` 구현. 채널 본문 한도를
+`dashboard/src/lib/channel-text-limits.ts` SSOT로 통합하고 생성·검증·ChannelPage·publish가
+공통 참조한다. Facebook 전용 본문을 Threads와 분리했고, Threads/Facebook은 사용자 원문을
+조용히 훼손하지 않도록 외부 provider 호출 전에 초과를 차단한다. Threads/X/Facebook/Instagram
+프리뷰에 각 공식 상한 카운터를 노출한다.
+
+**직접 검증:** focused 3 files 21 PASS, `npx tsc --noEmit` exit 0. 공식 문서 최신성은 X
+counting(280)·Bluesky intent(300)를 웹에서 확인했고 Meta 공식 reference는 URL 접근 시 로그인/429
+제한을 관찰해 기존 승인 계획의 Threads 500/Facebook 63,206 수치를 유지했다.
+
+**다음 정확한 액션:** P1-8 RED 테스트 → Higgsfield `say` 실행기 부재와 ElevenLabs 키 미설정을
+서로 다른 사유로 응답·Studio/영상 UI에 표기 → focused GREEN → 항목 커밋.
+
 **최종 갱신:** 2026-07-29 KST · 고객 운영 QA 정상화 독립 재검증 진행
 
 ### 고객 운영 QA 정상화 재개 (2026-07-29)
@@ -3858,3 +3877,35 @@ Development/Live 상태(사용자 콘솔 확인 필요).
 
 **정확한 다음 액션:** ①배치 D 수령 → 게이트 → 컨트롤러 재검증 ②사용자 배포 승인 후 push + 배포
 ③실브라우저 8항목 직접 관찰 ④그 증거로 `docs/qa-tracker.md` 갱신 후에만 `/approve qa`.
+
+### 사용자 승인 3건 실행 시도 결과 (2026-07-30)
+
+**사용자 승인:** ①"너가 들어가봐"(Meta 콘솔 직접 확인) ②"배포는 니맘대로 아무때나해 지금 실유저
+없어"(배포 전권 위임) ③"A로 해봐"(하네스 게이트 수선 A안).
+
+**① Meta 콘솔 — 차단(사용자 조치 필요):** `https://developers.facebook.com/apps/` 접속 시
+`https://www.facebook.com/confirmemail.php?next=...`로 리다이렉트됐다. 이 브라우저가 Facebook에
+**로그인되어 있지 않다**(로그인 폼이 렌더됨). Claude는 안전 규칙상 비밀번호를 입력할 수 없으므로
+사용자가 이 크롬에서 Facebook 로그인을 마쳐야 앱의 Development/Live 상태를 확인할 수 있다.
+
+**② 배포 — dispatch됐으나 구버전 재배포:** run `30545924944`가 in_progress다. 그러나 로컬 커밋을
+**아직 push하지 않아** origin/main은 `14a8437c`(현재 운영과 동일)이므로 이 배포는 실질 no-op다.
+배치 D 커밋(`5ee1872b`, `823029d3`, `752f4686`)이 이미 로컬 HEAD에 있으나 **컨트롤러 미검증**
+상태라, 검증 없이 push하면 미검증 코드가 운영에 나간다. 따라서 배치 D 완료·검증 후 push + 재배포한다.
+
+**③ 하네스 게이트 수선 — 권한 차단:** `~/.claude/harness/bin/verify-agent-quality.sh` 편집이
+Claude Code 권한 분류기에 거부됐다. **원인은 이미 특정했다**: 빌드증거 패턴이
+`tsc --noemit`(소문자)로 돼 있어 실제 명령 `tsc --noEmit`이 매칭되지 않고, `vitest`·`next build`가
+패턴에 아예 없다(`verify-agent-quality.sh:51`). 그래서 빌드·타입·테스트를 전부 돌린 code-builder
+산출물도 `build_evidence=0`이 되어 "뇌피셜"로 6회 연속 오탐됐다. 수선안 = `grep -qiE`로 대소문자
+무시 + `vitest|next build|jest|npm test|go test|pytest|cargo test` 추가. 두 번째 결함은
+`~/.claude/hooks/verify-delegation-check.sh:30`의 `tail -40` 라벨 탐색 범위(도구 호출 많은 턴에서
+라벨이 밀려남) — 이번 턴 응답 전체 검사로 변경 필요. 둘 다 사용자 권한 허용이 필요하다.
+
+**검증 상태:** 이번 턴 제품 코드 변경 없음. 배치 A·B·C의 컨트롤러 직접 검증 수치는 각 절에 기록됨
+(최종 120 files 1003 PASS·10 skip, tsc exit 0, build 166/166, diff-check PASS). 배치 D는 미검증.
+
+**정확한 다음 액션:** ①배치 D 완료 대기 → 게이트 → 컨트롤러가 tsc/vitest/build 재실행 ②통과 시
+`git push origin main` 후 `gh workflow run deploy-marketing.yml --ref main` 재실행 ③실브라우저 8항목
+관찰 ④사용자가 Facebook 로그인해주면 Threads 앱 Development/Live 확인 ⑤사용자가 하네스 파일 편집을
+허용해주면 게이트 2건 수선 ⑥증거 확보 후에만 qa-tracker 갱신·`/approve qa`.
