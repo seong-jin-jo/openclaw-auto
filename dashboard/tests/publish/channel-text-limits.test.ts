@@ -42,6 +42,7 @@ describe("채널 글자수 SSOT", () => {
   it("Studio와 미리보기가 Facebook 전용 본문을 사용하고 채널별 카운터를 노출한다", () => {
     const studio = readSource("src/app/studio/page.tsx");
     const preview = readSource("src/components/studio/PlatformPreview.tsx");
+    expect(studio).toContain("@/lib/channel-text-limits");
     expect(studio).toContain('p === "facebook"');
     expect(studio).toContain("text.facebook");
     expect(preview).toContain("text.facebook");

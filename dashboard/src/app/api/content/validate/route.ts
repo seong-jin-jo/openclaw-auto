@@ -1,4 +1,4 @@
-import { CHANNEL_TEXT_LIMITS } from "@/lib/channel-text-limits";
+import { CHANNEL_TEXT_LIMITS, countTextCharacters } from "@/lib/channel-text-limits";
 
 export async function POST(request: Request) {
   const data = await request.json();
@@ -18,10 +18,11 @@ export async function POST(request: Request) {
   }
 
   // 채널별 글자수
+  const textLength = countTextCharacters(text);
   for (const ch of channels) {
     const limit = CHANNEL_TEXT_LIMITS[ch as keyof typeof CHANNEL_TEXT_LIMITS];
-    if (limit && text.length > limit) {
-      warnings.push({ type: "over_limit", message: `${ch} 글자수 초과 (${text.length}/${limit})` });
+    if (limit && textLength > limit) {
+      warnings.push({ type: "over_limit", message: `${ch} 글자수 초과 (${textLength}/${limit})` });
     }
   }
 

@@ -16,6 +16,7 @@ import { RepoConnect } from "@/components/studio/RepoConnect";
 import { SchedulePanel } from "@/components/studio/SchedulePanel";
 import { trackEvent, type AnalyticsChannel } from "@/lib/analytics/events";
 import { authHeaders } from "@/lib/auth";
+import { CHANNEL_TEXT_LIMITS, countTextCharacters } from "@/lib/channel-text-limits";
 
 // SNS-007: /api/publish가 실제로 계정별 발행을 받는 4개 플랫폼(threads/x/facebook/instagram)만
 // 계정 셀렉터를 노출한다. shorts/reels/tiktok은 /api/publish 미지원(실발행 분기 없음 — 위
@@ -548,7 +549,7 @@ export default function StudioPage() {
               <div className="space-y-3 mb-5">
                 {editing === "threads" && <textarea value={text.threads || ""} onChange={(e) => upText({ threads: e.target.value })} className="w-full bg-surface-2 text-text text-sm p-3 rounded border border-border" rows={6} />}
                 {editing === "facebook" && <textarea value={text.facebook || ""} onChange={(e) => upText({ facebook: e.target.value })} className="w-full bg-surface-2 text-text text-sm p-3 rounded border border-border" rows={6} />}
-                {editing === "x" && <div><textarea value={text.x || ""} onChange={(e) => upText({ x: e.target.value })} className="w-full bg-surface-2 text-text text-sm p-3 rounded border border-border" rows={5} /><span className={`text-[11px] ${(text.x || "").length > 280 ? "text-red-400" : "text-subtle"}`}>{(text.x || "").length}/280</span></div>}
+                {editing === "x" && <div><textarea value={text.x || ""} onChange={(e) => upText({ x: e.target.value })} className="w-full bg-surface-2 text-text text-sm p-3 rounded border border-border" rows={5} /><span className={`text-[11px] ${countTextCharacters(text.x || "") > CHANNEL_TEXT_LIMITS.x ? "text-danger" : "text-subtle"}`}>{countTextCharacters(text.x || "")}/{CHANNEL_TEXT_LIMITS.x}</span></div>}
                 {editing === "instagram" && <>
                   <textarea value={text.instagram?.caption || ""} onChange={(e) => upIg({ caption: e.target.value })} placeholder="캡션" className="w-full bg-surface-2 text-text text-sm p-3 rounded border border-border" rows={3} />
                   <div><label className="text-[11px] text-subtle">해시태그 (쉼표)</label><input value={(text.instagram?.hashtags || []).join(", ")} onChange={(e) => upIg({ hashtags: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} className="w-full bg-surface-2 text-accent text-xs p-2 rounded border border-border" /></div>
