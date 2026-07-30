@@ -31,7 +31,7 @@ interface TextVariants {
 }
 interface ImgResult { url: string; file: string; localPath: string }
 interface VidResult { url: string; file: string; model: string }
-type PubStatus = "wait" | "doing" | "done";
+type PubStatus = "wait" | "doing" | "done" | "failed";
 type PublishReconciliation = ExternalPublishPersistenceFailure["persistence"]["reconciliation"];
 
 const GROUPS: { title: string; platforms: PreviewPlatform[] }[] = [
@@ -88,7 +88,13 @@ export default function StudioPage() {
   const [showTx, setShowTx] = useState(false);
   const { data: tx } = useSWR<{ items?: Array<{ display_name?: string; credits?: number; action?: string; created_at?: string; output?: string | null; outputKind?: string | null }> }>(showTx ? "/api/higgsfield/transactions?size=25" : null, fetcher);
 
-  const [pub, setPub] = useState<{ running: boolean; status: Record<string, PubStatus>; urls: Record<string, string> }>({ running: false, status: {}, urls: {} });
+  const [pub, setPub] = useState<{
+    running: boolean;
+    stopped: boolean;
+    status: Record<string, PubStatus>;
+    urls: Record<string, string>;
+    errors: Record<string, string>;
+  }>({ running: false, stopped: false, status: {}, urls: {}, errors: {} });
   // SNS-007: 플랫폼별 다중계정 중 이번 발행에 쓸 계정. 미선택(undefined)이면 getChannelCred가
   // 기본계정으로 resolve(/api/publish 계약과 동일) — 계정이 1개뿐이면 셀렉터 자체를 숨긴다.
   const [accountsByPlatform, setAccountsByPlatform] = useState<Record<string, AccountOption[]>>({});
@@ -246,12 +252,15 @@ export default function StudioPage() {
     cancelRef.current = false;
     const status: Record<string, PubStatus> = {}; targets.forEach((p) => (status[p] = "wait"));
     const urls: Record<string, string> = {};
+    const errors: Record<string, string> = {};
     const errs: string[] = [];
     let pendingReconciliation: PublishReconciliation | null = null;
-    setPub({ running: true, status: { ...status }, urls: {} });
+    setPub({ running: true, stopped: false, status: { ...status }, urls: {}, errors: {} });
     for (const p of targets) {
       if (cancelRef.current) break;
-      status[p] = "doing"; setPub({ running: true, status: { ...status }, urls: { ...urls } });
+      status[p] = "doing";
+      setPub({ running: true, stopped: false, status: { ...status }, urls: { ...urls }, errors: { ...errors } });
+      let failureReason: string | null = null;
       try {
         // 실 발행: /api/publish (테넌트 채널 토큰). 토큰 없으면 graceful 에러.
         // publish_attempt = 실제 제출 시점(클릭 즉시가 아니라 이 루프 진입 시점). publish_success는
@@ -262,21 +271,41 @@ export default function StudioPage() {
           account_id: selectedAccounts[p] || undefined,
         });
         if (r?.ok) { urls[p] = r.permalink || POST_URL[p] || "#"; trackEvent({ name: "publish_success", params: { channel: p as AnalyticsChannel } }); }
-        else errs.push(`${LABEL[p]}: ${r?.error || "실패"}`);
+        else {
+          failureReason = r?.error || "실패";
+          errs.push(`${LABEL[p]}: ${failureReason}`);
+        }
       } catch (e) {
         if (isExternalPublishPersistenceError(e)) {
           pendingReconciliation = e.payload.persistence.reconciliation;
           setPublishReconciliation(pendingReconciliation);
           if (e.payload.permalink) urls[p] = e.payload.permalink;
-          errs.push(`${LABEL[p]}: 외부 게시 완료·내부 기록 복구 필요 (재발행 금지)`);
+          failureReason = "외부 게시 완료·내부 기록 복구 필요 (재발행 금지)";
+          errs.push(`${LABEL[p]}: ${failureReason}`);
         } else {
-          errs.push(`${LABEL[p]}: ${e instanceof Error ? e.message : "오류"}`);
+          failureReason = e instanceof Error ? e.message : "오류";
+          errs.push(`${LABEL[p]}: ${failureReason}`);
         }
       }
-      status[p] = "done"; setPub({ running: true, status: { ...status }, urls: { ...urls } });
+      status[p] = failureReason ? "failed" : "done";
+      if (failureReason) errors[p] = failureReason;
+      setPub({
+        running: true,
+        stopped: false,
+        status: { ...status },
+        urls: { ...urls },
+        errors: { ...errors },
+      });
       if (pendingReconciliation) break;
     }
-    const stopped = cancelRef.current; setPub({ running: false, status: { ...status }, urls: { ...urls } });
+    const stopped = cancelRef.current;
+    setPub({
+      running: false,
+      stopped,
+      status: { ...status },
+      urls: { ...urls },
+      errors: { ...errors },
+    });
     if (pendingReconciliation) {
       try {
         await save("partial", pendingReconciliation);
@@ -287,7 +316,7 @@ export default function StudioPage() {
         errs.push("복구 정보 서버 저장 실패·현재 브라우저에만 보존됨");
       }
     } else {
-      await save(stopped ? "stopped" : "published", null);
+      await save(stopped ? "stopped" : errs.length ? "partial" : "published", null);
       if (!stopped) setPublishReconciliation(null);
     }
     if (stopped) showToast("발행 중지됨", "error");
@@ -307,6 +336,16 @@ export default function StudioPage() {
     );
   }
   const pubPct = (() => { const v = Object.values(pub.status); return v.length ? Math.round((v.filter((s) => s === "done").length / v.length) * 100) : 0; })();
+  const pubFailed = Object.values(pub.status).filter((s) => s === "failed").length;
+  const pubResultLabel = pub.running
+    ? "발행 중…"
+    : pub.stopped
+      ? "발행 중지됨"
+      : pubFailed > 0 && pubPct > 0
+        ? "일부 발행 실패"
+        : pubFailed > 0
+          ? "발행 실패"
+          : "발행 완료";
   const LABEL: Record<string, string> = { threads: "Threads", x: "X", facebook: "Facebook", instagram: "Instagram", shorts: "Shorts", reels: "Reels", tiktok: "TikTok" };
 
   return (
@@ -366,16 +405,16 @@ export default function StudioPage() {
       )}
 
       {/* 발행 진행 */}
-      {(pub.running || pubPct > 0) && (
+      {(pub.running || Object.keys(pub.status).length > 0) && (
         <div className="card p-3 mb-4 flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full grid place-items-center shrink-0" style={{ background: `conic-gradient(#16a34a ${pubPct}%, #333 ${pubPct}%)` }}><div className="w-9 h-9 rounded-full bg-bg grid place-items-center text-[11px] font-bold text-green-400">{pubPct}%</div></div>
-          <div className="flex-1"><div className="flex justify-between"><b className="text-sm text-text">{pub.running ? "발행 중…" : pubPct === 100 ? "발행 완료" : "중지됨"}</b>{pub.running && <button onClick={() => (cancelRef.current = true)} className="px-3 py-1 text-xs bg-red-700 text-text rounded">■ 중지</button>}</div>
+          <div className="w-12 h-12 rounded-full grid place-items-center shrink-0" style={{ background: `conic-gradient(var(--success) ${pubPct}%, var(--surface-2) ${pubPct}%)` }}><div className="w-9 h-9 rounded-full bg-bg grid place-items-center text-[11px] font-bold text-success">{pubPct}%</div></div>
+          <div className="flex-1"><div className="flex justify-between"><b className="text-sm text-text">{pubResultLabel}</b>{pub.running && <button onClick={() => (cancelRef.current = true)} className="px-3 py-1 text-xs bg-red-700 text-text rounded">■ 중지</button>}</div>
             <div className="flex gap-1.5 mt-1.5 flex-wrap">{Object.entries(pub.status).map(([k, s]) => {
-              const cls = `text-[10px] px-2 py-0.5 rounded-full ${s === "done" ? "bg-green-900/50 text-green-400" : s === "doing" ? "bg-yellow-900/40 text-yellow-300" : "bg-surface-2 text-subtle"}`;
-              const txt = `${s === "done" ? "✓ " : s === "doing" ? "⟳ " : ""}${LABEL[k]}`;
+              const cls = `text-[10px] px-2 py-0.5 rounded-full border ${s === "done" ? "bg-success/10 text-success border-success/30" : s === "failed" ? "bg-danger/10 text-danger border-danger/30" : s === "doing" ? "bg-warning/10 text-warning border-warning/30" : "bg-surface-2 text-subtle border-border"}`;
+              const txt = `${s === "done" ? "✓ " : s === "failed" ? "✕ " : s === "doing" ? "⟳ " : ""}${LABEL[k]}`;
               return s === "done" && pub.urls[k]
                 ? <a key={k} href={pub.urls[k]} target="_blank" rel="noopener noreferrer" className={`${cls} hover:underline`} title="게시물 보기">{txt} ↗</a>
-                : <span key={k} className={cls}>{txt}</span>;
+                : <span key={k} className={cls}>{txt}{s === "failed" && pub.errors[k] && <span className="ml-1">· <span>{pub.errors[k]}</span></span>}</span>;
             })}</div>
           </div>
         </div>
