@@ -1,6 +1,19 @@
-import { describe, expect, it } from "vitest";
+// @vitest-environment jsdom
+import "@testing-library/jest-dom/vitest";
+import React from "react";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
+import OperatorCustomersPage from "@/app/operator/customers/page";
+
+const mocks = vi.hoisted(() => ({
+  swr: vi.fn(),
+}));
+
+vi.mock("swr", () => ({
+  default: (...args: unknown[]) => mocks.swr(...args),
+}));
 
 const page = fs.readFileSync(
   path.resolve(process.cwd(), "src/app/operator/customers/page.tsx"),
@@ -68,5 +81,107 @@ describe("operator central OAuth setup UI contract", () => {
     expect(oauthSection).toContain("item.unavailableReason");
     expect(oauthSection).toContain("기존 값을 다시 입력하지 마세요");
     expect(oauthSection).toContain("disabled={Boolean(item.unavailableReason)");
+  });
+});
+
+const provider = (
+  providerName: string,
+  credentialsConfigured: boolean,
+  unavailableReason?: "credential_store_unavailable",
+) => ({
+  provider: providerName,
+  label: providerName,
+  complete: credentialsConfigured,
+  credentialsConfigured,
+  missing: credentialsConfigured ? [] : [`${providerName.toUpperCase()}_CLIENT_ID`],
+  requiredSecrets: [`${providerName.toUpperCase()}_CLIENT_ID`],
+  fields: [],
+  source: "env" as const,
+  updatedAt: null,
+  callbackUrl: `https://app.example/api/connect/${providerName}/callback`,
+  consoleUrl: "https://console.example",
+  docsUrl: "https://docs.example",
+  setupSteps: [],
+  setupSource: "official" as const,
+  externalReview: "unknown" as const,
+  unavailableReason,
+});
+
+function renderProviders(providers: ReturnType<typeof provider>[]) {
+  mocks.swr.mockReturnValue({
+    data: {
+      customers: [],
+      authUsers: [],
+      oauthProviders: providers,
+    },
+    error: undefined,
+    isLoading: false,
+    mutate: vi.fn(),
+  });
+  return render(React.createElement(OperatorCustomersPage));
+}
+
+describe("operator central OAuth provider ordering", () => {
+  beforeEach(() => {
+    mocks.swr.mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("places storage outages before ready providers and missing providers", () => {
+    const view = renderProviders([
+      provider("missing-a", false),
+      provider("ready-a", true),
+      provider("outage-a", false, "credential_store_unavailable"),
+    ]);
+
+    expect([...view.container.querySelectorAll("[data-oauth-provider]")].map((element) => (
+      element.getAttribute("data-oauth-provider")
+    ))).toEqual([
+      "outage-a",
+      "ready-a",
+      "missing-a",
+    ]);
+    expect(screen.getByRole("heading", { name: "저장소 장애 1개" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "준비 완료 1개" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "미설정 1개" })).toBeInTheDocument();
+  });
+
+  it("keeps the original declaration order inside every status group", () => {
+    const view = renderProviders([
+      provider("missing-first", false),
+      provider("ready-first", true),
+      provider("outage-first", false, "credential_store_unavailable"),
+      provider("ready-second", true),
+      provider("missing-second", false),
+      provider("outage-second", false, "credential_store_unavailable"),
+    ]);
+
+    const providersIn = (key: string) => [...view.container.querySelectorAll(
+      `section[aria-labelledby="oauth-provider-group-${key}"] [data-oauth-provider]`,
+    )].map((element) => element.getAttribute("data-oauth-provider"));
+
+    expect(providersIn("unavailable")).toEqual(["outage-first", "outage-second"]);
+    expect(providersIn("ready")).toEqual(["ready-first", "ready-second"]);
+    expect(providersIn("missing")).toEqual(["missing-first", "missing-second"]);
+  });
+
+  it("preserves the total provider count without duplication or omission", () => {
+    const input = [
+      provider("missing-a", false),
+      provider("ready-a", true),
+      provider("outage-a", true, "credential_store_unavailable"),
+      provider("ready-b", true),
+    ];
+
+    const view = renderProviders(input);
+    const output = [...view.container.querySelectorAll("[data-oauth-provider]")].map((element) => (
+      element.getAttribute("data-oauth-provider")
+    ));
+
+    expect(output).toHaveLength(input.length);
+    expect(new Set(output).size).toBe(input.length);
   });
 });

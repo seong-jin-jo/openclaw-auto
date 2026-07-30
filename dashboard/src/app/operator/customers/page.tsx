@@ -60,6 +60,35 @@ interface OAuthProviderStatus {
   unavailableReason?: "credential_store_unavailable";
 }
 
+function groupOAuthProvidersForDisplay<
+  T extends Pick<OAuthProviderStatus, "credentialsConfigured" | "unavailableReason">,
+>(providers: readonly T[]) {
+  const groups = [
+    {
+      key: "unavailable",
+      label: "저장소 장애",
+      items: providers.filter((item) => Boolean(item.unavailableReason)),
+    },
+    {
+      key: "ready",
+      label: "준비 완료",
+      items: providers.filter((item) => !item.unavailableReason && item.credentialsConfigured),
+    },
+    {
+      key: "missing",
+      label: "미설정",
+      items: providers.filter((item) => !item.unavailableReason && !item.credentialsConfigured),
+    },
+  ] as const;
+
+  return groups
+    .filter((group) => group.items.length > 0)
+    .map((group) => ({
+      ...group,
+      label: `${group.label} ${group.items.length}개`,
+    }));
+}
+
 interface AuthUser {
   id: string;
   email: string | null;
@@ -100,6 +129,7 @@ export default function OperatorCustomersPage() {
   const authUsers = data?.authUsers || [];
   const summary = data?.summary;
   const oauthProviders = data?.oauthProviders || [];
+  const oauthProviderGroups = groupOAuthProvidersForDisplay(oauthProviders);
   const visibleError = data?.error || (!isAuthRequiredError(error) ? error?.message : null);
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
   const [userActionMsg, setUserActionMsg] = useState<Record<string, string>>({});
@@ -333,9 +363,15 @@ export default function OperatorCustomersPage() {
           </div>
           <span className="text-[11px] text-subtle">{oauthProviders.filter((item) => item.credentialsConfigured).length}/{oauthProviders.length} 준비</span>
         </div>
-        <div className="grid gap-3 xl:grid-cols-2">
-          {oauthProviders.map((item) => (
-            <div key={item.provider} className="card p-4">
+        <div className="space-y-5">
+          {oauthProviderGroups.map((group) => (
+            <section key={group.key} aria-labelledby={`oauth-provider-group-${group.key}`}>
+              <h4 id={`oauth-provider-group-${group.key}`} className="mb-2 text-xs font-semibold text-text">
+                {group.label}
+              </h4>
+              <div className="grid gap-3 xl:grid-cols-2">
+                {group.items.map((item) => (
+                  <div key={item.provider} data-oauth-provider={item.provider} className="card p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium capitalize text-text">{item.label}</p>
@@ -475,7 +511,10 @@ export default function OperatorCustomersPage() {
                   </a>
                 </div>
               </div>
-            </div>
+                  </div>
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       </section>
