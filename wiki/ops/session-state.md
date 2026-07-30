@@ -3926,3 +3926,49 @@ Claude Code 권한 분류기에 거부됐다. **원인은 이미 특정했다**:
 `git push origin main` 후 `gh workflow run deploy-marketing.yml --ref main` 재실행 ③실브라우저 8항목
 관찰 ④사용자가 Facebook 로그인해주면 Threads 앱 Development/Live 확인 ⑤사용자가 하네스 파일 편집을
 허용해주면 게이트 2건 수선 ⑥증거 확보 후에만 qa-tracker 갱신·`/approve qa`.
+
+### 배치 D 완료 + 1차 전량 배포 + 배포 후 회귀 발견 (2026-07-30~31)
+
+**배치 D 산출(P1-7·P1-8·P2-9, 항목별 커밋 7개):** `5ee1872b`/`823029d3` 글자수 SSOT
+(`dashboard/src/lib/channel-text-limits.ts` 신설, 4곳이 참조, `PlatformPreview`에 채널별 카운터,
+`publish.ts` 절단 정리) · `752f4686`/`f8d2bcb3` 무음 내레이션 사유 공개 ·
+`de974479`/`095142f0` 사용량 DB 원장 정본화 + BYOK 토큰 집계 · `cacdfa62` 잔여 X 하드코딩 카운터 제거.
+
+**컨트롤러 최종 재검증(증거등급=테스트됨, Claude 직접 실행):** `npx tsc --noEmit` exit 0 /
+`npx vitest run` **123 files 1014 PASS, 10 skipped**(세션 시작 기준선 117/966 → +6 파일, +48 테스트) /
+`npx next build --webpack` Compiled successfully 16.2s + static pages **166/166** /
+`git diff --check` PASS. 기존 테스트 회귀 0건.
+
+**배포 완료(사용자 전권 위임 "배포는 니맘대로 아무때나해 지금 실유저 없어"):**
+`git push origin main` = `14a8437c..7233b859`. 배포 run **30547804562 completed success**.
+배포 직후 앱 재기동으로 1회 curl 000이 났고 이후 `/api/health` 200 `{"ok":true,"db":"up"}` 회복.
+**신버전 배포 확인 증거**: `POST {"action":"import-env","provider":"tiktok"}`가 구버전 문자열
+`invalid reveal request`가 아니라 신버전 응답
+`{"error":"환경변수 세트가 불완전합니다…","missing":["TIKTOK_CLIENT_KEY","TIKTOK_CLIENT_SECRET"]}`
+을 반환했다. `/api/operator/oauth-credentials` 200, providers 12개.
+
+**⚠️ 배포 후 회귀 발견 — 운영자 브라우저 세션 소실 (미해결):**
+- 배포 **전** 같은 크롬에서 `/operator/customers`가 운영자 콘솔로 정상 렌더됐다(‘4/12 준비’ 관찰).
+- 배포 **후** 같은 URL이 **마케팅 랜딩페이지**를 렌더한다.
+- 그 시점 localStorage 키 = `[osmu_analytics_consent, theme, studio_work, osmu_onboarding_draft]`
+  — **`dashboard_auth_token` 키가 아예 없다**(`active_workspace`도 없음).
+- **서버는 정상**: 같은 운영자 토큰 Bearer로 `/api/health` 200, `/api/operator/oauth-credentials` 200.
+  즉 서버 인증이 아니라 **클라이언트 세션 유지** 문제다.
+- 의심: 배치 C의 `77364236`·`44bf592a`가 `AuthGate.tsx`/`lib/auth.ts` identity 처리 순서를 바꿨고,
+  `clearAuthToken()`이 토큰+워크스페이스를 함께 지우며 `operatorActive()`가 `getAuthToken()`에
+  의존하므로 **순서 의존 버그** 가능성이 있다. Supabase 세션 없는 순수 운영자 브라우저의
+  SIGNED_OUT/INITIAL_SESSION 처리 확인 필요.
+- **조치**: Codex에 tests-first 재현·수정을 위임(백그라운드). "재현 안 되면 없는 버그를 지어내지 말라",
+  "배치 C가 닫은 보안 속성 3가지를 되돌리지 말라"를 명시했다.
+
+**Claude 실행 경계(재확인):** 운영자 콘솔 UI 재검증은 로그인 폼에 **운영자 토큰을 입력**해야 하는데
+Claude는 토큰·비밀키를 필드에 입력할 수 없다. 따라서 회귀 수정 후 실화면 확인은 사용자가 `/operator`에서
+토큰을 붙여넣어 로그인해주거나, 자동 테스트 증거로 대체해야 한다.
+
+**미검증:** 계획서 검증 절 실브라우저 8항목 전부(운영자 세션 소실로 진행 불가), Threads 앱
+Development/Live 상태(브라우저가 Facebook 미로그인 — 사용자 로그인 필요).
+
+**정확한 다음 액션:** ①회귀 수정 수령 → 게이트 → 컨트롤러 재검증 → push + 재배포
+②사용자가 `/operator` 로그인 또는 Facebook 로그인 해주면 실브라우저 8항목 + Threads 앱 상태 확인
+③하네스 게이트 2건 수선(사용자 권한 허용 필요 — `verify-agent-quality.sh:51` 정규식,
+`verify-delegation-check.sh:30` 탐색범위) ④증거 확보 후에만 qa-tracker 갱신·`/approve qa`.
