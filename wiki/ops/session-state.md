@@ -4099,3 +4099,36 @@ WebSearch 벤치마크 강제는 완화 금지**를 명시했고, 역회귀 검�
 **정확한 다음 액션:** ①하네스 수선 수령 → 오탐 해소·역회귀 둘 다 확인 ②사용자가 MCP 제어 크롬에서
 `/operator` 로그인 → Claude가 실브라우저 8항목 관찰 → `docs/qa-tracker.md` 갱신 → `/approve qa`
 ③운영자 토큰 로테이션 ④2차 계획(위키 에디터·브랜드 AI 자동채움·크레딧+BYOK) 착수 여부 결정.
+
+### 정정 — 게이트 8회 FAIL은 게이트 버그가 아니라 컨트롤러 실수였다 (2026-07-31)
+
+**사실 정정(중요):** 그동안 "verify-agent-quality.sh 정규식 오탐 8회"라고 보고한 것은 **틀렸다.**
+실제 원인은 컨트롤러가 게이트에 **잘못된 파일**을 넘긴 것이다.
+- `codex-delegate.sh`를 `run_in_background`로 돌리면 harness가 만드는 `tasks/<taskid>.output`에는
+  래퍼의 `echo EXIT:0`만 남는다(실측 **7바이트**). 실제 Codex 전사는 내가 지정한 리다이렉트 파일
+  `$SCRATCH/codex-*.out`(1~5MB)로 간다. 두 경로를 혼동해 빈 파일을 검증에 넘겼다.
+- **실제 전사로 다시 돌린 결과 전부 PASS**:
+  `codex-batchA.out`(2.1MB) ✅PASS(Skill 2회 bluebubbles·openai-image-gen, 소크라마커 16) /
+  `codex-batchD.out`(5.6MB) ✅PASS(소크라마커 13) / `codex-authfix.out`(971KB) ✅PASS(소크라마커 20).
+  공통 경고 1건은 "파일산출형 role인데 Write/Edit 0회"(Codex가 자체 도구로 파일을 써서 파서가 못 봄).
+- 즉 **게이트는 정상 작동했고 틀린 것은 나였다.** 회장께 잘못된 원인 진단을 6턴에 걸쳐 반복 보고했다.
+- `~/.claude/harness/mistake-ledger.md`에 `[proxy]`로 기록. 재발방지: 위임 시 전사 경로를 변수로
+  고정해 verify에 그 변수를 넘기고, verify 실행 전 파일 크기(>10KB)를 확인한다.
+
+**하네스 수선 결론 변경:** 애초 근거였던 "오탐"이 사라졌으므로 **게이트 완화를 적용하지 않는다.**
+불필요한 완화는 위조 탐지력만 떨어뜨린다. Codex가 만든 후보 3파일도 반영하지 않는다(Codex는
+`~/.claude` 쓰기가 샌드박스로 막혀 원본 미수정 상태 — 그대로 둔다).
+다만 `verify-agent-quality.sh:51`의 `tsc --noemit` 소문자 패턴은 **여전히 잠재 결함**이므로
+별건으로 남긴다(이번 FAIL의 원인은 아니었음).
+
+**브라우저 검증 재시도 — 확장 불안정으로 중단:** 사용자가 운영자·Facebook 로그인을 마쳤다고 알렸다.
+MCP 탭 그룹을 재생성해 `/operator/customers`에 접속하니 `확인 중...` 로딩까지 진행됐으나, 이후
+Chrome 확장이 두 차례 연결 해제되어 화면 캡처에 실패했다(`extension disconnected`,
+`Couldn't determine which page`). 3회 시도 규칙에 따라 중단하고 보고한다.
+
+**미검증:** 실브라우저 8항목(확장 재연결 필요), Threads 앱 Development/Live 상태.
+
+**정확한 다음 액션:** ①Chrome 확장이 안정되면 `/operator/customers` 재접속 → 정렬 3그룹·원문 확인
+버튼·미설정 등록 폼을 캡처로 확인 → `developers.facebook.com`에서 Threads 앱 상태 확인
+②`docs/qa-tracker.md` 갱신 후 `/approve qa` 판단 ③운영자 토큰 로테이션(현재 `qwer1234!`)
+④2차 계획 착수 여부 결정.
