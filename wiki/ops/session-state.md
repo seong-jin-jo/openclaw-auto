@@ -3,7 +3,56 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **QA in-progress, ship pending**). QA 증거: `docs/qa-tracker.md`.
 
-**최종 갱신:** 2026-07-28 21:37 KST · 운영자 canonical 토큰 복구·운영 폼 PASS, 전체 QA는 계속 FAIL
+**최종 갱신:** 2026-07-29 KST · 고객 운영 QA 정상화 독립 재검증 진행
+
+### 고객 운영 QA 정상화 재개 (2026-07-29)
+
+**사용자 확정 handoff 기준:** `openclaw-auto:0.1`의 AI 비서 전환 트랙은 이 세션 범위가
+아니다. 사용자가 QA 정상화를 명시해 이 파일과 `pipeline-state.md`의 2026-07-29 고객 운영
+차단 결함 수정 기록을 primary로 확정했다.
+
+**현재 상태/기반:** 제품 수정은 commit `0a50063c`, 현재 HEAD는 문서 체크포인트를 포함한
+`c783fab2`이며 `origin/main`보다 3커밋 앞선다. QA 기준은 `pipeline-state.md`의
+`customer production blocker build + independent QA`와 `env OAuth import + publish
+partial-success contract`, `docs/qa-tracker.md`의 같은 두 항목이다.
+
+**현재 실행:** 별도 `qa-verifier`가 코드 수정 없이 focused/full test, TypeScript,
+webpack production build, diff check와 계약 경계를 독립 재검증 중이다. 운영 배포와 실브라우저
+route matrix는 QA 게이트 승인 전 실행하지 않으며 아직 미검증이다.
+
+**다음 액션:** 독립 QA 산출물에 하네스 품질검증을 실행하고 PASS면 QA 증거를 갱신한다.
+그 뒤 `/approve qa` 증거 재검증 없이 ship/deploy로 넘어가지 않는다.
+
+**독립 재검증 결과:** focused 16 files 146 PASS, 전체 117 files 966 PASS/10 DB-env skip,
+`tsc --noEmit`, Next.js 16.2.2 webpack production build 166/166, `git diff --check`가
+PASS했다. 고객 화면 전역 API 403/누락 asset 404, 401 재인증 race, notification/upload
+fail-closed, OAuth env import, publish partial-success의 로컬 자동 계약은 PASS다.
+
+**품질/운영 경계:** `verify-agent-quality.sh`는 Codex qa-verifier transcript에서 Skill 및
+WebSearch/Fetch 호출을 0회로 파싱해 리테이크 후에도 FAIL했다. 공식 문서 근거를 보고서에
+보강했지만 실행 흔적 파서가 인식하지 않아 프로 역할 품질 PASS로 출고하지 않는다. 로컬 health/API는
+DB·runtime env 부재로 503, seed는 `DATABASE_URL` 부재로 exit 2였으며 운영 DB, 실브라우저,
+외부 provider는 미검증이다. 따라서 qa/ship 잠금은 유지한다.
+
+### Codex 대기 세션 체크포인트 (2026-07-29 19:47 KST)
+
+**현재 요청/수행:** 사용자가 “너 뭐해야겠어”라고 물어 컨트롤러 역할만 설명했다. 제품 기능,
+문서 전략, 코드, DB, 배포 작업은 시작하지 않았고 테스트·E2E도 실행할 변경이 없었다.
+Stop hook의 freshness 요구에 따라 `CLAUDE.md`, 이 파일, Git 상태와 이 레포의 tmux pane
+`openclaw-auto:0.0`·`0.1`·`0.2`를 확인하고 이 체크포인트만 갱신했다.
+
+**handoff 기준:** 아직 사용자 확정 primary가 없다. `0.0`은 현재 Codex 대기 세션,
+`0.1`은 `ai-secretary-pivot-cascade` 브랜드/SNS 세팅 트랙, `0.2`는 별도 Codex 프롬프트
+대기 상태라 서로 합치거나 하나를 임의 선택하지 않는다. 이전 제품 QA·ship 기록도 보존한다.
+
+**Git/검증 상태:** tracked worktree는 체크포인트 작성 전 clean이었다. 대량 untracked 파일이
+기존부터 존재하며 이번 세션이 만들지 않았고 소유가 불명확하므로 수정·추가·삭제하지 않았다.
+제품 동작 검증과 배포는 이번 세션 범위에서 **미실행**이며, 신규 완료 주장은 없다.
+
+**남은 이슈/정확한 다음 액션:** 사용자가 새 작업을 지시하면 그 작업 트랙으로 진행한다.
+기존 작업을 이어받으라는 지시라면 먼저 `openclaw-auto:0.0`, `0.1`, `0.2` 또는 이
+`session-state.md` 중 어떤 handoff source가 primary인지 사용자 확인을 받고, 해당 pane만
+다시 캡처한 뒤 단계 게이트에 맞춰 재개한다.
 
 ### 운영자 canonical 토큰 불일치 복구 (2026-07-28)
 
@@ -3170,3 +3219,195 @@ tmux pane 지목이나 별도 handoff 소스 제시가 없었고 이 세션 자�
   `/operator/customers`에서 env credential의 `암호화 DB로 가져오기`→source DB→`원문 확인`→
   30초 자동 숨김을 실제 브라우저로 관찰하고, 공개·고객·운영자 route matrix의 4xx/5xx·console
   error 0을 재검증한다. 실제 관찰 전에는 배포/기능 완료라고 보고하지 않는다.
+
+### 2026-07-29 22:58 KST — QA 품질 게이트 리테이크 exit
+
+- **기반/범위:** 사용자가 지정한 root `HEAD c783fab2`, 제품 commit `0a50063c`,
+  `pipeline-state.md`의 2026-07-29 두 계약과 `docs/qa-tracker.md`를 primary로 삼았다.
+  코드·QA tracker는 수정하지 않았고 qa/ship 승인·배포도 실행하지 않았다.
+- **직접 재검증:** focused 16 files 146/146 PASS, full 117 files 966 PASS/10 DB-env skip,
+  `npx tsc --noEmit` exit 0, Next.js 16.2.2 `next build --webpack` 166/166·exit 0,
+  제품 commit diff check PASS. 빌드/테스트 로그는 `/tmp/openclaw-qa-{focused,
+  focused-rest,full,tsc,build}.log`에 남겼다.
+- **실행 경계:** 로컬 Next server는 `listen EPERM 0.0.0.0:34671`로 기동 실패해 health/API
+  curl은 HTTP 000이며 제품 응답은 미검증이다. seed는 `DATABASE_URL` 부재로 exit 2다.
+  Playwright config/test suite와 Maestro mobile flow가 없어 둘 다 미검증이다.
+- **계약 판정:** 고객 UI operator/global API 제거·누락 onboarding asset 0, customer JWT
+  401→Supabase local sign-out→`/login` micro-race, notification/YouTube upload fail-closed,
+  OAuth env→암호화 DB atomic import의 로컬 자동 계약은 PASS다. 운영 route matrix, 실 Supabase
+  browser race, 실 provider 도착, 실 PostgreSQL rollback/import→reveal은 미검증이다.
+- **❌ NG — publish partial-success:** HTTP 500/`externalPublished:true`/외부 ID·permalink/
+  `repair_persistence_only`/`retryPublish:false` 응답과 success analytics·외부 재발행 차단은
+  PASS지만, Studio preflight가 reconciliation 존재 시 `/api/publish` 호출 자체를 막는다.
+  queue_record 실패의 서버 멱등 queue 복구 분기에 UI가 도달하지 못하고, publication_record
+  실패는 성공 DB 행이 없어 같은 POST가 실제 외부 재발행 위험을 가진다. 별도 persistence-only
+  API/UI가 없어 응답 메타데이터만 있고 사용자가 실행할 복구 경로가 없다.
+- **다음 액션:** code-builder가 stage별 repair 계약을 tests-first로 보완한다. queue_record는
+  외부 API를 호출하지 않는 전용 persistence repair, publication_record는 external ID/permalink로
+  성공 행을 복원한 뒤 queue만 갱신하는 경로가 필요하다. 수정 뒤 이 세션과 동일한 focused/full/
+  typecheck/build를 재실행하고, DB 장애 주입 E2E와 운영 브라우저에서 중복 외부 게시 0·내부 상태
+  복구를 직접 관찰해야 한다. 그 전까지 qa/ship 잠금을 유지한다.
+- **품질 하네스:** QA 전용 Skill이 제공 목록에 없어 `SKILLS_SKIPPED`다. 공식 Supabase,
+  YouTube, Slack, Telegram, PostgreSQL 1차 문서를 WebSearch/WebFetch로 조사했으나 기존
+  `openclaw-qa-normalize.output` 두 건은 실행 흔적 파서 기준 verify FAIL 상태이므로 출고는
+  검증실패 라벨을 붙인다.
+
+### 상태 인지 체크포인트 (2026-07-30, Claude)
+
+**요청/수행:** 사용자가 "개발·QA 관련 지금 뭘 해야 하는지 인지되냐"고 물었다. 코드·문서·DB·
+배포 변경은 하지 않았고, `CLAUDE.md`·이 파일·`pipeline-state.md`만 읽어 현재 단계와 잔여
+과제를 정리해 보고했다. 실행할 변경이 없어 테스트·빌드·E2E는 이번 턴에 돌리지 않았다.
+
+**handoff 기준:** 사용자 확정 primary는 아직 없다. 직전 확정 기준인 이 `session-state.md` +
+`pipeline-state.md`(QA 정상화 트랙)을 읽기 기준으로만 사용했고, tmux pane과 임의 병합하지 않았다.
+
+**현재 단계:** `pipeline-state.md` 기준 build approved / qa in-progress / ship pending.
+제품 코드 QA는 전체 117 files 966 PASS·10 DB-env skip, `tsc --noEmit`, webpack production
+build 166/166, `git diff --check` PASS로 증거가 있다.
+
+**QA 게이트를 막는 미검증 3건:** ①운영 실브라우저 route matrix(공개7/고객25/운영자5)와 Admin
+OAuth import→reveal→delete, 실 Supabase 세션 race ②실 DB schema-first migration 적용과
+transaction rollback, 부분성공 장애 E2E(로컬은 `DATABASE_URL` 부재로 seed exit 2, health 503)
+③`verify-agent-quality.sh`가 Codex qa-verifier transcript의 Skill/WebSearch 호출을 0회로
+파싱해 harness 품질 게이트 FAIL(제품 결함 아님, 검증 경로 문제).
+
+**Git/배포:** tracked worktree 변경은 이 파일 append뿐. HEAD `c783fab2`가 `origin/main`보다
+3커밋 앞서 있고 push policy 블로커가 미해소다. 운영 배포는 qa 미승인이라 실행 금지 상태 유지.
+
+**다음 액션:** 사용자에게 A(운영 실브라우저 QA 착수, 추천)·B(로컬 DB 세워 실 DB E2E)·
+C(push 블로커 해소) 중 선택과 A 선택 시 운영 URL을 요청했다. 답을 받으면 그 트랙으로
+qa-verifier에 위임하고, 증거 확보 전에는 `/approve qa`·ship으로 넘어가지 않는다.
+
+### 중앙 OAuth 자격증명 화면 정상화 착수 (2026-07-30, Claude 컨트롤러 + Codex 워커)
+
+**사용자 지시:** `/operator/customers`에서 이미 세팅된 provider는 Client ID/Secret이 보이게 하고,
+준비 안 된 provider는 값을 받아 바로 등록될 준비가 되게 하라. "다 되게 만들어라." 개발·QA 실행은
+Codex에 위임하고 Claude는 컨트롤러 역할만 하라고 명시했다.
+
+**handoff 기준:** 사용자가 이 작업 트랙을 직접 지시했으므로 이 `session-state.md` +
+`pipeline-state.md`를 primary로 삼는다. tmux pane 추론 병합은 하지 않았다.
+
+**운영 실측 (Claude 직접 관찰, 증거등급=관찰됨):** base
+`https://openclaw.sj-onpremise-cloudflare-tunnel.cloud`.
+`/api/me` 200 `isOperator:true`. `/api/operator/oauth-credentials` 200, provider 12개.
+complete=true는 instagram·threads·youtube·facebook 4개이며 **전부 source=env**라 코드 계약상
+원문 확인이 불가하다 — 이것이 "세팅됐는데 ID/Secret 안 보임"의 원인이다. 미설정 8개는
+x·linkedin·naver_blog·pinterest·tumblr·tiktok·slack·line이다.
+
+**핵심 발견 — 운영 빌드가 구버전:** `POST {"action":"import-env"}`가
+`{"error":"invalid reveal request"}`를 반환했다. 이 문자열은 현재 로컬 소스에 존재하지 않으므로
+운영 배포 빌드는 로컬 커밋 `0a50063c`보다 이전이며 env→DB import 기능이 아예 배포되지 않았다.
+`PUT {}`는 503이 아닌 400을 반환해 운영에 `OSMU_SECRET_KEY`는 존재함을 확인했다.
+
+**확정 설계 계약(컨트롤러 결정):** env 원문을 HTTP로 직접 덤프하는 경로는 추가하지 않는다. 대신
+complete+env provider의 "원문 확인" 1회 클릭이 서버에서 원자적으로 env→암호화 DB import 후
+reveal을 수행하고 import·reveal audit를 남긴다. 기존 DB 행은 덮어쓰지 않는다. 미설정 provider는
+입력→PUT 저장 시 즉시 source=db·준비 상태로 전환되고 실패는 한국어 사유를 표시한다. 필드별
+표시/숨김 토글을 추가한다. 키·DB 부재 시 503 fail-closed.
+
+**현재 실행:** `codex-delegate.sh code-builder`에 위 계약과 기반 산출물 버전핀을 주입해 tests-first
+구현을 위임했다(백그라운드). 배포·push는 금지시켰다.
+
+**검증 상태:** 이번 턴 코드 변경 없음. 위 API 관찰 외 테스트·빌드는 미실행. 운영 실브라우저
+route matrix, 실 DB migration/rollback은 여전히 미검증이다.
+
+**다음 액션:** Codex 산출물 수령 → `verify-agent-quality.sh <출력> code-builder` 실행 →
+tsc/test/build 수치 재검증 → 통과 시 push + `deploy-marketing.yml` 실행 → 운영에서 4개 env
+provider 원문 확인과 미설정 provider 등록을 실브라우저로 관찰한 뒤에만 QA 증거를 갱신한다.
+증거 없이 `/approve qa`로 넘어가지 않는다.
+
+### 중앙 OAuth 자격증명 화면 code-builder 반환 (2026-07-30, Codex)
+
+**handoff 기준/범위:** 사용자가 지정한 위 중앙 OAuth 정상화 과제와 기반 산출물을 primary로
+사용했다. `pipeline-state.md`는 build approved / qa in-progress이며 push·배포는 실행하지 않았다.
+동일 레포 tmux `openclaw-auto:0.1`은 이 위임을 기다리는 Claude 컨트롤러,
+`0.2`는 별도 SNS 세팅 트랙임을 확인해 코드·DB·배포를 섞지 않았다.
+
+**변경/커밋:** `030b30fc`(RED 계약), `5f2993b2`(원자적 import+reveal·UI),
+`4f58ad1d`(ADR/data model), `cb2a8543`(죽은 오류 guard 제거),
+`e69f1fa6`(QA evidence). 기준 `c783fab2` 대비 10파일 변경이다.
+
+**구현 계약:** env complete provider도 단일 `원문 확인` POST를 사용한다. 서버는 같은
+트랜잭션에서 env 전체 세트를 pgcrypto INSERT(`ON CONFLICT DO NOTHING`)하고 권위 있는 DB 행을
+`FOR UPDATE` 재조회해 reveal하며 secret 없는 import/reveal audit를 남긴다. 기존 DB 행은
+덮어쓰지 않는다. 미설정 provider PUT 성공 뒤 metadata를 갱신하고, 입력은 기본 숨김·필드별
+표시/숨김이다. 저장/reveal 실패 사유는 카드에 한국어로 표시한다.
+
+**자동 증거:** RED 4 files/37 tests 중 9 FAIL → focused 37/37 PASS. 최종
+`npx tsc --noEmit` exit 0, 전체 117 files 972 PASS/10 DB-env skip,
+webpack production build compile·TypeScript·static pages 166/166, `git diff --check` PASS.
+기본 `npm run build`는 Turbopack sandbox port bind `EPERM`으로 exit 1이어서 실패로 기록했다.
+
+**미검증/정확한 다음 액션:** 실제 PostgreSQL pgcrypto·동시 conflict와 운영 브라우저는 미검증.
+컨트롤러가 먼저 code-builder 산출 품질을 재검증하고 qa gate에서 push/deploy 여부를 정한다.
+배포 후 `/operator/customers`에서 ① env 4개 각각 원문 확인→source DB ② 미설정 provider 1개
+입력 표시/숨김→PUT→준비/source DB→원문 확인 ③ 30초 자동 숨김 ④ import/reveal/update audit
+⑤ 응답·로그 secret 비노출을 직접 관찰하기 전 완료·qa 승인으로 보고하지 않는다.
+
+### OAuth 화면 구현 수령 + 컨트롤러 독립 재검증 (2026-07-30)
+
+**Codex 산출:** `c783fab2` 기준 5커밋(`030b30fc` RED 계약 → `5f2993b2` 원자적 import+reveal·UI
+→ `4f58ad1d` ADR/data-model → `cb2a8543` 죽은 guard 제거 → `e69f1fa6` QA 증거), 10파일
+443 insert/168 delete. push·배포는 하지 않았다.
+
+**구현 계약(실제 반영):** env complete provider도 단일 `원문 확인` POST를 쓴다. 서버가 같은
+트랜잭션에서 env 세트를 pgcrypto INSERT(`ON CONFLICT DO NOTHING`)하고 DB 행을 `FOR UPDATE`
+재조회해 reveal하며 secret 없는 import/reveal audit를 남긴다. 기존 DB 행은 덮어쓰지 않는다.
+미설정 provider는 PUT 성공 후 metadata를 갱신하고 입력은 기본 숨김 + 필드별 표시/숨김 토글이며
+실패 사유를 카드에 한국어로 표시한다.
+
+**컨트롤러 독립 재검증(증거등급=테스트됨, Claude가 직접 실행):**
+`npx tsc --noEmit` exit 0 / `npx vitest run` **117 files 972 PASS, 10 skipped** /
+`npx next build --webpack` Compiled successfully 11.9s + static pages **166/166** /
+`git diff --check` PASS. Codex가 보고한 수치와 전부 일치했다.
+기본 `npm run build`(Turbopack)는 sandbox port bind EPERM으로 실패하므로 webpack 경로를 쓴다.
+
+**품질 게이트 FAIL → 재위임:** `verify-agent-quality.sh <출력> code-builder`가
+`~/.claude/standards/dev.md` Read 0회로 FAIL 판정했다. §7.3에 따라 컨트롤러 hand-patch 없이
+Codex에 리테이크를 위임했다(품질헌법 선독 + diff self-review + secret 누출·트랜잭션 원자성·
+fail-closed·시맨틱 토큰·접근성 점검). 리테이크 진행 중.
+
+**배포 상태:** 미배포. HEAD가 `origin/main`보다 8커밋 앞선다(기존 3 + 신규 5).
+운영 빌드는 여전히 import-env 미포함 구버전이다.
+
+**미검증:** 실 PostgreSQL pgcrypto 왕복·동시 conflict·audit 행, 운영 브라우저에서의
+env 4개 원문 확인, 미설정 provider 실제 등록, 30초 자동 숨김, 응답/로그 secret 비노출.
+
+**정확한 다음 액션:** ①리테이크 산출 수령 후 `verify-agent-quality.sh` 재실행 ②PASS면 push +
+`deploy-marketing.yml` 실행 ③운영 `/operator/customers`에서 위 미검증 5항목을 실브라우저로 직접
+관찰 ④그 증거가 나온 뒤에만 qa-tracker 갱신 및 `/approve qa` 판단. 증거 전 완료 보고 금지.
+
+### 중앙 OAuth code-builder 품질헌법 리테이크 (2026-07-30, Codex)
+
+**handoff 기준/범위:** 사용자가 지정한 `pipeline-state.md`, `dashboard/CLAUDE.md`, 이 파일,
+`~/.claude/standards/dev.md`와 `git diff c783fab2..HEAD -- dashboard/`를 primary로 사용했다.
+build approved / qa in-progress 범위에서만 수정했고 push·배포·gate 승인은 실행하지 않았다.
+
+**리뷰 판정:** secret 원문은 인증된 no-store reveal 응답 외에 오류·audit·로그로 전달되지 않고,
+추가된 raw 값은 테스트 fixture에만 존재한다. `ON CONFLICT DO NOTHING` 뒤 별도
+`SELECT ... FOR UPDATE`는 PostgreSQL 기본 Read Committed에서 충돌 트랜잭션 종료 후 새 명령
+스냅샷으로 권위 행을 잠가 재조회하므로 기존 DB 값을 덮어쓰지 않는 원자 경계가 성립한다.
+다만 실 PostgreSQL 동시 conflict·rollback은 이번 환경에서 직접 관찰하지 못했다.
+
+**발견·수정한 결함:** ① `DATABASE_URL` 또는 `OSMU_SECRET_KEY`가 없을 때 Admin metadata가
+env fallback을 “준비”로 표시하면서 실제 save/reveal은 503이 되는 모순을 수정했다. 직접
+credential API GET/PUT/POST/DELETE는 no-store 503으로 닫고, `/operator/customers`의 provider
+metadata는 전부 `credential_store_unavailable`로 비활성화한다. runtime OAuth resolver의 기존
+env fallback은 유지했다. ② 입력값 표시/숨김 버튼의 접근성 이름이 보이는 문구를 포함하지 않던
+label-in-name 결함을 `${field.label} 입력값 표시/숨김`으로 수정했다. 새 하드코딩 dark class는 0건이다.
+
+**커밋/변경:** `5ff64e62`(RED 7건), `247b5126`(fail-closed + 접근성),
+`d00a4471`(기존 aggregate API 테스트에 DB/key 운영 전제 명시). 리테이크 기준
+`e69f1fa6..d00a4471`은 dashboard 7파일, 85 insert/21 delete다.
+
+**직접 재검증:** focused RED는 3 files 38 tests 중 7 FAIL, 수정 후 38/38 PASS. 기존 aggregate
+계약까지 4 files 60/60 PASS. 최종 `npx tsc --noEmit` exit 0·출력 0줄,
+`npm test` 117 files / 978 PASS / 10 skipped(총 988), `npx next build --webpack` exit 0
+(Next.js 16.2.2, compile 13.2s, TypeScript 20.1s, static generation 166/166,
+189 routes=static 25+dynamic 164), `git diff --check` exit 0.
+
+**근거/미검증:** PostgreSQL 공식 INSERT·Read Committed 문서와 W3C accessible-name/label-in-name
+가이드를 대조했다. 실 PostgreSQL pgcrypto·동시 import/rollback, 운영 Admin
+env→DB import→reveal/audit, 30초 자동 숨김, 운영 응답·로그 secret 비노출은 미검증이다.
+pipeline qa/ship 잠금을 유지한다. 다음은 컨트롤러 품질검증 후 별도 QA가 실 DB/브라우저 경로를
+관찰하는 것이며, 이번 리테이크 커밋은 push·배포하지 않는다.
