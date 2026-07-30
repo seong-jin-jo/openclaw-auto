@@ -3803,7 +3803,8 @@ token만 지우고 orphan workspace를 남긴 상태의 새 로그인” 1 FAIL�
 **최종 자동 증거:** `npx tsc --noEmit` exit 0·출력 0줄 / `npx vitest run`
 **120 files 1003 PASS, 10 skipped** / `npx next build --webpack` exit 0,
 Next.js 16.2.2, compile 14.9s, TypeScript 25.3s, static pages **166/166** /
-`git diff --check` exit 0. task baseline `0472dff3` 대비 15파일 변경이다.
+`git diff --check` exit 0. 지정 격리 회귀 4파일은 **82 PASS, 6 DB-env skip**이다.
+task baseline `0472dff3` 대비 최종 문서·handoff 포함 17파일 변경이다.
 
 **보존:** 운영자 콘솔 전용 shell·운영자 workspace 선택, 고객 Supabase 401 reauth owner race,
 OAuth state HMAC/provider/10분/cookie 검증, tenant-auth/RLS 격리 테스트, 배치 A/B Studio·GitHub
