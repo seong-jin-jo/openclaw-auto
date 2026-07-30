@@ -10,7 +10,7 @@
 //     authoritative channel id 조회 (https://developers.google.com/youtube/v3/docs/channels/list)
 //   - Meta LoginAPI(Threads/Instagram)는 단기 토큰 교환 응답 자체에 user_id를 반환(이미 social-connect.ts
 //     exchangeCode가 획득) — 별도 /me 호출 불필요, 그 값을 authoritative id로 사용.
-import { withTenant, db } from "@/lib/db";
+import { withTenant } from "@/lib/db";
 
 export interface ChannelAccountRow {
   id: string;
@@ -294,11 +294,4 @@ export async function channelAccountBelongsToProvider(
     WHERE id = ${accountId} AND tenant_id = ${tenantId} AND provider = ${provider}
       AND status = 'active'`);
   return Boolean(row);
-}
-
-// 운영자 진단/헬스체크 전용 — RLS 우회 없이 bare db() 사용은 tenant 스코프가 필요 없는 카운트에만.
-export async function countAccounts(): Promise<number> {
-  const sql = db();
-  const [row] = await sql<{ cnt: string }[]>`SELECT count(*)::text AS cnt FROM channel_accounts`;
-  return Number(row?.cnt ?? 0);
 }
