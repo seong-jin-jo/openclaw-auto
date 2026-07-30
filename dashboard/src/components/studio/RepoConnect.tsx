@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import useSWR from "swr";
-import { fetcher, apiPost } from "@/lib/api";
+import { fetcher, apiPost, ApiResponseError } from "@/lib/api";
 import { fmtAgo } from "@/lib/format";
 import type { Workspace } from "@/store/ui-store";
 
@@ -11,6 +11,19 @@ import type { Workspace } from "@/store/ui-store";
 //  ② 특정 파일(repo): 파일 몇 개 → 브랜드 톤만 증류(brand_guides). 기존 동작.
 interface SourceRow { source?: string; source_repo?: string; source_path?: string; source_ref?: string; synced_at?: string }
 interface WikiStat { count?: number }
+type MessageTone = "ok" | "error" | null;
+
+function syncErrorMessage(error: unknown): string {
+  if (error instanceof ApiResponseError) {
+    const payload = error.payload as { error?: unknown } | null;
+    if (typeof payload?.error === "string" && payload.error.trim()) return payload.error;
+    return error.message;
+  }
+  if (error instanceof TypeError) {
+    return "네트워크 연결에 실패했습니다. 인터넷 연결을 확인한 뒤 다시 시도하세요.";
+  }
+  return "동기화 중 오류가 발생했습니다. 잠시 뒤 다시 시도하세요.";
+}
 
 export function RepoConnect({ workspace, onSynced, onClose }: { workspace: Workspace; onSynced?: () => void; onClose: () => void }) {
   const { data: srcData, mutate: mutateSrc } = useSWR<{ source?: SourceRow }>(`/api/brand/sync-repo?tenant_id=${workspace.id}`, fetcher);
@@ -25,6 +38,7 @@ export function RepoConnect({ workspace, onSynced, onClose }: { workspace: Works
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [tone, setTone] = useState<MessageTone>(null);
 
   const saveTokenIfAny = async () => {
     if (token.trim()) {
@@ -35,22 +49,47 @@ export function RepoConnect({ workspace, onSynced, onClose }: { workspace: Works
 
   const sync = async () => {
     if (!repo.trim() || busy) return;
-    if (mode === "files" && !path.trim()) { setMsg("파일 경로를 입력하세요"); return; }
-    setBusy(true); setMsg("");
+    if (mode === "files" && !path.trim()) {
+      setMsg("파일 경로를 입력하세요");
+      setTone("error");
+      return;
+    }
+    setBusy(true);
+    setMsg("");
+    setTone(null);
     try {
       await saveTokenIfAny();
       if (mode === "wiki") {
         const r = await apiPost<{ ok?: boolean; count?: number; changed?: number; removed?: number; error?: string }>(
           "/api/brand/sync-wiki", { tenant_id: workspace.id, repo: repo.trim(), folder: path.trim(), ref: ref.trim() || "main" });
-        if (r?.ok) { await Promise.all([mutateWiki(), mutateSrc()]); setMsg(`✓ ${r.count}개 문서 인식됨 (변경 ${r.changed}, 삭제 ${r.removed})`); onSynced?.(); }
-        else setMsg(r?.error || "동기화 실패");
+        if (r?.ok) {
+          await Promise.all([mutateWiki(), mutateSrc()]);
+          setMsg(`✓ ${r.count}개 문서 인식됨 (변경 ${r.changed}, 삭제 ${r.removed})`);
+          setTone("ok");
+          onSynced?.();
+        } else {
+          setMsg(r?.error || "동기화 실패");
+          setTone("error");
+        }
       } else {
         const r = await apiPost<{ ok?: boolean; skipped?: boolean; reason?: string; error?: string }>(
           "/api/brand/sync-repo", { tenant_id: workspace.id, repo: repo.trim(), path: path.trim(), ref: ref.trim() || "main" });
-        if (r?.ok) { await mutateSrc(); setMsg(r.skipped ? `변경 없음 (${r.reason})` : "브랜드 톤 갱신됨 ✓"); onSynced?.(); }
-        else setMsg(r?.error || "동기화 실패");
+        if (r?.ok) {
+          await mutateSrc();
+          setMsg(r.skipped ? `변경 없음 (${r.reason})` : "브랜드 톤 갱신됨 ✓");
+          setTone("ok");
+          onSynced?.();
+        } else {
+          setMsg(r?.error || "동기화 실패");
+          setTone("error");
+        }
       }
-    } finally { setBusy(false); }
+    } catch (error) {
+      setMsg(syncErrorMessage(error));
+      setTone("error");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const tab = (m: "wiki" | "files", label: string) => (
@@ -97,7 +136,7 @@ export function RepoConnect({ workspace, onSynced, onClose }: { workspace: Works
           </div>
         </div>
 
-        {msg && <p className={`text-xs mt-3 ${msg.startsWith("✓") || msg.includes("갱신") || msg.includes("없음") ? "text-green-400" : "text-red-400"}`}>{msg}</p>}
+        {msg && <p className={`text-xs mt-3 ${tone === "ok" ? "text-success" : "text-danger"}`}>{msg}</p>}
 
         <button onClick={sync} disabled={busy || !repo.trim()}
           className="w-full mt-4 py-2.5 text-sm bg-accent text-text rounded-lg disabled:opacity-50">
