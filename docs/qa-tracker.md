@@ -1180,3 +1180,28 @@ SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open �
 - **미검증/게이트:** 실제 PostgreSQL pgcrypto import→reveal·동시 conflict, 운영 브라우저의
   설정 완료 4개 원문 확인, 미설정 provider 저장→source DB·준비 전환, 30초 자동 숨김,
   audit 행은 미검증이다. push·배포는 실행하지 않았고 qa/ship 잠금을 유지한다.
+
+### 2026-07-30 P0-6 OAuth 계정 전환·identity 오기입 차단
+
+- **❌ NG 재현:** focused 4파일 85테스트에서 6건 FAIL. Threads/Instagram의 직접 로그아웃 안내,
+  로그아웃 뒤 workspace 제거, 잔존 운영자 토큰보다 고객 Supabase JWT 승격,
+  connect tenant 불일치 값 없는 서버 로그가 없음을 재현했다.
+- **공식 문서 판단:** Meta의 Threads Authorization Window·Instagram Login 문서와 Meta 공식
+  Postman collection에 계정선택 강제 파라미터가 문서화돼 있지 않아 추측 파라미터를 추가하지 않았다.
+  연결 버튼 근처에 provider 도메인 로그아웃 안내와 Meta 계정 센터 링크를 유지했다.
+- **🔧 변경:** `/operator*`에서는 의도적 운영자 토큰을 보존하고, 고객 경로에 Supabase 세션이
+  확립되면 고객 JWT를 승격한다. 로그아웃·identity 전환은 `active_workspace`의 localStorage와
+  Zustand 상태를 함께 비운다. 로그아웃 뒤 남은 `/api/me` 응답이 workspace를 재저장하지 못하게 했다.
+- **보안 로그:** `/api/connect/{provider}`와 `/api/connect/readiness`에서 고객 JWT tenant와
+  쿼리 tenant가 다르면 JWT tenant를 계속 사용하고
+  `{"kind":"oauth_connect_tenant_mismatch","customerJwt":true}`만 기록한다.
+  tenant id·Bearer·secret 원문은 기록하지 않는다.
+- **데드코드:** 호출처가 없던 tenant-unscoped `countAccounts()`와 bare `db` import를 제거했다.
+- **레드팀 보강:** 이전 버전 로그아웃으로 token만 없고 workspace가 남은 브라우저의 새 로그인도
+  stale workspace를 지우지 못하는 경계를 추가 발견했다. 선행 1 FAIL 뒤 수정해 7/7 PASS로 고정했다.
+- **자동검증:** `npx tsc --noEmit` exit 0·출력 0줄, 전체 **120 files / 1003 PASS /
+  10 skipped**, webpack production build compile 14.9s·TypeScript 25.3s·static pages
+  **166/166**·exit 0, `git diff --check` exit 0.
+- **미검증/게이트:** 운영 Threads/Instagram consent 화면의 실제 계정 전환, 운영
+  operator→customer 브라우저 전환, 실제 서버 로그 수집은 미검증이다. push·배포하지 않았으며
+  pipeline qa/ship 잠금을 유지한다.

@@ -3777,3 +3777,39 @@ Development/Live 상태(사용자 콘솔 확인 필요 — 고객 온보딩 가�
 **정확한 다음 액션:** ①배치 C 수령 → 게이트 → 컨트롤러 재검증 ②배치 D(P1-7 글자수 SSOT +
 Facebook 카피 분리, P1-8 무음 표기, P2-9 사용량 집계) ③사용자 배포 승인 후 배포 ④실브라우저 8항목
 관찰 후에만 qa-tracker 갱신·`/approve qa`.
+
+### OSMU 1차 결함 배치 C(P0-6) code-builder 반환 (2026-07-30, Codex)
+
+**handoff 기준/범위:** 사용자가 직접 지정한 승인 계획
+`/Users/sj/.claude/plans/wiki-1-mellow-wadler.md`의 P0-6와 `standards/dev.md`,
+`dashboard/CLAUDE.md`, `pipeline-state.md`를 primary로 사용했다. tmux 소켓은 sandbox가
+거부해 읽지 못했으며 숨은 세션을 추론 병합하지 않았다. 배치 A/B 커밋과 기존 기능은 보존했다.
+
+**커밋:** `de38cd44` RED 계약 → `577fb5de` Meta 계정전환 안내 → `77364236` identity/workspace
+경계 → `42865d06` connect mismatch 감사 → `7d4d92e7` 전역 count 데드코드 제거 →
+`47f2825d` ADR/architecture → `44bf592a` orphan workspace 레드팀 보강. push·배포 없음.
+
+**구현 계약:** Meta 공식 Threads/Instagram OAuth 자료에 계정선택 강제 파라미터가 문서화돼
+있지 않아 추측 파라미터를 넣지 않았다. Threads·Instagram 연결 버튼 근처에서 각 provider
+도메인 로그아웃과 Meta 계정 센터 확인을 안내한다. `/operator*`에서는 운영자 토큰을 유지하고,
+고객 경로의 Supabase 세션은 잔존 운영자 토큰보다 승격한다. 로그아웃·identity 전환은
+`active_workspace` localStorage+Zustand를 제거한다. 고객 JWT tenant와 connect 쿼리 tenant
+불일치는 값 없이 구조 로그만 남기며 JWT tenant를 계속 사용한다. 미사용 `countAccounts()`는 제거했다.
+
+**RED→GREEN:** 최초 focused 4파일/85테스트에서 6 FAIL. 수정별로 Meta 안내 14/14,
+인증·로그아웃 41/41, connect 감사 65/65, 계정 저장소 18/18 PASS. 레드팀에서 “이전 버전이
+token만 지우고 orphan workspace를 남긴 상태의 새 로그인” 1 FAIL을 추가 재현해 최종 7/7 PASS로 고정했다.
+
+**최종 자동 증거:** `npx tsc --noEmit` exit 0·출력 0줄 / `npx vitest run`
+**120 files 1003 PASS, 10 skipped** / `npx next build --webpack` exit 0,
+Next.js 16.2.2, compile 14.9s, TypeScript 25.3s, static pages **166/166** /
+`git diff --check` exit 0. task baseline `0472dff3` 대비 15파일 변경이다.
+
+**보존:** 운영자 콘솔 전용 shell·운영자 workspace 선택, 고객 Supabase 401 reauth owner race,
+OAuth state HMAC/provider/10분/cookie 검증, tenant-auth/RLS 격리 테스트, 배치 A/B Studio·GitHub
+동작을 삭제·재구성하지 않았다.
+
+**미검증/다음 액션:** 운영 Threads/Instagram consent 화면에서 provider 로그아웃 뒤 실제 다른
+계정 선택, 운영자→고객 실브라우저 전환에서 Bearer/workspace, 운영 서버 mismatch 로그 수집은
+배포 전이라 미검증이다. 컨트롤러가 diff·고위험 인증 2nd-pass를 독립 재검증한 뒤 배치 D로 진행하고,
+전체 배치가 끝난 뒤 사용자 배포 승인→계획서 실브라우저 8항목을 관찰한다. qa/ship 잠금 유지.
