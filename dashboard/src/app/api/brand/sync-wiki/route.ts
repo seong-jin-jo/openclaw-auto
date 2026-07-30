@@ -2,7 +2,14 @@ import crypto from "node:crypto";
 import { withTenant } from "@/lib/db";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { generateText, sharedGenerationQuotaErrorResponse, sharedAiApprovalErrorResponse } from "@/lib/anthropic";
-import { getRepoToken, fetchRepoFile, listWikiFiles, extractTitle } from "@/lib/github";
+import {
+  RepoTokenDecryptionError,
+  getRepoToken,
+  getRepoInfo,
+  fetchRepoFile,
+  listWikiFiles,
+  extractTitle,
+} from "@/lib/github";
 
 // 위키 폴더 전체 인입 → wiki_docs(테넌트별). 생성 시 pg_trgm으로 검색해 사실 기반 콘텐츠.
 // 인입↔생성 분리: 여기선 저장만. 검색·주입은 lib/wiki-retrieve + studio/text.
@@ -27,22 +34,85 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const __b = await request.json().catch(() => ({}));
   const tenant_id = await effectiveTenantId(request, __b.tenant_id);
-  const repo = __b.repo;
+  const repo = typeof __b.repo === "string" ? __b.repo.trim() : "";
   if (!tenant_id || !repo) return Response.json({ error: "tenant_id, repo required" }, { status: 400 });
+  if (/\.wiki(?:\.git)?$/i.test(repo)) {
+    return Response.json({
+      error: "GitHub Wiki(repo.wiki.git)는 지원하지 않습니다. 위키 문서를 일반 레포의 .md 폴더로 옮긴 뒤 owner/name과 폴더 경로를 입력하세요.",
+    }, { status: 400 });
+  }
   if (!/^[\w.-]+\/[\w.-]+$/.test(String(repo))) {
     return Response.json({ error: "repo 형식은 owner/name" }, { status: 400 });
   }
   const folder = (__b.folder ? String(__b.folder).trim() : "").replace(/^\/+/, "");
   if (folder.includes("..")) return Response.json({ error: "folder에 .. 불가" }, { status: 400 });
-  const ref = (__b.ref && String(__b.ref).trim()) || "main";
+  const requestedRef = (__b.ref && String(__b.ref).trim()) || "";
+  const encryptionKeyConfigured = Boolean(process.env.OSMU_SECRET_KEY);
 
-  const token = await getRepoToken(tenant_id);
+  let token: string | null;
+  try {
+    token = await getRepoToken(tenant_id);
+  } catch (error) {
+    if (error instanceof RepoTokenDecryptionError) {
+      return Response.json({
+        error: "저장된 GitHub 토큰을 복호화하지 못했습니다. 관리자에게 토큰을 다시 저장해 달라고 요청하세요.",
+      }, { status: 400 });
+    }
+    throw error;
+  }
 
-  // 1) 폴더 아래 .md 전부 나열
-  const { paths, truncated, status } = await listWikiFiles(repo, folder, ref, token);
+  // 1) 기본 브랜치 조회. 조회 자체가 실패하면 관례 브랜치 main → master 순서로 안전하게 폴백한다.
+  const repoInfo = await getRepoInfo(repo, token);
+  const refs = requestedRef
+    ? [requestedRef]
+    : repoInfo.ok && repoInfo.defaultBranch
+      ? [repoInfo.defaultBranch]
+      : ["main", "master"];
+  let selectedRef = refs[0];
+  let tree = { paths: [] as string[], truncated: false, status: 404, markdownCount: 0 };
+  for (const candidateRef of refs) {
+    const result = await listWikiFiles(repo, folder, candidateRef, token);
+    tree = { ...result, markdownCount: result.markdownCount ?? result.paths.length };
+    if (result.status === 200) {
+      selectedRef = candidateRef;
+      break;
+    }
+  }
+
+  const { paths, truncated, status, markdownCount } = tree;
   if (paths.length === 0) {
+    if (status === 0 || repoInfo.status === 0) {
+      return Response.json({
+        error: "GitHub 연결에 실패했습니다. 서버 네트워크 상태를 확인한 뒤 다시 동기화하세요.",
+      }, { status: 400 });
+    }
+    if (status !== 200) {
+      if (!encryptionKeyConfigured) {
+        return Response.json({
+          error: "서버 암호화 키가 설정되지 않아 저장된 GitHub 토큰을 읽을 수 없습니다. 관리자에게 OSMU_SECRET_KEY 설정을 요청하세요.",
+        }, { status: 400 });
+      }
+      if (token && !repoInfo.ok) {
+        return Response.json({
+          error: "비공개 레포 권한이 없습니다. Fine-grained PAT의 대상 레포와 Contents: read 권한을 확인한 뒤 토큰을 다시 저장하세요.",
+        }, { status: 400 });
+      }
+      if (repoInfo.ok) {
+        return Response.json({
+          error: `브랜치 '${selectedRef}'를 찾지 못했습니다. GitHub의 실제 브랜치 이름을 확인하거나 브랜치 입력을 비워 기본 브랜치를 사용하세요.`,
+        }, { status: 400 });
+      }
+      return Response.json({
+        error: "레포 또는 브랜치를 찾지 못했습니다. owner/name과 브랜치 이름을 확인하세요. 비공개 레포라면 Contents: read 토큰도 저장해야 합니다.",
+      }, { status: 400 });
+    }
+    if (markdownCount > 0 && folder) {
+      return Response.json({
+        error: `폴더 경로 '${folder}' 아래에 .md 파일이 없습니다. 레포 안의 실제 문서 폴더 경로를 입력하세요.`,
+      }, { status: 400 });
+    }
     return Response.json({
-      error: `위키 .md 파일을 못 찾음(트리 status ${status}). repo·folder·ref·${token ? "토큰권한" : "공개여부"} 확인`,
+      error: "레포에 .md 파일이 없습니다. 동기화할 Markdown 문서를 레포 안에 추가한 뒤 다시 시도하세요.",
     }, { status: 400 });
   }
 
@@ -50,7 +120,7 @@ export async function POST(request: Request) {
   const docs: { path: string; title: string; content: string; hash: string }[] = [];
   const failed: string[] = [];
   for (const p of paths) {
-    const r = await fetchRepoFile(repo, p, ref, token);
+    const r = await fetchRepoFile(repo, p, selectedRef, token);
     if (r.ok && r.text && r.text.trim().length > 0) {
       docs.push({ path: p, title: extractTitle(r.text, p), content: r.text, hash: crypto.createHash("sha256").update(r.text).digest("hex") });
     } else failed.push(`${p}(${r.status})`);
@@ -97,7 +167,7 @@ ${digest}
       await withTenant(tenant_id, (sql) => sql`
         INSERT INTO brand_guides (tenant_id, prompt_guide, visual_rules, source, source_repo, source_path, source_ref, synced_at)
         VALUES (${tenant_id}, ${parsed.prompt_guide || ""}, ${sql.json((parsed.visual_rules ?? {}) as Parameters<typeof sql.json>[0])},
-                'wiki', ${repo}, ${folder || "(repo root)"}, ${ref}, now())
+                'wiki', ${repo}, ${folder || "(repo root)"}, ${selectedRef}, now())
         ON CONFLICT (tenant_id) DO UPDATE
           SET prompt_guide = EXCLUDED.prompt_guide, visual_rules = EXCLUDED.visual_rules,
               source = 'wiki', source_repo = EXCLUDED.source_repo, source_path = EXCLUDED.source_path,
@@ -115,5 +185,14 @@ ${digest}
     if (quotaResponse) return quotaResponse;
   }
 
-  return Response.json({ ok: true, count: docs.length, changed, removed, toneUpdated, truncated, failed: failed.length });
+  return Response.json({
+    ok: true,
+    count: docs.length,
+    changed,
+    removed,
+    toneUpdated,
+    truncated,
+    failed: failed.length,
+    ref: selectedRef,
+  });
 }

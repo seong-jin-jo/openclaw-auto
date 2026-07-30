@@ -35,9 +35,11 @@ vi.mock("@/lib/wiki-retrieve", () => ({
 }));
 
 vi.mock("@/lib/github", () => ({
+  RepoTokenDecryptionError: class RepoTokenDecryptionError extends Error {},
   getRepoToken: vi.fn(async () => null),
+  getRepoInfo: vi.fn(async () => ({ ok: true, status: 200, defaultBranch: "main", private: false })),
   fetchRepoFile: vi.fn(async () => ({ ok: true, text: "# 문서\n충분히 긴 마크다운 본문입니다. ".repeat(3), status: 200 })),
-  listWikiFiles: vi.fn(async () => ({ paths: ["a.md"], truncated: false, status: 200 })),
+  listWikiFiles: vi.fn(async () => ({ paths: ["a.md"], truncated: false, status: 200, markdownCount: 1 })),
   extractTitle: vi.fn(() => "제목"),
 }));
 

@@ -34,7 +34,7 @@ export function RepoConnect({ workspace, onSynced, onClose }: { workspace: Works
   const [mode, setMode] = useState<"wiki" | "files">("wiki");
   const [repo, setRepo] = useState(cur?.source_repo || "");
   const [path, setPath] = useState(cur?.source_path || "");
-  const [ref, setRef] = useState(cur?.source_ref || "main");
+  const [ref, setRef] = useState(cur?.source_ref || "");
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -61,7 +61,7 @@ export function RepoConnect({ workspace, onSynced, onClose }: { workspace: Works
       await saveTokenIfAny();
       if (mode === "wiki") {
         const r = await apiPost<{ ok?: boolean; count?: number; changed?: number; removed?: number; error?: string }>(
-          "/api/brand/sync-wiki", { tenant_id: workspace.id, repo: repo.trim(), folder: path.trim(), ref: ref.trim() || "main" });
+          "/api/brand/sync-wiki", { tenant_id: workspace.id, repo: repo.trim(), folder: path.trim(), ref: ref.trim() });
         if (r?.ok) {
           await Promise.all([mutateWiki(), mutateSrc()]);
           setMsg(`✓ ${r.count}개 문서 인식됨 (변경 ${r.changed}, 삭제 ${r.removed})`);
@@ -125,8 +125,8 @@ export function RepoConnect({ workspace, onSynced, onClose }: { workspace: Works
               className="w-full mt-1 px-3 py-2 text-sm bg-surface border border-border rounded-lg text-muted focus:border-accent outline-none" />
           </div>
           <div>
-            <label className="text-[11px] text-subtle">브랜치 (기본 main)</label>
-            <input value={ref} onChange={(e) => setRef(e.target.value)} placeholder="main"
+            <label className="text-[11px] text-subtle">브랜치 (비우면 레포 기본 브랜치)</label>
+            <input value={ref} onChange={(e) => setRef(e.target.value)} placeholder="자동 감지"
               className="w-full mt-1 px-3 py-2 text-sm bg-surface border border-border rounded-lg text-muted focus:border-accent outline-none" />
           </div>
           <div>

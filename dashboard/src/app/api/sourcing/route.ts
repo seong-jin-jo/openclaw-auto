@@ -5,6 +5,7 @@ import path from "path";
 import { withTenant } from "@/lib/db";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { importShortDraftsToQueue } from "@/lib/sourcing-bridge";
+import { fetchRepoFile } from "@/lib/github";
 
 // P9 롱폼→숏폼 소싱 API.
 // POST: 긴 글(longform_text) → claude -p 청킹으로 숏폼 후보 N개(훅+본문) 추출.
@@ -162,12 +163,14 @@ export async function POST(request: Request) {
         let content = '';
         if (src.type === 'github' && src.owner && src.repo && src.path) {
           const ref = src.ref || 'main';
-          let url = `https://raw.githubusercontent.com/${src.owner}/${src.repo}/${ref}/${src.path}`;
-          const headers: Record<string, string> = {};
-          if (src.token) headers['Authorization'] = `token ${src.token}`;
-          const res = await fetch(url, { headers });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          content = await res.text();
+          const result = await fetchRepoFile(
+            `${src.owner}/${src.repo}`,
+            src.path,
+            ref,
+            src.token || null,
+          );
+          if (!result.ok) throw new Error(`HTTP ${result.status}`);
+          content = result.text || "";
         } else if (src.type === 'local' && src.path) {
           const p = path.resolve(process.cwd(), src.path);
           content = fs.readFileSync(p, 'utf8');

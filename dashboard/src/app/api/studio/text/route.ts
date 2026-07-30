@@ -1,6 +1,7 @@
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { getWikiContext } from "@/lib/wiki-retrieve";
 import { generateText, sharedGenerationQuotaErrorResponse, sharedAiApprovalErrorResponse } from "@/lib/anthropic";
+import { fetchRepoFile } from "@/lib/github";
 
 // POST /api/studio/text — 글감 1개 → 플랫폼별 텍스트 변형(OSMU).
 // body: { idea, guide?, tenant_id?, context_sources? } 
@@ -22,11 +23,13 @@ export async function POST(request: Request) {
         let content = "";
         if (src.type === "github" && src.owner && src.repo && src.path) {
           const ref = src.ref || "main";
-          const url = `https://raw.githubusercontent.com/${src.owner}/${src.repo}/${ref}/${src.path}`;
-          const headers: Record<string, string> = {};
-          if (src.token) headers.Authorization = `token ${src.token}`;
-          const res = await fetch(url, { headers });
-          if (res.ok) content = await res.text();
+          const result = await fetchRepoFile(
+            `${src.owner}/${src.repo}`,
+            src.path,
+            ref,
+            src.token || null,
+          );
+          if (result.ok) content = result.text || "";
         } else if (src.type === "local" && src.path) {
           content = require("fs").readFileSync(require("path").resolve(process.cwd(), src.path), "utf8");
         }
