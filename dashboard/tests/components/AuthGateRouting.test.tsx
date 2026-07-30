@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   pathname: vi.fn(() => "/"),
   replace: vi.fn(),
   signOut: vi.fn(),
+  sessionToken: null as string | null,
   authStateCallback: null as null | ((event: string, session: { access_token?: string } | null) => void),
   router: null as { replace: ReturnType<typeof vi.fn> } | null,
 }));
@@ -31,7 +32,11 @@ vi.mock("@/components/shared/ErrorBoundary", () => ({
 vi.mock("@/lib/supabase", () => ({
   createBrowserSupabase: () => ({
     auth: {
-      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+      getSession: vi.fn(async () => ({
+        data: {
+          session: mocks.sessionToken ? { access_token: mocks.sessionToken } : null,
+        },
+      })),
       signOut: mocks.signOut,
       onAuthStateChange: vi.fn((callback) => {
         mocks.authStateCallback = callback;
@@ -51,6 +56,7 @@ describe("AuthGate operator route separation", () => {
     mocks.replace.mockReset();
     mocks.signOut.mockReset();
     mocks.signOut.mockResolvedValue({ error: null });
+    mocks.sessionToken = null;
     mocks.authStateCallback = null;
     useUIStore.setState({
       activeWorkspace: { id: "customer-1", slug: "customer", name: "Customer" },
@@ -118,6 +124,31 @@ describe("AuthGate operator route separation", () => {
     });
     expect(mocks.replace).not.toHaveBeenCalled();
     expect(screen.getByTestId("sidebar")).toBeInTheDocument();
+  });
+
+  it("promotes an established customer Supabase session over a residual operator token outside the operator console", async () => {
+    const customerJwt = `${"d".repeat(24)}.${"e".repeat(24)}.${"f".repeat(24)}`;
+    mocks.pathname.mockReturnValue("/login");
+    mocks.sessionToken = customerJwt;
+
+    render(<AuthGate><div>login child</div></AuthGate>);
+
+    await waitFor(() => {
+      expect(localStorage.getItem("dashboard_auth_token")).toBe(customerJwt);
+    });
+    expect(localStorage.getItem("active_workspace")).toBeNull();
+    expect(useUIStore.getState().activeWorkspace).toBeNull();
+  });
+
+  it("preserves an intentional operator token while the operator console is active", async () => {
+    const customerJwt = `${"d".repeat(24)}.${"e".repeat(24)}.${"f".repeat(24)}`;
+    mocks.pathname.mockReturnValue("/operator");
+    mocks.sessionToken = customerJwt;
+
+    render(<AuthGate><div>operator login child</div></AuthGate>);
+
+    await waitFor(() => expect(mocks.authStateCallback).not.toBeNull());
+    expect(localStorage.getItem("dashboard_auth_token")).toBe("operator-token");
   });
 
   it("routes a rejected customer JWT through Supabase sign-out and /login", async () => {
@@ -217,5 +248,7 @@ describe("AuthGate operator route separation", () => {
 
     await waitFor(() => expect(screen.getAllByText("베타 신청하기").length).toBeGreaterThan(0));
     expect(localStorage.getItem("dashboard_auth_token")).toBeNull();
+    expect(localStorage.getItem("active_workspace")).toBeNull();
+    expect(useUIStore.getState().activeWorkspace).toBeNull();
   });
 });

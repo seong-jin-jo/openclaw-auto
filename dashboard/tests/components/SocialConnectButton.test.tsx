@@ -351,7 +351,7 @@ describe("SocialConnectButton — OAuth popup activation", () => {
     fireEvent.click(screen.getByTestId("switch-account-threads"));
 
     expect(screen.getByTestId("switch-account-note-threads")).toHaveTextContent(
-      /현재 앱 주소에서는 Meta.*로그인 쿠키를 지울 수 없습니다/,
+      /다른 Threads 계정으로 연결하려면 threads\.net에서 먼저 로그아웃하세요/,
     );
     expect(screen.getByTestId("manage-provider-account-threads")).toHaveAttribute(
       "href",
@@ -365,9 +365,9 @@ describe("SocialConnectButton — OAuth popup activation", () => {
   });
 
   it.each([
-    ["instagram", "Instagram"],
-    ["facebook", "Facebook"],
-  ])("offers the same Meta account-center action for %s", async (provider, label) => {
+    ["instagram", "Instagram", /다른 Instagram 계정으로 연결하려면 instagram\.com에서 먼저 로그아웃하세요/],
+    ["facebook", "Facebook", null],
+  ] as const)("offers the same Meta account-center action for %s", async (provider, label, expectedNote) => {
     const fetchMock = vi.fn().mockResolvedValueOnce({
       ok: true,
       json: async () => ({ providers: { [provider]: { available: true } } }),
@@ -378,6 +378,9 @@ describe("SocialConnectButton — OAuth popup activation", () => {
     await waitFor(() => expect(screen.getByTestId(`connect-${provider}`)).not.toBeDisabled());
 
     fireEvent.click(screen.getByTestId(`switch-account-${provider}`));
+    if (expectedNote) {
+      expect(screen.getByTestId(`switch-account-note-${provider}`)).toHaveTextContent(expectedNote);
+    }
     expect(screen.getByTestId(`manage-provider-account-${provider}`)).toHaveAttribute(
       "href",
       "https://accountscenter.facebook.com/",

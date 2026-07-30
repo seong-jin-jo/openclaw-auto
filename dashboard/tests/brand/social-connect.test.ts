@@ -123,6 +123,27 @@ describe("GET /api/connect/instagram — OAuth 동의 URL", () => {
     expect(body.authUrl).toContain("api%2Fconnect%2Finstagram%2Fcallback");
   });
 
+  it("고객 JWT tenant와 쿼리 tenant_id가 다르면 값 없이 불일치 사실만 서버 로그에 남긴다", async () => {
+    H.tenantId = "tenant-from-customer-jwt";
+    const customerJwt = `${"a".repeat(24)}.${"b".repeat(24)}.${"c".repeat(24)}`;
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { GET } = await import("@/app/api/connect/[provider]/route");
+
+    const res = await GET(new Request(
+      "https://app.example/api/connect/instagram?tenant_id=tenant-from-query",
+      { headers: { Authorization: `Bearer ${customerJwt}` } },
+    ), params("instagram"));
+
+    expect(res.status).toBe(200);
+    expect(warn).toHaveBeenCalledWith(
+      JSON.stringify({ kind: "oauth_connect_tenant_mismatch", customerJwt: true }),
+    );
+    const logged = warn.mock.calls.flat().join(" ");
+    expect(logged).not.toContain("tenant-from-customer-jwt");
+    expect(logged).not.toContain("tenant-from-query");
+    expect(logged).not.toContain(customerJwt);
+  });
+
   // 리버스 프록시 뒤 "Invalid redirect_uri" 회귀 방지(2026-07-03 실측: request.url이 0.0.0.0:PORT).
   it("OSMU_PUBLIC_URL 설정 시 redirect_uri가 내부 request host가 아닌 공개 URL을 쓴다", async () => {
     process.env.OSMU_PUBLIC_URL = "https://live.example";

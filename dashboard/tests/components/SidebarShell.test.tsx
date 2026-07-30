@@ -9,6 +9,7 @@ import { useUIStore } from "@/store/ui-store";
 const mocks = vi.hoisted(() => ({
   swr: vi.fn(),
   pathname: vi.fn(() => "/operator/customers"),
+  signOut: vi.fn(),
 }));
 
 vi.mock("swr", () => ({
@@ -41,6 +42,12 @@ vi.mock("@/components/layout/ThemeToggle", () => ({
   ThemeToggle: () => <button type="button">테마</button>,
 }));
 
+vi.mock("@/lib/supabase", () => ({
+  createBrowserSupabase: () => ({
+    auth: { signOut: mocks.signOut },
+  }),
+}));
+
 describe("Sidebar operator/customer shell separation", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -53,6 +60,8 @@ describe("Sidebar operator/customer shell separation", () => {
       sidebarCollapsed: {},
     });
     mocks.pathname.mockReturnValue("/operator/customers");
+    mocks.signOut.mockReset();
+    mocks.signOut.mockResolvedValue({ error: null });
   });
 
   afterEach(() => {
@@ -113,5 +122,31 @@ describe("Sidebar operator/customer shell separation", () => {
       "href",
       "/channels/tiktok",
     );
+  });
+
+  it("clears the persisted active workspace when a customer logs out", async () => {
+    mocks.pathname.mockReturnValue("/");
+    localStorage.setItem("dashboard_auth_token", `${"a".repeat(24)}.${"b".repeat(24)}.${"c".repeat(24)}`);
+    mocks.swr.mockImplementation((key: string | null) => {
+      if (key === "/api/me") {
+        return {
+          data: {
+            isOperator: false,
+            tenant: { id: "customer-1", slug: "customer", name: "고객 워크스페이스" },
+          },
+          mutate: vi.fn(),
+        };
+      }
+      if (key === "/api/images") return { data: [] };
+      return { data: undefined };
+    });
+
+    render(<Sidebar />);
+    screen.getByRole("button", { name: /로그아웃/ }).click();
+
+    await waitFor(() => expect(mocks.signOut).toHaveBeenCalledTimes(1));
+    expect(localStorage.getItem("dashboard_auth_token")).toBeNull();
+    expect(localStorage.getItem("active_workspace")).toBeNull();
+    expect(useUIStore.getState().activeWorkspace).toBeNull();
   });
 });
