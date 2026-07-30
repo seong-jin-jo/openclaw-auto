@@ -3735,3 +3735,45 @@ fine-grained PAT `Contents: read`, Repositories의 `default_branch`, private 인
 **정확한 다음 액션:** 컨트롤러가 diff·품질 게이트를 독립 재검증한 뒤 배치 C(P0-6)로 진행한다.
 전체 배치 종료 후 사용자 배포 승인 → 운영에서 잘못된 repo/branch/token, master repo, slash branch를
 각각 실브라우저로 확인하고 나서만 qa-tracker와 `/approve qa`를 판단한다.
+
+### 배치 B 완료·검증 + 배치 C 착수 (2026-07-30)
+
+**배치 B 산출(항목별 커밋):** `ceecf81b` fix(studio): surface wiki sync errors — P0-4 /
+`bc5b7485` fix(github): diagnose wiki sync failures — P0-5 / `24839209` docs(github) 계약 기록.
+8파일 590 insert/60 delete(`lib/github.ts` 98, `api/brand/sync-wiki/route.ts` 99,
+`components/studio/RepoConnect.tsx` 65, `api/sourcing/route.ts` 15, `api/studio/text/route.ts` 13,
+신규 테스트 `tests/brand/wiki-sync.test.ts` 276 + `tests/components/repo-connect.test.tsx` 80).
+
+**구현 확인(컨트롤러가 diff 직접 정독):**
+- P0-4: `ApiResponseError`를 import해 `catch`로 잡고 배너에 서버 error 문자열을 표시한다. 취약했던
+  문자열 `includes` 색 판정을 `type MessageTone = "ok" | "error" | null` 상태로 분리했고 하드코딩
+  색을 시맨틱 토큰으로 교체했다. 죽은 코드였던 `setMsg(r?.error…)` 경로가 실제로 동작하게 됐다.
+- P0-5: ref 인코딩을 path와 동일한 세그먼트별 방식(`value.split("/").map(encodeURIComponent).join("/")`)
+  으로 통일해 슬래시 브랜치 404를 제거했고, 레포 메타에서 `default_branch`를 조회해 `main` 하드코딩을
+  대체했다. 실패 사유가 **6종으로 분기**된다 — 레포/브랜치 미존재(비공개면 Contents:read 토큰 안내
+  포함) · 비공개 권한 없음(Fine-grained PAT 대상 레포·Contents:read 확인) · **서버 암호화 키 미설정
+  (`OSMU_SECRET_KEY`)** · `.md` 없음 · GitHub Wiki 미지원(일반 레포 .md 폴더로 이전 안내) · 네트워크
+  실패. 기존의 "공개여부 확인" 오진이 사라졌다. `api/sourcing/route.ts`·`api/studio/text/route.ts`의
+  구형 `token …` + raw 호스트 조합도 정리됐다.
+
+**컨트롤러 독립 재검증(증거등급=테스트됨, Claude 직접 실행):** `npx tsc --noEmit` exit 0 /
+`npx vitest run` **120 files 998 PASS, 10 skipped**(배치 A 기준선 118/985 대비 파일 +2, 테스트 +13) /
+`npx next build --webpack` Compiled successfully 14.4s + static pages **166/166** /
+`git diff --check` PASS. 기존 테스트 회귀 0건.
+
+**품질 게이트 5회 연속 동일 FAIL:** `Skill 0회 + WebSearch/Fetch 0회`(Codex 워커 웹 도구 부재로
+구조적 충족 불가). `mistake-ledger.md` `[proxy]` 3-strike 등록 상태, 게이트 수선 여부는 사용자 결정 대기.
+
+**현재 실행:** 배치 C(P0-6)를 위임(백그라운드). ①Threads·Instagram authorize 계정 재선택(공식 문서로
+지원 여부 확인 의무, 미지원이면 지어내지 말고 로그아웃 안내로 대체) ②로그아웃 시 `active_workspace`
+삭제 + 고객 JWT가 잔존 운영자 토큰보다 승격(운영자 콘솔 흐름은 보존) + `/api/connect/*` tenant 불일치
+로깅(값 제외) ③`countAccounts()` 데드코드 제거. 기존 격리 테스트 4종을 깨뜨리지 말 것을 명시했다.
+
+**배포 상태:** 미배포. origin/main `14a8437c`. 운영 화면은 구버전.
+
+**미검증:** 실브라우저 8항목(계획서 검증 절), 운영 배포 후 동작, 실 DB 경로, Threads 앱
+Development/Live 상태(사용자 콘솔 확인 필요 — 고객 온보딩 가능 여부가 여기서 갈린다).
+
+**정확한 다음 액션:** ①배치 C 수령 → 게이트 → 컨트롤러 재검증 ②배치 D(P1-7 글자수 SSOT +
+Facebook 카피 분리, P1-8 무음 표기, P2-9 사용량 집계) ③사용자 배포 승인 후 배포 ④실브라우저 8항목
+관찰 후에만 qa-tracker 갱신·`/approve qa`.
