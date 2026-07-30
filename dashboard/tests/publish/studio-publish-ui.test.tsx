@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import StudioPage from "@/app/studio/page";
 
@@ -152,6 +152,40 @@ describe("Studio publish result integrity", () => {
     expect(screen.getByText("일부 발행 실패")).toBeInTheDocument();
     expect(screen.getByText("X 계정 미연결")).toBeInTheDocument();
     expect(draftSaveStatuses()).toEqual(["draft", "partial"]);
+  });
+
+  it("defaults publish targets to supported channels and labels generation-only video channels", async () => {
+    localStorage.setItem("studio_work", JSON.stringify({
+      idea: "기본 발행 대상 테스트",
+      text: {
+        threads: "Threads 본문",
+        x: "X 본문",
+        instagram: { caption: "Instagram 본문" },
+        shorts: { hook: "hook", body: "body", cta: "cta" },
+      },
+    }));
+    mocks.apiPost.mockImplementation(async (path: string) => {
+      if (path === "/api/studio/drafts") return { id: "draft-defaults" };
+      if (path === "/api/publish") return { ok: false, error: "테스트 중단" };
+      throw new Error(`unexpected path: ${path}`);
+    });
+
+    render(<StudioPage />);
+    const publishButton = await screen.findByRole("button", { name: "🚀 Publish (4)" });
+    for (const platform of ["shorts", "reels", "tiktok"]) {
+      expect(within(screen.getByTestId(`preview-${platform}`)).getByText(
+        "발행 미지원(생성 전용)",
+      )).toBeInTheDocument();
+    }
+
+    fireEvent.click(publishButton);
+    await waitFor(() => {
+      expect(mocks.apiPost.mock.calls.filter(([path]) => path === "/api/publish")).toHaveLength(4);
+    });
+    expect(mocks.apiPost.mock.calls
+      .filter(([path]) => path === "/api/publish")
+      .map(([, body]) => (body as { platform: string }).platform))
+      .toEqual(["threads", "x", "facebook", "instagram"]);
   });
 });
 

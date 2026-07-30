@@ -20,7 +20,8 @@ import { authHeaders } from "@/lib/auth";
 // SNS-007: /api/publish가 실제로 계정별 발행을 받는 4개 플랫폼(threads/x/facebook/instagram)만
 // 계정 셀렉터를 노출한다. shorts/reels/tiktok은 /api/publish 미지원(실발행 분기 없음 — 위
 // ChannelConnect.tsx 주석과 동일 SSOT 판단)이라 대상에서 뺀다.
-const ACCOUNT_SELECTABLE = new Set(["threads", "x", "facebook", "instagram"]);
+const PUBLISH_SUPPORTED = new Set<PreviewPlatform>(["threads", "x", "facebook", "instagram"]);
+const ACCOUNT_SELECTABLE = PUBLISH_SUPPORTED;
 interface AccountOption { id: string; label: string; is_default: boolean }
 
 interface TextVariants {
@@ -40,6 +41,15 @@ const GROUPS: { title: string; platforms: PreviewPlatform[] }[] = [
   { title: "🖼️ 카드뉴스", platforms: ["instagram"] },
 ];
 const ALL: PreviewPlatform[] = ["threads", "x", "facebook", "instagram", "shorts", "reels", "tiktok"];
+const normalizeIncludes = (saved?: Record<string, boolean>): Record<string, boolean> => (
+  Object.fromEntries(ALL.map((platform) => [
+    platform,
+    PUBLISH_SUPPORTED.has(platform) && (saved?.[platform] ?? true),
+  ]))
+);
+const selectedPublishTargets = (includes: Record<string, boolean>): PreviewPlatform[] => (
+  ALL.filter((platform) => PUBLISH_SUPPORTED.has(platform) && includes[platform])
+);
 // 발행 완료 뱃지 클릭 시 이동할 URL (시뮬: 플랫폼 위치. 실 발행 연동 시 게시물 permalink로 대체)
 const POST_URL: Record<string, string> = {
   threads: "https://www.threads.net", x: "https://x.com", facebook: "https://www.facebook.com",
@@ -88,7 +98,7 @@ export default function StudioPage() {
   const [vid, setVid] = useState<VidResult | null>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [publishReconciliation, setPublishReconciliation] = useState<PublishReconciliation | null>(null);
-  const [includes, setIncludes] = useState<Record<string, boolean>>(Object.fromEntries(ALL.map((p) => [p, true])));
+  const [includes, setIncludes] = useState<Record<string, boolean>>(() => normalizeIncludes());
   const [editing, setEditing] = useState<PreviewPlatform | null>(null);
   const [showTx, setShowTx] = useState(false);
   const { data: tx } = useSWR<{ items?: Array<{ display_name?: string; credits?: number; action?: string; created_at?: string; output?: string | null; outputKind?: string | null }> }>(
@@ -155,7 +165,7 @@ export default function StudioPage() {
       if (raw) {
         const w = JSON.parse(raw);
         setIdea(w.idea || ""); setText(w.text || null); setImg(w.img || null); setVid(w.vid || null);
-        if (w.includes) setIncludes(w.includes); setDraftId(w.draftId || null);
+        if (w.includes) setIncludes(normalizeIncludes(w.includes)); setDraftId(w.draftId || null);
         setPublishReconciliation(w.publishReconciliation || null);
       }
     } catch { /* noop */ }
@@ -265,7 +275,7 @@ export default function StudioPage() {
       return;
     }
     const did = await save("draft");
-    const targets = ALL.filter((p) => includes[p]);
+    const targets = selectedPublishTargets(includes);
     if (!targets.length) { showToast("발행할 플랫폼을 선택하세요", "error"); return; }
     cancelRef.current = false;
     const status: Record<string, PubStatus> = {}; targets.forEach((p) => (status[p] = "wait"));
@@ -344,7 +354,7 @@ export default function StudioPage() {
   function loadDraft(d: Record<string, unknown>) {
     setIdea((d.idea as string) || ""); setText((d.text as TextVariants) || null);
     setImg((d.img as ImgResult) || null); setVid((d.vid as VidResult) || null);
-    setIncludes((d.includes as Record<string, boolean>) || includes); setDraftId(d.id as string);
+    setIncludes(d.includes ? normalizeIncludes(d.includes as Record<string, boolean>) : includes); setDraftId(d.id as string);
     setPublishReconciliation((d.publishReconciliation as PublishReconciliation) || null);
     showToast(
       d.publishReconciliation
@@ -393,7 +403,7 @@ export default function StudioPage() {
         <button onClick={runOSMU} disabled={!!busy} className="px-4 py-2 text-sm bg-accent hover:from-accent hover:to-accent-hover text-text rounded-lg shadow-lg shadow-purple-900/30 disabled:opacity-50">{busy || "OSMU 생성"}</button>
         {activeWorkspace && <button onClick={autoGenerate} disabled={autoGen} className="px-3 py-2 text-sm rounded border border-accent text-accent hover:bg-accent-soft disabled:opacity-50" title="브랜드 가이드 기반 자동초안 생성">{autoGen ? "생성 중…" : "✨ AI 자동초안"}</button>}
         {text && <button onClick={() => save("draft")} className="px-3 py-2 text-sm bg-surface-2 text-text rounded">💾 Save</button>}
-        {text && <button onClick={publish} disabled={pub.running} className="px-3 py-2 text-sm bg-green-600 text-text rounded disabled:opacity-50">🚀 Publish ({ALL.filter((p) => includes[p]).length})</button>}
+        {text && <button onClick={publish} disabled={pub.running} className="px-3 py-2 text-sm bg-green-600 text-text rounded disabled:opacity-50">🚀 Publish ({selectedPublishTargets(includes).length})</button>}
         {text && activeWorkspace && <button onClick={() => setShowSchedule((v) => !v)} className={`px-3 py-2 text-sm rounded border ${showSchedule ? "border-accent text-accent bg-accent-soft" : "border-accent text-accent hover:bg-accent-soft"}`} title="예약 발행">🗓️ 예약</button>}
         {canGenerate && <div className="relative">
           <button onClick={() => setShowTx((v) => !v)} className="text-xs text-subtle hover:text-muted" title="사용 이력 보기">
@@ -448,7 +458,7 @@ export default function StudioPage() {
         <SchedulePanel
           tenantId={activeWorkspace.id}
           draftId={draftId}
-          defaultPlatforms={ALL.filter((p) => includes[p])}
+          defaultPlatforms={selectedPublishTargets(includes)}
         />
       )}
 
@@ -467,9 +477,13 @@ export default function StudioPage() {
                       <div className={`rounded-2xl transition ${editing === p ? "ring-2 ring-accent shadow-[0_0_24px_rgba(236,72,153,0.35)]" : "group-hover:ring-1 group-hover:ring-accent/50"}`}>
                         <PlatformPreview platform={p} text={text} media={media} headerRight={
                           <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1.5">
-                            <label className="flex items-center gap-1 text-[10px] text-subtle cursor-default">
-                              <input type="checkbox" checked={!!includes[p]} onChange={(e) => setIncludes((x) => ({ ...x, [p]: e.target.checked }))} />발행
-                            </label>
+                            {PUBLISH_SUPPORTED.has(p) ? (
+                              <label className="flex items-center gap-1 text-[10px] text-subtle cursor-default">
+                                <input type="checkbox" checked={!!includes[p]} onChange={(e) => setIncludes((x) => ({ ...x, [p]: e.target.checked }))} />발행
+                              </label>
+                            ) : (
+                              <span className="text-[10px] text-warning">발행 미지원(생성 전용)</span>
+                            )}
                             {ACCOUNT_SELECTABLE.has(p) && (accountsByPlatform[p]?.length ?? 0) > 1 && (
                               <select
                                 data-testid={`publish-account-select-${p}`}
