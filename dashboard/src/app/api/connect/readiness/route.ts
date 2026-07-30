@@ -1,6 +1,7 @@
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { PROVIDERS, FACEBOOK } from "@/lib/social-connect";
 import { resolveOAuthCredentialSets } from "@/lib/oauth-app-credentials";
+import { auditConnectTenantQueryMismatch } from "@/lib/connect-tenant-audit";
 
 const CREDENTIAL_STORE_UNAVAILABLE_REASON =
   "OAuth 자격증명 저장소에 일시적으로 연결할 수 없습니다. 관리자 복구 후 다시 시도해주세요.";
@@ -14,8 +15,10 @@ const CREDENTIAL_STORE_UNAVAILABLE_REASON =
 // 이 라우트는 인증 컨텍스트(effectiveTenantId)를 거친다 — 로그인 세션/토큰 없이 tenant_id
 // 쿼리만으로는 운영자 fallback 경로로만 동작(다른 라우트와 동일 패턴).
 export async function GET(request: Request) {
-  const tenantId = await effectiveTenantId(request, new URL(request.url).searchParams.get("tenant_id"));
+  const requestedTenantId = new URL(request.url).searchParams.get("tenant_id");
+  const tenantId = await effectiveTenantId(request, requestedTenantId);
   if (!tenantId) return Response.json({ error: "tenant_id required" }, { status: 400 });
+  auditConnectTenantQueryMismatch(request, tenantId, requestedTenantId);
 
   const result: Record<string, { available: boolean; reason?: string }> = {};
   const credentialsByProvider = await resolveOAuthCredentialSets([

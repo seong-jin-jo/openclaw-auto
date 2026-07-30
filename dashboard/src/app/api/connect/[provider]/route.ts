@@ -1,5 +1,6 @@
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { getProvider, buildAuthUrl, publicOrigin, generateCodeVerifier, generateCodeChallenge, signState } from "@/lib/social-connect";
+import { auditConnectTenantQueryMismatch } from "@/lib/connect-tenant-audit";
 
 // GET /api/connect/{provider}?tenant_id=... — OAuth "연결" 동의 URL 반환.
 // 프론트의 "연결" 버튼이 호출 → 받은 authUrl을 팝업으로 연다 → 사용자가 provider 공식 페이지에서
@@ -12,8 +13,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
   const cfg = getProvider(provider);
   if (!cfg) return Response.json({ error: `지원하지 않는 provider: ${provider}` }, { status: 400 });
 
-  const tenantId = await effectiveTenantId(request, new URL(request.url).searchParams.get("tenant_id"));
+  const requestedTenantId = new URL(request.url).searchParams.get("tenant_id");
+  const tenantId = await effectiveTenantId(request, requestedTenantId);
   if (!tenantId) return Response.json({ error: "tenant_id required" }, { status: 400 });
+  auditConnectTenantQueryMismatch(request, tenantId, requestedTenantId);
 
   const origin = publicOrigin(request);
 
