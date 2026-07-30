@@ -5,7 +5,7 @@ Goal: Turn longform knowledge (wiki pages, blogs, transcripts) + trends into hig
 ## Current State (as of plan execution)
 
 - **longform-to-shorts** extension: Chunks text/URL, uses claude -p per chunk → hook + body + caption + hashtags + source_quote. Saves candidates.
-- **video-generate**: slides[] (text, duration, optional imageUrl) → ffmpeg 1080x1920 + optional ElevenLabs narration + BGM. Called from dashboard API.
+- **video-generate**: slides[] (text, duration, optional imageUrl) → ffmpeg 1080x1920 + optional ElevenLabs narration + BGM. Called from dashboard API. If narration was requested but omitted, the API returns a structured reason and the Videos UI warns explicitly; an unconfigured ElevenLabs key is shown as `내레이션 없이 생성됨 (ElevenLabs 키 미설정)`.
 - **Studio**: Supports "shorts" variant output + withVideo toggle (Higgsfield / minimax paths mentioned).
 - Publish: YouTube video upload works in dashboard; TikTok extension is limited (audit required).
 - Sources: manual idea, blog queue, **or now project wiki/ via /api/sourcing with wiki_path** (e.g. "product/shorts-factory.md").

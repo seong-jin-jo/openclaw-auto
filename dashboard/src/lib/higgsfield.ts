@@ -74,7 +74,7 @@ export type NarrationResult =
   | { ok: true }
   | { ok: false; reason: "narration_empty" | "server_tts_unavailable" | "audio_mix_failed" };
 
-// 무음 Higgsfield 클립에 내레이션 음성 입히기. 성공 시 outPath에 사운드 영상 생성, true.
+// 무음 Higgsfield 클립에 내레이션 음성 입히기. 성공 시 outPath에 사운드 영상 생성.
 // 영상을 내레이션 길이에 맞춰 루프(-stream_loop)하여 음성이 잘리지 않게.
 export async function addNarration(videoPath: string, text: string, outPath: string): Promise<NarrationResult> {
   if (!text || !text.trim()) return { ok: false, reason: "narration_empty" };

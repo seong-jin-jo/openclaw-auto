@@ -12,7 +12,7 @@ Studio is the "power user" surface for one-off or assisted generation, complemen
 1. Enter idea or load from blog/wiki. **또는 기존 Long Video (로컬 파일 / YouTube URL) 입력 (0차 Video Repurposing)**.
 2. Select brand guide (or let wiki provide facts).
 3. Generate:
-   - Text variants for Threads / X / IG / Shorts hook-body-cta.
+   - Independent text variants for Threads / Facebook / X / IG / Shorts hook-body-cta.
    - Image prompt.
    - (Optional) Video via Higgsfield/Midjourney or ffmpeg path **또는 외부 클리핑 API로 기존 영상에서 후보 Shorts 추출 후 OSMU refinement**.
 4. Edit, preview per platform (wiki/brand tone 반영).
@@ -34,6 +34,16 @@ Studio is the "power user" surface for one-off or assisted generation, complemen
   only an all-success run displays `발행 완료` and stores `published`.
 - The existing external-publish/internal-record failure path remains a reconciliation state:
   it stores `partial`, preserves the permalink/recovery metadata, and blocks automatic republish.
+- Channel body limits are defined only in `dashboard/src/lib/channel-text-limits.ts`, with an
+  official reference URL beside every value. Preview cards show the current count against each
+  platform's own limit; limits intentionally differ by provider.
+- Threads and Facebook reject over-limit content before any provider API call. They do not silently
+  truncate user-edited copy, because losing the ending/CTA without consent is more damaging than an
+  actionable preflight error. X and existing credential channels retain their documented truncation
+  behavior.
+- Higgsfield video responses expose whether requested narration was included. A silent result shows
+  a warning in Studio with the machine reason translated for the user (for example, server TTS
+  runner unavailable) instead of appearing to be a fully narrated success.
 
 **Wiki Integration** (recent):
 - Tenant Brand Wiki injected for "facts only, no invention".

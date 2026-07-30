@@ -2,6 +2,18 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-07-30 배치 D — 채널 한도·내레이션 표기·사용량 DB 원장
+
+**상태 전이:** ❌ NG(한도 4중복/Facebook 카피 재사용, 무음 폴백 은폐, BYOK 토큰 미집계·
+usage.json 화면 정본) → 🔧 build 구현·자동 검증. 운영 DB/provider/실브라우저 전에는 QA PASS
+아니다.
+
+- tests-first RED를 항목별 커밋(`5ee1872b`, `752f4686`, `de974479`)으로 관찰한 뒤 구현했다.
+- 로컬 자동 증거: TypeScript exit 0, 전체 123 files 1014 PASS/10 skip, webpack compile
+  18.5s·TypeScript 26.7s·static pages 166/166, diff check exit 0.
+- 미검증: 실 Anthropic BYOK 응답→운영 `usage_events` 행, Linux TTS fallback, Threads/Facebook
+  실 provider preflight, Studio/Videos 실브라우저 경고·카운터.
+
 ## 2026-07-29 고객 운영 플로우 차단 결함 — 독립 QA
 
 **판정:** 로컬 제품 QA PASS. 운영 배포·실브라우저는 미검증이므로 ship PASS가 아니다.

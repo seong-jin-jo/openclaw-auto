@@ -3,7 +3,7 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **QA in-progress, ship pending**). QA 증거: `docs/qa-tracker.md`.
 
-### 배치 D build 진행 — P1-7 GREEN, P1-8 착수 (2026-07-30)
+### 배치 D build 산출 — P1-7/P1-8/P2-9 자동 검증 통과 (2026-07-30)
 
 **확정 handoff 기준:** 사용자 위임 프롬프트와 승인 계획
 `/Users/sj/.claude/plans/wiki-1-mellow-wadler.md`의 P1-7/P1-8/P2-9. 부모 컨트롤러 pane은
@@ -19,8 +19,25 @@
 counting(280)·Bluesky intent(300)를 웹에서 확인했고 Meta 공식 reference는 URL 접근 시 로그인/429
 제한을 관찰해 기존 승인 계획의 Threads 500/Facebook 63,206 수치를 유지했다.
 
-**다음 정확한 액션:** P1-8 RED 테스트 → Higgsfield `say` 실행기 부재와 ElevenLabs 키 미설정을
-서로 다른 사유로 응답·Studio/영상 UI에 표기 → focused GREEN → 항목 커밋.
+**P1-8 결과:** `752f4686` RED → `f8d2bcb3` 구현. Higgsfield `say` 실행기 부재와
+ElevenLabs 키 미설정을 서로 다른 machine reason/한국어 메시지로 응답하고 Studio·Videos UI에
+경고한다. focused 2 files 11 PASS.
+
+**P2-9 결과:** `de974479` RED → `095142f0` 구현. BYOK Anthropic 응답의 input/output/total
+token을 테넌트 `usage_events.meta`에 기록하며, 기존 shared CLI quota reserve/release와 source는
+유지한다. `/api/usage`는 DB를 정본으로 일·주·월 집계하고 `usage.json`은 best-effort legacy
+mirror로만 남겼다. sourcing 내부 기록 요청도 원래 Authorization을 전달한다. focused 3 files
+29 PASS. `cacdfa62`에서 Studio 편집 드로어의 남은 X 280 하드코딩도 SSOT 참조로 제거했다.
+
+**최종 로컬 자동 검증(직접 실행):** `npx tsc --noEmit` exit 0 / `npx vitest run`
+**123 files, 1014 passed, 10 skipped** / `npx next build --webpack` exit 0,
+Compiled 18.5s·TypeScript 26.7s·static pages **166/166** / `git diff --check` exit 0.
+기준선 120 files·1003 PASS·10 skip·166/166 이상이며 회귀 수치는 없다.
+
+**미검증/다음 정확한 액션:** 실제 Anthropic BYOK 호출+운영 PostgreSQL 행 관찰, 운영 Linux의
+TTS fallback, Threads/Facebook 실계정 초과 발행 차단, 실브라우저 카운터/경고 렌더는 미배포라
+미검증이다. push·배포하지 않았고 qa in-progress/ship pending 잠금을 유지한다. 부모 컨트롤러가
+diff와 이 자동 증거를 독립 재검증한 뒤 기존 계획의 운영 실브라우저 QA로 넘긴다.
 
 **최종 갱신:** 2026-07-29 KST · 고객 운영 QA 정상화 독립 재검증 진행
 

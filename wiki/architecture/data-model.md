@@ -68,9 +68,15 @@ This is the reference for all persistent state. Most data is tenant-scoped for S
 - `drafts`: candidate shorts/posts saved for review.
 
 ### Usage & Billing (v4 SaaS - new for hybrid pricing)
-- `usage_events`: tenant_id, type (generation, short_video_min, priority_model, etc.), quantity, timestamp, cost_units.
+- `usage_events`: tenant_id, event_type (generation, short_video_min, priority_model, etc.),
+  quantity, JSONB meta, created_at. This table is the dashboard's canonical usage ledger.
+  BYO Anthropic HTTP generations store `input_tokens`, `output_tokens`, and `total_tokens` in
+  `meta` with `source=byo-anthropic-api`; shared CLI generations retain their existing
+  quota reserve/release flow and `source=shared-claude-cli`.
 - `subscriptions`: tenant_id, tier (starter/pro/team), base_price, current_period_start/end, status.
 - `usage_quotas`: per tenant/month limits (shorts_included, generations, etc.) + overage tracking.
+- `data/usage.json` remains a best-effort legacy mirror for old cron/local consumers. `/api/usage`
+  no longer reads it; tenant daily/weekly/monthly totals come from RLS-scoped `usage_events`.
 - Aggregates: monthly usage summary for invoicing/expansion signals.
 - Goal: Support base subscription predictability + usage add-ons for >110% NRR expansion. Tenant-isolated (RLS). Cron will aggregate for billing reports.
 
