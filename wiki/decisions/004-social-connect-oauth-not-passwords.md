@@ -77,10 +77,28 @@ GStack 브라우저로 Meta 콘솔을 운전하는 건 **우리 자신의 계정
   이 provider 지원 동작과 우리 origin에서 third-party 세션을 삭제할 수 없다는 경계는 동시에 성립한다.
 - UI의 약속은 “관리 화면을 연다 → 사용자가 전환/로그아웃한다 → 돌아와 OAuth 연결을 다시 누른다”까지다.
   실제 provider 세션 변경이나 callback 성공은 관찰 전까지 미검증이다.
+- 2026-07-30 재확인에서도 Meta의 Threads Authorization Window와 Instagram Login 공식 문서에는
+  Google `prompt=select_account`·TikTok `disable_auto_auth`에 대응하는 계정 선택 파라미터가
+  문서화돼 있지 않았다. 따라서 Threads·Instagram 연결 버튼 근처에는 각각
+  `threads.net`·`instagram.com`에서 먼저 로그아웃하라는 안내와 Meta 계정 센터 링크를 제공한다.
+- identity 경계는 path와 세션을 함께 본다. `/operator*`에서는 의도적인 운영자 토큰을 Supabase
+  세션보다 우선한다. 고객 로그인/고객 화면에서 Supabase 세션이 확립되면 잔존 운영자 토큰 대신
+  고객 JWT를 승격하며, 운영자↔고객·고객 A↔고객 B 전환과 로그아웃 때 `active_workspace`를 비운다.
+- `/api/connect/{provider}`와 `/api/connect/readiness`는 고객 JWT가 확정한 tenant와 쿼리
+  `tenant_id`가 다르면 JWT tenant를 계속 사용하면서 `oauth_connect_tenant_mismatch` 사실만
+  구조 로그로 남긴다. tenant id·Bearer·secret 값은 로그에 포함하지 않는다.
 
 근거:
 - MDN, third-party cookies: https://developer.mozilla.org/en-US/docs/Web/Privacy/Guides/Third-party_cookies
 - Meta, Accounts Center: https://www.facebook.com/help/943858526073065
+- Meta, Threads access tokens and permissions:
+  https://developers.facebook.com/docs/threads/get-started/get-access-tokens-and-permissions
+- Meta, Instagram API with Instagram Login:
+  https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login
+- Meta 공식 Postman Threads API collection:
+  https://www.postman.com/meta/threads/documentation/dht3nzz/threads-api
+- Meta 공식 Postman Instagram API collection:
+  https://www.postman.com/meta/instagram/documentation/6yqw8pt/instagram-api
 - Google OAuth web-server `prompt=select_account`:
   https://developers.google.com/identity/protocols/oauth2/web-server
 

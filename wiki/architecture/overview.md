@@ -72,7 +72,12 @@ Feedback: insights → viral signals → style / prompt-guide updates.
   [Cloudflare HTTP headers](https://developers.cloudflare.com/fundamentals/reference/http-headers/).
 - provider 로그인 쿠키는 provider origin 소유다. 대시보드는 이를 삭제하지 않고 Meta/X/Google/TikTok
   공식 계정 관리 화면을 새 탭으로 제공한 뒤 사용자가 돌아와 OAuth를 재시도하게 한다.
+- Threads·Instagram은 공식 문서에 계정선택 authorize 파라미터가 없어 추측값을 붙이지 않는다.
+  연결 버튼 근처에서 해당 provider 도메인 로그아웃과 Meta 계정 센터 확인을 직접 안내한다.
 - Google/YouTube의 `prompt=consent select_account`는 공식 계정 선택 동작으로 유지한다.
+- `/operator*`에서는 운영자 토큰을 보존하고, 고객 경로에 Supabase 세션이 확립되면 고객 JWT를
+  승격한다. identity 전환·로그아웃은 `active_workspace`를 제거한다. 고객 JWT tenant와 connect
+  쿼리 tenant가 다르면 JWT tenant를 사용하며 값 없는 구조적 mismatch 로그만 남긴다.
 
 ### 지원 채널 (12개)
 | 채널 | 방식 | 환경변수 | 비고 |
