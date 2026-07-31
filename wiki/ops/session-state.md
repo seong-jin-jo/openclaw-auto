@@ -4272,3 +4272,43 @@ C(남은 실화면 6건 검증 후 QA 마감). 별건: 운영자 토큰 `qwer123
 **정확한 다음 액션:** ①항목 1(레포 URL) 산출 수령 → 게이트 → 컨트롤러 재검증 → push·배포
 ②회장이 A/B/C 중 선택하면 그 범위로 진행 ③고객 Studio·발행 화면 2개는 어느 경로로 가든 먼저
 실화면 확인(리스크 최대 지점) ④운영자 토큰 로테이션.
+
+### 항목 1(레포 주소 입력) 완료·배포 + 후속 결함 발견 (2026-07-31)
+
+**산출(Codex, 커밋 3개):** `6d81a885` feat(wiki): normalize GitHub repository addresses /
+`9c97713d` feat(wiki): preview normalized repository location / `10062c14` docs 증거.
+신규 `dashboard/src/lib/github-repo-input.ts`(124줄) + 테스트 2종(116줄), `sync-wiki/route.ts` 연결.
+지원 형식: `https://github.com/owner/name`, `.git` 접미, `git@github.com:owner/name.git`,
+`/tree/<branch>/<path>`·`/blob/...`(브랜치·폴더 자동 추출), `www.` 접두, 기존 `owner/name`.
+
+**품질 게이트 ✅PASS**(소크라마커 23) — 전사 경로를 `codex-repourl.out`으로 올바로 지정하니 정상 판정.
+앞선 8회 FAIL이 컨트롤러의 파일 지정 실수였음이 재확인됐다.
+
+**컨트롤러 독립 재검증(증거등급=테스트됨, 직접 실행):** `tsc --noEmit` exit 0 /
+`vitest run` **124 files 1033 PASS, 10 skipped**(직전 123/1016 대비 +1 파일 +17 테스트) /
+`next build --webpack` **166/166** / `git diff --check` PASS.
+
+**배포:** push 후 run **30617630151 completed success**. 배포 후 `/api/health` 200 `db:up`.
+
+**운영 실측(증거등급=관찰됨, 5개 형식 직접 호출):**
+- `https://gitlab.com/a/b` → **정확히 거부**: "현재 GitHub(github.com) 레포만 지원합니다.
+  GitLab, Bitbucket, 사내 Git 주소는 연결할 수 없…" ✅ 요구대로 동작.
+- GitHub URL 4종(plain / `.git` / `tree/main/wiki` / `owner/name`) → **형식 검증을 통과해 실제 fetch
+  단계까지 진행**됨(과거처럼 "repo 형식은 owner/name"으로 즉시 400되지 않음) ✅ 정규화 작동 확인.
+- 첫 호출은 fetch를 지나 **"공유 AI 생성은 아직 승인되지 않았습니다"**(AI 쿼터 게이트)까지 도달 —
+  즉 .md 수집 자체는 성공했다.
+- **⚠️ 후속 결함(미해결):** 이후 동일 레포 호출들이 "레포 또는 브랜치를 찾지 못했습니다"로 떨어졌다.
+  공개 레포이고 첫 호출은 성공했으므로 **GitHub 미인증 rate limit(60/hr) 소진이 원인으로 강하게
+  의심**된다(추정). 현재 코드는 rate limit(403 + `X-RateLimit-Remaining: 0`)을 "레포/브랜치 없음"으로
+  오진한다 → **rate limit 전용 사유로 분기 필요**(재시도 시각 안내 포함). 다음 작업 후보로 등록.
+
+**회장 요청 13개 현황 갱신:** 항목 1 🔴누락 → ✅**완료·배포**. 이로써 완료 9 / 부분 2(영상·사용량) /
+2차 분리 2(위키 에디터·브랜드 AI 자동채움) + 항목 6(연동 상태 표시) 2차.
+
+**배포 상태:** origin/main 최신 배포 완료(run 30617630151). 이번 세션 배포 3회 전부 success.
+
+**미검증:** 실화면 6건(고객 계정 로그인 필요), Threads 앱 Development/Live, rate limit 오진 재현.
+
+**정확한 다음 액션:** ①회장이 A(2차 계획)/B(영상 개방)/C(실화면 마감) 중 선택 → 그 범위 진행
+②어느 경로든 고객 Studio·발행 화면 2개는 먼저 실화면 확인 ③GitHub rate limit 오진 분기 추가
+④운영자 토큰 `qwer1234!` 로테이션.
