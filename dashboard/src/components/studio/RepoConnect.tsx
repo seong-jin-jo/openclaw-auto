@@ -4,6 +4,7 @@ import { useState } from "react";
 import useSWR from "swr";
 import { fetcher, apiPost, ApiResponseError } from "@/lib/api";
 import { fmtAgo } from "@/lib/format";
+import { normalizeGitHubRepoInput } from "@/lib/github-repo-input";
 import type { Workspace } from "@/store/ui-store";
 
 // 레포 위키 연동 모달. 2모드:
@@ -39,6 +40,30 @@ export function RepoConnect({ workspace, onSynced, onClose }: { workspace: Works
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [tone, setTone] = useState<MessageTone>(null);
+  const normalizedRepo = normalizeGitHubRepoInput(repo);
+
+  const applyDetectedLocation = (
+    result: Extract<ReturnType<typeof normalizeGitHubRepoInput>, { ok: true }>,
+    targetMode = mode,
+  ) => {
+    if (result.ref === undefined) return;
+    setRef(result.ref);
+    const detectedPath = targetMode === "files"
+      ? result.filePath ?? result.folder
+      : result.folder ?? "";
+    if (detectedPath !== undefined) setPath(detectedPath);
+  };
+
+  const changeRepo = (value: string) => {
+    setRepo(value);
+    const result = normalizeGitHubRepoInput(value);
+    if (result.ok) applyDetectedLocation(result);
+  };
+
+  const changeMode = (nextMode: "wiki" | "files") => {
+    setMode(nextMode);
+    if (normalizedRepo.ok) applyDetectedLocation(normalizedRepo, nextMode);
+  };
 
   const saveTokenIfAny = async () => {
     if (token.trim()) {
@@ -49,6 +74,12 @@ export function RepoConnect({ workspace, onSynced, onClose }: { workspace: Works
 
   const sync = async () => {
     if (!repo.trim() || busy) return;
+    const parsedRepo = normalizeGitHubRepoInput(repo);
+    if (!parsedRepo.ok) {
+      setMsg(parsedRepo.error);
+      setTone("error");
+      return;
+    }
     if (mode === "files" && !path.trim()) {
       setMsg("파일 경로를 입력하세요");
       setTone("error");
@@ -61,7 +92,7 @@ export function RepoConnect({ workspace, onSynced, onClose }: { workspace: Works
       await saveTokenIfAny();
       if (mode === "wiki") {
         const r = await apiPost<{ ok?: boolean; count?: number; changed?: number; removed?: number; error?: string }>(
-          "/api/brand/sync-wiki", { tenant_id: workspace.id, repo: repo.trim(), folder: path.trim(), ref: ref.trim() });
+          "/api/brand/sync-wiki", { tenant_id: workspace.id, repo: parsedRepo.repo, folder: path.trim(), ref: ref.trim() });
         if (r?.ok) {
           await Promise.all([mutateWiki(), mutateSrc()]);
           setMsg(`✓ ${r.count}개 문서 인식됨 (변경 ${r.changed}, 삭제 ${r.removed})`);
@@ -73,7 +104,7 @@ export function RepoConnect({ workspace, onSynced, onClose }: { workspace: Works
         }
       } else {
         const r = await apiPost<{ ok?: boolean; skipped?: boolean; reason?: string; error?: string }>(
-          "/api/brand/sync-repo", { tenant_id: workspace.id, repo: repo.trim(), path: path.trim(), ref: ref.trim() || "main" });
+          "/api/brand/sync-repo", { tenant_id: workspace.id, repo: parsedRepo.repo, path: path.trim(), ref: ref.trim() || "main" });
         if (r?.ok) {
           await mutateSrc();
           setMsg(r.skipped ? `변경 없음 (${r.reason})` : "브랜드 톤 갱신됨 ✓");
@@ -93,7 +124,7 @@ export function RepoConnect({ workspace, onSynced, onClose }: { workspace: Works
   };
 
   const tab = (m: "wiki" | "files", label: string) => (
-    <button onClick={() => setMode(m)} className={`flex-1 py-2 text-xs rounded-lg ${mode === m ? "bg-accent text-text" : "bg-surface-2 text-subtle hover:bg-surface-2"}`}>{label}</button>
+    <button onClick={() => changeMode(m)} className={`flex-1 py-2 text-xs rounded-lg ${mode === m ? "bg-accent text-text" : "bg-surface-2 text-subtle hover:bg-surface-2"}`}>{label}</button>
   );
 
   return (
@@ -115,9 +146,27 @@ export function RepoConnect({ workspace, onSynced, onClose }: { workspace: Works
 
         <div className="space-y-3">
           <div>
-            <label className="text-[11px] text-subtle">레포 (owner/name)</label>
-            <input value={repo} onChange={(e) => setRepo(e.target.value)} placeholder="owner/repo"
+            <label className="text-[11px] text-subtle">GitHub 레포 주소 (그대로 붙여넣기)</label>
+            <input value={repo} onChange={(e) => changeRepo(e.target.value)} placeholder="https://github.com/owner/repo"
               className="w-full mt-1 px-3 py-2 text-sm bg-surface border border-border rounded-lg text-muted focus:border-accent outline-none" />
+            {repo.trim() && (
+              normalizedRepo.ok ? (
+                <div className="mt-2 rounded-lg border border-border bg-surface-2 px-3 py-2 text-[11px] text-subtle">
+                  <span className="mr-2">확인된 연결</span>
+                  <span className="text-muted">{normalizedRepo.repo}</span>
+                  <span className="mx-2">·</span>
+                  <span>브랜치 </span>
+                  <span className="text-muted">{normalizedRepo.ref || "자동 감지"}</span>
+                  <span className="mx-2">·</span>
+                  <span>{mode === "files" ? "경로 " : "폴더 "}</span>
+                  <span className="text-muted">
+                    {(mode === "files" ? normalizedRepo.filePath ?? normalizedRepo.folder : normalizedRepo.folder) || "레포 전체"}
+                  </span>
+                </div>
+              ) : (
+                <p className="mt-2 text-[11px] text-danger">{normalizedRepo.error}</p>
+              )
+            )}
           </div>
           <div>
             <label className="text-[11px] text-subtle">{mode === "wiki" ? "위키 폴더 (예: wiki/ · 비우면 레포 전체)" : "파일 경로 (여러 개는 쉼표)"}</label>

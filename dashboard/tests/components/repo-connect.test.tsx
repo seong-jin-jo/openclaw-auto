@@ -44,7 +44,7 @@ describe("RepoConnect wiki sync error banner", () => {
 
   async function submitWikiSync() {
     render(<RepoConnect workspace={workspace} onClose={vi.fn()} />);
-    fireEvent.change(screen.getByPlaceholderText("owner/repo"), {
+    fireEvent.change(screen.getByPlaceholderText("https://github.com/owner/repo"), {
       target: { value: "owner/repo" },
     });
     fireEvent.click(screen.getByRole("button", { name: "📚 위키 폴더 전체 동기화" }));
@@ -76,5 +76,37 @@ describe("RepoConnect wiki sync error banner", () => {
         "네트워크 연결에 실패했습니다. 인터넷 연결을 확인한 뒤 다시 시도하세요.",
       )).toHaveClass("text-danger");
     });
+  });
+
+  it("shows the normalized repository, branch, and folder immediately and submits only sanitized values", async () => {
+    mocks.apiPost.mockResolvedValueOnce({
+      ok: true,
+      count: 1,
+      changed: 1,
+      removed: 0,
+    });
+    render(<RepoConnect workspace={workspace} onClose={vi.fn()} />);
+
+    fireEvent.change(screen.getByPlaceholderText("https://github.com/owner/repo"), {
+      target: {
+        value: "https://user:github_pat_secret@GitHub.com/owner/repo/tree/main/wiki/brand",
+      },
+    });
+
+    expect(screen.getByText("owner/repo")).toBeInTheDocument();
+    expect(screen.getByText("main")).toBeInTheDocument();
+    expect(screen.getByText("wiki/brand")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "📚 위키 폴더 전체 동기화" }));
+
+    await waitFor(() => {
+      expect(mocks.apiPost).toHaveBeenCalledWith("/api/brand/sync-wiki", {
+        tenant_id: "tenant-a",
+        repo: "owner/repo",
+        folder: "wiki/brand",
+        ref: "main",
+      });
+    });
+    expect(JSON.stringify(mocks.apiPost.mock.calls)).not.toContain("github_pat_secret");
   });
 });
