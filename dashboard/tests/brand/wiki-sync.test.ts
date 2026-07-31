@@ -247,6 +247,53 @@ describe("GitHub wiki sync diagnostics and branch handling", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("normalizes a pasted GitHub tree URL and uses its detected branch and folder", async () => {
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url === "https://api.github.com/repos/owner/repo") {
+        return jsonResponse({ default_branch: "master", private: false });
+      }
+      if (url.includes("/git/trees/main?recursive=1")) {
+        return jsonResponse({
+          tree: [
+            { path: "wiki/guide.md", type: "blob" },
+            { path: "docs/outside.md", type: "blob" },
+          ],
+          truncated: false,
+        });
+      }
+      if (url.includes("/contents/wiki/guide.md?ref=main")) {
+        return new Response("# 가이드\n충분히 긴 위키 문서 본문입니다.");
+      }
+      return jsonResponse({ message: "Not Found" }, 404);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { response, body } = await syncWiki({
+      repo: "https://user:github_pat_secret@github.com/owner/repo/tree/main/wiki",
+    });
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.ref).toBe("main");
+    expect(fetchMock.mock.calls.some(([url]) => String(url) === "https://api.github.com/repos/owner/repo")).toBe(true);
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/git/trees/main?recursive=1"))).toBe(true);
+    expect(JSON.stringify(fetchMock.mock.calls)).not.toContain("github_pat_secret");
+  });
+
+  it("rejects a non-GitHub repository URL before any network request", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { response, body } = await syncWiki({
+      repo: "https://gitlab.com/owner/repo",
+    });
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("현재 GitHub");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("maps repository-token decryption rotation failures to a safe 400 without logging the secret", async () => {
     H.decryptError = new Error("decrypt failed with hidden database detail");
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);

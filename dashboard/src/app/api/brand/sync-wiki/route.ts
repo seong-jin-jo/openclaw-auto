@@ -10,6 +10,7 @@ import {
   listWikiFiles,
   extractTitle,
 } from "@/lib/github";
+import { normalizeGitHubRepoInput } from "@/lib/github-repo-input";
 
 // 위키 폴더 전체 인입 → wiki_docs(테넌트별). 생성 시 pg_trgm으로 검색해 사실 기반 콘텐츠.
 // 인입↔생성 분리: 여기선 저장만. 검색·주입은 lib/wiki-retrieve + studio/text.
@@ -34,19 +35,22 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const __b = await request.json().catch(() => ({}));
   const tenant_id = await effectiveTenantId(request, __b.tenant_id);
-  const repo = typeof __b.repo === "string" ? __b.repo.trim() : "";
-  if (!tenant_id || !repo) return Response.json({ error: "tenant_id, repo required" }, { status: 400 });
+  const rawRepo = typeof __b.repo === "string" ? __b.repo : "";
+  if (!tenant_id || !rawRepo.trim()) return Response.json({ error: "tenant_id, repo required" }, { status: 400 });
+  const normalizedRepo = normalizeGitHubRepoInput(rawRepo);
+  if (!normalizedRepo.ok) {
+    return Response.json({ error: normalizedRepo.error }, { status: 400 });
+  }
+  const repo = normalizedRepo.repo;
   if (/\.wiki(?:\.git)?$/i.test(repo)) {
     return Response.json({
       error: "GitHub Wiki(repo.wiki.git)는 지원하지 않습니다. 위키 문서를 일반 레포의 .md 폴더로 옮긴 뒤 owner/name과 폴더 경로를 입력하세요.",
     }, { status: 400 });
   }
-  if (!/^[\w.-]+\/[\w.-]+$/.test(String(repo))) {
-    return Response.json({ error: "repo 형식은 owner/name" }, { status: 400 });
-  }
-  const folder = (__b.folder ? String(__b.folder).trim() : "").replace(/^\/+/, "");
+  const folderInput = __b.folder ? String(__b.folder).trim() : normalizedRepo.folder || "";
+  const folder = folderInput.replace(/^\/+/, "");
   if (folder.includes("..")) return Response.json({ error: "folder에 .. 불가" }, { status: 400 });
-  const requestedRef = (__b.ref && String(__b.ref).trim()) || "";
+  const requestedRef = (__b.ref && String(__b.ref).trim()) || normalizedRepo.ref || "";
   const encryptionKeyConfigured = Boolean(process.env.OSMU_SECRET_KEY);
 
   let token: string | null;
