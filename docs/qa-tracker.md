@@ -2,6 +2,36 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-07-31 위키 GitHub 레포 주소 붙여넣기
+
+**상태 전이:** ❌ NG(`owner/name`만 허용해 브라우저/clone URL 거부) → 🔧 로컬 build
+수정·전체 자동 검증 통과. 운영 배포·실브라우저 재검증 전이라 QA PASS는 아니다.
+
+- **근본 원인:** 서버 내부 canonical 값인 `owner/name`을 사용자 입력 계약에도 그대로 강제했고,
+  UI와 API 앞단에 공용 normalization boundary가 없었다. 이 때문에 GitHub가 공식 제공하는
+  HTTPS/`.git`/SSH 주소와 브라우저 `tree`·`blob` 주소를 모두 잘못된 형식으로 거부했다.
+- **RED 증거:** 신규 focused 3 files에서 **5 failed / 11 passed**. 공용 유틸 부재,
+  tree URL 서버 400, 비-GitHub 사유 미분리, UI 새 라벨·확인값 부재를 재현했다.
+- **🔧 변경:** `github-repo-input.ts`를 UI와 `sync-wiki` 서버가 함께 사용한다. HTTPS,
+  끝 슬래시, `.git`, SSH, 기존 `owner/name`, 대소문자/`www` host를 `owner/name`으로
+  정규화한다. `tree` URL은 첫 경로 세그먼트를 ref, 나머지를 folder로 채우고 `blob` URL은
+  파일 경로와 상위 folder를 구분한다. UI는 정규화 repo·브랜치·폴더를 즉시 표시하고
+  사용자가 수동 교정할 수 있다.
+- **보안 레드팀:** GitLab/Bitbucket/사내 host는 네트워크 호출 전에 한국어 사유로 거부한다.
+  URL userinfo의 사용자명·토큰은 결과와 API 요청에서 폐기하며, `..`, 개행/널, 4096자 초과를
+  경계 테스트로 고정했다. 자격증명 포함 URL 테스트의 fetch/API 호출 직렬화에 원문 토큰 0건이다.
+- **GREEN/전체 자동 증거:** focused **3 files / 30 PASS**. `npx tsc --noEmit` exit 0·출력 0줄,
+  `npx vitest run` **124 files / 1033 passed / 10 skipped**,
+  `npx next build --webpack` Next.js 16.2.2·compile 30.4s·static pages **166/166**,
+  `git diff --check` exit 0.
+- **커밋:** `6d81a885`(공용 정규화·서버), `9c97713d`(UI 즉시 확인). 이 세션은 push·배포를
+  실행하지 않았다. 다만 병렬 세션의 후속 문서 커밋 `b0ea3241`이 `origin/main`에 반영되면서
+  두 커밋도 원격 조상으로 포함된 상태를 종료 직전 관찰했다.
+- **미검증:** 운영 Studio 실제 브라우저 붙여넣기→확인→sync, private GitHub 레포 실 API,
+  슬래시 포함 branch가 섞인 tree URL의 자동 경계 판별, 운영 저장소/DB 반영.
+- **근거:** GitHub 공식 Cloning a repository / About remote repositories /
+  REST Git Trees 문서(HTTPS·`.git`·SSH clone URL, repo 이름의 `.git` 제외, tree ref 계약).
+
 ## 2026-07-31 배포 후 운영자 브라우저 세션 소실
 
 **상태:** 🔧 로컬 build 수정·전체 자동 검증 통과. 운영 push·재배포·실브라우저 재검증 전.

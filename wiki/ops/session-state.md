@@ -3,6 +3,37 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **QA in-progress, ship pending**). QA 증거: `docs/qa-tracker.md`.
 
+### 위키 GitHub 레포 주소 붙여넣기 build (2026-07-31)
+
+**확정 handoff 기준:** 사용자 위임 프롬프트의 “위키 연동에서 GitHub 레포 주소를 그대로
+붙여넣게 하라” 과제를 primary로 사용했다. `pipeline-state.md`는 build approved,
+qa in-progress/ship pending이다. tmux 소켓은 sandbox 권한으로 조회되지 않았지만 시작 tracked
+worktree는 clean이었고, 사용자 명시 과제를 다른 숨은 세션보다 우선했다.
+
+**결과:** `dashboard/src/lib/github-repo-input.ts` 공용 경계를 신설해 UI와
+`/api/brand/sync-wiki`가 같은 정규화/거부 사유를 사용한다. HTTPS, trailing slash, `.git`,
+SSH, 기존 `owner/name`, 대소문자/`www` host를 지원한다. tree/blob URL은 ref와 folder
+기본값을 채운다. RepoConnect는 GitHub 주소 그대로 붙여넣기 라벨·placeholder와 정규화된
+repo/branch/folder 즉시 확인을 추가했다. 기존 폴더 전체/특정 파일, 토큰 저장, 수동 경로·ref,
+오류 배너와 sync 경로는 유지했다.
+
+**tests-first/보안:** focused RED **5 failed / 11 passed** → GREEN **3 files / 30 PASS**.
+비-GitHub host는 네트워크 전에 한국어로 거부하며 URL userinfo는 canonical 결과/API 요청에
+포함하지 않는다. `..`, 개행/널, 4096자 초과와 모든 명시 입력 형식을 회귀 테스트로 고정했다.
+tree URL에서 slash branch와 folder 경계는 문자열만으로 완전 판별할 수 없어 명세대로 첫 세그먼트를
+branch로 해석하고 UI 확인/수동 교정을 종료조건으로 뒀다.
+
+**최종 자동 검증:** `npx tsc --noEmit` exit 0·출력 0줄, `npx vitest run`
+**124 files / 1033 passed / 10 skipped**, `npx next build --webpack` Next.js 16.2.2·
+compile 30.4s·static pages **166/166**, `git diff --check` exit 0.
+커밋은 `6d81a885`·`9c97713d`. 이 세션은 push·배포를 실행하지 않았으나 병렬 세션의
+후속 commit `b0ea3241`이 `origin/main`까지 갱신돼 두 커밋도 원격 조상으로 포함된 상태를
+종료 직전 관찰했다. 병렬 세션 변경은 되돌리지 않았다.
+
+**다음 정확한 액션/미검증:** qa-verifier가 실제 Studio 브라우저에서 HTTPS/tree/blob/SSH
+붙여넣기 즉시 확인과 sync 요청을 관찰하고, private GitHub 레포의 token 포함 원문 비저장 및
+실 API sync를 검증한다. 운영 DB/실브라우저/외부 GitHub 왕복은 미검증이며 qa/ship 잠금을 유지한다.
+
 ### 운영자 브라우저 세션 소실 회귀 조사 (2026-07-31)
 
 **확정 handoff 기준:** 사용자 위임 프롬프트와 부모 컨트롤러 pane
