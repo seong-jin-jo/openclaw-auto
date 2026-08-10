@@ -128,6 +128,15 @@ html, body { background: var(--bg); color: var(--text); }
 }
 .ds-field-control textarea { min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 
+/* Safety net: legacy arbitrary classes cannot render below the v23 12px floor. */
+.text-\[8px\],
+.text-\[9px\],
+.text-\[10px\],
+.text-\[11px\] {
+  font-size: var(--font-caption-size);
+  line-height: var(--font-caption-leading);
+}
+
 .channel-card { cursor: pointer; transition: all 0.2s; }
 .channel-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
 

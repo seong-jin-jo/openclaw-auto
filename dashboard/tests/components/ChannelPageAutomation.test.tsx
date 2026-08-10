@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import React from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChannelPage } from "@/components/channel/ChannelPage";
 import { InstagramPage } from "@/components/channel/InstagramPage";
@@ -113,7 +113,7 @@ describe("ChannelPage customer/operator API boundary", () => {
 
     fireEvent.click(screen.getByRole("checkbox", { name: "Auto Publish" }));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(mocks.apiPost).toHaveBeenCalledWith(
         "/api/channel-settings/youtube",
         { auto_publish: false },
@@ -133,6 +133,35 @@ describe("ChannelPage customer/operator API boundary", () => {
     const keys = mocks.swr.mock.calls.map(([key]) => key);
     expect(keys).toContain("/api/queue");
     expect(keys).not.toContain("/api/design-tools");
+  });
+
+  it("keeps migrated channel tabs wired to shared UI state", () => {
+    render(<ChannelPage channel="threads" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Analytics" }));
+
+    expect(mocks.setSubTab).toHaveBeenCalledWith("analytics");
+  });
+
+  it("keeps the migrated popular-post action wired to its API", async () => {
+    mocks.subTab = "popular";
+    mocks.swr.mockImplementation((key: string | null) => ({
+      data: key === "/api/popular" ? { posts: [] } : undefined,
+      mutate: vi.fn(),
+    }));
+    render(<ChannelPage channel="threads" />);
+
+    fireEvent.change(screen.getByPlaceholderText("인기글 텍스트를 붙여넣기"), {
+      target: { value: "검증할 인기글" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+
+    await waitFor(() => {
+      expect(mocks.apiPost).toHaveBeenCalledWith(
+        "/api/popular/add",
+        { text: "검증할 인기글", url: "", topic: "general" },
+      );
+    });
   });
 
   it("restores Instagram tenant automation settings without global cron requests", async () => {
