@@ -90,7 +90,6 @@ export default function HomePage() {
 
   const sc = (o.statusCounts || {}) as Record<string, number>;
   const cc = (o.channelCounts || {}) as Record<string, number>;
-  const totalPub = sc.published || 0;
 
   // Onboarding check
   const connectedCount = Object.values(cfg).filter((c) => c.connected || c.status === "live").length;
@@ -111,6 +110,34 @@ export default function HomePage() {
   const posts = metricsData?.posts || [];
   const publishedPosts = posts.filter((p) => p.status === "published");
   const sumMetric = (k: keyof PostRow) => publishedPosts.reduce((a, p) => a + (Number(p[k]) || 0), 0);
+
+  // 결함2 수정 — 원인: overview/weekly-summary/activity는 레거시 파일(data/tenants/{id}/queue.json)을
+  // 읽는 Phase-1 미마이그레이션 라우트(CLAUDE.md "레거시 전환 로드맵" 참고). DB로 시드한 이 테넌트는
+  // 그 파일이 없어(readJson 기본값 {posts:[]}) 전부 0/빈배열로 응답하는 반면, /api/metrics는
+  // Postgres published_posts(DB, 실 시드데이터)를 읽어 실데이터를 보여줌 — 같은 "발행 현황"을
+  // 두 소스가 모순되게 병기(R-09). 단순 시드 갭이 아니라 두 저장소가 분리된 구조적 문제라 queue.json에
+  // 중복 데이터를 억지로 채우지 않고, 레거시 소스가 비어있을 때만 DB 실데이터로 폴백해 화면 모순을 없앤다.
+  const weekAgoMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const dbWeekPublished = publishedPosts.filter((p) => new Date(p.published_at).getTime() > weekAgoMs);
+  const legacyQueueEmpty = (sc.published || 0) === 0 && (sc.draft || 0) === 0 && (sc.approved || 0) === 0;
+  const totalPub = sc.published || publishedPosts.length;
+  const weeklyFallbackActive = legacyQueueEmpty && publishedPosts.length > 0;
+  const weeklyView = weeklyFallbackActive
+    ? {
+        published: dbWeekPublished.length,
+        views: dbWeekPublished.reduce((a, p) => a + (p.views || 0), 0),
+        likes: dbWeekPublished.reduce((a, p) => a + (p.likes || 0), 0),
+        replies: dbWeekPublished.reduce((a, p) => a + (p.replies || 0), 0),
+        drafted: 0,
+        engagementRate: weekly?.engagementRate ?? 0,
+        channels: weekly?.channels ?? {},
+      }
+    : weekly;
+  const activityView: Array<Record<string, unknown>> = activity.length > 0
+    ? activity
+    : (legacyQueueEmpty
+        ? publishedPosts.slice(0, 6).map((p) => ({ type: "publish", text: p.text, channel: p.platform, at: p.published_at }))
+        : activity);
   const collectMetrics = async () => {
     if (!activeWorkspace || collecting) return;
     setCollecting(true);
@@ -240,7 +267,7 @@ export default function HomePage() {
         {card("Followers", String(o.followers ?? "-"), o.weekDelta != null ? `${(o.weekDelta as number) >= 0 ? "+" : ""}${o.weekDelta} this week` : "")}
         {card("Viral", String((o.viralPosts as unknown[])?.length || 0), "")}
         {card("Queue", (sc.draft || 0) + (sc.approved || 0), `${sc.draft || 0} drafts`)}
-        {card("Engagement", weekly?.engagementRate ? `${weekly.engagementRate}%` : "-", "this week")}
+        {card("Engagement", weeklyView?.engagementRate ? `${weeklyView.engagementRate}%` : "-", "this week")}
       </div>
 
       {/* Usage (hybrid pricing aligned - ADR-003) */}
@@ -300,43 +327,43 @@ export default function HomePage() {
       )}
 
       {/* Weekly Performance */}
-      {weekly && (
+      {weeklyView && (
         <div className="card p-pad-inset mb-stack-section">
           <h3 className="text-caption font-medium text-subtle uppercase tracking-wide mb-pad-inset">This Week</h3>
           <div className="grid grid-cols-2 md:grid-cols-6 gap-pad-inset">
             <div>
               <p className="text-caption text-subtle">Published</p>
-              <p className="text-subheading font-bold text-text">{String(weekly.published)}</p>
+              <p className="text-subheading font-bold text-text">{String(weeklyView.published)}</p>
             </div>
             <div>
               <p className="text-caption text-subtle">Views</p>
-              <p className="text-subheading font-bold text-text">{(weekly.views as number)?.toLocaleString?.() || "0"}</p>
+              <p className="text-subheading font-bold text-text">{(weeklyView.views as number)?.toLocaleString?.() || "0"}</p>
             </div>
             <div>
               <p className="text-caption text-subtle">Likes</p>
-              <p className="text-subheading font-bold text-text">{String(weekly.likes)}</p>
+              <p className="text-subheading font-bold text-text">{String(weeklyView.likes)}</p>
             </div>
             <div>
               <p className="text-caption text-subtle">Replies</p>
-              <p className="text-subheading font-bold text-text">{String(weekly.replies)}</p>
+              <p className="text-subheading font-bold text-text">{String(weeklyView.replies)}</p>
             </div>
             <div>
               <p className="text-caption text-subtle">Eng. Rate</p>
-              <p className={`text-subheading font-bold ${(weekly.engagementRate as number) > 3 ? "text-green-400" : "text-text"}`}>
-                {String(weekly.engagementRate)}%
+              <p className={`text-subheading font-bold ${(weeklyView.engagementRate as number) > 3 ? "text-green-400" : "text-text"}`}>
+                {String(weeklyView.engagementRate)}%
               </p>
             </div>
             <div>
               <p className="text-caption text-subtle">Drafts</p>
-              <p className="text-subheading font-bold text-subtle">{String(weekly.drafted)}</p>
+              <p className="text-subheading font-bold text-subtle">{String(weeklyView.drafted)}</p>
             </div>
           </div>
-          {(weekly.published as number) > 0 ? (
+          {(weeklyView.published as number) > 0 ? (
             <div className="mt-pad-inset pt-stack border-t border-border/50">
               <div className="flex items-center gap-stack-section text-caption">
                 <span className="text-subtle">Channel breakdown:</span>
-                <span className="text-accent">Threads: {(weekly.channels as Record<string, number>)?.threads || 0}</span>
-                <span className="text-muted">X: {(weekly.channels as Record<string, number>)?.x || 0}</span>
+                <span className="text-accent">Threads: {(weeklyView.channels as Record<string, number>)?.threads || 0}</span>
+                <span className="text-muted">X: {(weeklyView.channels as Record<string, number>)?.x || 0}</span>
               </div>
             </div>
           ) : (
@@ -352,8 +379,8 @@ export default function HomePage() {
         <div className="card p-pad-inset">
           <h3 className="text-caption font-medium text-subtle uppercase tracking-wide mb-stack">Recent Activity</h3>
           <div className="space-y-stack">
-            {activity.length > 0
-              ? activity.slice(0, 6).map((e, i) => {
+            {activityView.length > 0
+              ? activityView.slice(0, 6).map((e, i) => {
                   const icons: Record<string, string> = {
                     publish: "bg-green-900/40 text-green-400",
                     draft: "bg-accent-soft text-accent",

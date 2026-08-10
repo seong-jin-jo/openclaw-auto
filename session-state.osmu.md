@@ -3,6 +3,53 @@
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
 > 단계 진실원: 루트 `pipeline-state.md`(현재 **plan in-progress, 승인 단계 0**). 반려·QA 증거: `docs/qa-tracker.md`.
 
+## 2026-08 현재 노트 (6) — R-02 실측 완료: 진짜 결함 3건 확인 → 수정 착수
+- **qa 2차 실측(관찰됨, [Sonnet], browse+curl+코드):** 고객 컨텍스트 진입법 확보(운영자 Bearer→POST /api/tenant-tokens로 osmu_ 토큰 발급→localStorage 주입). R-02 여정 대부분 화면은 뜨나 **진짜 결함 3건**:
+  1. **콘텐츠 생성 실패 조용히 죽음(버그):** studio/page.tsx genText 403→runOSMU catch가 lastError 안 걸어 화면 무반응. → code-builder(Sonnet) 위임 수정 중(agent ab25e911).
+  2. **채널 상태 화면 모순(구조, R-06 충돌):** Admin=channel_accounts "연결4", 고객=channel-config(레거시) "미연결". open-decisions 등록. tech-architect 확인 필요.
+  3. **홈 중복 패널:** 성과표(실데이터) vs 운영현황/THIS WEEK(0) 모순 병기(R-09 실물). → code-builder 위임(시드갭이면 판정만).
+- **여전히 막힌 것:** R-02-a 회원가입(Google OAuth 500, Supabase env 미설정 — 별도). R-02-e/f 수정·발행 = seed draft 본문 null이라 미검증(본문 채운 draft 재시드 필요).
+- **다음 액션:** code-builder 결과 수신→verify→브라우저 확인→커밋. 채널 이원화(결함2)는 tech-architect 조사. draft 본문 재시드로 e/f 검증.
+- **verify(qa):** FAIL(WebSearch 0, 로컬실측 오적용) → ⛔라벨 채택.
+
+## 2026-08 현재 노트 (5) — ★ 실측 환경 자립 구축 완료(회장 정보 없이 직접 뚫음)
+- **회장 지시:** "니가 알아서 접근해" → 로그인/DB 정보 회장께 묻지 말고 스스로 로컬 환경 구축.
+- **한 것(직접 실행):** ①Docker 데몬 기동 ②Postgres 16 컨테이너 `osmu-pg`를 127.0.0.1:55432 기동(DATABASE_URL 그 포트) ③db/schema.sql+rls.sql 적용 ④`auth.users` 스키마 없어서(Supabase 전용) 최소 스키마 직접 생성 + 데모유저 ⑤tenant 모노스튜디오 INSERT(seed는 UPDATE전제라 안 들어갔던 것) + seed-local-demo.sql 재주입.
+- **결과(관찰됨):** tenant 1·채널 4·발행 5·성과 28·위키 3·유저 1. `/api/operator/customers` 500→**200 실데이터**. `/api/me` = isOperator:true, tenant:null.
+- **재현(다음 세션):** docker start osmu-pg → `OSMU_AUTH_OPTIONAL=1 PORT=3456 npm run dev`(cwd=dashboard) → localhost:3456. DB크레덴셜=.env.local DATABASE_URL. auth.users는 컨테이너 재생성 시 재적용 필요(위 SQL).
+- **다음 액션:** qa-verifier 재개(SendMessage 완료) — 고객 tenant 컨텍스트 접근법 확인 후 R-02 여정 browse 실측. 결과 오면 미작동만 code-builder(Codex) 위임.
+- **블로커 잔여:** 고객 화면 tenant 컨텍스트 진입법(쿼리/세션) 미확인 — qa가 proxy.ts에서 확인 중.
+
+## 2026-08 현재 노트 (4) — ★★ "1달 헤맨" 근본 원인 확정: 로컬 실행환경 미연결로 실측 자체가 불가였음
+- **qa-verifier 실측 결과(관찰됨, [Sonnet]):** R-02 고객여정 1~8단계를 브라우저로 검증 **물리적 불가**. 이유 2개 = ①로컬 DB `127.0.0.1:55432` 리스너 없음(SSH 튜널 미기동, ECONNREFUSED) ②`.env.local`에 Supabase 키 0개 → Google OAuth 500. **코드 결함 아님, 환경 셋업 블로커.**
+- **내 추가 탐색:** 로컬 55432 튜널 기동 스크립트 없음. 프로덕션 `openclaw.sj-onpremise-cloudflare-tunnel.cloud` = **살아있음(200)**. 데모 계정 정보 불명. operator token 복구 스크립트(recover-operator-token.sh)는 존재 = prod admin 부분 실측 여지.
+- **★ 진단:** 감사가 "누락"이라 한 코드는 대부분 실재(images 복사/삭제·signup redirect 확인). 진짜 문제는 **로컬에서 앱을 로그인 상태로 띄울 환경이 없어 R-02 여정을 아무도 실제로 눌러본 적이 없다**는 것. 그래서 목업만 v11~v23 반복. 실행환경이 검증의 전제인데 그게 빠져 있었다.
+- **정상 확인(재창조 금지):** proxy.ts 인증 미들웨어 견고(DB 미도달 시 503 fail-closed), signup redirect 정상, 비로그인 민감정보 유출 없음. Admin 레이아웃 정상 렌더.
+- **미작동 확인:** operator/customers = API 500 에러와 "가입자 0명" 빈상태를 구분 못 하는 표시 결함 1건(스크린샷 있음).
+- **회장 판단 필요(실측 재개 조건):** 로그인된 앱 접근 경로 = (a)프로덕션에서 회장 로그인 후 인계[추천, 실데이터] (b)프로덕션 데모계정 정보 (c)로컬 열기용 Supabase anon key + on-prem SSH 튜널 정보. 셋 중 하나 없이는 R-02 실측 불가.
+- **verify(qa):** FAIL(WebSearch 벤치마크 0) — 로컬 실측 임무에 경쟁조사 게이트 오적용. 결과는 코드·네트워크 증거 기반이라 채택, ⛔ 라벨 보고.
+
+## 2026-08 현재 노트 (3) — 실제 앱 기동 + R-02 여정 실측 위임 착수
+- **한 것:** dev 서버 기동(localhost:3456, `OSMU_AUTH_OPTIONAL=1` 인증우회 시도, 로그=/tmp/osmu-dev.log). 전 라우트 200·signup 307 정상 확인(감사 오판 재확인). qa-verifier에 R-02 여정(가입→OAuth→키저장→확인→생성→수정→발행→성과→Settings→Admin) 브라우저 실측 위임(코드수정 금지, 미작동 목록 산출).
+- **회장 요청 정본:** docs/requests/2026-08-08_2026-08-10-chairman-requests.md. R-13 = 자율진행 위임("codex 시키고 쭉 진행, 비가역 아니면"). R-02 = 전체 여정 실작동이 핵심.
+- **다음 액션:** qa-verifier 실측 결과 수신 → verify-agent-quality.sh(qa) → 미작동 목록만 code-builder(Codex 우선/없으면 Sonnet) 위임, 건별 브라우저 확인. 정상 작동분은 재창조 금지(건드리지 않음).
+- **블로커:** claude-in-chrome 불안정 → browse로 우회. 로그인 Google-only라 OSMU_AUTH_OPTIONAL 우회 실효 여부는 qa-verifier가 확인 중. DB 원격 가능성 → seed 주입 금지.
+- **검증 상태:** 제품 코드 변경 0(기동·실측 조사만). 서버 기동 200 관찰됨.
+
+## 2026-08 현재 노트 (2) — ★ 감사 재검증 발견: worklist 허수 다수, 실제 앱 실측으로 전환
+- **한 것:** 우선순위 1 위임 착수 전 실제 코드 샘플 3화면 실측. #6 images = URL복사/삭제 이미 완전구현(handleCopyUrl/handleDelete), #9 signup = /login redirect 정상. → v23-codex-crosscheck의 "누락·재창조 10개"는 프로토타입 기준이라 실제 코드엔 이미 있는 게 다수(허수).
+- **판단:** worklist 10개를 그대로 code-builder 위임하면 이미 되는 걸 재창조해 파괴. 금지. worklist-real-code.md 상단에 이 발견 박음.
+- **다음 액션(확정 방향):** 실제 앱 로컬 기동(next dev :3456 + scripts/seed-local-demo.sql, .env.local 존재) → 브라우저로 회장 요청 R-01~R-13(docs/requests/2026-08-08_2026-08-10-chairman-requests.md) 기준 "실제로 안 되는 것"만 실측 → 그 목록만 code-builder(Codex 우선/없으면 Sonnet) 위임, 건별 브라우저 확인.
+- **블로커:** claude-in-chrome 탭 3회 소멸(불안정) → 로컬 검증은 gstack browse로 우회 예정. 회장께 방향 확인 청함(무응답 시 이 방향 착수).
+- **검증 상태:** 이번 턴 제품 코드 변경 0(실측·문서만). 우선순위 0(공통부품 Button/Stack/Section + 3화면 마이그레이션)은 커밋됨(a40f1185·5d36654f·1adbc114), 브라우저 검증은 미확인.
+
+## 2026-08 현재 노트 — Claude 세션이 낡은 컨텍스트로 깨어남, 회장 확인 대기
+- 이 Claude 대화의 기억은 2026-07-28 SNS 계정 세팅에서 멈춰 있었다. /compact이 로그인 만료로 실패해 낡은 컨텍스트가 남았고, 그 상태로 SNS 세팅을 이어가려다 회장이 "디자인 프로토타입 중 아니었냐"고 지적(정확함).
+- 실제 레포 트랙은 v23 디자인 시스템/프로토타입이다(최근 커밋 전부 v23, session-state.md 최상단 2026-08-10 재창조 금지 게이트). 낡은 기억으로 재창조하지 않는다.
+- 회장께 확인 중: (1) 이어갈 게 v23 디자인이 맞는지 (2) 복원 기준 소스(prototype 화면 / session-state 최신 / tmux pane) (3) SNS 세팅 트랙 보류 여부.
+- 보존 상태: SNS 세팅 재료는 scratchpad/osmu-sns-setup-sheet.html + ~/.sj-agent-harness/secrets/osmu-sns.env(권한 600)에 남아 있어 언제든 재개 가능.
+- 다음 액션: 회장이 지목한 소스로 v23 실상태 정독 후 그 지점에서 이어감.
+
 ## 2026-08-06 handoff — Marketing Agent v7 plan 재기획 진행
 - **현재 트랙/기준:** 사용자의 최신 지시와 `openclaw-auto:0.0` pane을 확인했으며 둘은 같은 작업이다. 제품 목적은
   `브랜드 근거 기반 마케팅 콘텐츠 생성 → 플랫폼별 변환·검수 → 예약/발행·복구 → 성과 측정·다음 생성 환류`다.

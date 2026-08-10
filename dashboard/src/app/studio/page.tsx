@@ -6,6 +6,7 @@ import {
   fetcher,
   apiPost,
   isExternalPublishPersistenceError,
+  ApiResponseError,
   type ExternalPublishPersistenceFailure,
 } from "@/lib/api";
 import { useToast } from "@/components/layout/Toast";
@@ -27,6 +28,18 @@ import { Stack } from "@/components/shared/Stack";
 const PUBLISH_SUPPORTED = new Set<PreviewPlatform>(["threads", "x", "facebook", "instagram"]);
 const ACCOUNT_SELECTABLE = PUBLISH_SUPPORTED;
 interface AccountOption { id: string; label: string; is_default: boolean }
+
+// apiPost는 non-2xx에서 throw한다(ApiResponseError) — 생성 함수들이 `r?.ok` 체크만 믿고
+// try/catch를 안 하면 403(shared_ai_approval_required) 같은 실패가 콘솔에만 찍히고 화면엔
+// 조용히 죽는다(결함 실측: /studio 생성 실패 시 lastError/toast 미표시). 여기서 공통 추출.
+function extractApiErrorMessage(e: unknown, fallback: string): string {
+  if (e instanceof ApiResponseError) {
+    const payload = e.payload as { error?: string } | null;
+    return payload?.error || e.message || fallback;
+  }
+  if (e instanceof Error) return e.message || fallback;
+  return fallback;
+}
 
 interface TextVariants {
   threads?: string; facebook?: string; x?: string;
@@ -192,11 +205,16 @@ export default function StudioPage() {
 
   async function genText() {
     setLastError(null);
-    const r = await apiPost<TextVariants & { ok?: boolean; error?: string }>("/api/studio/text", { idea, guide, tenant_id: activeWorkspace?.id });
-    if (!r?.ok) { const msg = r?.error || "텍스트 생성 실패"; setLastError(`텍스트: ${msg}`); showToast(msg, "error"); return null; }
-    // API가 성공을 확인한 뒤에만 발행 — 클릭 시점 아님.
-    trackEvent({ name: "content_generate", params: { kind: "text" } });
-    setText(r); return r;
+    try {
+      const r = await apiPost<TextVariants & { ok?: boolean; error?: string }>("/api/studio/text", { idea, guide, tenant_id: activeWorkspace?.id });
+      if (!r?.ok) { const msg = r?.error || "텍스트 생성 실패"; setLastError(`텍스트: ${msg}`); showToast(msg, "error"); return null; }
+      // API가 성공을 확인한 뒤에만 발행 — 클릭 시점 아님.
+      trackEvent({ name: "content_generate", params: { kind: "text" } });
+      setText(r); return r;
+    } catch (e) {
+      const msg = extractApiErrorMessage(e, "텍스트 생성 실패");
+      setLastError(`텍스트: ${msg}`); showToast(msg, "error"); return null;
+    }
   }
   async function genImage(prompt: string) {
     if (!canGenerate) {
@@ -204,9 +222,14 @@ export default function StudioPage() {
       return null;
     }
     setLastError(null);
-    const r = await apiPost<ImgResult & { ok?: boolean; error?: string; nsfw?: boolean; credits?: boolean }>("/api/higgsfield/image", { prompt, aspectRatio: "9:16", label: idea });
-    if (!r?.ok) { const msg = r?.credits ? "Higgsfield 크레딧 부족" : r?.nsfw ? "Higgsfield NSFW 차단" : (r?.error || "이미지 실패"); setLastError(`이미지: ${msg}`); showToast(msg, "error"); return null; }
-    setImg(r); mutateAcct(); return r;
+    try {
+      const r = await apiPost<ImgResult & { ok?: boolean; error?: string; nsfw?: boolean; credits?: boolean }>("/api/higgsfield/image", { prompt, aspectRatio: "9:16", label: idea });
+      if (!r?.ok) { const msg = r?.credits ? "Higgsfield 크레딧 부족" : r?.nsfw ? "Higgsfield NSFW 차단" : (r?.error || "이미지 실패"); setLastError(`이미지: ${msg}`); showToast(msg, "error"); return null; }
+      setImg(r); mutateAcct(); return r;
+    } catch (e) {
+      const msg = extractApiErrorMessage(e, "이미지 생성 실패");
+      setLastError(`이미지: ${msg}`); showToast(msg, "error"); return null;
+    }
   }
   async function genVideo(localPath: string) {
     if (!canGenerate) {
@@ -216,9 +239,14 @@ export default function StudioPage() {
     setLastError(null);
     const s = text?.shorts;
     const narration = [s?.hook, s?.body, s?.cta].filter(Boolean).join(". ");
-    const r = await apiPost<VidResult & { ok?: boolean; error?: string; nsfw?: boolean; credits?: boolean }>("/api/higgsfield/video", { localPath, prompt: "subtle idle motion, gentle glow, fixed camera", model: videoModel, narration, label: idea });
-    if (!r?.ok) { const msg = r?.nsfw ? "Higgsfield NSFW 차단" : r?.credits ? "Higgsfield 크레딧 부족" : (r?.error || "영상 실패"); setLastError(`영상: ${msg}`); showToast(msg, "error"); return null; }
-    setVid(r); mutateAcct(); return r;
+    try {
+      const r = await apiPost<VidResult & { ok?: boolean; error?: string; nsfw?: boolean; credits?: boolean }>("/api/higgsfield/video", { localPath, prompt: "subtle idle motion, gentle glow, fixed camera", model: videoModel, narration, label: idea });
+      if (!r?.ok) { const msg = r?.nsfw ? "Higgsfield NSFW 차단" : r?.credits ? "Higgsfield 크레딧 부족" : (r?.error || "영상 실패"); setLastError(`영상: ${msg}`); showToast(msg, "error"); return null; }
+      setVid(r); mutateAcct(); return r;
+    } catch (e) {
+      const msg = extractApiErrorMessage(e, "영상 생성 실패");
+      setLastError(`영상: ${msg}`); showToast(msg, "error"); return null;
+    }
   }
   async function runOSMU() {
     if (!idea.trim()) { showToast("글감을 입력하세요", "error"); return; }
