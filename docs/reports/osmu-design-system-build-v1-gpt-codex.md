@@ -69,7 +69,7 @@ v23 디자인 시스템과 3개 핵심 화면 마이그레이션은 코드·단�
 
 ## 6. Git diff 요약
 
-- 제품 코드·테스트: 66 files, 1,097 insertions, 688 deletions(작업 시작 commit 대비).
+- 제품 코드·테스트: 67 files. 구현현황·exit report까지 포함하면 총 69 files, 1,274 insertions, 688 deletions(작업 시작 commit 대비).
 - 중간 커밋: `a40f1185` 공통부품, `5d36654f` 12px 하한, `1adbc114` 3화면 마이그레이션.
 - 시크릿·API·DB·route·배포 변경: 0.
 
