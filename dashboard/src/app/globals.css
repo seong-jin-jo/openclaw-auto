@@ -20,6 +20,31 @@
   --warning:#D97706;
   --danger: #DC2626;
   --shadow: 0 4px 12px rgba(16,24,40,0.08);
+
+  /* DESIGN.md v23: spacing uses only 4 / 8 / 12 / 16 / 24 / 32px. */
+  --space-micro: 4px;
+  --stack-tight: 8px;
+  --stack: 12px;
+  --pad-inset: 16px;
+  --stack-section: 24px;
+  --space-region: 32px;
+  --control-touch: 44px;
+
+  /* DESIGN.md v23: seven paired type steps; caption is the 12px floor. */
+  --font-caption-size: 12px;
+  --font-caption-leading: 18px;
+  --font-body-sm-size: 13px;
+  --font-body-sm-leading: 20px;
+  --font-body-size: 15px;
+  --font-body-leading: 24px;
+  --font-lead-size: 17px;
+  --font-lead-leading: 26px;
+  --font-subheading-size: 20px;
+  --font-subheading-leading: 28px;
+  --font-heading-size: 24px;
+  --font-heading-leading: 32px;
+  --font-display-size: 30px;
+  --font-display-leading: 36px;
 }
 
 [data-theme="dark"] {
@@ -32,7 +57,7 @@
   --text-subtle:#71717A;
   --accent:     #3B82F6;
   --accent-hover:#60A5FA;
-  --accent-fg:  #FFFFFF;
+  --accent-fg:  #0A0A0B;
   --accent-soft:#172554;
   --success:#22C55E;
   --warning:#F59E0B;
@@ -56,6 +81,29 @@
   --color-success:      var(--success);
   --color-warning:      var(--warning);
   --color-danger:       var(--danger);
+
+  --spacing-micro:         var(--space-micro);
+  --spacing-stack-tight:   var(--stack-tight);
+  --spacing-stack:         var(--stack);
+  --spacing-pad-inset:     var(--pad-inset);
+  --spacing-stack-section: var(--stack-section);
+  --spacing-region:        var(--space-region);
+  --spacing-control-touch: var(--control-touch);
+
+  --text-caption:                  var(--font-caption-size);
+  --text-caption--line-height:     var(--font-caption-leading);
+  --text-body-sm:                  var(--font-body-sm-size);
+  --text-body-sm--line-height:     var(--font-body-sm-leading);
+  --text-body:                     var(--font-body-size);
+  --text-body--line-height:        var(--font-body-leading);
+  --text-lead:                     var(--font-lead-size);
+  --text-lead--line-height:        var(--font-lead-leading);
+  --text-subheading:               var(--font-subheading-size);
+  --text-subheading--line-height:  var(--font-subheading-leading);
+  --text-heading:                  var(--font-heading-size);
+  --text-heading--line-height:     var(--font-heading-leading);
+  --text-display:                  var(--font-display-size);
+  --text-display--line-height:     var(--font-display-leading);
 }
 
 html, body { background: var(--bg); color: var(--text); }
@@ -64,8 +112,21 @@ html, body { background: var(--bg); color: var(--text); }
 .sidebar-item:hover { background: var(--surface-2); }
 .sidebar-item.active { background: var(--accent-soft); color: var(--text); border-right: 2px solid var(--accent); }
 
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-wrap: anywhere; }
 .card:hover { border-color: var(--text-subtle); }
+
+/* Shared-component overflow contract from DESIGN.md v23. */
+.ds-label { min-width: max-content; flex: 0 0 auto; white-space: nowrap; }
+.ds-copy { min-width: 0; overflow-wrap: anywhere; }
+.ds-user-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-field-control :is(input:not([type="checkbox"]):not([type="radio"]), select) {
+  min-height: var(--control-touch);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-field-control textarea { min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 
 .channel-card { cursor: pointer; transition: all 0.2s; }
 .channel-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }

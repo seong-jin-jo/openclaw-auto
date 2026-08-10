@@ -2,8 +2,8 @@
 
 export function EmptyState({ message }: { message: string }) {
   return (
-    <div className="text-center py-12 text-subtle">
-      <p className="text-sm">{message}</p>
+    <div className="px-pad-inset py-region text-center text-subtle">
+      <p className="ds-copy text-body">{message}</p>
     </div>
   );
 }
