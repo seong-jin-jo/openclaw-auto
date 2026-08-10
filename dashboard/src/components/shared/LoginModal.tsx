@@ -33,7 +33,7 @@ export function LoginModal() {
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
       <div className="card p-6 w-80">
         <h2 className="text-sm font-medium text-text mb-1">Login Required</h2>
-        <p className="text-[10px] text-subtle mb-3">이 작업을 수행하려면 로그인이 필요합니다.</p>
+        <p className="text-caption text-subtle mb-3">이 작업을 수행하려면 로그인이 필요합니다.</p>
         <input
           type="password"
           value={token}

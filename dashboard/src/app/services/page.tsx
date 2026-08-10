@@ -126,7 +126,7 @@ export default function ServicesPage() {
                 <span className="flex-1 min-w-0">
                   <span className="block text-sm truncate">{t.name}</span>
                   <span
-                    className={`block text-[10px] mt-0.5 tracking-wider ${STATUS_COLOR[t.status || "pending"] || "text-subtle"}`}
+                    className={`block text-caption mt-0.5 tracking-wider ${STATUS_COLOR[t.status || "pending"] || "text-subtle"}`}
                   >
                     {STATUS_LABEL[t.status || ""] || t.status || ""}
                   </span>
@@ -206,7 +206,7 @@ docker-compose -f docker-compose.postagi-4tenants.yml up -d openclaw-gateway-${s
         <h2 className="text-emerald-400 mb-4 text-base">새 서비스 추가</h2>
         <form onSubmit={submit} className="space-y-3">
           <div>
-            <label className="block text-[10px] uppercase tracking-wider text-subtle mb-1">
+            <label className="block text-caption uppercase tracking-wider text-subtle mb-1">
               slug (영문 소문자)
             </label>
             <input
@@ -219,7 +219,7 @@ docker-compose -f docker-compose.postagi-4tenants.yml up -d openclaw-gateway-${s
             />
           </div>
           <div>
-            <label className="block text-[10px] uppercase tracking-wider text-subtle mb-1">
+            <label className="block text-caption uppercase tracking-wider text-subtle mb-1">
               표시명
             </label>
             <input
@@ -232,7 +232,7 @@ docker-compose -f docker-compose.postagi-4tenants.yml up -d openclaw-gateway-${s
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] uppercase tracking-wider text-subtle mb-1">
+              <label className="block text-caption uppercase tracking-wider text-subtle mb-1">
                 이모지
               </label>
               <input
@@ -244,7 +244,7 @@ docker-compose -f docker-compose.postagi-4tenants.yml up -d openclaw-gateway-${s
               />
             </div>
             <div>
-              <label className="block text-[10px] uppercase tracking-wider text-subtle mb-1">
+              <label className="block text-caption uppercase tracking-wider text-subtle mb-1">
                 주 채널
               </label>
               <select
@@ -259,7 +259,7 @@ docker-compose -f docker-compose.postagi-4tenants.yml up -d openclaw-gateway-${s
             </div>
           </div>
           <div>
-            <label className="block text-[10px] uppercase tracking-wider text-subtle mb-1">
+            <label className="block text-caption uppercase tracking-wider text-subtle mb-1">
               dashboard 도메인
             </label>
             <input

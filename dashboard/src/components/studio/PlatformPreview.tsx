@@ -50,7 +50,7 @@ function Frame({ p, label, w, children, headerRight, characterCount }: {
           {characterCount && (
             <span
               data-testid={`character-count-${p}`}
-              className={`text-[10px] ${characterCount.current > characterCount.limit ? "text-danger" : "text-subtle"}`}
+              className={`text-caption ${characterCount.current > characterCount.limit ? "text-danger" : "text-subtle"}`}
             >
               {characterCount.current}/{characterCount.limit}
             </span>
@@ -86,7 +86,7 @@ function IgCarousel({ cards }: { cards: { type: "img" | "text"; v: string }[] })
       {n > 1 && <>
         <button onClick={(e) => { e.stopPropagation(); setI((x) => (x - 1 + n) % n); }} className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 text-text">‹</button>
         <button onClick={(e) => { e.stopPropagation(); setI((x) => (x + 1) % n); }} className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 text-text">›</button>
-        <span className="absolute top-3 right-3 text-[11px] text-text bg-black/50 px-2 py-0.5 rounded-full">{i + 1}/{n}</span>
+        <span className="absolute top-3 right-3 text-caption text-text bg-black/50 px-2 py-0.5 rounded-full">{i + 1}/{n}</span>
         <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">{cards.map((_, k) => <span key={k} className={`w-1.5 h-1.5 rounded-full ${k === i ? "bg-blue-500" : "bg-white/50"}`} />)}</div>
       </>}
     </div>
@@ -96,11 +96,11 @@ function IgCarousel({ cards }: { cards: { type: "img" | "text"; v: string }[] })
 function VideoRail({ kind }: { kind: "shorts" | "reels" | "tiktok" }) {
   return (
     <div className="absolute right-2 bottom-24 flex flex-col items-center gap-4 text-text drop-shadow z-10">
-      {kind === "tiktok" && <div className="relative mb-1"><Av s={36} /><span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-[#fe2c55] grid place-items-center text-[10px]">+</span></div>}
-      <div className="flex flex-col items-center">{P(I.heart, true)}<span className="text-[10px] mt-0.5">12.4K</span></div>
-      <div className="flex flex-col items-center">{P(I.chat)}<span className="text-[10px] mt-0.5">318</span></div>
-      {kind === "tiktok" ? <div className="flex flex-col items-center">{P(I.bookmark)}<span className="text-[10px] mt-0.5">1.2K</span></div>
-        : <div className="flex flex-col items-center">{P(I.send)}<span className="text-[10px] mt-0.5">공유</span></div>}
+      {kind === "tiktok" && <div className="relative mb-1"><Av s={36} /><span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-[#fe2c55] grid place-items-center text-caption">+</span></div>}
+      <div className="flex flex-col items-center">{P(I.heart, true)}<span className="text-caption mt-0.5">12.4K</span></div>
+      <div className="flex flex-col items-center">{P(I.chat)}<span className="text-caption mt-0.5">318</span></div>
+      {kind === "tiktok" ? <div className="flex flex-col items-center">{P(I.bookmark)}<span className="text-caption mt-0.5">1.2K</span></div>
+        : <div className="flex flex-col items-center">{P(I.send)}<span className="text-caption mt-0.5">공유</span></div>}
     </div>
   );
 }
@@ -193,7 +193,7 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
           <div className="absolute left-3 right-12 bottom-3 text-text">
             <div className="text-sm font-bold">@{handle}</div>
             <div className="text-[12px] leading-snug line-clamp-2 opacity-95">{cap}</div>
-            {k === "tiktok" && <div className="text-[11px] mt-1 opacity-90">🎵 original sound - {handle}</div>}
+            {k === "tiktok" && <div className="text-caption mt-1 opacity-90">🎵 original sound - {handle}</div>}
           </div>
         </>}
       </div>

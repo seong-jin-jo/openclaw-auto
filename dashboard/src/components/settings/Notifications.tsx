@@ -88,7 +88,7 @@ export function Notifications() {
               <select
                 value={v.channel}
                 onChange={(e) => setOverrides((prev) => ({ ...prev, [evt]: { ...v, channel: e.target.value } }))}
-                className="bg-surface border border-border rounded px-2 py-1 text-[10px] text-muted"
+                className="bg-surface border border-border rounded px-2 py-1 text-caption text-muted"
               >
                 <option value="">Off</option>
                 {MESSAGING_OPTIONS.map((ch) => (

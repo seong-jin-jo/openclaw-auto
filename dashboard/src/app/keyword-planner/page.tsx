@@ -107,7 +107,7 @@ export default function KeywordPlannerPage() {
             <div className="card overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border text-subtle text-[10px]">
+                  <tr className="border-b border-border text-subtle text-caption">
                     <th className="text-left px-4 py-2">키워드</th>
                     <th className="text-right px-4 py-2">PC</th>
                     <th className="text-right px-4 py-2">모바일</th>
@@ -126,11 +126,11 @@ export default function KeywordPlannerPage() {
                       <td className={`px-4 py-2 text-right text-xs ${compColor(r.competition)}`}>{r.competition || "-"}</td>
                       <td className="px-4 py-2 text-right">
                         {bankSet.has(r.keyword) ? (
-                          <span className="text-[10px] text-green-400">저장됨</span>
+                          <span className="text-caption text-green-400">저장됨</span>
                         ) : (
                           <button
                             onClick={() => handleAddToBank(r.keyword)}
-                            className="text-[10px] text-cyan-400 hover:text-cyan-300"
+                            className="text-caption text-cyan-400 hover:text-cyan-300"
                           >+ Bank</button>
                         )}
                       </td>
@@ -154,7 +154,7 @@ export default function KeywordPlannerPage() {
               {bank.filter((b) => !b.used).slice(0, 20).map((b) => (
                 <div key={b.keyword} className="card p-2 flex items-center justify-between">
                   <span className="text-xs text-muted">{b.keyword}</span>
-                  <span className="text-[10px] text-subtle">{b.source}</span>
+                  <span className="text-caption text-subtle">{b.source}</span>
                 </div>
               ))}
             </div>

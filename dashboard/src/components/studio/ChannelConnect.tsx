@@ -106,7 +106,7 @@ export function ChannelConnect({ workspace, onClose }: { workspace: Workspace; o
                   <button
                     type="button"
                     onClick={() => setShowManualCreds((v) => !v)}
-                    className="mt-2 text-[11px] text-accent"
+                    className="mt-2 text-caption text-accent"
                   >
                     {showManualCreds ? "수동 입력 닫기" : "고급: 토큰 직접 입력"}
                   </button>

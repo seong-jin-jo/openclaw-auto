@@ -82,7 +82,7 @@ export function TenantTokensSettings() {
 
       {issued && (
         <div className="mb-4 p-3 rounded-lg bg-green-900/15 border border-green-800/40">
-          <p className="text-[11px] text-green-300 mb-1">발급됨 — 지금만 표시됩니다. 복사해 안전히 보관하세요:</p>
+          <p className="text-caption text-green-300 mb-1">발급됨 — 지금만 표시됩니다. 복사해 안전히 보관하세요:</p>
           <code className="block text-xs text-text break-all bg-black/40 p-2 rounded select-all">{issued}</code>
         </div>
       )}
@@ -93,10 +93,10 @@ export function TenantTokensSettings() {
           <div key={t.id} className="flex items-center justify-between p-3 text-sm">
             <div className="min-w-0">
               <span className={`text-xs ${t.revoked ? "text-subtle line-through" : "text-muted"}`}>{t.label || "(메모 없음)"}</span>
-              <span className="text-[10px] text-subtle ml-2">{fmtAgo(t.created_at)}{t.last_used_at ? ` · 최근사용 ${fmtAgo(t.last_used_at)}` : " · 미사용"}</span>
+              <span className="text-caption text-subtle ml-2">{fmtAgo(t.created_at)}{t.last_used_at ? ` · 최근사용 ${fmtAgo(t.last_used_at)}` : " · 미사용"}</span>
             </div>
-            {t.revoked ? <span className="text-[10px] text-subtle">폐기됨</span>
-              : <button onClick={() => revoke(t.id)} className="text-[11px] text-red-400 hover:text-red-300 whitespace-nowrap">폐기</button>}
+            {t.revoked ? <span className="text-caption text-subtle">폐기됨</span>
+              : <button onClick={() => revoke(t.id)} className="text-caption text-red-400 hover:text-red-300 whitespace-nowrap">폐기</button>}
           </div>
         ))}
       </div>

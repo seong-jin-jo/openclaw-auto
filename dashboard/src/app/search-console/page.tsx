@@ -49,19 +49,19 @@ export default function SearchConsolePage() {
             value={siteUrl}
             onChange={(e) => setSiteUrl(e.target.value)}
             placeholder="sc-domain:example.com"
-            className="bg-surface-2 text-muted text-[10px] px-2 py-1 rounded border border-border w-48"
+            className="bg-surface-2 text-muted text-caption px-2 py-1 rounded border border-border w-48"
           />
           {[7, 28, 90].map((d) => (
             <button
               key={d}
               onClick={() => setDays(d)}
-              className={`px-2 py-1 text-[10px] rounded ${days === d ? "bg-accent text-text" : "text-subtle hover:bg-surface-2"}`}
+              className={`px-2 py-1 text-caption rounded ${days === d ? "bg-accent text-text" : "text-subtle hover:bg-surface-2"}`}
             >{d}일</button>
           ))}
           <select
             value={dimension}
             onChange={(e) => setDimension(e.target.value as "query" | "page")}
-            className="bg-surface-2 text-muted text-[10px] px-2 py-1 rounded border border-border"
+            className="bg-surface-2 text-muted text-caption px-2 py-1 rounded border border-border"
           >
             <option value="query">검색어</option>
             <option value="page">페이지</option>
@@ -72,32 +72,32 @@ export default function SearchConsolePage() {
       {data?.error && (
         <div className="card p-4 mb-4 border border-yellow-800/50">
           <p className="text-xs text-yellow-400">{data.error}</p>
-          <p className="text-[10px] text-subtle mt-1">Settings → Channels → Search Console에서 서비스 계정을 설정하세요.</p>
+          <p className="text-caption text-subtle mt-1">Settings → Channels → Search Console에서 서비스 계정을 설정하세요.</p>
         </div>
       )}
 
       {data?.cached && (
         <div className="card p-2 mb-4 border border-border">
-          <p className="text-[10px] text-subtle">캐시된 데이터 표시 중 (API 호출 실패)</p>
+          <p className="text-caption text-subtle">캐시된 데이터 표시 중 (API 호출 실패)</p>
         </div>
       )}
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-3 mb-6">
         <div className="card p-3">
-          <div className="text-[10px] text-subtle mb-1">클릭수</div>
+          <div className="text-caption text-subtle mb-1">클릭수</div>
           <div className="text-lg font-bold text-text">{stats.totalClicks.toLocaleString()}</div>
         </div>
         <div className="card p-3">
-          <div className="text-[10px] text-subtle mb-1">노출수</div>
+          <div className="text-caption text-subtle mb-1">노출수</div>
           <div className="text-lg font-bold text-text">{stats.totalImpressions.toLocaleString()}</div>
         </div>
         <div className="card p-3">
-          <div className="text-[10px] text-subtle mb-1">평균 CTR</div>
+          <div className="text-caption text-subtle mb-1">평균 CTR</div>
           <div className="text-lg font-bold text-text">{stats.avgCtr}%</div>
         </div>
         <div className="card p-3">
-          <div className="text-[10px] text-subtle mb-1">평균 순위</div>
+          <div className="text-caption text-subtle mb-1">평균 순위</div>
           <div className="text-lg font-bold text-text">{stats.avgPosition}</div>
         </div>
       </div>
@@ -111,7 +111,7 @@ export default function SearchConsolePage() {
         <div className="card overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border text-subtle text-[10px]">
+              <tr className="border-b border-border text-subtle text-caption">
                 <th className="text-left px-4 py-2">{dimension === "query" ? "검색어" : "페이지"}</th>
                 <th className="text-right px-4 py-2">클릭</th>
                 <th className="text-right px-4 py-2">노출</th>

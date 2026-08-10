@@ -165,7 +165,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
                 >
                   <span className="text-2xl block mb-2">{ind.icon}</span>
                   <p className="text-sm font-medium text-text">{ind.name}</p>
-                  <p className="text-[10px] text-subtle mt-0.5">{ind.desc}</p>
+                  <p className="text-caption text-subtle mt-0.5">{ind.desc}</p>
                 </button>
               ))}
             </div>
@@ -222,11 +222,11 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
               {OAUTH_LABELS[firstChannel] && !credentialsSaved && (
                 <div className="card p-4">
                   <SocialConnectButton provider={firstChannel} label={OAUTH_LABELS[firstChannel]} />
-                  <p className="text-[11px] text-subtle mt-2">새 창에서 공식 로그인·동의를 마치면 연결됩니다. 필요할 때만 아래 수동 입력을 여세요.</p>
+                  <p className="text-caption text-subtle mt-2">새 창에서 공식 로그인·동의를 마치면 연결됩니다. 필요할 때만 아래 수동 입력을 여세요.</p>
                   <button
                     type="button"
                     onClick={() => setShowManualCreds((v) => !v)}
-                    className="mt-2 text-[11px] text-accent"
+                    className="mt-2 text-caption text-accent"
                   >
                     {showManualCreds ? "수동 입력 닫기" : "고급: 토큰 직접 입력"}
                   </button>
@@ -272,7 +272,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
                   <span className="text-xl">🎨</span>
                   <div>
                     <p className="text-sm font-medium text-text">브랜드 설정하기</p>
-                    <p className="text-[11px] text-subtle">6가지만 답하면 끝 — 또는 내 위키/홈페이지 연결</p>
+                    <p className="text-caption text-subtle">6가지만 답하면 끝 — 또는 내 위키/홈페이지 연결</p>
                   </div>
                 </a>
                 <a href="/studio" onClick={clearDraft}
@@ -280,11 +280,11 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
                   <span className="text-xl">✍️</span>
                   <div>
                     <p className="text-sm font-medium text-text">바로 콘텐츠 만들기</p>
-                    <p className="text-[11px] text-subtle">주제만 적으면 초안이 나와요</p>
+                    <p className="text-caption text-subtle">주제만 적으면 초안이 나와요</p>
                   </div>
                 </a>
               </div>
-              <p className="text-[11px] text-subtle">
+              <p className="text-caption text-subtle">
                 내 Claude(Anthropic) 키가 있으면 설정 → AI Engine에서 등록할 수 있어요(선택).
               </p>
             </div>

@@ -29,7 +29,7 @@ export function PipelineTimeline({ draft, approved, published, performing }: Pip
               className={`flex-1 rounded-xl border border-border bg-gradient-to-br ${s.color} px-4 py-3 hover:border-border transition`}>
               <div className={`text-xs ${s.text}`}>{s.label}</div>
               <div className="text-2xl font-bold text-text">{counts[s.key] ?? 0}</div>
-              <div className="text-[10px] text-subtle">{s.desc}</div>
+              <div className="text-caption text-subtle">{s.desc}</div>
             </Link>
             {i < STAGES.length - 1 && <div className="flex items-center px-1 text-subtle">→</div>}
           </div>

@@ -191,7 +191,7 @@ export default function InboxPage() {
           <div className="mt-2 card p-3 space-y-3">
             {TONE_SLIDERS.map(({ key, left, right }) => (
               <div key={key}>
-                <div className="flex justify-between text-[10px] text-subtle mb-1">
+                <div className="flex justify-between text-caption text-subtle mb-1">
                   <span>{left}</span><span>{right}</span>
                 </div>
                 <input
@@ -224,7 +224,7 @@ export default function InboxPage() {
       ) : posts.length === 0 ? (
         <div className="card p-8 text-center">
           <p className="text-muted text-sm">검토할 초안이 없습니다</p>
-          <p className="text-[11px] text-subtle mt-2">AI가 브랜드 톤으로 한 묶음 만들어 드릴게요. 검토만 하면 됩니다.</p>
+          <p className="text-caption text-subtle mt-2">AI가 브랜드 톤으로 한 묶음 만들어 드릴게요. 검토만 하면 됩니다.</p>
           <button
             onClick={seedDrafts}
             disabled={seeding}
@@ -232,7 +232,7 @@ export default function InboxPage() {
           >
             {seeding ? "생성 중…" : "AI로 한 주치 초안 생성"}
           </button>
-          <p className="text-[10px] text-subtle mt-3">크론·Studio·영상에서 만든 글도 여기로 모입니다.</p>
+          <p className="text-caption text-subtle mt-3">크론·Studio·영상에서 만든 글도 여기로 모입니다.</p>
         </div>
       ) : !current ? (
         <div className="card p-8 text-center text-subtle text-sm">모두 검토 완료.</div>
@@ -242,7 +242,7 @@ export default function InboxPage() {
           {channels.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-3">
               {channels.map((ch) => (
-                <span key={ch} className="text-[10px] px-2 py-0.5 rounded-full bg-surface-2 text-muted">{ch}</span>
+                <span key={ch} className="text-caption px-2 py-0.5 rounded-full bg-surface-2 text-muted">{ch}</span>
               ))}
             </div>
           )}
@@ -259,10 +259,10 @@ export default function InboxPage() {
 
           {/* 해시태그 */}
           {current.hashtags && current.hashtags.length > 0 && (
-            <p className="text-[11px] text-accent mt-2">{current.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}</p>
+            <p className="text-caption text-accent mt-2">{current.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}</p>
           )}
 
-          <div className="mt-3 text-[10px] text-subtle flex items-center justify-between">
+          <div className="mt-3 text-caption text-subtle flex items-center justify-between">
             <span>{current.topic || "post"}</span>
             <span>{current.generatedAt ? new Date(current.generatedAt).toLocaleString("ko-KR") : ""}</span>
           </div>
@@ -290,17 +290,17 @@ export default function InboxPage() {
               disabled={busy}
               className="py-3 rounded-lg bg-red-900/40 text-red-300 hover:bg-red-800/60 text-sm font-medium disabled:opacity-50"
             >
-              거절 <span className="text-[10px] opacity-60">(R)</span>
+              거절 <span className="text-caption opacity-60">(R)</span>
             </button>
             <button
               onClick={approve}
               disabled={busy}
               className="py-3 rounded-lg bg-green-600 text-text hover:bg-green-500 text-sm font-medium disabled:opacity-50"
             >
-              승인 <span className="text-[10px] opacity-80">(A)</span>
+              승인 <span className="text-caption opacity-80">(A)</span>
             </button>
           </div>
-          <p className="text-[10px] text-subtle text-center mt-2">단축키: A 승인 · R 거절 · ← → 이동</p>
+          <p className="text-caption text-subtle text-center mt-2">단축키: A 승인 · R 거절 · ← → 이동</p>
         </div>
       )}
     </div>

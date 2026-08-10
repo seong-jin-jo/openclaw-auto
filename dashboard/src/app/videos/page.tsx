@@ -515,27 +515,27 @@ export default function VideosPage() {
       {/* Status cards */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="card p-3">
-          <div className="text-[10px] text-subtle mb-1">영상</div>
+          <div className="text-caption text-subtle mb-1">영상</div>
           <div className="text-lg font-bold text-text">{videos.length}</div>
         </div>
         <div className="card p-3" data-testid="youtube-connect-card">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="text-[10px] text-subtle mb-1">YouTube</div>
+              <div className="text-caption text-subtle mb-1">YouTube</div>
               <div className={`text-sm font-medium ${ytStatus?.connected ? "text-success" : "text-subtle"}`}>
                 {ytStatus?.connected ? `연결됨 · ${youtubeAccounts.length}개 계정` : "미연결"}
               </div>
             </div>
             <Link
               href="/channels/youtube"
-              className="shrink-0 text-[11px] text-accent hover:text-accent-hover"
+              className="shrink-0 text-caption text-accent hover:text-accent-hover"
             >
               채널 관리 →
             </Link>
           </div>
         </div>
         <div className="card p-3">
-          <div className="text-[10px] text-subtle mb-1">TTS (ElevenLabs)</div>
+          <div className="text-caption text-subtle mb-1">TTS (ElevenLabs)</div>
           <div className={`text-sm font-medium ${elConfig?.configured ? "text-green-400" : "text-subtle"}`}>
             {elConfig?.configured ? "설정됨" : "미설정"}
           </div>
@@ -543,14 +543,14 @@ export default function VideosPage() {
         <div className="card p-3 col-span-2" data-testid="tiktok-status-card">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="text-[10px] text-subtle mb-1">TikTok</div>
+              <div className="text-caption text-subtle mb-1">TikTok</div>
               <div className={`text-sm font-medium ${tiktokCreatorData?.ready ? "text-success" : "text-subtle"}`}>
                 {tiktokCreatorData?.ready ? `@${tiktokCreator?.username} 발행 준비됨` : tiktokAccounts.length > 0 ? "계정 권한 확인 필요" : "미연결"}
               </div>
             </div>
             <Link
               href="/channels/tiktok"
-              className="shrink-0 text-[11px] text-accent hover:text-accent-hover"
+              className="shrink-0 text-caption text-accent hover:text-accent-hover"
             >
               채널 관리 →
             </Link>
@@ -592,13 +592,13 @@ export default function VideosPage() {
         {/* SNS-015: Reels 발행 분기가 실제로 존재하므로 "미구현"이 아니다. 다만 Instagram 연결이
             없으면 실행 자체가 불가하므로 그 사실을 정직하게 구분해 표시한다. */}
         <div className="card p-3" data-testid="reels-status-card">
-          <div className="text-[10px] text-subtle mb-1">Instagram Reels</div>
+          <div className="text-caption text-subtle mb-1">Instagram Reels</div>
           <div className={`text-sm font-medium ${igConnected ? "text-success" : "text-subtle"}`}>
             {igConnected ? "발행 가능" : "Instagram 미연결 — /channels/instagram에서 연결 필요"}
           </div>
         </div>
         <div className="card p-3">
-          <div className="text-[10px] text-subtle mb-1">영상 클리퍼 (0차)</div>
+          <div className="text-caption text-subtle mb-1">영상 클리퍼 (0차)</div>
           <div className={`text-sm font-medium ${clipConfig?.configured ? "text-green-400" : "text-subtle"}`}>
             {clipConfig?.configured ? (clipConfig.provider || "준비됨") : "미설정 (mock 모드)"}
           </div>
@@ -609,12 +609,12 @@ export default function VideosPage() {
       <div className="card p-4 mb-6">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-sm font-medium">Repurpose Long Video (0차)</span>
-          <span className="text-[10px] text-subtle">External (Reap/Ssemble) → OSMU refine + publish</span>
+          <span className="text-caption text-subtle">External (Reap/Ssemble) → OSMU refine + publish</span>
         </div>
         {/* 클리핑 API 키는 운영자 전용 전역 설정(/api/clipping-config — proxy.ts 제외 사유 참고).
             고객 세션에는 입력 폼을 그리지 않는다(눌러봐야 403 나는 버튼 금지, SNS-015 전례). */}
         {canGenerate && (
-          <div className="mb-2 text-[10px] flex flex-wrap items-center gap-1">
+          <div className="mb-2 text-caption flex flex-wrap items-center gap-1">
             <span>클리핑 API 키 설정 (최초 1회):</span>
             <input value={clipProvider} onChange={(e) => setClipProvider(e.target.value)} placeholder="reap 또는 ssemble" className="bg-surface-2 p-1 w-24" />
             <input value={clipKey} onChange={(e) => setClipKey(e.target.value)} placeholder="API 키" className="bg-surface-2 p-1 w-48" />
@@ -647,23 +647,23 @@ export default function VideosPage() {
             {repurposing ? "Clipping..." : "Clip"}
           </button>
         </div>
-        <div className="text-[10px] text-subtle mb-2">Local long video: upload to YT first or use public URL (local file support for input limited; output clips saved locally)</div>
+        <div className="text-caption text-subtle mb-2">Local long video: upload to YT first or use public URL (local file support for input limited; output clips saved locally)</div>
 
         {repurposeClips.length === 0 ? (
           <div className="mt-2 rounded border border-dashed border-border bg-surface/40 p-5 text-center">
             <p className="text-xs text-subtle">긴 영상 링크를 붙여넣으면 <span className="text-muted">완성된 세로 클립</span>이 추천순 그리드로 나옵니다.</p>
-            <p className="text-[10px] text-subtle mt-1">각 클립 → 한 번에 큐로. 팬아웃 켜면 영상+텍스트 글이 함께 멀티채널 큐에 들어갑니다.</p>
+            <p className="text-caption text-subtle mt-1">각 클립 → 한 번에 큐로. 팬아웃 켜면 영상+텍스트 글이 함께 멀티채널 큐에 들어갑니다.</p>
           </div>
         ) : (
           <div className="space-y-3 mt-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="text-xs text-muted">완성 클립 <span className="text-text font-semibold">{rankedClips.length}</span>개 · <span className="text-subtle">추천순</span></div>
               <div className="flex items-center gap-3">
-                <label className="flex items-center gap-1 text-[10px] text-subtle">
+                <label className="flex items-center gap-1 text-caption text-subtle">
                   <input type="checkbox" checked={fanoutText} onChange={(e) => setFanoutText(e.target.checked)} className="rounded" />
                   OSMU 팬아웃(영상+텍스트)
                 </label>
-                <button onClick={addAllClipsToQueue} disabled={addingAll} className="text-[10px] px-3 py-1 bg-green-700 hover:bg-green-600 rounded disabled:opacity-50">
+                <button onClick={addAllClipsToQueue} disabled={addingAll} className="text-caption px-3 py-1 bg-green-700 hover:bg-green-600 rounded disabled:opacity-50">
                   {addingAll ? "추가 중…" : `전체 큐에 추가 (${rankedClips.length})`}
                 </button>
               </div>
@@ -678,9 +678,9 @@ export default function VideosPage() {
                     {/* 9:16 프리뷰 + 랭크/점수 오버레이 */}
                     <div className="relative bg-black aspect-[9/16]">
                       {src && <video src={src} controls playsInline className="w-full h-full object-contain" />}
-                      <span className="absolute top-1.5 left-1.5 text-[10px] font-bold bg-black/70 text-text rounded px-1.5 py-0.5">#{rank + 1}</span>
+                      <span className="absolute top-1.5 left-1.5 text-caption font-bold bg-black/70 text-text rounded px-1.5 py-0.5">#{rank + 1}</span>
                       {c.viralScore != null && (
-                        <span className="absolute top-1.5 right-1.5 text-[10px] bg-black/70 text-amber-300 rounded px-1.5 py-0.5" title="추천 우선순위 힌트(보장 아님)">
+                        <span className="absolute top-1.5 right-1.5 text-caption bg-black/70 text-amber-300 rounded px-1.5 py-0.5" title="추천 우선순위 힌트(보장 아님)">
                           ★ {Number(c.viralScore).toFixed(1)}
                         </span>
                       )}
@@ -688,23 +688,23 @@ export default function VideosPage() {
                     {/* 편집 + 액션 */}
                     <div className="p-2 space-y-1 text-xs flex flex-col flex-1">
                       <input
-                        className="w-full bg-surface p-1 rounded text-[11px]"
+                        className="w-full bg-surface p-1 rounded text-caption"
                         placeholder="훅(첫 문장)"
                         value={c.title || ""}
                         onChange={(e) => { const next = [...repurposeClips]; next[oi] = { ...next[oi], title: e.target.value }; setRepurposeClips(next); }}
                       />
                       <textarea
-                        className="w-full bg-surface p-1 rounded text-[11px]"
+                        className="w-full bg-surface p-1 rounded text-caption"
                         rows={2}
                         placeholder="캡션"
                         value={c.caption || ""}
                         onChange={(e) => { const next = [...repurposeClips]; next[oi] = { ...next[oi], caption: e.target.value }; setRepurposeClips(next); }}
                       />
                       <div className="flex gap-1 mt-auto pt-1">
-                        <button onClick={() => refineClip(oi)} disabled={refiningClip === c.id} className="flex-1 text-[10px] px-1 py-1 bg-accent hover:bg-accent-hover rounded disabled:opacity-50">
+                        <button onClick={() => refineClip(oi)} disabled={refiningClip === c.id} className="flex-1 text-caption px-1 py-1 bg-accent hover:bg-accent-hover rounded disabled:opacity-50">
                           {refiningClip === c.id ? "다듬는 중…" : "Wiki/브랜드 톤"}
                         </button>
-                        <button onClick={() => addClipToLibrary(c)} className="flex-1 text-[10px] px-1 py-1 bg-green-700 hover:bg-green-600 rounded">
+                        <button onClick={() => addClipToLibrary(c)} className="flex-1 text-caption px-1 py-1 bg-green-700 hover:bg-green-600 rounded">
                           큐에 추가
                         </button>
                       </div>
@@ -729,7 +729,7 @@ export default function VideosPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <h3 className="text-sm font-medium text-muted">{v.filename}</h3>
-                    <p className="text-[10px] text-subtle mt-1">
+                    <p className="text-caption text-subtle mt-1">
                       {(v.size / 1024 / 1024).toFixed(1)} MB
                       {" | "}
                       {new Date(v.createdAt).toLocaleString("ko-KR")}
@@ -824,7 +824,7 @@ export default function VideosPage() {
           <div className="space-y-3 mb-4">
             {slides.map((s, i) => (
               <div key={i} className="flex gap-2 items-start">
-                <span className="text-[10px] text-subtle mt-2 w-5">{i + 1}</span>
+                <span className="text-caption text-subtle mt-2 w-5">{i + 1}</span>
                 <textarea
                   value={s.text}
                   onChange={(e) => updateSlide(i, "text", e.target.value)}
@@ -866,7 +866,7 @@ export default function VideosPage() {
               />
               TTS Narration {!elConfig?.configured && "(not configured)"}
             </label>
-            <span className="text-[10px] text-subtle">
+            <span className="text-caption text-subtle">
               Total: {slides.reduce((s, sl) => s + sl.duration, 0)}s
             </span>
           </div>

@@ -36,15 +36,15 @@ export function AIEngine() {
       <div className="grid grid-cols-2 gap-2">
         <button onClick={() => handleModeSwitch("gateway")} disabled={switching} className={`p-3 rounded border text-left transition-colors disabled:opacity-50 ${mode === "gateway" ? "border-blue-600 bg-blue-950/30" : "border-border hover:border-border"}`}>
           <div className="text-xs font-medium text-muted">OpenClaw Gateway</div>
-          <div className="text-[10px] text-subtle mt-0.5">Extra Usage 과금</div>
+          <div className="text-caption text-subtle mt-0.5">Extra Usage 과금</div>
         </button>
         <button onClick={() => handleModeSwitch("cli")} disabled={switching} className={`p-3 rounded border text-left transition-colors disabled:opacity-50 ${mode === "cli" ? "border-green-600 bg-green-950/30" : "border-border hover:border-border"}`}>
           <div className="text-xs font-medium text-muted">Claude CLI</div>
-          <div className="text-[10px] text-green-500/70 mt-0.5">Plan Usage (Max Plan)</div>
+          <div className="text-caption text-green-500/70 mt-0.5">Plan Usage (Max Plan)</div>
         </button>
       </div>
-      {switching && <p className="text-[10px] text-yellow-400 mt-2">전환 중... Gateway 재시작 포함 (~15초)</p>}
-      <p className="text-[10px] text-subtle mt-3">전환 시 Gateway 자동 재시작. 크론잡 상태 자동 이관.</p>
+      {switching && <p className="text-caption text-yellow-400 mt-2">전환 중... Gateway 재시작 포함 (~15초)</p>}
+      <p className="text-caption text-subtle mt-3">전환 시 Gateway 자동 재시작. 크론잡 상태 자동 이관.</p>
     </div>
   );
 }

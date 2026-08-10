@@ -254,7 +254,7 @@ function LandingPage() {
               <p className="text-xs text-subtle leading-relaxed mb-4">{f.desc}</p>
               <div className="flex flex-wrap gap-1.5">
                 {f.tags.map((t) => (
-                  <span key={t} className="text-[10px] px-2 py-0.5 rounded bg-surface-2/80 text-subtle">
+                  <span key={t} className="text-caption px-2 py-0.5 rounded bg-surface-2/80 text-subtle">
                     {t}
                   </span>
                 ))}
@@ -311,7 +311,7 @@ function LandingPage() {
             베타 신청하기
           </button>
 
-          <p className="text-[10px] text-subtle mt-4">가입 즉시 대시보드 이용 가능 · 공유 AI 생성은 운영자 승인 또는 자체 Anthropic 키 등록 후 · 추후 Pro / Business 플랜 추가 예정</p>
+          <p className="text-caption text-subtle mt-4">가입 즉시 대시보드 이용 가능 · 공유 AI 생성은 운영자 승인 또는 자체 Anthropic 키 등록 후 · 추후 Pro / Business 플랜 추가 예정</p>
         </div>
       </section>
 
@@ -339,7 +339,7 @@ function LandingPage() {
           {/* 운영자 진입은 /operator로 분리 — 고객 화면엔 비번 박스 노출 안 함 */}
           <a
             href="/operator"
-            className="block w-full mt-3 text-center text-[11px] text-subtle hover:text-muted transition-colors"
+            className="block w-full mt-3 text-center text-caption text-subtle hover:text-muted transition-colors"
           >
             운영자세요? 운영자 콘솔로 →
           </a>

@@ -211,7 +211,7 @@ export const setupGuides: Record<string, SetupGuide> = {
       'Discord 설정 > 고급 > <strong>개발자 모드</strong> ON',
       '미드저니 봇이 있는 서버 이름 우클릭 > <strong>서버 ID 복사</strong>',
       '미드저니 봇이 있는 채널 우클릭 > <strong>채널 ID 복사</strong>',
-      'Discord Token 발급: <a href=\'https://discord.com/app\' target=\'_blank\' class=\'text-accent hover:underline\'>discord.com/app</a> 접속 (브라우저) > F12 > Console 탭 > 아래 코드 붙여넣기 후 Enter:<br><code class=\'bg-surface-2 text-text px-1 rounded text-[9px] break-all\'>(function(){const o=XMLHttpRequest.prototype.setRequestHeader;XMLHttpRequest.prototype.setRequestHeader=function(n,v){if(n.toLowerCase()===\'authorization\')console.log(\'[Token]\',v);return o.apply(this,arguments)}})()</code><br>실행 후 Discord에서 아무 채널 클릭 → Console에 <code class=\'bg-surface-2 text-text px-1 rounded\'>[Token] MTxx...</code> 출력됨',
+      'Discord Token 발급: <a href=\'https://discord.com/app\' target=\'_blank\' class=\'text-accent hover:underline\'>discord.com/app</a> 접속 (브라우저) > F12 > Console 탭 > 아래 코드 붙여넣기 후 Enter:<br><code class=\'bg-surface-2 text-text px-1 rounded text-caption break-all\'>(function(){const o=XMLHttpRequest.prototype.setRequestHeader;XMLHttpRequest.prototype.setRequestHeader=function(n,v){if(n.toLowerCase()===\'authorization\')console.log(\'[Token]\',v);return o.apply(this,arguments)}})()</code><br>실행 후 Discord에서 아무 채널 클릭 → Console에 <code class=\'bg-surface-2 text-text px-1 rounded\'>[Token] MTxx...</code> 출력됨',
       "위 폼에 3개 값 입력 후 Connect",
     ],
     detail:

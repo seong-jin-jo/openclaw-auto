@@ -42,7 +42,7 @@ function channelBadge(channelKey: string, ch: { status?: string } | undefined) {
   const label = CHANNEL_BADGE_LABELS[channelKey] || channelKey.toUpperCase().slice(0, 3);
   const status = ch.status || "pending";
   return (
-    <span className={`text-[10px] px-1.5 py-0.5 rounded ${CHANNEL_BADGE_CLASS[status] || "bg-surface-2 text-muted"}`}>
+    <span className={`text-caption px-1.5 py-0.5 rounded ${CHANNEL_BADGE_CLASS[status] || "bg-surface-2 text-muted"}`}>
       {label}: {status}
     </span>
   );
@@ -135,11 +135,11 @@ export function UnifiedPostCard({
           {(post.status === "draft" || post.status === "approved") && (
             <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(post.id)} className="rounded border-border" />
           )}
-          <span className={`text-[10px] px-2 py-0.5 rounded ${STATUS_CLASS[post.status] || "bg-surface-2 text-muted"}`}>
+          <span className={`text-caption px-2 py-0.5 rounded ${STATUS_CLASS[post.status] || "bg-surface-2 text-muted"}`}>
             {post.status}
           </span>
           {isCard && variant === "visual" && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent-soft text-accent">
+            <span className="text-caption px-1.5 py-0.5 rounded bg-accent-soft text-accent">
               Card {slides.length} slides
             </span>
           )}
@@ -232,7 +232,7 @@ export function UnifiedPostCard({
             rows={4}
           />
           {charLimit && (
-            <p className={`text-[10px] mb-1 ${editText.length > charLimit ? "text-red-400" : "text-subtle"}`}>
+            <p className={`text-caption mb-1 ${editText.length > charLimit ? "text-red-400" : "text-subtle"}`}>
               {editText.length}/{charLimit}
             </p>
           )}
@@ -250,7 +250,7 @@ export function UnifiedPostCard({
         <>
           <p className={`text-sm text-muted mb-2 whitespace-pre-wrap ${variant === "visual" ? "line-clamp-4" : ""}`}>{post.text}</p>
           {charWarning && (
-            <p className="text-[10px] text-red-400 mb-1">{post.text.length}/{charLimit} 글자 초과</p>
+            <p className="text-caption text-red-400 mb-1">{post.text.length}/{charLimit} 글자 초과</p>
           )}
         </>
       )}
@@ -258,16 +258,16 @@ export function UnifiedPostCard({
       {/* Quality indicators */}
       {post.status === "draft" && (
         <div className="flex gap-1 mb-2 flex-wrap">
-          {post.text.length < 30 && <span className="text-[9px] px-1.5 py-0.5 rounded bg-yellow-900/40 text-yellow-400">짧음</span>}
-          {(!post.hashtags || post.hashtags.length === 0) && <span className="text-[9px] px-1.5 py-0.5 rounded bg-surface-2 text-subtle">해시태그 없음</span>}
-          {variant === "visual" && !post.imageUrl && <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-900/40 text-red-400">이미지 필요</span>}
+          {post.text.length < 30 && <span className="text-caption px-1.5 py-0.5 rounded bg-yellow-900/40 text-yellow-400">짧음</span>}
+          {(!post.hashtags || post.hashtags.length === 0) && <span className="text-caption px-1.5 py-0.5 rounded bg-surface-2 text-subtle">해시태그 없음</span>}
+          {variant === "visual" && !post.imageUrl && <span className="text-caption px-1.5 py-0.5 rounded bg-red-900/40 text-red-400">이미지 필요</span>}
         </div>
       )}
 
       {/* SEO keyword badge (blog only) */}
       {showSeo && post.seoKeyword && (
         <div className="mb-2">
-          <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-900/40 text-indigo-300">SEO: {post.seoKeyword}</span>
+          <span className="text-caption px-2 py-0.5 rounded bg-indigo-900/40 text-indigo-300">SEO: {post.seoKeyword}</span>
         </div>
       )}
 
@@ -278,7 +278,7 @@ export function UnifiedPostCard({
             <span key={h} className="text-xs text-accent">#{h}</span>
           ))}
           {(post.tags || []).map((t) => (
-            <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-surface-2 text-subtle">{t}</span>
+            <span key={t} className="text-caption px-1.5 py-0.5 rounded bg-surface-2 text-subtle">{t}</span>
           ))}
         </div>
       )}

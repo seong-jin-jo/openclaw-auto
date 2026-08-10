@@ -149,11 +149,11 @@ export function AccountManager({
 
   if (!activeWorkspace) return null;
   if (loading) {
-    return <p className="text-[11px] text-subtle" data-testid={`account-manager-loading-${provider}`}>계정 목록 확인 중…</p>;
+    return <p className="text-caption text-subtle" data-testid={`account-manager-loading-${provider}`}>계정 목록 확인 중…</p>;
   }
   if (error) {
     return (
-      <p className="text-[11px] text-danger" data-testid={`account-manager-error-${provider}`}>
+      <p className="text-caption text-danger" data-testid={`account-manager-error-${provider}`}>
         ⛔ {error}
       </p>
     );
@@ -178,7 +178,7 @@ export function AccountManager({
 
   return (
     <div className="mt-3" data-testid={`account-manager-${provider}`}>
-      <p className="text-[11px] font-semibold text-muted mb-1">연결된 {label} 계정 ({accounts.length})</p>
+      <p className="text-caption font-semibold text-muted mb-1">연결된 {label} 계정 ({accounts.length})</p>
       <ul className="space-y-1.5">
         {accounts.map((a) => {
           const badge = statusBadge(a.status);
@@ -194,13 +194,13 @@ export function AccountManager({
                   {a.is_default && (
                     <span
                       data-testid={`account-default-badge-${provider}-${a.id}`}
-                      className="shrink-0 rounded bg-accent/20 px-1.5 py-0.5 text-[10px] text-accent"
+                      className="shrink-0 rounded bg-accent/20 px-1.5 py-0.5 text-caption text-accent"
                     >
                       기본
                     </span>
                   )}
                 </div>
-                <span className={`text-[10px] ${badge.className}`}>{badge.text}</span>
+                <span className={`text-caption ${badge.className}`}>{badge.text}</span>
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
                 {!a.is_default && (
@@ -209,7 +209,7 @@ export function AccountManager({
                     onClick={() => setDefault(a.id)}
                     disabled={busyId === a.id}
                     data-testid={`account-set-default-${provider}-${a.id}`}
-                    className="rounded px-2 py-1 text-[10px] text-accent hover:bg-accent/10 disabled:opacity-50"
+                    className="rounded px-2 py-1 text-caption text-accent hover:bg-accent/10 disabled:opacity-50"
                   >
                     기본으로
                   </button>
@@ -219,7 +219,7 @@ export function AccountManager({
                   onClick={() => remove(a.id)}
                   disabled={busyId === a.id}
                   data-testid={`account-delete-${provider}-${a.id}`}
-                  className="rounded px-2 py-1 text-[10px] text-danger hover:bg-danger/10 disabled:opacity-50"
+                  className="rounded px-2 py-1 text-caption text-danger hover:bg-danger/10 disabled:opacity-50"
                 >
                   삭제
                 </button>
@@ -280,7 +280,7 @@ function ManualAddBlock({
         type="button"
         onClick={() => setShowAdd(!showAdd)}
         data-testid={`account-add-toggle-${provider}`}
-        className="text-[11px] text-accent underline underline-offset-2"
+        className="text-caption text-accent underline underline-offset-2"
       >
         {showAdd ? "닫기" : `+ ${label} 계정 추가(App Password)`}
       </button>
@@ -310,7 +310,7 @@ function ManualAddBlock({
           >
             {addBusy ? "연결 중…" : "계정 추가"}
           </button>
-          {addMsg && <p className="text-[10px] text-subtle">{addMsg}</p>}
+          {addMsg && <p className="text-caption text-subtle">{addMsg}</p>}
         </div>
       )}
     </div>

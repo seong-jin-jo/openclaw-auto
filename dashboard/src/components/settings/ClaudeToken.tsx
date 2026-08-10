@@ -49,19 +49,19 @@ export function ClaudeToken() {
         <h3 className="text-sm font-medium text-muted">Claude Token</h3>
         <div className="flex items-center gap-2">
           {claude && (
-            <span className={`text-[10px] px-2 py-0.5 rounded ${claude.healthy ? "bg-green-900/40 text-green-400" : "bg-red-900/40 text-red-400"}`}>
+            <span className={`text-caption px-2 py-0.5 rounded ${claude.healthy ? "bg-green-900/40 text-green-400" : "bg-red-900/40 text-red-400"}`}>
               {claude.healthy ? "Healthy" : "Error"}
             </span>
           )}
-          {claude && <span className="text-[10px] text-subtle">{String(claude.type || "token")}</span>}
+          {claude && <span className="text-caption text-subtle">{String(claude.type || "token")}</span>}
           {hasToken && !editing && (
-            <button onClick={() => setEditing(true)} className="text-[10px] text-accent hover:text-accent">Edit</button>
+            <button onClick={() => setEditing(true)} className="text-caption text-accent hover:text-accent">Edit</button>
           )}
         </div>
       </div>
 
       {claude && (
-        <div className="space-y-1 text-[10px] mb-3">
+        <div className="space-y-1 text-caption mb-3">
           <div className="flex justify-between">
             <span className="text-subtle">Errors</span>
             <span className={Number(claude.errorCount) > 0 ? "text-red-400" : "text-subtle"}>{String(claude.errorCount)}</span>
@@ -84,20 +84,20 @@ export function ClaudeToken() {
               readOnly={!editable}
               title={tokenValue}
               placeholder="sk-ant-oat01-... or sk-ant-api..."
-              className={`w-full ${editable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-[11px] text-muted placeholder-gray-600 font-mono`}
+              className={`w-full ${editable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-caption text-muted placeholder-gray-600 font-mono`}
             />
             {tokenValue && (
               <button
                 type="button"
                 onClick={() => setShowToken(!showToken)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-subtle hover:text-muted"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-caption text-subtle hover:text-muted"
               >
                 {showToken ? "Hide" : "Show"}
               </button>
             )}
           </div>
         </div>
-        <details className="text-[10px]">
+        <details className="text-caption">
           <summary className="text-accent hover:text-accent cursor-pointer">Setup Guide</summary>
           <div className="mt-2 p-2 rounded bg-surface/50 text-subtle space-y-1">
             <p>1. 터미널에서 <code className="bg-surface-2 px-1 rounded">claude setup-token</code> 실행</p>

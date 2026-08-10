@@ -325,7 +325,7 @@ export default function OperatorCustomersPage() {
         <div>
           <h2 className="text-xl font-semibold text-text mb-1">유저 관리자</h2>
           <p className="text-sm text-subtle">가입자, 워크스페이스, 연결 앱, 사용량, 생성·발행 현황을 봅니다.</p>
-          <p className="text-[11px] text-subtle mt-1">고객 인증은 Google OAuth 전용입니다. 비밀번호 원문은 조회하지 않습니다.</p>
+          <p className="text-caption text-subtle mt-1">고객 인증은 Google OAuth 전용입니다. 비밀번호 원문은 조회하지 않습니다.</p>
         </div>
         <a href="/operator" className="text-xs text-subtle hover:text-muted">운영자 토큰 재입력</a>
       </div>
@@ -348,7 +348,7 @@ export default function OperatorCustomersPage() {
             ["실패", summary.failed],
           ].map(([label, value]) => (
             <div key={label} className="card p-3">
-              <p className="text-[11px] text-subtle">{label}</p>
+              <p className="text-caption text-subtle">{label}</p>
               <p className="mt-1 text-xl font-semibold text-text">{value}</p>
             </div>
           ))}
@@ -359,9 +359,9 @@ export default function OperatorCustomersPage() {
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <h3 className="text-sm font-semibold text-text">중앙 OAuth 개발자 앱</h3>
-            <p className="mt-1 text-[11px] text-subtle">운영자 전용 암호화 저장소입니다. 기본 화면은 마스킹하며, 원문은 명시적으로 확인한 뒤 30초 후 자동 삭제합니다.</p>
+            <p className="mt-1 text-caption text-subtle">운영자 전용 암호화 저장소입니다. 기본 화면은 마스킹하며, 원문은 명시적으로 확인한 뒤 30초 후 자동 삭제합니다.</p>
           </div>
-          <span className="text-[11px] text-subtle">{oauthProviders.filter((item) => item.credentialsConfigured).length}/{oauthProviders.length} 준비</span>
+          <span className="text-caption text-subtle">{oauthProviders.filter((item) => item.credentialsConfigured).length}/{oauthProviders.length} 준비</span>
         </div>
         <div className="space-y-5">
           {oauthProviderGroups.map((group) => (
@@ -375,7 +375,7 @@ export default function OperatorCustomersPage() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium capitalize text-text">{item.label}</p>
-                  <p className="mt-1 break-words text-[11px] text-subtle">
+                  <p className="mt-1 break-words text-caption text-subtle">
                     {item.unavailableReason
                       ? "자격증명 저장소 장애입니다. 기존 값을 다시 입력하지 마세요. DB 복구 후 새로고침하세요."
                       : item.credentialsConfigured
@@ -384,23 +384,23 @@ export default function OperatorCustomersPage() {
                           : "완전한 세트가 환경변수로 보호되어 있습니다. 원문 확인 시 암호화 DB로 옮긴 뒤 표시합니다."
                         : `미설정/불완전: ${item.missing.join(", ")}`}
                   </p>
-                  <p className="mt-1 text-[10px] text-subtle">출처 {item.source.toUpperCase()} · 갱신 {fmtDate(item.updatedAt)}</p>
+                  <p className="mt-1 text-caption text-subtle">출처 {item.source.toUpperCase()} · 갱신 {fmtDate(item.updatedAt)}</p>
                 </div>
-                <span className={`shrink-0 text-[10px] px-2 py-1 rounded ${item.unavailableReason ? "bg-danger/15 text-danger" : item.credentialsConfigured ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
+                <span className={`shrink-0 text-caption px-2 py-1 rounded ${item.unavailableReason ? "bg-danger/15 text-danger" : item.credentialsConfigured ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
                   {item.unavailableReason ? "저장소 장애" : item.credentialsConfigured ? "준비" : "차단"}
                 </span>
               </div>
               <div className="mt-3 space-y-3">
                 <div>
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-subtle">Callback URL</p>
+                  <p className="text-caption font-medium uppercase tracking-wide text-subtle">Callback URL</p>
                   <div className="mt-1 flex items-start gap-2">
-                    <code className="min-w-0 flex-1 break-all rounded bg-surface-2 px-2 py-1.5 text-[11px] text-muted">
+                    <code className="min-w-0 flex-1 break-all rounded bg-surface-2 px-2 py-1.5 text-caption text-muted">
                       {item.callbackUrl}
                     </code>
                     <button
                       type="button"
                       onClick={() => void copySetupValue(item.callbackUrl)}
-                      className="shrink-0 rounded border border-border px-2 py-1.5 text-[10px] text-accent hover:bg-surface-2"
+                      className="shrink-0 rounded border border-border px-2 py-1.5 text-caption text-accent hover:bg-surface-2"
                     >
                       {copiedValue === item.callbackUrl ? "복사됨" : "복사"}
                     </button>
@@ -408,9 +408,9 @@ export default function OperatorCustomersPage() {
                 </div>
                 <div>
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-[10px] font-medium uppercase tracking-wide text-subtle">Required fields</p>
+                    <p className="text-caption font-medium uppercase tracking-wide text-subtle">Required fields</p>
                     {revealedValues[item.provider] ? (
-                      <button type="button" onClick={() => hideCredentialValues(item.provider)} className="text-[10px] text-danger hover:underline">
+                      <button type="button" onClick={() => hideCredentialValues(item.provider)} className="text-caption text-danger hover:underline">
                         숨기기
                       </button>
                     ) : item.credentialsConfigured && !item.unavailableReason ? (
@@ -418,7 +418,7 @@ export default function OperatorCustomersPage() {
                         type="button"
                         onClick={() => void revealCredentialSet(item)}
                         disabled={busyProvider === item.provider}
-                        className="text-[10px] text-accent hover:underline disabled:opacity-50"
+                        className="text-caption text-accent hover:underline disabled:opacity-50"
                       >
                         원문 확인
                       </button>
@@ -430,14 +430,14 @@ export default function OperatorCustomersPage() {
                       return (
                         <div key={field.key} className="rounded border border-border bg-surface-2 p-2">
                           <div className="flex flex-wrap items-center justify-between gap-2">
-                            <label htmlFor={`${item.provider}-${field.key}`} className="text-[11px] font-medium text-muted">
+                            <label htmlFor={`${item.provider}-${field.key}`} className="text-caption font-medium text-muted">
                               {field.label}
                             </label>
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
                                 onClick={() => void copySetupValue(field.env)}
-                                className="font-mono text-[9px] text-subtle hover:text-accent"
+                                className="font-mono text-caption text-subtle hover:text-accent"
                                 title={`${field.env} 이름 복사`}
                               >
                                 {field.env}{copiedValue === field.env ? " ✓" : ""}
@@ -446,13 +446,13 @@ export default function OperatorCustomersPage() {
                                 type="button"
                                 onClick={() => toggleCredentialInputVisibility(item.provider, field.key)}
                                 aria-label={`${field.label} ${visibleCredentialInputs[item.provider]?.[field.key] ? "입력값 숨김" : "입력값 표시"}`}
-                                className="text-[9px] text-accent hover:underline"
+                                className="text-caption text-accent hover:underline"
                               >
                                 {visibleCredentialInputs[item.provider]?.[field.key] ? "입력값 숨김" : "입력값 표시"}
                               </button>
                             </div>
                           </div>
-                          <p className={`mt-1 break-all font-mono text-[10px] ${revealed ? "text-danger" : "text-subtle"}`}>
+                          <p className={`mt-1 break-all font-mono text-caption ${revealed ? "text-danger" : "text-subtle"}`}>
                             {revealed || field.maskedValue || "미설정"}
                           </p>
                           <input
@@ -471,12 +471,12 @@ export default function OperatorCustomersPage() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-subtle">Console setup</p>
-                  <ol className="mt-1 list-decimal space-y-1 pl-4 text-[10px] leading-relaxed text-subtle">
+                  <p className="text-caption font-medium uppercase tracking-wide text-subtle">Console setup</p>
+                  <ol className="mt-1 list-decimal space-y-1 pl-4 text-caption leading-relaxed text-subtle">
                     {item.setupSteps.map((step) => <li key={step}>{step}</li>)}
                   </ol>
                   {item.setupSource === "generic" && (
-                    <p className="mt-1 text-[10px] text-warning">일반 경로: 외부 콘솔 UI가 바뀔 수 있어 공식 문서와 현재 화면을 함께 확인하세요.</p>
+                    <p className="mt-1 text-caption text-warning">일반 경로: 외부 콘솔 UI가 바뀔 수 있어 공식 문서와 현재 화면을 함께 확인하세요.</p>
                   )}
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -485,7 +485,7 @@ export default function OperatorCustomersPage() {
                       type="button"
                       onClick={() => void saveCredentialSet(item)}
                       disabled={Boolean(item.unavailableReason) || busyProvider === item.provider}
-                      className="rounded bg-accent px-3 py-1.5 text-[11px] text-accent-fg hover:opacity-90 disabled:opacity-50"
+                      className="rounded bg-accent px-3 py-1.5 text-caption text-accent-fg hover:opacity-90 disabled:opacity-50"
                     >
                       {busyProvider === item.provider ? "처리 중…" : item.credentialsConfigured ? "전체 세트 업데이트" : "전체 세트 저장"}
                     </button>
@@ -494,15 +494,15 @@ export default function OperatorCustomersPage() {
                         type="button"
                         onClick={() => void deleteCredentialSet(item)}
                         disabled={busyProvider === item.provider}
-                        className="rounded border border-danger/30 px-3 py-1.5 text-[11px] text-danger hover:bg-danger/10 disabled:opacity-50"
+                        className="rounded border border-danger/30 px-3 py-1.5 text-caption text-danger hover:bg-danger/10 disabled:opacity-50"
                       >
                         DB 저장값 삭제
                       </button>
                     )}
                   </div>
-                  {oauthActionMsg[item.provider] && <p className="text-[10px] text-subtle">{oauthActionMsg[item.provider]}</p>}
+                  {oauthActionMsg[item.provider] && <p className="text-caption text-subtle">{oauthActionMsg[item.provider]}</p>}
                 </div>
-                <div className="flex flex-wrap gap-3 text-[11px]">
+                <div className="flex flex-wrap gap-3 text-caption">
                   <a href={item.consoleUrl} target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent-hover">
                     개발자 콘솔 ↗
                   </a>
@@ -522,7 +522,7 @@ export default function OperatorCustomersPage() {
       <section className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-text">Auth 가입자</h3>
-          <span className="text-[11px] text-subtle">{authUsers.length}명</span>
+          <span className="text-caption text-subtle">{authUsers.length}명</span>
         </div>
         <div className="grid gap-2">
           {authUsers.map((u) => {
@@ -533,21 +533,21 @@ export default function OperatorCustomersPage() {
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <b className="text-sm text-text">{u.email || "(email 없음)"}</b>
-                      <span className={`text-[10px] px-2 py-0.5 rounded ${confirmed ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
+                      <span className={`text-caption px-2 py-0.5 rounded ${confirmed ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
                         {confirmed ? "이메일 확인됨" : "이메일 미확인"}
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-surface-2 text-subtle">{u.provider || "provider 없음"}</span>
+                      <span className="text-caption px-2 py-0.5 rounded bg-surface-2 text-subtle">{u.provider || "provider 없음"}</span>
                       {u.tenant_status && (
-                        <span className={`text-[10px] px-2 py-0.5 rounded ${STATUS_CLASS[u.tenant_status] || "bg-surface-2 text-subtle"}`}>
+                        <span className={`text-caption px-2 py-0.5 rounded ${STATUS_CLASS[u.tenant_status] || "bg-surface-2 text-subtle"}`}>
                           {STATUS_LABEL[u.tenant_status] || u.tenant_status}
                         </span>
                       )}
-                      <span className={`text-[10px] px-2 py-0.5 rounded ${u.tenant_shared_ai_approved_at ? "bg-success/15 text-success" : "bg-surface-2 text-subtle"}`}>
+                      <span className={`text-caption px-2 py-0.5 rounded ${u.tenant_shared_ai_approved_at ? "bg-success/15 text-success" : "bg-surface-2 text-subtle"}`}>
                         공유 AI {u.tenant_shared_ai_approved_at ? "승인됨" : "미승인"}
                       </span>
                     </div>
-                    <p className="text-[11px] text-subtle mt-1">auth {u.id}</p>
-                    <p className="text-[11px] text-subtle">
+                    <p className="text-caption text-subtle mt-1">auth {u.id}</p>
+                    <p className="text-caption text-subtle">
                       tenant {u.tenant_slug || "없음"} · 가입 {fmtDate(u.created_at)} · 최근 로그인 {fmtDate(u.last_sign_in_at)}
                     </p>
                   </div>
@@ -588,7 +588,7 @@ export default function OperatorCustomersPage() {
                         </button>
                       )}
                     </div>
-                    {userActionMsg[u.id] && <p className="mt-1 text-[11px] text-subtle">{userActionMsg[u.id]}</p>}
+                    {userActionMsg[u.id] && <p className="mt-1 text-caption text-subtle">{userActionMsg[u.id]}</p>}
                   </div>
                 </div>
               </div>
@@ -602,7 +602,7 @@ export default function OperatorCustomersPage() {
 
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-text">워크스페이스</h3>
-        <span className="text-[11px] text-subtle">{customers.length}개</span>
+        <span className="text-caption text-subtle">{customers.length}개</span>
       </div>
       <div className="grid gap-3">
         {customers.map((c) => {
@@ -615,37 +615,37 @@ export default function OperatorCustomersPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-semibold text-text">{c.name}</h3>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-surface-2 text-subtle">{c.tier}</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded ${c.status === "active" ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>{c.status}</span>
+                    <span className="text-caption px-2 py-0.5 rounded bg-surface-2 text-subtle">{c.tier}</span>
+                    <span className={`text-caption px-2 py-0.5 rounded ${c.status === "active" ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>{c.status}</span>
                   </div>
-                  <p className="text-[11px] text-subtle mt-1">{c.slug} · {c.id}</p>
-                  <p className="text-[11px] text-subtle">가입 {fmtDate(c.created_at)} · auth {c.owner_auth_id || "-"}</p>
+                  <p className="text-caption text-subtle mt-1">{c.slug} · {c.id}</p>
+                  <p className="text-caption text-subtle">가입 {fmtDate(c.created_at)} · auth {c.owner_auth_id || "-"}</p>
                 </div>
-                <div className="text-right text-[11px] text-subtle">
+                <div className="text-right text-caption text-subtle">
                   <p>최근 사용 {fmtDate(c.last_usage_at)}</p>
                   <p>이벤트 {c.usage_events_count} · 초안 {c.drafts_count} · 발행 {c.published_count} · 실패 {c.failed_count}</p>
                   <p>생성 {c.generations_used ?? 0} · 쇼츠 {c.shorts_used ?? 0}</p>
                 </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
-                <span className={`text-[10px] px-2 py-1 rounded ${anthropic ? "bg-success/15 text-success" : "bg-surface-2 text-subtle"}`}>
+                <span className={`text-caption px-2 py-1 rounded ${anthropic ? "bg-success/15 text-success" : "bg-surface-2 text-subtle"}`}>
                   Anthropic {anthropic ? "연결" : "공유 엔진"}
                 </span>
                 {!anthropic && (
-                  <span className={`text-[10px] px-2 py-1 rounded ${c.shared_cli_approved_at ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
+                  <span className={`text-caption px-2 py-1 rounded ${c.shared_cli_approved_at ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
                     공유 AI {c.shared_cli_approved_at ? "승인됨" : "미승인"}
                   </span>
                 )}
                 {channelAccounts.length ? channelAccounts.map((account) => (
-                  <span key={account.provider} className="text-[10px] px-2 py-1 rounded bg-accent-soft text-accent" title={`최근 연결 ${fmtDate(account.last_connected_at)}`}>
+                  <span key={account.provider} className="text-caption px-2 py-1 rounded bg-accent-soft text-accent" title={`최근 연결 ${fmtDate(account.last_connected_at)}`}>
                     {account.provider} {account.account_count}개{account.default_username ? ` · 기본 @${account.default_username}` : ""}
                   </span>
                 )) : channels.length ? channels.map((ch) => (
-                  <span key={`${ch.kind}:${ch.label}`} className="text-[10px] px-2 py-1 rounded bg-accent-soft text-accent">
+                  <span key={`${ch.kind}:${ch.label}`} className="text-caption px-2 py-1 rounded bg-accent-soft text-accent">
                     {ch.label} 연결(legacy)
                   </span>
                 )) : (
-                  <span className="text-[10px] px-2 py-1 rounded bg-surface-2 text-subtle">연결 앱 없음</span>
+                  <span className="text-caption px-2 py-1 rounded bg-surface-2 text-subtle">연결 앱 없음</span>
                 )}
               </div>
             </div>

@@ -55,10 +55,10 @@ function SidebarGroup({
         onClick={() => toggleSidebar(groupKey)}
         className="px-3 mb-1 w-full flex items-center justify-between cursor-pointer hover:opacity-80"
       >
-        <span className="text-[10px] font-medium text-subtle uppercase tracking-wider">{title}</span>
+        <span className="text-caption font-medium text-subtle uppercase tracking-wider">{title}</span>
         <span className="flex items-center gap-1">
           {totalCount > 0 && (
-            <span className={`text-[9px] ${liveCount > 0 ? "text-green-600" : "text-subtle"}`}>
+            <span className={`text-caption ${liveCount > 0 ? "text-green-600" : "text-subtle"}`}>
               {liveCount}/{totalCount}
             </span>
           )}
@@ -87,11 +87,11 @@ function SidebarGroup({
               <span
                 className={`w-4 h-4 rounded ${i.iconClass || "text-subtle"} flex items-center justify-center`}
               >
-                {i.key ? getChannelIcon(i.key) : <span className="text-[9px] font-bold">{i.icon}</span>}
+                {i.key ? getChannelIcon(i.key) : <span className="text-caption font-bold">{i.icon}</span>}
               </span>
               {i.label}
               {i.status && (
-                <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${i.statusClass || "bg-surface-2 text-subtle"}`}>
+                <span className={`ml-auto text-caption px-1.5 py-0.5 rounded-full ${i.statusClass || "bg-surface-2 text-subtle"}`}>
                   {i.status}
                 </span>
               )}
@@ -212,7 +212,7 @@ function OperatorSidebar() {
 
       <nav className="flex-1 min-h-0 overflow-y-auto py-3">
         <div className="px-3 mb-2">
-          <span className="text-[10px] font-medium text-subtle uppercase tracking-wider">Operator</span>
+          <span className="text-caption font-medium text-subtle uppercase tracking-wider">Operator</span>
         </div>
         <Link
           href="/operator/customers"
@@ -290,7 +290,7 @@ function CustomerSidebar({
 
       <nav className="flex-1 min-h-0 overflow-y-auto py-3">
         <div className="px-3 mb-2">
-          <span className="text-[10px] font-medium text-subtle uppercase tracking-wider">Overview</span>
+          <span className="text-caption font-medium text-subtle uppercase tracking-wider">Overview</span>
         </div>
         <Link
           href="/"
@@ -316,7 +316,7 @@ function CustomerSidebar({
             </svg>
           </span>
           OSMU Studio
-          <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full bg-accent-soft text-accent">NEW</span>
+          <span className="ml-auto text-caption px-1.5 py-0.5 rounded-full bg-accent-soft text-accent">NEW</span>
         </Link>
 
         <Link
@@ -330,7 +330,7 @@ function CustomerSidebar({
             </svg>
           </span>
           승인 인박스
-          <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full bg-green-900/50 text-green-300">NEW</span>
+          <span className="ml-auto text-caption px-1.5 py-0.5 rounded-full bg-green-900/50 text-green-300">NEW</span>
         </Link>
 
         <Link
@@ -378,7 +378,7 @@ function CustomerSidebar({
 
         {/* ── Data & Analytics ── */}
         <div className="px-3 mt-5 mb-2">
-          <span className="text-[10px] font-medium text-subtle uppercase tracking-wider">Data & Analytics</span>
+          <span className="text-caption font-medium text-subtle uppercase tracking-wider">Data & Analytics</span>
         </div>
         {[
           { href: "/blog-performance", key: "blog_performance", label: "Blog Performance" },
@@ -394,7 +394,7 @@ function CustomerSidebar({
 
         {/* ── Keyword Research ── */}
         <div className="px-3 mt-5 mb-2">
-          <span className="text-[10px] font-medium text-subtle uppercase tracking-wider">Keyword Research</span>
+          <span className="text-caption font-medium text-subtle uppercase tracking-wider">Keyword Research</span>
         </div>
         {[
           { href: "/keyword-planner", key: "keyword_planner", label: "Keyword Planner" },
@@ -419,7 +419,7 @@ function CustomerSidebar({
         />
 
         <div className="px-3 mt-5 mb-2">
-          <span className="text-[10px] font-medium text-subtle uppercase tracking-wider">Assets & Tools</span>
+          <span className="text-caption font-medium text-subtle uppercase tracking-wider">Assets & Tools</span>
         </div>
         <Link
           href="/images"
@@ -434,7 +434,7 @@ function CustomerSidebar({
             />
           </svg>
           Images
-          <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-surface-2 text-subtle">{imageCount}</span>
+          <span className="ml-auto text-caption px-1.5 py-0.5 rounded-full bg-surface-2 text-subtle">{imageCount}</span>
         </Link>
         <Link
           href="/videos"
@@ -457,7 +457,7 @@ function CustomerSidebar({
               href="/channels/midjourney"
               className={`sidebar-item ${pathname === "/channels/midjourney" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-muted flex items-center gap-3`}
             >
-              <span className="w-4 h-4 rounded bg-indigo-900/50 flex items-center justify-center text-[8px] font-bold text-indigo-300">MJ</span>
+              <span className="w-4 h-4 rounded bg-indigo-900/50 flex items-center justify-center text-caption font-bold text-indigo-300">MJ</span>
               Midjourney
               <span className={`ml-auto w-2 h-2 rounded-full ${mjCfg.connected ? "bg-green-500" : "bg-surface-2"}`} />
             </Link>
@@ -465,7 +465,7 @@ function CustomerSidebar({
         })()}
 
         <div className="px-3 mt-5 mb-2">
-          <span className="text-[10px] font-medium text-subtle uppercase tracking-wider">System</span>
+          <span className="text-caption font-medium text-subtle uppercase tracking-wider">System</span>
         </div>
         <Link
           href="/settings"

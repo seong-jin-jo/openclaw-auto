@@ -30,13 +30,13 @@ function CredField({ id, label, desc, isSecret = false, value, editable, onChang
           readOnly={!editable}
           onChange={(e) => onChange(e.target.value)}
           title={isSecret && value ? "저장된 비밀값" : value}
-          className={`w-full ${editable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-[11px] text-muted placeholder-subtle font-mono`}
+          className={`w-full ${editable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-caption text-muted placeholder-subtle font-mono`}
         />
         {isSecret && (
           <button
             type="button"
             onClick={() => setVisible(!visible)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-subtle hover:text-muted"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-caption text-subtle hover:text-muted"
           >
             {visible ? "Hide" : "Show"}
           </button>
@@ -107,17 +107,17 @@ export function CredentialForm({ channelKey, fields, labels, currentKeys, onSave
         <h3 className="text-sm font-medium text-muted">{title || "Credentials"}</h3>
         <div className="flex items-center gap-2">
           {connected && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-success/15 text-success border border-success/30">
+            <span className="text-caption px-2 py-0.5 rounded-full bg-success/15 text-success border border-success/30">
               연결됨
             </span>
           )}
           {badge && (
-            <span className="text-[10px] px-2 py-0.5 rounded bg-accent-soft text-accent border border-accent/30">
+            <span className="text-caption px-2 py-0.5 rounded bg-accent-soft text-accent border border-accent/30">
               {badge.text}
             </span>
           )}
           {hasKeys && !editing && (
-            <button onClick={() => setEditing(true)} className="text-[10px] text-accent hover:text-accent">
+            <button onClick={() => setEditing(true)} className="text-caption text-accent hover:text-accent">
               {channelKey === "threads" || channelKey === "x" ? "Edit" : "Edit Credentials"}
             </button>
           )}
@@ -127,7 +127,7 @@ export function CredentialForm({ channelKey, fields, labels, currentKeys, onSave
         <div className="space-y-4">
           {fieldGroups.map((group, gi) => (
             <div key={gi} className={gi < fieldGroups.length - 1 ? "border-b border-border/50 pb-3" : ""}>
-              <p className="text-[10px] text-subtle uppercase tracking-wide mb-2">{group.title}</p>
+              <p className="text-caption text-subtle uppercase tracking-wide mb-2">{group.title}</p>
               {group.fieldIndices.map((idx, j) => (
                 <div key={fields[idx]} className={j > 0 ? "mt-2" : ""}>
                   {renderField(idx)}

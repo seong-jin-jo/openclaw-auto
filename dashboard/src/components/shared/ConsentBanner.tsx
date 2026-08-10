@@ -73,7 +73,7 @@ export function PrivacySettingsLink() {
   return (
     <button
       onClick={openConsentSettings}
-      className="fixed bottom-1 left-1 text-[10px] text-subtle underline z-40 opacity-70 hover:opacity-100"
+      className="fixed bottom-1 left-1 text-caption text-subtle underline z-40 opacity-70 hover:opacity-100"
     >
       개인정보 설정
     </button>

@@ -19,13 +19,13 @@ function CredField({ id, label, isSecret, value, editable }: {
           defaultValue={value}
           placeholder={label}
           readOnly={!editable}
-          className={`w-full ${editable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-[11px] text-muted placeholder-gray-600 font-mono`}
+          className={`w-full ${editable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-caption text-muted placeholder-gray-600 font-mono`}
         />
         {isSecret && (
           <button
             type="button"
             onClick={() => setShow(!show)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-subtle hover:text-muted"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-caption text-subtle hover:text-muted"
           >
             {show ? "Hide" : "Show"}
           </button>
@@ -67,15 +67,15 @@ export function StorageSettings() {
 
   return (
     <>
-      <p className="text-[10px] text-subtle mb-4">Instagram, Threads 등 이미지 발행 시 공용 업로드 저장소. 모든 채널에서 사용됩니다.</p>
+      <p className="text-caption text-subtle mb-4">Instagram, Threads 등 이미지 발행 시 공용 업로드 저장소. 모든 채널에서 사용됩니다.</p>
       <div className="card p-5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-medium text-muted">Cloudflare R2</h3>
-          <span className={`text-[10px] px-2 py-0.5 rounded ${r2Connected ? "bg-green-900/40 text-green-400" : "bg-yellow-900/40 text-yellow-400"}`}>
+          <span className={`text-caption px-2 py-0.5 rounded ${r2Connected ? "bg-green-900/40 text-green-400" : "bg-yellow-900/40 text-yellow-400"}`}>
             {r2Connected ? "Connected" : "Not configured"}
           </span>
         </div>
-        <details className="mb-3 text-[10px]">
+        <details className="mb-3 text-caption">
           <summary className="text-accent hover:text-accent cursor-pointer">Setup Guide -- R2 설정법</summary>
           <div className="mt-2 p-3 rounded bg-surface/50 text-subtle space-y-1.5">
             <p className="font-medium text-subtle">1. 버킷 생성</p>
@@ -91,9 +91,9 @@ export function StorageSettings() {
           </div>
         </details>
         <div className="flex items-center justify-between mb-3">
-          <span className="text-[10px] text-subtle">Credentials</span>
+          <span className="text-caption text-subtle">Credentials</span>
           {r2Connected && !editing && (
-            <button onClick={() => setEditing(true)} className="text-[10px] text-accent hover:text-accent">Edit</button>
+            <button onClick={() => setEditing(true)} className="text-caption text-accent hover:text-accent">Edit</button>
           )}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

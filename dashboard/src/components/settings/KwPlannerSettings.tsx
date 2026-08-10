@@ -65,15 +65,15 @@ export function KwPlannerSettings() {
       <div className="card p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded bg-green-900 flex items-center justify-center text-[10px] font-bold text-green-300">N</span>
+            <span className="w-5 h-5 rounded bg-green-900 flex items-center justify-center text-caption font-bold text-green-300">N</span>
             <span className="text-sm font-medium text-text">Naver Keyword Planner</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${kwCfg?.configured ? "bg-green-900/50 text-green-400" : "bg-surface-2 text-subtle"}`}>
+            <span className={`text-caption px-1.5 py-0.5 rounded-full ${kwCfg?.configured ? "bg-green-900/50 text-green-400" : "bg-surface-2 text-subtle"}`}>
               {kwCfg?.configured ? "Connected" : "Not set"}
             </span>
             {kwCfg?.configured && !editingKw && (
-              <button onClick={() => setEditingKw(true)} className="text-[10px] text-accent hover:text-accent">Edit</button>
+              <button onClick={() => setEditingKw(true)} className="text-caption text-accent hover:text-accent">Edit</button>
             )}
           </div>
         </div>
@@ -92,7 +92,7 @@ export function KwPlannerSettings() {
                   onChange={(e) => setKwForm({ ...kwForm, clientId: e.target.value })}
                   placeholder="API Key (Client ID)"
                   title={clientIdVal}
-                  className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 text-[11px] text-muted placeholder-gray-600 font-mono`}
+                  className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 text-caption text-muted placeholder-gray-600 font-mono`}
                 />
               </div>
               <div>
@@ -105,12 +105,12 @@ export function KwPlannerSettings() {
                     onChange={(e) => setKwForm({ ...kwForm, clientSecret: e.target.value })}
                     placeholder="Secret Key"
                     title={clientSecretVal}
-                    className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-[11px] text-muted placeholder-gray-600 font-mono`}
+                    className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-caption text-muted placeholder-gray-600 font-mono`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowKwSecret(!showKwSecret)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-subtle hover:text-muted"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-caption text-subtle hover:text-muted"
                   >
                     {showKwSecret ? "Hide" : "Show"}
                   </button>
@@ -124,10 +124,10 @@ export function KwPlannerSettings() {
                   onChange={(e) => setKwForm({ ...kwForm, customerId: e.target.value })}
                   placeholder="Customer ID"
                   title={customerIdVal}
-                  className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 text-[11px] text-muted placeholder-gray-600 font-mono`}
+                  className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 text-caption text-muted placeholder-gray-600 font-mono`}
                 />
               </div>
-              <p className="text-[10px] text-subtle">searchad.naver.com &rarr; Tools &rarr; API &rarr; Credentials</p>
+              <p className="text-caption text-subtle">searchad.naver.com &rarr; Tools &rarr; API &rarr; Credentials</p>
               {isEditable && (
                 <div className="flex gap-2">
                   <button onClick={saveKw} className="px-3 py-1.5 text-xs bg-accent text-text rounded hover:bg-accent-hover">
@@ -145,15 +145,15 @@ export function KwPlannerSettings() {
       <div className="card p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded bg-green-900 flex items-center justify-center text-[10px] font-bold text-green-300">D</span>
+            <span className="w-5 h-5 rounded bg-green-900 flex items-center justify-center text-caption font-bold text-green-300">D</span>
             <span className="text-sm font-medium text-text">Naver Datalab</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${dlCfg?.configured ? "bg-green-900/50 text-green-400" : "bg-surface-2 text-subtle"}`}>
+            <span className={`text-caption px-1.5 py-0.5 rounded-full ${dlCfg?.configured ? "bg-green-900/50 text-green-400" : "bg-surface-2 text-subtle"}`}>
               {dlCfg?.configured ? "Connected" : "Not set"}
             </span>
             {dlCfg?.configured && !editingDl && (
-              <button onClick={() => setEditingDl(true)} className="text-[10px] text-accent hover:text-accent">Edit</button>
+              <button onClick={() => setEditingDl(true)} className="text-caption text-accent hover:text-accent">Edit</button>
             )}
           </div>
         </div>
@@ -171,7 +171,7 @@ export function KwPlannerSettings() {
                   onChange={(e) => setDlForm({ ...dlForm, clientId: e.target.value })}
                   placeholder="Client ID"
                   title={clientIdVal}
-                  className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 text-[11px] text-muted placeholder-gray-600 font-mono`}
+                  className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 text-caption text-muted placeholder-gray-600 font-mono`}
                 />
               </div>
               <div>
@@ -184,18 +184,18 @@ export function KwPlannerSettings() {
                     onChange={(e) => setDlForm({ ...dlForm, clientSecret: e.target.value })}
                     placeholder="Client Secret"
                     title={clientSecretVal}
-                    className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-[11px] text-muted placeholder-gray-600 font-mono`}
+                    className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-caption text-muted placeholder-gray-600 font-mono`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowDlSecret(!showDlSecret)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-subtle hover:text-muted"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-caption text-subtle hover:text-muted"
                   >
                     {showDlSecret ? "Hide" : "Show"}
                   </button>
                 </div>
               </div>
-              <p className="text-[10px] text-subtle">developers.naver.com &rarr; Application &rarr; Datalab</p>
+              <p className="text-caption text-subtle">developers.naver.com &rarr; Application &rarr; Datalab</p>
               {isEditable && (
                 <div className="flex gap-2">
                   <button onClick={saveDl} className="px-3 py-1.5 text-xs bg-accent text-text rounded hover:bg-accent-hover">

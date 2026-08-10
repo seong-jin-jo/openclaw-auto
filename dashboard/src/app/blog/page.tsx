@@ -158,14 +158,14 @@ export default function BlogPage() {
         <>
           <details className="card p-4 mb-6">
             <summary className="text-sm font-medium text-muted cursor-pointer">SEO 콘텐츠 자동화 플로우</summary>
-            <div className="mt-3 text-[11px] text-subtle space-y-2">
+            <div className="mt-3 text-caption text-subtle space-y-2">
               <div className="flex items-start gap-2"><span className="text-accent font-bold">1.</span><div><strong className="text-muted">키워드 수집</strong> — Keyword Planner에서 검색량 높은 키워드를 찾아 Blog Keywords에 추가</div></div>
               <div className="flex items-start gap-2"><span className="text-accent font-bold">2.</span><div><strong className="text-muted">트렌드 확인</strong> — Naver Trends에서 시즌 키워드 파악 (시험, 방학 등)</div></div>
               <div className="flex items-start gap-2"><span className="text-accent font-bold">3.</span><div><strong className="text-muted">콘텐츠 생산</strong> — AI가 Blog Keywords + Content Guide 기반으로 칼럼 draft 자동 생성</div></div>
               <div className="flex items-start gap-2"><span className="text-accent font-bold">4.</span><div><strong className="text-muted">검수 + 발행</strong> — Queue에서 draft 확인 → 클릭하여 수정 → Approve → 블로그에 자동 발행</div></div>
               <div className="flex items-start gap-2"><span className="text-accent font-bold">5.</span><div><strong className="text-muted">검색 노출</strong> — Search Console에서 색인 요청 → 검색 노출</div></div>
               <div className="flex items-start gap-2"><span className="text-accent font-bold">6.</span><div><strong className="text-muted">결과 분석</strong> — Blog Performance에서 조회수 + 검색 클릭 추적</div></div>
-              <p className="text-[10px] text-subtle mt-2 border-t border-border pt-2">Settings 탭에서 Content Guide와 Keywords를 수정하세요.</p>
+              <p className="text-caption text-subtle mt-2 border-t border-border pt-2">Settings 탭에서 Content Guide와 Keywords를 수정하세요.</p>
             </div>
           </details>
 
@@ -174,12 +174,12 @@ export default function BlogPage() {
             <div className="card p-4 mb-4 border-l-2 border-accent">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-muted">추천 키워드</span>
-                <a href="/keyword-planner" className="text-[10px] text-accent hover:text-accent">더 많은 키워드 찾기 →</a>
+                <a href="/keyword-planner" className="text-caption text-accent hover:text-accent">더 많은 키워드 찾기 →</a>
               </div>
-              <p className="text-[10px] text-subtle mb-2">Keyword Bank에서 수집된 미사용 키워드입니다.</p>
+              <p className="text-caption text-subtle mb-2">Keyword Bank에서 수집된 미사용 키워드입니다.</p>
               <div className="flex flex-wrap gap-1.5">
                 {bank.slice(0, 10).map((k) => (
-                  <span key={k.keyword} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] border border-accent bg-accent-soft text-accent">
+                  <span key={k.keyword} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-caption border border-accent bg-accent-soft text-accent">
                     {k.keyword}
                     {k.totalSearches ? <span className="text-subtle">{k.totalSearches >= 1000 ? Math.round(k.totalSearches / 1000) + "K" : k.totalSearches}</span> : null}
                   </span>
@@ -189,8 +189,8 @@ export default function BlogPage() {
           ) : (
             <div className="card p-4 mb-4 border-l-2 border-border">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] text-subtle">아직 수집된 키워드가 없습니다.</p>
-                <a href="/keyword-planner" className="text-[10px] text-accent hover:text-accent whitespace-nowrap">키워드 찾기 →</a>
+                <p className="text-caption text-subtle">아직 수집된 키워드가 없습니다.</p>
+                <a href="/keyword-planner" className="text-caption text-accent hover:text-accent whitespace-nowrap">키워드 찾기 →</a>
               </div>
             </div>
           )}
@@ -204,15 +204,15 @@ export default function BlogPage() {
                 <div key={p.id} className="card p-4 cursor-pointer hover:border-border transition-colors" onClick={() => openEditor(p)}>
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${STATUS_CLASS[p.status] || "bg-surface-2 text-muted"}`}>{p.status}</span>
-                      {p.seoKeyword && <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-900/40 text-cyan-300">{p.seoKeyword}</span>}
+                      <span className={`text-caption px-1.5 py-0.5 rounded ${STATUS_CLASS[p.status] || "bg-surface-2 text-muted"}`}>{p.status}</span>
+                      {p.seoKeyword && <span className="text-caption px-1.5 py-0.5 rounded bg-cyan-900/40 text-cyan-300">{p.seoKeyword}</span>}
                       {p.blogPostUrl && (
-                        <a href={p.blogPostUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline" onClick={(e) => e.stopPropagation()}>View →</a>
+                        <a href={p.blogPostUrl} target="_blank" rel="noopener noreferrer" className="text-caption text-accent hover:underline" onClick={(e) => e.stopPropagation()}>View →</a>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      {p.viewCount != null && <span className="text-[10px] text-subtle">views: {p.viewCount}</span>}
-                      <span className="text-[10px] text-subtle">{p.generatedAt?.split("T")[0] || ""}</span>
+                      {p.viewCount != null && <span className="text-caption text-subtle">views: {p.viewCount}</span>}
+                      <span className="text-caption text-subtle">{p.generatedAt?.split("T")[0] || ""}</span>
                     </div>
                   </div>
                   <h3 className="text-sm font-medium text-muted mb-1">{p.title || ""}</h3>
@@ -222,9 +222,9 @@ export default function BlogPage() {
                   {p.tags && p.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-2">
                       {p.tags.slice(0, 8).map((t) => (
-                        <span key={t} className="text-[10px] text-cyan-400">#{t}</span>
+                        <span key={t} className="text-caption text-cyan-400">#{t}</span>
                       ))}
-                      {p.tags.length > 8 && <span className="text-[10px] text-subtle">+{p.tags.length - 8}</span>}
+                      {p.tags.length > 8 && <span className="text-caption text-subtle">+{p.tags.length - 8}</span>}
                     </div>
                   )}
                   <div className="flex gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
@@ -248,8 +248,8 @@ export default function BlogPage() {
           <div className="space-y-4">
             <button onClick={() => { setEditingPost(null); setTab("queue"); }} className="text-subtle hover:text-muted text-xs">← Queue로 돌아가기</button>
             <div className="flex items-center gap-2 mb-2">
-              <span className={`text-[10px] px-1.5 py-0.5 rounded ${STATUS_CLASS[editingPost.status] || "bg-surface-2 text-muted"}`}>{editingPost.status}</span>
-              <span className="text-[10px] text-subtle">{editingPost.id.slice(0, 8)}</span>
+              <span className={`text-caption px-1.5 py-0.5 rounded ${STATUS_CLASS[editingPost.status] || "bg-surface-2 text-muted"}`}>{editingPost.status}</span>
+              <span className="text-caption text-subtle">{editingPost.id.slice(0, 8)}</span>
             </div>
             <div>
               <label className="text-xs text-subtle block mb-1">SEO 키워드</label>
@@ -290,7 +290,7 @@ export default function BlogPage() {
           <div className="card p-4">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium text-text">Content Guide</span>
-              <span className="text-[10px] text-subtle">학생/학부모 대상 콘텐츠 전략</span>
+              <span className="text-caption text-subtle">학생/학부모 대상 콘텐츠 전략</span>
             </div>
             <textarea
               value={guide}
@@ -305,17 +305,17 @@ export default function BlogPage() {
           <div className="card p-4">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium text-text">Blog SEO Keywords</span>
-              <span className="text-[10px] text-subtle">학생/학부모 검색어</span>
+              <span className="text-caption text-subtle">학생/학부모 검색어</span>
             </div>
             {bank.length > 0 && (
               <div className="mb-3 p-3 rounded bg-accent-soft border border-accent">
-                <p className="text-[10px] text-accent mb-2">Keyword Bank ({bank.length}개) — 클릭하여 추가</p>
+                <p className="text-caption text-accent mb-2">Keyword Bank ({bank.length}개) — 클릭하여 추가</p>
                 <div className="flex flex-wrap gap-1">
                   {bank.map((k) => (
                     <button
                       key={k.keyword}
                       onClick={() => addBankKeyword(k.keyword)}
-                      className="text-[10px] px-2 py-0.5 rounded bg-accent-soft text-accent hover:bg-accent-hover/50 border border-accent"
+                      className="text-caption px-2 py-0.5 rounded bg-accent-soft text-accent hover:bg-accent-hover/50 border border-accent"
                     >
                       {k.keyword} {k.totalSearches ? <span className="text-subtle">{k.totalSearches.toLocaleString()}</span> : null}
                     </button>

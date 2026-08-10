@@ -58,8 +58,8 @@ export default function ImagesPage() {
               <div className="p-3">
                 <p className="text-xs text-muted truncate" title={img.filename}>{img.filename}</p>
                 <div className="flex items-center justify-between mt-1">
-                  <span className="text-[10px] text-subtle">{fmtBytes(img.size)}</span>
-                  <span className="text-[10px] text-subtle">{fmtTime(img.createdAt)}</span>
+                  <span className="text-caption text-subtle">{fmtBytes(img.size)}</span>
+                  <span className="text-caption text-subtle">{fmtTime(img.createdAt)}</span>
                 </div>
               </div>
               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">

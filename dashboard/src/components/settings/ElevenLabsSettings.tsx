@@ -68,15 +68,15 @@ export function ElevenLabsSettings() {
     <div className="card p-4">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="w-5 h-5 rounded bg-accent flex items-center justify-center text-[10px] font-bold text-accent">11</span>
+          <span className="w-5 h-5 rounded bg-accent flex items-center justify-center text-caption font-bold text-accent">11</span>
           <span className="text-sm font-medium text-text">ElevenLabs TTS</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${config?.configured ? "bg-green-900/50 text-green-400" : "bg-surface-2 text-subtle"}`}>
+          <span className={`text-caption px-1.5 py-0.5 rounded-full ${config?.configured ? "bg-green-900/50 text-green-400" : "bg-surface-2 text-subtle"}`}>
             {config?.configured ? "Configured" : "Not set"}
           </span>
           {config?.configured && !editing && (
-            <button onClick={() => setEditing(true)} className="text-[10px] text-accent hover:text-accent">Edit</button>
+            <button onClick={() => setEditing(true)} className="text-caption text-accent hover:text-accent">Edit</button>
           )}
         </div>
       </div>
@@ -92,12 +92,12 @@ export function ElevenLabsSettings() {
               onChange={(e) => setApiKey(e.target.value)}
               placeholder="xi-..."
               title={apiKeyValue}
-              className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-[11px] text-muted placeholder-gray-600 font-mono`}
+              className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-caption text-muted placeholder-gray-600 font-mono`}
             />
             <button
               type="button"
               onClick={() => setShowApiKey(!showApiKey)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-subtle hover:text-muted"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-caption text-subtle hover:text-muted"
             >
               {showApiKey ? "Hide" : "Show"}
             </button>
@@ -113,14 +113,14 @@ export function ElevenLabsSettings() {
                 onChange={(e) => setVoiceId(e.target.value)}
                 placeholder="Voice ID (optional)"
                 title={voiceIdValue}
-                className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 text-[11px] text-muted placeholder-gray-600 font-mono`}
+                className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 text-caption text-muted placeholder-gray-600 font-mono`}
               />
             </div>
             {isEditable && (
               <button
                 onClick={loadVoices}
                 disabled={loadingVoices}
-                className="px-2 py-1 text-[10px] bg-surface-2 text-muted rounded hover:bg-surface-2"
+                className="px-2 py-1 text-caption bg-surface-2 text-muted rounded hover:bg-surface-2"
               >
                 {loadingVoices ? "..." : "Browse"}
               </button>

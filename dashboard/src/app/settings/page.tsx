@@ -75,7 +75,7 @@ export default function SettingsPage() {
       {showConnect && activeWorkspace && <ChannelConnect workspace={activeWorkspace} onClose={() => setShowConnect(false)} />}
       {activeTab === "ai" && (
         <>
-          <p className="text-[10px] text-subtle mb-4">모든 채널의 콘텐츠 자동 생성 + 트렌드 분석에 사용됩니다.</p>
+          <p className="text-caption text-subtle mb-4">모든 채널의 콘텐츠 자동 생성 + 트렌드 분석에 사용됩니다.</p>
           {/* 고객 셀프서브: 내 Anthropic 키 등록 → 생성이 내 키·내 과금으로 */}
           <div className="mb-6"><AiKeySettings /></div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">

@@ -100,7 +100,7 @@ export function ImagePickerModal() {
               {generating ? "Generating..." : "Generate"}
             </button>
           </div>
-          {genStatus && <div className="mt-2 text-[10px] text-subtle">{genStatus}</div>}
+          {genStatus && <div className="mt-2 text-caption text-subtle">{genStatus}</div>}
         </div>
 
         {/* Remove current */}
@@ -134,7 +134,7 @@ export function ImagePickerModal() {
                   <img src={img.url} className="w-full h-full object-cover" loading="lazy" alt={img.filename} />
                 </div>
                 <div className="p-2">
-                  <p className="text-[10px] text-subtle truncate" title={img.filename}>{img.filename}</p>
+                  <p className="text-caption text-subtle truncate" title={img.filename}>{img.filename}</p>
                 </div>
               </div>
             ))}

@@ -94,11 +94,11 @@ export function SlackSettings() {
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs text-subtle">Webhook URL</span>
           <div className="flex items-center gap-2">
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${config?.configured ? "bg-green-900/50 text-green-400" : "bg-surface-2 text-subtle"}`}>
+            <span className={`text-caption px-1.5 py-0.5 rounded-full ${config?.configured ? "bg-green-900/50 text-green-400" : "bg-surface-2 text-subtle"}`}>
               {config?.configured ? "Connected" : "Not set"}
             </span>
             {config?.configured && !editing && (
-              <button onClick={() => setEditing(true)} className="text-[10px] text-accent hover:text-accent">Edit</button>
+              <button onClick={() => setEditing(true)} className="text-caption text-accent hover:text-accent">Edit</button>
             )}
           </div>
         </div>
@@ -111,12 +111,12 @@ export function SlackSettings() {
               onChange={(e) => setWebhookUrl(e.target.value)}
               placeholder="https://hooks.slack.com/services/..."
               title={webhookUrl || config?.webhookUrl || ""}
-              className={`w-full ${!config?.configured || editing ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-[11px] text-muted placeholder-gray-600 font-mono`}
+              className={`w-full ${!config?.configured || editing ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-caption text-muted placeholder-gray-600 font-mono`}
             />
             <button
               type="button"
               onClick={() => setShowWebhook(!showWebhook)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-subtle hover:text-muted"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-caption text-subtle hover:text-muted"
             >
               {showWebhook ? "Hide" : "Show"}
             </button>
@@ -143,7 +143,7 @@ export function SlackSettings() {
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs text-subtle">Report Template</span>
           {!editingTmpl && (
-            <button onClick={() => { setTemplate(tmpl?.template || ""); setEditingTmpl(true); }} className="text-[10px] text-accent hover:text-accent">Edit</button>
+            <button onClick={() => { setTemplate(tmpl?.template || ""); setEditingTmpl(true); }} className="text-caption text-accent hover:text-accent">Edit</button>
           )}
         </div>
         {editingTmpl ? (
@@ -154,7 +154,7 @@ export function SlackSettings() {
               rows={10}
               className="w-full bg-surface-2 text-muted text-xs p-3 rounded border border-border font-mono"
             />
-            <p className="text-[10px] text-subtle">
+            <p className="text-caption text-subtle">
               Variables: {"{blog_articles}"}, {"{blog_views}"}, {"{blog_delta}"}, {"{blog_top}"},
               {"{gsc_clicks}"}, {"{gsc_impressions}"}, {"{gsc_ctr}"}, {"{gsc_top_keywords}"},
               {"{ga_sessions}"}, {"{ga_pageviews}"}, {"{dashboard_url}"}
@@ -165,7 +165,7 @@ export function SlackSettings() {
             </div>
           </div>
         ) : (
-          <pre className="text-[10px] text-subtle whitespace-pre-wrap max-h-32 overflow-auto">{tmpl?.template?.slice(0, 300)}...</pre>
+          <pre className="text-caption text-subtle whitespace-pre-wrap max-h-32 overflow-auto">{tmpl?.template?.slice(0, 300)}...</pre>
         )}
       </div>
 
@@ -182,7 +182,7 @@ export function SlackSettings() {
             </button>
           </div>
           {preview && (
-            <pre className="bg-surface-2 text-muted text-[10px] p-3 rounded whitespace-pre-wrap max-h-48 overflow-auto">{preview}</pre>
+            <pre className="bg-surface-2 text-muted text-caption p-3 rounded whitespace-pre-wrap max-h-48 overflow-auto">{preview}</pre>
           )}
         </div>
       )}

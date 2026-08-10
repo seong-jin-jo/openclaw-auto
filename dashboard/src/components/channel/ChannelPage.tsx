@@ -51,7 +51,7 @@ function ConnectGate({ label, onConnect }: { label: string; onConnect: () => voi
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
           {["Published", "Views", "Avg Views", "Avg Likes"].map((l) => (
             <div key={l} className="card p-4">
-              <p className="text-[11px] text-subtle uppercase tracking-wide">{l}</p>
+              <p className="text-caption text-subtle uppercase tracking-wide">{l}</p>
               <p className="text-2xl font-bold text-text mt-1">—</p>
             </div>
           ))}
@@ -231,11 +231,11 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
                   label={oauthLabel}
                   onAccountsChanged={mutateConfig}
                 />
-                <p className="text-[10px] text-subtle mt-2">공식 OAuth가 기본 경로입니다. 토큰 직접 입력은 고급/비상용으로만 사용하세요.</p>
+                <p className="text-caption text-subtle mt-2">공식 OAuth가 기본 경로입니다. 토큰 직접 입력은 고급/비상용으로만 사용하세요.</p>
                 <button
                   type="button"
                   onClick={() => setShowManualCreds((v) => !v)}
-                  className="mt-2 text-[11px] text-accent hover:text-accent"
+                  className="mt-2 text-caption text-accent hover:text-accent"
                 >
                   {showManualCreds ? "수동 토큰 입력 닫기" : "고급: 토큰 직접 입력"}
                 </button>
@@ -381,7 +381,7 @@ function AnalyticsTab() {
           ["Avg Likes", s.avgLikes],
         ].map(([label, val]) => (
           <div key={String(label)} className="card p-4">
-            <p className="text-[11px] text-subtle uppercase tracking-wide">{String(label)}</p>
+            <p className="text-caption text-subtle uppercase tracking-wide">{String(label)}</p>
             <p className="text-2xl font-bold text-text mt-1">{String(val ?? 0)}</p>
           </div>
         ))}
@@ -392,7 +392,7 @@ function AnalyticsTab() {
           <h3 className="text-xs font-medium text-subtle mb-3">Topic Performance</h3>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[10px] text-subtle uppercase">
+              <tr className="text-caption text-subtle uppercase">
                 <th className="text-left py-1">Topic</th>
                 <th className="text-right py-1">Posts</th>
                 <th className="text-right py-1">Avg Views</th>
@@ -429,7 +429,7 @@ function AnalyticsTab() {
                   }`}
                 >
                   #{t}{" "}
-                  <span className="text-[10px] text-subtle">
+                  <span className="text-caption text-subtle">
                     {stats.count}posts {stats.avgViews || 0}v {stats.avgLikes || 0}l
                   </span>
                 </span>
@@ -452,23 +452,23 @@ function AnalyticsTab() {
                       {String(p.text || "")}
                     </p>
                     <div className="flex items-center gap-3 mt-1">
-                      <span className="text-[10px] text-subtle">{String(p.topic || "")}</span>
-                      <span className="text-[10px] text-subtle">{p.publishedAt ? fmtTime(p.publishedAt) : ""}</span>
-                      {!!p.archived && <span className="text-[10px] text-subtle">archived</span>}
+                      <span className="text-caption text-subtle">{String(p.topic || "")}</span>
+                      <span className="text-caption text-subtle">{p.publishedAt ? fmtTime(p.publishedAt) : ""}</span>
+                      {!!p.archived && <span className="text-caption text-subtle">archived</span>}
                     </div>
                   </div>
                   <div className="flex gap-4 text-right shrink-0">
                     <div>
                       <p className={`text-xs ${isViral ? "text-yellow-400 font-medium" : "text-muted"}`}>{views}</p>
-                      <p className="text-[10px] text-subtle">views</p>
+                      <p className="text-caption text-subtle">views</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted">{String(p.likes || 0)}</p>
-                      <p className="text-[10px] text-subtle">likes</p>
+                      <p className="text-caption text-subtle">likes</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted">{String(p.replies || 0)}</p>
-                      <p className="text-[10px] text-subtle">replies</p>
+                      <p className="text-caption text-subtle">replies</p>
                     </div>
                   </div>
                 </div>
@@ -574,10 +574,10 @@ function PopularTab({ expandedPopular, setExpandedPopular }: { expandedPopular: 
                   <span className={`text-xs px-2 py-0.5 rounded ${SOURCE_COLORS[String(p.source)] || "bg-surface-2 text-muted"}`}>
                     {String(p.source || "?")}
                   </span>
-                  {p.topic ? <span className="text-[10px] text-subtle">{String(p.topic)}</span> : null}
-                  {p.likes && String(p.likes) !== "0" ? <span className="text-[10px] text-yellow-500">{String(p.likes)} likes</span> : null}
-                  {p.username ? <span className="text-[10px] text-subtle">@{String(p.username)}</span> : null}
-                  <span className="text-[10px] text-subtle ml-auto">{String(p.collected || "")}</span>
+                  {p.topic ? <span className="text-caption text-subtle">{String(p.topic)}</span> : null}
+                  {p.likes && String(p.likes) !== "0" ? <span className="text-caption text-yellow-500">{String(p.likes)} likes</span> : null}
+                  {p.username ? <span className="text-caption text-subtle">@{String(p.username)}</span> : null}
+                  <span className="text-caption text-subtle ml-auto">{String(p.collected || "")}</span>
                   <svg className={`w-3 h-3 text-subtle transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
@@ -587,13 +587,13 @@ function PopularTab({ expandedPopular, setExpandedPopular }: { expandedPopular: 
                 </p>
                 {open && (
                   <div className="px-4 pb-3 flex items-center gap-3 border-t border-border/50 pt-2">
-                    {p.engagement ? <span className="text-[10px] text-subtle">{String(p.engagement)}</span> : null}
+                    {p.engagement ? <span className="text-caption text-subtle">{String(p.engagement)}</span> : null}
                     {p.url ? (
-                      <a href={String(p.url)} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:text-accent" onClick={(e) => e.stopPropagation()}>
+                      <a href={String(p.url)} target="_blank" rel="noopener noreferrer" className="text-caption text-accent hover:text-accent" onClick={(e) => e.stopPropagation()}>
                         원본 보기 &rarr;
                       </a>
                     ) : null}
-                    <button className="text-[10px] text-red-400 hover:text-red-300 ml-auto" onClick={(e) => { e.stopPropagation(); handleDelete(i); }}>
+                    <button className="text-caption text-red-400 hover:text-red-300 ml-auto" onClick={(e) => { e.stopPropagation(); handleDelete(i); }}>
                       삭제
                     </button>
                   </div>
@@ -656,7 +656,7 @@ function ParametersSection() {
         <div key={p.key} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
           <div>
             <p className="text-xs text-muted">{p.label}</p>
-            <p className="text-[10px] text-subtle">{p.desc}</p>
+            <p className="text-caption text-subtle">{p.desc}</p>
           </div>
           <input
             type="number"

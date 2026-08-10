@@ -64,7 +64,7 @@ export default function OperatorPage() {
           {busy ? "확인 중…" : "접속"}
         </button>
         {error && <p className="mt-2 text-xs text-danger">{error}</p>}
-        <a href="/login" className="block w-full mt-4 text-center text-[11px] text-subtle hover:text-muted transition-colors">
+        <a href="/login" className="block w-full mt-4 text-center text-caption text-subtle hover:text-muted transition-colors">
           ← 고객 로그인으로
         </a>
       </div>

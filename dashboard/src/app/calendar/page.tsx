@@ -91,7 +91,7 @@ export default function CalendarPage() {
       {/* 요일 */}
       <div className="grid grid-cols-7 gap-1 mb-1">
         {WEEKDAYS.map((w, i) => (
-          <div key={w} className={`text-[10px] text-center py-1 ${i === 0 ? "text-red-400" : i === 6 ? "text-accent" : "text-subtle"}`}>{w}</div>
+          <div key={w} className={`text-caption text-center py-1 ${i === 0 ? "text-red-400" : i === 6 ? "text-accent" : "text-subtle"}`}>{w}</div>
         ))}
       </div>
 
@@ -108,15 +108,15 @@ export default function CalendarPage() {
               onClick={() => setSelected(selected === k ? null : k)}
               className={`aspect-square sm:aspect-[4/3] rounded p-1 text-left flex flex-col border ${selected === k ? "border-blue-500" : "border-transparent"} ${isToday ? "bg-blue-900/20" : "bg-surface/40"} hover:bg-surface-2/60`}
             >
-              <span className={`text-[10px] ${isToday ? "text-accent font-bold" : "text-subtle"}`}>{day}</span>
+              <span className={`text-caption ${isToday ? "text-accent font-bold" : "text-subtle"}`}>{day}</span>
               <div className="flex-1 overflow-hidden mt-0.5 space-y-0.5">
                 {dayPosts.slice(0, 2).map((p) => (
                   <div key={p.id} className="flex items-center gap-1">
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_COLOR[p.status || "draft"] || "bg-surface-2"}`} />
-                    <span className="text-[9px] text-subtle truncate">{(p.text || "").slice(0, 18) || "글"}</span>
+                    <span className="text-caption text-subtle truncate">{(p.text || "").slice(0, 18) || "글"}</span>
                   </div>
                 ))}
-                {dayPosts.length > 2 && <div className="text-[9px] text-subtle">+{dayPosts.length - 2}</div>}
+                {dayPosts.length > 2 && <div className="text-caption text-subtle">+{dayPosts.length - 2}</div>}
               </div>
             </button>
           );
@@ -124,7 +124,7 @@ export default function CalendarPage() {
       </div>
 
       {/* 범례 */}
-      <div className="flex flex-wrap gap-3 mt-3 text-[10px] text-subtle">
+      <div className="flex flex-wrap gap-3 mt-3 text-caption text-subtle">
         <span><span className="inline-block w-2 h-2 rounded-full bg-surface-2 mr-1" />초안</span>
         <span><span className="inline-block w-2 h-2 rounded-full bg-accent mr-1" />예약/승인</span>
         <span><span className="inline-block w-2 h-2 rounded-full bg-green-600 mr-1" />발행</span>
@@ -144,7 +144,7 @@ export default function CalendarPage() {
                   <span className={`w-2 h-2 rounded-full mt-1 shrink-0 ${STATUS_COLOR[p.status || "draft"] || "bg-surface-2"}`} />
                   <div className="flex-1">
                     <p className="text-muted line-clamp-2 whitespace-pre-wrap">{p.text || "(내용 없음)"}</p>
-                    <p className="text-[10px] text-subtle mt-1">{p.status || "draft"}</p>
+                    <p className="text-caption text-subtle mt-1">{p.status || "draft"}</p>
                   </div>
                 </div>
               ))}

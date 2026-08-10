@@ -17,10 +17,10 @@ function ChRow({ channelKey, label, sub, connected }: {
         <span className="w-6 h-6 rounded bg-surface-2 flex items-center justify-center text-muted">{getChannelIcon(channelKey)}</span>
         <div>
           <p className="text-xs text-muted">{label}</p>
-          <p className="text-[10px] text-subtle">{sub}</p>
+          <p className="text-caption text-subtle">{sub}</p>
         </div>
       </div>
-      <span className={`text-[10px] ${connected ? "text-green-500" : "text-accent"}`}>
+      <span className={`text-caption ${connected ? "text-green-500" : "text-accent"}`}>
         {connected ? "Connected" : "연결 →"}
       </span>
     </Link>
@@ -33,7 +33,7 @@ export function ChannelsSettings() {
 
   return (
     <>
-      <p className="text-[10px] text-subtle mb-4">콘텐츠를 발행할 채널. 클릭하면 해당 채널 연결 화면으로 이동합니다.</p>
+      <p className="text-caption text-subtle mb-4">콘텐츠를 발행할 채널. 클릭하면 해당 채널 연결 화면으로 이동합니다.</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {GROUPS.map((g) => (
           <div key={g.title} className="card p-5">

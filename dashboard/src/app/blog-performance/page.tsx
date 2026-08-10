@@ -52,26 +52,26 @@ export default function BlogPerformancePage() {
       {data?.error && (
         <div className="card p-4 mb-4 border border-yellow-800/50">
           <p className="text-xs text-yellow-400">{data.error}</p>
-          <p className="text-[10px] text-subtle mt-1">Settings → Channels → Blog에서 연결 설정을 확인하세요.</p>
+          <p className="text-caption text-subtle mt-1">Settings → Channels → Blog에서 연결 설정을 확인하세요.</p>
         </div>
       )}
 
       {/* Summary cards */}
       <div className="grid grid-cols-4 gap-3 mb-6">
         <div className="card p-3">
-          <div className="text-[10px] text-subtle mb-1">총 게시물</div>
+          <div className="text-caption text-subtle mb-1">총 게시물</div>
           <div className="text-lg font-bold text-text">{stats.totalArticles}</div>
         </div>
         <div className="card p-3">
-          <div className="text-[10px] text-subtle mb-1">총 조회수</div>
+          <div className="text-caption text-subtle mb-1">총 조회수</div>
           <div className="text-lg font-bold text-text">{stats.totalViews.toLocaleString()}</div>
         </div>
         <div className="card p-3">
-          <div className="text-[10px] text-subtle mb-1">평균 조회수</div>
+          <div className="text-caption text-subtle mb-1">평균 조회수</div>
           <div className="text-lg font-bold text-text">{stats.avgViews}</div>
         </div>
         <div className="card p-3">
-          <div className="text-[10px] text-subtle mb-1">일일 증감</div>
+          <div className="text-caption text-subtle mb-1">일일 증감</div>
           <div className={`text-lg font-bold ${stats.dailyDelta >= 0 ? "text-green-400" : "text-red-400"}`}>
             {stats.dailyDelta >= 0 ? "+" : ""}{stats.dailyDelta}
           </div>
@@ -81,7 +81,7 @@ export default function BlogPerformancePage() {
       {/* Top article */}
       {stats.topArticle && (
         <div className="card p-4 mb-6 border border-yellow-800/30">
-          <div className="text-[10px] text-yellow-500 mb-1">🏆 Top Article</div>
+          <div className="text-caption text-yellow-500 mb-1">🏆 Top Article</div>
           <h3 className="text-sm font-medium text-muted">{stats.topArticle.title}</h3>
           <span className="text-xs text-subtle">{stats.topArticle.viewCount.toLocaleString()} views</span>
         </div>
@@ -95,11 +95,11 @@ export default function BlogPerformancePage() {
             <div className="flex gap-1">
               <button
                 onClick={() => setSortBy("views")}
-                className={`px-2 py-1 text-[10px] rounded ${sortBy === "views" ? "bg-accent text-text" : "text-subtle hover:bg-surface-2"}`}
+                className={`px-2 py-1 text-caption rounded ${sortBy === "views" ? "bg-accent text-text" : "text-subtle hover:bg-surface-2"}`}
               >조회순</button>
               <button
                 onClick={() => setSortBy("date")}
-                className={`px-2 py-1 text-[10px] rounded ${sortBy === "date" ? "bg-accent text-text" : "text-subtle hover:bg-surface-2"}`}
+                className={`px-2 py-1 text-caption rounded ${sortBy === "date" ? "bg-accent text-text" : "text-subtle hover:bg-surface-2"}`}
               >최신순</button>
             </div>
           </div>
@@ -115,13 +115,13 @@ export default function BlogPerformancePage() {
                     <h4 className="text-sm text-muted truncate">{a.title}</h4>
                     <div className="flex gap-1 mt-1">
                       {(a.tags || []).slice(0, 3).map((t) => (
-                        <span key={t} className="text-[10px] text-cyan-400">#{t}</span>
+                        <span key={t} className="text-caption text-cyan-400">#{t}</span>
                       ))}
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
                     <div className="text-sm font-medium text-text">{a.viewCount.toLocaleString()}</div>
-                    <div className="text-[10px] text-subtle">{a.regDate?.split("T")[0] || ""}</div>
+                    <div className="text-caption text-subtle">{a.regDate?.split("T")[0] || ""}</div>
                   </div>
                 </div>
               ))}
@@ -140,7 +140,7 @@ export default function BlogPerformancePage() {
                 {stats.topTags.map((t) => (
                   <div key={t.tag} className="card p-2 flex items-center justify-between">
                     <span className="text-xs text-cyan-400">#{t.tag}</span>
-                    <div className="flex gap-3 text-[10px] text-subtle">
+                    <div className="flex gap-3 text-caption text-subtle">
                       <span>{t.count}편</span>
                       <span>평균 {t.avgViews}</span>
                     </div>
@@ -158,7 +158,7 @@ export default function BlogPerformancePage() {
               <div className="space-y-1">
                 {stats.history.map((h) => (
                   <div key={h.date} className="flex items-center justify-between px-2 py-1">
-                    <span className="text-[10px] text-subtle">{h.date}</span>
+                    <span className="text-caption text-subtle">{h.date}</span>
                     <span className="text-xs text-muted">{h.totalViews.toLocaleString()}</span>
                   </div>
                 ))}

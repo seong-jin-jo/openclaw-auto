@@ -23,7 +23,7 @@ interface PostRow {
 function card(title: string, value: string | number, sub?: string) {
   return (
     <div className="card p-4">
-      <p className="text-[11px] text-subtle uppercase tracking-wide">{title}</p>
+      <p className="text-caption text-subtle uppercase tracking-wide">{title}</p>
       <p className="text-2xl font-bold text-text mt-1">{value}</p>
       {sub && <p className="text-xs text-subtle mt-1">{sub}</p>}
     </div>
@@ -155,7 +155,7 @@ export default function HomePage() {
           {card("참여(Engagement)", "—", "insights 연동 시")}
           {card("팔로워 증감", "—", "insights 연동 시")}
         </div>
-        {focus !== "all" && <p className="text-[11px] text-subtle mt-2">📊 {PREVIEW_PLATFORMS.find((p) => p.key === focus)?.label} 집중 분석 — 채널 연결 후 실데이터 표시</p>}
+        {focus !== "all" && <p className="text-caption text-subtle mt-2">📊 {PREVIEW_PLATFORMS.find((p) => p.key === focus)?.label} 집중 분석 — 채널 연결 후 실데이터 표시</p>}
       </div>
 
       {/* 발행물 성과 — 실제 발행물별 조회·좋아요 (성과 페이지 통합) */}
@@ -186,7 +186,7 @@ export default function HomePage() {
         </div>
         <div className="card overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="text-[11px] text-subtle border-b border-border">
+            <thead><tr className="text-caption text-subtle border-b border-border">
               <th className="text-left p-3">플랫폼</th><th className="text-left p-3">내용</th>
               <th className="p-3">상태</th><th className="p-3">조회</th><th className="p-3">좋아요</th>
               <th className="p-3">답글</th><th className="p-3">발행</th>
@@ -197,13 +197,13 @@ export default function HomePage() {
                   <td className="p-3 text-xs">{p.platform}</td>
                   <td className="p-3 text-xs max-w-xs truncate">
                     {p.permalink ? <a href={p.permalink} target="_blank" rel="noopener noreferrer" className="hover:underline text-accent">{p.text?.slice(0, 50) || "(게시물)"} ↗</a> : (p.text?.slice(0, 50) || "—")}
-                    {p.status === "failed" && <span className="text-red-400 text-[10px] block">{p.error?.slice(0, 60)}</span>}
+                    {p.status === "failed" && <span className="text-red-400 text-caption block">{p.error?.slice(0, 60)}</span>}
                   </td>
-                  <td className="p-3 text-center"><span className={`text-[10px] px-2 py-0.5 rounded-full ${p.status === "published" ? "bg-green-900/50 text-green-400" : "bg-red-900/40 text-red-400"}`}>{p.status}</span></td>
+                  <td className="p-3 text-center"><span className={`text-caption px-2 py-0.5 rounded-full ${p.status === "published" ? "bg-green-900/50 text-green-400" : "bg-red-900/40 text-red-400"}`}>{p.status}</span></td>
                   <td className="p-3 text-center text-xs">{p.views ?? "—"}</td>
                   <td className="p-3 text-center text-xs">{p.likes ?? "—"}</td>
                   <td className="p-3 text-center text-xs">{p.replies ?? "—"}</td>
-                  <td className="p-3 text-center text-[10px] text-subtle">{fmtAgo(p.published_at)}</td>
+                  <td className="p-3 text-center text-caption text-subtle">{fmtAgo(p.published_at)}</td>
                 </tr>
               ))}
               {posts.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-subtle text-xs">아직 발행물이 없습니다. Studio에서 발행하세요.</td></tr>}
@@ -242,53 +242,53 @@ export default function HomePage() {
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xs font-medium text-subtle uppercase tracking-wide">사용량</h3>
             {usage.tier && (
-              <span className="text-[10px] px-2 py-0.5 bg-blue-900/50 rounded text-accent">
+              <span className="text-caption px-2 py-0.5 bg-blue-900/50 rounded text-accent">
                 {usage.tier} tier
               </span>
             )}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-              <p className="text-[10px] text-subtle mb-2">오늘</p>
+              <p className="text-caption text-subtle mb-2">오늘</p>
               <div className="flex items-center gap-4">
                 <div>
                   <p className="text-xl font-bold text-text">{usage.today?.aiGenerations || 0}</p>
-                  <p className="text-[10px] text-subtle">generations / shorts</p>
+                  <p className="text-caption text-subtle">generations / shorts</p>
                 </div>
                 <div>
                   <p className="text-xl font-bold text-text">{usage.today?.publications || 0}</p>
-                  <p className="text-[10px] text-subtle">publications</p>
+                  <p className="text-caption text-subtle">publications</p>
                 </div>
                 <div>
                   <p className="text-xl font-bold text-subtle">{usage.today?.cronRuns || 0}</p>
-                  <p className="text-[10px] text-subtle">cron runs</p>
+                  <p className="text-caption text-subtle">cron runs</p>
                 </div>
               </div>
             </div>
             <div>
-              <p className="text-[10px] text-subtle mb-2">이번 주</p>
+              <p className="text-caption text-subtle mb-2">이번 주</p>
               <div className="flex items-center gap-4">
                 <div>
                   <p className="text-xl font-bold text-text">{usage.thisWeek?.aiGenerations || 0}</p>
-                  <p className="text-[10px] text-subtle">generations / shorts</p>
+                  <p className="text-caption text-subtle">generations / shorts</p>
                 </div>
                 <div>
                   <p className="text-xl font-bold text-text">{usage.thisWeek?.publications || 0}</p>
-                  <p className="text-[10px] text-subtle">publications</p>
+                  <p className="text-caption text-subtle">publications</p>
                 </div>
                 <div>
                   <p className="text-xl font-bold text-subtle">{usage.thisWeek?.cronRuns || 0}</p>
-                  <p className="text-[10px] text-subtle">cron runs</p>
+                  <p className="text-caption text-subtle">cron runs</p>
                 </div>
               </div>
             </div>
           </div>
           {usage.quota && (
-            <p className="text-[10px] text-subtle mt-2">
+            <p className="text-caption text-subtle mt-2">
               Quota (this month): shorts {usage.quota.shorts_used}/{usage.quota.shorts_included} · gens {usage.quota.generations_used}/{usage.quota.generations_included}
             </p>
           )}
-          <p className="text-[9px] text-subtle mt-1">Base subscription + usage add-ons (see Settings for upgrade)</p>
+          <p className="text-caption text-subtle mt-1">Base subscription + usage add-ons (see Settings for upgrade)</p>
         </div>
       )}
 
@@ -298,29 +298,29 @@ export default function HomePage() {
           <h3 className="text-xs font-medium text-subtle uppercase tracking-wide mb-4">This Week</h3>
           <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <div>
-              <p className="text-[10px] text-subtle">Published</p>
+              <p className="text-caption text-subtle">Published</p>
               <p className="text-xl font-bold text-text">{String(weekly.published)}</p>
             </div>
             <div>
-              <p className="text-[10px] text-subtle">Views</p>
+              <p className="text-caption text-subtle">Views</p>
               <p className="text-xl font-bold text-text">{(weekly.views as number)?.toLocaleString?.() || "0"}</p>
             </div>
             <div>
-              <p className="text-[10px] text-subtle">Likes</p>
+              <p className="text-caption text-subtle">Likes</p>
               <p className="text-xl font-bold text-text">{String(weekly.likes)}</p>
             </div>
             <div>
-              <p className="text-[10px] text-subtle">Replies</p>
+              <p className="text-caption text-subtle">Replies</p>
               <p className="text-xl font-bold text-text">{String(weekly.replies)}</p>
             </div>
             <div>
-              <p className="text-[10px] text-subtle">Eng. Rate</p>
+              <p className="text-caption text-subtle">Eng. Rate</p>
               <p className={`text-xl font-bold ${(weekly.engagementRate as number) > 3 ? "text-green-400" : "text-text"}`}>
                 {String(weekly.engagementRate)}%
               </p>
             </div>
             <div>
-              <p className="text-[10px] text-subtle">Drafts</p>
+              <p className="text-caption text-subtle">Drafts</p>
               <p className="text-xl font-bold text-subtle">{String(weekly.drafted)}</p>
             </div>
           </div>
@@ -361,14 +361,14 @@ export default function HomePage() {
                   return (
                     <div key={i} className="flex gap-3 items-start">
                       <div className={`mt-0.5 w-6 h-6 rounded ${icons[type] || "bg-surface-2 text-subtle"} flex items-center justify-center flex-shrink-0`}>
-                        <span className="text-[9px]">{labels[type] || "?"}</span>
+                        <span className="text-caption">{labels[type] || "?"}</span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-muted truncate">
                           {String(e.text)}
                           {type === "viral" ? ` — ${e.views} views` : ""}
                         </p>
-                        <p className="text-[10px] text-subtle mt-0.5">{fmtAgo(e.at)}</p>
+                        <p className="text-caption text-subtle mt-0.5">{fmtAgo(e.at)}</p>
                       </div>
                     </div>
                   );
@@ -386,7 +386,7 @@ export default function HomePage() {
             <div className="space-y-2">
               {alerts.map((a, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <span className={`text-[10px] ${a.severity === "error" ? "text-red-400" : "text-yellow-400"}`}>
+                  <span className={`text-caption ${a.severity === "error" ? "text-red-400" : "text-yellow-400"}`}>
                     {a.severity === "error" ? "\u25CF" : "\u25B2"}
                   </span>
                   <span className="text-xs text-muted">{String(a.message)}</span>
@@ -431,7 +431,7 @@ export default function HomePage() {
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded ${
+                        className={`text-caption px-1.5 py-0.5 rounded ${
                           log.channel === "telegram"
                             ? "bg-blue-900/40 text-accent"
                             : log.channel
@@ -441,18 +441,18 @@ export default function HomePage() {
                       >
                         {String(log.channel || "cron")}
                       </span>
-                      <span className="text-[10px] text-subtle">{String(log.sessionId)}</span>
+                      <span className="text-caption text-subtle">{String(log.sessionId)}</span>
                     </div>
-                    <span className="text-[10px] text-subtle">
+                    <span className="text-caption text-subtle">
                       {log.startedAt ? fmtAgo(log.startedAt) : ""}
                     </span>
                   </div>
                   {messages.map((m, j) => (
                     <div key={j} className="flex gap-2 mt-1">
-                      <span className={`text-[9px] ${m.role === "user" ? "text-accent" : "text-green-400"} flex-shrink-0`}>
+                      <span className={`text-caption ${m.role === "user" ? "text-accent" : "text-green-400"} flex-shrink-0`}>
                         {m.role === "user" ? "\u2192" : "\u2190"}
                       </span>
-                      <p className="text-[10px] text-subtle truncate">{m.text}</p>
+                      <p className="text-caption text-subtle truncate">{m.text}</p>
                     </div>
                   ))}
                 </div>

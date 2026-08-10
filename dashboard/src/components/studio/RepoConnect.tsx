@@ -146,12 +146,12 @@ export function RepoConnect({ workspace, onSynced, onClose }: { workspace: Works
 
         <div className="space-y-3">
           <div>
-            <label className="text-[11px] text-subtle">GitHub 레포 주소 (그대로 붙여넣기)</label>
+            <label className="text-caption text-subtle">GitHub 레포 주소 (그대로 붙여넣기)</label>
             <input value={repo} onChange={(e) => changeRepo(e.target.value)} placeholder="https://github.com/owner/repo"
               className="w-full mt-1 px-3 py-2 text-sm bg-surface border border-border rounded-lg text-muted focus:border-accent outline-none" />
             {repo.trim() && (
               normalizedRepo.ok ? (
-                <div className="mt-2 rounded-lg border border-border bg-surface-2 px-3 py-2 text-[11px] text-subtle">
+                <div className="mt-2 rounded-lg border border-border bg-surface-2 px-3 py-2 text-caption text-subtle">
                   <span className="mr-2">확인된 연결</span>
                   <span className="text-muted">{normalizedRepo.repo}</span>
                   <span className="mx-2">·</span>
@@ -164,22 +164,22 @@ export function RepoConnect({ workspace, onSynced, onClose }: { workspace: Works
                   </span>
                 </div>
               ) : (
-                <p className="mt-2 text-[11px] text-danger">{normalizedRepo.error}</p>
+                <p className="mt-2 text-caption text-danger">{normalizedRepo.error}</p>
               )
             )}
           </div>
           <div>
-            <label className="text-[11px] text-subtle">{mode === "wiki" ? "위키 폴더 (예: wiki/ · 비우면 레포 전체)" : "파일 경로 (여러 개는 쉼표)"}</label>
+            <label className="text-caption text-subtle">{mode === "wiki" ? "위키 폴더 (예: wiki/ · 비우면 레포 전체)" : "파일 경로 (여러 개는 쉼표)"}</label>
             <input value={path} onChange={(e) => setPath(e.target.value)} placeholder={mode === "wiki" ? "wiki/" : "docs/brand.md, docs/marketing.md"}
               className="w-full mt-1 px-3 py-2 text-sm bg-surface border border-border rounded-lg text-muted focus:border-accent outline-none" />
           </div>
           <div>
-            <label className="text-[11px] text-subtle">브랜치 (비우면 레포 기본 브랜치)</label>
+            <label className="text-caption text-subtle">브랜치 (비우면 레포 기본 브랜치)</label>
             <input value={ref} onChange={(e) => setRef(e.target.value)} placeholder="자동 감지"
               className="w-full mt-1 px-3 py-2 text-sm bg-surface border border-border rounded-lg text-muted focus:border-accent outline-none" />
           </div>
           <div>
-            <label className="text-[11px] text-subtle">GitHub 토큰 (비공개 레포만 · 1회 저장)</label>
+            <label className="text-caption text-subtle">GitHub 토큰 (비공개 레포만 · 1회 저장)</label>
             <input value={token} onChange={(e) => setToken(e.target.value)} type="password" placeholder="ghp_… (fine-grained, contents 읽기)"
               className="w-full mt-1 px-3 py-2 text-sm bg-surface border border-border rounded-lg text-muted focus:border-accent outline-none" />
           </div>
@@ -191,7 +191,7 @@ export function RepoConnect({ workspace, onSynced, onClose }: { workspace: Works
           className="w-full mt-4 py-2.5 text-sm bg-accent text-text rounded-lg disabled:opacity-50">
           {busy ? "동기화 중… (claude)" : mode === "wiki" ? "📚 위키 폴더 전체 동기화" : "🔄 파일 가져와 톤 갱신"}
         </button>
-        <p className="text-[10px] text-subtle mt-2">자동 동기화(cron/webhook)는 후속. pgvector 시맨틱 검색 업그레이드 여지.</p>
+        <p className="text-caption text-subtle mt-2">자동 동기화(cron/webhook)는 후속. pgvector 시맨틱 검색 업그레이드 여지.</p>
       </div>
     </div>
   );

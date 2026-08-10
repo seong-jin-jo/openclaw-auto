@@ -246,13 +246,13 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
             type="button"
             onClick={() => setShowSwitchNote((v) => !v)}
             data-testid={`switch-account-${provider}`}
-            className="text-[11px] text-accent underline underline-offset-2"
+            className="text-caption text-accent underline underline-offset-2"
           >
             다른 계정으로 연결하고 싶어요
           </button>
           {showSwitchNote && (
             <div className="mt-1 space-y-2">
-              <p className="text-[11px] text-muted" data-testid={`switch-account-note-${provider}`}>
+              <p className="text-caption text-muted" data-testid={`switch-account-note-${provider}`}>
                 {accountSwitchHelp.note}
               </p>
               <a
@@ -260,11 +260,11 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
                 target="_blank"
                 rel="noopener noreferrer"
                 data-testid={`manage-provider-account-${provider}`}
-                className="inline-flex text-[11px] text-accent underline underline-offset-2"
+                className="inline-flex text-caption text-accent underline underline-offset-2"
               >
                 {accountSwitchHelp.managementLabel} ↗
               </a>
-              <p className="text-[10px] text-subtle">
+              <p className="text-caption text-subtle">
                 새 탭에서 계정 전환·로그아웃을 마친 뒤 이 화면의 OAuth 연결을 다시 누르세요.
               </p>
             </div>
@@ -272,27 +272,27 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
         </div>
       )}
       {readinessFailed && (
-        <p className="text-[11px] text-danger mt-2" data-testid={`readiness-error-${provider}`}>
+        <p className="text-caption text-danger mt-2" data-testid={`readiness-error-${provider}`}>
           ⛔ 준비 상태 확인 실패—새로고침/관리자
         </p>
       )}
       {!readinessFailed && disabledByReadiness && (
-        <p className="text-[11px] text-danger mt-2" data-testid={`readiness-reason-${provider}`}>
+        <p className="text-caption text-danger mt-2" data-testid={`readiness-reason-${provider}`}>
           ⛔ {readinessEntry?.reason || `${label} 연결이 아직 준비되지 않았습니다.`}
         </p>
       )}
       {readinessWarning && (
-        <p className="text-[11px] text-warning mt-2" data-testid={`readiness-warning-${provider}`}>
+        <p className="text-caption text-warning mt-2" data-testid={`readiness-warning-${provider}`}>
           ⚠ {readinessWarning}
         </p>
       )}
       {!publishReady && (
-        <p className="text-[11px] text-warning mt-2" data-testid="publish-not-ready-badge">
+        <p className="text-caption text-warning mt-2" data-testid="publish-not-ready-badge">
           ⚠ 발행 준비 중 — 지금은 {label} 연결만 미리 가능하고, 대시보드에서 직접 발행은 아직
           지원하지 않습니다.
         </p>
       )}
-      {msg && <p className="text-[11px] text-subtle mt-2">{msg}</p>}
+      {msg && <p className="text-caption text-subtle mt-2">{msg}</p>}
     </div>
   );
 }

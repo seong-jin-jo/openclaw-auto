@@ -19,10 +19,10 @@ function CredField({ id, label, isSecret, value, editable }: {
           defaultValue={value}
           placeholder={label}
           readOnly={!editable}
-          className={`w-full ${editable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-[11px] text-muted placeholder-gray-600 font-mono`}
+          className={`w-full ${editable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-caption text-muted placeholder-gray-600 font-mono`}
         />
         {isSecret && (
-          <button type="button" onClick={() => setShow(!show)} className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-subtle hover:text-muted">
+          <button type="button" onClick={() => setShow(!show)} className="absolute right-2 top-1/2 -translate-y-1/2 text-caption text-subtle hover:text-muted">
             {show ? "Hide" : "Show"}
           </button>
         )}
@@ -106,21 +106,21 @@ export function DesignToolsSettings() {
 
   return (
     <>
-      <p className="text-[10px] text-subtle mb-4">Instagram 카드뉴스를 전문 툴에서 리터치 후 가져오기. 연결하면 Create 탭에서 &quot;편집&quot; 버튼이 활성화됩니다.</p>
+      <p className="text-caption text-subtle mb-4">Instagram 카드뉴스를 전문 툴에서 리터치 후 가져오기. 연결하면 Create 탭에서 &quot;편집&quot; 버튼이 활성화됩니다.</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Canva */}
         <div className="card p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded bg-[#00C4CC] flex items-center justify-center text-[9px] font-bold text-text">C</span>
+              <span className="w-6 h-6 rounded bg-[#00C4CC] flex items-center justify-center text-caption font-bold text-text">C</span>
               <h3 className="text-sm font-medium text-muted">Canva</h3>
             </div>
-            <span className={`text-[10px] px-2 py-0.5 rounded ${canvaConnected ? "bg-green-900/40 text-green-400" : "bg-surface-2 text-subtle"}`}>
+            <span className={`text-caption px-2 py-0.5 rounded ${canvaConnected ? "bg-green-900/40 text-green-400" : "bg-surface-2 text-subtle"}`}>
               {canvaConnected ? "Connected" : "Not connected"}
             </span>
           </div>
           <div className="mb-3">
-            <ol className="text-[10px] text-subtle space-y-1.5 list-decimal list-inside">
+            <ol className="text-caption text-subtle space-y-1.5 list-decimal list-inside">
               <li><a href="https://www.canva.com/developers/" target="_blank" rel="noreferrer" className="text-accent hover:underline">canva.com/developers</a> 접속 -- Canva 계정으로 로그인</li>
               <li>좌측 메뉴에서 <strong className="text-muted">Your integrations</strong> 클릭</li>
               <li>우측 상단 <strong className="text-muted">Create an integration</strong> 버튼 클릭</li>
@@ -129,7 +129,7 @@ export function DesignToolsSettings() {
               <li><strong className="text-muted">Generate secret</strong> -- 표시된 값 즉시 복사</li>
               <li>아래 폼에 Client ID + Secret 입력 -- Connect</li>
             </ol>
-            <details className="mt-2 text-[10px]">
+            <details className="mt-2 text-caption">
               <summary className="text-accent hover:text-accent cursor-pointer">더 알아보기</summary>
               <div className="mt-2 p-3 rounded bg-surface/50 text-subtle space-y-1.5">
                 <p>Canva Connect API로 에셋 업로드 -- 템플릿 기반 디자인 생성 -- 편집 -- Export PNG 플로우를 자동화합니다.</p>
@@ -150,9 +150,9 @@ export function DesignToolsSettings() {
             </details>
           </div>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] text-subtle">Credentials</span>
+            <span className="text-caption text-subtle">Credentials</span>
             {canvaConnected && !editingCanva && (
-              <button onClick={() => setEditingCanva(true)} className="text-[10px] text-accent hover:text-accent">Edit</button>
+              <button onClick={() => setEditingCanva(true)} className="text-caption text-accent hover:text-accent">Edit</button>
             )}
           </div>
           <div className="space-y-3">
@@ -175,21 +175,21 @@ export function DesignToolsSettings() {
         <div className="card p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded bg-black border border-border flex items-center justify-center text-[10px] font-bold text-text">F</span>
+              <span className="w-6 h-6 rounded bg-black border border-border flex items-center justify-center text-caption font-bold text-text">F</span>
               <h3 className="text-sm font-medium text-muted">Figma</h3>
             </div>
-            <span className={`text-[10px] px-2 py-0.5 rounded ${figmaConnected ? "bg-green-900/40 text-green-400" : "bg-surface-2 text-subtle"}`}>
+            <span className={`text-caption px-2 py-0.5 rounded ${figmaConnected ? "bg-green-900/40 text-green-400" : "bg-surface-2 text-subtle"}`}>
               {figmaConnected ? "Connected" : "Not connected"}
             </span>
           </div>
           <div className="mb-3">
-            <ol className="text-[10px] text-subtle space-y-1.5 list-decimal list-inside">
+            <ol className="text-caption text-subtle space-y-1.5 list-decimal list-inside">
               <li><a href="https://www.figma.com" target="_blank" rel="noreferrer" className="text-accent hover:underline">figma.com</a> 접속 -- 로그인 -- Settings</li>
               <li><strong className="text-muted">Security</strong> 탭 -- <strong className="text-muted">Personal access tokens</strong></li>
               <li><strong className="text-muted">Generate new token</strong> -- Scopes: <code className="bg-surface-2 px-1 rounded">file_content:read</code>, <code className="bg-surface-2 px-1 rounded">files:read</code></li>
               <li>토큰 <strong className="text-red-400">즉시 복사</strong> -- 아래 폼에 입력 -- Connect</li>
             </ol>
-            <details className="mt-3 text-[10px]">
+            <details className="mt-3 text-caption">
               <summary className="text-accent hover:text-accent cursor-pointer">MCP 서버 연결 (AI가 Figma에 직접 쓰기)</summary>
               <div className="mt-2 p-3 rounded bg-surface/50 text-subtle space-y-2">
                 <p className="text-muted font-medium">MCP란?</p>
@@ -240,7 +240,7 @@ export function DesignToolsSettings() {
                 <p>5. Instagram 캐러셀 발행</p>
               </div>
             </details>
-            <details className="mt-2 text-[10px]">
+            <details className="mt-2 text-caption">
               <summary className="text-accent hover:text-accent cursor-pointer">더 알아보기</summary>
               <div className="mt-2 p-3 rounded bg-surface/50 text-subtle space-y-1.5">
                 <p className="font-medium text-subtle">Personal Access Token 주의</p>
@@ -255,9 +255,9 @@ export function DesignToolsSettings() {
             </details>
           </div>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] text-subtle">Credentials</span>
+            <span className="text-caption text-subtle">Credentials</span>
             {figmaConnected && !editingFigma && (
-              <button onClick={() => setEditingFigma(true)} className="text-[10px] text-accent hover:text-accent">Edit</button>
+              <button onClick={() => setEditingFigma(true)} className="text-caption text-accent hover:text-accent">Edit</button>
             )}
           </div>
           <div className="space-y-3">
@@ -279,7 +279,7 @@ export function DesignToolsSettings() {
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <p className="text-xs text-muted">MCP 서버 (AI -- Figma 쓰기)</p>
-                  <p className="text-[10px] text-subtle">AI가 Figma에 카드뉴스 프레임을 자동 생성</p>
+                  <p className="text-caption text-subtle">AI가 Figma에 카드뉴스 프레임을 자동 생성</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -292,7 +292,7 @@ export function DesignToolsSettings() {
                 </label>
               </div>
               {!!figma.mcpEnabled && !figma.mcpAccessToken && (
-                <div className="p-3 rounded bg-yellow-900/10 border border-yellow-800/30 space-y-3 text-[10px]">
+                <div className="p-3 rounded bg-yellow-900/10 border border-yellow-800/30 space-y-3 text-caption">
                   <p className="text-yellow-400 font-medium">MCP 연결 필요</p>
                   <p className="text-subtle">Figma 계정으로 로그인하여 MCP 접근을 허용합니다.</p>
                   <button onClick={startFigmaOAuth} className="w-full py-2.5 bg-indigo-600 text-text text-sm rounded hover:bg-indigo-500 font-medium">
@@ -303,11 +303,11 @@ export function DesignToolsSettings() {
               )}
               {!!figma.mcpEnabled && !!figma.mcpAccessToken && (
                 <div className="flex items-center justify-between mt-2">
-                  <p className="text-[10px] text-green-400">MCP 연결됨</p>
+                  <p className="text-caption text-green-400">MCP 연결됨</p>
                   <button
                     onClick={restartGateway}
                     disabled={restarting}
-                    className="px-3 py-1 text-[10px] bg-yellow-700 text-text rounded hover:bg-yellow-600 disabled:opacity-50"
+                    className="px-3 py-1 text-caption bg-yellow-700 text-text rounded hover:bg-yellow-600 disabled:opacity-50"
                   >
                     {restarting ? "재시작 중..." : "Gateway 재시작"}
                   </button>

@@ -398,9 +398,9 @@ export default function StudioPage() {
       <div className="flex items-center gap-3 flex-wrap mb-4">
         <div className="mr-1">
           <b className="text-lg text-text">OSMU Studio</b>
-          <p className="text-[10px] text-subtle leading-tight">직접 저작 · 생성→즉시 발행/예약</p>
+          <p className="text-caption text-subtle leading-tight">직접 저작 · 생성→즉시 발행/예약</p>
         </div>
-        <div className="text-[10px] px-2 py-1 rounded border border-border bg-surface-2 text-subtle" title={engine?.error || engine?.model || ""}>
+        <div className="text-caption px-2 py-1 rounded border border-border bg-surface-2 text-subtle" title={engine?.error || engine?.model || ""}>
           AI <b className="text-muted">{engine?.label || "확인 중"}</b>{engine?.mode === "claude-p" ? " · claude -p" : ""}{engine?.mode === "unknown" ? " · 확인 실패" : ""}
         </div>
         <input value={idea} onChange={(e) => setIdea(e.target.value)} placeholder="글감 / 콘텐츠 주제 입력" className="flex-1 min-w-[260px] bg-surface-2 text-text text-sm p-2.5 rounded border border-border" />
@@ -420,10 +420,10 @@ export default function StudioPage() {
           {showTx && (
             <div className="absolute right-0 top-7 z-50 w-72 max-h-80 overflow-y-auto card p-3 shadow-xl">
               <div className="flex justify-between items-center mb-2"><b className="text-xs text-muted">크레딧 사용 이력</b><button onClick={() => setShowTx(false)} className="text-subtle text-xs">✕</button></div>
-              {!tx ? <p className="text-[11px] text-subtle">불러오는 중…</p>
-                : (tx.items || []).length === 0 ? <p className="text-[11px] text-subtle">내역 없음</p>
+              {!tx ? <p className="text-caption text-subtle">불러오는 중…</p>
+                : (tx.items || []).length === 0 ? <p className="text-caption text-subtle">내역 없음</p>
                 : (tx.items || []).map((t, i) => (
-                  <div key={i} className="flex justify-between items-center border-t border-border py-1.5 text-[11px]">
+                  <div key={i} className="flex justify-between items-center border-t border-border py-1.5 text-caption">
                     <div className="min-w-0 pr-2"><div className="text-muted">{t.display_name}</div>
                       {t.output && <div className="text-accent truncate">{t.outputKind === "video" ? "🎬" : "🖼️"} {t.output}</div>}
                       <div className="text-subtle">{String(t.created_at || "").slice(5, 16).replace("T", " ")}</div></div>
@@ -453,10 +453,10 @@ export default function StudioPage() {
       {/* 발행 진행 */}
       {(pub.running || Object.keys(pub.status).length > 0) && (
         <div className="card p-3 mb-4 flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full grid place-items-center shrink-0" style={{ background: `conic-gradient(var(--success) ${pubPct}%, var(--surface-2) ${pubPct}%)` }}><div className="w-9 h-9 rounded-full bg-bg grid place-items-center text-[11px] font-bold text-success">{pubPct}%</div></div>
+          <div className="w-12 h-12 rounded-full grid place-items-center shrink-0" style={{ background: `conic-gradient(var(--success) ${pubPct}%, var(--surface-2) ${pubPct}%)` }}><div className="w-9 h-9 rounded-full bg-bg grid place-items-center text-caption font-bold text-success">{pubPct}%</div></div>
           <div className="flex-1"><div className="flex justify-between"><b className="text-sm text-text">{pubResultLabel}</b>{pub.running && <button onClick={() => (cancelRef.current = true)} className="px-3 py-1 text-xs bg-red-700 text-text rounded">■ 중지</button>}</div>
             <div className="flex gap-1.5 mt-1.5 flex-wrap">{Object.entries(pub.status).map(([k, s]) => {
-              const cls = `text-[10px] px-2 py-0.5 rounded-full border ${s === "done" ? "bg-success/10 text-success border-success/30" : s === "failed" ? "bg-danger/10 text-danger border-danger/30" : s === "doing" ? "bg-warning/10 text-warning border-warning/30" : "bg-surface-2 text-subtle border-border"}`;
+              const cls = `text-caption px-2 py-0.5 rounded-full border ${s === "done" ? "bg-success/10 text-success border-success/30" : s === "failed" ? "bg-danger/10 text-danger border-danger/30" : s === "doing" ? "bg-warning/10 text-warning border-warning/30" : "bg-surface-2 text-subtle border-border"}`;
               const txt = `${s === "done" ? "✓ " : s === "failed" ? "✕ " : s === "doing" ? "⟳ " : ""}${LABEL[k]}`;
               return s === "done" && pub.urls[k]
                 ? <a key={k} href={pub.urls[k]} target="_blank" rel="noopener noreferrer" className={`${cls} hover:underline`} title="게시물 보기">{txt} ↗</a>
@@ -483,7 +483,7 @@ export default function StudioPage() {
           ) : (
             GROUPS.filter((g) => canGenerate || !g.platforms.some(isVideo)).map((g) => (
               <div key={g.title}>
-                <div className="flex items-center gap-2 mb-3"><span className="text-sm font-bold bg-gradient-to-r from-accent to-accent-hover bg-clip-text text-transparent">{g.title}</span><span className="text-[10px] text-subtle">{g.platforms.map((p) => LABEL[p]).join(" · ")} · 클릭해서 편집</span><div className="flex-1 h-px bg-gradient-to-r from-accent/40 to-transparent" /></div>
+                <div className="flex items-center gap-2 mb-3"><span className="text-sm font-bold bg-gradient-to-r from-accent to-accent-hover bg-clip-text text-transparent">{g.title}</span><span className="text-caption text-subtle">{g.platforms.map((p) => LABEL[p]).join(" · ")} · 클릭해서 편집</span><div className="flex-1 h-px bg-gradient-to-r from-accent/40 to-transparent" /></div>
                 <div className="flex gap-5 flex-nowrap overflow-x-auto items-start pb-2">
                   {g.platforms.map((p) => (
                     <div key={p} className="group cursor-pointer" onClick={() => setEditing(p)}>
@@ -491,18 +491,18 @@ export default function StudioPage() {
                         <PlatformPreview platform={p} text={text} media={media} headerRight={
                           <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1.5">
                             {PUBLISH_SUPPORTED.has(p) ? (
-                              <label className="flex items-center gap-1 text-[10px] text-subtle cursor-default">
+                              <label className="flex items-center gap-1 text-caption text-subtle cursor-default">
                                 <input type="checkbox" checked={!!includes[p]} onChange={(e) => setIncludes((x) => ({ ...x, [p]: e.target.checked }))} />발행
                               </label>
                             ) : (
-                              <span className="text-[10px] text-warning">발행 미지원(생성 전용)</span>
+                              <span className="text-caption text-warning">발행 미지원(생성 전용)</span>
                             )}
                             {ACCOUNT_SELECTABLE.has(p) && (accountsByPlatform[p]?.length ?? 0) > 1 && (
                               <select
                                 data-testid={`publish-account-select-${p}`}
                                 value={selectedAccounts[p] ?? ""}
                                 onChange={(e) => setSelectedAccounts((x) => ({ ...x, [p]: e.target.value }))}
-                                className="text-[10px] bg-surface-2 border border-border rounded px-1 py-0.5 text-text max-w-[90px]"
+                                className="text-caption bg-surface-2 border border-border rounded px-1 py-0.5 text-text max-w-[90px]"
                               >
                                 <option value="">기본계정</option>
                                 {accountsByPlatform[p].map((a) => (
@@ -524,13 +524,13 @@ export default function StudioPage() {
         {/* 발행 이력 */}
           <div className="w-52 shrink-0 card p-3 h-fit">
             <b className="text-sm text-text">📜 발행 이력</b>
-            <p className="text-[10px] text-subtle mt-1 mb-2">클릭→수정 후 재발행</p>
+            <p className="text-caption text-subtle mt-1 mb-2">클릭→수정 후 재발행</p>
             {(hist?.drafts || []).length === 0 && <p className="text-xs text-subtle">없음</p>}
             {(hist?.drafts || []).map((d) => (
               <div key={String(d.id)} className="border-t border-border py-2">
                 <div className="text-xs text-muted truncate">{String(d.idea || "(없음)")}</div>
-                <div className="text-[10px] text-subtle">{String(d.savedAt || "").slice(5, 16).replace("T", " ")} · {d.status === "published" ? "✅" : d.status === "partial" ? "⚠️ 복구 필요·재발행 금지" : d.status === "stopped" ? "⏸" : "📝"}</div>
-                <button onClick={() => loadDraft(d)} className="mt-1 text-[10px] px-2 py-0.5 bg-surface-2 text-muted rounded">불러오기</button>
+                <div className="text-caption text-subtle">{String(d.savedAt || "").slice(5, 16).replace("T", " ")} · {d.status === "published" ? "✅" : d.status === "partial" ? "⚠️ 복구 필요·재발행 금지" : d.status === "stopped" ? "⏸" : "📝"}</div>
+                <button onClick={() => loadDraft(d)} className="mt-1 text-caption px-2 py-0.5 bg-surface-2 text-muted rounded">불러오기</button>
               </div>
             ))}
           </div>
@@ -549,20 +549,20 @@ export default function StudioPage() {
               <div className="space-y-3 mb-5">
                 {editing === "threads" && <textarea value={text.threads || ""} onChange={(e) => upText({ threads: e.target.value })} className="w-full bg-surface-2 text-text text-sm p-3 rounded border border-border" rows={6} />}
                 {editing === "facebook" && <textarea value={text.facebook || ""} onChange={(e) => upText({ facebook: e.target.value })} className="w-full bg-surface-2 text-text text-sm p-3 rounded border border-border" rows={6} />}
-                {editing === "x" && <div><textarea value={text.x || ""} onChange={(e) => upText({ x: e.target.value })} className="w-full bg-surface-2 text-text text-sm p-3 rounded border border-border" rows={5} /><span className={`text-[11px] ${countTextCharacters(text.x || "") > CHANNEL_TEXT_LIMITS.x ? "text-danger" : "text-subtle"}`}>{countTextCharacters(text.x || "")}/{CHANNEL_TEXT_LIMITS.x}</span></div>}
+                {editing === "x" && <div><textarea value={text.x || ""} onChange={(e) => upText({ x: e.target.value })} className="w-full bg-surface-2 text-text text-sm p-3 rounded border border-border" rows={5} /><span className={`text-caption ${countTextCharacters(text.x || "") > CHANNEL_TEXT_LIMITS.x ? "text-danger" : "text-subtle"}`}>{countTextCharacters(text.x || "")}/{CHANNEL_TEXT_LIMITS.x}</span></div>}
                 {editing === "instagram" && <>
                   <textarea value={text.instagram?.caption || ""} onChange={(e) => upIg({ caption: e.target.value })} placeholder="캡션" className="w-full bg-surface-2 text-text text-sm p-3 rounded border border-border" rows={3} />
-                  <div><label className="text-[11px] text-subtle">해시태그 (쉼표)</label><input value={(text.instagram?.hashtags || []).join(", ")} onChange={(e) => upIg({ hashtags: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} className="w-full bg-surface-2 text-accent text-xs p-2 rounded border border-border" /></div>
-                  <div><label className="text-[11px] text-subtle">카드 슬라이드</label>{(text.instagram?.slides || []).map((s, i) => <input key={i} value={s} onChange={(e) => { const sl = [...(text.instagram?.slides || [])]; sl[i] = e.target.value; upIg({ slides: sl }); }} className="w-full mt-1 bg-surface-2 text-muted text-xs p-2 rounded border border-border" />)}</div>
+                  <div><label className="text-caption text-subtle">해시태그 (쉼표)</label><input value={(text.instagram?.hashtags || []).join(", ")} onChange={(e) => upIg({ hashtags: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} className="w-full bg-surface-2 text-accent text-xs p-2 rounded border border-border" /></div>
+                  <div><label className="text-caption text-subtle">카드 슬라이드</label>{(text.instagram?.slides || []).map((s, i) => <input key={i} value={s} onChange={(e) => { const sl = [...(text.instagram?.slides || [])]; sl[i] = e.target.value; upIg({ slides: sl }); }} className="w-full mt-1 bg-surface-2 text-muted text-xs p-2 rounded border border-border" />)}</div>
                 </>}
                 {isVideo(editing) && <>
-                  {(["hook", "body", "cta"] as const).map((kk) => <div key={kk}><label className="text-[11px] text-subtle">{kk.toUpperCase()}</label><input value={text.shorts?.[kk] || ""} onChange={(e) => upText({ shorts: { ...(text.shorts || {}), [kk]: e.target.value } })} className="w-full bg-surface-2 text-muted text-sm p-2 rounded border border-border" /></div>)}
+                  {(["hook", "body", "cta"] as const).map((kk) => <div key={kk}><label className="text-caption text-subtle">{kk.toUpperCase()}</label><input value={text.shorts?.[kk] || ""} onChange={(e) => upText({ shorts: { ...(text.shorts || {}), [kk]: e.target.value } })} className="w-full bg-surface-2 text-muted text-sm p-2 rounded border border-border" /></div>)}
                   {canGenerate && <div className="flex gap-2 items-center"><select value={videoModel} onChange={(e) => setVideoModel(e.target.value)} className="bg-surface-2 text-muted text-xs p-1.5 rounded border border-border"><option value="minimax_hailuo">Minimax 6cr</option><option value="veo3_1_lite">Veo3.1 8cr</option><option value="marketing_studio_video">MS UGC광고 ~40cr</option></select>{img && <button onClick={() => genVideo(img.localPath)} disabled={!!busy} className="text-xs px-2 py-1.5 bg-surface-2 text-muted rounded disabled:opacity-50">{vid ? "영상 재생성" : "영상 생성"}</button>}</div>}
                 </>}
 
                 {/* 비주얼 프롬프트 — 어떤 프롬프트로 생성됐는지 */}
                 {canGenerate && !isVideo(editing) && <div>
-                  <label className="text-[11px] text-accent">🎨 비주얼 프롬프트 <span className="text-subtle">— 이 프롬프트로 이미지 생성됨</span></label>
+                  <label className="text-caption text-accent">🎨 비주얼 프롬프트 <span className="text-subtle">— 이 프롬프트로 이미지 생성됨</span></label>
                   <textarea value={text.image_prompt || ""} onChange={(e) => upText({ image_prompt: e.target.value })} className="w-full bg-surface-2 text-muted text-xs p-2 rounded border border-border" rows={3} />
                   <button onClick={() => genImage(text.image_prompt || idea)} disabled={!!busy} className="mt-1 text-xs px-2 py-1 bg-surface-2 text-muted rounded disabled:opacity-50">이미지 재생성</button>
                 </div>}
@@ -570,13 +570,13 @@ export default function StudioPage() {
               </div>
 
               {/* 큰 미리보기 */}
-              <div><div className="text-[11px] text-subtle mb-2">미리보기</div><div className="bg-bg rounded-lg p-4 flex justify-center"><PlatformPreview platform={editing} text={text} media={media} /></div></div>
+              <div><div className="text-caption text-subtle mb-2">미리보기</div><div className="bg-bg rounded-lg p-4 flex justify-center"><PlatformPreview platform={editing} text={text} media={media} /></div></div>
             </div>
           </div>
         </>
       )}
 
-      <div className="mt-6 text-[11px] text-subtle">⚠️ 실 발행: 채널 토큰 연결 시 실제 게시(Threads/Instagram 직접 / X·영상은 게이트웨이 P5). 성과는 발행 후 수집. 🛣️ 시나리오2 트렌드 대기 · 시나리오3 롱폼분할 조사중</div>
+      <div className="mt-6 text-caption text-subtle">⚠️ 실 발행: 채널 토큰 연결 시 실제 게시(Threads/Instagram 직접 / X·영상은 게이트웨이 P5). 성과는 발행 후 수집. 🛣️ 시나리오2 트렌드 대기 · 시나리오3 롱폼분할 조사중</div>
     </div>
   );
 }

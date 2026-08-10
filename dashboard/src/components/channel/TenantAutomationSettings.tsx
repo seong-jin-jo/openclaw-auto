@@ -43,7 +43,7 @@ export function TenantAutomationSettings({ channel }: { channel: string }) {
   return (
     <div className="card p-5">
       <h3 className="text-sm font-medium text-muted mb-1">Automation</h3>
-      <p className="text-[10px] text-subtle mb-4">
+      <p className="text-caption text-subtle mb-4">
         이 워크스페이스의 채널 자동화만 설정합니다.
       </p>
       {AUTOMATION_FEATURES.map((feature) => {
@@ -75,9 +75,9 @@ export function TenantAutomationSettings({ channel }: { channel: string }) {
                 <span className={`text-xs ${available ? "text-muted" : "text-subtle"}`}>
                   {feature.label}
                 </span>
-                {!available && <span className="text-[9px] text-subtle">Coming Soon</span>}
+                {!available && <span className="text-caption text-subtle">Coming Soon</span>}
               </div>
-              <p className="text-[10px] text-subtle">{feature.description}</p>
+              <p className="text-caption text-subtle">{feature.description}</p>
             </div>
           </div>
         );

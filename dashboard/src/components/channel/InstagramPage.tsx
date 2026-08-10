@@ -190,17 +190,17 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
           <h3 className="text-sm font-medium text-muted mb-4">카드뉴스 만들기</h3>
           <div className="space-y-3">
             <div>
-              <label className="text-[10px] text-subtle block mb-1">주제 입력</label>
+              <label className="text-caption text-subtle block mb-1">주제 입력</label>
               <div className="flex gap-2">
                 <input id="card-title" type="text" defaultValue={ed.title} placeholder="예: AI 코딩 도구 비교 2026" className="flex-1 bg-surface border border-border rounded px-3 py-2 text-sm text-muted" />
                 <button onClick={aiOutline} disabled={ed.outlining} className={`px-3 py-2 bg-accent text-text text-xs rounded hover:bg-accent-hover flex-shrink-0 ${ed.outlining ? "opacity-50 cursor-wait" : ""}`}>
                   {ed.outlining ? "생성중..." : "AI 초안"}
                 </button>
               </div>
-              <p className="text-[10px] text-subtle mt-1">주제 입력 후 &quot;AI 초안&quot; 클릭하면 슬라이드 내용을 자동 생성합니다</p>
+              <p className="text-caption text-subtle mt-1">주제 입력 후 &quot;AI 초안&quot; 클릭하면 슬라이드 내용을 자동 생성합니다</p>
             </div>
             <div>
-              <label className="text-[10px] text-subtle block mb-1">스타일</label>
+              <label className="text-caption text-subtle block mb-1">스타일</label>
               <div className="flex gap-2">
                 {["dark", "light", "gradient", "tech", "warm"].map(s => (
                   <button key={s} onClick={() => setEd(prev => ({ ...prev, style: s }))} className={`px-3 py-1.5 text-xs rounded ${ed.style === s ? "bg-accent text-text" : "bg-surface-2 text-subtle hover:bg-surface-2"}`}>
@@ -211,13 +211,13 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-[10px] text-subtle">슬라이드 (각 장의 텍스트)</label>
-                <button onClick={addSlide} className="text-[10px] text-accent hover:text-accent">+ 슬라이드 추가</button>
+                <label className="text-caption text-subtle">슬라이드 (각 장의 텍스트)</label>
+                <button onClick={addSlide} className="text-caption text-accent hover:text-accent">+ 슬라이드 추가</button>
               </div>
               <div className="space-y-2">
                 {ed.slides.map((s, i) => (
                   <div key={i} className="flex gap-2">
-                    <span className="text-[10px] text-subtle mt-2 w-4">{i + 1}</span>
+                    <span className="text-caption text-subtle mt-2 w-4">{i + 1}</span>
                     <textarea data-card-slide={i} className="flex-1 bg-surface border border-border rounded px-3 py-2 text-sm text-muted" rows={3} placeholder={`슬라이드 ${i + 1} 내용`} defaultValue={s} />
                     {ed.slides.length > 1 && <button onClick={() => removeSlide(i)} className="text-danger hover:opacity-80 text-xs mt-2">x</button>}
                   </div>
@@ -225,7 +225,7 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
               </div>
             </div>
             <div>
-              <label className="text-[10px] text-subtle block mb-1">엔딩 슬라이드</label>
+              <label className="text-caption text-subtle block mb-1">엔딩 슬라이드</label>
               <input id="card-ending" type="text" defaultValue={ed.ending} placeholder="자세한 내용은 프로필 링크에서 확인하세요" className="w-full bg-surface border border-border rounded px-3 py-2 text-sm text-muted" />
             </div>
             <button onClick={generate} disabled={ed.generating} className={`w-full py-2.5 bg-accent text-text text-sm rounded hover:bg-accent-hover ${ed.generating ? "opacity-50 cursor-wait" : ""}`}>
@@ -247,9 +247,9 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
           <>
             <div className="mb-3">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] text-subtle">{ed.result.slides.length} slides</p>
+                <p className="text-caption text-subtle">{ed.result.slides.length} slides</p>
                 <div className="flex gap-2">
-                  <label className="text-[10px] text-accent hover:text-accent cursor-pointer">
+                  <label className="text-caption text-accent hover:text-accent cursor-pointer">
                     + 이미지 추가
                     <input type="file" multiple accept="image/*" className="hidden" onChange={handleUpload} />
                   </label>
@@ -260,7 +260,7 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
                       a.href = url; a.download = `slide-${i + 1}.png`; a.target = "_blank";
                       document.body.appendChild(a); a.click(); document.body.removeChild(a);
                     });
-                  }} className="text-[10px] text-subtle hover:text-subtle">다운로드</button>
+                  }} className="text-caption text-subtle hover:text-subtle">다운로드</button>
                 </div>
               </div>
               <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: "thin" }}>
@@ -278,8 +278,8 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
                     <div className="w-32 h-40 rounded-lg overflow-hidden border border-border cursor-pointer" onClick={() => setPreviewImg(s)}>
                       <img src={s} alt={`Slide ${i + 1}`} className="w-full h-full object-cover pointer-events-none" />
                     </div>
-                    <button onClick={() => removeResultSlide(i)} className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-text rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">✕</button>
-                    <span className="absolute bottom-1 left-1 text-[9px] bg-black/60 text-text px-1 rounded">{i + 1}</span>
+                    <button onClick={() => removeResultSlide(i)} className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-text rounded-full text-caption opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">✕</button>
+                    <span className="absolute bottom-1 left-1 text-caption bg-black/60 text-text px-1 rounded">{i + 1}</span>
                   </div>
                 ))}
               </div>
@@ -287,7 +287,7 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
             <div className="space-y-2 mb-3">
               <button onClick={saveDraft} className="w-full py-2 bg-green-700 text-text text-sm rounded hover:bg-green-600">{editingPostId ? "Draft 업데이트" : "큐에 Draft 저장"}</button>
               <button onClick={() => setEd(prev => ({ ...prev, result: null }))} className="w-full py-1.5 bg-surface-2 text-muted text-xs rounded hover:bg-surface-2">카드 재생성</button>
-              <details className="text-[10px]">
+              <details className="text-caption">
                 <summary className="text-subtle cursor-pointer hover:text-subtle">미드저니 이미지 추가 (선택)</summary>
                 <div className="mt-2 flex gap-2">
                   <input id="mj-bg-prompt" type="text" placeholder="이미지 프롬프트 (영문 권장)" className="flex-1 bg-surface border border-border rounded px-2 py-1.5 text-xs text-muted" />
@@ -318,7 +318,7 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
           <div className="flex items-center justify-center h-64 text-subtle">
             <div className="text-center">
               <p className="text-sm mb-1">카드뉴스를 생성하면 여기에 프리뷰가 표시됩니다</p>
-              <p className="text-[10px]">제목 + 슬라이드 텍스트 입력 후 &quot;카드뉴스 생성&quot; 클릭</p>
+              <p className="text-caption">제목 + 슬라이드 텍스트 입력 후 &quot;카드뉴스 생성&quot; 클릭</p>
             </div>
           </div>
         )}
@@ -378,7 +378,7 @@ function InstagramSettings() {
             label="Instagram"
             onAccountsChanged={mutateConfig}
           />
-          <p className="text-[10px] text-subtle mt-2">또는 아래에서 토큰을 직접 입력(고급).</p>
+          <p className="text-caption text-subtle mt-2">또는 아래에서 토큰을 직접 입력(고급).</p>
         </div>
         <CredentialForm
           channelKey="instagram"

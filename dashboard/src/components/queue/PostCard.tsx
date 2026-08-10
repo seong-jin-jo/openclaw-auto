@@ -23,7 +23,7 @@ function channelBadge(label: string, ch: { status: string } | undefined) {
     skipped: "bg-surface-2 text-subtle",
   };
   return (
-    <span className={`text-[10px] px-1.5 py-0.5 rounded ${c[ch.status] || "bg-surface-2 text-muted"}`}>
+    <span className={`text-caption px-1.5 py-0.5 rounded ${c[ch.status] || "bg-surface-2 text-muted"}`}>
       {label}: {ch.status}
     </span>
   );
@@ -86,7 +86,7 @@ export function PostCard({ post, channelConfig, onRefresh, onPickImage }: PostCa
           {(post.status === "draft" || post.status === "approved") && (
             <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(post.id)} className="rounded border-border" />
           )}
-          <span className={`text-[10px] px-2 py-0.5 rounded ${STATUS_CLASS[post.status] || "bg-surface-2 text-muted"}`}>
+          <span className={`text-caption px-2 py-0.5 rounded ${STATUS_CLASS[post.status] || "bg-surface-2 text-muted"}`}>
             {post.status}
           </span>
           <span className="text-xs text-subtle">{post.topic || ""}</span>

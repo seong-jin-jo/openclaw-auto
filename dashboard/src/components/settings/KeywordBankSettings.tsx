@@ -61,12 +61,12 @@ export function KeywordBankSettings() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-text">Keyword Bank</h3>
-        <span className="text-[10px] text-subtle">{keywords.length} total | {keywords.filter((k) => !k.used).length} unused</span>
+        <span className="text-caption text-subtle">{keywords.length} total | {keywords.filter((k) => !k.used).length} unused</span>
       </div>
 
       {/* Add keywords */}
       <div className="card p-4">
-        <label className="text-[10px] text-subtle block mb-1">Add keywords (one per line)</label>
+        <label className="text-caption text-subtle block mb-1">Add keywords (one per line)</label>
         <textarea
           value={newKeywords}
           onChange={(e) => setNewKeywords(e.target.value)}
@@ -80,7 +80,7 @@ export function KeywordBankSettings() {
       {/* Filter */}
       <div className="flex gap-1">
         {(["all", "unused", "used"] as const).map((f) => (
-          <button key={f} onClick={() => setFilter(f)} className={`px-2 py-1 text-[10px] rounded ${filter === f ? "bg-accent text-text" : "text-subtle hover:bg-surface-2"}`}>
+          <button key={f} onClick={() => setFilter(f)} className={`px-2 py-1 text-caption rounded ${filter === f ? "bg-accent text-text" : "text-subtle hover:bg-surface-2"}`}>
             {f}
           </button>
         ))}
@@ -96,13 +96,13 @@ export function KeywordBankSettings() {
               <div key={k.keyword} className="flex items-center justify-between py-1 border-b border-border/30">
                 <div className="flex items-center gap-2">
                   <span className={`text-xs ${k.used ? "text-subtle line-through" : "text-muted"}`}>{k.keyword}</span>
-                  <span className="text-[9px] text-subtle">{k.source}</span>
+                  <span className="text-caption text-subtle">{k.source}</span>
                 </div>
                 <div className="flex gap-1">
                   {!k.used && (
-                    <button onClick={() => handleMarkUsed(k.keyword)} className="text-[9px] text-green-400 hover:text-green-300">Used</button>
+                    <button onClick={() => handleMarkUsed(k.keyword)} className="text-caption text-green-400 hover:text-green-300">Used</button>
                   )}
-                  <button onClick={() => handleRemove(k.keyword)} className="text-[9px] text-red-400 hover:text-red-300">x</button>
+                  <button onClick={() => handleRemove(k.keyword)} className="text-caption text-red-400 hover:text-red-300">x</button>
                 </div>
               </div>
             ))}
