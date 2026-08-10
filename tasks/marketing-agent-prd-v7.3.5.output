@@ -1,0 +1,112 @@
+한 줄 결론: v7.3.5는 critic v7.3.4의 의미 FAIL 8행을 observable H/E/F와 base TC로 복구하고 validator를 실제 emitted manifest 입력 검사로 교체했다. 기존124개는 byte-preserved, clean baseline PASS→mktemp B10 mutation row+aggregate FAIL→canonical SHA 동일까지 증명했으며, render·quality verifier와 independent re-critic은 남았다.
+
+# OSMU Marketing Agent PRD v7.3.5 — prd-architect exit report
+
+STAMP: line=openclaw-auto | artifact=marketing-agent-prd-v7.3.5-exit | version=v7.3.5 | generated_at=2026-08-07 15:12 KST | model=gpt-codex/gpt-5.6-sol | agent=prd-architect/marketing_agent_prd_v7 | skills=brand-positioning-kit,openclaw-creative-brief | evidence=PRD-v7.3.4,critic-v7.3.4,audit-v1.2,ABC-DE-FGH-H/E/F288,actual-emitted-manifest,mktemp-mutation,agency-blueprint14,current-code-wiki,W3C-OWASP-Buffer | deliberation=검사기가 생성한 기대값을 검사하는 순환을 끊고 실제 normative file을 검증 대상으로 고정했다.
+
+요청: v7.3.4 NO-GO의 MAJOR2를 보강해 A02/A03/B01/B10/B13/D01/D20/E02를 source predicate와 같은 observable H/E/F로 닫고, validator가 actual manifest를 검사하게 하며 기존124·One Thing·IA·Studio·secret-class 정책을 보존한다.
+
+## 산출물
+
+- `docs/openclaw-auto-marketing-agent-prd-v7.3.5-gpt-codex.md`
+- canonical current: `docs/one-thing.md`, `docs/persona.md`, `docs/bm.md`, `docs/risks.md`
+- versioned: `docs/one-thing-v7.3.5.md`, `docs/persona-v7.3.5.md`, `docs/bm-v7.3.5.md`, `docs/risks-v7.3.5.md`
+- normative Audit96 QA catalog: `tasks/marketing-agent-prd-v7.3.5-audit96-source-manifest.output`
+- executable validator/mutation fixture: `tasks/marketing-agent-v7.3.5-audit96-semantic-fixture.mjs`
+- independent input catalogs: `tasks/audit96-abc-exact-assertions.output`, `tasks/audit96-de-exact-assertions.output`, `tasks/audit96-fgh-exact-assertions.output`
+- web render: `/tmp/zeroone-web-openclaw-auto-marketing-agent-prd-v7.3.5-gpt-codex.html`
+- visual evidence: `/private/tmp/prd-v735-final-top.png`, `/private/tmp/prd-v735-final-bottom.png`
+
+## Persona·One Thing
+
+- Persona: 김민서, 38세, 1인 교육·컨설팅 브랜드 대표.
+- Pain: 여러 workspace·계정·자료·형식에서 잘못된 근거·승인·중복 발행을 막으면서 캠페인 PM을 직접 다시 하지 않아야 한다.
+- One Thing: 고객 목표와 사람이 확정한 브랜드 근거를 세 형식의 캠페인 납품물로 만들고 정확히 한 번 발행한 뒤, 적격한 결과에서 승인된 변수 하나만 다음 실험에 반영하는 마케팅 실행 에이전트.
+- canonical/PRD One Thing byte equality PASS.
+
+## Critic closure
+
+| Finding | Correction | Exact evidence |
+|---|---|---|
+| Audit96 의미 88/96 | A02/A03/B01/B13/D01/D20/E02에 additive FR/AC/TC125~131, B10에 clean observable QA H/E/F를 부여하고 RTM 8행 재매핑 | base131; supplemented rows8 |
+| A02/A03 identity·workspace parity | fresh A/B tenant ID 불일치·cross membership0과 source/draft/account/Queue/analytics target parity를 직접 검증 | TC125/126 + QA-AUD-A02/A03 |
+| B01/B13 evidence lineage | imported citation의 tenant/document/span resolution과 used guide applied_at save/reload/history를 직접 검증 | TC127/128 + QA-AUD-B01/B13 |
+| D01/D20/E02 operation truth | viewport3 Studio DOM/keyboard/jump order, Telegram bot health+schedule+result, bulk count+exact account list를 직접 검증 | TC129~131 + QA-AUD-D01/D20/E02 |
+| actual manifest B10 오염을 baseline이 놓침 | validator가 actual emitted file의 SOURCE/PRD SHA·schema9·rows96·mapping/release·exact H/E/F를 parse/검증 | actual baseline PASS |
+| mutation이 정본을 오염 | mktemp 사본만 변경해 B10 row+aggregate FAIL, canonical SHA before/after 동일 | integrity JSON true |
+
+## Audit96 전수 증거
+
+- source: Audit v1.2.0 SHA-256 `f694f4c5a1afbc9c8efe3bfe2423e490cf0499df254fa5c744db3c0ea5d805c8`.
+- independent catalogs: ABC34/102 assertions, DE41/123, FGH21/63; 합계96행/288, duplicate0.
+- 각 manifest 행: exact source contract, required action/state, source failure evidence, base FR→AC→TC, QA-AUD-H/E/F, release ID.
+- validator baseline은 실제 emitted manifest를 입력으로 읽어 parsed rows96, assertions288, supplemented rows8, header/schema/row failure0, aggregate PASS.
+- 의미 경계: baseline PASS는 artifact/schema/predicate/assertion integrity 증거다. 행수/hash/라벨/이전 critic 침묵은 semantic score0이며 external plan-critic이 최종 의미 gate를 소유한다.
+
+## Mutation 실행 증거
+
+- baseline: `/tmp/marketing-agent-v735-semantic-baseline.json` → aggregate PASS, failed_rows0.
+- mutation: `mktemp -d`로 만든 `/tmp/marketing-agent-v735-final-mutation.I9Fvy5/manifest.output`의 B10 happy action만 제거했다. canonical file 쓰기0.
+- result: `/tmp/marketing-agent-v735-semantic-mutation.json` → process exit1, B10 `happy_assertion_exact`·`source_action_in_happy`·`mutation_placeholder_absent` FAIL, failed_rows1, aggregate FAIL.
+- integrity: `/tmp/marketing-agent-v735-manifest-integrity.json` → canonical SHA before/after 동일, `canonical_sha_unchanged=true`; 정본 `[REMOVED_*]` 0.
+
+## 정량·보존 검증
+
+- base FR/AC/TC **131/131/131**, unique, 1:1.
+- v7.3.4 기존 ID **124/124 present**, exact requirement/base TC row missing0·changed0; 삭제·재번호·약화0.
+- Audit RTM 96, QA-mapped96, independent H/E/F assertions288.
+- canonical current/versioned four pairs diff0.
+- One Thing byte equality true.
+- IA 유지: Sidebar `Social 게시물→Messaging→Social 짧은 영상`; Studio `Text→Photo/Card→Video`.
+- route25/destination26, Studio existing9+Save/Publish/Schedule, credential-class matrix, campaign14, source family5/adapter6 유지.
+
+## Secret-class 정책
+
+- Customer OAuth access/refresh: reveal0.
+- Tenant automation token: issue plaintext1, DB hash1/raw0, later reveal0, rotate/revoke.
+- Operator OAuth app Client Secret: DB-source only, fresh exact operator reauth+intent/reason, no-store, manual hide/clear≤30s, success/denial audit actor/reason/time/outcome secret0.
+- Env source: HTTP raw0, import-first; concurrent import existing DB overwrite0.
+- BYOK: write-only/masked, reveal0.
+- 모든 class: cross-role/cross-tenant/log/error/analytics/export leak0.
+
+## 벤치마크
+
+- 소스 1: Buffer official Scheduling/Timezones/Approvals — per-channel draft preservation, exact date/time와 next-slot 구분, approval role/action 차이를 E01/E06/A05에 반영.
+- 소스 2: W3C WCAG 2.2 Focus Visible — keyboard focus의 실제 가시성을 route 도달과 분리하고 G07 surface7 H/E/F로 반영.
+- 소스 3: OWASP Secrets Management — secret type별 least privilege와 who/why/when audit를 G02/G09에 반영.
+- 보조: Jasper Brand Voice — examples/preview/edit/save를 B14/B15에 반영.
+
+## 레드팀·셀프심문
+
+Steelman: “실제 manifest를 읽어도 expected assertions가 같은 fixture 코드에서 나오므로 의미를 자가인증한다”는 공격이 가장 강하다. 그래서 validator PASS의 범위를 artifact/schema/predicate exactness로 제한하고 semantic supplements 8행을 critic의 구체 반례에 맞춰 observable outcome으로 바꿨으며, 다음 independent critic의 96행 전수 대조를 의미 gate로 유지했다.
+
+Premortem: mutation 뒤 normative manifest가 다시 오염되거나 workspace 전환 후 analytics만 이전 tenant를 가리키고, Telegram schedule이 unhealthy bot으로 실행되며, bulk edit가 숨은 계정에 적용될 수 있다. actual-file parser·canonical SHA equality와 TC126/130/131이 각각 이 실패를 release blocker로 만든다.
+
+이 단계가 틀렸다면 가장 그럴듯한 이유는 새 8행 H/E/F가 source 의미를 담았어도 하나의 제품 행동을 구현 가능한 최소 fixture로 충분히 분해하지 못했기 때문이다. 그래서 v7.3.5 self score나 validator PASS를 의미 승인으로 쓰지 않고, v7.3.4 critic이 지적한 exact predicate와 다음 plan-critic 전수 반례0만 gate로 인정한다.
+
+## TOOL_TRACE
+
+- Standards Read complete: `/Users/sj/.claude/standards/planning.md`, `/Users/sj/.claude/standards/doc-review.md`, `/Users/sj/.claude/standards/benchmarks.md`.
+- Skill Read trace: `/Users/sj/.codex/skills/brand-positioning-kit/SKILL.md`, `/Users/sj/.codex/skills/openclaw-creative-brief/SKILL.md`.
+- Local Read full: critic v7.3.4 360 lines; Audit v1.2; agency blueprint; v7.3.4 PRD/manifest; ABC/DE/FGH exact catalogs.
+- WebSearch actual trace: `{"name":"WebSearch","arguments":{"query":"site:w3.org/WAI/WCAG22 Understanding focus visible error identification reduced motion official"}}`
+- WebSearch actual trace: `{"name":"WebSearch","arguments":{"query":"site:cheatsheetseries.owasp.org Secrets Management Cheat Sheet audit who why when rotation official"}}`
+- WebSearch actual trace: `{"name":"WebSearch","arguments":{"query":"site:support.buffer.com scheduling posts approvals official Buffer"}}`
+- Validator: base131/131/131, old124 requirement/TC missing0·changed0, audit RTM96, QA mapping96, One Thing equality true.
+- Mutation: actual baseline PASS→mktemp B10 predicate removal row+aggregate FAIL exit1→canonical SHA unchanged true.
+- Render: md-to-web→HTML, Chrome open, 1440×1000 final top/bottom direct observation, body height98728, tool residue false; metadata status와 Gate footer 모두 local PASS·independent critic pending으로 일치.
+- Quality verifier: **PASS** — Skill 2회, WebSearch/Fetch 6회, 소크라 마커3. 파일 산출형 Write/Edit 0 경고는 transcript parser가 `apply_patch` 파일 쓰기를 계수하지 못한 관찰 한계이며 실제 산출 경로와 diff로 존재를 확인했다.
+
+## Gate
+
+- plan artifact: in-review.
+- gate 미통과: independent v7.3.5 plan-critic MAJOR0, 회장 `/approve plan`.
+- design stage 진입: 불가.
+- product code/design/API/DB/deploy/wiki/pipeline-state 변경: 0.
+
+RUBRIC_SCORE: 완결성=5/5 정밀성=5/5 벤치마크=5/5 추적성=5/5 전문성=5/5 total=25/25
+WEAKEST_LINE: H/E/F288은 독립 관찰 assertion이지만 실제 provider behavior는 design/build/QA 단계의 sandbox·production evidence 전까지 미검증이다.
+SKILLS_USED: brand-positioning-kit — customer trust와 brand evidence 경계를 유지 / openclaw-creative-brief — Audit96 input/action/output/failure를 H/E/F execution contract로 변환
+SKILLS_SKIPPED: 없음 — 두 매칭 skill 모두 실제 읽고 적용
+SOURCES: PRD v7.3.4; critic v7.3.4; Audit v1.2; agency blueprint14; independent ABC/DE/FGH exact catalogs; normative v7.3.5 actual manifest; baseline/mktemp mutation/integrity evidence; current credential/wiki/Settings evidence; W3C WCAG2.2; OWASP Secrets Management; Buffer Scheduling/Timezones/Approvals; Jasper Brand Voice.
+MODEL: gpt-codex/gpt-5.6-sol

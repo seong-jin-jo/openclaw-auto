@@ -1,0 +1,253 @@
+# openclaw-auto Marketing Agent v18 governing independent re-rate v6
+
+## STAMP
+
+- line: openclaw-auto
+- artifact: marketing-agent-design-v18-independent-review
+- version: v6
+- generated_at: 2026-08-07 23:08 KST
+- model: gpt-codex/gpt-5.6-sol
+- agent: product-designer / independent reviewer
+- skill: `/Users/sj/.claude/skills/gstack/design-review/SKILL.md`
+- quality constitution: `/Users/sj/.claude/standards/design.md`, `/Users/sj/.claude/standards/benchmarks.md`
+- prototype: `docs/prototype/openclaw-auto-marketing-agent-fidelity-v18-gpt-codex.html`
+- prototype_sha256: `c520a53d754fbe68a29b2b965c4cfd6e49421817a7d9ef27e95a53a5284882e4`
+- primary evidence: latest prototype, DESIGN, user-flow, wireframes, parent browser QA JSON, 12 retake-2 screenshots
+- 고민 한 줄: QA chrome을 숨겼다는 assertion이 다시 selector 일부만 보는 대리지표가 아닌지 DOM 범위와 screenshot을 따로 검증했다.
+
+## 한 줄 결론
+
+**GO. Retake-2가 마지막 M14를 실제로 닫았다. `.qa-tools`와 `#qa-restore`는 12/12 기본 렌더에서 모두 hidden이고 screenshot의 `검수` 노출도 0이다. 고객 언어, M09 lineage, M13 recovery와 전체 제품 흐름에 회귀가 없어 최종 집계는 RESOLVED 14 / OPEN MAJOR 0 / OPEN MINOR 0, Design Score B+다.**
+
+## Governing verdict
+
+- FINAL_VERDICT: **GO, design stage 통과 가능**
+- RESOLVED: 14/14 MAJOR
+- OPEN MAJOR: 0
+- OPEN MINOR: 0
+- PROTOTYPE_GRADE: B+
+- PROTOTYPE_AI_SLOP_GRADE: B+
+- evidence grade: actual browser JSON, source contract and 12 screenshot observation
+- external behavior boundary: OAuth, actual provider publish, permalink readback and analytics persistence remain build/QA evidence scope이며 design GO를 실제 서비스 완료 주장으로 확장하지 않는다.
+
+## Evidence boundary
+
+- `관찰됨`: reviewer가 retake-2의 customer/operator x light/dark x 1440/1024/390 총 12개 PNG를 직접 열어 visible `검수` 0과 고객 언어를 확인했다.
+- `테스트됨`: `tasks/marketing-agent-design-v18-browser-qa.json`의 12 combinations, route26, journey14, dialogs4, recovery48, lineage, contrast and overflow를 exact field로 재집계했다.
+- `근거 확인`: SHA-pinned HTML에서 inspector node, hidden defaults, BODY mode attribute, interaction audit and opt-in path를 읽었다.
+- `미검증`: 실제 외부 계정 연결, 게시 성공, permalink, analytics 서버 저장.
+
+## M14 exact closure
+
+### 1. Reviewer tooling boundary
+
+| contract | actual evidence | result |
+|---|---|---:|
+| `.qa-tools` default hidden | HTML `hidden`; 12/12 `qaToolsHidden=true` | PASS |
+| `#qa-restore` default hidden | HTML `hidden`; 12/12 `qaRestoreHidden=true` | PASS |
+| visible `검수` | 12 screenshots direct inspection, 0 | PASS |
+| inspector visible by default | source audit requires `inspectorVisibleCount===0`; 12/12 audit PASS, failures 0 | PASS |
+| inspector-node selector scope | `[data-prototype-inspector="true"]` exactly 2 nodes | PASS |
+| BODY state isolation | separate `data-prototype-inspector-mode`; inspector selector collision 0 | PASS |
+| opt-in recovery | query `?prototypeInspector=1`, hash `#prototype-inspector`, or `Ctrl+Alt+Q` | PASS |
+| product control count | customer 68, operator 11; inspector controls excluded | PASS |
+
+이전 v5의 false-positive는 browser QA가 `.qa-tools`만 보고 `#qa-restore`를 누락한 것이었다. Retake-2는 두 요소를 별도 assertion으로 측정하고, source에서 둘 모두 `hidden`이며, actual screenshot에서도 restore control이 사라졌다. 따라서 reviewer-only tooling이 제품 surface로 새는 M14 사유는 재현되지 않는다.
+
+### 2. Customer language
+
+| scope | count | raw identifier hits | implementation jargon hits | result |
+|---|---:|---:|---:|---:|
+| customer routes | 26 | 0 | 0 | PASS |
+| journey states | 14 | 0 | 0 | PASS |
+| dialogs | 4 | 0 | 0 | PASS |
+| role/theme/viewport matrix | 12 | 0 | 0 | PASS |
+
+Customer visible identity remains human-readable:
+
+- campaign: `가을 신규 고객 안내`
+- work: `텍스트·카드뉴스·짧은 영상`
+- revision: `수정 7`
+- request: `오늘 15:48 요청`
+- result: `Instagram Reels · 게시 확인`
+- experiment: `첫 문장 구체성 비교`
+
+Immutable `campaign_id`, `content_id`, `revision_id`, `publish_attempt_id`, `external_result_id`, `experiment_id` remain in data, frozen state and test APIs. Presentation was translated without deleting audit identity.
+
+### 3. Interaction and visual contract
+
+| axis | retake-2 actual | result |
+|---|---|---:|
+| matrix | 12/12 audit PASS, failures 0 | PASS |
+| console | errors 0 | PASS |
+| contrast | light minimum 4.79:1, dark minimum 5.84:1 | PASS |
+| horizontal overflow | 0 in 12/12 | PASS |
+| target/accessibility | minimum 44px, accessible name, handler and focus contract | PASS |
+| mobile | drawer and close, one-column flow, visible OSMU order, no horizontal page overflow | PASS |
+| role boundary | customer shell absent in operator role, operator owner absent from customer role | PASS |
+
+## M09 lineage no-regression
+
+M09 remains RESOLVED.
+
+- Original external result identities: `ext_ig_8801`, `ext_th_8802`, `ext_yt_8803`.
+- Result order reversal preserves selected identity `ext_ig_8801`; lookup is not array-position based.
+- Apply creates `rev_8` from two source results, changes one variable `첫 문장의 구체성`, and holds `이미지`, `게시 시간`, `행동 안내` constant.
+- Undo returns to `rev_7` and clears the experiment revision.
+- Human-readable visible labels do not become lookup keys.
+
+## M13 recovery no-regression
+
+M13 remains RESOLVED.
+
+- Owners: Home, Studio, Inbox, Calendar, Platform, Results, Settings, Operator.
+- States: loading, empty, partial, permission, uncertain, repair.
+- 8 x 6 = 48/48 transitions report `safe-transition-complete`.
+- Every transition preserves content, workspace/account and revision identity.
+- uncertain confirms status without duplicate publish; repair restores internal record without external re-call.
+
+## M01-M14 governing table
+
+| ID | verdict | closure evidence |
+|---|---:|---|
+| M01 mobile navigation | RESOLVED | 390 drawer, close/backdrop/Escape, draft preservation. |
+| M02 operator ownership | RESOLVED | operator six combinations, Admin9 owner transitions, customer shell separation. |
+| M03 14-step state | RESOLVED | input survives arbitrary jump, close and reopen. |
+| M04 wiki lifecycle | RESOLVED | import/create, save version, compare, archive/restore, rollback and approval semantics. |
+| M05 existing fidelity | RESOLVED | six questions, GitHub Markdown scope, preview7/direct4, card edit and asset ownership. |
+| M06 channel editing | RESOLVED | common, Social5 and Video3 variant state with channel requirements. |
+| M07 bulk impact | RESOLVED | eight account rows, readiness, approval, exclusion reasons, repair and reconfirmation. |
+| M08 approval/publish lifecycle | RESOLVED | same item across Inbox, Calendar and platform; schedule change invalidates approval. |
+| M09 stable lineage | RESOLVED | reorder-safe result selection, rev8 apply, rev7 undo. |
+| M10 video lifecycle | RESOLVED | Shorts, Reels and TikTok video-job lifecycle, late result and repair. |
+| M11 Settings/Admin | RESOLVED | Settings8 and Admin9 actual owner transitions. |
+| M12 credentials | RESOLVED | OAuth metadata, one-time workspace key, masked BYOK, bounded operator reveal. |
+| M13 recovery | RESOLVED | 48 owner-state transitions complete with identity preservation. |
+| M14 client-ready visual | **RESOLVED** | raw ID/jargon 0, both inspector controls hidden 12/12, screenshot `검수` 0, interaction/contrast/overflow PASS. |
+
+**Final count: RESOLVED 14 / OPEN MAJOR 0 / OPEN MINOR 0.**
+
+## Sidebar, OSMU, wiki and full-lifecycle regression
+
+No regression was found in the user-requested product architecture.
+
+- Sidebar: Messaging follows Social. Platform destinations remain navigable on desktop and mobile.
+- OSMU: production order remains text, photo/card-news, video. Slack and Discord do not replace the OSMU creation families.
+- Distribution: Social and short-video platform variants remain available, and selected output projects into each platform work queue.
+- Wiki: import existing wiki and create a new wiki remain present with save, compare, version, approval, archive/restore and rollback semantics.
+- Brand basis: onboarding and Studio retain brand facts, positioning, guide and tone before generation.
+- Creation: common draft, per-channel editing, card-news/image work and short-video work remain connected.
+- Governance: approval, bulk impact review, schedule, cancellation, uncertain publish and repair have safe exits.
+- Result management: platform result detail, aggregate performance, platform-specific performance and next one-variable experiment remain distinct but lineage-linked.
+- Settings/Admin: OAuth/account metadata, automation-facing keys, customer settings and operator administration remain role-separated.
+- Responsive: established iconography, tokens, mobile drawer, one-column cards and video affordance remain intact.
+
+This proves a coherent prototype flow from account/workspace entry through brand grounding, creation, review, scheduling, publishing states, result management and performance learning. It does not claim provider production behavior before build/QA.
+
+## Visual grade
+
+Classifier: APP UI.
+
+The retake preserves the existing OpenClaw shell, code-native icons, Pretendard typography, one accent color, restrained borders and clear ownership. Customer screens use a readable information hierarchy without internal IDs. Desktop, tablet and mobile adapt without page overflow, and dark mode preserves hierarchy rather than adding decorative effects. The retake also removes the prior false product action at bottom-right.
+
+| category | grade | basis |
+|---|---:|---|
+| Visual hierarchy | B+ | Studio task, source basis and production families read in order. |
+| Typography | B+ | customer labels and action scale remain readable in both themes. |
+| Spacing/layout | A- | 12 combinations, overflow 0, distinct mobile layout. |
+| Color/contrast | A- | measured minimum exceeds 4.5:1 in both themes. |
+| Interaction states | A- | actual handler audit, stable lineage and 48 recovery paths. |
+| Responsive | A- | drawer, stack, scroll affordance and 44px target contract. |
+| Content quality | A- | raw ID and undefined implementation jargon 0 across exact customer scopes. |
+| Client presentation | B+ | reviewer chrome removed; product and inspector boundaries are clear. |
+| AI slop | B+ | no gradient, blob, decorative motion or generic feature-grid substitution. |
+
+Hard rejection check:
+
+- unclear primary action: NO
+- customer/operator role leakage: NO
+- reviewer tooling in product surface: NO
+- customer-visible implementation jargon: NO
+- unsupported external success claim: NO
+- horizontal overflow or unreachable mobile action: NO
+
+## Benchmark application
+
+1. NN/g Aesthetic and Minimalist Design says irrelevant information competes with relevant information. Applied by removing reviewer controls from default customer/operator presentation.  
+   https://www.nngroup.com/articles/ten-usability-heuristics/
+2. Storybook official UI documentation separates tooling chrome, toolbar state and fullscreen canvas. Applied by keeping inspector access explicit and outside the clean product canvas.  
+   https://storybook.js.org/docs/configure/user-interface/features-and-behavior
+3. Buffer All Channels groups draft, approval, scheduled and sent posts while retaining channel filters. Applied to unified lifecycle visibility without erasing platform ownership.  
+   https://support.buffer.com/article/861-how-to-use-the-all-channels-view-in-buffer
+4. Sprout Social approval workflow keeps message edits, approval activity and current step visible. Applied to same-item approval and result continuity.  
+   https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows
+
+Actual research trace from this v6 review:
+
+```json
+{"query":"site:nngroup.com/articles aesthetic minimalist design irrelevant information"}
+{"query":"site:storybook.js.org/docs configure user interface fullscreen toolbar canvas"}
+{"query":"site:support.buffer.com all channels drafts approvals scheduled sent"}
+{"query":"site:support.sproutsocial.com message approval workflows activity"}
+```
+
+차용한 것은 product/tooling separation, human-readable lifecycle identity, channel-aware aggregate view and approval continuity다. 타사의 visual brand나 copy는 복제하지 않았다.
+
+## Red team
+
+경쟁자 공격: “Inspector를 `hidden`만 붙여 가렸을 뿐 selector audit은 BODY까지 잘못 세어 다시 false-positive가 날 수 있다.”
+
+방어: inspector node는 exactly 2이고 BODY는 `data-prototype-inspector-mode`라는 별도 속성을 사용한다. 두 control을 개별 computed-visibility assertion으로 검사하며 screenshot 12개도 별도로 관찰했다.
+
+까다로운 고객 공격: “내부 ID를 숨기면 같은 게시물인지 어떻게 아나.”
+
+방어: 고객에게는 캠페인명, 작업물, 수정 번호, 요청 시각, 결과와 실험명을 보여주고 내부 identity는 data/test state에 유지한다. Reorder/apply/undo가 같은 레코드 연결을 실제로 증명한다.
+
+회의적 투자자 공격: “프로토타입의 48 recovery paths가 실제 provider failure를 증명하나.”
+
+방어: 아니다. 이번 GO는 디자인 게이트다. 실제 OAuth, publish, permalink, analytics는 build/QA의 live-provider 증거 없이는 완료로 보고하지 않는다.
+
+## Self-question
+
+**이 GO가 틀렸다면 가장 그럴듯한 이유는?** inspector가 default hidden이어도 고객이 우연히 키보드 shortcut을 눌러 tooling을 열 수 있고, 그것이 다시 제품 경계 누출이 될 수 있다.
+
+**답:** shortcut은 명시적 opt-in이며 default render, accessibility control audit, 12 screenshots에는 존재하지 않는다. 그러나 production build에서는 prototype inspector 자체를 제외해야 한다. 이는 build acceptance로 전달할 조건이지, 현재 clean prototype design gate를 막는 MAJOR는 아니다.
+
+**판정 수정:** v5에서 열었던 M14 reviewer-tooling leak을 exact evidence로 닫았다. 외부 동작 미검증은 명시적으로 남기되 디자인 결함과 혼동하지 않아 GO를 부여한다.
+
+SOCRATIC_MARKER: 가장 load-bearing한 “두 hidden assertion이 또 다른 selector 누락일 수 있다”를 DOM node count, BODY attribute isolation, actual browser matrix and 12 screenshots로 반증했다.
+
+## Next stage handoff
+
+- NEXT_STAGE: eng-design 가능
+- owner: parent stage controller
+- version pin: prototype SHA `c520a53d...` plus current DESIGN/user-flow/wireframe and this v6 governing review
+- build acceptance: production bundle에서 PrototypeInspector를 제외하거나 non-production flag로만 포함하고, actual OAuth, provider publish, permalink readback and analytics persistence를 E2E로 검증한다.
+- reopen condition: customer-visible raw IDs, reviewer chrome default exposure, unstable result selection, duplicate publish recovery, platform/aggregate performance collapse, or mobile dead-end가 재현되면 design reopen.
+
+## Process evidence
+
+- Latest prototype SHA, DESIGN, user-flow, wireframe and parent browser QA JSON을 다시 읽었다.
+- Source에서 `.qa-tools`, `#qa-restore`, two inspector nodes, BODY mode attribute, opt-in triggers and audit filter를 확인했다.
+- `jq`로 12 combinations, route26, journey14, dialogs4, recovery48, lineage and all failures를 exact 집계했다.
+- 12 latest screenshots를 직접 열어 visible `검수` 0, raw ID 0 and role-responsive presentation을 육안검수했다.
+- `/Users/sj/.claude/skills/gstack/design-review/SKILL.md`를 읽고 APP UI classifier, responsive, interaction, content, hard rejection and AI-slop rubric을 적용했다.
+- `/Users/sj/.claude/standards/design.md`와 `/Users/sj/.claude/standards/benchmarks.md`를 적용했다.
+- Official benchmark web research 4 queries를 실제 실행했다.
+- VERIFIER_RESULT: PASS. Skill 1, WebSearch/Fetch 4, Socratic marker 1, parsed Design Score B. Warning 1 is limited to the verifier not counting `apply_patch` as Write/Edit; file existence and scoped output were separately confirmed.
+
+SKILLS_USED: `gstack/design-review` for evidence-first visual review, product/tooling boundary, 12-combination responsive inspection, interaction/accessibility regression, hard-rejection check and weighted grade.
+
+SKILLS_SKIPPED: brand-positioning-kit and openclaw-creative-brief were already applied in the upstream design artifacts; this task is an immutable governing re-rate. Image generation and content packaging are outside the allowed single review-file scope.
+
+SOURCES: `docs/prototype/openclaw-auto-marketing-agent-fidelity-v18-gpt-codex.html`; `DESIGN.md`; `docs/user-flow-marketing-agent-v18-gpt-codex.md`; `docs/WIREFRAMES/marketing-agent-v18-gpt-codex.md`; `tasks/marketing-agent-design-v18-browser-qa.json`; 12 `/private/tmp/ma-v18-final/*.png`; https://www.nngroup.com/articles/ten-usability-heuristics/; https://storybook.js.org/docs/configure/user-interface/features-and-behavior; https://support.buffer.com/article/861-how-to-use-the-all-channels-view-in-buffer; https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows
+
+MODEL: gpt-codex/gpt-5.6-sol
+
+RUBRIC_SCORE: evidence=5/5 specificity=5/5 actionability=5/5 source_hygiene=5/5 self_critique=5/5 total=25/25
+
+WEAKEST_LINE: Keyboard focus remains verified through source and audit contract rather than a dedicated focused-control screenshot.
+
+Design Score: B+
+
+AI Slop Score: B+

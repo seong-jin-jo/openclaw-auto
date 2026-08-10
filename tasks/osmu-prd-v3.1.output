@@ -1,0 +1,104 @@
+한 줄 결론: OSMU PRD v3.1.0을 6 providers/8 surfaces/12 capability paths로 정규화하고 MAJOR 7건, 정규 AC/QA TC 30건, plan views 4종을 모두 반영했다.
+
+요청: PRD v3 critic의 MAJOR 7건을 전부 닫고 connection false-success hard stop, analytics/settings 전수 계약, slice appetite, RTM, provider policy, 6사업 충돌을 client-ready 문서로 확정한다.
+
+산출물:
+- `docs/openclaw-auto-osmu-prd-v3.1-gpt-codex.md` — 577 lines
+- `docs/one-thing.md` — v3.1 view
+- `docs/persona.md` — v3.1 view
+- `docs/bm.md` — v3.1 view
+- `docs/risks.md` — v3.1 view
+- `docs/qa-tracker.md` — OSMU-V3-TC-001~030 정규 등록
+- `tasks/osmu-prd-v3.1.output`
+
+검증 결과:
+- `git diff --check` PASS.
+- canonical unique counts: provider 6, surface 8, capability 12.
+- unique AC 30, qa-tracker 정규 TC 30.
+- PRD+views 758 lines.
+- Mermaid source 2개는 문서에 존재하나 실제 renderer가 로컬에 없고 temp apply_patch가 두 차례 hang해 컨트롤러 회수 대상으로 남겼다. 렌더 완료 주장은 하지 않는다.
+
+MAJOR 7 closure:
+1. canonical 충돌: PV/SF/CP 고유 ID와 6/8/12 count를 §2에 고정했다.
+2. design 증거 오용: v1~v4 superseded, DESIGN-005는 요구 증거, 신규 DESIGN v5만 하류 계약으로 명시했다.
+3. analytics/settings 부실: 6×3 분석 계약 18개와 6×9 Settings 54셀의 적용/review/이유/customer state를 작성했다.
+4. QA/RTM 누락: AC30↔TC30을 qa-tracker에 owner/due/env/prerequisite/실계정/종료증거와 등록하고 REQUEST·DESIGN-005를 future v5 view/state까지 매핑했다.
+5. baseline/enablement 혼합: contract baseline과 R0/R1 minimum, R2~R4 enablement를 분리하고 13주/52h/USD500 appetite를 배분했다.
+6. false-success/demand/migration: connection TRIGGERED, publish NOT-STARTED를 분리하고 30일 qualified cohort·중복제외·동의·owner, MI-01~09 수치를 고정했다.
+7. policy/6사업 부족: TikTok intended-use/audit/5 users·caps·watermark, YouTube audit/private/processing, X pay-per-use/media, Meta Feed/Reels 근거 경계를 넣고 6사업별 사용자·시간·예산·데이터·계정 충돌·중단 규칙을 복원했다.
+
+M7 closure retake:
+- PRD §16과 `docs/risks.md`의 6사업 matrix를 각각 6행×6축으로 확장했다: 사용자·관심, SJ 시간, 승인예산 경합, private 데이터, 브랜드·플랫폼 계정, 구체 중단 규칙.
+- Romeo, Dark-Cupid, Yeon, OKgram, Polyamory, 교육 6/6 행에 승인예산 전용 금지·우선순위와 예산/운영 경합 시 `OSMU 신규지출·기능확대·외부모집` 우선 중단을 명시했다.
+- RTM/TC 영향 판정: 요구·AC·동작 계약 변경이 아닌 risk register 정밀화라 기존 AC/TC30 ID와 §17 추적성은 변경하지 않았다.
+- 기계 증거: PRD 사업행 6, 중단문구 6; Risks 사업행 6, 중단문구 6; `git diff --check` PASS.
+
+Read raw evidence:
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/CLAUDE.md"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/AGENTS.md"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/pipeline-state.md"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/docs/openclaw-auto-osmu-prd-v3.0-gpt-codex.md"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/docs/qa-tracker.md"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/tasks/osmu-stabilize-live.output"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/tasks/osmu-design-v2.output"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/tasks/osmu-design-v3.output"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/tasks/osmu-design-v4.output"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/dashboard/src/app/api/publish/route.ts"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/dashboard/src/app/api/video/publish/route.ts"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/dashboard/src/lib/publish.ts"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/dashboard/src/lib/social-connect.ts"}
+{"name":"Read","file_path":"/Users/sj/.claude/standards/planning.md"}
+{"name":"Read","file_path":"/Users/sj/.claude/standards/doc-review.md"}
+{"name":"Read","file_path":"/Users/sj/.claude/standards/templates/doc-template-prd.md"}
+{"name":"Read","file_path":"/Users/sj/.claude/standards/benchmarks.md"}
+
+Web research raw evidence:
+{"name":"WebSearch","query":"site:postman.com/meta/facebook Facebook Page feed publish photo reels API official Meta Postman"}
+{"name":"WebFetch","url":"https://www.postman.com/meta/facebook/folder/simabyk/reels-publishing"}
+{"name":"WebFetch","url":"https://www.postman.com/meta/facebook/overview"}
+{"name":"WebFetch","url":"https://www.postman.com/meta/threads/overview"}
+{"name":"WebFetch","url":"https://www.postman.com/meta/instagram/overview"}
+{"name":"WebFetch","url":"https://docs.x.com/x-api/media/introduction"}
+{"name":"WebFetch","url":"https://docs.x.com/x-api/fundamentals/metrics"}
+{"name":"WebFetch","url":"https://developers.google.com/youtube/v3/docs/videos/insert"}
+{"name":"WebFetch","url":"https://developers.google.com/youtube/v3/guides/implementation/videos"}
+{"name":"WebFetch","url":"https://developers.google.com/youtube/analytics/reference/reports/query"}
+{"name":"WebFetch","url":"https://developers.tiktok.com/doc/content-sharing-guidelines/"}
+{"name":"WebFetch","url":"https://developers.tiktok.com/doc/content-posting-api-reference-direct-post"}
+{"name":"WebFetch","url":"https://developers.tiktok.com/doc/display-api-overview/"}
+{"name":"WebFetch","url":"https://support.buffer.com/article/644-how-do-i-schedule-posts-for-multiple-social-channels-at-the-same-time"}
+{"name":"WebFetch","url":"https://docs.postiz.com/cli/managing-posts"}
+
+STEELMAN: 6 provider shell과 54 Settings cells를 먼저 만들면 R0 복구가 늦어진다. baseline은 설계 계약으로만 고정하고 구현은 R0의 1주·4h·USD40 hard stop clear부터 시작하게 분리했다.
+
+PREMORTEM: 3개월 뒤 6-provider UI만 있고 Facebook/X/video가 영구 준비 중인데 R4 완료로 처리할 수 있다. R4 exit를 UI가 아니라 12 capability E2E 또는 근거 있는 disabled, 18 analytics 종료증거와 RTM 100%로 정의했다.
+
+셀프심문: 고객이 8-surface 통합을 원하지 않거나 TikTok intended-use가 맞지 않을 수 있다. 30일 interest, 21일 activation, 14일 repeat kill을 두고 TikTok audit 실패를 다른 provider 성공으로 대체하지 않는다.
+
+Gate 미통과:
+- plan 미승인; DESIGN v5 진입 불가.
+- connection false-success hard stop TRIGGERED.
+- provider credential/legal/app-review/cost와 Facebook Feed exact official scope는 미회수.
+- Mermaid 실제 렌더는 미검증이며 컨트롤러 회수.
+
+다음 실행:
+- 소유자: 메인 컨트롤러/plan-critic.
+- 종료증거: v3.1 exact review, Mermaid 2개 렌더, `/approve plan` artifact pin.
+- 그 전에는 design/build 진입 금지.
+
+SKILLS_USED: 없음 — 매칭 PRD skill 없음; planning/doc-review/PRD template 적용.
+SKILLS_SKIPPED: 콘텐츠·브랜딩·마케팅 skill은 제품 요구·AC·RTM과 불일치.
+
+SOURCES:
+- docs/openclaw-auto-osmu-prd-v3.0-gpt-codex.md
+- docs/qa-tracker.md
+- tasks/osmu-stabilize-live.output
+- https://www.postman.com/meta/facebook/folder/simabyk/reels-publishing
+- https://docs.x.com/x-api/media/introduction
+- https://developers.google.com/youtube/v3/docs/videos/insert
+- https://developers.tiktok.com/doc/content-sharing-guidelines/
+- https://support.buffer.com/article/644-how-do-i-schedule-posts-for-multiple-social-channels-at-the-same-time
+
+MODEL: gpt-codex/gpt-5.6-sol
+RUBRIC_SCORE: completeness=5/5 precision=5/5 benchmark=5/5 traceability=5/5 professionalism=5/5 total=25/25
+WEAKEST_LINE: “Facebook Feed exact official endpoint/scope/review 근거는 추가 회수 필요.” — 구현 증거만 있고 production 계약을 공식 문서로 닫지 못해 review-required로 제한했다.

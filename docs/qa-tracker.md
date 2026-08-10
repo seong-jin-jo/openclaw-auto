@@ -2,6 +2,51 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-08-01 ❌ NG — 시크릿 창 신규고객 채널 연결·핵심 플로우 전체 실패
+
+**사용자 실화면 관찰:**
+- Threads 로그인·동의 뒤 Channel Info status가 `not connected`다.
+- Instagram 로그인·동의 뒤 버튼이 계속 `Instagram OAuth 연결`이고 status는 `재연결 필요`다.
+- Instagram 페이지의 `Instagram Graph API 토큰` 입력 영역은 별도로 존재하지만 값이 비어 있어
+  OAuth 연결과 수동 토큰 경로의 관계·정본이 사용자에게 설명되지 않는다.
+- Settings 채널 목록에는 연결된 계정이 표시되지 않는다.
+- Threads는 Queue/Analytics/Growth/Popular/Settings, Instagram은 Queue/Editor/Settings로
+  정보구조와 기능 노출이 일관되지 않는다.
+- 운영 OSMU는 502이며 Threads·Instagram 각각의 초안 생성→검수→실발행 핵심 플로우를 사용자가
+  찾거나 실행할 수 없다.
+
+**판정:** 운영 고객 핵심 플로우 FAIL. OAuth callback 성공·토큰 저장·readiness·Channel Info·
+Settings가 같은 연결 상태 정본을 공유한다는 증거가 없고, 플랫폼별 기능 매트릭스와 공통 IA도
+승인된 사용자 플로우로 검증되지 않았다. 기존 unit/build PASS 및 일부 OAuth preflight는 완료
+증거에서 제외한다. 원인 분석→회장 범위 확인→수정→운영 시크릿 창 E2E 전까지 qa/ship 잠금.
+
+**종료증거:** 신규 고객 시크릿 창에서 provider별 로그인→callback→저장 계정명→Channel Info·
+Settings 동일 `연결됨`→초안 생성→검수→실발행 permalink를 Threads와 Instagram 각각 관찰하고,
+공통 탭/차이 탭이 기능 매트릭스 문서와 일치하며 전체 경로 5xx·console error 0이어야 한다.
+
+## 2026-08-01 ❌ NG 재제보 — 신규 고객 Threads 연결에 `code_zero_to_one` 노출
+
+**사용자 관찰:** `j.the.great.investor`로 가입한 뒤 Threads 연결 과정에서
+`code_zero_to_one` 계정이 보였다. 정확한 화면·URL·현재 운영 build의 재현은 아직 미확인이다.
+
+**사용자 실화면 보강:** 다른 OSMU 계정으로 로그인한 상태에서도 Threads 연결 시 Meta 화면에
+`이전에 Threads 계정에 정성컴퍼니 앱을 연결하셨습니다. zero_to_one_ai님에 대한 정보를 계속
+공유하시겠어요?`가 표시됐고 계정 전환 선택지는 없었다. 이는 P0-6 계획의 운영 종료조건
+`기존 threads.net 세션을 그대로 쓰지 않고 계정 선택/재로그인 화면 표시`에 직접 FAIL이다.
+현재 제품 테스트는 실제 계정 전환이 아니라 `threads.net에서 먼저 로그아웃` 안내와 Meta 계정
+센터 링크 렌더만 검증하므로 원요청을 충족했다는 증거가 아니다.
+
+**기존 계획과의 관계:** 승인 계획 `wiki-1-mellow-wadler.md`의 P0-6과 같은 증상이다. 당시
+조사는 우리 고객 화면의 cross-tenant 조회가 아니라 브라우저에 남은 threads.net 세션이 Meta의
+authorize 화면에 표시된 것으로 판정했다. 코드에는 tenant/JWT 오기입 방어와 로그아웃 안내가
+추가됐지만, Meta 공식 문서에 강제 계정선택 파라미터가 없어 실제 운영 consent의 계정 전환은
+미검증으로 남았다. 사용자가 현재 다시 관찰했으므로 기존 자동 PASS로 닫지 않고 NG로 재개한다.
+
+**다음 종료증거:** 고객 세션에서 연결 버튼 클릭 전후 URL·렌더 주체를 직접 관찰하고,
+①OSMU API가 다른 tenant `channel_accounts`를 반환했는지 ②Meta/Threads authorize 쿠키가 기존
+계정을 표시했는지 분리한다. 전자면 P0 데이터 유출로 즉시 차단·수정하고, 후자면 계정 전환 UX와
+Threads 앱 Live/테스터 제한을 실제 콘솔·브라우저에서 확인한다. 수정·QA·배포 전까지 미완료다.
+
 ## 2026-07-31 위키 GitHub 레포 주소 붙여넣기
 
 **상태 전이:** ❌ NG(`owner/name`만 허용해 브라우저/clone URL 거부) → 🔧 로컬 build
@@ -66,6 +111,13 @@
   실제 Supabase auth client의 route-change event timing, 다중 탭/BroadcastChannel 경로.
 - handoff 기준은 사용자 위임 프롬프트와 부모 컨트롤러 pane `openclaw-auto:0.1`.
   build gate는 approved, qa/ship은 잠금 유지다.
+- **2026-08-01 Codex 독립 2차 리뷰:** 사용자 지정 `openclaw-auto:0.1`을 primary로 인수해
+  `18010894`·`3b64d198` diff와 현재 HEAD의 AuthGate를 직독했다. cleanup 이후의 늦은
+  `getSession()` 결과, stale auth callback, listener 등록 직후 cleanup 세 경계가 모두
+  cancellation으로 폐기되며, 활성 customer run의 JWT 승격과 정상 `SIGNED_OUT` 제거 계약은
+  유지됨을 확인했다. 보안상 Critical/Major 추가 발견은 0건이다. 지정 회귀는 현재 HEAD에서
+  **15 files / 164 passed / 7 skipped**, `npx tsc --noEmit`, `git diff --check` PASS다.
+  실제 운영 Chrome·Supabase event timing·다중 탭은 여전히 미검증이므로 qa/ship 잠금은 유지한다.
 
 ## 2026-07-30 배치 D — 채널 한도·내레이션 표기·사용량 DB 원장
 
@@ -803,6 +855,25 @@ LinkedIn, Naver Blog, Pinterest, Tumblr, TikTok, Slack, Line은 각 OAuth creden
 
 **SNS-007 운영 브라우저 QA와 핫픽스(2026-07-17):** 최초 운영 배포 run `29573237891` 후 고객용 단기 `osmu_` 토큰으로 Chrome을 열었을 때 AccountManager가 403 `이 API는 운영자 전용입니다`를 표시했다. 원인은 `proxy.ts`의 tenant-aware allowlist에 신규 account API 3경로가 누락된 것이며, commit `15b09a2c`에서 경로를 추가하고 osmu/JWT 회귀 테스트를 고정했다. GitHub Actions run `29598660707`은 typecheck/build/PostgreSQL schema→seed→RLS/full test를 모두 통과했다. 재배포 run `29600031321` 성공 후 분리된 headless Chrome에서 Instagram과 Threads Settings를 다시 열어 각각 계정 1개, 외부 계정 ID, `기본`, `정상`, `삭제` 컨트롤 렌더를 assertion과 스크린샷으로 직접 관찰했다. 증거는 `docs/evidence/sns007-live-{instagram,threads}-account-manager-20260717.png`. 단기 QA 토큰은 폐기 후 같은 account API가 HTTP 401을 반환하는 것을 확인했고 원문 파일도 로컬/서버에서 삭제했다. 이 증거는 **운영 고객 인증 경로와 단일계정 관리 UI**의 통과 증거다. 실제 provider 두 번째 계정 OAuth, 두 계정 간 기본 전환, 계정별 공개 발행 permalink는 여전히 미검증이므로 SNS-007을 종료하지 않는다.
 
+### 2026-08-02 DESIGN-001 — 프로토타입 범위·용어·로딩 이해 실패
+
+- **❌ NG 사용자 관찰:** 첫 디자인 프로토타입에서 `브랜드 사실`, `발행 근거`, `permalink 확인`의 뜻을
+  즉시 이해하지 못했고, loading shimmer가 과도하며, 전체 OSMU가 아니라 Threads 생성·발행·예약만
+  만드는 제품처럼 보였다. 프로토타입이 최종 전체 플로우인지 후속 범위가 있는지도 전달되지 않았다.
+- **근본 원인:** PRD의 내부 추적성 용어를 고객 언어로 번역하지 않고 UI label로 노출했다. pilot slice를
+  표현하면서 전체 OSMU shell·다채널 확장·예약/queue의 위치를 숨겼고, skeleton을 데이터 로딩 범위보다
+  넓게 적용해 시각적 소음을 만들었다. 즉 기능 누락 이전에 정보구조·범위 커뮤니케이션 결함이다.
+- **현재 상태:** design `in-progress`, 사용자 컨펌 전 수정 금지. prototype v1은 승인본이 아니다.
+- **수정 후보 종료증거:** ① 고객용 용어로 교체 또는 즉시 설명 ② skeleton 최소화 ③ 전체 OSMU 지도와
+  이번 Threads working slice를 동시에 표시 ④ 생성·즉시발행·예약·queue·다채널 후속 범위가 한 화면에서
+  구분됨 ⑤ 수정본을 사용자에게 다시 보여 이해 여부를 재확인. 구현·운영 증거가 아니라 디자인 게이트 증거다.
+- **🔧 design cycle 2 관찰:** v2 hub에서 구 내부용어 3종 0건, 전체 제품 지도·Queue/예약·Threads 완전
+  지원·Instagram 준비 범위를 첫 화면에서 관찰했다. 원문→플랫폼별 초안→검수→즉시/예약→캘린더
+  클릭 체인이 끝까지 이동했고 console error 0. 전체 10화면×9상태=90 조합, h1/주요행동 누락 0,
+  mobile overflow 0, 동시 loading region 최대 1개, Design Score B+를 기록했다.
+- **상태 경계:** 수정본은 브라우저에 표시했으나 사용자가 실제로 “전체 OSMU와 현재 Threads 지원 범위를
+  구분해 설명할 수 있는지” 재확인 전이므로 ✅ 종료하지 않는다. 사용자 확인 뒤 design 승인 후보로 전환한다.
+
 **SNS-008 build candidate(2026-07-18):** 운영 고객 토큰 Chrome에서 X readiness 차단 안내는 정상 렌더됐지만 Facebook OAuth 클릭 후 popup target이 생성되지 않았다. E2E 스크립트의 click 판정 오류를 먼저 고쳐 재시도해도 동일하게 재현됐고, 공통 버튼이 `await fetch` 뒤 `window.open`하는 코드와 MDN/WHATWG transient activation 규칙이 원인으로 일치했다. 클릭 핸들러에서 `about:blank` popup을 동기 예약하고 auth URL 응답 후 이동하도록 수정했다. popup blocked 시 fetch 미호출, API/JSON/network/authUrl 없음 시 popup close, valid postMessage 시 interval 정리, wrong origin/provider 무시, popup close 감지, unmount cleanup, pending fetch 중 unmount, React StrictMode setup-cleanup-setup을 컴포넌트 테스트 10건으로 고정했다. 메인세션 직접 재현은 focused 10/10, 전체 74 files/644 PASS·9 DB-env skip, tsc clean, production build 160 pages PASS.
 
 **SNS-008 운영 Chrome QA(2026-07-18):** commit `41f33340` 기준 OSMU 단독 배포 run `29639946525`가 DB/RLS, 이미지 빌드, 기동, 상태, OSMU 스모크를 포함해 성공했다. 분리된 headless Chrome과 단기 고객 토큰으로 X 버튼 비활성 및 `X_CLIENT_ID/X_CLIENT_SECRET` 사유, Facebook `Development/Live` 경고를 관찰했다. 사용자 제스처 클릭 후 Facebook 새 page target이 `www.facebook.com`, YouTube 새 page target이 `accounts.google.com`으로 이동한 것을 CDP target URL로 assertion했다. 영상 화면의 YouTube 연결 UI와 TikTok/Reels `미구현` 상태도 함께 확인했다. 화면 증거는 `docs/evidence/sns008-live-oauth-popup-e2e-20260718.png`. 단기 토큰은 즉시 revoke했고 같은 토큰의 readiness API가 HTTP 401임을 확인한 뒤 원문과 임시 파일을 삭제했다. 이 증거는 **팝업 생성과 provider 진입까지만** 종료한다. 실제 provider 로그인·동의·callback postMessage·DB 저장·2계정 전환·공개 발행은 미검증이다.
@@ -1282,3 +1353,961 @@ SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open �
 - **미검증/게이트:** 운영 Threads/Instagram consent 화면의 실제 계정 전환, 운영
   operator→customer 브라우저 전환, 실제 서버 로그 수집은 미검증이다. push·배포하지 않았으며
   pipeline qa/ship 잠금을 유지한다.
+
+### 2026-08-03 REQUEST-OSMU-001 — 회장 요청 통합 원장
+
+이 절은 2026-08-02~03 대화에서 나온 OSMU 요청의 단일 체크리스트다. PRD·디자인·구현·QA가 이 목록을
+잃지 않도록 각 항목의 종료증거까지 고정한다.
+
+| 요청 | 현재 상태 | 종료증거 |
+|---|---|---|
+| `j.the.great.investor`로 가입했는데 Threads에 `code_zero_to_one`이 보이는 계정 혼선 제거 | ❌ 미해소 | 로그인 사용자·workspace·연결 Threads handle이 동일 tenant임을 시크릿 브라우저에서 관찰 |
+| 다른 계정 로그인 시 `zero_to_one_ai` 계속하기만 나오고 계정 전환이 없는 문제 해결 | ❌ 미해소 | 기존 Meta 세션이 있는 브라우저에서 목표 계정으로 전환→callback→저장 handle 변경 관찰 |
+| Threads OAuth 후 Channel Info가 `Not connected`인 문제 해결 | ❌ 현재 운영 재현 | callback 성공 뒤 Channel Info와 Settings 모두 같은 연결 계정·상태 표시 |
+| Instagram OAuth 후 연결 버튼이 남고 `재연결 필요`인 문제 해결 | ❌ 현재 운영 재현 | OAuth 완료 뒤 CTA가 관리/재연결 조건부로 바뀌고 동일 handle 표시 |
+| 상태 문구를 한국어 한 체계로 통일 | ❌ 미해소 | 연결 안 됨/연결 확인 중/연결됨/재연결 필요가 모든 화면에서 동일 |
+| Instagram Graph API 수동 토큰 창의 중복·빈값 UX 제거 | ❌ 미해소 | OAuth 사용자에게 수동 토큰 폼을 숨기고 고급 복구 경로로만 분리 |
+| 전역 Settings 채널에서 연결 계정과 상태 표시 | ❌ 미해소 | 채널 화면과 Settings의 handle·상태·확인시각 일치 |
+| Threads와 Instagram의 기능·탭 구조를 일관되게 구성 | ❌ 미해소 | 공통 기능은 같은 위치·이름, 플랫폼 전용 기능만 차이와 이유 표시 |
+| OSMU 502 원인과 고객 복구 흐름 해결 | 🟡 현재 502 미재현 | 실패 단계·추적 ID·기존 결과 조회·중복 0·안전 재시도 E2E |
+| 플랫폼별 초안 생성·검수·즉시발행·예약 진입 제공 | ❌ UI 미해소 | Threads와 지원 가능한 Instagram 경로를 실제 기존 Queue/Studio 위에서 E2E |
+| 단일 Threads 도구가 아니라 전체 OSMU 범위와 플랫폼별 지원 상태 표시 | ❌ v2 디자인 보류 | 기존 기능을 보존한 화면에서 전체 범위와 현재 가능/준비 중 경계가 즉시 이해됨 |
+| `브랜드 사실`·`발행 근거`·`permalink` 같은 내부용어 제거 | 🟡 v2 디자인만 반영 | 실제 제품에서 `내 브랜드 정보`·`발행 전 확인/기록`·`게시물 링크`로 관찰 |
+| 과도한 loading shimmer 제거 | 🟡 v2 디자인만 반영 | 실제 제품에서 필요한 영역 한 곳만 로딩되고 나머지 조작 가능 |
+| 기존 서버 구현을 전수 검토하고 전면 재작성 없이 증분 개선 | 🔎 감사 진행 | route/component/API별 유지·수정·신규 대응표와 제거 0 또는 사유 |
+| 먼저 현재 기능을 돌아가게 한 뒤 UI 업데이트 | 🔎 현재 우선순위 | 운영 복구 E2E 통과 후 as-built 기반 디자인 재개 |
+| PRD를 기업 전달 수준으로 작성하고 목차·벤치마크 포함, 웹으로 표시 | ✅ PRD v2.4 | 웹 렌더·TOC 19·Mermaid·quality verifier PASS |
+| 산출물을 100B 대시보드에 표시 | ✅ plan/design 링크 반영 | collector 219/219, private build; 이후 상태 변화도 동기화 |
+
+**현재 실행 순서:** 기존 구현·운영 상태 감사 → build gate를 정식 재개 → 최소 복구 → 독립 QA·실브라우저
+관찰 → 위 표의 미해소 항목을 보존한 증분 디자인 → design 승인 → 기술설계/추가 개발.
+
+### 2026-08-03 DESIGN-002 — 기존 요청의 프로토타입 추적 누락
+
+- **❌ NG:** v2 프로토타입 제작 전에 이미 제보된 OAuth 성공 후 상태 불일치, Instagram OAuth CTA 잔존,
+  빈 Graph API token form, Settings 연결 상태 누락, Threads/Instagram 탭·기능 불일치를 PRD는 요구했지만
+  프로토타입은 실제 화면과 상태 전환으로 커버하지 않았다.
+- **아직 미반영인 후발 요청:** `기존 구현 전수 검토·보존`과 `현재 기능을 먼저 정상화한 뒤 UI 업데이트`는
+  v2 출력 뒤 명시됐으므로 v2의 누락이 아니라 다음 리테이크의 신규 필수조건이다.
+- **근본 원인:** 컨트롤러가 디자인 재위임 목표를 사용자의 직전 피드백인 용어·loading·전체 제품 지도에만
+  축소했고, PRD의 모든 사용자 요구를 prototype screen/state와 1:1 대조하는 RTM을 종료조건으로 강제하지
+  않았다. product-designer도 기존 dashboard as-built를 inventory로 읽었지만 보존·변경 대응표 없이 새 IA를
+  만들었다. verifier는 skill 사용·벤치마크·화면 품질을 통과시켰지만 요구 coverage 누락을 검사하지 않았다.
+- **영향:** v2는 Threads wrong-account·초안·발행·예약·502의 개념만 보여주고, 실제 고객이 실패한 Instagram
+  연결·Settings 상태·수동 token 중복과 기존 기능 보존을 판단할 수 없다. Instagram IMAGE/Reels 운영 증거가
+  있는데도 `자동 발행 준비 중`으로 축소 표현했다.
+- **수정 종료증거:** REQUEST-OSMU-001 각 행이 새 prototype의 route/screen/state 또는 `UI 대상 아님` 근거와
+  1:1 매핑되고 누락 0건, 기존 route/component/API의 유지·수정·신규 표가 존재하며, 브라우저에서 핵심 실패
+  상태와 회복 경로를 직접 클릭 관찰한다. 그 전 design 승인 금지.
+
+### 2026-08-03 DESIGN-004 — 증분 설계·OSMU 정체성·플랫폼 공통 탭 실패
+
+- **❌ NG 사용자 관찰:** v3가 기존 개발 화면에 기능을 추가하는 인상이 아니라 디자인을 전면 교체한 것처럼
+  보이고, OSMU 제품 정체성이 즉시 보이지 않는다. Threads와 Instagram 상단 탭도 각각 다른 구조를 유지해
+  `Queue / Editor / Analytics / Growth / Popular / Settings` 공통 작업 모델을 만들지 못했다.
+- **❌ NG 목표상태 누락:** 회장이 `안 된다`고 제보한 OAuth 후 상태, Settings 동기화, Graph API 기본 비노출,
+  계정 전환, 플랫폼별 생성·발행·예약은 오류 설명만이 아니라 수정 후 실제 사용 가능한 목표 화면으로 보여야
+  하는데 일부 화면은 현재 장애·복구 설명에 머물렀다.
+- **근본 원인:** `기존 route/tab/capability 삭제 0`을 보존성 합격선으로 잘못 정의했다. 삭제하지 않는 것과
+  공통 고객 경험으로 통일하는 것은 별개인데, product-designer와 컨트롤러가 기존 플랫폼별 탭 차이를 그대로
+  남긴 채 보존 성공으로 판정했다. 또한 as-built 데이터 구조 보존과 visual shell 보존을 분리하지 않아 새 IA와
+  스타일 변경 폭을 제한하지 못했다.
+- **수정 원칙:** 기존 Sidebar·레이아웃·토큰·카드·라우트를 visual baseline으로 유지하고 기능을 additive로
+  추가한다. OSMU 명칭·전체 콘텐츠 운영 목적을 모든 주요 화면 상단에서 식별 가능하게 한다. Threads와
+  Instagram은 같은 순서의 공통 탭 `Queue / Editor / Analytics / Growth / Popular / Settings`를 사용하며,
+  플랫폼 차이는 탭 구조가 아니라 내부 capability와 안내로 표현한다. 회장 제보 항목은 모두 해결된 target
+  state와 오류·복구 state를 함께 제공한다.
+- **종료증거:** 기존 운영 화면과 수정 prototype의 공통 shell 시각 대조, 두 플랫폼 탭 이름·순서 완전 일치,
+  OSMU 식별자 모든 주요 화면 노출, REQUEST-OSMU-001 전 항목 happy-path와 recovery-path 각각 연결,
+  브라우저 직접 클릭·console/mobile QA 후 사용자 재확인. 그 전 design 승인 금지.
+
+### 2026-08-04 DESIGN-005 — 전체 OSMU 플랫폼·설정관리 범위 누락
+
+- **❌ NG 사용자 관찰:** v4가 Threads와 Instagram 중심으로만 구성됐다. OSMU 전체 제품이라면 Facebook,
+  X, Instagram Reels, YouTube Shorts, TikTok도 콘텐츠 생성·플랫폼별 편집·검수·즉시발행·예약·Queue·
+  Calendar·발행기록·분석과 각 플랫폼 연결/계정/권한/설정 관리까지 포함해야 한다.
+- **근본 원인:** 승인 PRD v2.4의 One Thing인 `Threads 외부고객 1명 실제 permalink`를 첫 검증 slice가 아니라
+  전체 제품 정보구조의 범위로 오독했다. 이후 회장이 `전체 OSMU`를 반복 요청했는데도 plan MAJOR scope를
+  재개하지 않고 design 안에서 지도·지원표만 추가해 상류 요구와 하류 화면이 계속 어긋났다.
+- **영향:** Facebook·X·Reels·Shorts·TikTok이 전체 고객 흐름과 공통 탭/Settings에서 빠져 OSMU라는 제품명이
+  약속하는 One Source Multi Use를 충족하지 못한다. v4는 전체 제품 prototype 승인 대상이 아니다.
+- **수정 원칙:** 검증·출시 우선순위는 플랫폼별로 단계화할 수 있으나 전체 OSMU IA와 관리 surface는 모든
+  대상 플랫폼을 포함한다. 각 플랫폼은 공통 `Queue / Editor / Analytics / Growth / Popular / Settings`와
+  공통 발행 lifecycle을 사용하고, TEXT/IMAGE/VIDEO·OAuth/credential/심사 차이는 capability matrix와 탭
+  내부 상태로 표현한다. 미구현을 구현됨으로 꾸미지 않되 목표 happy-path와 현재 readiness를 분리한다.
+- **종료증거:** PRD MAJOR 범위에 Threads, Instagram Feed/Reels, Facebook, X, YouTube Shorts, TikTok의 기능·
+  설정·예외·출시단계·AC/QA가 모두 고정되고, prototype에서 플랫폼 6종의 공통 탭·플랫폼별 Editor/Settings·
+  전체 생성→발행→분석 flow를 클릭 가능하게 관찰한다. 그 전 design 승인 금지.
+
+### 2026-08-04 OSMU v3.1.1 plan PATCH AC → QA TC 등록
+
+> 정본 후보: `docs/openclaw-auto-osmu-prd-v3.1.1-gpt-codex.md` v3.1.1 PATCH와 v3.1.0의 비변경 조항. 아래 TC는 plan 단계 정규 골격이며
+> design/FDD 확정 뒤 endpoint/component 이름을 추가한다. `실계정`은 non-secret 식별 범주만 기록한다.
+>
+> **❌ 2026-08-04 superseded:** PLAN-007로 v3.1.1과 DESIGN v6는 승인 불가다. 아래 TC는 역사 증거이며 신규 design/build gate에는 사용하지 않는다. 후속 정본 후보는 `docs/openclaw-auto-osmu-prd-v4.0.0-gpt-codex.md`와 `OSMU-V4-TC-*`다.
+
+| TC | AC/FR | 검증 목표 | Owner | Due/slice | Environment | Credential/review prerequisite | 실계정 | 종료증거 |
+|---|---|---|---|---|---|---|---|---|
+| OSMU-V3-TC-001 | AC-01/FR-01 | 6 provider·8 surface·12 capability ID 전 산출물 일치 | qa-verifier/SJ | v5 design gate | docs+prototype | 없음 | 불필요 | count 6/8/12, ID diff 0 |
+| OSMU-V3-TC-002 | AC-02/FR-02/21,NFR-09/10 | 실제 shell·provider별 탭·특화 기능 보존, UI 획일화 금지 | qa-verifier/SJ | v6 design re-gate | source+prototype 390/1024 | 없음 | 불필요 | sidebar 26/26, route 24/24, Threads tab 5/5, Instagram tab 3/3, forced identical tab 0, invented top-level navigation 0, route click screenshot |
+| OSMU-V3-TC-003 | AC-03/FR-03 | callback/provider 상태가 4면 account truth와 일치 | qa-verifier/SJ | R0 | prod secret browser | provider client credential | Threads+IG target | Channel/Global/Platform/Editor identity·state·CTA diff 0 |
+| OSMU-V3-TC-004 | AC-04/FR-04 | 기존 Meta 세션에서 목표 계정 전환 | qa-verifier/SJ | R0 | prod existing-session browser | Meta app role/consent | 서로 다른 Meta 계정 2개 | chooser→callback→target identity 영상·screenshot |
+| OSMU-V3-TC-005 | AC-05/FR-04 | same-provider 2계정 default 전환·계정별 발행 | qa-verifier/SJ | R0/R4 | prod secret browser | provider multi-account consent | provider당 target 2개 | account별 external link·identity 일치 |
+| OSMU-V3-TC-006 | AC-06/FR-05 | 기존 Settings summary와 Channel Settings detail의 역할·label을 보존하고 동일 account truth 사용 | qa-verifier/SJ | R0 | prod browser | 연결 account 1개 이상 | Threads+IG target | 같은 handle/state/verified-at/CTA, 기존 Settings tab 9/9, summary/detail 역할 분리 screenshot |
+| OSMU-V3-TC-007 | AC-07/FR-06 | provider readiness 9항목 data trace와 맥락별 reason/action; 54-cell UI 강제 금지 | qa-verifier/SJ | v6/R0 | source+prototype+prod | provider readiness response | provider 6종 또는 disabled seed | readiness field 9/9, customer reason/action coverage, forced 54-cell UI 0, empty invented tab 0 |
+| OSMU-V3-TC-008 | AC-08/FR-07 | 미승인 source dispatch 0 | qa-verifier/SJ | R1 | staging/prod-parity | enabled provider 1개 | Threads target | provider request 0·승인 안내 |
+| OSMU-V3-TC-009 | AC-09/FR-08 | 12 capability variant 생성·개별 수정 보존 | qa-verifier/SJ | R4 | staging seeded | media seed | 불필요 | variant 12/12, cross-overwrite 0 |
+| OSMU-V3-TC-010 | AC-10/FR-09 | invalid media/privacy/disclosure provider 전 차단 | qa-verifier/SJ | R1~R4 | staging contract | official rule fixtures | 불필요 | capability 12/12 invalid request 0 |
+| OSMU-V3-TC-011 | AC-11/FR-10 | final review target/content/privacy/time 표시·승인 gate | qa-verifier/SJ | R1 | prod browser | connected target | 외부 opt-in Threads+IG | 승인 전 request 0, review screenshot |
+| OSMU-V3-TC-012 | AC-12/FR-11 | enabled capability Now 실제 결과 | qa-verifier/SJ | 각 R1~R4 | prod provider | 각 provider credential/review | 실제 target account | external ID+열리는 link+identity capability별 1건 |
+| OSMU-V3-TC-013 | AC-13/FR-12 | schedule/cancel/reschedule/due·Queue/Calendar 일치 | qa-verifier/SJ | R1/R4 | prod scheduler | enabled schedule capability | 실제 target account | 상태 전이+due external link; 취소 publish 0 |
+| OSMU-V3-TC-014 | AC-14/FR-13 | video processing terminal 전 published 0 | qa-verifier/SJ | R3/R4 | prod provider | video credential/review | IG/FB/YT/TT target | accepted→processing→terminal timeline |
+| OSMU-V3-TC-015 | AC-15/FR-14 | timeout·partial·동시 retry idempotency | qa-verifier/SJ | R1 | staging fault+prod parity | provider sandbox/real recovery | Threads/IG target | same key external result ≤1·reconciled link |
+| OSMU-V3-TC-016 | AC-16/FR-15 | partial multi-capability 결과 source group 1개 | qa-verifier/SJ | R4 | staging+prod subset | 2+ enabled provider | 실제 target 2개 이상 | success 재발행 0, 독립 상태와 link |
+| OSMU-V3-TC-017 | AC-17/FR-16 | 6×3 analytics 계약 S/R/U·근거·enable 조건 | qa-verifier/SJ | R4 | docs+prod read | analytics scopes/review | provider별 own account | 18/18, 가짜 0 없음, source/fetched-at |
+| OSMU-V3-TC-018 | AC-18/FR-17 | 만료·장애·quota·review actionable 알림 | qa-verifier/SJ | R0~R4 | staging fault fixtures | 없음/실 provider error | seeded+실계정 혼합 | error class별 user/owner action·retry time |
+| OSMU-V3-TC-019 | AC-19/FR-18 | disconnect/delete/revoke 후 발행 차단·보존범위 | qa-verifier/SJ | R1 | prod test account | revoke 가능한 test account | provider target 1개 | token unusable·publish 0·evidence 보존 표시 |
+| OSMU-V3-TC-020 | AC-20/FR-19 | 2 tenant×2 account 교차 read/write/publish 0 | qa-verifier/SJ | R0 | staging RLS+prod parity | 두 tenant seed | 실계정 불필요, provider call spy | 4×read/write/publish deny·external call 0 |
+| OSMU-V3-TC-021 | AC-21/FR-20 | 미준비 capability enabled 오표시 0 | qa-verifier/SJ | R0~R4 | prod readiness | credential/review missing fixtures | X/FB/YT/TT disabled state | reason·support evidence·enable condition screenshot |
+| OSMU-V3-TC-022 | AC-22/FR-21 | additive migration invariants와 실제 제품 preservation audit | qa-verifier/SJ | build/QA gate | repo+prototype+staging DB | backup/rollback proof | 불필요 | MI-01~09 9/9, sidebar 26/26, route 24/24, Settings 9/9, label remove/rename/move 0, invented nav 0, record loss 0 |
+| OSMU-V3-TC-023 | AC-23/FR-22 | legacy 운영 5 paths 회귀 | qa-verifier/SJ | R1 | prod secret browser | Threads+IG valid consent | 운영 target | Threads TEXT/IMAGE/Schedule+IG Feed/Reels link 5/5 |
+| OSMU-V3-TC-024 | AC-24/FR-23 | REQUEST·사용자 정정·DESIGN-005·DESIGN-006·DESIGN v6→FR→AC→TC→view/state 전수 RTM | qa-verifier/SJ | v6 design re-gate | docs+prototype | 없음 | 불필요 | 상류 4종 orphan 0, DESIGN-006 closure 9/9, v5 승인 근거 사용 0, v3.1.1 path/version 일치 |
+| OSMU-V3-TC-025 | AC-25/FR-24 | external demand qualification·consent·dedupe | qa-verifier/SJ | R1+30d | cohort ledger | opt-in notice | 외부 workspace 10/최대100 prospect | internal 0·duplicate 0·consent 100% |
+| OSMU-V3-TC-026 | AC-26/NFR-01 | connection hard stop R0 evidence 전 유지 | qa-verifier/SJ | R0 | prod feature gate | 없음 | 신규 고객 test | OAuth/publish CTA closed, override 0 |
+| OSMU-V3-TC-027 | AC-27/NFR-02/03 | secret/private payload client·log·공용 analytics 유출 0 | qa-verifier/SJ | R0/QA | staging+prod logs | secret scanner access | synthetic private payload | token/source/handle/permalink raw hit 0 |
+| OSMU-V3-TC-028 | AC-28/NFR-05 | 502가 correlation/reconciliation/action 상태로 복구 | qa-verifier/SJ | R0 | staging fault+prod | upstream fault injection or captured 5xx | target 1개 | 흰 화면 0·correlation ID·duplicate 0 |
+| OSMU-V3-TC-029 | AC-29/FR-12 | video/X-media schedule gap을 enabled로 오표시하지 않음 | qa-verifier/SJ | R0/R4 | prod readiness UI | capability별 current flags | IG/FB/X/YT/TT states | 미구현 5종 disabled; R4 후 capability별 E2E |
+| OSMU-V3-TC-030 | AC-30/FR-16 | Popular 표본 3건 미만 상태 | qa-verifier/SJ | R4 | staging/prod analytics | metric read scope | own posts 0/2/3개 fixtures | 0·2=`표본 부족`, 3=ranking+link |
+
+#### OSMU v3.1 QA gate 요약
+
+- R0 hard stop clear에는 TC-003~007, 020, 021, 026~028이 모두 PASS해야 한다.
+- R1에는 TC-008, 011~015, 019, 023과 외부 고객 target link가 필요하다.
+- R4는 UI 생성이 아니라 TC-001~030 전량 PASS 또는 공식 근거를 가진 capability별 disabled 판정이 종료증거다.
+- 기존 design/prototype v1~v5는 superseded이며 TC-024의 target view는 v3.1.1 PATCH와 정합한 DESIGN v6만 인정한다.
+
+### 2026-08-04 OPS-AGENT-VIS-001 — 서브에이전트 진행상태 비가시화
+
+- **❌ NG 사용자 관찰:** 백그라운드 서브에이전트가 실제 실행 중이어도 회장 화면에는 현재 단계·최근 산출·남은
+  검증이 자동 표시되지 않아 작업이 멈췄는지 판단할 수 없다.
+- **근본 원인:** Codex 협업 상태는 컨트롤러가 `list_agents`와 agent message를 능동 조회해 중계해야 하는
+  pull 구조인데, 컨트롤러가 장기 디자인 작업 중 주기적으로 조회·보고하지 않았다.
+- **영향:** 진행 중인 작업이 정지처럼 보이고, 중복 실행 요청과 불신을 유발하며 멀티에이전트의 병렬화 이점이
+  사용자 경험에 드러나지 않는다.
+- **수정 원칙:** active agent가 있으면 컨트롤러가 60초 이내 간격으로 `running/completed/blocked`, 현재 단계,
+  검증 수치, 다음 산출 이벤트를 짧게 중계한다. 완료 알림을 받으면 같은 턴에 품질 verifier로 전환한다.
+- **종료증거:** 10분 이상 수행되는 위임 1건에서 상태 업데이트 공백 60초 이하, 완료 후 한 응답 주기 안에
+  verifier 착수, 사용자가 별도 상태 질문 없이 현재 단계와 남은 일을 식별할 수 있음.
+
+### 2026-08-04 DESIGN-006 — v5 실구현 IA·기능·디자인시스템 무시
+
+> 후속 상류 결함은 아래 `PLAN-007`에서 별도 추적한다.
+
+### 2026-08-04 PLAN-007 — 기존 OSMU 런타임·기능 연속성 오판
+
+- **❌ NG:** PRD v3.1.1과 DESIGN v6가 실제로 없는 `Studio → 승인 인박스 → 캘린더 → result group → retry`
+  통합 연속성을 기존 구현처럼 전제했다.
+- **실제 코드:** tenant DB-backed Next API와 env/JSON 기반 root extensions가 병존하며 자동 통합되지 않는다.
+  text publish/schedule 8개, Studio direct publish 4개, video publish target 3개, publish extension 15개다.
+- **부분 구현:** queue JSON primary+DB mirror, universal permalink/result recovery 없음, generic result-group retry
+  없음, no-draft concurrent reservation 없음, OAuth same-provider state one-time consumption TODO.
+- **판정:** PRD v3.1.1과 DESIGN v6 승인 불가. 실제 구현/부분 구현/미구현/운영장애를 분리한 MAJOR PRD 필요.
+- **종료증거:** 두 런타임 source-to-result map, capability별 as-is/target/gap, 8 text+3 video+15 extension 대응표,
+  queue/OAuth/idempotency debt 순서, AC/TC 재작성, independent critic MAJOR 0.
+
+### 2026-08-05 DESIGN-008 — 로컬 코드 구현을 운영 기존기능으로 오표시
+
+- **❌ NG 사용자 관찰:** 실제 사용 중인 OSMU에는 초안생성·Publish 흐름이 보이지 않는데 v7은 이를
+  `현재 구현`, `기존 Studio 보존`, `AS-IS`로 표시했다.
+- **코드 증거:** 로컬 `dashboard/src/app/studio/page.tsx`에는 2026-06-23부터 `OSMU 생성`, `AI 자동초안`,
+  `Save`, `Publish`, `예약` UI와 실행 코드가 존재한다. 하지만 이 커밋이 현재 운영 OSMU에 배포·노출됐다는
+  prod browser 증거는 없다.
+- **근본 원인:** repo-implemented와 prod-observed를 하나의 `현재/기존` 상태로 합쳤다. 코드 존재는 배포·접근·
+  실제 동작 증거가 아닌데 디자인 보존 근거로 승격했다.
+- **판정:** DESIGN v7 승인 후보 철회. 로컬 코드 존재 수치는 보존 inventory로만 인정하고 운영 AS-IS로
+  표시하지 않는다.
+- **수정 원칙:** 모든 화면과 기능을 `운영에서 직접 관찰됨 / 로컬 코드에 구현됐으나 운영 미검증 / 목표 계약`
+  3층으로 분리한다. 운영 미검증 기능은 기본 고객 경로·기존 사용경험으로 가정하지 않는다.
+- **종료증거:** repo commit·local route·prod route 세 증거 열을 가진 provenance matrix, 운영 관찰 없는 기능의
+  `기존/현재/AS-IS` 표기 0, target과 local-only 혼동 0, 사용자 운영 화면 기준 브라우저 대조.
+
+### 2026-08-05 DESIGN-009 — 내부 감사 UI를 고객 제품 프로토타입으로 출고
+
+- **❌ NG 사용자 관찰:** v8 첫 화면이 `PROD OBSERVED / REPO / TARGET` provenance와 검증 수치를 보여줘
+  사용자가 무엇을 해야 하는 제품인지 알 수 없다. 기획·디자인의 실제 목표 경험이 아니라 내부 감사 도구다.
+- **근본 원인:** 운영 주장 방지라는 검증 수단을 고객 UI의 정보구조로 승격했다. provenance는 디자인 QA
+  evidence여야지 제품 navigation·hero·task flow가 아니다.
+- **판정:** v8 승인 후보 철회. 내부 검증표로만 보존한다.
+- **수정 원칙:** v9은 PRD v4.1.2 One Thing을 실제 고객 작업으로 보여준다: 원문 작성/가져오기 → Threads·
+  Instagram Feed·X 선택 → 플랫폼별 초안 생성·수정 → 계정·내용 최종검수 → 즉시/예약 → 계정별 결과·
+  permalink·부분실패 복구. 기존 Marketing Hub shell에 additive하되 감사 용어·코드 수치·migration UI는
+  고객 기본 흐름에서 제거한다. readiness·미구현은 자연스러운 비활성 상태와 안내로만 표현한다.
+- **종료증거:** 첫 10초에 제품 목적·첫 행동 식별, happy path 전체 클릭 가능, recovery path, 사용자에게
+  provenance/audit/code count 노출 0, dead-end 0, 1024/390 QA, PRD AC28 RTM.
+
+### 2026-08-05 DESIGN-010 — 8개 초안·개별 Publish 기존 핵심흐름 누락
+
+- **❌ NG 사용자 관찰:** 기존 OSMU의 핵심은 초안생성 한 번으로 플랫폼 8개 초안을 만들고, 각 초안 카드의
+  Publish를 눌러 하나씩 발행하는 흐름인데 v9은 Threads·Instagram·X 3개와 일괄 최종발행으로 축소했다.
+- **코드 증거:** 현재 `SCHEDULABLE_PLATFORMS`와 `/api/publish` 지원 8개는 Threads, X, Facebook, Instagram,
+  Bluesky, Telegram, Discord, Slack이다. 과거 Studio commit `aa368e67`은 ALL 7 preview를 전부 선택하고
+  순차 publish loop를 실행했으며, 이후 direct publish UI가 4개로 축소됐다.
+- **근본 원인:** initial 3 adapter의 안전성 검증 우선순위를 제품 UI의 전체 초안 범위로 오독했고, 일괄 생성과
+  카드별 개별 Publish라는 기존 작업 모델을 최종검수 후 일괄발행으로 바꿨다.
+- **판정:** v9 승인 후보 철회. PRD에 8 draft surface와 card-level Publish 계약을 추가하고 v10에서 복원한다.
+- **종료증거:** 초안생성 1회→8 cards, 카드별 edit/save/publish/status/permalink, 한 카드 Publish가 다른 카드
+  external call을 만들지 않음, 8/8 카드 클릭, 전체/선택 발행은 별도 명시 행동, partial/retry, 1024/390 QA.
+
+#### v4.0.0 MAJOR retake 상태
+
+- **작성됨·승인 전:** `docs/openclaw-auto-osmu-prd-v4.0.0-gpt-codex.md`
+- **정정:** Studio DB drafts, queue JSON Inbox/Calendar, DB schedules, video publish를 별도 as-is 경로로 명시했고 자동 연속성을 현재 구현으로 주장하지 않는다.
+- **범위:** text 8, video 3, root publish extensions 15를 각각 map하고 code exists/partial/unimplemented/operational outage/unverified를 분리한다.
+- **남은 종료조건:** independent critic MAJOR 0, AC↔TC/RTM 검증, 회장 appetite·extension disposition 원칙 결정. DESIGN v6는 rejected evidence로만 유지한다.
+
+### 2026-08-04 OSMU v4.0.0 MAJOR AC → QA TC 등록
+
+> 정본 후보: `docs/openclaw-auto-osmu-prd-v4.0.0-gpt-codex.md` §17. endpoint/component 이름은 FDD 합의 후 추가하되 Given-When-Then과 종료증거를 약화하지 않는다.
+>
+> **❌ superseded:** independent critic의 residual MAJOR 7건으로 v4.0.0 gate 불통과. 후속 정본 후보는 v4.1.0과 `OSMU-V41-TC-*`이며 아래 v4.0 TC는 역사 증거다.
+
+| TC | AC/FR | 검증 목표 | Owner | Slice | 종료증거 |
+|---|---|---|---|---|---|
+| OSMU-V4-TC-001 | AC-01/FR-01 | runtime capability inventory | qa-verifier | R0 | text 8/video 3/extensions 15, 범주 혼합 0 |
+| OSMU-V4-TC-002 | AC-02/FR-02,NFR-08 | 기존 shell 보존 | qa-verifier/SJ | R0/design | sidebar/route/settings/provider-tab orphan·무승인 rename·invented nav 0 |
+| OSMU-V4-TC-003 | AC-03/FR-19,NFR-04 | readiness truth | qa-verifier | R0 | 미검증·장애 target disabled+reason/action/owner/evidence time |
+| OSMU-V4-TC-004 | AC-04/FR-01,18 | extension 15 audit | tech-architect/qa | R0/R5 | 15/15 overlap/runtime/credential/result/disposition |
+| OSMU-V4-TC-005 | AC-05/FR-08 | OAuth state one-time consumption | qa-verifier | R1 | 동일 state 2회 중 첫 회만 token/write, 둘째 external call 0 |
+| OSMU-V4-TC-006 | AC-06/FR-09 | four-surface account truth | qa-verifier/SJ | R1 | identity/scope/state/verified-at/CTA diff 0 |
+| OSMU-V4-TC-007 | AC-07/FR-09,NFR-01 | two-account explicit selection | qa-verifier/SJ | R1 | 선택 target 저장·review·발행 일치, cross-tenant 0 |
+| OSMU-V4-TC-008 | AC-08/FR-03 | stable source identity | qa-verifier | R2 | Studio/queue/schedule/video source에 tenant-scoped identity+provenance |
+| OSMU-V4-TC-009 | AC-09/FR-04 | Studio↔queue explicit bridge | qa-verifier | R2 | 동일 source 참조, 복제 orphan 0 |
+| OSMU-V4-TC-010 | AC-10/FR-05 | dual-read parity | qa-verifier | R2 | Studio/Inbox/Calendar source·approval·schedule·result parity 100% |
+| OSMU-V4-TC-011 | AC-11/FR-06,23,NFR-06 | JSON/DB drift recovery | qa-verifier | R2 | drift 검출·복구, record loss 0, JSON rollback rehearsal |
+| OSMU-V4-TC-012 | AC-12/FR-07 | target variant independence | qa-verifier | R2/R3 | 한 target 수정/승인의 cross-overwrite 0 |
+| OSMU-V4-TC-013 | AC-13/FR-10,11,NFR-02 | concurrent idempotency | qa-verifier | R3 | no-draft 포함 same intent 20회 external result ≤1 |
+| OSMU-V4-TC-014 | AC-14/FR-12,NFR-03 | persistence-only repair | qa-verifier | R3 | provider success/DB failure 뒤 republish 0·result 저장 |
+| OSMU-V4-TC-015 | AC-15/FR-13 | text 8 recovery | qa-verifier | R3 | enabled adapter 8개 provider ID+permalink 또는 terminal reason |
+| OSMU-V4-TC-016 | AC-16/FR-14 | source result group | qa-verifier | R3 | mixed target의 독립 status/provider ID/link/time 한 group |
+| OSMU-V4-TC-017 | AC-17/FR-15 | partial retry | qa-verifier | R3 | failed target만 호출, success duplicate 0 |
+| OSMU-V4-TC-018 | AC-18/FR-21,NFR-04 | fake permalink 금지 | qa-verifier | R3 | provider home URL을 post result로 표시 0 |
+| OSMU-V4-TC-019 | AC-19/FR-16 | video terminal truth | qa-verifier | R4 | terminal 전 processing, terminal 뒤만 published+실 link |
+| OSMU-V4-TC-020 | AC-20/FR-17 | YouTube result parity | qa-verifier | R4 | provider ID/link/status persistence+recovery, duplicate 0 |
+| OSMU-V4-TC-021 | AC-21/FR-16,17 | video 3 readiness | qa-verifier/SJ | R4 | 3 target 각각 E2E proof 또는 disabled reason/action, false-success 0 |
+| OSMU-V4-TC-022 | AC-22/FR-18 | extension disposition | qa-verifier/SJ | R5 | 15/15 integrate/repair/retire+owner/proof, 미검증 노출 0 |
+| OSMU-V4-TC-023 | AC-23/FR-20,22,NFR-07 | revoke·incident trace | qa-verifier | R1~R5 | revoke 뒤 external call 0, source→provider owner/action 추적 |
+| OSMU-V4-TC-024 | AC-24/FR-24,NFR-01,05 | tenant/privacy isolation | qa-verifier | R1~R5 | 2 tenant×2 account cross access/call 0, raw private/secret leak 0 |
+| OSMU-V4-TC-025 | AC-25/R6,BM | external cohort | SJ | R6+30d | internal/duplicate 제외 activation·repeat·paid-intent 산출 |
+| OSMU-V4-TC-026 | AC-26/전체 | RTM·supersession | qa-verifier | plan/design gate | orphan 0, v3.1.1/DESIGN v6 target 근거 0 |
+
+#### OSMU v4 QA gate 요약
+
+- R0: TC-001~004 전량 PASS. count·지원상태·기존 shell의 truth를 먼저 고정한다.
+- R1: TC-005~007, 023~024 PASS 전 신규 외부 OAuth/dispatch를 열지 않는다.
+- R2: TC-008~012가 7일 연속 parity 100% 전 canonical read switch와 JSON fallback 제거를 금지한다.
+- R3/R4: enabled target마다 concurrency·timeout·persistence failure·실 permalink 증거가 있어야 한다.
+- R5: extension 15개를 모두 활성화하는 gate가 아니라 15/15에 명시적 integrate/repair/retire 판정을 내리는 gate다.
+- v4 plan approval은 TC-026과 independent critic MAJOR 0 이후이며, DESIGN v6는 재사용하지 않는다.
+
+- **❌ NG 사용자 관찰:** v5 prototype에 실제품에 없는 `OSMU PROVIDERS` 그룹이 생겼고, 기존 왼쪽
+  사이드바의 다수 기능과 분류가 사라졌다. 기존 제품에 추가하는 설계가 아니라 별도 제품처럼 재구성됐다.
+- **코드 대조 증거:** 실제 `dashboard/src/components/layout/Sidebar.tsx`의 customer shell은 `Marketing Hub`,
+  `성과`, `OSMU Studio`, `승인 인박스`, `발행 캘린더`, 발행 채널 그룹, `Video`, `Data & Analytics`,
+  `Keyword Research`, `Custom Integration`, `Assets & Tools`, `System/Settings`를 노출한다. v5 prototype은
+  이를 `Studio / OSMU PROVIDERS / Global Settings / Calendar`로 축약·변조했다.
+- **기능 대조 증거:** 실제 Instagram은 `Queue / Editor / Settings` 3탭이다. v5는 구현 여부와 기존 기능
+  위치를 구분하지 않고 전 provider에 `Queue / Editor / Analytics / Growth / Popular / Settings`를 생성했다.
+- **근본 원인:** `6 provider×6 tabs`와 클릭 수를 보존성 대리지표로 사용하고, 실제 route/sidebar/component
+  inventory 대 prototype diff를 만들지 않았다. 존재하지 않는 미래 IA를 target contract라는 이름으로 기존
+  shell에 덮어쓴 뒤 Design Score A로 자기검증했다.
+- **판정:** v5 design 승인 후보 철회. verifier PASS는 프로세스 근거만 확인했을 뿐 제품 정합성을 보증하지
+  못했으므로 `additive`, `기존 구현 보존`, `다음 stage 가능` 주장은 무효다.
+- **수정 원칙:** 실제 Sidebar·route·page·component·token을 먼저 전수 inventory하고 삭제/리네임/이동 0을
+  기본값으로 삼는다. 새 OSMU 기능은 기존 `OSMU Studio`, `승인 인박스`, `발행 캘린더`, 채널 페이지,
+  Global Settings 안에 증분 배치한다. 새 분류나 탭은 실제 기존 기능과 명확한 추가 요구가 모두 있을 때만 둔다.
+- **상류 plan PATCH 계약:** `docs/openclaw-auto-osmu-prd-v3.1.1-gpt-codex.md`는 capability/data 6/8/12와
+  readiness 9항목을 유지하되 공통 6탭·6×9 Settings UI 강제를 폐기했다. 공통 workflow는 기존 Studio,
+  Inbox, Calendar, Settings에만 additive 배치하고 provider page는 실제 탭·특화 기능을 보존한다.
+- **종료증거:** 실제 구현→새 prototype 1:1 보존 매트릭스에서 sidebar 26/26, route 24/24, Settings tab
+  9/9, provider 실제 탭·기능 orphan 0, forced identical provider tab 0, invented top-level navigation 0,
+  디자인 토큰·shell diff 설명 100%, 사용자 요청 추가분만 additive 표시, 390/1024 브라우저 대조.
+
+### 2026-08-04 OSMU v4.1.0 MINOR AC → QA TC 등록
+
+> 정본 후보: `docs/openclaw-auto-osmu-prd-v4.1.0-gpt-codex.md` §17. v4.0 critic residual MAJOR 7건을 행동·경계·실패 action까지 강화했다. DESIGN v6는 rejected evidence다.
+>
+> **❌ superseded:** qualified prospect 사전판정/locked contact ledger와 모집실패 branch가 없어 v4.1.0 critic 불통과. 후속 정본 후보는 v4.1.1과 `OSMU-V411-TC-*`다.
+
+| TC | AC/FR | 검증 목표 | Slice | 종료증거 |
+|---|---|---|---|---|
+| OSMU-V41-TC-001 | AC-01/FR-01 | capability inventory | R0 | text8/video3/extensions15, 범주 혼합 0 |
+| OSMU-V41-TC-002 | AC-02/FR-02,NFR-08 | shell preservation | R0/design | sidebar/route/settings/tab orphan·invented nav 0 |
+| OSMU-V41-TC-003 | AC-03/FR-19,NFR-04 | readiness truth | R0 | disabled reason/action/owner/evidence time |
+| OSMU-V41-TC-004 | AC-04/FR-01,18 | extension 15 full contract | R0/F3 | 15/15 loader/credential/tenant/media/result/permalink/queue/disposition, queue 3개만 |
+| OSMU-V41-TC-005 | AC-05/FR-08 | OAuth concurrent replay | R1 | same state+cookie 20 concurrent: nonce consume/token endpoint/account write exactly1, 19 pre-external reject |
+| OSMU-V41-TC-006 | AC-06/FR-09 | account truth | R1 | four-surface identity/scope/state/time/CTA diff 0 |
+| OSMU-V41-TC-007 | AC-07/FR-09,NFR-01 | account selection/isolation | R1 | two-account target 일치, cross-tenant call 0 |
+| OSMU-V41-TC-008 | AC-08/FR-03 | stable source identity | R2 | 네 경로 tenant ID+provenance |
+| OSMU-V41-TC-009 | AC-09/FR-04 | explicit Studio↔queue bridge | R2 | same source, orphan 0 |
+| OSMU-V41-TC-010 | AC-10/FR-05 | migration authority sequence | R2 | M0→M8 순서, 단계별 writer/read authority diff 0, premature entry 0 |
+| OSMU-V41-TC-011 | AC-11/FR-06,23,NFR-06 | reverse replay/rollback | R2 | 각 단계 fault+M5 이후 신규100, JSON rollback 100/100, loss/duplicate/drift 0 |
+| OSMU-V41-TC-012 | AC-12/FR-07 | target variant independence | R2/R3 | cross-overwrite 0 |
+| OSMU-V41-TC-013 | AC-13/FR-10,11,NFR-02 | dispatch concurrency | R3 | no-draft same intent 20 concurrent external result ≤1 |
+| OSMU-V41-TC-014 | AC-14/FR-12,NFR-03 | persistence-only repair | R3 | provider success/DB failure 뒤 republish 0 |
+| OSMU-V41-TC-015 | AC-15/FR-13 | provider recovery | R3/F1 | enabled adapter ID+permalink 또는 terminal reason |
+| OSMU-V41-TC-016 | AC-16/FR-14 | result group | R3 | mixed target independent state/ID/link/time |
+| OSMU-V41-TC-017 | AC-17/FR-15 | partial retry | R3 | failed만 호출, success duplicate 0 |
+| OSMU-V41-TC-018 | AC-18/FR-21,NFR-04 | fake link 금지 | R3 | provider home URL result 표시 0 |
+| OSMU-V41-TC-019 | AC-19/FR-16 | video terminal truth | F2 | terminal 전 processing, 뒤만 published+link |
+| OSMU-V41-TC-020 | AC-20/FR-17 | YouTube result parity | F2 | ID/link/status persistence+recovery, duplicate 0 |
+| OSMU-V41-TC-021 | AC-21/FR-16,17 | video 3 readiness | F2 | target별 E2E 또는 disabled reason/action |
+| OSMU-V41-TC-022 | AC-22/FR-18 | extension disposition/repair | F3 | 15/15 decision, 승인된 1개만 repair, 미검증 노출 0 |
+| OSMU-V41-TC-023 | AC-23/FR-20,22,NFR-07 | revoke/incident trace | R1~F3 | revoke call 0, evidence·owner·action trace |
+| OSMU-V41-TC-024 | AC-24/FR-24,NFR-01,05 | tenant/privacy isolation | R1~F3 | 2tenant×2account cross 0, raw leak 0 |
+| OSMU-V41-TC-025 | AC-25/F4,BM | cohort metrics+stop action | F4 | exact activation/repeat/paid formulas, 미달 시 F1~F3/paid flags stopped |
+| OSMU-V41-TC-026 | AC-26/전체 | RTM/supersession | plan | orphan 0, v3.1.1/DESIGN v6 target 근거 0 |
+| OSMU-V41-TC-027 | AC-27/FR-25,NFR-09 | data rights/consent/delete | F4 | 승인 전 cohort0; consent version; 30d/180d/7d; access audit; 철회 dispatch0 |
+| OSMU-V41-TC-028 | AC-28/FR-26 | initial bet boundary/X readiness | R0~R3 | Threads/IG/X만, X credential/cost/link gate, 28h cap, F1~F4 auto-entry0 |
+
+#### v4.1 gate
+
+- R1은 TC-005의 token endpoint·account write exactly1을 직접 관찰하기 전 통과 불가다.
+- R2는 TC-010~011의 M0~M8 authority, reverse replay, cutover 후 신규100 JSON rollback loss0 전 통과 불가다.
+- Initial safety bet은 TC-028이 정한 Threads·Instagram Feed·X만이며 F1~F4는 자동 진입하지 않는다.
+- F4는 §14.5 추천 데이터 권리를 회장이 승인하기 전 모집·수집·결제 0이다.
+- plan approval은 TC 28/28 정합과 independent critic MAJOR 0 이후다.
+
+### 2026-08-05 OSMU v4.1.1 PATCH AC → QA TC 등록
+
+> 정본 후보: `docs/openclaw-auto-osmu-prd-v4.1.1-gpt-codex.md` §17. v4.1.0의 unchanged behavior를 보존하고 TC-005/025/027/028의 critic residual을 강화했다.
+>
+> **❌ superseded:** F4 30일 timer가 first qualified lock에서 시작돼 cohort 시작 권한과 분리되지 않았고, active work 1,680분 circuit breaker·delivery outcome 분모가 없었다. 후속 정본 후보는 v4.1.2와 `OSMU-V412-TC-*`다.
+
+| TC | AC/FR | 검증 목표 | Slice | 종료증거 |
+|---|---|---|---|---|
+| OSMU-V411-TC-001 | AC-01/FR-01 | capability inventory | R0 | text8/video3/extensions15, 범주 혼합 0 |
+| OSMU-V411-TC-002 | AC-02/FR-02,NFR-08 | shell preservation | R0/design | sidebar/route/settings/tab orphan·invented nav 0 |
+| OSMU-V411-TC-003 | AC-03/FR-19,NFR-04 | readiness truth | R0 | disabled reason/action/owner/evidence time |
+| OSMU-V411-TC-004 | AC-04/FR-01,18 | extension 15 full contract | R0/F3 | 15/15 loader/credential/tenant/media/result/permalink/queue/disposition, queue 3개만 |
+| OSMU-V411-TC-005 | AC-05/FR-08 | OAuth state+cookie concurrent replay | R1 | same state+cookie 20 concurrent: nonce consume/token endpoint/account write exactly1, 19 pre-external reject |
+| OSMU-V411-TC-006 | AC-06/FR-09 | account truth | R1 | four-surface identity/scope/state/time/CTA diff 0 |
+| OSMU-V411-TC-007 | AC-07/FR-09,NFR-01 | account selection/isolation | R1 | two-account target 일치, cross-tenant call 0 |
+| OSMU-V411-TC-008 | AC-08/FR-03 | stable source identity | R2 | 네 경로 tenant ID+provenance |
+| OSMU-V411-TC-009 | AC-09/FR-04 | explicit Studio↔queue bridge | R2 | same source, orphan 0 |
+| OSMU-V411-TC-010 | AC-10/FR-05 | migration authority sequence | R2 | M0→M8 순서, 단계별 writer/read authority diff 0, premature entry 0 |
+| OSMU-V411-TC-011 | AC-11/FR-06,23,NFR-06 | reverse replay/rollback | R2 | 각 단계 fault+M5 이후 신규100, JSON rollback 100/100, loss/duplicate/drift 0 |
+| OSMU-V411-TC-012 | AC-12/FR-07 | target variant independence | R2/R3 | cross-overwrite 0 |
+| OSMU-V411-TC-013 | AC-13/FR-10,11,NFR-02 | dispatch concurrency | R3 | no-draft same intent 20 concurrent external result ≤1 |
+| OSMU-V411-TC-014 | AC-14/FR-12,NFR-03 | persistence-only repair | R3 | provider success/DB failure 뒤 republish 0 |
+| OSMU-V411-TC-015 | AC-15/FR-13 | provider recovery | R3/F1 | enabled adapter ID+permalink 또는 terminal reason |
+| OSMU-V411-TC-016 | AC-16/FR-14 | result group | R3 | mixed target independent state/ID/link/time |
+| OSMU-V411-TC-017 | AC-17/FR-15 | partial retry | R3 | failed만 호출, success duplicate 0 |
+| OSMU-V411-TC-018 | AC-18/FR-21,NFR-04 | fake link 금지 | R3 | provider home URL result 표시 0 |
+| OSMU-V411-TC-019 | AC-19/FR-16 | video terminal truth | F2 | terminal 전 processing, 뒤만 published+link |
+| OSMU-V411-TC-020 | AC-20/FR-17 | YouTube result parity | F2 | ID/link/status persistence+recovery, duplicate 0 |
+| OSMU-V411-TC-021 | AC-21/FR-16,17 | video 3 readiness | F2 | target별 E2E 또는 disabled reason/action |
+| OSMU-V411-TC-022 | AC-22/FR-18 | extension disposition/repair | F3 | 15/15 decision, 승인된 1개만 repair, 미검증 노출 0 |
+| OSMU-V411-TC-023 | AC-23/FR-20,22,NFR-07 | revoke/incident trace | R1~F3 | revoke call 0, evidence·owner·action trace |
+| OSMU-V411-TC-024 | AC-24/FR-24,NFR-01,05 | tenant/privacy isolation | R1~F3 | 2tenant×2account cross 0, raw leak 0 |
+| OSMU-V411-TC-025 | AC-25/FR-27,F4,BM,NFR-10 | prospect ledger + cohort branches | F4 | pre-contact 4/4 evidence·ID·timestamp lock/dedupe; A=100소진 또는30일+consented<10이면 F1~F3/paid stopped+신규work/예산0+snapshot; B=10확보 후 activation≥3/repeat≥3/actual-paid≥2 미달 동일 stop |
+| OSMU-V411-TC-026 | AC-26/전체 | RTM/supersession | plan | orphan 0, v3.1.1/DESIGN v6 target 근거 0 |
+| OSMU-V411-TC-027 | AC-27/FR-25,NFR-09 | rights/delete/backup expiry | F4 | 승인전 cohort0; 30d raw/180d evidence/7d active delete; 삭제+30d backup restore/read 불가 또는 disclosed legal hold; access audit·철회 dispatch0 |
+| OSMU-V411-TC-028 | AC-28/FR-26,NFR-10 | initial bet work-time cap | R0~R3 | work-item planned/actual/evidence append; 1,680분 도달 또는 next 포함 초과 시 신규 R0~R3/F1~F4 stopped, 1,681분 시작0; X readiness gate |
+
+#### v4.1.1 PATCH gate
+
+- TC-025 Branch A와 B를 모두 fixture로 실행한다. A는 모집실패를 activation 실패로 바꿔 세지 않고, B는 10개 확보 뒤 성숙한 window만 평가한다.
+- TC-025의 qualified 100명은 접촉 전 4/4 evidence·locked prospect ID/contact timestamp·dedupe PASS row만 센다.
+- TC-027은 active delete만이 아니라 삭제시각+30일 backup restore/read 실패까지 assertion한다.
+- TC-028은 work-item별 누적 ledger와 1,680분 atomic stop을 assertion한다.
+- v4.1.1 plan approval은 V411 TC 28/28 정합, planning 7/7 closure, independent critic MAJOR 0 이후다.
+
+### 2026-08-05 OSMU v4.1.2 final PATCH AC → QA TC 등록
+
+> 정본 후보: `docs/openclaw-auto-osmu-prd-v4.1.2-gpt-codex.md` §17. v4.1.1 behavior를 보존하고 TC-025/028 timer·delivery·active-stop residual을 닫았다.
+>
+> **❌ superseded:** DESIGN-010에서 회장이 확정한 Generate Drafts→8 cards→per-card Publish 계약이 없었다. 후속 정본 후보는 v4.2.0과 `OSMU-V42-TC-*`다.
+
+| TC | AC/FR | 검증 목표 | Slice | 종료증거 |
+|---|---|---|---|---|
+| OSMU-V412-TC-001 | AC-01/FR-01 | capability inventory | R0 | text8/video3/extensions15, 범주 혼합 0 |
+| OSMU-V412-TC-002 | AC-02/FR-02,NFR-08 | shell preservation | R0/design | sidebar/route/settings/tab orphan·invented nav 0 |
+| OSMU-V412-TC-003 | AC-03/FR-19,NFR-04 | readiness truth | R0 | disabled reason/action/owner/evidence time |
+| OSMU-V412-TC-004 | AC-04/FR-01,18 | extension 15 full contract | R0/F3 | 15/15 loader/credential/tenant/media/result/permalink/queue/disposition, queue 3개만 |
+| OSMU-V412-TC-005 | AC-05/FR-08 | OAuth state+cookie concurrent replay | R1 | same state+cookie 20 concurrent: nonce consume/token endpoint/account write exactly1, 19 pre-external reject |
+| OSMU-V412-TC-006 | AC-06/FR-09 | account truth | R1 | four-surface identity/scope/state/time/CTA diff 0 |
+| OSMU-V412-TC-007 | AC-07/FR-09,NFR-01 | account selection/isolation | R1 | two-account target 일치, cross-tenant call 0 |
+| OSMU-V412-TC-008 | AC-08/FR-03 | stable source identity | R2 | 네 경로 tenant ID+provenance |
+| OSMU-V412-TC-009 | AC-09/FR-04 | explicit Studio↔queue bridge | R2 | same source, orphan 0 |
+| OSMU-V412-TC-010 | AC-10/FR-05 | migration authority sequence | R2 | M0→M8 순서, 단계별 writer/read authority diff 0, premature entry 0 |
+| OSMU-V412-TC-011 | AC-11/FR-06,23,NFR-06 | reverse replay/rollback | R2 | 각 단계 fault+M5 이후 신규100, JSON rollback 100/100, loss/duplicate/drift 0 |
+| OSMU-V412-TC-012 | AC-12/FR-07 | target variant independence | R2/R3 | cross-overwrite 0 |
+| OSMU-V412-TC-013 | AC-13/FR-10,11,NFR-02 | dispatch concurrency | R3 | no-draft same intent 20 concurrent external result ≤1 |
+| OSMU-V412-TC-014 | AC-14/FR-12,NFR-03 | persistence-only repair | R3 | provider success/DB failure 뒤 republish 0 |
+| OSMU-V412-TC-015 | AC-15/FR-13 | provider recovery | R3/F1 | enabled adapter ID+permalink 또는 terminal reason |
+| OSMU-V412-TC-016 | AC-16/FR-14 | result group | R3 | mixed target independent state/ID/link/time |
+| OSMU-V412-TC-017 | AC-17/FR-15 | partial retry | R3 | failed만 호출, success duplicate 0 |
+| OSMU-V412-TC-018 | AC-18/FR-21,NFR-04 | fake link 금지 | R3 | provider home URL result 표시 0 |
+| OSMU-V412-TC-019 | AC-19/FR-16 | video terminal truth | F2 | terminal 전 processing, 뒤만 published+link |
+| OSMU-V412-TC-020 | AC-20/FR-17 | YouTube result parity | F2 | ID/link/status persistence+recovery, duplicate 0 |
+| OSMU-V412-TC-021 | AC-21/FR-16,17 | video 3 readiness | F2 | target별 E2E 또는 disabled reason/action |
+| OSMU-V412-TC-022 | AC-22/FR-18 | extension disposition/repair | F3 | 15/15 decision, 승인된 1개만 repair, 미검증 노출 0 |
+| OSMU-V412-TC-023 | AC-23/FR-20,22,NFR-07 | revoke/incident trace | R1~F3 | revoke call 0, evidence·owner·action trace |
+| OSMU-V412-TC-024 | AC-24/FR-24,NFR-01,05 | tenant/privacy isolation | R1~F3 | 2tenant×2account cross 0, raw leak 0 |
+| OSMU-V412-TC-025 | AC-25/FR-27,F4,BM,NFR-10 | explicit F4 start + cohort branches + delivery outcome | F4 | approval 뒤 Start F4→immutable f4_started_at exactly1; A cutoff=delivered100 또는 start+30d 먼저, consented<10 stop; fixture day30 qualified0 consented0에서 F1~F3/paid stopped·new work/budget0·snapshot; first-qualified timer 사용0; failed delivery denominator0/audit 보존; B threshold stop |
+| OSMU-V412-TC-026 | AC-26/전체 | RTM/supersession | plan | orphan 0, v3.1.1/DESIGN v6 target 근거 0 |
+| OSMU-V412-TC-027 | AC-27/FR-25,NFR-09 | rights/delete/backup expiry | F4 | 승인전 cohort0; 30d raw/180d evidence/7d active delete; 삭제+30d backup restore/read 불가 또는 disclosed legal hold; access audit·철회 dispatch0 |
+| OSMU-V412-TC-028 | AC-28/FR-26,NFR-10 | active initial-bet circuit breaker | R0~R3 | running at1679→minute1680: next side effect 전 breaker, atomic commit/rollback, safe checkpoint 5필드, R0~R3/F1~F4 stopped, minute1681 side effect0 |
+
+#### v4.1.2 final gate
+
+- TC-025 fixture 1: rights 승인만 있고 Start F4 없음 → contact/collect/pay 0, timer 없음.
+- TC-025 fixture 2: `f4_started_at+30d`, delivered qualified=0, consented=0 → F1/F2/F3/paid stopped, new work/budget 0, count/start/cutoff/flag snapshot.
+- first qualified evidence/lock timestamp를 cutoff origin으로 넣으면 FAIL. failed/bounced/blocked delivery는 contacted denominator 0이나 attempt audit는 남아야 한다.
+- TC-028 fixture: running task가 1,679→1,680분이 될 때 단순 신규-start 차단이 아니라 다음 side effect 전 circuit breaker·atomic close·safe checkpoint를 관찰한다.
+- plan approval은 V412 TC 28/28, planning 7/7 재판정, independent critic MAJOR 0 이후다.
+
+### 2026-08-05 OSMU v4.2.0 DESIGN-010 plan MINOR AC → QA TC 등록
+
+> 정본 후보: `docs/openclaw-auto-osmu-prd-v4.2.0-gpt-codex.md` §17. 회장 확정 작업모델을 상위 UI 계약으로 추가하며 기존 V412 28 TC는 그대로 계승한다.
+>
+> **❌ superseded:** partial generation의 fixed-8/empty/single-Regenerate와 publish retry taxonomy가 없어 critic MAJOR 2. 후속 정본 후보는 v4.2.1과 `OSMU-V421-TC-*`다.
+
+| TC | AC/FR | 검증 목표 | Slice | 종료증거 |
+|---|---|---|---|---|
+| OSMU-V42-TC-001 | AC-01/FR-01 | capability inventory | R0 | text8/video3/extensions15, 범주 혼합 0 |
+| OSMU-V42-TC-002 | AC-02/FR-02,NFR-08 | shell preservation | R0/design | sidebar/route/settings/tab orphan·invented nav 0 |
+| OSMU-V42-TC-003 | AC-03/FR-19,NFR-04 | readiness truth | R0 | disabled reason/action/owner/evidence time |
+| OSMU-V42-TC-004 | AC-04/FR-01,18 | extension 15 full contract | R0/F3 | 15/15 loader/credential/tenant/media/result/permalink/queue/disposition, queue 3개만 |
+| OSMU-V42-TC-005 | AC-05/FR-08 | OAuth state+cookie concurrent replay | R1 | same state+cookie 20 concurrent: nonce consume/token endpoint/account write exactly1, 19 pre-external reject |
+| OSMU-V42-TC-006 | AC-06/FR-09 | account truth | R1 | four-surface identity/scope/state/time/CTA diff 0 |
+| OSMU-V42-TC-007 | AC-07/FR-09,NFR-01 | account selection/isolation | R1 | two-account target 일치, cross-tenant call 0 |
+| OSMU-V42-TC-008 | AC-08/FR-03 | stable source identity | R2 | 네 경로 tenant ID+provenance |
+| OSMU-V42-TC-009 | AC-09/FR-04 | explicit Studio↔queue bridge | R2 | same source, orphan 0 |
+| OSMU-V42-TC-010 | AC-10/FR-05 | migration authority sequence | R2 | M0→M8 순서, 단계별 writer/read authority diff 0, premature entry 0 |
+| OSMU-V42-TC-011 | AC-11/FR-06,23,NFR-06 | reverse replay/rollback | R2 | 각 단계 fault+M5 이후 신규100, JSON rollback 100/100, loss/duplicate/drift 0 |
+| OSMU-V42-TC-012 | AC-12/FR-07 | target variant independence | R2/R3 | cross-overwrite 0 |
+| OSMU-V42-TC-013 | AC-13/FR-10,11,NFR-02 | dispatch concurrency | R3 | no-draft same intent 20 concurrent external result ≤1 |
+| OSMU-V42-TC-014 | AC-14/FR-12,NFR-03 | persistence-only repair | R3 | provider success/DB failure 뒤 republish 0 |
+| OSMU-V42-TC-015 | AC-15/FR-13 | provider recovery | R3/F1 | enabled adapter ID+permalink 또는 terminal reason |
+| OSMU-V42-TC-016 | AC-16/FR-14 | result group | R3 | mixed target independent state/ID/link/time |
+| OSMU-V42-TC-017 | AC-17/FR-15 | partial retry | R3 | failed만 호출, success duplicate 0 |
+| OSMU-V42-TC-018 | AC-18/FR-21,NFR-04 | fake link 금지 | R3 | provider home URL result 표시 0 |
+| OSMU-V42-TC-019 | AC-19/FR-16 | video terminal truth | F2 | terminal 전 processing, 뒤만 published+link |
+| OSMU-V42-TC-020 | AC-20/FR-17 | YouTube result parity | F2 | ID/link/status persistence+recovery, duplicate 0 |
+| OSMU-V42-TC-021 | AC-21/FR-16,17 | video 3 readiness | F2 | target별 E2E 또는 disabled reason/action |
+| OSMU-V42-TC-022 | AC-22/FR-18 | extension disposition/repair | F3 | 15/15 decision, 승인된 1개만 repair, 미검증 노출 0 |
+| OSMU-V42-TC-023 | AC-23/FR-20,22,NFR-07 | revoke/incident trace | R1~F3 | revoke call 0, evidence·owner·action trace |
+| OSMU-V42-TC-024 | AC-24/FR-24,NFR-01,05 | tenant/privacy isolation | R1~F3 | 2tenant×2account cross 0, raw leak 0 |
+| OSMU-V42-TC-025 | AC-25/FR-27,F4,BM,NFR-10 | explicit F4 start + cohort branches + delivery outcome | F4 | approval 뒤 Start F4→immutable f4_started_at exactly1; A cutoff=delivered100 또는 start+30d 먼저, consented<10 stop; fixture day30 qualified0 consented0에서 F1~F3/paid stopped·new work/budget0·snapshot; first-qualified timer 사용0; failed delivery denominator0/audit 보존; B threshold stop |
+| OSMU-V42-TC-026 | AC-26/전체 | RTM/supersession | plan | orphan 0, v3.1.1/DESIGN v6 target 근거 0 |
+| OSMU-V42-TC-027 | AC-27/FR-25,NFR-09 | rights/delete/backup expiry | F4 | 승인전 cohort0; 30d raw/180d evidence/7d active delete; 삭제+30d backup restore/read 불가 또는 disclosed legal hold; access audit·철회 dispatch0 |
+| OSMU-V42-TC-028 | AC-28/FR-26,NFR-10 | active initial-bet circuit breaker | R0~R3 | running at1679→minute1680: next side effect 전 breaker, atomic commit/rollback, safe checkpoint 5필드, R0~R3/F1~F4 stopped, minute1681 side effect0 |
+| OSMU-V42-TC-029 | AC-29/FR-28,NFR-11 | Generate Drafts 8 cards + independent edit/save | design/R3 | source1 generate1→Threads/X/Facebook/Instagram/Bluesky/Telegram/Discord/Slack exactly8; one-card edit/save 시 other7 payload/status write0 |
+| OSMU-V42-TC-030 | AC-30/FR-29,NFR-02,11 | per-card Publish/Retry isolation/result | design/R3 | one card Publish→selected invocation1/other7=0/status+actual permalink; failed Retry selected1/other7=0; published Retry adapter0+existing result+duplicate0 |
+| OSMU-V42-TC-031 | AC-31/FR-30,NFR-04,11 | readiness disabled + explicit selected/bulk | design/R3 | cards/drafts/edit/save8/8; unavailable Publish disabled+condition; generate/save implicit bulk0; selected/all은 별도 action+review+confirm |
+
+#### v4.2.0 DESIGN-010 gate
+
+- Generate Drafts 1회 결과는 정확히 text platform cards 8개다. Studio preview7·direct4를 target count로 사용하면 FAIL.
+- card Publish spy는 선택 adapter invocation=1, 다른 7=0을 assertion한다. Threads provider 내부 다단계 HTTP는 단일 adapter dispatch intent로 묶는다.
+- 각 card는 edit/save/status/permalink/retry를 독립 소유하고 success retry duplicate 0을 유지한다.
+- initial Threads/Instagram/X는 Publish safety 우선순위이며 draft card 8/8을 3개로 축소하지 않는다.
+- selected/bulk는 별도 명시 action·review·confirm이며 default per-card Publish를 대체하지 않는다.
+- plan approval은 V42 TC 31/31, independent critic MAJOR 0 이후다.
+
+### 2026-08-05 OSMU v4.2.1 critic residual PATCH AC → QA TC 등록
+
+> 정본 후보: `docs/openclaw-auto-osmu-prd-v4.2.1-gpt-codex.md` §17. V42 31개 계약을 보존하고 TC-029/030의 partial/uncertainty behavior를 강화했다.
+>
+> **❌ superseded:** fixed text8 Studio 계약이 실제 historical visual7과 backend/messaging surface를 혼합했다. 후속 정본 후보는 v4.3.0과 `OSMU-V43-TC-*`다.
+
+| TC | AC/FR | 검증 목표 | Slice | 종료증거 |
+|---|---|---|---|---|
+| OSMU-V421-TC-001 | AC-01/FR-01 | capability inventory | R0 | text8/video3/extensions15, 범주 혼합 0 |
+| OSMU-V421-TC-002 | AC-02/FR-02,NFR-08 | shell preservation | R0/design | sidebar/route/settings/tab orphan·invented nav 0 |
+| OSMU-V421-TC-003 | AC-03/FR-19,NFR-04 | readiness truth | R0 | disabled reason/action/owner/evidence time |
+| OSMU-V421-TC-004 | AC-04/FR-01,18 | extension 15 full contract | R0/F3 | 15/15 loader/credential/tenant/media/result/permalink/queue/disposition, queue 3개만 |
+| OSMU-V421-TC-005 | AC-05/FR-08 | OAuth state+cookie concurrent replay | R1 | same state+cookie 20 concurrent: nonce consume/token endpoint/account write exactly1, 19 pre-external reject |
+| OSMU-V421-TC-006 | AC-06/FR-09 | account truth | R1 | four-surface identity/scope/state/time/CTA diff 0 |
+| OSMU-V421-TC-007 | AC-07/FR-09,NFR-01 | account selection/isolation | R1 | two-account target 일치, cross-tenant call 0 |
+| OSMU-V421-TC-008 | AC-08/FR-03 | stable source identity | R2 | 네 경로 tenant ID+provenance |
+| OSMU-V421-TC-009 | AC-09/FR-04 | explicit Studio↔queue bridge | R2 | same source, orphan 0 |
+| OSMU-V421-TC-010 | AC-10/FR-05 | migration authority sequence | R2 | M0→M8 순서, 단계별 writer/read authority diff 0, premature entry 0 |
+| OSMU-V421-TC-011 | AC-11/FR-06,23,NFR-06 | reverse replay/rollback | R2 | 각 단계 fault+M5 이후 신규100, JSON rollback 100/100, loss/duplicate/drift 0 |
+| OSMU-V421-TC-012 | AC-12/FR-07 | target variant independence | R2/R3 | cross-overwrite 0 |
+| OSMU-V421-TC-013 | AC-13/FR-10,11,NFR-02 | dispatch concurrency | R3 | no-draft same intent 20 concurrent external result ≤1 |
+| OSMU-V421-TC-014 | AC-14/FR-12,NFR-03 | persistence-only repair | R3 | provider success/DB failure 뒤 republish 0 |
+| OSMU-V421-TC-015 | AC-15/FR-13 | provider recovery | R3/F1 | enabled adapter ID+permalink 또는 terminal reason |
+| OSMU-V421-TC-016 | AC-16/FR-14 | result group | R3 | mixed target independent state/ID/link/time |
+| OSMU-V421-TC-017 | AC-17/FR-15 | partial retry | R3 | failed만 호출, success duplicate 0 |
+| OSMU-V421-TC-018 | AC-18/FR-21,NFR-04 | fake link 금지 | R3 | provider home URL result 표시 0 |
+| OSMU-V421-TC-019 | AC-19/FR-16 | video terminal truth | F2 | terminal 전 processing, 뒤만 published+link |
+| OSMU-V421-TC-020 | AC-20/FR-17 | YouTube result parity | F2 | ID/link/status persistence+recovery, duplicate 0 |
+| OSMU-V421-TC-021 | AC-21/FR-16,17 | video 3 readiness | F2 | target별 E2E 또는 disabled reason/action |
+| OSMU-V421-TC-022 | AC-22/FR-18 | extension disposition/repair | F3 | 15/15 decision, 승인된 1개만 repair, 미검증 노출 0 |
+| OSMU-V421-TC-023 | AC-23/FR-20,22,NFR-07 | revoke/incident trace | R1~F3 | revoke call 0, evidence·owner·action trace |
+| OSMU-V421-TC-024 | AC-24/FR-24,NFR-01,05 | tenant/privacy isolation | R1~F3 | 2tenant×2account cross 0, raw leak 0 |
+| OSMU-V421-TC-025 | AC-25/FR-27,F4,BM,NFR-10 | explicit F4 start + cohort branches + delivery outcome | F4 | approval 뒤 Start F4→immutable f4_started_at exactly1; A cutoff=delivered100 또는 start+30d 먼저, consented<10 stop; fixture day30 qualified0 consented0에서 F1~F3/paid stopped·new work/budget0·snapshot; first-qualified timer 사용0; failed delivery denominator0/audit 보존; B threshold stop |
+| OSMU-V421-TC-026 | AC-26/전체 | RTM/supersession | plan | orphan 0, v3.1.1/DESIGN v6 target 근거 0 |
+| OSMU-V421-TC-027 | AC-27/FR-25,NFR-09 | rights/delete/backup expiry | F4 | 승인전 cohort0; 30d raw/180d evidence/7d active delete; 삭제+30d backup restore/read 불가 또는 disclosed legal hold; access audit·철회 dispatch0 |
+| OSMU-V421-TC-028 | AC-28/FR-26,NFR-10 | active initial-bet circuit breaker | R0~R3 | running at1679→minute1680: next side effect 전 breaker, atomic commit/rollback, safe checkpoint 5필드, R0~R3/F1~F4 stopped, minute1681 side effect0 |
+| OSMU-V421-TC-029 | AC-29/FR-28,NFR-11 | partial generation fixed8 + regenerate isolation | design/R3 | fixture6 valid+1 failed+1 empty→fixed IDs8; each editable payload or failure reason+Regenerate; empty Publish disabled; one Regenerate selected write1/other7 write0 |
+| OSMU-V421-TC-030 | AC-30/FR-29,NFR-02,11 | retry/repair/reconcile taxonomy | design/R3 | confirmed failure Retry adapter1; provider-success+persistence-failure repair1/adapter0; timeout/unknown reconcile first+terminal 전 adapter0; all other7=0; published retry adapter0 duplicate0 |
+| OSMU-V421-TC-031 | AC-31/FR-30,NFR-04,11 | readiness disabled + explicit selected/bulk | design/R3 | cards/drafts/edit/save8/8; unavailable Publish disabled+condition; generate/save implicit bulk0; selected/all은 별도 action+review+confirm |
+
+#### v4.2.1 gate
+
+- TC-029는 6 valid+1 generation_failed+1 empty fixture에서 fixed platform IDs 8개를 확인한다. 카드 누락/전체 재생성은 FAIL.
+- empty payload Publish disabled, generation_failed reason+Regenerate, 단일 Regenerate의 other7 write0을 함께 assertion한다.
+- TC-030은 confirmed failure, provider-success+persistence-failure, timeout/unknown을 별도 fixture로 실행한다.
+- provider adapter retry1은 confirmed failure에만 허용한다. persistence repair는 adapter0, unknown은 terminal 전 adapter0이다.
+- plan approval은 V421 TC31/31과 independent critic MAJOR0 이후다.
+
+### 2026-08-05 OSMU v4.3.0 actual surface inventory plan reopen AC → QA TC 등록
+
+> 정본 후보: `docs/openclaw-auto-osmu-prd-v4.3.0-gpt-codex.md` §17. V421의 safety/migration/recovery 계약을 보존하되 Studio visual7, backend text8, video3, Settings/account, notification4를 분리하고 기존 Studio 기능9개와 target continuity를 명시한다.
+>
+> **❌ superseded:** shell baseline이 정량화되지 않았고 기존 9기능이 TC-032 하나로 묶여 failure/edge와 rights-policy gate를 판정할 수 없다. 후속 정본 후보는 v4.3.1과 `OSMU-V431-TC-*`다.
+
+| TC | AC/FR | 검증 목표 | Slice | 종료증거 |
+|---|---|---|---|---|
+| OSMU-V43-TC-001 | AC-01/FR-01 | capability inventory | R0 | text8/video3/extensions15, 범주 혼합 0 |
+| OSMU-V43-TC-002 | AC-02/FR-02,NFR-08 | shell preservation | R0/design | sidebar/route/settings/tab orphan·invented nav 0 |
+| OSMU-V43-TC-003 | AC-03/FR-19,NFR-04 | readiness truth | R0 | disabled reason/action/owner/evidence time |
+| OSMU-V43-TC-004 | AC-04/FR-01,18 | extension 15 full contract | R0/F3 | 15/15 loader/credential/tenant/media/result/permalink/queue/disposition, queue 3개만 |
+| OSMU-V43-TC-005 | AC-05/FR-08 | OAuth state+cookie concurrent replay | R1 | same state+cookie 20 concurrent: nonce consume/token endpoint/account write exactly1, 19 pre-external reject |
+| OSMU-V43-TC-006 | AC-06/FR-09 | account truth | R1 | four-surface identity/scope/state/time/CTA diff 0 |
+| OSMU-V43-TC-007 | AC-07/FR-09,NFR-01 | account selection/isolation | R1 | two-account target 일치, cross-tenant call 0 |
+| OSMU-V43-TC-008 | AC-08/FR-03 | stable source identity | R2 | 네 경로 tenant ID+provenance |
+| OSMU-V43-TC-009 | AC-09/FR-04 | explicit Studio↔queue bridge | R2 | same source, orphan 0 |
+| OSMU-V43-TC-010 | AC-10/FR-05 | migration authority sequence | R2 | M0→M8 순서, 단계별 writer/read authority diff 0, premature entry 0 |
+| OSMU-V43-TC-011 | AC-11/FR-06,23,NFR-06 | reverse replay/rollback | R2 | 각 단계 fault+M5 이후 신규100, JSON rollback 100/100, loss/duplicate/drift 0 |
+| OSMU-V43-TC-012 | AC-12/FR-07 | target variant independence | R2/R3 | cross-overwrite 0 |
+| OSMU-V43-TC-013 | AC-13/FR-10,11,NFR-02 | dispatch concurrency | R3 | no-draft same intent 20 concurrent external result ≤1 |
+| OSMU-V43-TC-014 | AC-14/FR-12,NFR-03 | persistence-only repair | R3 | provider success/DB failure 뒤 republish 0 |
+| OSMU-V43-TC-015 | AC-15/FR-13 | provider recovery | R3/F1 | enabled adapter ID+permalink 또는 terminal reason |
+| OSMU-V43-TC-016 | AC-16/FR-14 | result group | R3 | mixed target independent state/ID/link/time |
+| OSMU-V43-TC-017 | AC-17/FR-15 | partial retry | R3 | failed만 호출, success duplicate 0 |
+| OSMU-V43-TC-018 | AC-18/FR-21,NFR-04 | fake link 금지 | R3 | provider home URL result 표시 0 |
+| OSMU-V43-TC-019 | AC-19/FR-16 | video terminal truth | F2 | terminal 전 processing, 뒤만 published+link |
+| OSMU-V43-TC-020 | AC-20/FR-17 | YouTube result parity | F2 | ID/link/status persistence+recovery, duplicate 0 |
+| OSMU-V43-TC-021 | AC-21/FR-16,17 | video 3 readiness | F2 | target별 E2E 또는 disabled reason/action |
+| OSMU-V43-TC-022 | AC-22/FR-18 | extension disposition/repair | F3 | 15/15 decision, 승인된 1개만 repair, 미검증 노출 0 |
+| OSMU-V43-TC-023 | AC-23/FR-20,22,NFR-07 | revoke/incident trace | R1~F3 | revoke call 0, evidence·owner·action trace |
+| OSMU-V43-TC-024 | AC-24/FR-24,NFR-01,05 | tenant/privacy isolation | R1~F3 | 2tenant×2account cross 0, raw leak 0 |
+| OSMU-V43-TC-025 | AC-25/FR-27,F4,BM,NFR-10 | explicit F4 start + cohort branches + delivery outcome | F4 | approval 뒤 Start F4→immutable f4_started_at exactly1; A cutoff=delivered100 또는 start+30d 먼저, consented<10 stop; fixture day30 qualified0 consented0에서 F1~F3/paid stopped·new work/budget0·snapshot; first-qualified timer 사용0; failed delivery denominator0/audit 보존; B threshold stop |
+| OSMU-V43-TC-026 | AC-26/전체 | RTM/supersession | plan | orphan 0, v4.2.1 fixed text8 Studio/v3.1.1/DESIGN v6 target 근거 0 |
+| OSMU-V43-TC-027 | AC-27/FR-25,NFR-09 | rights/delete/backup expiry | F4 | 승인전 cohort0; 30d raw/180d evidence/7d active delete; 삭제+30d backup restore/read 불가 또는 disclosed legal hold; access audit·철회 dispatch0 |
+| OSMU-V43-TC-028 | AC-28/FR-26,NFR-10 | active initial-bet circuit breaker | R0~R3 | running at1679→minute1680: next side effect 전 breaker, atomic commit/rollback, safe checkpoint 5필드, R0~R3/F1~F4 stopped, minute1681 side effect0 |
+| OSMU-V43-TC-029 | AC-29/FR-28,NFR-11 | visual7 partial generation + regenerate isolation | design/R3 | fixture5 valid+1 failed+1 empty→fixed IDs `threads,x,facebook,instagram,shorts,reels,tiktok` exactly7; Discord/Slack card0; failed reason+Regenerate; empty Publish disabled; one Regenerate selected write1/other6 write0 |
+| OSMU-V43-TC-030 | AC-30/FR-29,NFR-02,11 | card Publish retry/repair/reconcile isolation | design/R3 | selected adapter1/other6=0; confirmed failure Retry adapter1; provider-success+persistence-failure repair1/adapter0; timeout/unknown reconcile first+terminal 전 adapter0; published retry adapter0 duplicate0 |
+| OSMU-V43-TC-031 | AC-31/FR-30,NFR-04,12 | historical bulk vs target card provenance | design/R3 | current selected/bulk=`legacy_bulk`, target per-card=`card_publish`; generate/save implicit bulk0; selected/all explicit review+confirm; readiness 없는 Publish disabled |
+| OSMU-V43-TC-032 | AC-32/FR-31,NFR-08 | historical Studio function preservation | design/R3 | Wiki/RepoConnect·direct source·OSMU generation·AI auto-draft·image/video generation·platform edit/save·history load·immediate Publish·schedule 9/9 RTM, orphan0 |
+| OSMU-V43-TC-033 | AC-33/FR-32,NFR-04,12 | surface inventory six-axis truth | R0/design | Studio visual7/backend text8/video3/Settings-account/notification4 별도 section; visible/generatable/editable/publishable/schedulable/prod-observed 6축; Discord/Slack Studio card0, messaging/publish 혼합0 |
+| OSMU-V43-TC-034 | AC-34/FR-33,NFR-12 | Inbox/Calendar continuity target truth | R0/design | current shared-continuity claim0; target label100%; 실제 bridge/dual-read evidence 전 existing 표현0 |
+
+#### v4.3.0 gate
+
+- V43 TC는 AC 34/34와 1:1이며, RTM orphan은 0이어야 한다.
+- historical Studio visual7과 보존 기능9개 중 누락 1개, Discord·Slack Studio card 1개면 FAIL이다.
+- backend text adapter·video publisher·Settings/account·notification을 Studio visual card와 합친 ‘지원 플랫폼’ 단일 count는 FAIL이다.
+- `legacy_bulk`와 `card_publish` provenance, selected/bulk explicit action, card Publish other6=0을 함께 assertion한다.
+- Inbox/Calendar continuity는 shared identity·bridge·dual-read 관찰 전 target으로만 표기한다.
+- retry/repair/reconcile taxonomy는 V421에서 후퇴 0이어야 한다.
+- plan approval은 V43 TC34/34와 independent critic MAJOR0 이후다.
+
+### 2026-08-05 OSMU v4.3.1 critic MAJOR2 shell·9기능 preservation retake AC → QA TC 등록
+
+> 정본 후보: `docs/openclaw-auto-osmu-prd-v4.3.1-gpt-codex.md` §17. V43의 34개 계약을 보존하고 shell manifest, 9기능 독립 fixture, copyright·AI commercial·API policy gate를 추가한다.
+
+| TC | AC/FR | 검증 목표 | Slice | 종료증거 |
+|---|---|---|---|---|
+| OSMU-V431-TC-001 | AC-01/FR-01 | capability inventory | R0 | text8/video3/extensions15, 범주 혼합 0 |
+| OSMU-V431-TC-002 | AC-02/FR-02,NFR-08 | quantified shell preservation | R0/design | 1024 customer26 accessible; 390 current direct15 accessible+SidebarGroup11 hidden defect→target26 accessible; group9/operator1/direct15+dynamic11/Settings9·8/provider tabs3·5·3·0/token15×2/sidebar224; delete/rename/move0, invented nav0, unexplained diff0; documented mobile visibility repair1 |
+| OSMU-V431-TC-003 | AC-03/FR-19,NFR-04 | readiness truth | R0 | disabled reason/action/owner/evidence time |
+| OSMU-V431-TC-004 | AC-04/FR-01,18 | extension 15 full contract | R0/F3 | 15/15 loader/credential/tenant/media/result/permalink/queue/disposition, queue 3개만 |
+| OSMU-V431-TC-005 | AC-05/FR-08 | OAuth state+cookie concurrent replay | R1 | same state+cookie 20 concurrent: nonce consume/token endpoint/account write exactly1, 19 pre-external reject |
+| OSMU-V431-TC-006 | AC-06/FR-09 | account truth | R1 | four-surface identity/scope/state/time/CTA diff 0 |
+| OSMU-V431-TC-007 | AC-07/FR-09,NFR-01 | account selection/isolation | R1 | two-account target 일치, cross-tenant call 0 |
+| OSMU-V431-TC-008 | AC-08/FR-03 | stable source identity | R2 | 네 경로 tenant ID+provenance |
+| OSMU-V431-TC-009 | AC-09/FR-04 | explicit Studio↔queue bridge | R2 | same source, orphan 0 |
+| OSMU-V431-TC-010 | AC-10/FR-05 | migration authority sequence | R2 | M0→M8 순서, 단계별 writer/read authority diff 0, premature entry 0 |
+| OSMU-V431-TC-011 | AC-11/FR-06,23,NFR-06 | reverse replay/rollback | R2 | 각 단계 fault+M5 이후 신규100, JSON rollback 100/100, loss/duplicate/drift 0 |
+| OSMU-V431-TC-012 | AC-12/FR-07 | target variant independence | R2/R3 | cross-overwrite 0 |
+| OSMU-V431-TC-013 | AC-13/FR-10,11,NFR-02 | dispatch concurrency | R3 | no-draft same intent 20 concurrent external result ≤1 |
+| OSMU-V431-TC-014 | AC-14/FR-12,NFR-03 | persistence-only repair | R3 | provider success/DB failure 뒤 republish 0 |
+| OSMU-V431-TC-015 | AC-15/FR-13 | provider recovery | R3/F1 | enabled adapter ID+permalink 또는 terminal reason |
+| OSMU-V431-TC-016 | AC-16/FR-14 | result group | R3 | mixed target independent state/ID/link/time |
+| OSMU-V431-TC-017 | AC-17/FR-15 | partial retry | R3 | failed만 호출, success duplicate 0 |
+| OSMU-V431-TC-018 | AC-18/FR-21,NFR-04 | fake link 금지 | R3 | provider home URL result 표시 0 |
+| OSMU-V431-TC-019 | AC-19/FR-16 | video terminal truth | F2 | terminal 전 processing, 뒤만 published+link |
+| OSMU-V431-TC-020 | AC-20/FR-17 | YouTube result parity | F2 | ID/link/status persistence+recovery, duplicate 0 |
+| OSMU-V431-TC-021 | AC-21/FR-16,17 | video 3 readiness | F2 | target별 E2E 또는 disabled reason/action |
+| OSMU-V431-TC-022 | AC-22/FR-18 | extension disposition/repair | F3 | 15/15 decision, 승인된 1개만 repair, 미검증 노출 0 |
+| OSMU-V431-TC-023 | AC-23/FR-20,22,NFR-07 | revoke/incident trace | R1~F3 | revoke call 0, evidence·owner·action trace |
+| OSMU-V431-TC-024 | AC-24/FR-24,NFR-01,05 | tenant/privacy isolation | R1~F3 | 2tenant×2account cross 0, raw leak 0 |
+| OSMU-V431-TC-025 | AC-25/FR-27,F4,BM,NFR-10 | explicit F4 start + cohort branches + delivery outcome | F4 | approval 뒤 Start F4→immutable f4_started_at exactly1; A cutoff=delivered100 또는 start+30d 먼저, consented<10 stop; fixture day30 qualified0 consented0에서 F1~F3/paid stopped·new work/budget0·snapshot; first-qualified timer 사용0; failed delivery denominator0/audit 보존; B threshold stop |
+| OSMU-V431-TC-026 | AC-26/전체 | RTM/supersession | plan | orphan 0, v4.2.1 fixed text8 Studio/v3.1.1/DESIGN v6 target 근거 0 |
+| OSMU-V431-TC-027 | AC-27/FR-25,NFR-09 | rights/delete/backup expiry | F4 | 승인전 cohort0; 30d raw/180d evidence/7d active delete; 삭제+30d backup restore/read 불가 또는 disclosed legal hold; access audit·철회 dispatch0 |
+| OSMU-V431-TC-028 | AC-28/FR-26,NFR-10 | active initial-bet circuit breaker | R0~R3 | running at1679→minute1680: next side effect 전 breaker, atomic commit/rollback, safe checkpoint 5필드, R0~R3/F1~F4 stopped, minute1681 side effect0 |
+| OSMU-V431-TC-029 | AC-29/FR-28,NFR-11 | visual7 partial generation + regenerate isolation | design/R3 | fixture5 valid+1 failed+1 empty→fixed IDs `threads,x,facebook,instagram,shorts,reels,tiktok` exactly7; Discord/Slack card0; failed reason+Regenerate; empty Publish disabled; one Regenerate selected write1/other6 write0 |
+| OSMU-V431-TC-030 | AC-30/FR-29,NFR-02,11 | card Publish retry/repair/reconcile isolation | design/R3 | selected adapter1/other6=0; confirmed failure Retry adapter1; provider-success+persistence-failure repair1/adapter0; timeout/unknown reconcile first+terminal 전 adapter0; published retry adapter0 duplicate0 |
+| OSMU-V431-TC-031 | AC-31/FR-30,NFR-04,12 | historical bulk vs target card provenance | design/R3 | current selected/bulk=`legacy_bulk`, target per-card=`card_publish`; generate/save implicit bulk0; selected/all explicit review+confirm; readiness 없는 Publish disabled |
+| OSMU-V431-TC-032 | AC-32/FR-31,NFR-08 | RepoConnect sync/provenance | design/R3 | happy repo/path/hash/source match; auth/timeout/empty/repo-switch에서 existing overwrite0, provenance mix0, reason+retry |
+| OSMU-V431-TC-033 | AC-33/FR-32,NFR-04,12 | surface inventory six-axis truth | R0/design | Studio visual7/backend text8/video3/Settings-account/notification4 별도 section; visible/generatable/editable/publishable/schedulable/prod-observed 6축; Discord/Slack Studio card0, messaging/publish 혼합0 |
+| OSMU-V431-TC-034 | AC-34/FR-33,NFR-12 | Inbox/Calendar continuity target truth | R0/design | current shared-continuity claim0; target label100%; 실제 bridge/dual-read evidence 전 existing 표현0 |
+| OSMU-V431-TC-035 | AC-35/FR-34 | direct source validation | design/R3 | happy direct intent1/provenance; whitespace/oversize/unsafe external-call0, prior source/draft overwrite0 |
+| OSMU-V431-TC-036 | AC-36/FR-35,NFR-11 | visual7 OSMU generation | design/R3 | happy IDs7; 5 valid+1 failed+1 empty slot7, regenerate selected1/other6 write0 |
+| OSMU-V431-TC-037 | AC-37/FR-36,NFR-02,12 | AI auto-draft save/recovery | design/R3 | provenance/model/source reload; provider error/timeout false-saved0; replay20 same-intent draft≤1 |
+| OSMU-V431-TC-038 | AC-38/FR-37,42,NFR-13 | image-video asset/link/failure | design/R3 | asset/type/model/rights/surface link; fail/unsafe/unsupported/rights-unknown publish-schedule0, orphan0 |
+| OSMU-V431-TC-039 | AC-39/FR-38,NFR-11 | per-platform edit/save isolation | design/R3 | selected write1/reload parity/other6=0; stale/concurrent conflict explicit, silent overwrite0 |
+| OSMU-V431-TC-040 | AC-40/FR-39,NFR-03,04 | history state restore | design/R3 | draft/status/result/reconciliation parity; missing/corrupt/legacy false-published0, recovery action, source row mutation0 |
+| OSMU-V431-TC-041 | AC-41/FR-40,29,30,NFR-02,12 | immediate bulk/card publish | design/R3 | legacy_bulk selected IDs/card_publish single ID; implicit0; confirmed retry1, repair0, unknown reconcile, success duplicate0 |
+| OSMU-V431-TC-042 | AC-42/FR-41,NFR-02,12 | schedule lifecycle | design/R3 | create/change/cancel/due exactly1; invalid/past/DST/unready create0; cancel call0; concurrent20 result≤1 |
+| OSMU-V431-TC-043 | AC-43/FR-42,NFR-05,13 | copyright-AI-commercial-API policy gate | R0/design/R3 | owner+rights+AI terms/commercial+API policy valid only; unassigned/unknown/expired/conflict/prohibited/revoked adapter0; raw leak0 |
+
+#### v4.3.1 gate
+
+- V431 TC는 AC 43/43과 1:1이며 RTM orphan0이다.
+- TC-002는 1024 customer26 accessible과 390 current15 accessible+SidebarGroup11 hidden defect를 재현하고 target26 accessible을 확인한다. group9·operator1·route15+11·Settings9/8·provider tabs·token15×2·sidebar224를 잠그며, 삭제·리네임·이동·invented nav·설명없는 diff는 각각0이고 documented mobile visibility repair만 1이다.
+- 기존 9기능은 TC-032·035~042의 독립 9개 ID다. 하나라도 묶음 PASS하거나 happy/failure-edge 중 한쪽이 없으면 FAIL이다.
+- TC-043은 owner/rights/AI commercial/API policy evidence가 unknown·expired·conflict일 때 immediate/bulk/card/schedule adapter0을 assertion한다.
+- V43의 visual7, surface 6축, continuity target, retry/repair/reconcile 계약은 후퇴0이다.
+- plan approval은 V431 TC43/43과 independent critic MAJOR0 이후다.
+
+### 2026-08-06 Marketing Hub PRD v5.1 — 설계 QA 계약 등록 (미실행)
+
+> 정본: `docs/openclaw-auto-marketing-hub-prd-v5.1.0-gpt-codex.md`. 아래 48건은 **등록만 했으며 실행 PASS가 아니다**. 각 행의 Given/When/Then, happy+edge, 입력·상태·external-call ceiling·종료증거는 정본 FR/AC/TC 표의 같은 ID가 완전한 계약이다.
+
+| TC | FR/AC | 검증 목표 | 종료증거 |
+|---|---|---|---|
+| MH-V51-TC-001 | FR/AC-MH-001 | tenant isolation | A/B API·DOM leak0 |
+| MH-V51-TC-002 | FR/AC-MH-002 | role shell | customer/operator snapshots |
+| MH-V51-TC-003 | FR/AC-MH-003 | canonical fields | schema/readback |
+| MH-V51-TC-004 | FR/AC-MH-004 | connection state machine | transition log |
+| MH-V51-TC-005 | FR/AC-MH-005 | atomic callback | rollback/readback |
+| MH-V51-TC-006 | FR/AC-MH-006 | Settings/Studio/channel diff0 | diff report |
+| MH-V51-TC-007 | FR/AC-MH-007 | Meta wrong session | identity/relogin UI |
+| MH-V51-TC-008 | FR/AC-MH-008 | replay/cancel | nonce audit |
+| MH-V51-TC-009 | FR/AC-MH-009 | two accounts | selected-card proof |
+| MH-V51-TC-010 | FR/AC-MH-010 | manual recovery | masked advanced UI |
+| MH-V51-TC-011 | FR/AC-MH-011 | target 11 manifest | inventory |
+| MH-V51-TC-012 | FR/AC-MH-012 | visual7/direct4 baseline | snapshot |
+| MH-V51-TC-013 | FR/AC-MH-013 | Discord/Slack additive | cards |
+| MH-V51-TC-014 | FR/AC-MH-014 | capability fields | disabled CTA DOM |
+| MH-V51-TC-015 | FR/AC-MH-015 | source draft persistence | DB/UI |
+| MH-V51-TC-016 | FR/AC-MH-016 | per-card isolation | edit diff |
+| MH-V51-TC-017 | FR/AC-MH-017 | per-card validation | mixed fixture |
+| MH-V51-TC-018 | FR/AC-MH-018 | single immediate job | ledger |
+| MH-V51-TC-019 | FR/AC-MH-019 | bulk independent outcomes | results |
+| MH-V51-TC-020 | FR/AC-MH-020 | concurrency20 C≤1 | provider call log |
+| MH-V51-TC-021 | FR/AC-MH-021 | 502 terminal failure | retry evidence |
+| MH-V51-TC-022 | FR/AC-MH-022 | timeout uncertain | reconcile CTA |
+| MH-V51-TC-023 | FR/AC-MH-023 | repair lookup-first | call trace |
+| MH-V51-TC-024 | FR/AC-MH-024 | permalink readback | link evidence |
+| MH-V51-TC-025 | FR/AC-MH-025 | partial retry | no success duplicate |
+| MH-V51-TC-026 | FR/AC-MH-026 | provenance invariants | invariant audit |
+| MH-V51-TC-027 | FR/AC-MH-027 | job authority bridge | UI/audit |
+| MH-V51-TC-028 | FR/AC-MH-028 | orphan/missing/stale | reconcile report |
+| MH-V51-TC-029 | FR/AC-MH-029 | schedule create | stored instant |
+| MH-V51-TC-030 | FR/AC-MH-030 | schedule change CAS | version audit |
+| MH-V51-TC-031 | FR/AC-MH-031 | schedule cancel | no due dispatch |
+| MH-V51-TC-032 | FR/AC-MH-032 | DST gap/fold | confirmation UI |
+| MH-V51-TC-033 | FR/AC-MH-033 | due race C≤1 | lease log |
+| MH-V51-TC-034 | FR/AC-MH-034 | credential revoke | dispatch blocked |
+| MH-V51-TC-035 | FR/AC-MH-035 | Inbox origin | labels |
+| MH-V51-TC-036 | FR/AC-MH-036 | Calendar bridge | recover navigation |
+| MH-V51-TC-037 | FR/AC-MH-037 | video hand-off | `/videos` route proof |
+| MH-V51-TC-038 | FR/AC-MH-038 | disabled/external truth | copy audit |
+| MH-V51-TC-039 | FR/AC-MH-039 | landing no-overclaim | audit diff |
+| MH-V51-TC-040 | FR/AC-MH-040 | 25 route matrix | manifest |
+| MH-V51-TC-041 | FR/AC-MH-041 | 26 sidebar routes | navigation log |
+| MH-V51-TC-042 | FR/AC-MH-042 | 390 mobile nav | tap video |
+| MH-V51-TC-043 | FR/AC-MH-043 | overflow0/44px/focus | measurements |
+| MH-V51-TC-044 | FR/AC-MH-044 | loading/empty/error/permission | 25-route report |
+| MH-V51-TC-045 | FR/AC-MH-045 | services terminal state | screenshot |
+| MH-V51-TC-046 | FR/AC-MH-046 | operator secret audit | audit log |
+| MH-V51-TC-047 | FR/AC-MH-047 | correlation observability | trace |
+| MH-V51-TC-048 | FR/AC-MH-048 | full E2E gate | signed QA record |
+
+#### v5.1 gate
+
+- PRD traceability와 QA tracker는 `001..048` 1:1, orphan 0이어야 한다.
+- 실행 전에는 모든 항목이 미실행이며, fixture PASS는 provider/운영 실증을 대체하지 않는다.
+
+### 2026-08-06 Marketing Hub PRD v5.2 — V52 QA 계약 등록 (미실행)
+
+> 정본 `docs/openclaw-auto-marketing-hub-prd-v5.2.0-gpt-codex.md`; 각 TC의 H/F Given/When/Then·fault·C cap·terminal evidence는 정본의 같은 행에 있다. FR과 AC는 의도적으로 분리 열이다.
+
+| TC | FR | AC | 검증/종료증거 |
+|---|---|---|---|
+|MH-V52-TC-001|FR-MH-001|AC-MH-001|A/B leak0|
+|MH-V52-TC-002|FR-MH-002|AC-MH-002|role snapshots|
+|MH-V52-TC-003|FR-MH-003|AC-MH-003|canonical readback|
+|MH-V52-TC-004|FR-MH-004|AC-MH-004|transition log|
+|MH-V52-TC-005|FR-MH-005|AC-MH-005|atomic rollback|
+|MH-V52-TC-006|FR-MH-006|AC-MH-006|three view diff0|
+|MH-V52-TC-007|FR-MH-007|AC-MH-007|A→B→B adapter1/A0|
+|MH-V52-TC-008|FR-MH-008|AC-MH-008|nonce audit|
+|MH-V52-TC-009|FR-MH-009|AC-MH-009|two-account selection|
+|MH-V52-TC-010|FR-MH-010|AC-MH-010|manual masked|
+|MH-V52-TC-011|FR-MH-011|AC-MH-011|target11|
+|MH-V52-TC-012|FR-MH-012|AC-MH-012|visual7/direct4|
+|MH-V52-TC-013|FR-MH-013|AC-MH-013|Discord/Slack|
+|MH-V52-TC-014|FR-MH-014|AC-MH-014|capability7|
+|MH-V52-TC-015|FR-MH-015|AC-MH-015|draft reload|
+|MH-V52-TC-016|FR-MH-016|AC-MH-016|edit isolation|
+|MH-V52-TC-017|FR-MH-017|AC-MH-017|validation|
+|MH-V52-TC-018|FR-MH-018|AC-MH-018|card job|
+|MH-V52-TC-019|FR-MH-019|AC-MH-019|bulk results|
+|MH-V52-TC-020|FR-MH-020|AC-MH-020|20≤1|
+|MH-V52-TC-021|FR-MH-021|AC-MH-021|502 confirmed|
+|MH-V52-TC-022|FR-MH-022|AC-MH-022|uncertain reconcile|
+|MH-V52-TC-023|FR-MH-023|AC-MH-023|repair adapter0|
+|MH-V52-TC-024|FR-MH-024|AC-MH-024|permalink|
+|MH-V52-TC-025|FR-MH-025|AC-MH-025|failed-only retry|
+|MH-V52-TC-026|FR-MH-026|AC-MH-026|four origins|
+|MH-V52-TC-027|FR-MH-027|AC-MH-027|job authority|
+|MH-V52-TC-028|FR-MH-028|AC-MH-028|drift report|
+|MH-V52-TC-029|FR-MH-029|AC-MH-029|schedule create|
+|MH-V52-TC-030|FR-MH-030|AC-MH-030|CAS change|
+|MH-V52-TC-031|FR-MH-031|AC-MH-031|cancel|
+|MH-V52-TC-032|FR-MH-032|AC-MH-032|DST|
+|MH-V52-TC-033|FR-MH-033|AC-MH-033|due lease|
+|MH-V52-TC-034|FR-MH-034|AC-MH-034|revoke block|
+|MH-V52-TC-035|FR-MH-035|AC-MH-035|Inbox label|
+|MH-V52-TC-036|FR-MH-036|AC-MH-036|Calendar bridge|
+|MH-V52-TC-037|FR-MH-037|AC-MH-037|video handoff|
+|MH-V52-TC-038|FR-MH-038|AC-MH-038|disabled/external|
+|MH-V52-TC-039|FR-MH-039|AC-MH-039|landing audit|
+|MH-V52-TC-040|FR-MH-040|AC-MH-040|route25|
+|MH-V52-TC-041|FR-MH-041|AC-MH-041|1024 nav26 logs|
+|MH-V52-TC-042|FR-MH-042|AC-MH-042|390 nav26 logs|
+|MH-V52-TC-043|FR-MH-043|AC-MH-043|25 overflow0/44/focus|
+|MH-V52-TC-044|FR-MH-044|AC-MH-044|L/E/E/P terminal|
+|MH-V52-TC-045|FR-MH-045|AC-MH-045|services terminal|
+|MH-V52-TC-046|FR-MH-046|AC-MH-046|operator audit|
+|MH-V52-TC-047|FR-MH-047|AC-MH-047|correlation trace|
+|MH-V52-TC-048|FR-MH-048|AC-MH-048|signed E2E gate|
+
+#### V52 gate
+
+- V52 FR/AC/TC 48/48/48 and each exact pair is required; these are registered, not executed.
+## ❌ NG — DESIGN v13 기존 자산·역할·반응형·디자인시스템 미보존 (2026-08-06)
+
+- **사용자 관찰:** 최종 프로토타입에서 기존 아이콘/에셋이 사라지고, 실제 반응형 구조·사용자 역할별 화면·
+  디자인시스템이 반영되지 않았다.
+- **직접 대조:** v13은 텍스트 중심 sidebar와 범용 카드로 재작성됐고, 실제 `getChannelIcon()` 아이콘 체계,
+  current Sidebar/AuthGate의 customer/operator 분기, globals/token/component 구조를 정확히 재현한 증거가 없다.
+- **원인:** 최초 product-designer가 산출 파일 0 상태로 지연되자 일반 worker에게 HTML 제작을 넘겼고,
+  후속 product-designer 검수도 기능 수량/overflow/CTA에 치우쳐 visual asset·role-state·design-token fidelity를
+  차단 조건으로 검사하지 않았다. `verify-agent-quality.sh`도 Skill0/Web0 FAIL이었는데 경고 출고했다.
+- **판정:** v13 design 승인 후보 철회. 제품 코드·배포 완료 주장은 없음.
+- **재검증 종료조건:** actual icons/assets manifest 100%, customer/operator/public/auth/empty/error/connected
+  role-state matrix, current responsive shell 1440/1024/390, design tokens/components diff, 25 route visual comparison,
+  core OSMU flow 클릭, console0/overflow0/touch44를 product-designer transcript+부모 Chrome에서 직접 관찰한다.
+
+### 2026-08-06 OSMU Marketing Agent PRD v6.0 — MA-V6 plan TC 등록 (전부 ⬜ 미실행)
+
+> 정본: `docs/openclaw-auto-marketing-agent-prd-v6.0.0-gpt-codex.md` §11. 이 섹션은 **V6 plan namespace만** 소유한다. 기존 MH-V51/V52·제품 QA 상태를 변경하지 않는다. 모든 TC는 정본의 happy+failure Given/When/Then과 evidence를 함께 충족해야 하며, 코드·fixture PASS는 운영/provider 증거를 대체하지 않는다.
+
+| 상태 | TC | FR | AC | 검증 주제 |
+|---|---|---|---|---|
+|⬜|MA-V6-TC-001|FR-MA-001|AC-MA-001|tenant isolation/leak0|
+|⬜|MA-V6-TC-002|FR-MA-002|AC-MA-002|brand source4 onboarding|
+|⬜|MA-V6-TC-003|FR-MA-003|AC-MA-003|fact/inference/unverified|
+|⬜|MA-V6-TC-004|FR-MA-004|AC-MA-004|grounding citations|
+|⬜|MA-V6-TC-005|FR-MA-005|AC-MA-005|source errors/redaction|
+|⬜|MA-V6-TC-006|FR-MA-006|AC-MA-006|account truth diff0|
+|⬜|MA-V6-TC-007|FR-MA-007|AC-MA-007|wrong-account A→B|
+|⬜|MA-V6-TC-008|FR-MA-008|AC-MA-008|manual recovery only|
+|⬜|MA-V6-TC-009|FR-MA-009|AC-MA-009|autonomy audit|
+|⬜|MA-V6-TC-010|FR-MA-010|AC-MA-010|irreversible approval hash|
+|⬜|MA-V6-TC-011|FR-MA-011|AC-MA-011|opportunity inbox sources|
+|⬜|MA-V6-TC-012|FR-MA-012|AC-MA-012|no false zero|
+|⬜|MA-V6-TC-013|FR-MA-013|AC-MA-013|rank evidence|
+|⬜|MA-V6-TC-014|FR-MA-014|AC-MA-014|marketing brief7|
+|⬜|MA-V6-TC-015|FR-MA-015|AC-MA-015|weekly plan7d|
+|⬜|MA-V6-TC-016|FR-MA-016|AC-MA-016|honest planning hold|
+|⬜|MA-V6-TC-017|FR-MA-017|AC-MA-017|command center deep-links|
+|⬜|MA-V6-TC-018|FR-MA-018|AC-MA-018|text8+video3 truth|
+|⬜|MA-V6-TC-019|FR-MA-019|AC-MA-019|validation/no mutation|
+|⬜|MA-V6-TC-020|FR-MA-020|AC-MA-020|isolated edit/conflict|
+|⬜|MA-V6-TC-021|FR-MA-021|AC-MA-021|campaign lineage|
+|⬜|MA-V6-TC-022|FR-MA-022|AC-MA-022|review completeness|
+|⬜|MA-V6-TC-023|FR-MA-023|AC-MA-023|Inbox origin truth|
+|⬜|MA-V6-TC-024|FR-MA-024|AC-MA-024|video handoff|
+|⬜|MA-V6-TC-025|FR-MA-025|AC-MA-025|approved-only execute|
+|⬜|MA-V6-TC-026|FR-MA-026|AC-MA-026|idempotency20|
+|⬜|MA-V6-TC-027|FR-MA-027|AC-MA-027|published proof/permalink|
+|⬜|MA-V6-TC-028|FR-MA-028|AC-MA-028|partial result truth|
+|⬜|MA-V6-TC-029|FR-MA-029|AC-MA-029|confirmed retry|
+|⬜|MA-V6-TC-030|FR-MA-030|AC-MA-030|uncertain reconcile-first|
+|⬜|MA-V6-TC-031|FR-MA-031|AC-MA-031|repair without repost|
+|⬜|MA-V6-TC-032|FR-MA-032|AC-MA-032|schedule DST/CAS/lease|
+|⬜|MA-V6-TC-033|FR-MA-033|AC-MA-033|502 trace/redaction|
+|⬜|MA-V6-TC-034|FR-MA-034|AC-MA-034|metric provenance|
+|⬜|MA-V6-TC-035|FR-MA-035|AC-MA-035|comparison integrity|
+|⬜|MA-V6-TC-036|FR-MA-036|AC-MA-036|campaign analytics|
+|⬜|MA-V6-TC-037|FR-MA-037|AC-MA-037|sample-aware insight|
+|⬜|MA-V6-TC-038|FR-MA-038|AC-MA-038|tenant-scoped learning|
+|⬜|MA-V6-TC-039|FR-MA-039|AC-MA-039|next experiment fields|
+|⬜|MA-V6-TC-040|FR-MA-040|AC-MA-040|loop closure|
+|⬜|MA-V6-TC-041|FR-MA-041|AC-MA-041|alert lifecycle|
+|⬜|MA-V6-TC-042|FR-MA-042|AC-MA-042|safe actions only|
+|⬜|MA-V6-TC-043|FR-MA-043|AC-MA-043|route25/sidebar26 preservation|
+|⬜|MA-V6-TC-044|FR-MA-044|AC-MA-044|additive IA|
+|⬜|MA-V6-TC-045|FR-MA-045|AC-MA-045|asset/theme/role fidelity|
+|⬜|MA-V6-TC-046|FR-MA-046|AC-MA-046|390/1024 navigation/access|
+|⬜|MA-V6-TC-047|FR-MA-047|AC-MA-047|terminal state matrix|
+|⬜|MA-V6-TC-048|FR-MA-048|AC-MA-048|production full-loop evidence|
+
+#### MA-V6 plan gate
+
+- 등록 커버리지: FR 48 / AC 48 / TC 48, same-number orphan 0.
+- 현재 실행: 0/48. plan-critic MAJOR0와 `/approve plan` 전 design/eng-design/build/QA 진입 금지.
+- Trust circuit breaker: cross-tenant/private leak, wrong-account call, unapproved irreversible action, fake metric, duplicate same-intent post 중 1건이면 release blocked.
+
+### 2026-08-06 OSMU Marketing Agent PRD v6.1 — MA-V61 plan TC 등록 (전부 ⬜ 미실행)
+
+> 정본: `docs/openclaw-auto-marketing-agent-prd-v6.1.0-gpt-codex.md` §11. V6.0을 덮지 않는 critic MAJOR4 retake namespace다. 2주 proof는 internal1+external≤3, source1/opportunity1/campaign1/Threads1/card1/per-post approval/permalink1/metric-or-hold1/experiment decision1이며, TC detail/evidence는 정본이 이긴다.
+
+| 상태 | TC | FR | AC | 주제 |
+|---|---|---|---|---|
+|⬜|MA-V61-TC-001|FR-MA-001|AC-MA-001|tenant isolation|
+|⬜|MA-V61-TC-002|FR-MA-002|AC-MA-002|source preservation|
+|⬜|MA-V61-TC-003|FR-MA-003|AC-MA-003|truth classes|
+|⬜|MA-V61-TC-004|FR-MA-004|AC-MA-004|citation|
+|⬜|MA-V61-TC-005|FR-MA-005|AC-MA-005|source errors|
+|⬜|MA-V61-TC-006|FR-MA-006|AC-MA-006|account diff0|
+|⬜|MA-V61-TC-007|FR-MA-007|AC-MA-007|wrong-account|
+|⬜|MA-V61-TC-008|FR-MA-008|AC-MA-008|manual recovery|
+|⬜|MA-V61-TC-009|FR-MA-009|AC-MA-009|L2 policy|
+|⬜|MA-V61-TC-010|FR-MA-010|AC-MA-010|approval hash target|
+|⬜|MA-V61-TC-011|FR-MA-011|AC-MA-011|opportunity source1|
+|⬜|MA-V61-TC-012|FR-MA-012|AC-MA-012|no false zero|
+|⬜|MA-V61-TC-013|FR-MA-013|AC-MA-013|rank evidence|
+|⬜|MA-V61-TC-014|FR-MA-014|AC-MA-014|brief|
+|⬜|MA-V61-TC-015|FR-MA-015|AC-MA-015|plan1|
+|⬜|MA-V61-TC-016|FR-MA-016|AC-MA-016|sample hold|
+|⬜|MA-V61-TC-017|FR-MA-017|AC-MA-017|`/` additive|
+|⬜|MA-V61-TC-018|FR-MA-018|AC-MA-018|current card truth|
+|⬜|MA-V61-TC-019|FR-MA-019|AC-MA-019|validation|
+|⬜|MA-V61-TC-020|FR-MA-020|AC-MA-020|edit/save adapter0|
+|⬜|MA-V61-TC-021|FR-MA-021|AC-MA-021|full bidirectional lineage|
+|⬜|MA-V61-TC-022|FR-MA-022|AC-MA-022|per-post review|
+|⬜|MA-V61-TC-023|FR-MA-023|AC-MA-023|exact provenance4|
+|⬜|MA-V61-TC-024|FR-MA-024|AC-MA-024|video preservation|
+|⬜|MA-V61-TC-025|FR-MA-025|AC-MA-025|selected adapter1/others0|
+|⬜|MA-V61-TC-026|FR-MA-026|AC-MA-026|idempotency20|
+|⬜|MA-V61-TC-027|FR-MA-027|AC-MA-027|real permalink|
+|⬜|MA-V61-TC-028|FR-MA-028|AC-MA-028|bulk explicit IDs/partial|
+|⬜|MA-V61-TC-029|FR-MA-029|AC-MA-029|confirmed retry|
+|⬜|MA-V61-TC-030|FR-MA-030|AC-MA-030|reconcile-first|
+|⬜|MA-V61-TC-031|FR-MA-031|AC-MA-031|repair adapter0|
+|⬜|MA-V61-TC-032|FR-MA-032|AC-MA-032|single+bulk schedule4|
+|⬜|MA-V61-TC-033|FR-MA-033|AC-MA-033|502 trace|
+|⬜|MA-V61-TC-034|FR-MA-034|AC-MA-034|native metric provenance|
+|⬜|MA-V61-TC-035|FR-MA-035|AC-MA-035|comparison deferred truth|
+|⬜|MA-V61-TC-036|FR-MA-036|AC-MA-036|campaign1 measure|
+|⬜|MA-V61-TC-037|FR-MA-037|AC-MA-037|insight/sample-hold|
+|⬜|MA-V61-TC-038|FR-MA-038|AC-MA-038|legacy learning no overclaim|
+|⬜|MA-V61-TC-039|FR-MA-039|AC-MA-039|experiment decision1|
+|⬜|MA-V61-TC-040|FR-MA-040|AC-MA-040|next plan link|
+|⬜|MA-V61-TC-041|FR-MA-041|AC-MA-041|alerts deferred|
+|⬜|MA-V61-TC-042|FR-MA-042|AC-MA-042|safe action boundary|
+|⬜|MA-V61-TC-043|FR-MA-043|AC-MA-043|v5.2 route/action/API/state deletion0|
+|⬜|MA-V61-TC-044|FR-MA-044|AC-MA-044|additive IA|
+|⬜|MA-V61-TC-045|FR-MA-045|AC-MA-045|OSMU naming/SVG/theme/role|
+|⬜|MA-V61-TC-046|FR-MA-046|AC-MA-046|responsive access|
+|⬜|MA-V61-TC-047|FR-MA-047|AC-MA-047|terminal states|
+|⬜|MA-V61-TC-048|FR-MA-048|AC-MA-048|production full-lineage proof|
+
+#### MA-V61 gate
+
+- 등록: FR/AC/TC 48/48/48; 실행 0/48.
+- production TC-048 evidence: browser video + real provider permalink + native metric provenance/NA + insight evidence/hold + experiment decision + next-plan link + deployed SHA.
+- source4/text8+video3 신규 구현/listening/cross-provider analytics/alerts/general tenant learning/L3 일반화는 proof 전 QA 대상이 아니다.
+
+### 2026-08-06 OSMU Marketing Agent PRD v6.1.1 — MA-V611 plan TC (전부 ⬜)
+
+> 정본: `docs/openclaw-auto-marketing-agent-prd-v6.1.1-gpt-codex.md` §11. Phase **P**=2주 proof, **R**=existing preservation, **D**=repeat-proof 이후. Exit=`P 전건 PASS + R deletion/rename/move0`; D 구현/design이 proof에 들어오면 FAIL.
+
+| 상태 | Phase | TC | FR | AC | 주제 |
+|---|---|---|---|---|---|
+|⬜|P|MA-V611-TC-001|FR-MA-001|AC-MA-001|tenant isolation|
+|⬜|P|MA-V611-TC-002|FR-MA-002|AC-MA-002|source1/preservation|
+|⬜|P|MA-V611-TC-003|FR-MA-003|AC-MA-003|truth classes|
+|⬜|P|MA-V611-TC-004|FR-MA-004|AC-MA-004|citation|
+|⬜|P|MA-V611-TC-005|FR-MA-005|AC-MA-005|source errors|
+|⬜|P|MA-V611-TC-006|FR-MA-006|AC-MA-006|account diff0|
+|⬜|P|MA-V611-TC-007|FR-MA-007|AC-MA-007|wrong account|
+|⬜|P|MA-V611-TC-008|FR-MA-008|AC-MA-008|manual recovery|
+|⬜|P|MA-V611-TC-009|FR-MA-009|AC-MA-009|L2|
+|⬜|P|MA-V611-TC-010|FR-MA-010|AC-MA-010|per-post approval|
+|⬜|P|MA-V611-TC-011|FR-MA-011|AC-MA-011|opportunity1|
+|⬜|P|MA-V611-TC-012|FR-MA-012|AC-MA-012|no false zero|
+|⬜|P|MA-V611-TC-013|FR-MA-013|AC-MA-013|rank evidence|
+|⬜|P|MA-V611-TC-014|FR-MA-014|AC-MA-014|brief|
+|⬜|P|MA-V611-TC-015|FR-MA-015|AC-MA-015|campaign1|
+|⬜|P|MA-V611-TC-016|FR-MA-016|AC-MA-016|hold|
+|⬜|P|MA-V611-TC-017|FR-MA-017|AC-MA-017|`/` additive|
+|⬜|P|MA-V611-TC-018|FR-MA-018|AC-MA-018|current card1|
+|⬜|P|MA-V611-TC-019|FR-MA-019|AC-MA-019|validation|
+|⬜|P|MA-V611-TC-020|FR-MA-020|AC-MA-020|selected diff1/others0|
+|⬜|P|MA-V611-TC-021|FR-MA-021|AC-MA-021|lineage|
+|⬜|P|MA-V611-TC-022|FR-MA-022|AC-MA-022|review|
+|⬜|P|MA-V611-TC-023|FR-MA-023|AC-MA-023|provenance4|
+|⬜|R|MA-V611-TC-024|FR-MA-024|AC-MA-024|video path preservation|
+|⬜|P|MA-V611-TC-025|FR-MA-025|AC-MA-025|adapter1/others0|
+|⬜|P|MA-V611-TC-026|FR-MA-026|AC-MA-026|idempotency20|
+|⬜|P|MA-V611-TC-027|FR-MA-027|AC-MA-027|permalink|
+|⬜|P|MA-V611-TC-028|FR-MA-028|AC-MA-028|bulk partial|
+|⬜|P|MA-V611-TC-029|FR-MA-029|AC-MA-029|confirmed retry|
+|⬜|P|MA-V611-TC-030|FR-MA-030|AC-MA-030|reconcile|
+|⬜|P|MA-V611-TC-031|FR-MA-031|AC-MA-031|repair|
+|⬜|P|MA-V611-TC-032|FR-MA-032|AC-MA-032|schedule single/bulk|
+|⬜|P|MA-V611-TC-033|FR-MA-033|AC-MA-033|502 trace|
+|⬜|P|MA-V611-TC-034|FR-MA-034|AC-MA-034|native metric|
+|⬜|D|MA-V611-TC-035|FR-MA-035|AC-MA-035|cross-provider deferred|
+|⬜|P|MA-V611-TC-036|FR-MA-036|AC-MA-036|campaign metric|
+|⬜|P|MA-V611-TC-037|FR-MA-037|AC-MA-037|insight/hold|
+|⬜|D|MA-V611-TC-038|FR-MA-038|AC-MA-038|general learning deferred|
+|⬜|P|MA-V611-TC-039|FR-MA-039|AC-MA-039|experiment decision|
+|⬜|P|MA-V611-TC-040|FR-MA-040|AC-MA-040|next plan|
+|⬜|D|MA-V611-TC-041|FR-MA-041|AC-MA-041|general alerts deferred|
+|⬜|P|MA-V611-TC-042|FR-MA-042|AC-MA-042|safe boundary|
+|⬜|R|MA-V611-TC-043|FR-MA-043|AC-MA-043|route/action/API/state|
+|⬜|R|MA-V611-TC-044|FR-MA-044|AC-MA-044|additive IA|
+|⬜|R|MA-V611-TC-045|FR-MA-045|AC-MA-045|naming/SVG/theme/role|
+|⬜|R|MA-V611-TC-046|FR-MA-046|AC-MA-046|responsive|
+|⬜|R|MA-V611-TC-047|FR-MA-047|AC-MA-047|terminal states|
+|⬜|P|MA-V611-TC-048|FR-MA-048|AC-MA-048|production lineage|
+
+#### MA-V611 gate
+
+- Coverage: P39 / R6 / D3 = 48; FR/AC/TC exact pair 48/48/48.
+- Exit: P39/39 PASS + R6/6 deletion/rename/move0. D implementation/design count must equal 0.
+- TC020 specifically requires Threads selected card diff1 after save/reload and every other current draft/source/status diff0.
+## ❌ NG — Marketing Agent prototype v15 플랫폼 탐색·용어 (2026-08-06)
+
+- 사용자 직접 관찰: 왼쪽 플랫폼 메뉴를 클릭해도 해당 플랫폼 화면이 보이지 않는다.
+- 사용자 직접 관찰: `Assisted weekly loop`의 의미를 이해할 수 없다.
+- 초기 판정: v15 출고 실패. 메뉴 개수·overflow 검사는 했지만 26개 목적지 각각의 실제 화면 도착을 검증하지 않았고,
+  내부 기획 용어를 고객 화면에 노출했다.
+- 종료조건: 26개 메뉴 전부 클릭 시 기존 owner 화면 또는 명시적 prototype 화면으로 이동하고 dead-end/console error 0;
+  `Assisted weekly loop`를 회장 언어로 교체; product-designer 재리뷰와 부모 Chrome 전수 클릭 증거 확보.
+- 상태: ❌ NG / design gate 잠금 / 제품 코드·배포 영향 없음.
+## ❌ NG — Marketing Agent prototype v16 제품 구조·사용자 여정 (2026-08-06)
+
+- 사용자 직접 반려: OSMU preview가 가로 한 줄로 바뀌고 Reels/Shorts/TikTok video3가 빠진 대신
+  Messaging(Discord/Slack/LINE)이 OSMU 제작 대상처럼 들어갔다.
+- 미검증/누락: OSMU 생성·발행 결과의 플랫폼별 Queue 반영, 전체 성과와 채널 성과의 집계 경계,
+  플랫폼 공통 헤더/기능 IA, YouTube/TikTok social/video 운영, Keyword/Data/Assets/System Settings/Admin의
+  사용자 목적과 owner flow, OAuth→계정/토큰 health→자동화 준비 상태.
+- 사용자 직접 반려: 내부 계약 문구 `사용 근거: 고객 승인 전 외부 게시물 발행 없음 ... FR-MA-010`을 고객 카피로 노출.
+- 판정: v16 출고 실패, design 승인 금지, plan 재개방. 단순 UI 패치 금지.
+- 종료조건: 실제 code/wiki/Chrome 전수 감사 → 요구 원장 반영 PRD MAJOR0 → current visual authority 기반 prototype →
+  user-journey E2E와 메뉴/플랫폼/role/settings/admin 전수 QA. raw OAuth access token은 화면 노출0;
+  account/permission/expiry/verification/automation readiness만 안전하게 표시한다.

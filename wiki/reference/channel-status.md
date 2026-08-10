@@ -1,6 +1,11 @@
 # Channel Status & Implementation
 
-**최종 갱신: 2026-07-24** (근거: operator/customer shell hotfix build candidate — `ops/session-state.md` 참고)
+**최종 갱신: 2026-08-06** (근거: current-code UI audit + `ops/session-state.md`; source presence does not prove production operation.)
+
+> Current UI truth is mapped in [Marketing Hub surface map](../product/marketing-hub-surface-map.md). In particular,
+> provider connection/publish status is **not** inferred from a local component, landing copy, or an extension entry.
+> User-reported production observations remain open: OAuth false-success, duplicate Instagram token UI,
+> missing Settings status, and an OSMU 502.
 
 **Live (연결 + 자동화 동작)**: Threads.
 
@@ -38,8 +43,8 @@ See extensions/ directory and dashboard/src/lib/constants.ts for IMPLEMENTED_PLU
 ### Video 그룹은 텍스트 예약과 분리
 
 - YouTube/TikTok 영상 직접 발행은 `/api/video/publish`와 `/videos`의 provider별 연결/발행 카드를 사용한다.
-- 고객 Sidebar의 별도 `Video` 그룹은 `VIDEO_PUBLISH_PLATFORMS = ["youtube", "tiktok"]`를 소비하고
-  `/videos#youtube-connect`, `/videos#tiktok-connect`로 이동한다.
+- Current Sidebar routes to `/videos`; do not retain stale documentation that promises hash links such as
+  `/videos#youtube-connect` or `/videos#tiktok-connect` unless that exact anchor is restored and verified.
 - 두 영상 provider를 텍스트 예약 SSOT `SCHEDULABLE_PLATFORMS` 또는 그 그룹인
   `PUBLISH_CHANNEL_GROUPS`에 추가하지 않는다. 영상 연결 노출은 텍스트 예약 발행 지원을 뜻하지 않는다.
 

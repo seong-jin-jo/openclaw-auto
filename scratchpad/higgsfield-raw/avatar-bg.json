@@ -1,0 +1,23 @@
+[
+  {
+    "id": "d854aaeb-8a31-4329-b01c-8f268c21e8eb",
+    "status": "completed",
+    "display_name": "FLUX.2",
+    "job_set_type": "flux_2",
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260710_111950_d854aaeb-8a31-4329-b01c-8f268c21e8eb.png",
+    "created_at": 1783682390.466262,
+    "params": {
+      "prompt": "abstract terminal cursor block glowing amber on dark navy, subtle grid pattern, macro depth, dark navy background (#0B0F1A), amber accent lighting (#F59E0B), minimal tech aesthetic, late-night workspace mood, clean composition, no text, no watermark, no human face, high contrast, professional product-brand photography style",
+      "seed": 735827,
+      "width": 1536,
+      "height": 1536,
+      "batch_size": 1,
+      "resolution": "2k",
+      "input_images": [],
+      "aspect_ratio": "1:1",
+      "model": "pro",
+      "steps": null,
+      "cfg": null
+    }
+  }
+]

@@ -1,0 +1,40 @@
+한 줄 결론: PRD v2.3.0의 결정을 바꾸지 않고 plan artifact checklist용 별도 view 4개를 생성했다.
+
+요청:
+- `docs/openclaw-auto-osmu-prd-v2.3-gpt-codex.md`를 정본으로 One Thing·페르소나·BM·리스크 view를 분리한다.
+- 각 view에 정본 링크, v2.3.0 핀, STAMP/SOURCES/MODEL/RUBRIC_SCORE/WEAKEST_LINE을 포함한다.
+- 새 제품·비용·법률·운영 결정을 추가하지 않는다.
+
+산출물:
+- `docs/one-thing.md` — §4 중심, §5·§6의 범위·성공·hard stop을 함께 추출.
+- `docs/persona.md` — §3의 김민서 페르소나, pain, JTBD, 근거와 검증 공백을 추출.
+- `docs/bm.md` — §7·§8·§13의 BM 순서, 크레딧, 총예산, 공급자 승인 경계, 운영시간 cap을 추출.
+- `docs/risks.md` — §11·§12의 risk register, monitoring, rollback, 법무·analytics hardline을 추출.
+
+정본 핀:
+- 파일: `docs/openclaw-auto-osmu-prd-v2.3-gpt-codex.md`
+- 버전: `v2.3.0`
+- 작성 시점 SHA-256: `cf1b60357b1f59948557684d8cd5e08c6cad88026c143c2cf6d7bb0dd46bebf1`
+
+검증:
+- 4개 파일 모두 정본 상대 링크와 `v2.3.0` 핀 포함.
+- 4개 파일 모두 STAMP/SOURCES/MODEL/RUBRIC_SCORE/WEAKEST_LINE 포함.
+- `git diff --check -- docs/one-thing.md docs/persona.md docs/bm.md docs/risks.md` PASS.
+- 총 269줄: one-thing 58, persona 48, bm 82, risks 81.
+- 제품 코드·디자인·API·DB·정본 PRD 수정 없음.
+
+gate 미통과:
+- 4개 파일은 별도 view이며 승인 정본이 아니다.
+- PRD v2.3.0의 `/approve plan` 전 미확정 상태, 공급자·총예산·법률·backup DRI gate를 그대로 보존했다.
+
+다음 실행:
+- owner: 부모 Stage Controller.
+- 액션: plan artifact checklist에서 4개 view의 존재·정본 핀을 재확인하고 plan gate 재심사를 이어간다.
+- 종료증거: checklist가 네 파일을 인식하고 PRD v2.3.0과 내용 충돌 0건으로 판정.
+
+SOURCES:
+- `docs/openclaw-auto-osmu-prd-v2.3-gpt-codex.md` v2.3.0
+- `/Users/sj/.claude/standards/planning.md`
+- `/Users/sj/.claude/standards/artifact-stamp.md`
+
+MODEL: `gpt-codex/gpt-5.6-sol`

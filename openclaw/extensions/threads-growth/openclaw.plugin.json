@@ -1,0 +1,23 @@
+{
+  "id": "threads-growth",
+  "name": "Threads Growth",
+  "description": "Track Threads follower count and profile views over time.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "accessToken": {
+        "type": ["string", "object"],
+        "description": "Threads API long-lived access token."
+      },
+      "userId": {
+        "type": "string",
+        "description": "Threads user ID."
+      },
+      "growthPath": {
+        "type": "string",
+        "description": "Path to growth.json. Defaults to data/growth.json."
+      }
+    }
+  }
+}

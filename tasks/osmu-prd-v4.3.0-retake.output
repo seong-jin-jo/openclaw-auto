@@ -1,0 +1,87 @@
+TASK: PRD v4.3.0 plan reopen — actual Studio surface inventory and preservation contract
+ROLE: prd-architect
+STATUS: artifact-written-and-verified
+
+READ_EVIDENCE:
+- /Users/sj/sj_code_master/postAGI/CLAUDE.md
+- /Users/sj/sj_code_master/openclaw-auto/AGENTS.md
+- /Users/sj/sj_code_master/openclaw-auto/CLAUDE.md
+- /Users/sj/sj_code_master/openclaw-auto/wiki/ops/session-state.md
+- /Users/sj/sj_code_master/openclaw-auto/pipeline-state.md
+- /Users/sj/sj_code_master/openclaw-auto/docs/qa-tracker.md
+- /Users/sj/sj_code_master/openclaw-auto/CHANGELOG.md
+- /Users/sj/.claude/standards/planning.md
+- /Users/sj/.claude/standards/doc-review.md
+- /Users/sj/.claude/standards/benchmarks.md
+- /Users/sj/.claude/standards/artifact-stamp.md
+
+RESEARCH_EVIDENCE:
+{"query":"site:support.buffer.com post groups independent posts status scheduled time official"}
+{"query":"site:docs.postiz.com managing posts API idempotency official"}
+{"query":"site:help.later.com schedule one post multiple profiles customize each official"}
+- Used primary official Buffer and Later help pages; Postiz query did not yield a sufficiently direct primary result and was not used as evidence.
+- Borrowed: independent per-channel items inside a group; per-profile customization and unsupported-media disablement.
+- Changed: a group is a tenant/account-safe source-dispatch-result recovery contract, while historical bulk and target card actions retain distinct provenance.
+
+CODE_AUDIT_EVIDENCE:
+- studio/page.tsx: RepoConnect, direct source, AI sourcing/autodraft, text generation, Higgsfield image/video, per-surface edit, save/history, historical selected Publish loop, SchedulePanel.
+- Studio visual surface baseline exactly7: Threads/X/Facebook/Instagram/Shorts/Reels/TikTok.
+- Studio direct publish currently4: Threads/X/Facebook/Instagram.
+- constants.ts and publish/schedule routes: backend text adapters/schedulable8 include Bluesky/Telegram/Discord/Slack; this is not a Studio card list.
+- video publish route: YouTube Shorts/TikTok/Instagram Reels publisher3.
+- settings and send-notification: Telegram/Discord/Slack/LINE messaging notifications; notification is not social publishing.
+- inbox/calendar/queue-store: queue.json flow does not prove automatic continuity from Studio DB drafts.
+- root extensions/*-publish: 15 runtime-isolated extensions; directory presence is not production observation.
+
+USER_CORRECTION_CLOSURE:
+1. v4.2.1 fixed text8 Studio contract is explicitly superseded.
+2. Historical Studio visual7 is preserved; Discord and Slack Studio card count is exactly0.
+3. Wiki/RepoConnect, direct source, OSMU generation, AI auto-draft, image/video generation, platform edit/save, history, immediate Publish, schedule are preserved as nine RTM functions.
+4. Target per-card Publish remains selected adapter1/other6=0, but historical selected/bulk loop is `legacy_bulk` and target action is `card_publish`.
+5. Inbox/Calendar continuity remains target-only until stable identity, bridge, dual-read, and observed parity exist.
+6. Retry taxonomy is retained: confirmed failure retry; provider-success persistence repair; unknown reconcile before retry.
+
+SOCRATIC_SELF_INTERROGATION:
+- 이 결론이 틀렸다면 왜? Studio visual7은 화면 상수일 뿐 실제로 모두 생성·발행 가능한 제품 범위가 아닐 수 있다.
+- 수정: visible/generatable/editable/publishable/schedulable/prod-observed 6축을 분리해 visual presence를 operational support로 과장하지 않았다.
+- 가장 load-bearing한 가정은 existing function preservation과 source-to-result safety가 동시에 가능하다는 점이다. migration parity와 rollback evidence 전 destructive replacement를 금지해 반증 가능하게 만들었다.
+
+RED_TEAM:
+- 까다로운 고객: “예전 Wiki/Repo·history·예약이 또 사라지는 것 아닌가?” → 기능9개를 FR-31/AC-32/TC-032로 1:1 잠갔다.
+- 경쟁자: “지원 플랫폼 수를 부풀린다.” → Studio visual7/backend text8/video3/Settings-account/notification4를 분리하고 각 6축과 production observation을 요구했다.
+- 회의적 투자자: “기존 bulk와 신규 per-card를 둘 다 두면 복잡하다.” → provenance와 explicit review/confirm을 분리하고 implicit bulk0을 종료조건으로 고정했다.
+
+ARTIFACTS:
+{"name":"Write","path":"docs/openclaw-auto-osmu-prd-v4.3.0-gpt-codex.md","evidence":"apply_patch completed"}
+{"name":"Edit","path":"docs/qa-tracker.md","evidence":"apply_patch completed"}
+{"action":"replace","path":"docs/one-thing.md"}
+{"action":"replace","path":"docs/persona.md"}
+{"action":"replace","path":"docs/bm.md"}
+{"action":"replace","path":"docs/risks.md"}
+{"action":"add","path":"tasks/osmu-prd-v4.3.0-retake.output"}
+
+QUALITY:
+- Full standalone PRD, 21 sections and Mermaid flows.
+- Exact maps: Studio visual7, direct4 current, backend text8, video3, notification4, extensions15.
+- Requirements: FR33, NFR12.
+- AC↔TC: 34 one-to-one; RTM included.
+- Preservation: nine existing Studio functions, orphan0.
+- Structural verification: PRD FR33/NFR12/AC34/TC34; qa-tracker V43 TC34; duplicate V43 IDs0; Mermaid3; persona1263 chars.
+
+EXIT_REPORT_V43:
+- artifacts: docs/openclaw-auto-osmu-prd-v4.3.0-gpt-codex.md; docs/{one-thing,persona,bm,risks}.md; docs/qa-tracker.md; tasks/osmu-prd-v4.3.0-retake.output.
+- basis: current code audit + plan-critic MAJOR3 + user correction; v4.2.1 fixed text8 Studio is rejected target evidence.
+- closure: visual7 preserved; Discord/Slack Studio card0; surface groups separated by six axes; nine functions preserved; historical bulk/card target provenance separated; continuity labeled target-only.
+- product_code_changes: none.
+- verification: PRD FR33/NFR12/AC34/TC34, QA V43 TC34, duplicate0, quality verifier PASS.
+- remaining_gate: independent controller critic; no self-approval.
+- Persona: 600+ Korean characters.
+- Steelman, premortem, kill criteria each 2+ concrete sentences/scenarios.
+- verify-agent-quality.sh result: PASS — WebSearch/Fetch3, Socratic markers2; harness log append warning is sandbox denial outside writable repo and does not invalidate artifact verification.
+
+SKILLS_USED: 없음 — available catalog에 PRD/제품기획 전용 skill 없음; planning/doc-review standards 직접 적용
+SKILLS_SKIPPED: brand-positioning-kit 등은 actual-surface PRD plan reopen과 비매칭
+SOURCES: Buffer Post Groups https://support.buffer.com/article/662-creating-and-managing-post-groups | Later multi-profile https://help.later.com/hc/en-us/articles/360043245633-Schedule-a-Post-to-Multiple-Social-Profiles | code/wiki paths listed above
+MODEL: gpt-codex/gpt-5.6-sol
+RUBRIC_SCORE: completeness=5/5 precision=5/5 traceability=5/5 readability=4/5 slop=5/5 total=24/25
+WEAKEST_LINE: production-observed remains unverified for adapter paths until real account evidence is collected.

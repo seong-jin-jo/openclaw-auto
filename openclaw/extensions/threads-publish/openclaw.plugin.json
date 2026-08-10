@@ -1,0 +1,19 @@
+{
+  "id": "threads-publish",
+  "name": "Threads Publish",
+  "description": "Publish text posts to Meta Threads via the Threads API.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "accessToken": {
+        "type": ["string", "object"],
+        "description": "Threads API long-lived access token."
+      },
+      "userId": {
+        "type": "string",
+        "description": "Threads user ID."
+      }
+    }
+  }
+}

@@ -1,0 +1,100 @@
+한 줄 결론: PRD v3.1.1 PATCH는 v3.1.0의 6 provider/8 surface/12 capability와 account/publish data 계약을 유지하면서 모든 provider 공통 6탭·6×9 Settings UI 강제를 폐기했고, 실제 Marketing Hub sidebar·route·provider 기능을 보존하는 additive 계약으로 상류 충돌을 회수했다.
+
+요청: DESIGN-006과 사용자의 최신 정정을 plan PATCH로 회수하고, 실제 dashboard SSOT·DESIGN v6·QA RTM을 일치시킨다. 제품 코드는 수정하지 않는다.
+
+## 실제 읽은 기준과 현재 구현
+
+- 품질헌법 Read: `/Users/sj/.claude/standards/planning.md`, `/Users/sj/.claude/standards/doc-review.md`, `/Users/sj/.claude/standards/benchmarks.md`, `/Users/sj/.claude/standards/artifact-stamp.md`.
+- 프로젝트 정본 Read: `CLAUDE.md`, `AGENTS.md`, `wiki/ops/session-state.md`, `pipeline-state.md`, `wiki/product/studio.md`, `wiki/product/vision.md`, `wiki/reference/channel-status.md`, `README.md`.
+- 상류 산출물 Read: `docs/openclaw-auto-osmu-prd-v3.1-gpt-codex.md` v3.1.0, `DESIGN.md` v6, `docs/user-flow.md` v6, `docs/WIREFRAMES/openclaw-auto-osmu-preservation-rtm-v6-gpt-codex.md`, `docs/qa-tracker.md` DESIGN-006.
+- 실제 dashboard SSOT Read: `dashboard/src/components/layout/Sidebar.tsx`, `dashboard/src/lib/constants.ts`, `dashboard/src/components/channel/ChannelPage.tsx`, `dashboard/src/components/channel/InstagramPage.tsx`, `dashboard/src/app/settings/page.tsx`, customer page entry files.
+- 현재 구현 판정: Studio/Inbox/Calendar/Settings summary와 Threads·Instagram provider UI는 이미 구현돼 있어 재구현 대상이 아니다. Threads는 실제 5탭, Instagram은 실제 3탭이며, generic provider는 실제 component별로 다르다.
+- ⛔ 회수 필요: 위키에는 발행 채널 SSOT와 shell 경계는 있지만 sidebar 26·route 24·Settings 9 exact preservation inventory가 한 정본에 없었다. DESIGN v6 RTM을 이번 PATCH의 근거로 사용했고 design 승인 뒤 wiki/product에 반영해야 한다.
+
+## 벤치마크 실조사
+
+WebSearch 1: {"query":"site:support.buffer.com scheduling posts multiple social channels customize each network official"}
+WebSearch 2: {"query":"site:support.buffer.com post groups edit posts independently official"}
+WebSearch 3: {"query":"site:help.later.com schedule one post multiple social profiles customize unsupported media official"}
+
+- Buffer Scheduling: 한 composer에서 network별 customize와 media rule 차이를 유지하는 원칙을 차용했다.
+- Buffer Post Groups: 함께 만든 post를 group으로 회수하되 edit/reschedule/publish는 독립인 원칙을 Result Group에 유지했다.
+- Later multi-profile scheduling: 미지원 media profile은 이유와 함께 disabled하고 예약 후 개별 post를 편집하는 원칙을 차용했다.
+- 차용하지 않은 것: Buffer/Later의 sidebar·composer·profile IA. 실제 Marketing Hub source가 고객 navigation의 최우선 SSOT다.
+
+## 산출물과 변경
+
+FILE_ACTION: {"name":"Write","path":"docs/openclaw-auto-osmu-prd-v3.1.1-gpt-codex.md","mechanism":"apply_patch"}
+FILE_ACTION: {"name":"Edit","path":"docs/qa-tracker.md","mechanism":"apply_patch"}
+FILE_ACTION: {"name":"Edit","path":"docs/one-thing.md","mechanism":"apply_patch"}
+
+- 신규 PRD PATCH: `docs/openclaw-auto-osmu-prd-v3.1.1-gpt-codex.md`.
+- 최소 plan view: `docs/one-thing.md`를 v3.1.1 One Thing과 preservation MVP로 동기화했다.
+- QA contract: `docs/qa-tracker.md`의 TC-002/006/007/022/024와 DESIGN-006 종료증거를 v3.1.1에 맞췄다.
+- 제품 코드 변경: 0.
+
+## 계약 변경 결과
+
+- 유지: provider 6, surface 8, capability path 12, analytics S/R/U 18 contracts, readiness data 9항목, account truth, source→variant→approval→dispatch→result lifecycle, false-success hard stop, tenant/private-data hardline.
+- 폐기: 모든 provider에 동일 `Queue / Editor / Analytics / Growth / Popular / Settings`를 강제하는 UI 계약.
+- 폐기: provider별 9개 Settings section/cell, 즉 6×9=54개의 시각 UI를 만드는 계약.
+- additive placement: 기존 OSMU Studio, 승인 인박스, 발행 캘린더, Settings > Channels.
+- provider preservation: Threads 5/5, Instagram 3/3, generic actual mapping 100%, forced identical tab 0.
+- AC preservation: sidebar 26/26, route 24/24, Settings 9/9, 기존 label 삭제·리네임·이동 0, invented top-level navigation 0.
+- RTM: 사용자 정정·DESIGN-005·DESIGN-006·DESIGN v6 → FR → AC → TC → view/state.
+
+## 검증
+
+- `git diff --check -- docs/openclaw-auto-osmu-prd-v3.1.1-gpt-codex.md docs/one-thing.md docs/qa-tracker.md` PASS.
+- PRD 구조: H2 14개, Mermaid user flow 1개, 변경 AC 5개, 변경 FR 5개+NFR 2개.
+- actual source 대조: Sidebar v6 navigation inventory 26/26, customer page entry 24/24, Settings source 8 customer+1 operator tab, Threads 5탭, Instagram 3탭.
+- key RTM grep: AC-02/07/24, TC-002/007/024, DESIGN-006, sidebar 26/26, route 24/24, invented navigation 0 모두 존재.
+- 제품 runtime/E2E: 문서 PATCH 과업이라 실행하지 않았고 완료로 주장하지 않는다. design v6 최종 승인과 실제 build/production 경로는 미검증이다.
+
+## STEELMAN
+
+모든 provider에 같은 6탭을 두면 학습비용과 QA matrix가 줄고 장기적으로 영업 설명도 단순해진다는 반론은 강하다. 그러나 현재 Threads와 Instagram의 실제 기능이 다른 상황에서 빈 탭을 먼저 만들면 지원되지 않는 기능을 약속하고 CardNews·Growth·Popular의 위치를 왜곡한다. 일관성은 navigation 복제가 아니라 공통 상태어·account truth·Studio→Inbox→Calendar workflow에서 확보하는 쪽이 현재 사용자 요구와 actual source를 함께 만족한다.
+
+## PREMORTEM
+
+세 달 뒤 실패했다면 sidebar 26/26 숫자만 맞고 Instagram CardNews 저장이나 Threads Growth 같은 실제 기능이 끊겼을 가능성이 가장 크다. 그래서 TC-002/022는 count만 보지 않고 provider feature mapping, route click, 390/1024 browser observation을 함께 요구하며, account/publish runtime truth는 기존 TC-003~023으로 유지했다.
+
+## KILL-CRITERIA
+
+첫 design/build preservation audit에서 sidebar 26/26, route 24/24, Settings 9/9 중 하나라도 누락되거나 invented top-level navigation이 1개 이상이면 해당 산출물을 즉시 반려하고 plan을 재개한다. R0 1주·4시간 안에 account truth TC-003~007/026/028이 닫히지 않으면 UI 확장을 중단하고, v3.1.0의 demand kill 수치를 그대로 적용한다.
+
+## 셀프심문·레드팀
+
+셀프심문: 이 결론이 틀렸다면 가장 그럴듯한 이유는 actual dashboard가 누적 레거시라서 새 IA가 장기적으로 더 단순할 수 있다는 점이다. 하지만 사용자가 v5의 기존 기능 삭제·축약을 직접 결함으로 확정했고 현재 범위는 교체가 아니라 additive다. 새 IA는 별도 MAJOR change, 고객 검증, migration RTM, 사용자 승인을 가진 뒤에만 제안하는 것이 맞다.
+
+레드팀: 까다로운 고객은 “기존 메뉴를 보존했지만 OSMU 작업 위치가 더 헷갈린다”고 공격할 수 있다. 이를 막기 위해 Studio=생성, Inbox=검수, Calendar=예약·결과, Settings=계정 truth로 소유 화면을 고정했다. 회의적 투자자는 “레거시 보존으로 복잡성이 영구화된다”고 공격할 수 있으므로, 이번 PATCH의 보존은 additive scope 기본값이며 영구 IA 동결이 아님을 명시했다.
+
+## 완료 보고
+
+- 생성: `docs/openclaw-auto-osmu-prd-v3.1.1-gpt-codex.md`, `tasks/osmu-prd-v3.1-patch.output`.
+- 수정: `docs/one-thing.md`, `docs/qa-tracker.md`.
+- 페르소나: 김민서 — 여러 채널의 재작성·계정·정책·예약·결과를 혼자 관리하면서 기존 도구까지 사라질까 두렵다.
+- One Thing: 기존 Marketing Hub 동선을 보존하면서, 사람이 승인한 원문 하나를 선택한 각 채널의 정확한 계정에 중복 없이 발행하고 외부 결과를 한 기록으로 회수한다.
+- gate 미통과: plan critic MAJOR 0, pipeline approved_artifact v3.1.1 pin, DESIGN v6 plan-gap 문구 회수, design verifier 재통과가 남았다.
+- 다음 stage 진입: 불가. 위 gate를 controller가 닫은 뒤 design 승인 여부를 다시 판단해야 한다.
+
+SKILLS_USED: 없음 — 설치된 skill 중 PRD·제품기획 전용 매칭 없음; planning.md·doc-review.md·benchmarks.md·artifact-stamp.md 방법론 적용.
+
+SKILLS_SKIPPED: 콘텐츠·브랜딩·마케팅·이미지 skill은 요구·AC·RTM PATCH 과업과 불일치.
+
+SOURCES:
+- `docs/openclaw-auto-osmu-prd-v3.1-gpt-codex.md` v3.1.0
+- `DESIGN.md` v6, `docs/user-flow.md`, `docs/WIREFRAMES/openclaw-auto-osmu-preservation-rtm-v6-gpt-codex.md`
+- `docs/qa-tracker.md` DESIGN-006
+- `wiki/product/studio.md`, `wiki/product/vision.md`, `wiki/reference/channel-status.md`
+- `dashboard/src/components/layout/Sidebar.tsx`, `dashboard/src/lib/constants.ts`, `dashboard/src/components/channel/ChannelPage.tsx`, `dashboard/src/components/channel/InstagramPage.tsx`, `dashboard/src/app/settings/page.tsx`
+- https://support.buffer.com/article/642-scheduling-posts
+- https://support.buffer.com/article/961-using-post-groups-in-buffer
+- https://help.later.com/hc/en-us/articles/360043243873-Schedule-One-Post-to-Multiple-Social-Profiles
+- ISO/IEC/IEEE 29148 · Volere Atomic Requirement Shell · Gherkin
+
+MODEL: gpt-codex/gpt-5.6-sol
+
+RUBRIC_SCORE: 완결성=5/5 정밀성=5/5 벤치마크=5/5 추적성=5/5 전문성=5/5 total=25/25
+
+WEAKEST_LINE: “generic actual mapping 100%”은 design/build 시점의 자동 source inventory가 아직 없어, TC-002/022에서 exact component·route audit를 실행해야 최종 증명된다.

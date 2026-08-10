@@ -1,0 +1,28 @@
+# marketing-hub-prd-v5 exit report
+
+## Result
+
+Completed Korean PRD replacement at `docs/openclaw-auto-marketing-hub-prd-v5.0.0-gpt-codex.md`.
+
+## Basis
+
+- `wiki/product/marketing-hub-surface-map.md`
+- `tasks/osmu-full-ui-code-audit.output`
+- Official Buffer, Later, and Hootsuite links embedded in the PRD.
+
+## Coverage check
+
+- 25 route preserve/fix/add/disabled/external/operator entries.
+- Current Studio inventory explicitly separated: visual 7, direct publish 4, text adapters 8, video adapters 3, extensions 15.
+- Account/OAuth/Settings SSOT, provider capabilities, end-to-end lifecycle, mobile navigation/overflow, 502 idempotency, customer/operator boundary, MVP/non-goals, BM, rollout and kill criteria included.
+- FR/AC/TC traceability table contains IDs 01 through 48, one row per requirement.
+
+## Validation
+
+- `git diff --no-index --check /dev/null docs/openclaw-auto-marketing-hub-prd-v5.0.0-gpt-codex.md`: passed after final whitespace repair.
+- Scope counters: route matrix = 25; FR/AC/TC trace rows = 48; PRD placeholder scan = 0.
+- This is a documentation-only plan change: no production, provider, database, or E2E behavior was executed or claimed verified.
+
+## Self-redteam
+
+The PRD avoids equating local-code presence with deployed capability, 7 visual cards with publish support, and legacy Inbox/Calendar queue views with the target shared workflow source of truth. The new data/API contract remains an eng-design decision.

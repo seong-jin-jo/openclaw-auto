@@ -1,0 +1,90 @@
+TASK: PRD v4.1.1 PATCH — qualified cohort/backup/time-cap residual closure
+ROLE: prd-architect
+STATUS: artifact-written-and-verified
+
+READ_EVIDENCE:
+- /Users/sj/sj_code_master/postAGI/CLAUDE.md
+- /Users/sj/sj_code_master/openclaw-auto/AGENTS.md
+- /Users/sj/sj_code_master/openclaw-auto/CLAUDE.md
+- /Users/sj/sj_code_master/openclaw-auto/wiki/ops/session-state.md
+- /Users/sj/sj_code_master/openclaw-auto/pipeline-state.md
+- /Users/sj/sj_code_master/openclaw-auto/docs/qa-tracker.md
+- /Users/sj/sj_code_master/openclaw-auto/CHANGELOG.md
+- /Users/sj/.claude/standards/planning.md
+- /Users/sj/.claude/standards/doc-review.md
+- /Users/sj/.claude/standards/benchmarks.md
+- /Users/sj/.claude/standards/artifact-stamp.md
+
+RESEARCH_EVIDENCE:
+{"query":"site:support.buffer.com post groups independent posts status scheduled time official"}
+{"query":"site:docs.postiz.com managing posts API idempotency official"}
+{"query":"site:help.later.com schedule one post multiple profiles customize each official"}
+- Used primary official Buffer and Later help pages; Postiz query did not yield a sufficiently direct primary result and was not used as evidence.
+- Borrowed: independent per-channel items inside a post group; per-profile customization and unsupported-media disablement.
+- Changed: the group is a tenant-scoped source/dispatch/result recovery contract, not only a visual grouping.
+
+CODE_AUDIT_EVIDENCE:
+- constants.ts: text schedule/publish 8; Studio constants drift.
+- studio/page.tsx: DB drafts, direct 4, preview 7, provider-home fallback.
+- inbox/calendar/queue-store: queue.json primary, queue_posts best-effort mirror.
+- publish/schedule/video routes: generic direct reservation absent; schedule claim and video reservation are path-local; YouTube result persistence inconsistent.
+- social-connect.ts: same-provider OAuth state one-time consumption TODO.
+- root extensions/*-publish: 15 runtime-isolated extensions, code presence not operational readiness.
+- threads-queue tool: queue channel mutation is restricted to threads/x/instagram 3.
+- x publish/config/test surfaces: Next publish+schedule+Studio direct+root extension and four credential fields; operational credentials remain unverified.
+
+V4.1.0_BASE_CLOSURE:
+1. OAuth state+cookie callback 20 concurrent -> nonce/token endpoint/account write exactly1; 19 pre-external reject in AC/TC-005.
+2. Migration M0~M8 authority, reverse replay, post-cutover new write 100/100 JSON rollback in §13.1 and AC/TC-010~011.
+3. Extension 15 matrix has loader/credential/tenant/media/result/permalink/queue/disposition; root queue 3 only.
+4. 52h preserved: initial Threads/Instagram/X 28h; text expansion/video/extension/cohort are separate follow-up bets.
+5. Activation/repeat/paid actual-payment definitions and threshold stopped action in §14.4 and AC/TC-025.
+6. planning.md seven principles explicitly scored 7/7 PASS with evidence/closure.
+7. Data rights recommended default: minimize, raw30d/evidence180d/export-or-cancel delete7d, access/subprocessor/provider-AI disclosure, consent; chairman approval before cohort.
+
+SOCRATIC_SELF_INTERROGATION:
+- 이 결론이 틀렸다면 왜? 고객이 Studio만 쓰고 Inbox/Calendar 수렴을 원하지 않아 migration 비용이 과할 수 있다.
+- 수정: big-bang을 금지하고 source identity/idempotency와 dual-read parity를 분리했다. 실제 cross-surface 사용이 약하면 canonical UI 수렴을 축소할 수 있다.
+
+RED_TEAM:
+- 경쟁자: Buffer/Later도 multi-profile grouping을 제공한다. 수정: 로고 수가 아니라 account-safe identity, concurrent reservation, provider result recovery를 검증축으로 고정했다.
+- 회의적 투자자: extension 15 유지비가 수익을 압도한다. 수정: 전부 출시 약속 대신 15/15 disposition과 승인된 1개씩 repair하는 F3 gate로 두었다.
+- 까다로운 고객: 실제 게시물이 있는데 link가 없으면 재발행할 수 있다. 수정: provider home fallback 금지, persistence-only repair, success-target retry 금지를 AC에 넣었다.
+
+ARTIFACTS:
+{"name":"Write","path":"docs/openclaw-auto-osmu-prd-v4.1.1-gpt-codex.md","evidence":"apply_patch completed"}
+{"name":"Edit","path":"docs/qa-tracker.md","evidence":"apply_patch completed"}
+{"action":"add","path":"docs/openclaw-auto-osmu-prd-v4.1.1-gpt-codex.md"}
+{"action":"replace","path":"docs/one-thing.md"}
+{"action":"replace","path":"docs/persona.md"}
+{"action":"replace","path":"docs/bm.md"}
+{"action":"replace","path":"docs/risks.md"}
+{"action":"update","path":"docs/qa-tracker.md"}
+
+QUALITY:
+- Full standalone PRD, 21 sections, 2 Mermaid flows; OAuth concurrency, migration authority, rights policy strengthened.
+- Exact maps: text 8, video 3, extensions 15.
+- Requirements: FR 27, NFR 10.
+- AC↔TC: 28 one-to-one; RTM included.
+- Structural verification: PRD AC unique 28 / PRD TC unique 28 / qa-tracker V411 TC unique 28; FR27/NFR10; migration states 9; planning principles 7.
+- Persona: 600+ Korean characters.
+- Steelman, premortem, kill criteria each 2+ concrete sentences/scenarios.
+- DESIGN v6 and PRD v3.1.1 are rejected evidence only.
+- verify-agent-quality.sh result: PASS — WebSearch/Fetch 3, Socratic markers 2, warning 0 (harness log append itself is sandbox-denied outside the writable repo).
+
+SKILLS_USED: 없음 — available catalog에 PRD/제품기획 전용 skill 없음; planning/doc-review standards 직접 적용
+SKILLS_SKIPPED: brand-positioning-kit 등은 runtime-audit PRD retake와 비매칭
+
+SOURCES: Buffer Post Groups https://support.buffer.com/article/662-creating-and-managing-post-groups | Later multi-profile https://help.later.com/hc/en-us/articles/360043245633-Schedule-a-Post-to-Multiple-Social-Profiles | code and wiki paths listed above
+MODEL: gpt-codex/gpt-5.6-sol
+RUBRIC_SCORE: completeness=5/5 precision=5/5 traceability=5/5 readability=4/5 slop=5/5 total=24/25
+WEAKEST_LINE: 180-day non-raw evidence retention is a recommended default requiring chairman approval before external cohort.
+
+V4.1.1_RESIDUAL_CLOSURE:
+- MAJOR: qualified prospect = solo knowledge business + 2+ SNS in last30d + 2+/week same-idea rewrites + connectable owned brand account; evidence/ID/contact timestamp locked before contact and deduped.
+- TC-025 A: unique qualified 100 exhausted or day30 cutoff with consented<10 -> F1-F3/paid stopped, new work/budget0, count/cutoff/flag evidence.
+- TC-025 B: consented10 -> mature activation/repeat/actual-paid evaluation; any threshold miss executes same stop.
+- MINOR FR-08: state+cookie concurrent20, nonce/token/account exactly1.
+- MINOR TC-027: deletion+30d backup restore/read unavailable assertion.
+- MINOR TC-028: per-work-item planned/actual/evidence ledger, 1,680min atomic stop and minute1,681 start0.
+- planning principle terminology/policy rows explicitly show v4.1.0 FAIL -> v4.1.1 PASS only after closure.

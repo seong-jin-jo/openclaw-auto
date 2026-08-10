@@ -16,7 +16,7 @@ Studio is the "power user" surface for one-off or assisted generation, complemen
    - Image prompt.
    - (Optional) Video via Higgsfield/Midjourney or ffmpeg path **또는 외부 클리핑 API로 기존 영상에서 후보 Shorts 추출 후 OSMU refinement**.
 4. Edit, preview per platform (wiki/brand tone 반영).
-5. Save as draft or publish to the four Studio-supported targets (Threads / X / Facebook / Instagram).
+5. Save as draft or directly select/publish to the four current Studio targets (Threads / X / Facebook / Instagram).
 6. (New) wiki_path support via sourcing for pulling project knowledge directly.
 7. (0차 추가) Long video repurpose: 클립 후보 수신 → 위키 컨텍스트로 다듬기 → queue로.
 
@@ -26,8 +26,9 @@ Studio is the "power user" surface for one-off or assisted generation, complemen
   Studio first confirms `/api/me`; customer sessions receive no `/api/higgsfield/*` SWR key or
   generation request and see a Korean operator-only notice. The proxy allowlist remains closed
   because the credit pool and generation log are not tenant-isolated.
-- Studio publish supports Threads, X, Facebook, and Instagram. These four targets default ON.
-  Shorts, Reels, and TikTok remain generation/preview outputs in Studio, default OFF, and show
+- Studio has **seven visual previews** (Threads, X, Facebook, Instagram, Shorts, Reels, TikTok), but direct
+  select/publish supports **four** targets only: Threads, X, Facebook, Instagram. Shorts, Reels, and TikTok
+  remain generation/preview outputs, default OFF, and show
   `발행 미지원(생성 전용)` instead of a publish selector.
 - Publish progress counts only confirmed `ok:true` results. A failed target carries a danger-token
   badge and its server reason. Mixed or all-failed runs persist as `partial`, never `published`;
@@ -75,4 +76,6 @@ See studio-mock*.html in public/ for visual references.
 - Template library from successful wiki + guide combos.
 - Export to queue for cron handoff.
 
-Studio turns "I have an idea" into "this is ready for 5 channels + video" in minutes. Combined with the automated loop, it is the complete content operating system for lean teams.
+Current local implementation turns an idea into visual variants and can directly select four publish targets;
+it must not be described as “5 channels + video.” See [Marketing Hub surface map](./marketing-hub-surface-map.md)
+for the distinct visual, direct-publish, text-adapter, and video inventories plus verification limits.

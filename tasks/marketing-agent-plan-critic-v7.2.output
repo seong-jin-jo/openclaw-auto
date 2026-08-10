@@ -1,0 +1,203 @@
+# Marketing Agent PRD v7.2 — Final Independent Plan Critic
+
+<!--
+STAMP
+created_at: 2026-08-06 18:18 KST
+model: gpt-codex/gpt-5.6-sol
+agent: plan-critic / marketing_agent_plan_critic_v7.2
+skills: 없음 — 설치된 스킬 중 제품 기획 비평 전용 매칭 스킬 없음; planning.md·doc-review.md 적용
+evidence: PRD v7.2 전체 865줄, v7.1 critic, 현행 Studio/analytics/metrics 코드, official Buffer/Sprout workflow documentation
+deliberation: v7.1의 MAJOR2를 단순 문구 추가가 아니라 용어→제품 결정→FR/AC/TC→release N/M→RTM 숫자까지 수직 추적해 독립 재판정했다.
+-->
+
+## 패널 비평 - OSMU Marketing Agent PRD v7.2.0
+
+### 판정 요약
+
+**판정: GO**
+
+v7.2는 v7.1의 잔여 MAJOR 2건을 실제로 폐쇄했다. canonical data authority를 화면과 분리하고, Studio의 기존 Save·카드별 편집·지금 게시·예약을 같은 canonical command의 initiation surface로 보존했다. direct와 approval-required tenant의 고객 문구·명령·즉시 결과를 각각 고정했고, Studio/Queue/Calendar dual-initiation에서 external side effect≤1을 R3 독립 case로 셌다. Messaging도 `message delivery` logical authority 하나로 정규화됐다.
+
+성과 쪽은 Social5+video3의 native8을 전부 `collected 또는 explicit not-collected/unsupported`로 판정하고 false-zero0·provenance를 요구한다. R4 합계는 `3+3+24+7+6+8+2=53`이며 본문, rollout, closure, quantitative RTM의 숫자가 모두 53으로 일치한다. IA, VP75, state60, header11도 exact denominator로 일치하고 v7.1의 One Thing·OAuth/token·Midjourney·V01~V24·KPI whitelist·metric sample/cost·customer copy에 회귀가 없다.
+
+- `major_findings: 0`
+- `minor_findings: 4`
+- `TARGET_PRD_RUBRIC_SCORE: 완결성=5/5 정밀성=4/5 벤치마크=5/5 추적성=5/5 전문성=4/5 total=23/25`
+- plan gate: **GO 후보**. 하네스 verifier PASS 후 `/approve plan`로 승인하면 design 진입 가능하다. 아래 MINOR는 product direction을 바꾸지 않으므로 design 입력 주석 또는 v7.2.1 patch에서 닫을 수 있다.
+
+### 창업자
+
+나는 이제 이 문서를 고객 가치 한 문장으로 설명할 수 있다. 브랜드 근거를 고르고 Studio에서 채널별 카드를 편집한 뒤, 내 조직 정책에 맞는 `지금 게시/예약` 또는 `승인 요청/예약 승인 요청`을 누르고, 같은 항목을 Queue·Inbox·Calendar·영상 작업실에서 관리해 실제 결과와 다음 콘텐츠 변경으로 이어간다. 이 흐름은 기존 기능을 갈아엎지 않고 마케팅 에이전트의 반복 가치를 추가한다.
+
+가장 중요한 개선은 Studio 버튼을 보존하면서도 중복 record를 허용하지 않은 것이다. v7.2 `:53-61`, `:227-262`, `:285-302`가 고객 flow와 내부 invariant를 함께 설명하므로 product-designer가 이전처럼 “authority=한 화면”으로 오해할 여지가 실질적으로 줄었다.
+
+### 운영자
+
+나는 Studio·Queue·Calendar 어디서 명령이 시작됐는지보다 동일 record/version/approval/idempotency/audit를 썼는지가 중요하다. v7.2 `:241-254`, FR29~45, TC29~45가 이 운영 계약을 고정했고, R3는 Studio policy5와 dual-init2를 별도 N으로 센다(`:625-637`). Messaging도 Inbox와 Calendar가 서로 다른 truth store가 아니라 하나의 message delivery를 관리하는 clients라고 명확해졌다.
+
+OAuth와 token 경계도 운영 가능한 수준이다. provider token은 숨기고 tenant API token을 별도 발급하며, scope4·publish default-off·revoke/cross-tenant test가 유지된다(`:306-343`, FR12~19). 실제 provider app review와 production 연결은 아직 M=0이므로 이 GO는 plan 품질 판정이지 작동 완료 판정은 아니다.
+
+### 회의론자
+
+나는 자기문서의 “2/2 addressed” 숫자를 그대로 믿지 않고 합계를 다시 계산했다. R3는 `4+1+3+5+3+2+4+5+2=29`, R4는 `3+3+24+7+6+8+2=53`이고, OAuth18·VP75·state60·header11이 rollout과 quantitative RTM에서 동일하다. 과거처럼 거대한 TC 하나나 `applicable` denominator로 빠진 채널을 숨길 구조는 보이지 않는다.
+
+남은 우려는 approval policy의 실제 설정 owner/default와 optional Messaging의 Studio 배치가 아직 한 문장 덜 닫혔다는 점이다. 하지만 direct/required 각각의 observable behavior와 semantic tests는 이미 고정됐고, Messaging은 3 rail에서 제외된 별도 IA이므로 이 문제는 design을 반려할 MAJOR가 아니라 copy·information hierarchy 정밀화다.
+
+### 시장분석가
+
+Buffer 공식 composer는 채널별 customize 뒤 `Now`와 `Set Date and Time`을 같은 작성 흐름에서 제공하고, All Channels는 Drafts·Approvals·Queue·Sent를 통합 관리한다. Sprout는 Compose에서 approval workflow를 제출하고 Needs Approval과 Calendar에서 이어서 관리한다. v7.2는 이 패턴을 그대로 복제하지 않고 `Studio initiation + canonical record + management projections`으로 차용했다.
+
+차별점은 여전히 검증 가설이다. Buffer/Sprout가 grounded source→proof→native observation→next content 수요를 증명하지는 않는다. v7.2가 이 한계를 인정하고 baseline·minimum sample·support/cost kill을 유지한 것은 정직하다. plan GO 이후 pilot에서 반복 사용과 지불의사가 나오지 않으면 connector breadth를 줄여야 한다.
+
+## One Thing 후보 1문장 + 함정답 3개
+
+### 채택 후보
+
+> **한 번의 브랜드 근거 입력을 채널별로 검수 가능한 콘텐츠와 증명 가능한 발행 결과로 바꾸고, 그 결과를 다음 생성에 되돌리는 마케팅 자동화 에이전트.**
+
+PRD `:53`, `:67-78`의 One Thing은 **합격**이다. 입력, 고객 산출물, 신뢰 조건, 반복 단위가 한 문장에 있으며 Studio action·native8·feedback의 downstream 계약과도 일치한다.
+
+### 함정답 3개
+
+1. **“모든 SNS 기능을 똑같이 제공한다.”** capability 없는 Queue·Analytics와 false parity를 다시 만든다.
+2. **“한 번에 11개 플랫폼으로 뿌린다.”** account·format·slot·executor·message destination을 혼합한다.
+3. **“AI가 성과를 보고 자동으로 최적화한다.”** unsupported native data와 작은 표본에서 인과를 과장한다.
+
+## 지정 폐쇄 조건 검증
+
+| 검증 조건 | PRD line evidence | 수직 추적 | 판정 |
+|---|---|---|---|
+| authority/view/initiation 분리 | `:53-59`, `:149-162`, `:231-262` | FR28~45 → TC28~45 → R3 Studio5+dual2 | **PASS** |
+| Studio Save/edit/Publish/Schedule 보존 | `:83`, `:227-229`, `:245-254`, `:473-497` | TC21,29~33,45; change matrix `:688-691` | **PASS** |
+| direct/approval policy copy·command·result | `:247-254`, `:285-292` | FR31~32 → TC31~32 → R3 Studio5 | **PASS** |
+| dual-init external≤1 | `:243`, `:485-497` | TC33/40/45 → R3 dual2, video command TC40 | **PASS** |
+| Messaging logical authority1 | `:59`, `:235-262`, `:488-490` | TC36~38 → message3 parity | **PASS** |
+| native8 truth/false-zero0 | `:390-407`, `:509-511` | TC57~59 → R4 native8 | **PASS** |
+| R4 exact53·RTM 일치 | `:641-651`, `:728-735`, `:776-795`, `:813-819` | 53/53 전 구간 동일 | **PASS** |
+| Social>게시물/짧은 영상; Messaging 별도 | `:198-225`, FR27/TC27 | destination26 유지, new owner0 | **PASS** |
+| VP75/state60/header11 | `:458`, `:516-518`, `:608-610`, `:657-665` | N75/N60/N11, M0 | **PASS** |
+| v7.1 closure 회귀0 | `:306-411`, `:785-795`, `:823-838` | OAuth/token/MJ/V24/KPI/metrics/copy 유지 | **PASS** |
+
+## MAJOR findings
+
+`major_findings: 0`
+
+Studio action 보존과 canonical safety가 더 이상 충돌하지 않고, native8 전수 denominator와 exact totals가 release gate에 들어갔다. prototype 방향을 다시 열어야 할 load-bearing 결함은 발견하지 못했다.
+
+## MINOR findings
+
+### MINOR-1 — approval policy의 source에 configuration과 readiness가 혼용된다
+
+- **근거:** PRD `:292`는 policy가 `tenant configuration/readiness`에서 온다고 한다. 그러나 readiness는 계정이 실행 가능한지의 상태이고, approval-required 여부는 조직 정책이다.
+- **사용자 영향:** 계정이 일시 미연결일 때 버튼이 `승인 요청`으로 바뀌는 잘못된 prototype이 나올 수 있다.
+- **권고:** `approval_policy = tenant/customer setting`, `readiness = command eligibility gate`로 분리하고, 초기 cohort default와 설정 owner를 한 줄 추가한다. 이 수정은 §7.3의 copy/command 계약을 바꾸지 않는다.
+
+### MINOR-2 — optional Messaging이 Studio에서 어디에 보이는지 한 단계 덜 닫혔다
+
+- **근거:** IA는 Messaging을 Social 밖의 별도 top-level로 확정한다(`:206-225`). Studio는 rail3만 유지하지만 family contract는 `Studio optional destination`을 initiation surface로 둔다(`:235-239`, `:296-298`).
+- **사용자 영향:** designer가 Telegram/Discord/Slack을 다시 네 번째 preview rail이나 가로 카드 행으로 넣으면 사용자가 지적한 회귀가 재현된다.
+- **권고:** `Messaging은 Studio 3 rail에 포함하지 않음·default OFF·검수 후 명시적인 “커뮤니티로 보내기” handoff에서만 선택`을 design input에 추가한다. Messaging 자체를 삭제하라는 뜻은 아니다.
+
+### MINOR-3 — unsupported native case의 provenance N/A 규칙이 없다
+
+- **근거:** native8은 unsupported도 PASS할 수 있는데 `:403`, TC58 `:602`는 definition/source/window/collected_at/account/publication/state를 모두 complete로 요구한다.
+- **사용자 영향:** 미지원 connector에 가짜 `collected_at`이나 publication 값을 채우거나, 정직한 unsupported를 영원히 FAIL로 만드는 두 극단이 생길 수 있다.
+- **권고:** unavailable case는 `capability source+checked_at+reason+next action`을 필수로 하고 observation window/collected_at/publication은 `해당 없음 — 미수집`으로 표시한다. collected case만 전체 provenance를 요구한다.
+
+### MINOR-4 — per-card edit는 base TC에 있으나 R3 독립 Studio tally에는 없다
+
+- **근거:** Studio 편집 보존은 FR30/TC30 `:482`, `:574`에 명확하다. 그러나 RC-R3-STUDIO `:634`는 Save, publish2, schedule2만 세고 edit를 포함하지 않는다.
+- **사용자 영향:** base TC를 별도로 집행하지 않는 QA 운영이면 R3 29/29인데 카드 편집이 깨진 상태가 가능하다.
+- **권고:** R3 Studio를 edit까지 N6으로 바꾸어 R3 total30으로 재산정하거나, rollout gate에 `base TC21/30 PASS`를 명시한다. 현재 문서의 제품 결정과 base TC가 이미 정확하므로 이는 plan 재반려가 아닌 release tally 보강이다.
+
+## kill-criteria 3개 + 반증 여부
+
+1. **Safety kill:** tenant/private/raw-token leak, wrong-account/unapproved/duplicate publication 중 1건이면 automation과 신규 cohort를 즉시 중단한다. **반증 가능: 예.** audit correlation, concurrent20/replay, cross-tenant fixtures로 직접 관찰할 수 있다.
+2. **Repeat-value kill:** 외부 workspace 3개 중 2개 미만이 28일 내 Studio→now/schedule→proof→next loop를 2회 반복하면 broad Marketing Agent를 grounded composer/handoff로 축소한다. **반증 가능: 예.** lineage와 pilot log에 denominator가 정의돼 있다.
+3. **Feedback kill:** eligible publication≥20에서 evidence-linked next change<50% 또는 Social5 permanent unsupported≥3이면 “성과 환류”를 핵심 판매 문구에서 내린다. **반증 가능: 예.** native8 truth와 next-root lineage로 판정할 수 있다.
+
+## 자기잠식 점검
+
+- **Romeo/Dark-Cupid/Yeon/Polyamory:** account·source·approval policy·native data는 tenant로 격리하고, 공용 execution layer만 공유해야 한다. 각 venture에 별도 publisher를 만들면 OAuth/support 운영비가 중복된다.
+- **OKgram:** Instagram specialty surface와 OSMU Feed/Reels가 가장 겹친다. OSMU는 canonical publishing primitive와 truth를 제공하고 OKgram 고유 growth/operation surface를 흡수하지 않는다.
+- **교육:** 교육 콘텐츠는 좋은 dogfood지만 LMS·curriculum을 Marketing Agent MVP에 넣지 않는다.
+- **사용자/시간/예산:** provider breadth가 콘텐츠 제작 시간을 잠식할 위험은 여전하다. R3→R4 순차 출고와 provider-month/support kill을 지켜야 한다.
+
+## 법적·정책 플래그
+
+- **LEGAL/SECURITY:** raw provider token 노출0, 최소 scope, revoke/delete/export, tenant 분리.
+- **LEGAL/POLICY:** TikTok AI disclosure, asset license, person consent, 음악·영상 권리 unknown이면 발행 차단.
+- **LEGAL/CLAIMS:** native metric은 provider definition·source·observation state를 표시하고 unsupported를 0으로 위장하지 않는다.
+- **⛔ 회수 필요:** Meta/X/Google/TikTok production app review, 실제 허용 scope, 자동 게시·insight 저장 약관은 provider 콘솔과 법무/운영에서 확인해야 한다. plan의 제품 의미는 닫혔지만 외부 승인과 production E2E는 M=0이다.
+
+## Steelman·premortem·레드팀
+
+**Steelman 실본문:** v7.2를 반려할 가장 강한 이유는 approval policy default와 optional Messaging placement가 아직 완전히 고정되지 않아 designer가 두 흐름을 임의로 만들 수 있다는 것이다. 하지만 Studio direct/required의 copy·command·result, rail3, separate Messaging IA, same command invariant가 이미 FR/TC로 잠겨 있어 남은 수정은 기존 방향을 바꾸지 않는 한 줄 제약이며 MAJOR로 부풀릴 근거가 없다.
+
+**Premortem 실본문:** 6개월 뒤 제품이 또 실패했다면 readiness 장애를 approval policy로 오해해 버튼 문구가 틀어졌거나, optional Messaging이 네 번째 카드 행으로 돌아왔거나, unsupported analytics에 가짜 collected_at을 채웠을 가능성이 크다. 세 위험은 MINOR-1~3의 design annotations와 DOM/state fixtures로 선제 차단할 수 있고 canonical architecture·native8 denominator를 다시 열 필요는 없다.
+
+**레드팀 실본문:** 회의적 투자자는 native8 중 다수가 unsupported인데도 “성과 환류 에이전트”를 표방하는 것은 과장이라고 공격할 수 있다. v7.2는 unavailable truth를 N에서 숨기지 않고 Social5 permanent unsupported≥3이면 판매 문구를 내리는 kill을 두었으므로, 지금은 가설을 검증할 권리를 주되 pilot 결과 전에는 차별화가 입증됐다고 말하지 않는 것이 맞다.
+
+## 결론 전 셀프심문
+
+**이 결론이 틀렸다면 가장 그럴듯한 이유는?**
+
+가장 그럴듯한 이유는 MINOR-4처럼 base TC가 release N/M에 포함되지 않아 실제 QA가 FR/TC를 건너뛰는 운영 결함이다. 다만 PRD는 TC30에 edit isolation을 명시하고 FR66/TC66에서 모든 exact denominator의 M=N을 요구한다. R3 tally에 편집을 넣는 보강이 필요하지만 product-designer가 편집 기능을 삭제할 수 있는 기획 공백은 아니므로 GO를 유지했다.
+
+**검증 가능한 근거는 실제 파일/검색으로 확인했는가?**
+
+예. PRD v7.2 865줄 전체, v7.1 critic, 현행 Studio direct action과 Threads-only/false-total analytics 코드, planning/doc-review 품질헌법을 실제 읽었다. Buffer composer/All Channels와 Sprout approval 공식 문서를 다시 검색해 composer initiation·approval·management projection 패턴을 확인했다.
+
+**못 푸는 결정은 회수 필요로 명시했는가?**
+
+예. provider production app review·scope·약관은 외부 회수 필요다. 반면 approval source 용어, Messaging placement, unsupported N/A, R3 edit tally는 회장 결정을 다시 받을 전략 사안이 아니므로 구체 보정안으로 남겼다.
+
+## prd-architect 인계 노트
+
+판정은 GO다. v7.2의 One Thing, §7 canonical contract, §12 native8, R3/R4 main totals를 다시 열지 않는다. v7.2.1 patch 또는 design handoff annotation으로 다음 네 줄만 보강하면 된다.
+
+1. approval policy는 tenant setting, readiness는 eligibility gate이며 초기 cohort default/owner를 명시한다.
+2. Messaging은 Studio rail 밖, default OFF, 명시적 community handoff에서만 선택한다.
+3. unsupported native provenance의 `해당 없음` 필드를 정의한다.
+4. R3에 per-card edit를 넣어 total30으로 재산정하거나 base TC30을 rollout exit에 명시한다.
+
+그 뒤 `/approve plan`의 증거 재검증이 통과하면 product-designer에게 v7.2와 이 critic을 함께 버전 핀해 인계한다.
+
+## 실제 Read·Research trace
+
+- Read: `/Users/sj/.claude/standards/planning.md` — steelman·premortem·kill-criteria·self-question 기준.
+- Read: `/Users/sj/.claude/standards/doc-review.md` — line evidence·downstream usability·client-ready 기준.
+- Read: `docs/openclaw-auto-marketing-agent-prd-v7.2.0-gpt-codex.md` — 1~865 전체.
+- Read: `tasks/marketing-agent-plan-critic-v7.1.output` — residual MAJOR2/MINOR4 원문.
+- Read: `dashboard/src/app/studio/page.tsx:278-309,400-415,469-489` — Save/Publish/Schedule/rail current behavior.
+- Read: `dashboard/src/app/api/analytics/route.ts:58-69,140-150` — current false cross-provider totals.
+- Read: `dashboard/src/app/api/metrics/route.ts:35-66` — Threads-only collector와 false-zero risk.
+
+```json
+{"name":"WebSearch","arguments":{"query":"site:support.buffer.com/article/642-scheduling-posts Buffer composer Now Set Date customize each network"}}
+{"name":"WebSearch","arguments":{"query":"site:support.buffer.com/article/861-how-to-use-the-all-channels-view-in-buffer Buffer all channels drafts approvals queue sent"}}
+{"name":"WebSearch","arguments":{"query":"site:support.sproutsocial.com/hc/en-us/articles/205974715 Message Approval Workflows compose calendar approval"}}
+{"name":"WebFetch","arguments":{"url":"https://support.buffer.com/article/642-scheduling-posts"}}
+{"name":"WebFetch","arguments":{"url":"https://support.buffer.com/article/861-how-to-use-the-all-channels-view-in-buffer"}}
+{"name":"WebFetch","arguments":{"url":"https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows"}}
+```
+
+## 벤치마크 적용
+
+- **Buffer Scheduling:** composer의 channel customize와 Now/Set Date를 Studio initiation 보존 근거로 차용했다. 각 채널 capability를 같다고 가정하지 않고 canonical record와 proof를 추가했다.
+- **Buffer All Channels:** Draft/Approval/Queue/Sent aggregate management를 projection 패턴으로 차용했다. second truth store와 fake family Queue는 배제했다.
+- **Sprout Approval:** Compose submit→Needs Approval→Calendar/activity와 permission별 approval requirement를 policy flow로 차용했다. 모든 1인 고객에게 enterprise step을 강제하지 않았다.
+
+## 품질 푸터
+
+`[모델] gpt-codex/gpt-5.6-sol`
+
+`RUBRIC_SCORE: 완결성=5/5 정밀성=4/5 벤치마크=5/5 추적성=5/5 전문성=4/5 total=23/25`
+
+`WEAKEST_LINE: Approval policy 초기 default·설정 owner와 optional Messaging placement는 product direction을 바꾸지 않지만 design annotation 전에 한 줄씩 더 명시해야 한다.`
+
+`SKILLS_USED: 없음 — 매칭되는 제품 기획 비평 SKILL이 없어 planning.md·doc-review.md 방법론과 공식 벤치마크를 직접 적용 / SKILLS_SKIPPED: 없음`
+
+`SOURCES: docs/openclaw-auto-marketing-agent-prd-v7.2.0-gpt-codex.md; tasks/marketing-agent-plan-critic-v7.1.output; dashboard/src/app/studio/page.tsx; dashboard/src/app/api/analytics/route.ts; dashboard/src/app/api/metrics/route.ts; /Users/sj/.claude/standards/planning.md; /Users/sj/.claude/standards/doc-review.md; https://support.buffer.com/article/642-scheduling-posts; https://support.buffer.com/article/861-how-to-use-the-all-channels-view-in-buffer; https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows`
+
+`MODEL: gpt-codex/gpt-5.6-sol`

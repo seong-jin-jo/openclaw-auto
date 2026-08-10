@@ -1,0 +1,206 @@
+# OSMU DESIGN-010 v10 Exit Report
+
+> STAMP: created_at=2026-08-05 06:35 KST | model=gpt-codex/gpt-5.6-sol | agent=product-designer | skills=design-html, design-review | evidence=https://support.buffer.com/article/961-using-post-groups-in-buffer, https://support.buffer.com/article/642-scheduling-posts, https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows, https://docs.x.com/fundamentals/authentication/oauth-2-0/authorization-code | deliberation=v9 단계형 구조를 폐기하고 실제 Studio 안에 source와 고정 8개 독립 card workspace를 결합
+
+요청: PRD v4.2.1과 실제 Marketing Hub 코드를 기반으로, Generate Drafts 1회 뒤 정확히 8개 카드가 생성되고 카드별 edit/save/publish/result/recovery가 다른 7개를 바꾸지 않는 고객 제품을 설계한다.
+
+한 줄 결론: v10은 v9 구조를 재사용하지 않고 source composer 아래 fixed-8 card workspace를 새로 만들었다. 8/8 card edit/save와 단일 card Publish의 other7 불변을 실제 DOM click과 visible snapshot으로 검증했다. 제품 코드는 수정하지 않았다.
+
+## 기반
+
+- `docs/openclaw-auto-osmu-prd-v4.2.1-gpt-codex.md`
+- `dashboard/src/components/layout/Sidebar.tsx`
+- `dashboard/src/lib/constants.ts`
+- `dashboard/src/app/globals.css`
+- `dashboard/src/app/studio/page.tsx`
+- `dashboard/src/app/settings/page.tsx`
+
+## 산출물
+
+1. `DESIGN.md`
+2. `docs/user-flow.md`
+3. `docs/WIREFRAMES/openclaw-auto-osmu-source-fixed8-v10-gpt-codex.md`
+4. `docs/WIREFRAMES/openclaw-auto-osmu-card-isolation-v10-gpt-codex.md`
+5. `docs/WIREFRAMES/openclaw-auto-osmu-recovery-bulk-v10-gpt-codex.md`
+6. `docs/prototype/openclaw-auto-osmu-fixed8-cards-v10-gpt-codex.html`
+7. `tasks/osmu-design-v10.output`
+
+제품 코드 수정: 0
+
+## 구조 결과
+
+- Sidebar: 실제 그룹과 route 명칭을 보존한 26개 항목
+- Studio title: `원문 한 번, 채널별 초안 8개`
+- Source action: `Generate Drafts`
+- Platform order: Threads, X, Facebook, Instagram, Bluesky, Telegram, Discord, Slack
+- Platform tabs: 8
+- Platform cards: 8
+- Common card controls: Edit, Save, Publish 또는 안전 복구
+- Default bulk selection: 0
+- Customer UI 내부 요구 식별자, 코드 경로, 증거 계층, 마이그레이션 운영 용어: 0
+
+## Fixed-8 generation QA
+
+Generate Drafts 실제 click: 1.
+
+관찰 결과:
+
+- card 8 exactly
+- tab 8 exactly
+- editable nonempty 6
+- generation failed 1
+- empty 1
+- spinner after terminal 0
+- failed card omission 0
+- empty card omission 0
+
+Bluesky `이 카드만 다시 만들기` click 뒤 Bluesky만 nonempty로 전이했다. Slack에는 직접 text를 입력했다.
+
+## 8/8 card click QA
+
+각 card에서 Edit와 Save를 실제 click했다.
+
+| Platform | Edit | Save |
+|---|---:|---:|
+| Threads | 1 | 1 |
+| X | 1 | 1 |
+| Facebook | 1 | 1 |
+| Instagram | 1 | 1 |
+| Bluesky | 1 | 1 |
+| Telegram | 1 | 1 |
+| Discord | 1 | 1 |
+| Slack | 1 | 1 |
+
+종료 상태: drafts 8/8 nonempty, saved 8/8.
+
+## Single-card Publish isolation QA
+
+Threads Publish 전 다른 7개의 visible snapshot을 platform, text, saved, publish, generation, readiness, updated 조합으로 저장했다.
+
+- Threads Publish click: 1
+- immediate target state: publishing
+- immediate spinner: 1
+- immediate other7 visible snapshot diff: 0
+- terminal target state: published
+- terminal permalink field: 1
+- terminal other7 visible snapshot diff: 0
+- isolation guard: true
+- 다른 7개 publish mutation: 0
+
+## Readiness QA
+
+- 발행 준비 완료: Threads, X, Instagram 3
+- 발행 준비 필요: Facebook, Bluesky, Telegram, Discord, Slack 5
+- unavailable card draft/edit/save: 5/5 가능
+- unavailable Publish disabled: 5/5 true
+- false-enabled: 0
+- 해제 행동: 기존 Settings > Channels
+
+## Safe recovery QA
+
+| 고객 상태 | 실제 action | 관찰 |
+|---|---|---|
+| 플랫폼이 발행을 거절했어요 | 다시 발행 | X만 publishing 후 published, other7 stable |
+| 게시물은 올라갔지만 결과 저장이 덜 됐어요 | 결과 기록 복구 | Instagram provider 재발행 없이 published result 복구 표현 |
+| 발행 여부를 확인 중이에요 | 결과 다시 확인 | Threads terminal 확인 전 Retry 숨김, 확인 뒤 published |
+
+세 상태 모두 modal에서 실제 click해 해당 card에서 행동을 확인했다. loading indicator는 화면별 최대 1이었다.
+
+## Explicit bulk QA
+
+- bulk disclosure default: closed
+- open 전 selection: 0
+- open 뒤 selection: 0
+- unavailable/empty/failed selection disabled
+- selection만으로 dispatch: 0
+- review와 final confirmation을 별도 행동으로 분리
+- card Publish를 기본 CTA로 유지
+
+## Responsive and visual QA
+
+QA surfaces: source, workspace, bulk, recovery, Settings, 총 5.
+
+- 1024x900 5 surfaces: horizontal overflow 0, 44px 미달 target 0
+- 390x844 5 surfaces: horizontal overflow 0, 44px 미달 target 0
+- 1024 first action: top 429, bottom 473, height 44, viewport 안
+- 390 first action: top 694, bottom 738, height 44, viewport 안
+- console errors: 0
+- loading max: 1
+- dead-end: 0
+- visual review: `/tmp/osmu-v10-source-390-final.png`
+- visual review: `/tmp/osmu-v10-workspace-1024-final.png`
+- GUI open: 사용하지 않음
+
+시각 검수에서 모바일 navigation item이 flex shrink되어 label이 겹치는 결함을 발견했다. mobile nav item에 `flex: 0 0 auto`와 `min-width: 44px`를 적용한 뒤 다시 렌더해 겹침과 touch failure가 0임을 확인했다.
+
+## Benchmark adaptation
+
+- Buffer Post Groups: 같이 만든 게시물을 한 group에서 보고 각 게시물을 독립 편집·발행하는 원칙을 fixed-8 card workspace에 적용했다.
+- Buffer Scheduling Posts: 플랫폼별 preview와 network customization을 공통 card 구조 안의 platform metadata와 독립 textarea로 바꿨다.
+- Sprout Approval Workflows: review와 approval의 명시성을 card Publish와 별도 bulk confirmation에 적용했다.
+- X OAuth PKCE: 연결 readiness와 재연결 조건을 Publish gate로 표현하되 draft/edit/save는 유지했다.
+
+## Red-team
+
+공격: 8개 카드에 Publish가 각각 있으면 느리고 bulk가 더 편해 보인다.
+
+수정 판단: 잘못된 계정과 duplicate의 손실이 클릭 수보다 크다. card Publish를 기본으로 유지하고 bulk는 기본 선택 0의 접힌 보조 control로 제한했다.
+
+공격: 결과 저장 실패를 Publish 실패로 보이면 고객이 같은 게시물을 다시 보낸다.
+
+수정: `결과 기록 복구`와 `같은 게시물을 다시 보내지 않아요`를 card 안에 함께 표시했다.
+
+## 셀프심문
+
+이 결론이 틀렸다면 가장 그럴듯한 이유는? 8개 card를 모두 유지하면 모바일에서 너무 길어질 수 있다.
+
+자답: card를 제거하거나 filter하면 partial generation과 다른7 불변을 고객이 확인하지 못한다.
+
+수정 결과: card 8개는 유지하고 tab 8개를 focus navigation으로 제공했다. tab click은 card를 숨기거나 데이터를 바꾸지 않는다.
+
+## Design review
+
+Design Score: B+
+
+AI Slop Score: B+
+
+- fixed-8 clarity: A
+- card isolation: A
+- safe recovery: A
+- shell preservation: B+
+- mobile density: B
+
+## 남은 gap
+
+- 회수 필요: 8개 실제 account identity와 readiness 응답
+- 회수 필요: card publish, retry, persistence-only repair, reconcile API 계약
+- 회수 필요: prototype의 result sample을 실제 provider ID와 열리는 permalink로 교체하는 구현
+- 회수 필요: bulk review와 confirmation의 권한 및 기록 계약
+
+## 다음 stage
+
+디자인 게이트 재검토 가능. 승인 뒤 eng-design에서 card isolation, retry/repair/reconcile, readiness, explicit bulk 계약을 회장과 합의해야 한다.
+
+RUBRIC_SCORE: hook=5/5 detail=5/5 rhythm=4/5 voice=5/5 slop=5/5 total=24/25
+
+WEAKEST_LINE: `디자인 게이트 재검토 가능`은 검토 증거가 준비됐다는 뜻이며 구현 승인을 의미하지 않는다.
+
+## 검증기용 실제 프로세스 증거
+
+- `/Users/sj/.claude/skills/design-html/SKILL.md`
+- `/Users/sj/.claude/skills/design-review/SKILL.md`
+- `/Users/sj/.claude/standards/design.md`
+- `/Users/sj/.claude/standards/benchmarks.md`
+- `{"query":"site:support.buffer.com post groups Buffer multiple channels customize each post"}`
+- `{"query":"site:support.sproutsocial.com message approval workflow publish messages"}`
+- `{"query":"site:help.hootsuite.com create publish posts multiple social accounts customize each network"}`
+- `{"query":"site:docs.x.com OAuth 2.0 authorization code PKCE refresh token"}`
+- `{"query":"OpenAI Threads post threads.net @openai post"}`
+
+SOURCES: docs/openclaw-auto-osmu-prd-v4.2.1-gpt-codex.md | dashboard/src/components/layout/Sidebar.tsx | dashboard/src/lib/constants.ts | dashboard/src/app/globals.css | dashboard/src/app/studio/page.tsx | dashboard/src/app/settings/page.tsx | https://support.buffer.com/article/961-using-post-groups-in-buffer | https://support.buffer.com/article/642-scheduling-posts | https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows | https://docs.x.com/fundamentals/authentication/oauth-2-0/authorization-code
+
+MODEL: gpt-codex/gpt-5.6-sol
+
+SKILLS_USED: design-html, fixed-8 customer product prototype | design-review, 8/8 interaction isolation and responsive visual audit
+
+SKILLS_SKIPPED: 없음

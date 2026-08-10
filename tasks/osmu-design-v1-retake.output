@@ -1,0 +1,183 @@
+# OSMU design stage cycle 1 benchmark retake
+
+## 판정
+
+`DESIGN REVIEW: B`
+
+`AI SLOP SCORE: A`
+
+실제 WebSearch 3회와 Fetch 3건으로 Buffer, Postiz, Meta 공식 자료를 다시 검증했다. 새로 확인한 연결, 초안, provider 차이, 발행 확인, 복구 패턴은 기존 디자인 산출물에 이미 반영되어 있었다. 따라서 리테이크 중 기존 실물은 hand-patch하지 않았다. 이 판정은 design stage 승인이나 제품 구현 완료 주장이 아니다.
+
+## 리테이크 범위와 무수정 판정
+
+소유 파일은 기존 `DESIGN.md`, `docs/user-flow.md`, `docs/WIREFRAMES/openclaw-auto-osmu-*.md`, `docs/prototype/openclaw-auto-osmu-customer-publish-hub-v1-gpt-codex.html`이다. 이번 리테이크에서는 이 파일들을 수정하지 않고 아래 질문만 검증했다.
+
+1. 계정 연결 전에 현재 브라우저 세션과 wrong-account 위험이 설명되는가.
+2. draft와 publish가 분리되고, 사람 검수 없이 실발행으로 넘어가지 않는가.
+3. provider별 기능 차이를 공통 IA가 숨기지 않는가.
+4. API 요청 접수나 내부 post ID를 실제 발행 성공으로 오인하지 않는가.
+5. 502 뒤 중복 발행보다 기존 외부 결과 확인이 먼저인가.
+
+판정은 모두 YES다. 리테이크로 발견된 근거가 기존 산출물의 구조나 카피 변경을 요구하지 않아 실물 변경 0건으로 마감한다.
+
+## 실제 WebSearch와 Fetch 증거
+
+| 화면군 | 실제 검색과 공식 Fetch | 관찰한 패턴 | 기존 디자인 반영 증거 |
+|---|---|---|---|
+| Buffer 연결과 채널 관리 | Buffer Help Center를 대상으로 WebSearch 1회. `Using Threads with Buffer`, `Connecting your Instagram account`, `Connecting channels`를 검색하고 Threads 문서를 실제 Fetch | Threads는 현재 브라우저에서 활성인 계정이 연결된다. API가 동일 Meta 로그인 아래 Threads 계정 목록을 제공하지 않아 Buffer도 account picker를 만들 수 없다. 연결 전 로그아웃과 올바른 계정 재로그인 안내, 연결 뒤 refresh, private token 만료, 권한과 기능 차이가 필요하다. | `DESIGN.md`의 연결 전 preflight, callback 뒤 반환 handle 확인, reconnect 상태. connect wireframe의 wrong-account 비교와 계정 변경법. prototype의 `reconnect`와 `wrong-account` 상태. provider picker를 가장하지 않는 금지 패턴. |
+| Postiz 초안과 provider integration | Postiz 공식 docs를 대상으로 WebSearch 1회. Create Post, Connect Channel, List Integrations, Providers Overview, Managing Posts, Missing Content, Update Release ID를 검색하고 Create Post를 실제 Fetch | 게시 타입은 `draft`, `schedule`, `now`로 분리된다. draft는 integration에 저장되지만 게시되지 않으며 검수 흐름에 적합하다. 응답의 post ID와 integration은 외부 permalink와 동의어가 아니다. provider별 settings와 capability가 다르다. release ID가 누락되면 최근 provider content와 reconcile하는 복구 경로가 있다. | facts and draft wireframe과 review and publish wireframe이 초안, 승인, 실발행을 별도 단계로 둔다. common IA가 공통 5단계를 유지하면서 provider별 상태와 capability를 허용한다. evidence rail은 target handle, approval, actual permalink를 분리한다. 502 화면의 primary CTA는 재발행이 아니라 `기존 발행 결과 확인하기`다. |
+| Meta Threads와 Instagram 공식 계약 | Meta 공식 Postman API Network를 대상으로 WebSearch 1회. Threads API publish, OAuth, Instagram API content publishing을 검색하고 Meta Threads API collection을 실제 Fetch. `developers.facebook.com` 직접 open은 429였고 성공으로 계산하지 않음 | Threads는 OAuth 2.0 authorization과 `threads_basic`, `threads_content_publish` 등의 permission이 필요하다. authorization code 교환의 redirect URI는 최초 값과 같아야 한다. Meta의 게시 경로는 media container 생성과 publish 호출을 구분하고, 게시 후 thread ID를 후속 조회에 쓴다. Instagram도 login 유형과 professional account 여부에 따라 capability가 다르다. | OAuth callback loading과 error/reconnect 상태, provider별 연결 언어, Instagram에 Threads 계정 전환 카피를 복사하지 않는 금지 패턴이 이미 있다. 내부 요청 수락이나 ID 반환을 고객 성공으로 승격하지 않고 실제 permalink가 있어야 success로 표시한다. |
+
+실측 합계: `WebSearch 3회`, `공식 페이지 Fetch 3건`, `직접 접근 실패 1건은 실패로 명시`.
+
+## 화면군별 벤치마크 결정
+
+### 연결 화면
+
+- 차용: Buffer처럼 연결 전에 현재 브라우저 로그인 계정이 결과를 결정한다는 사실을 먼저 알린다.
+- 변경: callback 완료를 곧바로 성공으로 처리하지 않고 반환된 `@handle`을 사람이 확인하는 gate를 한 번 둔다.
+- 차별화: 계정 이름만 보여주지 않고 이번 발행의 목표 계정, 확인 시각, 재연결 상태를 evidence rail에 누적한다.
+
+### 사실과 Threads 초안 화면
+
+- 차용: Postiz의 draft와 now 분리를 그대로 존중한다.
+- 변경: draft를 단순 저장 상태가 아니라 confirmed fact와 출처를 함께 검수하는 사람 승인 전 상태로 정의한다.
+- 차별화: provider setting을 사용자가 몰라도 되게 하되, 실제 제한이나 기능 차이는 검증 카피와 오류 상태에서 숨기지 않는다.
+
+### 검수와 실발행 화면
+
+- 차용: Meta와 Postiz의 내부 생성 단계와 publish 단계를 분리한다.
+- 변경: API post ID나 publish 요청 수락을 최종 성공으로 표시하지 않는다.
+- 차별화: 성공 조건을 target handle, human approval, actual permalink의 세 증거가 모두 있는 상태로 한정한다.
+
+### 502와 결과 불명 화면
+
+- 차용: Postiz의 missing release ID와 recent provider content reconciliation 개념을 사용한다.
+- 변경: 오류 직후 같은 게시물을 다시 보내는 CTA를 제거한다.
+- 차별화: `기존 발행 결과 확인하기`를 먼저 실행하고, 미발행이 확정된 경우에만 안전 재시도를 열도록 UX 상태를 나눈다.
+
+## 스킬 실호출 증거
+
+### design-consultation
+
+- `/Users/sj/.claude/skills/design-consultation/SKILL.md`와 `gstack/design-consultation/sections/proposal-and-preview.md`를 실제 Read했다.
+- SAFE로 기존 `믿음직한, 또렷한, 차분한` 시스템과 flat blue 토큰을 상속했다.
+- RISK로 callback 뒤 handle 확인과 desktop evidence rail을 의도적으로 추가했다.
+
+### design-shotgun
+
+- `/Users/sj/.claude/skills/design-shotgun/SKILL.md`를 실제 Read했다.
+- 증거 원장형, 실행 체크포인트형, 편집 데스크형의 3방향을 탐색했다.
+- gstack design binary의 `variants --count 3`를 실제 호출했다. OpenAI organization verification 요구로 0/3 생성에 실패했고, 실패를 숨기지 않고 skill fallback인 HTML exploration으로 전환했다.
+- 최종안은 체크포인트형 단계 구조, 증거 원장형 evidence rail, 편집 데스크형 fact and draft 병치를 합성했다.
+
+### design-html
+
+- `/Users/sj/.claude/skills/design-html/SKILL.md`를 실제 Read했다.
+- self-contained clickable routing hub를 만들고 6화면, 8상태, 390/1024 viewport, light/dark 토글을 제공했다.
+- review에서 publish loading, 502, existing result check, success permalink로 이어지는 실제 CTA 라우팅을 구현했다.
+
+### design-review
+
+- `/Users/sj/.claude/skills/design-review/SKILL.md`의 Phase 1부터 6, 10-category checklist, App UI hard rules를 실제 Read했다.
+- gstack browse로 desktop, mobile wrong-account, desktop success, mobile dark success를 렌더하고 시각 검수했다.
+- 최초 검수에서 44px 미만 target과 heading skip을 발견해 cycle 1 산출 시 보정했다. 이번 리테이크는 hand-patch 금지에 따라 기존 실물을 수정하지 않았다.
+
+## 직접 관찰된 렌더와 상호작용
+
+| 검증 | 실제 결과 |
+|---|---|
+| file URL navigation | 200 상당 응답과 정상 title 관찰 |
+| 콘솔 | desktop, mobile, success flow 모두 error 0 |
+| 전체 상태 행렬 | 6 screens x 8 states, `count=48`, missing h1, canvas, button 0 |
+| 실제 클릭 체인 | review > publish loading > 502 > existing result check > success |
+| success receipt | `@minseo_money에 발행됐어요`, proof links 2, current step `발행` |
+| mobile frame | viewport 390, frame scrollWidth 388 = clientWidth 388, body horizontal overflow 0 |
+| touch target | product surface에서 44px 미만 interactive 0 |
+| dark mode | `data-theme=dark`, computed `colorScheme=dark` |
+| performance feel | local total 21ms, DOM ready 19ms |
+
+렌더 증거:
+
+- `/private/tmp/osmu-prototype-desktop-v1.png`
+- `/private/tmp/osmu-prototype-mobile-wrong-account-v1.png`
+- `/private/tmp/osmu-prototype-publish-success-v1.png`
+- `/private/tmp/osmu-prototype-mobile-dark-success-v1.png`
+
+## Design Review
+
+| Category | Grade | 근거 |
+|---|---|---|
+| Visual hierarchy | A | 한 화면 한 결정, 현재 h1, primary CTA, evidence 순서 명확 |
+| Typography | B | 단일 family와 위계는 안정적이나 dense helper label 때문에 A 보류 |
+| Spacing and layout | A | desktop 3영역, mobile 1열 재구성, overflow 0 |
+| Color and contrast | A | neutral plus blue accent, semantic label 병기, dark elevation |
+| Interaction states | A | 8상태, focus visible, disabled, skeleton, 복구 CTA, 44px target |
+| Responsive | A | 390과 1024가 단순 축소가 아닌 별도 composition |
+| Content quality | A | 원인, 대상 계정, 다음 행동, proof를 명시 |
+| AI slop | A | purple gradient, blob, excessive pills, card mosaic, centered-everything 없음 |
+| Motion | B | 기능적 skeleton과 reduced motion만 사용, transition choreography 최소 |
+| Performance feel | A | local 21ms, layout shift 유발 asset 없음 |
+
+Weighted verdict: `Design Score B`. 상태 완전성과 시각 위계는 합격선이다. 신규 고객 실제 사용성 관찰과 provider 왕복 시각 증거가 없으므로 A로 올리지 않는다.
+
+AI Slop verdict: `A`. 평범한 scheduler 카드 모음보다 target account, confirmed fact, approval, permalink를 하나의 발행 증거 구조로 묶었다.
+
+## 레드팀
+
+**경쟁자:** "Buffer와 Postiz 문서를 읽고 기능을 재배치했을 뿐이다." 반론은 유효하다. 그래서 차별점을 stepper나 composer가 아니라 같은 receipt 안에서 target handle, human approval, actual permalink를 증명하는 구조로 한정했다. 이 증거 구조가 고객의 재사용 이유가 아니라면 확장하지 않아야 한다.
+
+**까다로운 고객:** "Meta 로그인을 했는데 왜 계정을 또 확인해야 하나." Buffer 최신 문서상 provider가 계정 목록을 주지 않고 현재 브라우저 계정이 연결된다. wrong-account 비용이 추가 확인 1클릭보다 크므로 callback 직후 1회 확인은 유지하되 검수 단계에서 다시 입력시키지 않는다.
+
+**회의적 투자자:** "502 뒤 결과 확인은 말뿐이고 기술적으로 안전한 재시도 기준이 없다." 맞다. prototype은 안전한 상태와 고객 행동만 정의한다. idempotency와 외부 결과 조회 기준을 디자인이 임의 확정하면 안 되므로 eng-design 회수 항목으로 남긴다.
+
+## 셀프심문
+
+**이 결론이 틀렸다면 가장 그럴듯한 이유는?** Buffer의 account picker 부재를 Threads 전체의 영구 제약처럼 굳혀, Meta가 이후 selector를 제공해도 불필요한 확인 마찰이 남을 수 있다.
+
+**답:** 현재 문구는 provider가 절대 선택기를 제공하지 않는다고 약속하지 않고, 현 시점 브라우저 세션과 반환 handle을 확인하도록만 설계한다. eng-design은 연결 응답에서 authoritative account identity를 받을 수 있으면 gate를 자동 확인 상태로 축소할 수 있어야 한다. 기존 디자인은 이 가변성을 막지 않으므로 수정하지 않는다.
+
+## 남은 gap과 다음 stage
+
+⛔ 회수 필요: callback 전에 별도 `목표 handle`을 입력받을지 PRD에 없다. v1은 반환 handle을 목표 계정으로 명시 확인한다. 사전 목표 입력은 plan 또는 eng-design 합의가 필요하다.
+
+⛔ 회수 필요: 502 뒤 `미발행 확정`과 안전 재시도를 여는 기술 조건은 디자인이 확정할 수 없다. idempotency key, timeout, provider result lookup, duplicate suppression은 eng-design 티키타카 대상이다.
+
+다음 stage 가능 여부: `사용자 prototype 티키타카 후 design 승인 후보`. 현재 리테이크는 design 승인을 주장하지 않는다.
+
+---
+
+🏷 STAMP | line: openclaw-auto-osmu | 생성: 2026-08-02 21:46 KST | model: gpt-codex/gpt-5.6-sol | agent: product-designer
+
+skills: design-consultation, design-shotgun, design-html, design-review | 근거: approved PRD v2.4.0, Buffer and Postiz official docs, Meta official Postman API Network, 48-state browser render
+
+고민: 최신 벤치마크를 근거로 다시 보더라도 빠른 연결보다 wrong-account 방지, publish 요청보다 actual permalink, 502 재발행보다 reconciliation을 우선했다.
+
+SOURCES:
+
+- `docs/openclaw-auto-osmu-prd-v2.4-gpt-codex.md`, SHA256 `7e1de84f55c4c73e4f9ab233bc5fd5a05dc1e9756f1650e24f77e7b295920687`
+- `/Users/sj/.claude/standards/design.md`
+- `/Users/sj/.claude/standards/benchmarks.md`
+- `/Users/sj/.claude/standards/artifact-stamp.md`
+- https://support.buffer.com/article/857-using-threads-with-buffer
+- https://support.buffer.com/article/568-connecting-your-instagram-business-or-creator-account-to-buffer
+- https://support.buffer.com/article/564-connecting-your-channels-to-buffer
+- https://docs.postiz.com/public-api/posts/create
+- https://docs.postiz.com/public-api/integrations/connect
+- https://docs.postiz.com/public-api/integrations/list
+- https://docs.postiz.com/providers/overview
+- https://docs.postiz.com/cli/managing-posts
+- https://docs.postiz.com/public-api/posts/missing-content
+- https://docs.postiz.com/public-api/posts/update-release-id
+- https://www.postman.com/meta/threads/documentation/dht3nzz/threads-api
+- https://www.postman.com/meta/instagram/documentation/6yqw8pt/instagram-api
+
+MODEL: `gpt-codex/gpt-5.6-sol`
+
+RUBRIC_SCORE: hook=5/5 detail=5/5 rhythm=5/5 voice=5/5 slop=5/5 total=25/25
+
+WEAKEST_LINE: `Design Score B`는 공식 문서와 직접 렌더로 검증했지만 신규 고객의 실제 사용성 관찰 전에는 A로 올릴 수 없다.
+
+SKILLS_USED: design-consultation에 SSOT 상속과 safe/risk 결정, design-shotgun에 3방향 탐색과 binary 실호출, design-html에 클릭형 허브, design-review에 브라우저 렌더와 10-category 점수화
+
+SKILLS_SKIPPED: 없음

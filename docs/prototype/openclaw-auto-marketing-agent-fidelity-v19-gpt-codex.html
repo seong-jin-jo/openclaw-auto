@@ -1,0 +1,1089 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <!-- STAMP: openclaw-auto / marketing-agent-fidelity-v19-retake / 2026-08-08 17:25 KST /
+       gpt-codex/gpt-5.6-sol / product-designer / skills: brand-positioning-kit,
+       openclaw-creative-brief, gstack design-review / evidence: PRD v7.3.5, Audit96,
+       current OpenClaw UI and official Buffer, Sprout, Google OAuth sources /
+       고민: 공통 운영 탭은 고객과 운영자의 길찾기만 통일하고, 플랫폼 고유 편집, 영상 작업, Messaging 의미는 그대로 보존한다. -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>OpenClaw Marketing Agent v19 Retake</title>
+  <style>
+    @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard-dynamic-subset.css");
+    :root{
+      --bg:#fbfbfc;--surface:#fff;--surface-2:#f4f4f5;--border:#e4e4e7;
+      --text:#18181b;--muted:#52525b;--subtle:#71717a;--accent:#2563eb;
+      --accent-soft:#eff6ff;--success:#15803d;--success-soft:#f0fdf4;
+      --warning:#b45309;--warning-soft:#fffbeb;--danger:#b91c1c;--danger-soft:#fef2f2;
+      --sidebar:224px;--radius:12px;--control:8px;
+      --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;
+      font-family:Pretendard,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;font-size:16px;
+    }
+    [data-theme="dark"]{
+      --bg:#0a0a0b;--surface:#161618;--surface-2:#1f1f23;--border:#303036;
+      --text:#f4f4f5;--muted:#d4d4d8;--subtle:#a1a1aa;--accent:#60a5fa;
+      --accent-soft:#172554;--success:#4ade80;--success-soft:#052e16;
+      --warning:#fbbf24;--warning-soft:#422006;--danger:#f87171;--danger-soft:#450a0a;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:#d4d4d8;color:var(--text)}
+    body{min-height:100vh}
+    button,input,select,textarea{font:inherit}
+    button{min-height:44px;min-width:44px;border:1px solid var(--border);border-radius:var(--control);
+      background:var(--surface);color:var(--text);padding:9px 13px;cursor:pointer;font-weight:650}
+    button:hover{border-color:var(--accent)}
+    button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{
+      outline:3px solid color-mix(in srgb,var(--accent) 35%,transparent);outline-offset:2px}
+    button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+    button.quiet{border-color:transparent;background:transparent}
+    button.danger{color:var(--danger)}
+    button:disabled{opacity:.48;cursor:not-allowed}
+    a{color:var(--accent);text-decoration:none}
+    svg{width:18px;height:18px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
+    [hidden]{display:none!important}
+    .qa-tools{position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:8px;
+      min-height:48px;padding:6px 12px;background:#18181b;color:#fafafa;border-bottom:1px solid #3f3f46}
+    .qa-tools strong{font-size:12px;letter-spacing:.06em}
+    .qa-tools button,.qa-tools select{min-height:44px;padding:8px 10px;background:#27272a;color:#fafafa;border-color:#52525b}
+    .qa-tools .qa-result{margin-left:auto;font-size:12px;color:#d4d4d8}
+    .prototype{max-width:1440px;margin:0 auto;background:var(--bg);min-height:100vh;
+      display:grid;grid-template-columns:var(--sidebar) minmax(0,1fr);position:relative}
+    .sidebar{background:var(--surface);border-right:1px solid var(--border);padding:18px 12px;
+      height:100vh;overflow:auto;position:sticky;top:0}
+    .brand{display:flex;align-items:center;gap:10px;padding:0 8px 18px;font-weight:750}
+    .brand button{display:none;margin-left:auto}
+    .brand-mark{display:grid;place-items:center;width:32px;height:32px;background:var(--accent);color:#fff;border-radius:9px}
+    .workspace{margin:0 4px 18px;padding:10px;border:1px solid var(--border);border-radius:10px}
+    .workspace small{display:block;color:var(--subtle);margin-bottom:4px}
+    .workspace b{font-size:13px}
+    .nav-group{margin:18px 0}
+    .nav-group h2{margin:0 8px 6px;color:var(--subtle);font-size:11px;line-height:16px;text-transform:uppercase;letter-spacing:.08em}
+    .nav-item{width:100%;display:flex;align-items:center;gap:10px;min-height:44px;padding:8px 9px;
+      border:0;background:transparent;border-radius:8px;text-align:left;font-size:13px;font-weight:550}
+    .nav-item.active{background:var(--accent-soft);color:var(--accent);font-weight:700}
+    .nav-item .off{margin-left:auto;font-size:10px;color:var(--subtle);border:1px solid var(--border);border-radius:99px;padding:2px 5px}
+    .main{min-width:0}
+    .topbar{height:64px;display:flex;align-items:center;gap:12px;padding:0 24px;background:var(--surface);border-bottom:1px solid var(--border)}
+    .mobile-menu{display:none}
+    .breadcrumb{font-size:12px;color:var(--subtle)}
+    .topbar .spacer{flex:1}
+    .role-chip{font-size:12px;padding:5px 8px;border-radius:99px;background:var(--surface-2);color:var(--muted)}
+    .content{max-width:1180px;padding:24px;margin:0 auto}
+    .page-head{display:flex;align-items:flex-start;gap:16px;margin-bottom:24px}
+    .page-head h1{margin:0 0 6px;font-size:24px;line-height:32px}
+    .page-head p{margin:0;color:var(--muted);font-size:16px;line-height:25px;max-width:720px}
+    .page-head .head-action{margin-left:auto;white-space:nowrap}
+    .grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px}
+    .span-12{grid-column:span 12}.span-8{grid-column:span 8}.span-7{grid-column:span 7}
+    .span-6{grid-column:span 6}.span-5{grid-column:span 5}.span-4{grid-column:span 4}
+    .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;min-width:0}
+    .panel h2,.panel h3{margin:0 0 8px}.panel h2{font-size:16px;line-height:24px}.panel h3{font-size:14px}
+    .panel p{margin:0;color:var(--muted);font-size:16px;line-height:25px}
+    .panel + .panel{margin-top:16px}
+    .actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:16px}
+    .kicker{font-size:12px;color:var(--accent);font-weight:750;margin-bottom:6px}
+    .status{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:4px 8px;font-size:12px;font-weight:650}
+    .status.success{background:var(--success-soft);color:var(--success)}
+    .status.warning{background:var(--warning-soft);color:var(--warning)}
+    .status.danger{background:var(--danger-soft);color:var(--danger)}
+    .status.neutral{background:var(--surface-2);color:var(--muted)}
+    .metric{font-variant-numeric:tabular-nums;font-size:26px;line-height:32px;font-weight:750;margin:8px 0}
+    .label{display:block;color:var(--muted);font-size:12px;margin:0 0 6px}
+    input,textarea,select{width:100%;min-height:44px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+    textarea{min-height:90px;resize:vertical}
+    .field{margin-top:14px}.field:first-child{margin-top:0}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .progress{height:7px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin-top:12px}
+    .progress span{display:block;height:100%;background:var(--accent)}
+    .step-row{display:flex;gap:8px;overflow:auto;padding:2px 0 8px;scrollbar-width:thin}
+    .step-pill{flex:0 0 auto;display:flex;align-items:center;gap:7px;min-width:44px;min-height:44px;padding:8px 12px;border-radius:99px;font-size:13px}
+    .step-pill.active{background:var(--accent);border-color:var(--accent);color:#fff}
+    .step-pill.done{background:var(--success-soft);color:var(--success)}
+    .step-number{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;border:1px solid currentColor;font-size:11px}
+    .journey-layout{display:grid;grid-template-columns:240px minmax(0,1fr);gap:16px}
+    .journey-nav{position:sticky;top:88px;align-self:start}
+    .journey-nav button{width:100%;display:flex;align-items:center;gap:9px;text-align:left;border-color:transparent;background:transparent}
+    .journey-nav button.active{background:var(--accent-soft);color:var(--accent)}
+    .notice{border:1px solid var(--border);border-radius:8px;padding:12px 14px;background:var(--accent-soft);color:var(--text);font-size:15px;line-height:23px}
+    .notice.warning{background:var(--warning-soft)}
+    .notice.danger{background:var(--danger-soft)}
+    .list{display:grid;gap:8px;margin-top:12px}
+    .list-row{display:flex;align-items:center;gap:10px;border-top:1px solid var(--border);padding:11px 0;min-width:0}
+    .list-row:first-child{border-top:0}
+    .list-row .grow{min-width:0;flex:1}
+    .list-row b,.list-row small{display:block;white-space:normal}
+    .list-row small{margin-top:3px;color:var(--subtle);line-height:17px}
+    .source-choice{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
+    .choice{display:flex;gap:10px;text-align:left;min-height:82px;padding:13px}
+    .choice.active{border-color:var(--accent);background:var(--accent-soft)}
+    .choice b,.choice small{display:block}.choice small{margin-top:4px;color:var(--muted);font-weight:400;line-height:17px}
+    .source-dot{flex:0 0 auto;width:18px;height:18px;border-radius:50%;border:2px solid var(--border);margin-top:1px}
+    .choice.active .source-dot{border:5px solid var(--accent)}
+    .studio-family{position:relative;padding-left:64px}
+    .studio-family.secondary-section{border-width:1px 0 0;border-radius:0;background:transparent;padding-top:28px;padding-bottom:28px}
+    [data-source-lineage]{border:0;background:transparent;padding-left:0;padding-right:0}
+    .secondary-section.messaging-section{padding-left:var(--space-4)}
+    .page-tabs{display:flex;gap:var(--space-2);overflow:auto;margin:0 0 var(--space-5);padding-bottom:var(--space-2);border-bottom:1px solid var(--border)}
+    .page-tabs button{white-space:nowrap;min-width:44px;min-height:44px}
+    .page-tabs button.active{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+    .section-stack{display:grid;gap:var(--space-4)}
+    .inline{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+    .action-group{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-top:var(--space-4)}
+    .source-label{display:inline-flex;align-items:center;gap:var(--space-2);padding:6px 9px;border-radius:999px;background:var(--surface-2);color:var(--muted);font-size:12px;font-weight:700}
+    .readiness-ladder{display:grid;gap:var(--space-2);margin-top:var(--space-4)}
+    .readiness-step{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:var(--space-3);align-items:start;padding:var(--space-3);border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+    .readiness-step .mark{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--surface-2);font-weight:750}
+    .readiness-step.done .mark{background:var(--success-soft);color:var(--success)}
+    .readiness-step.blocked .mark{background:var(--warning-soft);color:var(--warning)}
+    .readiness-step b,.readiness-step small{display:block}.readiness-step small{margin-top:3px;color:var(--subtle);line-height:17px}
+    .owner-tag{font-size:10px;color:var(--muted);background:var(--surface-2);border-radius:999px;padding:4px 7px}
+    .connection-test{margin-top:var(--space-4)}
+    .calendar-time-notice{margin-bottom:var(--space-5)}
+    .shimmer{height:14px;border-radius:6px;background:linear-gradient(90deg,var(--surface-2) 25%,var(--border) 45%,var(--surface-2) 65%);background-size:240% 100%;animation:shimmer 1.2s linear infinite}
+    @keyframes shimmer{to{background-position:-240% 0}}
+    .family-number{position:absolute;left:18px;top:18px;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;font-weight:750}
+    .platform-tabs{display:flex;gap:6px;overflow:auto;margin:12px 0}
+    .platform-tabs button{white-space:nowrap;min-width:44px;min-height:44px;padding:8px 12px}
+    .platform-tabs button.active{background:var(--accent-soft);color:var(--accent)}
+    .scroll-hint{display:none;align-items:center;gap:8px;color:var(--muted);font-size:12px;font-weight:700;margin:4px 0 8px}
+    .lineage-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2)}
+    .lineage-strip span{display:block;min-width:0;overflow-wrap:anywhere;font-size:11px;color:var(--subtle)}
+    .lineage-strip b{display:block;margin-top:3px;color:var(--text);font-size:12px;font-variant-numeric:tabular-nums}
+    .recovery-preserved{margin-top:10px;padding:10px;border-radius:8px;background:var(--surface-2);font-size:12px;overflow-wrap:anywhere}
+    .bulk-bar{position:sticky;bottom:12px;z-index:5;display:flex;align-items:center;gap:12px;margin-top:18px;
+      padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.12)}
+    .bulk-bar .grow{flex:1}
+    .header7{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin-bottom:16px}
+    .truth-cell{padding:10px;background:var(--surface-2);border-radius:8px;min-width:0}
+    .truth-cell small,.truth-cell b{display:block;overflow-wrap:anywhere}.truth-cell small{color:var(--subtle);font-size:10px;margin-bottom:4px}.truth-cell b{font-size:12px}
+    .state-card{margin-bottom:16px}
+    .state-card[data-state="error"]{background:var(--danger-soft)}
+    .state-card[data-state="loading"]{background:var(--accent-soft)}
+    .state-card[data-state="empty"]{background:var(--surface)}
+    .state-card[data-state="uncertain"]{background:var(--warning-soft)}
+    .table-wrap{overflow:auto}
+    table{border-collapse:collapse;width:100%;font-size:13px}
+    th,td{text-align:left;padding:11px;border-bottom:1px solid var(--border);vertical-align:top}
+    th{color:var(--subtle);font-size:11px}
+    .timeline{display:grid;gap:8px}
+    .timeline-row{display:grid;grid-template-columns:36px 160px minmax(0,1fr) auto;align-items:center;gap:10px;padding:10px;border:1px solid var(--border);border-radius:9px}
+    .timeline-row.active{border-color:var(--accent);background:var(--accent-soft)}
+    .overlay{position:fixed;z-index:90;inset:0;background:rgba(0,0,0,.48);display:grid;place-items:center;padding:22px}
+    .dialog{width:min(680px,100%);max-height:calc(100vh - 92px);overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px}
+    .dialog h2{margin:0}.dialog-head{display:flex;gap:12px;align-items:center;margin-bottom:16px}.dialog-head button{margin-left:auto}
+    .mobile-actions{display:none}
+    .operator-shell{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100vh;background:var(--bg)}
+    .operator-nav{padding:20px;background:#18181b;color:#f4f4f5}.operator-nav button{width:100%;margin-top:8px;background:#27272a;color:#f4f4f5;border-color:#3f3f46;text-align:left}
+    .operator-main{padding:24px;min-width:0}.operator-banner{padding:12px;background:var(--warning-soft);color:var(--warning);font-size:13px;border-bottom:1px solid var(--border)}
+    .drawer-backdrop{display:none}
+    .settings-tabs{display:flex;gap:6px;overflow:auto;padding-bottom:10px;margin-bottom:16px;border-bottom:1px solid var(--border)}
+    .settings-tabs button{flex:0 0 auto}.settings-tabs button.active{background:var(--accent-soft);color:var(--accent)}
+    .surface-tabs{display:flex;gap:var(--space-2);overflow:auto;margin:0 0 var(--space-5);padding-bottom:var(--space-2);border-bottom:1px solid var(--border)}
+    .surface-tabs button{white-space:nowrap;min-width:44px;min-height:44px}
+    .surface-tabs button.active{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+    .gap-table td:first-child,.account-table td:first-child{font-weight:700}
+    .gap-table td:last-child,.account-table td:last-child{min-width:170px}
+    .checkline{display:flex;align-items:flex-start;gap:9px;margin-top:10px;font-size:13px;color:var(--muted)}
+    .checkline input,.tap-checkbox{flex:0 0 44px;width:44px;min-width:44px;height:44px;min-height:44px;margin:0}
+    .hidden{display:none!important}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    @media(max-width:1100px){
+      .header7{grid-template-columns:repeat(4,minmax(0,1fr))}
+      .span-8,.span-7,.span-6,.span-5,.span-4{grid-column:span 12}
+      .journey-layout{grid-template-columns:1fr}.journey-nav{position:static}
+      .journey-nav .step-list{display:flex;overflow:auto}.journey-nav button{min-width:170px}
+    }
+    @media(max-width:700px){
+      .qa-tools{overflow:auto}.qa-tools strong{display:none}.qa-tools .qa-result{display:none}
+      .prototype{display:block;min-height:100vh}
+      .sidebar{display:none}.topbar{height:56px;padding:0 16px}.mobile-menu{display:grid;place-items:center;width:44px}
+      .sidebar.mobile-open{display:block;position:fixed;z-index:85;left:0;top:0;width:min(316px,86vw);height:100vh;box-shadow:18px 0 50px rgba(0,0,0,.24)}
+      .sidebar.mobile-open .brand button{display:block}
+      .drawer-backdrop.mobile-open{display:block;position:fixed;z-index:84;inset:0;width:100%;height:100%;padding:0;border:0;border-radius:0;background:rgba(0,0,0,.46)}
+      .breadcrumb{display:none}.content{padding:18px 16px 28px}.page-head{display:block}.page-head .head-action{margin:14px 0 0}
+      .page-head h1{font-size:22px;line-height:29px}
+      .grid{display:block}.panel{margin-bottom:12px}.panel + .panel{margin-top:0}
+      .form-grid,.source-choice{grid-template-columns:1fr}
+      .journey-nav .step-list{display:flex}.journey-nav button{min-width:158px}
+      .studio-family{padding-left:18px;padding-top:58px}.family-number{top:16px}
+      .header7{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .bulk-bar{position:static;display:block;box-shadow:none}.bulk-bar button{width:100%;margin-top:8px}
+      .mobile-actions{display:block;margin-top:16px}
+      .timeline-row{grid-template-columns:32px minmax(0,1fr)}.timeline-row>*:nth-child(3),.timeline-row>*:nth-child(4){grid-column:2}
+      .overlay{inset:0;padding:0;place-items:stretch;background:var(--surface)}
+      .dialog{width:100%;height:100dvh;max-height:none;border:0;border-radius:0;padding:16px;overflow:auto}
+      .dialog-head{position:sticky;top:-16px;z-index:4;background:var(--surface);padding:16px 0 12px;border-bottom:1px solid var(--border)}
+      .journey-layout{display:block}.journey-nav{position:sticky;top:58px;z-index:3;background:var(--surface);padding:8px 0}
+      .journey-nav .step-list{display:flex;overflow:auto;scrollbar-width:thin}.journey-nav button{min-width:176px}
+      .operator-shell{display:block}.operator-nav{display:grid;grid-template-columns:1fr;padding:12px;white-space:normal;overflow:visible}
+      .operator-nav h1,.operator-nav p{display:block;margin:0 0 8px}.operator-nav button{display:block;width:100%;margin:0 0 6px}
+      .operator-main{padding:16px}
+      .lineage-strip{grid-template-columns:1fr 1fr}
+      .scroll-hint{display:flex}
+      .page-tabs{flex-wrap:wrap;overflow:visible}
+      .surface-tabs{scroll-snap-type:x proximity}.surface-tabs button{scroll-snap-align:start}
+      [data-horizontal-scroll="true"]{scroll-snap-type:x proximity;padding-bottom:10px}
+      [data-horizontal-scroll="true"] button{scroll-snap-align:start}
+    }
+  </style>
+</head>
+<body data-theme="light">
+  <div class="qa-tools" data-prototype-inspector="true" aria-label="프로토타입 검수 도구" hidden>
+    <strong>V19 RETAKE REVIEW</strong>
+    <button type="button" data-viewport-control="true" data-viewport="1440">1440</button>
+    <button type="button" data-viewport-control="true" data-viewport="1024">1024</button>
+    <button type="button" data-viewport-control="true" data-viewport="390">390</button>
+    <select id="qa-role" aria-label="역할"><option value="customer">고객</option><option value="operator">운영자</option></select>
+    <button type="button" id="qa-theme">밝은 화면</button>
+    <button type="button" id="qa-hide">프레젠테이션</button>
+    <select id="qa-state" aria-label="화면 상태">
+      <option value="success">정상</option><option value="loading">불러오는 중</option>
+      <option value="empty">내용 없음</option><option value="error">오류</option><option value="partial">일부 완료</option>
+      <option value="permission">권한 필요</option><option value="uncertain">결과 확인 중</option>
+      <option value="repair">기록 복구</option>
+    </select>
+    <span class="qa-result" id="qa-result">26 destinations · 14 steps · gaps 12</span>
+  </div>
+  <button type="button" id="qa-restore" data-prototype-inspector="true" style="position:fixed;right:8px;bottom:8px;z-index:120;min-width:44px;min-height:44px;opacity:.58" hidden>검수</button>
+  <div id="root"></div>
+  <script>
+  (function(){
+    "use strict";
+    var inspectorOptIn=new URLSearchParams(window.location.search).get('prototypeInspector')==='1'||window.location.hash==='#prototype-inspector';
+    var inspectorMode='off';
+    function setInspectorMode(mode){
+      inspectorMode=mode;
+      var tools=document.querySelector('.qa-tools'),restore=document.getElementById('qa-restore');
+      tools.hidden=mode!=='tools';restore.hidden=mode!=='restore';
+      document.body.setAttribute('data-prototype-inspector-mode',mode==='off'?'off':'on');
+    }
+    var icon = function(name){
+      var paths={
+        home:'<path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/>',
+        edit:'<path d="m4 20 4-1 11-11-3-3L5 16l-1 4Z"/><path d="m14 7 3 3"/>',
+        inbox:'<path d="M4 5h16v14H4z"/><path d="M4 14h5l2 3h2l2-3h5"/>',
+        calendar:'<path d="M5 4h14v16H5z"/><path d="M8 2v4M16 2v4M5 9h14"/>',
+        social:'<circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/>',
+        message:'<path d="M4 5h16v12H8l-4 3V5Z"/>',
+        video:'<rect x="3" y="5" width="14" height="14" rx="2"/><path d="m17 10 4-2v8l-4-2"/>',
+        chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+        search:'<circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/>',
+        file:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/>',
+        image:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8" cy="9" r="2"/><path d="m3 17 5-5 4 4 3-3 6 6"/>',
+        settings:'<circle cx="12" cy="12" r="3"/><path d="M19 13.5v-3l-2-.7-.7-1.7.9-1.9-2.1-2.1-1.9.9-1.7-.7L10.5 2h-3l-.7 2-1.7.7-1.9-.9-2.1 2.1.9 1.9-.7 1.7-2 .7v3l2 .7.7 1.7-.9 1.9 2.1 2.1 1.9-.9 1.7.7.7 2h3l.7-2 1.7-.7 1.9.9 2.1-2.1-.9-1.9.7-1.7 2-.7Z" transform="translate(1.5 0) scale(.88)"/>',
+        menu:'<path d="M4 7h16M4 12h16M4 17h16"/>'
+      };
+      return '<svg viewBox="0 0 24 24" aria-hidden="true">'+(paths[name]||paths.file)+'</svg>';
+    };
+    var groups=[
+      {label:'Overview',items:[
+        {path:'/',label:'성과',icon:'home',kind:'home'},
+        {path:'/studio',label:'OSMU Studio',icon:'edit',kind:'studio'},
+        {path:'/inbox',label:'승인 인박스',icon:'inbox',kind:'inbox'},
+        {path:'/calendar',label:'발행 캘린더',icon:'calendar',kind:'calendar'}]},
+      {label:'Social posts',items:[
+        {path:'/channels/threads',label:'Threads',icon:'social',kind:'social'},
+        {path:'/channels/x',label:'X',icon:'social',kind:'social'},
+        {path:'/channels/instagram',label:'Instagram',icon:'image',kind:'instagram'},
+        {path:'/channels/facebook',label:'Facebook',icon:'social',kind:'social'},
+        {path:'/channels/bluesky',label:'Bluesky',icon:'social',kind:'social'}]},
+      {label:'Messaging',off:true,items:[
+        {path:'/channels/telegram',label:'Telegram',icon:'message',kind:'message'},
+        {path:'/channels/discord',label:'Discord',icon:'message',kind:'message'},
+        {path:'/channels/slack',label:'Slack',icon:'message',kind:'message'}]},
+      {label:'Social short video',items:[
+        {path:'/channels/youtube',label:'YouTube Shorts',icon:'video',kind:'video'},
+        {path:'/channels/tiktok',label:'TikTok',icon:'video',kind:'video'}]},
+      {label:'Data and Analytics',items:[
+        {path:'/blog-performance',label:'Blog Performance',icon:'chart',kind:'data'},
+        {path:'/search-console',label:'Search Console',icon:'chart',kind:'data'},
+        {path:'/google-analytics',label:'Google Analytics',icon:'chart',kind:'data'}]},
+      {label:'Keyword Research',items:[
+        {path:'/keyword-planner',label:'Keyword Planner',icon:'search',kind:'keyword'},
+        {path:'/search-advisor',label:'Search Advisor',icon:'search',kind:'keyword'},
+        {path:'/naver-trends',label:'Naver Trends',icon:'search',kind:'keyword'},
+        {path:'/google-trends',label:'Google Trends',icon:'search',kind:'keyword'}]},
+      {label:'Custom Integration',items:[{path:'/blog',label:'Blog',icon:'file',kind:'blog'}]},
+      {label:'Assets and Tools',items:[
+        {path:'/images',label:'Images',icon:'image',kind:'images'},
+        {path:'/videos',label:'Videos',icon:'video',kind:'videos'},
+        {path:'/channels/midjourney',label:'Midjourney',icon:'image',kind:'midjourney'}]},
+      {label:'System',items:[{path:'/settings',label:'Settings',icon:'settings',kind:'settings'}]}
+    ];
+    var destinations=[];groups.forEach(function(g){g.items.forEach(function(i){destinations.push(i);});});
+    var steps=['가입·작업 공간','작업 요청','브랜드 자료','브랜드 기준','시장·채널 조사','캠페인 브리프','텍스트','사진·카드뉴스','짧은 영상','피드백 반영','최종 승인','게시·예약','결과·보고','다음 실험'];
+    var SURFACE_TABS=Object.freeze([['overview','운영 개요'],['accounts','계정'],['automation','자동화'],['evidence','결과 증거'],['gaps','미구현']]);
+    var ACCOUNT_TARGETS=Object.freeze([
+      Object.freeze({provider:'Threads',account:'@monostudio',current:'실제 게시 확인',token:'암호화 저장 · 원문 숨김',automation:'예약 실행 가능',target:'8/8 유지',evidence:'외부 결과와 확인 시각'}),
+      Object.freeze({provider:'Instagram',account:'@monostudio',current:'계정 연결 확인',token:'암호화 저장 · 갱신 확인 필요',automation:'외부 요청 차단',target:'권한·갱신·게시 실증',evidence:'미구현'}),
+      Object.freeze({provider:'X',account:'연결할 계정',current:'앱·계정 실증 필요',token:'상태 원천 미구현',automation:'외부 요청 차단',target:'OAuth·게시·readback',evidence:'미구현'}),
+      Object.freeze({provider:'Facebook',account:'연결할 페이지',current:'앱·계정 실증 필요',token:'상태 원천 미구현',automation:'외부 요청 차단',target:'페이지·scope·게시 실증',evidence:'미구현'}),
+      Object.freeze({provider:'Bluesky',account:'연결할 계정',current:'자격증명 실증 필요',token:'건강 상태 미구현',automation:'외부 요청 차단',target:'세션·게시·readback',evidence:'미구현'}),
+      Object.freeze({provider:'YouTube Shorts',account:'연결할 채널',current:'앱·채널 실증 필요',token:'offline 갱신 미검증',automation:'영상 작업만 보존',target:'채널·scope·업로드 실증',evidence:'미구현'}),
+      Object.freeze({provider:'TikTok',account:'연결할 계정',current:'계정 권한 재확인',token:'갱신·scope 미검증',automation:'외부 요청 차단',target:'계정·scope·비동기 결과',evidence:'미구현'}),
+      Object.freeze({provider:'Telegram',account:'mono-news',current:'전달 꺼짐',token:'bot health 미구현',automation:'명시 동의 전 0',target:'bot·대상·결과 증거',evidence:'미구현'})
+    ]);
+    var GAP_ROWS=Object.freeze([
+      Object.freeze({area:'한 콘텐츠 식별',current:'화면 계약만 있음',target:'Studio와 모든 투영이 같은 기록·수정본',owner:'기술설계',status:'미구현'}),
+      Object.freeze({area:'투영 쓰기 주체',current:'route별 소유가 나뉨',target:'Create·Queue·Calendar·Results 충돌 0',owner:'기술설계',status:'미구현'}),
+      Object.freeze({area:'게시 멱등·불확실 결과',current:'부분 처리',target:'동일 의도 외부 요청 최대 1, reconcile 우선',owner:'기술설계·QA',status:'부분'}),
+      Object.freeze({area:'Instagram 실게시',current:'계정 연결까지만 확인',target:'scope·갱신·게시·외부 결과',owner:'OAuth·QA',status:'외부 미검증'}),
+      Object.freeze({area:'X·Facebook·Bluesky',current:'자격증명·실증 필요',target:'계정별 readiness 8단계',owner:'OAuth·QA',status:'미구현'}),
+      Object.freeze({area:'YouTube·TikTok 영상 게시',current:'영상 작업 보존',target:'업로드·비동기 결과·readback',owner:'Video·QA',status:'외부 미검증'}),
+      Object.freeze({area:'Messaging 전달',current:'기본 꺼짐',target:'bot·대상·승인·예약·결과 한 기록',owner:'Messaging',status:'미구현'}),
+      Object.freeze({area:'계정별 token 상태',current:'원문 숨김, 일부 metadata',target:'scope·expiry·refresh·health·verified_at',owner:'Admin·OAuth',status:'부분'}),
+      Object.freeze({area:'운영자 비밀값 확인',current:'DB source·30초 닫힘',target:'재인증·명시 사유·actor audit',owner:'Security',status:'부분'}),
+      Object.freeze({area:'AI token·비용',current:'작업 횟수만 수집',target:'model·input·output·cost·period·source',owner:'Usage',status:'미구현'}),
+      Object.freeze({area:'native 성과',current:'Threads 일부',target:'destination-format 8개 provenance',owner:'Analytics',status:'미구현'}),
+      Object.freeze({area:'실브라우저·provider E2E',current:'prototype semantic evidence',target:'390·1024·1440과 실제 OAuth·publish 증거',owner:'QA',status:'미검증'})
+    ]);
+    var DEMO_IDENTITY=Object.freeze({
+      campaign_id:'cmp_fall_launch_2026',
+      content_id:'cnt_2047',
+      revision_id:'rev_7',
+      publish_attempt_id:'pub_0071',
+      external_result_id:'ext_ig_8801',
+      experiment_id:'exp_hook_specificity_01'
+    });
+    var DEMO_RESULTS=Object.freeze([
+      Object.freeze({external_result_id:'ext_ig_8801',title:'가을 신규 고객 안내',platform:'Instagram Reels',account:'@monostudio',revision_id:'rev_7',publish_attempt_id:'pub_0071',status:'게시 확인',metric:'저장 42',requested_at:'오늘 15:48',confirmed_at:'오늘 15:49'}),
+      Object.freeze({external_result_id:'ext_th_8802',title:'가을 신규 고객 안내',platform:'Threads',account:'@monostudio',revision_id:'rev_7',publish_attempt_id:'pub_0072',status:'게시 확인',metric:'답글 8',requested_at:'오늘 15:52',confirmed_at:'오늘 15:53'}),
+      Object.freeze({external_result_id:'ext_yt_8803',title:'가을 신규 고객 안내',platform:'YouTube Shorts',account:'Mono Studio',revision_id:'rev_7',publish_attempt_id:'pub_0073',status:'결과 확인 중',metric:'아직 값 없음',requested_at:'오늘 16:02',confirmed_at:'확인 중'})
+    ]);
+    var RECOVERY_OWNERS=Object.freeze({
+      home:Object.freeze({label:'Home',context:'성과 요약과 다음 행동',account:'workspace:monostudio',accountLabel:'모노스튜디오 작업 공간'}),
+      studio:Object.freeze({label:'Studio',context:'편집 중인 문구와 미디어',account:'@monostudio',accountLabel:'@monostudio'}),
+      inbox:Object.freeze({label:'Inbox',context:'검토 메모와 승인 판단',account:'@monostudio',accountLabel:'@monostudio'}),
+      calendar:Object.freeze({label:'Calendar',context:'서울 예약 시간과 일정',account:'@monostudio',accountLabel:'@monostudio'}),
+      platform:Object.freeze({label:'Platform',context:'채널 대기열과 연결 상태',account:'@monostudio',accountLabel:'@monostudio'}),
+      results:Object.freeze({label:'Results',context:'외부 결과와 측정 시점',account:'@monostudio',accountLabel:'@monostudio'}),
+      settings:Object.freeze({label:'Settings',context:'연결 설정과 작업 공간 범위',account:'workspace:monostudio',accountLabel:'모노스튜디오 작업 공간'}),
+      operator:Object.freeze({label:'Operator',context:'운영 기록과 지원 대상',account:'operator:admin-01',accountLabel:'운영자 지원 기록'})
+    });
+    var RECOVERY_STATES=Object.freeze({
+      loading:Object.freeze({title:'새 상태를 불러오는 중',detail:'마지막 정상 화면을 그대로 유지합니다.',verb:'마지막 화면 유지'}),
+      empty:Object.freeze({title:'표시할 새 항목이 없음',detail:'현재 항목을 지우지 않고 새 입력 경로만 엽니다.',verb:'현재 항목 열기'}),
+      partial:Object.freeze({title:'일부 항목만 완료됨',detail:'완료한 항목은 잠그고 누락된 항목만 다시 확인합니다.',verb:'누락 항목만 확인'}),
+      permission:Object.freeze({title:'권한 확인이 필요함',detail:'초안은 유지하고 필요한 계정 범위만 다시 연결합니다.',verb:'필요 권한만 연결'}),
+      uncertain:Object.freeze({title:'외부 결과를 확인 중',detail:'중복 게시를 막고 같은 요청의 외부 결과만 확인합니다.',verb:'같은 요청 확인'}),
+      repair:Object.freeze({title:'내부 기록만 복구 가능',detail:'외부 게시를 반복하지 않고 누락된 기록만 복구합니다.',verb:'기록만 복구'})
+    });
+    var ACTION_CONTRACTS=Object.freeze({
+      'add-image':'이미지 추가 패널 상태 기록','admin-refresh':'운영 상태 재확인 기록','admin-security':'보안 기록 탭 요청','apply-experiment':'실험을 rev_8로 적용','approve':'현재 수정 승인','auth-cancel':'로그인 취소 상태','auth-chooser':'Google 계정 선택','auth-complete':'작업 공간 선택 완료','auth-error':'인증 오류 상태','auth-login':'로그인 시작','auth-workspace':'작업 공간 선택','bulk-close':'영향 범위 닫기','bulk-fix-account':'문제 계정만 수정','bulk-review':'선택 영향 범위 검토','bulk-schedule':'확인된 선택만 예약','bundle':'가져올 파일 선택','bundle-exclusion':'제외 사유 확인','cancel-schedule':'선택 일정만 취소','choose-model':'작업 공간 모델 선택','close-journey':'캠페인 단계 닫기','close-overlay':'결과 상세 닫기','connect':'채널 연결 관리','customer-health':'고객 상태 읽기 전용 확인','data-control':'데이터 관리 영향 확인','design-connect':'디자인 도구 연결','detail-close':'상세 패널 닫기','detail-save':'현재 상세 입력 저장','direct-confirm':'한 채널 게시 요청','dismiss':'다음 제안 숨김','edit-blog':'긴 글 편집','edit-card':'카드뉴스 편집','edit-experiment':'실험 변수 편집','edit-variants':'채널 문구 비교 편집','export':'현재 결과 직접 내보내기','external-result':'외부 결과 원문 열기','go-calendar':'캘린더 이동','go-home':'Home 이동','go-images':'Images 이동','go-inbox':'승인 인박스 이동','go-settings':'Settings 이동','go-studio':'Studio 이동','go-videos':'Videos 이동','hold':'실험 제안 보류','ig-feed':'Instagram 피드 형식 선택','ig-reels':'Instagram Reels 형식 선택','issue-token':'일회성 연동 키 발급','journey-14':'다음 실험 단계 열기','journey-next':'다음 캠페인 단계','journey-prev':'이전 캠페인 단계','keyword-manage':'키워드 뱅크 관리','message-enable':'선택 Messaging 전달 활성화','message-settings':'Messaging 전달 설정','mobile-menu':'모바일 메뉴 열기','mobile-menu-close':'모바일 메뉴 닫기','notification-save':'알림 설정 저장','open-brand':'브랜드 자료 단계 열기','open-journey':'캠페인 단계 열기','open-result':'고정 외부 결과 상세','questions':'브랜드 6문항 열기','refresh':'현재 분석만 새로 확인','remove-key':'작업 공간 제공자 키 삭제','repair':'외부 재게시 없는 기록 복구','replace-key':'작업 공간 제공자 키 교체','request-change':'현재 수정본에 수정 요청','reset':'현재 검색 조건 초기화','result-recheck':'같은 외부 결과 다시 확인','revoke':'연동 키 폐기','rotate':'연동 키 교체','save-draft':'현재 수정 초안 저장','schedule':'예약 시간 패널 열기','schedule-close':'예약 변경 닫기','schedule-save':'새 예약 시간 저장','scope':'가져올 저장소 범위 확인','search':'현재 조건으로 조사','secret-close':'비밀값 확인 즉시 닫기','secret-flow':'조건부 비밀값 확인 절차','secret-reveal':'재인증 후 30초 확인','secret-start':'운영자 재인증 시작','slide-edit':'선택 슬라이드만 편집','source-view':'사용한 브랜드 자료 열기','storage-test':'저장소 연결 시험','support-start':'15분 지원 모드 시작','toggle-theme':'화면 테마 전환','tone':'말투 파일 범위 확인','unapprove':'현재 수정 승인 취소','undo-experiment':'rev_7로 실험 적용 취소','variant-close':'채널 문구 편집 닫기','variant-save':'선택 채널 문구 저장','video-cancel':'영상 취소 조건 확인','video-detail':'영상 작업 상세','video-rights':'영상 권리 자료 추가','wiki-approve':'브랜드 자료 검토 요청','wiki-archive':'브랜드 자료 보관','wiki-new-draft':'승인본에서 새 초안','wiki-reload':'저장본 다시 불러오기','wiki-restore':'보관 자료를 새 버전으로 복원','wiki-rollback':'이전 내용을 새 버전으로 복원','wiki-save':'브랜드 자료 새 버전 저장','wiki-version':'브랜드 자료 버전 비교'
+    });
+    var CONTRAST_TOKENS=Object.freeze({
+      light:Object.freeze([
+        Object.freeze({token:'text/surface',fg:'#18181b',bg:'#ffffff',ratio:17.72}),Object.freeze({token:'muted/surface',fg:'#52525b',bg:'#ffffff',ratio:7.73}),Object.freeze({token:'subtle/surface',fg:'#71717a',bg:'#ffffff',ratio:4.83}),Object.freeze({token:'accent/surface',fg:'#2563eb',bg:'#ffffff',ratio:5.17}),Object.freeze({token:'success/soft',fg:'#15803d',bg:'#f0fdf4',ratio:4.79}),Object.freeze({token:'warning/soft',fg:'#b45309',bg:'#fffbeb',ratio:4.84}),Object.freeze({token:'danger/soft',fg:'#b91c1c',bg:'#fef2f2',ratio:5.91})
+      ]),
+      dark:Object.freeze([
+        Object.freeze({token:'text/surface',fg:'#f4f4f5',bg:'#161618',ratio:16.44}),Object.freeze({token:'muted/surface',fg:'#d4d4d8',bg:'#161618',ratio:12.23}),Object.freeze({token:'subtle/surface',fg:'#a1a1aa',bg:'#161618',ratio:7.05}),Object.freeze({token:'accent/surface',fg:'#60a5fa',bg:'#161618',ratio:7.11}),Object.freeze({token:'success/soft',fg:'#4ade80',bg:'#052e16',ratio:8.55}),Object.freeze({token:'warning/soft',fg:'#fbbf24',bg:'#422006',ratio:8.73}),Object.freeze({token:'danger/soft',fg:'#f87171',bg:'#450a0a',ratio:5.84}),Object.freeze({token:'qa/surface',fg:'#fafafa',bg:'#27272a',ratio:14.27})
+      ])
+    });
+    var state={
+      path:'/',role:'customer',theme:'light',screenState:'success',journey:false,journeyStep:2,
+      source:'github',wikiSaved:false,wikiVersion:3,studioStep:1,instagramFormat:'feed',
+      wikiArchived:false,wikiApproved:false,wikiCompare:false,
+      mobileMenu:false,variantOpen:false,bulkOpen:false,scheduleOpen:false,detailOpen:'',approved:false,
+      experimentApplied:false,experimentEditing:false,experimentRevision:null,experimentSourceResultIds:Object.freeze(['ext_ig_8801','ext_th_8802']),currentRevisionId:DEMO_IDENTITY.revision_id,settingsTab:'channels',adminTab:'상태',
+      platformTab:'create',platformAnalyticsTab:'summary',platformOrigin:'osmu',platformLifecycle:'draft',platformResult:'',platformFormat:'기본 형식',surfaceTab:'overview',
+      authMode:'login',
+      activeVariant:'공통 초안',
+      selectedPreview:'Threads',selectedDirect:'Threads',
+      variants:{
+        '공통 초안':'AI 자동 게시보다, 고객이 확인할 수 있는 마케팅 흐름을 먼저 만듭니다.',
+        'Threads':'확인 가능한 마케팅 흐름을 먼저 만듭니다. 무엇을 왜 게시했는지 남겨야 다음 판단이 쉬워집니다.',
+        'X':'자동 게시보다 확인 가능한 흐름. 무엇을 왜 게시했는지 남깁니다.',
+        'Instagram':'확인할 수 있는 마케팅 흐름을 카드뉴스로 정리했습니다.',
+        'Facebook':'브랜드 담당자가 확인하고 책임질 수 있는 콘텐츠 운영 흐름을 소개합니다.',
+        'Bluesky':'자동화보다 확인 가능한 콘텐츠 운영 흐름을 먼저 설계합니다.',
+        'YouTube Shorts':'30초 안에 확인 가능한 마케팅 흐름 세 단계를 설명합니다.',
+        'Instagram Reels':'검토 가능한 마케팅 운영, 세 장면으로 보여드립니다.',
+        'TikTok':'자동 게시 전에 꼭 확인할 세 가지를 25초로 정리했습니다.'
+      },
+      videoPhase:'렌더링',
+      itemStatus:'draft',
+      tokenIssued:false,byokConfigured:true,secretOpen:false,accountPaused:false,sharedAIApproved:true,
+      bulkItems:[
+        {name:'Threads @monostudio',state:'진행 가능',selected:true},
+        {name:'X @monostudio',state:'진행 가능',selected:true},
+        {name:'Instagram @monostudio',state:'진행 가능',selected:true},
+        {name:'Facebook Mono Studio',state:'진행 가능',selected:true},
+        {name:'Bluesky @monostudio',state:'승인 필요',selected:true},
+        {name:'YouTube Mono Studio',state:'승인 필요',selected:true},
+        {name:'TikTok @mono',state:'계정 권한 확인',selected:true},
+        {name:'Telegram mono-news',state:'전달 꺼짐',selected:true}
+      ],
+      selectedResultId:DEMO_IDENTITY.external_result_id,
+      recoveryLog:{},lastRecovery:null,actionLog:{},lastAction:null,
+      results:DEMO_RESULTS,
+      form:{
+        workGoal:'신규 고객에게 신뢰할 이유를 설명',workOwner:'브랜드 소유자',
+        workDone:'확인되지 않은 성과 수치를 쓰지 않고, 게시 전 각 계정을 확인합니다.',
+        wikiTitle:'고객 약속',wikiBody:'고객은 게시 전 최종 내용을 직접 확인할 수 있습니다.',
+        wikiSource:'서비스 소개 / 운영 원칙 2번째 문단',
+        studioText:'AI 자동 게시보다, 고객이 확인할 수 있는 마케팅 흐름을 먼저 만듭니다.',
+        variantText:'AI 자동 게시보다, 고객이 확인할 수 있는 마케팅 흐름을 먼저 만듭니다.',
+        scheduleAt:'2026-08-10T18:30',experiment:'첫 문장을 고객의 구체적인 상황으로 바꾸기'
+      }
+    };
+    function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+    function Button(label,action,variant,size,disabled){var cls=[variant||'',size?'button-'+size:''].filter(Boolean).join(' ');return '<button type="button"'+(cls?' class="'+cls+'"':'')+(action?' data-action="'+action+'"':'')+(disabled?' disabled aria-disabled="true"':'')+'>'+label+'</button>';}
+    function btn(label,action,cls){return Button(label,action,cls,'md',false);}
+    function Panel(title,body,span,attrs){return '<section class="panel '+(span||'')+'" '+(attrs||'')+'><h2>'+title+'</h2>'+body+'</section>';}
+    function Notice(body,tone,attrs){return '<div class="notice '+(tone||'')+'" '+(attrs||'')+'>'+body+'</div>';}
+    function StatusBadge(label,tone){return '<span class="status '+(tone||'neutral')+'">'+label+'</span>';}
+    function FormField(label,control){return '<div class="field"><label class="label">'+label+'</label>'+control+'</div>';}
+    function Stack(body){return '<div class="section-stack">'+body+'</div>';}
+    function Inline(body){return '<div class="inline">'+body+'</div>';}
+    function ActionGroup(body){return '<div class="action-group">'+body+'</div>';}
+    function Empty(title,action){return Notice('<b>'+title+'</b><br>현재 항목은 유지됩니다. '+Button(action,'platform-create-local','quiet','md',false),'');}
+    function ErrorState(title,action){return Notice('<b>'+title+'</b><br>초안과 수정 내용은 보존했습니다. '+Button(action,'connect','quiet','md',false),'danger');}
+    function Loading(){return '<div aria-label="불러오는 중" class="section-stack"><div class="shimmer"></div><div class="shimmer" style="width:72%"></div></div>';}
+    function HeaderTabs(active){var tabs=[['create','Create'],['queue','Queue'],['calendar','Calendar'],['analytics','Analytics'],['settings','Settings']];return '<nav class="page-tabs" aria-label="콘텐츠 플랫폼 작업" data-common-platform-tabs="5">'+tabs.map(function(t){return '<button type="button" data-platform-tab="'+t[0]+'" class="'+(active===t[0]?'active':'')+'">'+t[1]+'</button>';}).join('')+'</nav>';}
+    function UnifiedSurfaceTabs(){return '<nav class="surface-tabs" aria-label="고객과 운영자 공통 운영 보기" data-unified-surface-tabs="5">'+SURFACE_TABS.map(function(t){return '<button type="button" data-surface-tab="'+t[0]+'" class="'+(state.surfaceTab===t[0]?'active':'')+'">'+t[1]+'</button>';}).join('')+'</nav>';}
+    function accountTargetTable(){return '<div class="table-wrap"><table class="account-table" data-account-target-count="'+ACCOUNT_TARGETS.length+'"><thead><tr><th>플랫폼</th><th>계정</th><th>현재 사실</th><th>token·갱신</th><th>자동화</th><th>목표</th><th>증거</th></tr></thead><tbody>'+ACCOUNT_TARGETS.map(function(r){return '<tr><td>'+r.provider+'</td><td>'+r.account+'</td><td>'+r.current+'</td><td>'+r.token+'</td><td>'+r.automation+'</td><td>'+r.target+'</td><td>'+r.evidence+'</td></tr>';}).join('')+'</tbody></table></div>';}
+    function gapsTable(){return '<div class="table-wrap"><table class="gap-table" data-gap-count="'+GAP_ROWS.length+'"><thead><tr><th>항목</th><th>현재</th><th>목표</th><th>owner</th><th>판정</th></tr></thead><tbody>'+GAP_ROWS.map(function(r){return '<tr><td>'+r.area+'</td><td>'+r.current+'</td><td>'+r.target+'</td><td>'+r.owner+'</td><td>'+StatusBadge(r.status,r.status==='부분'?'warning':'neutral')+'</td></tr>';}).join('')+'</tbody></table></div>';}
+    function surfaceBody(role){
+      if(state.surfaceTab==='accounts')return Panel(role==='operator'?'전체 계정별 현재와 목표':'내 작업 공간 계정 상태',accountTargetTable(),'','data-surface-body="accounts"');
+      if(state.surfaceTab==='automation')return Panel('API 자동화 경계','<div class="list"><div class="list-row"><div class="grow"><b>OAuth 계정 연결</b><small>authorization code, state, scope, refresh, account identity를 확인한 뒤에만 자동화를 켭니다.</small></div>'+StatusBadge('계정별','warning')+'</div><div class="list-row"><div class="grow"><b>고객 자동화 동의</b><small>발행 요청은 기본 꺼짐이며 고객이 계정과 범위를 확인해 켭니다.</small></div>'+StatusBadge('기본 꺼짐','neutral')+'</div><div class="list-row"><div class="grow"><b>외부 실행</b><small>approval, readiness, live proof와 멱등 조건이 하나라도 없으면 요청 0입니다.</small></div>'+StatusBadge('fail closed','warning')+'</div></div>','','data-surface-body="automation"');
+      if(state.surfaceTab==='evidence')return Panel('결과 증거','<p>고객은 제목, 수정 번호, 계정, 요청·확인 시각, 상태를 봅니다. 운영자는 같은 항목의 provider phase, correlation, version과 영향 범위를 추가로 봅니다.</p>'+ActionGroup(Button('결과 상세 열기','open-result','primary','md',false)+Button('전체 성과','go-home','quiet','md',false)),'','data-surface-body="evidence"');
+      if(state.surfaceTab==='gaps')return Panel('명시적 미구현·미검증',gapsTable(),'','data-surface-body="gaps"');
+      return '<div class="grid" data-surface-body="overview"><section class="panel span-6"><h2>'+(role==='operator'?'전체 계정 운영':'내 작업 공간 운영')+'</h2><p>계정, 자동화, 결과 증거, 미구현을 같은 순서로 찾습니다. 역할이 바뀌어도 게시 권한은 바뀌지 않습니다.</p></section><section class="panel span-6"><h2>역할 경계</h2><p>'+(role==='operator'?'고객 대신 작성·승인·게시하지 않습니다. 상태 확인, 제한 지원과 복구만 수행합니다.':'내 작업 공간의 작성·승인·게시만 가능합니다. 운영자 비밀값과 다른 고객 계정은 보이지 않습니다.')+'</p></section></div>';
+    }
+    function PageShell(title,desc,active,body,action){return header(title,desc,action)+HeaderTabs(active)+body;}
+    function viewportMode(){return window.innerWidth<=700?'390':window.innerWidth<=1100?'1024':'1440';}
+    function resultById(id){return state.results.filter(function(r){return r.external_result_id===id;})[0]||state.results[0];}
+    function revisionLabel(id){return id==='rev_8'?'수정 8':'수정 7';}
+    function campaignLabel(){return '가을 신규 고객 안내';}
+    function resultSummary(id){var r=resultById(id);return r.platform+' · '+r.status+' · '+r.metric;}
+    function resultSourceSummary(ids){return ids.map(function(id){return resultSummary(id);}).join(' + ');}
+    function lineageData(overrides){
+      var o=overrides||{};
+      return {
+        campaign_id:DEMO_IDENTITY.campaign_id,
+        content_id:DEMO_IDENTITY.content_id,
+        revision_id:o.revision_id||state.currentRevisionId,
+        publish_attempt_id:o.publish_attempt_id||DEMO_IDENTITY.publish_attempt_id,
+        external_result_id:o.external_result_id||DEMO_IDENTITY.external_result_id,
+        experiment_id:DEMO_IDENTITY.experiment_id
+      };
+    }
+    function lineageAttrs(owner,overrides){
+      var x=lineageData(overrides);
+      return ' data-lineage-owner="'+esc(owner)+'" data-campaign-id="'+x.campaign_id+'" data-content-id="'+x.content_id+'" data-revision-id="'+x.revision_id+'" data-publish-attempt-id="'+x.publish_attempt_id+'" data-external-result-id="'+x.external_result_id+'" data-experiment-id="'+x.experiment_id+'"';
+    }
+    function lineageStrip(owner,overrides){
+      var x=lineageData(overrides),r=resultById(x.external_result_id);
+      var labels={campaign_id:'캠페인',content_id:'작업물',revision_id:'수정본',publish_attempt_id:'게시 요청',external_result_id:'게시 결과',experiment_id:'다음 비교'};
+      var values={campaign_id:campaignLabel(),content_id:'텍스트·카드뉴스·짧은 영상',revision_id:revisionLabel(x.revision_id),publish_attempt_id:r.requested_at+' 요청',external_result_id:r.platform+' · '+r.status,experiment_id:'첫 문장 구체성 비교'};
+      return '<div class="lineage-strip" aria-label="캠페인 진행 정보"'+lineageAttrs(owner,overrides)+'>'+Object.keys(labels).map(function(k){return '<span>'+labels[k]+'<b>'+esc(values[k])+'</b></span>';}).join('')+'</div>';
+    }
+    function ownerForPath(){
+      if(state.path==='/')return 'home';
+      if(state.path==='/studio')return 'studio';
+      if(state.path==='/inbox')return 'inbox';
+      if(state.path==='/calendar')return 'calendar';
+      if(state.path==='/settings')return 'settings';
+      return 'platform';
+    }
+    function recoveryCard(owner){
+      var s=state.screenState;
+      if(s==='success')return '';
+      var o=RECOVERY_OWNERS[owner],c=RECOVERY_STATES[s];
+      if(!o||!c)return '';
+      var preserved=DEMO_IDENTITY.content_id+'|'+o.account+'|'+state.currentRevisionId;
+      var action=owner+'-'+s;
+      return '<section class="panel state-card" data-recovery="true" data-owner="'+owner+'" data-state="'+s+'" data-preserved-id="'+esc(preserved)+'" data-item-id="'+DEMO_IDENTITY.content_id+'" data-account-id="'+esc(o.account)+'" data-revision-id="'+state.currentRevisionId+'"><div class="kicker">'+o.label+' 복구 경로</div><h2>'+o.label+' · '+c.title+'</h2><p>'+o.context+'을 보존합니다. '+c.detail+'</p><div class="recovery-preserved">보존됨: '+campaignLabel()+' · '+esc(o.accountLabel)+' · '+revisionLabel(state.currentRevisionId)+'</div><div class="actions"><button type="button" class="primary" data-recovery-action="'+action+'">'+o.label+'에서 '+c.verb+'</button>'+btn('Home으로','go-home')+'</div></section>';
+    }
+    function recoveryOutcome(owner){
+      var x=state.lastRecovery;
+      if(!x||x.owner!==owner)return '';
+      return '<div class="notice" data-recovery-outcome="'+x.action+'" data-owner="'+x.owner+'" data-preserved-id="'+esc(x.preserved_after)+'">'+RECOVERY_OWNERS[owner].label+' 안전 행동 완료 · '+esc(x.label)+' · '+campaignLabel()+'과 '+revisionLabel(state.currentRevisionId)+'을 그대로 유지했습니다.</div>';
+    }
+    function actionOutcome(){
+      var x=state.lastAction;
+      return x?'<div class="notice" data-action-outcome="'+x.code+'">'+esc(x.label)+' · 입력과 현재 항목을 보존한 전용 동작을 기록했습니다.</div>':'';
+    }
+    function header(title,desc,action){
+      return '<header class="page-head"><div><h1>'+title+'</h1><p>'+desc+'</p></div>'+(action?'<div class="head-action">'+action+'</div>':'')+'</header>';
+    }
+    function shell(content){
+      var nav=groups.map(function(g){
+        return '<section class="nav-group" data-group="'+esc(g.label)+'"><h2>'+esc(g.label)+'</h2>'+
+          g.items.map(function(i){return '<button type="button" class="nav-item '+(state.path===i.path?'active':'')+'" data-route="'+i.path+'" data-destination="'+esc(i.label)+'">'+icon(i.icon)+'<span>'+esc(i.label)+'</span>'+(g.off?'<span class="off">꺼짐</span>':'')+'</button>';}).join('')+'</section>';
+      }).join('');
+      return '<div class="prototype" id="customer-app" data-role="customer" data-theme="'+state.theme+'" data-viewport="'+viewportMode()+'">'+
+        '<button type="button" class="drawer-backdrop '+(state.mobileMenu?'mobile-open':'')+'" data-action="mobile-menu-close" aria-label="모바일 메뉴 닫기"></button>'+
+        '<aside class="sidebar '+(state.mobileMenu?'mobile-open':'')+'"><div class="brand"><span class="brand-mark">'+icon('edit')+'</span>OpenClaw'+btn('닫기','mobile-menu-close','quiet')+'</div>'+
+        '<div class="workspace"><small>작업 공간</small><b>모노스튜디오</b></div><nav aria-label="주요 메뉴">'+nav+'</nav></aside>'+
+        '<main class="main"><header class="topbar"><button class="mobile-menu quiet" data-action="mobile-menu" aria-label="메뉴 열기">'+icon('menu')+'<span class="sr-only">메뉴</span></button>'+
+        '<span class="breadcrumb">모노스튜디오 · 현재 캠페인</span><span class="spacer"></span><span class="role-chip">고객</span>'+
+        '<button class="quiet" data-action="toggle-theme" aria-label="화면 테마 바꾸기">'+(state.theme==='light'?'어둡게':'밝게')+'</button></header>'+
+        '<div class="content" id="view">'+recoveryCard(ownerForPath())+recoveryOutcome(ownerForPath())+actionOutcome()+content+'</div></main></div>';
+    }
+    function home(){
+      return header('성과','브랜드 자료에서 게시 결과와 다음 제안까지, 지금 필요한 한 행동부터 보여줍니다.',btn('캠페인 이어가기','open-journey','primary'))+
+      UnifiedSurfaceTabs()+surfaceBody('customer')+
+      '<div class="grid">'+
+        '<section class="panel span-8"><div class="kicker">다음 할 일</div><h2>혜택 문구 하나를 브랜드 자료에서 확인해 주세요</h2><p>확인되지 않은 표현은 게시 후보에서 제외되어 있습니다.</p><div class="actions">'+btn('문구 확인하기','open-brand','primary')+btn('빠른 1회 게시','go-studio')+'</div>'+
+        '<div class="progress" aria-label="캠페인 14단계 중 6단계 완료"><span style="width:43%"></span></div><p style="margin-top:8px">저장되거나 확인된 단계 6 / 14</p></section>'+
+        '<section class="panel span-4"><h2>작업 상태</h2><div class="list"><div class="list-row"><span class="status success">완료</span><div class="grow"><b>브랜드 기준 확인</b><small>오늘 15:42</small></div></div><div class="list-row"><span class="status warning">확인</span><div class="grow"><b>텍스트 수정 7</b><small>문구 1개 확인 필요</small></div></div></div></section>'+
+        '<section class="panel span-12" data-example-data="true"><h2>운영 결과 <span class="status neutral">예시 데이터</span></h2><div class="form-grid"><div><span class="label">게시</span><div class="metric">18</div><p>확인된 게시</p></div><div><span class="label">처리 중 · 측정 가능</span><div class="metric">2 · 14/18</div><p>값이 없는 항목은 0으로 세지 않음</p></div></div></section>'+
+        '<section class="panel span-7"><h2>다음 제안</h2><p>Instagram 저장이 확인된 두 게시물에서 첫 장의 문제 문장이 더 구체적이었습니다. 다음 카드뉴스에서는 첫 문장만 바꾸고 나머지는 유지해 비교해 보세요.</p><div class="actions">'+btn('제안 확인','journey-14','primary')+btn('닫기','dismiss')+'</div></section>'+
+        '<section class="panel span-5"><h2>막힌 일</h2><div class="list"><div class="list-row"><span class="status warning">확인</span><div class="grow"><b>TikTok 계정 권한</b><small>초안은 저장됨 · 연결 후 돌아올 수 있음</small></div>'+btn('계정 보기','go-settings')+'</div></div></section>'+
+      '</div>';
+    }
+    function studio(){
+      return header('OSMU Studio','같은 캠페인을 텍스트, 사진·카드뉴스, 짧은 영상 순서로 준비합니다.',btn('14단계 보기','open-journey'))+
+      '<div class="step-row" data-studio-jumps="true">'+
+        '<button class="step-pill '+(state.studioStep===1?'active':'')+'" data-studio-step="1"><span class="step-number">1</span>텍스트</button>'+
+        '<button class="step-pill '+(state.studioStep===2?'active':'')+'" data-studio-step="2"><span class="step-number">2</span>사진·카드뉴스</button>'+
+        '<button class="step-pill '+(state.studioStep===3?'active':'')+'" data-studio-step="3"><span class="step-number">3</span>짧은 영상</button></div>'+
+      '<div data-studio-order="1-2-3">'+
+        '<section class="panel" data-source-lineage="true"><div class="kicker">사용한 브랜드 자료</div><h2>'+esc(state.form.wikiTitle)+' · v'+state.wikiVersion+(state.wikiApproved?' · 확인된 버전':' · 확인 필요')+'</h2><p>'+esc(state.form.wikiSource)+'에서 “'+esc(state.form.wikiBody)+'” 내용을 사용했습니다.</p>'+lineageStrip('studio')+'<div class="actions">'+btn('사용한 자료 보기','source-view')+btn('다른 자료 선택','open-brand')+'</div></section>'+
+        '<section class="panel studio-family" data-family-order="1"><span class="family-number">1</span><div class="kicker">소셜 게시물 텍스트</div><h2>공통 초안과 채널별 문구</h2><p>확인된 브랜드 기준 8개와 같은 수정 번호를 사용합니다. 상속된 부분과 채널별 변경을 따로 저장합니다.</p><div class="platform-tabs" data-social-variants="6">'+['공통 초안','Threads','X','Instagram','Facebook','Bluesky'].map(function(v){return '<button type="button" class="'+(state.activeVariant===v?'active':'')+'" data-variant="'+v+'">'+v+'</button>';}).join('')+'</div><div class="notice">현재 편집: '+esc(state.activeVariant)+' · '+campaignLabel()+' · '+revisionLabel(state.currentRevisionId)+' · '+(state.activeVariant==='공통 초안'?'모든 채널의 시작 문구':'공통 초안에서 달라진 문구')+'</div><textarea aria-label="'+esc(state.activeVariant)+' 문구" data-variant-model="'+esc(state.activeVariant)+'">'+esc(state.variants[state.activeVariant])+'</textarea><div class="actions">'+btn('비교 편집 열기','edit-variants','primary')+btn('이 문구 저장','save-draft')+'</div><div class="platform-tabs" data-current-text-previews="5">'+['Threads','X','Instagram','Facebook','Bluesky'].map(function(v){return '<button data-preview-platform="'+v+'">'+v+' 미리보기</button><button data-direct-platform="'+v+'">'+v+' 게시 전 확인</button>';}).join('')+'</div></section>'+
+        '<section class="panel studio-family secondary-section" data-family-order="2"><span class="family-number">2</span><div class="kicker">사진과 카드뉴스</div><h2>슬라이드 · 자르기 · 대체 텍스트 · 권리</h2><p>카드뉴스 5장. 첫 장의 핵심 문구와 모든 이미지 권리를 게시 전에 확인합니다.</p><div class="list"><div class="list-row"><b>1</b><div class="grow"><b>문제 제기</b><small>1:1 · 대체 텍스트 있음 · 직접 만든 이미지</small></div>'+btn('편집','edit-card')+'</div><div class="list-row"><b>2-5</b><div class="grow"><b>설명과 행동 안내</b><small>안전 영역 확인 · 대체 텍스트 1개 확인 필요</small></div><span class="status warning">확인</span></div></div><div class="actions">'+btn('카드뉴스 열기','edit-card','primary')+btn('Images에서 보기','go-images')+'<button data-preview-platform="Instagram">Instagram 미리보기</button><button data-direct-platform="Instagram">Instagram 게시 전 확인</button></div></section>'+
+        '<section class="panel studio-family secondary-section" data-family-order="3"><span class="family-number">3</span><div class="kicker">짧은 영상</div><h2>Reels · Shorts · TikTok</h2><p>같은 대본을 화면 비율, 길이, 자막 안전 영역에 맞춰 편집합니다.</p><div class="scroll-hint" aria-hidden="true">옆으로 밀어 형식 더 보기 →</div><div class="platform-tabs" data-horizontal-scroll="true" data-video-variants="3">'+['YouTube Shorts','Instagram Reels','TikTok'].map(function(v){return '<button type="button" class="'+(state.activeVariant===v?'active':'')+'" data-variant="'+v+'">'+v+'</button>';}).join('')+'</div><textarea aria-label="선택한 영상 대본" data-variant-model="'+esc(state.activeVariant.indexOf('Shorts')>=0||state.activeVariant.indexOf('Reels')>=0||state.activeVariant==='TikTok'?state.activeVariant:'YouTube Shorts')+'">'+esc(state.variants[state.activeVariant.indexOf('Shorts')>=0||state.activeVariant.indexOf('Reels')>=0||state.activeVariant==='TikTok'?state.activeVariant:'YouTube Shorts'])+'</textarea><div class="notice warning">TikTok 연결을 다시 확인해야 합니다. 세 형식의 대본과 편집 내용은 보존됩니다.</div><div class="actions">'+btn('영상 작업 열기','go-videos','primary')+btn('선택 대본 저장','save-draft')+'</div><div class="scroll-hint" aria-hidden="true">옆으로 밀어 미리보기 더 보기 →</div><div class="platform-tabs" data-horizontal-scroll="true" data-current-video-previews="3">'+['YouTube Shorts','Instagram Reels','TikTok'].map(function(v){return '<button data-preview-platform="'+v+'">'+v+' 미리보기</button>';}).join('')+'</div></section>'+
+      '</div>'+osmuDeliveryMatrix()+
+      '<section class="panel secondary-section messaging-section"><h2>Messaging 전달</h2><p>Telegram, Discord, Slack으로 보내기는 기본으로 꺼져 있습니다. 켜면 계정과 문구를 다시 확인합니다.</p><div class="actions">'+btn('전달 설정','message-settings')+'<span class="status neutral">꺼짐</span></div></section>'+
+      '<div class="bulk-bar" data-mobile-occlusion="clear"><div class="grow"><b>선택 8 · 진행 가능 4 · 승인 필요 2 · 제외 2</b><div class="label">계정과 제외 이유를 확인한 뒤 진행</div></div>'+btn('영향 범위 확인','bulk-review')+btn('선택 항목 예약','bulk-review','primary')+'</div>';
+    }
+    function header7(label,format){
+      var cells=[['연결','연결됨'],['계정','@monostudio'],['권한',label==='TikTok'?'다시 확인':'게시 가능'],['기능',format||'텍스트·이미지'],['마지막 동기화','오늘 16:12'],['최근 결과','오늘 15:48'],['다음 행동',label==='TikTok'?'계정 다시 연결':'초안 확인']];
+      return '<div class="header7" data-header7-owner="'+esc(label+(format?' '+format:''))+'">'+cells.map(function(c){return '<div class="truth-cell"><small>'+c[0]+'</small><b>'+c[1]+'</b></div>';}).join('')+'</div>';
+    }
+    function platformTruth(item){
+      if(item.path==='/channels/threads')return {step:8,label:'실제 게시 확인됨',tone:'success',account:'@monostudio'};
+      if(item.path==='/channels/instagram')return {step:2,label:'계정 연결까지만 확인',tone:'warning',account:'@monostudio'};
+      return {step:0,label:'앱 자격증명과 실제 게시 확인 필요',tone:'warning',account:item.kind==='video'?'연결할 채널':'연결할 계정'};
+    }
+    function readinessLadder(item,owner){
+      var truth=platformTruth(item),steps=[
+        ['app ready','운영자 앱 준비','운영자'],['account connected','고객 계정 연결','고객'],['identity verified','계정 신원 확인','제품'],['scopes','필요 권한 확인','고객'],
+        ['refreshable','연결 자동 갱신','제품'],['publish-capable','게시 기능 확인','제품'],['automation enabled','자동화 사용 허용','고객'],['live publish verified','실제 게시 확인','실증']
+      ];
+      return '<div class="readiness-ladder" data-readiness-owner="'+owner+'" data-readiness-steps="8" data-readiness-current="'+truth.step+'">'+steps.map(function(s,i){var done=i<truth.step;return '<div class="readiness-step '+(done?'done':'blocked')+'" data-readiness-step="'+(i+1)+'"><span class="mark">'+(done?'✓':i+1)+'</span><div><b>'+s[1]+'</b><small>'+(done?'확인됨':i===truth.step?'다음 확인 단계':'앞 단계 확인 후 진행')+'</small></div><span class="owner-tag">'+s[2]+'</span></div>';}).join('')+'</div>';
+    }
+    function canonicalProjection(item,owner){var origin=state.platformOrigin==='osmu'?'OSMU에서 생성':'이 플랫폼에서 생성';return '<div class="panel" data-canonical-record="true" data-projection="'+owner+'" data-origin="'+state.platformOrigin+'"'+lineageAttrs('platform-'+owner)+'><div class="inline"><span class="source-label">'+origin+'</span>'+StatusBadge(state.platformLifecycle==='approved'?'승인됨':state.platformLifecycle==='scheduled'?'예약됨':state.platformLifecycle==='published'?'게시 확인':state.platformLifecycle==='blocked'?'게시 전 차단':'초안',state.platformLifecycle==='published'?'success':state.platformLifecycle==='blocked'?'warning':'neutral')+'</div><h2 style="margin-top:12px">'+campaignLabel()+' · '+revisionLabel(state.currentRevisionId)+'</h2><p>'+esc(item.label)+'용 한 기록입니다. Studio, Queue, Calendar, Analytics는 이 기록을 복제하지 않고 같은 상태를 보여줍니다.</p></div>';}
+    function osmuDeliveryMatrix(){
+      var rows=[
+        ['/channels/threads','Threads','텍스트','실제 게시 확인','기본'],['/channels/x','X','텍스트','실증 필요','기본'],['/channels/instagram','Instagram Feed','사진·카드뉴스','연결만 확인','피드'],['/channels/instagram','Instagram Reels','짧은 영상','연결만 확인','Reels'],['/channels/facebook','Facebook','텍스트·이미지','실증 필요','기본'],['/channels/bluesky','Bluesky','텍스트','실증 필요','기본'],['/channels/youtube','YouTube Shorts','짧은 영상','실증 필요','기본'],['/channels/tiktok','TikTok','짧은 영상','권한 재확인','기본']
+      ];
+      return '<section class="panel secondary-section" data-osmu-platform-count="8"><div class="kicker">OSMU에서 플랫폼별 실행</div><h2>같은 수정본을 플랫폼 작업으로 이어가기</h2><p>채널별 문구와 형식은 유지합니다. 실제 준비가 확인되지 않은 플랫폼은 게시 전 확인에서 차단됩니다.</p><div class="table-wrap"><table><thead><tr><th>플랫폼</th><th>형식</th><th>현재 사실</th><th>OSMU에서</th><th>플랫폼에서</th></tr></thead><tbody>'+rows.map(function(r){return '<tr><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+StatusBadge(r[3],r[3]==='실제 게시 확인'?'success':'warning')+'</td><td><button type="button" data-direct-platform="'+r[1]+'">게시 전 확인</button></td><td><button type="button" data-osmu-route="'+r[0]+'" data-osmu-format="'+r[4]+'">Create 열기</button></td></tr>';}).join('')+'</tbody></table></div>'+Notice('Telegram, Discord, Slack은 게시 대상이 아니라 별도 동의가 필요한 전달 대상입니다. 자동 전달은 기본 꺼짐입니다.','')+'</section>';
+    }
+    function platformCreate(item,isVideo){
+      var formatPicker=item.kind==='instagram'?'<div class="platform-tabs" data-instagram-create-formats="3">'+['피드','카드뉴스','Reels'].map(function(f){return '<button type="button" data-platform-format="'+f+'" class="'+(state.platformFormat===f?'active':'')+'">'+f+'</button>';}).join('')+'</div>':'';
+      var editor=isVideo?
+        Panel('영상 작업 만들기','<p>대본, 9:16 원본, 자막 안전 영역과 사용 권리를 먼저 확인합니다. 텍스트 게시 대기열로 바꾸지 않습니다.</p>'+FormField('영상 대본','<textarea data-model="videoLocalText">'+esc(state.form.videoLocalText||state.variants[item.label]||state.variants['YouTube Shorts'])+'</textarea>')+Notice('현재 상태: '+esc(state.videoPhase)+' · 원본과 편집 내용은 저장됨','warning')+ActionGroup(Button('이 플랫폼에서 영상 만들기','platform-create-local','primary','md',false)+Button('영상 작업 편집','platform-edit','', 'md',false)+Button('Videos에서 추적','go-videos','quiet','md',false)),'span-7','data-video-job="canonical-video-job"'):
+        Panel('플랫폼 초안 만들기',formatPicker+FormField('문구','<textarea data-model="platformLocalText">'+esc(state.form.platformLocalText||state.variants[item.label]||state.form.studioText)+'</textarea>')+ActionGroup(Button('이 플랫폼에서 만들기','platform-create-local','primary','md',false)+Button('현재 초안 편집','platform-edit','', 'md',false)),'span-7','');
+      var lifecycle=Panel('검토와 게시','<p>현재 수정본을 승인한 뒤 지금 게시하거나 예약합니다. 게시 버튼은 실제 준비 상태를 확인한 뒤에만 외부 요청으로 이어집니다.</p>'+ActionGroup(Button('검토 요청','platform-request-approval','', 'md',false)+Button('승인','platform-approve','primary','md',false)+Button('지금 게시','platform-publish-now','', 'md',false)+Button('예약','platform-schedule','', 'md',false))+(state.platformResult?Notice(esc(state.platformResult),state.platformLifecycle==='published'?'':'warning','data-platform-outcome="true"'):'')+(state.platformLifecycle==='published'?ActionGroup(Button('게시 결과 열기','open-result','primary','md',false)):'') ,'span-5','');
+      return canonicalProjection(item,'create')+'<div class="grid">'+editor+lifecycle+'</div>';
+    }
+    function platformQueue(item,isVideo){
+      return canonicalProjection(item,'queue')+Panel(isVideo?'영상 작업':'작업 대기열','<div class="list"><div class="list-row">'+StatusBadge(isVideo?state.videoPhase:(state.platformLifecycle==='approved'?'승인됨':'초안'),state.platformLifecycle==='approved'?'success':'warning')+'<div class="grow"><b>'+campaignLabel()+' · '+revisionLabel(state.currentRevisionId)+'</b><small>'+esc(item.label)+' · '+(state.platformOrigin==='osmu'?'OSMU에서 생성':'이 플랫폼에서 생성')+' · 같은 기록</small></div>'+Button(isVideo?'영상 작업 열기':'편집','platform-edit','', 'md',false)+'</div></div>','','data-platform-queue="canonical"');
+    }
+    function platformCalendar(item){return canonicalProjection(item,'calendar')+Panel('이 플랫폼의 일정','<div class="notice calendar-time-notice" data-spacing-fix="calendar-time-notice">작업 공간 서울 18:30 · 내 시간 서울 18:30</div><div class="timeline"><div class="timeline-row active"><b>18:30</b><b>'+campaignLabel()+'</b><span>'+esc(item.label)+' · '+revisionLabel(state.currentRevisionId)+' · '+(state.platformLifecycle==='scheduled'?'예약됨':'일정 미정')+'</span>'+Button('일정 변경','platform-schedule','', 'md',false)+'</div></div>'+ActionGroup(Button('전체 캘린더','go-calendar','quiet','md',false)),'','data-platform-calendar="canonical"');}
+    function platformAnalytics(item){
+      var sub=item.path==='/channels/threads'?'<div class="platform-tabs" data-threads-analytics-tabs="3">'+[['summary','요약'],['growth','Growth'],['popular','Popular']].map(function(t){return '<button type="button" data-platform-analytics-tab="'+t[0]+'" class="'+(state.platformAnalyticsTab===t[0]?'active':'')+'">'+t[1]+'</button>';}).join('')+'</div>':'';
+      return canonicalProjection(item,'analytics')+sub+Panel('채널 결과','<p>'+(platformTruth(item).step===8?'실제 게시 결과만 표시합니다. 출처, 계정, 기간과 확인 시각을 함께 둡니다.':'실제 게시가 확인되기 전에는 성과 숫자를 만들지 않습니다.')+'</p><div class="metric">'+(platformTruth(item).step===8?'답글 8':'아직 값 없음')+'</div><p>'+esc(item.label)+' · 최근 7일 · '+(platformTruth(item).step===8?'오늘 16:20 확인':'실제 게시 확인 후 측정')+'</p>'+ActionGroup(Button('전체 성과 보기','go-home','quiet','md',false)),'','data-platform-analytics="canonical"');
+    }
+    function platformSettings(item){var truth=platformTruth(item);return '<div class="grid"><section class="panel span-7"><div class="inline">'+StatusBadge(truth.label,truth.tone)+'<span class="source-label">현재 확인 상태</span></div><h2 style="margin-top:12px">게시 준비 8단계</h2><p>코드가 준비된 것, 운영자가 앱을 설정한 것, 고객이 연결한 것, 실제 게시가 확인된 것을 분리합니다.</p>'+readinessLadder(item,'platform')+'</section><section class="panel span-5"><h2>계정과 연결</h2><p>'+esc(truth.account)+' · 비밀번호는 받지 않습니다. Meta 계정 전환은 제공자 로그인 상태에 따라 선택 화면이 생략될 수 있습니다.</p>'+Notice('다른 Meta 계정으로 연결하려면 Meta에서 계정을 전환하거나 로그아웃한 뒤 이 화면으로 돌아와 다시 연결하세요. 이 제품이 Meta의 로그인 세션을 강제로 바꾸지는 못합니다.','warning')+'<div class="connection-test" data-spacing-fix="connection-test">'+Button('연결 상태 확인','connect','primary','md',false)+'</div></section></div>';}
+    function contentPlatformPage(item){
+      var isVideo=item.kind==='video'||(item.kind==='instagram'&&state.platformFormat==='Reels');
+      var bodies={create:platformCreate(item,isVideo),queue:platformQueue(item,isVideo),calendar:platformCalendar(item),analytics:platformAnalytics(item),settings:platformSettings(item)};
+      var body=state.screenState==='loading'?Panel('불러오는 중',Loading()):state.screenState==='empty'?Panel('아직 이 플랫폼 작업이 없습니다',Empty('첫 초안을 만들면 Queue와 Calendar에서 같은 항목으로 이어집니다.','초안 만들기')):state.screenState==='error'?Panel('불러오지 못했습니다',ErrorState('마지막 저장본을 유지했습니다.','연결 상태 확인')):bodies[state.platformTab];
+      return PageShell(item.label,isVideo?'영상 제작부터 외부 게시 확인까지 같은 작업을 추적합니다.':'이 플랫폼에서 만들거나 OSMU 작업을 이어 받아 같은 기록으로 검토하고 게시합니다.',state.platformTab,body,Button(isVideo?'영상 초안 만들기':'새 초안','platform-create-local','primary','md',false));
+    }
+    function channel(item){return contentPlatformPage(item);}
+    function videoChannel(item){return contentPlatformPage(item);}
+    function messaging(item){
+      return header(item.label,'커뮤니티 전달은 별도 동의가 필요한 선택 기능이며 기본으로 꺼져 있습니다.',btn('연결 설정','go-settings'))+
+      header7(item.label,'Messaging')+
+      '<div class="grid"><section class="panel span-7"><span class="status neutral">전달 꺼짐</span><h2 style="margin-top:12px">전달할 항목과 문구를 따로 확인합니다</h2><p>Studio 결과를 자동으로 보내지 않습니다. 받을 공간, 계정, 문구, 시간을 명시적으로 선택합니다.</p><div class="actions">'+btn('전달 켜기','message-enable','primary')+btn('Studio로','go-studio')+'</div></section><section class="panel span-5"><h2>현재 가능한 일</h2><div class="list"><div class="list-row"><div class="grow"><b>계정 연결</b><small>연결 상태와 권한 확인</small></div></div><div class="list-row"><div class="grow"><b>개별 전달</b><small>선택 후 재확인</small></div></div></div><div class="notice">이 화면은 지원되지 않는 대기열이나 성과 수치를 만들지 않습니다.</div></section></div>';
+    }
+    function inbox(){
+      return header('승인 인박스','현재 수정본, 이전 승인본과 차이, 계정과 시간을 확인하고 결정합니다.',btn('Studio 열기','go-studio'))+
+      lineageStrip('inbox')+
+      (state.approved?'<div class="notice">수정 7을 승인했습니다. 내용, 계정 또는 시간이 바뀌면 다시 확인해야 합니다.</div>':'')+
+      '<div class="grid"><section class="panel span-5"><h2>검토할 항목</h2><div class="list"><div class="list-row"><span class="status '+(state.approved?'success':'warning')+'">'+(state.approved?'승인됨':'검토')+'</span><div class="grow"><b>가을 신규 고객 안내</b><small>Instagram Reels · 수정 7 · '+esc(state.form.scheduleAt.replace('T',' '))+' 예약</small></div></div><div class="list-row"><span class="status neutral">수정됨</span><div class="grow"><b>신규 가이드 소개</b><small>승인 후 내용이 바뀌어 다시 확인 필요</small></div></div></div></section><section class="panel span-7"><div class="kicker">가을 신규 고객 안내 · 수정 7</div><h2>바뀐 내용</h2><p>첫 문장을 문제 상황 중심으로 바꾸고, 확인되지 않은 수치 표현을 삭제했습니다.</p><div class="notice warning">이전 승인 후 예약 시간이 바뀌었습니다. 새 시간을 확인해야 합니다.</div><div class="field"><label class="label">수정 요청 메모</label><textarea data-model="approvalNote">'+esc(state.form.approvalNote||'첫 장의 혜택 문구 출처를 확인해 주세요.')+'</textarea></div><div class="actions">'+(state.approved?btn('승인 취소','unapprove'):btn('승인','approve','primary'))+btn('수정 요청','request-change')+btn('Studio에서 편집','go-studio')+btn('캘린더 보기','go-calendar')+'</div></section></div>';
+    }
+    function calendar(){
+      return header('발행 캘린더','작업 공간 시간대와 내 시간을 함께 보고, 같은 항목을 Studio와 대기열에서 엽니다.',btn('새 일정','go-studio','primary'))+
+      lineageStrip('calendar')+
+      '<section class="panel" data-item-id="ma2047"><div class="notice calendar-time-notice" data-spacing-fix="calendar-time-notice">작업 공간 서울 '+esc(state.form.scheduleAt.slice(11))+' · 내 시간 서울 '+esc(state.form.scheduleAt.slice(11))+'</div>'+(state.form.scheduled===false?'<div class="notice warning">예약이 취소되어 '+campaignLabel()+'이 초안으로 남았습니다.</div>':'')+'<div class="timeline"><div class="timeline-row active"><b>'+esc(state.form.scheduleAt.slice(11))+'</b><b>'+campaignLabel()+'</b><span>Instagram Reels · '+revisionLabel(state.currentRevisionId)+' · '+(state.form.scheduled===false?'초안':state.approved?'승인됨':'확인 필요')+'</span>'+btn('열기','go-studio')+'</div><div class="timeline-row"><b>20:00</b><b>브랜드 운영 원칙</b><span>Threads · 수정 3 · 확인 필요</span>'+btn('일정 변경','schedule')+'</div></div><div class="actions">'+btn('예약 시간 변경','schedule','primary')+btn('선택 일정 취소','cancel-schedule','danger')+btn('Home으로','go-home')+'</div></section>';
+    }
+    function dataPage(item){
+      return header(item.label,'출처, 계정, 기간, 확인 시간을 함께 표시하고 값이 없음을 0으로 바꾸지 않습니다.',btn('새로 확인','refresh','primary'))+
+      '<div class="grid"><section class="panel span-4"><span class="label">측정 가능한 게시</span><div class="metric">14 / 18</div><p>최근 7일 · 오늘 16:20 확인</p></section><section class="panel span-4"><span class="label">게시 성공</span><div class="metric">18</div><p>운영 결과만 전체 합계에 포함</p></section><section class="panel span-4"><span class="label">수집된 값 없음</span><div class="metric">없음</div><p>권한이 없는 값을 0으로 표시하지 않음</p></section><section class="panel span-12"><h2>채널 고유 결과</h2><div class="table-wrap"><table><thead><tr><th>항목</th><th>값</th><th>뜻</th><th>계정</th><th>기간·확인</th></tr></thead><tbody><tr><td>Instagram 저장</td><td>42</td><td>사용자가 저장한 횟수</td><td>@monostudio</td><td>7일 · 16:20</td></tr><tr><td>YouTube 평균 시청</td><td>18초</td><td>채널 제공 정의</td><td>Mono Studio</td><td>7일 · 16:18</td></tr></tbody></table></div><div class="notice warning">정의가 바뀐 지점 전후는 하나의 추세로 잇지 않습니다.</div></section></div>';
+    }
+    function keyword(item){
+      return header(item.label,'시장과 기간을 명시해 아이디어를 탐색하고, 예상치를 보장된 결과처럼 말하지 않습니다.',btn('Studio로 보내기','go-studio','primary'))+
+      '<section class="panel"><div class="form-grid"><div class="field"><label class="label">찾을 주제</label><input data-model="keywordQuery" value="'+esc(state.form.keywordQuery||'마케팅 자동화')+'"></div><div class="field"><label class="label">시장과 기간</label><select data-model="keywordMarket"><option>대한민국 · 최근 12개월</option></select></div></div><div class="actions">'+btn('찾기','search','primary')+btn('초기화','reset')+'</div></section><section class="panel"><h2>아이디어</h2><div class="list"><div class="list-row"><div class="grow"><b>마케팅 자동화 초보</b><small>관심 흐름 · 출처와 기간 확인 · 결과 보장 아님</small></div>'+btn('브리프에 추가','open-journey')+'</div><div class="list-row"><div class="grow"><b>콘텐츠 운영 자동화</b><small>일부 자료만 수집됨 · 다른 도구와 비교 필요</small></div><span class="status warning">일부</span></div></div></section>';
+    }
+    function assets(item){
+      if(item.kind==='midjourney')return header('Midjourney','현재 이 연결에서는 직접 생성할 수 없습니다. 작업을 잃지 않고 Images로 이동할 수 있습니다.',btn('Images 열기','go-images','primary'))+'<section class="panel"><span class="status neutral">사용할 수 없음</span><h2 style="margin-top:12px">이미지를 업로드하거나 현재 이미지 도구를 사용해 주세요</h2><p>작동하지 않는 생성을 성공처럼 보이지 않습니다.</p><div class="actions">'+btn('Images로','go-images','primary')+btn('Studio로','go-studio')+'</div></section>';
+      if(item.kind==='videos')return videos();
+      return header('Images','사진, 생성 이미지와 카드뉴스를 권리·자르기·대체 텍스트와 함께 관리합니다.',btn('이미지 추가','add-image','primary'))+'<div class="grid"><section class="panel span-6"><h2>가을 캠페인 카드뉴스</h2><p>5장 · 수정 7 · 대체 텍스트 4/5 · 직접 만든 이미지</p><div class="actions">'+btn('편집','edit-card','primary')+btn('Studio에서 보기','go-studio')+'</div></section><section class="panel span-6"><h2>제품 화면 사진</h2><p>3장 · 사용 권리 확인됨 · 마지막 편집 오늘 14:12</p><div class="actions">'+btn('자르기와 설명','edit-card')+'</div></section></div>';
+    }
+    function videos(){
+      var states=['입력 필요','준비','대기','렌더링','업로드 대기','게시 대기','성공','일부 성공','실패 확인','결과 확인 중','취소됨','기한 만료','권리 확인','계정 확인','정책 확인','요청 제한','제공자 점검','다시 연결','늦은 결과','기록 복구','재시도 가능','직접 내보내기','보관됨','복구됨'];
+      return header('Videos','오래 걸리는 영상 작업의 현재 위치, 보존된 내용과 안전한 다음 행동을 확인합니다.',btn('Studio 영상 열기','go-studio','primary'))+
+      '<section class="panel"><div class="kicker">가을 신규 고객 안내 · 수정 7</div><h2>Instagram Reels 렌더링 64%</h2><p>대본과 편집은 저장됨 · 마지막 소식 17:08 · 다음 확인 약 2분</p><div class="progress"><span style="width:64%"></span></div><div class="actions">'+btn('작업 자세히','video-detail','primary')+btn('취소 조건 보기','video-cancel')+'</div></section>'+
+      '<section class="panel"><h2>복구 가능한 상태 24개</h2><div class="scroll-hint" aria-hidden="true">옆으로 밀어 상태 더 보기 →</div><div class="platform-tabs" data-horizontal-scroll="true" data-video-states="24">'+states.map(function(s,i){return '<button type="button" data-video-state="'+(i+1)+'">'+s+'</button>';}).join('')+'</div><div class="notice warning">결과 확인 중에는 다시 게시하지 않습니다. 외부 성공 뒤 기록만 실패했다면 기록만 복구합니다.</div></section>';
+    }
+    function blog(){
+      return header('Blog','캠페인 내용을 긴 글로 편집하고 현재 연결 또는 파일로 내보냅니다.',btn('새 글','open-journey','primary'))+
+      '<section class="panel"><h2>가을 신규 고객 안내 · 긴 글</h2><p>브랜드 기준 v3 · 캠페인 브리프 · 수정 2</p><div class="form-grid"><div class="field"><label class="label">형식</label><select data-model="blogFormat"><option>현재 Blog 연결</option><option>Markdown 파일</option><option>Naver용 복사</option><option>Medium용 복사</option><option>Substack용 복사</option></select></div><div class="field"><label class="label">상태</label><input data-model="blogStatus" value="초안 · 내보내기 전 확인" readonly></div></div><div class="actions">'+btn('글 편집','edit-blog','primary')+btn('파일로 내보내기','export')+btn('Home으로','go-home')+'</div><div class="notice">내보내기 형식은 새 메뉴나 자동 게시 연결을 뜻하지 않습니다.</div></section>';
+    }
+    function settings(){
+      var tabs=[
+        ['channels','Channels'],['ai','AI Engine'],['storage','Storage'],['design','Design Tools'],
+        ['notifications','Notifications'],['tokens','Fork 연동'],['keywords','Keywords'],['system','System']
+      ];
+      var body={
+        channels:'<section class="panel"><h2>발행 채널 연결</h2><div class="list"><div class="list-row"><div class="grow"><b>중앙 연결 앱</b><small>준비됨 · 계정, 권한, 만료와 건강 상태만 표시 · 연결값 원문 없음</small></div>'+btn('연결 관리','connect')+'</div><div class="list-row"><div class="grow"><b>TikTok @mono</b><small>권한 다시 확인 필요 · 기존 초안 보존</small></div>'+btn('다시 연결','connect')+'</div></div></section>',
+        ai:'<div class="grid"><section class="panel span-6"><h2>AI Engine</h2><p>사용 모델과 생성 범위를 이 작업 공간에 맞게 고릅니다. 게시 권한과는 분리됩니다.</p>'+btn('모델 선택','choose-model','primary')+'</section><section class="panel span-6"><h2>내 제공자 키</h2><p>'+(state.byokConfigured?'••••••••9A2F · 연결 시험 통과 · 이 작업 공간에서만 사용 · 전체 값 다시 보기 없음':'등록된 키 없음 · 중앙 제공자 사용')+'</p><div class="actions">'+btn(state.byokConfigured?'새 값으로 바꾸기':'키 등록','replace-key')+(state.byokConfigured?btn('삭제','remove-key','danger'):'')+'</div></section></div>',
+        storage:'<section class="panel"><h2>이미지 저장소</h2><p>현재 저장 위치, 사용량과 연결 건강 상태를 확인합니다. 다른 작업 공간의 자산은 보이지 않습니다.</p><div class="connection-test" data-spacing-fix="connection-test">'+btn('연결 시험','storage-test','primary')+'</div></section>',
+        design:'<section class="panel"><h2>Canva / Figma</h2><p>디자인 도구 연결 상태와 내보내기 범위를 관리합니다. 연결되지 않아도 Images 업로드를 사용할 수 있습니다.</p>'+btn('도구 연결','design-connect','primary')+'</section>',
+        notifications:'<section class="panel"><h2>알림</h2><p>게시 성공, 결과 확인 중, 실패와 승인 요청을 어디서 받을지 고릅니다. Slack 전달은 별도 동의이며 기본 꺼짐입니다.</p>'+btn('알림 저장','notification-save','primary')+'</section>',
+        tokens:'<section class="panel"><h2>Fork 연동</h2><p>작업 공간 연동 키는 발급 순간 한 번만 전체 값을 볼 수 있습니다. 이후에는 앞부분, 만든 시간, 마지막 사용과 폐기 상태만 표시합니다.</p>'+(state.tokenIssued?'<div class="notice warning" data-one-time-token="true"><b>이번 한 번만 복사할 수 있습니다</b><br>oca_demo_once_7K4Q · 화면을 닫으면 다시 볼 수 없음</div>':'<div class="list"><div class="list-row"><div class="grow"><b>oca_7K4Q…</b><small>오늘 생성 · 아직 사용하지 않음 · 원문 다시 보기 없음</small></div><span class="status success">활성</span></div></div>')+'<div class="actions">'+btn('새 연동 키 발급','issue-token','primary')+btn('교체','rotate')+btn('폐기','revoke','danger')+'</div></section>',
+        keywords:'<section class="panel"><h2>키워드 뱅크와 연결</h2><p>키워드 목록과 조사 도구 연결을 관리합니다. 예상치는 성과 보장이 아닙니다.</p>'+btn('키워드 관리','keyword-manage','primary')+'</section>',
+        system:'<section class="panel"><h2>System</h2><p>작업 공간 프로필, 게시 승인 정책, 브랜드 자료, 사용량, 개인정보와 데이터 내보내기·삭제를 관리합니다.</p><div class="list"><div class="list-row"><div class="grow"><b>자동 게시</b><small>항상 확인 후 게시</small></div><span class="status neutral">꺼짐</span></div><div class="list-row"><div class="grow"><b>브랜드 자료</b><small>사용 중인 기준 v3 · 새 초안 1</small></div>'+btn('자료 관리','open-brand')+'</div><div class="list-row"><div class="grow"><b>개인정보와 데이터</b><small>내보내기와 삭제 영향 확인</small></div>'+btn('데이터 관리','data-control')+'</div></div></section>'
+      };
+      return header('Settings','현재 고객용 8개 설정 그룹을 유지하며 연결과 작업 공간 범위의 인증 정보를 안전하게 관리합니다.')+
+        '<div class="settings-tabs" data-settings-count="8">'+tabs.map(function(t){return '<button type="button" class="'+(state.settingsTab===t[0]?'active':'')+'" data-settings-tab="'+t[0]+'">'+t[1]+'</button>';}).join('')+'</div>'+body[state.settingsTab];
+    }
+    function resultDialog(){
+      var r=resultById(state.selectedResultId),trace={revision_id:r.revision_id,publish_attempt_id:r.publish_attempt_id,external_result_id:r.external_result_id};
+      return '<div class="overlay" role="dialog" aria-modal="true" aria-labelledby="result-title" data-result-id="'+r.external_result_id+'"'+lineageAttrs('result-detail',trace)+'><div class="dialog"><div class="dialog-head"><div><div class="kicker">'+esc(r.title)+' · '+revisionLabel(r.revision_id)+'</div><h2 id="result-title">'+esc(r.platform)+' 게시 결과</h2></div>'+btn('닫기','close-overlay','quiet')+'</div>'+recoveryCard('results')+recoveryOutcome('results')+lineageStrip('result-detail',trace)+'<div class="list"><div class="list-row"><div class="grow"><b>'+esc(r.status)+'</b><small>'+esc(r.account)+' · 요청 '+esc(r.requested_at)+' · 확인 '+esc(r.confirmed_at)+'</small></div><span class="status '+(r.status==='게시 확인'?'success':'warning')+'">'+esc(r.status)+'</span></div><div class="list-row"><div class="grow"><b>채널 고유 결과</b><small>'+esc(r.metric)+' · 최근 7일 · 오늘 16:20 확인</small></div></div><div class="list-row"><div class="grow"><b>사용한 내용</b><small>캠페인 브리프 · '+esc(state.form.wikiTitle)+' v'+state.wikiVersion+' · '+revisionLabel(r.revision_id)+'</small></div>'+btn('Studio에서 열기','go-studio')+'</div></div><div class="actions">'+(r.status==='게시 확인'?btn('외부 결과 열기','external-result','primary'):btn('외부 결과 다시 확인','result-recheck','primary'))+btn('성과 보기','go-home')+'</div></div></div>';
+    }
+    function variantDialog(){
+      var v=state.activeVariant==='공통 초안'?'Instagram':state.activeVariant;
+      return '<div class="overlay" role="dialog" aria-modal="true" aria-labelledby="variant-title"><div class="dialog"><div class="dialog-head"><div><div class="kicker">공통 초안과 비교</div><h2 id="variant-title">'+esc(v)+' 문구</h2></div>'+btn('닫기','variant-close','quiet')+'</div><p>공통 초안에서 달라진 부분, 계정과 플랫폼 요구조건을 확인합니다. 다른 채널의 문구는 바뀌지 않습니다.</p><div class="notice">'+campaignLabel()+' · '+revisionLabel(state.currentRevisionId)+' · @monostudio · 공통 초안에서 변경됨</div><div class="field"><label class="label">'+esc(v)+' 문구</label><textarea data-variant-model="'+esc(v)+'">'+esc(state.variants[v])+'</textarea></div><div class="form-grid"><div class="field"><label class="label">글자와 링크</label><input data-model="variantLinkRule" value="허용 범위 안 · 링크 1개"></div><div class="field"><label class="label">미디어 요구조건</label><input data-model="variantMediaRule" value="'+(v.indexOf('Reels')>=0||v.indexOf('Shorts')>=0||v==='TikTok'?'9:16 · 자막 안전 영역':'이미지 선택 가능')+'"></div></div><div class="actions">'+btn('이 채널에 저장','variant-save','primary')+btn('변경 취소','variant-close')+'</div></div></div>';
+    }
+    function bulkDialog(){
+      var selected=state.bulkItems.filter(function(x){return x.selected;});
+      var ready=selected.filter(function(x){return x.state==='진행 가능';}).length;
+      var approval=selected.filter(function(x){return x.state==='승인 필요';}).length;
+      var excluded=selected.length-ready-approval;
+      return '<div class="overlay" role="dialog" aria-modal="true" aria-labelledby="bulk-title"><div class="dialog"><div class="dialog-head"><div><div class="kicker">선택 항목 영향 범위</div><h2 id="bulk-title">8개 계정을 다시 확인합니다</h2></div>'+btn('닫기','bulk-close','quiet')+'</div>'+
+        '<div class="grid"><section class="panel span-6"><span class="label">선택</span><div class="metric">'+selected.length+'</div><p>진행 가능 '+ready+' · 승인 필요 '+approval+'</p></section><section class="panel span-6"><span class="label">제외</span><div class="metric">'+excluded+'</div><p>권한 또는 전달 설정을 먼저 확인</p></section></div>'+
+        '<h3 style="margin-top:18px">영향받는 계정과 제외 이유</h3><div class="list" data-bulk-rows="'+state.bulkItems.length+'">'+state.bulkItems.map(function(item,i){return '<div class="list-row"><input type="checkbox" class="tap-checkbox" data-bulk-toggle="'+i+'" '+(item.selected?'checked':'')+' aria-label="'+esc(item.name)+' 선택"><div class="grow"><b>'+esc(item.name)+'</b><small>'+campaignLabel()+' · '+revisionLabel(state.currentRevisionId)+' · '+(item.state==='진행 가능'?'공통 날짜·시간 적용 가능':item.state)+'</small></div><span class="status '+(item.state==='진행 가능'?'success':item.state==='승인 필요'?'warning':'danger')+'">'+item.state+'</span>'+(item.state==='계정 권한 확인'?btn('계정 수정','bulk-fix-account'):'')+'</div>';}).join('')+'</div>'+
+        '<h3 style="margin-top:18px">공통으로 바꾸는 항목</h3><p>날짜, 시간, 캠페인 표시. 글자 수, 링크, 첫 댓글, 대체 텍스트와 영상 규칙은 각 채널에서 따로 유지합니다.</p>'+
+        '<label class="checkline"><input type="checkbox" data-model="bulkConfirmed">계정 8개와 제외 2개를 확인했습니다. 내용이나 시간이 바뀌면 다시 확인합니다.</label>'+
+        '<div class="actions">'+btn('확인하고 예약 설정','bulk-schedule','primary')+btn('항목 다시 고르기','bulk-close')+'</div></div></div>';
+    }
+    function scheduleDialog(){
+      return '<div class="overlay" role="dialog" aria-modal="true" aria-labelledby="schedule-title"><div class="dialog"><div class="dialog-head"><div><div class="kicker">가을 신규 고객 안내 · 수정 7</div><h2 id="schedule-title">예약 시간 확인</h2></div>'+btn('닫기','schedule-close','quiet')+'</div><div class="field"><label class="label">작업 공간 시간 · 서울</label><input type="datetime-local" data-model="scheduleAt" value="'+esc(state.form.scheduleAt)+'"></div><p style="margin-top:10px">내 시간도 서울 '+esc(state.form.scheduleAt.replace('T',' '))+'입니다. 시간이 바뀌면 이전 승인을 다시 받아야 합니다.</p><div class="actions">'+btn('이 시간으로 저장','schedule-save','primary')+btn('초안으로 두기','schedule-close')+'</div></div></div>';
+    }
+    function detailDialog(){
+      var kind=state.detailOpen,title='',body='';
+      if(kind==='repo'){
+        title='가져올 GitHub Markdown 범위';
+        body='<div class="form-grid"><div><span class="label">일반 저장소 · 브랜치</span><b>owner/brand-docs · main</b></div><div><span class="label">폴더</span><b>/brand</b></div><div><span class="label">포함</span><b>Markdown 12 · tone 2</b></div><div><span class="label">제외</span><b>이미지 2 · 지원하지 않는 파일 1</b></div></div><div class="list"><div class="list-row"><div class="grow"><b>positioning.md</b><small>변경됨 · 가져오기</small></div><span class="status success">포함</span></div><div class="list-row"><div class="grow"><b>tone.md</b><small>말투 자료 · 가져오기</small></div><span class="status success">포함</span></div></div><div class="notice">GitHub Wiki 저장소는 지원하지 않습니다. 일반 저장소의 Markdown 폴더를 사용합니다.</div>';
+      } else if(kind==='questions'){
+        title='6문항으로 브랜드 기준 시작';
+        body='<div class="form-grid" data-six-questions="6">'+['누구를 돕나요?','어떤 문제를 해결하나요?','다른 선택과 무엇이 다른가요?','확인할 수 있는 이유는 무엇인가요?','어떤 말투를 쓰나요?','어떤 표현을 피하나요?'].map(function(q,i){var k='question'+i;return '<div class="field"><label class="label">'+q+'</label><input data-model="'+k+'" value="'+esc(state.form[k]||['1인 브랜드','콘텐츠 운영 부담','확인 가능한 흐름','검토 기록','차분하고 구체적으로','무조건 성과'][i])+'"></div>';}).join('')+'</div><div class="notice">답변은 바로 최종 기준이 되지 않습니다. 생성된 초안을 자료와 비교하고 확정합니다.</div>';
+      } else if(kind==='preview'){
+        title=state.selectedPreview+' 미리보기';
+        body='<div class="notice">'+campaignLabel()+' · '+revisionLabel(state.currentRevisionId)+' · '+esc(state.selectedPreview)+' 계정과 실제 형식</div><div class="panel"><h3>'+esc(state.selectedPreview)+'에 보일 내용</h3><p>'+esc(state.variants[state.selectedPreview]||state.variants['공통 초안'])+'</p><p style="margin-top:12px">미디어, 길이, 안전 영역과 계정 요구조건을 반영한 현재 미리보기입니다.</p></div><div class="actions">'+btn('문구 편집','edit-variants','primary')+btn('대기열 확인','detail-close')+'</div>';
+      } else if(kind==='preflight'){
+        title=state.selectedDirect+' 게시 전 확인';
+        body='<div class="notice warning">자동 게시 아님 · '+campaignLabel()+' · '+revisionLabel(state.currentRevisionId)+'</div><div class="list"><div class="list-row"><div class="grow"><b>계정</b><small>'+esc(state.selectedDirect)+' @monostudio</small></div><span class="status success">연결됨</span></div><div class="list-row"><div class="grow"><b>승인과 권리</b><small>현재 '+revisionLabel(state.currentRevisionId)+' 승인 · 직접 만든 미디어</small></div><span class="status success">확인됨</span></div><div class="list-row"><div class="grow"><b>결과가 불확실할 때</b><small>다시 게시하지 않고 외부 결과 확인</small></div></div></div><div class="actions">'+btn('이 1개만 게시 요청','direct-confirm','primary')+btn('예약으로 바꾸기','schedule')+'</div>';
+      } else if(kind==='card'){
+        title='Instagram 카드뉴스 편집';
+        body='<div class="list" data-card-slides="5">'+[1,2,3,4,5].map(function(n){return '<div class="list-row"><b>'+n+'</b><div class="grow"><b>'+(['고객 문제','현재 방식','새 운영 흐름','확인 방법','다음 행동'][n-1])+'</b><small>1:1 · 안전 영역 확인 · 대체 텍스트 '+(n===4?'확인 필요':'있음')+'</small></div>'+btn('슬라이드 편집','slide-edit')+'</div>';}).join('')+'</div><div class="field"><label class="label">선택 슬라이드 대체 텍스트</label><input data-model="cardAlt" value="'+esc(state.form.cardAlt||'콘텐츠 운영 흐름을 단계별로 설명하는 카드')+'"></div><div class="actions">'+btn('카드뉴스 저장','detail-save','primary')+btn('Images에서 자산 선택','go-images')+'</div>';
+      } else {
+        title='사용한 브랜드 자료';
+        body='<div class="kicker">'+esc(state.form.wikiTitle)+' · v'+state.wikiVersion+'</div><p>'+esc(state.form.wikiBody)+'</p><div class="list"><div class="list-row"><div class="grow"><b>출처</b><small>'+esc(state.form.wikiSource)+'</small></div><span class="status '+(state.wikiApproved?'success':'warning')+'">'+(state.wikiApproved?'확인됨':'확인 필요')+'</span></div></div>';
+      }
+      return '<div class="overlay" role="dialog" aria-modal="true" aria-labelledby="detail-title"><div class="dialog"><div class="dialog-head"><h2 id="detail-title">'+title+'</h2>'+btn('닫기','detail-close','quiet')+'</div>'+body+'<div class="actions">'+(kind==='repo'?btn('이 범위 가져오기','detail-save','primary'):kind==='questions'?btn('답변 저장하고 기준 만들기','detail-save','primary'):'')+btn('닫기','detail-close')+'</div></div></div>';
+    }
+    function secretDialog(){
+      return '<div class="overlay" role="dialog" aria-modal="true" aria-labelledby="secret-title"><div class="dialog" data-secret-class="operator-oauth-app"><div class="dialog-head"><div><div class="kicker">운영자 OAuth 앱 Client Secret</div><h2 id="secret-title">조건부 확인</h2></div>'+btn('즉시 닫기','secret-close','quiet')+'</div><div class="field"><label class="label">운영자 재인증</label><input type="password" data-model="operatorReauth" value="'+esc(state.form.operatorReauth||'')+'" placeholder="현재 운영자 비밀번호"></div><div class="field"><label class="label">확인하려는 이유</label><textarea data-model="secretReason">'+esc(state.form.secretReason||'')+'</textarea></div><label class="checkline"><input type="checkbox" data-model="secretIntent">DB에 암호화 저장된 허용 값만 30초 확인하며, 환경 변수나 고객의 access/refresh 값은 표시하지 않음을 확인합니다.</label><div class="actions">'+btn('30초 확인 시작','secret-reveal','primary')+btn('취소','secret-close')+'</div></div></div>';
+    }
+    function journey(){
+      var list=steps.map(function(s,i){var n=i+1;return '<button type="button" class="'+(state.journeyStep===n?'active':'')+'" data-journey-step="'+n+'"><span class="step-number">'+n+'</span>'+s+(n<=2?' ✓':'')+'</button>';}).join('');
+      return '<div class="overlay" role="dialog" aria-modal="true" aria-labelledby="journey-title"><div class="dialog" style="width:min(1120px,100%)"><div class="dialog-head"><div><div class="kicker">대행 캠페인 · '+state.journeyStep+' / 14</div><h2 id="journey-title">가을 신규 고객 안내</h2></div><div class="actions" style="margin:0">'+(state.journeyStep>1?btn('이전','journey-prev'):'')+btn('닫기','close-journey','quiet')+'</div></div><div class="journey-layout"><aside class="journey-nav" aria-label="캠페인 14단계"><div class="step-list">'+list+'</div></aside><section id="journey-step-content">'+journeyStep()+'</section></div></div></div>';
+    }
+    function journeyStep(){
+      var n=state.journeyStep,title=steps[n-1];
+      if(n===1){
+        var authBody={
+          login:'<p>Google 계정으로 계속합니다. 연결만으로 게시되지 않습니다.</p><div class="actions">'+btn('Google로 계속','auth-chooser','primary')+btn('취소 상태 보기','auth-cancel')+btn('연결 오류 보기','auth-error')+'</div>',
+          chooser:'<p>사용할 Google 계정을 확인해 주세요.</p><div class="list"><div class="list-row"><div class="grow"><b>owner@monostudio.kr</b><small>기존 작업 공간 2개</small></div>'+btn('이 계정으로 계속','auth-workspace','primary')+'</div><div class="list-row"><div class="grow"><b>다른 계정</b><small>Google 계정 선택 화면으로 돌아감</small></div>'+btn('다른 계정','auth-login')+'</div></div>',
+          cancel:'<div class="notice warning">로그인이 취소되었습니다. 계정이나 작업 공간에는 변화가 없습니다.</div><div class="actions">'+btn('다시 시도','auth-login','primary')+btn('캠페인 닫기','close-journey')+'</div>',
+          error:'<div class="notice danger">계정을 확인하지 못했습니다. 이동하려던 작업 공간은 기억하고 있습니다.</div><div class="actions">'+btn('다른 계정 선택','auth-chooser','primary')+btn('다시 시도','auth-login')+btn('로그아웃','close-journey')+'</div>',
+          workspace:'<p>새 작업 공간을 만들거나 초대로 참여할 수 있습니다.</p><div class="form-grid"><div class="field"><label class="label">작업 공간 이름</label><input data-model="workspaceName" value="'+esc(state.form.workspaceName||'모노스튜디오')+'"></div><div class="field"><label class="label">초대 코드</label><input data-model="inviteCode" value="'+esc(state.form.inviteCode||'')+'" placeholder="초대받은 경우"></div></div><div class="notice">다른 작업 공간으로 바꾸면 이 캠페인의 미완성 초안은 현재 작업 공간에 남습니다.</div><div class="actions">'+btn('새로 만들기','auth-complete','primary')+btn('초대로 참여','auth-complete')+btn('기존 작업 공간 선택','auth-complete')+'</div>',
+          complete:'<div class="notice">로그인과 작업 공간 선택이 저장되어 이 단계가 완료되었습니다. 초기 준비가 실패하면 중복 생성하지 않고 준비만 다시 시도합니다.</div><div class="actions">'+btn('작업 공간 바꾸기','auth-workspace')+btn('다음','journey-next','primary')+'</div>'
+        }[state.authMode];
+        return '<div class="kicker">1 / 14</div><h2>'+title+'</h2>'+authBody;
+      }
+      if(n===2)return '<div class="kicker">2 / 14</div><h2>'+title+'</h2><div class="form-grid"><div class="field"><label class="label">원하는 결과</label><input data-model="workGoal" value="'+esc(state.form.workGoal)+'"></div><div class="field"><label class="label">확인 담당자</label><input data-model="workOwner" value="'+esc(state.form.workOwner)+'"></div></div><div class="field"><label class="label">완료 기준과 주의할 점</label><textarea data-model="workDone">'+esc(state.form.workDone)+'</textarea></div><div class="actions">'+btn('저장하고 다음','journey-next','primary')+btn('Home으로','close-journey')+'</div>';
+      if(n===3)return '<div class="kicker">3 / 14</div><h2>'+title+'</h2><p>사용할 자료를 고르고 가져올 범위를 먼저 확인합니다.</p><div class="source-choice">'+
+        sourceChoice('github','GitHub Markdown 폴더','일반 저장소의 선택한 폴더와 tone 파일')+
+        sourceChoice('bundle','Markdown/text 묶음','포함·제외 파일을 먼저 확인')+
+        sourceChoice('questions','6문항으로 시작','자료가 없을 때 현재 제공되는 경로')+
+        sourceChoice('paste','내용 직접 붙여넣기','자료 이름과 내용을 함께 저장')+
+        sourceChoice('wiki','이 제품 안에서 새 자료 만들기','페이지·버전·검토 흐름을 준비')+
+        '</div>'+brandSourceBody()+'<div class="actions">'+btn('선택 저장하고 다음','journey-next','primary')+btn('Studio에서 제한 모드','go-studio')+'</div>';
+      if(n===4)return '<div class="kicker">4 / 14</div><h2>'+title+'</h2><p>사용한 자료를 옆에서 확인하며 포지셔닝과 말투를 편집합니다.</p><div class="field"><label class="label">누구의 어떤 상황을 돕나</label><textarea data-model="brandAudience">'+esc(state.form.brandAudience||'콘텐츠 운영 인력이 부족하지만 검토 책임은 직접 지고 싶은 1인 브랜드')+'</textarea></div><div class="form-grid"><div class="field"><label class="label">약속과 이유</label><input data-model="brandPromise" value="'+esc(state.form.brandPromise||'근거를 확인한 뒤 채널별 콘텐츠를 준비')+'"></div><div class="field"><label class="label">피할 표현</label><input data-model="brandTaboo" value="'+esc(state.form.brandTaboo||'완전 자동, 무조건 성과, 지금 안 하면 손해')+'"></div></div><div class="notice warning">성과를 보장하는 자료는 찾지 못했습니다. 약속을 좁혀 두었습니다.</div><div class="actions">'+btn('사용한 자료 보기','source-view')+btn('브랜드 기준 확정','journey-next','primary')+'</div>';
+      if(n===5)return '<div class="kicker">5 / 14</div><h2>'+title+'</h2><p>확인한 정보, 해석, 제안을 섞지 않고 보여줍니다.</p><div class="list"><div class="list-row"><span class="status success">확인</span><div class="grow"><b>저장 반응이 있는 카드뉴스 2건</b><small>Instagram @monostudio · 최근 30일</small></div></div><div class="list-row"><span class="status neutral">해석</span><div class="grow"><b>첫 장이 구체적일수록 저장될 가능성이 있음</b><small>표본이 작아 인과로 단정하지 않음</small></div></div><div class="list-row"><span class="status warning">제안</span><div class="grow"><b>첫 문장의 구체성만 바꿔 비교</b><small>나머지 형식과 게시 시간은 유지</small></div></div></div><div class="actions">'+btn('브리프에 반영','journey-next','primary')+btn('다른 자료 찾기','search')+'</div>';
+      if(n===6)return '<div class="kicker">6 / 14</div><h2>'+title+'</h2><div class="form-grid" data-campaign-fields="14">'+
+        briefField('목표','신규 문의를 위한 브랜드 이해')+briefField('독자와 상황','콘텐츠 운영에 지친 1인 브랜드')+
+        briefField('핵심 메시지','자동화보다 확인 가능한 흐름')+briefField('제안과 혜택','운영 점검표')+
+        briefField('원하는 한 행동','운영 방식 보기')+briefField('기간','8월 10-24일')+
+        briefField('시간대','서울')+briefField('제작 예산','15만원 이내')+
+        briefField('도구 예산','5만원 이내')+'<div class="field" data-brief-field="광고비"><label class="label">광고비</label><select data-model="brief-광고비"><option>이 제품에서는 집행하지 않음</option><option>외부에서 집행</option><option>아직 정하지 않음</option></select></div>'+
+        briefField('확인 담당자','브랜드 소유자')+briefField('확인할 주장','성과 수치 제외')+
+        briefField('이미지·음원 권리','직접 만든 이미지와 상업 이용 가능 음원')+briefField('안전 메모','과장, 긴급성, 숨은 자동 게시 금지')+
+        '</div><div class="actions">'+btn('브리프 확정','journey-next','primary')+btn('아이디어로 계속','go-studio')+'</div>';
+      if(n>=7&&n<=9){
+        var copy=n===7?'공통 초안과 5개 소셜 채널 문구를 편집합니다.':n===8?'사진·카드뉴스의 슬라이드, 대체 텍스트, 자르기와 권리를 확인합니다.':'Shorts, Reels, TikTok 대본과 렌더링 상태를 확인합니다.';
+        return '<div class="kicker">'+n+' / 14</div><h2>'+title+'</h2><p>'+copy+'</p><div class="notice">전문가 이동은 현재 입력을 보존하지만 건너뛴 단계를 완료로 표시하지 않습니다.</div><div class="actions">'+btn('Studio에서 편집','go-studio','primary')+btn('저장하고 다음','journey-next')+'</div>';
+      }
+      if(n===10)return '<div class="kicker">10 / 14</div><h2>'+title+'</h2><p>항목별 의견과 변경 범위를 확인합니다. 수정 뒤 이전 승인 상태는 유지되지 않습니다.</p><div class="field"><label class="label">피드백</label><textarea data-model="feedback">'+esc(state.form.feedback||'첫 문장을 고객 상황으로 바꾸고, 확인되지 않은 숫자를 빼 주세요.')+'</textarea></div><div class="actions">'+btn('수정에 반영','journey-next','primary')+btn('Studio에서 직접 편집','go-studio')+'</div>';
+      if(n===11)return '<div class="kicker">11 / 14</div><h2>'+title+'</h2><p>계정, 수정 번호, 실제 내용, 권리와 예약 시간을 한 번 더 확인합니다.</p><div class="notice warning">예약 시간이 바뀌어 이전 승인은 만료되었습니다.</div><div class="actions">'+btn('승인 인박스 열기','go-inbox','primary')+btn('새 시간으로 검토 요청','journey-next')+'</div>';
+      if(n===12)return '<div class="kicker">12 / 14</div><h2>'+title+'</h2><p>개별 또는 선택 항목의 계정과 제외 이유를 확인합니다. 자동 게시와 Messaging은 꺼져 있습니다.</p><div class="actions">'+btn('영향 범위 확인','bulk-review','primary')+btn('캘린더 열기','go-calendar')+btn('다음','journey-next')+'</div>';
+      if(n===13)return '<div class="kicker">13 / 14</div><h2>'+title+'</h2><p>'+campaignLabel()+'의 '+revisionLabel(state.currentRevisionId)+' 게시 결과를 모읍니다. 값이 없는 결과는 0이 아닙니다.</p>'+recoveryCard('results')+recoveryOutcome('results')+lineageStrip('result-library')+'<div class="list" data-result-library="3">'+state.results.map(function(r){return '<div class="list-row" data-result-row="'+r.external_result_id+'" data-result-id="'+r.external_result_id+'"><span class="status '+(r.status==='게시 확인'?'success':'warning')+'">'+r.status+'</span><div class="grow"><b>'+r.platform+' · '+r.account+'</b><small>'+revisionLabel(r.revision_id)+' · '+r.requested_at+' 요청 · '+r.metric+'</small></div><button type="button" data-result-select="true" data-result-id="'+r.external_result_id+'" aria-label="'+r.platform+' 게시 결과 상세">상세</button></div>';}).join('')+'</div><div class="actions">'+btn('전체 성과','go-home')+btn('다음','journey-next','primary')+'</div>';
+      return '<div class="kicker">14 / 14</div><h2>'+title+'</h2><p>관찰한 결과에서 다음에 바꿀 변수 하나만 제안합니다.</p><div class="panel" data-experiment-lineage="true" data-source-result-ids="'+state.experimentSourceResultIds.join(',')+'"><h3>한 변수 제안</h3><p>사용한 게시 결과: <b>'+esc(resultSourceSummary(state.experimentSourceResultIds))+'</b></p>'+lineageStrip('next-experiment',{revision_id:state.currentRevisionId,external_result_id:state.experimentSourceResultIds[0]})+(state.experimentEditing?'<div class="field"><label class="label">다음에 바꿀 한 가지</label><textarea data-model="experiment">'+esc(state.form.experiment)+'</textarea></div>':'<p>'+esc(state.form.experiment)+'. 표본이 작아 성공을 보장하지 않습니다. 이미지, 게시 시간과 행동 안내는 유지합니다.</p>')+(state.experimentRevision?'<div class="notice" data-experiment-revision="'+state.experimentRevision.revision_id+'">'+revisionLabel(state.experimentRevision.revision_id)+'에 적용됨 · 참고 결과: '+esc(resultSourceSummary(state.experimentRevision.source_result_ids))+' · 바뀐 변수: '+state.experimentRevision.changed_variable+' · 유지: '+state.experimentRevision.held_constants.join(', ')+' · 적용 취소 가능</div>':'')+'</div><div class="actions">'+(state.experimentApplied?btn('적용 취소','undo-experiment'):btn('다음 초안에 적용','apply-experiment','primary'))+btn(state.experimentEditing?'수정 저장':'수정','edit-experiment')+btn('보류','hold')+btn('제안 닫기','close-journey')+'</div>';
+    }
+    function briefField(label,value){var key='brief-'+label;return '<div class="field" data-brief-field="'+label+'"><label class="label">'+label+'</label><input data-model="'+key+'" value="'+esc(state.form[key]||value)+'"></div>';}
+    function sourceChoice(id,title,desc){return '<button type="button" class="choice '+(state.source===id?'active':'')+'" data-source="'+id+'"><span class="source-dot"></span><span><b>'+title+'</b><small>'+desc+'</small></span></button>';}
+    function brandSourceBody(){
+      if(state.source==='github')return '<div class="panel"><h3>가져올 범위</h3><div class="form-grid"><div><span class="label">저장소 · 브랜치</span><b>owner/brand-docs · main</b></div><div><span class="label">폴더 · 포함</span><b>/brand · Markdown 12</b></div></div><p style="margin-top:10px">일반 GitHub 저장소의 Markdown 폴더만 지원합니다. GitHub Wiki 저장소는 지원하지 않습니다.</p><div class="actions">'+btn('파일 12개 보기','scope')+btn('tone 파일 2개 보기','tone')+'</div></div>';
+      if(state.source==='bundle')return '<div class="panel"><h3>가져오기 전 확인</h3><p>사용 가능 14 · 선택 12 · 건너뜀 2 · 지원하지 않는 파일 1</p><div class="actions">'+btn('파일 선택','bundle')+btn('제외 이유','bundle-exclusion')+'</div></div>';
+      if(state.source==='questions')return '<div class="panel"><h3>6문항으로 시작</h3><p>고객, 문제, 차이, 증거, 말투, 피할 표현을 답한 뒤 생성된 기준을 다시 검토합니다.</p>'+btn('6문항 열기','questions','primary')+'</div>';
+      if(state.source==='paste')return '<div class="panel"><div class="field"><label class="label">자료 이름</label><input data-model="pasteTitle" value="'+esc(state.form.pasteTitle||'대표 소개문')+'"></div><div class="field"><label class="label">내용</label><textarea data-model="pasteBody">'+esc(state.form.pasteBody||'우리는 1인 브랜드가 콘텐츠를 확인하고 운영하도록 돕습니다.')+'</textarea></div></div>';
+      return '<div class="panel" data-target-wiki="true"><div class="kicker">고객 약속 · v'+state.wikiVersion+' · '+(state.wikiApproved?'사용 중인 버전':state.wikiArchived?'보관됨':'초안')+'</div><div class="form-grid"><div class="field"><label class="label">페이지 제목</label><input data-model="wikiTitle" value="'+esc(state.form.wikiTitle)+'" '+(state.wikiArchived?'disabled':'')+'></div><div class="field"><label class="label">표시</label><select data-model="wikiKind" '+(state.wikiArchived?'disabled':'')+'><option>확인된 정보</option><option>해석</option><option>확인 필요</option></select></div></div><div class="field"><label class="label">내용</label><textarea data-model="wikiBody" '+(state.wikiArchived?'disabled':'')+'>'+esc(state.form.wikiBody)+'</textarea></div><div class="field"><label class="label">출처와 문서 안 위치</label><input data-model="wikiSource" value="'+esc(state.form.wikiSource)+'" '+(state.wikiArchived?'disabled':'')+'></div><p style="margin-top:10px">상태: '+(state.wikiSaved?'저장됨 · v'+state.wikiVersion:'변경 사항 있음')+'</p><div class="actions">'+(state.wikiArchived?btn('보관에서 복원','wiki-restore','primary'):btn('초안 저장','wiki-save','primary'))+btn('다시 불러오기','wiki-reload')+btn(state.wikiCompare?'버전 비교 닫기':'이전 버전과 비교','wiki-version')+(state.wikiArchived?'':btn('보관','wiki-archive','danger'))+(state.wikiApproved?btn('새 초안 만들기','wiki-new-draft'):btn('검토 요청','wiki-approve'))+'</div>'+
+        (state.wikiCompare?'<div class="panel"><h3>v'+(state.wikiVersion-1)+' → v'+state.wikiVersion+' 차이</h3><p><del>게시 전에 검토합니다.</del><br><ins>'+esc(state.form.wikiBody)+'</ins></p><div class="actions">'+btn('이전 내용을 새 버전으로 복원','wiki-rollback','primary')+'</div></div>':'')+
+        '<div class="notice">이전 내용 복원은 과거를 덮지 않고 새 버전을 만듭니다. 검토자가 확정한 버전만 Studio에서 사용합니다.</div></div>';
+    }
+    function operator(){
+      var tabs=['상태','고객과 작업 공간','중앙 연결 앱','사용량','복구 작업','Video/TTS','보안 기록','알림','설정'];
+      var descriptions={
+        '상태':'연결 앱, 작업자와 외부 제공자 건강 상태를 확인합니다.',
+        '고객과 작업 공간':'고객 상태와 시간 제한 지원 모드를 관리합니다. 고객 대신 게시할 수 없습니다.',
+        '중앙 연결 앱':'OAuth 앱 메타데이터, 저장 출처와 엄격한 조건부 확인을 관리합니다.',
+        '사용량':'작업 공간별 생성·저장·연결 사용량과 한도를 확인합니다.',
+        '복구 작업':'외부 성공 뒤 내부 기록 누락처럼 재게시 없는 복구만 수행합니다.',
+        'Video/TTS':'운영자 전용 영상·음성 제공자 상태를 관리합니다.',
+        '보안 기록':'재인증, 조건부 확인, 지원 모드와 복구의 담당자·사유·시간을 확인합니다.',
+        '알림':'운영 장애와 제공자 점검 알림을 관리합니다.',
+        '설정':'운영 콘솔 정책과 세션 제한을 관리합니다.'
+      };
+      var special=state.adminTab==='중앙 연결 앱'?
+        '<div class="grid"><section class="panel span-6"><h2>비밀값 출처 분류</h2><div class="list"><div class="list-row"><div class="grow"><b>중앙 환경</b><small>암호화 저장소로 가져오기만 가능 · 화면이나 응답에서 직접 보기 없음</small></div><span class="status success">정상</span></div><div class="list-row"><div class="grow"><b>암호화된 DB 저장</b><small>허용된 Client Secret만 엄격한 절차 뒤 30초 확인</small></div>'+btn('확인 절차','secret-flow')+'</div><div class="list-row"><div class="grow"><b>고객 제공 키와 채널 연결값</b><small>원문 확인 0 · 상태와 교체만</small></div><span class="status neutral">숨김</span></div></div></section><section class="panel span-6"><h2>조건부 확인 절차</h2><p>운영자 재인증 → 명시적 확인 의도와 사유 → DB 출처 확인 → 저장 금지 응답 → 30초 뒤 닫기 → 담당자·사유·시간 기록.</p><div class="notice warning">access/refresh 값과 고객 제공 키는 이 절차에서도 원문을 보여주지 않습니다.</div><div class="actions">'+btn('재인증과 사유 입력','secret-start','primary')+'</div></section></div>':
+        state.adminTab==='복구 작업'?
+        '<section class="panel"><h2>안전한 복구</h2><div class="list"><div class="list-row"><span class="status warning">확인</span><div class="grow"><b>외부 성공 후 내부 기록 누락 1건</b><small>외부 게시를 다시 요청하지 않고 기록만 복구 · 담당자와 사유 기록</small></div>'+btn('기록 복구','repair')+'</div></div></section>':
+        state.adminTab==='고객과 작업 공간'?
+        '<section class="panel"><h2>지원 모드</h2><p>대상 작업 공간, 사유와 종료 시간을 확인합니다. 고객 메뉴와 게시 버튼은 나타나지 않습니다.</p><div class="actions">'+btn('15분 지원 모드 시작','support-start','primary')+btn('고객 상태만 보기','customer-health')+'</div></section>':
+        '<section class="panel"><h2>'+state.adminTab+'</h2><p>'+descriptions[state.adminTab]+'</p><div class="actions">'+btn('상태 새로 확인','admin-refresh','primary')+btn('보안 기록 보기','admin-security')+'</div></section>';
+      return '<div class="operator-shell" id="operator-app" data-role="operator" data-theme="'+state.theme+'" data-viewport="'+viewportMode()+'"><aside class="operator-nav" data-admin-count="9"><h1 style="font-size:18px">OpenClaw Admin</h1><p style="color:#a1a1aa;font-size:12px">운영자 전용</p>'+tabs.map(function(x){return '<button data-admin-tab="'+x+'" class="'+(state.adminTab===x?'primary':'')+'">'+x+'</button>';}).join('')+'</aside><main><div class="operator-banner">고객 화면과 게시 행동은 숨겨져 있습니다. 지원 모드는 시간 제한과 기록을 남기며 게시할 수 없습니다.</div><div class="operator-main">'+recoveryCard('operator')+recoveryOutcome('operator')+actionOutcome()+header(state.adminTab,descriptions[state.adminTab])+special+'</div></main></div>';
+    }
+    function operatorV19(){
+      var tabs=['상태','고객과 작업 공간','중앙 연결 앱','사용량','복구 작업','Video/TTS','보안 기록','알림','설정'];
+      var descriptions={
+        '상태':'현재 연결과 실제 게시 확인 범위를 한눈에 봅니다.','고객과 작업 공간':'고객 상태, 지원 범위와 공유 AI 승인을 관리합니다.',
+        '중앙 연결 앱':'운영자 앱 자격증명과 고객 계정 연결을 분리합니다.','사용량':'현재 수집값과 설계 목표를 섞지 않고 봅니다.',
+        '복구 작업':'외부 게시를 반복하지 않고 누락된 기록만 복구합니다.','Video/TTS':'영상과 음성 제공자의 실제 작업 상태를 확인합니다.',
+        '보안 기록':'재인증, 비밀값 확인, 지원과 복구 이력을 확인합니다.','알림':'운영 장애와 제공자 점검 알림을 관리합니다.','설정':'운영 세션과 지원 정책을 관리합니다.'
+      };
+      var body='';
+      if(state.adminTab==='상태'){
+        body='<div class="grid"><section class="panel span-4"><h2>Threads</h2>'+StatusBadge('실제 게시 확인됨','success')+'<p style="margin-top:10px">코드, 계정, 권한, 갱신, 게시와 실제 결과까지 확인했습니다.</p></section><section class="panel span-4"><h2>Instagram</h2>'+StatusBadge('계정 연결까지만 확인','warning')+'<p style="margin-top:10px">게시 가능과 실제 결과는 아직 확인하지 않았습니다.</p></section><section class="panel span-4"><h2>나머지 채널</h2>'+StatusBadge('자격증명과 실증 필요','warning')+'<p style="margin-top:10px">코드 존재를 연결 성공으로 표시하지 않습니다.</p></section></div>'+Panel('계정별 token·자동화 목표',accountTargetTable(),'','data-admin-account-targets="8"');
+      } else if(state.adminTab==='고객과 작업 공간'){
+        body=Panel('모노스튜디오 작업 공간','<div class="list"><div class="list-row"><div class="grow"><b>계정 상태</b><small>'+(state.accountPaused?'일시 정지 · 예약과 자동화 차단':'활성 · 고객 작업 가능')+'</small></div>'+StatusBadge(state.accountPaused?'정지':'활성',state.accountPaused?'warning':'success')+'</div><div class="list-row"><div class="grow"><b>공유 AI 사용</b><small>'+(state.sharedAIApproved?'운영자 승인됨':'승인 없음 · 고객 제공 키만 가능')+'</small></div>'+StatusBadge(state.sharedAIApproved?'허용':'차단',state.sharedAIApproved?'success':'warning')+'</div></div>'+ActionGroup(Button(state.accountPaused?'다시 시작':'일시 정지',state.accountPaused?'account-resume':'account-pause',state.accountPaused?'primary':'danger','md',false)+Button(state.sharedAIApproved?'공유 AI 승인 회수':'공유 AI 승인',state.sharedAIApproved?'shared-ai-revoke':'shared-ai-approve','', 'md',false)+Button('15분 지원 모드','support-start','quiet','md',false)),'','data-admin-customer-controls="true"');
+      } else if(state.adminTab==='중앙 연결 앱'){
+        body='<div class="grid"><section class="panel span-6"><h2>중앙 OAuth 개발자 앱</h2><p>Client ID와 Secret은 운영자 암호화 저장소가 소유합니다. 고객 access/refresh 값은 이 화면에서 원문으로 보지 않습니다.</p>'+Notice('현재 앱 준비만으로 고객 계정 연결이나 실제 게시 성공을 뜻하지 않습니다.','warning')+ActionGroup(Button('조건부 확인 절차','secret-start','primary','md',false))+'</section><section class="panel span-6"><h2>대표 채널 게시 준비</h2>'+readinessLadder({path:'/channels/instagram',label:'Instagram',kind:'instagram'},'admin')+'</section></div>';
+      } else if(state.adminTab==='사용량'){
+        body='<div class="grid"><section class="panel span-6" data-usage-current="true"><div class="kicker">현재 수집</div><h2>기간별 작업 수</h2><p>생성, 게시, 예약 작업, API 호출을 usage_events 기준으로 합산합니다.</p><div class="list"><div class="list-row"><div class="grow"><b>AI 생성 18회</b><small>2026-08 · source usage_events · 오늘 17:20 확인</small></div></div><div class="list-row"><div class="grow"><b>게시 9회 · 예약 작업 12회 · API 호출 42회</b><small>Pro · 생성 한도 18/1000 · 같은 기간</small></div></div></div></section><section class="panel span-6" data-usage-target="unimplemented"><div class="kicker">설계 목표 · 미구현</div><h2>정확한 AI 비용과 토큰</h2><p>모델, 입력 토큰, 출력 토큰, 비용, 기간, 한도, 출처와 확인 시각을 작업 공간·계정별로 보여줄 목표입니다.</p>'+Notice('현행 API와 스키마에는 정확한 입력·출력 토큰과 비용 필드가 없습니다. 숫자 예시는 표시하지 않습니다.','warning')+'</section></div>';
+      } else if(state.adminTab==='복구 작업'){
+        body=Panel('안전한 기록 복구','<p>외부 게시 성공 뒤 내부 기록이 누락된 1건입니다. 같은 콘텐츠를 다시 게시하지 않습니다.</p>'+ActionGroup(Button('기록만 복구','repair','primary','md',false)));
+      } else if(state.adminTab==='Video/TTS'){
+        body=Panel('영상과 음성 제공자','<p>렌더링, 업로드, 결과 확인, 기한 만료와 복구를 영상 작업 단위로 봅니다.</p>'+Notice('현재 실 게시 증거가 없는 제공자는 준비됨으로 표시하지 않습니다.','warning')+ActionGroup(Button('영상 작업 상태 확인','admin-refresh','primary','md',false)));
+      } else if(state.adminTab==='보안 기록'){
+        body=Panel('감사 기록','<p>운영자 재인증, 30초 비밀값 확인, 계정 일시 정지, 공유 AI 승인, 지원 모드와 기록 복구의 담당자·사유·시간을 남깁니다.</p>'+ActionGroup(Button('기록 새로 확인','admin-refresh','primary','md',false)));
+      } else if(state.adminTab==='알림'){
+        body=Panel('운영 알림','<p>게시 결과 지연, OAuth 만료, 제공자 장애와 사용량 한도 알림을 관리합니다.</p>'+ActionGroup(Button('알림 설정 저장','notification-save','primary','md',false)));
+      } else {
+        body=Panel('운영 콘솔 설정','<p>운영자 세션 제한, 조건부 비밀값 확인, 지원 모드와 고객 데이터 경계를 관리합니다.</p>'+ActionGroup(Button('보안 기록 보기','admin-security','primary','md',false)));
+      }
+      return '<div class="operator-shell" id="operator-app" data-role="operator" data-theme="'+state.theme+'" data-viewport="'+viewportMode()+'"><aside class="operator-nav" data-admin-count="9"><h1 style="font-size:18px">OpenClaw Admin</h1><p style="color:#a1a1aa;font-size:12px">운영자 전용</p>'+tabs.map(function(x){return '<button data-admin-tab="'+x+'" class="'+(state.adminTab===x?'primary':'')+'">'+x+'</button>';}).join('')+'</aside><main><div class="operator-banner">현재 사실과 목표 상태를 분리합니다. 고객 화면과 게시 행동은 이 콘솔에서 숨겨집니다.</div><div class="operator-main">'+UnifiedSurfaceTabs()+surfaceBody('operator')+recoveryCard('operator')+recoveryOutcome('operator')+actionOutcome()+header(state.adminTab,descriptions[state.adminTab])+body+'</div></main></div>';
+    }
+    function page(){
+      var item=destinations.filter(function(x){return x.path===state.path;})[0]||destinations[0],content;
+      if(item.kind==='home')content=home();
+      else if(item.kind==='studio')content=studio();
+      else if(item.kind==='inbox')content=inbox();
+      else if(item.kind==='calendar')content=calendar();
+      else if(item.kind==='video')content=videoChannel(item);
+      else if(item.kind==='instagram'&&state.instagramFormat==='reels')content=videoChannel(item,'Instagram Reels');
+      else if(item.kind==='social'||item.kind==='instagram')content=channel(item);
+      else if(item.kind==='message')content=messaging(item);
+      else if(item.kind==='data')content=dataPage(item);
+      else if(item.kind==='keyword')content=keyword(item);
+      else if(item.kind==='blog')content=blog();
+      else if(item.kind==='images'||item.kind==='videos'||item.kind==='midjourney')content=assets(item);
+      else content=settings();
+      return shell(content);
+    }
+    function enhanceControlNames(){
+      Array.prototype.forEach.call(document.querySelectorAll('input,select,textarea'),function(el){
+        if(el.getAttribute('aria-label')||el.getAttribute('aria-labelledby'))return;
+        var parentLabel=el.closest('label'),field=el.closest('.field'),label=parentLabel||field&&field.querySelector('.label');
+        if(label){var name=label.textContent.trim();if(name)el.setAttribute('aria-label',name);}
+      });
+    }
+    function interactionHandler(el){
+      var a=el.getAttribute('data-action');if(a)return ACTION_CONTRACTS[a]||a.indexOf('platform-')===0||a.indexOf('account-')===0||a.indexOf('shared-ai-')===0?'action:'+a:'';
+      var recovery=el.getAttribute('data-recovery-action');if(recovery){var p=recovery.split('-'),owner=p.shift(),s=p.join('-');return RECOVERY_OWNERS[owner]&&RECOVERY_STATES[s]?'recovery:'+recovery:'';}
+      var keys=['route','osmuRoute','viewportControl','journeyStep','studioStep','source','variant','bulkToggle','resultSelect','previewPlatform','directPlatform','settingsTab','adminTab','videoPhase','videoState','platformTab','surfaceTab','platformAnalyticsTab','platformFormat','model','variantModel'];
+      for(var i=0;i<keys.length;i++)if(typeof el.dataset[keys[i]]!=='undefined')return 'delegated:'+keys[i];
+      if(['qa-role','qa-state','qa-theme','qa-hide','qa-restore'].indexOf(el.id)>=0)return 'direct-listener:'+el.id;
+      return '';
+    }
+    function controlName(el){
+      var id=el.getAttribute('aria-labelledby'),labelled=id&&document.getElementById(id);
+      return (el.getAttribute('aria-label')||(labelled&&labelled.textContent)||el.textContent||'').trim();
+    }
+    function collectCustomerLanguageAudit(){
+      if(state.role!=='customer')return {role:state.role,surfaceCount:0,rawIdentifierHits:[],implementationJargonHits:[],pass:true};
+      var root=document.getElementById('root');
+      var visible=[root?root.textContent:''];
+      Array.prototype.forEach.call(root?root.querySelectorAll('input,select,textarea,[aria-label],[title],[alt]'):[],function(el){
+        visible.push(el.value||'',el.getAttribute('aria-label')||'',el.getAttribute('title')||'',el.getAttribute('alt')||'');
+      });
+      var text=visible.join('\n');
+      var raw=text.match(/\b(?:cmp|cnt|rev|pub|ext|exp)_[A-Za-z0-9_-]+\b/g)||[];
+      var jargonTerms=['campaign_id','content_id','revision_id','publish_attempt_id','external_result_id','experiment_id','data-owner','data-lineage','fixture','manifest','JSDOM','Header7','Settings8','Admin9','preview7','direct4'];
+      var jargon=jargonTerms.filter(function(term){return text.indexOf(term)>=0;});
+      return {role:state.role,surfaceCount:1,rawIdentifierHits:Array.from(new Set(raw)),implementationJargonHits:jargon,pass:raw.length===0&&jargon.length===0};
+    }
+    function collectInteractionAudit(){
+      var controls=Array.prototype.map.call(document.querySelectorAll('button,input,select,textarea,a[href]'),function(el){
+        var rect=el.getBoundingClientRect(),name=controlName(el),handler=interactionHandler(el),targetPass=(rect.width===0&&rect.height===0)||(rect.width>=44&&rect.height>=44);
+        return {tag:el.tagName.toLowerCase(),name:name,handler:handler,accessibleNamePass:!!name,nonGenericHandlerPass:!!handler,targetWidth:Math.round(rect.width),targetHeight:Math.round(rect.height),target44Pass:targetPass,focusVisibleContract:'3px accent outline + 2px offset'};
+      }).filter(function(_,i){return !document.querySelectorAll('button,input,select,textarea,a[href]')[i].closest('[data-prototype-inspector]');});
+      var failures=controls.filter(function(x){return !x.accessibleNamePass||!x.nonGenericHandlerPass||!x.target44Pass;});
+      var language=collectCustomerLanguageAudit();
+      var inspectorNodes=Array.prototype.slice.call(document.querySelectorAll('[data-prototype-inspector]'));
+      var inspectorVisibleCount=inspectorNodes.filter(function(el){var cs=getComputedStyle(el),r=el.getBoundingClientRect();return !el.hidden&&cs.display!=='none'&&cs.visibility!=='hidden'&&(r.width>0||r.height>0);}).length;
+      var inspectorDefaultPass=!inspectorOptIn?inspectorVisibleCount===0:true;
+      return {version:'v19-fidelity',role:state.role,theme:state.theme,viewport:viewportMode(),controls:controls,failures:failures,customerLanguage:language,inspectorOptIn:inspectorOptIn,inspectorVisibleCount:inspectorVisibleCount,inspectorDefaultPass:inspectorDefaultPass,pass:failures.length===0&&language.pass&&inspectorDefaultPass,contrastTokens:CONTRAST_TOKENS,contrastMinimum:4.5,mobileVideoScrollHintCount:document.querySelectorAll('.scroll-hint').length};
+    }
+    function render(){
+      document.body.setAttribute('data-theme',state.theme);
+      document.getElementById('root').innerHTML=state.role==='operator'?operatorV19():page();
+      if(state.journey&&state.role==='customer')document.getElementById('root').insertAdjacentHTML('beforeend',journey());
+      if(state.variantOpen&&state.role==='customer')document.getElementById('root').insertAdjacentHTML('beforeend',variantDialog());
+      if(state.bulkOpen&&state.role==='customer')document.getElementById('root').insertAdjacentHTML('beforeend',bulkDialog());
+      if(state.scheduleOpen&&state.role==='customer')document.getElementById('root').insertAdjacentHTML('beforeend',scheduleDialog());
+      if(state.detailOpen&&state.role==='customer')document.getElementById('root').insertAdjacentHTML('beforeend',detailDialog());
+      if(state.secretOpen&&state.role==='operator')document.getElementById('root').insertAdjacentHTML('beforeend',secretDialog());
+      enhanceControlNames();
+      document.getElementById('qa-role').value=state.role;
+      document.getElementById('qa-state').value=state.screenState;
+      document.getElementById('qa-theme').textContent=state.theme==='light'?'밝은 화면':'어두운 화면';
+      document.getElementById('qa-result').textContent=destinations.length+' destinations · '+steps.length+' campaign steps · '+state.path;
+    }
+    function go(path){state.path=path;if(/^\/channels\/(threads|x|instagram|facebook|bluesky|youtube|tiktok)$/.test(path))state.platformTab='create';state.journey=false;state.mobileMenu=false;state.variantOpen=false;state.bulkOpen=false;state.scheduleOpen=false;render();window.scrollTo(0,0);}
+    document.addEventListener('input',function(e){
+      var variant=e.target.closest('[data-variant-model]');if(variant){state.variants[variant.getAttribute('data-variant-model')]=variant.value;return;}
+      var el=e.target.closest('[data-model]');if(!el)return;
+      state.form[el.getAttribute('data-model')]=el.type==='checkbox'?el.checked:el.value;
+      if(el.getAttribute('data-model').indexOf('wiki')===0)state.wikiSaved=false;
+    });
+    document.addEventListener('change',function(e){
+      var el=e.target.closest('[data-model]');if(!el)return;
+      state.form[el.getAttribute('data-model')]=el.type==='checkbox'?el.checked:el.value;
+    });
+    document.addEventListener('click',function(e){
+      var route=e.target.closest('[data-route]');if(route){go(route.getAttribute('data-route'));return;}
+      var osmuRoute=e.target.closest('[data-osmu-route]');if(osmuRoute){state.platformOrigin='osmu';state.platformFormat=osmuRoute.getAttribute('data-osmu-format')||'기본 형식';go(osmuRoute.getAttribute('data-osmu-route'));return;}
+      var vp=e.target.closest('[data-viewport-control]');if(vp){document.getElementById('qa-result').textContent='Browser viewport target '+vp.getAttribute('data-viewport')+'px';return;}
+      var j=e.target.closest('[data-journey-step]');if(j){state.journeyStep=Number(j.getAttribute('data-journey-step'));render();return;}
+      var st=e.target.closest('[data-studio-step]');if(st){state.studioStep=Number(st.getAttribute('data-studio-step'));document.querySelector('[data-family-order="'+state.studioStep+'"]').scrollIntoView({behavior:'smooth'});return;}
+      var src=e.target.closest('[data-source]');if(src){state.source=src.getAttribute('data-source');render();return;}
+      var variant=e.target.closest('[data-variant]');if(variant){state.activeVariant=variant.getAttribute('data-variant');render();return;}
+      var bulkToggle=e.target.closest('[data-bulk-toggle]');if(bulkToggle){state.bulkItems[Number(bulkToggle.getAttribute('data-bulk-toggle'))].selected=bulkToggle.checked;state.form.bulkConfirmed=false;render();return;}
+      var recovery=e.target.closest('[data-recovery-action]');if(recovery){
+        var recoveryCode=recovery.getAttribute('data-recovery-action'),parts=recoveryCode.split('-'),recoveryOwner=parts.shift(),recoveryState=parts.join('-');
+        if(!RECOVERY_OWNERS[recoveryOwner]||!RECOVERY_STATES[recoveryState])throw new Error('Unregistered recovery action: '+recoveryCode);
+        var preservedBefore=DEMO_IDENTITY.content_id+'|'+RECOVERY_OWNERS[recoveryOwner].account+'|'+state.currentRevisionId;
+        var record={owner:recoveryOwner,state:recoveryState,action:recoveryCode,label:RECOVERY_OWNERS[recoveryOwner].label+' '+RECOVERY_STATES[recoveryState].verb,preserved_before:preservedBefore,preserved_after:preservedBefore,status:'safe-transition-complete'};
+        state.recoveryLog[recoveryCode]=Object.freeze(record);state.lastRecovery=record;state.screenState='success';render();return;
+      }
+      var resultSelect=e.target.closest('[data-result-select]');if(resultSelect){state.selectedResultId=resultSelect.getAttribute('data-result-id');document.getElementById('root').insertAdjacentHTML('beforeend',resultDialog());return;}
+      var preview=e.target.closest('[data-preview-platform]');if(preview){state.selectedPreview=preview.getAttribute('data-preview-platform');state.detailOpen='preview';render();return;}
+      var direct=e.target.closest('[data-direct-platform]');if(direct){state.selectedDirect=direct.getAttribute('data-direct-platform');state.detailOpen='preflight';render();return;}
+      var platformTab=e.target.closest('[data-platform-tab]');if(platformTab){state.platformTab=platformTab.getAttribute('data-platform-tab');render();return;}
+      var surfaceTab=e.target.closest('[data-surface-tab]');if(surfaceTab){state.surfaceTab=surfaceTab.getAttribute('data-surface-tab');render();return;}
+      var platformAnalyticsTab=e.target.closest('[data-platform-analytics-tab]');if(platformAnalyticsTab){state.platformAnalyticsTab=platformAnalyticsTab.getAttribute('data-platform-analytics-tab');render();return;}
+      var platformFormat=e.target.closest('[data-platform-format]');if(platformFormat){state.platformFormat=platformFormat.getAttribute('data-platform-format');render();return;}
+      var settingsTab=e.target.closest('[data-settings-tab]');if(settingsTab){state.settingsTab=settingsTab.getAttribute('data-settings-tab');render();return;}
+      var adminTab=e.target.closest('[data-admin-tab]');if(adminTab){state.adminTab=adminTab.getAttribute('data-admin-tab');render();return;}
+      var videoPhase=e.target.closest('[data-video-phase]');if(videoPhase){state.videoPhase=videoPhase.getAttribute('data-video-phase');render();return;}
+      var videoState=e.target.closest('[data-video-state]');if(videoState){state.videoPhase=videoState.textContent.trim();render();return;}
+      var a=e.target.closest('[data-action]');if(!a)return;var x=a.getAttribute('data-action');
+      var map={'go-home':'/','go-studio':'/studio','go-inbox':'/inbox','go-calendar':'/calendar','go-settings':'/settings','go-images':'/images','go-videos':'/videos'};
+      if(map[x]){go(map[x]);return;}
+      if(x==='platform-create-local'){state.platformOrigin='local';state.platformLifecycle='draft';state.platformResult='이 플랫폼에서 만든 초안을 같은 캠페인 기록에 저장했습니다.';render();}
+      else if(x==='platform-edit'){state.platformResult='편집 내용을 같은 수정본에 저장했습니다. Queue와 Calendar에서 같은 항목으로 이어집니다.';render();}
+      else if(x==='platform-request-approval'){state.platformLifecycle='review';state.platformResult='승인 인박스에 검토를 요청했습니다. 수정하면 이 요청은 다시 확인해야 합니다.';render();}
+      else if(x==='platform-approve'){state.platformLifecycle='approved';state.approved=true;state.platformResult='현재 수정본을 승인했습니다.';render();}
+      else if(x==='platform-publish-now'){
+        if(state.platformLifecycle!=='approved'){state.platformResult='먼저 현재 수정본을 승인해 주세요.';render();}
+        else if(state.path==='/channels/threads'){state.platformLifecycle='published';state.platformResult='Threads 실제 게시 결과를 확인했습니다. 같은 요청을 다시 보내지 않습니다.';render();}
+        else {state.platformLifecycle='blocked';state.platformResult='계정 연결은 보존했습니다. 실제 게시 준비가 확인되지 않아 외부 요청을 보내지 않았습니다.';render();}
+      }
+      else if(x==='platform-schedule'){state.scheduleOpen=true;state.platformResult='예약 시간을 고르세요. 실행 시점의 게시 준비 상태를 다시 확인합니다.';render();}
+      else if(x==='account-pause'){state.accountPaused=true;render();}
+      else if(x==='account-resume'){state.accountPaused=false;render();}
+      else if(x==='shared-ai-approve'){state.sharedAIApproved=true;render();}
+      else if(x==='shared-ai-revoke'){state.sharedAIApproved=false;render();}
+      else if(x==='open-journey'||x==='open-brand'){state.journey=true;state.journeyStep=x==='open-brand'?3:state.journeyStep;render();}
+      else if(x==='close-journey'||x==='close-overlay'){state.journey=false;render();}
+      else if(x==='mobile-menu'){state.mobileMenu=true;render();}
+      else if(x==='mobile-menu-close'){state.mobileMenu=false;render();}
+      else if(x==='journey-next'){state.journeyStep=Math.min(14,state.journeyStep+1);render();}
+      else if(x==='journey-prev'){state.journeyStep=Math.max(1,state.journeyStep-1);render();}
+      else if(x.indexOf('journey-')===0){state.journey=true;state.journeyStep=Number(x.split('-')[1]);render();}
+      else if(x==='toggle-theme'){state.theme=state.theme==='light'?'dark':'light';render();}
+      else if(x==='ig-feed'||x==='ig-reels'){state.instagramFormat=x==='ig-reels'?'reels':'feed';render();}
+      else if(x==='wiki-save'){state.wikiSaved=true;state.wikiVersion+=1;state.wikiApproved=false;render();}
+      else if(x==='wiki-reload'){state.wikiSaved=true;render();}
+      else if(x==='wiki-version'){state.wikiCompare=!state.wikiCompare;render();}
+      else if(x==='wiki-rollback'){state.wikiVersion+=1;state.wikiSaved=true;state.wikiApproved=false;state.wikiCompare=false;render();}
+      else if(x==='wiki-archive'){state.wikiSaved=true;state.wikiArchived=true;render();}
+      else if(x==='wiki-restore'){state.wikiArchived=false;state.wikiVersion+=1;state.wikiSaved=true;render();}
+      else if(x==='wiki-approve'){state.wikiSaved=true;state.wikiApproved=true;render();}
+      else if(x==='wiki-new-draft'){state.wikiVersion+=1;state.wikiApproved=false;state.wikiSaved=false;render();}
+      else if(x==='edit-variants'){state.variantOpen=true;render();}
+      else if(x==='variant-close'){state.variantOpen=false;render();}
+      else if(x==='variant-save'){state.variantOpen=false;render();}
+      else if(x==='bulk-review'){state.bulkOpen=true;render();}
+      else if(x==='bulk-close'){state.bulkOpen=false;render();}
+      else if(x==='bulk-fix-account'){state.bulkItems[6].state='승인 필요';state.form.bulkConfirmed=false;render();}
+      else if(x==='bulk-schedule'){if(!state.form.bulkConfirmed){alert('영향받는 계정과 제외 항목을 먼저 확인해 주세요.');return;}state.bulkOpen=false;state.scheduleOpen=true;render();}
+      else if(x==='schedule'){state.detailOpen='';state.scheduleOpen=true;render();}
+      else if(x==='schedule-close'){state.scheduleOpen=false;render();}
+      else if(x==='schedule-save'){state.scheduleOpen=false;state.approved=false;state.form.scheduled=true;state.itemStatus='scheduled';state.platformLifecycle='scheduled';state.platformResult='예약을 저장했습니다. 게시 시점에 계정과 게시 준비 상태를 다시 확인합니다.';render();}
+      else if(x==='cancel-schedule'){state.form.scheduled=false;state.itemStatus='draft';render();}
+      else if(x==='scope'||x==='tone'){state.detailOpen='repo';render();}
+      else if(x==='questions'){state.detailOpen='questions';render();}
+      else if(x==='edit-card'||x==='slide-edit'){state.detailOpen='card';render();}
+      else if(x==='source-view'){state.detailOpen='source';render();}
+      else if(x==='detail-close'){state.detailOpen='';render();}
+      else if(x==='detail-save'){state.detailOpen='';render();}
+      else if(x==='direct-confirm'){state.detailOpen='';state.itemStatus='publishing';alert(campaignLabel()+'의 '+state.selectedDirect+' 1개만 게시 요청했습니다. 결과가 확인될 때까지 다시 게시할 수 없습니다.');render();}
+      else if(x==='issue-token'||x==='rotate'){state.tokenIssued=true;render();}
+      else if(x==='revoke'){state.tokenIssued=false;render();}
+      else if(x==='replace-key'){state.byokConfigured=true;render();}
+      else if(x==='remove-key'){state.byokConfigured=false;render();}
+      else if(x==='secret-start'||x==='secret-flow'){state.secretOpen=true;render();}
+      else if(x==='secret-close'){state.secretOpen=false;render();}
+      else if(x==='secret-reveal'){
+        if(!state.form.operatorReauth||!state.form.secretReason||!state.form.secretIntent){alert('재인증, 명시적 이유와 확인 의도를 모두 입력해 주세요.');return;}
+        state.secretOpen=false;state.form.secretAudit='담당자·사유·시간 기록됨';render();
+        alert('DB 출처의 허용된 Client Secret만 30초 동안 표시됩니다. 이 프로토타입은 원문 대신 자동 닫힘과 감사 상태만 검증합니다.');
+        setTimeout(function(){state.secretOpen=false;},30000);
+      }
+      else if(x==='approve'){state.approved=true;render();}
+      else if(x==='unapprove'){state.approved=false;render();}
+      else if(x==='request-change'){state.approved=false;alert('수정 요청을 Studio의 같은 수정본에 보냈습니다. 입력한 메모는 보존됩니다.');render();}
+      else if(x==='apply-experiment'){
+        state.experimentRevision=Object.freeze({revision_id:'rev_8',prior_revision_id:DEMO_IDENTITY.revision_id,experiment_id:DEMO_IDENTITY.experiment_id,source_result_ids:Object.freeze(state.experimentSourceResultIds.slice()),changed_variable:'첫 문장의 구체성',held_constants:Object.freeze(['이미지','게시 시간','행동 안내'])});
+        state.currentRevisionId=state.experimentRevision.revision_id;state.experimentApplied=true;state.experimentEditing=false;render();
+      }
+      else if(x==='undo-experiment'){state.currentRevisionId=DEMO_IDENTITY.revision_id;state.experimentRevision=null;state.experimentApplied=false;render();}
+      else if(x==='edit-experiment'){state.experimentEditing=!state.experimentEditing;render();}
+      else if(x==='hold'){state.currentRevisionId=DEMO_IDENTITY.revision_id;state.experimentRevision=null;state.experimentApplied=false;alert('제안을 보류했습니다. 브랜드 기준이나 성과 사실로 저장하지 않습니다.');render();}
+      else if(x==='auth-login'){state.authMode='login';render();}
+      else if(x==='auth-chooser'){state.authMode='chooser';render();}
+      else if(x==='auth-cancel'){state.authMode='cancel';render();}
+      else if(x==='auth-error'){state.authMode='error';render();}
+      else if(x==='auth-workspace'||x==='workspace'){state.authMode='workspace';render();}
+      else if(x==='auth-complete'){state.authMode='complete';render();}
+      else if(x==='open-result'){state.selectedResultId=DEMO_IDENTITY.external_result_id;document.getElementById('root').insertAdjacentHTML('beforeend',resultDialog());}
+      else if(x==='external-result'){alert('외부 결과로 이동하는 동작을 확인했습니다. 실제 제공자 연결은 이 프로토타입의 검증 범위가 아닙니다.');}
+      else if(ACTION_CONTRACTS[x]){state.lastAction={code:x,label:ACTION_CONTRACTS[x],status:'contract-specific-handler'};state.actionLog[x]=(state.actionLog[x]||0)+1;render();}
+      else throw new Error('Unregistered interaction: '+x);
+    });
+    document.getElementById('qa-role').addEventListener('change',function(e){state.role=e.target.value;render();});
+    document.getElementById('qa-state').addEventListener('change',function(e){state.screenState=e.target.value;render();});
+    document.getElementById('qa-theme').addEventListener('click',function(){state.theme=state.theme==='light'?'dark':'light';render();});
+    document.getElementById('qa-hide').addEventListener('click',function(){setInspectorMode('restore');});
+    document.getElementById('qa-restore').addEventListener('click',function(){setInspectorMode('tools');});
+    document.addEventListener('keydown',function(e){
+      if(e.ctrlKey&&e.altKey&&e.key.toLowerCase()==='q'){e.preventDefault();setInspectorMode(inspectorMode==='off'?'tools':'off');return;}
+      if(e.key!=='Escape')return;
+      if(state.mobileMenu||state.variantOpen||state.bulkOpen||state.scheduleOpen||state.detailOpen||state.secretOpen||state.journey){
+        state.mobileMenu=false;state.variantOpen=false;state.bulkOpen=false;state.scheduleOpen=false;state.detailOpen='';state.secretOpen=false;state.journey=false;render();
+        var menu=document.querySelector('.mobile-menu');if(menu)menu.focus();
+      }
+    });
+    window.__V19_MANIFEST__={
+      version:'19',
+      destinations:destinations.map(function(x,i){return {order:i+1,path:x.path,label:x.label,kind:x.kind};}),
+      groupOrder:groups.map(function(x){return x.label;}),
+      campaignSteps:steps.slice(),
+      studioOrder:['소셜 게시물 텍스트','사진과 카드뉴스','짧은 영상'],
+      messagingDefault:false,
+      reelsIsDestination:false,
+      headerOwners:['Threads Post','X Post','Instagram Feed','Facebook Post','Bluesky Post','Telegram Messaging','Discord Messaging','Slack Messaging','YouTube Shorts','Instagram Reels','TikTok Short video'],
+      audit96:{A:6,B:17,C:11,D:26,E:15,F:8,G:9,H:4,total:96},
+      commonPlatformIA:Object.freeze(['Create','Queue','Calendar','Analytics','Settings']),
+      unifiedRoleIA:Object.freeze(['운영 개요','계정','자동화','결과 증거','미구현']),
+      platformTargets:Object.freeze(['Threads','Instagram','YouTube Shorts','TikTok']),
+      osmuPlatformTargets:Object.freeze(['Threads','X','Instagram Feed','Instagram Reels','Facebook','Bluesky','YouTube Shorts','TikTok']),
+      preservedPlatformSemantics:Object.freeze({threads:'Growth and Popular remain under Analytics',instagram:'Feed, Card and Reels remain under Create',youtubeTikTok:'video job lifecycle, never text queue semantics',messaging:'handoff only, default off, no fake Queue or Analytics',midjourney:'safe disabled, Images exit'}),
+      unifiedRoleSurfaceTabs:Object.freeze(['overview','accounts','automation','evidence','gaps']),
+      accountTargetCount:ACCOUNT_TARGETS.length,
+      explicitGapCount:GAP_ROWS.length,
+      canonicalProjection:Object.freeze({recordCount:1,owners:['Studio','Create','Queue','Calendar','Analytics'],originLabels:['OSMU에서 생성','이 플랫폼에서 생성'],duplicateExternalPublish:false}),
+      readinessLadder:Object.freeze(['app ready','account connected','identity verified','scopes','refreshable','publish-capable','automation enabled','live publish verified']),
+      reusableComponents:Object.freeze(['PageShell','HeaderTabs','Button','Panel','Dialog','Section','Stack','Inline','ActionGroup','FormField','Notice','Empty','ErrorState','Loading','StatusBadge','readinessLadder']),
+      spacingFixes:Object.freeze({messagingHandoffLeftPadding:'16px',settingsConnectionTestTop:'16px',calendarTimeNoticeBottom:'20px'}),
+      truth:{newWiki:'prototype-observed only',threadsLivePublish:'verified current truth',instagram:'connected only',otherPublish:'credentials and live proof pending',usageExactTokenCost:'design target and unimplemented',externalAnalytics:'unverified'},
+      reviewBoundary:Object.freeze({M13:'static recovery contract only; browser 8 owners x 6 states pending',M14:'static customer-language and inspector-hidden contract only; 12 browser screenshots pending',browserEvidence:'unverified for v19; v18 evidence is not inherited'}),
+      customerBanned:['FR-','PRD-','TC-','updated_at','브랜드 사실','발행 근거','Assisted weekly loop']
+    };
+    window.__V19_LINEAGE__=DEMO_IDENTITY;
+    window.__V19_RESULTS__=DEMO_RESULTS;
+    window.__V19_RECOVERY_CONTRACTS__=Object.freeze({owners:RECOVERY_OWNERS,states:RECOVERY_STATES,requiredOwners:Object.freeze(Object.keys(RECOVERY_OWNERS)),requiredStates:Object.freeze(Object.keys(RECOVERY_STATES))});
+    window.__V19_CUSTOMER_LANGUAGE_AUDIT__=Object.freeze({collect:collectCustomerLanguageAudit,rawPattern:'(cmp|cnt|rev|pub|ext|exp)_*',policy:'Customer-visible names, revision labels, channels, timestamps and status only; immutable identifiers remain in data attributes and test API.'});
+    window.__V19_INTERACTION_AUDIT__=Object.freeze({
+      collect:collectInteractionAudit,
+      contrastTokens:CONTRAST_TOKENS,
+      minimumContrast:4.5,
+      targetMinimum:44,
+      focusVisible:'3px accent outline with 2px offset',
+      matrix:Object.freeze(['customer-light-1440','customer-light-1024','customer-light-390','customer-dark-1440','customer-dark-1024','customer-dark-390','operator-light-1440','operator-light-1024','operator-light-390','operator-dark-1440','operator-dark-1024','operator-dark-390'])
+    });
+    window.__V19_INSPECTOR__=Object.freeze({isOptedIn:function(){return inspectorOptIn;},mode:function(){return inspectorMode;},setMode:setInspectorMode,defaultVisibleCount:function(){return collectInteractionAudit().inspectorVisibleCount;},optIn:'?prototypeInspector=1 or #prototype-inspector or Ctrl+Alt+Q'});
+    window.__V19_TEST_API__=Object.freeze({
+      getState:function(){return state;},
+      render:render,
+      setRole:function(role){state.role=role;render();},
+      setTheme:function(theme){state.theme=theme;render();},
+      setScreenState:function(screenState){state.screenState=screenState;render();},
+      go:go,
+      setJourneyStep:function(step){state.journey=true;state.journeyStep=step;render();},
+      reorderResults:function(ids){state.results=Object.freeze(ids.map(function(id){return DEMO_RESULTS.filter(function(r){return r.external_result_id===id;})[0];}));render();}
+    });
+    setInspectorMode(inspectorOptIn?'tools':'off');
+    render();
+  })();
+  </script>
+  <!-- SOURCES: docs/openclaw-auto-marketing-agent-prd-v7.3.5-gpt-codex.md | tasks/marketing-agent-v18-completeness-audit.output | tasks/marketing-agent-v18-agency-blueprint.output | docs/qa-tracker.md REQUEST-OSMU-001 | current channel/OAuth/usage/DB source | https://support.buffer.com/article/644-how-do-i-schedule-posts-for-multiple-social-channels-at-the-same-time | https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows | https://developers.google.com/identity/protocols/oauth2/web-server | https://developers.google.com/identity/protocols/oauth2/resources/best-practices -->
+  <!-- MODEL: gpt-codex/gpt-5.6-sol -->
+  <!-- SKILLS_USED: gstack design-review for APP UI hierarchy, state, responsive, interaction and anti-slop audit -->
+  <!-- SKILLS_SKIPPED: imagegen because code-native UI is authoritative -->
+  <!-- DESIGN_SCORE: B+ static contract candidate; AI_SLOP_SCORE: B+; M13/M14 actual-browser governing closure remains RECOVERY_NEEDED -->
+  <!-- RECOVERY_NEEDED: v19 owner8 x state6 browser recovery; customer/operator x light/dark x 1440/1024/390 screenshots; raw primitive identifiers 0; inspector hidden; contrast/touch/overflow/focus -->
+  <!-- RUBRIC_SCORE: hook=5/5 detail=5/5 rhythm=4/5 voice=5/5 slop=5/5 total=24/25 -->
+  <!-- WEAKEST_LINE: one canonical item is a clear customer model but is not implementation truth until write ownership and idempotency are agreed -->
+</body>
+</html>

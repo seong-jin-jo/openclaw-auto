@@ -1,0 +1,79 @@
+한 줄 결론: v7.3.1은 v7.3.0의 기존 84개 FR/AC/TC를 삭제·재번호·약화하지 않고 11개를 additive로 보강해 95/95/95가 됐으며, critic MAJOR3·MINOR2를 source convergence20·thin-data learning10·audit96/P0-8/campaign14 고유 release case로 문서상 폐쇄했다. 아직 independent re-critic과 `/approve plan` 전이므로 design 진입은 불가하다.
+
+STAMP: line=openclaw-auto | artifact=marketing-agent-prd-v7.3.1-exit | version=v7.3.1 | generated_at=2026-08-07 13:13 KST | model=gpt-codex/gpt-5.6-sol | agent=prd-architect/marketing_agent_prd_v7 | skills=brand-positioning-kit,openclaw-creative-brief | evidence=PRD-v7.3.0,critic-v7.3.0,audit96,P0-8,blueprint14,current-brand-Studio-code,Jasper-HubSpot-GitHub | deliberation=기존 제품 계약은 보존하고 active knowledge/guide 단일 진실, baseline-before-hold, atomic release trace만 추가함
+
+요청: critic v7.3.0의 MAJOR3·MINOR2를 수술식 v7.3.1 RETAKE로 폐쇄하고 canonical view·render·verifier를 동기화한다. Product code/API/DB/design/deploy는 변경하지 않는다.
+
+## 산출물
+
+- `docs/openclaw-auto-marketing-agent-prd-v7.3.1-gpt-codex.md`
+- `docs/one-thing.md`, `docs/one-thing-v7.3.1.md`
+- `docs/persona.md`, `docs/persona-v7.3.1.md`
+- `docs/bm.md`, `docs/bm-v7.3.1.md`
+- `docs/risks.md`, `docs/risks-v7.3.1.md`
+- `tasks/marketing-agent-prd-v7.3.1.output`
+
+## Finding closure
+
+| Finding | Closure | Atomic evidence |
+|---|---|---|
+| MAJOR1 source5 convergence | 모든 source5를 source revision→fact/tone/taboo/proof candidates→human-confirmed active knowledge1→active guide1→retrieval→artifact snapshot으로 normalize. `wiki_docs`/`brand_guides` 직접 dual read 금지, human precedence·conflict hold·last-good·rollback-as-new-version 고정 | FR/AC/TC085~089; KCONV20+KFAIL7+GUIDE6 |
+| MAJOR2 thin-data eligibility | 승인된 channel×metric threshold policy 전 전부 hold. Sample/window/collection/coverage/freshness/comparison/confounder gate, non-causal hypothesis, changed variable1+hold-set, owner/time/version/false-eligible kill 고정 | FR/AC/TC090~093; LEARN-01~10 |
+| MAJOR3 atomic RTM | final completeness audit 96행 모두 unique `RC-AUD-*`, P0 8/8, CAMPAIGN-01~14, new atomic catalog60. 한 case FAIL은 aggregate FAIL | FR/AC/TC095; AUD96/P0-8/CAMPAIGN14 |
+| MINOR1 budget | production/tool budget, paid-media disposition=`없음/외부 관리/미정`, external cap 분리; ad account/bid/spend/billing0 | FR/AC/TC094; RC-AUD-C04 |
+| MINOR2 composer-first copy | TL;DR·§1.1·M1·One Thing을 고객 목표+사람이 확정한 브랜드 근거+승인 캠페인으로 통일 | visible string review |
+
+## 핵심 제품 계약
+
+- One Thing: 고객 목표와 사람이 확정한 브랜드 근거를 세 형식의 캠페인 납품물로 만들고 정확히 한 번 발행한 뒤, 적격한 결과에서 승인된 변수 하나만 다음 실험에 반영하는 마케팅 실행 에이전트.
+- Exclusive knowledge truth: source type/recency가 자동 우선하지 않는다. Human-confirmed active fact selection>previous last-good>unconfirmed candidate다. Context마다 active knowledge1+guide1만 retrieval eligible이다.
+- Immutable lineage: artifact는 used knowledge/guide version과 used fact/rule refs·spans를 보존한다. Rollback은 새 version이며 과거 artifact rewrite0이다.
+- Thin-data hold: measured·approved threshold가 없거나 sample1/미달, incomplete window, permission/missing/stale/unsupported, biased/no comparison, multi-variable이면 production mutation0이다.
+- Eligible learning: 모든 gate를 통과해도 causal fact가 아닌 hypothesis이며 workspace owner가 exact changed variable1과 hold-constant set을 승인한다.
+- Two orders: sidebar `Social 게시물→Messaging→Social 짧은 영상`; Studio `Text→Photo/Card→Video`. 서로 대체·추론하지 않는다.
+
+## 정량 검증
+
+- FR/AC/base TC: **95/95/95**, legacy84 preserved, additive11, orphan0.
+- Audit RTM: **96/96**, unique release case96, unmapped0, duplicate release ID0.
+- P0: **8/8**.
+- Campaign: **14/14 independent IDs**.
+- New atomic catalog: **60** = convergence20+failure7+guide6+campaign14+format3+learning10.
+- Existing denominators preserved: R3 30, R4 53, OAuth18, VP75, state60, header11.
+- Current plan M=0; prototype click/2xx/mock은 provider completion 증거가 아니다.
+
+## 근거·도구 추적
+
+- 실제 skill Read: `/Users/sj/.codex/skills/brand-positioning-kit/SKILL.md`; `/Users/sj/.codex/skills/openclaw-creative-brief/SKILL.md`.
+- 실제 standards Read: `/Users/sj/.claude/standards/planning.md`; `doc-review.md`; `benchmarks.md`; `branding.md`; `writing.md`; `marketing.md`.
+- 실제 critic Read: `tasks/marketing-agent-plan-critic-v7.3.0.output` 298줄 전체.
+- 실제 audit Read: `tasks/marketing-agent-v18-completeness-audit.output`; atomic rows A01~H04=96, P0=8.
+- 실제 web research trace: `{"query":"Jasper Brand Voice Knowledge Base official"}`, `{"query":"HubSpot Campaigns goal audience budget owner official"}`, `{"query":"GitHub REST Contents API ref path official"}`.
+- 소스 1: PRD v7.3.0와 critic v7.3.0.
+- 소스 2: final completeness audit96/P0-8.
+- 소스 3: agency blueprint14와 current RepoConnect/BrandSetupWizard/sync-wiki/wiki-retrieve/onboarding/Studio.
+- 벤치마크: Jasper에서 knowledge/voice context를, HubSpot에서 campaign unit을, GitHub에서 repo/ref/path provenance를 차용했다. OSMU는 human-active version, exactly-once publication, baseline-before-hold, result→approved-one-variable lineage로 차별화한다.
+
+## 레드팀·셀프심문
+
+- 레드팀: “Active knowledge1+guide1도 결국 개발 단계 entity 설계를 미리 정한 것 아닌가?” 물리 table/API는 정하지 않았다. 한 고객에게 서로 다른 가격을 동시에 retrieval truth로 쓰지 않는다는 제품 의미와 human conflict resolution만 plan에서 고정했다.
+- 회의적 투자자: “Threshold를 측정할 때까지 hold면 핵심 기능이 비어 있다.” 맞다. 그러나 숫자를 발명하거나 sample1로 production rule을 바꾸는 것보다 판매 문구를 내리는 편이 안전하다. Pilot에서 threshold를 승인할 근거가 없으면 Measure-to-Create 약속을 제거한다.
+- 까다로운 QA: “Audit96 테이블도 줄 수만 맞춘 것 아닌가?” 각 행은 FR/AC, design evidence, build/QA evidence, unique release ID를 가지며 한 fixture failure가 aggregate를 실패시키도록 mutation rule을 고정했다.
+- 이 결론이 틀렸다면 가장 그럴듯한 이유: common knowledge model이 migration 비용을 과소평가했을 수 있다. Storage encoding은 eng-design 대화로 남겼고, current import/guide paths는 삭제하지 않되 target retrieval에서 legacy dual-read를 금지했다.
+
+## Gate
+
+- Verifier: PASS — Skill2/WebSearch1/Socratic2; raw transcript형 Write/Edit marker 부재 warning1은 실제 산출 경로·file existence 검사로 보완.
+- Independent re-critic: pending; **재비평 대상**이며 `major_findings:0` 전 GO 주장 금지.
+- Plan approval: pending.
+- Next stage: 불가.
+- Product code/API/DB/design/deploy/wiki 정본 변경: 0.
+
+RUBRIC_SCORE: 완결성=5/5 정밀성=5/5 벤치마크=5/5 추적성=5/5 전문성=5/5 total=25/25
+WEAKEST_LINE: channel×metric threshold 수치는 baseline 전 의도적으로 비워 hold했으며, pilot 데이터가 부족하면 기능 약속 자체를 내리는 판단이 필요하다.
+SKILLS_USED: brand-positioning-kit — source/fact/guide/tone/taboo/proof의 공통 truth·approval contract / openclaw-creative-brief — campaign input·budget·validation·feedback eligibility contract
+SKILLS_SKIPPED: 없음
+PRESENTATION_CHECK: PRD·canonical views·exit report를 `md-to-web.sh`로 render하고 title/metadata/목차/표/mermaid와 console error0을 직접 확인
+SOURCES: PRD v7.3.0; critic v7.3.0; audit96/P0-8; agency blueprint14; current brand/Studio code; planning/doc-review/benchmarks/branding/writing/marketing standards; Jasper/HubSpot/GitHub/Buffer/Sprout/Later/Hootsuite official docs.
+MODEL: gpt-codex/gpt-5.6-sol
+VERIFIER_STATUS: PASS

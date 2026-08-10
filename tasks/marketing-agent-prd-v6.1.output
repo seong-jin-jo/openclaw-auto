@@ -1,0 +1,39 @@
+요청: critic residual MAJOR4를 해소한 OSMU Marketing Agent PRD v6.1 retake.
+
+한 줄 결론: 장기 Marketing Agent target은 roadmap에 보존하되, 2주 MVP를 `fact1→opportunity1→campaign1→Threads card1→per-post approval→real permalink1→native metric1/sample-hold→experiment approve/hold1→next plan`로 줄였고, v5.2 route/product/provenance/production evidence 계약을 명시해 MA-V61 48/48/48로 출고했다.
+
+## 산출물
+
+- `docs/openclaw-auto-marketing-agent-prd-v6.1.0-gpt-codex.md` — 750 lines
+- `docs/qa-tracker.md` — MA-V61-TC-001..048 namespace 추가, V6.0 보존
+- `tasks/marketing-agent-prd-v6.1.output`
+
+## MAJOR4 해소
+
+1. **얇은 proof:** internal1+external≤3, source1, opportunity1, campaign1, direct Threads1, L2+per-post approval, permalink1, metric-or-hold1, experiment decision1. source4/text8+video3 신규 구현/listening/cross-provider analytics/alerts/general tenant learning/L3 일반화는 R5로 보류. proof 전 public positioning=`grounded publisher + assisted weekly loop`.
+2. **보존 핀:** v5.2.0 SHA `17cd5174...f16d5`의 25-route owner/action/API/state matrix, Sidebar26, Studio existing9, Videos file+YouTube URL→external clipper→wiki/brand refine→video3+text cross-post, Images/Blog/Search/Keyword/Settings, OSMU/OSMU 팩토리 naming, actual SVG/theme/role fidelity를 deletion/rename/move0로 고정.
+3. **action/provenance:** exact `card_publish/legacy_bulk/card_schedule/bulk_schedule`; explicit item IDs; selected adapter1/others0; generate/edit/save adapter0; partial success 보존; failed_confirmed만 retry; uncertain reconcile-first; single+bulk schedule create/change/cancel/due independent.
+4. **production proof:** confirmed fact→sourced opportunity→approved plan→card→per-post approval→real publish→permalink→native metric/NA→insight/sample-hold→experiment decision→next plan의 양방향 lineage. evidence=browser video/provider link/metric provenance/insight evidence/decision/deployed SHA.
+
+## Defaults
+
+- O1 `/` additive, O2 Threads fixture/real account1, O3 L2 default+per-post approval, O4 URL≤20 prototype·proof source1, O5 numeric threshold 없이 sample-hold를 가역적 default로 채택.
+- O1–O5는 더 이상 decision/design blocker가 아니다. irreversible external enable/provider 비용/cohort start는 downstream 별도 gate다.
+
+## 검증
+
+- unique FR/AC/TC/QA = 48/48/48/48.
+- `git diff --check` PASS.
+- v6.0 파일/QA namespace를 덮어쓰지 않음.
+- full original request ledger 34건, lifecycle8, benchmarks/red-team/self-question/kill criteria 유지.
+
+## Gate
+
+- 미통과: v6.1 plan-critic MAJOR0 재검증, `/approve plan`, MA-V61 QA 0/48.
+- 다음 stage: critic MAJOR0 + plan approval 전 진입 불가. O1–O5 추가 결정 대기는 없음.
+
+RUBRIC_SCORE: 완결성=5/5 정밀성=5/5 벤치마크=5/5 추적성=5/5 전문성=5/5 total=25/25
+WEAKEST_LINE: native metric numeric sample threshold는 provider 실표본 전이라 sample-hold로 남겼다.
+SKILLS_USED: 없음 — PRD 전용 매칭 스킬 없음; planning/doc-review/template 적용
+SKILLS_SKIPPED: 없음 — 매칭 스킬 없음
+SOURCES/MODEL: PRD §19 · gpt-codex/gpt-5.6-sol

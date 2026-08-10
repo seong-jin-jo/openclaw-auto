@@ -1,0 +1,105 @@
+# OSMU existing-implementation stabilization — live diagnosis checkpoint
+
+STAMP | line: openclaw-auto-osmu | created: 2026-08-02 23:25 KST | model: gpt-codex/gpt-5.6-sol | agent: code-builder | skills: none (no matching coding skill available) | evidence: approved PRD v2.4.0, current dashboard source, live read-only HTTP/API checks, Meta official Postman workspaces | concern: preserve all existing routes/components while removing false OAuth success and duplicate state ownership
+
+## Executive result
+
+**BLOCKED BEFORE SOURCE PATCH.** The current implementation and live state were reviewed and the reported connection failure was reproduced without mutating production. The dashboard source was not changed because `pipeline-state.md` still says `current_stage: design`, `build: pending`, `override: false`; the code-builder contract permits source changes only within an allowed build scope.
+
+This is not a redesign recommendation. The minimum corrective path is tests-first hardening of the existing OAuth callback, channel status API, and existing Settings/channel components after the controller records a bounded build override or build approval.
+
+## Basis read and version pins
+
+- Approved upstream: `docs/openclaw-auto-osmu-prd-v2.4-gpt-codex.md` v2.4.0, SHA-256 `7e1de84f55c4c73e4f9ab233bc5fd5a05dc1e9756f1650e24f77e7b295920687`.
+- UI rules: `docs/ui-rules.md`, SHA-256 `0a51de6152db19aeea3e1ecfdef34e82023f2ab61c74cbb0529001b57b261d28`.
+- Current design inventory: `DESIGN.md`, SHA-256 `7bc6fcb7bf9d04d103c76cf069bb9626eddc9d247224449439a287e1790a35bc`.
+- QA truth: `docs/qa-tracker.md`, SHA-256 `d60a2156b17bfe785265eb6a4c4bed29273daa3252e38169ea4c8893f76efb5f` — 2026-08-01 NG, SNS-001~018, and P0-6.
+- Runtime gate: `pipeline-state.md` observed at 2026-08-02 23:25 KST: plan approved, design in progress, build pending, override false.
+- Project rules: root `CLAUDE.md`, `dashboard/CLAUDE.md`, `wiki/ops/session-state.md`, `/Users/sj/.claude/standards/dev.md`, `/Users/sj/.claude/standards/benchmarks.md`.
+- Existing source read: channel route/page components, Settings channel list, OAuth button/callback/authorize helpers, `channel_accounts`, channel status API and focused tests.
+
+## Direct live observations
+
+Evidence tags use the repository dev standard.
+
+1. **[observed] Public availability now:** production `/api/health` returned HTTP 200 with `ok:true, db:up`; `/` returned HTTP 200. This does not close the user's earlier 502.
+2. **[observed] Operator path now:** authenticated `/api/me` and `/api/operator/customers` both returned HTTP 200.
+3. **[observed] Reported customer, Threads:** `/api/channel-config` returned `connected:false`, `connectionStatus:unverified`, `connectionError:provider_unreachable`. The same tenant's `/api/channels/threads/accounts` returned one `active`, default account with a persisted external id but no username.
+4. **[observed] Reported customer, Instagram:** `/api/channel-config` returned `connected:false`, `connectionStatus:invalid`, `connectionError:oauth_token_invalid`, `reconnectRequired:true`. The same tenant's accounts API returned one `active`, default account with a persisted external id but no username.
+5. **[observed] Runtime:** `openclaw-dashboard-osmu` is healthy, has restart count 0, and has run continuously for two days. Therefore the reported 502 is not explained by a current crash loop.
+6. **[tested] Existing focused suite:** `social-connect.test.ts`, `channel-config-oauth-verify.test.ts`, and `channel-accounts.test.ts` all pass: 3 files, 77 tests. The live failure despite green tests proves a coverage gap rather than a currently failing unit assertion.
+
+## Root-cause matrix
+
+| Defect | Fixed root cause | Evidence | Minimum correction after build gate |
+|---|---|---|---|
+| OAuth popup says success but channel remains disconnected | Callback success means “token was stored”, while the screen means “provider live identity check passed”. `callback/route.ts` always emits success after `upsertChannelAccount`; `resolveExternalIdentity` silently falls back to token-exchange `userId` when `/me` fails. | Source read + live account rows are active/default with null username while channel status is false. | For Threads/Instagram, require verified `/me` id+username before success postMessage. Do not store/announce an active connection on fallback-only identity. Add happy, provider-unreachable, malformed identity, and invalid-token tests. |
+| Instagram becomes `재연결 필요` after successful callback | Meta long-lived exchange is not fail-closed. `exchangeCode` ignores `longRes.ok` and an error body, then silently persists the short-lived token when `access_token` is absent. | Source lines in `social-connect.ts`; live Instagram token is now invalid. Historical long-exchange failure is a strong inference, not directly logged. | Require a successful long-lived token response for Meta providers; return a sanitized callback failure instead of persisting the short token. Add explicit 4xx/5xx/malformed/empty long-token tests. |
+| AccountManager says account is `정상` while Channel Info says disconnected | `channel_accounts.status='active'` is write-time state. `/api/channel-config` separately decrypts and verifies the legacy `integrations` mirror. The two APIs expose different state definitions and do not reconcile status/identity. | Live: both account rows are active/default; channel status is invalid/unverified. Source: callback dual-writes, AccountManager lists `channel_accounts`, channel-config selects `integrations`. | Make the default active `channel_accounts` row the OAuth read source, retain `integrations` only as legacy fallback, return saved/verified state and handle from one response, and update account status after verification without exposing tokens. |
+| Settings shows no useful connection state | `ChannelsSettings` collapses everything to boolean `connected`; invalid, saved-but-unverified, and reconnect states all look like `연결 →`. | Source read. | Preserve the existing list and render `연결됨`, `확인 지연`, `재연결 필요`, or `연결` from the shared status contract; display verified username/handle when available. |
+| Instagram OAuth button remains and blank Graph token panel is always visible | `InstagramSettings` always renders `SocialConnectButton` and `CredentialForm`. The generic `ChannelPage` already has the intended progressive “advanced manual token” disclosure, but Instagram bypasses it. | Source read; matches user screenshot report. | Reuse the existing `showManualCreds` pattern in `InstagramPage`; default to OAuth only, rename the connected-state action to account add/reconnect, and keep manual input as an explicit advanced recovery action. |
+| Threads/Instagram tabs differ | `/channels/[channel]` hard-codes Instagram to `InstagramPage`; `ChannelPage` and `InstagramPage` each hard-code different tab arrays. | Source read. | Do not rewrite IA in this stabilization patch. Preserve Queue/Editor/Analytics/Growth/Popular/Settings and add only existing-route links between channel Queue/Editor and Studio. Common-shell refactor remains the later approved UI update. |
+| Platform draft/publish entry is unclear | Existing implementation is distributed: Studio owns AI generation/platform preview/scheduling; channel pages own Queue; Instagram owns CardNewsEditor. There is no small cross-link that explains this existing flow. | Source inventory. | Add a compact existing-route CTA (`Studio에서 초안 만들기`, `Queue에서 검수·발행`) without moving or deleting components. No new data model or route. |
+| Earlier OSMU 502 | Current public/authenticated endpoints are 200 and container is healthy with no restarts. Exact failed URL, timestamp, and tunnel/upstream log correlation were not available. | Live read-only HTTP + runtime check. | Keep health monitor; capture exact failed request id/path and tunnel/upstream logs on next occurrence. Do not claim fixed and do not change application code without a reproducible cause. |
+
+## Proposed tests-first patch boundary
+
+No API URL, DB schema, route, or component is removed.
+
+1. RED tests in existing `tests/brand/social-connect.test.ts` for Meta long-token exchange failure and callback false-success.
+2. RED tests in `tests/api/channel-config-oauth-verify.test.ts` for default `channel_accounts` source, legacy fallback, id/username propagation, invalid/unreachable state, and secret non-disclosure.
+3. Focused component tests for Instagram advanced credential disclosure, connected/reconnect CTA copy, and Settings four-state rendering.
+4. Minimal implementation in existing OAuth/status/components only.
+5. Focused tests, full Vitest, `tsc --noEmit`, webpack production build, `git diff --check`.
+6. Authentication/security second-pass review is mandatory before QA handoff.
+7. Production remains unmodified; a separate approved deploy and Meta login/OTP round trip are required for final verification.
+
+## Current verification and unverified boundary
+
+- **[tested]** Focused baseline: 3 files / 77 passed.
+- **[observed]** Production public health/root and operator endpoints: HTTP 200.
+- **[observed]** Production target tenant state mismatch: saved active/default Meta accounts versus disconnected invalid/unverified channel status.
+- **[unverified]** New Meta consent/callback after a corrected build, provider-returned handle, Instagram OTP cooldown, actual Threads/Instagram publish permalink, exact cause of the earlier 502, customer-browser console errors.
+- **[not run]** TypeScript/full suite/build because no product source was changed and build scope is not authorized.
+
+## Red-team and self-interrogation
+
+**Skeptical customer attack:** “You are proposing to mark a saved token as connected just to make the badge green.” Rejected. Saved, provider-verified, and invalid/reconnect must remain distinct. The patch must make callback and status share the same verification contract, not weaken verification.
+
+**Competitor attack:** “A provider outage will now block onboarding.” For Meta, an outage must not produce false success. The UI may preserve the pending attempt and offer retry, but it cannot claim the account or handle is verified until `/me` succeeds.
+
+**What is the most plausible reason this diagnosis is wrong?** The live Instagram token may have been revoked by the user rather than created as a short-lived fallback, and Threads `provider_unreachable` may be a transient Meta/network event. Therefore those historical causes are not asserted as observed facts; the patch targets the independently proven unsafe contracts: silent long-token fallback and callback success without verified identity.
+
+## Security incident note
+
+During a read-only remote process check, the host process list exposed the Cloudflare tunnel token in command-line arguments. The value is intentionally omitted here and must not be copied into any artifact. Because it appeared in session tool output, rotate the tunnel token in a separately approved infrastructure/ship action.
+
+## Sources / model / skills
+
+TOOL_EVIDENCE:
+
+- `{"name":"WebSearch","query":"Meta Threads API OAuth official documentation authorization"}` — executed before diagnosis; returned Meta's official Threads API Postman workspace.
+- `{"name":"WebSearch","query":"Meta Instagram API Instagram Login official documentation OAuth"}` — executed before diagnosis; returned Meta's official Instagram API Postman workspace.
+- `npx vitest run tests/brand/social-connect.test.ts tests/api/channel-config-oauth-verify.test.ts tests/api/channel-accounts.test.ts` — executed; 3 files / 77 tests passed.
+
+SOURCES:
+
+1. `docs/openclaw-auto-osmu-prd-v2.4-gpt-codex.md` v2.4.0.
+2. `docs/qa-tracker.md` — 2026-08-01 NG, SNS-001~018, P0-6.
+3. `dashboard/src/app/api/connect/[provider]/callback/route.ts` and `dashboard/src/lib/social-connect.ts`.
+4. `dashboard/src/app/api/channel-config/route.ts`, `dashboard/src/lib/channel-accounts.ts`, and account routes.
+5. `dashboard/src/components/channel/ChannelPage.tsx`, `InstagramPage.tsx`, `SocialConnectButton.tsx`, `AccountManager.tsx`, and `dashboard/src/components/settings/ChannelsSettings.tsx`.
+6. Meta official Threads API Postman workspace: `https://www.postman.com/meta/threads/documentation/dht3nzz/threads-api` — authorization/token and `/me` identity boundary.
+7. Meta official Instagram API Postman workspace: `https://www.postman.com/meta/instagram/documentation/6yqw8pt/instagram-api` — Instagram Login/token/publishing boundary.
+
+BENCHMARK: Meta official API workspaces were used only to validate OAuth/token/identity boundaries. No competitor UI or new information architecture is proposed in this stabilization checkpoint.
+
+MODEL: `gpt-codex/gpt-5.6-sol`
+
+SKILLS_USED: none — no available skill matches Next.js OAuth stabilization/code review.
+
+SKILLS_SKIPPED: none.
+
+RUBRIC_SCORE: completeness=5/5 precision=5/5 evidence=5/5 safety=5/5 traceability=5/5 total=25/25
+
+WEAKEST_LINE: The exact historical cause of the transient 502 remains unverified because the failed request path/time and correlated tunnel log were not available.

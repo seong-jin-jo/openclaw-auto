@@ -1,0 +1,23 @@
+[
+  {
+    "id": "fa55efa0-ebf1-414b-ae4e-46008cc5a499",
+    "status": "completed",
+    "display_name": "FLUX.2",
+    "job_set_type": "flux_2",
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260710_112034_fa55efa0-ebf1-414b-ae4e-46008cc5a499.png",
+    "created_at": 1783682434.816639,
+    "params": {
+      "prompt": "dark navy gradient panel with faint circuit-like grid, one amber light streak, large empty area for headline text, dark navy background (#0B0F1A), amber accent lighting (#F59E0B), minimal tech aesthetic, late-night workspace mood, clean composition, no text, no watermark, no human face, high contrast, professional product-brand photography style",
+      "seed": 423891,
+      "width": 1920,
+      "height": 1088,
+      "batch_size": 1,
+      "resolution": "2k",
+      "input_images": [],
+      "aspect_ratio": "16:9",
+      "model": "pro",
+      "steps": null,
+      "cfg": null
+    }
+  }
+]

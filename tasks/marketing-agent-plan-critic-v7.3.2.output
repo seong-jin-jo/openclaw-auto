@@ -1,0 +1,213 @@
+한 줄 결론: v7.3.2는 직전 지적 9행과 One Thing drift는 폐쇄했지만, 독립 표본에서 Audit96 `MATCH`가 다시 최소 5행에서 mapped TC와 불일치하고 Operator Settings가 정본의 raw-secret readback0을 뒤집었으므로 **MAJOR 2건, MINOR 0건, NO-GO**다.
+
+# OSMU Marketing Agent PRD v7.3.2 — 최종 폐쇄 독립 비평
+
+STAMP: line=openclaw-auto | artifact=marketing-agent-plan-critic-v7.3.2 | version=v1 | generated_at=2026-08-07 15:58 KST | model=gpt-codex/gpt-5.6-sol | agent=plan-critic/marketing_agent_plan_critic_v7 | skills=none-matched | evidence=PRD-v7.3.2,canonical-v7.3.2,exit-report,v7.3.1-critic,final-audit96,agency-blueprint14,official-Buffer-Jasper-Notion | deliberation=작성자의 MATCH 자기라벨을 버리고 원 감사문→mapped FR/TC의 고객 명사·행동·실패결과를 표본 재연산했으며 secret boundary는 정본 hardline과 직접 대조했다.
+
+요청: v7.3.1 critic의 MAJOR1·MINOR1이 v7.3.2에서 실제 폐쇄됐는지, 기존95·One Thing·신규 9행·non-GitHub import·Settings/Admin/support·Audit96 의미 정합을 독립 재검증한다.
+
+증거 등급:
+
+- `근거 확인`: PRD v7.3.2 1,457줄, canonical/versioned views, exit report, 직전 critic, final audit96, agency blueprint를 읽고 원문과 mapped FR/AC/TC를 직접 대조했다.
+- `기계 확인`: canonical 4쌍 diff0, One Thing blockquote byte equality, 기존95 행 190/190, Audit96·unique release96, 신규 FR/AC/TC10을 확인했다.
+- `외부 근거 확인`: Buffer, Jasper, Notion의 2026 공식 문서를 다시 검색했다.
+- `미검증`: provider production OAuth·publish·native metric과 build/design surface는 plan M=0이며 이번 비평도 작동 완료로 주장하지 않는다.
+
+## 패널 비평 - OSMU Marketing Agent v7.3.2
+
+### 창업자
+
+나는 One Thing과 제품 방향을 계속 채택한다. 고객 목표와 사람이 확정한 브랜드 근거를 세 형식 납품물, 정확히 한 번의 발행, 적격 결과의 한 변수 실험으로 잇는 문장은 한 문장으로 환원된다. 직전 critic이 요구한 workspace create/join/switch, non-GitHub bundle import, Naver·Medium·Substack, Settings8/9, bounded support도 이제 generic FR 뒤가 아니라 096~105의 atomic 계약으로 내려왔다.
+
+하지만 design 투자를 승인하지 않는다. `96/96 MATCH`는 제품 신뢰의 핵심 증거인데 독립 표본 7개 중 5개가 원 감사문의 행동·필드·실패 결과를 mapped TC에 갖고 있지 않다. 더 심각하게는 고객·운영자 secret을 절대 echo하지 않는 정본을 Operator Settings의 30초 raw reveal이 뒤집는다. 숫자와 보안 hardline이 동시에 흔들리면 plan gate를 열 수 없다.
+
+### 운영자
+
+나는 non-GitHub import를 통과시킨다. ZIP/multi-file UTF-8 Markdown/text의 scope preview, eligible/selected/skipped exact count, 원 filename·relative path·hash·batch·tenant pointer, unsupported/corrupt 이유, supported0 또는 partial failure의 activate0·last-good 보존이 있다. Direct paste는 긴급 단건 fallback이고 import 완료로 집계하지 않으며, Notion은 Markdown export ZIP migration이라는 정직한 adapter다.
+
+Settings8와 bounded support도 대체로 운영 가능하다. 고객 group8은 owner/action/state가 있고 operator field0이며, support는 owner 승인·reason·15/30/60분·양측 banner·audit·expiry와 publish/schedule/approve/delete/credential/role mutation0을 갖는다. 다만 Operator Settings9의 `reveal`은 recovery가 아니다. 운영자도 shared app secret을 읽는 대신 write-only replace/rotate/revoke와 health metadata로 운영해야 정본 G02/G09 및 canary scan이 성립한다.
+
+### 회의론자
+
+나는 `MATCH` 열을 증거로 인정하지 않고 반례를 찾았다. B14는 “선택한 예시→추론된 tone·confidence·draft, 표본 부족 시 needs review”인데 TC078/085는 guide lifecycle과 source convergence만 검증한다. C01은 idea/opportunity에서 campaign을 시작하고 source URL/time·선택 rationale을 보존해야 하나 TC079/080/082는 work order, research brief, delivery lineage일 뿐 그 initiation과 rationale 보존을 검증하지 않는다.
+
+C09도 `source/license/permission/territory/expiry/owner/proof attachment`와 image·card·video 일관 차단을 요구하지만 TC054/061/081은 unknown/confirmed V24, tenant lineage, generic rights blocker만 있다. E12는 accepted-timeout 후 reconcile로 기존 post를 찾고 retry disabled·second call0이어야 하나 TC046은 four fault class와 `external0`만 말한다. H02는 route visit/callback/local draft가 progress 완료로 계산되지 않고 persisted server evidence만 완료시켜야 하나 TC013/064는 connection ladder와 owner states만 검증한다. 이 다섯 행의 RTM failure 문구는 mapped TC에서 나오지 않은 자기인증이다.
+
+### 시장분석가
+
+Jasper는 knowledge asset과 writing examples를 workspace generation context에 적용하고 Brand Voice의 source excerpt·preview·save를 보여준다. Buffer는 draft/approval/queue/sent를 한 management view에서 다루되 permission과 각 post 상태를 분리한다. Notion export는 Markdown/CSV가 포함된 ZIP이라는 실제 migration source를 제공한다. v7.3.2는 이들을 그대로 복제하지 않고 human-confirmed active truth, canonical delivery, provider capability truth로 좁힌 점이 좋다.
+
+그러나 경쟁력은 `105개 FR`이 아니라 “어느 근거가 어느 버전에 적용됐고, 누가 무엇을 승인했으며, 실패 때 외부 행동이 몇 번 있었는가”를 믿을 수 있는 데서 나온다. Audit 문구와 TC가 다르면 이 차별화는 판매 문구일 뿐이다. raw secret을 화면에 잠깐 보여주는 기능도 고객에게 보이지 않는다고 안전해지는 것이 아니다.
+
+## One Thing 후보 1문장 + 함정답 3개
+
+One Thing 후보:
+
+> 고객 목표와 사람이 확정한 브랜드 근거를 세 형식의 캠페인 납품물로 만들고 정확히 한 번 발행한 뒤, 적격한 결과에서 승인된 변수 하나만 다음 실험에 반영하는 마케팅 실행 에이전트.
+
+이 문장은 PRD §1.2, `docs/one-thing.md`, `docs/one-thing-v7.3.2.md`에서 byte-identical이다.
+
+함정답:
+
+1. “105개 요구와 96개 audit을 모두 매핑한 올인원 마케팅 제품.” — 숫자가 고객 행동의 의미 동치를 대신한다.
+2. “운영자는 재인증하면 모든 secret을 볼 수 있는 관리 제품.” — 관리 편의가 write-only secret hardline을 무너뜨린다.
+3. “AI가 여러 채널 성과를 학습해 자동 최적화.” — native 미수집과 thin-data hold, 고객 승인 변수1을 지운다.
+
+## 독립 폐쇄 대조
+
+| 검증축 | 독립 결과 | 판정 |
+|---|---|---|
+| A02 create/join | FR/TC096·097에 새 workspace owner1, invited role, decline/expired/revoked/email mismatch, phantom/membership0 | PASS |
+| A03 switch | FR/TC098에 current/target+role, confirmation, header·Studio·Queue·Inbox·Calendar·Settings 원자 전환, 실패 prior state | PASS |
+| B01 non-GitHub import | FR/TC099+§5.1에 실제 multi-file bundle adapter, count/pointer/skip/activate0/last-good, paste 대체0 | PASS |
+| D24~D26 | FR/TC100~102에 destination별 exact fields, preview/draft/export, unsupported adapter call0, Substack send OFF | PASS |
+| G01 Settings8 | FR/TC103+§18.1에 group8, outcome, write owner/action/state, operator field0 | PASS |
+| G03 support | FR/TC105에 owner approval, reason, duration, banner, audit, expiry, customer mutation0 | PASS |
+| G02/G09 secret | 정본은 raw readback/render0인데 FR/TC104·§18.1은 operator reveal 허용 | **FAIL — MAJOR-2** |
+| One Thing | canonical/current/versioned/PRD 채택문 byte equality | PASS |
+| 기존95 | v7.3.1/v7.3.2 old row190/190, 변경은 085·095의 adapter6/semantic 강화뿐; 삭제·재번호·약화0 | PASS |
+| exact orders | Sidebar `Social · 게시물→Messaging→Social · 짧은 영상`; Studio `Text→Photo/Card→Video` 유지 | PASS |
+| Audit96 구조 | rows96, unique release96, 신규10 FR/AC/TC 존재 | PASS |
+| Audit96 의미 표본 | B14/C01/C09/E12/H02의 RTM 문구가 mapped TC에 없음 | **FAIL — MAJOR-1** |
+
+## Findings
+
+### MAJOR-1 — Audit96 semantic validator는 반례9만 보강했고, 나머지 표본에서 계속 자기인증이다
+
+`contract summary`, `MATCH`, unique release ID가 있다고 의미 동치가 되지 않는다. 아래는 final audit의 실제 요구와 v7.3.2 mapped TC를 원문 대조한 결과다.
+
+| Audit | 원 감사의 필수 계약 | mapped TC의 실제 범위 | 누락 |
+|---|---|---|---|
+| B14 | examples selected, inferred sliders/phrases, confidence, draft, insufficient→needs review | TC078 guide fields/lifecycle; TC085 adapter convergence | example selection·confidence·insufficient branch |
+| C01 | idea/opportunity→Start campaign, source URL/time, chosen rationale retained | TC079 work order; TC080 research→brief; TC082 campaign delivery lineage | initiation action·chosen rationale·source/time preservation assertion |
+| C09 | source/license/permission/territory/expiry/owner/proof, photo/card/video 동일 차단 | TC054 unknown/confirmed V24; TC061 tenant lineage; TC081 generic rights block | exact rights schema·expired branch·three-family fixture |
+| E12 | timeout after provider acceptance, reconcile finds post, retry disabled, second publish0 | TC046 four fault classes, uncertain/repair external0 | accepted-timeout fixture·reconcile result·retry-disabled/second-call assertion |
+| H02 | progress only from persisted server evidence; route/callback/local draft completion0 | TC013 connection ladder; TC064 6 owners×10 states | setup-progress source rule·three false-progress fixtures |
+
+영향: `Audit96 N96/M0`, semantic fixture9/9, orphan0이라는 aggregate는 거짓이다. 한 행 failure가 aggregate를 실패시킨다는 PRD 자체 규칙에 따라 현재 AUD96은 FAIL이어야 한다. 이는 design/QA가 고객계약을 구현하지 않고도 숫자 PASS를 얻을 수 있는 load-bearing 결함이다.
+
+수정 조건: 96행 전수 재작성은 필요 없다. 먼저 위 5행을 exact FR/AC/TC 또는 기존 TC 강화로 폐쇄하고, critic 반례9만이 아닌 고위험·무작위 표본을 포함한 semantic fixture set을 공개한다. validator는 RTM의 요약 문구가 아니라 원 audit noun/action/failure predicate가 mapped TC에 실제 존재하는지 검사해야 한다.
+
+### MAJOR-2 — Operator raw-secret reveal은 final audit G02/G09과 제품 security hardline을 정면 위반한다
+
+정본 final audit G02는 `no raw secret readback`, G09는 `never render or echo the raw value`와 DOM/history/network/log/error/analytics/export의 raw 또는 prefix leak0을 요구한다. 그러나 v7.3.2 §10은 central OAuth app credential을 `operator-only masked/timed reveal`, FR/TC104는 reauth+reason+audit 뒤 reveal, §18.1은 raw secret reveal≤30초와 Channels의 `reveal` action을 명시한다.
+
+30초 후 숨김, customer/support/log leak0은 **operator DOM/network raw0**을 만족하지 않는다. 또한 RTM G09의 `masked write-only credentials` 및 canary DOM0과 같은 문서 안에서 모순이다. OSMU tenant automation token의 발급 시 plaintext 1회 표시는 별도 credential lifecycle로 이미 FR018에 분리돼 있으므로 shared provider/OAuth app secret까지 읽기 가능하게 만들 이유가 없다.
+
+수정 조건: Operator Settings9의 shared secret은 write-only create/replace/rotate/revoke로 고정하고, 화면에는 masked identifier·last rotated·health·affected capability·recovery action만 둔다. `reveal`을 FR104, TC104, §10, §18.1, audit G02 summary에서 제거하고 G09 canary scan에 operator surface를 명시한다. break-glass raw read가 법적·운영적으로 반드시 필요하다는 외부 요구가 생기면 별도 보안결정과 위협모델을 회수하기 전에는 제품 계약에 넣지 않는다.
+
+## kill-criteria 3개 + 반증 여부
+
+| Kill criterion | 현재 반증 여부 | 판정 |
+|---|---|---|
+| semantic RTM 표본에서 원 audit의 핵심 noun/action/failure 누락 1건이면 plan gate 폐쇄 | B14/C01/C09/E12/H02 최소5건 확인 | **발동 — design 금지** |
+| tenant/private/raw-token leak 또는 raw-secret echo 경로 1건이면 automation/admin release OFF | plan이 operator reveal 경로를 의도적으로 요구 | **발동 — 해당 계약 제거 전 금지** |
+| pilot에서 workspace3 중 2개 미만이 28일 내 loop2회 또는 campaign≥6 closure<80%면 agency promise 축소 | 아직 pilot M=0 | 미반증·측정 전 (unsourced demand hypothesis) |
+
+## 자기잠식 점검
+
+- Romeo·Dark-Cupid·Yeon·Polyamory의 audience, intimate data, account, native metric을 공유하면 tenant/privacy 경계가 무너진다. 공유 허용은 source→artifact→record→result의 기술 spine뿐이다.
+- OKgram의 Instagram specialty를 OSMU common header/capability로 평탄화하면 기존 차별성과 운영시간을 잠식한다. specialty는 adapter/management projection으로 유지해야 한다.
+- 교육 사업은 primary persona와 pilot source로 적합하지만 LMS·curriculum·수강생 CRM을 OSMU에 넣으면 범용 CMS로 팽창한다.
+- 여섯 사업의 provider connector와 support를 동시에 확장하면 1인 운영자의 시간·예산을 잠식할 가능성이 높다 (unsourced). PRD의 support>60m/workspace-week와 Social5 permanent unsupported≥3 중단선은 유지한다.
+
+## 법적 리스크·회수 필요
+
+- 법적 리스크: 고객 자료의 저작권·개인정보·보존/삭제, 이미지·음성·인물 consent, AI disclosure, provider 약관과 API scope는 production 전 jurisdiction/provider별 확인이 필요하다. 현재 PRD의 rights unknown publish0과 unverified adapter call0은 안전한 기본값이다.
+- 법적 리스크: support mode의 고객 workspace 열람은 owner consent만으로 모든 개인정보 처리 근거가 충족된다고 단정할 수 없다 (unsourced). 처리목적·접근범위·보존기간·DPA/audit 정책은 법률 검토가 필요하다.
+- ⛔ 회수 필요: Naver/Medium/Substack direct adapter를 켤 때 공식 API·app review·자동게시/메일발송 허용범위를 provider별로 증명해야 한다. 증명 전 draft/copy/export와 call0을 유지한다.
+- 사용자 결정 회수: 없음. raw shared secret readback0은 이미 final audit과 보안 hardline이 정한 범위라 재결정이 아니라 문서 정합 수정이다.
+
+## Steelman
+
+Steelman: 작성자의 가장 강한 반론은 “v7.3.2의 목적은 직전 critic 반례9 폐쇄였고, Audit96 전수 semantic detail을 모든 TC에 반복하면 PRD가 과도하게 비대해진다”는 것이다. 이 반론은 문서 크기에는 맞지만 RTM이 스스로 `96/96 MATCH`, `meaning mismatch0`을 주장한 순간 통하지 않는다. 각 audit 행을 별도 release case로 출고하려면 원 감사의 판정 가능한 차이를 적어도 해당 TC 또는 독립 fixture에 보존해야 한다.
+
+또 다른 강한 반론은 “운영자 raw reveal은 재인증·사유·감사·30초 숨김이 있으므로 실무 recovery에 필요하다”는 것이다. 그러나 final audit은 의도적으로 write-only와 no raw readback을 선택했고, reveal은 DOM/network raw0과 동시에 참일 수 없다. 필요한 recovery는 replace/rotate와 health validation으로 설계할 수 있으며, break-glass는 별도 고위험 결정 없이 조용히 추가할 수 없다.
+
+## Premortem
+
+Premortem: 6개월 뒤 실패했다면 디자인·QA가 `RC-AUD-B14 PASS`를 기록했지만 실제 고객은 어떤 예시로 tone이 생성됐는지, 표본이 부족한지 보지 못했을 것이다. campaign이 idea source/rationale을 잃고, asset rights expiry가 빠지고, timeout 뒤 중복 발행하며, route 방문만으로 onboarding 완료가 올라가도 aggregate96은 초록이었을 가능성이 크다.
+
+같은 시점에 운영자가 provider 장애를 고친다는 이유로 shared OAuth app secret을 화면에 reveal했고, browser extension·screen recording·support capture 중 하나에 남았을 수 있다. customer leak0만 확인한 TC104는 이를 놓치고 G09 canary test와 모순돼 QA가 어느 계약을 따라야 할지 갈렸을 것이다.
+
+## 셀프심문
+
+### 이 결론이 틀렸다면 가장 그럴듯한 이유는?
+
+가장 그럴듯한 이유는 audit summary가 independent fixture의 상세 step을 가리키고 있고 PRD에는 그 fixture 본문을 반복하지 않았을 가능성이다. 그러나 v7.3.2는 “mapped FR/AC/TC에 핵심 명사·고객 행동·failure outcome이 존재”한다고 명시하며, 공개된 mapped TC에는 위 다섯 predicate가 없다. 존재하지 않는 외부 fixture를 근거로 plan을 승인할 수 없으므로 보수적 NO-GO가 맞다.
+
+두 번째 이유는 raw reveal이 vault의 이미 제한된 break-glass 기능일 수 있다는 점이다. 그래도 final audit G02/G09의 no-readback 문구와 동일 PRD의 write-only/DOM0을 먼저 변경·위협모델화하지 않고는 승인할 수 없다. 현재 문서 기준에서는 명백한 모순이다.
+
+### 검증 가능한 근거는 실제 파일/검색으로 확인했는가?
+
+예. 원 audit B14/C01/C09/E12/H02와 mapped TC078/085, 079/080/082, 054/061/081, 046, 013/064를 직접 읽었다. 기존95 diff, canonical equality, Audit96/release96 count도 직접 실행했다. 외부 benchmark는 공식 Buffer/Jasper/Notion 문서만 사용했다.
+
+### 못 푸는 결정은 회수 필요로 명시했는가?
+
+예. provider direct adapter 허용범위와 support data-processing 법률 근거만 외부 회수로 남겼다. plan 내부 정합인 semantic TC와 raw-secret hardline은 사용자에게 떠넘기지 않고 수정 조건으로 판정했다.
+
+## 판정: NO-GO
+
+v7.3.2는 직전 critic의 9개 named orphan, non-GitHub import taxonomy, One Thing drift를 실질 폐쇄했다. 그러나 새 독립 표본이 Audit96 의미 폐쇄의 체계적 결함을 재현했고, secret reveal은 정본 hardline과 충돌한다. MAJOR 2건이므로 design gate는 열 수 없다.
+
+재심 조건:
+
+1. B14/C01/C09/E12/H02의 원 audit predicate가 exact FR/AC/TC 또는 독립 semantic fixture에 존재하도록 보강한다.
+2. Audit96 aggregate를 고위험9 자기선정만이 아니라 위 표본과 무작위 표본까지 재검증하고 한 행 FAIL이 aggregate FAIL임을 실제 validator output으로 남긴다.
+3. Operator shared secret reveal을 제거하고 write-only replace/rotate/revoke+health/recovery로 정합화한다. Tenant automation token의 issue-time plaintext1은 별도 유지한다.
+4. independent critic에서 major_findings:0, verifier PASS 후에만 `/approve plan` 후보가 된다.
+
+## prd-architect 인계 노트
+
+v7.3.3은 전체 PRD 재작성이나 source/campaign/IA 재기획이 아니다. 기존105를 보존하는 수술식 보강이다.
+
+- B14: selected examples, inferred tone anchors/sliders, confidence, draft, insufficient→needs review를 atomic TC에 추가.
+- C01: idea/opportunity initiation, chosen rationale, source URL/observed_at가 campaign brief까지 보존되는 TC 추가.
+- C09: rights schema와 unknown/expired, photo/card/video 전 family 차단을 atomic TC에 추가.
+- E12: provider accepted-timeout→reconcile found→retry disabled→second external call0을 TC046 또는 별도 TC로 추가.
+- H02: route visit/callback/local draft completion0, persisted server evidence만 progress+1인 TC 추가.
+- G02/G09: shared credential raw reveal 삭제, operator DOM/network/history/log/export canary0, write-only rotate/revoke recovery.
+- audit semantic validator: critic high-risk9뿐 아니라 위5와 deterministic random sample을 포함하고 raw source predicate coverage를 산출.
+
+보존 금지선:
+
+- FR/AC/TC105 삭제·재번호·약화 금지.
+- One Thing byte-identical, source family5/adapter6, non-GitHub bundle taxonomy, A02/A03, D24~D26, G01/G03, exact IA/orders 유지.
+- product code/design/API/DB/deploy 착수 금지; re-critic MAJOR0와 verifier PASS 후 plan 승인.
+
+## TOOL_TRACE
+
+- Standards Read: `/Users/sj/.claude/standards/planning.md`, `doc-review.md`, `benchmarks.md` 전체.
+- Local Read: `docs/openclaw-auto-marketing-agent-prd-v7.3.2-gpt-codex.md` 1,457줄; canonical/versioned one-thing/persona/bm/risks; v7.3.2 exit; v7.3.1 critic; final audit96; agency blueprint14.
+- Local Check: canonical current/versioned four pairs diff0; One Thing PRD/canonical byte equality true.
+- Local Check: v7.3.1/v7.3.2 old FR+TC rows 190/190; only 085/095 FR+TC strengthening; 신규 MA732 10×FR/TC=20 rows.
+- Local Check: Audit rows96, release IDs96, unique release IDs96.
+- Semantic counterexample: final audit B14/C01/C09/E12/H02 original contract vs mapped FR/AC/TC.
+- Secret counterexample: final audit G02 `no raw secret readback`, G09 `never render or echo raw` vs PRD §10/FR104/TC104/§18.1 `reveal`.
+- WebSearch actual query: `{"name":"WebSearch","arguments":{"query":"site:support.buffer.com approvals scheduling posts official Buffer"}}`
+- WebSearch actual query: `{"name":"WebSearch","arguments":{"query":"site:help.jasper.ai Knowledge Base Brand Voice official Jasper"}}`
+- WebSearch actual query: `{"name":"WebSearch","arguments":{"query":"site:notion.com/help export content markdown official Notion"}}`
+
+## 벤치마크 적용
+
+- 소스 1: [Buffer approvals](https://support.buffer.com/article/665-managing-and-approving-draft-posts), [Buffer All Channels](https://support.buffer.com/article/861-how-to-use-the-all-channels-view-in-buffer) — draft/approval/queue/sent가 management view에 모여도 permission과 post state가 구분된다. OSMU의 canonical record+projection 방향을 지지하지만 audit predicate 생략을 정당화하지 않는다.
+- 소스 2: [Jasper Knowledge Base](https://help.jasper.ai/hc/en-us/articles/18618707176347-Knowledge-Base), [Jasper Brand Voice](https://help.jasper.ai/hc/en-us/articles/18618693085339-Brand-Voice) — source asset, writing examples, excerpt, preview, save/application을 확인했다. B14가 examples·confidence/review state를 실제 TC에 보존해야 하는 비교 근거다.
+- 소스 3: [Notion export](https://www.notion.com/en-gb/help/export-your-content) — Markdown/CSV와 subpage를 ZIP으로 내보내는 실제 migration path를 확인했다. OSMU가 non-GitHub Markdown/text bundle만 지원하고 CSV/HTML 해석을 unsupported로 남긴 것은 정직하다.
+
+SOURCES: `docs/openclaw-auto-marketing-agent-prd-v7.3.2-gpt-codex.md`; `docs/one-thing.md`; `docs/persona.md`; `docs/bm.md`; `docs/risks.md`; v7.3.2 versioned canonical views; `tasks/marketing-agent-prd-v7.3.2.output`; `tasks/marketing-agent-plan-critic-v7.3.1.output`; `tasks/marketing-agent-v18-completeness-audit.output`; `tasks/marketing-agent-v18-agency-blueprint.output`; planning/doc-review/benchmarks standards; official Buffer/Jasper/Notion docs.
+
+MODEL: gpt-codex/gpt-5.6-sol
+
+SKILLS_USED: 없음 — 제공된 skills 중 독립 plan critic/RTM 의미·보안계약 검증에 직접 매칭되는 skill이 없어 planning·doc-review·benchmarks 품질헌법으로 수행.
+
+SKILLS_SKIPPED: brand-positioning-kit/openclaw-creative-brief — v7.3.2 작성자가 사용한 결과를 검증했지만 이번 과업은 브랜드 포지셔닝·brief 생성이 아니라 독립 closure critic이므로 재호출하지 않음.
+
+RUBRIC_SCORE: evidence=5/5 semantic_trace=5/5 atomicity=5/5 red_team=5/5 handoff=5/5 total=25/25
+
+WEAKEST_LINE: 표본 밖 추가 semantic mismatch가 더 있을 수 있으나, NO-GO를 확정하는 데 필요한 독립 반례5와 secret contradiction은 이미 직접 확인했다.
+
+VERIFIER_RESULT: `/Users/sj/.claude/harness/bin/verify-agent-quality.sh tasks/marketing-agent-plan-critic-v7.3.2.output plan` → PASS (Skill 0회/매칭 없음, WebSearch·Fetch parser 6회, 소크라 마커7). harness log append의 sandbox `Operation not permitted` 경고는 있었으나 verifier exit는 0이었다.
+
+major_findings:2
+minor_findings:0
+verdict:NO-GO

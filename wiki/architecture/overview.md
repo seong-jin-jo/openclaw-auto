@@ -83,6 +83,14 @@ Feedback: insights → viral signals → style / prompt-guide updates.
   callback도 무시한다. 따라서 이전 customer path의 stale run이 `/operator*` 운영자 토큰 우선
   규칙을 덮어쓰지 못한다.
 
+### Current verification boundary (2026-08-06)
+
+The customer/operator shell split and route wiring above are current **local-code** evidence; they do not
+prove a completed production OAuth or publish flow. Browser-authenticated visual rendering is likewise not
+provider/API proof. Production observations still open are OAuth callback false-success, duplicate Instagram
+OAuth/manual-token UI, missing Settings connection status, and an observed OSMU 502. See
+[Marketing Hub surface map](../product/marketing-hub-surface-map.md) for route-level classification.
+
 ### 지원 채널 (12개)
 | 채널 | 방식 | 환경변수 | 비고 |
 |------|------|---------|------|

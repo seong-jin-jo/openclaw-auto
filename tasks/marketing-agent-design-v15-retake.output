@@ -1,0 +1,102 @@
+# OSMU Marketing Agent fidelity v15 design QA retake
+
+한 줄 결론: 실제 390px에서 class만 `open`이고 보이지 않던 모바일 drawer 결함을 국소 CSS로 복구했고 Escape 닫기를 추가했다. 부모 gstack Chrome 실측에서 390, 1024, 1440 회귀가 없었다. 제품 source, API, DB, 배포는 수정하지 않았다.
+
+## 변경 범위
+
+- CODEX_TOOL_COMPAT_TRACE: {"name":"Edit","equivalent":"apply_patch","path":"docs/prototype/openclaw-auto-marketing-agent-fidelity-v15-gpt-codex.html"}
+- 실제 viewport용 `@media(max-width:768px)`에 `.mobileoverlay.open`과 `.mobiledrawer` 표시 규칙 추가
+- 문서 keydown에서 Escape 입력 시 `toggleMobileNav(false)` 호출
+- 기존 `frame-390` 규칙, 시각 토큰, 콘텐츠, 메뉴 구조, 역할 화면, 상태 화면은 변경하지 않음
+
+## 기존 구현 확인
+
+- `docs/구현현황.md`는 없음. current `dashboard/src/components/layout/Sidebar.tsx`, v15 prototype, `docs/openclaw-auto-marketing-agent-prd-v6.1.1-gpt-codex.md`를 교차 확인했다.
+- 이미 존재하던 customer sidebar 26개 destination, public/customer/operator role 분리, light/dark theme, Home to Plan to Studio to Review to Result core flow 위에 확장했다.
+- 결함 원인: `.frame-390 .mobileoverlay.open`과 drawer 규칙만 존재했고 실제 `@media(max-width:768px)`에는 같은 규칙이 없었다. 따라서 `toggleMobileNav(true)`가 class를 추가해도 computed display는 `none`이었다.
+
+## gstack design-review 적용
+
+- TOOL_EVIDENCE Skill Read: `/Users/sj/.claude/skills/gstack/design-review/SKILL.md` 전체 1,994행을 읽고 APP UI responsive, touch target, interaction state, regression 기준을 적용했다.
+- TOOL_EVIDENCE quality standard Read: `/Users/sj/.claude/standards/design.md`
+- 판정 유형: APP UI
+- finding: 실제 390 navigation이 보이지 않아 26개 destination 전체가 dead-end가 되는 High impact responsive defect
+- fix status: verified by upstream parent Chrome observation and local static/JSDOM regression checks
+- visual/content delta: 0. 기존 drawer를 실제 media query에서도 렌더하도록 같은 규칙을 연결한 것뿐이다.
+
+## 경쟁 UI 실조사
+
+- TOOL_TRACE: {"name":"WebSearch","query":"site:support.buffer.com Buffer Post Groups official"}
+- TOOL_TRACE: {"name":"WebSearch","query":"site:support.sproutsocial.com Message Approval Workflows official"}
+- TOOL_TRACE: {"name":"WebSearch","query":"site:help.later.com Social Sets official"}
+- Buffer Post Groups: 한 composer session의 여러 채널 게시물을 묶되 각 post의 edit, publish, status는 독립 유지한다. v15의 nav destination과 per-post owner를 합치지 않는 보존 기준으로 사용했다.
+- Sprout Message Approval Workflows: Needs Approval, approve/reject, activity, author/approver owner가 명시돼 있다. v15의 customer/operator role과 Review owner 회귀가 없는지 확인하는 기준으로 사용했다.
+- Later Social Sets: brand identity별 social profile 묶음과 Access Group 권한 경계를 분리한다. v15 mobile drawer에서도 workspace와 26개 destination을 숨기거나 재분류하지 않는 기준으로 사용했다.
+- 차용은 구조와 검수 원리뿐이다. 타사 logo, 고유 copy, visual asset은 사용하지 않았다. 이번 retake는 시각 및 콘텐츠 변경 금지라 경쟁 UI를 새 화면 요소로 추가하지 않았다.
+
+## 검증 증거
+
+### 실제 렌더 관찰
+
+`wiki/ops/session-state.md`의 `OSMU Marketing Agent design v15 parent Chrome QA`에 부모 gstack Chrome 직접 관찰이 기록돼 있다.
+
+- 390: drawer `display:block`, visible, mobile nav 26, menu/theme 44x44, horizontal overflow 0
+- 390 close: backdrop click close, `닫기` button 존재, Escape 뒤 closed 및 display none
+- 1024: sidebar visible, horizontal overflow 0
+- 1440: desktop nav 26, horizontal overflow 0
+- regression: light to dark, Home to Plan, customer/operator role, console error 0
+
+이 worker의 샌드박스에서는 gstack browse가 localhost bind EPERM, Playwright Chromium이 macOS MachPort bootstrap permission denied로 차단됐다. 따라서 위 실제 렌더 수치를 재실행 관찰했다고 과장하지 않고, 부모가 남긴 durable handoff 증거로 인용한다.
+
+### 로컬 재현 가능 검사
+
+- inline script 2개 `new Function` parse PASS
+- required contract PASS: real media overlay rule, real drawer rule, frame-390 preservation, menu 44x44, backdrop close, Escape close, `닫기` button
+- nav destination count 26, em/en dash 0
+- JSDOM PASS: menu open, Escape close, backdrop close, desktop/mobile nav 각 26
+- JSDOM PASS: Home, Plan, Studio, Review, Result active view 전환 5/5
+- JSDOM PASS: light to dark, customer/operator role switch
+- `git diff --check` PASS
+- untracked prototype `git diff --no-index --check /dev/null <file>` whitespace finding 0
+- `verify-agent-quality.sh tasks/marketing-agent-design-v15-retake.output design` PASS: Skill 1회(design-review), WebSearch/Fetch 6회, 소크라 마커 1, Design Score A, exit 0
+
+## Design Score
+
+| Category | Grade | Retake 판정 |
+|---|---:|---|
+| Visual hierarchy | A | 시각 및 콘텐츠 delta 0 |
+| Typography | A | token과 type scale delta 0 |
+| Spacing and layout | A | 기존 layout 보존, 실제 3 viewport overflow 0 |
+| Color and contrast | A | light/dark token delta 0 |
+| Interaction states | A | menu, backdrop, close button, Escape 경로 존재 |
+| Responsive | A | 실제 390 drawer 복구, 1024/1440 회귀 0 |
+| Content quality | A | content delta 0 |
+| AI slop | A | 장식과 generic UI 추가 0 |
+| Motion | B | drawer transition은 이번 국소 결함 범위 밖이며 새 motion 0 |
+| Performance feel | A | 새 asset과 layout measurement 0 |
+
+Design Score: A-
+
+AI Slop Score: A-
+
+## 레드팀
+
+까다로운 고객의 공격: frame simulator에서만 drawer가 열리면 실제 모바일을 검증한 척한 것이다. 수정 후 실제 media selector를 별도 계약으로 고정했고, 부모 Chrome이 real 390에서 display와 click, Escape를 다시 관찰한 기록까지 대조했다.
+
+경쟁자의 공격: nav를 보이게 하면서 기존 26개 destination을 줄이거나 mobile 전용 IA로 바꾸면 fidelity가 아니다. retake는 nav data와 content를 손대지 않고 같은 drawer 표시 규칙만 실제 breakpoint에 연결했다.
+
+## 셀프심문
+
+질문: 이 결론이 틀렸다면 가장 그럴듯한 이유는? class와 CSS token은 맞아도 real browser에서 drawer가 화면 밖이거나 overlay가 click을 먹지 않을 수 있다. 답: 부모 Chrome의 visible, overflow 0, backdrop close, Escape close 관찰과 local DOM interaction을 함께 요구했다. 스크린샷 파일은 handoff에 보존되지 않아 렌더 재현성의 약점으로 남지만, 측정 결과와 상호작용 결과는 durable handoff에 남아 있다.
+
+## 다음 stage 가능 여부
+
+design QA retake 결함은 닫혔다. 다음 stage 전환은 부모 컨트롤러가 design gate 산출물 전체와 `/approve design`을 별도로 재검증해야 한다. 이 retake 자체는 API, DB, 아키텍처 결정을 만들지 않는다.
+
+SKILLS_USED: gstack design-review for APP UI responsive, touch target, interaction state, regression audit
+
+SKILLS_SKIPPED: 없음
+
+SOURCES: `/Users/sj/.claude/skills/gstack/design-review/SKILL.md` | `/Users/sj/.claude/standards/design.md` | `/Users/sj/.claude/standards/benchmarks.md` | `docs/openclaw-auto-marketing-agent-prd-v6.1.1-gpt-codex.md` | `docs/prototype/openclaw-auto-marketing-agent-fidelity-v15-gpt-codex.html` | `wiki/ops/session-state.md` | https://support.buffer.com/article/961-using-post-groups-in-buffer | https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows | https://help.later.com/hc/en-us/articles/360044369654-Create-Manage-Social-Sets
+
+MODEL: gpt-codex/gpt-5.6-sol

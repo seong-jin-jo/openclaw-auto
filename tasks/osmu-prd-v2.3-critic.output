@@ -1,0 +1,5 @@
+/Users/sj/.claude/hooks/_harness-lib.sh: line 26: /Users/sj/.claude/logs/harness.jsonl: Operation not permitted
+WARNING: proceeding, even though we could not create PATH aliases: Operation not permitted (os error 1)
+Reading additional input from stdin...
+Error: failed to initialize in-process app-server client: Operation not permitted (os error 1)
+/Users/sj/.claude/hooks/_harness-lib.sh: line 26: /Users/sj/.claude/logs/harness.jsonl: Operation not permitted

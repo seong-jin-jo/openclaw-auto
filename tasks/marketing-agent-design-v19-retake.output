@@ -1,0 +1,93 @@
+STAMP
+- line: marketing-agent
+- artifact: design-v19-retake
+- generated_at: 2026-08-08 17:34 KST
+- model: gpt-codex/gpt-5.6-sol
+- agent: product-designer worker
+- skill: gstack design-review
+- evidence: PRD v7.3.5, v18 completeness audit, v18 agency blueprint, REQUEST-OSMU-001 ledger, current prototype and code/wiki inventory, four official benchmark sources
+- design_decision: 공통 작업 문법은 통합하되 플랫폼 capability와 게시 제약은 각 플랫폼 화면 안에 남겼다.
+
+한 줄 결론: v19 retake는 기존 26개 목적지와 14단계 흐름을 보존하면서 OSMU의 8개 플랫폼별 Create/게시, 고객·운영자 공통 5탭, OAuth/API 준비도, 계정별 Admin 목표 상태, 미구현 12개 gap을 하나의 검토 가능한 디자인 패키지로 묶었다.
+
+## 산출물
+
+1. `docs/prototype/openclaw-auto-marketing-agent-fidelity-v19-gpt-codex.html`
+2. `docs/user-flow-marketing-agent-v19-gpt-codex.md`
+3. `docs/WIREFRAMES/marketing-agent-v19-gpt-codex.md`
+4. `tasks/marketing-agent-design-v19-retake.output`
+
+## 기존 구현 확인과 보존
+
+- PRD v7.3.5의 14단계 happy flow, v18의 26개 목적지와 destination registry, 기존 사이드바 순서, Studio 작성 순서, Settings 8개 화면, Admin 9개 화면을 유지했다.
+- Threads의 Growth/Popular, X의 tweet thread, Instagram의 Feed/Reels 분리, YouTube Shorts와 TikTok의 video queue, Messaging의 별도 composer를 공통 템플릿으로 평탄화하지 않았다.
+- 기존 V01-V24 regression semantics와 customer/operator role, light/dark, 1440/1024/390 상태를 유지했다.
+- 근거: `docs/openclaw-auto-marketing-agent-prd-v7.3.5-gpt-codex.md`, `tasks/marketing-agent-v18-completeness-audit.output`, `tasks/marketing-agent-v18-agency-blueprint.output`, `docs/qa-tracker.md` REQUEST-OSMU-001, 현행 prototype 및 channel/OAuth/Admin source inventory.
+
+## 추가·변경한 것
+
+- 고객과 운영자 화면에 `운영 개요 / 계정 / 자동화 / 결과 증거 / 미구현` 5탭을 같은 정보 구조로 제공하고 역할별 권한만 분리했다.
+- OSMU Studio에 Threads, X, Instagram Feed, Instagram Reels, Facebook, Bluesky, YouTube Shorts, TikTok 8개 목적지의 게시 전 확인과 platform-local Create 진입을 추가했다.
+- 각 플랫폼에서도 같은 캠페인의 OSMU 초안을 다시 열고 capability별 게시 preflight를 거치게 했다. Messaging은 대화형 채널이므로 기본 일괄 게시에서 제외했다.
+- OAuth 시작, callback, scope 검증, token metadata 저장, 만료/회수/재인증, API 자동 게시, 영수증 증거 흐름을 고객과 운영자 양쪽에서 추적 가능하게 했다.
+- Admin에 8개 계정 목표 행을 두고 account identity, token metadata, automation readiness, 검증 증거 목표를 명시했다.
+- 제품 화면과 문서에 미구현 12개 gap을 owner, 검증 증거와 함께 표시했다.
+
+## 검증 증거
+
+- 기존 회귀 정적 검증: 220 assertions PASS, destinations 26, steps 14, matrix 12, console errors 0.
+- retake 의미 검증: 88 assertions PASS, unified tabs 5, OSMU targets 8, account targets 8, gaps 12, customer/operator × light/dark × 1440/1024/390 interaction audit, console errors 0.
+- 위 두 결과는 jsdom 기반 구조·상태·라우팅 검증이다. 실제 provider 게시와 실제 OAuth token lifecycle은 미검증이다.
+- Chrome headless raster 검증은 로컬 실행이 종료 코드 134로 중단되어 미검증이다. v18의 브라우저 증거를 v19 신규 화면 증거로 대체하지 않았다.
+
+## TOOL_TRACE
+
+- skill read: `/Users/sj/.claude/skills/design-review/SKILL.md`
+- quality constitution read: `/Users/sj/.claude/standards/design.md`
+- benchmark search 1: `{"query":"Buffer schedule posts multiple social channels official"}`
+- benchmark search 2: `{"query":"Sprout Social approval workflows official"}`
+- benchmark search 3: `{"query":"Google OAuth web server best practices official"}`
+- artifact writes: `{"name":"Write"}` equivalent file edits were applied to the four declared output paths only.
+
+## 벤치마크 체크리스트
+
+| 출처 | 확인한 패턴 | 차용 | 변경·차별화 | 복제 여부 |
+|---|---|---|---|---|
+| Buffer multi-channel scheduling | 한 composer에서 여러 social channel 선택 | OSMU 다중 목적지 선택 | 플랫폼별 Create와 preflight를 추가하고 video/text를 분기 | 직접 복제 없음 |
+| Sprout Social approval workflows | 승인 상태와 역할 기반 검토 | 고객·운영자 결과 증거 탭 | 역할 정보 구조는 통합하되 secret/API 권한은 운영자 전용 | 직접 복제 없음 |
+| Google OAuth web-server flow | authorization code, callback, token 교환 | OAuth 준비도 상태 흐름 | 고객 계정 행과 Admin 목표 행을 같은 evidence contract로 연결 | 직접 복제 없음 |
+| Google OAuth best practices | 최소 scope, secure token storage, revoke handling | token metadata와 재인증 상태 | raw access/refresh token을 UI에서 숨기고 metadata만 표면화 | 직접 복제 없음 |
+
+## 레드팀과 셀프심문
+
+레드팀: 까다로운 운영자는 "통합 탭이 생겼지만 실제 API/DB가 한 campaign record를 공유하지 않으면 단지 예쁜 중복 UI"라고 공격할 수 있다. 대응으로 same-record를 구현 사실처럼 단정하지 않고 canonical identity, write owner, projection, idempotency를 첫 번째 plan reopen gap으로 승격했다.
+
+SOCRATIC_MARKER: 이 결론이 틀렸다면 가장 그럴듯한 이유는 기존 route와 table의 write owner가 서로 다른데 prototype이 단일 OSMU record를 약속하는 것이다. 수정 결과로 제품 내부 미구현 탭과 문서 gap 표에 owner·종료 증거·reopen 사유를 노출했다.
+
+## 디자인 리뷰
+
+- classifier: APP UI
+- typography, spacing, hierarchy, color, responsive, state, interaction, accessibility, anti-slop, litmus를 `/Users/sj/.claude/standards/design.md`와 gstack design-review 절차로 검토했다.
+- hard rejection: 0
+- Design Score: B+
+- A를 부여하지 않은 이유: 실제 Chrome raster와 실제 provider/OAuth E2E 증거가 아직 없고, canonical identity/write owner가 plan 단계에서 미합의다.
+
+## 남은 gap과 다음 stage
+
+⛔ 회수 필요: canonical campaign identity, platform projection owner, publish idempotency key를 plan에서 재개해 결정해야 한다. 이를 확정하지 않으면 디자인의 same-record 약속을 API/DB 계약으로 안전하게 내릴 수 없다.
+
+⛔ 회수 필요: provider별 live OAuth callback, token expiry/revoke, native publish receipt, video async, native metrics, browser/provider E2E는 미검증이다.
+
+다음 stage 가능 여부: 디자인 검토와 기술 탐색 착수는 가능하다. API/DB 계약 확정과 build 진입은 위 plan reopen 결정 및 디자인 승인 전에는 불가하다.
+
+SKILLS_USED: gstack design-review for APP UI hierarchy, state, responsive, interaction, accessibility, anti-slop and litmus review
+
+SKILLS_SKIPPED: imagegen, bitmap asset generation was not required for this code-native application prototype
+
+SOURCES: `docs/openclaw-auto-marketing-agent-prd-v7.3.5-gpt-codex.md`; `tasks/marketing-agent-v18-completeness-audit.output`; `tasks/marketing-agent-v18-agency-blueprint.output`; `docs/qa-tracker.md` REQUEST-OSMU-001; `DESIGN.md` v18/v19; current prototype and channel/OAuth/Admin source; https://support.buffer.com/article/644-how-do-i-schedule-posts-for-multiple-social-channels-at-the-same-time; https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows; https://developers.google.com/identity/protocols/oauth2/web-server; https://developers.google.com/identity/protocols/oauth2/resources/best-practices
+
+MODEL: gpt-codex/gpt-5.6-sol
+
+RUBRIC_SCORE: typography=5/5 spacing=5/5 hierarchy=5/5 color=5/5 responsive=5/5 states=5/5 interaction=5/5 accessibility=4/5 anti-slop=5/5 litmus=5/5 total=49/50
+
+WEAKEST_LINE: 실제 provider/OAuth/browser 증거가 없어 디자인의 기술적 실현 가능성은 plan reopen 뒤 재검증해야 한다.

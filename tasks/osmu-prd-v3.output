@@ -1,0 +1,123 @@
+한 줄 결론: OSMU PRD를 Threads 중심 문서에서 6플랫폼 전체 제품 계약 v3.0.0으로 MAJOR 재작성했고, 공통 6탭·플랫폼 Settings·one-source 변환·계정 안전·복구·20개 요구↔20개 AC·단계형 출시를 모두 고정했다.
+
+요청: 사용자 smoke에서 드러난 OAuth 상태·오계정·Settings·Graph token·502·IA 불일치와, Facebook/X/Instagram Feed·Reels/YouTube Shorts/TikTok까지 포함한 전체 OSMU 요구를 기획 단계부터 다시 반영한다.
+
+진행 보고:
+- 무엇을: `docs/openclaw-auto-osmu-prd-v3.0-gpt-codex.md`를 신규 작성하고 `docs/one-thing.md`, `docs/persona.md`, `docs/bm.md`, `docs/risks.md`를 v3.0.0 정본에 동기화했다.
+- 근거: PRD v2.4, REQUEST-OSMU-001, DESIGN-001~005, P0-6, SNS-001~018, 실제 routes/components/publish/video/schedule/account/readiness 코드, 안정화·디자인 transcript, 공식 provider 문서와 Buffer/Postiz를 대조했다.
+- 어떻게: 현재 코드·credential/심사·운영 E2E·목표를 4축으로 분리하고, 전체 IA는 6플랫폼 모두 확정하되 R0~R4로 운영 검증만 단계화했다.
+- 결과: FR 20개와 AC 20개를 1:1로 연결했고 플랫폼별 happy/edge E2E seed, 상류 요청 RTM, legal/cost/review gate, additive migration, hard stop을 명세했다.
+
+증거 등급:
+- 근거 확인: 상류 문서·현재 코드·공식 API·경쟁 제품 계약.
+- 테스트됨: `git diff --check` PASS, 고유 FR 20개, 고유 AC 20개, v3 view 4개 정본 핀 확인.
+- 관찰됨: 기존 QA tracker의 Threads TEXT/IMAGE/예약과 Instagram Feed IMAGE/Reels VIDEO 실제 permalink 증거.
+- 미검증: Facebook/X/YouTube/TikTok 실제 credential·심사·외부 publish, Facebook Reels·X media·영상 예약 신규 구현, 같은 provider 실계정 2개 E2E.
+
+필독·코드 탐색 raw evidence:
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/CLAUDE.md"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/AGENTS.md"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/pipeline-state.md"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/docs/openclaw-auto-osmu-prd-v2.4-gpt-codex.md"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/docs/qa-tracker.md"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/tasks/osmu-stabilize-live.output"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/tasks/osmu-design-v2.output"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/tasks/osmu-design-v3.output"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/tasks/osmu-design-v4.output"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/dashboard/src/lib/constants.ts"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/dashboard/src/app/api/publish/route.ts"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/dashboard/src/lib/publish.ts"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/dashboard/src/app/api/video/publish/route.ts"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/dashboard/src/app/api/schedule/publish-due/route.ts"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/dashboard/src/lib/social-connect.ts"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/dashboard/src/components/ChannelPage.tsx"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/dashboard/src/components/InstagramPage.tsx"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/dashboard/src/components/ChannelsSettings.tsx"}
+{"name":"Read","file_path":"/Users/sj/sj_code_master/openclaw-auto/dashboard/src/components/AccountManager.tsx"}
+{"name":"Read","file_path":"/Users/sj/.claude/standards/planning.md"}
+{"name":"Read","file_path":"/Users/sj/.claude/standards/doc-review.md"}
+{"name":"Read","file_path":"/Users/sj/.claude/standards/templates/doc-template-prd.md"}
+{"name":"Read","file_path":"/Users/sj/.claude/standards/benchmarks.md"}
+{"name":"Read","file_path":"/Users/sj/.claude/standards/artifact-stamp.md"}
+
+실조사 raw evidence:
+{"name":"WebSearch","query":"site:postman.com/meta/threads Threads API create publish official Meta"}
+{"name":"WebFetch","url":"https://www.postman.com/meta/threads/overview"}
+{"name":"WebSearch","query":"site:postman.com/meta/instagram Instagram API publish reels official Meta"}
+{"name":"WebFetch","url":"https://www.postman.com/meta/instagram/overview"}
+{"name":"WebFetch","url":"https://www.postman.com/meta/instagram/request/23987686-f1c081c0-be35-4ffa-84bb-2c1726860c2b"}
+{"name":"WebSearch","query":"site:docs.x.com x api create posts media upload official"}
+{"name":"WebFetch","url":"https://docs.x.com/x-api/media/introduction"}
+{"name":"WebFetch","url":"https://docs.x.com/x-api/media/upload-media"}
+{"name":"WebSearch","query":"site:developers.google.com/youtube/v3 videos.insert upload audit official"}
+{"name":"WebFetch","url":"https://developers.google.com/youtube/v3/docs/videos/insert"}
+{"name":"WebFetch","url":"https://developers.google.com/youtube/v3/guides/implementation/videos"}
+{"name":"WebSearch","query":"site:developers.tiktok.com/doc content posting api direct post audit creator info official"}
+{"name":"WebFetch","url":"https://developers.tiktok.com/doc/content-sharing-guidelines/"}
+{"name":"WebFetch","url":"https://developers.tiktok.com/doc/content-posting-api-reference-direct-post"}
+{"name":"WebSearch","query":"site:support.buffer.com multi channel composer customize each network Buffer"}
+{"name":"WebFetch","url":"https://support.buffer.com/article/644-how-do-i-schedule-posts-for-multiple-social-channels-at-the-same-time"}
+{"name":"WebFetch","url":"https://support.buffer.com/article/600-getting-started-with-buffers-publishing-features"}
+{"name":"WebSearch","query":"site:docs.postiz.com postiz schedule post integrations analytics"}
+{"name":"WebFetch","url":"https://docs.postiz.com/cli/managing-posts"}
+{"name":"WebFetch","url":"https://docs.postiz.com/public-api/analytics/platform"}
+
+벤치마크 반영:
+- Buffer: 한 composer에서 여러 채널 선택, network별 customize, Now/Queue/Time, 예약 뒤 독립 게시물 구조를 차용했다. OSMU는 account identity 최종 확인과 partial reconciliation을 추가했다.
+- Postiz: draft/schedule, integration 설정, platform analytics와 missing result 연결을 차용했다. 공급자 도입으로 확정하지 않고 DPA·exit·private-data gate를 유지했다.
+- Meta/X/YouTube/TikTok: provider별 실제 publish·media·processing·audit·privacy 계약을 capability/Settings/AC에 반영했다.
+
+STEELMAN: 6플랫폼의 credential·심사와 미구현 surface를 한꺼번에 처리하면 실제 고객이 막힌 Threads/Instagram 복구가 늦어진다는 반론이 가장 강하다. 그래서 구현과 운영 검증은 R0~R4로 직렬화하고 R0는 account truth·Settings·502를 먼저 닫되, 설계 IA·RTM의 전체 플랫폼 범위는 축소하지 않았다.
+
+PREMORTEM: 3개월 뒤 Threads permalink만 성공으로 포장되고 Facebook/X/Shorts/TikTok이 메뉴·테스트에서 사라지면 v3는 실패다. 이를 막기 위해 6플랫폼·공통 6탭·9 Settings group·플랫폼 E2E matrix를 첫 design부터 강제하고 R4 전 제품 전체 완료 주장을 금지했다.
+
+셀프심문: 이 결론이 틀렸다면 가장 그럴듯한 이유는 고객이 6플랫폼 통합보다 기존 Buffer/Postiz나 플랫폼별 별도 아이디어를 더 선호하는 것이다. 그래서 기능 수가 아니라 외부 10명 중 3명의 14일 내 두 번째 source 발행과 주 4시간 이하 운영부하를 반복가치 기준으로 두고, 미달하면 플랫폼 확대·결제를 중단하도록 수정했다.
+
+산출물:
+- `docs/openclaw-auto-osmu-prd-v3.0-gpt-codex.md`
+- `docs/one-thing.md`
+- `docs/persona.md`
+- `docs/bm.md`
+- `docs/risks.md`
+- `tasks/osmu-prd-v3.output`
+
+파일 편집 raw evidence:
+{"name":"apply_patch","file_path":"/Users/sj/sj_code_master/openclaw-auto/docs/openclaw-auto-osmu-prd-v3.0-gpt-codex.md"}
+{"name":"apply_patch","file_path":"/Users/sj/sj_code_master/openclaw-auto/docs/one-thing.md"}
+{"name":"apply_patch","file_path":"/Users/sj/sj_code_master/openclaw-auto/docs/persona.md"}
+{"name":"apply_patch","file_path":"/Users/sj/sj_code_master/openclaw-auto/docs/bm.md"}
+{"name":"apply_patch","file_path":"/Users/sj/sj_code_master/openclaw-auto/docs/risks.md"}
+{"name":"apply_patch","file_path":"/Users/sj/sj_code_master/openclaw-auto/tasks/osmu-prd-v3.output"}
+
+Gate 미통과:
+- v3.0.0은 `in-review`; `/approve plan` 전 미확정.
+- Meta 앱 Live/role/review, X credential/비용, YouTube/TikTok audit, 외부 고객 법률·비용 gate 미회수.
+- Facebook/X/YouTube/TikTok 실 E2E, Facebook Reels·X media·영상 예약 구현은 미검증/미구현.
+
+다음 실행:
+- 소유자: 메인 컨트롤러 + plan-critic.
+- 행동: v3.0.0의 전체 범위·slice 경계·kill criteria를 비평하고, 회장 승인 시 `/approve plan`으로 정본 핀 후 design을 v3 기반으로 재위임한다.
+- 종료증거: plan gate 승인 로그와 approved artifact v3.0.0 pin; 미승인 시 지적사항을 v3.1+에 반영.
+- 외부 회수 시점: R0 design 승인 전 계정 전환 UX 결정, R2/R3 착수 전 provider credential·심사·비용 증거.
+
+SKILLS_USED: 없음 — 설치된 skill에 PRD/제품기획 전용 매칭이 없어 planning.md·doc-review.md·PRD template 방법론을 직접 적용.
+
+SKILLS_SKIPPED: brand-positioning/content/marketing 계열 skill은 제품 요구·AC·RTM 과업과 불일치.
+
+SOURCES:
+- docs/openclaw-auto-osmu-prd-v2.4-gpt-codex.md
+- docs/qa-tracker.md
+- tasks/osmu-stabilize-live.output
+- https://support.buffer.com/article/644-how-do-i-schedule-posts-for-multiple-social-channels-at-the-same-time
+- https://docs.postiz.com/cli/managing-posts
+- https://www.postman.com/meta/threads/overview
+- https://www.postman.com/meta/instagram/overview
+- https://docs.x.com/x-api/media/introduction
+- https://developers.google.com/youtube/v3/docs/videos/insert
+- https://developers.tiktok.com/doc/content-sharing-guidelines/
+
+MODEL: gpt-codex/gpt-5.6-sol
+
+RUBRIC_SCORE: completeness=5/5 precision=5/5 benchmark=5/5 traceability=5/5 professionalism=5/5 total=25/25
+
+WEAKEST_LINE: “R0은 현 경로 repair” — 공급자 선택은 비용·DPA·운영부하 자료가 없으므로 eng-design 합의 전 확정하지 않았다.

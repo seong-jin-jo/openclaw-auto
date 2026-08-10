@@ -1,0 +1,153 @@
+# OSMU DESIGN-008 v8 Retake Exit Report
+
+> STAMP: created_at=2026-08-05 04:51 KST | model=gpt-codex/gpt-5.6-sol | agent=product-designer | skills=design-html, design-review | evidence=https://support.buffer.com/article/961-using-post-groups-in-buffer, https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows, https://docs.x.com/fundamentals/authentication/oauth-2-0/authorization-code | deliberation=운영 관찰이 없는 local code를 live product로 승격한 v7 오류를 3층 provenance와 default claim blocker로 구조적으로 차단
+
+요청: v7 승인을 철회하고, prod-observed, repo-implemented-prod-unverified, target-contract 3층으로 DESIGN v8을 재작성한다.
+
+한 줄 결론: v8 산출물은 PROD OBSERVED를 `NONE · UNVERIFIED`로 고정하고, Studio 생성/AI 자동초안/Save/Publish/예약을 file/line/commit이 있는 REPO layer로만 분리했다. TARGET layer는 PRD v4.1.2 계약이며 운영 진입점은 evidence missing으로 잠갔다.
+
+## 근본 원인과 구조 수정
+
+v7 오류는 local route와 component 존재를 customer-visible product evidence로 승격한 것이다. 코드 존재, 배포, 운영 노출, 외부 side effect는 서로 다른 증거인데 한 층으로 합쳤다.
+
+v8 수정:
+
+1. default screen을 PROD NONE으로 변경
+2. local code는 file/line/commit을 가진 REPO layer로 격리
+3. target interaction은 screen-level `운영 증거 아님` strip을 고정
+4. local Sidebar와 counts는 Appendix로 이동
+5. 운영 evidence 없는 기능의 live-state 표기 0
+6. deployed revision field를 missing으로 유지
+
+## 산출물
+
+1. `DESIGN.md`
+2. `docs/user-flow.md`
+3. `docs/WIREFRAMES/openclaw-auto-osmu-provenance-gate-v8-gpt-codex.md`
+4. `docs/WIREFRAMES/openclaw-auto-osmu-target-contract-v8-gpt-codex.md`
+5. `docs/WIREFRAMES/openclaw-auto-osmu-repo-rtm-v8-gpt-codex.md`
+6. `docs/prototype/openclaw-auto-osmu-provenance-v8-gpt-codex.html`
+7. `tasks/osmu-design-v8.output`
+
+제품 코드 수정: 0
+
+## 3층 provenance 결과
+
+| Layer | v8 판정 | Evidence |
+|---|---|---|
+| PROD OBSERVED | NONE · UNVERIFIED | 운영 URL/identity/timestamp/screenshot/DOM/deployed revision 없음 |
+| REPO IMPLEMENTED | local code 있음 · PROD UNVERIFIED | HEAD a7b2b435e7ea, file/line/commit |
+| TARGET CONTRACT | PRD v4.1.2 | AC28 view/state RTM |
+
+## Studio local evidence
+
+| Local code | File/line | Commit | Prod |
+|---|---|---|---|
+| OSMU generation | `studio/page.tsx:190-231` | `a10b2145b` | unverified |
+| AI auto draft | `233-249` | `e570442e` | unverified |
+| Save | `250-266,413` | `0a50063c`, snapshot `aa368e67` | unverified |
+| Publish | `278-330,414` | snapshot `aa368e67`, later `ea88094e` | unverified |
+| Schedule | `415,469-475` | snapshot `aa368e67`, implementation `e570442e` | unverified |
+
+commit `aa368e67`은 2026-06-23 snapshot에 control이 존재한다는 증거다. 배포 revision 또는 운영 노출 증거가 아니다.
+
+## Browser QA
+
+- Prototype: `docs/prototype/openclaw-auto-osmu-provenance-v8-gpt-codex.html`
+- Views: prod, repo, target, result, recovery, migration, appendix, RTM, 총 8개
+- 1024x900 8개 view: overflow 0, touch below44 0
+- 390x844 8개 view: overflow 0, touch below44 0
+- Console errors: 0
+- Click states observed: reservation1/duplicate19, OAuth accepted1/rejected19, minute1681 next side effect0
+- Visual review: `/tmp/osmu-v8-prod-390-final.png`, `/tmp/osmu-v8-repo-1024-final.png`
+- GUI open: 사용하지 않음
+- `verify-agent-quality.sh tasks/osmu-design-v8.output design`: PASS, Skill2, WebSearch/Fetch4, Design Score B. 경고 1건은 Codex `apply_patch`가 검증기의 Write/Edit 패턴에 포함되지 않아 발생했으며 아래 산출 경로 7개를 직접 확인했다.
+
+## DOM evidence counts
+
+| Selector/evidence | Count |
+|---|---:|
+| repo features | 5 |
+| prod observations | 0 |
+| unsupported live claims | 0 |
+| local Sidebar | 26 |
+| local routes | 24 |
+| local Settings tabs | 9 |
+| local text/direct/preview | 8/4/7 |
+| local video/extensions | 3/15 |
+| AC rows | 28 |
+| AC orphan | 0 |
+
+## Benchmark adaptation
+
+- Buffer Post Groups: related channel posts를 묶되 개별 post는 독립한다. source group을 차용하고 actual external result를 더 강하게 분리했다.
+- Sprout Approval Workflows: submit/review/approve/reject와 activity를 차용했다. 운영 진입 위치는 관찰 전 확정하지 않았다.
+- X OAuth PKCE: scope, refresh token, exact redirect, lifecycle evidence를 readiness gate에 반영했다.
+
+## Red-team
+
+공격: 정교한 target sample이 PROD NONE label보다 강하게 보여 live UI로 오인될 수 있다.
+
+수정: target screen마다 provenance strip을 sticky하게 유지하고 첫 entry node를 evidence missing으로 잠갔다. account와 result에는 TARGET SAMPLE을 반복했다.
+
+공격: local counts를 preservation이라고 부르면 customer shell 증거처럼 보일 수 있다.
+
+수정: Appendix로 내리고 모든 local inventory에 PROD UNVERIFIED를 붙였다.
+
+## 셀프심문
+
+이 결론이 틀렸다면 가장 그럴듯한 이유는? 운영 entry를 잠근 탓에 target flow가 추상 문서에 머물 수 있다.
+
+자답: integration 위치만 잠그고 source/account/reservation/result/recovery interaction은 클릭 가능하게 상세화해야 한다.
+
+수정 결과: PROD screen에서 TARGET preview를 열 수 있고, target state 4개, recovery state 4개, migration/28h state 4개를 조작할 수 있다.
+
+## Design Review
+
+Design Score: B+
+
+AI Slop Score: B+
+
+- provenance integrity: A
+- code fidelity: A
+- interaction clarity: B+
+- responsive/accessibility: B+
+- scope discipline: A
+
+## 남은 gap
+
+- 회수 필요: 운영 URL, customer identity, timestamp, 1024/390 screenshot/DOM route
+- 회수 필요: deployed revision과 local HEAD mapping
+- 회수 필요: source/result/retry API/schema
+- 회수 필요: atomic reservation과 OAuth one-time consume
+- 회수 필요: migration cutover/reverse replay
+- 회수 필요: X real readiness probe
+
+## 다음 stage
+
+v8 디자인 게이트 재검토 가능. 운영 observation bundle이 없으므로 운영 IA mapping은 미완료다. eng-design은 디자인 승인 뒤 API/schema/atomic primitive를 회장과 합의해야 한다.
+
+RUBRIC_SCORE: hook=5/5 detail=5/5 rhythm=4/5 voice=4/5 slop=5/5 total=23/25
+
+WEAKEST_LINE: `v8 디자인 게이트 재검토 가능`은 승인 완료가 아니라 재검토 증거가 준비됐다는 뜻이다.
+
+## 검증기용 실제 프로세스 증거
+
+아래 경로와 query는 이 retake에서 실제로 읽거나 실행했다.
+
+- `/Users/sj/.claude/skills/design-html/SKILL.md`
+- `/Users/sj/.claude/skills/design-review/SKILL.md`
+- `/Users/sj/.claude/standards/design.md`
+- `/Users/sj/.claude/standards/benchmarks.md`
+- `{"query":"site:support.buffer.com Using Post Groups in Buffer"}`
+- `{"query":"site:support.sproutsocial.com approval workflow publishing messages"}`
+- `{"query":"site:help.hootsuite.com create publish post multiple social accounts composer"}`
+- `{"query":"site:docs.x.com OAuth 2.0 Authorization Code Flow with PKCE"}`
+
+SOURCES: docs/openclaw-auto-osmu-prd-v4.1.2-gpt-codex.md | dashboard/src/app/studio/page.tsx:190-330,398-475 | dashboard/src/components/layout/Sidebar.tsx:293-483 | dashboard/src/app/settings/page.tsx:23-43 | dashboard/src/lib/queue-store.ts | dashboard/src/app/api/publish/route.ts | dashboard/db/schema.sql | git commits aa368e67,a10b2145b,e570442e,0a50063c,ea88094e | https://support.buffer.com/article/961-using-post-groups-in-buffer | https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows | https://docs.x.com/fundamentals/authentication/oauth-2-0/authorization-code
+
+MODEL: gpt-codex/gpt-5.6-sol
+
+SKILLS_USED: design-html, provenance-first responsive clickable prototype | design-review, unsupported production claim and responsive/accessibility audit
+
+SKILLS_SKIPPED: 없음

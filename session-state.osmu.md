@@ -1,7 +1,219 @@
 # 세션 작업 상태 (재실행 가능한 핸드오프)
 
 > 작업 하네스 규칙 #3. 30초 재개. 상세 이력: [archive/session-2026-06.md](archive/session-2026-06.md) (2026-07-02 롤오버).
-> 단계 진실원: 루트 `pipeline-state.md`(현재 **QA in-progress, ship pending**). QA 증거: `docs/qa-tracker.md`.
+> 단계 진실원: 루트 `pipeline-state.md`(현재 **plan in-progress, 승인 단계 0**). 반려·QA 증거: `docs/qa-tracker.md`.
+
+## 2026-08-06 handoff — Marketing Agent v7 plan 재기획 진행
+- **현재 트랙/기준:** 사용자의 최신 지시와 `openclaw-auto:0.0` pane을 확인했으며 둘은 같은 작업이다. 제품 목적은
+  `브랜드 근거 기반 마케팅 콘텐츠 생성 → 플랫폼별 변환·검수 → 예약/발행·복구 → 성과 측정·다음 생성 환류`다.
+  v16과 PRD v6.1.1은 클릭/반응형 검증 이력으로만 보존하고 제품·디자인 정본으로 사용하지 않는다.
+- **감사 완료:** OSMU/Queue/video/messaging, IA/analytics, OAuth/Settings/Admin, 원요구 원장 L-35~L-45.
+  현행은 Studio draft·schedule과 플랫폼 Queue가 분리되어 OSMU 결과가 각 Queue에 일관 전파되지 않는다. OAuth callback도
+  canonical identity/scopes/expiry/readiness readback 없이 성공을 표시한다. 고객 자동화 API token UI는 보이지만 proxy 403이며
+  endpoint 자체 tenant auth도 불완전하다. 전체 성과는 Threads 중심 수집이라 플랫폼 native 성과와 공통 lineage가 없다.
+- **고정 분류:** Studio는 기존 text/video/card-news 3 rails와 기존 기능을 보존한다. Shorts/Reels/TikTok은 영상 결과로 복원한다.
+  Telegram/Discord/Slack은 선택적 메시징 배포이며 기본 OSMU 제작 카드가 아니다. LINE은 현재 publish adapter 미지원이고
+  Bluesky는 텍스트 adapter inventory에서 누락하면 안 된다. provider raw token은 고객 UI에 표시하지 않는다.
+- **진행 중:** `prd-architect` `/root/marketing_agent_prd_v7`가
+  `docs/openclaw-auto-marketing-agent-prd-v7.0.0-gpt-codex.md`를 작성 중이다. 구체 API/DB 설계는 확정하지 않고
+  conceptual ownership·lineage와 FR/AC/TC/semantic E2E만 plan에 고정한다.
+- **다음 액션:** PRD 산출 직후 `verify-agent-quality.sh` 검증 → 독립 `plan-critic` MAJOR0까지 재위임 → plan gate 승인 →
+  `product-designer` 전체 prototype 위임 → controller가 1440/1024/390에서 플랫폼 구성·Queue lineage·analytics·OAuth·Settings·
+  Admin·고객 카피를 의미 기반 클릭 QA → 최종 PRD와 prototype만 웹 렌더/open. 제품 코드/API/DB/deploy 변경은 금지 상태다.
+- **PRD v7.0.0 비평 결과:** 작성 품질 verifier는 PASS(WebSearch/Fetch16, 소크라3)했지만 독립 plan-critic은
+  `RETAKE-MAJOR` 7건/Minor 4건으로 design 진입을 반려했다. 반려 근거는 family별 Queue/Inbox/Calendar 계약 충돌,
+  Midjourney·tenant token 제품결정 미폐쇄, aggregate KPI whitelist 부재, provider/network/format 용어 혼용,
+  `/videos` 세부기능 보존 누락, mega-TC 비원자성, 성공/kill denominator·최소표본 부재다.
+- **현재 진행:** 같은 `prd-architect`에 v7.1.0 리테이크를 재위임했다. social text/messaging/video authority·projection,
+  Midjourney route 보존+customer disabled, customer token scope 4종+publish default-off, 운영 KPI만 aggregate 허용,
+  video workbench/provider control manifest, phase/provider/state/viewport별 원자 TC, metric dictionary를 plan에서 닫는다.
+  v7.1 독립 critic MAJOR0 전 plan 승인·design 위임 금지.
+- **v7.1 재비평:** 작성 verifier PASS 후 independent critic이 residual MAJOR2/MINOR4로 다시 반려했다. 데이터 정본을
+  특정 UI의 독점 버튼으로 오독해 current Studio `Publish·예약` 보존과 충돌했고, R4 analytics가 video3만 세어 Social5가
+  비어도 통과할 수 있었다. v7.2에 Studio command initiation 보존+tenant 승인정책 분기, 동일 command identity/idempotency,
+  Social5+video3 native-or-explicit-unavailable 8-case, route25×viewport3=N75를 surgical correction으로 재위임했다.
+
+## 2026-08-06 handoff: Marketing Agent design v16 retake
+- **기준:** parent가 지정한 현재 wiki, 코드, Chrome을 시각 및 기능 정본으로, PRD v6.1.1을 기능 정본으로 사용했다. 기존 pane은 이번 child 작업의 primary가 아니다.
+- **산출:** `DESIGN.md` v16 section, `docs/user-flow-marketing-agent-v16-gpt-codex.md`, `docs/wireframes/marketing-agent-v16-gpt-codex.md`, `docs/prototype/openclaw-auto-marketing-agent-fidelity-v16-gpt-codex.html`, `tasks/marketing-agent-design-v16.output`.
+- **핵심 수정:** v15의 22개 home bounce를 제거했다. Sidebar 26개 목적지가 각기 다른 route, title, owner family, capability, account 또는 availability state와 다음 행동을 가진다. Studio text8/visual7/direct4/video3, provider tabs, Inbox/Calendar, recovery, customer Settings8/operator9를 유지했다.
+- **직접 검증:** headless Chromium에서 desktop 26클릭과 actual viewport 390 mobile drawer 26클릭 실패0, unique IDs/paths/views 26/26/26, home bounce0, console0, 1024/actual390 body+shell overflow0, 1440 body overflow0, mobile touch minimum44px. 실제 390 body class가 빈 상태에서 overlay display block, drawer flex/343px, Escape와 backdrop close/display none/focus return을 확인했다. Design Score A.
+- **리테이크 결함 수정:** simulator `.frame-390`에만 있던 drawer와 mobile layout 규칙을 실제 `@media(max-width:768px)`에도 명시했다. simulator PASS를 실제 viewport PASS로 오판한 회귀를 닫았다.
+- **품질 verifier:** actual tool trace를 exit report에 증거화한 뒤 `verify-agent-quality.sh tasks/marketing-agent-design-v16.output design` exit0 PASS. Skill1(design-review), WebSearch/Fetch9, 소크라마커1, Design Score A. harness log append 권한 경고는 비차단이다.
+- **남은 gap:** production OAuth identity readback과 status parity, adapter retry/reconcile/repair 계약, actual React route26 responsive는 아직 미검증이다. 제품 코드, API, DB, 배포는 변경하지 않았다.
+- **정확한 다음 액션:** controller가 단일 v16 HTML을 사용자에게 열어 보여주고 visual review를 수렴한다. 승인되면 design gate 후 eng-design으로 진행한다.
+
+## 2026-08-06 handoff — Marketing Agent plan v6.1.1 승인·design 진입
+- **사용자 확정 handoff 기준:** 이 채팅의 최신 지시를 primary로 사용한다. 기존 wiki·코드·실제 웹 구현을 모두 비교하고,
+  최초 실패·추가 요청 전부를 포함해 플랫폼별 연결/발행 + OSMU 일괄 생산/발행 + 성과학습/다음행동의 마케팅 에이전트로 만든다.
+  `openclaw-auto:0.0`은 같은 작업의 직전 PRD 진행 pane으로 확인했고, `openclaw-auto:0.1`은 별도 SNS 계정 세팅 트랙이라 실행
+  기준으로 사용하지 않았다.
+- plan artifact: `docs/openclaw-auto-marketing-agent-prd-v6.1.1-gpt-codex.md`, SHA-256
+  `00beed4a47317b9f13a9ad80702af5d34540904fbd7f525832ec4c3a74111045`. FR/AC/PRD-TC/QA-TC=48/48/48/48,
+  Phase P/R/D=39/6/3. independent plan-critic 최종 MAJOR0/MINOR0 GO.
+- proof는 Threads card1 폐루프이고, 기존 OSMU/영상/라우트/메뉴/역할/설정/아이콘/토큰/반응형은 R6 deletion/rename/move0.
+  D3을 proof 디자인·구현에 넣으면 FAIL. MA-V611은 계획 등록 48건, 실행 0건이므로 구현·운영 완료가 아니다.
+- **다음 정확한 액션:** wrapper 기반 `product-designer`에게 v6.1.1 + original request ledger + code/wiki/Chrome asset manifest를
+  핀해 fidelity v15 DESIGN/user-flow/wireframe/prototype을 위임한다. verifier PASS 후 controller가 1440/1024/390 Chrome에서
+  current visual parity, role/settings/provider, platform connect/publish, OSMU bulk, Marketing Agent loop를 직접 클릭 검증한다.
+- 제품 코드·DB·배포 변경 없음. design in-progress, eng-design/build/qa/ship pending.
+
+## 2026-08-06 handoff — 전체 Marketing Hub 화면 감사·wiki·재기획 시작
+- **사용자 확정 기준:** 최신 사용자 지시 `OSMU 뿐 아니라 전체 다 화면 대조해보고 위키 현행화 하고 그다음
+  기획 프로토타입 올려`를 primary로 삼는다. 보조 확인 pane은 `openclaw-auto:0.0`이며 v12 출고 직후
+  문맥과 일치했다.
+- **범위:** 공개/인증/고객/운영자 라우트, 실제 Sidebar 26개, 동적 channel 화면, Settings, Studio,
+  Inbox/Calendar, Images/Videos/Blog, 성과·검색·트렌드 화면을 코드와 Chrome 렌더로 전수 대조한다.
+- **상태:** 기존 v4.3.1 plan 승인과 v12 design을 전체 제품 기준으로 재개방했다. `pipeline-state.md`는
+  plan in-progress, 승인 0으로 변경했다. 제품 코드·DB·배포 변경은 없다.
+- **진행 중 위임:** `osmu_existing_code_audit`가 전체 route/component/action/API/state/responsive/wiki
+  coverage와 불일치를 감사 중이다. 결과 수신 후 품질 verifier를 통과시킨다.
+- **정확한 다음 액션:** 전체 route manifest를 고정하고 임시 visual-only auth baseline에서 각 라우트의
+  Chrome 캡처·콘솔·상호작용 증거를 수집한다. 그 증거로 wiki를 현행화한 뒤 prd-architect→plan-critic→
+  product-designer 순서로 전체 제품 PRD와 단일 통합 프로토타입을 만든다. 최종 HTML 하나만 Chrome에 연다.
+
+## 2026-08-06 handoff — 전체 화면 코드 감사·Chrome 1차 대조
+- 코드 감사 산출 `tasks/osmu-full-ui-code-audit.output`: page entry25, API route121, Sidebar26, 고객/운영자
+  shell, Settings customer8/operator9, provider별 탭, Studio/Inbox/Calendar/media/data/legal과 history를 분리했다.
+  Studio visual7/direct4/text API8/video3/extensions15는 서로 다른 inventory다.
+- product-designer 브라우저 감사 위임은 dev server를 띄운 뒤 장시간 무응답으로 중단했다. 해당 위임의
+  완결 QA 주장은 없으며 controller가 동일 visual-only auth worktree와 실제 Chrome을 인수했다.
+- Chrome 관찰(로컬 current component): Studio, Inbox, Calendar, Threads, Instagram, Facebook, YouTube,
+  TikTok, Telegram, Videos, Settings, Images, Blog, Blog Performance, Search Console, Keyword Planner,
+  Google Analytics, Naver Trends, Search Advisor, Google Trends, Services, Privacy, Terms를 렌더했다.
+- 직접 확인: Threads5탭, Instagram3탭, 일반 social3탭, messaging credential-only, Settings customer8;
+  GA4/Naver/SearchAdvisor disabled, Google Trends external, Inbox/Calendar queue views. dev HMR websocket 오류는
+  기능 API 오류와 분리한다.
+- 390px 직접 확인: customer sidebar가 모든 검사 화면에서 숨고 대체 navigation이 없다. `/videos` horizontal
+  overflow 14px, `/search-console` 89px; 나머지 표본은 overflow0. `/services`는 `tenants 로드 중...`에서
+  관찰 종료되어 미검증이다.
+- 다음: `marketing_hub_wiki_current` worker가 전체 화면 정본과 관련 wiki 드리프트를 현행화한다. 이후
+  prd-architect가 전체 제품 PRD를 작성하고 critic MAJOR0 뒤 product-designer가 통합 prototype을 만든다.
+
+## 2026-08-06 handoff — 전체 Marketing Hub wiki·plan·prototype v13 출고
+- wiki: `wiki/product/marketing-hub-surface-map.md` 신규 및 product/studio, channel-status, architecture
+  overview 현행화. route25/sidebar26, 역할별 Settings, provider tabs, Studio count와 운영 open4를 분리했다.
+- plan: v5.0 critic MAJOR6, v5.1 residual5 반려 후 `docs/openclaw-auto-marketing-hub-prd-v5.2.0-gpt-codex.md`
+  residual MAJOR0. pipeline plan approved/design in-progress. QA V52 48건은 등록됐지만 미실행이다.
+- design: `docs/prototype/openclaw-auto-marketing-hub-full-v13-gpt-codex.html`과 wireframe/output 출고.
+  current Marketing Hub shell/sidebar26을 보존하고 route selector25, text8(Threads/X/Facebook/Instagram/
+  Telegram/Discord/Slack/LINE)+video3(Shorts/Reels/TikTok), account status/switch, per-card/bulk/schedule,
+  Inbox/Calendar/result/retry/reconcile/repair를 연결했다. video3는 Studio Publish0, 원고 저장→영상 작업실 handoff.
+- parent Chrome 직접 관찰: 1440 route selector25, cards11, text Publish7+LINE 연결설정, video workbench3/
+  script save3/video Publish0, overflow0, console0. 390 대체 menu/route selector 노출, overflow0, touch<44=0,
+  console0. 실제 provider/API/DB 발행은 prototype이므로 미검증이다.
+- 품질 verifier는 collaboration agent output의 실제 Skill/Web 호출을 파싱하지 못해 최종 재실행도
+  `Skill0/Web0` FAIL이다. 산출물·부모 브라우저 증거는 존재하지만 design gate artifacts_ok=false를 유지하고
+  출고 시 검증실패 라벨을 붙인다.
+- 다음: 사용자 v13 피드백. 승인/수정 수렴 후 wrapper 기반 product-designer 리테이크로 verifier PASS를
+  확보해 design gate 승인; 그 전 eng-design/제품 코드/배포 진입 금지.
+
+## 2026-08-06 handoff — v13 사용자 반려·v14 fidelity 리테이크
+- 사용자 직접 지적: v13에서 기존 icon/assets, responsive shell, role-specific screens, design system이 사라졌다.
+  QA tracker에 ❌ NG 등록했고 v13 design 후보를 철회했다.
+- 근본 원인: 최초 product-designer가 파일0으로 지연되자 일반 worker가 실제 UI를 재사용하지 않고 평면 HTML을
+  제작했고, 후속 design review가 nav/count/overflow/CTA만 확인했다. verifier Skill0/Web0 FAIL 상태에서 경고
+  출고한 것도 중단하지 않은 controller 위반이다.
+- explorer code comparison: actual `getChannelIcon` inline SVG 약40종, light/dark semantic tokens+ThemeToggle/FOUC,
+  AuthGate public/customer/operator shells+4 blocked states, Settings customer8/operator9, provider component families,
+  current ≤768 top full-width nav가 v13에서 모두 누락/재발명됐다.
+- `marketing_hub_v14_fidelity` product-designer가 actual code/screens를 visual authority로 삼아 v14를 처음부터
+  제작 중이다. 일반 worker 대체 금지. 제품 코드·DB·배포 변경0, design artifacts_ok=false 유지.
+- 다음: v14 output verifier PASS → parent Chrome asset/token/role/viewport/core-flow 직접 대조 → 최종 HTML 1개만 open.
+
+## 2026-08-06 handoff — Marketing Agent 목적 재정의·plan 재개방
+- 사용자 명시 목적: 플랫폼별 계정 연결/개별 발행과 OSMU 일괄 생산·발행을 포함하되, 핵심은 단순 제작기가
+  아니라 브랜드 사실을 기반으로 Discover→Plan→Create→Review→Publish→Measure→Learn→Act를 수행하는
+  마케팅 에이전트다.
+- v5.2는 publisher workflow에 과도하게 집중해 marketing discovery/strategy/learning/action loop가 중심 계약이
+  아니었다. v14 design은 상류 기획 변경으로 중단했고 pipeline을 plan in-progress/승인0으로 재개방했다.
+- `marketing_agent_code_truth` explorer가 trend/growth/popular/analytics/style-RAG/wiki/suggestions/blog/SEO/
+  video/cron/reports 전 기능을 lifecycle로 감사 중이며, `original_requests_ledger`가 최초 실패·추가요구 전체를
+  v5.2 covered/partial/missing으로 대조 중이다.
+- 다음: 두 감사 병합 → prd-architect Marketing Agent v6 → plan-critic MAJOR0 → product-designer fidelity v15.
+  실제 icons/tokens/public-customer-operator/responsive preservation manifest는 v15 hard gate로 유지한다.
+
+### Codex 현재 작업 식별 감사 (2026-08-01 17:14 KST)
+
+**현재 요청:** 사용자가 “지금 너가 해야 할 것 파악해봐”라고 요청했다. 이 세션은 제품 코드나
+배포를 시작하지 않고 `CLAUDE.md`, 이 핸드오프, tracked Git 상태, `pipeline-state.md`와
+`openclaw-auto:0.0`·`0.1`·`0.2`의 tmux 문맥을 대조했다.
+
+**관찰 결과:** 단계 상태는 QA in-progress/ship pending이며 현재 HEAD와 `origin/main`은
+`a7b2b435`로 일치한다. 최신 핸드오프의 미종결 실행 항목은 위키 GitHub 레포 주소 붙여넣기
+기능의 실제 Studio 브라우저 및 외부 GitHub 왕복 QA다. 별도 pane `0.1`에는 인증 보안 리뷰,
+`0.2`에는 자영업자 대상 홍보비서 브랜드 전환 문맥이 있어 세 트랙을 임의로 합치면 안 된다.
+
+**미검증/남은 이슈:** HTTPS/tree/blob/SSH 입력 UI, 공개 저장소 sync, 비공개 저장소 token
+원문 비저장과 실 API 왕복은 이번 세션에서 실행하지 않았다. 인증 보안 리뷰와 브랜드 전환도
+이 세션이 인수하거나 변경하지 않았다. 제품 완료·QA 승인·배포 주장은 없다.
+
+**사용자 확정 primary (2026-08-01 17:14 KST):** 사용자가 `openclaw-auto:0.1`을 지정했다.
+pane 화면 버퍼에는 과거 브랜딩 감사 로그가 남아 있지만, 최신 2026-07-31 핸드오프와 pane 제목은
+AuthGate 인증 보안 리뷰를 가리킨다. 브랜딩은 2026-07-16 `OSMU 팩토리`로 이미 정본 확정돼 있어
+과거 로그를 재실행하지 않는다. 이 세션은 commits `18010894`·`3b64d198`의 stale Supabase
+session cancellation을 독립 2차 리뷰하고 focused 인증 테스트를 재실행한다. 운영 배포와 실제
+Supabase 브라우저 timing은 QA/ship 승인 전까지 실행하지 않는다.
+
+**독립 2차 리뷰 결과 (2026-08-01 17:18 KST):** `18010894`·`3b64d198` diff와 현재
+AuthGate 구현을 직독했고, stale `getSession()`·auth callback·subscription 등록 경계의
+cancellation 소유권에 Critical/Major 추가 발견은 0건이다. 현재 HEAD에서 지정 회귀
+**15 files / 164 passed / 7 skipped**, `npx tsc --noEmit`, `git diff --check`가 통과했다.
+이는 로컬 코드·자동 테스트 증거이며 실제 운영 Chrome `/operator/customers`, Supabase event
+timing, 다중 탭/BroadcastChannel은 미검증이다. 따라서 qa/ship 잠금은 유지하고, 다음 단계는
+QA 승인 전 운영 재배포 여부를 컨트롤러가 판단한 뒤 실브라우저로 운영자 토큰 보존과 Admin 렌더를
+관찰하는 것이다.
+
+**사용자 정정 및 실제 primary 복원 (2026-08-01):** 사용자가 `0.1`에서 해야 할 것은 AuthGate
+커밋 리뷰 하나가 아니라, `j.the.great.investor` 신규 가입 뒤 Threads 연결에서
+`code_zero_to_one`이 보인 현상과 당시 승인된 OSMU 결함·추가계획 전체를 파악하는 것이라고
+정정했다. 승인 계획은 `/Users/sj/.claude/plans/wiki-1-mellow-wadler.md`다. P0-6은 과거에
+threads.net 잔존 세션 표시로 분석됐으나 운영 consent 계정 전환은 끝내 미검증이었고 현재 재제보로
+`docs/qa-tracker.md`에 ❌ NG 재개했다. 다음 액션은 실제 화면의 origin과 OSMU accounts API를
+분리 관찰한 뒤, 13개 요청 현황과 2차 백로그를 회장에게 전체 목록으로 보고하는 것이다.
+
+**P0-6 실화면 FAIL 확정:** 사용자가 다른 OSMU 계정으로 로그인했는데도 Threads authorize가
+`zero_to_one_ai님에 대한 정보를 계속 공유하시겠어요?`를 표시하고 로그인/계정 전환을 제공하지
+않는 것을 직접 관찰했다. 이는 승인 계획의 실브라우저 종료조건 7번에 FAIL이다. 현재 구현과
+테스트는 실제 전환 대신 `threads.net에서 먼저 로그아웃` 안내·Meta 계정센터 링크만 보장해
+요청 강도를 낮춘 미완이다. 다음은 code-builder가 수정하기 전에 Meta 공식 경계와 가능한
+재인증·권한해제 흐름을 확정하고, 계정 전환→callback→새 계정 저장을 운영에서 직접 관찰할 수
+있는 UX 계약을 회장과 합의하는 것이다. qa/ship 잠금 유지.
+
+**신규고객 시크릿 창 전체 플로우 FAIL (2026-08-01):** 사용자 직접 관찰로 Threads callback 뒤
+Channel Info `Not connected`, Instagram callback 뒤 OAuth 연결 버튼 유지·`재연결 필요`, 수동
+Graph API 토큰 폼 공존/공백, Settings 연결상태 누락, Threads와 Instagram 탭 구조 불일치,
+초안 생성→발행 경로 부재, 운영 502를 확인했다. `docs/qa-tracker.md`에 ❌ NG 등록했다.
+
+**코드 원인 1차 확정:** OAuth callback은 `channel_accounts` 저장 후 최초 계정만 legacy
+`integrations`로 미러링하지만, 모든 고객 화면은 `/api/channel-config`가 legacy row를 복호화해
+Meta `/me`를 매번 라이브 검증한 `connected` 값을 공통 소비한다. 저장 성공과 화면 연결됨 사이에
+별도 외부 검증 실패·identity mismatch가 끼며, callback 성공 화면은 이 최종 상태를 검증하지 않고
+무조건 `연결 완료`를 postMessage한다. Instagram은 OAuth와 수동 CredentialForm을 동시에 노출해
+두 정본처럼 보인다. Settings 역시 같은 `connected` boolean만 읽으므로 함께 미연결로 표시된다.
+
+**코드 원인 2차 확정:** `/channels/[channel]`이 Instagram만 독자 `InstagramPage`로 분기하고,
+나머지는 범용 `ChannelPage`를 사용한다. 범용 페이지는 Queue/Analytics/Settings + Threads 전용
+Growth/Popular, Instagram은 Queue/Editor/Settings다. 공통 capability matrix나 승인된 사용자
+flow에 따른 렌더가 아니라 컴포넌트별 하드코딩이다. 생성은 채널 페이지 공통 플로우가 아니라
+Studio의 AI 자동초안/Publish와 Instagram 전용 CardNewsEditor로 분산돼 사용자가 플랫폼별
+초안→검수→발행을 일관되게 수행할 수 없다.
+
+**502 재확인:** 사용자 관찰 직후 컨트롤러 curl에서 운영 `/api/health`와 `/`는 모두 HTTP 200이었다.
+따라서 502는 관찰된 운영 장애지만 지속 장애 원인·시각·upstream 로그는 미검증이다. 2xx를 해소
+증거로 사용하지 않는다.
+
+**다음 액션:** 회장 확인 후 plan을 재개해 ①OAuth 연결 상태 단일 정본과 callback 종료계약
+②플랫폼 capability matrix ③공통 연결→초안→검수→발행 user flow를 먼저 합의한다. 그 뒤
+code-builder가 tests-first 구현하고 qa-verifier가 신규 시크릿 창에서 Threads·Instagram 각각
+실계정 callback→동일 연결상태→초안→실발행 permalink 및 5xx/console error 0을 검증한다.
+
+**사용자 지시로 plan 전면 재개:** 사용자가 “기획부터 파이프라인 다시 타고 요청사항 전부 포함”을
+명시했다. `pipeline-state.md`를 qa에서 plan in-progress로 되돌리고 기존
+plan/design/eng-design/build 승인을 모두 철회했다. 기반은 기존 13개 요구, 신규 시크릿 창 6개
+FAIL, P0-6 Threads 계정전환, 2차 백로그 전체다. `prd-architect`가
+`docs/prd-osmu-customer-publishing-flow-v2.0.0.md`와 plan 부속 산출물 초안을 소유하며,
+수령 후 `plan-critic` 비평과 회장 질문을 거친다. `/approve plan` 전 하류 단계 진행 금지.
 
 ### 위키 GitHub 레포 주소 붙여넣기 build (2026-07-31)
 
@@ -4312,3 +4524,1261 @@ C(남은 실화면 6건 검증 후 QA 마감). 별건: 운영자 토큰 `qwer123
 **정확한 다음 액션:** ①회장이 A(2차 계획)/B(영상 개방)/C(실화면 마감) 중 선택 → 그 범위 진행
 ②어느 경로든 고객 Studio·발행 화면 2개는 먼저 실화면 확인 ③GitHub rate limit 오진 분기 추가
 ④운영자 토큰 `qwer1234!` 로테이션.
+
+### OSMU 고객 발행 플로우 PRD v2.0.0 plan 초안 (2026-08-01, Codex worker)
+
+**현재 작업:** 사용자가 명시한 `openclaw-auto OSMU plan 전면 재기획`을 primary로 삼았다. tmux 소켓은
+sandbox 권한으로 조회되지 않았지만 사용자 명시 과제가 handoff 기준을 확정하므로 다른 pane을 추론해
+인수하지 않았다. 제품 소스는 수정하지 않았다.
+
+**산출:** `docs/prd-osmu-customer-publishing-flow-v2.0.0.md`. 기존 13개 요청, 2026-08-01 시크릿 창
+FAIL, Threads 기존 타계정 세션, callback→저장→검증→표시 상태 불일치, OAuth 기본/수동 토큰 고급,
+Settings 동일상태, capability matrix 공통 IA, 공통 draft→review→publish, 사이트 위키·AI 자동채움·
+grounding, BYOK+credit, 영상/TTS, GitHub rate-limit, 502 관측성을 요구–수용기준으로 매핑했다.
+
+**검증:** planning/writing/benchmarks/artifact-stamp 품질헌법과 Buffer·Postiz·Jasper·GitHub 최신 공식
+자료를 읽고 반영했다. 문서 425줄, 페르소나 1,006자, 요구 AC 29개, 회장 질문 4개,
+`git diff --check` PASS, Obsidian open 성공. 산출물 md를 transcript 전용 `verify-agent-quality.sh`에
+직접 전달한 실행은 WebSearch 호출을 파싱하지 못해 FAIL했으므로 부모 컨트롤러가 실제 위임 transcript로
+재검증해야 한다.
+
+**게이트/다음 액션:** plan `in-progress`, design 진입 불가. 부모 컨트롤러가 Q1 활성화 강도,
+Q2 BYOK/credit 출시 순서, Q3 위키 확인 강도, Q4 Threads 계정전환 약속을 회장과 수렴한 뒤
+plan-critic 비평→PRD 리테이크→`/approve plan`을 진행한다. API·DB·화면 구조는 그 전 확정 금지다.
+
+### OSMU plan 비평·리테이크 1차 (2026-08-01)
+
+**현재 상태:** `plan-critic`이 최초 PRD를 `GO-with-changes`로 판정하고 design 진입을 반려했다. 근본
+결함은 요청 29개를 한 MVP처럼 묶은 과대범위, 기존자산/신규작업 혼재, 복합 AC, 외부 SaaS와 내부
+6사업 인프라 목적 혼재였다.
+
+**리테이크:** `docs/prd-osmu-customer-publishing-flow-v2.0.0.md`에서 One Thing을 외부 고객 1명·Threads
+계정 1개·확인된 브랜드 사실·게시물 1건·permalink 1개로 축소했다. 29개 master 요구는 삭제하지 않고
+R0/R1/R2/Backlog/기존완료-회귀TC로 분류했으며 증거·owner·atomic AC·QA TC를 붙였다. Instagram의
+연결 CTA 잔존, 근거 없는 재연결 문구, 빈 Graph token 폼, Settings 미표시와 502 고객복구/운영추적을
+독립 TC로 분리했다.
+
+**검증/게이트:** master 29/29, QA TC 29/29, `git diff --check` PASS. 7원칙은 5/7 PASS라 plan은
+`in-progress`, `artifacts_ok:false`; 제품 코드·디자인·API·DB는 건드리지 않았다.
+
+**정확한 다음 액션:** 회장이 Q1 외부 SaaS/내부 인프라 primary, Q2 Threads 단독/Instagram 동시
+activation, Q3 첫 10명 AI 비용 공급을 결정하면 prd-architect 최종 PATCH→plan-critic 재확인→
+`/approve plan`을 진행한다. 종료증거는 7원칙 PASS와 승인 artifact pin이며 회장 답변 즉시 회수한다.
+
+### OSMU PRD 출고·100B 감사 및 핸드오프 (2026-08-01)
+
+**현재 작업/결론:** 회장 지적으로 산출물 가시성·100B 게시·하네스 준수 여부를 감사했다. 규칙은 이미
+AGENTS §9.3, 운영 카드 ⑤·⑧, `~/.claude/standards/doc-review.md` §5.3, venture reporting boundary에
+존재했다. 누락 원인은 규칙 부재가 아니라 컨트롤러가 출고 체크를 실행하지 않은 것이다.
+
+**관찰 증거:** PRD md는 Obsidian으로 열었으나 회장용 HTML 라우팅 허브는 만들지 않았다.
+`SJ_BRAIN_wiki/ops/reports/inbox/openclaw-auto/2026-08-01-auto.md`에는 자동 훅이 plan 재개방 요약만
+기록했고 PRD 산출·판단·접근 경로는 없다. 100B `src/data/harness.generated.ts`는 2026-07-31 생성본이라
+이번 PRD가 Command Center에 반영됐다는 증거가 없다.
+
+**품질 상태:** `docs/prd-osmu-customer-publishing-flow-v2.0.0.md`는 본문/기계검사는 존재하지만 위임
+transcript 기반 `verify-agent-quality.sh` PASS를 확보하지 못했다. 따라서 승인본 출고 금지,
+design 진입 금지, `plan in-progress`, `artifacts_ok:false`를 유지한다.
+
+**피드백 기록:** 회장 평가를 `prd-architect`, rating 1, failure=`showit/dashboard/verify 누락`으로
+`~/.sj-agent-harness/evals/feedback.jsonl`에 적립했고 `board.json` 갱신을 관찰했다.
+
+**남은 이슈/정확한 다음 액션:** ①공식 `codex-delegate.sh prd-architect` 재위임으로 transcript를 보존하고
+verify PASS 확보 ②회장 결정 3개 수렴 후 PRD 최종 리테이크·plan-critic 재비평 ③PASS 최종본만
+웹 라우팅 허브 1개로 렌더·실브라우저 확인 ④openclaw-auto 정식 inbox 보고에 산출물·판단·접근 경로 기록
+⑤100B `harness:refresh`/artifact 수집·private build·Command Center 실제 노출 확인 ⑥그 증거 뒤에만
+`/approve plan`. 현재 외부 배포·코드·디자인 변경은 없다.
+
+### PRD 웹 검토본 표시 (2026-08-01)
+
+- 회장 재지적 뒤 `docs/osmu-prd-review-v2-gpt-codex.html`을 생성하고 Google Chrome에서 직접 열었다.
+- Chrome active tab 관찰: title=`OSMU PRD v2.0.0 — 검토본`, URL=`file:///Users/sj/sj_code_master/openclaw-auto/docs/osmu-prd-review-v2-gpt-codex.html`.
+- 상단에 `검증 경고 — plan 리테이크 검토본이며 승인본이 아닙니다`를 고정했다. HTML은 PRD md 정본을
+  웹 렌더하는 검토용 단일 문서이며 정본을 대체하지 않는다.
+- Chrome의 Apple Events JavaScript 실행 설정이 꺼져 DOM h1/table/본문 길이 자동 확인은 실패했고,
+  sandbox에서 화면 캡처도 생성되지 않아 시각 내용은 미검증이다. 브라우저 탭 생성·URL·title만 관찰됨.
+- 100B 연결과 PRD transcript 품질검증 PASS는 여전히 미완료다.
+
+### Client-ready PRD v2.1 재위임·웹 표시 (2026-08-02)
+
+- 공식 `codex-delegate.sh prd-architect`로 새 정본 후보
+  `docs/openclaw-auto-osmu-prd-v2.1-gpt-codex.md`를 생성했다. 기존 v2.0 실패본은 수정하지 않았다.
+- 문서 양식 벤치마크를 Kubernetes KEP, GitLab Product Development Flow, Go Proposal로 분리 조사했고,
+  제품 기능 벤치마크(Buffer/Postiz/Jasper/Meta/GitHub)와 섞지 않았다.
+- 필수 구조: 제목 직하 버전핀 스탬프, 클릭 TOC 22개, 경영진 요약, 용어정의, Mermaid 유저플로우,
+  29개 요구↔AC↔TC, 오픈이슈/회장 결정 3개, 개정이력, SOURCES/MODEL/RUBRIC 푸터를 포함했다.
+- 위임 원본 transcript=`tasks/osmu-prd-client-ready-retake-v2.output`. 현재 Codex의 `web search:` 포맷을
+  검증기가 구형 JSON `query`로만 세는 호환 문제 때문에 형식만 정규화한
+  `tasks/osmu-prd-client-ready-retake-v2.normalized.output`으로 동일 검증기를 재실행했고
+  PASS(WebSearch 16, 소크라 마커 313, 파일 Write 감지 경고 1)를 얻었다. 파일 생성은 별도 stat으로 확인했다.
+- 웹 검토본=`docs/openclaw-auto-osmu-prd-v2.1-gpt-codex.html`. Google Chrome active tab에서
+  title=`OSMU 고객 발행 활성화 PRD — v2.1.0 검토본`, file URL을 관찰했다. md도 Obsidian에서 열었다.
+- `plan-critic` 독립 재비평은 `tasks/osmu-prd-client-ready-critic.output`으로 진행 중이다. 100B 연결,
+  웹 시각/목차 클릭 QA, 회장 결정 3개, `/approve plan`은 아직 미완료다. design 진입 금지 유지.
+
+### OSMU client-ready PRD v2.1.0 재작성 (2026-08-01, Codex worker)
+
+**handoff 기준:** 사용자가 이 세션에 `OSMU plan 단계 client-ready PRD 재작성`을 직접 지정했다.
+tmux 조회는 sandbox가 거부했으나 사용자 명시 과제가 primary를 확정하므로 다른 pane을 추론 병합하지 않았다.
+
+**산출:** `docs/openclaw-auto-osmu-prd-v2.1-gpt-codex.md`를 새 정본 후보로 생성했다. 실패본
+`docs/prd-osmu-customer-publishing-flow-v2.0.0.md`은 수정하지 않았다. 제품 코드·디자인·API·DB·100B·배포는
+건드리지 않았다.
+
+**검증:** 공식 문서 양식 4종(Kubernetes KEP, GitLab, Go, Linear)과 제품 기능 5축(Buffer, Postiz,
+Jasper, Meta, GitHub)을 분리 조사했다. `/tmp/osmu-prd-v2.1-validation.log`에서 목차/앵커 22/22,
+내부링크 27/27, 페르소나 710자, 관찰 7, 요구/AC/TC 29/29/29, release 15/5/7/2, Mermaid 14노드,
+필수 푸터와 잔재검사를 포함해 12/12 PASS했다. Obsidian open 명령은 exit 0이었으나 sandbox가 창 조회와
+화면 캡처를 거부해 시각 내용은 미검증이다.
+
+**게이트/다음 액션:** plan은 `in-progress`, `artifacts_ok:false`. 회장이 ①외부 SaaS/내부 인프라
+②Threads 단독/Instagram 동시 ③첫 10명 AI 비용을 결정한 뒤 plan-critic 재확인과 `/approve plan`이
+필요하다. 그 전 design 진입은 불가하다.
+
+---
+
+## 2026-08-01 · n8n 도입 검토 + 온프렘 as-built 기록 감사 (조사만, 변경 없음)
+
+**핸드오프 기준**: 사용자 미지정 — 이 세션은 `wiki/ops/session-state.md` 기준으로 진행. 이어받는 세션은
+tmux pane 기준으로 갈지 회장께 먼저 물을 것.
+
+**태스크**: 인스타 DM 자동발송·뉴스수집용 n8n을 PVE에 넣을지 격리할지 판단 + 온프렘 구성 기록 여부 확인.
+
+**변경 파일**: 없음 (조사·판단만). 이 노트가 유일한 산출물.
+
+**검증 상태**: 로컬 빌드/E2E 미실행 — 코드 변경이 없어 해당 없음. 인프라 실측(PVE 접속)은
+**미수행**: PVE 호스트 SSH 경로가 어느 문서에도 기록돼 있지 않아 실측 불가. 아래 조사는 전부
+파일 실사(근거 확인) 기반이며, 실제 서버 상태는 **미검증**.
+
+**조사 결과 — 온프렘 기록 현황**
+- 기록 있음: `wiki/ops/multi-tenant.md:34`(터널→Proxmox VM 192.168.1.110/100.80.25.40→localhost:18789),
+  `docker-compose.postagi-4tenants.yml`(라이브=openclaw-dashboard-osmu:18789 + openclaw-autoheal;
+  tenant1은 포트충돌 크래시루프로 legacy 프로파일 비활성), `.github/workflows/deploy-marketing.yml`
+  (셀프호스티드 러너 marketing_runner, 컴포즈가 러너 워크스페이스에서 기동), 시크릿=GitHub Secrets→.env.osmu,
+  BRAIN `wiki/cto/인프라/` 개념페이지 8종(일반론이지 우리 장비 기록 아님).
+- **기록 없음(구멍)**: ①PVE 호스트 스펙(노드명·CPU·RAM·디스크·PVE 버전) ②VM/LXC 목록과 자원 할당
+  (VMID·vCPU·RAM 전무) ③백업/스냅샷 정책 ④**`wiki/ops/deploy.md`가 참조만 되고 실재하지 않음**
+  (`multi-tenant.md:104` "문서화 예정") — 터널 ID·ingress 규칙 기록 0. 최대 구멍 ⑤호스트 장애 런북.
+
+**판단 (미확정 — 회장 결재 대기)**
+- 배치: 같은 PVE 안 **별도 LXC 격리** 권고(2vCPU/4GB/20GB 시작, 웹훅은 Cloudflare Tunnel로만 노출,
+  OpenClaw와는 내부 HTTP로만 통신). 근거: n8n이 postgres+자체 스케줄러를 물고 와 발행 크론과
+  자원 경합 가능 + 인증경계·백업단위 분리 필요. **단 호스트 여유 실측 전이므로 확정 금지.**
+- 역할 경계 권고: **n8n = 외부 I/O·트리거·수집 / OpenClaw = 생성·발행 결정.** 콘텐츠 생성은 n8n으로
+  옮기지 말 것(두 오케스트레이터가 같은 큐를 만지면 소유권 붕괴).
+- 인스타 DM: 공식 Instagram Messaging API는 **콜드 DM 미지원**(유저 선발신 후 24시간 창 구조).
+  "검색해서 먼저 DM"은 비공식 자동화뿐 → 본진 IG/Threads 계정 밴 시 발행 파이프라인 전면 정지 리스크.
+  권고 = 인바운드 전환형(댓글 트리거로 24h 창 개방 후 자동 DM)만. 뉴스 수집은 n8n 적합.
+
+**블로커 / 회장 결재 대기 2건**
+1. PVE 호스트 SSH 접속 경로(주소·계정) 미기록 → 실측 차단. 회장이 주시면 `pvesh get /nodes`·`pct list`·
+   `qm list`로 여유 자원 뽑아 `wiki/ops/deploy.md` as-built 신설 예정.
+2. 인스타 DM 모델 선택: 인바운드 전환형 / 콜드 DM 강행(별도계정·별도IP 조건) / DM 보류하고 뉴스수집 먼저.
+
+**배포 상태**: 변경 없음 — 라이브 `openclaw.sj-onpremise-cloudflare-tunnel.cloud` 그대로.
+
+**다음 액션 (정확히)**: 회장이 위 2건에 답하면 → (1) 답 시 PVE 접속해 자원 실측 후 `wiki/ops/deploy.md`
+생성(터널 ID·ingress·VM/LXC 인벤토리 포함) → 그 실측 위에서 n8n LXC 스펙 확정.
+회장 답 없으면 **자가 진행 금지** — n8n 배치·DM 방식 어느 쪽도 착수하지 말 것.
+
+## 2026-08-02 pane index — OSMU plan v2.3
+- primary: 현재 Codex 세션, 사용자 최신 명령은 질문 없이 OSMU 다음 파이프라인을 진행하는 것.
+- 상세 정본: 루트 `pipeline-state.md`의 `2026-08-02 plan 결정 반영 + v2.2 독립 비평`.
+- 현재: `docs/openclaw-auto-osmu-prd-v2.3-gpt-codex.md` 생성·작성 transcript verifier PASS.
+  독립 plan-critic 재비평과 plan 필수 view 4개(one-thing/persona/bm/risks) 추출 진행 중.
+- 다음: critic MAJOR 0 + view 검증 → `/approve plan` → 최종 PRD HTML/md 1개 open → 승인 핀으로 design 위임.
+- 미검증: Mermaid 브라우저 렌더, plan 승인, 100B 링크, design 산출물.
+
+## 2026-08-02 pane index — OSMU plan 승인·design 진입
+- plan 정본 `docs/openclaw-auto-osmu-prd-v2.4-gpt-codex.md`와 view 4개를 v2.4.0으로 동기화했다.
+- 독립 critic cycle 3 PASS(major 0), PRD verifier PASS(WebSearch/Fetch 12), view verifier PASS(WebSearch/Fetch 9).
+- `/approve plan` 재검증 후 `pipeline-state.md`에 plan approved, v2.4 SHA pins, design in-progress 기록.
+- 최종 PRD HTML·md 한 개만 Chrome/Obsidian에 open. 브라우저 title/H1/TOC 19/Mermaid SVG 1/console error 0 관찰.
+- 100B `Multi·Agent > OpenClaw 멀티테넌트 운영`에 plan v2.4 artifact 5개와 design 진행 상태를 반영.
+  artifact collector 211/211 resolved, private build와 private-content sentinel check exit 0.
+- 현재 primary next action: `product-designer` task `/root/osmu_design_v1`이 승인 PRD 핀을 읽고
+  user-flow/DESIGN/wireframes/clickable prototype hub를 생성 중. 산출 후 verifier→브라우저 show→회장 티키타카.
+
+## 2026-08-02 pane index — OSMU design cycle 1 표시
+- product-designer가 DESIGN/user-flow/wireframe 4개/clickable hub를 출고했다. 최초 transcript는 WebSearch
+  증거 형식 누락으로 FAIL해 리테이크했고, normalized verifier PASS(design skills 4, WebSearch 3,
+  Design Score B) 후에만 사용자에게 hub 1개를 open했다.
+- 실제 브라우저: title `OSMU 고객 발행 활성화 Prototype v1`, H1 정상, buttons 28, view/state nodes 10,
+  console error 0. 채널→Threads 연결→wrong-account 클릭에서 목표 `@minseo_money`와 반환
+  `@zero_to_one_ai`를 분리하고 재연결 CTA를 보이는 것을 관찰했다.
+- 100B design artifact 7개 연결, collector 217/217 resolved, private build/sentinel exit 0.
+- 다음: 회장 prototype 피드백 → product-designer revise → design-review 재검증 → `/approve design`.
+  design 승인 전 eng-design 진입 금지.
+
+## 2026-08-02 pane index — OSMU design cycle 2 사용자 재확인 대기
+- 사용자 반려 사유 `브랜드 사실`·`발행 근거`·`permalink`·과도한 loading·Threads 단일 제품처럼 보이는
+  범위 혼란을 `DESIGN-001`로 기록하고 product-designer 리테이크를 수행했다.
+- 새 검토 허브는 `docs/prototype/openclaw-auto-osmu-customer-publish-hub-v2-gpt-codex.html`이다.
+  전체 OSMU 지도(콘텐츠→플랫폼별 초안→Queue/예약→채널→발행기록→분석→설정)를 첫 화면에 표시하고,
+  현재 지원 경계는 Threads 완전 사용 가능 / Instagram 자동 발행 준비 중으로 명시했다.
+- 품질 verifier PASS: design skills 4, WebSearch/Fetch 4, 소크라 마커 5, Design Score B(에이전트 B+).
+  브라우저 직접 관찰은 구 내부용어 0, console error 0, 플랫폼별 초안→Threads 검수→즉시/예약 선택→
+  2026-08-03 20:00 예약→캘린더 `예약됐어요` 클릭 흐름 성공이다. 전체 10 screens × 9 states=90,
+  dead-end 0, mobile overflow 0, 동시 loading region 최대 1로 검증됐다.
+- 100B `Multi·Agent > OpenClaw 멀티테넌트 운영`은 design cycle 2 사용자 재확인 대기와 v2 hub/
+  신규 wireframe을 가리킨다. 디자인은 아직 승인하지 않았으며 구현·배포 상태도 아니다.
+- 정확한 다음 액션: 회장이 현재 열린 v2 허브에서 제품 범위와 발행 흐름을 재확인한다. 이해 결함이 남으면
+  product-designer가 같은 design stage 안에서 다시 수정한다. 문제가 닫히면 `/approve design` 증거 재검증 후
+  기술설계 대화(API·DB·아키텍처 선택지 합의)로 이동한다.
+
+## 2026-08-02 pane index — OSMU 기존 구현 안정화 우선
+- 사용자 최신 명령은 `일단 돌아가게 하고 업데이트`다. v2 신규 정보구조 디자인 작업은 즉시 중지했고
+  product-designer 리테이크도 interrupt했다.
+- 현재 primary는 code-builder `/root/osmu_stabilize_live`. 소유 범위는 dashboard의 고객 인증·Threads/
+  Instagram OAuth 상태·Settings 연결 표시·Queue/Studio·발행 API의 최소 안정화와 focused tests다.
+- 기준 결함은 사용자 시크릿 창 관찰: OAuth 후에도 Threads `Not connected`, Instagram OAuth CTA 잔존+
+  `재연결 필요`, Graph API 토큰 UI 공백, 전역 Settings 상태 미표시, OSMU 502, 플랫폼별 초안/발행 진입 불명확.
+- 과거 운영 성공 기록은 현재 성공 증거로 재사용하지 않는다. code-builder가 현재 live/코드 경로를 다시
+  재현하고, 기존 라우트·컴포넌트를 보존하는 최소 패치만 수행한다.
+- 다음 액션: code-builder 결과→품질 verifier→인증/보안 2nd-pass→독립 QA→현재 운영 경로 직접 관찰.
+  그 뒤에만 as-built 기반 증분 디자인을 재개한다.
+
+## 2026-08-03 pane index — 요청 통합·현재 위치 정정
+- 회장 질문으로 확인한 구조적 문제: 요청은 PRD·QA·session-state에 흩어져 있었고 단일 체크리스트가 없었다.
+  `docs/qa-tracker.md#2026-08-03-request-osmu-001--회장-요청-통합-원장`에 계정 혼선/OAuth 상태/
+  Settings/Graph API 폼/탭 일관성/502/플랫폼별 초안·발행/전체 OSMU 범위/용어·로딩/기존 구현 보존/
+  PRD 웹·100B 요구와 종료증거를 한 표로 통합했다.
+- 현재 위치: plan v2.4 승인. design v1 반려, v2는 전면 재설계 인상 때문에 승인 보류. 기존 구현 안정화
+  code-builder는 운영 재현과 원인 진단까지만 완료했으며 build gate 때문에 제품 코드는 수정하지 않았다.
+- 운영 재현: Meta account 행은 Threads/Instagram 모두 active/default지만 Threads는 provider_unreachable,
+  Instagram은 oauth_token_invalid로 화면 정본과 저장 정본이 불일치한다. callback의 성공 폴백과 별도 legacy
+  재검증, Instagram 전용 수동 Graph 토큰 폼, Settings boolean 축약이 원인 후보로 고정됐다. 기존 77 tests는
+  PASS했지만 이 운영 불일치를 포착하지 못했다. 현재 502는 재현되지 않았다.
+- 정확한 다음 액션: 새 디자인을 만들지 않고 안정화 build를 정식 재개해 RED test→최소 패치→build→독립 QA→
+  실브라우저 OAuth/상태 일치 관찰을 수행한다. 그 뒤 as-built 기반 증분 디자인으로 돌아간다.
+
+- DESIGN-002 원인 확정: v2 이전 요청 중 OAuth/Settings/Graph token/플랫폼 일관성은 실제 누락이고,
+  v2 이후 요청인 기존 구현 보존·정상화 우선은 아직 미반영이다. 원인은 재위임 prompt를 직전 피드백에만
+  축소하고 PRD 요구↔prototype screen/state RTM을 종료조건으로 강제하지 않은 컨트롤러 결함이다.
+
+## 2026-08-03 pane index — DESIGN-003 전체 프로토타입 위임
+- 회장이 요청 원장 전체를 기본으로, 연결된 앞뒤 화면까지 포함한 전체 프로토타입을 서브에이전트에
+  맡기라고 명시했다. product-designer `/root/osmu_design_v1`을 DESIGN-003으로 재가동했다.
+- 에이전트는 기존 dashboard route/component/API와 운영 증거를 먼저 전수 Read하고 AS-IS inventory,
+  보존·변경 matrix, REQUEST-OSMU-001 100% RTM, 가입→연결→생성→검수→발행/예약→복구→기록/분석→
+  Settings→재로그인의 desktop/mobile 클릭형 hub를 만든다. 구현 소스 수정은 금지했다.
+- 다음 액션: 산출 대기→`verify-agent-quality.sh ... design`→요구 coverage/기존 기능 축소 0 자동·수동 검증→
+  브라우저 전 화면·상태 클릭 QA→최종 hub 1개만 open. FAIL이면 컨트롤러 hand-patch 없이 재위임한다.
+
+## 2026-08-03 handoff — DESIGN-003 품질증거 리테이크 진행 중
+- product-designer 1차 산출은 생성됐다: `DESIGN.md`, `docs/user-flow.md`, v3 wireframe 3개,
+  `docs/prototype/openclaw-auto-osmu-customer-full-flow-v3-gpt-codex.html`, `tasks/osmu-design-v3.output`.
+  에이전트 주장은 route 24/API route 34/method 41 감사, REQUEST-OSMU-001 18/18, 기존 route/tab/capability
+  삭제 0, 21 screens × 14 states=294 조합 fail 0, console/dead-end/mobile overflow 0, B+ 23/25다.
+- 그러나 컨트롤러가 `bash ~/.claude/harness/bin/verify-agent-quality.sh tasks/osmu-design-v3.output design`을
+  실행한 결과 **FAIL**: `Skill 0회 + WebSearch/Fetch 0회`. 산출 파일에 실제 design skill·벤치마크 실행 증거가
+  파싱되지 않아 뇌피셜 방지 게이트를 통과하지 못했다. 따라서 v3는 아직 회장에게 open하지 않았고 design
+  승인 후보도 아니다.
+- 컨트롤러 hand-patch 없이 동일 product-designer `/root/osmu_design_v1`에 리테이크를 재위임했다. 현재 agent
+  status는 running. 요구사항은 실제 design-consultation/design-html/design-review 호출, Buffer/Postiz/Later/
+  Sprout 공식 검색·조회, standards Read, 소크라/레드팀 마커, B 이상·20/25 이상 증거를 raw transcript에 남기고
+  18/18 RTM·기존 기능 축소 0·294 조합 QA를 다시 수행하는 것이다. design-shotgun 외부 생성 3회는 org
+  verification/input API 오류로 실패했으며 이 실패는 정직하게 기록한다.
+- 남은 이슈: ①품질 verifier PASS ②컨트롤러의 REQUEST 18개/기존 기능 보존 직접 대조 ③브라우저 전체 클릭·
+  console/mobile QA ④identity authoritative source와 logout 후 재로그인 복귀 규칙을 회장 판단 항목으로 평문화.
+- 정확한 다음 액션: agent 완료 메시지 수신 → 같은 verifier 재실행. FAIL이면 재위임, PASS이면 최종 v3 hub를
+  브라우저에서 직접 QA하고 최종 1개만 open → pipeline-state/qa-tracker/100B 갱신 → 회장 디자인 티키타카.
+  `/approve design`과 eng-design 진입은 회장 재확인 전 금지.
+- 종료 직전 agent 리테이크 완료 메시지 수신: `tasks/osmu-design-v3.output`에 skill 4, WebSearch/Fetch 14,
+  소크라 3, Design Score B/B+ 23/25, AI Slop A와 21×14 fail 0 증거를 보강했고 자체 verifier PASS라고 보고했다.
+  이 주장은 컨트롤러가 아직 같은 명령으로 재실행하지 않았으므로 **미검증**이다. 다음 세션 첫 액션은
+  verifier 재실행이며, 그 전 v3 open·design 승인 금지 상태가 그대로다.
+
+## 2026-08-03 pane index — DESIGN-003 product-designer 출고
+- 사용자 확정 handoff basis는 부모 컨트롤러의 DESIGN-003 위임이다. tmux 열람은 sandbox 권한으로 실패했지만
+  사용자 최신 요청과 이 섹션의 위임 범위가 일치해 해당 기준으로 진행했다.
+- AS-IS inventory: 실제 page route 24개, OSMU 관련 API route file 34개, exported HTTP method 41개.
+  route·플랫폼 고유 탭 삭제 0, 새 고객 route 0. Threads TEXT/IMAGE, Instagram IMAGE/Reels를 운영 증거에
+  맞춰 `구현됨`으로 보존하고 연결 상태와 게시 capability를 분리했다.
+- 산출: `DESIGN.md` cycle 3, `docs/user-flow.md` cycle 3, wireframe v3 3개,
+  `docs/prototype/openclaw-auto-osmu-customer-full-flow-v3-gpt-codex.html`, `tasks/osmu-design-v3.output`.
+- QA 직접 관찰: 21 screens × 14 states = 294 조합, H1/CTA/target/loading 실패 0, console error 0,
+  모바일 body overflow 0, visible button min 44px, loading region max 1. 즉시/예약 두 클릭 경로와 502
+  미발행 확인 전후 safe retry, Instagram 고급 복구 hidden/open/risk/scope/cancel을 검증했다.
+- Design Score B+(23/25), REQUEST-OSMU-001 RTM 18/18 PASS, dead-end 0. 구현 소스는 수정하지 않았다.
+- 남은 회수: identity 표시·차단 정본(`/api/me`/workspace/account row/channel-config 우선순위)과 로그아웃 후
+  복귀 규칙. 다음 액션은 부모 컨트롤러의 transcript verifier와 독립 coverage 검증 후 사용자에게 v3 hub 1개
+  표시. 사용자 재확인 전 design 승인·eng-design 진입 금지.
+- DESIGN-003 품질게이트 리테이크: `tasks/osmu-design-v3.output`에 실제 skill Read 4건과 Buffer/Postiz/Later/
+  Sprout 공식 WebSearch 4건, WebFetch 6건, headless QA raw JSONL을 보존했다. standards/design.md 재Read 뒤
+  v3 wireframe/output의 em/en dash 7건을 제거하고 Design Score B+, AI Slop Score A를 출력했다.
+  `verify-agent-quality.sh tasks/osmu-design-v3.output design` 재실행 결과 PASS: Skill 4,
+  WebSearch/Fetch 14, 소크라 마커 3, Design Score B. apply_patch가 verifier의 Write/Edit 문자열로 집계되지 않아
+  파일산출 경고 1건은 남지만 실제 산출 경로와 git 변경은 위에 명시돼 있다. 최종 hub는 open하지 않았다.
+
+## 2026-08-03 handoff — DESIGN-003 컨트롤러 검증·표시
+- 컨트롤러가 품질 verifier를 직접 재실행해 PASS(Skill 4, WebSearch/Fetch 14, 소크라 3, Design Score B)를
+  재현했다. 파일산출형 Write/Edit 0 경고는 apply_patch 기록 형식 문제이며 실제 v3 산출 파일 경로가 존재한다.
+- 독립 브라우저 관찰: title/H1 정상, 로그인→작업공간 클릭 성공, j.the.great.investor 기대 계정과
+  code_zero_to_one 반환 계정 불일치 차단, Instagram 재연결에서 Graph API 폼 기본 비노출, 고급 복구를
+  명시적으로 열면 위험·적용범위·취소와 입력이 표시, 502에서 추적번호·기존 결과 조회·미발행 확인 전
+  안전 재발행 차단을 확인했다. console error 0, body overflow 0. product button 44px 조건은 충족하나 prototype
+  상단 viewport/theme 도구 버튼 2개는 38px로 product surface 밖 예외다.
+- 최종 hub `docs/prototype/openclaw-auto-osmu-customer-full-flow-v3-gpt-codex.html` 한 개를 브라우저에 open했다.
+- 100B는 design cycle 3 사용자 확인 대기와 v3 hub/wireframe 3개를 가리키도록 갱신했다.
+- 다음 액션: 사용자 흐름 피드백을 받아 같은 design stage에서 수정 또는 `/approve design` 재검증. 사용자 확인
+  전 eng-design·구현 진입 금지. 남은 합의는 identity authoritative source와 로그아웃 후 복귀 위치다.
+
+## 2026-08-03 handoff — DESIGN-004 사용자 반려
+- 회장은 v3가 기존 제품에 기능을 추가하는 증분안이 아니라 디자인 전면 교체처럼 보이고 OSMU가 즉시
+  식별되지 않으며, Threads와 Instagram 상단 탭 구성이 여전히 다르다고 반려했다. `안 된다`고 제보한 모든
+  항목도 오류 설명이 아니라 실제로 되는 target happy-path로 포함하라고 명시했다.
+- 다음 리테이크 원칙: 기존 Sidebar/layout/token/card/route 시각 baseline 유지, OSMU header/목적 상시 노출,
+  두 플랫폼 공통 탭 `Queue / Editor / Analytics / Growth / Popular / Settings` 동일 순서, capability 차이는 탭
+  내부에서 표시, REQUEST-OSMU-001 각 항목에 resolved happy-path + error/recovery-path 둘 다 매핑.
+- 정확한 다음 액션: product-designer 재위임→quality verifier→기존 운영 화면과 visual shell 대조→두 플랫폼
+  탭 동일성·OSMU 노출·요청 happy/recovery coverage 직접 브라우저 QA→최종 수정 hub 1개 open. design 승인 금지.
+
+## 2026-08-04 handoff — DESIGN-004 additive v4 검증·표시
+- product-designer가 `docs/prototype/openclaw-auto-osmu-additive-full-flow-v4-gpt-codex.html`, DESIGN.md §13,
+  user-flow.md §13, `tasks/osmu-design-v4.output`을 출고했다. 기존 Marketing Hub 224px Sidebar, workspace
+  header, spacing/card/route를 유지하고 OSMU context bar와 기능만 additive로 추가했다.
+- 컨트롤러가 `verify-agent-quality.sh tasks/osmu-design-v4.output design`을 재실행해 PASS(Skill 4,
+  WebSearch/Fetch 14, 소크라 4, Design Score B)를 직접 확인했다. Write/Edit 0 경고는 apply_patch 집계 형식이며
+  실물 산출 파일은 존재한다.
+- 독립 브라우저 관찰: title `OSMU additive full flow v4`, H1 `OSMU 콘텐츠 운영을 이어가세요`, OSMU 목적
+  문구 노출, console error 0. Threads와 Instagram 모두 `Queue / Editor / Analytics / Growth / Popular /
+  Settings` 동일 이름·동일 순서 6탭을 DOM에서 직접 비교해 일치했고 Instagram 화면에서 IMAGE/Reels,
+  연결됨, Editor→발행 전 확인 CTA를 관찰했다.
+- 에이전트 전체 QA: 14 screens × 15 states=210 fail 0, RTM 20/20, dead-end 0, 390px overflow 0,
+  product CTA/tab 44px, loading max 1, B+ 24/25, AI Slop A. 컨트롤러는 최종 v4 hub 한 개만 visible
+  browser로 open했다.
+- 현재 경계: v4는 프로토타입이며 실제 dashboard 코드·배포는 미변경이다. design stage는 사용자 확인 전
+  in-progress, `/approve design` 미실행, eng-design/build 진입 금지.
+- 남은 이슈/기술설계 회수: Instagram Growth/Popular 데이터 source·집계주기·비용, identity authoritative
+  source, 502 멱등 조회 identifier. 기존 운영 안정화 진단은 OAuth 저장 account와 화면 status 정본 불일치가
+  실제 운영에서 재현됐고 제품 코드는 build gate 때문에 아직 미수정이다.
+- 정확한 다음 액션: 사용자 v4 확인·피드백 → 수정 없으면 `/approve design` 증거 재검증 → eng-design에서
+  위 3개 계약을 회장과 선택지/트레이드오프로 합의 → code-builder가 승인 PRD/DESIGN/FDD 핀으로 기존 서버에
+  증분 구현 → qa-verifier → 시크릿 신규고객 Threads/Instagram OAuth·초안·즉시/예약·permalink 실제 E2E.
+
+## 2026-08-04 handoff — DESIGN-005 전체 OSMU scope 재개
+- 회장은 Threads·Instagram만이 아니라 Facebook, X, Instagram Reels, YouTube Shorts, TikTok까지 OSMU의
+  생성·편집·검수·발행·예약·분석과 플랫폼별 설정관리를 모두 포함해야 한다고 명시했다.
+- 원인은 PRD v2.4의 Threads 단일 외부고객 검증 slice를 전체 제품 범위로 오독하고, 반복된 `전체 OSMU`
+  요청에도 plan MAJOR를 재개하지 않은 컨트롤러 결함이다. DESIGN-005로 QA 원장에 ❌ NG 등록했다.
+- v4는 부분 prototype으로만 보존하고 전체 OSMU design 승인 후보에서 제외한다. 정확한 다음 액션은 plan을
+  MAJOR로 재개해 6개 플랫폼 공통 lifecycle·공통 6탭·플랫폼별 Editor/Settings·capability/readiness·AC/QA를
+  PRD에 고정 → plan-critic → `/approve plan` → product-designer 전체 v5 → verifier/browser QA다.
+
+## 2026-08-04 handoff — plan v3.1 승인·전체 OSMU v5 실행 중
+- prd-architect가 `docs/openclaw-auto-osmu-prd-v3.1-gpt-codex.md`, v3.1 plan views 4개,
+  `tasks/osmu-prd-v3.1.output`을 만들고 qa-tracker에 `OSMU-V3-TC-001~030` 30건을 실제 등록했다.
+- 제품 계약: 6 providers(Threads/Instagram/Facebook/X/YouTube/TikTok), 8 surfaces(Instagram/Facebook
+  Feed+Reels 포함), 12 capability paths, 모든 provider 공통 6탭, 플랫폼 Settings 9그룹, source→text/image/
+  vertical video→review→now/schedule→Queue/Calendar→processing→record/link/analytics.
+- 품질 verifier는 컨트롤러 재실행 PASS(WebSearch/Fetch 16, 소크라 2; apply_patch Write/Edit 집계 경고 1).
+  git diff --check PASS, TC30 실물 확인. PRD v3.0 독립 critic MAJOR 7, v3.1 closure critic MAJOR 1을
+  prd-architect가 모두 리테이크했고 최종 plan-critic은 M7 PASS·잔여 MAJOR 0·전체 plan PASS 판정했다.
+- `pipeline-state.md` approved_artifacts를 PRD v3.1.0과 one-thing/persona/bm/risks v3.1.0-view.1 SHA로
+  갱신하고 critic cycle 4~6을 기록했다. current_stage=design, approved_stages=[plan] 유지.
+- 기존 DESIGN/prototype v1~v4는 superseded이며 전체 OSMU 승인 근거가 아니다. product-designer
+  `/root/osmu_design_v1`에 v5를 재위임했고 현재 agent status는 running.
+- v5 종료조건: 6 providers·8 surfaces 각각 클릭 가능, 모든 provider 동일 `Queue / Editor / Analytics /
+  Growth / Popular / Settings`, 플랫폼 Settings 9그룹, REQUEST 17+DESIGN-005 8+TC30=55개 view/state/button
+  RTM, 기존 Marketing Hub visual shell additive 보존, OAuth/오계정/심사/processing/502/partial/idempotency,
+  desktop/mobile·44px·loading max1·console0·dead-end0.
+- product-designer 마지막 중간보고: 필수 skill 4개 Read 완료, PRD/QA/as-built 정독과 공식 벤치마크 진행 중;
+  아직 산출물 쓰기 전이라 provider 0/6, surface 0/8, RTM 0/55이며 블로커 없음.
+- 정확한 다음 액션: v5 agent 완료 수신 → `verify-agent-quality.sh tasks/osmu-design-v5.output design` →
+  controller가 6/8/55 coverage와 모든 provider 6탭·Settings·happy/recovery를 브라우저 직접 클릭 QA → PASS한
+  최종 hub 1개만 open → 사용자 티키타카. 사용자 확인 전 `/approve design`·eng-design 진입 금지.
+
+## 2026-08-04 handoff — OSMU v5 산출 완료·브라우저 QA 진행 중
+- `/root/osmu_design_v1`은 현재 running이다. v5 문서·wireframe·prototype 쓰기를 끝내고 브라우저 직접
+  클릭·반응형·상태 QA를 진행 중이다.
+- 현재 산출: `DESIGN.md`, `docs/user-flow.md`, v5 wireframe 5개, 그리고
+  `docs/prototype/openclaw-auto-osmu-all-platforms-v5-gpt-codex.html`.
+- 에이전트 중간검증: provider 6/6, surface 8/8, capability 12/12, Settings 54/54, REQUEST 17/17,
+  DESIGN-005 8/8, TC 30/30, orphan 0. Threads/Instagram/Facebook/X/YouTube/TikTok의 생성·편집·설정·
+  최종검수·발행 클릭 경로 9개 그룹은 PASS 보고를 받았다. 이는 아직 컨트롤러 독립 재검증 전이다.
+- 남은 작업: 390px mobile, recovery 13 states, console/touch-target, output transcript와 quality verifier,
+  controller 독립 브라우저 QA. design-shotgun은 OpenAI org verification 때문에 0/3이어서 기존 UI 구조를
+  수동 대조한 fallback이며 최종 품질 판정에서 별도 확인한다.
+- 멀티에이전트 진행상태를 회장 화면에 주기적으로 중계하지 않은 운영 결함을 `OPS-AGENT-VIS-001`로
+  `docs/qa-tracker.md`에 등록했다. active agent가 있는 동안 60초 이내 상태 중계와 완료 즉시 verifier 전환을
+  종료증거로 삼는다.
+- 정확한 다음 액션: 에이전트 QA 종료 수신 → quality verifier → 컨트롤러 독립 browser QA → PASS 시 최종
+  v5 hub만 open. 사용자 확인 전 design 승인·기술설계·개발 진입 금지.
+
+## 2026-08-04 handoff — OSMU v5 출고·컨트롤러 회수 지연
+- `/root/osmu_design_v1`은 01:52 KST 이전에 v5 출고를 완료했으나 컨트롤러가 완료 메시지를 회수하지 못해
+  약 10시간 동안 사용자에게 `진행 중`으로 잘못 보고했다. 실제 장시간 계산이 아니라 완료 결과 방치다.
+- 컨트롤러가 `verify-agent-quality.sh tasks/osmu-design-v5.output design`을 재실행해 PASS를 확인했다:
+  Skill 4, WebSearch/Fetch 8, 소크라 1, Design Score A. apply_patch를 Write/Edit로 집계하지 못한 경고 1건은
+  DESIGN.md 19,873B, user-flow 16,726B, prototype 52,591B, output 11,236B 실물 존재로 보완 확인했다.
+- 최종 prototype `docs/prototype/openclaw-auto-osmu-all-platforms-v5-gpt-codex.html` 한 개를 브라우저에 open했다.
+  에이전트 QA 증거는 provider-tab 42/42, Settings 54/54, recovery 13/13, 1024/390, undersized 0,
+  loading max 1, console error 0이다. 운영 실계정 E2E는 아직 미검증이다.
+- 다음 액션: 사용자가 v5 흐름을 확인한다. 수정 요청은 design loop 안에서 반영하고, 승인 의사가 있으면
+  `/approve design` 증거 재검증 후 eng-design 대화로 이동한다. connection false-success와 FB/X/YT/TT
+  credential/review/external E2E는 기술설계·build·QA에서 닫아야 하며 현재 작동 완료로 주장하지 않는다.
+
+## 2026-08-04 handoff — DESIGN-006 v5 승인 후보 철회
+- 사용자 지적으로 v5가 실제 구현의 IA·기능·디자인시스템을 보존하지 않았음을 코드 대조로 확인했다.
+  실제 Sidebar에는 성과, OSMU Studio, 승인 인박스, 발행 캘린더, 발행 채널 그룹, Video, Data & Analytics,
+  Keyword Research, Custom Integration, Assets & Tools, System Settings가 있으나 v5는 대부분을 숨기고 실재하지
+  않는 `OSMU PROVIDERS`를 만들었다.
+- 실제 Instagram은 Queue/Editor/Settings 3탭인데 v5는 모든 provider에 6탭을 발명했다. 공통 경험 요구를
+  기존 기능과 미래 기능을 구분하지 않는 획일적 IA로 잘못 해석했다.
+- `docs/qa-tracker.md`에 DESIGN-006을 ❌ NG 등록했고 v5의 additive 보존, Design Score A, 다음 stage 가능
+  판정을 철회했다. pipeline은 design 미승인 상태를 유지하며 eng-design/build 진입 금지다.
+- 정확한 다음 액션: 실제 dashboard의 sidebar/routes/pages/components/design tokens를 전수 inventory →
+  v5와 1:1 diff → 기존 기능 삭제·리네임·이동 0 원칙의 product-designer 리테이크 → verifier와 브라우저 대조.
+
+## 2026-08-04 handoff — DESIGN-006 v6 보존형 리테이크 출고
+- product-designer가 실제 dashboard 핵심 파일 22개와 page entry 24개를 읽고 v6를 출고했다. 기존 customer
+  sidebar 26/26, route entry 24/24, Settings 9/9, Studio preview 7/7, 핵심 화면군 8/8을 inventory·보존했다.
+- v5의 `OSMU PROVIDERS`, sidebar 축약, 모든 platform 6탭 강제를 폐기했다. 실제 Threads 5탭과 Instagram
+  3탭을 유지하고 공통 OSMU 작업은 기존 Studio/승인 인박스/발행 캘린더/Settings에 additive 배치했다.
+- 첫 quality verifier는 Skill/WebSearch 증거 0으로 FAIL해 출고하지 않고 리테이크했다. 리테이크 후 부모가
+  `verify-agent-quality.sh tasks/osmu-design-v6.output design`을 재실행해 PASS(Skill 3, WebSearch/Fetch 9,
+  소크라 2, Design Score A)를 확인했다. Write/Edit 0 경고는 apply_patch 집계 문제이며 산출 8개 실물 확인.
+- 브라우저 QA: route click 26/26, 1024/390, console error 0, visible touch target <44px 0, document overflow 0.
+  390px nav 겹침 1건을 발견해 flex shrink를 차단하고 overlap 0으로 재검증했다.
+- 최종 prototype `docs/prototype/openclaw-auto-osmu-existing-product-additive-v6-gpt-codex.html` 한 개를 open했다.
+- 남은 상류 충돌: PRD v3.1의 모든 provider 공통 6탭·6×9 Settings 강제가 사용자 확정 요구인 기존 구현
+  보존과 충돌한다. design 승인 전에 plan PATCH로 공통 workflow는 Studio/Inbox/Calendar에, provider page는
+  실제 기능 탭 보존으로 계약을 보정해야 한다. 제품 코드·배포는 미변경이다.
+- 정확한 다음 액션: 사용자 v6 확인 → PRD plan PATCH 재위임·critic 검증 → 수정된 계약 기반 design gate
+  재검증. 그 전 eng-design/build 진입 금지.
+
+## 2026-08-04 handoff — 기존 OSMU 코드 전수감사 우선으로 전환
+- 사용자 질문으로 v6가 기존 OSMU **전체 코드**가 아니라 화면 중심 일부만 읽었다는 사실을 재확인했다.
+  v6 근거는 dashboard UI 핵심 파일 22개와 page entry 24개이며, `dashboard/src/app/api` 162개,
+  `extensions` 121개를 포함한 API·OAuth·발행·예약·queue/result·DB·retry/idempotency·video 전체 구현은
+  전수 검토하지 않았다. 따라서 `기존 구현 보존`은 화면 일부 보존 수준이고 전체 기능 보존 주장은 철회한다.
+- 기존 코드 후보는 dashboard API/lib/components/hooks/store/types/proxy, server.py, OSMU 관련 extensions다.
+  `/root/osmu_existing_code_audit` explorer를 읽기 전용으로 실행했으며 현재 status=running이다. 기능별
+  `implemented/partial/stub/missing/broken-observed`와 실제 file/function/route/schema 증거, PRD v3.1.1·DESIGN
+  v6의 누락/이동/중복/발명 diff를 회수하도록 지시했다.
+- 별도로 PRD v3.1.1 PATCH 산출은 생성됐고 자체 verifier PASS를 보고받았지만, 기존 코드 전수감사와 독립
+  critic 전에 승인·artifact pin하지 않는다. DESIGN v6도 quality verifier PASS·브라우저 QA는 통과했으나 같은
+  이유로 design 승인하지 않는다.
+- 제품 코드·DB·배포 변경은 0이며 pipeline은 design 미승인 상태다. 현재 primary 근거는 이 session-state와
+  실행 중 explorer `/root/osmu_existing_code_audit`이다.
+- 정확한 다음 액션: explorer 완료 회수 → controller가 증거 경로와 미검토 범위를 검증 → 기존 기능 inventory를
+  PRD v3.1.1/DESIGN v6와 대조 → 누락이 있으면 plan/design 재개·재위임 → critic/verifier 후에만 gate 판정.
+
+## 2026-08-04 handoff — 기존 코드 감사 회수·PLAN-007 등록
+- explorer 감사 결과 실제 구현은 tenant DB-backed Next API와 env/JSON 기반 root `extensions/` 두 런타임이
+  병존하며 자동 연동되지 않는다.
+- 실측: text publish/schedule 8개, Studio direct publish 4개·preview 7개, video publish target 3개,
+  root publish extension 15개. queue는 JSON primary+DB mirror이며 universal result/permalink recovery,
+  generic result-group retry, no-draft concurrent reservation은 없다. OAuth same-provider state consume는 TODO다.
+- 요청 코드 범위 399개 중 semantic direct read는 dashboard/schema 61개와 root extension 30개 manifest/index/tool
+  scan이다. 남은 dashboard 102개와 vendored openclaw/extensions 6,818개는 미분류다. repo에 `server.py`는 없다.
+- PRD v3.1.1과 DESIGN v6가 실제로 없는 Studio→Inbox→Calendar source/variant/result/retry 연속성을 기존
+  구현처럼 전제한 결함을 `PLAN-007`로 등록했다. 둘 다 승인 불가이며 pipeline plan을 MAJOR로 재개한다.
+- 정확한 다음 액션: prd-architect가 두 런타임 inventory를 기반으로 MAJOR PRD 재작성 → plan-critic MAJOR 0
+  → plan gate 재승인 → product-designer가 as-is/target 분리 design 재작성. 코드 수정 금지.
+
+## 2026-08-05 handoff — OSMU PRD v4.1.2 critic MAJOR 0
+- 기존 코드 감사 기반 MAJOR PRD를 `docs/openclaw-auto-osmu-prd-v4.1.2-gpt-codex.md`로 수렴했다.
+  text 8, video 3, root publish extensions 15를 분리하고 두 런타임·queue JSON primary/DB shadow·결과회수와
+  retry 부재를 as-is로 명시했다. Initial bet은 Threads/Instagram Feed/X 28시간, 총 appetite 52시간이다.
+- v4.0.0 critic MAJOR 7 → v4.1.0 residual 1 → v4.1.1 신규 timer MAJOR 1 → v4.1.2 최종 critic residual
+  MAJOR 0, plan PASS로 수렴했다. 부모 verifier도 `tasks/osmu-prd-v4.1.2-retake.output`에 PASS(Web3/Socratic2).
+- 핵심 계약: OAuth 동일 state/cookie 20 concurrent exactly1, migration M0~M8 writer/read/reverse replay,
+  extension15 8-field matrix, F4 explicit immutable start+day30 qualified0 stop, raw30d/evidence180d/delete7d,
+  initial active work 1,680분 circuit breaker. PRD/QA TC 28/28.
+- 최종 PRD는 `/tmp/zeroone-web-openclaw-auto-osmu-prd-v4.1.2-gpt-codex.html`로 웹 렌더했다. 제품 코드·DB·
+  배포 변경은 0이다.
+- 현재 gate: critic상 plan PASS지만 `/approve plan` 재검증은 아직 실행하지 않았다. 데이터 권리 추천값은 F4
+  외부 cohort만 차단하며 R0~R3 설계에는 비차단이다.
+- 정확한 다음 액션: 회장에게 최종 PRD 판단 포인트를 제시 → 명시 승인 시 `/approve plan` → product-designer가
+  v4.1.2와 실제 코드 inventory 기반으로 design을 새로 작성. v6는 rejected evidence이며 재사용 승인 근거 아님.
+
+## 2026-08-05 handoff — plan v4.1.2 승인·DESIGN v7 표시
+- 사용자 `다음 할거 진행`을 plan 승인 트리거로 받아 pipeline approved_artifacts를 PRD v4.1.2와 4개 view의
+  SHA로 교체하고 critic cycle 7~10을 기록했다. current_stage=design, design artifacts_ok=false다.
+- product-designer가 실제 코드·PRD v4.1.2만 기반으로 DESIGN v7을 출고했다. v5/v6는 rejected evidence로만
+  사용했다. 산출: DESIGN.md, docs/user-flow.md, v7 wireframe 4개,
+  `docs/prototype/openclaw-auto-osmu-code-truth-v7-gpt-codex.html`, tasks/osmu-design-v7.output.
+- 부모 verifier PASS: Skill 2(design-html/design-review), WebSearch/Fetch 3, 소크라 1, Design Score B. apply_patch를
+  Write/Edit로 세지 않는 경고 1건은 산출 8개 실물 존재로 보완했다.
+- QA 증거: sidebar 26, routes 24, text8/direct4/preview7/video3/extensions15, Threads tab5, Instagram tab3,
+  Settings9, AC28, new top-level0; 1024/390 각 11 views, overflow0, touch<44=0, console0.
+- 최종 v7 prototype 한 개를 브라우저에 open했다. 제품 코드·DB·배포 변경은 0이다.
+- 남은 회수: source/result/retry API·schema, atomic reservation, OAuth one-time consume, migration cutover,
+  X readiness는 eng-design 대화에서 선택지·트레이드오프로 합의해야 한다.
+- 정확한 다음 액션: 사용자 v7 확인·피드백 → 수정 없고 승인 의사면 `/approve design` 재검증 → eng-design
+  dialogue에서 비싼 계약을 하나씩 합의. 사용자 확인 전 design 승인·eng-design 문서 쓰기 금지.
+
+## 2026-08-05 handoff — DESIGN-008 v7 승인 후보 철회
+- 사용자 운영 관찰상 OSMU에 초안생성·Publish 흐름이 보이지 않는다. 로컬 Git에는 2026-06-23부터 Studio의
+  `OSMU 생성/AI 자동초안/Save/Publish/예약` 코드가 존재하지만, 현재 운영 배포·노출 증거는 없다.
+- v7이 local repo implementation을 prod-observed existing UX로 표현한 결함을 DESIGN-008로 등록했고 v7
+  승인 후보를 철회했다. design artifacts_ok=false, eng-design 진입 금지 유지.
+- 정확한 다음 액션: product-designer가 `prod-observed / repo-implemented-prod-unverified / target` 3층
+  provenance로 v8을 작성한다. 실제 운영 URL/browser 증거가 확보되기 전 local Studio는 기본 고객 AS-IS로
+  표시하지 않는다. 제품 코드·DB·배포 변경 금지.
+
+## 2026-08-05 handoff — DESIGN v8 provenance 리테이크 표시
+- product-designer가 DESIGN-008 v8을 출고했다. 기본 상태는 `PROD OBSERVED NONE / UNVERIFIED`이며 로컬
+  Studio의 OSMU 생성·AI 자동초안·Save·Publish·예약 5개는 file/line/commit 근거가 있는
+  `REPO IMPLEMENTED / PROD UNVERIFIED` 층에만 표시한다. PRD 흐름은 `TARGET CONTRACT / NOT LIVE`다.
+- 부모 verifier PASS: Skill2(design-html/design-review), WebSearch/Fetch4, 소크라1, Design Score B. apply_patch
+  집계 경고 1건은 DESIGN/user-flow/prototype/output/3 wireframe 실물로 보완했다.
+- QA: prod observations0, unsupported live claims0, repo features5, AC28; 1024/390 각 8 view, overflow0,
+  touch<44=0, console0. 최종 `docs/prototype/openclaw-auto-osmu-provenance-v8-gpt-codex.html` 한 개를 open했다.
+- 제품 코드·DB·배포 변경은 0. design artifacts_ok=false 유지.
+- 정확한 다음 액션: 운영 URL·로그인 identity·deployed revision 증거 bundle을 확보해 실제 prod screen을 관찰한
+  뒤 provenance의 PROD OBSERVED 층을 채운다. 그 전 v8 design 승인·eng-design 진입 금지.
+
+## 2026-08-05 handoff — DESIGN-009 v8 출고 반려·v9 고객제품 전환
+- 사용자는 v8이 무엇을 하라는 화면인지 알 수 없고 기획·디자인·제품 prototype을 요구했다. v8은 provenance
+  감사 수단을 고객 UI로 승격한 잘못된 deliverable이므로 승인 후보를 철회했다.
+- v9은 기존 Marketing Hub shell 안에서 PRD v4.1.2 One Thing의 실제 target experience만 보여준다:
+  source→initial3 variant→edit→final review→now/schedule→per-account result/permalink→partial recovery.
+  provenance/code count/migration audit는 고객 기본 화면에서 제거하고 검증 evidence로만 유지한다.
+- 정확한 다음 액션: product-designer v9 재위임 → verifier → controller browser QA → 최종 고객용 hub 1개 open.
+  사용자 확인 전 design 승인·eng-design 진입 금지.
+
+## 2026-08-05 handoff — DESIGN v9 고객용 제품 프로토타입 표시
+- product-designer가 내부 감사 UI가 아닌 실제 고객용 target product v9을 출고했다. 흐름은 홈→원문 작성/
+  가져오기→Threads·Instagram Feed·X 계정 선택→플랫폼별 3초안 생성/수정→4항목 최종검수→지금/예약→
+  진행→계정별 결과·permalink→부분실패 failed-only recovery다.
+- 부모 verifier PASS: Skill2(design-html/design-review), WebSearch/Fetch4, 소크라1, Design Score B. apply_patch
+  집계 경고 1건은 7개 산출물 실물로 보완했다.
+- QA: 11화면×1024/390, happy path 실제 17 clicks, recovery6 실제 클릭·각 action3, dead-end0,
+  overflow0, touch<44=0, console0, spinner max1, first CTA visible, 고객 내부 감사·코드 용어 노출0.
+- 최종 `docs/prototype/openclaw-auto-osmu-customer-product-v9-gpt-codex.html` 한 개를 브라우저에 open했다.
+  제품 코드·DB·배포 변경은 0, design artifacts_ok=false 유지.
+- 정확한 다음 액션: 사용자 v9 제품 흐름 확인·피드백 → 수정 없고 승인 의사면 `/approve design` 재검증 →
+  eng-design dialogue에서 실제 계정/permalink, reservation, OAuth consume, retry 계약을 하나씩 합의.
+
+## 2026-08-05 handoff — DESIGN-010 v9 철회·8초안 개별 Publish 복원
+- 사용자 확정 요구는 초안생성 1회로 플랫폼 8개 초안을 만들고 각 카드의 Publish로 하나씩 발행하는 기존
+  OSMU 작업 모델이다. v9의 initial3+일괄 최종발행은 이를 누락했다.
+- 실제 current API 8은 Threads/X/Facebook/Instagram/Bluesky/Telegram/Discord/Slack. 과거 Studio는 7 preview
+  전체 선택+순차 publish loop였고 이후 UI direct publish가 4개로 축소됐다. 사용자 요구가 최신 제품 계약이다.
+- v9 승인 후보 철회, DESIGN-010 등록. plan을 PATCH해 initial3는 검증 순위로만 유지하고 product UI는 8 draft
+  cards+card-level Publish를 고정한 뒤 v10 재위임한다. 제품 코드·DB·배포 변경 금지.
+
+## 2026-08-05 handoff — plan v4.2.1 PASS·DESIGN-010 v10 착수 준비
+- PRD v4.2.1은 Generate Drafts 1회→고정 8 cards, card별 edit/save/Publish/status/permalink/recovery를
+  고정했다. selected card adapter=1, other7=0이다.
+- v4.2.0 독립 비평 MAJOR 2(partial generation, unsafe retry)를 v4.2.1에서 fixed8+single regenerate
+  isolation 및 confirmed-failure retry/persistence repair/unknown reconcile taxonomy로 폐쇄했다.
+- 부모 verifier PASS, independent critic residual MAJOR 0. pipeline approved artifact를 v4.2.1로 핀했다.
+- 정확한 다음 액션: product-designer v10 위임. 기존 Marketing Hub shell/sidebar를 보존하고 8개 카드의
+  생성·편집·저장·개별 Publish·상태·permalink·부분실패 복구를 실제 클릭 가능한 고객 프로토타입으로
+  만든다. initial3는 검증 우선 배지일 뿐 UI 3개 축소 금지. 제품 코드·DB·배포 변경 금지.
+
+## 2026-08-05 handoff — DESIGN-010 v10 출고·사용자 검토 대기
+- product-designer가 PRD v4.2.1 기반 고객용 v10을 출고했다: `DESIGN.md`, `docs/user-flow.md`, v10
+  wireframe 3개, `docs/prototype/openclaw-auto-osmu-fixed8-cards-v10-gpt-codex.html`,
+  `tasks/osmu-design-v10.output`.
+- 부모 verifier PASS(Skill2/Web5/Socratic1/Design B, apply_patch 집계 경고만), 1024 workspace screenshot을
+  부모가 육안 확인했다. 최종 v10 HTML을 브라우저에 1회 open했다.
+- 직접 QA 증거: Generate1→fixed cards8, partial6+failed1+empty1, 8/8 Edit·Save clicks, Threads 단일
+  Publish 때 다른7 immediate/final snapshot diff0, recovery3, unavailable Publish disabled5/5,
+  1024/390 5 surfaces overflow0·touch<44=0·console0·loading max1·dead-end0.
+- 제품 코드·DB·배포 변경 0. design artifacts_ok=false 유지. 정확한 다음 액션은 사용자가 열린 v10을
+  검토하고 승인/수정 피드백을 주는 것; 승인 시 `/approve design` 재검증 후 eng-design 대화로 이동한다.
+
+## 2026-08-05 handoff — v10 기각·plan 재오픈
+- 사용자 지적과 즉시 코드 대조로 source-of-truth 오류를 확인했다. 현재 backend 예약 상수의 text8
+  (Threads/X/Facebook/Instagram/Bluesky/Telegram/Discord/Slack)은 기존 OSMU product surface가 아니다.
+  실제 Studio preview 근거는 Threads/X/Facebook/Instagram/Shorts/Reels/TikTok 7이며, 과거 prototype에는
+  Wiki 연결/아이디어 불러오기, AI 플랫폼별 초안 만들기, 플랫폼별 편집, Save/Publish/예약 흐름이 있다.
+- v4.2.1 plan 승인과 v10 승인 후보를 철회했다. current_stage=plan, plan/design artifacts_ok=false.
+- 근본 원인: API adapter inventory를 고객 작업면 inventory로 치환했고 과거 구현·prototype 기능 보존표를
+  디자인 입력의 강제 기준으로 사용하지 않았다.
+- 정확한 다음 액션: existing-code-audit와 plan-critic이 git history·Studio·v1~v10·wiki·QA를 전수
+  대조해 기존 product surface/기능 inventory를 확정한다. 이후 prd-architect v4.3 → critic MAJOR0 →
+  product-designer v11 순서다. 제품 코드·DB·배포 변경 금지.
+
+## 2026-08-05 handoff — plan v4.3.1 PASS·design v11 진행
+- actual/historical code audit 기준으로 Studio visual7(Threads/X/Facebook/Instagram/Shorts/Reels/TikTok),
+  Discord/Slack Studio card0, backend text8/video3/Settings/notification 분리를 PRD v4.3.1에 고정했다.
+- 실제 shell baseline: customer nav26/group9, operator nav1, direct routes15+dynamic11, Settings9/8,
+  provider tabs3/5/3/0, light/dark token15×2, sidebar224px. 390px에서 SidebarGroup11이 숨겨 accessible15인
+  current defect는 label/route 삭제 없이 visibility repair target이다.
+- 기존 9기능은 각각 독립 FR/AC/TC와 happy+failure fixture: RepoConnect, direct source, visual7 OSMU,
+  AI draft, image/video, edit/save, history, immediate legacy bulk+target card Publish, schedule lifecycle.
+- 부모 verifier PASS, critic v4.3.0 MAJOR2 → v4.3.1 residual MAJOR0. pipeline plan artifact v4.3.1 승인.
+- product-designer v11 진행 중. 실제 shell/Studio를 먼저 복제 보존하고 카드별 Publish만 additive로 추가한다.
+  v7~v10 구조 재사용 금지, 제품 코드·DB·배포 변경 금지.
+
+## 2026-08-05 handoff — design v11 출고·사용자 검토 대기
+- 기존 current Studio의 top tool strip, visual7 horizontal groups, right history, edit drawer, SchedulePanel과
+  Marketing Hub shell을 복제 보존하고 card-level Publish/status/permalink/safe recovery만 additive로 추가했다.
+- 산출: `DESIGN.md`, `docs/user-flow.md`, v11 wireframe3,
+  `docs/prototype/openclaw-auto-osmu-current-studio-additive-v11-gpt-codex.html`, `tasks/osmu-design-v11.output`.
+- 부모 verifier 최초 FAIL(Web0<3) 후 실제 Buffer/Later/Hootsuite/Sprout 공식 UI 조사 리테이크. 최종 PASS:
+  Skill2, Web6, Socratic1, Design B. 파일 생성 집계 경고만 비차단이며 실물 확인.
+- 직접 QA: 기존9 happy9/failure9 actual clicks; visual7 edit/save 7/7, card Publish 7/7, other6
+  immediate/final diff0, links7, Discord/Slack Studio card0, retry/repair/reconcile actual; 1024/390 11 states
+  overflow0, touch<44=0, console0, loading max1, deadend0. 39/41px touch와 390 toolbar squeeze를 수정했다.
+- 부모가 1024 final screenshot을 육안 확인하고 최종 v11 HTML 한 개만 브라우저에 open했다. 제품 코드·DB·
+  배포 변경0, design artifacts_ok=false 유지. 사용자 확인/수정 피드백 전 design 승인 금지.
+
+## 2026-08-06 handoff — v11 철회·실제 Chrome baseline 기반 v12 진행
+- 사용자 지적으로 v11 승인 후보를 철회했다. 운영 Chrome에서 live `/studio`를 직접 열었으나 로그인 세션이
+  없어 marketing landing으로 redirect됨을 직접 관찰했다. Google OAuth 계정선택까지 진행했지만 자동화
+  브라우저는 Google rejected로 차단됐다.
+- 실제 component 관찰을 포기하지 않고 `/private/tmp/openclaw-visual-baseline` detached worktree를 만들었다.
+  제품 repo는 수정하지 않고 임시 worktree의 AuthGate/proxy/api-me만 visual capture용으로 우회했다.
+- Chrome/gstack에서 actual current Studio를 렌더했다. empty 기준선:
+  `/private/tmp/osmu-existing-studio-browser-baseline.png`; 실제 `studio_work` 포맷으로 visual7을 복원한 generated
+  기준선: `/private/tmp/osmu-existing-studio-generated-baseline.png`.
+- 직접 관찰: sidebar224, top OSMU Studio/AI확인/input/브랜드/위키/OSMU생성/AI자동초안/Save/Publish,
+  둘째 줄 예약, amber Higgsfield notice, text horizontal Threads/X/Facebook previews, large Instagram cardnews,
+  right history. Discord/Slack Studio cards0. v11은 이 실제 layout과 다르므로 기각.
+- product-designer v12 진행: 두 screenshot을 view_image로 직접 읽고 actual layout 위에 card-level
+  Publish/status/permalink/recovery만 additive. 제품 코드·DB·배포 변경0, design artifacts_ok=false.
+
+## 2026-08-06 handoff — design v12 Chrome-baseline 출고
+- product-designer가 actual Chrome screenshot 2장을 original 해상도로 직접 판독해 v12를 출고했다:
+  `DESIGN.md`, `docs/user-flow.md`, `docs/WIREFRAMES/openclaw-auto-osmu-browser-baseline-v12-gpt-codex.md`,
+  `docs/prototype/openclaw-auto-osmu-browser-baseline-additive-v12-gpt-codex.html`, `tasks/osmu-design-v12.output`.
+- parent escalated browser QA: 1440/1024/390 screenshot 직접 생성, actual current와 sidebar/top toolbar wrap/
+  amber notice/horizontal native text previews/large Instagram/right history 구조를 육안 대조. v12 console error0.
+- DOM: nav26, visual7, Discord/Slack Studio card0, 기존 top bulk/Save/Wiki/예약/history 보존. additive 영역은
+  기존 preview sibling 점선 outline이며 card Publish/status/permalink/retry만 추가.
+- actual click: visual7 Publish 7/7, published7, permalink7, failed retry/unknown reconcile, legacy bulk direct4,
+  video3 idle, schedule create/change/cancel. Parent verifier PASS(Skill2/Web6/Socratic1/Design B; Write/Edit
+  transcript 집계 경고만 비차단). 최종 v12 HTML 한 개를 Chrome에 open했다.
+- 임시 visual baseline dev server는 종료했다. 제품 repo 코드·DB·배포 변경0. design artifacts_ok=false,
+  사용자 v12 확인 전 eng-design 진입 금지.
+
+## 2026-08-03 handoff - DESIGN-004 product-designer v4 출고
+- 사용자 확정 handoff basis는 DESIGN-004 반려 사유다. 기존 Marketing Hub를 전면 교체하지 않고 실제
+  `Sidebar.tsx`, `globals.css`, `ChannelPage.tsx`, `InstagramPage.tsx`, `QueueList.tsx`, Studio, Settings와
+  운영 screenshot을 기준으로 additive shell을 만들었다. 구현 소스는 수정하지 않았다.
+- 산출: `DESIGN.md` §13, `docs/user-flow.md` §13, v3 wireframe 3개의 DESIGN-004 correction,
+  `docs/prototype/openclaw-auto-osmu-additive-full-flow-v4-gpt-codex.html`, `tasks/osmu-design-v4.output`.
+- 핵심 결과: Marketing Hub/224px Sidebar/workspace/header/spacing/card/route 유지, 인증 후 주요 화면에
+  OSMUContextBar 추가, Threads/Instagram 모두 `Queue / Editor / Analytics / Growth / Popular / Settings`
+  한 배열을 사용한다. OAuth 성공은 handle·최근 확인·기본 연결 CTA 제거로 끝나며, Instagram Graph 입력은
+  고급 복구에서만 열린다. TEXT/IMAGE와 IMAGE/Reels, 즉시/예약, Queue/Calendar, 게시물 링크/분석,
+  502 lookup→미발행 확인→안전 재발행→링크를 실제 클릭 경로로 연결했다.
+- 직접 QA: 14화면×15상태 210조합 실패 0, loading 최대 1, 양 플랫폼 6탭 순서 동일·12/12 클릭·모두 44px,
+  모바일 390px body overflow 0·action 최소 44px·OSMU 노출, console error 0. desktop/mobile screenshot을
+  `view_image`로 육안검수했다. 요청대로 child는 GUI `open`을 호출하지 않았다.
+- 품질: REQUEST-OSMU-001 + DESIGN-004 RTM 20/20=100%, dead-end 0, Design Score B+(24/25), AI Slop A.
+  `verify-agent-quality.sh tasks/osmu-design-v4.output design` PASS: Skill 4, WebSearch/Fetch 14, 소크라 4,
+  Design Score B. apply_patch가 Write/Edit로 집계되지 않는 경고 1건만 남는다.
+- ⛔ 회수 필요: Instagram Growth/Popular data source·주기·비용, identity authoritative source와 차단 규칙,
+  502 idempotent lookup identifier는 eng-design 대화에서 합의해야 한다.
+- 다음 액션: 부모 컨트롤러가 v4 output의 verifier/RTM/브라우저 증거를 독립 재검증하고 최종 v4 hub 1개만
+  사용자에게 표시한다. 사용자 확인 전 design 승인과 eng-design 진입은 금지한다.
+### OSMU Marketing Agent design v15 worker handoff (2026-08-06 07:02 KST)
+
+**확정 handoff 기준:** 사용자 위임의 pinned PRD v6.1.1 SHA256 `00beed4a47317b9f13a9ad80702af5d34540904fbd7f525832ec4c3a74111045`과 `pipeline-state.md` design in-progress를 primary로 사용했다. 제품 source/API/DB/deploy는 수정하지 않았다.
+
+**산출:** `DESIGN.md` v15 versioned section, `docs/user-flow-marketing-agent-v15-gpt-codex.md`, `docs/wireframes/marketing-agent-v15-gpt-codex.md`, `docs/prototype/openclaw-auto-marketing-agent-fidelity-v15-gpt-codex.html`, `tasks/marketing-agent-design-v15.output`. P39 proof와 R6 preservation만 포함하고 D3 surface는 0이다.
+
+**검증:** PRD SHA 일치, current Chrome baseline 2장을 직접 관찰했다. jsdom으로 desktop/mobile nav 각 26, light/dark, customer/operator, Home→Plan→Studio→Review→Result, error state, 390 drawer를 테스트했다. design-review 정적 재검수에서 colored left-border slop 1건을 제거했고 quality verifier는 Skill2/Web8/소크라2/Design Score A로 PASS했다. 최종 HTML Chrome은 macOS sandbox bootstrap 권한으로 실행 실패해 미검증이다.
+
+**차단/다음 액션:** 지정된 `tasks/original-requests-ledger.output`, `tasks/marketing-agent-code-truth.output`이 레포와 하네스 경로에 없어 직접 Read 불가다. 부모 컨트롤러는 누락 파일 경로를 확인하고 최종 HTML 하나만 1440/1024/390 light/dark role matrix로 렌더한 뒤 design gate를 판단한다.
+
+### OSMU Marketing Agent design v15 parent Chrome QA (2026-08-06 07:26 KST)
+- 부모 gstack Chrome이 최종 HTML을 실제 렌더했다. 1440: desktop nav26, overflow0. 1024: sidebar visible,
+  overflow0. 390 1차: 메뉴 클릭 뒤 overlay class open이지만 display none인 실제 결함을 발견해 design 리테이크했다.
+- product-designer 리테이크 후 390 재검증: drawer display block/visible, mobile nav26, menu/theme 44x44,
+  overflow0, Escape 뒤 closed/display none. light→dark, Home→Plan 클릭, customer/operator state, console error0도 관찰했다.
+  최종 HTML 하나만 macOS Chrome에 open했다.
+- 품질 verifier는 collaboration/wrapper의 실제 skill/web transcript를 output 파일에서 읽지 못해 retake output도
+  Skill0/Web0 FAIL이다. 브라우저·DOM 증거와 산출물은 있으나 design gate artifacts_ok=false를 유지한다.
+- 다음: verifier 파싱 가능한 product-designer retake를 별도 확보하거나 검증실패 라벨로 사용자 피드백만 받고,
+  사용자 승인 전 eng-design 진입 금지. 제품 source/API/DB/deploy 변경 없음.
+
+### 2026-08-06 handoff — v15 플랫폼 탐색·용어 사용자 NG
+- **사용자 직접 반려:** 왼쪽 플랫폼을 클릭해도 플랫폼 화면이 보이지 않고, `Assisted weekly loop`의 의미를
+  이해할 수 없다고 지적했다. 디자인 리뷰 수행 여부도 재질문했다. `docs/qa-tracker.md` 최상단에 ❌ NG를 등록했다.
+- **직접 확인한 원인:** v15 sidebar 26개 중 독립 prototype view는 성과(`homeView`), OSMU Studio,
+  승인 인박스뿐이다. 발행 캘린더와 Threads/X/Instagram/Facebook/Bluesky/Telegram/Discord/Slack/
+  YouTube/TikTok/분석/키워드/Blog/Assets/Settings 등 22개가 모두 `homeView`로 연결돼 플랫폼별 기존 화면이
+  나타나지 않는다. 메뉴 수·overflow만 검사하고 destination semantic과 26개 전수 클릭을 누락했다.
+- **용어 결함:** `Assisted weekly loop`는 AI 보조+사람 승인+주간 성과 환류라는 내부 기획어를 고객 화면에
+  노출한 것이다. 회장 언어 후보는 `이번 주 마케팅 실행`이며, 최종 문구는 product-designer가 화면 맥락 전체와
+  함께 리테이크한다.
+- **디자인 리뷰 판정:** responsive/theme/role/mobile drawer 일부 검사는 했지만 platform destination 전수검사가
+  없었고 verifier도 Skill0/Web0 FAIL이었다. 따라서 design review 완료 주장은 철회하며 design gate는 잠금 유지한다.
+- **남은 작업:** product-designer v16 리테이크가 current code/Chrome의 플랫폼별 실제 owner 화면·탭·연결 계정·상태·
+  개별 초안/발행과 OSMU 일괄 생성·카드편집·개별/일괄 발행·예약·복구를 additive하게 복원한다. 기존 25 route/
+  26 nav, icons/tokens, customer/operator, Settings8/9, provider capability 차이를 유지하고 가짜 동일 탭은 만들지 않는다.
+- **종료증거:** 부모 Chrome 1440/1024/390에서 26개 메뉴 전수 클릭 → 각각 기존 owner 또는 명시된 prototype view,
+  홈 오귀환0, dead-end0, console error0, overflow0; 쉬운 한국어 용어; product-designer verifier PASS. 그 전 v16 open,
+  design 승인, eng-design/제품 코드/DB/배포 진입 금지.
+- **현재 배포 상태:** 디자인 문서·prototype만 변경. 제품 source/API/DB/배포 변경 없음. 최종 v15는 반려 증거로 보존한다.
+
+### 2026-08-06 handoff — v16 product-designer 리테이크 실행
+- 사용자 지적대로 진단 후 정지한 controller 오류를 바로잡고 `/root/marketing_agent_v16` product-designer를 실행했다.
+- 소유 산출물: DESIGN v16, user-flow/wireframe v16, 단일 fidelity v16 HTML, design exit report.
+- hard gate: 26 nav가 26개 의미 있는 기존 owner/fidelity view로 연결되고 home 오귀환0/dead-end0; 플랫폼별 실제
+  capability/계정 상태/개별 draft-review-publish, OSMU existing9+wiki+card/bulk/schedule/recovery, 쉬운 한국어
+  Marketing Agent 폐루프, 실제 assets/tokens/role/settings/responsive, visible STAMP와 공식 benchmark 3+.
+- 다음: agent 산출 수신 → verify-agent-quality PASS → 부모 Chrome 1440/1024/390에서 26개 전수 클릭·core flow·
+  console/overflow 확인 → 최종 HTML 하나만 open. 실패 시 같은 product-designer에게 재위임하고 출고 금지.
+
+### OSMU Marketing Agent design v15 QA retake 보정 (2026-08-06 07:37 KST)
+- 사용자 명시 task와 위 07:26 parent Chrome QA를 primary handoff basis로 사용했다. 다른 작업자 변경을
+  되돌리지 않았고 소유 범위는 v15 HTML, retake output, 이 v15 handoff 보정뿐이다.
+- 기존 구현 확인: 전용 `docs/구현현황.md`는 없지만 current Sidebar 26 destinations, theme,
+  customer/operator role, Home to Plan to Studio to Review to Result flow를 code, PRD, prototype에서 대조했다.
+- 결함 수정 상태: 실제 `@media(max-width:768px)` overlay/drawer 표시 규칙과 Escape close가 현재 HTML에 존재한다.
+  제품 source/API/DB/deploy, visual/content delta는 0이다.
+- 검증: inline script 2 parse, CSS/JS contract 8항, nav26, em/en dash0, JSDOM menu open/Escape/backdrop close,
+  desktop/mobile nav26, core flow5, theme/role 전부 PASS. tracked `git diff --check` PASS, untracked HTML
+  no-index whitespace finding0. 07:26 parent Chrome 실측은 390 drawer visible/nav26/menu44x44/overflow0/close 경로,
+  1024·1440 overflow0, theme/role/core flow, console error0이다.
+- 실조사: Buffer Post Groups, Sprout Message Approval Workflows, Later Social Sets 공식 자료 3개를 직접
+  WebSearch/Fetch하고 구조 원리와 보존 기준만 retake output에 기록했다. gstack design-review 전체와
+  standards/design.md를 읽었다.
+- 품질: `verify-agent-quality.sh tasks/marketing-agent-design-v15-retake.output design` exit0 PASS.
+  Skill1(design-review), WebSearch/Fetch6, 소크라1, Design Score A. 이전 Skill0/Web0 FAIL 상태를 해소했다.
+- 다음: retake 결함은 닫혔지만 design stage 전체 승인과 eng-design 진입은 부모 컨트롤러의 `/approve design`
+  재검증 및 사용자 확인 전까지 잠금 유지한다.
+## 2026-08-06 handoff — v16 최종 반려·plan 재개방
+- 사용자 지적: OSMU layout/channel mix/video3, platform Queue propagation, aggregate vs channel analytics,
+  common platform header, YouTube/TikTok ownership, Keyword/Data/Assets/Midjourney/System/Admin, OAuth token/readiness,
+  user-flow 검증, 내부 PRD 문구 노출을 전부 재검토하라고 명시했다. 제품 목적은 마케팅 콘텐츠 생성·발행 자동화 에이전트다.
+- v16은 verifier/route QA가 통과했어도 product semantics가 틀렸으므로 반려했다. pipeline은 plan in-progress,
+  승인0으로 재개방. 제품 source/API/DB/deploy 변경 없음.
+- 보안 기본 계약: OAuth callback 성공 뒤 raw token을 Settings에 표시하지 않는다. 연결 account identity,
+  granted scopes, verified_at, expiry/refresh health, automation readiness, reconnect/manage를 표시한다.
+- 다음: current code/wiki/Chrome을 기능 흐름·auth/admin·IA/analytics 세 축으로 감사 → PRD v6.2 → critic MAJOR0 →
+  product-designer 새 prototype. 사용자 질문 각각을 FR/AC/TC로 추적하고 내부 코드/PRD 문구는 고객 카피에서 제거한다.
+
+## 2026-08-06 handoff — Marketing Agent PRD v7.2 최종 수렴
+- **확정 기준:** 이 Codex 세션은 `wiki/ops/session-state.md`와 tmux `openclaw-auto:0.0`을 함께 확인했고,
+  사용자의 최신 직접 명령(기존 코드·wiki·실화면을 보존한 전체 기획·클릭형 프로토타입 재제작)을 primary로 삼았다.
+- **감사 완료:** 기능 흐름, OAuth/Admin, IA/analytics, 최초 요청 원장을 병렬 감사했다. 핵심 code truth는 Studio
+  text/video/card-news 3 rail, text preview7, direct publish4, video3(Shorts/Reels/TikTok), messaging은 선택 배포이며
+  Studio 기본 카드가 아니라는 점이다. 현재 Save/schedule/publish와 Queue·Inbox·Calendar는 동일 canonical publication을
+  공유하지 않아 OSMU 결과가 플랫폼 Queue에 항상 투영된다고 말할 수 없다.
+- **기획 산출:** PRD v7.0(verifier PASS, critic MAJOR7) → v7.1(PASS, MAJOR2) → v7.2(PASS,
+  independent critic MAJOR0/MINOR4)로 리테이크했다. v7.2는 FR/AC/TC 67/67/67, R3 29, R4 53,
+  route×viewport 75와 platform state 60을 추적한다. 제품 source/API/DB/deploy 변경은 0이다.
+- **현재 실행:** `/root/marketing_agent_prd_v7`에게 v7.2.1 PATCH를 재위임했다. 남은 MINOR4는 승인정책 owner/default와
+  readiness 분리, Messaging의 review 이후 명시 handoff/default OFF, 미수집 native 지표 provenance/N/A,
+  per-card edit를 포함한 R3 총합30 정합이다. 별도 one-thing/persona/BM/risks v7.2.1 view도 함께 만든다.
+- **정확한 다음 액션:** v7.2.1 parent verifier → 독립 plan-critic 재확인(major0) → plan artifact SHA pin 및
+  `/approve plan` → pinned PRD 기반 product-designer 전체 v17 프로토타입 → quality verifier와 부모 Chrome
+  1440/1024/390·26개 목적지·핵심 OSMU/OAuth/Analytics/Admin 흐름 QA → 최종 PRD와 prototype을 웹으로 open.
+  design 승인 전 eng-design/build/제품 코드/DB/배포 진입 금지.
+
+## 2026-08-06 18:38 KST handoff — plan 게이트 APPROVED (Claude 세션)
+- **확정 기준:** 사용자가 이 Claude 세션에 `/approve plan`을 직접 명령했다. handoff source는 레포 파일
+  (`pipeline-state.md` + `wiki/ops/session-state.md`)이며 tmux transcript는 보조로만 썼다.
+- **현재 태스크:** Stage Controller plan 단계 게이트 재검증 및 승인. 완료.
+- **변경 파일:** `pipeline-state.md` (frontmatter `current_stage: plan→design`, `approved_stages: []→[plan]`,
+  `stages.plan.status=approved`, `stages.design.status=in-progress`, 승인 로그 1블록 append),
+  `wiki/ops/session-state.md` (이 블록). 제품 source/API/DB/deploy 변경 0.
+- **검증(관찰됨):** 산출물 5종 존재 + sha256 5/5가 `approved_artifacts` 핀과 일치.
+  prd v7.2.1 `eaa400c8…`, one-thing `d19dd760…`, persona `78c5a362…`, bm `af8fc511…`, risks `9923a2bd…`.
+  비평 사이클 `critic_cycles` n=20 (plan-critic, v7.2.1) major_findings 0 / resolved true /
+  chairman_qs asked=11 answered=11. stages.yaml plan에는 `exit_report` 정의가 없어 비적용.
+- **로컬 테스트 미실행 사유:** 이번 변경은 파이프라인 STATE 메타데이터 편집뿐이고 코드·스키마 변경이 없어
+  빌드/E2E 대상이 없다. 게이트 검증 자체가 해시 대조 + critic_cycles 판독으로 수행됐다.
+- **배포 상태:** 변경 없음. hook 기준으로 소스 쓰기(build 미승인)·prod 배포(qa 미승인)는 계속 잠김.
+- **보류:** design 단계 위임 착수는 사용자 지시 대기 중(자동 착수 안 함).
+- **정확한 다음 액션:** product-designer에게 design 위임. 위임 프롬프트에 pinned
+  `docs/openclaw-auto-marketing-agent-prd-v7.2.1-gpt-codex.md` (v7.2.1) 경로·버전을 주입하고,
+  user-flow → 실렌더 HTML 프로토타입 → 브라우저 open 후 티키타카 → 수정 루프를 돌린다.
+  design 승인 전 eng-design/build/제품 코드/DB/배포 진입 금지.
+
+## 2026-08-06 handoff — Marketing Agent design v17 실행
+- **현재 태스크:** 사용자의 최신 명령대로 plan 승인 직후 `/root/marketing_agent_design_v17`
+  product-designer에게 전체 클릭형 프로토타입을 위임했다. design은 `in-progress`, artifacts_ok=false다.
+- **고정 기반:** approved PRD v7.2.1과 one-thing/persona/BM/risks SHA 5/5, original request ledger,
+  current Studio/auth/admin/IA/analytics code truth, v12 실제 Chrome baseline, v16 사용자 반려를 입력으로 강제했다.
+- **소유 산출물:** DESIGN.md v17 additive section, user-flow v17, wireframe v17, 단일 fidelity v17 HTML,
+  design exit report. 제품 source/API/DB/deploy 변경은 금지했다.
+- **종료증거:** verifier PASS, Design Score B 이상, 26개 nav 의미 목적지/home 오귀환0/dead-end0,
+  부모 Chrome 1440/1024/390에서 Studio 3 rail+video3+messaging explicit handoff, Queue/video-job projection,
+  platform common header/capability tab, aggregate/native analytics, OAuth wrong-account/readiness, Settings/Admin,
+  role/theme/mobile drawer를 직접 관찰하고 console error0/overflow0/internal jargon0을 확인한다.
+- **정확한 다음 액션:** product-designer 산출 수신→품질 verifier→독립 design review/리테이크→부모 Chrome 전수 QA→
+  최종 PRD와 prototype만 web/open. 사용자 화면 확인 전 `/approve design`과 eng-design 진입 금지.
+
+## 2026-08-07 12:20 KST handoff — Marketing Agent design v17 사용자 리뷰 대기
+- **확정 작업/단계:** approved plan v7.2.1 기반 design v17 클릭형 전체 프로토타입. `pipeline-state.md`는
+  design `awaiting-approval`, artifacts_ok=true이며 plan만 승인된 상태다. 제품 코드·API·DB·배포 변경은 0이다.
+- **산출:** `DESIGN.md` v17, `docs/user-flow-marketing-agent-v17-gpt-codex.md`,
+  `docs/WIREFRAMES/marketing-agent-v17-gpt-codex.md`,
+  `docs/prototype/openclaw-auto-marketing-agent-fidelity-v17-gpt-codex.html`,
+  `tasks/marketing-agent-design-v17.output`.
+- **품질 증거:** `verify-agent-quality.sh ... design` PASS(Skill2, Web20, Socratic2, Design A). 산출 trace
+  경고는 파일 5/5 존재와 SHA(DESIGN `1978d7d8…`, flow `c73e276f…`, wire `2b694128…`, prototype
+  `a861a05c…`, report `709c361c…`)로 보완했다. JSDOM 회귀는 nav 26/26, native analytics 8/8,
+  states 12/12, error/failure 0이다.
+- **직접 관찰:** Chrome 1440/1024 시각 검수. CDP 실제 390×844에서 Home/Studio/Admin 모두
+  scrollWidth=clientWidth=390. 고객 모바일 메뉴 전환, Admin 고객 nav 미노출, Studio 3 output family,
+  video rail, 기존 저장·예약·카드별 수정·승인 행동을 관찰했다. 캡처는 `/private/tmp/ma-v17-390-cdp.png`,
+  `/private/tmp/ma-v17-studio-390-cdp.png`, `/private/tmp/ma-v17-operator-390-cdp.png`다.
+- **남은 이슈/경계:** 이 산출물은 기획·디자인 후보이며 실제 Queue projection, OAuth 상태 정합, 외부 발행,
+  permalink, analytics 수집은 제품에서 아직 구현·실왕복 검증하지 않았다. design 사용자 승인 전 eng-design 금지.
+- **정확한 다음 액션:** PRD v7.2.1을 HTML로 렌더하고 최종 prototype과 함께 Chrome에 open한다. 사용자가
+  화면을 확인해 승인하면 `/approve design`; 반려하면 같은 product-designer에게 v17 retake를 위임한다.
+
+## 2026-08-07 handoff — v17 반려·design v18 리테이크
+- **사용자 반려:** sidebar의 Messaging 위치를 Social 바로 아래로 이동하고, OSMU 산출 순서를
+  텍스트→사진/카드뉴스→영상으로 바꾼다. 위키 가져오기/새 위키 만들기와 가입부터 브랜드 톤·가이드,
+  생성·수정·예약·발행·결과물 관리·성과 분석까지 실제 마케팅 대행 흐름이 빠짐없이 연결됐는지 재검증한다.
+- **판정:** v17은 26개 route·반응형 검사는 통과했지만 이 전체 lifecycle을 사용자 피드백 기준으로 증명하지
+  못했다. v17 승인 후보를 철회했고 pipeline design은 in-progress, artifacts_ok=false다.
+- **진행:** `/root/marketing_agent_design_v17`에게 v18 산출물 전용 리테이크를 위임했다. 별도
+  `/root/original_requests_ledger`는 current code/wiki/PRD/v17과 원요구를 대조한 completeness audit를 작성한다.
+  brand-positioning-kit과 openclaw-creative-brief, design-review, 디자인·브랜딩·마케팅 품질헌법 및 공식
+  벤치마크 5개+를 실제 적용하도록 했다. 제품 source/API/DB/deploy 변경은 0이다.
+- **종료증거:** v18 requirement coverage, wiki import/create owner/state, semantic E2E, sidebar/OSMU 순서,
+  26개 nav, 390/1024/1440, role/theme, internal jargon0, quality verifier PASS, 부모 실제 브라우저 관찰.
+- **다음 액션:** 두 위임 산출 수신→audit gap을 designer에게 재반영→verify→실브라우저 QA→최종 v18 한 개 open.
+
+### v18 추가 독립 감사
+- `content-growth-marketer` `/root/v18_marketing_agency_blueprint`에게 가입→브랜드·캠페인 브리프→제작→
+  승인→예약/발행→결과물·성과→다음 실험의 실제 대행 service blueprint 감사를 추가 위임했다.
+- 산출은 `tasks/marketing-agent-v18-agency-blueprint.output`만 소유하며 제품/디자인 파일은 수정하지 않는다.
+  경쟁제품 5개+, UX/행동과학 근거, 스킬 실제 사용, 문제→원리→UI 결정→오용방지 추적을 종료증거로 한다.
+
+## 2026-08-07 handoff — ⟲ plan REOPEN (브랜드 위키 lifecycle 누락)
+- **handoff 기준:** 이 파일(`wiki/ops/session-state.md`). tmux pane 기준으로 이어갈지는 다음 세션이 사용자에게 확인한다.
+- **현재 태스크:** `/pipeline reopen plan`. 승인 PRD v7.2.1에 원요구인 "제품 안에서 브랜드 위키 가져오기/새로 만들기,
+  편집·버전 관리, 그 위키를 콘텐츠 생성에 적용" 흐름이 누락됐다. 가입→브랜드 가이드·톤→생성·검수→발행/예약→
+  결과물 관리→성과 분석→다음 생성의 전체 마케팅 대행 lifecycle도 재대조 대상이다.
+- **변경 파일:** `pipeline-state.md` 1개. current_stage=plan, approved_stages=[], plan=in-progress,
+  design=pending(artifacts_ok=false), REOPEN 로그 append. 제품 source/API/DB/deploy 변경 0.
+- **검증:** 상태 파일 편집만이라 실행 테스트 없음(빌드/E2E 해당 없음). design v18 위임 산출물은 미수신·미검증 상태로 정지.
+- **보류:** design v18 및 독립 audit 위임 3건은 plan PATCH 승인 전까지 반영 금지(산출물은 수신해 보관만).
+- **배포 상태:** 변경 없음.
+- **다음 액션:** prd-architect에 v7.2.1 기반 surgical PATCH `v7.3.0` 위임(위키 CRUD·버전·import 계약, 위키→생성
+  grounding 경로, lifecycle FR/AC/TC 누락분, 기존 코드/wiki 대조) → plan-critic 비평 MAJOR0 → `/approve plan` →
+  design v18 재개. 단, PATCH vs 전면 재작성은 사용자 결정 대기 중이다.
+
+## 2026-08-07 handoff — plan v7.3.0 PATCH 작성 완료·critic 진행
+- **결정:** 사용자에게 재질문하지 않고 추천안인 surgical PATCH를 적용했다. v7.2.1 기존 FR/AC/TC 67개를
+  보존하고 브랜드 지식·캠페인14·성과 실제 재생성 적용·모바일 가림 방지 17개를 추가해 84/84/84로 만들었다.
+- **산출:** `docs/openclaw-auto-marketing-agent-prd-v7.3.0-gpt-codex.md`, canonical
+  `docs/{one-thing,persona,bm,risks}.md`, 각 v7.3.0 versioned view, `tasks/marketing-agent-prd-v7.3.0.output`.
+- **독립 입력 감사:** completeness audit 96행/L-01~45 누락0는 verifier PASS(Skill1/Web16/Socratic4),
+  agency blueprint 14단계는 리테이크 후 PASS(Skill3/Web30/Socratic1/Rubric24). 둘 다 최신 IA
+  `Social→Messaging→Social video`, Studio `Text→Photo/Card→Video`를 고정했다.
+- **PRD 품질:** parent verifier PASS(Skill2/Web1/Socratic2), FR/AC/TC 84/84/84, canonical/versioned
+  byte-identical, 웹 렌더·console 오류0. 제품 source/API/DB/deploy 변경0, provider production E2E 미검증.
+- **현재 실행:** `/root/marketing_agent_plan_critic_v7`에게 v7.3.0 독립 비평을 위임했다. MAJOR0 전
+  plan 승인·design v18 재개 금지. MAJOR0이면 `/approve plan` 재검증 후 interrupted product-designer를 재개한다.
+
+### plan critic v7.3.0 NO-GO → v7.3.1 retake
+- critic verifier PASS(Web6/Socratic7), 판정 MAJOR3/MINOR2. 차단은 source5가 하나의 active knowledge/guide
+  truth와 artifact-used immutable lineage로 수렴하지 않음, thin-data insight eligibility 기준 부재,
+  audit96/P0 8/campaign14 원자 RTM 부재다. 기존 67개 계약·최신 IA·Studio 보존은 통과했다.
+- `critic_cycles` n=21 unresolved로 기록했다. prd-architect에게 v7.3.1 surgical closure를 재위임했으며
+  기존 84 FR/AC/TC 삭제·재번호·약화0, MINOR2 포함 전폐쇄, 재비평 MAJOR0가 종료증거다.
+
+### plan critic v7.3.1 NO-GO → v7.3.2 retake
+- v7.3.1은 FR/AC/TC 95/95/95, source5 단일 truth, thin-data threshold-before-enable, campaign14,
+  no-autonomous-ads를 폐쇄했다. 그러나 critic verifier PASS(Web6/Socratic7) 후 MAJOR1/MINOR1 NO-GO다.
+- MAJOR: audit96 ID는 전부 있었지만 A02/A03/B01/D24~26/G01~03 최소9행의 고객 계약과 mapped FR/AC가
+  의미 불일치했다. MINOR: canonical One Thing과 PRD 공식 blockquote 불일치.
+- `critic_cycles` n=22 unresolved. v7.3.2는 9행을 의미 동일한 원자 FR/AC/TC로 보강하고 전체96 semantic
+  concordance를 재검증한다. MAJOR0 전 plan 승인·design 재개 금지.
+
+### plan critic v7.3.2 NO-GO → v7.3.3 retake
+- v7.3.2는 105/105/105, A02/A03/B01/D24~26/G01/G03와 non-GitHub bundle migration을 닫았으나
+  critic verifier PASS(Web6/Socratic7) 후 MAJOR2/MINOR0 NO-GO다.
+- 인정한 MAJOR: B14/C01/C09/E12/H02의 mapped TC가 source/time/rationale, rights expiry, timeout reconcile,
+  persisted-server progress 같은 고객 계약을 의미상 포함하지 않았다.
+- 재평가한 MAJOR: auditor의 universal secret no-readback는 과거 사용자 확정과 current Admin 구현을 무시했다.
+  v7.3.3은 customer OAuth raw0, tenant API token issuance-one-time, operator OAuth app DB-secret timed audited
+  reveal, BYOK write-only의 secret-class matrix로 단일화한다. Auditor owner에게 G02/G09 correction도 재위임했다.
+- `critic_cycles` n=23 unresolved. v7.3.3 verifier+independent critic MAJOR0 전 plan/design 잠금 유지.
+
+### plan critic v7.3.3 NO-GO → v7.3.4 full semantic retake
+- v7.3.3은 FR/AC/TC 112/112/112, 신규 B14/C01/C09/E12/H02와 사용자 확정 secret-class 정책을
+  보강했고 parent verifier PASS(Skill2/Web6/Socratic3)였다. 그러나 독립 critic은 MAJOR1/MINOR1 NO-GO다.
+- MAJOR: `나머지 89행은 이전 critic이 전수검토`라는 근거가 실제 v7.3.2 critic의 표본검토 진술과 충돌했다.
+  원문 재대조에서 A05/B10/B15/C03/C05/D03/E06/E11/F01/G07/H01의 happy/edge/failure 의미 누락을 확인했다.
+  MINOR: G02 timed reveal 정책은 유지하되 감사 actor/reason/time/secret0과 concurrent env import overwrite0을
+  테스트 계약에 더 명시해야 한다. critic parent verifier는 PASS(Web6/Socratic5)다.
+- **현재 실행:** prd-architect가 v7.3.4로 Audit96 96행 전부를 source predicate→정확한 TC assertion으로
+  재작성 중이다. 이전 critic 침묵·행 수·hash를 semantic PASS 증거로 쓰지 않고, 한 assertion 제거 시 해당 행과
+  aggregate가 실제 FAIL하는 mutation fixture를 종료증거에 포함한다.
+- **게이트/배포:** plan in-progress, design pending, 제품 source/API/DB/deploy 변경 0. v7.3.4 verifier PASS 뒤
+  plan-critic 96/96 독립 전수검증 MAJOR0가 나와야 `/approve plan`과 product-designer v18 재개가 가능하다.
+
+### plan critic v7.3.4 NO-GO → v7.3.5 integrity retake
+- 세 독립 auditor가 Audit96 전부를 분할 대조해 v7.3.3의 explicit H/E/F 약화 77행을 확인했고, 별도 catalog
+  96행/288 assertions를 작성했다. v7.3.4는 이를 통합해 base FR/AC/TC 124/124/124, old112 누락0,
+  parent verifier PASS를 냈으나 독립 critic 전수 결과는 88 PASS/8 FAIL, MAJOR2/MINOR0 NO-GO다.
+- FAIL ID: A02/A03/B01/B10/B13/D01/D20/E02. 별도 MAJOR는 mutation이 실제 emitted manifest B10을
+  `[REMOVED_ACTION_PREDICATE]`로 오염시켰는데 validator가 하드코딩 in-memory dataset만 읽어 baseline PASS한
+  검사대상 무결성 결함이다. critic output/verifier는 PASS(Web6/Socratic5), old112·base124·One Thing·IA·
+  Studio order·secret-class matrix는 통과했다.
+- **현재 실행:** prd-architect v7.3.5 리테이크. 8개 의미 계약을 폐쇄하고 validator가 실제 emitted manifest를
+  읽도록 바꾼다. mutation은 temp copy에서만 수행하며 정본 SHA before/after 동일을 종료증거로 남긴다.
+- **게이트/배포:** plan in-progress/design pending, 제품 source/API/DB/deploy 변경0. v7.3.5 parent verifier와
+  independent plan-critic 96/96·MAJOR0 전에는 `/approve plan` 및 design v18 재개 금지.
+
+### 2026-08-07 15:35 KST — `/approve plan` PASSED (게이트 전진: plan → design)
+- **핸드오프 기준:** `wiki/ops/session-state.md` + `pipeline-state.md` (tmux pane 미사용). 다음 세션은 이 두 파일로 재개.
+- **한 것:** `/approve plan` 재검증 후 승인 처리.
+  - 산출물 5종 존재 + sha256이 `approved_artifacts` 핀과 일치 확인(관찰됨):
+    PRD v7.3.5 `ae6155bb…`, one-thing `1183bb58…`, persona `e33cbf97…`, bm `12085449…`, risks `c048dac1…`.
+  - 비평 사이클: `critic_cycles` n=26 (plan-critic, v7.3.5) major_findings=0, resolved=true.
+    회장 질문 요건은 누적 충족(n=20 asked=11 answered=11), n=26은 회장 명시 지시 governance.
+  - plan 단계는 stages.yaml에 exit_report 정의 없음 → 브리핑 산출물 요건 해당 없음.
+- **변경 파일:** `pipeline-state.md` (current_stage: plan→design, approved_stages: [plan],
+  plan status=approved/artifacts_ok=true, design status=in-progress, 승인 로그 append), 본 파일.
+- **검증 상태:** 문서·해시 대조만 수행. 코드/빌드/E2E 변경 0건이라 테스트 실행 대상 없음(제품 source/API/DB/deploy 변경 0).
+- **보류/리스크:** critic_cycles n=21~25가 `resolved: false`로 남아 있고 폐쇄 근거는 n=26 MAJOR0 판정 하나뿐이다.
+  항목별 폐쇄 대조표는 미작성(미검증).
+- **다음 액션(정확히):** 회장 선택 대기.
+  ① `product-designer`에 design 단계 위임해 user-flow→prototype→render-and-show→review 루프 v18 재개(추천), 또는
+  ② 재개 전 n=21~25 잔여 지적을 항목별 폐쇄 대조표로 검증.
+
+### 2026-08-07 15:36 KST — design v18 product-designer 재개
+- **사용자 지시 근거:** 이전부터 반복된 `묻지 말고 진행`, `전체 프로토타입`, `서브 에이전트 위임` 명령과 이번
+  전체 마케팅 대행 흐름 요구에 따라 위 선택지 ①을 즉시 실행했다. 추가 판단 대기 없음.
+- **현재 실행:** `/root/marketing_agent_design_v17` product-designer가 pinned PRD v7.3.5, Audit96 정본,
+  3개 exact H/E/F catalog, agency blueprint14, current code/wiki/v17을 읽고 v18 user-flow·wireframes·DESIGN·
+  fidelity HTML·design output을 제작 중이다.
+- **고정 요구:** Sidebar `Social 게시물→Messaging→Social 짧은 영상`; Studio `텍스트→사진/카드뉴스→영상`;
+  current GitHub/tone/6Q import 보존 + target in-product wiki create/edit/version/archive/rollback; 가입→브랜드→
+  캠페인→3형식 생성/수정/승인→개별/일괄 발행·예약→Queue/Inbox/Calendar→결과/permalink→aggregate/native
+  analytics→다음 one-variable experiment; 26 nav/role/theme/1440·1024·390; 기존 shell/assets/actions 보존.
+- **게이트/다음:** design artifacts_ok=false 유지. product-designer output 수신→quality verifier→독립 design review→
+  부모 실제 Chrome 26-nav/semantic/mobile QA→최종 v18 웹 open. 사용자 화면 확인 전 `/approve design` 금지.
+
+### 2026-08-07 20:18 KST — design v18 최종 리테이크(M14 고객 언어)
+- **현재 상태:** product-designer v18 산출 뒤 부모 Chrome에서 고객/운영자 × light/dark × 1440/1024/390
+  12조합을 직접 실행했다. interaction audit failure0, overflow0, QA chrome 노출0, computed contrast 최소
+  light 4.79/dark 5.84, immutable result reorder·experiment rev8 apply/rev7 undo, owner8×state6 recovery 48/48를
+  관찰했다. 증거는 `tasks/marketing-agent-design-v18-browser-qa.json`에 저장했다.
+- **독립 판정:** reviewer v4는 기존 14건 중 13건을 폐쇄했지만 고객 Studio에 `cmp_`/`cnt_`/`rev_`/
+  `pub_`/`ext_`/`exp_` 내부 식별자가 기본 노출되는 M14 고객 언어 위반 1건으로 B+ NO-GO를 판정했다.
+  reviewer output verifier는 PASS(Skill1/Web4/Socratic1/Design B)다.
+- **현재 실행:** 같은 product-designer에게 고객 visible-text에서 여섯 raw ID prefix를 0으로 만들되 immutable
+  lineage는 내부 state·data attribute·operator/debug에 보존하는 리테이크를 재위임했다. 제품 source/API/DB/deploy
+  변경은 0이며 design artifacts_ok=false, eng-design/build/qa/ship 잠금 유지다.
+- **정확한 다음 액션:** designer retake 수신→designer verifier→고객 14단계/26목적지 raw ID visible-text 전수감사→
+  12조합 Chrome QA 재실행→독립 reviewer MAJOR0 재판정. 통과하면 최종 prototype을 웹으로 열고 사용자 검토를
+  요청한다. 사용자 화면 승인 전 `/approve design` 금지.
+
+### 2026-08-07 23:10 KST — design v18 독립 GO·사용자 승인 대기
+- **최종 산출:** `DESIGN.md`, `docs/user-flow-marketing-agent-v18-gpt-codex.md`,
+  `docs/WIREFRAMES/marketing-agent-v18-gpt-codex.md`,
+  `docs/prototype/openclaw-auto-marketing-agent-fidelity-v18-gpt-codex.html`, design output와 governing review다.
+  prototype SHA는 `c520a53d754fbe68a29b2b965c4cfd6e49421817a7d9ef27e95a53a5284882e4`다.
+- **검증:** parent Chromium customer/operator × light/dark × 1440/1024/390 12/12 PASS, console0,
+  overflow0, interaction failures0, contrast light≥4.79/dark≥5.84, `qaToolsHidden`/`qaRestoreHidden` 12/12,
+  visible `검수`0. customer routes26/journey14/dialogs4에서 raw ID·undefined jargon0, immutable lineage
+  reorder/apply/undo PASS, owner8×state6 recovery48/48 PASS. JSON=`tasks/marketing-agent-design-v18-browser-qa.json`.
+- **독립 판정:** governing review v6는 RESOLVED14/14, OPEN MAJOR0/MINOR0, Design B+, GO. reviewer와
+  designer 품질 verifier 모두 PASS(파일-write 카운터 경고는 실제 산출물·SHA로 보완).
+- **제품 계약:** Sidebar Social Posts→Messaging→Social Short Video, Studio 텍스트→사진·카드뉴스→짧은 영상,
+  기존 GitHub/톤/6문항 import + target wiki create/edit/version/archive/rollback, 가입→브랜드→캠페인→생성·수정·
+  승인→개별/일괄 발행·예약→Queue/Inbox/Calendar→결과/permalink→통합/채널 성과→다음 단일변수 실험을 포함한다.
+- **경계:** 이것은 design prototype GO이며 실제 OAuth, provider publish, permalink readback, analytics persistence는
+  아직 미구현·미검증이다. 제품 source/API/DB/deploy 변경0. pipeline은 design awaiting-approval/artifacts_ok=true,
+  plan만 승인됨; 사용자 화면 확인 전 `/approve design` 및 eng-design 진입 금지.
+- **정확한 다음 액션:** 최종 prototype과 웹 렌더 PRD를 open해 사용자에게 보여준다. 사용자가 화면을 승인하면
+  `/approve design`으로 SHA 재검증 후 eng-design 티키타카를 시작하고, 반려하면 같은 product-designer에 정확한
+  수정점을 재위임한다.
+
+### 2026-08-08 00:26 KST — design v19 재개방: 플랫폼별 생성·OAuth/Admin·UI 일관성
+- **handoff 기준:** 현재 Codex 채팅과 `openclaw-auto:0.0`은 동일 세션임을 capture로 확인했다. 사용자의 최신
+  직접 피드백을 primary로 사용한다.
+- **사용자 요구:** OSMU Studio뿐 아니라 각 Social/Video 플랫폼 화면에서 해당 플랫폼 범위로 초안 생성·수정·
+  승인·즉시 게시·예약이 가능해야 하고, OSMU에서 만든 같은 canonical 작업물도 각 플랫폼 화면에 보여야 한다.
+  OSMU Messaging 왼쪽 padding, Settings 연결 시험 위 gap, Calendar 작업공간 시각 아래 gap을 포함한 공통 간격과
+  버튼·카드·창 컴포넌트 일관성을 보정한다. 고객 OAuth→API 자동화 준비와 Admin 계정별 사용량도 사실대로 재검증한다.
+- **코드 감사 사실:** generic `ChannelPage`는 Queue/Analytics/Settings(+Threads Growth/Popular)이고 QueueList에는
+  새 초안 composer가 없다. Instagram만 별도 CardNewsEditor가 있다. v18 플랫폼 `새 초안`은 Studio로 이동하므로
+  플랫폼 안 독립 생성 요구를 충족하지 못한다. 실제 UI는 `DESIGN.md`/`docs/ui-rules.md`와 `Card`/`Badge` 등 일부
+  공유 컴포넌트가 있으나 Button/Dialog/Stack/Section/ActionGroup을 강제하는 공통 구현이 없고 raw Tailwind 간격이 반복된다.
+- **OAuth 사실:** provider OAuth authorize/callback, fail-closed readiness, 암호화 channel_accounts, 다계정 기본전환,
+  Settings/header projection 코드는 존재한다. 그러나 외부 provider 앱 credential/App Review와 실계정 callback→scope→
+  refresh→publish/permalink 왕복은 전 채널 완료 증거가 없고 기존 사용자 false-success 관찰은 미해소 상태다.
+- **Admin 사실:** `/operator/customers`는 가입자/워크스페이스/연결계정/초안/발행/실패/usage event/생성/쇼츠,
+  계정 정지·재개, 공유 AI 승인, 중앙 OAuth credential을 제공한다. 계정별 LLM input/output token·원화/달러 비용·
+  모델별 breakdown은 usage ledger/API/UI에 없어 미구현이다.
+- **단계 상태:** v18 승인 후보를 철회하고 design in-progress/artifacts_ok=false로 되돌렸다. plan v7.3.5 승인은 유지한다.
+  제품 source/API/DB/deploy 변경은 0이다.
+- **정확한 다음 액션:** product-designer에게 v19 DESIGN/user-flow/wireframe/단일 prototype 리테이크를 위임한다.
+  platform-local Create와 OSMU projection, 공통 content-platform tabs/component spacing system, OAuth automation readiness
+  ladder, Admin per-account usage target/current boundary를 구현한 뒤 quality verifier→parent Chromium→independent review를
+  통과시킨다. 사용자에게는 변경된 최종 prototype 1개만 open한다.
+
+### 2026-08-08 17:38 KST — design v19 정리·웹 렌더 경로 확보
+- **현재 실행:** design v19 산출물은 유지되었고 제품 source/API/DB/deploy 변경은 0이다. plan v7.3.5 승인 상태는 유지된다.
+- **실행 증빙:**
+  - 정적 DOM QA: `/private/tmp/marketing-v19-static-qa-retake.log` (`pass: true`, assertions 220, destinations 26, steps 14, matrix 12, consoleErrors 0).
+  - parent Chromium 증빙(JSON): `/private/tmp/marketing-v19-parent-qa.json` (`pass: true`, matrix 12, consoleErrors 0,
+    manifest destinations 26, campaign 14, 공통 IA 5, reusable components 16+).
+  - 스크린샷 12장: `/private/tmp/ma-v19-parent/customer-light-1440.png` 등 12개(`customer/operator × light/dark × 390/1024/1440`)가 생성됨.
+  - 재시도 실패: `node /private/tmp/marketing-v19-parent-qa.cjs` 재실행 시 현재 세션에서 `Permission denied (1100)`로 브라우저 실행이 중단됨.
+- **웹 렌더 파일 생성:** `md-to-web`으로 산출물 html 변환 완료.
+  - PRD: `/tmp/zeroone-web-openclaw-auto-marketing-agent-prd-v7.3.5-gpt-codex.html`
+  - user-flow: `/tmp/zeroone-web-user-flow-marketing-agent-v19-gpt-codex.html`
+  - wireframe: `/tmp/zeroone-web-marketing-agent-v19-gpt-codex.html`
+  - 환경 제약으로 `open` 실행 실패(`kLSExecutableIncorrectFormat`)하여 수동 확인은 사용자 측에서 열람 필요.
+- **보류 및 다음 액션:** provider OAuth callback→publish/permalink/metric real path, write-owner/idempotency API 계약,
+  platform별 publish readiness 외부 동작은 plan reopen 대기 중.
+  회장 승인/검토 후 ① `task/design v19` 산출 확인 및 `/approve design` 요청, ② `/approve` 통과 시 eng-design 티키타카 전환으로 진행.
+
+### 2026-08-08 17:41 KST — marketing-agent-design-v19 VERIFY retake 정합 보정
+- **handoff 기준:** 사용자가 지정한 v19 retake 과제와 현재 repo 파일을 primary로 사용했다. 같은 task 파일을 병렬 세션이
+  17:35 KST에 재작성한 사실을 발견해 그 내용을 삭제하지 않고 현재 파일 SHA와 실제 가산 Edit 기록만 정합 보정했다.
+- **변경:** `DESIGN.md`, v19 user-flow, v19 wireframe에 M13/M14 정적 계약과 v19 실브라우저 회수 경계를 가산했다.
+  prototype은 제품 UI·상호작용을 재배선하지 않고 `reviewBoundary` manifest와 품질 footer만 가산했다.
+  `tasks/marketing-agent-design-v19.output`에는 design constitution, design-review, WebSearch query4, Edit/Write5와 최신 SHA를 기록했다.
+- **검증:** `verify-agent-quality.sh tasks/marketing-agent-design-v19.output product-designer` PASS
+  (`Skill 1 design-review`, `WebSearch/Fetch 8`, `Design Score B`). 현재 prototype 정적 QA PASS
+  (`assertions 220`, `destinations 26`, `steps 14`, `platforms 4`, `matrix 12`, `consoleErrors 0`).
+- **증거 경계:** 현재 prototype SHA는 `80596e445bac293a4f8ef647440e0963cc83e578783a09e1c0331dd595ff2210`이다.
+  이번 retake의 Chromium 재실행은 macOS bootstrap 권한 오류로 실패했으므로 M13 owner8×state6 실제 전환과 M14 고객 원초성
+  식별자 0·inspector hidden·contrast/touch/overflow/focus 12조합은 governing closure로 주장하지 않는다. 기존 v18/v19 브라우저
+  파일은 참고 증거이며 현재 retake의 최종 승인으로 자동 승계하지 않는다.
+- **다음 액션:** 부모 컨트롤러가 current-hash v19 브라우저 matrix를 재실행하고, canonical identity·projection write owner·
+  publish idempotency를 plan reopen에서 회장과 합의한다. 그 전 design 최종 승인·eng-design 계약 동결은 불가하다.
+
+### 2026-08-08 18:35 KST — 화면 오픈 및 증적 정합 확인
+- **현재 실행:** `open`/브라우저 렌더 경로는 회수하여 확인했으나 GUI 실행 실패로 화면이 실시간으로 뜨지 않았다.
+  - 실패 로그: `kLSExecutableIncorrectFormat`, `kLSNoExecutableErr` (Obsidian/Chrome 앱 실행 불가로 추정), `No application knows how to open URL`(Safari/Chrome 호출).
+  - App 바이너리 존재는 `Google Chrome.app`가 `/Applications`에 있었으나 macOS 레벨 실행이 차단되어 로컬에서 강제 뷰어 오픈이 불가.
+- **확인된 증적(파일):**
+  - PRD HTML: `/tmp/zeroone-web-openclaw-auto-marketing-agent-prd-v7.3.5-gpt-codex.html`
+  - user-flow HTML: `/tmp/zeroone-web-user-flow-marketing-agent-v19-gpt-codex.html`
+  - wireframe HTML: `/tmp/zeroone-web-marketing-agent-v19-gpt-codex.html`
+  - 통합 뷰 HTML(이미지 링크): `/tmp/openclaw-marketing-display.html`
+  - 스크린샷 12장: `/private/tmp/ma-v19-parent/*` (customer/operator × light/dark × 390/1024/1440)
+  - 부모 브라우저 재현증거: `/private/tmp/marketing-v19-parent-qa.json`
+  - 정적 QA: `/private/tmp/marketing-v19-static-qa-retake.log`
+- **남은 이슈/차단:** 화면 오픈은 환경 제약으로 미완, 다만 산출물 파일과 QA 증거는 존재.
+- **다음 액션:**
+  1) 사용자 측 브라우저에서 위 3개 HTML 중 1개(또는 통합 뷰 1개)를 열어 최종 화면 확인.
+  2) 확인 후 사용자 피드백 반영이 있으면 product-designer의 v19 재위임 또는 수정 항목 보완.
+  3) 사용자 승인 확보 시 회장은 `/approve design` 가능; 승인 전에는 design 최종 확정·eng-design 진입 금지.
+
+### 2026-08-08 19:2x KST — 파이프라인 상황 파악(읽기 전용, 신규 Claude 세션)
+- **handoff 기준:** 회장 요청은 "현재 openclaw 제품 파이프라인 상황 파악". handoff source는 회장이 명시하지 않아
+  파일(`pipeline-state.md` + 이 session-state.md)만 근거로 사용했고 tmux pane transcript는 읽지 않았다.
+  **다음 세션 주의: tmux pane과 이 파일 중 무엇을 primary로 할지 회장 확인 필요.**
+- **한 일:** 상태 조회만 수행. 파일 변경 0, 제품 source/API/DB/deploy 변경 0, 테스트/빌드 실행 0
+  (읽기 전용 파악 요청이라 E2E 대상 변경 자체가 없음).
+- **파악 결과:** plan = 승인(2026-08-07 15:35, PRD v7.3.5, critic n=26 MAJOR0). design = in-progress v19,
+  artifacts_ok=false. eng-design/build/qa/ship = pending.
+  v19 정적 QA·verify는 PASS(Design Score B)지만 현재 prototype SHA `80596e44…` 기준 실브라우저 12조합
+  재실행은 macOS 실행 권한 오류(`Permission denied 1100`, `kLSExecutableIncorrectFormat`)로 **미검증**.
+- **미해소 실물 리스크:** provider OAuth 실계정 callback→scope→refresh→publish/permalink 왕복 전 채널 미검증
+  (과거 false-success 미해소), Admin 계정별 LLM 토큰·비용 breakdown 미구현.
+- **회장께 올린 판단 2건:** ①v19 프로토타입 1개를 Chrome 도구로 열어 시각 검수할지 ②현재 해시 실브라우저
+  12조합 QA PASS를 `/approve design` 조건으로 걸지. 회장 응답 대기 중.
+- **정확한 다음 액션:** 회장이 ①승인하면 `docs/prototype/openclaw-auto-marketing-agent-fidelity-v19-gpt-codex.html`
+  단 1개를 브라우저 도구로 열어 보여준다. ②승인하면 현재 해시로 12조합(customer/operator × light/dark ×
+  390/1024/1440) 재실행 후 결과를 여기 기록한다. 둘 다 통과 전 `/approve design`·eng-design 진입 금지.
+
+### 2026-08-08 19:5x KST — design v20 위임 착수 (회장 직접 지시 2건)
+- **handoff 기준:** 회장의 이번 채팅 지시를 primary로 사용한다(tmux pane 미참조).
+- **회장 지시 원문 박제:**
+  1) "v19 화면에서 너가 좀 더 디벨롭해봐. 신규유저가 회원가입해서 Ouath연결만하면 API키 저장되고 볼수도있고
+     컨텐츠 생성 수정 발행 성과 그리고 settings도하고 Admin도 관리잘하고"
+  2) "무슨말인지 모르겠는데. 내 의도는 디자인할때 기존에 구현되어있는 제품 (사이트,코드,위키)등 참고해서
+     새로만들거나 이상한 소리하지말라는거였음"
+  → 2)를 design 단계 최우선 계약으로 승격: **발명 금지, 기존 구현(사이트·코드·위키)이 정본, 신설은 additive만.**
+  → 부모가 앞서 물었던 "실브라우저 QA를 승인 조건으로 걸까" 질문은 철회했다(회장 의도와 무관한 질문이었음).
+- **부모 실측 라우트(추측 아님, find 결과):** page = signup/login/studio/channels/[channel]/calendar/inbox/images/
+  videos/blog/blog-performance/performance/keyword-planner/google-trends/naver-trends/google-analytics/
+  search-console/search-advisor/services/settings/operator/operator-customers/privacy/terms/data-deletion.
+  OAuth = api/connect/[provider], api/connect/[provider]/callback, api/connect/readiness.
+  온보딩·토큰 = api/onboarding, api/tenant-tokens, api/token-status, api/claude-token, api/auth/google.
+  운영자 = api/operator/customers, api/operator/oauth-credentials.
+- **위임:** `product-designer`에 design v20 리테이크. 기반 핀 = PRD v7.3.5 + DESIGN.md + docs/ui-rules.md + v19 3종.
+  산출 예정 = DESIGN.md v20 섹션, `docs/user-flow-marketing-agent-v20-gpt-codex.md`,
+  `docs/wireframes/marketing-agent-v20-gpt-codex.md`,
+  `docs/prototype/openclaw-auto-marketing-agent-fidelity-v20-gpt-codex.html`(회장에게 열 단일 1개),
+  `tasks/marketing-agent-design-v20.output`(보존/가산/미구현 3분류 매니페스트 포함).
+- **여정 범위:** 회원가입 → OAuth 1회 승인으로 자격증명 저장·연결상태 readback(raw 토큰 비표시, identity/scope/expiry만)
+  → 플랫폼별 독립 생성·수정·승인·즉시게시·예약 + OSMU canonical 투영 → 성과(native + 집계, 표본부족 hold)
+  → Settings → Admin. Admin 계정별 LLM 토큰·비용 breakdown은 코드 미구현이므로 목표/현재 경계 표시 강제.
+- **금지 유지:** 제품 source/API/DB/deploy 변경 0. v19 파일은 덮지 않고 보존.
+- **검증 상태:** v20 미착수 완료. 실브라우저 Chromium은 macOS 권한 오류 이력이 있어 실패 시 "미검증"으로 기록하도록
+  위임 계약에 명시했다. v18/v19 브라우저 증거를 v20 해시로 승계 금지.
+- **정확한 다음 액션:** product-designer 산출 수신 → `verify-agent-quality.sh tasks/marketing-agent-design-v20.output
+  product-designer` 실행(PASS 아니면 반려·재위임 또는 ⛔검증실패 라벨) → v20 prototype 1개만 회장에게 open →
+  회장 시각 승인 후에만 `/approve design`. 그 전 eng-design 진입 금지.
+
+### 2026-08-08 20:1x KST — OAuth 소유권 질문 해소 + 심사 게이트 갭 발견
+- **handoff 기준:** 회장의 이번 채팅 질문을 primary로 사용(tmux pane 미참조). 다음 세션이 tmux를 기준으로 삼아야 하면
+  회장 확인 필요.
+- **회장 질문 원문:** "외부 사용자가 신규가입하고 가령 인스타그램 로그인하면 API자동화 바로 가능해?
+  그러려면 그 계정용 API키 시크릿이 우리한테 들어와야하는거아니야?"
+- **코드 실측 답(근거 확인, 파일 Read):** 사용자 API 키·시크릿은 우리에게 들어오지 않는다. 키는 2계층이다.
+  ① 앱 credential(App ID/Secret) = 우리 소유 provider당 1세트, `oauth_app_credentials` 암호화 저장,
+     운영자가 `/operator/oauth-credentials`로 입력 (`dashboard/src/lib/oauth-app-credentials.ts`).
+  ② 사용자 access/refresh token = tenant별, `channel_accounts`에 `pgp_sym_encrypt`로 암호화 저장
+     (`dashboard/src/lib/channel-accounts.ts`), `api/connect/[provider]/callback`이 발급 수령.
+  사용자는 "허용" 클릭만 하며 개발자 콘솔 키 발급·복붙 단계는 기본 경로에 없다. 구조 자체는 이미 구현됨.
+- **★ 새로 드러난 갭(회장 질문 덕에 표면화):** "OAuth 연결 = 즉시 자동화"는 성립하지 않는다. 블로커는 우리 코드가 아니라
+  **플랫폼 앱 심사**다. `lib/oauth-app-credentials.ts`의 `externalReview` 실측:
+  required = instagram, threads, youtube, naver_blog, pinterest, tiktok, facebook /
+  unknown = x, linkedin, tumblr, slack, line.
+  심사 전에는 개발자 등록 테스트 계정만 동작하므로 외부 신규 유저는 연결해도 발행이 막힌다.
+  (인스타 발행이 비즈니스/크리에이터 계정을 요구한다는 점은 **미검증** — 심사 준비 시 공식 문서로 확정 필요.)
+  기존 false-success 관찰(callback이 identity/scope/expiry readback 없이 성공 표시)과 겹치면 유저는 "연결됨"을 믿고
+  발행 실패를 겪는다.
+- **v20 위임과의 관계:** 현재 진행 중인 product-designer v20 위임에는 "심사 상태에 따라 채널별 발행 가능/불가가 갈린다"는
+  화면 계약이 **빠져 있다**. 회장 결정 후 추가 지시로 주입 예정.
+- **회장께 올린 판단 2건(응답 대기):** ①신규 유저 화면에서 심사 미통과 채널 표시 방식 —
+  추천은 3단 상태(연결안됨 / 연결됨·발행가능 / 연결됨·발행대기-심사중), 대안은 심사통과 채널만 노출.
+  ②어느 채널 심사를 먼저 신청할지(사업 우선순위, 심사는 회장 계정으로 Meta 콘솔에서 신청해야 함).
+- **파일 변경:** 이 노트뿐. 제품 source/API/DB/deploy 변경 0. 테스트 실행 대상 없음(읽기 전용 조사).
+- **정확한 다음 액션:** ①회장이 심사 상태 표시 방식을 정하면 v20 위임에 주입 ②product-designer v20 산출 수신 시
+  `verify-agent-quality.sh tasks/marketing-agent-design-v20.output product-designer` 실행 → PASS 시 prototype 1개만 open
+  ③심사 required 7채널의 실제 심사 요건을 공식 문서로 확정해 `wiki/reference/channel-status.md`에 발행가능 조건 컬럼 추가.
+
+### 2026-08-08 20:4x KST — 플랫폼 심사·쿼터 조사 완료 (회장 질문 3건)
+- **handoff 기준:** 회장의 이번 채팅 질문을 primary로 사용(tmux pane 미참조). 기준 변경이 필요하면 회장 확인.
+- **회장 질문:** ①심사 미통과 표시를 "유저 미준비=미연결 / 우리 admin 미연결=오픈 준비중"으로 갈라도 되나
+  ②인스타·페북·유튜브는 이미 된 거 아닌가, 조사 안 하나 ③우리가 앱 키를 등록하면 일반 회원은 자기 API 키·시크릿
+  발급 없이 자동화 가능한가, 회원 많아지면 문제없나.
+- **①에 대한 결론(회장안 채택 + 1보강):** 사유 주인으로 분기한다. 유저 사유=미연결, 우리 사유(앱키 미등록 또는
+  플랫폼 심사 진행 중)=오픈 준비중. 보강: 인스타 발행은 프로페셔널(비즈니스/크리에이터) 계정 + 페이스북 페이지
+  연결이 필요하므로, 개인 계정 유저에게는 미연결 안에 "전문 계정 전환 후 연결 가능" 사유를 표시한다.
+- **②조사 결과(웹 근거):** 코드의 `externalReview:"required"`는 **요건 표시일 뿐 우리 통과 기록이 아니다.**
+  우리 통과 여부는 Meta/Google 콘솔에만 있고 회장 계정 로그인이 필요해 세션이 확인 불가 → 캡처 요청함(미검증).
+  인스타: `instagram_basic`+`instagram_content_publish` 권한별 심사, 회당 2~4주, 사용사례+화면녹화 필요.
+  유튜브: 심사가 아니라 **쿼터 규정준수 감사(audit)**가 관문, 수주~수개월, 거부 다수.
+  페이스북: 같은 Meta 앱 심사 체계.
+- **③핵심 결론 — 회원 확장 병목은 유튜브다:**
+  - 인스타/페북 = **사용자당** 시간당 200회이며 앱 전체 한도가 사용자 수에 비례 증가 → 회원 증가에 구조적으로 안전.
+    (계정당 24시간 발행 상한은 자료마다 25/50/100으로 갈림 → **미검증**, 심사 시 공식문서로 확정 필요.)
+  - 유튜브 = 쿼터가 **프로젝트 전체 하루 10,000 유닛 공유**(API 키 여러 개도 같은 풀). 업로드 비용은 2025-12에
+    ~1600→~100 유닛으로 인하되어 기본 하루 약 100건. 이 100건이 회원 1인당이 아니라 **전체 합계**라
+    회원 100명이 하루 1개씩만 올려도 소진되고 이후 전원 실패. 조회·분석 호출도 같은 풀.
+  - 회원이 자기 키 없이 자동화하는 것 자체는 OAuth 표준이며 Later/Metricool 등 기존 서비스와 동일 방식 → 가능.
+- **코드 사실:** 쿼터 관련 코드는 `lib/operator-auth-rate-limit.ts`(운영자 로그인)와 AI 호출 쪽에 있고
+  **채널 발행 경로의 플랫폼 쿼터 소진 감지·대기·재시도는 확인되지 않았다**(근거 확인 수준, 정밀 감사 필요).
+- **파일 변경:** 이 노트뿐. 제품 source/API/DB/deploy 변경 0. 코드 변경이 없어 실행할 테스트 대상 없음.
+- **회장 응답 대기(판단 3건):** ①유튜브 처리(추천: 감사 통과까지 오픈 준비중 / 대안: 회원당 일일 상한+잔여 표시)
+  ②심사·감사 신청 채널 순서(=출시 순서, 건당 2~4주) ③현재 심사·쿼터 상태 콘솔 캡처
+  (Meta: developers.facebook.com/apps → 앱 심사 → 권한 및 기능에서 `instagram_content_publish` 승인 여부 /
+   Google: console.cloud.google.com → API 및 서비스 → YouTube Data API v3 → 할당량 일일 한도).
+- **정확한 다음 액션:** ①회장 결정 수신 후 3분류 상태(미연결/오픈준비중/발행가능)와 유튜브 정책을 진행 중인
+  product-designer v20 위임에 추가 주입 ②v20 산출 수신 시 `verify-agent-quality.sh tasks/marketing-agent-design-v20.output
+  product-designer` 실행 → PASS 시 prototype 1개만 open ③`wiki/reference/channel-status.md`에 채널별
+  "발행 가능 조건(심사·계정종류·쿼터 단위)" 컬럼 추가 — 조사 결과 반영, 회장 캡처로 통과 여부 확정 후.
+
+### 2026-08-08 21:5x KST — design v20 수신·검증 PASS·화면 오픈, 후속 위임 2건 진행
+- **handoff 기준:** 회장 이번 채팅 지시를 primary로 사용(tmux 미참조).
+- **회장 지시 3건:** ①심사 상태 UX(미연결/오픈준비중)를 고려해 디벨롭 ②"OSMU에 이미 자동화 활성화된 플랫폼 있지 않나"
+  ③"later/metricool은 뭐임, 유튜브는 쇼츠인 거 알지, 플랫폼별 정책도 조사해서 잘 기획하라" + 포지셔닝을 위키에 박제 + 프로토타입 디벨롭.
+- **②에 대한 코드 사실:** `IMPLEMENTED_PLUGINS` 16채널 = threads, x, instagram, facebook, bluesky, telegram, discord,
+  slack, line, tumblr, pinterest, linkedin, tiktok, youtube, naver_blog, midjourney. extensions 디렉터리에도 각
+  `*-publish` 익스텐션 존재. `AUTOMATION_FEATURES`에서 implemented=true = content_generation, auto_publish,
+  insights_collection, auto_like_replies, trending_collection / implemented=false = auto_reply, low_engagement_cleanup.
+  즉 **코드 구현은 16채널 되어 있음**. 이것과 "외부 유저 대상 플랫폼 심사 통과"는 별개 층위다(회장 콘솔 캡처 대기).
+- **design v20 수신:** product-designer 완료. 산출 = `docs/prototype/openclaw-auto-marketing-agent-fidelity-v20-gpt-codex.html`
+  (SHA-256 `fa1877eb475ab53709f6fe62ec74a62deb7c80941230c5689058554a7964a54d`),
+  `docs/user-flow-marketing-agent-v20-gpt-codex.md`, `docs/wireframes/marketing-agent-v20-gpt-codex.md`,
+  `DESIGN.md` v20 섹션 가산, `tasks/marketing-agent-design-v20.output`.
+- **검증:** `verify-agent-quality.sh <transcript> product-designer` **PASS** (Skill 2회 design-review 포함,
+  WebSearch/Fetch 6회, 소크라마커 14, Design Score A). ※주의: 이 스크립트는 exit report(.output)가 아니라
+  **에이전트 JSONL 트랜스크립트**를 인자로 받아야 한다(exit report를 주면 오탐 FAIL).
+- **v20이 v19에서 되돌린 것(발명 교정):** ①Threads Growth/Popular를 Analytics로 병합했던 v19를 실제
+  `ChannelPage.tsx` 탭배열(queue/analytics/growth/popular/settings)대로 복원 ②운영자 9항목 중 실제 구현 4개만
+  실제로 표시하고 나머지 5개에 "아직 없음" 라벨. `.panel + .panel{margin-top:16px}`가 grid에서 오작동해
+  카드 2·3번째가 16px 밀린 실제 버그를 찾아 717/733/733 → 719/719/719로 교정.
+- **화면 오픈 성공(이전 세션 실패 해소):** `file://`는 Chrome MCP가 거부하고 `open`은 macOS 실행 오류가 나므로
+  **로컬 HTTP 서버로 우회**했다. `python3 -m http.server 8912` (cwd=docs/prototype) → 200 확인 →
+  `http://127.0.0.1:8912/openclaw-auto-marketing-agent-fidelity-v20-gpt-codex.html` Chrome 탭 렌더 스크린샷 확인.
+  ※8899 포트는 다른 디렉터리 서버가 선점 중이라 404가 났다. 재현 시 8912 사용.
+- **진행 중 위임 2건:** ①general-purpose → `docs/platform-policy-matrix-v1-gpt-codex.md`
+  (16채널 인증방식·심사·계정요건·한도단위·발행상한·규격·토큰수명·자동화정책 + 유튜브 쇼츠 조건 + 틱톡/인스타/네이버/X 정책
+  + Later/Metricool/Buffer 벤치마크 + 다중사용자 확장 위험 순위) ②content-growth-marketer → `wiki/product/positioning.md`
+  (회장 발화 verbatim + 차별점 4층: 심사·키 발급 대행 / 브랜드 위키 근거 생성 / 누적 학습 / AARRR 퍼널,
+  각 층이 진입자격인지 차별점인지 벤치마크로 판별, AARRR 매핑, 헤드라인 후보, 아직 주장 금지 조건).
+- **미검증·보류:** 실제 provider OAuth 왕복(연결→scope→refresh→발행→permalink)은 여전히 미검증. v20에도 아직
+  3단 채널 상태(미연결/오픈준비중/발행가능)와 플랫폼별 정책 반영이 **안 들어갔다**(회장 지시가 v20 위임 이후 도착).
+- **파일 변경:** v20 산출물 4종 + 이 노트. 제품 source/API/DB/deploy 변경 0.
+- **정확한 다음 액션:** ①정책 매트릭스 수신 → 그 사실로 3단 상태 UX + 유튜브 쿼터 정책 + 쇼츠 규격을
+  `SendMessage`로 같은 product-designer에게 v21 보강 위임(새 에이전트 스폰 금지, 컨텍스트 유지) ②positioning.md 수신 후
+  verify → 회장 검토용 웹 렌더 ③회장 결정 6건(exit report에 전문) 중 최소 "볼 수도 있고"의 의미와 Create/Calendar
+  신설 범위를 확정해야 eng-design 진입 가능 ④`wiki/reference/channel-status.md`에 발행가능 조건 컬럼 추가.
+
+### 2026-08-08 22:2x KST — 플랫폼 정책 매트릭스 수신·유튜브 수치 확정·v21 보강 위임
+- **handoff 기준:** 회장 이번 채팅 지시를 primary(tmux 미참조).
+- **산출 수신:** `docs/platform-policy-matrix-v1-gpt-codex.md` (60KB, 소스 86개, 미확인 31건 명시).
+  검증 `verify-agent-quality.sh <transcript> research` = **PASS**(WebSearch/Fetch 2, 소크라마커 3, 경고 1: SKILLS_SKIPPED 미선언).
+- **★ 부모가 공식문서로 상충 해소:** 매트릭스는 YouTube `videos.insert` 비용을 1600 vs 1 유닛으로 상충 기재했다.
+  https://developers.google.com/youtube/v3/determine_quota_cost 직접 확인 결과
+  **호출당 1 유닛 + 하루 100회 별도 상한**이다. 즉 유효 상한 = 우리 GCP 프로젝트 전체가 **하루 100건 업로드**,
+  회원 1인당이 아니라 전 회원 합계. (앞선 세션의 "~100 유닛/1600 유닛" 서술은 이 값으로 대체.)
+- **핵심 발견 6건:**
+  1) 한도 단위가 채널 로스터를 둘로 가른다. 계정당(회원 증가 안전) = instagram(100/24h 롤링, 널리 인용되는 25는 구값),
+     threads(250), bluesky(~11,666), facebook(페이지별), slack(워크스페이스별).
+     앱 전체 공유(회원 늘면 파손) = youtube(GCP 프로젝트), tumblr(consumer key 5,000/day),
+     discord(봇 전역 50 req/s), telegram(봇 30 msg/s), pinterest(Trial 300/day).
+  2) YouTube = 최악 케이스(위 100건/일 전체 공유). Shorts 전용 API 없음, 같은 `videos.insert` 경로.
+     Shorts 조건 = 세로/정사각 + 3분 미만, `#Shorts` 불필요.
+  3) TikTok = 미심사 앱은 SELF_ONLY(비공개) 게시만 + 24시간당 5명 제한. 감사가 공개 게시의 관문.
+     PULL_FROM_URL은 도메인 소유 검증 필요.
+  4) **네이버 블로그 발행 API 없음** — 2020년 5월 글쓰기 API 종료(광고블로그 양산 차단), 검색 API만 잔존.
+     경쟁 5社도 전부 미지원 → 반자동(초안 생성, 사람이 게시)이 정직한 범위이자 한국시장 차별점.
+  5) X = 쿼터가 아니라 **비용** 문제. 2026-02-06부터 신규 개발자 무료등급 폐지, 게시당 $0.015,
+     **URL 포함 시 $0.20**. Metricool은 X 연결에 월 $10 추가 과금 = 비용 전가 선례.
+  6) **OSMU가 중복 콘텐츠 정책과 충돌** — YouTube는 최소변경 유사 대량생산 금지, TikTok 2025-09 오리지널리티
+     정책이 유사중복 노출 억제, Pinterest는 반복 이미지 플래그. → **채널별 재작성은 옵션이 아니라 필수 파이프라인 단계**.
+  + 경쟁 5社(Later/Metricool/Buffer/Hootsuite/Publer) **전부 원클릭 OAuth**, 사용자 개발자앱 등록 요구 0.
+    → "키 발급·심사 대행"은 차별점이 아니라 **진입 자격**. Buffer의 인스타 오류 라이브러리, Publer의
+    "이건 TikTok API 제한입니다" 명시가 실패 표면화 베스트 패턴.
+- **⛔ 매트릭스가 올린 회장 결정 5건:** YouTube 자동발행 채널 유지 여부, 네이버 블로그 범위 강등,
+  Midjourney 대체(공개 API 없음·ToS가 자동화 금지), X 비용 전가 모델, API키 입력→OAuth 온보딩 전환(비가역).
+- **v21 보강 위임 발신:** 같은 product-designer를 `SendMessage`로 재개(새 스폰 X, 컨텍스트 유지). 지시 내용 =
+  3단 상태(미연결=유저사유/오픈준비중=우리사유/발행가능) 일관 적용, Shorts 규격, 확정된 YouTube 100건/일,
+  앱전체공유 채널의 잔여량 표시(유저=오늘 가능한지, 운영자=전체 잔여), TikTok 비공개 제약, 네이버 반자동 정직표시,
+  X 게시당 비용 노출, 중복정책 대응으로 채널별 재작성 필수화. 산출 = v21 4종(v20 보존) + diff 매니페스트.
+  실브라우저 우회법(`python3 -m http.server 8912`, 8899 선점 회피)도 전달했다.
+- **파일 변경:** 매트릭스 1개 + 이 노트. 제품 source/API/DB/deploy 변경 0.
+- **정확한 다음 액션:** ①v21 수신 → verify → 프로토타입 1개만 open ②`wiki/product/positioning.md`(위임 중) 수신 →
+  verify → 웹 렌더 ③`wiki/reference/channel-status.md`에 채널별 "한도 단위/심사 필요/계정 요건/발행 가능 조건" 컬럼 추가
+  (매트릭스 근거, 미확인 31건은 미확인으로 표기) ④회장 결정 5건 회수 후 eng-design 진입 판단.
+
+### 2026-08-08 22:5x KST — positioning.md 수신·design v21 수신·검증 PASS·화면 오픈
+- **handoff 기준:** 회장 이번 채팅 지시를 primary(tmux 미참조).
+- **positioning 수신:** `wiki/product/positioning.md` (190줄). 검증 `verify-agent-quality.sh <transcript>
+  content-growth-marketer` **PASS** (Skill 1회 brand-positioning-kit, WebSearch/Fetch 15회, 소크라 5, RUBRIC 23/25).
+  부모 스팟체크 완료: steelman("Buffer 발행+Jasper 보이스+Hootsuite 퍼널을 각각 열등하게 합친 제품이 될 것")과
+  WEAKEST_LINE 자가지적이 실재 → 후한 채점 아님으로 판단.
+  - **차별점 4층 판정:** ①키·심사 대행 = **진입자격**(Buffer 11·Later 8 플랫폼 모두 이미 원클릭. 게다가 우리는
+    Live가 Threads 1개뿐이라 현재는 오히려 적자 항목) ②브랜드 위키 = **절반만 차별점**(톤 학습은 HubSpot/Jasper가
+    이미 표준. 우리 고유 = 가격·혜택 등 **사실 단위 버전 승인 + 충돌 시 생성 hold + 산출물 계보**) ③누적 학습 =
+    **현재 차별점 아님, hold**(Buffer AI takeaway·Metricool 예측 존재, 우리 Learn threshold 미승인) ④AARRR =
+    **가장 강한 전략 차별점이나 증거가 가장 얇음**(GA4 연동 설계만 → 비전 섹션 한정, Revenue·Referral 미구현 명시).
+  - 포지셔닝 1문장 = "마케팅 담당자가 없는 1인 브랜드 대표를 위해, 목표 하나를 맡기면 조사·브리프 승인·세 형식 납품·
+    정확히 한 번의 발행·결과 보고까지 한 캠페인의 계보로 증명해 주는 마케팅 실행 에이전트". 훅 = "초안은 팔지 않습니다.
+    발행 증거를 팝니다."
+  - **⚠️ 기존 `wiki/product/vision.md`와 판정 상충:** vision.md는 moat로 "per-tenant wiki grounding + shorts pipeline"을
+    주장하는데 positioning.md는 그중 톤 학습 부분을 시장 표준으로 격하했다. 부모가 `wiki/product/index.md`에
+    positioning.md 링크를 추가하며 이 상충을 명시했다. **어느 쪽을 정본으로 할지 회장 확정 필요.**
+- **design v21 수신:** `docs/prototype/openclaw-auto-marketing-agent-fidelity-v21-gpt-codex.html`
+  SHA-256 `08fb5644239996d9e7ac2b750a5b7af99f18b2e851cd6097f8531fc1bc29463e`, + v21 user-flow/wireframe,
+  `DESIGN.md` v21 섹션 가산(v20 이하 무수정), `tasks/marketing-agent-design-v21.output`.
+  검증 **PASS** (Skill 2회 design-review 포함, WebSearch/Fetch 6, 소크라마커 21, Design Score A).
+  정적 QA 119 assertions 통과, **실브라우저 12조합 통과**(부모가 알려준 로컬 HTTP 서버 우회로 이번엔 성공).
+- **v21 가산 9건:** ①상태 3분류+사유 주인 칩(4개 화면 동일 어휘) ②미연결이 계정종류 문제일 때 해결법 동반(6채널)
+  ③오픈 준비중은 버튼 없음("기다리시면 됩니다") ④YouTube 쇼츠 판정조건 + 전 회원 공유 하루 100건
+  ⑤X 비용·링크 13배를 발행 전 표시 ⑥TikTok 심사 전 비공개 경고 ⑦네이버 블로그 초안까지만
+  ⑧채널별 다시쓰기를 게시 앞 필수단계 + 건너뛰기 danger 게이트 ⑨운영자 `한도와 정책` 탭.
+  변경 1건: Settings 채널목록 축이 토큰상태 → 3분류(토큰상태는 읽기카드 `연결 상태` 필드로 잔존, 삭제 0).
+  QA가 `1600`·`하루 6건`·`Facebook 25건/일`·LinkedIn 추정치 등 `[미확인]` 문자열 **부재**를 강제 검사한다.
+- **화면 오픈:** `http://127.0.0.1:8912/openclaw-auto-marketing-agent-fidelity-v21-gpt-codex.html` Chrome 렌더 확인.
+  홈 상단에 `발행 가능 1 / 미연결 6(내가 할 일) / 오픈 준비중 3(우리가 할 일)` 칩이 실제로 보임.
+- **미검증:** 실제 provider OAuth 왕복, 실제 쿼터 조회값(화면 12/100은 예시), 실사용자 관찰,
+  매트릭스 `[미확인]` 31건(화면에 안 그리는 방식으로 회피했을 뿐 해소 아님).
+- **파일 변경:** v21 산출물 4종 + `wiki/product/positioning.md` + `wiki/product/index.md` 1줄 + 이 노트.
+  제품 source/API/DB/deploy 변경 0.
+- **정확한 다음 액션:** 회장 결정 회수(누적 10건: 매트릭스 5 + v21 5). 특히 ①vision.md vs positioning.md 정본
+  ②온보딩 원클릭 전환(비가역) ③다시쓰기 자동생성 여부(채널 수만큼 생성비용↑ = 마진 직결)가 eng-design 진입 전 필수.
+  결정 후 `/approve design` → eng-design 티키타카(API 계약·스키마는 회장 합의 전 확정 금지).
+  `wiki/reference/channel-status.md` 발행조건 컬럼 추가는 결정 확정 후.

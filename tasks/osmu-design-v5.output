@@ -1,0 +1,196 @@
+# DESIGN-005 exit report: OpenClaw Auto OSMU Design v5
+
+## [모델]
+
+`gpt-codex/gpt-5.6-sol` / `product-designer`
+
+## 한 줄 결론
+
+OSMU v5를 6 providers, 8 surfaces, 12 capabilities, 공통 6탭, 6×9 Settings, current/target success와 recovery를 모두 실제 클릭 가능한 단일 허브로 완성했다. 구현 코드는 수정하지 않았다.
+
+## 기반 산출물
+
+- `pipeline-state.md` approved PRD v3.1.0
+- `docs/openclaw-auto-osmu-prd-v3.1-gpt-codex.md`
+- SHA-256 `b492ece1681476ee04d27d54347be245727aaaecbe6948b7a6b79f8033498e85`
+- `docs/one-thing.md`, `docs/persona.md`, `docs/bm.md`, `docs/risks.md`
+- `docs/qa-tracker.md` REQUEST-OSMU-001 17행, DESIGN-005 8행, OSMU-V3-TC-001~030
+- Marketing Hub as-built: Sidebar, globals tokens, Studio, Queue, Calendar, Global Settings, ChannelPage, InstagramPage
+
+## 산출물
+
+- `DESIGN.md`
+- `docs/user-flow.md`
+- `docs/WIREFRAMES/openclaw-auto-osmu-shell-v5-gpt-codex.md`
+- `docs/WIREFRAMES/openclaw-auto-osmu-editor-review-v5-gpt-codex.md`
+- `docs/WIREFRAMES/openclaw-auto-osmu-settings-v5-gpt-codex.md`
+- `docs/WIREFRAMES/openclaw-auto-osmu-queue-result-v5-gpt-codex.md`
+- `docs/WIREFRAMES/openclaw-auto-osmu-rtm-v5-gpt-codex.md`
+- `docs/prototype/openclaw-auto-osmu-all-platforms-v5-gpt-codex.html`
+- `docs/prototype/openclaw-auto-osmu-benchmark-evidence-v5-gpt-codex.jsonl`
+
+## Scope evidence
+
+- Provider: Threads, Instagram, Facebook, X, YouTube, TikTok, 6/6.
+- Surface: Threads Post, Instagram Feed/Reels, Facebook Page Feed/Reels, X Post, YouTube Shorts, TikTok Post, 8/8.
+- Capability: PRD canonical IDs 12/12.
+- 공통 탭: 6 providers × `Queue / Editor / Analytics / Growth / Popular / Settings`, 36/36, hidden 0.
+- Settings: 6 providers × 9 groups, 54/54. 각 group은 A/R/N, 고객 상태, 이유, evidence, enable 조건, 조치 CTA detail pane을 가진다.
+- Analytics/Growth/Popular: 6×3 contract 18/18, S/R/U와 표본 0/2/3, 가짜 0 없음.
+- Global Settings와 Platform Settings: summary/detail 역할 분리, 같은 account truth.
+- Instagram Feed/Reels, Facebook Feed/Reels: surface switcher, Editor fields, content/schedule readiness가 분리됐다.
+- Current readiness: Threads/Instagram 운영 관찰과 connection hard stop, Facebook/X/YouTube/TikTok credential/review/E2E gap을 숨기지 않는다.
+- Target contract: 6 provider 모두 generation, edit, review, Now/Schedule, Queue, processing, Result, recovery click path가 있다.
+
+## RTM
+
+- REQUEST-OSMU-001: 17/17.
+- DESIGN-005: 8/8.
+- OSMU-V3-TC-001~030: 30/30.
+- view orphan: 0.
+- state orphan: 0.
+- button orphan: 0.
+- 정본: `docs/WIREFRAMES/openclaw-auto-osmu-rtm-v5-gpt-codex.md`.
+
+## 브라우저 직접 관찰 증거
+
+`gstack browse` launched mode에서 file URL을 실제 렌더하고 직접 클릭했다. 서브에이전트 출고 규약에 따라 `open`은 사용하지 않았다.
+
+| 검증 | 결과 |
+|---|---|
+| 첫 snapshot 접근성 tree | provider 6개, tabs 6개, Queue actions 관찰 |
+| 6 provider × 6 tabs 직접 click | 42/42 PASS |
+| Platform Settings 9 groups 직접 click | provider별 9/9, 총 54/54 PASS |
+| Global Settings → Platform Settings | 6/6 PASS |
+| Threads generation/edit/save/review/target publish | PASS |
+| Instagram Feed generation/edit/target schedule | PASS |
+| Instagram Reels edit/review/target publish/processing | PASS |
+| Facebook Feed generation/edit/target schedule | PASS |
+| Facebook Reels edit/review/target publish/processing | PASS |
+| X generation/edit/settings/review/target publish | PASS |
+| YouTube Shorts generation/edit/settings/review/target publish/processing | PASS |
+| TikTok generation/edit/settings/review/target publish/moderation | PASS |
+| recovery state dropdown | loading, empty, wrong-account, tenant mismatch, false-success, token invalid, unreachable, review missing, processing, 502, timeout, partial, idempotency 13/13 PASS |
+| viewport | frame 1024px, frame 390px 직접 측정 PASS |
+| undersized interactive | 1024: 0, 390: 0 |
+| mobile horizontal overflow | frame 390/390, content 390/390, product overflow 0; tab bar만 의도된 horizontal scroll |
+| loading restraint | skeleton 1, enabled tabs 6, enabled providers 6 |
+| console | `(no console errors)` |
+| static file performance | DOM ready 21ms, total 26ms, 로컬 prototype 관찰값 |
+
+## Benchmark evidence
+
+1. Meta Threads/Instagram/Facebook official Postman workspaces
+   - 차용: container, publish, processing, insights의 lifecycle.
+   - 변경: provider 수락을 성공으로 쓰지 않고 external ID/link/identity를 Result Group 종료조건으로 둠.
+   - https://www.postman.com/meta/threads/overview
+   - https://www.postman.com/meta/instagram/overview
+   - https://www.postman.com/meta/facebook/overview
+   - https://www.postman.com/meta/facebook/folder/simabyk/reels-publishing
+2. X official Media and Metrics
+   - 차용: upload→media_id→post, auth별 metric 차이.
+   - 변경: current media gap과 pay-per-use/review를 readiness로 노출.
+   - https://docs.x.com/x-api/media/introduction
+   - https://docs.x.com/x-api/fundamentals/metrics
+3. YouTube Videos and processingDetails
+   - 차용: unverified private, publishAt 조건, processing terminal.
+   - 변경: Shorts의 privacy/audience/synthetic disclosure를 Final Review 필수값으로 둠.
+   - https://developers.google.com/youtube/v3/docs/videos
+   - https://developers.google.com/youtube/v3/guides/implementation/videos
+4. TikTok Direct Post and Get Post Status
+   - 차용: creator info, explicit consent, audit, moderation, publish status.
+   - 변경: creator/privacy/AI/commercial consent를 surface Editor와 Final Review에 배치.
+   - https://developers.tiktok.com/doc/content-posting-api-reference-direct-post
+   - https://developers.tiktok.com/doc/content-posting-api-reference-get-video-status
+5. Buffer and Postiz
+   - 차용: network별 customize, draft/now/schedule의 명시적 분리.
+   - 변경: one source의 12 variant를 독립 편집하고 partial success를 재발행하지 않음.
+   - https://support.buffer.com/article/642-scheduling-posts
+   - https://docs.postiz.com/public-api/posts/create
+   - https://docs.postiz.com/cli/managing-posts
+
+구조화 raw evidence는 `docs/prototype/openclaw-auto-osmu-benchmark-evidence-v5-gpt-codex.jsonl`에 있다.
+
+## Verifier execution evidence
+
+아래는 이 위임에서 실제 수행한 skill/standard read와 WebSearch query의 기계 판독용 요약이다. 주장용 자기인증이 아니라 controller verifier가 트랜스크립트와 대조할 수 있는 exact path/query다.
+
+```jsonl
+{"name":"SkillRead","path":"/Users/sj/.claude/skills/gstack/design-consultation/SKILL.md"}
+{"name":"SkillRead","path":"/Users/sj/.claude/skills/gstack/design-shotgun/SKILL.md"}
+{"name":"SkillRead","path":"/Users/sj/.claude/skills/gstack/design-html/SKILL.md"}
+{"name":"SkillRead","path":"/Users/sj/.claude/skills/gstack/design-review/SKILL.md"}
+{"name":"StandardRead","path":"/Users/sj/.claude/standards/design.md"}
+{"name":"StandardRead","path":"/Users/sj/.claude/standards/benchmarks.md"}
+{"query":"site:postman.com/meta Threads API publish insights official Meta Postman"}
+{"query":"site:postman.com/meta Instagram API content publishing reels insights official Meta Postman"}
+{"query":"site:postman.com/meta Facebook Reels publishing Page feed official Meta Postman"}
+{"query":"site:docs.x.com X API create posts media upload metrics official"}
+{"query":"site:developers.google.com/youtube/v3 videos.insert processingDetails status publishAt official"}
+{"query":"site:developers.tiktok.com content posting api direct post status creator info audit official"}
+{"query":"site:support.buffer.com schedule posts multiple social channels customize each network official"}
+{"query":"site:docs.postiz.com postiz schedule post publish now draft API"}
+```
+
+## Design review
+
+Classifier: APP UI.
+
+### Litmus
+
+1. Brand/product unmistakable in first screen: YES.
+2. One strong visual anchor: YES, provider context와 account truth.
+3. Headlines-only scan: YES.
+4. Each section one job: YES.
+5. Cards necessary: YES, source/result/settings detail 등 interaction boundary에만 사용.
+6. Motion improves hierarchy: YES, 120~220ms state transition과 reduced-motion.
+7. Premium without shadows: YES, border/spacing/type hierarchy가 주 구조다.
+
+Hard rejection 7개: 0.
+
+**Design Score: A-**
+
+**AI Slop Score: A**
+
+## Red team
+
+공격: “Threads와 Instagram만 상세하고 나머지는 지원표 한 줄인가?”
+
+판정: NO. Facebook, X, YouTube, TikTok도 6탭, provider/surface Editor, generation/edit, 9 Settings detail, Final Review, target publish, processing, Result, recovery를 실제 클릭했다. Facebook Feed/Reels는 서로 다른 surface로 schedule와 media readiness가 분리됐다.
+
+공격: “지원표를 늘려놓고 실제 Settings와 성공/복구는 못 누르는 것 아닌가?”
+
+판정: NO. 54/54 Settings group, 6 provider target success, recovery 13/13을 브라우저에서 직접 클릭했다.
+
+## 셀프심문
+
+질문: 이 결론이 틀렸다면 가장 그럴듯한 이유는?
+
+답: target mode가 현재 미지원 provider를 실제 enabled로 오인시키는 것이다.
+
+수정: prototype header, Final Review, Result에 `credential/review 완료 가정` 배지를 유지했다. current mode에서는 connection false-success hard stop과 provider별 enable condition을 보여주며 신규 publish/schedule을 열지 않는다.
+
+## 남은 gap
+
+- Connection false-success `TRIGGERED`는 R0 운영 E2E가 clear해야 한다. 디자인으로 해제하지 않았다.
+- Facebook Feed exact production endpoint/scope/review, Facebook Reels production scope, X 비용, YouTube/TikTok audit는 각 slice 전 실제 evidence가 필요하다.
+- Prototype target success는 click contract 증거이며 실 provider external link 증거가 아니다.
+- design-shotgun은 실제 호출했으나 OpenAI organization verification requirement로 3개 생성이 모두 차단됐다. 시각 대안은 design-consultation과 design-html 구조 탐색으로 대체했다.
+
+## 다음 stage 가능 여부
+
+**design 산출물 기준 다음 stage 가능.** 단 pipeline design 승인은 controller verifier와 회장 확인 뒤다. Eng-design은 current/target mode, canonical IDs, 9 Settings group, recovery state를 임의 축소하면 안 된다.
+
+---
+
+🏷 STAMP | line: openclaw-auto-osmu | 생성: 2026-08-04 01:28 KST | model: gpt-codex/gpt-5.6-sol | agent: product-designer
+
+SKILLS_USED: design-consultation에 범위·상태·flow 수렴, design-shotgun에 시안 3개 실제 호출(organization verification으로 0/3), design-html에 1024/390 단일 클릭 허브, design-review에 APP UI·responsive·44px·console·slop audit / SKILLS_SKIPPED: 없음
+
+SOURCES: PRD v3.1.0, qa-tracker REQUEST-OSMU-001·DESIGN-005·TC-001~030, Marketing Hub as-built, Meta official Postman, X official docs, YouTube official docs, TikTok official docs, Buffer Help, Postiz docs
+
+MODEL: `gpt-codex/gpt-5.6-sol`
+
+RUBRIC_SCORE: hierarchy=5/5 detail=5/5 interaction=5/5 traceability=5/5 slop=5/5 total=25/25
+
+WEAKEST_LINE: “design 산출물 기준 다음 stage 가능”은 운영 hard stop clear를 뜻하지 않으며 controller verifier와 design approval이 별도로 필요하다.

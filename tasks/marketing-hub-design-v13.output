@@ -1,0 +1,58 @@
+ROLE: product-designer
+STATUS: reviewed, corrected, browser-verified
+
+ARTIFACTS:
+- docs/prototype/openclaw-auto-marketing-hub-full-v13-gpt-codex.html
+- docs/WIREFRAMES/openclaw-auto-marketing-hub-full-v13-gpt-codex.md
+
+REVIEW OUTCOME:
+- Existing v13 had MAJOR gaps: 25 route types were not all reachable, text8 used Bluesky instead of LINE, video3 incorrectly exposed Publish, current 224px shell/native preview treatment was replaced by a generic 244px card grid, Settings had 6 non-current tabs, and repair implied another publish.
+- Corrected text8 to Threads, X, Facebook, Instagram, Telegram, Discord, Slack, LINE.
+- Corrected video3 to YouTube Shorts, Instagram Reels, TikTok with `원고 저장` and `영상 작업실로` only. Studio video Publish controls = 0 and legacy bulk remains direct4 only.
+- Added safe recovery: confirmed pre-send failure retries one card; uncertain checks existing provider result; published with missing local record repairs without republishing.
+- Added Settings customer8 tabs, provider account confirmation, provider-specific tab sets, shared MH-2048 Inbox/Calendar reference, and all disabled/external/operator/services/legal terminal views.
+
+OFFICIAL BENCHMARKS:
+- Buffer scheduling: one composer can preview per channel and separates Now from scheduling choices. Borrowed channel-specific output and immediate/scheduled separation; retained Marketing Hub's current Studio shell and direct4 boundary.
+  https://support.buffer.com/article/642-scheduling-posts
+- Later Social Sets: profiles are grouped by brand or identity, and wrong-profile recovery recommends confirming the intended login. Borrowed visible account identity and explicit account confirmation; did not copy Later's plan model.
+  https://help.later.com/hc/en-us/articles/360044369654-Create-Manage-Social-Sets
+- Hootsuite calendar: calendar actions remain attached to content status. Borrowed the shared job reference between Studio, Inbox, and Calendar; retained current queue ownership labels.
+  https://help.hootsuite.com/s/article/manage-content-calendar?language=en_US
+
+BROWSER EVIDENCE, ACTUAL TOOL OUTPUT:
+- 1440x1000: `{navDesktop:26, routeViews:25, cards:11, videoPublish:0, overflow:0, targets:0}`; console errors 0.
+- 1024x900: `{navDesktop:26, routeViews:25, cards:11, videoPublish:0, overflow:0, targets:0}`; console errors 0.
+- 390x844 Studio with open alternate navigation: `{navDesktop:26, routeViews:25, cards:11, videoPublish:0, overflow:0, targets:0, mobileNav:26}`; console errors 0.
+- 390 route loop: all 25 entries returned non-empty views, overflow 0, targets below 44px 0.
+- Core recovery clicks: Facebook failed confirmed to published with retry permalink; Instagram uncertain to published with no-new-post confirmation permalink; Telegram repair required to published with recovered record permalink. Video Publish count stayed 0.
+- Schedule click loop: create to change retained MH-2048, cancel returned schedule null.
+- JavaScript parse: `JS_OK`; `git diff --check` passed for the two allowed artifacts.
+
+RED TEAM:
+- Attack: placing Publish on video3 turns a hand-off into an unsupported success promise and creates a second video delivery state machine inside Studio.
+- Revision: video3 was removed from per-card and bulk publish branches. Each video card can save its script and open `/videos`, while text8 retains card actions according to capability.
+
+SELF-INTERROGATION:
+- If this review is wrong, the most likely reason is conflating 26 sidebar destinations with 25 route types. The prototype now holds separate manifests and the browser measured `navDesktop=26`, `mobileNav=26`, and `routeViews=25` independently.
+- A second load-bearing risk was hiding overflow with CSS. The route loop measured `scrollWidth-clientWidth=0` after rendering every route at 390, and each visible interactive target measured at least 44px.
+
+DESIGN REVIEW:
+- Design Score: B+
+- Current visual-system continuity: B+
+- Workflow truthfulness and recovery: A
+- Responsive navigation and accessibility: A
+- Provider capability differentiation: A
+- Pixel fidelity to every current product route: B
+
+LIMITS / 회수 필요:
+- 회수 필요: provider adapter, job ledger, idempotency, account schema, and real permalink readback remain eng-design decisions. The prototype does not claim external execution.
+- Hootsuite help content loaded only its official shell because the site returned a client-side CSS gate; its role is limited to the official URL already pinned by the approved PRD.
+
+SOURCES: /Users/sj/.claude/standards/design.md | /Users/sj/.claude/standards/benchmarks.md | docs/openclaw-auto-marketing-hub-prd-v5.2.0-gpt-codex.md | wiki/product/marketing-hub-surface-map.md | tasks/osmu-full-ui-code-audit.output | /private/tmp/osmu-existing-studio-browser-baseline.png | /private/tmp/osmu-existing-studio-generated-baseline.png | dashboard/src/components/layout/Sidebar.tsx | https://support.buffer.com/article/642-scheduling-posts | https://help.later.com/hc/en-us/articles/360044369654-Create-Manage-Social-Sets | https://help.hootsuite.com/s/article/manage-content-calendar?language=en_US
+
+MODEL: gpt-codex/gpt-5.6-sol
+
+SKILLS_USED: browse CLI for actual 1440/1024/390 render, route, interaction, overflow, touch target and console verification; design-review rubric through the mandatory design standard for the B+ review
+
+SKILLS_SKIPPED: design-html and design-review are not installed in the active Codex skill registry, so no false native Skill invocation is claimed; standalone HTML construction and rubric review were performed directly

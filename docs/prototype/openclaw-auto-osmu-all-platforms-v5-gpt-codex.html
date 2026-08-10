@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>OpenClaw Auto OSMU v5 Prototype</title>
+  <style>
+    :root {
+      --bg:#fbfbfc; --surface:#fff; --surface2:#f4f4f5; --border:#e4e4e7;
+      --text:#18181b; --muted:#52525b; --subtle:#71717a; --accent:#2563eb;
+      --accent-hover:#1d4ed8; --accent-soft:#eff4ff; --success:#15803d;
+      --warning:#b45309; --danger:#b91c1c; --info:#0369a1;
+      --shadow:0 10px 28px rgba(24,24,27,.10); --sidebar:224px;
+    }
+    * { box-sizing:border-box; }
+    html { background:#111827; }
+    body { margin:0; font-family:Pretendard,"Noto Sans KR",sans-serif; color:var(--text); background:#111827; font-size:16px; line-height:1.5; }
+    button, input, textarea, select { font:inherit; }
+    button, a, [role="button"] { min-height:44px; }
+    button { cursor:pointer; }
+    button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+    button:disabled { cursor:not-allowed; opacity:.52; }
+    a { color:var(--accent); }
+    a:visited { color:#6d28d9; }
+    .prototype-bar { position:sticky; top:0; z-index:100; display:flex; align-items:center; gap:8px; padding:8px 12px; background:#111827; color:#fff; border-bottom:1px solid #374151; min-height:58px; flex-wrap:wrap; }
+    .prototype-bar strong { margin-right:4px; }
+    .prototype-bar button, .prototype-bar select { min-height:44px; border:1px solid #4b5563; background:#1f2937; color:#fff; border-radius:8px; padding:7px 10px; }
+    .prototype-bar button.active { background:#fff; color:#111827; }
+    .prototype-note { margin-left:auto; color:#d1d5db; font-size:12px; }
+    .frame { width:100%; max-width:1440px; min-height:calc(100vh - 58px); margin:0 auto; background:var(--bg); transition:width .18s ease-out; }
+    .frame.desktop-force { width:1024px; max-width:100%; }
+    .frame.mobile { width:390px; max-width:100%; }
+    .app { min-height:calc(100vh - 58px); display:grid; grid-template-columns:var(--sidebar) minmax(0,1fr); }
+    .sidebar { background:var(--surface); border-right:1px solid var(--border); padding:18px 12px 14px; display:flex; flex-direction:column; min-height:calc(100vh - 58px); }
+    .brand { display:flex; gap:10px; align-items:center; padding:0 8px 16px; border-bottom:1px solid var(--border); }
+    .brand-mark { width:28px; height:28px; border-radius:8px; background:var(--accent); position:relative; }
+    .brand-mark:before { content:""; position:absolute; width:15px; height:15px; border:2px solid #fff; left:5px; top:5px; border-radius:4px; }
+    .brand strong { display:block; font-size:16px; }
+    .brand small { display:block; color:var(--subtle); font-size:12px; }
+    .nav-label { color:var(--subtle); font-size:12px; font-weight:700; letter-spacing:.06em; margin:18px 10px 6px; }
+    .nav-button { width:100%; border:0; background:transparent; color:var(--muted); border-radius:8px; text-align:left; display:flex; align-items:center; gap:10px; padding:8px 10px; min-height:44px; }
+    .nav-button:hover { background:var(--surface2); }
+    .nav-button.active { background:var(--accent-soft); color:var(--text); box-shadow:inset -3px 0 var(--accent); font-weight:650; }
+    .nav-button .letter { width:24px; height:24px; display:grid; place-items:center; background:var(--surface2); border:1px solid var(--border); border-radius:6px; font-size:12px; font-weight:700; }
+    .nav-button .status-dot { margin-left:auto; font-size:11px; color:var(--subtle); }
+    .sidebar-foot { margin-top:auto; border-top:1px solid var(--border); padding-top:10px; color:var(--subtle); font-size:12px; }
+    .main { min-width:0; }
+    .context { padding:18px 28px 0; background:var(--surface); border-bottom:1px solid var(--border); }
+    .crumb { color:var(--subtle); font-size:12px; margin-bottom:4px; }
+    .context-row { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
+    h1 { font-size:24px; line-height:32px; margin:0; }
+    h2 { font-size:18px; line-height:26px; margin:0; }
+    h3 { font-size:16px; line-height:24px; margin:0; }
+    p { margin:0; }
+    .meta { color:var(--subtle); font-size:14px; margin-top:4px; }
+    .mode-switch { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .mode-switch button { padding:7px 12px; border:1px solid var(--border); background:var(--surface); color:var(--muted); border-radius:8px; }
+    .mode-switch button.active { border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
+    .badge { display:inline-flex; align-items:center; min-height:28px; padding:3px 8px; border-radius:999px; border:1px solid var(--border); font-size:12px; font-weight:650; white-space:nowrap; }
+    .badge.success { color:var(--success); background:#f0fdf4; border-color:#bbf7d0; }
+    .badge.warning { color:var(--warning); background:#fffbeb; border-color:#fde68a; }
+    .badge.danger { color:var(--danger); background:#fef2f2; border-color:#fecaca; }
+    .badge.info { color:var(--info); background:#f0f9ff; border-color:#bae6fd; }
+    .tabs { display:flex; gap:2px; overflow-x:auto; margin-top:18px; }
+    .tab { border:0; border-bottom:3px solid transparent; background:transparent; color:var(--muted); padding:10px 14px; border-radius:8px 8px 0 0; white-space:nowrap; }
+    .tab:hover { background:var(--surface2); }
+    .tab.active { color:var(--accent); border-bottom-color:var(--accent); font-weight:700; }
+    .content { padding:24px 28px 80px; max-width:1440px; }
+    .alert { border:1px solid var(--border); border-radius:10px; padding:14px 16px; display:flex; gap:14px; align-items:flex-start; margin-bottom:18px; }
+    .alert.danger { border-color:#fecaca; background:#fef2f2; }
+    .alert.warning { border-color:#fde68a; background:#fffbeb; }
+    .alert.info { border-color:#bae6fd; background:#f0f9ff; }
+    .alert .grow { flex:1; }
+    .alert .title { font-weight:700; }
+    .alert .desc { color:var(--muted); font-size:14px; margin-top:3px; }
+    .panel { background:var(--surface); border:1px solid var(--border); border-radius:12px; }
+    .panel-head { padding:16px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .panel-body { padding:18px; }
+    .grid-2 { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr); gap:18px; }
+    .grid-3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+    .stack { display:grid; gap:12px; }
+    .row { display:flex; gap:12px; align-items:center; }
+    .row.wrap { flex-wrap:wrap; }
+    .space { justify-content:space-between; }
+    .section-gap { margin-top:18px; }
+    .surface-switch { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
+    .surface-switch button { border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--muted); padding:7px 12px; }
+    .surface-switch button.active { border-color:var(--accent); background:var(--accent-soft); color:var(--accent); font-weight:700; }
+    .btn { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:8px; padding:8px 13px; min-height:44px; font-weight:650; }
+    .btn:hover { background:var(--surface2); }
+    .btn.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+    .btn.primary:hover { background:var(--accent-hover); }
+    .btn.danger { background:var(--danger); color:#fff; border-color:var(--danger); }
+    .btn.link { border-color:transparent; color:var(--accent); background:transparent; }
+    .btn.small { min-height:44px; padding:6px 10px; font-size:14px; }
+    .field label { display:block; color:var(--muted); font-size:14px; font-weight:650; margin-bottom:6px; }
+    .field input, .field textarea, .field select { width:100%; min-height:44px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); padding:10px 12px; }
+    .field textarea { min-height:112px; resize:vertical; }
+    .help { color:var(--subtle); font-size:12px; margin-top:5px; }
+    .source-strip { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:18px; }
+    .source-strip .quote { font-weight:700; margin:6px 0; }
+    .variant { border-top:1px solid var(--border); padding:14px 0; }
+    .variant:first-child { border-top:0; padding-top:0; }
+    .variant:last-child { padding-bottom:0; }
+    .variant-id { font-family:ui-monospace,SFMono-Regular,monospace; font-size:12px; color:var(--subtle); }
+    .preview { min-height:340px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:18px; display:flex; flex-direction:column; }
+    .preview-media { flex:1; min-height:190px; border:1px solid var(--border); background:#e4e4e7; display:grid; place-items:center; color:var(--muted); font-weight:700; border-radius:10px; }
+    .preview-media.vertical { width:58%; margin:0 auto; aspect-ratio:9/16; min-height:0; }
+    .kv { display:grid; grid-template-columns:150px minmax(0,1fr); gap:8px 14px; font-size:14px; }
+    .kv dt { color:var(--subtle); }
+    .kv dd { margin:0; color:var(--text); }
+    .list-row { display:grid; grid-template-columns:minmax(180px,1.2fr) minmax(130px,.8fr) minmax(130px,.8fr) auto; gap:12px; align-items:center; border-top:1px solid var(--border); padding:13px 0; }
+    .list-row:first-child { border-top:0; }
+    .list-row .sub { color:var(--subtle); font-size:12px; }
+    .metric { border-top:1px solid var(--border); padding:14px 0; display:grid; grid-template-columns:1fr 100px 140px; gap:12px; align-items:center; }
+    .metric:first-child { border-top:0; }
+    .settings-layout { display:grid; grid-template-columns:270px minmax(0,1fr); gap:18px; }
+    .settings-index { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:8px; }
+    .settings-index button { width:100%; border:0; background:transparent; padding:9px 10px; border-radius:8px; text-align:left; color:var(--muted); display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .settings-index button:hover { background:var(--surface2); }
+    .settings-index button.active { background:var(--accent-soft); color:var(--accent); font-weight:700; }
+    .table { width:100%; border-collapse:collapse; font-size:14px; }
+    .table th, .table td { text-align:left; padding:12px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+    .table th { color:var(--subtle); font-size:12px; }
+    .calendar { display:grid; grid-template-columns:repeat(7,minmax(70px,1fr)); gap:6px; }
+    .day { border:1px solid var(--border); border-radius:8px; min-height:98px; padding:8px; background:var(--surface); color:var(--text); text-align:left; }
+    .day:hover { border-color:var(--accent); }
+    .day .post { display:block; color:var(--muted); font-size:12px; margin-top:6px; padding:3px 5px; background:var(--surface2); border-radius:5px; }
+    .empty { text-align:center; padding:48px 20px; }
+    .empty p { color:var(--muted); margin:8px 0 16px; }
+    .skeleton { height:92px; border-radius:10px; background:#e4e4e7; animation:pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity:.48; } }
+    .modal-backdrop { position:fixed; inset:0; z-index:200; background:rgba(17,24,39,.52); display:grid; place-items:center; padding:20px; }
+    .modal { width:min(720px,100%); max-height:88vh; overflow:auto; background:var(--surface); border-radius:14px; box-shadow:var(--shadow); border:1px solid var(--border); }
+    .modal-head { padding:18px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    .modal-body { padding:20px; }
+    .modal-foot { padding:14px 20px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap; }
+    .toast { position:fixed; z-index:300; right:18px; bottom:18px; background:#18181b; color:#fff; padding:12px 16px; border-radius:9px; box-shadow:var(--shadow); max-width:360px; }
+    .stamp { position:fixed; z-index:90; left:10px; bottom:10px; font-size:11px; }
+    .stamp summary { cursor:pointer; color:var(--subtle); background:var(--surface); border:1px solid var(--border); padding:5px 8px; border-radius:7px; }
+    .stamp div { width:min(520px,calc(100vw - 20px)); background:var(--surface); border:1px solid var(--border); padding:10px; border-radius:8px; color:var(--muted); margin-top:4px; }
+    .mobile-menu { display:none; }
+    .mobile-sticky { display:none; }
+    .frame.mobile .app { grid-template-columns:1fr; }
+    .frame.mobile .sidebar { display:none; }
+    .frame.mobile .context { padding:14px 14px 0; }
+    .frame.mobile .context-row { display:block; }
+    .frame.mobile .mode-switch { margin-top:10px; }
+    .frame.mobile .content { padding:16px 14px 92px; }
+    .frame.mobile .grid-2, .frame.mobile .grid-3, .frame.mobile .settings-layout { grid-template-columns:1fr; }
+    .frame.mobile .list-row { grid-template-columns:1fr auto; }
+    .frame.mobile .list-row > :nth-child(2), .frame.mobile .list-row > :nth-child(3) { grid-column:1; }
+    .frame.mobile .calendar { grid-template-columns:repeat(7,minmax(45px,1fr)); overflow-x:auto; }
+    .frame.mobile .day { min-height:76px; padding:5px; }
+    .frame.mobile .day .post { display:none; }
+    .frame.mobile .mobile-menu { display:inline-flex; }
+    .frame.mobile .mobile-sticky { display:flex; position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:min(390px,100%); z-index:80; background:var(--surface); border-top:1px solid var(--border); padding:10px 14px; gap:8px; }
+    .frame.mobile .mobile-sticky .btn { flex:1; }
+    @media (max-width:760px) {
+      .prototype-note { width:100%; margin-left:0; }
+      .frame:not(.desktop-force) { width:390px; max-width:100%; }
+    }
+    @media (prefers-reduced-motion:reduce) { *, *:before, *:after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
+  </style>
+</head>
+<body>
+  <div class="prototype-bar" aria-label="프로토타입 라우팅 허브">
+    <strong>OSMU v5 QA Hub</strong>
+    <button class="active" data-viewport="desktop">1024</button>
+    <button data-viewport="mobile">390</button>
+    <button data-view="studio">Studio</button>
+    <button data-view="global">Global Settings</button>
+    <button data-view="calendar">Calendar</button>
+    <button data-view="result">Result</button>
+    <select id="scenarioSelect" aria-label="상태 토글">
+      <option value="default">상태: 기본</option>
+      <option value="loading">loading</option>
+      <option value="empty">empty</option>
+      <option value="wrong-account">wrong-account</option>
+      <option value="tenant-mismatch">tenant mismatch</option>
+      <option value="false-success">connection false-success</option>
+      <option value="token-invalid">token invalid</option>
+      <option value="unreachable">provider unreachable</option>
+      <option value="review-missing">app review missing</option>
+      <option value="processing">processing</option>
+      <option value="error-502">502</option>
+      <option value="timeout">timeout</option>
+      <option value="partial">partial</option>
+      <option value="idempotency">idempotency</option>
+    </select>
+    <span class="prototype-note">클릭 QA: 6 provider, 6 tabs, 9 settings, current/target, publish/recovery</span>
+  </div>
+  <div id="frame" class="frame desktop-force">
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand"><span class="brand-mark"></span><div><strong>Marketing Hub</strong><small>민서 아카데미</small></div></div>
+        <div class="nav-label">OVERVIEW</div>
+        <button class="nav-button" data-view="home"><span class="letter">P</span>성과</button>
+        <button class="nav-button" data-view="studio"><span class="letter">O</span>OSMU Studio</button>
+        <button class="nav-button" data-view="calendar"><span class="letter">C</span>발행 캘린더</button>
+        <div class="nav-label">OSMU PROVIDERS</div>
+        <div id="providerNav"></div>
+        <div class="nav-label">SYSTEM</div>
+        <button class="nav-button" data-view="global"><span class="letter">G</span>Global Settings</button>
+        <div class="sidebar-foot">현재 계정 truth를 provider live check와 함께 표시합니다.</div>
+      </aside>
+      <main class="main">
+        <header id="context" class="context"></header>
+        <section id="content" class="content"></section>
+      </main>
+    </div>
+  </div>
+  <div id="modalRoot"></div>
+  <div id="toastRoot"></div>
+  <details class="stamp">
+    <summary>STAMP</summary>
+    <div>
+      line: openclaw-auto-osmu | 생성: 2026-08-04 01:28 KST | model: gpt-codex/gpt-5.6-sol | agent: product-designer<br>
+      skills: design-consultation, design-shotgun(호출 실패: organization verification), design-html, design-review(Score A-)<br>
+      근거: PRD v3.1, QA TC-001~030, Marketing Hub as-built, Meta/X/YouTube/TikTok official, Buffer, Postiz<br>
+      고민: current readiness와 target happy path를 모드로 분리해 미구현 가장과 지원표 축소를 동시에 차단했다.
+    </div>
+  </details>
+  <script>
+    const tabs = ["Queue","Editor","Analytics","Growth","Popular","Settings"];
+    const groups = ["연결·인증","계정·기본값","권한·심사","발행 준비도","콘텐츠 규칙","예약","알림","연결해제·삭제","고급 복구"];
+    const providers = {
+      threads:{label:"Threads",letter:"T",account:"@code_zero_to_one",accounts:2,state:"재연결 필요",current:"TEXT/IMAGE/예약 운영 관찰, account truth hard stop",target:"R0/R1 재증명",surfaces:["Threads Post"],caps:["CP-THR-TEXT|TEXT","CP-THR-IMAGE|IMAGE"],analytics:["S","R","R"],schedule:true,settings:["A","A","A","A","A","A","A","A","A"]},
+      instagram:{label:"Instagram",letter:"I",account:"@zero_to_one_ai",accounts:1,state:"연결됨",current:"Feed IMAGE와 Reels VIDEO 운영 관찰, Reels 예약 미검증",target:"R0/R1, Reels 예약 R4",surfaces:["Instagram Feed","Instagram Reels"],caps:["CP-IGF-IMAGE|IMAGE","CP-IGR-VIDEO|VIDEO"],analytics:["S","R","R"],schedule:true,settings:["A","A","A","A","A","A/R","A","A","A"]},
+      facebook:{label:"Facebook",letter:"F",account:"Minseo Academy Page",accounts:0,state:"플랫폼 준비 안 됨",current:"Feed code 있음, credential/review/E2E 없음, Reels 미구현",target:"R2 Feed, R4 Reels",surfaces:["Facebook Page Feed","Facebook Page Reels"],caps:["CP-FBF-TEXT|TEXT","CP-FBF-IMAGE|IMAGE","CP-FBR-VIDEO|VIDEO"],analytics:["R","R","R"],schedule:false,settings:["A","A","R","R","A/R","A/R","A","A","A"]},
+      x:{label:"X",letter:"X",account:"@minseo_notes",accounts:0,state:"플랫폼 준비 안 됨",current:"TEXT code 있음, credential/cost/E2E 없음, media 미구현",target:"R2 TEXT와 media evidence",surfaces:["X Post"],caps:["CP-X-TEXT|TEXT","CP-X-IMAGE|IMAGE","CP-X-VIDEO|VIDEO"],analytics:["S","R","R"],schedule:false,settings:["A","A","R","R","A/R","A/R","A","A","A"]},
+      youtube:{label:"YouTube",letter:"Y",account:"Minseo Academy",accounts:1,state:"플랫폼 준비 안 됨",current:"upload code 있음, consent/audit/E2E/예약 미검증",target:"R3 Shorts",surfaces:["YouTube Shorts"],caps:["CP-YT-VIDEO|VIDEO"],analytics:["S","R","R"],schedule:false,settings:["A","A","R","R","A","R","A","A","A"]},
+      tiktok:{label:"TikTok",letter:"K",account:"@minseo_class",accounts:0,state:"플랫폼 준비 안 됨",current:"Direct Post code 있음, credential/audit/E2E/예약 미검증",target:"R3 TikTok",surfaces:["TikTok Post"],caps:["CP-TT-VIDEO|VIDEO"],analytics:["S","R","R"],schedule:false,settings:["A","A","R","R","A","R","A","A","A"]}
+    };
+    const settingCopy = {
+      threads:["OAuth와 provider identity live check","2개 계정과 기본 handle","publish/insights scope","TEXT/IMAGE와 account truth","TEXT/IMAGE 본문과 media","TEXT/IMAGE 예약 운영 관찰","만료와 발행 실패 알림","revoke/unlink와 evidence 보존","token 재검증, 기본 화면 비노출"],
+      instagram:["OAuth, invalid token 분리","professional identity","publish/insights permission","Feed와 Reels readiness 분리","Feed IMAGE, Reels VIDEO","Feed 지원, Reels 예약 review-required","token/container failure","revoke/unlink와 link 보존","Graph token 진단, 기본 비노출"],
+      facebook:["Business login과 app inactive","Page 선택과 기본값","Live, role, scope, review","Feed와 Reels readiness 분리","Feed TEXT/IMAGE, Reels VIDEO","Feed와 Reels 각각 enable 조건","app/scope/upload 알림","Page unlink/revoke","Page token 진단"],
+      x:["OAuth와 credential 상태","user와 기본값","read/write/metrics와 비용","TEXT와 media readiness","TEXT, IMAGE, VIDEO","TEXT와 media 각각 evidence","quota/cost/token 알림","revoke/unlink","OAuth와 media chain 진단"],
+      youtube:["OAuth offline과 account chooser","channel과 기본값","upload/analytics/audit","privacy/quota/audit","Shorts VIDEO metadata","private publishAt와 E2E","processing/quota 알림","revoke/unlink","resumable upload recovery"],
+      tiktok:["PKCE와 explicit consent","nickname/open ID","video.publish와 audit","creator info와 caps","VIDEO, privacy, AI/commercial","schedule E2E와 audit","cap/status/audit 알림","revoke/unlink","publish_id reconciliation"]
+    };
+    const state = {provider:"threads",tab:"Queue",surface:0,mode:"current",view:"provider",scenario:"default",setting:0,popular:2,sourceApproved:true,generated:true,edited:{},reviewOpen:false};
+    const frame = document.getElementById("frame");
+    const context = document.getElementById("context");
+    const content = document.getElementById("content");
+    const providerNav = document.getElementById("providerNav");
+    const modalRoot = document.getElementById("modalRoot");
+    const toastRoot = document.getElementById("toastRoot");
+    function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
+    function badge(text,type="info"){return `<span class="badge ${type}">${esc(text)}</span>`;}
+    function currentBadge(p){const d=providers[p]; return d.state==="연결됨"?badge(d.state,"success"):d.state==="재연결 필요"?badge(d.state,"danger"):badge(d.state,"warning");}
+    function toast(msg){toastRoot.innerHTML=`<div class="toast" role="status">${esc(msg)}</div>`;setTimeout(()=>toastRoot.innerHTML="",2600);}
+    function allNav(){providerNav.innerHTML=Object.entries(providers).map(([k,p])=>`<button class="nav-button ${state.view==="provider"&&state.provider===k?"active":""}" data-provider="${k}"><span class="letter">${p.letter}</span>${p.label}<span class="status-dot">${p.state==="연결됨"?"연결":"조건"}</span></button>`).join("");}
+    function header(title,meta,withTabs=false){const p=providers[state.provider];context.innerHTML=`<div class="crumb">Marketing Hub / OSMU${state.view==="provider"?` / ${p.label}`:""}</div><div class="context-row"><div><div class="row wrap"><button class="btn small mobile-menu" data-action="provider-menu">채널</button><h1>${title}</h1>${state.view==="provider"?currentBadge(state.provider):""}</div><p class="meta">${meta}</p></div><div class="mode-switch" aria-label="readiness mode"><button data-mode="current" class="${state.mode==="current"?"active":""}">현재 운영</button><button data-mode="target" class="${state.mode==="target"?"active":""}">목표 계약</button>${state.mode==="target"?badge("credential/review 완료 가정","warning"):badge("실제 readiness","info")}</div></div>${withTabs?`<nav class="tabs" aria-label="provider 공통 탭">${tabs.map(t=>`<button class="tab ${state.tab===t?"active":""}" data-tab="${t}">${t}</button>`).join("")}</nav>`:""}`;}
+    function surfaceSwitch(){const p=providers[state.provider];return p.surfaces.length>1?`<div class="surface-switch" aria-label="surface 선택">${p.surfaces.map((s,i)=>`<button class="${state.surface===i?"active":""}" data-surface="${i}">${s}</button>`).join("")}</div>`:`<div class="surface-switch"><button class="active">${p.surfaces[0]}</button></div>`;}
+    function hardStop(){if(state.mode!=="current")return "";return `<div class="alert danger"><div class="grow"><div class="title">Connection false-success: TRIGGERED</div><div class="desc">R0 account truth가 clear되기 전 신규 OAuth, 지금 발행, 예약을 닫습니다. 초안 편집과 기존 결과 조회는 유지됩니다.</div></div><button class="btn small" data-scenario="false-success">4면 진단 보기</button></div>`;}
+    function scenarioBlock(){const s=state.scenario;if(s==="default")return "";const map={
+      loading:["연결 확인 중","선택한 provider의 live check만 불러옵니다. 다른 탭과 초안 편집은 사용할 수 있습니다.","info","다른 탭 보기"],
+      empty:["아직 결과가 없습니다","첫 원문을 만들면 선택한 capability 결과가 여기에 모입니다.","info","원문 만들기"],
+      "wrong-account":["선택한 계정과 확인된 계정이 다릅니다","목표 @code_zero_to_one, 확인됨 @personal_minseo. 완료와 발행을 금지했습니다.","danger","계정 바꾸기"],
+      "tenant-mismatch":["이 계정은 다른 워크스페이스에 속합니다","private handle과 초안을 노출하지 않았습니다. COR-OSMU-TENANT-04", "danger","내 워크스페이스로 돌아가기"],
+      "false-success":["Connection false-success: TRIGGERED","Global Settings, Platform Settings, Editor, Queue의 identity/state/CTA가 불일치합니다.","danger","4면 상태 비교"],
+      "token-invalid":["토큰이 만료됐습니다","초안과 예약 정보는 보존했습니다. provider 요청은 보내지 않았습니다.","danger","다시 연결"],
+      unreachable:["플랫폼에 일시적으로 연결할 수 없습니다","인증 정보는 저장돼 있지만 live check는 실패했습니다. 10분 뒤 다시 확인합니다.","warning","계정 다시 확인"],
+      "review-missing":["플랫폼 준비 조건이 남았습니다","credential, app review 또는 audit가 없어 고객 발행을 닫았습니다.","warning","준비 조건 보기"],
+      processing:["플랫폼에서 영상을 처리 중입니다","terminal 상태 전에는 발행됨이나 게시물 링크를 표시하지 않습니다.","info","Queue에서 계속 보기"],
+      "error-502":["결과 확인이 필요합니다","502, COR-OSMU-2804. 새 발행 전에 외부 결과를 먼저 조회합니다.","danger","외부 결과 먼저 확인"],
+      timeout:["응답 시간이 초과됐습니다","같은 dispatch를 reconciliation 중입니다. 새 발행은 잠겼습니다.","info","외부 결과 먼저 확인"],
+      partial:["4개 중 1개가 실패했습니다","성공한 3개는 고정했습니다. 실패한 CP-X-TEXT만 복구할 수 있습니다.","warning","실패 1건만 복구"],
+      idempotency:["같은 요청을 확인 중입니다","동일 idempotency key로 새 dispatch를 만들지 않았습니다.","info","기존 Result Group 열기"]
+    };const m=map[s];return `<div class="alert ${m[2]}"><div class="grow"><div class="title">${m[0]}</div><div class="desc">${m[1]}</div>${s==="loading"?`<div class="skeleton section-gap" aria-label="loading skeleton"></div>`:""}</div><button class="btn small" data-action="scenario-primary">${m[3]}</button></div>`;}
+    function renderProvider(){const p=providers[state.provider];header(`${p.label} OSMU`,`${p.account} · ${p.surfaces[state.surface]} · ${state.mode==="current"?p.current:p.target}`,true);let body=hardStop()+scenarioBlock()+surfaceSwitch();if(state.scenario==="tenant-mismatch"){content.innerHTML=body;return;}const fn={Queue:queueView,Editor:editorView,Analytics:analyticsView,Growth:growthView,Popular:popularView,Settings:settingsView}[state.tab];body+=fn();content.innerHTML=body;}
+    function queueView(){if(state.scenario==="empty")return `<div class="panel empty"><h2>검수한 콘텐츠가 없습니다</h2><p>원문 하나에서 provider별 초안을 만들고 검수하세요.</p><button class="btn primary" data-view="studio">첫 원문 만들기</button></div>`;const rows=[["원문 v7","CP-THR-TEXT","@code_zero_to_one","발행됨"],["원문 v7","CP-IGR-VIDEO","@zero_to_one_ai","처리 중"],["원문 v7","CP-X-TEXT","@minseo_notes","결과 확인 중"],["원문 v7","CP-TT-VIDEO","@minseo_class","실패"]];return `<div class="panel"><div class="panel-head"><div><h2>Queue</h2><p class="meta">Queue와 Calendar는 같은 발행 상태를 공유합니다.</p></div><button class="btn" data-view="calendar">Calendar에서 보기</button></div><div class="panel-body">${rows.map((r,i)=>`<div class="list-row"><div><strong>${r[0]}</strong><div class="sub">${r[1]}</div></div><div>${r[2]}</div><div>${badge(r[3],r[3]==="발행됨"?"success":r[3]==="실패"?"danger":"info")}</div><button class="btn small" data-view="${i===0?"result":"recovery"}" data-scenario="${i===1?"processing":i===2?"timeout":i===3?"partial":"default"}">${i===0?"게시물 보기":i===3?"실패만 복구":"계속 확인"}</button></div>`).join("")}</div></div>`;}
+    function relevantCaps(){const p=providers[state.provider];if(p.surfaces.length===1)return p.caps;const isFeed=state.surface===0;return p.caps.filter(c=>isFeed?!c.includes("VIDEO"):c.includes("VIDEO"));}
+    function editorView(){const p=providers[state.provider], caps=relevantCaps();return `<div class="source-strip"><div class="row space wrap"><div><span class="badge ${state.sourceApproved?"success":"warning"}">${state.sourceApproved?"사람이 승인함":"승인 필요"}</span><p class="quote">혼자 일할수록 콘텐츠를 시스템으로 남겨야 하는 이유</p><p class="meta">사실 3 · 출처 2 · CTA 1 · source v7</p></div><button class="btn" data-action="toggle-approval">${state.sourceApproved?"승인 기록 보기":"원문 승인"}</button></div></div><div class="grid-2"><div class="panel"><div class="panel-head"><div><h2>${p.surfaces[state.surface]} Editor</h2><p class="meta">현재 readiness를 숨기지 않고 variant 편집은 보존합니다.</p></div><button class="btn primary" data-action="generate">${state.generated?"초안 다시 만들기":"선택한 초안 만들기"}</button></div><div class="panel-body">${caps.map(c=>{const [id,format]=c.split("|");return `<div class="variant"><div class="row space wrap"><div><div class="variant-id">${id}</div><strong>${format} variant</strong> ${state.edited[id]?badge("직접 편집","info"):""}<p class="meta">validation 4/4 · target ${p.account}</p></div><div class="row"><button class="btn small" data-edit="${id}">이 초안 편집</button><input type="checkbox" checked aria-label="${id} 선택"></div></div></div>`}).join("")}</div></div><div class="preview"><div class="row space"><h2>Surface preview</h2>${badge(p.surfaces[state.surface],"info")}</div><div class="preview-media ${caps.some(c=>c.includes("VIDEO"))?"vertical":""}">${caps.some(c=>c.includes("VIDEO"))?"9:16 vertical video":"image or text preview"}</div><h3 class="section-gap">${p.account}</h3><p class="meta">가격과 CTA를 다시 확인한 뒤 검수하세요.</p><button class="btn primary section-gap" data-action="review">선택한 ${caps.length}개 검수</button></div></div>`;}
+    function analyticsView(){const p=providers[state.provider], names=["Analytics","Growth","Popular"];return `<div class="panel"><div class="panel-head"><div><h2>${p.label} Analytics contract</h2><p class="meta">가짜 0 대신 지원, 심사, 미지원과 수집시각을 구분합니다.</p></div><button class="btn" data-action="permissions">분석 권한 확인</button></div><div class="panel-body">${names.map((n,i)=>`<div class="metric"><div><strong>${n}</strong><p class="meta">own-account data · official evidence · fetched-at 표시</p></div>${badge(p.analytics[i],p.analytics[i]==="S"?"success":p.analytics[i]==="R"?"warning":"danger")}<span class="meta">${p.analytics[i]==="S"?"수집 전":"enable 조건 필요"}</span></div>`).join("")}</div></div>`;}
+    function growthView(){const p=providers[state.provider];return `<div class="grid-2"><div class="panel"><div class="panel-head"><h2>${p.label} Growth</h2>${badge(p.analytics[1],p.analytics[1]==="R"?"warning":"success")}</div><div class="panel-body"><dl class="kv"><dt>입력</dt><dd>own published results</dd><dt>비교 기간</dt><dd>최근 7일과 이전 7일</dd><dt>Freshness</dt><dd>provider fetch ≤24h 목표</dd><dt>현재</dt><dd>${p.analytics[1]==="R"?"Analytics 원데이터와 권한 확인 필요":"비교 가능"}</dd></dl></div></div><div class="panel"><div class="panel-head"><h2>다음 행동</h2></div><div class="panel-body"><p class="meta">다른 provider 평균으로 값을 채우지 않습니다.</p><button class="btn primary section-gap" data-action="permissions">분석 권한 확인</button></div></div></div>`;}
+    function popularView(){const n=state.popular;return `<div class="panel"><div class="panel-head"><div><h2>${providers[state.provider].label} Popular</h2><p class="meta">own post 3건부터 ranking을 만듭니다.</p></div><div class="row"><button class="btn small" data-popular="0">0건</button><button class="btn small" data-popular="2">2건</button><button class="btn small" data-popular="3">3건</button></div></div><div class="panel-body">${n<3?`<div class="empty"><h2>표본 부족</h2><p>${n===0?"발행 결과가 없습니다.":"1건을 더 발행하면 비교할 수 있습니다."}</p><button class="btn primary" data-tab="Queue">Queue 보기</button></div>`:`<div class="stack"><div class="list-row"><div><strong>1. 혼자 일할수록 시스템이 필요한 이유</strong><div class="sub">own post · views</div></div><div>1위</div><div>수집 01:20</div><button class="btn small" data-view="result">게시물 보기</button></div><div class="list-row"><div><strong>2. 주간 콘텐츠 운영표</strong><div class="sub">own post · views</div></div><div>2위</div><div>수집 01:20</div><button class="btn small" data-view="result">게시물 보기</button></div></div>`}</div></div>`;}
+    function settingsView(){const p=providers[state.provider], status=p.settings[state.setting], copy=settingCopy[state.provider][state.setting];return `<div class="settings-layout"><nav class="settings-index" aria-label="Platform Settings 9 groups">${groups.map((g,i)=>`<button class="${state.setting===i?"active":""}" data-setting="${i}"><span>${i+1}. ${g}</span>${badge(p.settings[i],p.settings[i].includes("R")?"warning":"info")}</button>`).join("")}</nav><div class="panel"><div class="panel-head"><div><h2>${p.label} ${groups[state.setting]}</h2><p class="meta">Global Settings와 같은 account truth를 읽는 상세 화면입니다.</p></div>${badge(status,status.includes("R")?"warning":"success")}</div><div class="panel-body"><dl class="kv"><dt>고객 상태</dt><dd>${p.state}</dd><dt>현재 값</dt><dd>${copy}</dd><dt>근거</dt><dd>PRD v3.1 provider contract와 official API evidence</dd><dt>Enable 조건</dt><dd>${status.includes("R")?p.target:"현재 적용, live check 통과 필요"}</dd><dt>Surface</dt><dd>${p.surfaces.join(" / ")}</dd><dt>마지막 확인</dt><dd>2026-08-04 01:18 KST</dd></dl><div class="row wrap section-gap"><button class="btn primary" data-action="setting-primary">${state.setting===1?"기본 계정 바꾸기":state.setting===7?"연결해제 범위 확인":state.setting===8?"고급 진단 열기":status.includes("R")?"준비 조건 보기":"계정 다시 확인"}</button><button class="btn" data-view="global">Global Settings로 돌아가기</button></div>${state.setting===8?`<div class="alert warning section-gap"><div class="grow"><div class="title">고급 복구 전용</div><div class="desc">raw token 입력은 기본 연결 화면에서 숨깁니다. secret 값은 prototype에 표시하지 않습니다.</div></div></div>`:""}</div></div></div>`;}
+    function renderStudio(){header("OSMU Studio","원문 하나에서 12 capability variant를 만들고 사람이 승인합니다.");content.innerHTML=scenarioBlock()+`<div class="grid-2"><div class="panel"><div class="panel-head"><div><h2>원문 source v7</h2><p class="meta">미승인 source는 dispatch 0건입니다.</p></div>${badge(state.sourceApproved?"사람이 승인함":"승인 필요",state.sourceApproved?"success":"warning")}</div><div class="panel-body stack"><div class="field"><label for="sourceTitle">제목</label><input id="sourceTitle" value="혼자 일할수록 콘텐츠를 시스템으로 남겨야 하는 이유"></div><div class="field"><label for="sourceBody">핵심 주장과 근거</label><textarea id="sourceBody">반복 가능한 콘텐츠 운영은 아이디어보다 승인과 결과 회수의 구조에서 시작합니다.</textarea><p class="help">사실 3, 출처 2, CTA 1을 검수합니다.</p></div><div class="row wrap"><button class="btn" data-action="toggle-approval">${state.sourceApproved?"승인 기록 보기":"원문 승인"}</button><button class="btn primary" data-action="generate-all">12개 초안 만들기</button></div></div></div><div class="panel"><div class="panel-head"><div><h2>12 capability</h2><p class="meta">6 providers, 8 surfaces, TEXT/IMAGE/VIDEO</p></div>${badge("12/12","info")}</div><div class="panel-body stack">${Object.entries(providers).map(([k,p])=>`<button class="nav-button" data-provider="${k}"><span class="letter">${p.letter}</span><span><strong>${p.label}</strong><small style="display:block;color:var(--subtle)">${p.caps.length} variants · ${p.surfaces.join(" / ")}</small></span><span class="status-dot">Editor 열기</span></button>`).join("")}</div></div></div>`;}
+    function renderGlobal(){header("Global Settings > Channels","6 provider account truth 요약. 상세 설정과 credential은 Platform Settings에서 관리합니다.");content.innerHTML=scenarioBlock()+`<div class="panel"><div class="panel-head"><div><h2>연결 계정과 readiness</h2><p class="meta">account count, default identity, state, verified-at, action</p></div>${badge("6 providers","info")}</div><div class="panel-body"><div class="table-wrap"><table class="table"><thead><tr><th>Provider</th><th>Accounts</th><th>Default identity</th><th>Customer state</th><th>Current readiness</th><th>Verified</th><th>Action</th></tr></thead><tbody>${Object.entries(providers).map(([k,p])=>`<tr><td><strong>${p.label}</strong></td><td>${p.accounts}</td><td>${p.account}</td><td>${currentBadge(k)}</td><td>${p.current}</td><td>01:18</td><td><button class="btn small" data-provider-settings="${k}">플랫폼 설정 열기</button></td></tr>`).join("")}</tbody></table></div></div></div>`;}
+    function renderCalendar(){header("발행 캘린더","Queue와 같은 상태를 날짜 기준으로 확인합니다.");const days=Array.from({length:28},(_,i)=>i+1);content.innerHTML=scenarioBlock()+`<div class="panel"><div class="panel-head"><div><h2>2026년 8월</h2><p class="meta">초안, 예약됨, 처리 중, 결과 확인 중, 발행됨, 실패</p></div><button class="btn" data-provider="threads" data-tab="Queue">Queue로 보기</button></div><div class="panel-body"><div class="calendar">${days.map(d=>`<button class="day" data-action="calendar-day"><strong>${d}</strong>${d===4?`<span class="post">Threads 예약됨</span><span class="post">IG Reels 처리 중</span>`:d===8?`<span class="post">X 결과 확인 중</span>`:""}</button>`).join("")}</div></div></div>`;}
+    function renderResult(){header("Source Result Group","source v7의 capability 결과를 한 기록에서 회수합니다.");const scen=state.scenario;content.innerHTML=scenarioBlock()+`<div class="panel"><div class="panel-head"><div><h2>혼자 일할수록 콘텐츠를 시스템으로 남겨야 하는 이유</h2><p class="meta">source v7 · selected 4 · external result group</p></div>${badge(scen==="partial"?"일부 완료":scen==="processing"?"처리 중":"결과 회수","info")}</div><div class="panel-body"><div class="list-row"><div><strong>CP-THR-TEXT</strong><div class="sub">@code_zero_to_one · EXT-THR-804</div></div><div>${badge("발행됨","success")}</div><div>01:22</div><button class="btn small" data-action="external-link">게시물 보기</button></div><div class="list-row"><div><strong>CP-IGR-VIDEO</strong><div class="sub">@zero_to_one_ai · container processing</div></div><div>${badge("처리 중","info")}</div><div>다음 확인 01:25</div><button class="btn small" data-scenario="processing">계속 확인</button></div><div class="list-row"><div><strong>CP-X-TEXT</strong><div class="sub">idempotency source-v7:x:text</div></div><div>${badge("결과 확인 중","warning")}</div><div>COR-OSMU-2804</div><button class="btn small" data-scenario="timeout">외부 결과 확인</button></div><div class="list-row"><div><strong>CP-TT-VIDEO</strong><div class="sub">audit 조건 전 current disabled</div></div><div>${badge(state.mode==="target"?"목표 처리":"준비 안 됨","warning")}</div><div>${state.mode==="target"?"target contract":"R3 enable"}</div><button class="btn small" data-provider-settings="tiktok">준비 조건 보기</button></div><div class="row wrap section-gap"><button class="btn" data-view="calendar">Calendar에서 보기</button><button class="btn primary" data-scenario="partial">실패 1건만 복구</button></div></div></div>`;}
+    function renderRecovery(){header("안전한 복구","새 발행 전에 같은 dispatch의 외부 결과를 확인합니다.");content.innerHTML=scenarioBlock()+`<div class="grid-2"><div class="panel"><div class="panel-head"><h2>Reconciliation</h2>${badge("재발행 금지","danger")}</div><div class="panel-body"><dl class="kv"><dt>영향</dt><dd>${providers[state.provider].label} 1 capability</dd><dt>Correlation ID</dt><dd>COR-OSMU-2804</dd><dt>Idempotency key</dt><dd>source-v7:${state.provider}:dispatch</dd><dt>성공 결과</dt><dd>기존 3개 고정, 재발행 0</dd><dt>다음 확인</dt><dd>2026-08-04 01:25 KST</dd></dl><div class="row wrap section-gap"><button class="btn primary" data-action="reconcile">외부 결과 먼저 확인</button><button class="btn" data-view="result">Result Group 열기</button></div></div></div><div class="panel"><div class="panel-head"><h2>복구 원칙</h2></div><div class="panel-body"><p>결과가 있으면 기록만 복구합니다. 결과가 없고 safe failure가 확인되면 실패 capability만 다시 검수합니다.</p><button class="btn section-gap" data-provider="${state.provider}" data-tab="Editor">Editor로 돌아가기</button></div></div></div>`;}
+    function renderHome(){header("Marketing Hub","OSMU를 기존 운영 shell에 추가한 전체 콘텐츠 운영 workspace입니다.");content.innerHTML=`<div class="panel empty"><h2>OSMU provider를 선택하세요</h2><p>6개 provider 모두 Editor, Settings, publish/recovery target path를 가집니다.</p><button class="btn primary" data-provider="threads">Threads 열기</button></div>`;}
+    function render(){allNav();modalRoot.innerHTML="";if(state.view==="provider")renderProvider();else if(state.view==="studio")renderStudio();else if(state.view==="global")renderGlobal();else if(state.view==="calendar")renderCalendar();else if(state.view==="result")renderResult();else if(state.view==="recovery")renderRecovery();else renderHome();if(frame.classList.contains("mobile"))content.insertAdjacentHTML("beforeend",`<div class="mobile-sticky"><button class="btn" data-view="global">계정 확인</button><button class="btn primary" data-action="review">선택 항목 검수</button></div>`);}
+    function openReview(){const p=providers[state.provider], caps=relevantCaps();modalRoot.innerHTML=`<div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="reviewTitle"><div class="modal"><div class="modal-head"><div><h2 id="reviewTitle">최종 검수 ${caps.length}개</h2><p class="meta">계정, 내용, 공개, 시간을 승인합니다.</p></div><button class="btn small" data-action="close-modal">닫기</button></div><div class="modal-body stack">${state.mode==="current"?`<div class="alert danger"><div class="grow"><div class="title">현재 운영 hard stop</div><div class="desc">R0 clear 전 실제 dispatch는 닫혀 있습니다. 목표 계약으로 success path를 검증할 수 있습니다.</div></div></div>`:`<div class="alert warning"><div class="grow"><div class="title">목표 계약 가정</div><div class="desc">credential, review, audit, 비용 gate가 완료됐다는 가정입니다. 실운영 증거가 아닙니다.</div></div></div>`}<dl class="kv"><dt>Target account</dt><dd>${p.account}</dd><dt>Surface</dt><dd>${p.surfaces[state.surface]}</dd><dt>Content</dt><dd>${caps.map(c=>c.split("|")[1]).join(", ")}</dd><dt>Privacy</dt><dd>${state.provider==="youtube"?"private/public audit 확인":state.provider==="tiktok"?"creator privacy 선택":"계정 기본 공개범위"}</dd><dt>Disclosure</dt><dd>${["youtube","tiktok"].includes(state.provider)?"AI/상업성 표시 확인":"CTA와 출처 확인"}</dd><dt>Time</dt><dd>지금 또는 Asia/Seoul 예약</dd></dl></div><div class="modal-foot"><button class="btn" data-action="close-modal">Editor로 수정</button>${state.mode==="current"?`<button class="btn primary" data-mode="target">목표 계약 보기</button>`:`<button class="btn" data-action="schedule">예약 확정</button><button class="btn primary" data-action="publish">지금 발행 요청</button>`}</div></div></div>`;}
+    function openEdit(id){const p=providers[state.provider];modalRoot.innerHTML=`<div class="modal-backdrop" role="dialog" aria-modal="true"><div class="modal"><div class="modal-head"><div><h2>${id} 편집</h2><p class="meta">${p.label} ${p.surfaces[state.surface]}</p></div><button class="btn small" data-action="close-modal">닫기</button></div><div class="modal-body stack"><div class="field"><label for="variantBody">플랫폼 본문</label><textarea id="variantBody">${p.label}에 맞춘 직접 편집 variant입니다.</textarea></div><div class="field"><label for="privacy">공개범위와 disclosure</label><select id="privacy"><option>공개, CTA와 출처 확인</option><option>비공개 초안</option></select></div><p class="help">수정한 variant는 source 재생성이 덮어쓰지 않습니다.</p></div><div class="modal-foot"><button class="btn primary" data-save-edit="${id}">이 초안 저장</button></div></div></div>`;}
+    function providerMenu(){modalRoot.innerHTML=`<div class="modal-backdrop" role="dialog" aria-modal="true"><div class="modal"><div class="modal-head"><h2>OSMU provider</h2><button class="btn small" data-action="close-modal">닫기</button></div><div class="modal-body stack">${Object.entries(providers).map(([k,p])=>`<button class="nav-button" data-provider="${k}"><span class="letter">${p.letter}</span>${p.label}<span class="status-dot">${p.state}</span></button>`).join("")}</div></div></div>`;}
+    document.addEventListener("click",e=>{const el=e.target.closest("button");if(!el)return;
+      if(el.dataset.viewport){document.querySelectorAll("[data-viewport]").forEach(b=>b.classList.remove("active"));el.classList.add("active");frame.classList.toggle("mobile",el.dataset.viewport==="mobile");frame.classList.toggle("desktop-force",el.dataset.viewport==="desktop");render();return;}
+      if(el.dataset.provider){state.provider=el.dataset.provider;state.view="provider";state.surface=0;state.tab=el.dataset.tab||"Queue";state.scenario="default";render();return;}
+      if(el.dataset.providerSettings){state.provider=el.dataset.providerSettings;state.view="provider";state.tab="Settings";state.setting=0;state.scenario="default";render();return;}
+      if(el.dataset.view){state.view=el.dataset.view;state.scenario=el.dataset.scenario||state.scenario;if(state.view==="recovery"&&state.scenario==="default")state.scenario="timeout";render();return;}
+      if(el.dataset.tab){state.tab=el.dataset.tab;state.view="provider";render();return;}
+      if(el.dataset.surface!==undefined){state.surface=Number(el.dataset.surface);render();return;}
+      if(el.dataset.setting!==undefined){state.setting=Number(el.dataset.setting);render();return;}
+      if(el.dataset.popular!==undefined){state.popular=Number(el.dataset.popular);render();return;}
+      if(el.dataset.mode){state.mode=el.dataset.mode;modalRoot.innerHTML="";render();if(state.mode==="target")toast("목표 계약 가정으로 전환했습니다. 실운영 증거가 아닙니다.");return;}
+      if(el.dataset.scenario){state.scenario=el.dataset.scenario;state.view=state.scenario==="default"?"provider":"recovery";document.getElementById("scenarioSelect").value=state.scenario;render();return;}
+      if(el.dataset.edit){openEdit(el.dataset.edit);return;}
+      if(el.dataset.saveEdit){state.edited[el.dataset.saveEdit]=true;modalRoot.innerHTML="";toast("직접 편집을 저장했습니다. source 재생성이 덮어쓰지 않습니다.");render();return;}
+      const a=el.dataset.action;
+      if(a==="review"){openReview();return;} if(a==="close-modal"){modalRoot.innerHTML="";return;} if(a==="provider-menu"){providerMenu();return;}
+      if(a==="toggle-approval"){state.sourceApproved=true;toast("원문 승인 기록을 확인했습니다.");render();return;}
+      if(a==="generate"||a==="generate-all"){state.generated=true;toast(a==="generate-all"?"12개 capability 초안을 만들었습니다.":"선택한 surface 초안을 만들었습니다.");render();return;}
+      if(a==="publish"){modalRoot.innerHTML="";state.view="result";state.scenario=relevantCaps().some(c=>c.includes("VIDEO"))?"processing":"default";document.getElementById("scenarioSelect").value=state.scenario;toast("dispatch를 시작했습니다. 외부 결과 전까지 발행됨으로 표시하지 않습니다.");render();return;}
+      if(a==="schedule"){modalRoot.innerHTML="";state.view="calendar";state.scenario="default";toast("Asia/Seoul 기준으로 예약했습니다. Queue와 Calendar가 같은 상태를 사용합니다.");render();return;}
+      if(a==="scenario-primary"){if(state.scenario==="wrong-account"){state.scenario="default";state.provider="threads";state.tab="Settings";state.setting=1;toast("목표 계정을 선택하고 identity를 다시 확인했습니다.");}else if(state.scenario==="tenant-mismatch"){state.view="global";state.scenario="default";}else if(state.scenario==="token-invalid"){state.view="provider";state.tab="Settings";state.setting=0;state.scenario="default";}else if(state.scenario==="review-missing"){state.view="provider";state.tab="Settings";state.setting=2;state.scenario="default";}else if(["error-502","timeout","idempotency"].includes(state.scenario)){state.view="result";toast("기존 external result를 조회했습니다. 새 dispatch는 0건입니다.");}else if(state.scenario==="partial"){state.view="provider";state.tab="Editor";state.scenario="default";toast("실패한 capability만 편집합니다.");}else if(state.scenario==="processing"){state.view="provider";state.tab="Queue";}else{state.scenario="default";}document.getElementById("scenarioSelect").value=state.scenario;render();return;}
+      if(a==="setting-primary"){if(state.setting===1){state.view="provider";state.tab="Settings";toast("기본 계정 전환 전 target identity를 다시 확인합니다.");}else if(state.setting===7){toast("revoke 뒤 publish 0건, source와 result evidence 보존 범위를 확인합니다.");}else if(state.setting===8){toast("고급 진단을 열었습니다. secret 값은 표시하지 않습니다.");}else if(providers[state.provider].settings[state.setting].includes("R")){state.scenario="review-missing";state.view="recovery";}else toast("provider live check를 시작했습니다.");render();return;}
+      if(a==="permissions"){state.tab="Settings";state.setting=2;render();return;} if(a==="reconcile"){state.view="result";state.scenario="default";toast("기존 result를 회수했습니다. duplicate 0건입니다.");render();return;} if(a==="external-link"){toast("실제 제품에서는 target identity와 external link를 새 탭에서 확인합니다.");return;} if(a==="calendar-day"){toast("선택 날짜의 Queue 항목 2건을 표시합니다.");return;}
+    });
+    document.getElementById("scenarioSelect").addEventListener("change",e=>{state.scenario=e.target.value;if(state.scenario!=="default"&&["error-502","timeout","partial","idempotency"].includes(state.scenario))state.view="recovery";render();});
+    render();
+  </script>
+</body>
+</html>

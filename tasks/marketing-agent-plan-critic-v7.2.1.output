@@ -1,0 +1,198 @@
+# OSMU Marketing Agent PRD v7.2.1 — Final Independent Plan Critic
+
+<!--
+STAMP
+created_at: 2026-08-06 18:34 KST
+model: gpt-codex/gpt-5.6-sol
+agent: plan-critic / marketing_agent_plan_critic_v7.2.1
+skills: 없음 — 설치된 스킬 중 제품 기획 비평 전용 매칭 스킬 없음; planning.md·benchmarks.md·doc-review.md 적용
+evidence: PRD v7.2.1 전체 917줄, canonical one-thing/persona/bm/risks 4문서, v7.2 critic, official Buffer/Sprout workflows
+deliberation: MINOR4를 문구 존재가 아니라 canonical views→FR/AC/TC→release N/M→RTM의 일치와 기존 MAJOR0 회귀 여부로 재검증했다.
+-->
+
+## 패널 비평 - OSMU Marketing Agent PRD v7.2.1
+
+### 판정 요약
+
+**판정: GO**
+
+v7.2 critic의 MINOR 4건은 모두 폐쇄됐고 새 MAJOR·MINOR는 발견되지 않았다. approval policy는 workspace owner가 Settings에서 관리하는 setting으로 고정됐으며 신규 외부 pilot=`승인 필요`, 기존 direct workspace=`명시 전환 전 유지`, readiness=`실행 eligibility만 차단`으로 분리됐다. Messaging은 Studio 3 rail 밖·default OFF·review 후 `커뮤니티로 보내기`에서만 선택한다. Native8은 collected와 unsupported의 provenance schema를 나눴고 unsupported는 가짜 0·시각·publication 대신 capability source·checked_at·reason·next action+N/A3를 쓴다. R3는 per-card edit를 더해 Studio6, 총 30이며 PRD와 canonical 4문서 전부에서 옛 `29/Studio5`가 남지 않았다.
+
+- `major_findings: 0`
+- `minor_findings: 0`
+- `residual_risks: 3` — provider production E2E M=0, 신규 pilot 승인 기본의 전환율 영향 미검증, native8 실제 지원 폭 미검증.
+- plan gate: **GO**. verifier PASS를 전제로 `/approve plan` 증거 재검증 후 design으로 인계할 수 있다.
+
+### 창업자
+
+나는 이제 이 제품을 한 문장과 한 흐름으로 설명할 수 있다. 확인된 브랜드 근거에서 3 rail 콘텐츠를 만들고 Studio에서 편집·저장한 뒤, workspace 정책에 맞는 게시/예약 또는 승인 요청을 실행하고, 같은 record의 proof와 native truth를 다음 생성에 반영한다. Messaging은 원할 때만 후행 handoff로 쓰므로 본체 OSMU를 오염시키지 않는다.
+
+신규 외부 pilot에 승인을 기본으로 둔 결정은 첫 가치 시간을 늦출 수 있지만, 기존 사용자의 direct 행동을 조용히 바꾸지 않고 cohort별 이탈률·support time을 측정한다. 안전과 학습의 경계가 문서에 명확하므로 지금은 plan을 다시 열기보다 pilot에서 반증하는 편이 맞다.
+
+### 운영자
+
+나는 policy와 readiness가 섞이지 않는 것을 가장 중요하게 본다. PRD `:257-270`은 setting source, workspace owner, 신규/기존 default, readiness disabled copy, audit/version 적용을 분리하고 TC31/32/62가 owner·member·ready/unready·silent transition을 검증한다. canonical `persona.md:62-70`과 `risks.md:27-34`도 같은 운영 의미를 사용한다.
+
+R3 숫자도 실제 계산이 선다. `4+1+3+5+3+2+4+6+2=30`이며 Studio6은 Save, per-card edit, publish-direct, publish-approval, schedule-direct, schedule-approval이다. FR·AC·TC 고유 ID도 각각 67개라 추가 patch가 추적성을 깨뜨리지 않았다.
+
+### 회의론자
+
+나는 “4/4 addressed” 자기선언 대신 과거 오류 문자열과 canonical 문서 불일치를 찾았다. 대상 5문서 어디에도 `R3 29`, `29/29`, `Studio5`, `total29`가 남지 않았고, one-thing은 Studio6/R3 total30(`docs/one-thing.md:64-69`), persona는 edit 회귀를 Studio6으로 연결하며(`docs/persona.md:43-50`), risks도 premortem 방어를 Studio6으로 고정한다(`docs/risks.md:49-55`).
+
+가장 강한 반대는 “unsupported도 PASS면 analytics를 안 만들어도 된다”는 것이다. 그러나 v7.2.1은 unsupported를 N에서 빼지 않고 capability source와 checked_at, 이유, 다음 action, N/A3, false-zero/fake-time0을 요구한다. 이것은 기능 완성을 가장하는 PASS가 아니라 현재 capability를 거짓 없이 출고하는 PASS다.
+
+### 시장분석가
+
+Buffer 공식 문서는 composer의 Now/Set Date와 조직 owner/admin/full/requires-approval 권한을 분리하고, Sprout는 permission 기반 approval workflow와 Needs Approval→Calendar를 제공한다. 이 사례는 approval이 연결 readiness가 아니라 조직/채널 권한 정책이라는 v7.2.1의 결정을 지지한다.
+
+다만 이 benchmark들은 OSMU의 grounded feedback 수요나 가격을 증명하지 않는다. canonical `bm.md:37-52`가 repeat, terminalization, feedback, safety, support, cost의 sample/window와 pivot을 유지하고 있으므로 시장 주장은 아직 가설로 정직하게 남아 있다.
+
+## One Thing 후보 1문장 + 함정답 3개
+
+### 채택 후보
+
+> **한 번의 브랜드 근거 입력을 채널별로 검수 가능한 콘텐츠와 증명 가능한 발행 결과로 바꾸고, 그 결과를 다음 생성에 되돌리는 마케팅 자동화 에이전트.**
+
+PRD와 `docs/one-thing.md:28-46`이 같은 문장을 사용하며 Ground/Create/Review/Execute/Community handoff/Prove/Learn의 입력·출력·완료 기준으로 분해한다. 두 제품을 억지로 붙인 문장이 아니므로 합격이다.
+
+### 함정답 3개
+
+1. **“모든 SNS 기능을 똑같이 제공한다.”** capability 없는 Queue·Analytics를 만든다.
+2. **“한 번에 11개 플랫폼으로 뿌린다.”** account·format·executor·message destination을 섞는다.
+3. **“AI가 자동 최적화한다.”** unsupported data와 작은 표본에서 인과를 과장한다.
+
+## v7.2 critic MINOR4 폐쇄 검증
+
+| 이전 finding | PRD evidence | FR/AC/TC·release evidence | canonical 일치 | 판정 |
+|---|---|---|---|---|
+| Policy owner/default/migration vs readiness | PRD `:59`, `:257-270`, `:303-315` | FR31/32/62; TC31/32/62; silent transition0 | one-thing `:66`, persona `:62-70`, bm `:20,48`, risks `:27-30` | **CLOSED** |
+| Messaging rail 밖 default OFF post-review | PRD `:60`, `:232-241`, `:278-315` | FR37/38; TC37/38; rail4=0, selected delivery1 | one-thing `:44,67`, persona `:49,57`, bm `:35`, risks `:32` | **CLOSED** |
+| Collected/unsupported provenance | PRD `:408-430` | FR57/58; TC57/58; R4 native8+false-zero/fake-time0 | one-thing `:46,68`, persona `:50,60`, bm `:34`, risks `:34` | **CLOSED** |
+| R3 per-card edit tally | PRD `:648-662` | RC-R3-STUDIO N6; R3 30/30; FR30/TC30/TC66 | one-thing `:69`, persona `:46`, risks `:51` | **CLOSED** |
+
+### 정량 재계산
+
+- FR unique IDs: **67**; AC unique IDs: **67**; TC unique IDs: **67**.
+- R3: `4+1+3+5+3+2+4+6+2 = 30`.
+- R4: `3+3+24+7+6+8+2 = 53`.
+- 기타: OAuth18, navigation75, owner-state60, header11.
+- PRD rollout `:755-762`, closure/RTM `:809-858`, final decisions `:864-873`의 숫자·의미가 모두 일치한다.
+
+## 기존 MAJOR0 회귀검사
+
+- **Studio existing actions:** Save·per-card edit·Publish·Schedule과 3 rail이 유지된다(PRD `:232-255`, FR21/22/29~33).
+- **Canonical authority:** authority/view/initiation이 분리되고 multi-surface external≤1이 유지된다(PRD `:235-246`, TC33/40/45).
+- **Messaging authority1:** logical message delivery 하나, Inbox/Calendar clients, fake Queue/Analytics0이 유지된다.
+- **Native8/R4 53:** Social5+video3 전수와 no-sum·false-zero0이 유지된다.
+- **IA/header/viewport:** Social>게시물/짧은 영상, Messaging 별도, VP75/state60/header11이 유지된다.
+- **OAuth/token/Midjourney/video/KPI/customer copy:** verified ladder, tenant token scope4+publish OFF, Midjourney safe-disabled, V01~V24, whitelist7, state+reason+action copy가 후퇴하지 않았다.
+
+## MAJOR findings
+
+`major_findings: 0`
+
+prototype 또는 downstream 설계를 잘못 이끌 load-bearing 모순이 없다.
+
+## MINOR findings
+
+`minor_findings: 0`
+
+v7.2 critic의 네 정밀화 항목이 PRD와 canonical views에 모두 반영됐고 새 문서 불일치를 찾지 못했다.
+
+## 기획 7원칙 판정
+
+| # | 원칙 | 독립 근거 | 판정 |
+|---:|---|---|---|
+| 1 | 용어 통일 | authority/view/initiation, policy/readiness, collected/unsupported 분리 | PASS |
+| 2 | 구체화 | FR67, native8, R3 30, R4 53, N75/N60/N11 | PASS |
+| 3 | 입출력 분리 | one-thing Ground~Learn의 입력·고객 출력·완료 기준 | PASS |
+| 4 | 정합성 | PRD와 one-thing/persona/bm/risks 의미·숫자 일치 | PASS |
+| 5 | 정책 상세 | owner/default/migration, readiness disabled, Messaging OFF, unsupported N/A | PASS |
+| 6 | 추출 철저 | primary flow+community branch+management+feedback 전 단계 FR/TC 존재 | PASS |
+| 7 | 논리 영역 | external≤1, silent transition0, rail4=0, false-zero/fake-time0 | PASS |
+
+## kill-criteria 3개 + 반증 여부
+
+1. **Safety kill:** tenant/private/raw-token leak, wrong-account, unapproved/duplicate publication 중 1건이면 automation과 신규 cohort 즉시 OFF. **반증 가능: 예.** audit/cross-tenant/concurrent20 fixture로 사건0을 관찰할 수 있다.
+2. **Repeat-value kill:** workspace3 중 2개 미만이 28일 안에 Studio→now/schedule→proof→next loop를 2회 반복하면 broad publisher를 composer/handoff로 축소. **반증 가능: 예.** lineage와 pilot log에 sample/window가 있다.
+3. **Feedback kill:** eligible publication≥20에서 evidence-linked next change<50% 또는 Social5 permanent unsupported≥3이면 성과 환류 판매 문구 제거. **반증 가능: 예.** native8 truth와 next-root lineage로 센다.
+
+## 자기잠식 점검
+
+- Romeo/Dark-Cupid/Yeon/Polyamory는 source·audience·account·policy·native data를 tenant로 격리하고 execution primitive만 공유한다.
+- OKgram의 Instagram specialty product surface는 흡수하지 않고 Feed/Reels canonical publishing과 truth만 공용화한다.
+- 교육은 dogfood가 될 수 있지만 LMS/curriculum을 Marketing Agent 범위에 넣지 않는다.
+- Connector support가 6사업 콘텐츠 시간을 잠식하면 `support>60m/workspace-week` 또는 provider cost ceiling으로 expansion을 중단한다.
+
+## 법적·정책 플래그
+
+- raw provider token 노출0, 최소 scope, revoke/delete/export, tenant 분리.
+- TikTok AI disclosure·asset license·person consent·rights unknown이면 approval/publish0.
+- unsupported metric을 0이나 가짜 시각으로 표시하지 않는다.
+- **⛔ 회수 필요:** Meta/X/Google/TikTok production app review, 실제 scope와 자동게시·insight 저장 약관은 외부 검증이 필요하다. plan GO는 production 작동 완료를 뜻하지 않는다.
+
+## Steelman·premortem·레드팀
+
+**Steelman 실본문:** v7.2.1을 반려할 가장 강한 주장은 신규 외부 pilot의 approval-required default가 1인 사업자의 첫 발행 시간을 늘려 One Thing을 훼손한다는 것이다. 그러나 기존 workspace는 direct를 유지하고 신규 cohort만 안전 default로 시작하며 이탈률·support time·repeat loop를 측정해 되돌릴 수 있으므로, silent migration이나 무증거 direct publish보다 반증 가능한 선택이다.
+
+**Premortem 실본문:** 6개월 뒤 실패했다면 readiness 장애가 approval policy를 바꾸거나, Discord/Slack이 네 번째 rail로 돌아오거나, unsupported 성과에 가짜 timestamp를 넣거나, QA가 per-card edit 없이 R3를 통과시켰을 것이다. v7.2.1은 각각 policy×readiness fixture, rail4=0 handoff, two-schema provenance, Studio6/R3 30으로 직접 차단한다.
+
+**레드팀 실본문:** 회의적 투자자는 native8 중 실제 수집 가능한 채널이 적으면 “성과 환류 에이전트”가 빈 약속이라고 공격할 수 있다. 문서는 unsupported도 N에서 제외하지 않고 truth로 드러내며 Social5 중 3개 이상이 영구 미지원이면 판매 문구를 내리므로, pilot 전에는 차별화가 입증됐다고 말하지 않는 조건으로 GO가 타당하다.
+
+## 결론 전 셀프심문
+
+**이 결론이 틀렸다면 가장 그럴듯한 이유는?**
+
+canonical 요약 문서가 PRD와 같은 단어를 쓰지만 실제 designer가 `post-review`의 완료 시점을 다르게 해석할 수 있다는 가능성이다. 그러나 TC37이 `reviewed rail3 content`, default delivery0, 명시 ON+destination 선택 후 selected delivery1을 Given/When/Then으로 고정하므로 구현 판단에 필요한 경계는 충분하다.
+
+**검증 가능한 근거는 실제 파일/검색으로 확인했는가?**
+
+예. PRD 917줄과 canonical one-thing/persona/bm/risks 전체, planning.md·benchmarks.md, v7.2 critic을 읽었다. FR/AC/TC unique count와 구 R3 숫자 잔존 여부를 직접 검사했고 Buffer Agency/Scheduling 및 Sprout Approval 공식 문서를 검색했다.
+
+**못 푸는 결정은 회수 필요로 명시했는가?**
+
+예. provider production 승인·scope·약관은 외부 회수 필요로 남겼다. 문서 정합성과 plan decision은 회수 대상이 아니며 GO로 닫았다.
+
+## prd-architect 인계 노트
+
+추가 PRD patch는 필요 없다. v7.2.1과 canonical 4문서를 함께 version-pin하고 `/approve plan` 증거 재검증을 실행한 뒤 product-designer에게 인계한다. design은 특히 Settings approval matrix, Studio policy/readiness states, rail 밖 community handoff, unsupported native N/A state, Studio6을 화면·prototype·design conformance matrix에 그대로 추적해야 한다.
+
+## 실제 Read·Research trace
+
+- Read: `/Users/sj/.claude/standards/planning.md` 전체 73줄.
+- Read: `/Users/sj/.claude/standards/benchmarks.md` 전체 52줄.
+- Read: `docs/openclaw-auto-marketing-agent-prd-v7.2.1-gpt-codex.md` 전체 917줄.
+- Read: `docs/one-thing.md` 전체 77줄.
+- Read: `docs/persona.md` 전체.
+- Read: `docs/bm.md` 전체.
+- Read: `docs/risks.md` 전체.
+- Read: `tasks/marketing-agent-plan-critic-v7.2.output` — 이전 MINOR4 기준.
+
+```json
+{"name":"WebSearch","arguments":{"query":"site:support.buffer.com/article/667-using-buffer-as-an-agency owner admin full posting access approval required Buffer"}}
+{"name":"WebSearch","arguments":{"query":"site:support.buffer.com/article/642-scheduling-posts Buffer Now Set Date customize network official"}}
+{"name":"WebSearch","arguments":{"query":"site:support.sproutsocial.com/hc/en-us/articles/205974715 Message Approval Workflows permissions Compose approval Calendar official"}}
+{"name":"WebFetch","arguments":{"url":"https://support.buffer.com/article/667-using-buffer-as-an-agency"}}
+{"name":"WebFetch","arguments":{"url":"https://support.buffer.com/article/642-scheduling-posts"}}
+{"name":"WebFetch","arguments":{"url":"https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows"}}
+```
+
+## 벤치마크 적용
+
+- Buffer Agency의 owner/admin/full/requires-approval 분리를 policy owner와 readiness 분리 근거로 차용했다. Buffer의 role model 자체는 복제하지 않았다.
+- Buffer Scheduling의 composer Now/Set Date를 Studio action 보존 근거로 차용했다.
+- Sprout의 permission-based approval과 Needs Approval→Calendar를 approval-required flow 근거로 차용했다. 모든 고객에게 enterprise 단계를 강제하지 않았다.
+
+## 품질 푸터
+
+`[모델] gpt-codex/gpt-5.6-sol`
+
+`RUBRIC_SCORE: 완결성=5/5 정밀성=5/5 벤치마크=5/5 추적성=5/5 전문성=4/5 total=24/25`
+
+`WEAKEST_LINE: 신규 외부 pilot의 approval-required default는 안전 우선 가설이며 첫 발행 전환율 영향은 아직 production evidence가 없다.`
+
+`SKILLS_USED: 없음 — 매칭되는 제품 기획 비평 SKILL이 없어 planning.md·benchmarks.md·doc-review.md와 공식 벤치마크를 적용 / SKILLS_SKIPPED: 없음`
+
+`SOURCES: docs/openclaw-auto-marketing-agent-prd-v7.2.1-gpt-codex.md; docs/one-thing.md; docs/persona.md; docs/bm.md; docs/risks.md; tasks/marketing-agent-plan-critic-v7.2.output; /Users/sj/.claude/standards/planning.md; /Users/sj/.claude/standards/benchmarks.md; https://support.buffer.com/article/667-using-buffer-as-an-agency; https://support.buffer.com/article/642-scheduling-posts; https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows`
+
+`MODEL: gpt-codex/gpt-5.6-sol`

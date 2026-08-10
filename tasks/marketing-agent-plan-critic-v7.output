@@ -1,0 +1,254 @@
+# Marketing Agent PRD v7 — Independent Plan Critic
+
+<!--
+STAMP
+created_at: 2026-08-06 21:20 KST
+model: gpt-codex/gpt-5.6-sol
+agent: plan-critic / marketing_agent_plan_critic_v7
+skills: 없음 — 설치된 스킬 중 제품 기획 비평 전용 매칭 스킬 없음; planning.md·doc-review.md 직접 적용
+evidence: PRD v7 전체, pipeline/wiki/QA, current Studio/Sidebar/channel/Settings/Auth/Admin/Queue/publish/metrics/video code, v17 audits, official Buffer/Sprout/IETF/Google OAuth documentation
+deliberation: 형식적 FR/AC/TC 개수보다 사용자가 다시 지적한 플랫폼 의미·projection owner·analytics truth·OAuth/token 경계가 디자인 전에 하나의 답으로 닫혔는지를 우선 판정했다.
+-->
+
+## 패널 비평 - OSMU Marketing Agent PRD v7.0.0
+
+### 판정 요약
+
+**판정: RETAKE-MAJOR**
+
+v7은 v16의 가장 큰 오류였던 3개 rail 평탄화, video3 누락, messaging의 OSMU 제작카드 승격, OAuth raw-token 혼동, route-click 대리지표를 정확히 인식했다. 그러나 사용자가 이번에 직접 물은 “OSMU 결과가 정확히 어느 Queue/Inbox/Calendar에 들어가는가”, “전체 성과에서 무엇을 합치는가”, “Midjourney와 고객 자동화 token은 최종적으로 무엇인가”가 문서 안에서 아직 서로 다른 답을 가진다. 이 상태에서 디자인으로 넘기면 클릭은 되지만 의미가 다시 틀린 v16 재발 가능성이 높다.
+
+- `major_findings: 7`
+- `minor_findings: 4`
+- `TARGET_PRD_RUBRIC_SCORE: 완결성=4/5 정밀성=3/5 벤치마크=5/5 추적성=3/5 전문성=4/5 total=19/25`
+- plan gate: **잠금 유지**. 아래 MAJOR 7건이 닫히고 independent critic MAJOR 0이 되기 전 design 입력 금지.
+
+### 창업자
+
+나는 이번 제품을 “많은 메뉴가 있는 SNS 대시보드”가 아니라, 브랜드 자료 한 번에서 검수 가능한 플랫폼별 콘텐츠와 실제 게시 결과까지 얻는 반복 가능한 마케팅 실행기로 팔고 싶다. v7의 One Thing과 3 rail·account truth·publication proof는 그 방향에 맞다. 다만 콘텐츠 하나가 text Queue, messaging delivery, video job, Inbox, Calendar 중 어디에 나타나는지 내가 한 문장으로 설명하지 못하면 고객에게도 팔 수 없다. O-6처럼 그 답을 다음 단계로 넘긴 채 프로토타입을 만들면 이번에도 화면 제작자가 자기 방식으로 빈칸을 채운다.
+
+또한 “성과 환류”는 차별점 후보일 뿐 아직 고객이 돈을 낸다는 증거가 없다. Buffer/Sprout의 publishing workflow를 다시 만드는 비용보다 브랜드 grounding의 반복 사용 가치가 크다는 외부 사용자 근거는 현재 없다. pilot은 connector breadth보다 source→publication→next-create 반복을 먼저 증명해야 한다.
+
+### 운영자
+
+나는 OAuth wrong-account, token expiry, provider timeout, publication 성공 후 내부 기록 실패를 매주 지원해야 한다. v7이 `uncertain`과 `repair-required`를 분리한 것은 운영상 옳다. 그러나 Settings에서 고객이 발급할 tenant API token의 제품 권한 집합이 비어 있고, Midjourney가 customer nav에 남는지 제거되는지도 열려 있다. 기술적인 scope encoding은 eng-design 몫이지만 고객이 선택하는 권한의 의미와 위험한 route의 최종 제품 상태는 plan에서 닫혀야 지원 문구·권한 테스트·prototype을 만들 수 있다.
+
+성과도 현재 구현처럼 플랫폼별 `views/likes/replies/reposts`를 합치면 문의가 폭증한다. “정의가 같은 metric만 합산”은 운영 규칙이 아니다. 어떤 KPI를 전체 성과에서 허용하고 어떤 것은 채널별로만 보여주는지 whitelist가 있어야 한다.
+
+### 회의론자
+
+나는 “48/48/48”이 품질 증거라는 주장부터 의심한다. TC-045 한 건은 10개 상태×25개 route×3개 viewport에 가까운 거대 매트릭스이고, TC-046 한 건은 text와 video, OAuth, Queue/job, 실 provider 발행, metric, next-create까지 한꺼번에 요구한다. 행 개수는 1:1이지만 실패 원인과 단계별 출고 기준을 분리하지 못해 원자적이지 않다. route click 대신 semantic E2E를 쓰겠다는 방향은 맞지만, 지금 구조는 “거대한 E2E 하나가 언젠가 통과”하는 새 대리지표가 될 수 있다.
+
+가장 강한 반대안은 OSMU가 publisher 전체를 재구축하지 않고 브랜드 근거 기반 composer와 검수 가능한 export/handoff만 제공하는 것이다. v7도 이 steelman을 적었지만, 3개 외부 workspace의 짧은 pilot만으로 connector 운영비와 차별화 가치를 비교하기에는 표본과 비용 기준이 부족하다.
+
+### 시장분석가
+
+Buffer는 한 composer에서 여러 channel을 선택한 뒤 예약된 게시물이 channel별 독립 post가 된다고 명시하고, All Channels view에서 channel filter로 통합·개별 queue를 함께 본다. Sprout는 outbound message approval을 별도 workflow와 상태로 관리한다. 이 근거는 v7의 “root 하나 + channel별 독립 delivery + aggregate projection” 방향을 지지한다. 반면 두 제품의 패턴이 OSMU의 브랜드 grounding/성과 환류에 대한 수요를 입증하지는 않는다.
+
+OAuth 쪽은 RFC 9700의 exact redirect·transaction-specific PKCE/state와 Google의 offline access/refresh 관리가 v7에 대체로 제대로 반영됐다. 그러나 연결 안정성이 시장 차별점은 아니다. 이는 판매 가능한 feature가 아니라 publisher의 기본 신뢰선이다. 시장 가설은 “브랜드 source와 publication/result lineage가 반복 제작 시간을 줄이고 재사용을 만든다”로 좁혀 검증해야 한다.
+
+## One Thing 후보 1문장 + 함정답 3개
+
+### 채택 후보
+
+> **한 번의 브랜드 근거 입력을 플랫폼별로 검수 가능한 콘텐츠와 증명 가능한 발행 결과로 바꾸고, 그 결과를 다음 생성에 되돌리는 마케팅 자동화 에이전트.**
+
+현재 PRD §4.2의 문장도 방향은 합격이다. 위 후보는 고객이 받는 산출물과 반복 단위를 더 직접 드러낸다.
+
+### 함정답 3개
+
+1. **“모든 SNS를 한 화면에서 관리한다.”** 기능이 없는 Queue/Analytics parity를 만들고 platform count가 가치처럼 보인다.
+2. **“AI가 주간 마케팅 전략을 알아서 결정한다.”** 콘텐츠 생성·검수·발행이라는 실제 고객 일을 주변화하고 근거 없는 전략 문서를 만든다.
+3. **“11개 채널에 글 하나를 자동 발행한다.”** visual preview, direct adapter, video format, messaging destination을 다시 하나의 지원 플랫폼 숫자로 섞는다.
+
+## MAJOR findings
+
+### MAJOR-1 — Queue/Inbox/Calendar projection의 답이 본문 안에서 충돌한다
+
+- **근거:** PRD `:232`는 Telegram/Discord/Slack의 기록 owner를 `text delivery/Queue`로 쓰지만 `:265`는 Messaging의 fake Queue/Analytics를 금지한다. `:332-345`는 supported text는 platform Queue+aggregate Inbox/Calendar, video는 video job이라고 하면서 `:393-396`은 Queue 없는 family의 fake record를 금지한다. FR/TC `:457-459`, `:534-536`는 video job까지 Inbox/Calendar/platform owner diff0을 요구하지만 O-6 `:880`은 video Calendar/Queue 표현을 아직 결정하지 않았다.
+- **현행 증거:** `wiki/product/marketing-hub-surface-map.md`는 Messaging을 setup surface로, Inbox/Calendar를 legacy `queue.json` view로 규정한다. `dashboard/src/lib/queue-store.ts:95-134`는 기존 queue item만 갱신하며 새 item을 만들지 않는다. `dashboard/src/app/api/publish/route.ts:262-285`도 queue item 부재 시 외부 성공 뒤 persistence failure가 된다.
+- **사용자 영향:** OSMU에서 만든 항목이 플랫폼 Queue에 보이는지, 메시징/영상은 어디서 승인·예약·복구하는지 prototype마다 다르게 해석된다. 사용자가 이번에 직접 물은 질문이 아직 닫히지 않았다.
+- **요구 수정:** plan에서 family별 최종 projection 표를 하나로 고정한다. 추천 시작안은 `(a) social text=platform Queue+aggregate Inbox+Calendar`, `(b) messaging=aggregate 승인/예약 목록+destination result, messaging owner에는 fake Queue/Analytics 없음`, `(c) video=video job workbench+aggregate Approval Inbox/Calendar projection, channel owner에는 backing 전 Queue 없음`이다. 어떤 surface가 authority이고 어떤 것은 projection인지, 생성·검수·예약·발행 각 시점에 언제 나타나는지 AC/TC를 분리한다. O-6은 plan에서 닫고 기술 저장 방식만 eng-design으로 넘긴다.
+
+### MAJOR-2 — 디자인을 바꾸는 제품 결정 2개가 eng-design/open issue로 남아 있다
+
+- **근거:** FR-MA7-004/048 `:435`, `:479`는 destination26 삭제·이동 0을 고정한다. 반면 supporting surface `:277`, decision O-5 `:879`는 Midjourney를 customer nav에서 제거할 수 있다고 한다. FR-MA7-012 `:443`와 flow `:354-360`은 고객이 tenant API token scope를 선택한다고 확정하지만 O-4 `:878`은 scope model 자체를 미결정으로 둔다.
+- **현행 증거:** `dashboard/src/components/layout/Sidebar.tsx:453-465`는 customer Midjourney route를 실제 노출한다. `dashboard/src/app/settings/page.tsx:23-43,88`은 customer `Fork 연동` tab을 노출하지만 `dashboard/src/proxy.ts:15-115`에는 `/api/tenant-tokens`가 없고 `dashboard/src/app/api/tenant-tokens/route.ts:7-45`는 tenant ownership을 자체 검증하지 않는다.
+- **사용자 영향:** product-designer는 route26을 보존하면서 Midjourney를 제거할 수 없고, scope 목록이 없어서 자동화 token 화면을 설계할 수 없다. 다시 임의 UI가 생긴다.
+- **요구 수정:** 제품 결정을 plan에서 닫는다. 추천값은 `Midjourney route/nav 보존 + customer에게 “현재 안전하게 제공하지 않음” 설명만 제공 + Discord user-token 입력/추출/자동화 0`이다. tenant token의 고객 언어 권한은 최소 `콘텐츠 읽기`, `초안 생성·수정`, `발행 요청`, `성과 읽기`처럼 product verbs로 확정하고, 기본값은 발행 권한 off로 둔다. scope claim/DB/API encoding만 eng-design에 회수한다.
+
+### MAJOR-3 — 전체 성과와 플랫폼 성과의 경계가 원칙 수준이라 false aggregate를 차단하지 못한다
+
+- **근거:** FR-MA7-035~038 `:466-469`과 §14 `:599-619`는 coverage/provenance를 요구하지만 전체 성과에서 “정의가 같은 metric”을 합칠 수 있다고만 한다. 어떤 native metric pair가 동등한지, MVP에서 합산을 누가 승인하는지, denominator가 무엇인지가 없다.
+- **현행 증거:** `dashboard/src/app/api/analytics/route.ts:58-69,140-150`은 platform별 및 전체 `views/likes/replies/reposts`를 바로 합산한다. `dashboard/src/app/api/metrics/route.ts:35-66`의 실제 collector는 Threads뿐이고 누락 값을 0으로 저장한다. 바로 이 코드가 PRD의 모호한 “동일 정의”를 다시 잘못 구현할 수 있다.
+- **사용자 영향:** 전체 성과의 큰 숫자가 실제 cross-platform 성과처럼 보이고, 미수집·권한 부족이 낮은 성과로 오해된다.
+- **요구 수정:** MVP aggregate whitelist를 PRD에 박는다. 추천은 `발행 시도/성공/실패/처리중`, `수집 coverage`, `콘텐츠 root당 publication 수`, `계정 readiness`, `플랫폼별 native metric 비교표`까지만 전체 성과에 허용한다. views/reach/impressions/engagement/followers의 cross-provider 합은 MVP에서 전면 금지하고 채널별 native 화면과 root drill-down에서만 표시한다. 향후 합산은 metric-equivalence ADR와 명시 승인 후에만 추가한다.
+
+### MAJOR-4 — provider/network/format/destination 용어가 아직 섞여 v16형 플랫폼 오분류를 재생할 수 있다
+
+- **근거:** PRD에는 독립 용어 정의 섹션이 없다. §6 `:211-233`에서 `Studio visual previews`, `direct publish`, `text adapters`, `video outputs`, `messaging destinations`를 분리했지만 “platform”이 Threads 같은 network, Shorts/Reels 같은 format, TikTok 같은 network+format, Telegram 같은 destination을 모두 가리킨다. `:216`은 `YouTube Shorts, Instagram Reels, TikTok`을 video output으로 쓰고 `:229-231`은 Shorts/Reels/TikTok을 대상 행으로 쓴다.
+- **현행 증거:** `dashboard/src/app/studio/page.tsx:21-66`의 UI key는 `shorts/reels/tiktok`, direct adapter는 `threads/x/facebook/instagram`; `/api/video/publish`의 provider key는 `youtube/tiktok/instagram_reels`다. 같은 명사 체계가 아니다.
+- **사용자 영향:** designer/engineer가 “Shorts가 플랫폼인가 YouTube의 포맷인가”, “Reels connection owner는 Instagram인가 별도 채널인가”를 다시 추측해 header, Queue, Analytics를 잘못 만든다.
+- **요구 수정:** client-ready glossary와 정규 capability mapping을 추가한다. 최소 열은 `network/provider account`, `content format`, `Studio generated slot`, `delivery executor`, `approval owner`, `queue/job owner`, `publication key`, `analytics owner`, `customer label`이다. 예: `YouTube account → Shorts format → shorts slot → youtube video executor → video job → YouTube native metrics`; `Instagram account → Reels format → reels slot → instagram_reels executor`; `TikTok account → short-video format → tiktok slot/executor`. FR/AC/TC의 “platform”은 이 정의 중 하나로 치환한다.
+
+### MAJOR-5 — “기존 기능 보존”이 route/묶음 개수에 머물러 `/videos`와 provider 고유 제어를 잠그지 못한다
+
+- **근거:** FR-MA7-017 `:448`은 Studio existing9 묶음, FR-MA7-040 `:471`은 asset/job linkage만 검사한다. current `/videos`의 library, upload, operator-only generate, long-video repurpose, refine, ranking, text fanout, multi-account selection, TikTok privacy/comment/duet/stitch/AI-generated controls, YouTube title/description/tags, Reels readiness를 독립 보존 항목으로 열거하지 않는다. TC-017/040 `:525`, `:548`으로는 route가 남아도 이 기능들이 사라지는 것을 잡지 못한다.
+- **현행 증거:** `dashboard/src/app/videos/page.tsx:72-144`는 role별 library/generate/repurpose/fanout state를 소유하고, `:515-667`은 YouTube/TikTok/Reels readiness, TikTok account/privacy/댓글/듀엣/스티치/AI 표시, long-video clip→Queue fanout을 제공한다. Studio는 `dashboard/src/app/studio/page.tsx:484`에서 customer role의 video rail 전체를 숨기는 현행 결함도 있다.
+- **사용자 영향:** 새 prototype이 video3 카드만 보이고 실제 기존 영상 작업실·발행 안전제어를 다시 삭제할 수 있다. 이는 “기존 구현 위에 추가” 요청의 재위반이다.
+- **요구 수정:** route25의 action/state preservation manifest를 PRD 부록 또는 버전 핀 별도 산출물로 만들고 `/videos` action을 원자적으로 잠근다. Studio customer는 video3 slot을 항상 보되 `미지원/운영자 생성/업로드 필요/연결 필요/준비됨/processing` 중 실제 state를 보여야 한다. TikTok AI 표시·privacy·interaction controls와 provider별 media metadata/rights checks를 FR/AC/TC에 포함한다.
+
+### MAJOR-6 — nominal 48/48/48은 semantic QA가 실제로 원자적이라는 증거가 아니다
+
+- **근거:** TC-005 `:513`은 route25×theme2×viewport3×icon/focus/target을 한 건으로 묶는다. TC-045 `:553`은 10개 상태×route×viewport를 한 건으로 묶고, TC-046 `:554`는 text+video+OAuth+Queue/job+실발행+metrics+next-create를 한 번에 판정한다. Rollout은 R3 text trust core와 R4 video/analytics로 나뉘지만 `:743-750`, TC-046은 두 phase를 구분하지 않는다.
+- **사용자 영향:** 일부 플랫폼 또는 한 viewport만 확인하고도 TC 한 줄이 PASS로 칠해질 수 있다. 실패했을 때 어떤 provider/owner/projection이 막혔는지 알 수 없다.
+- **요구 수정:** semantic E2E를 family와 phase로 분해한다. 최소 `text direct4 각각`, `Bluesky text adapter`, `messaging destination 각각`, `Shorts/Reels/TikTok video job 각각`, `aggregate projection`, `wrong-account OAuth provider별`, `metric state 6종`, `390/1024/1440`의 명시적 N/M coverage를 둔다. R3 exit는 text lifecycle만, R4 exit는 video+analytics만 요구하며 각 provider는 실제 연결 가능한 계정에 대해 별도 release gate를 가진다. route-click은 navigation 회귀증거로만 남기고 semantic PASS와 합치지 않는다.
+
+### MAJOR-7 — 성공·kill 지표가 숫자는 있으나 denominator와 최소 표본이 없어 실행 판정할 수 없다
+
+- **근거:** success metrics `:752-764`는 `eligible workspace`, `supported item`, `completed publication`, `diff`의 정의·최소 event 수가 없다. 외부 cohort≤3인데 projection parity 99.9%를 요구하고, kill `:797-801`은 사실 수정 30%·terminalization 95%를 몇 건 이후 판정하는지 없다. BM `:718-728`에는 root/video job당 원가 상한과 월 provider 운영비 budget이 없다.
+- **사용자 영향:** 1건 성공으로 100%가 되거나 1건 실패로 0%가 되어 GO/KILL이 흔들린다. 운영비가 커져도 “가치가 있을 것”이라는 해석으로 계속 확장할 수 있다.
+- **요구 수정:** metric dictionary에 event, numerator, denominator, eligibility, minimum sample, observation window, excluded state, source owner를 추가한다. 예: projection parity는 `eligible delivery/job ≥100건` 또는 pilot 전수 N건을 함께 보고하고, terminalization은 `provider accepted intent ≥20건/28일` 전까지 exploratory로 표시한다. root당 LLM/image/video 원가, active workspace당 OAuth/support 시간, provider expansion 월비용 상한을 rollout gate에 포함한다.
+
+## MINOR findings
+
+### MINOR-1 — client-ready 용어 정의와 current manifest가 본문 밖 의존이다
+
+PRD 상단은 범위·용어를 약속하지만 독립 glossary가 없고 route25/destination26의 정확한 목록은 surface map에 의존한다. 외부 전달 시 문서 한 장만으로 25/26의 차이를 이해하기 어렵다. 정규 용어표와 링크된 preservation manifest checksum을 추가하라.
+
+### MINOR-2 — 공통 header의 N/A 표현 규칙이 없다
+
+PRD `:255-265`의 scope/expiry/refresh health는 webhook·bot credential처럼 OAuth가 아닌 destination에 동일하게 적용되지 않는다. 빈칸 금지 원칙은 맞지만 `해당 없음 — 웹훅 연결` 같은 명시적 N/A copy를 요구해야 fake error를 막는다.
+
+### MINOR-3 — 25/25 자기채점은 독립 검토 전 품질 신뢰를 깎는다
+
+PRD `:927-928`은 open product decisions와 위 충돌이 남은 상태에서 전 축 5점을 부여했다. self-score는 22~23 후보가 아니라 실제 약점을 반영해야 한다. 독립 판정과 자기평가를 구분하라.
+
+### MINOR-4 — 수요 근거와 비용 benchmark가 약하다
+
+Buffer/Sprout/Later/Hootsuite는 workflow 설계 근거지만 OSMU의 grounded source→feedback 차별화에 대한 구매 증거는 아니다. 사용자 3명 pilot 전에 현재 수작업 시간, 월 게시 빈도, 기존 도구 비용, wrong-account/queue drift 빈도, 지불의사 baseline을 수집하라. (unsourced) persona의 주 3시간 가정은 현재 `미측정` 표기를 유지해야 한다.
+
+## kill-criteria 3개 + 반증 여부
+
+1. **Safety kill:** cross-tenant/private leak, raw provider token leak, unapproved publish, wrong-account publish, same-intent duplicate 중 1건이면 자동화·신규 cohort 즉시 중단. **반증 가능: 예.** 다만 incident definition과 audit source를 metric dictionary에 고정해야 한다.
+2. **Repeat-value kill:** 외부 workspace 3개 중 2개 미만이 source→real publication→result→next-create를 2주 연속 반복하면 broad Marketing Agent를 grounded composer/publisher handoff로 축소. **반증 가능: 조건부.** `eligible`, 반복 1회의 최소 publication 수, 탈락/휴면 workspace 처리 정의가 필요하다.
+3. **Operations kill:** active workspace당 사람 개입이 주 60분을 2주 연속 넘으면 신규 provider 확대 중단. **반증 가능: 조건부.** support log 시작/종료 기준과 OAuth/provider incident 포함 범위를 정해야 한다.
+
+Reliability 95%/99%와 factual correction 30%는 현재 최소 표본이 없어 독립 kill criterion으로 사용하기 어렵다. MAJOR-7 수정 전에는 참고지표다.
+
+## 자기잠식 점검
+
+OSMU는 ZERO-ONE, D-EDU, Romeo/Dark-Cupid/Yeon/OKgram/Polyamory/교육의 전략·고객 데이터·브랜드 정본을 대체하면 안 된다. 공통 인프라는 source→content→delivery→result까지만 공유하고, workspace별 source/audience/private metric을 물리·논리적으로 분리해야 한다. 가장 큰 자기잠식은 제품 간 고객 잠식보다 회장/운영자의 시간 잠식이다. provider별 심사·OAuth·metric 정의·장애복구가 6개 사업의 콘텐츠 생산 시간을 다시 빼앗으면 본말이 전도된다. 따라서 connector 추가는 새 채널 수가 아니라 주간 운영시간과 반복발행률 gate를 통과할 때만 허용해야 한다.
+
+## 법적·정책 리스크 플래그
+
+- **Provider policy:** TikTok의 공개범위·댓글/듀엣/스티치·AI-generated 표시, YouTube privacy/made-for-kids, Meta media/caption 권한처럼 current flow가 이미 요구하는 provider별 publish control을 보존해야 한다. PRD의 일반 `TOS 준수`만으로는 부족하다.
+- **저작권/초상권:** generated/uploaded/repurposed video와 image의 source·license·인물 동의가 unknown이면 publish를 막는 owner/action이 필요하다. NFR-MA7-13의 문장만 있고 asset provenance 상태 모델이 없다.
+- **개인정보·OAuth:** 최소 scope, refresh/revocation, tenant isolation은 방향이 맞다. 추가로 provider/user data retention·삭제·export와 계정 연결 해제 후 token/data 처리기간을 product policy로 정해야 한다.
+- **광고/상업성 표시:** 협찬·광고·AI 생성 콘텐츠의 플랫폼별 disclosure 요구는 provider capability manifest에서 관리해야 한다. 구체 법률 판단은 전문 법률 검토가 필요하며 본 critic은 법률 자문이 아니다.
+
+## 회수 필요
+
+1. **Video의 aggregate 표시 위치:** 추천은 video job을 Approval Inbox와 Calendar에 projection하되 platform text Queue에는 넣지 않는 안이다. 이를 plan 결정으로 확정해야 한다.
+2. **Messaging의 고객 owner:** 추천은 platform Queue 탭 없이 aggregate 승인/예약 목록과 destination result에서 관리하는 안이다.
+3. **Midjourney:** 추천은 route/nav 보존+customer disabled explanation, user-token UI 제거다. route 삭제는 이번 additive contract와 충돌하므로 별도 명시 승인 전 금지한다.
+4. **Tenant API token 권한:** 추천 product scope set을 plan에서 확정하고 발행 권한 default-off를 채택한다.
+5. **Aggregate KPI:** 추천은 operational delivery/coverage만 합산하고 native engagement는 합산 금지다.
+
+## Steelman·레드팀
+
+**GO steelman:** v7은 이전 PRD보다 훨씬 낫다. One Thing이 content create/publish agent로 돌아왔고, current 3 rail·visual7·direct4·video3·messaging3를 분리했으며 OAuth false-success, raw provider token 경계, Queue 단절, false zero, semantic E2E를 모두 FR/AC/TC에 올렸다. 이 정도면 세부 IA는 design에서 비교하고 데이터 구조는 eng-design에서 정해도 된다는 주장이 가능하다.
+
+**왜 그래도 RETAKE인가:** 이번 잔여 결함은 색상·문구·API 스키마가 아니다. 사용자가 직접 물은 Queue owner, video/messaging projection, aggregate 성과, Midjourney, automation token이 문서 내부에서 충돌하거나 미결정이다. 이는 design이 반드시 임의 해석해야 하는 제품 의미다. v16 실패 원인이 바로 “문서 체크리스트는 통과했지만 제품 의미를 화면 제작자가 추측한 것”이므로, 같은 종류의 빈칸을 남긴 GO는 재발 방지에 실패한다.
+
+## 셀프심문
+
+**이 결론이 틀렸다면 가장 그럴듯한 이유는?** plan이 모든 UI·기술 결정을 닫을 필요는 없고, O-1~O-6을 design/eng-design 대화로 넘긴 것이 stage-gate 원칙에 맞을 수 있다. 그러나 O-1~O-3의 storage/transaction/resolver 구현 방식은 기술설계로 넘겨도 되지만, O-4의 고객 권한 의미, O-5의 customer route 존재 여부, O-6의 사용자 lifecycle surface는 prototype의 화면과 사용자 약속을 바꾸는 제품 결정이다. 이 셋은 plan에서 닫혀야 한다. 따라서 RETAKE는 과도한 기술 선확정 요구가 아니라 제품 의미 확정 요구다.
+
+**검증 가능한 근거를 실제 확인했는가?** 예. PRD 933줄 전체, planning/doc-review 표준, pipeline plan REOPEN, surface map, v16 NG, current Studio/Sidebar/channel/Settings/proxy/tenant-token/OAuth callback/queue/publish/analytics/metrics/video code를 읽었다. 공식 Buffer/Sprout/IETF/Google OAuth 문서를 실제 검색해 방향을 교차 확인했다.
+
+## 벤치마크 및 실제 조사 trace
+
+- Buffer multi-channel scheduling: https://support.buffer.com/article/644-how-do-i-schedule-posts-for-multiple-social-channels-at-the-same-time — 차용: 한 composer에서 여러 channel 선택, 예약 후 channel별 독립 post. 변경: OSMU는 brand source와 publication lineage를 추가.
+- Buffer All Channels: https://support.buffer.com/article/861-how-to-use-the-all-channels-view-in-buffer — 차용: aggregate view와 channel filter 공존. 변경: Queue 없는 family에는 fake channel Queue를 만들지 않음.
+- Sprout approval workflows: https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows — 차용: outbound message의 명시적 submit/review/approve/reject 상태.
+- RFC 9700: https://datatracker.ietf.org/doc/html/rfc9700 — 차용: exact redirect, transaction-specific PKCE/state, secure authorization code flow.
+- Google OAuth web-server: https://developers.google.com/identity/protocols/oauth2/web-server — 차용: offline access, refresh token, incremental authorization, state.
+
+실제 검색 query:
+
+```text
+site:support.buffer.com schedule posts multiple channels customize each channel official
+site:support.sproutsocial.com approval workflows messages official
+site:datatracker.ietf.org RFC 9700 OAuth 2.0 security best current practice
+site:developers.google.com identity protocols oauth2 web-server offline access official
+```
+
+Verifier-readable actual research trace — 아래 4개 query는 이 critic 세션에서 `web.run`으로 실제 실행했고, 반환된 공식 source를 위 판단에 사용했다.
+
+```json
+{"name":"WebSearch","query":"site:support.buffer.com schedule posts multiple channels customize each channel official"}
+{"name":"WebSearch","query":"site:support.sproutsocial.com approval workflows messages official"}
+{"name":"WebSearch","query":"site:datatracker.ietf.org RFC 9700 OAuth 2.0 security best current practice"}
+{"name":"WebSearch","query":"site:developers.google.com identity protocols oauth2 web-server offline access official"}
+{"name":"WebFetch","url":"https://support.buffer.com/article/644-how-do-i-schedule-posts-for-multiple-social-channels-at-the-same-time"}
+{"name":"WebFetch","url":"https://support.buffer.com/article/861-how-to-use-the-all-channels-view-in-buffer"}
+{"name":"WebFetch","url":"https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows"}
+{"name":"WebFetch","url":"https://datatracker.ietf.org/doc/html/rfc9700"}
+{"name":"WebFetch","url":"https://developers.google.com/identity/protocols/oauth2/web-server"}
+```
+
+## 실제 Read trace
+
+- `/Users/sj/.claude/standards/planning.md`
+- `/Users/sj/.claude/standards/doc-review.md`
+- `docs/openclaw-auto-marketing-agent-prd-v7.0.0-gpt-codex.md` 전 933줄
+- `pipeline-state.md` plan REOPEN 및 이전 critic history
+- `wiki/product/marketing-hub-surface-map.md`
+- `docs/qa-tracker.md` v15/v16 NG
+- `tasks/marketing-agent-prd-v7.output`
+- `dashboard/src/app/studio/page.tsx`
+- `dashboard/src/components/layout/Sidebar.tsx`
+- `dashboard/src/app/channels/[channel]/page.tsx`
+- `dashboard/src/components/channel/ChannelPage.tsx`
+- `dashboard/src/app/settings/page.tsx`
+- `dashboard/src/components/shared/AuthGate.tsx`
+- `dashboard/src/proxy.ts`
+- `dashboard/src/app/api/tenant-tokens/route.ts`
+- `dashboard/src/app/api/connect/[provider]/callback/route.ts`
+- `dashboard/src/app/api/studio/drafts/route.ts`
+- `dashboard/src/lib/queue-store.ts`
+- `dashboard/src/app/api/publish/route.ts`
+- `dashboard/src/app/api/video/publish/route.ts`
+- `dashboard/src/app/api/tiktok/publish-status/route.ts`
+- `dashboard/src/app/videos/page.tsx`
+- `dashboard/src/app/api/analytics/route.ts`
+- `dashboard/src/app/api/metrics/route.ts`
+- v17 OSMU/auth-admin/IA-analytics 감사와 original-request ledger L-35~L-45 context
+
+## 판정: RETAKE-MAJOR
+
+One Thing과 대방향은 GO다. 그러나 MAJOR-1~7이 제품 의미·보존 범위·출시 판정의 load-bearing gap이라 **현재 PRD v7.0.0은 design에 넘길 수 없다**. 수정본은 API/DB를 확정할 필요는 없지만, 고객이 보는 owner/projection/권한/KPI/route와 phase별 종료증거를 확정해야 한다.
+
+## prd-architect 인계 노트
+
+다음 retake는 문서를 더 길게 만드는 작업이 아니다. 아래 7개를 정규 표/원자 AC로 교체하면 된다.
+
+1. provider/network/format/destination glossary + canonical capability matrix.
+2. social text/messaging/video별 authority·Queue/Inbox/Calendar/result projection matrix와 생성/검수/예약/발행 시점.
+3. Midjourney final customer state와 tenant API token product scope set.
+4. aggregate KPI whitelist와 native metric no-sum rule.
+5. `/videos` 및 route25 action/state preservation manifest, provider-specific publish controls.
+6. phase/provider/family/viewport/state별 semantic TC 분할과 N/M coverage.
+7. success/kill metric dictionary, minimum sample, cost ceiling.
+
+수정 뒤 독립 critic은 문장 존재가 아니라 위 7개 표가 서로 모순 없이 FR/AC/TC와 동일한 답을 주는지 검사해야 한다.
+
+---
+
+RUBRIC_SCORE: 논리완결성=5/5 근거구체성=5/5 steelman=5/5 premortem=5/5 실행가능성=4/5 total=24/25
+WEAKEST_LINE: “Tenant API token의 추천 scope 4종”은 제품 권한의 시작안이며 실제 provider/API 권한 모델은 회장·security·tech-architect 합의가 필요하다.
+SKILLS_USED: 없음 — 설치된 skill catalog에 제품 기획 비평 전용 매칭 skill이 없어 planning.md·doc-review.md의 plan-critic 기준을 직접 적용함
+SKILLS_SKIPPED: 없음 — 매칭 스킬 없음
+SOURCES: `/Users/sj/.claude/standards/planning.md`; `/Users/sj/.claude/standards/doc-review.md`; `docs/openclaw-auto-marketing-agent-prd-v7.0.0-gpt-codex.md`; `pipeline-state.md`; `wiki/product/marketing-hub-surface-map.md`; `docs/qa-tracker.md`; current dashboard Studio/Sidebar/channel/Settings/Auth/Admin/Queue/publish/analytics/metrics/video code; v17 audits and L-35~L-45 context; Buffer multi-channel/All Channels official help; Sprout Approval official help; IETF RFC 9700; Google OAuth web-server official documentation
+MODEL: gpt-codex/gpt-5.6-sol
