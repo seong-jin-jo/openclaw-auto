@@ -382,8 +382,6 @@ function CustomerSidebar({
         </div>
         {[
           { href: "/blog-performance", key: "blog_performance", label: "Blog Performance" },
-          { href: "/search-console", key: "search_console", label: "Search Console" },
-          { href: "/google-analytics", key: "google_analytics", label: "Google Analytics" },
         ].map((item) => (
           <Link key={item.key} href={item.href}
             className={`sidebar-item ${pathname === item.href ? "active" : ""} w-full text-left px-4 py-1.5 text-sm text-muted flex items-center gap-3`}>
@@ -398,7 +396,6 @@ function CustomerSidebar({
         </div>
         {[
           { href: "/keyword-planner", key: "keyword_planner", label: "Keyword Planner" },
-          { href: "/search-advisor", key: "search_advisor", label: "Search Advisor" },
           { href: "/naver-trends", key: "naver_trends", label: "Naver Trends" },
           { href: "/google-trends", key: "google_trends", label: "Google Trends" },
         ].map((item) => (
