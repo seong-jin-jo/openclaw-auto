@@ -538,3 +538,13 @@
 - **실제 Chrome 미검증:** 이 worker는 host의 8899 listener를 `lsof`로 보지만 IPv4·IPv6 loopback 연결이 모두 거부된다. headless Chrome과 gstack browse도 sandbox에서 CDP를 열지 못했다. 실제 1440·1024·390, console error 0, focus, contrast, overflow는 관찰하지 못했으므로 design gate는 잠금 유지.
 - **다음 액션:** localhost와 Chrome CDP가 가능한 coordinator 환경에서 `docs/prototype/qa-v24/v24-console-audit.mjs`를 실행한다. 이 감사는 route·tab·overlay·action 실제 click과 3개 viewport overflow를 검사하며 종료증거는 `runtimeErrorCount=0`, `failed=[]`다.
 - **운영 메모:** 진단 중 8897 test server가 host PID 54336으로 분리됐고 worker sandbox에서는 signal 권한이 거부됐다. coordinator가 해당 임시 listener를 종료해야 한다. 기존 8899 PID 25417은 건드리지 않았다.
+
+### 2026-08-13 02:10 KST: R-02 홈 파일스토어→DB 컷오버 후속
+
+- **handoff 기준:** 회장이 직접 지정한 FDD 3종과 커밋 `3fd63016`을 primary로 사용. tmux 소켓은 sandbox 권한으로 조회 불가. 다른 세션의 디자인 v24, FDD, QA 트래커 변경은 보존하고 dashboard 최소 범위만 수정.
+- **구현:** 홈 4개 API의 기본 소스를 DB로 고정. DB 장애 시 silent 파일 폴백을 제거하고 503으로 닫음. `HOME_DATA_SOURCE=file` 명시 롤백과 `SHADOW_HOME_DB=1` 구조화 diff 모드를 추가. weekly/activity의 남은 queue 파일 집계를 DB로 이전.
+- **마이그레이션:** 백필은 단일 트랜잭션 `ON CONFLICT DO NOTHING`으로 변경. 기존 DB 행 덮어쓰기 금지. queue 수정·이미지·변형·bulk·Figma·sourcing의 누락 dual-write 연결 추가. contract 파일 삭제는 cron 전환 미확인으로 보류.
+- **테스트:** R-02 집중 9개 파일 60건 통과. 전체 Vitest 1,095건 중 1,084 통과, 11 skip, 실패 0. TypeScript exit 0. webpack production build 166/166 통과. design-lint 토큰 위반 0. 실 Postgres 통합테스트와 Chrome E2E 스크립트를 신규 추가.
+- **커밋:** `6a0a4f1c` (`feat(dashboard): complete home DB cutover`). 이후 E2E·live DB 테스트·구현현황 문서는 다음 커밋 대상.
+- **직접 관찰 차단:** `docker start osmu-pg`는 Docker socket EPERM. DB 55432는 host listener만 보이고 sandbox 연결 불가. Next 3459는 `listen EPERM`. 그러므로 tenant token 발급, 브라우저 렌더, 실제 생성→수정→발행은 미검증.
+- **정확한 다음 액션:** localhost와 Docker가 허용된 coordinator에서 `.env.local`을 로드하고 3459 dev 서버를 기동한다. 운영자 Bearer로 tenant token을 발급해 `R02_TENANT_TOKEN=<발급값> R02_LIVE_PUBLISH=1 npm run e2e:r02`를 실행한다. 종료증거는 overview source=db, Studio generation/edit permalink, DB published_posts 증가, consoleErrors=[]와 `/tmp/r02-*-1024.png`다.

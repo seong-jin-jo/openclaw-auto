@@ -10,13 +10,28 @@ This is the reference for all persistent state. Most data is tenant-scoped for S
 - `tenant_tokens` — for API auth from frontends.
 
 ### Content & Queue (v2)
-- `queue.json` (legacy) / `drafts` table — status, channels: { threads: {status, publishedAt, ...}, ... }
+- `queue_posts` is the dashboard Home and queue-status database source. `queue.json` remains a legacy
+  write mirror until cron and external extensions finish their contract-stage migration.
+- `drafts` stores Studio generation/edit history. Status and platform variants remain in `payload`.
 - Per-post: idea, payload (JSON with hook/body etc.), images.
 - `schedules` — Studio reservation rows. Status lifecycle:
   `scheduled` → `processing` → `published` / `partial` / `failed` (or `canceled`).
   `POST /api/schedule/publish-due` claims due rows per tenant and writes platform results back into `payload.publishResults`.
 - `published_posts` — one row per platform publish attempt, including failed attempts for auditability.
   `account_id` records the exact social account used; the nullable FK is cleared if that account is deleted.
+
+#### Home data cutover and rollback (2026-08-13)
+
+- `/api/overview`, `/api/activity`, `/api/weekly-report`, and `/api/weekly-summary` read
+  `queue_posts`, `published_posts`, and `growth_metrics` by default. A DB read failure returns
+  `503 home_db_unavailable`; it does not silently present legacy file data as a successful response.
+- `HOME_DATA_SOURCE=file` is the explicit rollback switch. `SHADOW_HOME_DB=1` serves the file result
+  while reading DB in parallel and logging a structured field comparison.
+- `POST /api/queue/backfill` inserts one tenant file in a single DB transaction with
+  `ON CONFLICT (id) DO NOTHING`. It reports inserted, already-present, and invalid rows separately and
+  never overwrites a newer DB row with a stale file snapshot.
+- Dashboard queue mutations dual-write to `queue_posts`. The contract stage, including deletion of
+  `queue.json`, remains blocked until cron and external extension writers are verified on DB.
 
 ### Social Accounts
 - `channel_accounts` — provider-specific accounts owned by one tenant. A tenant can retain multiple

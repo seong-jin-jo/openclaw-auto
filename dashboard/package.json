@@ -13,6 +13,7 @@
     "e2e:local": "bash -c 'bash scripts/verify-e2e.sh \"${1:-http://localhost:3456}\"' _",
     "e2e:publish": "bash scripts/verify-publish-e2e.sh",
     "e2e:operator": "bash scripts/verify-operator-form-e2e.sh",
+    "e2e:r02": "node scripts/verify-r02-e2e.mjs",
     "ops:recover-operator-token": "bash scripts/recover-operator-token.sh"
   },
   "dependencies": {
