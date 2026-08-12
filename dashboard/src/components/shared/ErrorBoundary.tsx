@@ -42,7 +42,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
       return (
         <div className="flex items-center justify-center min-h-[400px] px-8">
           <div className="card p-8 max-w-md text-center">
-            <div className="w-12 h-12 rounded-full bg-red-900/40 text-red-400 flex items-center justify-center mx-auto mb-4 text-lg font-bold">
+            <div className="w-12 h-12 rounded-full bg-danger/15 text-danger flex items-center justify-center mx-auto mb-4 text-lg font-bold">
               !
             </div>
             <h2 className="text-lg font-semibold text-text mb-2">오류가 발생했습니다</h2>

@@ -41,7 +41,7 @@ export function LlmModel() {
         <h3 className="text-sm font-medium text-muted">LLM Model</h3>
         <div className="flex items-center gap-2">
           {hasConfig && (
-            <span className="text-caption px-1.5 py-0.5 rounded-full bg-green-900/50 text-green-400">{primary.split("/").pop()}</span>
+            <span className="text-caption px-1.5 py-0.5 rounded-full bg-success/15 text-success">{primary.split("/").pop()}</span>
           )}
           {hasConfig && !editing && <button onClick={() => setEditing(true)} className="text-caption text-accent hover:text-accent">Edit</button>}
         </div>

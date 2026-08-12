@@ -427,7 +427,7 @@ function AnalyticsTab() {
                   key={t}
                   className={`inline-flex items-center gap-micro px-stack-tight py-micro rounded-full text-caption border border-border ${
                     (stats.avgViews || 0) >= vt
-                      ? "bg-yellow-900/30 border-yellow-700/50 text-yellow-300"
+                      ? "bg-warning/15 border-warning/40 text-warning"
                       : "bg-surface text-subtle"
                   }`}
                 >
@@ -519,7 +519,7 @@ function PopularTab({ expandedPopular, setExpandedPopular }: { expandedPopular: 
 
   const SOURCE_COLORS: Record<string, string> = {
     external: "bg-accent-soft text-accent",
-    "own-viral": "bg-green-900/50 text-green-300",
+    "own-viral": "bg-success/15 text-success",
     manual: "bg-surface-2 text-muted",
   };
 

@@ -35,7 +35,7 @@ export function OnboardingChecklist() {
           return (
             <Link key={s.key} href={s.href}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition ${
-                ok ? "bg-green-900/30 text-green-300" : "bg-surface-2 text-muted hover:bg-surface-2"
+                ok ? "bg-success/15 text-success" : "bg-surface-2 text-muted hover:bg-surface-2"
               }`}>
               <span>{ok ? "✓" : "○"}</span>{s.label}
             </Link>

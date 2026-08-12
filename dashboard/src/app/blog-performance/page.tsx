@@ -50,7 +50,7 @@ export default function BlogPerformancePage() {
       </div>
 
       {data?.error && (
-        <div className="card p-4 mb-4 border border-yellow-800/50">
+        <div className="card p-4 mb-4 border border-warning/40">
           <p className="text-xs text-yellow-400">{data.error}</p>
           <p className="text-caption text-subtle mt-1">Settings → Channels → Blog에서 연결 설정을 확인하세요.</p>
         </div>
@@ -80,7 +80,7 @@ export default function BlogPerformancePage() {
 
       {/* Top article */}
       {stats.topArticle && (
-        <div className="card p-4 mb-6 border border-yellow-800/30">
+        <div className="card p-4 mb-6 border border-warning/30">
           <div className="text-caption text-yellow-500 mb-1">🏆 Top Article</div>
           <h3 className="text-sm font-medium text-muted">{stats.topArticle.title}</h3>
           <span className="text-xs text-subtle">{stats.topArticle.viewCount.toLocaleString()} views</span>

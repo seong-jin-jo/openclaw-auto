@@ -21,10 +21,10 @@ export function useToast() {
 let nextId = 0;
 
 const COLORS: Record<string, string> = {
-  success: "bg-green-800 text-green-200 border-green-600",
-  error: "bg-red-800 text-red-200 border-red-600",
-  warning: "bg-yellow-800 text-yellow-200 border-yellow-600",
-  info: "bg-blue-800 text-blue-200 border-blue-600",
+  success: "bg-success text-white border-success",
+  error: "bg-danger text-white border-danger",
+  warning: "bg-warning text-white border-warning",
+  info: "bg-accent text-accent-fg border-accent",
 };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {

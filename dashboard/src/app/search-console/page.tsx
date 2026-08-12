@@ -70,7 +70,7 @@ export default function SearchConsolePage() {
       </div>
 
       {data?.error && (
-        <div className="card p-4 mb-4 border border-yellow-800/50">
+        <div className="card p-4 mb-4 border border-warning/40">
           <p className="text-xs text-yellow-400">{data.error}</p>
           <p className="text-caption text-subtle mt-1">Settings → Channels → Search Console에서 서비스 계정을 설정하세요.</p>
         </div>

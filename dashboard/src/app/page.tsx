@@ -231,9 +231,9 @@ export default function HomePage() {
                   <td className="p-stack text-caption">{p.platform}</td>
                   <td className="p-stack text-caption max-w-xs truncate">
                     {p.permalink ? <a href={p.permalink} target="_blank" rel="noopener noreferrer" className="hover:underline text-accent">{p.text?.slice(0, 50) || "(게시물)"} ↗</a> : (p.text?.slice(0, 50) || "—")}
-                    {p.status === "failed" && <span className="text-red-400 text-caption block">{p.error?.slice(0, 60)}</span>}
+                    {p.status === "failed" && <span className="text-danger text-caption block">{p.error?.slice(0, 60)}</span>}
                   </td>
-                  <td className="p-stack text-center"><span className={`text-caption px-stack-tight py-[2px] rounded-full ${p.status === "published" ? "bg-green-900/50 text-green-400" : "bg-red-900/40 text-red-400"}`}>{p.status}</span></td>
+                  <td className="p-stack text-center"><span className={`text-caption px-stack-tight py-[2px] rounded-full ${p.status === "published" ? "bg-success/15 text-success" : "bg-danger/15 text-danger"}`}>{p.status}</span></td>
                   <td className="p-stack text-center text-caption">{p.views ?? "—"}</td>
                   <td className="p-stack text-center text-caption">{p.likes ?? "—"}</td>
                   <td className="p-stack text-center text-caption">{p.replies ?? "—"}</td>
@@ -251,11 +251,11 @@ export default function HomePage() {
 
       {/* Error Indicator */}
       {errorCount24h > 0 && (
-        <div className="mb-pad-inset px-pad-inset py-stack rounded-xl bg-red-900/20 border border-red-900/40 flex items-center gap-stack">
-          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-red-500 text-text text-caption font-bold flex items-center justify-center">
+        <div className="mb-pad-inset px-pad-inset py-stack rounded-xl bg-danger/10 border border-danger/30 flex items-center gap-stack">
+          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-danger text-white text-caption font-bold flex items-center justify-center">
             {errorCount24h}
           </span>
-          <span className="text-body text-red-300">
+          <span className="text-body text-danger">
             최근 24시간 에러 {errorCount24h}건 발생
           </span>
         </div>
@@ -276,7 +276,7 @@ export default function HomePage() {
           <div className="flex justify-between items-center mb-pad-inset">
             <h3 className="text-caption font-medium text-subtle uppercase tracking-wide">사용량</h3>
             {usage.tier && (
-              <span className="text-caption px-stack-tight py-[2px] bg-blue-900/50 rounded text-accent">
+              <span className="text-caption px-stack-tight py-[2px] bg-accent-soft rounded text-accent">
                 {usage.tier} tier
               </span>
             )}
@@ -382,9 +382,9 @@ export default function HomePage() {
             {activityView.length > 0
               ? activityView.slice(0, 6).map((e, i) => {
                   const icons: Record<string, string> = {
-                    publish: "bg-green-900/40 text-green-400",
+                    publish: "bg-success/15 text-success",
                     draft: "bg-accent-soft text-accent",
-                    viral: "bg-yellow-900/40 text-yellow-400",
+                    viral: "bg-warning/15 text-warning",
                   };
                   const labels: Record<string, string> = {
                     publish: (e.channel as string) || "T",
@@ -415,12 +415,12 @@ export default function HomePage() {
       {/* Tenant alerts + connected-channel state. Global token/secret health stays operator-only. */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-pad-inset mb-stack-section">
         {alerts.length > 0 && (
-          <div className={`card p-pad-inset ${alerts.some((a) => a.severity === "error") ? "border-red-900/50" : "border-yellow-900/50"}`}>
-            <h3 className="text-caption font-medium text-red-400 uppercase tracking-wide mb-stack">Alerts</h3>
+          <div className={`card p-pad-inset ${alerts.some((a) => a.severity === "error") ? "border-danger/40" : "border-warning/40"}`}>
+            <h3 className="text-caption font-medium text-danger uppercase tracking-wide mb-stack">Alerts</h3>
             <div className="space-y-stack-tight">
               {alerts.map((a, i) => (
                 <div key={i} className="flex items-center gap-stack-tight">
-                  <span className={`text-caption ${a.severity === "error" ? "text-red-400" : "text-yellow-400"}`}>
+                  <span className={`text-caption ${a.severity === "error" ? "text-danger" : "text-warning"}`}>
                     {a.severity === "error" ? "\u25CF" : "\u25B2"}
                   </span>
                   <span className="text-caption text-muted">{String(a.message)}</span>
@@ -430,18 +430,18 @@ export default function HomePage() {
           </div>
         )}
 
-        <div className={`card p-pad-inset ${alerts.length ? "" : "col-span-1"}`}>
+        <div className={`card p-pad-inset ${alerts.length ? "" : "md:col-span-2"}`}>
           <h3 className="text-caption font-medium text-subtle uppercase tracking-wide mb-stack">Channels Status</h3>
           <div className="space-y-stack-tight text-body">
             <div className="flex justify-between">
               <span className="text-subtle">Threads</span>
-              <span className={cfg.threads?.connected ? "text-green-400" : "text-subtle"}>
+              <span className={cfg.threads?.connected ? "text-success" : "text-subtle"}>
                 {cfg.threads?.connected ? "Connected" : "Off"}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-subtle">X (Twitter)</span>
-              <span className={cfg.x?.connected ? "text-green-400" : "text-yellow-400"}>
+              <span className={cfg.x?.connected ? "text-success" : "text-warning"}>
                 {cfg.x?.connected ? "Connected" : "Off"}
               </span>
             </div>
@@ -467,7 +467,7 @@ export default function HomePage() {
                       <span
                         className={`text-caption px-stack-tight py-[2px] rounded ${
                           log.channel === "telegram"
-                            ? "bg-blue-900/40 text-accent"
+                            ? "bg-accent-soft text-accent"
                             : log.channel
                             ? "bg-surface-2 text-subtle"
                             : "bg-accent-soft text-accent"

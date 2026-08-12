@@ -55,7 +55,7 @@ export function TestSendCard({ channel }: TestSendCardProps) {
         </button>
       </div>
       {chatConfigured ? (
-        <div className="mt-3 p-2 rounded bg-green-900/20 border border-green-800/20">
+        <div className="mt-3 p-2 rounded bg-success/10 border border-success/20">
           <p className="text-caption text-green-400">
             Interactive Chat 연결됨 — 이 채널에서 Agent와 대화 가능
           </p>

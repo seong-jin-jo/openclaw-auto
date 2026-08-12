@@ -106,7 +106,7 @@ export function Notifications() {
         <button onClick={handleTest} className="px-4 py-2 bg-surface-2 text-muted text-xs rounded hover:bg-surface-2">
           Test
         </button>
-        <button onClick={handleSendReport} disabled={sendingReport} className="px-4 py-2 bg-green-800 text-green-300 text-xs rounded hover:bg-green-700 disabled:opacity-50">
+        <button onClick={handleSendReport} disabled={sendingReport} className="px-4 py-2 bg-success text-white text-xs rounded hover:opacity-90 disabled:opacity-50">
           {sendingReport ? "발송 중..." : "주간 리포트 발송"}
         </button>
       </div>

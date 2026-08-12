@@ -795,7 +795,7 @@ export default function VideosPage() {
                         {publishingPlatform === `tiktok:${v.filename}` || tiktokPending[v.filename] ? "처리 중" : "TikTok"}
                       </button>
                     )}
-                    <button onClick={() => handleDelete(v.filename)} className="px-2 py-1 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">
+                    <button onClick={() => handleDelete(v.filename)} className="px-2 py-1 text-xs bg-danger/15 text-danger rounded hover:bg-danger/25">
                       Delete
                     </button>
                   </div>

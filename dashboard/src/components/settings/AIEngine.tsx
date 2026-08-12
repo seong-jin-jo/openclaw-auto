@@ -34,11 +34,11 @@ export function AIEngine() {
     <div className="card p-5">
       <h3 className="text-sm font-medium text-muted mb-3">Runtime</h3>
       <div className="grid grid-cols-2 gap-2">
-        <button onClick={() => handleModeSwitch("gateway")} disabled={switching} className={`p-3 rounded border text-left transition-colors disabled:opacity-50 ${mode === "gateway" ? "border-blue-600 bg-blue-950/30" : "border-border hover:border-border"}`}>
+        <button onClick={() => handleModeSwitch("gateway")} disabled={switching} className={`p-3 rounded border text-left transition-colors disabled:opacity-50 ${mode === "gateway" ? "border-accent bg-accent-soft" : "border-border hover:border-border"}`}>
           <div className="text-xs font-medium text-muted">OpenClaw Gateway</div>
           <div className="text-caption text-subtle mt-0.5">Extra Usage 과금</div>
         </button>
-        <button onClick={() => handleModeSwitch("cli")} disabled={switching} className={`p-3 rounded border text-left transition-colors disabled:opacity-50 ${mode === "cli" ? "border-green-600 bg-green-950/30" : "border-border hover:border-border"}`}>
+        <button onClick={() => handleModeSwitch("cli")} disabled={switching} className={`p-3 rounded border text-left transition-colors disabled:opacity-50 ${mode === "cli" ? "border-success bg-success/10" : "border-border hover:border-border"}`}>
           <div className="text-xs font-medium text-muted">Claude CLI</div>
           <div className="text-caption text-green-500/70 mt-0.5">Plan Usage (Max Plan)</div>
         </button>

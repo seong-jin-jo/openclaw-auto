@@ -27,10 +27,10 @@ interface KeywordBankItem {
 }
 
 const STATUS_CLASS: Record<string, string> = {
-  draft: "bg-yellow-900/40 text-yellow-300",
-  approved: "bg-blue-900/40 text-accent",
-  published: "bg-green-900/40 text-green-300",
-  failed: "bg-red-900/40 text-red-300",
+  draft: "bg-warning/15 text-warning",
+  approved: "bg-accent-soft text-accent",
+  published: "bg-success/15 text-success",
+  failed: "bg-danger/15 text-danger",
 };
 
 export default function BlogPage() {
@@ -232,7 +232,7 @@ export default function BlogPage() {
                       <button onClick={() => handleApprove(p.id)} className="px-2 py-1 text-xs bg-green-700 text-text rounded hover:bg-green-600">Approve</button>
                     )}
                     {p.status !== "published" && (
-                      <button onClick={() => handleDelete(p.id)} className="px-2 py-1 text-xs bg-red-900/40 text-red-300 rounded hover:bg-red-800">Delete</button>
+                      <button onClick={() => handleDelete(p.id)} className="px-2 py-1 text-xs bg-danger/15 text-danger rounded hover:bg-danger/25">Delete</button>
                     )}
                   </div>
                 </div>

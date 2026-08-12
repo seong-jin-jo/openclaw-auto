@@ -8,17 +8,17 @@ import { fmtTime } from "@/lib/format";
 import type { Post } from "@/types/queue";
 
 const STATUS_CLASS: Record<string, string> = {
-  draft: "bg-yellow-900/50 text-yellow-300",
-  approved: "bg-blue-900/50 text-accent",
-  published: "bg-green-900/50 text-green-300",
-  failed: "bg-red-900/50 text-red-300",
+  draft: "bg-warning/15 text-warning",
+  approved: "bg-accent-soft text-accent",
+  published: "bg-success/15 text-success",
+  failed: "bg-danger/15 text-danger",
 };
 
 function channelBadge(label: string, ch: { status: string } | undefined) {
   if (!ch) return null;
   const c: Record<string, string> = {
-    published: "bg-green-900/40 text-green-400",
-    failed: "bg-red-900/40 text-red-400",
+    published: "bg-success/15 text-success",
+    failed: "bg-danger/15 text-danger",
     pending: "bg-surface-2 text-subtle",
     skipped: "bg-surface-2 text-subtle",
   };
@@ -104,7 +104,7 @@ export function PostCard({ post, channelConfig, onRefresh, onPickImage }: PostCa
           {post.status === "draft" && (
             <button
               onClick={handleRemoveImage}
-              className="absolute top-2 right-2 p-1 bg-red-900/80 rounded text-red-300 hover:text-text opacity-0 group-hover/img:opacity-100 transition-opacity"
+              className="absolute top-2 right-2 p-1 bg-danger rounded text-white hover:opacity-80 opacity-0 group-hover/img:opacity-100 transition-opacity"
               title="이미지 제거"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -180,7 +180,7 @@ export function PostCard({ post, channelConfig, onRefresh, onPickImage }: PostCa
           </>
         )}
         {post.status !== "published" && (
-          <button onClick={handleDelete} className="px-2 py-1 text-xs bg-red-900/50 text-red-300 rounded hover:bg-red-800">Delete</button>
+          <button onClick={handleDelete} className="px-2 py-1 text-xs bg-danger/15 text-danger rounded hover:bg-danger/25">Delete</button>
         )}
       </div>
     </div>

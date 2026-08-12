@@ -71,7 +71,7 @@ export function StorageSettings() {
       <div className="card p-5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-medium text-muted">Cloudflare R2</h3>
-          <span className={`text-caption px-2 py-0.5 rounded ${r2Connected ? "bg-green-900/40 text-green-400" : "bg-yellow-900/40 text-yellow-400"}`}>
+          <span className={`text-caption px-2 py-0.5 rounded ${r2Connected ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
             {r2Connected ? "Connected" : "Not configured"}
           </span>
         </div>

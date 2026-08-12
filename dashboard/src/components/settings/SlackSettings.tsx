@@ -94,7 +94,7 @@ export function SlackSettings() {
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs text-subtle">Webhook URL</span>
           <div className="flex items-center gap-2">
-            <span className={`text-caption px-1.5 py-0.5 rounded-full ${config?.configured ? "bg-green-900/50 text-green-400" : "bg-surface-2 text-subtle"}`}>
+            <span className={`text-caption px-1.5 py-0.5 rounded-full ${config?.configured ? "bg-success/15 text-success" : "bg-surface-2 text-subtle"}`}>
               {config?.configured ? "Connected" : "Not set"}
             </span>
             {config?.configured && !editing && (

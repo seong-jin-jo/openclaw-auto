@@ -107,7 +107,7 @@ export function ImagePickerModal() {
         {currentImage && (
           <button
             onClick={() => handleSelect(null)}
-            className="w-full mb-4 p-3 rounded-lg border border-red-800/50 bg-red-900/20 text-red-300 text-sm hover:bg-red-900/40"
+            className="w-full mb-4 p-3 rounded-lg border border-danger/40 bg-danger/10 text-danger text-sm hover:bg-danger/20"
           >
             Remove current image
           </button>

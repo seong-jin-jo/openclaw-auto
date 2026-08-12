@@ -115,7 +115,7 @@ export function DesignToolsSettings() {
               <span className="w-6 h-6 rounded bg-[#00C4CC] flex items-center justify-center text-caption font-bold text-text">C</span>
               <h3 className="text-sm font-medium text-muted">Canva</h3>
             </div>
-            <span className={`text-caption px-2 py-0.5 rounded ${canvaConnected ? "bg-green-900/40 text-green-400" : "bg-surface-2 text-subtle"}`}>
+            <span className={`text-caption px-2 py-0.5 rounded ${canvaConnected ? "bg-success/15 text-success" : "bg-surface-2 text-subtle"}`}>
               {canvaConnected ? "Connected" : "Not connected"}
             </span>
           </div>
@@ -178,7 +178,7 @@ export function DesignToolsSettings() {
               <span className="w-6 h-6 rounded bg-black border border-border flex items-center justify-center text-caption font-bold text-text">F</span>
               <h3 className="text-sm font-medium text-muted">Figma</h3>
             </div>
-            <span className={`text-caption px-2 py-0.5 rounded ${figmaConnected ? "bg-green-900/40 text-green-400" : "bg-surface-2 text-subtle"}`}>
+            <span className={`text-caption px-2 py-0.5 rounded ${figmaConnected ? "bg-success/15 text-success" : "bg-surface-2 text-subtle"}`}>
               {figmaConnected ? "Connected" : "Not connected"}
             </span>
           </div>
@@ -292,7 +292,7 @@ export function DesignToolsSettings() {
                 </label>
               </div>
               {!!figma.mcpEnabled && !figma.mcpAccessToken && (
-                <div className="p-3 rounded bg-yellow-900/10 border border-yellow-800/30 space-y-3 text-caption">
+                <div className="p-3 rounded bg-warning/10 border border-warning/30 space-y-3 text-caption">
                   <p className="text-yellow-400 font-medium">MCP 연결 필요</p>
                   <p className="text-subtle">Figma 계정으로 로그인하여 MCP 접근을 허용합니다.</p>
                   <button onClick={startFigmaOAuth} className="w-full py-2.5 bg-indigo-600 text-text text-sm rounded hover:bg-indigo-500 font-medium">

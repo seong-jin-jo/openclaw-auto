@@ -72,7 +72,7 @@ export function ElevenLabsSettings() {
           <span className="text-sm font-medium text-text">ElevenLabs TTS</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className={`text-caption px-1.5 py-0.5 rounded-full ${config?.configured ? "bg-green-900/50 text-green-400" : "bg-surface-2 text-subtle"}`}>
+          <span className={`text-caption px-1.5 py-0.5 rounded-full ${config?.configured ? "bg-success/15 text-success" : "bg-surface-2 text-subtle"}`}>
             {config?.configured ? "Configured" : "Not set"}
           </span>
           {config?.configured && !editing && (

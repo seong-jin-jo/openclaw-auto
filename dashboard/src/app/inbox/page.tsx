@@ -288,7 +288,7 @@ export default function InboxPage() {
             <button
               onClick={reject}
               disabled={busy}
-              className="py-3 rounded-lg bg-red-900/40 text-red-300 hover:bg-red-800/60 text-sm font-medium disabled:opacity-50"
+              className="py-3 rounded-lg bg-danger/15 text-danger hover:bg-danger/25 text-sm font-medium disabled:opacity-50"
             >
               거절 <span className="text-caption opacity-60">(R)</span>
             </button>

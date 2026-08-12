@@ -106,7 +106,7 @@ export default function CalendarPage() {
             <button
               key={k}
               onClick={() => setSelected(selected === k ? null : k)}
-              className={`aspect-square sm:aspect-[4/3] rounded p-1 text-left flex flex-col border ${selected === k ? "border-blue-500" : "border-transparent"} ${isToday ? "bg-blue-900/20" : "bg-surface/40"} hover:bg-surface-2/60`}
+              className={`aspect-square sm:aspect-[4/3] rounded p-1 text-left flex flex-col border ${selected === k ? "border-accent" : "border-transparent"} ${isToday ? "bg-accent-soft" : "bg-surface/40"} hover:bg-surface-2/60`}
             >
               <span className={`text-caption ${isToday ? "text-accent font-bold" : "text-subtle"}`}>{day}</span>
               <div className="flex-1 overflow-hidden mt-0.5 space-y-0.5">

@@ -65,11 +65,11 @@ export function KwPlannerSettings() {
       <div className="card p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded bg-green-900 flex items-center justify-center text-caption font-bold text-green-300">N</span>
+            <span className="w-5 h-5 rounded bg-success flex items-center justify-center text-caption font-bold text-white">N</span>
             <span className="text-sm font-medium text-text">Naver Keyword Planner</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className={`text-caption px-1.5 py-0.5 rounded-full ${kwCfg?.configured ? "bg-green-900/50 text-green-400" : "bg-surface-2 text-subtle"}`}>
+            <span className={`text-caption px-1.5 py-0.5 rounded-full ${kwCfg?.configured ? "bg-success/15 text-success" : "bg-surface-2 text-subtle"}`}>
               {kwCfg?.configured ? "Connected" : "Not set"}
             </span>
             {kwCfg?.configured && !editingKw && (
@@ -145,11 +145,11 @@ export function KwPlannerSettings() {
       <div className="card p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded bg-green-900 flex items-center justify-center text-caption font-bold text-green-300">D</span>
+            <span className="w-5 h-5 rounded bg-success flex items-center justify-center text-caption font-bold text-white">D</span>
             <span className="text-sm font-medium text-text">Naver Datalab</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className={`text-caption px-1.5 py-0.5 rounded-full ${dlCfg?.configured ? "bg-green-900/50 text-green-400" : "bg-surface-2 text-subtle"}`}>
+            <span className={`text-caption px-1.5 py-0.5 rounded-full ${dlCfg?.configured ? "bg-success/15 text-success" : "bg-surface-2 text-subtle"}`}>
               {dlCfg?.configured ? "Connected" : "Not set"}
             </span>
             {dlCfg?.configured && !editingDl && (

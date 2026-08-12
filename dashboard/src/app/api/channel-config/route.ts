@@ -120,8 +120,15 @@ export async function GET(request: Request) {
     keys: maskConfigSecrets(bKeys),
   };
 
-  // OAuth "연결"은 테넌트 integrations 테이블에 저장된다(플러그인 config가 아님). 대시보드 "연결됨"
-  // 배지가 이를 반영하도록, 해당 테넌트에 저장된 channel 토큰이 있으면 connected=true 로 보정한다.
+  // OAuth "연결"의 진실원은 channel_accounts(SNS-007, Admin `/operator/customers`가 보는 바로 그
+  // 테이블)다. 대시보드 "연결됨" 배지가 이를 반영하도록, 해당 테넌트의 기본(is_default) 활성 계정이
+  // 있으면 connected=true 로 보정한다.
+  //
+  // 2026-08-11 정정 — 예전엔 legacy `integrations`(kind='channel') 테이블만 읽었다. 그런데
+  // integrations는 channel_accounts의 "미러"일 뿐이라 upsertChannelAccount/setDefaultAccount
+  // 경로를 안 거치고 channel_accounts에 직접 쓴 경우(예: seed, 배치 마이그레이션) 미러가 비어
+  // 고객 화면만 "미연결"로 어긋났다(Admin은 channel_accounts를 직접 봐서 정상 표시 — QA 실측
+  // 확인, 모노스튜디오 tenant). channel_accounts를 직접 읽어 이 클래스의 드리프트를 원천 차단한다.
   //
   // 2026-07-16 P0 QA 정정 — 예전엔 "secret_enc가 비어있지 않다"(has_secret)만으로 connected=true를
   // 세웠는데, 실측 결과 Instagram/Threads는 secret은 있지만(암호화 저장은 성공) 프로바이더가 실제로는
@@ -132,20 +139,21 @@ export async function GET(request: Request) {
     try {
       // instagram/threads는 이제부터 이 블록의 라이브 검증 결과가 유일한 진실원이다.
       // openclaw.json(파일 기반 config)에 과거 저장된 accessToken만으로 connected=true가 새지 않도록
-      // DB 조회/검증 전에 먼저 false로 리셋한다 — integrations row가 아예 없거나(미연결) 검증에
-      // 실패하면 아래에서 명시적으로만 true가 된다.
+      // DB 조회/검증 전에 먼저 false로 리셋한다 — channel_accounts에 활성 기본계정이 아예 없거나
+      // (미연결) 검증에 실패하면 아래에서 명시적으로만 true가 된다.
       channels.instagram = { ...(channels.instagram || {}), connected: false, connectionStatus: "unverified" };
       channels.threads = { ...(channels.threads || {}), connected: false, connectionStatus: "unverified" };
 
       const key = process.env.OSMU_SECRET_KEY || "";
       // OSMU_SECRET_KEY가 없으면 복호화 자체가 불가 — 토큰을 "유효"라고 주장하지 않고 미검증으로 마킹.
+      // status='active' — revoked/expired로 마킹된 계정을 연결됨으로 오판하지 않는다.
       const rows = await withTenant(__t, (sql) => sql<{ label: string; token: string | null; meta: Record<string, unknown> | null }[]>`
-        SELECT label,
+        SELECT provider AS label,
                CASE WHEN secret_enc <> '' AND ${key} <> ''
                     THEN pgp_sym_decrypt(dearmor(secret_enc), ${key}) ELSE NULL END AS token,
                meta
-        FROM integrations
-        WHERE tenant_id = ${__t} AND kind = 'channel' AND secret_enc <> ''`);
+        FROM channel_accounts
+        WHERE tenant_id = ${__t} AND is_default = true AND status = 'active' AND secret_enc <> ''`);
 
       const liveCheckable = new Set(["instagram", "threads"]);
       const toVerify: Array<{ label: string; token: string; userId: string }> = [];

@@ -330,7 +330,7 @@ function CustomerSidebar({
             </svg>
           </span>
           승인 인박스
-          <span className="ml-auto text-caption px-1.5 py-0.5 rounded-full bg-green-900/50 text-green-300">NEW</span>
+          <span className="ml-auto text-caption px-1.5 py-0.5 rounded-full bg-success/15 text-success">NEW</span>
         </Link>
 
         <Link
