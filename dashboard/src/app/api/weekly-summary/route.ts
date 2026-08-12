@@ -1,11 +1,33 @@
 import { readJson, dataPath, configPath } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
+import { getWeeklyReport as getWeeklyReportDb } from "@/lib/home-metrics";
 
+// F3(fdd-r02): 홈 page.tsx가 실제로 소비하는 라우트(useWeeklySummary). migration 문서가 지목한
+// weekly-report/route.ts와 별개 엔드포인트지만 같은 dual-datastore 결함 클래스라 동일 처리한다.
+// DB(published_posts) 우선, 실패시에만 파일 폴백.
 export async function GET(request: Request) {
-  // 테넌트 컨텍스트로 감싸 파일 격리 (본문 로직 불변)
-  const __t = await effectiveTenantId(request, null);
+  const __t = await effectiveTenantId(request, new URL(request.url).searchParams.get("tenant_id"));
   return runWithTenant(__t, async () => {
+  if (__t) {
+    try {
+      const w = await getWeeklyReportDb(__t);
+      return Response.json({
+        published: w.publishedThisWeek,
+        drafted: 0,
+        views: w.views,
+        likes: w.likes,
+        replies: w.replies,
+        engagementRate: w.views > 0 ? Math.round(((w.likes + w.replies) / w.views) * 1000) / 10 : 0,
+        channels: w.byPlatform,
+        cronOk: 0,
+        cronErr: 0,
+        source: "db",
+      });
+    } catch {
+      // DB 미가용. 아래 파일 폴백으로 이동한다.
+    }
+  }
   const queue = readJson<{ posts: Array<Record<string, unknown>> }>(dataPath("queue.json")) || { posts: [] };
   const posts = queue.posts || [];
   const now = Date.now();
@@ -65,6 +87,7 @@ export async function GET(request: Request) {
     channels,
     cronOk,
     cronErr,
+    source: "file-fallback",
   });
   });
 }

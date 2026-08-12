@@ -111,6 +111,8 @@ describe("operator OAuth credential UI lifecycle", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const view = render(<OperatorCustomersPage />);
+    // F4(fdd-r02): 카드는 기본 접힘이다. 본문 상호작용 전에 펼친다.
+    fireEvent.click(screen.getByRole("button", { name: "X 자격증명 카드 펼치기" }));
     expect(screen.getByText(/환경변수로 보호/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "원문 확인" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "암호화 DB로 가져오기" })).not.toBeInTheDocument();
@@ -149,6 +151,7 @@ describe("operator OAuth credential UI lifecycle", () => {
     vi.stubGlobal("fetch", vi.fn());
 
     render(<OperatorCustomersPage />);
+    fireEvent.click(screen.getByRole("button", { name: "X 자격증명 카드 펼치기" }));
     const clientId = screen.getByLabelText("Client ID");
     const clientSecret = screen.getByLabelText("Client Secret");
     expect(clientId).toHaveAttribute("type", "password");
@@ -178,6 +181,7 @@ describe("operator OAuth credential UI lifecycle", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const view = render(<OperatorCustomersPage />);
+    fireEvent.click(screen.getByRole("button", { name: "X 자격증명 카드 펼치기" }));
     fireEvent.change(screen.getByLabelText("Client ID"), { target: { value: "new-id" } });
     fireEvent.change(screen.getByLabelText("Client Secret"), { target: { value: "new-secret" } });
     fireEvent.click(screen.getByRole("button", { name: "전체 세트 저장" }));

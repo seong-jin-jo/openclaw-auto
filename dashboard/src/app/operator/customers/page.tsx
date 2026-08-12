@@ -139,6 +139,10 @@ export default function OperatorCustomersPage() {
   const [credentialInputs, setCredentialInputs] = useState<Record<string, Record<string, string>>>({});
   const [visibleCredentialInputs, setVisibleCredentialInputs] = useState<Record<string, Record<string, boolean>>>({});
   const [revealedValues, setRevealedValues] = useState<Record<string, Record<string, string>>>({});
+  // F4(fdd-r02): 14개 플랫폼 폼을 기본 접힘으로 둔다. 펼친 것만 카드 본문을 렌더해 스크롤 압박을 줄인다.
+  const [expandedProviders, setExpandedProviders] = useState<Record<string, boolean>>({});
+  const toggleProviderExpanded = (provider: string) =>
+    setExpandedProviders((prev) => ({ ...prev, [provider]: !prev[provider] }));
   const revealTimers = useRef<Record<string, number>>({});
 
   useEffect(() => () => {
@@ -355,27 +359,41 @@ export default function OperatorCustomersPage() {
         </section>
       )}
 
-      <section className="mb-6">
-        <div className="mb-3 flex items-center justify-between gap-3">
+      <section className="mb-stack-section">
+        <div className="mb-stack flex items-center justify-between gap-stack">
           <div>
-            <h3 className="text-sm font-semibold text-text">중앙 OAuth 개발자 앱</h3>
-            <p className="mt-1 text-caption text-subtle">운영자 전용 암호화 저장소입니다. 기본 화면은 마스킹하며, 원문은 명시적으로 확인한 뒤 30초 후 자동 삭제합니다.</p>
+            <h3 className="text-body-sm font-semibold text-text">중앙 OAuth 개발자 앱</h3>
+            <p className="mt-micro text-caption text-subtle">운영자 전용 암호화 저장소입니다. 기본 화면은 마스킹하며, 원문은 명시적으로 확인한 뒤 30초 후 자동 삭제합니다.</p>
           </div>
           <span className="text-caption text-subtle">{oauthProviders.filter((item) => item.credentialsConfigured).length}/{oauthProviders.length} 준비</span>
         </div>
-        <div className="space-y-5">
+        <div className="space-y-stack-section">
           {oauthProviderGroups.map((group) => (
             <section key={group.key} aria-labelledby={`oauth-provider-group-${group.key}`}>
-              <h4 id={`oauth-provider-group-${group.key}`} className="mb-2 text-xs font-semibold text-text">
+              <h4 id={`oauth-provider-group-${group.key}`} className="mb-stack-tight text-caption font-semibold text-text">
                 {group.label}
               </h4>
-              <div className="grid gap-3 xl:grid-cols-2">
-                {group.items.map((item) => (
-                  <div key={item.provider} data-oauth-provider={item.provider} className="card p-4">
-              <div className="flex items-start justify-between gap-3">
+              <div className="grid gap-stack xl:grid-cols-2">
+                {group.items.map((item) => {
+                  const isExpanded = Boolean(expandedProviders[item.provider]);
+                  return (
+                  <div key={item.provider} data-oauth-provider={item.provider} className="card p-pad-inset">
+              <h5>
+              <button
+                type="button"
+                onClick={() => toggleProviderExpanded(item.provider)}
+                aria-expanded={isExpanded}
+                aria-controls={`oauth-provider-panel-${item.provider}`}
+                id={`oauth-provider-trigger-${item.provider}`}
+                aria-label={`${item.label} 자격증명 카드 ${isExpanded ? "접기" : "펼치기"}`}
+                className="flex min-h-control-touch w-full items-start justify-between gap-stack text-left"
+              >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium capitalize text-text">{item.label}</p>
-                  <p className="mt-1 break-words text-caption text-subtle">
+                  <p className="text-body-sm font-medium capitalize text-text">
+                    <span className="mr-micro inline-block text-subtle">{isExpanded ? "▾" : "▸"}</span>
+                    {item.label}
+                  </p>
+                  <p className="mt-micro break-words text-caption text-subtle">
                     {item.unavailableReason
                       ? "자격증명 저장소 장애입니다. 기존 값을 다시 입력하지 마세요. DB 복구 후 새로고침하세요."
                       : item.credentialsConfigured
@@ -384,13 +402,19 @@ export default function OperatorCustomersPage() {
                           : "완전한 세트가 환경변수로 보호되어 있습니다. 원문 확인 시 암호화 DB로 옮긴 뒤 표시합니다."
                         : `미설정/불완전: ${item.missing.join(", ")}`}
                   </p>
-                  <p className="mt-1 text-caption text-subtle">출처 {item.source.toUpperCase()} · 갱신 {fmtDate(item.updatedAt)}</p>
+                  <p className="mt-micro text-caption text-subtle">출처 {item.source.toUpperCase()} · 갱신 {fmtDate(item.updatedAt)}</p>
                 </div>
-                <span className={`shrink-0 text-caption px-2 py-1 rounded ${item.unavailableReason ? "bg-danger/15 text-danger" : item.credentialsConfigured ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
+                <span className={`shrink-0 rounded px-stack-tight py-micro text-caption ${item.unavailableReason ? "bg-danger/15 text-danger" : item.credentialsConfigured ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
                   {item.unavailableReason ? "저장소 장애" : item.credentialsConfigured ? "준비" : "차단"}
                 </span>
-              </div>
-              <div className="mt-3 space-y-3">
+              </button>
+              </h5>
+              {isExpanded && (
+              <div
+                id={`oauth-provider-panel-${item.provider}`}
+                aria-labelledby={`oauth-provider-trigger-${item.provider}`}
+                className="mt-stack space-y-stack"
+              >
                 <div>
                   <p className="text-caption font-medium uppercase tracking-wide text-subtle">Callback URL</p>
                   <div className="mt-1 flex items-start gap-2">
@@ -511,8 +535,10 @@ export default function OperatorCustomersPage() {
                   </a>
                 </div>
               </div>
+              )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
           ))}

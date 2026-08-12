@@ -10,6 +10,7 @@ import { createTempDir, setupTestEnv, cleanupTestEnv } from "../helpers";
 
 const H = vi.hoisted(() => ({
   rows: [] as Array<{ label: string; token: string | null; meta: Record<string, unknown> | null }>,
+  states: [] as Array<{ provider: string; status: string }>,
 }));
 
 vi.mock("@/lib/tenant-auth", () => ({
@@ -18,9 +19,16 @@ vi.mock("@/lib/tenant-auth", () => ({
 
 vi.mock("@/lib/db", () => ({
   withTenant: vi.fn(async (_t: string, cb: (sql: unknown) => unknown) => {
-    // route.ts의 단일 SELECT 템플릿 호출을 흉내 — 항상 H.rows를 반환.
+    // channel_accounts 상태 SSOT 조회와 토큰 복호화 조회를 각각 흉내 낸다.
     const sql = Object.assign(
-      (_s: TemplateStringsArray, ..._vals: unknown[]) => Promise.resolve(H.rows),
+      (strings: TemplateStringsArray, ..._vals: unknown[]) => {
+        const query = Array.from(strings).join(" ");
+        if (query.includes("SELECT DISTINCT ON (provider)")) {
+          const derived = H.rows.map((row) => ({ provider: row.label, status: "active" }));
+          return Promise.resolve(H.states.length > 0 ? H.states : derived);
+        }
+        return Promise.resolve(H.rows);
+      },
       { json: (v: unknown) => v },
     );
     return cb(sql);
@@ -41,6 +49,7 @@ beforeEach(() => {
   setupTestEnv(tmpDir);
   writeConfig();
   H.rows = [];
+  H.states = [];
   process.env.OSMU_SECRET_KEY = "enc-key";
   fetchMock = vi.fn();
   vi.stubGlobal("fetch", fetchMock);
@@ -182,7 +191,21 @@ describe("GET /api/channel-config — Instagram/Threads 라이브 OAuth 검증",
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("integrations row가 아예 없으면(미연결) 파일에 남은 과거 accessToken이 있어도 connected=false로 리셋된다", async () => {
+  it("Instagram/Threads는 active 상태여도 검증할 토큰이 없으면 Connected로 통과하지 않는다", async () => {
+    H.states = [
+      { provider: "instagram", status: "active" },
+      { provider: "threads", status: "active" },
+    ];
+
+    const { GET } = await import("@/app/api/channel-config/route");
+    const data = await (await GET(new Request("http://localhost/api/channel-config"))).json();
+
+    expect(data.instagram).toEqual(expect.objectContaining({ connected: false, connectionStatus: "unverified" }));
+    expect(data.threads).toEqual(expect.objectContaining({ connected: false, connectionStatus: "unverified" }));
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("channel_accounts row가 없으면 파일에 남은 과거 Threads/X 키가 있어도 connected=false다", async () => {
     // openclaw.json 픽스처에 threads accessToken이 있어도(레거시 파일 기반) DB row가 없으면
     // "Connected"로 새지 않아야 한다 — 이번 P0 QA의 핵심 회귀 시나리오.
     H.rows = [];
@@ -193,9 +216,10 @@ describe("GET /api/channel-config — Instagram/Threads 라이브 OAuth 검증",
 
     expect(data.instagram.connected).toBe(false);
     expect(data.threads.connected).toBe(false);
+    expect(data.x.connected).toBe(false);
   });
 
-  it("instagram/threads 외 채널(facebook)은 기존 stored-credential 동작을 유지한다", async () => {
+  it("instagram/threads 외 채널도 channel_accounts active 상태만 Connected로 판정한다", async () => {
     H.rows = [{ label: "facebook", token: "FB_TOKEN", meta: { userId: "pg1" } }];
 
     const { GET } = await import("@/app/api/channel-config/route");
@@ -205,5 +229,18 @@ describe("GET /api/channel-config — Instagram/Threads 라이브 OAuth 검증",
     expect(data.facebook.connected).toBe(true);
     // facebook은 이번 패치 대상이 아니므로 read-only 라이브 호출을 하지 않는다.
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("expired/revoked 계정은 레거시 키가 있어도 reconnect로 판정한다", async () => {
+    H.states = [
+      { provider: "x", status: "expired" },
+      { provider: "facebook", status: "revoked" },
+    ];
+
+    const { GET } = await import("@/app/api/channel-config/route");
+    const data = await (await GET(new Request("http://localhost/api/channel-config"))).json();
+
+    expect(data.x).toEqual(expect.objectContaining({ connected: false, reconnectRequired: true, connectionStatus: "reconnect" }));
+    expect(data.facebook).toEqual(expect.objectContaining({ connected: false, reconnectRequired: true, connectionStatus: "reconnect" }));
   });
 });

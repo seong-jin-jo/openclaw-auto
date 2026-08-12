@@ -100,7 +100,7 @@ export async function GET(request: Request) {
               max(CASE WHEN ca.is_default THEN ca.username END) AS default_username,
               max(ca.created_at)::text AS last_connected_at
             FROM channel_accounts ca
-            WHERE ca.tenant_id = t.id
+            WHERE ca.tenant_id = t.id AND ca.status = 'active'
             GROUP BY ca.provider
           ) grouped
         ), '[]'::jsonb) AS channel_accounts,

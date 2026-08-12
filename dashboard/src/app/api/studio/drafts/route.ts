@@ -18,6 +18,18 @@ interface DraftRow {
   updated_at: string;
 }
 
+// F1(fdd-r02): payload.text가 없는 레거시/seed 드래프트도 흡수하는 관대 폴백.
+// 플랫폼 키(threads/x/instagram/shorts 등)가 payload 최상위에 직접 있으면 그것을 variants로 간주한다.
+const PLATFORM_KEYS = ["threads", "x", "instagram", "shorts", "blog", "youtube", "tiktok", "linkedin", "facebook"];
+function extractVariants(payload: Record<string, unknown> | null | undefined): unknown | null {
+  if (!payload) return null;
+  const found: Record<string, unknown> = {};
+  for (const key of PLATFORM_KEYS) {
+    if (payload[key] !== undefined && payload[key] !== null) found[key] = payload[key];
+  }
+  return Object.keys(found).length > 0 ? found : null;
+}
+
 // GET /api/studio/drafts?tenant_id=... — 워크스페이스 초안 목록(최근 50)
 export async function GET(request: Request) {
   const tenantId = await effectiveTenantId(request, new URL(request.url).searchParams.get("tenant_id"));
@@ -31,7 +43,7 @@ export async function GET(request: Request) {
     const drafts = rows.map((r) => ({
       id: r.id,
       idea: r.idea,
-      text: r.payload?.text ?? null,
+      text: r.payload?.text ?? extractVariants(r.payload as Record<string, unknown>),
       img: r.payload?.img ?? null,
       vid: r.payload?.vid ?? null,
       includes: r.payload?.includes ?? {},

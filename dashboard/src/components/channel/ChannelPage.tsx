@@ -160,7 +160,7 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
           <h2 className="text-subheading font-semibold text-text">{label}</h2>
           <p className="text-caption text-subtle">
             {isThreads
-              ? `${cfg?.userId ? "ID: " + cfg.userId : ""} ${growth.length ? " \u00B7 " + (growth[growth.length - 1] as Record<string, unknown>).followers + " followers" : ""}`
+              ? `${cfg?.userId ? "ID: " + cfg.userId : ""} ${growth.length ? " · " + (growth[growth.length - 1] as Record<string, unknown>).followers + " followers" : ""}`
               : connected ? "Connected" : CH_STATUS_LABEL[status] || status}
           </p>
         </div>
@@ -168,12 +168,12 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
 
       {reconnectRequired && (
         <div className="mb-stack-section rounded-lg border border-warning/40 bg-warning/10 p-stack text-caption text-warning">
-          \u26A0 \uC7AC\uC5F0\uACB0 \uD544\uC694 \u2014 \uC800\uC7A5\uB41C \uC778\uC99D \uC815\uBCF4\uAC00 \uB9CC\uB8CC\uB418\uC5C8\uAC70\uB098 \uBB34\uD6A8\uD569\uB2C8\uB2E4. \uC544\uB798\uC5D0\uC11C OAuth\uB85C \uB2E4\uC2DC \uC5F0\uACB0\uD574\uC8FC\uC138\uC694.
+          ⚠ 재연결 필요. 저장된 인증 정보가 만료됐거나 무효합니다. 아래에서 OAuth로 다시 연결해주세요.
         </div>
       )}
       {providerUnreachable && (
         <div className="mb-stack-section rounded-lg border border-border/60 bg-surface-2 p-stack text-caption text-subtle">
-          \u26A0 \uC5F0\uACB0 \uC0C1\uD0DC \uD655\uC778 \uBD88\uAC00 \u2014 {label} \uC11C\uBC84\uC5D0 \uC77C\uC2DC\uC801\uC73C\uB85C \uC5F0\uACB0\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. \uC800\uC7A5\uB41C \uC778\uC99D \uC815\uBCF4\uB294 \uC720\uC9C0\uB429\uB2C8\uB2E4. \uC7A0\uC2DC \uD6C4 \uC0C8\uB85C\uACE0\uCE68\uD574 \uB2E4\uC2DC \uD655\uC778\uD558\uC138\uC694.
+          ⚠ 연결 상태 확인 불가. {label} 서버에 일시적으로 연결할 수 없습니다. 저장된 인증 정보는 유지됩니다. 잠시 후 새로고침해 다시 확인하세요.
         </div>
       )}
 

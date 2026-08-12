@@ -50,6 +50,7 @@ const H = vi.hoisted(() => ({
   insertCalls: [] as unknown[][],
   statusUpdateCalls: [] as unknown[][],
   sharedAiUpdateCalls: [] as unknown[][],
+  customerQuery: "",
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -60,7 +61,10 @@ vi.mock("@/lib/db", () => ({
       return found ? [found] : [];
     }
     if (sql.includes("FROM auth.users")) return H.authUsers;
-    if (sql.includes("FROM tenants t")) return H.customers;
+    if (sql.includes("FROM tenants t")) {
+      H.customerQuery = sql;
+      return H.customers;
+    }
     if (sql.includes("SELECT id FROM tenants WHERE owner_auth_id")) {
       const t = H.tenantByAuthId[String(values[0])];
       return t ? [t] : [];
@@ -94,6 +98,7 @@ beforeEach(() => {
   H.insertCalls = [];
   H.statusUpdateCalls = [];
   H.sharedAiUpdateCalls = [];
+  H.customerQuery = "";
   vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
     H.fetchUrl = String(url);
     H.fetchHeaders = Object.fromEntries(new Headers(init?.headers).entries());
@@ -126,6 +131,7 @@ describe("/api/operator/customers", () => {
       activeWorkspaces: 1,
       connectedAccounts: 2,
     }));
+    expect(H.customerQuery).toContain("ca.status = 'active'");
     expect(body.oauthProviders).toEqual(expect.arrayContaining([
       expect.objectContaining({ provider: "x", credentialsConfigured: false }),
       expect.objectContaining({ provider: "facebook", credentialsConfigured: false }),

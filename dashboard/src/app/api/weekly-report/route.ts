@@ -1,11 +1,17 @@
 import { readJson, dataPath, configPath } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
+import { getWeeklyReport as getWeeklyReportDb } from "@/lib/home-metrics";
 
+// F3(fdd-r02): 발행/성과 집계는 DB(published_posts)를 단일 소스로. 크론 상태(jobs.json)는 이번
+// 스코프 밖이라 파일을 유지한다. 마이그레이션 대상은 dual-datastore 상충이 있던 발행 지표뿐이다.
 export async function GET(request: Request) {
-  // 테넌트 컨텍스트로 감싸 파일 격리 (본문 로직 불변)
-  const __t = await effectiveTenantId(request, null);
+  const __t = await effectiveTenantId(request, new URL(request.url).searchParams.get("tenant_id"));
   return runWithTenant(__t, async () => {
+  let dbWeekly: Awaited<ReturnType<typeof getWeeklyReportDb>> | null = null;
+  if (__t) {
+    try { dbWeekly = await getWeeklyReportDb(__t); } catch { dbWeekly = null; }
+  }
   const queue = readJson<{ posts: Array<Record<string, unknown>> }>(dataPath("queue.json")) || { posts: [] };
   const posts = queue.posts || [];
   const now = Date.now();
@@ -29,39 +35,42 @@ export async function GET(request: Request) {
     return at && new Date(at).getTime() > weekAgoMs;
   });
 
-  // 성과 집계
-  const totalViews = weekPublished.reduce((s, p) => {
+  // 성과 집계. DB(published_posts) 우선, 미가용시 파일 폴백.
+  const totalViews = dbWeekly ? dbWeekly.views : weekPublished.reduce((s, p) => {
     const eng = (p.engagement as Record<string, number>) || {};
     return s + (eng.views || 0);
   }, 0);
-  const totalLikes = weekPublished.reduce((s, p) => {
+  const totalLikes = dbWeekly ? dbWeekly.likes : weekPublished.reduce((s, p) => {
     const eng = (p.engagement as Record<string, number>) || {};
     return s + (eng.likes || 0);
   }, 0);
-  const totalReplies = weekPublished.reduce((s, p) => {
+  const totalReplies = dbWeekly ? dbWeekly.replies : weekPublished.reduce((s, p) => {
     const eng = (p.engagement as Record<string, number>) || {};
     return s + (eng.replies || 0);
   }, 0);
+  const weekPublishedCount = dbWeekly ? dbWeekly.publishedThisWeek : weekPublished.length;
 
   // 채널별 분류
-  const channels: Record<string, number> = {};
-  for (const p of weekPublished) {
-    const ch = (p.channels as Record<string, Record<string, unknown>>) || {};
-    for (const [key, val] of Object.entries(ch)) {
-      if (val?.status === "published") channels[key] = (channels[key] || 0) + 1;
+  const channels: Record<string, number> = dbWeekly ? { ...dbWeekly.byPlatform } : {};
+  if (!dbWeekly) {
+    for (const p of weekPublished) {
+      const ch = (p.channels as Record<string, Record<string, unknown>>) || {};
+      for (const [key, val] of Object.entries(ch)) {
+        if (val?.status === "published") channels[key] = (channels[key] || 0) + 1;
+      }
+    }
+    if (Object.keys(channels).length === 0 && weekPublished.length > 0) {
+      channels["threads"] = weekPublished.length;
     }
   }
-  if (Object.keys(channels).length === 0 && weekPublished.length > 0) {
-    channels["threads"] = weekPublished.length;
-  }
 
-  // 팔로워
+  // 팔로워. DB(growth_metrics) 우선, overview와 동일 소스로 상충 방지(F3). 미가용시만 파일 폴백.
   const growth = readJson<{ records: Array<{ followers: number }> }>(dataPath("growth.json")) || { records: [] };
   const records = growth.records || [];
-  const followers = records.length ? records[records.length - 1].followers : 0;
-  const weekDelta = records.length >= 7
+  const followers = dbWeekly?.followers ?? (records.length ? records[records.length - 1].followers : 0);
+  const weekDelta = dbWeekly?.weekDelta ?? (records.length >= 7
     ? records[records.length - 1].followers - records[Math.max(0, records.length - 7)].followers
-    : 0;
+    : 0);
 
   // 바이럴
   const settings = readJson<Record<string, number>>(dataPath("settings.json")) || {};
@@ -86,7 +95,7 @@ export async function GET(request: Request) {
   let report = `📊 주간 마케팅 리포트 (${dateRange})
 
 📝 콘텐츠
-  발행: ${weekPublished.length}건 | 생성: ${weekDrafted.length}건
+  발행: ${weekPublishedCount}건 | 생성: ${weekDrafted.length}건
   ${channelStr}
 
 📈 성과
@@ -112,7 +121,7 @@ export async function GET(request: Request) {
     report,
     dateRange,
     stats: {
-      published: weekPublished.length,
+      published: weekPublishedCount,
       drafted: weekDrafted.length,
       views: totalViews,
       likes: totalLikes,

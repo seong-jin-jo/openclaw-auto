@@ -553,15 +553,16 @@ export default function StudioPage() {
         </div>
 
         {/* 발행 이력 */}
-          <div className="w-52 shrink-0 card p-3 h-fit">
-            <b className="text-sm text-text">📜 발행 이력</b>
-            <p className="text-[10px] text-subtle mt-1 mb-2">클릭→수정 후 재발행</p>
-            {(hist?.drafts || []).length === 0 && <p className="text-xs text-subtle">없음</p>}
+          <div className="w-52 shrink-0 card p-stack h-fit">
+            <b className="text-body-sm text-text">📜 발행 이력</b>
+            <p className="text-caption text-subtle mt-micro mb-stack-tight">클릭→수정 후 재발행</p>
+            {(hist?.drafts || []).length === 0 && <p className="text-caption text-subtle">없음</p>}
             {(hist?.drafts || []).map((d) => (
-              <div key={String(d.id)} className="border-t border-border py-2">
-                <div className="text-xs text-muted truncate">{String(d.idea || "(없음)")}</div>
-                <div className="text-[10px] text-subtle">{String(d.savedAt || "").slice(5, 16).replace("T", " ")} · {d.status === "published" ? "✅" : d.status === "partial" ? "⚠️ 복구 필요·재발행 금지" : d.status === "stopped" ? "⏸" : "📝"}</div>
-                <button onClick={() => loadDraft(d)} className="mt-1 text-[10px] px-2 py-0.5 bg-surface-2 text-muted rounded">불러오기</button>
+              <div key={String(d.id)} className="border-t border-border py-stack-tight">
+                <div className="text-caption text-muted truncate">{String(d.idea || "(없음)")}</div>
+                <div className="text-caption text-subtle">{String(d.savedAt || "").slice(5, 16).replace("T", " ")} · {d.status === "published" ? "✅" : d.status === "partial" ? "⚠️ 복구 필요·재발행 금지" : d.status === "stopped" ? "⏸" : "📝"}</div>
+                {!d.text && <div className="text-caption text-warning mt-micro">본문 없음 · 재생성 필요</div>}
+                <Button onClick={() => loadDraft(d)} className="mt-micro" size="sm">불러오기</Button>
               </div>
             ))}
           </div>
