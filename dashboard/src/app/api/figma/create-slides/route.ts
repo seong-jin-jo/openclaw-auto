@@ -14,7 +14,7 @@ export async function POST(request: Request) {
 ${slidesText}
 
 1. 새 Figma 페이지 또는 기존 파일에 1080x1350px 프레임을 슬라이드 수만큼 생성
-2. 각 프레임에 배경색 적용 (dark=#0f0f0f, tech=#0a1628, gradient=#1e1b4b)
+2. 각 프레임에 대시보드 시맨틱 색상 적용 (dark=surface, tech=surface-2, 강조=accent-soft). 임의 색상값과 그라데이션은 사용하지 않는다.
 3. 첫 프레임: "CARD NEWS" 뱃지 + 제목 텍스트 (볼드 52px)
 4. 중간 프레임: 넘버 + 본문 텍스트 (34px) 중앙 정렬
 5. 마지막 프레임: CTA 텍스트 + "@your_threads_handle"

@@ -171,9 +171,13 @@ export default function StudioPage() {
   const cancelRef = useRef(false);
 
   // ── 드로어 리사이즈 ──
-  const [drawerW, setDrawerW] = useState(480);
+  const drawerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef(false);
-  const onDrag = useCallback((e: MouseEvent) => { if (dragRef.current) setDrawerW(Math.min(900, Math.max(340, window.innerWidth - e.clientX))); }, []);
+  const onDrag = useCallback((e: MouseEvent) => {
+    if (!dragRef.current || !drawerRef.current) return;
+    const width = Math.min(window.innerWidth * 0.9, Math.max(320, window.innerWidth - e.clientX));
+    drawerRef.current.style.width = `${width}px`;
+  }, []);
   useEffect(() => {
     const up = () => (dragRef.current = false);
     window.addEventListener("mousemove", onDrag); window.addEventListener("mouseup", up);
@@ -484,7 +488,10 @@ export default function StudioPage() {
       {/* 발행 진행 */}
       {(pub.running || Object.keys(pub.status).length > 0) && (
         <div className="card p-stack mb-pad-inset flex items-center gap-stack">
-          <div className="w-12 h-12 rounded-full grid place-items-center shrink-0" style={{ background: `conic-gradient(var(--success) ${pubPct}%, var(--surface-2) ${pubPct}%)` }}><div className="w-9 h-9 rounded-full bg-bg grid place-items-center text-caption font-bold text-success">{pubPct}%</div></div>
+          <div className="w-12 shrink-0">
+            <div className="text-center text-caption font-bold text-success">{pubPct}%</div>
+            <progress className="progress-semantic mt-micro h-micro w-full" max={100} value={pubPct} aria-label="발행 진행률" />
+          </div>
           <div className="flex-1"><div className="flex justify-between"><b className="text-body text-text">{pubResultLabel}</b>{pub.running && <Button variant="danger" size="sm" onClick={() => (cancelRef.current = true)}>■ 중지</Button>}</div>
             <div className="flex gap-stack-tight mt-stack-tight flex-wrap">{Object.entries(pub.status).map(([k, s]) => {
               const cls = `text-caption px-stack-tight py-[2px] rounded-full border ${s === "done" ? "bg-success/10 text-success border-success/30" : s === "failed" ? "bg-danger/10 text-danger border-danger/30" : s === "doing" ? "bg-warning/10 text-warning border-warning/30" : "bg-surface-2 text-subtle border-border"}`;
@@ -572,7 +579,7 @@ export default function StudioPage() {
       {editing && text && (
         <>
           <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setEditing(null)} />
-          <div className="fixed top-0 right-0 h-screen bg-surface/95 backdrop-blur-xl border-l border-accent z-40 flex shadow-[0_0_40px_rgba(168,85,247,0.15)]" style={{ width: drawerW }}>
+          <div ref={drawerRef} className="fixed top-0 right-0 h-screen w-1/2 min-w-80 max-w-screen-lg bg-surface/95 backdrop-blur-xl border-l border-accent z-40 flex shadow-xl">
             <div onMouseDown={() => (dragRef.current = true)} className="w-1.5 h-full cursor-ew-resize bg-gradient-to-b from-accent to-accent-hover opacity-40 hover:opacity-100 shrink-0" title="드래그해서 크기 조절" />
             <div className="flex-1 overflow-auto p-pad-inset">
               <div className="flex items-center justify-between mb-pad-inset"><b className="text-lead text-text">{LABEL[editing]} 편집</b><Button size="sm" onClick={() => setEditing(null)} aria-label={`${LABEL[editing]} 편집 닫기`}>✕</Button></div>

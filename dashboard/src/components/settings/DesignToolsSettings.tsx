@@ -112,7 +112,7 @@ export function DesignToolsSettings() {
         <div className="card p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded bg-[#00C4CC] flex items-center justify-center text-caption font-bold text-text">C</span>
+              <span className="w-6 h-6 rounded bg-accent flex items-center justify-center text-caption font-bold text-accent-fg">C</span>
               <h3 className="text-sm font-medium text-muted">Canva</h3>
             </div>
             <span className={`text-caption px-2 py-0.5 rounded ${canvaConnected ? "bg-success/15 text-success" : "bg-surface-2 text-subtle"}`}>

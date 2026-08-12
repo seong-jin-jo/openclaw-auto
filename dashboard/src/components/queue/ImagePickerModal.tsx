@@ -65,8 +65,7 @@ export function ImagePickerModal() {
 
   return (
     <div
-      className="fixed inset-0 z-40 bg-black/70 flex items-center justify-center"
-      style={{ backdropFilter: "blur(4px)" }}
+      className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm flex items-center justify-center"
       onClick={(e) => { if (e.target === e.currentTarget) setImagePickerPostId(null); }}
     >
       <div className="card p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto mx-4">

@@ -143,7 +143,7 @@ function CustomerWorkspaceIdentity({
   const { activeWorkspace, setActiveWorkspace } = useUIStore();
 
   // 고객은 /api/me가 반환한 자기 테넌트만 활성화한다.
-  // ⚠️ 반드시 "값이 실제로 바뀔 때만" set — 무조건 set하면 set→재렌더→effect→set 무한 루프(React #185).
+  // ⚠️ 반드시 "값이 실제로 바뀔 때만" set. 무조건 set하면 set→재렌더→effect→set 무한 루프(React 오류 185).
   // 로그아웃 직후에는 이전 /api/me 응답이 남아 있어도 workspace를 다시 persist하지 않는다.
   useEffect(() => {
     if (me.tenant && getAuthToken()) {
@@ -198,7 +198,7 @@ function OperatorSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-56 border-r border-border/50 flex flex-col h-screen sticky top-0" style={{ background: "var(--surface)" }}>
+    <aside className="w-56 border-r border-border/50 bg-surface flex flex-col h-screen sticky top-0">
       <div className="px-4 py-5 border-b border-border/50">
         <div className="flex items-center gap-2">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-muted shrink-0" aria-label="Admin">
@@ -275,7 +275,7 @@ function CustomerSidebar({
   };
 
   return (
-    <aside className="w-56 border-r border-border/50 flex flex-col h-screen sticky top-0" style={{ background: "var(--surface)" }}>
+    <aside className="w-56 border-r border-border/50 bg-surface flex flex-col h-screen sticky top-0">
       <div className="px-4 py-5 border-b border-border/50">
         <div className="flex items-center gap-2">
           {/* 로고 — 스택형(채널 레이어) 마크. 실 로고는 public/logo.svg 교체. */}

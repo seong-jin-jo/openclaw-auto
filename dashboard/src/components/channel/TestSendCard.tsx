@@ -44,7 +44,7 @@ export function TestSendCard({ channel }: TestSendCardProps) {
           type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          className="flex-1 bg-surface border border-[#1e1e1e] rounded px-3 py-2 text-sm text-subtle"
+          className="flex-1 bg-surface border border-border rounded px-3 py-2 text-sm text-subtle"
         />
         <button
           onClick={handleSend}
@@ -56,8 +56,8 @@ export function TestSendCard({ channel }: TestSendCardProps) {
       </div>
       {chatConfigured ? (
         <div className="mt-3 p-2 rounded bg-success/10 border border-success/20">
-          <p className="text-caption text-green-400">
-            Interactive Chat 연결됨 — 이 채널에서 Agent와 대화 가능
+          <p className="text-caption text-success">
+            Interactive Chat 연결됨. 이 채널에서 Agent와 대화 가능
           </p>
         </div>
       ) : (

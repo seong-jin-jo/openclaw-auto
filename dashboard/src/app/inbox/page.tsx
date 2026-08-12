@@ -215,9 +215,12 @@ export default function InboxPage() {
         </span>
         <span className="text-green-400">{approved}건 승인됨</span>
       </div>
-      <div className="h-1 bg-surface-2 rounded mb-5 overflow-hidden">
-        <div className="h-full bg-green-600 transition-all" style={{ width: posts.length ? `${(idx / posts.length) * 100}%` : "0%" }} />
-      </div>
+      <progress
+        className="progress-semantic mb-5 h-1 w-full"
+        max={Math.max(posts.length, 1)}
+        value={posts.length ? idx : 0}
+        aria-label="승인 검토 진행률"
+      />
 
       {isLoading ? (
         <div className="card p-8 text-center text-subtle text-sm">불러오는 중…</div>

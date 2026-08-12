@@ -263,12 +263,11 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
                   }} className="text-caption text-subtle hover:text-subtle">다운로드</button>
                 </div>
               </div>
-              <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: "thin" }}>
+              <div className="scrollbar-semantic flex gap-2 overflow-x-auto pb-2">
                 {ed.result.slides.map((s, i) => (
                   <div
                     key={`${s}-${i}`}
-                    className={`flex-shrink-0 relative group ${dragIdx === i ? "opacity-40" : ""}`}
-                    style={{ minWidth: 128 }}
+                    className={`min-w-32 flex-shrink-0 relative group ${dragIdx === i ? "opacity-40" : ""}`}
                     draggable
                     onDragStart={() => setDragIdx(i)}
                     onDragEnd={() => setDragIdx(null)}
@@ -324,7 +323,7 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
         )}
       </div>
       {previewImg && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center cursor-pointer" style={{ backdropFilter: "blur(4px)" }} onClick={() => setPreviewImg(null)}>
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center cursor-pointer" onClick={() => setPreviewImg(null)}>
           <img src={previewImg} className="max-h-[90vh] max-w-[90vw] rounded-lg shadow-2xl" alt="Preview" />
         </div>
       )}

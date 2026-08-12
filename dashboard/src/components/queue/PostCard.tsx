@@ -99,8 +99,8 @@ export function PostCard({ post, channelConfig, onRefresh, onPickImage }: PostCa
 
       {/* Image */}
       {post.imageUrl && (
-        <div className="mb-2 relative group/img" style={{ maxWidth: 480 }}>
-          <img src={post.imageUrl} alt="Post image" className="w-full rounded-lg border border-border" style={{ display: "block" }} />
+        <div className="mb-2 relative group/img max-w-lg">
+          <img src={post.imageUrl} alt="Post image" className="block w-full rounded-lg border border-border" />
           {post.status === "draft" && (
             <button
               onClick={handleRemoveImage}

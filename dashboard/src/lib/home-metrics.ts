@@ -23,7 +23,7 @@ export interface HomeSummary {
   weekDelta: number | null;
   viralPosts: ViralPost[];
   channelCounts: Record<string, number>;
-  // 성과 요약 1블록(F3 UI 통합) — published_posts 단일 소스 집계
+  // 성과 요약 1블록(F3 UI 통합). published_posts 단일 소스 집계.
   published: number;
   views: number;
   likes: number;
@@ -123,7 +123,7 @@ export async function getWeeklyReport(tenantId: string): Promise<WeeklyReport> {
       views += r.views ?? 0; likes += r.likes ?? 0; replies += r.replies ?? 0;
       byPlatform[r.platform] = (byPlatform[r.platform] || 0) + 1;
     }
-    // 팔로워도 overview와 동일 소스(growth_metrics)로 — 라우트 간 값 상충 방지(F3 AC).
+    // 팔로워도 overview와 동일 소스(growth_metrics)로 읽어 라우트 간 값 상충을 방지한다(F3 AC).
     const growthRows = await sql<{ followers: number }[]>`
       SELECT followers FROM growth_metrics
       WHERE tenant_id = ${tenantId} ORDER BY recorded_at DESC LIMIT 8`;

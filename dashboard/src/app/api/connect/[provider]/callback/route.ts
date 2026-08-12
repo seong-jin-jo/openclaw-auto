@@ -35,15 +35,18 @@ function safeInlineJson(value: unknown): string {
 function resultHtml(title: string, sub: string, opts: { provider: string; ok: boolean; origin: string }): Response {
   const payload = safeInlineJson({ source: "osmu-oauth-connect", provider: opts.provider, ok: opts.ok, message: sub });
   const targetOrigin = safeInlineJson(opts.origin);
-  const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head>
-  <body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh">
-    <div style="text-align:center;max-width:520px;padding:24px"><h2>${escapeHtml(title)}</h2><p style="color:#aaa;line-height:1.5">${escapeHtml(sub)}</p>
+  const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>
+    :root{--surface:rgb(10 10 10);--text:rgb(255 255 255);--muted:rgb(170 170 170)}
+    body{background:var(--surface);color:var(--text);font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh}
+    main{text-align:center;max-width:520px;padding:24px}p{color:var(--muted);line-height:1.5}
+  </style></head><body>
+    <main><h2>${escapeHtml(title)}</h2><p>${escapeHtml(sub)}</p>
     <script>
       try {
         if (window.opener) { window.opener.postMessage(${payload}, ${targetOrigin}); }
       } catch (e) { /* opener가 다른 origin이거나 이미 닫힘 — 무시하고 창은 닫는다 */ }
       setTimeout(function(){ window.close(); }, 1200);
-    </script></div></body></html>`;
+    </script></main></body></html>`;
   const headers = new Headers({ "Content-Type": "text/html; charset=utf-8" });
   // provider는 URL path param이므로, 지원 목록에 있는 값일 때만 cookie name/path에 사용한다.
   // 그렇지 않으면 CRLF 등을 넣은 provider가 Set-Cookie 헤더를 깨거나 주입하는 경로가 될 수 있다.

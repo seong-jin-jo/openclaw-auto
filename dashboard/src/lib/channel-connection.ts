@@ -1,5 +1,5 @@
 // F2(fdd-r02): 채널 "연결됨" 판정의 단일 소스. 사이드바/배너/Settings/Admin이 모두 이 함수(또는
-// 이를 감싼 /api/channel-config 응답)를 통해서만 연결 여부를 판정한다 — 레거시 integrations·
+// 이를 감싼 /api/channel-config 응답)를 통해서만 연결 여부를 판정한다. 레거시 integrations와
 // openclaw.json config는 판정에서 배제(발행 폴백 미러링만 별도 유지, schema.sql:259~).
 //
 // 판정 = channel_accounts에서 해당 (tenant, provider)의 기본(is_default) 계정 status:

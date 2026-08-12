@@ -158,7 +158,7 @@ export function UnifiedPostCard({
         /* Visual: large carousel slides */
         slides.length > 0 ? (
           <div className="mb-3">
-            <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: "thin", scrollbarColor: "#374151 transparent" }}>
+            <div className="scrollbar-semantic flex gap-2 overflow-x-auto pb-2">
               {slides.map((s, i) => (
                 <div key={i} className="flex-shrink-0 w-36 h-44 rounded-lg overflow-hidden border border-border">
                   <img src={s} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
@@ -174,15 +174,15 @@ export function UnifiedPostCard({
       ) : variant === "blog" ? (
         /* Blog: small thumbnail */
         post.imageUrl ? (
-          <div className="mb-2 float-right ml-3" style={{ maxWidth: 120 }}>
+          <div className="mb-2 float-right ml-3 max-w-30">
             <img src={post.imageUrl} alt="Thumbnail" className="w-full rounded border border-border" />
           </div>
         ) : null
       ) : (
         /* Text: medium image */
         post.imageUrl ? (
-          <div className="mb-2 relative group/img" style={{ maxWidth: 480 }}>
-            <img src={post.imageUrl} alt="Post image" className="w-full rounded-lg border border-border" style={{ display: "block" }} />
+          <div className="mb-2 relative group/img max-w-lg">
+            <img src={post.imageUrl} alt="Post image" className="block w-full rounded-lg border border-border" />
             {post.status === "draft" && (
               <button
                 onClick={handleRemoveImage}
@@ -206,8 +206,7 @@ export function UnifiedPostCard({
             poster={post.videoThumbnail || undefined}
             controls
             preload="none"
-            className="w-full rounded border border-border"
-            style={{ maxHeight: 200 }}
+            className="max-h-52 w-full rounded border border-border"
           />
           {post.status === "draft" && (
             <button

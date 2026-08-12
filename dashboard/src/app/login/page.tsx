@@ -22,7 +22,7 @@ export default function LoginPage() {
   // onAuthStateChange SIGNED_IN) — this guards a single `login` fire per mount regardless.
   const oauthTrackedRef = useRef(false);
 
-  // OAuth 복귀 감지: Supabase는 #access_token=...&refresh_token=... 또는 PKCE ?code=... 으로
+  // OAuth 복귀 감지: Supabase는 URL fragment의 access_token/refresh_token 또는 PKCE ?code=... 으로
   // 되돌아온다. 클라가 URL 해시를 파싱(detectSessionInUrl 기본 on)하므로 mount 시 세션을 거둬
   // 토큰 저장 후 진입.
   useEffect(() => {

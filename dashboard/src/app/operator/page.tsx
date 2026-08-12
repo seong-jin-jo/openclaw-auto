@@ -40,8 +40,7 @@ export default function OperatorPage() {
     <div className="min-h-screen bg-bg flex items-center justify-center px-6">
       <div className="card p-8 w-full max-w-sm relative overflow-hidden">
         <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-[2px]"
-          style={{ background: "linear-gradient(90deg, transparent, var(--accent), transparent)" }}
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-0.5 bg-accent"
         />
         <div className="text-center mb-6">
           <h1 className="text-lg font-bold text-text mb-2">운영자 콘솔</h1>

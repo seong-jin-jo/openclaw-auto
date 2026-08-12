@@ -61,8 +61,8 @@ function ConnectGate({ label, onConnect }: { label: string; onConnect: () => voi
           ))}
         </div>
         <div className="card p-pad-inset space-y-stack-tight">
-          {[80, 60, 70].map((w, i) => (
-            <div key={i} className="h-3 rounded bg-surface-2" style={{ width: `${w}%` }} />
+          {["w-4/5", "w-3/5", "w-2/3"].map((widthClass, i) => (
+            <div key={i} className={`h-3 rounded bg-surface-2 ${widthClass}`} />
           ))}
         </div>
       </div>

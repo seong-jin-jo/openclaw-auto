@@ -50,13 +50,13 @@ function GateBlockScreen({
   );
 }
 
-/* ─── Pipeline step colors (Tailwind v4 can't do dynamic classes) ─── */
+/* Pipeline step semantic tones. */
 const PIPELINE_STEPS = [
-  { num: "1", label: "Trend Collection", desc: "외부 인기글 자동 수집", bg: "rgba(147,51,234,0.15)", fg: "#a78bfa" },
-  { num: "2", label: "AI Generation", desc: "Claude가 맞춤 콘텐츠 생성", bg: "rgba(59,130,246,0.15)", fg: "#60a5fa" },
-  { num: "3", label: "Human Review", desc: "대시보드에서 검수·편집", bg: "rgba(234,179,8,0.15)", fg: "#facc15" },
-  { num: "4", label: "Auto Publish", desc: "주요 채널 동시 발행", bg: "rgba(34,197,94,0.15)", fg: "#4ade80" },
-  { num: "5", label: "Feedback Loop", desc: "반응 분석 → 자동 학습", bg: "rgba(239,68,68,0.15)", fg: "#f87171" },
+  { num: "1", label: "Trend Collection", desc: "외부 인기글 자동 수집", tone: "bg-accent-soft text-accent" },
+  { num: "2", label: "AI Generation", desc: "Claude가 맞춤 콘텐츠 생성", tone: "bg-accent-soft text-accent" },
+  { num: "3", label: "Human Review", desc: "대시보드에서 검수·편집", tone: "bg-warning/15 text-warning" },
+  { num: "4", label: "Auto Publish", desc: "주요 채널 동시 발행", tone: "bg-success/15 text-success" },
+  { num: "5", label: "Feedback Loop", desc: "반응 분석 → 자동 학습", tone: "bg-danger/15 text-danger" },
 ] as const;
 
 const FEATURES = [
@@ -119,24 +119,17 @@ function LandingPage() {
 
       {/* ────── Hero ────── */}
       <section className="relative overflow-hidden">
-        {/* Background glow */}
-        <div className="absolute inset-0 pointer-events-none" aria-hidden>
-          <div className="absolute top-[-200px] left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full"
-            style={{ background: "radial-gradient(ellipse, rgba(124,58,237,0.12) 0%, rgba(59,130,246,0.06) 50%, transparent 70%)" }} />
-        </div>
-
         <div className="relative flex flex-col items-center px-6 pt-24 pb-20 text-center max-w-4xl mx-auto">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium mb-8"
-            style={{ background: "rgba(34,197,94,0.1)", color: "#4ade80", border: "1px solid rgba(34,197,94,0.2)" }}>
-            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium mb-8 border border-success/30 bg-success/10 text-success">
+            <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
             베타 운영 중 · 가입 즉시 이용
           </div>
 
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-text leading-tight mb-6 tracking-tight">
             AI가 SNS 마케팅을
             <br />
-            <span className="bg-gradient-to-r from-accent via-blue-400 to-cyan-400 bg-clip-text text-transparent">
+            <span className="text-accent">
               자동화합니다
             </span>
           </h1>
@@ -153,10 +146,7 @@ function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={scrollToLogin}
-              className="px-8 py-3 rounded-lg text-text font-semibold text-sm transition-all"
-              style={{ background: "linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%)" }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+              className="px-8 py-3 rounded-lg bg-accent text-accent-fg hover:bg-accent-hover font-semibold text-sm transition-colors"
             >
               베타 신청하기
             </button>
@@ -197,8 +187,7 @@ function LandingPage() {
             <div key={s.num} className="contents">
               <div className="flex-1 text-center">
                 <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 text-lg font-bold"
-                  style={{ background: s.bg, color: s.fg }}
+                  className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 text-lg font-bold ${s.tone}`}
                 >
                   {s.num}
                 </div>
@@ -218,8 +207,7 @@ function LandingPage() {
             <div key={s.num}>
               <div className="flex items-center gap-4">
                 <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center text-base font-bold shrink-0"
-                  style={{ background: s.bg, color: s.fg }}
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center text-base font-bold shrink-0 ${s.tone}`}
                 >
                   {s.num}
                 </div>
@@ -267,18 +255,16 @@ function LandingPage() {
       {/* ────── Pricing ────── */}
       <section className="max-w-3xl mx-auto px-6 py-20">
         <div className="text-center mb-14">
-          <p className="text-xs font-semibold tracking-widest uppercase text-green-400 mb-3">Pricing</p>
+          <p className="text-xs font-semibold tracking-widest uppercase text-success mb-3">Pricing</p>
           <h2 className="text-2xl sm:text-3xl font-bold text-text mb-3">심플한 요금제</h2>
           <p className="text-sm text-subtle">베타 기간 월 기본 제공량 내 무료입니다</p>
         </div>
 
         <div className="card p-8 max-w-md mx-auto text-center relative overflow-hidden">
           {/* Glow accent */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-[2px]"
-            style={{ background: "linear-gradient(90deg, transparent, #4ade80, transparent)" }} />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-0.5 bg-success" />
 
-          <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mb-6"
-            style={{ background: "rgba(34,197,94,0.1)", color: "#4ade80", border: "1px solid rgba(34,197,94,0.2)" }}>
+          <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mb-6 border border-success/30 bg-success/10 text-success">
             베타 무료 제공
           </div>
 
@@ -295,7 +281,7 @@ function LandingPage() {
               "실시간 대시보드",
             ].map((item) => (
               <li key={item} className="flex items-center gap-3 text-sm text-muted">
-                <span className="text-green-400 text-base">✓</span>
+                <span className="text-success text-base">✓</span>
                 {item}
               </li>
             ))}
@@ -303,10 +289,7 @@ function LandingPage() {
 
           <button
             onClick={scrollToLogin}
-            className="w-full py-3 rounded-lg text-text font-semibold text-sm transition-all"
-            style={{ background: "linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%)" }}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+            className="w-full py-3 rounded-lg bg-accent text-accent-fg hover:bg-accent-hover font-semibold text-sm transition-colors"
           >
             베타 신청하기
           </button>
@@ -319,8 +302,7 @@ function LandingPage() {
       <section className="max-w-md mx-auto px-6 py-20">
         <div className="card p-8 relative overflow-hidden">
           {/* Top accent line */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-[2px]"
-            style={{ background: "linear-gradient(90deg, transparent, #7c3aed, #3b82f6, transparent)" }} />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-0.5 bg-accent" />
 
           <div className="text-center mb-6">
             <h3 className="text-lg font-bold text-text mb-2">시작하기</h3>
@@ -330,8 +312,7 @@ function LandingPage() {
           {/* 고객 가입/로그인 — Google OAuth 전용 (중앙정렬된 /login 페이지) */}
           <a
             href="/login"
-            className="block w-full py-3 rounded-lg text-text font-semibold text-sm text-center transition-all"
-            style={{ background: "linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%)" }}
+            className="block w-full py-3 rounded-lg bg-accent text-accent-fg hover:bg-accent-hover font-semibold text-sm text-center transition-colors"
           >
             로그인 / 회원가입 →
           </a>

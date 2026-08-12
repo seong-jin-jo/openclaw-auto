@@ -5,20 +5,20 @@
    Linear/shadcn/Vercel 라이트·다크 벤치마크. <html data-theme="dark"> 로 전환.
    ───────────────────────────────────────────────────────────── */
 :root {
-  --bg:         #FBFBFC;
-  --surface:    #FFFFFF;
-  --surface-2:  #F4F4F5;
-  --border:     #E4E4E7;
-  --text:       #18181B;
-  --text-muted: #52525B;
-  --text-subtle:#A1A1AA;
-  --accent:     #2563EB;
-  --accent-hover:#1D4ED8;
-  --accent-fg:  #FFFFFF;
-  --accent-soft:#EFF4FF;
-  --success:#16A34A;
-  --warning:#D97706;
-  --danger: #DC2626;
+  --bg:         rgb(251 251 252);
+  --surface:    rgb(255 255 255);
+  --surface-2:  rgb(244 244 245);
+  --border:     rgb(228 228 231);
+  --text:       rgb(24 24 27);
+  --text-muted: rgb(82 82 91);
+  --text-subtle:rgb(161 161 170);
+  --accent:     rgb(37 99 235);
+  --accent-hover:rgb(29 78 216);
+  --accent-fg:  rgb(255 255 255);
+  --accent-soft:rgb(239 244 255);
+  --success:rgb(22 163 74);
+  --warning:rgb(217 119 6);
+  --danger: rgb(220 38 38);
   --shadow: 0 4px 12px rgba(16,24,40,0.08);
 
   /* DESIGN.md v23: spacing uses only 4 / 8 / 12 / 16 / 24 / 32px. */
@@ -48,24 +48,24 @@
 }
 
 [data-theme="dark"] {
-  --bg:         #0A0A0B;
-  --surface:    #161618;
-  --surface-2:  #1F1F23;
-  --border:     #27272A;
-  --text:       #F4F4F5;
-  --text-muted: #A1A1AA;
-  --text-subtle:#71717A;
-  --accent:     #3B82F6;
-  --accent-hover:#60A5FA;
-  --accent-fg:  #0A0A0B;
-  --accent-soft:#172554;
-  --success:#22C55E;
-  --warning:#F59E0B;
-  --danger: #EF4444;
+  --bg:         rgb(10 10 11);
+  --surface:    rgb(22 22 24);
+  --surface-2:  rgb(31 31 35);
+  --border:     rgb(39 39 42);
+  --text:       rgb(244 244 245);
+  --text-muted: rgb(161 161 170);
+  --text-subtle:rgb(113 113 122);
+  --accent:     rgb(59 130 246);
+  --accent-hover:rgb(96 165 250);
+  --accent-fg:  rgb(10 10 11);
+  --accent-soft:rgb(23 37 84);
+  --success:rgb(34 197 94);
+  --warning:rgb(245 158 11);
+  --danger: rgb(239 68 68);
   --shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
 
-/* Tailwind v4: 시맨틱 토큰을 유틸리티로 노출 → bg-bg / bg-surface / bg-surface-2 / text-text / text-muted / text-subtle / border-border / bg-accent / text-accent-fg ... */
+/* Tailwind v4: 시맨틱 토큰을 유틸리티로 노출. bg-bg / bg-surface / bg-surface-2 / text-text / text-muted / text-subtle / border-border / bg-accent / text-accent-fg ... */
 @theme inline {
   --color-bg:           var(--bg);
   --color-surface:      var(--surface);
@@ -151,17 +151,23 @@ aside::-webkit-scrollbar-track { background: transparent; }
 
 /* Blog article preview (라이트 콘텐츠 — 그대로 유지) */
 .blog-article-preview { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
-.blog-article-body { color: #333; font-size: 1rem; line-height: 1.85; }
-.blog-article-body h1 { font-size: 1.5rem; font-weight: 800; color: #111; margin: 2rem 0 0.75rem; }
-.blog-article-body h2 { font-size: 1.25rem; font-weight: 700; color: #111; margin: 2rem 0 0.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e5e7eb; }
-.blog-article-body h3 { font-size: 1.1rem; font-weight: 600; color: #222; margin: 1.5rem 0 0.5rem; }
-.blog-article-body p { margin: 0.75rem 0; color: #444; }
-.blog-article-body strong { color: #111; font-weight: 600; }
-.blog-article-body a { color: #2563eb; text-decoration: underline; text-underline-offset: 2px; }
-.blog-article-body ul, .blog-article-body ol { margin: 0.75rem 0; padding-left: 1.5rem; color: #444; }
+.blog-article-body { color: var(--text-muted); font-size: 1rem; line-height: 1.85; }
+.blog-article-body h1 { font-size: 1.5rem; font-weight: 800; color: var(--text); margin: 2rem 0 0.75rem; }
+.blog-article-body h2 { font-size: 1.25rem; font-weight: 700; color: var(--text); margin: 2rem 0 0.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border); }
+.blog-article-body h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 1.5rem 0 0.5rem; }
+.blog-article-body p { margin: 0.75rem 0; color: var(--text-muted); }
+.blog-article-body strong { color: var(--text); font-weight: 600; }
+.blog-article-body a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.blog-article-body ul, .blog-article-body ol { margin: 0.75rem 0; padding-left: 1.5rem; color: var(--text-muted); }
 .blog-article-body li { margin: 0.4rem 0; }
 .blog-article-body img { width: 100%; border-radius: 8px; margin: 1.5rem 0; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-.blog-article-body blockquote { border-left: 3px solid #3b82f6; padding: 0.5rem 1rem; margin: 1rem 0; background: #f0f7ff; color: #333; border-radius: 0 8px 8px 0; }
+.blog-article-body blockquote { border-left: 4px solid var(--accent); padding: 0.5rem 1rem; margin: 1rem 0; background: var(--accent-soft); color: var(--text-muted); border-radius: 0 8px 8px 0; }
+
+.scrollbar-semantic { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+progress.progress-semantic { appearance: none; overflow: hidden; border: 0; border-radius: 999px; background: var(--surface-2); }
+progress.progress-semantic::-webkit-progress-bar { background: var(--surface-2); }
+progress.progress-semantic::-webkit-progress-value { background: var(--success); }
+progress.progress-semantic::-moz-progress-bar { background: var(--success); }
 
 /* Mobile responsive */
 @media (max-width: 768px) {
