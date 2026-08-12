@@ -6,6 +6,8 @@
 
 **Mission**: 비개발자(자영업자, 일반인)가 마케팅 대행사 없이도 안정적으로 콘텐츠 자동화를 돌릴 수 있게 한다. 기존에 귀찮았던 시간/비용을 압도적으로 줄이거나, 불가능했던 것을 가능하게 만든다. (숏폼 자동화로 부수입 기회 포함)
 
+**성과 측정 범위 — Awareness 집중 (회장 R-14, 2026-08-12)**: OSMU는 AAARRR 중 **가장 앞단 A(Awareness, 인지도)**에 집중하는 콘텐츠 마케팅 자동화 에이전시다. 성과 = 콘텐츠를 통해 노출되고 반응하는 정도만 관리·측정한다(플랫폼 API의 조회·저장·좋아요·댓글·팔로우·프로필 방문). **GA4·유입-매출 전환 퍼널·검색 콘솔·검색 어드바이저·Clarity 류 유입/전환 측정은 기본 범위에서 제외(후순위 옵션)** — 웹사이트가 없는 자영업자(음식점·헬스장 사장)가 타겟에 포함되므로 이들에게는 무의미하고, 요구가 쌓이면 웹 가진 고객 한정 옵션으로 붙인다. 단 **트렌드·키워드 도구(네이버/구글 트렌드, 키워드 플래너)는 유입 측정이 아니라 콘텐츠 소재 발굴 = 생성 입력**이라 유지하며, 자체 블로그 SEO도 우리 마케팅 자산으로 유지한다. 상세·AARRR 매핑 = [positioning.md](./positioning.md) "성과 측정 범위 확정".
+
 **Target (현실)**: 코딩/자동화 구축 능력이 없는 일반인·자영업자. 스스로 마케팅 자동화 서비스를 만들고 운영할 수 없는 사람들. API 토큰 발급/등록 과정이 큰 병목이 될 수 있음.
 
 **Product Wiki 전략**: 여기 루트 `wiki/` 는 **이 상품 자체의 지식 베이스**(제품 위키)다. 사용자가 이미 가진 다른 레포/노트 위키를 포인팅해서 컨텍스트를 끌어오는 기능은 별도 구현 필요. 상품 이름은 **가칭 SoloClaw**(아래 "상품 이름" 절 — 최종 확정은 0차 안정 후 별도 결정).
@@ -141,6 +143,11 @@ See reference/benchmarking.md for deeper 2026 tables (Opus exact pricing, NRR by
 - Studio: idea → multi-variant (incl. shorts) + image/video generation + wiki grounding.
 - Brand setup: guide + GitHub wiki/repo sync.
 - Images, Blog queue, Settings (LLM, automation toggles, credentials).
+
+**화면 범위 확정 — Awareness 집중 반영 (회장 R-14, 2026-08-12)**
+- **유지(기본 제품 화면)**: 성과(노출·반응 = 조회·저장·좋아요·댓글·팔로우·프로필 방문) · Studio(생성/수정) · 채널(Queue/Growth/Popular/Settings) · 발행 · 블로그 · 키워드 · 트렌드. 성과 화면의 지표 정의는 "노출·반응"으로 고정하고, 유입/전환 위젯을 섞지 않는다.
+- **제거·후순위(웹 고객 옵션)**: GA4 대시보드 · 검색 콘솔 · 검색 어드바이저 · 유입-전환 퍼널 리포트 · Clarity 류. 기본 UI에서 노출하지 않고, 웹사이트를 가진 고객에게만 옵션으로 활성화(기본 제품 범위 밖).
+- 근거: 웹 없는 자영업자 타겟 포함. 유입 측정 화면은 이들에게 빈 데이터·혼란만 준다.
 
 ### 6. Multi-Tenancy & SaaS Infrastructure
 - Workspaces/tenants with RLS.

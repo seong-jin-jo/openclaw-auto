@@ -457,3 +457,84 @@
 - **검증:** `npx tsc --noEmit` PASS. `npm run test:publish` = 26 files / 222 tests 전부 PASS(무변경 회귀 없음).
 - **미해결 남긴 것:** 4개 legacy 파일기반 라우트(overview/activity/weekly-summary/agent-logs)를 DB로
   완전 마이그레이션하는 것은 스코프 밖(Phase 2 로드맵 항목) — 이번엔 프런트 폴백으로 화면 모순만 제거.
+
+### 2026-08-12 02:4x KST: Marketing Agent v24 디자인 산출물 작성, 정적 review 완료
+
+- **handoff 기준:** 회장 지시 `docs/prototype/v24-brief.md`를 primary로 사용. v23을 복사해 진화했고 새 IA를 만들지 않음.
+- **기존 구현 확인:** `dashboard/src`의 Home, Studio, Calendar, Blog, Videos, Settings, ChannelPage, InstagramPage,
+  operator customers, `constants.ts`, `oauth-app-credentials.ts`를 기준으로 대조. 코드 변경 0.
+- **산출물:**
+  - `docs/prototype/openclaw-auto-marketing-agent-fidelity-v24-gpt-codex.html`
+  - `DESIGN.md`의 `Marketing Agent 디자인 시스템 v24`
+  - `docs/WIREFRAMES/marketing-agent-v24-gpt-codex.md`
+  - `docs/design-docs/user-flow-marketing-agent-v24-gpt-codex.md`
+  - `docs/user-flow.md`
+  - `docs/audit/v24-design-review.md`
+- **v24 교정:** per-channel Create/Calendar 제거, 실제 Threads/Instagram/generic 탭 복원, Admin 10탭 제거,
+  Home 4패널을 한 operations block으로 통합, draft body 저장과 load 연결, customer/Admin 연결 source를
+  `channel_accounts`로 통일, Admin credential을 accordion으로 전환, R-06 정책/포지셔닝/AARRR current-target 요약 추가.
+- **정적 검증:** HTML JS syntax PASS, inline style 0, em/en dash 0, spacing 4/8/12/16/24/32/48만,
+  font size 12/13/15/17/20/24, v24 manifest와 핵심 data contract 존재, `git diff --check` PASS.
+- **design-review:** gstack design-review v2.0.0 지침을 읽고 APP UI classifier, litmus, hard rejection, category score,
+  triage를 적용. 정적 B+ candidate. 사용자 `open하지 말 것` 지시와 dirty shared worktree 때문에 screenshot 기반 full workflow,
+  finding별 commit, outside voices는 실행하지 않음. 실제 1440/1024/390과 light/dark는 미검증.
+- **회수 필요:** R02 문서는 Admin 14개 credential form이라 적지만 현재 코드 정의는 12개. v24는 재창조 금지에 따라
+  12개만 그림. 14개가 목표면 누락 provider 2개와 credential 방식을 plan에서 확정해야 함.
+- **다음 액션:** 회장이 14 대 12를 결정하고, design-review browser open을 허용하는 세션에서 3폭/light-dark evidence를
+  만든 뒤 design gate 판단. 현재 상태로 eng-design 자동 진입 금지.
+
+### 2026-08-12 13:2x KST: R-02 여정 결함 4건 구현 완료 (code-builder, FDD 기반)
+
+- **기반:** `docs/fdd/fdd-r02-journey-fix-v1.0.0-opus.md` + `migration-filestore-to-db-v1.0.0-opus.md` +
+  `test-plan-r02-v1.0.0-opus.md` (전부 v1.0.0, tech-architect/opus).
+- **F1 드래프트 본문:** `dashboard/src/app/api/studio/drafts/route.ts` GET에 `extractVariants` 폴백
+  추가(payload.text 없으면 threads/x/instagram 등 최상위 플랫폼 키를 variants로 흡수). seed 12건 전부
+  text!=null 확인(curl). `studio/page.tsx` 이력 리스트에 "본문 없음 · 재생성 필요" 뱃지 추가. 브라우저로
+  "불러오기" → 편집영역 채워짐 → Publish(4) 버튼 노출까지 실증.
+- **F2 채널 연결 단일소스:** `src/lib/channel-connection.ts` 신규(isChannelConnected/getChannelConnectionStates/
+  countActiveChannelAccounts). `/api/channel-config`는 기존에 이미 channel_accounts 기반으로 정합돼 있었음
+  (2026-08-11 커밋 확인) — 사이드바/배너/Settings 3곳 전부 동일 useChannelConfig 소스라 상충 없음을 브라우저로
+  재확인(Threads=Off/연결→, X=Connected 일치).
+- **F3 홈 dual-datastore:** `src/lib/home-metrics.ts` 신규(getHomeSummary/getActivityEvents/getWeeklyReport,
+  DB 단일집계). overview/activity/weekly-report 3라우트를 DB 우선 + 파일 폴백(에러시만)으로 전환, 응답에
+  `source:"db"|"file-fallback"` 추가. **실측 발견:** 이 테넌트의 tenant-scoped queue.json은 한 번도
+  마이그레이트된 적이 없어(0건) 상시 0/빈배열이었고 published_posts DB에는 실 발행 15건이 있었음 — 컷오버는
+  유실이 아니라 이미 있던 DB값을 처음 노출하는 것(§8-A 회수 답변 = 로그 근거로 확정). 홈 UI 5중복 패널(성과/
+  발행물성과/운영현황/사용량/THIS WEEK)을 "성과 요약 1블록(+사용량 통합) + 발행물 리스트 + 최근 활동"으로
+  재구성, 정보 손실 없음(터진글 카운트도 성과요약에 포함). 브라우저 스크린샷으로 통합 확인.
+- **F4 Admin 카운트/밀도:** `operator/customers/route.ts` 채널 집계 subquery에 `WHERE status='active'`
+  추가(expired/revoked 오카운트 제거) — DB로 4계정 중 3active 확인, 화면 "연결 계정 3" 일치. 14개 provider
+  카드를 접이식(기본 접힘 + 상태뱃지)으로 전환, 클릭 시 펼침 확인.
+- **부수:** `ChannelPage.tsx`의 재연결/연결불가 안내문이 실제로는 raw `\uXXXX` 리터럴이 JSX 텍스트로 그대로
+  노출되던 버그(디코딩 안 됨) 수정 — python 스크립트로 해당 파일의 escape 시퀀스를 실제 유니코드로 치환.
+- **검증 증거:** `npx tsc --noEmit` PASS · `npm run build` PASS · `npx vitest run` = 127 files/1050 tests
+  PASS(0 skip 외), 접이식 UI 변경으로 깨진 `tests/components/operator-oauth-import-ui.test.tsx` 3건은 토글
+  버튼에 aria-label 추가 후 테스트에 펼치기 클릭 보강해 재통과. 브라우저(claude-in-chrome) 실측: 홈/Settings/
+  Studio/operator customers 4화면 렌더 + 콘솔에러 0 + 스크린샷 5장.
+- **미해결/알려진 갭:** queue_posts(draft/approved 상태 카운트)는 이 테넌트에서 여전히 0건 — 과거 dual-write가
+  이 테넌트엔 한 번도 백필된 적이 없음(P0 백필 스크립트 `/api/queue/backfill` 호출해봤으나 tenant queue.json
+  자체가 없어 0건 mirrored). 홈 상단 "대기 큐" 카드가 항상 0으로 보이는 건 이번 스코프가 아니라 별도 O-5
+  백필 완결 필요(파일이 애초에 없으므로 데이터 유실 아님, draft/approved 워크플로를 실제로 써야 채워짐).
+- **다음 액션:** 회장 확인 후 커밋 여부 결정(현재 미커밋, 워킹트리에 diff만). qa-verifier 스크린샷 정합
+  게이트 통과 필요시 스크린샷 경로는 아래 assistant 최종 응답 참고.
+
+### 2026-08-12 14:0x KST: R-02 코드 감사·보정·커밋 완료, 브라우저 게이트는 미통과
+
+- **handoff 기준:** 회장이 직접 지정한 R-02 과제와 FDD 3종을 primary로 사용. tmux에서 이 repo의 활성 pane은 없었다.
+- **기존 구현 감사:** 직전 code-builder의 미커밋 R-02 diff를 재구현하지 않고 FDD와 대조했다. F2 공용 헬퍼가 실제 API에 연결되지 않았고 X·Facebook 등에서 레거시 키가 connected로 샐 수 있는 사각지대, F3 홈 총발행이 queue_posts를 우선하고 제거된 weekly SWR·프런트 폴백이 남은 사각지대를 찾았다.
+- **보정:** `/api/channel-config`를 `getChannelConnectionStates()`에 연결하고 active·expired·revoked·없음 판정을 단일화했다. Instagram/Threads는 active만으로 통과시키지 않고 기존 live read-only 검증을 유지했다. 홈은 `/api/overview.summary`의 published_posts 집계만 총발행·조회·좋아요·답글에 사용하고 weekly 호출·이중 폴백을 제거했다. F1/F4 UI는 12px 하한과 spacing/Button 토큰, accordion `aria-controls` 관계를 보강했다.
+- **테스트 증거:** 전체 Vitest 131 files, 1061 passed, 10 skipped. TypeScript exit 0. webpack build 166/166. R-02 관련 8 files, 62 tests 통과. commits `3fd63016`, `ea0509ab`.
+- **브라우저 증거:** 직전 세션의 Studio·Settings·Admin·Home 캡처를 직접 열어 화면 내용은 확인했다. 하지만 후속 보정 뒤 dev 서버는 `listen EPERM 0.0.0.0:3456`, DB 55432도 닫혀 새 렌더를 못 했다. 기존 home-1024 파일 실제 폭은 757px라 정규 1024 before/after 증거로 승계하지 않는다. 콘솔 오류 0과 3폭은 미검증.
+- **design-lint:** `design-lint.sh dashboard/src` 결과 디자인 토큰 위반 0. 기존 임의 3px·JSX 인라인 style·토큰 밖 hex를 시맨틱 토큰과 공용 class로 교정했다.
+- **다음 액션:** 포트 허용 QA 환경에서 osmu-pg와 Next 3456을 기동하고 운영자 토큰으로 tenant token을 발급한다. Home·Studio·Settings·Channel·Admin을 1440·1024·390에서 클릭하고 콘솔 오류 0, 실제 폭 캡처, 홈 before/after를 남긴 뒤 QA gate를 판단한다.
+
+### 2026-08-12 14:1x KST: Marketing Agent prototype v24 런타임 복구, Chrome 게이트 차단
+
+- **handoff 기준:** 회장이 직접 지정한 `docs/prototype/openclaw-auto-marketing-agent-fidelity-v24-gpt-codex.html`을 primary로 사용했다. tmux socket은 worker sandbox에서 접근 불가였다.
+- **기존 구현 확인:** `dashboard/src`의 Home, Studio, Settings, 채널, Operator, Videos, Blog, Calendar, onboarding, Sidebar, OAuth credential 정의와 v23 prototype, `DESIGN.md`, 관련 wiki를 읽었다. 제품 소스 수정 0.
+- **prototype 보정:** `channelStatusChip` 등 render helper의 정의와 fallback을 확인했다. 중복 `class` 속성을 병합하고 `status warn`을 semantic `status warning`으로 교정했다. 미정의 `--lh-h3`를 `20/28` token으로 완결하고 v24 caption을 기존 `12/18` token에 맞췄다.
+- **DOM 런타임 증거:** `docs/prototype/qa-v24/v24-jsdom-audit.mjs`가 26 routes, 172 state·transition checks, 60 unique `data-action` click을 실행했다. `runtimeErrorCount=0`, `failed=[]`, 빈 root 0. source audit는 중복 class 속성 0, 미정의 CSS custom property 0, em/en dash 0.
+- **문서 정합:** `DESIGN.md` v24.1, v24 wireframe, canonical과 versioned user-flow, `docs/qa/qa-tracker.md`, `docs/prototype/qa-v24/README.md`를 같은 검증 경계로 갱신했다.
+- **실제 Chrome 미검증:** 이 worker는 host의 8899 listener를 `lsof`로 보지만 IPv4·IPv6 loopback 연결이 모두 거부된다. headless Chrome과 gstack browse도 sandbox에서 CDP를 열지 못했다. 실제 1440·1024·390, console error 0, focus, contrast, overflow는 관찰하지 못했으므로 design gate는 잠금 유지.
+- **다음 액션:** localhost와 Chrome CDP가 가능한 coordinator 환경에서 `docs/prototype/qa-v24/v24-console-audit.mjs`를 실행한다. 이 감사는 route·tab·overlay·action 실제 click과 3개 viewport overflow를 검사하며 종료증거는 `runtimeErrorCount=0`, `failed=[]`다.
+- **운영 메모:** 진단 중 8897 test server가 host PID 54336으로 분리됐고 worker sandbox에서는 signal 권한이 거부됐다. coordinator가 해당 임시 listener를 종료해야 한다. 기존 8899 PID 25417은 건드리지 않았다.
