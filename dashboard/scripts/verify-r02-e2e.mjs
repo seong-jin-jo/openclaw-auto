@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 
-const baseUrl = process.env.R02_BASE_URL || "http://127.0.0.1:3459";
+const baseUrl = process.env.R02_BASE_URL || "http://localhost:3459";
 const tenantToken = process.env.R02_TENANT_TOKEN || "";
 const chromePath = process.env.R02_CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const debugPort = Number(process.env.R02_CHROME_DEBUG_PORT || 9329);
@@ -175,13 +175,34 @@ try {
 
   await navigate("/studio");
   await waitFor(() => evaluate("document.body.innerText.includes('발행 이력')"), "Studio did not render");
-  await evaluate(`(() => {
-    const button = [...document.querySelectorAll("button")].find((item) => item.textContent?.trim() === "불러오기");
-    if (!button) return false;
-    button.click();
-    return true;
-  })()`);
-  await waitFor(() => evaluate("[...document.querySelectorAll('button')].some((button) => button.textContent?.includes('Publish'))"), "loaded draft did not expose Publish");
+  let draftLoadAttempts = 0;
+  let nextDraftLoadAttemptAt = 0;
+  const publishButtonText = await waitFor(async () => {
+    const shouldClickDraft = Date.now() >= nextDraftLoadAttemptAt;
+    const state = await evaluate(`(() => {
+      const isVisible = (element) => Boolean(element && element.getClientRects().length > 0);
+      const publishButton = [...document.querySelectorAll("button")].find((button) => {
+        const label = button.textContent?.replace(/\\s+/g, " ").trim() || "";
+        return isVisible(button) && !button.disabled && /^(?:🚀\\s*)?Publish\\s*\\(\\d+\\)$/.test(label);
+      });
+      if (publishButton) return { publishButtonText: publishButton.textContent.trim(), clicked: false };
+
+      const loadButtons = [...document.querySelectorAll("button")].filter((button) =>
+        isVisible(button) && !button.disabled && button.textContent?.trim() === "불러오기"
+      );
+      const loadButton = loadButtons.find((button) =>
+        !button.parentElement?.textContent?.includes("본문 없음")
+      );
+      if (!loadButton || !${shouldClickDraft}) return { publishButtonText: null, clicked: false };
+      loadButton.click();
+      return { publishButtonText: null, clicked: true };
+    })()`);
+    if (state?.clicked) {
+      draftLoadAttempts += 1;
+      nextDraftLoadAttemptAt = Date.now() + 1000;
+    }
+    return state?.publishButtonText || null;
+  }, "loaded draft did not expose an enabled Publish button", Math.min(timeoutMs, 60000));
 
   let publishResult = "not-requested";
   if (livePublish) {
@@ -268,6 +289,8 @@ try {
       loginGoogleOnly: true,
       homeSummary: true,
       studioDraftLoad: true,
+      publishButtonText,
+      draftLoadAttempts,
       livePublish,
       publishResult,
       consoleErrors,
@@ -276,8 +299,11 @@ try {
   };
   if (consoleErrors.length > 0) throw new Error(`browser console errors: ${JSON.stringify(consoleErrors)}`);
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+} catch (error) {
+  process.stderr.write(`E2E FAILED: ${error?.stack || error?.message || error}\n`);
+  process.exitCode = 1;
 } finally {
   cdp?.close();
   chrome.kill("SIGTERM");
-  fs.rmSync(profileDir, { recursive: true, force: true });
+  try { fs.rmSync(profileDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); } catch {}
 }
