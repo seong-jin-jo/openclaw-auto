@@ -1,6 +1,7 @@
 import { mutateJson, dataPath } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
+import { mirrorQueuePost } from "@/lib/queue-store";
 
 interface QueueData { posts: Array<Record<string, unknown>> }
 
@@ -37,6 +38,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ pos
     }, { posts: [] });
 
     if (!found) return Response.json({ error: "post not found" }, { status: 404 });
+    await mirrorQueuePost(__t, found as Record<string, unknown> & { id: string });
     return Response.json({ ok: true, post: found });
   });
 }

@@ -9,7 +9,13 @@ vi.mock("@/lib/db", () => ({
     const sql = (strings: TemplateStringsArray) => {
       const query = Array.from(strings).join(" ").replace(/\s+/g, " ").trim();
       H.queries.push(query);
-      if (query.includes("FROM queue_posts")) {
+      if (query.includes("generated_at::text FROM queue_posts")) {
+        return Promise.resolve([{ id: "draft-1", text: "새 초안", generated_at: "2026-08-12T01:00:00Z" }]);
+      }
+      if (query.includes("count(*)::text AS count FROM queue_posts")) {
+        return Promise.resolve([{ count: "4" }]);
+      }
+      if (query.includes("FROM queue_posts") && query.includes("GROUP BY status")) {
         return Promise.resolve([{ status: "draft", cnt: "2" }, { status: "approved", cnt: "1" }]);
       }
       if (query.includes("FROM growth_metrics")) {
@@ -26,8 +32,8 @@ vi.mock("@/lib/db", () => ({
       }
       if (query.includes("ORDER BY published_at DESC")) {
         return Promise.resolve([
-          { id: "post-1", platform: "threads", text: "첫 발행", published_at: "2026-08-12T00:00:00Z", status: "published" },
-          { id: "post-2", platform: "x", text: "실패 발행", published_at: "2026-08-11T00:00:00Z", status: "failed" },
+          { id: "post-1", platform: "threads", text: "첫 발행", published_at: "2026-08-12T00:00:00Z", status: "published", views: 900 },
+          { id: "post-2", platform: "x", text: "실패 발행", published_at: "2026-08-11T00:00:00Z", status: "failed", views: 0 },
         ]);
       }
       if (query.includes("published_at > now()")) {
@@ -70,8 +76,10 @@ describe("R-02 홈 DB 단일 집계", () => {
     const result = await getActivityEvents("tenant-1", 20);
 
     expect(result).toEqual([
-      expect.objectContaining({ id: "post-1", type: "published", text: "threads: 첫 발행" }),
-      expect.objectContaining({ id: "post-2", type: "publish_failed", text: "x: 실패 발행" }),
+      expect.objectContaining({ id: "draft:draft-1", type: "draft", text: "새 초안" }),
+      expect.objectContaining({ id: "publish:post-1", type: "publish", text: "첫 발행", channel: "threads" }),
+      expect.objectContaining({ id: "viral:post-1", type: "viral", views: 900 }),
+      expect.objectContaining({ id: "publish:post-2", type: "publish_failed", text: "실패 발행", channel: "x" }),
     ]);
   });
 
@@ -81,12 +89,14 @@ describe("R-02 홈 DB 단일 집계", () => {
 
     expect(result).toEqual({
       publishedThisWeek: 2,
+      draftedThisWeek: 4,
       views: 300,
       likes: 30,
       replies: 5,
       byPlatform: { threads: 1, x: 1 },
       followers: 120,
       weekDelta: 20,
+      viralPosts: [],
     });
   });
 });

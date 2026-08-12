@@ -30,16 +30,16 @@ const isUuid = (s: unknown): s is string => typeof s === "string" && UUID_RE.tes
 const ts = (s: unknown): string | null => (typeof s === "string" && s.trim() ? s : null);
 
 // 단일 항목 upsert(생성/수정 공용). queue.json 쓰기 직후 호출.
-export async function mirrorQueuePost(tenantId: string | null, post: QueueMirrorPost): Promise<void> {
+export async function mirrorQueuePost(tenantId: string | null, post: QueueMirrorPost): Promise<boolean> {
   // DB는 tenant_id·id 모두 UUID 필요. 아니면(운영자 모드/레거시 id 등) 조용히 skip → 무중단.
-  if (!isUuid(tenantId) || !isUuid(post?.id)) return;
+  if (!isUuid(tenantId) || !isUuid(post?.id)) return false;
   const text = (typeof post.text === "string" ? post.text : null);
   const topic = (typeof post.topic === "string" ? post.topic : null);
   const status = (typeof post.status === "string" ? post.status : "draft");
   const hashtags = (Array.isArray(post.hashtags) ? post.hashtags : []) as string[];
   try {
     await withTenant(tenantId, async (sql) => {
-      await sql`
+      const rows = await sql<{ id: string }[]>`
         INSERT INTO queue_posts
           (id, tenant_id, text, topic, status, hashtags, channels, payload,
            generated_at, approved_at, scheduled_at, published_at)
@@ -53,31 +53,53 @@ export async function mirrorQueuePost(tenantId: string | null, post: QueueMirror
           hashtags = EXCLUDED.hashtags, channels = EXCLUDED.channels, payload = EXCLUDED.payload,
           approved_at = EXCLUDED.approved_at, scheduled_at = EXCLUDED.scheduled_at,
           published_at = EXCLUDED.published_at, updated_at = now()
+        WHERE queue_posts.tenant_id = EXCLUDED.tenant_id
+        RETURNING id
       `;
+      if (rows.length === 0) throw new Error("queue mirror tenant mismatch");
     });
+    return true;
   } catch (e) {
     if (process.env.OSMU_DEBUG) console.error("[queue-store] mirror skip:", (e as Error).message);
+    return false;
   }
 }
 
 // P4 backfill: 현 queue.json 전체를 DB로 미러(멱등 upsert). read-switch 전 DB를 완전한 그림자로.
 // runWithTenant 컨텍스트 안에서 호출(테넌트별 queue.json). best-effort 합산 결과 반환.
-export async function backfillQueueToDb(tenantId: string | null): Promise<{ total: number; mirrored: number; skipped: number }> {
+export async function backfillQueueToDb(tenantId: string | null): Promise<{ total: number; mirrored: number; alreadyPresent: number; skipped: number }> {
   const q = readJson<{ posts: Array<Record<string, unknown>> }>(dataPath("queue.json")) || { posts: [] };
   const posts = q.posts || [];
   let mirrored = 0;
+  let alreadyPresent = 0;
   let skipped = 0;
-  for (const p of posts) {
-    const id = p?.id;
-    if (!isUuid(tenantId) || !isUuid(id)) { skipped++; continue; }
-    try {
-      await mirrorQueuePost(tenantId, p as { id: string; [k: string]: unknown });
-      mirrored++;
-    } catch {
-      skipped++;
+  if (!isUuid(tenantId)) return { total: posts.length, mirrored, alreadyPresent, skipped: posts.length };
+
+  await withTenant(tenantId, async (sql) => {
+    for (const post of posts) {
+      if (!isUuid(post?.id)) {
+        skipped++;
+        continue;
+      }
+      const text = typeof post.text === "string" ? post.text : null;
+      const topic = typeof post.topic === "string" ? post.topic : null;
+      const status = typeof post.status === "string" ? post.status : "draft";
+      const hashtags = (Array.isArray(post.hashtags) ? post.hashtags : []) as string[];
+      const rows = await sql<{ id: string }[]>`
+        INSERT INTO queue_posts
+          (id, tenant_id, text, topic, status, hashtags, channels, payload,
+           generated_at, approved_at, scheduled_at, published_at)
+        VALUES
+          (${post.id}::uuid, ${tenantId}::uuid, ${text}, ${topic}, ${status}, ${hashtags},
+           ${sql.json((post.channels ?? null) as never)}, ${sql.json(post as never)},
+           ${ts(post.generatedAt)}, ${ts(post.approvedAt)}, ${ts(post.scheduledAt)}, ${ts(post.publishedAt)})
+        ON CONFLICT (id) DO NOTHING
+        RETURNING id`;
+      if (rows.length > 0) mirrored++;
+      else alreadyPresent++;
     }
-  }
-  return { total: posts.length, mirrored, skipped };
+  });
+  return { total: posts.length, mirrored, alreadyPresent, skipped };
 }
 
 // 삭제 미러(거절/삭제 시). best-effort.
@@ -85,7 +107,7 @@ export async function mirrorQueueDelete(tenantId: string | null, postId: string)
   if (!isUuid(tenantId) || !isUuid(postId)) return;
   try {
     await withTenant(tenantId, async (sql) => {
-      await sql`DELETE FROM queue_posts WHERE id = ${postId}::uuid`;
+      await sql`DELETE FROM queue_posts WHERE id = ${postId}::uuid AND tenant_id = ${tenantId}::uuid`;
     });
   } catch (e) {
     if (process.env.OSMU_DEBUG) console.error("[queue-store] delete-mirror skip:", (e as Error).message);
@@ -129,7 +151,7 @@ export async function markQueuePublished(
              permalink: result.permalink ?? null,
            } as never)},
            updated_at = now()
-     WHERE id = ${postId}::uuid
+     WHERE id = ${postId}::uuid AND tenant_id = ${tenantId}::uuid
   `);
   return found !== null;
 }

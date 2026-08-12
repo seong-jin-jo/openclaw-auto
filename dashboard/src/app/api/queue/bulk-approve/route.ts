@@ -1,6 +1,7 @@
 import { mutateJson, dataPath } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
+import { mirrorQueuePost } from "@/lib/queue-store";
 
 interface QueueData { posts: Array<Record<string, unknown>> }
 
@@ -13,6 +14,7 @@ export async function POST(request: Request) {
     const intervalHours = data.intervalHours ?? 2;
     const now = Date.now();
     let approved = 0;
+    const changed: Array<Record<string, unknown> & { id: string }> = [];
 
     await mutateJson<QueueData>(dataPath("queue.json"), (queue) => {
       approved = 0;
@@ -21,11 +23,14 @@ export async function POST(request: Request) {
           post.status = "approved";
           post.approvedAt = new Date(now).toISOString();
           post.scheduledAt = new Date(now + intervalHours * 3600000 * approved).toISOString();
+          changed.push(post as Record<string, unknown> & { id: string });
           approved++;
         }
       }
       return queue;
     }, { posts: [] });
+
+    await Promise.all(changed.map((post) => mirrorQueuePost(__t, post)));
 
     return Response.json({ ok: true, approved });
   });

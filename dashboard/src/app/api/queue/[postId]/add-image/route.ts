@@ -1,6 +1,7 @@
 import { mutateJson, dataPath } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
+import { mirrorQueuePost } from "@/lib/queue-store";
 
 interface QueuePost {
   id: string;
@@ -23,6 +24,7 @@ export async function POST(
     if (!imageUrl) return Response.json({ error: "imageUrl required" }, { status: 400 });
 
     let count = -1;
+    let changed: QueuePost | null = null;
     await mutateJson<{ version: number; posts: QueuePost[] }>(dataPath("queue.json"), (queue) => {
       for (const p of queue.posts) {
         if (p.id === postId) {
@@ -30,12 +32,14 @@ export async function POST(
           p.imageUrls.push(imageUrl);
           if (!p.imageUrl) p.imageUrl = imageUrl;
           count = p.imageUrls.length;
+          changed = p;
         }
       }
       return queue;
     }, { version: 2, posts: [] });
 
     if (count < 0) return Response.json({ error: "Post not found" }, { status: 404 });
+    if (changed) await mirrorQueuePost(__t, changed);
     return Response.json({ ok: true, count });
   });
 }

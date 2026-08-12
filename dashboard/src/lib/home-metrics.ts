@@ -86,37 +86,65 @@ export interface ActivityEvent {
   type: string;
   text: string;
   at: string;
+  channel?: string;
+  views?: number;
 }
 
-export async function getActivityEvents(tenantId: string, limit = 30): Promise<ActivityEvent[]> {
+export async function getActivityEvents(tenantId: string, limit = 30, viralThreshold = 500): Promise<ActivityEvent[]> {
   return withTenant(tenantId, async (sql) => {
-    const rows = await sql<{ id: string; platform: string; text: string | null; published_at: string; status: string }[]>`
-      SELECT id, platform, text, published_at::text, status FROM published_posts
+    const publishedRows = await sql<{ id: string; platform: string; text: string | null; published_at: string; status: string; views: number | null }[]>`
+      SELECT id, platform, text, published_at::text, status, views FROM published_posts
       WHERE tenant_id = ${tenantId} ORDER BY published_at DESC LIMIT ${limit}`;
-    return rows.map((r) => ({
-      id: r.id,
-      type: r.status === "failed" ? "publish_failed" : "published",
-      text: `${r.platform}: ${(r.text || "").slice(0, 60)}`,
-      at: r.published_at,
-    }));
+    const draftRows = await sql<{ id: string; text: string | null; generated_at: string }[]>`
+      SELECT id, text, generated_at::text FROM queue_posts
+      WHERE tenant_id = ${tenantId} AND generated_at IS NOT NULL
+      ORDER BY generated_at DESC LIMIT ${limit}`;
+    const events: ActivityEvent[] = [];
+    for (const row of publishedRows) {
+      events.push({
+        id: `publish:${row.id}`,
+        type: row.status === "failed" ? "publish_failed" : "publish",
+        text: (row.text || "").slice(0, 60),
+        channel: row.platform,
+        at: row.published_at,
+      });
+      if (row.status === "published" && (row.views ?? 0) >= viralThreshold) {
+        events.push({
+          id: `viral:${row.id}`,
+          type: "viral",
+          text: (row.text || "").slice(0, 60),
+          views: row.views ?? 0,
+          at: row.published_at,
+        });
+      }
+    }
+    for (const row of draftRows) {
+      events.push({ id: `draft:${row.id}`, type: "draft", text: (row.text || "").slice(0, 60), at: row.generated_at });
+    }
+    return events.sort((a, b) => b.at.localeCompare(a.at)).slice(0, limit);
   });
 }
 
 export interface WeeklyReport {
   publishedThisWeek: number;
+  draftedThisWeek: number;
   views: number;
   likes: number;
   replies: number;
   byPlatform: Record<string, number>;
   followers: number | null;
   weekDelta: number | null;
+  viralPosts: Array<{ text: string; views: number; likes: number }>;
 }
 
-export async function getWeeklyReport(tenantId: string): Promise<WeeklyReport> {
+export async function getWeeklyReport(tenantId: string, viralThreshold = 500): Promise<WeeklyReport> {
   return withTenant(tenantId, async (sql) => {
     const rows = await sql<{ platform: string; text: string | null; views: number | null; likes: number | null; replies: number | null }[]>`
       SELECT platform, text, views, likes, replies FROM published_posts
       WHERE tenant_id = ${tenantId} AND status = 'published' AND published_at > now() - interval '7 days'`;
+    const [draftCount] = await sql<{ count: string }[]>`
+      SELECT count(*)::text AS count FROM queue_posts
+      WHERE tenant_id = ${tenantId} AND generated_at > now() - interval '7 days'`;
     let views = 0, likes = 0, replies = 0;
     const byPlatform: Record<string, number> = {};
     for (const r of rows) {
@@ -129,6 +157,21 @@ export async function getWeeklyReport(tenantId: string): Promise<WeeklyReport> {
       WHERE tenant_id = ${tenantId} ORDER BY recorded_at DESC LIMIT 8`;
     const followers = growthRows.length ? growthRows[0].followers : null;
     const weekDelta = growthRows.length >= 2 ? growthRows[0].followers - growthRows[growthRows.length - 1].followers : null;
-    return { publishedThisWeek: rows.length, views, likes, replies, byPlatform, followers, weekDelta };
+    const viralPosts = rows
+      .filter((row) => (row.views ?? 0) >= viralThreshold)
+      .sort((a, b) => (b.views ?? 0) - (a.views ?? 0))
+      .slice(0, 3)
+      .map((row) => ({ text: row.text || "", views: row.views ?? 0, likes: row.likes ?? 0 }));
+    return {
+      publishedThisWeek: rows.length,
+      draftedThisWeek: Number(draftCount?.count || 0),
+      views,
+      likes,
+      replies,
+      byPlatform,
+      followers,
+      weekDelta,
+      viralPosts,
+    };
   });
 }

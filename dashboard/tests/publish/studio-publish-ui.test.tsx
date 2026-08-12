@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   swrKeys: [] as Array<string | null>,
   isOperator: true,
   workspace: { id: "tenant-a", name: "Tenant A" },
+  drafts: [] as Array<Record<string, unknown>>,
 }));
 
 vi.mock("swr", () => ({
@@ -23,6 +24,9 @@ vi.mock("@/lib/api", () => ({
   fetcher: mocks.fetcher,
   apiPost: (...args: unknown[]) => mocks.apiPost(...args),
   isExternalPublishPersistenceError: () => false,
+  ApiResponseError: class ApiResponseError extends Error {
+    payload: unknown = null;
+  },
 }));
 
 vi.mock("@/components/layout/Toast", () => ({
@@ -92,13 +96,14 @@ describe("Studio publish result integrity", () => {
     mocks.swr.mockReset();
     mocks.swrKeys.length = 0;
     mocks.isOperator = true;
+    mocks.drafts = [];
     mocks.swr.mockImplementation((key: string | null) => {
       mocks.swrKeys.push(key);
       if (key === "/api/me") {
         return { data: { isOperator: mocks.isOperator }, mutate: vi.fn() };
       }
       if (key === "/api/studio/drafts?tenant_id=tenant-a") {
-        return { data: { drafts: [] }, mutate: vi.fn() };
+        return { data: { drafts: mocks.drafts }, mutate: vi.fn() };
       }
       if (key === "/api/studio/brand-setup?tenant_id=tenant-a") {
         return { data: { guide: null }, mutate: vi.fn() };
@@ -186,6 +191,57 @@ describe("Studio publish result integrity", () => {
       .filter(([path]) => path === "/api/publish")
       .map(([, body]) => (body as { platform: string }).platform))
       .toEqual(["threads", "x", "facebook", "instagram"]);
+  });
+
+  it("TC-E2/F1: 이력 불러오기는 본문을 편집 상태로 복원하고 발행 버튼을 노출한다", async () => {
+    mocks.drafts = [{
+      id: "draft-history",
+      idea: "불러올 초안",
+      text: { threads: "불러온 Threads 본문" },
+      includes: { threads: true, x: false, facebook: false, instagram: false },
+      status: "draft",
+      savedAt: "2026-08-12T00:00:00Z",
+    }];
+
+    render(<StudioPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "불러오기" }));
+
+    expect(await screen.findByRole("button", { name: "🚀 Publish (1)" })).toBeInTheDocument();
+    expect(mocks.showToast).toHaveBeenCalledWith("불러옴 — 수정 후 재발행 가능", "success");
+  });
+
+  it("TC-E3: 본문이 없는 이력은 재생성 필요 상태를 숨기지 않는다", async () => {
+    mocks.drafts = [{ id: "draft-empty", idea: "빈 초안", text: null, status: "draft", savedAt: "2026-08-12T00:00:00Z" }];
+    render(<StudioPage />);
+    expect(await screen.findByText("본문 없음 · 재생성 필요")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Publish/ })).not.toBeInTheDocument();
+  });
+
+  it("TC-D1: 생성 API 실패는 화면 배너와 오류 토스트에 원인을 노출한다", async () => {
+    mocks.apiPost.mockResolvedValue({ ok: false, error: "공유 AI 생성은 아직 승인되지 않았습니다" });
+    render(<StudioPage />);
+    fireEvent.change(screen.getByPlaceholderText("글감 / 콘텐츠 주제 입력"), { target: { value: "실패 원인 확인" } });
+    fireEvent.click(screen.getByRole("button", { name: "OSMU 생성" }));
+
+    expect(await screen.findByText(/마지막 실패: 텍스트: 공유 AI 생성은 아직 승인되지 않았습니다/)).toBeInTheDocument();
+    expect(mocks.showToast).toHaveBeenCalledWith("공유 AI 생성은 아직 승인되지 않았습니다", "error");
+  });
+
+  it("TC-F2: 발행 성공은 permalink 링크와 published 저장으로 닫힌다", async () => {
+    restoreStudio(["threads"]);
+    mocks.apiPost.mockImplementation(async (path: string, body: { status?: string }) => {
+      if (path === "/api/studio/drafts") return { id: "draft-1", status: body.status };
+      if (path === "/api/publish") return { ok: true, permalink: "https://www.threads.net/@example/post/ok" };
+      throw new Error(`unexpected path: ${path}`);
+    });
+
+    render(<StudioPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "🚀 Publish (1)" }));
+
+    const link = await screen.findByTitle("게시물 보기");
+    expect(link).toHaveAttribute("href", "https://www.threads.net/@example/post/ok");
+    expect(draftSaveStatuses()).toEqual(["draft", "published"]);
+    expect(mocks.showToast).toHaveBeenCalledWith("발행 완료 ✓", "success");
   });
 });
 

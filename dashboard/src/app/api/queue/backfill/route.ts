@@ -7,7 +7,12 @@ import { backfillQueueToDb } from "@/lib/queue-store";
 export async function POST(request: Request) {
   const tenantId = await effectiveTenantId(request, null);
   return runWithTenant(tenantId, async () => {
-    const r = await backfillQueueToDb(tenantId);
-    return Response.json({ ok: true, ...r });
+    try {
+      const result = await backfillQueueToDb(tenantId);
+      return Response.json({ ok: true, ...result });
+    } catch (error) {
+      console.error("[queue-backfill]", error instanceof Error ? error.message : String(error));
+      return Response.json({ ok: false, error: "큐 백필에 실패했습니다.", code: "queue_backfill_failed" }, { status: 503 });
+    }
   });
 }
