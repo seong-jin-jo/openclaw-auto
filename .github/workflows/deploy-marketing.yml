@@ -87,7 +87,9 @@ jobs:
         # NEXT_PUBLIC_* 는 빌드 시점 인라인된다. compose가 .env.osmu를 읽고 필수 Supabase
         # 공개값이 없으면 interpolation 단계에서 즉시 실패한다(수동 배포도 같은 경로 사용).
         run: |
-          docker compose --env-file .env.osmu -f docker-compose.postagi-4tenants.yml build
+          # services 지정 시 그 서비스만 빌드(전체 빌드로 무관한 게이트웨이 확장 빌드 실패에
+          # osmu 대시보드 배포가 막히는 것 방지). 비우면 기존대로 전체 빌드.
+          docker compose --env-file .env.osmu -f docker-compose.postagi-4tenants.yml build ${{ github.event.inputs.services }}
       - name: 기동
         # required NEXT_PUBLIC_* interpolation은 build와 up 모두에서 실행된다.
         run: |
