@@ -1,6 +1,6 @@
 # Channel Status & Implementation
 
-**최종 갱신: 2026-08-06** (근거: current-code UI audit + `ops/session-state.md`; source presence does not prove production operation.)
+**최종 갱신: 2026-08-13** (근거: R-05·R-09 승인 계약, current-code UI audit, `ops/session-state.md`; source presence does not prove production operation.)
 
 > Current UI truth is mapped in [Marketing Hub surface map](../product/marketing-hub-surface-map.md). In particular,
 > provider connection/publish status is **not** inferred from a local component, landing copy, or an extension entry.
@@ -29,24 +29,29 @@ For each channel the pattern is:
 
 See extensions/ directory and dashboard/src/lib/constants.ts for IMPLEMENTED_PLUGINS.
 
-## 발행 채널 그룹 SSOT (사이드바 = 연결가능 원칙)
+## 채널 capability SSOT
 
-대시보드에 **노출되는 발행 채널 그룹은 단일 소스** `dashboard/src/lib/constants.ts`의
-`PUBLISH_CHANNEL_GROUPS`로 정의한다. 사이드바(`Sidebar.tsx`)와 Settings>Channels
-(`ChannelsSettings.tsx`)가 **같은 상수를 소비**한다 — 정의를 한 곳에서만 바꾸면 둘 다 반영된다.
-(과거 3중으로 갈려 드리프트가 있었음 — 죽은 `CHANNEL_CATEGORIES`는 제거됨.)
+대시보드의 채널 그룹과 상세 탭은 `dashboard/src/lib/channel-capabilities.ts`가 단일 소스다.
+Sidebar, Settings>Channels, Studio, generic 채널, Instagram, Messaging이 이 계약을 공유한다.
+`constants.ts`는 기존 import 호환을 위해 발행 그룹을 재수출한다.
 
-원칙: **사이드바에 보이는 채널은 실제 연결 가능해야 한다.** 연결 UI가 없는 채널
-(GA/GSC 미구현, custom_api/rss stub 등)은 그룹에서 빼거나 동작하는 읽기 대시보드로 라우팅한다.
-빈 연결폼/"준비 중" 노출 금지.
+탭 원칙은 구조적으로 불가능한 기능만 제거하고, 가능한 미구현 기능은 탭을 유지한 채 비활성화해
+`연동 예정`으로 표시하는 것이다. 비활성 탭 클릭은 `연동 예정입니다` 안내를 낸다. Threads의 Growth와
+Popular, Instagram의 Editor, 기존 8개 발행 채널은 유지한다. Messaging은 구조적으로 불가능한 Queue,
+Analytics, Growth, Popular를 제거하고 Settings만 노출한다.
 
 ### Video 그룹은 텍스트 예약과 분리
 
-- YouTube/TikTok 영상 직접 발행은 `/api/video/publish`와 `/videos`의 provider별 연결/발행 카드를 사용한다.
-- Current Sidebar routes to `/videos`; do not retain stale documentation that promises hash links such as
-  `/videos#youtube-connect` or `/videos#tiktok-connect` unless that exact anchor is restored and verified.
-- 두 영상 provider를 텍스트 예약 SSOT `SCHEDULABLE_PLATFORMS` 또는 그 그룹인
-  `PUBLISH_CHANNEL_GROUPS`에 추가하지 않는다. 영상 연결 노출은 텍스트 예약 발행 지원을 뜻하지 않는다.
+- YouTube/TikTok 영상 직접 발행은 `/api/video/publish`를 사용하며 각 채널 상세로 연결한다.
+- 두 영상 provider가 채널 그룹에 보이는 사실은 텍스트 예약 발행 지원을 뜻하지 않는다.
+- Studio의 실제 발행 대상은 `SCHEDULABLE_PLATFORMS`와 preview capability의 교집합으로 제한한다.
+
+## 연결 readiness 상태 계약
+
+`/api/connect/readiness`는 `connected`, `not_connected`, `opening_soon`, `publish_pending`, `error`를 반환한다.
+중앙 앱 credential이 없거나 외부 심사가 필요한 공급자는 `opening_soon`, 앱 credential이 준비됐지만 tenant
+계정이 없으면 `not_connected`다. 고객 화면은 `미연결`을 활성 연결 버튼으로, `오픈 준비중`을 회색 대기로
+구분한다. 연결은 됐지만 발행 심사가 남으면 `발행 준비중`, 판정 실패는 재시도 가능한 오류로 표시한다.
 
 ### 운영자/고객 shell 경계
 

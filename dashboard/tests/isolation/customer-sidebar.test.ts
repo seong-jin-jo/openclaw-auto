@@ -15,8 +15,9 @@ describe("customer sidebar isolation", () => {
   });
 
   it("keeps video publishing separate from text scheduling and links each provider to its own channel page", () => {
-    expect(sidebar).toContain("VIDEO_PUBLISH_PLATFORMS.map");
-    expect(sidebar).toContain('href: `/channels/${provider}`');
+    expect(sidebar).toContain("CHANNEL_GROUPS.map");
+    expect(sidebar).toContain("g.channels.map");
+    expect(sidebar).toContain("`/channels/${i.key}`");
     expect(sidebar).not.toContain('href: `/videos#${provider}-connect`');
   });
 });
