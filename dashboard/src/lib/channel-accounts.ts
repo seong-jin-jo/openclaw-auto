@@ -33,8 +33,11 @@ export interface ResolvedIdentity {
 
 const TIMEOUT_MS = 5000;
 
-// provider 토큰으로 authoritative 외부 식별자를 resolve한다. 실패/네트워크 오류 시
-// fallbackUserId(이미 토큰교환 응답에서 얻은 값, 있으면)로 폴백하고, 그마저 없으면 synthetic id.
+const LIVE_IDENTITY_PROVIDERS = new Set(["threads", "instagram", "x", "youtube"]);
+
+// provider 토큰으로 authoritative 외부 식별자를 resolve한다. `/me`를 구현한 provider는
+// 실패 시 fallback ID로 active 계정을 만들지 않고 콜백 전체를 실패시킨다. 외부 신원 조회를
+// 구현하지 않은 provider만 토큰 교환 응답 ID 또는 legacy ID 폴백을 유지한다.
 export async function resolveExternalIdentity(
   provider: string,
   accessToken: string,
@@ -47,44 +50,46 @@ export async function resolveExternalIdentity(
         headers: { Authorization: `Bearer ${accessToken}` },
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
-      if (res.ok) {
-        const data = (await res.json()) as { data?: { id?: string; username?: string; name?: string } };
-        if (data.data?.id) {
-          return { externalId: data.data.id, username: data.data.username, displayName: data.data.name };
-        }
+      if (!res.ok) throw new Error("x identity response not ok");
+      const data = (await res.json()) as { data?: { id?: string; username?: string; name?: string } };
+      if (data.data?.id) {
+        return { externalId: data.data.id, username: data.data.username, displayName: data.data.name };
       }
+      throw new Error("x identity missing");
     } else if (provider === "youtube") {
       const res = await fetch(
         "https://www.googleapis.com/youtube/v3/channels?part=id,snippet&mine=true",
         { headers: { Authorization: `Bearer ${accessToken}` }, signal: AbortSignal.timeout(TIMEOUT_MS) },
       );
-      if (res.ok) {
-        const data = (await res.json()) as { items?: Array<{ id?: string; snippet?: { title?: string } }> };
-        const ch = data.items?.[0];
-        if (ch?.id) return { externalId: ch.id, displayName: ch.snippet?.title };
-      }
+      if (!res.ok) throw new Error("youtube identity response not ok");
+      const data = (await res.json()) as { items?: Array<{ id?: string; snippet?: { title?: string } }> };
+      const ch = data.items?.[0];
+      if (ch?.id) return { externalId: ch.id, displayName: ch.snippet?.title };
+      throw new Error("youtube identity missing");
     } else if (provider === "threads") {
       const res = await fetch(`https://graph.threads.net/v1.0/me?fields=id,username&access_token=${encodeURIComponent(accessToken)}`, {
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
-      if (res.ok) {
-        const data = (await res.json()) as { id?: string; username?: string };
-        if (data.id) return { externalId: data.id, username: data.username };
-      }
+      if (!res.ok) throw new Error("threads identity response not ok");
+      const data = (await res.json()) as { id?: string; username?: string };
+      if (data.id) return { externalId: data.id, username: data.username };
+      throw new Error("threads identity missing");
     } else if (provider === "instagram") {
       const res = await fetch(`https://graph.instagram.com/v21.0/me?fields=id,username&access_token=${encodeURIComponent(accessToken)}`, {
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
-      if (res.ok) {
-        const data = (await res.json()) as { id?: string; username?: string };
-        if (data.id) return { externalId: data.id, username: data.username };
-      }
+      if (!res.ok) throw new Error("instagram identity response not ok");
+      const data = (await res.json()) as { id?: string; username?: string };
+      if (data.id) return { externalId: data.id, username: data.username };
+      throw new Error("instagram identity missing");
     }
     // facebook: fallbackUserId는 이미 exchangeFacebookCode가 확정한 페이지 id(authoritative) —
     // 별도 /me 불필요. 그 외 provider(linkedin/naver_blog/pinterest/tumblr/tiktok/slack/line)는
     // 이 스코프에서 별도 /me 미구현 — fallback으로 처리.
   } catch {
-    /* 네트워크/타임아웃 — 아래 fallback으로 */
+    if (LIVE_IDENTITY_PROVIDERS.has(provider)) {
+      throw new Error(`${provider} 계정 신원 검증에 실패했습니다. 다시 연결해주세요.`);
+    }
   }
   if (fallbackUserId) return { externalId: fallbackUserId };
   // synthetic id — tenantId+provider+시각 기반(2026-07-17 표기, 진짜 랜덤 대신 결정적 폴백이

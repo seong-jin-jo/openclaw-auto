@@ -10,7 +10,7 @@ import { createTempDir, setupTestEnv, cleanupTestEnv } from "../helpers";
 
 const H = vi.hoisted(() => ({
   rows: [] as Array<{ label: string; token: string | null; meta: Record<string, unknown> | null }>,
-  states: [] as Array<{ provider: string; status: string }>,
+  states: [] as Array<{ provider: string; status: string; token_expires_at?: string | null; has_refresh?: boolean }>,
 }));
 
 vi.mock("@/lib/tenant-auth", () => ({
@@ -24,7 +24,14 @@ vi.mock("@/lib/db", () => ({
       (strings: TemplateStringsArray, ..._vals: unknown[]) => {
         const query = Array.from(strings).join(" ");
         if (query.includes("SELECT DISTINCT ON (provider)")) {
-          const derived = H.rows.map((row) => ({ provider: row.label, status: "active" }));
+          const derived = H.rows.map((row) => ({
+            provider: row.label,
+            status: "active",
+            token_expires_at: ["instagram", "threads", "facebook"].includes(row.label)
+              ? new Date(Date.now() + 3_600_000).toISOString()
+              : null,
+            has_refresh: false,
+          }));
           return Promise.resolve(H.states.length > 0 ? H.states : derived);
         }
         return Promise.resolve(H.rows);
@@ -191,17 +198,17 @@ describe("GET /api/channel-config — Instagram/Threads 라이브 OAuth 검증",
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("Instagram/Threads는 active 상태여도 검증할 토큰이 없으면 Connected로 통과하지 않는다", async () => {
+  it("Instagram/Threads는 active 상태여도 만료시각과 검증할 토큰이 없으면 reconnect로 닫는다", async () => {
     H.states = [
-      { provider: "instagram", status: "active" },
-      { provider: "threads", status: "active" },
+      { provider: "instagram", status: "active", token_expires_at: null, has_refresh: false },
+      { provider: "threads", status: "active", token_expires_at: null, has_refresh: false },
     ];
 
     const { GET } = await import("@/app/api/channel-config/route");
     const data = await (await GET(new Request("http://localhost/api/channel-config"))).json();
 
-    expect(data.instagram).toEqual(expect.objectContaining({ connected: false, connectionStatus: "unverified" }));
-    expect(data.threads).toEqual(expect.objectContaining({ connected: false, connectionStatus: "unverified" }));
+    expect(data.instagram).toEqual(expect.objectContaining({ connected: false, connectionStatus: "reconnect", reconnectRequired: true }));
+    expect(data.threads).toEqual(expect.objectContaining({ connected: false, connectionStatus: "reconnect", reconnectRequired: true }));
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

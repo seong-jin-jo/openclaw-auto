@@ -71,7 +71,7 @@ describe("social OAuth uses the central credential resolver", () => {
     const calls: string[] = [];
     const responses = [
       { access_token: "USER" },
-      { access_token: "LONG_USER" },
+      { access_token: "LONG_USER", expires_in: 5_184_000 },
       { data: [{ access_token: "PAGE", id: "page-1" }] },
     ];
     const fetchMock = vi.fn(async (input: URL | RequestInfo) => {
@@ -86,6 +86,31 @@ describe("social OAuth uses the central credential resolver", () => {
     expect(calls[0]).toContain("client_secret=db-facebook-secret");
     expect(calls[1]).toContain("client_id=db-facebook-id");
     expect(calls[1]).toContain("client_secret=db-facebook-secret");
+  });
+
+  it("Facebook 장기 user token 교환 실패 시 단기 token으로 페이지를 조회하지 않는다", async () => {
+    H.credentials.facebook = {
+      complete: true,
+      source: "db",
+      values: { clientId: "db-facebook-id", clientSecret: "db-facebook-secret", configId: "db-config-id" },
+    };
+    const calls: string[] = [];
+    const responses = [
+      { access_token: "SHORT_USER" },
+      { error: { message: "exchange failed" } },
+    ];
+    const fetchMock = vi.fn(async (input: URL | RequestInfo) => {
+      calls.push(String(input));
+      const body = responses.shift() || {};
+      return Response.json(body, { status: "error" in body ? 400 : 200 });
+    });
+    const { exchangeFacebookCode } = await import("@/lib/social-connect");
+    const result = await exchangeFacebookCode("code", "https://app.example", fetchMock);
+
+    expect(result.accessToken).toBe("");
+    expect(result.error).toContain("exchange failed");
+    expect(calls).toHaveLength(2);
+    expect(calls.some((url) => url.includes("/me/accounts"))).toBe(false);
   });
 
   it("partial resolver result fails closed before any provider request", async () => {

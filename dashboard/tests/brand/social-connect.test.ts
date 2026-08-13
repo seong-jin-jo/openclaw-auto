@@ -9,6 +9,7 @@ const H = vi.hoisted(() => ({
   inserts: [] as unknown[][],
   fetchSeq: [] as Array<{ status: number; body: unknown }>,
   fetchCalls: [] as string[],
+  identityError: "",
 }));
 
 vi.mock("@/lib/tenant-auth", () => ({
@@ -34,9 +35,10 @@ vi.mock("@/lib/db", () => ({
 // 검증 assertion들과 동일한 형태 유지). resolveExternalIdentity는 실 네트워크 호출 없이
 // fallbackUserId를 그대로 externalId로 반환(테스트가 이미 통제하는 tok.userId 값 보존).
 vi.mock("@/lib/channel-accounts", () => ({
-  resolveExternalIdentity: vi.fn(async (_provider: string, _token: string, fallbackUserId?: string, tenantId?: string) => ({
-    externalId: fallbackUserId || `legacy-test-${tenantId || "unknown"}`,
-  })),
+  resolveExternalIdentity: vi.fn(async (_provider: string, _token: string, fallbackUserId?: string, tenantId?: string) => {
+    if (H.identityError) throw new Error(H.identityError);
+    return { externalId: fallbackUserId || `legacy-test-${tenantId || "unknown"}` };
+  }),
   upsertChannelAccount: vi.fn(async (input: Record<string, unknown>) => {
     H.inserts.push([input]);
     return { id: `acc-${H.inserts.length}`, isDefault: true };
@@ -88,9 +90,10 @@ beforeEach(() => {
   H.tenantId = "tenant-1";
   H.inserts = [];
   H.fetchCalls = [];
+  H.identityError = "";
   H.fetchSeq = [
     { status: 200, body: { access_token: "SHORT", user_id: 17841400000000001 } }, // 단기
-    { status: 200, body: { access_token: "LONGLIVED60D" } },                       // 장기
+    { status: 200, body: { access_token: "LONGLIVED60D", expires_in: 5_184_000 } }, // 장기
   ];
   process.env.IG_APP_ID = "ig-app-123";
   process.env.IG_APP_SECRET = "ig-secret";
@@ -190,6 +193,7 @@ describe("GET /api/connect/instagram — OAuth 동의 URL", () => {
 
 describe("GET /api/connect/instagram/callback — 토큰교환·저장", () => {
   it("code+state → 단기→장기 토큰 교환 후 integrations에 저장", async () => {
+    const startedAt = Date.now();
     const state = await signedState("tenant-1", "instagram");
     const { GET } = await import("@/app/api/connect/[provider]/callback/route");
     const res = await GET(
@@ -206,6 +210,33 @@ describe("GET /api/connect/instagram/callback — 토큰교환·저장", () => {
     // 장기토큰이 저장됨(단기 아님)
     expect(H.inserts).toHaveLength(1);
     expect(JSON.stringify(H.inserts[0])).toContain("LONGLIVED60D");
+    const input = H.inserts[0][0] as Record<string, unknown>;
+    const expiresAt = new Date(String(input.tokenExpiresAt)).getTime();
+    expect(expiresAt).toBeGreaterThanOrEqual(startedAt + 5_184_000_000);
+    expect(expiresAt).toBeLessThanOrEqual(Date.now() + 5_184_000_000 + 1_000);
+  });
+
+  it("장기 토큰 교환이 실패하면 단기 토큰을 active 계정으로 저장하지 않는다", async () => {
+    H.fetchSeq = [
+      { status: 200, body: { access_token: "SHORT", user_id: "thread-user" } },
+      { status: 400, body: { error: { message: "invalid exchange" } } },
+    ];
+    const state = await signedState("tenant-1", "threads");
+    const { GET } = await import("@/app/api/connect/[provider]/callback/route");
+    const res = await GET(callbackRequest("threads", state, "THCODE"), params("threads"));
+
+    expect(await res.text()).toMatch(/연결 실패/);
+    expect(H.inserts).toHaveLength(0);
+  });
+
+  it("/me 신원 검증이 실패하면 active 계정을 저장하지 않는다", async () => {
+    H.identityError = "Threads 계정 검증 실패";
+    const state = await signedState("tenant-1", "threads");
+    const { GET } = await import("@/app/api/connect/[provider]/callback/route");
+    const res = await GET(callbackRequest("threads", state, "THCODE"), params("threads"));
+
+    expect(await res.text()).toMatch(/연결 실패/);
+    expect(H.inserts).toHaveLength(0);
   });
 
   it("threads — graph.threads.net로 교환 후 저장(같은 코드 경로)", async () => {
@@ -224,7 +255,7 @@ describe("GET /api/connect/instagram/callback — 토큰교환·저장", () => {
   it("facebook — user→장기→/me/accounts 페이지 토큰 저장", async () => {
     H.fetchSeq = [
       { status: 200, body: { access_token: "FB_USER" } },               // user token
-      { status: 200, body: { access_token: "FB_USER_LONG" } },          // 장기 user
+      { status: 200, body: { access_token: "FB_USER_LONG", expires_in: 5_184_000 } }, // 장기 user
       { status: 200, body: { data: [{ access_token: "PAGE_TOKEN", id: "990011" }] } }, // pages
     ];
     process.env.FB_APP_ID = "fb-app";
@@ -519,12 +550,13 @@ describe("exchangeCode — YouTube refresh_token", () => {
     process.env.YOUTUBE_CLIENT_ID = "yt-client";
     process.env.YOUTUBE_CLIENT_SECRET = "yt-secret";
     vi.stubGlobal("fetch", vi.fn(async () =>
-      new Response(JSON.stringify({ access_token: "YT_ACCESS", refresh_token: "YT_REFRESH" }), { status: 200 }),
+      new Response(JSON.stringify({ access_token: "YT_ACCESS", refresh_token: "YT_REFRESH", expires_in: 3600 }), { status: 200 }),
     ));
     const { exchangeCode } = await import("@/lib/social-connect");
     const result = await exchangeCode("youtube", "YTCODE", "https://app.example");
     expect(result.accessToken).toBe("YT_ACCESS");
     expect(result.refreshToken).toBe("YT_REFRESH");
+    expect(result.expiresInSeconds).toBe(3600);
     delete process.env.YOUTUBE_CLIENT_ID;
     delete process.env.YOUTUBE_CLIENT_SECRET;
   });
@@ -587,7 +619,7 @@ describe("GET /api/connect/youtube/callback — refresh_token 암호화 저장",
   it("refresh_token은 upsert의 전용 인자로 전달되고 meta에는 포함되지 않는다", async () => {
     process.env.YOUTUBE_CLIENT_ID = "yt-client";
     process.env.YOUTUBE_CLIENT_SECRET = "yt-secret";
-    H.fetchSeq = [{ status: 200, body: { access_token: "YT_ACCESS", refresh_token: "YT_REFRESH" } }];
+    H.fetchSeq = [{ status: 200, body: { access_token: "YT_ACCESS", refresh_token: "YT_REFRESH", expires_in: 3600 } }];
     const state = await signedState("tenant-1", "youtube");
     const { GET } = await import("@/app/api/connect/[provider]/callback/route");
     const res = await GET(
@@ -601,6 +633,7 @@ describe("GET /api/connect/youtube/callback — refresh_token 암호화 저장",
     expect(input.refreshToken).toBe("YT_REFRESH");
     expect(input.provider).toBe("youtube");
     expect(input.meta).not.toHaveProperty("refreshToken");
+    expect(new Date(String(input.tokenExpiresAt)).getTime()).toBeGreaterThan(Date.now());
     delete process.env.YOUTUBE_CLIENT_ID;
     delete process.env.YOUTUBE_CLIENT_SECRET;
   });

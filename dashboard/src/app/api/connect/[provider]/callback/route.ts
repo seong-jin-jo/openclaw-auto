@@ -150,12 +150,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
     // 별도로 저장한다(아래 tok.refreshToken 인자). meta는 평문 JSONB라 여기 넣으면 암호화 우회가 된다.
     const meta: Record<string, unknown> = { api: apiFlag, connectedAt: new Date().toISOString() };
 
-    // SNS-007: 저장 전 provider 토큰으로 authoritative 외부 식별자를 resolve(가능하면 실제
-    // /me·channels.list 왕복, 안 되면 토큰교환 응답의 userId, 그마저 없으면 synthetic)한다.
+    // SNS-007: 저장 전 provider 토큰으로 authoritative 외부 식별자를 resolve한다.
+    // `/me`·channels.list를 구현한 provider는 실제 왕복 실패 시 callback을 fail-closed한다.
     // 이 id가 channel_accounts UNIQUE(tenant_id,provider,external_account_id)의 dedup 키라
     // 부정확하면 "재연결"이 "새 계정 추가"로 오분류된다.
     const identity = await resolveExternalIdentity(provider, tok.accessToken, tok.userId, tenantId);
     meta.userId = identity.externalId;
+    const tokenExpiresAt = tok.expiresInSeconds
+      ? new Date(Date.now() + tok.expiresInSeconds * 1000).toISOString()
+      : null;
 
     const { id: accountId, isDefault } = await upsertChannelAccount({
       tenantId,
@@ -166,6 +169,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
       accessToken: tok.accessToken,
       refreshToken: tok.refreshToken,
       meta,
+      status: "active",
+      tokenExpiresAt,
     });
 
     // legacy integrations는 "현재 기본계정"만 미러링한다 — 신규 비기본 계정 추가가 기존
