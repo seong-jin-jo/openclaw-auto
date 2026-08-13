@@ -37,6 +37,7 @@ export interface ResolvedOAuthCredentialSet {
   configured: OAuthCredentialFieldKey[];
   missing: OAuthCredentialFieldKey[];
   updatedAt: string | null;
+  externalReview: "required" | "unknown";
   reason?: "credential_store_unavailable";
 }
 
@@ -278,6 +279,7 @@ export function resolveCredentialSet(
     configured,
     missing,
     updatedAt: dbRow?.updated_at || null,
+    externalReview: definition.externalReview || "unknown",
   };
 }
 
@@ -317,6 +319,7 @@ function unavailableCredentialSet(definition: OAuthCredentialDefinition): Resolv
     configured: [],
     missing: definition.fields.map((field) => field.key),
     updatedAt: null,
+    externalReview: definition.externalReview || "unknown",
     reason: "credential_store_unavailable",
   };
 }

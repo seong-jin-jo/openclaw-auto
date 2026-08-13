@@ -10,7 +10,7 @@ import {
   type ExternalPublishPersistenceFailure,
 } from "@/lib/api";
 import { useToast } from "@/components/layout/Toast";
-import { PlatformPreview, type PreviewPlatform } from "@/components/studio/PlatformPreview";
+import { PlatformPreview, PREVIEW_PLATFORMS, type PreviewPlatform } from "@/components/studio/PlatformPreview";
 import { useUIStore } from "@/store/ui-store";
 import { BrandSetupWizard } from "@/components/shared/BrandSetupWizard";
 import { RepoConnect } from "@/components/studio/RepoConnect";
@@ -21,11 +21,15 @@ import { CHANNEL_TEXT_LIMITS, countTextCharacters } from "@/lib/channel-text-lim
 import { Button } from "@/components/shared/Button";
 import { Field } from "@/components/shared/Field";
 import { Stack } from "@/components/shared/Stack";
+import { SCHEDULABLE_PLATFORMS } from "@/lib/constants";
 
 // SNS-007: /api/publish가 실제로 계정별 발행을 받는 4개 플랫폼(threads/x/facebook/instagram)만
 // 계정 셀렉터를 노출한다. shorts/reels/tiktok은 /api/publish 미지원(실발행 분기 없음 — 위
 // ChannelConnect.tsx 주석과 동일 SSOT 판단)이라 대상에서 뺀다.
-const PUBLISH_SUPPORTED = new Set<PreviewPlatform>(["threads", "x", "facebook", "instagram"]);
+const PREVIEW_PLATFORM_KEYS = new Set<string>(PREVIEW_PLATFORMS.map((platform) => platform.key));
+const PUBLISH_SUPPORTED = new Set<PreviewPlatform>(
+  SCHEDULABLE_PLATFORMS.filter((platform) => PREVIEW_PLATFORM_KEYS.has(platform)) as PreviewPlatform[],
+);
 const ACCOUNT_SELECTABLE = PUBLISH_SUPPORTED;
 interface AccountOption { id: string; label: string; is_default: boolean }
 
@@ -63,7 +67,7 @@ const GROUPS: { title: string; platforms: PreviewPlatform[] }[] = [
   { title: "🎬 영상 9:16", platforms: ["shorts", "reels", "tiktok"] },
   { title: "🖼️ 카드뉴스", platforms: ["instagram"] },
 ];
-const ALL: PreviewPlatform[] = ["threads", "x", "facebook", "instagram", "shorts", "reels", "tiktok"];
+const ALL: PreviewPlatform[] = PREVIEW_PLATFORMS.map((platform) => platform.key);
 const normalizeIncludes = (saved?: Record<string, boolean>): Record<string, boolean> => (
   Object.fromEntries(ALL.map((platform) => [
     platform,

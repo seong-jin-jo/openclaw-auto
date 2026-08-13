@@ -40,6 +40,15 @@ vi.mock("@/store/ui-store", () => ({
 }));
 
 vi.mock("@/components/studio/PlatformPreview", () => ({
+  PREVIEW_PLATFORMS: [
+    "threads",
+    "x",
+    "facebook",
+    "instagram",
+    "shorts",
+    "reels",
+    "tiktok",
+  ].map((key) => ({ key, label: key })),
   PlatformPreview: ({ platform, headerRight }: { platform: string; headerRight?: React.ReactNode }) => (
     <div data-testid={`preview-${platform}`}>{headerRight}</div>
   ),
