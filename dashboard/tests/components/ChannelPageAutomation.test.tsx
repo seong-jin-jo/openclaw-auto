@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChannelPage } from "@/components/channel/ChannelPage";
 import { InstagramPage } from "@/components/channel/InstagramPage";
+import { MessagingPage } from "@/components/channel/MessagingPage";
 
 const mocks = vi.hoisted(() => ({
   swr: vi.fn(),
@@ -15,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   setExpandedPopular: vi.fn(),
   subTab: "settings",
   channelConfigData: {} as Record<string, unknown>,
+  showToast: vi.fn(),
 }));
 
 vi.mock("swr", () => ({
@@ -47,7 +49,7 @@ vi.mock("@/store/ui-store", () => ({
 }));
 
 vi.mock("@/components/layout/Toast", () => ({
-  useToast: () => ({ showToast: vi.fn() }),
+  useToast: () => ({ showToast: mocks.showToast }),
 }));
 
 vi.mock("@/components/shared/CredentialForm", () => ({ CredentialForm: () => null }));
@@ -72,6 +74,7 @@ describe("ChannelPage customer/operator API boundary", () => {
     mocks.apiPost.mockResolvedValue({ ok: true });
     mocks.subTab = "settings";
     mocks.channelConfigData = {};
+    mocks.showToast.mockReset();
   });
 
   afterEach(() => {
@@ -138,9 +141,39 @@ describe("ChannelPage customer/operator API boundary", () => {
   it("keeps migrated channel tabs wired to shared UI state", () => {
     render(<ChannelPage channel="threads" />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Analytics" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Analytics" }));
 
     expect(mocks.setSubTab).toHaveBeenCalledWith("analytics");
+  });
+
+  it("keeps unimplemented generic tabs visible and announces that integration is planned", () => {
+    render(<ChannelPage channel="x" />);
+
+    const growth = screen.getByTestId("channel-tab-x-growth");
+    expect(growth).toHaveAttribute("aria-disabled", "true");
+    expect(growth).toHaveTextContent("연동 예정");
+
+    fireEvent.click(growth);
+
+    expect(mocks.setSubTab).not.toHaveBeenCalledWith("growth");
+    expect(mocks.showToast).toHaveBeenCalledWith("연동 예정입니다", "warning");
+  });
+
+  it("preserves Instagram Editor while adding the common Analytics tab", () => {
+    render(<InstagramPage />);
+
+    expect(screen.getByTestId("channel-tab-instagram-editor")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("channel-tab-instagram-analytics"));
+
+    expect(mocks.setSubTab).toHaveBeenCalledWith("analytics");
+  });
+
+  it("keeps structurally impossible messaging tabs removed", () => {
+    render(<MessagingPage channel="telegram" />);
+
+    expect(screen.getByTestId("channel-tab-telegram-settings")).toBeInTheDocument();
+    expect(screen.queryByTestId("channel-tab-telegram-queue")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("channel-tab-telegram-analytics")).not.toBeInTheDocument();
   });
 
   it("keeps the migrated popular-post action wired to its API", async () => {

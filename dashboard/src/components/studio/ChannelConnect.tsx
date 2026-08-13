@@ -7,7 +7,8 @@ import { authHeaders } from "@/lib/auth";
 import { CredentialForm } from "@/components/shared/CredentialForm";
 import { SetupGuide } from "@/components/shared/SetupGuide";
 import { SocialConnectButton } from "@/components/channel/SocialConnectButton";
-import { CH_LABELS, PUBLISH_CHANNEL_GROUPS } from "@/lib/constants";
+import { CH_LABELS } from "@/lib/constants";
+import { PUBLISH_CHANNEL_GROUPS } from "@/lib/channel-capabilities";
 import type { Workspace } from "@/store/ui-store";
 
 // 채널 연결 모달 — 검증 경로(/api/channel-config/{channel})로 통일.

@@ -39,6 +39,8 @@ import { Button } from "@/components/shared/Button";
 import { Card } from "@/components/shared/Card";
 import { Section } from "@/components/shared/Section";
 import { Stack } from "@/components/shared/Stack";
+import { ChannelTabs } from "@/components/channel/ChannelTabs";
+import { isChannelTabEnabled } from "@/lib/channel-capabilities";
 
 interface ChannelPageProps {
   channel: string;
@@ -104,15 +106,6 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
   const isThreads = channel === "threads";
   const oauthLabel = OAUTH_CONNECT[channel];
 
-  // Build tabs: all channels get queue/analytics/settings. Threads also gets growth/popular.
-  const baseTabs = ["queue", "analytics", "settings"];
-  let tabs: string[];
-  if (isThreads) {
-    tabs = ["queue", "analytics", "growth", "popular", "settings"];
-  } else {
-    tabs = baseTabs;
-  }
-
   // 채널 진입 시 기본 탭: 미연결이면 '연결(설정)' 탭으로 보내 키를 바로 입력하게(연결됨이면 큐).
   // 예전엔 무조건 queue로 빠져 채널 세팅 자체가 불가능했음.
   useEffect(() => {
@@ -120,8 +113,8 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
   }, [channel]); // eslint-disable-line react-hooks/exhaustive-deps
   // 연결 상태가 뒤늦게 로드돼 현재 탭이 채널에 없으면 보정
   useEffect(() => {
-    if (!tabs.includes(subTab)) setSubTab(connected ? "queue" : "settings");
-  }, [tabs, subTab, connected, setSubTab]);
+    if (!isChannelTabEnabled(channel, subTab)) setSubTab(connected ? "queue" : "settings");
+  }, [channel, subTab, connected, setSubTab]);
 
   const handleCredSave = async (newKeys: Record<string, string>) => {
     const r = await apiPost<{ verified?: boolean; unverified?: boolean; reason?: string; error?: string; account?: string }>(`/api/channel-config/${channel}`, newKeys);
@@ -177,20 +170,7 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
         </div>
       )}
 
-      {/* Tabs */}
-      <Stack direction="horizontal" gap={4} scroll className="mb-stack-section border-b border-border/50 pb-stack">
-        {tabs.map((t) => (
-          <Button
-            key={t}
-            size="sm"
-            variant={subTab === t ? "primary" : "secondary"}
-            aria-pressed={subTab === t}
-            onClick={() => setSubTab(t)}
-          >
-            {t.charAt(0).toUpperCase() + t.slice(1)}
-          </Button>
-        ))}
-      </Stack>
+      <ChannelTabs channel={channel} activeTab={subTab} onTabChange={setSubTab} />
 
       {/* Queue Tab */}
       {subTab === "queue" && (
@@ -356,7 +336,7 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
 }
 
 /* ── Analytics Tab ── */
-function AnalyticsTab() {
+export function AnalyticsTab() {
   const { data } = useSWR("/api/analytics", fetcher);
   const a = data as Record<string, unknown> | undefined;
   if (!a) return <p className="text-subtle">Loading...</p>;

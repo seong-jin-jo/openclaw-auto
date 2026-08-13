@@ -1,12 +1,13 @@
 "use client";
 
 import { useChannelConfig } from "@/hooks/useChannelConfig";
-import { CH_LABELS, PUBLISH_CHANNEL_GROUPS } from "@/lib/constants";
+import { CH_LABELS } from "@/lib/constants";
+import { CHANNEL_GROUPS } from "@/lib/channel-capabilities";
 import { getChannelIcon } from "@/lib/channel-icons";
 import Link from "next/link";
 
 // 발행 채널 그룹은 constants의 PUBLISH_CHANNEL_GROUPS 단일 소스를 사용(사이드바와 동일).
-const GROUPS = PUBLISH_CHANNEL_GROUPS;
+const GROUPS = CHANNEL_GROUPS;
 
 function ChRow({ channelKey, label, sub, connected }: {
   channelKey: string; label: string; sub: string; connected: boolean;

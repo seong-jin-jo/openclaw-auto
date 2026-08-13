@@ -8,6 +8,7 @@ import { setupGuides } from "@/lib/setup-guides";
 import { CredentialForm } from "@/components/shared/CredentialForm";
 import { SetupGuide } from "@/components/shared/SetupGuide";
 import { BackButton } from "@/components/shared/BackButton";
+import { ChannelTabs } from "@/components/channel/ChannelTabs";
 
 interface MessagingPageProps {
   channel: string;
@@ -47,6 +48,8 @@ export function MessagingPage({ channel }: MessagingPageProps) {
           <p className="text-xs text-subtle">{CH_STATUS_LABEL[status] || status}</p>
         </div>
       </div>
+
+      <ChannelTabs channel={channel} activeTab="settings" onTabChange={() => {}} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Credentials */}

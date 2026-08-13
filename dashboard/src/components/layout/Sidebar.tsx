@@ -7,9 +7,8 @@ import useSWR from "swr";
 import { useChannelConfig } from "@/hooks/useChannelConfig";
 import {
   CH_LABELS,
-  PUBLISH_CHANNEL_GROUPS,
-  VIDEO_PUBLISH_PLATFORMS,
 } from "@/lib/constants";
+import { CHANNEL_GROUPS } from "@/lib/channel-capabilities";
 import { getChannelIcon } from "@/lib/channel-icons";
 import { useUIStore, type Workspace } from "@/store/ui-store";
 import { fetcher } from "@/lib/api";
@@ -348,7 +347,7 @@ function CustomerSidebar({
 
         {/* 발행 채널 그룹 — constants의 PUBLISH_CHANNEL_GROUPS 단일 소스(Settings>Channels와 동일).
             threads/x는 연결상태 뱃지가 특수해 별도 아이템 유지. */}
-        {PUBLISH_CHANNEL_GROUPS.map((g) => (
+        {CHANNEL_GROUPS.map((g) => (
           <SidebarGroup
             key={g.key}
             groupKey={g.key}
@@ -358,20 +357,6 @@ function CustomerSidebar({
             )}
           />
         ))}
-
-        {/* 영상 채널 계정 관리는 provider별 독립 경로다.
-            공용 영상 라이브러리/발행 작업실(/videos)과 SCHEDULABLE_PLATFORMS에는 섞지 않는다. */}
-        <SidebarGroup
-          groupKey="video"
-          title="Video"
-          items={VIDEO_PUBLISH_PLATFORMS.map((provider) => ({
-            key: provider,
-            href: `/channels/${provider}`,
-            label: CH_LABELS[provider],
-            icon: CH_LABELS[provider][0],
-            nav: true,
-          }))}
-        />
 
         {/* "Data & SEO" 채널 그룹 제거 — /channels/* 빈 연결폼으로 가던 죽은 항목이었음.
             동작하는 읽기 대시보드는 아래 "Data & Analytics" 섹션이 제공(사이드바=연결가능 원칙). */}

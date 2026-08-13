@@ -17,6 +17,9 @@ import { KeywordsEditor } from "./KeywordsEditor";
 import { QueueList } from "@/components/queue/QueueList";
 import { BackButton } from "@/components/shared/BackButton";
 import { TenantAutomationSettings } from "./TenantAutomationSettings";
+import { ChannelTabs } from "./ChannelTabs";
+import { AnalyticsTab } from "./ChannelPage";
+import { isChannelTabEnabled } from "@/lib/channel-capabilities";
 
 /* ---------- Card News Editor ---------- */
 interface CardEditorState {
@@ -452,11 +455,9 @@ export function InstagramPage() {
   // Load queue for reload callback
   const { mutate: mutateQueue } = useSWR("/api/queue", fetcher);
 
-  const tabs = ["queue", "editor", "settings"];
-
   useEffect(() => {
-    if (!tabs.includes(subTab)) setSubTab("queue");
-  }, [connected]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!isChannelTabEnabled("instagram", subTab)) setSubTab("queue");
+  }, [subTab, setSubTab]);
 
   const reload = useCallback(() => { mutateQueue(); mutateConfig(); }, [mutateQueue, mutateConfig]);
 
@@ -470,13 +471,7 @@ export function InstagramPage() {
           <p className="text-xs text-subtle">{connected ? "Connected" : reconnectRequired ? "재연결 필요" : "Not connected"} {igCfg.userId ? ` · ID: ${igCfg.userId}` : ""}</p>
         </div>
       </div>
-      <div className="flex gap-1 mb-6 border-b border-border/50 pb-3">
-        {tabs.map(t => (
-          <button key={t} onClick={() => setSubTab(t)} className={`px-3 py-1.5 text-sm rounded ${subTab === t ? "bg-accent text-text" : "text-subtle hover:bg-surface-2"}`}>
-            {t.charAt(0).toUpperCase() + t.slice(1)}
-          </button>
-        ))}
-      </div>
+      <ChannelTabs channel="instagram" activeTab={subTab} onTabChange={setSubTab} />
 
       {subTab === "queue" && (
         connected ? (
@@ -499,6 +494,14 @@ export function InstagramPage() {
           <div className="card p-8 text-center">
             <p className="text-subtle text-sm mb-2">Instagram 계정을 연결하면 카드뉴스 에디터를 사용할 수 있습니다</p>
             <button onClick={() => setSubTab("settings")} className="text-xs text-accent hover:text-accent">Settings에서 연결하기</button>
+          </div>
+        )
+      )}
+      {subTab === "analytics" && (
+        connected ? <AnalyticsTab /> : (
+          <div className="card p-pad-inset text-center">
+            <p className="text-subtle text-body-sm mb-stack-tight">Instagram 계정을 연결하면 분석을 사용할 수 있습니다</p>
+            <button onClick={() => setSubTab("settings")} className="text-caption text-accent">Settings에서 연결하기</button>
           </div>
         )
       )}
