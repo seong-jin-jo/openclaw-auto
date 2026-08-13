@@ -70,15 +70,17 @@ describe("GET /api/connect/readiness", () => {
     expect(body.providers.facebook.reason).toContain("FB_CONFIG_ID");
   });
 
-  it("SNS-004: FB 3키가 있어도 외부 앱 심사 미완이면 opening_soon으로 닫는다", async () => {
+  it("SNS-004: FB 3키가 있으면 외부 앱 심사 미완이어도 연결은 열어둔다(발행만 심사 후)", async () => {
+    // 회장 2026-08-13 라이브 회귀 수정: 외부 심사는 연결을 막지 않는다. credential 3키가 갖춰졌고
+    // 아직 미연결이면 not_connected(연결 버튼 활성). 심사 제약은 발행 단계에서만 표기한다.
     process.env.FB_APP_ID = "id";
     process.env.FB_APP_SECRET = "secret";
     process.env.FB_CONFIG_ID = "cfg";
     const { GET } = await import("@/app/api/connect/readiness/route");
     const res = await GET(req());
     const body = await res.json();
-    expect(body.providers.facebook.available).toBe(false);
-    expect(body.providers.facebook.status).toBe("opening_soon");
+    expect(body.providers.facebook.available).toBe(true);
+    expect(body.providers.facebook.status).toBe("not_connected");
     expect(body.providers.facebook.reason).toMatch(/외부 앱 심사/);
   });
 

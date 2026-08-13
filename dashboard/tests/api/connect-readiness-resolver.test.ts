@@ -99,7 +99,9 @@ describe("customer readiness central resolver wiring", () => {
     expect(body.providers.x).toEqual({ status: "connected", available: true });
   });
 
-  it("returns publish_pending for a connected account while external review is pending", async () => {
+  it("returns publish_pending but keeps the connection available while external review is pending", async () => {
+    // 외부 심사는 발행만 제한한다 — 연결 자체는 유효(available:true). 심사를 이유로 연결을
+    // available:false로 막던 회귀(회장 2026-08-13 라이브)를 이 케이스가 잠근다.
     H.complete.instagram = true;
     H.externalReview.instagram = "required";
     H.connection.instagram = "connected";
@@ -109,9 +111,24 @@ describe("customer readiness central resolver wiring", () => {
 
     expect(body.providers.instagram).toMatchObject({
       status: "publish_pending",
-      available: false,
+      available: true,
     });
     expect(body.providers.instagram.reason).toContain("외부 앱 심사");
+  });
+
+  it("keeps the connect button available for an unconnected provider whose external review is pending", async () => {
+    // 미연결 + credential 있음 + 심사 대기 → not_connected(연결 버튼 활성). opening_soon으로 막지 않는다.
+    H.complete.youtube = true;
+    H.externalReview.youtube = "required";
+    H.connection.youtube = "disconnected";
+    const { GET } = await import("@/app/api/connect/readiness/route");
+    const res = await GET(new Request("https://app.example/api/connect/readiness?tenant_id=tenant-1"));
+    const body = await res.json();
+
+    expect(body.providers.youtube).toMatchObject({
+      status: "not_connected",
+      available: true,
+    });
   });
 
   it("fails closed with error when tenant channel accounts cannot be read", async () => {

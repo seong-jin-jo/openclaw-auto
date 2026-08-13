@@ -164,9 +164,11 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
       || (readinessEntry ? (readinessEntry.available ? "not_connected" : "opening_soon") : null);
   const readinessFailed = readinessStatus === "error";
   const known = readinessEntry !== null;
+  // 연결(connect) 차단은 available(=우리 앱 credential 부재 or 오류)로만 판단한다. 외부 앱 심사가
+  // 남은 publish_pending은 available:true라 연결 버튼을 막지 않는다 — 심사 제약은 발행 단계에서만
+  // 적용(회장 2026-08-13 라이브 회귀 수정: 심사대상 채널이 연결까지 막혀 마케팅 가동 불가였음).
   const disabledByReadiness = readinessFailed
     || readinessStatus === "opening_soon"
-    || readinessStatus === "publish_pending"
     || (known && !readinessEntry.available);
   // available=true여도 reason(예: Meta 앱 리뷰 상태 "확인 불가")이 있으면 조용히 버리지 않고
   // 경고로 보여준다 — finding 2.
