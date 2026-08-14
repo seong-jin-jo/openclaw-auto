@@ -134,7 +134,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
     const tok = provider === "facebook"
       ? await exchangeFacebookCode(code, origin)
       : await exchangeCode(provider, code, origin, { codeVerifier });
-    if (!tok.accessToken) return fail(oauthErrorMessage(tok.error || "토큰 교환 실패", cfg.label).slice(0, 240));
+    if (!tok.accessToken) {
+      // 진단(2026-08-14 회장 재연결 실패 추적): 토큰/시크릿 미포함, 에러 사유만 기록. 원인 확정 후 제거.
+      console.error("[connect-callback][exchange-fail]", provider, tok.error);
+      return fail(oauthErrorMessage(tok.error || "토큰 교환 실패", cfg.label).slice(0, 240));
+    }
 
     // api 플래그: 발행 라우터가 어느 API 경로를 써야 할지 판별하는 힌트.
     // Meta 계열은 구분자 유지, 표준 OAuth 채널은 provider 라벨 그대로.
@@ -179,6 +183,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
 
     return resultHtml(`${cfg.label} 연결 완료!`, "이 창을 닫고 대시보드로 돌아가세요.", { provider, ok: true, origin });
   } catch (e) {
+    // 진단(2026-08-14 회장 재연결 실패 추적): 신원검증/저장 예외 사유 기록(토큰 미포함). 원인 확정 후 제거.
+    console.error("[connect-callback][catch]", provider, e instanceof Error ? e.message : String(e));
     return fail(oauthErrorMessage(e instanceof Error ? e.message : String(e), cfg.label).slice(0, 240));
   }
 }
