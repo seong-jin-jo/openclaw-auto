@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import {
   fetcher,
@@ -27,6 +28,7 @@ import { Stack } from "@/components/shared/Stack";
 import { SCHEDULABLE_PLATFORMS } from "@/lib/constants";
 import { StudioCommandPanel } from "@/components/studio/StudioCommandPanel";
 import type { EditorHandoff } from "@/lib/studio/editor-handoff";
+import { resolveStudioRoomFromSearch, shouldLoadPublishResources } from "@/lib/studio/room-routing";
 
 // SNS-007: /api/publish가 실제로 계정별 발행을 받는 4개 플랫폼(threads/x/facebook/instagram)만
 // 계정 셀렉터를 노출한다. shorts/reels/tiktok은 /api/publish 미지원(실발행 분기 없음. 위
@@ -94,7 +96,13 @@ const isVideo = (p: PreviewPlatform) => p === "shorts" || p === "reels" || p ===
 
 export default function StudioPage() {
   const { showToast } = useToast();
-  const { activeWorkspace, studioRoom: activeRoom, setStudioRoom: setActiveRoom } = useUIStore();
+  const searchParams = useSearchParams();
+  const search = searchParams?.toString() ?? "";
+  const { activeWorkspace, studioRoom: storedRoom, setStudioRoom: setActiveRoom } = useUIStore();
+  const activeRoom = resolveStudioRoomFromSearch(
+    `?${search}`,
+    storedRoom,
+  );
   const { data: me } = useSWR<{ isOperator?: boolean }>("/api/me", fetcher);
   const canGenerate = me?.isOperator === true;
   const { data: acct, mutate: mutateAcct } = useSWR<{ credits?: number; needsLogin?: boolean }>(
@@ -109,7 +117,8 @@ export default function StudioPage() {
   const { data: brandData, mutate: mutateBrand } = useSWR<{ guide: { prompt_guide?: string } | null }>(
     activeWorkspace ? `/api/studio/brand-setup?tenant_id=${activeWorkspace.id}` : null, fetcher);
   const { data: firstCommentData } = useSWR<{ capabilities: FirstCommentCapability[] }>(
-    "/api/publish/first-comment-capabilities", fetcher,
+    shouldLoadPublishResources(activeRoom) ? "/api/publish/first-comment-capabilities" : null,
+    fetcher,
   );
   const [showWorks, setShowWorks] = useState(false);
   const [chatOpen, setChatOpen] = useState(true); // 좁은 화면에서도 대화창은 항상 손에 닿는다
@@ -170,9 +179,9 @@ export default function StudioPage() {
   const [selectedAccounts, setSelectedAccounts] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    const requested = new URLSearchParams(window.location.search).get("room");
-    if (requested === "create" || requested === "edit" || requested === "publish") setActiveRoom(requested);
-  }, [setActiveRoom]);
+    const requested = resolveStudioRoomFromSearch(`?${search}`, storedRoom);
+    if (requested !== storedRoom) setActiveRoom(requested);
+  }, [search, setActiveRoom, storedRoom]);
 
   const changeRoom = (room: StudioRoom) => {
     setActiveRoom(room);
@@ -182,7 +191,7 @@ export default function StudioPage() {
 
   useEffect(() => {
     setSelectedAccounts({});
-    if (!activeWorkspace) { setAccountsByPlatform({}); return; }
+    if (!shouldLoadPublishResources(activeRoom) || !activeWorkspace) { setAccountsByPlatform({}); return; }
     let cancelled = false;
     (async () => {
       const entries = await Promise.all(
@@ -206,7 +215,7 @@ export default function StudioPage() {
       setAccountsByPlatform(Object.fromEntries(entries));
     })();
     return () => { cancelled = true; };
-  }, [activeWorkspace]);
+  }, [activeRoom, activeWorkspace]);
   const cancelRef = useRef(false);
   const drawerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef(false);

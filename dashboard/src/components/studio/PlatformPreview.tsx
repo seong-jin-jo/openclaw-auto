@@ -168,8 +168,8 @@ function IgCarousel({ cards }: { cards: { type: "img" | "text"; v: string }[] })
         : cur.type === "img" ? <img src={cur.v} alt="" className="w-full h-full object-cover" />
         : <div className="w-full h-full grid place-items-center p-7 bg-accent-soft"><p className="text-accent text-xl font-bold text-center leading-snug">{cur.v}</p></div>}
       {n > 1 && <>
-        <button onClick={(e) => { e.stopPropagation(); setI((x) => (x - 1 + n) % n); }} className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 text-text">‹</button>
-        <button onClick={(e) => { e.stopPropagation(); setI((x) => (x + 1) % n); }} className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 text-text">›</button>
+        <button type="button" aria-label="이전 카드" onClick={(e) => { e.stopPropagation(); setI((x) => (x - 1 + n) % n); }} className="absolute left-stack-tight top-1/2 min-h-control-touch min-w-control-touch -translate-y-1/2 rounded-full bg-text text-bg">‹</button>
+        <button type="button" aria-label="다음 카드" onClick={(e) => { e.stopPropagation(); setI((x) => (x + 1) % n); }} className="absolute right-stack-tight top-1/2 min-h-control-touch min-w-control-touch -translate-y-1/2 rounded-full bg-text text-bg">›</button>
         <span className="absolute top-3 right-3 text-caption text-text bg-black/50 px-2 py-0.5 rounded-full">{i + 1}/{n}</span>
         <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">{cards.map((_, k) => <span key={k} className={`w-1.5 h-1.5 rounded-full ${k === i ? "bg-blue-500" : "bg-white/50"}`} />)}</div>
       </>}
@@ -180,7 +180,7 @@ function IgCarousel({ cards }: { cards: { type: "img" | "text"; v: string }[] })
 function VideoRail({ kind }: { kind: "shorts" | "reels" | "tiktok" }) {
   return (
     <div className="absolute right-2 bottom-24 flex flex-col items-center gap-4 text-text drop-shadow z-10">
-      {kind === "tiktok" && <div className="relative mb-1"><Av s={36} /><span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-danger text-white grid place-items-center text-caption">+</span></div>}
+      {kind === "tiktok" && <div className="relative mb-1"><Av s={36} /><span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-danger text-bg grid place-items-center text-caption">+</span></div>}
       <div className="flex flex-col items-center">{P(I.heart, true)}<span className="text-caption mt-0.5">12.4K</span></div>
       <div className="flex flex-col items-center">{P(I.chat)}<span className="text-caption mt-0.5">318</span></div>
       {kind === "tiktok" ? <div className="flex flex-col items-center">{P(I.bookmark)}<span className="text-caption mt-0.5">1.2K</span></div>
