@@ -10,7 +10,63 @@ export interface ChannelCapability {
   specialTabs: readonly SpecialChannelTab[];
   disabledTabs: readonly BaseChannelTab[];
   removedTabs: readonly BaseChannelTab[];
+  engagement: EngagementCapability;
 }
+
+export type EngagementAction = "read" | "reply" | "like" | "defer" | "editorHandoff";
+
+export interface EngagementActionCapability {
+  supported: boolean;
+  reason: string | null;
+}
+
+export type EngagementCapability = Record<EngagementAction, EngagementActionCapability>;
+
+function engagementCapability(
+  supported: readonly EngagementAction[],
+  reason: string,
+  actionReasons: Partial<Record<EngagementAction, string>> = {},
+): EngagementCapability {
+  const enabled = new Set(supported);
+  return Object.fromEntries(
+    (["read", "reply", "like", "defer", "editorHandoff"] as const).map((action) => [
+      action,
+      { supported: enabled.has(action), reason: enabled.has(action) ? null : actionReasons[action] ?? reason },
+    ]),
+  ) as EngagementCapability;
+}
+
+const NO_COMMENT_ADAPTER = engagementCapability([], "현재 채널 어댑터는 댓글 본문 계약을 제공하지 않습니다.");
+
+const THREADS_ENGAGEMENT = engagementCapability(
+  ["read", "reply", "like", "defer", "editorHandoff"],
+  "",
+);
+
+const INSTAGRAM_ENGAGEMENT = engagementCapability(
+  ["read", "reply", "defer", "editorHandoff"],
+  "현재 Instagram 댓글 API는 이 앱에 댓글 좋아요 계약을 제공하지 않습니다.",
+);
+
+const FACEBOOK_ENGAGEMENT = engagementCapability(
+  ["read", "reply", "like", "defer", "editorHandoff"],
+  "",
+);
+
+const YOUTUBE_ENGAGEMENT = engagementCapability(
+  ["read", "reply", "defer", "editorHandoff"],
+  "현재 YouTube Data API는 댓글 좋아요 쓰기 계약을 제공하지 않습니다.",
+);
+
+const X_ENGAGEMENT = engagementCapability(
+  [],
+  "현재 X 연결은 발행용 OAuth 1.0a 계약만 사용하므로 댓글 대화 조회를 안전하게 연결하지 않았습니다.",
+);
+
+const TIKTOK_ENGAGEMENT = engagementCapability(
+  [],
+  "TikTok Content Posting API는 크리에이터 댓글 관리 계약을 제공하지 않습니다. Research API 댓글 조회는 운영 계정 관리 용도로 사용할 수 없습니다.",
+);
 
 export interface ResolvedChannelTab {
   id: ChannelTab;
@@ -24,6 +80,7 @@ const STANDARD_TEXT_CAPABILITY: ChannelCapability = {
   specialTabs: [],
   disabledTabs: ["growth", "popular"],
   removedTabs: [],
+  engagement: NO_COMMENT_ADAPTER,
 };
 
 const THREADS_CAPABILITY: ChannelCapability = {
@@ -31,6 +88,7 @@ const THREADS_CAPABILITY: ChannelCapability = {
   specialTabs: [],
   disabledTabs: [],
   removedTabs: [],
+  engagement: THREADS_ENGAGEMENT,
 };
 
 const INSTAGRAM_CAPABILITY: ChannelCapability = {
@@ -38,6 +96,7 @@ const INSTAGRAM_CAPABILITY: ChannelCapability = {
   specialTabs: ["editor"],
   disabledTabs: ["growth", "popular"],
   removedTabs: [],
+  engagement: INSTAGRAM_ENGAGEMENT,
 };
 
 const VIDEO_CAPABILITY: ChannelCapability = {
@@ -45,6 +104,7 @@ const VIDEO_CAPABILITY: ChannelCapability = {
   specialTabs: [],
   disabledTabs: ["growth", "popular"],
   removedTabs: [],
+  engagement: NO_COMMENT_ADAPTER,
 };
 
 const MESSAGING_CAPABILITY: ChannelCapability = {
@@ -52,12 +112,13 @@ const MESSAGING_CAPABILITY: ChannelCapability = {
   specialTabs: [],
   disabledTabs: [],
   removedTabs: ["queue", "analytics", "growth", "popular"],
+  engagement: NO_COMMENT_ADAPTER,
 };
 
 export const CHANNEL_CAPABILITIES: Record<string, ChannelCapability> = {
   threads: THREADS_CAPABILITY,
-  x: STANDARD_TEXT_CAPABILITY,
-  facebook: STANDARD_TEXT_CAPABILITY,
+  x: { ...STANDARD_TEXT_CAPABILITY, engagement: X_ENGAGEMENT },
+  facebook: { ...STANDARD_TEXT_CAPABILITY, engagement: FACEBOOK_ENGAGEMENT },
   bluesky: STANDARD_TEXT_CAPABILITY,
   linkedin: STANDARD_TEXT_CAPABILITY,
   pinterest: STANDARD_TEXT_CAPABILITY,
@@ -66,8 +127,8 @@ export const CHANNEL_CAPABILITIES: Record<string, ChannelCapability> = {
   medium: STANDARD_TEXT_CAPABILITY,
   substack: STANDARD_TEXT_CAPABILITY,
   instagram: INSTAGRAM_CAPABILITY,
-  youtube: VIDEO_CAPABILITY,
-  tiktok: VIDEO_CAPABILITY,
+  youtube: { ...VIDEO_CAPABILITY, engagement: YOUTUBE_ENGAGEMENT },
+  tiktok: { ...VIDEO_CAPABILITY, engagement: TIKTOK_ENGAGEMENT },
   telegram: MESSAGING_CAPABILITY,
   discord: MESSAGING_CAPABILITY,
   slack: MESSAGING_CAPABILITY,
@@ -121,6 +182,10 @@ export const VIDEO_PUBLISH_PLATFORMS = ["youtube", "tiktok"] as const;
 
 export function getChannelCapability(channel: string): ChannelCapability {
   return CHANNEL_CAPABILITIES[channel] || STANDARD_TEXT_CAPABILITY;
+}
+
+export function getEngagementCapability(channel: string): EngagementCapability {
+  return getChannelCapability(channel).engagement;
 }
 
 export function getChannelTabs(channel: string): ResolvedChannelTab[] {

@@ -188,6 +188,32 @@ CREATE TABLE IF NOT EXISTS published_posts (
 );
 CREATE INDEX IF NOT EXISTS idx_pubposts_tenant ON published_posts(tenant_id, published_at DESC);
 
+-- 댓글 본문은 provider에서 읽고, 사람이 정한 상태와 외부 답글 결과만 보관한다.
+CREATE TABLE IF NOT EXISTS engagement_items (
+  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id             UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  published_post_id     UUID NOT NULL REFERENCES published_posts(id) ON DELETE CASCADE,
+  platform              TEXT NOT NULL,
+  provider_comment_id   TEXT NOT NULL,
+  state                 TEXT NOT NULL DEFAULT 'unread'
+                        CHECK (state IN ('unread', 'deferred', 'replying', 'replied', 'editor_handoff')),
+  reply_request_key     TEXT,
+  reply_text            TEXT,
+  reply_external_id     TEXT,
+  replied_at            TIMESTAMPTZ,
+  liked_at              TIMESTAMPTZ,
+  deferred_at           TIMESTAMPTZ,
+  editor_handoff_at     TIMESTAMPTZ,
+  editor_draft_id       UUID REFERENCES drafts(id) ON DELETE SET NULL,
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (tenant_id, platform, provider_comment_id)
+);
+CREATE INDEX IF NOT EXISTS idx_engagement_items_tenant_state
+  ON engagement_items(tenant_id, state, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_engagement_items_post
+  ON engagement_items(tenant_id, published_post_id, updated_at DESC);
+
 -- P4: 발행 큐(현 data/queue.json v2 → 이주). expand/contract 1단계 = dual-write(읽기/cron은 json 유지, 무중단).
 -- id는 queue.json 항목 id(UUID)와 1:1. payload에 원 항목 무손실 스냅샷.
 CREATE TABLE IF NOT EXISTS queue_posts (

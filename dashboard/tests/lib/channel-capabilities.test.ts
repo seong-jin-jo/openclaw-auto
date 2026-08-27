@@ -5,6 +5,7 @@ import {
   PUBLISH_CHANNEL_GROUPS,
   getChannelCapability,
   getChannelTabs,
+  getEngagementCapability,
 } from "@/lib/channel-capabilities";
 
 describe("R-09 channel capability SSOT", () => {
@@ -49,5 +50,19 @@ describe("R-09 channel capability SSOT", () => {
     expect(PUBLISH_CHANNEL_GROUPS.flatMap((group) => [...group.channels])).toHaveLength(8);
     expect(PUBLISH_CHANNEL_GROUPS.flatMap((group) => [...group.channels])).not.toContain("youtube");
     expect(PUBLISH_CHANNEL_GROUPS.flatMap((group) => [...group.channels])).not.toContain("tiktok");
+  });
+
+  it("BE-V63-07 정상 경로: Threads 댓글 읽기와 답글과 좋아요를 지원한다", () => {
+    const capability = getEngagementCapability("threads");
+    expect(capability.read.supported).toBe(true);
+    expect(capability.reply.supported).toBe(true);
+    expect(capability.like.supported).toBe(true);
+  });
+
+  it("BE-V63-07 거절 경로: TikTok 댓글 계약 부재 이유를 숨기지 않는다", () => {
+    const capability = getEngagementCapability("tiktok");
+    expect(capability.read.supported).toBe(false);
+    expect(capability.read.reason).toContain("Content Posting API");
+    expect(capability.read.reason).toContain("Research API");
   });
 });

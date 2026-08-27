@@ -39,6 +39,7 @@ const TENANT_AWARE_PATHS = [
   "/api/channels/[provider]/accounts",
   "/api/connect/[provider]",
   "/api/errors",
+  "/api/engagement",
   "/api/figma/export-to-queue",
   "/api/growth",
   "/api/guide/[channel]",
