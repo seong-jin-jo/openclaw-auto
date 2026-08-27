@@ -12,6 +12,7 @@ interface DraftRow {
     vid?: unknown;
     includes?: Record<string, boolean>;
     publishReconciliation?: unknown;
+    editor_handoff?: unknown;
   };
   status: string;
   created_at: string;
@@ -48,6 +49,7 @@ export async function GET(request: Request) {
       vid: r.payload?.vid ?? null,
       includes: r.payload?.includes ?? {},
       publishReconciliation: r.payload?.publishReconciliation ?? null,
+      editorHandoff: r.payload?.editor_handoff ?? null,
       status: r.status,
       savedAt: r.updated_at,
     }));
@@ -73,7 +75,7 @@ export async function POST(request: Request) {
     const id = await withTenant(tenantId, async (sql) => {
       if (body.id) {
         const [row] = await sql<{ id: string }[]>`
-          UPDATE drafts SET idea = ${idea}, payload = ${sql.json(payload)}, status = ${status}, updated_at = now()
+          UPDATE drafts SET idea = ${idea}, payload = COALESCE(payload, '{}'::jsonb) || ${sql.json(payload)}::jsonb, status = ${status}, updated_at = now()
           WHERE id = ${body.id} AND tenant_id = ${tenantId} RETURNING id`;
         if (row) return row.id;
       }

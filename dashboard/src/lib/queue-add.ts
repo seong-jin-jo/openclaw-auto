@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { dataPath, mutateJson } from "@/lib/file-io";
 import { mirrorQueuePost } from "@/lib/queue-store";
 
-export interface QueueSourceContext {
+export interface PerformanceSuggestionSourceContext {
   type: "performance_suggestion";
   suggestionId: string;
   basis: "hypothesis" | "performance" | "trend";
@@ -10,6 +10,18 @@ export interface QueueSourceContext {
   verified: boolean;
   evidence: Record<string, unknown>;
 }
+
+export interface StudioHandoffSourceContext {
+  type: "studio_handoff";
+  handoffId: string;
+  draftId: string;
+  kind: "text" | "image" | "video" | "card" | "audio";
+  revision: number;
+  generationId: string | null;
+  candidateId: string | null;
+}
+
+export type QueueSourceContext = PerformanceSuggestionSourceContext | StudioHandoffSourceContext;
 
 export interface AddQueuePostInput {
   text: string;
@@ -91,7 +103,11 @@ export async function addQueuePost(
         threadsMediaId: null,
         error: null,
         abVariant: "A",
-        model: input.sourceContext ? "suggestion" : "manual",
+        model: input.sourceContext?.type === "performance_suggestion"
+          ? "suggestion"
+          : input.sourceContext?.type === "studio_handoff"
+            ? "studio-handoff"
+            : "manual",
         imageUrl: input.imageUrl || imageUrls?.[0] || null,
         imageUrls,
         cardBatchId: input.cardBatchId || null,

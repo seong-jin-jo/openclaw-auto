@@ -1,6 +1,6 @@
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
-import { addQueuePost, QueueInputError, QueueSourceContext } from "@/lib/queue-add";
+import { addQueuePost, PerformanceSuggestionSourceContext, QueueInputError } from "@/lib/queue-add";
 import { HYPOTHESIS_LABEL } from "@/lib/performance-suggestions";
 
 const BASIS = new Set(["hypothesis", "performance", "trend"]);
@@ -43,10 +43,10 @@ export async function POST(request: Request) {
     return Response.json({ error: `hypothesis label must be '${HYPOTHESIS_LABEL}' and verified must be false` }, { status: 400 });
   }
 
-  const sourceContext: QueueSourceContext = {
+  const sourceContext: PerformanceSuggestionSourceContext = {
     type: "performance_suggestion",
     suggestionId: id,
-    basis: basis as QueueSourceContext["basis"],
+    basis: basis as PerformanceSuggestionSourceContext["basis"],
     label: typeof suggestion.label === "string" ? suggestion.label : "",
     verified: suggestion.verified === true,
     evidence: safeEvidence(suggestion.evidence),
