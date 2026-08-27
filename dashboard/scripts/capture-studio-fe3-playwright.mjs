@@ -10,7 +10,7 @@ const dashboardToken = process.env.FE3_DASHBOARD_TOKEN || "";
 const studioToken = process.env.FE3_STUDIO_TOKEN || "";
 const workspaceId = process.env.FE3_WORKSPACE_ID || "";
 const studioWorkspaceId = process.env.FE3_STUDIO_WORKSPACE_ID || workspaceId;
-const outputDir = process.env.FE3_OUTPUT_DIR || path.resolve(process.cwd(), "../docs/prototype/qa-fe4");
+const outputDir = process.env.FE3_OUTPUT_DIR || path.resolve(process.cwd(), "../docs/prototype/qa-fe5");
 const executablePath = process.env.FE3_CHROME_PATH || "/Users/sj/Library/Caches/ms-playwright/chromium-1228/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing";
 
 if (!dashboardToken || !studioToken || !workspaceId) {
@@ -20,9 +20,10 @@ fs.mkdirSync(outputDir, { recursive: true });
 let chatAlwaysAt390 = 0;
 let chatVisibleAt390 = false;
 const responsiveObservations = [];
+const performanceObservations = [];
 
 const RESPONSIVE_ROUTES = [
-  { key: "home", path: "/" },
+  { key: "performance-room", path: "/" },
   { key: "studio-publish", path: "/studio?room=publish" },
   { key: "channel-threads", path: "/channels/threads" },
   { key: "settings", path: "/settings" },
@@ -187,10 +188,61 @@ try {
 
       const roomLinks = await page.locator('[aria-label="한 편의 제작 순서"] a').count();
       if (roomLinks !== 4) throw new Error(`${route.key} ${viewport.width} room links ${roomLinks}/4`);
+      if (route.key === "performance-room") {
+        const performanceRoom = page.locator('[data-room="performance"]');
+        await performanceRoom.waitFor({ state: "visible" });
+        for (const marker of [
+          '[data-room-top="performance"]',
+          "[data-perf-verdict]",
+          "[data-perf-loop]",
+          "[data-perf-comments]",
+          "[data-perf-inherit]",
+        ]) {
+          if (await performanceRoom.locator(marker).count() !== 1) {
+            throw new Error(`performance ${viewport.width} marker missing: ${marker}`);
+          }
+        }
+        if (await performanceRoom.getByText("댓글 본문 읽기와 답글 보내기는 준비 중입니다.", { exact: true }).count() !== 1) {
+          throw new Error(`performance ${viewport.width} honest comment readiness missing`);
+        }
+        if (await performanceRoom.getByRole("textbox", { name: /답글/ }).count()) {
+          throw new Error(`performance ${viewport.width} unsupported reply textbox rendered`);
+        }
+        if (await performanceRoom.getByRole("button", { name: /답글.*보내기/ }).count()) {
+          throw new Error(`performance ${viewport.width} unsupported reply submit rendered`);
+        }
+        const performanceMetrics = await performanceRoom.evaluate((root) => {
+          const selectors = [
+            '[data-room-top="performance"]',
+            "[data-perf-verdict]",
+            "[data-perf-loop]",
+            "[data-perf-suggestions]",
+            "[data-perf-comments]",
+            "[data-perf-inherit]",
+          ];
+          const tops = selectors.map((selector) => {
+            const element = root.querySelector(selector);
+            return element instanceof HTMLElement ? Math.round(element.getBoundingClientRect().top) : -1;
+          });
+          return {
+            clientWidth: root.clientWidth,
+            scrollWidth: root.scrollWidth,
+            sectionTops: tops,
+            ordered: tops.every((top, index) => index === 0 || top > tops[index - 1]),
+          };
+        });
+        if (performanceMetrics.scrollWidth > performanceMetrics.clientWidth + 1) {
+          throw new Error(`performance ${viewport.width} overflow ${performanceMetrics.scrollWidth}/${performanceMetrics.clientWidth}`);
+        }
+        if (!performanceMetrics.ordered) {
+          throw new Error(`performance ${viewport.width} flow order broken: ${JSON.stringify(performanceMetrics.sectionTops)}`);
+        }
+        performanceObservations.push({ width: viewport.width, ...performanceMetrics });
+      }
       responsiveObservations.push({ route: route.key, width: viewport.width, ...metrics, roomLinks });
       await page.screenshot({
         path: path.join(outputDir, `${route.key}-${viewport.width}.png`),
-        fullPage: false,
+        fullPage: route.key === "performance-room",
       });
     }
   }
@@ -198,6 +250,10 @@ try {
   fs.writeFileSync(
     path.join(outputDir, "responsive-observations.json"),
     `${JSON.stringify(responsiveObservations, null, 2)}\n`,
+  );
+  fs.writeFileSync(
+    path.join(outputDir, "performance-observations.json"),
+    `${JSON.stringify(performanceObservations, null, 2)}\n`,
   );
   if (unauthorizedUrls.length) throw new Error(`live browser received 401: ${JSON.stringify(unauthorizedUrls)}`);
   if (consoleErrors.length) throw new Error(`browser console errors: ${JSON.stringify(consoleErrors)}`);
@@ -214,6 +270,7 @@ try {
     unauthorizedUrls,
     consoleErrors,
     responsiveObservations,
+    performanceObservations,
   }, null, 2)}\n`);
 } finally {
   await browser.close();

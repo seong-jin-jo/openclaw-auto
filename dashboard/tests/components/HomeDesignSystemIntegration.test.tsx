@@ -168,4 +168,88 @@ describe("Home design-system migration interactions", () => {
     ));
     expect(mocks.mutateMetrics).toHaveBeenCalled();
   });
+
+  it("FE5-PERF-01 정상 경로: 통한 글에서 성과 제안을 실제 API로 불러온다", async () => {
+    mocks.posts = [1200, 900, 500, 300, 100].map((views, index) => ({
+      id: `post-${index}`,
+      platform: "threads",
+      text: `성과 글 ${index + 1}`,
+      status: "published",
+      published_at: "2026-08-27T10:00:00.000Z",
+      views,
+      likes: index,
+      replies: index,
+    }));
+    render(<HomePage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "이 결로 한 편 더" }));
+
+    await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith(
+      "/api/suggestions",
+      { tenant_id: "tenant-a" },
+    ));
+    expect(await screen.findByText("문제와 해결 전후를 비교하는 콘텐츠")).toBeInTheDocument();
+  });
+
+  it("FE5-PERF-02 거절 경로: 성과 제안 호출 실패는 오류와 재시도 동작을 남긴다", async () => {
+    mocks.posts = [1200, 900, 500, 300, 100].map((views, index) => ({
+      id: `post-${index}`,
+      platform: "threads",
+      text: `성과 글 ${index + 1}`,
+      status: "published",
+      published_at: "2026-08-27T10:00:00.000Z",
+      views,
+      likes: index,
+      replies: index,
+    }));
+    mocks.apiPost.mockImplementation(async (path: string) => {
+      if (path === "/api/suggestions") throw new Error("suggestions unavailable");
+      return { ok: true };
+    });
+    render(<HomePage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "이 결로 한 편 더" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("제안을 불러오지 못했어요. 잠시 후 다시 받아 주세요.");
+    expect(screen.getByRole("button", { name: "이 결로 한 편 더" })).toBeEnabled();
+  });
+
+  it("FE5-PERF-03 정상 경로: 댓글 수와 원문 링크는 보여 주되 준비 안 된 답글 기능은 만들지 않는다", () => {
+    mocks.posts = [{
+      id: "post-with-replies",
+      platform: "threads",
+      text: "반응이 달린 글",
+      status: "published",
+      published_at: "2026-08-27T10:00:00.000Z",
+      views: 100,
+      likes: 12,
+      replies: 3,
+      permalink: "https://example.com/posts/1",
+    }];
+    render(<HomePage />);
+
+    expect(screen.getByText("댓글 본문 읽기와 답글 보내기는 준비 중입니다.")).toBeInTheDocument();
+    expect(screen.getByText("Threads · 답글 3개")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "게시물에서 확인하기" })).toHaveAttribute("href", "https://example.com/posts/1");
+    expect(screen.queryByRole("textbox", { name: /답글/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /답글.*보내기/ })).not.toBeInTheDocument();
+  });
+
+  it("FE5-PERF-04 거절 경로: 원문 링크가 없는 반응은 죽은 단추 대신 준비 상태만 표시한다", () => {
+    mocks.posts = [{
+      id: "post-without-link",
+      platform: "threads",
+      text: "원문 링크가 없는 글",
+      status: "published",
+      published_at: "2026-08-27T10:00:00.000Z",
+      views: 100,
+      likes: 12,
+      replies: 3,
+    }];
+    render(<HomePage />);
+
+    expect(screen.getByText("원문 연동 준비 중")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "게시물에서 확인하기" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /답글/ })).not.toBeInTheDocument();
+  });
 });
