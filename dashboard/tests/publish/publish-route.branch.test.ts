@@ -68,7 +68,7 @@ vi.mock("@/lib/publish", async (importActual) => {
 
 // published_posts INSERT 값 순서:
 // [tenant_id, draft_id, platform, external_id, permalink, text, status, error, account_id]
-const I = { tenant: 0, draft: 1, platform: 2, externalId: 3, permalink: 4, text: 5, status: 6, error: 7, accountId: 8 };
+const I = { tenant: 0, draft: 1, platform: 2, externalId: 3, permalink: 4, text: 5, status: 6, error: 7, accountId: 8, providerMeta: 9 };
 
 async function callPublish(body: Record<string, unknown>) {
   const { POST } = await import("@/app/api/publish/route");
@@ -298,6 +298,32 @@ describe("/api/publish — happy path (실 publish* + fetch 목)", () => {
     const sent = JSON.parse(calls.find((c) => c.url.includes("/2/tweets"))!.body!);
     expect([...sent.text].length).toBe(280);
     // OAuth1.0a 서명 헤더가 붙었는지(서명 자체 검증은 별도지만 헤더 존재는 회귀 방지)
+  });
+
+  it("BE-V63-07 정상 경로: X 본문 발행 직후 첫 댓글을 reply로 함께 발행한다", async () => {
+    H.cred = { token: "", meta: { apiKey: "a", apiSecret: "b", accessToken: "c", accessSecret: "d" } };
+    const { calls } = installFetch([{ match: "api.twitter.com/2/tweets", json: { data: { id: "tw-1" } } }]);
+    const { status, body } = await callPublish({ platform: "x", text: "본문", first_comment: "첫 댓글" });
+
+    expect(status).toBe(200);
+    expect(body).toMatchObject({ ok: true, firstComment: { ok: true, externalId: "tw-1" }, partial: false });
+    expect(calls).toHaveLength(2);
+    expect(JSON.parse(calls[1].body!)).toEqual({
+      text: "첫 댓글",
+      reply: { in_reply_to_tweet_id: "tw-1" },
+    });
+    expect(H.inserts[0][I.providerMeta]).toMatchObject({ firstComment: { ok: true, externalId: "tw-1" } });
+  });
+
+  it("BE-V63-07 거절 경로: capability가 없는 플랫폼은 본문을 발행하기 전에 400으로 거절한다", async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    const { status, body } = await callPublish({ platform: "bluesky", text: "본문", first_comment: "첫 댓글" });
+
+    expect(status).toBe(400);
+    expect(body.capability).toMatchObject({ platform: "bluesky", supported: false });
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(H.inserts).toHaveLength(0);
   });
 });
 

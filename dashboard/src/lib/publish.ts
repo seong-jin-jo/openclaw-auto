@@ -196,7 +196,12 @@ export async function fetchThreadsPermalink(token: string, mediaId: string): Pro
 }
 
 // Threads 발행 (text + 선택 image). 2-step container→publish.
-export async function publishThreads(cred: ChannelCred, text: string, imageUrl?: string): Promise<PublishResult> {
+export async function publishThreads(
+  cred: ChannelCred,
+  text: string,
+  imageUrl?: string,
+  replyToId?: string,
+): Promise<PublishResult> {
   const length = countTextCharacters(text);
   if (length > CHANNEL_TEXT_LIMITS.threads) {
     return {
@@ -212,6 +217,7 @@ export async function publishThreads(cred: ChannelCred, text: string, imageUrl?:
     media_type: imageUrl ? "IMAGE" : "TEXT", text, access_token: cred.token,
   };
   if (imageUrl) params.image_url = imageUrl;
+  if (replyToId) params.reply_to_id = replyToId;
 
   let containerId: string;
   try {
@@ -491,6 +497,30 @@ export async function publishX(cred: ChannelCred, text: string): Promise<Publish
   const data = (await resp.json()) as { data?: { id?: string } };
   const tweetId = data.data?.id;
   return { ok: true, externalId: tweetId, permalink: tweetId ? `https://x.com/i/web/status/${tweetId}` : undefined };
+}
+
+export async function publishXReply(cred: ChannelCred, text: string, parentId: string): Promise<PublishResult> {
+  const meta = (cred.meta ?? {}) as Record<string, unknown>;
+  const keys: XKeys = {
+    apiKey: String(meta.apiKey ?? ""),
+    apiSecret: String(meta.apiSecret ?? meta.apiKeySecret ?? ""),
+    accessToken: String(meta.accessToken ?? ""),
+    accessSecret: String(meta.accessSecret ?? meta.accessTokenSecret ?? ""),
+  };
+  if (!keys.apiKey || !keys.apiSecret || !keys.accessToken || !keys.accessSecret) {
+    return { ok: false, error: "X 4키(apiKey/apiSecret/accessToken/accessSecret) 누락" };
+  }
+  const body = [...text].slice(0, CHANNEL_TEXT_LIMITS.x).join("");
+  const url = `${X_API}/tweets`;
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: { Authorization: buildXOAuthHeader("POST", url, keys), "Content-Type": "application/json" },
+    body: JSON.stringify({ text: body, reply: { in_reply_to_tweet_id: parentId } }),
+  });
+  if (!resp.ok) return { ok: false, error: `X reply 실패(${resp.status})` };
+  const data = (await resp.json()) as { data?: { id?: string } };
+  const id = data.data?.id;
+  return { ok: true, externalId: id, permalink: id ? `https://x.com/i/web/status/${id}` : undefined };
 }
 
 // Facebook 페이지 발행 (Graph API). imageUrl 있으면 /photos(caption), 없으면 /feed(message).

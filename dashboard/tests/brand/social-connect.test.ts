@@ -191,6 +191,18 @@ describe("GET /api/connect/instagram — OAuth 동의 URL", () => {
   });
 });
 
+describe("GET /api/connect/threads — reply 권한", () => {
+  it("authUrl에 첫 댓글 발행에 필요한 threads_manage_replies를 포함한다", async () => {
+    process.env.THREADS_APP_ID = "threads-app-1";
+    process.env.THREADS_APP_SECRET = "threads-secret-1";
+    const { buildAuthUrl, getProvider } = await import("@/lib/social-connect");
+    const url = await buildAuthUrl(getProvider("threads")!, "https://app.example", "threads", "tenant-1");
+    expect(url).toContain("threads_manage_replies");
+    delete process.env.THREADS_APP_ID;
+    delete process.env.THREADS_APP_SECRET;
+  });
+});
+
 describe("GET /api/connect/instagram/callback — 토큰교환·저장", () => {
   it("code+state → 단기→장기 토큰 교환 후 integrations에 저장", async () => {
     const startedAt = Date.now();

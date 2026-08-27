@@ -4,6 +4,12 @@ import { markQueuePublished } from "@/lib/queue-store";
 import { reportFailure, normalizePlatform, classifyPublishFailure } from "@/lib/observability";
 import { refreshImageDeliveryUrl } from "@/lib/image-token";
 import {
+  getFirstCommentCapability,
+  normalizeFirstComment,
+  publishFirstComment,
+  type FirstCommentPlatform,
+} from "@/lib/first-comment";
+import {
   buildUnifiedPublishStatus,
   isPublishStatusTarget,
   PUBLISH_STATUS_TARGETS,
@@ -119,9 +125,24 @@ function partialPersistenceFailure(
 export async function POST(request: Request) {
   const __b = await request.json();
   const { platform, text, image_url, draft_id, account_id } = __b;
+  let firstCommentText: string | null;
+  try {
+    firstCommentText = normalizeFirstComment(__b.first_comment);
+  } catch (error) {
+    return Response.json({ error: (error as Error).message }, { status: 400 });
+  }
   const tenant_id = await effectiveTenantId(request, __b.tenant_id);
   if (!tenant_id || !platform) {
     return Response.json({ error: "tenant_id, platform required" }, { status: 400 });
+  }
+  if (firstCommentText) {
+    const capability = getFirstCommentCapability(platform);
+    if (!capability?.supported) {
+      return Response.json({
+        error: capability?.reason ?? `${platform} first comment unsupported`,
+        capability: capability ?? { platform, supported: false },
+      }, { status: 400 });
+    }
   }
 
   let publishImageUrl: string | undefined;
@@ -167,6 +188,12 @@ export async function POST(request: Request) {
        LIMIT 1
     `);
     if (existing) {
+      if (firstCommentText) {
+        return Response.json({
+          error: "이미 발행된 게시물의 first comment 상태를 확인할 수 없어 중복 방지를 위해 거절했습니다.",
+          code: "first_comment_state_unknown",
+        }, { status: 409 });
+      }
       let permalink = existing.permalink ?? undefined;
       if (!permalink && existing.external_id && (platform === "threads" || platform === "instagram")) {
         const recoveredPermalink = platform === "threads"
@@ -255,6 +282,13 @@ export async function POST(request: Request) {
     result = { ok: false, error: `${platform} 미지원` };
   }
 
+  let firstCommentResult: PublishResult | null = null;
+  if (result.ok && firstCommentText) {
+    firstCommentResult = result.externalId
+      ? await publishFirstComment(platform as FirstCommentPlatform, cred, result.externalId, firstCommentText)
+      : { ok: false, error: "게시물 ID가 없어 first comment를 발행하지 못했습니다." };
+  }
+
   // 실발행 실패 고위험 경계 — "채널 미연결"(설정 문제, 위에서 이미 400 반환)은 대상이 아니고,
   // 여기 도달한 !ok는 플랫폼 API 호출이 실제로 실패한 경우만. fire-and-forget — 응답/상태코드 불변.
   // platform(요청 바디 원문, 공격자 통제 가능)과 result.error(플랫폼 API 응답 본문 포함 가능한
@@ -270,11 +304,20 @@ export async function POST(request: Request) {
 
   // published_posts 기록(성공/실패 모두)
   try {
-    await withTenant(tenant_id, (sql) => sql`
-      INSERT INTO published_posts (tenant_id, draft_id, platform, external_id, permalink, text, status, error, account_id)
-      VALUES (${tenant_id}, ${draft_id ?? null}, ${platform}, ${result.externalId ?? null},
-              ${result.permalink ?? null}, ${text ?? null},
-              ${result.ok ? "published" : "failed"}, ${result.error ?? null}, ${cred.accountId ?? null})`);
+    await withTenant(tenant_id, (sql) => firstCommentResult
+      ? sql`
+          INSERT INTO published_posts
+            (tenant_id, draft_id, platform, external_id, permalink, text, status, error, account_id, provider_meta)
+          VALUES (${tenant_id}, ${draft_id ?? null}, ${platform}, ${result.externalId ?? null},
+                  ${result.permalink ?? null}, ${text ?? null},
+                  ${result.ok ? "published" : "failed"}, ${result.error ?? null}, ${cred.accountId ?? null},
+                  ${sql.json({ firstComment: firstCommentResult } as never)})`
+      : sql`
+          INSERT INTO published_posts
+            (tenant_id, draft_id, platform, external_id, permalink, text, status, error, account_id)
+          VALUES (${tenant_id}, ${draft_id ?? null}, ${platform}, ${result.externalId ?? null},
+                  ${result.permalink ?? null}, ${text ?? null},
+                  ${result.ok ? "published" : "failed"}, ${result.error ?? null}, ${cred.accountId ?? null})`);
   } catch {
     if (result.ok) {
       return partialPersistenceFailure(result, {
@@ -321,5 +364,11 @@ export async function POST(request: Request) {
       });
     }
   }
-  return Response.json(result);
+  return Response.json({
+    ...result,
+    ...(firstCommentResult ? {
+      firstComment: firstCommentResult,
+      partial: result.ok && !firstCommentResult.ok,
+    } : {}),
+  });
 }

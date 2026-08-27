@@ -187,7 +187,7 @@ export const PROVIDERS: Record<string, ProviderConfig> = {
   threads: {
     label: "threads",
     authorizeUrl: "https://threads.net/oauth/authorize",
-    scopes: ["threads_basic", "threads_content_publish", "threads_manage_insights"],
+    scopes: ["threads_basic", "threads_content_publish", "threads_manage_insights", "threads_manage_replies"],
     appIdEnv: "THREADS_APP_ID",
     appSecretEnv: "THREADS_APP_SECRET",
     tokenUrl: "https://graph.threads.net/oauth/access_token",
