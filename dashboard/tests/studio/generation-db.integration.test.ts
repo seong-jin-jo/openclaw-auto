@@ -11,6 +11,7 @@ type Sql = ReturnType<typeof postgres>;
 
 let admin: Sql | null = null;
 let tenantId = "";
+let temporaryTenantId = "";
 let memberId = "";
 
 async function liveDatabase(ctx: { skip: () => void }): Promise<boolean> {
@@ -39,12 +40,22 @@ async function liveDatabase(ctx: { skip: () => void }): Promise<boolean> {
 
 async function cleanup(): Promise<void> {
   if (!admin || !memberId) return;
-  await admin`DELETE FROM studio_generation_jobs WHERE tenant_id = ${tenantId} AND member_id = ${memberId}`;
+  await admin`DELETE FROM studio_generation_jobs WHERE member_id = ${memberId}`;
+  if (temporaryTenantId) await admin`DELETE FROM tenants WHERE id = ${temporaryTenantId}`;
+}
+
+async function createTemporaryTenant(): Promise<string> {
+  temporaryTenantId = crypto.randomUUID();
+  await admin!`
+    INSERT INTO tenants (id, slug, name, status)
+    VALUES (${temporaryTenantId}, ${`studio-db-${temporaryTenantId}`}, 'Studio DB contract tenant', 'active')`;
+  return temporaryTenantId;
 }
 
 beforeEach(() => {
   admin = null;
   tenantId = "";
+  temporaryTenantId = "";
   memberId = "";
 });
 
@@ -115,5 +126,46 @@ describe("Studio 생성 Postgres 장부 계약", () => {
         (SELECT count(*)::int FROM studio_generation_jobs WHERE tenant_id = ${tenantId} AND member_id = ${memberId}) AS jobs,
         (SELECT count(*)::int FROM studio_free_regeneration_uses WHERE tenant_id = ${tenantId} AND member_id = ${memberId}) AS free_uses`;
     expect(counts).toEqual({ jobs: 2, free_uses: 1 });
+  });
+
+  it("GEN-DB-04 한국어 설명: 같은 회원의 멱등 키는 워크스페이스가 달라도 두 번째 생성을 거절한다", async (ctx) => {
+    if (!await liveDatabase(ctx)) return;
+    const otherTenantId = await createTemporaryTenant();
+    const service = new GenerationService(new PostgresGenerationRepository());
+    const first = generationRequestFixture();
+    first.workspace_id = tenantId;
+    await service.create(memberId, "db-member-global-key", parseGenerationRequest(first));
+    const second = generationRequestFixture();
+    second.workspace_id = otherTenantId;
+
+    await expect(service.create(memberId, "db-member-global-key", parseGenerationRequest(second))).rejects.toEqual(
+      expect.objectContaining({ code: "IDEMPOTENCY_CONFLICT", status: 409 }),
+    );
+    const [count] = await admin!<{ value: number }[]>`
+      SELECT count(*)::int AS value FROM studio_generation_jobs WHERE member_id = ${memberId}`;
+    expect(count.value).toBe(1);
+  });
+
+  it("GEN-DB-05 한국어 설명: 같은 회원의 현지 날짜 무료 몫은 워크스페이스가 달라도 한 번뿐이다", async (ctx) => {
+    if (!await liveDatabase(ctx)) return;
+    const otherTenantId = await createTemporaryTenant();
+    const service = new GenerationService(new PostgresGenerationRepository());
+    const first = generationRequestFixture();
+    first.workspace_id = tenantId;
+    const firstJob = await service.create(memberId, "db-free-global-a", parseGenerationRequest(first));
+    const second = generationRequestFixture();
+    second.workspace_id = otherTenantId;
+    const secondJob = await service.create(memberId, "db-free-global-b", parseGenerationRequest(second));
+    const now = new Date("2026-08-27T01:00:00.000Z");
+
+    await service.regenerate(memberId, firstJob.jobId, [tenantId], now);
+    await expect(service.regenerate(memberId, secondJob.jobId, [otherTenantId], now)).rejects.toEqual(
+      expect.objectContaining({ code: "PAID_REGENERATION_APPROVAL_REQUIRED", status: 409 }),
+    );
+    const [counts] = await admin!<{ jobs: number; free_uses: number }[]>`
+      SELECT
+        (SELECT count(*)::int FROM studio_generation_jobs WHERE member_id = ${memberId}) AS jobs,
+        (SELECT count(*)::int FROM studio_free_regeneration_uses WHERE member_id = ${memberId}) AS free_uses`;
+    expect(counts).toEqual({ jobs: 3, free_uses: 1 });
   });
 });

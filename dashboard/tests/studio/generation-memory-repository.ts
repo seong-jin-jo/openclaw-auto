@@ -13,7 +13,7 @@ export class MemoryGenerationRepository implements GenerationRepository {
   private readonly freeRetryUses = new Set<string>();
 
   async persistCreation(input: PersistCreationInput): Promise<PersistedCreation> {
-    const scope = `${input.job.workspaceId}:${input.job.memberId}:${input.operation}:${input.idempotencyKey}`;
+    const scope = `${input.job.memberId}:${input.operation}:${input.idempotencyKey}`;
     const existing = this.idempotency.get(scope);
     if (existing) return { created: false, ...existing };
     this.jobs.set(input.job.jobId, input.job);
@@ -28,12 +28,12 @@ export class MemoryGenerationRepository implements GenerationRepository {
   }
 
   async persistFreeRegeneration(input: PersistFreeRegenerationInput): Promise<boolean> {
-    const useKey = `${input.replacement.workspaceId}:${input.replacement.memberId}:${input.localDate}`;
+    const useKey = `${input.replacement.memberId}:${input.localDate}`;
     if (this.freeRetryUses.has(useKey)) return false;
     this.freeRetryUses.add(useKey);
     this.jobs.set(input.replacement.jobId, input.replacement);
     this.idempotency.set(
-      `${input.replacement.workspaceId}:${input.replacement.memberId}:${input.operation}:${input.idempotencyKey}`,
+      `${input.replacement.memberId}:${input.operation}:${input.idempotencyKey}`,
       { requestHash: input.requestHash, response: input.response },
     );
     return true;

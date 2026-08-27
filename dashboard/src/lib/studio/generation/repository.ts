@@ -66,7 +66,7 @@ export class PostgresGenerationRepository implements GenerationRepository {
           (${input.job.workspaceId}, ${input.job.memberId}, ${input.operation},
            ${input.idempotencyKey}, ${input.requestHash}, ${input.job.jobId},
            ${sql.json(input.response as Parameters<typeof sql.json>[0])})
-        ON CONFLICT (tenant_id, member_id, operation, idempotency_key) DO NOTHING
+        ON CONFLICT (member_id, operation, idempotency_key) DO NOTHING
         RETURNING request_hash, response_payload`;
 
       if (!reserved) {
@@ -78,7 +78,11 @@ export class PostgresGenerationRepository implements GenerationRepository {
             AND operation = ${input.operation}
             AND idempotency_key = ${input.idempotencyKey}
           LIMIT 1`;
-        if (!existing) throw new Error("Studio 멱등 기록을 예약하거나 다시 읽지 못했습니다");
+        if (!existing) {
+          // 동일 회원의 키가 다른 워크스페이스에서 이미 쓰였다. RLS로 그 행은 읽지 않고
+          // 해시 불일치만 반환해 service가 기존 계약대로 409를 내도록 한다.
+          return { created: false, requestHash: "", response: input.response };
+        }
         return { created: false, requestHash: existing.request_hash, response: existing.response_payload };
       }
 
@@ -108,7 +112,7 @@ export class PostgresGenerationRepository implements GenerationRepository {
         VALUES
           (${input.replacement.workspaceId}, ${input.replacement.memberId}, ${input.localDate},
            ${input.originalJobId}, ${input.replacement.jobId})
-        ON CONFLICT (tenant_id, member_id, local_date) DO NOTHING
+        ON CONFLICT (member_id, local_date) DO NOTHING
         RETURNING id`;
       if (!reserved) return false;
 
