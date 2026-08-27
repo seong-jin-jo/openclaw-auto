@@ -568,7 +568,12 @@ export function PerformanceRoom({
                             {comment.state === "deferred" ? "보류" : comment.state === "editor_handoff" ? "편집실로" : comment.state === "replied" ? "답함" : "답할 것"}
                           </span>
                         </div>
-                        <p className="text-caption text-subtle break-keep">올린 글 · {post.text || "게시물 본문 미수집"}</p>
+                        <div className="flex flex-wrap items-center gap-stack-tight text-caption text-subtle">
+                          <p className="min-w-0 flex-1 break-keep">올린 글 · {post.text || "게시물 본문 미수집"}</p>
+                          {post.permalink
+                            ? <a className="font-semibold text-accent" href={post.permalink} target="_blank" rel="noopener noreferrer">게시물에서 확인하기</a>
+                            : <span>원문 연동 준비 중</span>}
+                        </div>
                         <p className="text-body text-text break-keep">{comment.body || "댓글 본문 미수집"}</p>
                         {comment.likeCount !== null && <p className="text-caption text-muted">좋아요 {comment.likeCount.toLocaleString()}개</p>}
                         <label className="grid gap-micro text-caption font-semibold text-muted">
@@ -611,8 +616,11 @@ export function PerformanceRoom({
                   const error = engagementErrors[post.id];
                   if (!response?.unavailableReason && !error && response) return null;
                   return (
-                    <div key={`state-${post.id}`} className="py-pad-inset text-body-sm text-muted break-keep">
-                      <b className="text-text">{platformLabel(post.platform)}</b>: {error || response?.unavailableReason || "댓글 본문을 불러오는 중입니다."}
+                    <div key={`state-${post.id}`} className="flex flex-wrap items-center gap-stack py-pad-inset text-body-sm text-muted break-keep">
+                      <p className="min-w-0 flex-1"><b className="text-text">{platformLabel(post.platform)}</b>: {error || response?.unavailableReason || "댓글 본문을 불러오는 중입니다."}</p>
+                      {post.permalink
+                        ? <a className="font-semibold text-accent" href={post.permalink} target="_blank" rel="noopener noreferrer">게시물에서 확인하기</a>
+                        : <span className="text-caption text-subtle">원문 연동 준비 중</span>}
                     </div>
                   );
                 })}

@@ -7,6 +7,7 @@ import HomePage from "@/app/page";
 
 const mocks = vi.hoisted(() => ({
   apiPost: vi.fn(),
+  fetcher: vi.fn(),
   mutateMetrics: vi.fn(),
   posts: [] as Array<Record<string, unknown>>,
 }));
@@ -16,8 +17,9 @@ vi.mock("swr", () => ({
 }));
 
 vi.mock("@/lib/api", () => ({
-  fetcher: vi.fn(),
+  fetcher: (...args: unknown[]) => mocks.fetcher(...args),
   apiPost: (...args: unknown[]) => mocks.apiPost(...args),
+  ApiResponseError: class ApiResponseError extends Error {},
 }));
 
 vi.mock("@/components/studio/PlatformPreview", () => ({
@@ -53,8 +55,10 @@ vi.mock("@/lib/analytics/events", () => ({ trackEvent: vi.fn() }));
 describe("Home design-system migration interactions", () => {
   beforeEach(() => {
     mocks.apiPost.mockReset();
+    mocks.fetcher.mockReset();
     mocks.mutateMetrics.mockReset();
     mocks.posts = [];
+    mocks.fetcher.mockImplementation(() => new Promise(() => {}));
     mocks.apiPost.mockImplementation(async (path: string) => {
       if (path === "/api/suggestions") {
         return {
@@ -214,7 +218,7 @@ describe("Home design-system migration interactions", () => {
     expect(screen.getByRole("button", { name: "이 결로 한 편 더" })).toBeEnabled();
   });
 
-  it("FE5-PERF-03 정상 경로: 댓글 수와 원문 링크는 보여 주되 준비 안 된 답글 기능은 만들지 않는다", () => {
+  it("FE5-PERF-03 정상 경로: 댓글 본문과 원문 링크를 보여 주고 답글 행동을 연다", async () => {
     mocks.posts = [{
       id: "post-with-replies",
       platform: "threads",
@@ -226,19 +230,31 @@ describe("Home design-system migration interactions", () => {
       replies: 3,
       permalink: "https://example.com/posts/1",
     }];
+    mocks.fetcher.mockResolvedValue({
+      postId: "post-with-replies", platform: "threads",
+      capability: {
+        read: { supported: true, reason: null }, reply: { supported: true, reason: null },
+        like: { supported: true, reason: null }, defer: { supported: true, reason: null },
+        editorHandoff: { supported: true, reason: null },
+      },
+      items: [{
+        id: "comment-1", parentId: "post-with-replies", author: "@maker", body: "읽을 댓글 본문",
+        createdAt: "2026-08-27T11:00:00.000Z", likeCount: 2, permalink: null, state: "unread",
+        repliedAt: null, replyText: null, likedAt: null, deferredAt: null, editorHandoffAt: null, editorDraftId: null,
+      }],
+    });
     render(<HomePage />);
 
-    expect(screen.getByText("댓글 본문 읽기와 답글 보내기는 준비 중입니다.")).toBeInTheDocument();
-    expect(screen.getByText("Threads · 답글 3개")).toBeInTheDocument();
+    expect(await screen.findByText("읽을 댓글 본문")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "게시물에서 확인하기" })).toHaveAttribute("href", "https://example.com/posts/1");
-    expect(screen.queryByRole("textbox", { name: /답글/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /답글.*보내기/ })).not.toBeInTheDocument();
-  });
+    expect(screen.getByRole("textbox", { name: "@maker 답글" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "이 답글 보내기" })).toBeDisabled();
+  }, 20_000);
 
-  it("FE5-PERF-04 거절 경로: 원문 링크가 없는 반응은 죽은 단추 대신 준비 상태만 표시한다", () => {
+  it("FE5-PERF-04 거절 경로: 원문 링크와 댓글 계약이 없으면 이유만 표시한다", async () => {
     mocks.posts = [{
       id: "post-without-link",
-      platform: "threads",
+      platform: "tiktok",
       text: "원문 링크가 없는 글",
       status: "published",
       published_at: "2026-08-27T10:00:00.000Z",
@@ -246,10 +262,17 @@ describe("Home design-system migration interactions", () => {
       likes: 12,
       replies: 3,
     }];
+    const unsupportedReason = "TikTok Content Posting API는 댓글 관리 계약을 제공하지 않습니다.";
+    const unsupported = { supported: false, reason: unsupportedReason };
+    mocks.fetcher.mockResolvedValue({
+      postId: "post-without-link", platform: "tiktok", items: [], unavailableReason: unsupportedReason,
+      capability: { read: unsupported, reply: unsupported, like: unsupported, defer: unsupported, editorHandoff: unsupported },
+    });
     render(<HomePage />);
 
+    expect(await screen.findByText(/TikTok Content Posting API는 댓글 관리 계약을 제공하지 않습니다/)).toBeInTheDocument();
     expect(screen.getByText("원문 연동 준비 중")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "게시물에서 확인하기" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /답글/ })).not.toBeInTheDocument();
-  });
+  }, 20_000);
 });
