@@ -70,6 +70,7 @@ const TENANT_AWARE_PATHS = [
   "/api/product-source",
   "/api/provision",
   "/api/publish",
+  "/api/publish/first-comment-capabilities",
   "/api/queue/[postId]/add-image",
   "/api/queue/[postId]/approve",
   "/api/queue/[postId]/delete",
@@ -137,6 +138,8 @@ const STUDIO_INDEPENDENT_MATCHERS = [
   /^\/api\/studio\/v1\/generations$/,
   /^\/api\/studio\/v1\/generations\/[^/]+$/,
   /^\/api\/studio\/v1\/regenerations\/[^/]+$/,
+  /^\/api\/studio\/v1\/shorts-factory\/runs$/,
+  /^\/api\/studio\/v1\/shorts-factory\/runs\/[^/]+$/,
 ];
 
 function isTenantAwarePath(pathname: string): boolean {
