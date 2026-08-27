@@ -8,6 +8,7 @@ import { requestStudioCandidates, type StudioGenerationCandidate } from "@/lib/s
 
 export type CreateContentBranch = "text_image" | "video";
 export type EditContentKind = "video" | "card" | "audio";
+const ONBOARDING_CONTENT_BRANCH_KEY = "studio_content_branch";
 
 function AssistantPanel({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -50,10 +51,17 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
   const [error, setError] = useState<string | null>(null);
   const facts = useMemo(() => guide.trim() ? [guide.trim()] : [], [guide]);
   const learnedCount = [workspaceName, guide, purpose, audience].filter((value) => value?.trim()).length;
-  const missing = [!workspaceName && "작업 공간 이름", !guide.trim() && "브랜드 가이드", !purpose.trim() && "목적", !audience.trim() && "대상"].filter(Boolean) as string[];
+  const missing = [!topic.trim() && "주제", !purpose.trim() && "목적", !audience.trim() && "대상", !rightsConfirmed && "소재 권리 확인"].filter(Boolean) as string[];
   const selectedCandidate = candidates.find((candidate) => candidate.label === selected) ?? null;
   const displayCandidates = candidates.length ? candidates : CREATE_EXAMPLES;
   const stage = selected ? { count: "3 / 3", label: "완성 확인" } : candidates.length ? { count: "2 / 3", label: "후보 고르기" } : { count: "1 / 3", label: "주제 받는 중" };
+
+  useEffect(() => {
+    const savedBranch = sessionStorage.getItem(ONBOARDING_CONTENT_BRANCH_KEY);
+    if (savedBranch !== "text_image" && savedBranch !== "video") return;
+    onContentBranchChange?.(savedBranch);
+    sessionStorage.removeItem(ONBOARDING_CONTENT_BRANCH_KEY);
+  }, [onContentBranchChange]);
 
   async function generate() {
     setError(null);

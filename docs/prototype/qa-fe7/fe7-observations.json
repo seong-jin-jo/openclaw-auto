@@ -1,0 +1,61 @@
+{
+  "stamp": {
+    "line": "osmu-fe7",
+    "observed_at": "2026-08-28T05:59:00+09:00",
+    "model": "gpt-5.6",
+    "agent": "code-builder",
+    "skill": "qa"
+  },
+  "workspace": {
+    "id": "cd1d0a40-540d-4524-9b49-bf2445d82182",
+    "name": "로컬 검증 워크스페이스",
+    "is_operator": false,
+    "status": "active"
+  },
+  "fresh_state": {
+    "health_http_status": 200,
+    "me_http_status": 200,
+    "onboarding_http_status": 200,
+    "completed": false,
+    "channel_connected": false,
+    "wiki_count": 0,
+    "publish_count": 0,
+    "generation_count": 0
+  },
+  "blocker_before_fix": {
+    "screen": "첫 번째 채널을 연결하세요",
+    "reason": "첫 콘텐츠를 만들기 전에 채널 자격증명과 전문가용 설정을 먼저 보여 줬다",
+    "capture": "before-channel-blocker-1440.png"
+  },
+  "verified_flow": [
+    "업종으로 테크 선택",
+    "콘텐츠 갈래로 영상 선택",
+    "채널 0개로 온보딩 저장",
+    "생성실로 이동",
+    "주제, 목적, 대상, 소재 권리 확인 입력",
+    "후보 세 장 생성"
+  ],
+  "network": {
+    "post_onboarding_http_status": 200,
+    "post_studio_generation_http_status": 201,
+    "first_comment_capabilities_http_status": 200,
+    "console_error_count_after_fix": 0
+  },
+  "result": {
+    "content_branch": "video",
+    "candidate_labels": ["A", "B", "C"],
+    "channel_connected": false,
+    "mobile_viewport_width": 390,
+    "mobile_horizontal_overflow": false,
+    "final_shared_workspace_generation_count": 3,
+    "shared_workspace_note": "초기화 직후 0건을 확인했다. 최종 합계에는 같은 검증 작업 공간을 쓰는 병렬 세션 요청이 함께 포함됐다. 이 브라우저 요청은 네트워크 기록의 HTTP 201과 화면 후보 세 장으로 따로 확인했다."
+  },
+  "captures": [
+    "after-fresh-onboarding-1440.png",
+    "after-branch-choice-final-1440.png",
+    "after-ready-without-channel-final-1440.png",
+    "after-studio-empty-final-1440.png",
+    "after-first-candidates-1440.png",
+    "after-first-candidates-390.png"
+  ]
+}
