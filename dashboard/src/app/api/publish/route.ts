@@ -1,7 +1,8 @@
 import { withTenant } from "@/lib/db";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { markQueuePublished } from "@/lib/queue-store";
-import { reportFailure, normalizePlatform, classifyPublishFailure } from "@/lib/observability";
+import { reportFailure, reportRecovery, normalizePlatform, classifyPublishFailure } from "@/lib/observability";
+import { normalizeIncidentSource } from "@/lib/observability/incidents";
 import { refreshImageDeliveryUrl } from "@/lib/image-token";
 import {
   getFirstCommentCapability,
@@ -298,7 +299,14 @@ export async function POST(request: Request) {
     void reportFailure({
       event: "publish_failed",
       severity: "warning",
+      workspaceId: tenant_id,
       context: { platform: normalizePlatform(platform), reason, httpStatus },
+    });
+  } else {
+    void reportRecovery?.({
+      workspaceId: tenant_id,
+      category: "publish_failed",
+      source: normalizeIncidentSource(platform),
     });
   }
 

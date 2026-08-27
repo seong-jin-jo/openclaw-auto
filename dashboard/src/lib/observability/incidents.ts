@@ -16,6 +16,12 @@ export const INCIDENT_SOURCES = [
   "discord",
   "slack",
   "youtube",
+  "linkedin",
+  "pinterest",
+  "tumblr",
+  "tiktok",
+  "line",
+  "naver_blog",
   "shared_ai",
   "studio",
   "unknown_platform",
@@ -29,6 +35,7 @@ export const INCIDENT_REASONS = [
   "token_expired",
   "token_revoked",
   "timeout",
+  "provider_unavailable",
   "output_limit",
   "spawn_failed",
   "exit_nonzero",
@@ -41,6 +48,14 @@ export type IncidentSource = (typeof INCIDENT_SOURCES)[number];
 export type IncidentReason = (typeof INCIDENT_REASONS)[number];
 export type IncidentIntervention = "human" | "automatic";
 export type IncidentSeverity = "critical" | "error" | "warning";
+
+const INCIDENT_SOURCE_SET = new Set<string>(INCIDENT_SOURCES);
+
+export function normalizeIncidentSource(value: unknown): IncidentSource {
+  return typeof value === "string" && INCIDENT_SOURCE_SET.has(value)
+    ? value as IncidentSource
+    : "unknown_platform";
+}
 
 export interface OperationalIncidentInput {
   workspaceId: string;
@@ -119,6 +134,34 @@ export async function recoverOperationalIncidents(
       kind: "operational_incident_recovery_failed",
       category: match.category,
       source: match.source,
+      workspace_id: workspaceId,
+    }));
+    return false;
+  }
+}
+
+export async function recoverUnconfiguredChannelIncidents(
+  workspaceId: string,
+  configuredSources: IncidentSource[],
+): Promise<boolean> {
+  if (!UUID_RE.test(workspaceId)) return false;
+
+  try {
+    await withTenant(workspaceId, async (tx) => {
+      await tx`
+        UPDATE operational_incidents
+        SET status = 'recovered', recovered_at = now(), last_seen_at = now()
+        WHERE tenant_id = ${workspaceId}
+          AND category IN ('token_expired', 'external_service_error')
+          AND status = 'open'
+          AND NOT (source = ANY(${configuredSources}::text[]))
+      `;
+    });
+    return true;
+  } catch {
+    console.error(JSON.stringify({
+      ts: new Date().toISOString(),
+      kind: "operational_incident_configuration_recovery_failed",
       workspace_id: workspaceId,
     }));
     return false;

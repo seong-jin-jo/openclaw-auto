@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { fetcher, isAuthRequiredError } from "@/lib/api";
 import { authHeaders } from "@/lib/auth";
+import { OperationalIncidentPanel } from "@/components/operator/OperationalIncidentPanel";
 
 interface Customer {
   id: string;
@@ -358,6 +359,8 @@ export default function OperatorCustomersPage() {
           ))}
         </section>
       )}
+
+      <OperationalIncidentPanel />
 
       <section className="mb-stack-section">
         <div className="mb-stack flex items-center justify-between gap-stack">

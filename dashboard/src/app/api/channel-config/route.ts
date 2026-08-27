@@ -4,6 +4,8 @@ import { runWithTenant } from "@/lib/tenant-context";
 import { withTenant } from "@/lib/db";
 import { maskConfigSecrets } from "@/lib/secret-mask";
 import { getChannelConnectionStates } from "@/lib/channel-connection";
+import { normalizePlatform, reportFailure, reportRecovery } from "@/lib/observability";
+import { normalizeIncidentSource, recoverUnconfiguredChannelIncidents } from "@/lib/observability/incidents";
 
 interface PluginEntry {
   enabled?: boolean;
@@ -178,20 +180,62 @@ export async function GET(request: Request) {
       const key = process.env.OSMU_SECRET_KEY || "";
       // OSMU_SECRET_KEY가 없으면 복호화 자체가 불가 — 토큰을 "유효"라고 주장하지 않고 미검증으로 마킹.
       // status='active' — revoked/expired로 마킹된 계정을 연결됨으로 오판하지 않는다.
-      const rows = await withTenant(__t, (sql) => sql<{ label: string; token: string | null; meta: Record<string, unknown> | null }[]>`
+      const rows = await withTenant(__t, (sql) => sql<{
+        label: string;
+        token: string | null;
+        meta: Record<string, unknown> | null;
+        status: string;
+        token_expires_at: string | null;
+        has_refresh: boolean;
+      }[]>`
         SELECT provider AS label,
                CASE WHEN secret_enc <> '' AND ${key} <> ''
                     THEN pgp_sym_decrypt(dearmor(secret_enc), ${key}) ELSE NULL END AS token,
-               meta
+               meta,
+               status,
+               token_expires_at::text,
+               (refresh_enc IS NOT NULL) AS has_refresh
         FROM channel_accounts
-        WHERE tenant_id = ${__t} AND is_default = true AND status = 'active' AND secret_enc <> ''`);
+        WHERE tenant_id = ${__t} AND is_default = true AND secret_enc <> ''`);
 
       const liveCheckable = new Set(["instagram", "threads"]);
       const toVerify: Array<{ label: string; token: string; userId: string }> = [];
 
-      for (const { label, token, meta } of rows) {
+      await recoverUnconfiguredChannelIncidents(
+        __t,
+        rows.map((row) => normalizeIncidentSource(row.label)),
+      );
+
+      for (const {
+        label,
+        token,
+        meta,
+        status = "active",
+        token_expires_at = null,
+        has_refresh = false,
+      } of rows) {
         const ch = channels[label];
         if (!ch) continue;
+        const source = normalizeIncidentSource(label);
+        const expiresAt = token_expires_at ? Date.parse(token_expires_at) : Number.NaN;
+        const expiredWithoutRefresh = Number.isFinite(expiresAt) && expiresAt <= Date.now() && !has_refresh;
+
+        if (status === "expired" || status === "revoked" || expiredWithoutRefresh) {
+          void reportFailure({
+            event: "token_expired",
+            severity: "error",
+            workspaceId: __t,
+            context: {
+              provider: normalizePlatform(label),
+              reason: status === "revoked" ? "token_revoked" : "token_expired",
+            },
+          });
+          continue;
+        }
+        if (connectionStates[label] === "connected") {
+          void reportRecovery({ workspaceId: __t, category: "token_expired", source });
+        }
+        if (status !== "active") continue;
         const m = (meta ?? {}) as Record<string, unknown>;
         const userId = typeof m.userId === "string" ? m.userId : "";
 
@@ -252,6 +296,8 @@ export async function GET(request: Request) {
               if (ch.status === "available" || ch.status === "soon" || !ch.status) {
                 ch.status = ch.enabled ? "live" : "connected";
               }
+              void reportRecovery({ workspaceId: __t, category: "token_expired", source: normalizeIncidentSource(label) });
+              void reportRecovery({ workspaceId: __t, category: "external_service_error", source: normalizeIncidentSource(label) });
               return;
             }
             // Meta Graph API 표준 에러 포맷: {error:{message,type:"OAuthException",code:190,...}}.
@@ -268,17 +314,39 @@ export async function GET(request: Request) {
               ch.reconnectRequired = true;
               ch.connectionStatus = "invalid";
               ch.connectionError = "oauth_token_invalid";
+              void reportFailure({
+                event: "token_expired",
+                severity: "error",
+                workspaceId: __t,
+                context: { provider: normalizePlatform(label), reason: "token_revoked" },
+              });
             } else {
               // 5xx 등 프로바이더/네트워크 이상 — 저장된 토큰을 무효로 단정하지 않는다.
               ch.connected = false;
               ch.connectionStatus = "unverified";
               ch.connectionError = "provider_unreachable";
+              void reportFailure({
+                event: "external_service_error",
+                severity: "warning",
+                workspaceId: __t,
+                context: {
+                  provider: normalizePlatform(label),
+                  reason: res.status === 429 ? "http_429" : res.status >= 500 ? "http_5xx" : "provider_unreachable",
+                  httpStatus: res.status,
+                },
+              });
             }
           } catch {
             // fetch 자체 실패(타임아웃/네트워크) — 토큰을 지우거나 무효 판정하지 않는다.
             ch.connected = false;
             ch.connectionStatus = "unverified";
             ch.connectionError = "provider_unreachable";
+            void reportFailure({
+              event: "external_service_error",
+              severity: "warning",
+              workspaceId: __t,
+              context: { provider: normalizePlatform(label), reason: "network_error" },
+            });
           }
         }));
       }

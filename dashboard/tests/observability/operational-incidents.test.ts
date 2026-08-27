@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const sqlMock = vi.fn(async () => []);
+const sqlMock = vi.fn(async (..._args: unknown[]) => []);
 const withTenantMock = vi.fn(async (_tenantId: string, fn: (tx: typeof sqlMock) => Promise<unknown>) => fn(sqlMock));
 
 vi.mock("@/lib/db", () => ({
@@ -29,7 +29,7 @@ describe("운영 장애 원장 계약", () => {
       "cd1d0a40-540d-4524-9b49-bf2445d82182",
       expect.any(Function),
     );
-    const sql = (sqlMock.mock.calls[0][0] as TemplateStringsArray).join(" ");
+    const sql = (sqlMock.mock.calls[0][0] as unknown as TemplateStringsArray).join(" ");
     expect(sql).toContain("INSERT INTO operational_incidents");
     expect(sql).toContain("occurrences = operational_incidents.occurrences + 1");
   });
@@ -57,7 +57,7 @@ describe("운영 장애 원장 계약", () => {
     );
 
     expect(recovered).toBe(true);
-    const sql = (sqlMock.mock.calls[0][0] as TemplateStringsArray).join(" ");
+    const sql = (sqlMock.mock.calls[0][0] as unknown as TemplateStringsArray).join(" ");
     expect(sql).toContain("SET status = 'recovered'");
     expect(sql).toContain("AND status = 'open'");
   });
