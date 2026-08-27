@@ -4,6 +4,13 @@ import { markQueuePublished } from "@/lib/queue-store";
 import { reportFailure, normalizePlatform, classifyPublishFailure } from "@/lib/observability";
 import { refreshImageDeliveryUrl } from "@/lib/image-token";
 import {
+  buildUnifiedPublishStatus,
+  isPublishStatusTarget,
+  PUBLISH_STATUS_TARGETS,
+  type PublishedPostStatusRow,
+  type PublishStatusTarget,
+} from "@/lib/publish-job-status";
+import {
   getChannelCred,
   fetchInstagramPermalink,
   fetchThreadsPermalink,
@@ -19,6 +26,38 @@ import {
 } from "@/lib/publish";
 
 type PersistenceStage = "publication_record" | "queue_record";
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const draftId = url.searchParams.get("draft_id") || "";
+  const tenantId = await effectiveTenantId(request, url.searchParams.get("tenant_id"));
+  if (!tenantId) return Response.json({ error: "tenant required" }, { status: 401 });
+  if (!UUID_RE.test(draftId)) {
+    return Response.json({ error: "draft_id must be a UUID" }, { status: 400 });
+  }
+
+  const platformParam = url.searchParams.get("platforms");
+  const targets: PublishStatusTarget[] = platformParam
+    ? platformParam.split(",").map((value) => value.trim()).filter(Boolean) as PublishStatusTarget[]
+    : [...PUBLISH_STATUS_TARGETS];
+  if (targets.length === 0 || targets.some((target) => !isPublishStatusTarget(target))) {
+    return Response.json({ error: "platforms contains an unsupported target" }, { status: 400 });
+  }
+
+  try {
+    const rows = await withTenant(tenantId, (sql) => sql<PublishedPostStatusRow[]>`
+      SELECT platform, status, external_id, provider_post_id, permalink, error, published_at
+        FROM published_posts
+       WHERE tenant_id = ${tenantId}::uuid
+         AND draft_id = ${draftId}::uuid
+       ORDER BY published_at DESC
+    `);
+    return Response.json(buildUnifiedPublishStatus(draftId, rows, targets));
+  } catch {
+    return Response.json({ error: "publish status unavailable" }, { status: 503 });
+  }
+}
 
 function partialPersistenceFailure(
   result: PublishResult,
@@ -111,8 +150,7 @@ export async function POST(request: Request) {
 
   // 동일 초안·플랫폼·계정의 성공 발행을 순차 재시도에서 다시 외부 API로 보내지 않는다.
   // UUID가 아닌 legacy draft id는 기존 동작을 유지한다.
-  const isDraftUuid = typeof draft_id === "string"
-    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(draft_id);
+  const isDraftUuid = typeof draft_id === "string" && UUID_RE.test(draft_id);
   if (isDraftUuid) {
     const [existing] = await withTenant(tenant_id, (sql) => sql<{
       external_id: string | null;
