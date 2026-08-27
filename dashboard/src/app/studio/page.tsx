@@ -635,6 +635,7 @@ export default function StudioPage() {
           editorLines={editLines}
           source={{ generationId: selectedCandidate?.generation_id, candidateId: selectedCandidate?.candidate_id }}
           initialHandoff={editorHandoff}
+          preferredKind={editKind === "video" ? "video" : editKind === "audio" ? "audio" : "card"}
           onKindSelect={(kind) => setEditKind(kind === "video" ? "video" : kind === "audio" ? "audio" : "card")}
           onDraftId={setDraftId}
           onHandoff={setEditorHandoff}

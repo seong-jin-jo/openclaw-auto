@@ -24,6 +24,7 @@ type StudioCommandPanelProps = {
   editorLines?: string[];
   source?: { generationId?: string | null; candidateId?: string | null };
   initialHandoff: EditorHandoff | null;
+  preferredKind?: EditorHandoffKind;
   onKindSelect?: (kind: EditorHandoffKind) => void;
   onDraftId: (draftId: string) => void;
   onHandoff: (handoff: EditorHandoff) => void;
@@ -51,6 +52,7 @@ export function StudioCommandPanel({
   editorLines = [],
   source,
   initialHandoff,
+  preferredKind,
   onKindSelect,
   onDraftId,
   onHandoff,
@@ -75,11 +77,19 @@ export function StudioCommandPanel({
   }, [editorLines, imageUrl, text, videoUrl]);
 
   useEffect(() => {
+    if (preferredKind && !availableKinds.includes(preferredKind)) {
+      setSelectedKind(null);
+      return;
+    }
+    if (preferredKind && availableKinds.includes(preferredKind)) {
+      setSelectedKind(preferredKind);
+      return;
+    }
     if (!selectedKind || !availableKinds.includes(selectedKind)) {
       const next = availableKinds[0] ?? null;
       setSelectedKind(next);
     }
-  }, [availableKinds, selectedKind]);
+  }, [availableKinds, preferredKind, selectedKind]);
 
   const updateHandoff = (next: EditorHandoff) => {
     setHandoff(next);
@@ -233,7 +243,11 @@ export function StudioCommandPanel({
 
         {!handoff ? (
           <Stack gap={8}>
-            <div className="max-w-[90%] rounded-xl rounded-tl-lg border border-border bg-surface p-stack text-caption text-muted">어떤 원본을 편집실로 넘길까요?</div>
+            <div className="max-w-[90%] rounded-xl rounded-tl-lg border border-border bg-surface p-stack text-caption text-muted">
+              {preferredKind && !availableKinds.includes(preferredKind)
+                ? `${{ video: "영상", card: "카드뉴스", audio: "소리", image: "이미지", text: "글" }[preferredKind]} 원본은 아직 준비 중입니다. 준비된 다른 원본을 고를 수 있습니다.`
+                : "어떤 원본을 편집 작업물로 저장할까요?"}
+            </div>
             <Stack direction="horizontal" gap={8} wrap aria-label="원본 빠른 답장">
               {availableKinds.map((kind) => (
                 <Button
@@ -248,7 +262,7 @@ export function StudioCommandPanel({
               ))}
             </Stack>
             <Button variant="primary" onClick={handoffToEditor} disabled={!selectedKind || Boolean(busy)}>
-              편집실로 넘기기
+              편집 작업물로 저장
             </Button>
           </Stack>
         ) : (

@@ -47,7 +47,7 @@ describe("FE-V63-31 Studio 담당 대화 명령 연결", () => {
     />);
 
     expect(screen.getByRole("button", { name: "영상" })).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(screen.getByRole("button", { name: "편집실로 넘기기" }));
+    fireEvent.click(screen.getByRole("button", { name: "편집 작업물로 저장" }));
     await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith(
       "/api/studio/commands",
       expect.objectContaining({
@@ -108,7 +108,7 @@ describe("FE-V63-31 Studio 담당 대화 명령 연결", () => {
       onHandoff={vi.fn()}
       onQueueChanged={vi.fn()}
     />);
-    const button = screen.getByRole("button", { name: "편집실로 넘기기" });
+    const button = screen.getByRole("button", { name: "편집 작업물로 저장" });
     expect(button).toBeDisabled();
     fireEvent.click(button);
     expect(mocks.apiPost).not.toHaveBeenCalled();
