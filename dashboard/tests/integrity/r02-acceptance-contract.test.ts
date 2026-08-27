@@ -17,11 +17,13 @@ describe("R-02 AC와 TC 회귀 계약", () => {
 
   it("TC-C1/G1/G2/G3: 홈은 DB 성과 1블록과 미연동 상태만 표시한다", () => {
     const home = read("src/app/page.tsx");
-    expect(home.match(/>성과 요약</g)).toHaveLength(1);
-    expect(home).not.toContain(">운영 현황<");
-    expect(home).not.toContain(">This Week<");
-    expect(home).not.toContain(">발행물 성과<");
-    expect(home.match(/insights 연동 시/g)).toHaveLength(2);
+    const performance = read("src/components/home/PerformanceRoom.tsx");
+    expect(performance.match(/성과 요약 ·/g)).toHaveLength(1);
+    expect(home + performance).not.toContain(">운영 현황<");
+    expect(home + performance).not.toContain(">This Week<");
+    expect(home + performance).not.toContain(">발행물 성과<");
+    expect(performance.match(/미수집/g)?.length || 0).toBeGreaterThanOrEqual(6);
+    expect(performance).toContain("data-perf-verdict");
     expect(home).toContain("homeSummary.published");
   });
 

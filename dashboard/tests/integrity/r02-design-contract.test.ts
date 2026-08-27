@@ -6,17 +6,20 @@ const read = (relativePath: string) => fs.readFileSync(path.resolve(process.cwd(
 
 describe("R-02 승인 디자인 계약", () => {
   it("Home은 성과 요약 하나만 남기고 제거 대상 패널을 다시 만들지 않는다", () => {
-    const source = read("src/app/page.tsx");
-    expect(source.match(/>성과 요약</g)).toHaveLength(1);
+    const source = read("src/app/page.tsx") + read("src/components/home/PerformanceRoom.tsx");
+    expect(source.match(/성과 요약 ·/g)).toHaveLength(1);
     expect(source).not.toContain(">운영 현황<");
     expect(source).not.toContain(">This Week<");
     expect(source).not.toContain(">발행물 성과<");
     expect(source).not.toContain("useWeeklySummary");
+    expect(source).toContain("data-perf-verdict");
+    expect(source).toContain("data-perf-inherit");
   });
 
   it("이번에 바꾼 UI 표면은 시맨틱 색 토큰만 사용한다", () => {
     const files = [
       "src/app/page.tsx",
+      "src/components/home/PerformanceRoom.tsx",
       "src/app/studio/page.tsx",
       "src/app/operator/customers/page.tsx",
       "src/components/channel/ChannelPage.tsx",
