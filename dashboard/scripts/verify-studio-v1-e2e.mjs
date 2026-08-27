@@ -55,6 +55,9 @@ record("무료 다시 만들기 첫 호출은 받아들이거나 오늘 몫 소�
 if (retry.status === 409) {
   const denial = await retry.json();
   record("거절할 때는 언제 몫이 되살아나는지 함께 알린다", Boolean(denial.error?.details?.free_retry_resets_at), true);
+} else {
+  const accepted = await retry.json();
+  record("첫 무료 다시 만들기는 사용 사실과 교체 작업을 돌려준다", Boolean(accepted.data?.free_retry_consumed && accepted.data?.replacement?.job_id), true);
 }
 
 const retryAgain = await fetch(`${base}/api/studio/v1/regenerations/${jobId}`, { method: "POST", headers: json(), body: JSON.stringify({ reason: "free_retry" }) });
