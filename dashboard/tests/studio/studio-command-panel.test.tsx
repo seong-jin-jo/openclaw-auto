@@ -38,6 +38,8 @@ describe("FE-V63-31 Studio 담당 대화 명령 연결", () => {
       text={{ shorts: { hook: "첫 문장", body: "본문", cta: "끝 문장" } }}
       imageUrl={null}
       videoUrl="/media/video.mp4"
+      editorLines={["고친 첫 문장", "고친 마지막 문장"]}
+      source={{ generationId: "generation-1", candidateId: "candidate-a" }}
       initialHandoff={null}
       onDraftId={onDraftId}
       onHandoff={onHandoff}
@@ -51,7 +53,15 @@ describe("FE-V63-31 Studio 담당 대화 명령 연결", () => {
       expect.objectContaining({
         tenant_id: "tenant-1",
         action: "handoff_to_editor",
-        handoff: expect.objectContaining({ kind: "video" }),
+        handoff: expect.objectContaining({
+          kind: "video",
+          source: { generation_id: "generation-1", candidate_id: "candidate-a" },
+          payload: expect.objectContaining({
+            scenes: expect.arrayContaining([
+              expect.objectContaining({ lines: [expect.objectContaining({ text: "고친 첫 문장" })] }),
+            ]),
+          }),
+        }),
       }),
     ));
     expect(onDraftId).toHaveBeenCalledWith("draft-1");

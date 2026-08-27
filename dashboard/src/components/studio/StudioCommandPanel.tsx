@@ -21,6 +21,8 @@ type StudioCommandPanelProps = {
   text: TextVariants | null;
   imageUrl: string | null;
   videoUrl: string | null;
+  editorLines?: string[];
+  source?: { generationId?: string | null; candidateId?: string | null };
   initialHandoff: EditorHandoff | null;
   onDraftId: (draftId: string) => void;
   onHandoff: (handoff: EditorHandoff) => void;
@@ -45,6 +47,8 @@ export function StudioCommandPanel({
   text,
   imageUrl,
   videoUrl,
+  editorLines = [],
+  source,
   initialHandoff,
   onDraftId,
   onHandoff,
@@ -55,6 +59,7 @@ export function StudioCommandPanel({
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("만든 결과를 편집실로 넘기거나 발행 준비 큐로 이어 드릴게요.");
   const [error, setError] = useState("");
+  const [chatDraft, setChatDraft] = useState("");
 
   useEffect(() => setHandoff(initialHandoff), [initialHandoff]);
 
@@ -63,9 +68,9 @@ export function StudioCommandPanel({
     if (nonEmpty([text?.threads, text?.facebook, text?.x]).length > 0) kinds.push("text");
     if (imageUrl) kinds.push("image");
     if ((text?.instagram?.slides?.length ?? 0) > 0) kinds.push("card");
-    if (videoUrl && nonEmpty([text?.shorts?.hook, text?.shorts?.body, text?.shorts?.cta]).length > 0) kinds.push("video");
+    if (videoUrl && nonEmpty(editorLines.length ? editorLines : [text?.shorts?.hook, text?.shorts?.body, text?.shorts?.cta]).length > 0) kinds.push("video");
     return kinds;
-  }, [imageUrl, text, videoUrl]);
+  }, [editorLines, imageUrl, text, videoUrl]);
 
   useEffect(() => {
     if (!selectedKind || !availableKinds.includes(selectedKind)) setSelectedKind(availableKinds[0] ?? null);
@@ -81,6 +86,10 @@ export function StudioCommandPanel({
     setError("");
     try {
       const response = await apiPost<CommandResponse>("/api/studio/commands", { tenant_id: workspaceId, ...body });
+      if (!response) {
+        setError("인증을 다시 확인해 주세요");
+        return null;
+      }
       if (response.draft_id) onDraftId(response.draft_id);
       if (response.handoff) updateHandoff(response.handoff);
       setMessage(done(response));
@@ -96,16 +105,21 @@ export function StudioCommandPanel({
 
   const buildHandoff = () => {
     const summary = idea.trim() || nonEmpty([text?.threads, text?.facebook, text?.x])[0] || "Studio 원본 콘텐츠";
+    const handoffSource = {
+      generation_id: source?.generationId ?? null,
+      candidate_id: source?.candidateId ?? null,
+    };
     if (selectedKind === "text") {
-      return { kind: "text", summary, payload: { body: nonEmpty([text?.threads, text?.facebook, text?.x]).join("\n\n") } };
+      return { kind: "text", summary, source: handoffSource, payload: { body: nonEmpty([text?.threads, text?.facebook, text?.x]).join("\n\n") } };
     }
     if (selectedKind === "image") {
-      return { kind: "image", summary, payload: { asset_url: imageUrl, alt_text: summary } };
+      return { kind: "image", summary, source: handoffSource, payload: { asset_url: imageUrl, alt_text: summary } };
     }
     if (selectedKind === "card") {
       return {
         kind: "card",
         summary,
+        source: handoffSource,
         payload: {
           slides: (text?.instagram?.slides ?? []).map((slide, order) => ({
             id: `slide-${order + 1}`,
@@ -116,10 +130,11 @@ export function StudioCommandPanel({
         },
       };
     }
-    const videoLines = nonEmpty([text?.shorts?.hook, text?.shorts?.body, text?.shorts?.cta]);
+    const videoLines = nonEmpty(editorLines.length ? editorLines : [text?.shorts?.hook, text?.shorts?.body, text?.shorts?.cta]);
     return {
       kind: "video",
       summary,
+      source: handoffSource,
       payload: {
         asset_url: videoUrl,
         scenes: videoLines.map((line, order) => ({
@@ -178,19 +193,42 @@ export function StudioCommandPanel({
     if (response) onQueueChanged();
   };
 
+  const submitChat = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const value = chatDraft.trim();
+    if (!value) return;
+    setChatDraft("");
+    setError("");
+    const kind = ({ 글: "text", 이미지: "image", 영상: "video", 카드뉴스: "card", 소리: "audio" } as const)[value as "글" | "이미지" | "영상" | "카드뉴스" | "소리"];
+    if (!handoff && kind && availableKinds.includes(kind)) {
+      setSelectedKind(kind);
+      setMessage(`${value} 원본을 고르셨습니다. 편집실로 넘길 수 있어요.`);
+      return;
+    }
+    if (!handoff && /편집/.test(value)) await handoffToEditor();
+    else if (handoff?.payload.kind === "video" && /순서/.test(value)) await reverseScenes();
+    else if (handoff?.payload.kind === "video" && /첫 문장|삭제|복원/.test(value)) await toggleFirstLine();
+    else if (handoff?.status === "editing" && /준비/.test(value)) await markReady();
+    else if (handoff?.status !== "editing" && /큐|발행/.test(value)) await enqueue();
+    else setError("화면에 보이는 선택지나 편집, 준비, 발행 명령으로 말씀해 주세요.");
+  };
+
   return (
-    <aside className="card min-w-0 p-pad-inset" aria-label="Studio 담당 대화" data-chat-dock="persistent">
-      <Stack gap={16}>
-        <Stack gap={4}>
-          <p className="text-caption font-semibold text-subtle">Studio 담당</p>
-          <p className="text-body-sm text-text break-keep" aria-live="polite">{busy || message}</p>
-          {error ? <p className="text-caption text-danger break-keep" role="alert">{error}</p> : null}
-        </Stack>
+    <aside className="card min-w-0 overflow-hidden" aria-label="Studio 담당 대화" data-chat-dock="persistent">
+      <div className="flex items-center gap-stack-tight border-b border-border p-stack">
+        <div className="grid h-10 w-10 place-items-center rounded-full bg-accent text-body font-bold text-accent-fg">O</div>
+        <div><b className="block text-body text-text">Studio 담당</b><span className="text-caption text-success">지금 대기 중</span></div>
+      </div>
+      <div className="space-y-stack bg-surface-2 p-stack">
+        <div className="max-w-[90%] rounded-xl rounded-tl-lg border border-border bg-surface p-stack">
+          <p className="break-keep text-body-sm text-text" aria-live="polite">{busy || message}</p>
+        </div>
+        {error ? <p className="break-keep text-caption text-danger" role="alert">{error}</p> : null}
 
         {!handoff ? (
           <Stack gap={8}>
-            <p className="text-caption text-muted">어떤 원본을 편집실로 넘길까요?</p>
-            <Stack direction="horizontal" gap={8} wrap>
+            <div className="max-w-[90%] rounded-xl rounded-tl-lg border border-border bg-surface p-stack text-caption text-muted">어떤 원본을 편집실로 넘길까요?</div>
+            <Stack direction="horizontal" gap={8} wrap aria-label="원본 빠른 답장">
               {availableKinds.map((kind) => (
                 <Button
                   key={kind}
@@ -209,7 +247,7 @@ export function StudioCommandPanel({
           </Stack>
         ) : (
           <Stack gap={8}>
-            <div className="rounded-lg border border-border bg-surface-2 p-stack">
+            <div className="rounded-xl border border-border bg-surface p-stack">
               <p className="text-caption font-semibold text-text">{handoff.kind} · revision {handoff.revision}</p>
               <p className="text-caption text-subtle break-keep">{handoff.summary}</p>
             </div>
@@ -228,7 +266,11 @@ export function StudioCommandPanel({
             )}
           </Stack>
         )}
-      </Stack>
+      </div>
+      <form onSubmit={submitChat} className="flex gap-stack-tight border-t border-border p-stack">
+        <input aria-label="Studio 담당에게 명령" value={chatDraft} onChange={(event) => setChatDraft(event.target.value)} placeholder="직접 쓰셔도 됩니다" className="min-h-control-touch min-w-0 flex-1 rounded-lg border border-border bg-surface px-stack text-body-sm text-text" />
+        <Button type="submit" variant="primary">보내기</Button>
+      </form>
     </aside>
   );
 }

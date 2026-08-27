@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import useSWR from "swr";
 import {
   fetcher,
@@ -10,8 +11,10 @@ import {
   type ExternalPublishPersistenceFailure,
 } from "@/lib/api";
 import { useToast } from "@/components/layout/Toast";
-import { PlatformPreview, PREVIEW_PLATFORMS, type PreviewPlatform } from "@/components/studio/PlatformPreview";
-import { useUIStore } from "@/store/ui-store";
+import { PlatformPreview, PREVIEW_PLATFORMS, type PreviewInlineEditor, type PreviewPlatform } from "@/components/studio/PlatformPreview";
+import { CreateRoom, EditRoom } from "@/components/studio/StudioRooms";
+import type { StudioGenerationCandidate } from "@/lib/studio/generation/client";
+import { useUIStore, type StudioRoom } from "@/store/ui-store";
 import { BrandSetupWizard } from "@/components/shared/BrandSetupWizard";
 import { RepoConnect } from "@/components/studio/RepoConnect";
 import { SchedulePanel } from "@/components/studio/SchedulePanel";
@@ -22,9 +25,11 @@ import { Button } from "@/components/shared/Button";
 import { Field } from "@/components/shared/Field";
 import { Stack } from "@/components/shared/Stack";
 import { SCHEDULABLE_PLATFORMS } from "@/lib/constants";
+import { StudioCommandPanel } from "@/components/studio/StudioCommandPanel";
+import type { EditorHandoff } from "@/lib/studio/editor-handoff";
 
 // SNS-007: /api/publish가 실제로 계정별 발행을 받는 4개 플랫폼(threads/x/facebook/instagram)만
-// 계정 셀렉터를 노출한다. shorts/reels/tiktok은 /api/publish 미지원(실발행 분기 없음 — 위
+// 계정 셀렉터를 노출한다. shorts/reels/tiktok은 /api/publish 미지원(실발행 분기 없음. 위
 // ChannelConnect.tsx 주석과 동일 SSOT 판단)이라 대상에서 뺀다.
 const PREVIEW_PLATFORM_KEYS = new Set<string>(PREVIEW_PLATFORMS.map((platform) => platform.key));
 const PUBLISH_SUPPORTED = new Set<PreviewPlatform>(
@@ -32,8 +37,9 @@ const PUBLISH_SUPPORTED = new Set<PreviewPlatform>(
 );
 const ACCOUNT_SELECTABLE = PUBLISH_SUPPORTED;
 interface AccountOption { id: string; label: string; is_default: boolean }
+interface FirstCommentCapability { platform: PreviewPlatform; supported: boolean; reason: string | null }
 
-// apiPost는 non-2xx에서 throw한다(ApiResponseError) — 생성 함수들이 `r?.ok` 체크만 믿고
+// apiPost는 non-2xx에서 throw한다(ApiResponseError). 생성 함수들이 `r?.ok` 체크만 믿고
 // try/catch를 안 하면 403(shared_ai_approval_required) 같은 실패가 콘솔에만 찍히고 화면엔
 // 조용히 죽는다(결함 실측: /studio 생성 실패 시 lastError/toast 미표시). 여기서 공통 추출.
 function extractApiErrorMessage(e: unknown, fallback: string): string {
@@ -68,10 +74,11 @@ const GROUPS: { title: string; platforms: PreviewPlatform[] }[] = [
   { title: "🖼️ 카드뉴스", platforms: ["instagram"] },
 ];
 const ALL: PreviewPlatform[] = PREVIEW_PLATFORMS.map((platform) => platform.key);
+const DEFAULT_PUBLISH_TARGETS = new Set<PreviewPlatform>(["threads", "x", "instagram"]);
 const normalizeIncludes = (saved?: Record<string, boolean>): Record<string, boolean> => (
   Object.fromEntries(ALL.map((platform) => [
     platform,
-    PUBLISH_SUPPORTED.has(platform) && (saved?.[platform] ?? true),
+    PUBLISH_SUPPORTED.has(platform) && (saved?.[platform] ?? DEFAULT_PUBLISH_TARGETS.has(platform)),
   ]))
 );
 const selectedPublishTargets = (includes: Record<string, boolean>): PreviewPlatform[] => (
@@ -87,7 +94,7 @@ const isVideo = (p: PreviewPlatform) => p === "shorts" || p === "reels" || p ===
 
 export default function StudioPage() {
   const { showToast } = useToast();
-  const { activeWorkspace } = useUIStore();
+  const { activeWorkspace, studioRoom: activeRoom, setStudioRoom: setActiveRoom } = useUIStore();
   const { data: me } = useSWR<{ isOperator?: boolean }>("/api/me", fetcher);
   const canGenerate = me?.isOperator === true;
   const { data: acct, mutate: mutateAcct } = useSWR<{ credits?: number; needsLogin?: boolean }>(
@@ -101,6 +108,10 @@ export default function StudioPage() {
   const { data: hist, mutate: mutateHist } = useSWR<{ drafts: Array<Record<string, unknown>> }>(activeWorkspace ? `/api/studio/drafts?tenant_id=${activeWorkspace.id}` : null, fetcher);
   const { data: brandData, mutate: mutateBrand } = useSWR<{ guide: { prompt_guide?: string } | null }>(
     activeWorkspace ? `/api/studio/brand-setup?tenant_id=${activeWorkspace.id}` : null, fetcher);
+  const { data: firstCommentData } = useSWR<{ capabilities: FirstCommentCapability[] }>(
+    "/api/publish/first-comment-capabilities", fetcher,
+  );
+  const [showWorks, setShowWorks] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
   const [showRepo, setShowRepo] = useState(false); // 레포 위키 연동 모달
   const [showSchedule, setShowSchedule] = useState(false); // P6 예약 발행 패널 토글
@@ -125,7 +136,17 @@ export default function StudioPage() {
   const [vid, setVid] = useState<VidResult | null>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [publishReconciliation, setPublishReconciliation] = useState<PublishReconciliation | null>(null);
+  const [editorHandoff, setEditorHandoff] = useState<EditorHandoff | null>(null);
   const [includes, setIncludes] = useState<Record<string, boolean>>(() => normalizeIncludes());
+  const [displayNames, setDisplayNames] = useState<Record<string, string>>({});
+  const [titles, setTitles] = useState<Record<string, string>>({});
+  const [hashtags, setHashtags] = useState<Record<string, string>>({});
+  const [firstComments, setFirstComments] = useState<Record<string, string>>({});
+  const [reviewQueueId, setReviewQueueId] = useState<string | null>(null);
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const [publishChatDraft, setPublishChatDraft] = useState("");
+  const [editLines, setEditLines] = useState<string[]>([]);
+  const [selectedCandidate, setSelectedCandidate] = useState<StudioGenerationCandidate | null>(null);
   const [editing, setEditing] = useState<PreviewPlatform | null>(null);
   const [showTx, setShowTx] = useState(false);
   const { data: tx } = useSWR<{ items?: Array<{ display_name?: string; credits?: number; action?: string; created_at?: string; output?: string | null; outputKind?: string | null }> }>(
@@ -141,9 +162,20 @@ export default function StudioPage() {
     errors: Record<string, string>;
   }>({ running: false, stopped: false, status: {}, urls: {}, errors: {} });
   // SNS-007: 플랫폼별 다중계정 중 이번 발행에 쓸 계정. 미선택(undefined)이면 getChannelCred가
-  // 기본계정으로 resolve(/api/publish 계약과 동일) — 계정이 1개뿐이면 셀렉터 자체를 숨긴다.
+  // 기본계정으로 resolve(/api/publish 계약과 동일). 계정이 1개뿐이면 셀렉터 자체를 숨긴다.
   const [accountsByPlatform, setAccountsByPlatform] = useState<Record<string, AccountOption[]>>({});
   const [selectedAccounts, setSelectedAccounts] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get("room");
+    if (requested === "create" || requested === "edit" || requested === "publish") setActiveRoom(requested);
+  }, [setActiveRoom]);
+
+  const changeRoom = (room: StudioRoom) => {
+    setActiveRoom(room);
+    window.history.replaceState(null, "", `/studio?room=${room}`);
+    setShowWorks(false);
+  };
 
   useEffect(() => {
     setSelectedAccounts({});
@@ -173,13 +205,11 @@ export default function StudioPage() {
     return () => { cancelled = true; };
   }, [activeWorkspace]);
   const cancelRef = useRef(false);
-
-  // ── 드로어 리사이즈 ──
   const drawerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef(false);
-  const onDrag = useCallback((e: MouseEvent) => {
+  const onDrag = useCallback((event: MouseEvent) => {
     if (!dragRef.current || !drawerRef.current) return;
-    const width = Math.min(window.innerWidth * 0.9, Math.max(320, window.innerWidth - e.clientX));
+    const width = Math.min(window.innerWidth * 0.9, Math.max(320, window.innerWidth - event.clientX));
     drawerRef.current.style.width = `${width}px`;
   }, []);
   useEffect(() => {
@@ -187,7 +217,6 @@ export default function StudioPage() {
     window.addEventListener("mousemove", onDrag); window.addEventListener("mouseup", up);
     return () => { window.removeEventListener("mousemove", onDrag); window.removeEventListener("mouseup", up); };
   }, [onDrag]);
-
   // ── 작업 데이터 유지 (나갔다 와도 복원) ──
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
@@ -198,14 +227,16 @@ export default function StudioPage() {
         setIdea(w.idea || ""); setText(w.text || null); setImg(w.img || null); setVid(w.vid || null);
         if (w.includes) setIncludes(normalizeIncludes(w.includes)); setDraftId(w.draftId || null);
         setPublishReconciliation(w.publishReconciliation || null);
+        setDisplayNames(w.displayNames || {}); setTitles(w.titles || {}); setHashtags(w.hashtags || {});
+        setFirstComments(w.firstComments || {}); setEditLines(w.editLines || []); setReviewQueueId(w.reviewQueueId || null);
       }
     } catch { /* noop */ }
     setHydrated(true);
   }, []);
   useEffect(() => {
     if (!hydrated) return; // 첫 렌더(복원 전) 빈 상태로 덮어쓰기 방지
-    try { localStorage.setItem("studio_work", JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliation })); } catch { /* noop */ }
-  }, [hydrated, idea, text, img, vid, includes, draftId, publishReconciliation]);
+    try { localStorage.setItem("studio_work", JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliation, displayNames, titles, hashtags, firstComments, editLines, reviewQueueId })); } catch { /* noop */ }
+  }, [hydrated, idea, text, img, vid, includes, draftId, publishReconciliation, displayNames, titles, hashtags, firstComments, editLines, reviewQueueId]);
 
   const media = { imgUrl: img?.file, vidUrl: vid?.file };
   const upText = (patch: Partial<TextVariants>) => setText((p) => ({ ...(p || {}), ...patch }));
@@ -216,9 +247,11 @@ export default function StudioPage() {
     try {
       const r = await apiPost<TextVariants & { ok?: boolean; error?: string }>("/api/studio/text", { idea, guide, tenant_id: activeWorkspace?.id });
       if (!r?.ok) { const msg = r?.error || "텍스트 생성 실패"; setLastError(`텍스트: ${msg}`); showToast(msg, "error"); return null; }
-      // API가 성공을 확인한 뒤에만 발행 — 클릭 시점 아님.
+      // API가 성공을 확인한 뒤에만 발행한다. 클릭 시점 아님.
       trackEvent({ name: "content_generate", params: { kind: "text" } });
-      setText(r); return r;
+      setText(r);
+      setEditLines([r.shorts?.hook, r.shorts?.body, r.shorts?.cta].filter((line): line is string => Boolean(line)));
+      return r;
     } catch (e) {
       const msg = extractApiErrorMessage(e, "텍스트 생성 실패");
       setLastError(`텍스트: ${msg}`); showToast(msg, "error"); return null;
@@ -259,7 +292,7 @@ export default function StudioPage() {
   async function runOSMU() {
     if (!idea.trim()) { showToast("글감을 입력하세요", "error"); return; }
     setLastError(null);
-    setText(null); setImg(null); setVid(null); setDraftId(null); setPublishReconciliation(null);
+    setText(null); setImg(null); setVid(null); setDraftId(null); setPublishReconciliation(null); setEditorHandoff(null);
     try {
       setBusy("텍스트 변형 생성 중..."); const t = await genText(); if (!t) return;
       if (canGenerate) {
@@ -269,7 +302,7 @@ export default function StudioPage() {
       showToast(canGenerate ? "OSMU 생성 완료" : "텍스트 생성 완료", "success");
     } finally { setBusy(null); }
   }
-  // P8: AI 자동초안 — 브랜드 가이드 + 글감을 소스로 후보 초안 N개를 생성(status=draft).
+  // P8: AI 자동초안. 브랜드 가이드 + 글감을 소스로 후보 초안 N개를 생성(status=draft).
   // 게이트웨이 크론(generate-drafts)의 수동 대응. /api/sourcing 재사용(longform→후보 청킹).
   async function autoGenerate() {
     if (!activeWorkspace) { showToast("워크스페이스를 선택하세요", "error"); return; }
@@ -280,7 +313,7 @@ export default function StudioPage() {
       const r = await apiPost<{ ok?: boolean; savedDrafts?: number; error?: string }>("/api/sourcing", {
         tenant_id: activeWorkspace.id, longform_text: seed, count: 5,
       });
-      if (r?.ok) { showToast(`AI 자동초안 ${r.savedDrafts ?? 0}개 생성됨 — 발행 이력에서 확인`, "success"); mutateHist(); }
+      if (r?.ok) { showToast(`AI 자동초안 ${r.savedDrafts ?? 0}개 생성됨. 작업물 전체에서 확인`, "success"); mutateHist(); }
       else showToast(r?.error || "자동초안 생성 실패", "error");
     } catch (e) {
       showToast(e instanceof Error ? e.message : "자동초안 생성 실패", "error");
@@ -300,6 +333,11 @@ export default function StudioPage() {
       includes,
       status,
       publishReconciliation: reconciliation,
+      displayNames,
+      titles,
+      hashtags,
+      firstComments,
+      editLines,
       publishedAt: status === "published" ? new Date().toISOString() : undefined,
     });
     if (r?.id) setDraftId(r.id); mutateHist(); return r?.id;
@@ -314,6 +352,15 @@ export default function StudioPage() {
     return [text.shorts?.hook, text.shorts?.body, text.shorts?.cta].filter(Boolean).join("\n") || text.threads || "";
   }
 
+  function publishText(p: PreviewPlatform): string {
+    return [titles[p], platformText(p), hashtags[p]].filter((value) => value?.trim()).join("\n");
+  }
+
+  function capabilityFor(platform: PreviewPlatform): FirstCommentCapability {
+    return firstCommentData?.capabilities.find((capability) => capability.platform === platform)
+      ?? { platform, supported: false, reason: "백엔드 응답 확인 중" };
+  }
+
   async function publish() {
     if (!text) return;
     if (!activeWorkspace) { showToast("워크스페이스를 선택하세요", "error"); return; }
@@ -324,7 +371,6 @@ export default function StudioPage() {
     const did = await save("draft");
     const targets = selectedPublishTargets(includes);
     if (!targets.length) { showToast("발행할 플랫폼을 선택하세요", "error"); return; }
-    cancelRef.current = false;
     const status: Record<string, PubStatus> = {}; targets.forEach((p) => (status[p] = "wait"));
     const urls: Record<string, string> = {};
     const errors: Record<string, string> = {};
@@ -332,18 +378,18 @@ export default function StudioPage() {
     let pendingReconciliation: PublishReconciliation | null = null;
     setPub({ running: true, stopped: false, status: { ...status }, urls: {}, errors: {} });
     for (const p of targets) {
-      if (cancelRef.current) break;
       status[p] = "doing";
       setPub({ running: true, stopped: false, status: { ...status }, urls: { ...urls }, errors: { ...errors } });
       let failureReason: string | null = null;
       try {
         // 실 발행: /api/publish (테넌트 채널 토큰). 토큰 없으면 graceful 에러.
         // publish_attempt = 실제 제출 시점(클릭 즉시가 아니라 이 루프 진입 시점). publish_success는
-        // API가 ok:true를 반환한 뒤에만 — 낙관적 발행 금지.
+        // API가 ok:true를 반환한 뒤에만 처리한다. 낙관적 발행 금지.
         trackEvent({ name: "publish_attempt", params: { channel: p as AnalyticsChannel } });
         const r = await apiPost<{ ok?: boolean; permalink?: string; error?: string }>("/api/publish", {
-          tenant_id: activeWorkspace.id, platform: p, text: platformText(p), image_url: img?.url, draft_id: did,
+          tenant_id: activeWorkspace.id, platform: p, text: publishText(p), image_url: img?.url, draft_id: did,
           account_id: selectedAccounts[p] || undefined,
+          first_comment: capabilityFor(p).supported && firstComments[p]?.trim() ? firstComments[p].trim() : undefined,
         });
         if (r?.ok) { urls[p] = r.permalink || POST_URL[p] || "#"; trackEvent({ name: "publish_success", params: { channel: p as AnalyticsChannel } }); }
         else {
@@ -373,10 +419,9 @@ export default function StudioPage() {
       });
       if (pendingReconciliation) break;
     }
-    const stopped = cancelRef.current;
     setPub({
       running: false,
-      stopped,
+      stopped: false,
       status: { ...status },
       urls: { ...urls },
       errors: { ...errors },
@@ -391,11 +436,10 @@ export default function StudioPage() {
         errs.push("복구 정보 서버 저장 실패·현재 브라우저에만 보존됨");
       }
     } else {
-      await save(stopped ? "stopped" : errs.length ? "partial" : "published", null);
-      if (!stopped) setPublishReconciliation(null);
+      await save(errs.length ? "partial" : "published", null);
+      setPublishReconciliation(null);
     }
-    if (stopped) showToast("발행 중지됨", "error");
-    else if (errs.length) showToast(`발행 결과 — ${errs.join(" / ")}`.slice(0, 180), "error");
+    if (errs.length) showToast(`발행 결과: ${errs.join(" / ")}`.slice(0, 180), "error");
     else showToast("발행 완료 ✓", "success");
   }
   function loadDraft(d: Record<string, unknown>) {
@@ -403,10 +447,16 @@ export default function StudioPage() {
     setImg((d.img as ImgResult) || null); setVid((d.vid as VidResult) || null);
     setIncludes(d.includes ? normalizeIncludes(d.includes as Record<string, boolean>) : includes); setDraftId(d.id as string);
     setPublishReconciliation((d.publishReconciliation as PublishReconciliation) || null);
+    setEditorHandoff((d.editorHandoff as EditorHandoff) || null);
+    setDisplayNames((d.displayNames as Record<string, string>) || {});
+    setTitles((d.titles as Record<string, string>) || {});
+    setHashtags((d.hashtags as Record<string, string>) || {});
+    setFirstComments((d.firstComments as Record<string, string>) || {});
+    setEditLines((d.editLines as string[]) || []);
     showToast(
       d.publishReconciliation
-        ? "외부 게시 완료·내부 기록 복구 필요 — 재발행 금지"
-        : "불러옴 — 수정 후 재발행 가능",
+        ? "외부 게시 완료·내부 기록 복구 필요. 재발행 금지"
+        : "불러옴. 수정 후 재발행 가능",
       d.publishReconciliation ? "error" : "success",
     );
   }
@@ -423,203 +473,258 @@ export default function StudioPage() {
           : "발행 완료";
   const LABEL: Record<string, string> = { threads: "Threads", x: "X", facebook: "Facebook", instagram: "Instagram", shorts: "Shorts", reels: "Reels", tiktok: "TikTok" };
 
-  return (
+  function chooseCandidate(candidate: StudioGenerationCandidate) {
+    setSelectedCandidate(candidate);
+    const body = [candidate.title, candidate.rationale, ...candidate.format.outline].join("\n");
+    setText({
+      threads: body,
+      x: [candidate.title, candidate.format.outline[0]].filter(Boolean).join("\n"),
+      facebook: body,
+      instagram: { caption: candidate.rationale, slides: candidate.format.outline, hashtags: [] },
+      shorts: { hook: candidate.title, body: candidate.format.outline.join("\n"), cta: candidate.rationale },
+    });
+    setEditLines([candidate.title, ...candidate.format.outline, candidate.rationale]);
+  }
+
+  function updatePreviewCaption(platform: PreviewPlatform, value: string) {
+    if (platform === "threads") upText({ threads: value });
+    else if (platform === "x") upText({ x: value });
+    else if (platform === "facebook") upText({ facebook: value });
+    else if (platform === "instagram") upIg({ caption: value });
+    else upText({ shorts: { ...(text?.shorts || {}), hook: value } });
+  }
+
+  function previewEditor(platform: PreviewPlatform): PreviewInlineEditor {
+    const capability = capabilityFor(platform);
+    return {
+      displayName: displayNames[platform] || activeWorkspace?.name || "your_brand",
+      title: titles[platform] || "",
+      caption: platformText(platform),
+      hashtags: hashtags[platform] || (platform === "instagram" ? (text?.instagram?.hashtags || []).join(" ") : ""),
+      firstComment: firstComments[platform] || "",
+      firstCommentSupported: capability.supported,
+      firstCommentReason: capability.reason || undefined,
+      onDisplayNameChange: (value) => setDisplayNames((current) => ({ ...current, [platform]: value })),
+      onTitleChange: (value) => setTitles((current) => ({ ...current, [platform]: value })),
+      onCaptionChange: (value) => updatePreviewCaption(platform, value),
+      onHashtagsChange: (value) => {
+        setHashtags((current) => ({ ...current, [platform]: value }));
+        if (platform === "instagram") upIg({ hashtags: value.split(/[,\s]+/).map((item) => item.replace(/^#/, "")).filter(Boolean) });
+      },
+      onFirstCommentChange: (value) => setFirstComments((current) => ({ ...current, [platform]: value })),
+    };
+  }
+
+  async function requestReview() {
+    if (!text || !activeWorkspace) {
+      showToast("검토할 작업물이 없습니다", "error");
+      return;
+    }
+    setReviewBusy(true);
+    try {
+      let queueId = reviewQueueId;
+      if (!queueId) {
+        const added = await apiPost<{ post?: { id?: string } }>("/api/queue/add", {
+          tenant_id: activeWorkspace.id,
+          text: publishText(selectedPublishTargets(includes)[0] || "threads"),
+          topic: idea || "Studio 작업물",
+          hashtags: (hashtags.instagram || "").split(/[\s,]+/).map((value) => value.replace(/^#/, "")).filter(Boolean),
+          imageUrl: img?.url || null,
+          videoUrl: vid?.url || null,
+        });
+        queueId = added?.post?.id || null;
+        if (!queueId) throw new Error("검토 요청용 초안을 만들지 못했습니다");
+        setReviewQueueId(queueId);
+      }
+      const response = await apiPost<{ reused?: boolean }>(`/api/queue/${queueId}/request-review`, {
+        tenant_id: activeWorkspace.id,
+      });
+      showToast(response?.reused ? "이미 검토 요청된 작업물입니다" : "승인 인박스로 검토 요청을 보냈습니다", "success");
+    } catch (error) {
+      showToast(extractApiErrorMessage(error, "검토 요청에 실패했습니다"), "error");
+    } finally {
+      setReviewBusy(false);
+    }
+  }
+
+  async function submitPublishChat(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const command = publishChatDraft.trim();
+    if (!command) return;
+    setPublishChatDraft("");
+    if (/검토/.test(command)) await requestReview();
+    else if (/날짜|예약/.test(command)) setShowSchedule(true);
+    else if (/저장|초안/.test(command)) await save("draft");
+    else if (/발행|publish/i.test(command)) await publish();
+    else showToast("초안 저장, 검토 요청, 발행, 날짜 잡기 중 하나로 말씀해 주세요", "error");
+  }
+
+  const roomHeader = (
+    <header className="relative mb-stack-section flex flex-wrap items-center gap-stack border-b border-border pb-pad-inset">
+      <div className="mr-auto min-w-0">
+        <b className="block truncate text-lead text-text">{activeWorkspace?.name || "작업 공간"}</b>
+        <span className="text-caption text-subtle">콘텐츠 작업실</span>
+      </div>
+      <Button onClick={() => setShowWorks((value) => !value)} aria-expanded={showWorks} aria-controls="studio-work-overview">
+        작업물 전체 <span className="ml-micro text-accent">{hist?.drafts.length ?? 0}</span>
+      </Button>
+      <Link href="/inbox" className="inline-flex min-h-control-touch items-center rounded-lg border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">승인 인박스</Link>
+      <Link href="/calendar" className="inline-flex min-h-control-touch items-center rounded-lg border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">발행 캘린더</Link>
+      <span className="rounded-full bg-accent-soft px-stack py-stack-tight text-caption font-semibold text-accent">
+        {activeRoom === "create" ? "생성실" : activeRoom === "edit" ? "편집실" : "발행실"}
+      </span>
+      <span className="rounded-lg border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle" title={engine?.error || engine?.model || ""}>AI {engine?.label || "확인 중"}</span>
+      {showWorks ? (
+        <div id="studio-work-overview" className="absolute left-0 right-0 top-full z-20 mt-stack grid gap-stack rounded-xl border border-border bg-surface p-pad-inset shadow-lg md:grid-cols-4">
+          {(["create", "edit", "publish"] as StudioRoom[]).map((room) => (
+            <Button key={room} variant={activeRoom === room ? "primary" : "secondary"} onClick={() => changeRoom(room)}>
+              {room === "create" ? "생성실" : room === "edit" ? "편집실" : "발행실"}
+            </Button>
+          ))}
+          <Link href="/" className="inline-flex min-h-control-touch items-center justify-center rounded-lg border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">성과실</Link>
+        </div>
+      ) : null}
+    </header>
+  );
+
+  if (activeRoom === "create") return (
     <div className="px-stack-section py-pad-inset">
-      {showWizard && activeWorkspace && (
-        <BrandSetupWizard
-          workspace={activeWorkspace}
-          onComplete={() => { setShowWizard(false); mutateBrand(); showToast("브랜드 가이드 저장됨"); }}
-          onDismiss={() => setShowWizard(false)}
-        />
-      )}
-      {showRepo && activeWorkspace && <RepoConnect workspace={activeWorkspace} onSynced={() => { mutateBrand(); showToast("브랜드 가이드 갱신됨"); }} onClose={() => setShowRepo(false)} />}
-      {/* 상단 바 */}
-      <Stack direction="horizontal" gap={12} wrap className="items-center mb-pad-inset">
-        <div className="mr-micro">
-          <b className="text-lead text-text">OSMU Studio</b>
-          <p className="text-caption text-subtle leading-tight">직접 저작 · 생성→즉시 발행/예약</p>
-        </div>
-        <div className="text-caption px-stack-tight py-micro rounded border border-border bg-surface-2 text-subtle" title={engine?.error || engine?.model || ""}>
-          AI <b className="text-muted">{engine?.label || "확인 중"}</b>{engine?.mode === "claude-p" ? " · claude -p" : ""}{engine?.mode === "unknown" ? " · 확인 실패" : ""}
-        </div>
-        <input value={idea} onChange={(e) => setIdea(e.target.value)} placeholder="글감 / 콘텐츠 주제 입력" className="flex-1 min-w-[260px] bg-surface-2 text-text text-body p-stack rounded border border-border" />
-        {canGenerate && <select value={videoModel} onChange={(e) => setVideoModel(e.target.value)} className="bg-surface-2 text-muted text-caption p-stack-tight rounded border border-border"><option value="minimax_hailuo">Minimax 6cr</option><option value="veo3_1_lite">Veo3.1 8cr</option><option value="kling3_0">Kling3 10cr</option><option value="marketing_studio_video">MS UGC광고 ~40cr</option></select>}
-        {canGenerate && <label className="flex items-center gap-stack-tight text-caption text-subtle"><input type="checkbox" checked={withVideo} onChange={(e) => setWithVideo(e.target.checked)} />영상</label>}
-        {activeWorkspace && <Button size="sm" onClick={() => setShowWizard(true)} title="브랜드 톤 설정">{brandData?.guide?.prompt_guide ? "🎨 브랜드 ✓" : "🎨 브랜드 설정"}</Button>}
-        {activeWorkspace && <Button size="sm" onClick={() => setShowRepo(true)} title="GitHub 레포 위키 연동 → 브랜드 가이드">📚 위키</Button>}
-        <Button variant="primary" onClick={runOSMU} disabled={!!busy}>{busy || "OSMU 생성"}</Button>
-        {activeWorkspace && <Button onClick={autoGenerate} disabled={autoGen} title="브랜드 가이드 기반 자동초안 생성">{autoGen ? "생성 중…" : "✨ AI 자동초안"}</Button>}
-        {text && <Button onClick={() => save("draft")}>💾 Save</Button>}
-        {text && <Button variant="primary" onClick={publish} disabled={pub.running}>🚀 Publish ({selectedPublishTargets(includes).length})</Button>}
-        {text && activeWorkspace && <Button variant={showSchedule ? "primary" : "secondary"} onClick={() => setShowSchedule((v) => !v)} title="예약 발행">🗓️ 예약</Button>}
-        {canGenerate && <div className="relative">
-          <Button size="sm" onClick={() => setShowTx((v) => !v)} title="사용 이력 보기">
-            크레딧 <b className={acct?.needsLogin ? "text-danger" : "text-success"}>{acct?.needsLogin ? "로그인필요" : acct?.credits?.toFixed(2) ?? "..."}</b> ▾
-          </Button>
-          {showTx && (
-            <div className="absolute right-0 top-7 z-50 w-72 max-h-80 overflow-y-auto card p-stack shadow-xl">
-              <div className="flex justify-between items-center mb-stack-tight"><b className="text-caption text-muted">크레딧 사용 이력</b><Button size="sm" onClick={() => setShowTx(false)} aria-label="크레딧 사용 이력 닫기">✕</Button></div>
-              {!tx ? <p className="text-caption text-subtle">불러오는 중…</p>
-                : (tx.items || []).length === 0 ? <p className="text-caption text-subtle">내역 없음</p>
-                : (tx.items || []).map((t, i) => (
-                  <div key={i} className="flex justify-between items-center border-t border-border py-stack-tight text-caption">
-                    <div className="min-w-0 pr-stack-tight"><div className="text-muted">{t.display_name}</div>
-                      {t.output && <div className="text-accent truncate">{t.outputKind === "video" ? "🎬" : "🖼️"} {t.output}</div>}
-                      <div className="text-subtle">{String(t.created_at || "").slice(5, 16).replace("T", " ")}</div></div>
-                    <span className={Number(t.credits) < 0 ? "text-danger" : "text-success"}>{Number(t.credits) > 0 ? "+" : ""}{t.credits}</span>
-                  </div>
-                ))}
-            </div>
-          )}
-        </div>}
-      </Stack>
-      {!canGenerate && me && (
-        <div className="mb-pad-inset rounded-lg border border-warning/30 bg-warning/10 px-stack py-stack-tight text-caption text-warning">
-          이미지·영상 생성과 Higgsfield 크레딧은 운영자 전용 기능입니다.
-        </div>
-      )}
-      {lastError && (
-        <div className="mb-pad-inset rounded-lg border border-danger/30 bg-danger/10 px-stack py-stack-tight text-caption text-danger">
-          마지막 실패: {lastError}
-        </div>
-      )}
-      {vid?.narration?.message && (
-        <div className="mb-pad-inset rounded-lg border border-warning/30 bg-warning/10 px-stack py-stack-tight text-caption text-warning">
-          {vid.narration.message}
-        </div>
-      )}
-
-      {/* 발행 진행 */}
-      {(pub.running || Object.keys(pub.status).length > 0) && (
-        <div className="card p-stack mb-pad-inset flex items-center gap-stack">
-          <div className="w-12 shrink-0">
-            <div className="text-center text-caption font-bold text-success">{pubPct}%</div>
-            <progress className="progress-semantic mt-micro h-micro w-full" max={100} value={pubPct} aria-label="발행 진행률" />
-          </div>
-          <div className="flex-1"><div className="flex justify-between"><b className="text-body text-text">{pubResultLabel}</b>{pub.running && <Button variant="danger" size="sm" onClick={() => (cancelRef.current = true)}>■ 중지</Button>}</div>
-            <div className="flex gap-stack-tight mt-stack-tight flex-wrap">{Object.entries(pub.status).map(([k, s]) => {
-              const cls = `text-caption px-stack-tight py-[2px] rounded-full border ${s === "done" ? "bg-success/10 text-success border-success/30" : s === "failed" ? "bg-danger/10 text-danger border-danger/30" : s === "doing" ? "bg-warning/10 text-warning border-warning/30" : "bg-surface-2 text-subtle border-border"}`;
-              const txt = `${s === "done" ? "✓ " : s === "failed" ? "✕ " : s === "doing" ? "⟳ " : ""}${LABEL[k]}`;
-              return s === "done" && pub.urls[k]
-                ? <a key={k} href={pub.urls[k]} target="_blank" rel="noopener noreferrer" className={`${cls} hover:underline`} title="게시물 보기">{txt} ↗</a>
-                : <span key={k} className={cls}>{txt}{s === "failed" && pub.errors[k] && <span className="ml-micro">· <span>{pub.errors[k]}</span></span>}</span>;
-            })}</div>
-          </div>
-        </div>
-      )}
-
-      {/* 예약 발행 패널 (P6) — 토글 시 노출. 현 작업물의 선택 플랫폼 + 저장된 draftId 사용. */}
-      {showSchedule && activeWorkspace && (
-        <SchedulePanel
-          tenantId={activeWorkspace.id}
-          draftId={draftId}
-          defaultPlatforms={selectedPublishTargets(includes)}
-        />
-      )}
-
-      <div className="flex gap-stack-section">
-        {/* 본문: 유형별 세로 분류 (생성 전엔 안내) */}
-        <div className="flex-1 min-w-0 space-y-region">
-          {!text ? (
-            <div className="text-body text-subtle py-region text-center">글감을 입력하고 OSMU 생성을 누르거나, 오른쪽 발행 이력에서 불러오세요.</div>
-          ) : (
-            GROUPS.filter((g) => canGenerate || !g.platforms.some(isVideo)).map((g) => (
-              <div key={g.title}>
-                <div className="flex items-center gap-stack-tight mb-stack"><span className="text-body font-bold bg-gradient-to-r from-accent to-accent-hover bg-clip-text text-transparent">{g.title}</span><span className="text-caption text-subtle">{g.platforms.map((p) => LABEL[p]).join(" · ")} · 클릭해서 편집</span><div className="flex-1 h-px bg-gradient-to-r from-accent/40 to-transparent" /></div>
-                <div className="flex gap-stack-section flex-nowrap overflow-x-auto items-start pb-stack-tight">
-                  {g.platforms.map((p) => (
-                    <div key={p} className="group cursor-pointer" onClick={() => setEditing(p)}>
-                      <div className={`rounded-2xl transition ${editing === p ? "ring-2 ring-accent shadow-[0_0_24px_rgba(236,72,153,0.35)]" : "group-hover:ring-1 group-hover:ring-accent/50"}`}>
-                        <PlatformPreview platform={p} text={text} media={media} headerRight={
-                          <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-stack-tight">
-                            {PUBLISH_SUPPORTED.has(p) ? (
-                              <label className="flex items-center gap-micro text-caption text-subtle cursor-default">
-                                <input type="checkbox" checked={!!includes[p]} onChange={(e) => setIncludes((x) => ({ ...x, [p]: e.target.checked }))} />발행
-                              </label>
-                            ) : (
-                              <span className="text-caption text-warning">발행 미지원(생성 전용)</span>
-                            )}
-                            {ACCOUNT_SELECTABLE.has(p) && (accountsByPlatform[p]?.length ?? 0) > 1 && (
-                              <select
-                                data-testid={`publish-account-select-${p}`}
-                                value={selectedAccounts[p] ?? ""}
-                                onChange={(e) => setSelectedAccounts((x) => ({ ...x, [p]: e.target.value }))}
-                                className="text-caption bg-surface-2 border border-border rounded px-micro py-[2px] text-text max-w-[90px]"
-                              >
-                                <option value="">기본계정</option>
-                                {accountsByPlatform[p].map((a) => (
-                                  <option key={a.id} value={a.id}>{a.label}</option>
-                                ))}
-                              </select>
-                            )}
-                          </div>
-                        } />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* 발행 이력 */}
-          <div className="w-52 shrink-0 card p-stack h-fit">
-            <b className="text-body-sm text-text">📜 발행 이력</b>
-            <p className="text-caption text-subtle mt-micro mb-stack-tight">클릭→수정 후 재발행</p>
-            {(hist?.drafts || []).length === 0 && <p className="text-caption text-subtle">없음</p>}
-            {(hist?.drafts || []).map((d) => (
-              <div key={String(d.id)} className="border-t border-border py-stack-tight">
-                <div className="text-caption text-muted truncate">{String(d.idea || "(없음)")}</div>
-                <div className="text-caption text-subtle">{String(d.savedAt || "").slice(5, 16).replace("T", " ")} · {d.status === "published" ? "✅" : d.status === "partial" ? "⚠️ 복구 필요·재발행 금지" : d.status === "stopped" ? "⏸" : "📝"}</div>
-                {!d.text && <div className="text-caption text-warning mt-micro">본문 없음 · 재생성 필요</div>}
-                <Button onClick={() => loadDraft(d)} className="mt-micro" size="sm">불러오기</Button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-      {/* 편집 드로어 (클릭 시, 리사이즈 가능) */}
-      {editing && text && (
-        <>
-          <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setEditing(null)} />
-          <div ref={drawerRef} className="fixed top-0 right-0 h-screen w-1/2 min-w-80 max-w-screen-lg bg-surface/95 backdrop-blur-xl border-l border-accent z-40 flex shadow-xl">
-            <div onMouseDown={() => (dragRef.current = true)} className="w-1.5 h-full cursor-ew-resize bg-gradient-to-b from-accent to-accent-hover opacity-40 hover:opacity-100 shrink-0" title="드래그해서 크기 조절" />
-            <div className="flex-1 overflow-auto p-pad-inset">
-              <div className="flex items-center justify-between mb-pad-inset"><b className="text-lead text-text">{LABEL[editing]} 편집</b><Button size="sm" onClick={() => setEditing(null)} aria-label={`${LABEL[editing]} 편집 닫기`}>✕</Button></div>
-
-              {/* 편집 필드 */}
-              <div className="space-y-stack mb-pad-inset">
-                {editing === "threads" && <textarea value={text.threads || ""} onChange={(e) => upText({ threads: e.target.value })} className="w-full bg-surface-2 text-text text-body p-stack rounded border border-border" rows={6} />}
-                {editing === "facebook" && <textarea value={text.facebook || ""} onChange={(e) => upText({ facebook: e.target.value })} className="w-full bg-surface-2 text-text text-body p-stack rounded border border-border" rows={6} />}
-                {editing === "x" && <div><textarea value={text.x || ""} onChange={(e) => upText({ x: e.target.value })} className="w-full bg-surface-2 text-text text-body p-stack rounded border border-border" rows={5} /><span className={`text-caption ${countTextCharacters(text.x || "") > CHANNEL_TEXT_LIMITS.x ? "text-danger" : "text-subtle"}`}>{countTextCharacters(text.x || "")}/{CHANNEL_TEXT_LIMITS.x}</span></div>}
-                {editing === "instagram" && <>
-                  <textarea value={text.instagram?.caption || ""} onChange={(e) => upIg({ caption: e.target.value })} placeholder="캡션" className="w-full bg-surface-2 text-text text-body p-stack rounded border border-border" rows={3} />
-                  <Field label="해시태그 (쉼표)"><input value={(text.instagram?.hashtags || []).join(", ")} onChange={(e) => upIg({ hashtags: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} className="w-full bg-surface-2 text-accent text-body-sm p-stack-tight rounded border border-border" /></Field>
-                  <Field label="카드 슬라이드">{(text.instagram?.slides || []).map((s, i) => <input key={i} value={s} onChange={(e) => { const sl = [...(text.instagram?.slides || [])]; sl[i] = e.target.value; upIg({ slides: sl }); }} className="w-full mt-micro bg-surface-2 text-muted text-body-sm p-stack-tight rounded border border-border" />)}</Field>
-                </>}
-                {isVideo(editing) && <>
-                  {(["hook", "body", "cta"] as const).map((kk) => <Field key={kk} label={kk.toUpperCase()}><input value={text.shorts?.[kk] || ""} onChange={(e) => upText({ shorts: { ...(text.shorts || {}), [kk]: e.target.value } })} className="w-full bg-surface-2 text-muted text-body p-stack-tight rounded border border-border" /></Field>)}
-                  {canGenerate && <div className="flex gap-stack-tight items-center"><select value={videoModel} onChange={(e) => setVideoModel(e.target.value)} className="bg-surface-2 text-muted text-caption p-stack-tight rounded border border-border"><option value="minimax_hailuo">Minimax 6cr</option><option value="veo3_1_lite">Veo3.1 8cr</option><option value="marketing_studio_video">MS UGC광고 ~40cr</option></select>{img && <Button size="sm" onClick={() => genVideo(img.localPath)} disabled={!!busy}>{vid ? "영상 재생성" : "영상 생성"}</Button>}</div>}
-                </>}
-
-                {/* 비주얼 프롬프트 — 어떤 프롬프트로 생성됐는지 */}
-                {canGenerate && !isVideo(editing) && <div>
-                  <label className="text-caption text-accent">🎨 비주얼 프롬프트 <span className="text-subtle">— 이 프롬프트로 이미지 생성됨</span></label>
-                  <textarea value={text.image_prompt || ""} onChange={(e) => upText({ image_prompt: e.target.value })} className="w-full bg-surface-2 text-muted text-caption p-stack-tight rounded border border-border" rows={3} />
-                  <Button size="sm" className="mt-micro" onClick={() => genImage(text.image_prompt || idea)} disabled={!!busy}>이미지 재생성</Button>
-                </div>}
-                <Button size="sm" onClick={() => genText()} disabled={!!busy}>텍스트 전체 재생성</Button>
-              </div>
-
-              {/* 큰 미리보기 */}
-              <div><div className="text-[11px] text-subtle mb-2">미리보기</div><div className="bg-bg rounded-lg p-4 flex justify-center"><PlatformPreview platform={editing} text={text} media={media} /></div></div>
-            </div>
-          </div>
-        </>
-      )}
-
-      <div className="mt-stack-section text-caption text-subtle">⚠️ 실 발행: 채널 토큰 연결 시 실제 게시(Threads/Instagram 직접 / X·영상은 게이트웨이 P5). 성과는 발행 후 수집. 🛣️ 시나리오2 트렌드 대기 · 시나리오3 롱폼분할 조사중</div>
+      {showWizard && activeWorkspace ? <BrandSetupWizard workspace={activeWorkspace} onComplete={() => { setShowWizard(false); mutateBrand(); showToast("브랜드 가이드 저장됨"); }} onDismiss={() => setShowWizard(false)} /> : null}
+      {roomHeader}
+      <CreateRoom workspaceId={activeWorkspace?.id} workspaceName={activeWorkspace?.name} guide={guide} topic={idea} onTopicChange={setIdea} onOpenLearning={() => setShowWizard(true)} onCandidateSelect={chooseCandidate} />
     </div>
   );
+
+  if (activeRoom === "edit") return (
+    <div className="px-stack-section py-pad-inset">
+      {roomHeader}
+      <EditRoom
+        lines={editLines.length ? editLines : [text?.shorts?.hook || "", text?.shorts?.body || "", text?.shorts?.cta || ""]}
+        onLinesChange={setEditLines}
+        commandPanel={activeWorkspace ? <StudioCommandPanel
+          workspaceId={activeWorkspace.id}
+          draftId={draftId}
+          idea={idea}
+          text={text}
+          imageUrl={img?.file ?? null}
+          videoUrl={vid?.file ?? null}
+          editorLines={editLines}
+          source={{ generationId: selectedCandidate?.generation_id, candidateId: selectedCandidate?.candidate_id }}
+          initialHandoff={editorHandoff}
+          onDraftId={setDraftId}
+          onHandoff={setEditorHandoff}
+          onQueueChanged={() => mutateHist()}
+        /> : undefined}
+      />
+    </div>
+  );
+
+  if (activeRoom === "publish") return (
+    <div className="px-stack-section py-pad-inset">
+      {showWizard && activeWorkspace ? <BrandSetupWizard workspace={activeWorkspace} onComplete={() => { setShowWizard(false); mutateBrand(); showToast("브랜드 가이드 저장됨"); }} onDismiss={() => setShowWizard(false)} /> : null}
+      {showRepo && activeWorkspace ? <RepoConnect workspace={activeWorkspace} onSynced={() => { mutateBrand(); showToast("브랜드 가이드 갱신됨"); }} onClose={() => setShowRepo(false)} /> : null}
+      {roomHeader}
+      <section data-room="publish" className="grid gap-stack-section lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="min-w-0 space-y-region">
+          <section data-room-top="publish" aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch items-center justify-between rounded-xl border border-border bg-surface px-pad-inset py-stack">
+            <b className="text-lead text-accent">{selectedPublishTargets(includes).length}곳</b>
+            <span className="text-caption text-subtle">발행할 채널</span>
+          </section>
+          {lastError ? <div className="rounded-lg border border-danger/30 bg-danger/10 p-stack text-caption text-danger">마지막 실패: {lastError}</div> : null}
+          {(pub.running || Object.keys(pub.status).length > 0) ? (
+            <div className="card flex items-center gap-stack p-stack">
+              <div className="w-12 shrink-0"><div className="text-center text-caption font-bold text-success">{pubPct}%</div><progress className="progress-semantic mt-micro h-micro w-full" max={100} value={pubPct} aria-label="발행 진행률" /></div>
+              <div className="min-w-0 flex-1">
+                <b className="text-body text-text">{pubResultLabel}</b>
+                <div className="mt-stack-tight flex flex-wrap gap-stack-tight">{Object.entries(pub.status).map(([key, status]) => {
+                  const cls = `rounded-full border px-stack-tight py-micro text-caption ${status === "done" ? "border-success/30 bg-success/10 text-success" : status === "failed" ? "border-danger/30 bg-danger/10 text-danger" : status === "doing" ? "border-warning/30 bg-warning/10 text-warning" : "border-border bg-surface-2 text-subtle"}`;
+                  const value = `${status === "done" ? "✓ " : status === "failed" ? "✕ " : status === "doing" ? "⟳ " : ""}${LABEL[key]}`;
+                  return status === "done" && pub.urls[key] ? <a key={key} href={pub.urls[key]} target="_blank" rel="noopener noreferrer" className={cls} title="게시물 보기">{value} ↗</a> : <span key={key} className={cls}>{value}{status === "failed" && pub.errors[key] ? <span className="ml-micro"><span>{pub.errors[key]}</span></span> : null}</span>;
+                })}</div>
+              </div>
+            </div>
+          ) : null}
+          {showSchedule && activeWorkspace ? <SchedulePanel tenantId={activeWorkspace.id} draftId={draftId} defaultPlatforms={selectedPublishTargets(includes)} /> : null}
+          {text ? (
+            <div className="card flex flex-wrap items-center gap-stack p-stack">
+              <b className="mr-auto min-w-0 truncate text-body text-text">{idea || "현재 작업물"}</b>
+              <Button onClick={() => save("draft")}>초안으로 저장</Button>
+              <Button onClick={requestReview} disabled={reviewBusy}>{reviewBusy ? "요청 중" : "검토 요청"}</Button>
+              <Button variant="primary" onClick={publish} disabled={pub.running}>Publish ({selectedPublishTargets(includes).length})</Button>
+              {activeWorkspace ? <Button variant={showSchedule ? "primary" : "secondary"} onClick={() => setShowSchedule((value) => !value)}>날짜 잡기</Button> : null}
+            </div>
+          ) : null}
+          {GROUPS.map((group) => (
+            <section key={group.title}>
+              <div className="mb-stack flex items-center gap-stack-tight border-b border-border pb-stack"><b className="text-body text-text">{group.title}</b><span className="text-caption text-subtle">{group.platforms.map((platform) => LABEL[platform]).join(" · ")}</span></div>
+              <div className="flex flex-nowrap items-start gap-stack-section overflow-x-auto pb-stack-tight">
+                {group.platforms.map((platform) => (
+                  <div key={platform} data-room-preview={platform} className="w-full min-w-80 max-w-sm shrink-0 rounded-2xl border border-border bg-surface p-stack">
+                    <PlatformPreview
+                      platform={platform}
+                      text={text || {}}
+                      media={media}
+                      editor={previewEditor(platform)}
+                      headerRight={
+                        <div className="flex flex-wrap items-center justify-end gap-stack-tight">
+                          {PUBLISH_SUPPORTED.has(platform) ? (
+                            <label className="flex items-center gap-micro text-caption text-muted">
+                              <input aria-label={`${LABEL[platform]} 발행`} type="checkbox" checked={Boolean(includes[platform])} onChange={(event) => setIncludes((current) => ({ ...current, [platform]: event.target.checked }))} />
+                              발행
+                            </label>
+                          ) : (
+                            <label className="flex items-center gap-micro text-caption text-warning">
+                              <input aria-label={`${LABEL[platform]} 발행 미지원`} type="checkbox" checked={false} disabled />
+                              미지원
+                            </label>
+                          )}
+                          {ACCOUNT_SELECTABLE.has(platform) ? (
+                            <select
+                              aria-label={`${LABEL[platform]} 발행 계정`}
+                              data-testid={`publish-account-select-${platform}`}
+                              value={selectedAccounts[platform] ?? ""}
+                              onChange={(event) => setSelectedAccounts((current) => ({ ...current, [platform]: event.target.value }))}
+                              className="min-h-control-touch max-w-32 rounded-lg border border-border bg-surface-2 px-stack-tight text-caption text-text"
+                            >
+                              <option value="">기본계정</option>
+                              {(accountsByPlatform[platform] || []).map((account) => <option key={account.id} value={account.id}>{account.label}</option>)}
+                            </select>
+                          ) : null}
+                        </div>
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+
+        <aside className="card h-fit overflow-hidden lg:sticky lg:top-pad-inset" aria-label="발행 담당 대화창" data-chat-dock="persistent">
+          <div className="flex items-center gap-stack-tight border-b border-border p-stack">
+            <div className="grid h-10 w-10 place-items-center rounded-full bg-accent text-body font-bold text-accent-fg">O</div>
+            <div><b className="block text-body text-text">발행 담당</b><span className="text-caption text-success">지금 대기 중</span></div>
+          </div>
+          <div className="space-y-stack bg-surface-2 p-stack">
+            <div className="max-w-[90%] rounded-xl rounded-tl-sm border border-border bg-surface p-stack text-body-sm text-text">
+              {text ? `${selectedPublishTargets(includes).length}곳이 선택되어 있습니다.` : "발행할 작업물을 먼저 가져와 주세요."}
+            </div>
+            {text ? (
+              <div className="flex flex-wrap gap-stack-tight" aria-label="발행 담당 빠른 답장">
+                <Button size="sm" onClick={publish}>지금 발행하기</Button>
+                <Button size="sm" onClick={() => setShowSchedule(true)}>시간은 내가 골라 줘</Button>
+                <Button size="sm" onClick={requestReview}>먼저 검토받기</Button>
+              </div>
+            ) : null}
+          </div>
+          <form onSubmit={submitPublishChat} className="flex gap-stack-tight border-t border-border p-stack">
+            <input aria-label="발행 담당에게 명령" value={publishChatDraft} onChange={(event) => setPublishChatDraft(event.target.value)} placeholder="직접 쓰셔도 됩니다" className="min-h-control-touch min-w-0 flex-1 rounded-lg border border-border bg-surface px-stack text-body-sm text-text" />
+            <Button type="submit" variant="primary">보내기</Button>
+          </form>
+        </aside>
+      </section>
+    </div>
+  );
+
+  return null;
 }

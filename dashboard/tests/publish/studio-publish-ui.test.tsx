@@ -36,6 +36,8 @@ vi.mock("@/components/layout/Toast", () => ({
 vi.mock("@/store/ui-store", () => ({
   useUIStore: () => ({
     activeWorkspace: mocks.workspace,
+    studioRoom: "publish",
+    setStudioRoom: vi.fn(),
   }),
 }));
 
@@ -49,8 +51,11 @@ vi.mock("@/components/studio/PlatformPreview", () => ({
     "reels",
     "tiktok",
   ].map((key) => ({ key, label: key })),
-  PlatformPreview: ({ platform, headerRight }: { platform: string; headerRight?: React.ReactNode }) => (
-    <div data-testid={`preview-${platform}`}>{headerRight}</div>
+  PlatformPreview: ({ platform, headerRight, editor }: { platform: string; headerRight?: React.ReactNode; editor?: { firstCommentSupported: boolean; firstCommentReason?: string; firstComment: string; onFirstCommentChange: (value: string) => void } }) => (
+    <div data-testid={`preview-${platform}`}>
+      {headerRight}
+      {editor?.firstCommentSupported ? <textarea aria-label={`${platform} 첫 댓글`} value={editor.firstComment} onChange={(event) => editor.onFirstCommentChange(event.target.value)} /> : <span>{editor?.firstCommentReason}</span>}
+    </div>
   ),
 }));
 
@@ -117,6 +122,17 @@ describe("Studio publish result integrity", () => {
       if (key === "/api/studio/brand-setup?tenant_id=tenant-a") {
         return { data: { guide: null }, mutate: vi.fn() };
       }
+      if (key === "/api/publish/first-comment-capabilities") {
+        return { data: { capabilities: [
+          { platform: "threads", supported: true, reason: null },
+          { platform: "x", supported: true, reason: null },
+          { platform: "instagram", supported: true, reason: null },
+          { platform: "facebook", supported: true, reason: null },
+          { platform: "shorts", supported: false, reason: "YouTube 영상 발행 route에 첫 댓글 후속 호출이 아직 연결되지 않았습니다." },
+          { platform: "reels", supported: false, reason: "Reels 영상 발행 route에 첫 댓글 후속 호출이 아직 연결되지 않았습니다." },
+          { platform: "tiktok", supported: false, reason: "현재 TikTok provider adapter는 댓글 생성 계약을 제공하지 않습니다." },
+        ] }, mutate: vi.fn() };
+      }
       return { data: undefined, mutate: vi.fn() };
     });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ accounts: [] })));
@@ -137,7 +153,7 @@ describe("Studio publish result integrity", () => {
     });
 
     render(<StudioPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "🚀 Publish (2)" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Publish (2)" }));
 
     await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledTimes(4));
     expect(screen.getByText("0%")).toBeInTheDocument();
@@ -159,7 +175,7 @@ describe("Studio publish result integrity", () => {
     });
 
     render(<StudioPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "🚀 Publish (2)" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Publish (2)" }));
 
     await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledTimes(4));
     expect(screen.getByText("50%")).toBeInTheDocument();
@@ -185,24 +201,25 @@ describe("Studio publish result integrity", () => {
     });
 
     render(<StudioPage />);
-    const publishButton = await screen.findByRole("button", { name: "🚀 Publish (4)" });
-    for (const platform of ["shorts", "reels", "tiktok"]) {
-      expect(within(screen.getByTestId(`preview-${platform}`)).getByText(
-        "발행 미지원(생성 전용)",
-      )).toBeInTheDocument();
+    const publishButton = await screen.findByRole("button", { name: "Publish (3)" });
+    for (const [platform, label] of [["shorts", "Shorts"], ["reels", "Reels"], ["tiktok", "TikTok"]]) {
+      expect(within(screen.getByTestId(`preview-${platform}`)).getByRole(
+        "checkbox",
+        { name: `${label} 발행 미지원` },
+      )).toBeDisabled();
     }
 
     fireEvent.click(publishButton);
     await waitFor(() => {
-      expect(mocks.apiPost.mock.calls.filter(([path]) => path === "/api/publish")).toHaveLength(4);
+      expect(mocks.apiPost.mock.calls.filter(([path]) => path === "/api/publish")).toHaveLength(3);
     });
     expect(mocks.apiPost.mock.calls
       .filter(([path]) => path === "/api/publish")
       .map(([, body]) => (body as { platform: string }).platform))
-      .toEqual(["threads", "x", "facebook", "instagram"]);
+      .toEqual(["threads", "x", "instagram"]);
   });
 
-  it("TC-E2/F1: 이력 불러오기는 본문을 편집 상태로 복원하고 발행 버튼을 노출한다", async () => {
+  it("FE3-PUBLISH-03 거절: 발행 이력은 발행실에 다시 노출하지 않는다", async () => {
     mocks.drafts = [{
       id: "draft-history",
       idea: "불러올 초안",
@@ -213,27 +230,24 @@ describe("Studio publish result integrity", () => {
     }];
 
     render(<StudioPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "불러오기" }));
-
-    expect(await screen.findByRole("button", { name: "🚀 Publish (1)" })).toBeInTheDocument();
-    expect(mocks.showToast).toHaveBeenCalledWith("불러옴 — 수정 후 재발행 가능", "success");
+    expect(screen.queryByText("발행 이력")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "불러오기" })).not.toBeInTheDocument();
   });
 
-  it("TC-E3: 본문이 없는 이력은 재생성 필요 상태를 숨기지 않는다", async () => {
+  it("FE3-PUBLISH-04 거절: 본문이 없으면 실행 단추를 노출하지 않는다", async () => {
     mocks.drafts = [{ id: "draft-empty", idea: "빈 초안", text: null, status: "draft", savedAt: "2026-08-12T00:00:00Z" }];
     render(<StudioPage />);
-    expect(await screen.findByText("본문 없음 · 재생성 필요")).toBeInTheDocument();
+    expect(screen.queryByText("본문 없음 · 재생성 필요")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Publish/ })).not.toBeInTheDocument();
   });
 
-  it("TC-D1: 생성 API 실패는 화면 배너와 오류 토스트에 원인을 노출한다", async () => {
-    mocks.apiPost.mockResolvedValue({ ok: false, error: "공유 AI 생성은 아직 승인되지 않았습니다" });
+  it("FE3-PUBLISH-05 거절: 발행실은 생성 명령과 설정 단추 목록을 노출하지 않는다", async () => {
     render(<StudioPage />);
-    fireEvent.change(screen.getByPlaceholderText("글감 / 콘텐츠 주제 입력"), { target: { value: "실패 원인 확인" } });
-    fireEvent.click(screen.getByRole("button", { name: "OSMU 생성" }));
-
-    expect(await screen.findByText(/마지막 실패: 텍스트: 공유 AI 생성은 아직 승인되지 않았습니다/)).toBeInTheDocument();
-    expect(mocks.showToast).toHaveBeenCalledWith("공유 AI 생성은 아직 승인되지 않았습니다", "error");
+    expect(screen.queryByPlaceholderText("글감 / 콘텐츠 주제 입력")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "OSMU 생성" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /AI 자동초안/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /브랜드 설정/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /위키/ })).not.toBeInTheDocument();
   });
 
   it("TC-F2: 발행 성공은 permalink 링크와 published 저장으로 닫힌다", async () => {
@@ -245,12 +259,79 @@ describe("Studio publish result integrity", () => {
     });
 
     render(<StudioPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "🚀 Publish (1)" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Publish (1)" }));
 
     const link = await screen.findByTitle("게시물 보기");
     expect(link).toHaveAttribute("href", "https://www.threads.net/@example/post/ok");
     expect(draftSaveStatuses()).toEqual(["draft", "published"]);
     expect(mocks.showToast).toHaveBeenCalledWith("발행 완료 ✓", "success");
+  });
+
+  it("FE2-PUB-01 정상: 지원 채널 첫 댓글은 미리보기에서 편집되고 발행 API에 전달된다", async () => {
+    restoreStudio(["threads"]);
+    mocks.apiPost.mockImplementation(async (path: string) => {
+      if (path === "/api/studio/drafts") return { id: "draft-first-comment" };
+      if (path === "/api/publish") return { ok: true, permalink: "https://www.threads.net/@example/post/comment" };
+      throw new Error(`unexpected path: ${path}`);
+    });
+
+    render(<StudioPage />);
+    fireEvent.change(await screen.findByLabelText("threads 첫 댓글"), { target: { value: "첫 댓글 본문" } });
+    fireEvent.click(screen.getByRole("button", { name: "Publish (1)" }));
+
+    await waitFor(() => expect(mocks.apiPost.mock.calls.some(([path, body]) => path === "/api/publish" && (body as { first_comment?: string }).first_comment === "첫 댓글 본문")).toBe(true));
+  });
+
+  it("FE2-PUB-02 거절: 미지원 채널은 첫 댓글 입력 대신 백엔드 사유를 표시한다", async () => {
+    render(<StudioPage />);
+    expect(await within(screen.getByTestId("preview-tiktok")).findByText("현재 TikTok provider adapter는 댓글 생성 계약을 제공하지 않습니다.")).toBeInTheDocument();
+    expect(within(screen.getByTestId("preview-tiktok")).queryByRole("textbox", { name: "tiktok 첫 댓글" })).not.toBeInTheDocument();
+  });
+
+  it("FE3-PUBLISH-01 정상: 발행 체크와 계정 선택은 각 미리보기 칸 머리에 있다", async () => {
+    render(<StudioPage />);
+    const threads = within(await screen.findByTestId("preview-threads"));
+    expect(threads.getByRole("checkbox", { name: "Threads 발행" })).toBeChecked();
+    expect(screen.queryByText("발행 채널")).not.toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "발행 담당 대화창" })).toBeInTheDocument();
+  });
+
+  it("FE3-PUBLISH-02 거절: 미지원 영상 채널은 미리보기 안에서 발행 체크를 잠근다", async () => {
+    render(<StudioPage />);
+    const tiktok = within(await screen.findByTestId("preview-tiktok"));
+    expect(tiktok.getByRole("checkbox", { name: "TikTok 발행 미지원" })).toBeDisabled();
+  });
+
+  it("FE3-REVIEW-01 정상: 검토 요청은 큐 생성 뒤 기존 검토 API를 호출한다", async () => {
+    restoreStudio(["threads"]);
+    mocks.apiPost.mockImplementation(async (path: string) => {
+      if (path === "/api/queue/add") return { post: { id: "queue-review" } };
+      if (path === "/api/queue/queue-review/request-review") return { reused: false };
+      throw new Error(`unexpected path: ${path}`);
+    });
+
+    render(<StudioPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "검토 요청" }));
+
+    await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith(
+      "/api/queue/queue-review/request-review",
+      expect.objectContaining({ tenant_id: "tenant-a" }),
+    ));
+    expect(mocks.showToast).toHaveBeenCalledWith("승인 인박스로 검토 요청을 보냈습니다", "success");
+  });
+
+  it("FE3-REVIEW-02 거절: 큐 생성 실패 시 검토 API를 호출하지 않는다", async () => {
+    restoreStudio(["threads"]);
+    mocks.apiPost.mockImplementation(async (path: string) => {
+      if (path === "/api/queue/add") throw new Error("큐 저장 실패");
+      throw new Error(`unexpected path: ${path}`);
+    });
+
+    render(<StudioPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "검토 요청" }));
+
+    await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith("큐 저장 실패", "error"));
+    expect(mocks.apiPost.mock.calls.some(([path]) => String(path).includes("request-review"))).toBe(false);
   });
 });
 
@@ -285,38 +366,13 @@ describe("Studio Higgsfield operator boundary", () => {
     vi.unstubAllGlobals();
   });
 
-  it("uses null SWR keys, hides Higgsfield controls, and never requests Higgsfield for a non-operator", async () => {
-    mocks.apiPost.mockImplementation(async (path: string) => {
-      if (path === "/api/studio/text") {
-        return {
-          ok: true,
-          threads: "Threads 본문",
-          x: "X 본문",
-          instagram: { caption: "Instagram 본문" },
-          shorts: { hook: "hook", body: "body", cta: "cta" },
-          image_prompt: "이미지 프롬프트",
-        };
-      }
-      if (path.startsWith("/api/higgsfield/")) {
-        return { ok: false, error: "운영자 전용" };
-      }
-      throw new Error(`unexpected path: ${path}`);
-    });
-
+  it("FE3-OPERATOR-01 거절: 발행실은 운영자 전용 생성 API와 제어를 노출하지 않는다", async () => {
     render(<StudioPage />);
-    fireEvent.change(screen.getByPlaceholderText("글감 / 콘텐츠 주제 입력"), {
-      target: { value: "고객용 텍스트 생성" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "OSMU 생성" }));
-
-    await waitFor(() => {
-      expect(mocks.apiPost).toHaveBeenCalledWith("/api/studio/text", expect.any(Object));
-    });
     expect(mocks.swrKeys.filter((key) => key?.startsWith("/api/higgsfield/"))).toEqual([]);
     expect(mocks.apiPost.mock.calls.map(([path]) => path).filter((path) => (
       String(path).startsWith("/api/higgsfield/")
     ))).toEqual([]);
-    expect(screen.getByText("이미지·영상 생성과 Higgsfield 크레딧은 운영자 전용 기능입니다.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "OSMU 생성" })).not.toBeInTheDocument();
     expect(screen.queryByTitle("사용 이력 보기")).not.toBeInTheDocument();
   });
 });

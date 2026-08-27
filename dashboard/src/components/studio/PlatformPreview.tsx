@@ -11,6 +11,21 @@ export interface PreviewText {
 export interface PreviewMedia { imgUrl?: string; vidUrl?: string }
 export type PreviewPlatform = "threads" | "x" | "instagram" | "facebook" | "shorts" | "reels" | "tiktok";
 
+export interface PreviewInlineEditor {
+  displayName: string;
+  title: string;
+  caption: string;
+  hashtags: string;
+  firstComment: string;
+  firstCommentSupported: boolean;
+  firstCommentReason?: string;
+  onDisplayNameChange: (value: string) => void;
+  onTitleChange: (value: string) => void;
+  onCaptionChange: (value: string) => void;
+  onHashtagsChange: (value: string) => void;
+  onFirstCommentChange: (value: string) => void;
+}
+
 export const PREVIEW_PLATFORMS: { key: PreviewPlatform; label: string }[] = [
   { key: "threads", label: "Threads" }, { key: "x", label: "X" },
   { key: "instagram", label: "Instagram" }, { key: "facebook", label: "Facebook" },
@@ -54,6 +69,77 @@ function Frame({ p, label, children, headerRight, characterCount }: {
         </div>
       </div>
       {children}
+    </div>
+  );
+}
+
+function InlinePreviewEditor({ platform, editor }: { platform: PreviewPlatform; editor: PreviewInlineEditor }) {
+  const video = platform === "shorts" || platform === "reels" || platform === "tiktok";
+  const inlineClass = "mt-micro min-h-control-touch w-full rounded-lg border border-transparent bg-transparent px-stack text-body text-text underline decoration-accent/40 underline-offset-4 focus:border-accent focus:bg-surface focus:no-underline";
+  return (
+    <div className="mt-stack border-t border-border pt-stack" data-testid={`inline-editor-${platform}`} data-pub-fields={platform}>
+      <div className="grid gap-stack sm:grid-cols-2">
+        <label className="text-caption text-muted">
+          표시 이름
+          <input
+            aria-label={`${platform} 표시 이름`}
+            data-pv-inline-edit={`${platform}:displayName`}
+            value={editor.displayName}
+            onChange={(event) => editor.onDisplayNameChange(event.target.value)}
+            className={inlineClass}
+          />
+        </label>
+        {video ? (
+          <label className="text-caption text-muted">
+            제목
+            <input
+              aria-label={`${platform} 제목`}
+              data-pv-inline-edit={`${platform}:title`}
+              value={editor.title}
+              onChange={(event) => editor.onTitleChange(event.target.value)}
+              className={inlineClass}
+            />
+          </label>
+        ) : null}
+      </div>
+      <label className="mt-stack block text-caption text-muted">
+        캡션
+        <textarea
+          aria-label={`${platform} 캡션`}
+          data-pv-inline-edit={`${platform}:caption`}
+          value={editor.caption}
+          onChange={(event) => editor.onCaptionChange(event.target.value)}
+          rows={3}
+          className={`${inlineClass} p-stack`}
+        />
+      </label>
+      <label className="mt-stack block text-caption text-muted">
+        해시태그
+        <input
+          aria-label={`${platform} 해시태그`}
+          data-pv-inline-edit={`${platform}:hashtags`}
+          value={editor.hashtags}
+          onChange={(event) => editor.onHashtagsChange(event.target.value)}
+          className={inlineClass}
+        />
+      </label>
+      {editor.firstCommentSupported ? (
+        <label className="mt-stack block text-caption text-muted">
+          첫 댓글
+          <textarea
+            aria-label={`${platform} 첫 댓글`}
+            data-pv-inline-edit={`${platform}:firstComment`}
+            value={editor.firstComment}
+            onChange={(event) => editor.onFirstCommentChange(event.target.value)}
+            rows={2}
+            className={`${inlineClass} p-stack`}
+          />
+        </label>
+      ) : (
+        <div className="mt-stack rounded-lg border border-border bg-surface-2 p-stack text-caption text-subtle">
+          첫 댓글 미지원: {editor.firstCommentReason || "현재 채널 어댑터가 지원하지 않습니다"}
+        </div>
+      )}
     </div>
   );
 }
@@ -103,8 +189,8 @@ function VideoRail({ kind }: { kind: "shorts" | "reels" | "tiktok" }) {
   );
 }
 
-export function PlatformPreview({ platform, text, media, brand = "your_brand", headerRight }: { platform: PreviewPlatform; text: PreviewText; media: PreviewMedia; brand?: string; headerRight?: React.ReactNode }) {
-  const handle = brand.replace(/^@/, "");
+export function PlatformPreview({ platform, text, media, brand = "your_brand", headerRight, editor }: { platform: PreviewPlatform; text: PreviewText; media: PreviewMedia; brand?: string; headerRight?: React.ReactNode; editor?: PreviewInlineEditor }) {
+  const handle = (editor?.displayName || brand).replace(/^@/, "");
   const img = media.imgUrl; const vid = media.vidUrl;
   const label = PREVIEW_PLATFORMS.find((x) => x.key === platform)?.label || platform;
   const previewBody = platform === "threads"
@@ -131,6 +217,7 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
             <div className="text-subtle text-sm mt-2">답글 18개 · 좋아요 124개</div>
           </div></div>
       </div>
+      {editor ? <InlinePreviewEditor platform="threads" editor={editor} /> : null}
     </Frame>
   );
   if (platform === "x") return (
@@ -146,6 +233,7 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
               <span className="flex items-center gap-1.5">{P(I.heart)}312</span><span className="flex items-center gap-1.5">{P(I.bookmark)}</span><span className="flex items-center gap-1.5">{P(I.share)}</span>
             </div></div></div>
       </div>
+      {editor ? <InlinePreviewEditor platform="x" editor={editor} /> : null}
     </Frame>
   );
   if (platform === "facebook") return (
@@ -157,6 +245,7 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
         <div className="flex items-center justify-between px-3 py-1.5 text-subtle text-[13px] border-b border-border"><span>👍❤️ 248</span><span>댓글 32 · 공유 12</span></div>
         <div className="flex text-subtle text-sm font-medium">{["좋아요", "댓글", "공유"].map((l) => <div key={l} className="flex-1 text-center py-2 hover:bg-surface-2">{l}</div>)}</div>
       </div>
+      {editor ? <InlinePreviewEditor platform="facebook" editor={editor} /> : null}
     </Frame>
   );
   if (platform === "instagram") {
@@ -171,12 +260,13 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
           <div className="px-3 pt-1 pb-3 text-sm"><b>{handle}</b> <span className="text-muted">{text.instagram?.caption}</span>
             <div className="text-accent mt-0.5">{(text.instagram?.hashtags || []).map((h) => `#${h.replace(/^#/, "")}`).join(" ")}</div></div>
         </div>
+        {editor ? <InlinePreviewEditor platform="instagram" editor={editor} /> : null}
       </Frame>
     );
   }
   // 세로영상
   const k = platform as "shorts" | "reels" | "tiktok";
-  const cap = text.shorts?.hook || text.instagram?.caption || "";
+  const cap = editor?.caption || text.shorts?.hook || text.instagram?.caption || "";
   return (
     <Frame p={platform} label={label} headerRight={headerRight}>
       <div className="relative rounded-2xl overflow-hidden bg-surface-2 aspect-[9/16] border border-border">
@@ -190,11 +280,14 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
           <VideoRail kind={k} />
           <div className="absolute left-3 right-12 bottom-3 text-text">
             <div className="text-sm font-bold">@{handle}</div>
+            {editor?.title ? <div className="mt-micro text-body-sm font-semibold">{editor.title}</div> : null}
             <div className="text-[12px] leading-snug line-clamp-2 opacity-95">{cap}</div>
+            {editor?.hashtags ? <div className="mt-micro line-clamp-1 text-caption opacity-90">{editor.hashtags}</div> : null}
             {k === "tiktok" && <div className="text-caption mt-1 opacity-90">🎵 original sound - {handle}</div>}
           </div>
         </>}
       </div>
+      {editor ? <InlinePreviewEditor platform={platform} editor={editor} /> : null}
     </Frame>
   );
 }

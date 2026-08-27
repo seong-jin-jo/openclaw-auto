@@ -10,7 +10,7 @@ import {
 } from "@/lib/constants";
 import { CHANNEL_GROUPS } from "@/lib/channel-capabilities";
 import { getChannelIcon } from "@/lib/channel-icons";
-import { useUIStore, type Workspace } from "@/store/ui-store";
+import { useUIStore, type StudioRoom, type Workspace } from "@/store/ui-store";
 import { fetcher } from "@/lib/api";
 import { clearAuthToken, getAuthToken } from "@/lib/auth";
 import { ThemeToggle } from "./ThemeToggle";
@@ -81,6 +81,7 @@ function SidebarGroup({
             <Link
               key={i.key || `${i.label}-${idx}`}
               href={href}
+              title={i.label}
               className={`sidebar-item ${isActive ? "active" : ""} w-full text-left px-4 py-1.5 text-sm ${textColor} flex items-center gap-3`}
             >
               <span
@@ -88,9 +89,9 @@ function SidebarGroup({
               >
                 {i.key ? getChannelIcon(i.key) : <span className="text-caption font-bold">{i.icon}</span>}
               </span>
-              {i.label}
+              <span className="max-xl:sr-only">{i.label}</span>
               {i.status && (
-                <span className={`ml-auto text-caption px-1.5 py-0.5 rounded-full ${i.statusClass || "bg-surface-2 text-subtle"}`}>
+                <span className={`ml-auto text-caption px-1.5 py-0.5 rounded-full max-xl:hidden ${i.statusClass || "bg-surface-2 text-subtle"}`}>
                   {i.status}
                 </span>
               )}
@@ -98,6 +99,55 @@ function SidebarGroup({
           );
         })}
     </div>
+  );
+}
+
+const ROOM_FLOW: Array<{ key: StudioRoom | "performance"; label: string; href: string }> = [
+  { key: "create", label: "생성실", href: "/studio?room=create" },
+  { key: "edit", label: "편집실", href: "/studio?room=edit" },
+  { key: "publish", label: "발행실", href: "/studio?room=publish" },
+  { key: "performance", label: "성과실", href: "/" },
+];
+
+function RoomFlowNav({ pathname }: { pathname: string }) {
+  const { studioRoom, setStudioRoom } = useUIStore();
+  const activeIndex = pathname === "/"
+    ? ROOM_FLOW.length - 1
+    : pathname === "/studio"
+      ? ROOM_FLOW.findIndex((room) => room.key === studioRoom)
+      : -1;
+
+  return (
+    <section className="border-b border-border px-stack pb-stack" aria-label="한 편의 제작 순서">
+      <p className="mb-stack text-caption font-semibold text-subtle max-xl:text-center">한 편의 제작 순서</p>
+      <ol className="space-y-micro">
+        {ROOM_FLOW.map((room, index) => {
+          const active = index === activeIndex;
+          const done = activeIndex >= 0 && index < activeIndex;
+          return (
+            <li key={room.key} className="relative">
+              {index < ROOM_FLOW.length - 1 ? (
+                <span className={`absolute left-4 top-8 h-5 border-l ${done ? "border-accent" : "border-border"}`} aria-hidden />
+              ) : null}
+              <Link
+                href={room.href}
+                onClick={() => {
+                  if (room.key !== "performance") setStudioRoom(room.key);
+                }}
+                aria-current={active ? "page" : undefined}
+                className={`flex min-h-control-touch items-center gap-stack-tight rounded-lg px-stack-tight py-stack-tight text-body-sm font-semibold transition-colors max-xl:flex-col max-xl:gap-micro max-xl:px-micro ${active ? "bg-accent text-accent-fg" : "text-muted hover:bg-surface-2"}`}
+              >
+                <span className={`relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption ${active ? "border-accent-fg/40 bg-accent-fg/15 text-accent-fg" : done ? "border-accent bg-accent-soft text-accent" : "border-border bg-surface text-subtle"}`}>
+                  {done ? "✓" : `0${index + 1}`}
+                </span>
+                <span>{room.label}</span>
+                {active ? <span className="ml-auto rounded-full bg-accent-fg/15 px-stack-tight py-micro text-caption max-xl:ml-0 max-xl:sr-only">지금 여기</span> : null}
+              </Link>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
   );
 }
 
@@ -127,7 +177,7 @@ function chSidebarItem(key: string, channelConfig: Record<string, Record<string,
       statusClass: "bg-accent/15 text-accent",
     };
   }
-  // 미연결 — 클릭 가능, 흰 글씨
+  // 미연결. 클릭 가능, 흰 글씨.
   return { key, label, icon: label[0], nav: true };
 }
 
@@ -150,7 +200,7 @@ function CustomerWorkspaceIdentity({
     }
   }, [me.tenant, activeWorkspace?.id, setActiveWorkspace]);
 
-  // 테넌트 해석 실패(세션 만료/일시적 DB 오류 등) — 명시적 재시도 경로 제공.
+  // 테넌트 해석 실패(세션 만료/일시적 DB 오류 등). 명시적 재시도 경로 제공.
   if (me.tenantError) {
     return (
       <button onClick={() => void mutateMe()} className="mt-1 text-xs text-subtle hover:text-muted">
@@ -274,78 +324,16 @@ function CustomerSidebar({
   };
 
   return (
-    <aside className="w-56 border-r border-border/50 bg-surface flex flex-col h-screen sticky top-0">
-      <div className="px-4 py-5 border-b border-border/50">
-        <div className="flex items-center gap-2">
-          {/* 로고 — 스택형(채널 레이어) 마크. 실 로고는 public/logo.svg 교체. */}
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-muted shrink-0" aria-label="Marketing Hub">
-            <rect x="3" y="3" width="13" height="13" rx="4.2" fill="currentColor" opacity="0.3" />
-            <rect x="8" y="8" width="13" height="13" rx="4.2" fill="var(--accent)" />
-          </svg>
-          <h1 className="text-base font-semibold text-text tracking-tight">Marketing Hub</h1>
-        </div>
+    <aside className="sticky top-0 flex h-screen w-24 shrink-0 flex-col border-r border-border bg-surface xl:w-56">
+      <div className="border-b border-border px-stack py-pad-inset max-xl:px-stack-tight">
+        <p className="text-caption font-semibold text-subtle max-xl:text-center">작업 공간</p>
         <CustomerWorkspaceIdentity me={me} mutateMe={mutateMe} />
       </div>
 
       <nav className="flex-1 min-h-0 overflow-y-auto py-3">
-        <div className="px-3 mb-2">
-          <span className="text-caption font-medium text-subtle uppercase tracking-wider">Overview</span>
-        </div>
-        <Link
-          href="/"
-          className={`sidebar-item ${pathname === "/" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-muted flex items-center gap-3`}
-        >
-          <span className="text-accent">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-            </svg>
-          </span>
-          성과
-        </Link>
+        <RoomFlowNav pathname={pathname} />
 
-
-        <Link
-          href="/studio"
-          className={`sidebar-item ${pathname === "/studio" ? "active" : ""} w-full text-left px-4 py-2 text-sm flex items-center gap-3 ${pathname === "/studio" ? "text-text" : "text-muted"}`}
-        >
-          <span className="text-accent">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L22 12l-6.714 2.143L13 21l-2.286-6.857L4 12l6.714-2.143L13 3z" />
-            </svg>
-          </span>
-          OSMU Studio
-          <span className="ml-auto text-caption px-1.5 py-0.5 rounded-full bg-accent-soft text-accent">NEW</span>
-        </Link>
-
-        <Link
-          href="/inbox"
-          className={`sidebar-item ${pathname === "/inbox" ? "active" : ""} w-full text-left px-4 py-2 text-sm flex items-center gap-3 ${pathname === "/inbox" ? "text-text" : "text-muted"}`}
-        >
-          <span className="text-green-400">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                d="M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.15-1.588H6.911a2.25 2.25 0 00-2.15 1.588L2.35 13.177a2.25 2.25 0 00-.1.661z" />
-            </svg>
-          </span>
-          승인 인박스
-          <span className="ml-auto text-caption px-1.5 py-0.5 rounded-full bg-success/15 text-success">NEW</span>
-        </Link>
-
-        <Link
-          href="/calendar"
-          className={`sidebar-item ${pathname === "/calendar" ? "active" : ""} w-full text-left px-4 py-2 text-sm flex items-center gap-3 ${pathname === "/calendar" ? "text-text" : "text-muted"}`}
-        >
-          <span className="text-accent">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-            </svg>
-          </span>
-          발행 캘린더
-        </Link>
-
-        {/* 발행 채널 그룹 — constants의 PUBLISH_CHANNEL_GROUPS 단일 소스(Settings>Channels와 동일).
+        {/* 발행 채널 그룹. constants의 PUBLISH_CHANNEL_GROUPS 단일 소스(Settings>Channels와 동일).
             threads/x는 연결상태 뱃지가 특수해 별도 아이템 유지. */}
         {CHANNEL_GROUPS.map((g) => (
           <SidebarGroup
@@ -358,7 +346,7 @@ function CustomerSidebar({
           />
         ))}
 
-        {/* "Data & SEO" 채널 그룹 제거 — /channels/* 빈 연결폼으로 가던 죽은 항목이었음.
+        {/* "Data & SEO" 채널 그룹 제거. /channels/* 빈 연결폼으로 가던 죽은 항목이었음.
             동작하는 읽기 대시보드는 아래 "Data & Analytics" 섹션이 제공(사이드바=연결가능 원칙). */}
 
         {/* ── Data & Analytics ── */}
