@@ -63,7 +63,12 @@ describe("R-02 AC와 TC 회귀 계약", () => {
       "src/lib/sourcing-bridge.ts",
     ];
     for (const file of writers) {
-      expect(read(file), file).toMatch(/mirrorQueue(Post|Delete)/);
+      const source = read(file);
+      if (/addQueuePost/.test(source)) {
+        expect(read("src/lib/queue-add.ts"), `${file} -> src/lib/queue-add.ts`).toMatch(/mirrorQueuePost/);
+        continue;
+      }
+      expect(source, file).toMatch(/mirrorQueue(Post|Delete)/);
     }
   });
 });
