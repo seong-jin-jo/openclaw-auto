@@ -631,6 +631,7 @@ export default function StudioPage() {
             <span className="text-caption text-subtle">발행할 채널</span>
           </section>
           {lastError ? <div className="rounded-lg border border-danger/30 bg-danger/10 p-stack text-caption text-danger">마지막 실패: {lastError}</div> : null}
+          {vid?.narration?.message ? <div className="rounded-lg border border-warning/30 bg-warning/10 p-stack text-caption text-warning">{vid.narration.message}</div> : null}
           {(pub.running || Object.keys(pub.status).length > 0) ? (
             <div className="card flex items-center gap-stack p-stack">
               <div className="w-12 shrink-0"><div className="text-center text-caption font-bold text-success">{pubPct}%</div><progress className="progress-semantic mt-micro h-micro w-full" max={100} value={pubPct} aria-label="발행 진행률" /></div>
@@ -657,9 +658,9 @@ export default function StudioPage() {
           {GROUPS.map((group) => (
             <section key={group.title}>
               <div className="mb-stack flex items-center gap-stack-tight border-b border-border pb-stack"><b className="text-body text-text">{group.title}</b><span className="text-caption text-subtle">{group.platforms.map((platform) => LABEL[platform]).join(" · ")}</span></div>
-              <div className="flex flex-nowrap items-start gap-stack-section overflow-x-auto pb-stack-tight">
+              <div className="grid items-start gap-stack-section md:grid-cols-2 xl:grid-cols-3">
                 {group.platforms.map((platform) => (
-                  <div key={platform} data-room-preview={platform} className="w-full min-w-80 max-w-sm shrink-0 rounded-2xl border border-border bg-surface p-stack">
+                  <div key={platform} data-room-preview={platform} className="min-w-0 rounded-2xl border border-border bg-surface p-stack">
                     <PlatformPreview
                       platform={platform}
                       text={text || {}}
