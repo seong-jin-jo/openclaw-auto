@@ -1,18 +1,19 @@
-import { InMemoryGenerationService } from "./service";
+import { PostgresGenerationRepository } from "./repository";
+import { GenerationService } from "./service";
 
 const studioGlobal = globalThis as typeof globalThis & {
-  __studioGenerationRuntime?: InMemoryGenerationService;
+  __studioGenerationRuntime?: GenerationService;
 };
 
-function runtimeInstance(): InMemoryGenerationService {
-  studioGlobal.__studioGenerationRuntime ??= new InMemoryGenerationService();
+function runtimeInstance(): GenerationService {
+  studioGlobal.__studioGenerationRuntime ??= new GenerationService(new PostgresGenerationRepository());
   return studioGlobal.__studioGenerationRuntime;
 }
 
-export function generationRuntime(): InMemoryGenerationService {
+export function generationRuntime(): GenerationService {
   return runtimeInstance();
 }
 
-export function resetGenerationRuntimeForTests(): void {
-  studioGlobal.__studioGenerationRuntime = new InMemoryGenerationService();
+export function setGenerationRuntimeForTests(service: GenerationService): void {
+  studioGlobal.__studioGenerationRuntime = service;
 }

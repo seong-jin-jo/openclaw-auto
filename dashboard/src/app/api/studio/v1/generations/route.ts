@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     const principal = resolveDevelopmentPrincipal(request);
     const input = parseGenerationRequest(await readJson(request));
     assertWorkspaceAccess(principal, input.workspaceId);
-    const response = generationRuntime().create(
+    const response = await generationRuntime().create(
       principal.memberId,
       request.headers.get("Idempotency-Key") ?? "",
       input,

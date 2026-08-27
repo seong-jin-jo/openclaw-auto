@@ -8,7 +8,11 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const principal = resolveDevelopmentPrincipal(request);
     const { jobId } = await context.params;
-    return studioSuccess(generationRuntime().regenerate(principal.memberId, jobId), 201);
+    return studioSuccess(await generationRuntime().regenerate(
+      principal.memberId,
+      jobId,
+      [...principal.allowedWorkspaceIds],
+    ), 201);
   } catch (error) {
     return studioFailure(error);
   }

@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { studioFailure } from "@/lib/studio/generation/http";
-import { resetGenerationRuntimeForTests } from "@/lib/studio/generation/runtime";
+import { setGenerationRuntimeForTests } from "@/lib/studio/generation/runtime";
+import { GenerationService } from "@/lib/studio/generation/service";
 import { generationRequestFixture, STUDIO_TEST_WORKSPACE_ID } from "./generation-fixture";
+import { MemoryGenerationRepository } from "./generation-memory-repository";
 
 const TOKEN = "local-test-token-without-production-authority";
 
@@ -18,7 +20,7 @@ function postRequest(body: unknown, idempotencyKey = "integration-create-1", tok
 }
 
 beforeEach(() => {
-  resetGenerationRuntimeForTests();
+  setGenerationRuntimeForTests(new GenerationService(new MemoryGenerationRepository()));
   process.env.STUDIO_IDENTITY_MODE = "development";
   process.env.STUDIO_DEV_BEARER_TOKEN = TOKEN;
   process.env.STUDIO_DEV_MEMBER_ID = "member-integration";

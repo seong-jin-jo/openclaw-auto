@@ -8,7 +8,11 @@ export async function GET(request: Request, context: RouteContext) {
   try {
     const principal = resolveDevelopmentPrincipal(request);
     const { jobId } = await context.params;
-    return studioSuccess(generationRuntime().get(principal.memberId, jobId));
+    return studioSuccess(await generationRuntime().get(
+      principal.memberId,
+      jobId,
+      [...principal.allowedWorkspaceIds],
+    ));
   } catch (error) {
     return studioFailure(error);
   }

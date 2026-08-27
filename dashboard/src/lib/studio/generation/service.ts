@@ -48,15 +48,36 @@ export type GenerationResponse = Omit<GenerationJob, "memberId" | "request" | "t
   };
 };
 
-type IdempotencyRecord = {
+export type IdempotencyRecord = {
   requestHash: string;
   response: GenerationResponse;
 };
 
-type FreeRetryUse = {
-  originalJobId: string;
-  replacementJobId: string;
+export type PersistCreationInput = {
+  job: GenerationJob;
+  operation: "generation.create";
+  idempotencyKey: string;
+  requestHash: string;
+  response: GenerationResponse;
 };
+
+export type PersistedCreation = IdempotencyRecord & { created: boolean };
+
+export type PersistFreeRegenerationInput = {
+  originalJobId: string;
+  replacement: GenerationJob;
+  localDate: string;
+  operation: "generation.create";
+  idempotencyKey: string;
+  requestHash: string;
+  response: GenerationResponse;
+};
+
+export interface GenerationRepository {
+  persistCreation(input: PersistCreationInput): Promise<PersistedCreation>;
+  findJob(memberId: string, jobId: string, allowedWorkspaceIds: readonly string[]): Promise<GenerationJob | null>;
+  persistFreeRegeneration(input: PersistFreeRegenerationInput): Promise<boolean>;
+}
 
 function stableJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
@@ -185,12 +206,55 @@ function publicResponse(job: GenerationJob): GenerationResponse {
   };
 }
 
-export class InMemoryGenerationService {
-  private readonly jobs = new Map<string, GenerationJob>();
-  private readonly idempotency = new Map<string, IdempotencyRecord>();
-  private readonly freeRetryUses = new Map<string, FreeRetryUse>();
+function buildJob(memberId: string, request: GenerationRequest, now: Date): GenerationJob {
+  const context = request.learningContext;
+  return {
+    jobId: crypto.randomUUID(),
+    memberId,
+    workspaceId: request.workspaceId,
+    status: "succeeded",
+    candidates: buildCandidates(request),
+    layerRevisions: {
+      s0: context.s0.revision,
+      s1: context.s1.revision,
+      u2: context.u2.revision,
+      u3: context.u3.revision,
+      x4: context.x4.revision,
+      l5: context.l5.revision,
+    },
+    platformSpecReceipt: request.platformSpec ? {
+      reference: request.platformSpec.reference,
+      version: request.platformSpec.version,
+      digest: request.platformSpec.digest,
+    } : null,
+    timeZone: context.u2.timeZone,
+    request: {
+      ...request,
+      platformSpec: request.platformSpec ? { ...request.platformSpec, body: {} } : null,
+    },
+    createdAt: now.toISOString(),
+  };
+}
 
-  create(memberId: string, idempotencyKey: string, request: GenerationRequest, now = new Date()): GenerationResponse {
+function paidRegenerationApprovalRequired(now: Date, timeZone: string): StudioApiError {
+  return new StudioApiError({
+    status: 409,
+    code: "PAID_REGENERATION_APPROVAL_REQUIRED",
+    message: "오늘의 무료 재생성을 이미 사용했습니다",
+    details: {
+      free_retry_resets_at: nextLocalDateBoundary(now, timeZone),
+      paid_retry_quote: envPositiveInt("STUDIO_PAID_REGENERATION_MINOR") === null ? null : {
+        currency: process.env.STUDIO_COST_CURRENCY || "KRW",
+        amount_minor: envPositiveInt("STUDIO_PAID_REGENERATION_MINOR"),
+      },
+    },
+  });
+}
+
+export class GenerationService {
+  constructor(private readonly repository: GenerationRepository) {}
+
+  async create(memberId: string, idempotencyKey: string, request: GenerationRequest, now = new Date()): Promise<GenerationResponse> {
     if (!idempotencyKey || idempotencyKey.length > 255) {
       throw new StudioApiError({
         status: 400,
@@ -198,94 +262,57 @@ export class InMemoryGenerationService {
         message: "Idempotency-Key 머리말이 필요합니다",
       });
     }
-    const scope = `${memberId}:generation.create:${idempotencyKey}`;
     const requestHash = hashRequest(request);
-    const existing = this.idempotency.get(scope);
-    if (existing) {
-      if (existing.requestHash !== requestHash) {
-        throw new StudioApiError({
-          status: 409,
-          code: "IDEMPOTENCY_CONFLICT",
-          message: "같은 Idempotency-Key에 다른 요청 본문을 보낼 수 없습니다",
-        });
-      }
-      return existing.response;
-    }
-
-    const context = request.learningContext;
-    const job: GenerationJob = {
-      jobId: crypto.randomUUID(),
-      memberId,
-      workspaceId: request.workspaceId,
-      status: "succeeded",
-      candidates: buildCandidates(request),
-      layerRevisions: {
-        s0: context.s0.revision,
-        s1: context.s1.revision,
-        u2: context.u2.revision,
-        u3: context.u3.revision,
-        x4: context.x4.revision,
-        l5: context.l5.revision,
-      },
-      platformSpecReceipt: request.platformSpec ? {
-        reference: request.platformSpec.reference,
-        version: request.platformSpec.version,
-        digest: request.platformSpec.digest,
-      } : null,
-      timeZone: context.u2.timeZone,
-      request: {
-        ...request,
-        platformSpec: request.platformSpec ? { ...request.platformSpec, body: {} } : null,
-      },
-      createdAt: now.toISOString(),
-    };
+    const job = buildJob(memberId, request, now);
     const response = publicResponse(job);
-    this.jobs.set(job.jobId, job);
-    this.idempotency.set(scope, { requestHash, response });
-    return response;
+    const persisted = await this.repository.persistCreation({
+      job,
+      operation: "generation.create",
+      idempotencyKey,
+      requestHash,
+      response,
+    });
+    if (persisted.requestHash !== requestHash) {
+      throw new StudioApiError({
+        status: 409,
+        code: "IDEMPOTENCY_CONFLICT",
+        message: "같은 Idempotency-Key에 다른 요청 본문을 보낼 수 없습니다",
+      });
+    }
+    return persisted.response;
   }
 
-  get(memberId: string, jobId: string): GenerationResponse {
-    const job = this.jobs.get(jobId);
-    if (!job || job.memberId !== memberId) {
+  async get(memberId: string, jobId: string, allowedWorkspaceIds: readonly string[]): Promise<GenerationResponse> {
+    const job = await this.repository.findJob(memberId, jobId, allowedWorkspaceIds);
+    if (!job) {
       throw new StudioApiError({ status: 404, code: "RESOURCE_NOT_FOUND", message: "생성 작업을 찾을 수 없습니다" });
     }
     return publicResponse(job);
   }
 
-  regenerate(memberId: string, jobId: string, now = new Date()): {
+  async regenerate(memberId: string, jobId: string, allowedWorkspaceIds: readonly string[], now = new Date()): Promise<{
     freeRetryConsumed: true;
     replacement: GenerationResponse;
     freeRetryResetsAt: string;
-  } {
-    const original = this.jobs.get(jobId);
-    if (!original || original.memberId !== memberId) {
+  }> {
+    const original = await this.repository.findJob(memberId, jobId, allowedWorkspaceIds);
+    if (!original) {
       throw new StudioApiError({ status: 404, code: "RESOURCE_NOT_FOUND", message: "생성 작업을 찾을 수 없습니다" });
     }
     const localDate = dateInZone(now, original.timeZone);
-    const useKey = `${memberId}:${localDate}:all_rejected`;
-    if (this.freeRetryUses.has(useKey)) {
-      throw new StudioApiError({
-        status: 409,
-        code: "PAID_REGENERATION_APPROVAL_REQUIRED",
-        message: "오늘의 무료 재생성을 이미 사용했습니다",
-        details: {
-          free_retry_resets_at: nextLocalDateBoundary(now, original.timeZone),
-          paid_retry_quote: envPositiveInt("STUDIO_PAID_REGENERATION_MINOR") === null ? null : {
-            currency: process.env.STUDIO_COST_CURRENCY || "KRW",
-            amount_minor: envPositiveInt("STUDIO_PAID_REGENERATION_MINOR"),
-          },
-        },
-      });
-    }
-
-    const replacement = this.create(
-      memberId,
-      `free-regeneration:${jobId}:${localDate}`,
-      original.request,
-      now,
-    );
-    this.freeRetryUses.set(useKey, { originalJobId: jobId, replacementJobId: replacement.jobId });
+    const idempotencyKey = `free-regeneration:${jobId}:${localDate}`;
+    const replacementJob = buildJob(memberId, original.request, now);
+    const replacement = publicResponse(replacementJob);
+    const consumed = await this.repository.persistFreeRegeneration({
+      originalJobId: jobId,
+      replacement: replacementJob,
+      localDate,
+      operation: "generation.create",
+      idempotencyKey,
+      requestHash: hashRequest(original.request),
+      response: replacement,
+    });
+    if (!consumed) throw paidRegenerationApprovalRequired(now, original.timeZone);
     return {
       freeRetryConsumed: true,
       replacement,
