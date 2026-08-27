@@ -1,3 +1,16 @@
+## [2026-08-28 05:00 감독 가동 · studio 장부 DB 이전 완료 · 성과실 붙임]
+
+**회장 지시: 개발이 끝날 때까지 codex 를 멈추지 말 것. 아침에 얼타고 있으면 안 됨.**
+
+- **감독 가동**: `scripts/osmu-supervisor.sh` 를 nohup 으로 띄웠다. 두 갈래(build·fe)를 각각 한 명씩 돌리고, 비면 `docs/plan/osmu-backlog.tsv` 에서 다음 판을 자동 발주한다. 상태는 `docs/plan/osmu-backlog-state.tsv`. 멈추려면 `touch /tmp/osmu-supervisor.stop`. 로그 `/tmp/osmu-supervisor.log`.
+- 백로그 6판 대기: build6 댓글 본문·답글 / build7 발행 굳히기 / build8 숏폼 공장 동시가동 / fe6 생성실·편집실 / fe7 처음 온 사람의 길 / fe8 빈 상태·오류 상태. 프롬프트는 `docs/plan/backlog-prompts/`.
+- **studio 생성 장부 DB 이전 완료**(회장 선조치 승인). 커밋 `971c0fab`(스키마) `8e65d2d2`(런타임) `5584aae1`(테스트). **컨트롤러 직접 관찰**: 작업 생성 후 앱 재시작 → 같은 job_id 조회 200, 후보 3장, 상태 succeeded. 계약 검증 10/10 통과. open-decisions 항목 해소 처리.
+- **성과실 v63 붙임** 커밋 `9554ba0a`. 네 폭 검증 `d4377d3d`.
+- 사업 좌표 위키 정본화 `3b74b799`(원문 `docs/requests/2026-08-28-회장-OSMU-사업좌표.md`).
+- 갭 재확인 `10c2b0c7`: 옛 감사의 "없음" 11줄 중 6줄은 이미 됨. 남은 5줄은 전부 댓글 계열 → build6 이 담당.
+- 하네스: `~/.claude/CLAUDE.md` §4.8 신설(위임은 진행이 아니다. 발주 즉시 종료감지와 컨트롤러 자기 몫을 동시에 건다).
+- 다음: 감독이 알아서 돌린다. 컨트롤러는 회수분을 직접 재검증(§9.2)하고 남은 갭을 백로그에 계속 채운다.
+
 ## [2026-08-28 04:45 Studio 생성 장부 Postgres 영속화와 재시작 검증]
 
 - **인계 기준:** 회장이 명시한 Studio 생성 작업, 멱등 키, 회원 현지 날짜 무료 재생성 장부의 DB 이전을 primary로 사용했다. 공개 HTTP 계약과 날짜 의미는 변경하지 않았다.
