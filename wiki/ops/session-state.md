@@ -1,3 +1,11 @@
+## [2026-08-28 Studio 생성 장부 DB 영속화 진행중]
+
+- **인계 기준:** 회장이 명시한 `studio 생성 장부를 메모리에서 DB로 이동` 과제를 primary로 사용한다. `openclaw-auto:0.0`은 별도 화면·백로그 작업 중이고, `osmu-build5`와 `osmu-fe5`는 zsh 대기 상태라 소스 편집 충돌이 없음을 확인했다.
+- **허용 범위:** `pipeline-state.osmu.md`의 build in-progress와 회장 선조치 승인에 따라 생성 작업, 멱등 키, 무료 재생성 사용 기록만 수정한다. 공개 HTTP 계약과 회원 현지 날짜 의미는 변경하지 않는다.
+- **진행:** `docs/audit/osmu-v62-db-options-v1-gpt-codex.md`, `dashboard/db/schema.sql`, `dashboard/db/rls.sql`, 현행 service와 E2E 10건을 읽었다. schema와 RLS에 Studio 장부 세 테이블을 추가하는 중이다.
+- **다음:** DB repository와 async service 연결, 정상·거절·경합 계약 테스트, 로컬 schema 적용, E2E 10건, 앱 재시작 전후 조회, 전체 test와 TypeScript 실행.
+- **배포:** 로컬 build만. QA와 production 배포는 미실행이다.
+
 ## [2026-08-28 04:10 좁은 화면 셸·문구 정리·편집 계약 검증·실사 점검 고장 2건 수정]
 
 - 커밋: `afdcb0cf`(좁은 화면 서랍 + 긴 대시 제거), `5283f7da`(실사 점검 고장 2건), `465cb34e`(studio E2E 스크립트).
