@@ -14,9 +14,14 @@ export async function GET(request: Request) {
   return runWithTenant(__t, async () => {
     const { searchParams } = requestUrl;
     const status = searchParams.get("status");
-    const source = searchParams.get("source");
+    const returnTo = searchParams.get("returnTo");
+    const legacySource = searchParams.get("source");
+    if (returnTo && legacySource && returnTo !== legacySource) {
+      return Response.json({ error: "returnTo and source must match" }, { status: 400 });
+    }
+    const source = returnTo ?? legacySource;
     if (source && !isPublishReturnSource(source)) {
-      return Response.json({ error: "source must be inbox or calendar" }, { status: 400 });
+      return Response.json({ error: "returnTo must be inbox or calendar" }, { status: 400 });
     }
     const returnSource = source && isPublishReturnSource(source) ? source : null;
 

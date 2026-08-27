@@ -2,7 +2,11 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import { withTenant } from "@/lib/db";
 import { effectiveTenantId } from "@/lib/tenant-auth";
-import { buildZeroPerformanceSuggestions, PerformanceSuggestion } from "@/lib/performance-suggestions";
+import {
+  assessPerformanceSample,
+  buildZeroPerformanceSuggestions,
+  PerformanceSuggestion,
+} from "@/lib/performance-suggestions";
 
 // 성과 기반 다음 아이디어. GET: 상위 성과 발행물·시그널(빠름, claude 없음).
 // POST: 상위 성과를 claude -p에 넣어 다음 콘텐츠 아이디어 N개 생성(별도 버튼, 자동발화 금지).
@@ -53,6 +57,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "db-unavailable" }, { status: 503 });
   }
   if (top.posts.length === 0) {
+    const sampleAssessment = assessPerformanceSample(0);
     const suggestions = buildZeroPerformanceSuggestions({
       tenantId,
       brandPrompt: top.brandPrompt,
@@ -63,6 +68,7 @@ export async function POST(request: Request) {
       suggestions,
       basedOn: 0,
       sampleCount: 0,
+      sampleAssessment,
       note: top.signals.length > 0
         ? "성과 표본이 없어 브랜드 맥락과 수집된 시장 신호로 가설을 제안합니다."
         : "성과와 수집된 시장 신호가 없어 브랜드 맥락과 서로 다른 형식으로 가설을 제안합니다.",
@@ -83,10 +89,13 @@ ${winners || "(없음)"}`;
     const { stdout } = await execFileP(CLAUDE_BIN, ["-p", prompt], { timeout: 120000, maxBuffer: 8 * 1024 * 1024 });
     const m = stdout.match(/\[[\s\S]*\]/);
     const ideas = m ? (JSON.parse(m[0]) as unknown[]).map((x) => String(x).trim()).filter(Boolean).slice(0, 5) : [];
+    const sampleAssessment = assessPerformanceSample(top.posts.length);
     const evidence = {
       postIds: top.posts.map((post) => post.id),
       signalIds: top.signals.map((signal) => signal.id),
       sampleCount: top.posts.length,
+      sampleThreshold: sampleAssessment.threshold,
+      sampleThresholdMet: sampleAssessment.thresholdMet,
       brandContextAvailable: Boolean(top.brandPrompt),
       marketTrendAvailable: top.signals.length > 0,
     };
@@ -94,11 +103,17 @@ ${winners || "(없음)"}`;
       id: `perf_${top.posts[index % top.posts.length]?.id ?? index}_${index}`,
       text,
       basis: "performance",
-      label: "우리 검증 기록",
-      verified: true,
+      label: sampleAssessment.thresholdMet ? "우리 검증 기록" : `표본 부족 · ${sampleAssessment.count}/${sampleAssessment.threshold}`,
+      verified: sampleAssessment.thresholdMet,
       evidence,
     }));
-    return Response.json({ ideas, suggestions, basedOn: top.posts.length, sampleCount: top.posts.length });
+    return Response.json({
+      ideas,
+      suggestions,
+      basedOn: top.posts.length,
+      sampleCount: top.posts.length,
+      sampleAssessment,
+    });
   } catch (e) {
     return Response.json({ error: `아이디어 생성 실패: ${(e as Error).message.slice(0, 160)}` }, { status: 502 });
   }

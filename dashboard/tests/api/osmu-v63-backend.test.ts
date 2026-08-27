@@ -154,7 +154,7 @@ describe("BE-V63-03 inbox와 calendar 발행실 복귀 컨텍스트", () => {
     }));
     vi.resetModules();
     const { GET } = await import("@/app/api/queue/route");
-    const response = await GET(new Request("http://localhost/api/queue?status=all&source=calendar"));
+    const response = await GET(new Request("http://localhost/api/queue?status=all&returnTo=calendar"));
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -169,7 +169,25 @@ describe("BE-V63-03 inbox와 calendar 발행실 복귀 컨텍스트", () => {
 
   it("BE-V63-03 거절 경로: 알 수 없는 source는 400으로 거절한다", async () => {
     const { GET } = await import("@/app/api/queue/route");
-    const response = await GET(new Request("http://localhost/api/queue?source=unknown"));
+    const response = await GET(new Request("http://localhost/api/queue?returnTo=unknown"));
     expect(response.status).toBe(400);
+  });
+
+  it("BE-V63-03 거절 경로: returnTo와 legacy source가 다르면 400으로 거절한다", async () => {
+    const { GET } = await import("@/app/api/queue/route");
+    const response = await GET(new Request("http://localhost/api/queue?returnTo=inbox&source=calendar"));
+    expect(response.status).toBe(400);
+  });
+});
+
+describe("BE-V63-04 제안 표본 5건 문턱", () => {
+  it("BE-V63-04 정상 경로: 5건이면 문턱 충족으로 판정한다", async () => {
+    const { assessPerformanceSample } = await import("@/lib/performance-suggestions");
+    expect(assessPerformanceSample(5)).toEqual({ count: 5, threshold: 5, thresholdMet: true });
+  });
+
+  it("BE-V63-04 거절 경로: 4건은 검증 표본으로 승격하지 않는다", async () => {
+    const { assessPerformanceSample } = await import("@/lib/performance-suggestions");
+    expect(assessPerformanceSample(4)).toEqual({ count: 4, threshold: 5, thresholdMet: false });
   });
 });
