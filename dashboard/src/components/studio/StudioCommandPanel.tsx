@@ -78,9 +78,8 @@ export function StudioCommandPanel({
     if (!selectedKind || !availableKinds.includes(selectedKind)) {
       const next = availableKinds[0] ?? null;
       setSelectedKind(next);
-      if (next) onKindSelect?.(next);
     }
-  }, [availableKinds, onKindSelect, selectedKind]);
+  }, [availableKinds, selectedKind]);
 
   const updateHandoff = (next: EditorHandoff) => {
     setHandoff(next);

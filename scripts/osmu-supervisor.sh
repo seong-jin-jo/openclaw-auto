@@ -75,7 +75,9 @@ while :; do
     fi
     sess="osmu-$id"
     echo "[$(date +%H:%M)] $lane 갈래가 비었다. $id 를 던진다."
-    if bash "$HOME/.claude/harness/bin/codex-in-pane.sh" "$sess" code-builder "$prompt" >/dev/null 2>&1; then
+    # 45분 기본은 이 레포의 판 하나에 짧다. build5·fe4 가 실제 작업을 끝내고
+    # 보고를 쓰다가 잘렸다. 90분으로 늘린다.
+    if CODEX_TIMEOUT="${CODEX_TIMEOUT:-5400}" bash "$HOME/.claude/harness/bin/codex-in-pane.sh" "$sess" code-builder "$prompt" >/dev/null 2>&1; then
       mark "$id" "$lane" "돌는중" "$sess"; dispatched=1
     else
       echo "[$(date +%H:%M)] $id 발주 실패"

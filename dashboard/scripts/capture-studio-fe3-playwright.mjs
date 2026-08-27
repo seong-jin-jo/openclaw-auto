@@ -10,7 +10,7 @@ const dashboardToken = process.env.FE3_DASHBOARD_TOKEN || "";
 const studioToken = process.env.FE3_STUDIO_TOKEN || "";
 const workspaceId = process.env.FE3_WORKSPACE_ID || "";
 const studioWorkspaceId = process.env.FE3_STUDIO_WORKSPACE_ID || workspaceId;
-const outputDir = process.env.FE3_OUTPUT_DIR || path.resolve(process.cwd(), "../docs/prototype/qa-fe5");
+const outputDir = process.env.FE3_OUTPUT_DIR || path.resolve(process.cwd(), "../docs/prototype/qa-fe6");
 const executablePath = process.env.FE3_CHROME_PATH || "/Users/sj/Library/Caches/ms-playwright/chromium-1228/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing";
 
 if (!dashboardToken || !studioToken || !workspaceId) {
@@ -21,6 +21,7 @@ let chatAlwaysAt390 = 0;
 let chatVisibleAt390 = false;
 const responsiveObservations = [];
 const performanceObservations = [];
+const studioRoomObservations = [];
 
 const RESPONSIVE_ROUTES = [
   { key: "performance-room", path: "/" },
@@ -51,6 +52,9 @@ await context.addInitScript(({ dashboardTokenValue, studioTokenValue, workspaceI
       shorts: { hook: "매일 발행해도 시간이 남는 이유", body: "반복을 줄이고 기준을 남깁니다.", cta: "오늘 한 편부터 묶어 보세요." },
     },
     includes: { threads: true, x: true, facebook: false, instagram: true, shorts: false, reels: false, tiktok: false },
+    editLines: ["첫 장면에서 문제를 짚습니다.", "둘째 장면에서 해결 순서를 보여 줍니다.", "마지막 장면에서 바로 할 일을 말합니다."],
+    createBranch: "video",
+    editKind: "video",
   }));
   sessionStorage.setItem("studio_generation_token", studioTokenValue);
   sessionStorage.setItem("studio_skill_version_id", "22222222-2222-4222-8222-222222222222");
@@ -136,7 +140,72 @@ try {
   if (response.status() !== 201) throw new Error(`Studio generation returned ${response.status()}`);
   await page.getByRole("button", { name: "A안 선택" }).waitFor();
   if (await page.getByRole("button", { name: /안 선택$/ }).count() !== 3) throw new Error("Studio API candidates A, B, C did not render");
-  await page.screenshot({ path: path.join(outputDir, "create-room-candidates-1440.png") });
+  for (const viewport of RESPONSIVE_VIEWPORTS) {
+    await page.setViewportSize(viewport);
+    await page.waitForTimeout(300);
+    const room = page.locator('[data-room="create"]');
+    const metrics = await room.evaluate((root) => {
+      const display = root.querySelector('[data-display-readonly="create"]');
+      const chat = root.querySelector('[data-chat-always="true"]');
+      return {
+        viewportWidth: window.innerWidth,
+        bodyScrollWidth: document.documentElement.scrollWidth,
+        roomClientWidth: root.clientWidth,
+        roomScrollWidth: root.scrollWidth,
+        displayButtons: display?.querySelectorAll("button").length ?? -1,
+        candidateCards: display?.querySelectorAll("[data-create-candidate]").length ?? -1,
+        chatVisible: chat instanceof HTMLElement && chat.offsetParent !== null,
+      };
+    });
+    if (metrics.bodyScrollWidth > metrics.viewportWidth + 1 || metrics.roomScrollWidth > metrics.roomClientWidth + 1) throw new Error(`create ${viewport.width} overflow: ${JSON.stringify(metrics)}`);
+    if (metrics.displayButtons !== 0 || metrics.candidateCards !== 3 || !metrics.chatVisible) throw new Error(`create ${viewport.width} v63 contract failed: ${JSON.stringify(metrics)}`);
+    studioRoomObservations.push({ room: "create", width: viewport.width, httpStatus: response.status(), ...metrics });
+    await page.screenshot({ path: path.join(outputDir, `create-room-${viewport.width}.png`), fullPage: true });
+  }
+
+  await page.setViewportSize({ width: 1440, height: 1200 });
+  await page.getByRole("button", { name: "A안 선택" }).click();
+  await page.getByRole("button", { name: "편집실로 이동" }).click();
+  await page.locator('[data-room="edit"]').waitFor();
+  for (const viewport of RESPONSIVE_VIEWPORTS) {
+    await page.setViewportSize(viewport);
+    await page.waitForTimeout(300);
+    const room = page.locator('[data-room="edit"]');
+    const metrics = await room.evaluate((root) => {
+      const outline = root.querySelector("[data-edit-outline]");
+      const stage = root.querySelector("[data-edit-stage]");
+      const script = root.querySelector("[data-edit-script]");
+      const tools = root.querySelector("[data-edit-tools]");
+      const outlineRect = outline?.getBoundingClientRect();
+      const stageRect = stage?.getBoundingClientRect();
+      const scriptRect = script?.getBoundingClientRect();
+      return {
+        viewportWidth: window.innerWidth,
+        bodyScrollWidth: document.documentElement.scrollWidth,
+        roomClientWidth: root.clientWidth,
+        roomScrollWidth: root.scrollWidth,
+        outlineLeftOfStage: Boolean(outlineRect && stageRect && outlineRect.left < stageRect.left),
+        scriptBelowStage: Boolean(scriptRect && stageRect && scriptRect.top >= stageRect.bottom),
+        toolButtons: tools?.querySelectorAll("button").length ?? -1,
+        chatVisible: root.querySelector('[data-chat-dock="persistent"]') instanceof HTMLElement,
+        honestPreview: root.textContent?.includes("실제 영상 렌더는 준비 중입니다.") ?? false,
+      };
+    });
+    if (metrics.bodyScrollWidth > metrics.viewportWidth + 1 || metrics.roomScrollWidth > metrics.roomClientWidth + 1) throw new Error(`edit ${viewport.width} overflow: ${JSON.stringify(metrics)}`);
+    if (!metrics.scriptBelowStage || metrics.toolButtons < 4 || !metrics.chatVisible || !metrics.honestPreview) throw new Error(`edit ${viewport.width} v63 contract failed: ${JSON.stringify(metrics)}`);
+    if (viewport.width >= 768 && !metrics.outlineLeftOfStage) throw new Error(`edit ${viewport.width} outline is not left of stage`);
+    studioRoomObservations.push({ room: "edit", width: viewport.width, httpStatus: 200, ...metrics });
+    await page.screenshot({ path: path.join(outputDir, `edit-room-${viewport.width}.png`), fullPage: true });
+  }
+
+  await page.setViewportSize({ width: 1440, height: 1200 });
+  const durationBefore = await page.locator("[data-edit-duration]").textContent();
+  await page.getByRole("button", { name: "빼기" }).first().click();
+  const durationAfterRemove = await page.locator("[data-edit-duration]").textContent();
+  await page.getByRole("button", { name: "되살리기" }).click();
+  const durationAfterRestore = await page.locator("[data-edit-duration]").textContent();
+  if (durationBefore === durationAfterRemove || durationBefore !== durationAfterRestore) throw new Error(`edit remove and restore failed: ${durationBefore}/${durationAfterRemove}/${durationAfterRestore}`);
+  studioRoomObservations.push({ room: "edit", interaction: "대사 빼기와 되살리기", durationBefore, durationAfterRemove, durationAfterRestore });
 
   for (const route of RESPONSIVE_ROUTES) {
     for (const viewport of RESPONSIVE_VIEWPORTS) {
@@ -255,6 +324,10 @@ try {
     path.join(outputDir, "performance-observations.json"),
     `${JSON.stringify(performanceObservations, null, 2)}\n`,
   );
+  fs.writeFileSync(
+    path.join(outputDir, "studio-room-observations.json"),
+    `${JSON.stringify(studioRoomObservations, null, 2)}\n`,
+  );
   if (unauthorizedUrls.length) throw new Error(`live browser received 401: ${JSON.stringify(unauthorizedUrls)}`);
   if (consoleErrors.length) throw new Error(`browser console errors: ${JSON.stringify(consoleErrors)}`);
   process.stdout.write(`${JSON.stringify({
@@ -271,6 +344,7 @@ try {
     consoleErrors,
     responsiveObservations,
     performanceObservations,
+    studioRoomObservations,
   }, null, 2)}\n`);
 } finally {
   await browser.close();

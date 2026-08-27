@@ -5,3 +5,7 @@ build8	build	build8-shorts-factory.txt
 fe6	fe	fe6-create-edit-rooms.txt
 fe7	fe	fe7-onboarding.txt
 fe8	fe	fe8-empty-error-states.txt
+build9	build	build9-tenant-isolation.txt
+build10	build	build10-observability.txt
+fe9	fe	fe9-perf-and-a11y.txt
+fe10	fe	fe10-brand-consistency.txt
