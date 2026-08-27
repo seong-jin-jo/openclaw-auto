@@ -20,6 +20,20 @@ This is the reference for all persistent state. Most data is tenant-scoped for S
 - `published_posts` — one row per platform publish attempt, including failed attempts for auditability.
   `account_id` records the exact social account used; the nullable FK is cleared if that account is deleted.
 
+#### Studio v1 generation ledger (2026-08-28)
+
+- `studio_generation_jobs` stores the successful job, three candidates, learning-layer revisions,
+  platform-spec receipt, member time zone, and the sanitized request. The platform-spec body remains
+  stripped exactly as it was in the memory implementation.
+- `studio_generation_idempotency` stores the request hash and exact public response. The unique key is
+  tenant, member, operation, and idempotency key. `INSERT ... ON CONFLICT` is the concurrency decision
+  point, so two application instances return one persisted result.
+- `studio_free_regeneration_uses` stores the original and replacement job for one tenant, member, and
+  local calendar date. The unique constraint keeps the existing one-free-regeneration-per-member-day
+  contract across process restarts and multiple servers.
+- All three tables use the existing `withTenant()` transaction and `osmu_service` RLS policy. Job lookup
+  and regeneration iterate only the workspaces allowed by the authenticated Studio principal.
+
 #### OSMU v63 backend round 2 additive contracts (2026-08-27)
 
 - First-comment publishing reuses the existing publish attempt row. A successful or failed provider reply is

@@ -1,3 +1,13 @@
+## [2026-08-28 04:45 Studio 생성 장부 Postgres 영속화와 재시작 검증]
+
+- **인계 기준:** 회장이 명시한 Studio 생성 작업, 멱등 키, 회원 현지 날짜 무료 재생성 장부의 DB 이전을 primary로 사용했다. 공개 HTTP 계약과 날짜 의미는 변경하지 않았다.
+- **구현:** `studio_generation_jobs`, `studio_generation_idempotency`, `studio_free_regeneration_uses`를 schema와 RLS에 추가했다. `service.ts`의 production `Map` 세 개를 `PostgresGenerationRepository`로 교체하고 Route Handler를 async로 연결했다.
+- **커밋:** `971c0fab` schema와 RLS, `8e65d2d2` DB repository와 runtime, `5584aae1` 실제 DB 통합과 E2E 10건 보강.
+- **직접 관찰:** 3456 Studio E2E 10/10. 실제 Postgres 동시 멱등 요청은 작업 1행, 동시 무료 재생성은 성공 1건과 409 1건. 첫 프로세스 생성 ID `9a7a377a-3623-430b-8341-70812d292ff3`을 새 프로세스에서 HTTP 200으로 조회했다.
+- **검증:** 전체 Vitest 150파일 1,213건 통과, 6건 조건부 스킵. TypeScript 성공. 격리 Webpack production build 171페이지 성공. design lint 위반 0.
+- **배포·게이트:** 로컬 DB와 build만 반영. QA와 production migration·배포는 미실행이다.
+- **정확한 다음 작업:** QA가 production과 같은 migration 순서로 schema와 RLS를 적용한 뒤 Studio E2E 10건, 프로세스 재시작 조회, 두 인스턴스 동시 무료 재생성을 독립 재검증한다.
+
 ## [2026-08-28 04:37 v63 성과실 실제 앱 연결과 네 폭 검증]
 
 - **인계 기준:** 회장이 직접 지정한 성과실 build 과제와 `docs/prototype/openclaw-auto-4room-v63.html`의 성과실을 primary로 사용했다. 요구 대장 R185와 성과실 전 항목, 갭 감사 대조표, 기존 `PerformanceRoom.tsx`를 함께 읽었다.
@@ -7,14 +17,6 @@
 - **검증:** 전체 Vitest 150파일 1,213건 통과, 6건 조건부 스킵. TypeScript 성공. `design-lint.sh dashboard/src` 위반 0. 고정 커밋 `3b74b799` 격리 worktree Webpack production build 성공, 정적 페이지 171개.
 - **미검증:** 댓글 본문 읽기와 답글 백엔드, production 배포, 실제 SNS 댓글 조회. 화면은 이 기능을 제공하는 척하지 않는다.
 - **정확한 다음 작업:** QA가 동일 build를 v63과 독립 대조하고 production 배포 뒤 테스트 SNS의 성과 수집과 댓글 준비 상태를 재관찰한다. 명령은 `cd dashboard && npm run e2e:local -- http://localhost:3456`.
-
-## [2026-08-28 Studio 생성 장부 DB 영속화 진행중]
-
-- **인계 기준:** 회장이 명시한 `studio 생성 장부를 메모리에서 DB로 이동` 과제를 primary로 사용한다. `openclaw-auto:0.0`은 별도 화면·백로그 작업 중이고, `osmu-build5`와 `osmu-fe5`는 zsh 대기 상태라 소스 편집 충돌이 없음을 확인했다.
-- **허용 범위:** `pipeline-state.osmu.md`의 build in-progress와 회장 선조치 승인에 따라 생성 작업, 멱등 키, 무료 재생성 사용 기록만 수정한다. 공개 HTTP 계약과 회원 현지 날짜 의미는 변경하지 않는다.
-- **진행:** `docs/audit/osmu-v62-db-options-v1-gpt-codex.md`, `dashboard/db/schema.sql`, `dashboard/db/rls.sql`, 현행 service와 E2E 10건을 읽었다. schema와 RLS에 Studio 장부 세 테이블을 추가하는 중이다.
-- **다음:** DB repository와 async service 연결, 정상·거절·경합 계약 테스트, 로컬 schema 적용, E2E 10건, 앱 재시작 전후 조회, 전체 test와 TypeScript 실행.
-- **배포:** 로컬 build만. QA와 production 배포는 미실행이다.
 
 ## [2026-08-28 04:10 좁은 화면 셸·문구 정리·편집 계약 검증·실사 점검 고장 2건 수정]
 
