@@ -144,7 +144,7 @@ function buildCandidates(request: GenerationRequest): GenerationCandidate[] {
       ordinal: 1 as const,
       angle: "problem_first" as const,
       title: `${topic}: 문제부터 여는 안`,
-      rationale: `${audience}가 겪는 문제를 첫 장면에 놓고 ${purpose} 목적을 빠르게 이해시키는 구성입니다.`,
+      rationale: `${audience}가 겪는 문제를 첫 장면에 놓고 목표인 "${purpose}"를 빠르게 이해시키는 구성입니다.`,
       outline: ["사용자가 겪는 문제", "문제가 생기는 이유", "바로 적용할 다음 행동"],
     },
     {
@@ -160,7 +160,7 @@ function buildCandidates(request: GenerationRequest): GenerationCandidate[] {
       ordinal: 3 as const,
       angle: "process_first" as const,
       title: `${topic}: 과정을 따라가는 안`,
-      rationale: `${purpose}에 도달하는 과정을 순서대로 보여 주어 처음 보는 사람도 따라오게 하는 구성입니다.`,
+      rationale: `"${purpose}"에 도달하는 과정을 순서대로 보여 주어 처음 보는 사람도 따라오게 하는 구성입니다.`,
       outline: ["시작 조건", "핵심 과정", "완료 뒤 확인할 것"],
     },
   ];
@@ -233,7 +233,10 @@ export class InMemoryGenerationService {
         digest: request.platformSpec.digest,
       } : null,
       timeZone: context.u2.timeZone,
-      request,
+      request: {
+        ...request,
+        platformSpec: request.platformSpec ? { ...request.platformSpec, body: {} } : null,
+      },
       createdAt: now.toISOString(),
     };
     const response = publicResponse(job);

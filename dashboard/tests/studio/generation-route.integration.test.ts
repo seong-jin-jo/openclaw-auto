@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { studioFailure } from "@/lib/studio/generation/http";
 import { resetGenerationRuntimeForTests } from "@/lib/studio/generation/runtime";
 import { generationRequestFixture, STUDIO_TEST_WORKSPACE_ID } from "./generation-fixture";
 
@@ -37,6 +38,8 @@ describe("Studio 생성 HTTP 통합 계약", () => {
     expect(response.headers.get("X-Contract-Version")).toBe("1.0");
     expect(body.data.candidates).toHaveLength(3);
     expect(body.data.candidates.map((candidate: { label: string }) => candidate.label)).toEqual(["A", "B", "C"]);
+    expect(body.data.job_id).toEqual(expect.any(String));
+    expect(body.data.jobId).toBeUndefined();
   });
 
   it("GEN-HTTP-02 한국어 설명: 필수 U3 목적이 빠지면 필드 오류와 422를 반환한다", async () => {
@@ -66,12 +69,12 @@ describe("Studio 생성 HTTP 통합 계약", () => {
   it("GEN-HTTP-04 한국어 설명: 무료 재생성 뒤 두 번째 요청은 과금 승인 오류를 반환한다", async () => {
     const { POST: create } = await import("@/app/api/studio/v1/generations/route");
     const created = await (await create(postRequest(generationRequestFixture()))).json();
-    const { POST: regenerate } = await import("@/app/api/studio/v1/generations/[jobId]/regenerations/route");
-    const request = new Request("http://localhost/api/studio/v1/generations/job/regenerations", {
+    const { POST: regenerate } = await import("@/app/api/studio/v1/regenerations/[jobId]/route");
+    const request = new Request("http://localhost/api/studio/v1/regenerations/job", {
       method: "POST",
       headers: { Authorization: `Bearer ${TOKEN}` },
     });
-    const context = { params: Promise.resolve({ jobId: created.data.jobId }) };
+    const context = { params: Promise.resolve({ jobId: created.data.job_id }) };
     const first = await regenerate(request, context);
     const second = await regenerate(request, context);
     const secondBody = await second.json();
@@ -79,5 +82,21 @@ describe("Studio 생성 HTTP 통합 계약", () => {
     expect(first.status).toBe(201);
     expect(second.status).toBe(409);
     expect(secondBody.error.code).toBe("PAID_REGENERATION_APPROVAL_REQUIRED");
+  });
+
+  it("GEN-HTTP-05 한국어 설명: 다른 Next 번들에서 온 도메인 오류도 안정 상태 코드로 보존한다", async () => {
+    const response = studioFailure({
+      kind: "StudioApiError",
+      status: 409,
+      code: "PAID_REGENERATION_APPROVAL_REQUIRED",
+      message: "오늘의 무료 재생성을 이미 사용했습니다",
+      retryable: false,
+      fieldErrors: [],
+      details: { paid_retry_quote: null },
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body.error.code).toBe("PAID_REGENERATION_APPROVAL_REQUIRED");
   });
 });

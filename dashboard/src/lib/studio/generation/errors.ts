@@ -4,6 +4,7 @@ export type StudioFieldError = {
 };
 
 export class StudioApiError extends Error {
+  readonly kind = "StudioApiError";
   readonly status: number;
   readonly code: string;
   readonly retryable: boolean;
@@ -26,4 +27,17 @@ export class StudioApiError extends Error {
     this.fieldErrors = input.fieldErrors ?? [];
     this.details = input.details ?? {};
   }
+}
+
+export function isStudioApiError(error: unknown): error is StudioApiError {
+  if (error === null || typeof error !== "object") return false;
+  const candidate = error as Partial<StudioApiError>;
+  return candidate.kind === "StudioApiError"
+    && typeof candidate.status === "number"
+    && typeof candidate.code === "string"
+    && typeof candidate.message === "string"
+    && typeof candidate.retryable === "boolean"
+    && Array.isArray(candidate.fieldErrors)
+    && candidate.details !== null
+    && typeof candidate.details === "object";
 }

@@ -1,11 +1,18 @@
 import { InMemoryGenerationService } from "./service";
 
-let runtime = new InMemoryGenerationService();
+const studioGlobal = globalThis as typeof globalThis & {
+  __studioGenerationRuntime?: InMemoryGenerationService;
+};
+
+function runtimeInstance(): InMemoryGenerationService {
+  studioGlobal.__studioGenerationRuntime ??= new InMemoryGenerationService();
+  return studioGlobal.__studioGenerationRuntime;
+}
 
 export function generationRuntime(): InMemoryGenerationService {
-  return runtime;
+  return runtimeInstance();
 }
 
 export function resetGenerationRuntimeForTests(): void {
-  runtime = new InMemoryGenerationService();
+  studioGlobal.__studioGenerationRuntime = new InMemoryGenerationService();
 }

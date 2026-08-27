@@ -1,11 +1,25 @@
 import crypto from "node:crypto";
 import { STUDIO_GENERATION_CONTRACT_VERSION } from "./contracts";
-import { StudioApiError } from "./errors";
+import { isStudioApiError, StudioApiError } from "./errors";
+
+function apiKey(key: string): string {
+  return key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+}
+
+function apiShape(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(apiShape);
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, entry]) => [apiKey(key), apiShape(entry)]),
+    );
+  }
+  return value;
+}
 
 export function studioSuccess(data: unknown, status = 200): Response {
   const requestId = crypto.randomUUID();
   return Response.json({
-    data,
+    data: apiShape(data),
     meta: {
       request_id: requestId,
       contract_version: STUDIO_GENERATION_CONTRACT_VERSION,
@@ -23,7 +37,7 @@ export function studioSuccess(data: unknown, status = 200): Response {
 
 export function studioFailure(error: unknown): Response {
   const requestId = crypto.randomUUID();
-  const known = error instanceof StudioApiError
+  const known = isStudioApiError(error)
     ? error
     : new StudioApiError({
       status: 500,
@@ -37,7 +51,7 @@ export function studioFailure(error: unknown): Response {
       message: known.message,
       retryable: known.retryable,
       field_errors: known.fieldErrors,
-      details: known.details,
+      details: apiShape(known.details),
     },
     meta: { request_id: requestId, contract_version: STUDIO_GENERATION_CONTRACT_VERSION },
   }, {
