@@ -149,7 +149,13 @@ describe("lib/observability — reportFailure (allowlist 경계)", () => {
     await expect(reportFailure({ event: "operator_mutation_failed", severity: "error", context: { action: "pause_user" } })).resolves.toBeUndefined();
     const deliveryFailLog = errSpy.mock.calls.map((c) => JSON.parse(c[0] as string)).find((l) => l.kind === "osmu_alert_delivery_failed");
     expect(deliveryFailLog).toBeTruthy();
-    expect(JSON.stringify(deliveryFailLog)).not.toMatch(/invalid_payload|400/);
+    expect(deliveryFailLog).toMatchObject({
+      kind: "osmu_alert_delivery_failed",
+      event: "operator_mutation_failed",
+    });
+    expect(deliveryFailLog).not.toHaveProperty("body");
+    expect(deliveryFailLog).not.toHaveProperty("status");
+    expect(JSON.stringify(deliveryFailLog)).not.toContain("invalid_payload");
   });
 
   it("Slack fetch가 타임아웃 시그널을 부착한다(무한 대기 방지)", async () => {
