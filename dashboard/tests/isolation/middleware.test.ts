@@ -109,6 +109,66 @@ describe("proxy 토큰 검증 분기", () => {
   });
 });
 
+describe("proxy Studio 독립 인증 경계", () => {
+  it("STUDIO-AUTH-01 한국어 설명: Studio bearer는 대시보드 토큰과 달라도 v1 Route Handler까지 통과한다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "dashboard-only-token");
+    const req = new NextRequest("http://localhost/api/studio/v1/generations", {
+      method: "POST",
+      headers: { Authorization: "Bearer studio-only-token" },
+    });
+
+    expect(isPass(await proxy(req))).toBe(true);
+    expect(mockResolveTenantToken).not.toHaveBeenCalled();
+    expect(mockVerifySupabaseJwt).not.toHaveBeenCalled();
+  });
+
+  it("STUDIO-AUTH-02 한국어 설명: 잘못된 Studio bearer는 프록시가 대시보드 401로 바꾸지 않고 Studio가 401로 거절한다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "dashboard-only-token");
+    vi.stubEnv("STUDIO_IDENTITY_MODE", "development");
+    vi.stubEnv("STUDIO_DEV_BEARER_TOKEN", "expected-studio-token");
+    vi.stubEnv("STUDIO_DEV_MEMBER_ID", "member-proxy-contract");
+    vi.stubEnv("STUDIO_DEV_WORKSPACE_IDS", "11111111-1111-4111-8111-111111111111");
+    const req = new NextRequest("http://localhost/api/studio/v1/generations", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer wrong-studio-token",
+        "Content-Type": "application/json",
+      },
+      body: "{}",
+    });
+
+    expect(isPass(await proxy(req))).toBe(true);
+    const { POST } = await import("@/app/api/studio/v1/generations/route");
+    const response = await POST(req);
+    const body = await response.json();
+    expect(response.status).toBe(401);
+    expect(body.error.code).toBe("TOKEN_INVALID");
+  });
+
+  it("STUDIO-AUTH-03 한국어 설명: 기존 Studio 대시보드 API는 예외에 섞이지 않고 대시보드 인증을 유지한다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "dashboard-only-token");
+    const req = new NextRequest("http://localhost/api/studio/text", {
+      method: "POST",
+      headers: { Authorization: "Bearer studio-only-token" },
+    });
+
+    expect((await proxy(req)).status).toBe(401);
+  });
+
+  it("STUDIO-AUTH-04 한국어 설명: 인증 구현을 확인하지 않은 새 Studio v1 경로는 자동 예외가 되지 않는다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "dashboard-only-token");
+    const req = new NextRequest("http://localhost/api/studio/v1/not-allowlisted", {
+      headers: { Authorization: "Bearer studio-only-token" },
+    });
+
+    expect((await proxy(req)).status).toBe(401);
+  });
+});
+
 describe("proxy /api/me 운영자 토큰 검증 rate limit", () => {
   function meRequest(
     bearer: string,

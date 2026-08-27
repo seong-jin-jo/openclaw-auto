@@ -127,8 +127,18 @@ const TENANT_AWARE_MATCHERS = TENANT_AWARE_PATHS.map((pattern) => {
   return new RegExp(`^${escaped}$`);
 });
 
+const STUDIO_INDEPENDENT_MATCHERS = [
+  /^\/api\/studio\/v1\/generations$/,
+  /^\/api\/studio\/v1\/generations\/[^/]+$/,
+  /^\/api\/studio\/v1\/regenerations\/[^/]+$/,
+];
+
 function isTenantAwarePath(pathname: string): boolean {
   return TENANT_AWARE_MATCHERS.some((re) => re.test(pathname));
+}
+
+function isIndependentStudioPath(pathname: string): boolean {
+  return STUDIO_INDEPENDENT_MATCHERS.some((re) => re.test(pathname));
 }
 
 // 계정 게이트: paused(정지)/unavailable(알수없는 상태)면 /api/me를 제외한 모든 tenant-aware 경로를
@@ -192,6 +202,12 @@ export async function proxy(request: NextRequest) {
     res.headers.set("Cache-Control", "no-store, must-revalidate");
     return res;
   }
+
+  // Studio v1은 openclaw 대시보드와 회원·권한 장부가 다른 독립 제품이다.
+  // 같은 Authorization 헤더를 대시보드 토큰으로 먼저 해석하면 Studio bearer가
+  // Route Handler에 도달하지 못하므로, 이 버전 네임스페이스만 Studio 인증 경계에 위임한다.
+  // 기존 /api/studio/* 대시보드 경로와 TENANT_AWARE_PATHS는 그대로 보호한다.
+  if (isIndependentStudioPath(request.nextUrl.pathname)) return NextResponse.next();
 
   // 프록시 모드(포크 셀프호스트, Phase 1): OSMU_API_BASE 설정 시 모든 /api를 중앙 인스턴스로
   // 토큰 붙여 그대로 전달(얇은 프록시). 토큰(OSMU_TENANT_TOKEN)은 서버 env에만 — 브라우저 노출 0.
