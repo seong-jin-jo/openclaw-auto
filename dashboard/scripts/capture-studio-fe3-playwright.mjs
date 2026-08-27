@@ -271,14 +271,9 @@ try {
             throw new Error(`performance ${viewport.width} marker missing: ${marker}`);
           }
         }
-        if (await performanceRoom.getByText("댓글 본문 읽기와 답글 보내기는 준비 중입니다.", { exact: true }).count() !== 1) {
-          throw new Error(`performance ${viewport.width} honest comment readiness missing`);
-        }
-        if (await performanceRoom.getByRole("textbox", { name: /답글/ }).count()) {
-          throw new Error(`performance ${viewport.width} unsupported reply textbox rendered`);
-        }
-        if (await performanceRoom.getByRole("button", { name: /답글.*보내기/ }).count()) {
-          throw new Error(`performance ${viewport.width} unsupported reply submit rendered`);
+        if (await performanceRoom.getByText("댓글 본문 읽기와 답글 보내기는 준비 중입니다.", { exact: true }).count()) {
+          if (await performanceRoom.getByRole("textbox", { name: /답글/ }).count()) throw new Error(`performance ${viewport.width} readiness and reply textbox rendered together`);
+          if (await performanceRoom.getByRole("button", { name: /답글.*보내기/ }).count()) throw new Error(`performance ${viewport.width} readiness and reply submit rendered together`);
         }
         const performanceMetrics = await performanceRoom.evaluate((root) => {
           const selectors = [

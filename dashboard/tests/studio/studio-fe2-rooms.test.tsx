@@ -176,7 +176,19 @@ describe("화면 2차 편집실 계약", () => {
     expect(document.querySelector('[data-room-top="edit"]')).toHaveTextContent("3개 장면");
   });
 
-  it("FE6-EDIT-03 거절: 음악 백엔드가 없을 때 파일이나 파형을 완성된 것처럼 표시하지 않는다", () => {
+  it("FE6-EDIT-03 정상: 무음 표식이 있는 줄만 한 번에 줄인다", () => {
+    render(<EditRoom lines={["첫 줄", "...", "둘째 줄"]} onLinesChange={vi.fn()} kind="video" />);
+    fireEvent.click(screen.getByRole("button", { name: "무음 구간 1개 줄이기" }));
+    expect(document.querySelector('[data-room-top="edit"]')).toHaveTextContent("2개 장면");
+    expect(document.querySelector("[data-edit-duration]")).toHaveTextContent("8초");
+  });
+
+  it("FE6-EDIT-04 거절: 무음 표식이 없으면 무음 줄이기 조작을 비활성화한다", () => {
+    render(<EditRoom lines={["첫 줄", "둘째 줄"]} onLinesChange={vi.fn()} kind="video" />);
+    expect(screen.getByRole("button", { name: "무음 구간 0개 줄이기" })).toBeDisabled();
+  });
+
+  it("FE6-EDIT-05 거절: 음악 백엔드가 없을 때 파일이나 파형을 완성된 것처럼 표시하지 않는다", () => {
     render(<EditRoom lines={["나레이션"]} onLinesChange={vi.fn()} kind="audio" />);
     expect(screen.getByText("음악 생성 백엔드는 준비 중입니다")).toBeInTheDocument();
     expect(document.querySelector("[data-edit-stage]")).not.toBeInTheDocument();

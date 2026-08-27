@@ -175,11 +175,14 @@ export function EditRoom({ lines, onLinesChange, kind = "video", previewReady = 
   const secondsPerLine = toolValues.속도 === "빠르게" ? 3 : toolValues.속도 === "느리게" ? 5 : 4;
   const duration = visibleCount * secondsPerLine;
   const selectedLine = safeLines[activeLine] ?? "";
+  const silenceIndexes = safeLines.map((line, index) => (/…|\.{3}|^\s*$/.test(line) ? index : -1)).filter((index) => index >= 0);
+  const visibleSilences = silenceIndexes.filter((index) => visibleLines[index]).length;
   const tools = kind === "card" ? CARD_TOOLS : VIDEO_TOOLS;
   const outlineTitle = kind === "card" ? "장 목차" : kind === "audio" ? "곡 목차" : "영상 목차";
   const unit = kind === "card" ? "장" : "장면";
   const updateLine = (value: string) => onLinesChange(safeLines.map((line, index) => index === activeLine ? value : line));
   const toggleLine = (index: number) => setVisibleLines((current) => current.map((visible, lineIndex) => lineIndex === index ? !visible : visible));
+  const trimSilences = () => setVisibleLines((current) => current.map((visible, index) => silenceIndexes.includes(index) ? false : visible));
   return (
     <section data-room="edit" data-edit-kind={kind} className="space-y-region">
       <section data-room-top="edit" aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch items-center justify-between rounded-xl border border-border bg-surface px-pad-inset py-stack"><b className="text-lead text-accent">{visibleCount}개 {unit}</b><span className="text-caption text-subtle" data-edit-duration>{kind === "audio" ? "음악 생성 준비 중" : `${duration}초 · 대사를 다듬는 중`}</span></section>
@@ -195,7 +198,9 @@ export function EditRoom({ lines, onLinesChange, kind = "video", previewReady = 
                 <div className="grid h-full w-full place-items-center rounded-lg bg-accent-soft p-region text-center"><div><span className="text-caption font-semibold text-accent">{previewReady ? "미리보기" : "구조 초안"}</span><p className="mt-stack max-w-xl break-keep text-heading font-bold text-text">{visibleLines[activeLine] ? selectedLine : "이 대사는 빠진 상태입니다"}</p>{!previewReady && kind === "video" ? <p className="mt-stack text-caption text-muted">실제 영상 렌더는 준비 중입니다.</p> : null}</div></div>
               </section>
               <section className="mt-stack border-b border-border pb-stack" aria-label="간편 편집 도구" data-edit-tools>
-                <div className="flex flex-wrap gap-stack-tight">{tools.map((tool) => <Button key={tool} size="sm" variant={activeTool === tool ? "primary" : "secondary"} onClick={() => setActiveTool(tool)} aria-pressed={activeTool === tool} aria-label={`${tool} 도구`}><ToolIcon tool={tool} /><span>{toolValues[tool]}</span></Button>)}</div>
+                <div className="flex flex-wrap gap-stack-tight">{tools.map((tool) => <Button key={tool} size="sm" variant={activeTool === tool ? "primary" : "secondary"} onClick={() => setActiveTool(tool)} aria-pressed={activeTool === tool} aria-label={`${tool} 도구`}><ToolIcon tool={tool} /><span>{toolValues[tool]}</span></Button>)}
+                  {kind === "video" ? <Button size="sm" onClick={trimSilences} disabled={visibleSilences === 0}>무음 구간 {visibleSilences}개 줄이기</Button> : null}
+                </div>
                 <div className="mt-stack flex flex-wrap gap-stack-tight" aria-label={`${activeTool} 선택지`}>{TOOL_OPTIONS[activeTool].map((option) => <Button key={option} size="sm" variant={toolValues[activeTool] === option ? "primary" : "secondary"} aria-pressed={toolValues[activeTool] === option} onClick={() => setToolValues((current) => ({ ...current, [activeTool]: option }))}>{option}</Button>)}</div>
               </section>
             </>}
