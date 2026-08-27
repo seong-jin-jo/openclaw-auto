@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { useChannelConfig } from "@/hooks/useChannelConfig";
 import {
@@ -109,7 +109,7 @@ const ROOM_FLOW: Array<{ key: StudioRoom | "performance"; label: string; href: s
   { key: "performance", label: "성과실", href: "/" },
 ];
 
-function RoomFlowNav({ pathname }: { pathname: string }) {
+function RoomFlowNav({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
   const { studioRoom, setStudioRoom } = useUIStore();
   const activeIndex = pathname === "/"
     ? ROOM_FLOW.length - 1
@@ -133,6 +133,7 @@ function RoomFlowNav({ pathname }: { pathname: string }) {
                 href={room.href}
                 onClick={() => {
                   if (room.key !== "performance") setStudioRoom(room.key);
+                  onNavigate?.();
                 }}
                 aria-current={active ? "page" : undefined}
                 className={`flex min-h-control-touch items-center gap-stack-tight rounded-lg px-stack-tight py-stack-tight text-body-sm font-semibold transition-colors max-xl:flex-col max-xl:gap-micro max-xl:px-micro ${active ? "bg-accent text-accent-fg" : "text-muted hover:bg-surface-2"}`}
@@ -141,7 +142,7 @@ function RoomFlowNav({ pathname }: { pathname: string }) {
                   {done ? "✓" : `0${index + 1}`}
                 </span>
                 <span>{room.label}</span>
-                {active ? <span className="ml-auto rounded-full bg-accent-fg/15 px-stack-tight py-micro text-caption max-xl:ml-0 max-xl:sr-only">지금 여기</span> : null}
+                {active ? <span className="ml-auto rounded-full bg-accent-fg/15 px-stack-tight py-micro text-caption max-xl:ml-0 max-xl:px-micro">지금 여기</span> : null}
               </Link>
             </li>
           );
@@ -286,11 +287,32 @@ function CustomerSidebar({
   mutateMe: () => Promise<unknown>;
 }) {
   const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { data: channelConfig } = useChannelConfig();
   const { data: images } = useSWR<unknown[]>("/api/images", fetcher);
+  const studioRoom = useUIStore((state) => state.studioRoom);
 
   const cfg = (channelConfig || {}) as unknown as Record<string, Record<string, unknown>>;
   const imageCount = Array.isArray(images) ? images.length : 0;
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [mobileMenuOpen]);
+
+  const currentRoomLabel = pathname === "/"
+    ? "성과실"
+    : pathname === "/studio"
+      ? ROOM_FLOW.find((room) => room.key === studioRoom)?.label
+      : undefined;
 
   // Build threads item specially
   const threadsItem = {
@@ -324,14 +346,61 @@ function CustomerSidebar({
   };
 
   return (
-    <aside className="sticky top-0 flex h-screen w-24 shrink-0 flex-col border-r border-border bg-surface xl:w-56">
-      <div className="border-b border-border px-stack py-pad-inset max-xl:px-stack-tight">
-        <p className="text-caption font-semibold text-subtle max-xl:text-center">작업 공간</p>
-        <CustomerWorkspaceIdentity me={me} mutateMe={mutateMe} />
-      </div>
+    <>
+      {mobileMenuOpen ? (
+        <button
+          type="button"
+          aria-label="메뉴 바깥 닫기"
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 z-40 border-0 bg-text/40 md:hidden"
+        />
+      ) : null}
+
+      <header className="flex min-h-control-touch w-full items-center gap-stack border-b border-border bg-surface px-stack md:hidden">
+        <button
+          type="button"
+          aria-controls="customer-sidebar"
+          aria-expanded={mobileMenuOpen}
+          aria-label="메뉴 열기"
+          onClick={() => setMobileMenuOpen(true)}
+          className="grid min-h-control-touch min-w-control-touch place-items-center rounded-lg border border-border bg-surface-2 text-text"
+        >
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7h16M4 12h16M4 17h16" />
+          </svg>
+        </button>
+        {currentRoomLabel ? (
+          <div className="text-left">
+            <p className="text-caption font-semibold text-accent">지금 여기</p>
+            <p className="text-body-sm font-semibold text-text">{currentRoomLabel}</p>
+          </div>
+        ) : <p className="text-body-sm font-semibold text-text">작업 공간</p>}
+      </header>
+
+      <aside
+        id="customer-sidebar"
+        aria-label="주요 사이드바"
+        className={`${mobileMenuOpen ? "fixed inset-y-0 left-0 z-50 flex" : "hidden"} h-dvh w-[min(20rem,86vw)] shrink-0 flex-col border-r border-border bg-surface md:sticky md:top-0 md:flex md:h-screen md:w-24 xl:w-56`}
+      >
+        <div className="flex items-start gap-stack border-b border-border px-stack py-pad-inset max-xl:px-stack-tight">
+          <div className="min-w-0 flex-1">
+            <p className="text-caption font-semibold text-subtle max-xl:text-center">작업 공간</p>
+            <CustomerWorkspaceIdentity me={me} mutateMe={mutateMe} />
+          </div>
+          <button
+            type="button"
+            aria-label="메뉴 닫기"
+            onClick={() => setMobileMenuOpen(false)}
+            className="grid min-h-control-touch min-w-control-touch place-items-center rounded-lg border border-border bg-surface-2 text-text md:hidden"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
 
       <nav className="flex-1 min-h-0 overflow-y-auto py-3">
-        <RoomFlowNav pathname={pathname} />
+        <RoomFlowNav pathname={pathname} onNavigate={() => setMobileMenuOpen(false)} />
 
         {/* 발행 채널 그룹. constants의 PUBLISH_CHANNEL_GROUPS 단일 소스(Settings>Channels와 동일).
             threads/x는 연결상태 뱃지가 특수해 별도 아이템 유지. */}
@@ -455,7 +524,8 @@ function CustomerSidebar({
       </nav>
 
       <SidebarFooter isOperator={false} />
-    </aside>
+      </aside>
+    </>
   );
 }
 

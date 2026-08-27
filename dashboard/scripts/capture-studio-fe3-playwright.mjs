@@ -10,7 +10,7 @@ const dashboardToken = process.env.FE3_DASHBOARD_TOKEN || "";
 const studioToken = process.env.FE3_STUDIO_TOKEN || "";
 const workspaceId = process.env.FE3_WORKSPACE_ID || "";
 const studioWorkspaceId = process.env.FE3_STUDIO_WORKSPACE_ID || workspaceId;
-const outputDir = process.env.FE3_OUTPUT_DIR || path.resolve(process.cwd(), "../docs/prototype/qa-fe3");
+const outputDir = process.env.FE3_OUTPUT_DIR || path.resolve(process.cwd(), "../docs/prototype/qa-fe4");
 const executablePath = process.env.FE3_CHROME_PATH || "/Users/sj/Library/Caches/ms-playwright/chromium-1228/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing";
 
 if (!dashboardToken || !studioToken || !workspaceId) {
@@ -19,6 +19,21 @@ if (!dashboardToken || !studioToken || !workspaceId) {
 fs.mkdirSync(outputDir, { recursive: true });
 let chatAlwaysAt390 = 0;
 let chatVisibleAt390 = false;
+const responsiveObservations = [];
+
+const RESPONSIVE_ROUTES = [
+  { key: "home", path: "/" },
+  { key: "studio-publish", path: "/studio?room=publish" },
+  { key: "channel-threads", path: "/channels/threads" },
+  { key: "settings", path: "/settings" },
+];
+
+const RESPONSIVE_VIEWPORTS = [
+  { width: 390, height: 844 },
+  { width: 768, height: 1024 },
+  { width: 1024, height: 900 },
+  { width: 1440, height: 1200 },
+];
 
 const browser = await chromium.launch({ executablePath, headless: true });
 const context = await browser.newContext({ viewport: { width: 1440, height: 1200 } });
@@ -94,6 +109,16 @@ try {
   await page.waitForTimeout(600);
   chatAlwaysAt390 = await page.locator('[data-chat-always="true"]').count();
   chatVisibleAt390 = await page.locator('[data-chat-always="true"]').isVisible();
+  const mobileMenuButton = page.getByRole("button", { name: "메뉴 열기" });
+  if (!await mobileMenuButton.isVisible()) throw new Error("390 mobile menu trigger missing");
+  await mobileMenuButton.click();
+  const mobileSidebar = page.getByRole("complementary", { name: "주요 사이드바" });
+  if (!await mobileSidebar.isVisible()) throw new Error("390 navigation drawer did not open");
+  for (const room of ["생성실", "편집실", "발행실", "성과실"]) {
+    if (!await mobileSidebar.getByText(room, { exact: true }).isVisible()) throw new Error(`${room} missing from 390 drawer`);
+  }
+  if (!await mobileSidebar.getByText("지금 여기", { exact: true }).isVisible()) throw new Error("390 drawer current room marker missing");
+  await mobileSidebar.getByRole("button", { name: "메뉴 닫기" }).click();
   await page.screenshot({ path: path.join(outputDir, "publish-room-390.png") });
   await page.setViewportSize({ width: 1440, height: 1200 });
   await page.waitForTimeout(400);
@@ -112,6 +137,64 @@ try {
   if (await page.getByRole("button", { name: /안 선택$/ }).count() !== 3) throw new Error("Studio API candidates A, B, C did not render");
   await page.screenshot({ path: path.join(outputDir, "create-room-candidates-1440.png") });
 
+  for (const route of RESPONSIVE_ROUTES) {
+    for (const viewport of RESPONSIVE_VIEWPORTS) {
+      await page.setViewportSize(viewport);
+      await page.goto(`${baseUrl}${route.path}`, { waitUntil: "networkidle", timeout: 60000 });
+      const dismissOnboarding = page.getByRole("button", { name: "나중에 설정하기" });
+      if (await dismissOnboarding.isVisible().catch(() => false)) {
+        await dismissOnboarding.click();
+      }
+      await page.locator('[data-app-main="true"]').waitFor({ state: "visible" });
+      await page.waitForTimeout(300);
+
+      const metrics = await page.evaluate(() => {
+        const main = document.querySelector('[data-app-main="true"]');
+        const sidebar = document.querySelector('[aria-label="주요 사이드바"]');
+        const rect = main?.getBoundingClientRect();
+        return {
+          bodyScrollWidth: document.documentElement.scrollWidth,
+          viewportWidth: window.innerWidth,
+          mainLeft: rect ? Math.round(rect.left) : -1,
+          mainWidth: rect ? Math.round(rect.width) : 0,
+          sidebarVisible: sidebar instanceof HTMLElement && getComputedStyle(sidebar).display !== "none",
+        };
+      });
+
+      if (metrics.bodyScrollWidth > metrics.viewportWidth + 1) {
+        throw new Error(`${route.key} ${viewport.width} body overflow ${metrics.bodyScrollWidth}/${metrics.viewportWidth}`);
+      }
+      if (metrics.mainWidth < Math.min(320, viewport.width - 16)) {
+        throw new Error(`${route.key} ${viewport.width} main width too small: ${metrics.mainWidth}`);
+      }
+      if (viewport.width === 390) {
+        if (metrics.sidebarVisible) throw new Error(`${route.key} 390 permanent sidebar still visible`);
+        const trigger = page.getByRole("button", { name: "메뉴 열기" });
+        if (!await trigger.isVisible()) throw new Error(`${route.key} 390 mobile trigger missing`);
+        await trigger.click();
+        if (!await page.getByRole("complementary", { name: "주요 사이드바" }).isVisible()) {
+          throw new Error(`${route.key} 390 drawer failed to open`);
+        }
+        await page.getByRole("complementary", { name: "주요 사이드바" }).getByRole("button", { name: "메뉴 닫기" }).click();
+      } else if (!metrics.sidebarVisible) {
+        throw new Error(`${route.key} ${viewport.width} room rail hidden`);
+      }
+
+      const roomLinks = await page.locator('[aria-label="한 편의 제작 순서"] a').count();
+      if (roomLinks !== 4) throw new Error(`${route.key} ${viewport.width} room links ${roomLinks}/4`);
+      responsiveObservations.push({ route: route.key, width: viewport.width, ...metrics, roomLinks });
+      await page.screenshot({
+        path: path.join(outputDir, `${route.key}-${viewport.width}.png`),
+        fullPage: false,
+      });
+    }
+  }
+
+  fs.writeFileSync(
+    path.join(outputDir, "responsive-observations.json"),
+    `${JSON.stringify(responsiveObservations, null, 2)}\n`,
+  );
+  if (unauthorizedUrls.length) throw new Error(`live browser received 401: ${JSON.stringify(unauthorizedUrls)}`);
   if (consoleErrors.length) throw new Error(`browser console errors: ${JSON.stringify(consoleErrors)}`);
   process.stdout.write(`${JSON.stringify({
     sidebarRooms: 4,
@@ -125,6 +208,7 @@ try {
     chatVisibleAt390,
     unauthorizedUrls,
     consoleErrors,
+    responsiveObservations,
   }, null, 2)}\n`);
 } finally {
   await browser.close();

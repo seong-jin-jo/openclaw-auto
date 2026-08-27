@@ -627,9 +627,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   // 인증됨: 사이드바 + 콘텐츠
   return (
-    <div className="flex min-h-screen w-full">
+    <div className="flex min-h-screen w-full flex-col md:flex-row">
       <Sidebar />
-      <main className="flex-1 min-h-screen overflow-y-auto">
+      <main data-app-main="true" className="min-h-0 min-w-0 flex-1 overflow-y-auto md:min-h-screen">
         <ErrorBoundary>{children}</ErrorBoundary>
       </main>
     </div>

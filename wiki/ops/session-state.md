@@ -1,3 +1,13 @@
+## [2026-08-28 02:30 화면 대화창 390 상시도달 · 4차 2라인 발주]
+
+- 무엇: 390 폭에서 발행 담당 대화창이 일곱 미리보기 아래로 밀려 닿지 않던 결함을 고쳤다. 바닥 고정 시트 + 접기/펴기.
+- 증거: `docs/prototype/qa-fe4/publish-room-390.png`, 관측 `chatAlwaysAt390=1 chatVisibleAt390=true`. `npx tsc --noEmit` 통과, `npm run test` 148 files 1,200 passed.
+- 커밋: `08f174b0`. 그동안 추적 밖이던 프로토타입 QA 산출물·검증 스크립트·위키 문서도 함께 추적에 넣었다(운영 빌드만 깨지는 위험 제거).
+- 새로 관찰된 결함: 390에서 왼쪽 네 방 레일이 화면 전체를 차지해 본문이 밀린다(`Sidebar.tsx` 327줄 `w-24 xl:w-56`, 좁은 화면 분기 없음).
+- 로컬 실행 환경: 앱 `localhost:3456`(`npx next dev -p 3456`), `dashboard/.env.local`에 스튜디오 개발 신원 4종 추가(STUDIO_IDENTITY_MODE·BEARER·MEMBER_ID·WORKSPACE_IDS). 테넌트 `cd1d0a40-540d-4524-9b49-bf2445d82182`.
+- 진행 중: `tmux osmu-fe4`(좁은 화면 셸 정합), `tmux osmu-build4`(갭 감사 '없음' 항목 구현).
+- 다음: 두 pane 회수 후 직접 검증. 새 테이블 필요 항목은 회장 합의 대기.
+
 ## [2026-08-28 화면 3차 커밋 · 실제 앱이 v63 구조로 전환됨 · 백엔드 3차 진행중]
 
 - **핸드오프 기준**: 이 파일. tmux 아님.

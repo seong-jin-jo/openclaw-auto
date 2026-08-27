@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import React from "react";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useUIStore } from "@/store/ui-store";
@@ -140,6 +140,44 @@ describe("Sidebar operator/customer shell separation", () => {
 
     expect(screen.queryByText("Overview")).not.toBeInTheDocument();
     expect(screen.queryByText("OSMU Studio")).not.toBeInTheDocument();
+  });
+
+  it("FE4-SIDEBAR-01 정상: 390 셸은 닫힌 서랍과 현재 방 표시로 본문 폭을 보존한다", () => {
+    mocks.pathname.mockReturnValue("/studio");
+    mocks.swr.mockImplementation((key: string | null) => {
+      if (key === "/api/me") return { data: { isOperator: false, tenant: { id: "customer-1", slug: "customer", name: "고객 워크스페이스" } }, mutate: vi.fn() };
+      if (key === "/api/images") return { data: [] };
+      return { data: undefined };
+    });
+
+    render(<Sidebar />);
+
+    const sidebar = screen.getByRole("complementary", { name: "주요 사이드바" });
+    const openButton = screen.getByRole("button", { name: "메뉴 열기" });
+    expect(sidebar).toHaveClass("hidden", "md:flex", "md:w-24");
+    expect(screen.getAllByText("지금 여기").length).toBeGreaterThanOrEqual(1);
+    expect(openButton).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(openButton);
+    expect(sidebar).toHaveClass("fixed", "flex");
+    expect(openButton).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(screen.getByRole("button", { name: "메뉴 닫기" }));
+    expect(sidebar).toHaveClass("hidden");
+  });
+
+  it("FE4-SIDEBAR-02 거절: 좁은 폭에서도 고정 96px 레일을 강제하는 옛 셸을 되살리지 않는다", () => {
+    mocks.pathname.mockReturnValue("/");
+    mocks.swr.mockImplementation((key: string | null) => {
+      if (key === "/api/me") return { data: { isOperator: false, tenant: { id: "customer-1", slug: "customer", name: "고객 워크스페이스" } }, mutate: vi.fn() };
+      if (key === "/api/images") return { data: [] };
+      return { data: undefined };
+    });
+
+    render(<Sidebar />);
+
+    const sidebar = screen.getByRole("complementary", { name: "주요 사이드바" });
+    expect(sidebar.className).not.toContain("sticky top-0 flex h-screen w-24");
+    expect(sidebar).toHaveClass("w-[min(20rem,86vw)]", "md:sticky", "md:h-screen");
   });
 
   it("clears the persisted active workspace when a customer logs out", async () => {
