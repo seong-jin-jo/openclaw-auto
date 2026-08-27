@@ -301,7 +301,7 @@ try {
     ["WRITE-06 블로그 삭제", `/api/blog-queue/${blogB}/delete`, "POST", { tenant_id: tenantB }],
     ["WRITE-07 채널 기본계정", `/api/channels/qa-isolation/accounts/${accountB}/default?tenant_id=${tenantB}`, "POST", {}],
     ["WRITE-08 채널 삭제", `/api/channels/qa-isolation/accounts/${accountB}?tenant_id=${tenantB}`, "DELETE", undefined],
-    ["WRITE-09 편집실 수정", `/api/studio/drafts/${draftB}/editor`, "PATCH", { tenant_id: tenantB, expected_revision: 1, change: { type: "delete_line", line_id: "line-1" } }],
+    ["WRITE-09 편집실 수정", `/api/studio/drafts/${draftB}/editor`, "PATCH", { tenant_id: tenantB, expected_revision: 1, operation: "mark_ready" }],
     ["WRITE-10 편집실 큐 인계", `/api/studio/drafts/${draftB}/enqueue`, "POST", { tenant_id: tenantB }],
     ["WRITE-11 댓글 상태 수정", "/api/engagement", "POST", { tenant_id: tenantB, action: "defer", post_id: postB, comment_id: MARKER_B }],
     ["WRITE-12 이미지 삭제", `/api/images/${encodeURIComponent(`${MARKER_B}.txt`)}`, "DELETE", undefined],
