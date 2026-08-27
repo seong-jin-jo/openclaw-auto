@@ -333,8 +333,9 @@ describe("proxy 테넌트 토큰(인증모델 b) 분기 — 실검증", () => {
     "/api/channels/threads/accounts",
     "/api/channels/threads/accounts/account-1",
     "/api/channels/threads/accounts/account-1/default",
+    "/api/suggestions/enqueue",
     "/api/tiktok/creator-info",
-  ])("osmu_ 토큰 + 다중계정 API(%s) → tenant-aware 통과", async (path) => {
+  ])("BE-V63-02 고객 경계 정상 경로: osmu_ 토큰 + tenant API(%s)는 운영자 전용으로 막히지 않는다", async (path) => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
     mockResolveTenantToken.mockResolvedValue("tenant-1");
@@ -342,6 +343,18 @@ describe("proxy 테넌트 토큰(인증모델 b) 분기 — 실검증", () => {
       headers: { Authorization: "Bearer osmu_xxx" },
     });
     expect(isPass(await proxy(req))).toBe(true);
+  });
+
+  it("BE-V63-02 고객 경계 거절 경로: 폐기된 토큰의 제안 큐 인계는 401로 거절한다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
+    mockResolveTenantToken.mockResolvedValue(null);
+    const req = new NextRequest("http://localhost/api/suggestions/enqueue", {
+      method: "POST",
+      headers: { Authorization: "Bearer osmu_revoked" },
+    });
+
+    expect((await proxy(req)).status).toBe(401);
   });
 
   it("osmu_ 토큰 + 미인식/폐기 토큰 → 401", async () => {
