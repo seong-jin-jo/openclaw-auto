@@ -207,8 +207,9 @@ try {
   if (durationBefore === durationAfterRemove || durationBefore !== durationAfterRestore) throw new Error(`edit remove and restore failed: ${durationBefore}/${durationAfterRemove}/${durationAfterRestore}`);
   studioRoomObservations.push({ room: "edit", interaction: "대사 빼기와 되살리기", durationBefore, durationAfterRemove, durationAfterRestore });
 
-  for (const route of RESPONSIVE_ROUTES) {
-    for (const viewport of RESPONSIVE_VIEWPORTS) {
+  if (process.env.FE3_CAPTURE_SCOPE !== "rooms") {
+    for (const route of RESPONSIVE_ROUTES) {
+      for (const viewport of RESPONSIVE_VIEWPORTS) {
       await page.setViewportSize(viewport);
       await page.goto(`${baseUrl}${route.path}`, { waitUntil: "networkidle", timeout: 60000 });
       const dismissOnboarding = page.getByRole("button", { name: "나중에 설정하기" });
@@ -304,10 +305,11 @@ try {
         performanceObservations.push({ width: viewport.width, ...performanceMetrics });
       }
       responsiveObservations.push({ route: route.key, width: viewport.width, ...metrics, roomLinks });
-      await page.screenshot({
-        path: path.join(outputDir, `${route.key}-${viewport.width}.png`),
-        fullPage: route.key === "performance-room",
-      });
+        await page.screenshot({
+          path: path.join(outputDir, `${route.key}-${viewport.width}.png`),
+          fullPage: route.key === "performance-room",
+        });
+      }
     }
   }
 

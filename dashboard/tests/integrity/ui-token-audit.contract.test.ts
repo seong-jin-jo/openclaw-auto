@@ -21,4 +21,9 @@ describe("UI-TOKEN-01 시각값 토큰 계약", () => {
   it("UI-TOKEN-02 통합 경로: 실제 화면 소스의 직접 시각값은 0건이다", () => {
     expect(auditDirectory("src").total).toBe(0);
   });
+
+  it("UI-TOKEN-03 거절 경로: 강조 전경을 일반 바탕에 쓰면 대비 오류로 검출한다", () => {
+    const source = `<strong className="bg-surface text-accent-fg">제목</strong>`;
+    expect(auditSource(source).map(({ category }) => category)).toContain("contrast");
+  });
 });

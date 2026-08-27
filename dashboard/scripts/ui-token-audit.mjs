@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const SOURCE_EXTENSIONS = /\.(?:ts|tsx)$/;
 const TOKEN_PATTERN = /[A-Za-z0-9_:[\]./%(),-]+/g;
+const CLASS_PATTERN = /className=(?:"([^"]*)"|`([^`]*)`|\{`([^`]*)`\})/g;
 
 const RULES = [
   {
@@ -44,7 +45,7 @@ function lineNumber(source, offset) {
 
 export function auditSource(source, file = "fixture.tsx") {
   const tokens = Array.from(source.matchAll(TOKEN_PATTERN));
-  return tokens.flatMap((match) => {
+  const directValueViolations = tokens.flatMap((match) => {
     const original = match[0];
     const value = original.split(":").at(-1) ?? original;
     const rule = RULES.find(({ pattern }) => pattern.test(value));
@@ -56,6 +57,19 @@ export function auditSource(source, file = "fixture.tsx") {
       value: original,
     }];
   });
+  const contrastViolations = Array.from(source.matchAll(CLASS_PATTERN)).flatMap((match) => {
+    const value = match[1] || match[2] || match[3] || "";
+    const accentMismatch = value.includes("text-accent-fg") && !value.includes("bg-accent");
+    const statusMismatch = value.includes("text-status-fg") && !/(?:bg-(?:success|warning|danger))/.test(value);
+    if (!accentMismatch && !statusMismatch) return [];
+    return [{
+      category: "contrast",
+      file,
+      line: lineNumber(source, match.index ?? 0),
+      value,
+    }];
+  });
+  return [...directValueViolations, ...contrastViolations];
 }
 
 export function auditDirectory(directory) {
@@ -64,7 +78,8 @@ export function auditDirectory(directory) {
     fs.readFileSync(file, "utf8"),
     path.relative(root, file),
   ));
-  const counts = Object.fromEntries(RULES.map(({ category }) => [
+  const categories = [...RULES.map(({ category }) => category), "contrast"];
+  const counts = Object.fromEntries(categories.map((category) => [
     category,
     violations.filter((violation) => violation.category === category).length,
   ]));

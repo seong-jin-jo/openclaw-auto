@@ -450,7 +450,7 @@ export function PerformanceRoom({
       <section className="border-t border-border pt-stack-section" data-perf-loop={topPosts.length}>
         <Stack gap={16}>
           <Stack gap={4}>
-            <h2 className="text-subheading font-bold text-accent-fg"><span aria-hidden="true" className="mr-stack-tight inline-grid size-stack-section place-items-center rounded-pill bg-accent text-caption text-accent-fg">2</span>무엇이 통했나</h2>
+            <h2 className="text-subheading font-bold text-text"><span aria-hidden="true" className="mr-stack-tight inline-grid size-stack-section place-items-center rounded-pill bg-accent text-caption text-accent-fg">2</span>무엇이 통했나</h2>
             <p className="text-caption text-muted">위 판정이 어느 글에서 나왔는지</p>
           </Stack>
           {topPosts.length > 0 ? (
@@ -537,7 +537,7 @@ export function PerformanceRoom({
       <section className="border-t border-border pt-stack-section" data-perf-comments={reactionPosts.length}>
         <Stack gap={16}>
           <Stack gap={4}>
-            <h2 className="text-subheading font-bold text-accent-fg"><span aria-hidden="true" className="mr-stack-tight inline-grid size-stack-section place-items-center rounded-pill bg-accent text-caption text-accent-fg">3</span>달린 반응</h2>
+            <h2 className="text-subheading font-bold text-text"><span aria-hidden="true" className="mr-stack-tight inline-grid size-stack-section place-items-center rounded-pill bg-accent text-caption text-accent-fg">3</span>달린 반응</h2>
           </Stack>
           {reactionPosts.length > 0 ? (
             <div className="grid min-w-0 gap-stack lg:grid-cols-[minmax(0,12rem)_minmax(0,1fr)]" data-engagement-stream>
