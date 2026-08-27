@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import useSWR from "swr";
 import { fetcher, apiPost } from "@/lib/api";
 import { useOverview, useActivity, useAlerts, useAgentLogs, useUsage, useErrors } from "@/hooks/useOverview";
@@ -32,12 +32,11 @@ const ALL_CHANNELS = [
 export default function HomePage() {
   const { dismissedOnboarding, dismissOnboarding, activeWorkspace } = useUIStore();
   const { data: overview } = useOverview();
-  const [loadSecondary, setLoadSecondary] = useState(false);
-  const { data: activityData } = useActivity(loadSecondary);
-  const { data: alertData } = useAlerts(loadSecondary);
-  const { data: agentLogData } = useAgentLogs(loadSecondary);
+  const { data: activityData } = useActivity();
+  const { data: alertData } = useAlerts();
+  const { data: agentLogData } = useAgentLogs();
   const { data: usageData } = useUsage(activeWorkspace?.id);
-  const { data: errorData } = useErrors(loadSecondary);
+  const { data: errorData } = useErrors();
   const { data: channelConfig } = useChannelConfig();
   // 발행물 성과(성과 페이지 통합). 활성 워크스페이스의 published_posts
   const { data: metricsData, mutate: mutateMetrics } = useSWR<{ posts?: PerformancePost[] }>(
@@ -45,18 +44,6 @@ export default function HomePage() {
   const [collecting, setCollecting] = useState(false);
   const { data: onboardingData, mutate: mutateOnboarding } = useOnboardingStatus();
   const onboardingStatus = onboardingData as { completed?: boolean } | undefined;
-
-  useEffect(() => {
-    if (!overview || loadSecondary) return;
-    let secondFrame = 0;
-    const firstFrame = window.requestAnimationFrame(() => {
-      secondFrame = window.requestAnimationFrame(() => setLoadSecondary(true));
-    });
-    return () => {
-      window.cancelAnimationFrame(firstFrame);
-      if (secondFrame) window.cancelAnimationFrame(secondFrame);
-    };
-  }, [loadSecondary, overview]);
 
   const o = overview as Record<string, unknown> | undefined;
   const cfg = (channelConfig || {}) as unknown as Record<string, Record<string, unknown>>;

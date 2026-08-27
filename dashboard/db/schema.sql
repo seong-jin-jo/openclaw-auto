@@ -487,6 +487,38 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_published_posts_idem
   ON published_posts (tenant_id, draft_id, platform, COALESCE(account_id, '00000000-0000-0000-0000-000000000000'::uuid))
   WHERE draft_id IS NOT NULL AND status IN ('published', 'in_progress');
 
+-- 작업 공간별 운영 장애 원장. 원문 오류나 자격증명은 저장하지 않고 고정 코드만 남긴다.
+-- status='open'인 동일 fingerprint는 한 행으로 합쳐 알림 폭주를 막는다.
+CREATE TABLE IF NOT EXISTS operational_incidents (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  fingerprint     TEXT NOT NULL,
+  category        TEXT NOT NULL CHECK (category IN (
+                    'publish_failed',
+                    'token_expired',
+                    'generation_failed',
+                    'external_service_error'
+                  )),
+  source          TEXT NOT NULL,
+  reason_code     TEXT NOT NULL,
+  severity        TEXT NOT NULL CHECK (severity IN ('critical', 'error', 'warning')),
+  intervention    TEXT NOT NULL CHECK (intervention IN ('human', 'automatic')),
+  status          TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'recovered')),
+  occurrences     INTEGER NOT NULL DEFAULT 1 CHECK (occurrences > 0),
+  first_seen_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_seen_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  recovered_at    TIMESTAMPTZ,
+  notified_at     TIMESTAMPTZ
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_operational_incidents_open_fingerprint
+  ON operational_incidents(tenant_id, fingerprint)
+  WHERE status = 'open';
+CREATE INDEX IF NOT EXISTS idx_operational_incidents_tenant_status
+  ON operational_incidents(tenant_id, status, last_seen_at DESC);
+CREATE INDEX IF NOT EXISTS idx_operational_incidents_human_notification
+  ON operational_incidents(intervention, notified_at, last_seen_at DESC)
+  WHERE status = 'open' AND intervention = 'human';
+
 -- 멱등 백필: 기존 integrations(kind='channel') 1행 → provider당 channel_accounts 1행(기본계정)으로 승격.
 -- 매 배포마다 실행 — 개별 tenant/provider 단위 idempotency는 ON CONFLICT DO NOTHING이 보장한다(이미
 -- 존재하는 행은 override하지 않음). 이러면 나중에 integrations에 새 tenant/provider가 추가돼도(레거시

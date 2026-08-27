@@ -78,6 +78,16 @@ See studio-mock*.html in public/ for visual references.
   - Video: `/api/video/generate`, `/api/video/publish`.
 - Studio 변경은 Stage Controller 현재 단계와 승인 산출물을 먼저 확인한다.
 
+## Initial render and accessibility, 2026-08-28
+
+- `room` 쿼리는 첫 렌더와 같은 `/studio` 안 이동의 진실원이다. 저장된 이전 방을 먼저 그렸다가
+  바꾸지 않는다.
+- 플랫폼 계정과 첫 댓글 기능은 발행실 전용이다. 생성실·편집실에서는 관련 요청을 시작하지 않는다.
+- 라이트·다크 텍스트 토큰은 WCAG AA를 만족하고, 모든 링크·단추·입력에는 공통 `focus-visible`
+  링이 나타나야 한다.
+- 성능 회귀는 `dashboard/scripts/measure-room-experience.mjs`, 키보드·대비 회귀는
+  `dashboard/scripts/verify-room-accessibility.mjs`로 실제 앱에서 확인한다.
+
 ## For Scaling to 1000+ Users
 - Workspace isolation.
 - Usage metering on generations/publishes.

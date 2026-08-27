@@ -1,0 +1,272 @@
+{
+  "label": "after",
+  "observedAt": "2026-08-27T21:37:25.580Z",
+  "baseUrl": "http://localhost:3456",
+  "workspaceId": "cd1d0a40-540d-4524-9b49-bf2445d82182",
+  "keyboard": {
+    "passed": true,
+    "focusRingObserved": true,
+    "generationHttpStatus": 201,
+    "draftSaveHttpStatus": 200,
+    "steps": [
+      {
+        "description": "홈에서 생성실 링크",
+        "tabs": 1,
+        "focused": {
+          "tag": "a",
+          "id": "",
+          "role": "",
+          "label": "✓생성실",
+          "href": "/studio?room=create",
+          "visible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": "3px"
+        }
+      },
+      {
+        "description": "생성실 주제 입력",
+        "tabs": 34,
+        "focused": {
+          "tag": "input",
+          "id": "studio-topic",
+          "role": "",
+          "label": "이번 주제",
+          "href": "",
+          "visible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": "3px"
+        }
+      },
+      {
+        "description": "생성실 목적 입력",
+        "tabs": 1,
+        "focused": {
+          "tag": "input",
+          "id": "studio-purpose",
+          "role": "",
+          "label": "목적",
+          "href": "",
+          "visible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": "3px"
+        }
+      },
+      {
+        "description": "생성실 대상 입력",
+        "tabs": 1,
+        "focused": {
+          "tag": "input",
+          "id": "studio-audience",
+          "role": "",
+          "label": "대상",
+          "href": "",
+          "visible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": "3px"
+        }
+      },
+      {
+        "description": "소재 권리 확인",
+        "tabs": 1,
+        "focused": {
+          "tag": "input",
+          "id": "",
+          "role": "",
+          "label": "소재 권리를 확인했습니다",
+          "href": "",
+          "visible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": "3px"
+        }
+      },
+      {
+        "description": "후보 생성 단추",
+        "tabs": 1,
+        "focused": {
+          "tag": "button",
+          "id": "",
+          "role": "",
+          "label": "후보 세 장 만들기",
+          "href": "",
+          "visible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": "3px"
+        }
+      },
+      {
+        "description": "A안 선택 단추",
+        "tabs": 1,
+        "focused": {
+          "tag": "button",
+          "id": "",
+          "role": "",
+          "label": "A안 선택",
+          "href": "",
+          "visible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": "3px"
+        }
+      },
+      {
+        "description": "편집실 이동 단추",
+        "tabs": 1,
+        "focused": {
+          "tag": "button",
+          "id": "",
+          "role": "",
+          "label": "편집실로 이동",
+          "href": "",
+          "visible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": "3px"
+        }
+      },
+      {
+        "description": "편집실 비율 도구",
+        "tabs": 9,
+        "focused": {
+          "tag": "button",
+          "id": "",
+          "role": "",
+          "label": "비율 도구",
+          "href": "",
+          "visible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": "3px"
+        }
+      },
+      {
+        "description": "편집실 정사각 비율",
+        "tabs": 5,
+        "focused": {
+          "tag": "button",
+          "id": "",
+          "role": "",
+          "label": "정사각",
+          "href": "",
+          "visible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": "3px"
+        }
+      },
+      {
+        "description": "편집실에서 발행실 링크",
+        "tabs": 20,
+        "focused": {
+          "tag": "a",
+          "id": "",
+          "role": "",
+          "label": "03발행실",
+          "href": "/studio?room=publish",
+          "visible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": "3px"
+        }
+      },
+      {
+        "description": "발행실 초안 저장 단추",
+        "tabs": 30,
+        "focused": {
+          "tag": "button",
+          "id": "",
+          "role": "",
+          "label": "초안으로 저장",
+          "href": "",
+          "visible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": "3px"
+        }
+      },
+      {
+        "description": "발행실에서 성과실 링크",
+        "tabs": 51,
+        "focused": {
+          "tag": "a",
+          "id": "",
+          "role": "",
+          "label": "04성과실",
+          "href": "/",
+          "visible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": "3px"
+        }
+      },
+      {
+        "description": "성과실 플랫폼 전체 단추",
+        "tabs": 30,
+        "focused": {
+          "tag": "button",
+          "id": "",
+          "role": "",
+          "label": "전체",
+          "href": "",
+          "visible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": "3px"
+        }
+      }
+    ]
+  },
+  "duplicateInlineEditors": 1,
+  "contrast": [
+    {
+      "screen": "home-performance",
+      "theme": "light",
+      "checked": 155,
+      "complexBackgrounds": 13,
+      "failures": []
+    },
+    {
+      "screen": "home-performance",
+      "theme": "dark",
+      "checked": 155,
+      "complexBackgrounds": 13,
+      "failures": []
+    },
+    {
+      "screen": "create",
+      "theme": "light",
+      "checked": 113,
+      "complexBackgrounds": 1,
+      "failures": []
+    },
+    {
+      "screen": "create",
+      "theme": "dark",
+      "checked": 113,
+      "complexBackgrounds": 1,
+      "failures": []
+    },
+    {
+      "screen": "edit",
+      "theme": "light",
+      "checked": 98,
+      "complexBackgrounds": 1,
+      "failures": []
+    },
+    {
+      "screen": "edit",
+      "theme": "dark",
+      "checked": 98,
+      "complexBackgrounds": 1,
+      "failures": []
+    },
+    {
+      "screen": "publish",
+      "theme": "light",
+      "checked": 185,
+      "complexBackgrounds": 1,
+      "failures": []
+    },
+    {
+      "screen": "publish",
+      "theme": "dark",
+      "checked": 185,
+      "complexBackgrounds": 1,
+      "failures": []
+    }
+  ],
+  "contrastFailureCount": 0,
+  "unauthorizedUrls": [],
+  "consoleErrors": []
+}
