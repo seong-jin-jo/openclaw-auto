@@ -13,8 +13,11 @@
   테스트를 추가했다. 제품 인증·API·스키마는 변경하지 않았다. 중간 커밋 `bc80b5cc`.
 - **검증:** 전체 Vitest 162파일 1,258건 통과, 선택적 라이브 항목 6건 건너뜀.
   `npx tsc --noEmit` 통과, design lint 위반 0건. 공격 중 만든 임시 DB 자료는 0건으로 회수했다.
-- **정확한 다음 작업:** 지정 8파일을 커밋하고 그 커밋 기준 격리 작업 디렉터리에서
-  production build를 실행한다. build 수치를 문서에 고정한 최종 커밋으로 닫는다.
+- **빌드:** 커밋 `b4ee60ab`의 격리 작업 디렉터리에서 Webpack 컴파일 42초,
+  정적 페이지 173개 생성이 통과했다. 현재 작업 디렉터리의 다른 화면 변경은 판정에서 제외했다.
+- **정확한 다음 작업:** build 승인 뒤 QA가 실공격을 독립 재실행한다. 정상 서명 만료
+  Supabase JWT의 정확한 401 분류는 검증기 자격증명이 있는 QA 환경에서 추가 확인한다.
+- **QA 명령:** `cd dashboard && ISOLATION_REPORT_JSON=/tmp/osmu-tenant-isolation-qa.json node scripts/verify-tenant-isolation-e2e.mjs`
 
 ## [2026-08-28 06:09 주요 다섯 화면 성능·접근성 build 착수]
 

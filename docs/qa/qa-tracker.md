@@ -18,8 +18,8 @@
 RLS 19개는 ENABLE·FORCE·USING·WITH CHECK를 모두 가졌고 A 문맥에서 B 조회·수정·삭제는
 0행, B 명의 삽입은 거절됐다. 실앱 공격 183건과 전체 Vitest 162파일 1,258건이 통과했고,
 선택적 라이브 항목 6건만 건너뛰었다. `npx tsc --noEmit`과 디자인 토큰 검사도 통과했다.
-production build는 커밋 기준 격리 작업 디렉터리에서 최종 실행 뒤 이어 붙인다. 전체 공격표는
-`docs/qa/tenant-isolation-attack-2026-08-28.md`다.
+커밋 `b4ee60ab`의 격리 작업 디렉터리에서 Webpack production build와 정적 페이지 173개
+생성이 통과했다. 전체 공격표는 `docs/qa/tenant-isolation-attack-2026-08-28.md`다.
 
 ## 2026-08-28 NG: 주요 다섯 화면의 속도·키보드·대비 미검증
 
