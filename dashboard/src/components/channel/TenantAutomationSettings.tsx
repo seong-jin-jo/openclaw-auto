@@ -41,9 +41,9 @@ export function TenantAutomationSettings({ channel }: { channel: string }) {
   };
 
   return (
-    <div className="card p-5">
-      <h3 className="text-sm font-medium text-muted mb-1">Automation</h3>
-      <p className="text-caption text-subtle mb-4">
+    <div className="card p-stack-section">
+      <h3 className="text-body-sm font-medium text-muted mb-micro">Automation</h3>
+      <p className="text-caption text-subtle mb-pad-inset">
         이 워크스페이스의 채널 자동화만 설정합니다.
       </p>
       {AUTOMATION_FEATURES.map((feature) => {
@@ -51,7 +51,7 @@ export function TenantAutomationSettings({ channel }: { channel: string }) {
         return (
           <div
             key={feature.key}
-            className="flex items-center gap-3 py-2.5 border-b border-border/50 last:border-0"
+            className="flex items-center gap-stack py-stack border-b border-border/50 last:border-0"
           >
             <label
               className={`relative inline-flex items-center shrink-0 ${
@@ -68,11 +68,11 @@ export function TenantAutomationSettings({ channel }: { channel: string }) {
                 disabled={!available}
                 className="sr-only peer"
               />
-              <span className="w-9 h-5 bg-surface-2 rounded-full peer peer-checked:bg-accent after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+              <span className="w-9 h-5 bg-surface-2 rounded-pill peer peer-checked:bg-accent after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:rounded-pill after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-full" />
             </label>
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className={`text-xs ${available ? "text-muted" : "text-subtle"}`}>
+              <div className="flex items-center gap-stack-tight">
+                <span className={`text-caption ${available ? "text-muted" : "text-subtle"}`}>
                   {feature.label}
                 </span>
                 {!available && <span className="text-caption text-subtle">Coming Soon</span>}

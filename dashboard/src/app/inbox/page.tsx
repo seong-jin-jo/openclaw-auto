@@ -155,26 +155,26 @@ export default function InboxPage() {
       : "";
 
   return (
-    <div className="px-4 sm:px-8 py-6 max-w-lg mx-auto">
-      <div className="mb-4">
-        <h2 className="text-xl font-bold text-text">승인 인박스</h2>
-        <p className="text-xs text-subtle mt-1">검수 승인 · AI·크론·Studio가 만든 초안을 승인·거절. 승인하면 예약 시각에 자동 발행 파이프라인이 게시합니다.</p>
+    <div className="px-pad-inset sm:px-region py-stack-section max-w-lg mx-auto">
+      <div className="mb-pad-inset">
+        <h2 className="text-subheading font-bold text-text">승인 인박스</h2>
+        <p className="text-caption text-subtle mt-micro">검수 승인 · AI·크론·Studio가 만든 초안을 승인·거절. 승인하면 예약 시각에 자동 발행 파이프라인이 게시합니다.</p>
       </div>
 
       {/* 제품 소스(제품-grounded): repo를 연결하면 "방금 만든 것"을 자동 홍보하는 글이 생성됨 */}
-      <div className="mb-4 text-xs">
+      <div className="mb-pad-inset text-caption">
         <button onClick={() => setShowSrc((v) => !v)} className="text-subtle hover:text-muted">
-          {psrc?.owner ? `🔗 제품 소스: ${psrc.owner}/${psrc.repo}/${psrc.path}` : "🔗 제품 소스 연결 (선택. repo 기반 생성)"}
-          <span className="ml-1 text-subtle">{showSrc ? "▲" : "▼"}</span>
+          {psrc?.owner ? `제품 소스: ${psrc.owner}/${psrc.repo}/${psrc.path}` : "제품 소스 연결 (선택. 저장소 기반 생성)"}
+          <span className="ml-micro text-subtle">{showSrc ? "▲" : "▼"}</span>
         </button>
         {showSrc && (
-          <div className="mt-2 card p-3 grid grid-cols-2 gap-2">
-            <input value={srcForm.owner} onChange={(e) => setSrcForm({ ...srcForm, owner: e.target.value })} placeholder="owner (예: my-gh-id)" className="bg-surface-2 p-1.5 rounded border border-border" />
-            <input value={srcForm.repo} onChange={(e) => setSrcForm({ ...srcForm, repo: e.target.value })} placeholder="repo (예: my-product)" className="bg-surface-2 p-1.5 rounded border border-border" />
-            <input value={srcForm.path} onChange={(e) => setSrcForm({ ...srcForm, path: e.target.value })} placeholder="path (예: CHANGELOG.md)" className="bg-surface-2 p-1.5 rounded border border-border" />
-            <input value={srcForm.ref} onChange={(e) => setSrcForm({ ...srcForm, ref: e.target.value })} placeholder="ref (main)" className="bg-surface-2 p-1.5 rounded border border-border" />
-            <input value={srcForm.token} onChange={(e) => setSrcForm({ ...srcForm, token: e.target.value })} placeholder="token (비공개 repo만)" type="password" className="bg-surface-2 p-1.5 rounded border border-border col-span-2" />
-            <button onClick={saveSrc} disabled={savingSrc} className="col-span-2 py-1.5 bg-accent hover:bg-accent-hover rounded disabled:opacity-50">
+          <div className="mt-stack-tight card p-stack grid grid-cols-2 gap-stack-tight">
+            <input value={srcForm.owner} onChange={(e) => setSrcForm({ ...srcForm, owner: e.target.value })} placeholder="owner (예: my-gh-id)" className="bg-surface-2 p-stack-tight rounded-chip border border-border" />
+            <input value={srcForm.repo} onChange={(e) => setSrcForm({ ...srcForm, repo: e.target.value })} placeholder="repo (예: my-product)" className="bg-surface-2 p-stack-tight rounded-chip border border-border" />
+            <input value={srcForm.path} onChange={(e) => setSrcForm({ ...srcForm, path: e.target.value })} placeholder="path (예: CHANGELOG.md)" className="bg-surface-2 p-stack-tight rounded-chip border border-border" />
+            <input value={srcForm.ref} onChange={(e) => setSrcForm({ ...srcForm, ref: e.target.value })} placeholder="ref (main)" className="bg-surface-2 p-stack-tight rounded-chip border border-border" />
+            <input value={srcForm.token} onChange={(e) => setSrcForm({ ...srcForm, token: e.target.value })} placeholder="token (비공개 repo만)" type="password" className="bg-surface-2 p-stack-tight rounded-chip border border-border col-span-2" />
+            <button onClick={saveSrc} disabled={savingSrc} className="col-span-2 py-stack-tight bg-accent hover:bg-accent-hover rounded-chip disabled:opacity-50">
               {savingSrc ? "저장 중…" : "연결 저장"}
             </button>
           </div>
@@ -182,16 +182,16 @@ export default function InboxPage() {
       </div>
 
       {/* 브랜드 보이스 슬라이더: 보이고 조절 가능해 신뢰. 생성 톤 제어 */}
-      <div className="mb-4 text-xs">
+      <div className="mb-pad-inset text-caption">
         <button onClick={() => setShowTone((v) => !v)} className="text-subtle hover:text-muted">
-          🎚 보이스 톤 {tone ? `(격식${100 - tone.formal}·유머${tone.humor}·열정${tone.energy})` : ""}
-          <span className="ml-1 text-subtle">{showTone ? "▲" : "▼"}</span>
+          보이스 톤 {tone ? `(격식${100 - tone.formal}·유머${tone.humor}·열정${tone.energy})` : ""}
+          <span className="ml-micro text-subtle">{showTone ? "▲" : "▼"}</span>
         </button>
         {showTone && tone && (
-          <div className="mt-2 card p-3 space-y-3">
+          <div className="mt-stack-tight card p-stack space-y-stack">
             {TONE_SLIDERS.map(({ key, left, right }) => (
               <div key={key}>
-                <div className="flex justify-between text-caption text-subtle mb-1">
+                <div className="flex justify-between text-caption text-subtle mb-micro">
                   <span>{left}</span><span>{right}</span>
                 </div>
                 <input
@@ -201,7 +201,7 @@ export default function InboxPage() {
                 />
               </div>
             ))}
-            <button onClick={saveTone} disabled={savingTone} className="w-full py-1.5 bg-accent hover:bg-accent-hover rounded disabled:opacity-50">
+            <button onClick={saveTone} disabled={savingTone} className="w-full py-stack-tight bg-accent hover:bg-accent-hover rounded-chip disabled:opacity-50">
               {savingTone ? "저장 중…" : "톤 저장"}
             </button>
           </div>
@@ -209,74 +209,74 @@ export default function InboxPage() {
       </div>
 
       {/* 진행률 */}
-      <div className="flex items-center justify-between mb-3 text-xs">
+      <div className="flex items-center justify-between mb-stack text-caption">
         <span className="text-subtle">
           {posts.length > 0 ? `${idx + 1} / ${posts.length}` : "0 / 0"} 검토 중
         </span>
-        <span className="text-green-400">{approved}건 승인됨</span>
+        <span className="text-success">{approved}건 승인됨</span>
       </div>
       <progress
-        className="progress-semantic mb-5 h-1 w-full"
+        className="progress-semantic mb-stack-section h-1 w-full"
         max={Math.max(posts.length, 1)}
         value={posts.length ? idx : 0}
         aria-label="승인 검토 진행률"
       />
 
       {isLoading ? (
-        <div className="card p-8 text-center text-subtle text-sm">불러오는 중…</div>
+        <div className="card p-region text-center text-subtle text-body-sm">불러오는 중…</div>
       ) : posts.length === 0 ? (
-        <div className="card p-8 text-center">
-          <p className="text-muted text-sm">검토할 초안이 없습니다</p>
-          <p className="text-caption text-subtle mt-2">AI가 브랜드 톤으로 한 묶음 만들어 드릴게요. 검토만 하면 됩니다.</p>
+        <div className="card p-region text-center">
+          <p className="text-muted text-body-sm">검토할 초안이 없습니다</p>
+          <p className="text-caption text-subtle mt-stack-tight">AI가 브랜드 톤으로 한 묶음 만들어 드릴게요. 검토만 하면 됩니다.</p>
           <button
             onClick={seedDrafts}
             disabled={seeding}
-            className="mt-4 px-4 py-2 text-sm bg-green-600 text-text rounded-lg hover:bg-green-500 disabled:opacity-50"
+            className="mt-pad-inset px-pad-inset py-stack-tight text-body-sm bg-success text-status-fg rounded-control hover:bg-success disabled:opacity-50"
           >
             {seeding ? "생성 중…" : "AI로 한 주치 초안 생성"}
           </button>
-          <p className="text-caption text-subtle mt-3">크론·Studio·영상에서 만든 글도 여기로 모입니다.</p>
+          <p className="text-caption text-subtle mt-stack">크론·Studio·영상에서 만든 글도 여기로 모입니다.</p>
         </div>
       ) : !current ? (
-        <div className="card p-8 text-center text-subtle text-sm">모두 검토 완료.</div>
+        <div className="card p-region text-center text-subtle text-body-sm">모두 검토 완료.</div>
       ) : (
-        <div className="card p-4">
+        <div className="card p-pad-inset">
           {/* 채널 칩 */}
           {channels.length > 0 && (
-            <div className="flex flex-wrap gap-1 mb-3">
+            <div className="flex flex-wrap gap-micro mb-stack">
               {channels.map((ch) => (
-                <span key={ch} className="text-caption px-2 py-0.5 rounded-full bg-surface-2 text-muted">{ch}</span>
+                <span key={ch} className="text-caption px-stack-tight py-micro rounded-pill bg-surface-2 text-muted">{ch}</span>
               ))}
             </div>
           )}
 
           {/* 영상 프리뷰(있으면) */}
           {videoSrc && (
-            <div className="flex justify-center mb-3">
-              <video src={videoSrc} controls playsInline className="rounded-lg bg-black w-full max-w-[240px] aspect-[9/16] object-contain" />
+            <div className="flex justify-center mb-stack">
+              <video src={videoSrc} controls playsInline className="rounded-control bg-player-surface w-full max-w-[240px] aspect-[9/16] object-contain" />
             </div>
           )}
 
           {/* 본문 */}
-          <p className="text-sm text-text whitespace-pre-wrap leading-relaxed min-h-[80px]">{current.text || "(내용 없음)"}</p>
+          <p className="text-body-sm text-text whitespace-pre-wrap leading-relaxed min-h-[80px]">{current.text || "(내용 없음)"}</p>
 
           {/* 해시태그 */}
           {current.hashtags && current.hashtags.length > 0 && (
-            <p className="text-caption text-accent mt-2">{current.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}</p>
+            <p className="text-caption text-accent mt-stack-tight">{current.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}</p>
           )}
 
-          <div className="mt-3 text-caption text-subtle flex items-center justify-between">
+          <div className="mt-stack text-caption text-subtle flex items-center justify-between">
             <span>{current.topic || "post"}</span>
             <span>{current.generatedAt ? new Date(current.generatedAt).toLocaleString("ko-KR") : ""}</span>
           </div>
 
           {/* 예약 시점 */}
-          <div className="mt-4 flex items-center gap-2 text-xs">
+          <div className="mt-pad-inset flex items-center gap-stack-tight text-caption">
             <label className="text-subtle">발행 시점</label>
             <select
               value={scheduleHours}
               onChange={(e) => setScheduleHours(Number(e.target.value))}
-              className="bg-surface-2 text-muted text-xs p-1.5 rounded border border-border"
+              className="bg-surface-2 text-muted text-caption p-stack-tight rounded-chip border border-border"
             >
               <option value={0}>지금(다음 발행 주기)</option>
               <option value={2}>2시간 뒤</option>
@@ -287,23 +287,23 @@ export default function InboxPage() {
           </div>
 
           {/* 액션 */}
-          <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="mt-stack-section grid grid-cols-2 gap-stack">
             <button
               onClick={reject}
               disabled={busy}
-              className="py-3 rounded-lg bg-danger/15 text-danger hover:bg-danger/25 text-sm font-medium disabled:opacity-50"
+              className="py-stack rounded-control bg-danger/15 text-danger hover:bg-danger/25 text-body-sm font-medium disabled:opacity-50"
             >
               거절 <span className="text-caption opacity-60">(R)</span>
             </button>
             <button
               onClick={approve}
               disabled={busy}
-              className="py-3 rounded-lg bg-green-600 text-text hover:bg-green-500 text-sm font-medium disabled:opacity-50"
+              className="py-stack rounded-control bg-success text-status-fg hover:bg-success text-body-sm font-medium disabled:opacity-50"
             >
               승인 <span className="text-caption opacity-80">(A)</span>
             </button>
           </div>
-          <p className="text-caption text-subtle text-center mt-2">단축키: A 승인 · R 거절 · ← → 이동</p>
+          <p className="text-caption text-subtle text-center mt-stack-tight">단축키: A 승인 · R 거절 · ← → 이동</p>
         </div>
       )}
     </div>

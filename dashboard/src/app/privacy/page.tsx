@@ -10,13 +10,13 @@ export default function PrivacyPage() {
       summary="정성컴퍼니(이하 ‘회사’)는 OSMU 마케팅 자동화 서비스를 제공하면서 이용자의 개인정보를 필요한 범위에서만 처리합니다."
     >
       <LegalSection title="1. 수집하는 정보">
-        <ul className="list-disc space-y-1 pl-5">
+        <ul className="list-disc space-y-micro pl-stack-section">
           <li>Google 로그인 정보: 이메일 주소, 표시 이름, 프로필 이미지, 인증 서비스 사용자 식별자</li>
           <li>연결한 소셜 계정 정보: 플랫폼 계정 식별자, 사용자명, 표시 이름, 승인 범위, 액세스·갱신 토큰</li>
           <li>서비스 이용 정보: 작성한 초안, 예약·발행 기록, 업로드한 이미지·영상, 오류 및 보안 로그</li>
           <li>분석 정보: 이용자가 분석 쿠키에 동의한 경우 방문 경로와 기능 이용 이벤트</li>
         </ul>
-        <p className="mt-2">회사는 소셜 플랫폼 비밀번호를 수집하거나 저장하지 않습니다. 로그인과 동의는 각 플랫폼의 공식 화면에서 처리됩니다.</p>
+        <p className="mt-stack-tight">회사는 소셜 플랫폼 비밀번호를 수집하거나 저장하지 않습니다. 로그인과 동의는 각 플랫폼의 공식 화면에서 처리됩니다.</p>
       </LegalSection>
       <LegalSection title="2. 이용 목적">
         <p>회원 인증과 tenant 생성, 소셜 계정 연결, 콘텐츠 생성·예약·발행, 성과 확인, 고객 지원, 보안 사고 및 오류 대응을 위해 정보를 이용합니다.</p>

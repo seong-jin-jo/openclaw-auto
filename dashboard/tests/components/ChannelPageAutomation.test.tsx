@@ -187,7 +187,7 @@ describe("ChannelPage customer/operator API boundary", () => {
     fireEvent.change(screen.getByPlaceholderText("인기글 텍스트를 붙여넣기"), {
       target: { value: "검증할 인기글" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    fireEvent.click(screen.getByRole("button", { name: "추가" }));
 
     await waitFor(() => {
       expect(mocks.apiPost).toHaveBeenCalledWith(

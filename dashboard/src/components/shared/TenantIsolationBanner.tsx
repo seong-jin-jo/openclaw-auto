@@ -28,22 +28,22 @@ export function TenantIsolationBanner() {
   };
 
   return (
-    <div className="flex items-center justify-between gap-3 mb-4 px-4 py-3 rounded-xl border border-emerald-700/40 bg-emerald-900/15">
-      <div className="text-sm text-emerald-200">
-        🔒 내 테넌트 데이터만 보입니다
+    <div className="flex items-center justify-between gap-stack mb-pad-inset px-pad-inset py-stack rounded-surface border border-success/40 bg-success/15">
+      <div className="text-body-sm text-success">
+        내 테넌트 데이터만 보입니다
         {proof ? (
-          <span className="text-emerald-400/80 text-xs ml-2">
+          <span className="text-success/80 text-caption ml-stack-tight">
            . 다른 테넌트 <b>{proof.otherTenants}개</b> 존재, 그 데이터 <b>{proof.crossTenant}개</b> 조회됨 (내 항목 {proof.own}개)
           </span>
         ) : (
-          <span className="text-emerald-400/60 text-xs ml-2">행 단위 격리(RLS)로 다른 사용자 데이터는 절대 노출되지 않아요</span>
+          <span className="text-success/60 text-caption ml-stack-tight">행 단위 격리(RLS)로 다른 사용자 데이터는 절대 노출되지 않아요</span>
         )}
-        {err && <span className="text-amber-400 text-xs ml-2">{err}</span>}
+        {err && <span className="text-warning text-caption ml-stack-tight">{err}</span>}
       </div>
       <button
         onClick={verify}
         disabled={busy}
-        className="text-xs px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-text whitespace-nowrap disabled:opacity-50"
+        className="text-caption px-stack py-stack-tight rounded-control bg-success hover:bg-success text-status-fg whitespace-nowrap disabled:opacity-50"
       >
         {busy ? "확인 중…" : proof ? "다시 확인" : "격리 증명 보기"}
       </button>

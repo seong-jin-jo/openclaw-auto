@@ -21,9 +21,9 @@ export function useToast() {
 let nextId = 0;
 
 const COLORS: Record<string, string> = {
-  success: "bg-success text-white border-success",
-  error: "bg-danger text-white border-danger",
-  warning: "bg-warning text-white border-warning",
+  success: "bg-success text-status-fg border-success",
+  error: "bg-danger text-status-fg border-danger",
+  warning: "bg-warning text-status-fg border-warning",
   info: "bg-accent text-accent-fg border-accent",
 };
 
@@ -39,11 +39,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2" id="toast-container">
+      <div className="fixed top-4 right-4 z-50 flex flex-col gap-stack-tight" id="toast-container">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`px-4 py-2 rounded border text-sm shadow-lg transition-opacity duration-300 ${COLORS[t.type] || COLORS.info}`}
+            className={`px-pad-inset py-stack-tight rounded-chip border text-body-sm shadow-lg transition-opacity duration-300 ${COLORS[t.type] || COLORS.info}`}
           >
             {t.message}
           </div>

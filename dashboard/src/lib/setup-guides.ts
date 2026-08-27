@@ -7,19 +7,19 @@ export const setupGuides: Record<string, SetupGuide> = {
     fields: ["accessToken", "userId"],
     labels: ["Access Token", "User ID"],
     quick: [
-      '✅ <strong class="text-text">위 "Threads 연결" 버튼 한 번</strong> → Threads 공식 로그인·동의 → 끝. <span class="text-subtle">토큰 개념 몰라도 됩니다. 발급·60일 갱신을 우리가 처리.</span>',
+      '<strong class="text-text">위 "Threads 연결" 단추 한 번</strong> → Threads 공식 로그인·동의 → 끝. <span class="text-subtle">토큰 개념을 몰라도 됩니다. 발급·60일 갱신을 우리가 처리합니다.</span>',
       '— 아래는 직접 토큰 입력(고급)만 필요할 때 —',
       '수동: developers.facebook.com → 앱(Threads) → Access Token 생성(threads_basic, threads_content_publish 동의) → 토큰 + User ID(긴 숫자, 앱 ID 아님)를 아래 폼에.',
     ],
     detail:
-      '추천: 위 "Threads 연결" 버튼이면 끝납니다(비번·토큰 입력 없이 공식 로그인, 토큰 자동 발급·갱신). 직접 토큰 입력은 고급 사용자용 — ⚠️ User ID에 앱 ID(짧은 숫자)를 넣으면 발행 실패, Threads 계정 고유번호(긴 숫자)를 넣으세요.',
+      '추천: 위 "Threads 연결" 단추면 끝납니다(비밀번호·토큰 입력 없이 공식 로그인, 토큰 자동 발급·갱신). 직접 토큰 입력은 고급 사용자용입니다. User ID에 앱 ID(짧은 숫자)를 넣으면 발행이 실패하므로 Threads 계정 고유번호(긴 숫자)를 넣으세요.',
   },
   x: {
     fields: ["apiKey", "apiKeySecret", "accessToken", "accessTokenSecret"],
     labels: ["소비자 키 (API Key)", "소비자 시크릿 (API Key Secret)", "액세스 토큰 (Access Token)", "액세스 토큰 시크릿 (Access Token Secret)"],
     quick: [
       '<a href="https://developer.x.com" target="_blank" class="text-accent hover:underline">developer.x.com</a> &gt; Dashboard &gt; Create App',
-      'App Settings &gt; <strong class="text-text">User authentication settings</strong> &gt; Edit<div class="ml-4 mt-0.5 text-subtle">- App permissions: <strong class="text-text">Read and write</strong><br>- Type of App: Web App<br>- Website URL: https://example.com<br>- Callback URL: https://example.com/callback</div>',
+      'App Settings &gt; <strong class="text-text">User authentication settings</strong> &gt; Edit<div class="ml-pad-inset mt-micro text-subtle">- App permissions: <strong class="text-text">Read and write</strong><br>- Type of App: Web App<br>- Website URL: https://example.com<br>- Callback URL: https://example.com/callback</div>',
       'Keys and tokens &gt; <strong class="text-text">소비자 키</strong> &gt; 재생성 &gt; Key + Secret 복사',
       'Keys and tokens &gt; <strong class="text-text">액세스 토큰</strong> &gt; 생성 (Read+Write) &gt; Token + Secret 복사',
       "왼쪽 폼에 4개 키 입력 &gt; Connect",
@@ -30,7 +30,7 @@ export const setupGuides: Record<string, SetupGuide> = {
     fields: ["accessToken", "pageId"],
     labels: ["Page Access Token", "Page ID"],
     quick: [
-      '✅ <strong class="text-text">위 "Facebook 연결" 버튼 한 번</strong> → Facebook 공식 로그인·동의 → 페이지 자동 연결. <span class="text-subtle">페이지 토큰을 우리가 받아 처리(직접 발급 불필요).</span>',
+      '<strong class="text-text">위 "Facebook 연결" 단추 한 번</strong> → Facebook 공식 로그인·동의 → 페이지 자동 연결. <span class="text-subtle">페이지 토큰을 우리가 받아 처리하므로 직접 발급할 필요가 없습니다.</span>',
       '— 아래는 직접 입력(고급) —',
       "수동: developers.facebook.com → 앱 → Page Access Token 발급 + Page ID 확인 → 아래 폼에.",
     ],
@@ -53,13 +53,13 @@ export const setupGuides: Record<string, SetupGuide> = {
     fields: ["accessToken", "userId"],
     labels: ["Graph API Access Token", "Instagram Business User ID"],
     quick: [
-      '✅ <strong class="text-text">위 "Instagram 연결" 버튼 한 번</strong> → 프로페셔널(비즈니스/크리에이터) 계정으로 공식 로그인·동의 → 끝. <span class="text-subtle">토큰·User ID를 우리가 받아 처리. 토큰 개념 몰라도 됩니다.</span>',
+      '<strong class="text-text">위 "Instagram 연결" 단추 한 번</strong> → 프로페셔널(비즈니스/크리에이터) 계정으로 공식 로그인·동의 → 끝. <span class="text-subtle">토큰·User ID를 우리가 받아 처리하므로 토큰 개념을 몰라도 됩니다.</span>',
       "선행: Instagram이 프로페셔널 계정이어야 함(프로필 > 설정 > 프로페셔널 계정으로 전환).",
       '— 아래는 직접 토큰 입력(고급) —',
       "수동: developers.facebook.com 앱 → Instagram 권한으로 토큰 생성 + instagram_business_account.id(User ID, 앱 ID 아님)를 아래 폼에.",
     ],
     detail:
-      '추천: 위 "Instagram 연결" 버튼이면 끝(공식 로그인, 비번·토큰 우리 안 받음, 자동 발급·갱신). 단 Instagram이 프로페셔널 계정이어야 함. 직접 입력(고급) 시 ⚠️ 앱 ID ≠ User ID — instagram_business_account.id를 넣으세요. 지원: 단일/캐러셀(2~10장)/릴스.',
+      '추천: 위 "Instagram 연결" 단추면 끝납니다(공식 로그인, 비밀번호·토큰을 우리에게 전달하지 않음, 자동 발급·갱신). 단 Instagram이 프로페셔널 계정이어야 합니다. 직접 입력(고급) 시 앱 ID와 User ID는 다르므로 instagram_business_account.id를 넣으세요. 지원: 단일/캐러셀(2~10장)/릴스.',
   },
   linkedin: {
     fields: ["accessToken", "personUrn"],
@@ -211,7 +211,7 @@ export const setupGuides: Record<string, SetupGuide> = {
       'Discord 설정 > 고급 > <strong>개발자 모드</strong> ON',
       '미드저니 봇이 있는 서버 이름 우클릭 > <strong>서버 ID 복사</strong>',
       '미드저니 봇이 있는 채널 우클릭 > <strong>채널 ID 복사</strong>',
-      'Discord Token 발급: <a href=\'https://discord.com/app\' target=\'_blank\' class=\'text-accent hover:underline\'>discord.com/app</a> 접속 (브라우저) > F12 > Console 탭 > 아래 코드 붙여넣기 후 Enter:<br><code class=\'bg-surface-2 text-text px-1 rounded text-caption break-all\'>(function(){const o=XMLHttpRequest.prototype.setRequestHeader;XMLHttpRequest.prototype.setRequestHeader=function(n,v){if(n.toLowerCase()===\'authorization\')console.log(\'[Token]\',v);return o.apply(this,arguments)}})()</code><br>실행 후 Discord에서 아무 채널 클릭 → Console에 <code class=\'bg-surface-2 text-text px-1 rounded\'>[Token] MTxx...</code> 출력됨',
+      'Discord Token 발급: <a href=\'https://discord.com/app\' target=\'_blank\' class=\'text-accent hover:underline\'>discord.com/app</a> 접속 (브라우저) > F12 > Console 탭 > 아래 코드 붙여넣기 후 Enter:<br><code class=\'bg-surface-2 text-text px-micro rounded-chip text-caption break-all\'>(function(){const o=XMLHttpRequest.prototype.setRequestHeader;XMLHttpRequest.prototype.setRequestHeader=function(n,v){if(n.toLowerCase()===\'authorization\')console.log(\'[Token]\',v);return o.apply(this,arguments)}})()</code><br>실행 후 Discord에서 아무 채널 클릭 → Console에 <code class=\'bg-surface-2 text-text px-micro rounded-chip\'>[Token] MTxx...</code> 출력됨',
       "위 폼에 3개 값 입력 후 Connect",
     ],
     detail:

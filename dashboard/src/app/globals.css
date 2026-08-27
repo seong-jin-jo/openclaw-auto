@@ -19,17 +19,32 @@
   --success:rgb(21 128 61);
   --warning:rgb(180 83 9);
   --danger: rgb(220 38 38);
+  --success-soft: color-mix(in srgb, var(--success) 12%, transparent);
+  --warning-soft: color-mix(in srgb, var(--warning) 12%, transparent);
+  --danger-soft: color-mix(in srgb, var(--danger) 12%, transparent);
+  --status-fg: rgb(255 255 255);
+  --player-surface: rgb(13 17 23);
+  --player-text: rgb(244 244 245);
   --focus: color-mix(in srgb, var(--accent) 72%, transparent);
   --shadow: 0 4px 12px rgba(16,24,40,0.08);
 
   /* DESIGN.md v23: spacing uses only 4 / 8 / 12 / 16 / 24 / 32px. */
   --space-micro: 4px;
+  --space-none: 0px;
   --stack-tight: 8px;
   --stack: 12px;
   --pad-inset: 16px;
   --stack-section: 24px;
   --space-region: 32px;
+  --space-wide: 48px;
   --control-touch: 44px;
+
+  /* DESIGN.md §5: component roles own radius. Literal radius utilities are forbidden. */
+  --shape-chip: 6px;
+  --shape-control: 8px;
+  --shape-surface: 12px;
+  --shape-pill: 99px;
+  --elevation-floating: 0 4px 16px color-mix(in srgb, var(--accent) 10%, transparent);
 
   /* DESIGN.md v23: seven paired type steps; caption is the 12px floor. */
   --font-caption-size: 12px;
@@ -63,6 +78,7 @@
   --success:rgb(74 222 128);
   --warning:rgb(251 191 36);
   --danger: rgb(248 113 113);
+  --status-fg: rgb(10 10 11);
   --shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
 
@@ -82,14 +98,28 @@
   --color-success:      var(--success);
   --color-warning:      var(--warning);
   --color-danger:       var(--danger);
+  --color-success-soft: var(--success-soft);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger-soft:  var(--danger-soft);
+  --color-status-fg:    var(--status-fg);
+  --color-player-surface: var(--player-surface);
+  --color-player-text:    var(--player-text);
 
   --spacing-micro:         var(--space-micro);
+  --spacing-none:          var(--space-none);
   --spacing-stack-tight:   var(--stack-tight);
   --spacing-stack:         var(--stack);
   --spacing-pad-inset:     var(--pad-inset);
   --spacing-stack-section: var(--stack-section);
   --spacing-region:        var(--space-region);
+  --spacing-wide:          var(--space-wide);
   --spacing-control-touch: var(--control-touch);
+
+  --radius-chip:    var(--shape-chip);
+  --radius-control: var(--shape-control);
+  --radius-surface: var(--shape-surface);
+  --radius-pill:    var(--shape-pill);
+  --shadow-floating: var(--elevation-floating);
 
   --text-caption:                  var(--font-caption-size);
   --text-caption--line-height:     var(--font-caption-leading);

@@ -36,20 +36,20 @@ export function DataChannelPage({ channel }: DataChannelPageProps) {
   };
 
   return (
-    <div className="px-8 py-6">
+    <div className="px-region py-stack-section">
       <BackButton />
-      <div className="flex items-center gap-3 mb-6">
-        <span className="w-8 h-8 rounded-lg bg-surface-2 flex items-center justify-center text-sm font-bold text-text">
+      <div className="flex items-center gap-stack mb-stack-section">
+        <span className="w-8 h-8 rounded-control bg-surface-2 flex items-center justify-center text-body-sm font-bold text-text">
           {label[0]}
         </span>
         <div>
-          <h2 className="text-xl font-semibold text-muted">{label}</h2>
-          <p className="text-xs text-subtle">{CH_STATUS_LABEL[status] || status}</p>
+          <h2 className="text-subheading font-semibold text-muted">{label}</h2>
+          <p className="text-caption text-subtle">{CH_STATUS_LABEL[status] || status}</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="card p-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-section">
+        <div className="card p-stack-section">
           <CredentialForm
             channelKey={channel}
             fields={sg.fields}
@@ -59,7 +59,7 @@ export function DataChannelPage({ channel }: DataChannelPageProps) {
             connected={connected}
           />
         </div>
-        <div className="card p-5">
+        <div className="card p-stack-section">
           <SetupGuide quick={sg.quick} detail={sg.detail} />
         </div>
       </div>

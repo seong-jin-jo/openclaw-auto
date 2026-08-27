@@ -595,25 +595,25 @@ export default function StudioPage() {
       <Button onClick={() => setShowWorks((value) => !value)} aria-expanded={showWorks} aria-controls="studio-work-overview">
         작업물 전체 <span className="ml-micro text-accent">{hist?.drafts.length ?? 0}</span>
       </Button>
-      <Link href="/inbox" className="inline-flex min-h-control-touch items-center rounded-lg border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">승인 인박스</Link>
-      <Link href="/calendar" className="inline-flex min-h-control-touch items-center rounded-lg border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">발행 캘린더</Link>
-      <span className="rounded-full bg-accent-soft px-stack py-stack-tight text-caption font-semibold text-accent">
+      <Link href="/inbox" className="inline-flex min-h-control-touch items-center rounded-control border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">승인 인박스</Link>
+      <Link href="/calendar" className="inline-flex min-h-control-touch items-center rounded-control border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">발행 캘린더</Link>
+      <span className="rounded-pill bg-accent-soft px-stack py-stack-tight text-caption font-semibold text-accent">
         {activeRoom === "create" ? "생성실" : activeRoom === "edit" ? "편집실" : "발행실"}
       </span>
       {activeRoom === "create" || activeRoom === "edit" ? (
-        <span className="rounded-full border border-accent/30 bg-surface px-stack py-stack-tight text-caption font-semibold text-accent" data-kind-board>
+        <span className="rounded-pill border border-accent/30 bg-surface px-stack py-stack-tight text-caption font-semibold text-accent" data-kind-board>
           지금 만드는 것: {activeRoom === "create" ? createBranch === "video" ? "영상" : "글·카드뉴스" : editKind === "video" ? "영상" : editKind === "card" ? "카드뉴스" : "음악"}
         </span>
       ) : null}
-      <span className="rounded-lg border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle" title={engine?.error || engine?.model || ""}>AI {engine?.label || "확인 중"}</span>
+      <span className="rounded-control border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle" title={engine?.error || engine?.model || ""}>AI {engine?.label || "확인 중"}</span>
       {showWorks ? (
-        <div id="studio-work-overview" className="absolute left-0 right-0 top-full z-20 mt-stack grid gap-stack rounded-xl border border-border bg-surface p-pad-inset shadow-lg md:grid-cols-4">
+        <div id="studio-work-overview" className="absolute left-0 right-0 top-full z-20 mt-stack grid gap-stack rounded-surface border border-border bg-surface p-pad-inset shadow-lg md:grid-cols-4">
           {(["create", "edit", "publish"] as StudioRoom[]).map((room) => (
             <Button key={room} variant={activeRoom === room ? "primary" : "secondary"} onClick={() => changeRoom(room)}>
               {room === "create" ? "생성실" : room === "edit" ? "편집실" : "발행실"}
             </Button>
           ))}
-          <Link href="/" className="inline-flex min-h-control-touch items-center justify-center rounded-lg border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">성과실</Link>
+          <Link href="/" className="inline-flex min-h-control-touch items-center justify-center rounded-control border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">성과실</Link>
         </div>
       ) : null}
     </header>
@@ -671,21 +671,21 @@ export default function StudioPage() {
       {showWizard && activeWorkspace ? <BrandSetupWizard workspace={activeWorkspace} onComplete={() => { setShowWizard(false); mutateBrand(); showToast("브랜드 가이드 저장됨"); }} onDismiss={() => setShowWizard(false)} /> : null}
       {showRepo && activeWorkspace ? <RepoConnect workspace={activeWorkspace} onSynced={() => { mutateBrand(); showToast("브랜드 가이드 갱신됨"); }} onClose={() => setShowRepo(false)} /> : null}
       {roomHeader}
-      <section data-room="publish" className="grid gap-stack-section pb-16 lg:grid-cols-[minmax(0,1fr)_20rem] lg:pb-0">
+      <section data-room="publish" className="grid gap-stack-section pb-wide lg:grid-cols-[minmax(0,1fr)_20rem] lg:pb-none">
         <div className="min-w-0 space-y-region">
-          <section data-room-top="publish" aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch items-center justify-between rounded-xl border border-border bg-surface px-pad-inset py-stack">
+          <section data-room-top="publish" aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch items-center justify-between rounded-surface border border-border bg-surface px-pad-inset py-stack">
             <b className="text-lead text-accent">{selectedPublishTargets(includes).length}곳</b>
             <span className="text-caption text-subtle">발행할 채널</span>
           </section>
-          {lastError ? <div className="rounded-lg border border-danger/30 bg-danger/10 p-stack text-caption text-danger">마지막 실패: {lastError}</div> : null}
-          {vid?.narration?.message ? <div className="rounded-lg border border-warning/30 bg-warning/10 p-stack text-caption text-warning">{vid.narration.message}</div> : null}
+          {lastError ? <div className="rounded-control border border-danger/30 bg-danger/10 p-stack text-caption text-danger">마지막 실패: {lastError}</div> : null}
+          {vid?.narration?.message ? <div className="rounded-control border border-warning/30 bg-warning/10 p-stack text-caption text-warning">{vid.narration.message}</div> : null}
           {(pub.running || Object.keys(pub.status).length > 0) ? (
             <div className="card flex items-center gap-stack p-stack">
               <div className="w-12 shrink-0"><div className="text-center text-caption font-bold text-success">{pubPct}%</div><progress className="progress-semantic mt-micro h-micro w-full" max={100} value={pubPct} aria-label="발행 진행률" /></div>
               <div className="min-w-0 flex-1">
                 <b className="text-body text-text">{pubResultLabel}</b>
                 <div className="mt-stack-tight flex flex-wrap gap-stack-tight">{Object.entries(pub.status).map(([key, status]) => {
-                  const cls = `rounded-full border px-stack-tight py-micro text-caption ${status === "done" ? "border-success/30 bg-success/10 text-success" : status === "failed" ? "border-danger/30 bg-danger/10 text-danger" : status === "doing" ? "border-warning/30 bg-warning/10 text-warning" : "border-border bg-surface-2 text-subtle"}`;
+                  const cls = `rounded-pill border px-stack-tight py-micro text-caption ${status === "done" ? "border-success/30 bg-success/10 text-success" : status === "failed" ? "border-danger/30 bg-danger/10 text-danger" : status === "doing" ? "border-warning/30 bg-warning/10 text-warning" : "border-border bg-surface-2 text-subtle"}`;
                   const value = `${status === "done" ? "✓ " : status === "failed" ? "✕ " : status === "doing" ? "⟳ " : ""}${LABEL[key]}`;
                   return status === "done" && pub.urls[key] ? <a key={key} href={pub.urls[key]} target="_blank" rel="noopener noreferrer" className={cls} title="게시물 보기">{value} ↗</a> : <span key={key} className={cls}>{value}{status === "failed" && pub.errors[key] ? <span className="ml-micro"><span>{pub.errors[key]}</span></span> : null}</span>;
                 })}</div>
@@ -707,7 +707,7 @@ export default function StudioPage() {
               <div className="mb-stack flex items-center gap-stack-tight border-b border-border pb-stack"><b className="text-body text-text">{group.title}</b><span className="text-caption text-subtle">{group.platforms.map((platform) => LABEL[platform]).join(" · ")}</span></div>
               <div className="grid items-start gap-stack-section md:grid-cols-2 xl:grid-cols-3">
                 {group.platforms.map((platform) => (
-                  <div key={platform} data-room-preview={platform} className="min-w-0 rounded-2xl border border-border bg-surface p-stack">
+                  <div key={platform} data-room-preview={platform} className="min-w-0 rounded-surface border border-border bg-surface p-stack">
                     <PlatformPreview
                       platform={platform}
                       text={text || {}}
@@ -732,7 +732,7 @@ export default function StudioPage() {
                               data-testid={`publish-account-select-${platform}`}
                               value={selectedAccounts[platform] ?? ""}
                               onChange={(event) => setSelectedAccounts((current) => ({ ...current, [platform]: event.target.value }))}
-                              className="min-h-control-touch max-w-32 rounded-lg border border-border bg-surface-2 px-stack-tight text-caption text-text"
+                              className="min-h-control-touch max-w-32 rounded-control border border-border bg-surface-2 px-stack-tight text-caption text-text"
                             >
                               <option value="">기본계정</option>
                               {(accountsByPlatform[platform] || []).map((account) => <option key={account.id} value={account.id}>{account.label}</option>)}
@@ -752,7 +752,7 @@ export default function StudioPage() {
           data-chat-dock="persistent"
           data-chat-always="true"
           aria-label="발행 담당 대화창"
-          className={`card overflow-hidden lg:static lg:h-fit lg:max-h-none lg:translate-y-0 lg:rounded-xl lg:border lg:shadow-none lg:sticky lg:top-pad-inset fixed inset-x-0 bottom-0 z-40 max-h-[60vh] overflow-y-auto rounded-b-none shadow-lg transition-transform ${chatOpen ? "translate-y-0" : "translate-y-[calc(100%-3.5rem)]"}`}
+          className={`card overflow-hidden lg:static lg:h-fit lg:max-h-none lg:translate-y-0 lg:rounded-surface lg:border lg:shadow-none lg:sticky lg:top-pad-inset fixed inset-x-0 bottom-0 z-40 max-h-[60vh] overflow-y-auto rounded-b-none shadow-lg transition-transform ${chatOpen ? "translate-y-0" : "translate-y-[calc(100%-3.5rem)]"}`}
         >
           <button
             type="button"
@@ -763,11 +763,11 @@ export default function StudioPage() {
             {chatOpen ? "대화창 접기" : "발행 담당에게 말하기"}
           </button>
           <div className="flex items-center gap-stack-tight border-b border-border p-stack">
-            <div className="grid h-10 w-10 place-items-center rounded-full bg-accent text-body font-bold text-accent-fg">O</div>
+            <div className="grid h-10 w-10 place-items-center rounded-pill bg-accent text-body font-bold text-accent-fg">O</div>
             <div><b className="block text-body text-text">발행 담당</b><span className="text-caption text-success">지금 대기 중</span></div>
           </div>
           <div className="space-y-stack bg-surface-2 p-stack">
-            <div className="max-w-[90%] rounded-xl rounded-tl-sm border border-border bg-surface p-stack text-body-sm text-text">
+            <div className="max-w-[90%] rounded-surface rounded-tl-chip border border-border bg-surface p-stack text-body-sm text-text">
               {text ? `${selectedPublishTargets(includes).length}곳이 선택되어 있습니다.` : "발행할 작업물을 먼저 가져와 주세요."}
             </div>
             {text ? (
@@ -779,7 +779,7 @@ export default function StudioPage() {
             ) : null}
           </div>
           <form onSubmit={submitPublishChat} className="flex gap-stack-tight border-t border-border p-stack">
-            <input aria-label="발행 담당에게 명령" value={publishChatDraft} onChange={(event) => setPublishChatDraft(event.target.value)} placeholder="직접 쓰셔도 됩니다" className="min-h-control-touch min-w-0 flex-1 rounded-lg border border-border bg-surface px-stack text-body-sm text-text" />
+            <input aria-label="발행 담당에게 명령" value={publishChatDraft} onChange={(event) => setPublishChatDraft(event.target.value)} placeholder="직접 쓰셔도 됩니다" className="min-h-control-touch min-w-0 flex-1 rounded-control border border-border bg-surface px-stack text-body-sm text-text" />
             <Button type="submit" variant="primary">보내기</Button>
           </form>
         </aside>

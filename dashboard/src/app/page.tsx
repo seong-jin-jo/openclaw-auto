@@ -15,7 +15,7 @@ import { PipelineTimeline } from "@/components/home/PipelineTimeline";
 import { PerformanceRoom, type PerformancePost } from "@/components/home/PerformanceRoom";
 
 const ALL_CHANNELS = [
-  { key: "threads", label: "Threads", icon: "T", iconClass: "bg-accent text-text" },
+  { key: "threads", label: "Threads", icon: "T", iconClass: "bg-accent text-accent-fg" },
   { key: "x", label: "X", icon: "X" },
   { key: "instagram", label: "Instagram", icon: "IG" },
   { key: "facebook", label: "Facebook", icon: "F" },
@@ -122,8 +122,8 @@ export default function HomePage() {
 
       {/* Error Indicator */}
       {errorCount24h > 0 && (
-        <div className="mb-pad-inset px-pad-inset py-stack rounded-xl bg-danger/10 border border-danger/30 flex items-center gap-stack">
-          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-danger text-white text-caption font-bold flex items-center justify-center">
+        <div className="mb-pad-inset px-pad-inset py-stack rounded-surface bg-danger/10 border border-danger/30 flex items-center gap-stack">
+          <span className="flex-shrink-0 w-6 h-6 rounded-pill bg-danger text-status-fg text-caption font-bold flex items-center justify-center">
             {errorCount24h}
           </span>
           <span className="text-body text-danger">
@@ -152,7 +152,7 @@ export default function HomePage() {
                   const type = e.type as string;
                   return (
                     <div key={i} className="flex gap-stack items-start">
-                      <div className={`mt-micro w-6 h-6 rounded ${icons[type] || "bg-surface-2 text-subtle"} flex items-center justify-center flex-shrink-0`}>
+                      <div className={`mt-micro w-6 h-6 rounded-chip ${icons[type] || "bg-surface-2 text-subtle"} flex items-center justify-center flex-shrink-0`}>
                         <span className="text-caption">{labels[type] || "?"}</span>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -219,11 +219,11 @@ export default function HomePage() {
             {agentLogs.slice(0, 5).map((log, i) => {
               const messages = (log.messages || []) as Array<Record<string, string>>;
               return (
-                <div key={i} className="p-stack-tight rounded bg-surface/50">
+                <div key={i} className="p-stack-tight rounded-chip bg-surface/50">
                   <div className="flex items-center justify-between mb-micro">
                     <div className="flex items-center gap-stack-tight">
                       <span
-                        className={`rounded px-stack-tight py-micro text-caption ${
+                        className={`rounded-chip px-stack-tight py-micro text-caption ${
                           log.channel === "telegram"
                             ? "bg-accent-soft text-accent"
                             : log.channel

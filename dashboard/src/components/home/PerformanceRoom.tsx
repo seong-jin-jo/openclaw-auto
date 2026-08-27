@@ -379,17 +379,17 @@ export function PerformanceRoom({
           <Stack gap={8}>
             <p className="text-caption font-semibold text-subtle">성과 요약 · {workspaceName || "작업 공간"} · 최근 30일</p>
             <h1 className="flex items-start gap-stack text-display font-bold text-text break-keep">
-              <span aria-hidden="true" className="mt-micro inline-grid size-stack-section shrink-0 place-items-center rounded-full bg-accent text-caption text-accent-fg">1</span>
+              <span aria-hidden="true" className="mt-micro inline-grid size-stack-section shrink-0 place-items-center rounded-pill bg-accent text-caption text-accent-fg">1</span>
               <span>{verdict}</span>
             </h1>
             <p className="text-body-sm text-muted break-keep">
-              {!assessment.thresholdMet && <span className="mr-stack-tight inline-flex rounded-full bg-warning/15 px-stack-tight py-micro font-semibold text-warning">근거 부족</span>}
+              {!assessment.thresholdMet && <span className="mr-stack-tight inline-flex rounded-pill bg-warning/15 px-stack-tight py-micro font-semibold text-warning">근거 부족</span>}
               성과 표본 {assessment.count}건입니다. {assessment.threshold}건부터 판정합니다.
             </p>
           </Stack>
 
           {!empty && (
-            <div className="rounded-xl border border-border bg-surface-2 p-stack" data-perf-proof="2">
+            <div className="rounded-surface border border-border bg-surface-2 p-stack" data-perf-proof="2">
               <Stack gap={8}>
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-stack sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]">
                   <span className="text-caption font-semibold text-text break-keep">조회 상위 {winnerCount}편 평균</span>
@@ -439,7 +439,7 @@ export function PerformanceRoom({
 
           {usage && (
             <div className="flex flex-wrap items-center gap-x-stack-section gap-y-micro border-t border-border pt-stack text-caption text-muted">
-              {usage.tier && <span className="rounded-full bg-accent-soft px-stack-tight py-micro font-semibold text-accent">{usage.tier} 요금제</span>}
+              {usage.tier && <span className="rounded-pill bg-accent-soft px-stack-tight py-micro font-semibold text-accent">{usage.tier} 요금제</span>}
               <span>오늘 생성 {usage.today?.aiGenerations || 0} · 발행 {usage.today?.publications || 0} · 크론 {usage.today?.cronRuns || 0}</span>
               <span>이번 주 생성 {usage.thisWeek?.aiGenerations || 0} · 발행 {usage.thisWeek?.publications || 0} · 크론 {usage.thisWeek?.cronRuns || 0}</span>
             </div>
@@ -450,7 +450,7 @@ export function PerformanceRoom({
       <section className="border-t border-border pt-stack-section" data-perf-loop={topPosts.length}>
         <Stack gap={16}>
           <Stack gap={4}>
-            <h2 className="text-subheading font-bold text-text"><span aria-hidden="true" className="mr-stack-tight inline-grid size-stack-section place-items-center rounded-full bg-accent text-caption text-accent-fg">2</span>무엇이 통했나</h2>
+            <h2 className="text-subheading font-bold text-accent-fg"><span aria-hidden="true" className="mr-stack-tight inline-grid size-stack-section place-items-center rounded-pill bg-accent text-caption text-accent-fg">2</span>무엇이 통했나</h2>
             <p className="text-caption text-muted">위 판정이 어느 글에서 나왔는지</p>
           </Stack>
           {topPosts.length > 0 ? (
@@ -460,7 +460,7 @@ export function PerformanceRoom({
                 return (
                   <Card key={post.id} className={`p-pad-inset ${index === 0 ? "border-accent ring-4 ring-accent-soft" : ""}`}>
                     <Stack gap={12}>
-                      <div className="min-h-control-touch rounded-lg border border-border bg-surface-2 p-stack">
+                      <div className="min-h-control-touch rounded-control border border-border bg-surface-2 p-stack">
                         <Stack gap={8}>
                           <div className="flex items-center gap-stack-tight text-caption font-semibold text-text">
                             {previewKey && <Logo p={previewKey} />}
@@ -494,7 +494,7 @@ export function PerformanceRoom({
               })}
             </div>
           ) : (
-            <div className="rounded-xl border border-dashed border-border p-pad-inset text-body-sm text-muted break-keep">
+            <div className="rounded-surface border border-dashed border-border p-pad-inset text-body-sm text-muted break-keep">
               아직 통한 글을 판정할 수 없습니다. 첫 편이 나가면 실제 모습과 성과가 이 자리에 쌓입니다.
             </div>
           )}
@@ -511,7 +511,7 @@ export function PerformanceRoom({
               {loadingSuggestions ? "제안 불러오는 중" : suggestions.length ? "제안 새로 받기" : "성과에서 제안 받기"}
             </Button>
           </div>
-          {suggestionError && <p role="alert" className="rounded-lg bg-danger/10 p-stack text-body-sm text-danger break-keep">{suggestionError}</p>}
+          {suggestionError && <p role="alert" className="rounded-control bg-danger/10 p-stack text-body-sm text-danger break-keep">{suggestionError}</p>}
           {suggestions.length > 0 && (
             <div className="grid gap-stack lg:grid-cols-3">
               {suggestions.map((suggestion) => {
@@ -519,7 +519,7 @@ export function PerformanceRoom({
                 return (
                   <Card key={suggestion.id} className={suggestion.verified ? "p-pad-inset" : "border-dashed p-pad-inset"}>
                     <Stack gap={12}>
-                      <span className={`self-start rounded-full px-stack-tight py-micro text-caption font-semibold ${suggestion.verified ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>{suggestion.label}</span>
+                      <span className={`self-start rounded-pill px-stack-tight py-micro text-caption font-semibold ${suggestion.verified ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>{suggestion.label}</span>
                       <p className="text-body font-semibold text-text break-keep">{suggestion.text}</p>
                       <Button variant="primary" className="w-full" disabled={state === "loading" || state === "queued" || state === "reused"} onClick={() => void enqueueSuggestion(suggestion)}>
                         {state === "loading" ? "생성 큐에 넣는 중" : state === "queued" ? "생성 큐에 넣었어요" : state === "reused" ? "이미 생성 큐에 있어요" : "이 제안을 생성 큐에 넣기"}
@@ -537,11 +537,11 @@ export function PerformanceRoom({
       <section className="border-t border-border pt-stack-section" data-perf-comments={reactionPosts.length}>
         <Stack gap={16}>
           <Stack gap={4}>
-            <h2 className="text-subheading font-bold text-text"><span aria-hidden="true" className="mr-stack-tight inline-grid size-stack-section place-items-center rounded-full bg-accent text-caption text-accent-fg">3</span>달린 반응</h2>
+            <h2 className="text-subheading font-bold text-accent-fg"><span aria-hidden="true" className="mr-stack-tight inline-grid size-stack-section place-items-center rounded-pill bg-accent text-caption text-accent-fg">3</span>달린 반응</h2>
           </Stack>
           {reactionPosts.length > 0 ? (
             <div className="grid min-w-0 gap-stack lg:grid-cols-[minmax(0,12rem)_minmax(0,1fr)]" data-engagement-stream>
-              <aside aria-label="댓글 분류" className="min-w-0 rounded-xl border border-border bg-surface-2 p-stack">
+              <aside aria-label="댓글 분류" className="min-w-0 rounded-surface border border-border bg-surface-2 p-stack">
                 <Stack gap={8}>
                   <p className="text-caption font-semibold text-subtle">무엇부터</p>
                   {([
@@ -564,7 +564,7 @@ export function PerformanceRoom({
                         <div className="flex flex-wrap items-center gap-stack-tight">
                           <b className="text-body text-text">{comment.author}</b>
                           <span className="text-caption text-muted">{platformLabel(post.platform)} · {fmtAgo(comment.createdAt)}</span>
-                          <span className="ml-auto rounded-full bg-surface-2 px-stack-tight py-micro text-caption font-semibold text-muted">
+                          <span className="ml-auto rounded-pill bg-surface-2 px-stack-tight py-micro text-caption font-semibold text-muted">
                             {comment.state === "deferred" ? "보류" : comment.state === "editor_handoff" ? "편집실로" : comment.state === "replied" ? "답함" : "답할 것"}
                           </span>
                         </div>
@@ -580,7 +580,7 @@ export function PerformanceRoom({
                           답글
                           <textarea
                             aria-label={`${comment.author} 답글`}
-                            className="min-h-control-comfortable w-full rounded-lg border border-border bg-surface px-stack py-stack text-body text-text"
+                            className="min-h-control-comfortable w-full rounded-control border border-border bg-surface px-stack py-stack text-body text-text"
                             maxLength={1000}
                             value={draft}
                             onChange={(event) => setReplyDrafts((current) => ({ ...current, [key]: event.target.value }))}
@@ -630,7 +630,7 @@ export function PerformanceRoom({
               </div>
             </div>
           ) : (
-            <div className="rounded-xl border border-dashed border-border p-pad-inset text-body-sm text-muted break-keep">
+            <div className="rounded-surface border border-dashed border-border p-pad-inset text-body-sm text-muted break-keep">
               아직 달린 반응이 없습니다. 첫 편이 나가면 댓글과 반응이 이 자리에 모입니다.
             </div>
           )}
@@ -658,14 +658,14 @@ export function PerformanceRoom({
               </thead>
               <tbody className="block divide-y divide-border lg:table-row-group">
                 {posts.map((post) => (
-                  <tr key={post.id} className="block py-stack text-muted lg:table-row lg:border-b lg:border-border lg:py-0">
+                  <tr key={post.id} className="block py-stack text-muted lg:table-row lg:border-b lg:border-border lg:py-none">
                     <PerformanceTableCell label="플랫폼">{platformLabel(post.platform)}</PerformanceTableCell>
                     <PerformanceTableCell label="내용" className="lg:max-w-xs">
                       <span className="line-clamp-2">{post.text || "게시물 본문 미수집"}</span>
                       {post.status === "failed" && <span className="block text-caption text-danger">{post.error?.slice(0, 60)}</span>}
                     </PerformanceTableCell>
                     <PerformanceTableCell label="상태" className="lg:text-center">
-                      <span className={`rounded-full px-stack-tight py-micro text-caption ${post.status === "published" ? "bg-success/15 text-success" : "bg-danger/15 text-danger"}`}>{postStatusLabel(post.status)}</span>
+                      <span className={`rounded-pill px-stack-tight py-micro text-caption ${post.status === "published" ? "bg-success/15 text-success" : "bg-danger/15 text-danger"}`}>{postStatusLabel(post.status)}</span>
                     </PerformanceTableCell>
                     <PerformanceTableCell label="조회" className="tabular-nums lg:text-center">{post.views ?? "미수집"}</PerformanceTableCell>
                     <PerformanceTableCell label="좋아요" className="tabular-nums lg:text-center">{post.likes ?? "미수집"}</PerformanceTableCell>

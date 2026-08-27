@@ -53,10 +53,10 @@ function Frame({ p, label, children, headerRight, characterCount }: {
 }) {
   return (
     <div className="w-full max-w-sm">
-      <div className="flex items-center gap-1.5 mb-1.5 px-0.5">
+      <div className="flex items-center gap-stack-tight mb-stack-tight px-micro">
         <Logo p={p} />
-        <span className="text-xs font-bold text-muted">{label}</span>
-        <div className="ml-auto flex items-center gap-2">
+        <span className="text-caption font-bold text-muted">{label}</span>
+        <div className="ml-auto flex items-center gap-stack-tight">
           {characterCount && (
             <span
               data-testid={`character-count-${p}`}
@@ -75,7 +75,7 @@ function Frame({ p, label, children, headerRight, characterCount }: {
 
 function InlinePreviewEditor({ platform, editor }: { platform: PreviewPlatform; editor: PreviewInlineEditor }) {
   const video = platform === "shorts" || platform === "reels" || platform === "tiktok";
-  const inlineClass = "mt-micro min-h-control-touch w-full rounded-lg border border-transparent bg-transparent px-stack text-body text-text underline decoration-accent/40 underline-offset-4 focus:border-accent focus:bg-surface focus:no-underline";
+  const inlineClass = "mt-micro min-h-control-touch w-full rounded-control border border-transparent bg-transparent px-stack text-body text-text underline decoration-accent/40 underline-offset-4 focus:border-accent focus:bg-surface focus:no-underline";
   return (
     <div className="mt-stack border-t border-border pt-stack" data-testid={`inline-editor-${platform}`} data-pub-fields={platform}>
       <div className="grid gap-stack sm:grid-cols-2">
@@ -136,7 +136,7 @@ function InlinePreviewEditor({ platform, editor }: { platform: PreviewPlatform; 
           />
         </label>
       ) : (
-        <div className="mt-stack rounded-lg border border-border bg-surface-2 p-stack text-caption text-subtle">
+        <div className="mt-stack rounded-control border border-border bg-surface-2 p-stack text-caption text-subtle">
           첫 댓글 미지원: {editor.firstCommentReason || "현재 채널 어댑터가 지원하지 않습니다"}
         </div>
       )}
@@ -146,7 +146,7 @@ function InlinePreviewEditor({ platform, editor }: { platform: PreviewPlatform; 
 
 function Av({ s = 40 }: { s?: 32 | 36 | 40 }) {
   const size = s === 32 ? "h-8 w-8" : s === 36 ? "h-9 w-9" : "h-10 w-10";
-  return <div className={`${size} rounded-full shrink-0 bg-accent`} />;
+  return <div className={`${size} rounded-pill shrink-0 bg-accent`} />;
 }
 const P = (d: string, f = false) => <svg className="w-[18px] h-[18px]" fill={f ? "currentColor" : "none"} stroke="currentColor" strokeWidth={1.7} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d={d} /></svg>;
 const I = {
@@ -164,14 +164,14 @@ function IgCarousel({ cards }: { cards: { type: "img" | "text"; v: string }[] })
   const n = cards.length; const cur = cards[i];
   return (
     <div className="relative bg-surface aspect-square">
-      {n === 0 ? <div className="w-full h-full grid place-items-center text-subtle text-sm">카드 생성 대기</div>
+      {n === 0 ? <div className="w-full h-full grid place-items-center text-subtle text-body-sm">카드 생성 대기</div>
         : cur.type === "img" ? <img src={cur.v} alt="" className="w-full h-full object-cover" />
-        : <div className="w-full h-full grid place-items-center p-7 bg-accent-soft"><p className="text-accent text-xl font-bold text-center leading-snug">{cur.v}</p></div>}
+        : <div className="w-full h-full grid place-items-center p-region bg-accent-soft"><p className="text-accent text-subheading font-bold text-center leading-snug">{cur.v}</p></div>}
       {n > 1 && <>
-        <button type="button" aria-label="이전 카드" onClick={(e) => { e.stopPropagation(); setI((x) => (x - 1 + n) % n); }} className="absolute left-stack-tight top-1/2 min-h-control-touch min-w-control-touch -translate-y-1/2 rounded-full bg-text text-bg">‹</button>
-        <button type="button" aria-label="다음 카드" onClick={(e) => { e.stopPropagation(); setI((x) => (x + 1) % n); }} className="absolute right-stack-tight top-1/2 min-h-control-touch min-w-control-touch -translate-y-1/2 rounded-full bg-text text-bg">›</button>
-        <span className="absolute top-3 right-3 text-caption text-text bg-black/50 px-2 py-0.5 rounded-full">{i + 1}/{n}</span>
-        <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">{cards.map((_, k) => <span key={k} className={`w-1.5 h-1.5 rounded-full ${k === i ? "bg-blue-500" : "bg-white/50"}`} />)}</div>
+        <button type="button" aria-label="이전 카드" onClick={(e) => { e.stopPropagation(); setI((x) => (x - 1 + n) % n); }} className="absolute left-stack-tight top-1/2 min-h-control-touch min-w-control-touch -translate-y-1/2 rounded-pill bg-text text-bg">‹</button>
+        <button type="button" aria-label="다음 카드" onClick={(e) => { e.stopPropagation(); setI((x) => (x + 1) % n); }} className="absolute right-stack-tight top-1/2 min-h-control-touch min-w-control-touch -translate-y-1/2 rounded-pill bg-text text-bg">›</button>
+        <span className="absolute top-3 right-3 text-caption text-text bg-player-surface/50 px-stack-tight py-micro rounded-pill">{i + 1}/{n}</span>
+        <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-stack-tight">{cards.map((_, k) => <span key={k} className={`w-1.5 h-1.5 rounded-pill ${k === i ? "bg-accent" : "bg-surface/50"}`} />)}</div>
       </>}
     </div>
   );
@@ -179,12 +179,12 @@ function IgCarousel({ cards }: { cards: { type: "img" | "text"; v: string }[] })
 
 function VideoRail({ kind }: { kind: "shorts" | "reels" | "tiktok" }) {
   return (
-    <div className="absolute right-2 bottom-24 flex flex-col items-center gap-4 text-text drop-shadow z-10">
-      {kind === "tiktok" && <div className="relative mb-1"><Av s={36} /><span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-danger text-bg grid place-items-center text-caption">+</span></div>}
-      <div className="flex flex-col items-center">{P(I.heart, true)}<span className="text-caption mt-0.5">12.4K</span></div>
-      <div className="flex flex-col items-center">{P(I.chat)}<span className="text-caption mt-0.5">318</span></div>
-      {kind === "tiktok" ? <div className="flex flex-col items-center">{P(I.bookmark)}<span className="text-caption mt-0.5">1.2K</span></div>
-        : <div className="flex flex-col items-center">{P(I.send)}<span className="text-caption mt-0.5">공유</span></div>}
+    <div className="absolute right-2 bottom-24 flex flex-col items-center gap-pad-inset text-text drop-shadow z-10">
+      {kind === "tiktok" && <div className="relative mb-micro"><Av s={36} /><span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-4 rounded-pill bg-danger text-bg grid place-items-center text-caption">+</span></div>}
+      <div className="flex flex-col items-center">{P(I.heart, true)}<span className="text-caption mt-micro">12.4K</span></div>
+      <div className="flex flex-col items-center">{P(I.chat)}<span className="text-caption mt-micro">318</span></div>
+      {kind === "tiktok" ? <div className="flex flex-col items-center">{P(I.bookmark)}<span className="text-caption mt-micro">1.2K</span></div>
+        : <div className="flex flex-col items-center">{P(I.send)}<span className="text-caption mt-micro">공유</span></div>}
     </div>
   );
 }
@@ -207,14 +207,14 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
 
   if (platform === "threads") return (
     <Frame p="threads" label="Threads" headerRight={headerRight} characterCount={characterCount}>
-      <div className="bg-surface text-text rounded-xl border border-border px-4 py-3">
-        <div className="flex gap-3"><Av />
+      <div className="bg-surface text-text rounded-surface border border-border px-pad-inset py-stack">
+        <div className="flex gap-stack"><Av />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1 text-[15px]"><b>{handle}</b><span className="text-subtle text-sm ml-1">1시간</span><div className="ml-auto text-subtle">{P(I.more)}</div></div>
-            <p className="text-[15px] whitespace-pre-wrap leading-[1.45] mt-0.5">{text.threads || <span className="text-subtle">텍스트…</span>}</p>
-            {img && <img src={img} alt="" className="mt-2 rounded-2xl border border-border w-full max-h-80 object-cover" />}
-            <div className="flex gap-5 mt-3">{P(I.heart)}{P(I.chat)}{P(I.repost)}{P(I.send)}</div>
-            <div className="text-subtle text-sm mt-2">답글 18개 · 좋아요 124개</div>
+            <div className="flex items-center gap-micro text-body"><b>{handle}</b><span className="text-subtle text-body-sm ml-micro">1시간</span><div className="ml-auto text-subtle">{P(I.more)}</div></div>
+            <p className="text-body whitespace-pre-wrap leading-[1.45] mt-micro">{text.threads || <span className="text-subtle">텍스트…</span>}</p>
+            {img && <img src={img} alt="" className="mt-stack-tight rounded-surface border border-border w-full max-h-80 object-cover" />}
+            <div className="flex gap-stack-section mt-stack">{P(I.heart)}{P(I.chat)}{P(I.repost)}{P(I.send)}</div>
+            <div className="text-subtle text-body-sm mt-stack-tight">답글 18개 · 좋아요 124개</div>
           </div></div>
       </div>
       {editor ? <InlinePreviewEditor platform="threads" editor={editor} /> : null}
@@ -222,15 +222,15 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
   );
   if (platform === "x") return (
     <Frame p="x" label="X" headerRight={headerRight} characterCount={characterCount}>
-      <div className="bg-surface text-text rounded-xl border border-border px-4 py-3">
-        <div className="flex gap-3"><Av />
+      <div className="bg-surface text-text rounded-surface border border-border px-pad-inset py-stack">
+        <div className="flex gap-stack"><Av />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1 text-[15px]"><b>{handle}</b><span className="text-accent">✓</span><span className="text-subtle ml-1">@{handle} · 1분</span><div className="ml-auto text-subtle">{P(I.more)}</div></div>
-            <p className="text-[15px] whitespace-pre-wrap leading-[1.4] mt-0.5">{text.x || <span className="text-subtle">텍스트…</span>}</p>
-            {img && <img src={img} alt="" className="mt-2 rounded-2xl border border-border w-full max-h-80 object-cover" />}
-            <div className="flex justify-between mt-3 text-subtle text-[13px]">
-              <span className="flex items-center gap-1.5">{P(I.chat)}24</span><span className="flex items-center gap-1.5">{P(I.repost)}57</span>
-              <span className="flex items-center gap-1.5">{P(I.heart)}312</span><span className="flex items-center gap-1.5">{P(I.bookmark)}</span><span className="flex items-center gap-1.5">{P(I.share)}</span>
+            <div className="flex items-center gap-micro text-body"><b>{handle}</b><span className="text-accent">✓</span><span className="text-subtle ml-micro">@{handle} · 1분</span><div className="ml-auto text-subtle">{P(I.more)}</div></div>
+            <p className="text-body whitespace-pre-wrap leading-[1.4] mt-micro">{text.x || <span className="text-subtle">텍스트…</span>}</p>
+            {img && <img src={img} alt="" className="mt-stack-tight rounded-surface border border-border w-full max-h-80 object-cover" />}
+            <div className="flex justify-between mt-stack text-subtle text-body-sm">
+              <span className="flex items-center gap-stack-tight">{P(I.chat)}24</span><span className="flex items-center gap-stack-tight">{P(I.repost)}57</span>
+              <span className="flex items-center gap-stack-tight">{P(I.heart)}312</span><span className="flex items-center gap-stack-tight">{P(I.bookmark)}</span><span className="flex items-center gap-stack-tight">{P(I.share)}</span>
             </div></div></div>
       </div>
       {editor ? <InlinePreviewEditor platform="x" editor={editor} /> : null}
@@ -238,12 +238,12 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
   );
   if (platform === "facebook") return (
     <Frame p="facebook" label="Facebook" headerRight={headerRight} characterCount={characterCount}>
-      <div className="bg-surface text-text rounded-lg border border-border overflow-hidden">
-        <div className="flex items-center gap-2 px-3 pt-3"><Av /><div><div className="font-semibold text-[15px] leading-tight">{handle}</div><div className="text-subtle text-xs">방금 · 🌐</div></div><div className="ml-auto text-subtle">{P(I.more)}</div></div>
-        <p className="px-3 py-2 text-[15px] whitespace-pre-wrap leading-snug">{text.facebook || <span className="text-subtle">텍스트…</span>}</p>
+      <div className="bg-surface text-text rounded-control border border-border overflow-hidden">
+        <div className="flex items-center gap-stack-tight px-stack pt-stack"><Av /><div><div className="font-semibold text-body leading-tight">{handle}</div><div className="text-subtle text-caption">방금 · 전체 공개</div></div><div className="ml-auto text-subtle">{P(I.more)}</div></div>
+        <p className="px-stack py-stack-tight text-body whitespace-pre-wrap leading-snug">{text.facebook || <span className="text-subtle">텍스트…</span>}</p>
         {img && <img src={img} alt="" className="w-full max-h-80 object-cover" />}
-        <div className="flex items-center justify-between px-3 py-1.5 text-subtle text-[13px] border-b border-border"><span>👍❤️ 248</span><span>댓글 32 · 공유 12</span></div>
-        <div className="flex text-subtle text-sm font-medium">{["좋아요", "댓글", "공유"].map((l) => <div key={l} className="flex-1 text-center py-2 hover:bg-surface-2">{l}</div>)}</div>
+        <div className="flex items-center justify-between px-stack py-stack-tight text-subtle text-body-sm border-b border-border"><span>반응 248</span><span>댓글 32 · 공유 12</span></div>
+        <div className="flex text-subtle text-body-sm font-medium">{["좋아요", "댓글", "공유"].map((l) => <div key={l} className="flex-1 text-center py-stack-tight hover:bg-surface-2">{l}</div>)}</div>
       </div>
       {editor ? <InlinePreviewEditor platform="facebook" editor={editor} /> : null}
     </Frame>
@@ -252,13 +252,13 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
     const cards = [...(img ? [{ type: "img" as const, v: img }] : []), ...(text.instagram?.slides || []).map((s) => ({ type: "text" as const, v: s }))];
     return (
       <Frame p="instagram" label="Instagram" headerRight={headerRight} characterCount={characterCount}>
-        <div className="bg-surface text-text rounded-lg border border-border overflow-hidden">
-          <div className="flex items-center gap-2.5 px-3 py-2.5"><Av s={32} /><b className="text-sm">{handle}</b><span className="text-subtle text-xs">· 팔로우</span><div className="ml-auto text-subtle">{P(I.more)}</div></div>
+        <div className="bg-surface text-text rounded-control border border-border overflow-hidden">
+          <div className="flex items-center gap-stack px-stack py-stack"><Av s={32} /><b className="text-body-sm">{handle}</b><span className="text-subtle text-caption">· 팔로우</span><div className="ml-auto text-subtle">{P(I.more)}</div></div>
           <IgCarousel cards={cards} />
-          <div className="flex items-center gap-4 px-3 pt-2.5">{P(I.heart)}{P(I.chat)}{P(I.send)}<div className="ml-auto">{P(I.bookmark)}</div></div>
-          <div className="px-3 pt-1.5 text-sm font-semibold">좋아요 1,284개</div>
-          <div className="px-3 pt-1 pb-3 text-sm"><b>{handle}</b> <span className="text-muted">{text.instagram?.caption}</span>
-            <div className="text-accent mt-0.5">{(text.instagram?.hashtags || []).map((h) => `#${h.replace(/^#/, "")}`).join(" ")}</div></div>
+          <div className="flex items-center gap-pad-inset px-stack pt-stack">{P(I.heart)}{P(I.chat)}{P(I.send)}<div className="ml-auto">{P(I.bookmark)}</div></div>
+          <div className="px-stack pt-stack-tight text-body-sm font-semibold">좋아요 1,284개</div>
+          <div className="px-stack pt-micro pb-stack text-body-sm"><b>{handle}</b> <span className="text-muted">{text.instagram?.caption}</span>
+            <div className="text-accent mt-micro">{(text.instagram?.hashtags || []).map((h) => `#${h.replace(/^#/, "")}`).join(" ")}</div></div>
         </div>
         {editor ? <InlinePreviewEditor platform="instagram" editor={editor} /> : null}
       </Frame>
@@ -269,21 +269,21 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
   const cap = editor?.caption || text.shorts?.hook || text.instagram?.caption || "";
   return (
     <Frame p={platform} label={label} headerRight={headerRight}>
-      <div className="relative rounded-2xl overflow-hidden bg-surface-2 aspect-[9/16] border border-border">
+      <div className="relative rounded-surface overflow-hidden bg-surface-2 aspect-[9/16] border border-border">
         {vid ? <video key={vid} src={vid} controls playsInline preload="metadata" className="w-full h-full object-cover" />
           : img ? <img src={img} alt="" className="w-full h-full object-cover" />
-          : <div className="w-full h-full grid place-items-center text-subtle text-xs">영상 생성 대기</div>}
+          : <div className="w-full h-full grid place-items-center text-subtle text-caption">영상 생성 대기</div>}
         {!vid && <>
-          {k === "shorts" && <div className="absolute top-3 left-3 flex items-center gap-1 text-text font-bold text-sm">▶ Shorts</div>}
-          {k === "reels" && <div className="absolute top-3 left-3 right-3 flex justify-between text-text text-sm"><span>←</span><b>Reels</b><span>📷</span></div>}
-          {k === "tiktok" && <div className="absolute top-3 left-0 right-0 flex justify-center gap-4 text-text/80 text-sm"><span>팔로잉</span><b className="text-text border-b-2 border-white pb-0.5">추천</b></div>}
+          {k === "shorts" && <div className="absolute top-3 left-3 flex items-center gap-micro text-text font-bold text-body-sm">▶ Shorts</div>}
+          {k === "reels" && <div className="absolute top-3 left-3 right-3 flex justify-between text-text text-body-sm"><span>이전</span><b>릴스</b><span>카메라</span></div>}
+          {k === "tiktok" && <div className="absolute top-3 left-0 right-0 flex justify-center gap-pad-inset text-text/80 text-body-sm"><span>팔로잉</span><b className="text-text border-b-2 border-player-text pb-micro">추천</b></div>}
           <VideoRail kind={k} />
           <div className="absolute left-3 right-12 bottom-3 text-text">
-            <div className="text-sm font-bold">@{handle}</div>
+            <div className="text-body-sm font-bold">@{handle}</div>
             {editor?.title ? <div className="mt-micro text-body-sm font-semibold">{editor.title}</div> : null}
-            <div className="text-[12px] leading-snug line-clamp-2 opacity-95">{cap}</div>
+            <div className="text-caption leading-snug line-clamp-2 opacity-95">{cap}</div>
             {editor?.hashtags ? <div className="mt-micro line-clamp-1 text-caption opacity-90">{editor.hashtags}</div> : null}
-            {k === "tiktok" && <div className="text-caption mt-1 opacity-90">🎵 original sound - {handle}</div>}
+            {k === "tiktok" && <div className="text-caption mt-micro opacity-90">원본 사운드 · {handle}</div>}
           </div>
         </>}
       </div>

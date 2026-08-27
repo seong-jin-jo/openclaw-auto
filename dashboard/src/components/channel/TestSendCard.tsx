@@ -37,31 +37,31 @@ export function TestSendCard({ channel }: TestSendCardProps) {
   const chatConfigured = chatChannels?.[channel]?.configured;
 
   return (
-    <div className="card p-5">
-      <h3 className="text-sm font-medium text-muted mb-3">테스트 발송</h3>
-      <div className="flex gap-2">
+    <div className="card p-stack-section">
+      <h3 className="text-body-sm font-medium text-muted mb-stack">테스트 발송</h3>
+      <div className="flex gap-stack-tight">
         <input
           type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          className="flex-1 bg-surface border border-border rounded px-3 py-2 text-sm text-subtle"
+          className="flex-1 bg-surface border border-border rounded-chip px-stack py-stack-tight text-body-sm text-subtle"
         />
         <button
           onClick={handleSend}
           disabled={sending}
-          className="px-4 py-2 bg-accent text-text text-xs rounded hover:bg-accent-hover disabled:opacity-50"
+          className="px-pad-inset py-stack-tight bg-accent text-accent-fg text-caption rounded-chip hover:bg-accent-hover disabled:opacity-50"
         >
           {sending ? "Sending..." : "Send"}
         </button>
       </div>
       {chatConfigured ? (
-        <div className="mt-3 p-2 rounded bg-success/10 border border-success/20">
+        <div className="mt-stack p-stack-tight rounded-chip bg-success/10 border border-success/20">
           <p className="text-caption text-success">
             Interactive Chat 연결됨. 이 채널에서 Agent와 대화 가능
           </p>
         </div>
       ) : (
-        <div className="mt-3 p-2 rounded bg-surface/50">
+        <div className="mt-stack p-stack-tight rounded-chip bg-surface/50">
           <p className="text-caption text-subtle">
             Interactive Chat: Gateway에서 <code>openclaw channels setup {channel}</code>로 양방향 대화 활성화
           </p>

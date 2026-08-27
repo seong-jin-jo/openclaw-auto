@@ -17,7 +17,7 @@ export function ThemeToggle({ compactOnNarrow = false }: { compactOnNarrow?: boo
   return (
     <button
       onClick={toggle}
-      className="w-full flex items-center gap-2 px-1 py-1 text-xs text-subtle hover:text-muted transition-colors"
+      className="w-full flex items-center gap-stack-tight px-micro py-micro text-caption text-subtle hover:text-muted transition-colors"
       title="테마 전환"
     >
       <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>

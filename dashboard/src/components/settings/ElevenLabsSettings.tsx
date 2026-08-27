@@ -65,25 +65,25 @@ export function ElevenLabsSettings() {
   const isEditable = !config?.configured || editing;
 
   return (
-    <div className="card p-4">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="w-5 h-5 rounded bg-accent flex items-center justify-center text-caption font-bold text-accent">11</span>
-          <span className="text-sm font-medium text-text">ElevenLabs TTS</span>
+    <div className="card p-pad-inset">
+      <div className="flex items-center justify-between mb-stack">
+        <div className="flex items-center gap-stack-tight">
+          <span className="w-5 h-5 rounded-chip bg-accent flex items-center justify-center text-caption font-bold text-accent">11</span>
+          <span className="text-body-sm font-medium text-text">ElevenLabs TTS</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className={`text-caption px-1.5 py-0.5 rounded-full ${config?.configured ? "bg-success/15 text-success" : "bg-surface-2 text-subtle"}`}>
+        <div className="flex items-center gap-stack-tight">
+          <span className={`text-caption px-stack-tight py-micro rounded-pill ${config?.configured ? "bg-success/15 text-success" : "bg-surface-2 text-subtle"}`}>
             {config?.configured ? "Configured" : "Not set"}
           </span>
           {config?.configured && !editing && (
-            <button onClick={() => setEditing(true)} className="text-caption text-accent hover:text-accent">Edit</button>
+            <button onClick={() => setEditing(true)} className="text-caption text-accent hover:text-accent">수정</button>
           )}
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-stack">
         <div>
-          <label className="text-xs text-subtle block mb-0.5">API Key</label>
+          <label className="text-caption text-subtle block mb-micro">API Key</label>
           <div className="relative">
             <input
               type={showApiKey ? "text" : "password"}
@@ -92,7 +92,7 @@ export function ElevenLabsSettings() {
               onChange={(e) => setApiKey(e.target.value)}
               placeholder="xi-..."
               title={apiKeyValue}
-              className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-caption text-muted placeholder-gray-600 font-mono`}
+              className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded-chip px-stack py-stack-tight pr-wide text-caption text-muted placeholder-gray-600 font-mono`}
             />
             <button
               type="button"
@@ -104,8 +104,8 @@ export function ElevenLabsSettings() {
           </div>
         </div>
         <div>
-          <label className="text-xs text-subtle block mb-0.5">Voice ID</label>
-          <div className="flex gap-2">
+          <label className="text-caption text-subtle block mb-micro">Voice ID</label>
+          <div className="flex gap-stack-tight">
             <div className="relative flex-1">
               <input
                 value={voiceIdValue}
@@ -113,14 +113,14 @@ export function ElevenLabsSettings() {
                 onChange={(e) => setVoiceId(e.target.value)}
                 placeholder="Voice ID (optional)"
                 title={voiceIdValue}
-                className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 text-caption text-muted placeholder-gray-600 font-mono`}
+                className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded-chip px-stack py-stack-tight text-caption text-muted placeholder-gray-600 font-mono`}
               />
             </div>
             {isEditable && (
               <button
                 onClick={loadVoices}
                 disabled={loadingVoices}
-                className="px-2 py-1 text-caption bg-surface-2 text-muted rounded hover:bg-surface-2"
+                className="px-stack-tight py-micro text-caption bg-surface-2 text-muted rounded-chip hover:bg-surface-2"
               >
                 {loadingVoices ? "..." : "Browse"}
               </button>
@@ -128,12 +128,12 @@ export function ElevenLabsSettings() {
           </div>
         </div>
         {voices.length > 0 && isEditable && (
-          <div className="max-h-32 overflow-auto border border-border rounded">
+          <div className="max-h-32 overflow-auto border border-border rounded-chip">
             {voices.map((v) => (
               <button
                 key={v.id}
                 onClick={() => setVoiceId(v.id)}
-                className={`w-full text-left px-2 py-1 text-xs hover:bg-surface-2 ${voiceId === v.id ? "bg-surface-2 text-text" : "text-subtle"}`}
+                className={`w-full text-left px-stack-tight py-micro text-caption hover:bg-surface-2 ${voiceId === v.id ? "bg-surface-2 text-text" : "text-subtle"}`}
               >
                 {v.name} <span className="text-subtle">({v.category})</span>
               </button>
@@ -141,12 +141,12 @@ export function ElevenLabsSettings() {
           </div>
         )}
         {isEditable && (
-          <div className="flex gap-2">
-            <button onClick={save} className="px-3 py-1.5 text-xs bg-accent text-text rounded hover:bg-accent-hover">
+          <div className="flex gap-stack-tight">
+            <button onClick={save} className="px-stack py-stack-tight text-caption bg-accent text-accent-fg rounded-chip hover:bg-accent-hover">
               {config?.configured ? "Update" : "Save"}
             </button>
             {editing && (
-              <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-xs bg-surface-2 text-muted rounded">Cancel</button>
+              <button onClick={() => setEditing(false)} className="px-stack py-stack-tight text-caption bg-surface-2 text-muted rounded-chip">취소</button>
             )}
           </div>
         )}

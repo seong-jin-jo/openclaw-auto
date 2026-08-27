@@ -232,18 +232,18 @@ export function StudioCommandPanel({
   return (
     <aside className="card min-w-0 overflow-hidden" aria-label="Studio 담당 대화" data-chat-dock="persistent">
       <div className="flex items-center gap-stack-tight border-b border-border p-stack">
-        <div className="grid h-10 w-10 place-items-center rounded-full bg-accent text-body font-bold text-accent-fg">O</div>
+        <div className="grid h-10 w-10 place-items-center rounded-pill bg-accent text-body font-bold text-accent-fg">O</div>
         <div><b className="block text-body text-text">Studio 담당</b><span className="text-caption text-success">지금 대기 중</span></div>
       </div>
       <div className="space-y-stack bg-surface-2 p-stack">
-        <div className="max-w-[90%] rounded-xl rounded-tl-lg border border-border bg-surface p-stack">
+        <div className="max-w-[90%] rounded-surface rounded-tl-control border border-border bg-surface p-stack">
           <p className="break-keep text-body-sm text-text" aria-live="polite">{busy || message}</p>
         </div>
         {error ? <p className="break-keep text-caption text-danger" role="alert">{error}</p> : null}
 
         {!handoff ? (
           <Stack gap={8}>
-            <div className="max-w-[90%] rounded-xl rounded-tl-lg border border-border bg-surface p-stack text-caption text-muted">
+            <div className="max-w-[90%] rounded-surface rounded-tl-control border border-border bg-surface p-stack text-caption text-muted">
               {preferredKind && !availableKinds.includes(preferredKind)
                 ? `${{ video: "영상", card: "카드뉴스", audio: "소리", image: "이미지", text: "글" }[preferredKind]} 원본은 아직 준비 중입니다. 준비된 다른 원본을 고를 수 있습니다.`
                 : "어떤 원본을 편집 작업물로 저장할까요?"}
@@ -267,7 +267,7 @@ export function StudioCommandPanel({
           </Stack>
         ) : (
           <Stack gap={8}>
-            <div className="rounded-xl border border-border bg-surface p-stack">
+            <div className="rounded-surface border border-border bg-surface p-stack">
               <p className="text-caption font-semibold text-text">{{ text: "글", image: "이미지", video: "영상", card: "카드뉴스", audio: "소리" }[handoff.kind]} · 수정 {handoff.revision}</p>
               <p className="text-caption text-subtle break-keep">{handoff.summary}</p>
             </div>
@@ -288,7 +288,7 @@ export function StudioCommandPanel({
         )}
       </div>
       <form onSubmit={submitChat} className="flex gap-stack-tight border-t border-border p-stack">
-        <input aria-label="Studio 담당에게 명령" value={chatDraft} onChange={(event) => setChatDraft(event.target.value)} placeholder="직접 쓰셔도 됩니다" className="min-h-control-touch min-w-0 flex-1 rounded-lg border border-border bg-surface px-stack text-body-sm text-text" />
+        <input aria-label="Studio 담당에게 명령" value={chatDraft} onChange={(event) => setChatDraft(event.target.value)} placeholder="직접 쓰셔도 됩니다" className="min-h-control-touch min-w-0 flex-1 rounded-control border border-border bg-surface px-stack text-body-sm text-text" />
         <Button type="submit" variant="primary">보내기</Button>
       </form>
     </aside>

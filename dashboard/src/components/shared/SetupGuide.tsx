@@ -16,14 +16,14 @@ export function SetupGuide({ quick, detail, warning, images }: SetupGuideProps) 
 
   return (
     <div>
-      <h3 className="text-sm font-medium text-muted mb-3">연결 가이드</h3>
-      <ol className="text-caption text-subtle space-y-1.5 list-decimal list-inside">
+      <h3 className="text-body-sm font-medium text-muted mb-stack">연결 가이드</h3>
+      <ol className="text-caption text-subtle space-y-stack-tight list-decimal list-inside">
         {quick.map((step, i) => (
           <li key={i} dangerouslySetInnerHTML={{ __html: step }} />
         ))}
       </ol>
       {images && images.length > 0 && (
-        <div className="mt-3 space-y-2">
+        <div className="mt-stack space-y-stack-tight">
           {images.filter((img) => !hidden[img.src]).map((img) => (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -32,24 +32,24 @@ export function SetupGuide({ quick, detail, warning, images }: SetupGuideProps) 
               alt={img.alt}
               loading="lazy"
               onError={() => setHidden((h) => ({ ...h, [img.src]: true }))}
-              className="w-full rounded border border-border"
+              className="w-full rounded-chip border border-border"
             />
           ))}
         </div>
       )}
       {warning && (
-        <p className="text-caption text-yellow-500/70 mt-2">{warning}</p>
+        <p className="text-caption text-warning/70 mt-stack-tight">{warning}</p>
       )}
       {detail && !warning && (
         <>
           <button
             onClick={() => setShowDetail(!showDetail)}
-            className="text-caption text-accent hover:text-accent mt-3 block"
+            className="text-caption text-accent hover:text-accent mt-stack block"
           >
             {showDetail ? "접기" : "더 알아보기"}
           </button>
           {showDetail && (
-            <div className="mt-2 p-3 rounded bg-surface/50">
+            <div className="mt-stack-tight p-stack rounded-chip bg-surface/50">
               <p className="text-caption text-subtle leading-relaxed whitespace-pre-wrap">{detail}</p>
             </div>
           )}

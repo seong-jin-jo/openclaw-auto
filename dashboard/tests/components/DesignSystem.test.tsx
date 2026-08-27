@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import React from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { StatusBadge } from "@/components/shared/Badge";
 import { Button } from "@/components/shared/Button";
@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { Field } from "@/components/shared/Field";
 import { Section } from "@/components/shared/Section";
 import { Stack } from "@/components/shared/Stack";
+import { StateNotice } from "@/components/shared/StateNotice";
 
 vi.mock("@/lib/constants", () => ({
   CH_STATUS_BADGE: { live: "bg-success text-white" },
@@ -68,5 +69,23 @@ describe("shared design-system components", () => {
     expect(screen.getByText("카드 본문")).toHaveClass("card", "ds-copy");
     expect(screen.getByText("Live")).toHaveClass("text-caption", "ds-label");
     expect(screen.getByText("비어 있음")).toHaveClass("text-body", "ds-copy");
+    expect(screen.getByRole("status")).toHaveAttribute("data-state", "empty");
+  });
+
+  it("UI-STATE-01 정상 경로: 오류 상태의 공통 행동 단추가 실제 콜백을 호출한다", () => {
+    const onRetry = vi.fn();
+    render(
+      <StateNotice
+        tone="error"
+        title="불러오지 못했습니다"
+        description="잠시 뒤 다시 시도해 주세요"
+        actionLabel="다시 시도"
+        onAction={onRetry}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(onRetry).toHaveBeenCalledOnce();
+    expect(screen.getByRole("alert")).toHaveAttribute("data-state", "error");
   });
 });

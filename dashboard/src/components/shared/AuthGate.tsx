@@ -27,20 +27,20 @@ function GateBlockScreen({
   onLogout: () => void;
 }) {
   return (
-    <div className="min-h-screen w-full bg-bg flex items-center justify-center px-6">
-      <div className="card p-8 w-full max-w-sm text-center">
-        <h1 className="text-lg font-bold text-text mb-2">{title}</h1>
-        <p className="text-sm text-subtle mb-6">{desc}</p>
-        <div className="flex flex-col gap-2">
+    <div className="min-h-screen w-full bg-bg flex items-center justify-center px-stack-section">
+      <div className="card p-region w-full max-w-sm text-center">
+        <h1 className="text-lead font-bold text-text mb-stack-tight">{title}</h1>
+        <p className="text-body-sm text-subtle mb-stack-section">{desc}</p>
+        <div className="flex flex-col gap-stack-tight">
           <button
             onClick={onRefresh}
-            className="w-full py-2.5 rounded-lg text-text font-semibold text-sm bg-accent hover:bg-accent-hover transition-all"
+            className="w-full py-stack rounded-control text-accent-fg font-semibold text-body-sm bg-accent hover:bg-accent-hover transition-colors"
           >
             새로고침
           </button>
           <button
             onClick={onLogout}
-            className="w-full py-2.5 rounded-lg text-xs text-subtle hover:text-muted transition-colors"
+            className="w-full py-stack rounded-control text-caption text-subtle hover:text-muted transition-colors"
           >
             로그아웃
           </button>
@@ -61,37 +61,37 @@ const PIPELINE_STEPS = [
 
 const FEATURES = [
   {
-    icon: "📡",
+    icon: "발행",
     title: "주요 채널 동시 발행",
     desc: "Threads, X, Facebook, Instagram, Bluesky, Telegram, Discord, Slack에 한 번에 예약 발행합니다.",
     tags: ["Threads", "X", "Facebook", "Instagram", "Bluesky", "Telegram", "Discord", "Slack"],
   },
   {
-    icon: "🤖",
+    icon: "생성",
     title: "AI 콘텐츠 생성",
     desc: "Content Guide 기반으로 Claude가 브랜드 톤에 맞는 콘텐츠를 자동 생성합니다. 채널별 맞춤 최적화 포함.",
     tags: ["Claude", "맞춤 톤", "채널별 최적화"],
   },
   {
-    icon: "⏰",
+    icon: "예약",
     title: "크론 자동 발행",
     desc: "생성 → 검수 → 발행 파이프라인이 24시간 자동 운영됩니다. 승인만 누르면 나머지는 자동.",
     tags: ["24/7", "자동화", "크론잡"],
   },
   {
-    icon: "📈",
+    icon: "분석",
     title: "AI 피드백 루프",
     desc: "터진 글을 자동 감지하여 스타일과 패턴을 학습합니다. 다음 콘텐츠 품질이 자동으로 개선됩니다.",
     tags: ["Viral 감지", "자동 학습", "품질 개선"],
   },
   {
-    icon: "🎨",
+    icon: "편집",
     title: "카드뉴스 에디터",
     desc: "Instagram 카드뉴스를 AI가 자동 생성합니다. Midjourney 이미지 연동으로 비주얼 퀄리티를 높입니다.",
     tags: ["Instagram", "카드뉴스", "Midjourney"],
   },
   {
-    icon: "📊",
+    icon: "성과",
     title: "실시간 대시보드",
     desc: "모든 채널의 성과를 한 화면에서 모니터링합니다. 팔로워 추이, 반응률, 터진 글 알림까지.",
     tags: ["통합 관제", "실시간", "알림"],
@@ -119,14 +119,14 @@ function LandingPage() {
 
       {/* ────── Hero ────── */}
       <section className="relative overflow-hidden">
-        <div className="relative flex flex-col items-center px-6 pt-24 pb-20 text-center max-w-4xl mx-auto">
+        <div className="relative flex flex-col items-center px-stack-section pt-wide pb-wide text-center max-w-4xl mx-auto">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium mb-8 border border-success/30 bg-success/10 text-success">
-            <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+          <div className="inline-flex items-center gap-stack-tight px-pad-inset py-stack-tight rounded-pill text-caption font-medium mb-region border border-success/30 bg-success/10 text-success">
+            <span className="w-2 h-2 rounded-pill bg-success animate-pulse" />
             베타 운영 중 · 가입 즉시 이용
           </div>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-text leading-tight mb-6 tracking-tight">
+          <h1 className="text-display sm:text-display md:text-display font-extrabold text-text leading-tight mb-stack-section tracking-tight">
             AI가 SNS 마케팅을
             <br />
             <span className="text-accent">
@@ -134,19 +134,19 @@ function LandingPage() {
             </span>
           </h1>
 
-          <p className="text-lg sm:text-xl text-subtle max-w-2xl mb-3 leading-relaxed">
+          <p className="text-lead sm:text-subheading text-subtle max-w-2xl mb-stack leading-relaxed">
             검수만 하세요. 콘텐츠 생성부터 발행, 반응 분석까지
             <br className="hidden sm:block" />
             AI가 처리합니다.
           </p>
-          <p className="text-sm text-subtle mb-10">
+          <p className="text-body-sm text-subtle mb-wide">
             주요 채널 통합 발행 · 24/7 자동 운영 · 피드백 루프
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-stack">
             <button
               onClick={scrollToLogin}
-              className="px-8 py-3 rounded-lg bg-accent text-accent-fg hover:bg-accent-hover font-semibold text-sm transition-colors"
+              className="px-region py-stack rounded-control bg-accent text-accent-fg hover:bg-accent-hover font-semibold text-body-sm transition-colors"
             >
               베타 신청하기
             </button>
@@ -154,7 +154,7 @@ function LandingPage() {
               href="https://github.com/openclaw"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-8 py-3 rounded-lg text-muted font-medium text-sm border border-border hover:border-border hover:text-text transition-all"
+              className="px-region py-stack rounded-control text-muted font-medium text-body-sm border border-border hover:border-border hover:text-text transition-colors"
             >
               GitHub에서 보기
             </a>
@@ -163,10 +163,10 @@ function LandingPage() {
       </section>
 
       {/* ────── Channel Marquee ────── */}
-      <section className="py-8 border-t border-b border-border/50">
-        <div className="flex flex-wrap justify-center gap-3 max-w-4xl mx-auto px-6">
+      <section className="py-region border-t border-b border-border/50">
+        <div className="flex flex-wrap justify-center gap-stack max-w-4xl mx-auto px-stack-section">
           {CHANNEL_ICONS.map((ch) => (
-            <span key={ch} className="px-3 py-1 text-xs rounded-full bg-surface-2/60 text-subtle border border-border">
+            <span key={ch} className="px-stack py-micro text-caption rounded-pill bg-surface-2/60 text-subtle border border-border">
               {ch}
             </span>
           ))}
@@ -174,50 +174,50 @@ function LandingPage() {
       </section>
 
       {/* ────── Pipeline ────── */}
-      <section className="max-w-5xl mx-auto px-6 py-20">
-        <div className="text-center mb-14">
-          <p className="text-xs font-semibold tracking-widest uppercase text-accent mb-3">How It Works</p>
-          <h2 className="text-2xl sm:text-3xl font-bold text-text mb-3">완전 자동화 파이프라인</h2>
-          <p className="text-sm text-subtle">설정 한 번이면 24/7 자동 운영</p>
+      <section className="max-w-5xl mx-auto px-stack-section py-wide">
+        <div className="text-center mb-wide">
+          <p className="text-caption font-semibold tracking-widest uppercase text-accent mb-stack">How It Works</p>
+          <h2 className="text-heading sm:text-display font-bold text-text mb-stack">완전 자동화 파이프라인</h2>
+          <p className="text-body-sm text-subtle">설정 한 번이면 24/7 자동 운영</p>
         </div>
 
         {/* Desktop: horizontal */}
-        <div className="hidden md:flex items-start justify-between gap-3">
+        <div className="hidden md:flex items-start justify-between gap-stack">
           {PIPELINE_STEPS.map((s, i) => (
             <div key={s.num} className="contents">
               <div className="flex-1 text-center">
                 <div
-                  className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 text-lg font-bold ${s.tone}`}
+                  className={`w-14 h-14 rounded-surface flex items-center justify-center mx-auto mb-pad-inset text-lead font-bold ${s.tone}`}
                 >
                   {s.num}
                 </div>
-                <p className="text-sm font-semibold text-text mb-1">{s.label}</p>
-                <p className="text-xs text-subtle">{s.desc}</p>
+                <p className="text-body-sm font-semibold text-text mb-micro">{s.label}</p>
+                <p className="text-caption text-subtle">{s.desc}</p>
               </div>
               {i < PIPELINE_STEPS.length - 1 && (
-                <div className="flex items-center pt-5 text-subtle text-xl select-none">&rarr;</div>
+                <div className="flex items-center pt-stack-section text-subtle text-subheading select-none">&rarr;</div>
               )}
             </div>
           ))}
         </div>
 
         {/* Mobile: vertical */}
-        <div className="flex md:hidden flex-col gap-4">
+        <div className="flex md:hidden flex-col gap-pad-inset">
           {PIPELINE_STEPS.map((s, i) => (
             <div key={s.num}>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-pad-inset">
                 <div
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center text-base font-bold shrink-0 ${s.tone}`}
+                  className={`w-12 h-12 rounded-surface flex items-center justify-center text-body font-bold shrink-0 ${s.tone}`}
                 >
                   {s.num}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-text">{s.label}</p>
-                  <p className="text-xs text-subtle">{s.desc}</p>
+                  <p className="text-body-sm font-semibold text-text">{s.label}</p>
+                  <p className="text-caption text-subtle">{s.desc}</p>
                 </div>
               </div>
               {i < PIPELINE_STEPS.length - 1 && (
-                <div className="ml-6 h-4 border-l border-border" />
+                <div className="ml-stack-section h-4 border-l border-border" />
               )}
             </div>
           ))}
@@ -225,24 +225,24 @@ function LandingPage() {
       </section>
 
       {/* ────── Features ────── */}
-      <section className="max-w-5xl mx-auto px-6 py-20">
-        <div className="text-center mb-14">
-          <p className="text-xs font-semibold tracking-widest uppercase text-accent mb-3">Features</p>
-          <h2 className="text-2xl sm:text-3xl font-bold text-text mb-3">마케팅에 필요한 모든 것</h2>
-          <p className="text-sm text-subtle">채널 관리부터 콘텐츠 생성, 분석까지 한 곳에서</p>
+      <section className="max-w-5xl mx-auto px-stack-section py-wide">
+        <div className="text-center mb-wide">
+          <p className="text-caption font-semibold tracking-widest uppercase text-accent mb-stack">Features</p>
+          <h2 className="text-heading sm:text-display font-bold text-text mb-stack">마케팅에 필요한 모든 것</h2>
+          <p className="text-body-sm text-subtle">채널 관리부터 콘텐츠 생성, 분석까지 한 곳에서</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-stack-section">
           {FEATURES.map((f) => (
-            <div key={f.title} className="card p-6 hover:border-border transition-colors group">
-              <div className="text-2xl mb-4">{f.icon}</div>
-              <h3 className="text-sm font-semibold text-text mb-2 group-hover:text-accent transition-colors">
+            <div key={f.title} className="card p-stack-section hover:border-border transition-colors group">
+              <div className="text-heading mb-pad-inset">{f.icon}</div>
+              <h3 className="text-body-sm font-semibold text-text mb-stack-tight group-hover:text-accent transition-colors">
                 {f.title}
               </h3>
-              <p className="text-xs text-subtle leading-relaxed mb-4">{f.desc}</p>
-              <div className="flex flex-wrap gap-1.5">
+              <p className="text-caption text-subtle leading-relaxed mb-pad-inset">{f.desc}</p>
+              <div className="flex flex-wrap gap-stack-tight">
                 {f.tags.map((t) => (
-                  <span key={t} className="text-caption px-2 py-0.5 rounded bg-surface-2/80 text-subtle">
+                  <span key={t} className="text-caption px-stack-tight py-micro rounded-chip bg-surface-2/80 text-subtle">
                     {t}
                   </span>
                 ))}
@@ -253,25 +253,25 @@ function LandingPage() {
       </section>
 
       {/* ────── Pricing ────── */}
-      <section className="max-w-3xl mx-auto px-6 py-20">
-        <div className="text-center mb-14">
-          <p className="text-xs font-semibold tracking-widest uppercase text-success mb-3">Pricing</p>
-          <h2 className="text-2xl sm:text-3xl font-bold text-text mb-3">심플한 요금제</h2>
-          <p className="text-sm text-subtle">베타 기간 월 기본 제공량 내 무료입니다</p>
+      <section className="max-w-3xl mx-auto px-stack-section py-wide">
+        <div className="text-center mb-wide">
+          <p className="text-caption font-semibold tracking-widest uppercase text-success mb-stack">Pricing</p>
+          <h2 className="text-heading sm:text-display font-bold text-text mb-stack">심플한 요금제</h2>
+          <p className="text-body-sm text-subtle">베타 기간 월 기본 제공량 내 무료입니다</p>
         </div>
 
-        <div className="card p-8 max-w-md mx-auto text-center relative overflow-hidden">
+        <div className="card p-region max-w-md mx-auto text-center relative overflow-hidden">
           {/* Glow accent */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-0.5 bg-success" />
 
-          <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mb-6 border border-success/30 bg-success/10 text-success">
+          <div className="inline-flex items-center px-stack py-micro rounded-pill text-caption font-medium mb-stack-section border border-success/30 bg-success/10 text-success">
             베타 무료 제공
           </div>
 
-          <h3 className="text-3xl font-bold text-text mb-1">Free</h3>
-          <p className="text-sm text-subtle mb-8">₩0 / 월</p>
+          <h3 className="text-display font-bold text-text mb-micro">Free</h3>
+          <p className="text-body-sm text-subtle mb-region">₩0 / 월</p>
 
-          <ul className="text-left space-y-3 mb-8">
+          <ul className="text-left space-y-stack mb-region">
             {[
               "주요 채널 연결",
               "AI 콘텐츠 자동 생성",
@@ -280,8 +280,8 @@ function LandingPage() {
               "카드뉴스 에디터",
               "실시간 대시보드",
             ].map((item) => (
-              <li key={item} className="flex items-center gap-3 text-sm text-muted">
-                <span className="text-success text-base">✓</span>
+              <li key={item} className="flex items-center gap-stack text-body-sm text-muted">
+                <span className="text-success text-body">✓</span>
                 {item}
               </li>
             ))}
@@ -289,30 +289,30 @@ function LandingPage() {
 
           <button
             onClick={scrollToLogin}
-            className="w-full py-3 rounded-lg bg-accent text-accent-fg hover:bg-accent-hover font-semibold text-sm transition-colors"
+            className="w-full py-stack rounded-control bg-accent text-accent-fg hover:bg-accent-hover font-semibold text-body-sm transition-colors"
           >
             베타 신청하기
           </button>
 
-          <p className="text-caption text-subtle mt-4">가입 즉시 대시보드 이용 가능 · 공유 AI 생성은 운영자 승인 또는 자체 Anthropic 키 등록 후 · 추후 Pro / Business 플랜 추가 예정</p>
+          <p className="text-caption text-subtle mt-pad-inset">가입 즉시 대시보드 이용 가능 · 공유 AI 생성은 운영자 승인 또는 자체 Anthropic 키 등록 후 · 추후 Pro / Business 플랜 추가 예정</p>
         </div>
       </section>
 
       {/* ────── Login ────── */}
-      <section className="max-w-md mx-auto px-6 py-20">
-        <div className="card p-8 relative overflow-hidden">
+      <section className="max-w-md mx-auto px-stack-section py-wide">
+        <div className="card p-region relative overflow-hidden">
           {/* Top accent line */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-0.5 bg-accent" />
 
-          <div className="text-center mb-6">
-            <h3 className="text-lg font-bold text-text mb-2">시작하기</h3>
-            <p className="text-xs text-subtle">Google 계정으로 시작하고 내 브랜드 콘텐츠를 자동 생성·발행하세요</p>
+          <div className="text-center mb-stack-section">
+            <h3 className="text-lead font-bold text-text mb-stack-tight">시작하기</h3>
+            <p className="text-caption text-subtle">Google 계정으로 시작하고 내 브랜드 콘텐츠를 자동 생성·발행하세요</p>
           </div>
 
           {/* 고객 가입/로그인 — Google OAuth 전용 (중앙정렬된 /login 페이지) */}
           <a
             href="/login"
-            className="block w-full py-3 rounded-lg bg-accent text-accent-fg hover:bg-accent-hover font-semibold text-sm text-center transition-colors"
+            className="block w-full py-stack rounded-control bg-accent text-accent-fg hover:bg-accent-hover font-semibold text-body-sm text-center transition-colors"
           >
             로그인 / 회원가입 →
           </a>
@@ -320,7 +320,7 @@ function LandingPage() {
           {/* 운영자 진입은 /operator로 분리 — 고객 화면엔 비번 박스 노출 안 함 */}
           <a
             href="/operator"
-            className="block w-full mt-3 text-center text-caption text-subtle hover:text-muted transition-colors"
+            className="block w-full mt-stack text-center text-caption text-subtle hover:text-muted transition-colors"
           >
             운영자세요? 운영자 콘솔로 →
           </a>
@@ -328,9 +328,9 @@ function LandingPage() {
       </section>
 
       {/* ────── Footer ────── */}
-      <footer className="border-t border-border/50 py-10">
-        <div className="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-subtle">
+      <footer className="border-t border-border/50 py-wide">
+        <div className="max-w-5xl mx-auto px-stack-section flex flex-col sm:flex-row items-center justify-between gap-pad-inset">
+          <p className="text-caption text-subtle">
             Powered by{" "}
             <a href="https://openclaw.ai" target="_blank" rel="noopener noreferrer"
               className="text-subtle hover:text-muted transition-colors">
@@ -338,18 +338,18 @@ function LandingPage() {
             </a>
             {" "}+ Claude
           </p>
-          <div className="flex items-center gap-6">
-            <a href="/privacy" className="text-xs text-subtle hover:text-muted transition-colors">
+          <div className="flex items-center gap-stack-section">
+            <a href="/privacy" className="text-caption text-subtle hover:text-muted transition-colors">
               개인정보처리방침
             </a>
-            <a href="/terms" className="text-xs text-subtle hover:text-muted transition-colors">
+            <a href="/terms" className="text-caption text-subtle hover:text-muted transition-colors">
               이용약관
             </a>
-            <a href="/data-deletion" className="text-xs text-subtle hover:text-muted transition-colors">
+            <a href="/data-deletion" className="text-caption text-subtle hover:text-muted transition-colors">
               데이터 삭제
             </a>
             <a href="https://github.com/openclaw" target="_blank" rel="noopener noreferrer"
-              className="text-xs text-subtle hover:text-muted transition-colors">
+              className="text-caption text-subtle hover:text-muted transition-colors">
               GitHub
             </a>
           </div>
@@ -575,8 +575,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   // 승인/정지 상태 확인 전에는 children을 절대 mount하지 않는다(fail-open 방지) — 확인 중 화면만 표시.
   if (gateStatus === "checking") {
     return (
-      <div className="min-h-screen w-full bg-bg flex items-center justify-center px-6">
-        <p className="text-sm text-subtle">확인 중...</p>
+      <div className="min-h-screen w-full bg-bg flex items-center justify-center px-stack-section">
+        <p className="text-body-sm text-subtle">확인 중...</p>
       </div>
     );
   }

@@ -95,19 +95,19 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-bg px-4">
-      <div className="w-full max-w-sm p-6 rounded-2xl border border-border bg-surface/50">
-        <h1 className="text-lg font-semibold text-text mb-1">OSMU 마케팅 자동화</h1>
-        <p className="text-xs text-subtle mb-5">Google 계정으로 로그인하고 내 브랜드 콘텐츠를 자동 생성·발행하세요.</p>
+    <div className="min-h-screen flex items-center justify-center bg-bg px-pad-inset">
+      <div className="w-full max-w-sm p-stack-section rounded-surface border border-border bg-surface/50">
+        <h1 className="text-lead font-semibold text-text mb-micro">OSMU 마케팅 자동화</h1>
+        <p className="text-caption text-subtle mb-stack-section">Google 계정으로 로그인하고 내 브랜드 콘텐츠를 자동 생성·발행하세요.</p>
 
-        <div className="space-y-2">
+        <div className="space-y-stack-tight">
           <button onClick={google} disabled={busy}
-            className="w-full px-4 py-2 text-sm bg-accent text-accent-fg rounded-lg disabled:opacity-50">
+            className="w-full px-pad-inset py-stack-tight text-body-sm bg-accent text-accent-fg rounded-control disabled:opacity-50">
             {busy ? "확인 중…" : "Google로 계속"}
           </button>
         </div>
 
-        {msg && <p className="text-xs mt-3 text-amber-400">{msg}</p>}
+        {msg && <p className="text-caption mt-stack text-warning">{msg}</p>}
       </div>
     </div>
   );

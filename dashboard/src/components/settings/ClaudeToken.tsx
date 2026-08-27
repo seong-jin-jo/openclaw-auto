@@ -44,27 +44,27 @@ export function ClaudeToken() {
   const editable = editing || !hasToken;
 
   return (
-    <div className="card p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-muted">Claude Token</h3>
-        <div className="flex items-center gap-2">
+    <div className="card p-stack-section">
+      <div className="flex items-center justify-between mb-pad-inset">
+        <h3 className="text-body-sm font-medium text-muted">Claude Token</h3>
+        <div className="flex items-center gap-stack-tight">
           {claude && (
-            <span className={`text-caption px-2 py-0.5 rounded ${claude.healthy ? "bg-success/15 text-success" : "bg-danger/15 text-danger"}`}>
+            <span className={`text-caption px-stack-tight py-micro rounded-chip ${claude.healthy ? "bg-success/15 text-success" : "bg-danger/15 text-danger"}`}>
               {claude.healthy ? "Healthy" : "Error"}
             </span>
           )}
           {claude && <span className="text-caption text-subtle">{String(claude.type || "token")}</span>}
           {hasToken && !editing && (
-            <button onClick={() => setEditing(true)} className="text-caption text-accent hover:text-accent">Edit</button>
+            <button onClick={() => setEditing(true)} className="text-caption text-accent hover:text-accent">수정</button>
           )}
         </div>
       </div>
 
       {claude && (
-        <div className="space-y-1 text-caption mb-3">
+        <div className="space-y-micro text-caption mb-stack">
           <div className="flex justify-between">
             <span className="text-subtle">Errors</span>
-            <span className={Number(claude.errorCount) > 0 ? "text-red-400" : "text-subtle"}>{String(claude.errorCount)}</span>
+            <span className={Number(claude.errorCount) > 0 ? "text-danger" : "text-subtle"}>{String(claude.errorCount)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-subtle">Last used</span>
@@ -73,9 +73,9 @@ export function ClaudeToken() {
         </div>
       )}
 
-      <div className="space-y-3">
+      <div className="space-y-stack">
         <div>
-          <label className="text-xs text-subtle block mb-0.5">Setup Token 또는 API Key</label>
+          <label className="text-caption text-subtle block mb-micro">Setup Token 또는 API Key</label>
           <div className="relative">
             <input
               type={showToken ? "text" : "password"}
@@ -84,7 +84,7 @@ export function ClaudeToken() {
               readOnly={!editable}
               title={tokenValue}
               placeholder="sk-ant-oat01-... or sk-ant-api..."
-              className={`w-full ${editable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-caption text-muted placeholder-gray-600 font-mono`}
+              className={`w-full ${editable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded-chip px-stack py-stack-tight pr-wide text-caption text-muted placeholder-gray-600 font-mono`}
             />
             {tokenValue && (
               <button
@@ -99,28 +99,28 @@ export function ClaudeToken() {
         </div>
         <details className="text-caption">
           <summary className="text-accent hover:text-accent cursor-pointer">Setup Guide</summary>
-          <div className="mt-2 p-2 rounded bg-surface/50 text-subtle space-y-1">
-            <p>1. 터미널에서 <code className="bg-surface-2 px-1 rounded">claude setup-token</code> 실행</p>
+          <div className="mt-stack-tight p-stack-tight rounded-chip bg-surface/50 text-subtle space-y-micro">
+            <p>1. 터미널에서 <code className="bg-surface-2 px-micro rounded-chip">claude setup-token</code> 실행</p>
             <p>2. 브라우저에서 Anthropic 로그인</p>
-            <p>3. 생성된 <code className="bg-surface-2 px-1 rounded">sk-ant-oat01-...</code> 토큰 복사</p>
+            <p>3. 생성된 <code className="bg-surface-2 px-micro rounded-chip">sk-ant-oat01-...</code> 토큰 복사</p>
             <p>4. 위 필드에 붙여넣기 → Update Token</p>
           </div>
         </details>
         {editable && (
-          <div className="flex gap-2">
+          <div className="flex gap-stack-tight">
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 py-2 bg-accent text-text text-sm rounded hover:bg-accent-hover disabled:opacity-50"
+              className="flex-1 py-stack-tight bg-accent text-accent-fg text-body-sm rounded-chip hover:bg-accent-hover disabled:opacity-50"
             >
               {saving ? "Updating..." : hasToken ? "Update Token" : "Connect"}
             </button>
             {hasToken && editing && (
               <button
                 onClick={() => { setEditing(false); setTokenValue(currentToken); }}
-                className="px-4 py-2 bg-surface-2 text-muted text-sm rounded hover:bg-surface-2"
+                className="px-pad-inset py-stack-tight bg-surface-2 text-muted text-body-sm rounded-chip hover:bg-surface-2"
               >
-                Cancel
+                취소
               </button>
             )}
           </div>

@@ -105,14 +105,14 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="mx-stack w-full max-w-2xl overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-player-surface/70 backdrop-blur-sm">
+      <div className="mx-stack w-full max-w-2xl overflow-hidden rounded-surface border border-border bg-surface shadow-2xl">
         <header className="border-b border-border px-pad-inset py-stack-section">
           <div className="flex items-center justify-between gap-stack">
             <h2 className="text-heading font-bold text-text">첫 콘텐츠 만들기</h2>
             <div className="flex items-center gap-stack-tight" aria-label={`${step}단계, 전체 3단계`}>
               {[1, 2, 3].map((item) => (
-                <span key={item} className={`h-1 w-8 rounded-full ${item <= step ? "bg-accent" : "bg-surface-2"}`} />
+                <span key={item} className={`h-1 w-8 rounded-pill ${item <= step ? "bg-accent" : "bg-surface-2"}`} />
               ))}
             </div>
           </div>
@@ -149,7 +149,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
           ) : null}
 
           {step === 3 ? (
-            <section className="rounded-xl border border-border bg-surface-2 p-region text-center">
+            <section className="rounded-surface border border-border bg-surface-2 p-region text-center">
               <h3 className="text-subheading font-bold text-text">아직 만든 콘텐츠가 없습니다</h3>
               <p className="mx-auto mt-stack max-w-xl break-keep text-body-sm text-muted">고른 갈래로 첫 후보 세 장을 만듭니다. 채널 연결은 발행할 때 합니다.</p>
               <Button variant="primary" size="lg" onClick={openStudio} className="mt-pad-inset">생성실 열기</Button>

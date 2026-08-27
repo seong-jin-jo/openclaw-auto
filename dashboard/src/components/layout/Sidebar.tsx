@@ -51,15 +51,15 @@ function SidebarGroup({
   const collapsed = sidebarCollapsed[groupKey] ?? false; // 기본 펼침 (사용자가 접으면 그 상태 유지)
 
   return (
-    <div className="mt-4">
+    <div className="mt-pad-inset">
       <button
         onClick={() => toggleSidebar(groupKey)}
-        className="px-3 mb-1 w-full flex items-center justify-between cursor-pointer hover:opacity-80"
+        className="px-stack mb-micro w-full flex items-center justify-between cursor-pointer hover:opacity-80"
       >
         <span className={`text-caption font-medium text-subtle uppercase tracking-wider ${showNarrowLabels ? "" : "max-xl:sr-only"}`}>{title}</span>
-        <span className="flex items-center gap-1">
+        <span className="flex items-center gap-micro">
           {totalCount > 0 && (
-            <span className={`text-caption ${liveCount > 0 ? "text-green-600" : "text-subtle"}`}>
+            <span className={`text-caption ${liveCount > 0 ? "text-success" : "text-subtle"}`}>
               {liveCount}/{totalCount}
             </span>
           )}
@@ -84,16 +84,16 @@ function SidebarGroup({
               key={i.key || `${i.label}-${idx}`}
               href={href}
               title={i.label}
-              className={`sidebar-item ${isActive ? "active" : ""} w-full text-left px-4 py-1.5 text-sm ${textColor} flex items-center gap-3`}
+              className={`sidebar-item ${isActive ? "active" : ""} w-full text-left px-pad-inset py-stack-tight text-body-sm ${textColor} flex items-center gap-stack`}
             >
               <span
-                className={`w-4 h-4 rounded ${i.iconClass || "text-subtle"} flex items-center justify-center`}
+                className={`w-4 h-4 rounded-chip ${i.iconClass || "text-subtle"} flex items-center justify-center`}
               >
                 {i.key ? getChannelIcon(i.key) : <span className="text-caption font-bold">{i.icon}</span>}
               </span>
               <span className={showNarrowLabels ? "" : "max-xl:sr-only"}>{i.label}</span>
               {i.status && (
-                <span className={`ml-auto text-caption px-1.5 py-0.5 rounded-full ${showNarrowLabels ? "" : "max-xl:hidden"} ${i.statusClass || "bg-surface-2 text-subtle"}`}>
+                <span className={`ml-auto text-caption px-stack-tight py-micro rounded-pill ${showNarrowLabels ? "" : "max-xl:hidden"} ${i.statusClass || "bg-surface-2 text-subtle"}`}>
                   {i.status}
                 </span>
               )}
@@ -138,13 +138,13 @@ function RoomFlowNav({ pathname, onNavigate }: { pathname: string; onNavigate?: 
                   onNavigate?.();
                 }}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-control-touch items-center gap-stack-tight rounded-lg px-stack-tight py-stack-tight text-body-sm font-semibold transition-colors max-xl:flex-col max-xl:gap-micro max-xl:px-micro ${active ? "bg-accent text-accent-fg" : "text-muted hover:bg-surface-2"}`}
+                className={`flex min-h-control-touch items-center gap-stack-tight rounded-control px-stack-tight py-stack-tight text-body-sm font-semibold transition-colors max-xl:flex-col max-xl:gap-micro max-xl:px-micro ${active ? "bg-accent text-accent-fg" : "text-muted hover:bg-surface-2"}`}
               >
-                <span className={`relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption ${active ? "border-accent-fg/40 bg-accent-fg/15 text-accent-fg" : done ? "border-accent bg-accent-soft text-accent" : "border-border bg-surface text-subtle"}`}>
+                <span className={`relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-pill border text-caption ${active ? "border-accent-fg/40 bg-accent-fg/15 text-accent-fg" : done ? "border-accent bg-accent-soft text-accent" : "border-border bg-surface text-subtle"}`}>
                   {done ? "✓" : `0${index + 1}`}
                 </span>
                 <span>{room.label}</span>
-                {active ? <span className="ml-auto whitespace-nowrap rounded-full bg-accent-fg/15 px-stack-tight py-micro text-caption max-xl:ml-0 max-xl:px-micro">지금 여기</span> : null}
+                {active ? <span className="ml-auto whitespace-nowrap rounded-pill bg-accent-fg/15 px-stack-tight py-micro text-caption max-xl:ml-none max-xl:px-micro">지금 여기</span> : null}
               </Link>
             </li>
           );
@@ -208,14 +208,14 @@ function CustomerWorkspaceIdentity({
   // 테넌트 해석 실패(세션 만료/일시적 DB 오류 등). 명시적 재시도 경로 제공.
   if (me.tenantError) {
     return (
-      <button onClick={() => void mutateMe()} className={`mt-1 text-xs text-subtle hover:text-muted ${compactOnNarrow ? "max-xl:sr-only" : ""}`}>
+      <button onClick={() => void mutateMe()} className={`mt-micro text-caption text-subtle hover:text-muted ${compactOnNarrow ? "max-xl:sr-only" : ""}`}>
         워크스페이스 연결 확인 중… <span className="underline">다시 시도</span>
       </button>
     );
   }
 
   return (
-    <div className="mt-1 text-xs">
+    <div className="mt-micro text-caption">
       <span className={`bg-gradient-to-r from-accent to-accent-hover bg-clip-text text-transparent font-medium ${compactOnNarrow ? "max-xl:sr-only" : ""}`}>
         {me.tenant?.name || activeWorkspace?.name || "내 워크스페이스"}
       </span>
@@ -227,7 +227,7 @@ function SidebarFooter({ isOperator, compactOnNarrow = false }: { isOperator: bo
   const setActiveWorkspace = useUIStore((state) => state.setActiveWorkspace);
 
   return (
-    <div className="shrink-0 px-4 py-3 border-t border-border/50 space-y-2 max-xl:px-stack-tight">
+    <div className="shrink-0 px-pad-inset py-stack border-t border-border/50 space-y-stack-tight max-xl:px-stack-tight">
       <ThemeToggle compactOnNarrow={compactOnNarrow} />
       <button
         onClick={async () => {
@@ -239,7 +239,7 @@ function SidebarFooter({ isOperator, compactOnNarrow = false }: { isOperator: bo
           setActiveWorkspace(null);
           window.location.href = isOperator ? "/operator" : "/login";
         }}
-        className="w-full flex items-center gap-2 px-1 py-1 text-xs text-subtle hover:text-danger transition-colors"
+        className="w-full flex items-center gap-stack-tight px-micro py-micro text-caption text-subtle hover:text-danger transition-colors"
         title="로그아웃"
       >
         <span aria-hidden>⎋</span><span className={compactOnNarrow ? "max-xl:sr-only" : ""}>로그아웃</span>
@@ -253,24 +253,24 @@ function OperatorSidebar() {
 
   return (
     <aside className="w-56 border-r border-border/50 bg-surface flex flex-col h-screen sticky top-0">
-      <div className="px-4 py-5 border-b border-border/50">
-        <div className="flex items-center gap-2">
+      <div className="px-pad-inset py-stack-section border-b border-border/50">
+        <div className="flex items-center gap-stack-tight">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-muted shrink-0" aria-label="Admin">
             <rect x="3" y="3" width="18" height="18" rx="5" fill="var(--accent)" opacity="0.25" />
             <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
-          <h1 className="text-base font-semibold text-text tracking-tight">Admin</h1>
+          <h1 className="text-body font-semibold text-text tracking-tight">Admin</h1>
         </div>
-        <p className="mt-1 text-xs text-subtle">운영자 콘솔</p>
+        <p className="mt-micro text-caption text-subtle">운영자 콘솔</p>
       </div>
 
-      <nav className="flex-1 min-h-0 overflow-y-auto py-3">
-        <div className="px-3 mb-2">
+      <nav className="flex-1 min-h-0 overflow-y-auto py-stack">
+        <div className="px-stack mb-stack-tight">
           <span className="text-caption font-medium text-subtle uppercase tracking-wider">Operator</span>
         </div>
         <Link
           href="/operator/customers"
-          className={`sidebar-item ${pathname === "/operator/customers" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-muted flex items-center gap-3`}
+          className={`sidebar-item ${pathname === "/operator/customers" ? "active" : ""} w-full text-left px-pad-inset py-stack-tight text-body-sm text-muted flex items-center gap-stack`}
         >
           <span className="text-accent" aria-hidden>◎</span>
           고객 관리
@@ -324,7 +324,7 @@ function CustomerSidebar({
     key: "threads",
     label: "Threads",
     icon: "T",
-    iconClass: "bg-accent text-text",
+    iconClass: "bg-accent text-accent-fg",
     nav: true,
     status: (cfg.threads?.connected ? "Live" : "Off") as string,
     statusClass: cfg.threads?.connected
@@ -368,7 +368,7 @@ function CustomerSidebar({
           aria-expanded={mobileMenuOpen}
           aria-label="메뉴 열기"
           onClick={() => setMobileMenuOpen(true)}
-          className="grid min-h-control-touch min-w-control-touch place-items-center rounded-lg border border-border bg-surface-2 text-text"
+          className="grid min-h-control-touch min-w-control-touch place-items-center rounded-control border border-border bg-surface-2 text-text"
         >
           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7h16M4 12h16M4 17h16" />
@@ -396,7 +396,7 @@ function CustomerSidebar({
             type="button"
             aria-label="메뉴 닫기"
             onClick={() => setMobileMenuOpen(false)}
-            className="grid min-h-control-touch min-w-control-touch place-items-center rounded-lg border border-border bg-surface-2 text-text md:hidden"
+            className="grid min-h-control-touch min-w-control-touch place-items-center rounded-control border border-border bg-surface-2 text-text md:hidden"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 6l12 12M18 6L6 18" />
@@ -404,7 +404,7 @@ function CustomerSidebar({
           </button>
         </div>
 
-      <nav className="flex-1 min-h-0 overflow-y-auto py-3">
+      <nav className="flex-1 min-h-0 overflow-y-auto py-stack">
         <RoomFlowNav pathname={pathname} onNavigate={() => setMobileMenuOpen(false)} />
 
         {/* 발행 채널 그룹. constants의 PUBLISH_CHANNEL_GROUPS 단일 소스(Settings>Channels와 동일).
@@ -425,21 +425,21 @@ function CustomerSidebar({
             동작하는 읽기 대시보드는 아래 "Data & Analytics" 섹션이 제공(사이드바=연결가능 원칙). */}
 
         {/* ── Data & Analytics ── */}
-        <div className="px-3 mt-5 mb-2">
+        <div className="px-stack mt-stack-section mb-stack-tight">
           <span className={`text-caption font-medium text-subtle uppercase tracking-wider ${narrowLabelClass}`}>Data & Analytics</span>
         </div>
         {[
           { href: "/blog-performance", key: "blog_performance", label: "Blog Performance" },
         ].map((item) => (
           <Link key={item.key} href={item.href}
-            className={`sidebar-item ${pathname === item.href ? "active" : ""} w-full text-left px-4 py-1.5 text-sm text-muted flex items-center gap-3`}>
-            <span className="w-4 h-4 rounded text-subtle flex items-center justify-center">{getChannelIcon(item.key)}</span>
+            className={`sidebar-item ${pathname === item.href ? "active" : ""} w-full text-left px-pad-inset py-stack-tight text-body-sm text-muted flex items-center gap-stack`}>
+            <span className="w-4 h-4 rounded-chip text-subtle flex items-center justify-center">{getChannelIcon(item.key)}</span>
             <span className={narrowLabelClass}>{item.label}</span>
           </Link>
         ))}
 
         {/* ── Keyword Research ── */}
-        <div className="px-3 mt-5 mb-2">
+        <div className="px-stack mt-stack-section mb-stack-tight">
           <span className={`text-caption font-medium text-subtle uppercase tracking-wider ${narrowLabelClass}`}>Keyword Research</span>
         </div>
         {[
@@ -448,8 +448,8 @@ function CustomerSidebar({
           { href: "/google-trends", key: "google_trends", label: "Google Trends" },
         ].map((item) => (
           <Link key={item.key} href={item.href}
-            className={`sidebar-item ${pathname === item.href ? "active" : ""} w-full text-left px-4 py-1.5 text-sm text-muted flex items-center gap-3`}>
-            <span className="w-4 h-4 rounded text-subtle flex items-center justify-center">{getChannelIcon(item.key)}</span>
+            className={`sidebar-item ${pathname === item.href ? "active" : ""} w-full text-left px-pad-inset py-stack-tight text-body-sm text-muted flex items-center gap-stack`}>
+            <span className="w-4 h-4 rounded-chip text-subtle flex items-center justify-center">{getChannelIcon(item.key)}</span>
             <span className={narrowLabelClass}>{item.label}</span>
           </Link>
         ))}
@@ -464,12 +464,12 @@ function CustomerSidebar({
           ]}
         />
 
-        <div className="px-3 mt-5 mb-2">
+        <div className="px-stack mt-stack-section mb-stack-tight">
           <span className={`text-caption font-medium text-subtle uppercase tracking-wider ${narrowLabelClass}`}>Assets & Tools</span>
         </div>
         <Link
           href="/images"
-          className={`sidebar-item ${pathname === "/images" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-muted flex items-center gap-3`}
+          className={`sidebar-item ${pathname === "/images" ? "active" : ""} w-full text-left px-pad-inset py-stack-tight text-body-sm text-muted flex items-center gap-stack`}
         >
           <svg className="w-4 h-4 text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -480,11 +480,11 @@ function CustomerSidebar({
             />
           </svg>
           <span className={narrowLabelClass}>Images</span>
-          <span className={`ml-auto text-caption px-1.5 py-0.5 rounded-full bg-surface-2 text-subtle ${mobileMenuOpen ? "" : "max-xl:hidden"}`}>{imageCount}</span>
+          <span className={`ml-auto text-caption px-stack-tight py-micro rounded-pill bg-surface-2 text-subtle ${mobileMenuOpen ? "" : "max-xl:hidden"}`}>{imageCount}</span>
         </Link>
         <Link
           href="/videos"
-          className={`sidebar-item ${pathname === "/videos" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-muted flex items-center gap-3`}
+          className={`sidebar-item ${pathname === "/videos" ? "active" : ""} w-full text-left px-pad-inset py-stack-tight text-body-sm text-muted flex items-center gap-stack`}
         >
           <svg className="w-4 h-4 text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -501,21 +501,21 @@ function CustomerSidebar({
           return (
             <Link
               href="/channels/midjourney"
-              className={`sidebar-item ${pathname === "/channels/midjourney" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-muted flex items-center gap-3`}
+              className={`sidebar-item ${pathname === "/channels/midjourney" ? "active" : ""} w-full text-left px-pad-inset py-stack-tight text-body-sm text-muted flex items-center gap-stack`}
             >
-              <span className="w-4 h-4 rounded bg-indigo-900/50 flex items-center justify-center text-caption font-bold text-indigo-300">MJ</span>
+              <span className="w-4 h-4 rounded-chip bg-accent/50 flex items-center justify-center text-caption font-bold text-accent">MJ</span>
               <span className={narrowLabelClass}>Midjourney</span>
-              <span className={`ml-auto w-2 h-2 rounded-full ${mobileMenuOpen ? "" : "max-xl:hidden"} ${mjCfg.connected ? "bg-green-500" : "bg-surface-2"}`} />
+              <span className={`ml-auto w-2 h-2 rounded-pill ${mobileMenuOpen ? "" : "max-xl:hidden"} ${mjCfg.connected ? "bg-success" : "bg-surface-2"}`} />
             </Link>
           );
         })()}
 
-        <div className="px-3 mt-5 mb-2">
+        <div className="px-stack mt-stack-section mb-stack-tight">
           <span className={`text-caption font-medium text-subtle uppercase tracking-wider ${narrowLabelClass}`}>System</span>
         </div>
         <Link
           href="/settings"
-          className={`sidebar-item ${pathname === "/settings" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-muted flex items-center gap-3`}
+          className={`sidebar-item ${pathname === "/settings" ? "active" : ""} w-full text-left px-pad-inset py-stack-tight text-body-sm text-muted flex items-center gap-stack`}
         >
           <svg className="w-4 h-4 text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path

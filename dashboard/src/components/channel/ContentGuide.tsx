@@ -68,59 +68,59 @@ export function ContentGuide({ channel }: ContentGuideProps) {
   };
 
   return (
-    <div className="card p-5">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-muted">
+    <div className="card p-stack-section">
+      <div className="flex items-center justify-between mb-stack">
+        <h3 className="text-body-sm font-medium text-muted">
           Content Guide <span className="text-caption text-subtle">({label})</span>
         </h3>
-        <div className="flex gap-2">
+        <div className="flex gap-stack-tight">
           <button
             onClick={handleAiSuggest}
             disabled={suggesting}
-            className="px-2 py-1 text-caption bg-accent text-text rounded hover:bg-accent-hover disabled:opacity-50"
+            className="px-stack-tight py-micro text-caption bg-accent text-accent-fg rounded-chip hover:bg-accent-hover disabled:opacity-50"
           >
             {suggesting ? "생성중..." : "AI 제안"}
           </button>
-          <button onClick={handleCopyCommon} className="px-2 py-1 text-caption bg-surface-2 text-subtle rounded hover:bg-surface-2">
+          <button onClick={handleCopyCommon} className="px-stack-tight py-micro text-caption bg-surface-2 text-subtle rounded-chip hover:bg-surface-2">
             공통에서 복사
           </button>
-          <button onClick={handleSave} disabled={saving} className="px-3 py-1 text-xs bg-accent text-text rounded hover:bg-accent-hover disabled:opacity-50">
+          <button onClick={handleSave} disabled={saving} className="px-stack py-micro text-caption bg-accent text-accent-fg rounded-chip hover:bg-accent-hover disabled:opacity-50">
             {saving ? "Saving..." : "Save"}
           </button>
         </div>
       </div>
-      <p className="text-caption text-subtle mb-2">
+      <p className="text-caption text-subtle mb-stack-tight">
         {isChannelGuide ? `${label} 전용 가이드` : "공통 가이드 사용 중. 수정하면 채널 전용으로 저장"}
         {channel === "x" ? " (280자 제한 고려)" : ""}
       </p>
       <textarea
         value={displayText}
         onChange={(e) => setText(e.target.value)}
-        className="w-full bg-surface border border-border rounded px-3 py-2 text-sm text-muted font-mono"
+        className="w-full bg-surface border border-border rounded-chip px-stack py-stack-tight text-body-sm text-muted font-mono"
         rows={10}
       />
 
       {/* AI 제안 결과 */}
       {suggestion && (
-        <div className="mt-3 border border-accent rounded-lg bg-accent-soft p-4">
-          <div className="flex items-center justify-between mb-2">
+        <div className="mt-stack border border-accent rounded-control bg-accent-soft p-pad-inset">
+          <div className="flex items-center justify-between mb-stack-tight">
             <span className="text-caption text-accent font-medium">AI 제안</span>
-            <div className="flex gap-2">
-              <button onClick={handleApplySuggestion} className="px-2 py-1 text-caption bg-accent text-text rounded hover:bg-accent-hover">
+            <div className="flex gap-stack-tight">
+              <button onClick={handleApplySuggestion} className="px-stack-tight py-micro text-caption bg-accent text-accent-fg rounded-chip hover:bg-accent-hover">
                 적용하기
               </button>
               <button
                 onClick={() => { navigator.clipboard.writeText(suggestion); showToast("클립보드에 복사됨", "info"); }}
-                className="px-2 py-1 text-caption bg-surface-2 text-subtle rounded hover:bg-surface-2"
+                className="px-stack-tight py-micro text-caption bg-surface-2 text-subtle rounded-chip hover:bg-surface-2"
               >
                 복사
               </button>
-              <button onClick={() => setSuggestion(null)} className="px-2 py-1 text-caption text-subtle hover:text-muted">
+              <button onClick={() => setSuggestion(null)} className="px-stack-tight py-micro text-caption text-subtle hover:text-muted">
                 닫기
               </button>
             </div>
           </div>
-          <pre className="text-xs text-muted whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto">{suggestion}</pre>
+          <pre className="text-caption text-muted whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto">{suggestion}</pre>
         </div>
       )}
     </div>

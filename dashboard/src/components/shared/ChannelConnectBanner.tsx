@@ -20,15 +20,15 @@ export function ChannelConnectBanner() {
   return (
     <Link
       href="/settings?tab=channels"
-      className="flex items-center justify-between gap-3 mb-4 px-4 py-3 rounded-xl border border-warning/40 bg-warning/10 hover:bg-warning/15 transition"
+      className="flex items-center justify-between gap-stack mb-pad-inset px-pad-inset py-stack rounded-surface border border-warning/40 bg-warning/10 hover:bg-warning/15 transition"
     >
-      <div className="text-sm text-text">
-        🔌 발행하려면 채널 연결이 필요해요. <b>{unconnected.length}개 미연결</b>
-        <span className="text-muted text-xs ml-1">
+      <div className="text-body-sm text-text">
+        발행하려면 채널 연결이 필요해요. <b>{unconnected.length}개 미연결</b>
+        <span className="text-muted text-caption ml-micro">
           ({names}{unconnected.length > 3 ? " 외" : ""})
         </span>
       </div>
-      <span className="text-xs px-3 py-1.5 rounded-lg bg-accent text-accent-fg whitespace-nowrap">연결하기 →</span>
+      <span className="text-caption px-stack py-stack-tight rounded-control bg-accent text-accent-fg whitespace-nowrap">연결하기 →</span>
     </Link>
   );
 }

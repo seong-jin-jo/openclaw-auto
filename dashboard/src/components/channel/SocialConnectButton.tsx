@@ -246,8 +246,8 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
   };
 
   return (
-    <div className="rounded-lg border border-accent/40 bg-accent/10 p-3">
-      <p className="text-xs text-muted mb-2">
+    <div className="rounded-control border border-accent/40 bg-accent/10 p-stack">
+      <p className="text-caption text-muted mb-stack-tight">
         <b className="text-text">{label} OAuth 연결</b>. 버튼 한 번이면 끝. 비밀번호·토큰 입력 없이
         {label} 공식 로그인으로 안전하게 연결됩니다.
       </p>
@@ -273,7 +273,7 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
         disabled={busy || readinessLoading || disabledByReadiness}
         data-testid={`connect-${provider}`}
         data-ready={disabledByReadiness ? "false" : "true"}
-        className={`px-4 py-2 text-sm rounded-lg disabled:opacity-50 ${
+        className={`px-pad-inset py-stack-tight text-body-sm rounded-control disabled:opacity-50 ${
           disabledByReadiness
             ? "bg-surface-2 text-subtle"
             : "bg-accent text-accent-fg hover:bg-accent-hover"
@@ -282,7 +282,7 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
         {busy ? "여는 중…" : readinessLoading ? "확인 중…" : connectLabel}
       </button>
       {accountSwitchHelp && (
-        <div className="mt-2">
+        <div className="mt-stack-tight">
           <button
             type="button"
             onClick={() => setShowSwitchNote((v) => !v)}
@@ -292,7 +292,7 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
             다른 계정으로 연결하고 싶어요
           </button>
           {showSwitchNote && (
-            <div className="mt-1 space-y-2">
+            <div className="mt-micro space-y-stack-tight">
               <p className="text-caption text-muted" data-testid={`switch-account-note-${provider}`}>
                 {accountSwitchHelp.note}
               </p>
@@ -327,22 +327,22 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
         </div>
       )}
       {!readinessFailed && disabledByReadiness && (
-        <p className="text-caption text-subtle mt-2" data-testid={`readiness-reason-${provider}`}>
+        <p className="text-caption text-subtle mt-stack-tight" data-testid={`readiness-reason-${provider}`}>
           {readinessEntry?.reason || `${label} 연결이 아직 준비되지 않았습니다.`}
         </p>
       )}
       {readinessWarning && (
-        <p className="text-caption text-warning mt-2" data-testid={`readiness-warning-${provider}`}>
-          ⚠ {readinessWarning}
+        <p className="text-caption text-warning mt-stack-tight" data-testid={`readiness-warning-${provider}`}>
+          {readinessWarning}
         </p>
       )}
       {!publishReady && (
-        <p className="text-caption text-warning mt-2" data-testid="publish-not-ready-badge">
-          ⚠ 발행 준비 중. 지금은 {label} 연결만 미리 가능하고, 대시보드에서 직접 발행은 아직
+        <p className="text-caption text-warning mt-stack-tight" data-testid="publish-not-ready-badge">
+          발행 준비 중. 지금은 {label} 연결만 미리 가능하고, 대시보드에서 직접 발행은 아직
           지원하지 않습니다.
         </p>
       )}
-      {msg && <p className="text-caption text-subtle mt-2">{msg}</p>}
+      {msg && <p className="text-caption text-subtle mt-stack-tight">{msg}</p>}
     </div>
   );
 }

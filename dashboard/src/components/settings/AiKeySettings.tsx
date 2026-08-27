@@ -32,25 +32,25 @@ export function AiKeySettings() {
     } finally { setBusy(false); }
   };
 
-  if (!activeWorkspace) return <p className="text-sm text-subtle">워크스페이스를 선택하세요.</p>;
+  if (!activeWorkspace) return <p className="text-body-sm text-subtle">워크스페이스를 선택하세요.</p>;
 
   return (
-    <div className="max-w-2xl p-4 rounded-xl border border-border bg-surface/40">
-      <div className="mb-3"><FreeEventBanner /></div>
-      <h3 className="text-sm font-semibold text-text mb-1">내 Claude(Anthropic) 키 · {activeWorkspace.name}</h3>
-      <p className="text-xs text-subtle mb-3">
+    <div className="max-w-2xl p-pad-inset rounded-surface border border-border bg-surface/40">
+      <div className="mb-stack"><FreeEventBanner /></div>
+      <h3 className="text-body-sm font-semibold text-text mb-micro">내 Claude(Anthropic) 키 · {activeWorkspace.name}</h3>
+      <p className="text-caption text-subtle mb-stack">
         내 Anthropic API 키를 등록하면 콘텐츠 생성이 <b className="text-muted">내 키·내 과금</b>으로 동작합니다(미등록 시 공유 엔진).
         키는 암호화 저장되며 발급은 <span className="text-accent">console.anthropic.com → API Keys</span>.
         현재: <span className={hasKey ? "text-success" : "text-subtle"}>{hasKey ? "등록됨(내 과금)" : "미등록(무료 이벤트. 운영자 부담)"}</span>
       </p>
-      <div className="flex gap-2">
+      <div className="flex gap-stack-tight">
         <input type="password" value={key} onChange={(e) => setKey(e.target.value)} placeholder="sk-ant-..."
-          className="flex-1 px-3 py-2 text-sm bg-surface border border-border rounded-lg text-muted focus:border-accent outline-none" />
-        <button onClick={save} disabled={busy} className="px-4 py-2 text-sm bg-accent text-text rounded-lg disabled:opacity-50 whitespace-nowrap">
+          className="flex-1 px-stack py-stack-tight text-body-sm bg-surface border border-border rounded-control text-muted focus:border-accent outline-none" />
+        <button onClick={save} disabled={busy} className="px-pad-inset py-stack-tight text-body-sm bg-accent text-accent-fg rounded-control disabled:opacity-50 whitespace-nowrap">
           {busy ? "저장 중…" : "키 저장"}
         </button>
       </div>
-      {msg && <p className={`text-xs mt-2 ${msg.startsWith("✓") ? "text-success" : "text-danger"}`}>{msg}</p>}
+      {msg && <p className={`text-caption mt-stack-tight ${msg.startsWith("✓") ? "text-success" : "text-danger"}`}>{msg}</p>}
     </div>
   );
 }

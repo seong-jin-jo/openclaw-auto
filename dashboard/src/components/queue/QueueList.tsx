@@ -71,15 +71,15 @@ export function QueueList({ variant = "text", charLimit, showSeo, onEditInEditor
   return (
     <div>
       {/* Filters + Bulk actions — 모바일에서 줄바꿈 */}
-      <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
-        <div className="flex gap-1 flex-wrap">
+      <div className="flex items-center justify-between gap-stack-tight mb-pad-inset flex-wrap">
+        <div className="flex gap-micro flex-wrap">
           {FILTERS.map((f) => (
             <button
               key={f}
               onClick={() => setQueueFilter(f)}
-              className={`px-3 py-1 text-xs rounded ${
+              className={`px-stack py-micro text-caption rounded-chip ${
                 queueFilter === f
-                  ? "bg-accent/30 text-accent border border-blue-600/30"
+                  ? "bg-accent/30 text-accent border border-accent/30"
                   : "text-subtle hover:bg-surface-2"
               }`}
             >
@@ -87,24 +87,24 @@ export function QueueList({ variant = "text", charLimit, showSeo, onEditInEditor
             </button>
           ))}
         </div>
-        <div className="flex gap-2 items-center flex-wrap">
+        <div className="flex gap-stack-tight items-center flex-wrap">
           {(srcPending?.pending ?? 0) > 0 && (
-            <button onClick={handleImportFromSourcing} className="px-3 py-1 text-xs bg-indigo-700/60 text-indigo-200 rounded hover:bg-indigo-600">
+            <button onClick={handleImportFromSourcing} className="px-stack py-micro text-caption bg-accent/60 text-accent rounded-chip hover:bg-accent">
               소싱에서 가져오기 ({srcPending!.pending})
             </button>
           )}
           {selectableIds.length > 0 && (
-            <label className="flex items-center gap-1 text-xs text-subtle cursor-pointer">
-              <input type="checkbox" checked={selectedIds.size > 0} onChange={handleSelectAll} className="rounded border-border" />
+            <label className="flex items-center gap-micro text-caption text-subtle cursor-pointer">
+              <input type="checkbox" checked={selectedIds.size > 0} onChange={handleSelectAll} className="rounded-chip border-border" />
               전체
             </label>
           )}
           {selectedIds.size > 0 && (
             <>
-              <button onClick={handleBulkApprove} className="px-3 py-1 text-xs bg-green-700 text-text rounded hover:bg-green-600">
+              <button onClick={handleBulkApprove} className="px-stack py-micro text-caption bg-success text-status-fg rounded-chip hover:bg-success">
                 승인 ({selectedIds.size})
               </button>
-              <button onClick={handleBulkDelete} className="px-3 py-1 text-xs bg-red-700 text-text rounded hover:bg-red-600">
+              <button onClick={handleBulkDelete} className="px-stack py-micro text-caption bg-danger text-status-fg rounded-chip hover:bg-danger">
                 삭제 ({selectedIds.size})
               </button>
             </>
@@ -113,9 +113,9 @@ export function QueueList({ variant = "text", charLimit, showSeo, onEditInEditor
       </div>
 
       {/* Posts */}
-      <div className="space-y-3">
+      <div className="space-y-stack">
         {sorted.length === 0 ? (
-          <p className="text-subtle text-sm">글이 없습니다</p>
+          <p className="text-subtle text-body-sm">글이 없습니다</p>
         ) : (
           sorted.map((p) => (
             <UnifiedPostCard

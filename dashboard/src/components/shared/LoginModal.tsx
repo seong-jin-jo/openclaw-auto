@@ -30,25 +30,25 @@ export function LoginModal() {
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
-      <div className="card p-6 w-80">
-        <h2 className="text-sm font-medium text-text mb-1">Login Required</h2>
-        <p className="text-caption text-subtle mb-3">이 작업을 수행하려면 로그인이 필요합니다.</p>
+    <div className="fixed inset-0 bg-player-surface/60 z-50 flex items-center justify-center">
+      <div className="card p-stack-section w-80">
+        <h2 className="text-body-sm font-medium text-text mb-micro">Login Required</h2>
+        <p className="text-caption text-subtle mb-stack">이 작업을 수행하려면 로그인이 필요합니다.</p>
         <input
           type="password"
           value={token}
           onChange={(e) => setToken(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleLogin()}
           placeholder="Auth Token"
-          className="w-full bg-surface text-muted text-sm p-3 rounded border border-border mb-3"
+          className="w-full bg-surface text-muted text-body-sm p-stack rounded-chip border border-border mb-stack"
           autoFocus
         />
-        <div className="flex gap-2">
-          <button onClick={handleLogin} className="flex-1 py-2 bg-accent text-text text-sm rounded hover:bg-accent-hover">
-            Login
+        <div className="flex gap-stack-tight">
+          <button onClick={handleLogin} className="flex-1 py-stack-tight bg-accent text-accent-fg text-body-sm rounded-chip hover:bg-accent-hover">
+            로그인
           </button>
-          <button onClick={() => setShow(false)} className="px-4 py-2 bg-surface-2 text-muted text-sm rounded hover:bg-surface-2">
-            Cancel
+          <button onClick={() => setShow(false)} className="px-pad-inset py-stack-tight bg-surface-2 text-muted text-body-sm rounded-chip hover:bg-surface-2">
+            취소
           </button>
         </div>
       </div>

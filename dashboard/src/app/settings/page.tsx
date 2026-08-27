@@ -43,15 +43,15 @@ export default function SettingsPage() {
   const visibleTabs = SETTINGS_TABS.filter((t) => t.key !== "video" || isOperator);
 
   return (
-    <div className="px-8 py-6">
-      <h2 className="text-xl font-semibold text-text mb-1">Settings</h2>
-      <p className="text-sm text-subtle mb-6">서비스 설정 -- 각 항목이 어디에서 사용되는지 확인하세요</p>
-      <div className="flex gap-1 mb-6 border-b border-border/50 pb-3 flex-wrap">
+    <div className="px-region py-stack-section">
+      <h2 className="text-subheading font-semibold text-text mb-micro">Settings</h2>
+      <p className="text-body-sm text-subtle mb-stack-section">서비스 설정 -- 각 항목이 어디에서 사용되는지 확인하세요</p>
+      <div className="flex gap-micro mb-stack-section border-b border-border/50 pb-stack flex-wrap">
         {visibleTabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setActiveTab(t.key)}
-            className={`px-3 py-1.5 text-sm rounded ${activeTab === t.key ? "bg-accent text-text" : "text-subtle hover:bg-surface-2"}`}
+            className={`px-stack py-stack-tight text-body-sm rounded-chip ${activeTab === t.key ? "bg-accent text-accent-fg" : "text-subtle hover:bg-surface-2"}`}
           >
             {t.label}
           </button>
@@ -61,13 +61,13 @@ export default function SettingsPage() {
       {activeTab === "channels" && (
         <>
           {/* OSMU 테넌트 발행용 OAuth 연결(integrations) — 워크스페이스별 */}
-          <div className="mb-6 p-4 rounded-xl border border-accent bg-accent-soft flex items-center justify-between">
+          <div className="mb-stack-section p-pad-inset rounded-surface border border-accent bg-accent-soft flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-semibold text-accent">OSMU 채널 OAuth {activeWorkspace?.name ? `· ${activeWorkspace.name}` : ""}</h3>
-              <p className="text-xs text-subtle mt-0.5">활성 워크스페이스의 발행용 채널을 공식 로그인으로 연결합니다. 토큰 원문은 서버에 암호화 저장되고 화면에 표시하지 않습니다.</p>
+              <h3 className="text-body-sm font-semibold text-accent">OSMU 채널 OAuth {activeWorkspace?.name ? `· ${activeWorkspace.name}` : ""}</h3>
+              <p className="text-caption text-subtle mt-micro">활성 워크스페이스의 발행용 채널을 공식 로그인으로 연결합니다. 토큰 원문은 서버에 암호화 저장되고 화면에 표시하지 않습니다.</p>
             </div>
             <button onClick={() => setShowConnect(true)} disabled={!activeWorkspace}
-              className="px-3 py-2 text-xs bg-accent text-text rounded-lg disabled:opacity-50 whitespace-nowrap">채널 OAuth 연결</button>
+              className="px-stack py-stack-tight text-caption bg-accent text-accent-fg rounded-control disabled:opacity-50 whitespace-nowrap">채널 OAuth 연결</button>
           </div>
           <ChannelsSettings />
         </>
@@ -75,10 +75,10 @@ export default function SettingsPage() {
       {showConnect && activeWorkspace && <ChannelConnect workspace={activeWorkspace} onClose={() => setShowConnect(false)} />}
       {activeTab === "ai" && (
         <>
-          <p className="text-caption text-subtle mb-4">모든 채널의 콘텐츠 자동 생성 + 트렌드 분석에 사용됩니다.</p>
+          <p className="text-caption text-subtle mb-pad-inset">모든 채널의 콘텐츠 자동 생성 + 트렌드 분석에 사용됩니다.</p>
           {/* 고객 셀프서브: 내 Anthropic 키 등록 → 생성이 내 키·내 과금으로 */}
-          <div className="mb-6"><AiKeySettings /></div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div className="mb-stack-section"><AiKeySettings /></div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-stack-section mb-stack-section">
             <LlmModel />
             <ClaudeToken />
           </div>
@@ -89,13 +89,13 @@ export default function SettingsPage() {
       {activeTab === "storage" && <StorageSettings />}
       {activeTab === "design" && <DesignToolsSettings />}
       {activeTab === "notifications" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-section">
           <Notifications />
           <SlackSettings />
         </div>
       )}
       {activeTab === "keywords" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-section">
           <KeywordBankSettings />
           <KwPlannerSettings />
         </div>

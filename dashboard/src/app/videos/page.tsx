@@ -487,16 +487,16 @@ export default function VideosPage() {
   };
 
   return (
-    <div className="px-8 py-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="px-region py-stack-section">
+      <div className="flex items-center justify-between mb-stack-section">
         <div>
-          <h2 className="text-xl font-bold text-text">영상</h2>
-          <p className="text-xs text-subtle mt-1">숏폼 영상 생성·발행</p>
+          <h2 className="text-subheading font-bold text-text">영상</h2>
+          <p className="text-caption text-subtle mt-micro">숏폼 영상 생성·발행</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-stack-tight">
           <button
             onClick={() => setTab("list")}
-            className={`px-3 py-1.5 text-xs rounded ${tab === "list" ? "bg-accent text-text" : "text-subtle hover:bg-surface-2"}`}
+            className={`px-stack py-stack-tight text-caption rounded-chip ${tab === "list" ? "bg-accent text-accent-fg" : "text-subtle hover:bg-surface-2"}`}
           >
             라이브러리 ({videos.length})
           </button>
@@ -504,7 +504,7 @@ export default function VideosPage() {
             <button
               data-testid="video-generate-tab"
               onClick={() => setTab("generate")}
-              className={`px-3 py-1.5 text-xs rounded ${tab === "generate" ? "bg-accent text-text" : "text-subtle hover:bg-surface-2"}`}
+              className={`px-stack py-stack-tight text-caption rounded-chip ${tab === "generate" ? "bg-accent text-accent-fg" : "text-subtle hover:bg-surface-2"}`}
             >
               + 생성
             </button>
@@ -513,16 +513,16 @@ export default function VideosPage() {
       </div>
 
       {/* Status cards */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="card p-3">
-          <div className="text-caption text-subtle mb-1">영상</div>
-          <div className="text-lg font-bold text-text">{videos.length}</div>
+      <div className="grid grid-cols-3 gap-stack mb-stack-section">
+        <div className="card p-stack">
+          <div className="text-caption text-subtle mb-micro">영상</div>
+          <div className="text-lead font-bold text-text">{videos.length}</div>
         </div>
-        <div className="card p-3" data-testid="youtube-connect-card">
-          <div className="flex items-start justify-between gap-3">
+        <div className="card p-stack" data-testid="youtube-connect-card">
+          <div className="flex items-start justify-between gap-stack">
             <div>
-              <div className="text-caption text-subtle mb-1">YouTube</div>
-              <div className={`text-sm font-medium ${ytStatus?.connected ? "text-success" : "text-subtle"}`}>
+              <div className="text-caption text-subtle mb-micro">YouTube</div>
+              <div className={`text-body-sm font-medium ${ytStatus?.connected ? "text-success" : "text-subtle"}`}>
                 {ytStatus?.connected ? `연결됨 · ${youtubeAccounts.length}개 계정` : "미연결"}
               </div>
             </div>
@@ -534,17 +534,17 @@ export default function VideosPage() {
             </Link>
           </div>
         </div>
-        <div className="card p-3">
-          <div className="text-caption text-subtle mb-1">TTS (ElevenLabs)</div>
-          <div className={`text-sm font-medium ${elConfig?.configured ? "text-green-400" : "text-subtle"}`}>
+        <div className="card p-stack">
+          <div className="text-caption text-subtle mb-micro">TTS (ElevenLabs)</div>
+          <div className={`text-body-sm font-medium ${elConfig?.configured ? "text-success" : "text-subtle"}`}>
             {elConfig?.configured ? "설정됨" : "미설정"}
           </div>
         </div>
-        <div className="card p-3 col-span-2" data-testid="tiktok-status-card">
-          <div className="flex items-start justify-between gap-3">
+        <div className="card p-stack col-span-2" data-testid="tiktok-status-card">
+          <div className="flex items-start justify-between gap-stack">
             <div>
-              <div className="text-caption text-subtle mb-1">TikTok</div>
-              <div className={`text-sm font-medium ${tiktokCreatorData?.ready ? "text-success" : "text-subtle"}`}>
+              <div className="text-caption text-subtle mb-micro">TikTok</div>
+              <div className={`text-body-sm font-medium ${tiktokCreatorData?.ready ? "text-success" : "text-subtle"}`}>
                 {tiktokCreatorData?.ready ? `@${tiktokCreator?.username} 발행 준비됨` : tiktokAccounts.length > 0 ? "계정 권한 확인 필요" : "미연결"}
               </div>
             </div>
@@ -560,7 +560,7 @@ export default function VideosPage() {
               data-testid="tiktok-publish-account-select"
               value={tiktokAccountId}
               onChange={(event) => setTiktokAccountId(event.target.value)}
-              className="mt-2 w-full rounded border border-border bg-surface-2 p-1.5 text-xs text-text"
+              className="mt-stack-tight w-full rounded-chip border border-border bg-surface-2 p-stack-tight text-caption text-text"
             >
               <option value="">기본계정</option>
               {tiktokAccounts.map((account) => (
@@ -569,14 +569,14 @@ export default function VideosPage() {
             </select>
           )}
           {tiktokCreator && (
-            <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+            <div className="mt-stack-tight grid grid-cols-2 gap-stack-tight text-caption">
               <label className="col-span-2 text-subtle">
                 공개 범위
                 <select
                   data-testid="tiktok-privacy-select"
                   value={tiktokPrivacy}
                   onChange={(event) => setTiktokPrivacy(event.target.value)}
-                  className="mt-1 w-full rounded border border-border bg-surface-2 p-1.5 text-text"
+                  className="mt-micro w-full rounded-chip border border-border bg-surface-2 p-stack-tight text-text"
                 >
                   <option value="">선택</option>
                   {tiktokCreator.privacyLevels.map((privacy) => <option key={privacy} value={privacy}>{privacy}</option>)}
@@ -591,33 +591,33 @@ export default function VideosPage() {
         </div>
         {/* SNS-015: Reels 발행 분기가 실제로 존재하므로 "미구현"이 아니다. 다만 Instagram 연결이
             없으면 실행 자체가 불가하므로 그 사실을 정직하게 구분해 표시한다. */}
-        <div className="card p-3" data-testid="reels-status-card">
-          <div className="text-caption text-subtle mb-1">Instagram Reels</div>
-          <div className={`text-sm font-medium ${igConnected ? "text-success" : "text-subtle"}`}>
+        <div className="card p-stack" data-testid="reels-status-card">
+          <div className="text-caption text-subtle mb-micro">Instagram Reels</div>
+          <div className={`text-body-sm font-medium ${igConnected ? "text-success" : "text-subtle"}`}>
             {igConnected ? "발행 가능" : "Instagram 미연결. /channels/instagram에서 연결 필요"}
           </div>
         </div>
-        <div className="card p-3">
-          <div className="text-caption text-subtle mb-1">영상 클리퍼 (0차)</div>
-          <div className={`text-sm font-medium ${clipConfig?.configured ? "text-green-400" : "text-subtle"}`}>
+        <div className="card p-stack">
+          <div className="text-caption text-subtle mb-micro">영상 클리퍼 (0차)</div>
+          <div className={`text-body-sm font-medium ${clipConfig?.configured ? "text-success" : "text-subtle"}`}>
             {clipConfig?.configured ? (clipConfig.provider || "준비됨") : "미설정 (mock 모드)"}
           </div>
         </div>
       </div>
 
       {/* 0차: Long Video Repurpose (external clipper + OSMU brand/wiki refine) */}
-      <div className="card p-4 mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-sm font-medium">Repurpose Long Video (0차)</span>
+      <div className="card p-pad-inset mb-stack-section">
+        <div className="flex items-center gap-stack-tight mb-stack">
+          <span className="text-body-sm font-medium">Repurpose Long Video (0차)</span>
           <span className="text-caption text-subtle">External (Reap/Ssemble) → OSMU refine + publish</span>
         </div>
         {/* 클리핑 API 키는 운영자 전용 전역 설정(/api/clipping-config — proxy.ts 제외 사유 참고).
             고객 세션에는 입력 폼을 그리지 않는다(눌러봐야 403 나는 버튼 금지, SNS-015 전례). */}
         {canGenerate && (
-          <div className="mb-2 text-caption flex flex-wrap items-center gap-1">
+          <div className="mb-stack-tight text-caption flex flex-wrap items-center gap-micro">
             <span>클리핑 API 키 설정 (최초 1회):</span>
-            <input value={clipProvider} onChange={(e) => setClipProvider(e.target.value)} placeholder="reap 또는 ssemble" className="bg-surface-2 p-1 w-24" />
-            <input value={clipKey} onChange={(e) => setClipKey(e.target.value)} placeholder="API 키" className="bg-surface-2 p-1 w-48" />
+            <input value={clipProvider} onChange={(e) => setClipProvider(e.target.value)} placeholder="reap 또는 ssemble" className="bg-surface-2 p-micro w-24" />
+            <input value={clipKey} onChange={(e) => setClipKey(e.target.value)} placeholder="API 키" className="bg-surface-2 p-micro w-48" />
             <button
               disabled={savingKey || !clipKey.trim()}
               onClick={async () => {
@@ -630,81 +630,81 @@ export default function VideosPage() {
                   showToast(`키 저장 실패: ${(e as Error).message}`, 'error');
                 } finally { setSavingKey(false); }
               }}
-              className="px-2 py-0.5 text-xs bg-surface-2 rounded disabled:opacity-50"
+              className="px-stack-tight py-micro text-caption bg-surface-2 rounded-chip disabled:opacity-50"
             >
               {savingKey ? '저장 중…' : '키 저장'}
             </button>
           </div>
         )}
-        <div className="flex flex-wrap gap-2 items-center mb-3">
+        <div className="flex flex-wrap gap-stack-tight items-center mb-stack">
           <input
             value={repurposeUrl}
             onChange={(e) => { setRepurposeUrl(e.target.value); setRepurposeFile(null); }}
             placeholder="YouTube long URL (e.g. https://youtube.com/watch?v=...)"
-            className="flex-1 min-w-[280px] bg-surface-2 text-muted text-xs p-2 rounded border border-border"
+            className="flex-1 min-w-[280px] bg-surface-2 text-muted text-caption p-stack-tight rounded-chip border border-border"
           />
-          <button onClick={handleRepurpose} disabled={repurposing} className="px-3 py-1.5 text-xs bg-accent hover:bg-accent-hover rounded disabled:opacity-50">
+          <button onClick={handleRepurpose} disabled={repurposing} className="px-stack py-stack-tight text-caption bg-accent hover:bg-accent-hover rounded-chip disabled:opacity-50">
             {repurposing ? "Clipping..." : "Clip"}
           </button>
         </div>
-        <div className="text-caption text-subtle mb-2">Local long video: upload to YT first or use public URL (local file support for input limited; output clips saved locally)</div>
+        <div className="text-caption text-subtle mb-stack-tight">Local long video: upload to YT first or use public URL (local file support for input limited; output clips saved locally)</div>
 
         {repurposeClips.length === 0 ? (
-          <div className="mt-2 rounded border border-dashed border-border bg-surface/40 p-5 text-center">
-            <p className="text-xs text-subtle">긴 영상 링크를 붙여넣으면 <span className="text-muted">완성된 세로 클립</span>이 추천순 그리드로 나옵니다.</p>
-            <p className="text-caption text-subtle mt-1">각 클립 → 한 번에 큐로. 팬아웃 켜면 영상+텍스트 글이 함께 멀티채널 큐에 들어갑니다.</p>
+          <div className="mt-stack-tight rounded-chip border border-dashed border-border bg-surface/40 p-stack-section text-center">
+            <p className="text-caption text-subtle">긴 영상 링크를 붙여넣으면 <span className="text-muted">완성된 세로 클립</span>이 추천순 그리드로 나옵니다.</p>
+            <p className="text-caption text-subtle mt-micro">각 클립 → 한 번에 큐로. 팬아웃 켜면 영상+텍스트 글이 함께 멀티채널 큐에 들어갑니다.</p>
           </div>
         ) : (
-          <div className="space-y-3 mt-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="text-xs text-muted">완성 클립 <span className="text-text font-semibold">{rankedClips.length}</span>개 · <span className="text-subtle">추천순</span></div>
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-1 text-caption text-subtle">
-                  <input type="checkbox" checked={fanoutText} onChange={(e) => setFanoutText(e.target.checked)} className="rounded" />
+          <div className="space-y-stack mt-stack-tight">
+            <div className="flex flex-wrap items-center justify-between gap-stack-tight">
+              <div className="text-caption text-muted">완성 클립 <span className="text-text font-semibold">{rankedClips.length}</span>개 · <span className="text-subtle">추천순</span></div>
+              <div className="flex items-center gap-stack">
+                <label className="flex items-center gap-micro text-caption text-subtle">
+                  <input type="checkbox" checked={fanoutText} onChange={(e) => setFanoutText(e.target.checked)} className="rounded-chip" />
                   OSMU 팬아웃(영상+텍스트)
                 </label>
-                <button onClick={addAllClipsToQueue} disabled={addingAll} className="text-caption px-3 py-1 bg-green-700 hover:bg-green-600 rounded disabled:opacity-50">
+                <button onClick={addAllClipsToQueue} disabled={addingAll} className="text-caption px-stack py-micro bg-success hover:bg-success rounded-chip disabled:opacity-50">
                   {addingAll ? "추가 중…" : `전체 큐에 추가 (${rankedClips.length})`}
                 </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-stack">
               {rankedClips.map((c, rank) => {
                 const oi = repurposeClips.indexOf(c); // 정렬 전 원본 인덱스(편집/refine 대상)
                 const src = c.url ? (c.url.startsWith("http") ? c.url : `/videos/${c.url}`) : "";
                 return (
-                  <div key={c.id || oi} className="relative bg-surface-2 rounded-lg overflow-hidden flex flex-col">
+                  <div key={c.id || oi} className="relative bg-surface-2 rounded-control overflow-hidden flex flex-col">
                     {/* 9:16 프리뷰 + 랭크/점수 오버레이 */}
-                    <div className="relative bg-black aspect-[9/16]">
+                    <div className="relative bg-player-surface aspect-[9/16]">
                       {src && <video src={src} controls playsInline className="w-full h-full object-contain" />}
-                      <span className="absolute top-1.5 left-1.5 text-caption font-bold bg-black/70 text-text rounded px-1.5 py-0.5">#{rank + 1}</span>
+                      <span className="absolute top-1.5 left-1.5 text-caption font-bold bg-player-surface/70 text-text rounded-chip px-stack-tight py-micro">#{rank + 1}</span>
                       {c.viralScore != null && (
-                        <span className="absolute top-1.5 right-1.5 text-caption bg-black/70 text-amber-300 rounded px-1.5 py-0.5" title="추천 우선순위 힌트(보장 아님)">
+                        <span className="absolute top-1.5 right-1.5 text-caption bg-player-surface/70 text-warning rounded-chip px-stack-tight py-micro" title="추천 우선순위 힌트(보장 아님)">
                           ★ {Number(c.viralScore).toFixed(1)}
                         </span>
                       )}
                     </div>
                     {/* 편집 + 액션 */}
-                    <div className="p-2 space-y-1 text-xs flex flex-col flex-1">
+                    <div className="p-stack-tight space-y-micro text-caption flex flex-col flex-1">
                       <input
-                        className="w-full bg-surface p-1 rounded text-caption"
+                        className="w-full bg-surface p-micro rounded-chip text-caption"
                         placeholder="훅(첫 문장)"
                         value={c.title || ""}
                         onChange={(e) => { const next = [...repurposeClips]; next[oi] = { ...next[oi], title: e.target.value }; setRepurposeClips(next); }}
                       />
                       <textarea
-                        className="w-full bg-surface p-1 rounded text-caption"
+                        className="w-full bg-surface p-micro rounded-chip text-caption"
                         rows={2}
                         placeholder="캡션"
                         value={c.caption || ""}
                         onChange={(e) => { const next = [...repurposeClips]; next[oi] = { ...next[oi], caption: e.target.value }; setRepurposeClips(next); }}
                       />
-                      <div className="flex gap-1 mt-auto pt-1">
-                        <button onClick={() => refineClip(oi)} disabled={refiningClip === c.id} className="flex-1 text-caption px-1 py-1 bg-accent hover:bg-accent-hover rounded disabled:opacity-50">
+                      <div className="flex gap-micro mt-auto pt-micro">
+                        <button onClick={() => refineClip(oi)} disabled={refiningClip === c.id} className="flex-1 text-caption px-micro py-micro bg-accent hover:bg-accent-hover rounded-chip disabled:opacity-50">
                           {refiningClip === c.id ? "다듬는 중…" : "Wiki/브랜드 톤"}
                         </button>
-                        <button onClick={() => addClipToLibrary(c)} className="flex-1 text-caption px-1 py-1 bg-green-700 hover:bg-green-600 rounded">
+                        <button onClick={() => addClipToLibrary(c)} className="flex-1 text-caption px-micro py-micro bg-success hover:bg-success rounded-chip">
                           큐에 추가
                         </button>
                       </div>
@@ -718,45 +718,45 @@ export default function VideosPage() {
       </div>
 
       {tab === "list" && (
-        <div className="space-y-3">
+        <div className="space-y-stack">
           {videos.length === 0 ? (
-            <div className="card p-8 text-center">
-              <p className="text-subtle text-sm">No videos yet. Generate one to get started.</p>
+            <div className="card p-region text-center">
+              <p className="text-subtle text-body-sm">No videos yet. Generate one to get started.</p>
             </div>
           ) : (
             videos.map((v) => (
-              <div key={v.filename} className="card p-4">
+              <div key={v.filename} className="card p-pad-inset">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="text-sm font-medium text-muted">{v.filename}</h3>
-                    <p className="text-caption text-subtle mt-1">
+                    <h3 className="text-body-sm font-medium text-muted">{v.filename}</h3>
+                    <p className="text-caption text-subtle mt-micro">
                       {(v.size / 1024 / 1024).toFixed(1)} MB
                       {" | "}
                       {new Date(v.createdAt).toLocaleString("ko-KR")}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-stack-tight">
                     <button
                       onClick={() => setPreviewFile(previewFile === v.filename ? null : v.filename)}
-                      className={`px-2 py-1 text-xs rounded ${previewFile === v.filename ? "bg-accent text-text" : "bg-surface-2 text-muted hover:bg-surface-2"}`}
+                      className={`px-stack-tight py-micro text-caption rounded-chip ${previewFile === v.filename ? "bg-accent text-accent-fg" : "bg-surface-2 text-muted hover:bg-surface-2"}`}
                     >
                       {previewFile === v.filename ? "Hide" : "미리보기"}
                     </button>
                     {ytStatus?.connected && (
                       publishingFile === v.filename ? (
-                        <div className="flex gap-1 items-center">
+                        <div className="flex gap-micro items-center">
                           <input
                             value={publishTitle}
                             onChange={(e) => setPublishTitle(e.target.value)}
                             placeholder="Title"
-                            className="px-2 py-1 text-xs bg-surface-2 text-text rounded border border-border w-32"
+                            className="px-stack-tight py-micro text-caption bg-surface-2 text-text rounded-chip border border-border w-32"
                           />
                           {youtubeAccounts.length > 1 && (
                             <select
                               data-testid="youtube-publish-account-select"
                               value={publishAccountId}
                               onChange={(e) => setPublishAccountId(e.target.value)}
-                              className="px-2 py-1 text-xs bg-surface-2 text-text rounded border border-border max-w-32"
+                              className="px-stack-tight py-micro text-caption bg-surface-2 text-text rounded-chip border border-border max-w-32"
                             >
                               <option value="">기본계정</option>
                               {youtubeAccounts.map((account) => (
@@ -766,12 +766,12 @@ export default function VideosPage() {
                               ))}
                             </select>
                           )}
-                          <button onClick={() => handlePublish(v.filename)} className="px-2 py-1 text-xs bg-red-600 text-text rounded hover:bg-red-500">Upload</button>
-                          <button onClick={() => setPublishingFile(null)} className="px-2 py-1 text-xs bg-surface-2 text-muted rounded">Cancel</button>
+                          <button onClick={() => handlePublish(v.filename)} className="px-stack-tight py-micro text-caption bg-danger text-status-fg rounded-chip hover:bg-danger">올리기</button>
+                          <button onClick={() => setPublishingFile(null)} className="px-stack-tight py-micro text-caption bg-surface-2 text-muted rounded-chip">취소</button>
                         </div>
                       ) : (
-                        <button onClick={() => { setPublishingFile(v.filename); setPublishTitle(v.filename.replace(".mp4", "")); }} className="px-2 py-1 text-xs bg-red-700 text-text rounded hover:bg-red-600">
-                          YouTube
+                        <button onClick={() => { setPublishingFile(v.filename); setPublishTitle(v.filename.replace(".mp4", "")); }} className="px-stack-tight py-micro text-caption bg-danger text-status-fg rounded-chip hover:bg-danger">
+                          유튜브
                         </button>
                       )
                     )}
@@ -780,9 +780,9 @@ export default function VideosPage() {
                       <button
                         data-testid="reels-publish-button"
                         onClick={() => handlePublish(v.filename, "reels")}
-                        className="px-2 py-1 text-xs bg-accent text-accent-fg rounded hover:bg-accent-hover"
+                        className="px-stack-tight py-micro text-caption bg-accent text-accent-fg rounded-chip hover:bg-accent-hover"
                       >
-                        Reels
+                        릴스
                       </button>
                     )}
                     {tiktokCreatorData?.ready && tiktokPrivacy && (
@@ -790,25 +790,25 @@ export default function VideosPage() {
                         data-testid="tiktok-publish-button"
                         disabled={publishingPlatform === `tiktok:${v.filename}` || Boolean(tiktokPending[v.filename])}
                         onClick={() => handlePublish(v.filename, "tiktok")}
-                        className="px-2 py-1 text-xs bg-surface-2 text-text rounded hover:bg-surface disabled:opacity-50"
+                        className="px-stack-tight py-micro text-caption bg-surface-2 text-text rounded-chip hover:bg-surface disabled:opacity-50"
                       >
                         {publishingPlatform === `tiktok:${v.filename}` || tiktokPending[v.filename] ? "처리 중" : "TikTok"}
                       </button>
                     )}
-                    <button onClick={() => handleDelete(v.filename)} className="px-2 py-1 text-xs bg-danger/15 text-danger rounded hover:bg-danger/25">
-                      Delete
+                    <button onClick={() => handleDelete(v.filename)} className="px-stack-tight py-micro text-caption bg-danger/15 text-danger rounded-chip hover:bg-danger/25">
+                      삭제
                     </button>
                   </div>
                 </div>
                 {previewFile === v.filename && (
-                  <div className="mt-3 flex justify-center">
+                  <div className="mt-stack flex justify-center">
                     {/* 세로 쇼츠/릴스 임베드 플레이어 — 발행 전 검수용 */}
                     <video
                       key={v.url}
                       src={v.url}
                       controls
                       playsInline
-                      className="rounded-lg bg-black w-full max-w-[260px] aspect-[9/16] object-contain"
+                      className="rounded-control bg-player-surface w-full max-w-[260px] aspect-[9/16] object-contain"
                     />
                   </div>
                 )}
@@ -819,24 +819,24 @@ export default function VideosPage() {
       )}
 
       {tab === "generate" && canGenerate && (
-        <div className="card p-6">
-          <h3 className="text-sm font-medium text-muted mb-4">Slide Editor</h3>
-          <div className="space-y-3 mb-4">
+        <div className="card p-stack-section">
+          <h3 className="text-body-sm font-medium text-muted mb-pad-inset">Slide Editor</h3>
+          <div className="space-y-stack mb-pad-inset">
             {slides.map((s, i) => (
-              <div key={i} className="flex gap-2 items-start">
-                <span className="text-caption text-subtle mt-2 w-5">{i + 1}</span>
+              <div key={i} className="flex gap-stack-tight items-start">
+                <span className="text-caption text-subtle mt-stack-tight w-5">{i + 1}</span>
                 <textarea
                   value={s.text}
                   onChange={(e) => updateSlide(i, "text", e.target.value)}
                   placeholder="Slide text..."
-                  className="flex-1 bg-surface-2 text-muted text-xs p-2 rounded border border-border"
+                  className="flex-1 bg-surface-2 text-muted text-caption p-stack-tight rounded-chip border border-border"
                   rows={2}
                 />
                 <input
                   type="number"
                   value={s.duration}
                   onChange={(e) => updateSlide(i, "duration", Number(e.target.value))}
-                  className="w-14 bg-surface-2 text-muted text-xs p-2 rounded border border-border"
+                  className="w-14 bg-surface-2 text-muted text-caption p-stack-tight rounded-chip border border-border"
                   min={1}
                   max={30}
                   title="Duration (seconds)"
@@ -845,24 +845,24 @@ export default function VideosPage() {
                   value={s.imageUrl}
                   onChange={(e) => updateSlide(i, "imageUrl", e.target.value)}
                   placeholder="Image URL (optional)"
-                  className="w-40 bg-surface-2 text-muted text-xs p-2 rounded border border-border"
+                  className="w-40 bg-surface-2 text-muted text-caption p-stack-tight rounded-chip border border-border"
                 />
                 {slides.length > 1 && (
-                  <button onClick={() => removeSlide(i)} className="text-red-400 hover:text-red-300 text-sm mt-1">x</button>
+                  <button onClick={() => removeSlide(i)} className="text-danger hover:text-danger text-body-sm mt-micro">삭제</button>
                 )}
               </div>
             ))}
           </div>
-          <div className="flex items-center gap-4 mb-4">
-            <button onClick={addSlide} className="px-3 py-1.5 text-xs bg-surface-2 text-muted rounded hover:bg-surface-2">
+          <div className="flex items-center gap-pad-inset mb-pad-inset">
+            <button onClick={addSlide} className="px-stack py-stack-tight text-caption bg-surface-2 text-muted rounded-chip hover:bg-surface-2">
               + Add Slide
             </button>
-            <label className="flex items-center gap-2 text-xs text-subtle">
+            <label className="flex items-center gap-stack-tight text-caption text-subtle">
               <input
                 type="checkbox"
                 checked={ttsEnabled}
                 onChange={(e) => setTtsEnabled(e.target.checked)}
-                className="rounded"
+                className="rounded-chip"
               />
               TTS Narration {!elConfig?.configured && "(not configured)"}
             </label>
@@ -870,19 +870,19 @@ export default function VideosPage() {
               Total: {slides.reduce((s, sl) => s + sl.duration, 0)}s
             </span>
           </div>
-          <div className="flex items-center gap-2 mb-4">
-            <label className="text-xs text-subtle w-20">효과음/BGM</label>
+          <div className="flex items-center gap-stack-tight mb-pad-inset">
+            <label className="text-caption text-subtle w-20">효과음/BGM</label>
             <input
               value={bgmUrl}
               onChange={(e) => setBgmUrl(e.target.value)}
               placeholder="음원 URL 또는 /sfx/whoosh.mp3 (선택)"
-              className="flex-1 bg-surface-2 text-muted text-xs p-2 rounded border border-border"
+              className="flex-1 bg-surface-2 text-muted text-caption p-stack-tight rounded-chip border border-border"
             />
           </div>
           <button
             onClick={handleGenerate}
             disabled={generating}
-            className="px-4 py-2 text-sm bg-accent text-text rounded hover:bg-accent-hover disabled:opacity-50"
+            className="px-pad-inset py-stack-tight text-body-sm bg-accent text-accent-fg rounded-chip hover:bg-accent-hover disabled:opacity-50"
           >
             {generating ? "Generating..." : "Generate Video"}
           </button>

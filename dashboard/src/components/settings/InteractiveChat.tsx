@@ -29,59 +29,59 @@ export function InteractiveChat({ chatChannels }: InteractiveChatProps) {
   };
 
   return (
-    <div className="card p-5">
-      <h3 className="text-sm font-medium text-muted mb-3">Interactive Chat</h3>
-      <p className="text-caption text-subtle mb-3">
+    <div className="card p-stack-section">
+      <h3 className="text-body-sm font-medium text-muted mb-stack">Interactive Chat</h3>
+      <p className="text-caption text-subtle mb-stack">
         봇으로 Agent와 대화 &mdash; &quot;이번 주 성과 보여줘&quot;, &quot;다음 글 승인해&quot;, &quot;X에 글 올려&quot;
       </p>
 
       {chatChannels ? (
-        <div className="space-y-3">
+        <div className="space-y-stack">
           {/* Telegram */}
-          <div className="p-3 rounded bg-surface/50">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted">Telegram</span>
-              <span className={`text-caption ${chatChannels.telegram?.configured ? "text-green-400" : "text-subtle"}`}>
+          <div className="p-stack rounded-chip bg-surface/50">
+            <div className="flex items-center justify-between mb-stack-tight">
+              <span className="text-caption text-muted">Telegram</span>
+              <span className={`text-caption ${chatChannels.telegram?.configured ? "text-success" : "text-subtle"}`}>
                 {chatChannels.telegram?.configured ? "Connected" : ""}
               </span>
             </div>
             {chatChannels.telegram?.configured ? (
-              <p className="text-caption text-green-400/70">양방향 대화 활성. Gateway 재시작 후 봇에게 메시지를 보내면 Agent가 응답합니다.</p>
+              <p className="text-caption text-success/70">양방향 대화 활성. Gateway 재시작 후 봇에게 메시지를 보내면 Agent가 응답합니다.</p>
             ) : (
               <>
-                <div className="flex gap-2">
+                <div className="flex gap-stack-tight">
                   <input
                     type="password"
                     value={tgToken}
                     onChange={(e) => setTgToken(e.target.value)}
                     placeholder="Bot Token (@BotFather)"
-                    className="flex-1 bg-surface border border-border rounded px-2 py-1 text-caption text-muted font-mono"
+                    className="flex-1 bg-surface border border-border rounded-chip px-stack-tight py-micro text-caption text-muted font-mono"
                   />
                   <button
                     onClick={handleSetupTelegram}
                     disabled={connecting}
-                    className="px-3 py-1 bg-accent text-text text-caption rounded hover:bg-accent-hover disabled:opacity-50"
+                    className="px-stack py-micro bg-accent text-accent-fg text-caption rounded-chip hover:bg-accent-hover disabled:opacity-50"
                   >
                     {connecting ? "Verifying..." : "Connect"}
                   </button>
                 </div>
-                <p className="text-caption text-subtle mt-1">@BotFather &rarr; /newbot &rarr; 토큰 복사</p>
+                <p className="text-caption text-subtle mt-micro">@BotFather &rarr; /newbot &rarr; 토큰 복사</p>
               </>
             )}
           </div>
 
           {/* Slack */}
-          <div className="p-3 rounded bg-surface/50">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted">
+          <div className="p-stack rounded-chip bg-surface/50">
+            <div className="flex items-center justify-between mb-stack-tight">
+              <span className="text-caption text-muted">
                 Slack <span className="text-caption text-subtle">(양방향은 Bot+App Token 필요)</span>
               </span>
-              <span className={`text-caption ${chatChannels.slack?.configured ? "text-green-400" : "text-subtle"}`}>
+              <span className={`text-caption ${chatChannels.slack?.configured ? "text-success" : "text-subtle"}`}>
                 {chatChannels.slack?.configured ? "Connected" : ""}
               </span>
             </div>
             {chatChannels.slack?.configured ? (
-              <p className="text-caption text-green-400/70">양방향 대화 활성</p>
+              <p className="text-caption text-success/70">양방향 대화 활성</p>
             ) : (
               <p className="text-caption text-subtle">
                 Slack 양방향은 Bot Token(xoxb-) + App Token(xapp-) 필요. 일방향 알림은 Webhook으로 가능.
@@ -90,17 +90,17 @@ export function InteractiveChat({ chatChannels }: InteractiveChatProps) {
           </div>
 
           {/* Discord */}
-          <div className="p-3 rounded bg-surface/50">
+          <div className="p-stack rounded-chip bg-surface/50">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted">Discord</span>
-              <span className={`text-caption ${chatChannels.discord?.configured ? "text-green-400" : "text-subtle"}`}>
+              <span className="text-caption text-muted">Discord</span>
+              <span className={`text-caption ${chatChannels.discord?.configured ? "text-success" : "text-subtle"}`}>
                 {chatChannels.discord?.configured ? "Connected" : ""}
               </span>
             </div>
           </div>
         </div>
       ) : (
-        <p className="text-xs text-subtle">Loading...</p>
+        <p className="text-caption text-subtle">Loading...</p>
       )}
     </div>
   );

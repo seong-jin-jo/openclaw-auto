@@ -58,20 +58,20 @@ function ConnectGate({ label, onConnect }: { label: string; onConnect: () => voi
           {["Published", "Views", "Avg Views", "Avg Likes"].map((l) => (
             <div key={l} className="card p-pad-inset">
               <p className="text-caption text-subtle uppercase tracking-wide">{l}</p>
-              <p className="text-heading font-bold text-text mt-micro">—</p>
+              <p className="text-heading font-bold text-text mt-micro">없음</p>
             </div>
           ))}
         </div>
         <div className="card p-pad-inset space-y-stack-tight">
           {["w-4/5", "w-3/5", "w-2/3"].map((widthClass, i) => (
-            <div key={i} className={`h-3 rounded bg-surface-2 ${widthClass}`} />
+            <div key={i} className={`h-3 rounded-chip bg-surface-2 ${widthClass}`} />
           ))}
         </div>
       </div>
       {/* 연결 유도 모달 */}
       <div className="absolute inset-0 flex items-center justify-center p-pad-inset">
         <Card className="p-stack-section text-center max-w-xs border border-accent/40 bg-surface shadow-xl">
-          <div className="text-display mb-stack-tight">🔗</div>
+          <div className="text-body font-semibold mb-stack-tight">연결 필요</div>
           <p className="text-body font-medium text-text mb-micro">{label} 아직 연결 안 됨</p>
           <p className="text-caption text-subtle mb-pad-inset">연결하면 이 채널의 발행·분석을 바로 쓸 수 있어요.</p>
           <Button variant="primary" onClick={onConnect}>
@@ -146,7 +146,7 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
     <div className="px-region py-stack-section">
       <BackButton />
       <div className="flex items-center gap-stack mb-stack-section">
-        <span className={`w-8 h-8 rounded-lg ${isThreads ? "bg-accent" : "bg-surface-2"} flex items-center justify-center text-body font-bold text-text`}>
+        <span className={`w-8 h-8 rounded-control ${isThreads ? "bg-accent" : "bg-surface-2"} flex items-center justify-center text-body font-bold text-accent-fg`}>
           {label[0]}
         </span>
         <div>
@@ -160,13 +160,13 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
       </div>
 
       {reconnectRequired && (
-        <div className="mb-stack-section rounded-lg border border-warning/40 bg-warning/10 p-stack text-caption text-warning">
-          ⚠ 재연결 필요. 저장된 인증 정보가 만료됐거나 무효합니다. 아래에서 OAuth로 다시 연결해주세요.
+        <div className="mb-stack-section rounded-control border border-warning/40 bg-warning/10 p-stack text-caption text-warning">
+          재연결 필요. 저장된 인증 정보가 만료됐거나 무효합니다. 아래에서 OAuth로 다시 연결해 주세요.
         </div>
       )}
       {providerUnreachable && (
-        <div className="mb-stack-section rounded-lg border border-border/60 bg-surface-2 p-stack text-caption text-subtle">
-          ⚠ 연결 상태 확인 불가. {label} 서버에 일시적으로 연결할 수 없습니다. 저장된 인증 정보는 유지됩니다. 잠시 후 새로고침해 다시 확인하세요.
+        <div className="mb-stack-section rounded-control border border-border/60 bg-surface-2 p-stack text-caption text-subtle">
+          연결 상태 확인 불가. {label} 서버에 일시적으로 연결할 수 없습니다. 저장된 인증 정보는 유지됩니다. 잠시 후 새로고침해 다시 확인하세요.
         </div>
       )}
 
@@ -257,13 +257,13 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
               />
             )}
             {oauthLabel && !showManualCreds && connected && (
-              <div className="rounded-lg border border-success/30 bg-success/10 p-stack text-caption text-success">
+              <div className="rounded-control border border-success/30 bg-success/10 p-stack text-caption text-success">
                 OAuth 연결 상태입니다. 원문 access token은 화면에 표시하지 않고 서버에 암호화 저장합니다.
               </div>
             )}
             {oauthLabel && !showManualCreds && reconnectRequired && (
-              <div className="mt-stack rounded-lg border border-warning/40 bg-warning/10 p-stack text-caption text-warning">
-                ⚠ 재연결 필요. 저장된 토큰이 만료되었거나 무효합니다({label} 측 거부). 위 OAuth 버튼으로 다시 연결해주세요.
+              <div className="mt-stack rounded-control border border-warning/40 bg-warning/10 p-stack text-caption text-warning">
+                재연결 필요. 저장된 토큰이 만료되었거나 무효합니다({label} 측 거부). 위 OAuth 단추로 다시 연결해 주세요.
               </div>
             )}
           </div>
@@ -352,7 +352,7 @@ export function AnalyticsTab() {
   return (
     <>
       {(s.totalPublished as number) === 0 && (
-        <div className="p-stack rounded bg-surface/50 mb-pad-inset">
+        <div className="p-stack rounded-chip bg-surface/50 mb-pad-inset">
           <p className="text-caption text-subtle">아직 발행된 글이 없습니다. Queue에서 draft를 승인하면 자동 발행됩니다.</p>
         </div>
       )}
@@ -405,7 +405,7 @@ export function AnalyticsTab() {
               .map(([t, stats]) => (
                 <span
                   key={t}
-                  className={`inline-flex items-center gap-micro px-stack-tight py-micro rounded-full text-caption border border-border ${
+                  className={`inline-flex items-center gap-micro px-stack-tight py-micro rounded-pill text-caption border border-border ${
                     (stats.avgViews || 0) >= vt
                       ? "bg-warning/15 border-warning/40 text-warning"
                       : "bg-surface text-subtle"
@@ -442,7 +442,7 @@ export function AnalyticsTab() {
                   </div>
                   <div className="flex gap-pad-inset text-right shrink-0">
                     <div>
-                      <p className={`text-caption ${isViral ? "text-yellow-400 font-medium" : "text-muted"}`}>{views}</p>
+                      <p className={`text-caption ${isViral ? "text-warning font-medium" : "text-muted"}`}>{views}</p>
                       <p className="text-caption text-subtle">views</p>
                     </div>
                     <div>
@@ -478,7 +478,7 @@ function GrowthTab() {
           <div key={r.date} className="flex justify-between text-caption border-b border-border/50 py-micro">
             <span className="text-muted">{r.date}</span>
             <span className="text-muted">{r.followers}</span>
-            <span className={r.delta >= 0 ? "text-green-400" : "text-red-400"}>
+            <span className={r.delta >= 0 ? "text-success" : "text-danger"}>
               {r.delta >= 0 ? "+" : ""}{r.delta}
             </span>
           </div>
@@ -530,35 +530,35 @@ function PopularTab({ expandedPopular, setExpandedPopular }: { expandedPopular: 
           <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          <span className="text-caption text-muted">Add External Post</span>
+          <span className="text-caption text-muted">외부 인기글 추가</span>
         </div>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          className="w-full bg-surface text-muted text-caption p-stack-tight rounded border border-border mb-stack-tight"
+          className="w-full bg-surface text-muted text-caption p-stack-tight rounded-chip border border-border mb-stack-tight"
           rows={3}
           placeholder="인기글 텍스트를 붙여넣기"
         />
         <div className="flex gap-stack-tight">
-          <input value={url} onChange={(e) => setUrl(e.target.value)} type="text" placeholder="URL (선택)" className="flex-1 bg-surface text-muted text-caption p-stack-tight rounded border border-border" />
-          <input value={topic} onChange={(e) => setTopic(e.target.value)} type="text" placeholder="키워드/주제" className="w-28 bg-surface text-muted text-caption p-stack-tight rounded border border-border" />
-          <Button variant="primary" size="sm" onClick={handleAdd}>Add</Button>
+          <input value={url} onChange={(e) => setUrl(e.target.value)} type="text" placeholder="URL (선택)" className="flex-1 bg-surface text-muted text-caption p-stack-tight rounded-chip border border-border" />
+          <input value={topic} onChange={(e) => setTopic(e.target.value)} type="text" placeholder="키워드/주제" className="w-28 bg-surface text-muted text-caption p-stack-tight rounded-chip border border-border" />
+          <Button variant="primary" size="sm" onClick={handleAdd}>추가</Button>
         </div>
       </div>
       <div className="space-y-stack-tight">
         {popular.length === 0 ? (
-          <p className="text-subtle text-body">No popular posts</p>
+          <p className="text-subtle text-body">등록된 인기글이 없습니다</p>
         ) : (
           popular.map((p, i) => {
             const open = expandedPopular === i;
             return (
               <div key={i} className="card overflow-hidden cursor-pointer hover:bg-surface-2/20 transition-colors" onClick={() => setExpandedPopular(open ? null : i)}>
                 <div className="flex items-center gap-stack-tight px-pad-inset pt-stack pb-micro">
-                  <span className={`text-caption px-stack-tight py-[2px] rounded ${SOURCE_COLORS[String(p.source)] || "bg-surface-2 text-muted"}`}>
+                  <span className={`text-caption px-stack-tight py-micro rounded-chip ${SOURCE_COLORS[String(p.source)] || "bg-surface-2 text-muted"}`}>
                     {String(p.source || "?")}
                   </span>
                   {p.topic ? <span className="text-caption text-subtle">{String(p.topic)}</span> : null}
-                  {p.likes && String(p.likes) !== "0" ? <span className="text-caption text-yellow-500">{String(p.likes)} likes</span> : null}
+                  {p.likes && String(p.likes) !== "0" ? <span className="text-caption text-warning">{String(p.likes)} likes</span> : null}
                   {p.username ? <span className="text-caption text-subtle">@{String(p.username)}</span> : null}
                   <span className="text-caption text-subtle ml-auto">{String(p.collected || "")}</span>
                   <svg className={`w-3 h-3 text-subtle transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -646,7 +646,7 @@ function ParametersSection() {
             value={vals[p.key] ?? (s[p.key] ?? "")}
             onChange={(e) => setVals((prev) => ({ ...prev, [p.key]: e.target.value }))}
             min={0}
-            className="w-20 bg-surface border border-border rounded px-stack-tight py-micro text-body text-muted text-right"
+            className="w-20 bg-surface border border-border rounded-chip px-stack-tight py-micro text-body text-muted text-right"
           />
         </div>
       ))}

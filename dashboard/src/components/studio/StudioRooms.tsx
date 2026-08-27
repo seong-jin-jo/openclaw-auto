@@ -14,7 +14,7 @@ function AssistantPanel({ title, children }: { title: string; children: ReactNod
   return (
     <aside className="card h-fit min-w-0 overflow-hidden lg:sticky lg:top-pad-inset" aria-label={`${title} 대화창`} data-chat-dock="persistent" data-chat-always="true">
       <div className="flex items-center gap-stack-tight border-b border-border p-stack">
-        <div className="grid h-10 w-10 place-items-center rounded-full bg-accent text-body font-bold text-accent-fg" aria-hidden="true">O</div>
+        <div className="grid h-10 w-10 place-items-center rounded-pill bg-accent text-body font-bold text-accent-fg" aria-hidden="true">O</div>
         <div><b className="block text-body text-text">{title}</b><span className="text-caption text-success">지금 대기 중</span></div>
       </div>
       <div className="bg-surface-2 p-stack">{children}</div>
@@ -88,7 +88,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
 
   return (
     <section data-room="create" className="space-y-region">
-      <section data-room-top="create" data-create-stage={stage.count} aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch items-center justify-between rounded-xl border border-border bg-surface px-pad-inset py-stack">
+      <section data-room-top="create" data-create-stage={stage.count} aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch items-center justify-between rounded-surface border border-border bg-surface px-pad-inset py-stack">
         <b className="text-lead text-accent">{stage.count}</b><span className="text-caption text-subtle">{stage.label}</span>
       </section>
       <div className="grid gap-stack-section lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -102,9 +102,9 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
               {displayCandidates.filter((candidate) => !selectedCandidate || candidate.label === selectedCandidate.label).map((candidate) => {
                 const outline = "format" in candidate ? candidate.format.outline : candidate.outline;
                 return (
-                  <article key={candidate.label} data-create-candidate={candidate.label} className={`grid gap-stack rounded-xl border p-pad-inset md:grid-cols-5 ${selected === candidate.label ? "border-accent bg-accent-soft" : "border-border bg-surface-2"}`}>
+                  <article key={candidate.label} data-create-candidate={candidate.label} className={`grid gap-stack rounded-surface border p-pad-inset md:grid-cols-5 ${selected === candidate.label ? "border-accent bg-accent-soft" : "border-border bg-surface-2"}`}>
                     <div className="md:col-span-3">
-                      <div className="mb-stack flex items-start gap-stack-tight"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent text-caption font-bold text-accent-fg">{candidate.label}</span><b className="break-keep text-body-sm text-text">{candidate.title}</b></div>
+                      <div className="mb-stack flex items-start gap-stack-tight"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-pill bg-accent text-caption font-bold text-accent-fg">{candidate.label}</span><b className="break-keep text-body-sm text-accent-fg">{candidate.title}</b></div>
                       <p className="break-keep text-caption text-muted">{contentBranch === "video" ? "영상 장면 구성" : "글과 카드뉴스 구성"}</p>
                     </div>
                     <ol className="space-y-stack-tight border-l border-border pl-stack md:col-span-2">
@@ -129,19 +129,19 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
         </div>
         <AssistantPanel title="생성 담당">
           <Stack gap={16}>
-            <div className="max-w-[90%] rounded-xl rounded-tl-lg border border-border bg-surface p-stack text-body-sm text-text">{selectedCandidate ? "선택한 구조 초안을 편집실로 옮길 수 있습니다. 실제 미디어 생성은 준비 중입니다." : candidates.length ? "A, B, C 중 마음에 드는 방향을 골라 주세요." : "이번에 만들 종류와 주제, 목적, 대상을 알려 주세요."}</div>
+            <div className="max-w-[90%] rounded-surface rounded-tl-control border border-border bg-surface p-stack text-body-sm text-text">{selectedCandidate ? "선택한 구조 초안을 편집실로 옮길 수 있습니다. 실제 미디어 생성은 준비 중입니다." : candidates.length ? "A, B, C 중 마음에 드는 방향을 골라 주세요." : "이번에 만들 종류와 주제, 목적, 대상을 알려 주세요."}</div>
             {!candidates.length ? <>
-              <div className="space-y-stack rounded-xl border border-border bg-surface p-stack">
+              <div className="space-y-stack rounded-surface border border-border bg-surface p-stack">
                 <fieldset><legend className="mb-stack-tight text-caption font-semibold text-text">만들 종류</legend><div className="flex flex-wrap gap-stack-tight">
                   <Button size="sm" variant={contentBranch === "video" ? "primary" : "secondary"} aria-pressed={contentBranch === "video"} onClick={() => onContentBranchChange?.("video")}>영상</Button>
                   <Button size="sm" variant={contentBranch === "text_image" ? "primary" : "secondary"} aria-pressed={contentBranch === "text_image"} onClick={() => onContentBranchChange?.("text_image")}>글·카드뉴스</Button>
                 </div><p className="mt-stack-tight break-keep text-caption text-subtle">음악 생성은 준비 중입니다.</p></fieldset>
-                <Field label="이번 주제" htmlFor="studio-topic"><input id="studio-topic" value={topic} onChange={(event) => onTopicChange(event.target.value)} placeholder="콘텐츠 주제 입력" className="w-full rounded-lg border border-border bg-surface-2 px-stack text-body text-text" /></Field>
-                <Field label="목적" htmlFor="studio-purpose"><input id="studio-purpose" value={purpose} onChange={(event) => setPurpose(event.target.value)} className="w-full rounded-lg border border-border bg-surface-2 px-stack text-body text-text" /></Field>
-                <Field label="대상" htmlFor="studio-audience"><input id="studio-audience" value={audience} onChange={(event) => setAudience(event.target.value)} className="w-full rounded-lg border border-border bg-surface-2 px-stack text-body text-text" /></Field>
+                <Field label="이번 주제" htmlFor="studio-topic"><input id="studio-topic" value={topic} onChange={(event) => onTopicChange(event.target.value)} placeholder="콘텐츠 주제 입력" className="w-full rounded-control border border-border bg-surface-2 px-stack text-body text-text" /></Field>
+                <Field label="목적" htmlFor="studio-purpose"><input id="studio-purpose" value={purpose} onChange={(event) => setPurpose(event.target.value)} className="w-full rounded-control border border-border bg-surface-2 px-stack text-body text-text" /></Field>
+                <Field label="대상" htmlFor="studio-audience"><input id="studio-audience" value={audience} onChange={(event) => setAudience(event.target.value)} className="w-full rounded-control border border-border bg-surface-2 px-stack text-body text-text" /></Field>
                 <label className="flex items-start gap-stack-tight text-caption text-muted"><input type="checkbox" checked={rightsConfirmed} onChange={(event) => setRightsConfirmed(event.target.checked)} />소재 권리를 확인했습니다</label>
               </div>
-              {missing.length ? <div className="rounded-lg border border-warning/30 bg-warning/10 p-stack text-caption text-warning">비어 있음: {missing.join(", ")}</div> : null}
+              {missing.length ? <div className="rounded-control border border-warning/30 bg-warning/10 p-stack text-caption text-warning">비어 있음: {missing.join(", ")}</div> : null}
               {!guide.trim() ? <Button onClick={onOpenLearning}>학습 정보 채우기</Button> : null}
               <Button variant="primary" onClick={generate} disabled={loading}>{loading ? "후보 만드는 중" : "후보 세 장 만들기"}</Button>
             </> : null}
@@ -193,7 +193,7 @@ export function EditRoom({ lines, onLinesChange, kind = "video", previewReady = 
   const trimSilences = () => setVisibleLines((current) => current.map((visible, index) => silenceIndexes.includes(index) ? false : visible));
   return (
     <section data-room="edit" data-edit-kind={kind} className="space-y-region">
-      <section data-room-top="edit" aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch items-center justify-between rounded-xl border border-border bg-surface px-pad-inset py-stack"><b className="text-lead text-accent">{visibleCount}개 {unit}</b><span className="text-caption text-subtle" data-edit-duration>{kind === "audio" ? "음악 생성 준비 중" : `${duration}초 · 대사를 다듬는 중`}</span></section>
+      <section data-room-top="edit" aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch items-center justify-between rounded-surface border border-border bg-surface px-pad-inset py-stack"><b className="text-lead text-accent">{visibleCount}개 {unit}</b><span className="text-caption text-subtle" data-edit-duration>{kind === "audio" ? "음악 생성 준비 중" : `${duration}초 · 대사를 다듬는 중`}</span></section>
       <div className="grid gap-stack-section lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="card grid min-w-0 overflow-hidden md:grid-cols-[15rem_minmax(0,1fr)]" data-edit-workspace>
           <nav className="max-h-72 overflow-y-auto border-b border-border p-pad-inset md:max-h-none md:border-b-0 md:border-r" aria-label={outlineTitle} data-edit-outline>
@@ -201,9 +201,9 @@ export function EditRoom({ lines, onLinesChange, kind = "video", previewReady = 
             <ol className="mt-stack space-y-stack-tight">{safeLines.map((line, index) => <li key={`${index}-${line.slice(0, 16)}`}><Button size="sm" variant={activeLine === index ? "primary" : "secondary"} onClick={() => setActiveLine(index)} className={`w-full justify-start overflow-hidden text-left ${visibleLines[index] ? "" : "line-through opacity-60"}`}><span className="truncate">{index + 1}. {line || "빈 대사"}</span></Button></li>)}</ol>
           </nav>
           <div className="min-w-0 p-pad-inset">
-            {kind === "audio" ? <section className="grid min-h-80 place-items-center rounded-xl border border-dashed border-border bg-surface-2 p-region text-center" data-edit-readiness><div className="max-w-xl"><b className="text-subheading text-text">음악 생성 백엔드는 준비 중입니다</b><p className="mt-stack break-keep text-body-sm text-muted">현재는 나레이션 대사만 확인할 수 있습니다. 음악 파일이나 파형은 아직 표시하지 않습니다.</p></div></section> : <>
-              <section className={`grid place-items-center rounded-xl border border-border bg-surface-2 p-stack-section ${kind === "card" ? "aspect-[4/5] max-h-96" : "aspect-video"}`} aria-label={kind === "card" ? "카드뉴스 미리보기" : "영상 미리보기"} data-edit-stage>
-                <div className="grid h-full w-full place-items-center rounded-lg bg-accent-soft p-region text-center"><div><span className="text-caption font-semibold text-accent">{previewReady ? "미리보기" : "구조 초안"}</span><p className="mt-stack max-w-xl break-keep text-heading font-bold text-text">{visibleLines[activeLine] ? selectedLine : "이 대사는 빠진 상태입니다"}</p>{!previewReady && kind === "video" ? <p className="mt-stack text-caption text-muted">실제 영상 렌더는 준비 중입니다.</p> : null}</div></div>
+            {kind === "audio" ? <section className="grid min-h-80 place-items-center rounded-surface border border-dashed border-border bg-surface-2 p-region text-center" data-edit-readiness><div className="max-w-xl"><b className="text-subheading text-text">음악 생성 백엔드는 준비 중입니다</b><p className="mt-stack break-keep text-body-sm text-muted">현재는 나레이션 대사만 확인할 수 있습니다. 음악 파일이나 파형은 아직 표시하지 않습니다.</p></div></section> : <>
+              <section className={`grid place-items-center rounded-surface border border-border bg-surface-2 p-stack-section ${kind === "card" ? "aspect-[4/5] max-h-96" : "aspect-video"}`} aria-label={kind === "card" ? "카드뉴스 미리보기" : "영상 미리보기"} data-edit-stage>
+                <div className="grid h-full w-full place-items-center rounded-control bg-accent-soft p-region text-center"><div><span className="text-caption font-semibold text-accent">{previewReady ? "미리보기" : "구조 초안"}</span><p className="mt-stack max-w-xl break-keep text-heading font-bold text-accent-fg">{visibleLines[activeLine] ? selectedLine : "이 대사는 빠진 상태입니다"}</p>{!previewReady && kind === "video" ? <p className="mt-stack text-caption text-muted">실제 영상 렌더는 준비 중입니다.</p> : null}</div></div>
               </section>
               <section className="mt-stack border-b border-border pb-stack" aria-label="간편 편집 도구" data-edit-tools>
                 <div className="flex flex-wrap gap-stack-tight">{tools.map((tool) => <Button key={tool} size="sm" variant={activeTool === tool ? "primary" : "secondary"} onClick={() => setActiveTool(tool)} aria-pressed={activeTool === tool} aria-label={`${tool} 도구`}><ToolIcon tool={tool} /><span>{toolValues[tool]}</span></Button>)}
@@ -214,15 +214,15 @@ export function EditRoom({ lines, onLinesChange, kind = "video", previewReady = 
             </>}
             <section className="mt-pad-inset" aria-labelledby="edit-script-title" data-edit-script>
               <div className="mb-stack flex flex-wrap items-center justify-between gap-stack-tight"><b id="edit-script-title" className="text-body text-text">{kind === "card" ? "장 문구" : "대사"}</b><span className="text-caption text-subtle">화면 아래에서 바로 고칩니다</span></div>
-              <ol className="space-y-stack-tight">{safeLines.map((line, index) => <li key={`script-${index}`} className={`grid gap-stack-tight rounded-lg border border-border bg-surface-2 p-stack md:grid-cols-[4rem_minmax(0,1fr)_auto] ${visibleLines[index] ? "" : "opacity-60"}`} data-script-line={index + 1}>
+              <ol className="space-y-stack-tight">{safeLines.map((line, index) => <li key={`script-${index}`} className={`grid gap-stack-tight rounded-control border border-border bg-surface-2 p-stack md:grid-cols-[4rem_minmax(0,1fr)_auto] ${visibleLines[index] ? "" : "opacity-60"}`} data-script-line={index + 1}>
                 <span className="text-caption text-subtle">{index * secondsPerLine}초부터</span>
-                {activeLine === index ? <input aria-label={`${kind === "card" ? "문구" : "대사"} ${index + 1}`} value={line} onChange={(event) => updateLine(event.target.value)} className={`min-h-control-touch min-w-0 rounded-lg border border-border bg-surface px-stack text-body-sm text-text ${visibleLines[index] ? "" : "line-through"}`} /> : <button type="button" onClick={() => setActiveLine(index)} className={`min-h-control-touch min-w-0 break-keep rounded-lg px-stack text-left text-body-sm text-text hover:bg-surface ${visibleLines[index] ? "" : "line-through"}`}>{line || "빈 대사"}</button>}
+                {activeLine === index ? <input aria-label={`${kind === "card" ? "문구" : "대사"} ${index + 1}`} value={line} onChange={(event) => updateLine(event.target.value)} className={`min-h-control-touch min-w-0 rounded-control border border-border bg-surface px-stack text-body-sm text-text ${visibleLines[index] ? "" : "line-through"}`} /> : <button type="button" onClick={() => setActiveLine(index)} className={`min-h-control-touch min-w-0 break-keep rounded-control px-stack text-left text-body-sm text-text hover:bg-surface ${visibleLines[index] ? "" : "line-through"}`}>{line || "빈 대사"}</button>}
                 <Button size="sm" onClick={() => toggleLine(index)}>{visibleLines[index] ? "빼기" : "되살리기"}</Button>
               </li>)}</ol>
             </section>
           </div>
         </div>
-        {commandPanel ?? <AssistantPanel title="편집 담당"><Stack gap={12}><div className="rounded-lg border border-border bg-surface p-stack"><span className="text-caption text-subtle">현재 위치</span><p className="mt-micro text-body text-text">{activeLine + 1} / {safeLines.length}</p></div><div className="rounded-lg border border-border bg-surface p-stack"><span className="text-caption text-subtle">지금 고치는 것</span><p className="mt-micro text-body text-text">{kind === "card" ? "카드뉴스" : kind === "audio" ? "음악" : "영상"}</p></div></Stack></AssistantPanel>}
+        {commandPanel ?? <AssistantPanel title="편집 담당"><Stack gap={12}><div className="rounded-control border border-border bg-surface p-stack"><span className="text-caption text-subtle">현재 위치</span><p className="mt-micro text-body text-text">{activeLine + 1} / {safeLines.length}</p></div><div className="rounded-control border border-border bg-surface p-stack"><span className="text-caption text-subtle">지금 고치는 것</span><p className="mt-micro text-body text-text">{kind === "card" ? "카드뉴스" : kind === "audio" ? "음악" : "영상"}</p></div></Stack></AssistantPanel>}
       </div>
     </section>
   );

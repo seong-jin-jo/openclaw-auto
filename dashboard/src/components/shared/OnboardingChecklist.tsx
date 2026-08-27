@@ -24,15 +24,15 @@ export function OnboardingChecklist() {
   if (done >= STEPS.length) return null; // 전부 완료 → 숨김
 
   return (
-    <div className="mb-4 px-4 py-3 rounded-xl border border-accent bg-accent-soft">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm text-accent">첫 콘텐츠부터 발행까지</span>
-        <span className="text-xs text-accent/80">{done}/{STEPS.length}</span>
+    <div className="mb-pad-inset px-pad-inset py-stack rounded-surface border border-accent bg-accent-soft">
+      <div className="flex items-center justify-between mb-stack-tight">
+        <span className="text-body-sm text-accent">첫 콘텐츠부터 발행까지</span>
+        <span className="text-caption text-accent/80">{done}/{STEPS.length}</span>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-stack-tight">
         {STEPS.map((s) => {
           const ok = !!checklist[s.key];
-          const classes = `flex items-center gap-1.5 rounded-lg bg-surface-2 px-3 py-1.5 text-xs ${
+          const classes = `flex items-center gap-stack-tight rounded-control bg-surface-2 px-stack py-stack-tight text-caption ${
             ok ? "text-success" : "text-muted"
           }`;
           return s.href ? (

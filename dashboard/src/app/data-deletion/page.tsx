@@ -7,7 +7,7 @@ export default function DataDeletionPage() {
   return (
     <LegalPage title="데이터 삭제 안내" summary="OSMU에 저장된 계정 연결과 서비스 데이터를 삭제하는 방법입니다.">
       <LegalSection title="소셜 계정 연결만 삭제">
-        <ol className="list-decimal space-y-1 pl-5">
+        <ol className="list-decimal space-y-micro pl-stack-section">
           <li>OSMU에 로그인합니다.</li>
           <li>해당 채널의 Settings에서 연결된 계정을 확인합니다.</li>
           <li>삭제 버튼을 눌러 연결 토큰과 계정 연결 정보를 제거합니다.</li>
