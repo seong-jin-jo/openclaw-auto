@@ -145,19 +145,24 @@ try {
       if (await dismissOnboarding.isVisible().catch(() => false)) {
         await dismissOnboarding.click();
       }
-      await page.locator('[data-app-main="true"]').waitFor({ state: "visible" });
+      await page.locator('[data-app-main="true"]').waitFor({ state: "attached" });
       await page.waitForTimeout(300);
 
       const metrics = await page.evaluate(() => {
         const main = document.querySelector('[data-app-main="true"]');
         const sidebar = document.querySelector('[aria-label="주요 사이드바"]');
         const rect = main?.getBoundingClientRect();
+        const sidebarRect = sidebar?.getBoundingClientRect();
+        const shell = main?.parentElement;
         return {
           bodyScrollWidth: document.documentElement.scrollWidth,
           viewportWidth: window.innerWidth,
           mainLeft: rect ? Math.round(rect.left) : -1,
           mainWidth: rect ? Math.round(rect.width) : 0,
+          sidebarWidth: sidebarRect ? Math.round(sidebarRect.width) : 0,
           sidebarVisible: sidebar instanceof HTMLElement && getComputedStyle(sidebar).display !== "none",
+          shellDisplay: shell ? getComputedStyle(shell).display : "missing",
+          shellDirection: shell ? getComputedStyle(shell).flexDirection : "missing",
         };
       });
 
@@ -165,7 +170,7 @@ try {
         throw new Error(`${route.key} ${viewport.width} body overflow ${metrics.bodyScrollWidth}/${metrics.viewportWidth}`);
       }
       if (metrics.mainWidth < Math.min(320, viewport.width - 16)) {
-        throw new Error(`${route.key} ${viewport.width} main width too small: ${metrics.mainWidth}`);
+        throw new Error(`${route.key} ${viewport.width} main width too small: ${JSON.stringify(metrics)}`);
       }
       if (viewport.width === 390) {
         if (metrics.sidebarVisible) throw new Error(`${route.key} 390 permanent sidebar still visible`);

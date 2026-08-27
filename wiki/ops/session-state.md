@@ -1,3 +1,21 @@
+## [2026-08-28 02:50 studio v1 생성 계약 E2E 10건 통과 · 생성 장부 메모리 문제 발견]
+
+- 무엇: 도는 앱에 직접 붙는 `dashboard/scripts/verify-studio-v1-e2e.mjs` 를 만들어 돌렸다. 10건 전부 통과(무토큰 401, 멱등 키 없음 400, 빈 본문 422, 정상 201과 후보 3장, 조회 200, 없는 것 404, 무료 다시 만들기 하루 몫과 그 뒤 409).
+- 바로잡은 것: 무료 다시 만들기 몫은 작업 단위가 아니라 회원의 하루 단위다(`generation/service.ts` 의 `memberId:localDate` 키). 처음 세운 기대치가 틀렸다.
+- **새로 찾은 막힘**: `generation/service.ts:189-191` 에서 생성 작업·멱등 기록·무료 몫이 전부 프로세스 메모리 Map 이다. 재시작하면 사라지고 서버 두 대면 몫이 두 배가 된다. 유료 전환이 성립하지 않는다. open-decisions 에 등록, 회장 합의 필요(§6.3.5).
+- 커밋: `465cb34e`(E2E 스크립트), `79e38f7e`(제안 큐 인증 경계), `08f174b0`(390 대화창).
+- 진행 중: `tmux osmu-fe4`(좁은 화면 셸), `tmux osmu-build4`(갭 감사 없음 항목).
+
+## [2026-08-28 02:42 OSMU 백엔드 4차 실계약 통과 · 제안 큐 고객 인증 누락 수선]
+
+- **인계 기준:** 회장이 직접 지정한 백엔드 4차 과제와 tmux `osmu-build4:0.0`을 primary로 사용. 기반은 v62 API 갭 감사, v63 프로토타입, 회장 요구 대장, DB schema.
+- **기존 구현 확인:** 성과 0건 가설 3개와 제안 큐 인계는 `d892a5f7`, 편집 장면 순서·문장 삭제·복원은 `854d6c6a`에 존재. 재창조하지 않고 실 HTTP와 DB로 재검증.
+- **발견·수정:** 고객 `osmu_` 토큰의 `/api/suggestions/enqueue`가 proxy allowlist 누락으로 403. tenant-aware 경계와 유효 token 통과, 폐기 token 401 회귀를 추가. 코드 커밋 `79e38f7e`, 증거 문서 커밋 `20b29f66`.
+- **실제 관찰:** 가설 3개 200, 제안 큐 201, 장면 재정렬 200, 문장 삭제 200, 복원 200, 낡은 revision 409, queue 정리 200. DB `sourceContext`와 editor history 일치. 임시 tenant·draft·queue DB 잔여 0. 전문 `/tmp/osmu-build4-live.t2f5Hf/`.
+- **검증:** 전체 Vitest 148 files, 1,204 passed, 6 skipped. `npx tsc --noEmit` 통과. 격리 Webpack production build 171 pages 통과. design lint 위반 0.
+- **배포·게이트:** 로컬 build만 반영. production 미배포, QA·ship 미승인. 신규 table·column 추가 없음.
+- **정확한 다음 작업:** QA가 동일 production 인증 경계에서 가설 생성 200과 선택 제안 큐 인계 201을 재관찰하고, DB `sourceContext`를 대조한다. 종료증거는 QA tracker production PASS 승격.
+
 ## [2026-08-28 02:30 화면 대화창 390 상시도달 · 4차 2라인 발주]
 
 - 무엇: 390 폭에서 발행 담당 대화창이 일곱 미리보기 아래로 밀려 닿지 않던 결함을 고쳤다. 바닥 고정 시트 + 접기/펴기.

@@ -115,7 +115,12 @@ export async function GET(request: Request) {
       LEFT JOIN usage_quotas uq ON uq.tenant_id = t.id
       ORDER BY t.created_at DESC
       LIMIT 200`;
-    const authUsers = await sql<AuthUserRow[]>`
+    // 회원 장부(auth.users)는 Supabase 가 있는 배포에만 있다. 이 조회가 실패해도
+    // 작업 공간 목록까지 함께 죽이지 않는다. 한쪽이 없으면 없다고 밝히고 나머지를 준다.
+    let authUsersUnavailable: string | null = null;
+    const authUsers = await (async () => {
+      try {
+        return await sql<AuthUserRow[]>`
       SELECT
         u.id::text,
         u.email,
@@ -132,6 +137,11 @@ export async function GET(request: Request) {
       LEFT JOIN tenants t ON t.owner_auth_id = u.id
       ORDER BY u.created_at DESC
       LIMIT 500`;
+      } catch (e) {
+        authUsersUnavailable = e instanceof Error ? e.message : String(e);
+        return [] as AuthUserRow[];
+      }
+    })();
     const summary = {
       authUsers: authUsers.length,
       workspaces: rows.length,
@@ -142,7 +152,7 @@ export async function GET(request: Request) {
       failed: rows.reduce((total, row) => total + Number(row.failed_count || 0), 0),
     };
     const oauthProviders = await listOAuthCredentialMetadata(publicOrigin(request));
-    return Response.json({ customers: rows, authUsers, summary, oauthProviders });
+    return Response.json({ customers: rows, authUsers, summary, oauthProviders, authUsersUnavailable });
   } catch (e) {
     return Response.json({ customers: [], authUsers: [], error: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }

@@ -21,7 +21,9 @@ function safeRedirectTo(request: Request): string {
 export async function GET(request: Request) {
   const base = supabaseBase();
   if (!base) {
-    return Response.json({ error: oauthErrorMessage("supabaseUrl is required", "Google") }, { status: 500 });
+    // 설정이 없는 것은 서버 고장이 아니라 아직 준비되지 않은 상태다.
+    // 500 으로 답하면 감시 도구가 영원히 장애로 읽는다.
+    return Response.json({ error: oauthErrorMessage("supabaseUrl is required", "Google") }, { status: 503 });
   }
 
   const redirectTo = safeRedirectTo(request);

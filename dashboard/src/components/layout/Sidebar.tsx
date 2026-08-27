@@ -26,9 +26,11 @@ function SidebarGroup({
   groupKey,
   title,
   items,
+  showNarrowLabels = false,
 }: {
   groupKey: string;
   title: string;
+  showNarrowLabels?: boolean;
   items: Array<{
     key?: string;
     href?: string;
@@ -54,7 +56,7 @@ function SidebarGroup({
         onClick={() => toggleSidebar(groupKey)}
         className="px-3 mb-1 w-full flex items-center justify-between cursor-pointer hover:opacity-80"
       >
-        <span className="text-caption font-medium text-subtle uppercase tracking-wider">{title}</span>
+        <span className={`text-caption font-medium text-subtle uppercase tracking-wider ${showNarrowLabels ? "" : "max-xl:sr-only"}`}>{title}</span>
         <span className="flex items-center gap-1">
           {totalCount > 0 && (
             <span className={`text-caption ${liveCount > 0 ? "text-green-600" : "text-subtle"}`}>
@@ -89,9 +91,9 @@ function SidebarGroup({
               >
                 {i.key ? getChannelIcon(i.key) : <span className="text-caption font-bold">{i.icon}</span>}
               </span>
-              <span className="max-xl:sr-only">{i.label}</span>
+              <span className={showNarrowLabels ? "" : "max-xl:sr-only"}>{i.label}</span>
               {i.status && (
-                <span className={`ml-auto text-caption px-1.5 py-0.5 rounded-full max-xl:hidden ${i.statusClass || "bg-surface-2 text-subtle"}`}>
+                <span className={`ml-auto text-caption px-1.5 py-0.5 rounded-full ${showNarrowLabels ? "" : "max-xl:hidden"} ${i.statusClass || "bg-surface-2 text-subtle"}`}>
                   {i.status}
                 </span>
               )}
@@ -142,7 +144,7 @@ function RoomFlowNav({ pathname, onNavigate }: { pathname: string; onNavigate?: 
                   {done ? "✓" : `0${index + 1}`}
                 </span>
                 <span>{room.label}</span>
-                {active ? <span className="ml-auto rounded-full bg-accent-fg/15 px-stack-tight py-micro text-caption max-xl:ml-0 max-xl:px-micro">지금 여기</span> : null}
+                {active ? <span className="ml-auto whitespace-nowrap rounded-full bg-accent-fg/15 px-stack-tight py-micro text-caption max-xl:ml-0 max-xl:px-micro">지금 여기</span> : null}
               </Link>
             </li>
           );
@@ -186,9 +188,11 @@ function chSidebarItem(key: string, channelConfig: Record<string, Record<string,
 function CustomerWorkspaceIdentity({
   me,
   mutateMe,
+  compactOnNarrow = false,
 }: {
   me: MeResponse;
   mutateMe: () => Promise<unknown>;
+  compactOnNarrow?: boolean;
 }) {
   const { activeWorkspace, setActiveWorkspace } = useUIStore();
 
@@ -204,7 +208,7 @@ function CustomerWorkspaceIdentity({
   // 테넌트 해석 실패(세션 만료/일시적 DB 오류 등). 명시적 재시도 경로 제공.
   if (me.tenantError) {
     return (
-      <button onClick={() => void mutateMe()} className="mt-1 text-xs text-subtle hover:text-muted">
+      <button onClick={() => void mutateMe()} className={`mt-1 text-xs text-subtle hover:text-muted ${compactOnNarrow ? "max-xl:sr-only" : ""}`}>
         워크스페이스 연결 확인 중… <span className="underline">다시 시도</span>
       </button>
     );
@@ -212,19 +216,19 @@ function CustomerWorkspaceIdentity({
 
   return (
     <div className="mt-1 text-xs">
-      <span className="bg-gradient-to-r from-accent to-accent-hover bg-clip-text text-transparent font-medium">
+      <span className={`bg-gradient-to-r from-accent to-accent-hover bg-clip-text text-transparent font-medium ${compactOnNarrow ? "max-xl:sr-only" : ""}`}>
         {me.tenant?.name || activeWorkspace?.name || "내 워크스페이스"}
       </span>
     </div>
   );
 }
 
-function SidebarFooter({ isOperator }: { isOperator: boolean }) {
+function SidebarFooter({ isOperator, compactOnNarrow = false }: { isOperator: boolean; compactOnNarrow?: boolean }) {
   const setActiveWorkspace = useUIStore((state) => state.setActiveWorkspace);
 
   return (
-    <div className="shrink-0 px-4 py-3 border-t border-border/50 space-y-2">
-      <ThemeToggle />
+    <div className="shrink-0 px-4 py-3 border-t border-border/50 space-y-2 max-xl:px-stack-tight">
+      <ThemeToggle compactOnNarrow={compactOnNarrow} />
       <button
         onClick={async () => {
           try {
@@ -238,7 +242,7 @@ function SidebarFooter({ isOperator }: { isOperator: boolean }) {
         className="w-full flex items-center gap-2 px-1 py-1 text-xs text-subtle hover:text-danger transition-colors"
         title="로그아웃"
       >
-        <span>⎋</span> 로그아웃
+        <span aria-hidden>⎋</span><span className={compactOnNarrow ? "max-xl:sr-only" : ""}>로그아웃</span>
       </button>
     </div>
   );
@@ -294,6 +298,7 @@ function CustomerSidebar({
 
   const cfg = (channelConfig || {}) as unknown as Record<string, Record<string, unknown>>;
   const imageCount = Array.isArray(images) ? images.length : 0;
+  const narrowLabelClass = mobileMenuOpen ? "" : "max-xl:sr-only";
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -380,12 +385,12 @@ function CustomerSidebar({
       <aside
         id="customer-sidebar"
         aria-label="주요 사이드바"
-        className={`${mobileMenuOpen ? "fixed inset-y-0 left-0 z-50 flex" : "hidden"} h-dvh w-[min(20rem,86vw)] shrink-0 flex-col border-r border-border bg-surface md:sticky md:top-0 md:flex md:h-screen md:w-24 xl:w-56`}
+        className={`${mobileMenuOpen ? "fixed inset-y-0 left-0 z-50 flex" : "hidden"} h-dvh min-w-0 w-[min(20rem,86vw)] shrink-0 flex-col overflow-hidden border-r border-border bg-surface md:sticky md:top-0 md:flex md:h-screen md:w-24 md:min-w-24 md:max-w-24 xl:w-56 xl:min-w-56 xl:max-w-56`}
       >
         <div className="flex items-start gap-stack border-b border-border px-stack py-pad-inset max-xl:px-stack-tight">
           <div className="min-w-0 flex-1">
             <p className="text-caption font-semibold text-subtle max-xl:text-center">작업 공간</p>
-            <CustomerWorkspaceIdentity me={me} mutateMe={mutateMe} />
+            <CustomerWorkspaceIdentity me={me} mutateMe={mutateMe} compactOnNarrow={!mobileMenuOpen} />
           </div>
           <button
             type="button"
@@ -409,6 +414,7 @@ function CustomerSidebar({
             key={g.key}
             groupKey={g.key}
             title={g.title}
+            showNarrowLabels={mobileMenuOpen}
             items={g.channels.map((ch) =>
               ch === "threads" ? threadsItem : ch === "x" ? xItem : chSidebarItem(ch, cfg),
             )}
@@ -420,7 +426,7 @@ function CustomerSidebar({
 
         {/* ── Data & Analytics ── */}
         <div className="px-3 mt-5 mb-2">
-          <span className="text-caption font-medium text-subtle uppercase tracking-wider">Data & Analytics</span>
+          <span className={`text-caption font-medium text-subtle uppercase tracking-wider ${narrowLabelClass}`}>Data & Analytics</span>
         </div>
         {[
           { href: "/blog-performance", key: "blog_performance", label: "Blog Performance" },
@@ -428,13 +434,13 @@ function CustomerSidebar({
           <Link key={item.key} href={item.href}
             className={`sidebar-item ${pathname === item.href ? "active" : ""} w-full text-left px-4 py-1.5 text-sm text-muted flex items-center gap-3`}>
             <span className="w-4 h-4 rounded text-subtle flex items-center justify-center">{getChannelIcon(item.key)}</span>
-            {item.label}
+            <span className={narrowLabelClass}>{item.label}</span>
           </Link>
         ))}
 
         {/* ── Keyword Research ── */}
         <div className="px-3 mt-5 mb-2">
-          <span className="text-caption font-medium text-subtle uppercase tracking-wider">Keyword Research</span>
+          <span className={`text-caption font-medium text-subtle uppercase tracking-wider ${narrowLabelClass}`}>Keyword Research</span>
         </div>
         {[
           { href: "/keyword-planner", key: "keyword_planner", label: "Keyword Planner" },
@@ -444,7 +450,7 @@ function CustomerSidebar({
           <Link key={item.key} href={item.href}
             className={`sidebar-item ${pathname === item.href ? "active" : ""} w-full text-left px-4 py-1.5 text-sm text-muted flex items-center gap-3`}>
             <span className="w-4 h-4 rounded text-subtle flex items-center justify-center">{getChannelIcon(item.key)}</span>
-            {item.label}
+            <span className={narrowLabelClass}>{item.label}</span>
           </Link>
         ))}
 
@@ -452,13 +458,14 @@ function CustomerSidebar({
         <SidebarGroup
           groupKey="custom"
           title="Custom Integration"
+          showNarrowLabels={mobileMenuOpen}
           items={[
             { key: "blog", label: "Blog", icon: "B", nav: true },
           ]}
         />
 
         <div className="px-3 mt-5 mb-2">
-          <span className="text-caption font-medium text-subtle uppercase tracking-wider">Assets & Tools</span>
+          <span className={`text-caption font-medium text-subtle uppercase tracking-wider ${narrowLabelClass}`}>Assets & Tools</span>
         </div>
         <Link
           href="/images"
@@ -472,8 +479,8 @@ function CustomerSidebar({
               d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
             />
           </svg>
-          Images
-          <span className="ml-auto text-caption px-1.5 py-0.5 rounded-full bg-surface-2 text-subtle">{imageCount}</span>
+          <span className={narrowLabelClass}>Images</span>
+          <span className={`ml-auto text-caption px-1.5 py-0.5 rounded-full bg-surface-2 text-subtle ${mobileMenuOpen ? "" : "max-xl:hidden"}`}>{imageCount}</span>
         </Link>
         <Link
           href="/videos"
@@ -487,7 +494,7 @@ function CustomerSidebar({
               d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
             />
           </svg>
-          Videos
+          <span className={narrowLabelClass}>Videos</span>
         </Link>
         {(() => {
           const mjCfg = cfg.midjourney || {};
@@ -497,14 +504,14 @@ function CustomerSidebar({
               className={`sidebar-item ${pathname === "/channels/midjourney" ? "active" : ""} w-full text-left px-4 py-2 text-sm text-muted flex items-center gap-3`}
             >
               <span className="w-4 h-4 rounded bg-indigo-900/50 flex items-center justify-center text-caption font-bold text-indigo-300">MJ</span>
-              Midjourney
-              <span className={`ml-auto w-2 h-2 rounded-full ${mjCfg.connected ? "bg-green-500" : "bg-surface-2"}`} />
+              <span className={narrowLabelClass}>Midjourney</span>
+              <span className={`ml-auto w-2 h-2 rounded-full ${mobileMenuOpen ? "" : "max-xl:hidden"} ${mjCfg.connected ? "bg-green-500" : "bg-surface-2"}`} />
             </Link>
           );
         })()}
 
         <div className="px-3 mt-5 mb-2">
-          <span className="text-caption font-medium text-subtle uppercase tracking-wider">System</span>
+          <span className={`text-caption font-medium text-subtle uppercase tracking-wider ${narrowLabelClass}`}>System</span>
         </div>
         <Link
           href="/settings"
@@ -519,11 +526,11 @@ function CustomerSidebar({
             />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
-          Settings
+          <span className={narrowLabelClass}>Settings</span>
         </Link>
       </nav>
 
-      <SidebarFooter isOperator={false} />
+      <SidebarFooter isOperator={false} compactOnNarrow={!mobileMenuOpen} />
       </aside>
     </>
   );
