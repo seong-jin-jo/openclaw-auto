@@ -1,5 +1,21 @@
 # Shorts Factory (숏폼 공장)
 
+## 여덟 컨셉 실행 구조 (2026-08-28)
+
+- 시작: `POST /api/studio/v1/shorts-factory/runs`. 한 작업 공간과 컨셉 8개, 동시 실행 한도
+  1부터 8을 받는다. 각 컨셉 설정은 기존 Studio 학습 정보와 플랫폼 규격을 그대로 쓴다.
+- 상태: `GET /api/studio/v1/shorts-factory/runs/{runId}`와 작업 공간별 실행 목록에서 컨셉마다
+  대기, 후보 생성 중, 완료, 실패와 Studio 생성 작업 번호 또는 오류를 본다.
+- 격리: `shorts_factory_runs`, `shorts_factory_concept_runs`는 모두 `tenant_id`와 RLS를 쓴다.
+  한 작업 공간에는 활성 공장 하나만 허용한다.
+- 실패: 한 컨셉의 입력 또는 실행이 실패해도 나머지 컨셉은 계속 돈다. 일부만 실패하면 실행은
+  `partial`, 전부 성공하면 `succeeded`다.
+- 현재 범위: 기존 Studio 후보 생성 8개를 묶는 운영 장부와 조정 계층까지 구현됐다. 실제 영상
+  렌더 8개와 외부 채널 발행 8개의 병렬 실행은 아직 검증되지 않았다.
+- 근거: `dashboard/src/lib/studio/shorts-factory/`,
+  `dashboard/db/migrations/20260828_shorts_factory_runs.sql`,
+  `dashboard/scripts/verify-shorts-factory-e2e.mjs`.
+
 ## 코드 기준 갱신 (2026-08-25)
 
 - 영상 API는 `dashboard/src/app/api/video/` 아래 업로드·목록·삭제·생성·발행 계열 route로 구현되어 있다.
