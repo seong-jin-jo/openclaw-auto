@@ -10,7 +10,7 @@ describe("BE-V63-09 provider 댓글 어댑터", () => {
   });
 
   it("BE-V63-09 정상 경로: Threads conversation 본문을 공통 댓글 모양으로 바꾼다", async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL) => new Response(JSON.stringify({
       data: [{ id: "reply-1", text: "댓글 본문", username: "maker", timestamp: "2026-08-28T01:00:00Z", replied_to: { id: "post-1" } }],
       paging: { cursors: { after: "next" } },
     }), { status: 200 }));

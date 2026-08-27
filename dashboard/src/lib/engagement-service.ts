@@ -91,8 +91,9 @@ export async function listEngagement(tenantId: string, postId: string) {
 
 async function loadComment(tenantId: string, post: PublishedPostRow, commentId: string, action: EngagementAction) {
   if (!commentId || commentId.length > 300) throw new EngagementError(400, "INVALID_COMMENT_ID", "comment_id가 올바르지 않습니다.");
+  const capability = getEngagementCapability(normalizedPlatform(post.platform));
+  requireAction(capability, action);
   const context = await providerContext(tenantId, post);
-  requireAction(context.capability, action);
   const page = await listProviderComments(context.platform, context.cred, context.providerPostId);
   const comment = page.items.find((item) => item.id === commentId);
   if (!comment) throw new EngagementError(404, "COMMENT_NOT_FOUND", "이 게시물의 댓글을 찾을 수 없습니다.", context.capability);

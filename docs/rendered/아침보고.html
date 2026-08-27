@@ -1,0 +1,77 @@
+<title>밤사이 만든 것</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1a1a19;--muted:#6b6b68;--line:#e4e4e1;--card:#fff;--accent:#2563eb}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#16161a;--fg:#ececea;--muted:#9a9a97;--line:#2c2c31;--card:#1e1e23;--accent:#7aa2ff}}
+:root[data-theme="dark"]{--bg:#16161a;--fg:#ececea;--muted:#9a9a97;--line:#2c2c31;--card:#1e1e23;--accent:#7aa2ff}
+body{background:var(--bg);color:var(--fg);font:16px/1.7 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard",sans-serif;margin:0;padding:40px 24px 80px}
+.wrap{max-width:900px;margin:0 auto}
+h1{font-size:30px;letter-spacing:-.02em;margin:0 0 6px}
+.sub{color:var(--muted);margin:0 0 36px}
+h2{font-size:20px;margin:44px 0 14px;padding-top:20px;border-top:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;font-size:15px;display:block;overflow-x:auto}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:13px}
+code{background:var(--card);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:13px}
+.shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;margin-top:16px}
+figure{margin:0;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+figure img{display:block;width:100%;height:auto}
+figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px solid var(--line)}
+.note{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;padding:14px 16px;margin:18px 0}
+</style>
+<div class="wrap">
+<h1>밤사이 만든 것</h1>
+<p class="sub">2026년 08월 28일 05시 32분 기준. 이 장은 감독이 1분마다 새로 씁니다.</p>
+<div class="note">실제로 눌러 보시려면 <code>http://localhost:3456/studio</code> 입니다. 아래 그림은 방금 그 앱을 찍은 것입니다.</div>
+<h2>지금 도는 것</h2><table><tr><th>판</th><th>갈래</th><th>상태</th><th>시각</th></tr>
+<tr><td>build5</td><td>build</td><td>빈손</td><td>04:54</td></tr>
+<tr><td>build6</td><td>build</td><td>돌는중</td><td>04:54</td></tr>
+<tr><td>fe5</td><td>fe</td><td>끝남</td><td>04:41</td></tr>
+<tr><td>fe6</td><td>fe</td><td>빈손</td><td>05:26</td></tr>
+<tr><td>fe7</td><td>fe</td><td>돌는중</td><td>05:27</td></tr>
+</table>
+<h2>화면</h2>
+<div class="shots">
+<figure><img src="아침보고-화면/channel-threads-1024.png" alt="channel-threads-1024"><figcaption>channel-threads-1024</figcaption></figure>
+<figure><img src="아침보고-화면/channel-threads-1440.png" alt="channel-threads-1440"><figcaption>channel-threads-1440</figcaption></figure>
+<figure><img src="아침보고-화면/channel-threads-390.png" alt="channel-threads-390"><figcaption>channel-threads-390</figcaption></figure>
+<figure><img src="아침보고-화면/channel-threads-768.png" alt="channel-threads-768"><figcaption>channel-threads-768</figcaption></figure>
+<figure><img src="아침보고-화면/create-room-1024.png" alt="create-room-1024"><figcaption>create-room-1024</figcaption></figure>
+<figure><img src="아침보고-화면/create-room-1440.png" alt="create-room-1440"><figcaption>create-room-1440</figcaption></figure>
+<figure><img src="아침보고-화면/create-room-390.png" alt="create-room-390"><figcaption>create-room-390</figcaption></figure>
+<figure><img src="아침보고-화면/create-room-768.png" alt="create-room-768"><figcaption>create-room-768</figcaption></figure>
+<figure><img src="아침보고-화면/edit-room-1024.png" alt="edit-room-1024"><figcaption>edit-room-1024</figcaption></figure>
+<figure><img src="아침보고-화면/edit-room-1440.png" alt="edit-room-1440"><figcaption>edit-room-1440</figcaption></figure>
+<figure><img src="아침보고-화면/edit-room-390.png" alt="edit-room-390"><figcaption>edit-room-390</figcaption></figure>
+<figure><img src="아침보고-화면/edit-room-768.png" alt="edit-room-768"><figcaption>edit-room-768</figcaption></figure>
+<figure><img src="아침보고-화면/performance-room-1024.png" alt="performance-room-1024"><figcaption>performance-room-1024</figcaption></figure>
+<figure><img src="아침보고-화면/performance-room-1440.png" alt="performance-room-1440"><figcaption>performance-room-1440</figcaption></figure>
+<figure><img src="아침보고-화면/performance-room-390.png" alt="performance-room-390"><figcaption>performance-room-390</figcaption></figure>
+<figure><img src="아침보고-화면/performance-room-768.png" alt="performance-room-768"><figcaption>performance-room-768</figcaption></figure>
+<figure><img src="아침보고-화면/publish-room-1440.png" alt="publish-room-1440"><figcaption>publish-room-1440</figcaption></figure>
+<figure><img src="아침보고-화면/publish-room-390.png" alt="publish-room-390"><figcaption>publish-room-390</figcaption></figure>
+<figure><img src="아침보고-화면/settings-1024.png" alt="settings-1024"><figcaption>settings-1024</figcaption></figure>
+<figure><img src="아침보고-화면/settings-1440.png" alt="settings-1440"><figcaption>settings-1440</figcaption></figure>
+<figure><img src="아침보고-화면/settings-390.png" alt="settings-390"><figcaption>settings-390</figcaption></figure>
+<figure><img src="아침보고-화면/settings-768.png" alt="settings-768"><figcaption>settings-768</figcaption></figure>
+<figure><img src="아침보고-화면/sidebar-4room-1024.png" alt="sidebar-4room-1024"><figcaption>sidebar-4room-1024</figcaption></figure>
+<figure><img src="아침보고-화면/sidebar-4room-1440.png" alt="sidebar-4room-1440"><figcaption>sidebar-4room-1440</figcaption></figure>
+<figure><img src="아침보고-화면/studio-publish-1024.png" alt="studio-publish-1024"><figcaption>studio-publish-1024</figcaption></figure>
+<figure><img src="아침보고-화면/studio-publish-1440.png" alt="studio-publish-1440"><figcaption>studio-publish-1440</figcaption></figure>
+<figure><img src="아침보고-화면/studio-publish-390.png" alt="studio-publish-390"><figcaption>studio-publish-390</figcaption></figure>
+<figure><img src="아침보고-화면/studio-publish-768.png" alt="studio-publish-768"><figcaption>studio-publish-768</figcaption></figure>
+</div>
+<h2>밤사이 들어간 작업</h2><table><tr><th>커밋</th><th>무엇을</th></tr>
+<tr><td><code>dc11b48b</code></td><td>test(studio): record v63 room browser evidence</td></tr>
+<tr><td><code>ee5cbfbb</code></td><td>feat(engagement): add comment read and action APIs</td></tr>
+<tr><td><code>12a6f7d9</code></td><td>fix(studio): keep editor kind and readiness aligned</td></tr>
+<tr><td><code>bdea4664</code></td><td>feat(engagement): add capability and state schema contracts</td></tr>
+<tr><td><code>7b1f407f</code></td><td>감독: 워커 제한시간을 90분으로 늘리고 백로그를 열 판으로 채움</td></tr>
+<tr><td><code>f673e69b</code></td><td>feat(studio): implement v63 create and edit rooms</td></tr>
+<tr><td><code>4c8ea392</code></td><td>fix: preserve member-global studio generation contracts</td></tr>
+<tr><td><code>a2730c63</code></td><td>감독: 개발이 끝날 때까지 워커를 쉬지 않고 돌리는 감독 스크립트</td></tr>
+<tr><td><code>bb960340</code></td><td>docs: record studio generation database evidence</td></tr>
+</table>
+<h2>회장이 확인하실 것</h2>
+<p>멈추려면 <code>touch /tmp/osmu-supervisor.stop</code> 입니다. 진행 기록은 <code>/tmp/osmu-supervisor.log</code> 에 있습니다.</p>
+</div>

@@ -465,6 +465,18 @@ export default function StudioPage() {
       d.publishReconciliation ? "error" : "success",
     );
   }
+  const commentHandoffLoaded = useRef<string | null>(null);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedDraftId = params.get("draft_id");
+    const sourceCommentId = params.get("comment_id");
+    if (!requestedDraftId || !sourceCommentId || commentHandoffLoaded.current === requestedDraftId || !hist?.drafts) return;
+    const requestedDraft = hist.drafts.find((draft) => draft.id === requestedDraftId);
+    if (!requestedDraft) return;
+    loadDraft(requestedDraft);
+    setActiveRoom("edit");
+    commentHandoffLoaded.current = requestedDraftId;
+  }, [hist?.drafts, setActiveRoom]);
   const pubPct = (() => { const v = Object.values(pub.status); return v.length ? Math.round((v.filter((s) => s === "done").length / v.length) * 100) : 0; })();
   const pubFailed = Object.values(pub.status).filter((s) => s === "failed").length;
   const pubResultLabel = pub.running

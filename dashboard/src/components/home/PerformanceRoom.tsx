@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { apiPost } from "@/lib/api";
+import { ApiResponseError, apiPost, fetcher } from "@/lib/api";
+import type { EngagementCapability } from "@/lib/channel-capabilities";
 import { Logo, PREVIEW_PLATFORMS, type PreviewPlatform } from "@/components/studio/PlatformPreview";
 import { Button } from "@/components/shared/Button";
 import { Card } from "@/components/shared/Card";
@@ -57,6 +58,37 @@ interface QueueResponse {
   ok?: boolean;
   id?: string;
   reused?: boolean;
+}
+
+interface EngagementComment {
+  id: string;
+  parentId: string | null;
+  author: string;
+  body: string;
+  createdAt: string;
+  likeCount: number | null;
+  permalink: string | null;
+  state: "unread" | "deferred" | "replying" | "replied" | "editor_handoff";
+  repliedAt: string | null;
+  replyText: string | null;
+  likedAt: string | null;
+  deferredAt: string | null;
+  editorHandoffAt: string | null;
+  editorDraftId: string | null;
+}
+
+interface EngagementResponse {
+  postId: string;
+  platform: string;
+  items: EngagementComment[];
+  capability: EngagementCapability;
+  unavailableReason?: string | null;
+}
+
+interface EngagementMutationResponse {
+  ok?: boolean;
+  draft?: string;
+  href?: string;
 }
 
 interface UsageSummary {
@@ -148,7 +180,13 @@ export function PerformanceRoom({
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [suggestionError, setSuggestionError] = useState("");
   const [queueState, setQueueState] = useState<Record<string, "loading" | "queued" | "reused" | "error">>({});
+  const [engagementByPost, setEngagementByPost] = useState<Record<string, EngagementResponse>>({});
+  const [engagementErrors, setEngagementErrors] = useState<Record<string, string>>({});
+  const [engagementBusy, setEngagementBusy] = useState<Record<string, string>>({});
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [reactionFilter, setReactionFilter] = useState<"all" | "reply" | "fix" | "hold">("all");
   const autoRequested = useRef(new Set<string>());
+  const engagementRequested = useRef(new Set<string>());
 
   const publishedPosts = useMemo(
     () => posts.filter((post) => post.status === "published"),
@@ -195,7 +233,73 @@ export function PerformanceRoom({
   const totalViews = focusedPosts.reduce((sum, post) => sum + Number(post.views || 0), 0);
   const totalReplies = focusedPosts.reduce((sum, post) => sum + Number(post.replies || 0), 0);
   const topPosts = rankedPosts.slice(0, 3);
-  const reactionPosts = focusedPosts.filter((post) => Number(post.replies || 0) > 0);
+  const reactionPosts = useMemo(
+    () => focusedPosts.filter((post) => Number(post.replies || 0) > 0),
+    [focusedPosts],
+  );
+
+  const loadEngagement = useCallback(async (post: PerformancePost) => {
+    if (!workspaceId) return;
+    try {
+      const response = await fetcher<EngagementResponse>(`/api/engagement?tenant_id=${encodeURIComponent(workspaceId)}&post_id=${encodeURIComponent(post.id)}`);
+      setEngagementByPost((current) => ({ ...current, [post.id]: response }));
+      setEngagementErrors((current) => ({ ...current, [post.id]: "" }));
+    } catch {
+      setEngagementErrors((current) => ({ ...current, [post.id]: "댓글 본문을 불러오지 못했습니다. 잠시 후 다시 시도해주세요." }));
+    }
+  }, [workspaceId]);
+
+  useEffect(() => {
+    for (const post of reactionPosts.slice(0, 10)) {
+      if (engagementRequested.current.has(post.id)) continue;
+      engagementRequested.current.add(post.id);
+      void loadEngagement(post);
+    }
+  }, [loadEngagement, reactionPosts]);
+
+  const commentKey = (postId: string, commentId: string) => `${postId}:${commentId}`;
+
+  const engagementAction = async (
+    post: PerformancePost,
+    comment: EngagementComment,
+    action: "draft_reply" | "send_reply" | "like" | "defer" | "editor_handoff",
+  ) => {
+    if (!workspaceId) return;
+    const key = commentKey(post.id, comment.id);
+    setEngagementBusy((current) => ({ ...current, [key]: action }));
+    setEngagementErrors((current) => ({ ...current, [key]: "" }));
+    try {
+      const response = await apiPost<EngagementMutationResponse>("/api/engagement", {
+        tenant_id: workspaceId,
+        post_id: post.id,
+        comment_id: comment.id,
+        action,
+        text: replyDrafts[key] ?? "",
+        request_key: typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `reply-${Date.now()}-${comment.id}`,
+      });
+      if (action === "draft_reply" && response?.draft) {
+        setReplyDrafts((current) => ({ ...current, [key]: response.draft! }));
+      } else if (action === "editor_handoff" && response?.href) {
+        window.location.assign(response.href);
+      } else {
+        await loadEngagement(post);
+      }
+    } catch (error) {
+      const message = error instanceof ApiResponseError ? error.message : "댓글 동작을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.";
+      setEngagementErrors((current) => ({ ...current, [key]: message }));
+    } finally {
+      setEngagementBusy((current) => ({ ...current, [key]: "" }));
+    }
+  };
+
+  const visibleEngagement = reactionPosts.slice(0, 10).flatMap((post) =>
+    (engagementByPost[post.id]?.items ?? []).map((comment) => ({ post, comment, capability: engagementByPost[post.id].capability })),
+  ).filter(({ comment }) => {
+    if (reactionFilter === "reply") return comment.state === "unread" || comment.state === "replying";
+    if (reactionFilter === "fix") return comment.state === "editor_handoff";
+    if (reactionFilter === "hold") return comment.state === "deferred";
+    return true;
+  });
 
   const loadSuggestions = useCallback(async () => {
     if (!workspaceId || loadingSuggestions) return;
@@ -435,23 +539,87 @@ export function PerformanceRoom({
           <Stack gap={4}>
             <h2 className="text-subheading font-bold text-text"><span aria-hidden="true" className="mr-stack-tight inline-grid size-stack-section place-items-center rounded-full bg-accent text-caption text-accent-fg">3</span>달린 반응</h2>
           </Stack>
-          <div className="flex items-center gap-stack rounded-lg border border-dashed border-border bg-surface-2 p-stack text-body-sm text-muted">
-            <span className="shrink-0 rounded-full bg-warning/15 px-stack-tight py-micro text-caption font-semibold text-warning">준비 중</span>
-            <p className="break-keep">댓글 본문 읽기와 답글 보내기는 준비 중입니다.</p>
-          </div>
           {reactionPosts.length > 0 ? (
-            <div className="divide-y divide-border border-y border-border">
-              {reactionPosts.map((post) => (
-                <div key={post.id} className="flex flex-wrap items-center gap-stack py-pad-inset">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-caption font-semibold text-muted">{platformLabel(post.platform)} · 답글 {Number(post.replies || 0).toLocaleString()}개</p>
-                    <p className="truncate text-body text-text">{post.text || "게시물 본문 미수집"}</p>
-                  </div>
-                  {post.permalink
-                    ? <a className="ds-label inline-flex min-h-control-touch items-center rounded-lg border border-border bg-surface-2 px-stack text-body-sm font-semibold text-text hover:border-subtle" href={post.permalink} target="_blank" rel="noopener noreferrer">게시물에서 확인하기</a>
-                    : <span className="text-caption text-subtle">원문 연동 준비 중</span>}
-                </div>
-              ))}
+            <div className="grid min-w-0 gap-stack lg:grid-cols-[minmax(0,12rem)_minmax(0,1fr)]" data-engagement-stream>
+              <aside aria-label="댓글 분류" className="min-w-0 rounded-xl border border-border bg-surface-2 p-stack">
+                <Stack gap={8}>
+                  <p className="text-caption font-semibold text-subtle">무엇부터</p>
+                  {([
+                    ["all", "전체"], ["reply", "답할 것"], ["fix", "고칠 것"], ["hold", "보류"],
+                  ] as const).map(([value, label]) => (
+                    <Button key={value} size="sm" variant={reactionFilter === value ? "primary" : "secondary"} aria-pressed={reactionFilter === value} onClick={() => setReactionFilter(value)}>
+                      {label}
+                    </Button>
+                  ))}
+                </Stack>
+              </aside>
+              <div className="min-w-0 divide-y divide-border border-y border-border">
+                {visibleEngagement.map(({ post, comment, capability }) => {
+                  const key = commentKey(post.id, comment.id);
+                  const busy = engagementBusy[key];
+                  const draft = replyDrafts[key] ?? comment.replyText ?? "";
+                  return (
+                    <article key={key} className="py-pad-inset" data-engagement-comment={comment.id}>
+                      <Stack gap={12}>
+                        <div className="flex flex-wrap items-center gap-stack-tight">
+                          <b className="text-body text-text">{comment.author}</b>
+                          <span className="text-caption text-muted">{platformLabel(post.platform)} · {fmtAgo(comment.createdAt)}</span>
+                          <span className="ml-auto rounded-full bg-surface-2 px-stack-tight py-micro text-caption font-semibold text-muted">
+                            {comment.state === "deferred" ? "보류" : comment.state === "editor_handoff" ? "편집실로" : comment.state === "replied" ? "답함" : "답할 것"}
+                          </span>
+                        </div>
+                        <p className="text-caption text-subtle break-keep">올린 글 · {post.text || "게시물 본문 미수집"}</p>
+                        <p className="text-body text-text break-keep">{comment.body || "댓글 본문 미수집"}</p>
+                        {comment.likeCount !== null && <p className="text-caption text-muted">좋아요 {comment.likeCount.toLocaleString()}개</p>}
+                        <label className="grid gap-micro text-caption font-semibold text-muted">
+                          답글
+                          <textarea
+                            aria-label={`${comment.author} 답글`}
+                            className="min-h-control-comfortable w-full rounded-lg border border-border bg-surface px-stack py-stack text-body text-text"
+                            maxLength={1000}
+                            value={draft}
+                            onChange={(event) => setReplyDrafts((current) => ({ ...current, [key]: event.target.value }))}
+                          />
+                        </label>
+                        <div className="flex flex-wrap gap-stack-tight">
+                          <Button disabled={Boolean(busy) || comment.state === "replied"} onClick={() => void engagementAction(post, comment, "draft_reply")}>
+                            {busy === "draft_reply" ? "초안 만드는 중" : "답글 초안 만들기"}
+                          </Button>
+                          <Button variant="primary" disabled={Boolean(busy) || !draft.trim() || comment.state === "replied"} onClick={() => void engagementAction(post, comment, "send_reply")}>
+                            {busy === "send_reply" ? "답글 보내는 중" : comment.state === "replied" ? "답글 보냄" : "이 답글 보내기"}
+                          </Button>
+                          {capability.like.supported ? (
+                            <Button disabled={Boolean(busy) || Boolean(comment.likedAt)} onClick={() => void engagementAction(post, comment, "like")}>
+                              {comment.likedAt ? "좋아요 함" : busy === "like" ? "좋아요 처리 중" : "좋아요"}
+                            </Button>
+                          ) : null}
+                          <Button disabled={Boolean(busy) || comment.state === "deferred"} onClick={() => void engagementAction(post, comment, "defer")}>
+                            {comment.state === "deferred" ? "나중 처리로 보냄" : "나중 처리"}
+                          </Button>
+                          <Button disabled={Boolean(busy) || comment.state === "editor_handoff"} onClick={() => void engagementAction(post, comment, "editor_handoff")}>
+                            {comment.state === "editor_handoff" ? "편집실로 넘김" : "편집실에서 고치기"}
+                          </Button>
+                        </div>
+                        {!capability.like.supported && capability.like.reason ? <p className="text-caption text-subtle break-keep">좋아요 미지원: {capability.like.reason}</p> : null}
+                        {engagementErrors[key] ? <p role="alert" className="text-caption text-danger break-keep">{engagementErrors[key]}</p> : null}
+                      </Stack>
+                    </article>
+                  );
+                })}
+                {reactionPosts.map((post) => {
+                  const response = engagementByPost[post.id];
+                  const error = engagementErrors[post.id];
+                  if (!response?.unavailableReason && !error && response) return null;
+                  return (
+                    <div key={`state-${post.id}`} className="py-pad-inset text-body-sm text-muted break-keep">
+                      <b className="text-text">{platformLabel(post.platform)}</b>: {error || response?.unavailableReason || "댓글 본문을 불러오는 중입니다."}
+                    </div>
+                  );
+                })}
+                {visibleEngagement.length === 0 && reactionPosts.slice(0, 10).every((post) => engagementByPost[post.id]) ? (
+                  <div className="py-pad-inset text-body-sm text-muted break-keep">선택한 분류에 표시할 댓글이 없습니다.</div>
+                ) : null}
+              </div>
             </div>
           ) : (
             <div className="rounded-xl border border-dashed border-border p-pad-inset text-body-sm text-muted break-keep">

@@ -1,0 +1,89 @@
+// @vitest-environment jsdom
+import "@testing-library/jest-dom/vitest";
+import React from "react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { PerformanceRoom } from "@/components/home/PerformanceRoom";
+
+const H = vi.hoisted(() => ({ fetcher: vi.fn(), apiPost: vi.fn() }));
+vi.mock("@/lib/api", () => ({
+  fetcher: H.fetcher,
+  apiPost: H.apiPost,
+  ApiResponseError: class ApiResponseError extends Error {},
+}));
+
+const post = {
+  id: "22222222-2222-4222-8222-222222222222",
+  platform: "threads",
+  text: "올린 글 본문",
+  status: "published",
+  published_at: "2026-08-28T01:00:00Z",
+  views: 100,
+  likes: 10,
+  replies: 1,
+};
+
+const supported = {
+  read: { supported: true, reason: null }, reply: { supported: true, reason: null },
+  like: { supported: true, reason: null }, defer: { supported: true, reason: null },
+  editorHandoff: { supported: true, reason: null },
+};
+
+function room(posts = [post]) {
+  return <PerformanceRoom workspaceId="11111111-1111-4111-8111-111111111111" workspaceName="공용 작업 공간" metricsLoaded posts={posts} publishedCount={1} followers="10" engagementRate={2} queuedCount={0} viralCount={0} collecting={false} onCollectMetrics={vi.fn(async () => {})} />;
+}
+
+describe("FE-V63-07 성과실 댓글 행동", () => {
+  beforeEach(() => {
+    H.fetcher.mockReset();
+    H.apiPost.mockReset();
+  });
+
+  afterEach(() => cleanup());
+
+  it("FE-V63-07 정상 경로: 본문을 읽고 다섯 후속 행동 단추가 실제 API를 호출한다", async () => {
+    H.fetcher.mockResolvedValue({
+      postId: post.id, platform: "threads", capability: supported,
+      items: [{
+        id: "comment-1", parentId: post.id, author: "@maker", body: "댓글 본문", createdAt: "2026-08-28T02:00:00Z",
+        likeCount: 2, permalink: null, state: "unread", repliedAt: null, replyText: null, likedAt: null,
+        deferredAt: null, editorHandoffAt: null, editorDraftId: null,
+      }],
+    });
+    H.apiPost.mockImplementation(async (_url: string, body: { action: string }) => body.action === "draft_reply" ? { draft: "브랜드 근거 답글" } : { ok: true });
+    render(room());
+
+    const body = await screen.findByText("댓글 본문");
+    const article = body.closest('[data-engagement-comment="comment-1"]') as HTMLElement;
+    expect(article).toBeInTheDocument();
+    fireEvent.click(within(article).getByRole("button", { name: "답글 초안 만들기" }));
+    await waitFor(() => expect(within(article).getByRole("textbox", { name: "@maker 답글" })).toHaveValue("브랜드 근거 답글"));
+    fireEvent.click(within(article).getByRole("button", { name: "이 답글 보내기" }));
+    await waitFor(() => expect(H.apiPost).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(within(article).getByRole("button", { name: "좋아요" })).toBeEnabled());
+    fireEvent.click(within(article).getByRole("button", { name: "좋아요" }));
+    await waitFor(() => expect(H.apiPost).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(within(article).getByRole("button", { name: "나중 처리" })).toBeEnabled());
+    fireEvent.click(within(article).getByRole("button", { name: "나중 처리" }));
+    await waitFor(() => expect(H.apiPost).toHaveBeenCalledTimes(4));
+    await waitFor(() => expect(within(article).getByRole("button", { name: "편집실에서 고치기" })).toBeEnabled());
+    fireEvent.click(within(article).getByRole("button", { name: "편집실에서 고치기" }));
+
+    await waitFor(() => expect(H.apiPost).toHaveBeenCalledTimes(5));
+    expect(H.apiPost.mock.calls.map(([, body]) => body.action)).toEqual(["draft_reply", "send_reply", "like", "defer", "editor_handoff"]);
+  }, 20_000);
+
+  it("FE-V63-07 거절 경로: TikTok은 되는 척하지 않고 댓글 계약 부재 이유를 표시한다", async () => {
+    const tiktokPost = { ...post, platform: "tiktok" };
+    H.fetcher.mockResolvedValue({
+      postId: post.id, platform: "tiktok", items: [],
+      capability: Object.fromEntries(Object.keys(supported).map((key) => [key, { supported: false, reason: "TikTok Content Posting API는 댓글 관리 계약을 제공하지 않습니다." }])),
+      unavailableReason: "TikTok Content Posting API는 댓글 관리 계약을 제공하지 않습니다.",
+    });
+    render(room([tiktokPost]));
+
+    expect(await screen.findByText(/TikTok Content Posting API는 댓글 관리 계약을 제공하지 않습니다/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "이 답글 보내기" })).not.toBeInTheDocument();
+    expect(H.apiPost).not.toHaveBeenCalled();
+  });
+});

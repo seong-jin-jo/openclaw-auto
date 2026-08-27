@@ -57,6 +57,20 @@ next_pending() {
   echo ""
 }
 
+# 워커는 도는 앱에 실제 요청을 보내 증거를 만든다. 앱이 죽으면 그 뒤 모든 판이
+# 증거 없이 끝난다. 매 판 돌기 전에 앱을 확인하고 죽었으면 되살린다.
+ensure_app() {
+  curl -s -o /dev/null --max-time 5 http://localhost:3456/api/health 2>/dev/null && return
+  echo "[$(date +%H:%M)] 앱이 죽어 있다. 되살린다."
+  ( cd "$ROOT/dashboard" && nohup npx next dev -p 3456 > /tmp/osmu-dev.log 2>&1 & )
+  for _ in $(seq 1 20); do
+    sleep 3
+    curl -s -o /dev/null --max-time 5 http://localhost:3456/api/health 2>/dev/null && {
+      echo "[$(date +%H:%M)] 앱을 되살렸다."; return; }
+  done
+  echo "[$(date +%H:%M)] 앱을 되살리지 못했다. 다음 판의 증거가 부실할 수 있다."
+}
+
 echo "[$(date +%H:%M)] 감독 시작. 백로그 $BACKLOG"
 idle_rounds=0
 while :; do
@@ -74,6 +88,7 @@ while :; do
       continue
     fi
     sess="osmu-$id"
+    ensure_app
     echo "[$(date +%H:%M)] $lane 갈래가 비었다. $id 를 던진다."
     # 45분 기본은 이 레포의 판 하나에 짧다. build5·fe4 가 실제 작업을 끝내고
     # 보고를 쓰다가 잘렸다. 90분으로 늘린다.
@@ -94,5 +109,8 @@ while :; do
   else
     idle_rounds=0
   fi
+  # 회장이 아침에 열어 볼 한 장을 매 순회마다 새로 쓴다.
+  bash "$ROOT/scripts/build-morning-report.sh" >/dev/null 2>&1 || true
   sleep 60
 done
+bash "$ROOT/scripts/build-morning-report.sh" >/dev/null 2>&1 || true

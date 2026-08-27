@@ -1,3 +1,12 @@
+## [2026-08-28 FE7 첫 콘텐츠 동선 실측 착수]
+
+- **인계 기준:** 회장이 직접 지정한 code-builder FE7 과제를 primary로 사용했다. tmux `osmu-fe7:0.0`은 별도 진행 문맥이 없는 현재 워커 pane임을 확인했다.
+- **기반:** `pipeline-state.osmu.md` build 소스 수정 허용 판정, `docs/prototype/openclaw-auto-4room-v63.html`, 회장 확정 요구 대장 R89·R175, `DESIGN.md`, 사업 좌표, 갭 재확인, 기존 `OnboardingWizard`·`OnboardingChecklist`.
+- **실제 초기 상태:** `localhost:3456` 지정 작업 공간 `GET /api/onboarding` HTTP 200. 온보딩 미완료, 채널 0, 위키 0, 발행 0.
+- **반려 원인:** 현행 온보딩이 업종·갈래 선택 뒤 채널 연결 화면을 먼저 내고, 체크리스트도 채널 연결을 첫 항목으로 둔다. 요구 대장 R89의 `갈래만 선택 → 생성 → 발행 시 연결`과 반대다.
+- **기록:** `docs/qa/qa-tracker.md` 최상단에 FE7 ❌ NG를 등록했다.
+- **정확한 다음 작업:** 수정 전 실제 브라우저 클릭 캡처 → 온보딩을 채널 연결 없이 생성실로 이어 주는 수정과 정상·거절 계약 테스트 → 실제 초기 작업 공간 재캡처·HTTP 관찰 → 전체 테스트·TypeScript·design lint·build → 문서 갱신·커밋.
+
 ## [2026-08-28 05:18 v63 생성실·편집실 실제 앱 이식과 네 폭 검증]
 
 - **인계 기준:** 회장이 지정한 code-builder 과제와 v63 확정 프로토타입, 요구 대장, `DESIGN.md`, 사업 좌표, 갭 재확인을 primary로 사용했다.
