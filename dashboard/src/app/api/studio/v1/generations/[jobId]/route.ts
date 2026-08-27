@@ -1,0 +1,15 @@
+import { studioFailure, studioSuccess } from "@/lib/studio/generation/http";
+import { resolveDevelopmentPrincipal } from "@/lib/studio/generation/identity";
+import { generationRuntime } from "@/lib/studio/generation/runtime";
+
+type RouteContext = { params: Promise<{ jobId: string }> };
+
+export async function GET(request: Request, context: RouteContext) {
+  try {
+    const principal = resolveDevelopmentPrincipal(request);
+    const { jobId } = await context.params;
+    return studioSuccess(generationRuntime().get(principal.memberId, jobId));
+  } catch (error) {
+    return studioFailure(error);
+  }
+}
