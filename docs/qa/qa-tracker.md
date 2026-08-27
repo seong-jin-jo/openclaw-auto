@@ -2,7 +2,7 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
-## 2026-08-28 ❌ NG → 🔧: 성과 제안 생성 큐 인계가 고객 토큰을 거절
+## 2026-08-28 ❌ NG → 🔧 → ✅ PASS: 성과 제안 생성 큐 인계 고객 인증 복구
 
 **❌ NG 관찰:** 실제 `localhost:3456`과 실제 DB에 임시 tenant, 브랜드 맥락,
 시장 신호를 연결했다. 고객 `osmu_` 토큰으로 `POST /api/suggestions`는 HTTP 200과
@@ -15,7 +15,16 @@
 
 **🔧 수정:** `/api/suggestions/enqueue`를 tenant-aware 경계에 명시했고, 유효한
 고객 토큰은 통과하되 폐기된 토큰은 401을 유지하는 `BE-V63-02` 회귀 테스트를
-추가했다. 실제 HTTP 재관찰과 전체 회귀 검증 전이므로 PASS로 승격하지 않는다.
+추가했다.
+
+**✅ 종료증거:** 수정 후 고객 토큰으로 가설 3개 HTTP 200, 선택 제안 큐 인계
+HTTP 201을 재관찰했다. 같은 실제 DB에서 queue payload의 `suggestionId`, `basis`,
+`label`, `verified`, `evidence.signalIds`, 표본 0건을 대조했다. 편집 계약은 장면 재정렬
+200, 문장 삭제 200, 복원 200, 낡은 revision 409와 DB 이력 3건을 일치시켰다.
+전체 Vitest 148파일 1,204건 통과, 6건 skipped, TypeScript 통과, Webpack production build
+171페이지 통과, design lint 위반 0이다. 임시 tenant, draft, queue는 정리해 DB 잔여 0을
+확인했다. 증거 전문은 `/tmp/osmu-build4-live.t2f5Hf/`에 보존했다. production 반영은
+미검증이다.
 
 ## 2026-08-28 ❌ NG: 화면 4차 390 셸이 본문을 화면 밖으로 밀어냄
 
