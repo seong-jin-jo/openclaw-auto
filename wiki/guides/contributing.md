@@ -1,5 +1,7 @@
 # Contributing & Development Workflow
 
+> 현재 기본 절차: 기획 → 디자인 → 기술설계 → 개발 → QA → 배포. `/pipeline`으로 단계를 확인하고 `/approve`가 증거를 재검증한 뒤에만 다음 게이트로 넘어간다. 아래 gstack 명령은 승인된 단계 안의 보조 도구다.
+
 ## Golden Rule (gstack-enforced)
 **Before touching any code or major docs**:
 1. Load gstack.

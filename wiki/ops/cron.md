@@ -1,5 +1,11 @@
 # Cron Jobs & Automation
 
+## 코드 기준 스냅샷 (2026-08-25)
+
+- 저장소에는 `config/cron/jobs.json.example`만 있으며 실제 `jobs.json`은 운영 설치물이다.
+- 예시 job 6개는 `generate-drafts`, `multi-channel-publish`, `collect-insights`, `fetch-trending`, `track-growth`, `osmu-generate-drafts`다.
+- 대시보드 예약 발행 범위는 `dashboard/src/lib/constants.ts`의 `SCHEDULABLE_PLATFORMS` 8채널이 SSOT다.
+
 All background work is driven by cron definitions in `config/cron/jobs.json` (or equivalent in OpenClaw gateway).
 
 ## Current Jobs (from CLAUDE.md + config)
@@ -61,9 +67,9 @@ All background work is driven by cron definitions in `config/cron/jobs.json` (or
 - Global defaults in openclaw.json.
 - Model selection: quality (generation) vs cost (publish/insights).
 
-## gstack / Product Notes
+## 개발 절차 메모
 - All cron improvements must be documented in wiki/ops/cron.md.
-- When adding new automation, follow full gstack pipeline (office-hours → plan-eng → autoplan → review + qa).
+- 새 자동화는 Stage Controller의 현재 단계와 승인을 확인하고, 승인된 단계 안에서 구현·검증한다.
 - Shorts factory cron (future): "generate-shorts-from-new-wiki-or-blog" + "publish-shorts".
 
 ## Monitoring

@@ -1,0 +1,28 @@
+{
+  "created_at": "2026-08-13T18:37:24.079532Z",
+  "display_name": "Kling v3.0",
+  "id": "3ffc67aa-270a-4eb4-93c6-ffc115646354",
+  "job_type": "kling3_0",
+  "min_result_url": null,
+  "params": {
+    "aspect_ratio": "9:16",
+    "cfg_scale": 0.5,
+    "duration": 8,
+    "enhance_prompt": false,
+    "height": 1280,
+    "kling_element_ids": [],
+    "kling_elements": [],
+    "medias": [],
+    "mode": "std",
+    "multi_prompt": [],
+    "multi_shot_mode": "custom",
+    "multi_shots": false,
+    "prompt": "A vertical 9:16 editorial micro-documentary in a Korean grocery store. A fictional office worker in his early thirties receives a modest pay raise notification, smiles briefly, then compares a nearly empty shopping basket with a visibly longer receipt and becomes quietly concerned. Natural handheld camera, realistic fluorescent market lighting, restrained trustworthy economics-education tone, no readable text, no logos, no captions, no screens facing camera.",
+    "reference_elements": [],
+    "sound": "off",
+    "width": 720
+  },
+  "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183724_3ffc67aa-270a-4eb4-93c6-ffc115646354.mp4",
+  "status": "completed",
+  "thumbnail_url": "https://cdn.higgsfield.ai/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183724_3ffc67aa-270a-4eb4-93c6-ffc115646354_thumbnail.webp"
+}

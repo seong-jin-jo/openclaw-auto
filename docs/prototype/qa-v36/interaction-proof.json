@@ -1,0 +1,316 @@
+{
+  "actions": [
+    {
+      "name": "edit-capsize",
+      "sel": "[data-ed-capsize=\"크게\"]",
+      "before": {
+        "capFont": "20px",
+        "meta": "길이 34.0초속도 1배자막 보통목소리 차분한 남성",
+        "order": [
+          "훅",
+          "전개",
+          "결말"
+        ],
+        "bar": "100%",
+        "stageBg": "rgb(31, 41, 55)"
+      },
+      "after": {
+        "capFont": "27px",
+        "meta": "길이 34.0초속도 1배자막 크게목소리 차분한 남성",
+        "order": [
+          "훅",
+          "전개",
+          "결말"
+        ],
+        "bar": "100%",
+        "stageBg": "rgb(31, 41, 55)"
+      },
+      "changed": true
+    },
+    {
+      "name": "edit-speed",
+      "sel": "[data-ed-speed=\"1.5\"]",
+      "before": {
+        "capFont": "20px",
+        "meta": "길이 34.0초속도 1배자막 보통목소리 차분한 남성",
+        "order": [
+          "훅",
+          "전개",
+          "결말"
+        ],
+        "bar": "100%",
+        "stageBg": "rgb(31, 41, 55)"
+      },
+      "after": {
+        "capFont": "20px",
+        "meta": "길이 22.7초속도 1.5배자막 보통목소리 차분한 남성",
+        "order": [
+          "훅",
+          "전개",
+          "결말"
+        ],
+        "bar": "67%",
+        "stageBg": "rgb(31, 41, 55)"
+      },
+      "changed": true
+    },
+    {
+      "name": "edit-image",
+      "sel": "[data-ed-image=\"삭제 커밋 화면\"]",
+      "before": {
+        "capFont": "20px",
+        "meta": "길이 34.0초속도 1배자막 보통목소리 차분한 남성",
+        "order": [
+          "훅",
+          "전개",
+          "결말"
+        ],
+        "bar": "100%",
+        "stageBg": "rgb(31, 41, 55)"
+      },
+      "after": {
+        "capFont": "20px",
+        "meta": "길이 34.0초속도 1배자막 보통목소리 차분한 남성",
+        "order": [
+          "훅",
+          "전개",
+          "결말"
+        ],
+        "bar": "100%",
+        "stageBg": "rgb(15, 23, 42)"
+      },
+      "changed": true
+    },
+    {
+      "name": "edit-voice",
+      "sel": "[data-ed-voice=\"내 목소리 복제\"]",
+      "before": {
+        "capFont": "20px",
+        "meta": "길이 34.0초속도 1배자막 보통목소리 차분한 남성",
+        "order": [
+          "훅",
+          "전개",
+          "결말"
+        ],
+        "bar": "100%",
+        "stageBg": "rgb(31, 41, 55)"
+      },
+      "after": {
+        "capFont": "20px",
+        "meta": "길이 34.0초속도 1배자막 보통목소리 내 목소리 복제",
+        "order": [
+          "훅",
+          "전개",
+          "결말"
+        ],
+        "bar": "100%",
+        "stageBg": "rgb(31, 41, 55)"
+      },
+      "changed": true
+    },
+    {
+      "name": "edit-order",
+      "sel": "[data-ed-move=\"down:0\"]",
+      "before": {
+        "capFont": "20px",
+        "meta": "길이 34.0초속도 1배자막 보통목소리 차분한 남성",
+        "order": [
+          "훅",
+          "전개",
+          "결말"
+        ],
+        "bar": "100%",
+        "stageBg": "rgb(31, 41, 55)"
+      },
+      "after": {
+        "capFont": "20px",
+        "meta": "길이 34.0초속도 1배자막 보통목소리 차분한 남성",
+        "order": [
+          "전개",
+          "훅",
+          "결말"
+        ],
+        "bar": "100%",
+        "stageBg": "rgb(31, 41, 55)"
+      },
+      "changed": true
+    },
+    {
+      "name": "edit-typing",
+      "before": "3주 붙잡은 기능을 오늘 지웠습니다",
+      "after": "오늘 커밋 41개를 지웠습니다",
+      "changed": true
+    },
+    {
+      "name": "pub-platform-instagram",
+      "sel": "[data-pv-room=\"instagram\"]",
+      "before": {
+        "frame": "monostudio1시간확인 가능한 마케팅 흐름을 먼저 만듭니다. 무엇을 왜 게시했는지 남겨야 다음 판단이 ",
+        "head": "Threads53/500"
+      },
+      "after": {
+        "frame": "monostudio· 팔로우자동 게시를 먼저 켜면 무엇이 왜 나갔는지 아무도 모릅니다‹›1/5좋아요 1,28",
+        "head": "Instagram30/2200"
+      },
+      "changed": true
+    },
+    {
+      "name": "pub-platform-tiktok",
+      "sel": "[data-pv-room=\"tiktok\"]",
+      "before": {
+        "frame": "monostudio1시간확인 가능한 마케팅 흐름을 먼저 만듭니다. 무엇을 왜 게시했는지 남겨야 다음 판단이 ",
+        "head": "Threads53/500"
+      },
+      "after": {
+        "frame": "자동 게시 전에 꼭 확인할 세 가지를 25초로 정리했습니다.추천25초12.4K3181.2K@monostudi",
+        "head": "TikTok"
+      },
+      "changed": true
+    },
+    {
+      "name": "pub-depth-cal",
+      "sel": "[data-pub-depth=\"cal\"]",
+      "before": {
+        "h": "Threads에 이렇게 올라갑니다"
+      },
+      "after": {
+        "h": "언제 올릴지"
+      },
+      "changed": true
+    },
+    {
+      "name": "pub-choice",
+      "sel": "[data-pub-choice=\"now\"]",
+      "before": {
+        "n": "none"
+      },
+      "after": {
+        "n": "지금 발행하면 Threads와 X는 즉시 올라가고 Instagram은 연결 확인이 필요해 "
+      },
+      "changed": true
+    },
+    {
+      "name": "chat-chip",
+      "sel": ".chat-chip",
+      "before": {
+        "msgs": 2
+      },
+      "after": {
+        "msgs": 4
+      },
+      "changed": true
+    },
+    {
+      "name": "chat-collapse",
+      "sel": "[data-action=\"chat-toggle\"]",
+      "before": {
+        "open": true,
+        "rect": {
+          "r": 945,
+          "b": 767
+        }
+      },
+      "after": {
+        "open": false,
+        "rect": {
+          "r": 945,
+          "b": 453
+        }
+      },
+      "changed": true
+    },
+    {
+      "name": "rollback",
+      "sel": "[data-action=\"rollback-create\"]",
+      "before": {
+        "banner": false,
+        "works": "1",
+        "path": "/room/edit"
+      },
+      "after": {
+        "banner": true,
+        "works": "2",
+        "path": "/room/create"
+      },
+      "changed": true
+    },
+    {
+      "name": "browse-key",
+      "sel": "[data-browse=\"k2\"]",
+      "before": {
+        "picks": [
+          "3주 붙잡은 기능을 오늘 지웠습니다",
+          "커밋 41개를 지우는 데 걸린 3주"
+        ]
+      },
+      "after": {
+        "picks": [
+          "출시 전에 확인한 일곱 가지",
+          "혼자 내보내기 전 점검한 목록 전문"
+        ]
+      },
+      "changed": true
+    },
+    {
+      "name": "browse-similar",
+      "sel": "[data-similar]",
+      "before": {
+        "banner": "none",
+        "path": "/room/perf"
+      },
+      "after": {
+        "banner": "되돌려서 도착3주 붙잡은 기능을 오늘 지웠습니다어디서성과실어디로Studi",
+        "path": "/room/create"
+      },
+      "changed": true
+    },
+    {
+      "name": "gnb-works",
+      "sel": "[data-gnb=\"works\"]",
+      "before": {
+        "panel": "none"
+      },
+      "after": {
+        "panel": "works"
+      },
+      "changed": true
+    },
+    {
+      "name": "gnb-noti",
+      "sel": "[data-gnb=\"noti\"]",
+      "before": {
+        "panel": "none"
+      },
+      "after": {
+        "panel": "noti"
+      },
+      "changed": true
+    }
+  ],
+  "chatDockAnchor": [
+    {
+      "room": "room-create",
+      "fromRight": 11,
+      "fromTop": 99,
+      "w": 219
+    },
+    {
+      "room": "room-edit",
+      "fromRight": 11,
+      "fromTop": 99,
+      "w": 219
+    },
+    {
+      "room": "room-publish",
+      "fromRight": 11,
+      "fromTop": 99,
+      "w": 219
+    },
+    {
+      "room": "room-perf",
+      "fromRight": 11,
+      "fromTop": 99,
+      "w": 219
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+{
+  "generatedAt": "2026-08-22T16:28:00.568Z",
+  "prototype": "file:///Users/sj/sj_code_master/openclaw-auto/docs/prototype/openclaw-auto-4room-v45.html",
+  "captures": [
+    "openclaw-auto-v45-390.png",
+    "openclaw-auto-v45-1024.png",
+    "openclaw-auto-v45-1440.png",
+    "openclaw-auto-v45-card-space-a-1024.png",
+    "openclaw-auto-v45-card-space-b-1024.png",
+    "openclaw-auto-v45-screen-selection.png"
+  ],
+  "viewportChecks": {
+    "390": {
+      "title": "OSMU 마케팅 허브 · v45 · 전달물이 보이는 네 방 흐름",
+      "viewport": "390",
+      "bridges": 3,
+      "routeOverflow": 0,
+      "boardOverflow": 0,
+      "deviceWidth": 390,
+      "mobileCarryVisible": true,
+      "header": {
+        "height": 61,
+        "overflow": 0,
+        "wrap": "nowrap",
+        "learningBeforeCredit": true
+      }
+    },
+    "1024": {
+      "title": "OSMU 마케팅 허브 · v45 · 전달물이 보이는 네 방 흐름",
+      "viewport": "1024",
+      "bridges": 3,
+      "routeOverflow": 0,
+      "boardOverflow": 0,
+      "deviceWidth": 1024,
+      "mobileCarryVisible": false,
+      "header": {
+        "height": 61,
+        "overflow": 0,
+        "wrap": "nowrap",
+        "learningBeforeCredit": true
+      }
+    },
+    "1440": {
+      "title": "OSMU 마케팅 허브 · v45 · 전달물이 보이는 네 방 흐름",
+      "viewport": "1440",
+      "bridges": 3,
+      "routeOverflow": 0,
+      "boardOverflow": 0,
+      "deviceWidth": 1440,
+      "mobileCarryVisible": false,
+      "header": {
+        "height": 61,
+        "overflow": 0,
+        "wrap": "nowrap",
+        "learningBeforeCredit": true
+      }
+    }
+  },
+  "cardSpace": {
+    "fill": {
+      "mode": "fill",
+      "pressed": "true",
+      "heights": [
+        333,
+        333,
+        333
+      ]
+    },
+    "hug": {
+      "mode": "hug",
+      "pressed": "true",
+      "heights": [
+        189,
+        229,
+        194
+      ],
+      "persisted": "hug"
+    }
+  },
+  "selectionBoard": {
+    "open": true,
+    "ariaHidden": "false",
+    "selected": [
+      "v44-flow-create",
+      "v44-flow-edit"
+    ],
+    "previews": 2,
+    "promptHasScreens": true,
+    "promptHasMemo": true,
+    "promptHasCardSpace": true,
+    "storedIds": [
+      "v44-flow-create",
+      "v44-flow-edit"
+    ],
+    "storedMemo": "방 사이 전달물을 유지하고 카드 여백 B를 기준으로 비교",
+    "status": "선택을 저장하고 문장을 복사했어요."
+  },
+  "screenRuleScan": {
+    "checked": 131,
+    "issues": []
+  },
+  "consoleErrors": [],
+  "summary": {
+    "bridgeCountAllViewports": true,
+    "noRouteOverflow": true,
+    "cardModesPersist": true,
+    "selectionSaved": true,
+    "promptComplete": true,
+    "screenRulesClean": true,
+    "noConsoleErrors": true
+  }
+}

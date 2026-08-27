@@ -1,0 +1,490 @@
+{
+  "routeCount": 23,
+  "totalChecks": 62,
+  "errorChecks": 0,
+  "overflowChecks": 0,
+  "emptyRoots": [],
+  "failed": [],
+  "results": [
+    {
+      "path": "/",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 1459,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 1459,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/studio",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 3010,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/studio",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 3010,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/inbox",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 773,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/inbox",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 773,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/calendar",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 637,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/calendar",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 637,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/channels/threads",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 652,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/channels/threads",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 652,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/channels/x",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 644,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/channels/x",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 644,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/channels/instagram",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 649,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/channels/instagram",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 649,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/channels/facebook",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 651,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/channels/facebook",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 651,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/channels/bluesky",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 650,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/channels/bluesky",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 650,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/channels/telegram",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 661,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/channels/telegram",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 661,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/channels/discord",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 660,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/channels/discord",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 660,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/channels/slack",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 658,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/channels/slack",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 658,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/channels/youtube",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 736,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/channels/youtube",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 736,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/channels/tiktok",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 736,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/channels/tiktok",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 736,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/blog-performance",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 454,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/blog-performance",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 454,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/keyword-planner",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 554,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/keyword-planner",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 554,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/naver-trends",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 551,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/naver-trends",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 551,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/google-trends",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 552,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/google-trends",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 552,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/blog",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 541,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/blog",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 541,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/images",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 484,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/images",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 484,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/videos",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 736,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/videos",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 736,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/channels/midjourney",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 448,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/channels/midjourney",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 448,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/settings",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 680,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/settings",
+      "viewport": "1024x768",
+      "errors": [],
+      "rootChars": 680,
+      "overflowPx": 0,
+      "evalErr": null
+    },
+    {
+      "path": "/ [customer/success]",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 1459,
+      "evalErr": null
+    },
+    {
+      "path": "/ [customer/loading]",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 1086,
+      "evalErr": null
+    },
+    {
+      "path": "/ [customer/empty]",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 1140,
+      "evalErr": null
+    },
+    {
+      "path": "/ [customer/error]",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 1043,
+      "evalErr": null
+    },
+    {
+      "path": "/ [operator/success]",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 2080,
+      "evalErr": null
+    },
+    {
+      "path": "/ [operator/loading]",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 199,
+      "evalErr": null
+    },
+    {
+      "path": "/ [operator/empty]",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 217,
+      "evalErr": null
+    },
+    {
+      "path": "/ [operator/error]",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 241,
+      "evalErr": null
+    },
+    {
+      "path": "/studio [customer/success]",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 3010,
+      "evalErr": null
+    },
+    {
+      "path": "/studio [customer/loading]",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 3147,
+      "evalErr": null
+    },
+    {
+      "path": "/studio [customer/empty]",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 3152,
+      "evalErr": null
+    },
+    {
+      "path": "/studio [customer/error]",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 3010,
+      "evalErr": null
+    },
+    {
+      "path": "/studio [operator/success]",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 2080,
+      "evalErr": null
+    },
+    {
+      "path": "/studio [operator/loading]",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 199,
+      "evalErr": null
+    },
+    {
+      "path": "/studio [operator/empty]",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 217,
+      "evalErr": null
+    },
+    {
+      "path": "/studio [operator/error]",
+      "viewport": "390x844",
+      "errors": [],
+      "rootChars": 241,
+      "evalErr": null
+    }
+  ]
+}

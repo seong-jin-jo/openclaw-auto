@@ -1,0 +1,27 @@
+{
+  "created_at": "2026-08-13T18:35:35.725403Z",
+  "display_name": "Cinematic Studio 3.0",
+  "id": "bd10bfb3-f813-4f0e-b270-ec3177cb9383",
+  "job_type": "cinematic_studio_3_0",
+  "min_result_url": null,
+  "params": {
+    "aspect_ratio": "9:16",
+    "duration": 5,
+    "generate_audio": false,
+    "genre": "auto",
+    "height": 1344,
+    "medias": [],
+    "multi_prompt": [],
+    "multi_shot_mode": "custom",
+    "multi_shots": false,
+    "prompt": "Vertical framing. A wall calendar mounted on a plain wall, its paper pages flipping backward rapidly in a blur of motion, then settling on one single page as a deep red round rubber stamp presses down and its ink bleeds into the paper fibers. Beside the calendar a small mountain shaped line graph icon. Warm cream and deep navy palette, subtle paper grain, natural soft light, no text, no letters, no numbers anywhere.",
+    "prompt_language": "en",
+    "reference_elements": [],
+    "resolution": "720p",
+    "speedramp": "auto",
+    "width": 768
+  },
+  "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183535_bd10bfb3-f813-4f0e-b270-ec3177cb9383.mp4",
+  "status": "completed",
+  "thumbnail_url": "https://cdn.higgsfield.ai/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183535_bd10bfb3-f813-4f0e-b270-ec3177cb9383_thumbnail.webp"
+}

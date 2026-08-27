@@ -80,11 +80,12 @@ AI 에이전트가 콘텐츠를 자동 생성하고, 검수 후 멀티채널로 
 
 ### 대시보드
 사이드바 기반 멀티채널 관제 UI:
-- **Marketing Home** — 채널 아이콘 그리드, 주간 성과, 크론 상태, 활동 타임라인, Alerts
-- **채널별 페이지** — Queue / Analytics / Growth / Popular / Settings (credential + 가이드 + 키워드)
-- **Blog** — 블로그 큐 관리
-- **Images** — 에셋 갤러리
-- **Settings** — 채널 연결, AI Engine (LLM 모델 설정), 자동화 토글, Account
+- **Performance Home / Studio / 승인 Inbox / 발행 Calendar**: 성과 관제, 콘텐츠 제작, 검토, 일정 확인
+- **채널별 페이지**: Threads는 Queue / Analytics / Growth / Popular / Settings 전체를 제공한다. 일반 소셜·영상 채널은 Growth / Popular가 비활성이고, Instagram은 Editor를 추가 제공하며, Messaging은 Settings 중심이다.
+- **Videos / Images / Blog**: 영상 제작·발행 작업대, 에셋 갤러리, 블로그 큐 관리
+- **Blog Performance / Keyword Planner / Naver Trends / Google Trends**: 분석과 키워드 조사 화면
+- **Services / Operator**: 서비스 전환과 별도 운영자 고객 관리 화면
+- **Settings**: 채널 연결, AI Engine (LLM 모델 설정), 자동화 토글, Account
 
 ### Content Guide + Keywords
 채널별로 독립 관리 가능. 공통 가이드를 기본으로, 채널 전용 가이드로 오버라이드.

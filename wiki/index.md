@@ -1,5 +1,14 @@
 # openclaw-auto Project Wiki
 
+## 현행 작업 진입점 (2026-08-25)
+
+- 개발 절차: [guides/contributing.md](./guides/contributing.md)
+- 두 서비스 경계: [architecture/two-service-boundary.md](./architecture/two-service-boundary.md)
+- 운영 runbook: [ops/index.md](./ops/index.md)
+- 경쟁·제작 연구: [research/2026-08-competitor-and-production-research.md](./research/2026-08-competitor-and-production-research.md)
+
+기본 공정은 Stage Controller 단계 게이트다. gstack은 선택적 보조 도구다.
+
 **Single Source of Truth** for development knowledge, architecture, decisions, guides, and learnings.
 
 **Before any significant work**: Read relevant sections here first. This keeps context consistent across sessions and team members.

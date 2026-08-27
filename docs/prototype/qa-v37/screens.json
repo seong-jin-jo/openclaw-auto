@@ -1,0 +1,287 @@
+[
+ {
+  "id": "room-create",
+  "vp": "1440",
+  "g": "0 네 개의 방"
+ },
+ {
+  "id": "room-create-picked",
+  "vp": "1440",
+  "g": "0 네 개의 방"
+ },
+ {
+  "id": "room-edit",
+  "vp": "1440",
+  "g": "0 네 개의 방"
+ },
+ {
+  "id": "room-edit-rollback",
+  "vp": "1440",
+  "g": "0 네 개의 방"
+ },
+ {
+  "id": "room-publish",
+  "vp": "1440",
+  "g": "0 네 개의 방"
+ },
+ {
+  "id": "room-publish-ig",
+  "vp": "1440",
+  "g": "0 네 개의 방"
+ },
+ {
+  "id": "room-publish-choice",
+  "vp": "1440",
+  "g": "0 네 개의 방"
+ },
+ {
+  "id": "room-perf",
+  "vp": "1440",
+  "g": "0 네 개의 방"
+ },
+ {
+  "id": "room-perf-browse",
+  "vp": "1440",
+  "g": "0 네 개의 방"
+ },
+ {
+  "id": "room-perf-mobile",
+  "vp": "390",
+  "g": "0 네 개의 방"
+ },
+ {
+  "id": "entry-login",
+  "vp": "390",
+  "g": "1 진입"
+ },
+ {
+  "id": "entry-fail",
+  "vp": "390",
+  "g": "1 진입"
+ },
+ {
+  "id": "entry-empty",
+  "vp": "1024",
+  "g": "1 진입"
+ },
+ {
+  "id": "guest-tour",
+  "vp": "1024",
+  "g": "1 진입"
+ },
+ {
+  "id": "guest-wall",
+  "vp": "390",
+  "g": "1 진입"
+ },
+ {
+  "id": "taste-empty",
+  "vp": "390",
+  "g": "2 학습 정보 시작"
+ },
+ {
+  "id": "taste-import",
+  "vp": "1024",
+  "g": "2 학습 정보 시작"
+ },
+ {
+  "id": "taste-seed",
+  "vp": "390",
+  "g": "2 학습 정보 시작"
+ },
+ {
+  "id": "make-proposals",
+  "vp": "1024",
+  "g": "3 제작 시작"
+ },
+ {
+  "id": "make-proposals-narrow",
+  "vp": "390",
+  "g": "3 제작 시작"
+ },
+ {
+  "id": "make-direct",
+  "vp": "1024",
+  "g": "3 제작 시작"
+ },
+ {
+  "id": "make-first",
+  "vp": "1024",
+  "g": "3 제작 시작"
+ },
+ {
+  "id": "make-return",
+  "vp": "1024",
+  "g": "3 제작 시작"
+ },
+ {
+  "id": "make-reco",
+  "vp": "1024",
+  "g": "3 제작 시작"
+ },
+ {
+  "id": "make-medium",
+  "vp": "1024",
+  "g": "3 제작 시작"
+ },
+ {
+  "id": "make-market",
+  "vp": "1024",
+  "g": "4 시장과 언어"
+ },
+ {
+  "id": "cand-loading",
+  "vp": "390",
+  "g": "5 결과 후보"
+ },
+ {
+  "id": "cand-pick",
+  "vp": "1024",
+  "g": "5 결과 후보"
+ },
+ {
+  "id": "cand-empty",
+  "vp": "390",
+  "g": "5 결과 후보"
+ },
+ {
+  "id": "cand-error",
+  "vp": "390",
+  "g": "5 결과 후보"
+ },
+ {
+  "id": "judge",
+  "vp": "1024",
+  "g": "6 판단과 확정"
+ },
+ {
+  "id": "judge-consent",
+  "vp": "390",
+  "g": "6 판단과 확정"
+ },
+ {
+  "id": "make-confirm",
+  "vp": "1024",
+  "g": "6 판단과 확정"
+ },
+ {
+  "id": "edit-text",
+  "vp": "1024",
+  "g": "7 미리보기 편집"
+ },
+ {
+  "id": "edit-card",
+  "vp": "390",
+  "g": "7 미리보기 편집"
+ },
+ {
+  "id": "edit-video",
+  "vp": "390",
+  "g": "7 미리보기 편집"
+ },
+ {
+  "id": "edit-delivery",
+  "vp": "1024",
+  "g": "7 미리보기 편집"
+ },
+ {
+  "id": "publish",
+  "vp": "1024",
+  "g": "8 승인 인박스"
+ },
+ {
+  "id": "publish-done",
+  "vp": "1024",
+  "g": "8 승인 인박스"
+ },
+ {
+  "id": "make-outlet",
+  "vp": "1024",
+  "g": "8 승인 인박스"
+ },
+ {
+  "id": "make-outlet-narrow",
+  "vp": "390",
+  "g": "8 승인 인박스"
+ },
+ {
+  "id": "ch-create",
+  "vp": "1024",
+  "g": "9 채널"
+ },
+ {
+  "id": "ch-queue",
+  "vp": "1024",
+  "g": "9 채널"
+ },
+ {
+  "id": "ch-blocked",
+  "vp": "390",
+  "g": "9 채널"
+ },
+ {
+  "id": "ch-settings",
+  "vp": "1024",
+  "g": "9 채널"
+ },
+ {
+  "id": "perf-home",
+  "vp": "1440",
+  "g": "10 성과·학습 정보"
+ },
+ {
+  "id": "perf-channel",
+  "vp": "1024",
+  "g": "10 성과·학습 정보"
+ },
+ {
+  "id": "taste-asset",
+  "vp": "1024",
+  "g": "10 성과·학습 정보"
+ },
+ {
+  "id": "taste-signal",
+  "vp": "1024",
+  "g": "10 성과·학습 정보"
+ },
+ {
+  "id": "taste-profile",
+  "vp": "1024",
+  "g": "10 성과·학습 정보"
+ },
+ {
+  "id": "taste-pending",
+  "vp": "390",
+  "g": "10 성과·학습 정보"
+ },
+ {
+  "id": "taste-nav",
+  "vp": "1024",
+  "g": "10 성과·학습 정보"
+ },
+ {
+  "id": "taste-edit",
+  "vp": "390",
+  "g": "10 성과·학습 정보"
+ },
+ {
+  "id": "set-channels",
+  "vp": "1024",
+  "g": "11 설정과 운영"
+ },
+ {
+  "id": "set-notify",
+  "vp": "390",
+  "g": "11 설정과 운영"
+ },
+ {
+  "id": "ops-status",
+  "vp": "1440",
+  "g": "11 설정과 운영"
+ },
+ {
+  "id": "ops-repair",
+  "vp": "1440",
+  "g": "11 설정과 운영"
+ }
+]

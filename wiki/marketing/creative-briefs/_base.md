@@ -1,5 +1,7 @@
 # Creative Brief — _base (전 채널 공통 정본)
 
+> 크론 코드 기준(2026-08-25): `config/cron/jobs.json.example`의 6개 이름은 `generate-drafts`, `multi-channel-publish`, `collect-insights`, `fetch-trending`, `track-growth`, `osmu-generate-drafts`다. 아래 채널별 연결표의 `threads-generate-drafts`·`instagram-generate-drafts`는 현행 example job 이름이 아닌 과거 설계명이다.
+
 **갱신: 2026-07-16 (워딩 전환: 비서→공장 "OSMU 팩토리")** · 작성: content-growth-marketer (openclaw-creative-brief 스킬)
 이 폴더의 존재 이유: **Haiku/Sonnet 크론이 이 브리프만 읽고 생성해도 상위모델(Fable) 의도와 일치**하게 만드는 것. 채널별 세부는 [threads.md](./threads.md) · [x.md](./x.md) · [instagram.md](./instagram.md) · [blog.md](./blog.md) · [youtube.md](./youtube.md).
 

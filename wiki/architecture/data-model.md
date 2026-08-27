@@ -20,6 +20,33 @@ This is the reference for all persistent state. Most data is tenant-scoped for S
 - `published_posts` — one row per platform publish attempt, including failed attempts for auditability.
   `account_id` records the exact social account used; the nullable FK is cleared if that account is deleted.
 
+#### OSMU v63 backend round 2 additive contracts (2026-08-27)
+
+- First-comment publishing reuses the existing publish attempt row. A successful or failed provider reply is
+  stored in `published_posts.provider_meta`; no comment table or column was added. Platforms without an
+  implemented comment-create adapter reject the request before the main post is published.
+- Review requests stay in the existing queue payload as `reviewRequest`. The legacy queue status remains
+  `draft`, so the approval inbox continues to use its existing draft query while the additive metadata records
+  the request timestamp, source room, inbox URL, and Studio return context.
+- Unified publish status derives seven platform targets from existing `published_posts` rows and preview targets.
+  It does not create a publish-job table. Stop remains explicitly unsupported until durable cancellation and
+  provider-specific interruption contracts are agreed.
+- Suggestion sample assessment is response metadata. The threshold is five performance samples, and records
+  below that threshold remain unverified. `publishContext` is also response-only navigation metadata.
+
+#### OSMU v63 editor handoff and queue bridge (2026-08-28)
+
+- Editor handoff reuses `drafts.payload.editor_handoff`. Contract version `1.0` stores `kind`, the
+  kind-specific payload, Studio generation and candidate IDs, optimistic `revision`, status, and the last
+  50 edit operations. No editor table or column was added.
+- `reorder_scenes`, `delete_line`, and `restore_line` mutate that JSONB document with an expected revision.
+  A stale revision returns 409, so concurrent edits cannot silently overwrite a newer draft.
+- A ready handoff enters the existing queue with `sourceContext.type=studio_handoff`. The context preserves
+  handoff, draft, kind, revision, generation, and candidate IDs. The idempotency key
+  `studio-handoff:<handoff-id>:revision:<revision>` reuses the same queue post on repeated chatbot commands.
+- Dashboard tenant selection and Studio development workspace selection remain separate runtime identities.
+  The latter is held in `sessionStorage` as `studio_workspace_id`; it does not create persistent schema state.
+
 #### Home data cutover and rollback (2026-08-13)
 
 - `/api/overview`, `/api/activity`, `/api/weekly-report`, and `/api/weekly-summary` read
@@ -32,6 +59,11 @@ This is the reference for all persistent state. Most data is tenant-scoped for S
   never overwrites a newer DB row with a stale file snapshot.
 - Dashboard queue mutations dual-write to `queue_posts`. The contract stage, including deletion of
   `queue.json`, remains blocked until cron and external extension writers are verified on DB.
+- Performance suggestions use the existing queue payload instead of a new table. `sourceContext`
+  preserves the suggestion ID, basis, verification label, and allowlisted evidence. The
+  `suggestion:<id>` idempotency key prevents duplicate queue rows during concurrent handoff requests.
+  `publishContext` is response-only navigation metadata for inbox and calendar, so it does not add a
+  persistent column.
 
 ### Social Accounts
 - `channel_accounts` — provider-specific accounts owned by one tenant. A tenant can retain multiple

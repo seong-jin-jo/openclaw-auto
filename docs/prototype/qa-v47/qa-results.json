@@ -1,0 +1,627 @@
+{
+  "generatedAt": "2026-08-23T17:06:55.025Z",
+  "prototype": "file:///Users/sj/sj_code_master/openclaw-auto/docs/prototype/openclaw-auto-4room-v47.html",
+  "captures": [
+    "openclaw-auto-v47-390.png",
+    "openclaw-auto-v47-1024.png",
+    "openclaw-auto-v47-1440.png",
+    "openclaw-auto-v47-1024-sidebar-collapsed.png",
+    "openclaw-auto-v47-card-space-a-1024.png",
+    "openclaw-auto-v47-card-space-b-1024.png",
+    "openclaw-auto-v47-benchmark-panel.png"
+  ],
+  "viewportChecks": {
+    "390": {
+      "title": "OSMU 마케팅 허브 · v47 · 읽히는 본문과 상시 담당",
+      "viewport": "390",
+      "transferOverflow": 0,
+      "boardOverflow": 0,
+      "prototypeOverflow": 0,
+      "deviceWidth": 390,
+      "sidebarWidth": 0,
+      "chatPersistent": true,
+      "chatWidth": 372,
+      "workareaWidth": 388,
+      "chatRatio": 0.959,
+      "contentWidth": 388,
+      "chatBelowContent": true,
+      "duplicateRoomLabels": [],
+      "badCharacterWraps": [],
+      "chipClips": [],
+      "flowOverflow": [],
+      "textLayout": [
+        {
+          "text": "산후 회복, 다시 걷는 첫 주",
+          "lines": [
+            11
+          ],
+          "width": 131
+        },
+        {
+          "text": "선택 원본 + 제작 정보",
+          "lines": [
+            9
+          ],
+          "width": 148
+        },
+        {
+          "text": "완성 원본 + 채널별 문구",
+          "lines": [
+            10
+          ],
+          "width": 148
+        },
+        {
+          "text": "지금 보는 결과",
+          "lines": [
+            6
+          ],
+          "width": 0
+        },
+        {
+          "text": "선택한 한 편",
+          "lines": [
+            5
+          ],
+          "width": 0
+        },
+        {
+          "text": "첫 3초에 회복 전후를 나란히",
+          "lines": [
+            12
+          ],
+          "width": 0
+        },
+        {
+          "text": "읽고 쌓는 정보",
+          "lines": [
+            6
+          ],
+          "width": 68
+        },
+        {
+          "text": "뜻말만 표시",
+          "lines": [
+            5
+          ],
+          "width": 50
+        },
+        {
+          "text": "선택 원본",
+          "lines": [
+            4
+          ],
+          "width": 167
+        },
+        {
+          "text": "편집 요청",
+          "lines": [
+            4
+          ],
+          "width": 167
+        },
+        {
+          "text": "글·영상 갈래",
+          "lines": [
+            6
+          ],
+          "width": 167
+        },
+        {
+          "text": "채널별 규격",
+          "lines": [
+            5
+          ],
+          "width": 167
+        },
+        {
+          "text": "완성 원본",
+          "lines": [
+            4
+          ],
+          "width": 167
+        },
+        {
+          "text": "채널별 문구",
+          "lines": [
+            5
+          ],
+          "width": 167
+        },
+        {
+          "text": "수정 관찰과 기록",
+          "lines": [
+            7
+          ],
+          "width": 167
+        },
+        {
+          "text": "다음으로 넘김",
+          "lines": [
+            6
+          ],
+          "width": 0
+        },
+        {
+          "text": "원본 보존",
+          "lines": [
+            4
+          ],
+          "width": 0
+        },
+        {
+          "text": "완성 원본 + 채널별 문구",
+          "lines": [
+            10
+          ],
+          "width": 0
+        },
+        {
+          "text": "성과와 제작 정보",
+          "lines": [
+            7
+          ],
+          "width": 115
+        },
+        {
+          "text": "규칙 후보",
+          "lines": [
+            4
+          ],
+          "width": 115
+        },
+        {
+          "text": "승낙 뒤 다음 생성",
+          "lines": [
+            7
+          ],
+          "width": 115
+        }
+      ],
+      "header": {
+        "height": 61,
+        "overflow": 0,
+        "wrap": "nowrap",
+        "learningBeforeCredit": true
+      }
+    },
+    "1024": {
+      "title": "OSMU 마케팅 허브 · v47 · 읽히는 본문과 상시 담당",
+      "viewport": "1024",
+      "transferOverflow": 0,
+      "boardOverflow": 0,
+      "prototypeOverflow": 0,
+      "deviceWidth": 1024,
+      "sidebarWidth": 56,
+      "chatPersistent": true,
+      "chatWidth": 280,
+      "workareaWidth": 966,
+      "chatRatio": 0.29,
+      "contentWidth": 654,
+      "chatBelowContent": false,
+      "duplicateRoomLabels": [],
+      "badCharacterWraps": [],
+      "chipClips": [],
+      "flowOverflow": [],
+      "textLayout": [
+        {
+          "text": "산후 회복, 다시 걷는 첫 주",
+          "lines": [
+            11
+          ],
+          "width": 131
+        },
+        {
+          "text": "이번 요청 + 학습 정보",
+          "lines": [
+            9
+          ],
+          "width": 245
+        },
+        {
+          "text": "선택 원본 + 제작 정보",
+          "lines": [
+            9
+          ],
+          "width": 245
+        },
+        {
+          "text": "지금 보는 결과",
+          "lines": [
+            6
+          ],
+          "width": 68
+        },
+        {
+          "text": "선택한 한 편",
+          "lines": [
+            5
+          ],
+          "width": 53
+        },
+        {
+          "text": "산후 회복, 다시 걷는 첫 주",
+          "lines": [
+            7,
+            4
+          ],
+          "width": 135
+        },
+        {
+          "text": "읽고 쌓는 정보",
+          "lines": [
+            6
+          ],
+          "width": 68
+        },
+        {
+          "text": "뜻말만 표시",
+          "lines": [
+            5
+          ],
+          "width": 50
+        },
+        {
+          "text": "안전과 권리",
+          "lines": [
+            5
+          ],
+          "width": 95
+        },
+        {
+          "text": "작업 공간 사실",
+          "lines": [
+            6
+          ],
+          "width": 95
+        },
+        {
+          "text": "제작법",
+          "lines": [
+            3
+          ],
+          "width": 95
+        },
+        {
+          "text": "승낙한 규칙과 이번 요청",
+          "lines": [
+            3,
+            7
+          ],
+          "width": 95
+        },
+        {
+          "text": "후보 3개",
+          "lines": [
+            4
+          ],
+          "width": 95
+        },
+        {
+          "text": "선택 원본 1개",
+          "lines": [
+            6
+          ],
+          "width": 95
+        },
+        {
+          "text": "선택 관찰과 제작 정보",
+          "lines": [
+            9
+          ],
+          "width": 95
+        },
+        {
+          "text": "다음으로 넘김",
+          "lines": [
+            6
+          ],
+          "width": 65
+        },
+        {
+          "text": "원본 보존",
+          "lines": [
+            4
+          ],
+          "width": 41
+        },
+        {
+          "text": "선택 원본 + 제작 정보",
+          "lines": [
+            9
+          ],
+          "width": 134
+        },
+        {
+          "text": "성과와 제작 정보",
+          "lines": [
+            7
+          ],
+          "width": 96
+        },
+        {
+          "text": "규칙 후보",
+          "lines": [
+            4
+          ],
+          "width": 56
+        },
+        {
+          "text": "승낙 뒤 다음 생성",
+          "lines": [
+            7
+          ],
+          "width": 96
+        }
+      ],
+      "header": {
+        "height": 61,
+        "overflow": 0,
+        "wrap": "nowrap",
+        "learningBeforeCredit": true
+      }
+    },
+    "1440": {
+      "title": "OSMU 마케팅 허브 · v47 · 읽히는 본문과 상시 담당",
+      "viewport": "1440",
+      "transferOverflow": 0,
+      "boardOverflow": 0,
+      "prototypeOverflow": 0,
+      "deviceWidth": 1440,
+      "sidebarWidth": 224,
+      "chatPersistent": true,
+      "chatWidth": 304,
+      "workareaWidth": 1214,
+      "chatRatio": 0.25,
+      "contentWidth": 878,
+      "chatBelowContent": false,
+      "duplicateRoomLabels": [],
+      "badCharacterWraps": [],
+      "chipClips": [],
+      "flowOverflow": [],
+      "textLayout": [
+        {
+          "text": "산후 회복, 다시 걷는 첫 주",
+          "lines": [
+            11
+          ],
+          "width": 131
+        },
+        {
+          "text": "발행 증거 + 제작 정보",
+          "lines": [
+            9
+          ],
+          "width": 357
+        },
+        {
+          "text": "승낙한 규칙만 다음 요청에",
+          "lines": [
+            11
+          ],
+          "width": 357
+        },
+        {
+          "text": "지금 보는 결과",
+          "lines": [
+            6
+          ],
+          "width": 68
+        },
+        {
+          "text": "선택한 한 편",
+          "lines": [
+            5
+          ],
+          "width": 53
+        },
+        {
+          "text": "첫 3초 결과 노출이 저장에 유리",
+          "lines": [
+            5,
+            8
+          ],
+          "width": 184
+        },
+        {
+          "text": "읽고 쌓는 정보",
+          "lines": [
+            6
+          ],
+          "width": 68
+        },
+        {
+          "text": "뜻말만 표시",
+          "lines": [
+            5
+          ],
+          "width": 50
+        },
+        {
+          "text": "조회·저장·댓글",
+          "lines": [
+            8
+          ],
+          "width": 131
+        },
+        {
+          "text": "제작 정보",
+          "lines": [
+            4
+          ],
+          "width": 131
+        },
+        {
+          "text": "선택과 수정 기록",
+          "lines": [
+            7
+          ],
+          "width": 131
+        },
+        {
+          "text": "비슷한 공개 흐름",
+          "lines": [
+            7
+          ],
+          "width": 131
+        },
+        {
+          "text": "관찰 5건",
+          "lines": [
+            4
+          ],
+          "width": 131
+        },
+        {
+          "text": "배운 규칙 후보",
+          "lines": [
+            6
+          ],
+          "width": 131
+        },
+        {
+          "text": "근거가 붙은 다음 제안",
+          "lines": [
+            9
+          ],
+          "width": 131
+        },
+        {
+          "text": "다음으로 넘김",
+          "lines": [
+            6
+          ],
+          "width": 65
+        },
+        {
+          "text": "원본 보존",
+          "lines": [
+            4
+          ],
+          "width": 41
+        },
+        {
+          "text": "승낙한 규칙만 다음 요청에",
+          "lines": [
+            11
+          ],
+          "width": 167
+        },
+        {
+          "text": "성과와 제작 정보",
+          "lines": [
+            7
+          ],
+          "width": 112
+        },
+        {
+          "text": "규칙 후보",
+          "lines": [
+            4
+          ],
+          "width": 64
+        },
+        {
+          "text": "승낙 뒤 다음 생성",
+          "lines": [
+            7
+          ],
+          "width": 112
+        }
+      ],
+      "header": {
+        "height": 61,
+        "overflow": 0,
+        "wrap": "nowrap",
+        "learningBeforeCredit": true
+      }
+    }
+  },
+  "cardSpace": {
+    "fill": {
+      "mode": "fill",
+      "pressed": "true",
+      "heights": [
+        343,
+        343,
+        343
+      ]
+    },
+    "hug": {
+      "mode": "hug",
+      "pressed": "true",
+      "heights": [
+        181,
+        219,
+        192
+      ],
+      "persisted": "hug"
+    }
+  },
+  "selectionBoard": {
+    "openControl": true,
+    "board": true,
+    "addFunction": true,
+    "saveFunction": true,
+    "previewFunction": true,
+    "storageKeyPresent": true
+  },
+  "sidebar": {
+    "expanded": {
+      "collapsed": false,
+      "width": 224,
+      "contentBefore": 654,
+      "contentAfter": 654,
+      "label": "사이드바 접기"
+    },
+    "collapsed": {
+      "collapsed": true,
+      "width": 56,
+      "contentWidth": 654,
+      "label": "사이드바 펼치기"
+    },
+    "persistedDesktop": {
+      "collapsed": true,
+      "persisted": "true"
+    }
+  },
+  "displayDuplicateScan": {
+    "checked": 12,
+    "issues": []
+  },
+  "screenRuleScan": {
+    "checked": 131,
+    "issues": []
+  },
+  "benchmarkPanel": {
+    "visible": true,
+    "links": [
+      "https://developer.android.com/develop/ui/views/layout/canonical-layouts",
+      "https://developer.apple.com/design/human-interface-guidelines/sidebars",
+      "https://www.figma.com/blog/behind-our-redesign-ui3/",
+      "https://www.notion.com/help/views-filters-and-sorts",
+      "https://www.intercom.com/help/en/articles/6612597-messenger-faqs",
+      "https://linear.app/docs/peek"
+    ],
+    "text": "v47 좁은 폭 패널 근거\n\n공식 문서에 숫자가 있는 규칙과 정성 규칙을 분리했다. 공개 숫자가 없는 제품에 임의 기준을 만들지 않았다.\n\n공식 제품\t확인한 규칙\t이번 판단\nAndroid canonical layouts\t600dp 미만 아래 배치, 600dp 이상 50:50, 840dp 이상 70:30\t1024 본문:담당 70:30, 390 담당 아래 배치 차용\nApple HIG Sidebars\t제한 폭에서는 compact control, 창 크기에 따른 자동 숨김\t1024 왼쪽 탐색 56px 자동 축소 차용\nFigma UI3\thover-only 패널의 불안정성을 수정하고 접기와 크기 조절 제공. 공개 숫자 없음\t담당은 안정적으로 상시 노출. 갑자기 사라지는 안 기각\nNotion side peek\t오른쪽 peek를 열어 왼쪽 목록 문맥 유지. 공개 숫자 없음\t본문 문맥 유지 차용, 별도 전체 화면 전환 기각\nIntercom Messenger\t데스크톱 최소 20px 여백과 고정 창 크기. 폭 사용자 지정 불가\t본문 폭을 계속 먹는 고정 overlay 기각\nLinear Peek\tSpace로 임시 미리보기, Esc로 닫기. 공개 숫자 없음\t임시 peek는 R101 상시 노출과 충돌해 기각"
+  },
+  "consoleErrors": [],
+  "summary": {
+    "noTransferOverflow": true,
+    "noBoardOverflow": true,
+    "persistentChatAllViewports": true,
+    "responsiveChatPlacement": true,
+    "chatRatioAt1024": true,
+    "noCharacterWraps": true,
+    "noChipClips": true,
+    "noFlowHorizontalOverflow": true,
+    "noDuplicateRoomLabels": true,
+    "sidebarToggleWorks": true,
+    "sidebarDesktopPersists": true,
+    "cardModesPersist": true,
+    "selectionFeaturePreserved": true,
+    "benchmarkPanelComplete": true,
+    "screenRulesClean": true,
+    "noConsoleErrors": true
+  }
+}

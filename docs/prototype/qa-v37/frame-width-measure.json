@@ -1,0 +1,30 @@
+[
+ {
+  "vp": "390",
+  "frameW": 390,
+  "nav": "dock",
+  "card": "dock",
+  "win": 1600
+ },
+ {
+  "vp": "768",
+  "frameW": 768,
+  "nav": "dock",
+  "card": "dock",
+  "win": 1600
+ },
+ {
+  "vp": "1024",
+  "frameW": 1024,
+  "nav": "hidden",
+  "card": "dock",
+  "win": 1600
+ },
+ {
+  "vp": "1440",
+  "frameW": 1440,
+  "nav": "hidden",
+  "card": "hidden",
+  "win": 1600
+ }
+]

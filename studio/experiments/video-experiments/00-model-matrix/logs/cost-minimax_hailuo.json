@@ -1,0 +1,2 @@
+Error: start_image or end_image is required unless variant is 'minimax-2.3'
+Hint: Run: hf model get minimax_hailuo

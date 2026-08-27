@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fictional Sports Lab</title>
+  <style>
+    :root {
+      --bg: #0b0c0f;
+      --panel: #15171c;
+      --panel-2: #1c1f25;
+      --ink: #f4f1e8;
+      --muted: #9aa0aa;
+      --line: #343842;
+      --hot: #ff5b24;
+      --warn: #ffcc66;
+      --ok: #7ee787;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+    }
+    button, select { font: inherit; }
+    .shell { width: min(1480px, 100%); margin: 0 auto; padding: 24px; }
+    .masthead {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: end;
+      padding: 8px 0 24px;
+      border-bottom: 1px solid var(--line);
+    }
+    .eyebrow { color: var(--hot); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { margin: 8px 0 0; max-width: 920px; font-family: Georgia, serif; font-size: clamp(38px, 7vw, 84px); line-height: .95; letter-spacing: -.05em; }
+    .status-box { width: 100%; max-width: 380px; padding: 16px; background: #211a11; border: 1px solid #67471b; border-radius: var(--radius); }
+    .status-box strong { display: block; color: var(--warn); margin-bottom: 8px; }
+    .status-box p { margin: 0; color: #e3d3ad; font-size: 13px; line-height: 1.55; }
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 1px; margin: 24px 0; background: var(--line); border: 1px solid var(--line); }
+    .metric { min-height: 112px; padding: 16px; background: var(--panel); }
+    .metric b { display: block; font-family: Georgia, serif; font-size: 36px; line-height: 1; }
+    .metric span { display: block; margin-top: 12px; color: var(--muted); font-size: 12px; }
+    .toolbar { position: sticky; top: 0; z-index: 3; display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 0; background: rgba(11,12,15,.96); border-bottom: 1px solid var(--line); }
+    .toolbar button, .toolbar select { min-height: 40px; padding: 0 12px; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+    .toolbar button[aria-pressed="true"] { border-color: var(--hot); color: #fff; background: #422013; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; padding: 24px 0 96px; }
+    .card { overflow: hidden; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+    .media { aspect-ratio: 9/16; max-height: 540px; display: grid; place-items: center; background: #08090b; border-bottom: 1px solid var(--line); }
+    .media video { width: 100%; height: 100%; object-fit: cover; }
+    .empty { width: 76%; color: var(--muted); text-align: center; line-height: 1.55; }
+    .empty b { display: block; margin-bottom: 10px; color: var(--warn); }
+    .body { padding: 16px; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .tag { padding: 4px 7px; color: #c8cbd1; border: 1px solid var(--line); border-radius: 999px; font-size: 10px; }
+    .tag.hot { color: #ffb399; border-color: #9f4528; }
+    h2 { margin: 0 0 10px; font-family: Georgia, serif; font-size: 24px; }
+    dl { display: grid; grid-template-columns: 98px minmax(0,1fr); gap: 7px 10px; margin: 0; font-size: 11px; line-height: 1.4; }
+    dt { color: var(--muted); }
+    dd { margin: 0; overflow-wrap: anywhere; }
+    details { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+    summary { cursor: pointer; color: var(--hot); font-size: 11px; }
+    details p { color: #c6c9cf; font-size: 11px; line-height: 1.6; }
+    .stamp { position: fixed; right: 12px; bottom: 12px; max-width: 560px; padding: 9px 12px; color: #b8bcc5; background: rgba(15,16,20,.94); border: 1px solid var(--line); border-radius: 8px; font-size: 10px; }
+    body.viewport-390 .grid { grid-template-columns: minmax(0,390px); justify-content: center; }
+    body.viewport-1024 .grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    @media (max-width: 900px) {
+      html, body { max-width: 100%; overflow-x: hidden; }
+      .shell { width: auto; max-width: none; margin: 0 16px; padding: 16px 0; overflow-x: hidden; }
+      .masthead { width: 100%; min-width: 0; grid-template-columns: minmax(0, 1fr); }
+      .status-box { max-width: none; }
+      .metrics { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .toolbar { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .toolbar button, .toolbar select { width: 100%; min-width: 0; padding-inline: 6px; }
+      .grid { grid-template-columns: 1fr; }
+      .stamp { position: static; margin: 24px 0 0; max-width: none; }
+    }
+    @media (max-width: 480px) {
+      .eyebrow { font-size: 10px; letter-spacing: .08em; overflow-wrap: anywhere; }
+      h1 { overflow-wrap: anywhere; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <div>
+        <div class="eyebrow">AI SHORTFORM STATION / CONTROLLED VIDEO LAB</div>
+        <h1>Fictional Sports Lab</h1>
+      </div>
+      <aside class="status-box">
+        <strong>BALANCE GUARD STOPPED THE RUN</strong>
+        <p>첫 제출 직전 잔액이 0으로 바뀌었습니다. 생성된 영상은 없습니다. 아래 카드는 실제 완료본이 아니라 162.5크레딧 배치의 프롬프트·변수·견적 기록입니다.</p>
+      </aside>
+    </header>
+
+    <section class="metrics" aria-label="실험 지표">
+      <div class="metric"><b id="planned">0</b><span>PLANNED JOBS</span></div>
+      <div class="metric"><b id="submitted">0</b><span>SUBMITTED JOBS</span></div>
+      <div class="metric"><b id="credits">0</b><span>ACTUAL CREDITS</span></div>
+      <div class="metric"><b id="files">0</b><span>LOCAL MP4</span></div>
+    </section>
+
+    <nav class="toolbar" aria-label="비교 필터">
+      <button type="button" data-filter="all" aria-pressed="true">ALL</button>
+      <button type="button" data-filter="camera_angle" aria-pressed="false">CAMERA</button>
+      <button type="button" data-filter="realism" aria-pressed="false">REALISM</button>
+      <button type="button" data-filter="model" aria-pressed="false">MODEL</button>
+      <button type="button" data-filter="action_density" aria-pressed="false">ACTION</button>
+      <button type="button" data-filter="repeatability" aria-pressed="false">REPEAT</button>
+      <select id="viewport" aria-label="뷰포트 보기">
+        <option value="auto">AUTO WIDTH</option>
+        <option value="390">390 MOBILE</option>
+        <option value="1024">1024 REVIEW</option>
+      </select>
+    </nav>
+
+    <section class="grid" id="grid" aria-live="polite"></section>
+
+    <footer class="stamp">
+      🏷 STAMP | line: sports-ent-batch | 생성: 2026-08-14 03:42 KST | model: gpt-5.6-sol | agent: content-growth-marketer | skill: viral-trend-research | 근거: BRAIN AI 숏폼 방송국, Higgsfield camera controls, OpenAI Higgsfield case study | 고민: 유명인 인지도를 버리고 카메라 물리와 가상 IP를 선택
+    </footer>
+  </main>
+
+  <script src="hub-data.js"></script>
+  <script>
+    const all = window.EXPERIMENTS || [];
+    const grid = document.querySelector('#grid');
+    let filter = 'all';
+
+    const safe = (value) => String(value ?? '').replace(/[&<>'"]/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+
+    function render() {
+      const rows = filter === 'all' ? all : all.filter((item) => item.variable === filter);
+      grid.innerHTML = rows.map((item) => {
+        const hasVideo = Boolean(item.local_path);
+        const media = hasVideo
+          ? `<video controls muted playsinline preload="metadata" src="${safe(item.local_path)}"></video>`
+          : `<div class="empty"><b>NOT SUBMITTED</b>잔액 안전 가드가 생성 전에 중단했습니다.<br>렌더·URL·MP4 없음</div>`;
+        return `<article class="card">
+          <div class="media">${media}</div>
+          <div class="body">
+            <div class="tags"><span class="tag hot">${safe(item.variable)}</span><span class="tag">${safe(item.model)}</span><span class="tag">${safe(item.line)}</span></div>
+            <h2>${safe(item.id)}</h2>
+            <dl>
+              <dt>VARIANT</dt><dd>${safe(item.variant)}</dd>
+              <dt>PARAMS</dt><dd>${safe(item.duration)}s · ${safe(item.aspect_ratio)} · ${safe(item.resolution)}</dd>
+              <dt>PRE-COST</dt><dd>${safe(item.preview_credits)} credits</dd>
+              <dt>ACTUAL</dt><dd>${safe(item.actual_credits)} credits</dd>
+              <dt>JOB ID</dt><dd>${safe(item.job_id || 'none')}</dd>
+              <dt>STATUS</dt><dd>${safe(item.status)}</dd>
+            </dl>
+            <details><summary>FULL PROMPT</summary><p>${safe(item.prompt)}</p></details>
+          </div>
+        </article>`;
+      }).join('');
+    }
+
+    document.querySelector('#planned').textContent = all.length;
+    document.querySelector('#submitted').textContent = all.filter((item) => item.job_id).length;
+    document.querySelector('#credits').textContent = all.reduce((sum, item) => sum + Number(item.actual_credits || 0), 0);
+    document.querySelector('#files').textContent = all.filter((item) => item.local_path).length;
+
+    document.querySelectorAll('[data-filter]').forEach((button) => {
+      button.addEventListener('click', () => {
+        filter = button.dataset.filter;
+        document.querySelectorAll('[data-filter]').forEach((candidate) => candidate.setAttribute('aria-pressed', String(candidate === button)));
+        render();
+      });
+    });
+
+    document.querySelector('#viewport').addEventListener('change', (event) => {
+      document.body.classList.remove('viewport-390', 'viewport-1024');
+      if (event.target.value !== 'auto') document.body.classList.add(`viewport-${event.target.value}`);
+    });
+
+    render();
+  </script>
+</body>
+</html>

@@ -126,3 +126,17 @@ GStack 브라우저로 Meta 콘솔(IG 설정 페이지) 자동 운전 중, Meta�
   (content_publish·insights 등) 승인** → 우리가 토큰+권한 수령. **테스터 등록·웹사이트권한 수락·콘솔 작업 0.**
   권한 부여는 OAuth 동의가 처리한다(콘솔 자동운전 불필요·금지).
 - 상품화 마일스톤 = App Review 준비(privacy policy URL + 이용사례 데모 영상 + 검수 제출).
+
+## 토큰 내구성 계약 (2026-08-14 보강)
+
+- Instagram·Threads는 authorization code로 받은 단기 토큰을 반드시 provider 장기 토큰으로 교환한 뒤 저장한다. 장기 교환 실패 시 단기 토큰 폴백은 금지한다.
+- Facebook은 단기 user token, 장기 user token, `/me/accounts` page token 순서를 전부 통과해야 저장한다. 장기 교환이 실패하면 page token 조회로 진행하지 않는다.
+- provider가 반환한 `expires_in`은 callback 시점의 절대시각으로 변환해 `channel_accounts.token_expires_at`에 저장한다. access token과 refresh token은 각각 `secret_enc`, `refresh_enc`에 암호화한다.
+- Threads·Instagram·X·YouTube는 저장 전 실제 계정 조회로 신원을 확인한다. 실패, 타임아웃, ID 누락을 토큰 교환 응답 ID로 덮지 않고 callback을 실패시켜 `active` 오판을 막는다.
+- 연결 판정은 status만 보지 않고 만료시각과 암호화 refresh token 유무를 함께 본다. Meta 장기 토큰 계정이 `active`여도 만료시각이 없으면 `reconnect`다.
+- YouTube refresh는 기존 `refresh_enc` 경로를 유지하고 새 access token의 `expires_in`으로 만료시각도 갱신한다. Threads·Instagram의 provider refresh endpoint 자동 호출은 아직 미구현이므로 만료 후에는 재연결이 필요하다.
+
+근거:
+- Meta 공식 Postman Threads API: https://www.postman.com/meta/threads/documentation/dht3nzz/threads-api
+- Meta Instagram API: https://www.postman.com/meta/instagram/documentation/6yqw8pt/instagram-api
+- Google OAuth web server: https://developers.google.com/identity/protocols/oauth2/web-server

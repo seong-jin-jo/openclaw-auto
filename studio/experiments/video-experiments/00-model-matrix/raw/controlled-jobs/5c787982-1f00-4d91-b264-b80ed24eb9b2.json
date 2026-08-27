@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-08-13T18:36:26.548681Z",
+  "display_name": "Google Veo 3.1 Lite",
+  "id": "5c787982-1f00-4d91-b264-b80ed24eb9b2",
+  "job_type": "veo3_1_lite",
+  "min_result_url": null,
+  "params": {
+    "aspect_ratio": "9:16",
+    "duration": 8,
+    "generate_audio": false,
+    "height": 1344,
+    "medias": [],
+    "prompt": "Vertical framing. Overhead shot of a plain wooden desk. Three sheets of paper slide in and settle one by one with a soft paper rustle, then merge and compress into a single clean card. Warm cream and deep navy palette, paper grain, natural soft light, no text, no letters, no numbers anywhere.",
+    "resolution": "720p",
+    "seed": 663739,
+    "width": 768
+  },
+  "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183626_5c787982-1f00-4d91-b264-b80ed24eb9b2.mp4",
+  "status": "completed",
+  "thumbnail_url": "https://cdn.higgsfield.ai/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183626_5c787982-1f00-4d91-b264-b80ed24eb9b2_thumbnail.webp"
+}

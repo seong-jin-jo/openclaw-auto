@@ -1,0 +1,125 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>기술설계 판정과 회장 결정 5건</title>
+<style>
+:root{--bg:#0f1216;--card:#171c23;--line:#2a323d;--tx:#e8edf4;--dim:#9aa7b8;--ok:#4e8f5f;--bad:#c9524b;--acc:#4a8fd6;--warn:#c08a3e}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.75 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:40px 20px 120px}
+h1{font-size:30px;margin:0 0 6px}h2{font-size:21px;margin:44px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+h3{font-size:17px;margin:0 0 10px}
+.sub{color:var(--dim);margin:0 0 26px;font-size:14px}
+.verdict{background:linear-gradient(180deg,#2a1b1b,#1d1517);border:1px solid var(--bad);border-radius:12px;padding:20px 22px;margin:0 0 28px}
+.verdict b{font-size:22px;color:#ff8f87}
+.score{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.chip{background:#0e1114;border:1px solid var(--line);border-radius:999px;padding:5px 13px;font-size:13px;color:var(--dim)}
+.chip.b{border-color:var(--bad);color:#ff9c95}.chip.g{border-color:var(--ok);color:#8fd6a3}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+th{background:#1b212a;color:var(--dim);font-weight:600;white-space:nowrap}
+.q{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px;margin:0 0 20px}
+.q .why{color:var(--dim);font-size:14px;margin:0 0 16px}
+label.opt{display:block;border:1px solid var(--line);border-radius:9px;padding:13px 15px;margin:0 0 9px;cursor:pointer;transition:.12s}
+label.opt:hover{border-color:var(--acc)}
+label.opt input{margin-right:9px}
+label.opt.sel{border-color:var(--acc);background:#16222f}
+.opt .t{font-weight:600}
+.opt .d{color:var(--dim);font-size:13.5px;margin-top:6px}
+.opt .d i{font-style:normal;color:#8fd6a3}.opt .d s{text-decoration:none;color:#ff9c95}
+textarea{width:100%;background:#0e1114;color:var(--tx);border:1px solid var(--line);border-radius:9px;padding:11px;font:14px/1.6 inherit;margin-top:10px;resize:vertical}
+.bar{position:fixed;left:0;right:0;bottom:0;background:#11151a;border-top:1px solid var(--line);padding:14px 20px;display:flex;gap:12px;justify-content:center;z-index:9}
+button{background:var(--acc);color:#fff;border:0;border-radius:9px;padding:12px 26px;font-size:15px;font-weight:600;cursor:pointer}
+button.g{background:#2a323d}
+.note{background:#1a1d16;border:1px solid var(--warn);border-radius:10px;padding:15px 18px;font-size:14.5px;margin:16px 0}
+.done{background:#141a16;border:1px solid var(--ok);border-radius:10px;padding:15px 18px;font-size:14.5px;margin:16px 0}
+code{background:#0e1114;padding:2px 6px;border-radius:4px;font-size:13px}
+</style></head><body><div class="wrap">
+
+<h1>기술설계 판정과 회장 결정</h1>
+<p class="sub">2026-08-23 · 대상: Studio 기술설계 v4.0과 조립층 계약 v4.0 · 판정: 독립 리뷰어(다른 모델)</p>
+
+<div class="verdict">
+<b>완벽하지 않습니다. 반려입니다.</b>
+<p style="margin:10px 0 0">독립 리뷰가 <b>25점 만점에 13점</b>을 매겼습니다. 합격선은 20점입니다. 두 항목이 1점이라 총점과 무관하게 자동 반려입니다. 고위험 부분을 다른 모델로 한 번 더 돌린 교차 검토도 같은 결론이었습니다.</p>
+<div class="score">
+<span class="chip b">완결성 1/5</span><span class="chip b">추적성 1/5</span>
+<span class="chip">정밀성 3/5</span><span class="chip">전문성 3/5</span>
+<span class="chip g">벤치마크 5/5</span>
+</div>
+</div>
+
+<h2>무엇이 문제인가</h2>
+<table>
+<tr><th>결함</th><th>실측</th><th>회장께 무엇이 달라지나</th></tr>
+<tr><td><b>요구사항이 설계로 이어지지 않았다</b></td><td>확정 요구 99건 중 설계 문서에 6건, 계약 문서에 4건만 언급</td><td>회장이 확정하신 것 대부분이 설계에 반영됐는지 확인할 방법이 없습니다</td></tr>
+<tr><td><b>같은 기능의 규격이 두 곳에서 다르다</b></td><td>상세 절과 전체 표의 요청·응답이 불일치</td><td>개발자가 어느 쪽을 만들지 못 정합니다</td></tr>
+<tr><td><b>studio 단독 판매가 안 닫힌다</b></td><td>가입·결제·권한·내려받기·해지 설계 없음</td><td>단독으로 팔 수 있다는 약속이 문서상 성립하지 않습니다</td></tr>
+<tr><td><b>회장 확정을 어긴 곳</b></td><td>첫 생성 전에 채널을 요구하는 기능이 남아 있음</td><td>"첫 사용자는 채널 연결 없이 만든다"는 확정과 충돌합니다</td></tr>
+<tr><td>데이터 안전 규격 미비</td><td>소유권 연결과 계정 격리의 실제 구현 규격 없음</td><td>남의 작업 공간이 새는 사고를 막을 근거가 없습니다</td></tr>
+<tr><td>동시 실행 설계 없음</td><td>중복 실행 방지와 멈춘 작업 회수 규격 없음</td><td>같은 요청이 두 번 돌아 크레딧이 두 번 나갈 수 있습니다</td></tr>
+</table>
+
+<div class="done"><b>잘된 것도 있습니다.</b> 지난 판에서 회장님이 지적하신 도식 문법 오류는 재발하지 않았습니다. 도식 10개를 실제로 그려 10개 전부 통과했습니다. 바깥 규격 조사도 5점 만점입니다.</div>
+
+<div class="note"><b>이미 손 쓰고 있습니다.</b> 위 결함 7건을 고치도록 재작업을 걸어 뒀습니다. 다만 아래 다섯 가지는 <b>기술로 정할 수 없는 것</b>이라 회장님 결정 없이는 그 부분을 못 채웁니다.</div>
+
+<h2>회장이 정하실 것</h2>
+
+<div class="done"><b>1, 2, 3번은 회신 받아 확정했습니다.</b> 요구사항 대장 R104, R105, R106으로 박았습니다.
+<ul style="margin:10px 0 0;padding-left:20px">
+<li>studio가 회원과 권한 장부를 직접 갖는다. 로그인과 결제 업체는 갈아 끼울 수 있게 붙인다</li>
+<li>studio만 쓰는 손님은 만료되는 내려받기 링크로 원본과 채널별 준비본을 받아 간다</li>
+<li>작업 공간은 요금제 기본 수량에 더해 초과분을 추가로 판다. 갱신 주기는 구독과 같다</li>
+</ul></div>
+
+<div class="q" style="border-color:var(--warn)">
+<h3>1번을 세 번이나 물은 이유 (원인 분석)</h3>
+<p class="why" style="margin-bottom:12px">회장님 지적이 맞습니다. 이미 정해진 것을 또 물었습니다. 원인은 둘입니다.</p>
+<table style="margin:0">
+<tr><th>원인</th><th>실측</th><th>고친 방법</th></tr>
+<tr><td><b>기술설계에 요구사항 추적표가 없다</b></td><td>확정 99건 중 설계 문서가 언급한 것은 6건. 회장님이 08-22에 확정하신 "studio는 자기 회원 정보를 가진다"가 설계에 안 적혀 있었다</td><td>재작업 지시서에 99건 전수 추적표를 필수로 박았다. 앞으로 확정된 것은 설계에 이름으로 남는다</td></tr>
+<tr><td><b>내가 리뷰어 질문을 대장과 대조하지 않고 올렸다</b></td><td>리뷰어는 설계 문서만 보므로 대장에 뭐가 확정됐는지 알 수 없다. 그걸 걸러내는 건 내 몫인데 안 했다</td><td>결정 요청 전 대장을 먼저 뒤져 이미 확정된 항목은 질문에서 빼도록 규칙에 박았다. 실수 원장에도 기록했다</td></tr>
+</table>
+</div>
+
+<div class="q" style="border-color:var(--warn)">
+<h3>4. 기존 openclaw 손님과 studio 계정 잇기 (우리가 조사해서 답을 냅니다)</h3>
+<p class="why">회장님이 "찾아보고 대답해라" 하셨습니다. 맞는 지적입니다. 이건 업계에 이미 정립된 답이 있는 문제라 회장님께 고르시라 할 것이 아니었습니다.
+지금 실조사를 걸어 뒀습니다. 같은 이메일만 믿고 자동으로 합칠 때 알려진 사고 사례, 큰 제품들이 실제로 쓰는 방식, 규격 권고, 국내 사례를 찾아 근거와 함께 답을 가져오겠습니다.
+회장님이 정하실 것이 정말 남으면 그때만 다시 여쭙겠습니다.</p>
+</div>
+
+<div class="q" data-q="Q5">
+<h3>5. 손님이 입력한 내용을 며칠 보관할지, 손님이 올린 제작법을 어디까지 실행시킬지</h3>
+<p class="why">지난번에 "원문"이라고만 써서 무슨 말인지 알 수 없게 만들었습니다. 다시 씁니다.<br><br>
+<b>여기서 말하는 것 두 가지입니다.</b><br>
+하나. <b>손님이 직접 타이핑하거나 올린 내용</b>입니다. 주제 문장, 붙여넣은 회사 소개, 올린 문서 같은 것입니다. 손님 개인정보나 회사 기밀이 섞여 들어옵니다. 이걸 우리 서버에 며칠 두느냐입니다. 오래 두면 "왜 이런 결과가 나왔지"를 되짚어 볼 수 있지만, 그만큼 유출 시 피해와 개인정보 관리 부담이 커집니다.<br>
+둘. <b>손님이 직접 만들어 올린 제작법</b>입니다. 우리가 주는 제작법 말고 손님이 자기 방식으로 써서 올리는 것입니다. 이건 남이 쓴 지시문을 우리 서버에서 실행하는 셈이라, 파일을 읽거나 바깥 인터넷에 접속하거나 우리 비밀 키에 손대게 두면 그 자체가 공격 통로가 됩니다.</p>
+<label class="opt"><input type="radio" name="Q5" value="입력 내용은 30일 보관. 손님이 올린 제작법은 파일·인터넷·비밀값 접근을 전부 막고 시작한다"><span class="t">30일 보관, 손님 제작법은 권한 전부 차단 (추천)</span><div class="d"><i>하면: 되짚어 볼 최소 기간은 남기면서 유출 피해 범위와 공격 통로를 줄입니다. 나중에 늘리는 건 쉽습니다.</i> <s>안 하면: 첫 출시부터 긴 보관과 권한 관리의 운영·법적 부담을 떠안습니다.</s></div></label>
+<label class="opt"><input type="radio" name="Q5" value="입력 내용 90일 보관, 손님이 올린 제작법에 선택적으로 권한을 준다"><span class="t">90일 보관, 손님 제작법에 선택적 권한 허용</span><div class="d"><i>하면: 손님이 더 강한 제작법을 만들 수 있고 오래된 결과도 되짚어 볼 수 있습니다.</i> <s>안 하면(이걸 고르면): 사고가 나면 범위가 넓고, 개인정보 관리 의무가 출시 시점부터 무겁습니다.</s></div></label>
+<textarea rows="2" placeholder="메모"></textarea></div>
+
+<h2>프로토타입 쪽은 이미 반영 중입니다</h2>
+<table>
+<tr><th>회장 지적</th><th>조치</th></tr>
+<tr><td>왼쪽 사이드바를 아이콘으로 접게 하라</td><td>다음 판에 반영 지시</td></tr>
+<tr><td>챗봇은 접지 말고 오른쪽에 항상 띄워라</td><td>접힘 방식을 상시 노출로 변경 지시</td></tr>
+<tr><td>디스플레이에 방 이름을 또 넣지 마라. 헤더에 이미 있다</td><td>본문 중복 표기 제거 지시</td></tr>
+<tr><td>스티치를 참고 안 했다. 카드 여백이 근거 없다</td><td>스티치를 실제로 열어 조사하고, 두 안 각각의 출처를 밝히도록 지시. 출처 없는 안은 폐기</td></tr>
+</table>
+
+<div class="bar">
+<button onclick="cp()">결정 복사</button>
+<button class="g" onclick="rs()">초기화</button>
+</div>
+
+<script>
+const K='osmu-eng-board-v1';
+function save(){const d={};document.querySelectorAll('.q').forEach(q=>{const r=q.querySelector('input:checked');d[q.dataset.q]={v:r?r.value:'',m:q.querySelector('textarea').value}});localStorage.setItem(K,JSON.stringify(d))}
+function load(){const d=JSON.parse(localStorage.getItem(K)||'{}');document.querySelectorAll('.q').forEach(q=>{const s=d[q.dataset.q];if(!s)return;if(s.v)q.querySelectorAll('input').forEach(i=>{if(i.value===s.v){i.checked=1;i.closest('label').classList.add('sel')}});q.querySelector('textarea').value=s.m||''})}
+document.addEventListener('change',e=>{if(e.target.type==='radio'){e.target.closest('.q').querySelectorAll('label').forEach(l=>l.classList.remove('sel'));e.target.closest('label').classList.add('sel')}save()});
+document.addEventListener('input',e=>{if(e.target.tagName==='TEXTAREA')save()});
+function cp(){let o=['기술설계 결정 회신'];document.querySelectorAll('.q').forEach(q=>{const r=q.querySelector('input:checked'),m=q.querySelector('textarea').value.trim(),t=q.querySelector('h3').textContent;o.push('');o.push(t);o.push('선택: '+(r?r.value:'(미선택)'));if(m)o.push('메모: '+m)});
+navigator.clipboard.writeText(o.join('\n')).then(()=>{const b=event.target;b.textContent='복사됨';setTimeout(()=>b.textContent='결정 복사',1500)})}
+function rs(){localStorage.removeItem(K);location.reload()}
+load();
+</script></div></body></html>

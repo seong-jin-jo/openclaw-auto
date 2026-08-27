@@ -1,0 +1,2 @@
+Error: Invalid types: resolution should be string, got number
+Hint: Run: hf model get minimax_hailuo

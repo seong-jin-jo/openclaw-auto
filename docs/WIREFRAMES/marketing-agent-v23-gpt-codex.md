@@ -34,7 +34,7 @@ Instagram 캡션 상한 2,200자와 피드에서 접히는 구간을 구분해 �
 표기: `있음` = 프로토타입에 같은 뜻의 요소가 있다 / `대체` = 이름은 다르나 같은 일을 하는 요소가 있다 /
 `없음` = 프로토타입에 없다(사유 필수).
 
-**기능누락: 14**
+**기능누락: 19** (v23.0 판정 14건 유지 + 확장 전수 조사에서 새로 드러난 5건)
 
 ### A. OSMU Studio (`dashboard/src/app/studio/page.tsx`, 582줄)
 
@@ -73,7 +73,7 @@ Instagram 캡션 상한 2,200자와 피드에서 접히는 구간을 구분해 �
 | 드로어 하단 큰 미리보기 | page.tsx:573 | 데스크톱 오른쪽 상주 프레임이 같은 역할 | 있음 |
 | 하단 각주 (실 발행 조건, 시나리오 2·3 조사중) | page.tsx:578 | 전달 표 각주 + 정책 경고 | 대체 |
 
-### B. 미리보기 프레임 (`dashboard/src/components/studio/PlatformPreview.tsx`, 202줄) — 이번 복원 대상
+### B. 미리보기 프레임 (`dashboard/src/components/studio/PlatformPreview.tsx`, 202줄): 이번 복원 대상
 
 | 실제 코드 요소 | 코드 위치 | v23 프로토타입 | 판정 |
 |---|---|---|---|
@@ -175,6 +175,133 @@ Instagram 캡션 상한 2,200자와 피드에서 접히는 구간을 구분해 �
 
 누락 14건 중 결정이 필요한 것은 7번과 13번이다. 나머지는 운영자 전용 또는 정책·자산 사유다.
 
+### F. 채널 부속 컴포넌트 (`dashboard/src/components/channel/` 나머지 9개)
+
+| 실제 코드 요소 | 코드 위치 | v23 프로토타입 | 판정 |
+|---|---|---|---|
+| `연결된 {label} 계정 ({n})` 목록 + `기본` 배지 | AccountManager.tsx:181,200 | 계정 표기 `@monostudio` + 연결 완료 카드 | 대체 |
+| `기본으로` / `삭제` 버튼 | AccountManager.tsx:204,216 | 없음 | 없음 (15) |
+| `+ {label} 계정 추가(App Password)` + `handle.bsky.social`·`App Password` 입력 | AccountManager.tsx:281-299 | 고급 토큰 직접 입력 경로로 대체 | 대체 |
+| 해제 확인 문구 `이 {label} 계정 연결을 해제할까요? 이 계정으로 예약된 발행은 실패로 처리됩니다.` | AccountManager.tsx:107 | 같은 뜻의 되돌리기 경고 유지 | 있음 |
+| `Content Guide ({label})` + `AI 제안`·`공통에서 복사`·`Save` | ContentGuide.tsx:74-89 | 브랜드 자료·가이드 편집 경로 | 대체 |
+| `공통 가이드 사용 중 — 수정하면 채널 전용으로 저장` | ContentGuide.tsx:93 | 공통 초안과 채널별 문구의 상속 표기가 같은 뜻 | 있음 |
+| `Search Keywords` / `Keywords` + 키워드 칩 `클릭하면 추가` | KeywordsEditor.tsx:87,136 | 설정의 키워드 항목 | 대체 |
+| `Channel Info` `Status` = `Live`/`Connected`/`Not connected` | MessagingPage.tsx:67-73 | 7칸 현황 띠 | 있음 |
+| `알림 발송` 4이벤트(`글 발행 시`·`바이럴 감지 시`·`크론 에러 시`·`주간 리포트`) ON/OFF | NotifStatusCard.tsx:9-32 | 설정 알림 항목 | 있음 |
+| `Settings > Notifications에서 변경` 안내 | NotifStatusCard.tsx:38 | 있음 | 있음 |
+| `{label} OAuth 연결` 버튼 + `여는 중…`·`확인 중…` | SocialConnectButton.tsx:235-241 | 연결 3단계 모달 1단계 | 있음 |
+| `다른 계정으로 연결하고 싶어요` + 계정 센터 외부 링크 5종 | SocialConnectButton.tsx:245-257 | 없음 | 없음 (16) |
+| Meta 경계 문구 `현재 앱 주소에서는 Meta 도메인의 로그인 쿠키를 지울 수 없습니다. 우리 앱은 자동 로그아웃을 수행했다고 주장하지 않습니다.` | SocialConnectButton.tsx:24 | 같은 정직 경계를 연결 모달에 유지 | 있음 |
+| `⚠ 발행 준비 중 — 지금은 {label} 연결만 미리 가능하고, 대시보드에서 직접 발행은 아직 지원하지 않습니다.` | SocialConnectButton.tsx:291 | 오픈 준비중·발행 미지원 표기 | 있음 |
+| `Automation` 15개 토글 (Content Generation ~ YouTube Shorts) + `Coming Soon` 배지 | TenantAutomationSettings.tsx:45-78, constants.ts:120-136 | 자동화 설정 패널(항목 축약) | 대체 |
+| `테스트 발송` + `Send`/`Sending...` + Interactive Chat 연결 문구 | TestSendCard.tsx:41-67 | 전달 설정 경로 | 대체 |
+
+### G. 설정 16개 컴포넌트 (`dashboard/src/components/settings/`)
+
+| 실제 코드 요소 | 코드 위치 | v23 프로토타입 | 판정 |
+|---|---|---|---|
+| `Account`: `Auth` = `Token set`/`No auth`, `Logout`, `Change Token` | Account.tsx:20-34 | 있음 | 있음 |
+| `Runtime`: `OpenClaw Gateway`(Extra Usage 과금) / `Claude CLI`(Plan Usage) 2카드 + `전환 중... Gateway 재시작 포함 (~15초)` | AIEngine.tsx:35-47 | AI 엔진 설정 항목 | 대체 |
+| `내 Claude(Anthropic) 키` + `sk-ant-...` 입력 + `등록됨(내 과금)`/`미등록(무료 이벤트 — 운영자 부담)` | AiKeySettings.tsx:40-51 | 공유 AI·내 키 구분 표기 | 있음 |
+| `Channels`: `Social`/`Messaging` 그룹 + `연결 →` | ChannelsSettings.tsx:36-47 | 있음 | 있음 |
+| `Claude Token`: `Healthy`/`Error`, `Errors`, `Last used`, Setup Guide 4단계 | ClaudeToken.tsx:49-107 | 자격증명 상태·마스킹 경로 | 대체 |
+| `Design Tools`: Canva 7단계 + Figma 4단계, `Client ID`·`Client Secret`·`Personal Access Token`, `MCP 서버 (AI -- Figma 쓰기)` 토글, `Gateway 재시작` | DesignToolsSettings.tsx:109-313 | 없음 | 없음 (17) |
+| `ElevenLabs TTS`: `API Key`(xi-...)·`Voice ID`·`Browse` 목록 | ElevenLabsSettings.tsx:72-136 | 설정 `Video / TTS` 탭 자리만 유지(운영자 전용) | 대체 |
+| `Interactive Chat`: Telegram `Bot Token (@BotFather)`, Slack `Bot+App Token 필요`, Discord | InteractiveChat.tsx:33-97 | 전달 설정(기본 꺼짐) | 대체 |
+| `Keyword Bank`: `{n} total | {m} unused`, `all`/`unused`/`used` 탭, `Used`, 삭제 | KeywordBankSettings.tsx:63-105 | 설정 `Keywords` 탭 | 대체 |
+| `Naver Keyword Planner` / `Naver Datalab` 자격증명 6필드 | KwPlannerSettings.tsx:88-198 | 없음 | 없음 (18) |
+| `Notifications`: 4이벤트 × `Off`/telegram/discord/slack/line + `Test`·`주간 리포트 발송` | Notifications.tsx:73-111 | 있음(전달 채널 기본 꺼짐 규칙 포함) | 있음 |
+| `Slack Notifications`: `Webhook URL`, `Report Template`, `Report Preview & Send` | SlackSettings.tsx:90-182 | 대체(전달 설정) | 대체 |
+| `Cloudflare R2`: Setup Guide 4단계 + 5필드 + `Secret Access Key는 생성 시 한 번만 표시됨` | StorageSettings.tsx:70-104 | 설정 `Storage` 탭 + 비밀값 1회 표시 규칙 | 있음 |
+| `Cron Status` 잡 목록 + 다음 실행 시각 | SystemSettings.tsx:14-30 | 있음 | 있음 |
+| `커스텀 도메인 (CNAME)` + `API 토큰` 발급·폐기 + `발급됨 — 지금만 표시됩니다.` | TenantTokensSettings.tsx:64-99 | 있음(`Fork 연동` 탭 + 1회 표시) | 있음 |
+| 설정 9탭 라벨·부제 전량 | settings/page.tsx:23-35 | 9탭 전부 있음 | 있음 |
+
+### H. 레이아웃·나머지 페이지
+
+| 실제 코드 요소 | 코드 위치 | v23 프로토타입 | 판정 |
+|---|---|---|---|
+| 사이드바 그룹 접기·펼치기 + `{live}/{total}` 카운터 | layout/Sidebar.tsx:26-104 | 그룹 구조는 있음, 접기 토글·카운터 없음 | 없음 (19) |
+| 배지 `NEW`(OSMU Studio·승인 인박스), 항목 상태 `Live`/`Connected`/`Off` | Sidebar.tsx:309-333, 248-275 | 상태 배지 있음, `NEW` 배지 없음 | 대체 |
+| 운영자 사이드바 `Admin` · `운영자 콘솔` · `고객 관리` | Sidebar.tsx:208-224 | 있음 | 있음 |
+| 워크스페이스 오류 시 `워크스페이스 연결 확인 중… 다시 시도` | Sidebar.tsx:157 | 있음(연결 확인 실패 경로) | 있음 |
+| `테마 전환` `라이트 모드`/`다크 모드` | layout/ThemeToggle.tsx:21-24 | 검수 도구 바의 테마 토글 | 있음 |
+| `⎋ 로그아웃` | Sidebar.tsx:189 | 있음 | 있음 |
+| 로그인: `OSMU 마케팅 자동화` + `Google로 계속` / `확인 중…` | login/page.tsx:100-107 | 있음 | 있음 |
+| `/signup` → `/login` redirect | signup/page.tsx:5 | 가입 진입이 로그인 한 문으로 모이는 구조 유지 | 있음 |
+| 서비스 목록 + `새 서비스 추가` 모달(slug·표시명·이모지·주 채널·도메인) | services/page.tsx:105-286 | 운영자 고객 관리로 대체 | 대체 |
+| `Blog Performance` 요약 4카드 + `조회순`/`최신순` + `태그별 성과`·`일별 조회수 추이` | blog-performance/page.tsx:48-156 | 성과 화면 지표로 축약 | 대체 |
+| `Google Analytics` 차단 문구 `고객별 GA4 연결 준비 중` | google-analytics/page.tsx:12-15 | 있음(오픈 준비중 계열 표기) | 있음 |
+| `Naver Trends` 차단 문구 `고객별 Naver DataLab 연결 준비 중` | naver-trends/page.tsx:13-16 | 있음 | 있음 |
+| `Search Advisor` 차단 문구 `고객별 Search Advisor 저장소 준비 중` | search-advisor/page.tsx:12-15 | 있음 | 있음 |
+| `Google Trends`: `Google Trends API는 현재 Alpha 단계로 직접 연동이 불가합니다.` + 외부 링크 + 활용 가이드 4항목 | google-trends/page.tsx:16-37 | 있음(미지원 정직 표기) | 있음 |
+| `Keyword Planner` 조회 + 표 6열 + `+ Bank`/`저장됨` | keyword-planner/page.tsx:82-151 | 키워드 화면 축약 | 대체 |
+| `Search Console` 기간 `7일`/`28일`/`90일` + `캐시된 데이터 표시 중 (API 호출 실패)` | search-console/page.tsx:54-81 | 있음(캐시 표기 포함) | 있음 |
+| 법적 3문서(`개인정보처리방침`·`이용약관`·`데이터 삭제 안내`) + `최종 수정일` + 문의 mailto | legal/LegalPage.tsx:9-34, privacy·terms·data-deletion | 있음 | 있음 |
+| `소셜 계정 연결만 삭제` 4단계 + Meta 앱 데이터 삭제 | data-deletion/page.tsx:11-14 | 있음 | 있음 |
+
+### 확장에서 새로 드러난 누락 5건과 사유
+
+| 번호 | 누락 항목 | 사유 |
+|---|---|---|
+| 15 | 계정 `기본으로` / `삭제` 버튼 | 누락 6번(계정 선택)과 같은 뿌리다. 이 시나리오는 채널당 계정 1개이고, 실제 코드도 2개 이상일 때만 전환 UI를 노출한다. 다계정 시나리오를 그리는 판에서 함께 다룬다. |
+| 16 | `다른 계정으로 연결하고 싶어요` + 계정 센터 외부 링크 5종 | 연결 모달 1단계에 넣으면 첫 관문에 선택지가 2개가 된다(위계 규칙 1단 위반). Meta 경계 문구는 이미 살렸으므로 정직성은 유지된다. 연결 실패 경로에 붙이는 것이 맞고 그 배치를 다음 판에서 정한다. |
+| 17 | Design Tools (Canva·Figma·MCP) 전체 | 설정 `Design Tools` 탭 자리는 있으나 내부 7+4단계 안내와 MCP 토글은 그리지 않았다. 이 기능은 카드뉴스 리터치용 개발자 연동이고 고객 여정(R-02)의 필수 경로가 아니다. |
+| 18 | Naver Keyword Planner / Datalab 자격증명 6필드 | 같은 화면의 `Naver Trends`·`Search Advisor`가 코드에서 이미 "고객별 연결 준비 중"으로 차단돼 있다. 차단된 기능의 입력 폼을 그리면 쓸 수 있는 것처럼 보인다. |
+| 19 | 사이드바 그룹 접기 토글 + `{live}/{total}` 카운터 | 26목적지 사이드바는 회장 보존 대상이라 구조를 건드리지 않았다. 접기 토글은 상호작용 추가이고 잘못 넣으면 목적지가 숨는다. **다음 판 대상으로 명시.** |
+
+19건 중 결정이 필요한 것은 7번(발행 이력 배치, **이번 판에서 옵션 A로 해결됨**)뿐이었고,
+지금 남은 결정 대기 항목은 없다. 13·16·19번은 다음 판 갭으로 명시했다.
+
+---
+
+## 회장 요청 원장 대조표 (R-01 ~ R-13)
+
+정본: `docs/requests/2026-08-08_2026-08-10-chairman-requests.md` (원문 verbatim). 이 표는 그 원문 대비 이번 산출물의 반영 여부다.
+
+| 번호 | 요청 요지 (원문 기준) | 이번 산출물 반영 | 근거 / 미반영 사유 |
+|---|---|---|---|
+| R-01 | 파이프라인 상황 파악 | 해당 없음 | 디자인 산출물이 아니라 컨트롤러의 상태 보고 요청이다. |
+| R-02 | 신규 유저 가입 → OAuth → 키 저장·확인 → 생성 → 수정 → 발행 → 성과 → Settings → Admin 전 여정 | **부분 반영** | 아래 R-02 세부 표로 분해했다. 9개 중 8개 반영, 1개 부분. |
+| R-03 | 재창조 금지, 기존 구현(사이트·코드·위키) 참고 | **반영** | 미리보기를 `PlatformPreview.tsx`에서 그대로 옮겼고, 한도는 `channel-text-limits.ts` SSOT, 발행 이력은 `page.tsx:521` 패널 재현. 인용 코드 경로 실재 확인 51개. |
+| R-04 | OAuth만 하면 API키 자동화 성립하는가 | **반영(정직 표기)** | `SocialConnectButton.tsx:24`의 Meta 경계 문구를 그대로 살려 "자동 로그아웃을 수행했다고 주장하지 않는다"는 한계를 화면에 남겼다. 발행 미지원 채널은 예고로 구분. |
+| R-05 | 미연결 vs 오픈 준비중 3분류 + 정책 조사 + 확장성 | **반영** | v21에서 확정된 3분류(미연결·오픈 준비중·연결됨)를 유지. 코드의 차단 문구 3종(`고객별 GA4/DataLab/Search Advisor 연결 준비 중`)을 같은 어법으로 표기. |
+| R-06 | 플랫폼별 정책 조사 + 유튜브는 쇼츠 + 위키 박제 + 프로토타입 디벨롭 | **반영** | 영상 묶음이 Shorts·Reels·TikTok 3종이고 유튜브는 쇼츠로만 등장. 채널별 정책 경고 유지. 정책 `[미확인]` 값은 확정 사실로 그리지 않음. |
+| R-07 | 신규 유저·관리자 흐름 끝까지 문제 없는가 | **부분 반영** | 26목적지 전수를 3폭에서 훑어 겹침·잘림·가로스크롤 0을 실측했다. 다만 실제 제품 코드에 규칙을 적용한 결과는 미검증(design 단계 경계). |
+| R-08 | 근거 보강 승인 | **반영** | 벤치마크 출처(Hootsuite 캡션 미리보기)와 코드 경로를 산출물에 명시. |
+| R-09 | 디자인 시스템 4대 증상 + OSMU Studio 미리보기 소실 | **반영** | 아래 R-09 세부 표로 증상별 대응을 분해했다. 4증상 전부 규칙으로 닫음. |
+| R-10 | 재창조 금지 하네스 확인 | 해당 없음(하네스 소관) | 산출물 쪽 대응은 R-03과 동일. 하네스 정비는 컨트롤러 몫. |
+| R-11 | 속도 문제 제기 | 해당 없음 | 프로세스 지적. 이번 판은 v24 신설 대신 v23 갱신으로 판수를 늘리지 않았다. |
+| R-12 | 원장 소재 확인 | **반영** | `docs/requests/...` 정본을 읽고 이 대조표를 산출물에 넣었다. |
+| R-13 | 디자인 시스템부터 요청사항까지, UI 일관성, 기존 구현 보존, 비가역 아니면 자율 진행 | **반영** | ①디자인 시스템 규칙 6개 확정 ②R-01~R-12 대조 ③겹침·잘림 0 실측 ④보존 항목 5개 유지 ⑤가역 결정(발행 이력 배치)은 승인 대기 없이 옵션 A로 진행. |
+
+### R-02 세부 (여정 9단계)
+
+| 단계 | 반영 | 프로토타입 위치 |
+|---|---|---|
+| R-02-a 회원가입 | 반영 | 로그인 화면 `Google로 계속` 한 문 (`/signup`은 코드도 로그인으로 보냄) |
+| R-02-b OAuth 연결만 하면 API키 저장 | 반영 | 연결 3단계 모달: 안내 → OAuth·검증 → 완료 카드. 토큰 원문 비표시 |
+| R-02-c 저장된 것을 볼 수 있음 | 반영 | 7칸 현황 띠(연결·계정·권한·기능·마지막 동기화·최근 결과·다음 행동), 운영자 마스킹 + 원문 확인 30초 |
+| R-02-d 콘텐츠 생성 | 반영 | Studio 3묶음. 생성 자체는 운영자 권한 경계 유지 |
+| R-02-e 콘텐츠 수정 | 반영 | 공통 초안 + 채널별 문구, 비교 편집, **미리보기 프레임에서 결과 즉시 확인** |
+| R-02-f 발행 | 반영 | 게시 전 확인 → 전달 표 → 예약, 복구 24상태 |
+| R-02-g 성과 | 반영 | 성과 화면(코드도 홈 통합 스텁), 발행 후 수집 표기 |
+| R-02-h Settings | 반영 | 9탭 전부 |
+| R-02-i Admin 관리 | 반영 | 운영자 콘솔: 요약 타일 6개, 중앙 OAuth 앱, 이름 붙은 조치 버튼 |
+
+`R-02-c`의 "볼 수 있음"은 상태·계정 표기까지 반영했고, 다계정 전환 UI(누락 6·15번)는 이 시나리오 밖이다.
+
+### R-09 세부 (디자인 시스템 4대 증상)
+
+| 회장이 지적한 증상 | 실측한 원인 | v23 대응 |
+|---|---|---|
+| "어떤 건 여백이 있고" | 간격 값이 부품에 붙지 않고 화면마다 직접 박힘(`py-2` 137곳 등 6단 난립) | 간격 6단계표 + 부품 내부/사이 분리, 여백은 부모가 정함 |
+| "어떤 건 따닥따닥 붙어있고" | `.panel + .panel` 인접 규칙이 그리드에서 오작동(v21 16px 어긋남) | 인접 규칙 폐기 → `.stack-section > * + *` 부모 기준 |
+| "어떤 건 텍스트가 흘러넘치고" | 글자 크기 9·10·11px 혼용 + **가로 스크롤 컨테이너 안 버튼의 flex 축소** | 글자 7단계·하한 12px + 넘침 규칙 부품별 명시 + `flex:0 0 auto`. 3폭 전수 잘림 0 |
+| "어떤 건 불필요한 정보가 많고" | 정보 위계 부품이 없어 아는 것을 같은 크기로 나열, 접는 규칙 부재 | 위계 3단 + 판정 기준 3개. 운영자 전용 정보(AI 엔진·크레딧)를 고객 화면에서 내림 |
+
+추가로 회장이 v23.0에서 직접 찾은 **배지가 제목을 가리는 결함**은 원인이 절대 위치 요소에 `grid-column`을 준 것이었다(담는 상자가 패딩 박스에서 격자 칸으로 바뀜). 데스크톱은 `grid-column:auto`로, 모바일은 배지를 흐름 안으로 되돌려 닫았다. 3폭 전수 겹침 0.
+
 ---
 
 ## 화면 정의 (v22에서 바뀐 부분만)
@@ -182,6 +309,7 @@ Instagram 캡션 상한 2,200자와 피드에서 접히는 구간을 구분해 �
 ### S-STUDIO-1 · 묶음 안의 미리보기 블록
 
 ```
+[미리보기] [발행 이력]                          ← v23.1 오른쪽 열 탭. 한 번에 하나만
 [실제 화면에 보일 모습]        글자수는 채널 공식 한도 기준입니다.
 [◎Threads] [X] [Facebook]                      ← 탭. 로고 20px + 라벨. 줄어들지 않는다
 ◎ Threads                              53/500  ← 프레임 헤더. 카운터는 오른쪽 끝
@@ -227,7 +355,8 @@ Instagram 캡션 상한 2,200자와 피드에서 접히는 구간을 구분해 �
 | 항목 | v22 | v23 | 방법 |
 |---|---|---|---|
 | CSS 글자 크기 종류 | 12종 (9·10·11·12·13·14·15·16·18·20·22·26) | **6종** (12·13·15·17·20·24) | 정규식 집계 |
-| CSS 간격 값 종류 | 22종 (1~28px 난립) | **11종** (1·2·4·8·12·16·24·32 + 고정 치수 48·58·64) | 정규식 집계 |
+| CSS 간격 값 종류 | 22종 (1~28px 난립) | **10종** (1·2·4·8·12·16·24·32 + 고정 치수 48·64) | 정규식 집계 |
+| 겹침 (띄운 요소가 글자 가림) · 1440/1024/390 | 4건 (배지가 제목 가림, 회장 관찰) | **0 / 0 / 0** | 검출기 전수, 양성 대조 통과 |
 | 44px 미만 터치 타깃 | 0 | **0** (캐러셀 컨트롤 32→44px 승격) | 실측 |
 | 잘린 라벨 (1024) | 미측정 | **0** | 26목적지 전수 `scrollWidth>clientWidth` |
 | 잘린 라벨 (390) | 다수 (`Threads 미라`) | **0** | 26목적지 전수 |

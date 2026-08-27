@@ -354,7 +354,12 @@
       .grid{display:block}.panel{margin-bottom:12px}.panel + .panel{margin-top:0}
       .form-grid,.source-choice{grid-template-columns:1fr}
       .journey-nav .step-list{display:flex}.journey-nav button{min-width:158px}
-      .studio-family{padding-left:16px;padding-top:58px}.family-number{top:16px}
+      /* 390에서 배지를 띄워 두면 자리를 확보해야 하고, 그 확보값(58px)이 .secondary-section의
+         padding-top(32px)보다 약해서 2·3번 섹션에서 배지가 제목을 덮었다.
+         숫자를 맞추는 대신 배지를 흐름 안으로 되돌린다. 덮을 수 있는 구조 자체를 없앤다. */
+      .studio-family{padding-left:16px;padding-top:16px}
+      .studio-family.secondary-section{padding-top:24px}
+      .studio-family > .family-number{position:static;margin-bottom:8px}
       .header7{grid-template-columns:repeat(2,minmax(0,1fr))}
       .bulk-bar{position:static;display:block;box-shadow:none}.bulk-bar button{width:100%;margin-top:8px}
       .mobile-actions{display:block;margin-top:16px}
@@ -478,6 +483,16 @@
     /* v23 넘침 규칙의 실제 뿌리. 가로 스크롤 컨테이너 안의 버튼이 flex 기본값으로 줄어들면서
        "Threads 미라"처럼 라벨이 잘렸다. 컨테이너를 넘겨도 버튼은 자기 폭을 지킨다. */
     .platform-tabs button,.pv-tabs button,.step-row .step-pill,.actions button{flex:0 0 auto}
+    .right-tabs{display:flex;gap:8px;margin-bottom:16px}
+    .right-tabs button{flex:0 0 auto;min-height:44px;padding:8px 12px;font-size:var(--fs-body-sm)}
+    .right-tabs button.active{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+    .draft-list{display:flex;flex-direction:column}
+    .draft-row{display:flex;align-items:center;gap:8px;padding:12px 0;border-top:1px solid var(--border);flex-wrap:wrap}
+    .draft-row:first-child{border-top:0}
+    .draft-row .grow{flex:1 1 140px;min-width:0}
+    .draft-row b{display:block;font-size:var(--fs-body-sm);line-height:var(--lh-body-sm)}
+    .draft-row small{display:block;color:var(--subtle);font-size:var(--fs-caption);line-height:var(--lh-caption)}
+    .draft-row.loaded{background:var(--accent-soft);border-radius:8px;padding-left:8px;padding-right:8px}
     .pv-foot{margin-top:12px;color:var(--subtle);font-size:var(--fs-caption);line-height:var(--lh-caption)}
     .pv-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
     @media (max-width:900px){:root{--pv-w:100%}}
@@ -485,7 +500,10 @@
       /* 왼쪽은 정하는 곳, 오른쪽은 결과를 보는 곳. 실제 코드의 flex gap-6 배치와 같은 뜻이다. */
       .studio-family{display:grid;grid-template-columns:minmax(0,1fr) 372px;column-gap:24px;align-items:start}
       .studio-family > *{grid-column:1;min-width:0}
-      .studio-family > .family-number{position:absolute}
+      /* 절대 위치 요소에 grid-column을 주면 담는 상자가 패딩 박스에서 격자 칸으로 바뀐다.
+         그래서 번호 배지가 왼쪽 여백(64px) 밖으로 밀려나 제목 글자 위에 얹혔다.
+         v23 첫 판의 회귀였다. grid-column을 auto로 되돌려 담는 상자를 패딩 박스로 유지한다. */
+      .studio-family > .family-number{position:absolute;grid-column:auto;grid-row:auto}
       .studio-family > .pv{grid-column:2;grid-row:1/span 99;margin-top:0;
         border-left:1px solid var(--border);padding-left:24px;position:sticky;top:88px}
       /* 가로 스크롤 힌트는 모바일에서만 보인다. 데스크톱에서 탭이 잘리면 숨은 채로 잘린다.
@@ -947,6 +965,17 @@
       selectedPreview:'Threads',selectedDirect:'Threads',
       /* v23. 미리보기가 모달 한 장이 아니라 각 묶음 안에 상주한다. 묶음별로 어떤 플랫폼을 보고 있는지 기억한다. */
       previewTab:{text:'threads',card:'instagram',video:'shorts'},igSlide:0,
+      /* v23.1 오른쪽 열은 탭 2개다. 실제 코드 app/studio/page.tsx:521의 발행 이력 패널을 되살린다.
+         한 번에 하나만 보인다. 두 패널을 나란히 두면 왼쪽 편집 영역이 눌린다. */
+      rightTab:{text:'preview',card:'preview',video:'preview'},
+      /* 실제 코드 hist.drafts 항목 모양: idea, savedAt, status(published|partial|stopped|draft) */
+      drafts:[
+        {id:'d-1041',idea:'확인 가능한 마케팅 흐름 3단계',savedAt:'2026-08-10T16:12',status:'published'},
+        {id:'d-1038',idea:'자동 게시를 켜기 전에 볼 것',savedAt:'2026-08-09T11:40',status:'partial'},
+        {id:'d-1035',idea:'브랜드 자료로 초안 만드는 순서',savedAt:'2026-08-08T09:05',status:'draft'},
+        {id:'d-1031',idea:'첫 문장을 고객 상황으로 바꾼 판',savedAt:'2026-08-07T18:22',status:'stopped'}
+      ],
+      loadedDraftId:'',draftLoadNote:null,
       variants:{
         '공통 초안':'AI 자동 게시보다, 고객이 확인할 수 있는 마케팅 흐름을 먼저 만듭니다.',
         'Threads':'확인 가능한 마케팅 흐름을 먼저 만듭니다. 무엇을 왜 게시했는지 남겨야 다음 판단이 쉬워집니다.',
@@ -1080,8 +1109,43 @@
       if(p==='instagram')return pvIg();
       return pvVideo(p);
     }
+    /* 발행 이력. 진실원 = app/staging 아님, app/studio/page.tsx:521-535의 사이드 패널이다.
+       그 패널이 가진 것만 옮긴다. 제목, 안내 한 줄, 항목(글감·저장시각·상태), 불러오기 버튼, 빈 상태.
+       없는 기능(검색·필터·삭제)은 만들지 않는다. */
+    var DRAFT_STATUS={
+      published:{label:'발행됨',tone:'success'},
+      partial:{label:'복구 필요 · 재발행 금지',tone:'warning'},
+      stopped:{label:'중지됨',tone:'neutral'},
+      draft:{label:'초안',tone:'neutral'}
+    };
+    function draftTime(iso){return String(iso||'').slice(5,16).replace('T',' ');}
+    function historyPanel(){
+      var rows=state.drafts.map(function(d){
+        var st=DRAFT_STATUS[d.status]||DRAFT_STATUS.draft;
+        var loaded=state.loadedDraftId===d.id;
+        return '<div class="draft-row'+(loaded?' loaded':'')+'">'+
+          '<div class="grow"><b class="clamp-1">'+esc(d.idea)+'</b>'+
+          '<small>'+draftTime(d.savedAt)+'</small></div>'+
+          '<span class="status '+st.tone+'">'+st.label+'</span>'+
+          Button(loaded?'불러옴':'불러오기','load-draft:'+d.id,loaded?'quiet':'','md',false)+
+          '</div>';
+      }).join('');
+      var body=state.drafts.length
+        ? '<div class="draft-list">'+rows+'</div>'
+        : '<div class="notice">저장한 초안이 없습니다. 왼쪽에서 문구를 저장하면 여기에 쌓입니다.</div>';
+      var note=state.draftLoadNote?'<div class="notice '+state.draftLoadNote.tone+'">'+esc(state.draftLoadNote.text)+'</div>':'';
+      return '<div class="pv-head"><h3>발행 이력</h3><span class="pv-note">이 워크스페이스 기준</span></div>'+
+        '<p class="pv-foot" style="margin-top:0;margin-bottom:12px">불러오면 수정한 뒤 다시 발행할 수 있습니다. 복구 필요 항목은 외부 게시가 이미 끝났으므로 다시 발행하지 않습니다.</p>'+
+        note+body;
+    }
     /* 탭 + 그 아래 프레임. 회장 반려 1번의 잘린 버튼 10개를 이 구조가 대체한다. */
     function previewBlock(group,platforms){
+      var rt=state.rightTab[group]||'preview';
+      var rightTabs='<div class="right-tabs" role="tablist">'+
+        '<button type="button" role="tab" class="'+(rt==='preview'?'active':'')+'" aria-selected="'+(rt==='preview'?'true':'false')+'" data-right-tab="'+group+':preview">미리보기</button>'+
+        '<button type="button" role="tab" class="'+(rt==='history'?'active':'')+'" aria-selected="'+(rt==='history'?'true':'false')+'" data-right-tab="'+group+':history">발행 이력</button>'+
+        '</div>';
+      if(rt==='history') return '<div class="pv" data-right-tab-active="history">'+rightTabs+historyPanel()+'</div>';
       var active=state.previewTab[group];
       if(platforms.indexOf(active)<0)active=platforms[0];
       var tabs=platforms.map(function(p){
@@ -1089,7 +1153,8 @@
           '" data-pv-tab="'+group+':'+p+'"><span class="pv-logo">'+PV_LOGO[p]+'</span>'+PV_LABEL[p]+'</button>';
       }).join('');
       var note=PV_LIMIT[active]?'글자수는 채널 공식 한도 기준입니다.':'영상은 본문 글자 한도가 없습니다.';
-      return '<div class="pv" data-preview-frames="'+platforms.length+'" data-preview-active="'+active+'">'+
+      return '<div class="pv" data-preview-frames="'+platforms.length+'" data-preview-active="'+active+'" data-right-tab-active="preview">'+
+        rightTabs+
         '<div class="pv-head"><h3>실제 화면에 보일 모습</h3><span class="pv-note">'+note+'</span></div>'+
         '<div class="pv-tabs" data-horizontal-scroll="true">'+tabs+'</div>'+
         pvFrameHead(active)+'<div class="pv-frame">'+pvFrame(active)+'</div>'+
@@ -2209,6 +2274,7 @@
         state.recoveryLog[recoveryCode]=Object.freeze(record);state.lastRecovery=record;state.screenState='success';render();return;
       }
       var resultSelect=e.target.closest('[data-result-select]');if(resultSelect){state.selectedResultId=resultSelect.getAttribute('data-result-id');document.getElementById('root').insertAdjacentHTML('beforeend',resultDialog());return;}
+      var rTab=e.target.closest('[data-right-tab]');if(rTab){var rp=rTab.getAttribute('data-right-tab').split(':');state.rightTab[rp[0]]=rp[1];render();return;}
       var pvTab=e.target.closest('[data-pv-tab]');if(pvTab){var pvParts=pvTab.getAttribute('data-pv-tab').split(':');state.previewTab[pvParts[0]]=pvParts[1];state.selectedDirect=PV_VARIANT[pvParts[1]];render();return;}
       var pvSlide=e.target.closest('[data-pv-slide]');if(pvSlide){var pvN=PV_SLIDES.length;state.igSlide=(state.igSlide+(pvSlide.getAttribute('data-pv-slide')==='next'?1:pvN-1))%pvN;render();return;}
       var preview=e.target.closest('[data-preview-platform]');if(preview){state.selectedPreview=preview.getAttribute('data-preview-platform');state.detailOpen='preview';render();return;}
@@ -2222,6 +2288,13 @@
       var videoPhase=e.target.closest('[data-video-phase]');if(videoPhase){state.videoPhase=videoPhase.getAttribute('data-video-phase');render();return;}
       var videoState=e.target.closest('[data-video-state]');if(videoState){state.videoPhase=videoState.textContent.trim();render();return;}
       var a=e.target.closest('[data-action]');if(!a)return;var x=a.getAttribute('data-action');
+      if(x.indexOf('load-draft:')===0){var did=x.split(':')[1];var d=state.drafts.filter(function(v){return v.id===did})[0];
+        state.loadedDraftId=did;
+        /* 실제 코드 loadDraft()의 두 갈래 문구를 그대로 쓴다(page.tsx:366-372). */
+        state.draftLoadNote=d?(d.status==='partial'
+          ?{tone:'warning',text:'외부 게시는 이미 끝났고 내부 기록만 복구가 필요합니다. 다시 발행하지 않습니다.'}
+          :{tone:'',text:'불러왔습니다. 왼쪽에서 수정한 뒤 다시 발행할 수 있습니다.'}):null;
+        render();return;}
       if(x==='pv-preflight'){state.detailOpen='preflight';render();return;}
       var map={'go-home':'/','go-studio':'/studio','go-inbox':'/inbox','go-calendar':'/calendar','go-settings':'/settings','go-images':'/images','go-videos':'/videos'};
       if(map[x]){go(map[x]);return;}

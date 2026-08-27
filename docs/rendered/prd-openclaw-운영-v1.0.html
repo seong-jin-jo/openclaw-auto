@@ -1,0 +1,1065 @@
+<!doctype html><html lang=ko><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
+<script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";mermaid.initialize({startOnLoad:true,theme:'neutral'});</script>
+<style>body{max-width:940px;margin:0 auto;padding:16px 18px 90px;font-family:-apple-system,'Pretendard',sans-serif;line-height:1.7;background:#faf7f2;color:#1a1a1a}
+nav{position:sticky;top:0;background:#a52a44;padding:9px;display:flex;gap:5px;flex-wrap:wrap;border-radius:0 0 10px 10px;margin-bottom:16px}
+nav a{color:#fff;text-decoration:none;font-size:12px;padding:4px 8px;border:1px solid #fff5;border-radius:6px}
+h1.doc{font-size:22px;color:#a52a44;border-bottom:3px solid #a52a44;padding-bottom:8px;margin-top:36px}
+h2{font-size:18px;color:#7a1f33;border-left:5px solid #a52a44;padding-left:10px;margin-top:24px} h3{font-size:15px;background:#f3e9ea;padding:6px 10px;border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:12px;display:block;overflow-x:auto;margin:11px 0} th,td{border:1px solid #d8cfc2;padding:6px 8px;vertical-align:top} th{background:#a52a44;color:#fff} tr:nth-child(even){background:#f5efe6}
+code{background:#efe6d8;padding:1px 5px;border-radius:4px;font-size:11.5px} pre{background:#2a2020;color:#f5efe6;padding:12px;border-radius:8px;overflow-x:auto} pre code{background:none}
+.mermaid{background:#fff;padding:14px;border-radius:8px;text-align:center;overflow-x:auto;margin:14px 0} strong{color:#a52a44} blockquote{border-left:4px solid #b8860b;background:#fbf4e3;padding:7px 13px}
+</style></head><body><nav><a href=#s0>prd-openclaw-운영-v1.0.md</a></nav><section id=s0><h1 class=doc>prd-openclaw-운영-v1.0.md</h1><!--
+STAMP
+파일: docs/prd-openclaw-운영-v1.0.md
+라인: osmu / openclaw-service (운영 범위)
+판: v1.0 (신설). 정본 PRD v8.2.1의 하위 분할판이며 그것을 대체하지 않는다. R37 "범위를 쪼갠다" 확정에 따라 생성은 studio PRD, 운영은 이 문서가 맡는다
+생성: 2026-08-21 KST
+model: claude-opus-5[1m]
+agent: prd-architect
+skills: 없음 호출 (SKILLS_SKIPPED는 문서 끝)
+품질헌법: /Users/sj/.claude/standards/planning.md 실제 Read 완료. §2 7원칙 판정표는 §9에 첨부
+기반 산출물 (버전핀, 전부 실제 Read):
+  - docs/사업계획-osmu-v0.9.md (§1.1~1.6, §2.4~2.7, §3.3 openclaw 기술과제, §3.4 일곱 칸, §4.2~4.6)
+  - docs/requests/회장-확정-요구사항-대장.md (R01~R37 전량)
+  - wiki/research/2026-08-competitor-and-production-research.md (경쟁 55곳, 원가, 어뷰징 사고)
+  - wiki/architecture/two-service-boundary.md (경계 판정 3기준, 소유권 표, 접점 5개)
+  - docs/user-flow.md (네 방, 상태 12개, 되돌리기 규칙, PRD 빈틈 17개)
+  - wiki/reference/channel-status.md (채널 현황, readiness 계약, capability SSOT)
+  - CLAUDE.md (아키텍처 도구 목록, 멀티채널 발행 구조, 큐 스키마 v2, 채널 상태 표, 크론잡 표)
+  - docs/prd-openclaw-service-v8.2.1-gpt-codex.md (§2 현재 구현 상태, §8 FR-OS81/82, §9 NFR, §16 미결)
+벤치마크: WebSearch 예산 소진(세션 200/200)으로 이번 판은 실검색을 못 했다. 대신 7차례 웹 조사가 전부 verify를 통과해 기록된 wiki/research/2026-08-competitor-and-production-research.md를 벤치마크 원천으로 썼다. 빌린 것 = Planable의 승인 보관함 배치, SocialBee의 전 요금제 생성 무제한 대비 Later의 인색한 AI 크레딧(우리는 상품별 크레딧 분리로 중간을 택함). 버린 것 = Sprout Social식 자리당 과금(1인 사용자에 무의미). 이 판의 벤치마크는 2차 출처 의존이므로 다음 판에서 실검색으로 갱신해야 한다
+고민 한 줄: 이 문서에서 값이 있는 부분은 발행 기능 목록이 아니라 "이미 돌아가는 크론 발행 구조 위에 사람이 신뢰할 수 있는 예약과 대행을 어떻게 얹는가"이고, 그래서 지면을 상태 이름과 안전장치에 몰았다
+-->
+
+<h1 id="openclaw-service-운영-prd-v10--발행--채널-운영--성과">openclaw-service 운영 PRD v1.0 — 발행 · 채널 운영 · 성과</h1>
+<blockquote>
+<p><strong>One Thing:</strong> 만들 줄은 아는데 알리질 못하는 사람이, 완성물을 넘긴 그 화면에서 언제 어디로 나갈지 정하고 나간 뒤 무슨 일이 벌어졌는지까지 근거와 함께 보는 곳.</p>
+</blockquote>
+<p><strong>한 줄 결론:</strong> 이 PRD는 이미 돌아가는 채널 구현과 크론 발행 위에 세 가지를 얹는다. ①발행 세 갈래(지금·보관·예약)와 채널별 문구를 사람이 검수하는 자리 ②맡긴 범위 안에서만 도는 댓글·좋아요 대행과 그 정지 장치 ③성과를 꼬리표에 붙여 무엇이 통했는지 근거와 함께 사람에게 보여주는 것. <strong>자동 학습은 이 판에서 약속하지 않는다.</strong></p>
+<hr />
+<h2 id="0-이-문서의-자리">0. 이 문서의 자리</h2>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>범위</td>
+<td>openclaw-service 중 <strong>화면과 계정, 발행실, 채널 운영, 성과실, studio 호출, 요금제와 크레딧</strong></td>
+</tr>
+<tr>
+<td>범위 밖</td>
+<td>생성과 편집의 내부 동작 (studio PRD 소유). 단 경계는 §11에 명시</td>
+</tr>
+<tr>
+<td>전제</td>
+<td><strong>studio API가 이미 준비돼 있다.</strong> 개발 순서는 studio가 먼저이고 이 문서는 그 다음이다 (사업계획 §4.6 로드맵 1~3단계)</td>
+</tr>
+<tr>
+<td>진입 순서와의 관계</td>
+<td>파는 순서는 운영을 묶은 상품이 먼저다 (사업계획 §4.6 5단계). 만드는 순서와 파는 순서가 반대라는 것을 혼동하지 않는다</td>
+</tr>
+<tr>
+<td>첫 고객</td>
+<td>회장이 운영하는 <strong>바이브 코딩 커뮤니티</strong>. 만들 줄은 아는데 마케팅에서 막힌 사람들이 이미 모여 있다 (사업계획 §1.1, §4.5 3단계)</td>
+</tr>
+<tr>
+<td>시장 근거</td>
+<td>국내에 발행·응대·성과를 묶은 구독형 도구가 조사 범위(55곳)에서 안 보였다. 그 빈칸이 우리 진입 지점이다 (연구 기록 §1.5)</td>
+</tr>
+<tr>
+<td>정본 관계</td>
+<td>PRD v8.2.1의 FR-OS81-001~028, FR-OS82-029~044를 대체하지 않는다. 이 문서의 FR-OP는 그중 운영에 해당하는 조항을 <strong>화면 계약 수준으로 내린 것</strong>이며 대응은 각 FR에 표기했다</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="1-제품-목표와-비목표">1. 제품 목표와 비목표</h2>
+<h3 id="11-목표">1.1 목표</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>목표</th>
+<th>어떻게 알 수 있나</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>G1</td>
+<td>완성물이 사람 손으로 다른 화면에 옮겨지지 않고 발행까지 간다</td>
+<td>발행 한 건에서 사용자가 파일을 내려받아 채널에 직접 올린 횟수 0</td>
+</tr>
+<tr>
+<td>G2</td>
+<td>발행 결과가 참인지 거짓인지 사용자가 헷갈리지 않는다</td>
+<td>증거 없는 발행을 "게시됨"으로 표시한 건수 0</td>
+</tr>
+<tr>
+<td>G3</td>
+<td>예약이 조용히 실패하지 않는다</td>
+<td>예약 실패가 발생한 뒤 사용자가 그것을 알기까지 걸린 시간의 p95가 1시간 이내</td>
+</tr>
+<tr>
+<td>G4</td>
+<td>대행 응대가 맡긴 범위를 넘지 않는다</td>
+<td>위임 범위 밖 자동 발화 0</td>
+</tr>
+<tr>
+<td>G5</td>
+<td>무엇이 통했는지 사람이 근거를 보고 판단할 수 있다</td>
+<td>성과 상위 항목마다 꼬리표와 관찰 기간이 붙어 있는 비율 100퍼센트</td>
+</tr>
+<tr>
+<td>G6</td>
+<td>쓰는 만큼 나가는 원가가 요금을 넘지 않는다</td>
+<td>계정별 상한을 넘긴 사용 0, 최상급 모델이 요금제 포함분으로 소비된 건수 0</td>
+</tr>
+</tbody>
+</table>
+<h3 id="12-비목표-이-판에서-안-한다">1.2 비목표 (이 판에서 안 한다)</h3>
+<table>
+<thead>
+<tr>
+<th>안 하는 것</th>
+<th>왜</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>성과가 취향을 자동으로 고치는 것</strong></td>
+<td>표본이 없다. 지금은 상위를 근거와 함께 보여주는 데까지다. 조용한 취향 변경 금지는 이미 확정된 원칙이다 (FR-OS81-020)</td>
+</tr>
+<tr>
+<td>발행실에서 창작 텍스트를 직접 타이핑해 고치는 것</td>
+<td>경계가 깨진다. 대신 재요청 경로를 둔다 (§4.2 FR-OP-014, 미결 M3)</td>
+</tr>
+<tr>
+<td>미디어 바이트를 만지는 것 (크롭, 재인코딩, 자막 합성)</td>
+<td>경계 판정 3기준 중 셋째에 걸린다. studio 소유</td>
+</tr>
+<tr>
+<td>여러 사람이 결재하는 승인 체인</td>
+<td>사용자는 혼자다. 승인은 단계가 아니라 발행실 안의 보관함이다</td>
+</tr>
+<tr>
+<td>다국가 self-serve 결제와 24시간 지원</td>
+<td>FR-OS82-042로 이미 잠갔다</td>
+</tr>
+<tr>
+<td>고급 BI, 경쟁사 계정 추적, 광고 성과</td>
+<td>오가닉 발행과 그 반응까지만</td>
+</tr>
+<tr>
+<td>이미 구현된 채널·크론 구조를 새로 짜는 것</td>
+<td>§3이 그 목록이다. 재구현 금지</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-사용자와-시나리오">2. 사용자와 시나리오</h2>
+<h3 id="21-페르소나">2.1 페르소나</h3>
+<p><strong>박도윤, 32세, 혼자 SaaS를 만든 바이브 코더</strong> (PRD v8.2.1 §5의 페르소나를 이 문서도 그대로 쓴다. 새 인물을 만들면 두 문서가 다른 사람을 향하게 된다.)</p>
+<p>운영 관점에서 이 사람의 하루는 이렇다. 만드는 것은 문제가 아니다. 그는 이미 클로드로 랜딩페이지도 짜고 영상도 뽑아 봤다. 막히는 곳은 그 다음이다. 만든 것을 스레드에 올리고, 인스타에 비율을 맞춰 다시 올리고, 링크드인에는 톤을 바꿔 올려야 하는데 그걸 세 번 하다 보면 두 시간이 간다. 그래서 셋 중 하나만 올리고 나머지는 미룬다. 미룬 것은 영영 안 올라간다. 댓글이 달려도 하루 뒤에 본다. 조회수가 3천이 나온 글이 왜 나왔는지는 모른다. 다음에 뭘 올릴지는 그날 기분이 정한다.</p>
+<p><strong>근거 (본인 직관 외):</strong> 사업계획 §1.1이 "만드는 건 하는데 알리질 못하는 사람"을 별도 행으로 세우고 그 행에 "우리가 운영 중인 바이브 코딩 커뮤니티가 정확히 이 사람들"이라고 적었다. 즉 관찰 가능한 실제 모집단이 이미 우리 손에 있다. 연구 기록 §4.4는 이 사람이 혼자 하려면 월 약 57만원의 도구값이 든다는 것을 항목별로 적었다. 지불 의사 자체는 미검증이며 이것이 kill-criteria의 대상이다 (§10).</p>
+<p><strong>가장 큰 불신:</strong> 예상 밖 비용, 그리고 "올렸다고 했는데 안 올라간 것".</p>
+<h3 id="22-시나리오">2.2 시나리오</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>시나리오</th>
+<th>지나는 자리</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S1</td>
+<td>첫날. 가입하고 채널을 하나만 연결한 채 첫 완성물을 받는다</td>
+<td>계정 → 발행실. 연결 안 된 채널은 회색으로 남는다</td>
+</tr>
+<tr>
+<td>S2</td>
+<td>완성물 하나를 채널 셋에 내보낸다. 각 채널의 제목과 해시태그를 보고 하나만 고친다</td>
+<td>발행실 채널별 문구 검수</td>
+</tr>
+<tr>
+<td>S3</td>
+<td>지금 올리기 싫다. 목요일 저녁 7시로 예약한다</td>
+<td>발행실 → 캘린더</td>
+</tr>
+<tr>
+<td>S4</td>
+<td>밤에 자는 동안 예약이 돌았고 토큰이 만료돼 실패했다</td>
+<td>예약 실패 알림 → 재연결 → 재시도 (무과금)</td>
+</tr>
+<tr>
+<td>S5</td>
+<td>댓글이 여덟 개 달렸다. 여섯 개는 맡긴 범위 안이라 대신 답이 나갔고 둘은 사람에게 넘어왔다</td>
+<td>채널 운영 대행 + 넘김함</td>
+</tr>
+<tr>
+<td>S6</td>
+<td>이번 주에 뭐가 통했나 본다. 상위 3건에 꼬리표가 붙어 있다</td>
+<td>성과실</td>
+</tr>
+<tr>
+<td>S7</td>
+<td>통한 것과 비슷하게 다시 만든다</td>
+<td>성과실 → 생성실 (맥락을 들고 새 작업물)</td>
+</tr>
+<tr>
+<td>S8</td>
+<td>크레딧이 다 됐다. 무엇에 얼마가 나갔는지 본다</td>
+<td>요금제·사용 원장</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-현재-구현-상태-재구현-금지-목록">3. 현재 구현 상태 (재구현 금지 목록)</h2>
+<p><strong>1차 진실원은 위키다.</strong> <code>wiki/reference/channel-status.md</code>, 루트 <code>CLAUDE.md</code>, PRD v8.2.1 §2를 읽어 채웠다. 코드 검색은 하지 않았다.</p>
+<table>
+<thead>
+<tr>
+<th>영역</th>
+<th>현재 상태</th>
+<th>정본 출처</th>
+<th>이 PRD의 처리</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>채널 발행 도구</td>
+<td><strong>이미구현.</strong> Threads, X, Instagram 전용 도구 + 채널별 publish extension 14종</td>
+<td><code>CLAUDE.md</code> 아키텍처 절</td>
+<td>그대로 쓴다. 새 발행기 만들지 않는다</td>
+</tr>
+<tr>
+<td>채널 연결·검증</td>
+<td><strong>이미구현.</strong> OAuth 9채널 코드 완료, 수동 입력 3채널, <code>verify_channel</code> 실호출 검증</td>
+<td>channel-status wiki, ADR-004</td>
+<td>그대로 쓴다. 상태 표시만 §4.1에서 정교화</td>
+</tr>
+<tr>
+<td>채널 readiness 상태 계약</td>
+<td><strong>이미구현.</strong> <code>connected · not_connected · opening_soon · publish_pending · error</code> 5상태</td>
+<td>channel-status wiki</td>
+<td>그대로 쓴다. 발행실이 이 값을 읽는다</td>
+</tr>
+<tr>
+<td>채널 capability SSOT</td>
+<td><strong>이미구현.</strong> <code>channel-capabilities.ts</code>가 단일 소스, <code>constants.ts</code>가 재수출</td>
+<td>channel-status wiki</td>
+<td><strong>채널 규격 카탈로그(§4.2)는 이것의 확장이다.</strong> 새 소스 만들지 않는다</td>
+</tr>
+<tr>
+<td>멀티채널 발행 크론</td>
+<td><strong>이미구현.</strong> <code>multi-channel-publish</code> 2시간 주기, 채널별 상태 갱신, cleanup 포함</td>
+<td><code>CLAUDE.md</code> 크론 절</td>
+<td>그대로 쓴다. <strong>단 2시간 주기가 분 단위 예약을 못 지킨다. 이것이 이 PRD의 실제 갭이다 (FR-OP-009)</strong></td>
+</tr>
+<tr>
+<td>큐 스키마 v2 채널별 상태</td>
+<td><strong>이미구현.</strong> 글마다 채널별 <code>status · mediaId · publishedAt · error</code></td>
+<td><code>CLAUDE.md</code> 큐 절</td>
+<td>그대로 쓴다. 발행 증거의 자리가 이미 있다</td>
+</tr>
+<tr>
+<td>채널별 가이드·키워드</td>
+<td><strong>이미구현.</strong> 공통 파일 + 채널 전용 파일, 복사 버튼, 채널별 API</td>
+<td><code>CLAUDE.md</code></td>
+<td>그대로 쓴다. 채널별 문구 작성(§4.2)의 입력이 된다</td>
+</tr>
+<tr>
+<td>반응 수집·댓글 좋아요·저조 삭제</td>
+<td><strong>이미구현(Threads).</strong> <code>threads-collect-insights</code> 6시간 주기</td>
+<td><code>CLAUDE.md</code> 크론 절</td>
+<td><strong>재구현 금지.</strong> 이 PRD가 얹는 것은 기능이 아니라 <strong>위임 범위와 정지 장치</strong>다 (§4.3)</td>
+</tr>
+<tr>
+<td>외부 인기글 수집</td>
+<td><strong>이미구현(Threads).</strong> <code>threads-fetch-trending</code> 주 1회</td>
+<td><code>CLAUDE.md</code></td>
+<td>그대로 쓴다. 성과실 둘러보기의 소스</td>
+</tr>
+<tr>
+<td>팔로워 추적</td>
+<td><strong>이미구현(Threads).</strong> <code>threads-track-growth</code> 매일</td>
+<td><code>CLAUDE.md</code></td>
+<td>그대로 쓴다</td>
+</tr>
+<tr>
+<td>Queue · Inbox · Calendar · Videos 화면</td>
+<td><strong>부분구현.</strong> 화면은 있고 동일 정본 연결이 미완</td>
+<td>PRD v8.2.1 §2</td>
+<td>같은 작업물의 다른 창으로 재배선</td>
+</tr>
+<tr>
+<td>발행 증거·복구</td>
+<td><strong>부분구현</strong></td>
+<td>PRD v8.2.1 §2</td>
+<td>1차 목표의 최우선 완결 대상</td>
+</tr>
+<tr>
+<td>성과 수집의 미수집 표시</td>
+<td><strong>부분구현.</strong> 미수집을 0으로 표시하는 문제</td>
+<td>PRD v8.2.1 §2</td>
+<td>§4.4에서 상태를 이름으로 분리</td>
+</tr>
+<tr>
+<td>발행 세 갈래 문구</td>
+<td><strong>미구현</strong></td>
+<td>R17</td>
+<td>신설</td>
+</tr>
+<tr>
+<td>채널별 제목·소개·해시태그·첫 댓글의 발행실 소유</td>
+<td><strong>미구현(경계 이동 직후)</strong></td>
+<td>R31, 경계 wiki (2026-08-19 이동)</td>
+<td>신설. 단 생성 주체는 studio (§4.2)</td>
+</tr>
+<tr>
+<td>상품별 크레딧 분리·계정별 상한·최상급 모델 격리·봇 방어</td>
+<td><strong>미구현</strong></td>
+<td>사업계획 §4.4</td>
+<td>신설 (§4.7)</td>
+</tr>
+<tr>
+<td>꼬리표를 성과에 잇는 계보</td>
+<td><strong>미구현</strong></td>
+<td>사업계획 §1.5, §5</td>
+<td>신설 (§4.5)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⛔ <strong>회수 필요: 채널 개수가 문서마다 다르다</strong>
+- 배경: 경계 wiki는 "이미 완성된 채널 30종 구현"이라 쓰고, channel-status wiki는 Live 1 + Connected 1 + 구현완료 미연결 13으로 15종을 센다. 루트 CLAUDE.md는 "14개 채널 publish extensions"라 쓴다. 이 PRD를 쓰면서 세 숫자가 다 다른 것을 확인했다.
+- 무엇을 정하나: 발행 가능 채널의 공식 개수와 그 세는 기준(발행 extension 기준인가, 연결 가능 provider 기준인가).
+- 옵션 A(추천): channel-status wiki를 정본으로 삼고 <code>channel-capabilities.ts</code>의 항목 수를 기계로 세어 wiki에 박는다 → 고르면: 숫자가 코드에서 나오므로 다시 어긋나지 않는다 / 안 고르면: 랜딩과 요금제 문구에 서로 다른 숫자가 나간다.
+- 옵션 B: 경계 wiki의 30종을 정본으로 두고 나머지를 맞춘다 → 트레이드오프: 30의 근거를 못 찾았다. 근거 없는 숫자를 마케팅에 쓰게 된다.
+- 추천 근거: capability SSOT가 이미 코드 단일 소스로 확정돼 있다(channel-status wiki). 숫자를 사람이 세는 순간 그 SSOT를 우회하는 것이다.</p>
+</blockquote>
+<hr />
+<h2 id="4-기능-요구사항과-수용-기준">4. 기능 요구사항과 수용 기준</h2>
+<p>표기 규칙. <strong>소유</strong>는 화면과 계약의 주인이고, <strong>대응</strong>은 PRD v8.2.1의 상위 조항이다. AC는 Given/When/Then으로 쓰고 경계와 실패를 반드시 포함한다.</p>
+<h3 id="41-화면과-계정-사용자가-오는-유일한-입구">4.1 화면과 계정 (사용자가 오는 유일한 입구)</h3>
+<p><strong>FR-OP-001 | 소비자는 openclaw-service에서만 가입·로그인하고 studio에 직접 가입하지 않는다</strong>
+소유 openclaw · 현재 부분구현 · 대응 FR-OS81-001·002·003</p>
+<pre><code class="language-gherkin">Given 소셜 로그인으로 가입한 신규 사용자
+When  첫 워크스페이스를 활성화
+Then  studio 테넌트가 자동으로 준비되고 사용자에게는 그 존재가 보이지 않는다
+And   같은 활성화를 20회 반복해도 테넌트는 1개를 넘지 않는다
+And   사용자의 소셜 계정 자격증명은 studio로 전달되지 않는다
+And   studio 준비가 실패하면 &quot;만들기 준비 중 문제&quot;라는 이름 붙은 상태로 표시하고, 이미 입력한 값은 하나도 사라지지 않는다
+</code></pre>
+<p><strong>FR-OP-002 | 네 방은 사이드바에, 네 단계는 헤더에, 학습 정보도 헤더에 둔다</strong>
+소유 openclaw · 현재 미구현 · 근거 R08·R14·R15</p>
+<pre><code class="language-gherkin">Given 로그인한 사용자
+When  어느 화면에 있든
+Then  사이드바에 Studio 생성 · Studio 편집 · 발행실 · 성과실 네 항목이 보인다
+And   헤더에 네 단계 진행과 학습 정보 진입점이 함께 보인다
+And   방마다 붙는 숫자는 &quot;그 방에서 내 손을 기다리는 작업물 수&quot;이며 0이면 숫자를 숨긴다
+And   기존 채널 목록과 도구 목록은 삭제되지 않고 네 방 아래 묶음으로 내려간다
+</code></pre>
+<p><strong>FR-OP-003 | 각 방은 작업물을 보관하고 사용자는 언제든 꺼내 이어서 작업한다</strong>
+소유 openclaw · 현재 미구현 · 근거 R09·R16, user-flow §3.1</p>
+<pre><code class="language-gherkin">Given 12개 상태 중 하나에 있는 작업물
+When  상단 작업물 목록을 열면
+Then  각 항목이 &quot;만들던 것 · 고를 것 · 다듬을 것 · 내보낼 것 · 승인 기다리는 것 · 예약된 것 · 막힌 것 · 나간 것 · 내린 것&quot; 중 하나의 이름을 달고 보인다
+And   항목을 누르면 그 상태가 사는 방으로 이동해 하던 지점에서 이어진다
+And   작업물이 0건이면 빈 목록이 아니라 &quot;지금 만들 것&quot; 진입 카드를 보여준다
+</code></pre>
+<p><strong>FR-OP-004 | 채널 연결은 첫 발행 직전에 요구하고, 연결 없이 만든 완성본은 발행실에 쌓인다</strong>
+소유 openclaw · 현재 미구현 · 근거 user-flow 빈틈 12 (이 PRD가 답한다)</p>
+<pre><code class="language-gherkin">Given 채널을 하나도 연결하지 않은 사용자
+When  가입하고 첫 작업물을 만든다
+Then  가입 시점에는 연결을 요구하지 않는다
+And   발행실 도착 시 &quot;내보낼 곳이 아직 없습니다&quot;와 연결 버튼을 함께 보여준다
+And   완성본은 사라지지 않고 발행준비 상태로 발행실에 남는다
+And   연결 없이 지난 완성본이 3건을 넘으면 그 사실을 한 번 알린다. 반복 알림은 하지 않는다
+</code></pre>
+<p><strong>FR-OP-005 | 채널 상태는 연결·미연결·오픈 준비중·발행 준비중·오류 다섯으로 구분해 표시한다</strong>
+소유 openclaw · 현재 <strong>이미구현(계약)</strong> · 근거 channel-status wiki readiness 계약</p>
+<pre><code class="language-gherkin">Given 워크스페이스의 채널 목록
+When  연결 상태를 표시할 때
+Then  미연결은 누를 수 있는 연결 버튼으로, 오픈 준비중은 회색 대기로 서로 다르게 보인다
+And   토큰이 만료된 채널은 일반 오류가 아니라 &quot;다시 연결해 주세요&quot;로 따로 표시된다
+And   장기 토큰 교환과 계정 신원 검증을 둘 다 통과하기 전에는 연결됨으로 표시하지 않는다
+And   연결이 끊긴 채널에 예약이 걸려 있으면 그 예약 건수를 같은 자리에 함께 보여준다
+</code></pre>
+<h3 id="42-발행실">4.2 발행실</h3>
+<p><strong>FR-OP-006 | 발행 선택지는 지금 발행하기 · 승인 인박스에 보관하기 · 캘린더로 예약하기 세 갈래이며 문구를 바꾸지 않는다</strong>
+소유 openclaw · 현재 미구현 · 근거 R17 (회장 지정 문구)</p>
+<pre><code class="language-gherkin">Given 편집 확정된 작업물이 발행실에 도착
+When  발행 방식을 고를 때
+Then  정확히 위 세 문구가 보이고 다른 표현으로 대체되지 않는다
+And   승인 인박스는 별도 단계가 아니라 발행실 하위 보관함으로 배치된다
+And   승인 인박스의 항목을 승인하면 즉시 발행으로 넘어간다
+And   신규 범위의 기본 선택은 즉시 발행이 아니라 승인 후 발행이다
+</code></pre>
+<p><strong>FR-OP-007 | 채널별 제목·소개·해시태그·첫 댓글은 발행실이 소유하고 발행 시점 정보로 갱신한다</strong>
+소유 openclaw(소유) / studio(생성) · 현재 미구현 · 근거 R31, 경계 wiki 2026-08-19 이동, FR-OS82-044</p>
+<pre><code class="language-gherkin">Given 완성본과 내보낼 채널 3개
+When  발행실이 채널별 문구를 준비할 때
+Then  공통 문구 1벌과 채널별 차이가 나란히 보이고 무엇이 다른지 표시된다
+And   각 채널의 글자수 상한·해시태그 개수 상한이 함께 보이고 초과분은 잘리기 전에 경고된다
+And   상한 초과를 사용자 확인 없이 자동으로 잘라내지 않는다
+And   문구의 실제 생성은 studio에 요청하며 openclaw가 창작 텍스트를 직접 짓지 않는다
+And   발행 직전에 문구가 최신 상태(지금 뜨는 태그·최근 반응·발행 시각)로 갱신됐는지 표시한다
+</code></pre>
+<p><strong>FR-OP-008 | 채널 규격 카탈로그는 openclaw가 소유하고 studio가 읽는다</strong>
+소유 openclaw · 현재 <strong>부분구현(capability SSOT 확장)</strong> · 근거 경계 wiki §채널 지식</p>
+<pre><code class="language-gherkin">Given 채널 규격이 필요한 모든 곳
+When  글자수 상한·해시태그 개수·지원 비율·길이 상한을 읽을 때
+Then  기존 채널 capability 단일 소스 하나에서만 읽고 두 번째 사본을 만들지 않는다
+And   플랫폼이 규칙을 바꾸면 이 카탈로그 한 곳만 고치면 된다
+And   각 규격 값에 마지막 확인일이 붙고, 확인일이 90일을 넘으면 &quot;확인 필요&quot;로 표시한다
+And   studio가 규격을 조회할 때 카탈로그 버전을 함께 받아 어느 판으로 만들었는지 남는다
+</code></pre>
+<p><strong>FR-OP-009 | 예약 발행은 사용자가 지정한 시각 기준으로 실행하고, 실행 주기가 그 정밀도를 못 지키면 그 사실을 미리 말한다</strong>
+소유 openclaw · 현재 <strong>부분구현.</strong> 기존 <code>multi-channel-publish</code>가 2시간 주기 · 근거 CLAUDE.md 크론 절, 사업계획 §3.3 기술과제</p>
+<pre><code class="language-gherkin">Given 사용자가 목요일 19시 00분으로 예약
+When  예약 실행 경로가 2시간 주기 크론뿐이면
+Then  예약 화면에서 실제 발행이 지정 시각 이후 최대 몇 분 안에 일어나는지 범위로 미리 알린다
+And   그 범위를 지킬 수 없는 시각(예: 분 단위 정각 필수)은 예약 자체를 받지 않고 이유를 말한다
+And   예약 시각에 워크스페이스 시간대를 함께 저장하고 다른 값으로 추론하지 않는다
+And   같은 예약이 두 번 실행돼도 외부 채널에 나가는 글은 1건을 넘지 않는다
+</code></pre>
+<p><strong>FR-OP-010 | 발행 결과는 증거를 받은 뒤에만 게시됨으로 표시한다</strong>
+소유 openclaw · 현재 부분구현 · 대응 FR-OS81-017</p>
+<pre><code class="language-gherkin">Given 발행을 시도한 작업물
+When  채널이 외부 식별자 또는 원문 주소를 돌려주면
+Then  게시됨으로 표시하고 그 증거를 함께 보여준다
+When  응답이 없거나 불확실하면
+Then  게시됨으로 표시하지 않고 &quot;확인 중&quot;이라는 별도 상태로 두며 자동으로 재발행하지 않는다
+And   확인 중 상태는 나중에 증거가 확인되면 게시됨으로 올라간다
+And   같은 계정이 아닌 곳에 나간 발행은 0이어야 한다
+</code></pre>
+<p><strong>FR-OP-011 | 발행 실패는 이름 붙은 상태로 구분하고 재시도는 무과금이다</strong>
+소유 openclaw · 현재 부분구현 · 근거 경계 wiki §과금, 사업계획 §3.3</p>
+<pre><code class="language-gherkin">Given 발행이 실패한 작업물
+When  실패 사유를 표시할 때
+Then  토큰 만료 · 호출 한도 초과 · 채널 규격 불일치 · 채널 장애 · 계정 권한 부족을 서로 다른 이름으로 구분한다
+And   각 이름마다 사용자가 지금 할 수 있는 행동이 하나씩 붙는다
+And   재시도에는 크레딧이 차감되지 않는다
+And   규격 불일치가 사유이면 openclaw가 파일을 고치지 않고 studio에 새 완성본을 요청하며 그 전까지 발행을 막는다
+</code></pre>
+<p><strong>FR-OP-012 | 예약이 걸린 작업물을 되돌리면 예약 해제를 먼저 말한다</strong>
+소유 openclaw · 현재 미구현 · 근거 R13, user-flow §2.3 빈틈 8 (이 PRD가 답한다)</p>
+<pre><code class="language-gherkin">Given 내일 18시 30분 예약이 걸린 작업물
+When  사용자가 되돌리기를 누르면
+Then  &quot;이 작업물은 내일 오후 6시 30분 발행 예약이 걸려 있습니다. 되돌리면 예약이 해제됩니다&quot;를 먼저 보여주고 확인을 받는다
+And   되돌려도 발행실의 원본 항목은 덮어써지지 않고 그대로 남는다
+And   앞 방 목록에 &quot;되돌려 옴&quot; 표시가 붙은 항목이 새로 하나 추가된다
+And   이미 차감된 크레딧은 되돌려도 복구되지 않으며 그 사실을 확인 화면에 적는다
+</code></pre>
+<p><strong>FR-OP-013 | AI 생성·변형 표시는 발행 전에 확인하고 증거에 남긴다</strong>
+소유 openclaw · 현재 부분구현(TikTok 입력 존재) · 대응 FR-OS82-039</p>
+<pre><code class="language-gherkin">Given AI로 만든 완성본을 발행하려는 사용자
+When  채널이 AI 표시를 요구하면
+Then  발행 전에 그 요구와 적용되는 정책 판을 보여주고 표시 없이 발행하지 않는다
+And   발행 증거에 그때 적용한 정책 판이 함께 보존되며 나중에 덮어쓰지 않는다
+And   AI 표시를 지원하지 않는 채널은 &quot;미지원&quot;으로 명시하고 지원하는 척하지 않는다
+</code></pre>
+<p><strong>FR-OP-014 | 발행실에서 문구를 고치고 싶을 때의 경로를 하나로 정한다</strong>
+소유 openclaw · 현재 미구현 · 근거 user-flow 빈틈 6 (<strong>이 PRD는 답을 확정하지 않는다. §10 M3</strong>)</p>
+<pre><code class="language-gherkin">Given 캡션에 오타 한 글자를 발견한 사용자
+When  고치려고 하면
+Then  최소한 &quot;이 부분을 이렇게 고쳐 주세요&quot;라는 재요청 경로가 항상 존재한다
+And   재요청의 왕복 소요 시간 범위를 먼저 보여준다
+And   직접 타이핑 허용 여부와 그 텍스트의 판 소유는 M3 결정 전까지 화면에 확정하지 않는다
+</code></pre>
+<h3 id="43-채널-운영-맡긴-범위-안의-대행">4.3 채널 운영 (맡긴 범위 안의 대행)</h3>
+<p><strong>FR-OP-015 | 대행은 사용자가 명시적으로 맡긴 범위 안에서만 동작한다</strong>
+소유 openclaw · 현재 <strong>부분구현.</strong> Threads 댓글 좋아요·저조 삭제는 이미 크론으로 동작 · 근거 사업계획 §1.2·§3.3, R11</p>
+<pre><code class="language-gherkin">Given 채널 운영 위임 설정 화면
+When  사용자가 위임 범위를 정할 때
+Then  좋아요 누르기 · 정형 답글 · 자유 답글 · 저조한 글 내리기를 각각 따로 켜고 끈다
+And   모든 항목의 최초 기본값은 꺼짐이다
+And   기존에 이미 동작하던 Threads 자동 반응은 삭제하지 않고 이 설정 아래로 편입하며, 편입 시 현재 동작 상태를 사용자에게 한 번 보여주고 유지 여부를 묻는다
+And   위임 범위 밖의 발화는 0건이어야 하고, 판정이 애매하면 발화하지 않고 사람에게 넘긴다
+</code></pre>
+<p><strong>FR-OP-016 | 대행 답글의 말투와 금지 표현은 공통 학습 정보를 따른다</strong>
+소유 openclaw(집행) / 공통 학습 정보(원본) · 현재 미구현 · 근거 R32, R11</p>
+<pre><code class="language-gherkin">Given 브랜드 톤과 금지 표현이 공통 학습 정보에 저장된 상태
+When  대행 답글을 만들 때
+Then  그 톤과 금지선을 읽어 적용하고 금지 표현이 포함된 답글은 내보내지 않는다
+And   금지 표현 검사에 걸린 답글은 폐기되지 않고 사람에게 넘어간다
+And   사용자가 답글 말투를 고치면 그것은 약한 신호로 기록되며, 동의 없이 취향을 바꾸지 않는다
+</code></pre>
+<p><strong>FR-OP-017 | 넘김 조건과 정지 장치를 둔다</strong>
+소유 openclaw · 현재 미구현 · 근거 사업계획 §3.3 "응대 범위를 잘못 잡으면 사고가 난다"</p>
+<pre><code class="language-gherkin">Given 대행이 켜진 채널
+When  들어온 댓글이 환불·법적 주장·인신공격·개인정보 요구·가격 확답 요구 중 하나에 해당하면
+Then  자동 응답하지 않고 넘김함으로 보낸다
+And   같은 글에 대행 발화가 시간당 상한을 넘으면 그 글의 대행을 멈추고 알린다
+And   화면 어디서나 누를 수 있는 &quot;대행 전부 멈춤&quot; 스위치가 있고, 누르면 60초 안에 예정된 발화가 모두 취소된다
+And   대행이 실제로 내보낸 모든 발화는 원문과 시각과 대상이 목록으로 남아 사후에 다 볼 수 있다
+</code></pre>
+<p><strong>FR-OP-018 | 저조한 글 내리기는 되돌릴 수 있게 한다</strong>
+소유 openclaw · 현재 <strong>이미구현(Threads 저조 삭제)</strong> · 근거 CLAUDE.md 크론 절, user-flow 보관됨 상태</p>
+<pre><code class="language-gherkin">Given 자동으로 내려간 저조한 글
+When  사용자가 성과실 보관함을 열면
+Then  내려간 글이 원문과 내려간 사유(지표와 기준값)와 함께 남아 있다
+And   무엇을 기준으로 내렸는지 그 기준값이 사용자에게 보이고 수정할 수 있다
+And   외부 채널에서 이미 삭제된 것은 복구할 수 없다는 사실을 내리기 전에 알린다
+</code></pre>
+<h3 id="44-성과실">4.4 성과실</h3>
+<p><strong>FR-OP-019 | 지표는 채널별 원래 정의를 보존한 채 정규화하고 미수집을 0으로 표시하지 않는다</strong>
+소유 openclaw · 현재 부분구현 · 대응 FR-OS81-018, 사업계획 §3.3 "채널마다 조회수 정의가 다르다"</p>
+<pre><code class="language-gherkin">Given 채널 3곳에서 수집한 지표
+When  종합 화면에 나란히 보여줄 때
+Then  각 수치에 그 채널의 원래 정의 이름과 마지막 확인 시각이 붙는다
+And   아직 못 받은 값은 0이 아니라 &quot;미수집&quot;으로, 채널이 안 주는 값은 &quot;미지원&quot;으로 서로 다르게 표시한다
+And   정의가 다른 값을 하나의 합계로 더하지 않는다. 합계가 필요하면 그것이 무엇의 합인지 적는다
+And   관찰 기간이 다른 두 건을 같은 축에 놓지 않는다
+</code></pre>
+<p><strong>FR-OP-020 | 무엇이 통했는지를 근거와 함께 제시한다</strong>
+소유 openclaw · 현재 미구현 · 근거 사업계획 §1.5, R04 성과 기반 추천</p>
+<pre><code class="language-gherkin">Given 관찰 기간 안에 발행된 글 여러 건
+When  성과 상위를 보여줄 때
+Then  상위 항목마다 꼬리표(어느 후보 · 어느 제작법 몇 판 · 어떤 훅)와 관찰 기간이 함께 붙는다
+And   꼬리표가 없는 발행물은 상위 목록에서 &quot;근거 없음&quot;으로 표시하고 있는 척하지 않는다
+And   표본이 통계적으로 부족하면 순위를 단정하지 않고 &quot;표본 부족&quot;이라고 적는다
+And   시스템이 &quot;이것 덕분입니다&quot;라고 인과를 단정하지 않는다. 관찰만 제시하고 판단은 사람이 한다
+</code></pre>
+<p><strong>FR-OP-021 | 뜨는 글 조사는 출처와 관찰일을 달고 온다</strong>
+소유 openclaw · 현재 <strong>이미구현(Threads 주 1회 수집)</strong> · 대응 FR-OS81-006·010</p>
+<pre><code class="language-gherkin">Given 외부 인기글 수집 결과
+When  둘러보기 화면에 보여줄 때
+Then  각 사례에 원문 주소와 관찰일과 지표 기간이 붙는다
+And   출처를 못 다는 항목은 보여주지 않는다
+And   지어낸 수치는 0건이어야 한다
+And   각 사례에서 &quot;이런 류로 만들기&quot;로 넘어갈 수 있고 그때 키워드와 출처를 함께 들고 간다
+</code></pre>
+<p><strong>FR-OP-022 | 성과에서 새 작업물로 갈 때 맥락을 들고 간다</strong>
+소유 openclaw · 현재 미구현 · 근거 user-flow §2.4, R04</p>
+<pre><code class="language-gherkin">Given 잘 된 발행물 또는 인기 키워드
+When  &quot;비슷하게 만들기&quot;를 누르면
+Then  새 작업물이 생성실 목록에 추가되고 원 작업물은 그대로 남는다
+And   도착 화면 배너에 들고 온 맥락(원 주제와 선택 이력, 성과 수치와 관찰 기간, 키워드와 출처)이 보인다
+And   이 맥락은 학습 정보에 자동 반영되지 않는다
+And   되돌리기 도착 배너와 같은 문법을 쓴다
+</code></pre>
+<h3 id="45-학습-환류-지금-약속하는-데까지">4.5 학습 환류 (지금 약속하는 데까지)</h3>
+<p><strong>FR-OP-023 | 발행물은 꼬리표를 달고 나가고 성과는 그 꼬리표에 붙는다</strong>
+소유 openclaw · 현재 미구현 · 근거 사업계획 §1.5·§5 "나중에 소급해서 못 붙인다"</p>
+<pre><code class="language-gherkin">Given studio에서 완성물과 꼬리표를 받은 발행실
+When  발행할 때
+Then  꼬리표가 발행 증거에 함께 보존되고, 나중에 수집한 지표가 그 꼬리표에 연결된다
+And   꼬리표 없이 발행된 건은 성과 분석에서 &quot;계보 없음&quot;으로 분리된다
+And   사용자가 직접 올린 완성 파일도 발행 자체는 되지만 계보 없음으로 표시된다
+And   꼬리표는 사후에 붙이거나 고칠 수 없다
+</code></pre>
+<p><strong>FR-OP-024 | 성과 신호는 studio에 단방향으로 전달하되 취향을 자동으로 바꾸지 않는다</strong>
+소유 shared · 현재 미구현 · 대응 FR-OS81-019·020</p>
+<pre><code class="language-gherkin">Given 수집된 성과와 트렌드
+When  studio에 신호로 전달할 때
+Then  워크스페이스 범위를 벗어난 데이터가 섞이지 않고, 같은 신호가 중복 전달되지 않는다
+And   전달됐다는 사실만으로 취향 프로파일이 갱신되지 않는다
+And   다음 추천이 지난번과 달라졌으면 무엇이 왜 달라졌는지 보여주고 사용자가 승인해야 반영된다
+And   사용자가 승인을 거절해도 이번 결과물은 그대로 나온다
+And   출력 언어가 다른 신호를 서로 섞지 않는다
+</code></pre>
+<p><strong>FR-OP-025 | 자동 학습을 제품 문구로 약속하지 않는다</strong>
+소유 product gate · 현재 정책 신설 · 근거 이 위임의 명시 지시, 연구 기록 §6 "성과가 학습으로 실제로 이어지는지 우리 실측 전"</p>
+<pre><code class="language-gherkin">Given 랜딩·요금제·제품 화면의 모든 문구
+When  성과와 학습의 관계를 설명할 때
+Then  &quot;성과를 보고 알아서 좋아집니다&quot;류의 자동 개선 약속이 0건이어야 한다
+And   대신 &quot;무엇이 통했는지 근거와 함께 보여드립니다&quot;까지만 말한다
+And   실측으로 신호가 확인된 뒤에 이 조항을 재개정한다
+</code></pre>
+<h3 id="46-studio-호출">4.6 studio 호출</h3>
+<p><strong>FR-OP-026 | openclaw는 요청 봉투를 만들어 보내고 완성물과 꼬리표를 받는다</strong>
+소유 shared · 현재 미구현 · 근거 경계 wiki §접점 5개, 사업계획 §4.6 1단계</p>
+<pre><code class="language-gherkin">Given 발행 또는 재요청이 필요한 순간
+When  studio를 호출할 때
+Then  요청은 신호 넣기 · 제작 요청 · 선택 기록 · 취향 상태 조회 · 소재 반입 다섯 접점 중 하나로만 나간다
+And   같은 요청을 20회 재시도해도 studio 작업은 1건을 넘지 않는다
+And   사용자 소셜 자격증명은 어느 봉투에도 실리지 않는다
+And   응답으로 완성물 참조와 꼬리표와 실비를 함께 받고, 셋 중 하나라도 없으면 발행 준비 완료로 넘기지 않는다
+And   studio가 응답하지 않으면 &quot;만드는 중&quot;이 언제까지인지 범위로 말하고, 기존 결과와 발행 이력과 입력값은 보존한다
+</code></pre>
+<p><strong>FR-OP-027 | 층 항목(브랜드·타깃·금지 표현)의 원본은 openclaw가 보관한다</strong>
+소유 openclaw · 현재 부분구현·이관 필요 · 근거 R32·R34, 위임 명시 지시</p>
+<pre><code class="language-gherkin">Given 공통 정보와 워크스페이스 두 층으로 나뉜 학습 정보
+When  사용자가 브랜드·타깃·금지 표현을 넣거나 고칠 때
+Then  그 원본은 openclaw가 보관하고, 사용자는 언제든 열어 보고 고치고 지울 수 있다
+And   지우면 다음 제작부터 반영되지 않는다는 것을 지우기 전에 알린다
+And   각 항목은 한 줄 단위로 켜고 끄고 되돌릴 수 있으며 그 줄이 어디서 나왔는지 출처가 붙는다
+And   studio에는 이번 제작에 필요한 최소 항목만 실어 보낸다
+And   공통 값과 워크스페이스 값이 충돌하면 자동으로 고르지 않는다 (§10 M2 결정 전까지 제작을 멈추고 묻는다)
+</code></pre>
+<blockquote>
+<p><strong>주의.</strong> 여기서 openclaw가 보관하는 것은 <strong>원본(사람이 넣고 고치는 항목)</strong>이고, 그 항목이 취향 프로파일로 계산되는 것은 studio다. 이 둘을 같은 것으로 보면 경계가 무너진다.</p>
+</blockquote>
+<h3 id="47-요금제와-크레딧">4.7 요금제와 크레딧</h3>
+<p><strong>FR-OP-028 | 상품별 크레딧을 분리해 서로 바꿔 쓰지 못하게 한다</strong>
+소유 openclaw billing · 현재 미구현 · 근거 사업계획 §4.4 (원가 차이 최대 20배)</p>
+<pre><code class="language-gherkin">Given 카드뉴스 몫과 숏폼 몫이 각각 남은 계정
+When  숏폼을 만들려 하는데 숏폼 몫이 0이면
+Then  카드뉴스 몫으로 대신 차감하지 않고 부족을 알린 뒤 추가 결제 경로를 제시한다
+And   남은 몫이 상품별로 각각 보인다
+And   발행과 값만 바꾸는 재렌더는 어느 몫도 차감하지 않는다
+</code></pre>
+<p><strong>FR-OP-029 | 계정별 하드캡과 최상급 모델 격리를 둔다</strong>
+소유 openclaw billing · 현재 미구현 · 근거 사업계획 §4.4</p>
+<pre><code class="language-gherkin">Given 프로 요금제 계정
+When  사용량이 요금제 한도의 1.5배에 도달하면
+Then  추가 생성을 강제로 막고 그 이유와 해제 방법을 보여준다
+And   최상급 영상 모델은 어느 요금제 포함분으로도 소비되지 않고 건별 추가 결제로만 실행된다
+And   추가 결제 전에 예상 금액을 보여주고 사용자 확인 없이 결제되지 않는다
+</code></pre>
+<p><strong>FR-OP-030 | 봇 어뷰징을 막는다</strong>
+소유 openclaw billing · 현재 미구현 · 근거 연구 기록 §3 (다섯 시간에 수천만원 소진 사고), 사업계획 §4.4</p>
+<pre><code class="language-gherkin">Given 방금 가입한 무료 계정
+When  가입 직후 짧은 시간에 생성을 연속 요청하면
+Then  무료 크레딧을 한 번에 몰아 쓸 수 없게 시간당 실행 상한이 적용된다
+And   짧은 시간에 몰리는 호출은 차단되고 그 사실이 운영 쪽에 표면화된다
+And   같은 결제수단·같은 기기에서 반복 생성되는 신규 계정은 무료 크레딧 지급을 보류한다
+And   차단 판정을 사람이 사후에 뒤집을 수 있는 경로가 있다
+</code></pre>
+<p><strong>FR-OP-031 | 돈이 움직인 자리를 사용자가 다 볼 수 있다</strong>
+소유 openclaw billing · 현재 미구현 · 대응 FR-OS81-021·027, FR-OS82-037</p>
+<pre><code class="language-gherkin">Given 크레딧을 쓴 계정
+When  사용 내역을 열면
+Then  후보 3개 생성 · 고해상도 승격 · 미선택 후보 추가 승격 · 문구 재생성 · 소재 교체가 각각 별도 항목으로 보인다
+And   품질 게이트에 반려된 건은 차감되지 않고 반려 사유가 남는다
+And   생성 전 예상 범위와 완료 후 실비가 같은 건으로 대사되고, 차이가 나면 그 이유가 붙는다
+And   발행 실패로 인한 재시도는 어느 항목에도 나타나지 않는다 (무과금)
+</code></pre>
+<hr />
+<h2 id="5-데이터-요구-의미-수준">5. 데이터 요구 (의미 수준)</h2>
+<p><strong>테이블·필드명·타입을 쓰지 않는다.</strong> 무엇을 반드시 구분해 기억해야 하는지만 적는다. 실제 구조는 기술설계에서 회장과 합의한다.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>무엇을 기억하나</th>
+<th>왜 이것이 따로 있어야 하나</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>D1</td>
+<td>하나의 작업물과 그것이 지금 어느 상태인지</td>
+<td>상태 12개가 곧 방과 목록의 근거다. 상태를 화면에서 계산하면 두 화면이 다른 답을 낸다</td>
+</tr>
+<tr>
+<td>D2</td>
+<td>작업물의 판(revision)과 그 판이 어디서 왔는지</td>
+<td>되돌리기가 덮어쓰지 않으려면 앞 판이 남아야 한다 (R13)</td>
+</tr>
+<tr>
+<td>D3</td>
+<td>연결된 채널 계정과 그 준비 상태와 자격의 남은 수명</td>
+<td>토큰 만료를 일반 오류와 구분하려면 수명이 값으로 있어야 한다</td>
+</tr>
+<tr>
+<td>D4</td>
+<td>채널 규격 카탈로그와 그 값의 마지막 확인일과 판 번호</td>
+<td>플랫폼 변경을 한 곳만 고쳐 따라가기 위해서다</td>
+</tr>
+<tr>
+<td>D5</td>
+<td>발행 의도 하나와 그것이 향하는 채널 여럿</td>
+<td>한 완성물이 채널 셋으로 갈 때 셋 중 하나만 실패할 수 있다. 의도와 결과가 1대1이면 이것을 못 적는다</td>
+</tr>
+<tr>
+<td>D6</td>
+<td>발행 증거 (외부 식별자 또는 원문 주소)와 받은 시각</td>
+<td>증거 없이 게시됨을 말하지 않기 위한 유일한 근거다</td>
+</tr>
+<tr>
+<td>D7</td>
+<td>예약 시각과 그 시각이 어느 시간대 기준인지</td>
+<td>시간대를 다른 값으로 추론하면 밤에 나갈 글이 낮에 나간다</td>
+</tr>
+<tr>
+<td>D8</td>
+<td>실패의 이름과 사용자가 할 수 있는 행동</td>
+<td>실패를 문자열 하나로 두면 화면이 전부 같은 말을 한다</td>
+</tr>
+<tr>
+<td>D9</td>
+<td>꼬리표 (어느 후보 · 어느 제작법 판 · 어떤 훅)</td>
+<td>소급해서 못 붙인다. 발행 시점에 안 남기면 영원히 없다</td>
+</tr>
+<tr>
+<td>D10</td>
+<td>지표 한 건과 그 채널에서의 원래 정의와 관찰 기간과 확인 시각</td>
+<td>미수집과 0과 미지원을 구분하는 최소 단위다</td>
+</tr>
+<tr>
+<td>D11</td>
+<td>학습 정보 항목 한 줄과 그 줄의 층(공통·워크스페이스)과 출처와 켜짐 여부</td>
+<td>줄 단위 관리가 이 제품의 차별점이다. 한 덩어리로 저장하면 나중에 못 쪼갠다</td>
+</tr>
+<tr>
+<td>D12</td>
+<td>위임 범위 설정과 대행이 실제로 내보낸 발화의 기록</td>
+<td>사고가 났을 때 무엇이 누구 이름으로 나갔는지 되짚는 유일한 근거다</td>
+</tr>
+<tr>
+<td>D13</td>
+<td>크레딧 사건 (무엇 때문에 얼마가 움직였나)과 상품 구분</td>
+<td>상품별 분리와 대사가 여기서 나온다</td>
+</tr>
+<tr>
+<td>D14</td>
+<td>워크스페이스와 그 지역·통화·시간대·과세 지역·적용 정책 판</td>
+<td>나중에 붙이면 이전이 비싸다</td>
+</tr>
+<tr>
+<td>D15</td>
+<td>발행 당시 적용된 정책 판 (AI 표시·권리·환불)</td>
+<td>정책이 바뀌어도 과거 발행의 근거는 그때 것으로 남아야 한다</td>
+</tr>
+</tbody>
+</table>
+<p><strong>격리 원칙 두 가지.</strong> ①워크스페이스가 다르면 어떤 것도 서로 읽거나 연결되지 않는다. ②출력 언어가 다른 신호는 같은 프로파일로 섞이지 않는다.</p>
+<hr />
+<h2 id="6-비기능-요구">6. 비기능 요구</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>범주</th>
+<th>요구</th>
+<th>판정 기준</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NFR-OP-01</td>
+<td>채널 API 한도</td>
+<td>채널별 호출 한도를 한 곳에서 알고 그 아래로 스스로 조절한다. 한도에 걸리면 실패가 아니라 대기로 처리하고 사용자에게 지연 사유를 말한다</td>
+<td>한도 초과로 인한 계정 제재 0건. 한도 대기 중인 건이 사용자에게 안 보이는 경우 0</td>
+</tr>
+<tr>
+<td>NFR-OP-02</td>
+<td>토큰 만료 대응</td>
+<td>만료 예정을 미리 감지해 알리고, 갱신 가능한 채널은 갱신하며, 불가능한 채널은 재연결을 요구한다. 만료를 일반 오류로 표시하지 않는다</td>
+<td>만료로 인한 조용한 실패 0. 만료 알림이 실제 만료보다 먼저 나가는 비율 100퍼센트</td>
+</tr>
+<tr>
+<td>NFR-OP-03</td>
+<td>예약 실패 처리</td>
+<td>예약이 실패하면 자동 재발행하지 않고, 사유별로 재시도 가능 여부를 나눠 사용자에게 알린다</td>
+<td>사용자 인지까지 p95 1시간 이내. 무단 재발행 0</td>
+</tr>
+<tr>
+<td>NFR-OP-04</td>
+<td>응대 사고 방지</td>
+<td>위임 범위 밖 발화 0, 넘김 조건 적중 시 자동응답 0, 전체 정지가 60초 안에 발효</td>
+<td>위 셋 전부 위반 0</td>
+</tr>
+<tr>
+<td>NFR-OP-05</td>
+<td>멱등성</td>
+<td>발행·예약·승인·결제·studio 호출은 20회 재시도와 20건 동시 실행에서 외부 부작용 1건 이하</td>
+<td>중복 발행 0</td>
+</tr>
+<tr>
+<td>NFR-OP-06</td>
+<td>계보 완결성</td>
+<td>브리프에서 완성물, 꼬리표, 발행 증거, 지표, 다음 제안까지 하나의 실로 이어진다</td>
+<td>계보 끊김 0. 끊긴 건은 "계보 없음"으로 명시</td>
+</tr>
+<tr>
+<td>NFR-OP-07</td>
+<td>미디어 격리</td>
+<td>openclaw 실행 과정이 미디어 바이트를 읽거나 쓰거나 변환하지 않는다</td>
+<td>금지 의존·실행 사건 0</td>
+</tr>
+<tr>
+<td>NFR-OP-08</td>
+<td>테넌트 격리</td>
+<td>워크스페이스 간 읽기·쓰기·연결 0</td>
+<td>교차 접근 0</td>
+</tr>
+<tr>
+<td>NFR-OP-09</td>
+<td>비밀 보호</td>
+<td>채널 자격증명이 화면·주소·로그·분석·내보내기 어디에도 원문으로 나타나지 않는다</td>
+<td>노출 0</td>
+</tr>
+<tr>
+<td>NFR-OP-10</td>
+<td>가용성</td>
+<td>studio 장애 시 기존 결과·발행 이력·예약·입력값을 보존하고 신규 제작만 막는다</td>
+<td>데이터 손실 0</td>
+</tr>
+<tr>
+<td>NFR-OP-11</td>
+<td>접근성</td>
+<td>390·1024·1440에서 키보드 이동, 초점 표시, 오류와 입력의 연결, 44픽셀 터치 영역, 모션 축소 존중</td>
+<td>핵심 동작 가림 0. WCAG 2.2 AA 목표</td>
+</tr>
+<tr>
+<td>NFR-OP-12</td>
+<td>회귀 방지</td>
+<td>기존 채널 route·화면·크론·큐 스키마를 승인 없이 지우거나 이름을 바꾸지 않는다</td>
+<td>보존 목록 대비 차이 0</td>
+</tr>
+<tr>
+<td>NFR-OP-13</td>
+<td>제3자 런타임 위험</td>
+<td>OpenClaw는 외부 오픈소스이고 벤더링 사본이다. 상류 갱신 절차와 장애 시 발행 경로를 문서로 둔다</td>
+<td>갱신 절차 문서 존재. 런타임 장애가 예약 데이터에 손실을 주는 경우 0</td>
+</tr>
+<tr>
+<td>NFR-OP-14</td>
+<td>원가 통제</td>
+<td>후보·승격·추가 승격·품질 반려를 각각 다른 사건으로 대사한다</td>
+<td>숨은 과금 0, 미대사 유료 작업 0</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7-steelman-반론-가장-강한-반대를-내가-만든다">7. Steelman 반론 (가장 강한 반대를 내가 만든다)</h2>
+<p><strong>반론 1. "발행과 응대는 해자가 아니다. 이걸 묶어 판다는 것은 이미 성숙한 두 시장의 얇은 조합을 파는 것이다."</strong>
+이 반론이 맞는 부분이 크다. 연구 기록 §2.3이 확인했듯 Blotato는 월 29달러에 20~40계정 자동 배포와 댓글 관리를 이미 하고, Postiz는 셀프 설치하면 공짜다. 댓글 응대 전용 도구는 월 육천 원짜리도 있다. 즉 우리가 발행실과 채널 운영으로 얻는 기능적 우위는 사실상 없다. 심지어 우리 발행 구현의 대부분은 제3자 오픈소스 위에 있어서, 경쟁자가 같은 것을 벤더링하면 며칠 만에 따라온다. 그렇다면 우리가 파는 것이 "발행 기능"이라면 우리는 이미 진 싸움을 하는 것이다. <strong>우리 답은 꼬리표다.</strong> 도구 두 개를 붙이면 만들 때의 정보와 나간 뒤의 반응 사이에서 계보가 끊긴다. FR-OP-023이 그 끊김을 막는 유일한 조항이고, 소급이 불가능하다는 점이 시간이 갈수록 벌어지는 차이를 만든다. 다만 이것은 아직 가설이며 §10 kill-criteria K2가 그 검증이다.</p>
+<p><strong>반론 2. "자동 학습을 약속하지 않으면 이 제품은 그냥 대시보드다. 사람은 대시보드를 보지 않는다."</strong>
+날카롭다. 성과실이 "무엇이 통했는지 근거와 함께 보여준다"에서 멈추면, 그것을 보고 다음 행동을 하는 것은 결국 사람이다. 그런데 우리 타깃은 정확히 "그 판단을 하기 싫거나 못 하는 사람"이다. 즉 우리가 만든 화면이 우리 타깃이 안 하는 일을 요구하게 된다. 이 모순은 실재하고, 자동 학습을 약속하지 않기로 한 결정이 그 모순을 만든다. 우리가 이 반론에 대는 답은 FR-OP-022다. 성과실의 값은 보는 데 있지 않고 "비슷하게 만들기" 버튼 하나로 다음 작업물이 되는 데 있다. 판단을 요구하지 않고 클릭 하나로 잇는다. 그럼에도 근거 표시가 장식이 될 위험은 남으며, 이것이 §10 M6이다.</p>
+<hr />
+<h2 id="8-premortem-1년-뒤-이-제품이-실패했다면">8. Premortem (1년 뒤 이 제품이 실패했다면)</h2>
+<p><strong>시나리오 A. 조용한 실패가 신뢰를 죽였다.</strong> 2027년 봄, 사용자 마흔 명이 붙어 있었다. 그런데 인스타그램이 토큰 정책을 바꿨고, 우리 갱신 경로가 그 변경을 못 따라가 예약 발행이 2주 동안 조용히 실패했다. 화면에는 "예약됨"이 그대로 떠 있었다. 사용자는 자기 글이 나간 줄 알고 있다가 2주 뒤에야 알았다. 그 뒤로는 우리 화면을 믿지 않고 매번 채널에 직접 들어가 확인했다. 확인할 거면 우리를 쓸 이유가 없다. 이 시나리오의 방어가 FR-OP-010, FR-OP-011, NFR-OP-02, NFR-OP-03이며, 그중 가장 중요한 것은 "증거 없이 게시됨이라 말하지 않는다"는 단 한 줄이다.</p>
+<p><strong>시나리오 B. 대행 답글 하나가 사고를 냈다.</strong> 자영업 고객의 인스타에 환불 관련 항의 댓글이 달렸고, 우리 대행이 정형 답글로 "확인 후 처리해 드리겠습니다"를 붙였다. 고객은 그것을 환불 약속으로 받아들였고 분쟁이 됐다. 사업주는 자기가 하지 않은 말이 자기 계정 이름으로 나간 것에 격분했고, 그 캡처가 커뮤니티에 돌았다. 신규 가입이 멈췄다. 이 시나리오의 방어가 FR-OP-017의 넘김 조건 목록과 전체 정지 스위치이며, 특히 <strong>모든 위임 항목의 기본값이 꺼짐</strong>이라는 것이 마지막 안전선이다. 사고는 기능이 있어서가 아니라 기본값이 켜져 있어서 난다.</p>
+<p><strong>시나리오 C. 원가가 요금을 먹었다.</strong> 프로 요금제 고객 셋이 최상급 영상에 몰아 썼고, 우리는 상품별 크레딧 분리를 나중에 하기로 미뤄 뒀다. 세 계정이 그달 전체 마진을 지웠다. FR-OP-028·029가 이 방어이고, 이것은 출시 후에 붙이면 늦는다. 크레딧 구조는 출시 시점에 이미 분리돼 있어야 한다.</p>
+<hr />
+<h2 id="9-7원칙-판정표-품질헌법-2">9. 7원칙 판정표 (품질헌법 §2)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>원칙</th>
+<th>판정 질문</th>
+<th>판정</th>
+<th>근거</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>용어 통일</td>
+<td>'정보'·'관리' 같은 추상어가 하나의 정의로 고정됐나</td>
+<td>PASS</td>
+<td>"학습 정보"는 §4.6 FR-OP-027에서 원본(openclaw 보관)과 취향 프로파일(studio 계산)로 분리 정의. "채널 운영"은 §4.3의 네 항목(좋아요·정형 답글·자유 답글·내리기)으로만 정의. "성과"는 D10의 네 요소로 고정</td>
+</tr>
+<tr>
+<td>2</td>
+<td>구체화</td>
+<td>개수·한도가 숫자로 박혔나</td>
+<td>PASS</td>
+<td>발행 세 갈래, 상태 12개, 위임 4항목, readiness 5상태, 하드캡 1.5배, 정지 60초, 규격 확인일 90일, 미연결 알림 3건, 재시도 20회</td>
+</tr>
+<tr>
+<td>3</td>
+<td>입출력 분리</td>
+<td>입력=실질 데이터 / 출력=엔드유저 관점으로 나눠 썼나</td>
+<td>PASS</td>
+<td>각 FR의 AC가 Given(입력 상태)과 Then(사용자가 보는 것)으로 분리. §5는 의미만, 화면은 §4</td>
+</tr>
+<tr>
+<td>4</td>
+<td>정합성</td>
+<td>기능 간 서술이 앞뒤 모순 없나</td>
+<td>PASS</td>
+<td>FR-OP-007(발행실 소유)과 FR-OP-014(직접 편집 미확정)의 충돌 가능 지점을 M3으로 명시 표면화. FR-OP-015가 기존 크론 동작과 충돌하지 않게 "편입"으로 처리</td>
+</tr>
+<tr>
+<td>5</td>
+<td>정책 상세</td>
+<td>경계 케이스 명시했나</td>
+<td>PASS</td>
+<td>예약 중 되돌리기(012), 연결 없는 완성본(004), 증거 미확보(010), 꼬리표 없는 발행(023), 미수집과 미지원 구분(019), 이미 삭제된 글 복구 불가(018)</td>
+</tr>
+<tr>
+<td>6</td>
+<td>추출 철저</td>
+<td>유저플로우 각 스텝에 대응 기능이 있나</td>
+<td><strong>부분 PASS</strong></td>
+<td>user-flow의 발행·성과 구간은 전부 대응. 생성·편집 구간은 이 문서 범위 밖(studio PRD 소유)이라 의도적 미대응. 빈틈 17개 중 이 문서가 답한 것은 8·12번이고 1·2·3·4·5·6번은 §10에 미결로 이월</td>
+</tr>
+<tr>
+<td>7</td>
+<td>논리 영역</td>
+<td>감상·희망 표현이 판정 가능 문장으로 바뀌었나</td>
+<td>PASS</td>
+<td>"친절하게"·"편리하게" 0건. 목표 6개 전부 관측 가능한 계수로 기술</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="10-미결-항목">10. 미결 항목</h2>
+<h3 id="101-kill-criteria-측정-가능">10.1 kill-criteria (측정 가능)</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>조건</th>
+<th>그러면</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>K1</td>
+<td>커뮤니티에 연 뒤 <strong>8주 안에 유료 전환 10명 미만</strong>이면</td>
+<td>운영 묶음 상품의 지불 의사 가설을 기각하고 만들기 단독 상품 순서를 앞당긴다</td>
+</tr>
+<tr>
+<td>K2</td>
+<td>발행 100건이 쌓인 시점에 <strong>꼬리표가 붙은 비율이 80퍼센트 미만</strong>이거나, 성과 상위 10건 중 <strong>꼬리표로 설명되는 건이 3건 미만</strong>이면</td>
+<td>계보 차별점 가설(steelman 1의 답)을 기각하고 성과실을 단순 대시보드로 축소한다</td>
+</tr>
+<tr>
+<td>K3</td>
+<td>출시 후 4주 동안 <strong>조용한 발행 실패(사용자가 1시간 안에 인지 못 한 실패)가 5건 이상</strong> 발생하면</td>
+<td>예약 자동 실행을 끄고 승인 후 수동 발행만 남긴다</td>
+</tr>
+<tr>
+<td>K4</td>
+<td>대행 응대에서 <strong>위임 범위 밖 발화가 1건이라도</strong> 나오면</td>
+<td>자유 답글 기능을 즉시 회수하고 정형 답글만 남긴다</td>
+</tr>
+<tr>
+<td>K5</td>
+<td>첫 30일 사용 데이터에서 <strong>상위 10퍼센트 계정의 원가가 그 계정 요금의 100퍼센트를 넘으면</strong></td>
+<td>요금제를 재설계하기 전까지 신규 가입을 멈춘다</td>
+</tr>
+</tbody>
+</table>
+<h3 id="102-회장-결정이-필요한-것">10.2 회장 결정이 필요한 것</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>무엇을 정하나</th>
+<th>옵션과 결과</th>
+<th>세션 추천</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>M1</td>
+<td>채널 개수 정본 (§3의 회수 항목)</td>
+<td>A: capability 코드에서 세어 wiki에 박음 → 다시 안 어긋남 / B: 30종을 정본으로 → 근거를 못 찾음</td>
+<td><strong>A</strong></td>
+</tr>
+<tr>
+<td>M2</td>
+<td>공통 정보와 워크스페이스 값이 충돌할 때</td>
+<td>A: 제작을 멈추고 사람에게 묻는다(자료 충돌 규칙과 동일) → 일관되지만 마찰 / B: 워크스페이스가 공통을 덮는다 → 매끄럽지만 금지선이 조용히 뚫릴 수 있다</td>
+<td><strong>A.</strong> 금지선이 걸린 문제라 조용한 통과가 더 비싸다</td>
+</tr>
+<tr>
+<td>M3</td>
+<td>발행실에서 캡션을 직접 타이핑하게 할 것인가</td>
+<td>A: 재요청만 허용 → 경계가 깨끗하나 오타 하나에 왕복 / B: 직접 편집 허용하고 그 판을 openclaw 소유로 → 편하지만 창작 텍스트 소유가 둘로 갈린다</td>
+<td><strong>B의 제한판.</strong> 직접 편집은 허용하되 그 순간 그 문구를 "사람이 고침"으로 표시하고 studio 신호에서 제외. 다만 이것은 경계 원칙의 예외라 회장 확정 없이 화면에 넣지 않는다</td>
+</tr>
+<tr>
+<td>M4</td>
+<td>예약 정밀도 (FR-OP-009)</td>
+<td>A: 크론 주기를 짧게 → 정밀하지만 호출량과 비용 증가 / B: 2시간 주기 유지하고 범위를 정직하게 표시 → 싸지만 "저녁 7시 정각"을 못 준다</td>
+<td><strong>B로 출시하고 K3 결과를 보고 A 검토.</strong> 발행 시각이 성과에 얼마나 영향을 주는지 우리 실측 전이다</td>
+</tr>
+<tr>
+<td>M5</td>
+<td>되돌린 작업물의 크레딧 (user-flow 빈틈 3)</td>
+<td>A: 이미 쓴 것은 복구 없음, 재승격은 새 과금 → 단순하고 원가 정합 / B: 일정 기간 안 재승격은 무과금 → 친절하나 어뷰징 표면</td>
+<td><strong>A.</strong> 단 되돌리기 확인 화면에 반드시 그 사실을 적는다(FR-OP-012에 이미 반영)</td>
+</tr>
+<tr>
+<td>M6</td>
+<td>성과 근거 표시가 실제로 다음 행동을 만드는가</td>
+<td>측정 설계가 필요하다. "비슷하게 만들기" 클릭률을 성과실 방문 대비로 잰다</td>
+<td>출시와 함께 계측을 넣고 4주 뒤 판정</td>
+</tr>
+<tr>
+<td>M7</td>
+<td>user-flow 빈틈 1·2 (PRD를 4실 구조로 개정할 것인가)</td>
+<td>이 문서는 4실을 전제로 썼다. 상위 PRD v8.2.1은 여전히 선형 8단계다</td>
+<td><strong>개정.</strong> 이 문서와 studio 생성 PRD가 나온 시점에 v8.2.1을 상위 개요로 재정렬</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="11-범위-밖-경계-명시">11. 범위 밖 (경계 명시)</h2>
+<table>
+<thead>
+<tr>
+<th>무엇</th>
+<th>누구 소유</th>
+<th>왜</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>컷 분해, 소재 생성, 후보 3개 만들기, 고해상도 승격</td>
+<td>studio 생성실</td>
+<td>미디어 바이트를 만진다</td>
+</tr>
+<tr>
+<td>자르기, 크롭, 재인코딩, 자막 합성, 비율·길이 맞추기</td>
+<td>studio 편집실</td>
+<td>같음</td>
+</tr>
+<tr>
+<td>30초에 맞추려고 다시 만드는 것</td>
+<td>studio 생성실</td>
+<td>새로 만드는 것이므로</td>
+</tr>
+<tr>
+<td>캡션·제목·해시태그·첫 댓글의 <strong>실제 생성</strong></td>
+<td>studio</td>
+<td>창작 텍스트다. openclaw는 소유하고 검수하고 요청한다</td>
+</tr>
+<tr>
+<td>취향 프로파일의 계산</td>
+<td>studio</td>
+<td>창작 정보를 쓴다</td>
+</tr>
+<tr>
+<td>롱폼을 숏폼으로 쪼개기, 외부 반입물 역분석</td>
+<td>studio, 2단계</td>
+<td>1단계 비범위</td>
+</tr>
+<tr>
+<td>음악·범용 텍스트 매체</td>
+<td>2단계</td>
+<td>1단계 비범위</td>
+</tr>
+<tr>
+<td>studio 자체 화면과 개발자 단독 판매</td>
+<td>2단계</td>
+<td>1단계 비범위</td>
+</tr>
+<tr>
+<td>다국가 self-serve 결제, 24시간 지원, 고급 BI</td>
+<td>잠금</td>
+<td>FR-OS82-041·042</td>
+</tr>
+<tr>
+<td>광고 성과, 경쟁 계정 추적, 인플루언서 매칭</td>
+<td>안 함</td>
+<td>오가닉 발행과 그 반응까지</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="12-자기심문--이-prd가-틀렸다면-어디서-틀렸나">12. 자기심문 — 이 PRD가 틀렸다면 어디서 틀렸나</h2>
+<p><strong>가장 그럴듯한 오류는 "이미 구현된 것을 전제로 썼다"는 말이 실은 위키를 믿은 것이지 동작을 확인한 것이 아니라는 점이다.</strong> channel-status wiki 자신이 "source presence does not prove production operation"이라 적고 있고, OAuth 거짓 성공·인스타 토큰 UI 중복·설정 상태 누락·502가 미해결 관찰로 남아 있다고 명시한다. 즉 §3의 "이미구현" 열 다수가 실제로는 "코드가 있다"에 가깝다. 이 PRD가 그 위에 발행실과 대행을 얹으면, 아래층이 흔들리는 채로 위층을 짓는 것이 된다. <strong>이 오류를 §10 K3에 반영했고</strong>, 더해 기술설계 착수 조건으로 다음을 건다: 발행실 개발 전에 Threads와 Instagram 각 1건씩 실제 발행 증거를 재현해 아래층이 서 있음을 확인한다. 확인 못 하면 이 PRD의 §4.2는 착수하지 않는다.</p>
+<p><strong>두 번째 오류 후보는 예약 정밀도를 M4로 미룬 것이다.</strong> "저녁 7시에 올려 주세요"는 이 제품에서 사용자가 가장 자주 할 요청인데, 우리는 그것을 2시간 범위로 답하기로 했다. 이것이 틀렸다면 첫 주에 이탈로 드러난다. 그래서 M4의 판정을 K3와 같은 4주 창에 묶었다.</p>
+<p><strong>세 번째.</strong> FR-OP-025는 자동 학습을 약속하지 말라고 하지만, FR-OP-024는 성과 신호를 studio에 전달한다. 사용자 눈에는 이 둘이 같아 보일 수 있다. "보내긴 보내는데 안 배운다"는 설명이 제품 화면에서 성립하는지는 검증 전이며, 성립하지 않으면 신호 전달 자체를 1단계에서 빼는 편이 정직하다. 이것을 M6 판정에 함께 건다.</p>
+<hr />
+<p>SKILLS_USED: 없음
+SKILLS_SKIPPED: postagi-prd(대상 레포가 postAGI가 아니라 스코프 밖), document-generate(신규 문서 1건 작성이라 누락 문서 생성 스킬 미해당), spec(대화형이라 메인세션 전용), plan-ceo-review·plan-eng-review(대화형 리뷰이며 이 위임은 PRD 산출 1건을 지정)
+RUBRIC_SCORE: 해당 없음 (콘텐츠·카피 산출물 아님. 제품 요구 명세)
+PRESENTATION_CHECK: 툴콜 태그 잔재 없음 확인 / 마크다운 구조 육안 확인 / em dash 0건
+SOURCES/MODEL: claude-opus-5[1m] | docs/사업계획-osmu-v0.9.md(§1.1~1.6·§2.4~2.7·§3.3·§3.4·§4.2~4.6) · docs/requests/회장-확정-요구사항-대장.md(R01~R37 전량 + 미결 2건) · wiki/research/2026-08-competitor-and-production-research.md(§1 경쟁 55곳·§2 실물 분석·§3 어뷰징 사고·§4 원가·§6 미확인) · wiki/architecture/two-service-boundary.md(경계 3기준·소유권 표·접점 5개·과금) · docs/user-flow.md(네 방·상태 12개·되돌리기·빈틈 17개 전량) · wiki/reference/channel-status.md(Live/Connected/구현완료 현황·readiness 5상태·capability SSOT) · CLAUDE.md(아키텍처 도구 목록·멀티채널 발행 구조·큐 스키마 v2·채널 상태 표·크론잡 7건) · docs/prd-openclaw-service-v8.2.1-gpt-codex.md(§2 현재 구현 상태·§8 FR-OS81-001~028/FR-OS82-029~044·§9 NFR·§16 미결) · ~/.claude/standards/planning.md | 웹 검색: <strong>미수행(세션 WebSearch 예산 200/200 소진).</strong> 경쟁·원가 근거는 전부 위 연구 기록의 2차 인용이며 실검색 갱신은 다음 판의 과제다 (unsourced 아님, 출처는 verify 통과 기록)</p></section></body></html>

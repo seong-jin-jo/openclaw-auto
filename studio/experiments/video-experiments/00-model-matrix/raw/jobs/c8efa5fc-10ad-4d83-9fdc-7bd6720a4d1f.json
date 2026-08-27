@@ -1,0 +1,22 @@
+{
+  "created_at": "2026-08-13T18:38:59.874756Z",
+  "display_name": "Seedance 1.5 Pro",
+  "id": "c8efa5fc-10ad-4d83-9fdc-7bd6720a4d1f",
+  "job_type": "seedance1_5",
+  "min_result_url": null,
+  "params": {
+    "aspect_ratio": "9:16",
+    "duration": 8,
+    "fixed_lens": false,
+    "generate_audio": false,
+    "height": 1280,
+    "medias": [],
+    "prompt": "Photorealistic close insert of a frightened Korean adult hand hovering above a plain matte red circular button on a clean desk. The trembling index finger moves toward the button, then stops exactly one centimeter before contact and remains suspended. No face, no button press, tactile skin detail, restrained tension, vertical framing, no text, no letters, no numbers anywhere",
+    "resolution": "720p",
+    "seed": 909678,
+    "width": 720
+  },
+  "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183859_c8efa5fc-10ad-4d83-9fdc-7bd6720a4d1f.mp4",
+  "status": "completed",
+  "thumbnail_url": "https://cdn.higgsfield.ai/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183859_c8efa5fc-10ad-4d83-9fdc-7bd6720a4d1f_thumbnail.webp"
+}

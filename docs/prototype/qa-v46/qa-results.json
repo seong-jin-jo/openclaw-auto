@@ -1,0 +1,146 @@
+{
+  "generatedAt": "2026-08-23T12:53:37.275Z",
+  "prototype": "file:///Users/sj/sj_code_master/openclaw-auto/docs/prototype/openclaw-auto-4room-v46.html",
+  "captures": [
+    "openclaw-auto-v46-390.png",
+    "openclaw-auto-v46-1024.png",
+    "openclaw-auto-v46-1440.png",
+    "openclaw-auto-v46-1024-sidebar-collapsed.png",
+    "openclaw-auto-v46-card-space-a-1024.png",
+    "openclaw-auto-v46-card-space-b-1024.png",
+    "openclaw-auto-v46-screen-selection.png"
+  ],
+  "viewportChecks": {
+    "390": {
+      "title": "OSMU 마케팅 허브 · v46 · 상시 담당과 접히는 사이드바",
+      "viewport": "390",
+      "transferOverflow": 0,
+      "boardOverflow": 0,
+      "prototypeOverflow": 0,
+      "deviceWidth": 390,
+      "sidebarWidth": 0,
+      "chatPersistent": true,
+      "chatWidth": 372,
+      "chatBelowContent": true,
+      "duplicateRoomLabels": [],
+      "header": {
+        "height": 61,
+        "overflow": 0,
+        "wrap": "nowrap",
+        "learningBeforeCredit": true
+      }
+    },
+    "1024": {
+      "title": "OSMU 마케팅 허브 · v46 · 상시 담당과 접히는 사이드바",
+      "viewport": "1024",
+      "transferOverflow": 0,
+      "boardOverflow": 0,
+      "prototypeOverflow": 0,
+      "deviceWidth": 1024,
+      "sidebarWidth": 224,
+      "chatPersistent": true,
+      "chatWidth": 304,
+      "chatBelowContent": false,
+      "duplicateRoomLabels": [],
+      "header": {
+        "height": 61,
+        "overflow": 0,
+        "wrap": "nowrap",
+        "learningBeforeCredit": true
+      }
+    },
+    "1440": {
+      "title": "OSMU 마케팅 허브 · v46 · 상시 담당과 접히는 사이드바",
+      "viewport": "1440",
+      "transferOverflow": 0,
+      "boardOverflow": 0,
+      "prototypeOverflow": 0,
+      "deviceWidth": 1440,
+      "sidebarWidth": 224,
+      "chatPersistent": true,
+      "chatWidth": 304,
+      "chatBelowContent": false,
+      "duplicateRoomLabels": [],
+      "header": {
+        "height": 61,
+        "overflow": 0,
+        "wrap": "nowrap",
+        "learningBeforeCredit": true
+      }
+    }
+  },
+  "cardSpace": {
+    "fill": {
+      "mode": "fill",
+      "pressed": "true",
+      "heights": [
+        339,
+        339,
+        339
+      ]
+    },
+    "hug": {
+      "mode": "hug",
+      "pressed": "true",
+      "heights": [
+        189,
+        229,
+        230
+      ],
+      "persisted": "hug"
+    }
+  },
+  "selectionBoard": {
+    "open": true,
+    "ariaHidden": "false",
+    "selected": [
+      "v44-flow-create",
+      "v44-flow-edit"
+    ],
+    "previews": 2,
+    "promptHasScreens": true,
+    "promptHasMemo": true,
+    "promptHasCardSpace": true,
+    "storedIds": [
+      "v44-flow-create",
+      "v44-flow-edit"
+    ],
+    "storedMemo": "방 사이 전달물을 유지하고 카드 여백 B를 기준으로 비교",
+    "status": "선택을 저장하고 문장을 복사했어요."
+  },
+  "sidebar": {
+    "expanded": {
+      "collapsed": false,
+      "width": 224,
+      "label": "사이드바 접기"
+    },
+    "collapsed": {
+      "collapsed": true,
+      "width": 56,
+      "label": "사이드바 펼치기",
+      "persisted": "true"
+    }
+  },
+  "displayDuplicateScan": {
+    "checked": 12,
+    "issues": []
+  },
+  "screenRuleScan": {
+    "checked": 131,
+    "issues": []
+  },
+  "consoleErrors": [],
+  "summary": {
+    "noTransferOverflow": true,
+    "noBoardOverflow": true,
+    "persistentChatAllViewports": true,
+    "responsiveChatPlacement": true,
+    "noDuplicateRoomLabels": true,
+    "sidebarToggleWorks": true,
+    "cardModesPersist": true,
+    "selectionSaved": true,
+    "promptComplete": true,
+    "screenRulesClean": true,
+    "noConsoleErrors": true
+  }
+}

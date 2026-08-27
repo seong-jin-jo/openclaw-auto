@@ -91,7 +91,11 @@ provider/API proof. Production observations still open are OAuth callback false-
 OAuth/manual-token UI, missing Settings connection status, and an observed OSMU 502. See
 [Marketing Hub surface map](../product/marketing-hub-surface-map.md) for route-level classification.
 
-### 지원 채널 (12개)
+### 채널 범위 (2026-08-25 코드 기준)
+
+채널 수는 한 숫자로 합치지 않는다. `channel-capabilities.ts`의 화면 capability는 19개, `constants.ts`의 `OSMU_CHANNELS` 핵심 채널은 3개, `SCHEDULABLE_PLATFORMS` 직접 예약 발행은 8개다. 아래 12개 표는 OAuth provider 설정 범위이며 전체 화면·발행 범위와 같지 않다.
+
+### OAuth provider 설정 (12개)
 | 채널 | 방식 | 환경변수 | 비고 |
 |------|------|---------|------|
 | Instagram | OAuth 2.0 | IG_APP_ID, IG_APP_SECRET | ✅ 운영중 |
@@ -109,7 +113,7 @@ OAuth/manual-token UI, missing Settings connection status, and an observed OSMU 
 
 ### 흐름
 ```
-ChannelPage (OAUTH_CONNECT dict에 포함된 채널)
+SocialConnectButton / social-connect provider 설정에 포함된 채널
   → "연결" 버튼 → GET /api/connect/{provider}
   → PKCE 채널: code_verifier → httpOnly cookie(10분)
   → 플랫폼 인증 URL로 redirect
@@ -122,7 +126,9 @@ ChannelPage (OAUTH_CONNECT dict에 포함된 채널)
 - `dashboard/src/lib/social-connect.ts` — 프로바이더 설정(authUrl, tokenUrl, scopes 등)
 - `dashboard/src/app/api/connect/[provider]/route.ts` — OAuth 시작 (PKCE verifier 생성)
 - `dashboard/src/app/api/connect/[provider]/callback/route.ts` — 토큰 교환 + 저장
-- `dashboard/src/components/channel/ChannelPage.tsx` — `OAUTH_CONNECT` dict (12채널)
+- `dashboard/src/lib/social-connect.ts`: provider별 OAuth 설정
+- `dashboard/src/lib/channel-capabilities.ts`: 19개 채널 화면 capability
+- `dashboard/src/lib/constants.ts`: 3개 핵심 채널과 8개 예약 발행 채널 SSOT
 
 환경변수 없으면 버튼 숨김. 있으면 즉시 활성화.
 ADR: `wiki/decisions/004-social-connect-oauth-not-passwords.md`

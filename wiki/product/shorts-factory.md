@@ -1,5 +1,12 @@
 # Shorts Factory (숏폼 공장)
 
+## 코드 기준 갱신 (2026-08-25)
+
+- 영상 API는 `dashboard/src/app/api/video/` 아래 업로드·목록·삭제·생성·발행 계열 route로 구현되어 있다.
+- 고급 생성 경로는 Higgsfield API와 분리되어 있다.
+- Studio 화면은 `dashboard/src/app/studio/page.tsx`와 `dashboard/src/components/studio/` 구성요소를 사용한다.
+- 서비스 경계는 [two-service-boundary.md](../architecture/two-service-boundary.md)를 따른다. 아래 6월 Current State와 gstack 문구는 이력이며 현행 구현 총계·절차가 아니다.
+
 Goal: Turn longform knowledge (wiki pages, blogs, transcripts) + trends into high-volume vertical video (Shorts / Reels / TikTok) with review + multi-publish loop. This is a key monetization / SaaS feature.
 
 ## Current State (as of plan execution)
@@ -37,11 +44,11 @@ Goal: Turn longform knowledge (wiki pages, blogs, transcripts) + trends into hig
 
 See reference/benchmarking.md for Opus gaps and ADR-003 for moat connection.
 
-## Next Steps (follow gstack procedure)
+## Next Steps (Stage Controller 단계 게이트 적용)
 
 See root plan and decisions/001 for how this was planned.
 
-Use gstack /autoplan when ready to implement enhancements.
+향상 기능은 현재 단계 승인 뒤 구현한다. gstack은 승인된 단계 안에서 선택적으로 사용한다.
 
 ## Related
 

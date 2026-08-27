@@ -1,0 +1,2 @@
+Error: Missing required params: start_image
+Hint: Run: hf model get veo3

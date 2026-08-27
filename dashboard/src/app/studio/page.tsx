@@ -112,6 +112,7 @@ export default function StudioPage() {
     "/api/publish/first-comment-capabilities", fetcher,
   );
   const [showWorks, setShowWorks] = useState(false);
+  const [chatOpen, setChatOpen] = useState(true); // 좁은 화면에서도 대화창은 항상 손에 닿는다
   const [showWizard, setShowWizard] = useState(false);
   const [showRepo, setShowRepo] = useState(false); // 레포 위키 연동 모달
   const [showSchedule, setShowSchedule] = useState(false); // P6 예약 발행 패널 토글
@@ -624,7 +625,7 @@ export default function StudioPage() {
       {showWizard && activeWorkspace ? <BrandSetupWizard workspace={activeWorkspace} onComplete={() => { setShowWizard(false); mutateBrand(); showToast("브랜드 가이드 저장됨"); }} onDismiss={() => setShowWizard(false)} /> : null}
       {showRepo && activeWorkspace ? <RepoConnect workspace={activeWorkspace} onSynced={() => { mutateBrand(); showToast("브랜드 가이드 갱신됨"); }} onClose={() => setShowRepo(false)} /> : null}
       {roomHeader}
-      <section data-room="publish" className="grid gap-stack-section lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <section data-room="publish" className="grid gap-stack-section pb-16 lg:grid-cols-[minmax(0,1fr)_20rem] lg:pb-0">
         <div className="min-w-0 space-y-region">
           <section data-room-top="publish" aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch items-center justify-between rounded-xl border border-border bg-surface px-pad-inset py-stack">
             <b className="text-lead text-accent">{selectedPublishTargets(includes).length}곳</b>
@@ -701,7 +702,20 @@ export default function StudioPage() {
           ))}
         </div>
 
-        <aside className="card h-fit overflow-hidden lg:sticky lg:top-pad-inset" aria-label="발행 담당 대화창" data-chat-dock="persistent">
+        <aside
+          data-chat-dock="persistent"
+          data-chat-always="true"
+          aria-label="발행 담당 대화창"
+          className={`card overflow-hidden lg:static lg:h-fit lg:max-h-none lg:translate-y-0 lg:rounded-xl lg:border lg:shadow-none lg:sticky lg:top-pad-inset fixed inset-x-0 bottom-0 z-40 max-h-[60vh] overflow-y-auto rounded-b-none shadow-lg transition-transform ${chatOpen ? "translate-y-0" : "translate-y-[calc(100%-3.5rem)]"}`}
+        >
+          <button
+            type="button"
+            onClick={() => setChatOpen((open) => !open)}
+            aria-expanded={chatOpen}
+            className="min-h-control-touch w-full border-b border-border px-stack text-left text-body-sm text-text-muted lg:hidden"
+          >
+            {chatOpen ? "대화창 접기" : "발행 담당에게 말하기"}
+          </button>
           <div className="flex items-center gap-stack-tight border-b border-border p-stack">
             <div className="grid h-10 w-10 place-items-center rounded-full bg-accent text-body font-bold text-accent-fg">O</div>
             <div><b className="block text-body text-text">발행 담당</b><span className="text-caption text-success">지금 대기 중</span></div>

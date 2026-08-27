@@ -1,0 +1,66 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>선택 화면 시안</title>
+<style>
+body{margin:0;background:#0f1115;color:#e7eaf0;font-family:-apple-system,"Apple SD Gothic Neo",sans-serif;line-height:1.65}
+.w{max-width:1180px;margin:0 auto;padding:44px 24px 90px}
+h1{font-size:27px;margin:0 0 6px}.s{color:#9aa3b2;margin:0 0 26px}
+h2{font-size:18px;margin:34px 0 10px;padding-top:18px;border-top:1px solid #272c37}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:880px){.g{grid-template-columns:1fr}}
+.pane{background:#171a21;border:1px solid #272c37;border-radius:11px;padding:16px}
+.hd{font-size:14px;color:#9aa3b2;margin-bottom:10px}
+.opt{display:flex;gap:10px;align-items:flex-start;background:#12151c;border:1px solid #2b3140;
+ border-radius:9px;padding:11px 13px;margin:8px 0;cursor:default}
+.opt.sel{border-color:#5b8cff;background:#151d2e}
+.dot{width:16px;height:16px;border-radius:50%;border:2px solid #4a5568;flex:0 0 16px;margin-top:3px}
+.opt.sel .dot{border-color:#5b8cff;background:#5b8cff;box-shadow:inset 0 0 0 3px #151d2e}
+.ot{font-size:14.5px;color:#fff;font-weight:600}.od{font-size:13px;color:#9aa3b2}
+.prev{background:#0d1016;border:1px dashed #3a4560;border-radius:9px;height:190px;
+ display:flex;align-items:center;justify-content:center;color:#69748a;font-size:13px;margin:10px 0}
+.cmd{background:#0d1016;border:1px dashed #3a4560;border-radius:8px;padding:11px 13px;
+ font-family:ui-monospace,Menlo,monospace;font-size:13.5px;color:#fff;user-select:all}
+.btn{display:inline-block;background:#5b8cff;color:#fff;font-weight:700;font-size:14px;
+ padding:9px 18px;border-radius:8px;margin-top:10px}
+.box{background:#1e1b14;border-left:3px solid #c9a04b;padding:13px 17px;border-radius:0 8px 8px 0;margin:16px 0}
+.cp{background:#0d1016;border:1px dashed #3a4560;border-radius:7px;padding:10px 13px;
+ font-family:ui-monospace,Menlo,monospace;font-size:14px;color:#fff;user-select:all;margin:8px 0}
+b{color:#fff}
+</style></head><body><div class="w">
+<h1>선택 화면, 만들까요</h1>
+<p class="s">회장님이 화면을 고르실 때 쓰실 자리입니다. 왼쪽이 지금 방식, 오른쪽이 제안입니다.</p>
+
+<div class="g">
+<div class="pane">
+<div class="hd">지금 방식</div>
+<div class="opt"><div class="dot"></div><div><div class="ot">1. 미리보기를 키운다</div><div class="od">설명 두 줄</div></div></div>
+<div class="opt"><div class="dot"></div><div><div class="ot">2. 카드 높이를 줄인다</div><div class="od">설명 두 줄</div></div></div>
+<div class="opt"><div class="dot"></div><div><div class="ot">3. 여섯 장으로 늘린다</div><div class="od">설명 두 줄</div></div></div>
+<div class="cmd">카드 여백: 1번. 미리보기를 키워라.</div>
+<div class="cmd">카드 여백: 2번. 카드 높이를 줄여라.</div>
+<div class="cmd">카드 여백: 3번. 여섯 장으로 늘려라.</div>
+<p class="od" style="margin-top:12px">붙여넣을 문장이 <b>선택지 수만큼 미리 다 깔려</b> 있습니다.
+고르신 것을 눈으로 찾아 복사하셔야 하고, <b>고른 결과가 어떻게 보일지는 안 보입니다.</b></p>
+</div>
+
+<div class="pane">
+<div class="hd">제안 · 구글 스티치 방식</div>
+<div class="opt sel"><div class="dot"></div><div><div class="ot">1. 미리보기를 키운다</div><div class="od">빈 자리를 실제 결과물 그림으로 채운다</div></div></div>
+<div class="opt"><div class="dot"></div><div><div class="ot">2. 카드 높이를 줄인다</div><div class="od">가장 빠르지만 아래가 빈다</div></div></div>
+<div class="opt"><div class="dot"></div><div><div class="ot">3. 여섯 장으로 늘린다</div><div class="od">한 화면 한 결정과 부딪힌다</div></div></div>
+<div class="prev">고른 것이 적용된 화면이 여기 바로 그려집니다</div>
+<div class="cmd">카드 여백: 1번. 미리보기를 키워라.</div>
+<span class="btn">저장하고 문장 복사</span>
+<p class="od" style="margin-top:12px">고르면 <b>그 자리에서 화면이 바뀌어 보이고</b>, 붙여넣을 문장은 <b>고른 것 하나만</b> 남습니다.
+누르면 복사됩니다.</p>
+</div>
+</div>
+
+<h2>고르실 것</h2>
+<div class="box"><b>아래 문장을 복사해 붙여넣으시면 됩니다.</b></div>
+<div class="cp">선택 화면: 만들어라. 고르면 미리보기와 붙여넣을 문장이 나오게.</div>
+<div class="cp">선택 화면: 지금 방식으로 충분하다. 안 만들어도 된다.</div>
+
+<div class="box" style="border-left-color:#4e8f5f;background:#161e19">
+<b>제 추천은 만드는 쪽입니다.</b> 오늘만 화면 판단을 세 번 여쭀습니다. 앞으로도 계속 나옵니다.
+다만 <b>미리보기를 진짜로 그리려면 그 화면을 실제로 만들어 둬야 합니다.</b> 화면이 아직 없는 결정은 그림 대신 설명이 들어갑니다.
+</div>
+</div></body></html>

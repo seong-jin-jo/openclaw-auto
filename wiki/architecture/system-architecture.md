@@ -3,7 +3,7 @@
 **이 문서는 wiki/ 의 공식 아키텍처 레퍼런스입니다.** 
 root CLAUDE.md 는 이제 고수준 포인터 역할만 합니다 (상세는 wiki/ 참조).
 
-gstack 사용 시 항상 "Load gstack. Read wiki/architecture/system-architecture.md + wiki/index.md 먼저" 하세요.
+2026-08-25 코드 스냅샷: Next.js API `route.ts` 163개, 화면 `page.tsx` 25개다. 수치는 구조 변화 감지용이며 기능 완료를 뜻하지 않는다.
 
 ## High Level
 
@@ -102,12 +102,11 @@ YouTube resumable upload의 최종 PUT은 HTTP 성공 응답이고, 응답 JSON�
 video `id`가 있을 때만 발행 성공으로 기록한다. non-2xx, invalid JSON, empty ID는 모두 `502` 발행
 실패로 반환해 queue 상태가 성공으로 오염되지 않게 한다.
 
-## gstack Integration (now in this repo)
+## 개발 파이프라인
 
-- Team mode activated (./setup --team)
-- .claude/ hooks and settings for enforcement
-- Follow procedures in wiki/guides/gstack-procedures.md
-- Use for all product work: office-hours → plan reviews → autoplan → implement → review/qa/ship
+- 현재 기본 절차는 Stage Controller의 기획 → 디자인 → 기술설계 → 개발 → QA → 배포 단계 게이트다.
+- 단계 진입은 `/pipeline`, 승인은 `/approve` 증거 검증으로만 처리한다.
+- gstack 도구는 단계 안의 보조 실행 수단이며 단계 게이트를 대체하지 않는다.
 
 See root CLAUDE.md for environment and cron details.
 

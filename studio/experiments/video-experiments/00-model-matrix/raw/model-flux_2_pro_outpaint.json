@@ -1,0 +1,53 @@
+{
+  "display_name": "FLUX.2 Pro Outpaint",
+  "job_type": "flux_2_pro_outpaint",
+  "params": [
+    {
+      "name": "expand_bottom",
+      "type": "integer",
+      "default": 0,
+      "required": false
+    },
+    {
+      "name": "expand_left",
+      "type": "integer",
+      "default": 0,
+      "required": false
+    },
+    {
+      "name": "expand_right",
+      "type": "integer",
+      "default": 0,
+      "required": false
+    },
+    {
+      "name": "expand_top",
+      "type": "integer",
+      "default": 0,
+      "required": false
+    },
+    {
+      "name": "folder_id",
+      "type": "string|null",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "image_references",
+      "type": "array",
+      "default": null,
+      "required": false
+    }
+  ],
+  "rules": [
+    {
+      "cel": "size(params.image_references) == 1",
+      "message": "exactly one image_references entry is required"
+    },
+    {
+      "cel": "params.expand_top != 0 || params.expand_bottom != 0 || params.expand_left != 0 || params.expand_right != 0",
+      "message": "at least one expand side must be non-zero"
+    }
+  ],
+  "type": "image"
+}

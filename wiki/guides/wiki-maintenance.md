@@ -1,5 +1,12 @@
 # Wiki Maintenance Guide
 
+## 현행 운영 규칙
+
+- 행동 변경 뒤 관련 `wiki/` 문서를 같은 작업에서 갱신한다.
+- 세션 인계 상태는 `wiki/ops/session-state.md` 최상단에 최신순으로 기록한다.
+- 제품 산출물 승인과 위키 갱신은 Stage Controller 단계·게이트를 따른다.
+- `/document-generate`와 `/learn`은 선택 도구이며 필수 진입점이 아니다.
+
 This wiki/ is the living knowledge base for the project. Treat it with the same rigor as production code.
 
 ## Daily / Per-Session Habits (gstack)

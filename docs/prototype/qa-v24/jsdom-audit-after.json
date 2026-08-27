@@ -1,0 +1,1716 @@
+{
+  "manifest": {
+    "version": "24",
+    "basis": [
+      "v23 prototype",
+      "dashboard/src",
+      "v23-codex-crosscheck",
+      "r02 journey plan",
+      "DESIGN.md"
+    ],
+    "actualRouteCorrections": [
+      "per-channel Create removed",
+      "per-channel Calendar removed",
+      "Threads Queue Analytics Growth Popular Settings",
+      "Instagram Queue Editor Settings",
+      "operator token login and customers single page"
+    ],
+    "connectionSource": "channel_accounts",
+    "homePanelCount": 1,
+    "draftBodyRequired": true,
+    "oauthCredentialDefinitions": 12,
+    "briefDiscrepancy": "R02 brief says 14 forms, but dashboard/src/lib/oauth-app-credentials.ts currently defines 12. v24 follows code and does not invent two providers.",
+    "r06": {
+      "positioning": "verifiable marketing operations from draft to external result",
+      "funnel": "AARRR",
+      "currentRevenue": "unimplemented",
+      "currentReferral": "unimplemented"
+    },
+    "layout": {
+      "spacing": [
+        "4",
+        "8",
+        "12",
+        "16",
+        "24",
+        "32",
+        "48"
+      ],
+      "desktopColumns": "12",
+      "tabletColumns": "6",
+      "mobileColumns": "1",
+      "overflowStates": [
+        "empty",
+        "normal",
+        "excess"
+      ]
+    }
+  },
+  "routeCount": 23,
+  "checkCount": 166,
+  "runtimeErrorCount": 0,
+  "discoveredActionCount": 60,
+  "failed": [],
+  "checks": [
+    {
+      "name": "route:/",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1459,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1459,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/",
+      "role": "customer"
+    },
+    {
+      "name": "route:/studio",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 3010,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/studio",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/studio",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 3010,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/studio",
+      "role": "customer"
+    },
+    {
+      "name": "route:/inbox",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 773,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/inbox",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/inbox",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 773,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/inbox",
+      "role": "customer"
+    },
+    {
+      "name": "route:/calendar",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 637,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/calendar",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/calendar",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 637,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/calendar",
+      "role": "customer"
+    },
+    {
+      "name": "route:/channels/threads",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 652,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/threads",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/channels/threads",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 652,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/threads",
+      "role": "customer"
+    },
+    {
+      "name": "route:/channels/x",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 644,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/x",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/channels/x",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 644,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/x",
+      "role": "customer"
+    },
+    {
+      "name": "route:/channels/instagram",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 649,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/channels/instagram",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 649,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "route:/channels/facebook",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 651,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/facebook",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/channels/facebook",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 651,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/facebook",
+      "role": "customer"
+    },
+    {
+      "name": "route:/channels/bluesky",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 650,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/bluesky",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/channels/bluesky",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 650,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/bluesky",
+      "role": "customer"
+    },
+    {
+      "name": "route:/channels/telegram",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 661,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/telegram",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/channels/telegram",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 661,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/telegram",
+      "role": "customer"
+    },
+    {
+      "name": "route:/channels/discord",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 660,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/discord",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/channels/discord",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 660,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/discord",
+      "role": "customer"
+    },
+    {
+      "name": "route:/channels/slack",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 658,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/slack",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/channels/slack",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 658,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/slack",
+      "role": "customer"
+    },
+    {
+      "name": "route:/channels/youtube",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 736,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/youtube",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/channels/youtube",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 736,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/youtube",
+      "role": "customer"
+    },
+    {
+      "name": "route:/channels/tiktok",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 736,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/tiktok",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/channels/tiktok",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 736,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/tiktok",
+      "role": "customer"
+    },
+    {
+      "name": "route:/blog-performance",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 454,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/blog-performance",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/blog-performance",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 454,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/blog-performance",
+      "role": "customer"
+    },
+    {
+      "name": "route:/keyword-planner",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 554,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/keyword-planner",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/keyword-planner",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 554,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/keyword-planner",
+      "role": "customer"
+    },
+    {
+      "name": "route:/naver-trends",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 551,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/naver-trends",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/naver-trends",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 551,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/naver-trends",
+      "role": "customer"
+    },
+    {
+      "name": "route:/google-trends",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 552,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/google-trends",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/google-trends",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 552,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/google-trends",
+      "role": "customer"
+    },
+    {
+      "name": "route:/blog",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 541,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/blog",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/blog",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 541,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/blog",
+      "role": "customer"
+    },
+    {
+      "name": "route:/images",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 484,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/images",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/images",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 484,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/images",
+      "role": "customer"
+    },
+    {
+      "name": "route:/videos",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 736,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/videos",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/videos",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 736,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/videos",
+      "role": "customer"
+    },
+    {
+      "name": "route:/channels/midjourney",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 448,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/midjourney",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/channels/midjourney",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 448,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/midjourney",
+      "role": "customer"
+    },
+    {
+      "name": "route:/settings",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 680,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "route-click:/settings",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 680,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "settings:channels",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 680,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "settings-click:channels",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 680,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "settings:ai",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 630,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "settings-click:ai",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 630,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "settings:storage",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 564,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "settings-click:storage",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 564,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "settings:design",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 577,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "settings-click:design",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 577,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "settings:notifications",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 572,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "settings-click:notifications",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 572,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "settings:tokens",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 637,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "settings-click:tokens",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 637,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "settings:keywords",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 555,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "settings-click:keywords",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 555,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "settings:system",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 639,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "settings-click:system",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 639,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "channel-tab:/channels/threads:queue",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 652,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/threads",
+      "role": "customer"
+    },
+    {
+      "name": "channel-tab-click:/channels/threads:queue",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 652,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/threads",
+      "role": "customer"
+    },
+    {
+      "name": "channel-tab:/channels/threads:analytics",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 652,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/threads",
+      "role": "customer"
+    },
+    {
+      "name": "channel-tab-click:/channels/threads:analytics",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 610,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/threads",
+      "role": "customer"
+    },
+    {
+      "name": "channel-tab:/channels/threads:growth",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 652,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/threads",
+      "role": "customer"
+    },
+    {
+      "name": "channel-tab-click:/channels/threads:growth",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 591,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/threads",
+      "role": "customer"
+    },
+    {
+      "name": "channel-tab:/channels/threads:popular",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 652,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/threads",
+      "role": "customer"
+    },
+    {
+      "name": "channel-tab-click:/channels/threads:popular",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 605,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/threads",
+      "role": "customer"
+    },
+    {
+      "name": "channel-tab:/channels/threads:settings",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 652,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/threads",
+      "role": "customer"
+    },
+    {
+      "name": "channel-tab-click:/channels/threads:settings",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 708,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/threads",
+      "role": "customer"
+    },
+    {
+      "name": "channel-tab:/channels/instagram:queue",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 649,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "channel-tab-click:/channels/instagram:queue",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 649,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "channel-tab:/channels/instagram:editor",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 649,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "channel-tab-click:/channels/instagram:editor",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 679,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "channel-tab:/channels/instagram:settings",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 649,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "channel-tab-click:/channels/instagram:settings",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 705,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "journey:1",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 948,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "journey:2",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 926,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "journey:3",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1211,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "journey:4",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1001,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "journey:7",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 935,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "journey:11",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 940,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "journey:14",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1143,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "onboarding",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1299,
+      "rootChildren": 3,
+      "dialogs": 4,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "connect",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1299,
+      "rootChildren": 3,
+      "dialogs": 4,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "operator",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 2080,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/instagram",
+      "role": "operator"
+    },
+    {
+      "name": "operator-role-click:customer",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 705,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "operator-role-click:operator",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 2080,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/instagram",
+      "role": "operator"
+    },
+    {
+      "name": "home-state:success",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1459,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/",
+      "role": "customer"
+    },
+    {
+      "name": "studio-state:success",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 3010,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/studio",
+      "role": "customer"
+    },
+    {
+      "name": "home-state:loading",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1086,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/",
+      "role": "customer"
+    },
+    {
+      "name": "studio-state:loading",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 3147,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/studio",
+      "role": "customer"
+    },
+    {
+      "name": "home-state:empty",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1140,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/",
+      "role": "customer"
+    },
+    {
+      "name": "studio-state:empty",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 3152,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/studio",
+      "role": "customer"
+    },
+    {
+      "name": "home-state:error",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1043,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/",
+      "role": "customer"
+    },
+    {
+      "name": "studio-state:error",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 3010,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/studio",
+      "role": "customer"
+    },
+    {
+      "name": "home-state:partial",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1596,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/",
+      "role": "customer"
+    },
+    {
+      "name": "studio-state:partial",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 3153,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/studio",
+      "role": "customer"
+    },
+    {
+      "name": "home-state:permission",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1596,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/",
+      "role": "customer"
+    },
+    {
+      "name": "studio-state:permission",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 3153,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/studio",
+      "role": "customer"
+    },
+    {
+      "name": "home-state:uncertain",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1597,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/",
+      "role": "customer"
+    },
+    {
+      "name": "studio-state:uncertain",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 3154,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/studio",
+      "role": "customer"
+    },
+    {
+      "name": "home-state:repair",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1595,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/",
+      "role": "customer"
+    },
+    {
+      "name": "studio-state:repair",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 3152,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/studio",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:scenario-fresh",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1460,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:scenario-running",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1459,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:mobile-menu-close",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1459,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:mobile-menu",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1459,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:toggle-theme",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1458,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:refresh",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1503,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:open-journey",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 3231,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/studio",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:source-view",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 3090,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/studio",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:open-brand",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 3516,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/studio",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:edit-variants",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 3205,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/studio",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:save-draft",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 3053,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/studio",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:pv-preflight",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 3161,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/studio",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:edit-card",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 3266,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/studio",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:go-images",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 484,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/images",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:go-videos",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 736,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/videos",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:rewrite-run",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 2954,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/studio",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:rewrite-skip",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 3118,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/studio",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:message-settings",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 3057,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/studio",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:bulk-review",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 3666,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/studio",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:go-studio",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 3010,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/studio",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:approve",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 821,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/inbox",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:request-change",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 817,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/inbox",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:go-calendar",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 637,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/calendar",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:go-inbox",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 773,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/inbox",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:go-settings",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 680,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:message-enable",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 712,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/telegram",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:video-detail",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 776,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/youtube",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:video-rights",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 779,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/youtube",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:search",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 596,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/keyword-planner",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:reset",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 598,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/keyword-planner",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:edit-blog",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 579,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/blog",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:add-image",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 531,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/images",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:export",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 529,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/images",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:data-control",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 528,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/images",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:connect",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 720,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:choose-model",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 673,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:replace-key",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 630,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:remove-key",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 588,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:storage-test",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 605,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:design-connect",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 618,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:notification-save",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 612,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:issue-token",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 650,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:rotate",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 650,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:revoke",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 637,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:keyword-manage",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 596,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/settings",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:close-journey",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 705,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:auth-complete",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 914,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:auth-cancel",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 898,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:auth-error",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 910,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:journey-prev",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 948,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:journey-next",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1211,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:scope",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1435,
+      "rootChildren": 3,
+      "dialogs": 4,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:tone",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1435,
+      "rootChildren": 3,
+      "dialogs": 4,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:apply-experiment",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1268,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:edit-experiment",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1108,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:hold",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1143,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:onboarding-close",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1143,
+      "rootChildren": 2,
+      "dialogs": 2,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:onboarding-next",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 1314,
+      "rootChildren": 3,
+      "dialogs": 4,
+      "path": "/channels/instagram",
+      "role": "customer"
+    },
+    {
+      "name": "action-click:cred-save",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 2080,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/instagram",
+      "role": "operator"
+    },
+    {
+      "name": "action-click:admin-refresh",
+      "evaluationError": null,
+      "errors": [],
+      "rootChars": 2080,
+      "rootChildren": 1,
+      "dialogs": 0,
+      "path": "/channels/instagram",
+      "role": "operator"
+    }
+  ]
+}

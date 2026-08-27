@@ -1,0 +1,65 @@
+{
+  "cursor": "10",
+  "items": [
+    {
+      "action": "deduct",
+      "created_at": "2026-08-13T18:39:40.77802Z",
+      "credits": -194.62,
+      "display_name": "Subscription Cancelled"
+    },
+    {
+      "action": "spend",
+      "created_at": "2026-08-13T18:39:28.610655Z",
+      "credits": -7.5,
+      "display_name": "Kling 3.0 Turbo"
+    },
+    {
+      "action": "spend",
+      "created_at": "2026-08-13T18:39:25.179024Z",
+      "credits": -7.5,
+      "display_name": "Kling 3.0 Turbo"
+    },
+    {
+      "action": "spend",
+      "created_at": "2026-08-13T18:39:22.152945Z",
+      "credits": -7.5,
+      "display_name": "Kling 3.0 Turbo"
+    },
+    {
+      "action": "spend",
+      "created_at": "2026-08-13T18:39:18.175428Z",
+      "credits": -7.5,
+      "display_name": "Kling 3.0 Turbo"
+    },
+    {
+      "action": "spend",
+      "created_at": "2026-08-13T18:39:14.313134Z",
+      "credits": -7.5,
+      "display_name": "Kling 3.0 Turbo"
+    },
+    {
+      "action": "spend",
+      "created_at": "2026-08-13T18:39:08.047305Z",
+      "credits": -7.5,
+      "display_name": "Wan 2.7 Video"
+    },
+    {
+      "action": "spend",
+      "created_at": "2026-08-13T18:38:59.963249Z",
+      "credits": -4.8,
+      "display_name": "Seedance 1.5 Pro"
+    },
+    {
+      "action": "spend",
+      "created_at": "2026-08-13T18:38:59.881356Z",
+      "credits": -7.5,
+      "display_name": "Wan 2.7 Video"
+    },
+    {
+      "action": "spend",
+      "created_at": "2026-08-13T18:38:58.531141Z",
+      "credits": -7.5,
+      "display_name": "Wan 2.7 Video"
+    }
+  ]
+}

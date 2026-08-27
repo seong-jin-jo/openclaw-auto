@@ -59,7 +59,7 @@ OpenClaw Cron → Claude Agent → Tool Registry
                                  ├── card_generator     (카드뉴스 생성)
                                  ├── midjourney_image   (Midjourney 이미지 생성)
                                  ├── blog_queue         (블로그 큐)
-                                 └── 14개 채널 publish extensions
+                                 └── 15개 채널 publish extensions
 ```
 
 ## 대시보드
@@ -70,7 +70,7 @@ Next.js (App Router) + TypeScript. 구조:
 dashboard/src/
   app/                    # App Router — 페이지 + API routes
     api/                  #   REST API endpoints (channel-config, queue, guide, keywords 등)
-    channels/             #   채널별 페이지 (Queue/Analytics/Growth/Popular/Settings)
+    channels/             #   채널별 capability에 따른 페이지·탭
     blog/                 #   블로그 관리
     images/               #   에셋 갤러리
     settings/             #   채널 연결, AI Engine, Notifications, Account
@@ -88,10 +88,12 @@ dashboard/legacy/         # Flask 호환용 (점진적 제거 예정)
 ```
 
 주요 페이지:
-- Marketing Home: 채널 그리드 + 주간 성과 + 크론 상태 + 활동 타임라인
-- 채널별 페이지: Queue / Analytics / Growth / Popular / Settings (credential + guide + keywords)
+- Performance Home / Studio / 승인 Inbox / 발행 Calendar: 성과 관제, 콘텐츠 제작, 검토, 일정 확인
+- 채널별 페이지: Threads는 Queue / Analytics / Growth / Popular / Settings 전체 제공. 일반 소셜·영상은 Growth / Popular 비활성, Instagram은 Editor 추가, Messaging은 Settings 중심
+- Videos / Images / Blog: 영상 작업대, 에셋 갤러리, 블로그 큐
+- Blog Performance / Keyword Planner / Naver Trends / Google Trends: 분석·키워드 조사
+- Services / Operator: 서비스 전환과 별도 운영자 고객 관리
 - Settings: 채널 연결 + AI Engine + Notifications + Account
-- Blog / Images 탭
 
 인증: `DASHBOARD_AUTH_TOKEN` 설정 시 로그인 필수. 미인증 시 랜딩페이지.
 

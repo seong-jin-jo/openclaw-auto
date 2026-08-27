@@ -1,0 +1,28 @@
+{
+  "created_at": "2026-08-13T18:37:50.483096Z",
+  "display_name": "Kling v3.0",
+  "id": "6376ed7e-a7bb-49cf-aebe-2d07d5e79a71",
+  "job_type": "kling3_0",
+  "min_result_url": null,
+  "params": {
+    "aspect_ratio": "9:16",
+    "cfg_scale": 0.5,
+    "duration": 8,
+    "enhance_prompt": false,
+    "height": 1280,
+    "kling_element_ids": [],
+    "kling_elements": [],
+    "medias": [],
+    "mode": "std",
+    "multi_prompt": [],
+    "multi_shot_mode": "custom",
+    "multi_shots": false,
+    "prompt": "A vertical 9:16 editorial micro-documentary about real wages. A fictional Korean office worker receives a modest pay raise envelope, smiles briefly, then places it on a simple conveyor belt. Everyday groceries move past faster while the envelope visually falls behind, and his expression becomes quietly concerned. Natural handheld camera, realistic neutral studio lighting, restrained trustworthy economics-education tone, no readable text, no logos, no captions, no screens.",
+    "reference_elements": [],
+    "sound": "off",
+    "width": 720
+  },
+  "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183750_6376ed7e-a7bb-49cf-aebe-2d07d5e79a71.mp4",
+  "status": "completed",
+  "thumbnail_url": "https://cdn.higgsfield.ai/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183750_6376ed7e-a7bb-49cf-aebe-2d07d5e79a71_thumbnail.webp"
+}

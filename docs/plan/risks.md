@@ -4,8 +4,8 @@
 
 | 항목 | 값 |
 |---|---|
-| 버전·정본 | v7.3.5 · [PRD v7.3.5](openclaw-auto-marketing-agent-prd-v7.3.5-gpt-codex.md) |
-| 상태 | plan in-review; provider production E2E M=0 |
+| 버전·기반 | v7.3.5 · [역사적 PRD v7.3.5](../notes/openclaw-auto-marketing-agent-prd-v7.3.5-gpt-codex.md) |
+| 상태 | 역사적 plan 산출물. 현재 제품 정의 정본은 [PRD v8.2.1](../prd-openclaw-service-v8.2.1-gpt-codex.md)이며, 본문은 v8.2.1 기준으로 재검증되지 않음. provider production E2E M=0 |
 | 최고위험 | brand truth overwrite·agency theater·wrong-account·unapproved/duplicate publish·fake learning |
 
 ## 목차

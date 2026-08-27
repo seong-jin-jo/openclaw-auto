@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-08-13T18:36:26.551047Z",
+  "display_name": "Google Veo 3.1 Lite",
+  "id": "66b2359d-1df8-4074-8b1f-117313711345",
+  "job_type": "veo3_1_lite",
+  "min_result_url": null,
+  "params": {
+    "aspect_ratio": "9:16",
+    "duration": 8,
+    "generate_audio": false,
+    "height": 1344,
+    "medias": [],
+    "prompt": "Vertical framing. Close insert of a single human hand reaching toward a large glossy red button on a dark panel, the fingertip stopping abruptly one centimeter short and hovering, tension held. No face visible, no text, no letters, no numbers anywhere.",
+    "resolution": "720p",
+    "seed": 951196,
+    "width": 768
+  },
+  "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183626_66b2359d-1df8-4074-8b1f-117313711345.mp4",
+  "status": "completed",
+  "thumbnail_url": "https://cdn.higgsfield.ai/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183626_66b2359d-1df8-4074-8b1f-117313711345_thumbnail.webp"
+}

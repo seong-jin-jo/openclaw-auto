@@ -1,7 +1,9 @@
 # Plan — GA4·슬랙 중앙 성과 통합 (회장님 directive 명령②)
 
+> 상태 갱신(2026-08-25): 구현 전 계획의 이력 문서다. 현재 저장소에는 GA 분석 코드와 Slack 설정·테스트·미리보기·전송 API 및 화면이 존재한다. 기능의 기본 제품 노출 여부는 [vision.md](./vision.md)의 Awareness 범위 결정이 우선한다. 후속 변경은 Stage Controller 게이트로 진행한다.
+
 > 출처: brain `business/decision-2026-06-4사업-OUTPUT-집중` 명령② + 사용자 상품화 논의(2026-06-26).
-> 상태: **설계(계획만) — 구현은 다음 세션.** 이 레포(MARKETING/JOGON)가 중앙 통합 주체.
+> 원래 상태: 설계 계획. 현재 구현 상태는 위 갱신 문단을 따른다.
 
 > 2026-07-29 보안 경계: 현재 `ga-config`/`ga-analytics`와 Slack report 설정·preview·custom
 > send는 global 운영자 자산이다. customer UI에서는 이 컨트롤과 API 호출을 숨겼으며 customer

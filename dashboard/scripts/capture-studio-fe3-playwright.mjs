@@ -17,6 +17,8 @@ if (!dashboardToken || !studioToken || !workspaceId) {
   throw new Error("FE3_DASHBOARD_TOKEN, FE3_STUDIO_TOKEN, FE3_WORKSPACE_ID are required");
 }
 fs.mkdirSync(outputDir, { recursive: true });
+let chatAlwaysAt390 = 0;
+let chatVisibleAt390 = false;
 
 const browser = await chromium.launch({ executablePath, headless: true });
 const context = await browser.newContext({ viewport: { width: 1440, height: 1200 } });
@@ -88,6 +90,13 @@ try {
     if (await preview.getByRole("combobox", { name: new RegExp("발행 계정$") }).count() !== 1) throw new Error(`${platform} inline account selector missing`);
   }
   await page.screenshot({ path: path.join(outputDir, "publish-room-1440.png"), fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(600);
+  chatAlwaysAt390 = await page.locator('[data-chat-always="true"]').count();
+  chatVisibleAt390 = await page.locator('[data-chat-always="true"]').isVisible();
+  await page.screenshot({ path: path.join(outputDir, "publish-room-390.png") });
+  await page.setViewportSize({ width: 1440, height: 1200 });
+  await page.waitForTimeout(400);
 
   await roomFlow.getByRole("link", { name: /생성실/ }).click();
   await page.locator('[data-room="create"]').waitFor();
@@ -112,6 +121,8 @@ try {
     generationStatus: response.status(),
     candidateButtons: 3,
     publishStopButtons: 0,
+    chatAlwaysAt390,
+    chatVisibleAt390,
     unauthorizedUrls,
     consoleErrors,
   }, null, 2)}\n`);

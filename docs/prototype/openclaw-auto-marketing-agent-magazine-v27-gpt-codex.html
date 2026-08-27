@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<!--
+STAMP · openclaw-auto-marketing-agent-magazine-v27-gpt-codex.html
+line: marketing-agent-design · 생성: 2026-08-16 · model: claude-opus-5[1m] · agent: product-designer · skills: design-html, design-review
+정본: docs/design-docs/user-flow-openclaw-service-v10.0-gpt-codex.md (흐름 1~5, J-01, 사이드바 9항목)
+계승: openclaw-auto-marketing-agent-magazine-v26-gpt-codex.html (매거진 5영역 셸, 색 토큰, 타이포)
+v27 변경: 흐름과 정보구조를 v10.0으로 교체. 화면 27개를 흐름 6그룹으로 재배열.
+회장 지적 5건 봉인: 색인 클릭 모달 0 · 뷰포트 유지 · 외부 링크 0 · 데이터 모순 0 · 브라우저 대화상자 0
+-->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OSMU Marketing Hub · 매거진 HiFi v27 (유저플로우 v10.0)</title>
+<style>
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard-dynamic-subset.css");
+:root{
+  --bg:#fbfbfc;--surface:#fff;--surface-2:#f4f4f5;--border:#e4e4e7;
+  --text:#18181b;--muted:#52525b;--subtle:#71717a;--accent:#2563eb;
+  --accent-soft:#eff6ff;--success:#15803d;--success-soft:#f0fdf4;
+  --warning:#b45309;--warning-soft:#fffbeb;--danger:#b91c1c;--danger-soft:#fef2f2;
+  --radius:12px;--control:8px;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s8:48px;
+  font-family:Pretendard,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;font-size:15px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:#d4d4d8;color:var(--text)}
+button{font:inherit;border:1px solid var(--border);border-radius:var(--control);background:var(--surface);
+  color:var(--text);padding:8px 12px;cursor:pointer;font-weight:650;min-height:36px}
+button:hover{border-color:var(--accent)}
+button:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 35%,transparent);outline-offset:2px}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+button.quiet{border-color:transparent;background:transparent;color:var(--muted)}
+button:disabled{opacity:.45;cursor:not-allowed}
+[hidden]{display:none!important}
+
+/* 1. STAMP */
+.stamp{position:sticky;top:0;z-index:60;background:#18181b;color:#fafafa;padding:10px 16px;border-bottom:1px solid #3f3f46}
+.stamp h1{margin:0 0 4px;font-size:15px;line-height:20px;letter-spacing:.01em}
+.stamp p{margin:0;font-size:12px;line-height:18px;color:#a1a1aa;word-break:keep-all}
+.stamp b{color:#fafafa;font-weight:650}
+
+/* 2. 컨트롤 바 */
+.controls{position:sticky;top:60px;z-index:55;display:flex;flex-wrap:wrap;gap:var(--s4);
+  align-items:center;padding:10px 16px;background:#27272a;border-bottom:1px solid #3f3f46}
+.ctl{display:flex;align-items:center;gap:var(--s2)}
+.ctl > span{font-size:12px;color:#a1a1aa;letter-spacing:.04em}
+.seg{display:inline-flex;gap:2px;padding:3px;background:#18181b;border:1px solid #3f3f46;border-radius:99px}
+.seg button{min-height:36px;padding:6px 12px;border:0;border-radius:99px;background:transparent;
+  color:#d4d4d8;font-size:13px;font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.ctl-note{margin-left:auto;font-size:12px;color:#a1a1aa}
+
+/* 3~5. 매거진 3열 */
+.magazine{display:grid;grid-template-columns:264px minmax(0,1fr) 340px;gap:0;
+  background:#d4d4d8;min-height:calc(100vh - 120px)}
+.index{background:var(--surface);border-right:1px solid var(--border);padding:var(--s4) var(--s3);
+  max-height:calc(100vh - 120px);overflow:auto;position:sticky;top:120px}
+.index .grp{margin:var(--s5) var(--s2) var(--s2);font-size:11px;letter-spacing:.08em;color:var(--subtle);text-transform:uppercase}
+.index h2:first-child{margin-top:0}
+.index button{width:100%;display:flex;align-items:baseline;gap:var(--s2);text-align:left;border:0;
+  background:transparent;border-radius:var(--control);padding:8px;font-size:13px;font-weight:550;min-height:40px}
+.index button:hover{background:var(--surface-2)}
+.index button[aria-current="true"]{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.index .no{font-variant-numeric:tabular-nums;color:var(--subtle);font-size:12px;min-width:22px}
+.index button[aria-current="true"] .no{color:var(--accent)}
+.index .hint{margin-left:auto;font-size:11px;color:var(--subtle);white-space:nowrap}
+.index .hold{color:var(--warning)}
+
+.stage{padding:var(--s5);display:flex;flex-direction:column;align-items:center;gap:var(--s3);overflow:auto}
+.device{background:var(--bg);border:1px solid #a1a1aa;border-radius:16px;box-shadow:0 12px 32px rgba(0,0,0,.18);
+  width:1024px;max-width:100%;overflow:hidden;transition:width .18s ease}
+.device.vp390{width:390px}.device.vp768{width:768px}.device.vp1024{width:1024px}.device.vp1440{width:1440px}
+.device-bar{display:flex;align-items:center;gap:var(--s2);padding:8px 12px;background:var(--surface-2);
+  border-bottom:1px solid var(--border);font-size:12px;color:var(--subtle)}
+.device-bar i{width:9px;height:9px;border-radius:99px;background:#d4d4d8;display:inline-block}
+.frame{max-height:70vh;overflow:auto;background:var(--bg)}
+
+.panel{background:var(--surface);border-left:1px solid var(--border);padding:var(--s4);
+  max-height:calc(100vh - 120px);overflow:auto;position:sticky;top:120px}
+.panel .kicker{font-size:11px;letter-spacing:.08em;color:var(--subtle);text-transform:uppercase}
+.panel h3{margin:4px 0 var(--s3);font-size:19px;line-height:26px}
+.panel dl{margin:0 0 var(--s4);display:grid;grid-template-columns:74px 1fr;gap:6px var(--s2);font-size:12px;line-height:18px}
+.panel dt{color:var(--subtle)}
+.panel dd{margin:0;color:var(--muted);word-break:break-all}
+.panel p{margin:0 0 var(--s3);font-size:13px;line-height:21px;color:var(--muted);word-break:keep-all}
+.panel .tag{display:block;margin-bottom:var(--s2);padding:8px 10px;border-radius:10px;font-size:12px;line-height:18px}
+.panel .psy{background:var(--accent-soft);color:#1e40af}
+.panel .bmk{background:var(--surface-2);color:var(--muted)}
+.panel .hold-note{background:var(--warning-soft);color:var(--warning);border:1px solid #fde68a}
+.panel .nav{display:flex;gap:var(--s2);margin-top:var(--s4)}
+.panel .nav button{flex:1}
+.panel .kbd{margin-top:var(--s2);font-size:11px;color:var(--subtle)}
+
+/* 앱 셸 (프레임 내부) */
+.app{display:grid;grid-template-columns:200px minmax(0,1fr);min-height:520px}
+.app.narrow{grid-template-columns:minmax(0,1fr)}
+.nav{background:var(--surface);border-right:1px solid var(--border);padding:var(--s3) var(--s2)}
+.app.narrow .nav{display:none}
+.nav .brand{display:flex;align-items:center;gap:var(--s2);padding:0 var(--s2) var(--s3);font-weight:750;font-size:14px}
+.nav .mark{display:grid;place-items:center;width:26px;height:26px;background:var(--accent);color:#fff;border-radius:8px;font-size:12px}
+.nav .item{display:flex;align-items:center;gap:var(--s2);padding:8px;border-radius:8px;font-size:13px;
+  font-weight:550;color:var(--muted);min-height:36px}
+.nav .item.on{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.nav .item .badge{margin-left:auto;font-size:10px;padding:2px 6px;border-radius:99px;background:var(--warning-soft);color:var(--warning)}
+.nav .sep{margin:var(--s3) var(--s2) var(--s2);font-size:10px;letter-spacing:.08em;color:var(--subtle);text-transform:uppercase}
+.body{padding:var(--s5);min-width:0}
+.topline{display:flex;align-items:center;gap:var(--s2);margin-bottom:var(--s3);font-size:12px;color:var(--subtle)}
+.body h1{margin:0 0 var(--s2);font-size:23px;line-height:31px;letter-spacing:-.01em;word-break:keep-all}
+.body .lede{margin:0 0 var(--s5);color:var(--muted);font-size:14px;line-height:22px;max-width:60ch;word-break:keep-all}
+.app.narrow .body{padding:var(--s4)}
+.app.narrow button{min-height:44px}
+.app.narrow .body h1{font-size:20px;line-height:28px}
+
+.steps{display:flex;gap:var(--s1);margin-bottom:var(--s4)}
+.steps i{height:4px;flex:1;border-radius:99px;background:var(--border)}
+.steps i.done{background:var(--accent)}
+.steps i.now{background:var(--accent);opacity:.55}
+
+.grid{display:grid;gap:var(--s3)}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.app.narrow .g2,.app.narrow .g3,.app.narrow .g4{grid-template-columns:minmax(0,1fr)}
+.card{border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);padding:var(--s4)}
+.card.sel{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.card h4{margin:0 0 6px;font-size:15px;line-height:22px}
+.card p{margin:0;font-size:13px;line-height:20px;color:var(--muted);word-break:keep-all}
+.card .meta{margin-top:var(--s3);font-size:12px;color:var(--subtle);line-height:18px}
+.chip{display:inline-block;padding:3px 8px;border-radius:99px;font-size:11px;font-weight:650;line-height:16px}
+.chip.blue{background:var(--accent-soft);color:#1e40af}
+.chip.gray{background:var(--surface-2);color:var(--muted)}
+.chip.green{background:var(--success-soft);color:var(--success)}
+.chip.amber{background:var(--warning-soft);color:var(--warning)}
+.chip.red{background:var(--danger-soft);color:var(--danger)}
+.note{border:1px solid var(--border);border-left:3px solid var(--accent);background:var(--surface);
+  border-radius:10px;padding:var(--s3) var(--s4);font-size:13px;line-height:21px;color:var(--muted);word-break:keep-all}
+.note.warn{border-left-color:var(--warning);background:var(--warning-soft)}
+.note.bad{border-left-color:var(--danger);background:var(--danger-soft);color:var(--danger)}
+.note.ok{border-left-color:var(--success);background:var(--success-soft);color:var(--success)}
+.note b{color:var(--text)}
+.note.bad b,.note.ok b{color:inherit}
+.row{display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap}
+.row.end{justify-content:flex-end}
+.stack{display:flex;flex-direction:column;gap:var(--s3)}
+.list{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface)}
+.list .li{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) var(--s4);border-top:1px solid var(--border);font-size:13px}
+.list .li:first-child{border-top:0}
+.list .li b{font-weight:650}
+.list .li .sub{color:var(--subtle);font-size:12px}
+.list .li .right{margin-left:auto;display:flex;gap:var(--s2);align-items:center}
+.thumb{aspect-ratio:9/16;border-radius:10px;background:var(--surface-2);
+  border:1px solid var(--border);display:grid;place-items:center;color:var(--subtle);font-size:12px;padding:var(--s3);text-align:center}
+.thumb.wide{aspect-ratio:16/9}
+/* 세로 소재 자리표시가 접힘선을 통째로 먹어 결정 요소가 아래로 밀렸다. 비율은 두고 높이만 상한을 건다 */
+.thumb{max-height:320px}
+.app.narrow .thumb{max-height:184px}
+.shimmer{height:14px;border-radius:6px;background:linear-gradient(90deg,#eee,#f6f6f7,#eee);
+  background-size:200% 100%;animation:sh 1.2s linear infinite}
+.shimmer.b{height:120px}
+@keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.shimmer{animation:none}.device{transition:none}}
+.tabs{display:flex;gap:var(--s1);border-bottom:1px solid var(--border);margin-bottom:var(--s4)}
+.tabs span{padding:8px 12px;font-size:13px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent}
+.tabs span.on{color:var(--accent);border-bottom-color:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+th{font-size:12px;color:var(--subtle);font-weight:600}
+.ellip{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.clamp3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.big{font-size:26px;font-weight:750;line-height:34px;font-variant-numeric:tabular-nums}
+@media (max-width:1200px){
+  .magazine{grid-template-columns:minmax(0,1fr)}
+  .index,.panel{position:static;max-height:none;border:0;border-bottom:1px solid var(--border)}
+}
+</style>
+</head>
+<body>
+
+<header class="stamp">
+  <h1>OSMU Marketing Hub · 매거진 HiFi v27 · 유저플로우 v10.0 기반</h1>
+  <p><b>STAMP</b> v27 · 2026-08-16 (근거 줄 보강 08-17) · claude-opus-5[1m] · product-designer · skills: design-html, design-review ·
+     정본 <b>user-flow-openclaw-service-v10.0</b> · 화면 27 / 흐름 6그룹 · 화면마다 심리 근거·벤치마크 줄 노출 ·
+     v26 지적 봉인: 색인 클릭 모달 0 · 뷰포트 유지 · 외부 이동 0 · 데이터 모순 0 · 브라우저 대화상자 0</p>
+</header>
+
+<div class="controls">
+  <div class="ctl"><span>뷰포트</span><div class="seg" id="segVp"></div></div>
+  <div class="ctl"><span>유저 타입</span><div class="seg" id="segUser"></div></div>
+  <div class="ctl"><span>데이터 상태</span><div class="seg" id="segData"></div></div>
+  <div class="ctl-note" id="ctlNote"></div>
+</div>
+
+<div class="magazine">
+  <nav class="index" id="index" aria-label="사용자 흐름 색인"></nav>
+  <main class="stage">
+    <div class="device vp1024" id="device">
+      <div class="device-bar"><i></i><i></i><i></i><span id="deviceLabel"></span></div>
+      <div class="frame" id="frame"></div>
+    </div>
+  </main>
+  <aside class="panel" id="panel" aria-label="화면 설명"></aside>
+</div>
+
+<script>
+(function(){
+"use strict";
+var VPS=[["390","390"],["768","768"],["1024","1024"],["1440","1440"]];
+var USERS=[["new","첫 사용자"],["returning","재방문"],["operator","운영자"]];
+var DATAS=[["normal","정상"],["empty","비어 있음"],["loading","불러오는 중"],["error","오류"],["overflow","과다"]];
+var state={vp:"1024",user:"new",data:"normal",i:0};
+
+function e(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function narrow(){return state.vp==="390";}
+function wide(){return state.vp==="1440";}
+
+/* ---------- 앱 셸 ---------- */
+var NAV=[["만들기","만들기"],["작업","내 작업"],["성과","성과"],["학습","학습 정보"],
+         ["채널","채널"],["소재","소재"],["자료","자료"],["설정","설정"],["도움","도움"]];
+function navHtml(active){
+  var first=state.user==="new";
+  var items=NAV.filter(function(n){
+    if(n[0]==="성과"&&first) return false;   /* 첫 발행 전에는 성과 항목이 없다 */
+    return true;
+  }).map(function(n){
+    return '<div class="item'+(n[0]===active?" on":"")+'">'+e(n[1])+'</div>';
+  }).join("");
+  var hold='<div class="sep">회장 결정 대기</div>'+
+    ["Google Analytics","네이버 트렌드","서치 어드바이저","Google 트렌드","키워드 플래너"].map(function(t){
+      return '<div class="item">'+e(t)+'<span class="badge">보류</span></div>';}).join("");
+  return '<nav class="nav"><div class="brand"><span class="mark">O</span>OSMU</div>'+items+hold+'</nav>';
+}
+function App(active,body){
+  return '<div class="app'+(narrow()?" narrow":"")+'">'+navHtml(active)+'<div class="body">'+body+'</div></div>';
+}
+function head(crumb,title,lede){
+  return '<div class="topline">'+e(crumb)+'</div><h1>'+e(title)+'</h1>'+
+         (lede?'<p class="lede">'+e(lede)+'</p>':"");
+}
+function steps(total,now){
+  var out="";for(var i=1;i<=total;i++){out+='<i class="'+(i<now?"done":i===now?"now":"")+'"></i>';}
+  return '<div class="steps">'+out+'</div>';
+}
+function cols(n){ if(narrow())return "grid"; if(state.vp==="768")return "grid g2";
+  return "grid g"+(wide()?Math.min(n+1,4):n); }
+function loadingBlock(n){
+  var out="";for(var i=0;i<(n||3);i++){out+='<div class="card"><div class="shimmer b"></div><div style="height:12px"></div><div class="shimmer"></div></div>';}
+  return '<div class="'+cols(3)+'">'+out+'</div>';
+}
+
+/* ---------- 화면 정의 ---------- */
+var S=[];
+function scr(o){S.push(o);}
+
+/* ===== 흐름 1: 첫 가입 직후, 학습 정보 0 ===== */
+scr({g:"흐름 1 · 첫 제작 (학습 정보 0)",id:"H-02",name:"로그인",
+ file:"dashboard/src/app/login/page.tsx",users:["new","returning","operator"],states:["normal","loading","error"],
+ desc:"진입점은 소셜 로그인 하나다. 비밀번호를 만들게 하지 않는다(결정 004). 로그인 화면에는 성과도 작업 목록도 없다. 만든 것이 없는 사용자에게 숫자를 보여줄 근거가 없다.",
+ psy:"Fogg 능력 = 단계 1개(구글 로그인). Jakob 법칙 = 익숙한 소셜 로그인 배치",
+ bmk:"SaaS Onboarding Flows 2026(saasui.design) 온보딩은 수집이 아니라 라우팅. 로그인에서 질문하지 않는다",
+ body:function(){
+   if(state.data==="loading") return App("만들기",'<div style="max-width:360px;margin:80px auto"><div class="shimmer b"></div></div>');
+   if(state.data==="error") return App("만들기",'<div style="max-width:400px;margin:64px auto" class="stack">'+
+     '<div class="note bad"><b>구글 인증이 끊겼습니다.</b><br>네트워크가 잠시 불안정했습니다. 다시 시도하면 처음 상태로 돌아갑니다.</div>'+
+     '<div class="row"><button class="primary">다시 로그인하기</button><button>도움 요청</button></div></div>');
+   return App("만들기",'<div style="max-width:400px;margin:56px auto" class="stack">'+
+     '<h1 style="text-align:center">콘텐츠 하나를 만들면<br>여러 채널로 나갑니다</h1>'+
+     '<p class="lede" style="text-align:center;margin:0 auto">한 번 만들고 채널마다 다시 쓰지 않습니다.</p>'+
+     '<button class="primary" style="width:100%;min-height:48px">구글로 3초 만에 시작하기</button>'+
+     '<div class="note">비밀번호를 새로 만들지 않습니다. 채널 연결은 나중에, 첫 결과물을 보고 나서 요청합니다.</div></div>');
+ }});
+
+scr({g:"흐름 1 · 첫 제작 (학습 정보 0)",id:"H-01",name:"홈 (첫 방문)",
+ file:"dashboard/src/app/page.tsx (성과 대시보드에서 시작 지점으로 전환)",users:["new"],states:["normal","loading","error"],
+ desc:"v26이 반려된 지점이다. 첫 로그인 사용자에게 성과 대시보드를 주면 빈 숫자만 남는다. v10.0은 홈을 작업 시작 지점으로 바꾸고, 사이드바에서 성과 항목 자체를 감춘다. 성과는 첫 발행이 끝난 U-03에서 처음 등장한다.",
+ psy:"Zeigarnik = 시작 버튼 하나로 미완성 과제를 연다 · Hick = 첫 화면 결정 1개 · 손실회피 없음(첫 방문엔 잃을 것이 없다)",
+ bmk:"Chameleon 온보딩 UX 패턴: 첫 화면은 값이 아니라 첫 행동을 준다",
+ body:function(){
+   if(state.data==="loading") return App("만들기",head("홈","무엇을 만들지 같이 정해볼게요","")+
+     '<button class="primary" style="min-height:48px">만들기 시작</button><div style="height:24px"></div>'+loadingBlock(3));
+   if(state.data==="error") return App("만들기",head("홈","무엇을 만들지 같이 정해볼게요","")+
+     '<button class="primary" style="min-height:48px">만들기 시작</button><div style="height:16px"></div>'+
+     '<div class="note warn">예시 결과물을 못 불러왔습니다. 시작 버튼은 그대로 쓸 수 있습니다.</div>');
+   return App("만들기",head("홈","무엇을 만들지 같이 정해볼게요","질문 세 개면 첫 후보 세 개를 보여드립니다. 채널 연결은 아직 필요 없습니다.")+
+     '<button class="primary" style="min-height:48px">만들기 시작</button>'+
+     '<div style="height:32px"></div><div class="topline">우리가 이 제품으로 실제로 만든 것</div>'+
+     '<div class="'+cols(3)+'">'+
+     ['세무 상담 릴스 · 조회 8,400','학원 설명회 카드뉴스 · 문의 12건','정비소 쇼츠 · 저장 96'].map(function(t,i){
+       return '<div class="card"><div class="thumb'+(i===1?" wide":"")+'">예시 결과물 '+(i+1)+'</div>'+
+       '<div class="meta">'+e(t)+'</div></div>';}).join("")+'</div>'+
+     '<div style="height:24px"></div><div class="note">아직 만든 것이 없어 성과 화면은 열리지 않습니다. 첫 발행이 끝나면 좌측에 성과가 생깁니다.</div>');
+ }});
+
+scr({g:"흐름 1 · 첫 제작 (학습 정보 0)",id:"Q-01",name:"무엇을 만드나",
+ file:"dashboard/src/app/studio/page.tsx (idea textarea 분해)",users:["new","returning"],states:["normal","loading","error"],
+ desc:"백지를 주지 않는다. 업계 카드 6장과 목적 5개를 펼치고, 자유 입력은 열되 기본 경로가 아니다. 첫 방문이라 근거 라벨은 가설과 공개 사례만 쓴다. 우리 실험 로그 라벨은 이 사용자에게 존재하지 않는다.",
+ psy:"Hick = 6장 상한 · Miller = 목적 5개 · 기본값 설계 = 안전 기본값이 미리 선택돼 건너뛰기보다 낫다",
+ bmk:"Userpilot AI 온보딩: 질문은 세그먼트가 아니라 이후 개인화의 씨앗",
+ body:function(){
+   var b=head("만들기 · 1/5","어떤 일을 하시나요?","고른 값은 학습 정보의 첫 항목이 됩니다. 나중에 언제든 고칠 수 있습니다.");
+   if(state.data==="loading") return App("만들기",steps(5,1)+b+loadingBlock(3));
+   if(state.data==="error") return App("만들기",steps(5,1)+b+
+     '<div class="note warn"><b>업계 목록을 못 불러왔어요.</b><br>기본 카드 3개로 진행하거나 직접 입력하실 수 있습니다.</div>'+
+     '<div style="height:12px"></div><div class="'+cols(3)+'">'+
+     ["전문 서비스","교육·학원","동네 가게"].map(function(t){return '<div class="card"><h4>'+e(t)+'</h4></div>';}).join("")+'</div>'+
+     '<div style="height:12px"></div><button>직접 입력하기</button>');
+   var ind=[["전문 서비스","세무·법무·노무·컨설팅"],["교육·학원","입시·성인교육·과외"],["동네 가게","음식점·정비소·미용"],
+            ["온라인 판매","스마트스토어·자사몰"],["병의원","치과·한의원·피부과"],["1인 창작","작가·강사·크리에이터"]];
+   return App("만들기",steps(5,1)+b+
+     '<div class="'+cols(3)+'">'+ind.map(function(t,i){
+       return '<div class="card'+(i===0?" sel":"")+'"><h4>'+e(t[0])+'</h4><p>'+e(t[1])+'</p>'+
+       (i===0?'<div class="meta"><span class="chip blue">기본 선택</span> 바꾸셔도 됩니다</div>':"")+'</div>';}).join("")+'</div>'+
+     '<div style="height:24px"></div><div class="topline">무엇을 늘리고 싶으세요</div>'+
+     '<div class="row">'+["문의 늘리기","방문 늘리기","이름 알리기","재방문 늘리기","채용"].map(function(t,i){
+       return '<button'+(i===0?' class="primary"':"")+'>'+e(t)+'</button>';}).join("")+'</div>'+
+     '<div style="height:16px"></div><div class="note">근거 라벨: <span class="chip gray">가설</span> 아직 이 계정의 실험 기록이 없습니다. 첫 발행 뒤부터 실제 기록으로 바뀝니다.</div>'+
+     '<div style="height:16px"></div><div class="row end"><button class="quiet">직접 입력</button><button class="primary">다음</button></div>');
+ }});
+
+scr({g:"흐름 1 · 첫 제작 (학습 정보 0)",id:"Q-02",name:"누구에게 (시장·언어)",
+ file:"신규. 현행 코드에 출력 언어 선택이 없다",users:["new","returning"],states:["normal","error"],
+ desc:"제품구조 §9.6 D1의 비보증 언어 고지가 화면에 나오는 지점이다. 생성은 되지만 원어민 검수는 제공하지 않는다는 사실을 고르기 전에 붙인다.",
+ psy:"의도된 마찰 = 비보증 언어에 고지를 붙여 신뢰를 만든다 · 기본값 = 한국어가 먼저 열려 있다",
+ bmk:"Buffer per-network 커스터마이즈에서 차용. 다만 우리는 채널이 아니라 시장을 먼저 고른다",
+ body:function(){
+   var b=head("만들기 · 2/5","어느 시장을 노리시나요?","시장이 정해지면 표현과 길이가 함께 바뀝니다.");
+   if(state.data==="error") return App("만들기",steps(5,2)+b+'<div class="note bad"><b>시장 목록을 못 불러왔어요.</b><br>한국·한국어로 진행하고 나중에 학습 정보에서 바꾸실 수 있습니다.</div>');
+   var m=[["한국 · 한국어","원어민 검수 제공","green","보증"],["미국 · 영어","원어민 검수 제공","green","보증"],
+          ["일본 · 일본어","생성만 제공","amber","비보증"],["태국 · 태국어","생성만 제공","amber","비보증"]];
+   return App("만들기",steps(5,2)+b+'<div class="'+cols(2)+'">'+m.map(function(t,i){
+     return '<div class="card'+(i===0?" sel":"")+'"><div class="row"><h4 style="margin:0">'+e(t[0])+'</h4>'+
+       '<span class="chip '+t[2]+'" style="margin-left:auto">'+e(t[3])+'</span></div>'+
+       '<p style="margin-top:6px">'+e(t[1])+'</p></div>';}).join("")+'</div>'+
+     '<div style="height:16px"></div><div class="note warn">일본어·태국어는 생성은 되지만 원어민 검수를 제공하지 않습니다. 발행 전에 직접 확인해 주세요.</div>'+
+     '<div style="height:16px"></div><div class="row end"><button class="quiet">이전</button><button class="primary">다음</button></div>');
+ }});
+
+scr({g:"흐름 1 · 첫 제작 (학습 정보 0)",id:"Q-03",name:"어떤 결로 (표현 방향)",
+ file:"dashboard/src/app/studio/page.tsx (guide textarea + videoModel 드롭다운 분해)",users:["new","returning"],states:["normal","loading","error"],
+ desc:"자유 텍스트 가이드와 모델 드롭다운을 스타일 카드로 바꿨다. 카드마다 예상 비용 범위와 소요 시간 범위를 고르기 전에 붙인다. 견적이 아직 안 오면 다음 버튼을 비활성으로 둔다.",
+ psy:"앵커링 = 비용 범위를 카드에 먼저 제시 · 손실회피 = 무엇을 쓰는지 모른 채 결제되지 않는다",
+ bmk:"Midjourney upscale 흐름은 비용을 미리 안 보여준다. 우리는 선택 전에 범위를 붙여 이 점을 바꿨다",
+ body:function(){
+   var b=head("만들기 · 3/5","이 중 어느 결이 마음에 드세요?","고른 결은 학습 정보에 저장되고 다음 제작에서 기본값이 됩니다.");
+   if(state.data==="loading") return App("만들기",steps(5,3)+b+loadingBlock(4)+
+     '<div style="height:16px"></div><div class="row end"><button class="quiet">이전</button><button class="primary" disabled>견적 계산 중</button></div>');
+   if(state.data==="error") return App("만들기",steps(5,3)+b+
+     '<div class="note bad"><b>견적을 못 받았습니다.</b><br>고른 값은 그대로 있습니다. 다시 시도하면 이 화면부터 이어집니다.</div>'+
+     '<div style="height:12px"></div><div class="row"><button class="primary">견적 다시 받기</button><button>이전</button></div>');
+   var st=[["실사 혼합형","실제 촬영 느낌에 자막을 얹습니다","1,200~1,800원","4~7분"],
+           ["말하는 사람 중심","한 사람이 카메라를 보고 말합니다","900~1,400원","3~5분"],
+           ["텍스트 모션","글자와 도형만으로 설명합니다","400~700원","1~2분"],
+           ["카드 정리형","이미지 여러 장으로 나눠 설명합니다","300~600원","1~2분"]];
+   return App("만들기",steps(5,3)+b+'<div class="'+cols(2)+'">'+st.map(function(t,i){
+     return '<div class="card'+(i===0?" sel":"")+'"><div class="thumb wide">'+e(t[0])+' 미리보기</div>'+
+       '<h4 style="margin-top:12px">'+e(t[0])+'</h4><p>'+e(t[1])+'</p>'+
+       '<div class="meta">예상 비용 '+e(t[2])+' · 소요 '+e(t[3])+'</div></div>';}).join("")+'</div>'+
+     '<div style="height:16px"></div><div class="row end"><button class="quiet">이전</button><button class="primary">다음</button></div>');
+ }});
+
+scr({g:"흐름 1 · 첫 제작 (학습 정보 0)",id:"T-01",name:"출력 플랫폼 선택",
+ file:"dashboard/src/app/studio/page.tsx includes 체크박스 (GROUPS line 65) 승격",users:["new","returning"],states:["normal","empty","error"],
+ desc:"플랫폼은 입구가 아니라 출구다(D8). 여기서 고른 채널은 후보의 방향이 아니라 비율·길이·글자수 제약으로만 들어간다. 미연결 채널도 고를 수 있고 연결은 발행 직전에 요구한다.",
+ psy:"Jakob = 익숙한 채널 아이콘 격자 · 손실회피 완화 = 연결 없이도 만들어볼 수 있다",
+ bmk:"Publer·Buffer는 채널을 먼저 고르고 그 채널 글을 쓴다. 우리는 반대다. 이 차이가 OSMU의 정체성이라 따르지 않았다",
+ body:function(){
+   var b=head("만들기 · 4/5","어디에 올리실 건가요?","한 번 만들어 고른 채널 모두로 나갑니다. 채널마다 다시 만들지 않습니다.");
+   if(state.data==="empty"||state.user==="new") {
+     var ch=[["인스타그램 릴스","9:16 · 90초 이내"],["유튜브 쇼츠","9:16 · 60초 이내"],["스레드","텍스트 500자"],
+             ["엑스","텍스트 280자"],["틱톡","9:16 · 60초"],["페이스북","1:1 또는 16:9"]];
+     return App("만들기",steps(5,4)+b+
+       (state.user==="new"?'<div class="note">연결된 채널이 아직 없습니다. 지금은 연결 없이 만들어만 보고, 발행할 때 연결하시면 됩니다.</div><div style="height:12px"></div>':"")+
+       '<div class="'+cols(3)+'">'+ch.map(function(t,i){
+         return '<div class="card'+(i<2?" sel":"")+'"><div class="row"><h4 style="margin:0">'+e(t[0])+'</h4>'+
+         '<span class="chip gray" style="margin-left:auto">미연결</span></div><div class="meta">'+e(t[1])+'</div></div>';}).join("")+'</div>'+
+       '<div style="height:16px"></div><div class="row end"><button class="quiet">이전</button><button class="primary">후보 3개 받기</button></div>');
+   }
+   if(state.data==="error") return App("만들기",steps(5,4)+b+
+     '<div class="note warn"><b>채널 상태를 못 읽었습니다.</b><br>모두 미연결로 보고 진행합니다. 발행 직전에 다시 확인합니다.</div>');
+   var conn=[["인스타그램 릴스","@sejong.tax","지난번과 같습니다"],["유튜브 쇼츠","세종세무TV","지난번과 같습니다"],["스레드","@sejong.tax",""]];
+   var un=[["엑스","텍스트 280자"],["틱톡","9:16 · 60초"],["페이스북","1:1 또는 16:9"]];
+   return App("만들기",steps(5,4)+b+
+     '<div class="topline">연결된 채널</div><div class="'+cols(3)+'">'+conn.map(function(t,i){
+       return '<div class="card'+(i<2?" sel":"")+'"><div class="row"><h4 style="margin:0">'+e(t[0])+'</h4>'+
+       '<span class="chip green" style="margin-left:auto">연결됨</span></div><div class="meta">'+e(t[1])+(t[2]?' · '+e(t[2]):"")+'</div></div>';}).join("")+'</div>'+
+     '<div style="height:20px"></div><div class="topline">아직 연결 안 된 채널 (선택은 됩니다)</div>'+
+     '<div class="'+cols(3)+'">'+un.map(function(t){
+       return '<div class="card"><div class="row"><h4 style="margin:0">'+e(t[0])+'</h4>'+
+       '<span class="chip gray" style="margin-left:auto">미연결</span></div><div class="meta">'+e(t[1])+'</div></div>';}).join("")+'</div>'+
+     '<div style="height:16px"></div><div class="row end"><button class="quiet">이전</button><button class="primary">후보 3개 받기</button></div>');
+ }});
+
+scr({g:"흐름 1 · 첫 제작 (학습 정보 0)",id:"D-01",name:"후보 A·B·C 비교",
+ file:"dashboard/src/app/studio/page.tsx TextVariants (line 123) 확장",users:["new","returning"],states:["normal","empty","loading","error"],
+ desc:"저해상도 후보 3개만 만든다. 고해상도는 고른 하나만 올린다(§9.6 D5). 후보는 항상 3개 상한이라 과다 상태가 없다. 부분 실패는 실패한 후보만 다시 받는다.",
+ psy:"Hick = 후보 3개 고정 · 가변보상(Hook) = 매번 다른 세 안 · 손실회피 = 다시 받아도 앞의 답은 보존",
+ bmk:"Midjourney·Higgsfield의 후보 생성 후 선택본만 업스케일하는 상태 기계를 그대로 차용",
+ body:function(){
+   var b=head("만들기 · 5/5","세 방향을 만들었습니다","고르기 전에는 고해상도 비용이 들지 않습니다.");
+   if(state.data==="loading") return App("만들기",steps(5,5)+b+
+     '<div class="'+cols(3)+'">'+["대본 작성 중","소재 고르는 중","자막 얹는 중"].map(function(t){
+       return '<div class="card"><div class="thumb">'+e(t)+'</div><div class="meta">먼저 준비된 후보부터 비교하실 수 있습니다</div></div>';}).join("")+'</div>');
+   if(state.data==="empty") return App("만들기",steps(5,5)+b+
+     '<div class="note bad"><b>후보를 하나도 못 만들었습니다.</b><br>사유: 소재 저장소 응답 없음. <b>크레딧은 차감되지 않았습니다.</b></div>'+
+     '<div style="height:12px"></div><div class="row"><button class="primary">같은 조건으로 다시 만들기</button><button>조건 바꾸기</button><button class="quiet">저장하고 나가기</button></div>');
+   if(state.data==="error") return App("만들기",steps(5,5)+b+
+     '<div class="note warn"><b>C안만 실패했습니다.</b><br>A·B는 그대로 있습니다. 세 개가 준비돼야 선택을 확정합니다.</div><div style="height:12px"></div>'+
+     '<div class="'+cols(3)+'">'+[["A","질문으로 여는 훅"],["B","숫자로 여는 훅"]].map(function(t){
+       return '<div class="card"><div class="thumb">'+e(t[0])+'안 미리보기</div><h4 style="margin-top:12px">'+e(t[1])+'</h4></div>';}).join("")+
+       '<div class="card"><div class="thumb">만들지 못함</div><div class="meta">이 후보만 다시 받습니다 (무과금)</div>'+
+       '<div style="height:8px"></div><button>C안만 다시 받기</button></div></div>');
+   var v=[["A","질문으로 여는 훅","세금 신고 놓치면 얼마 손해일까요","저장이 잘 나오는 형태입니다","가설"],
+          ["B","숫자로 여는 훅","3월에 놓치기 쉬운 공제 4가지","공개 사례에서 문의 전환이 높았습니다","공개 사례"],
+          ["C","사례로 여는 훅","작년에 220만원 돌려받은 사장님 이야기","길이가 길어 시청 유지가 갈립니다","가설"]];
+   return App("만들기",steps(5,5)+b+'<div class="'+cols(3)+'">'+v.map(function(t,i){
+     return '<div class="card'+(i===1?" sel":"")+'"><div class="thumb">'+e(t[0])+'안 미리보기 (저해상도)</div>'+
+       '<h4 style="margin-top:12px">'+e(t[1])+'</h4><p class="clamp3">'+e(t[2])+'</p>'+
+       '<div class="meta"><span class="chip gray">'+e(t[4])+'</span> '+e(t[3])+'<br>고르면 완성까지 1,200~1,800원 · 4~7분</div>'+
+       '<div style="height:12px"></div><button'+(i===1?' class="primary"':"")+' style="width:100%">이 방향으로</button></div>';}).join("")+'</div>'+
+     '<div style="height:16px"></div><div class="row"><button>후보 다시 받기</button><button class="quiet">저장하고 나가기</button></div>');
+ }});
+
+scr({g:"흐름 1 · 첫 제작 (학습 정보 0)",id:"J-01",name:"선택 후 판단 (세 갈래)",
+ file:"신규. v9.6에 없던 핵심 갭",users:["new","returning"],states:["normal","error","empty"],
+ desc:"회장이 명시한 세 갈래다. 바로 올릴지, 다른 안을 볼지, 품질을 높일지. 버튼 세 개만 두면 못 고르므로 왜 이 결과인지 세 줄, 추천 갈래 배지, 품질 상향의 정직한 한계를 함께 둔다. 첫 사용자에게는 학습 동의 배너(L-04)가 상단에 붙는다.",
+ psy:"Hick = 갈래 3개 · 기본값 설계 = 추천 갈래에 배지와 포커스 · 정직한 한계 고지 = 다크패턴 회피 · Zeigarnik = 미완성 작업이 남아 있음을 표시",
+ bmk:"Midjourney의 선택과 승격 분리 상태 기계. 우리는 승격 비용과 소요 시간을 선택 전에 노출하는 점을 바꿨다",
+ hold:"D-11 저해상도 판단 불가 시 무료 승격 1회 제공 여부는 회장 결정 대기. 화면에는 신고 버튼만 두고 결과 처리는 비워 뒀다.",
+ body:function(){
+   var banner=state.user==="new"
+     ? '<div class="note"><b>B안을 고르셨네요. 이 취향을 기억해둘까요?</b><br>기억한 내용은 언제든 학습 정보에서 고치거나 지울 수 있습니다.'+
+       '<div style="height:8px"></div><div class="row"><button class="primary">기억하기</button><button>이번만 쓰기</button></div></div><div style="height:16px"></div>'
+     : '<div class="note warn"><b>저장된 취향과 다릅니다.</b><br>지금까지는 긴 도입을 고르셨는데 이번엔 짧은 훅을 고르셨습니다. 학습 정보 충돌 화면에서 정리하실 수 있습니다.</div><div style="height:16px"></div>';
+   if(state.data==="empty") return App("만들기",head("만들기 · 판단","크레딧이 부족합니다","")+
+     '<div class="note warn"><b>남은 크레딧으로는 지금 후보를 발행하는 데까지 가능합니다.</b><br>다른 안 보기와 품질 높이기는 잠시 잠깁니다.</div>'+
+     '<div style="height:12px"></div><div class="row"><button class="primary">이대로 발행 준비</button>'+
+     '<button disabled>다른 안 보기</button><button disabled>품질 높이기</button><button>크레딧 충전</button></div>');
+   if(state.data==="error") return App("만들기",head("만들기 · 판단","승격이 실패했습니다","")+
+     '<div class="note bad"><b>고해상도 변환이 중간에 멈췄습니다.</b><br>크레딧은 차감되지 않았고 고른 B안은 그대로 있습니다.</div>'+
+     '<div style="height:12px"></div><div class="row"><button class="primary">실패한 단계부터 다시</button><button>다른 안 보기</button><button class="quiet">저장하고 나가기</button></div>');
+   var g=[["이대로 발행 준비","고른 B안을 그대로 미리보기 편집으로 보냅니다","승격 1,400원 · 5분","추천"],
+          ["다른 안 보기","A·C를 버리지 않고 새 후보를 더 받습니다","새 후보를 받을 때만 300원","" ],
+          ["품질 높이기","같은 구성으로 해상도·음성만 올립니다","추가 900원","" ]];
+   return App("만들기",head("만들기 · 판단","이제 어떻게 할까요?","")+banner+
+     '<div class="'+(narrow()?"grid":"grid g2")+'">'+
+     '<div class="card"><div class="thumb">B안 · 숫자로 여는 훅</div>'+
+       '<div class="meta">고른 이유가 이렇게 반영됐습니다<br>1. 전문 서비스 업계 → 신뢰형 자막<br>2. 문의 늘리기 → 마지막에 상담 안내<br>3. 실사 혼합형 → 촬영 느낌 배경</div></div>'+
+     '<div class="stack">'+g.map(function(t){
+       return '<div class="card'+(t[3]?" sel":"")+'"><div class="row"><h4 style="margin:0">'+e(t[0])+'</h4>'+
+       (t[3]?'<span class="chip blue" style="margin-left:auto">추천</span>':"")+'</div>'+
+       '<p style="margin-top:6px">'+e(t[1])+'</p><div class="meta">'+e(t[2])+'</div></div>';}).join("")+
+     '<div class="note">추천 근거: 저해상도에서도 훅과 자막 가독성이 판단됩니다. 이대로 진행을 권합니다.</div>'+
+     '<div class="note warn">품질을 올려도 구성과 대본은 그대로입니다. 방향을 바꾸시려면 다른 안 보기를 쓰세요.</div>'+
+     '<div class="row"><button>잘 안 보여요</button><button class="quiet">저장하고 나가기</button></div>'+
+     '</div></div>');
+ }});
+
+scr({g:"흐름 1 · 첫 제작 (학습 정보 0)",id:"D-02",name:"고해상도 승격 진행",
+ file:"신규. 비용이 발생하는 지점이라 독립 상태가 필요",users:["new","returning"],states:["normal","error"],
+ desc:"고른 하나만 고해상도로 올린다. 단계를 숨기지 않고 대본·소재·음성·편집·검수로 나눠 보여준다. 실패하면 실패한 단계부터 다시 하고 무과금을 명시한다. 3회 연속 실패면 지원 요청 카드가 나온다.",
+ psy:"의도된 마찰 = 과정을 보여줘 신뢰를 만든다 · Nielsen 가시성 = 남은 시간 표시 · 복구 = 실패 단계부터 재시도",
+ bmk:"AI 영상 생성 UX 조사(groovyweb·buildmvpfast 2026): \"처리 중\"이 아니라 단계와 진척을 보여주고 시작·완료를 알림으로 밀어야 이탈이 준다. 우리는 여기에 실패 단계 재시도와 무과금 명시를 더했다",
+ body:function(){
+   if(state.data==="error") return App("만들기",head("만들기 · 승격","음성 단계에서 멈췄습니다","")+
+     '<div class="note bad"><b>3회 연속 실패했습니다.</b><br>차감 내역: 0원 (실패분은 청구하지 않습니다).</div>'+
+     '<div style="height:12px"></div><div class="card"><h4>사람이 확인해 드릴까요</h4><p>같은 조건이 세 번 실패하면 설정 문제일 수 있습니다.</p>'+
+     '<div style="height:8px"></div><button class="primary">지원 요청 보내기</button></div>');
+   var st=[["대본 확정","완료"],["소재 고르기","완료"],["음성 입히기","진행 중"],["편집·자막",""],["검수",""]];
+   return App("만들기",head("만들기 · 승격","B안을 고해상도로 올리고 있습니다","남은 시간 약 3분 20초. 기다리지 않고 나가셔도 됩니다.")+
+     '<div class="list">'+st.map(function(t){
+       return '<div class="li"><b>'+e(t[0])+'</b><span class="right">'+
+       (t[1]==="완료"?'<span class="chip green">완료</span>':t[1]?'<span class="chip blue">진행 중</span>':'<span class="chip gray">대기</span>')+'</span></div>';}).join("")+'</div>'+
+     '<div style="height:16px"></div><div class="row"><button>백그라운드로 보내기</button><button class="quiet">내 작업에서 확인</button></div>');
+ }});
+
+scr({g:"흐름 1 · 첫 제작 (학습 정보 0)",id:"V-01",name:"플랫폼별 미리보기 편집",
+ file:"components/studio/PlatformPreview.tsx + app/studio/page.tsx line 533, 616 승격",users:["new","returning"],states:["normal","overflow","error","empty"],
+ desc:"발행 직전 주 화면이다. 좌측 플랫폼 목록, 가운데 그 플랫폼 실제 모양, 우측 편집 패널 3열. 크레딧이 드는 편집과 안 드는 편집을 화면에서 구분해 표시한다. 390에서는 플랫폼이 상단 칩, 편집은 하단 시트가 된다.",
+ psy:"Jakob = 각 플랫폼의 실제 모양 그대로 · 손실회피 = 과금 편집은 확인 후 실행 · Nielsen 일치 = 보이는 것이 나가는 것",
+ bmk:"Publer 실시간 플랫폼별 프리뷰와 Buffer per-network 편집. 우리는 영상·이미지 편집 지시를 같은 화면에서 받는 점을 더했다",
+ body:function(){
+   if(state.data==="empty") return App("만들기",head("만들기 · 미리보기","고른 플랫폼이 없습니다","")+
+     '<div class="note"><b>출력 플랫폼을 아직 안 고르셨습니다.</b><br>플랫폼 선택으로 돌아가면 지금까지 만든 결과물은 그대로 있습니다.</div>'+
+     '<div style="height:12px"></div><button class="primary">플랫폼 고르러 가기</button>');
+   if(state.data==="error") return App("만들기",head("만들기 · 미리보기","틱톡 미리보기만 실패했습니다","")+
+     '<div class="note warn">나머지 플랫폼 편집은 그대로 이어갈 수 있습니다. 틱톡은 발행 전에 다시 확인합니다.</div>');
+   var many=state.data==="overflow";
+   var pf=many?["인스타 릴스","유튜브 쇼츠","틱톡","스레드","엑스","페이스북","블루스카이","링크드인","네이버 블로그"]:["인스타 릴스","유튜브 쇼츠","스레드"];
+   var left='<div class="stack" style="'+(many?"max-height:320px;overflow:auto":"")+'">'+pf.map(function(t,i){
+       return '<div class="card'+(i===0?" sel":"")+'" style="padding:10px 12px"><span class="ellip">'+e(t)+'</span></div>';}).join("")+'</div>'+
+       (many?'<div class="meta">9개 중 1개만 미리보기에 띄웁니다. 나머지는 목록에서 스크롤로 오갑니다.</div>':"");
+   var mid='<div class="card"><div class="thumb">인스타 릴스 실제 모양</div>'+
+     '<p style="margin-top:12px" class="clamp3">3월에 놓치기 쉬운 공제 4가지. 사장님 통장에서 조용히 빠져나가는 돈부터 확인하세요. 상담은 프로필 링크에서 받습니다.</p>'+
+     '<div class="meta">캡션 3줄까지 보이고 나머지는 더 보기로 접힙니다</div></div>';
+   var right='<div class="stack"><div class="card"><h4>크레딧 없이 되는 편집</h4>'+
+     '<p>자막 크기 키우기 · 컷 짧게 · 캡션 문구 · 해시태그</p><div style="height:8px"></div><button style="width:100%">바로 반영</button></div>'+
+     '<div class="card"><h4>크레딧이 드는 편집</h4><p>나레이션 다시 만들기 900원 · 소재 교체 400원</p>'+
+     '<div class="meta">누르면 금액을 한 번 더 확인합니다</div></div></div>';
+   var layout=narrow()
+     ? '<div class="stack"><div class="row">'+pf.slice(0,4).map(function(t,i){return '<button'+(i===0?' class="primary"':"")+'>'+e(t)+'</button>';}).join("")+'</div>'+mid+right+'</div>'
+     : '<div class="grid" style="grid-template-columns:'+(wide()?"260px minmax(0,1fr) 360px":"200px minmax(0,1fr) 300px")+'">'+left+mid+right+'</div>';
+   return App("만들기",head("만들기 · 미리보기","플랫폼마다 나갈 모습 그대로 손보세요","")+layout+
+     '<div style="height:16px"></div><div class="row end"><button class="quiet">저장하고 나가기</button><button class="primary">발행 준비로</button></div>');
+ }});
+
+scr({g:"흐름 1 · 첫 제작 (학습 정보 0)",id:"U-01",name:"발행 전 점검",
+ file:"dashboard/src/app/studio/page.tsx 계정 선택 (line 145) 확장",users:["new","returning"],states:["normal","empty","error"],
+ desc:"연결을 제작 앞에 두지 않은 대가를 여기서 치른다. 채널별 계정·토큰·정책·한도를 확인하고, 잘못된 계정이면 발행을 막고 계정 확인으로 보낸다. 통과한 채널만 먼저 내보낼 수 있다.",
+ psy:"에러 예방(Nielsen) = 잘못된 계정으로 나가기 전에 막는다 · 사용자 통제 = 미통과 채널을 제외하고 진행 가능",
+ bmk:"Buffer 발행 전 계정 확인 단계. 우리는 정책 위반 가능성과 일일 한도를 같은 줄에 붙였다",
+ hold:"D-14 미연결 상태의 첫 제작을 어디까지 허용할지는 회장 결정 대기. 지금 화면은 옵션 A(발행에서만 연결 요구)로 그렸다.",
+ body:function(){
+   if(state.data==="empty") return App("만들기",head("만들기 · 발행 전","연결된 채널이 없습니다","")+
+     '<div class="note"><b>만든 결과물은 초안으로 보관했습니다.</b><br>채널을 연결하면 이 초안 그대로 발행합니다. 다시 만들지 않습니다.</div>'+
+     '<div style="height:12px"></div><div class="row"><button class="primary">채널 연결하러 가기</button><button>나중에 하기</button></div>');
+   var rows=[["인스타그램 릴스","@sejong.tax","통과","green","오늘 2건 남음"],
+             ["유튜브 쇼츠","세종세무TV","통과","green","오늘 5건 남음"],
+             ["스레드","@sejong.tax",state.data==="error"?"토큰 만료":"통과",state.data==="error"?"red":"green",state.data==="error"?"재연결이 필요합니다":"오늘 8건 남음"]];
+   return App("만들기",head("만들기 · 발행 전","이 계정으로 나갑니다","계정이 맞는지 확인하고 시점을 고르세요.")+
+     '<div class="list">'+rows.map(function(r){
+       return '<div class="li"><div><b>'+e(r[0])+'</b><div class="sub">'+e(r[1])+' · '+e(r[4])+'</div></div>'+
+       '<span class="right"><span class="chip '+r[3]+'">'+e(r[2])+'</span></span></div>';}).join("")+'</div>'+
+     (state.data==="error"?'<div style="height:12px"></div><div class="note bad"><b>스레드 토큰이 만료됐습니다.</b><br>이 채널만 빼고 먼저 내보내거나, 재연결한 뒤 함께 내보낼 수 있습니다.</div>':"")+
+     '<div style="height:16px"></div><div class="row"><button class="primary">지금 발행</button><button>예약 발행</button>'+
+     (state.data==="error"?'<button>스레드 빼고 진행</button><button>스레드 재연결</button>':"")+'</div>');
+ }});
+
+scr({g:"흐름 1 · 첫 제작 (학습 정보 0)",id:"U-03",name:"발행 결과 (세 갈래 분기점)",
+ file:"dashboard/src/app/studio/page.tsx publishReconciliation (line 127) 확장",users:["new","returning"],states:["normal","error"],
+ desc:"여기서 성과 항목이 사이드바에 처음 등장한다. 발행 이후 세 갈래(플랫폼에서 직접 보기, 성과 종합 관리, 채널 탭에서 보기)를 동시에 제시하고 우리가 한 곳으로 몰지 않는다. 공개 주소를 주지 않는 채널은 버튼을 없애고 한 줄로 대체한다.",
+ psy:"사용자 통제 = 다음 목적지를 사용자가 고른다 · 기대 설정 = 성과는 24시간 뒤부터 쌓인다고 미리 말한다",
+ bmk:"Hootsuite 재편에서 차용한 것은 섹션화. 우리는 결과 화면을 분기점으로 써서 사이드바를 더 좁게 유지했다",
+ body:function(){
+   var ok=[["인스타그램 릴스","성공","green","instagram.com/reel/… (주소는 이 화면 안에서만 표시)"],
+           ["유튜브 쇼츠","성공","green","youtube.com/shorts/… (주소는 이 화면 안에서만 표시)"],
+           ["스레드",state.data==="error"?"정책 거부":"성공",state.data==="error"?"red":"green",
+            state.data==="error"?"의료·금융 표현 규정에 걸렸습니다. 문구 두 곳을 고치면 다시 시도할 수 있습니다":"이 채널은 공개 주소를 주지 않습니다. 앱에서 확인해 주세요"]];
+   return App("만들기",head("만들기 · 결과",state.data==="error"?"2개 성공, 1개는 거부됐습니다":"3개 채널 모두 나갔습니다","")+
+     '<div class="list">'+ok.map(function(r){
+       return '<div class="li"><div style="min-width:0"><b>'+e(r[0])+'</b><div class="sub clamp3">'+e(r[3])+'</div></div>'+
+       '<span class="right"><span class="chip '+r[2]+'">'+e(r[1])+'</span></span></div>';}).join("")+'</div>'+
+     (state.data==="error"?'<div style="height:12px"></div><div class="row"><button class="primary">거부된 문구 고치기</button></div>':"")+
+     '<div style="height:16px"></div><div class="note ok"><b>성과는 보통 24시간 뒤부터 쌓입니다.</b> 지금부터 좌측에 성과 항목이 생깁니다.</div>'+
+     '<div style="height:16px"></div><div class="topline">이제 어디로 갈까요</div>'+
+     '<div class="'+cols(3)+'">'+
+     [["각 플랫폼에서 직접 보기","올라간 글을 그 앱에서 확인합니다"],
+      ["성과를 한곳에서 보기","채널이 달라도 한 작업으로 묶어 봅니다"],
+      ["채널 탭에서 보기","그 채널의 성과와 설정을 함께 봅니다"]].map(function(t){
+       return '<div class="card"><h4>'+e(t[0])+'</h4><p>'+e(t[1])+'</p></div>';}).join("")+'</div>');
+ }});
+
+/* ===== 흐름 2: 두 번째 이후 ===== */
+scr({g:"흐름 2 · 두 번째 이후 제작",id:"Q-00",name:"이전 설정 확인 (재방문 입구)",
+ file:"신규. 회장 '건너뛰거나 수정'의 착지점",users:["returning"],states:["normal","empty","loading","error"],
+ desc:"질문 3화면이 확인 카드 1장으로 접힌다. 재입력 0이 이 흐름의 성패 기준이다. 각 값 옆에 왜 이 값인지 근거가 붙고, 바꾸기를 누르면 그 항목의 질문 화면만 단독으로 열린다. 첫 사용자에게는 이 화면이 존재하지 않는다.",
+ psy:"기본값 설계 = 이대로 진행이 가장 크다 · 인지부하 감소(Miller) = 4값을 한 장으로 · 신뢰 = 근거를 값 옆에 붙인다",
+ bmk:"Userpilot 개인화: 무엇이 왜 개인화됐는지 보여주고 고칠 수 있어야 한다",
+ body:function(){
+   if(state.data==="loading") return App("만들기",head("만들기","지난번 설정을 불러오는 중","")+
+     '<div class="card"><div class="shimmer"></div><div style="height:12px"></div><div class="shimmer"></div></div>'+
+     '<div style="height:12px"></div><button class="primary" disabled>이대로 진행</button>');
+   if(state.data==="error") return App("만들기",head("만들기","지난 설정을 못 불러왔어요","")+
+     '<div class="note bad">저장된 값을 읽지 못했습니다. 처음부터 고르시면 이번 선택이 다시 기준이 됩니다.</div>'+
+     '<div style="height:12px"></div><div class="row"><button class="primary">처음부터 고르기</button><button>다시 시도</button></div>');
+   var vals=state.data==="empty"
+     ? [["업계·목적","전문 서비스 · 문의 늘리기","최근 5회 중 5회 이 조합"],
+        ["시장·언어","한국 · 한국어","최근 5회 중 5회"],
+        ["표현 방향","아직 정하지 않음",""],
+        ["출력 플랫폼","인스타 릴스 · 유튜브 쇼츠","지난번과 같습니다"]]
+     : [["업계·목적","전문 서비스 · 문의 늘리기","최근 5회 중 5회 이 조합"],
+        ["시장·언어","한국 · 한국어","최근 5회 중 5회"],
+        ["표현 방향","실사 혼합형","3회 중 3회 이 방향을 고르셨습니다"],
+        ["출력 플랫폼","인스타 릴스 · 유튜브 쇼츠","지난번과 같습니다"]];
+   return App("만들기",head("만들기","지난번처럼 만들까요?","바꿀 것만 누르시면 그 질문만 다시 엽니다.")+
+     '<div class="list">'+vals.map(function(v){
+       return '<div class="li"><div style="min-width:0"><b>'+e(v[1])+'</b><div class="sub">'+e(v[0])+(v[2]?' · '+e(v[2]):"")+'</div></div>'+
+       '<span class="right"><button>'+(v[1]==="아직 정하지 않음"?"고르기":"바꾸기")+'</button></span></div>';}).join("")+'</div>'+
+     (state.data==="empty"?'<div style="height:12px"></div><div class="note warn">표현 방향이 아직 없습니다. 그 질문 하나만 여쭙고 나머지는 그대로 씁니다.</div>':"")+
+     '<div style="height:16px"></div><div class="row end"><button class="quiet">처음부터 고르기</button>'+
+     '<button class="primary"'+(state.data==="empty"?"":"")+'>이대로 진행</button></div>');
+ }});
+
+scr({g:"흐름 2 · 두 번째 이후 제작",id:"Q-0x",name:"항목 하나만 수정",
+ file:"Q-01~Q-03 화면 재사용. 단독 진입 모드",users:["returning"],states:["normal"],
+ desc:"바꾸기를 누른 그 항목만 열린다. 나머지 값은 건드리지 않는다. 저장하면 확인 카드로 돌아가고, 취소하면 원래 값이 유지된다. 이 화면을 별도로 정의하지 않으면 개발이 질문 흐름을 통째로 두 벌 만든다.",
+ psy:"사용자 통제와 자유(Nielsen) = 되돌리기 경로가 항상 있다 · 인지부하 = 지금 바꾸는 값 하나만 보인다",
+ bmk:"Linear의 인라인 속성 편집. 전체 폼을 다시 열지 않고 필드 하나만 연다",
+ body:function(){
+   var st=[["실사 혼합형","실제 촬영 느낌에 자막을 얹습니다","1,200~1,800원"],
+           ["말하는 사람 중심","한 사람이 카메라를 보고 말합니다","900~1,400원"],
+           ["텍스트 모션","글자와 도형만으로 설명합니다","400~700원"],
+           ["카드 정리형","이미지 여러 장으로 나눠 설명합니다","300~600원"]];
+   return App("만들기",head("만들기 · 표현 방향만 수정","이 항목만 바꿉니다","나머지 세 값은 그대로 둡니다.")+
+     '<div class="note">지금 저장된 값: 실사 혼합형 (3회 중 3회 선택)</div><div style="height:12px"></div>'+
+     '<div class="'+cols(2)+'">'+st.map(function(t,i){
+       return '<div class="card'+(i===0?" sel":"")+'"><h4>'+e(t[0])+'</h4><p>'+e(t[1])+'</p><div class="meta">'+e(t[2])+'</div></div>';}).join("")+'</div>'+
+     '<div style="height:16px"></div><div class="row end"><button class="quiet">취소 (원래 값 유지)</button><button class="primary">이 값으로 저장</button></div>');
+ }});
+
+/* ===== 흐름 3: 학습 정보와 추천 ===== */
+scr({g:"흐름 3 · 학습 정보와 추천",id:"L-00",name:"학습 정보 홈",
+ file:"신규. dashboard/src 전체에 취향 프로파일 화면 0건",users:["new","returning"],states:["normal","empty","overflow","loading"],
+ desc:"우리가 파는 것이 취향을 배운다는 주장이라면 배운 내용을 보여줘야 증명이 된다. 항목마다 사람이 읽는 문장, 어디서 나온 근거, 강함·약함, 수정과 삭제를 둔다. 첫 사용자에게는 빈 상태로 열리고 성과와 달리 사이드바에서 감추지 않는다.",
+ psy:"신뢰는 설계된다 = 근거 표시와 삭제 경로 · 통제감 = 항목 단위 삭제(전체 초기화 아님) · Zeigarnik 회피 = 미완성 항목을 방치하지 않는다",
+ bmk:"2026 개인화 원칙(parallelhq·OpenAI): 학습된 선호는 보고 고치고 지울 수 있어야 한다. 전체 초기화 대신 항목 단위 삭제로 바꿨다",
+ body:function(){
+   if(state.user==="new"||state.data==="empty") return App("학습",head("학습 정보","아직 배운 게 없습니다","첫 제작을 하시면 고르신 것들이 여기에 문장으로 쌓입니다.")+
+     '<button class="primary">첫 제작 시작하기</button><div style="height:16px"></div>'+
+     '<div class="note">직접 넣으실 수도 있습니다. 노션·위키 링크를 붙이거나, 따라가고 싶은 계정을 등록하시면 후보 항목을 뽑아 보여드립니다.</div>'+
+     '<div style="height:12px"></div><div class="row"><button>자료 반입</button><button>원본 반입</button><button>직접 적기</button></div>');
+   if(state.data==="loading") return App("학습",head("학습 정보","OSMU가 당신에 대해 알고 있는 것","")+loadingBlock(4));
+   var many=state.data==="overflow";
+   var items=[["전문 서비스 업계에서 문의 유입을 목적으로 만듭니다","최근 5회 제작 중 5회","강함"],
+              ["훅을 질문형으로 여는 것을 선호합니다","후보 비교에서 3회 선택","강함"],
+              ["과장 표현을 쓰지 않습니다","브랜드 금지선 직접 입력","강함"],
+              ["자막을 크게 쓰는 편입니다","편집 지시에서 2회 추론","약함"],
+              ["영상 길이는 40초 안팎을 고릅니다","최근 3회 평균","약함"]];
+   if(many) items=items.concat([["세로 영상만 씁니다","최근 12회 중 12회","강함"],
+     ["말하는 사람 얼굴 노출을 피합니다","소재 교체 지시 4회","약함"],
+     ["문의 안내를 마지막 3초에 둡니다","편집 지시 6회","강함"]]);
+   return App("학습",head("학습 정보","OSMU가 당신에 대해 알고 있는 것","마지막 갱신 2026-08-16 09:20")+
+     '<div class="tabs"><span class="on">한국어</span><span>English</span><span>日本語</span></div>'+
+     (many?'<div class="row" style="margin-bottom:12px"><button class="primary">강함만 보기</button><button>약함 포함</button><button>항목 검색</button>'+
+       '<span class="chip gray">전체 52개 중 강함 21개</span></div>':"")+
+     '<div class="'+cols(2)+'">'+items.map(function(t){
+       return '<div class="card"><p style="color:var(--text);font-size:14px" class="clamp3">'+e(t[0])+'</p>'+
+       '<div class="meta"><span class="chip '+(t[2]==="강함"?"blue":"gray")+'">'+e(t[2])+'</span> 근거: '+e(t[1])+'</div>'+
+       '<div style="height:10px"></div><div class="row"><button>수정</button><button class="quiet">삭제</button></div></div>';}).join("")+'</div>'+
+     '<div style="height:20px"></div><div class="topline">새로 알려주기</div>'+
+     '<div class="row"><button>자료 반입 (노션·위키·파일)</button><button>원본 반입 (이 결로)</button><button>직접 적기</button></div>');
+ }});
+
+scr({g:"흐름 3 · 학습 정보와 추천",id:"L-01",name:"항목 상세와 수정",
+ file:"신규",users:["returning"],states:["normal"],
+ desc:"항목 하나의 근거를 끝까지 보여준다. 어떤 선택에서 나왔는지, 이 항목이 반영된 결과물이 무엇인지. 지우면 다음 제작부터 반영되고 이미 만든 결과물은 바뀌지 않는다는 사실을 지우기 전에 말한다.",
+ psy:"신뢰 = 근거 추적 가능 · 에러 예방 = 삭제 결과를 사전 고지 · 손실회피 완화 = 과거 결과물은 그대로임을 명시",
+ bmk:"OpenAI 개인화 원칙(openai.com/global-affairs 열람·정정·삭제 3권)과 nowah 2026 정리. 우리는 정정 이력과 반영 결과물 목록까지 남긴다",
+ body:function(){
+   return App("학습",head("학습 정보 · 항목","훅을 질문형으로 여는 것을 선호합니다","")+
+     '<div class="'+(narrow()?"grid":"grid g2")+'">'+
+     '<div class="card"><h4>이 문장이 나온 곳</h4>'+
+     '<div class="list" style="margin-top:8px">'+
+     [["08-04 후보 비교","A안(질문형) 선택"],["08-09 후보 비교","B안(질문형) 선택"],["08-14 후보 비교","A안(질문형) 선택"]].map(function(r){
+       return '<div class="li"><b>'+e(r[0])+'</b><span class="right sub">'+e(r[1])+'</span></div>';}).join("")+'</div></div>'+
+     '<div class="card"><h4>이 항목이 들어간 결과물</h4>'+
+     '<div class="list" style="margin-top:8px">'+
+     [["3월 공제 4가지","저장 96"],["세금 신고 놓치면","문의 4건"]].map(function(r){
+       return '<div class="li"><b class="ellip">'+e(r[0])+'</b><span class="right sub">'+e(r[1])+'</span></div>';}).join("")+'</div></div></div>'+
+     '<div style="height:16px"></div><div class="card"><h4>문장 고치기</h4>'+
+     '<p style="color:var(--text)">훅을 질문형으로 여는 것을 선호합니다</p>'+
+     '<div class="meta">고치면 근거가 직접 입력으로 바뀌고 강도는 강함이 됩니다.</div></div>'+
+     '<div style="height:12px"></div><div class="note warn">지우면 다음 제작부터 반영됩니다. 이미 만든 결과물은 바뀌지 않습니다.</div>'+
+     '<div style="height:12px"></div><div class="row end"><button class="quiet">취소</button><button>이 항목 지우기</button><button class="primary">저장</button></div>');
+ }});
+
+scr({g:"흐름 3 · 학습 정보와 추천",id:"L-02",name:"자료 반입 (노션·위키·파일)",
+ file:"신규. 회장 명시 입력 경로 2",users:["returning"],states:["normal","empty","loading","error","overflow"],
+ desc:"어떤 경로도 조용히 반영하지 않는다. 문서를 읽고 후보 항목을 뽑아 보여주고 사용자가 항목 단위로 채택한다. 이 규칙이 깨지면 사용자는 프로파일이 언제 왜 바뀌었는지 알 수 없게 된다.",
+ psy:"통제감 = 채택은 항목 단위 · 의도된 마찰 = 자동 반영 대신 확인 단계 · 사회적 증거 없음(내 자료가 근거다)",
+ bmk:"Notion AI의 소스 인용 방식. 우리는 인용에서 그치지 않고 채택 체크박스로 확정 단계를 만들었다",
+ body:function(){
+   if(state.data==="empty") return App("자료",head("자료","아직 반입한 자료가 없습니다","브랜드 문서를 읽어 학습 후보를 뽑아 드립니다.")+
+     '<div class="row"><button class="primary">노션 연결</button><button>위키 주소 붙여넣기</button><button>파일 올리기</button></div>');
+   if(state.data==="loading") return App("자료",head("자료","문서를 읽고 있습니다","3분쯤 걸릴 수 있어요. 기다리지 않고 나가셔도 됩니다.")+
+     '<div class="card"><div class="shimmer"></div><div style="height:10px"></div><div class="shimmer"></div></div>'+
+     '<div style="height:12px"></div><button>백그라운드로 보내기</button>');
+   if(state.data==="error") return App("자료",head("자료","세 건 중 한 건을 못 읽었습니다","")+
+     '<div class="list">'+[["브랜드 가이드.pdf","읽었습니다","green"],["회사 소개 노션","접근 권한이 없습니다","red"],["금지 표현 목록.docx","읽었습니다","green"]].map(function(r){
+       return '<div class="li"><div><b>'+e(r[0])+'</b><div class="sub">'+e(r[1])+'</div></div><span class="right"><span class="chip '+r[2]+'">'+(r[2]==="red"?"실패":"완료")+'</span></span></div>';}).join("")+'</div>'+
+     '<div style="height:12px"></div><div class="note warn">노션 연결이 만료됐습니다. 다시 연결하거나 그 문서만 파일로 올리실 수 있습니다.</div>'+
+     '<div style="height:12px"></div><div class="row"><button class="primary">노션 다시 연결</button><button>파일로 올리기</button></div>');
+   var many=state.data==="overflow";
+   var cand=[["과장 표현을 쓰지 않습니다","브랜드 가이드 3쪽 금지 표현"],
+             ["숫자를 근거로 제시합니다","브랜드 가이드 5쪽 톤"],
+             ["상담 안내는 마지막에 한 번만","영업 원칙 문서"],
+             ["업계 용어를 풀어 씁니다","고객 응대 지침"],
+             ["대표 이름을 앞세우지 않습니다","브랜드 가이드 2쪽"]];
+   return App("자료",head("자료","이 자료에서 이런 것들을 봤어요","학습할 것만 고르세요. 고르지 않은 것은 저장하지 않습니다.")+
+     (many?'<div class="note">문서 100개를 읽었습니다. 기본값은 최근 20개이고, 나머지는 검색으로 찾을 수 있습니다.'+
+       '<div style="height:8px"></div><div class="row"><button>최근 20개만</button><button>전체 보기</button><button>문서 검색</button></div></div><div style="height:12px"></div>':"")+
+     '<div class="list">'+cand.map(function(r,i){
+       return '<div class="li"><span class="chip '+(i<3?"blue":"gray")+'">'+(i<3?"채택":"보류")+'</span>'+
+       '<div style="min-width:0"><b class="clamp3">'+e(r[0])+'</b><div class="sub">'+e(r[1])+'</div></div>'+
+       '<span class="right"><button>'+(i<3?"빼기":"넣기")+'</button></span></div>';}).join("")+'</div>'+
+     '<div style="height:16px"></div><div class="row end"><button class="quiet">반입 취소</button><button class="primary">고른 3개 학습하기</button></div>');
+ }});
+
+scr({g:"흐름 3 · 학습 정보와 추천",id:"L-05",name:"학습 충돌 해소",
+ file:"신규. 없으면 프로파일이 조용히 오염된다",users:["returning"],states:["normal"],
+ desc:"새로 배운 것이 기존 항목과 어긋날 때 조용히 덮지 않는다. 셋 중 하나를 고르게 하고 그 결정을 근거로 남긴다. 나중에 결정을 골라도 배너는 유지된다.",
+ psy:"인지 일관성 = 모순을 사용자에게 되돌려준다 · 통제감 = 둘 다 유지(상황별) 선택지 · 다크패턴 회피 = 자동 갱신 금지",
+ bmk:"parallelhq 적응형 UI 가이드: 추론된 선호는 명시 선호에 우선하지 않는다",
+ body:function(){
+   return App("학습",head("학습 정보 · 충돌","저장된 취향과 이번 선택이 다릅니다","")+
+     '<div class="'+(narrow()?"grid":"grid g2")+'">'+
+     '<div class="card"><div class="chip gray">저장된 것</div><h4 style="margin-top:8px">긴 도입으로 상황을 설명한다</h4>'+
+     '<div class="meta">근거: 4월~7월 제작 8회 중 6회</div></div>'+
+     '<div class="card sel"><div class="chip blue">이번 선택</div><h4 style="margin-top:8px">3초 안에 질문을 던진다</h4>'+
+     '<div class="meta">근거: 8월 제작 3회 중 3회</div></div></div>'+
+     '<div style="height:16px"></div><div class="stack">'+
+     [["새 것으로 갱신","최근 선택을 기준으로 바꿉니다. 예전 근거는 이력에 남습니다"],
+      ["둘 다 유지","상황별로 나눠 저장합니다. 다음 제작에서 어느 쪽인지 한 번 묻습니다"],
+      ["무시","저장된 것을 그대로 둡니다. 이번 선택은 일회성으로 봅니다"]].map(function(t,i){
+       return '<div class="card'+(i===0?" sel":"")+'"><div class="row"><h4 style="margin:0">'+e(t[0])+'</h4>'+
+       (i===0?'<span class="chip blue" style="margin-left:auto">추천</span>':"")+'</div><p style="margin-top:6px">'+e(t[1])+'</p></div>';}).join("")+'</div>'+
+     '<div style="height:12px"></div><button class="quiet">나중에 결정 (배너는 남겨둡니다)</button>');
+ }});
+
+scr({g:"흐름 3 · 학습 정보와 추천",id:"H-01r",name:"홈 추천 카드 (재방문)",
+ file:"dashboard/src/app/page.tsx 추천 슬롯",users:["returning"],states:["normal","empty","loading"],
+ desc:"추천 유입 세 가지(가끔 던지는 질문, 성과 기반, 트렌드 기반)를 전부 홈의 같은 자리에 둔다. 별도 화면을 만들지 않는다. 카드는 최대 2장이고 모든 카드에 출처와 관찰일이 붙는다. 닫는 데 비용은 없다.",
+ psy:"Hook 유발 = 홈이 다음 행동을 제안 · 사회적 증거는 내 데이터로 대체 · 피로 관리 = 카드 2장 상한, 같은 카드 재노출 금지",
+ bmk:"Userpilot 개인화 루프. 다만 우리는 근거 없는 추천을 금지해 출처와 관찰일을 카드에 박았다",
+ hold:"D-12 질문형 카드의 발동 빈도(제작 3회마다 1회 안)는 회장 결정 대기. 화면에는 자리만 잡아 두었다.",
+ body:function(){
+   if(state.data==="empty") return App("만들기",head("홈","오늘도 만들어 볼까요","추천할 근거가 아직 부족해 카드는 비워 뒀습니다.")+
+     '<button class="primary" style="min-height:48px">새로 만들기</button>'+
+     '<div style="height:16px"></div><div class="note">근거 없는 추천은 띄우지 않습니다. 발행이 몇 건 더 쌓이면 여기에 제안이 생깁니다.</div>');
+   if(state.data==="loading") return App("만들기",head("홈","오늘도 만들어 볼까요","")+
+     '<div class="card"><div class="shimmer"></div></div><div style="height:16px"></div>'+
+     '<button class="primary" style="min-height:48px">새로 만들기</button>');
+   return App("만들기",head("홈","지난주 발행 4건, 저장 212","")+
+     '<div class="'+(narrow()?"grid":"grid g2")+'">'+
+     '<div class="card"><div class="chip blue">성과 기반</div><h4 style="margin-top:8px">지난주 B안 형식이 저장 12건으로 가장 좋았어요. 같은 형식으로 하나 더 만들까요?</h4>'+
+     '<div class="meta">출처: 이 계정 발행물 · 관찰일 08-09~08-15 · 표본 4건(적음)</div>'+
+     '<div style="height:10px"></div><div class="row"><button class="primary">이 형식으로 시작</button><button class="quiet">닫기</button></div></div>'+
+     '<div class="card"><div class="chip gray">질문 하나</div><h4 style="margin-top:8px">결과물에서 더 중요한 건 조회수인가요, 문의인가요?</h4>'+
+     '<div class="meta">답하시면 학습 항목 한 줄이 생깁니다. 같은 질문은 다시 묻지 않습니다.</div>'+
+     '<div style="height:10px"></div><div class="row"><button>조회수</button><button>문의</button><button class="quiet">닫기</button></div></div></div>'+
+     '<div style="height:20px"></div><button class="primary" style="min-height:48px">새로 만들기</button>'+
+     '<div style="height:20px"></div><div class="topline">이어서 작업할 초안</div>'+
+     '<div class="list"><div class="li"><div><b>3월 공제 4가지</b><div class="sub">미리보기 편집에서 멈춤 · 08-15</div></div>'+
+     '<span class="right"><button>이어서</button></span></div></div>');
+ }});
+
+/* ===== 흐름 4: 발행 이후 세 갈래 ===== */
+scr({g:"흐름 4 · 발행 이후 세 갈래",id:"R-01",name:"성과 종합 (갈래 B)",
+ file:"dashboard/src/app/page.tsx 지표 카드 + app/blog-performance 재구성",users:["returning","operator"],states:["normal","overflow","loading","error"],
+ desc:"한 작업의 여러 채널 성과가 한 행으로 묶여 보이는 것이 OSMU의 정체성이다. 채널마다 지표 이름이 달라 비교 불가능한 지표는 나란히 놓지 않는다. 첫 사용자에게는 사이드바에 이 항목 자체가 없다.",
+ psy:"비교 가능성 = 같은 뜻의 지표만 나란히 · 정직함 = 표본이 적으면 적다고 표시 · Miller = 지표 4개 상한",
+ bmk:"Hootsuite·Buffer 분석 화면은 채널별로 쪼개 보여준다. 우리는 작업 단위로 묶어 OSMU 정체성을 지켰다",
+ body:function(){
+   if(state.user==="new") return null;
+   if(state.data==="loading") return App("성과",head("성과","성과 종합","")+loadingBlock(4));
+   if(state.data==="error") return App("성과",head("성과","성과 종합","")+
+     '<div class="note bad"><b>유튜브 지표를 못 가져왔습니다.</b><br>나머지 채널 수치는 그대로 보여 드립니다. 유튜브만 다시 시도할 수 있습니다.</div>');
+   var many=state.data==="overflow";
+   var rows=[["3월 공제 4가지","인스타·유튜브·스레드","8,412","212","4"],
+             ["세금 신고 놓치면","인스타·유튜브","5,120","96","2"],
+             ["환급 사례 인터뷰","유튜브","3,740","64","1"]];
+   if(many) rows=rows.concat([["가업 승계 준비","인스타·스레드","2,980","41","0"],
+     ["세무 상담 후기","인스타·유튜브·스레드","2,410","38","1"],["절세 체크리스트","스레드","1,860","27","0"]]);
+   return App("성과",head("성과","최근 30일","작업 하나가 여러 채널로 나간 결과를 한 줄로 묶었습니다.")+
+     '<div class="'+cols(4)+'">'+[["발행 작업","14"],["조회 합계","38,204"],["저장 합계","1,024"],["문의","19"]].map(function(t){
+       return '<div class="card"><div class="meta">'+e(t[0])+'</div><div class="big">'+e(t[1])+'</div></div>';}).join("")+'</div>'+
+     '<div style="height:16px"></div><div class="note">채널마다 이름이 다른 지표(예: 인스타 저장과 유튜브 좋아요)는 한 칸에 합치지 않습니다.</div>'+
+     '<div style="height:16px"></div><div class="card" style="padding:0;overflow:auto">'+
+     '<table><thead><tr><th>작업</th><th>나간 채널</th><th>조회</th><th>저장</th><th>문의</th></tr></thead><tbody>'+
+     rows.map(function(r){return '<tr><td><span class="ellip">'+e(r[0])+'</span></td><td>'+e(r[1])+'</td><td>'+e(r[2])+'</td><td>'+e(r[3])+'</td><td>'+e(r[4])+'</td></tr>';}).join("")+
+     '</tbody></table></div>'+
+     (many?'<div style="height:12px"></div><div class="row"><span class="chip gray">42건 중 상위 6건</span><button>더 보기</button><button>정렬 바꾸기</button></div>':""));
+ }});
+
+scr({g:"흐름 4 · 발행 이후 세 갈래",id:"R-02",name:"작업별 성과 상세",
+ file:"신규. 갈래 B의 착지점",users:["returning","operator"],states:["normal"],
+ desc:"이 작업이 어떤 선택으로 만들어졌는지와 채널별 결과를 한 화면에서 잇는다. 선택과 결과의 연결이 다음 실험 추천의 근거가 되고, 같은 설정으로 또 만들기가 확인 카드로 바로 이어진다.",
+ psy:"인과 제시 = 선택과 결과를 붙여 학습을 유도 · Zeigarnik = 다음 실험 카드로 루프를 닫지 않는다",
+ bmk:"실험 리포트의 가설·결과 병치 패턴(일반 관행, 특정 제품 실측 아님). 우리가 더한 것은 표본 수를 결과 앞에 적어 3건짜리 결론을 확신처럼 읽지 않게 만든 것이다",
+ body:function(){
+   return App("성과",head("성과 · 작업","3월 공제 4가지","2026-08-09 발행 · 3개 채널")+
+     '<div class="'+(narrow()?"grid":"grid g2")+'">'+
+     '<div class="card"><h4>이 작업을 만든 선택</h4>'+
+     '<div class="list" style="margin-top:8px">'+[["업계·목적","전문 서비스 · 문의"],["시장·언어","한국 · 한국어"],["표현 방향","실사 혼합형"],["고른 후보","B안 숫자형 훅"]].map(function(r){
+       return '<div class="li"><b>'+e(r[0])+'</b><span class="right sub">'+e(r[1])+'</span></div>';}).join("")+'</div></div>'+
+     '<div class="card"><h4>채널별 결과</h4>'+
+     '<div class="list" style="margin-top:8px">'+[["인스타 릴스","조회 4,120 · 저장 128"],["유튜브 쇼츠","조회 3,980 · 좋아요 71"],["스레드","조회 312 · 답글 6"]].map(function(r){
+       return '<div class="li"><b>'+e(r[0])+'</b><span class="right sub">'+e(r[1])+'</span></div>';}).join("")+'</div>'+
+     '<div class="meta">원문 주소는 이 화면 안에서 표시만 합니다</div></div></div>'+
+     '<div style="height:16px"></div><div class="card"><h4>다음 실험 추천</h4>'+
+     '<p>같은 목적 3건에서 숫자형 훅이 저장이 높았습니다.</p>'+
+     '<div class="meta"><span class="chip amber">표본 3건 · 적음</span> 더 쌓이면 확신도가 올라갑니다</div>'+
+     '<div style="height:10px"></div><div class="row"><button class="primary">이 설정으로 또 만들기</button><button class="quiet">무시</button></div></div>');
+ }});
+
+scr({g:"흐름 4 · 발행 이후 세 갈래",id:"A-01",name:"채널 상태 센터 (갈래 C 입구)",
+ file:"components/settings/ChannelsSettings.tsx 승격",users:["new","returning","operator"],states:["normal","empty","overflow","error"],
+ desc:"연결·계정·마지막 발행을 한곳에 모은다. 상태 배지는 다섯 종만 쓰고 채널마다 다른 문구를 쓰지 않는다. 채널 수가 많아지면 연결된 것을 먼저, 미연결은 접어 둔다.",
+ psy:"Jakob = 익숙한 연결 목록 · 일관성 = 배지 어휘 5종 고정 · Fitts = 해결 가능한 채널의 행동 버튼을 위로",
+ bmk:"Buffer 채널 관리. 우리는 상태 문구를 다섯 개로 강제해 채널별 특례 15건을 없앴다",
+ body:function(){
+   if(state.data==="empty"||state.user==="new") return App("채널",head("채널","아직 연결한 채널이 없습니다","만드는 데는 연결이 필요 없습니다. 발행할 때 필요합니다.")+
+     '<div class="row"><button class="primary">인스타그램 연결</button><button>유튜브 연결</button><button>스레드 연결</button></div>'+
+     '<div style="height:16px"></div><div class="note">연결하지 않아도 지금 만들어보실 수 있습니다.</div>');
+   var many=state.data==="overflow";
+   var conn=[["인스타그램","@sejong.tax","Live","green","마지막 발행 08-15"],
+             ["유튜브","세종세무TV","Live","green","마지막 발행 08-15"],
+             ["스레드","@sejong.tax",state.data==="error"?"재연결 필요":"Connected",state.data==="error"?"red":"blue",
+              state.data==="error"?"토큰이 만료됐습니다":"아직 발행 없음"]];
+   var un=many?["엑스","틱톡","페이스북","블루스카이","링크드인","네이버 블로그","텔레그램","디스코드","슬랙","미디엄","서브스택","핀터레스트","텀블러","라인","카카오","왓츠앱"]:["엑스","틱톡","페이스북"];
+   return App("채널",head("채널","연결 상태","")+
+     '<div class="list">'+conn.map(function(r){
+       return '<div class="li"><div style="min-width:0"><b>'+e(r[0])+'</b><div class="sub">'+e(r[1])+' · '+e(r[4])+'</div></div>'+
+       '<span class="right"><span class="chip '+r[3]+'">'+e(r[2])+'</span><button>'+(r[3]==="red"?"재연결":"열기")+'</button></span></div>';}).join("")+'</div>'+
+     '<div style="height:16px"></div><div class="topline">아직 연결 안 됨 ('+un.length+')'+(many?' · 접혀 있습니다':"")+'</div>'+
+     '<div class="row">'+un.slice(0,many?6:3).map(function(t){return '<button>'+e(t)+' 연결</button>';}).join("")+
+     (many?'<button class="quiet">나머지 10개 펼치기</button>':"")+'</div>');
+ }});
+
+scr({g:"흐름 4 · 발행 이후 세 갈래",id:"A-02",name:"채널 상세 (통일 헤더·탭)",
+ file:"app/channels/[channel]/page.tsx + components/channel/ChannelHeader.tsx(신규)",users:["returning","operator"],states:["normal","empty","error"],
+ desc:"헤더 슬롯 순서를 고정하고 네 페이지가 같은 컴포넌트를 쓴다. 비활성 탭 24개를 없애고 지원하지 않는 기능은 설정 하단에 정직하게 모아 적는다. 회색 탭을 눌러 연동 예정을 배우게 하는 것은 학습 비용을 사용자에게 떠넘기는 일이다.",
+ psy:"일관성(Nielsen) = 채널마다 같은 골격 · 정직함 = 안 되는 것을 한곳에 적는다 · 인지부하 = 주 행동 1개",
+ bmk:"Linear의 화면 골격 일관성. 인스타그램 그라디언트 아바타는 안티슬롭이라 버렸다",
+ body:function(){
+   var tabs=state.data==="empty"?["큐","설정"]:["큐","분석","성장","인기","설정"];
+   var head1='<div class="card" style="margin-bottom:16px"><div class="row">'+
+     '<div style="width:32px;height:32px;border-radius:8px;background:var(--surface-2);display:grid;place-items:center;font-weight:700">인</div>'+
+     '<div style="min-width:0"><b>인스타그램</b><div class="sub" style="font-size:12px;color:var(--subtle)">'+
+     (state.data==="error"?'<span class="chip red">재연결 필요</span> @sejong.tax':'<span class="chip green">Live</span> @sejong.tax · 마지막 발행 08-15')+'</div></div>'+
+     '<span class="right" style="margin-left:auto;display:flex;gap:8px"><button>계정 ▾</button>'+
+     '<button class="primary">'+(state.data==="error"?"재연결하기":"이 채널로 만들기")+'</button><button class="quiet">···</button></span></div></div>';
+   var tabbar='<div class="tabs">'+tabs.map(function(t,i){return '<span class="'+(i===0?"on":"")+'">'+e(t)+'</span>';}).join("")+'</div>';
+   var body=state.data==="error"
+     ? '<div class="note bad"><b>토큰이 만료돼 큐를 못 읽습니다.</b><br>재연결하면 예약된 3건이 그대로 이어집니다.</div>'
+     : '<div class="list">'+[["3월 공제 4가지","예약 08-18 09:00"],["환급 사례 인터뷰","초안"],["절세 체크리스트","발행 완료 08-15"]].map(function(r){
+         return '<div class="li"><b class="ellip">'+e(r[0])+'</b><span class="right sub">'+e(r[1])+'</span></div>';}).join("")+'</div>';
+   return App("채널",head("채널 · 인스타그램","인스타그램","")+head1+tabbar+body+
+     '<div style="height:16px"></div><div class="note"><b>이 채널에서 아직 안 되는 것</b><br>댓글 자동 응답, 스토리 발행. 되는 시점이 정해지면 여기에 먼저 적습니다.</div>'+
+     (state.data==="empty"?'<div style="height:12px"></div><div class="note warn">이 채널은 성과 지표를 가져올 수 없어 분석 탭을 아예 그리지 않았습니다. 회색 탭으로 남기지 않습니다.</div>':""));
+ }});
+
+/* ===== 흐름 5: 채널 연결 ===== */
+scr({g:"흐름 5 · 채널 연결",id:"A-03",name:"채널 연결 (계정 확인 포함)",
+ file:"components/channel/SocialConnectButton.tsx + AccountManager.tsx",users:["new","returning"],states:["normal","error","loading"],
+ desc:"v9.6이 다룬 잘못된 계정 연결 문제를 계승한다. 연결 전에 어느 계정으로 붙는지 읽어 주고, 끝난 뒤에도 붙은 계정 이름을 다시 확인시킨다. 연결 창은 이 프로토타입 밖으로 나가지 않고 화면 안에서 단계로 표현한다.",
+ psy:"에러 예방 = 계정 오연결을 사전 확인 · 의도된 마찰 = 권한 목록을 접지 않는다 · 복구 = 다른 계정으로 다시 연결 경로",
+ bmk:"Buffer·Publer 연결 흐름. 우리는 연결 직후 계정 되읽기 확인 단계를 추가했다",
+ body:function(){
+   if(state.data==="loading") return App("채널",head("채널 · 연결","인스타그램에 연결하는 중","")+
+     '<div class="card"><div class="shimmer"></div></div><div style="height:12px"></div>'+
+     '<div class="note">권한 화면이 뜨면 세종세무 계정인지 먼저 확인해 주세요.</div>');
+   if(state.data==="error") return App("채널",head("채널 · 연결","다른 계정이 연결됐습니다","")+
+     '<div class="note bad"><b>연결된 계정: @personal.jin</b><br>발행하려던 계정은 @sejong.tax입니다. 이대로 두면 개인 계정으로 글이 나갑니다.</div>'+
+     '<div style="height:12px"></div><div class="row"><button class="primary">다른 계정으로 다시 연결</button><button>이 계정으로 계속</button></div>');
+   return App("채널",head("채널 · 연결","인스타그램 연결","")+
+     '<div class="list">'+[["1. 연결할 계정 고르기","@sejong.tax","완료"],["2. 권한 확인","콘텐츠 발행, 게시물 통계 읽기","완료"],["3. 계정 되읽기","@sejong.tax 로 확인됨","완료"]].map(function(r){
+       return '<div class="li"><div style="min-width:0"><b>'+e(r[0])+'</b><div class="sub">'+e(r[1])+'</div></div>'+
+       '<span class="right"><span class="chip green">'+e(r[2])+'</span></span></div>';}).join("")+'</div>'+
+     '<div style="height:16px"></div><div class="note ok"><b>@sejong.tax 로 연결됐습니다.</b> 다른 계정이 필요하면 언제든 바꿀 수 있습니다.</div>'+
+     '<div style="height:12px"></div><div class="row"><button class="primary">이 채널로 만들기</button><button>계정 바꾸기</button></div>');
+ }});
+
+/* ===== 자산과 보류 ===== */
+scr({g:"자산 · 설정 · 보류",id:"W-01",name:"내 작업 (초안·예약·발행 통합)",
+ file:"app/inbox/page.tsx + app/calendar/page.tsx 통합",users:["new","returning","operator"],states:["normal","empty","overflow","loading"],
+ desc:"초안·예약·발행완료가 세 화면에 흩어져 있어 내가 뭘 만들었는지에 답을 못 했다. 하나의 목록으로 묶고 달력은 뷰 전환으로 둔다. 첫 사용자에게는 빈 상태로 열린다.",
+ psy:"인지부하 = 목적지 3개를 1개로 · Zeigarnik = 미완성 초안을 위로 · 복구 = 어느 상태에서든 이어서 작업",
+ bmk:"콘텐츠 캘린더 도구 조사(airtable·saasui 2026): 같은 데이터를 목록·달력·칸반으로 토글한다. 목적지를 늘리지 않고 뷰만 바꾼다. 우리는 초안·예약·발행을 한 목록으로 합쳐 3화면 분산을 없앴다",
+ body:function(){
+   if(state.user==="new"||state.data==="empty") return App("작업",head("내 작업","아직 만든 작업이 없습니다","만들기 시작하시면 초안이 여기에 자동 저장됩니다.")+
+     '<button class="primary">만들기 시작</button>');
+   if(state.data==="loading") return App("작업",head("내 작업","","")+loadingBlock(3));
+   var many=state.data==="overflow";
+   var rows=[["3월 공제 4가지","미리보기 편집에서 멈춤","초안","gray","08-15"],
+             ["환급 사례 인터뷰","08-18 09:00 예약","예약","blue","08-14"],
+             ["절세 체크리스트","3개 채널 발행 완료","발행","green","08-15"],
+             ["가업 승계 준비","스레드 정책 거부","일부 실패","red","08-13"]];
+   if(many){var extra=[];for(var i=0;i<6;i++){extra.push(["세무 상담 후기 "+(i+1),"3개 채널 발행 완료","발행","green","08-0"+(i+1)]);}rows=rows.concat(extra);}
+   return App("작업",head("내 작업","초안 3 · 예약 2 · 발행 9","")+
+     '<div class="row" style="margin-bottom:12px"><button class="primary">목록</button><button>달력</button>'+
+     (many?'<span class="chip gray">전체 214건 중 10건</span><button>상태로 거르기</button>':"")+'</div>'+
+     '<div class="list">'+rows.map(function(r){
+       return '<div class="li"><div style="min-width:0"><b class="ellip">'+e(r[0])+'</b><div class="sub">'+e(r[1])+'</div></div>'+
+       '<span class="right"><span class="chip '+r[3]+'">'+e(r[2])+'</span><button>열기</button></span></div>';}).join("")+'</div>'+
+     (many?'<div style="height:12px"></div><div class="row"><button>다음 10건</button></div>':""));
+ }});
+
+scr({g:"자산 · 설정 · 보류",id:"M-01",name:"소재 보관함 (이미지·영상·생성)",
+ file:"app/images + app/videos + Midjourney 3항목 통합",users:["returning","operator"],states:["normal","empty","overflow"],
+ desc:"이미지·영상·미드저니가 사이드바 항목 셋을 차지하고 있었다. 셋 다 소재를 보관하거나 만드는 일이라 하나로 묶는다. 미드저니는 채널이 아니라 이 화면 안의 생성 도구다.",
+ psy:"범주 일치(Nielsen) = 같은 일을 하는 것은 같은 곳에 · 인지부하 = 사이드바 3항목을 1로",
+ bmk:"Airtable 뷰 전환(그리드·갤러리)과 Hootsuite 자산 관리 조사(2026): 보관과 생성을 한 표면에 두고 종류는 필터로 가른다. 우리는 사이드바 3항목(이미지·영상·미드저니)을 이 한 표면으로 합쳤다",
+ body:function(){
+   if(state.data==="empty") return App("소재",head("소재","아직 올린 소재가 없습니다","제작에서 만든 결과물은 자동으로 여기에 쌓입니다.")+
+     '<div class="row"><button class="primary">파일 올리기</button><button>이미지 만들기</button></div>');
+   var n=state.data==="overflow"?12:6;
+   var out="";for(var i=0;i<n;i++){out+='<div class="card" style="padding:8px"><div class="thumb'+(i%2?" wide":"")+'">소재 '+(i+1)+'</div>'+
+     '<div class="meta"><span class="ellip">2026-08-1'+(i%9)+' · '+(i%2?"영상 12초":"이미지 1080")+'</span></div></div>';}
+   return App("소재",head("소재","이미지 84 · 영상 21","")+
+     '<div class="row" style="margin-bottom:12px"><button class="primary">전체</button><button>이미지</button><button>영상</button><button>만들기</button>'+
+     (state.data==="overflow"?'<span class="chip gray">105개 중 12개 · 스크롤로 더 불러옵니다</span>':"")+'</div>'+
+     '<div class="'+cols(3)+'">'+out+'</div>');
+ }});
+
+scr({g:"자산 · 설정 · 보류",id:"X-01",name:"회장 결정 대기 라우트 5개",
+ file:"/google-analytics · /naver-trends · /search-advisor · /google-trends · 키워드 플래너",users:["new","returning","operator"],states:["normal"],
+ desc:"v10.0 §11.4.4는 이 다섯을 사이드바에서 내리자고 제안했지만 §13 D-13이 회장 결정 대기다. 미승인 삭제를 화면으로 굳히지 않기 위해 사이드바에 보류 배지를 달아 남겨 두고, 각 라우트를 열면 지금 상태를 정직하게 적는다.",
+ psy:"정직함 = 목적지 없는 항목을 감추지 않고 상태를 적는다 · 다크패턴 회피 = 죽은 회색 버튼으로 방치하지 않는다",
+ bmk:"Hootsuite 재편 사례. 항목을 지우기 전에 무엇이 왜 남는지 먼저 적는다",
+ hold:"D-13 이 다섯 라우트를 사이드바에서만 뺄지 코드까지 지울지는 회장 결정 대기. 지금 프로토타입은 삭제하지 않고 보류 표시만 했다.",
+ body:function(){
+   return App("설정",head("보류","아직 열리지 않은 화면입니다","이 항목들은 지울지 남길지 정하는 중입니다. 지금은 감추지 않고 상태를 적어 둡니다.")+
+     '<div class="list">'+[["Google Analytics","연결 폼만 있고 볼 화면이 없습니다"],
+       ["네이버 트렌드","연결 폼만 있고 볼 화면이 없습니다"],
+       ["서치 어드바이저","저장 위치가 아직 없습니다"],
+       ["Google 트렌드","바깥 안내만 있었습니다. 지금은 홈 추천 카드의 근거로만 씁니다"],
+       ["키워드 플래너","제작 흐름과 이어지지 않습니다. 주제 고르기의 보조로 옮길 예정입니다"]].map(function(r){
+       return '<div class="li"><div style="min-width:0"><b>'+e(r[0])+'</b><div class="sub clamp3">'+e(r[1])+'</div></div>'+
+       '<span class="right"><span class="chip amber">결정 대기</span></span></div>';}).join("")+'</div>'+
+     '<div style="height:16px"></div><div class="note warn"><b>왜 그냥 지우지 않았나</b><br>지우는 결정이 아직 안 났습니다. 프로토타입이 미승인 삭제를 굳히면 나중에 되돌리기 어려워집니다.</div>'+
+     '<div style="height:12px"></div><button>대신 성과 화면으로 가기</button>');
+ }});
+
+/* ---------- 렌더 ---------- */
+function seg(el,opts,key){
+  document.getElementById(el).innerHTML=opts.map(function(o){
+    return '<button type="button" data-k="'+key+'" data-v="'+o[0]+'" aria-pressed="'+(state[key]===o[0])+'">'+e(o[1])+'</button>';
+  }).join("");
+}
+function renderIndex(){
+  var html="",lastG=null;
+  S.forEach(function(s,i){
+    if(s.g!==lastG){html+='<div class="grp">'+e(s.g)+'</div>';lastG=s.g;}
+    var avail=s.users.indexOf(state.user)>-1;
+    html+='<button type="button" data-go="'+i+'" aria-current="'+(i===state.i)+'">'+
+      '<span class="no">'+(i+1<10?"0":"")+(i+1)+'</span><span>'+e(s.id)+' '+e(s.name)+'</span>'+
+      (s.hold?'<span class="hint hold">결정 대기</span>':(!avail?'<span class="hint">타입 밖</span>':""))+'</button>';
+  });
+  document.getElementById("index").innerHTML=html;
+}
+function unavailable(s){
+  var who=s.users.map(function(u){return u==="new"?"첫 사용자":u==="returning"?"재방문":"운영자";}).join(" · ");
+  return App("만들기",head("화면 상태","이 화면은 지금 유저 타입에 존재하지 않습니다",
+    s.id+" "+s.name+"은(는) "+who+" 흐름에만 있는 화면입니다.")+
+    '<div class="note warn"><b>왜 빈 화면을 대신 보여주지 않나</b><br>'+
+    (s.id==="Q-00"?'첫 사용자에게는 지난 설정이 없습니다. 없는 데이터를 채워 보여주면 화면이 거짓말을 합니다.':
+     s.id==="R-01"||s.id==="R-02"?'첫 발행 전에는 성과 항목이 사이드바에도 없습니다. 만든 것이 없으면 성과도 없습니다.':
+     '이 유저 타입에는 이 화면으로 가는 경로가 없습니다.')+'</div>'+
+    '<div style="height:12px"></div><div class="note">상단 유저 타입을 <b>'+e(who)+'</b>으로 바꾸면 이 화면이 열립니다.</div>');
+}
+function noState(s){
+  return App("만들기",head("화면 상태","이 화면에는 이 데이터 상태가 없습니다",
+    s.id+" "+s.name+"에 정의된 상태: "+s.states.join(" · "))+
+    '<div class="note">없는 상태를 억지로 그리면 실제 구현이 존재하지 않는 화면을 만듭니다. 정의된 상태만 그립니다.</div>');
+}
+function render(){
+  seg("segVp",VPS,"vp");seg("segUser",USERS,"user");seg("segData",DATAS,"data");
+  var s=S[state.i];
+  var dev=document.getElementById("device");
+  dev.className="device vp"+state.vp;
+  var userLabel=USERS.filter(function(u){return u[0]===state.user;})[0][1];
+  var dataLabel=DATAS.filter(function(d){return d[0]===state.data;})[0][1];
+  document.getElementById("deviceLabel").textContent=state.vp+"px · "+userLabel+" · "+dataLabel;
+  document.getElementById("ctlNote").textContent="화면 "+(state.i+1)+" / "+S.length+" · 뷰포트는 화면을 옮겨도 유지됩니다";
+  var html;
+  if(s.users.indexOf(state.user)<0) html=unavailable(s);
+  else if(s.states.indexOf(state.data)<0) html=noState(s);
+  else { html=s.body(); if(!html) html=unavailable(s); }
+  document.getElementById("frame").innerHTML=html;
+  document.getElementById("frame").scrollTop=0;
+  document.getElementById("panel").innerHTML=
+    '<div class="kicker">'+e(s.g)+' · '+(state.i+1)+' / '+S.length+'</div>'+
+    '<h3>'+e(s.id)+' '+e(s.name)+'</h3>'+
+    '<dl><dt>실구현 경로</dt><dd>'+e(s.file)+'</dd>'+
+    '<dt>뷰포트</dt><dd>'+e(state.vp)+'px</dd>'+
+    '<dt>유저 타입</dt><dd>'+e(userLabel)+'</dd>'+
+    '<dt>데이터 상태</dt><dd>'+e(dataLabel)+'</dd>'+
+    '<dt>정의 상태</dt><dd>'+e(s.states.join(" · "))+'</dd></dl>'+
+    '<p>'+e(s.desc)+'</p>'+
+    '<span class="tag psy"><b>심리 근거</b><br>'+e(s.psy)+'</span>'+
+    '<span class="tag bmk"><b>벤치마크</b><br>'+e(s.bmk)+'</span>'+
+    (s.hold?'<span class="tag hold-note"><b>회장 결정 대기</b><br>'+e(s.hold)+'</span>':"")+
+    '<div class="nav"><button type="button" data-nav="-1">이전 화면</button>'+
+    '<button type="button" data-nav="1" class="primary">다음 화면</button></div>'+
+    '<div class="kbd">키보드 좌우 화살표로도 이동합니다. 이 프로토타입은 바깥으로 나가는 링크가 없습니다.</div>';
+  renderIndex();
+}
+document.addEventListener("click",function(ev){
+  var t=ev.target.closest("button");if(!t)return;
+  if(t.dataset.k){state[t.dataset.k]=t.dataset.v;render();return;}
+  if(t.dataset.go!=null){state.i=parseInt(t.dataset.go,10);render();return;}
+  if(t.dataset.nav){state.i=(state.i+parseInt(t.dataset.nav,10)+S.length)%S.length;render();return;}
+});
+document.addEventListener("keydown",function(ev){
+  if(ev.key==="ArrowRight"){state.i=(state.i+1)%S.length;render();}
+  if(ev.key==="ArrowLeft"){state.i=(state.i-1+S.length)%S.length;render();}
+});
+render();
+})();
+</script>
+</body>
+</html>

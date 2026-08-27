@@ -12,8 +12,8 @@ deliberation: 회장이 짚은 4개 차별점 중 1층(API 키·심사 대행)�
 
 | 항목 | 값 |
 |---|---|
-| 문서 성격 | 브랜딩·마케팅 정본 (제품 정의 정본은 PRD v7.3.5) |
-| 상태 | 포지셔닝 확정 초안. 가격·WTP·성과환류는 pilot 전 가설 |
+| 문서 성격 | PRD v7.3.5를 기반으로 만든 역사적 브랜딩·마케팅 문서 |
+| 상태 | 현재 제품 정의 정본은 [PRD v8.2.1](../../docs/prd-openclaw-service-v8.2.1-gpt-codex.md). 본 포지셔닝과 메시지는 v8.2.1 기준 재검증 전이므로 현행 정본으로 사용하지 않음 |
 | 씨앗 | 회장 발화 2026-08-08 |
 
 ## 목차
@@ -179,7 +179,8 @@ SKILLS_SKIPPED: hook-angle-lab — 헤드라인 5종은 본 스킬의 메시징 
 PRESENTATION_CHECK: 툴 잔재 0, 목차·표 구조 확인, 제품 UI 카피 후보에 em dash 0건
 
 SOURCES:
-- `/Users/sj/sj_code_master/openclaw-auto/docs/openclaw-auto-marketing-agent-prd-v7.3.5-gpt-codex.md` (참조: One Thing·Persona·BM·Risks가 가리키는 정본)
+- `docs/notes/openclaw-auto-marketing-agent-prd-v7.3.5-gpt-codex.md` (이 문서가 작성될 때 사용한 역사적 기반)
+- `docs/prd-openclaw-service-v8.2.1-gpt-codex.md` (현재 pipeline-state에 핀된 제품 정의 정본)
 - `/Users/sj/sj_code_master/openclaw-auto/docs/one-thing.md`
 - `/Users/sj/sj_code_master/openclaw-auto/docs/persona.md`
 - `/Users/sj/sj_code_master/openclaw-auto/docs/bm.md`

@@ -1,4 +1,6 @@
-# ADR-001: Introduce Project Wiki for Organization and Adopt gstack Procedures for Product Development
+# ADR-001: Introduce Project Wiki for Organization and Adopt gstack Procedures for Product Development (구버전, ADR-002가 대체)
+
+> 상태: Superseded. 현행 결정은 [ADR-002](./002-gstack-and-project-wiki-adoption.md)와 현재 Stage Controller 운영 규약을 따른다. 이 문서는 결정 이력 보존용이다.
 
 **Date**: 2026-06 (during planning session)
 **Status**: Superseded by [ADR-002](./002-gstack-and-project-wiki-adoption.md) — 같은 결정의 초안본, 002가 정본 (2026-07-02 wiki-track 정리)

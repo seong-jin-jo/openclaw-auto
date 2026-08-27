@@ -2,6 +2,14 @@
 
 Studio is the "power user" surface for one-off or assisted generation, complementing the fully automated cron/queue flow. It is the primary place where operators interact with the AI engine + wiki grounding + multi-platform output + video rendering.
 
+## Generation API v1, 2026-08-27
+
+- `POST /api/studio/v1/generations`: 학습 정보 7층과 요청 시점 platform spec을 검사하고 A/B/C 후보 3장을 만든다.
+- `GET /api/studio/v1/generations/[jobId]`: 본인이 속한 workspace의 생성 결과만 조회한다.
+- `POST /api/studio/v1/regenerations/[jobId]`: 회원 전체 기준 하루 1회 무료 재생성을 소비하고, 추가 요청은 과금 승인 계약으로 거절한다.
+- 반환되는 후보는 구조화된 스토리보드이다. 실제 이미지·영상 provider 생성 결과가 아니다.
+- 현재 identity와 job ledger는 명시적 development mode와 단일 process 메모리 runtime으로만 열린다. production에서는 fail closed한다. R104, R105를 위한 신규 DB table과 object storage signing adapter는 기술설계 합의 전까지 미구현이다.
+
 ## Purpose in the SaaS
 - Quick idea → publishable assets (text variants + visuals + shorts video).
 - Experiment with tones, wiki facts, or new hooks.
@@ -57,7 +65,7 @@ Studio is the "power user" surface for one-off or assisted generation, complemen
 - Generation buttons (text / image / video).
 - Draft history (per workspace).
 - Brand setup wizard (guide + repo/wiki sync).
-- Schedule panel (future).
+- Schedule panel 구현됨: `dashboard/src/components/studio/SchedulePanel.tsx`, `dashboard/src/app/api/schedule/`.
 
 See studio-mock*.html in public/ for visual references.
 
@@ -68,7 +76,7 @@ See studio-mock*.html in public/ for visual references.
   - `POST /api/studio/drafts` — save/restore work.
   - `POST /api/sourcing` — longform → shorts candidates (now accepts `wiki_path`).
   - Video: `/api/video/generate`, `/api/video/publish`.
-- gstack note: When developing Studio features, always "Load gstack. Read wiki/product/studio.md + wiki/guides/gstack-procedures.md".
+- Studio 변경은 Stage Controller 현재 단계와 승인 산출물을 먼저 확인한다.
 
 ## For Scaling to 1000+ Users
 - Workspace isolation.

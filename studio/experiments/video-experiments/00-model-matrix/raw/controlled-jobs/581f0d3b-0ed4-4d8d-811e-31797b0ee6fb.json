@@ -1,0 +1,20 @@
+{
+  "created_at": "2026-08-13T18:35:35.580217Z",
+  "display_name": "Happy Horse Video",
+  "id": "581f0d3b-0ed4-4d8d-811e-31797b0ee6fb",
+  "job_type": "happy_horse_video",
+  "min_result_url": null,
+  "params": {
+    "aspect_ratio": "9:16",
+    "batch_size": 1,
+    "duration": 5,
+    "height": 1280,
+    "medias": [],
+    "prompt": "Vertical framing. A wall calendar mounted on a plain wall, its paper pages flipping backward rapidly in a blur of motion, then settling on one single page as a deep red round rubber stamp presses down and its ink bleeds into the paper fibers. Beside the calendar a small mountain shaped line graph icon. Warm cream and deep navy palette, subtle paper grain, natural soft light, no text, no letters, no numbers anywhere.",
+    "resolution": "720p",
+    "width": 720
+  },
+  "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183535_581f0d3b-0ed4-4d8d-811e-31797b0ee6fb.mp4",
+  "status": "completed",
+  "thumbnail_url": "https://cdn.higgsfield.ai/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183535_581f0d3b-0ed4-4d8d-811e-31797b0ee6fb_thumbnail.webp"
+}

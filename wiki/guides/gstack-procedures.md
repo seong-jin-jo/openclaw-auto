@@ -1,5 +1,7 @@
 # How to Develop with gstack Procedures
 
+> 상태: 보조 절차. office-hours·autoplan 흐름은 Stage Controller 게이트를 대체하지 않는다. 먼저 `/pipeline`으로 단계를 확인하고 `/approve` 승인을 따른다.
+
 This guide defines the standard process for all significant work in openclaw-auto.
 
 **Always follow this** for features, refactors, wiki improvements, shorts factory work, etc. It turns the AI + human into a virtual engineering team (Garry Tan's gstack model).

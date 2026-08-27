@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>학습 정보 층계 v3</title>
+<style>
+:root{
+  --bg:#0f1115; --panel:#171a21; --line:#272c37; --tx:#e7eaf0; --dim:#9aa3b2;
+  --sys:#5b6b8c; --our:#3f7a8c; --usr:#c08a3e; --mix:#7a5f9e; --lrn:#4e8f5f; --req:#b5544e;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);
+ font-family:-apple-system,"Apple SD Gothic Neo","Pretendard",sans-serif;line-height:1.75;
+ font-size:16px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:56px 28px 120px}
+h1{font-size:34px;letter-spacing:-.02em;margin:0 0 8px}
+h2{font-size:24px;letter-spacing:-.01em;margin:64px 0 6px;padding-top:26px;border-top:1px solid var(--line)}
+h3{font-size:18px;margin:32px 0 8px;color:#fff}
+p{margin:10px 0;color:#d3d8e2}
+.sub{color:var(--dim);margin:0 0 34px}
+.lead{font-size:18px;color:#fff;background:#1b1f27;border-left:3px solid #5b8cff;
+ padding:14px 18px;border-radius:0 8px 8px 0;margin:18px 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px 24px;margin:20px 0}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:5px;color:#fff;
+ font-family:ui-monospace,Menlo,monospace;letter-spacing:.02em}
+.dim{color:var(--dim)}
+small{color:var(--dim)}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px}
+th,td{border-bottom:1px solid var(--line);padding:9px 10px;text-align:left;vertical-align:top}
+th{color:var(--dim);font-weight:600;font-size:13px}
+.ok{color:#5fbf7f}.no{color:#e07b74}
+.scroll{overflow-x:auto}
+svg{max-width:100%;height:auto;display:block}
+.note{font-size:14px;color:var(--dim);margin-top:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+.badbox{border-left:3px solid #e07b74;background:#1e1719;padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0}
+.goodbox{border-left:3px solid #5fbf7f;background:#161e19;padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0}
+</style></head><body><div class="wrap">
+
+<h1>학습 정보 층계</h1>
+<p class="sub">v3 · 2026-08-21 · 앞글자 방식으로 다시 씀 · 표를 그림으로 바꿈<br>
+<small>회장 지시: "S0 S1 U2 U3 L4 L5 L6 이런 식은 어때. 더 좋은 아이디어 있으면 주고. 다 표라서 가독성 떨어짐, 도식화해봐. 언제 받아 저장되는지, 뭘 받는지, 어떻게 쌓이는지 예시"</small></p>
+
+<div class="lead">앞글자 방식 채택합니다. 다만 <b>두 자리는 뜻이 어긋나서 고쳤습니다.</b>
+4번은 배우는 게 아니라 섞이는 자리고, 6번은 배우는 게 아니라 이번 한 번짜리입니다.
+그래서 <b class="mono">S0 S1 U2 U3 X4 L5 R6</b>을 제안합니다.</div>
+
+<h2>1. 앞글자를 어떻게 정할까</h2>
+
+<p>회장님 안은 <b>바꿀 수 있는 주체를 앞글자로 쓴다</b>는 것이고, 이 발상 자체가 맞습니다. 층을 가르는 유일한 기준이 "누가 바꿀 수 있는가"였으니 이름이 그 기준을 그대로 드러내는 게 옳습니다.</p>
+
+<h3>어긋나는 두 자리</h3>
+
+<div class="badbox">
+<b>L4</b> — 스킬은 <b>배워서 생긴 게 아닙니다.</b> 우리가 등록한 것과 사용자가 올린 것이 한 자리에 섞여 있습니다. L을 붙이면 5번(진짜 학습)과 구분이 안 됩니다.
+</div>
+<div class="badbox">
+<b>L6</b> — 이번 요청은 <b>쌓이지 않습니다.</b> 한 번 쓰고 버립니다. 배움의 반대쪽 끝인데 같은 글자를 씁니다.
+</div>
+
+<h3>고친 안</h3>
+
+<div class="scroll"><table>
+<tr><th style="width:80px">앞글자</th><th style="width:140px">뜻</th><th>왜 이 글자인가</th></tr>
+<tr><td><span class="tag" style="background:var(--sys)">S</span> <span class="tag" style="background:var(--our)">S</span></td><td>Service<br><small>우리 서비스 쪽</small></td><td>회장님 안 그대로. 0번과 1번 둘 다 우리가 넣는 자리라 같은 글자가 맞습니다. 다만 0번은 릴리즈로도 못 푸는 고정이고 1번은 우리가 갱신합니다</td></tr>
+<tr><td><span class="tag" style="background:var(--usr)">U</span></td><td>User<br><small>사용자 소유</small></td><td>회장님 안 그대로</td></tr>
+<tr><td><span class="tag" style="background:var(--mix)">X</span></td><td>miX<br><small>둘이 섞임</small></td><td><b>L4 대신.</b> 우리 스킬과 사용자 스킬이 같은 선반에 꽂힙니다. 섞이는 자리는 이 하나뿐이라 글자도 하나만 씁니다</td></tr>
+<tr><td><span class="tag" style="background:var(--lrn)">L</span></td><td>Learned<br><small>자라남</small></td><td>회장님 안 그대로. 다만 5번 하나에만 씁니다</td></tr>
+<tr><td><span class="tag" style="background:var(--req)">R</span></td><td>Request<br><small>이번 한 번</small></td><td><b>L6 대신.</b> 이 자리만 저장되지 않고 버려집니다. 유일하게 휘발이라 이름으로 표시해두면 사고를 막습니다</td></tr>
+</table></div>
+
+<p class="note">숫자는 회장님 안 그대로 0부터 6까지 유지합니다. 숫자가 곧 쌓이는 순서이자 겹쳤을 때 이기는 순서입니다.</p>
+
+<h2>2. 층계 그림</h2>
+<p>아래가 바닥이고 위로 쌓습니다. <b>겹치면 위가 이깁니다.</b> 왼쪽 색이 소유자입니다.</p>
+
+<div class="card">
+<svg viewBox="0 0 900 470" role="img" aria-label="학습 정보 층계 그림">
+<defs><style>
+.lb{font:700 15px ui-monospace,Menlo,monospace;fill:#fff}
+.ln{font:600 14px -apple-system,sans-serif;fill:#fff}
+.ls{font:13px -apple-system,sans-serif;fill:#cfd5e0}
+.lt{font:12px -apple-system,sans-serif;fill:#9aa3b2}
+.ax{font:12px -apple-system,sans-serif;fill:#7b8494}
+</style></defs>
+
+<!-- arrows on left -->
+<line x1="26" y1="40" x2="26" y2="410" stroke="#3a4152" stroke-width="1.5"/>
+<polygon points="26,32 21,44 31,44" fill="#3a4152"/>
+<text class="ax" x="38" y="52">자주 바뀜</text>
+<text class="ax" x="38" y="405">거의 안 바뀜</text>
+
+<!-- R6 -->
+<rect x="120" y="30" width="740" height="52" rx="8" fill="#2a1b1b" stroke="var(--req)" stroke-width="1.5"/>
+<rect x="120" y="30" width="6" height="52" rx="3" fill="var(--req)"/>
+<text class="lb" x="140" y="52">R6</text><text class="ln" x="184" y="52">이번 요청</text>
+<text class="lt" x="700" y="52">쓰고 버림</text>
+<text class="ls" x="140" y="71">이번 주제, 언어, 대상 채널, 비용 상한, 사용자가 직접 친 문장</text>
+
+<!-- L5 -->
+<rect x="120" y="90" width="740" height="52" rx="8" fill="#16241b" stroke="var(--lrn)" stroke-width="1.5"/>
+<rect x="120" y="90" width="6" height="52" rx="3" fill="var(--lrn)"/>
+<text class="lb" x="140" y="112">L5</text><text class="ln" x="184" y="112">학습된 규칙</text>
+<text class="lt" x="640" y="112">시스템이 뽑고 사용자가 승인</text>
+<text class="ls" x="140" y="131">선택과 성과에서 자란 규칙. 근거와 표본 수와 판 번호를 달고 있음</text>
+
+<!-- X4 -->
+<rect x="120" y="150" width="740" height="52" rx="8" fill="#221a2b" stroke="var(--mix)" stroke-width="1.5"/>
+<rect x="120" y="150" width="6" height="52" rx="3" fill="var(--mix)"/>
+<text class="lb" x="140" y="172">X4</text><text class="ln" x="184" y="172">스킬</text>
+<text class="lt" x="672" y="172">우리와 사용자 둘 다</text>
+<text class="ls" x="140" y="191">제작법 파일. 다른 층은 무엇을 말할지, 이 층만 어떻게 만들지를 담음</text>
+
+<!-- U3 -->
+<rect x="120" y="210" width="740" height="52" rx="8" fill="#2b2317" stroke="var(--usr)" stroke-width="1.5"/>
+<rect x="120" y="210" width="6" height="52" rx="3" fill="var(--usr)"/>
+<text class="lb" x="140" y="232">U3</text><text class="ln" x="184" y="232">작업 공간</text>
+<text class="lt" x="740" y="232">사용자</text>
+<text class="ls" x="140" y="251">타깃, 컨셉, 업종, 이 공간의 스타일, 반입 문서, 기존 채널 분석 결과</text>
+
+<!-- U2 -->
+<rect x="120" y="270" width="740" height="52" rx="8" fill="#2b2317" stroke="var(--usr)" stroke-width="1.5"/>
+<rect x="120" y="270" width="6" height="52" rx="3" fill="var(--usr)"/>
+<text class="lb" x="140" y="292">U2</text><text class="ln" x="184" y="292">계정 공통</text>
+<text class="lt" x="740" y="292">사용자</text>
+<text class="ls" x="140" y="311">브랜드 사실, 금지 표현, 기본 말투, 브랜드킷, 소재 권리 선언</text>
+
+<!-- S1 -->
+<rect x="120" y="330" width="740" height="52" rx="8" fill="#152227" stroke="var(--our)" stroke-width="1.5"/>
+<rect x="120" y="330" width="6" height="52" rx="3" fill="var(--our)"/>
+<text class="lb" x="140" y="352">S1</text><text class="ln" x="184" y="352">시장·모델 지식</text>
+<text class="lt" x="686" y="352">우리가 릴리즈로</text>
+<text class="ls" x="140" y="371">시장별 훅 문법과 금기, 모델별 말투, 우리 실험 기록, 트렌드 신호(유통기한 붙임)</text>
+
+<!-- S0 -->
+<rect x="120" y="390" width="740" height="52" rx="8" fill="#1a1e26" stroke="var(--sys)" stroke-width="1.5"/>
+<rect x="120" y="390" width="6" height="52" rx="3" fill="var(--sys)"/>
+<text class="lb" x="140" y="412">S0</text><text class="ln" x="184" y="412">시스템 고정</text>
+<text class="lt" x="700" y="412">아무도 못 바꿈</text>
+<text class="ls" x="140" y="431">안전선, AI 표기 의무, 플랫폼 정책, 저작물 규칙, 테넌트 격리</text>
+</svg>
+</div>
+
+<h3>겹치면 위가 이긴다. 못 덮는 예외 둘</h3>
+<div class="card" style="padding:16px 22px">
+<svg viewBox="0 0 900 130" role="img" aria-label="우선순위 예외">
+<defs><style>.p{font:13px -apple-system,sans-serif;fill:#cfd5e0}.pb{font:700 14px -apple-system,sans-serif;fill:#fff}.pm{font:700 13px ui-monospace,Menlo,monospace;fill:#fff}</style></defs>
+<rect x="10" y="18" width="425" height="94" rx="9" fill="#2a1b1b" stroke="#e07b74" stroke-width="1.5"/>
+<text class="pm" x="30" y="44">S0</text><text class="pb" x="66" y="44">시스템 고정 전부</text>
+<text class="p" x="30" y="70">법과 플랫폼 정책입니다.</text>
+<text class="p" x="30" y="92">사용자가 해제할 수 없습니다.</text>
+
+<rect x="465" y="18" width="425" height="94" rx="9" fill="#2a1b1b" stroke="#e07b74" stroke-width="1.5"/>
+<text class="pm" x="485" y="44">U2</text><text class="pb" x="521" y="44">금지 표현</text>
+<text class="p" x="485" y="70">사용자가 직접 절대 쓰지 말라고 적은 것입니다.</text>
+<text class="p" x="485" y="92">이번 요청이 뒤집으면 그게 바로 사고입니다.</text>
+</svg>
+<p class="note">나머지는 위가 이깁니다. 이번 요청(R6)이 작업 공간 스타일(U3)을 덮고, 학습된 규칙(L5)이 사용자가 아무 말 없는 자리를 채웁니다.</p>
+</div>
+
+<h2>3. 언제 받아서 저장되나</h2>
+<p>사용자 입장에서 정보를 내놓는 순간은 <b>네 번뿐입니다.</b> 나머지는 우리가 알아서 채우거나 쓰다 보면 저절로 쌓입니다.</p>
+
+<div class="card">
+<svg viewBox="0 0 900 400" role="img" aria-label="정보 수집 시점 흐름">
+<defs>
+<style>
+.tm{font:700 14px -apple-system,sans-serif;fill:#fff}
+.td{font:13px -apple-system,sans-serif;fill:#cfd5e0}
+.tk{font:700 12px ui-monospace,Menlo,monospace;fill:#fff}
+.tw{font:12px -apple-system,sans-serif;fill:#9aa3b2}
+</style></defs>
+
+<line x1="70" y1="40" x2="70" y2="360" stroke="#2d3342" stroke-width="2"/>
+
+<!-- 1 -->
+<circle cx="70" cy="60" r="9" fill="var(--usr)"/>
+<text class="tm" x="96" y="52">가입 직후 · 계정을 만들 때</text>
+<text class="td" x="96" y="74">브랜드가 무엇을 파는지, 절대 쓰면 안 되는 말, 기본 말투. <tspan class="tw">한 번 받고 계속 씁니다</tspan></text>
+<rect x="700" y="42" width="46" height="22" rx="5" fill="var(--usr)"/><text class="tk" x="712" y="58">U2</text>
+
+<!-- 2 -->
+<circle cx="70" cy="130" r="9" fill="var(--usr)"/>
+<text class="tm" x="96" y="122">작업 공간을 만들 때</text>
+<text class="td" x="96" y="144">이번 공간의 타깃과 컨셉. 가진 문서를 넣으면 뽑아 담고, 기존 채널을 연결하면 분석해 담습니다</text>
+<rect x="700" y="112" width="46" height="22" rx="5" fill="var(--usr)"/><text class="tk" x="712" y="128">U3</text>
+
+<!-- 3 -->
+<circle cx="70" cy="200" r="9" fill="var(--req)"/>
+<text class="tm" x="96" y="192">만들기를 누를 때 · 매번</text>
+<text class="td" x="96" y="214">이번에 무슨 주제로, 어디에 올릴지. 선반에서 제작법을 고릅니다</text>
+<rect x="700" y="182" width="46" height="22" rx="5" fill="var(--req)"/><text class="tk" x="712" y="198">R6</text>
+<rect x="754" y="182" width="46" height="22" rx="5" fill="var(--mix)"/><text class="tk" x="766" y="198">X4</text>
+
+<!-- 4 -->
+<circle cx="70" cy="270" r="9" fill="var(--usr)"/>
+<text class="tm" x="96" y="262">첫 결과물이 나온 뒤</text>
+<text class="td" x="96" y="284">그때 발행 정보를 묻습니다. <tspan class="tw">만들기 전에 다 물으면 지칩니다</tspan></text>
+<rect x="700" y="252" width="46" height="22" rx="5" fill="var(--usr)"/><text class="tk" x="712" y="268">U3</text>
+
+<!-- 5 -->
+<circle cx="70" cy="340" r="9" fill="var(--lrn)"/>
+<text class="tm" x="96" y="332">쓰는 내내 · 묻지 않고</text>
+<text class="td" x="96" y="354">고른 것과 버린 것과 성과에서 규칙 후보가 자랍니다. <tspan class="tw">담기는 건 승낙한 것만</tspan></text>
+<rect x="700" y="322" width="46" height="22" rx="5" fill="var(--lrn)"/><text class="tk" x="712" y="338">L5</text>
+</svg>
+<p class="note"><b>S0과 S1은 이 그림에 없습니다.</b> 사용자에게 묻지 않고 우리가 넣기 때문입니다.</p>
+</div>
+
+<h2>4. 어떻게 쌓이나 · 실제 예시</h2>
+<p>가상의 사용자 하나를 끝까지 따라갑니다. <b>동네 필라테스 스튜디오를 운영하는 원장</b>이라고 하겠습니다.</p>
+
+<h3>첫날 · 가입</h3>
+<div class="card" style="border-left:3px solid var(--usr)">
+<p class="dim" style="margin-top:0">화면이 세 가지를 묻습니다. 빈칸이 아니라 <b>고르는 형태</b>입니다.</p>
+<table>
+<tr><th style="width:170px">묻는 것</th><th>원장이 답한 것</th><th style="width:60px">저장</th></tr>
+<tr><td>무엇을 하십니까</td><td>1:1 필라테스. 재활 중심. 30~50대 여성</td><td><span class="tag mono" style="background:var(--usr)">U2</span></td></tr>
+<tr><td>절대 쓰면 안 되는 말</td><td>"다이어트", "체중 감량", "○kg 감량"<br><small class="dim">의료 재활을 표방해서 감량 표현을 쓰면 광고 문제가 됩니다</small></td><td><span class="tag mono" style="background:var(--usr)">U2</span></td></tr>
+<tr><td>말투</td><td>존댓말. 단정하고 조용하게. 느낌표 안 씀</td><td><span class="tag mono" style="background:var(--usr)">U2</span></td></tr>
+</table>
+<p class="note">이 세 줄은 <b>앞으로 만드는 모든 콘텐츠에 매번 들어갑니다.</b> 다시 묻지 않습니다.</p>
+</div>
+
+<h3>같은 날 · 작업 공간 하나 만듦</h3>
+<div class="card" style="border-left:3px solid var(--usr)">
+<p style="margin-top:0"><b>공간 이름: "가을 신규 회원"</b></p>
+<table>
+<tr><th style="width:170px">받는 방법</th><th>담긴 것</th><th style="width:60px">저장</th></tr>
+<tr><td>직접 고름</td><td>목표는 신규 상담 예약. 대상은 운동 처음 하는 사람</td><td><span class="tag mono" style="background:var(--usr)">U3</span></td></tr>
+<tr><td>가진 문서 올림</td><td>수업 소개 PDF를 넣자 가격, 수업 길이, 위치, 강사 이력을 뽑아 담음</td><td><span class="tag mono" style="background:var(--usr)">U3</span></td></tr>
+<tr><td>기존 채널 연결</td><td>운영 중인 계정을 연결하니 지난 글 40건을 읽고 <b>"짧은 문장을 주로 쓰고 후기 형식이 반응이 좋았다"</b>를 요약해 담음</td><td><span class="tag mono" style="background:var(--usr)">U3</span></td></tr>
+</table>
+<div class="goodbox"><b>여기가 백지 공포가 풀리는 지점입니다.</b> 원장은 아무 글도 안 썼는데 시스템은 이미 무엇을 파는지, 어떤 말을 피해야 하는지, 예전에 뭐가 먹혔는지를 압니다.</div>
+</div>
+
+<h3>같은 날 · 첫 만들기</h3>
+<div class="card" style="border-left:3px solid var(--req)">
+<p style="margin-top:0">원장이 고른 것은 두 가지뿐입니다. <b class="mono">선반에서 "후기형 카드뉴스"</b>를 집고, <b class="mono">"재활 사례"</b>라고 주제를 칩니다.</p>
+<div class="scroll">
+<svg viewBox="0 0 900 250" role="img" aria-label="한 번 요청 시 층이 합쳐지는 그림">
+<defs><marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L8,3.2 L0,6.4" fill="#5a6478"/></marker><style>
+.al{font:700 12px ui-monospace,Menlo,monospace;fill:#fff}
+.av{font:12.5px -apple-system,sans-serif;fill:#cfd5e0}
+.ah{font:700 14px -apple-system,sans-serif;fill:#fff}
+</style></defs>
+<text class="ah" x="10" y="20">층에서 꺼낸 것</text>
+<text class="ah" x="560" y="20">→ 조립층이 한 덩이로 묶음</text>
+
+<rect x="10" y="34" width="44" height="20" rx="5" fill="var(--sys)"/><text class="al" x="22" y="49">S0</text>
+<text class="av" x="66" y="49">AI로 만들었음을 표기. 의료 효과 단정 금지</text>
+
+<rect x="10" y="64" width="44" height="20" rx="5" fill="var(--our)"/><text class="al" x="22" y="79">S1</text>
+<text class="av" x="66" y="79">국내 카드뉴스는 첫 장에 결론을 놓아야 넘김이 는다</text>
+
+<rect x="10" y="94" width="44" height="20" rx="5" fill="var(--usr)"/><text class="al" x="22" y="109">U2</text>
+<text class="av" x="66" y="109">1:1 재활 필라테스 · "다이어트" 금지 · 조용한 존댓말</text>
+
+<rect x="10" y="124" width="44" height="20" rx="5" fill="var(--usr)"/><text class="al" x="22" y="139">U3</text>
+<text class="av" x="66" y="139">신규 상담 예약이 목표 · 짧은 문장 · 후기 형식이 잘 먹힘</text>
+
+<rect x="10" y="154" width="44" height="20" rx="5" fill="var(--mix)"/><text class="al" x="22" y="169">X4</text>
+<text class="av" x="66" y="169">후기형 카드뉴스 제작법 파일 원문 그대로</text>
+
+<rect x="10" y="184" width="44" height="20" rx="5" fill="var(--lrn)"/><text class="al" x="22" y="199">L5</text>
+<text class="av" x="66" y="199">아직 비어 있음. 처음이라 배운 게 없음</text>
+
+<rect x="10" y="214" width="44" height="20" rx="5" fill="var(--req)"/><text class="al" x="22" y="229">R6</text>
+<text class="av" x="66" y="229">"재활 사례" · 카드뉴스 · 대상 채널 하나</text>
+
+<path d="M535 130 L575 130" stroke="#5a6478" stroke-width="2" marker-end="url(#ar)"/>
+<rect x="590" y="40" width="300" height="190" rx="9" fill="#1b1f27" stroke="#3a4152"/>
+<text class="av" x="610" y="68">긴 것은 위에, 지시는 맨 아래에</text>
+<text class="av" x="610" y="92">각 덩이에 이름표를 붙여 가름</text>
+<text class="av" x="610" y="116">금지 표현을 쓸 수 있는 말로 바꿔 적음</text>
+<text class="av" x="610" y="140">서로 어긋나는 문장이 있으면 잡아냄</text>
+<text class="av" x="610" y="164">본보기 서너 개를 정해진 것으로 붙임</text>
+<text class="av" x="610" y="196" fill="#9aa3b2">모델 서버가 합치는 게 아니라</text>
+<text class="av" x="610" y="216" fill="#9aa3b2">우리 쪽에서 합쳐 보냅니다</text>
+</svg>
+</div>
+<div class="goodbox"><b>"다이어트" 금지가 여기서 일합니다.</b> 원장이 매번 "다이어트라고 쓰지 마세요"를 칠 필요가 없습니다. 첫날 한 번 적은 것이 <span class="mono">U2</span>에 남아 모든 요청에 자동으로 실립니다. 조립층은 이걸 "쓰지 마라"로 넘기지 않고 <b>"몸이 편해졌다, 자세가 돌아왔다 같은 말로 쓰라"</b>로 바꿔 넘깁니다. 하지 말라는 말보다 하라는 말이 결과가 낫기 때문입니다.</div>
+</div>
+
+<h3>2주 뒤 · 저절로 자란 것</h3>
+<div class="card" style="border-left:3px solid var(--lrn)">
+<p style="margin-top:0">원장은 그동안 <b>아무것도 설정하지 않았습니다.</b> 그냥 만들고 고르고 올렸을 뿐입니다. 그 사이 시스템이 본 것:</p>
+<div class="scroll">
+<svg viewBox="0 0 900 235" role="img" aria-label="학습 규칙이 자라는 과정">
+<defs><marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L8,3.2 L0,6.4" fill="#5a6478"/></marker><style>
+.sg{font:13px -apple-system,sans-serif;fill:#cfd5e0}
+.sh{font:700 13.5px -apple-system,sans-serif;fill:#fff}
+.sm{font:12px -apple-system,sans-serif;fill:#9aa3b2}
+</style></defs>
+<rect x="10" y="20" width="250" height="120" rx="9" fill="#171a21" stroke="#2d3342"/>
+<text class="sh" x="30" y="46">관찰</text>
+<text class="sg" x="30" y="72">제안 12번 중 9번을</text>
+<text class="sg" x="30" y="92">첫 장이 질문인 것으로 고름</text>
+<text class="sm" x="30" y="118">묻지 않고 그냥 봄</text>
+
+<path d="M266 78 L316 78" stroke="#5a6478" stroke-width="2" marker-end="url(#ar)"/>
+
+<rect x="325" y="20" width="250" height="120" rx="9" fill="#16241b" stroke="var(--lrn)"/>
+<text class="sh" x="345" y="46">후보를 만들어 보여줌</text>
+<text class="sg" x="345" y="72">"첫 장을 질문으로 여는 걸</text>
+<text class="sg" x="345" y="92">기본으로 할까요"</text>
+<text class="sm" x="345" y="118">근거 9/12 · 판 3</text>
+
+<path d="M581 78 L631 78" stroke="#5a6478" stroke-width="2" marker-end="url(#ar)"/>
+
+<rect x="640" y="20" width="250" height="120" rx="9" fill="#171a21" stroke="#2d3342"/>
+<text class="sh" x="660" y="46">원장이 예를 누름</text>
+<text class="sg" x="660" y="72">그때 비로소</text>
+<text class="sg" x="660" y="92">L5에 담김</text>
+<text class="sm" x="660" y="118">아니오면 안 담고 다시 안 물음</text>
+
+<rect x="10" y="160" width="880" height="60" rx="9" fill="#1b1f27" stroke="#3a4152"/>
+<text class="sg" x="32" y="186">담긴 뒤부터는 다음 요청마다 자동으로 실립니다. 성과가 뒤집히면 같은 자리에서 판 번호를 올려 다시 묻습니다.</text>
+<text class="sm" x="32" y="208">사용자가 승낙하지 않은 것은 절대 안 실립니다. 몰래 학습해서 결과가 바뀌면 사용자는 제품을 못 믿습니다.</text>
+</svg>
+</div>
+</div>
+
+<h3>쌓임을 한 장으로</h3>
+<div class="card">
+<div class="scroll">
+<svg viewBox="0 0 900 250" role="img" aria-label="시간에 따른 층 채워짐">
+<defs><style>
+.gh{font:700 13px -apple-system,sans-serif;fill:#fff}
+.gl{font:700 12px ui-monospace,Menlo,monospace;fill:#fff}
+.gt{font:12px -apple-system,sans-serif;fill:#9aa3b2}
+</style></defs>
+<text class="gt" x="120" y="24">가입 전</text>
+<text class="gt" x="300" y="24">첫날</text>
+<text class="gt" x="490" y="24">첫 만들기</text>
+<text class="gt" x="690" y="24">2주 뒤</text>
+
+<!-- rows -->
+<g>
+<text class="gl" x="20" y="56">R6</text>
+<rect x="60" y="42" width="180" height="18" rx="4" fill="#20242d"/>
+<rect x="250" y="42" width="180" height="18" rx="4" fill="#20242d"/>
+<rect x="440" y="42" width="180" height="18" rx="4" fill="var(--req)"/>
+<rect x="630" y="42" width="240" height="18" rx="4" fill="var(--req)"/>
+<text class="gt" x="638" y="56" fill="#fff">매번 새로</text>
+</g>
+<g>
+<text class="gl" x="20" y="86">L5</text>
+<rect x="60" y="72" width="180" height="18" rx="4" fill="#20242d"/>
+<rect x="250" y="72" width="180" height="18" rx="4" fill="#20242d"/>
+<rect x="440" y="72" width="180" height="18" rx="4" fill="#20242d"/>
+<rect x="630" y="72" width="240" height="18" rx="4" fill="var(--lrn)"/>
+<text class="gt" x="638" y="86" fill="#fff">규칙 2개 승낙됨</text>
+</g>
+<g>
+<text class="gl" x="20" y="116">X4</text>
+<rect x="60" y="102" width="180" height="18" rx="4" fill="#2b2637"/>
+<rect x="250" y="102" width="180" height="18" rx="4" fill="#2b2637"/>
+<rect x="440" y="102" width="180" height="18" rx="4" fill="var(--mix)"/>
+<rect x="630" y="102" width="240" height="18" rx="4" fill="var(--mix)"/>
+<text class="gt" x="66" y="116">우리 것만 꽂혀 있음</text>
+</g>
+<g>
+<text class="gl" x="20" y="146">U3</text>
+<rect x="60" y="132" width="180" height="18" rx="4" fill="#20242d"/>
+<rect x="250" y="132" width="180" height="18" rx="4" fill="var(--usr)"/>
+<rect x="440" y="132" width="180" height="18" rx="4" fill="var(--usr)"/>
+<rect x="630" y="132" width="240" height="18" rx="4" fill="var(--usr)"/>
+<text class="gt" x="258" y="146" fill="#fff">공간 만들 때 채움</text>
+</g>
+<g>
+<text class="gl" x="20" y="176">U2</text>
+<rect x="60" y="162" width="180" height="18" rx="4" fill="#20242d"/>
+<rect x="250" y="162" width="180" height="18" rx="4" fill="var(--usr)"/>
+<rect x="440" y="162" width="180" height="18" rx="4" fill="var(--usr)"/>
+<rect x="630" y="162" width="240" height="18" rx="4" fill="var(--usr)"/>
+<text class="gt" x="258" y="176" fill="#fff">가입 때 한 번</text>
+</g>
+<g>
+<text class="gl" x="20" y="206">S1</text>
+<rect x="60" y="192" width="810" height="18" rx="4" fill="var(--our)"/>
+<text class="gt" x="68" y="206" fill="#fff">가입 전부터 이미 차 있음</text>
+</g>
+<g>
+<text class="gl" x="20" y="236">S0</text>
+<rect x="60" y="222" width="810" height="18" rx="4" fill="var(--sys)"/>
+<text class="gt" x="68" y="236" fill="#fff">가입 전부터 이미 차 있음. 끝까지 안 바뀜</text>
+</g>
+</svg>
+</div>
+<p class="note">사용자가 채우는 칸은 <b>U2와 U3 두 줄뿐</b>입니다. 나머지는 이미 차 있거나 쓰면서 저절로 찹니다. 이게 "클릭만으로 콘텐츠가 나온다"의 실체입니다.</p>
+</div>
+
+<h2>5. 남은 갈림길</h2>
+<div class="card">
+<p style="margin-top:0"><b class="mono">X4</b>를 층계 안에 둘지 옆에 뺄지가 아직 열려 있습니다.</p>
+<div class="grid2">
+<div class="badbox" style="border-left-color:#8a94a8;background:#181b22">
+<b>지금 안 · 층계 안에 4번으로</b><br>
+<small class="dim">겹침 순서가 한 줄로 정리되고 그림이 단순합니다. 다만 다른 층은 <b>무엇을 말할지</b>를 담는데 이 층만 <b>어떻게 만들지</b>를 담아, 성격이 다른 것을 같은 줄에 세운 셈입니다.</small>
+</div>
+<div class="badbox" style="border-left-color:#8a94a8;background:#181b22">
+<b>대안 · 옆 선반으로 빼기</b><br>
+<small class="dim">성격 차이가 정직하게 드러나고, 저장 형태가 다른 것도 설명됩니다(다른 층은 줄 단위로 쪼개 두고 스킬은 파일 원문 그대로). 다만 층계가 두 축이 되어 설명이 한 겹 늘어납니다.</small>
+</div>
+</div>
+<p class="note">제 판단은 <b>지금 안 유지</b>입니다. 두 축으로 가르면 정확해지지만, 이 문서의 목적은 정확함이 아니라 <b>한 장으로 이해되는 것</b>입니다. 성격이 다르다는 사실은 X라는 글자가 이미 표시하고 있습니다.</p>
+</div>
+
+</div></body></html>

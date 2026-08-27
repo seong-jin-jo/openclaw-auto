@@ -2860,3 +2860,360 @@
 {"ts":"2026-08-08T08:58:44Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
 {"ts":"2026-08-08T09:33:07Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
 {"ts":"2026-08-08T09:33:07Z","hook":"handoff-prompt-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-10T07:55:06Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-10T07:55:06Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI QA 검증 전문가다.\n'코드 작성 = 동�"}
+{"ts":"2026-08-10T07:55:06Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI QA 검증 전문가다.\n'코드 작성 = 동�"}
+{"ts":"2026-08-10T08:04:02Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-10T08:42:28Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-10T08:42:28Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-10T08:42:28Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-10T09:13:57Z","hook":"secret-leak-check","status":"pass","detail":"no secrets"}
+{"ts":"2026-08-11T17:22:02Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-11T17:22:03Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-11T17:22:03Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-11T17:29:48Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-12T04:41:34Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-12T04:41:34Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-12T04:41:40Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-12T04:41:40Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-12T04:41:41Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-12T04:41:41Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-12T05:04:53Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-12T05:11:38Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-12T16:44:51Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-12T16:44:51Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-12T16:44:51Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-12T20:46:25Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-12T20:46:25Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-12T20:46:25Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-12T21:09:14Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-12T21:09:14Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-12T21:09:14Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-13T10:10:36Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-13T10:10:36Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-13T10:10:36Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-13T10:20:34Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-13T11:29:32Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-13T11:29:32Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-13T11:29:32Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-13T11:47:03Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-13T19:05:45Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-13T19:05:45Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-14T16:52:29Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 기술 설계자다.\n코드를 �"}
+{"ts":"2026-08-14T16:52:29Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 기술 설계자다.\n코드를 �"}
+{"ts":"2026-08-14T17:05:57Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 기술 설계자다.\n코드를 �"}
+{"ts":"2026-08-14T17:05:57Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 기술 설계자다.\n코드를 �"}
+{"ts":"2026-08-14T18:05:46Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-14T18:05:46Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI PRD 작성 전문가다.\nStage Controller에�"}
+{"ts":"2026-08-14T18:06:09Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-14T18:06:09Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI PRD 작성 전문가다.\nStage Controller에�"}
+{"ts":"2026-08-14T18:23:07Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-14T18:23:07Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI PRD 작성 전문가다.\nStage Controller에�"}
+{"ts":"2026-08-14T18:36:44Z","hook":"verify-delegation-check","status":"fail-labeled","detail":"FAIL 산출물 경고라벨 출고"}
+{"ts":"2026-08-14T20:06:10Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T20:06:10Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-14T20:06:10Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI PRD 작성 전문가다.\nStage Controller에�"}
+{"ts":"2026-08-14T20:06:34Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T20:06:34Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-14T20:06:34Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI PRD 작성 전문가다.\nStage Controller에�"}
+{"ts":"2026-08-14T20:19:41Z","hook":"verify-delegation-check","status":"block","detail":"verify FAIL 미해소 종료 시도","fails":"sprint8-시안v10-독립디자인재승인리뷰-v1.0.0-gpt-codex.md design 1786738678"}
+{"ts":"2026-08-14T20:20:32Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T20:20:32Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-14T20:20:32Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI PRD 작성 전문가다.\nStage Controller에�"}
+{"ts":"2026-08-14T20:25:18Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T20:27:19Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T20:29:20Z","hook":"verify-delegation-check","status":"block","detail":"verify FAIL 미해소 종료 시도","fails":"sprint8-시안v10-독립디자인재승인리뷰-v1.1.0-gpt-codex.md design 1786739063;rollout-2026-08-15T05-04-58-01a001e0-b431-7072-970e-1c5fcb27ef8f.jsonl design 1786739281"}
+{"ts":"2026-08-14T20:31:06Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T20:31:06Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI PRD 작성 전문가다.\nStage Controller에�"}
+{"ts":"2026-08-14T20:31:06Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI PRD 작성 전문가다.\nStage Controller에�"}
+{"ts":"2026-08-14T20:45:53Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T20:58:28Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T20:58:28Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-14T20:58:28Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI PRD 작성 전문가다.\nStage Controller에�"}
+{"ts":"2026-08-14T21:14:44Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T22:33:28Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T22:33:28Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-14T22:33:28Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-14T22:43:23Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T22:43:23Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 조성진 회장의 6사업체를 위한 content grow"}
+{"ts":"2026-08-14T22:43:23Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 조성진 회장의 6사업체를 위한 content grow"}
+{"ts":"2026-08-14T22:55:56Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T22:55:57Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 조성진 회장의 6사업체를 위한 content grow"}
+{"ts":"2026-08-14T22:55:57Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 조성진 회장의 6사업체를 위한 content grow"}
+{"ts":"2026-08-14T22:57:21Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T22:57:21Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-14T22:57:21Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-14T23:08:24Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T23:08:25Z","hook":"handoff-prompt-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-14T23:08:25Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-14T23:09:19Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T23:09:20Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 조성진 회장의 6사업체를 위한 content grow"}
+{"ts":"2026-08-14T23:09:20Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 조성진 회장의 6사업체를 위한 content grow"}
+{"ts":"2026-08-14T23:11:58Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T23:11:59Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-14T23:11:59Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-14T23:22:56Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T23:23:19Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T23:23:19Z","hook":"handoff-prompt-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-14T23:23:19Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-14T23:24:09Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T23:24:10Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-14T23:24:10Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-14T23:28:54Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T23:28:54Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-14T23:28:54Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI PRD 작성 전문가다.\nStage Controller에�"}
+{"ts":"2026-08-14T23:29:10Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T23:29:10Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-14T23:29:10Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI PRD 작성 전문가다.\nStage Controller에�"}
+{"ts":"2026-08-14T23:29:34Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T23:29:34Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI Stage Controller의 plan-critic이다.\n파일"}
+{"ts":"2026-08-14T23:29:34Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI Stage Controller의 plan-critic이다.\n파일"}
+{"ts":"2026-08-14T23:35:11Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T23:35:33Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T23:37:32Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-14T23:41:13Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-15T10:12:38Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-15T10:12:38Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI Stage Controller의 plan-critic이다.\n파일"}
+{"ts":"2026-08-15T10:12:38Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI Stage Controller의 plan-critic이다.\n파일"}
+{"ts":"2026-08-15T10:25:51Z","hook":"verify-delegation-check","status":"block","detail":"verify FAIL 미해소 종료 시도","fails":"rollout-2026-08-15T18-51-19-01a004d5-3f04-74e3-a8c5-ed8885234d7e.jsonl product-designer 1786788338"}
+{"ts":"2026-08-15T10:45:56Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-15T10:45:57Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-15T10:45:57Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI PRD 작성 전문가다.\nStage Controller에�"}
+{"ts":"2026-08-15T10:46:13Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-15T10:46:14Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-15T10:46:14Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI PRD 작성 전문가다.\nStage Controller에�"}
+{"ts":"2026-08-15T10:51:37Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-15T10:56:14Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-15T11:16:30Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-15T11:16:31Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-15T11:16:31Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-15T11:21:50Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-15T11:23:16Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-15T11:23:16Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-15T11:23:16Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-15T11:28:05Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-15T11:43:09Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-15T11:43:09Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-15T11:43:09Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-15T11:54:32Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-15T15:07:21Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-15T15:07:23Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-15T15:07:23Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-15T15:28:39Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-15T15:48:09Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-15T15:48:09Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 기술 설계자다.\n코드를 �"}
+{"ts":"2026-08-15T16:00:18Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-21T13:38:36Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-21T13:38:36Z","hook":"handoff-prompt-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-21T13:38:36Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-21T14:37:13Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-21T14:37:13Z","hook":"handoff-prompt-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-21T14:37:13Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-21T21:28:34Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-21T21:28:34Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-21T21:28:34Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI Stage Controller의 plan-critic이다.\n파일"}
+{"ts":"2026-08-21T22:43:26Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-21T22:43:26Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-21T22:43:26Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-21T22:44:25Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-21T22:44:26Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI PRD 작성 전문가다.\nStage Controller에�"}
+{"ts":"2026-08-21T22:44:26Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI PRD 작성 전문가다.\nStage Controller에�"}
+{"ts":"2026-08-21T22:44:26Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-21T22:44:26Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 기술 설계자다.\n코드를 �"}
+{"ts":"2026-08-21T22:44:26Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 기술 설계자다.\n코드를 �"}
+{"ts":"2026-08-21T22:48:44Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-21T22:54:29Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T02:58:56Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T02:58:57Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-22T02:58:57Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI PRD 작성 전문가다.\nStage Controller에�"}
+{"ts":"2026-08-22T02:59:36Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T02:59:36Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-22T02:59:36Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-22T03:07:02Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T03:14:04Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T05:18:24Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T05:18:24Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-22T05:18:24Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI PRD 작성 전문가다.\nStage Controller에�"}
+{"ts":"2026-08-22T05:21:48Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T05:21:48Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-22T05:21:48Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"벤처명=openclaw. 너는 이 벤처 레포의 위키/문�"}
+{"ts":"2026-08-22T11:45:09Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T11:45:09Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-22T11:45:09Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI PRD 작성 전문가다.\nStage Controller에�"}
+{"ts":"2026-08-22T13:34:55Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T13:34:55Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 기술 설계자다.\n코드를 �"}
+{"ts":"2026-08-22T13:34:55Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 기술 설계자다.\n코드를 �"}
+{"ts":"2026-08-22T13:34:56Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T13:34:56Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-22T13:34:56Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI PRD 작성 전문가다.\nStage Controller에�"}
+{"ts":"2026-08-22T13:35:52Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T13:35:52Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-22T13:35:52Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-22T13:45:06Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T13:45:06Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI PRD 작성 전문가다.\nStage Controller에�"}
+{"ts":"2026-08-22T13:45:06Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI PRD 작성 전문가다.\nStage Controller에�"}
+{"ts":"2026-08-22T13:45:33Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T13:48:03Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T13:51:35Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T15:13:11Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T15:13:11Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 기술 설계자다.\n코드를 �"}
+{"ts":"2026-08-22T15:13:11Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 기술 설계자다.\n코드를 �"}
+{"ts":"2026-08-22T15:35:30Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T15:47:33Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T15:47:33Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T15:47:34Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-22T15:47:34Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI PRD 작성 전문가다.\nStage Controller에�"}
+{"ts":"2026-08-22T15:47:34Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-22T15:47:34Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-22T15:59:13Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T15:59:13Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"# eng-design-reviewer — 설계 문서(FDD) 독립 리뷰�"}
+{"ts":"2026-08-22T15:59:13Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"# eng-design-reviewer — 설계 문서(FDD) 독립 리뷰�"}
+{"ts":"2026-08-22T16:00:22Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T16:07:58Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T16:07:59Z","hook":"handoff-prompt-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-22T16:07:59Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"이 저장소 소유자가 요청한 방어적 기술설계 "}
+{"ts":"2026-08-22T16:09:22Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T16:20:56Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T16:29:29Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T16:29:29Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"# prd-reviewer — 완성 PRD 검수 + 회장용 다이제�"}
+{"ts":"2026-08-22T16:29:29Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"# prd-reviewer — 완성 PRD 검수 + 회장용 다이제�"}
+{"ts":"2026-08-22T16:35:14Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T16:42:59Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-22T16:43:00Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-22T16:43:00Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 코드리뷰 전문가다. **고치는 사람이 아�"}
+{"ts":"2026-08-22T16:53:59Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-23T08:56:33Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-23T08:56:33Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-23T08:56:33Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-23T08:56:33Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-23T08:56:33Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"# prd-reviewer — 완성 PRD 검수 + 회장용 다이제�"}
+{"ts":"2026-08-23T08:56:33Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"# prd-reviewer — 완성 PRD 검수 + 회장용 다이제�"}
+{"ts":"2026-08-23T08:56:33Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 코드리뷰 전문가다. **고치는 사람이 아�"}
+{"ts":"2026-08-23T08:56:33Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-23T08:56:33Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-23T09:02:43Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-23T12:33:10Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-23T12:33:10Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-23T12:33:10Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-23T12:33:10Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 기술 설계자다.\n코드를 �"}
+{"ts":"2026-08-23T12:33:10Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-23T12:33:10Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-23T12:41:43Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-23T12:44:49Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-23T12:57:43Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-23T12:57:44Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-23T12:57:44Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 기술 설계자다.\n코드를 �"}
+{"ts":"2026-08-23T13:08:27Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-23T15:20:17Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-23T15:20:17Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 기술 설계자다.\n코드를 �"}
+{"ts":"2026-08-23T15:20:17Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 기술 설계자다.\n코드를 �"}
+{"ts":"2026-08-23T15:33:01Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-23T15:38:07Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-23T15:38:07Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 기술 설계자다.\n코드를 �"}
+{"ts":"2026-08-23T15:38:07Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 기술 설계자다.\n코드를 �"}
+{"ts":"2026-08-23T15:38:40Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-23T15:38:40Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-23T15:38:40Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-23T15:46:13Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-23T15:46:41Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-23T16:07:33Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-23T16:07:33Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-23T16:07:33Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 기술 설계자다.\n코드를 �"}
+{"ts":"2026-08-23T16:42:08Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-23T16:42:08Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-23T16:42:08Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-23T16:53:57Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-24T07:08:38Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-24T07:08:38Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-24T07:08:38Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-24T07:44:00Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-24T07:44:00Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-24T07:44:00Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-24T07:51:01Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-24T10:04:47Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-24T10:04:47Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-24T10:04:47Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI의 시니어 프로덕트 디자이너다.\n�"}
+{"ts":"2026-08-24T10:09:23Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-24T10:36:55Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-24T10:36:55Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-24T10:36:55Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"이 레포의 위키/docs 문서가 실제 코드·운영화"}
+{"ts":"2026-08-24T10:52:45Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-24T10:52:45Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-24T10:52:45Z","hook":"handoff-prompt-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-24T11:17:45Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-24T11:17:45Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-24T11:17:45Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"이 레포의 위키 전체를 실제 제품(프론트·백�"}
+{"ts":"2026-08-24T11:38:40Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-24T11:38:40Z","hook":"handoff-prompt-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-24T11:38:40Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"이 레포 wiki/ 아래 '모든' .md 문서를 하나도 빠"}
+{"ts":"2026-08-24T17:34:27Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-24T17:34:27Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-24T17:34:27Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"이 레포의 위키(wiki/ 아래 .md)를 실제 코드·운"}
+{"ts":"2026-08-26T11:42:48Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-26T11:42:48Z","hook":"handoff-prompt-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-26T11:42:48Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-26T14:47:00Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-26T14:47:00Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-26T14:47:00Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"Read only these regions of docs/prototype/openclaw-auto-4roo"}
+{"ts":"2026-08-26T14:49:07Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-26T14:49:07Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-26T14:49:07Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"Read /tmp/v60r.txt (CSS+JS of one change to a Korean social "}
+{"ts":"2026-08-26T16:23:39Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-26T16:23:39Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-26T16:23:39Z","hook":"handoff-prompt-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-26T16:25:55Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-26T16:25:55Z","hook":"handoff-prompt-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-26T16:25:55Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-26T16:34:15Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-26T17:11:02Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-26T17:11:07Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-26T17:11:07Z","hook":"handoff-prompt-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-26T19:59:49Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-26T19:59:49Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-26T19:59:49Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-26T20:00:16Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-26T20:00:17Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-26T20:00:17Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-26T20:05:29Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-26T20:07:22Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-26T20:42:28Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-26T20:42:28Z","hook":"handoff-prompt-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-26T20:42:28Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-26T20:47:45Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-26T20:47:45Z","hook":"handoff-prompt-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-26T20:47:45Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-27T09:10:44Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-27T09:10:45Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-27T09:10:45Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-27T09:23:36Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-27T09:36:06Z","hook":"secret-leak-check","status":"pass","detail":"no secrets"}
+{"ts":"2026-08-27T12:53:14Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-27T12:53:14Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-27T12:53:14Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-27T13:12:29Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-27T13:31:19Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-27T13:31:19Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-27T13:31:19Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-27T13:32:23Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-27T13:32:23Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-27T13:32:23Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-27T13:45:23Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-27T14:06:01Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-27T15:13:56Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-27T15:13:57Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-27T15:13:57Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-27T15:30:42Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-27T15:30:43Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-27T15:30:43Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-27T15:31:24Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-27T15:31:24Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-27T15:31:24Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-27T15:37:28Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-27T15:47:40Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-27T15:51:17Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-27T16:13:43Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-27T16:26:01Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-27T16:26:01Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-27T16:26:01Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-27T16:40:58Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-27T17:00:12Z","hook":"secret-leak-check","status":"pass","detail":"no secrets"}

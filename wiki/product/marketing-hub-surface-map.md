@@ -1,6 +1,8 @@
 # Marketing Hub surface map — current implementation
 
-**Updated:** 2026-08-06. This is the current implementation map, not a release note.
+> 2026-08-25 코드 재계수: `dashboard/src/app/**/page.tsx` 25개, `dashboard/src/app/api/**/route.ts` 163개. 아래 과거 수치는 당시 스냅샷이며 현재 총계로 사용하지 않는다.
+
+**Updated:** 2026-08-21. This is the current implementation map, not a release note.
 
 ## Evidence boundary
 
@@ -11,7 +13,7 @@
 ## Shells and navigation
 
 - `AuthGate` selects landing, customer Marketing Hub, or the separate operator shell. Customer identity comes from the tenant; operator identity is **Admin** and customer workspace/menu is cleared rather than mounted.
-- The customer Sidebar has **26 entries**: Performance, OSMU Studio, Approval Inbox, Publishing Calendar; Social 5; Messaging 3; Video 2; Data 3; Keyword 4; Blog; Images; Videos; Midjourney; Settings. This is current local IA, not a claim that each destination works externally.
+- The customer Sidebar has **23 destination entries**: Performance, OSMU Studio, Approval Inbox, Publishing Calendar; Social 5; Messaging 3; Video 2; Blog Performance; Keyword Research 3; Blog; Images; Videos; Midjourney; Settings. `CHANNEL_GROUPS` supplies the 10 channel entries, while the remaining 13 are static destinations. The removed Data & SEO connection group is not counted. This is current local IA, not a claim that each destination works externally.
 - Browser visual observation: at **390px** the sidebar is missing. The `/videos` layout has a **14px** overflow and `/search-console` has an **89px** overflow. These are observed visual defects, not fixed by this documentation pass.
 
 ## Route inventory (25 page entries)
@@ -80,4 +82,4 @@ These need a future browser + provider + production-log investigation; no fix is
 
 **External benchmark:** intentionally not used. This task records supplied audit and current source truth; market comparison would not improve the factual status of an implementation.
 
-**Self-check:** counts and classification are kept separate: local source presence ≠ browser operation ≠ production/provider verification; 25 route entries and 26 sidebar entries are explicitly accounted for.
+**Self-check:** counts and classification are kept separate: local source presence ≠ browser operation ≠ production/provider verification; 25 route entries and 23 sidebar destinations are explicitly accounted for.

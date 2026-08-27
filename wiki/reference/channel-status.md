@@ -1,6 +1,6 @@
 # Channel Status & Implementation
 
-**최종 갱신: 2026-08-13** (근거: R-05·R-09 승인 계약, current-code UI audit, `ops/session-state.md`; source presence does not prove production operation.)
+**최종 갱신: 2026-08-14** (근거: R-05·R-09 승인 계약, OAuth 토큰 내구성 회귀, current-code UI audit, `ops/session-state.md`; source presence does not prove production operation.)
 
 > Current UI truth is mapped in [Marketing Hub surface map](../product/marketing-hub-surface-map.md). In particular,
 > provider connection/publish status is **not** inferred from a local component, landing copy, or an extension entry.
@@ -29,6 +29,76 @@ For each channel the pattern is:
 
 See extensions/ directory and dashboard/src/lib/constants.ts for IMPLEMENTED_PLUGINS.
 
+
+## 남의 공개 게시물을 읽을 수 있나 (2026-08-21 실측)
+
+공식 문서를 직접 확인한 결과다. **온보딩에서 "주소만 주면 분석"이 성립하는지의 근거 자료.**
+
+| 플랫폼 | 남의 공개 글 읽기 | 조건과 한도 | 근거 |
+|---|---|---|---|
+| Threads | **프로필·피드 조회 불가.** 키워드 검색만 조건부 | `threads_keyword_search` 앱 심사 승인 필요. **미승인이면 오류가 아니라 본인 글만 검색되는 축소 동작.** 사용자당 24시간 롤링 2,200쿼리(전 앱 합산, 결과 0건은 미차감) | developers.facebook.com/docs/threads/keyword-search |
+| Instagram | **가능** | `business_discovery`. 대상이 프로 계정이어야 하고 **호출하는 쪽도 자기 IG 프로 계정과 토큰 필요**. 연령제한 계정 미반환. 반환된 미디어를 직접 조회하면 권한 부족으로 실패하고 중첩 조회로만 지표 획득 | developers.facebook.com/docs/instagram-api/guides/business-discovery/ |
+| X | 기술적으로 가능, 유료 | 2026년 구독제 폐지 후 선불 크레딧 종량제. 24시간 내 같은 자원 재요청은 1회만 과금. **크레딧 단가와 무료 허용량 미확인**(가격 문서 접근 차단) | docs.x.com/x-api/introduction |
+| Meta 공통 | 자동 수집 금지 | 이용약관 명문: 자동화된 수단으로 데이터에 접근하거나 수집할 수 없다 | facebook.com/terms.php |
+
+**결론: 본인 계정을 연결해 본인 과거 글을 읽는 것이 전 플랫폼에서 확실한 유일한 경로다.**
+
+## 트렌드와 인기 콘텐츠 공식 경로 (2026-08-21 실측)
+
+| 경로 | 무엇을 주나 | 비용과 인증 | 판정 |
+|---|---|---|---|
+| **YouTube Data API** | 국가별·카테고리별 인기 영상 | **쿼터 1 unit, 인증 불필요(열쇠만)** | **지금 바로 쓸 수 있는 유일한 확실한 소스** |
+| Google Trends | 공식 통로가 2025년 7월 초기 단계로 발표 | 범위·쿼터·신청 절차 미확인 | 의존 금지. 지켜보기 |
+| 비공식 트렌드 도구 | 공개 화면 역이용 | 없음 | 자동 수집 금지 조항에 걸린다. 안 쓴다 |
+| 네이버 데이터랩 | 미확인 | 미확인 | 재조사 필요 |
+| Google Search Console | 검색어·노출·클릭·순위 | 우리 소유 사이트만 | 남의 트렌드가 아니다 |
+| **TikTok Research API** | 해시태그·키워드로 영상 조회 | **학술 기관 전용. 상업 사업자는 신청 자체 불가** | 공식 경로 없음으로 간주 |
+
+---
+
+
+## 외부 트렌드 데이터를 사 오는 경로 (2026-08-21 조사)
+
+### 무료 공개 소스 (인증 부담 없음)
+
+| 소스 | 접근 | 한도 | 확인 |
+|---|---|---|---|
+| **구글 트렌드 RSS** `trends.google.com/trending/rss?geo=KR` | **열쇠도 인증도 불필요** | 명시 한도 없음. 나라별 지정 가능 | **컨트롤러가 직접 호출해 확인.** 국내 실시간 트렌드가 검색량 근사치와 관련 기사까지 딸려 옴 |
+| 해커뉴스 공개 통로 | 인증 불필요 | 문서에 한도 없음 명시. 인기글 500건 | 문서 확인 |
+| GDELT | 무료·공개 | 15분마다 갱신 | 문서 확인 |
+| 유튜브 데이터 통로 | 열쇠만 | 하루 1만 단위. 다만 검색은 실사용상 비쌈 | 문서 확인 |
+| 뉴스 종합 통로 | 열쇠 | 무료는 개발용 한정, 하루 100건, 24시간 지연 | 문서 확인 |
+
+### 데이터를 파는 서비스
+
+| 서비스 | 어느 플랫폼 | 수집 방식 | 가격 |
+|---|---|---|---|
+| EnsembleData | 틱톡·인스타·유튜브·**스레드**·레딧·엑스 등 | 자체 수집 | 월 100달러부터. 무료 하루 50단위 |
+| ScrapeCreators | 36곳 이상. **스레드 포함** | 자체 수집 | 월 47달러부터. 무료 100크레딧 |
+| Apify | 장터 방식 | 자체 인프라 + 남이 만든 수집기 | 월 29달러부터 |
+| Bright Data | 링크드인·인스타·틱톡·엑스 등 | 자체 수집 + 데이터셋 판매 | 천 건에 2.5달러 |
+| Data365 | 페이스북·인스타·엑스·틱톡·**스레드** 등 | 자체 수집 | 월 300유로부터. 14일 무료 |
+| **Phyllo** | 20곳 이상 | **공식 통로 재판매**(플랫폼 승인 대행) | 견적 |
+| Ayrshare | 13곳 이상 | 공식 통로 감싸기. 발행 중심 | 월 149달러부터 |
+| Brandwatch | 엑스·텀블러는 **공식 대량 공급 계약** 보유 | 라이선스 + 수집 혼합 | 견적 |
+
+**국내 SNS 트렌드를 통로로 파는 서비스는 사실상 없습니다.** 국내 도구들은 화면을 팔지 데이터를 팔지 않습니다.
+
+### 직접 긁는 것과 사서 쓰는 것
+
+| 축 | 사서 쓰기 | 직접 긁기 |
+|---|---|---|
+| 약관 위반 주체 | 파는 쪽 | **우리** |
+| 우리 계정 정지 위험 | 낮다. 발행 계정과 수집 경로가 분리된다 | **높다. 발행 계정이 죽으면 제품이 죽는다** |
+| 개인정보 책임 | **면제 안 된다.** 우리가 처리하면 우리 책임 | 같고 수집 단계 책임까지 |
+| 비용 | 월 47~400달러 수준으로 예측 가능 | 우회와 유지보수가 상시 비용 |
+
+**판례 요지:** 로그인 없이 공개 페이지를 긁는 것은 무단 접근 법 위반이 아니라는 판단이 있었지만, **같은 사건에서 이용약관 위반은 인정**됐습니다. 법 위반과 약관 위반은 다른 층입니다. 그리고 차단 통보를 받은 뒤에도 계속하면 그때부터는 법 위반으로 넘어갑니다.
+
+**설계 결론:** 어느 쪽이든 개인정보 책임은 우리에게 남습니다. 그래서 **누가 썼는지가 아니라 무엇이 뜨는지만 저장**합니다. 작성자와 팔로워는 안 담습니다.
+
+---
+
 ## 채널 capability SSOT
 
 대시보드의 채널 그룹과 상세 탭은 `dashboard/src/lib/channel-capabilities.ts`가 단일 소스다.
@@ -52,6 +122,12 @@ Analytics, Growth, Popular를 제거하고 Settings만 노출한다.
 중앙 앱 credential이 없거나 외부 심사가 필요한 공급자는 `opening_soon`, 앱 credential이 준비됐지만 tenant
 계정이 없으면 `not_connected`다. 고객 화면은 `미연결`을 활성 연결 버튼으로, `오픈 준비중`을 회색 대기로
 구분한다. 연결은 됐지만 발행 심사가 남으면 `발행 준비중`, 판정 실패는 재시도 가능한 오류로 표시한다.
+
+`connected` 판정의 저장소 계약은 `channel_accounts.status='active'`만이 아니다. Threads,
+Instagram, Facebook은 `token_expires_at` non-null과 미만료가 필수다. 만료된 access token은
+암호화된 refresh token이 있는 provider만 연결을 유지하며, 나머지는 `reconnect`로 판정한다.
+연결 콜백은 장기 토큰 교환과 실제 계정 신원 검증을 둘 다 통과한 후에만
+`active`를 저장한다. 이 계약의 실 OAuth 재현은 운영 계정 재검증 전까지 미검증이다.
 
 ### 운영자/고객 shell 경계
 

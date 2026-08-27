@@ -1,0 +1,14 @@
+{
+  "experiment_id": "P04",
+  "model": "wan2_7",
+  "variable": "camera",
+  "prompt": "Vertical 9:16 creator-style video. An unmistakably adult fictional Korean virtual influencer in her late twenties, with no resemblance to any real person, sits in a softly lit modern creator studio. She wears a tasteful fitted red knit top with full coverage. Medium close-up, slow handheld push-in from chest-up to face, eye-level camera with slight natural micro-movement. She looks directly into the lens, taps her temple once as if acknowledging she is an AI character, then gives a candid amused smile. Mainstream SFW, realistic with a subtly stylized digital-human finish, natural skin texture, no readable text, no logos, no nudity, no transparent fabric, no sexual action.",
+  "started_at": "2026-08-13T18:39:02Z",
+  "ended_at": "2026-08-13T18:39:05Z",
+  "job_id": "",
+  "exit_code": 3,
+  "quoted_cost": 7.5,
+  "balance_before": 239.62,
+  "balance_after": 239.62,
+  "observed_balance_delta": 0
+}

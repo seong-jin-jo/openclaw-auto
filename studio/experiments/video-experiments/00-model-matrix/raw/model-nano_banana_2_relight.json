@@ -1,0 +1,77 @@
+{
+  "display_name": "Nano Banana Pro",
+  "job_type": "nano_banana_2_relight",
+  "params": [
+    {
+      "name": "brightness",
+      "type": "integer",
+      "default": null,
+      "required": true
+    },
+    {
+      "name": "color",
+      "type": "string",
+      "default": null,
+      "required": true
+    },
+    {
+      "name": "image_references",
+      "type": "array",
+      "default": null,
+      "required": true
+    },
+    {
+      "name": "light_quality",
+      "type": "string",
+      "default": null,
+      "required": true,
+      "enum": [
+        "hard",
+        "sharp",
+        "soft"
+      ]
+    },
+    {
+      "name": "light_source",
+      "type": "string",
+      "default": null,
+      "required": true,
+      "enum": [
+        "mdl",
+        "mdr",
+        "mul",
+        "mur",
+        "bml",
+        "fml",
+        "fmr",
+        "bmm",
+        "mml",
+        "mmr",
+        "fmm",
+        "bmr",
+        "mdm",
+        "mum",
+        "bdr",
+        "fdl",
+        "bur",
+        "ful",
+        "bdl",
+        "fdr",
+        "bul",
+        "fur",
+        "bdm",
+        "fdm",
+        "bum",
+        "fum"
+      ]
+    },
+    {
+      "name": "remove_bg",
+      "type": "boolean",
+      "default": false,
+      "required": false
+    }
+  ],
+  "rules": [],
+  "type": "image"
+}

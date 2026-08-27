@@ -13,8 +13,8 @@ deliberation: 정확히 한 번 실행과 적격 근거에서 승인된 변수 �
 | 항목 | 값 |
 |---|---|
 | 버전 | v7.3.5 |
-| 정본 | [PRD v7.3.5](openclaw-auto-marketing-agent-prd-v7.3.5-gpt-codex.md) |
-| 상태 | in-review — verifier PASS; re-critic/`/approve plan` 전 downstream 금지 |
+| 기반 문서 | [역사적 PRD v7.3.5](../notes/openclaw-auto-marketing-agent-prd-v7.3.5-gpt-codex.md) |
+| 상태 | 역사적 plan 산출물. 현재 제품 정의 정본은 [PRD v8.2.1](../prd-openclaw-service-v8.2.1-gpt-codex.md)이며, 이 문서의 내용은 v8.2.1 기준으로 재검증되지 않음 |
 | 범위 | One Thing·MVP 연결·제품 경계 |
 
 ## 목차

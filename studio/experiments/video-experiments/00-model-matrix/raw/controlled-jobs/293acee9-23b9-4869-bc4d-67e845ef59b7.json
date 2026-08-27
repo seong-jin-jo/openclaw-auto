@@ -1,0 +1,30 @@
+{
+  "created_at": "2026-08-13T18:36:26.594659Z",
+  "display_name": "Seedance 2.0",
+  "id": "293acee9-23b9-4869-bc4d-67e845ef59b7",
+  "job_type": "seedance_2_0",
+  "min_result_url": null,
+  "params": {
+    "aspect_ratio": "9:16",
+    "bitrate_mode": "standard",
+    "duration": 5,
+    "generate_audio": true,
+    "genre": "auto",
+    "height": 1280,
+    "medias": [],
+    "mode": "std",
+    "model": "seedance_2_0",
+    "multi_prompt": [],
+    "multi_shot_mode": "custom",
+    "multi_shots": false,
+    "prompt": "Vertical framing. Close insert of a single human hand reaching toward a large glossy red button on a dark panel, the fingertip stopping abruptly one centimeter short and hovering, tension held. No face visible, no text, no letters, no numbers anywhere.",
+    "prompt_language": "en",
+    "reference_elements": [],
+    "resolution": "720p",
+    "speedramp": "auto",
+    "width": 720
+  },
+  "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183626_293acee9-23b9-4869-bc4d-67e845ef59b7.mp4",
+  "status": "completed",
+  "thumbnail_url": "https://cdn.higgsfield.ai/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183626_293acee9-23b9-4869-bc4d-67e845ef59b7_thumbnail.webp"
+}

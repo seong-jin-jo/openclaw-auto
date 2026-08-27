@@ -10,7 +10,7 @@
 
 **Target (현실)**: 코딩/자동화 구축 능력이 없는 일반인·자영업자. 스스로 마케팅 자동화 서비스를 만들고 운영할 수 없는 사람들. API 토큰 발급/등록 과정이 큰 병목이 될 수 있음.
 
-**Product Wiki 전략**: 여기 루트 `wiki/` 는 **이 상품 자체의 지식 베이스**(제품 위키)다. 사용자가 이미 가진 다른 레포/노트 위키를 포인팅해서 컨텍스트를 끌어오는 기능은 별도 구현 필요. 상품 이름은 **가칭 SoloClaw**(아래 "상품 이름" 절 — 최종 확정은 0차 안정 후 별도 결정).
+**Product Wiki 전략**: 여기 루트 `wiki/` 는 **이 상품 자체의 지식 베이스**(제품 위키)다. 사용자가 이미 가진 다른 레포/노트 위키를 포인팅해서 컨텍스트를 끌어오는 기능은 별도 구현 필요. 상품 이름은 **OSMU(오스무)** 확정([ADR-005](../decisions/005-brand-naming.md), 구 가칭 SoloClaw는 기각 — 아래 "상품 이름" 절 참조).
 
 **Core Value Proposition**
 - **Automation Loop** (from README): Collect trends → AI generate drafts (guided by brand wiki) → Human approve (low effort) → Multi-channel publish (optimized per platform) → Collect reactions + learn → Improve next cycle.
@@ -38,7 +38,7 @@
 - 사용자가 "이 에러가 왜 났는지"를 스스로 설명하거나 로그로 재현 가능. (enhanced in sourcing/studio/video/longform)
 - 인프라/크론/발행이 재현성 있게 안정. (handoff smoke + constraints respected)
 - 온보딩 (토큰 등록 등) 마찰이 최소화되어 혼자서도 셋업 가능. (notes)
-- SoloClaw (가정 이름)로 자신의 콘텐츠(특히 기존 롱폼 영상 소스)를 실제로 생산/발행하면서 시간 절감 체감.
+- OSMU(오스무)로 자신의 콘텐츠(특히 기존 롱폼 영상 소스)를 실제로 생산/발행하면서 시간 절감 체감.
 - handoff 제약 (GHA, build, PORT, smoke) 준수.
 
 **1차 (PMF)**: 0차가 완벽히 된 후, 단 1명이라도 결제해서 쓰거나 초기 이벤트로 자기 사용량만 내고 실제로 쓰는 사람이 '존재'하는 것.

@@ -1,0 +1,32 @@
+{
+  "track": "sports_ent_batch",
+  "observations": [
+    {
+      "credits": 577.92,
+      "plan": "plus",
+      "phase": "initial research"
+    },
+    {
+      "credits": 194.62,
+      "plan": "plus",
+      "phase": "immediately before batch"
+    },
+    {
+      "credits": 0,
+      "plan": "free",
+      "phase": "first per-submission guard"
+    }
+  ],
+  "transaction_evidence": {
+    "created_at": "2026-08-13T18:39:40.77802Z",
+    "action": "deduct",
+    "credits": -194.62,
+    "display_name": "Subscription Cancelled"
+  },
+  "batch_result": {
+    "submitted": 0,
+    "spent_credits": 0,
+    "local_mp4": 0,
+    "guard": "Do not submit when balance is less than or equal to 50 credits."
+  }
+}

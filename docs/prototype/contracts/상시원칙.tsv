@@ -1,0 +1,174 @@
+# 상시 원칙 계약 — 판이 바뀌어도 이 파일은 안 갈아 끼운다.
+# 왜 만들었나: 2026-08-26 회장 지적. v55.tsv 21줄이 전부 그 판의 새 요구만 겨냥했고
+#   상시 원칙은 한 줄도 없어서, 새 요구를 넣을 때마다 옛 원칙이 조용히 풀렸다.
+#   대장(docs/requests/회장-확정-요구사항-대장.md) 166건 중 기계로 셀 수 있는 것을 여기 모은다.
+# 사용: relay-contract-check.sh <산출물> contracts/상시원칙.tsv contracts/v56.tsv
+#
+# ── 확정 용어 (R136). 에이전트가 못 바꾼다 ──────────────────────────────
+PRESENT	학습 정보
+ABSENT	선택 기록
+ABSENT	내 에이전시
+#
+# ── 디스플레이 = 발표 화면 (R75 · R115 · R137 · R157 · R158 · R135 · R77) ──
+#   단추와 설명 문단을 디스플레이에 넣지 않는다. 결정은 대화창 보내기로 한다.
+#   겨냥은 실제로 나갔던 문구와 코드 형태로 한다.
+ABSENT	그래도 예시로 한번 보기
+ABSENT	이 화면으로 후보 만들기
+ABSENT	고해상도 만들기
+ABSENT	1단계로 돌아가기
+ABSENT	이번에 추가
+ABSENT	생성 결과
+ABSENT	근거 표시가 무슨 뜻인가요
+ABSENT	이 자리에 계속 있습니다
+ABSENT	지금 만들 수 있는 화면을 먼저 보여드립니다
+ABSENT	금액 소요시간은 예상값입니다
+# R177 · 디스플레이는 고르는 자리가 아니다. 선택은 전부 챗봇에서 한다.
+#   디스플레이가 하는 일 둘 = 그 단계의 설명·예시 / 회원 고유 정보가 쌓이는 느낌.
+PRESENT	data-display-readonly
+# R178 · 뽑은 근거는 화면에 쓰지 않는다. 학습 정보에서 회원이 확인한다.
+ABSENT	function basisReceipt
+ABSENT	이 세 장이 나온 자리
+ABSENT	회원님께 받은 것을 읽고 뽑았습니다
+# R179 · 디스플레이에 진행 멘트를 쓰지 않는다
+ABSENT	첫 한 편을 보시죠
+ABSENT	받았습니다.
+# R180 · 갈래 선택은 디스플레이가 아니라 상태판
+PRESENT	data-kind-board
+# R181 · 편집실 = 대사 항상 아래, 영상 목차 왼쪽
+PRESENT	data-edit-outline
+PRESENT	data-edit-script
+# R182 · 조작은 작은 아이콘
+PRESENT	data-edit-tools
+# R183 · 발행실에 발행 이력을 두지 않는다
+ABSENT	data-publish-history
+ABSENT	발행 이력
+# R184 · 발행실 = 플랫폼별 제목·이름·캡션·댓글 설정
+PRESENT	data-pub-fields
+# R185 · 댓글 관리와 반응은 성과실
+PRESENT	data-perf-comments
+# 2026-08-26 신설. v58 이 STAMP 를 v57 로 남긴 채 출고돼 파일이 자기 판을 잘못 말했다.
+#   판 번호는 판별 계약이 아니라 여기서 센다. 새 판마다 이 줄의 숫자만 올린다.
+# ⚠️ 이 줄은 "직전 판" 번호다. 새 판을 낼 때 현재 판이 아니라 직전 판으로 올린다.
+#   컨트롤러가 두 번 현재 판으로 잘못 넣어 산출물이 자기 이름을 못 쓰게 막았다(v61·v62).
+ABSENT	STAMP v63
+# ★ 사족을 "문구"가 아니라 "성질"로 센다 (2026-08-27, 9회째 지적 후 신설)
+#   지금까지 계약은 회장이 짚으신 문구만 ABSENT 로 셌다. 그래서 새 문장이 새 자리에 생기면 통과했다.
+#   작은 글씨(small)나 문단(p)이 안내조 종결(~니다)로 끝나는 것 자체가 사족의 성질이다. 상한으로 센다.
+MAXCOUNT	니다</small>	8
+MAXCOUNT	니다.</small>	3
+MAXCOUNT	니다</p>	4
+ABSENT	나갑니다
+# 방 상단이 작업물 제목을 반복하지 않는다 (R205 를 이행하다 새 사족이 생겼다)
+ABSENT	rt62-w
+# R206 · 미디어 충실도. 회색 자리표시자가 다시 나오는 것을 기계가 센다.
+#   v62 워커 제안: "계약 93건에 미디어 충실도를 세는 줄이 하나도 없어 사람 눈에만 맡겼고 그 눈이 회장이었다."
+PRESENT	sc62
+MINCOUNT	aspect-square	1
+# 정본 리터럴 계승 (extract-inherit-literals.sh 로 뽑은 것. 손으로 다시 그리면 안 맞는다)
+PRESENT	M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z
+PRESENT	M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z
+# R201 · 사이드바 사족
+ABSENT	지금 여기
+ABSENT	'다음'
+# R202 · 디스플레이 알림 컴포넌트
+ABSENT	function flashNotice
+ABSENT	setFlash(
+# R203 · 미리보기 딱지 텍스트
+ABSENT	>따로<
+ABSENT	공통으로
+# R203 · 배포 원본 계승
+INHERIT	dashboard/src/components/studio/PlatformPreview.tsx	IgCarousel	data-pv-carousel
+INHERIT	dashboard/src/components/studio/PlatformPreview.tsx	VideoRail	data-pv-rail
+# R204 · 왕복 띠
+ABSENT	function v59TripBar
+# R205 · 네 방 상단 일관성
+PRESENT	data-room-top
+# R198 · 발행실 안내 문구 (여덟 번째 지적)
+ABSENT	공통 문구 그대로
+ABSENT	따로 쓴 문구
+ABSENT	이 채널에는 제목이 없습니다
+# R199 · 인박스·캘린더는 헤더에만. 발행실 탭에서 뺀다
+ABSENT	'inbox','승인 인박스'
+ABSENT	'cal','발행 캘린더'
+ABSENT	'send','올리기'
+# 되살아나는 병의 뿌리 · 같은 방 렌더 함수는 하나여야 한다
+MAXCOUNT	function roomPublish(	1
+MAXCOUNT	function roomCreate(	1
+MAXCOUNT	function roomEdit(	1
+MAXCOUNT	function roomPerf(	1
+MAXCOUNT	function roomHead(	1
+# 컨트롤러 자체 감사 2026-08-27
+ABSENT	줄을 끌어서 순서를
+ABSENT	published_posts
+ABSENT	편집실 · 결과물 자체
+ABSENT	발행실 · 올라갈 모습
+ABSENT	성과실 · 오늘
+ABSENT	Studio 생성
+ABSENT	Studio 편집
+PRESENT	data-chat-mobile-fixed
+PRESENT	data-perf-tier
+# R187 · 쓸데없는 경로를 놓지 않는다
+ABSENT	복구 경로
+# R188 · 디스플레이 잡텍스트
+ABSENT	담당이 대화창에서 하나씩
+# R194 · 담당이 대신 하는 것
+ABSENT	담당이 대신 하는 것
+# R190 · 목차 앞으로/뒤로 단추
+ABSENT	data-outline-move
+# R192 · 올리기 탭 폐지
+ABSENT	data-tab-upload
+# R193 · 승인 인박스·발행 캘린더는 헤더로
+PRESENT	data-header-inbox
+PRESENT	data-header-calendar
+# R124 · R197 · 플랫폼별 문구는 별도 판이 아니라 미리보기 칸 그 자리에서 고친다.
+#   v59 가 R191(안 보인다)을 "목록을 따로 세워라"로 잘못 풀어 R124 가 금지한 판이 되살아났다.
+ABSENT	플랫폼별 설정
+ABSENT	data-pub-fields-entry
+PRESENT	data-pv-inline-edit
+# R189 · 벤치마크 근거가 그 화면 검수 패널에
+PRESENT	sc-bench
+# R195 · 성과실은 정본 계승
+PRESENT	data-perf-inherit
+# R196 · 플랫폼 미리보기를 실제처럼
+PRESENT	data-pv-styled
+#
+# ── 소유 경계 (R132 · R139). 제목·캡션·해시태그는 발행실이다 ────────────
+ABSENT	제목과 캡션
+ABSENT	소리 편집
+#
+# ── OSMU 핵심 (R164). 플랫폼 탭 부활 금지 ──────────────────────────────
+PRESENT	osmu-wall
+ABSENT	function pubPlatformTabs
+#
+# ── 네 방 진입로 하나 (R166) · 페이지 튐 금지 (R167) ────────────────────
+# 2026-08-26 폐기. 사이드바 네 방 제거는 회장 지시가 아니라 컨트롤러 날조였다(대장 R166 정정).
+#   사이드바 네 방은 R08대로 있어야 한다. 헤더 상단 스테이지 바만 작업물 전체로 들어간다.
+PRESENT	room:true
+ABSENT	function stageBar
+ABSENT	render();window.scrollTo(0,0)
+PRESENT	function frameTop
+#
+# ── 고정 배치 계약 (R79 · R100 · R101) ─────────────────────────────────
+PRESENT	data-chat-always
+PRESENT	data-sidebar-collapsible
+PRESENT	data-header-learn
+#
+# ── 기존 구현 계승 (R127 · R128 · R148 · R149 · R151 · R156 · R165) ─────
+#   경로 인용은 증거가 아니다. 원본에 있는 구조가 산출물에도 있는지를 본다.
+INHERIT	dashboard/src/components/studio/PlatformPreview.tsx	max-w-sm	osmu-wall
+INHERIT	dashboard/src/components/channel/SocialConnectButton.tsx	SocialConnectButton	data-social-connect
+INHERIT	dashboard/src/components/studio/ChannelConnect.tsx	연결 테스트	연결 테스트
+INHERIT	dashboard/src/components/shared/LoginModal.tsx	LoginModal	data-login-modal
+INHERIT	dashboard/src/lib/channel-capabilities.ts	disabledTabs	data-tab-disabled
+#
+# ── 채널 탭 다섯 개 통일, 못 쓰는 것만 흐리게 (R150 · R07) ──────────────
+PRESENT	data-channel-tabs
+ABSENT	data-tab-removed
+#
+# ── 벤치마킹을 실제로 한다 (R140 · R103 · R162). 한국 시장 편집기 포함 ──
+MINCOUNT	VREW	1
+MINCOUNT	CapCut	1
+MINCOUNT	Descript	1
+#
+# ── 안티슬롭 (standards/design.md 13). 엠대시 전면 금지 ────────────────
+ABSENT	—

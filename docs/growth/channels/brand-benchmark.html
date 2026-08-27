@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ko">
+<!--
+  STAMP
+  파일: docs/growth/channels/brand-benchmark.html (OSMU 팩토리 채널 세팅 경쟁사 실물 벤치마크)
+  생성: 2026-08-27 17:12 KST
+  모델: claude-opus-4-8
+  에이전트: content-growth-marketer
+  스킬: viral-trend-research(경쟁 계정 관찰 각도), browse(경쟁 SNS 실물 캡처)
+  근거파일: standards/growth-loop.md §3.0.6.1 · standards/{marketing,branding}.md · wiki/marketing/{competitors,naming,brand}.md · wiki/marketing/channels/{instagram,threads}.md · wiki/marketing/brand-preview.html(우리 프레임 토큰 상속)
+  기반 포맷: wiki/marketing/brand-preview.html v1 (다크 네이비+amber 토큰·phone shell·seg 토글 상속)
+  고민: 경쟁 실물이 IG 2건만 산 채로 잡혔다(TikTok CAPTCHA, Blotato·Postiz 공식 IG 부재). 지어내지 않고 실패를 명시하되, 잡힌 2건으로 '우리 방향'까지 판단을 이었다.
+  실물 = 비교·논평 목적 캡처. 경쟁 로고·자산 재배포/합성 금지.
+-->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OSMU 팩토리 채널 세팅 · 경쟁사 실물 벤치마크</title>
+<style>
+  :root{
+    --base:#0B0F1A; --surface:#151B2B; --amber:#F59E0B; --mint:#34D399; --rose:#F43F5E;
+    --txt:#F8FAFC; --txt-sub:#94A3B8;
+    --font-kr:"Pretendard Variable",Pretendard,-apple-system,system-ui,sans-serif;
+    --font-mono:"JetBrains Mono","SF Mono",monospace;
+    --page-bg:#0B0F1A; --page-panel:#151B2B; --page-txt:#F8FAFC; --page-sub:#94A3B8;
+    --page-line:rgba(148,163,184,.18); --page-card:#0F1524;
+  }
+  body.light{
+    --page-bg:#EEF1F6; --page-panel:#FFFFFF; --page-txt:#0B0F1A; --page-sub:#5A6473;
+    --page-line:rgba(11,15,26,.10); --page-card:#F5F7FA;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:var(--font-kr);
+    background:var(--page-bg); color:var(--page-txt);
+    line-height:1.5; padding:0 0 80px; transition:background .25s,color .25s;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:0 22px}
+
+  /* header */
+  header{padding:34px 0 22px;border-bottom:1px solid var(--page-line);margin-bottom:26px}
+  .brand-row{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+  .seal{width:46px;height:46px;border-radius:12px;flex:none;display:grid;place-items:center;
+    background:var(--base);border:1.5px solid var(--amber);color:var(--amber);
+    font-family:var(--font-mono);font-weight:800;font-size:13px;letter-spacing:.5px}
+  h1{font-size:23px;margin:0;font-weight:800;letter-spacing:-.4px}
+  .hd-sub{font-size:12.5px;color:var(--page-sub);font-family:var(--font-mono);margin-top:3px}
+  .lede{font-size:15px;color:var(--page-sub);max-width:760px;word-break:keep-all}
+  .lede b{color:var(--page-txt);font-weight:700}
+  .toolbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:20px;padding-top:18px;border-top:1px solid var(--page-line)}
+  .ctl-label{font-size:11.5px;color:var(--page-sub);font-family:var(--font-mono)}
+  .seg{display:inline-flex;background:var(--page-card);border:1px solid var(--page-line);border-radius:10px;padding:3px}
+  .seg button{font-family:var(--font-kr);font-size:12.5px;font-weight:600;color:var(--page-sub);
+    background:none;border:none;padding:6px 13px;border-radius:8px;cursor:pointer;transition:.15s}
+  .seg button.on{background:var(--amber);color:#0B0F1A}
+  .nav-jump{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+  .nav-jump a{font-size:12px;font-weight:600;color:var(--page-sub);text-decoration:none;
+    padding:6px 11px;border-radius:8px;border:1px solid var(--page-line);transition:.15s}
+  .nav-jump a:hover{color:var(--page-txt);border-color:var(--amber)}
+
+  /* summary */
+  .summary{background:var(--page-panel);border:1px solid var(--page-line);border-left:3px solid var(--amber);
+    border-radius:16px;padding:22px 24px;margin-bottom:34px}
+  .summary h2{margin:0 0 14px;font-size:14px;font-family:var(--font-mono);color:var(--amber);letter-spacing:.5px;font-weight:700}
+  .summary ol{margin:0;padding-left:20px}
+  .summary li{margin-bottom:9px;font-size:14.5px}
+  .summary li:last-child{margin-bottom:0}
+  .summary b{color:var(--amber);font-weight:700}
+
+  /* section */
+  section{margin-bottom:52px;scroll-margin-top:20px}
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+  .sec-head h2{font-size:19px;margin:0;font-weight:800;letter-spacing:-.3px}
+  .sec-tag{font-size:11px;font-family:var(--font-mono);padding:3px 9px;border-radius:20px;font-weight:700}
+  .tag-live{background:rgba(52,211,153,.16);color:var(--mint)}
+  .tag-fail{background:rgba(244,63,94,.16);color:var(--rose)}
+  .sec-desc{font-size:14px;color:var(--page-sub);margin:0 0 22px;max-width:820px;word-break:keep-all}
+
+  /* frame grid */
+  .frames{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .frame{background:var(--page-panel);border:1px solid var(--page-line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
+  .frame.ours{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber) inset}
+  .fc-head{display:flex;align-items:center;gap:9px;padding:13px 15px;border-bottom:1px solid var(--page-line)}
+  .fc-dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .dot-ours{background:var(--amber)} .dot-comp{background:var(--txt-sub)}
+  .fc-title{font-size:13.5px;font-weight:700}
+  .fc-role{font-size:10.5px;font-family:var(--font-mono);color:var(--page-sub);margin-left:auto;text-align:right;line-height:1.3}
+  .fc-body{background:var(--page-card);padding:0;display:flex;flex-direction:column;flex:1}
+  .fc-body img{width:100%;display:block;border-bottom:1px solid var(--page-line);cursor:zoom-in}
+  .cap{padding:11px 14px 14px;font-size:11.5px;color:var(--page-sub);line-height:1.55;word-break:keep-all}
+  .cap b{color:var(--page-txt)}
+  .cap .zoom{font-family:var(--font-mono);font-size:10px;color:var(--amber);display:block;margin-top:6px}
+
+  /* our IG mock (phone) */
+  .ig{background:#fff;color:#111;font-size:13px}
+  body:not(.light) .frame.ours .ig{background:#fff}
+  .ig .top{display:flex;align-items:center;padding:11px 15px 9px;border-bottom:1px solid #efefef}
+  .ig .ig-word{font-family:Georgia,"Times New Roman",serif;font-size:19px;font-weight:600;font-style:italic;color:#111}
+  .ig .top .r{margin-left:auto;display:flex;gap:8px}
+  .ig .btn-login{background:#4f5bd5;color:#fff;font-size:11px;font-weight:700;padding:5px 11px;border-radius:8px}
+  .ig .hd{display:flex;gap:18px;align-items:center;padding:15px 15px 6px}
+  .ig .pfp{width:70px;height:70px;border-radius:50%;flex:none;display:grid;place-items:center;
+    background:linear-gradient(145deg,#0B0F1A,#1b2436);color:var(--amber);border:2px solid var(--amber);
+    font-family:var(--font-mono);font-weight:800;font-size:10px;text-align:center;line-height:1.15}
+  .ig .handle{font-size:17px;font-weight:400;color:#111}
+  .ig .bio{padding:4px 15px 2px;color:#111;font-size:13px;line-height:1.5}
+  .ig .bio .nm{font-weight:700}
+  .ig .bio .lk{color:#00376b;font-weight:600}
+  .ig .stats{display:flex;gap:26px;padding:12px 15px 4px;font-size:13px}
+  .ig .stats b{font-weight:700}.ig .stats span{color:#8e8e8e;font-size:12px}
+  .ig .note{padding:2px 15px;font-size:10px;color:#b0b0b0;font-family:var(--font-mono)}
+  .ig .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:8px}
+  .ig .cell{aspect-ratio:3/4;background:#0B0F1A;position:relative;display:flex;flex-direction:column;justify-content:flex-end;padding:8px;overflow:hidden}
+  .ig .cell .kick{font-family:var(--font-mono);font-size:7px;font-weight:700;color:#0B0F1A;background:var(--amber);
+    align-self:flex-start;padding:2px 5px;border-radius:3px;position:absolute;top:7px;left:7px}
+  .ig .cell .cv{font-weight:800;font-size:12.5px;line-height:1.2;color:#fff;position:relative;z-index:2;word-break:keep-all}
+  .ig .cell .cv .am{color:var(--amber)}
+  .ig .cell .num{font-family:var(--font-mono);font-size:9px;color:var(--mint);margin-top:3px}
+  .ig .cell.c2{background:#151B2B}.ig .cell.c3{background:#12233a}
+  .ig .cell.c4{background:#1a1206}.ig .cell.c5{background:#0f1c17}.ig .cell.c6{background:#1b1420}
+
+  /* our direction block */
+  .direction{margin-top:24px;background:var(--page-panel);border:1px solid var(--page-line);
+    border-radius:16px;overflow:hidden}
+  .dir-head{background:var(--amber);color:#0B0F1A;padding:11px 20px;font-weight:800;font-size:14px;
+    display:flex;align-items:center;gap:9px}
+  .dir-head .ic{font-size:16px}
+  .dir-body{padding:6px 0}
+  .dir-row{display:grid;grid-template-columns:150px 1fr;gap:14px;padding:14px 22px;border-bottom:1px solid var(--page-line)}
+  .dir-row:last-child{border-bottom:none}
+  .dir-k{font-size:12.5px;font-weight:700;font-family:var(--font-mono)}
+  .dir-k.follow{color:var(--mint)} .dir-k.diff{color:var(--amber)} .dir-k.pattern{color:var(--page-sub)}
+  .dir-k.pick{color:var(--txt)}
+  .dir-v{font-size:14px;color:var(--page-txt);word-break:keep-all}
+  .dir-v .hl{color:var(--amber);font-weight:700}
+  .dir-row.pickrow{background:var(--page-card)}
+  .dir-row.pickrow .dir-v{font-weight:600}
+
+  /* compare table */
+  .cmp-table{width:100%;border-collapse:collapse;margin-top:22px;font-size:13.5px}
+  .cmp-table th,.cmp-table td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--page-line);vertical-align:top;word-break:keep-all}
+  .cmp-table th{font-size:11.5px;font-family:var(--font-mono);color:var(--page-sub);font-weight:600;letter-spacing:.3px}
+  .cmp-table td.ours{color:var(--amber);font-weight:600}
+  .cmp-table .rk{font-weight:700;color:var(--page-txt)}
+
+  /* fail notice */
+  .fail{background:var(--page-panel);border:1px solid var(--page-line);border-left:3px solid var(--rose);
+    border-radius:14px;padding:18px 22px;font-size:13.5px;color:var(--page-sub);word-break:keep-all}
+  .fail b{color:var(--page-txt)}
+  .fail .obs{margin-top:12px;padding-top:12px;border-top:1px solid var(--page-line)}
+  .fail ul{margin:8px 0 0;padding-left:18px}.fail li{margin-bottom:6px}
+  .fail code{font-family:var(--font-mono);font-size:12px;color:var(--amber);background:var(--page-card);padding:1px 6px;border-radius:5px}
+
+  /* footer blocks */
+  .recall{background:var(--page-panel);border:1px solid var(--page-line);border-left:3px solid var(--rose);border-radius:14px;padding:20px 24px;margin-bottom:24px}
+  .recall h3{margin:0 0 12px;font-size:14px;color:var(--rose);font-family:var(--font-mono)}
+  .recall ol{margin:0;padding-left:20px}.recall li{margin-bottom:10px;font-size:14px;word-break:keep-all}
+  .foot{font-size:11.5px;color:var(--page-sub);font-family:var(--font-mono);line-height:1.7;
+    border-top:1px solid var(--page-line);padding-top:18px;word-break:break-word}
+
+  @media(max-width:820px){
+    .frames{grid-template-columns:1fr}
+    .dir-row{grid-template-columns:1fr;gap:4px}
+    .nav-jump{margin-left:0;width:100%}
+    .cmp-table{font-size:12.5px}.cmp-table th,.cmp-table td{padding:9px 8px}
+  }
+
+  /* lightbox */
+  .lb{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;place-items:center;z-index:99;padding:20px;cursor:zoom-out}
+  .lb.on{display:grid}
+  .lb img{max-width:100%;max-height:100%;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand-row">
+      <div class="seal">OSMU</div>
+      <div>
+        <h1>OSMU 팩토리 · 채널 세팅 경쟁사 실물 벤치마크</h1>
+        <div class="hd-sub">docs/growth/channels/ · 인지도 관문 브랜드 정의 · 우리 것 옆에 경쟁 실물</div>
+      </div>
+    </div>
+    <p class="lede">우리 프로필만 놓으면 잘 만든 건지 판단이 안 된다. 그래서 <b>실제 경쟁 계정 화면을 그 자리에 가져와</b> 나란히 놓고, 각 비교 끝에 <b>우리 방향</b>으로 결론까지 잇는다. 경쟁 화면은 headless 브라우저로 실제 프로필 URL을 열어 캡처한 실물이다(손 재현 아님). 비교·논평 목적.</p>
+    <div class="toolbar">
+      <span class="ctl-label">THEME</span>
+      <div class="seg" id="theme"><button data-t="dark" class="on">다크</button><button data-t="light">라이트</button></div>
+      <nav class="nav-jump">
+        <a href="#instagram">Instagram</a>
+        <a href="#names">이름·바이오</a>
+        <a href="#tiktok">TikTok</a>
+        <a href="#threads">Threads</a>
+        <a href="#recall">회수</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="summary">
+    <h2>이 벤치마크의 핵심 방향 3줄</h2>
+    <ol>
+      <li><b>얼굴·크리에이터 서사를 버리고 "시설이 스스로 도는 증거"로 간다.</b> OpusClip·Sabrina(Blotato)는 전부 사람 얼굴·크리에이터 후킹이 그리드의 척추다. 우리는 done-for-you 공장이라 얼굴이 없다. 대신 <b>출고 로그·주간 리포트 실측 숫자</b>를 그리드의 척추로 세운다. 흉내 낼 수 없는 차별점이다.</li>
+      <li><b>바이오는 킨다그로스형(전문가 집단 선언)이 아니라 "이 계정도 이 공장이 굴린다"는 메타 증명으로 뗀다.</b> 국내 대행사는 "성과를 만듭니다" 선언에서 멈춘다. 우리는 계정 자체가 살아있는 데모라는 점을 바이오 첫 줄에 박아 신뢰를 말이 아니라 구조로 준다.</li>
+      <li><b>따를 것은 딱 둘: 한 줄 기능 정의 바이오 + 인사이트 캐러셀 포맷.</b> OpusClip의 "한 문장에 뭘 하는 툴인지" 바이오와 킨다그로스의 ChatGPT/Gemini/NAVER 인사이트 카드 그리드는 검증된 문법이라 그대로 차용한다. 나머지는 다르게 간다.</li>
+    </ol>
+  </div>
+
+  <!-- INSTAGRAM -->
+  <section id="instagram">
+    <div class="sec-head">
+      <h2>Instagram</h2>
+      <span class="sec-tag tag-live">실물 캡처 성공 · 2건</span>
+    </div>
+    <p class="sec-desc">직접 경쟁(숏폼 클리핑 리더 OpusClip)과 국내 done-for-you 대행사(킨다그로스)를 우리 프레임 왼쪽에 나란히 뒀다. 우리 프레임은 확정 bio(<code>wiki/marketing/channels/instagram.md §2</code>)와 계획된 그리드 콘텐츠로 구성한 목업이고, 오른쪽 둘은 2026-08-27 실제 프로필 캡처다.</p>
+
+    <div class="frames">
+      <!-- OURS -->
+      <div class="frame ours">
+        <div class="fc-head">
+          <span class="fc-dot dot-ours"></span>
+          <span class="fc-title">OSMU 팩토리 (우리)</span>
+          <span class="fc-role">목업<br>bio 확정값</span>
+        </div>
+        <div class="fc-body">
+          <div class="ig">
+            <div class="top"><span class="ig-word">Instagram</span><div class="r"><span class="btn-login">로그인</span></div></div>
+            <div class="hd">
+              <div class="pfp">OSMU<br>▣ 출고<br>완료</div>
+              <div class="handle">osmu.official</div>
+            </div>
+            <div class="bio">
+              <div class="nm">OSMU 팩토리 · 콘텐츠 공장</div>
+              사장님 콘텐츠, 여기서 만들어 매일 출고<br>
+              만들고·올리고·보고까지. 이 계정도 이 공장이 굴림<br>
+              브랜드 사실을 읽고 쓰니 헛소리 없음<br>
+              <span class="lk">맡기고 싶은 사장님은 링크로 →</span>
+            </div>
+            <div class="stats"><span><b>2,390</b> 팔로워</span><span><b>0</b> 팔로잉</span></div>
+            <div class="note">* 리네임 예정 기존 계정 실측(wiki naming §5) — 지어낸 수치 아님</div>
+            <div class="grid">
+              <div class="cell"><span class="kick">주간리포트</span><div class="cv">이번 주 <span class="am">12건</span> 출고</div><div class="num">손 댄 시간 0분</div></div>
+              <div class="cell c2"><span class="kick">전후비교</span><div class="cv">일반 AI 헛소리<br>vs 위키 기반</div></div>
+              <div class="cell c3"><span class="kick">출고로그</span><div class="cv">이 글도 이 라인<br>에서 <span class="am">출고됨</span></div></div>
+              <div class="cell c4"><span class="kick">비용</span><div class="cv">대행 건당 <span class="am">32만</span><br>공장 월 가동비</div></div>
+              <div class="cell c5"><span class="kick">사장님pain</span><div class="cv">가게 인스타<br>뭐 올리지</div></div>
+              <div class="cell c6"><span class="kick">가동일지</span><div class="cv">아침 예약<br>출고 큐</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="cap"><b>구성:</b> 프로필=씰+체크 도장(얼굴 비노출) · 바이오 4줄(정체·메타데모·그라운딩·CTA) · 그리드=리포트/전후/로그/비용 실측 카드.<br><b>후킹 장치:</b> "이 계정도 이 공장이 굴림"=메타 증명(신뢰를 구조로) · 숫자 커버=증거 밀도.</div>
+      </div>
+
+      <!-- OPUSCLIP -->
+      <div class="frame">
+        <div class="fc-head">
+          <span class="fc-dot dot-comp"></span>
+          <span class="fc-title">OpusClip</span>
+          <span class="fc-role">실물 캡처<br>@opusclip</span>
+        </div>
+        <div class="fc-body">
+          <img src="assets/opusclip-ig.png" alt="OpusClip 인스타그램 프로필 실물 캡처" data-lb>
+          <div class="cap"><b>139K 팔로워.</b> 프로필=검은 P 모노그램(얼굴 없음, 단 그리드는 전부 사람 얼굴) · 바이오="Your AI video editor - turn a long video into viral short clips, in one click"(한 문장 기능 정의) · 하이라이트 "Reach 1M / Jon Yous.. / Creator V.." · 그리드=릴스 썸네일, 큰 텍스트 오버레이+얼굴("1 Million Reasons Why I LOVE OpusClip").<span class="zoom">클릭 = 원본 크게</span></div>
+        </div>
+      </div>
+
+      <!-- KINDAGROWTH -->
+      <div class="frame">
+        <div class="fc-head">
+          <span class="fc-dot dot-comp"></span>
+          <span class="fc-title">킨다그로스 (국내 대행)</span>
+          <span class="fc-role">실물 캡처<br>@kindagrowth</span>
+        </div>
+        <div class="fc-body">
+          <img src="assets/kindagrowth-ig.png" alt="킨다그로스 인스타그램 프로필 실물 캡처" data-lb>
+          <div class="cap"><b>done-for-you 마케팅 대행사.</b> 프로필=워드마크 로고(얼굴 없음) · 바이오="확실한 성장을 만드는 마케팅 전문가 집단 / 데이터와 전략으로 성과를 만듭니다 / 팔로우하고 킨다의 마케팅 인사이트를 받아보세요" + 홈페이지 링크 · 그리드=인사이트 캐러셀 카드("SEO는 끝났다 AEO 시대가 왔다", ChatGPT/Gemini/Claude 비교). 우리 done-for-you 톤의 가장 가까운 직접 비교군.<span class="zoom">클릭 = 원본 크게</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- direction -->
+    <div class="direction">
+      <div class="dir-head"><span class="ic">▣</span> 우리 방향 — Instagram</div>
+      <div class="dir-body">
+        <div class="dir-row"><div class="dir-k pattern">① 공통 패턴</div><div class="dir-v">둘 다 <span class="hl">얼굴 없는 로고형 프로필</span>을 쓴다(OpusClip=P 모노그램, 킨다=워드마크). 바이오는 <span class="hl">한 문장에 "뭘 해주는지"</span>를 박는다. 그리드는 <span class="hl">큰 텍스트 오버레이 카드</span>가 표준 문법.</div></div>
+        <div class="dir-row"><div class="dir-k follow">② 따를 것</div><div class="dir-v">얼굴 비노출 로고 프로필(우리 씰+체크와 정합) · OpusClip식 <span class="hl">한 줄 기능 정의 바이오</span> · 킨다식 <span class="hl">인사이트 캐러셀 그리드 포맷</span>. 검증된 3개는 발명하지 않고 차용한다.</div></div>
+        <div class="dir-row"><div class="dir-k diff">③ 다르게 갈 것</div><div class="dir-v">OpusClip 그리드는 결국 <span class="hl">사람 얼굴·크리에이터 후킹</span>이 척추다. 킨다는 <span class="hl">"성과를 만듭니다" 선언</span>에서 멈춘다. 우리는 얼굴이 없고(공장), 선언 대신 <span class="hl">계정이 스스로 도는 실측(주간 12건 출고·손 댄 시간 0분·출고 타임스탬프)</span>을 그리드 척추로 세운다. 말이 아니라 가동 기록으로 증명.</div></div>
+        <div class="dir-row pickrow"><div class="dir-k pick">④ 그래서 우리 선택</div><div class="dir-v">바이오 1줄=OpusClip처럼 기능 한 문장, 그러나 <b>2줄째에 "이 계정도 이 공장이 굴림"</b>을 넣어 킨다에 없는 <b>메타 증명</b>을 확보한다. 그리드는 킨다 인사이트 카드 포맷을 빌리되 <b>내용물은 우리 출고 실측 숫자</b>로 채운다. 왜: 신뢰 자산을 형용사가 아닌 구조(살아있는 데모)로 주는 것이 우리만 쓸 수 있는 문장이기 때문(브랜딩헌법 치환 테스트 통과).</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NAMES / BIO -->
+  <section id="names">
+    <div class="sec-head"><h2>이름 · 핸들 · 바이오 비교표</h2></div>
+    <p class="sec-desc">실물 캡처에서 읽어낸 경쟁 문안과 우리 확정값을 한 줄에 대조. 경쟁 문안은 캡처 원문 그대로, 우리 값은 <code>naming.md §2</code>·<code>channels/instagram.md §2</code> 확정값.</p>
+    <table class="cmp-table">
+      <thead><tr><th>항목</th><th>OpusClip</th><th>킨다그로스</th><th class="ours" style="color:var(--amber)">OSMU 팩토리 (우리)</th></tr></thead>
+      <tbody>
+        <tr><td class="rk">표시 이름</td><td>OpusClip</td><td>kindagrowth / 킨다그로스</td><td class="ours">OSMU 팩토리</td></tr>
+        <tr><td class="rk">핸들</td><td>@opusclip</td><td>@kindagrowth</td><td class="ours">@osmu.official (1순위)</td></tr>
+        <tr><td class="rk">프로필 이미지</td><td>검은 원 P 모노그램</td><td>워드마크 로고</td><td class="ours">씰+체크 "출고 완료 도장" (얼굴 비노출)</td></tr>
+        <tr><td class="rk">바이오 축</td><td>기능 한 문장 ("long video → viral clips, one click")</td><td>정체 선언 + 인사이트 구독 유도 ("전문가 집단 · 성과를 만듭니다")</td><td class="ours">정체 + 하는 일 + 메타 증명 + 그라운딩 + CTA (4줄)</td></tr>
+        <tr><td class="rk">차별 후킹</td><td>"one click" 속도</td><td>"데이터·전략" 권위</td><td class="ours">"이 계정도 이 공장이 굴림" (살아있는 데모)</td></tr>
+        <tr><td class="rk">톤</td><td>제품 카피, 크리에이터 친화</td><td>B2B 전문가체</td><td class="ours">공장 출고 리포트체 (담백·숫자)</td></tr>
+      </tbody>
+    </table>
+    <div class="direction">
+      <div class="dir-head"><span class="ic">▣</span> 우리 방향 — 이름·바이오</div>
+      <div class="dir-body">
+        <div class="dir-row"><div class="dir-k pattern">① 공통 패턴</div><div class="dir-v">둘 다 <span class="hl">바이오 첫 줄에 존재 이유를 한 번에</span> 박는다(속도 or 권위). 군더더기 자기소개 없음.</div></div>
+        <div class="dir-row"><div class="dir-k follow">② 따를 것</div><div class="dir-v">첫 줄 압축 원칙. 우리도 "사장님 콘텐츠, 여기서 만들어 매일 출고"를 첫 줄로.</div></div>
+        <div class="dir-row"><div class="dir-k diff">③ 다르게 갈 것</div><div class="dir-v">둘 다 <span class="hl">주어=사람/집단</span>이다(OpusClip=툴, 킨다=전문가 집단). 우리는 <span class="hl">주어=시설</span>. "저희가 해드립니다"가 아니라 "라인이 출고합니다"의 리포트체로 인격을 지운다.</div></div>
+        <div class="dir-row pickrow"><div class="dir-k pick">④ 그래서 우리 선택</div><div class="dir-v">핸들 <b>@osmu.official</b> 유지, 바이오 4줄 구조 확정판 유지. 단 <b>2줄째 메타 증명("이 계정도 이 공장이 굴림")</b>이 경쟁 어느 쪽에도 없는 우리만의 문장이므로 이것을 프로필의 킬러 라인으로 고정한다.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TIKTOK -->
+  <section id="tiktok">
+    <div class="sec-head">
+      <h2>TikTok</h2>
+      <span class="sec-tag tag-fail">실물 캡처 실패 · 정직 표기</span>
+    </div>
+    <p class="sec-desc">TikTok은 headless 브라우저에 CAPTCHA(퍼즐 슬라이더) + 봇 차단을 띄워 실제 프로필 렌더에 실패했다. 손으로 재현하지 않고(가짜 금지) 특정한 핸들과 웹 조사 기반 관찰만 남긴다.</p>
+    <div class="fail">
+      <b>캡처 실패 사유:</b> <code>tiktok.com/@opusclip</code>·<code>@sabrina_ramonov</code> 접근 시 회전 이미지 퍼즐 CAPTCHA + "Something went wrong" 스켈레톤. ADR-004(Meta 자동 운전 금지)와 별개로, TikTok은 headless 세션 자체를 차단. 로그인·CAPTCHA 수동 해제가 필요해 이번 배치에서는 미수집.
+      <div class="obs">
+        <b>특정한 핸들 + 텍스트 관찰(웹 조사 근거):</b>
+        <ul>
+          <li><b>Blotato</b> = 공식 IG 계정 없음(<code>@blotato</code>는 무관한 개인 셀피 계정, 7팔로워). 실제 유통은 창업자 <b>@sabrina_ramonov</b> TikTok 중심 — "500K+ followers in 6 months, 50M+ views", faceless video factory 소구. 크리에이터 얼굴+개인 브랜드가 유통 엔진.</li>
+          <li><b>OpusClip TikTok(@opusclip)</b> = IG 그리드와 동일한 얼굴·자막 릴스 리퍼포징으로 추정(IG 캡처로 확인된 포맷).</li>
+          <li><b>Postiz</b> = 공식 IG/TikTok 부재. 오픈소스답게 <b>GitHub·X</b>가 유통 퍼널(competitors.md 기록과 일치). 시각 SNS 브랜딩 자체가 없음.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="direction">
+      <div class="dir-head"><span class="ic">▣</span> 우리 방향 — TikTok</div>
+      <div class="dir-body">
+        <div class="dir-row"><div class="dir-k pattern">① 공통 패턴</div><div class="dir-v">경쟁의 TikTok/영상 유통은 전부 <span class="hl">얼굴 있는 크리에이터 개인 브랜드</span>(Sabrina) 또는 <span class="hl">얼굴 자막 릴스</span>. faceless를 표방해도 결국 사람이 판다.</div></div>
+        <div class="dir-row"><div class="dir-k follow">② 따를 것</div><div class="dir-v">숏폼 자막 오버레이·훅 프레임 문법 자체는 검증됨 — 포맷은 차용.</div></div>
+        <div class="dir-row"><div class="dir-k diff">③ 다르게 갈 것</div><div class="dir-v">우리는 얼굴 비노출 확정(naming §2). 사람 크리에이터 서사로는 못 간다. 게다가 <span class="hl">OSMU 파이프라인에 영상 생산 능력이 없음</span>(channels 정본). 그래서 v1은 영상 케이던스가 아니라 <span class="hl">프로필 선점만</span>.</div></div>
+        <div class="dir-row pickrow"><div class="dir-k pick">④ 그래서 우리 선택</div><div class="dir-v">TikTok은 <b>v1 프로필 선점 + 바이오/프로필 이미지 세팅까지만</b>. 영상 라인은 파이프라인 기획 후로 보류. 무리하게 얼굴 크리에이터를 흉내 내면 공장 컨셉이 깨진다. 대신 진입 시 <b>"출고 로그 영상(대시보드 화면 캡처 릴스)"</b> 각도를 테스트 후보로 예약한다(얼굴 없이 릴스가 되는 유일한 각).</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- THREADS -->
+  <section id="threads">
+    <div class="sec-head">
+      <h2>Threads</h2>
+      <span class="sec-tag tag-fail">경쟁 실물 미수집 · 우리 프레임만</span>
+    </div>
+    <p class="sec-desc">직접 경쟁(OpusClip·Blotato·Postiz)의 활성 Threads 프로필이 확인되지 않아(IG 자동 연동만 존재하거나 미운영) 나란히 놓을 실물이 없다. 우리 확정 bio·고정글(<code>channels/threads.md §2·§3</code>)만 프레임으로 두고, 방향은 IG 벤치마크에서 파생한다.</p>
+    <div class="frames">
+      <div class="frame ours" style="max-width:380px">
+        <div class="fc-head"><span class="fc-dot dot-ours"></span><span class="fc-title">OSMU 팩토리 · Threads (우리)</span><span class="fc-role">bio 확정값</span></div>
+        <div class="fc-body">
+          <div class="ig" style="padding-bottom:10px">
+            <div class="top"><span class="ig-word" style="font-style:normal;font-family:var(--font-kr);font-weight:800">Threads</span><div class="r"><span class="btn-login" style="background:#000">팔로우</span></div></div>
+            <div class="hd">
+              <div class="pfp">OSMU<br>▣ 출고<br>완료</div>
+              <div><div class="handle" style="font-weight:700">OSMU 팩토리</div><div style="color:#8e8e8e;font-size:13px">osmu.official</div></div>
+            </div>
+            <div class="bio" style="padding-top:8px">사장님 콘텐츠를 만들어 출고하는 콘텐츠 공장, OSMU 팩토리. 브랜드 사실을 읽고 쓰니 헛소리 없음. 이 계정도 이 공장에서 출고함. <span class="nm">매주 목요일 주간 리포트</span></div>
+            <div style="margin:12px 15px 0;padding:12px;background:#f6f6f6;border-radius:10px;color:#111;font-size:12.5px;line-height:1.55">
+              <b>📌 고정글</b><br>개업 인사 대신 가동 안내를 올립니다. 여기는 사장님의 콘텐츠 공장 — 만들고, 채널마다 고치고, 올리고, 반응까지 리포트합니다. 이 글도 이 라인에서 출고됩니다.
+            </div>
+          </div>
+        </div>
+        <div class="cap"><b>가장 raw한 채널.</b> 출고 메모체 단문("오늘 출고 3건. 반응 1위 이거"). 실패·불량도 숫자로 리포트(신뢰 자산). 첫 문장이 훅 전부.</div>
+      </div>
+    </div>
+    <div class="direction">
+      <div class="dir-head"><span class="ic">▣</span> 우리 방향 — Threads</div>
+      <div class="dir-body">
+        <div class="dir-row"><div class="dir-k pattern">① 공통 패턴</div><div class="dir-v">직접 경쟁은 Threads를 <span class="hl">거의 비워둠</span>. 텍스트 우선 채널을 done-for-you 계정이 선점한 사례가 드묾 = 공백.</div></div>
+        <div class="dir-row"><div class="dir-k follow">② 따를 것</div><div class="dir-v">IG에서 검증한 메타 증명·리포트체를 텍스트 네이티브로 그대로 이식.</div></div>
+        <div class="dir-row"><div class="dir-k diff">③ 다르게 갈 것</div><div class="dir-v">경쟁이 비운 채널이므로 <span class="hl">선점 이점</span>이 있다. 얼굴 없는 공장 리포트체는 오히려 Threads의 담백한 텍스트 문화와 궁합이 좋다.</div></div>
+        <div class="dir-row pickrow"><div class="dir-k pick">④ 그래서 우리 선택</div><div class="dir-v">Threads를 <b>우리 페르소나가 가장 선명한 주력 텍스트 채널</b>로 삼는다. 목요일 주간 리포트를 척추로, 데일리 출고 메모를 반복 포맷으로. 경쟁 공백 + 컨셉 궁합 = 여기서 브랜드를 굳힌다.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RECALL -->
+  <div class="recall" id="recall">
+    <h3>⛔ 회수 필요 (회장 확인)</h3>
+    <ol>
+      <li><b>TikTok·Blotato·Postiz 실물 미확보.</b> TikTok은 CAPTCHA로 headless 차단, Blotato·Postiz는 공식 시각 SNS 계정 자체가 없음. TikTok 실물이 꼭 필요하면 로그인된 세션에서 회장이 직접 프로필을 캡처해 주시면 이 자리에 임베드한다. (지금은 지어내지 않고 텍스트 관찰로 대체.)</li>
+      <li><b>영상 채널(TikTok/YouTube) v1 범위 확정.</b> OSMU 파이프라인에 영상 생산 능력이 없어 이 벤치마크는 "프로필 선점만"으로 결론 냈다. "출고 로그 릴스(대시보드 캡처 영상)" 각을 v1에서 테스트할지, 아니면 영상 파이프라인 기획까지 완전 보류할지는 회장 판단.</li>
+      <li><b>기존 IG 계정(2,390 팔로워) 리네임 vs 신규.</b> 우리 프레임에 이 실측치를 썼으나, 구 팔로워의 유입 맥락(사장님 타겟과 결이 맞는지)은 회장만 확인 가능(naming §5). 결이 다르면 신규 개설이 낫다.</li>
+    </ol>
+  </div>
+
+  <div class="foot">
+    SOURCES/MODEL: claude-opus-4-8 (content-growth-marketer) · 스킬 = viral-trend-research(관찰 각도) + browse(경쟁 SNS 실물 캡처)<br>
+    실물 캡처(2026-08-27, headless browse) = instagram.com/opusclip(139K, 성공) · instagram.com/kindagrowth(성공) · tiktok.com/@opusclip·@sabrina_ramonov(CAPTCHA 실패) · instagram.com/blotato(공식 아님·무관 계정) · instagram.com/opus.pro(연령 제한)<br>
+    WebSearch(2026-08-27) = opusclip IG @opusclip 128K·@opus.pro 확인 · Postiz 공식 IG 부재(@postize는 무관) · Blotato = Sabrina Ramonov TikTok 유통(500K/6mo) · 국내 SNS 대행(kindagrowth·azgram·instast) 조사<br>
+    근거 파일 = standards/growth-loop.md §3.0.6.1(Read) · standards/marketing.md·branding.md(Read) · wiki/marketing/competitors.md·naming.md·brand.md · wiki/marketing/channels/instagram.md·threads.md · 기반 포맷 상속 = wiki/marketing/brand-preview.html v1(토큰·phone shell)<br>
+    상표: 경쟁 자산은 비교·논평 목적 캡처. 로고·이미지 재배포/합성/우리 것처럼 사용 금지.<br><br>
+    RUBRIC_SCORE: hook=4/5 detail=5/5 rhythm=4/5 voice=5/5 slop=5/5 total=23/25 (기준=writing.md §2 — 실물 근거 밀도·우리 방향 4단 판단 충족, 블랙리스트 0)<br>
+    WEAKEST_LINE: "출고 로그 영상(대시보드 화면 캡처 릴스)" (TikTok ④) — 얼굴 없이 릴스가 되는 유일 각으로 제시했으나 실제 제작 가능성이 미검증이라 '테스트 후보'로만 예약한 약한 고리.
+  </div>
+
+</div>
+
+<div class="lb" id="lb"><img src="" alt="확대"></div>
+<script>
+  document.getElementById('theme').addEventListener('click',e=>{
+    const t=e.target.closest('button'); if(!t)return;
+    document.body.classList.toggle('light',t.dataset.t==='light');
+    [...e.currentTarget.children].forEach(b=>b.classList.toggle('on',b===t));
+  });
+  const lb=document.getElementById('lb'),lbi=lb.querySelector('img');
+  document.querySelectorAll('img[data-lb]').forEach(im=>im.addEventListener('click',()=>{lbi.src=im.src;lb.classList.add('on');}));
+  lb.addEventListener('click',()=>lb.classList.remove('on'));
+</script>
+</body>
+</html>

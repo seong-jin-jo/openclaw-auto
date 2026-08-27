@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>남성 익명 허구 사연 통제실험</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0b0d10;--card:#17191d;--line:#343840;--ink:#f5f1e8;--muted:#9da3ad;--accent:#ff8e72;--warn:#f2cc60}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 system-ui,-apple-system,sans-serif}main{max-width:1120px;margin:auto;padding:32px 20px 72px}h1{font-size:clamp(28px,5vw,48px);line-height:1.08;margin:0 0 12px}h2{margin-top:36px}.lede{color:var(--muted);max-width:760px}.grid{display:grid;grid-template-columns:minmax(280px,420px) 1fr;gap:24px;align-items:start}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}video{display:block;width:100%;max-height:74vh;border-radius:12px;background:#000}.pill{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:3px 9px;margin:0 6px 8px 0;color:var(--muted)}.warn{color:var(--warn)}code{color:#ffb5a3}a{color:var(--accent)}table{width:100%;border-collapse:collapse}th,td{text-align:left;border-bottom:1px solid var(--line);padding:10px 8px;vertical-align:top}@media(max-width:760px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body><main>
+  <p class="pill">entertainment / male-stories / 허구</p>
+  <h1>차를 빌려줬다.<br>돌아온 건 딱지 세 장이었다.</h1>
+  <p class="lede">실제 제보를 가장하지 않는 익명 허구 사연. 관계의 선의가 돈의 비용으로 바뀌는 순간만 남겼다.</p>
+  <section class="grid">
+    <article class="card">
+      <video controls muted playsinline preload="metadata" src="videos/male-stories-st06-model-kling.mp4"></video>
+      <h2>ST-06 · Kling 3.0</h2>
+      <span class="pill">12 credits</span><span class="pill">720×1280</span><span class="pill">8.042s</span><span class="pill warn">ITERATE 17/25</span>
+    </article>
+    <article class="card">
+      <h2>관찰</h2>
+      <p>열쇠, 차, 고지서의 사건 순서는 무음에서도 읽힌다.</p>
+      <p class="warn">고지서와 주차 배경에 작은 글자와 숫자가 생성됐다. 마지막 표정 변화도 약하다.</p>
+      <h2>다음 단일 변수</h2>
+      <p>결과를 먼저 보여준다. 고지서 세 장에서 열쇠를 빌려준 과거로 되감는다.</p>
+      <p><a href="experiment-report-v1-gpt-codex.md">전체 프롬프트·판정 보고서</a> · <a href="experiment-log.csv">CSV 원장</a></p>
+    </article>
+  </section>
+  <h2>실험 상태</h2>
+  <table><thead><tr><th>모델</th><th>상태</th><th>근거</th></tr></thead><tbody>
+    <tr><td>Kling 3.0</td><td>완료</td><td>잡 <code>194d3400-138f-4d01-997a-97044a164862</code></td></tr>
+    <tr><td>Veo 3.1 Lite</td><td>거절</td><td>동시작업 한도. 과금 0</td></tr>
+    <tr><td>추가 모델</td><td>중단</td><td>free plan 0크레딧. 하한 게이트 발동</td></tr>
+  </tbody></table>
+</main></body></html>

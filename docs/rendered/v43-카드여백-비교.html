@@ -1,0 +1,68 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>v43 카드 여백 판단</title>
+<style>
+body{margin:0;background:#0f1115;color:#e7eaf0;font-family:-apple-system,"Apple SD Gothic Neo",sans-serif;line-height:1.7}
+.w{max-width:1400px;margin:0 auto;padding:44px 24px 90px}
+h1{font-size:28px;margin:0 0 6px}.s{color:#9aa3b2;margin:0 0 28px}
+h2{font-size:19px;margin:38px 0 10px;padding-top:20px;border-top:1px solid #272c37}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:900px){.g{grid-template-columns:1fr}}
+figure{margin:0;background:#171a21;border:1px solid #272c37;border-radius:10px;padding:12px}
+figcaption{font-size:14px;color:#c3cad6;margin-bottom:8px}
+img{width:100%;height:auto;display:block;border-radius:6px}
+.box{background:#1e1b14;border-left:3px solid #c9a04b;padding:13px 17px;border-radius:0 8px 8px 0;margin:16px 0}
+ol{padding-left:20px}li{margin:6px 0;color:#d3d8e2}
+b{color:#fff}
+.pick{background:#171a21;border:1px solid #272c37;border-radius:10px;padding:16px 18px;margin:12px 0}
+.pn{font-size:17px;font-weight:700;color:#fff}
+.rec{font-size:12px;background:#4e8f5f;padding:2px 8px;border-radius:5px;margin-left:8px;vertical-align:middle}
+.pd{color:#c3cad6;font-size:14.5px;margin:6px 0 10px}
+.cp{background:#0d1016;border:1px dashed #3a4560;border-radius:7px;padding:10px 13px;
+ font-family:ui-monospace,Menlo,monospace;font-size:14px;color:#fff;user-select:all;cursor:text}
+</style></head><body><div class="w">
+<h1>v43 카드 여백, 보시고 정해 주십시오</h1>
+<p class="s">제가 텍스트로만 여쭤서 반려됐습니다. 실제 화면을 붙여 놓습니다.</p>
+
+<div class="box">
+<b>무엇이 문제인가.</b> 카드가 세로로 길게 늘어져 있고 <b>내용은 위 삼분의 일에만</b> 있습니다.
+발표 화면처럼 다루라고 하셨는데 화면의 절반이 비어 있습니다.
+</div>
+
+<h2>1440 폭</h2>
+<div class="g">
+<figure><figcaption>라이트</figcaption><img src="../prototype/qa-v43/v43-1440-light.png" alt="1440 라이트"></figure>
+<figure><figcaption>다크</figcaption><img src="../prototype/qa-v43/v43-1440-dark.png" alt="1440 다크"></figure>
+</div>
+
+<h2>1024 폭 · 챗봇 펼친 상태</h2>
+<div class="g">
+<figure><figcaption>라이트</figcaption><img src="../prototype/qa-v43/v43-1024-light.png" alt="1024 라이트"></figure>
+<figure><figcaption>다크 · 챗봇 펼침</figcaption><img src="../prototype/qa-v43/v43-1024-dark-open.png" alt="1024 다크 챗봇 펼침"></figure>
+</div>
+
+<h2>390 폭</h2>
+<div class="g">
+<figure><figcaption>라이트</figcaption><img src="../prototype/qa-v43/v43-390-light.png" alt="390 라이트"></figure>
+<figure><figcaption>다크</figcaption><img src="../prototype/qa-v43/v43-390-dark.png" alt="390 다크"></figure>
+</div>
+
+<h2>고르실 것</h2>
+<div class="box">
+<b>아래 회색 칸의 문장을 그대로 복사해 채팅에 붙여넣으시면 됩니다.</b>
+</div>
+
+<div class="pick"><div class="pn">1. 미리보기를 키운다 <span class="rec">추천</span></div>
+<div class="pd">빈 자리를 실제 결과물 그림으로 채웁니다. 같이 보는 화면의 값이 미리보기에서 나오므로 본래 의도에 맞습니다. 대신 그림을 진짜처럼 만들어야 해서 손이 더 갑니다.</div>
+<div class="cp">카드 여백: 1번. 미리보기를 키워라.</div></div>
+
+<div class="pick"><div class="pn">2. 카드 높이를 내용에 맞춘다</div>
+<div class="pd">빈 자리를 없애고 카드를 짧게 줄입니다. 가장 빠릅니다. 대신 화면 아래쪽이 통째로 비어 남습니다.</div>
+<div class="cp">카드 여백: 2번. 카드 높이를 내용에 맞춰라.</div></div>
+
+<div class="pick"><div class="pn">3. 카드를 여섯 장으로 늘린다</div>
+<div class="pd">빈 자리는 사라지지만 한 화면 한 결정 원칙과 부딪힙니다. 고를 것이 많아지면 오히려 결정이 느려집니다.</div>
+<div class="cp">카드 여백: 3번. 카드를 여섯 장으로 늘려라.</div></div>
+
+<div class="pick"><div class="pn">4. 그대로 둔다</div>
+<div class="pd">지금이 문제 없다고 보시면 넘어갑니다.</div>
+<div class="cp">카드 여백: 4번. 그대로 둬라.</div></div>
+</div></body></html>

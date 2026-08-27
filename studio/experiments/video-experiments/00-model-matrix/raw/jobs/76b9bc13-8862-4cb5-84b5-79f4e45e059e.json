@@ -1,0 +1,28 @@
+{
+  "created_at": "2026-08-13T18:37:55.40745Z",
+  "display_name": "Kling v3.0",
+  "id": "76b9bc13-8862-4cb5-84b5-79f4e45e059e",
+  "job_type": "kling3_0",
+  "min_result_url": null,
+  "params": {
+    "aspect_ratio": "9:16",
+    "cfg_scale": 0.5,
+    "duration": 8,
+    "enhance_prompt": false,
+    "height": 1280,
+    "kling_element_ids": [],
+    "kling_elements": [],
+    "medias": [],
+    "mode": "std",
+    "multi_prompt": [],
+    "multi_shot_mode": "custom",
+    "multi_shots": false,
+    "prompt": "Vertical 9:16 concept-only product demonstration B-roll for a fictional generic silicone cable organizer with no brand. Start with three loose charging cables sliding behind a plain desk. Two hands place a small neutral-gray organizer on the desk edge, press each cable into a slot, then pull and return one cable smoothly. One continuous overhead-to-close-up camera move, realistic home-office light, exact hand-object interaction, no efficacy claim, no text, no logo, no packaging, no captions.",
+    "reference_elements": [],
+    "sound": "off",
+    "width": 720
+  },
+  "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183755_76b9bc13-8862-4cb5-84b5-79f4e45e059e.mp4",
+  "status": "completed",
+  "thumbnail_url": "https://cdn.higgsfield.ai/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183755_76b9bc13-8862-4cb5-84b5-79f4e45e059e_thumbnail.webp"
+}

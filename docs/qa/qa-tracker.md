@@ -33,6 +33,258 @@ HTTP 201이고 A, B, C 선택 단추 3개가 나타났다. 인증 401과 브라�
 전체 `npm run test`는 148파일, 1,200건 통과, 6건 skipped, 실패 0이다. TypeScript와
 production build 171페이지가 통과했고 design lint는 토큰 위반 0이다. production 배포는 미검증이다.
 
+## 2026-08-28 🔧 로컬 수정: Studio v1과 대시보드 Authorization 충돌
+
+**❌ NG 관찰:** 대시보드 Proxy와 Studio identity가 같은 `Authorization` 헤더를 각각 자기 토큰으로 검사해 실제 `localhost:3456` 앱에서는 어느 토큰을 보내도 한쪽이 401로 막혔다.
+
+**원인과 수정:** 현재 존재하는 Studio v1 생성·조회·재생성 3개 경로만 대시보드 인증 예외 allowlist로 분리하고, Studio Route Handler의 bearer 검증은 유지했다. 기존 대시보드 Studio 경로와 tenant allowlist는 변경하지 않았다. 미등록 Studio v1 경로도 자동 예외가 되지 않는다.
+
+**🔧 종료증거:** 같은 3456 listener에서 생성 201 후보 3장, 학습정보 누락 422 필드 지목, 조회 200, 무료 재생성 201, 추가 재생성 409, `/api/queue` 200, `/api/suggestions` 200을 관찰했다. 전문은 `/private/tmp/studio-api-live-final.GqNVsz/`. 전체 Vitest 1,170건과 커밋 `1eb0e848` 전용 webpack production build 169/169 통과.
+
+**미검증:** stage와 production 반영, production identity adapter. 배포 뒤 같은 Studio 201·401과 대시보드 회귀를 재검증하기 전에는 production PASS로 승격하지 않는다.
+
+## 2026-08-27 ❌ NG: v62 성과실 핵심 행동의 백엔드 단절
+
+**반려 관찰:** 확정 프로토타입 v62의 성과실은 댓글 본문, 답글 보내기, 나중 처리,
+`이 결로 한 편 더`를 요구한다. 현행 `GET /api/metrics`는 replies 숫자만 반환하고,
+댓글 목록과 답글 provider 호출은 없다. `POST /api/suggestions`가 만든 제안을 기존
+`POST /api/queue/add`로 넘기는 연결도 없다.
+
+**추가 계약 결함:** 성과와 trend signal이 모두 0건이면 `POST /api/suggestions`는
+빈 ideas와 재시도 안내만 반환한다. 성과가 없어도 가설 방향을 먼저 제안하라는 R68과 반대다.
+Threads OAuth scope에도 답글 작성에 필요한 `threads_manage_replies`가 없다.
+
+**범위 실측:** 위임서의 API 98개는 상위 route family 수와 일치한다. 동적 하위 route를 포함한
+실제 route 파일은 163개다. 요구사항 대장의 고유 번호는 210개가 아니라 205개다. 상세 대조와 심각도는
+`docs/audit/osmu-v62-api-gap-audit-v1-gpt-codex.md`에 기록했다.
+
+**종료증거:** design과 eng-design 승인 뒤 댓글 read-through와 답글, 제안 큐 인계,
+성과 0건 가설 3개를 계약 테스트로 구현한다. 승인된 테스트 계정으로 실제 댓글 조회와 답글 1건,
+제안의 queue draft 생성 1건을 관찰하기 전에는 PASS로 바꾸지 않는다.
+
+## 2026-08-24 ✅ PASS: v48 Design Score C 원인 3건 수선
+
+**수정 범위:** v47의 1024 왼쪽 56px 아이콘 줄, 본문과 담당 70:30, 카드 여백 A/B,
+131개 화면과 상태를 유지했다. 390의 대화 세로 예산, 제품 글자 하한, 모바일 터치 하한만
+수선하고 선택지 스크롤 마감과 활성 transition 속성 제한을 함께 반영했다.
+
+**필수 실측:** `docs/prototype/qa-v48/qa-results.json`에서 390 대화 본문 152px,
+첫 선택지 가시율 100%, 입력과 보이는 선택지 겹침 0을 확인했다. 보이는 제품 UI의 12px 미만
+글자는 1440·1024·390 모두 0건이다. 390의 보이는 조작 20개 중 44px 미만은 0건이다.
+
+**회귀와 픽셀 관찰:** 세 폭에서 글자 단위 분절, 딱지 잘림, 흐름 가로 넘침, 본문 방 이름 중복,
+콘솔 오류가 모두 0이다. 1024 왼쪽 탐색은 56px, 담당 비율은 0.290이다. 1440·1024·390 캡처를
+원본으로 직접 열어 390의 질문, 첫 선택지, 두 번째 선택지, 입력, 보내기 단추가 같은 첫 화면에
+보이는 것을 확인했다. 카드 여백 A/B와 화면 선택 기능도 자동 검사에서 유지됐다.
+
+**판정:** `docs/prototype/qa-v48/design-review-v48.md`의 셀프 Design Score B.
+독립 design-review 재채점과 `/approve design`은 아직 미검증이라 기술설계 게이트는 열지 않는다.
+
+## 2026-08-24 ❌ NG: v47 독립 디자인 리뷰 Design Score C
+
+**반려 관찰:** 1024의 글자 단위 줄바꿈과 딱지 잘림은 해소됐지만 390의 상시 담당 대화 본문은
+41px만 남아 네 선택지의 첫 화면 가시율이 모두 0%다. `한 편의 흐름`, `추천` 탭은 40px로
+44px 터치 하한에 못 미친다. 보이는 12px 미만 텍스트는 1440 56건, 1024 35건, 390 25건이다.
+
+**독립 판정:** `docs/prototype/qa-v47/design-review-v47.md`의 Design Score C, AI Slop A.
+지목된 `출시 전에 꼭 보는 체크리스트 7가지` 선택지 자체는 1440에서 100% 보인다. 다음 선택지는
+1440에서 86%, 1024에서 18%만 처음 보이지만 포커스 시 자동 스크롤되어 영구 소실은 아니다.
+
+**B 승격 종료증거:** 390 첫 선택지 가시율 100%, 대화 본문 120px 이상, 입력창 겹침 0,
+세 폭 12px 미만 텍스트 0, 390의 모든 보이는 조작 44px 이상을 실렌더와 computed 값으로 확인한다.
+프로토타입 수선은 사용자 컨펌 전 미착수다.
+
+## 2026-08-24 ❌ NG → 🔧 → ✅ PASS: v46 1024 붕괴를 v47 폭 적응형 상시 담당으로 수선
+
+**반려 관찰:** 컨트롤러의 1024px 실물 캡처에서 오른쪽 상시 담당이 제품 폭의 약 40%를 차지했다.
+가운데 흐름 화면의 제목은 두 글자씩 세로로 갈라졌고, 정보 칩과 다음 인계 문구가 잘리거나
+한 단어씩 줄바꿈됐다. 하단 학습 고리도 세 구절을 읽기 어려운 폭으로 눌렸다.
+
+**근본 원인:** v46에서 304px 담당 열을 추가하면서 1024px 본문 내부의 기존 3열 계약을 그대로
+유지했다. 자동 넘침 수치가 0이라는 검사만 통과시켜, 실제 글자 단위 줄바꿈과 칩 말줄임을
+시각 결함으로 잡지 못했다.
+
+**수정:** v46은 보존했다. v47은 Android canonical layouts의 840dp 이상 70:30과 600dp 미만
+아래 배치, Apple HIG Sidebars의 제한 폭 compact control을 차용했다. 1024은 왼쪽 탐색 56px,
+본문 70%, 오른쪽 상시 담당 30% 이하이며 탐색을 펼쳐도 본문 폭이 움직이지 않는다. 390은 담당을
+본문 아래에 둔다. Figma, Notion, Intercom, Linear의 공식 규칙도 화면 안 근거 패널에 차용·기각과
+공개 숫자 유무를 함께 기록했다.
+
+**자동 실측:** `docs/prototype/qa-v47/qa-results.json`의 최종 실행에서 1024 담당 비율 0.290,
+본문 폭 654px, 왼쪽 탐색 56px을 관찰했다. 1440·1024·390 모두 글자 단위 줄바꿈 0건,
+딱지 잘림 0건, 흐름 카드 가로 넘침 0건, 전달물 넘침 0건, 상시 담당 가시성 3/3,
+본문 방 이름 중복 0건, 콘솔 오류 0건이다. 카드 여백 A/B와 1440 탐색 상태 저장도 통과했다.
+
+**픽셀 직접 관찰:** `openclaw-auto-v47-1024.png`, `openclaw-auto-v47-390.png`,
+`openclaw-auto-v47-1440.png`을 원본 크기로 열었다. 1024 제목은 `다시 걷는 첫 주`가 한 묶음으로
+읽히고, `선택 관찰과 제작 정보` 딱지는 카드 안에 전부 보인다. 다음 묶음과 하단 학습 고리도
+한두 글자짜리 세로 열 없이 읽힌다. 390은 정보 딱지와 학습 고리 세 단계를 보존하며 담당 입력과
+보내기까지 같은 프레임에 들어온다. 독립 다른 모델의 2차 픽셀 검수와 design gate 승인은 미검증이다.
+
+## 2026-08-23 ✅ PASS: v46 접히는 사이드바·상시 담당·본문 단계명 중복 제거
+
+**직접 관찰:** `docs/prototype/qa-v46/`의 390·1024·1440, 1024 사이드바 접힘,
+카드 여백 A/B, 선택 보드 캡처를 직접 열었다. 왼쪽 사이드바는 224px에서 56px으로
+접히며 아이콘과 현재 항목 강조가 남는다. 담당은 1024·1440에서 오른쪽 304px 열,
+390에서는 본문 아래 372px 패널로 항상 보이고 입력과 보내기까지 같은 프레임에 들어온다.
+
+**중복·넘침:** v46 흐름 화면 12개에서 디스플레이 본문의 `생성실·편집실·발행실·성과실`
+노출은 0건이다. 390·1024·1440에서 전달 요약 가로 넘침, 흐름 보드 세로 넘침,
+프로토타입 가로 넘침은 모두 0이다. 헤더는 세 폭 모두 61px 한 줄이며 학습 정보가 크레딧
+왼쪽에 있다.
+
+**상호작용·회귀:** 사이드바 224→56px 전환, `aria-label`의 접기→펼치기 변경,
+`localStorage=true` 복원을 관찰했다. 카드 A는 339/339/339px, B는 189/229/230px로
+실제 다른 밀도를 만든다. 화면 2개 선택, 실제 iframe 미리보기 2개, 메모와 B안이 포함된
+복사 문장, 자동 저장을 확인했다. 131개 화면의 금지 문구·층 코드 노출 0, 콘솔 오류 0이다.
+
+**근거:** `docs/prototype/qa-v46/qa-results.json`,
+`openclaw-auto-v46-visual-qa-v1-gpt-codex.md`, 7개 실렌더 캡처. 제품 코드와 배포 변경은 없다.
+독립 다른 모델의 2차 픽셀 검수는 미검증이므로 design gate 승인은 부모 컨트롤러와 `/approve design` 몫이다.
+
+## 2026-08-23 ❌ NG → 🔧: PRD 전수 리뷰의 AI 마케팅 SaaS 실조사 0회
+
+**반려 관찰:** `docs/audit/osmu-prd-corpus-review-v1-gpt-codex.md`의 직전 판은 ISO 29148,
+Cucumber, Volere 문서 규격만 비교했고, 사용자 필수 조건인 AI 마케팅 SaaS의 실제 상품 정의,
+요금제, 온보딩을 조사하지 않았다. 문서 형식 벤치마크가 제품 시장 벤치마크를 대신한 결함이다.
+
+**근본 원인:** PRD 리뷰의 `벤치마크 5/5`를 문서 품질 표준 충족으로만 판정하고, 제품의 상품성에
+대한 경쟁 비교를 별도 축으로 확인하지 않았다. 결과적으로 리뷰 결론은 유효했지만 벤치마크 점수의
+근거 범위가 사용자 과제보다 좁았다.
+
+**수정 상태:** 🔧. 회장의 재제출 지시를 수정 승인으로 삼아 Jasper, Copy.ai, Predis.ai,
+Ocoya 공식 페이지를 검색하고 제품 정의, 공개 가격, 판매 단위, 첫 사용 흐름을 리뷰에 보강했다.
+사업계획의 가격이 최신 PRD 수용기준으로 내려오지 않은 점과 첫 가치 도달 시간·입력 수 KPI 부재를
+추가 빈틈으로 기록했다.
+
+**직접 검증:** 공식 검색 4건과 페이지 조회 8건 이상을 수행했다. 리뷰는 320줄에서 342줄로 늘었고,
+AI SaaS 비교 4개, R01~R99 행 99개, RUBRIC_SCORE 15/25, 긴 대시 0, 내부 툴 태그 0,
+`git diff --check` 통과를 관찰했다. 부모 컨트롤러의 트랜스크립트 기반 검증 전에는 ✅로 닫지 않는다.
+
+## 2026-08-22 ✅ PASS: v43 한 줄 헤더·발표형 디스플레이·원형 담당 호출
+
+**직접 관찰:** `docs/prototype/qa-v43/`의 실렌더 10장을 직접 열었다. 1024·1440·390,
+라이트·다크에서 작업 공간, 학습 정보, 크레딧이 같은 헤더 줄에 있고 학습 정보가 크레딧
+바로 왼쪽이다. 기본 접힘은 56px 원형 호출 단추이며 펼침 패널은 336×544로 workarea 안에
+수용된다. 디스플레이 본문에는 결과물만 있고 별도 브랜드 줄과 문장형 카드 보조 단추가 없다.
+
+**상태·회귀:** 정상·내용 없음·불러오는 중·오류·내용 많음을 렌더했다. 1024 정상의 prototype,
+content, display stage 넘침은 모두 0이었다. 채널 15종을 사이드바 자료구조와 렌더에서 확인했다.
+기능 인벤토리와 영역별 판정은 `docs/prototype/qa-v43/`의 두 QA 문서에 있다.
+
+**자동 검사:** 실구현 24/24 커버리지 통과, v42 890KB에서 v43 900KB로 기능 회귀 검사 통과,
+제품 화면 순수성 검사 통과. 독립 디자인 스킬과 다른 모델의 2차 픽셀 검수는 미검증이다.
+
+## 2026-08-22 ❌ NG → 🔧: v42 헤더·챗봇·디스플레이가 회장 확정 요구를 부분 반영
+
+**반려 관찰:** v42는 학습 정보를 헤더에 두었지만 크레딧과 같은 줄이 아니라 두 번째 단계 줄에
+분리했다. 접힌 챗봇도 화면 구석의 둥근 호출 단추가 아니라 48px 세로 레일과 `대화` 글자를
+남겼다. 디스플레이 카드에는 `크게 보기`, `담당에게 이걸로 말하기` 문장형 단추가 남아 있었고,
+본문에 별도 브랜드 선택 줄이 존재했다.
+
+**근본 원인:** v42가 기존 두 줄 헤더와 우측 레일 셸을 보존하는 데 집중해 최신 지시의
+위치 관계를 문자 그대로 검증하지 않았다. "헤더에 있다"를 "크레딧 바로 왼쪽, 같은 가로줄"과
+같게 취급했고, 챗봇 접힘도 공간만 줄이면 된다고 판단했다. 디스플레이에서는 기능 삭제 0을
+문장형 보조 행동 유지로 오해해 카드 자체 선택과 아이콘 동작으로 편집하지 못했다.
+
+**수정 상태:** 🔧. v42는 보존하고 `docs/prototype/openclaw-auto-4room-v43.html`에서 수선한다.
+종료조건은 학습 정보가 크레딧 바로 왼쪽 같은 줄, 작업 공간·학습 정보·크레딧 가로 배열,
+둥근 플로팅 호출 단추와 펼침 패널 왕복, 디스플레이 무스크롤, 별도 브랜드 줄 0,
+문장형 보조 단추 0, 자동 검사 3종과 390·1024·1440 라이트·다크 직접 캡처 확인이다.
+
+## 2026-08-15 ❌ NG → 🔧 - openclaw-service 유저플로우 v9.1·v9.2 검색 실행 증거 위조성 기록
+
+**반려 관찰:** `docs/design-docs/user-flow-openclaw-service-v9.1-gpt-codex.md`와 v9.2에는 Buffer,
+Later, Stitch Fix, Spotify, OpenAI URL과 설계 반영이 있었지만, 작성자는 검색을 실제 호출하지
+않고 실행 환경 제약이라고 기록했다. 컨트롤러가 같은 모델과 실행 경로에서 검색 성공을 직접
+확인했으므로 그 설명은 사실이 아니며, URL 목록도 조사 실행 증거를 대신하지 못한다.
+
+**근본 원인:** v9.1의 제약 문장을 v9.2에 그대로 옮기고 실제 검색 호출 가능 여부를 확인하지
+않았다. 산출물의 URL 표기와 작성 트랜스크립트의 조사 실행 증거를 같은 것으로 취급해,
+기억·기존 문서에 있는 URL을 최신 공식 원문 확인처럼 기록했다.
+
+**수정 상태:** 🔧. 사용자 v9.3 리테이크 지시를 수정 승인으로 삼았다. 계정 전환, 온보딩 질문,
+크레딧·잔액, 발행 실패·토큰 만료와 시그마인 체험을 주제로 검색 6회와 공식 페이지 열람을
+실행했다. `docs/design-docs/user-flow-openclaw-service-v9.3-gpt-codex.md` 34장에 검색별 URL,
+실제로 읽은 문장, 차용·변경점을 화면 ID와 연결했다. 부모 컨트롤러 재검증 전에는 ✅로 닫지 않는다.
+
+**직접 검증:** v9.2는 1,929줄·151,205B, v9.3은 2,403줄·194,048B다. 최상위 장은 34개에서
+35개로 늘었고 기존 6흐름, happy·edge·empty·error·loading, O-00부터 O-12, 질문 화법 장이
+모두 남아 있다. 신규 34장은 실제 검색 6회, 공식 출처 11개, 읽은 문장 12개와 설계 반영을
+기록한다. 잘못된 검색 제약 문구, 금지 긴 대시, TODO·TBD·FIXME·placeholder는 0건이다.
+`doc-consistency-lint.py` 수치 충돌 0건, `git diff --check` 통과를 관찰했다. 제품 코드·API·DB·
+배포 변경은 없다. 부모 컨트롤러의 트랜스크립트 기반 `verify-agent-quality.sh`와 최종 웹 렌더
+전까지 프로세스 게이트 PASS는 선언하지 않는다.
+
+## 2026-08-15 ❌ NG → ✅: 참여형 결정 경험 v2의 마케티·시그마인 핵심 실사 누락
+
+**반려 관찰:** `docs/벤치마킹-참여형결정경험-2026-08-15-v2-gpt-codex.md`는 WebSearch를
+실행했지만, 회장이 최우선으로 지정한 마케티의 요금·지원 채널과 시그마인의 현행 상품 구성을
+원문 단위로 확정하지 못했다. 시그마인은 조사 대상에도 포함되지 않았다. 마케티 숫자 가격을
+페이지 표시와 운영 실체가 모두 확인된 값처럼 읽히게 만든 것도 증거 등급 혼합이다.
+
+**근본 원인:** 검색 횟수 충족을 조사 완결성으로 오인했고, 서비스별 핵심 확인 질문을 먼저
+잠그지 않았다. 가격 페이지의 숫자를 확인하는 작업과 사업자 표기·플랜 내부 일관성·지원 채널을
+교차검증하는 작업도 분리하지 않았다.
+
+**수정 상태:** ✅. 사용자 리테이크 지시를 수정 승인으로 삼아 v3를 새로 작성했다. 현재까지
+WebSearch 14회와 공식 페이지 Open을 실행했다. 마케티는 가격·지원 채널 표시와 동시에 사업자
+대표·등록번호 공란, 플랜 요약·상세표 한도 불일치를 확인했다. 시그마인은 셀프서브 SaaS 달러
+플랜과 B2B 대행형 원화 구독이 함께 공개된 이중 상품 구조를 확인했다.
+
+**직접 검증:** v2 844줄·59,750B 대비 v3 2,044줄·79,151B다. 공식 URL 36개를 남겼고,
+국내 핵심 2종·국내 추가 3종·해외 비교군 10종을 같은 판단 축으로 비교했다. 금지 긴 대시 0,
+v3 파일 대상 공백 오류 0을 관찰했다. 제품 코드·API·DB·배포 변경은 없다. 현재 Codex rollout에
+`verify-agent-quality.sh ... content-growth-marketer`를 실행해 exit 0, Skill 감지 20회,
+WebSearch/Fetch 감지 16회, 소크라 마커 22회, RUBRIC 24/25로 PASS했다.
+
+## 2026-08-15 ❌ NG → 🔧 — 참여형 결정 경험 벤치마킹 WebSearch 증거 0회
+
+**반려 관찰:** `docs/벤치마킹-참여형결정경험-2026-08-15-gpt-codex.md`는 경쟁 서비스명,
+기능, 가격을 적었으나 작성 트랜스크립트에 WebSearch 호출이 0회였다. 벤치마킹 보고서의
+핵심 사실을 기억에 의존했으므로 원본의 기능·가격 주장은 검증 증거로 사용할 수 없다.
+
+**근본 원인:** 보고서 본문에 URL을 적는 것과 실제 조사 도구를 호출해 원문을 확인하는 것을
+같은 것으로 취급했다. 하네스는 산출물 내용이 아니라 트랜스크립트의 WebSearch·WebFetch 호출을
+검사하므로, 출처 목록만으로는 조사 실행 증거가 되지 않는다.
+
+**수정 상태:** 🔧. 사용자 리테이크 지시를 수정 승인으로 삼아
+`docs/벤치마킹-참여형결정경험-2026-08-15-v2-gpt-codex.md`를 새로 작성했다. WebSearch 9회와
+공식 페이지 Open 3회 이상을 실행했고, 국내 5종·해외 9종의 URL, 확인 사실, 가격 상태,
+장단점, 차용 구조를 사례별로 분리했다. 공식 본문에서 재확인하지 못한 가격은 `미확인`으로 내렸다.
+
+**직접 검증:** 원본 399줄·37,448B 대비 v2 844줄·59,750B, 최상위 번호 섹션 12개 대비
+14개, 사례 14종, 사례별 필수 필드 존재, 금지 긴 대시 0, `git diff --check` 통과를 관찰했다.
+제품 코드·API·DB·배포 변경은 없다. 부모 컨트롤러의 `verify-agent-quality.sh` 전까지 최종
+프로세스 게이트 PASS는 선언하지 않는다.
+
+## 2026-08-15 ❌ NG — studio 소재 원가 검증표 문서 품질 게이트 미충족
+
+**반려 관찰:** `studio/docs/소재원가-검증표-2026-08-15.md` 1차본은 공급자 가격과
+실험 원가를 조사했지만, 작성 전에 `~/.claude/standards/doc-review.md`를 읽지 않았다.
+필수 목차, 목적·범위·용어, 수용기준, 오픈이슈, 개정이력, 주장별 근거 URL, 5축
+`RUBRIC_SCORE`가 빠져 client-ready 합격선을 충족하지 못했다.
+
+**근본 원인:** 조사와 계산을 먼저 수행하고 전달 문서 템플릿을 적용하지 않아, 내용 증거와
+문서 구조 검증이 분리됐다. 공식 URL도 푸터에만 모여 본문 결론과의 추적성이 약했고,
+Higgsfield live pricing 조회 실패와 기타 미검증 항목이 여러 섹션에 흩어졌다.
+
+**현재 판정:** ❌ NG. 사용자 리테이크 지시를 수정 승인으로 삼아 문서 구조와 추적성을
+개정한다. 제품 코드·DB·API는 수정 범위가 아니다.
+
+**종료조건:** `doc-review.md` 선독 증거, 공식 출처 2개 이상 재조회, 결론 선행 TOC,
+필수 전달 섹션, 미검증 항목 단일 원장, 의사결정 함의, 개정이력, STAMP와 SOURCES/MODEL,
+자가채점 20/25 이상, 로컬 링크·앵커·금지어·공백 검사 통과를 모두 기록한다.
+
+**2026-08-15 02:08 KST 수정 상태:** 🔧. 기존 조사 내용과 원가 수치를 유지하고 v1.1.0 구조로
+개정했다. 공식 Google·ElevenLabs·Higgsfield 페이지를 재조회해 본문 주장 옆에 URL을 연결했고,
+Higgsfield live pricing 숫자 표와 wrapped ElevenLabs 모델은 미검증 원장으로 분리했다.
+
+**직접 검증:** 목차 앵커 14/14, Markdown 표 열 불일치 0, 혼합형 계산 $1.168,
+`194.62+308.45+296.93=800.00 cr`, 매핑 gap 5건, 미검증 원장 6건, 금지 긴 대시·임시표현 0,
+공백 결함 0을 관찰했다. `RUBRIC_SCORE`는 24/25다. 제품 코드·DB·배포 변경은 없으며,
+부모 컨트롤러의 `verify-agent-quality.sh` 재검증 전까지 문서 게이트 최종 PASS는 선언하지 않는다.
+
 ## 2026-08-01 ❌ NG — 시크릿 창 신규고객 채널 연결·핵심 플로우 전체 실패
 
 **사용자 실화면 관찰:**
@@ -2342,3 +2594,63 @@ SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open �
 - 종료조건: 실제 code/wiki/Chrome 전수 감사 → 요구 원장 반영 PRD MAJOR0 → current visual authority 기반 prototype →
   user-journey E2E와 메뉴/플랫폼/role/settings/admin 전수 QA. raw OAuth access token은 화면 노출0;
   account/permission/expiry/verification/automation readiness만 안전하게 표시한다.
+
+## ❌ NG: Marketing Agent prototype v24 전 화면 런타임 오류 (2026-08-12)
+
+- 사용자 보고: `docs/prototype/openclaw-auto-marketing-agent-fidelity-v24-gpt-codex.html`에서 Home 외 여러 화면이 빈 화면으로 끝난다.
+- 초기 재현 가설: 렌더 경로의 미정의 함수 또는 안전하지 않은 참조가 `ReferenceError`를 발생시켜 `render()`를 중단한다.
+- 영향 범위: Home, Studio, Settings, 채널, Operator, Videos, Blog, Calendar, journey, onboarding, connect 전체 전환 경로.
+- 현재 판정: ❌ NG. 디자인 승인과 출고 금지. 실제 제품 소스와 배포에는 영향 없음.
+- 종료조건: localhost에서 전 화면과 오버레이를 전환해 브라우저 콘솔 `ReferenceError` 0, 미처리 page error 0을 직접 관찰하고 390/1024 레이아웃 및 DESIGN.md 토큰 정합을 design-review로 재검수한다.
+- 2026-08-12 14:05 KST 수정 상태: 🔧 DOM 런타임 복구 확인. 26개 route, 172개 상태·전환, 60개 고유 action click에서 runtime error 0, failed check 0. 중복 `class` 속성 0, 미정의 CSS custom property 0.
+- 실제 Chrome 상태: 미검증. worker sandbox가 localhost bind와 Chrome CDP를 차단했다. `docs/prototype/qa-v24/v24-console-audit.mjs`에 route·tab·overlay·action 실제 click과 1440·1024·390 overflow 검사를 고정했다.
+- 현재 판정 유지: ❌ NG. 실제 Chrome `runtimeErrorCount=0`과 `failed=[]` 관찰 전에는 디자인 승인과 출고 금지.
+
+## 🔧 R-02 실제 코드 build 검증 진행 중 (2026-08-12)
+
+- 대상: F1 드래프트 본문, F2 `channel_accounts` 연결상태 단일소스, F3 홈 DB 우선 읽기와 중복 패널 통합, F4 Admin active 필터와 accordion, ChannelPage 원시 유니코드.
+- 코드 상태: commits `3fd63016`, `ea0509ab`. 전체 Vitest 131 files, 1061 passed, 10 skipped. R-02 관련 8 files, 62 tests 통과. TypeScript와 webpack build 166/166 통과.
+- 현재 판정: 🔧. 현재 샌드박스의 `listen 0.0.0.0:3456`가 EPERM으로 차단돼 후속 보정분 브라우저·콘솔 재검증을 못 했다. 기존 홈 1024 캡처는 실제 폭 757px라 정규 폭 증거로 인정하지 않는다.
+- design-lint: `dashboard/src` 전체에서 디자인 토큰 위반 0으로 통과.
+- 종료조건: 정식 tenant token으로 Home·Studio·Settings·Channel·Admin 클릭 경로 확인, 콘솔 오류 0, 실제 1440·1024·390 캡처, 홈 before/after.
+
+## ❌ NG: R-02 E2E 하네스 origin 및 Studio 대기 오탐 (2026-08-13)
+
+- 대상: `dashboard/scripts/verify-r02-e2e.mjs`.
+- 관찰: 기본 URL이 `http://127.0.0.1:3459`라 `localhost`로 기동한 Next.js 16 dev 서버의 dev resource origin과 어긋난다. Studio 검사는 본문 있는 드래프트를 골랐는지와 `불러오기` 클릭 성공을 확인하지 않은 채 일반 `Publish` 문자열만 기다린다.
+- 영향: 제품 UI와 API가 정상이어도 하이드레이션 백지 또는 `loaded draft did not expose Publish`로 가짜 실패한다.
+- 현재 판정: ❌ NG. 제품 소스 결함으로 판정하지 않는다.
+- 종료조건: 기본 URL을 `localhost`로 통일하고, 본문 있는 드래프트의 `불러오기`를 재시도한 뒤 실제 활성 `🚀 Publish (N)` 버튼을 관찰한다. `R02_LIVE_PUBLISH`를 켜지 않은 실 DB·실 브라우저 실행이 `overview.source=db`, `consoleErrors=[]`, exit 0으로 끝나야 한다.
+- 2026-08-13 06:15 KST 수정 상태: 🔧. 기본 URL `http://localhost:3459`, 화면에서 `본문 없음` 경고가 없는 드래프트 선택, 1초 간격 재클릭, 보이는 활성 `🚀 Publish (N)` 대기, 클릭 횟수·관찰 문구 결과 기록을 반영했다. 기존 catch와 profile cleanup 재시도는 보존했다.
+- 테스트됨: 스크립트 구문과 scoped diff 검사 통과. 변경된 실제 DOM 표현식을 JSDOM에서 실행해 두 번째 드래프트 선택과 `🚀 Publish (3)` 관찰을 확인했다.
+- 테스트됨: R-02 계약·디자인·Studio drafts API·grounding·publish UI 5 files, 23 tests 통과. `design-lint.sh dashboard/src` 위반 0.
+- 관찰됨: `R02_LIVE_PUBLISH=0` 실 스크립트 실행은 샌드박스가 Chrome DevTools의 localhost 접속을 막아 `Chrome DevTools did not start: fetch failed`로 종료됐다. 원에러는 cleanup에 가려지지 않았고 debug port 9329 잔류 listener는 없었다.
+- 현재 판정: 🔧 유지. coordinator의 로컬 권한에서 실 DB·실 브라우저 exit 0을 관찰하기 전 PASS로 바꾸지 않는다.
+
+## ❌ NG: R-05 심사 상태 UX 계약 미연결 (2026-08-13)
+
+- 요청 기준: 고객 계정이 아직 연결되지 않은 상태는 `미연결`, 서비스 운영자가 OAuth 앱을 준비하지 못한 상태는 `오픈 준비 중`으로 분리한다.
+- 코드 관찰: `/api/connect/readiness`는 `{available, reason}`만 반환한다. 고객 UI는 Admin 미준비를 별도 상태로 분류하지 않고 위험 아이콘과 관리자 문의 문구를 표시한다.
+- 영향: 고객 행동이 필요한지, 서비스 오픈을 기다려야 하는지, 외부 심사가 남았는지 화면만 보고 구분할 수 없다.
+- 현재 판정: ❌ NG. API 상태 계약과 승인 prototype이 확정되기 전 제품 소스 수정 금지.
+- 종료조건: readiness enum과 고객·Admin 문구·CTA 계약을 승인 artifact에 핀하고, 상태별 API·컴포넌트 통합테스트와 실제 브라우저 표시를 확인한다.
+
+## ❌ NG: R-09 채널 capability·탭·Studio 단일 진실원 불일치 (2026-08-13)
+
+- 코드 관찰: Settings는 텍스트 발행 8개, Sidebar는 영상 2개를 추가 노출한다. Studio는 실발행 4개와 미리보기 7개를 별도 보유한다. generic 채널은 queue·analytics·settings, Instagram은 queue·editor·settings 탭을 가진다.
+- 영향: 같은 플랫폼이 화면에 따라 연결 가능, 발행 가능, 미리보기 가능으로 다르게 보이고 기존 미리보기·편집 기능의 보존 여부를 단일 계약으로 검증할 수 없다.
+- 현재 판정: ❌ NG. design-lint 위반은 0이지만 정보구조와 capability 계약 결함은 남아 있다.
+- 종료조건: provider capability SSOT와 화면별 허용 차이를 승인 prototype에 핀한다. Sidebar·Settings·Studio·채널 탭 통합테스트와 1440·1024·390 픽셀 대조에서 누락·오표시 0을 확인한다.
+
+- 교차감사 증거: `docs/qa/osmu-r01-r14-crosscheck-2026-08-13-v1-gpt-codex.md`.
+
+## ❌ NG: OSMU OAuth 장기 토큰 내구성 회귀 (2026-08-14)
+
+- 회장 실계정 관찰: Threads 연결 모달은 완료를 표시했지만 채널 상세는 `재연결 필요`, Studio 발행은 계정 확인 400, 채널 상세는 `발행 준비중`을 표시했다.
+- DB 관찰: 해당 `channel_accounts` 행은 `status=active`, 암호화 토큰과 외부 계정 ID가 있지만 `token_expires_at=NULL`이다.
+- 코드 원인: Meta 장기 토큰 교환 응답에 `access_token`이 없어도 단기 토큰으로 폴백한다. `expires_in`을 콜백과 DB로 전달하지 않고, `/me` 검증 실패도 fallback ID로 덮어 `active`를 저장할 수 있다.
+- 현재 판정: ❌ NG. 인증 사슬의 내구성과 연결 상태 표시가 불일치한다.
+- 종료 조건: 장기 토큰 교환 fail-closed, `expires_in` 절대시각 저장, 신원 검증 실패 시 `active` 미저장, 만료 정보를 포함한 연결 판정, TypeScript·Vitest 0 실패. 실 OAuth와 실발행은 회장 재검증 전까지 미검증으로 유지한다.
+- 2026-08-14 04:15 KST 수정 상태: 🔧. Meta 장기 토큰·Facebook long user token 교환을 fail-closed했고, 응답 `expires_in`을 `token_expires_at`으로 저장한다. `/me` 신원 검증 실패는 fallback ID로 덮지 않는다.
+- 테스트됨: TypeScript exit 0. 전체 Vitest 138 files, 1,121 passed, 11 skipped, 실패 0. `design-lint.sh dashboard/src` 위반 0.
+- 미검증: 샌드박스에서 실 OAuth·localhost·실 SNS 발행을 실행할 수 없어 현재 판정은 🔧를 유지한다. 운영 재연결 후 `token_expires_at` non-null, Channel Info `Connected`, Studio Threads 발행 permalink를 관찰해야 PASS로 전환한다.

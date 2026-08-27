@@ -1,6 +1,7 @@
 # OSMU v1 External Setup Runbook
 
 > 2026-07-16 운영 출시 차단 설정. 비밀값은 문서에 기록하지 않는다.
+> 갱신 2026-08-28: §5 계정 이름을 ADR-005/naming.md 확정값(표시 이름 "OSMU 팩토리", 핸들 2순위 @osmu.factory)으로 정정. 구 "오스무 비서"/@osmu.secretary는 2026-07-16 워딩 전환으로 폐기됐다.
 
 ## 1. Google OAuth
 
@@ -57,8 +58,8 @@
 ## 5. Instagram and Threads
 
 1. Instagram 프로필 -> `프로필 편집`에서 다음을 설정한다.
-   - 표시 이름: `오스무 비서 (OSMU)`
-   - 사용자 이름: `osmu.official`, 불가하면 `osmu.secretary`
+   - 표시 이름: `OSMU 팩토리`
+   - 사용자 이름: `osmu.official`, 불가하면 `osmu.factory`
    - 프로필 이미지: `scratchpad/osmu-launch-assets/profile-osmu-v1.png`
    - 소개: `wiki/marketing/launch-pack-2026-07-16.md`의 `Instagram Bio`
 2. Threads 프로필 -> `프로필 편집`에서 같은 이름/이미지를 확인하고 해당 문서의 `Threads Bio`를 입력한다.

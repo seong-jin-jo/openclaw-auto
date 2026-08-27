@@ -1,0 +1,14 @@
+# v53 릴레이 계약 — 회장 확정 요구를 기계로 검사한다. 릴레이 전 반드시 통과시킨다.
+# 사용: bash ~/.claude/harness/bin/relay-contract-check.sh docs/prototype/openclaw-auto-4room-v53.html docs/prototype/contracts/v53.tsv
+ABSENT	제목과 캡션
+ABSENT	선택 기록
+ABSENT	이 화면으로 후보 만들기
+ABSENT	고해상도 만들기
+ABSENT	이번에 추가
+ABSENT	생성 결과
+ABSENT	예상값입니다
+ABSENT	소리 편집
+PRESENT	학습 정보
+INHERIT	dashboard/src/components/studio/PlatformPreview.tsx	PREVIEW_PLATFORMS	tiktok
+INHERIT	dashboard/src/app/login/page.tsx	export	로그인
+INHERIT	dashboard/src/components/settings/ChannelsSettings.tsx	export	채널 연결
