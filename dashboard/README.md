@@ -15,6 +15,13 @@ npm run dev          # http://localhost:3000
 - `DASHBOARD_AUTH_TOKEN` — 인증 토큰 (미설정 시 인증 비활성화)
 - `PORT` — 서버 포트
 
+Studio v1 로컬 개발 인증은 대시보드 로그인과 독립된 아래 이름을 사용한다. 실제 값은 이 문서나 저장소에 기록하지 않는다.
+
+- `STUDIO_IDENTITY_MODE` (`development`일 때만 개발 어댑터 활성)
+- `STUDIO_DEV_BEARER_TOKEN`
+- `STUDIO_DEV_MEMBER_ID`
+- `STUDIO_DEV_WORKSPACE_IDS` (쉼표로 구분한 UUID 목록)
+
 ## 빌드 & 배포
 
 ```bash
