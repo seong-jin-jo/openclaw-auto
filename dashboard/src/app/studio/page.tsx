@@ -12,7 +12,7 @@ import {
 } from "@/lib/api";
 import { useToast } from "@/components/layout/Toast";
 import { PlatformPreview, PREVIEW_PLATFORMS, type PreviewInlineEditor, type PreviewPlatform } from "@/components/studio/PlatformPreview";
-import { CreateRoom, EditRoom } from "@/components/studio/StudioRooms";
+import { CreateRoom, EditRoom, type CreateContentBranch, type EditContentKind } from "@/components/studio/StudioRooms";
 import type { StudioGenerationCandidate } from "@/lib/studio/generation/client";
 import { useUIStore, type StudioRoom } from "@/store/ui-store";
 import { BrandSetupWizard } from "@/components/shared/BrandSetupWizard";
@@ -148,6 +148,8 @@ export default function StudioPage() {
   const [publishChatDraft, setPublishChatDraft] = useState("");
   const [editLines, setEditLines] = useState<string[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<StudioGenerationCandidate | null>(null);
+  const [createBranch, setCreateBranch] = useState<CreateContentBranch>("video");
+  const [editKind, setEditKind] = useState<EditContentKind>("video");
   const [editing, setEditing] = useState<PreviewPlatform | null>(null);
   const [showTx, setShowTx] = useState(false);
   const { data: tx } = useSWR<{ items?: Array<{ display_name?: string; credits?: number; action?: string; created_at?: string; output?: string | null; outputKind?: string | null }> }>(
@@ -230,14 +232,16 @@ export default function StudioPage() {
         setPublishReconciliation(w.publishReconciliation || null);
         setDisplayNames(w.displayNames || {}); setTitles(w.titles || {}); setHashtags(w.hashtags || {});
         setFirstComments(w.firstComments || {}); setEditLines(w.editLines || []); setReviewQueueId(w.reviewQueueId || null);
+        if (w.createBranch === "video" || w.createBranch === "text_image") setCreateBranch(w.createBranch);
+        if (w.editKind === "video" || w.editKind === "card" || w.editKind === "audio") setEditKind(w.editKind);
       }
     } catch { /* noop */ }
     setHydrated(true);
   }, []);
   useEffect(() => {
     if (!hydrated) return; // 첫 렌더(복원 전) 빈 상태로 덮어쓰기 방지
-    try { localStorage.setItem("studio_work", JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliation, displayNames, titles, hashtags, firstComments, editLines, reviewQueueId })); } catch { /* noop */ }
-  }, [hydrated, idea, text, img, vid, includes, draftId, publishReconciliation, displayNames, titles, hashtags, firstComments, editLines, reviewQueueId]);
+    try { localStorage.setItem("studio_work", JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliation, displayNames, titles, hashtags, firstComments, editLines, reviewQueueId, createBranch, editKind })); } catch { /* noop */ }
+  }, [hydrated, idea, text, img, vid, includes, draftId, publishReconciliation, displayNames, titles, hashtags, firstComments, editLines, reviewQueueId, createBranch, editKind]);
 
   const media = { imgUrl: img?.file, vidUrl: vid?.file };
   const upText = (patch: Partial<TextVariants>) => setText((p) => ({ ...(p || {}), ...patch }));
@@ -485,6 +489,7 @@ export default function StudioPage() {
       shorts: { hook: candidate.title, body: candidate.format.outline.join("\n"), cta: candidate.rationale },
     });
     setEditLines([candidate.title, ...candidate.format.outline, candidate.rationale]);
+    setEditKind(candidate.format.content_branch === "video" ? "video" : "card");
   }
 
   function updatePreviewCaption(platform: PreviewPlatform, value: string) {
@@ -574,6 +579,11 @@ export default function StudioPage() {
       <span className="rounded-full bg-accent-soft px-stack py-stack-tight text-caption font-semibold text-accent">
         {activeRoom === "create" ? "생성실" : activeRoom === "edit" ? "편집실" : "발행실"}
       </span>
+      {activeRoom === "create" || activeRoom === "edit" ? (
+        <span className="rounded-full border border-accent/30 bg-surface px-stack py-stack-tight text-caption font-semibold text-accent" data-kind-board>
+          지금 만드는 것: {activeRoom === "create" ? createBranch === "video" ? "영상" : "글·카드뉴스" : editKind === "video" ? "영상" : editKind === "card" ? "카드뉴스" : "음악"}
+        </span>
+      ) : null}
       <span className="rounded-lg border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle" title={engine?.error || engine?.model || ""}>AI {engine?.label || "확인 중"}</span>
       {showWorks ? (
         <div id="studio-work-overview" className="absolute left-0 right-0 top-full z-20 mt-stack grid gap-stack rounded-xl border border-border bg-surface p-pad-inset shadow-lg md:grid-cols-4">
@@ -592,7 +602,18 @@ export default function StudioPage() {
     <div className="px-stack-section py-pad-inset">
       {showWizard && activeWorkspace ? <BrandSetupWizard workspace={activeWorkspace} onComplete={() => { setShowWizard(false); mutateBrand(); showToast("브랜드 가이드 저장됨"); }} onDismiss={() => setShowWizard(false)} /> : null}
       {roomHeader}
-      <CreateRoom workspaceId={activeWorkspace?.id} workspaceName={activeWorkspace?.name} guide={guide} topic={idea} onTopicChange={setIdea} onOpenLearning={() => setShowWizard(true)} onCandidateSelect={chooseCandidate} />
+      <CreateRoom
+        workspaceId={activeWorkspace?.id}
+        workspaceName={activeWorkspace?.name}
+        guide={guide}
+        topic={idea}
+        contentBranch={createBranch}
+        onContentBranchChange={setCreateBranch}
+        onTopicChange={setIdea}
+        onOpenLearning={() => setShowWizard(true)}
+        onCandidateSelect={chooseCandidate}
+        onOpenEditor={() => changeRoom("edit")}
+      />
     </div>
   );
 
@@ -602,6 +623,8 @@ export default function StudioPage() {
       <EditRoom
         lines={editLines.length ? editLines : [text?.shorts?.hook || "", text?.shorts?.body || "", text?.shorts?.cta || ""]}
         onLinesChange={setEditLines}
+        kind={editKind}
+        previewReady={editKind === "video" ? Boolean(vid?.file) : editKind === "card" ? Boolean(img?.file) : false}
         commandPanel={activeWorkspace ? <StudioCommandPanel
           workspaceId={activeWorkspace.id}
           draftId={draftId}
@@ -612,6 +635,7 @@ export default function StudioPage() {
           editorLines={editLines}
           source={{ generationId: selectedCandidate?.generation_id, candidateId: selectedCandidate?.candidate_id }}
           initialHandoff={editorHandoff}
+          onKindSelect={(kind) => setEditKind(kind === "video" ? "video" : kind === "audio" ? "audio" : "card")}
           onDraftId={setDraftId}
           onHandoff={setEditorHandoff}
           onQueueChanged={() => mutateHist()}

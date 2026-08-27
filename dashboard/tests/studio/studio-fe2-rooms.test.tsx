@@ -58,6 +58,33 @@ describe("화면 2차 생성실 계약", () => {
     expect(screen.getByRole("complementary", { name: "생성 담당 대화창" })).toBeInTheDocument();
   });
 
+  it("FE6-CREATE-01 정상: 디스플레이는 읽기 전용이고 선택 단추는 대화창에만 둔다", () => {
+    render(<CreateRoom workspaceId="workspace" workspaceName="작업 공간" guide="브랜드 사실" topic="주제" onTopicChange={vi.fn()} onOpenLearning={vi.fn()} onCandidateSelect={vi.fn()} />);
+
+    const display = document.querySelector('[data-display-readonly="create"]');
+    expect(display).toBeInTheDocument();
+    expect(display?.querySelectorAll("button")).toHaveLength(0);
+    expect(screen.getByRole("complementary", { name: "생성 담당 대화창" })).toHaveTextContent("만들 종류");
+  });
+
+  it("FE6-CREATE-02 정상: 영상 선택은 대화창에서 생성 계약으로 전달한다", async () => {
+    sessionStorage.setItem("studio_generation_token", "studio-token");
+    sessionStorage.setItem("studio_skill_version_id", "22222222-2222-4222-8222-222222222222");
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ data: { job_id: "job-1", candidates: [] } }, { status: 201 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const onBranchChange = vi.fn();
+    render(<CreateRoom workspaceId="workspace" workspaceName="작업 공간" guide="브랜드 사실" topic="주제" contentBranch="video" onContentBranchChange={onBranchChange} onTopicChange={vi.fn()} onOpenLearning={vi.fn()} onCandidateSelect={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText("목적"), { target: { value: "운영 시간을 줄인다" } });
+    fireEvent.change(screen.getByLabelText("대상"), { target: { value: "1인 사업가" } });
+    fireEvent.click(screen.getByLabelText("소재 권리를 확인했습니다"));
+    fireEvent.click(screen.getByRole("button", { name: "후보 세 장 만들기" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const [, request] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(request.body)).learning_context.u3.content_branch).toBe("video");
+  });
+
   it("FE2-CREATE-02 거절: 소재 권리 미확인 입력은 네트워크 호출 전에 막는다", () => {
     expect(() => buildStudioGenerationRequest({ ...VALID_INPUT, materialRightsConfirmed: false })).toThrow("소재 권리 확인이 필요합니다");
   });
@@ -122,5 +149,37 @@ describe("화면 2차 편집실 계약", () => {
     render(<EditRoom lines={["첫 줄", "둘째 줄"]} onLinesChange={vi.fn()} />);
     const top = document.querySelector('[data-room-top="edit"]');
     expect(top).toHaveTextContent("2개 장면");
+  });
+
+  it("FE6-EDIT-01 정상: 영상 목차와 아이콘 도구 뒤에 대사를 항상 배치한다", () => {
+    render(<EditRoom lines={["첫 줄", "둘째 줄"]} onLinesChange={vi.fn()} kind="video" />);
+    const outline = document.querySelector("[data-edit-outline]");
+    const stage = document.querySelector("[data-edit-stage]");
+    const tools = document.querySelector("[data-edit-tools]");
+    const script = document.querySelector("[data-edit-script]");
+
+    expect(outline).toHaveAttribute("aria-label", "영상 목차");
+    expect(screen.getAllByRole("button", { name: /도구$/ })).toHaveLength(4);
+    expect(stage!.compareDocumentPosition(script as Node) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(tools!.compareDocumentPosition(script as Node) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("FE6-EDIT-02 정상: 대사를 빼거나 되살리면 장면 수와 길이가 함께 바뀐다", () => {
+    render(<EditRoom lines={["첫 줄", "둘째 줄", "셋째 줄"]} onLinesChange={vi.fn()} kind="video" />);
+    expect(document.querySelector("[data-edit-duration]")).toHaveTextContent("12초");
+
+    fireEvent.click(screen.getAllByRole("button", { name: "빼기" })[0]);
+    expect(document.querySelector('[data-room-top="edit"]')).toHaveTextContent("2개 장면");
+    expect(document.querySelector("[data-edit-duration]")).toHaveTextContent("8초");
+
+    fireEvent.click(screen.getByRole("button", { name: "되살리기" }));
+    expect(document.querySelector('[data-room-top="edit"]')).toHaveTextContent("3개 장면");
+  });
+
+  it("FE6-EDIT-03 거절: 음악 백엔드가 없을 때 파일이나 파형을 완성된 것처럼 표시하지 않는다", () => {
+    render(<EditRoom lines={["나레이션"]} onLinesChange={vi.fn()} kind="audio" />);
+    expect(screen.getByText("음악 생성 백엔드는 준비 중입니다")).toBeInTheDocument();
+    expect(document.querySelector("[data-edit-stage]")).not.toBeInTheDocument();
+    expect(document.querySelector("[data-edit-tools]")).not.toBeInTheDocument();
   });
 });

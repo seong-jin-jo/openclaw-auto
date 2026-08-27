@@ -24,6 +24,7 @@ type StudioCommandPanelProps = {
   editorLines?: string[];
   source?: { generationId?: string | null; candidateId?: string | null };
   initialHandoff: EditorHandoff | null;
+  onKindSelect?: (kind: EditorHandoffKind) => void;
   onDraftId: (draftId: string) => void;
   onHandoff: (handoff: EditorHandoff) => void;
   onQueueChanged: () => void;
@@ -50,6 +51,7 @@ export function StudioCommandPanel({
   editorLines = [],
   source,
   initialHandoff,
+  onKindSelect,
   onDraftId,
   onHandoff,
   onQueueChanged,
@@ -65,16 +67,20 @@ export function StudioCommandPanel({
 
   const availableKinds = useMemo(() => {
     const kinds: EditorHandoffKind[] = [];
-    if (nonEmpty([text?.threads, text?.facebook, text?.x]).length > 0) kinds.push("text");
-    if (imageUrl) kinds.push("image");
-    if ((text?.instagram?.slides?.length ?? 0) > 0) kinds.push("card");
     if (videoUrl && nonEmpty(editorLines.length ? editorLines : [text?.shorts?.hook, text?.shorts?.body, text?.shorts?.cta]).length > 0) kinds.push("video");
+    if ((text?.instagram?.slides?.length ?? 0) > 0) kinds.push("card");
+    if (imageUrl) kinds.push("image");
+    if (nonEmpty([text?.threads, text?.facebook, text?.x]).length > 0) kinds.push("text");
     return kinds;
   }, [editorLines, imageUrl, text, videoUrl]);
 
   useEffect(() => {
-    if (!selectedKind || !availableKinds.includes(selectedKind)) setSelectedKind(availableKinds[0] ?? null);
-  }, [availableKinds, selectedKind]);
+    if (!selectedKind || !availableKinds.includes(selectedKind)) {
+      const next = availableKinds[0] ?? null;
+      setSelectedKind(next);
+      if (next) onKindSelect?.(next);
+    }
+  }, [availableKinds, onKindSelect, selectedKind]);
 
   const updateHandoff = (next: EditorHandoff) => {
     setHandoff(next);
@@ -202,6 +208,7 @@ export function StudioCommandPanel({
     const kind = ({ 글: "text", 이미지: "image", 영상: "video", 카드뉴스: "card", 소리: "audio" } as const)[value as "글" | "이미지" | "영상" | "카드뉴스" | "소리"];
     if (!handoff && kind && availableKinds.includes(kind)) {
       setSelectedKind(kind);
+      onKindSelect?.(kind);
       setMessage(`${value} 원본을 고르셨습니다. 편집실로 넘길 수 있어요.`);
       return;
     }
@@ -235,7 +242,7 @@ export function StudioCommandPanel({
                   size="sm"
                   variant={selectedKind === kind ? "primary" : "secondary"}
                   aria-pressed={selectedKind === kind}
-                  onClick={() => setSelectedKind(kind)}
+                  onClick={() => { setSelectedKind(kind); onKindSelect?.(kind); }}
                 >
                   {{ text: "글", image: "이미지", video: "영상", card: "카드뉴스", audio: "소리" }[kind]}
                 </Button>
@@ -248,7 +255,7 @@ export function StudioCommandPanel({
         ) : (
           <Stack gap={8}>
             <div className="rounded-xl border border-border bg-surface p-stack">
-              <p className="text-caption font-semibold text-text">{handoff.kind} · revision {handoff.revision}</p>
+              <p className="text-caption font-semibold text-text">{{ text: "글", image: "이미지", video: "영상", card: "카드뉴스", audio: "소리" }[handoff.kind]} · 수정 {handoff.revision}</p>
               <p className="text-caption text-subtle break-keep">{handoff.summary}</p>
             </div>
             {handoff.payload.kind === "video" ? (
