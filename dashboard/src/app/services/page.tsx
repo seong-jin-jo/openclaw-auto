@@ -69,7 +69,7 @@ export default function ServicesPage() {
         <h1 className="text-xl text-muted mb-4">전체 서비스</h1>
         <p className="text-red-400 mb-2">tenants 로드 실패: {error}</p>
         <p className="text-sm">
-          fork-only data 파일이 박혀있는지 확인 — <code className="text-amber-400">data/tenants.json</code>
+          fork-only data 파일이 박혀있는지 확인. <code className="text-amber-400">data/tenants.json</code>
         </p>
       </div>
     );
@@ -289,7 +289,7 @@ docker-compose -f docker-compose.postagi-4tenants.yml up -d openclaw-gateway-${s
         {cmd && (
           <pre className="mt-4 p-3 bg-black border border-border rounded text-xs text-emerald-400 whitespace-pre-wrap break-all">
             {cmd}
-            {"\n\n"}✓ 클립보드 복사됨 — 터미널에 붙여넣기
+            {"\n\n"}✓ 클립보드 복사됨. 터미널에 붙여넣기
           </pre>
         )}
       </div>

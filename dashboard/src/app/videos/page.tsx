@@ -594,7 +594,7 @@ export default function VideosPage() {
         <div className="card p-3" data-testid="reels-status-card">
           <div className="text-caption text-subtle mb-1">Instagram Reels</div>
           <div className={`text-sm font-medium ${igConnected ? "text-success" : "text-subtle"}`}>
-            {igConnected ? "발행 가능" : "Instagram 미연결 — /channels/instagram에서 연결 필요"}
+            {igConnected ? "발행 가능" : "Instagram 미연결. /channels/instagram에서 연결 필요"}
           </div>
         </div>
         <div className="card p-3">

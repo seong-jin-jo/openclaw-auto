@@ -113,9 +113,9 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
     }
     // 검증 실패(네트워크 아님)면 진행 막기 — 잘못된 키로 온보딩 통과 방지.
     if (!d.verified && !d.unverified) {
-      throw new Error(d.error || "검증 실패 — 키를 확인하세요");
+      throw new Error(d.error || "검증 실패. 키를 확인하세요");
     }
-    setConnectedAccount(d.account || (d.unverified ? `저장됨 · 미검증${d.reason ? " — " + d.reason : ""}` : null));
+    setConnectedAccount(d.account || (d.unverified ? `저장됨 · 미검증${d.reason ? ". " + d.reason : ""}` : null));
     setCredentialsSaved(true);
   };
 
@@ -144,7 +144,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
             {step === 1 && "업종을 선택하면 맞춤 콘텐츠 가이드가 자동 설정됩니다"}
             {step === 2 && "콘텐츠를 발행할 채널을 선택하세요"}
             {step === 3 && "첫 번째 채널을 연결하세요"}
-            {step === 4 && "이제 콘텐츠를 만들 차례예요 — 바로 시작할 수 있어요"}
+            {step === 4 && "이제 콘텐츠를 만들 차례예요. 바로 시작할 수 있어요"}
           </p>
         </div>
 
@@ -251,7 +251,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <p className="text-sm text-success font-medium">채널이 연결되었습니다{connectedAccount ? ` — ${connectedAccount}` : ""}</p>
+                  <p className="text-sm text-success font-medium">채널이 연결되었습니다{connectedAccount ? `. ${connectedAccount}` : ""}</p>
                   <p className="text-xs text-subtle mt-1">다음을 눌러 콘텐츠 만들 준비로 넘어가세요</p>
                 </div>
               )}
@@ -272,7 +272,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
                   <span className="text-xl">🎨</span>
                   <div>
                     <p className="text-sm font-medium text-text">브랜드 설정하기</p>
-                    <p className="text-caption text-subtle">6가지만 답하면 끝 — 또는 내 위키/홈페이지 연결</p>
+                    <p className="text-caption text-subtle">6가지만 답하면 끝나요. 내 위키나 홈페이지를 연결해도 됩니다</p>
                   </div>
                 </a>
                 <a href="/studio" onClick={clearDraft}

@@ -130,16 +130,16 @@ export function ChannelConnect({ workspace, onClose }: { workspace: Workspace; o
                 </>
               )}
               {OAUTH_LABELS[platform] && !showManualCreds && chCfg.connected && (
-                <p className="mt-3 text-xs text-green-400">✓ OAuth 연결됨 — access token 원문은 화면에 표시하지 않습니다.</p>
+                <p className="mt-3 text-xs text-green-400">✓ OAuth 연결됨. access token 원문은 화면에 표시하지 않습니다.</p>
               )}
               {result && (
                 <div className="mt-3 text-xs">
                   {result.verified ? (
-                    <p className="text-green-400">✓ 연결 완료{result.account ? ` — ${result.account}` : ""}</p>
+                    <p className="text-green-400">✓ 연결 완료{result.account ? `. ${result.account}` : ""}</p>
                   ) : result.unverified ? (
-                    <p className="text-amber-400">⚠ 저장됨 · 미검증{result.reason ? ` — ${result.reason}` : ""} (네트워크 복구 후 “연결 테스트”로 재확인)</p>
+                    <p className="text-amber-400">⚠ 저장됨 · 미검증{result.reason ? `. ${result.reason}` : ""} (네트워크 복구 후 “연결 테스트”로 재확인)</p>
                   ) : (
-                    <p className="text-red-400">✗ 검증 실패{result.error ? `: ${result.error}` : " — 키를 확인하세요"}</p>
+                    <p className="text-red-400">✗ 검증 실패{result.error ? `: ${result.error}` : ". 키를 확인하세요"}</p>
                   )}
                 </div>
               )}

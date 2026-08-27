@@ -63,7 +63,7 @@ export function ContentGuide({ channel }: ContentGuideProps) {
     if (suggestion) {
       setText(suggestion);
       setSuggestion(null);
-      showToast("제안 적용됨 — Save를 눌러 저장하세요", "info");
+      showToast("제안 적용됨. Save를 눌러 저장하세요", "info");
     }
   };
 
@@ -90,7 +90,7 @@ export function ContentGuide({ channel }: ContentGuideProps) {
         </div>
       </div>
       <p className="text-caption text-subtle mb-2">
-        {isChannelGuide ? `${label} 전용 가이드` : "공통 가이드 사용 중 — 수정하면 채널 전용으로 저장"}
+        {isChannelGuide ? `${label} 전용 가이드` : "공통 가이드 사용 중. 수정하면 채널 전용으로 저장"}
         {channel === "x" ? " (280자 제한 고려)" : ""}
       </p>
       <textarea

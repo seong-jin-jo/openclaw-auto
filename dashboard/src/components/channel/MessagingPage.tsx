@@ -28,7 +28,7 @@ export function MessagingPage({ channel }: MessagingPageProps) {
   const handleCredSave = async (newKeys: Record<string, string>) => {
     const r = await apiPost<{ verified?: boolean; error?: string; account?: string }>(`/api/channel-config/${channel}`, newKeys);
     if (r?.verified) {
-      showToast(`${label} 연결 완료${r.account ? " — " + r.account : ""}`, "success");
+      showToast(`${label} 연결 완료${r.account ? ". " + r.account : ""}`, "success");
       mutateConfig();
     } else {
       showToast(`연결 실패: ${r?.error || "Invalid credentials"}`, "error");

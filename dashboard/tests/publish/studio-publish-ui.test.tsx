@@ -153,7 +153,7 @@ describe("Studio publish result integrity", () => {
     });
 
     render(<StudioPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "Publish (2)" }));
+    fireEvent.click(await screen.findByRole("button", { name: "2곳에 올리기" }));
 
     await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledTimes(4));
     expect(screen.getByText("0%")).toBeInTheDocument();
@@ -175,7 +175,7 @@ describe("Studio publish result integrity", () => {
     });
 
     render(<StudioPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "Publish (2)" }));
+    fireEvent.click(await screen.findByRole("button", { name: "2곳에 올리기" }));
 
     await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledTimes(4));
     expect(screen.getByText("50%")).toBeInTheDocument();
@@ -201,7 +201,7 @@ describe("Studio publish result integrity", () => {
     });
 
     render(<StudioPage />);
-    const publishButton = await screen.findByRole("button", { name: "Publish (3)" });
+    const publishButton = await screen.findByRole("button", { name: "3곳에 올리기" });
     for (const [platform, label] of [["shorts", "Shorts"], ["reels", "Reels"], ["tiktok", "TikTok"]]) {
       expect(within(screen.getByTestId(`preview-${platform}`)).getByRole(
         "checkbox",
@@ -259,7 +259,7 @@ describe("Studio publish result integrity", () => {
     });
 
     render(<StudioPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "Publish (1)" }));
+    fireEvent.click(await screen.findByRole("button", { name: "1곳에 올리기" }));
 
     const link = await screen.findByTitle("게시물 보기");
     expect(link).toHaveAttribute("href", "https://www.threads.net/@example/post/ok");
@@ -277,7 +277,7 @@ describe("Studio publish result integrity", () => {
 
     render(<StudioPage />);
     fireEvent.change(await screen.findByLabelText("threads 첫 댓글"), { target: { value: "첫 댓글 본문" } });
-    fireEvent.click(screen.getByRole("button", { name: "Publish (1)" }));
+    fireEvent.click(screen.getByRole("button", { name: "1곳에 올리기" }));
 
     await waitFor(() => expect(mocks.apiPost.mock.calls.some(([path, body]) => path === "/api/publish" && (body as { first_comment?: string }).first_comment === "첫 댓글 본문")).toBe(true));
   });

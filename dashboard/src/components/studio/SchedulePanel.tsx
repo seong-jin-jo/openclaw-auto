@@ -143,7 +143,7 @@ export function SchedulePanel({
         <span className="text-caption text-subtle">미래 시각에 멀티채널 자동 발행</span>
       </div>
       {/* 정직 표기: 예약은 DB에 적재되고, 실제 게시는 자동화 파이프라인(크론)이 수행한다.
-          파이프라인 미연결 시 '예약됨' 상태로 대기 — 가짜 '발행됨' 표시 안 함. */}
+          파이프라인 미연결 시 '예약됨' 상태로 대기. 가짜 '발행됨' 표시 안 함. */}
       <p className="text-caption text-subtle mb-3">
         예약은 저장되고, 자동화 파이프라인이 예약 시각에 발행합니다. 파이프라인 미연결 시 <b className="text-warning">예약됨</b>으로 대기합니다.
       </p>

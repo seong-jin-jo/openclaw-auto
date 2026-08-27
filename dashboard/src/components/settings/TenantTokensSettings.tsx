@@ -82,7 +82,7 @@ export function TenantTokensSettings() {
 
       {issued && (
         <div className="mb-4 p-3 rounded-lg bg-success/10 border border-success/30">
-          <p className="text-caption text-green-300 mb-1">발급됨 — 지금만 표시됩니다. 복사해 안전히 보관하세요:</p>
+          <p className="text-caption text-green-300 mb-1">발급됨. 지금만 표시됩니다. 복사해 안전히 보관하세요:</p>
           <code className="block text-xs text-text break-all bg-black/40 p-2 rounded select-all">{issued}</code>
         </div>
       )}

@@ -119,11 +119,11 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
   const handleCredSave = async (newKeys: Record<string, string>) => {
     const r = await apiPost<{ verified?: boolean; unverified?: boolean; reason?: string; error?: string; account?: string }>(`/api/channel-config/${channel}`, newKeys);
     if (r?.verified) {
-      showToast(`${label} 연결 완료${r.account ? " — " + r.account : ""}`, "success");
+      showToast(`${label} 연결 완료${r.account ? ". " + r.account : ""}`, "success");
       mutateConfig();
     } else if (r?.unverified) {
       // 네트워크 등으로 확인 불가 — 키는 저장됐으나 검증 미완(자동화는 비활성 유지가 안전).
-      showToast(`${label} 저장됨 · 미검증${r.reason ? " — " + r.reason : ""}`, "warning");
+      showToast(`${label} 저장됨 · 미검증${r.reason ? ". " + r.reason : ""}`, "warning");
       mutateConfig();
     } else {
       showToast(`연결 실패: ${r?.error || "Invalid credentials"}`, "error");
@@ -263,7 +263,7 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
             )}
             {oauthLabel && !showManualCreds && reconnectRequired && (
               <div className="mt-stack rounded-lg border border-warning/40 bg-warning/10 p-stack text-caption text-warning">
-                ⚠ 재연결 필요 — 저장된 토큰이 만료되었거나 무효합니다({label} 측 거부). 위 OAuth 버튼으로 다시 연결해주세요.
+                ⚠ 재연결 필요. 저장된 토큰이 만료되었거나 무효합니다({label} 측 거부). 위 OAuth 버튼으로 다시 연결해주세요.
               </div>
             )}
           </div>

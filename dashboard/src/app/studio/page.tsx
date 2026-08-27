@@ -69,9 +69,9 @@ type PubStatus = "wait" | "doing" | "done" | "failed";
 type PublishReconciliation = ExternalPublishPersistenceFailure["persistence"]["reconciliation"];
 
 const GROUPS: { title: string; platforms: PreviewPlatform[] }[] = [
-  { title: "✍️ 텍스트", platforms: ["threads", "x", "facebook"] },
-  { title: "🎬 영상 9:16", platforms: ["shorts", "reels", "tiktok"] },
-  { title: "🖼️ 카드뉴스", platforms: ["instagram"] },
+  { title: "텍스트", platforms: ["threads", "x", "facebook"] },
+  { title: "세로 영상", platforms: ["shorts", "reels", "tiktok"] },
+  { title: "카드뉴스", platforms: ["instagram"] },
 ];
 const ALL: PreviewPlatform[] = PREVIEW_PLATFORMS.map((platform) => platform.key);
 const DEFAULT_PUBLISH_TARGETS = new Set<PreviewPlatform>(["threads", "x", "instagram"]);
@@ -652,7 +652,7 @@ export default function StudioPage() {
               <b className="mr-auto min-w-0 truncate text-body text-text">{idea || "현재 작업물"}</b>
               <Button onClick={() => save("draft")}>초안으로 저장</Button>
               <Button onClick={requestReview} disabled={reviewBusy}>{reviewBusy ? "요청 중" : "검토 요청"}</Button>
-              <Button variant="primary" onClick={publish} disabled={pub.running}>Publish ({selectedPublishTargets(includes).length})</Button>
+              <Button variant="primary" onClick={publish} disabled={pub.running}>{selectedPublishTargets(includes).length}곳에 올리기</Button>
               {activeWorkspace ? <Button variant={showSchedule ? "primary" : "secondary"} onClick={() => setShowSchedule((value) => !value)}>날짜 잡기</Button> : null}
             </div>
           ) : null}

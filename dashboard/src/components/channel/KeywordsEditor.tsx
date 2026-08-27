@@ -66,7 +66,7 @@ export function KeywordsEditor({ channel }: KeywordsEditorProps) {
       const merged = [...new Set([...current, ...suggestedKeywords])];
       setText(merged.join("\n"));
       setSuggestedKeywords(null);
-      showToast("전체 적용됨 — Save를 눌러 저장하세요", "info");
+      showToast("전체 적용됨. Save를 눌러 저장하세요", "info");
     }
   };
 

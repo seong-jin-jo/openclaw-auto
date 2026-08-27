@@ -96,7 +96,7 @@ try {
   if (await page.getByRole("complementary", { name: "발행 담당 대화창" }).getByText("발행 채널", { exact: true }).count()) throw new Error("legacy channel selector rendered in chat dock");
   if (await page.getByText("발행 이력", { exact: true }).count()) throw new Error("legacy publish history rendered");
   if (await page.getByRole("button", { name: /중지/ }).count()) throw new Error("unsupported publish stop button rendered");
-  for (const label of ["초안으로 저장", "검토 요청", "Publish (3)", "날짜 잡기"]) {
+  for (const label of ["초안으로 저장", "검토 요청", "3곳에 올리기", "날짜 잡기"]) {
     if (await page.getByRole("button", { name: label, exact: true }).count() !== 1) throw new Error(`${label} action missing`);
   }
   for (const platform of ["threads", "x", "facebook", "instagram"]) {

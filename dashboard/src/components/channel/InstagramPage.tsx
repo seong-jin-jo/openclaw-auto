@@ -121,7 +121,7 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
     setEd(prev => ({ ...prev, slides: updated }));
   };
   const removeResultSlide = (idx: number) => {
-    if (mjGenerating) { showToast("미드저니 생성 중 — 완료 후 삭제하세요", "warning"); return; }
+    if (mjGenerating) { showToast("미드저니 생성 중. 완료 후 삭제하세요", "warning"); return; }
     if (!ed.result) return;
     const newSlides = [...ed.result.slides];
     newSlides.splice(idx, 1);
@@ -353,7 +353,7 @@ function InstagramSettings() {
   const handleCredSave = async (newKeys: Record<string, string>) => {
     const r = await apiPost<{ verified?: boolean; error?: string; account?: string }>("/api/channel-config/instagram", newKeys);
     if (r?.verified) {
-      showToast(`Instagram 연결 완료${r.account ? " — " + r.account : ""}`, "success");
+      showToast(`Instagram 연결 완료${r.account ? ". " + r.account : ""}`, "success");
       mutateConfig();
     } else {
       showToast(`연결 실패: ${r?.error || "Invalid credentials"}`, "error");
@@ -395,7 +395,7 @@ function InstagramSettings() {
         />
         {reconnectRequired && (
           <div className="mt-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
-            ⚠ 재연결 필요 — 저장된 Instagram 토큰이 만료되었거나 무효합니다. 위 OAuth 버튼으로 다시 연결해주세요.
+            ⚠ 재연결 필요. 저장된 Instagram 토큰이 만료되었거나 무효합니다. 위 OAuth 버튼으로 다시 연결해주세요.
           </div>
         )}
       </div>

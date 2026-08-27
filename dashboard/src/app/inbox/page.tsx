@@ -164,7 +164,7 @@ export default function InboxPage() {
       {/* 제품 소스(제품-grounded): repo를 연결하면 "방금 만든 것"을 자동 홍보하는 글이 생성됨 */}
       <div className="mb-4 text-xs">
         <button onClick={() => setShowSrc((v) => !v)} className="text-subtle hover:text-muted">
-          {psrc?.owner ? `🔗 제품 소스: ${psrc.owner}/${psrc.repo}/${psrc.path}` : "🔗 제품 소스 연결 (선택 — repo 기반 생성)"}
+          {psrc?.owner ? `🔗 제품 소스: ${psrc.owner}/${psrc.repo}/${psrc.path}` : "🔗 제품 소스 연결 (선택. repo 기반 생성)"}
           <span className="ml-1 text-subtle">{showSrc ? "▲" : "▼"}</span>
         </button>
         {showSrc && (

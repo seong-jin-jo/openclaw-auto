@@ -27,7 +27,7 @@ export function AiKeySettings() {
       const r = await apiPost<{ ok?: boolean; error?: string }>("/api/integrations", {
         tenant_id: activeWorkspace.id, kind: "anthropic", label: "claude", secret: key.trim(),
       });
-      if (r?.ok) { setKey(""); setMsg("✓ Claude 키 저장됨 — 이제 생성이 이 키로 동작합니다."); await mutate(); }
+      if (r?.ok) { setKey(""); setMsg("✓ Claude 키 저장됨. 이제 생성이 이 키로 동작합니다."); await mutate(); }
       else setMsg(r?.error || "저장 실패");
     } finally { setBusy(false); }
   };
@@ -41,7 +41,7 @@ export function AiKeySettings() {
       <p className="text-xs text-subtle mb-3">
         내 Anthropic API 키를 등록하면 콘텐츠 생성이 <b className="text-muted">내 키·내 과금</b>으로 동작합니다(미등록 시 공유 엔진).
         키는 암호화 저장되며 발급은 <span className="text-accent">console.anthropic.com → API Keys</span>.
-        현재: <span className={hasKey ? "text-success" : "text-subtle"}>{hasKey ? "등록됨(내 과금)" : "미등록(무료 이벤트 — 운영자 부담)"}</span>
+        현재: <span className={hasKey ? "text-success" : "text-subtle"}>{hasKey ? "등록됨(내 과금)" : "미등록(무료 이벤트. 운영자 부담)"}</span>
       </p>
       <div className="flex gap-2">
         <input type="password" value={key} onChange={(e) => setKey(e.target.value)} placeholder="sk-ant-..."

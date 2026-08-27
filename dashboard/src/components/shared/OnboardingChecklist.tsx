@@ -26,7 +26,7 @@ export function OnboardingChecklist() {
   return (
     <div className="mb-4 px-4 py-3 rounded-xl border border-accent bg-accent-soft">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm text-accent">🚀 시작 체크리스트 — 여기까지 하면 혼자서도 가치를 체감합니다</span>
+        <span className="text-sm text-accent">🚀 시작 체크리스트. 여기까지 하면 혼자서도 가치를 체감합니다</span>
         <span className="text-xs text-accent/80">{done}/{STEPS.length}</span>
       </div>
       <div className="flex flex-wrap gap-2">

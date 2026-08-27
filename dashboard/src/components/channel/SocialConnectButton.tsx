@@ -90,7 +90,7 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
   const publishReady = ([...SCHEDULABLE_PLATFORMS, ...VIDEO_PUBLISH_PLATFORMS] as readonly string[]).includes(provider);
   const accountSwitchHelp = ACCOUNT_SWITCH_HELP[provider];
   const resolvedRef = useRef(false); // postMessage로 이미 결과를 받았는지(closed-폴링 오탐 방지)
-  const watchClosedRef = useRef<number | null>(null); // closed-폴링 interval id — unmount 시 정리
+  const watchClosedRef = useRef<number | null>(null); // closed-폴링 interval id. unmount 시 정리
   const mountedRef = useRef(true); // connect fetch가 pending인 동안 unmount되는 레이스 가드
 
   // 컴포넌트 unmount 시 진행 중인 closed-폴링 interval을 정리한다 — 안 하면 팝업을 열어둔 채
@@ -119,7 +119,7 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
       resolvedRef.current = true;
       setBusy(false);
       if (data.ok) {
-        setMsg(`${label} 연결 완료 — 채널 상태를 새로고침합니다.`);
+        setMsg(`${label} 연결 완료. 채널 상태를 새로고침합니다.`);
         onConnected?.();
       } else {
         setMsg(oauthErrorMessage(data.message || "연결 실패", label));
@@ -233,7 +233,7 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
         watchClosedRef.current = watchClosed;
         return; // busy는 postMessage/closed 감지가 최종 해제
       } else {
-        popup.close(); // authUrl 없음 — 예약해둔 빈 창을 남겨두지 않는다.
+        popup.close(); // authUrl 없음. 예약해둔 빈 창을 남겨두지 않는다.
         setMsg(oauthErrorMessage(d.error || "OAuth 앱 자격증명이 아직 설정되지 않았습니다.", label));
         setBusy(false);
       }
@@ -248,7 +248,7 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
   return (
     <div className="rounded-lg border border-accent/40 bg-accent/10 p-3">
       <p className="text-xs text-muted mb-2">
-        <b className="text-text">{label} OAuth 연결</b> — 버튼 한 번이면 끝. 비밀번호·토큰 입력 없이
+        <b className="text-text">{label} OAuth 연결</b>. 버튼 한 번이면 끝. 비밀번호·토큰 입력 없이
         {label} 공식 로그인으로 안전하게 연결됩니다.
       </p>
       {!readinessLoading && readinessStatus && (
@@ -338,7 +338,7 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
       )}
       {!publishReady && (
         <p className="text-caption text-warning mt-2" data-testid="publish-not-ready-badge">
-          ⚠ 발행 준비 중 — 지금은 {label} 연결만 미리 가능하고, 대시보드에서 직접 발행은 아직
+          ⚠ 발행 준비 중. 지금은 {label} 연결만 미리 가능하고, 대시보드에서 직접 발행은 아직
           지원하지 않습니다.
         </p>
       )}

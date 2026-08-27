@@ -159,12 +159,12 @@ export default function BlogPage() {
           <details className="card p-4 mb-6">
             <summary className="text-sm font-medium text-muted cursor-pointer">SEO 콘텐츠 자동화 플로우</summary>
             <div className="mt-3 text-caption text-subtle space-y-2">
-              <div className="flex items-start gap-2"><span className="text-accent font-bold">1.</span><div><strong className="text-muted">키워드 수집</strong> — Keyword Planner에서 검색량 높은 키워드를 찾아 Blog Keywords에 추가</div></div>
-              <div className="flex items-start gap-2"><span className="text-accent font-bold">2.</span><div><strong className="text-muted">트렌드 확인</strong> — Naver Trends에서 시즌 키워드 파악 (시험, 방학 등)</div></div>
-              <div className="flex items-start gap-2"><span className="text-accent font-bold">3.</span><div><strong className="text-muted">콘텐츠 생산</strong> — AI가 Blog Keywords + Content Guide 기반으로 칼럼 draft 자동 생성</div></div>
-              <div className="flex items-start gap-2"><span className="text-accent font-bold">4.</span><div><strong className="text-muted">검수 + 발행</strong> — Queue에서 draft 확인 → 클릭하여 수정 → Approve → 블로그에 자동 발행</div></div>
-              <div className="flex items-start gap-2"><span className="text-accent font-bold">5.</span><div><strong className="text-muted">검색 노출</strong> — Search Console에서 색인 요청 → 검색 노출</div></div>
-              <div className="flex items-start gap-2"><span className="text-accent font-bold">6.</span><div><strong className="text-muted">결과 분석</strong> — Blog Performance에서 조회수 + 검색 클릭 추적</div></div>
+              <div className="flex items-start gap-2"><span className="text-accent font-bold">1.</span><div><strong className="text-muted">키워드 수집</strong>. Keyword Planner에서 검색량 높은 키워드를 찾아 Blog Keywords에 추가</div></div>
+              <div className="flex items-start gap-2"><span className="text-accent font-bold">2.</span><div><strong className="text-muted">트렌드 확인</strong>. Naver Trends에서 시즌 키워드 파악 (시험, 방학 등)</div></div>
+              <div className="flex items-start gap-2"><span className="text-accent font-bold">3.</span><div><strong className="text-muted">콘텐츠 생산</strong>. AI가 Blog Keywords + Content Guide 기반으로 칼럼 draft 자동 생성</div></div>
+              <div className="flex items-start gap-2"><span className="text-accent font-bold">4.</span><div><strong className="text-muted">검수 + 발행</strong>. Queue에서 draft 확인 → 클릭하여 수정 → Approve → 블로그에 자동 발행</div></div>
+              <div className="flex items-start gap-2"><span className="text-accent font-bold">5.</span><div><strong className="text-muted">검색 노출</strong>. Search Console에서 색인 요청 → 검색 노출</div></div>
+              <div className="flex items-start gap-2"><span className="text-accent font-bold">6.</span><div><strong className="text-muted">결과 분석</strong>. Blog Performance에서 조회수 + 검색 클릭 추적</div></div>
               <p className="text-caption text-subtle mt-2 border-t border-border pt-2">Settings 탭에서 Content Guide와 Keywords를 수정하세요.</p>
             </div>
           </details>
@@ -309,7 +309,7 @@ export default function BlogPage() {
             </div>
             {bank.length > 0 && (
               <div className="mb-3 p-3 rounded bg-accent-soft border border-accent">
-                <p className="text-caption text-accent mb-2">Keyword Bank ({bank.length}개) — 클릭하여 추가</p>
+                <p className="text-caption text-accent mb-2">Keyword Bank ({bank.length}개). 클릭하여 추가</p>
                 <div className="flex flex-wrap gap-1">
                   {bank.map((k) => (
                     <button

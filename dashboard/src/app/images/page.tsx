@@ -36,7 +36,7 @@ export default function ImagesPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-text">Images</h2>
-          <p className="text-sm text-subtle mt-1">{images.length}개 이미지 — AI 생성 이미지 갤러리</p>
+          <p className="text-sm text-subtle mt-1">{images.length}개 이미지. AI 생성 이미지 갤러리</p>
         </div>
       </div>
 

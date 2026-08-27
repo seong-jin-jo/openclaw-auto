@@ -33,7 +33,7 @@ export function TenantIsolationBanner() {
         🔒 내 테넌트 데이터만 보입니다
         {proof ? (
           <span className="text-emerald-400/80 text-xs ml-2">
-            — 다른 테넌트 <b>{proof.otherTenants}개</b> 존재, 그 데이터 <b>{proof.crossTenant}개</b> 조회됨 (내 항목 {proof.own}개)
+           . 다른 테넌트 <b>{proof.otherTenants}개</b> 존재, 그 데이터 <b>{proof.crossTenant}개</b> 조회됨 (내 항목 {proof.own}개)
           </span>
         ) : (
           <span className="text-emerald-400/60 text-xs ml-2">행 단위 격리(RLS)로 다른 사용자 데이터는 절대 노출되지 않아요</span>

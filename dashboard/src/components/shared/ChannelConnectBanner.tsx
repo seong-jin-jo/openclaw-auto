@@ -23,7 +23,7 @@ export function ChannelConnectBanner() {
       className="flex items-center justify-between gap-3 mb-4 px-4 py-3 rounded-xl border border-warning/40 bg-warning/10 hover:bg-warning/15 transition"
     >
       <div className="text-sm text-text">
-        🔌 발행하려면 채널 연결이 필요해요 — <b>{unconnected.length}개 미연결</b>
+        🔌 발행하려면 채널 연결이 필요해요. <b>{unconnected.length}개 미연결</b>
         <span className="text-muted text-xs ml-1">
           ({names}{unconnected.length > 3 ? " 외" : ""})
         </span>

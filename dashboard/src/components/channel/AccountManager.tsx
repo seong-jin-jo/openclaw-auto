@@ -30,7 +30,7 @@ function accountLabel(a: AccountRow): string {
 
 function statusBadge(status: string): { text: string; className: string } {
   if (status === "active") return { text: "정상", className: "text-success" };
-  if (status === "expired") return { text: "만료됨 — 재연결 필요", className: "text-warning" };
+  if (status === "expired") return { text: "만료됨. 재연결 필요", className: "text-warning" };
   if (status === "revoked") return { text: "연결 해제됨", className: "text-danger" };
   return { text: status, className: "text-muted" };
 }
