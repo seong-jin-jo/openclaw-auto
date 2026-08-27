@@ -148,13 +148,13 @@ export function PerformanceRoom({
     [focusedMeasuredPosts],
   );
 
-  const fallbackAssessment: PerformanceSampleAssessment = {
-    count: measuredPosts.length,
+  const focusedAssessment: PerformanceSampleAssessment = {
+    count: focusedMeasuredPosts.length,
     threshold: SAMPLE_THRESHOLD,
-    thresholdMet: measuredPosts.length >= SAMPLE_THRESHOLD,
+    thresholdMet: focusedMeasuredPosts.length >= SAMPLE_THRESHOLD,
   };
-  const assessment = sampleAssessment ?? fallbackAssessment;
-  const empty = measuredPosts.length === 0;
+  const assessment = focus === "all" ? sampleAssessment ?? focusedAssessment : focusedAssessment;
+  const empty = focusedMeasuredPosts.length === 0;
 
   const winnerCount = rankedPosts.length >= SAMPLE_THRESHOLD ? 2 : Math.min(1, rankedPosts.length);
   const winnerAverage = average(rankedPosts.slice(0, winnerCount).map((post) => Number(post.views || 0)));
@@ -305,7 +305,6 @@ export function PerformanceRoom({
         <Stack gap={16}>
           <Stack gap={4}>
             <h2 className="text-subheading font-bold text-text"><span className="mr-stack-tight inline-grid size-stack-section place-items-center rounded-full bg-accent text-caption text-accent-fg">2</span>무엇이 통했나</h2>
-            <p className="text-caption text-muted">위 판정이 나온 실제 글입니다.</p>
           </Stack>
           {topPosts.length > 0 ? (
             <div className="grid gap-stack lg:grid-cols-3">
@@ -349,7 +348,6 @@ export function PerformanceRoom({
           <div className="flex flex-wrap items-center justify-between gap-stack">
             <Stack gap={4}>
               <h2 className="text-subheading font-bold text-text">성과에서 제안으로</h2>
-              <p className="text-caption text-muted">제안을 생성 큐에 넣으면 Studio에서 이어서 만들 수 있습니다.</p>
             </Stack>
             <Button onClick={() => void loadSuggestions()} disabled={loadingSuggestions || !workspaceId}>
               {loadingSuggestions ? "제안 불러오는 중" : suggestions.length ? "제안 새로 받기" : "성과에서 제안 받기"}
@@ -382,7 +380,6 @@ export function PerformanceRoom({
         <Stack gap={16}>
           <Stack gap={4}>
             <h2 className="text-subheading font-bold text-text"><span className="mr-stack-tight inline-grid size-stack-section place-items-center rounded-full bg-accent text-caption text-accent-fg">3</span>달린 반응</h2>
-            <p className="text-caption text-muted">댓글이 달린 글부터 확인합니다.</p>
           </Stack>
           {reactionPosts.length > 0 ? (
             <div className="divide-y divide-border border-y border-border">

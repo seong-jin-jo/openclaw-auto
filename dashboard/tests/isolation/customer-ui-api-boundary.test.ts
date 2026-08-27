@@ -13,7 +13,12 @@ const customerSurfaces: Array<{
   {
     file: "src/app/page.tsx",
     forbidden: ["/api/cron-status", "/api/token-status"],
-    retained: ["/api/metrics", "/api/suggestions"],
+    retained: ["/api/metrics"],
+  },
+  {
+    file: "src/components/home/PerformanceRoom.tsx",
+    forbidden: ["/api/cron-status", "/api/token-status"],
+    retained: ["/api/suggestions", "/api/suggestions/enqueue"],
   },
   {
     file: "src/components/channel/ChannelPage.tsx",
