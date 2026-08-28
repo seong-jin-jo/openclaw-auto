@@ -11,7 +11,7 @@ function CredField({ id, label, isSecret, value, editable }: {
   const [show, setShow] = useState(false);
   return (
     <div>
-      <label className="text-xs text-subtle block mb-0.5">{label}</label>
+      <label className="text-caption text-subtle block mb-micro">{label}</label>
       <div className="relative">
         <input
           id={id}
@@ -19,13 +19,13 @@ function CredField({ id, label, isSecret, value, editable }: {
           defaultValue={value}
           placeholder={label}
           readOnly={!editable}
-          className={`w-full ${editable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-[11px] text-muted placeholder-gray-600 font-mono`}
+          className={`w-full ${editable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded-chip px-stack py-stack-tight pr-wide text-caption text-muted placeholder-gray-600 font-mono`}
         />
         {isSecret && (
           <button
             type="button"
             onClick={() => setShow(!show)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-subtle hover:text-muted"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-caption text-subtle hover:text-muted"
           >
             {show ? "Hide" : "Show"}
           </button>
@@ -67,36 +67,36 @@ export function StorageSettings() {
 
   return (
     <>
-      <p className="text-[10px] text-subtle mb-4">Instagram, Threads 등 이미지 발행 시 공용 업로드 저장소. 모든 채널에서 사용됩니다.</p>
-      <div className="card p-5">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-muted">Cloudflare R2</h3>
-          <span className={`text-[10px] px-2 py-0.5 rounded ${r2Connected ? "bg-green-900/40 text-green-400" : "bg-yellow-900/40 text-yellow-400"}`}>
+      <p className="text-caption text-subtle mb-pad-inset">Instagram, Threads 등 이미지 발행 시 공용 업로드 저장소. 모든 채널에서 사용됩니다.</p>
+      <div className="card p-stack-section">
+        <div className="flex items-center justify-between mb-stack">
+          <h3 className="text-body-sm font-medium text-muted">Cloudflare R2</h3>
+          <span className={`text-caption px-stack-tight py-micro rounded-chip ${r2Connected ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
             {r2Connected ? "Connected" : "Not configured"}
           </span>
         </div>
-        <details className="mb-3 text-[10px]">
+        <details className="mb-stack text-caption">
           <summary className="text-accent hover:text-accent cursor-pointer">Setup Guide -- R2 설정법</summary>
-          <div className="mt-2 p-3 rounded bg-surface/50 text-subtle space-y-1.5">
+          <div className="mt-stack-tight p-stack rounded-chip bg-surface/50 text-subtle space-y-stack-tight">
             <p className="font-medium text-subtle">1. 버킷 생성</p>
-            <p className="pl-3">dash.cloudflare.com &gt; R2 &gt; Create bucket</p>
+            <p className="pl-stack">dash.cloudflare.com &gt; R2 &gt; Create bucket</p>
             <p className="font-medium text-subtle">2. 퍼블릭 액세스</p>
-            <p className="pl-3">버킷 &gt; Settings &gt; Public Development URL &gt; Enable &gt; <code className="bg-surface-2 px-1 rounded">allow</code> 입력</p>
+            <p className="pl-stack">버킷 &gt; Settings &gt; Public Development URL &gt; Enable &gt; <code className="bg-surface-2 px-micro rounded-chip">allow</code> 입력</p>
             <p className="font-medium text-subtle">3. API 토큰</p>
-            <p className="pl-3">R2 Overview &gt; Account Details &gt; S3 API &gt; Manage &gt; Create Account API token</p>
-            <p className="pl-3">Permission: Object Read &amp; Write, Bucket 선택, TTL 기본값</p>
-            <p className="pl-3 text-yellow-500">Secret Access Key는 생성 시 한 번만 표시됨</p>
+            <p className="pl-stack">R2 Overview &gt; Account Details &gt; S3 API &gt; Manage &gt; Create Account API token</p>
+            <p className="pl-stack">Permission: Object Read &amp; Write, Bucket 선택, TTL 기본값</p>
+            <p className="pl-stack text-warning">Secret Access Key는 생성 시 한 번만 표시됨</p>
             <p className="font-medium text-subtle">4. 아래 입력</p>
-            <p className="pl-3">Access Key ID, Secret, Bucket, S3 Endpoint, Public URL</p>
+            <p className="pl-stack">Access Key ID, Secret, Bucket, S3 Endpoint, Public URL</p>
           </div>
         </details>
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-[10px] text-subtle">Credentials</span>
+        <div className="flex items-center justify-between mb-stack">
+          <span className="text-caption text-subtle">Credentials</span>
           {r2Connected && !editing && (
-            <button onClick={() => setEditing(true)} className="text-[10px] text-accent hover:text-accent">Edit</button>
+            <button onClick={() => setEditing(true)} className="text-caption text-accent hover:text-accent">수정</button>
           )}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-stack">
           <CredField id="r2-access-key" label="Access Key ID" value={r2.accessKeyId || ""} editable={editable} />
           <CredField id="r2-secret-key" label="Secret Access Key" isSecret value={r2.secretAccessKey || ""} editable={editable} />
           <CredField id="r2-bucket" label="Bucket Name" value={r2.bucket || ""} editable={editable} />
@@ -104,12 +104,12 @@ export function StorageSettings() {
           <CredField id="r2-public-url" label="Public URL" value={r2.publicUrl || ""} editable={editable} />
         </div>
         {editable && (
-          <div className="flex gap-2 mt-4">
-            <button onClick={handleSave} disabled={saving} className="flex-1 py-2 bg-accent text-text text-sm rounded hover:bg-accent-hover disabled:opacity-50">
+          <div className="flex gap-stack-tight mt-pad-inset">
+            <button onClick={handleSave} disabled={saving} className="flex-1 py-stack-tight bg-accent text-accent-fg text-body-sm rounded-chip hover:bg-accent-hover disabled:opacity-50">
               {saving ? "Saving..." : r2Connected ? "Update" : "Connect"}
             </button>
             {r2Connected && editing && (
-              <button onClick={() => setEditing(false)} className="px-4 py-2 bg-surface-2 text-muted text-sm rounded hover:bg-surface-2">Cancel</button>
+              <button onClick={() => setEditing(false)} className="px-pad-inset py-stack-tight bg-surface-2 text-muted text-body-sm rounded-chip hover:bg-surface-2">취소</button>
             )}
           </div>
         )}

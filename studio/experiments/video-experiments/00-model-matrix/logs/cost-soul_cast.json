@@ -1,0 +1,2 @@
+Error: Missing required params: aspect_ratio
+Hint: Run: hf model get soul_cast

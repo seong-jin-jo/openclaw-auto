@@ -1,0 +1,200 @@
+# OSMU design stage cycle 1 quality transcript
+
+## 판정
+
+`DESIGN REVIEW: B`
+
+`AI SLOP SCORE: A`
+
+프로토타입은 고객 연결 > 반환 계정 확인 > 브랜드 사실 > Threads 초안 > 사람 검수 > 실발행 permalink의 첫 cycle을 모바일 390과 데스크톱 1024에서 클릭 가능하게 보여준다. loading, empty, error, reconnect, wrong-account, 502, success 상태가 같은 허브 안에서 전환된다. 이 판정은 design stage 승인이나 제품 구현 완료 주장이 아니다. 컨트롤러의 사용자 티키타카 입력 전 후보 상태다.
+
+## 승인 입력 Read 증거
+
+| 입력 | 실제 Read와 확인 |
+|---|---|
+| `docs/openclaw-auto-osmu-prd-v2.4-gpt-codex.md` | 전체 `cat` 실행, SHA256 `7e1de84f55c4c73e4f9ab233bc5fd5a05dc1e9756f1650e24f77e7b295920687` 일치 |
+| `docs/one-thing.md` | v2.4.0-view.1 Read |
+| `docs/persona.md` | v2.4.0-view.1 Read |
+| `docs/bm.md` | v2.4.0-view.1 Read |
+| `docs/risks.md` | v2.4.0-view.1 Read |
+| `pipeline-state.md` | `current_stage: design`, `approved_stages: [plan]`, PRD와 4개 view approved_artifacts pin 확인 |
+| 품질 기준 | `/Users/sj/.claude/standards/design.md`, `benchmarks.md`, `artifact-stamp.md` Read |
+
+## 스킬 실행 증거
+
+### design-consultation
+
+- `/Users/sj/.claude/skills/design-consultation/SKILL.md`와 `gstack/design-consultation/sections/proposal-and-preview.md`를 Read했다.
+- 기존 `DESIGN.md`를 신규 시스템으로 덮지 않고, `믿음직한, 또렷한, 차분한` 톤앵커와 flat blue 토큰을 상속했다.
+- SAFE: 5단계 공통 IA, 한 화면 한 결정, semantic 상태색, 기존 component inventory 재사용.
+- RISK 1: OAuth callback과 연결 완료 사이에 반환 handle 확인 마찰을 남겼다. 속도는 1클릭 느려지지만 wrong-account를 막는다.
+- RISK 2: 전통적인 채널별 탭보다 `작업 캔버스 + 증거 레일`을 택했다. 가로 공간은 더 쓰지만 검수 순간의 기억 부담을 줄인다.
+
+### design-shotgun
+
+- `/Users/sj/.claude/skills/design-shotgun/SKILL.md`를 Read하고 3개 방향을 탐색했다.
+  1. 증거 원장형: 계정, 사실, 승인, permalink 누적이 강점.
+  2. 실행 체크포인트형: 5단계 위치와 다음 행동이 강점.
+  3. 편집 데스크형: 초안과 사실을 나란히 검수하는 데 강점.
+- gstack design binary의 `variants --count 3`를 실제 실행했다. OpenAI organization verification 요구로 3개 이미지 모두 생성 0/3이었다. 외부 인증 blocker를 숨기지 않고 skill fallback인 HTML exploration으로 전환했다.
+- 최종 조합: 체크포인트형의 단계 명료성 + 증거 원장형의 우측 evidence rail + 편집 데스크형의 draft/fact 병치를 채택했다.
+
+### design-html
+
+- `/Users/sj/.claude/skills/design-html/SKILL.md`를 Read하고 self-contained HTML 허브를 작성했다.
+- 허브: `docs/prototype/openclaw-auto-osmu-customer-publish-hub-v1-gpt-codex.html`
+- 상단 컨트롤: 6개 화면, 8개 상태, 390/1024 뷰포트, light/dark theme.
+- 실제 CTA 라우팅: 검수의 `@minseo_money에 지금 발행하기` > 발행 loading > 502 > `기존 발행 결과 확인하기` > success/permalink.
+- fixed collapsible STAMP bar와 실제 benchmark URL을 포함했다.
+
+### design-review
+
+- `/Users/sj/.claude/skills/design-review/SKILL.md`의 Phases 1-6, 10-category checklist, scoring, App UI hard rules를 Read하고 브라우저 렌더 기준으로 검수했다.
+- gstack browse로 file URL 200, desktop screenshot, mobile wrong-account, desktop success, mobile dark success를 직접 렌더했다.
+- 1차 발견 2건을 수정했다.
+  - interactive target 높이 34~42px 다수: toolbar와 product control을 44px 이상으로 보정했다. 최종 product surface undersized target 0건.
+  - h1 다음 panel heading이 h3로 건너뜀: panel title을 h2로 보정했다.
+- width transition을 제거하고 `prefers-reduced-motion`과 dark `color-scheme`을 명시했다.
+
+## 벤치마크 실조사
+
+| 공식 출처 | 확인 | 차용 | OSMU 변경 |
+|---|---|---|---|
+| Buffer Threads Help, updated 2026-06-23 | 현재 활성 브라우저 Threads 계정이 연결되며 API가 계정 목록을 제공하지 않음 | 제약과 계정 변경법을 연결 전에 노출 | callback 뒤 반환 handle 고객 확인을 별도 gate로 추가 |
+| Buffer Instagram Help, 2026-07 | 현재 활성 Instagram 계정과 다중계정 주의 | 연결 상태와 마지막 확인을 Settings와 동일하게 표시 | Threads 계정전환 문구를 Instagram에 그대로 복사하지 않음 |
+| Postiz Create Post | `draft`, `schedule`, `now` 구분 | 초안과 실발행을 별도 상태로 유지 | R1에는 draft와 now만 노출하고 사람 검수 gate 추가 |
+| Postiz List Posts | 결과에 `releaseURL` 존재 | 외부 원문 링크를 receipt 핵심 증거로 사용 | permalink 전에는 고객 성공으로 승격하지 않음 |
+| Postiz Managing Posts | 게시 ID가 즉시 없을 때 최근 결과와 연결하는 복구 개념 | 기존 외부 결과 reconciliation 우선 | 502에서 즉시 재발행 CTA 금지 |
+| Meta Threads 공식 문서 | 직접 open을 시도했으나 429로 fetch 실패 | PRD의 공식 계약 pin과 Buffer 최신 실무 문서를 보조 근거로 사용 | 접근 실패를 성공 조사로 주장하지 않음 |
+
+## 산출물
+
+| 파일 | 내용 |
+|---|---|
+| `DESIGN.md` | 기존 SSOT 상속, OSMU slice IA, 상태 언어, component contract, 금지 패턴, benchmark |
+| `docs/user-flow.md` | happy, loading, empty, edge, error, 502 recovery, dead-end audit 0 |
+| `docs/WIREFRAMES/openclaw-auto-osmu-01-common-ia-v1-gpt-codex.md` | 공통 채널 IA, 390/1024, 상태 |
+| `docs/WIREFRAMES/openclaw-auto-osmu-02-connect-account-v1-gpt-codex.md` | OAuth 전, callback loading, handle confirm, wrong-account, reconnect |
+| `docs/WIREFRAMES/openclaw-auto-osmu-03-facts-draft-v1-gpt-codex.md` | 사실 확인, 출처, draft, 글자수, 오류 |
+| `docs/WIREFRAMES/openclaw-auto-osmu-04-review-publish-recovery-v1-gpt-codex.md` | 사람 검수, loading, 502, partial, permalink success |
+| `docs/prototype/openclaw-auto-osmu-customer-publish-hub-v1-gpt-codex.html` | 클릭형 단일 라우팅 허브 |
+
+## 직접 관찰 증거
+
+| 검증 | 결과 |
+|---|---|
+| file URL navigation | HTTP-like 200, title 정상 |
+| 콘솔 | desktop, mobile, success flow 모두 error 0 |
+| 48 조합 렌더 | 6 screens x 8 states, `count=48`, missing h1/canvas/button `0` |
+| 실제 클릭 체인 | review > publish loading > 502 > existing result > success, state와 title 갱신 관찰 |
+| success evidence | `@minseo_money에 발행됐어요`, proof links 2, step `발행` 관찰 |
+| mobile frame | width 390, frame scrollWidth 388 = clientWidth 388, body horizontal overflow 0 |
+| touch target | product surface에서 44px 미만 interactive 0 |
+| dark mode | `data-theme=dark`, computed `colorScheme=dark` |
+| performance feel | local file total 21ms, DOM ready 19ms |
+| screenshots | `/private/tmp/osmu-prototype-desktop-v1.png`, `/private/tmp/osmu-prototype-mobile-wrong-account-v1.png`, `/private/tmp/osmu-prototype-publish-success-v1.png`, `/private/tmp/osmu-prototype-mobile-dark-success-v1.png` |
+
+## design-review 상세
+
+### First impression
+
+나는 첫 화면에서 이 제품이 SNS 발행 관제 도구라는 것을 바로 안다. 눈은 `어느 채널에 글을 올릴까요?`, 파란 `Threads 계정 연결하기`, 우측 `이번 발행 근거` 순서로 간다. 한 단어로는 `검증형`이다. 채널 레일, 작업 캔버스, 증거 레일의 목적은 2초 안에 명명할 수 있다.
+
+### App UI hard rule
+
+| 질문 | 판정 |
+|---|---|
+| 제품이 첫 화면에서 식별되는가 | YES, OSMU 발행 데스크 |
+| 강한 시각 anchor가 있는가 | YES, 현재 결정 h1과 단일 primary CTA |
+| headline만 훑어도 이해되는가 | YES |
+| 각 영역에 한 가지 일이 있는가 | YES |
+| 카드가 필요한가 | YES, 채널 선택과 evidence receipt가 실제 interaction object |
+| motion이 hierarchy를 돕는가 | YES, skeleton과 상태 전환만 사용 |
+| shadow를 제거해도 professional한가 | YES, border와 type hierarchy로 성립 |
+| dashboard card mosaic인가 | NO |
+| purple gradient, blob, centered everything인가 | NO |
+
+### Category grades
+
+| Category | Grade | 근거 |
+|---|---|---|
+| Visual hierarchy | A | 한 화면 한 결정, h1 > CTA > evidence 순서 명확 |
+| Typography | B | Pretendard 단일 family와 위계는 안정적. dense app의 10~13px helper label이 남아 있어 A는 보류 |
+| Spacing and layout | A | 3영역 desktop과 task > evidence mobile 재배치, horizontal overflow 0 |
+| Color and contrast | A | neutral + blue 1 accent, semantic state에 label 병기, dark elevation |
+| Interaction states | A | 8개 상태, focus-visible, disabled, skeleton, specific recovery, 44px target |
+| Responsive | A | 390은 channel pills와 단일 column, 1024는 3영역으로 별도 composition |
+| Content quality | A | raw code 대신 원인, 소유자, 다음 행동. 빈 CTA와 happy talk 0 |
+| AI slop | A | blacklist 11개 0건 |
+| Motion | B | 기능적 shimmer와 reduced motion만 사용. cycle 1이라 state transition choreography는 최소 |
+| Performance feel | A | local total 21ms, layout shift 유발 asset 없음 |
+
+Weighted verdict: `Design Score B`. 시니어 제품 설계와 상태 완전성은 통과한다. 실제 고객 피드백과 provider 왕복 시각이 아직 없어 A로 확정하지 않는다.
+
+AI Slop verdict: `A`. flat blue, asymmetric evidence rail, utility copy가 제품 고유 문제를 직접 반영한다.
+
+Goodwill: `90/100`
+
+- 70 > 80: top task와 primary action이 즉시 보임.
+- 80 > 85: 활성 브라우저 계정 제약을 연결 전에 정직하게 알림.
+- 85 > 95: wrong-account와 502에 구체적 복구 제공.
+- 95 > 90: 반환 handle 확인 1회를 의도적으로 추가해 속도 비용이 있음.
+
+## 레드팀
+
+**까다로운 고객:** "계정 확인을 또 시켜 귀찮다." 잘못된 개인 계정 발행의 손실이 확인 1클릭보다 크다. callback 직후 1회만 확인시키고 검수에서는 handle을 다시 보여주되 별도 입력은 요구하지 않게 수정했다.
+
+**경쟁자:** "Buffer와 Postiz에도 draft와 publish가 있다." 맞다. 단계명이 차별점은 아니다. OSMU 가설은 confirmed fact, target handle, human approval, actual permalink를 같은 evidence rail로 묶는 것이다. 이 증거가 구매가치가 아니면 scheduler 경쟁을 중단해야 한다.
+
+**회의적 투자자:** "프로토타입이 예쁘지만 실제 Meta account picker 문제는 해결하지 못한다." 맞다. OSMU가 provider 계정 선택기를 보장한다고 쓰지 않았고, 공식 제약 안내와 반환 handle gate만 설계했다. provider 화면 제어처럼 보이는 모든 표현을 제거했다.
+
+## 셀프심문
+
+**이 결론이 틀렸다면 가장 그럴듯한 이유는?** 김민서의 반복 사용을 막는 가장 큰 문제는 발행 신뢰가 아니라 좋은 주제 발견일 수 있다. 이 흐름은 안전하지만 두 번째 게시를 만들지 못할 수 있다.
+
+**답과 수정:** success 화면에 자동화 확장이나 Instagram upsell을 넣지 않고 `같은 사실로 다음 글 만들기`만 둔다. 첫 10명 중 14일 내 두 번째 permalink가 3명 미만이면 이 디자인을 확장하지 않고 plan에서 주제 discovery를 재검토한다.
+
+## 남은 gap
+
+⛔ 회수 필요: provider가 account picker를 제공하지 않는 제약에서 callback 전 `목표 handle`을 고객이 별도 입력하는지 PRD에 없다. v1은 반환 handle 자체를 목표로 명시 확인하는 최소 경로다. 별도 목표 사전 입력은 plan 또는 eng-design 합의가 필요하다.
+
+⛔ 회수 필요: 502 뒤 `미발행 확정`과 안전 재시도를 여는 기술 기준은 UX 상태 계약만 존재한다. idempotency, 외부 결과 조회, timeout 기준은 eng-design 티키타카 대상이다.
+
+QA seed 65개는 `qa-verifier`가 design 승인 전 `docs/qa-tracker.md`에 등록해야 하며, 미등록이면 build 승인 NO-GO라는 승인 PRD 계약을 유지한다.
+
+다음 stage 가능 여부: `사용자 prototype 티키타카 후 design 승인 후보`. 현재 산출만으로 승인 또는 eng-design 진입을 주장하지 않는다.
+
+---
+
+🏷 STAMP | line: openclaw-auto-osmu | 생성: 2026-08-02 21:42 KST | model: gpt-codex/gpt-5.6-sol | agent: product-designer
+
+skills: design-consultation, design-shotgun, design-html, design-review | 근거: PRD v2.4.0, design quality standard, Buffer/Postiz official docs, browser screenshots and interaction evidence
+
+고민: 빠른 자동 연결보다 wrong-account 1건 hard stop을 우선해 handle 확인을 남겼다. 502에서는 다시 발행보다 기존 외부 결과 조회를 우선했다.
+
+SOURCES:
+- `docs/openclaw-auto-osmu-prd-v2.4-gpt-codex.md`
+- `docs/one-thing.md`
+- `docs/persona.md`
+- `docs/bm.md`
+- `docs/risks.md`
+- `pipeline-state.md`
+- `/Users/sj/.claude/standards/design.md`
+- `/Users/sj/.claude/standards/benchmarks.md`
+- `/Users/sj/.claude/standards/artifact-stamp.md`
+- https://support.buffer.com/article/857-using-threads-with-buffer
+- https://support.buffer.com/article/568-connecting-your-instagram-business-or-creator-account-to-buffer
+- https://docs.postiz.com/public-api/posts/create
+- https://docs.postiz.com/public-api/posts/list
+- https://docs.postiz.com/cli/managing-posts
+- https://developers.facebook.com/docs/threads/
+
+MODEL: `gpt-codex/gpt-5.6-sol`
+
+RUBRIC_SCORE: hook=5/5 detail=5/5 rhythm=5/5 voice=5/5 slop=5/5 total=25/25
+
+WEAKEST_LINE: `Design Score B`는 렌더와 상태 계약의 자체 리뷰이며 실제 신규 고객 사용성 관찰 전에는 A로 올릴 수 없다.
+
+SKILLS_USED: design-consultation에 SSOT 확장, design-shotgun에 3방향 탐색과 binary invocation, design-html에 클릭형 허브, design-review에 브라우저 렌더·상태·접근성·점수화
+
+SKILLS_SKIPPED: 없음

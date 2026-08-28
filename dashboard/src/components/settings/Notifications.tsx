@@ -66,29 +66,29 @@ export function Notifications() {
     finally { setSendingReport(false); }
   };
 
-  if (!settings) return <div className="card p-5"><p className="text-xs text-subtle">Loading...</p></div>;
+  if (!settings) return <div className="card p-stack-section"><p className="text-caption text-subtle">Loading...</p></div>;
 
   return (
-    <div className="card p-5">
-      <h3 className="text-sm font-medium text-muted mb-4">Notifications</h3>
-      <div className="space-y-3">
+    <div className="card p-stack-section">
+      <h3 className="text-body-sm font-medium text-muted mb-pad-inset">Notifications</h3>
+      <div className="space-y-stack">
         {Object.entries(EVENT_LABELS).map(([evt, label]) => {
           const v = getEvt(evt);
           return (
-            <div key={evt} className="flex items-center justify-between p-2 rounded bg-surface/50">
-              <div className="flex items-center gap-2">
+            <div key={evt} className="flex items-center justify-between p-stack-tight rounded-chip bg-surface/50">
+              <div className="flex items-center gap-stack-tight">
                 <input
                   type="checkbox"
                   checked={v.enabled}
                   onChange={(e) => setOverrides((prev) => ({ ...prev, [evt]: { ...v, enabled: e.target.checked } }))}
-                  className="rounded border-border w-3 h-3"
+                  className="rounded-chip border-border w-3 h-3"
                 />
-                <span className="text-xs text-muted">{label}</span>
+                <span className="text-caption text-muted">{label}</span>
               </div>
               <select
                 value={v.channel}
                 onChange={(e) => setOverrides((prev) => ({ ...prev, [evt]: { ...v, channel: e.target.value } }))}
-                className="bg-surface border border-border rounded px-2 py-1 text-[10px] text-muted"
+                className="bg-surface border border-border rounded-chip px-stack-tight py-micro text-caption text-muted"
               >
                 <option value="">Off</option>
                 {MESSAGING_OPTIONS.map((ch) => (
@@ -99,14 +99,14 @@ export function Notifications() {
           );
         })}
       </div>
-      <div className="flex gap-2 mt-3">
-        <button onClick={handleSave} disabled={saving} className="flex-1 py-2 bg-accent text-text text-xs rounded hover:bg-accent-hover disabled:opacity-50">
+      <div className="flex gap-stack-tight mt-stack">
+        <button onClick={handleSave} disabled={saving} className="flex-1 py-stack-tight bg-accent text-accent-fg text-caption rounded-chip hover:bg-accent-hover disabled:opacity-50">
           {saving ? "Saving..." : "Save"}
         </button>
-        <button onClick={handleTest} className="px-4 py-2 bg-surface-2 text-muted text-xs rounded hover:bg-surface-2">
-          Test
+        <button onClick={handleTest} className="px-pad-inset py-stack-tight bg-surface-2 text-muted text-caption rounded-chip hover:bg-surface-2">
+          테스트
         </button>
-        <button onClick={handleSendReport} disabled={sendingReport} className="px-4 py-2 bg-green-800 text-green-300 text-xs rounded hover:bg-green-700 disabled:opacity-50">
+        <button onClick={handleSendReport} disabled={sendingReport} className="px-pad-inset py-stack-tight bg-success text-status-fg text-caption rounded-chip hover:opacity-90 disabled:opacity-50">
           {sendingReport ? "발송 중..." : "주간 리포트 발송"}
         </button>
       </div>

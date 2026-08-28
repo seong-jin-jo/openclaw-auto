@@ -1,0 +1,68 @@
+{
+  "stamp": {
+    "created_at": "2026-08-28T07:25:00+09:00",
+    "model": "gpt-5.6-sol",
+    "agent": "code-builder",
+    "skills": [],
+    "basis": [
+      "docs/prototype/openclaw-auto-4room-v63.html",
+      "DESIGN.md",
+      "docs/notes/ui-rules.md",
+      "dashboard/src/app/globals.css"
+    ],
+    "decision": "화면 구조 치수는 승인 프로토타입대로 보존하고 여백, 글자, 색, 모서리, 그림자 직접값만 시맨틱 토큰으로 치환했다."
+  },
+  "scope": "dashboard/src/**/*.ts, dashboard/src/**/*.tsx",
+  "auditor": "dashboard/scripts/ui-token-audit.mjs",
+  "before": {
+    "total": 3029,
+    "counts": {
+      "spacing": 1755,
+      "typography": 572,
+      "color": 190,
+      "radius": 510,
+      "elevation": 2,
+      "contrast": 0
+    }
+  },
+  "after": {
+    "total": 0,
+    "counts": {
+      "spacing": 0,
+      "typography": 0,
+      "color": 0,
+      "radius": 0,
+      "elevation": 0,
+      "contrast": 0
+    }
+  },
+  "added_tokens": [
+    {
+      "names": ["success-soft", "warning-soft", "danger-soft", "status-fg"],
+      "reason": "상태 배경과 전경의 의미를 원색 단계값에서 분리한다."
+    },
+    {
+      "names": ["player-surface", "player-text"],
+      "reason": "영상 미리보기처럼 테마와 무관한 검은 바탕과 흰 글자를 명시한다."
+    },
+    {
+      "names": ["space-none", "space-wide"],
+      "reason": "0과 48픽셀을 승인 여백 눈금의 양 끝으로 이름 붙인다."
+    },
+    {
+      "names": ["shape-chip", "shape-control", "shape-surface", "shape-pill"],
+      "reason": "딱지, 단추, 카드, 알약 모양의 역할을 반경 숫자와 분리한다."
+    },
+    {
+      "names": ["elevation-floating"],
+      "reason": "연결 모달과 설정 마법사의 떠 있는 그림자를 같은 높이로 맞춘다."
+    }
+  ],
+  "command": "cd dashboard && npm run audit:ui-tokens",
+  "sources": [
+    "https://tailwindcss.com/docs/theme",
+    "https://www.radix-ui.com/themes/docs/theme/spacing",
+    "https://www.radix-ui.com/themes/docs/theme/color"
+  ],
+  "model": "gpt-5.6-sol"
+}

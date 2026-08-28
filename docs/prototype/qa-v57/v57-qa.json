@@ -1,0 +1,353 @@
+{
+  "generatedAt": "2026-08-25T18:35:46.099Z",
+  "prototype": "file:///Users/sj/sj_code_master/openclaw-auto/docs/prototype/openclaw-auto-4room-v57.html",
+  "checks": {
+    "v57-sidebar-rooms-1440.png": {
+      "panes": [
+        {
+          "sel": "frame",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "workarea",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "content",
+          "x": 0,
+          "y": 338
+        }
+      ],
+      "unexpectedWide": []
+    },
+    "v57-sidebar-rooms-1024.png": {
+      "panes": [
+        {
+          "sel": "frame",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "workarea",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "content",
+          "x": 0,
+          "y": 915
+        }
+      ],
+      "unexpectedWide": [
+        {
+          "cls": "brand",
+          "over": 3
+        },
+        {
+          "cls": "",
+          "over": 5
+        },
+        {
+          "cls": "nav-group room-group",
+          "over": 5
+        },
+        {
+          "cls": "nav-group",
+          "over": 5
+        },
+        {
+          "cls": "nav-group",
+          "over": 5
+        },
+        {
+          "cls": "nav-group",
+          "over": 5
+        },
+        {
+          "cls": "nav-group",
+          "over": 5
+        },
+        {
+          "cls": "nav-group",
+          "over": 5
+        }
+      ]
+    },
+    "v57-sidebar-rooms-1024-open.png": {
+      "panes": [
+        {
+          "sel": "frame",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "workarea",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "content",
+          "x": 0,
+          "y": 915
+        }
+      ],
+      "unexpectedWide": []
+    },
+    "v57-channel-connect-1440.png": {
+      "panes": [
+        {
+          "sel": "frame",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "workarea",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "content",
+          "x": 0,
+          "y": 0
+        }
+      ],
+      "unexpectedWide": []
+    },
+    "v57-channel-connect-notconnected-1440.png": {
+      "panes": [
+        {
+          "sel": "frame",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "workarea",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "content",
+          "x": 0,
+          "y": 0
+        }
+      ],
+      "unexpectedWide": []
+    },
+    "v57-publish-1440.png": {
+      "panes": [
+        {
+          "sel": "frame",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "workarea",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "content",
+          "x": 0,
+          "y": 1518
+        }
+      ],
+      "unexpectedWide": []
+    },
+    "v57-publish-drawer-1440.png": {
+      "panes": [
+        {
+          "sel": "frame",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "workarea",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "content",
+          "x": 0,
+          "y": 1518
+        }
+      ],
+      "unexpectedWide": []
+    },
+    "v57-publish-run-1440.png": {
+      "panes": [
+        {
+          "sel": "frame",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "workarea",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "content",
+          "x": 0,
+          "y": 1696
+        }
+      ],
+      "unexpectedWide": []
+    },
+    "v57-publish-1024.png": {
+      "panes": [
+        {
+          "sel": "frame",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "workarea",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "content",
+          "x": 0,
+          "y": 2212
+        }
+      ],
+      "unexpectedWide": [
+        {
+          "cls": "brand",
+          "over": 3
+        },
+        {
+          "cls": "",
+          "over": 5
+        },
+        {
+          "cls": "nav-group room-group",
+          "over": 5
+        },
+        {
+          "cls": "nav-group",
+          "over": 5
+        },
+        {
+          "cls": "nav-group",
+          "over": 5
+        },
+        {
+          "cls": "nav-group",
+          "over": 5
+        },
+        {
+          "cls": "nav-group",
+          "over": 5
+        },
+        {
+          "cls": "nav-group",
+          "over": 5
+        }
+      ]
+    },
+    "v57-publish-390.png": {
+      "panes": [
+        {
+          "sel": "frame",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "workarea",
+          "x": 0,
+          "y": 2843
+        },
+        {
+          "sel": "content",
+          "x": 0,
+          "y": 0
+        }
+      ],
+      "unexpectedWide": []
+    },
+    "v57-edit-1440.png": {
+      "panes": [
+        {
+          "sel": "frame",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "workarea",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "content",
+          "x": 0,
+          "y": 802
+        }
+      ],
+      "unexpectedWide": []
+    },
+    "v57-first-gate-390.png": {
+      "panes": [
+        {
+          "sel": "frame",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "workarea",
+          "x": 0,
+          "y": 481
+        },
+        {
+          "sel": "content",
+          "x": 0,
+          "y": 0
+        }
+      ],
+      "unexpectedWide": []
+    },
+    "v57-first-gate-1440.png": {
+      "panes": [
+        {
+          "sel": "frame",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "workarea",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "content",
+          "x": 0,
+          "y": 0
+        }
+      ],
+      "unexpectedWide": []
+    },
+    "v57-perf-1440.png": {
+      "panes": [
+        {
+          "sel": "frame",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "workarea",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "sel": "content",
+          "x": 0,
+          "y": 1822
+        }
+      ],
+      "unexpectedWide": []
+    }
+  },
+  "consoleErrors": []
+}

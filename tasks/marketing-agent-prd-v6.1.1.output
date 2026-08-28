@@ -1,0 +1,34 @@
+요청: OSMU Marketing Agent PRD v6.1.1 residual1 최종 patch.
+
+한 줄 결론: v6.1 계약을 보존하면서 TC020을 current Threads card1 diff 계약으로 고쳤고, L-04 no-GitHub editor를 repeat-proof 이후 D로 옮겼으며, PRD RTM·QA 48건 전부에 P/R/D phase를 고정했다.
+
+## 산출물
+
+- `docs/openclaw-auto-marketing-agent-prd-v6.1.1-gpt-codex.md`
+- `docs/qa-tracker.md` — MA-V611 namespace
+- `tasks/marketing-agent-prd-v6.1.1.output`
+
+## Residual 해소
+
+- TC020: current Threads card1을 edit→save→reload하면 selected card diff1, 다른 모든 current draft/source/status diff0. stale save는 conflict, overwrite0.
+- L-04: no-GitHub fact editor는 source4와 첫 loop repeat-proof 뒤 **D**, 2주 proof에서 구현/design 금지.
+- Phase: P39(2주 proof), R6(existing preservation), D3(repeat-proof 이후).
+- Exit: P39/39 PASS + R6/6 deletion/rename/move0. proof slice의 D implementation/design count는 0이어야 한다.
+
+## 검증
+
+- unique FR/AC/TC/QA = 48/48/48/48.
+- PRD phase count P/R/D = 39/6/3; QA와 동일.
+- `git diff --check` PASS.
+- v6.0/v6.1 파일과 MA-V6/MA-V61 namespace를 덮어쓰지 않음.
+
+## Gate
+
+- plan-critic MAJOR0 재검증과 `/approve plan` 전 다음 stage 진입 불가.
+- MA-V611은 계획 등록 상태이며 실행 0/48.
+
+RUBRIC_SCORE: 완결성=5/5 정밀성=5/5 벤치마크=5/5 추적성=5/5 전문성=5/5 total=25/25
+WEAKEST_LINE: D phase는 repeat-proof 이후 조건이라 현재 구현 결과를 주장하지 않는다.
+SKILLS_USED: 없음 — PRD 전용 매칭 스킬 없음; planning/doc-review/template 적용
+SKILLS_SKIPPED: 없음 — 매칭 스킬 없음
+SOURCES/MODEL: PRD §19 · gpt-codex/gpt-5.6-sol

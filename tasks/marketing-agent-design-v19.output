@@ -1,0 +1,216 @@
+# Marketing Agent v19 디자인 리테이크 재실행 보고서
+
+> 🏷 STAMP | line: marketing-agent-design | 생성: 2026-08-08 17:35 KST | model: gpt-codex/gpt-5.6-sol | agent: product-designer/marketing_agent_design_v19_retake_rerun
+> skills: gstack design-review(Design Score B+) | 근거: 디자인 품질헌법, PRD v7.3.5, v19 디자인 시스템·사용자 흐름·와이어프레임·프로토타입, 공식 벤치마크 4건
+> 고민: 플랫폼별 작업 위치를 통일하면서 실제 지원 범위와 OAuth·게시 실증의 차이를 숨기지 않는 기존 v19 목표를 그대로 보존했다.
+
+## 한 줄 결론
+
+기존 v19 디자인 목표와 산출물은 변경하지 않고 재검토했으며, 정적 상호작용 검증 220개가 다시 통과했다. 디자인 정적 계약은 **Design Score B+**, **AI Slop Score B+**이나 실제 브라우저 픽셀·포커스·대비·터치 영역과 외부 OAuth·게시 경로는 미검증이므로 디자인 최종 승인에는 회수 작업이 남아 있다.
+
+## 기존 구현 확인
+
+재창조 방지를 위해 기존 v19 산출물과 현재 작업 상태를 먼저 확인했다.
+
+| 산출물 | 확인한 기존 내용 | SHA-256 |
+|---|---|---|
+| `DESIGN.md` | 브랜드 형용사 3개, 색상·타이포그래피·간격 토큰, 컴포넌트 목록, 금지 패턴 | `2a936109a939b28ea67281b1056c24062e93ed82a1484e1a0ce3039a2d949b80` |
+| `docs/user-flow-marketing-agent-v19-gpt-codex.md` | 14단계 정상 경로, 빈 상태·로딩·오류·예외·복구, 막다른 경로 0 계약 | `aa61bf8520f118df89a00a800af5b6c7a774c6b251cad7b252ff0f5e2c49a627` |
+| `docs/WIREFRAMES/marketing-agent-v19-gpt-codex.md` | 핵심 화면, 상태, 상호작용, 1440·1024·390 반응형 계약 | `ba951c3776770f188e23d87c53214fd76e507c763f21aa27c99649e127930f5b` |
+| `docs/prototype/openclaw-auto-marketing-agent-fidelity-v19-gpt-codex.html` | 26개 목적지, 14단계, 플랫폼 작업 탭, 고객·운영자 상태 전환 허브 | `80596e445bac293a4f8ef647440e0963cc83e578783a09e1c0331dd595ff2210` |
+
+구현현황 전용 문서는 발견되지 않았다. 대신 `pipeline-state.md`, `wiki/ops/session-state.md`, 위 네 산출물과 현재 프로토타입 검증 스크립트를 기준으로 기존 구현을 확인했다.
+
+## 유지한 기존 기능
+
+- 사이드바 9개 그룹과 고유 목적지 26개
+- 캠페인 정상 경로 14단계
+- 플랫폼 공통 위치 `Create | Queue | Calendar | Analytics | Settings`
+- Threads의 Growth·Popular 의미, Instagram의 Feed·Card-news·Reels 의미
+- YouTube Shorts·TikTok의 영상 작업 의미와 Messaging 기본 꺼짐 경계
+- Studio의 `Text → Photo/Card-news → Video` 순서
+- 고객 Settings 8개 준비 단계와 운영자 Admin 9개 구역
+- `OSMU에서 생성`과 `이 플랫폼에서 생성`을 하나의 콘텐츠 생명주기에 연결하는 화면 계약
+- 로딩·빈 상태·오류·부분 성공·권한·오래된 상태·차단·결과 불확실·기록 복구·성공 상태
+- 고객·운영자, 밝은·어두운 테마, 1440·1024·390 조합의 설계 계약
+- 불확실한 외부 결과에서 재게시하지 않고 결과 확인만 제공하는 중복 방지 원칙
+
+## 추가·변경한 것
+
+- 기존 기능·레이아웃·상호작용은 삭제하거나 재배선하지 않았다.
+- `DESIGN.md`, 사용자 흐름, 와이어프레임에 v19 M13/M14의 정적 계약과 실브라우저 회수 경계를 가산했다.
+- 프로토타입에는 제품 UI를 바꾸지 않는 `reviewBoundary` manifest와 품질 footer만 가산했다.
+- `tasks/marketing-agent-design-v19.output`을 재작성해 실제 품질헌법 읽기, `design-review` 적용, 웹 조사 4건과 파일 Edit 증거를 명시했다.
+- 정적 검증을 재실행하고 관찰 증거와 미검증 범위를 분리했다.
+
+## 도구 추적
+
+아래 기록은 이번 재실행에서 실제 수행한 읽기·스킬 적용·웹 조사를 JSONL 유사 형식으로 남긴 것이다.
+
+```jsonl
+{"name":"Read","path":"/Users/sj/.claude/standards/design.md","status":"완독","purpose":"디자인 합격선·상태 완전성·안티슬롭 기준 적용"}
+{"name":"Read","path":"/Users/sj/.claude/standards/benchmarks.md","status":"완독","purpose":"공식 출처 우선 벤치마크 규율 확인"}
+{"name":"Read","path":"/Users/sj/.claude/standards/artifact-stamp.md","status":"완독","purpose":"산출물 스탬프·출고 규격 확인"}
+{"name":"Skill","skill":"design-review","path":"/Users/sj/.claude/skills/gstack/design-review/SKILL.md","status":"완주","purpose":"APP UI 분류·계층·상태·반응형·접근성·AI 슬롭 심사"}
+{"name":"WebSearch","query":"site:support.buffer.com managing approving draft posts channel queue calendar Buffer official","result":"https://support.buffer.com/article/665-managing-and-approving-draft-posts","applied":"초안 생성 위치·검토 요청·승인·Queue 또는 예약 전이를 검토"}
+{"name":"WebSearch","query":"site:support.sproutsocial.com message approval workflows compose submit approve official","result":"https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows","applied":"작성·제출·검토·승인·수정 후 재제출 경계를 검토"}
+{"name":"WebSearch","query":"site:developers.google.com identity OAuth 2.0 web server offline access state scope official","result":"https://developers.google.com/identity/protocols/oauth2/web-server","applied":"authorization code·state·scope·offline access를 준비 단계와 분리"}
+{"name":"WebSearch","query":"site:m3.material.io foundations layout canonical layouts official","result":"https://m3.material.io/foundations/layout/canonical-examples/overview","applied":"재사용 가능한 앱 셸과 화면 크기별 정보 배치 기준을 검토"}
+{"name":"Edit","provider":"Codex apply_patch","path":"DESIGN.md","status":"완료","scope":"v19 M13/M14 증거 경계와 회수 필요 가산","sha256":"2a936109a939b28ea67281b1056c24062e93ed82a1484e1a0ce3039a2d949b80"}
+{"name":"Edit","provider":"Codex apply_patch","path":"docs/user-flow-marketing-agent-v19-gpt-codex.md","status":"완료","scope":"M13/M14 retake 경계와 v18 증거 비승계 명시","sha256":"aa61bf8520f118df89a00a800af5b6c7a774c6b251cad7b252ff0f5e2c49a627"}
+{"name":"Edit","provider":"Codex apply_patch","path":"docs/WIREFRAMES/marketing-agent-v19-gpt-codex.md","status":"완료","scope":"M13/M14 실브라우저 회수 matrix와 AI Slop grade 가산","sha256":"ba951c3776770f188e23d87c53214fd76e507c763f21aa27c99649e127930f5b"}
+{"name":"Edit","provider":"Codex apply_patch","path":"docs/prototype/openclaw-auto-marketing-agent-fidelity-v19-gpt-codex.html","status":"완료","scope":"reviewBoundary manifest와 비시각 품질 footer 가산","sha256":"80596e445bac293a4f8ef647440e0963cc83e578783a09e1c0331dd595ff2210"}
+{"name":"Write","provider":"Codex apply_patch","path":"tasks/marketing-agent-design-v19.output","status":"완료","scope":"VERIFY-readable retake report"}
+```
+
+## 벤치마크 적용
+
+| 출처 | 확인한 패턴 | v19에 유지한 적용 | 그대로 복제하지 않은 것 |
+|---|---|---|---|
+| Buffer | Queue·Drafts·Calendar에서 초안을 만들고 권한에 따라 검토 요청·승인·예약으로 전환 | 여러 표면에서 같은 작업을 찾되 출처·수정본·승인 상태를 함께 표시 | Buffer의 채널별 독립 초안 저장 모델 |
+| Sprout Social | 작성 → 제출 → 검토 → 승인, 수정과 재제출 가능 | 승인 뒤 내용·계정·시간 변경 시 승인 상태를 오래된 상태로 전환 | 요금제·조직 구조·시각 스타일 |
+| Google OAuth | authorization code, state, scope, offline access와 갱신 실패 처리 | 계정 연결·신원 확인·권한·갱신·게시 가능·자동화 동의·실게시 증거를 별도 단계로 표시 | 제공자 콘솔 화면과 구현 완료 주장 |
+| Material 3 | 재사용 가능한 앱 셸과 화면 크기별 배치 | PageShell·HeaderTabs·Section·Stack·Inline과 1440·1024·390 배치 계약 | Material 시각 스타일의 직접 복제 |
+
+차별화 핵심은 경쟁 제품의 여러 초안 모델을 그대로 따르지 않고, 고객에게는 하나의 수정본과 명확한 출처를 보여주되 실제 단일 identity 구현은 기술설계 합의 전 확정하지 않은 점이다.
+
+## 디자인 시스템 충족 여부
+
+| 통과 항목 | v19 근거 | 판정 |
+|---|---|---|
+| 브랜드 형용사 3개 | 믿음직한·또렷한·통제되는 | 충족 |
+| 색상 토큰 | 배경·표면·경계·텍스트·강조·성공·경고·위험의 의미 토큰 | 충족 |
+| 타이포그래피 토큰 | 제목·본문·행동·라벨·수치의 크기·행간·굵기 | 충족 |
+| 간격 토큰 | 4·8·12·16·20·24·32 체계, 최소 터치 영역 44×44 | 충족 |
+| 컴포넌트 목록 | PageShell, HeaderTabs, FormField, Dialog/Drawer, 상태·OAuth·Admin 구성요소 | 충족 |
+| 금지 패턴 | 허위 게시 가능 표시, 상태 합치기, 기록 복제, 불확실 결과 재게시, 카드 중첩, 임의 간격 등 | 충족 |
+| 핵심 화면 와이어프레임 | Studio, 플랫폼 5탭, Queue·Calendar·Analytics, Messaging, Settings, Admin | 충족 |
+| 상태 완전성 | 정상·빈 상태·로딩·오류·예외·복구와 안전한 출구 | 충족 |
+| 막다른 경로 | 모든 상태가 취소·이전 화면·담당 화면·보존된 문맥 중 최소 두 출구 보유 | 0 계약 |
+
+## `design-review` 결과
+
+분류: **APP UI**
+
+첫인상: 화면은 “브랜드 근거를 바탕으로 여러 플랫폼의 작성·승인·게시·결과를 통제하는 작업 공간”을 전달한다. 시선은 먼저 현재 플랫폼과 작업 탭, 다음 행동 또는 차단 사유, 계정·수정본·상태 근거 순으로 이동한다. 한 단어 평가는 **통제됨**이다.
+
+영역 검사:
+
+- 사이드바: 제품 위치와 주요 목적지
+- 헤더 탭: 현재 플랫폼에서 할 수 있는 다섯 작업
+- 주 작업 공간: 작성 또는 작업 상태
+- 보조 영역: 검토·승인·게시·예약
+- 상태·근거 영역: 계정, 준비 단계, 확인 시각, 안전한 다음 행동
+
+명명할 수 없는 영역은 설계 문서 기준 0개다. 실제 렌더 기준은 미검증이다.
+
+### 디자인 판정표
+
+| 범주 | 등급 | 근거 |
+|---|---:|---|
+| 시각 계층 | A- | 화면마다 다음 행동 또는 현재 차단 사유가 하나의 기준점이 됨 |
+| 타이포그래피 | B+ | 크기·행간·굵기 체계가 있으나 실제 폰트 렌더는 미검증 |
+| 간격·배치 | B+ | 토큰과 1440·1024·390 재배치 계약이 있으나 픽셀 실측은 미검증 |
+| 색상·대비 | B | 의미 토큰과 4.5:1 목표는 있으나 계산된 대비는 미검증 |
+| 상호작용 상태 | A- | 정상·로딩·빈 상태·오류·권한·불확실·복구 출구가 명시됨 |
+| 반응형 | B+ | 모바일 재배치와 44px 계약은 있으나 실제 영역 측정은 미검증 |
+| 문구 품질 | A- | 현재·목표·미구현·외부 미검증을 분리하고 고객에게 내부 식별자를 숨김 |
+| AI 슬롭 | B+ | 보라 그라디언트·장식 blob·3열 기능 카드·카드 중첩을 금지 |
+| 모션 | B | shimmer·drawer·dialog에만 목적을 부여했으나 실제 동작은 미검증 |
+| 성능 체감 | B | 정적 프로토타입 기준 지연 유발 요소는 없으나 브라우저 성능은 미검증 |
+
+**Design Score: B+**
+
+**AI Slop Score: B+**
+
+하드 거절 패턴 7개: 0개. AI 슬롭 블랙리스트 적중: 0개.
+
+리트머스 검사:
+
+1. 첫 화면에서 제품과 역할이 분명한가: 예
+2. 강한 기준점이 하나 있는가: 예, 다음 행동 또는 현재 차단 사유
+3. 제목만 훑어도 이해되는가: 예
+4. 구역마다 일이 하나인가: 예
+5. 카드가 실제 상호작용 경계일 때만 쓰였는가: 예
+6. 모션이 상태 이해를 돕는가: 예, 로딩·서랍·대화상자에 한정
+7. 장식 그림자를 제거해도 전문적으로 보이는가: 예
+
+## 직접 검증 증거
+
+정적 상호작용 검증을 이번 재실행에서 다시 관찰했다.
+
+```json
+{
+  "pass": true,
+  "assertions": 220,
+  "destinations": 26,
+  "steps": 14,
+  "platforms": 4,
+  "matrix": 12,
+  "consoleErrors": 0
+}
+```
+
+검증된 범위는 DOM·상태 전환 계약, 목적지 수, 단계 수, 대상 플랫폼 수, 고객·운영자×테마×화면 크기 조합, 정적 콘솔 오류다.
+
+실제 Chrome 헤드리스 캡처는 30초 제한 안에 `exit 134`로 종료됐고 PNG가 생성되지 않았다. 따라서 다음은 **미검증**이다.
+
+- 실제 1440·1024·390 픽셀 배치와 가로 넘침
+- 실제 포커스 표시와 44×44 터치 영역
+- 계산된 색상 대비와 글꼴 렌더
+- 고객·운영자 화면의 실제 시각적 위계
+- OAuth·게시·예약·외부 결과·분석의 운영 환경 동작
+
+## 레드팀
+
+경쟁자 공격: “모든 플랫폼에 같은 다섯 탭을 놓으면 아직 지원하지 않는 기능도 완성된 것처럼 보인다.”
+
+수정 확인: 탭은 길찾기 위치만 통일하고 본문은 플랫폼별 기능으로 분기한다. 준비되지 않은 게시·분석은 빈 상태 또는 차단 상태와 이유를 표시하며, 영상 작업과 Messaging은 별도 계약을 유지한다.
+
+까다로운 고객 공격: “Studio와 플랫폼 양쪽에 만들기 버튼이 있으면 같은 콘텐츠가 두 번 게시될 수 있다.”
+
+수정 확인: 두 진입점은 출처만 다르고 화면에서는 하나의 수정본으로 보인다. 외부 결과가 불확실할 때 게시 버튼을 숨기고 결과 확인만 제공한다. 단, 이를 보장할 실제 단일 identity와 멱등성 계약은 아직 기술설계 대상이다.
+
+## 셀프심문
+
+이 결론이 틀렸다면 가장 그럴듯한 이유는 화면이 “한 기록”을 약속하지만 현재 여러 경로와 저장소의 쓰기 소유자가 실제로 하나가 아닐 수 있다는 점이다. 이 가정이 깨지면 편집 충돌, 일정 중복, 외부 중복 게시가 생길 수 있다.
+
+수정: 디자인은 단일 기록을 사용자 모델로만 유지하고, 실제 identity·쓰기 소유자·게시 멱등성은 구현 사실로 선언하지 않았다. 기술설계 전에 plan을 다시 열어 합의해야 한다.
+
+## M13/M14 정정 경계
+
+### M13 recovery
+
+정적으로는 Home, Studio, Inbox, Calendar, Platform, Results, Settings, Operator의 8 owner와 loading, empty, partial, permission, uncertain, repair의 6 state, 합계 48 recovery 계약을 유지한다. 실제 브라우저에서 48개 전환 뒤 campaign·account·revision identity 보존, uncertain duplicate external request 0, repair provider re-call 0은 미검증이다. 따라서 v19 M13을 닫지 않는다.
+
+⛔ 회수 필요: v19 실제 브라우저에서 M13 48 recovery 전환과 identity·side-effect 경계를 직접 관찰해야 한다.
+
+### M14 client-ready
+
+정적으로는 고객 visible text에서 `cmp_`, `cnt_`, `rev_`, `pub_`, `ext_`, `exp_` 원초성 식별자와 미정의 구현 용어를 금지하고, immutable identity는 `data-*`와 test API에만 유지한다. `.qa-tools`와 `#qa-restore`도 기본 hidden 계약이다. 그러나 v19 customer/operator × light/dark × 1440/1024/390 12 screenshot에서 원초성 식별자 0, visible `검수` 0, contrast·touch·overflow·focus를 확인하지 못했다. v18 실제 브라우저 GO는 v19에 자동 승계하지 않는다.
+
+⛔ 회수 필요: v19 12 screenshot과 computed browser audit로 M14 고객 언어·inspector·접근성·반응형을 직접 관찰해야 한다.
+
+## 남은 간극과 다음 단계
+
+⛔ 회수 필요: canonical content identity, projection write owner, schedule·publish attempt idempotency는 API·DB 계약에 영향을 주므로 plan을 다시 열고 회장 합의 뒤 기술설계에서 확정해야 한다.
+
+⛔ 회수 필요: 실제 브라우저에서 고객·운영자 × 밝은·어두운 테마 × 1440·1024·390 조합을 검수하고, 포커스·대비·터치 영역·가로 넘침·고객 문구·검수 도구 기본 숨김을 직접 관찰해야 한다.
+
+⛔ 회수 필요: 실제 OAuth·게시·예약·외부 결과·분석 경로는 디자인 산출물로 검증할 수 없다.
+
+다음 단계 가능 여부: **기술설계 탐색은 가능하지만 기술설계 게이트 확정은 불가**하다. 위 단일 identity·쓰기 소유자·멱등성 선택을 먼저 회수하고, 실제 브라우저 증거가 생긴 뒤 디자인 최종 승인을 판단해야 한다.
+
+## 품질 푸터
+
+RUBRIC_SCORE: hook=5/5 detail=5/5 rhythm=4/5 voice=5/5 slop=5/5 total=24/25
+
+WEAKEST_LINE: “하나의 수정본”은 가장 단순하고 안전한 고객 모델이지만, 실제 경로와 저장소가 같은 쓰기 소유자를 공유한다는 기술 근거는 아직 없다.
+
+SKILLS_USED: gstack design-review — APP UI 분류, 계층, 상태 완전성, 반응형, 접근성, AI 슬롭, 레드팀 심사에 적용
+
+SKILLS_SKIPPED: imagegen — 기존 코드형 UI와 HTML 프로토타입이 시각 권위이며 새 래스터 자산이 필요하지 않음
+
+SOURCES: `docs/openclaw-auto-marketing-agent-prd-v7.3.5-gpt-codex.md`; `docs/persona-v7.3.5.md`; `docs/bm-v7.3.5.md`; `wiki/product/marketing-hub-surface-map.md`; `DESIGN.md`; `docs/user-flow-marketing-agent-v19-gpt-codex.md`; `docs/WIREFRAMES/marketing-agent-v19-gpt-codex.md`; `docs/prototype/openclaw-auto-marketing-agent-fidelity-v19-gpt-codex.html`; `pipeline-state.md`; `wiki/ops/session-state.md`; `/Users/sj/.claude/standards/design.md`; `/Users/sj/.claude/standards/benchmarks.md`; `/Users/sj/.claude/skills/design-review/SKILL.md`; `/Users/sj/.claude/skills/gstack/design-review/SKILL.md`; https://support.buffer.com/article/665-managing-and-approving-draft-posts; https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows; https://developers.google.com/identity/protocols/oauth2/web-server; https://developers.google.com/identity/protocols/oauth2/resources/best-practices; https://m3.material.io/foundations/layout/canonical-examples/overview
+
+MODEL: gpt-codex/gpt-5.6-sol

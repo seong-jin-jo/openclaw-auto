@@ -1,0 +1,22 @@
+{
+  "created_at": "2026-08-13T18:35:35.7914Z",
+  "display_name": "Kling 2.6 Video",
+  "id": "2986a2fd-6f77-4b76-a1c8-dda7144034ea",
+  "job_type": "kling2_6",
+  "min_result_url": null,
+  "params": {
+    "aspect_ratio": "9:16",
+    "cfg_scale": 0.5,
+    "duration": 5,
+    "height": 1920,
+    "input_image": null,
+    "motion": null,
+    "negative_prompt": null,
+    "prompt": "Vertical framing. A wall calendar mounted on a plain wall, its paper pages flipping backward rapidly in a blur of motion, then settling on one single page as a deep red round rubber stamp presses down and its ink bleeds into the paper fibers. Beside the calendar a small mountain shaped line graph icon. Warm cream and deep navy palette, subtle paper grain, natural soft light, no text, no letters, no numbers anywhere.",
+    "sound": true,
+    "width": 1080
+  },
+  "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183535_2986a2fd-6f77-4b76-a1c8-dda7144034ea.mp4",
+  "status": "completed",
+  "thumbnail_url": "https://cdn.higgsfield.ai/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183535_2986a2fd-6f77-4b76-a1c8-dda7144034ea_thumbnail.webp"
+}

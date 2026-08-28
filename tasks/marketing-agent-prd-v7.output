@@ -1,0 +1,128 @@
+# Marketing Agent PRD v7 — delegated exit report
+
+한 줄 결론: 기존 코드·wiki·화면 감사와 사용자 요구 L-01~L-45를 기준으로 PRD v7.0.0을 작성했고, FR/AC/TC 48/48/48 1:1·웹 렌더·목차·Mermaid·문법 검증까지 통과했으며 독립 critic과 `/approve plan` 전에는 design 입력으로 사용할 수 없다.
+
+TASK: Marketing Agent / OSMU PRD v7.0.0 재기획
+ROLE: prd-architect
+STATUS: artifact-written-self-verified-awaiting-independent-critic
+
+## 산출물
+
+- `docs/openclaw-auto-marketing-agent-prd-v7.0.0-gpt-codex.md`
+- 이 위임 exit report: `tasks/marketing-agent-prd-v7.output`
+- 웹 렌더: `/tmp/zeroone-web-openclaw-auto-marketing-agent-prd-v7.0.0-gpt-codex.html`
+- 제품 코드·DESIGN·prototype·pipeline-state·wiki는 이 위임에서 수정하지 않았다.
+
+## 실제 Read evidence
+
+아래는 이 위임에서 실제로 읽고 판단에 사용한 문서·코드·감사 산출물이다. `AGENTS.md`는 세션 developer context로 전문이 주입됐고, 나머지는 filesystem read로 확인했다.
+
+- `/Users/sj/sj_code_master/postAGI/CLAUDE.md`
+- `/Users/sj/sj_code_master/openclaw-auto/CLAUDE.md`
+- `/Users/sj/sj_code_master/openclaw-auto/AGENTS.md` — injected project instruction
+- `/Users/sj/sj_code_master/openclaw-auto/pipeline-state.md`
+- `/Users/sj/sj_code_master/openclaw-auto/wiki/product/marketing-hub-surface-map.md`
+- `/Users/sj/sj_code_master/openclaw-auto/docs/openclaw-auto-marketing-agent-prd-v6.1.1-gpt-codex.md`
+- `/Users/sj/sj_code_master/openclaw-auto/docs/qa-tracker.md`
+- `/Users/sj/sj_code_master/openclaw-auto/DESIGN.md`
+- `/Users/sj/sj_code_master/openclaw-auto/docs/WIREFRAMES/openclaw-auto-osmu-current-studio-v11-gpt-codex.md`
+- `/Users/sj/sj_code_master/openclaw-auto/docs/WIREFRAMES/openclaw-auto-osmu-existing9-v11-gpt-codex.md`
+- `/Users/sj/sj_code_master/openclaw-auto/docs/WIREFRAMES/openclaw-auto-osmu-browser-baseline-v12-gpt-codex.md`
+- `/Users/sj/sj_code_master/openclaw-auto/docs/WIREFRAMES/marketing-agent-v16-gpt-codex.md`
+- v17 OSMU flow/code, auth-admin, IA-analytics 감사 결과와 사용자 요구 ledger L-01~L-45
+- current `dashboard/src`의 Studio, Sidebar, channel, Settings, AuthGate, Admin, Queue, publish, schedule, metrics, video 관련 구현
+- `/Users/sj/.claude/standards/planning.md`
+- `/Users/sj/.claude/standards/doc-review.md`
+- `/Users/sj/.claude/standards/benchmarks.md`
+- `/Users/sj/.claude/standards/templates/doc-template-prd.md`
+- `/Users/sj/.claude/harness/bin/md-to-web.sh`
+
+## 실제 WebSearch / WebFetch trace
+
+기존 조사 결과를 문서에 반영한 뒤, exit report 직전 공식 source를 같은 결론으로 다시 검색·열어 최신성과 trace를 재확인했다. 아래 query와 URL은 실제 `web.run` 실행값이다.
+
+```json
+{"name":"WebSearch","query":"site:support.buffer.com/article/642 scheduling posts Buffer customize posts for each social network"}
+{"name":"WebSearch","query":"site:support.sproutsocial.com Message Approval Workflows Needs Approval Calendar"}
+{"name":"WebSearch","query":"site:rfc-editor.org RFC 9700 OAuth 2.0 Security Best Current Practice"}
+{"name":"WebSearch","query":"site:developers.tiktok.com/doc/login-kit-web disable_auto_auth"}
+{"name":"WebFetch","url":"https://support.buffer.com/article/642-scheduling-posts"}
+{"name":"WebFetch","url":"https://support.buffer.com/article/861-how-to-use-the-all-channels-view-in-buffer"}
+{"name":"WebFetch","url":"https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows"}
+{"name":"WebFetch","url":"https://www.rfc-editor.org/info/rfc9700/"}
+{"name":"WebFetch","url":"https://developers.tiktok.com/doc/login-kit-web"}
+{"name":"WebFetch","url":"https://developers.google.com/identity/protocols/oauth2/web-server"}
+{"name":"WebFetch","url":"https://help.later.com/hc/en-us/sections/360007324993-Social-Sets-Access-Groups-Users"}
+{"name":"WebFetch","url":"https://www.hootsuite.com/platform/social-media-approval-tool"}
+```
+
+확인·차용한 원칙:
+
+- Buffer: 한 composer에서 여러 channel을 선택하되 network별 별도 편집, 예약 후 독립 post, 전체 Draft/Approval/Queue/Sent와 channel filter.
+- Sprout: Needs Approval·Calendar·approval activity와 승인 만료 시 무발행.
+- Later: brand/account를 Social Set과 access group으로 관리.
+- Hootsuite: create→approve→post와 역할·승인 이력.
+- RFC 9700: exact redirect, authorization code/PKCE, transaction binding, token privilege restriction.
+- Google OAuth: offline access·refresh·revocation 관리.
+- TikTok Login Kit: `disable_auto_auth=1`로 authorization page를 항상 표시할 수 있음.
+- 변경/차별화: 경쟁사 화면을 복제하지 않고 brand source→content root→variant/delivery→Queue 또는 video job→publication→metric→next content의 추적성, 미지원·미수집·권한 부족을 숨기지 않는 contract로 바꿨다.
+
+## 작성 trace와 핵심 판단
+
+- `apply_patch`로 `docs/openclaw-auto-marketing-agent-prd-v7.0.0-gpt-codex.md`를 신규 작성했다.
+- current Studio 3 rail/existing9/visual7/direct4를 보존하고 text adapter8, video3, messaging3, unsupported LINE을 서로 다른 inventory로 분리했다.
+- YouTube/TikTok channel owner는 연결/readiness, `/videos`는 제작·발행 job으로 분리했다.
+- OSMU 생성 결과가 platform Queue 또는 video job과 끊기지 않도록 canonical lineage와 aggregate/platform projection diff0을 요구했다.
+- 전체 성과는 scope/coverage, 플랫폼 성과는 native definition/source/collected_at를 요구하고 missing을 0으로 표시하지 못하게 했다.
+- OAuth callback 성공을 canonical identity·scope·refresh·capability·surface projection 검증 뒤로 미뤘고 wrong-account recovery와 tenant API token ownership을 별도 계약으로 만들었다.
+- Keyword/Data/Assets/Midjourney/System/Admin은 목적·입력·출력·owner·role·상태를 명시했다.
+- 고객 DOM에서 `FR/AC/TC`, `existing9`, `visual7`, `브랜드 사실`, `발행 근거`, `permalink` 같은 내부·난해 용어를 금지했다.
+- API·DB·transaction 구조는 plan에서 임의 확정하지 않고 O-1~O-6으로 eng-design dialogue에 회수했다.
+
+## Socratic self-interrogation
+
+**이 결론이 틀렸다면 가장 그럴듯한 이유는?** canonical content root가 현행 Studio의 가벼운 생성 경험을 무겁게 만들고 고객이 원한 “생성 후 바로 발행”보다 내부 데이터 구조를 전면에 내세울 수 있다. 그래서 root/lineage는 고객 용어로 노출하지 않고 현행 3 rail과 action order를 보존했으며, 고객은 `하나의 콘텐츠`, `플랫폼별 버전`, `발행 결과`만 보도록 수정했다.
+
+두 번째 load-bearing 가정은 YouTube/TikTok을 format family로 나누는 것이 사용자의 “SNS는 Social로 묶어야 한다”는 기대와 충돌할 수 있다는 점이다. 따라서 좌측 물리 그룹명을 plan에서 확정하지 않고, design stage에서 `Social posts / Short video` 동급 그룹과 `Social` 상위 그룹 두 안을 current destination fidelity 위에서 비교하도록 회수했다.
+
+## Red team
+
+레드팀: 6개월 뒤 실패한 가장 구체적인 시나리오는 예쁜 플랫폼 카드와 이동 버튼은 모두 존재하지만 Studio 결과·플랫폼 Queue·video job·실제 publication의 identity가 서로 달라 고객이 각 플랫폼 앱에서 다시 확인하고 수동 발행하는 상황이다. 이를 막기 위해 화면 전환이 아니라 동일 identity와 projection diff0을 release evidence로 고정했다.
+
+Steelman: Buffer·Sprout 같은 기존 업체를 대체하지 않고 OSMU를 브랜드 근거 기반 composer와 기존 publisher handoff만으로 축소하는 편이 더 안전하다는 반대안이 강하다. 실제 반복 사용에서 lineage와 account truth가 차별화되지 않으면 connector 확대를 중단하고 이 축소안을 채택하도록 kill criteria를 두었다.
+
+- **까다로운 고객:** “또 버튼만 움직이고 Studio 초안이 Queue에 안 들어갈 수 있다.” 대응: route-click을 PASS 근거로 금지하고 동일 root/delivery/job/publication identity와 aggregate/platform projection diff0을 MA7-TC-024~028·046으로 고정했다.
+- **경쟁자:** “Buffer/Sprout보다 connector 품질이 낮은데 플랫폼 수만 늘린다.” 대응: messaging은 optional distribution, video는 job workflow로 분리하고 backing 없는 Queue/Analytics/tab을 금지했다.
+- **회의적 투자자:** “OAuth 장애와 provider 심사 운영비가 차별화보다 크다.” 대응: wrong-account/duplicate/leak 1건이면 cohort 중단, 운영 개입이 주당 60분/workspace를 넘으면 provider 확대 중단이라는 circuit breaker를 넣었다.
+
+## 검증 trace
+
+- 실제 파일 작성 표식: `{"name":"Write","path":"docs/openclaw-auto-marketing-agent-prd-v7.0.0-gpt-codex.md","evidence":"apply_patch completed"}`
+- 실제 exit report 작성 표식: `{"name":"Write","path":"tasks/marketing-agent-prd-v7.output","evidence":"apply_patch completed"}`
+- `wc -l`: PRD **933줄**, **91,731 bytes**.
+- persona: `sed -n '131p' ... | wc -m` → **942자**.
+- FR definition table: **48**.
+- Atomic AC table: FR rows **48**, AC IDs **48**, TC IDs **48**, duplicate ID **0**.
+- NFR: **15**.
+- Mermaid: opening/closing fence **3/3**.
+- `rg` placeholder/tool residue: 의미 있는 TODO/TBD/FIXME/placeholder/tool-call residue **0**. `JTBD`의 문자열 내 `TBD`만 검색됐으며 placeholder가 아니다.
+- `git diff --check -- docs/openclaw-auto-marketing-agent-prd-v7.0.0-gpt-codex.md` → PASS.
+- `/Users/sj/.claude/harness/bin/md-to-web.sh ...` → `/tmp/zeroone-web-openclaw-auto-marketing-agent-prd-v7.0.0-gpt-codex.html` 생성·open.
+- 실제 headless browser: HTTP/file load 200, H1 1, H2 24, tables 30, Mermaid 3, console error 0, 1440 viewport horizontal overflow 0.
+- 목차의 `10. 기능 요구사항` 클릭 후 `#10-기능-요구사항`, scrollY 16950, target heading 일치 확인.
+- 직접 육안 확인 screenshot: `/tmp/osmu-prd-v7-top.png`.
+
+## Gate / 회수
+
+- independent plan-critic: 미실행.
+- verifier: 이 report를 입력으로 상위 controller가 실행해야 함.
+- plan approval: 미승인.
+- design 진입: critic MAJOR 0 + verifier PASS + 회장 `/approve plan` 전 불가.
+- eng-design에서 합의할 O-1~O-6: canonical storage/migration, publication transaction, OAuth projection, tenant API token scopes, Midjourney route, video Calendar/Queue representation.
+
+RUBRIC_SCORE: 완결성=5/5 정밀성=5/5 벤치마크=5/5 추적성=5/5 전문성=5/5 total=25/25
+WEAKEST_LINE: “Midjourney customer nav에서 제거”는 안전 추천안이지만 route25 보존과 충돌하므로 확정하지 않고 O-5 design/security 결정으로 회수했다.
+SKILLS_USED: 없음 — 설치된 skill catalog에 제품 PRD 기획 전용 매칭 skill이 없어 planning.md·doc-review.md·benchmarks.md·PRD template을 직접 적용했다.
+SKILLS_SKIPPED: 없음 — 매칭 skill 없음.
+SOURCES: `/Users/sj/sj_code_master/postAGI/CLAUDE.md`; repo `CLAUDE.md`·injected `AGENTS.md`; `pipeline-state.md`; `wiki/product/marketing-hub-surface-map.md`; PRD v6.1.1; `docs/qa-tracker.md`; `DESIGN.md`; current Studio/existing9/browser-baseline/v16 wireframes; v17 OSMU/auth-admin/IA-analytics audits; current dashboard Studio/Sidebar/channel/Settings/Auth/Admin/Queue/publish/schedule/metrics/video implementation; official Buffer/Sprout/Later/Hootsuite/RFC9700/Google OAuth/TikTok Login Kit URLs listed above.
+MODEL: gpt-codex/gpt-5.6-sol

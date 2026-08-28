@@ -1,0 +1,1 @@
+Error: {"actions":[{"type":"upgrade_plan"}],"billing_period":"monthly","concurrent_jobs_limit":6,"error_type":"rate_limit_reached","job_set_type":"veo3_1_lite","plan_type":"plus","use_unlim":false,"workspace":{"role":"owner","type":"private"}}

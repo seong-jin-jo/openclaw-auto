@@ -1,0 +1,96 @@
+한 줄 결론: v7.1 critic의 MAJOR2·MINOR4를 Studio 기존 실행 보존, canonical command 분리, native destination-format8, 확정 물리 IA, N75/N60 고정 분모로 폐쇄한 PRD v7.2를 작성했고 FR/AC/TC 67/67/67·R3 29·R4 53·웹 렌더를 검증했으며, independent critic `major_findings: 0` 전 design 입력은 금지된다.
+
+# Marketing Agent PRD v7.2 — delegated surgical-retake exit report
+
+TASK: Marketing Agent / OSMU PRD v7.2.0 surgical RETAKE-MAJOR closure
+ROLE: prd-architect
+STATUS: artifact-written-self-verified-awaiting-independent-critic
+
+## 산출물
+
+- `docs/openclaw-auto-marketing-agent-prd-v7.2.0-gpt-codex.md`
+- `tasks/marketing-agent-prd-v7.2.output`
+- 웹 렌더: `/tmp/zeroone-web-openclaw-auto-marketing-agent-prd-v7.2.0-gpt-codex.html`
+- screenshot: `/tmp/ma72-prd-top.png`, `/tmp/ma72-prd-section7.png`
+- v7.0/v7.1, pipeline, wiki, code, DESIGN, prototype는 수정하지 않았다.
+
+## Actual Read evidence
+
+- `tasks/marketing-agent-plan-critic-v7.1.output` 전체 260줄: MAJOR2·MINOR4와 종료증거.
+- `docs/openclaw-auto-marketing-agent-prd-v7.1.0-gpt-codex.md` 전체 구조와 보존 계약.
+- `tasks/marketing-agent-prd-v7.1.output`: 이전 실제 read/research/validation chain.
+- `wiki/product/marketing-hub-surface-map.md`: current 구현 SSOT.
+- critic이 실제 코드로 고정한 `dashboard/src/app/studio/page.tsx:278-309,400-415,469-489`: Save·Publish·예약·SchedulePanel primary loop.
+- critic이 실제 코드로 고정한 analytics route와 metrics route: cross-provider sum·Threads-only/false-zero 결함.
+- `/Users/sj/.claude/standards/planning.md`, `doc-review.md`, `benchmarks.md`, PRD template, postAGI/repo 하네스는 같은 delegated chain에서 읽은 기준을 유지했다.
+
+## Actual WebSearch / WebFetch trace
+
+이번 surgical retake에서 Buffer 공식 scheduling 문서를 다시 실제 검색했고, 같은 v7.1 critic chain에서 Buffer All Channels와 Sprout 공식 approval 문서를 실제 검색·열람한 trace를 재사용했다.
+
+```json
+{"name":"WebSearch","arguments":{"query":"site:support.buffer.com scheduling posts customize each channel publish now schedule official Buffer"}}
+{"name":"WebSearch","arguments":{"query":"site:support.buffer.com all channels view drafts approvals queue sent official Buffer"}}
+{"name":"WebSearch","arguments":{"query":"site:support.sproutsocial.com message approval workflows compose needs approval calendar official Sprout"}}
+{"name":"WebSearch","arguments":{"query":"site:support.buffer.com/article/642-scheduling-posts Buffer scheduling posts"}}
+{"name":"WebFetch","arguments":{"url":"https://support.buffer.com/article/642-scheduling-posts"}}
+{"name":"WebFetch","arguments":{"url":"https://support.buffer.com/article/861-how-to-use-the-all-channels-view-in-buffer"}}
+{"name":"WebFetch","arguments":{"url":"https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows"}}
+```
+
+차용: Buffer composer의 채널별 customize와 `Now`/`Set Date and Time`, 예약 뒤 독립 post, All Channels의 Draft/Approval/Queue/Sent projection; Sprout의 Compose 제출→Needs Approval→Calendar/activity. 변경: 하나의 data authority를 하나의 화면으로 오독하지 않고 Studio와 management view가 동일 identity/version/approval/idempotency/audit command를 호출하도록 제한했다. Messaging과 video에는 backing 없는 fake Queue를 만들지 않는다.
+
+## MAJOR2 closure
+
+1. **Data authority vs Studio actions:** `canonical data authority`, `management view`, `UI initiation surface`를 분리했다. Studio의 기존 Save·카드 편집·Publish·예약·SchedulePanel을 보존하고 direct tenant는 `지금 게시/예약`, approval-required tenant는 `승인 요청/예약 승인 요청`으로 정확히 분기했다. Social/message/video 모두 하나의 logical record/command contract를 사용하고 Inbox=승인 관리, Calendar=일정 관리, Queue 또는 `/videos`=상세·복구·결과 관리로 고정했다. R3에 Studio semantic5와 dual-init2를 추가해 total을 29로 재계산했다.
+2. **Social analytics omission:** Threads, X, Facebook, Instagram Feed, Bluesky, YouTube Shorts, Instagram Reels, TikTok 8 destination-format을 독립 truth case로 고정했다. 각 case는 collected 또는 explicit not-collected/unsupported와 definition/source/window/time/account/publication/state, false-zero0을 요구한다. Feed/Reels는 별도 case다. R4 total을 53으로 재계산했다.
+
+## MINOR4 closure
+
+1. 물리 IA를 `Social > 게시물(Threads/X/Instagram Feed/Facebook/Bluesky), 짧은 영상(YouTube Shorts/Instagram Reels/TikTok)`으로 확정하고 Messaging을 별도 top-level에 뒀다. route25·unique destination26은 보존한다.
+2. Messaging을 logical `message delivery authority1`, Inbox/Calendar를 approval/schedule client·projection으로 정규화했다.
+3. navigation denominator를 route25×390/1024/1440=`N75`로 수정했다.
+4. owner-state 표를 정확한 5열 `6 owners×10 states | N60 | M0`으로 고쳤고 conditional/applicable denominator를 금지했다.
+
+## Socratic self-interrogation
+
+**이 결론이 틀렸다면 가장 그럴듯한 이유는?** 승인 정책 설정이 아직 실제 tenant 모델에 없어서 두 Studio 흐름이 설계 부담만 늘릴 수 있다. 그러나 현재 direct Publish/예약을 없애는 것도 사용자 승인 없는 전략 변경이며, approval-required 고객을 direct call로 처리하는 것도 안전하지 않다. 그래서 저장 구조는 eng-design dialogue로 남기되 버튼 존재·copy·command semantics는 제품 계약으로 닫았다.
+
+두 번째 load-bearing 가정은 native8 중 unsupported가 많아도 성과 환류 제품가치가 유지된다는 것이다. 그래서 unsupported를 거짓 숫자0으로 숨기거나 N에서 제외하지 않고 truth case로 남겼고, Social5 중 permanent unsupported≥3 또는 eligible publication≥20에서 evidence-linked next change<50%면 성과 환류를 핵심 판매 문구에서 내리는 kill criterion을 유지했다.
+
+## Red team
+
+**레드팀 공격:** 여러 initiation surface는 중복 발행과 승인 우회를 만든다. **수정·방어:** 모든 화면의 자유 command가 아니라 current Studio primary actions와 전용 management clients만 same record/version/approval/idempotency/audit contract를 사용한다. Studio+Queue/Calendar/`/videos`가 동일 intent를 동시에 시작하는 semantic case에서 external side effect≤1을 독립 release case로 요구한다.
+
+**반대 공격:** connector 없는 Social native metric을 R4 N에 넣는 것은 허위 완료다. **수정·방어:** 숫자 수집을 무조건 PASS로 요구하지 않고 explicit not-collected/unsupported+capability/source truth+false-zero0을 PASS 결과로 인정한다. N에서 빼면 미구현이 아니라 제품 의무 자체가 사라지므로 8개를 고정한다.
+
+## Validation trace
+
+- 실제 PRD 작성: `{"name":"Write","path":"docs/openclaw-auto-marketing-agent-prd-v7.2.0-gpt-codex.md","evidence":"apply_patch completed"}`
+- 실제 report 작성: `{"name":"Write","path":"tasks/marketing-agent-prd-v7.2.output","evidence":"apply_patch completed"}`
+- PRD **865줄**, **68,084 bytes**.
+- persona **989자**.
+- route entry **25**, unique customer destination **26**, video actions **24**.
+- FR **67**, AC **67**, base TC **67**, duplicate/orphan **0**.
+- NFR **15**, Mermaid fences **2/2**.
+- Release denominator: R3 **29**, R4 **53**, OAuth **18**, navigation **75**, owner-state **60**, header **11**; plan stage M=0.
+- `TODO|TBD|lorem|tool residue` 0; `git diff --check` PASS.
+- `md-to-web.sh`로 HTML 생성 후 실제 headless browser에서 열었다.
+- 렌더 관찰: load200, H2=26, tables=30, Mermaid=2, Mermaid error=0, console error=0, 1440 viewport body1063≤1440, overflow0.
+- TOC `7. Canonical authority...` 클릭→정확한 heading·scrollY8310, `17. Release coverage N/M` 클릭→정확한 heading·scrollY33067 확인.
+- 실제 screenshot을 열어 §7 family contract·Studio before→after 표의 타이포·열 정렬을 육안 확인했다.
+
+## Gate
+
+- v7.1 critic MAJOR2/MINOR4 문서 closure: **2/2·4/4**.
+- independent recritic: 미실행.
+- plan approval: 미승인.
+- verifier: 이 output으로 실행.
+- design entry: verifier PASS+independent critic `major_findings: 0`+회장 `/approve plan` 전 불가.
+
+RUBRIC_SCORE: 완결성=5/5 정밀성=5/5 벤치마크=5/5 추적성=5/5 전문성=3/5 total=23/25
+WEAKEST_LINE: Approval policy 두 흐름은 Studio 보존과 enterprise safety를 함께 만족시키는 제품 계약이지만 실제 tenant configuration과 초기 cohort default는 eng-design/pilot 증거 전 미검증이다.
+SKILLS_USED: 없음 — 설치된 catalog에 제품 PRD 전용 매칭 skill이 없어 planning.md·doc-review.md·benchmarks.md·PRD template 직접 적용
+SKILLS_SKIPPED: 없음 — 매칭 skill 없음
+SOURCES: `tasks/marketing-agent-plan-critic-v7.1.output`; PRD v7.1.0; v7.1 exit; `wiki/product/marketing-hub-surface-map.md`; current Studio/publish/analytics/metrics code evidence; planning/doc-review/benchmarks/template; Buffer Scheduling/All Channels; Sprout Approval; PRD §20 official URLs.
+MODEL: gpt-codex/gpt-5.6-sol

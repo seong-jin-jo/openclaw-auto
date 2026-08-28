@@ -1,0 +1,1074 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>OSMU 기술설계(FDD) 검토</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:true,theme:'neutral'});</script>
+<style>
+body{font-family:Pretendard,-apple-system,sans-serif;line-height:1.65;max-width:920px;margin:0 auto;padding:32px 20px 80px;color:#18181b;background:#fbfbfc}
+h1{font-size:1.5rem;border-bottom:2px solid #2563eb;padding-bottom:6px}h2{font-size:1.15rem;margin-top:28px;color:#1e3a8a}h3{font-size:1rem}
+.doctag{background:#2563eb;color:#fff;display:inline-block;padding:4px 12px;border-radius:6px;font-weight:700;font-size:.9rem;margin:36px 0 10px}
+table{border-collapse:collapse;width:100%;font-size:.88rem;margin:10px 0}th,td{border:1px solid #e4e4e7;padding:6px 10px;text-align:left}th{background:#f4f4f5}
+code{background:#f4f4f5;padding:1px 5px;border-radius:4px;font-size:.85em}pre{background:#f8f8f8;border:1px solid #e4e4e7;border-radius:8px;padding:12px;overflow-x:auto}
+pre.mermaid{background:#fff;text-align:center}section{border-bottom:1px solid #e4e4e7;padding-bottom:20px}
+blockquote{border-left:3px solid #2563eb;margin:0;padding-left:14px;color:#52525b}
+.banner{background:#eff6ff;border:1px solid #2563eb;border-radius:10px;padding:14px 18px;margin-bottom:20px}
+</style></head><body>
+<div class="banner"><b>기술설계(FDD) 검토용</b> · 2026-08-12 · [tech-architect, opus] · verify PASS · 신규 스키마 불필요 판정 · 확정 3건(홈 dual-read후전환 / 드래프트 GET폴백 / 채널 channel_accounts만) — 반대 없으면 이대로 구현.</div>
+<section><div class="doctag">FDD — R-02 여정 결함 수정 (메인)</div><h1 id="fdd-r-02-v100">FDD — R-02 여정 "안 되는 것" 수정 기술설계 (v1.0.0)</h1>
+<blockquote>
+<p><strong>STAMP</strong>
+- 버전: v1.0.0 (semver) · 작성일: 2026-08-12 12:07 KST · 작성자/모델: tech-architect / claude-opus-4-8
+- 상류 산출물(버전 핀):
+  - 회장 요청 원장(정본): <code>docs/requests/2026-08-08_2026-08-10-chairman-requests.md</code> R-02·R-05·R-06·R-07·R-09
+  - 실측 수정 기획: <code>docs/audit/r02-journey-plan/r02-journey-fix-plan-v1-opus.html</code> (product-designer, Design Score B+)
+  - QA 실측 판정표: <code>tasks/ad75280b63d39d6cc.output</code> (browse 실측)
+  - 코드 진실원: <code>dashboard/src</code> · 스키마 <code>dashboard/db/schema.sql</code>
+- 성격: <strong>신규 설계 아님.</strong> 이미 배포돼 도는 제품의 "안 되는 4가지"를 기존 코드 최소 변경으로 되게 하는 수정 설계. 재창조·신규 IA 창작 0.</p>
+</blockquote>
+<hr />
+<h2 id="_1">목차 (바로가기)</h2>
+<ul>
+<li><a href="#tldr">0. TL;DR</a></li>
+<li><a href="#scope">1. 범위·용어</a></li>
+<li><a href="#arch">2. 시스템 아키텍처 (as-is / 문제 지점)</a></li>
+<li><a href="#erd">3. ERD (관련 테이블)</a></li>
+<li><a href="#frd">4. 기능 요구(FRD) + 인수기준(AC)</a></li>
+<li><a href="#fixes">5. 결함별 기술설계 (file:line → 접근 → 영향)</a></li>
+<li><a href="#f1">F1. 드래프트 본문 저장/로드 완결 (R-02-e·f)</a></li>
+<li><a href="#f2">F2. 채널 연결상태 단일 소스 (R-02-b)</a></li>
+<li><a href="#f3">F3. 홈 지표 dual-datastore 통합 (R-02-g / Phase 2)</a></li>
+<li><a href="#f4">F4. Admin 채널 카운트·밀도 (R-02-i)</a></li>
+<li><a href="#flows">6. 핵심 플로우 (sequenceDiagram)</a></li>
+<li><a href="#api">7. API 계약 (변경분)</a></li>
+<li><a href="#db">8. DB 스키마 판단 (⛔ 회수 옵션)</a></li>
+<li><a href="#rtm">9. 요구↔설계↔테스트 추적표 (RTM)</a></li>
+<li><a href="#open">10. 오픈이슈</a></li>
+<li><a href="#hist">11. 개정이력</a></li>
+</ul>
+<hr />
+<h2 id="0-tldr">0. TL;DR <a id="tldr"></a></h2>
+<p>R-02 여정(가입→OAuth연결→키저장/확인→생성→수정→발행→성과→Settings→Admin)의 뼈대는 이미 구현돼 실데이터로 렌더된다. 실측으로 확인된 <strong>막힌 지점은 4가지</strong>뿐이고 전부 <strong>기존 코드 최소 변경 + 데이터 정합</strong>으로 풀린다. 스키마 신규 테이블·컬럼 추가는 <strong>불필요</strong>(필요한 테이블은 이미 존재). 이 FDD는 각 결함을 <code>file:line → 수정 접근 → 영향 파일 → AC → 테스트</code>로 1:1 매핑한다. 되돌리기 비싼 판단(드래프트 payload 형태, 홈 파일→DB 전환의 컷오버 방식)은 §8에 옵션 A/B + 트레이드오프로 올려 회장 합의를 받는다(임의 확정 금지).</p>
+<hr />
+<h2 id="1">1. 범위·용어 <a id="scope"></a></h2>
+<h3 id="11-in">1.1 범위 (In)</h3>
+<ul>
+<li>실측된 4대 결함 수정: 드래프트 본문 완결 / 채널 연결상태 단일화 / 홈 지표 dual-datastore 통합 / Admin 밀도.</li>
+<li>관련 API 라우트의 <strong>동작 변경</strong>(응답 스키마는 하위호환 유지).</li>
+<li>레거시 파일스토어(<code>data/queue.json</code>) → DB(<code>queue_posts</code>·<code>published_posts</code>) 읽기 전환의 단계·롤백 설계(별도 문서 <code>migration-filestore-to-db-v1.0.0-opus.md</code>로 상세).</li>
+</ul>
+<h3 id="12-out">1.2 범위 밖 (Out)</h3>
+<ul>
+<li>신규 화면·IA·기능 창작. 디자인 시스템 리빌드(별도 트랙, 이미 진행).</li>
+<li>OAuth prod env 주입(인프라 조치, 화면 무변경 — R-02-a env 블로커).</li>
+<li>결제·billing 로직(usage_events/subscriptions는 손대지 않음).</li>
+</ul>
+<h3 id="13">1.3 용어 (고정 정의)</h3>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>정의</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>드래프트 본문(text/variants)</strong></td>
+<td><code>drafts.payload</code> 안의 플랫폼별 생성 텍스트 객체 <code>{ threads, x, instagram{caption,hashtags,slides}, shorts, ... }</code>. Studio가 편집·미리보기에 쓰는 단위.</td>
+</tr>
+<tr>
+<td><strong>연결상태 단일 소스</strong></td>
+<td>채널이 "연결됨"인지 판정하는 <strong>유일한</strong> 데이터 소스 = <code>channel_accounts</code>(OAuth 레코드). 레거시 <code>integrations(kind='channel')</code>·<code>openclaw.json</code> 플러그인 config는 판정에서 배제(폴백 미러링만).</td>
+</tr>
+<tr>
+<td><strong>파일스토어 라우트</strong></td>
+<td><code>data/queue.json</code>·<code>growth.json</code>을 <code>readJson</code>으로 읽어 응답하는 홈 계열 라우트(<code>/api/overview</code>·<code>/api/activity</code>·<code>/api/weekly-report</code>).</td>
+</tr>
+<tr>
+<td><strong>DB 라우트</strong></td>
+<td>Postgres 테이블을 <code>withTenant</code>로 읽는 라우트(<code>/api/metrics</code>·<code>/api/studio/drafts</code> 등).</td>
+</tr>
+<tr>
+<td><strong>연결(연쇄)차단</strong></td>
+<td>선행 결함이 안 풀리면 후행 기능 버튼/화면이 아예 렌더 안 되는 상태(예: F1 미해결 시 발행 버튼 미출현).</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-as-is">2. 시스템 아키텍처 (as-is / 문제 지점) <a id="arch"></a></h2>
+<pre class="mermaid">flowchart TB
+  subgraph Client["Next.js 대시보드 (App Router, use client)"]
+    HOME["홈 page.tsx<br/>성과·활동·주간"]
+    STU["studio/page.tsx<br/>생성·편집·발행"]
+    SET["settings/page.tsx<br/>Channels 탭"]
+    SB["사이드바 + 상단 배너<br/>연결 뱃지"]
+    ADM["operator/customers<br/>OAuth 크리덴셜 CRUD"]
+  end
+
+  subgraph API["API Routes (src/app/api)"]
+    OV["/api/overview<br/>/api/activity<br/>/api/weekly-report"]:::file
+    MET["/api/metrics"]:::db
+    DR["/api/studio/drafts"]:::db
+    CC["/api/channel-config"]:::mixed
+    CH["/api/channels/[provider]"]:::db
+  end
+
+  subgraph Store["데이터 소스"]
+    QJSON[("data/queue.json<br/>growth.json (파일)")]:::file
+    PG[("Postgres<br/>drafts·published_posts<br/>queue_posts·channel_accounts")]:::db
+    OJSON[("config/openclaw.json<br/>plugins.entries (파일)")]:::file
+  end
+
+  HOME --> OV --> QJSON
+  HOME --> MET --> PG
+  STU --> DR --> PG
+  SET --> CC
+  SB --> CC
+  CC --> OJSON
+  CC --> PG
+  ADM --> CH --> PG
+
+  classDef file fill:#fef2f2,stroke:#dc2626;
+  classDef db fill:#eff6ff,stroke:#2563eb;
+  classDef mixed fill:#fef3c7,stroke:#d97706;
+</pre>
+<p><strong>문제의 구조적 뿌리 (빨강=파일, 파랑=DB, 노랑=혼합):</strong>
+1. <strong>홈이 두 소스를 동시에 렌더</strong> — 성과 카드/발행물성과/운영현황/THIS WEEK 중 일부는 <code>queue.json</code>(파일), 일부는 <code>published_posts</code>(DB)에서 읽어 같은 화면에서 숫자가 상충(F3).
+2. <strong>연결상태가 화면마다 다른 소스</strong> — 사이드바/배너는 <code>channel-config</code>(레거시 config 미러), Settings 본문/채널 페이지는 <code>channel_accounts</code>(DB). 동일 테넌트에 "연결됨"과 "미연결"이 공존(F2).
+3. <strong>드래프트 payload 형태 불일치</strong> — 저장 경로와 seed의 JSON 키 구조가 어긋나 GET이 <code>text</code>를 null로 평탄화(F1).</p>
+<hr />
+<h2 id="3-erd">3. ERD (관련 테이블) <a id="erd"></a></h2>
+<pre class="mermaid">erDiagram
+  tenants ||--o{ drafts : has
+  tenants ||--o{ published_posts : has
+  tenants ||--o{ queue_posts : has
+  tenants ||--o{ channel_accounts : has
+  tenants ||--o{ integrations : has
+  drafts ||--o| published_posts : "draft_id"
+  channel_accounts ||--o{ published_posts : "account_id"
+
+  tenants {
+    uuid id PK
+    text slug
+    text status
+    timestamptz shared_cli_approved_at
+  }
+  drafts {
+    uuid id PK
+    uuid tenant_id FK
+    text idea
+    jsonb payload "★ payload.text = 플랫폼 variants (F1 정합 대상)"
+    text status "draft|published|partial|stopped"
+    timestamptz updated_at
+  }
+  published_posts {
+    uuid id PK
+    uuid tenant_id FK
+    uuid draft_id
+    text platform
+    text permalink
+    text text
+    text status "published|failed"
+    int views
+    int likes
+    int replies
+    int reposts
+  }
+  queue_posts {
+    uuid id PK
+    uuid tenant_id FK
+    text text
+    text status "draft|approved|published|failed"
+    jsonb channels "v2 멀티채널 상태"
+    timestamptz published_at
+  }
+  channel_accounts {
+    uuid id PK
+    uuid tenant_id FK
+    text provider
+    text external_account_id
+    text status "active|expired|revoked"
+    bool is_default
+  }
+</pre>
+<p><strong>핵심:</strong> 필요한 테이블은 <strong>전부 이미 존재</strong>한다(<code>queue_posts</code>는 schema.sql:109에 P4 dual-write 대상으로 이미 정의). 따라서 이 수정에 <strong>신규 테이블·신규 컬럼 추가는 없다</strong>(§8에서 최종 확인).</p>
+<hr />
+<h2 id="4-frd-ac">4. 기능 요구(FRD) + 인수기준(AC) <a id="frd"></a></h2>
+<blockquote>
+<p>AC 형식 = Gherkin Given/When/Then. 각 AC는 §9 RTM에서 테스트로 1:1 매핑.</p>
+</blockquote>
+<h3 id="fr-1-r-02-e-r-02-f">FR-1 드래프트 본문 저장·로드·편집·발행 완결 (R-02-e, R-02-f)</h3>
+<ul>
+<li><strong>정의:</strong> Studio에서 생성/저장된 드래프트는 발행 이력에서 "불러오기" 시 본문(variants)이 편집 영역에 로드되고, 본문이 있으면 발행 제어가 렌더된다.</li>
+</ul>
+<pre><code class="language-gherkin">Given 테넌트에 payload에 플랫폼 본문이 담긴 드래프트가 존재하고
+When  GET /api/studio/drafts 로 목록을 조회하면
+Then  각 항목의 text 필드가 null 이 아니라 { threads, x, instagram... } 객체로 반환된다
+And   본문이 실제로 비어있는 항목은 text=null 로 오되, UI는 &quot;본문 없음 · 재생성 필요&quot;로 표기한다(빈 미리보기 방치 금지)
+
+Given 발행 이력에서 본문이 있는 드래프트의 &quot;불러오기&quot;를 누르면
+When  loadDraft(d) 가 실행되면
+Then  setText(d.text) 로 편집 영역에 플랫폼별 미리보기가 채워지고
+And   text!==null 조건부 렌더인 카드별 발행 제어(이 카드 발행/예약/permalink)가 나타난다
+
+Given 본문이 로드된 드래프트에서 &quot;이 카드 발행&quot;을 누르면
+When  발행 happy path E2E 를 실행하면
+Then  발행 상태(처리중→성공)와 permalink 링크가 표시되고 published_posts 에 1행이 생긴다
+</code></pre>
+<h3 id="fr-2-r-02-b-r-05-r-06">FR-2 채널 연결상태 단일 소스 (R-02-b, R-05, R-06)</h3>
+<ul>
+<li><strong>정의:</strong> 사이드바 뱃지·상단 "N개 미연결" 배너·Settings Channels 본문·채널 페이지가 <strong>모두 동일 헬퍼</strong>로 <code>channel_accounts</code> 한 소스만 보고 연결 여부를 판정한다.</li>
+</ul>
+<pre><code class="language-gherkin">Given 테넌트에 channel_accounts 로 X(Twitter)가 status='active', is_default=true 로 연결돼 있고
+When  사이드바·상단배너·Settings Channels 탭을 각각 렌더하면
+Then  세 위치 모두 X = Connected 로 동일하게 표시된다(상충 0)
+And   channel_accounts 에 없는 provider 는 세 위치 모두 &quot;연결 필요&quot;로 표시된다
+And   status='expired'/'revoked' 계정은 &quot;재연결 필요&quot;로 표시된다(연결됨으로 오판 금지)
+</code></pre>
+<h3 id="fr-3-dual-datastore-r-02-g-r-09">FR-3 홈 지표 dual-datastore 통합 (R-02-g, R-09)</h3>
+<ul>
+<li><strong>정의:</strong> 홈의 성과 지표는 4개 중복 패널을 <strong>성과 요약 1블록 + 발행물 리스트</strong>로 통합하고, 소스를 DB(<code>published_posts</code>·<code>queue_posts</code>)로 수렴한다. 미연동 지표(도달/참여)는 "연동 시" 1곳에만.</li>
+</ul>
+<pre><code class="language-gherkin">Given 테넌트에 published_posts 발행 4건(성과 포함)이 존재하고
+When  홈을 렌더하면
+Then  성과 요약 1블록이 발행·조회·좋아요·답글·참여율을 단일 소스(published_posts) 집계로 표시한다
+And   &quot;운영 현황&quot;·&quot;THIS WEEK&quot; 중복 패널은 제거되어 같은 지표가 4번 반복되지 않는다
+And   도달/참여 등 미연동 지표는 실적 0 이 아니라 &quot;연동 시&quot;로 1곳에만 표기된다
+
+Given queue.json(파일) 과 published_posts(DB) 가 존재할 때
+When  홈 계열 라우트(overview/activity/weekly)를 읽으면
+Then  같은 지표에 대해 파일과 DB 가 서로 다른 값을 렌더하지 않는다(단일 소스)
+</code></pre>
+<h3 id="fr-4-admin-r-02-i-r-09">FR-4 Admin 채널 카운트·밀도 (R-02-i, R-09)</h3>
+<ul>
+<li><strong>정의:</strong> <code>/operator/customers</code>의 14개 플랫폼 OAuth 폼을 접이식(accordion)+상태 뱃지로 정리하고, 채널 카운트는 status 필터(active만 집계)를 적용한다.</li>
+</ul>
+<pre><code class="language-gherkin">Given Admin 에 14개 플랫폼 OAuth 크리덴셜 설정 화면이 있고
+When  화면을 렌더하면
+Then  각 플랫폼은 기본 접힘 + 상단 상태 뱃지(설정됨/미설정)로 표시되고, 펼친 것만 폼을 노출한다
+And   카드 간 간격이 8pt 스케일로 통일된다
+
+Given 채널 카운트를 표시할 때
+When  channel_accounts 를 집계하면
+Then  status='active' 인 계정만 &quot;연결됨&quot; 카운트에 포함하고 expired/revoked 는 제외한다
+</code></pre>
+<h3 id="7-2-fdd">7원칙 판정표 (기획 헌법 §2 — 이 FDD의 요구 품질)</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>원칙</th>
+<th>판정</th>
+<th>근거</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>용어 통일</td>
+<td>PASS</td>
+<td>§1.3에서 '연결상태 소스'·'드래프트 본문'을 단일 정의로 고정</td>
+</tr>
+<tr>
+<td>2</td>
+<td>구체화</td>
+<td>PASS</td>
+<td>14개 플랫폼, 8pt, LIMIT 50/100, status enum 등 숫자·열거 명시</td>
+</tr>
+<tr>
+<td>3</td>
+<td>입출력 분리</td>
+<td>PASS</td>
+<td>§7 API 계약이 요청/응답 분리</td>
+</tr>
+<tr>
+<td>4</td>
+<td>정합성</td>
+<td>PASS</td>
+<td>4대 결함이 서로 모순 없이 §2 구조 뿌리로 수렴</td>
+</tr>
+<tr>
+<td>5</td>
+<td>정책 상세</td>
+<td>PASS</td>
+<td>expired/revoked·본문없음·미연동지표 등 경계 명시</td>
+</tr>
+<tr>
+<td>6</td>
+<td>추출 철저</td>
+<td>PASS</td>
+<td>§9 RTM에 R-02 각 스텝 매핑, 갭 0</td>
+</tr>
+<tr>
+<td>7</td>
+<td>논리 영역</td>
+<td>PASS</td>
+<td>"잘 되게"류 감상어를 AC(Given/When/Then)로 치환</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-fileline">5. 결함별 기술설계 (file:line → 접근 → 영향) <a id="fixes"></a></h2>
+<h3 id="f1">F1. 드래프트 본문 저장/로드 완결 <a id="f1"></a></h3>
+<p><strong>증상(실측):</strong> 발행 이력 "불러오기"를 눌러도 편집 미리보기가 빈 채로 남음. <code>/api/studio/drafts</code> 응답의 <code>text</code>가 전부 null.</p>
+<p><strong>근본 원인(코드 근거):</strong>
+- <code>dashboard/src/app/api/studio/drafts/route.ts:35</code> — GET이 <code>text: r.payload?.text ?? null</code> 로 평탄화한다. 즉 <strong><code>payload.text</code> 키에 variants가 있어야</strong> 본문이 나온다.
+- 저장 경로 POST(<code>route.ts:53</code>)는 <code>payload = { text: body.text, img, vid, includes, ... }</code> 로 <strong><code>text</code> 키에 감싸서</strong> 저장한다 → 정상.
+- 그러나 <strong>seed</strong>(<code>dashboard/scripts/seed-local-demo.sql</code> drafts INSERT)는 <code>payload = {"threads":..., "x":..., "instagram":...}</code> 로 <strong><code>text</code> 래퍼 없이</strong> 플랫폼 키를 최상위에 넣는다 → GET의 <code>payload.text</code>가 undefined → <code>text:null</code>.
+- <code>studio/page.tsx:393</code> <code>loadDraft(d)</code> → <code>setText((d.text as TextVariants) || null)</code> → null → 빈 미리보기. 발행 버튼은 <code>{text &amp;&amp; ...}</code> 조건부라 F도 연쇄 차단(<code>studio/page.tsx:508</code> 영역).</p>
+<p><strong>수정 접근 (되돌리기 비쌈 → §8-B 옵션으로 회수):</strong>
+- <strong>핵심 = payload 형태 계약을 하나로 고정.</strong> 두 후보(§8-B):
+  - (B-1) GET을 관대하게: <code>text: r.payload?.text ?? extractVariants(r.payload)</code> — payload에 <code>text</code>가 없으면 플랫폼 키(threads/x/instagram/shorts)를 모아 variants로 폴백. seed·레거시 무손실 흡수, 저장 계약 불변.
+  - (B-2) seed·저장을 엄격하게: 항상 <code>payload.text</code>로 nest 통일하고 seed 수정 + 기존 행 백필.
+- <strong>공통 필수:</strong> 본문이 진짜 비어있는 항목은 UI에서 "본문 없음 · 재생성 필요" 뱃지(빈 미리보기 방치 금지) — <code>studio/page.tsx:559~564</code> 이력 리스트 렌더에 조건 추가.</p>
+<p><strong>영향 파일:</strong>
+- <code>dashboard/src/app/api/studio/drafts/route.ts</code> (GET 평탄화 로직) — B-1 채택 시 여기만.
+- <code>dashboard/scripts/seed-local-demo.sql</code> (drafts payload) — B-2 채택 시 또는 데모 정합.
+- <code>dashboard/src/app/studio/page.tsx</code> (loadDraft 393 · 이력 리스트 559 빈상태 카피).
+- 없음(스키마 무변경 — <code>drafts.payload</code> jsonb 그대로).</p>
+<hr />
+<h3 id="f2">F2. 채널 연결상태 단일 소스 <a id="f2"></a></h3>
+<p><strong>증상(실측):</strong> 사이드바 X=Connected 인데 Settings 본문 X 행은 "연결 →"(미연결). 같은 테넌트 두 소스 상충.</p>
+<p><strong>근본 원인(코드 근거):</strong>
+- 사이드바·상단 배너 = 레거시 경로(<code>/api/channel-config</code> → <code>config/openclaw.json</code> plugins.entries 크리덴셜 존재 여부, <code>channel-config/route.ts:49</code>).
+- Settings 본문·채널 페이지 = 신규 OAuth 경로(<code>channel_accounts</code> DB 조회, <code>/api/channels/[provider]</code>).
+- 두 소스가 독립이라 한쪽에만 데이터가 있으면 상충.</p>
+<p><strong>수정 접근:</strong>
+- <strong>단일 판정 헬퍼 신설</strong> <code>lib/channel-connection.ts</code>:
+  - <code>isChannelConnected(tenantId, provider): 'connected' | 'reconnect' | 'disconnected'</code>
+  - 판정 = <code>channel_accounts</code> 에서 <code>(tenant, provider)</code> 최신/기본 계정의 <code>status</code>로만: <code>active</code>→connected, <code>expired</code>/<code>revoked</code>→reconnect, 없음→disconnected.
+  - 레거시 <code>integrations</code>·<code>openclaw.json</code>는 <strong>판정에서 배제</strong>(단, publish 폴백용 미러링은 schema.sql:259~ 주석대로 유지 — 판정과 발행은 분리).
+- 사이드바·배너·Settings·채널 페이지 4곳이 <strong>모두 이 헬퍼(또는 이를 노출하는 단일 API)</strong> 를 호출.</p>
+<p><strong>영향 파일:</strong>
+- 신규: <code>dashboard/src/lib/channel-connection.ts</code>.
+- <code>dashboard/src/app/api/channel-config/route.ts</code> (연결 판정을 헬퍼로 위임 — 응답 스키마 유지, connected 판정 소스만 교체).
+- 사이드바 컴포넌트 / 상단 배너 컴포넌트 / <code>settings/page.tsx</code> Channels 탭 (헬퍼 결과 소비).
+- 없음(스키마 무변경).</p>
+<hr />
+<h3 id="f3-dual-datastore-phase-2">F3. 홈 지표 dual-datastore 통합 (Phase 2 마이그레이션) <a id="f3"></a></h3>
+<p><strong>증상(실측):</strong> 같은 발행 12건 지표를 4개 패널이 반복. 일부 실데이터, 일부 0/"—"로 상충.</p>
+<p><strong>근본 원인(코드 근거):</strong>
+- <code>/api/overview</code>(<code>route.ts:24</code>)·<code>/api/activity</code>(<code>route.ts:10</code>)·<code>/api/weekly-report</code>(<code>route.ts:9</code>) = 전부 <code>readJson(dataPath("queue.json"))</code>·<code>growth.json</code> (파일).
+- <code>/api/metrics</code>(<code>route.ts:26</code>) = <code>published_posts</code>(DB).
+- 홈 <code>page.tsx</code>가 위 4개를 각각 패널로 렌더 → 파일 소스(비어있거나 낡음)와 DB 소스(실데이터)가 한 화면에서 충돌.</p>
+<p><strong>수정 접근 (되돌리기 비쌈 → §8-A 컷오버 방식 회수):</strong>
+1. <strong>소스 수렴:</strong> overview/activity/weekly가 <code>queue.json</code> 대신 DB(<code>queue_posts</code>·<code>published_posts</code>·<code>growth_metrics</code>)를 읽도록 전환. <code>queue_posts</code>는 이미 존재(schema.sql:109) — expand-contract의 expand는 끝났고 <strong>읽기 전환(migrate)</strong> 만 남음.
+2. <strong>UI 통합:</strong> 홈 4개 패널 → 성과 요약 1블록(발행·조회·좋아요·답글·참여율) + 발행물 리스트. "운영 현황"·"THIS WEEK" 제거.
+3. <strong>미연동 지표:</strong> 도달/참여는 "연동 시" 1곳.
+- 상세 단계·dual-write·롤백은 <code>docs/fdd/migration-filestore-to-db-v1.0.0-opus.md</code> 참조.</p>
+<p><strong>영향 파일:</strong>
+- <code>dashboard/src/app/api/overview/route.ts</code> · <code>activity/route.ts</code> · <code>weekly-report/route.ts</code> (읽기 소스 파일→DB).
+- <code>dashboard/src/app/page.tsx</code> (홈 패널 통합).
+- <code>dashboard/src/lib/*</code> queue 집계 헬퍼(신규 <code>lib/home-metrics.ts</code> 후보).
+- 없음(스키마 무변경 — queue_posts 기존).</p>
+<hr />
+<h3 id="f4-admin">F4. Admin 채널 카운트·밀도 <a id="f4"></a></h3>
+<p><strong>증상(실측):</strong> <code>/operator/customers</code>에서 14개 플랫폼 OAuth 폼이 전부 펼쳐져 스크롤 압박·밀도 과다. 채널 카운트가 status 무시.</p>
+<p><strong>근본 원인:</strong> 기능은 정상. 표시 밀도 문제 + 카운트 집계에 status 필터 부재.</p>
+<p><strong>수정 접근:</strong>
+- Admin 플랫폼 카드 → accordion(기본 접힘) + 상태 뱃지(설정됨/미설정), 8pt 간격 통일(순수 프론트, CRUD 로직 불변).
+- 채널 카운트 집계 시 <code>channel_accounts WHERE status='active'</code> 만 "연결됨"으로(F2 헬퍼 재사용).</p>
+<p><strong>영향 파일:</strong>
+- <code>dashboard/src/app/operator/customers/*</code> (표시 컴포넌트).
+- 채널 카운트 API(해당 라우트) — status 필터 추가.
+- 없음(스키마 무변경).</p>
+<hr />
+<h2 id="6-sequencediagram">6. 핵심 플로우 (sequenceDiagram) <a id="flows"></a></h2>
+<h3 id="61-f1">6.1 F1 — 드래프트 불러오기→편집→발행 (수정 후)</h3>
+<pre class="mermaid">sequenceDiagram
+  participant U as 사용자
+  participant S as studio/page.tsx
+  participant API as /api/studio/drafts
+  participant DB as Postgres(drafts)
+  participant P as /api/publish
+  U->>S: 발행 이력 "불러오기" 클릭
+  S->>API: GET /api/studio/drafts?tenant_id
+  API->>DB: SELECT payload
+  DB-->>API: payload
+  API-->>S: { text: payload.text ?? extractVariants(payload) }
+  alt text 있음
+    S->>S: loadDraft → setText(variants) → 미리보기 렌더
+    S->>S: {text && CardPublishControl} 노출
+    U->>P: "이 카드 발행"
+    P-->>S: 발행됨 + permalink
+  else text 없음
+    S->>S: "본문 없음 · 재생성 필요" 뱃지
+  end
+</pre>
+<h3 id="62-f2">6.2 F2 — 연결상태 단일 판정 (수정 후)</h3>
+<pre class="mermaid">sequenceDiagram
+  participant SB as 사이드바/배너
+  participant SET as Settings Channels
+  participant H as lib/channel-connection.isChannelConnected
+  participant DB as channel_accounts
+  SB->>H: isChannelConnected(tenant, 'x')
+  SET->>H: isChannelConnected(tenant, 'x')
+  H->>DB: SELECT status WHERE tenant,provider default
+  DB-->>H: status='active'
+  H-->>SB: 'connected'
+  H-->>SET: 'connected'
+  Note over SB,SET: 두 위치 동일 판정 (상충 0)
+</pre>
+<hr />
+<h2 id="7-api">7. API 계약 (변경분) <a id="api"></a></h2>
+<blockquote>
+<p>원칙: <strong>응답 스키마는 하위호환 유지</strong>(포크 프론트·레거시 소비자 무중단). 아래는 동작/필드 시맨틱 변경만.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>메서드</th>
+<th>경로</th>
+<th>요청</th>
+<th>응답(변경분)</th>
+<th>수용기준</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/studio/drafts</code></td>
+<td><code>?tenant_id</code></td>
+<td><code>{ drafts:[{ id, idea, text, img, vid, status, savedAt }] }</code> — <strong>text가 payload.text 없을 때 플랫폼 키에서 폴백 추출</strong>(B-1 채택 시)</td>
+<td>seed·레거시 드래프트도 text!=null 로 옴. 진짜 빈 것만 null</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/channel-config</code></td>
+<td><code>?tenant_id</code></td>
+<td>기존 채널맵 유지, <strong>connected 판정을 channel_accounts 기준으로 교체</strong></td>
+<td>동일 테넌트에서 사이드바/Settings 판정 일치</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/overview</code></td>
+<td><code>?tenant_id</code></td>
+<td>기존 키 유지, <strong>소스를 queue.json→queue_posts/published_posts(DB)</strong></td>
+<td>파일·DB 값 상충 0</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/activity</code></td>
+<td><code>?tenant_id</code></td>
+<td>기존 이벤트 배열 유지, 소스 DB 전환</td>
+<td>metrics와 동일 발행건에 근거</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/weekly-report</code></td>
+<td><code>?tenant_id</code></td>
+<td>기존 요약 유지, 소스 DB 전환</td>
+<td>주간 집계가 published_posts 기준</td>
+</tr>
+</tbody>
+</table>
+<p><strong>신규 내부 헬퍼(엔드포인트 아님):</strong>
+- <code>lib/channel-connection.ts</code> → <code>isChannelConnected(tenantId, provider): 'connected'|'reconnect'|'disconnected'</code>
+- <code>lib/home-metrics.ts</code> → <code>getHomeSummary(tenantId): { published, views, likes, replies, engagement }</code> (published_posts 집계)</p>
+<p><strong>JSON 응답 예시 — GET /api/studio/drafts (수정 후):</strong></p>
+<pre><code class="language-json">{
+  &quot;drafts&quot;: [
+    {
+      &quot;id&quot;: &quot;d-uuid&quot;,
+      &quot;idea&quot;: &quot;가을 신규 고객 안내&quot;,
+      &quot;text&quot;: {
+        &quot;threads&quot;: &quot;확인 가능한 마케팅 흐름을 먼저 만듭니다.&quot;,
+        &quot;x&quot;: &quot;초안은 팔지 않습니다. 발행 증거를 팝니다.&quot;,
+        &quot;instagram&quot;: { &quot;caption&quot;: &quot;...&quot;, &quot;hashtags&quot;: [&quot;#마케팅자동화&quot;] }
+      },
+      &quot;status&quot;: &quot;published&quot;,
+      &quot;savedAt&quot;: &quot;2026-08-12T03:00:00Z&quot;
+    }
+  ]
+}
+</code></pre>
+<hr />
+<h2 id="8-db">8. DB 스키마 판단 (⛔ 회수 옵션) <a id="db"></a></h2>
+<blockquote>
+<p>§6.3.5 티키타카 의무: 되돌리기 비싼 판단은 확정 전 회장 합의. 아래 3건을 옵션+트레이드오프로 올린다.</p>
+</blockquote>
+<p><strong>결론 먼저: 신규 테이블·신규 컬럼 = 불필요.</strong> 4대 결함 모두 기존 테이블(<code>drafts.payload</code>·<code>published_posts</code>·<code>queue_posts</code>·<code>channel_accounts</code>)로 해결된다. 그래도 <strong>데이터 계약·컷오버 방식</strong> 3건은 되돌리기 비싸므로 회수한다.</p>
+<pre><code>⛔ 회수 필요: A) 홈 파일→DB 읽기 전환의 컷오버 방식
+- 배경: 홈 overview/activity/weekly가 아직 queue.json(파일)을 읽어 metrics(DB)와 한 화면에서 숫자가 상충(F3). queue_posts 테이블은 이미 있고 읽기만 DB로 옮기면 됨.
+- 무엇을 정하나: 파일→DB 읽기 전환을 &quot;한 번에 컷오버&quot;할지 &quot;dual-read 검증 후 컷오버&quot;할지.
+- 옵션 A(추천): dual-read 섀도우 → 값 일치 검증 → 컷오버. 고르면: 파일/DB 값이 같은지 로그로 확인 후 안전 전환(무중단, 회귀 위험↓). 안 고르면(하드컷): queue.json에만 있던 낡은 데이터가 화면에서 사라져 회장이 &quot;데이터 없어졌다&quot; 오해 가능.
+- 옵션 B: 즉시 하드컷(overview 등을 바로 DB로). 고르면: 빠름, 코드 단순. 트레이드오프: 파일에만 있고 DB 백필 안 된 항목 유실 노출 → 백필 선행 필수.
+- 추천 근거: expand-contract 표준(마이그레이트=old/new 동기화 후 read 전환)이 dual-read 검증을 권함(xata/pgroll·harness.io). queue_posts는 expand 완료 상태라 migrate 단계만 남았다.
+</code></pre>
+<pre><code>⛔ 회수 필요: B) 드래프트 payload 본문 형태 계약
+- 배경: GET /api/studio/drafts는 payload.text에서 본문을 읽는데, seed는 플랫폼 키를 최상위에 넣어 text=null이 됨(F1).
+- 무엇을 정하나: 계약을 &quot;GET 관대 폴백&quot;으로 흡수할지 &quot;저장/seed를 nest로 통일+백필&quot;할지.
+- 옵션 A(추천, B-1): GET에서 payload.text ?? extractVariants(payload) 폴백. 고르면: 코드 1곳, 기존 저장 계약·행 무변경, seed/레거시/신규 전부 흡수. 안 고르면: 폴백 없이 두면 seed 데이터가 계속 빈 미리보기.
+- 옵션 B(B-2): 저장·seed를 payload.text nest로 통일 + 기존 행 백필 UPDATE. 고르면: 데이터 형태 단일화(장기 깔끔). 트레이드오프: 백필 마이그레이션 1회 필요, 롤백 시 재변환 부담.
+- 추천 근거: F1은 &quot;형태 불일치&quot;라 읽기 폴백(A)이 최소 변경·무위험. 장기 정규화(B)는 별도 리팩터 티켓으로 분리 권장.
+</code></pre>
+<pre><code>⛔ 회수 필요: C) 레거시 integrations/openclaw.json 판정 배제 범위
+- 배경: 연결 판정을 channel_accounts 단일 소스로 통일(F2). 단 integrations는 publish 폴백(schema.sql:259~)에 아직 쓰임.
+- 무엇을 정하나: 판정에서 레거시를 &quot;완전 배제&quot;할지 &quot;channel_accounts 없을 때만 폴백 인정&quot;할지.
+- 옵션 A(추천): 판정=channel_accounts만. 폴백 미러링은 발행 경로에서만 유지(판정≠발행 분리). 고르면: 화면 상충 원천 제거, R-06 &quot;키 등록·승인 없앤다&quot; 서사와 정합. 안 고르면: 두 소스 혼용이 남아 상충 재발.
+- 옵션 B: channel_accounts 없으면 integrations 존재를 connected로 인정. 고르면: 레거시 단일계정 테넌트가 재연결 없이 연결 유지. 트레이드오프: &quot;연결됨&quot; 정의가 다시 이원화 → F2 취지 약화.
+- 추천 근거: R-02-b 상충의 원인이 이원 판정. 판정을 하나로 못박아야(A) 근본 해결. 레거시 계정은 재연결 유도가 정공법.
+</code></pre>
+<hr />
+<h2 id="9-rtm">9. 요구↔설계↔테스트 추적표 (RTM) <a id="rtm"></a></h2>
+<blockquote>
+<p>R-02 각 스텝(가입~Admin)을 (상태 · 엔드포인트/화면 · 테이블 · 설계 F# · 테스트 TC)로 1:1 매핑. <strong>갭 표기 포함(은폐 금지).</strong></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>R-02 스텝</th>
+<th>실측 상태</th>
+<th>화면/컴포넌트</th>
+<th>엔드포인트</th>
+<th>테이블</th>
+<th>설계</th>
+<th>테스트(test-plan)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a 가입/로그인</td>
+<td>부분(env)</td>
+<td><code>login/page.tsx</code></td>
+<td><code>/api/auth/google</code></td>
+<td>tenants</td>
+<td>카피 수정(범위밖: env는 인프라)</td>
+<td>TC-A1</td>
+</tr>
+<tr>
+<td>b OAuth 연결·상태</td>
+<td>부분→F2</td>
+<td>사이드바·배너·<code>settings</code> Channels</td>
+<td><code>/api/channel-config</code>·<code>/api/channels/[provider]</code></td>
+<td>channel_accounts</td>
+<td><strong>F2</strong></td>
+<td>TC-B1~B3</td>
+</tr>
+<tr>
+<td>c 저장값 확인(홈)</td>
+<td>됨</td>
+<td>홈 <code>page.tsx</code></td>
+<td><code>/api/overview</code>·<code>/api/metrics</code></td>
+<td>published_posts·growth_metrics</td>
+<td>(F3 통합에 흡수)</td>
+<td>TC-C1</td>
+</tr>
+<tr>
+<td>d 콘텐츠 생성</td>
+<td>됨(수정완료)</td>
+<td><code>studio/page.tsx</code></td>
+<td><code>/api/studio/text</code></td>
+<td>drafts·usage_events</td>
+<td>완료(lastError 배너)</td>
+<td>TC-D1</td>
+</tr>
+<tr>
+<td>e 콘텐츠 수정</td>
+<td>안됨→F1</td>
+<td><code>studio/page.tsx</code> loadDraft</td>
+<td><code>/api/studio/drafts</code></td>
+<td>drafts</td>
+<td><strong>F1</strong></td>
+<td>TC-E1~E3</td>
+</tr>
+<tr>
+<td>f 발행/예약</td>
+<td>연쇄차단→F1해소</td>
+<td><code>studio</code> CardPublishControl·SchedulePanel</td>
+<td><code>/api/publish</code>·<code>/api/schedule</code></td>
+<td>published_posts·schedules</td>
+<td>F1 선행 후 검증</td>
+<td>TC-F1~F2</td>
+</tr>
+<tr>
+<td>g 성과</td>
+<td>부분→F3</td>
+<td>홈 성과 블록</td>
+<td><code>/api/metrics</code>·<code>/api/overview</code></td>
+<td>published_posts·queue_posts</td>
+<td><strong>F3</strong></td>
+<td>TC-G1~G3</td>
+</tr>
+<tr>
+<td>h Settings</td>
+<td>됨</td>
+<td><code>settings/page.tsx</code> 8탭</td>
+<td>각 설정 API</td>
+<td>integrations 등</td>
+<td>F2에 흡수(Channels 탭)</td>
+<td>TC-H1</td>
+</tr>
+<tr>
+<td>i Admin</td>
+<td>부분→F4</td>
+<td><code>operator/customers</code></td>
+<td><code>/api/channels/[provider]</code> 등</td>
+<td>channel_accounts·oauth_app_credentials</td>
+<td><strong>F4</strong></td>
+<td>TC-I1~I2</td>
+</tr>
+</tbody>
+</table>
+<p><strong>갭 판정:</strong> R-02 9개 스텝 전부 (엔드포인트+화면+테이블+설계+테스트)로 매핑됨 → <strong>매핑 갭 0.</strong> 단, R-02-a의 OAuth 성립은 <strong>prod env 주입(인프라 조치)</strong> 에 의존하며 이는 코드 설계 범위 밖임을 명시(은폐 아님, 소유자=인프라 담당).</p>
+<hr />
+<h2 id="10">10. 오픈이슈 <a id="open"></a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>이슈</th>
+<th>소유자</th>
+<th>상태</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>O-1</td>
+<td>§8-A 홈 컷오버 방식(dual-read vs 하드컷)</td>
+<td>회장 결정</td>
+<td>대기</td>
+</tr>
+<tr>
+<td>O-2</td>
+<td>§8-B 드래프트 payload 계약(폴백 vs nest 통일)</td>
+<td>회장 결정</td>
+<td>대기</td>
+</tr>
+<tr>
+<td>O-3</td>
+<td>§8-C 레거시 판정 배제 범위</td>
+<td>회장 결정</td>
+<td>대기</td>
+</tr>
+<tr>
+<td>O-4</td>
+<td>R-02-a prod OAuth env(Supabase URL/anon key) 주입</td>
+<td>인프라 담당</td>
+<td>범위밖(표면화)</td>
+</tr>
+<tr>
+<td>O-5</td>
+<td>queue.json → queue_posts 백필 실행·검증(마이그레이션 문서 §참조)</td>
+<td>code-builder</td>
+<td>대기</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="11">11. 개정이력 <a id="hist"></a></h2>
+<table>
+<thead>
+<tr>
+<th>버전</th>
+<th>일자</th>
+<th>변경</th>
+<th>작성</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>v1.0.0</td>
+<td>2026-08-12</td>
+<td>초판. R-02 4대 결함 기술설계 + RTM + DB 판단 회수</td>
+<td>tech-architect/opus</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p>RUBRIC_SCORE: 완결5 정밀5 벤치4 추적5 톤5 total=24/25
+WEAKEST_LINE: "F4 채널 카운트 status 필터의 대상 라우트를 파일 경로까지 특정하지 못하고 '해당 라우트'로 남긴 부분 — 구현 착수 전 grep으로 핀 필요."</p>
+<p>SOURCES/MODEL: claude-opus-4-8 ·
+근거(실측/파일): docs/requests/2026-08-08_2026-08-10-chairman-requests.md(R-02·05·06·07·09) · docs/audit/r02-journey-plan/r02-journey-fix-plan-v1-opus.html(실측 수정기획, Design Score B+) · dashboard/db/schema.sql(drafts·published_posts·queue_posts·channel_accounts) · dashboard/src/app/api/studio/drafts/route.ts:35,53 · dashboard/src/app/studio/page.tsx:393,508,559 · dashboard/src/app/api/overview/route.ts:24 · activity/route.ts:10 · weekly-report/route.ts:9 · metrics/route.ts:26 · channel-config/route.ts:49 · dashboard/scripts/seed-local-demo.sql ·
+표준 벤치마크: doc-review.md §6 크로스워크(arc42·C4·ISO/IEC/IEEE 29148 RTM·Gherkin) + expand-contract 무중단 마이그레이션(xata pgroll / harness.io / systemdr — WebSearch 2026-08-12)</p></section><section><div class="doctag">마이그레이션 — 홈 파일→DB</div><h1 id="fdd-db-phase-2-v100">FDD — 레거시 파일스토어 → DB 마이그레이션 설계 (Phase 2) (v1.0.0)</h1>
+<blockquote>
+<p><strong>STAMP</strong>
+- 버전: v1.0.0 · 작성일: 2026-08-12 12:07 KST · 작성자/모델: tech-architect / claude-opus-4-8
+- 상류: <code>fdd-r02-journey-fix-v1.0.0-opus.md</code> §5-F3 · CLAUDE.md 레거시 전환 로드맵(Phase 1→2→3) · 회장 원장 R-02-g/R-09
+- 코드 진실원: <code>dashboard/src/app/api/{overview,activity,weekly-report}/route.ts</code> · <code>dashboard/db/schema.sql:107~125</code>(queue_posts P4 dual-write 주석)
+- 성격: 홈 계열 라우트가 <code>queue.json</code>(파일)을 읽어 <code>metrics</code>(DB)와 상충하는 dual-datastore 모순의 근본 해소. <strong>expand-contract 무중단 전략.</strong></p>
+</blockquote>
+<h2 id="_1">목차</h2>
+<ul>
+<li><a href="#tldr">0. TL;DR</a> · <a href="#asis">1. 현황(as-is)</a> · <a href="#tobe">2. 목표(to-be)</a></li>
+<li><a href="#phases">3. expand-contract 3단계 + 롤백</a> · <a href="#map">4. 소스 매핑표</a></li>
+<li><a href="#prio">5. 우선순위·순서</a> · <a href="#risk">6. 리스크·롤백</a> · <a href="#verify">7. 검증</a></li>
+</ul>
+<h2 id="0-tldr">0. TL;DR <a id="tldr"></a></h2>
+<p>홈의 <code>overview</code>·<code>activity</code>·<code>weekly-report</code>는 <code>data/queue.json</code>·<code>growth.json</code>(파일)을 읽고, <code>metrics</code>는 <code>published_posts</code>(DB)를 읽는다. 같은 화면에서 파일(낡음/빈값)과 DB(실데이터)가 상충하는 것이 R-02-g "중복 패널·숫자 모순"의 근본이다. <code>queue_posts</code> 테이블은 <strong>이미 존재</strong>(expand 완료). 남은 일은 <strong>읽기를 파일→DB로 전환(migrate)</strong> 하고 파일 경로를 최종 제거(contract)하는 것이다. 하드컷이 아니라 <strong>dual-read 섀도우 검증 후 컷오버</strong>를 권장한다(§8-A 회수).</p>
+<h2 id="1-as-is">1. 현황 (as-is) <a id="asis"></a></h2>
+<pre class="mermaid">flowchart LR
+  HOME[홈 page.tsx] --> OV[/api/overview/]
+  HOME --> AC[/api/activity/]
+  HOME --> WK[/api/weekly-report/]
+  HOME --> MET[/api/metrics/]
+  OV --> QJ[(queue.json 파일)]
+  AC --> QJ
+  WK --> QJ
+  MET --> PG[(published_posts DB)]
+  style QJ fill:#fef2f2,stroke:#dc2626
+  style PG fill:#eff6ff,stroke:#2563eb
+</pre>
+<ul>
+<li><code>overview/route.ts:24</code> <code>readJson(dataPath("queue.json"))</code> + <code>growth.json</code>.</li>
+<li><code>activity/route.ts:10</code> 동일 파일.</li>
+<li><code>weekly-report/route.ts:9</code> 동일 파일.</li>
+<li><code>metrics/route.ts:26</code> <code>withTenant → published_posts</code>.</li>
+<li>결과: 파일에만 있고 DB에 없는(또는 반대) 데이터가 한 화면에서 상충.</li>
+</ul>
+<h2 id="2-to-be">2. 목표 (to-be) <a id="tobe"></a></h2>
+<ul>
+<li>홈 계열 3개 라우트가 DB(<code>queue_posts</code>·<code>published_posts</code>·<code>growth_metrics</code>)만 읽는다.</li>
+<li>응답 스키마(키·형태)는 <strong>불변</strong> — 포크 프론트·홈 컴포넌트 무중단.</li>
+<li><code>queue.json</code>/<code>growth.json</code>은 cron/발행 쓰기 경로가 완전히 DB로 넘어간 뒤에만 제거(contract).</li>
+</ul>
+<h2 id="3-expand-contract-3">3. expand-contract 3단계 + 롤백 <a id="phases"></a></h2>
+<table>
+<thead>
+<tr>
+<th>단계</th>
+<th>내용</th>
+<th>상태</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Expand</strong></td>
+<td><code>queue_posts</code>·<code>published_posts</code>·<code>growth_metrics</code> 테이블 존재 + 쓰기 경로 dual-write(발행/큐 갱신 시 파일+DB 동시 기록)</td>
+<td>테이블 존재(schema.sql:109). dual-write 실태는 §7에서 검증 필요</td>
+</tr>
+<tr>
+<td><strong>Migrate(읽기 전환)</strong></td>
+<td>① 백필: <code>queue.json</code>→<code>queue_posts</code> 1회 마이그레이션(id 1:1, payload 무손실) ② dual-read 섀도우: overview 등이 파일·DB 둘 다 읽어 값 diff를 로그 ③ 일치 확인 후 읽기를 DB로 컷오버</td>
+<td>본 문서의 실행 대상</td>
+</tr>
+<tr>
+<td><strong>Contract</strong></td>
+<td>파일 읽기 코드·<code>queue.json</code> 의존 제거. cron 쓰기도 DB로 전환됐음을 확인 후 파일 삭제</td>
+<td>마지막. 별도 승인</td>
+</tr>
+</tbody>
+</table>
+<p><strong>expand-contract 근거:</strong> 신규 표현을 먼저 추가(expand)하고, old/new를 동기화(migrate=dual-write/backfill+shadow read)한 뒤, 트래픽이 다 넘어간 후에만 old 제거(contract). 각 단계가 독립 배포되어 어느 시점에도 무중단(<a href="https://xata.io/blog/pgroll-expand-contract">xata pgroll</a>, <a href="https://www.harness.io/blog/zero-downtime-database-migrations-safe-schema-changes">harness.io</a>).</p>
+<h2 id="4-db">4. 소스 매핑표 (파일 필드 → DB 컬럼) <a id="map"></a></h2>
+<table>
+<thead>
+<tr>
+<th>홈 지표</th>
+<th>as-is 파일 소스</th>
+<th>to-be DB 소스</th>
+<th>집계</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>상태 카운트(draft/approved/published/failed)</td>
+<td><code>queue.json.posts[].status</code></td>
+<td><code>queue_posts.status</code></td>
+<td>GROUP BY status</td>
+</tr>
+<tr>
+<td>발행 수</td>
+<td><code>queue.json</code> published 필터</td>
+<td><code>published_posts</code> count(status='published')</td>
+<td>count</td>
+</tr>
+<tr>
+<td>조회/좋아요/답글</td>
+<td><code>queue.json.posts[].engagement</code></td>
+<td><code>published_posts.views/likes/replies</code></td>
+<td>sum</td>
+</tr>
+<tr>
+<td>팔로워/증감</td>
+<td><code>growth.json.records[]</code></td>
+<td><code>growth_metrics.followers</code></td>
+<td>최신 - 7일전</td>
+</tr>
+<tr>
+<td>활동 타임라인</td>
+<td><code>queue.json.posts[].publishedAt</code></td>
+<td><code>published_posts.published_at</code> + <code>queue_posts</code></td>
+<td>ORDER BY at DESC</td>
+</tr>
+<tr>
+<td>주간 발행글</td>
+<td><code>queue.json</code> publishedAt&gt;weekAgo</td>
+<td><code>published_posts</code> published_at &gt; now()-7d</td>
+<td>필터</td>
+</tr>
+</tbody>
+</table>
+<h2 id="5">5. 우선순위·순서 <a id="prio"></a></h2>
+<ol>
+<li><strong>P0 — 백필 스크립트</strong>: <code>queue.json</code>(테넌트별)→<code>queue_posts</code> INSERT(id 1:1, <code>ON CONFLICT DO NOTHING</code>). 멱등. (O-5)</li>
+<li><strong>P1 — dual-read 섀도우</strong>: overview/activity/weekly에 <code>SHADOW_HOME_DB=1</code> 플래그로 파일·DB 둘 다 읽어 diff를 <code>logs</code>에 남김(응답은 여전히 파일). 최소 며칠 관찰.</li>
+<li><strong>P2 — 읽기 컷오버</strong>: diff 0 확인 후 라우트 읽기를 DB로. 홈 UI 4패널→1블록 통합(F3 UI).</li>
+<li><strong>P3 — cron 쓰기 DB 전환 확인</strong> 후 <strong>contract</strong>(파일 읽기 제거).</li>
+</ol>
+<h2 id="6">6. 리스크·롤백 <a id="risk"></a></h2>
+<table>
+<thead>
+<tr>
+<th>리스크</th>
+<th>완화</th>
+<th>롤백</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>파일에만 있던 데이터 유실 노출</td>
+<td>P0 백필 선행 + P1 섀도우 diff로 사전 탐지</td>
+<td>읽기 소스를 파일로 되돌림(플래그 토글)</td>
+</tr>
+<tr>
+<td>DB/파일 집계식 미세 차이</td>
+<td>P1에서 필드별 diff 로깅 후 집계식 정렬</td>
+<td>동상</td>
+</tr>
+<tr>
+<td>cron이 아직 파일에만 씀</td>
+<td>contract를 cron 전환 확인 뒤로 미룸</td>
+<td>파일 유지(삭제 안 함)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>롤백 원칙:</strong> migrate 단계는 <strong>읽기 소스 플래그 하나</strong>로 즉시 파일 복귀 가능(무손실). contract 전까지 파일은 살아있다.</p>
+<h2 id="7">7. 검증 <a id="verify"></a></h2>
+<ul>
+<li><strong>섀도우 diff = 0</strong>: P1 기간 동안 overview/activity/weekly의 파일값 vs DB값 로그가 일치.</li>
+<li><strong>E2E</strong>: 홈 렌더 시 성과 요약 1블록의 발행/조회/좋아요가 <code>/api/metrics</code>(published_posts)와 동일 수치(같은 소스 파생).</li>
+<li><strong>회귀</strong>: 포크 프론트가 소비하는 응답 키가 그대로인지 계약 테스트.</li>
+<li><strong>dual-write 실태 확인</strong>: 발행·큐 갱신 경로가 <code>queue_posts</code>에 실제로 쓰는지 grep/실행(expand 가정 검증 — 안 쓰면 Migrate 전에 dual-write 먼저 붙여야 함).</li>
+</ul>
+<hr />
+<p>RUBRIC_SCORE: 완결5 정밀4 벤치5 추적5 톤5 total=24/25
+WEAKEST_LINE: "Expand(dual-write) 실태를 '§7에서 검증 필요'로 남긴 부분 — queue_posts에 실제로 쓰는 코드 경로를 아직 grep으로 확정하지 못했다. dual-write가 없으면 Migrate 전에 그것부터 붙여야 하므로 착수 전 필수 확인."</p>
+<p>SOURCES/MODEL: claude-opus-4-8 ·
+근거: dashboard/src/app/api/{overview,activity,weekly-report,metrics}/route.ts · dashboard/db/schema.sql:107~125 · CLAUDE.md 레거시 전환 로드맵 · fdd-r02-journey-fix-v1.0.0-opus.md §5-F3 ·
+벤치마크: expand-contract 무중단 마이그레이션 — https://xata.io/blog/pgroll-expand-contract · https://www.harness.io/blog/zero-downtime-database-migrations-safe-schema-changes · https://systemdr.systemdrd.com/p/database-schema-migrations-with-zero (WebSearch 2026-08-12)</p></section><section><div class="doctag">테스트 플랜 — R-02</div><h1 id="test-plan-r-02-v100">Test Plan — R-02 여정 수정 검증 (v1.0.0)</h1>
+<blockquote>
+<p><strong>STAMP</strong>
+- 버전: v1.0.0 · 작성일: 2026-08-12 12:07 KST · 작성자/모델: tech-architect / claude-opus-4-8
+- 상류: <code>fdd-r02-journey-fix-v1.0.0-opus.md</code>(FR-1~4, AC) · <code>migration-filestore-to-db-v1.0.0-opus.md</code>
+- 실행 환경: <code>docker start osmu-pg</code> + <code>OSMU_AUTH_OPTIONAL=1 PORT=3456 npm run dev</code>(cwd=dashboard), http://localhost:3456. seed = <code>dashboard/scripts/seed-local-demo.sql</code>.
+- 완료 기준(dev.md §1): 각 TC는 <strong>직접 관찰 증거 ≥2종</strong>(E2E 로그·curl 응답코드·스크린샷)으로만 PASS. mock/2xx 단독은 미검증.</p>
+</blockquote>
+<h2 id="_1">목차</h2>
+<ul>
+<li><a href="#cov">1. 커버리지 맵</a> · <a href="#tc">2. 테스트 케이스(AC↔TC 1:1)</a> · <a href="#e2e">3. E2E 스크립트 계획</a> · <a href="#eye">4. 프로토타입 눈대조</a> · <a href="#not">5. 안 한 것</a></li>
+</ul>
+<h2 id="1">1. 커버리지 맵 <a id="cov"></a></h2>
+<pre class="mermaid">flowchart LR
+  FR1[FR-1 본문 완결] --> E1[TC-E1] --> E2[TC-E2] --> E3[TC-E3] --> F1[TC-F1] --> F2t[TC-F2]
+  FR2[FR-2 연결 단일소스] --> B1[TC-B1] --> B2[TC-B2] --> B3[TC-B3]
+  FR3[FR-3 홈 통합] --> G1[TC-G1] --> G2[TC-G2] --> G3[TC-G3] --> C1[TC-C1]
+  FR4[FR-4 Admin] --> I1[TC-I1] --> I2[TC-I2]
+</pre>
+<p>커버리지: FR 4건 → AC 12건 → TC 16건. AC↔TC 매핑 갭 0.</p>
+<h2 id="2-actc-11-happyedge">2. 테스트 케이스 (AC↔TC 1:1, happy+edge) <a id="tc"></a></h2>
+<table>
+<thead>
+<tr>
+<th>TC</th>
+<th>대상</th>
+<th>유형</th>
+<th>Given / When / Then</th>
+<th>경계·에러</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-A1</td>
+<td>로그인 카피</td>
+<td>happy</td>
+<td>미인증 접속 → /login 렌더 → "Google로 계속" 단일 경로</td>
+<td>env 미설정 시 500 → "원인+다음행동" 카피(일시적오류 문구 금지)</td>
+</tr>
+<tr>
+<td>TC-B1</td>
+<td>연결 단일소스</td>
+<td>happy</td>
+<td>channel_accounts X=active → 사이드바·배너·Settings 모두 Connected</td>
+<td>세 위치 상충 0</td>
+</tr>
+<tr>
+<td>TC-B2</td>
+<td>미연결</td>
+<td>edge</td>
+<td>channel_accounts 없는 provider → 세 위치 모두 "연결 필요"</td>
+<td>레거시 integrations 있어도 미연결로 판정(§8-C 옵션A 전제)</td>
+</tr>
+<tr>
+<td>TC-B3</td>
+<td>만료</td>
+<td>edge</td>
+<td>status='expired' → "재연결 필요"(Connected 오판 금지)</td>
+<td>revoked도 동일</td>
+</tr>
+<tr>
+<td>TC-C1</td>
+<td>저장값 확인(홈)</td>
+<td>happy</td>
+<td>발행·성과 실데이터 홈 렌더</td>
+<td>소스가 DB 단일(파일 상충 없음)</td>
+</tr>
+<tr>
+<td>TC-D1</td>
+<td>생성 실패 배너</td>
+<td>edge</td>
+<td>공유AI 미승인 상태 생성 → 403 → 붉은 lastError 배너 원인 노출</td>
+<td>무반응(콘솔만) 재발 금지</td>
+</tr>
+<tr>
+<td>TC-E1</td>
+<td>드래프트 목록 text</td>
+<td>happy</td>
+<td>seed 드래프트 GET /api/studio/drafts → text!=null(variants)</td>
+<td>payload.text 없어도 폴백 추출(B-1)</td>
+</tr>
+<tr>
+<td>TC-E2</td>
+<td>불러오기 로드</td>
+<td>happy</td>
+<td>이력 "불러오기" → 편집영역에 플랫폼 미리보기 채워짐</td>
+<td>—</td>
+</tr>
+<tr>
+<td>TC-E3</td>
+<td>빈 본문 표기</td>
+<td>edge</td>
+<td>payload 본문 진짜 없음 → "본문 없음 · 재생성 필요" 뱃지</td>
+<td>빈 미리보기 방치 금지</td>
+</tr>
+<tr>
+<td>TC-F1</td>
+<td>발행 버튼 출현</td>
+<td>happy</td>
+<td>text 로드됨 → {text&amp;&amp;CardPublishControl} 노출</td>
+<td>text=null이면 미출현이 정상</td>
+</tr>
+<tr>
+<td>TC-F2</td>
+<td>발행 happy</td>
+<td>happy</td>
+<td>"이 카드 발행" → 처리중→성공+permalink, published_posts +1행</td>
+<td>외부실패 시 failed+재시도 노출</td>
+</tr>
+<tr>
+<td>TC-G1</td>
+<td>성과 1블록</td>
+<td>happy</td>
+<td>홈 → 성과요약 1블록(발행·조회·좋아요·답글·참여율)</td>
+<td>4패널 중복 제거 확인</td>
+</tr>
+<tr>
+<td>TC-G2</td>
+<td>중복 제거</td>
+<td>edge</td>
+<td>"운영 현황"·"THIS WEEK" 패널 부재</td>
+<td>같은 지표 4회 반복 0</td>
+</tr>
+<tr>
+<td>TC-G3</td>
+<td>미연동 지표</td>
+<td>edge</td>
+<td>도달/참여 = "연동 시" 1곳 표기(실적 0 아님)</td>
+<td>0을 실적처럼 표시 금지</td>
+</tr>
+<tr>
+<td>TC-H1</td>
+<td>Settings 8탭</td>
+<td>happy</td>
+<td>8탭 mount·전환 정상, API 200</td>
+<td>Channels 탭 판정은 B1과 동일소스</td>
+</tr>
+<tr>
+<td>TC-I1</td>
+<td>Admin 밀도</td>
+<td>happy</td>
+<td>14 플랫폼 기본 접힘+상태뱃지, 펼친 것만 폼</td>
+<td>8pt 간격 통일</td>
+</tr>
+<tr>
+<td>TC-I2</td>
+<td>채널 카운트 status</td>
+<td>edge</td>
+<td>"연결됨" 카운트 = status='active'만</td>
+<td>expired/revoked 제외</td>
+</tr>
+<tr>
+<td>TC-M1</td>
+<td>마이그레이션 섀도우</td>
+<td>edge</td>
+<td>dual-read diff 로그 = 0 후 컷오버</td>
+<td>diff&gt;0이면 컷오버 차단</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3-e2e">3. E2E 스크립트 계획 <a id="e2e"></a></h2>
+<table>
+<thead>
+<tr>
+<th>스크립트</th>
+<th>대상 TC</th>
+<th>방식</th>
+<th>증거</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tests/e2e/studio-draft-load.spec</code></td>
+<td>E1·E2·E3·F1</td>
+<td>seed 적재→GET drafts→불러오기→미리보기 assert</td>
+<td>curl JSON(text!=null) + browse 스크린샷</td>
+</tr>
+<tr>
+<td><code>tests/e2e/publish-happy.spec</code></td>
+<td>F2</td>
+<td>본문 로드→발행→published_posts 조회</td>
+<td>발행 로그 + permalink + DB row</td>
+</tr>
+<tr>
+<td><code>tests/e2e/channel-connection.spec</code></td>
+<td>B1·B2·B3</td>
+<td>seed 채널 상태별→3위치 판정 assert</td>
+<td>3위치 동일값 캡처</td>
+</tr>
+<tr>
+<td><code>tests/e2e/home-metrics.spec</code></td>
+<td>C1·G1·G2·G3</td>
+<td>홈 렌더→성과 1블록 assert, 4패널 부재</td>
+<td>스크린샷 + metrics 수치 대조</td>
+</tr>
+<tr>
+<td><code>tests/e2e/admin-density.spec</code></td>
+<td>I1·I2</td>
+<td>operator/customers 렌더→accordion·카운트</td>
+<td>스크린샷 + 카운트값</td>
+</tr>
+<tr>
+<td>백필/섀도우 로그</td>
+<td>M1</td>
+<td>dual-read diff 집계</td>
+<td>diff=0 로그</td>
+</tr>
+</tbody>
+</table>
+<p>기존 규율(dashboard CLAUDE.md): 발행 흐름 <code>dashboard/tests/publish/*</code> + <code>npm run test:publish</code>, UI는 gstack <code>browse</code>로 라이트/다크 검수.</p>
+<h2 id="4-doc-review-3-qa">4. 프로토타입 눈대조 (doc-review §3 QA 필수) <a id="eye"></a></h2>
+<ul>
+<li>승인 기준물 = <code>docs/audit/r02-journey-plan/r02-journey-fix-plan-v1-opus.html</code>의 각 "수정 후" 목업.</li>
+<li>구현 후 실제 화면 스크린샷 2장(프로토타입·빌드)을 <strong>눈대조</strong> — 레이아웃/컴포넌트/플로우 불일치 미해소면 QA PASS 금지.</li>
+<li>대조 대상: 성과 1블록(G) · 드래프트 미리보기(E) · Admin accordion(I) · 채널 연결 뱃지(B).</li>
+</ul>
+<h2 id="5">5. 안 한 것 (범위 명시) <a id="not"></a></h2>
+<ul>
+<li>prod OAuth env 주입 검증(인프라 소유, O-4) — 로컬은 <code>OSMU_AUTH_OPTIONAL=1</code>로 우회 테스트만.</li>
+<li>결제/billing(usage_events·subscriptions) 회귀 — 이번 스코프 무관.</li>
+<li>contract 단계(파일 삭제) E2E — cron 쓰기 DB 전환 확인 후 별도 사이클.</li>
+<li>고위험(발행) 경로는 dev.md §1-4에 따라 <strong>Codex 2nd-pass 리뷰</strong> 대상으로 표기(구현 시).</li>
+</ul>
+<hr />
+<p>RUBRIC_SCORE: 완결5 정밀5 벤치4 추적5 톤5 total=24/25
+WEAKEST_LINE: "E2E 스크립트 경로를 계획명(tests/e2e/*.spec)으로 제안만 하고 기존 dashboard/tests/publish 구조와의 배치 통합 여부는 구현 착수 시 확정 필요."</p>
+<p>SOURCES/MODEL: claude-opus-4-8 ·
+근거: fdd-r02-journey-fix-v1.0.0-opus.md(AC) · migration-filestore-to-db-v1.0.0-opus.md · dashboard/CLAUDE.md(test:publish·browse) · docs/audit/r02-journey-plan/r02-journey-fix-plan-v1-opus.html(눈대조 기준) · dev.md §1(증거2종·경계테스트·고위험 Codex) ·
+벤치마크: doc-review.md §6(ISO/IEC/IEEE 29119 테스트 문서화 · Gherkin AC↔TC)</p></section></body></html>

@@ -2,6 +2,8 @@ import { effectiveTenantId } from "@/lib/tenant-auth";
 import { PROVIDERS, FACEBOOK } from "@/lib/social-connect";
 import { resolveOAuthCredentialSets } from "@/lib/oauth-app-credentials";
 import { auditConnectTenantQueryMismatch } from "@/lib/connect-tenant-audit";
+import { getChannelConnectionStates } from "@/lib/channel-connection";
+import { resolveConnectReadiness, type ConnectReadinessEntry } from "@/lib/connect-readiness";
 
 const CREDENTIAL_STORE_UNAVAILABLE_REASON =
   "OAuth 자격증명 저장소에 일시적으로 연결할 수 없습니다. 관리자 복구 후 다시 시도해주세요.";
@@ -20,34 +22,79 @@ export async function GET(request: Request) {
   if (!tenantId) return Response.json({ error: "tenant_id required" }, { status: 400 });
   auditConnectTenantQueryMismatch(request, tenantId, requestedTenantId);
 
-  const result: Record<string, { available: boolean; reason?: string }> = {};
-  const credentialsByProvider = await resolveOAuthCredentialSets([
+  const providers = [
     ...Object.keys(PROVIDERS),
     "facebook",
-  ]);
+  ];
+  const result: Record<string, ConnectReadinessEntry> = {};
+  const credentialsByProvider = await resolveOAuthCredentialSets(providers);
+  let connectionLookupError = false;
+  let connectionStates: Record<string, "connected" | "reconnect" | "disconnected"> = {};
+  try {
+    connectionStates = await getChannelConnectionStates(tenantId, providers);
+  } catch {
+    connectionLookupError = true;
+  }
 
   for (const [name, cfg] of Object.entries(PROVIDERS)) {
     const credentials = credentialsByProvider[name];
-    result[name] = credentials?.reason === "credential_store_unavailable"
-      ? { available: false, reason: CREDENTIAL_STORE_UNAVAILABLE_REASON }
+    const credentialStoreError = credentials?.reason === "credential_store_unavailable";
+    const externalReviewPending = credentials?.externalReview === "required";
+    const connectionState = connectionStates[name] || "disconnected";
+    const reason = credentialStoreError
+      ? CREDENTIAL_STORE_UNAVAILABLE_REASON
+      : connectionLookupError
+      ? "연결 계정 상태를 확인할 수 없습니다. 잠시 후 다시 시도해주세요."
+      : externalReviewPending
+      ? connectionState === "connected"
+        ? `${cfg.label} 계정은 연결됐지만 외부 앱 심사가 완료되기 전에는 실제 발행이 제한됩니다.`
+        : `${cfg.label} 외부 앱 심사가 완료되면 연결할 수 있습니다.`
       : credentials?.complete
-      ? { available: true }
-      : { available: false, reason: `서버에 ${name} OAuth 앱 자격증명(${cfg.appIdEnv}/${cfg.appSecretEnv})이 아직 설정되지 않았습니다. 관리자에게 문의해주세요.` };
+      ? connectionState === "reconnect"
+        ? `${cfg.label} 계정을 다시 연결해주세요.`
+        : undefined
+      : `서버에 ${name} OAuth 앱 자격증명(${cfg.appIdEnv}/${cfg.appSecretEnv})이 아직 설정되지 않았습니다.`;
+    result[name] = resolveConnectReadiness({
+      credentialsComplete: Boolean(credentials?.complete),
+      credentialStoreError,
+      connectionState,
+      connectionLookupError,
+      externalReviewPending,
+      reason,
+    });
   }
 
   // Facebook은 config_id 모델(비즈니스용 로그인) — FB_APP_ID/SECRET 외에 FB_CONFIG_ID도 필요.
   const facebook = credentialsByProvider.facebook;
   if (facebook?.reason === "credential_store_unavailable") {
-    result.facebook = { available: false, reason: CREDENTIAL_STORE_UNAVAILABLE_REASON };
+    result.facebook = resolveConnectReadiness({
+      credentialsComplete: false,
+      credentialStoreError: true,
+      connectionState: connectionStates.facebook || "disconnected",
+      connectionLookupError,
+      reason: CREDENTIAL_STORE_UNAVAILABLE_REASON,
+    });
   } else if (!facebook?.complete) {
-    result.facebook = {
-      available: false,
-      reason: `서버에 Facebook OAuth 앱 자격증명(${FACEBOOK.appIdEnv}/${FACEBOOK.appSecretEnv}/${FACEBOOK.configIdEnv})이 아직 설정되지 않았거나 일부만 설정됐습니다. 관리자에게 문의해주세요.`,
-    };
+    result.facebook = resolveConnectReadiness({
+      credentialsComplete: false,
+      connectionState: connectionStates.facebook || "disconnected",
+      connectionLookupError,
+      reason: `서버에 Facebook OAuth 앱 자격증명(${FACEBOOK.appIdEnv}/${FACEBOOK.appSecretEnv}/${FACEBOOK.configIdEnv})이 아직 설정되지 않았거나 일부만 설정됐습니다.`,
+    });
   } else {
-    // App Dashboard에서 앱이 Development/제한 모드거나 역할이 없는 사용자는 서버에서 미리 알 수
-    // 없다(SNS-004) — credential은 갖췄으나 실제 접근 가능 여부는 "확인 불가"로 정직하게 표시한다.
-    result.facebook = { available: true, reason: "Meta 앱의 Development/Live 모드나 테스터 등록 여부는 서버가 미리 알 수 없습니다. 연결 시도 후 오류가 나면 Meta App Dashboard 역할/모드를 확인하세요." };
+    const connectionState = connectionStates.facebook || "disconnected";
+    const externalReviewPending = facebook.externalReview === "required";
+    result.facebook = resolveConnectReadiness({
+      credentialsComplete: true,
+      connectionState,
+      connectionLookupError,
+      externalReviewPending,
+      reason: externalReviewPending
+        ? connectionState === "connected"
+          ? "Facebook 계정은 연결됐지만 외부 앱 심사가 완료되기 전에는 실제 발행이 제한됩니다."
+          : "Facebook 외부 앱 심사가 완료되면 연결할 수 있습니다."
+        : "Meta 앱 모드와 테스터 등록 상태는 연결 과정에서 최종 확인됩니다.",
+    });
   }
 
   return Response.json({ providers: result });

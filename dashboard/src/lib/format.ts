@@ -5,7 +5,7 @@ export function esc(s: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    .replace(/'/g, "&#39;");
 }
 
 /** Format timestamp (ms or ISO string) to localized date — matches Flask's fmtTime(ms) */

@@ -14,6 +14,7 @@ interface Row {
   meta: Record<string, unknown> | null;
   is_default: boolean;
   status: string;
+  token_expires_at: string | null;
   created_at: number; // 삽입 순서 시뮬레이션(ORDER BY created_at ASC)
 }
 
@@ -32,6 +33,25 @@ function reset() {
 // 최소 postgres.js 태그드템플릿 흉내 — channel-accounts.ts의 각 쿼리 패턴만 식별해 처리한다.
 function fakeSql(strings: TemplateStringsArray, ...vals: unknown[]) {
   const text = strings.join("?");
+
+  if (text.includes("CASE WHEN secret_enc") && text.includes("FROM channel_accounts")) {
+    const accountId = text.includes("AND id =") ? String(vals.at(-1)) : undefined;
+    const provider = String(vals.at(accountId ? -2 : -1));
+    const tenantId = String(vals.at(accountId ? -3 : -2));
+    const row = H.rows.find((candidate) => (
+      candidate.tenant_id === tenantId
+      && candidate.provider === provider
+      && candidate.status === "active"
+      && (accountId ? candidate.id === accountId : candidate.is_default)
+      && (!candidate.token_expires_at || Date.parse(candidate.token_expires_at) > Date.now())
+    ));
+    return Promise.resolve(row ? [{
+      id: row.id,
+      token: row.secret_enc,
+      refresh_token: row.refresh_enc,
+      meta: row.meta,
+    }] : []);
+  }
 
   if (text.includes("SELECT id, is_default FROM channel_accounts") && text.includes("external_account_id")) {
     const [tenantId, provider, externalId] = vals as [string, string, string];
@@ -54,12 +74,13 @@ function fakeSql(strings: TemplateStringsArray, ...vals: unknown[]) {
     return Promise.resolve([{ cnt: String(cnt) }]);
   }
   if (text.includes("INSERT INTO channel_accounts")) {
-    const [tenantId, provider, externalId, displayName, username, accessToken, , refreshToken, , isDefault, status] = vals;
+    const [tenantId, provider, externalId, displayName, username, accessToken, , refreshToken, , isDefault, status, tokenExpiresAt] = vals;
     const id = `acc-${++H.seq}`;
     H.rows.push({
       id, tenant_id: tenantId as string, provider: provider as string, external_account_id: externalId as string,
       secret_enc: accessToken as string, refresh_enc: (refreshToken as string) ?? null,
-      meta: { displayName, username }, is_default: Boolean(isDefault), status: status as string, created_at: H.seq,
+      meta: { displayName, username }, is_default: Boolean(isDefault), status: status as string,
+      token_expires_at: (tokenExpiresAt as string) ?? null, created_at: H.seq,
     });
     return Promise.resolve([{ id }]);
   }
@@ -135,6 +156,7 @@ vi.mock("@/lib/db", () => ({
 
 beforeEach(() => {
   reset();
+  vi.unstubAllGlobals();
   process.env.OSMU_SECRET_KEY = "enc-key";
 });
 
@@ -163,6 +185,57 @@ describe("upsertChannelAccount — 2계정 + 재연결 idempotency", () => {
     await upsertChannelAccount({ tenantId: "t1", provider: "threads", externalId: "ext-2", accessToken: "tok-2" });
     const defaultRow = H.rows.find((r) => r.is_default);
     expect(defaultRow?.secret_enc).toBe("tok-1");
+  });
+
+  it("교환 응답에서 계산한 tokenExpiresAt을 channel_accounts에 저장한다", async () => {
+    const tokenExpiresAt = new Date(Date.now() + 3_600_000).toISOString();
+    const { upsertChannelAccount } = await import("@/lib/channel-accounts");
+    await upsertChannelAccount({
+      tenantId: "t1",
+      provider: "youtube",
+      externalId: "yt-1",
+      accessToken: "yt-access",
+      refreshToken: "yt-refresh",
+      tokenExpiresAt,
+    });
+    expect(H.rows[0]?.token_expires_at).toBe(tokenExpiresAt);
+  });
+});
+
+describe("getSelectedChannelAccountCred: 만료 토큰 사전 차단", () => {
+  it("채널-만료-01 정상: 만료 전 active 계정은 발행 자격으로 반환한다", async () => {
+    const { upsertChannelAccount, getSelectedChannelAccountCred } = await import("@/lib/channel-accounts");
+    const account = await upsertChannelAccount({
+      tenantId: "t1", provider: "threads", externalId: "live", accessToken: "token-live",
+      tokenExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+    });
+    await expect(getSelectedChannelAccountCred("t1", "threads", account.id))
+      .resolves.toMatchObject({ accountId: account.id, token: "token-live" });
+  });
+
+  it("채널-만료-02 거절: active여도 만료 시각이 지났으면 공급자 호출용 자격을 반환하지 않는다", async () => {
+    const { upsertChannelAccount, getSelectedChannelAccountCred } = await import("@/lib/channel-accounts");
+    const account = await upsertChannelAccount({
+      tenantId: "t1", provider: "threads", externalId: "expired", accessToken: "token-expired",
+      tokenExpiresAt: new Date(Date.now() - 60_000).toISOString(),
+    });
+    await expect(getSelectedChannelAccountCred("t1", "threads", account.id)).resolves.toBeNull();
+  });
+});
+
+describe("resolveExternalIdentity fail-closed", () => {
+  it.each(["threads", "instagram", "x", "youtube"])("%s /me 검증 실패를 fallback ID로 덮지 않는다", async (provider) => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ error: { code: 190 } }), { status: 400 })));
+    const { resolveExternalIdentity } = await import("@/lib/channel-accounts");
+    await expect(resolveExternalIdentity(provider, "invalid-token", "fallback-id", "t1"))
+      .rejects.toThrow(/계정 신원 검증/);
+  });
+
+  it("Threads /me가 반환한 실제 ID와 username을 사용한다", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ id: "live-id", username: "live-user" })));
+    const { resolveExternalIdentity } = await import("@/lib/channel-accounts");
+    await expect(resolveExternalIdentity("threads", "valid-token", "fallback-id", "t1"))
+      .resolves.toEqual({ externalId: "live-id", username: "live-user" });
   });
 });
 

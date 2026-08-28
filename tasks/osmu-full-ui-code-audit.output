@@ -1,0 +1,137 @@
+# Marketing Hub current-code UI audit — 2026-08-06
+
+Scope: read-only inventory of current `dashboard/src/app` (25 page entries, 121 API route entries), shell, provider components, hooks/store, and cited wiki/history. This is local-repository evidence only; it does **not** assert that a route is deployed or operationally observed.
+
+## System shell and entry
+
+| Surface | Route / code | Actual behavior and dependencies | State / risk | Wiki |
+|---|---|---|---|---|
+| Root shell | `app/layout.tsx`, `components/shared/AuthGate.tsx`, `components/layout/Sidebar.tsx` | AuthGate selects landing, customer shell, or operator shell. Sidebar fetches `/api/me`; customer workspace is placed in Zustand `ui-store`. | Implemented locally. `AuthGate` landing claims all 8 text platforms; this must not be read as a Studio-card inventory. | `wiki/ops/session-state.md`, `wiki/decisions/004-social-connect-oauth-not-passwords.md` |
+| Customer navigation | `Sidebar.tsx:310-484` | 26 items: 성과, OSMU Studio, 승인 인박스, 발행 캘린더; Social 5; Messaging 3; Video 2; Data 3; Keyword 4; Blog; Images/Videos/Midjourney; Settings. | Existing local IA. Responsive risk: desktop sticky 224px rail; narrow behavior must be browser checked. | `wiki/reference/channel-status.md`, `wiki/product/studio.md` |
+| Operator navigation | `Sidebar.tsx` `OperatorSidebar` | Separate Admin shell, customers/OAuth operations; customer workspace cleared. | Implemented locally; no customer routes should mount. | `wiki/ops/operator-token-recovery.md` |
+| Landing / login | `/`, `/login`, `/signup` | `/` is authenticated performance dashboard or unauthenticated marketing landing via AuthGate; login uses Google OAuth; signup redirects `/login`. | Landing contains broad product claims, not capability proof. | no matching current product-page wiki found |
+
+## Customer product routes
+
+| Route | Title / components | Actions and data | Classification / responsive risk |
+|---|---|---|---|
+| `/` | 성과; `OnboardingWizard`, `ChannelConnectBanner`, `OnboardingChecklist`, `PipelineTimeline` | `useOverview/useActivity/useAlerts/useWeeklySummary/useAgentLogs/useUsage/useErrors`, `/api/metrics`, `/api/suggestions`, channel config/onboarding. Shows metrics, post links if stored permalink, usage/errors/activity. | Implemented dashboard; data availability/error state is API-dependent. Dense cards/grids need 390px verification. |
+| `/studio` | OSMU Studio; `PlatformPreview`, `BrandSetupWizard`, `RepoConnect`, `SchedulePanel` | `/api/studio/text`, brand setup/drafts/engine status, `/api/sourcing` auto-draft, Higgsfield image/video, `/api/publish`, accounts. Visual cards are Threads/X/Facebook/Instagram/Shorts/Reels/TikTok; current direct select/publish is only Threads/X/Facebook/Instagram (`page.tsx:21-59`). | Implemented local but not evidence of production exposure. Publish state is local-per-card loop; no shared Inbox/Calendar result object. 7-card grid/drawer responsive risk. |
+| `/inbox` | 승인 인박스 | Queue draft review (`/api/queue?status=draft`), seed 7, approve/delete; product-source GitHub form and voice-tone controls. | Implemented legacy queue workflow, not a Studio variant inbox. Mobile-first intent but needs browser proof. |
+| `/calendar` | 발행 캘린더 | `/api/queue?status=all`; month grid, local date selection, read-only post list. | Implemented queue view; not DB `schedules` truth or a universal result calendar. 7-column grid high narrow-screen risk. |
+| `/channels/[channel]` | Dynamic dispatcher | Instagram→`InstagramPage`; data→`DataChannelPage`; messaging→`MessagingPage`; blog/video→generic `ChannelPage`; unknown prints text. | Local dynamic route. Classification depends on channel type below. |
+| `/videos` | Video workspace | Video list/upload/generate/repurpose/refine, YouTube/TikTok publish and TikTok status APIs. | Implemented local workbench; provider credential/review determines readiness. Media cards and action panels need responsive QA. |
+| `/images` | Images | `/api/images`, delete, copy URL. | Implemented tenant image gallery; empty/loading state exists. |
+| `/blog` | Blog | Blog queue CRUD/approval, guide, keywords, keyword bank. | Implemented separate blog queue; not generic OSMU dispatch. |
+| `/blog-performance` | Blog Performance | `/api/blog-stats`. | Implemented data view; API-dependent. |
+| `/search-console` | Search Console | User-entered site, `/api/gsc-analytics`, 7/28/90 dimensions/table. | Implemented UI/API; requires configured credentials and has cached/error states. Table responsive risk. |
+| `/keyword-planner` | Keyword Planner | keyword bank, `/api/keyword-research`, add to bank. | Implemented UI/API; API/error dependent. |
+| `/google-analytics` | Google Analytics | Informational unavailable panel. | Explicit target/disabled for customer GA4. |
+| `/naver-trends` | Naver Trends | Informational unavailable panel. | Explicit target/disabled for tenant credential safety. |
+| `/search-advisor` | Search Advisor | Informational unavailable panel. | Explicit target/disabled pending tenant storage. |
+| `/google-trends` | Google Trends | External Google Trends link + guide. | Intentional external link, not integrated analytics. |
+| `/performance` | Redirect | redirects to `/`. | Compatibility-only; previous dedicated performance removed. |
+| `/services` | 전체 서비스 | `/api/tenants`, service switch/create UI. | Local multi-service hub, separate from customer shell; needs auth/tenant verification. |
+| `/settings` | 8 customer tabs + operator-only Video/TTS | Channels/OAuth, AI, storage, design, notifications, fork token, keywords, video/TTS operator-only, system. Uses `ChannelsSettings`, `ChannelConnect`, AI/key/model/token, storage/Figma/Canva, notification/Slack, tenant token, keyword planner, cron/account settings. | Implemented. Earlier “Settings 9/9” must be role-aware: video tab is hidden to customers (`settings/page.tsx:23-43`). Flex-wrap tabs responsive behavior exists but unverified. |
+| `/operator` | 운영자 콘솔 | token validation via `/api/me`, writes browser auth token. | Implemented entry for operator-only shell. |
+| `/operator/customers` | 유저 관리자 | `/api/operator/customers`; pause/resume/shared-AI actions; central encrypted OAuth credential view/import/reveal/delete. | Implemented local administrative surface. Secret reveal is explicitly timed; operational authorization not audited here. |
+| `/privacy`, `/terms`, `/data-deletion` | LegalPage | policy, terms, deletion instructions. | Static legal content; accuracy/legal sufficiency not reviewed. |
+
+## Provider surfaces and tab truth
+
+| Provider class | Actual component/tab surface | APIs / actions | Status |
+|---|---|---|---|
+| Threads and generic social | `ChannelPage`: Queue, Analytics, Settings; Threads additionally Growth, Popular (`ChannelPage.tsx:176-210`) | queue, analytics, growth/popular, credentials/OAuth/account manager, guide/keywords/automation. | Local implementation; connected state gates some tabs. |
+| Instagram | `InstagramPage`: Queue, Editor, Settings; Editor contains CardNews outline/generate/save to queue (`InstagramPage.tsx:21-105`). | card-news endpoints, queue, OAuth/account manager/manual Graph credential, guide/keyword/automation. | Local specialized surface, not interchangeable with Threads. |
+| Messaging (Telegram/Discord/Slack/LINE etc.) | `MessagingPage` | credential form and setup guide only. | Connection/config surface; it is not a Queue/Analytics channel page. |
+| Data (GA/Search Console/Business) | `DataChannelPage` | credential form/setup guide. | Connection/config only; separate working pages listed above. |
+| Video (YouTube/TikTok) | generic `ChannelPage` variant=video plus `/videos` workspace | account/OAuth on channel page; video actions in `/videos`. | Split ownership is deliberate; text schedule does not own video publish. |
+| Blog | generic ChannelPage variant=blog plus `/blog` | Blog queue, guides, keywords. | Separate queue/domain. |
+| Midjourney | `/channels/midjourney` through generic channel dispatcher | config/status indication, image generator routes elsewhere. | Local config route; no dedicated page component. |
+
+## API dependency map (grouped, not a claim every endpoint is customer reachable)
+
+- Identity/tenant/operator: `/api/me`, `/api/auth/google`, `/api/onboarding`, `/api/workspaces`, `/api/tenants`, `/api/tenant-info`, `/api/tenant-tokens`, `/api/operator/*`, `/api/isolation-proof`.
+- Channel/OAuth/account: `/api/channel-config*`, `/api/channel-settings*`, `/api/connect/*`, `/api/channels/[provider]/accounts*`, `/api/integrations`, guide/keywords.
+- Content/workflow: Studio brand/text/drafts/engine, sourcing/product-source/voice-tone/content validate, queue CRUD/seed/promote/backfill, schedule + publish-due, `/api/publish`.
+- Media/video/design: images/media, card-news/card-slides, Higgsfield, Midjourney, Figma/Canva, video generate/upload/list/delete/repurpose/refine/script/publish, YouTube/TikTok status.
+- Data/operations: overview/metrics/activity/errors/alerts/usage, analytics/growth/popular/suggestions, cron/runtime/health/gateway, blog, search/keyword/trend, notification/report.
+
+## Existing features changed or removed in history
+
+- `dbd701a5`: dedicated performance merged into Marketing Home; `/performance` now redirect.
+- `ae1db294`: channel connection removed from Studio and moved to Settings; Studio Repo/creation remains.
+- `0575c7bb`, `9455a830`: Calendar and Inbox added as queue views.
+- `aa368e67` → `ea88094e`: Studio kept visual 7 previews but direct publish shrank from historical selected-ALL loop to 4 supported targets; do not equate this with 8 text adapter list.
+- `7d30e0e6` / `8b1ca33f`: broad connection exposure was subsequently constrained to avoid unsupported publishing claims.
+- `057f305e`: operator and customer shells separated.
+- Sidebar deliberately removed dead Data & SEO channel links and Custom RSS/API, retaining only working/read-only routes (`Sidebar.tsx:376-418`).
+
+## Design/prototype implications
+
+1. Preserve the full customer sidebar and each route's ownership; do not replace it with a provider workspace.
+2. Preserve Studio visual 7, Instagram's Editor/CardNews, Threads Growth/Popular, video's separate workspace, and queue-based Inbox/Calendar as distinct current surfaces.
+3. Mark GA4/Naver/Search Advisor as disabled/target, not working dashboards. Mark external Google Trends as external.
+4. Do not present landing copy, extension existence, or API route count as user-visible/operational capability.
+5. Before a full prototype, wiki must map the above local-code state against production-observed state; current relevant wiki coverage is Studio/channel status/marketing material, not one complete Marketing Hub surface map.
+
+## Audit limits
+
+No source/product/wiki file changed. Directly read: all 25 `page.tsx` route entries, `layout.tsx`, Sidebar/AuthGate, dynamic channel dispatcher and channel variants, Settings, Studio/Inbox/Calendar/Videos/Images/operator routes, API route inventory (121), component/hook/store inventories, selected wiki/history. API handlers were inventoried by path; individual end-to-end runtime behavior and production deployment were not executed.
+
+## Self-check / red team
+
+- **Potential overclaim:** a route, component, API handler, or extension exists locally. **Check:** every table uses “local implementation/code” rather than “live”; only the listed historical observation is called observed. **Result:** no deployment, credential, provider response, or customer journey is claimed verified by this audit.
+- **Potential category error:** API adapter list and Studio visual cards are treated as the same product surface. **Check:** Studio visual 7, direct publish 4, text adapter 8, video 3, and extension 15 are separately named. **Result:** retained as separate inventories.
+- **Potential preservation error:** keeping a sidebar label means its behavior is complete. **Check:** disabled pages and external-link pages are explicitly classified; Inbox/Calendar are described as queue views, not a unified OSMU lifecycle. **Result:** no “full-flow” claim.
+- **Potential missing evidence:** the audit could silently omit the operator/customer split or legacy changes. **Check:** shell routes and history changes are separate sections. **Result:** retained.
+
+## Evidence contract
+
+**SOURCES (directly read):**
+
+1. `dashboard/src/app/layout.tsx`
+2. `dashboard/src/components/shared/AuthGate.tsx`
+3. `dashboard/src/components/layout/Sidebar.tsx`
+4. `dashboard/src/app/page.tsx`
+5. `dashboard/src/app/studio/page.tsx`
+6. `dashboard/src/components/studio/PlatformPreview.tsx`
+7. `dashboard/src/components/studio/RepoConnect.tsx`
+8. `dashboard/src/components/studio/SchedulePanel.tsx`
+9. `dashboard/src/app/inbox/page.tsx`
+10. `dashboard/src/app/calendar/page.tsx`
+11. `dashboard/src/app/channels/[channel]/page.tsx`
+12. `dashboard/src/components/channel/ChannelPage.tsx`
+13. `dashboard/src/components/channel/InstagramPage.tsx`
+14. `dashboard/src/app/settings/page.tsx`
+15. `dashboard/src/app/videos/page.tsx`
+16. `dashboard/src/app/operator/customers/page.tsx`
+17. `dashboard/src/lib/constants.ts`
+18. `dashboard/src/app/api/publish/route.ts`
+19. `dashboard/src/app/api/schedule/route.ts`
+20. `dashboard/src/app/api/schedule/publish-due/route.ts`
+21. `dashboard/db/schema.sql`
+22. `wiki/ops/session-state.md`
+23. `wiki/product/studio.md`
+24. `wiki/reference/channel-status.md`
+
+**Git history inspected:** `a10b2145` (Studio introduction), `9455a830` (Inbox), `0575c7bb` (Calendar), `aa368e67` (Studio visual7/history), `ae1db294` (connection moved to Settings), `057f305e` (operator/customer shell split), `ea88094e` (direct-publish target restriction), `8b1ca33f` (unsupported publishing guard), `dbd701a5` (performance merged into home).
+
+## Official-product IA/workflow benchmark — secondary evidence
+
+This section is a comparison aid only. It does not replace any local-code truth, make a product-ready claim, or authorize an IA change.
+
+| Official reference | Relevant product distinction | Audit implication for Marketing Hub |
+|---|---|---|
+| [Buffer — Scheduling posts](https://support.buffer.com/article/642-scheduling-posts) | One composer can select channels and generate channel-specific previews; it distinguishes Queue/Next Available, prioritized queue position, fixed date/time, and Now. | Keep Studio composition, per-channel state, queue, calendar and immediate/scheduled actions conceptually distinct; current Hub does **not** yet have one shared source/result model, so do not fake that continuity. |
+| [Buffer — All Channels view](https://support.buffer.com/article/861-how-to-use-the-all-channels-view) | Cross-channel Draft, Approval, Queue and Sent views coexist with channel filtering; these are workflow views, not identical per-provider tabs. | Supports preserving the Hub’s distinct Inbox/Calendar route roles and provider-specific tabs instead of inventing a uniform provider shell. |
+| [Later — Social Sets](https://help.later.com/hc/en-us/articles/360044369654-Create-Manage-Social-Sets) | An account grouping organizes connected profiles by brand/identity; access groups organize permissions and have their own media/calendar context. | Account/tenant truth should be a shared data concern across Studio, settings, and channel detail, but it does not justify renaming the existing customer sidebar or collapsing specialized surfaces. |
+| [Later — Add, remove and transfer social profiles](https://help.later.com/hc/en-us/articles/360043244733-Add-Remove-Transfer-Social-Profiles-in-Later) | Profile authentication is a dedicated connection action reachable from Calendar or Settings. | Reinforces the current split between Studio creation and Settings/channel account connection; keep that split visible until a unified, proven contract exists. |
+| [Hootsuite — Create and schedule content in a calendar](https://help.hootsuite.com/hc/de/articles/1260804306069-Create-and-schedule-content-in-a-calendar) | Calendar can expose post-level edit, delete, reschedule, approval and published-network access, with status changes. | Current `/calendar` is a read-only queue-derived date view; a prototype must not depict post-level recovery/result actions as already implemented. |
+| [Hootsuite — Manage content calendar](https://help.hootsuite.com/hc/de/articles/1260804306009-Manage-your-content-calendar) | Calendar filtering is by account and post status, including draft/scheduled/published/failed/approval states. | If a future full Hub calendar adds these controls, it must be backed by one source of truth; it cannot be inferred from today’s queue view. |
+
+**Benchmark conclusion:** established products separate (a) connected-account/permission organization, (b) composer and per-channel adaptation, (c) approval/queue/calendar workflow, and (d) analytics/inbox. This validates the audit’s preservation principle—do not force equal provider tabs—but does not validate any missing Marketing Hub bridge, result recovery, or provider capability.
+
+**SKILLS_SKIPPED:** 없음 — this retake used official-product web research in addition to local-code/history audit.
+
+**MODEL:** gpt-5.6-sol / `osmu_existing_code_audit`.

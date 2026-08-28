@@ -79,7 +79,147 @@ CREATE TABLE IF NOT EXISTS drafts (
 );
 
 CREATE INDEX IF NOT EXISTS idx_drafts_tenant ON drafts(tenant_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_drafts_tenant_id ON drafts(tenant_id, id);
 CREATE INDEX IF NOT EXISTS idx_integrations_tenant ON integrations(tenant_id);
+
+-- Studio v1 생성 장부. 프로세스 메모리 대신 작업, 멱등 응답, 회원별 현지 날짜 무료 재생성을
+-- 같은 Postgres에 보존한다. 모든 행은 tenant_id를 가져 rls.sql의 withTenant 정책을 따른다.
+CREATE TABLE IF NOT EXISTS studio_generation_jobs (
+  id                    UUID PRIMARY KEY,
+  tenant_id             UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  member_id             TEXT NOT NULL,
+  status                TEXT NOT NULL CHECK (status IN ('succeeded')),
+  candidates            JSONB NOT NULL,
+  layer_revisions       JSONB NOT NULL,
+  platform_spec_receipt JSONB,
+  time_zone             TEXT NOT NULL,
+  request_payload       JSONB NOT NULL,
+  created_at            TIMESTAMPTZ NOT NULL,
+  UNIQUE (tenant_id, id)
+);
+CREATE INDEX IF NOT EXISTS idx_studio_generation_jobs_member_time
+  ON studio_generation_jobs(tenant_id, member_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS studio_generation_idempotency (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id         UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  member_id         TEXT NOT NULL,
+  operation         TEXT NOT NULL,
+  idempotency_key   TEXT NOT NULL CHECK (char_length(idempotency_key) BETWEEN 1 AND 255),
+  request_hash      CHAR(64) NOT NULL,
+  job_id            UUID NOT NULL,
+  response_payload  JSONB NOT NULL,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_studio_generation_idempotency_member_operation_key
+    UNIQUE (member_id, operation, idempotency_key),
+  FOREIGN KEY (tenant_id, job_id)
+    REFERENCES studio_generation_jobs(tenant_id, id)
+    ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED
+);
+DO $$
+BEGIN
+  ALTER TABLE studio_generation_idempotency
+    DROP CONSTRAINT IF EXISTS studio_generation_idempotency_tenant_id_member_id_operation_key;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'studio_generation_idempotency'::regclass
+      AND conname = 'uq_studio_generation_idempotency_member_operation_key'
+  ) THEN
+    ALTER TABLE studio_generation_idempotency
+      ADD CONSTRAINT uq_studio_generation_idempotency_member_operation_key
+      UNIQUE (member_id, operation, idempotency_key);
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS idx_studio_generation_idempotency_job
+  ON studio_generation_idempotency(tenant_id, job_id);
+
+CREATE TABLE IF NOT EXISTS studio_free_regeneration_uses (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id           UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  member_id           TEXT NOT NULL,
+  local_date          DATE NOT NULL,
+  original_job_id     UUID NOT NULL,
+  replacement_job_id  UUID NOT NULL,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_studio_free_regeneration_member_date
+    UNIQUE (member_id, local_date),
+  FOREIGN KEY (tenant_id, original_job_id)
+    REFERENCES studio_generation_jobs(tenant_id, id) ON DELETE CASCADE,
+  FOREIGN KEY (tenant_id, replacement_job_id)
+    REFERENCES studio_generation_jobs(tenant_id, id)
+    ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED
+);
+DO $$
+BEGIN
+  ALTER TABLE studio_free_regeneration_uses
+    DROP CONSTRAINT IF EXISTS studio_free_regeneration_uses_tenant_id_member_id_local_dat_key;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'studio_free_regeneration_uses'::regclass
+      AND conname = 'uq_studio_free_regeneration_member_date'
+  ) THEN
+    ALTER TABLE studio_free_regeneration_uses
+      ADD CONSTRAINT uq_studio_free_regeneration_member_date
+      UNIQUE (member_id, local_date);
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS idx_studio_free_regeneration_jobs
+  ON studio_free_regeneration_uses(tenant_id, original_job_id, replacement_job_id);
+
+-- 여덟 컨셉 숏폼 공장 실행 장부. 작업 공간마다 실행 중인 공장은 하나로 제한하고,
+-- 각 컨셉은 독립 상태와 Studio 생성 작업을 가져 한 건 실패가 나머지를 막지 않게 한다.
+CREATE TABLE IF NOT EXISTS shorts_factory_runs (
+  id                  UUID PRIMARY KEY,
+  tenant_id           UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  member_id           TEXT NOT NULL,
+  status              TEXT NOT NULL DEFAULT 'queued'
+                      CHECK (status IN ('queued', 'running', 'succeeded', 'partial', 'failed')),
+  concurrency_limit   SMALLINT NOT NULL CHECK (concurrency_limit BETWEEN 1 AND 8),
+  total_concepts      SMALLINT NOT NULL CHECK (total_concepts BETWEEN 1 AND 8),
+  succeeded_concepts  SMALLINT NOT NULL DEFAULT 0,
+  failed_concepts     SMALLINT NOT NULL DEFAULT 0,
+  idempotency_key     TEXT NOT NULL CHECK (char_length(idempotency_key) BETWEEN 1 AND 255),
+  request_hash        CHAR(64) NOT NULL,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  started_at          TIMESTAMPTZ,
+  finished_at         TIMESTAMPTZ,
+  UNIQUE (tenant_id, member_id, idempotency_key),
+  UNIQUE (tenant_id, id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_shorts_factory_active_workspace
+  ON shorts_factory_runs(tenant_id)
+  WHERE status IN ('queued', 'running');
+CREATE INDEX IF NOT EXISTS idx_shorts_factory_runs_member_time
+  ON shorts_factory_runs(tenant_id, member_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS shorts_factory_concept_runs (
+  id                  UUID PRIMARY KEY,
+  tenant_id           UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  factory_run_id      UUID NOT NULL,
+  concept_id          TEXT NOT NULL,
+  name                TEXT NOT NULL,
+  position            SMALLINT NOT NULL CHECK (position BETWEEN 1 AND 8),
+  status              TEXT NOT NULL DEFAULT 'queued'
+                      CHECK (status IN ('queued', 'running', 'succeeded', 'failed')),
+  stage               TEXT NOT NULL DEFAULT 'waiting'
+                      CHECK (stage IN ('waiting', 'generating_candidates', 'completed', 'failed')),
+  config_payload      JSONB NOT NULL,
+  studio_job_id       UUID,
+  error_code          TEXT,
+  error_message       TEXT,
+  started_at          TIMESTAMPTZ,
+  finished_at         TIMESTAMPTZ,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (tenant_id, factory_run_id, concept_id),
+  UNIQUE (tenant_id, factory_run_id, position),
+  FOREIGN KEY (tenant_id, factory_run_id)
+    REFERENCES shorts_factory_runs(tenant_id, id) ON DELETE CASCADE,
+  FOREIGN KEY (tenant_id, studio_job_id)
+    REFERENCES studio_generation_jobs(tenant_id, id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_shorts_factory_concepts_status
+  ON shorts_factory_concept_runs(tenant_id, factory_run_id, status, position);
 
 -- 발행된 게시물 + 성과(insights). 실발행 시 1행, collect로 metrics 갱신.
 CREATE TABLE IF NOT EXISTS published_posts (
@@ -102,7 +242,58 @@ CREATE TABLE IF NOT EXISTS published_posts (
   reposts       INTEGER,
   metrics_at    TIMESTAMPTZ
 );
+CREATE UNIQUE INDEX IF NOT EXISTS uq_published_posts_tenant_id
+  ON published_posts(tenant_id, id);
 CREATE INDEX IF NOT EXISTS idx_pubposts_tenant ON published_posts(tenant_id, published_at DESC);
+
+-- 댓글 본문은 provider에서 읽고, 사람이 정한 상태와 외부 답글 결과만 보관한다.
+CREATE TABLE IF NOT EXISTS engagement_items (
+  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id             UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  published_post_id     UUID NOT NULL REFERENCES published_posts(id) ON DELETE CASCADE,
+  platform              TEXT NOT NULL,
+  provider_comment_id   TEXT NOT NULL,
+  state                 TEXT NOT NULL DEFAULT 'unread'
+                        CHECK (state IN ('unread', 'deferred', 'replying', 'replied', 'editor_handoff')),
+  reply_request_key     TEXT,
+  reply_text            TEXT,
+  reply_external_id     TEXT,
+  replied_at            TIMESTAMPTZ,
+  liked_at              TIMESTAMPTZ,
+  deferred_at           TIMESTAMPTZ,
+  editor_handoff_at     TIMESTAMPTZ,
+  editor_draft_id       UUID REFERENCES drafts(id) ON DELETE SET NULL,
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (tenant_id, platform, provider_comment_id)
+);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'engagement_items'::regclass
+      AND conname = 'fk_engagement_items_tenant_published_post'
+  ) THEN
+    ALTER TABLE engagement_items
+      ADD CONSTRAINT fk_engagement_items_tenant_published_post
+      FOREIGN KEY (tenant_id, published_post_id)
+      REFERENCES published_posts(tenant_id, id);
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'engagement_items'::regclass
+      AND conname = 'fk_engagement_items_tenant_editor_draft'
+  ) THEN
+    ALTER TABLE engagement_items
+      ADD CONSTRAINT fk_engagement_items_tenant_editor_draft
+      FOREIGN KEY (tenant_id, editor_draft_id)
+      REFERENCES drafts(tenant_id, id);
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS idx_engagement_items_tenant_state
+  ON engagement_items(tenant_id, state, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_engagement_items_post
+  ON engagement_items(tenant_id, published_post_id, updated_at DESC);
 
 -- P4: 발행 큐(현 data/queue.json v2 → 이주). expand/contract 1단계 = dual-write(읽기/cron은 json 유지, 무중단).
 -- id는 queue.json 항목 id(UUID)와 1:1. payload에 원 항목 무손실 스냅샷.
@@ -322,6 +513,38 @@ END $$;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_published_posts_idem
   ON published_posts (tenant_id, draft_id, platform, COALESCE(account_id, '00000000-0000-0000-0000-000000000000'::uuid))
   WHERE draft_id IS NOT NULL AND status IN ('published', 'in_progress');
+
+-- 작업 공간별 운영 장애 원장. 원문 오류나 자격증명은 저장하지 않고 고정 코드만 남긴다.
+-- status='open'인 동일 fingerprint는 한 행으로 합쳐 알림 폭주를 막는다.
+CREATE TABLE IF NOT EXISTS operational_incidents (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  fingerprint     TEXT NOT NULL,
+  category        TEXT NOT NULL CHECK (category IN (
+                    'publish_failed',
+                    'token_expired',
+                    'generation_failed',
+                    'external_service_error'
+                  )),
+  source          TEXT NOT NULL,
+  reason_code     TEXT NOT NULL,
+  severity        TEXT NOT NULL CHECK (severity IN ('critical', 'error', 'warning')),
+  intervention    TEXT NOT NULL CHECK (intervention IN ('human', 'automatic')),
+  status          TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'recovered')),
+  occurrences     INTEGER NOT NULL DEFAULT 1 CHECK (occurrences > 0),
+  first_seen_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_seen_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  recovered_at    TIMESTAMPTZ,
+  notified_at     TIMESTAMPTZ
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_operational_incidents_open_fingerprint
+  ON operational_incidents(tenant_id, fingerprint)
+  WHERE status = 'open';
+CREATE INDEX IF NOT EXISTS idx_operational_incidents_tenant_status
+  ON operational_incidents(tenant_id, status, last_seen_at DESC);
+CREATE INDEX IF NOT EXISTS idx_operational_incidents_human_notification
+  ON operational_incidents(intervention, notified_at, last_seen_at DESC)
+  WHERE status = 'open' AND intervention = 'human';
 
 -- 멱등 백필: 기존 integrations(kind='channel') 1행 → provider당 channel_accounts 1행(기본계정)으로 승격.
 -- 매 배포마다 실행 — 개별 tenant/provider 단위 idempotency는 ON CONFLICT DO NOTHING이 보장한다(이미

@@ -69,12 +69,15 @@ export async function GET(request: Request) {
     // Cleanup
     try { fs.unlinkSync(dataPath("figma-oauth-state.json")); } catch { /* ok */ }
 
-    const html = `<html><body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh">
-    <div style="text-align:center">
-      <h2 style="color:#22c55e">Figma MCP 연결 완료!</h2>
-      <p style="color:#9ca3af">이 탭을 닫고 대시보드로 돌아가세요.</p>
-      <p style="color:#6b7280;font-size:12px">Gateway 재시작 후 사용 가능</p>
-    </div></body></html>`;
+    const html = `<html><head><style>
+      :root{--surface:rgb(10 10 10);--text:rgb(255 255 255);--success:rgb(34 197 94);--muted:rgb(156 163 175);--subtle:rgb(107 114 128)}
+      body{background:var(--surface);color:var(--text);font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh}
+      main{text-align:center}h2{color:var(--success)}p{color:var(--muted)}small{color:var(--subtle)}
+    </style></head><body><main>
+      <h2>Figma MCP 연결 완료!</h2>
+      <p>이 탭을 닫고 대시보드로 돌아가세요.</p>
+      <small>Gateway 재시작 후 사용 가능</small>
+    </main></body></html>`;
     return new Response(html, { headers: { "Content-Type": "text/html" } });
   } catch (e) {
     return new Response(`<h2>Token exchange failed: ${e}</h2>`, {

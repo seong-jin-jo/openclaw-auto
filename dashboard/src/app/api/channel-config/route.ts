@@ -3,6 +3,9 @@ import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
 import { withTenant } from "@/lib/db";
 import { maskConfigSecrets } from "@/lib/secret-mask";
+import { getChannelConnectionStates } from "@/lib/channel-connection";
+import { normalizePlatform, reportFailure, reportRecovery } from "@/lib/observability";
+import { normalizeIncidentSource, recoverUnconfiguredChannelIncidents } from "@/lib/observability/incidents";
 
 interface PluginEntry {
   enabled?: boolean;
@@ -120,39 +123,119 @@ export async function GET(request: Request) {
     keys: maskConfigSecrets(bKeys),
   };
 
-  // OAuth "연결"은 테넌트 integrations 테이블에 저장된다(플러그인 config가 아님). 대시보드 "연결됨"
-  // 배지가 이를 반영하도록, 해당 테넌트에 저장된 channel 토큰이 있으면 connected=true 로 보정한다.
+  // OAuth "연결"의 진실원은 channel_accounts(SNS-007, Admin `/operator/customers`가 보는 바로 그
+  // 테이블)다. 레거시 openclaw.json의 키 유무는 마스킹된 설정 표시와 발행 폴백에만 남기고,
+  // connected/reconnect 판정에는 사용하지 않는다(FDD R-02 F2).
+  //
+  // 2026-08-11 정정 — 예전엔 legacy `integrations`(kind='channel') 테이블만 읽었다. 그런데
+  // integrations는 channel_accounts의 "미러"일 뿐이라 upsertChannelAccount/setDefaultAccount
+  // 경로를 안 거치고 channel_accounts에 직접 쓴 경우(예: seed, 배치 마이그레이션) 미러가 비어
+  // 고객 화면만 "미연결"로 어긋났다(Admin은 channel_accounts를 직접 봐서 정상 표시 — QA 실측
+  // 확인, 모노스튜디오 tenant). channel_accounts를 직접 읽어 이 클래스의 드리프트를 원천 차단한다.
   //
   // 2026-07-16 P0 QA 정정 — 예전엔 "secret_enc가 비어있지 않다"(has_secret)만으로 connected=true를
   // 세웠는데, 실측 결과 Instagram/Threads는 secret은 있지만(암호화 저장은 성공) 프로바이더가 실제로는
   // OAuth code 190(토큰 무효)을 리턴 — 사용자에게 "Connected"로 거짓 노출됐다. 여기서부터 instagram/
-  // threads만 실제 read-only 계정 조회(GET /me)로 라이브 검증한다. 그 외 채널은 기존 stored-credential
-  // 동작(secret 존재=connected) 유지 — 이번 패치 범위 아님.
+  // threads만 실제 read-only 계정 조회(GET /me)로 라이브 검증한다. 그 외 채널은 channel_accounts의
+  // status 판정을 그대로 쓴다.
   if (__t) {
+    const accountProviders = Object.keys(channels).filter((provider) => provider !== "blog");
+
+    // DB 조회가 실패해도 레거시 파일의 키 유무가 connected=true로 되살아나지 않도록 먼저 닫는다.
+    // 상태를 확인할 수 없는 것과 연결된 것은 다르다. 호출자는 connectionStatus로 장애를 구분한다.
+    for (const provider of accountProviders) {
+      const ch = channels[provider];
+      ch.connected = false;
+      ch.reconnectRequired = false;
+      ch.connectionStatus = "unverified";
+      if (ch.status === "live" || ch.status === "connected") ch.status = "available";
+    }
+
     try {
-      // instagram/threads는 이제부터 이 블록의 라이브 검증 결과가 유일한 진실원이다.
-      // openclaw.json(파일 기반 config)에 과거 저장된 accessToken만으로 connected=true가 새지 않도록
-      // DB 조회/검증 전에 먼저 false로 리셋한다 — integrations row가 아예 없거나(미연결) 검증에
-      // 실패하면 아래에서 명시적으로만 true가 된다.
-      channels.instagram = { ...(channels.instagram || {}), connected: false, connectionStatus: "unverified" };
-      channels.threads = { ...(channels.threads || {}), connected: false, connectionStatus: "unverified" };
+      const connectionStates = await getChannelConnectionStates(__t, accountProviders);
+      for (const provider of accountProviders) {
+        const ch = channels[provider];
+        const state = connectionStates[provider] ?? "disconnected";
+        ch.connected = state === "connected";
+        ch.reconnectRequired = state === "reconnect";
+        ch.connectionStatus = state;
+        if (state === "connected" && (ch.status === "available" || ch.status === "soon" || !ch.status)) {
+          ch.status = ch.enabled ? "live" : "connected";
+        } else if (state !== "connected" && (ch.status === "live" || ch.status === "connected")) {
+          ch.status = "available";
+        }
+      }
+
+      // Instagram/Threads는 active 행만으로 유효를 단정하지 않는다. 저장 토큰을 아래 read-only
+      // provider API로 재검증하기 전까지 unverified로 닫아 둔다.
+      for (const provider of ["instagram", "threads"]) {
+        const ch = channels[provider];
+        if (ch && connectionStates[provider] === "connected") {
+          ch.connected = false;
+          ch.connectionStatus = "unverified";
+          ch.status = "available";
+        }
+      }
 
       const key = process.env.OSMU_SECRET_KEY || "";
       // OSMU_SECRET_KEY가 없으면 복호화 자체가 불가 — 토큰을 "유효"라고 주장하지 않고 미검증으로 마킹.
-      const rows = await withTenant(__t, (sql) => sql<{ label: string; token: string | null; meta: Record<string, unknown> | null }[]>`
-        SELECT label,
+      // status='active' — revoked/expired로 마킹된 계정을 연결됨으로 오판하지 않는다.
+      const rows = await withTenant(__t, (sql) => sql<{
+        label: string;
+        token: string | null;
+        meta: Record<string, unknown> | null;
+        status: string;
+        token_expires_at: string | null;
+        has_refresh: boolean;
+      }[]>`
+        SELECT provider AS label,
                CASE WHEN secret_enc <> '' AND ${key} <> ''
                     THEN pgp_sym_decrypt(dearmor(secret_enc), ${key}) ELSE NULL END AS token,
-               meta
-        FROM integrations
-        WHERE tenant_id = ${__t} AND kind = 'channel' AND secret_enc <> ''`);
+               meta,
+               status,
+               token_expires_at::text,
+               (refresh_enc IS NOT NULL) AS has_refresh
+        FROM channel_accounts
+        WHERE tenant_id = ${__t} AND is_default = true AND secret_enc <> ''`);
 
       const liveCheckable = new Set(["instagram", "threads"]);
       const toVerify: Array<{ label: string; token: string; userId: string }> = [];
 
-      for (const { label, token, meta } of rows) {
+      await recoverUnconfiguredChannelIncidents(
+        __t,
+        rows.map((row) => normalizeIncidentSource(row.label)),
+      );
+
+      for (const {
+        label,
+        token,
+        meta,
+        status = "active",
+        token_expires_at = null,
+        has_refresh = false,
+      } of rows) {
         const ch = channels[label];
         if (!ch) continue;
+        const source = normalizeIncidentSource(label);
+        const expiresAt = token_expires_at ? Date.parse(token_expires_at) : Number.NaN;
+        const expiredWithoutRefresh = Number.isFinite(expiresAt) && expiresAt <= Date.now() && !has_refresh;
+
+        if (status === "expired" || status === "revoked" || expiredWithoutRefresh) {
+          void reportFailure({
+            event: "token_expired",
+            severity: "error",
+            workspaceId: __t,
+            context: {
+              provider: normalizePlatform(label),
+              reason: status === "revoked" ? "token_revoked" : "token_expired",
+            },
+          });
+          continue;
+        }
+        if (connectionStates[label] === "connected") {
+          void reportRecovery({ workspaceId: __t, category: "token_expired", source });
+        }
+        if (status !== "active") continue;
         const m = (meta ?? {}) as Record<string, unknown>;
         const userId = typeof m.userId === "string" ? m.userId : "";
 
@@ -168,11 +251,8 @@ export async function GET(request: Request) {
           continue; // 최종 connected/status는 아래 병렬 검증 결과로 확정
         }
 
-        // instagram/threads 이외 채널 — 기존 stored-credential 동작 유지(이번 패치 범위 밖).
-        ch.connected = true;
-        if (ch.status === "available" || ch.status === "soon" || !ch.status) {
-          ch.status = ch.enabled ? "live" : "connected";
-        }
+        // instagram/threads 이외 채널은 위 channel_accounts status 판정을 그대로 사용한다.
+        // secret_enc 존재 여부로 연결상태를 다시 쓰지 않는다.
       }
 
       // Instagram/Threads read-only 계정 조회를 병렬로 — 각 5s 타임아웃. 토큰 원문은 응답/로그에 절대
@@ -216,6 +296,8 @@ export async function GET(request: Request) {
               if (ch.status === "available" || ch.status === "soon" || !ch.status) {
                 ch.status = ch.enabled ? "live" : "connected";
               }
+              void reportRecovery({ workspaceId: __t, category: "token_expired", source: normalizeIncidentSource(label) });
+              void reportRecovery({ workspaceId: __t, category: "external_service_error", source: normalizeIncidentSource(label) });
               return;
             }
             // Meta Graph API 표준 에러 포맷: {error:{message,type:"OAuthException",code:190,...}}.
@@ -232,21 +314,45 @@ export async function GET(request: Request) {
               ch.reconnectRequired = true;
               ch.connectionStatus = "invalid";
               ch.connectionError = "oauth_token_invalid";
+              void reportFailure({
+                event: "token_expired",
+                severity: "error",
+                workspaceId: __t,
+                context: { provider: normalizePlatform(label), reason: "token_revoked" },
+              });
             } else {
               // 5xx 등 프로바이더/네트워크 이상 — 저장된 토큰을 무효로 단정하지 않는다.
               ch.connected = false;
               ch.connectionStatus = "unverified";
               ch.connectionError = "provider_unreachable";
+              void reportFailure({
+                event: "external_service_error",
+                severity: "warning",
+                workspaceId: __t,
+                context: {
+                  provider: normalizePlatform(label),
+                  reason: res.status === 429 ? "http_429" : res.status >= 500 ? "http_5xx" : "provider_unreachable",
+                  httpStatus: res.status,
+                },
+              });
             }
           } catch {
             // fetch 자체 실패(타임아웃/네트워크) — 토큰을 지우거나 무효 판정하지 않는다.
             ch.connected = false;
             ch.connectionStatus = "unverified";
             ch.connectionError = "provider_unreachable";
+            void reportFailure({
+              event: "external_service_error",
+              severity: "warning",
+              workspaceId: __t,
+              context: { provider: normalizePlatform(label), reason: "network_error" },
+            });
           }
         }));
       }
-    } catch { /* DB 미가용 시 파일 기반 상태 유지 */ }
+    } catch {
+      // DB 미가용 시 fail-closed. 위 초기화 상태를 유지해 레거시 키를 연결됨으로 오판하지 않는다.
+    }
   }
 
   return Response.json(channels);

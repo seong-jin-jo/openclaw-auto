@@ -7,7 +7,8 @@ import { authHeaders } from "@/lib/auth";
 import { CredentialForm } from "@/components/shared/CredentialForm";
 import { SetupGuide } from "@/components/shared/SetupGuide";
 import { SocialConnectButton } from "@/components/channel/SocialConnectButton";
-import { CH_LABELS, PUBLISH_CHANNEL_GROUPS } from "@/lib/constants";
+import { CH_LABELS } from "@/lib/constants";
+import { PUBLISH_CHANNEL_GROUPS } from "@/lib/channel-capabilities";
 import type { Workspace } from "@/store/ui-store";
 
 // 채널 연결 모달 — 검증 경로(/api/channel-config/{channel})로 통일.
@@ -72,41 +73,41 @@ export function ChannelConnect({ workspace, onClose }: { workspace: Workspace; o
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="w-full max-w-2xl rounded-2xl border border-accent bg-surface/95 backdrop-blur-xl p-6 shadow-[0_0_40px_rgba(168,85,247,0.15)] max-h-[88vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-1">
-          <h2 className="text-lg font-bold bg-gradient-to-r from-accent to-accent-hover bg-clip-text text-transparent">채널 연결</h2>
-          <button onClick={onClose} className="text-subtle text-sm">✕</button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-player-surface/70 p-pad-inset">
+      <div className="w-full max-w-2xl rounded-surface border border-accent bg-surface/95 backdrop-blur-xl p-stack-section shadow-floating max-h-[88vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-micro">
+          <h2 className="text-lead font-bold bg-gradient-to-r from-accent to-accent-hover bg-clip-text text-transparent">채널 연결</h2>
+          <button onClick={onClose} className="text-subtle text-body-sm">✕</button>
         </div>
-        <p className="text-xs text-subtle mb-4">{workspace.name} · 입력 후 저장하면 실제 API로 검증되고 계정이 확인됩니다</p>
+        <p className="text-caption text-subtle mb-pad-inset">{workspace.name} · 입력 후 저장하면 실제 API로 검증되고 계정이 확인됩니다</p>
 
-        <div className="flex gap-2 mb-4 flex-wrap">
+        <div className="flex gap-stack-tight mb-pad-inset flex-wrap">
           {CHANNELS.map((c) => {
             const connected = Boolean((cfg?.[c] as { connected?: boolean })?.connected);
             return (
               <button key={c} onClick={() => { setPlatform(c); setResult(null); setShowManualCreds(false); }}
-                className={`px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 ${platform === c ? "bg-accent text-text" : "bg-surface-2 text-subtle"}`}>
-                {LABELS[c] || c}{connected && <span className="text-green-400">✓</span>}
+                className={`px-stack py-stack-tight rounded-control text-caption flex items-center gap-micro ${platform === c ? "bg-accent text-accent-fg" : "bg-surface-2 text-subtle"}`}>
+                {LABELS[c] || c}{connected && <span className="text-success">✓</span>}
               </button>
             );
           })}
         </div>
 
         {guide ? (
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-2 gap-pad-inset">
             {/* 연결 중 인라인 가이드 — 따라만 하면 되도록 */}
-            <div className="card p-4">
-              <p className="text-xs font-medium text-muted mb-2">{LABELS[platform]} 연결 방법</p>
+            <div className="card p-pad-inset">
+              <p className="text-caption font-medium text-muted mb-stack-tight">{LABELS[platform]} 연결 방법</p>
               <SetupGuide quick={guide.quick} detail={guide.detail} images={guide.images} />
             </div>
-            <div className="card p-4">
+            <div className="card p-pad-inset">
               {OAUTH_LABELS[platform] && (
-                <div className="mb-3">
+                <div className="mb-stack">
                   <SocialConnectButton provider={platform} label={OAUTH_LABELS[platform]} />
                   <button
                     type="button"
                     onClick={() => setShowManualCreds((v) => !v)}
-                    className="mt-2 text-[11px] text-accent"
+                    className="mt-stack-tight text-caption text-accent"
                   >
                     {showManualCreds ? "수동 입력 닫기" : "고급: 토큰 직접 입력"}
                   </button>
@@ -123,29 +124,29 @@ export function ChannelConnect({ workspace, onClose }: { workspace: Workspace; o
                     connectLabel="수동 연결 + 검증"
                   />
                   <button onClick={testConnection} disabled={testing}
-                    className="mt-3 w-full py-1.5 text-xs bg-surface-2 hover:bg-surface-2 text-muted rounded disabled:opacity-50">
+                    className="mt-stack w-full py-stack-tight text-caption bg-surface-2 hover:bg-surface-2 text-muted rounded-chip disabled:opacity-50">
                     {testing ? "테스트 중…" : "연결 테스트 (저장된 키 재검증)"}
                   </button>
                 </>
               )}
               {OAUTH_LABELS[platform] && !showManualCreds && chCfg.connected && (
-                <p className="mt-3 text-xs text-green-400">✓ OAuth 연결됨 — access token 원문은 화면에 표시하지 않습니다.</p>
+                <p className="mt-stack text-caption text-success">✓ OAuth 연결됨. access token 원문은 화면에 표시하지 않습니다.</p>
               )}
               {result && (
-                <div className="mt-3 text-xs">
+                <div className="mt-stack text-caption">
                   {result.verified ? (
-                    <p className="text-green-400">✓ 연결 완료{result.account ? ` — ${result.account}` : ""}</p>
+                    <p className="text-success">✓ 연결 완료{result.account ? `. ${result.account}` : ""}</p>
                   ) : result.unverified ? (
-                    <p className="text-amber-400">⚠ 저장됨 · 미검증{result.reason ? ` — ${result.reason}` : ""} (네트워크 복구 후 “연결 테스트”로 재확인)</p>
+                    <p className="text-warning">저장됨. 미검증{result.reason ? `. ${result.reason}` : ""} (네트워크 복구 후 “연결 테스트”로 재확인)</p>
                   ) : (
-                    <p className="text-red-400">✗ 검증 실패{result.error ? `: ${result.error}` : " — 키를 확인하세요"}</p>
+                    <p className="text-danger">✗ 검증 실패{result.error ? `: ${result.error}` : ". 키를 확인하세요"}</p>
                   )}
                 </div>
               )}
             </div>
           </div>
         ) : (
-          <p className="text-xs text-subtle">이 채널은 아직 가이드가 준비되지 않았습니다.</p>
+          <p className="text-caption text-subtle">이 채널은 아직 가이드가 준비되지 않았습니다.</p>
         )}
       </div>
     </div>

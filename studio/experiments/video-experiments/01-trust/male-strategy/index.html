@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>남성 전략 숏폼 통제실험</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0d1117;--card:#161b22;--line:#30363d;--ink:#f0f6fc;--muted:#8b949e;--accent:#58a6ff;--warn:#f2cc60}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 system-ui,-apple-system,sans-serif}main{max-width:1120px;margin:auto;padding:32px 20px 72px}h1{font-size:clamp(28px,5vw,48px);line-height:1.08;margin:0 0 12px}h2{margin-top:36px}.lede{color:var(--muted);max-width:760px}.grid{display:grid;grid-template-columns:minmax(280px,420px) 1fr;gap:24px;align-items:start}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}video{display:block;width:100%;max-height:74vh;border-radius:12px;background:#000}.pill{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:3px 9px;margin:0 6px 8px 0;color:var(--muted)}.warn{color:var(--warn)}code{color:#a5d6ff}a{color:var(--accent)}table{width:100%;border-collapse:collapse}th,td{text-align:left;border-bottom:1px solid var(--line);padding:10px 8px;vertical-align:top}@media(max-width:760px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body><main>
+  <p class="pill">trust / male-strategy</p>
+  <h1>시간을 잃는 장면은 보였다.<br>화면 속 글자는 통제하지 못했다.</h1>
+  <p class="lede">자기 약속과 시간 자본을 남성 자기진단으로 번역한 8초 통제실험. 권리 보유 원본과 허구 인물만 사용했다.</p>
+  <section class="grid">
+    <article class="card">
+      <video controls muted playsinline preload="metadata" src="videos/male-strategy-ms06-model-kling.mp4"></video>
+      <h2>MS-06 · Kling 3.0</h2>
+      <span class="pill">12 credits</span><span class="pill">720×1280</span><span class="pill">8.042s</span><span class="pill warn">ITERATE 17/25</span>
+    </article>
+    <article class="card">
+      <h2>관찰</h2>
+      <p>휴대폰 스크롤, 닫힌 노트북, 신지 않은 운동화, 마지막 행동 전환은 구현됐다.</p>
+      <p class="warn">첫 4초 휴대폰 UI에 읽을 수 있는 한글이 생성됐다. 프롬프트의 <code>no readable text</code>를 위반했다.</p>
+      <h2>다음 단일 변수</h2>
+      <p>스마트폰 화면을 보여주지 않고 손등과 얼굴 반사광만 남긴다.</p>
+      <p><a href="experiment-report-v1-gpt-codex.md">전체 프롬프트·판정 보고서</a> · <a href="experiment-log.csv">CSV 원장</a></p>
+    </article>
+  </section>
+  <h2>실험 상태</h2>
+  <table><thead><tr><th>모델</th><th>상태</th><th>근거</th></tr></thead><tbody>
+    <tr><td>Kling 3.0</td><td>완료</td><td>잡 <code>393322fe-80ec-4980-a623-41b1cff3dac1</code></td></tr>
+    <tr><td>Veo 3.1 Lite</td><td>거절</td><td>동시작업 한도. 과금 0</td></tr>
+    <tr><td>Seedance 1.5 Pro</td><td>미제출</td><td>제출 직전 잔액 0. 하한 게이트 발동</td></tr>
+  </tbody></table>
+</main></body></html>

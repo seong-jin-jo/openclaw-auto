@@ -35,6 +35,12 @@ import { fmtTime } from "@/lib/format";
 import { BackButton } from "@/components/shared/BackButton";
 import { TenantAutomationSettings } from "./TenantAutomationSettings";
 import { channelTextLimit } from "@/lib/channel-text-limits";
+import { Button } from "@/components/shared/Button";
+import { Card } from "@/components/shared/Card";
+import { Section } from "@/components/shared/Section";
+import { Stack } from "@/components/shared/Stack";
+import { ChannelTabs } from "@/components/channel/ChannelTabs";
+import { isChannelTabEnabled } from "@/lib/channel-capabilities";
 
 interface ChannelPageProps {
   channel: string;
@@ -48,30 +54,30 @@ function ConnectGate({ label, onConnect }: { label: string; onConnect: () => voi
     <div className="relative min-h-[260px]">
       {/* 블러 미리보기(실데이터 아님 — 모자이크 느낌의 자리표시) */}
       <div className="blur-sm select-none pointer-events-none opacity-60" aria-hidden>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-pad-inset mb-pad-inset">
           {["Published", "Views", "Avg Views", "Avg Likes"].map((l) => (
-            <div key={l} className="card p-4">
-              <p className="text-[11px] text-subtle uppercase tracking-wide">{l}</p>
-              <p className="text-2xl font-bold text-text mt-1">—</p>
+            <div key={l} className="card p-pad-inset">
+              <p className="text-caption text-subtle uppercase tracking-wide">{l}</p>
+              <p className="text-heading font-bold text-text mt-micro">없음</p>
             </div>
           ))}
         </div>
-        <div className="card p-4 space-y-2">
-          {[80, 60, 70].map((w, i) => (
-            <div key={i} className="h-3 rounded bg-surface-2" style={{ width: `${w}%` }} />
+        <div className="card p-pad-inset space-y-stack-tight">
+          {["w-4/5", "w-3/5", "w-2/3"].map((widthClass, i) => (
+            <div key={i} className={`h-3 rounded-chip bg-surface-2 ${widthClass}`} />
           ))}
         </div>
       </div>
       {/* 연결 유도 모달 */}
-      <div className="absolute inset-0 flex items-center justify-center p-4">
-        <div className="card p-6 text-center max-w-xs border border-accent/40 bg-surface shadow-xl">
-          <div className="text-3xl mb-2">🔗</div>
-          <p className="text-sm font-medium text-text mb-1">{label} 아직 연결 안 됨</p>
-          <p className="text-xs text-subtle mb-4">연결하면 이 채널의 발행·분석을 바로 쓸 수 있어요.</p>
-          <button onClick={onConnect} className="px-4 py-2 text-sm bg-accent text-text rounded-lg hover:bg-accent-hover">
+      <div className="absolute inset-0 flex items-center justify-center p-pad-inset">
+        <Card className="p-stack-section text-center max-w-xs border border-accent/40 bg-surface shadow-xl">
+          <div className="text-body font-semibold mb-stack-tight">연결 필요</div>
+          <p className="text-body font-medium text-text mb-micro">{label} 아직 연결 안 됨</p>
+          <p className="text-caption text-subtle mb-pad-inset">연결하면 이 채널의 발행·분석을 바로 쓸 수 있어요.</p>
+          <Button variant="primary" onClick={onConnect}>
             연결하기
-          </button>
-        </div>
+          </Button>
+        </Card>
       </div>
     </div>
   );
@@ -100,15 +106,6 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
   const isThreads = channel === "threads";
   const oauthLabel = OAUTH_CONNECT[channel];
 
-  // Build tabs: all channels get queue/analytics/settings. Threads also gets growth/popular.
-  const baseTabs = ["queue", "analytics", "settings"];
-  let tabs: string[];
-  if (isThreads) {
-    tabs = ["queue", "analytics", "growth", "popular", "settings"];
-  } else {
-    tabs = baseTabs;
-  }
-
   // 채널 진입 시 기본 탭: 미연결이면 '연결(설정)' 탭으로 보내 키를 바로 입력하게(연결됨이면 큐).
   // 예전엔 무조건 queue로 빠져 채널 세팅 자체가 불가능했음.
   useEffect(() => {
@@ -116,17 +113,17 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
   }, [channel]); // eslint-disable-line react-hooks/exhaustive-deps
   // 연결 상태가 뒤늦게 로드돼 현재 탭이 채널에 없으면 보정
   useEffect(() => {
-    if (!tabs.includes(subTab)) setSubTab(connected ? "queue" : "settings");
-  }, [tabs, subTab, connected, setSubTab]);
+    if (!isChannelTabEnabled(channel, subTab)) setSubTab(connected ? "queue" : "settings");
+  }, [channel, subTab, connected, setSubTab]);
 
   const handleCredSave = async (newKeys: Record<string, string>) => {
     const r = await apiPost<{ verified?: boolean; unverified?: boolean; reason?: string; error?: string; account?: string }>(`/api/channel-config/${channel}`, newKeys);
     if (r?.verified) {
-      showToast(`${label} 연결 완료${r.account ? " — " + r.account : ""}`, "success");
+      showToast(`${label} 연결 완료${r.account ? ". " + r.account : ""}`, "success");
       mutateConfig();
     } else if (r?.unverified) {
       // 네트워크 등으로 확인 불가 — 키는 저장됐으나 검증 미완(자동화는 비활성 유지가 안전).
-      showToast(`${label} 저장됨 · 미검증${r.reason ? " — " + r.reason : ""}`, "warning");
+      showToast(`${label} 저장됨 · 미검증${r.reason ? ". " + r.reason : ""}`, "warning");
       mutateConfig();
     } else {
       showToast(`연결 실패: ${r?.error || "Invalid credentials"}`, "error");
@@ -146,47 +143,34 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
   const postVariant = variant === "blog" ? "blog" as const : "text" as const;
 
   return (
-    <div className="px-8 py-6">
+    <div className="px-region py-stack-section">
       <BackButton />
-      <div className="flex items-center gap-3 mb-6">
-        <span className={`w-8 h-8 rounded-lg ${isThreads ? "bg-accent" : "bg-surface-2"} flex items-center justify-center text-sm font-bold text-text`}>
+      <div className="flex items-center gap-stack mb-stack-section">
+        <span className={`w-8 h-8 rounded-control ${isThreads ? "bg-accent" : "bg-surface-2"} flex items-center justify-center text-body font-bold text-accent-fg`}>
           {label[0]}
         </span>
         <div>
-          <h2 className="text-xl font-semibold text-text">{label}</h2>
-          <p className="text-xs text-subtle">
+          <h2 className="text-subheading font-semibold text-text">{label}</h2>
+          <p className="text-caption text-subtle">
             {isThreads
-              ? `${cfg?.userId ? "ID: " + cfg.userId : ""} ${growth.length ? " \u00B7 " + (growth[growth.length - 1] as Record<string, unknown>).followers + " followers" : ""}`
+              ? `${cfg?.userId ? "ID: " + cfg.userId : ""} ${growth.length ? " · " + (growth[growth.length - 1] as Record<string, unknown>).followers + " followers" : ""}`
               : connected ? "Connected" : CH_STATUS_LABEL[status] || status}
           </p>
         </div>
       </div>
 
       {reconnectRequired && (
-        <div className="mb-6 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
-          \u26A0 \uC7AC\uC5F0\uACB0 \uD544\uC694 \u2014 \uC800\uC7A5\uB41C \uC778\uC99D \uC815\uBCF4\uAC00 \uB9CC\uB8CC\uB418\uC5C8\uAC70\uB098 \uBB34\uD6A8\uD569\uB2C8\uB2E4. \uC544\uB798\uC5D0\uC11C OAuth\uB85C \uB2E4\uC2DC \uC5F0\uACB0\uD574\uC8FC\uC138\uC694.
+        <div className="mb-stack-section rounded-control border border-warning/40 bg-warning/10 p-stack text-caption text-warning">
+          재연결 필요. 저장된 인증 정보가 만료됐거나 무효합니다. 아래에서 OAuth로 다시 연결해 주세요.
         </div>
       )}
       {providerUnreachable && (
-        <div className="mb-6 rounded-lg border border-border/60 bg-surface-2 p-3 text-xs text-subtle">
-          \u26A0 \uC5F0\uACB0 \uC0C1\uD0DC \uD655\uC778 \uBD88\uAC00 \u2014 {label} \uC11C\uBC84\uC5D0 \uC77C\uC2DC\uC801\uC73C\uB85C \uC5F0\uACB0\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. \uC800\uC7A5\uB41C \uC778\uC99D \uC815\uBCF4\uB294 \uC720\uC9C0\uB429\uB2C8\uB2E4. \uC7A0\uC2DC \uD6C4 \uC0C8\uB85C\uACE0\uCE68\uD574 \uB2E4\uC2DC \uD655\uC778\uD558\uC138\uC694.
+        <div className="mb-stack-section rounded-control border border-border/60 bg-surface-2 p-stack text-caption text-subtle">
+          연결 상태 확인 불가. {label} 서버에 일시적으로 연결할 수 없습니다. 저장된 인증 정보는 유지됩니다. 잠시 후 새로고침해 다시 확인하세요.
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-6 border-b border-border/50 pb-3">
-        {tabs.map((t) => (
-          <button
-            key={t}
-            onClick={() => setSubTab(t)}
-            className={`px-3 py-1.5 text-sm rounded ${
-              subTab === t ? "bg-accent text-text" : "text-subtle hover:bg-surface-2"
-            }`}
-          >
-            {t.charAt(0).toUpperCase() + t.slice(1)}
-          </button>
-        ))}
-      </div>
+      <ChannelTabs channel={channel} activeTab={subTab} onTabChange={setSubTab} />
 
       {/* Queue Tab */}
       {subTab === "queue" && (
@@ -212,11 +196,11 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
 
       {/* Settings Tab */}
       {subTab === "settings" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-section">
           {/* Credentials */}
-          <div className="card p-5">
+          <div className="card p-pad-inset">
             {oauthLabel && (
-              <div className="mb-4">
+              <div className="mb-pad-inset">
                 <SocialConnectButton
                   provider={channel}
                   label={oauthLabel}
@@ -231,18 +215,18 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
                   label={oauthLabel}
                   onAccountsChanged={mutateConfig}
                 />
-                <p className="text-[10px] text-subtle mt-2">공식 OAuth가 기본 경로입니다. 토큰 직접 입력은 고급/비상용으로만 사용하세요.</p>
-                <button
-                  type="button"
+                <p className="text-caption text-subtle mt-stack-tight">공식 OAuth가 기본 경로입니다. 토큰 직접 입력은 고급/비상용으로만 사용하세요.</p>
+                <Button
+                  size="sm"
                   onClick={() => setShowManualCreds((v) => !v)}
-                  className="mt-2 text-[11px] text-accent hover:text-accent"
+                  className="mt-stack-tight"
                 >
                   {showManualCreds ? "수동 토큰 입력 닫기" : "고급: 토큰 직접 입력"}
-                </button>
+                </Button>
               </div>
             )}
             {!oauthLabel && channel === "bluesky" && (
-              <div className="mb-4">
+              <div className="mb-pad-inset">
                 <AccountManager
                   key={`bluesky-${accountsRefreshTick}`}
                   provider="bluesky"
@@ -273,22 +257,21 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
               />
             )}
             {oauthLabel && !showManualCreds && connected && (
-              <div className="rounded-lg border border-success/30 bg-success/10 p-3 text-xs text-success">
+              <div className="rounded-control border border-success/30 bg-success/10 p-stack text-caption text-success">
                 OAuth 연결 상태입니다. 원문 access token은 화면에 표시하지 않고 서버에 암호화 저장합니다.
               </div>
             )}
             {oauthLabel && !showManualCreds && reconnectRequired && (
-              <div className="mt-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
-                ⚠ 재연결 필요 — 저장된 토큰이 만료되었거나 무효합니다({label} 측 거부). 위 OAuth 버튼으로 다시 연결해주세요.
+              <div className="mt-stack rounded-control border border-warning/40 bg-warning/10 p-stack text-caption text-warning">
+                재연결 필요. 저장된 토큰이 만료되었거나 무효합니다({label} 측 거부). 위 OAuth 단추로 다시 연결해 주세요.
               </div>
             )}
           </div>
 
           {/* Channel Info + Setup Guide */}
-          <div className="space-y-4">
-            <div className="card p-5">
-              <h3 className="text-sm font-medium text-muted mb-3">Channel Info</h3>
-              <div className="space-y-2 text-sm">
+          <div className="space-y-pad-inset">
+            <Section title="Channel Info" headingLevel={3} className="card p-pad-inset">
+              <div className="space-y-stack-tight text-body">
                 <div className="flex justify-between">
                   <span className="text-subtle">Status</span>
                   <span className={connected ? "text-success" : status === "connected" ? "text-accent" : "text-warning"}>
@@ -326,8 +309,8 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
                   </div>
                 )}
               </div>
-            </div>
-            <div className="card p-5">
+            </Section>
+            <div className="card p-pad-inset">
               <SetupGuide
                 quick={sg.quick}
                 detail={sg.detail}
@@ -353,7 +336,7 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
 }
 
 /* ── Analytics Tab ── */
-function AnalyticsTab() {
+export function AnalyticsTab() {
   const { data } = useSWR("/api/analytics", fetcher);
   const a = data as Record<string, unknown> | undefined;
   if (!a) return <p className="text-subtle">Loading...</p>;
@@ -369,43 +352,43 @@ function AnalyticsTab() {
   return (
     <>
       {(s.totalPublished as number) === 0 && (
-        <div className="p-3 rounded bg-surface/50 mb-4">
-          <p className="text-xs text-subtle">아직 발행된 글이 없습니다. Queue에서 draft를 승인하면 자동 발행됩니다.</p>
+        <div className="p-stack rounded-chip bg-surface/50 mb-pad-inset">
+          <p className="text-caption text-subtle">아직 발행된 글이 없습니다. Queue에서 draft를 승인하면 자동 발행됩니다.</p>
         </div>
       )}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-pad-inset mb-stack-section">
         {[
           ["Published", s.totalPublished],
           ["Views", s.totalViews],
           ["Avg Views", s.avgViews],
           ["Avg Likes", s.avgLikes],
         ].map(([label, val]) => (
-          <div key={String(label)} className="card p-4">
-            <p className="text-[11px] text-subtle uppercase tracking-wide">{String(label)}</p>
-            <p className="text-2xl font-bold text-text mt-1">{String(val ?? 0)}</p>
+          <div key={String(label)} className="card p-pad-inset">
+            <p className="text-caption text-subtle uppercase tracking-wide">{String(label)}</p>
+            <p className="text-heading font-bold text-text mt-micro">{String(val ?? 0)}</p>
           </div>
         ))}
       </div>
 
       {Object.keys(topics).length > 0 && (
-        <div className="card p-4 mb-6">
-          <h3 className="text-xs font-medium text-subtle mb-3">Topic Performance</h3>
-          <table className="w-full text-sm">
+        <div className="card p-pad-inset mb-stack-section">
+          <h3 className="text-caption font-medium text-subtle mb-stack">Topic Performance</h3>
+          <table className="w-full text-body">
             <thead>
-              <tr className="text-[10px] text-subtle uppercase">
-                <th className="text-left py-1">Topic</th>
-                <th className="text-right py-1">Posts</th>
-                <th className="text-right py-1">Avg Views</th>
-                <th className="text-right py-1">Avg Likes</th>
+              <tr className="text-caption text-subtle uppercase">
+                <th className="text-left py-micro">Topic</th>
+                <th className="text-right py-micro">Posts</th>
+                <th className="text-right py-micro">Avg Views</th>
+                <th className="text-right py-micro">Avg Likes</th>
               </tr>
             </thead>
             <tbody>
               {Object.entries(topics).map(([t, stats]) => (
                 <tr key={t} className="border-t border-border/50">
-                  <td className="text-muted py-1">{t}</td>
-                  <td className="text-subtle text-right py-1">{stats.count}</td>
-                  <td className="text-subtle text-right py-1">{stats.avgViews || 0}</td>
-                  <td className="text-subtle text-right py-1">{stats.avgLikes || 0}</td>
+                  <td className="text-muted py-micro">{t}</td>
+                  <td className="text-subtle text-right py-micro">{stats.count}</td>
+                  <td className="text-subtle text-right py-micro">{stats.avgViews || 0}</td>
+                  <td className="text-subtle text-right py-micro">{stats.avgLikes || 0}</td>
                 </tr>
               ))}
             </tbody>
@@ -414,22 +397,22 @@ function AnalyticsTab() {
       )}
 
       {Object.keys(hashtags).length > 0 && (
-        <div className="card p-4 mb-6">
-          <h3 className="text-xs font-medium text-subtle mb-3">Hashtag Performance</h3>
-          <div className="flex flex-wrap gap-2">
+        <div className="card p-pad-inset mb-stack-section">
+          <h3 className="text-caption font-medium text-subtle mb-stack">Hashtag Performance</h3>
+          <div className="flex flex-wrap gap-stack-tight">
             {Object.entries(hashtags)
               .sort((a, b) => (b[1].avgViews || 0) - (a[1].avgViews || 0))
               .map(([t, stats]) => (
                 <span
                   key={t}
-                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs border border-border ${
+                  className={`inline-flex items-center gap-micro px-stack-tight py-micro rounded-pill text-caption border border-border ${
                     (stats.avgViews || 0) >= vt
-                      ? "bg-yellow-900/30 border-yellow-700/50 text-yellow-300"
+                      ? "bg-warning/15 border-warning/40 text-warning"
                       : "bg-surface text-subtle"
                   }`}
                 >
                   #{t}{" "}
-                  <span className="text-[10px] text-subtle">
+                  <span className="text-caption text-subtle">
                     {stats.count}posts {stats.avgViews || 0}v {stats.avgLikes || 0}l
                   </span>
                 </span>
@@ -439,36 +422,36 @@ function AnalyticsTab() {
       )}
 
       {posts.length > 0 && (
-        <div className="card p-4">
-          <h3 className="text-xs font-medium text-subtle mb-3">Post Performance</h3>
-          <div className="space-y-2">
+        <div className="card p-pad-inset">
+          <h3 className="text-caption font-medium text-subtle mb-stack">Post Performance</h3>
+          <div className="space-y-stack-tight">
             {posts.map((p, i) => {
               const views = (p.views as number) || 0;
               const isViral = views >= vt;
               return (
-                <div key={i} className="flex items-start gap-3 py-2 border-b border-border/50 last:border-0">
+                <div key={i} className="flex items-start gap-stack py-stack-tight border-b border-border/50 last:border-0">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-muted truncate" title={String(p.text || "")}>
+                    <p className="text-caption text-muted truncate" title={String(p.text || "")}>
                       {String(p.text || "")}
                     </p>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-[10px] text-subtle">{String(p.topic || "")}</span>
-                      <span className="text-[10px] text-subtle">{p.publishedAt ? fmtTime(p.publishedAt) : ""}</span>
-                      {!!p.archived && <span className="text-[10px] text-subtle">archived</span>}
+                    <div className="flex items-center gap-stack mt-micro">
+                      <span className="text-caption text-subtle">{String(p.topic || "")}</span>
+                      <span className="text-caption text-subtle">{p.publishedAt ? fmtTime(p.publishedAt) : ""}</span>
+                      {!!p.archived && <span className="text-caption text-subtle">archived</span>}
                     </div>
                   </div>
-                  <div className="flex gap-4 text-right shrink-0">
+                  <div className="flex gap-pad-inset text-right shrink-0">
                     <div>
-                      <p className={`text-xs ${isViral ? "text-yellow-400 font-medium" : "text-muted"}`}>{views}</p>
-                      <p className="text-[10px] text-subtle">views</p>
+                      <p className={`text-caption ${isViral ? "text-warning font-medium" : "text-muted"}`}>{views}</p>
+                      <p className="text-caption text-subtle">views</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted">{String(p.likes || 0)}</p>
-                      <p className="text-[10px] text-subtle">likes</p>
+                      <p className="text-caption text-muted">{String(p.likes || 0)}</p>
+                      <p className="text-caption text-subtle">likes</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted">{String(p.replies || 0)}</p>
-                      <p className="text-[10px] text-subtle">replies</p>
+                      <p className="text-caption text-muted">{String(p.replies || 0)}</p>
+                      <p className="text-caption text-subtle">replies</p>
                     </div>
                   </div>
                 </div>
@@ -485,17 +468,17 @@ function AnalyticsTab() {
 function GrowthTab() {
   const { data } = useSWR("/api/growth", fetcher);
   const records = (((data as Record<string, unknown>)?.records || []) as Array<{ date: string; followers: number; delta: number }>);
-  if (!records.length) return <p className="text-subtle text-sm">No growth data</p>;
+  if (!records.length) return <p className="text-subtle text-body">No growth data</p>;
 
   return (
-    <div className="card p-4">
-      <h3 className="text-xs font-medium text-subtle mb-3">Follower History</h3>
-      <div className="space-y-1">
+    <div className="card p-pad-inset">
+      <h3 className="text-caption font-medium text-subtle mb-stack">Follower History</h3>
+      <div className="space-y-micro">
         {records.slice(-14).map((r) => (
-          <div key={r.date} className="flex justify-between text-xs border-b border-border/50 py-1">
+          <div key={r.date} className="flex justify-between text-caption border-b border-border/50 py-micro">
             <span className="text-muted">{r.date}</span>
             <span className="text-muted">{r.followers}</span>
-            <span className={r.delta >= 0 ? "text-green-400" : "text-red-400"}>
+            <span className={r.delta >= 0 ? "text-success" : "text-danger"}>
               {r.delta >= 0 ? "+" : ""}{r.delta}
             </span>
           </div>
@@ -516,7 +499,7 @@ function PopularTab({ expandedPopular, setExpandedPopular }: { expandedPopular: 
 
   const SOURCE_COLORS: Record<string, string> = {
     external: "bg-accent-soft text-accent",
-    "own-viral": "bg-green-900/50 text-green-300",
+    "own-viral": "bg-success/15 text-success",
     manual: "bg-surface-2 text-muted",
   };
 
@@ -542,60 +525,60 @@ function PopularTab({ expandedPopular, setExpandedPopular }: { expandedPopular: 
 
   return (
     <>
-      <div className="card p-4 mb-4">
-        <div className="flex items-center gap-2 mb-3">
+      <div className="card p-pad-inset mb-pad-inset">
+        <div className="flex items-center gap-stack-tight mb-stack">
           <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          <span className="text-xs text-muted">Add External Post</span>
+          <span className="text-caption text-muted">외부 인기글 추가</span>
         </div>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          className="w-full bg-surface text-muted text-xs p-2 rounded border border-border mb-2"
+          className="w-full bg-surface text-muted text-caption p-stack-tight rounded-chip border border-border mb-stack-tight"
           rows={3}
           placeholder="인기글 텍스트를 붙여넣기"
         />
-        <div className="flex gap-2">
-          <input value={url} onChange={(e) => setUrl(e.target.value)} type="text" placeholder="URL (선택)" className="flex-1 bg-surface text-muted text-xs p-2 rounded border border-border" />
-          <input value={topic} onChange={(e) => setTopic(e.target.value)} type="text" placeholder="키워드/주제" className="w-28 bg-surface text-muted text-xs p-2 rounded border border-border" />
-          <button onClick={handleAdd} className="px-3 py-1.5 text-xs bg-accent text-text rounded hover:bg-accent-hover shrink-0">Add</button>
+        <div className="flex gap-stack-tight">
+          <input value={url} onChange={(e) => setUrl(e.target.value)} type="text" placeholder="URL (선택)" className="flex-1 bg-surface text-muted text-caption p-stack-tight rounded-chip border border-border" />
+          <input value={topic} onChange={(e) => setTopic(e.target.value)} type="text" placeholder="키워드/주제" className="w-28 bg-surface text-muted text-caption p-stack-tight rounded-chip border border-border" />
+          <Button variant="primary" size="sm" onClick={handleAdd}>추가</Button>
         </div>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-stack-tight">
         {popular.length === 0 ? (
-          <p className="text-subtle text-sm">No popular posts</p>
+          <p className="text-subtle text-body">등록된 인기글이 없습니다</p>
         ) : (
           popular.map((p, i) => {
             const open = expandedPopular === i;
             return (
               <div key={i} className="card overflow-hidden cursor-pointer hover:bg-surface-2/20 transition-colors" onClick={() => setExpandedPopular(open ? null : i)}>
-                <div className="flex items-center gap-2 px-4 pt-3 pb-1">
-                  <span className={`text-xs px-2 py-0.5 rounded ${SOURCE_COLORS[String(p.source)] || "bg-surface-2 text-muted"}`}>
+                <div className="flex items-center gap-stack-tight px-pad-inset pt-stack pb-micro">
+                  <span className={`text-caption px-stack-tight py-micro rounded-chip ${SOURCE_COLORS[String(p.source)] || "bg-surface-2 text-muted"}`}>
                     {String(p.source || "?")}
                   </span>
-                  {p.topic ? <span className="text-[10px] text-subtle">{String(p.topic)}</span> : null}
-                  {p.likes && String(p.likes) !== "0" ? <span className="text-[10px] text-yellow-500">{String(p.likes)} likes</span> : null}
-                  {p.username ? <span className="text-[10px] text-subtle">@{String(p.username)}</span> : null}
-                  <span className="text-[10px] text-subtle ml-auto">{String(p.collected || "")}</span>
+                  {p.topic ? <span className="text-caption text-subtle">{String(p.topic)}</span> : null}
+                  {p.likes && String(p.likes) !== "0" ? <span className="text-caption text-warning">{String(p.likes)} likes</span> : null}
+                  {p.username ? <span className="text-caption text-subtle">@{String(p.username)}</span> : null}
+                  <span className="text-caption text-subtle ml-auto">{String(p.collected || "")}</span>
                   <svg className={`w-3 h-3 text-subtle transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>
-                <p className={`text-xs text-muted px-4 pb-3 ${open ? "whitespace-pre-wrap" : "truncate"}`}>
+                <p className={`text-caption text-muted px-pad-inset pb-stack ${open ? "whitespace-pre-wrap" : "truncate"}`}>
                   {String(p.text || "")}
                 </p>
                 {open && (
-                  <div className="px-4 pb-3 flex items-center gap-3 border-t border-border/50 pt-2">
-                    {p.engagement ? <span className="text-[10px] text-subtle">{String(p.engagement)}</span> : null}
+                  <div className="px-pad-inset pb-stack flex items-center gap-stack border-t border-border/50 pt-stack-tight">
+                    {p.engagement ? <span className="text-caption text-subtle">{String(p.engagement)}</span> : null}
                     {p.url ? (
-                      <a href={String(p.url)} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:text-accent" onClick={(e) => e.stopPropagation()}>
+                      <a href={String(p.url)} target="_blank" rel="noopener noreferrer" className="text-caption text-accent hover:text-accent" onClick={(e) => e.stopPropagation()}>
                         원본 보기 &rarr;
                       </a>
                     ) : null}
-                    <button className="text-[10px] text-red-400 hover:text-red-300 ml-auto" onClick={(e) => { e.stopPropagation(); handleDelete(i); }}>
+                    <Button variant="danger" size="sm" className="ml-auto" onClick={(e) => { e.stopPropagation(); handleDelete(i); }}>
                       삭제
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
@@ -645,25 +628,25 @@ function ParametersSection() {
   };
 
   return (
-    <div className="card p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-muted">Parameters</h3>
-        <button onClick={handleSave} disabled={saving} className="px-3 py-1 text-xs bg-accent text-text rounded hover:bg-accent-hover disabled:opacity-50">
+    <div className="card p-pad-inset">
+      <div className="flex items-center justify-between mb-pad-inset">
+        <h3 className="text-body font-medium text-muted">Parameters</h3>
+        <Button variant="primary" size="sm" onClick={handleSave} disabled={saving}>
           {saving ? "Saving..." : "Save"}
-        </button>
+        </Button>
       </div>
       {PARAMS.map((p) => (
-        <div key={p.key} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+        <div key={p.key} className="flex items-center justify-between py-stack-tight border-b border-border/50 last:border-0">
           <div>
-            <p className="text-xs text-muted">{p.label}</p>
-            <p className="text-[10px] text-subtle">{p.desc}</p>
+            <p className="text-caption text-muted">{p.label}</p>
+            <p className="text-caption text-subtle">{p.desc}</p>
           </div>
           <input
             type="number"
             value={vals[p.key] ?? (s[p.key] ?? "")}
             onChange={(e) => setVals((prev) => ({ ...prev, [p.key]: e.target.value }))}
             min={0}
-            className="w-20 bg-surface border border-border rounded px-2 py-1 text-sm text-muted text-right"
+            className="w-20 bg-surface border border-border rounded-chip px-stack-tight py-micro text-body text-muted text-right"
           />
         </div>
       ))}

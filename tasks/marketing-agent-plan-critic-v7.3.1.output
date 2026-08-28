@@ -1,0 +1,254 @@
+# OSMU Marketing Agent PRD v7.3.1 — 독립 폐쇄 비평
+
+한 줄 결론: v7.3.1은 v7.3.0의 source5 단일 진실·thin-data eligibility·budget 경계를 실질 폐쇄했지만, `audit96/96` RTM이 최소 9개 행에서 상류 FR/AC와 의미가 맞지 않는 숫자형 매핑이라 **새 MAJOR 1건, MINOR 1건, NO-GO**다.
+
+STAMP: line=openclaw-auto | artifact=marketing-agent-plan-critic-v7.3.1 | version=v1 | generated_at=2026-08-07 KST | model=gpt-codex/gpt-5.6-sol | agent=plan-critic/marketing_agent_plan_critic_v7 | skills=none-matched | evidence=PRD-v7.3.1,canonical-v7.3.1,exit-report,v7.3.0-critic,final-audit96,agency-blueprint,current-code,official-Jasper-HubSpot-GitHub | deliberation=ID 개수보다 audit 고객계약과 상류 FR/AC의 의미 동치·owner·failure·eligibility를 공격함
+
+요청: v7.3.0 critic의 MAJOR3·MINOR2가 v7.3.1에서 실제 폐쇄됐는지 전체 PRD·canonical view·RTM을 독립 재검증한다.
+
+증거 등급:
+
+- `근거 확인`: PRD 1360줄, canonical current/versioned views, exit report, 이전 critic, final audits, 현행 코드를 읽고 기계·의미 대조했다.
+- `외부 근거 확인`: Jasper, HubSpot, GitHub의 2026 공식 문서를 다시 검색했다.
+- `미검증`: provider production OAuth·publish·native metric은 plan M=0이며 이번 비평도 완료로 주장하지 않는다.
+
+## 패널 비평 - OSMU Marketing Agent v7.3.1
+
+### 창업자
+
+나는 핵심 사업 방향을 채택한다. 이 버전은 “콘텐츠를 많이 만드는 도구”가 아니라 고객 목표·사람이 확정한 브랜드 근거·정확히 한 번의 실행·근거 있는 다음 실험으로 One Thing을 강화했고, Studio·플랫폼·Settings/Admin·OAuth·영상·성과의 기존 계약도 유지했다.
+
+하지만 design 투자 승인은 아직 내리지 않는다. `audit96/96`이라는 숫자는 맞지만, 첫 workspace 생성·전환, 비-GitHub 기존 wiki import, Naver Blog·Medium·Substack, Settings/Admin의 구체 계약이 generic FR에 연결돼 있다. 사용자가 가장 싫어한 “목록에는 있는데 실제 플로우 계약은 없음”이 RTM에서 반복됐다.
+
+### 운영자
+
+나는 source5 운영 계약은 폐쇄됐다고 본다. `source revision→candidate→human confirmation→active knowledge1→active guide1→retrieval→artifact snapshot`이 하나의 제품 모델로 고정됐고, legacy `wiki_docs`/`brand_guides` direct dual-read0, conflict hold, last-good, rollback-as-new-version, tenant/role/version 교차 matrix가 있다. 현행 코드의 즉시 DELETE·guide auto-save·dual retrieval 위험을 target이 정확히 차단한다.
+
+반면 audit RTM의 일부 행은 운영자가 구현할 계약을 특정하지 못한다. 예를 들어 A03의 “여러 workspace 중 명시적 전환”을 tenant isolation·account projection·Settings FR로 매핑했지만, 이 FR 어디에도 switcher의 create/select/confirm/failure state가 없다. release ID가 고유해도 무엇을 구현해야 하는지가 상류 AC에 없으면 하류가 임의 해석한다.
+
+### 회의론자
+
+나는 `RC-AUD-*`가 96개 고유하다는 사실만으로 orphan0을 인정하지 않는다. RTM은 ID 중복0이 아니라 상류 요구와 하류 검증의 **의미 동치**가 핵심이다.
+
+실제 반례가 있다. Audit B01은 “GitHub 없이 기존 wiki/brand source를 import하고 문서 수·source pointer를 보존”하는 계약인데, v7.3.1은 이를 direct paste FR068/072/085에 매핑한다. 단일 붙여넣기는 기존 wiki import의 scope preview·문서 수·다중 source pointer가 아니다. Audit D24~D26은 Naver Blog·Medium·Substack 각각의 draft/preview/export/capability 계약인데, 매핑된 FR004/010/024/060/067은 route 보존·capability tab·공통 mapping·Keyword/Data·additive migration일 뿐 세 destination의 title/body/tag/newsletter/export 필드를 정의하지 않는다.
+
+따라서 “각 row에 unique ID가 있다”와 “각 row가 atomic requirement/AC로 폐쇄됐다”는 다른 주장이다.
+
+### 시장분석가
+
+Jasper의 Knowledge Base/Brand Voice는 knowledge와 voice가 생성에 적용되는 구조를, HubSpot Campaigns는 goal·audience·budget·owner·assets의 campaign 단위를, GitHub Contents API는 repo/path/ref/permission 경계를 제공한다. v7.3.1은 이를 범용 CMS나 광고 집행으로 복제하지 않고 human-active truth와 proof/learning lineage로 좁혔다. 이 차별화는 설득력이 있다.
+
+다만 시장에서 신뢰를 만드는 것은 96이라는 내부 숫자가 아니라 사용자가 실제로 workspace를 만들고, 기존 자료를 가져오고, 각 long-form destination의 capability를 이해하며, Settings/Admin 경계를 예측 가능하게 쓰는 것이다. 이 구체 계약이 generic FR 뒤에 숨으면 제품은 다시 “지원한다고 써 있지만 어디까지 되는지 모르는” 상태가 된다.
+
+## One Thing 후보 1문장 + 함정답 3개
+
+One Thing 후보:
+
+> 고객 목표와 사람이 확정한 브랜드 근거를 세 형식의 캠페인 납품물로 만들고 정확히 한 번 실행한 뒤, 적격한 결과에서 승인된 변수 하나만 다음 실험에 반영하는 마케팅 실행 에이전트.
+
+함정답:
+
+1. “96개 요구를 모두 매핑한 올인원 마케팅 도구.” — ID 숫자가 고객 결과를 대신한다.
+2. “AI가 성과를 학습해 자동 최적화.” — 승인 threshold 전 hold와 한 변수 경계를 지운다.
+3. “브랜드 wiki·SNS·블로그·Admin을 한 화면에 통합.” — 각 surface의 owner·capability·실패 계약을 generic shell로 평탄화한다.
+
+## v7.3.0 finding closure table
+
+| 이전 finding | v7.3.1 실제 상태 | 의미 검증 | 판정 |
+|---|---|---|---|
+| MAJOR-1 source5 convergence/exclusive truth | §5.2.1 common model, active knowledge1+guide1, conflict hold, last-good, rollback, immutable used lineage | FR/TC085~089, KCONV20, KFAIL7, GUIDE6가 source·tenant/role·version·retrieval을 독립 검증 | **CLOSED** |
+| MAJOR-2 thin-data eligibility | approved channel×metric policy 전 hold, sample/window/collection/comparison/confounder gate, non-causal hypothesis, variable1/hold-set, false-eligible kill | FR/TC090~093, LEARN-01~10이 threshold owner/time/version과 failure state를 포함 | **CLOSED** |
+| MAJOR-3 audit96/P0-8/campaign14 atomicity | unique AUD96, P0 8, CAMPAIGN-01~14, mutation aggregate rule 추가 | campaign14/source/learning은 폐쇄됐으나 audit96 중 최소 9개가 의미 불일치 매핑 | **PARTIAL — 새 MAJOR-1로 재개방** |
+| MINOR-1 budget taxonomy | production/tool budget vs paid-media 없음/외부관리/미정/cap, ad account·bid·spend·billing0 | FR/TC094+AUD-C04 | **CLOSED** |
+| MINOR-2 composer-first wording | TL;DR·§1.1·canonical One Thing은 강화 | PRD §1.2 blockquote는 이전의 약한 문장을 유지 | **PARTIAL — MINOR-1** |
+
+## 통과한 핵심 공격
+
+- 기존 84개 FR/AC/TC: v7.3.0/v7.3.1 행을 직접 diff한 결과 **168행 대 168행, diff0**. 삭제·재번호·약화0.
+- 신규 FR/AC/TC: MA731-085~095 11개 additive, FR/AC/base TC 95/95/95.
+- Source common model: ingestion adapter/provenance만 source별 차이, active knowledge1+guide1 exclusive retrieval truth, owner conflict resolution, rollback-as-new-version, old artifact used-version 불변.
+- Thin-data: measured+product/data-owner-approved channel×metric threshold 전 전부 hold; sample1/window/permission/stale/bias/multi-variable mutation0; eligible도 hypothesis; workspace owner variable1 승인.
+- Campaign14: stage별 unique ID, owner, entry, exit evidence, recovery가 존재하고 one-case FAIL→aggregate FAIL.
+- P0: final audit 정본과 같은 8/8.
+- Exact orders: Sidebar=`Social · 게시물→Messaging→Social · 짧은 영상`; Studio=`Text→Photo/Card→Video`.
+- Current/target evidence: current code·target·plan M0·design/build/provider evidence를 분리.
+- Autonomous ads: production/tool budget과 paid-media disposition/cap 분리; ad account/bid/spend/billing command0.
+- User decisions: Studio actions, approval policy, source truth, campaign, insight threshold, budget, IA, OAuth/token/Midjourney/video가 §24.1에서 final. 새 사용자 결정 회수 없음.
+- Canonical views: current와 v7.3.1 versioned one-thing/persona/bm/risks 4쌍 `diff -q` 동일.
+
+## Findings
+
+### MAJOR-1 — audit96 RTM은 고유 ID 96개지만 최소 9개가 상류 FR/AC와 의미 동치가 아니다
+
+문제는 release ID 중복이 아니라 semantic orphan이다.
+
+| Audit row | 감사의 실제 고객 계약 | v7.3.1 매핑 | 의미 gap |
+|---|---|---|---|
+| A02 | 첫 로그인에서 workspace create 또는 invited workspace join | FR002 tenant isolation+FR011 login | create/join choice, tenant/owner confirmation AC 없음 |
+| A03 | multi-tenant user의 명시적 workspace switch | FR002/015/062 | switcher·confirmation·loading/failure·all-surface transition AC 없음 |
+| B01 | GitHub 없이 기존 wiki/brand source import, scope preview, exact docs/source pointers | FR068/072/085 direct paste/convergence | paste1은 existing wiki import lifecycle·document count·source pointers가 아님 |
+| D24 | Naver Blog title/body/tags/preview+draft/export truth | FR004/010/024/060/067 generic route/tool contracts | Naver long-form fields·export capability AC 없음 |
+| D25 | Medium publication identity+title/subtitle/body/tags/preview+honest capability | same generic FRs | Medium-specific output·connection/publish truth AC 없음 |
+| D26 | Substack subject/preview/body/CTA+draft/export, silent send0 | same generic FRs | newsletter/send/export contract AC 없음 |
+| G01 | customer Settings8 exact groups+operator secret0 | FR062 generic customer-owned settings | eight group inventory와 group별 owner/action/state AC 없음 |
+| G02 | operator Settings9의 Video/TTS/shared infra/OAuth credential/health | FR062 | operator-only group inventory·rotation/recovery AC 없음 |
+| G03 | timed·audited bounded support/impersonation, customer publish0 | FR003/062 shells/settings | support mode duration·reason·audit·publish denial AC 없음 |
+
+추가로 B14의 tone confidence/insufficient-example state, C01의 opportunity→campaign source/rationale retention도 연결이 약하지만 위 9개만으로도 `upstream FR 없는 row0` 주장은 반증된다.
+
+왜 MAJOR인가:
+
+- 이 finding은 이전 MAJOR-3의 종료조건인 “audit row→atomic AC→release case 양방향 의미 추적”을 직접 위반한다.
+- RTM row의 design/build evidence 문구는 상류 requirement/AC가 아니다. build agent는 injected 최신 산출물의 FR/AC를 따라야 하므로 generic FR에서 세부 계약을 임의 생성하거나 놓칠 수 있다.
+- 사용자가 문제 삼은 workspace·위키 import·플랫폼별 capability·Settings/Admin이 바로 이 gap에 포함된다.
+
+필수 수정:
+
+1. 위 9개 customer outcome을 각각 명시적 FR+atomic Gherkin AC/TC로 승격하거나, 동일 의미를 이미 가진 정확한 FR/AC로 매핑한다. Generic range·`matching AC` 표현 금지.
+2. B01은 선택이 필요하지 않다. final audit 요구대로 non-GitHub existing wiki import adapter를 source model에 추가하되, source5 명칭을 유지하려면 `external import` 한 family 안에서 GitHub/non-GitHub adapter를 분기하고 KCONV matrix denominator를 갱신한다. Direct paste로 대체 완료 처리하지 않는다.
+3. A02/A03은 create/join/switch의 customer action, tenant/role owner, cancellation/error, all-surface stale0를 독립 TC로 둔다.
+4. D24~D26은 각 destination의 입력/출력/capability truth를 별도 TC로 둔다. 지원하지 않는 publish/send는 control0·adapter call0이다.
+5. G01~G03은 Settings8/9 inventory와 support-mode owner/time/reason/audit/forbidden publish를 atomic TC로 둔다.
+6. RTM verifier는 ID unique뿐 아니라 audit row 핵심 명사·행동·failure outcome이 mapped FR/AC에 실제 존재하는지 semantic fixture로 검사한다.
+
+종료증거:
+
+- Audit96 각 row의 exact customer outcome·owner·failure가 mapped FR/AC/TC에 존재하는 수동+기계 crosswalk 96/96.
+- 위 9개 release fixture 중 하나를 실패시키면 mapped AC와 aggregate가 함께 FAIL하고 generic route/tenant PASS로 상쇄되지 않는다.
+- `upstream FR 없는 row0`을 단순 문자열이 아니라 semantic reviewer가 확인한다.
+
+### MINOR-1 — canonical One Thing과 PRD §1.2 채택 문장이 다르다
+
+Canonical `one-thing.md`와 PRD TL;DR은 `사람이 확정한 근거`, `정확히 한 번`, `적격한 결과`, `승인된 변수 하나`를 포함한다. 그러나 PRD §1.2의 공식 blockquote는 여전히 “고객 목표와 브랜드 근거를 … 그 결과를 다음 실험에 되돌리는” v7.3.0 문장을 유지한다.
+
+이 문장은 제품을 두 개로 만들 정도는 아니지만, 어느 문장이 정본인지 혼동시켜 source confirmation·exactly-once·eligibility boundary를 디자인에서 약화할 수 있다. §1.2 blockquote, §3.2 JTBD, M1/M5 설명을 canonical 한 문장과 동일하게 맞춰야 한다.
+
+## kill-criteria 3개 + 반증 여부
+
+1. **안전 kill:** wrong-account, tenant/raw-token leak, unapproved/duplicate publication 1건이면 automation/cohort OFF.
+   - 반증 여부: 요구·release gate 존재, production M=0이라 실제 반증 전.
+2. **학습 kill:** false-eligible, hold fixture production mutation, causal guarantee 1건이면 해당 channel×metric Measure-to-Create OFF.
+   - 반증 여부: FR093/LEARN10으로 명확히 폐쇄, production M=0.
+3. **가치 kill:** workspace3 중 <2가 28일 내 loop2회 또는 eligible publication≥20에서 evidence-linked next change<50%면 broad agent/learning 판매 문구 축소.
+   - 반증 여부: 정의됨, pilot baseline 미수집.
+
+## 자기잠식 점검
+
+| 기존 사업/자원 | 잠식 위험 | v7.3.1 방어 | 판정 |
+|---|---|---|---|
+| Romeo·Dark-Cupid·Yeon·Polyamory | brand/source/tone이 다른 venture에 섞임 | tenant+active knowledge/guide context, KCONV role tests | PASS, brand context encoding은 eng-design |
+| OKgram | Instagram 특화 editor/Feed/Reels가 generic Social로 평탄화 | Editor·Feed/Reels·account owner 보존 | PASS |
+| 교육 | wiki가 LMS/curriculum CMS로 팽창 | LMS/CRM/general CMS out of scope | PASS |
+| 사용자 시간 | 14단계가 공지 하나에도 강제 | 대행 campaign vs 빠른 1회 게시 | PASS, pilot 선택률 필요 |
+| 개발·운영 예산 | 96개 surface·provider support가 콘텐츠 시간을 잠식 | provider cost/hour/support kill | PASS |
+| Blog 운영 | Naver/Medium/Substack가 generic Blog 한 줄로 축약 | 현재 방어 불충분 | MAJOR-1에 포함 |
+
+## 법적·정책 리스크 플래그
+
+- `LEGAL-FLAG-1`: imported external wiki/file/URL의 저작권·접근권한·retention/export/delete 정책은 Terms/Privacy와 맞춰야 한다.
+- `LEGAL-FLAG-2`: image/video person consent, license, AI disclosure는 provider별 공식 정책 검증 전 production 미검증이다.
+- `LEGAL-FLAG-3`: Meta/Google/TikTok OAuth scopes·app review·data retention은 provider live evidence 전 미검증이다.
+
+## 회수 필요
+
+- ⛔ 회수 필요: 없음. MAJOR-1의 9개 outcome은 final audit가 이미 제품 요구로 확정했으므로 새로운 사용자 선택이 아니라 prd-architect의 추적성 보정이다.
+- API/DB/storage encoding은 계속 eng-design dialogue 대상이며 critic이 확정하지 않는다.
+
+## Steelman·Premortem·레드팀
+
+Steelman: PRD 작성자의 가장 강한 반론은 §23.2의 audit row 자체가 design/build evidence와 unique release ID를 가지므로 별도 FR/AC가 없어도 실행 계약이라는 것이다. 그러나 문서가 스스로 `Audit→Retained/new FR→AC` 양방향 RTM을 합격선으로 선언했고 build/QA는 mapped FR/AC를 기준으로 움직이므로, direct paste를 existing wiki import로 부르는 의미 불일치는 row 자체의 존재로 치유되지 않는다.
+
+Premortem: 6개월 뒤 고객은 Notion/파일 기반 기존 wiki를 가져오려다 단일 붙여넣기만 발견하고, multi-workspace 계정을 전환한 뒤 이전 tenant의 draft를 계속 보며, Substack 카드에 publish-ready처럼 보이는 generic 상태를 확인했을 수 있다. QA 보고서는 RC-AUD-B01/A03/D26 ID가 존재해 96/96이라 적었지만 mapped AC가 generic이어서 실제 failure를 실행하지 않았을 것이다.
+
+레드팀: “9개를 또 FR로 늘리면 PRD가 비대해진다.” 맞지만 요구를 삭제하는 해결책은 아니다. Audit row를 별도 annex atomic requirement로 정규화하고 본문은 family-level 요약을 유지하면 client readability와 build exactness를 함께 지킬 수 있다.
+
+## 셀프심문
+
+### 이 결론이 틀렸다면 가장 그럴듯한 이유는?
+
+RTM의 design/build evidence column을 AC로 간주하면 semantic orphan이 아니라는 반론이 가장 그럴듯하다. 하지만 B01의 “non-GitHub import”와 mapped direct paste는 evidence column이 있어도 서로 다른 기능이며, D24~D26도 각 필드가 generic FR에 없다. 따라서 적어도 이 반례들은 형식 해석으로 구제되지 않는다.
+
+### 검증 가능한 근거는 실제 파일/검색으로 확인했는가?
+
+예. PRD 1360줄, v7.3.1 canonical 4종과 versioned copies, exit report, v7.3.0 critic, final audit96와 agency blueprint를 읽었다. 기존84 row diff0, RC-AUD unique96, CAMPAIGN unique14, LEARN unique10, KCONV20/KFAIL7/GUIDE6/FORMAT3를 직접 계수했다. 공식 Jasper/HubSpot/GitHub 문서를 다시 검색했다.
+
+### 못 푸는 결정은 회수 필요로 명시했는가?
+
+예. 신규 사용자 결정은 없고, provider/legal production 사실과 physical encoding만 하류 회수로 남겼다.
+
+## 기획 7원칙 판정
+
+| # | 원칙 | 판정 | 근거 |
+|---:|---|---|---|
+| 1 | 용어 통일 | FAIL | canonical One Thing과 §1.2 official blockquote 불일치 |
+| 2 | 구체화 | PASS | source/learning/campaign release case는 수치·state·failure 구체화 |
+| 3 | 입출력 분리 | PASS | source/brief/evidence 입력과 artifact/publication/hypothesis 출력 분리 |
+| 4 | 정합성 | FAIL | audit B01/A02/A03/D24~26/G01~03과 mapped FR/AC 의미 불일치 |
+| 5 | 정책 상세 | PASS | conflict, hold, wrong-account, recovery, ad execution0 |
+| 6 | 추출 철저 | FAIL | audit96 중 최소 9개 customer outcome이 atomic FR/AC로 추출되지 않음 |
+| 7 | 논리 영역 | PASS | 핵심 source/learning/publish 정책은 falsifiable |
+
+## 판정: NO-GO
+
+이전 MAJOR-1·2와 budget은 높은 품질로 폐쇄됐다. 그러나 이전 MAJOR-3의 핵심이던 audit96 양방향 atomic trace가 숫자상만 폐쇄되고 의미상 남았으므로 design gate를 열 수 없다.
+
+재심 조건:
+
+1. 위 9개 audit outcome을 exact FR/AC/TC로 보강하고 semantic RTM 96/96 재검증.
+2. B01 non-GitHub existing wiki import를 direct paste와 구분.
+3. PRD §1.2 One Thing을 canonical 문장과 동기화.
+4. independent critic에서 major_findings:0.
+
+## prd-architect 인계 노트
+
+v7.3.2는 source truth나 learning 정책을 다시 쓰는 작업이 아니다. 다음만 수술식 추가한다.
+
+- Workspace lifecycle: create/join/switch 3 atomic contracts.
+- External knowledge import: non-GitHub existing wiki/file/URL adapter, preview/document count/source pointers/last-good; common knowledge convergence에 편입.
+- Blog destinations: Naver Blog, Medium, Substack 각각 input/output/capability/failure TC.
+- Settings/Admin: Settings8/9 exact inventory와 bounded support mode owner/time/reason/audit/publish0.
+- Audit RTM 각 row의 핵심 고객 명사·동사·failure가 mapped FR/AC에 존재하도록 semantic crosswalk.
+- Canonical One Thing 문장 동기화.
+
+보존 금지선:
+
+- 기존95 삭제·재번호·약화 금지.
+- source5 active truth, threshold-before-enable, variable1, campaign14, P0-8, exact IA/orders, no autonomous ads 변경 금지.
+- product code/design/API/DB/deploy 착수 금지; re-critic MAJOR0와 verifier PASS 후 plan approval.
+
+## TOOL_TRACE
+
+- Standards Read: `/Users/sj/.claude/standards/planning.md`, `doc-review.md`, `benchmarks.md` 전체.
+- Local Read: `docs/openclaw-auto-marketing-agent-prd-v7.3.1-gpt-codex.md` 1360줄 전체.
+- Local Read: `docs/one-thing.md`, `persona.md`, `bm.md`, `risks.md`와 v7.3.1 versioned copies; four `diff -q` identical.
+- Local Read: `tasks/marketing-agent-prd-v7.3.1.output`, `tasks/marketing-agent-plan-critic-v7.3.0.output`, final completeness audit, final agency blueprint.
+- Local Check: old84 FR+TC rows v7.3.0=168, v7.3.1=168, diff0.
+- Local Check: unique `RC-AUD`=96, `RC-CAMPAIGN`=14, `RC-LEARN`=10, KCONV=20, KFAIL=7, GUIDE=6, FORMAT=3.
+- Semantic counterexample: audit B01/A02/A03/D24~26/G01~03 original text vs v7.3.1 mapped FR/AC.
+- WebSearch actual query: `{"name":"WebSearch","arguments":{"query":"site:help.jasper.ai Knowledge Base Brand Voice official 2026"}}`
+- WebSearch actual query: `{"name":"WebSearch","arguments":{"query":"site:knowledge.hubspot.com campaigns campaign owner audience budget assets official 2026"}}`
+- WebSearch actual query: `{"name":"WebSearch","arguments":{"query":"site:docs.github.com rest repos contents ref path permissions official"}}`
+
+## 벤치마크 적용
+
+- 소스 1: [Jasper Knowledge Base](https://help.jasper.ai/hc/en-us/articles/18618707176347-Knowledge-Base), [Jasper IQ](https://help.jasper.ai/hc/en-us/articles/18618654325787-Jasper-IQ) — workspace knowledge·voice·audience·style이 generation context가 되는 구조를 확인. OSMU는 human-active truth와 immutable used lineage로 차별화한다.
+- 소스 2: [HubSpot Campaigns](https://knowledge.hubspot.com/campaigns/create-campaigns?is_listing=false) — goal·audience·budget·owner·assets·reporting의 campaign unit을 확인. OSMU는 광고 집행을 복제하지 않고 approved delivery/proof/next-experiment만 취한다.
+- 소스 3: [GitHub Contents API](https://docs.github.com/en/rest/repos/contents) — repo/path/ref, read permission, directory/file limit을 확인. GitHub adapter provenance의 근거이며 non-GitHub import를 대신하는 근거가 아니다.
+
+SOURCES: `docs/openclaw-auto-marketing-agent-prd-v7.3.1-gpt-codex.md`; canonical/versioned v7.3.1 one-thing/persona/bm/risks; `tasks/marketing-agent-prd-v7.3.1.output`; `tasks/marketing-agent-plan-critic-v7.3.0.output`; `tasks/marketing-agent-v18-completeness-audit.output`; `tasks/marketing-agent-v18-agency-blueprint.output`; current RepoConnect/BrandSetupWizard/sync-wiki/wiki-retrieve/onboarding/Studio code; planning/doc-review/benchmarks standards; Jasper/HubSpot/GitHub official docs.
+
+MODEL: gpt-codex/gpt-5.6-sol
+
+SKILLS_USED: 없음 — 제공된 skills 중 독립 plan critic/RTM 의미 검증에 직접 매칭되는 skill이 없어 planning·doc-review·benchmarks 품질헌법으로 수행.
+
+SKILLS_SKIPPED: brand-positioning-kit/openclaw-creative-brief — v7.3.1이 두 skill을 실제 사용한 결과를 검증했지만, 이번 과업은 브랜드/브리프 생성이 아니라 closure critic이므로 재호출하지 않음.
+
+RUBRIC_SCORE: evidence=5/5 semantic_trace=5/5 atomicity=5/5 red_team=5/5 handoff=5/5 total=25/25
+
+WEAKEST_LINE: audit96 중 추가 semantic gap이 더 있을 수 있으나, 판정을 뒤집는 데 필요한 반례는 B01·A02/A03·D24~26·G01~03으로 이미 충분해 최소 확인 범위만 MAJOR에 포함했다.
+
+VERIFIER_RESULT: `/Users/sj/.claude/harness/bin/verify-agent-quality.sh tasks/marketing-agent-plan-critic-v7.3.1.output plan` → PASS (Skill 0회/매칭 없음, WebSearch·Fetch parser 6회, 소크라 마커 7). harness log append의 sandbox `Operation not permitted` 경고는 있었으나 verifier exit는 PASS였다.
+
+major_findings:1
+minor_findings:1
+verdict:NO-GO

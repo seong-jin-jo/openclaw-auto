@@ -5,42 +5,89 @@
    Linear/shadcn/Vercel 라이트·다크 벤치마크. <html data-theme="dark"> 로 전환.
    ───────────────────────────────────────────────────────────── */
 :root {
-  --bg:         #FBFBFC;
-  --surface:    #FFFFFF;
-  --surface-2:  #F4F4F5;
-  --border:     #E4E4E7;
-  --text:       #18181B;
-  --text-muted: #52525B;
-  --text-subtle:#A1A1AA;
-  --accent:     #2563EB;
-  --accent-hover:#1D4ED8;
-  --accent-fg:  #FFFFFF;
-  --accent-soft:#EFF4FF;
-  --success:#16A34A;
-  --warning:#D97706;
-  --danger: #DC2626;
+  --bg:         rgb(251 251 252);
+  --surface:    rgb(255 255 255);
+  --surface-2:  rgb(244 244 245);
+  --border:     rgb(228 228 231);
+  --text:       rgb(24 24 27);
+  --text-muted: rgb(82 82 91);
+  --text-subtle:rgb(102 102 110);
+  --accent:     rgb(37 99 235);
+  --accent-hover:rgb(29 78 216);
+  --accent-fg:  rgb(255 255 255);
+  --accent-soft:rgb(239 244 255);
+  --success:rgb(22 163 74);
+  --warning:rgb(180 83 9);
+  --danger: rgb(220 38 38);
+  --success-soft: color-mix(in srgb, var(--success) 12%, transparent);
+  --warning-soft: color-mix(in srgb, var(--warning) 12%, transparent);
+  --danger-soft: color-mix(in srgb, var(--danger) 12%, transparent);
+  --status-fg: rgb(255 255 255);
+  --player-surface: rgb(13 17 23);
+  --player-panel: rgb(22 27 34);
+  --player-control: rgb(48 54 61);
+  --player-line: rgb(110 118 129);
+  --player-text: rgb(244 244 245);
+  --player-on: rgb(37 99 235);
+  --player-on-text: rgb(255 255 255);
+  --focus: color-mix(in srgb, var(--accent) 35%, transparent);
   --shadow: 0 4px 12px rgba(16,24,40,0.08);
+
+  /* DESIGN.md v23: spacing uses only 4 / 8 / 12 / 16 / 24 / 32px. */
+  --space-micro: 4px;
+  --space-none: 0px;
+  --stack-tight: 8px;
+  --stack: 12px;
+  --pad-inset: 16px;
+  --stack-section: 24px;
+  --space-region: 32px;
+  --space-wide: 48px;
+  --control-touch: 44px;
+
+  /* DESIGN.md §5: component roles own radius. Literal radius utilities are forbidden. */
+  --shape-chip: 6px;
+  --shape-control: 8px;
+  --shape-surface: 12px;
+  --shape-pill: 99px;
+  --elevation-floating: 0 4px 16px color-mix(in srgb, var(--accent) 10%, transparent);
+
+  /* DESIGN.md v23: seven paired type steps; caption is the 12px floor. */
+  --font-caption-size: 12px;
+  --font-caption-leading: 18px;
+  --font-body-sm-size: 13px;
+  --font-body-sm-leading: 20px;
+  --font-body-size: 15px;
+  --font-body-leading: 24px;
+  --font-lead-size: 17px;
+  --font-lead-leading: 26px;
+  --font-subheading-size: 20px;
+  --font-subheading-leading: 28px;
+  --font-heading-size: 24px;
+  --font-heading-leading: 32px;
+  --font-display-size: 30px;
+  --font-display-leading: 36px;
 }
 
 [data-theme="dark"] {
-  --bg:         #0A0A0B;
-  --surface:    #161618;
-  --surface-2:  #1F1F23;
-  --border:     #27272A;
-  --text:       #F4F4F5;
-  --text-muted: #A1A1AA;
-  --text-subtle:#71717A;
-  --accent:     #3B82F6;
-  --accent-hover:#60A5FA;
-  --accent-fg:  #FFFFFF;
-  --accent-soft:#172554;
-  --success:#22C55E;
-  --warning:#F59E0B;
-  --danger: #EF4444;
+  --bg:         rgb(10 10 11);
+  --surface:    rgb(22 22 24);
+  --surface-2:  rgb(31 31 35);
+  --border:     rgb(39 39 42);
+  --text:       rgb(244 244 245);
+  --text-muted: rgb(212 212 216);
+  --text-subtle:rgb(161 161 170);
+  --accent:     rgb(96 165 250);
+  --accent-hover:rgb(147 197 253);
+  --accent-fg:  rgb(10 10 11);
+  --accent-soft:rgb(23 37 84);
+  --success:rgb(74 222 128);
+  --warning:rgb(251 191 36);
+  --danger: rgb(248 113 113);
+  --status-fg: rgb(10 10 11);
   --shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
 
-/* Tailwind v4: 시맨틱 토큰을 유틸리티로 노출 → bg-bg / bg-surface / bg-surface-2 / text-text / text-muted / text-subtle / border-border / bg-accent / text-accent-fg ... */
+/* Tailwind v4: 시맨틱 토큰을 유틸리티로 노출. bg-bg / bg-surface / bg-surface-2 / text-text / text-muted / text-subtle / border-border / bg-accent / text-accent-fg ... */
 @theme inline {
   --color-bg:           var(--bg);
   --color-surface:      var(--surface);
@@ -56,16 +103,85 @@
   --color-success:      var(--success);
   --color-warning:      var(--warning);
   --color-danger:       var(--danger);
+  --color-success-soft: var(--success-soft);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger-soft:  var(--danger-soft);
+  --color-status-fg:    var(--status-fg);
+  --color-player-surface: var(--player-surface);
+  --color-player-panel:   var(--player-panel);
+  --color-player-control: var(--player-control);
+  --color-player-line:    var(--player-line);
+  --color-player-text:    var(--player-text);
+  --color-player-on:      var(--player-on);
+  --color-player-on-text: var(--player-on-text);
+
+  --spacing-micro:         var(--space-micro);
+  --spacing-none:          var(--space-none);
+  --spacing-stack-tight:   var(--stack-tight);
+  --spacing-stack:         var(--stack);
+  --spacing-pad-inset:     var(--pad-inset);
+  --spacing-stack-section: var(--stack-section);
+  --spacing-region:        var(--space-region);
+  --spacing-wide:          var(--space-wide);
+  --spacing-control-touch: var(--control-touch);
+
+  --radius-chip:    var(--shape-chip);
+  --radius-control: var(--shape-control);
+  --radius-surface: var(--shape-surface);
+  --radius-pill:    var(--shape-pill);
+  --shadow-floating: var(--elevation-floating);
+
+  --text-caption:                  var(--font-caption-size);
+  --text-caption--line-height:     var(--font-caption-leading);
+  --text-body-sm:                  var(--font-body-sm-size);
+  --text-body-sm--line-height:     var(--font-body-sm-leading);
+  --text-body:                     var(--font-body-size);
+  --text-body--line-height:        var(--font-body-leading);
+  --text-lead:                     var(--font-lead-size);
+  --text-lead--line-height:        var(--font-lead-leading);
+  --text-subheading:               var(--font-subheading-size);
+  --text-subheading--line-height:  var(--font-subheading-leading);
+  --text-heading:                  var(--font-heading-size);
+  --text-heading--line-height:     var(--font-heading-leading);
+  --text-display:                  var(--font-display-size);
+  --text-display--line-height:     var(--font-display-leading);
 }
 
 html, body { background: var(--bg); color: var(--text); }
+
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
 
 .sidebar-item { transition: all 0.15s; color: var(--text-muted); }
 .sidebar-item:hover { background: var(--surface-2); }
 .sidebar-item.active { background: var(--accent-soft); color: var(--text); border-right: 2px solid var(--accent); }
 
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--shape-surface); overflow-wrap: anywhere; }
 .card:hover { border-color: var(--text-subtle); }
+
+/* Shared-component overflow contract from DESIGN.md v23. */
+.ds-label { min-width: max-content; flex: 0 0 auto; white-space: nowrap; }
+.ds-copy { min-width: 0; overflow-wrap: anywhere; }
+.ds-user-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-field-control :is(input:not([type="checkbox"]):not([type="radio"]), select) {
+  min-height: var(--control-touch);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-field-control textarea { min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+
+/* Safety net: legacy arbitrary classes cannot render below the v23 12px floor. */
+.text-\[8px\],
+.text-\[9px\],
+.text-\[10px\],
+.text-\[11px\] {
+  font-size: var(--font-caption-size);
+  line-height: var(--font-caption-leading);
+}
 
 .channel-card { cursor: pointer; transition: all 0.2s; }
 .channel-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
@@ -81,17 +197,23 @@ aside::-webkit-scrollbar-track { background: transparent; }
 
 /* Blog article preview (라이트 콘텐츠 — 그대로 유지) */
 .blog-article-preview { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
-.blog-article-body { color: #333; font-size: 1rem; line-height: 1.85; }
-.blog-article-body h1 { font-size: 1.5rem; font-weight: 800; color: #111; margin: 2rem 0 0.75rem; }
-.blog-article-body h2 { font-size: 1.25rem; font-weight: 700; color: #111; margin: 2rem 0 0.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e5e7eb; }
-.blog-article-body h3 { font-size: 1.1rem; font-weight: 600; color: #222; margin: 1.5rem 0 0.5rem; }
-.blog-article-body p { margin: 0.75rem 0; color: #444; }
-.blog-article-body strong { color: #111; font-weight: 600; }
-.blog-article-body a { color: #2563eb; text-decoration: underline; text-underline-offset: 2px; }
-.blog-article-body ul, .blog-article-body ol { margin: 0.75rem 0; padding-left: 1.5rem; color: #444; }
+.blog-article-body { color: var(--text-muted); font-size: 1rem; line-height: 1.85; }
+.blog-article-body h1 { font-size: 1.5rem; font-weight: 800; color: var(--text); margin: 2rem 0 0.75rem; }
+.blog-article-body h2 { font-size: 1.25rem; font-weight: 700; color: var(--text); margin: 2rem 0 0.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border); }
+.blog-article-body h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 1.5rem 0 0.5rem; }
+.blog-article-body p { margin: 0.75rem 0; color: var(--text-muted); }
+.blog-article-body strong { color: var(--text); font-weight: 600; }
+.blog-article-body a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.blog-article-body ul, .blog-article-body ol { margin: 0.75rem 0; padding-left: 1.5rem; color: var(--text-muted); }
 .blog-article-body li { margin: 0.4rem 0; }
 .blog-article-body img { width: 100%; border-radius: 8px; margin: 1.5rem 0; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-.blog-article-body blockquote { border-left: 3px solid #3b82f6; padding: 0.5rem 1rem; margin: 1rem 0; background: #f0f7ff; color: #333; border-radius: 0 8px 8px 0; }
+.blog-article-body blockquote { border-left: 4px solid var(--accent); padding: 0.5rem 1rem; margin: 1rem 0; background: var(--accent-soft); color: var(--text-muted); border-radius: 0 8px 8px 0; }
+
+.scrollbar-semantic { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+progress.progress-semantic { appearance: none; overflow: hidden; border: 0; border-radius: 999px; background: var(--surface-2); }
+progress.progress-semantic::-webkit-progress-bar { background: var(--surface-2); }
+progress.progress-semantic::-webkit-progress-value { background: var(--success); }
+progress.progress-semantic::-moz-progress-bar { background: var(--success); }
 
 /* Mobile responsive */
 @media (max-width: 768px) {

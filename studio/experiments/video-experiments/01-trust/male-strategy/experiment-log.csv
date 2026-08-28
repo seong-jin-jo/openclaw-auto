@@ -1,0 +1,8 @@
+experiment_id,status,submitted_at_kst,variable,model,prompt_id,pre_cost_credits,actual_charge_credits,pre_balance_credits,job_id,duration_seconds,aspect,audio,result_url,local_mp4,failure
+MS-01,failed_no_charge,2026-08-14 03:37,baseline,veo3_1_lite,MS-P-BASE,8,0,356.42,,8,9:16,off,,,rate_limit_reached concurrent_jobs_limit=6
+MS-02,failed_no_charge,2026-08-14 03:37,hook,veo3_1_lite,MS-P-HOOK-SLIP,8,0,356.42,,8,9:16,off,,,rate_limit_reached concurrent_jobs_limit=6
+MS-03,failed_no_charge,2026-08-14 03:37,hook,veo3_1_lite,MS-P-HOOK-EYE,8,0,356.42,,8,9:16,off,,,rate_limit_reached concurrent_jobs_limit=6
+MS-04,failed_no_charge,2026-08-14 03:37,viewpoint,veo3_1_lite,MS-P-POV,8,0,356.42,,8,9:16,off,,,rate_limit_reached concurrent_jobs_limit=6
+MS-05,failed_no_charge,2026-08-14 03:37,prompt_style,veo3_1_lite,MS-P-STOPMOTION,8,0,356.42,,8,9:16,off,,,rate_limit_reached concurrent_jobs_limit=6
+MS-06,completed,2026-08-14 03:37,model,kling3_0,MS-P-BASE,12,12,356.42,393322fe-80ec-4980-a623-41b1cff3dac1,8,9:16,off,https://d8j0ntlcm91z4.cloudfront.net/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183709_393322fe-80ec-4980-a623-41b1cff3dac1.mp4,videos/male-strategy-ms06-model-kling.mp4,
+MS-07,blocked_before_submission,2026-08-14 03:40,model,seedance1_5,MS-P-BASE,9.6,0,0,,8,9:16,off,,,balance gate stopped submission at free plan 0 credits

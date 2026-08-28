@@ -187,7 +187,7 @@ export const PROVIDERS: Record<string, ProviderConfig> = {
   threads: {
     label: "threads",
     authorizeUrl: "https://threads.net/oauth/authorize",
-    scopes: ["threads_basic", "threads_content_publish", "threads_manage_insights"],
+    scopes: ["threads_basic", "threads_content_publish", "threads_manage_insights", "threads_read_replies", "threads_manage_replies"],
     appIdEnv: "THREADS_APP_ID",
     appSecretEnv: "THREADS_APP_SECRET",
     tokenUrl: "https://graph.threads.net/oauth/access_token",
@@ -412,7 +412,13 @@ export interface ExchangedToken {
   accessToken: string;
   userId?: string;
   refreshToken?: string; // channel_accounts.refresh_enc에 암호화 저장
+  expiresInSeconds?: number; // provider expires_in. callback이 절대시각으로 변환해 DB에 저장
   error?: string;
+}
+
+function positiveExpiresIn(value: unknown): number | undefined {
+  const seconds = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
+  return Number.isFinite(seconds) && seconds > 0 ? Math.floor(seconds) : undefined;
 }
 
 // code → 토큰 교환. Instagram·Threads는 단기→장기 2단계. 표준 OAuth 채널은 단일 교환.
@@ -466,13 +472,14 @@ export async function exchangeCode(
       const slack = data as { access_token?: string; authed_user?: { access_token?: string } };
       accessToken = slack.access_token || slack.authed_user?.access_token || "";
     }
-    if (!accessToken) {
+    if (!res.ok || !accessToken) {
       return { accessToken: "", error: ((data.error_description || data.error || "토큰 교환 실패") as string) };
     }
     return {
       accessToken,
       userId: data.user_id ? String(data.user_id) : (data.open_id ? String(data.open_id) : undefined),
       refreshToken: (data.refresh_token as string) || undefined, // YouTube offline
+      expiresInSeconds: positiveExpiresIn(data.expires_in),
     };
   }
 
@@ -492,15 +499,27 @@ export async function exchangeCode(
   const lastText = await shortRes.text();
   let short: { access_token?: string; user_id?: string; error_message?: string } = {};
   try { short = JSON.parse(lastText); } catch { short = {}; }
-  if (!short.access_token) {
+  if (!shortRes.ok || !short.access_token) {
     return { accessToken: "", error: short.error_message || "단기 토큰 교환 실패" };
   }
   // 2) 장기 토큰(60일)
   const longRes = await f(
     `${p.longTokenUrl}?grant_type=${p.longGrant}&client_secret=${encodeURIComponent(clientSecret)}&access_token=${encodeURIComponent(short.access_token)}`,
   );
-  const long = (await longRes.json()) as { access_token?: string };
-  return { accessToken: long.access_token || short.access_token, userId: short.user_id ? String(short.user_id) : undefined };
+  const longText = await longRes.text();
+  let long: { access_token?: string; expires_in?: number | string } = {};
+  try { long = JSON.parse(longText); } catch { long = {}; }
+  const expiresInSeconds = positiveExpiresIn(long.expires_in);
+  // 단기 토큰으로 폴백하면 연결 직후만 성공하고 곧 실패하면서 active가 남는다.
+  // 장기 토큰과 만료시각 둘 다 확인된 경우에만 콜백이 저장하도록 fail-closed한다.
+  if (!longRes.ok || !long.access_token || !expiresInSeconds) {
+    return { accessToken: "", error: `${p.label} 장기 토큰 교환 실패` };
+  }
+  return {
+    accessToken: long.access_token,
+    userId: short.user_id ? String(short.user_id) : undefined,
+    expiresInSeconds,
+  };
 }
 
 // Facebook: code → user token → 장기 user token → /me/accounts → 첫 페이지 토큰+id.
@@ -518,15 +537,21 @@ export async function exchangeFacebookCode(code: string, origin: string, f: type
   // 1) user token
   const tRes = await f(`${FB_V}/oauth/access_token?client_id=${clientId}&client_secret=${clientSecret}&redirect_uri=${encodeURIComponent(cb)}&code=${encodeURIComponent(code)}`);
   const t = (await tRes.json()) as { access_token?: string; error?: { message?: string } };
-  if (!t.access_token) return { accessToken: "", error: t.error?.message || "user 토큰 교환 실패" };
+  if (!tRes.ok || !t.access_token) return { accessToken: "", error: t.error?.message || "user 토큰 교환 실패" };
   // 2) 장기 user token
   const lRes = await f(`${FB_V}/oauth/access_token?grant_type=fb_exchange_token&client_id=${clientId}&client_secret=${clientSecret}&fb_exchange_token=${encodeURIComponent(t.access_token)}`);
-  const l = (await lRes.json()) as { access_token?: string };
-  const userToken = l.access_token || t.access_token;
+  const l = (await lRes.json()) as { access_token?: string; expires_in?: number | string; error?: { message?: string } };
+  const expiresInSeconds = positiveExpiresIn(l.expires_in);
+  if (!lRes.ok || !l.access_token || !expiresInSeconds) {
+    return { accessToken: "", error: l.error?.message || "Facebook 장기 user 토큰 교환 실패" };
+  }
+  const userToken = l.access_token;
   // 3) 페이지 토큰
   const pRes = await f(`${FB_V}/me/accounts?access_token=${encodeURIComponent(userToken)}`);
   const p = (await pRes.json()) as { data?: Array<{ access_token?: string; id?: string }> };
   const page = p.data?.[0];
-  if (!page?.access_token) return { accessToken: "", error: "연결된 Facebook 페이지가 없음(페이지 권한 확인)" };
-  return { accessToken: page.access_token, userId: page.id };
+  if (!pRes.ok || !page?.access_token || !page.id) {
+    return { accessToken: "", error: "연결된 Facebook 페이지 검증 실패(페이지 권한 확인)" };
+  }
+  return { accessToken: page.access_token, userId: page.id, expiresInSeconds };
 }

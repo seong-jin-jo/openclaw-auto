@@ -58,51 +58,51 @@ export function KeywordBankSettings() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-pad-inset">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-text">Keyword Bank</h3>
-        <span className="text-[10px] text-subtle">{keywords.length} total | {keywords.filter((k) => !k.used).length} unused</span>
+        <h3 className="text-body-sm font-medium text-text">Keyword Bank</h3>
+        <span className="text-caption text-subtle">{keywords.length} total | {keywords.filter((k) => !k.used).length} unused</span>
       </div>
 
       {/* Add keywords */}
-      <div className="card p-4">
-        <label className="text-[10px] text-subtle block mb-1">Add keywords (one per line)</label>
+      <div className="card p-pad-inset">
+        <label className="text-caption text-subtle block mb-micro">Add keywords (one per line)</label>
         <textarea
           value={newKeywords}
           onChange={(e) => setNewKeywords(e.target.value)}
           rows={3}
-          className="w-full bg-surface-2 text-muted text-xs p-2 rounded border border-border font-mono mb-2"
+          className="w-full bg-surface-2 text-muted text-caption p-stack-tight rounded-chip border border-border font-mono mb-stack-tight"
           placeholder="keyword 1&#10;keyword 2&#10;keyword 3"
         />
-        <button onClick={handleAdd} className="px-3 py-1.5 text-xs bg-accent text-text rounded hover:bg-accent-hover">Add</button>
+        <button onClick={handleAdd} className="px-stack py-stack-tight text-caption bg-accent text-accent-fg rounded-chip hover:bg-accent-hover">추가</button>
       </div>
 
       {/* Filter */}
-      <div className="flex gap-1">
+      <div className="flex gap-micro">
         {(["all", "unused", "used"] as const).map((f) => (
-          <button key={f} onClick={() => setFilter(f)} className={`px-2 py-1 text-[10px] rounded ${filter === f ? "bg-accent text-text" : "text-subtle hover:bg-surface-2"}`}>
+          <button key={f} onClick={() => setFilter(f)} className={`px-stack-tight py-micro text-caption rounded-chip ${filter === f ? "bg-accent text-accent-fg" : "text-subtle hover:bg-surface-2"}`}>
             {f}
           </button>
         ))}
       </div>
 
       {/* Keyword list */}
-      <div className="card p-4 max-h-80 overflow-auto">
+      <div className="card p-pad-inset max-h-80 overflow-auto">
         {filtered.length === 0 ? (
-          <p className="text-subtle text-xs text-center">No keywords</p>
+          <p className="text-subtle text-caption text-center">No keywords</p>
         ) : (
-          <div className="space-y-1">
+          <div className="space-y-micro">
             {filtered.map((k) => (
-              <div key={k.keyword} className="flex items-center justify-between py-1 border-b border-border/30">
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs ${k.used ? "text-subtle line-through" : "text-muted"}`}>{k.keyword}</span>
-                  <span className="text-[9px] text-subtle">{k.source}</span>
+              <div key={k.keyword} className="flex items-center justify-between py-micro border-b border-border/30">
+                <div className="flex items-center gap-stack-tight">
+                  <span className={`text-caption ${k.used ? "text-subtle line-through" : "text-muted"}`}>{k.keyword}</span>
+                  <span className="text-caption text-subtle">{k.source}</span>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-micro">
                   {!k.used && (
-                    <button onClick={() => handleMarkUsed(k.keyword)} className="text-[9px] text-green-400 hover:text-green-300">Used</button>
+                    <button onClick={() => handleMarkUsed(k.keyword)} className="text-caption text-success hover:text-success">사용함</button>
                   )}
-                  <button onClick={() => handleRemove(k.keyword)} className="text-[9px] text-red-400 hover:text-red-300">x</button>
+                  <button onClick={() => handleRemove(k.keyword)} className="text-caption text-danger hover:text-danger">삭제</button>
                 </div>
               </div>
             ))}

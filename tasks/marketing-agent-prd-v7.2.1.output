@@ -1,0 +1,105 @@
+한 줄 결론: PRD v7.2.1 PATCH가 v7.2 critic의 MINOR4를 정책·Messaging·native provenance·R3 release tally까지 폐쇄했고, 버전형/canonical view 8개를 정본과 동기화했으며 FR/AC/TC 67/67/67·R3 30·R4 53·웹 렌더를 검증했다.
+
+# Marketing Agent PRD v7.2.1 — delegated PATCH exit report
+
+<!--
+STAMP
+created_at: 2026-08-06 18:47 KST
+model: gpt-codex/gpt-5.6-sol
+agent: prd-architect / marketing_agent_prd_v7
+skills: 없음 — 제품 PRD PATCH 전용 매칭 스킬 없음; planning.md·doc-review.md·benchmarks.md 적용
+evidence: PRD v7.2.0, independent critic v7.2 major0/minor4, current Studio code, official Buffer/Sprout workflows
+deliberation: product direction을 다시 열지 않고 네 minor를 FR/TC/release/RTM과 stages canonical views까지 수직 폐쇄한다.
+-->
+
+TASK: Marketing Agent / OSMU PRD v7.2.1 PATCH
+ROLE: prd-architect
+STATUS: artifact-written-rendered-verifier-PASS
+
+## 변경 파일
+
+- `docs/openclaw-auto-marketing-agent-prd-v7.2.1-gpt-codex.md`
+- versioned views: `docs/one-thing-v7.2.1.md`, `docs/persona-v7.2.1.md`, `docs/bm-v7.2.1.md`, `docs/risks-v7.2.1.md`
+- stages canonical views: `docs/one-thing.md`, `docs/persona.md`, `docs/bm.md`, `docs/risks.md`
+- `tasks/marketing-agent-prd-v7.2.1.output`
+- v7.2.0 이하, pipeline, wiki, code, DESIGN, prototype는 수정하지 않았다.
+
+## Actual Read evidence
+
+- `tasks/marketing-agent-plan-critic-v7.2.output` 전체: major0/minor4와 정확한 patch 종료증거.
+- `docs/openclaw-auto-marketing-agent-prd-v7.2.0-gpt-codex.md`: PATCH base 전체.
+- `/Users/sj/.claude/standards/planning.md` 73줄, `doc-review.md` 151줄, `benchmarks.md` 52줄.
+- `/Users/sj/.claude/agents/_socratic-preamble.md` 94줄.
+- `/Users/sj/sj_code_master/postAGI/CLAUDE.md`, repo `CLAUDE.md`.
+- current `dashboard/src/app/studio/page.tsx:278-309,400-415,469-489`: Save·Publish·예약·SchedulePanel과 3 rail을 직접 대조했다.
+- wiki current SSOT와 critic이 고정한 analytics/metrics current evidence를 유지했다.
+
+## Actual WebSearch trace·benchmark
+
+```json
+{"name":"WebSearch","arguments":{"query":"site:support.sproutsocial.com approval workflows permissions admins configure message approval official"}}
+{"name":"WebSearch","arguments":{"query":"site:support.buffer.com approvals workflow account owner required approval official Buffer"}}
+{"name":"WebSearch","arguments":{"query":"site:support.buffer.com/article/642-scheduling-posts composer Now Set Date official Buffer"}}
+```
+
+- [Buffer Scheduling](https://support.buffer.com/article/642-scheduling-posts): composer customize+Now/Set Date를 Studio initiation 보존에 차용했다.
+- [Buffer Agency Permissions](https://support.buffer.com/article/667-using-buffer-as-an-agency): owner/admin/full/requires-approval permission 분리를 approval policy가 readiness가 아닌 customer setting이라는 근거로 차용했다.
+- Buffer All Channels와 Sprout Approval의 기존 실제 Fetch trace는 management projection·approval continuation 근거로 유지했다.
+- 차별화: Buffer 역할 모델을 복제하지 않고 workspace owner setting, 신규 pilot default, 기존 direct migration 보존, canonical command로 OSMU 상황에 맞췄다.
+
+## MINOR4 closure
+
+1. **Approval policy source/default/owner:** Settings의 tenant/customer setting, workspace owner write, member read-only로 고정했다. 신규 외부 pilot은 승인 필요, 기존 workspace는 명시 전환 전 direct 유지, readiness는 eligibility만 판정한다. FR/TC031·032·062에 copy/command/result·silent transition0을 연결했다.
+2. **Messaging placement:** Studio 3 rail에 포함하지 않고 default OFF로 두며 review 이후 `커뮤니티로 보내기`에서만 Telegram/Discord/Slack을 선택한다. FR/TC037은 rail/delivery0→명시 선택 delivery1을 검증한다.
+3. **Unsupported native provenance:** collected는 full provenance, unsupported는 capability source+checked_at+reason+next action+account/state를 요구하고 observation window/collected_at/publication은 `해당 없음 — 미수집`으로 고정했다. false-zero/fake-time/publication0을 TC058에 넣었다.
+4. **Per-card edit tally:** RC-R3-STUDIO를 Save+edit+publish2+schedule2=`N6`으로 바꾸고 R3를 `30/30`으로 재계산했다. Rollout, critic closure, original regression, RTM 숫자를 모두 30으로 맞췄다.
+
+## View consistency
+
+- Versioned four views는 PRD v7.2.1을 정본 링크로 고정했다.
+- canonical `one-thing/persona/bm/risks.md`는 대응 versioned view와 byte-identical하다(`diff -q` 4건 output0).
+- One Thing 문구, persona pain, BM pilot/default, risks hard stop이 PRD와 동일하다.
+
+## Validation trace
+
+- 실제 PRD 작성: `{"name":"Write","path":"docs/openclaw-auto-marketing-agent-prd-v7.2.1-gpt-codex.md","evidence":"mechanical copy+apply_patch completed"}`
+- 실제 view/report 작성: `{"name":"Write","path":"docs/*-v7.2.1.md + canonical4 + tasks/marketing-agent-prd-v7.2.1.output","evidence":"apply_patch/canonical sync completed"}`
+- PRD 917줄/74,865 bytes; view4 합계284줄/19,047 bytes.
+- FR **67**, AC **67**, base TC **67**, duplicate/orphan0; NFR15; V01~V24=24.
+- Release: R3 **30**, R4 **53**, OAuth18, navigation75, owner-state60, header11; current M=0.
+- stale `R3 29/29|Studio5|semantic7|tenant configuration/readiness|Studio optional destination` 0.
+- final structure recheck: FR unique67, AC unique67, TC unique67; MINOR4 closure rows4; canonical/versioned `diff -q` 4건 output0; `git diff --check` PASS.
+- TODO/TBD/lorem/tool residue0; `git diff --check` PASS.
+- `md-to-web.sh`로 PRD+versioned view4 HTML을 생성했다.
+- 실제 browser: 5파일 load200; PRD H2=26/tables34/Mermaid2/error0/body1063≤1440/overflow0; One Thing H2=7/tables3, Persona H2=8/tables3, BM H2=6/tables3, Risks H2=7/tables2; view4 모두 body908≤1440/overflow0.
+- `/tmp/ma721-prd-top.png`를 실제 열어 제목·STAMP table·TOC typography를 육안 확인했다.
+
+## Socratic self-interrogation
+
+Socratic self-interrogation: 신규 외부 pilot의 승인 기본값이 고객 첫 가치 시간을 늘릴 수 있다는 가장 강한 반론을 설정하고, 기존 workspace 보존과 신규 cohort 측정으로 반증 가능하게 범위를 줄였다.
+
+**이 단계가 틀렸다면 왜?** 신규 외부 pilot의 approval-required default가 1인 고객의 첫 가치 시간을 늘릴 수 있다. 그러나 provider production 안전 증거가 M=0이고 기존 direct workspace는 유지하므로 신규 cohort만 안전 기본으로 시작해 이탈률·support time·repeat loop로 재판정하는 것이 silent migration보다 작고 반증 가능하다.
+
+**0번 게이트를 지켰나?** available skill catalog에 제품 PRD PATCH 전용 skill이 없어 SKILLS_SKIPPED=없음으로 기록했고, planning/doc-review/benchmarks와 소크라테스 프리앰블을 실제 읽었다.
+
+## Red team
+
+Red team: 고객은 Messaging 삭제를, QA는 edit release 누락을 공격할 수 있으므로 explicit handoff delivery1과 R3 Studio6 independent case로 두 공격의 관찰 가능한 종료증거를 추가했다.
+
+까다로운 고객은 “Messaging을 빼버린 것 아니냐”고 공격할 수 있다. 삭제하지 않고 review 뒤 explicit handoff로 이동했으며 selected destination에만 message delivery1을 만든다. 회의적 QA는 base TC30이 있어도 release가 건너뛸 수 있다고 공격할 수 있어 R3 independent case에 edit를 직접 포함해 total30으로 보정했다.
+
+## Gate
+
+- v7.2 critic `major_findings: 0` 유지.
+- MINOR4 closure: 4/4.
+- verifier: `✅ PASS(근거 있음): Skill 0회(없음) · WebSearch/Fetch 6회 · 소크라마커 2`.
+- plan approval: 미승인; provider E2E M=0.
+- design entry: verifier PASS+`/approve plan` 전 불가.
+
+RUBRIC_SCORE: 완결성=5/5 정밀성=5/5 벤치마크=5/5 추적성=5/5 전문성=4/5 total=24/25
+WEAKEST_LINE: 신규 외부 pilot approval-required default가 첫 발행 전환율에 미치는 영향은 pilot 전 미검증이다.
+SKILLS_USED: 없음 — 제품 PRD PATCH 전용 매칭 skill 없음; planning.md·doc-review.md·benchmarks.md 적용
+SKILLS_SKIPPED: 없음 — 매칭 skill 없음
+PRESENTATION_CHECK: 툴 잔재0·PRD/view4 실제 웹 렌더·PRD screenshot 육안 확인
+SOURCES: PRD v7.2.0; `tasks/marketing-agent-plan-critic-v7.2.output`; planning/doc-review/benchmarks; socratic preamble; current Studio/analytics evidence; Buffer Scheduling/Agency/All Channels; Sprout Approval.
+MODEL: gpt-codex/gpt-5.6-sol

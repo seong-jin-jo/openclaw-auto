@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { mutateJson, dataPath } from "@/lib/file-io";
 import { withTenant } from "@/lib/db";
 import { runWithTenant } from "@/lib/tenant-context";
+import { mirrorQueuePost } from "@/lib/queue-store";
 
 // 소싱 DB-drafts → 파일 queue.json 단방향 브리지.
 // 근거: approve→publish→metrics 파이프라인이 queue.json 기반(운영 저장소). drafts는 durable 분석 기록.
@@ -72,6 +73,7 @@ export async function importShortDraftsToQueue(tenantId: string): Promise<{ impo
         { version: 2, posts: [] },
       ),
     );
+    await Promise.all(newPosts.map((post) => mirrorQueuePost(tenantId, post as { id: string; [key: string]: unknown })));
   }
 
   // import 스탬프(멱등). 파일 쓰기 성공 후에만 마킹.

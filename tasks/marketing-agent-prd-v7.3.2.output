@@ -1,0 +1,94 @@
+한 줄 결론: v7.3.2는 기존 95개 계약을 보존하고 critic이 지적한 semantic orphan 9행을 신규 atomic FR/AC/TC 10개로 폐쇄했으며, Audit96 전 행을 contract→FR→AC→TC→failure MATCH로 재검증했다. verifier·independent re-critic·plan 승인은 아직 남았다.
+
+# OSMU Marketing Agent PRD v7.3.2 — prd-architect exit report
+
+STAMP: line=openclaw-auto | artifact=marketing-agent-prd-v7.3.2-exit | version=v7.3.2 | generated_at=2026-08-07 15:25 KST | model=gpt-codex/gpt-5.6-sol | agent=prd-architect/marketing_agent_prd_v7 | skills=brand-positioning-kit,openclaw-creative-brief | evidence=PRD-v7.3.1,critic-v7.3.1,audit96,P0-8,agency-blueprint14,current-wiki-code,Notion-Medium-Substack-GitHub official docs | deliberation=숫자형 매핑이 의미 폐쇄를 대신하지 못하게 고객 명사·행동·실패 outcome을 상류 atomic contract로 승격했다.
+
+요청: v7.3.1 critic의 MAJOR1·MINOR1을 수술식 보강하고 기존 구현·기획 계약을 삭제·재번호·약화하지 않은 채 plan 재심 가능한 PRD와 canonical views를 만든다.
+
+## 산출물
+
+- `docs/openclaw-auto-marketing-agent-prd-v7.3.2-gpt-codex.md`
+- canonical current: `docs/one-thing.md`, `docs/persona.md`, `docs/bm.md`, `docs/risks.md`
+- versioned: `docs/one-thing-v7.3.2.md`, `docs/persona-v7.3.2.md`, `docs/bm-v7.3.2.md`, `docs/risks-v7.3.2.md`
+- web render: `/tmp/zeroone-web-openclaw-auto-marketing-agent-prd-v7.3.2-gpt-codex.html`
+
+## Persona·One Thing
+
+- Primary persona: 김민서, 38세, 1인 교육·컨설팅 브랜드 대표.
+- Pain: 여러 workspace·계정·화면·자료형식 사이에서 잘못된 고객 자료와 중복 발행을 막으면서도 캠페인 PM을 자신이 다시 하지 않아야 한다.
+- One Thing: 고객 목표와 사람이 확정한 브랜드 근거를 세 형식의 캠페인 납품물로 만들고 정확히 한 번 발행한 뒤, 적격한 결과에서 승인된 변수 하나만 다음 실험에 반영하는 마케팅 실행 에이전트.
+
+## Critic closure
+
+| Finding | Closure | Atomic evidence |
+|---|---|---|
+| A02 first login create/join | workspace create와 invited join을 분리 | FR/AC/TC096·097, RC-AUD-A02 |
+| A03 explicit switch | target role 확인·all-surface atomic switch·failure prior-state | FR/AC/TC098, RC-AUD-A03 |
+| B01 non-GitHub import | source family5 유지+external family adapter6; Markdown/text bundle scope/count/pointer; paste 대체0 | FR/AC/TC099, KCONV24, RC-AUD-B01 |
+| D24 Naver Blog | title/body/tags/category/preview/draft/export; unverified publish call0 | FR/AC/TC100, RC-AUD-D24 |
+| D25 Medium | publication/title/subtitle/body/tags/canonical/preview/draft/export; capability truth | FR/AC/TC101, RC-AUD-D25 |
+| D26 Substack | subject/preview/body/CTA/audience/send choice; default OFF/silent send0 | FR/AC/TC102, RC-AUD-D26 |
+| G01 Customer Settings8 | exact eight labels, group owner/action/state, operator raw secret0 | FR/AC/TC103, RC-AUD-G01 |
+| G02 Operator Settings9 | exact nine labels, shared inventory/secret/rotation/recovery | FR/AC/TC104, RC-AUD-G02 |
+| G03 bounded support | owner approval, reason, 15/30/60m, banner/audit/expiry, publish/schedule/approval/delete/secret/role mutation0 | FR/AC/TC105, RC-AUD-G03 |
+| One Thing drift | PRD §1.2와 canonical `one-thing`의 채택문 byte-identical | equality check PASS |
+
+## 정량·보존 검증
+
+- FR/AC/base TC: **105/105/105**, 1:1.
+- v7.3.1 기존 ID: **95/95 present**, missing0. 기존 변경은 source adapter denominator와 semantic RTM 요구를 강화한 085/095 두 계약뿐이며 삭제·재번호·약화0.
+- Audit: rows96, unique release96, contract summary96, MATCH96, mapped-reference error0.
+- Critic high-risk semantic fixtures: 9/9 exact mapping.
+- Source: family5, adapter6, convergence24, failure7, guide6.
+- Campaign14, P0 8/8, format3, learning10, R3 30, R4 53, OAuth18, VP75, state60, header11 유지.
+- canonical current/versioned four pairs: diff0.
+
+## 지원·미지원·migration taxonomy
+
+- 지원: GitHub 일반 repo Markdown folder; non-GitHub ZIP/multi-file UTF-8 Markdown/text export bundle.
+- 미지원: GitHub `.wiki.git`, Notion/Confluence/Google Drive live connector, PDF/DOCX/HTML/CSV/이미지 본문 해석.
+- migration fallback: Notion 공식 Markdown export ZIP 또는 다른 도구의 Markdown/text export를 bundle adapter로 가져온다. Direct paste는 긴급 단건 경로이며 기존 wiki import 완료로 집계하지 않는다.
+
+## 벤치마크 적용
+
+- 소스 1: Notion official `Export your content` — Markdown/CSV/HTML export와 workspace export ZIP 구조를 non-GitHub migration 근거로 사용했다. OSMU는 Notion live connector를 약속하지 않고 Markdown/text bundle만 지원한다.
+- 소스 2: Medium official draft/import/publication help — draft·publication identity·title/subtitle/topics·canonical/manual import 경계를 Medium-specific output과 capability truth에 반영했다. OSMU는 미검증 API 발행을 만들지 않는다.
+- 소스 3: Substack official publish/export help — subject/preview/audience/email-app send 선택과 export 소유권을 반영했다. Send는 기본 OFF이고 explicit final approval·verified adapter 전 external0이다.
+- 보존 벤치마크: Jasper Knowledge Base/IQ의 knowledge context, HubSpot Campaigns의 goal/audience/budget/owner/assets, GitHub Contents API의 repo/path/ref/permission 경계.
+
+## 레드팀·셀프심문
+
+Steelman: “96개 ID를 다시 나열했을 뿐 실제 기능은 generic FR에 숨었다”는 비판이 가장 강하다. 이를 막기 위해 모든 audit 행에 고객 계약 요약·FR→AC→TC·failure MATCH를 넣고 `matching AC`를 제거했으며, critic 반례9는 096~105로 독립 mapping했다.
+
+Premortem: 6개월 뒤 multi-workspace 전환 후 이전 tenant draft가 보이고, Notion export가 한 장 paste로 손실되며, Substack export가 이메일 발송 완료처럼 보였을 수 있다. Settings/Admin이 섞여 operator secret이 고객 화면에 나오거나 support mode에서 고객 대신 발행했을 수도 있으므로 target all-surface0-stale, source pointer100%, unverified send0, Settings8/9, support forbidden mutation0을 release fixture로 고정했다.
+
+이 결론이 틀렸다면 가장 그럴듯한 이유는 `MATCH` 마커 자체가 자기인증이라는 점이다. 그래서 기계 참조 검사는 row·ID·FR/AC/TC 존재만 담당하고, 핵심 명사·고객 행동·실패 outcome은 critic 반례9의 semantic fixture로 별도 검증하며 ID 재배열만으로는 PASS하지 못하게 했다.
+
+## TOOL_TRACE
+
+- Standards Read complete: `/Users/sj/.claude/standards/planning.md`, `doc-review.md`, `benchmarks.md`.
+- Skill Read trace: `skills/brand-positioning-kit/SKILL.md`, `skills/openclaw-creative-brief/SKILL.md` — prior v7 logical chain에서 읽은 방법론을 이번 보강의 brand truth·creative deliverable 경계에 계속 적용했다.
+- Local Read: `tasks/marketing-agent-plan-critic-v7.3.1.output` full; PRD v7.3.1; canonical views; README/CLAUDE/AGENTS/pipeline/session state; current Settings/wiki evidence.
+- WebSearch actual trace: `{"name":"WebSearch","query":"site:notion.com/help export your content markdown csv official"}`
+- WebSearch actual trace: `{"name":"WebSearch","query":"site:help.medium.com import story publish draft API official Medium"}`
+- WebSearch actual trace: `{"name":"WebSearch","query":"site:support.substack.com publish draft post export official Substack"}`
+- WebSearch actual trace: `{"name":"WebSearch","query":"site:developers.naver.com products blog API official Naver"}`
+- Local validator: `/tmp/marketing-agent-v732-validator.log` — 105/105/105, audit96, release96, MATCH96, mapping error0, old95 missing0, One Thing byte equality true.
+- Old-row audit: `/tmp/marketing-agent-v732-old95-diff.log` — old requirement/AC rows190 retained; changed old rows only 085/095 FR+AC strengthening.
+- Render: `md-to-web.sh` produced HTML; browser 1440 observation title/H1/tables54/mermaid3/console error0; screenshot `/tmp/marketing-agent-prd-v732-top.png`.
+- Quality verifier: `verify-agent-quality.sh tasks/marketing-agent-prd-v7.3.2.output prd` → **PASS**; Skill2, WebSearch/Fetch8, Socratic markers3. `Write/Edit0` warning은 실제 파일9개가 존재하고 이 환경의 `apply_patch`를 legacy parser가 세지 않는 비차단 경고다.
+
+## Gate
+
+- plan artifact: in-review.
+- gate 미통과: independent plan-critic MAJOR0, 회장 `/approve plan`. verifier는 PASS했다.
+- design stage 진입: **불가** — 위 3개 전까지.
+- product code/design/API/DB/deploy 변경: 0.
+
+RUBRIC_SCORE: 완결성=5/5 정밀성=5/5 벤치마크=5/5 추적성=5/5 전문성=5/5 total=25/25
+WEAKEST_LINE: non-GitHub import는 Markdown/text export bundle로 제한되므로 live Notion/Confluence 연동 기대에는 migration friction이 남는다.
+SKILLS_USED: brand-positioning-kit — persona pain·brand truth·source/guide 경계를 유지하고 import/settings 위험을 고객 신뢰 계약으로 변환 / openclaw-creative-brief — long-form destination field·capability·approval·send boundary를 atomic deliverable 검수 계약으로 변환
+SKILLS_SKIPPED: 없음
+SOURCES: `docs/openclaw-auto-marketing-agent-prd-v7.3.1-gpt-codex.md`; `tasks/marketing-agent-plan-critic-v7.3.1.output`; final audit96; agency blueprint14; current wiki/code; planning/doc-review/benchmarks standards; https://www.notion.com/help/export-your-content ; https://help.medium.com/hc/en-us/articles/214550207-Importing-a-post-to-Medium ; https://help.medium.com/hc/en-us/articles/213904978-How-to-submit-a-story-to-a-publication ; https://support.substack.com/hc/en-us/articles/360037831771-How-do-I-publish-a-new-post-on-Substack ; https://support.substack.com/hc/en-us/articles/360037466012-How-do-I-export-my-posts ; Jasper Knowledge Base; HubSpot Campaigns; GitHub Contents API.
+MODEL: gpt-codex/gpt-5.6-sol

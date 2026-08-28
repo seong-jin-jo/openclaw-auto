@@ -1,0 +1,15 @@
+{
+  "id": "threads-style",
+  "name": "Threads Style",
+  "description": "Manage style learning data from user edits for RAG-based content generation.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "stylePath": {
+        "type": "string",
+        "description": "Path to style-data.json file. Defaults to data/style-data.json relative to project root."
+      }
+    }
+  }
+}

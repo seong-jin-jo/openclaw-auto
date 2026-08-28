@@ -1,0 +1,12 @@
+{
+  "observed_at": "2026-08-14T03:40:31+09:00",
+  "credits": 0,
+  "subscription_plan_type": "free",
+  "transaction_evidence": {
+    "action": "deduct",
+    "created_at": "2026-08-13T18:39:40.77802Z",
+    "credits": -194.62,
+    "display_name": "Subscription Cancelled"
+  },
+  "note": "Shared account changed from Plus to free during parallel batch work. Stop threshold was 50 credits, so no further creates were attempted."
+}

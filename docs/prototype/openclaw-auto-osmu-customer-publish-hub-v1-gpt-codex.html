@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="ko" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OSMU 고객 발행 활성화 Prototype v1</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <style>
+    :root {
+      --bg: #fbfbfc;
+      --surface: #ffffff;
+      --surface-2: #f4f4f5;
+      --border: #e4e4e7;
+      --text: #18181b;
+      --muted: #52525b;
+      --subtle: #71717a;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-fg: #ffffff;
+      --accent-soft: #eff4ff;
+      --success: #15803d;
+      --success-soft: #f0fdf4;
+      --warning: #b45309;
+      --warning-soft: #fffbeb;
+      --danger: #dc2626;
+      --danger-soft: #fef2f2;
+      --info-soft: #eff6ff;
+      --shadow: 0 12px 36px rgba(24, 24, 27, .09);
+      --toolbar: #111827;
+      --toolbar-fg: #f9fafb;
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #0a0a0b;
+      --surface: #161618;
+      --surface-2: #1f1f23;
+      --border: #303036;
+      --text: #f4f4f5;
+      --muted: #a1a1aa;
+      --subtle: #8b8b94;
+      --accent: #3b82f6;
+      --accent-hover: #60a5fa;
+      --accent-soft: #172554;
+      --success: #4ade80;
+      --success-soft: #14251b;
+      --warning: #fbbf24;
+      --warning-soft: #2a2111;
+      --danger: #f87171;
+      --danger-soft: #32191b;
+      --info-soft: #172554;
+      --shadow: 0 12px 36px rgba(0, 0, 0, .45);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background: #dfe3e8;
+      font-family: Pretendard, "Noto Sans KR", sans-serif;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--accent) 35%, transparent);
+      outline-offset: 2px;
+    }
+    .proto-toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: grid;
+      gap: 10px;
+      padding: 12px 16px;
+      color: var(--toolbar-fg);
+      background: var(--toolbar);
+      border-bottom: 1px solid rgba(255,255,255,.12);
+    }
+    .tool-row { display: flex; align-items: center; gap: 8px; overflow-x: auto; scrollbar-width: thin; }
+    .tool-label { flex: 0 0 auto; margin-right: 4px; font-size: 12px; font-weight: 800; letter-spacing: .04em; color: #9ca3af; }
+    .tool-btn {
+      flex: 0 0 auto;
+      min-height: 44px;
+      padding: 6px 11px;
+      border: 1px solid #475569;
+      border-radius: 8px;
+      color: #e5e7eb;
+      background: #1f2937;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .tool-btn:hover { background: #334155; }
+    .tool-btn.active { color: #fff; border-color: #60a5fa; background: #1d4ed8; }
+    .workspace { padding: 22px 16px 82px; min-height: 100vh; }
+    .viewport {
+      margin: 0 auto;
+      overflow: hidden;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid #b8c0ca;
+      border-radius: 16px;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, .18);
+    }
+    .viewport.desktop { width: min(1024px, calc(100vw - 32px)); }
+    .viewport.mobile { width: min(390px, calc(100vw - 20px)); }
+    .app-header {
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 22px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .brand-mark { display: grid; place-items: center; width: 30px; height: 30px; color: #fff; background: #111827; border-radius: 8px; font-weight: 900; }
+    html[data-theme="dark"] .brand-mark { color: #111827; background: #f4f4f5; }
+    .brand-title { font-size: 15px; font-weight: 850; letter-spacing: -.02em; }
+    .brand-sub { color: var(--subtle); font-size: 12px; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .icon-btn { min-width: 44px; min-height: 44px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 9px; color: var(--muted); background: var(--surface); font-weight: 750; }
+    .app-body { display: grid; grid-template-columns: 206px minmax(0, 1fr); min-height: 700px; }
+    .sidebar { padding: 22px 14px; background: var(--surface); border-right: 1px solid var(--border); }
+    .sidebar-label { margin: 0 8px 10px; color: var(--subtle); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .channel-item { width: 100%; display: grid; grid-template-columns: 34px minmax(0,1fr); gap: 10px; padding: 10px; margin-bottom: 5px; text-align: left; border: 1px solid transparent; border-radius: 9px; color: var(--text); background: transparent; }
+    .channel-item.active { border-color: color-mix(in srgb, var(--accent) 20%, var(--border)); background: var(--accent-soft); }
+    .channel-icon { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); font-size: 15px; font-weight: 900; }
+    .channel-name { display: block; font-size: 13px; font-weight: 800; }
+    .channel-status { display: flex; align-items: center; gap: 5px; margin-top: 2px; color: var(--muted); font-size: 11px; }
+    .dot { width: 7px; height: 7px; flex: 0 0 auto; border-radius: 99px; background: var(--subtle); }
+    .dot.success { background: var(--success); }
+    .dot.warning { background: var(--warning); }
+    .side-separator { height: 1px; margin: 18px 8px; background: var(--border); }
+    .side-link { width: 100%; min-height: 44px; padding: 8px 10px; text-align: left; border: 0; border-radius: 8px; color: var(--muted); background: transparent; font-size: 12px; font-weight: 700; }
+    .mobile-channels { display: none; gap: 8px; padding: 12px 14px; overflow-x: auto; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .channel-pill { min-height: 44px; padding: 7px 12px; white-space: nowrap; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); background: var(--surface); font-size: 12px; font-weight: 750; }
+    .channel-pill.active { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+    .main { min-width: 0; }
+    .stepper { display: grid; grid-template-columns: repeat(5, 1fr); padding: 18px 26px; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .step { position: relative; min-width: 0; display: flex; align-items: center; gap: 7px; color: var(--subtle); font-size: 11px; font-weight: 750; }
+    .step:not(:last-child)::after { content: ""; position: absolute; left: 31px; right: 8px; top: 12px; height: 1px; background: var(--border); }
+    .step.done:not(:last-child)::after { background: color-mix(in srgb, var(--success) 45%, var(--border)); }
+    .step-index { position: relative; z-index: 1; display: grid; place-items: center; width: 25px; height: 25px; flex: 0 0 auto; border: 1px solid var(--border); border-radius: 99px; background: var(--surface); }
+    .step.done { color: var(--success); }
+    .step.done .step-index { color: #fff; border-color: var(--success); background: var(--success); }
+    .step.current { color: var(--accent); }
+    .step.current .step-index { color: #fff; border-color: var(--accent); background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+    .content-grid { display: grid; grid-template-columns: minmax(0, 1fr) 246px; gap: 0; min-height: 610px; }
+    .canvas { min-width: 0; padding: 34px 34px 52px; }
+    .evidence { padding: 30px 20px; background: color-mix(in srgb, var(--surface-2) 55%, var(--surface)); border-left: 1px solid var(--border); }
+    .eyebrow { margin: 0 0 8px; color: var(--accent); font-size: 11px; font-weight: 850; letter-spacing: .08em; }
+    h1 { margin: 0; max-width: 620px; font-size: clamp(25px, 3vw, 34px); line-height: 1.18; letter-spacing: -.035em; }
+    .lede { max-width: 620px; margin: 12px 0 24px; color: var(--muted); font-size: 14px; line-height: 1.72; }
+    h2 { margin: 0 0 12px; font-size: 17px; letter-spacing: -.02em; }
+    h3, .panel-title { margin: 0 0 8px; font-size: 14px; }
+    p { margin: 0; }
+    .section { margin-top: 24px; }
+    .panel { padding: 18px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface); }
+    .panel + .panel { margin-top: 12px; }
+    .panel.selected { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .panel.warning { border-color: color-mix(in srgb, var(--warning) 38%, var(--border)); background: var(--warning-soft); }
+    .panel.danger { border-color: color-mix(in srgb, var(--danger) 35%, var(--border)); background: var(--danger-soft); }
+    .panel.success { border-color: color-mix(in srgb, var(--success) 38%, var(--border)); background: var(--success-soft); }
+    .panel.info { border-color: color-mix(in srgb, var(--accent) 26%, var(--border)); background: var(--info-soft); }
+    .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .small { color: var(--muted); font-size: 12px; line-height: 1.55; }
+    .micro { color: var(--subtle); font-size: 10px; line-height: 1.45; }
+    .badge { display: inline-flex; align-items: center; gap: 5px; min-height: 24px; padding: 3px 8px; border-radius: 999px; color: var(--muted); background: var(--surface-2); font-size: 10px; font-weight: 800; }
+    .badge.success { color: var(--success); background: var(--success-soft); }
+    .badge.warning { color: var(--warning); background: var(--warning-soft); }
+    .badge.danger { color: var(--danger); background: var(--danger-soft); }
+    .badge.accent { color: var(--accent); background: var(--accent-soft); }
+    .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-top: 20px; }
+    .btn { min-height: 44px; padding: 10px 15px; border: 1px solid var(--border); border-radius: 9px; color: var(--text); background: var(--surface); font-size: 13px; font-weight: 800; }
+    .btn:hover { background: var(--surface-2); }
+    .btn.primary { color: var(--accent-fg); border-color: var(--accent); background: var(--accent); box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 22%, transparent); }
+    .btn.primary:hover { background: var(--accent-hover); }
+    .btn.danger { color: var(--danger); }
+    .btn.linklike { min-height: 44px; padding-left: 3px; padding-right: 3px; border-color: transparent; color: var(--accent); background: transparent; }
+    .btn:disabled { cursor: not-allowed; opacity: .48; box-shadow: none; }
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .identity { display: grid; grid-template-columns: 46px minmax(0,1fr); gap: 12px; align-items: center; }
+    .avatar { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 12px; color: #fff; background: #111827; font-size: 14px; font-weight: 900; }
+    .handle { font-weight: 900; letter-spacing: -.015em; }
+    .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; margin-top: 14px; overflow: hidden; border: 1px solid var(--border); border-radius: 9px; background: var(--border); }
+    .compare > div { padding: 13px; background: var(--surface); }
+    .compare-label { margin-bottom: 4px; color: var(--subtle); font-size: 10px; font-weight: 800; }
+    .input-label { display: block; margin-bottom: 7px; color: var(--muted); font-size: 11px; font-weight: 800; }
+    .input, .textarea { width: 100%; border: 1px solid var(--border); border-radius: 9px; color: var(--text); background: var(--surface); }
+    .input { min-height: 44px; padding: 10px 12px; }
+    .textarea { min-height: 160px; padding: 14px; resize: vertical; line-height: 1.75; }
+    .count { display: flex; justify-content: space-between; gap: 12px; margin-top: 7px; color: var(--subtle); font-size: 11px; }
+    .fact { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: start; }
+    .fact-title { font-size: 14px; font-weight: 780; }
+    .fact-source { margin-top: 5px; color: var(--muted); font-size: 11px; }
+    .checklist { display: grid; gap: 10px; margin-top: 16px; }
+    .check-row { display: grid; grid-template-columns: 22px minmax(0,1fr); gap: 9px; align-items: start; color: var(--muted); font-size: 12px; }
+    .check-icon { display: grid; place-items: center; width: 20px; height: 20px; border: 1px solid var(--border); border-radius: 99px; color: var(--subtle); background: var(--surface); font-size: 11px; font-weight: 900; }
+    .check-row.done .check-icon { color: #fff; border-color: var(--success); background: var(--success); }
+    .check-row.current .check-icon { color: #fff; border-color: var(--accent); background: var(--accent); }
+    .receipt-link { display: block; margin-top: 12px; padding: 13px 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); border-radius: 9px; color: var(--accent); background: var(--surface); text-decoration: none; font-size: 12px; font-weight: 780; }
+    .evidence-title { margin-bottom: 15px; font-size: 12px; font-weight: 850; letter-spacing: .02em; }
+    .evidence-item { position: relative; padding: 0 0 18px 21px; }
+    .evidence-item:not(:last-child)::before { content: ""; position: absolute; left: 6px; top: 13px; bottom: 0; width: 1px; background: var(--border); }
+    .evidence-dot { position: absolute; left: 0; top: 3px; width: 13px; height: 13px; border: 3px solid var(--surface-2); border-radius: 99px; background: var(--subtle); }
+    .evidence-item.done .evidence-dot { background: var(--success); }
+    .evidence-item.current .evidence-dot { background: var(--accent); }
+    .evidence-key { color: var(--subtle); font-size: 10px; font-weight: 800; }
+    .evidence-value { margin-top: 3px; overflow-wrap: anywhere; font-size: 12px; font-weight: 780; }
+    .evidence-note { margin-top: 2px; color: var(--muted); font-size: 10px; }
+    .trust-strip { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 11px 22px; color: var(--muted); background: var(--surface); border-top: 1px solid var(--border); font-size: 11px; }
+    .skeleton { position: relative; overflow: hidden; border-radius: 6px; background: var(--surface-2); }
+    .skeleton::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--text) 8%, transparent), transparent); animation: shimmer 1.2s infinite; }
+    .sk-line { height: 12px; margin: 8px 0; }
+    @keyframes shimmer { to { transform: translateX(100%); } }
+    .toast { position: fixed; right: 18px; bottom: 64px; z-index: 70; max-width: 340px; padding: 12px 14px; color: #fff; border-radius: 10px; background: #111827; box-shadow: var(--shadow); font-size: 12px; font-weight: 700; opacity: 0; pointer-events: none; transform: translateY(8px); transition: .18s ease; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .stampbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 80; color: #d1d5db; background: rgba(17, 24, 39, .97); border-top: 1px solid #374151; font-size: 10px; }
+    .stampbar details { max-width: 1180px; margin: 0 auto; }
+    .stampbar summary { padding: 9px 14px; cursor: pointer; font-weight: 750; }
+    .stamp-content { padding: 0 14px 12px; color: #9ca3af; line-height: 1.6; }
+    .stamp-content a { color: #93c5fd; }
+    .proto-note { margin-top: 12px; color: var(--subtle); font-size: 10px; }
+    .mobile .app-header { height: 58px; padding: 0 14px; }
+    .mobile .brand-sub, .mobile .sidebar { display: none; }
+    .mobile .app-body { display: block; min-height: 690px; }
+    .mobile .mobile-channels { display: flex; }
+    .mobile .stepper { padding: 12px 14px 14px; overflow-x: auto; grid-template-columns: repeat(5, minmax(58px, 1fr)); }
+    .mobile .step { display: grid; justify-items: center; gap: 4px; text-align: center; font-size: 9px; }
+    .mobile .step:not(:last-child)::after { left: calc(50% + 16px); right: calc(-50% + 16px); top: 12px; }
+    .mobile .content-grid { display: flex; flex-direction: column; min-height: 0; }
+    .mobile .canvas { padding: 26px 16px 32px; }
+    .mobile .evidence { order: 2; padding: 22px 16px; border-left: 0; border-top: 1px solid var(--border); }
+    .mobile h1 { font-size: 26px; }
+    .mobile .lede { font-size: 13px; }
+    .mobile .split, .mobile .compare { grid-template-columns: 1fr; }
+    .mobile .actions { align-items: stretch; }
+    .mobile .actions .btn { width: 100%; }
+    .mobile .fact { grid-template-columns: 1fr; }
+    .mobile .trust-strip { align-items: flex-start; padding: 11px 14px; }
+    .mobile .header-actions .icon-btn:first-child { display: none; }
+    @media (max-width: 720px) {
+      .proto-toolbar { padding: 10px; }
+      .workspace { padding-left: 8px; padding-right: 8px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="proto-toolbar" aria-label="프로토타입 컨트롤">
+    <div class="tool-row" id="screenTools">
+      <span class="tool-label">화면</span>
+      <button class="tool-btn" data-view="channels">채널</button>
+      <button class="tool-btn" data-view="connect">연결</button>
+      <button class="tool-btn" data-view="facts">브랜드 사실</button>
+      <button class="tool-btn" data-view="draft">초안</button>
+      <button class="tool-btn" data-view="review">검수</button>
+      <button class="tool-btn" data-view="publish">발행</button>
+    </div>
+    <div class="tool-row" id="stateTools">
+      <span class="tool-label">상태</span>
+      <button class="tool-btn" data-state="default">기본</button>
+      <button class="tool-btn" data-state="loading">loading</button>
+      <button class="tool-btn" data-state="empty">empty</button>
+      <button class="tool-btn" data-state="error">error</button>
+      <button class="tool-btn" data-state="reconnect">reconnect</button>
+      <button class="tool-btn" data-state="wrong-account">wrong-account</button>
+      <button class="tool-btn" data-state="502">502</button>
+      <button class="tool-btn" data-state="success">success</button>
+      <span class="tool-label" style="margin-left:8px">뷰포트</span>
+      <button class="tool-btn" data-viewport="mobile">390</button>
+      <button class="tool-btn" data-viewport="desktop">1024</button>
+      <button class="tool-btn" id="themeTool">다크</button>
+    </div>
+  </nav>
+
+  <main class="workspace">
+    <section id="appViewport" class="viewport desktop" aria-live="polite"></section>
+  </main>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <footer class="stampbar">
+    <details>
+      <summary>🏷 STAMP | openclaw-auto-osmu | 2026-08-02 21:26 KST | product-designer | gpt-codex/gpt-5.6-sol</summary>
+      <div class="stamp-content">
+        skills: design-consultation, design-shotgun, design-html, design-review. 근거:
+        <a href="https://support.buffer.com/article/857-using-threads-with-buffer">Buffer Threads</a>,
+        <a href="https://support.buffer.com/article/568-connecting-your-instagram-business-or-creator-account-to-buffer">Buffer Instagram</a>,
+        <a href="https://docs.postiz.com/public-api/posts/create">Postiz Create Post</a>,
+        <a href="https://docs.postiz.com/public-api/posts/list">Postiz List Posts</a>,
+        <a href="https://docs.postiz.com/cli/managing-posts">Postiz recovery concept</a>.
+        고민: callback 뒤 자동 연결을 버리고 반환 handle 확인을 남겼으며, 502에서는 다시 발행보다 기존 결과 조회를 우선했다.
+        MODEL: gpt-codex/gpt-5.6-sol. RUBRIC_SCORE: completeness=5/5 detail=5/5 rhythm=5/5 voice=5/5 slop=5/5 total=25/25.
+        WEAKEST_LINE: 프로토타입의 permalink와 시각은 예시 데이터이며 실제 발행 증거가 아니다.
+        SKILLS_USED: 4개 design 스킬. SKILLS_SKIPPED: 없음.
+      </div>
+    </details>
+  </footer>
+
+  <script>
+    const app = {
+      view: location.hash.replace('#/', '') || 'channels',
+      state: 'default',
+      viewport: 'desktop',
+      theme: 'light'
+    };
+
+    const viewOrder = ['channels', 'connect', 'facts', 'draft', 'review', 'publish'];
+    const stepByView = { channels: 0, connect: 0, facts: 1, draft: 2, review: 3, publish: 4 };
+    const labels = ['채널 연결', '브랜드 사실', '초안', '검수', '발행'];
+
+    function iconForStep(i, current) {
+      if (i < current) return '✓';
+      return String(i + 1);
+    }
+
+    function stepper() {
+      const current = stepByView[app.view] ?? 0;
+      return `<div class="stepper">${labels.map((label, i) => {
+        const cls = i < current ? 'done' : i === current ? 'current' : '';
+        return `<div class="step ${cls}"><span class="step-index">${iconForStep(i, current)}</span><span>${label}</span></div>`;
+      }).join('')}</div>`;
+    }
+
+    function channelState() {
+      if (app.state === 'empty') return ['미연결', ''];
+      if (app.state === 'reconnect' || app.state === 'error') return ['확인 필요', 'warning'];
+      if (app.state === 'wrong-account') return ['계정 불일치', 'warning'];
+      if (stepByView[app.view] > 0 || app.state === 'success' || app.state === '502') return ['@minseo_money', 'success'];
+      return ['확인 중', 'warning'];
+    }
+
+    function sidebar() {
+      const [threads, dot] = channelState();
+      return `<aside class="sidebar" aria-label="채널">
+        <p class="sidebar-label">발행 채널</p>
+        <button class="channel-item active" data-view="channels">
+          <span class="channel-icon">@</span>
+          <span><span class="channel-name">Threads</span><span class="channel-status"><i class="dot ${dot}"></i>${threads}</span></span>
+        </button>
+        <button class="channel-item" data-toast="Instagram은 연결 상태 회귀까지만 이번 범위에 포함됩니다.">
+          <span class="channel-icon">◎</span>
+          <span><span class="channel-name">Instagram</span><span class="channel-status"><i class="dot warning"></i>상태 확인</span></span>
+        </button>
+        <div class="side-separator"></div>
+        <button class="side-link" data-view="publish">발행 결과</button>
+        <button class="side-link" data-toast="Settings에서도 같은 handle과 마지막 확인 시각을 사용합니다.">채널 설정</button>
+      </aside>`;
+    }
+
+    function mobileChannels() {
+      return `<div class="mobile-channels"><button class="channel-pill active" data-view="channels">Threads</button><button class="channel-pill" data-toast="Instagram은 연결 상태까지만 확인합니다.">Instagram · 상태 확인</button></div>`;
+    }
+
+    function evidence() {
+      const current = stepByView[app.view] ?? 0;
+      const accountDone = current > 0 || ['success', '502'].includes(app.state);
+      const factsDone = current > 1 || ['success', '502'].includes(app.state);
+      const approved = current > 3 || ['success', '502'].includes(app.state);
+      const published = app.state === 'success';
+      return `<aside class="evidence" aria-label="이번 발행 근거">
+        <div class="evidence-title">이번 발행 근거</div>
+        <div class="evidence-item ${accountDone ? 'done' : 'current'}">
+          <span class="evidence-dot"></span><div class="evidence-key">계정</div>
+          <div class="evidence-value">${accountDone ? '@minseo_money' : '확인 전'}</div>
+          <div class="evidence-note">${accountDone ? 'Threads · 방금 확인' : '반환 handle 확인 필요'}</div>
+        </div>
+        <div class="evidence-item ${factsDone ? 'done' : current === 1 ? 'current' : ''}">
+          <span class="evidence-dot"></span><div class="evidence-key">브랜드 사실</div>
+          <div class="evidence-value">${factsDone ? '1:1 상담은 50분입니다.' : '확인 사실 없음'}</div>
+          <div class="evidence-note">${factsDone ? '직접 입력 · 고객 확인' : '사실 1개 필요'}</div>
+        </div>
+        <div class="evidence-item ${approved ? 'done' : current === 3 ? 'current' : ''}">
+          <span class="evidence-dot"></span><div class="evidence-key">사람 승인</div>
+          <div class="evidence-value">${approved ? '승인 버전 #A-018' : '승인 전'}</div>
+          <div class="evidence-note">${approved ? '본문과 계정 고정' : '최종 검수 필요'}</div>
+        </div>
+        <div class="evidence-item ${published ? 'done' : current === 4 ? 'current' : ''}">
+          <span class="evidence-dot"></span><div class="evidence-key">실제 원문</div>
+          <div class="evidence-value">${published ? 'permalink 확인' : '확인 전'}</div>
+          <div class="evidence-note">${published ? 'Threads 원문 열기 가능' : '링크 전에는 성공 아님'}</div>
+        </div>
+      </aside>`;
+    }
+
+    function loadingPanel(title, copy) {
+      return `<div class="panel info"><div class="panel-head"><div><h2 class="panel-title">${title}</h2><p class="small">${copy}</p></div><span class="badge accent">확인 중</span></div><div style="margin-top:16px"><div class="skeleton sk-line" style="width:46%"></div><div class="skeleton sk-line" style="width:78%"></div><div class="skeleton sk-line" style="width:62%"></div></div></div>`;
+    }
+
+    function channelsScreen() {
+      if (app.state === 'loading') return screenWrap('CHANNELS', '채널 상태를 불러오고 있어요', '마지막으로 확인된 정보는 그대로 두고 현재 게시 가능 상태를 확인합니다.', loadingPanel('Threads 상태 확인', '연결 완료로 표시하기 전에 provider 응답을 확인합니다.'));
+      if (app.state === 'error' || app.state === 'reconnect') return screenWrap('CHANNELS', '계정 상태를 다시 확인해야 해요', '저장된 연결은 있지만 Threads에서 현재 게시 가능 여부를 확인하지 못했습니다.', `<div class="panel warning"><div class="panel-head"><div><h2 class="panel-title">Threads · @minseo_money</h2><p class="small">마지막 확인 2026-08-02 20:58 KST · 현재 확인 불가</p></div><span class="badge warning">확인 필요</span></div><div class="actions"><button class="btn primary" data-view="connect" data-state="reconnect">Threads 상태 다시 확인하기</button><button class="btn" data-toast="초안은 그대로 보존됩니다.">초안 보존 확인</button></div></div>`);
+      return screenWrap('CHANNELS', '어느 채널에 글을 올릴까요?', '모든 채널은 연결, 사실, 초안, 검수, 발행의 같은 순서로 움직입니다.', `<div class="panel selected"><div class="panel-head"><div><h2 class="panel-title">Threads</h2><p class="small">${app.state === 'empty' ? '사업용 계정을 연결하면 첫 글을 만들 수 있어요.' : '계정 확인부터 실제 원문까지 한 흐름으로 진행합니다.'}</p></div><span class="badge ${app.state === 'empty' ? '' : 'warning'}">${app.state === 'empty' ? '미연결' : '확인 필요'}</span></div><div class="actions"><button class="btn primary" data-view="connect" data-state="default">Threads 계정 연결하기</button></div></div><div class="panel"><div class="panel-head"><div><h2 class="panel-title">Instagram</h2><p class="small">이번 범위에서는 연결 상태만 확인합니다. 이미지 발행은 다음 실험입니다.</p></div><span class="badge warning">상태 확인</span></div><div class="actions"><button class="btn" data-toast="Instagram의 저장 계정과 현재 상태를 확인합니다.">Instagram 상태 확인하기</button></div></div>`);
+    }
+
+    function connectScreen() {
+      if (app.state === 'loading') return screenWrap('STEP 1 · ACCOUNT', 'Threads 계정을 확인하고 있어요', '연결 완료로 표시하기 전에 실제 계정 정보를 확인합니다.', `${loadingPanel('provider 응답 확인', '반환된 handle과 게시 가능 상태를 확인하고 있어요.')}<div class="actions"><button class="btn" data-state="error">10초 넘게 기다렸어요</button><button class="btn linklike" data-view="channels">채널 관리로 돌아가기</button></div>`);
+      if (app.state === 'wrong-account') return screenWrap('STEP 1 · WRONG ACCOUNT', '연결된 계정이 목표와 달라요', '기존 목표를 조용히 덮어쓰지 않습니다. 사업용 계정으로 바꾼 뒤 다시 확인해 주세요.', `<div class="panel danger"><div class="compare"><div><div class="compare-label">현재 반환</div><div class="handle">@zero_to_one_ai</div></div><div><div class="compare-label">사용하려는 계정</div><div class="handle">@minseo_money</div></div></div><p class="small" style="margin-top:14px">OSMU는 Meta 계정 목록을 직접 보여줄 수 없어요. Threads와 Instagram에서 로그아웃한 뒤 사업용 계정으로 로그인해 주세요.</p><div class="actions"><button class="btn primary" data-toast="1. 두 서비스에서 로그아웃  2. 사업용 Instagram 로그인  3. Threads에서 Instagram으로 로그인">계정 변경 방법 보기</button><button class="btn" data-state="loading">다시 연결하기</button><button class="btn linklike" data-view="channels">채널 관리로 돌아가기</button></div></div>`);
+      if (app.state === 'reconnect' || app.state === 'error') return screenWrap('STEP 1 · RECOVERY', 'Threads 응답을 기다리고 있어요', '저장된 계정은 지우지 않았습니다. 현재 상태를 다시 확인하거나 채널 관리로 돌아갈 수 있어요.', `<div class="panel warning"><div class="identity"><div class="avatar">M</div><div><div class="handle">@minseo_money</div><div class="small">마지막 확인 2026-08-02 20:58 KST</div></div></div><div class="actions"><button class="btn primary" data-state="loading">Threads 상태 다시 확인하기</button><button class="btn" data-view="channels">채널 관리로 돌아가기</button></div></div>`);
+      if (app.state === 'success') return screenWrap('STEP 1 · CONFIRMED', '이 Threads 계정이 맞나요?', '반환된 실제 handle을 확인한 뒤에만 연결을 완료합니다.', `<div class="panel selected"><div class="identity"><div class="avatar">M</div><div><div class="handle">@minseo_money</div><div class="small">민서의 돈 공부 · Threads 공개 프로필</div><div class="micro">방금 provider에서 확인</div></div></div><div class="actions"><button class="btn primary" data-view="facts" data-state="default">이 계정이 맞아요</button><button class="btn" data-state="wrong-account">다른 계정으로 바꾸기</button></div></div>`);
+      return screenWrap('STEP 1 · CONNECT', 'Threads 계정을 연결할게요', '현재 브라우저에서 로그인한 Threads 계정이 연결됩니다. 사업용 계정으로 로그인했는지 먼저 확인해 주세요.', `<div class="split"><div class="panel"><h2 class="panel-title">연결할 준비가 됐나요?</h2><p class="small">비밀번호나 Graph token을 OSMU에 직접 입력하지 않습니다.</p><div class="actions"><button class="btn primary" data-state="loading">Threads 계정 연결하기</button><button class="btn linklike" data-toast="Meta 계정 목록은 OSMU가 직접 제공할 수 없습니다.">계정 변경 방법 보기</button></div></div><div class="panel info"><h2 class="panel-title">연결 전에 확인해 주세요</h2><div class="checklist"><div class="check-row"><span class="check-icon">1</span><span>Threads와 Instagram에서 다른 계정을 로그아웃</span></div><div class="check-row"><span class="check-icon">2</span><span>사업용 Instagram 계정으로 로그인</span></div><div class="check-row"><span class="check-icon">3</span><span>Threads에서 Instagram 계정으로 로그인</span></div></div></div></div>`);
+    }
+
+    function factsScreen() {
+      if (app.state === 'loading') return screenWrap('STEP 2 · FACTS', '브랜드 사실을 저장하고 있어요', '입력한 문장은 유지합니다. 저장이 끝나면 확인 상태를 표시합니다.', loadingPanel('사실 저장 중', '1:1 상담은 50분입니다.'));
+      if (app.state === 'empty') return screenWrap('STEP 2 · FACTS', '글에 쓸 브랜드 사실이 아직 없어요', 'GitHub가 없어도 직접 입력할 수 있습니다. 고객이 확인한 사실만 초안에 사용합니다.', `<div class="panel"><label class="input-label" for="factInput">브랜드 사실</label><input class="input" id="factInput" value="" placeholder="예: 1:1 상담은 50분입니다."><div class="actions"><button class="btn primary" data-state="default">브랜드 사실 직접 입력하기</button><button class="btn linklike" data-toast="가격, 시간, 신청 조건처럼 확인 가능한 문장을 권장합니다.">좋은 사실 예시 보기</button></div></div>`);
+      if (app.state === 'error') return screenWrap('STEP 2 · FACTS', '사실을 저장하지 못했어요', '입력한 문장은 지우지 않았습니다. 다시 저장하거나 복사해 둘 수 있어요.', `<div class="panel danger"><div class="fact"><div><div class="fact-title">1:1 상담은 50분입니다.</div><div class="fact-source">출처 · 직접 입력</div></div><span class="badge danger">저장 실패</span></div><div class="actions"><button class="btn primary" data-state="default">사실 다시 저장하기</button><button class="btn" data-copy="1:1 상담은 50분입니다.">입력 복사</button></div></div>`);
+      return screenWrap('STEP 2 · FACTS', '브랜드 사실을 확인해 주세요', '글에 써도 되는 정보만 확인 상태로 바꿉니다. 수정하면 다시 확인해야 합니다.', `<div class="panel selected"><div class="fact"><div><div class="fact-title">1:1 상담은 50분입니다.</div><div class="fact-source">출처 · 직접 입력 · 2026-08-02</div></div><span class="badge success">확인됨</span></div><div class="actions"><button class="btn" data-toast="수정하면 이 사실을 사용한 승인도 다시 확인해야 합니다.">사실 수정하기</button><button class="btn linklike" data-toast="목록에서 제외해도 나중에 복구할 수 있습니다.">이번 글에서 제외</button></div></div><button class="btn linklike" data-state="empty">+ 브랜드 사실 직접 입력하기</button><div class="actions"><button class="btn primary" data-view="draft" data-state="default">확인 사실로 Threads 초안 만들기</button></div>`);
+    }
+
+    function draftScreen() {
+      if (app.state === 'loading') return screenWrap('STEP 3 · DRAFT', 'Threads 초안을 만들고 있어요', '목표 계정과 사용 예정 사실을 보면서 기다릴 수 있습니다.', `${loadingPanel('확인 사실 1개 적용 중', '@minseo_money에 맞는 Threads 초안을 만들고 있어요.')}<div class="actions"><button class="btn" data-state="empty">생성 취소</button></div>`);
+      if (app.state === 'empty') return screenWrap('STEP 3 · DRAFT', '첫 Threads 초안을 만들어 볼까요?', '확인된 계정과 브랜드 사실이 준비됐습니다. 올릴 주제를 한 줄로 적어 주세요.', `<div class="panel"><label class="input-label" for="topicInput">이번 글의 주제</label><input class="input" id="topicInput" value="8월 상담 일정 안내"><div class="actions"><button class="btn primary" data-state="loading">Threads 초안 만들기</button><button class="btn linklike" data-view="facts">사실 수정하기</button></div></div>`);
+      if (app.state === 'error') return screenWrap('STEP 3 · DRAFT', '초안을 만들지 못했어요', '주제와 사용 사실은 그대로 보존했습니다. 같은 내용으로 다시 만들거나 직접 쓸 수 있어요.', `<div class="panel danger"><div class="small">주제 · 8월 상담 일정 안내</div><div class="small">사용 사실 · 1:1 상담은 50분입니다.</div><div class="actions"><button class="btn primary" data-state="loading">같은 내용으로 다시 만들기</button><button class="btn" data-state="default">초안 직접 쓰기</button></div></div>`);
+      return screenWrap('STEP 3 · DRAFT', 'Threads 초안을 검토해 주세요', '발행 대상과 사용한 사실을 숨기지 않습니다. 본문은 사람이 직접 고칠 수 있어요.', `<div class="panel info"><div class="panel-head"><div><div class="micro">발행 대상</div><div class="handle">@minseo_money</div></div><span class="badge success">사실 1개 사용</span></div><p class="small" style="margin-top:10px">1:1 상담은 50분입니다. · 직접 입력 · 확인됨</p></div><div class="section"><label class="input-label" for="draftText">Threads 본문</label><textarea class="textarea" id="draftText">8월 1:1 상담 일정을 열었습니다.\n한 번의 상담은 50분 동안 진행합니다.\n궁금했던 한 가지를 정리해 오시면 더 깊게 이야기할 수 있어요.</textarea><div class="count"><span>직접 수정 가능</span><strong>73 / provider 상한</strong></div></div><div class="actions"><button class="btn" data-state="loading">초안 다시 만들기</button><button class="btn primary" data-view="review" data-state="default">사람 검수로 이동</button></div>`);
+    }
+
+    function reviewScreen() {
+      if (app.state === 'loading') return screenWrap('STEP 4 · REVIEW', '승인 버전을 고정하고 있어요', '본문과 계정이 바뀌지 않았는지 마지막으로 확인합니다.', loadingPanel('사람 승인 처리 중', '승인 버전 #A-018을 만들고 있어요.'));
+      if (app.state === 'error' || app.state === 'reconnect' || app.state === 'wrong-account') return screenWrap('STEP 4 · REVIEW', '발행 근거가 변경됐어요', '계정 또는 브랜드 사실이 바뀌어 이전 검수를 사용할 수 없습니다.', `<div class="panel warning"><h2 class="panel-title">다시 확인할 항목</h2><div class="checklist"><div class="check-row"><span class="check-icon">!</span><span>Threads 계정 상태 다시 확인</span></div><div class="check-row"><span class="check-icon">!</span><span>수정된 브랜드 사실과 초안 다시 검수</span></div></div><div class="actions"><button class="btn primary" data-view="connect" data-state="${app.state === 'wrong-account' ? 'wrong-account' : 'reconnect'}">Threads 계정 다시 확인하기</button><button class="btn" data-view="channels">채널 관리로 돌아가기</button></div></div>`);
+      return screenWrap('STEP 4 · HUMAN REVIEW', '마지막으로 확인해 주세요', '이 화면의 계정, 최종 본문, 사용 사실이 그대로 Threads에 전달됩니다.', `<div class="panel selected"><div class="panel-head"><div><div class="micro">발행 대상</div><div class="handle">@minseo_money · Threads</div></div><span class="badge success">계정 확인됨</span></div></div><div class="section"><label class="input-label">최종 본문</label><div class="panel"><p style="white-space:pre-line;font-size:14px;line-height:1.75">8월 1:1 상담 일정을 열었습니다.\n한 번의 상담은 50분 동안 진행합니다.\n궁금했던 한 가지를 정리해 오시면 더 깊게 이야기할 수 있어요.</p></div></div><div class="panel" style="margin-top:12px"><div class="micro">사용한 사실</div><div class="fact-title" style="margin-top:5px">1:1 상담은 50분입니다.</div><div class="fact-source">직접 입력 · 확인됨</div></div><div class="actions"><button class="btn" data-view="draft">초안 수정하기</button><button class="btn primary" data-view="publish" data-state="loading">@minseo_money에 지금 발행하기</button></div>`);
+    }
+
+    function publishScreen() {
+      if (app.state === 'loading') return screenWrap('STEP 5 · PUBLISHING', '@minseo_money에 발행하고 있어요', '같은 버튼을 다시 눌러도 글을 하나 더 만들지 않습니다.', `<div class="panel info"><div class="checklist"><div class="check-row done"><span class="check-icon">✓</span><span>승인 버전 #A-018 고정</span></div><div class="check-row current"><span class="check-icon">2</span><span>Threads에 발행 요청</span></div><div class="check-row"><span class="check-icon">3</span><span>외부 원문 확인</span></div><div class="check-row"><span class="check-icon">4</span><span>permalink 회수</span></div></div><div class="actions"><button class="btn" data-state="502">502 응답 상황 보기</button><button class="btn" data-state="success">발행 성공 상황 보기</button></div></div>`);
+      if (app.state === '502' || app.state === 'error') return screenWrap('STEP 5 · RECOVERY', '발행 결과를 확인하는 중이에요', 'Threads 응답이 늦어 발행 여부를 바로 확인하지 못했습니다. 같은 글을 다시 올리지 않고 외부 원문을 먼저 조회합니다.', `<div class="panel warning"><div class="split"><div><div class="micro">사건 시각</div><strong>2026-08-02 21:18 KST</strong></div><div><div class="micro">대상 계정</div><strong>@minseo_money</strong></div><div><div class="micro">승인 버전</div><strong>#A-018</strong></div><div><div class="micro">현재 상태</div><strong>외부 결과 확인 중</strong></div></div><div class="actions"><button class="btn primary" data-state="success">기존 발행 결과 확인하기</button><button class="btn" data-copy="OSMU 사건 2026-08-02 21:18 KST, 승인 #A-018">문제 신고 정보 복사</button><button class="btn linklike" data-view="channels">채널 관리로 돌아가기</button></div></div>`);
+      if (app.state === 'reconnect' || app.state === 'wrong-account') return screenWrap('STEP 5 · BLOCKED', '계정을 다시 확인해야 발행할 수 있어요', '초안과 승인 전 내용은 보존했습니다. 반환 handle을 확인한 뒤 검수를 다시 진행해 주세요.', `<div class="panel danger"><div class="compare"><div><div class="compare-label">승인 계정</div><div class="handle">@minseo_money</div></div><div><div class="compare-label">현재 반환</div><div class="handle">${app.state === 'wrong-account' ? '@zero_to_one_ai' : '확인 불가'}</div></div></div><div class="actions"><button class="btn primary" data-view="connect" data-state="${app.state}">Threads 계정 다시 확인하기</button><button class="btn" data-view="draft">초안으로 돌아가기</button></div></div>`);
+      if (app.state === 'success') return screenWrap('STEP 5 · PUBLISHED', '@minseo_money에 발행됐어요', '실제 permalink가 있어야 발행 성공입니다. 원문을 열어 마지막 확인을 마쳐 주세요.', `<div class="panel success"><div class="panel-head"><div><div class="micro">발행 시각</div><strong>2026-08-02 21:18 KST</strong></div><span class="badge success">원문 확인</span></div><div class="section"><div class="micro">사용 사실</div><div class="fact-title" style="margin-top:4px">1:1 상담은 50분입니다.</div></div><a class="receipt-link" href="https://www.threads.net/" target="_blank" rel="noreferrer" data-proof>threads.net/@minseo_money/post/DJ8x7k2Q</a><div class="proto-note">프로토타입 예시 URL입니다. 구현에서는 provider가 반환한 실제 permalink만 표시합니다.</div><div class="actions"><a class="btn primary" href="https://www.threads.net/" target="_blank" rel="noreferrer" data-proof style="text-decoration:none">Threads 원문 열기</a><button class="btn" data-view="draft" data-state="empty">같은 사실로 다음 글 만들기</button><button class="btn linklike" data-view="channels">채널 관리로 돌아가기</button></div></div>`);
+      return screenWrap('STEP 5 · READY', '발행 준비가 끝났어요', '승인 버전과 대상 계정을 다시 확인한 뒤 실제 원문을 만듭니다.', `<div class="panel selected"><div class="panel-head"><div><div class="micro">발행 대상</div><div class="handle">@minseo_money</div></div><span class="badge success">승인 #A-018</span></div><div class="actions"><button class="btn primary" data-state="loading">@minseo_money에 지금 발행하기</button><button class="btn" data-view="review">검수로 돌아가기</button></div></div>`);
+    }
+
+    function screenWrap(eyebrow, title, lede, body) {
+      return `<div class="canvas"><p class="eyebrow">${eyebrow}</p><h1>${title}</h1><p class="lede">${lede}</p>${body}</div>${evidence()}`;
+    }
+
+    function currentScreen() {
+      const screens = { channels: channelsScreen, connect: connectScreen, facts: factsScreen, draft: draftScreen, review: reviewScreen, publish: publishScreen };
+      return (screens[app.view] || channelsScreen)();
+    }
+
+    function render() {
+      const viewport = document.getElementById('appViewport');
+      viewport.className = `viewport ${app.viewport}`;
+      viewport.innerHTML = `<header class="app-header"><div class="brand"><div class="brand-mark">O</div><div><div class="brand-title">OSMU 발행 데스크</div><div class="brand-sub">계정부터 실제 원문까지 확인</div></div></div><div class="header-actions"><button class="icon-btn" data-toast="고객 원문과 social handle은 analytics에 넣지 않습니다.">내 데이터</button><button class="icon-btn" data-toast="채널 설정에서도 같은 연결 상태를 보여줍니다.">설정</button></div></header>${mobileChannels()}<div class="app-body">${sidebar()}<section class="main">${stepper()}<div class="content-grid">${currentScreen()}</div><div class="trust-strip"><span>✓ 이 작업공간의 계정과 사실만 사용합니다.</span><button class="btn linklike" data-toast="계정, 사실, 승인, 실제 원문을 단계별로 확인합니다.">확인 방법</button></div></section></div>`;
+      document.querySelectorAll('[data-view]').forEach(btn => btn.classList.toggle('active', btn.dataset.view === app.view && btn.classList.contains('tool-btn')));
+      document.querySelectorAll('[data-state]').forEach(btn => btn.classList.toggle('active', btn.dataset.state === app.state && btn.classList.contains('tool-btn')));
+      document.querySelectorAll('[data-viewport]').forEach(btn => btn.classList.toggle('active', btn.dataset.viewport === app.viewport));
+      document.getElementById('themeTool').textContent = app.theme === 'light' ? '다크' : '라이트';
+      bindInteractions();
+    }
+
+    function go(view, state) {
+      app.view = view || app.view;
+      if (state) app.state = state;
+      location.hash = `#/${app.view}`;
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function bindInteractions() {
+      const scope = document.getElementById('appViewport');
+      scope.querySelectorAll('[data-view]').forEach(el => el.addEventListener('click', () => go(el.dataset.view, el.dataset.state)));
+      scope.querySelectorAll('[data-state]:not([data-view])').forEach(el => el.addEventListener('click', () => { app.state = el.dataset.state; render(); }));
+      scope.querySelectorAll('[data-toast]').forEach(el => el.addEventListener('click', () => showToast(el.dataset.toast)));
+      scope.querySelectorAll('[data-copy]').forEach(el => el.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(el.dataset.copy); showToast('복사했습니다.'); }
+        catch { showToast('복사할 내용을 선택해 주세요.'); }
+      }));
+      scope.querySelectorAll('[data-proof]').forEach(el => el.addEventListener('click', () => showToast('프로토타입에서는 Threads 홈을 엽니다. 구현에서는 실제 permalink를 엽니다.')));
+    }
+
+    document.querySelectorAll('.proto-toolbar [data-view]').forEach(el => el.addEventListener('click', () => go(el.dataset.view)));
+    document.querySelectorAll('.proto-toolbar [data-state]').forEach(el => el.addEventListener('click', () => { app.state = el.dataset.state; render(); }));
+    document.querySelectorAll('.proto-toolbar [data-viewport]').forEach(el => el.addEventListener('click', () => { app.viewport = el.dataset.viewport; render(); }));
+    document.getElementById('themeTool').addEventListener('click', () => {
+      app.theme = app.theme === 'light' ? 'dark' : 'light';
+      document.documentElement.dataset.theme = app.theme;
+      render();
+    });
+    window.addEventListener('hashchange', () => {
+      const next = location.hash.replace('#/', '');
+      if (viewOrder.includes(next)) { app.view = next; render(); }
+    });
+
+    render();
+  </script>
+</body>
+</html>

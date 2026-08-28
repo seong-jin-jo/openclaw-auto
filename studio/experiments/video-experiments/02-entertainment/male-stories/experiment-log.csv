@@ -1,0 +1,7 @@
+experiment_id,status,submitted_at_kst,variable,model,prompt_id,pre_cost_credits,actual_charge_credits,pre_balance_credits,job_id,duration_seconds,aspect,audio,result_url,local_mp4,failure
+ST-01,failed_no_charge,2026-08-14 03:37,baseline,veo3_1_lite,ST-P-BASE,8,0,356.42,,8,9:16,off,,,rate_limit_reached concurrent_jobs_limit=6
+ST-02,failed_no_charge,2026-08-14 03:37,hook,veo3_1_lite,ST-P-HOOK-REVERSE,8,0,356.42,,8,9:16,off,,,rate_limit_reached concurrent_jobs_limit=6
+ST-03,failed_no_charge,2026-08-14 03:37,hook,veo3_1_lite,ST-P-HOOK-MIRROR,8,0,356.42,,8,9:16,off,,,rate_limit_reached concurrent_jobs_limit=6
+ST-04,failed_no_charge,2026-08-14 03:37,viewpoint,veo3_1_lite,ST-P-POV,8,0,356.42,,8,9:16,off,,,rate_limit_reached concurrent_jobs_limit=6
+ST-05,failed_no_charge,2026-08-14 03:37,prompt_style,veo3_1_lite,ST-P-ROTOSCOPE,8,0,356.42,,8,9:16,off,,,rate_limit_reached concurrent_jobs_limit=6
+ST-06,completed,2026-08-14 03:37,model,kling3_0,ST-P-BASE,12,12,356.42,194d3400-138f-4d01-997a-97044a164862,8,9:16,off,https://d8j0ntlcm91z4.cloudfront.net/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183709_194d3400-138f-4d01-997a-97044a164862.mp4,videos/male-stories-st06-model-kling.mp4,

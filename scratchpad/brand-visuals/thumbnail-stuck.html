@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>thumbnail-stuck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+  :root{
+    --base:#0B0F1A; --surface:#151B2B; --amber:#F59E0B; --mint:#34D399;
+    --text:#F8FAFC; --text-sub:#94A3B8;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ width:1280px; height:720px; overflow:hidden; }
+  body{
+    position:relative; font-family:'Pretendard', sans-serif;
+    background:
+      radial-gradient(900px 700px at 88% 30%, rgba(52,211,153,0.09) 0%, transparent 60%),
+      var(--base);
+  }
+  .topbar{ position:absolute; top:0; left:0; right:0; height:16px; background:var(--mint); }
+  .series-tag{
+    position:absolute; top:38px; left:64px;
+    font-family:'JetBrains Mono', monospace; font-weight:700; font-size:22px;
+    letter-spacing:4px; color:var(--mint); text-transform:uppercase;
+  }
+  .hook{
+    position:absolute; left:64px; top:118px; width:660px;
+    font-weight:800; font-size:76px; line-height:1.2; letter-spacing:-2px; color:var(--text);
+  }
+  .hook .num{ font-family:'JetBrains Mono', monospace; color:var(--amber); font-weight:800; }
+  .badge{
+    position:absolute; left:64px; bottom:48px;
+    display:flex; align-items:center; gap:10px;
+    background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);
+    border-radius:10px; padding:10px 20px;
+    font-family:'JetBrains Mono', monospace; font-weight:700; font-size:26px;
+  }
+  .badge .chev{ color:var(--amber); }
+  .badge .name{ color:var(--text); }
+
+  /* 5 blocking-stage rail, right side */
+  .rail{
+    position:absolute; right:96px; top:96px; width:420px; height:528px;
+    display:flex; flex-direction:column; justify-content:space-between;
+  }
+  .stage{
+    display:flex; align-items:center; gap:20px;
+    background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+    border-radius:12px; padding:16px 22px;
+  }
+  .stage.hit{
+    background:rgba(52,211,153,0.10); border-color:rgba(52,211,153,0.55);
+    box-shadow:0 0 30px 2px rgba(52,211,153,0.18);
+  }
+  .stage .idx{
+    font-family:'JetBrains Mono', monospace; font-weight:800; font-size:30px; color:var(--text-sub); width:36px;
+  }
+  .stage.hit .idx{ color:var(--mint); }
+  .stage .label{ font-weight:700; font-size:26px; color:var(--text); }
+  .stage .tag{
+    margin-left:auto; font-family:'JetBrains Mono', monospace; font-size:15px; color:var(--text-sub);
+    border:1px solid rgba(255,255,255,0.14); border-radius:6px; padding:4px 8px;
+  }
+  .stage.hit .tag{ color:var(--mint); border-color:rgba(52,211,153,0.5); }
+</style>
+</head>
+<body>
+  <div class="topbar"></div>
+  <div class="series-tag">막힘 해부</div>
+  <div class="hook">바이브코더가<br>반드시 막히는<br><span class="num">5</span>구간</div>
+  <div class="badge"><span class="chev">&gt;</span><span class="name">sj</span></div>
+
+  <div class="rail">
+    <div class="stage hit"><span class="idx">01</span><span class="label">환경변수</span><span class="tag">STUCK</span></div>
+    <div class="stage"><span class="idx">02</span><span class="label">API 인증</span><span class="tag">OK</span></div>
+    <div class="stage"><span class="idx">03</span><span class="label">CORS</span><span class="tag">OK</span></div>
+    <div class="stage"><span class="idx">04</span><span class="label">빌드 에러</span><span class="tag">OK</span></div>
+    <div class="stage"><span class="idx">05</span><span class="label">배포</span><span class="tag">OK</span></div>
+  </div>
+</body>
+</html>

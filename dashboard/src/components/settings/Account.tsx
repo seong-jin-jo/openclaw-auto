@@ -16,21 +16,21 @@ export function Account() {
   };
 
   return (
-    <div className="card p-5">
-      <h3 className="text-sm font-medium text-muted mb-4">Account</h3>
-      <div className="space-y-2 text-sm">
+    <div className="card p-stack-section">
+      <h3 className="text-body-sm font-medium text-muted mb-pad-inset">Account</h3>
+      <div className="space-y-stack-tight text-body-sm">
         <div className="flex justify-between">
           <span className="text-subtle">Auth</span>
           <span className="text-muted">{hasAuth ? "Token set" : "No auth"}</span>
         </div>
       </div>
       {hasAuth ? (
-        <div className="flex gap-2 mt-4">
-          <button onClick={handleLogout} className="px-4 py-2 text-xs bg-surface-2 text-muted rounded hover:bg-surface-2">
-            Logout
+        <div className="flex gap-stack-tight mt-pad-inset">
+          <button onClick={handleLogout} className="px-pad-inset py-stack-tight text-caption bg-surface-2 text-muted rounded-chip hover:bg-surface-2">
+            로그아웃
           </button>
-          <button onClick={handleChangeToken} className="px-4 py-2 text-xs bg-surface-2 text-muted rounded hover:bg-surface-2">
-            Change Token
+          <button onClick={handleChangeToken} className="px-pad-inset py-stack-tight text-caption bg-surface-2 text-muted rounded-chip hover:bg-surface-2">
+            인증 토큰 변경
           </button>
         </div>
       ) : null}

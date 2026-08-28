@@ -109,6 +109,66 @@ describe("proxy 토큰 검증 분기", () => {
   });
 });
 
+describe("proxy Studio 독립 인증 경계", () => {
+  it("STUDIO-AUTH-01 한국어 설명: Studio bearer는 대시보드 토큰과 달라도 v1 Route Handler까지 통과한다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "dashboard-only-token");
+    const req = new NextRequest("http://localhost/api/studio/v1/generations", {
+      method: "POST",
+      headers: { Authorization: "Bearer studio-only-token" },
+    });
+
+    expect(isPass(await proxy(req))).toBe(true);
+    expect(mockResolveTenantToken).not.toHaveBeenCalled();
+    expect(mockVerifySupabaseJwt).not.toHaveBeenCalled();
+  });
+
+  it("STUDIO-AUTH-02 한국어 설명: 운영의 개발용 Studio 신원은 토큰 값과 관계없이 503으로 닫힌다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "dashboard-only-token");
+    vi.stubEnv("STUDIO_IDENTITY_MODE", "development");
+    vi.stubEnv("STUDIO_DEV_BEARER_TOKEN", "expected-studio-token");
+    vi.stubEnv("STUDIO_DEV_MEMBER_ID", "member-proxy-contract");
+    vi.stubEnv("STUDIO_DEV_WORKSPACE_IDS", "11111111-1111-4111-8111-111111111111");
+    const req = new NextRequest("http://localhost/api/studio/v1/generations", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer wrong-studio-token",
+        "Content-Type": "application/json",
+      },
+      body: "{}",
+    });
+
+    expect(isPass(await proxy(req))).toBe(true);
+    const { POST } = await import("@/app/api/studio/v1/generations/route");
+    const response = await POST(req);
+    const body = await response.json();
+    expect(response.status).toBe(503);
+    expect(body.error.code).toBe("IDENTITY_ADAPTER_NOT_CONFIGURED");
+  });
+
+  it("STUDIO-AUTH-03 한국어 설명: 기존 Studio 대시보드 API는 예외에 섞이지 않고 대시보드 인증을 유지한다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "dashboard-only-token");
+    const req = new NextRequest("http://localhost/api/studio/text", {
+      method: "POST",
+      headers: { Authorization: "Bearer studio-only-token" },
+    });
+
+    expect((await proxy(req)).status).toBe(401);
+  });
+
+  it("STUDIO-AUTH-04 한국어 설명: 인증 구현을 확인하지 않은 새 Studio v1 경로는 자동 예외가 되지 않는다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "dashboard-only-token");
+    const req = new NextRequest("http://localhost/api/studio/v1/not-allowlisted", {
+      headers: { Authorization: "Bearer studio-only-token" },
+    });
+
+    expect((await proxy(req)).status).toBe(401);
+  });
+});
+
 describe("proxy /api/me 운영자 토큰 검증 rate limit", () => {
   function meRequest(
     bearer: string,
@@ -273,8 +333,9 @@ describe("proxy 테넌트 토큰(인증모델 b) 분기 — 실검증", () => {
     "/api/channels/threads/accounts",
     "/api/channels/threads/accounts/account-1",
     "/api/channels/threads/accounts/account-1/default",
+    "/api/suggestions/enqueue",
     "/api/tiktok/creator-info",
-  ])("osmu_ 토큰 + 다중계정 API(%s) → tenant-aware 통과", async (path) => {
+  ])("BE-V63-02 고객 경계 정상 경로: osmu_ 토큰 + tenant API(%s)는 운영자 전용으로 막히지 않는다", async (path) => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
     mockResolveTenantToken.mockResolvedValue("tenant-1");
@@ -282,6 +343,18 @@ describe("proxy 테넌트 토큰(인증모델 b) 분기 — 실검증", () => {
       headers: { Authorization: "Bearer osmu_xxx" },
     });
     expect(isPass(await proxy(req))).toBe(true);
+  });
+
+  it("BE-V63-02 고객 경계 거절 경로: 폐기된 토큰의 제안 큐 인계는 401로 거절한다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");
+    mockResolveTenantToken.mockResolvedValue(null);
+    const req = new NextRequest("http://localhost/api/suggestions/enqueue", {
+      method: "POST",
+      headers: { Authorization: "Bearer osmu_revoked" },
+    });
+
+    expect((await proxy(req)).status).toBe(401);
   });
 
   it("osmu_ 토큰 + 미인식/폐기 토큰 → 401", async () => {

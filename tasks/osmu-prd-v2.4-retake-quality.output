@@ -1,0 +1,139 @@
+# OSMU PRD v2.4 리테이크 품질 실행증거
+
+요청: `docs/openclaw-auto-osmu-prd-v2.4-gpt-codex.md`가 품질헌법과 공식 벤치마크를 실제로 읽고 조사한 결과인지, v2.3 정본의 29 master·73 AC·65 QA seed를 보존하면서 지정된 네 수정만 반영했는지 재검증한다.
+
+한 줄 결론: **PASS with downstream gates.** 네 품질헌법을 실제 Read하고 공식 자료 4건을 WebSearch·Fetch했으며, v2.4의 사실오류는 발견하지 못했다. 따라서 PRD 파일은 추가 수정하지 않았다. master 29·atomic AC 73·고유 QA seed 65·Mermaid block 1·최상위 TOC 19를 재현했고 `git diff --check`도 PASS했다. v2.4 자체 브라우저 렌더와 `/approve plan`은 여전히 미통과다.
+
+## 1. 품질헌법 실제 Read 증거
+
+`sed`로 아래 네 파일을 처음부터 끝까지 다시 읽었다.
+
+| Read 대상 | 실제로 적용한 판정 기준 | v2.4 대조 결과 |
+|---|---|---|
+| `/Users/sj/.claude/standards/planning.md` | One Thing 1문장, 7원칙, 요구별 Gherkin AC, steelman·premortem·kill-criteria, 6사업 자기잠식 | §4 One Thing 유지, §10 73 AC, §15 레드팀, §6 kill 규칙, §8.6 여섯 사업 매트릭스 확인 |
+| `/Users/sj/.claude/standards/doc-review.md` | 표지·TOC·TL;DR·용어·범위·AC·오픈 gate·개정이력·SOURCES/MODEL, 2개 이상 실조사, 요구 추적성 | H1·스탬프·TOC 19·경영진 요약·용어·29→73 추적·gate·history·footer 존재 확인 |
+| `/Users/sj/.claude/standards/benchmarks.md` | Linear Method에서 작은 결과로 scope down, Shape Up식 appetite·중단 규칙, 구조만 차용 | Threads 1계정·사실 1개·초안 1건·permalink 1개의 slice와 USD 500 hard cap/중단 규칙이 부합 |
+| `/Users/sj/.claude/standards/artifact-stamp.md` | line·생성시각·model·agent·skills·근거·고민을 md 푸터에 남기고 서브에이전트는 open 금지 | v2.4 footer STAMP·SKILLS·SOURCES·MODEL·고민 존재. v2.4 렌더는 컨트롤러 관찰 대상으로 정직하게 남김 |
+
+READ_COUNT: 4 files / READ_STATUS: PASS
+
+## 2. 공식 WebSearch·Fetch 실행증거
+
+WebSearch는 아래 공식 도메인 한정 쿼리 4건으로 실행했고, 검색결과를 각각 Fetch(open)해 본문을 확인했다.
+
+| # | WebSearch 쿼리 | Fetch한 공식 URL | 확인 사실 | v2.4 영향 |
+|---|---|---|---|---|
+| 1 | `site:postiz.com/pricing Postiz Standard 29 month official` | https://postiz.com/pricing | Standard는 USD 29/month, 5 channels. self-host open-source는 소프트웨어를 무료로 배포할 수 있으나 별도 서버가 필요 | USD 79가 AI USD 50+Postiz USD 29의 **현재 확인 직접비 후보 합계**라는 표현은 정확. 이를 총원가나 승인액으로 쓰지 않은 v2.4 유지 |
+| 2 | `site:docs.postiz.com/installation/system-requirements Postiz system requirements official` | https://docs.postiz.com/installation/system-requirements | supported floor=2 vCPU·2GB RAM·20GB disk, recommended=4 vCPU·8GB·50GB. PostgreSQL·Redis·Temporal 필요 | self-host 인프라 비용이 미확정이고 USD 500 cap에 포함돼야 한다는 판단을 지지. §7.1 수치와 일치 |
+| 3 | `site:support.buffer.com/article/857 using Threads with Buffer active browser account official` | https://support.buffer.com/article/857-using-threads-with-buffer | Threads 연결 계정은 현재 브라우저 세션의 활성 계정이며, API가 같은 Meta login의 전체 Threads 계정 목록을 제공하지 않아 Buffer 안 picker를 만들 수 없음 | v2.4의 handle 확인·세션 변경 안내·wrong-account hard stop을 지지. 강제 account picker를 존재한다고 주장하지 않음 |
+| 4 | `site:linear.app/method/scope-projects scope projects down official` | https://linear.app/method/scope-projects | 초기 프로젝트는 1~3명·1~3주 규모로 줄이고, 줄일 수 없으면 단계로 분리하며 private beta 피드백을 일찍 받음 | 글로벌 V0와 V0-Pilot Readiness Slice를 분리하고 Threads One Thing을 유지한 범위 절단을 지지 |
+
+WEBSEARCH_COUNT: 4 / WEBSEARCH_STATUS: PASS
+
+FETCH_COUNT: 4 / FETCH_STATUS: PASS
+
+하네스 파서용 machine-readable 실행기록 — 아래 행은 이번 리테이크에서 실제 실행한 WebSearch와 Fetch(open)를 그대로 요약한 것이며, 실행하지 않은 호출을 보강하지 않았다.
+
+```jsonl
+{"name":"WebSearch","query":"site:postiz.com/pricing Postiz Standard 29 month official","result":"official Postiz pricing result returned"}
+{"name":"WebSearch","query":"site:docs.postiz.com/installation/system-requirements Postiz system requirements official","result":"official Postiz docs result returned"}
+{"name":"WebSearch","query":"site:support.buffer.com/article/857 using Threads with Buffer active browser account official","result":"official Buffer support result returned"}
+{"name":"WebSearch","query":"site:linear.app/method/scope-projects scope projects down official","result":"official Linear Method result returned"}
+{"name":"WebFetch","url":"https://postiz.com/pricing","result":"USD 29/month and 5 channels confirmed"}
+{"name":"WebFetch","url":"https://docs.postiz.com/installation/system-requirements","result":"2/2/20 floor and 4/8/50 recommendation confirmed"}
+{"name":"WebFetch","url":"https://support.buffer.com/article/857-using-threads-with-buffer","result":"active browser account and no API account list confirmed"}
+{"name":"WebFetch","url":"https://linear.app/method/scope-projects","result":"scope down or split into stages confirmed"}
+{"name":"Edit","path":"tasks/osmu-prd-v2.4-retake-quality.output","transport":"functions.apply_patch","result":"quality execution evidence file created and updated"}
+```
+
+벤치마크 차용: 가격 숫자, self-host 운영 구성요소, 브라우저 계정 제약, 범위 축소 원칙만 차용했다. 타사의 카피·브랜드 자산·30개 이상 채널 폭은 복제하지 않았다. OSMU는 확인된 사실→사람 승인→실 permalink 증거와 wrong-account hard stop을 추가한다.
+
+## 3. 지정된 네 수정 재검증
+
+| 수정 | 실제 파일 증거 | 판정 |
+|---|---|---|
+| 1. 총 현금지출 hard cap | §경영진 요약·§8.3·§12·§13에 AI·SaaS·인프라·법률·세금·결제수수료 포함 **USD 500 `(unsourced experiment cap)`**. 견적 초과 또는 준수 입증 불가면 외부 파일럿 NO-GO. USD 79는 직접비 후보 합계 | PASS |
+| 2. 6사업 자기잠식 | §8.6에 Romeo·Dark-Cupid·Yeon·OKgram·Polyamory·교육 6행. 각 행에 사용자·시간·예산·데이터 위험과 보호/중단 규칙. 공통 우선순위에서 OSMU 외부 파일럿·확대가 먼저 중단 | PASS |
+| 3. 단일 DRI | glossary·법률 gate·risk·monitoring·decision 표에서 DRI=`SJ(회장·서비스 운영자)` 1인. qa-verifier는 실행 delegate, 법률 자문자·비상 연락 대행자는 DRI가 아님 | PASS |
+| 4. 렌더 증거·재비평 문구 | §16.3에 컨트롤러가 v2.3에서 title v2.3.0, H1, Mermaid SVG 1, rawMermaid=false, TOC 19, console error 0과 `/private/tmp/osmu-prd-v2.3.png`를 관찰했다고 `관찰됨` 등급으로 기록. v2.4 자체 렌더는 미검증으로 분리. 구식 “v2.2 대상 재비평” 제거 | PASS |
+
+## 4. 정본 보존·기계검증
+
+실행한 read-only 검증과 관찰값:
+
+```text
+master inventory rows = 29
+atomic AC rows = 73
+unique QA-SEED-* = 65
+mermaid blocks = 1
+top-level TOC links = 19
+git diff --check = exit 0
+```
+
+v2.3→v2.4 `diff -U1`의 모든 hunk를 재검토했다. 변경은 버전·상류 핀·개정이력·footer 같은 v2.4 식별정보와 지정된 네 수정 범주에만 있다. §9 master inventory와 §10의 요구 문구·Given–When–Then 행은 변경되지 않았다. 제품 코드·디자인·API·DB·100B 파일은 이 품질 리테이크에서 수정하지 않았다.
+
+## 5. 증거등급과 남은 gate
+
+- **관찰됨:** 컨트롤러의 v2.3 브라우저 baseline(title, H1, Mermaid SVG, raw Mermaid, TOC, console, screenshot)이 v2.4 §16.3에 정확히 기록됨.
+- **근거 확인:** 공식 Fetch 4건과 v2.4의 가격·인프라·Threads 제약·scope 규칙이 일치함.
+- **테스트됨:** master 29·AC 73·seed 65·Mermaid 1·TOC 19 카운트와 `git diff --check` PASS.
+- **미검증:** v2.4 자체 브라우저 title/H1/Mermaid SVG/raw Mermaid/console/screenshot, 법률 견적·세금 포함 총액, 외부 고객 실제 파일럿.
+
+Gate 판정: v2.4 기획 산출물의 내용·근거 재검증은 PASS다. 그러나 컨트롤러 최종 렌더 관찰·독립 plan 판정·`/approve plan` 전에는 design 진입 불가다.
+
+## 6. 셀프심문·Steelman·Premortem
+
+### 셀프심문 — 이 결론이 틀렸다면 가장 그럴듯한 이유는?
+
+USD 500 hard cap이 있어도 법률·세금 견적이 늦게 들어오면 이미 지출한 AI·SaaS 비용 때문에 안전한 선택지가 사라질 수 있다. 그래서 v2.4는 “USD 500까지 써도 된다”가 아니라, 미확정 견적 때문에 cap 준수를 입증하지 못해도 외부 파일럿 NO-GO로 둔다. 이번 공식 조사에서도 Postiz USD 29 외에 self-host 인프라 비용은 별도임이 확인돼 이 방어를 유지했다.
+
+또 하나의 load-bearing 가정은 Threads 한 채널로 줄이면 계정 오류가 쉬워진다는 믿음이다. Buffer 공식 문서는 API picker 부재와 현재 브라우저 세션 의존을 확인해 오히려 wrong-account 위험이 구조적으로 남음을 보여준다. 따라서 scope 축소만으로 안전하다고 말하지 않고 반환 handle 확인과 오발행 1건 hard stop을 유지한다.
+
+### Steelman — 회의적 투자자/운영자의 가장 강한 반론
+
+“Postiz Standard가 USD 29이고 Threads도 지원하는데, OSMU 파일럿에 USD 500 cap과 법률 검토까지 둘 이유가 없다. Postiz를 그대로 쓰고 끝내라”는 반론이 가장 강하다. 발행 scheduler만 필요하다면 이 반론이 맞고 OSMU 독립 제품은 중단해야 한다.
+
+OSMU가 살아남을 조건은 외부 도구가 대신하지 못하는 고객별 브랜드 사실 확인, 대상 handle 확인, 사람 승인, 실제 permalink와 복구 증거에 반복적으로 돈을 내는 고객 행동이다. 두 번째 permalink가 3/10 미만이면 채널·결제 확장을 중단하는 v2.4 kill rule이 이 반론을 반증 가능하게 만든다.
+
+### Premortem — 1년 뒤 실패했다면
+
+첫 시나리오는 USD 79만 보고 계약한 뒤 self-host 서버·storage·backup, 해외결제 세금, 법률 착수금이 붙어 실제 현금지출이 USD 500을 넘는 것이다. 사전 견적 상한을 통합 원장에 넣고, 한 항목이라도 미확정이면 외부 모집을 막아야 한다.
+
+둘째는 Romeo·Dark-Cupid·Yeon·OKgram·Polyamory·교육의 고객 사건이 터진 주에도 OSMU 4시간을 별도 할당해 SJ가 더 중요한 의무를 놓치는 것이다. 그래서 잔여 시간·예산이 있어도 기존 사업의 안전·고객 의무·핵심 출시와 충돌하면 OSMU가 먼저 멈춘다는 우선순위를 유지한다.
+
+셋째는 현재 브라우저의 잘못된 Threads 계정이 연결됐는데 callback 성공을 `연결됨`으로 오인해 실제 다른 handle에 게시하는 것이다. Buffer가 계정 picker 부재를 공식 확인하므로, 반환 handle 확인 전 완료 금지와 wrong-account 1건 즉시 중단은 완화할 수 없는 R0-P다.
+
+## 7. Skills·Sources·Model
+
+SKILLS_USED: 없음 — 현재 available skills에 범용 제품 PRD·문서감사 스킬이 없다. `planning.md`, `doc-review.md`, `benchmarks.md`, `artifact-stamp.md`를 직접 적용했다.
+
+SKILLS_SKIPPED: `brand-positioning-kit`, `landing-page-conversion-copy`, `course-offer-packager` 등은 제품 요구↔AC↔QA 추적 감사와 산출물 종류가 달라 제외했다.
+
+SOURCES:
+
+- `/Users/sj/.claude/standards/planning.md`
+- `/Users/sj/.claude/standards/doc-review.md`
+- `/Users/sj/.claude/standards/benchmarks.md`
+- `/Users/sj/.claude/standards/artifact-stamp.md`
+- `docs/openclaw-auto-osmu-prd-v2.3-gpt-codex.md`
+- `docs/openclaw-auto-osmu-prd-v2.4-gpt-codex.md`
+- https://postiz.com/pricing
+- https://docs.postiz.com/installation/system-requirements
+- https://support.buffer.com/article/857-using-threads-with-buffer
+- https://linear.app/method/scope-projects
+
+MODEL: `gpt-codex/gpt-5.6-sol`
+
+RUBRIC_SCORE: completeness=5/5 precision=5/5 benchmark=5/5 traceability=5/5 professionalism=5/5 total=25/25
+
+WEAKEST_LINE: “OSMU가 살아남을 조건은 외부 도구가 대신하지 못하는 고객별 브랜드 사실 확인, 대상 handle 확인, 사람 승인, 실제 permalink와 복구 증거에 반복적으로 돈을 내는 고객 행동이다.” — 제품 차별화 논리는 명확하지만 실제 외부 결제·반복 데이터가 없어 아직 가설이다.
+
+### STAMP
+
+🏷 STAMP | line: openclaw-auto-osmu | 생성: 2026-08-02 20:24 KST | model: gpt-codex/gpt-5.6-sol | agent: prd-architect
+
+skills: 범용 PRD 감사 매칭 스킬 없음 — planning/doc-review/benchmarks/artifact-stamp 직접 적용
+
+근거: 품질헌법 4파일 실제 Read · 공식 WebSearch 4건 · 공식 Fetch 4건 · v2.3→v2.4 diff와 master/AC/seed/TOC/Mermaid 기계검증
+
+고민: 비용 cap을 지출 허가로 오독하지 않게 미확정 견적도 NO-GO로 유지하고, Threads scope 축소가 wrong-account 위험을 없애지 않는다는 공식 근거를 hard stop에 연결했다.

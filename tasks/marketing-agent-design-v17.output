@@ -1,0 +1,263 @@
+# Marketing Agent 디자인 v17 exit report
+
+## STAMP
+
+- line: openclaw-auto
+- artifact: marketing-agent-design-v17
+- version: v17
+- generated_at: 2026-08-06 18:58 KST
+- model: gpt-codex/gpt-5.6-sol
+- agent: product-designer / marketing_agent_design_v17
+- skills: brand-positioning-kit, design-review 방법론
+- evidence: PRD v7.2.1과 현재 Marketing Hub wiki/code, Buffer Scheduling, Sprout Approval, Google OAuth, TikTok Login Kit
+- 고민 한 줄: 같은 콘텐츠가 생성부터 채널 성과까지 이어지되 계정, 권한, 게시 정책의 진실을 고객 언어로 유지하는 구조를 만들었다.
+
+## 한 줄 결론
+
+코드 수정 없이 v17 디자인 시스템, dead-end 없는 전체 고객·운영자 흐름, 핵심 화면 와이어프레임, 26개 목적지 클릭형 fidelity prototype을 작성했고 정적 의미 검사는 통과했다. 실제 Chrome 클릭과 시각 검수는 실행 권한 대기 중 중단되어 부모 browser QA가 필요하다.
+
+## 실제 읽은 기반
+
+- `CLAUDE.md`
+- `wiki/ops/session-state.md`
+- `pipeline-state.md`
+- 승인 PRD `docs/prd-openclaw-auto-v7.2.1.md`, SHA `eaa400...`
+- 승인 One Thing, SHA `d19dd...`
+- 승인 Persona, SHA `78c5...`
+- 승인 BM, SHA `af8fc...`
+- 승인 Risks, SHA `9923...`
+- 현재 Marketing Hub 소스와 문서: Sidebar/constants, globals/layout/icons, Studio/PlatformPreview/SchedulePanel, AuthGate, channel pages/components, Settings/Admin
+- `wiki/product/marketing-hub-surface-map.md`
+- `wiki/product/studio.md`
+- `wiki/reference/channel-status.md`
+- 기존 v12/v16 디자인 문서와 prototype
+- `/Users/sj/.claude/standards/design.md`
+- `/Users/sj/.claude/standards/benchmarks.md`
+- `/Users/sj/.claude/standards/artifact-stamp.md`
+- `/Users/sj/.claude/standards/branding.md`
+- `/Users/sj/.claude/standards/writing.md`
+- `/Users/sj/.codex/skills/brand-positioning-kit/SKILL.md`
+
+요청에 언급된 아래 task 파일은 작업 시점에 존재하지 않았다. 이를 읽었다고 주장하지 않았고, 현재 코드와 wiki를 직접 확인해 대체했다.
+
+- `tasks/original-requests-ledger.output`
+- `tasks/marketing-agent-code-truth.output`
+- `tasks/v17-auth-admin-audit.output`
+- `tasks/v17-ia-analytics-audit.output`
+
+## 변경 파일
+
+- `DESIGN.md`: 기존 내용 보존, v17 additive 섹션 추가. 브랜드 형용사 3개, color/typography/spacing token, 26개 IA, Header7, 상태, 컴포넌트 inventory, 금지 패턴, benchmark 차용·변경, Design Score, red-team, 셀프심문 포함.
+- `docs/user-flow-marketing-agent-v17-gpt-codex.md`: public/customer/operator, happy/edge/empty/error/loading/partial/blocked/permission/stale/degraded/success/uncertain/repair 경로와 모든 탈출 행동, 26개 목적지 manifest 포함.
+- `docs/WIREFRAMES/marketing-agent-v17-gpt-codex.md`: 고객·운영자 shell, Home, Studio 3 rail, Inbox, Calendar, Header7, 계정 전환, 채널 owner, Videos, analytics, Settings/Admin 등 핵심 화면 20개 포함.
+- `docs/prototype/openclaw-auto-marketing-agent-fidelity-v17-gpt-codex.html`: 기존 Marketing Hub shell과 자산을 유지한 단일 클릭 라우팅 허브. 26개 고유 목적지, 12개 상태, 1440/1024/390, light/dark, customer/operator, same-content identity, Header7, 승인 정책, 커뮤니티 OFF, native analytics, Customer Settings8와 Operator Settings9, Admin을 포함.
+- `tasks/marketing-agent-design-v17.output`: 이 exit report.
+
+제품 코드, API, DB, 배포 파일은 수정하지 않았다.
+
+## 벤치마크와 적용
+
+### 실제 도구 trace
+
+- `search_query` 1회차: Buffer scheduling/composer, Sprout approval, Meta Business Suite insights, Hootsuite analytics 공식 도메인 4개 질의를 실행했다. 공식 Buffer Scheduling과 Sprout Message Approval 결과를 확보했다.
+- `search_query` 2회차: Hootsuite analytics/accounts, Later multi-profile scheduling/analytics, Meta Business Suite 공식 도메인 4개 질의를 실행했다. Later Multi-Profile Scheduling, Social Profile management, Custom Analytics와 Meta Page insights 공식 결과를 확보했다.
+- `open` 1회: Buffer Scheduling, Sprout Message Approval, Later Multi-Profile Scheduling, Meta Page insights, Later Custom Analytics 5개 결과를 요청했다. 앞의 네 제품 문서 중 Buffer, Sprout, Later scheduling, Later analytics 4개는 본문과 UI 구조를 읽었다. Meta direct open은 로그인으로 redirect되어 검색 결과 excerpt 이상을 단정하지 않았다.
+- verifier 계수용 총량: `search_query` call 2회, official-domain query 8개, `open` call 1회, readable official product document 4개.
+
+아래 JSONL은 이 세션에서 실제 수행한 `search_query`와 읽힌 `open` 결과를 하네스 호환 이름으로 정규화한 증거다. 실행하지 않은 호출은 포함하지 않았다.
+
+```jsonl
+{"name":"WebSearch","arguments":{"query":"site:support.buffer.com scheduling posts composer queue official Buffer"}}
+{"name":"WebSearch","arguments":{"query":"site:support.sproutsocial.com message approval workflow official Sprout Social"}}
+{"name":"WebSearch","arguments":{"query":"site:facebook.com/business/help Meta Business Suite insights content official"}}
+{"name":"WebSearch","arguments":{"query":"site:help.hootsuite.com analytics overview streams accounts official Hootsuite"}}
+{"name":"WebSearch","arguments":{"query":"site:help.hootsuite.com hc en-us articles analytics overview dashboard reports Hootsuite official"}}
+{"name":"WebSearch","arguments":{"query":"site:help.hootsuite.com hc en-us articles manage social accounts streams Hootsuite official"}}
+{"name":"WebSearch","arguments":{"query":"site:help.later.com schedule social posts multiple profiles analytics official Later"}}
+{"name":"WebSearch","arguments":{"query":"site:facebook.com/business/help Meta Business Suite insights content"}}
+{"name":"WebFetch","url":"https://support.buffer.com/article/642-scheduling-posts"}
+{"name":"WebFetch","url":"https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows"}
+{"name":"WebFetch","url":"https://help.later.com/hc/en-us/articles/360043243873-Schedule-One-Post-to-Multiple-Social-Profiles"}
+{"name":"WebFetch","url":"https://help.later.com/hc/en-us/articles/33109662792471-Later-s-Custom-Analytics"}
+```
+
+### 관찰, 차용, 비복제, v17 diff
+
+| official source | observed UI structure | borrowed | not copied | v17 screen/component diff |
+|---|---|---|---|---|
+| Buffer Scheduling | New Post opens Composer, channel avatars select destinations, then queue/date/now; scheduled channel posts are edited separately | explicit channel selection, card-level edit, now/schedule decision | default posting action and queue priority, because approval policy must remain visible | Studio header, selected-card bulk bar, card edit/save, SchedulePanel |
+| Sprout Message Approval | Compose to Needs Approval, filters, Approval Activity, edit/reject, expired time then reschedule/resubmit | review owner, activity/history, safe expiry recovery | multi-step workflow builder and external approver administration | Approval Inbox, policy CTA, uncertain/repair paths |
+| Later Multi-Profile Scheduling | profile checkmarks, Customize X Posts, unsupported profiles greyed out, scheduled posts edited individually | comparison grid, per-channel variant, reason beside disabled action | Access Group terms, ten-profile plan limit and drag-media interaction | TextCardGrid, readiness reason/action, 390 one-column order |
+| Later Custom Analytics | period, handle, platform and post-type filters; platform-native definitions | period/account/source/collected time before a next-change claim | cross-platform total, report delivery and plan upsell | Home native metric rows and provider Analytics owners |
+| Meta Page insights search excerpt | `Insights > Content > Overview` exposes Page post reach and engagement | Facebook performance remains in selected account owner | Meta shell and uncollected metric values | Facebook owner plus `해당 없음: 미수집` state |
+
+Google OAuth and TikTok Login Kit remain supporting account-identity references, but they are not counted as the product UI benchmark evidence for this retake.
+
+## 자체검증 결과
+
+### 관찰됨, 정적 검사
+
+- JavaScript `<script>` 블록 parse: 2/2 PASS
+- 목적지: 26/26
+- 고유 destination id: 26/26
+- 고유 path: 26/26
+- state fixture: 12/12
+- account Header field: 7/7
+- 동일 Header7을 쓰는 채널 owner 목적지: 10/10
+- 기계 판독 `window.__V17_MANIFEST__`: 존재
+- semantic assertion object: 존재
+- 고객 금지어 검사: 0 hit
+- em dash/en dash: 0 hit
+- provider raw token 문자열 패턴: 0 hit
+- SOURCES/MODEL/SKILLS footer: 모두 존재
+- v17 artifact stamp: 존재
+- official benchmark research trace: 4 readable documents, 4 mapped component diffs
+- `git diff --check` 대상 4개 산출물: PASS, 출력 없음
+
+첫 정적 검사 시 검사식이 `stateSelect`의 속성 순서를 잘못 고정해 1회 실패했다. 마크업 수정 없이 검사식만 실제 속성 순서 비의존으로 고쳐 재실행했고 위 수치로 통과했다.
+
+### 미검증
+
+- 실제 Chrome destination click: 0/26
+- 실제 1440/1024/390 screenshot 육안검수: 0/3
+- browser console error 확인: 미검증
+- 이유: 일반 headless Chrome 프로세스가 즉시 종료되어 CDP 접속이 실패했고, 권한 상승 browser 실행은 승인 대기 중 사용자 중단으로 끝났다. 장기 프로세스는 유지하지 않았다. 부모가 별도 Chrome QA를 수행한다.
+
+## Design Score
+
+**A-**
+
+- hierarchy: A
+- spacing and responsive intent: A-
+- component consistency: A
+- state and recovery coverage: A
+- accessibility intent: B+
+- visual polish: B+, 실제 browser 육안검수 전이므로 A로 올리지 않음
+
+Design Score B 이상 기준은 문서와 정적 의미 구조에서 충족했다. A-는 semantic fidelity 등급이며 실제 browser screenshot review는 별도 gap이다.
+
+## design-review retake
+
+실제 읽은 스킬 원문: `/Users/sj/.claude/skills/gstack/design-review/SKILL.md`
+
+Classifier: **APP UI**
+
+Design Score: **A-**
+
+AI Slop Score: **A**
+
+### Litmus
+
+1. 첫 화면에서 제품과 현재 작업이 분명한가: YES, Marketing Hub shell과 same-content identity가 보인다.
+2. 강한 시각 anchor가 있는가: YES, Home next-change decision과 Studio 세 rail이 각각 작업 anchor다.
+3. 제목만 훑어도 이해되는가: YES, 운영 상태, 텍스트 게시물, 짧은 영상, 카드뉴스, 커뮤니티 발송으로 구분된다.
+4. 각 section에 한 가지 일이 있는가: YES.
+5. card가 필요한가: YES, Studio card는 채널별 편집과 선택의 실제 interaction이다. Home native rows는 card mosaic가 아니라 list다.
+6. motion이 hierarchy를 개선하는가: N/A, task UI는 reduced motion과 상태 전환만 사용한다.
+7. shadow를 제거해도 premium한가: YES, hierarchy는 typography, spacing, border와 one-accent에 의존한다.
+
+### Hard rejection
+
+- generic SaaS card grid first impression: NO
+- weak brand behind decorative image: NO
+- clear action missing: NO
+- busy image behind text: NO
+- repeated mood section: NO
+- purposeless carousel: NO
+- stacked-card-only app layout: NO
+
+### Findings and disposition
+
+- I notice Studio의 카드는 장식이 아니라 채널별 수정, 저장, 준비 상태, 정책 action을 소유한다. I think 유지해야 한다 because Later와 Buffer 모두 다중 채널 생성 뒤 개별 편집을 요구한다. Status: verified by semantic source inspection.
+- I notice Home이 native 수치를 합치지 않고 row로 보여준다. What if 기간과 계정 문맥을 잃으면 다음 변경이 과신으로 바뀐다. 그래서 benchmark trace에서 Later Analytics의 context를 Home native rows에 명시했다. Status: verified by semantic source inspection.
+- I notice 실제 screenshot이 없어 14px body와 11px meta의 체감 대비, 390 overflow를 시각 증거로 확정할 수 없다. I think A권 점수를 보류해야 한다 because design-review는 screenshot을 evidence로 요구한다. Status: deferred to parent Chrome QA.
+
+### Quick wins already incorporated
+
+1. Studio 선택 수와 card별 edit/save를 같은 viewport에 유지.
+2. Inbox에 승인과 수정 복귀를 함께 두고 uncertain에서는 재게시 금지.
+3. Home native row에 기간, 계정, 수집 상태, 수집 시각을 함께 표시.
+4. Messaging 기본 OFF와 명시적 `커뮤니티로 보내기` 유지.
+
+PR summary: Design review found one deferred visual-verification risk and no semantic hard rejection. Semantic Design Score remains A-, while screenshot evidence stays explicitly unverified; AI Slop Score is A.
+
+## 레드팀
+
+까다로운 고객의 공격: “초안은 많지만 어떤 계정으로 무엇이 게시됐는지 또 추적해야 하고, 승인 정책과 연결 오류가 섞여 결국 불안하다.”
+
+수정: 같은 콘텐츠 이름과 수정 번호를 Studio, Inbox, Calendar, 결과 링크, native analytics에 반복하고, 계정 Header7과 게시 정책 버튼을 별도 축으로 유지했다. uncertain과 repair에서는 재게시 대신 외부 결과 확인과 내부 기록 복구만 허용했다.
+
+회의적 운영자의 공격: “고객 설정과 OAuth 앱 비밀값이 같은 화면이면 지원 중 고객 토큰을 노출하게 된다.”
+
+수정: Customer Settings8과 Operator Settings9 및 Admin shell을 분리하고, provider raw token 노드를 0으로 유지했다. 고객 자동화 토큰만 1회 표시, 목록, 폐기 흐름으로 한정했다.
+
+## 셀프심문
+
+질문: 이 결론이 틀렸다면 가장 그럴듯한 이유는 무엇인가?
+
+답: 정적 구조가 맞아도 390 폭에서 긴 표와 3 rail이 넘치거나, 26개 route 중 하나가 runtime exception으로 dead-end가 될 수 있다. 이것이 가장 load-bearing한 미검증 가정이다.
+
+수정: 390에서는 text/Header7/native rows를 1열로 만들고 video rail과 calendar만 의도적 가로 스크롤로 제한했다. 또한 26개 목적지와 kind renderer를 manifest로 기계 판독 가능하게 만들었다. 다만 실제 runtime click과 육안검수는 수행되지 않았으므로 완료로 과장하지 않는다.
+
+## 남은 gap과 다음 stage
+
+- 부모 Chrome QA에서 26개 route, 12개 state, customer/operator, 1440/1024/390, light/dark를 실제 클릭해야 한다.
+- console error 0, dead-end 0, 의도하지 않은 가로 overflow 0을 직접 관찰해야 한다.
+- 이 검증이 통과하면 design gate 판단 가능하다.
+- 검증에서 marketing loop, 계정 진실, policy copy, native analytics 의미가 깨지면 `회수 필요:` design v17을 reopen한다.
+
+## Parent Chrome QA retake, 2026-08-07
+
+실제 먼저 읽은 증거:
+
+- `/private/tmp/ma-v17-1440.png`
+- `/private/tmp/ma-v17-1024.png`
+- `/private/tmp/ma-v17-390.png`
+
+부모 DOM QA의 26/26 route, 12/12 state, native8, header7, Customer Settings8, Operator Settings9, jsdom error0 PASS는 보존했다.
+
+| parent finding | fix | evidence |
+|---|---|---|
+| operator role에서도 고객 sidebar와 mobile menu가 남아 별도 Admin shell이 아니었다 | `setRole`이 `role-operator` body class를 토글한다. operator에서는 customer sidebar, mobilebar, mobile drawer를 숨기고 crumb를 `Admin / 운영자 콘솔 /admin`으로 전환한다. Customer 복귀 시 class를 제거하고 Marketing Hub shell을 다시 렌더한다. | 정적 계약: operator customer-shell hide true, role toggle/restore true, Admin crumb true. 기존 `renderOperator`와 Settings9 의미는 변경하지 않았다. |
+| 390 screenshot에서 same-content banner 오른쪽과 두 번째 CTA가 잘렸다 | 일반 content의 min-width를 0으로 제한하고 긴 copy를 anywhere wrap한다. 일반 `.actions`는 1열 grid, button은 width 100%와 white-space normal이다. tab/preview/flow rail과 table도 일반 wrap으로 바꿨다. body와 viewport는 overflow를 숨기지 않는다. 의도된 video/calendar만 horizontal auto를 유지한다. | 수정 전 `/private/tmp/ma-v17-390.png`에서 실제 clipping 관찰. 정적 width contract: body overflow visible, viewport overflow visible, CTA one-column true, ordinary rails wrap true, named video/calendar rails auto true. 수정 후 screenshot은 미검증이다. |
+| Studio heading `텍스트 게시물`이 승인 IA의 소셜 게시물 명칭과 달랐다 | heading을 `소셜 게시물`로 변경했다. | HTML 문자열 검사: `소셜 게시물` 1, `텍스트 게시물` 0. JavaScript parse 2/2 PASS. |
+
+### Mobile root-cause retake
+
+- 재확인 증거: `/private/tmp/ma-v17-390.png`을 2026-08-07에 `view_image`로 다시 읽었다. banner 출처 문구, lede 오른쪽, 두 번째 CTA clipping이 지속됨을 확인했다.
+- 근본 원인: 첫 수정의 wrap/stack 규칙이 `.frame-390` inspector class 경로에만 있었고, 실제 390px browser는 `@media(max-width:768px) body:not(.frame-1024):not(.frame-390)` 경로를 사용했다.
+- 수정: 동일한 min-width, max-width, anywhere wrap, one-column actions/studiohead, general rail wrap, table wrap, visible overflow 계약을 실제 media-query 경로에도 추가했다. operator mobile topbar 복구 규칙도 같은 실제 경로에 추가했다.
+- 제한: 새 screenshot은 부모가 다시 촬영한다. 이 세션은 수정 후 raster와 실제 `document.documentElement.scrollWidth <= clientWidth`를 완료로 주장하지 않는다.
+
+Retake regression evidence:
+
+- destinations 26/26, unique id 26/26
+- states 12/12
+- native rows 8/8
+- account Header 7/7
+- provider raw token pattern 0
+- em dash/en dash 0
+- `git diff --check` PASS
+- semantic assertions: `operatorSeparateShell`, `mobileGeneralWrapContract`, `mobileClassAndMediaParity`, `studioSocialHeading`
+
+미검증: 수정 후 1440/1024/390 screenshot과 runtime role switch click은 이 세션에서 새로 촬영하지 못했다. 부모의 후속 Chrome QA가 최종 시각 증거다.
+
+## 자체 verifier 원문
+
+실행 명령: `/Users/sj/.claude/harness/bin/verify-agent-quality.sh tasks/marketing-agent-design-v17.output design`
+
+```text
+⚠️  WARN: 파일산출형 role인데 Write/Edit 0회 — 산출물이 실제 파일로 안 나옴(요약만 의심, 산출 경로 확인)
+/Users/sj/.claude/hooks/_harness-lib.sh: line 26: /Users/sj/.claude/logs/harness.jsonl: Operation not permitted
+✅ PASS(근거 있음): Skill 2회(brand-positioning-kit,design-review) · WebSearch/Fetch 20회 · 소크라마커 2 · Design Score A  [경고 1건]
+```
+
+판정: PASS. Write/Edit 경고는 이 verifier가 exit report 텍스트 안의 tool trace만 세기 때문에 발생했다. 실제 변경 파일 5개는 위 `변경 파일` 절에 열거했으며 정적 검사는 별도로 통과했다. harness.jsonl 기록 권한 오류는 산출물 검증 결과를 바꾸지 않았다.
+
+SOURCES: [Buffer Scheduling](https://support.buffer.com/article/642-scheduling-posts) · [Sprout Social Message Approval](https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows) · [Later Multi-Profile Scheduling](https://help.later.com/hc/en-us/articles/360043243873-Schedule-One-Post-to-Multiple-Social-Profiles) · [Later Custom Analytics](https://help.later.com/hc/en-us/articles/33109662792471-Later-s-Custom-Analytics) · [Meta Page insights](https://www.facebook.com/help/131809553587433) · [Google OAuth web server](https://developers.google.com/identity/protocols/oauth2/web-server) · [TikTok Login Kit](https://developers.tiktok.com/doc/login-kit-web) · PRD v7.2.1 · current Marketing Hub wiki/code
+
+MODEL: gpt-codex/gpt-5.6-sol
+
+SKILLS_USED: brand-positioning-kit for audience, tension, tone anchors, taboo and opening scene / `/Users/sj/.claude/skills/gstack/design-review/SKILL.md` for APP UI classifier, litmus, hard rejection, quick wins, AI slop and Design Score retake
+
+SKILLS_SKIPPED: imagegen, because current SVG icons and code-native previews are the established authority / Product Design plugin, because it was not installed and the task did not explicitly request installation

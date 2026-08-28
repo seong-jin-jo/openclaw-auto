@@ -49,4 +49,16 @@ describe("GET /api/auth/google", () => {
     expect(H.fetchUrl).toContain("redirect_to=https%3A%2F%2Fapp.example%2Flogin");
     expect(new URL(H.fetchUrl).searchParams.get("prompt")).toBe("select_account");
   });
+
+  it("Supabase 주소 자체가 없으면 고장이 아니라 준비 안 됨으로 답한다", async () => {
+    const saved = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    try {
+      const { GET } = await import("@/app/api/auth/google/route");
+      const res = await GET(new Request("https://app.example/api/auth/google"));
+      expect(res.status).toBe(503);
+    } finally {
+      if (saved !== undefined) process.env.NEXT_PUBLIC_SUPABASE_URL = saved;
+    }
+  });
 });

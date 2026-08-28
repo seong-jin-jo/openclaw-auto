@@ -1,0 +1,402 @@
+한 줄 결론: independent v4의 마지막 MAJOR M14를 수정해 고객 기본 UI의 raw identifier와 미정의 구현 용어를 157개 표면에서 0건으로 만들었고, 불변 lineage는 data/test/operator 계약에 그대로 보존했다. JSDOM 338 assertions는 failures 0이며 governing gate는 final independent re-review 전까지 자가 승인하지 않는다.
+
+# Marketing Agent v18 design exit report
+
+## STAMP
+
+- line: openclaw-auto
+- artifact: marketing-agent-design-v18
+- version: v18-final-targeted-retake-2
+- generated_at: 2026-08-07 23:03 KST
+- model: gpt-codex/gpt-5.6-sol
+- agent: product-designer / marketing_agent_design_v17
+- skills: brand-positioning-kit, openclaw-creative-brief, gstack design-review
+- basis: PRD v7.3.5 SHA ae6155…, Audit96 manifest/assertions, v18 completeness audit/agency blueprint, current Marketing Hub code/wiki, official research below
+- 고민 한 줄: 같은 작업을 정확히 추적하면서도 고객에게는 시스템 키가 아니라 캠페인명·수정본·채널·시각·상태만 보이게 했다.
+
+## Artifacts
+
+1. DESIGN.md — additive v18 system and interaction-retake addendum
+2. docs/user-flow-marketing-agent-v18-gpt-codex.md — happy/empty/loading/error/edge/recovery and retake evidence
+3. docs/WIREFRAMES/marketing-agent-v18-gpt-codex.md — WF00–WF23
+4. docs/prototype/openclaw-auto-marketing-agent-fidelity-v18-gpt-codex.html — one clickable 26-destination / 14-step hub
+5. tasks/marketing-agent-design-v18.output — this evidence and gap report
+
+No product source, API, DB, wiki, pipeline state or QA tracker was changed by this agent.
+
+Artifact integrity after final retake:
+
+| path | bytes | SHA-256 |
+|---|---:|---|
+| DESIGN.md | 88,657 | 0900a028c5632b27f139b591d169125c10ef3a04525b29dcd82dc0dd78d69187 |
+| docs/user-flow-marketing-agent-v18-gpt-codex.md | 30,632 | 4891906ca6d274da6fa02c24ed1f6605fb9663c87a0fea11072492246a88e45f |
+| docs/WIREFRAMES/marketing-agent-v18-gpt-codex.md | 37,761 | 4aea87a710fef60c15a3f3b960e591e91fd6fc7758323d38b20a4ef5fa25828d |
+| docs/prototype/openclaw-auto-marketing-agent-fidelity-v18-gpt-codex.html | 126,695 | c520a53d754fbe68a29b2b965c4cfd6e49421817a7d9ef27e95a53a5284882e4 |
+| tasks/marketing-agent-design-v18.output | self-referential | final hash is reported by the parent handoff after this file is closed |
+
+## Current/target truth
+
+Prototype-observed:
+
+- 26 unique customer destinations and exact IA group order
+- campaign steps 14 and brief fields 14
+- Studio fixed 1 Text → 2 Photo/Card → 3 Video DOM order
+- preview7, direct4, eight editable platform variants, CardNews editor and asset handoff
+- mobile drawer semantics, Settings8, Admin9, video owner3 and Header7 manifest11
+- product-wiki edit/save/diff/archive/restore/rollback/review/active-version semantics
+- immutable six-field identity through Studio, Inbox, Calendar, Platform, result library/detail and next experiment; result detail is external-ID selected and reorder-safe
+- 8 owners × loading/empty/partial/permission/uncertain/repair = 48 unique safe transitions with item/account/revision preservation
+- applying the experiment creates frozen `rev_8` source/diff/held-constant lineage; undo restores `rev_7`
+- interaction audit manifest covers accessible name, non-generic handler, focus contract, 44px target and 15 measured contrast token pairs across 12 role/theme/viewport combinations
+
+Code-confirmed current basis:
+
+- Google-only login and signup redirect
+- workspace list/create owners
+- normal GitHub repository Markdown-folder import and tone-file owners
+- BrandSetupWizard six questions
+- existing Studio draft/history/wiki/repository links, platform preview, per-card edit, Save, selected Publish and SchedulePanel
+- current preview7 and direct4 inventory
+- Instagram CardNewsEditor, Images and Videos owners
+- Customer Settings8; Video/TTS operator-only ninth settings owner
+
+Unverified:
+
+- target product-wiki server persistence
+- campaign/result/learning server persistence
+- provider OAuth completion, publish, external result URL/readback and native analytics
+- new retake actual-browser customer/operator × light/dark × 1440/1024/390 screenshots, computed contrast/focus/target rectangles and scroll/occlusion
+
+## Independent review retake ledger
+
+Independent review v3 resolved 11 findings and left only M09, M13 and M14 open. The table distinguishes that governing verdict from this retake’s new static evidence.
+
+| finding | retake change | non-GUI evidence | independent re-review |
+|---|---|---|---|
+| M01 mobile customer navigation | same 9 groups/26 destinations in drawer, active route, backdrop, close and Escape | drawer class opens, 26 links present, Escape closes | RESOLVED by v3 |
+| M02 Admin9 static/mobile missing | 9 clickable owners with active state; mobile uses a clear vertical owner list; customer shell absent | 9/9 unique owner titles, role-boundary assertion | RESOLVED by v3 |
+| M03 journey input loss | shared form state for steps 2/4/6/10; arbitrary step jump keeps values | PERSIST_STEP_2/4/6/10 round trips PASS | RESOLVED by v3 |
+| M04 wiki save/version fiction | edited value survives save; diff, archive, restore, rollback-as-new, review/active state and Studio source inspector | WIKI_EDIT_TEST_99, diff, archive, restore/approve PASS | RESOLVED by v3 |
+| M05 current fidelity regression | current6Q, GitHub scope, preview7/direct4, CardNews, Images, Videos, Save/Publish/Schedule and repository/history ownership retained | owner/action matrix below and counts PASS | RESOLVED by v3 |
+| M06 platform edit inert | Social5 + video3 variants hold separate values, inherited/changed context and constraints | eight PERSIST_variant round trips PASS | RESOLVED by v3 |
+| M07 bulk alert only | eight account rows, dynamic selection, 4 ready/2 approval/2 excluded, reasons, account repair, compatible fields and confirmation | row8/status4 and interaction assertions PASS | RESOLVED by v3 |
+| M08 approval/schedule no transition | same work/revision, approval flag, time change expires approval, schedule/cancel changes visible state | handler/state/DOM assertions and no critical generic alert | RESOLVED by v3 |
+| M09 result/learning disconnected | immutable six-field identity; external-ID result selection; reorder fixture; frozen rev8 source/diff/constants; undo rev7 | exact lineage across six owners, reordered ext_th detail, apply/undo PASS | retake evidence ready; reviewer rerun pending |
+| M10 video reuses text queue | separate videoChannel owner with job ID, constraints, draft/render/upload/publish/late/reconcile transitions; Videos V01–V24 | YouTube/TikTok/Reels job owner PASS | RESOLVED by v3 |
+| M11 Settings/Admin missing | current Customer Settings8 labels; Operator Admin9 unique owners | 8/8 and 9/9 unique transition PASS | RESOLVED by v3 |
+| M12 secret rules inert | account metadata only, task-space key one-time issue, BYOK mask/replace/delete, operator reauth/reason/intent/DB-source/30-sec/audit semantics | distinct controls and DOM classes present; raw provider token absent | RESOLVED by v3 |
+| M13 generic state card | 8 owners × 6 states, unique action codes, item/account/revision before-after preservation and visible owner outcome | 48/48 fixtures, action code uniqueness and no-op handler audit PASS | retake evidence ready; reviewer rerun pending |
+| M14 B+/jargon | clean role/theme/viewport roots, 44px/focus contract, 15 contrast pairs, mobile scroll cues and interaction audit manifest | 12/12 JSDOM combinations, control failures0; customer phrase fixed | actual-browser 12 screenshots/computed checks pending |
+
+## M05 current-action preservation matrix
+
+| current owner/action | v18 owner/action | disposition |
+|---|---|---|
+| BrandSetupWizard six questions | Journey source → six-question dialog → save and review | preserved |
+| RepoConnect GitHub normal repository | Journey source → repository/branch/folder/file scope | preserved, Wiki clone unsupported |
+| tone files | repository scope and brand review | preserved |
+| Studio local draft/history | shared form/variant state and Save; history/source owners linked | preserved in prototype semantics |
+| preview Threads/X/Facebook | Text family preview buttons | preserved 3 |
+| preview Shorts/Reels/TikTok | Video family preview buttons | preserved 3 |
+| preview Instagram card | Photo/Card family preview | preserved 1 |
+| direct publish Threads/X/Facebook/Instagram | four per-owner preflight buttons | preserved 4, never auto-dispatch |
+| per-card platform edit | eight platform tabs plus comparison editor | preserved and extended |
+| selected Publish | exact-account bulk review and preflight | preserved |
+| Schedule button/Panel | schedule dialog, timezone, approval expiry and cancel | preserved |
+| Instagram CardNewsEditor | five-slide edit dialog, alt/crop/right states | preserved |
+| Images library | Photo/Card and detail dialog → Images | preserved |
+| Videos workbench | Studio video → Videos and platform video job | preserved |
+| wiki/repository source inspector | Studio “사용한 브랜드 자료” owner | preserved and extended |
+
+Migration removal count: 0. Replacement route count: 0. Destination count remains 26.
+
+## Audit96 observable map
+
+| domain | count | prototype anchors |
+|---|---:|---|
+| A entry/workspace | 6 | campaign step1 login/chooser/cancel/error/create/invite/existing selection |
+| B source/brand | 17 | source5, adapter scope, 6Q, paste/bundle, wiki lifecycle, guide/source inspector |
+| C campaign | 11 | research fact/interpretation/proposal, work order, brief14, progress and jumps |
+| D route/content | 26 | route manifest26, Studio3, preview7/direct4, variants8, CardNews, video3 |
+| E approval/publish/result | 15 | bulk8, preflight, approval, schedule, uncertain, repair and result index3 |
+| F analytics/learning | 8 | aggregate vs native, no-data/freshness, result evidence and one-variable revision |
+| G Settings/Admin/responsive | 9 | Settings8, Admin9, credential classes, role and drawer semantics |
+| H truth/defaults | 4 | Header7, Messaging/publish OFF, active source version and evidence boundaries |
+| total | 96 | window.__V18_MANIFEST__.audit96.total = 96 |
+
+This grouping proves observability anchors, not external adapters or persistence. Exact release acceptance remains owned by QA.
+
+## Static interaction evidence
+
+Command:
+
+node /private/tmp/marketing-v18-static-dom-qa.cjs
+
+Result: exit 0, failures empty.
+
+Observed PASS:
+
+- 181 assertions, failures 0
+- immutable identity exact six keys and three frozen result records
+- exact base lineage in Studio, Inbox, Calendar, Platform, result library/detail and next experiment
+- reordered result library still opens `ext_th_8802/pub_0072` by ID
+- experiment `rev_8`, two source result IDs, one changed variable, three held constants and undo to `rev_7`
+- Home/Studio/Inbox/Calendar/Platform/Results/Settings/Operator × loading/empty/partial/permission/uncertain/repair = 48/48
+- 48 unique recovery action codes and preserved-before = preserved-after
+- all 26 routes, all 14 journey steps and variant/bulk/result/secret dialogs pass interaction collection
+- customer/operator × light/dark × 1440/1024/390 = 12/12; root attributes and collected controls failures 0
+- 15 contrast token pairs have documented ratio ≥4.5:1; minimum 4.79:1
+- focus-visible, 44px CSS contract, mobile video scroll cues, customer terminology and generic-fallback removal assertions pass
+
+This JSDOM test does not calculate real target rectangles, downloaded-font pixels, inherited computed contrast, visible focus quality or screenshots. Those remain browser evidence.
+
+## Parent Chrome evidence
+
+Evidence grade: 관찰됨(parent), previous core pass. The parent ran actual Chrome before the M09/M13/M14 retake and reported:
+
+- console errors 0
+- customer destinations 26/26, all unique and every destination has at least one action
+- campaign steps 14/14
+- Studio DOM order 1/2/3
+- exact IA group order
+- 1024 scrollWidth 1024; 390 scrollWidth 390
+- 390 sub-44px tap targets: empty list
+- mobile drawer opens with 26 destinations and closes
+- `.qa-tools` and `#qa-restore` both hidden by default; inspectorVisible 0
+- product-wiki edit save visibly advances to v4
+- operator customer-shell node count 0
+- Admin owners 9/9; selected label equals rendered h1
+
+Screenshots:
+
+- /private/tmp/marketing-v18-1440-home.png
+- /private/tmp/marketing-v18-1024-studio-dark.png
+- /private/tmp/marketing-v18-390-wiki.png
+- /private/tmp/marketing-v18-390-operator.png
+
+The product designer also inspected the supplied screenshots. The first pass exposed vertical QA labels, clipped mobile journey context, undersized tabs, horizontally clipped Admin owners and repeated card surfaces. The final targeted retake hides both inspector surfaces by default, makes mobile journey full-screen with stable previous/close controls, raises step/platform controls to 44px minimum, renders Admin9 as a vertical mobile owner list and makes Studio sections 2/3 visually lighter. Parent Chrome then reported the full final PASS above.
+
+Still unverified on the newest retake: the complete 12-combination screenshots and computed contrast/focus/target report, independent M09/M13/M14 re-rating, server/provider behavior and production paths. The previous core observation does not self-overwrite the v3 NO-GO.
+
+## MINOR6 disposition
+
+1. Prototype inspector: `.qa-tools` and `#qa-restore` are both absent from the default visible/accessibility surface. Reviewer access requires explicit URL/hash/keyboard opt-in.
+2. mobile video tabs: 44px minimum controls in a labelled horizontal group; parent Chrome observed sub-44px targets 0.
+3. mobile document icon: replaced with three-line menu icon and accessible label.
+4. Home/Studio card wall: Home metrics collapsed into one summary; Studio family1 is the primary work surface and families2/3 use lighter borderless sections.
+5. static metrics: marked “예시 데이터”; missing values shown as 없음, not zero.
+6. HTML STAMP: added line/artifact/time/model/agent/skills/evidence/decision comment.
+
+## Benchmark transfer
+
+- Buffer: unfinished writing and draft/approval/queue states informed state preservation and approval separation.
+- Sprout: approve/change-request activity informed same-item revision and approval expiry.
+- Hootsuite: accountable external approval informed explicit reviewer consequence.
+- Later: per-profile customization and unsupported reasons informed variant tabs and row-level bulk exclusions.
+- Canva: create/calendar/analytics continuity informed result index and schedule linkage.
+- HubSpot: source remix informed fixed Text → Photo/Card → Video, while v18 adds approved source lineage.
+- Notion: import scope and Markdown behavior informed eligible/selected/skipped and product-wiki lifecycle.
+
+What was not copied: competitor visual systems, plan limits, access-group language, generic template galleries or automatic posting defaults.
+
+## Psychology contract audit
+
+| problem | principle | UI decision | misuse guard |
+|---|---|---|---|
+| first use exposes 26 choices | progressive disclosure | one next action plus optional full sidebar | no forced tour; expert jumps and exits |
+| generated claims may be trusted too much | calibrated trust | source/version and missing-evidence view | no confidence percentage |
+| defaults change consequential behavior | defaults effect | publish and Messaging OFF | no hidden opt-out or prechecked consent |
+| long setup feels unearned | endowed progress | only saved/confirmed steps complete | viewing/jumping never completes |
+| many variants overload unfamiliar users | heterogeneous choice-overload evidence | family grouping and reversible recommendation | never claim fewer is always better |
+| publish retry can duplicate | user control/error prevention | approval, preflight, uncertain and repair-only | uncertain retry disabled |
+
+## Red team retake
+
+Competitor attack: “It still has more steps than Buffer and less proven execution.”
+
+Revision: quick one-off publishing stays available, while agency mode adds source version, brief, revision, result and experiment lineage. External execution remains explicitly unverified rather than hidden by a success demo.
+
+Demanding customer attack: “My brief disappeared before; why trust the retake?”
+
+Revision: four journey fields, eight variants and wiki content are now round-trip asserted. Same work/revision appears in Studio, Inbox, Calendar and results. Real browser and server persistence are still not claimed.
+
+Skeptical investor attack: “A static DOM test can be gamed.”
+
+Answer: correct. The audit now fails missing names, unregistered handlers and owner recovery no-ops, but JSDOM cannot validate visible pixels. The newest retake still needs the parent’s 12-combination screenshots and computed-style checks.
+
+## Self-question
+
+이 단계가 틀렸다면 가장 그럴듯한 이유는?
+
+The load-bearing risk is that immutable local objects and 181 passing selectors look like product persistence, or that the 116KB prototype remains visually dense or keyboard-hostile. The correction is the explicit evidence split: DOM-observed is not server/provider evidence, and JSDOM zero-size rectangles cannot close the actual-browser gate.
+
+If this is a simple publishing tool rather than a marketing agency, what is missing?
+
+It would lack an approved client brief, resolvable brand-source version, creative rationale across three families, accountable approval, reusable result index and evidence-linked next experiment. All six are present at interaction-design level. Their server ownership and customer retention value remain unverified.
+
+## Remaining gaps and next stage
+
+- ⛔ 회수 필요: parent must capture customer/operator × light/dark × 1440/1024/390 and run computed contrast, visible focus and all interactive-target rectangles on the newest retake.
+- ⛔ 회수 필요: the independent product-design reviewer must rerun M09/M13/M14 after that evidence. Review v3 already resolves M01–M08 and M10–M12; its B/NO-GO cannot be self-overridden.
+- ⛔ 회수 필요: plan/engineering must own product-wiki, campaign, result and learning persistence before build.
+- ⛔ 회수 필요: QA must own provider OAuth/publish/result/native analytics external paths.
+
+Next stage possible: NO. Static M09/M13 retake and M14 audit inputs are ready; the 12-combination browser evidence and independent M09/M13/M14 re-review are the remaining design gates.
+
+## Tool trace
+
+Actual instruction and quality reads performed before artifact work:
+
+- /Users/sj/.claude/standards/design.md
+- /Users/sj/.claude/standards/branding.md
+- /Users/sj/.claude/standards/writing.md
+- /Users/sj/.claude/standards/marketing.md
+- /Users/sj/.claude/standards/benchmarks.md
+- /Users/sj/.codex/skills/brand-positioning-kit/SKILL.md
+- /Users/sj/.codex/skills/openclaw-creative-brief/SKILL.md
+- /Users/sj/.claude/skills/gstack/design-review/SKILL.md
+
+{"tool":"WebSearch","query":"site:buffer.com/resources official social media scheduling approval workflow Buffer"}
+{"tool":"WebSearch","query":"site:sproutsocial.com official approval workflows social media publishing"}
+{"tool":"WebSearch","query":"site:later.com official social media scheduler multi profile approval"}
+{"tool":"WebSearch","query":"site:hootsuite.com official social media content calendar approval workflow"}
+{"tool":"WebSearch","query":"site:canva.com/help official Brand Kit content planner schedule social"}
+{"tool":"WebSearch","query":"site:knowledge.hubspot.com official campaigns content remix social posts"}
+{"tool":"WebSearch","query":"site:notion.com/help official import markdown files wiki"}
+{"tool":"WebSearch","query":"site:nngroup.com progressive disclosure usability heuristics"}
+{"tool":"WebSearch","query":"Nunes Dreze endowed progress effect DOI 10.1086/500480"}
+{"tool":"WebSearch","query":"Johnson Goldstein defaults effect DOI 10.1126/science.1091721"}
+{"tool":"WebSearch","query":"Scheibehenne choice overload meta-analysis DOI 10.1086/651235"}
+{"tool":"WebFetch","url":"https://support.buffer.com/article/665-managing-and-approving-draft-posts"}
+{"tool":"WebFetch","url":"https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows"}
+{"tool":"WebFetch","url":"https://www.hootsuite.com/whats-new/document-external-approvals"}
+{"tool":"WebFetch","url":"https://help.later.com/hc/en-us/articles/360043243873-Schedule-One-Post-to-Multiple-Social-Profiles"}
+{"tool":"WebFetch","url":"https://www.canva.com/learn/using-canva-content-planner-social-content/"}
+{"tool":"WebFetch","url":"https://knowledge.hubspot.com/blog/repurpose-content-using-ai-with-content-remix"}
+{"tool":"WebFetch","url":"https://knowledge.hubspot.com/campaigns/create-campaigns"}
+{"tool":"WebFetch","url":"https://www.notion.com/help/import-data-into-notion"}
+{"tool":"WebFetch","url":"https://pair.withgoogle.com/guidebook-v2/chapter/explainability-trust/"}
+{"tool":"WebFetch","url":"https://www.nngroup.com/articles/progressive-disclosure/"}
+{"tool":"WebFetch","url":"https://www.nngroup.com/articles/ten-usability-heuristics/"}
+
+SOCRATIC_MARKER: The strongest contrary case was that this is only a fidelity prototype and should not implement backend persistence. The retake accepts that boundary but requires its own navigation, input preservation, state transition and source lineage to work locally; external success remains unclaimed.
+
+Design Score: B+ static semantic candidate with parent Chrome core PASS; independent reviewer grade pending.
+AI Slop Score: B after supplied screenshot inspection; independent reviewer grade pending.
+RUBRIC_SCORE: hook=5/5 detail=5/5 rhythm=4/5 voice=5/5 slop=5/5 total=24/25
+WEAKEST_LINE: “B+ candidate” remains self-assessment until the independent reviewer re-rates the final retake.
+SOURCES: pinned PRD v7.3.5; Audit96 exact assertions and manifest; v18 completeness audit; v18 agency blueprint; current Marketing Hub code/wiki paths cited above; https://support.buffer.com/article/665-managing-and-approving-draft-posts; https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows; https://www.hootsuite.com/whats-new/document-external-approvals; https://help.later.com/hc/en-us/articles/360043243873-Schedule-One-Post-to-Multiple-Social-Profiles; https://www.canva.com/learn/using-canva-content-planner-social-content/; https://knowledge.hubspot.com/campaigns/create-campaigns; https://knowledge.hubspot.com/blog/repurpose-content-using-ai-with-content-remix; https://www.notion.com/help/import-data-into-notion; https://www.nngroup.com/articles/progressive-disclosure/; https://www.nngroup.com/articles/ten-usability-heuristics/; https://pair.withgoogle.com/guidebook-v2/chapter/explainability-trust/; https://www.microsoft.com/en-us/haxtoolkit/ai-guidelines/; DOI 10.1086/500480; DOI 10.1126/science.1091721; DOI 10.1086/651235
+MODEL: gpt-codex/gpt-5.6-sol
+SKILLS_USED: brand-positioning-kit for audience desire, tension, positioning, tone and taboo / openclaw-creative-brief for evidence hierarchy, negative constraints, state matrix and validation handoff / gstack design-review for APP UI source-truth, cross-page consistency, responsive, accessibility, AI-slop, red-team and grade boundary
+SKILLS_SKIPPED: imagegen because existing SVG/product assets govern the visual system and no raster asset is needed / Product Design plugin was recommended but not installed or explicitly requested
+
+## M09/M13/M14 retake-2 evidence
+
+- M09: `window.__V18_LINEAGE__` is frozen and has exactly campaign/content/revision/publish-attempt/external-result/experiment fields. Studio, Inbox, Calendar, Platform, result library, primary result detail and next experiment render the same base identity. A reordered library opens the selected external result and matching publish attempt. Apply creates frozen `rev_8` with two source result IDs, one changed variable and three held constants; undo restores `rev_7`.
+- M13: Home, Studio, Inbox, Calendar, Platform, Results, Settings and Operator each render six required states with unique action codes and item/account/revision preservation. All 48 actions have a delegated handler, visible owner outcome and unchanged before/after preserved ID.
+- M14: root role/theme/viewport values are clean; QA/nav/checkbox targets have 44px contracts; focus-visible is explicit; 15 light/dark token pairs document ≥4.5:1; mobile video rows have visible horizontal-scroll cues; `window.__V18_INTERACTION_AUDIT__` fails missing accessible names, unregistered handlers or actual browser rectangles below 44px.
+
+Verification: `node /private/tmp/marketing-v18-static-dom-qa.cjs` → exit 0, assertions 181, recovery fixtures 48, interaction combinations 12/12, failures 0. No GUI was launched in this retake as requested.
+
+Governing grade: **B / NO-GO from independent v3 until new browser evidence and re-review.** The retake is a B+ static candidate, not a self-issued gate pass.
+
+⛔ 회수 필요: parent actual-browser screenshot/contrast/focus/target audit for all 12 role/theme/viewport combinations, followed by independent M09/M13/M14 re-rating.
+
+SOCRATIC_MARKER: If this retake is wrong, the likeliest reason is that static identity and handler assertions hide visual occlusion, inherited contrast or focus problems. That is why JSDOM zero-sized rectangles are treated as pending and the parent browser gate is not waived.
+
+RUBRIC_SCORE: hook=5/5 detail=5/5 rhythm=4/5 voice=5/5 slop=5/5 total=24/25
+WEAKEST_LINE: “B+ static candidate” remains a hypothesis until the 12 actual-browser combinations are inspected.
+SOURCES: pinned PRD v7.3.5; Audit96; `tasks/marketing-agent-design-v18-independent-review.output`; `/private/tmp/marketing-v18-static-dom-qa.log`; current Marketing Hub code/wiki; https://support.buffer.com/article/665-managing-and-approving-draft-posts; https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows; https://www.hootsuite.com/whats-new/document-external-approvals; https://help.later.com/hc/en-us/articles/360043243873-Schedule-One-Post-to-Multiple-Social-Profiles; https://www.nngroup.com/articles/ten-usability-heuristics/; https://pair.withgoogle.com/guidebook-v2/chapter/explainability-trust/
+MODEL: gpt-codex/gpt-5.6-sol
+SKILLS_USED: brand-positioning-kit for evidence-led product tone / openclaw-creative-brief for lineage, owner-state and validation contracts / gstack design-review for APP UI accessibility, responsive, interaction and anti-slop audit
+SKILLS_SKIPPED: imagegen because existing code-native product assets govern the visual system / Product Design plugin was not installed or explicitly requested
+
+## FINAL M14 retake-3 — customer language closure candidate
+
+Independent v4 status at intake: **B+ / FINAL NO-GO, 13 of 14 majors resolved; only M14 open.** Exact defect was customer-default Studio and downstream dialogs/recovery/results/experiment exposing `cmp_`, `cnt_`, `rev_`, `pub_`, `ext_`, `exp_` values.
+
+### What changed
+
+- Customer UI now renders campaign title, work-family name, `수정 7/8`, request/confirm time, channel/account, publish status, metric and experiment name.
+- The shared lineage strip translates all six immutable fields into customer vocabulary and uses `캠페인 진행 정보` as its accessible name.
+- Studio, video, Calendar, variant/bulk/schedule/preview/preflight/result dialogs, 14-step journey, recovery cards/outcomes and next-experiment summaries were swept.
+- Result accessible names no longer contain external IDs. Next-experiment sources render platform/status/metric summaries.
+- Exact immutable IDs remain unchanged in frozen objects, `data-*`, recovery preservation records and `window.__V18_TEST_API__`; result reorder and revision apply/undo still key on them.
+- `window.__V18_CUSTOMER_LANGUAGE_AUDIT__` scans customer root text, form values, `aria-label`, title and alt for raw prefixes and defined implementation-jargon blacklist entries.
+
+### Verification
+
+Command: `node /private/tmp/marketing-v18-static-dom-qa.cjs`
+
+Result: exit 0.
+
+- assertions: 338
+- failures: 0
+- recovery fixtures: 48
+- interaction matrix: 12/12
+- customer-language surfaces: 157
+- raw identifier hits: 0
+- undefined implementation-jargon hits: 0
+- immutable identity: exact six frozen fields PASS
+- reordered result selection and publish-attempt pairing PASS
+- experiment revision 8 apply/source/held-constants and undo to revision 7 PASS
+- previous contrast token minimum 4.79:1, focus contract, 44px CSS contract and mobile scroll cues PASS
+
+No product source, API, DB, deployment, pipeline state, session state, wiki or QA tracker was changed. No GUI was launched in this subagent retake. Independent v4's existing 12-combination browser evidence remains recorded; the final customer-copy render judgment belongs to the next independent review.
+
+### Benchmark transfer
+
+- NN/g system-real-world match: translated internal object keys into customer concepts and natural task order.
+- GOV.UK error message guidance: recovery/error copy says what happened, what was preserved and what action is safe, without exposing codes.
+- Material 3 states: retained distinct loading/empty/partial/permission/uncertain/repair states and visible outcomes.
+
+### Red team and self-question
+
+Demanding customer attack: “Hiding IDs makes support and audit unreliable.” The retake does not delete or mutate them; it separates machine identity from customer presentation. Support/debug can inspect exact immutable attributes, while customers identify the same record by title, revision, channel, time and status.
+
+Skeptical reviewer attack: “A textContent regex misses an ID in an accessible label or form.” The audit includes form values, `aria-label`, title and alt across routes, steps, dialogs, recovery before/after, source states, Settings8, video lifecycle and customer matrix combinations.
+
+이 결론이 틀렸다면 가장 그럴듯한 이유는? 긴 human-readable labels could create new visual density or wrapping at 390px even with semantic tests green. Therefore this retake reports a closure candidate, preserves v4 browser evidence without overstating it, and requires final independent visual-language review.
+
+## Remaining gaps and next stage
+
+- ⛔ 회수 필요: independent reviewer must rerun the exact M14 customer-default sweep and issue the governing grade.
+- Product-wiki/campaign/result/learning persistence and external OAuth/publish/analytics remain plan/engineering/QA gaps already recorded; this design retake does not expand their scope.
+
+Next stage possible: **NO until independent M14 re-review; design evidence is ready.**
+
+Design Score: **B+ closure candidate, governing independent grade pending.**
+RUBRIC_SCORE: hook=5/5 detail=5/5 rhythm=4/5 voice=5/5 slop=5/5 total=24/25
+WEAKEST_LINE: `B+ closure candidate` cannot become the governing grade without an independent render sweep.
+SOURCES: pinned PRD v7.3.5; `tasks/marketing-agent-design-v18-independent-review.output`; `/private/tmp/marketing-v18-static-dom-qa.json`; https://media.nngroup.com/media/articles/attachments/Heuristic_2_compressed.pdf; https://design-system.service.gov.uk/components/error-message/; https://m3.material.io/foundations/interaction/states/overview
+MODEL: gpt-codex/gpt-5.6-sol
+SKILLS_USED: brand-positioning-kit for customer vocabulary and taboo / openclaw-creative-brief for negative constraints, recovery and validation handoff / gstack design-review for APP UI customer-language, accessibility and responsive hard-rejection audit
+SKILLS_SKIPPED: imagegen because no raster asset was required / Product Design plugin was not installed or explicitly requested
+
+## FINAL targeted retake-2 — inspector chrome closure
+
+The remaining M14 false-positive gap is closed. Default customer and operator renders now set both `.qa-tools` and `#qa-restore` to hidden, so no inspector control appears visually, in the accessibility tree, or in `window.__V18_INTERACTION_AUDIT__`. Reviewer access remains available only through `?prototypeInspector=1`, `#prototype-inspector`, or `Ctrl+Alt+Q`.
+
+The BODY state attribute is `data-prototype-inspector-mode`; it is deliberately separate from `[data-prototype-inspector="true"]`, which identifies only the two inspector nodes. This prevents BODY from being counted as a visible inspector element.
+
+Final evidence:
+
+- JSDOM: 340 assertions, failures 0, recovery 48/48, matrix 12/12, customer-language surfaces 157, language hits 0;
+- immutable six-field lineage, reordered result selection, revision-8 apply/undo and owner recovery remain unchanged;
+- parent Chromium: 12/12 customer/operator × light/dark × 1440/1024/390 PASS, console errors 0, overflow 0, `qaToolsHidden=true`, `qaRestoreHidden=true`, inspectorVisible 0;
+- 12 final screenshots: visible `검수` control 0;
+- default inspector controls are excluded from the product interaction/control audit.
+
+Red-team check: hiding only `.qa-tools` would repeat the reviewer’s false-positive because the restore button could remain visible. The contract therefore names and tests both nodes independently. If this conclusion were wrong, the most plausible cause would be a selector collision; separating BODY mode from inspector-node identity removes that load-bearing ambiguity.
+
+Remaining product/engineering/provider gaps are unchanged. No product source, API, DB, deployment, pipeline state, session state, wiki or QA tracker was changed.
+
+Next stage possible: **YES for design handoff, subject to the governing independent final rating.**
+
+Design Score: **B+ final closure candidate.**
+RUBRIC_SCORE: hook=5/5 detail=5/5 rhythm=4/5 voice=5/5 slop=5/5 total=24/25
+WEAKEST_LINE: governing grade still belongs to the independent reviewer, not this retake author.
+SOURCES: `tasks/marketing-agent-design-v18-independent-review.output`; parent final Chromium report; `/private/tmp/marketing-v18-static-dom-qa.json`; `/private/tmp/ma-v18-final/`
+MODEL: gpt-codex/gpt-5.6-sol
+SKILLS_USED: brand-positioning-kit for customer/non-product surface separation / openclaw-creative-brief for negative constraint and validation contract / gstack design-review for inspector visibility and accessibility hard-rejection audit
+SKILLS_SKIPPED: imagegen because no raster asset was required / Product Design plugin was not installed or explicitly requested

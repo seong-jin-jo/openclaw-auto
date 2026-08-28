@@ -1,0 +1,4364 @@
+{
+  "label": "before",
+  "observedAt": "2026-08-27T21:18:32.198Z",
+  "baseUrl": "http://localhost:3456",
+  "workspaceId": "cd1d0a40-540d-4524-9b49-bf2445d82182",
+  "keyboard": {
+    "passed": true,
+    "generationHttpStatus": 201,
+    "draftSaveHttpStatus": 200,
+    "steps": [
+      {
+        "description": "홈에서 생성실 링크",
+        "tabs": 1,
+        "focused": {
+          "tag": "a",
+          "id": "",
+          "role": "",
+          "label": "✓생성실",
+          "href": "/studio?room=create",
+          "visible": true
+        }
+      },
+      {
+        "description": "생성실 주제 입력",
+        "tabs": 34,
+        "focused": {
+          "tag": "input",
+          "id": "studio-topic",
+          "role": "",
+          "label": "이번 주제",
+          "href": "",
+          "visible": true
+        }
+      },
+      {
+        "description": "생성실 목적 입력",
+        "tabs": 1,
+        "focused": {
+          "tag": "input",
+          "id": "studio-purpose",
+          "role": "",
+          "label": "목적",
+          "href": "",
+          "visible": true
+        }
+      },
+      {
+        "description": "생성실 대상 입력",
+        "tabs": 1,
+        "focused": {
+          "tag": "input",
+          "id": "studio-audience",
+          "role": "",
+          "label": "대상",
+          "href": "",
+          "visible": true
+        }
+      },
+      {
+        "description": "소재 권리 확인",
+        "tabs": 1,
+        "focused": {
+          "tag": "input",
+          "id": "",
+          "role": "",
+          "label": "소재 권리를 확인했습니다",
+          "href": "",
+          "visible": true
+        }
+      },
+      {
+        "description": "후보 생성 단추",
+        "tabs": 1,
+        "focused": {
+          "tag": "button",
+          "id": "",
+          "role": "",
+          "label": "후보 세 장 만들기",
+          "href": "",
+          "visible": true
+        }
+      },
+      {
+        "description": "A안 선택 단추",
+        "tabs": 1,
+        "focused": {
+          "tag": "button",
+          "id": "",
+          "role": "",
+          "label": "A안 선택",
+          "href": "",
+          "visible": true
+        }
+      },
+      {
+        "description": "편집실 이동 단추",
+        "tabs": 1,
+        "focused": {
+          "tag": "button",
+          "id": "",
+          "role": "",
+          "label": "편집실로 이동",
+          "href": "",
+          "visible": true
+        }
+      },
+      {
+        "description": "편집실 비율 도구",
+        "tabs": 9,
+        "focused": {
+          "tag": "button",
+          "id": "",
+          "role": "",
+          "label": "비율 도구",
+          "href": "",
+          "visible": true
+        }
+      },
+      {
+        "description": "편집실 정사각 비율",
+        "tabs": 5,
+        "focused": {
+          "tag": "button",
+          "id": "",
+          "role": "",
+          "label": "정사각",
+          "href": "",
+          "visible": true
+        }
+      },
+      {
+        "description": "편집실에서 발행실 링크",
+        "tabs": 20,
+        "focused": {
+          "tag": "a",
+          "id": "",
+          "role": "",
+          "label": "03발행실",
+          "href": "/studio?room=publish",
+          "visible": true
+        }
+      },
+      {
+        "description": "발행실 초안 저장 단추",
+        "tabs": 30,
+        "focused": {
+          "tag": "button",
+          "id": "",
+          "role": "",
+          "label": "초안으로 저장",
+          "href": "",
+          "visible": true
+        }
+      },
+      {
+        "description": "발행실에서 성과실 링크",
+        "tabs": 51,
+        "focused": {
+          "tag": "a",
+          "id": "",
+          "role": "",
+          "label": "04성과실",
+          "href": "/",
+          "visible": true
+        }
+      },
+      {
+        "description": "성과실 플랫폼 전체 단추",
+        "tabs": 30,
+        "focused": {
+          "tag": "button",
+          "id": "",
+          "role": "",
+          "label": "전체",
+          "href": "",
+          "visible": true
+        }
+      }
+    ]
+  },
+  "duplicateInlineEditors": 1,
+  "contrast": [
+    {
+      "screen": "home-performance",
+      "theme": "light",
+      "checked": 155,
+      "complexBackgrounds": 13,
+      "failures": [
+        {
+          "text": "작업 공간",
+          "tag": "p",
+          "className": "text-caption font-semibold text-subtle max-xl:text-center",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "한 편의 제작 순서",
+          "tag": "p",
+          "className": "mb-stack text-caption font-semibold text-subtle max-xl:text-center",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "SOCIAL",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "0/5",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "Off",
+          "tag": "span",
+          "className": "ml-auto text-caption px-1.5 py-0.5 rounded-full max-xl:hidden bg-surface-2 text-subtle",
+          "ratio": 2.33,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "MESSAGING",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "0/3",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "VIDEO",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "0/2",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "DATA & ANALYTICS",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "KEYWORD RESEARCH",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "CUSTOM INTEGRATION",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "0/1",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "ASSETS & TOOLS",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "0",
+          "tag": "span",
+          "className": "ml-auto text-caption px-1.5 py-0.5 rounded-full bg-surface-2 text-subtle max-xl:hidden",
+          "ratio": 2.33,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "SYSTEM",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "다크 모드",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "⎋",
+          "tag": "span",
+          "className": "",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "로그아웃",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "완료 첫 콘텐츠 만들기",
+          "tag": "a",
+          "className": "flex items-center gap-1.5 rounded-lg bg-surface-2 px-3 py-1.5 text-xs text-success transition-colors hover:text-text",
+          "ratio": 3,
+          "minimum": 4.5,
+          "color": "rgb(22, 163, 74)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "완료",
+          "tag": "span",
+          "className": "",
+          "ratio": 3,
+          "minimum": 4.5,
+          "color": "rgb(22, 163, 74)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "성과 요약 · 키보드 검증 작업 공간 · 최근 30일",
+          "tag": "p",
+          "className": "text-caption font-semibold text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "근거 부족",
+          "tag": "span",
+          "className": "mr-stack-tight inline-flex rounded-full bg-warning/15 px-stack-tight py-micro font-semibold text-warning",
+          "ratio": 3.19,
+          "minimum": 4.5,
+          "color": "rgb(217, 119, 6)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "발행 뒤부터 집계",
+          "tag": "small",
+          "className": "text-caption text-subtle break-keep",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "채널 제공 뒤부터 집계",
+          "tag": "small",
+          "className": "text-caption text-subtle break-keep",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "발행 뒤부터 집계",
+          "tag": "small",
+          "className": "text-caption text-subtle break-keep",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "발행 뒤부터 집계",
+          "tag": "small",
+          "className": "text-caption text-subtle break-keep",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "가설 · 우리 검증 기록 아님",
+          "tag": "span",
+          "className": "self-start rounded-full px-stack-tight py-micro text-caption font-semibold bg-warning/15 text-warning",
+          "ratio": 3.19,
+          "minimum": 4.5,
+          "color": "rgb(217, 119, 6)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "가설 · 우리 검증 기록 아님",
+          "tag": "span",
+          "className": "self-start rounded-full px-stack-tight py-micro text-caption font-semibold bg-warning/15 text-warning",
+          "ratio": 3.19,
+          "minimum": 4.5,
+          "color": "rgb(217, 119, 6)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "가설 · 우리 검증 기록 아님",
+          "tag": "span",
+          "className": "self-start rounded-full px-stack-tight py-micro text-caption font-semibold bg-warning/15 text-warning",
+          "ratio": 3.19,
+          "minimum": 4.5,
+          "color": "rgb(217, 119, 6)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "",
+          "tag": "th",
+          "className": "p-stack text-left",
+          "ratio": 2.48,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(251 251 252)"
+        },
+        {
+          "text": "",
+          "tag": "th",
+          "className": "p-stack text-left",
+          "ratio": 2.48,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(251 251 252)"
+        },
+        {
+          "text": "",
+          "tag": "th",
+          "className": "p-stack",
+          "ratio": 2.48,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(251 251 252)"
+        },
+        {
+          "text": "",
+          "tag": "th",
+          "className": "p-stack",
+          "ratio": 2.48,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(251 251 252)"
+        },
+        {
+          "text": "",
+          "tag": "th",
+          "className": "p-stack",
+          "ratio": 2.48,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(251 251 252)"
+        },
+        {
+          "text": "",
+          "tag": "th",
+          "className": "p-stack",
+          "ratio": 2.48,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(251 251 252)"
+        },
+        {
+          "text": "",
+          "tag": "th",
+          "className": "p-stack",
+          "ratio": 2.48,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(251 251 252)"
+        },
+        {
+          "text": "",
+          "tag": "td",
+          "className": "block p-stack-section text-center text-caption text-subtle lg:table-cell",
+          "ratio": 2.48,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(251 251 252)"
+        },
+        {
+          "text": "→",
+          "tag": "div",
+          "className": "flex items-center px-1 text-subtle",
+          "ratio": 2.48,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(251 251 252)"
+        },
+        {
+          "text": "→",
+          "tag": "div",
+          "className": "flex items-center px-1 text-subtle",
+          "ratio": 2.48,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(251 251 252)"
+        },
+        {
+          "text": "→",
+          "tag": "div",
+          "className": "flex items-center px-1 text-subtle",
+          "ratio": 2.48,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(251 251 252)"
+        },
+        {
+          "text": "최근 활동",
+          "tag": "h3",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wide mb-stack",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "14h ago",
+          "tag": "p",
+          "className": "text-caption text-subtle mt-micro",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "14h ago",
+          "tag": "p",
+          "className": "text-caption text-subtle mt-micro",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "20h ago",
+          "tag": "p",
+          "className": "text-caption text-subtle mt-micro",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "20h ago",
+          "tag": "p",
+          "className": "text-caption text-subtle mt-micro",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "CHANNELS STATUS",
+          "tag": "h3",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wide mb-stack",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "Threads",
+          "tag": "span",
+          "className": "text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "Off",
+          "tag": "span",
+          "className": "text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "X (Twitter)",
+          "tag": "span",
+          "className": "text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "Off",
+          "tag": "span",
+          "className": "text-warning",
+          "ratio": 3.19,
+          "minimum": 4.5,
+          "color": "rgb(217, 119, 6)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "Blog",
+          "tag": "span",
+          "className": "text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        }
+      ]
+    },
+    {
+      "screen": "home-performance",
+      "theme": "dark",
+      "checked": 155,
+      "complexBackgrounds": 13,
+      "failures": [
+        {
+          "text": "작업 공간",
+          "tag": "p",
+          "className": "text-caption font-semibold text-subtle max-xl:text-center",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "한 편의 제작 순서",
+          "tag": "p",
+          "className": "mb-stack text-caption font-semibold text-subtle max-xl:text-center",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "✓",
+          "tag": "span",
+          "className": "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption border-accent bg-accent-soft text-accent",
+          "ratio": 4,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(23 37 84)"
+        },
+        {
+          "text": "생성실",
+          "tag": "span",
+          "className": "",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(82, 82, 91)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "✓",
+          "tag": "span",
+          "className": "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption border-accent bg-accent-soft text-accent",
+          "ratio": 4,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(23 37 84)"
+        },
+        {
+          "text": "편집실",
+          "tag": "span",
+          "className": "",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(82, 82, 91)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "✓",
+          "tag": "span",
+          "className": "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption border-accent bg-accent-soft text-accent",
+          "ratio": 4,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(23 37 84)"
+        },
+        {
+          "text": "발행실",
+          "tag": "span",
+          "className": "",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(82, 82, 91)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "04",
+          "tag": "span",
+          "className": "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption border-accent-fg/40 bg-accent-fg/15 text-accent-fg",
+          "ratio": 3.83,
+          "minimum": 4.5,
+          "color": "rgb(10, 10, 11)",
+          "background": "rgb(37 99 235)"
+        },
+        {
+          "text": "SOCIAL",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "0/5",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Threads",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(82, 82, 91)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Off",
+          "tag": "span",
+          "className": "ml-auto text-caption px-1.5 py-0.5 rounded-full max-xl:hidden bg-surface-2 text-subtle",
+          "ratio": 3.4,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "X (Twitter)",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(82, 82, 91)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Instagram",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(82, 82, 91)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Facebook",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(82, 82, 91)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Bluesky",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(82, 82, 91)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "MESSAGING",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "0/3",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Telegram",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(82, 82, 91)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Discord",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(82, 82, 91)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Slack",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(82, 82, 91)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "VIDEO",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "0/2",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "YouTube",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(82, 82, 91)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "TikTok",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(82, 82, 91)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "DATA & ANALYTICS",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Blog Performance",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(82, 82, 91)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "KEYWORD RESEARCH",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Keyword Planner",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(82, 82, 91)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Naver Trends",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(82, 82, 91)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Google Trends",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(82, 82, 91)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "CUSTOM INTEGRATION",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "0/1",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Blog",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(82, 82, 91)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "ASSETS & TOOLS",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Images",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(82, 82, 91)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "0",
+          "tag": "span",
+          "className": "ml-auto text-caption px-1.5 py-0.5 rounded-full bg-surface-2 text-subtle max-xl:hidden",
+          "ratio": 3.4,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "Videos",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(82, 82, 91)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Midjourney",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(82, 82, 91)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "SYSTEM",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Settings",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(82, 82, 91)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "첫 콘텐츠부터 발행까지",
+          "tag": "span",
+          "className": "text-sm text-accent",
+          "ratio": 4,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(23 37 84)"
+        },
+        {
+          "text": "완료 첫 콘텐츠 만들기",
+          "tag": "a",
+          "className": "flex items-center gap-1.5 rounded-lg bg-surface-2 px-3 py-1.5 text-xs text-success transition-colors hover:text-text",
+          "ratio": 3,
+          "minimum": 4.5,
+          "color": "rgb(22, 163, 74)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "완료",
+          "tag": "span",
+          "className": "",
+          "ratio": 3,
+          "minimum": 4.5,
+          "color": "rgb(22, 163, 74)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "성과 요약 · 키보드 검증 작업 공간 · 최근 30일",
+          "tag": "p",
+          "className": "text-caption font-semibold text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "발행 뒤부터 집계",
+          "tag": "small",
+          "className": "text-caption text-subtle break-keep",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "채널 제공 뒤부터 집계",
+          "tag": "small",
+          "className": "text-caption text-subtle break-keep",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "발행 뒤부터 집계",
+          "tag": "small",
+          "className": "text-caption text-subtle break-keep",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "발행 뒤부터 집계",
+          "tag": "small",
+          "className": "text-caption text-subtle break-keep",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "starter 요금제",
+          "tag": "span",
+          "className": "rounded-full bg-accent-soft px-stack-tight py-micro font-semibold text-accent",
+          "ratio": 4,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(23 37 84)"
+        },
+        {
+          "text": "",
+          "tag": "th",
+          "className": "p-stack text-left",
+          "ratio": 4.09,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(10 10 11)"
+        },
+        {
+          "text": "",
+          "tag": "th",
+          "className": "p-stack text-left",
+          "ratio": 4.09,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(10 10 11)"
+        },
+        {
+          "text": "",
+          "tag": "th",
+          "className": "p-stack",
+          "ratio": 4.09,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(10 10 11)"
+        },
+        {
+          "text": "",
+          "tag": "th",
+          "className": "p-stack",
+          "ratio": 4.09,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(10 10 11)"
+        },
+        {
+          "text": "",
+          "tag": "th",
+          "className": "p-stack",
+          "ratio": 4.09,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(10 10 11)"
+        },
+        {
+          "text": "",
+          "tag": "th",
+          "className": "p-stack",
+          "ratio": 4.09,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(10 10 11)"
+        },
+        {
+          "text": "",
+          "tag": "th",
+          "className": "p-stack",
+          "ratio": 4.09,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(10 10 11)"
+        },
+        {
+          "text": "",
+          "tag": "td",
+          "className": "block p-stack-section text-center text-caption text-subtle lg:table-cell",
+          "ratio": 4.09,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(10 10 11)"
+        },
+        {
+          "text": "→",
+          "tag": "div",
+          "className": "flex items-center px-1 text-subtle",
+          "ratio": 4.09,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(10 10 11)"
+        },
+        {
+          "text": "→",
+          "tag": "div",
+          "className": "flex items-center px-1 text-subtle",
+          "ratio": 4.09,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(10 10 11)"
+        },
+        {
+          "text": "→",
+          "tag": "div",
+          "className": "flex items-center px-1 text-subtle",
+          "ratio": 4.09,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(10 10 11)"
+        },
+        {
+          "text": "최근 활동",
+          "tag": "h3",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wide mb-stack",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "AI",
+          "tag": "span",
+          "className": "text-caption",
+          "ratio": 4,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(23 37 84)"
+        },
+        {
+          "text": "14h ago",
+          "tag": "p",
+          "className": "text-caption text-subtle mt-micro",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "AI",
+          "tag": "span",
+          "className": "text-caption",
+          "ratio": 4,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(23 37 84)"
+        },
+        {
+          "text": "14h ago",
+          "tag": "p",
+          "className": "text-caption text-subtle mt-micro",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "AI",
+          "tag": "span",
+          "className": "text-caption",
+          "ratio": 4,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(23 37 84)"
+        },
+        {
+          "text": "20h ago",
+          "tag": "p",
+          "className": "text-caption text-subtle mt-micro",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "AI",
+          "tag": "span",
+          "className": "text-caption",
+          "ratio": 4,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(23 37 84)"
+        },
+        {
+          "text": "20h ago",
+          "tag": "p",
+          "className": "text-caption text-subtle mt-micro",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "CHANNELS STATUS",
+          "tag": "h3",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wide mb-stack",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Threads",
+          "tag": "span",
+          "className": "text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Off",
+          "tag": "span",
+          "className": "text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "X (Twitter)",
+          "tag": "span",
+          "className": "text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Blog",
+          "tag": "span",
+          "className": "text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        }
+      ]
+    },
+    {
+      "screen": "create",
+      "theme": "light",
+      "checked": 113,
+      "complexBackgrounds": 1,
+      "failures": [
+        {
+          "text": "작업 공간",
+          "tag": "p",
+          "className": "text-caption font-semibold text-subtle max-xl:text-center",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "한 편의 제작 순서",
+          "tag": "p",
+          "className": "mb-stack text-caption font-semibold text-subtle max-xl:text-center",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "02",
+          "tag": "span",
+          "className": "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption border-border bg-surface text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "03",
+          "tag": "span",
+          "className": "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption border-border bg-surface text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "04",
+          "tag": "span",
+          "className": "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption border-border bg-surface text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "SOCIAL",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "0/5",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "Off",
+          "tag": "span",
+          "className": "ml-auto text-caption px-1.5 py-0.5 rounded-full max-xl:hidden bg-surface-2 text-subtle",
+          "ratio": 2.33,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "MESSAGING",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "0/3",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "VIDEO",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "0/2",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "DATA & ANALYTICS",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "KEYWORD RESEARCH",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "CUSTOM INTEGRATION",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "0/1",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "ASSETS & TOOLS",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "0",
+          "tag": "span",
+          "className": "ml-auto text-caption px-1.5 py-0.5 rounded-full bg-surface-2 text-subtle max-xl:hidden",
+          "ratio": 2.33,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "SYSTEM",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "다크 모드",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "⎋",
+          "tag": "span",
+          "className": "",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "로그아웃",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "콘텐츠 작업실",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.48,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(251 251 252)"
+        },
+        {
+          "text": "AI 공유 Claude CLI",
+          "tag": "span",
+          "className": "rounded-lg border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle",
+          "ratio": 2.33,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "주제 받는 중",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "예시",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "2 / 4",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "작업 공간",
+          "tag": "dt",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "브랜드",
+          "tag": "dt",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "목적",
+          "tag": "dt",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "대상",
+          "tag": "dt",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "성과에서 배운 규칙",
+          "tag": "dt",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "지금 대기 중",
+          "tag": "span",
+          "className": "text-caption text-success",
+          "ratio": 3.3,
+          "minimum": 4.5,
+          "color": "rgb(22, 163, 74)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "음악 생성은 준비 중입니다.",
+          "tag": "p",
+          "className": "mt-stack-tight break-keep text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "비어 있음: 주제, 목적, 대상, 소재 권리 확인",
+          "tag": "div",
+          "className": "rounded-lg border border-warning/30 bg-warning/10 p-stack text-caption text-warning",
+          "ratio": 2.9,
+          "minimum": 4.5,
+          "color": "rgb(217, 119, 6)",
+          "background": "rgb(244 244 245)"
+        }
+      ]
+    },
+    {
+      "screen": "create",
+      "theme": "dark",
+      "checked": 113,
+      "complexBackgrounds": 1,
+      "failures": [
+        {
+          "text": "작업 공간",
+          "tag": "p",
+          "className": "text-caption font-semibold text-subtle max-xl:text-center",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "한 편의 제작 순서",
+          "tag": "p",
+          "className": "mb-stack text-caption font-semibold text-subtle max-xl:text-center",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "01",
+          "tag": "span",
+          "className": "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption border-accent-fg/40 bg-accent-fg/15 text-accent-fg",
+          "ratio": 4.05,
+          "minimum": 4.5,
+          "color": "rgb(10, 10, 11)",
+          "background": "rgb(41 104 237)"
+        },
+        {
+          "text": "생성실",
+          "tag": "span",
+          "className": "",
+          "ratio": 3.3,
+          "minimum": 4.5,
+          "color": "rgb(212, 212, 212)",
+          "background": "rgb(41 104 237)"
+        },
+        {
+          "text": "지금 여기",
+          "tag": "span",
+          "className": "ml-auto whitespace-nowrap rounded-full bg-accent-fg/15 px-stack-tight py-micro text-caption max-xl:ml-0 max-xl:px-micro",
+          "ratio": 3.3,
+          "minimum": 4.5,
+          "color": "rgb(212, 212, 212)",
+          "background": "rgb(41 104 237)"
+        },
+        {
+          "text": "02",
+          "tag": "span",
+          "className": "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption border-border bg-surface text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "편집실",
+          "tag": "span",
+          "className": "",
+          "ratio": 2.9,
+          "minimum": 4.5,
+          "color": "rgb(96, 96, 105)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "03",
+          "tag": "span",
+          "className": "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption border-border bg-surface text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "발행실",
+          "tag": "span",
+          "className": "",
+          "ratio": 2.9,
+          "minimum": 4.5,
+          "color": "rgb(96, 96, 105)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "04",
+          "tag": "span",
+          "className": "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption border-border bg-surface text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "성과실",
+          "tag": "span",
+          "className": "",
+          "ratio": 2.9,
+          "minimum": 4.5,
+          "color": "rgb(96, 96, 105)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "SOCIAL",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "0/5",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Threads",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Off",
+          "tag": "span",
+          "className": "ml-auto text-caption px-1.5 py-0.5 rounded-full max-xl:hidden bg-surface-2 text-subtle",
+          "ratio": 3.4,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "X (Twitter)",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Instagram",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Facebook",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Bluesky",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "MESSAGING",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "0/3",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Telegram",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Discord",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Slack",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "VIDEO",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "0/2",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "YouTube",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "TikTok",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "DATA & ANALYTICS",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Blog Performance",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "KEYWORD RESEARCH",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Keyword Planner",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Naver Trends",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Google Trends",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "CUSTOM INTEGRATION",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "0/1",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Blog",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "ASSETS & TOOLS",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Images",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "0",
+          "tag": "span",
+          "className": "ml-auto text-caption px-1.5 py-0.5 rounded-full bg-surface-2 text-subtle max-xl:hidden",
+          "ratio": 3.4,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "Videos",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Midjourney",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "SYSTEM",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Settings",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "콘텐츠 작업실",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 4.09,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(10 10 11)"
+        },
+        {
+          "text": "3",
+          "tag": "span",
+          "className": "ml-micro text-accent",
+          "ratio": 2.36,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(207 207 208)"
+        },
+        {
+          "text": "생성실",
+          "tag": "span",
+          "className": "rounded-full bg-accent-soft px-stack py-stack-tight text-caption font-semibold text-accent",
+          "ratio": 4,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(23 37 84)"
+        },
+        {
+          "text": "AI 공유 Claude CLI",
+          "tag": "span",
+          "className": "rounded-lg border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle",
+          "ratio": 3.4,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "주제 받는 중",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "예시",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "1",
+          "tag": "span",
+          "className": "text-accent",
+          "ratio": 4.47,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "2",
+          "tag": "span",
+          "className": "text-accent",
+          "ratio": 4.47,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "3",
+          "tag": "span",
+          "className": "text-accent",
+          "ratio": 4.47,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "1",
+          "tag": "span",
+          "className": "text-accent",
+          "ratio": 4.47,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "2",
+          "tag": "span",
+          "className": "text-accent",
+          "ratio": 4.47,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "3",
+          "tag": "span",
+          "className": "text-accent",
+          "ratio": 4.47,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "1",
+          "tag": "span",
+          "className": "text-accent",
+          "ratio": 4.47,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "2",
+          "tag": "span",
+          "className": "text-accent",
+          "ratio": 4.47,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "3",
+          "tag": "span",
+          "className": "text-accent",
+          "ratio": 4.47,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "2 / 4",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "작업 공간",
+          "tag": "dt",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "브랜드",
+          "tag": "dt",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "목적",
+          "tag": "dt",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "대상",
+          "tag": "dt",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "성과에서 배운 규칙",
+          "tag": "dt",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "영상",
+          "tag": "button",
+          "className": "ds-label inline-flex min-h-control-touch min-w-max items-center justify-center gap-micro rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg",
+          "ratio": 3.3,
+          "minimum": 4.5,
+          "color": "rgb(212, 212, 212)",
+          "background": "rgb(41 104 237)"
+        },
+        {
+          "text": "음악 생성은 준비 중입니다.",
+          "tag": "p",
+          "className": "mt-stack-tight break-keep text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "후보 세 장 만들기",
+          "tag": "button",
+          "className": "ds-label inline-flex min-h-control-touch min-w-max items-center justify-center gap-micro rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg",
+          "ratio": 3.3,
+          "minimum": 4.5,
+          "color": "rgb(212, 212, 212)",
+          "background": "rgb(41 104 237)"
+        }
+      ]
+    },
+    {
+      "screen": "edit",
+      "theme": "light",
+      "checked": 100,
+      "complexBackgrounds": 1,
+      "failures": [
+        {
+          "text": "작업 공간",
+          "tag": "p",
+          "className": "text-caption font-semibold text-subtle max-xl:text-center",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "한 편의 제작 순서",
+          "tag": "p",
+          "className": "mb-stack text-caption font-semibold text-subtle max-xl:text-center",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "03",
+          "tag": "span",
+          "className": "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption border-border bg-surface text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "04",
+          "tag": "span",
+          "className": "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption border-border bg-surface text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "SOCIAL",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "0/5",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "Off",
+          "tag": "span",
+          "className": "ml-auto text-caption px-1.5 py-0.5 rounded-full max-xl:hidden bg-surface-2 text-subtle",
+          "ratio": 2.33,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "MESSAGING",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "0/3",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "VIDEO",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "0/2",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "DATA & ANALYTICS",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "KEYWORD RESEARCH",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "CUSTOM INTEGRATION",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "0/1",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "ASSETS & TOOLS",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "0",
+          "tag": "span",
+          "className": "ml-auto text-caption px-1.5 py-0.5 rounded-full bg-surface-2 text-subtle max-xl:hidden",
+          "ratio": 2.33,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "SYSTEM",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "다크 모드",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "⎋",
+          "tag": "span",
+          "className": "",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "로그아웃",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "콘텐츠 작업실",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.48,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(251 251 252)"
+        },
+        {
+          "text": "AI 공유 Claude CLI",
+          "tag": "span",
+          "className": "rounded-lg border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle",
+          "ratio": 2.33,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "20초 · 대사를 다듬는 중",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "무음 구간 0개 줄이기",
+          "tag": "button",
+          "className": "ds-label inline-flex min-h-control-touch min-w-max items-center justify-center gap-micro rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 bo",
+          "ratio": 3.31,
+          "minimum": 4.5,
+          "color": "rgb(24, 24, 27)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "화면 아래에서 바로 고칩니다",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "0초부터",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.33,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "4초부터",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.33,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "8초부터",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.33,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "12초부터",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.33,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "16초부터",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.33,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "지금 대기 중",
+          "tag": "span",
+          "className": "text-caption text-success",
+          "ratio": 3.3,
+          "minimum": 4.5,
+          "color": "rgb(22, 163, 74)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "편집 작업물로 저장",
+          "tag": "button",
+          "className": "ds-label inline-flex min-h-control-touch min-w-max items-center justify-center gap-micro rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg",
+          "ratio": 2.42,
+          "minimum": 4.5,
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(37 99 235)"
+        }
+      ]
+    },
+    {
+      "screen": "edit",
+      "theme": "dark",
+      "checked": 100,
+      "complexBackgrounds": 1,
+      "failures": [
+        {
+          "text": "작업 공간",
+          "tag": "p",
+          "className": "text-caption font-semibold text-subtle max-xl:text-center",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "한 편의 제작 순서",
+          "tag": "p",
+          "className": "mb-stack text-caption font-semibold text-subtle max-xl:text-center",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "✓",
+          "tag": "span",
+          "className": "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption border-accent bg-accent-soft text-accent",
+          "ratio": 4,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(23 37 84)"
+        },
+        {
+          "text": "생성실",
+          "tag": "span",
+          "className": "",
+          "ratio": 2.9,
+          "minimum": 4.5,
+          "color": "rgb(96, 96, 105)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "02",
+          "tag": "span",
+          "className": "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption border-accent-fg/40 bg-accent-fg/15 text-accent-fg",
+          "ratio": 4.05,
+          "minimum": 4.5,
+          "color": "rgb(10, 10, 11)",
+          "background": "rgb(41 104 237)"
+        },
+        {
+          "text": "편집실",
+          "tag": "span",
+          "className": "",
+          "ratio": 3.3,
+          "minimum": 4.5,
+          "color": "rgb(212, 212, 212)",
+          "background": "rgb(41 104 237)"
+        },
+        {
+          "text": "지금 여기",
+          "tag": "span",
+          "className": "ml-auto whitespace-nowrap rounded-full bg-accent-fg/15 px-stack-tight py-micro text-caption max-xl:ml-0 max-xl:px-micro",
+          "ratio": 3.3,
+          "minimum": 4.5,
+          "color": "rgb(212, 212, 212)",
+          "background": "rgb(41 104 237)"
+        },
+        {
+          "text": "03",
+          "tag": "span",
+          "className": "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption border-border bg-surface text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "발행실",
+          "tag": "span",
+          "className": "",
+          "ratio": 2.9,
+          "minimum": 4.5,
+          "color": "rgb(96, 96, 105)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "04",
+          "tag": "span",
+          "className": "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption border-border bg-surface text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "성과실",
+          "tag": "span",
+          "className": "",
+          "ratio": 2.9,
+          "minimum": 4.5,
+          "color": "rgb(96, 96, 105)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "SOCIAL",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "0/5",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Threads",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Off",
+          "tag": "span",
+          "className": "ml-auto text-caption px-1.5 py-0.5 rounded-full max-xl:hidden bg-surface-2 text-subtle",
+          "ratio": 3.4,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "X (Twitter)",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Instagram",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Facebook",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Bluesky",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "MESSAGING",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "0/3",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Telegram",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Discord",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Slack",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "VIDEO",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "0/2",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "YouTube",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "TikTok",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "DATA & ANALYTICS",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Blog Performance",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "KEYWORD RESEARCH",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Keyword Planner",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Naver Trends",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Google Trends",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "CUSTOM INTEGRATION",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "0/1",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Blog",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "ASSETS & TOOLS",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Images",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "0",
+          "tag": "span",
+          "className": "ml-auto text-caption px-1.5 py-0.5 rounded-full bg-surface-2 text-subtle max-xl:hidden",
+          "ratio": 3.4,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "Videos",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Midjourney",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "SYSTEM",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Settings",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "콘텐츠 작업실",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 4.09,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(10 10 11)"
+        },
+        {
+          "text": "3",
+          "tag": "span",
+          "className": "ml-micro text-accent",
+          "ratio": 2.34,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(206 206 208)"
+        },
+        {
+          "text": "편집실",
+          "tag": "span",
+          "className": "rounded-full bg-accent-soft px-stack py-stack-tight text-caption font-semibold text-accent",
+          "ratio": 4,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(23 37 84)"
+        },
+        {
+          "text": "AI 공유 Claude CLI",
+          "tag": "span",
+          "className": "rounded-lg border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle",
+          "ratio": 3.4,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "20초 · 대사를 다듬는 중",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "1. 처음 만든 서비스를 알리는 첫 콘텐츠: 문제부터 여는 안",
+          "tag": "span",
+          "className": "truncate",
+          "ratio": 3.3,
+          "minimum": 4.5,
+          "color": "rgb(212, 212, 212)",
+          "background": "rgb(41 104 237)"
+        },
+        {
+          "text": "구조 초안",
+          "tag": "span",
+          "className": "text-caption font-semibold text-accent",
+          "ratio": 4,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(23 37 84)"
+        },
+        {
+          "text": "세로",
+          "tag": "span",
+          "className": "",
+          "ratio": 3.3,
+          "minimum": 4.5,
+          "color": "rgb(212, 212, 212)",
+          "background": "rgb(41 104 237)"
+        },
+        {
+          "text": "무음 구간 0개 줄이기",
+          "tag": "button",
+          "className": "ds-label inline-flex min-h-control-touch min-w-max items-center justify-center gap-micro rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 bo",
+          "ratio": 2.3,
+          "minimum": 4.5,
+          "color": "rgb(63, 63, 65)",
+          "background": "rgb(206 206 208)"
+        },
+        {
+          "text": "세로",
+          "tag": "button",
+          "className": "ds-label inline-flex min-h-control-touch min-w-max items-center justify-center gap-micro rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg",
+          "ratio": 3.3,
+          "minimum": 4.5,
+          "color": "rgb(212, 212, 212)",
+          "background": "rgb(41 104 237)"
+        },
+        {
+          "text": "화면 아래에서 바로 고칩니다",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "0초부터",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.4,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "4초부터",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.4,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "8초부터",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.4,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "12초부터",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.4,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "16초부터",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.4,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "편집 작업물로 저장",
+          "tag": "button",
+          "className": "ds-label inline-flex min-h-control-touch min-w-max items-center justify-center gap-micro rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg",
+          "ratio": 1.83,
+          "minimum": 4.5,
+          "color": "rgb(212, 212, 212)",
+          "background": "rgb(41 104 237)"
+        },
+        {
+          "text": "보내기",
+          "tag": "button",
+          "className": "ds-label inline-flex min-h-control-touch min-w-max items-center justify-center gap-micro rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg",
+          "ratio": 3.3,
+          "minimum": 4.5,
+          "color": "rgb(212, 212, 212)",
+          "background": "rgb(41 104 237)"
+        }
+      ]
+    },
+    {
+      "screen": "publish",
+      "theme": "light",
+      "checked": 185,
+      "complexBackgrounds": 1,
+      "failures": [
+        {
+          "text": "작업 공간",
+          "tag": "p",
+          "className": "text-caption font-semibold text-subtle max-xl:text-center",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "한 편의 제작 순서",
+          "tag": "p",
+          "className": "mb-stack text-caption font-semibold text-subtle max-xl:text-center",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "04",
+          "tag": "span",
+          "className": "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption border-border bg-surface text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "SOCIAL",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "0/5",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "Off",
+          "tag": "span",
+          "className": "ml-auto text-caption px-1.5 py-0.5 rounded-full max-xl:hidden bg-surface-2 text-subtle",
+          "ratio": 2.33,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "MESSAGING",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "0/3",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "VIDEO",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "0/2",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "DATA & ANALYTICS",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "KEYWORD RESEARCH",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "CUSTOM INTEGRATION",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "0/1",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "ASSETS & TOOLS",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "0",
+          "tag": "span",
+          "className": "ml-auto text-caption px-1.5 py-0.5 rounded-full bg-surface-2 text-subtle max-xl:hidden",
+          "ratio": 2.33,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "SYSTEM",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "다크 모드",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "⎋",
+          "tag": "span",
+          "className": "",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "로그아웃",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "콘텐츠 작업실",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.48,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(251 251 252)"
+        },
+        {
+          "text": "AI 공유 Claude CLI",
+          "tag": "span",
+          "className": "rounded-lg border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle",
+          "ratio": 2.33,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "발행할 채널",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "Threads · X · Facebook",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.48,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(251 251 252)"
+        },
+        {
+          "text": "144/500",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "1시간",
+          "tag": "span",
+          "className": "text-subtle text-sm ml-1",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "답글 18개 · 좋아요 124개",
+          "tag": "div",
+          "className": "text-subtle text-sm mt-2",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "42/280",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "@키보드 검증 작업 공간 · 1분",
+          "tag": "span",
+          "className": "text-subtle ml-1",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "24",
+          "tag": "span",
+          "className": "flex items-center gap-1.5",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "57",
+          "tag": "span",
+          "className": "flex items-center gap-1.5",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "312",
+          "tag": "span",
+          "className": "flex items-center gap-1.5",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "144/63206",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "방금 · 🌐",
+          "tag": "div",
+          "className": "text-subtle text-xs",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "👍❤️ 248",
+          "tag": "span",
+          "className": "",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "댓글 32 · 공유 12",
+          "tag": "span",
+          "className": "",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "좋아요",
+          "tag": "div",
+          "className": "flex-1 text-center py-2 hover:bg-surface-2",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "댓글",
+          "tag": "div",
+          "className": "flex-1 text-center py-2 hover:bg-surface-2",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "공유",
+          "tag": "div",
+          "className": "flex-1 text-center py-2 hover:bg-surface-2",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "Shorts · Reels · TikTok",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.48,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(251 251 252)"
+        },
+        {
+          "text": "미지원",
+          "tag": "label",
+          "className": "flex items-center gap-micro text-caption text-warning",
+          "ratio": 3.19,
+          "minimum": 4.5,
+          "color": "rgb(217, 119, 6)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "영상 생성 대기",
+          "tag": "div",
+          "className": "w-full h-full grid place-items-center text-subtle text-xs",
+          "ratio": 2.33,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "첫 댓글 미지원: YouTube 영상 발행 route에 첫 댓글 후속 호출이 아직 연결되지 않았습니다.",
+          "tag": "div",
+          "className": "mt-stack rounded-lg border border-border bg-surface-2 p-stack text-caption text-subtle",
+          "ratio": 2.33,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "미지원",
+          "tag": "label",
+          "className": "flex items-center gap-micro text-caption text-warning",
+          "ratio": 3.19,
+          "minimum": 4.5,
+          "color": "rgb(217, 119, 6)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "영상 생성 대기",
+          "tag": "div",
+          "className": "w-full h-full grid place-items-center text-subtle text-xs",
+          "ratio": 2.33,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "첫 댓글 미지원: Reels 영상 발행 route에 첫 댓글 후속 호출이 아직 연결되지 않았습니다.",
+          "tag": "div",
+          "className": "mt-stack rounded-lg border border-border bg-surface-2 p-stack text-caption text-subtle",
+          "ratio": 2.33,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "미지원",
+          "tag": "label",
+          "className": "flex items-center gap-micro text-caption text-warning",
+          "ratio": 3.19,
+          "minimum": 4.5,
+          "color": "rgb(217, 119, 6)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "영상 생성 대기",
+          "tag": "div",
+          "className": "w-full h-full grid place-items-center text-subtle text-xs",
+          "ratio": 2.33,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "첫 댓글 미지원: 현재 TikTok provider adapter는 댓글 생성 계약을 제공하지 않습니다.",
+          "tag": "div",
+          "className": "mt-stack rounded-lg border border-border bg-surface-2 p-stack text-caption text-subtle",
+          "ratio": 2.33,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(244 244 245)"
+        },
+        {
+          "text": "Instagram",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.48,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(251 251 252)"
+        },
+        {
+          "text": "77/2200",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "· 팔로우",
+          "tag": "span",
+          "className": "text-subtle text-xs",
+          "ratio": 2.56,
+          "minimum": 4.5,
+          "color": "rgb(161, 161, 170)",
+          "background": "rgb(255 255 255)"
+        },
+        {
+          "text": "지금 대기 중",
+          "tag": "span",
+          "className": "text-caption text-success",
+          "ratio": 3.3,
+          "minimum": 4.5,
+          "color": "rgb(22, 163, 74)",
+          "background": "rgb(255 255 255)"
+        }
+      ]
+    },
+    {
+      "screen": "publish",
+      "theme": "dark",
+      "checked": 185,
+      "complexBackgrounds": 1,
+      "failures": [
+        {
+          "text": "작업 공간",
+          "tag": "p",
+          "className": "text-caption font-semibold text-subtle max-xl:text-center",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "한 편의 제작 순서",
+          "tag": "p",
+          "className": "mb-stack text-caption font-semibold text-subtle max-xl:text-center",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "✓",
+          "tag": "span",
+          "className": "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption border-accent bg-accent-soft text-accent",
+          "ratio": 4,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(23 37 84)"
+        },
+        {
+          "text": "생성실",
+          "tag": "span",
+          "className": "",
+          "ratio": 2.9,
+          "minimum": 4.5,
+          "color": "rgb(96, 96, 105)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "✓",
+          "tag": "span",
+          "className": "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption border-accent bg-accent-soft text-accent",
+          "ratio": 4,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(23 37 84)"
+        },
+        {
+          "text": "편집실",
+          "tag": "span",
+          "className": "",
+          "ratio": 2.9,
+          "minimum": 4.5,
+          "color": "rgb(96, 96, 105)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "03",
+          "tag": "span",
+          "className": "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption border-accent-fg/40 bg-accent-fg/15 text-accent-fg",
+          "ratio": 4.05,
+          "minimum": 4.5,
+          "color": "rgb(10, 10, 11)",
+          "background": "rgb(41 104 237)"
+        },
+        {
+          "text": "발행실",
+          "tag": "span",
+          "className": "",
+          "ratio": 3.3,
+          "minimum": 4.5,
+          "color": "rgb(212, 212, 212)",
+          "background": "rgb(41 104 237)"
+        },
+        {
+          "text": "지금 여기",
+          "tag": "span",
+          "className": "ml-auto whitespace-nowrap rounded-full bg-accent-fg/15 px-stack-tight py-micro text-caption max-xl:ml-0 max-xl:px-micro",
+          "ratio": 3.3,
+          "minimum": 4.5,
+          "color": "rgb(212, 212, 212)",
+          "background": "rgb(41 104 237)"
+        },
+        {
+          "text": "04",
+          "tag": "span",
+          "className": "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border text-caption border-border bg-surface text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "성과실",
+          "tag": "span",
+          "className": "",
+          "ratio": 2.9,
+          "minimum": 4.5,
+          "color": "rgb(96, 96, 105)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "SOCIAL",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "0/5",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Threads",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Off",
+          "tag": "span",
+          "className": "ml-auto text-caption px-1.5 py-0.5 rounded-full max-xl:hidden bg-surface-2 text-subtle",
+          "ratio": 3.4,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "X (Twitter)",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Instagram",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Facebook",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Bluesky",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "MESSAGING",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "0/3",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Telegram",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Discord",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Slack",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "VIDEO",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "0/2",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "YouTube",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "TikTok",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "DATA & ANALYTICS",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Blog Performance",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "KEYWORD RESEARCH",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Keyword Planner",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Naver Trends",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Google Trends",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "CUSTOM INTEGRATION",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "0/1",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Blog",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "ASSETS & TOOLS",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Images",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "0",
+          "tag": "span",
+          "className": "ml-auto text-caption px-1.5 py-0.5 rounded-full bg-surface-2 text-subtle max-xl:hidden",
+          "ratio": 3.4,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "Videos",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Midjourney",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "SYSTEM",
+          "tag": "span",
+          "className": "text-caption font-medium text-subtle uppercase tracking-wider max-xl:sr-only",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Settings",
+          "tag": "span",
+          "className": "max-xl:sr-only",
+          "ratio": 3.53,
+          "minimum": 4.5,
+          "color": "rgb(109, 109, 118)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "콘텐츠 작업실",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 4.09,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(10 10 11)"
+        },
+        {
+          "text": "3",
+          "tag": "span",
+          "className": "ml-micro text-accent",
+          "ratio": 2.36,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(207 207 208)"
+        },
+        {
+          "text": "발행실",
+          "tag": "span",
+          "className": "rounded-full bg-accent-soft px-stack py-stack-tight text-caption font-semibold text-accent",
+          "ratio": 4,
+          "minimum": 4.5,
+          "color": "rgb(59, 130, 246)",
+          "background": "rgb(23 37 84)"
+        },
+        {
+          "text": "AI 공유 Claude CLI",
+          "tag": "span",
+          "className": "rounded-lg border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle",
+          "ratio": 3.4,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "발행할 채널",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "3곳에 올리기",
+          "tag": "button",
+          "className": "ds-label inline-flex min-h-control-touch min-w-max items-center justify-center gap-micro rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg",
+          "ratio": 3.3,
+          "minimum": 4.5,
+          "color": "rgb(212, 212, 212)",
+          "background": "rgb(41 104 237)"
+        },
+        {
+          "text": "Threads · X · Facebook",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 4.09,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(10 10 11)"
+        },
+        {
+          "text": "144/500",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "1시간",
+          "tag": "span",
+          "className": "text-subtle text-sm ml-1",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "답글 18개 · 좋아요 124개",
+          "tag": "div",
+          "className": "text-subtle text-sm mt-2",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "42/280",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "@키보드 검증 작업 공간 · 1분",
+          "tag": "span",
+          "className": "text-subtle ml-1",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "24",
+          "tag": "span",
+          "className": "flex items-center gap-1.5",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "57",
+          "tag": "span",
+          "className": "flex items-center gap-1.5",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "312",
+          "tag": "span",
+          "className": "flex items-center gap-1.5",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "144/63206",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "방금 · 🌐",
+          "tag": "div",
+          "className": "text-subtle text-xs",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "👍❤️ 248",
+          "tag": "span",
+          "className": "",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "댓글 32 · 공유 12",
+          "tag": "span",
+          "className": "",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "좋아요",
+          "tag": "div",
+          "className": "flex-1 text-center py-2 hover:bg-surface-2",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "댓글",
+          "tag": "div",
+          "className": "flex-1 text-center py-2 hover:bg-surface-2",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "공유",
+          "tag": "div",
+          "className": "flex-1 text-center py-2 hover:bg-surface-2",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "Shorts · Reels · TikTok",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 4.09,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(10 10 11)"
+        },
+        {
+          "text": "영상 생성 대기",
+          "tag": "div",
+          "className": "w-full h-full grid place-items-center text-subtle text-xs",
+          "ratio": 3.4,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "첫 댓글 미지원: YouTube 영상 발행 route에 첫 댓글 후속 호출이 아직 연결되지 않았습니다.",
+          "tag": "div",
+          "className": "mt-stack rounded-lg border border-border bg-surface-2 p-stack text-caption text-subtle",
+          "ratio": 3.4,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "영상 생성 대기",
+          "tag": "div",
+          "className": "w-full h-full grid place-items-center text-subtle text-xs",
+          "ratio": 3.4,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "첫 댓글 미지원: Reels 영상 발행 route에 첫 댓글 후속 호출이 아직 연결되지 않았습니다.",
+          "tag": "div",
+          "className": "mt-stack rounded-lg border border-border bg-surface-2 p-stack text-caption text-subtle",
+          "ratio": 3.4,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "영상 생성 대기",
+          "tag": "div",
+          "className": "w-full h-full grid place-items-center text-subtle text-xs",
+          "ratio": 3.4,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "+",
+          "tag": "span",
+          "className": "absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-danger text-white grid place-items-center text-caption",
+          "ratio": 3.76,
+          "minimum": 4.5,
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(239 68 68)"
+        },
+        {
+          "text": "첫 댓글 미지원: 현재 TikTok provider adapter는 댓글 생성 계약을 제공하지 않습니다.",
+          "tag": "div",
+          "className": "mt-stack rounded-lg border border-border bg-surface-2 p-stack text-caption text-subtle",
+          "ratio": 3.4,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(31 31 35)"
+        },
+        {
+          "text": "Instagram",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 4.09,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(10 10 11)"
+        },
+        {
+          "text": "77/2200",
+          "tag": "span",
+          "className": "text-caption text-subtle",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "· 팔로우",
+          "tag": "span",
+          "className": "text-subtle text-xs",
+          "ratio": 3.74,
+          "minimum": 4.5,
+          "color": "rgb(113, 113, 122)",
+          "background": "rgb(22 22 24)"
+        },
+        {
+          "text": "보내기",
+          "tag": "button",
+          "className": "ds-label inline-flex min-h-control-touch min-w-max items-center justify-center gap-micro rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg",
+          "ratio": 3.3,
+          "minimum": 4.5,
+          "color": "rgb(212, 212, 212)",
+          "background": "rgb(41 104 237)"
+        }
+      ]
+    }
+  ],
+  "contrastFailureCount": 457,
+  "unauthorizedUrls": [],
+  "consoleErrors": []
+}

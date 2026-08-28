@@ -1,0 +1,28 @@
+{
+  "created_at": "2026-08-13T18:37:09.580535Z",
+  "display_name": "Kling v3.0",
+  "id": "393322fe-80ec-4980-a623-41b1cff3dac1",
+  "job_type": "kling3_0",
+  "min_result_url": null,
+  "params": {
+    "aspect_ratio": "9:16",
+    "cfg_scale": 0.5,
+    "duration": 8,
+    "enhance_prompt": false,
+    "height": 1280,
+    "kling_element_ids": [],
+    "kling_elements": [],
+    "medias": [],
+    "mode": "std",
+    "multi_prompt": [],
+    "multi_shot_mode": "custom",
+    "multi_shots": false,
+    "prompt": "Rights-clean original with a fictional 29-year-old Korean man. Vertical 9:16, eight-second silent sequence. Camera viewpoint: intimate third-person at eye level throughout. Visual treatment: realistic editorial documentary, natural skin texture, cold blue evening light shifting to warm practical light. [0-2s HOOK] Macro close-up of his thumb endlessly scrolling a generic blank smartphone interface; blue light pulses across his tired face. [2-5s] The camera pulls back to reveal untouched running shoes and a closed laptop beside the sofa while he keeps scrolling. [5-8s] He stops, turns the phone face down, opens the laptop, and places the running shoes by the door with one calm decisive breath. Restrained acting, physically plausible motion, no readable text, no logos, no subtitles, no captions, no watermark.",
+    "reference_elements": [],
+    "sound": "off",
+    "width": 720
+  },
+  "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183709_393322fe-80ec-4980-a623-41b1cff3dac1.mp4",
+  "status": "completed",
+  "thumbnail_url": "https://cdn.higgsfield.ai/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183709_393322fe-80ec-4980-a623-41b1cff3dac1_thumbnail.webp"
+}

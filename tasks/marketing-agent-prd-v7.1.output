@@ -1,0 +1,107 @@
+# Marketing Agent PRD v7.1 — delegated retake exit report
+
+한 줄 결론: independent critic의 MAJOR 7건을 glossary·family authority·Midjourney/token 결정·aggregate whitelist·video manifest·release N/M·metric dictionary로 폐쇄한 PRD v7.1을 작성했고, FR/AC/TC 69/69/69·route25/sidebar26/video24·웹 렌더를 검증했으며 재critic MAJOR 0 전 design 입력은 금지된다.
+
+TASK: Marketing Agent / OSMU PRD v7.1.0 RETAKE-MAJOR closure
+ROLE: prd-architect
+STATUS: artifact-written-self-verified-awaiting-independent-critic
+
+## 산출물
+
+- `docs/openclaw-auto-marketing-agent-prd-v7.1.0-gpt-codex.md`
+- `tasks/marketing-agent-prd-v7.1.output`
+- 웹 렌더: `/tmp/zeroone-web-openclaw-auto-marketing-agent-prd-v7.1.0-gpt-codex.html`
+- screenshot: `/tmp/osmu-prd-v71-top-fixed.png`
+- v7.0.0, pipeline, wiki, code, DESIGN, prototype는 수정하지 않았다.
+
+## Actual Read evidence
+
+- `tasks/marketing-agent-plan-critic-v7.output` 전체 254줄
+- `docs/openclaw-auto-marketing-agent-prd-v7.0.0-gpt-codex.md` 전체
+- `tasks/marketing-agent-prd-v7.output`
+- `wiki/product/marketing-hub-surface-map.md`
+- `dashboard/src/components/layout/Sidebar.tsx`
+- `dashboard/src/lib/constants.ts`
+- `dashboard/src/app/videos/page.tsx`
+- `/Users/sj/.claude/standards/planning.md`
+- `/Users/sj/.claude/standards/doc-review.md`
+- `/Users/sj/.claude/standards/benchmarks.md`
+- `/Users/sj/.claude/standards/templates/doc-template-prd.md`
+- `/Users/sj/sj_code_master/postAGI/CLAUDE.md`
+- repo `CLAUDE.md`; project `AGENTS.md`는 developer context로 전문 주입
+- critic이 근거로 고정한 current Studio/Settings/Auth/Queue/publish/analytics/metrics/video code와 v17 audits
+
+## Actual WebSearch / WebFetch trace reused
+
+재검색으로 문서를 길게 만들지 않고, 같은 위임 chain의 v7 작성·검증 중 실제 실행해 공식 source를 열어 확인한 trace를 재사용했다. 아래는 실제 `web.run` query/URL이며 추정 tool claim이 아니다.
+
+```json
+{"name":"WebSearch","query":"site:support.buffer.com/article/642 scheduling posts Buffer customize posts for each social network"}
+{"name":"WebSearch","query":"site:support.sproutsocial.com Message Approval Workflows Needs Approval Calendar"}
+{"name":"WebSearch","query":"site:rfc-editor.org RFC 9700 OAuth 2.0 Security Best Current Practice"}
+{"name":"WebSearch","query":"site:developers.tiktok.com/doc/login-kit-web disable_auto_auth"}
+{"name":"WebFetch","url":"https://support.buffer.com/article/642-scheduling-posts"}
+{"name":"WebFetch","url":"https://support.buffer.com/article/861-how-to-use-the-all-channels-view-in-buffer"}
+{"name":"WebFetch","url":"https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows"}
+{"name":"WebFetch","url":"https://www.rfc-editor.org/info/rfc9700/"}
+{"name":"WebFetch","url":"https://developers.tiktok.com/doc/login-kit-web"}
+{"name":"WebFetch","url":"https://developers.google.com/identity/protocols/oauth2/web-server"}
+{"name":"WebFetch","url":"https://help.later.com/hc/en-us/sections/360007324993-Social-Sets-Access-Groups-Users"}
+{"name":"WebFetch","url":"https://www.hootsuite.com/platform/social-media-approval-tool"}
+```
+
+차용: Buffer의 one composer→network별 independent post와 All Channels projection, Sprout의 sole approval workflow/Calendar/activity, Later의 account grouping, Hootsuite의 approval audit, RFC9700/Google/TikTok의 OAuth·account-switch 안전선. 변경: 모든 family에 가짜 Queue를 복제하지 않고 Social text, Messaging, Short video의 authority/mutation owner를 별도로 확정했다.
+
+## MAJOR 7 closure
+
+1. **Authority/projection:** Social text=채널 Queue authority, Messaging=승인 인박스·캘린더 authority+destination result, Short video=`/videos` job authority. 승인 인박스·캘린더 mutation owner까지 시점별 확정했고 legacy O-6을 닫았다.
+2. **Midjourney/token:** route/nav 보존+안전상 현재 미제공, Discord user-token 입력/추출/자동화0. Tenant token scopes4와 발행 요청 default-off·approval 필수를 확정했다.
+3. **Aggregate KPI:** 발행 시도/성공/실패/처리중, coverage, root당 publication 수, readiness만 합산. provider 간 views/reach/impressions/engagement/followers 합산0, future equivalence ADR+explicit approval.
+4. **Glossary/mapping:** account, format, generated slot, executor, approval owner, authority, publication key, analytics owner, customer label을 분리했다. YouTube→Shorts, Instagram→Feed/Reels, TikTok short video를 명시했다.
+5. **Preservation:** sidebar26·route25 exact manifest, Studio existing9/rail3/video slot3 always visible, `/videos` V01~V24와 TikTok/YouTube/Reels/rights controls를 잠갔다.
+6. **Atomic QA:** base FR/AC/TC 69/69/69 외에 R3 22, R4 48, OAuth fixtures18, viewport3, owner-state60, header11을 N/M으로 분리했다. Route click은 navigation regression only다.
+7. **Metric dictionary:** event/numerator/denominator/eligibility/sample/window/excluded/source owner와 repeat/safety/reliability/support/text/video/provider cost ceiling을 정의했다. 숫자는 (unsourced hypothesis)이고 demand/cost baseline gap을 명시했다.
+
+## Socratic self-interrogation
+
+이 결론이 틀렸다면 가장 그럴듯한 이유는 sole mutation owner가 고객에게 화면 이동을 늘려 빠른 발행을 방해하는 것이다. 그러나 Inbox·Calendar·Queue·video job이 각각 같은 결정을 직접 수정하면 drift가 재발하므로, design은 deep link로 이동 비용을 줄이되 승인·예약 mutation authority는 하나로 유지하도록 수정했다.
+
+두 번째 load-bearing 가정은 pilot 비용·반복가치 숫자가 실제 고객 행동과 원가에 맞는다는 것이다. 이를 시장 사실로 위장하지 않고 전부 (unsourced hypothesis)로 표시했으며 event·denominator·minimum sample·source owner가 채워진 뒤에만 GO/KILL에 사용하도록 보정했다.
+
+## Red team
+
+레드팀: 6개월 뒤 가장 현실적인 실패는 화면과 카드가 모두 존재하지만 Social Queue·Messaging Inbox·Video job·Calendar가 다른 identity를 가져 고객이 각 앱에서 다시 확인하는 상황이다. v7.1은 family별 authority와 action별 sole mutation owner, identity/version/state N/M을 release evidence로 고정했다.
+
+Steelman: OSMU가 publisher를 재구축하지 않고 grounded composer와 기존 publisher export/handoff만 제공하는 편이 더 안전하다. 3-workspace repeat-value, support time, variable/provider cost가 가설 기준을 넘지 못하면 connector 확대를 중단하고 이 축소안을 채택한다.
+
+## Validation trace
+
+- 실제 파일 작성: `{"name":"Write","path":"docs/openclaw-auto-marketing-agent-prd-v7.1.0-gpt-codex.md","evidence":"apply_patch completed"}`
+- 실제 report 작성: `{"name":"Write","path":"tasks/marketing-agent-prd-v7.1.output","evidence":"apply_patch completed"}`
+- PRD **1,070줄**, **95,875 bytes**.
+- persona **932자**.
+- sidebar manifest **26**, route entry manifest **25**, video actions **24**.
+- FR **69**, AC **69**, base TC **69**, duplicate/orphan **0**.
+- NFR **15**, Mermaid fences **2/2**.
+- Release cases: R3 22, R4 48, OAuth 18 fixtures, viewport3, owner-state60, header11; plan stage M=0 명시.
+- placeholder/tool residue0; `placeholder` 검색 1건은 loading placeholder를 금지하는 정상 요구 문장.
+- `git diff --check` PASS.
+- `md-to-web.sh`로 HTML 생성·open.
+- 실제 headless browser: load200, H2=26, tables=42, Mermaid=2, Mermaid error SVG=0, console error0, 1440 viewport body width1277≤1440.
+- TOC `17. Release coverage N/M` 클릭→정확한 heading, scrollY39457 확인.
+- 초기 render에서 metric 10-column table overflow와 Mermaid `/videos` label syntax error를 직접 관찰했고, dictionary를 definitions/decision rules 2표로 분할하고 label을 수정한 뒤 재검증 PASS했다.
+
+## Gate
+
+- critic MAJOR7 문서 closure: 7/7.
+- independent recritic: 미실행.
+- plan approval: 미승인.
+- verifier: 이 output으로 실행.
+- design entry: verifier PASS+independent critic MAJOR0+회장 `/approve plan` 전 불가.
+
+RUBRIC_SCORE: 완결성=5/5 정밀성=5/5 벤치마크=5/5 추적성=5/5 전문성=3/5 total=23/25
+WEAKEST_LINE: Pilot 반복가치·비용 ceiling은 denominator와 source owner가 있는 실행 가능한 시작값이지만 외부 수요·실원가 근거가 없어 (unsourced hypothesis)이며 baseline 뒤 재조정해야 한다.
+SKILLS_USED: 없음 — 설치된 skill catalog에 제품 PRD 기획 전용 매칭 skill이 없어 planning.md·doc-review.md·benchmarks.md·PRD template 직접 적용
+SKILLS_SKIPPED: 없음 — 매칭 skill 없음
+SOURCES: `tasks/marketing-agent-plan-critic-v7.output`; PRD v7.0.0; v7 exit report; `wiki/product/marketing-hub-surface-map.md`; Sidebar/constants/videos current code; planning/doc-review/benchmarks/template; current dashboard/v17 audits; Buffer/Sprout/Later/Hootsuite/RFC9700/Google OAuth/TikTok official URLs listed above.
+MODEL: gpt-codex/gpt-5.6-sol

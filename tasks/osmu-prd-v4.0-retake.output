@@ -1,0 +1,69 @@
+TASK: PLAN-007 MAJOR PRD v4.0.0 retake
+ROLE: prd-architect
+STATUS: artifact-written-and-verified
+
+READ_EVIDENCE:
+- /Users/sj/sj_code_master/postAGI/CLAUDE.md
+- /Users/sj/sj_code_master/openclaw-auto/AGENTS.md
+- /Users/sj/sj_code_master/openclaw-auto/CLAUDE.md
+- /Users/sj/sj_code_master/openclaw-auto/wiki/ops/session-state.md
+- /Users/sj/sj_code_master/openclaw-auto/pipeline-state.md
+- /Users/sj/sj_code_master/openclaw-auto/docs/qa-tracker.md
+- /Users/sj/sj_code_master/openclaw-auto/CHANGELOG.md
+- /Users/sj/.claude/standards/planning.md
+- /Users/sj/.claude/standards/doc-review.md
+- /Users/sj/.claude/standards/benchmarks.md
+- /Users/sj/.claude/standards/artifact-stamp.md
+
+RESEARCH_EVIDENCE:
+{"query":"site:support.buffer.com post groups independent posts status scheduled time official"}
+{"query":"site:docs.postiz.com managing posts API idempotency official"}
+{"query":"site:help.later.com schedule one post multiple profiles customize each official"}
+- Used primary official Buffer and Later help pages; Postiz query did not yield a sufficiently direct primary result and was not used as evidence.
+- Borrowed: independent per-channel items inside a post group; per-profile customization and unsupported-media disablement.
+- Changed: the group is a tenant-scoped source/dispatch/result recovery contract, not only a visual grouping.
+
+CODE_AUDIT_EVIDENCE:
+- constants.ts: text schedule/publish 8; Studio constants drift.
+- studio/page.tsx: DB drafts, direct 4, preview 7, provider-home fallback.
+- inbox/calendar/queue-store: queue.json primary, queue_posts best-effort mirror.
+- publish/schedule/video routes: generic direct reservation absent; schedule claim and video reservation are path-local; YouTube result persistence inconsistent.
+- social-connect.ts: same-provider OAuth state one-time consumption TODO.
+- root extensions/*-publish: 15 runtime-isolated extensions, code presence not operational readiness.
+
+SOCRATIC_SELF_INTERROGATION:
+- 이 결론이 틀렸다면 왜? 고객이 Studio만 쓰고 Inbox/Calendar 수렴을 원하지 않아 migration 비용이 과할 수 있다.
+- 수정: big-bang을 금지하고 source identity/idempotency와 dual-read parity를 분리했다. 실제 cross-surface 사용이 약하면 canonical UI 수렴을 축소할 수 있다.
+
+RED_TEAM:
+- 경쟁자: Buffer/Later도 multi-profile grouping을 제공한다. 수정: 로고 수가 아니라 account-safe identity, concurrent reservation, provider result recovery를 검증축으로 고정했다.
+- 회의적 투자자: extension 15 유지비가 수익을 압도한다. 수정: 전부 출시 약속 대신 integrate/repair/retire disposition을 R5 gate로 두었다.
+- 까다로운 고객: 실제 게시물이 있는데 link가 없으면 재발행할 수 있다. 수정: provider home fallback 금지, persistence-only repair, success-target retry 금지를 AC에 넣었다.
+
+ARTIFACTS:
+{"name":"Write","path":"docs/openclaw-auto-osmu-prd-v4.0.0-gpt-codex.md","evidence":"apply_patch completed"}
+{"name":"Edit","path":"docs/qa-tracker.md","evidence":"apply_patch completed"}
+{"action":"add","path":"docs/openclaw-auto-osmu-prd-v4.0.0-gpt-codex.md"}
+{"action":"replace","path":"docs/one-thing.md"}
+{"action":"replace","path":"docs/persona.md"}
+{"action":"replace","path":"docs/bm.md"}
+{"action":"replace","path":"docs/risks.md"}
+{"action":"update","path":"docs/qa-tracker.md"}
+
+QUALITY:
+- Full standalone PRD, 21 sections, 2 Mermaid flows.
+- Exact maps: text 8, video 3, extensions 15.
+- Requirements: FR 24, NFR 8.
+- AC↔TC: 26 one-to-one; RTM included.
+- Persona: 600+ Korean characters.
+- Steelman, premortem, kill criteria each 2+ concrete sentences/scenarios.
+- DESIGN v6 and PRD v3.1.1 are rejected evidence only.
+- verify-agent-quality.sh result: PASS — WebSearch/Fetch 3, Socratic markers 2, warning 0 (the harness log append itself is sandbox-denied outside the writable repo).
+
+SKILLS_USED: 없음 — available catalog에 PRD/제품기획 전용 skill 없음; planning/doc-review standards 직접 적용
+SKILLS_SKIPPED: brand-positioning-kit 등은 runtime-audit PRD retake와 비매칭
+
+SOURCES: Buffer Post Groups https://support.buffer.com/article/662-creating-and-managing-post-groups | Later multi-profile https://help.later.com/hc/en-us/articles/360043245633-Schedule-a-Post-to-Multiple-Social-Profiles | code and wiki paths listed above
+MODEL: gpt-codex/gpt-5.6-sol
+RUBRIC_SCORE: completeness=5/5 precision=5/5 traceability=5/5 readability=4/5 slop=5/5 total=24/25
+WEAKEST_LINE: 13-week/52-hour/USD-500 appetite is an approval-pending cap, not a delivery promise.

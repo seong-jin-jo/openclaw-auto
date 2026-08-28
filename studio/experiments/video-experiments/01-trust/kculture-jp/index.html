@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Global Shortform Control Room</title>
+  <style>
+    :root{--ink:#171713;--paper:#f3f0e8;--white:#fffdf8;--line:#292923;--muted:#69695f;--amber:#f4b740;--red:#c9342f;--green:#176b43;--r:8px;--s1:8px;--s2:16px;--s3:24px;--s4:32px;--s5:48px}
+    *{box-sizing:border-box} body{margin:0;background:var(--ink);color:var(--ink);font-family:"Apple SD Gothic Neo","Noto Sans KR",sans-serif;line-height:1.5}.shell{min-height:100vh;background:var(--paper);transition:max-width .2s ease-out;margin:auto}.shell.mobile{max-width:390px}.shell.desktop{max-width:1024px}.top{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 24px;background:rgba(23,23,19,.96);color:var(--white);border-bottom:1px solid #3f3f38}.brand{font:800 13px/1.2 ui-monospace,SFMono-Regular,monospace;letter-spacing:.08em}.controls{display:flex;gap:8px;flex-wrap:wrap}.controls button{border:1px solid #77776b;background:transparent;color:var(--white);padding:8px 12px;border-radius:4px;font-weight:700;cursor:pointer}.controls button[aria-pressed="true"]{background:var(--amber);color:var(--ink);border-color:var(--amber)}
+    header{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(240px,.5fr);gap:32px;padding:48px 32px 32px;border-bottom:2px solid var(--line)}.kicker{font:800 12px ui-monospace,SFMono-Regular,monospace;letter-spacing:.12em;color:var(--red)}h1{font-size:clamp(36px,6vw,72px);line-height:.96;letter-spacing:-.055em;margin:12px 0 24px;max-width:760px}.lead{font-size:18px;max-width:680px;margin:0}.balance{align-self:end;background:var(--ink);color:var(--white);padding:24px;border-radius:var(--r)}.balance strong{display:block;font-size:52px;line-height:1;color:var(--amber)}.balance span{font-size:12px;color:#bcbcaf}.alert{margin:24px 32px 0;padding:16px 20px;border:2px solid var(--red);background:#fff1ed;font-weight:700}.metrics{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line);margin:24px 32px}.metric{padding:20px 16px;border-right:1px solid var(--line)}.metric:last-child{border:0}.metric b{display:block;font-size:32px;line-height:1}.metric small{color:var(--muted)}
+    main{padding:8px 32px 48px}.section-head{display:flex;justify-content:space-between;gap:16px;align-items:end;margin:40px 0 16px}.section-head h2{font-size:26px;margin:0}.section-head p{margin:0;color:var(--muted);max-width:560px}.matrix{border-top:2px solid var(--line)}.row{display:grid;grid-template-columns:112px minmax(150px,.8fr) minmax(180px,1.2fr) 100px 150px;gap:16px;align-items:start;padding:20px 8px;border-bottom:1px solid #a5a597}.id{font:800 13px ui-monospace,SFMono-Regular,monospace}.tag{display:inline-block;padding:4px 8px;border-radius:4px;font:800 11px ui-monospace,SFMono-Regular,monospace}.tag.reject{background:var(--red);color:white}.tag.prepared{background:var(--amber)}.model{font-weight:800}.meta{font-size:13px;color:var(--muted)}.prompt{font-size:14px}.prompt a{color:var(--ink);font-weight:800;text-decoration-thickness:2px}.empty{border:1px dashed #98988c;background:#e7e3d9;padding:12px;font:700 12px ui-monospace,SFMono-Regular,monospace;color:#5d5d54}.cost{text-align:right;font-weight:900}.cost small{display:block;font-weight:500;color:var(--muted)}
+    .rules{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.rule{padding:20px;border-left:4px solid var(--amber);background:var(--white)}.rule b{display:block;margin-bottom:8px}.sources{font-size:13px}.sources a{color:var(--ink);word-break:break-all}.stamp{background:var(--ink);color:#c8c8bc;padding:24px 32px;font:12px/1.65 ui-monospace,SFMono-Regular,monospace}.stamp b{color:var(--white)}
+    @media(max-width:700px){.top{position:static;padding:12px 16px;align-items:flex-start;flex-direction:column}header{grid-template-columns:1fr;padding:32px 16px 24px}.balance{width:100%}.alert{margin:16px 16px 0}.metrics{grid-template-columns:1fr 1fr;margin:16px}.metric:nth-child(2){border-right:0}.metric:nth-child(-n+2){border-bottom:1px solid var(--line)}main{padding:8px 16px 32px}.section-head{display:block}.section-head p{margin-top:8px}.row{grid-template-columns:1fr 88px;gap:8px}.row>div:nth-child(2),.row>div:nth-child(3),.row>div:nth-child(5){grid-column:1/-1}.cost{grid-column:2;grid-row:1}.rules{grid-template-columns:1fr}h1{font-size:46px}.stamp{padding:20px 16px}}
+    @media(prefers-reduced-motion:reduce){.shell{transition:none}}
+  </style>
+</head>
+<body>
+<div class="shell desktop" id="shell">
+  <div class="top">
+    <div class="brand">OSMU / GLOBAL SHORTFORM / CONTROL ROOM 01</div>
+    <div class="controls" aria-label="뷰포트 전환">
+      <button type="button" data-view="mobile" aria-pressed="false">390 MOBILE</button>
+      <button type="button" data-view="desktop" aria-pressed="true">1024 DESKTOP</button>
+    </div>
+  </div>
+  <header>
+    <div>
+      <div class="kicker">EVIDENCE BEFORE AESTHETICS</div>
+      <h1>영상은 없고,<br>실험은 남았다.</h1>
+      <p class="lead">일본어·영어, 장면 순서, 3개 모델, 동일 조건 재생성을 10편으로 잠갔다. 공유 계정이 0크레딧 free로 바뀌어 job 접수는 0건이다.</p>
+    </div>
+    <aside class="balance"><strong>0</strong><span>HIGGSFIELD CREDITS<br>2026-08-14 03:40 KST</span></aside>
+  </header>
+  <div class="alert">⛔ 실제 렌더 없음. 타 트랙의 job을 가져오지 않았고, 생성되지 않은 URL·MP4·평가값을 채우지 않았다.</div>
+  <section class="metrics" aria-label="실험 요약">
+    <div class="metric"><b>10</b><small>통제 렌더 설계</small></div>
+    <div class="metric"><b>176</b><small>사전 견적 크레딧</small></div>
+    <div class="metric"><b>0</b><small>이 트랙 실제 청구</small></div>
+    <div class="metric"><b>3</b><small>Veo · Kling · Seedance</small></div>
+  </section>
+  <main>
+    <div class="section-head"><h2>K-CULTURE / JP + EN</h2><p>같은 한국 편의점 사건에서 언어, 첫 컷, 모델, 재생성 중 한 변수만 바꾼다.</p></div>
+    <section class="matrix">
+      <article class="row"><div><div class="id">VF-JP-001A</div><span class="tag reject">REJECTED</span></div><div><div class="model">Veo 3.1 Lite</div><div class="meta">일본어 · 장면 먼저</div></div><div class="prompt"><b>기준선</b><br><a href="prompts/kculture-jp-vf-jp-001a-jp-scene-veo-v1-gpt-codex.txt">전체 프롬프트 열기</a></div><div class="cost">12<small>quoted</small></div><div class="empty">NO JOB ID<br>NO URL<br>NO MP4</div></article>
+      <article class="row"><div><div class="id">VF-JP-001B</div><span class="tag prepared">PREPARED</span></div><div><div class="model">Veo 3.1 Lite</div><div class="meta">영어 · 장면 먼저</div></div><div class="prompt"><b>변수: 언어</b><br><a href="prompts/kculture-jp-vf-jp-001b-en-scene-veo-v1-gpt-codex.txt">전체 프롬프트 열기</a></div><div class="cost">12<small>quoted</small></div><div class="empty">NOT SUBMITTED<br>LOW BALANCE STOP</div></article>
+      <article class="row"><div><div class="id">VF-JP-001C</div><span class="tag prepared">PREPARED</span></div><div><div class="model">Veo 3.1 Lite</div><div class="meta">일본어 · 설명 먼저</div></div><div class="prompt"><b>변수: 도입 순서</b><br><a href="prompts/kculture-jp-vf-jp-001c-jp-explain-veo-v1-gpt-codex.txt">전체 프롬프트 열기</a></div><div class="cost">12<small>quoted</small></div><div class="empty">NOT SUBMITTED<br>LOW BALANCE STOP</div></article>
+      <article class="row"><div><div class="id">VF-JP-001D</div><span class="tag prepared">PREPARED</span></div><div><div class="model">Kling 3.0</div><div class="meta">일본어 · 장면 먼저</div></div><div class="prompt"><b>변수: 모델</b><br><a href="prompts/kculture-jp-vf-jp-001d-jp-scene-kling-v1-gpt-codex.txt">전체 프롬프트 열기</a></div><div class="cost">16<small>quoted</small></div><div class="empty">NOT SUBMITTED<br>LOW BALANCE STOP</div></article>
+      <article class="row"><div><div class="id">VF-JP-001E</div><span class="tag prepared">PREPARED</span></div><div><div class="model">Veo 3.1 Lite</div><div class="meta">일본어 · 장면 먼저</div></div><div class="prompt"><b>변수: 생성 호출 반복</b><br><a href="prompts/kculture-jp-vf-jp-001e-jp-scene-veo-repeat-v1-gpt-codex.txt">전체 프롬프트 열기</a></div><div class="cost">12<small>quoted</small></div><div class="empty">NOT SUBMITTED<br>LOW BALANCE STOP</div></article>
+      <article class="row"><div><div class="id">VF-JP-001F</div><span class="tag prepared">PREPARED</span></div><div><div class="model">Seedance 2.0</div><div class="meta">일본어 · 장면 먼저</div></div><div class="prompt"><b>변수: 모델</b><br><a href="prompts/kculture-jp-vf-jp-001f-jp-scene-seedance-v1-gpt-codex.txt">전체 프롬프트 열기</a></div><div class="cost">36<small>quoted</small></div><div class="empty">NOT SUBMITTED<br>LOW BALANCE STOP</div></article>
+    </section>
+
+    <div class="section-head"><h2>FORMAT REMAKE / KR</h2><p>해외 영상은 쓰지 않는다. 오해, 물건 단서, 사회적 복구라는 추상 구조만 독립 원작으로 재구성했다.</p></div>
+    <section class="matrix">
+      <article class="row"><div><div class="id">VF-KR-001A</div><span class="tag reject">REJECTED</span></div><div><div class="model">Veo 3.1 Lite</div><div class="meta">장면 먼저</div></div><div class="prompt"><b>기준선</b><br><a href="../../02-entertainment/format-remake-kr/prompts/format-remake-kr-vf-kr-001a-scene-veo-v1-gpt-codex.txt">전체 프롬프트 열기</a></div><div class="cost">12<small>quoted</small></div><div class="empty">NO JOB ID<br>NO URL<br>NO MP4</div></article>
+      <article class="row"><div><div class="id">VF-KR-001B</div><span class="tag prepared">PREPARED</span></div><div><div class="model">Veo 3.1 Lite</div><div class="meta">설명 먼저</div></div><div class="prompt"><b>변수: 도입 순서</b><br><a href="../../02-entertainment/format-remake-kr/prompts/format-remake-kr-vf-kr-001b-explain-veo-v1-gpt-codex.txt">전체 프롬프트 열기</a></div><div class="cost">12<small>quoted</small></div><div class="empty">NOT SUBMITTED<br>LOW BALANCE STOP</div></article>
+      <article class="row"><div><div class="id">VF-KR-001C</div><span class="tag prepared">PREPARED</span></div><div><div class="model">Kling 3.0</div><div class="meta">장면 먼저</div></div><div class="prompt"><b>변수: 모델</b><br><a href="../../02-entertainment/format-remake-kr/prompts/format-remake-kr-vf-kr-001c-scene-kling-v1-gpt-codex.txt">전체 프롬프트 열기</a></div><div class="cost">16<small>quoted</small></div><div class="empty">NOT SUBMITTED<br>LOW BALANCE STOP</div></article>
+      <article class="row"><div><div class="id">VF-KR-001D</div><span class="tag prepared">PREPARED</span></div><div><div class="model">Seedance 2.0</div><div class="meta">장면 먼저</div></div><div class="prompt"><b>변수: 모델</b><br><a href="../../02-entertainment/format-remake-kr/prompts/format-remake-kr-vf-kr-001d-scene-seedance-v1-gpt-codex.txt">전체 프롬프트 열기</a></div><div class="cost">36<small>quoted</small></div><div class="empty">NOT SUBMITTED<br>LOW BALANCE STOP</div></article>
+    </section>
+
+    <div class="section-head"><h2>RIGHTS-CLEAN LOCALIZATION</h2><p>출처 표기는 권리 세탁이 아니다. 구체 표현을 가져오지 않는 제작 구조가 방어선이다.</p></div>
+    <section class="rules">
+      <div class="rule"><b>1. 원본 파일 0</b>다운로드, 화면 녹화, video reference, 번역 자막 재업로드를 금지한다.</div>
+      <div class="rule"><b>2. 추상 구조만 연구</b>첫 1초의 실수, 물건 단서, 관계 복구만 남기고 모든 표현을 새로 쓴다.</div>
+      <div class="rule"><b>3. 제작 증거 보존</b>프롬프트, 파라미터, 견적, job ID, URL, MP4를 편별로 연결한다.</div>
+      <div class="rule"><b>4. 고지는 후편집</b>생성 화면에 글자를 맡기지 않고 로컬 자막과 AI 고지를 별도 레이어로 넣는다.</div>
+    </section>
+
+    <div class="section-head"><h2>SOURCES</h2><p>무엇을 베낄지가 아니라 무엇을 버리고 어떤 구조만 남길지 판단하는 근거다.</p></div>
+    <div class="sources">
+      <p><a href="https://blog.youtube/creator-and-artist-stories/youtube-shorts-deep-dive/">YouTube Shorts deep dive</a> · 첫 1초 shock, intrigue, satisfy 구조.</p>
+      <p><a href="https://ads.tiktok.com/business/ja/next">TikTok Next 2026 Japan</a> · 자연스러운 이야기와 호기심 신호.</p>
+      <p><a href="https://yutura.net/channel/97438/video/cHoeSQb56WM/">1分韓国友達話 편의점 오해 데이터</a> · 생활 마찰이 작동한 일본 사례. 영상·대사 미사용.</p>
+      <p><a href="https://support.google.com/youtube/answer/1311392?hl=en">YouTube channel monetization policies</a> · 대량 템플릿과 최소 수정 재사용 금지.</p>
+      <p><a href="https://support.google.com/youtube/answer/12504220?hl=en">YouTube Shorts monetization policies</a> · 비원본 Shorts 조회의 수익 제외.</p>
+    </div>
+  </main>
+  <footer class="stamp"><b>🏷 STAMP</b> | line: kculture-jp + format-remake-kr | 생성: 2026-08-14 03:44 KST | model: gpt-5.6-sol | agent: content-growth-marketer<br>skills: viral-trend-research | 고민: 결과 없는 허브를 성공 대시보드처럼 꾸미지 않고 실패와 미실행을 화면의 주인공으로 만들었다.<br>MODEL: gpt-codex/gpt-5.6-sol | DESIGN_SCORE: B | RUBRIC_SCORE: hook=4/5 detail=5/5 rhythm=4/5 voice=4/5 slop=5/5 total=22/25</footer>
+</div>
+<script>
+  const shell=document.getElementById('shell');
+  document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{
+    document.querySelectorAll('[data-view]').forEach(item=>item.setAttribute('aria-pressed','false'));
+    button.setAttribute('aria-pressed','true');
+    shell.className='shell '+button.dataset.view;
+  }));
+</script>
+</body>
+</html>

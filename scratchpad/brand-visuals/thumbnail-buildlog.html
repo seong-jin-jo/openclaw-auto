@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>thumbnail-buildlog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+  :root{
+    --base:#0B0F1A; --surface:#151B2B; --amber:#F59E0B; --mint:#34D399;
+    --text:#F8FAFC; --text-sub:#94A3B8;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ width:1280px; height:720px; overflow:hidden; }
+  body{
+    position:relative; font-family:'Pretendard', sans-serif;
+    background:
+      radial-gradient(900px 700px at 88% 30%, rgba(245,158,11,0.08) 0%, transparent 60%),
+      var(--base);
+  }
+  .topbar{ position:absolute; top:0; left:0; right:0; height:16px; background:var(--amber); }
+  .series-tag{
+    position:absolute; top:38px; left:64px;
+    font-family:'JetBrains Mono', monospace; font-weight:700; font-size:22px;
+    letter-spacing:4px; color:var(--amber); text-transform:uppercase;
+  }
+  .hook{
+    position:absolute; left:64px; top:118px; width:660px;
+    font-weight:800; font-size:92px; line-height:1.12; letter-spacing:-2px; color:var(--text);
+  }
+  .hook .num{ font-family:'JetBrains Mono', monospace; color:var(--amber); font-weight:800; }
+  .badge{
+    position:absolute; left:64px; bottom:48px;
+    display:flex; align-items:center; gap:10px;
+    background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);
+    border-radius:10px; padding:10px 20px;
+    font-family:'JetBrains Mono', monospace; font-weight:700; font-size:26px;
+  }
+  .badge .chev{ color:var(--amber); }
+  .badge .name{ color:var(--text); }
+
+  /* screen-capture style visual, right side */
+  .capture{
+    position:absolute; right:56px; top:96px; width:520px; height:528px;
+    background:linear-gradient(180deg,#1A2236 0%, var(--surface) 100%);
+    border-radius:16px; border:1px solid rgba(255,255,255,0.08);
+    box-shadow:0 50px 100px -20px rgba(0,0,0,0.6);
+    overflow:hidden;
+  }
+  .capture .chrome{
+    height:44px; background:rgba(0,0,0,0.3); display:flex; align-items:center; gap:8px; padding:0 20px;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+  }
+  .capture .dot{ width:11px; height:11px; border-radius:50%; }
+  .capture .dot.r{background:#EF4444;} .capture .dot.y{background:#F59E0B;} .capture .dot.g{background:#34D399;}
+  .capture .fname{ margin-left:10px; font-family:'JetBrains Mono', monospace; font-size:15px; color:var(--text-sub); }
+  .capture .body{ padding:26px 26px 0; font-family:'JetBrains Mono', monospace; font-size:19px; line-height:1.9; }
+  .k{ color:var(--mint); } .s{ color:var(--text-sub); } .v{ color:var(--text); } .n{ color:var(--amber); font-weight:700; }
+  .timeline{ margin:22px 26px 0; border-top:1px solid rgba(255,255,255,0.07); padding-top:18px; }
+  .timeline .row{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+  .timeline .clock{ font-family:'JetBrains Mono', monospace; font-size:16px; color:var(--text-sub); width:70px; }
+  .timeline .track{ flex:1; height:8px; border-radius:4px; background:rgba(255,255,255,0.08); overflow:hidden; }
+  .timeline .fill{ height:100%; border-radius:4px; background:var(--amber); }
+  .timeline .fill.dim{ background:rgba(148,163,184,0.4); }
+  .big-num{ text-align:center; margin-top:30px; }
+  .big-num .n1{ font-family:'JetBrains Mono', monospace; font-weight:800; font-size:64px; color:var(--amber); }
+  .big-num .l1{ font-family:'JetBrains Mono', monospace; font-size:16px; color:var(--text-sub); letter-spacing:2px; text-transform:uppercase; }
+</style>
+</head>
+<body>
+  <div class="topbar"></div>
+  <div class="series-tag">빌드로그</div>
+  <div class="hook">이번주<br><span class="num">11</span>시간<br>날림</div>
+  <div class="badge"><span class="chev">&gt;</span><span class="name">sj</span></div>
+
+  <div class="capture">
+    <div class="chrome">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="fname">time-log.ts</span>
+    </div>
+    <div class="body">
+      <div><span class="s">$</span> <span class="v">osmu status</span> <span class="k">--this-week</span></div>
+      <div><span class="v">env var</span> <span class="s">디버그</span> <span class="n">4.5h</span></div>
+      <div><span class="v">CORS</span> <span class="s">삽질</span> <span class="n">3.0h</span></div>
+      <div><span class="v">배포</span> <span class="s">롤백</span> <span class="n">3.5h</span></div>
+    </div>
+    <div class="timeline">
+      <div class="row"><span class="clock">env var</span><div class="track"><div class="fill" style="width:82%"></div></div></div>
+      <div class="row"><span class="clock">CORS</span><div class="track"><div class="fill" style="width:60%"></div></div></div>
+      <div class="row"><span class="clock">배포</span><div class="track"><div class="fill dim" style="width:70%"></div></div></div>
+    </div>
+    <div class="big-num">
+      <div class="n1">11.0h</div>
+      <div class="l1">TOTAL LOST</div>
+    </div>
+  </div>
+</body>
+</html>

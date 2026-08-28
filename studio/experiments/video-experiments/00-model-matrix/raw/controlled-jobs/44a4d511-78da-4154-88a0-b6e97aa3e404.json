@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-08-13T18:30:10.659541Z",
+  "display_name": "MiniMax H3",
+  "id": "44a4d511-78da-4154-88a0-b6e97aa3e404",
+  "job_type": "minimax_h3",
+  "min_result_url": null,
+  "params": {
+    "aigc_watermark": false,
+    "aspect_ratio": "9:16",
+    "batch_size": 1,
+    "duration": 6,
+    "height": 2560,
+    "medias": [],
+    "prompt": "Vertical framing. A wall calendar mounted on a plain wall, its paper pages flipping backward rapidly in a blur of motion, then settling on one single page as a deep red round rubber stamp presses down and its ink bleeds into the paper fibers. Beside the calendar a small mountain shaped line graph icon. Warm cream and deep navy palette, subtle paper grain, natural soft light, no text, no letters, no numbers anywhere.",
+    "resolution": "2K",
+    "width": 1440
+  },
+  "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183010_44a4d511-78da-4154-88a0-b6e97aa3e404.mp4",
+  "status": "completed",
+  "thumbnail_url": "https://cdn.higgsfield.ai/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183010_44a4d511-78da-4154-88a0-b6e97aa3e404_thumbnail.webp"
+}

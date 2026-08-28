@@ -1,0 +1,12 @@
+{
+  "name": "@openclaw/threads-publish",
+  "version": "2026.3.14",
+  "private": true,
+  "description": "OpenClaw Threads API publish plugin",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

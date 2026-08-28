@@ -68,3 +68,7 @@ data/templates/tenant3.*
 data/templates/tenant4.*
 data/templates/tenant2.*
 .gstack/
+
+# OSMU Studio 에셋 (대용량 미디어, git 미추적)
+studio-assets/
+.obsidian/

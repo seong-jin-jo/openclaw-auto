@@ -4,9 +4,12 @@ import { runWithTenant } from "@/lib/tenant-context";
 import { withTenant } from "@/lib/db";
 import path from "path";
 
+type ContentBranch = "text_image" | "video";
+
 interface SettingsJson {
   onboardingComplete?: boolean;
   industry?: string;
+  contentBranch?: ContentBranch;
   analyticsViewed?: boolean;
   [key: string]: unknown;
 }
@@ -32,6 +35,7 @@ const VALID_INDUSTRIES = [
   "education",
   "general",
 ];
+const VALID_CONTENT_BRANCHES: ContentBranch[] = ["text_image", "video"];
 
 export async function GET(request: Request) {
   const tenantId = await effectiveTenantId(request, null);
@@ -41,6 +45,7 @@ export async function GET(request: Request) {
     return {
       completed: settings?.onboardingComplete === true,
       industry: settings?.industry,
+      contentBranch: settings?.contentBranch,
       channelConnected: hasConnectedChannel(),
       analyticsViewed: settings?.analyticsViewed === true,
     };
@@ -49,21 +54,24 @@ export async function GET(request: Request) {
   // DB 카운트(위키·발행·OAuth 연결 채널)는 withTenant. 폴링되므로 실패 시 파일 신호로 폴백.
   let wikiCount = 0;
   let publishCount = 0;
+  let generationCount = 0;
   let dbChannelConnected = false;
   if (tenantId) {
     try {
       const counts = await withTenant(tenantId, async (sql) => {
         const [w] = await sql<{ c: number }[]>`SELECT count(*)::int AS c FROM wiki_docs`;
         const [p] = await sql<{ c: number }[]>`SELECT count(*)::int AS c FROM published_posts`;
+        const [g] = await sql<{ c: number }[]>`SELECT count(*)::int AS c FROM studio_generation_jobs`;
         // OAuth로 연결한 채널은 openclaw.json이 아니라 integrations(kind='channel')에 저장된다.
         // 파일 기반 hasConnectedChannel()만 보면 OAuth 연결 고객의 온보딩 체크리스트가 영원히 미완으로 표시됨.
         const [i] = await sql<{ c: number }[]>`SELECT count(*)::int AS c FROM integrations WHERE kind = 'channel'`;
-        return { wiki: w.c, pub: p.c, integrations: i.c };
+        return { wiki: w.c, pub: p.c, generations: g.c, integrations: i.c };
       });
       wikiCount = counts.wiki;
       publishCount = counts.pub;
+      generationCount = counts.generations;
       dbChannelConnected = counts.integrations > 0;
-    } catch { /* DB 미연결 — 파일 신호로 폴백(온보딩 자체는 깨지지 않게) */ }
+    } catch { /* DB 미연결: 파일 신호로 폴백(온보딩 자체는 깨지지 않게) */ }
   }
 
   const channelConnected = fileSignals.channelConnected || dbChannelConnected;
@@ -73,9 +81,11 @@ export async function GET(request: Request) {
     channelConnected,
     wikiCount,
     publishCount,
+    generationCount,
     checklist: {
-      channel: channelConnected,
+      created: generationCount > 0,
       wiki: wikiCount > 0,
+      channel: channelConnected,
       published: publishCount > 0,
       analytics: fileSignals.analyticsViewed,
     },
@@ -84,9 +94,10 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { industry, channels } = body as {
+  const { industry, channels, contentBranch } = body as {
     industry?: string;
     channels?: string[];
+    contentBranch?: ContentBranch;
   };
 
   if (!industry || !VALID_INDUSTRIES.includes(industry)) {
@@ -96,7 +107,15 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!channels || !Array.isArray(channels) || channels.length === 0) {
+  if (contentBranch !== undefined && !VALID_CONTENT_BRANCHES.includes(contentBranch)) {
+    return Response.json(
+      { error: "Invalid content branch" },
+      { status: 400 }
+    );
+  }
+
+  const hasLegacyChannelSelection = Array.isArray(channels) && channels.length > 0;
+  if (!hasLegacyChannelSelection && !contentBranch) {
     return Response.json(
       { error: "At least one channel must be selected" },
       { status: 400 }
@@ -116,7 +135,8 @@ export async function POST(request: Request) {
     const existing = readJson<SettingsJson>(dataPath("settings.json")) || {};
     existing.onboardingComplete = true;
     existing.industry = industry;
-    existing.channels = channels;
+    existing.contentBranch = contentBranch;
+    existing.channels = channels ?? [];
     writeJson(dataPath("settings.json"), existing);
 
     return Response.json({ ok: true });

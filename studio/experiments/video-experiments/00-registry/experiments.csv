@@ -1,0 +1,6 @@
+experiment_id,line,hypothesis,fixed_variables,manipulated_variable,variant,model,tool,duration,aspect_ratio,sound,credits_previewed,credits_used,render_seconds,rights,ai_disclosure,human_score,verdict,failure_reason,output
+VF-ECO-001,econ800,손실 장면이 사전 정의보다 이해를 높인다,"9:16;8s;no text;sound off",visual metaphor,baseline,,,8,9:16,off,,,,owned-script,required,,PLANNED,,
+VF-AIF-001,disclosed-ai-influencer,AI라는 사실을 캐릭터 훅으로 쓰면 호기심이 생긴다,"9:16;8s;SFW;no text;sound off",character style,baseline,,,8,9:16,off,,,,fictional,required,,PLANNED,,
+VF-FB-001,fictional-football,실존 스타 없이도 카메라 물리와 결정적 순간이 재시청을 만든다,"9:16;8s;fictional player;no logos;sound off",camera angle,baseline,,,8,9:16,off,,,,fictional,required,,PLANNED,,
+VF-JP-001,kculture-jp,한국 생활 장면과 일본어 학습 맥락이 저장 동기를 만든다,"9:16;8s;no text;sound off",scene-first,baseline,,,8,9:16,off,,,,owned-script,required,,PLANNED,,
+

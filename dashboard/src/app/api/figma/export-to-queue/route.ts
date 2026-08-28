@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { readJson, mutateJson, dataPath, DATA_DIR } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
+import { mirrorQueuePost } from "@/lib/queue-store";
 
 const IMAGES_DIR = path.join(DATA_DIR, "images");
 
@@ -71,17 +72,21 @@ export async function POST(request: Request) {
       imageUrl?: string;
       [key: string]: unknown;
     }
+    let changed: QueuePost | null = null;
     // 느린 figma fetch/download는 위에서 끝남 → 여기선 in-memory 갱신+write만 락 안에서.
     await mutateJson<{ version: number; posts: QueuePost[] }>(dataPath("queue.json"), (queue) => {
       for (const p of queue.posts) {
         if (p.id === postId) {
           p.imageUrls = newUrls;
           if (newUrls.length) p.imageUrl = newUrls[0];
+          changed = p;
           break;
         }
       }
       return queue;
     }, { version: 2, posts: [] });
+
+    if (changed) await mirrorQueuePost(__t, changed);
 
     return Response.json({ ok: true, count: newUrls.length });
   } catch (e) {

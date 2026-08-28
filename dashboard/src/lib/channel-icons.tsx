@@ -168,5 +168,5 @@ export const channelIcons: Record<string, React.ReactNode> = {
 
 /** Get channel icon — returns SVG element or fallback letter */
 export function getChannelIcon(key: string): React.ReactNode {
-  return channelIcons[key] || <span className="text-[9px] font-bold">{(key[0] || "?").toUpperCase()}</span>;
+  return channelIcons[key] || <span className="text-caption font-bold">{(key[0] || "?").toUpperCase()}</span>;
 }

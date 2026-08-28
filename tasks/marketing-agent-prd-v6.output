@@ -1,0 +1,38 @@
+요청: OSMU의 실제 제품 목적을 단순 publisher가 아닌 Marketing Agent로 재정의한 MAJOR PRD v6.0.0 작성.
+
+한 줄 결론: Discover→Plan→Create→Review→Publish→Measure→Learn→Act 폐루프, 기존 25 routes/26 sidebar·provider family·text8+video3·발행/복구를 함께 보존하는 client-ready PRD를 작성했고 FR/AC/TC 48/48/48을 V6 QA namespace에 등록했다. 아직 plan-critic과 회장 승인 전이므로 design 이하 stage는 잠겨 있다.
+
+## 산출물
+
+- `docs/openclaw-auto-marketing-agent-prd-v6.0.0-gpt-codex.md`
+- `docs/qa-tracker.md` — `MA-V6-TC-001..048` plan 전용 섹션만 추가
+- `tasks/marketing-agent-prd-v6.output`
+
+## 핵심 계약
+
+- Persona: 김민서(38), 마케팅 전담자 없이 교육·컨설팅 브랜드를 운영하며 매주 무엇을 말할지·사실/계정/성과를 어떻게 믿을지 막히는 1인 사업자.
+- Pain: 주 2~4시간을 복사·검수·발행 확인에 쓰고도 잘못된 사실·계정·가짜 0·false-success를 두려워함.
+- One Thing: **OSMU는 고객이 매주 하나의 근거 있는 마케팅 판단을 승인·실행하고, 실제 결과를 다음 주 더 나은 판단으로 되돌리게 한다.**
+- MVP5: Brand Truth+Brief / Opportunity+Weekly Plan / OSMU Campaign Workspace / Approval→Publish→Recovery / Campaign Analytics→Experiment.
+- Autonomy: Observe/Recommend/Draft/Execute 4단계. 외부 공개·retry·reply/DM·delete·spend·credential/role change는 정책표에 따라 승인, 광고비·spam·무승인 삭제·fake metric은 비범위.
+- Current truth: Threads style/popular learning은 legacy/local·부분구현이며 tenant-scoped Studio learning 완료로 주장하지 않음.
+
+## 검증
+
+- 문서 678 lines.
+- PRD unique FR 48 / AC 48 / TC 48; QA unique MA-V6 TC 48.
+- 모든 TC가 happy+failure Given/When/Then과 evidence를 포함.
+- `git diff --check` PASS.
+- 공식 벤치마크: Buffer AI/Insights/Analyze, Hootsuite Listening/Analytics, Sprout AI Listening, Later Social Sets/Analytics.
+- self-question 및 경쟁자·회의적 고객·투자자 red-team 후 2주 scope를 provider 1개 이상의 full-loop proof로 축소.
+
+## Gate
+
+- 미통과: plan-critic critic0 미실행, 회장 decisions O-1..O-5 미결, `/approve plan` 미실행, V6 QA 0/48.
+- 다음 stage: **진입 불가**. plan-critic MAJOR0 → 회장 결정/수정 → `/approve plan` 순서 필요.
+
+RUBRIC_SCORE: 완결성=5/5 정밀성=5/5 벤치마크=5/5 추적성=5/5 전문성=4/5 total=24/25
+WEAKEST_LINE: Command Center route는 회장·design 합의 전이라 미결.
+SKILLS_USED: 없음 — 매칭 PRD skill 없음; planning.md/doc-review.md/PRD template 직접 적용
+SKILLS_SKIPPED: 없음 — 매칭 스킬 없음
+SOURCES/MODEL: PRD §19 전체 출처 · gpt-codex/gpt-5.6-sol

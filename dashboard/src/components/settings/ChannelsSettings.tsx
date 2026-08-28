@@ -1,26 +1,27 @@
 "use client";
 
 import { useChannelConfig } from "@/hooks/useChannelConfig";
-import { CH_LABELS, PUBLISH_CHANNEL_GROUPS } from "@/lib/constants";
+import { CH_LABELS } from "@/lib/constants";
+import { CHANNEL_GROUPS } from "@/lib/channel-capabilities";
 import { getChannelIcon } from "@/lib/channel-icons";
 import Link from "next/link";
 
 // 발행 채널 그룹은 constants의 PUBLISH_CHANNEL_GROUPS 단일 소스를 사용(사이드바와 동일).
-const GROUPS = PUBLISH_CHANNEL_GROUPS;
+const GROUPS = CHANNEL_GROUPS;
 
 function ChRow({ channelKey, label, sub, connected }: {
   channelKey: string; label: string; sub: string; connected: boolean;
 }) {
   return (
-    <Link href={`/channels/${channelKey}`} className="flex items-center justify-between p-3 rounded-lg bg-surface/50 hover:bg-surface-2/50">
-      <div className="flex items-center gap-3">
-        <span className="w-6 h-6 rounded bg-surface-2 flex items-center justify-center text-muted">{getChannelIcon(channelKey)}</span>
+    <Link href={`/channels/${channelKey}`} className="flex items-center justify-between p-stack rounded-control bg-surface/50 hover:bg-surface-2/50">
+      <div className="flex items-center gap-stack">
+        <span className="w-6 h-6 rounded-chip bg-surface-2 flex items-center justify-center text-muted">{getChannelIcon(channelKey)}</span>
         <div>
-          <p className="text-xs text-muted">{label}</p>
-          <p className="text-[10px] text-subtle">{sub}</p>
+          <p className="text-caption text-muted">{label}</p>
+          <p className="text-caption text-subtle">{sub}</p>
         </div>
       </div>
-      <span className={`text-[10px] ${connected ? "text-green-500" : "text-accent"}`}>
+      <span className={`text-caption ${connected ? "text-success" : "text-accent"}`}>
         {connected ? "Connected" : "연결 →"}
       </span>
     </Link>
@@ -33,12 +34,12 @@ export function ChannelsSettings() {
 
   return (
     <>
-      <p className="text-[10px] text-subtle mb-4">콘텐츠를 발행할 채널. 클릭하면 해당 채널 연결 화면으로 이동합니다.</p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <p className="text-caption text-subtle mb-pad-inset">콘텐츠를 발행할 채널. 클릭하면 해당 채널 연결 화면으로 이동합니다.</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-section">
         {GROUPS.map((g) => (
-          <div key={g.title} className="card p-5">
-            <h3 className="text-sm font-medium text-muted mb-3">{g.title}</h3>
-            <div className="space-y-2">
+          <div key={g.title} className="card p-stack-section">
+            <h3 className="text-body-sm font-medium text-muted mb-stack">{g.title}</h3>
+            <div className="space-y-stack-tight">
               {g.channels.map((ch) => (
                 <ChRow
                   key={ch}

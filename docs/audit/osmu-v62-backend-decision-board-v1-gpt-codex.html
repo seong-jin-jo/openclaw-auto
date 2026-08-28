@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>v62 백엔드 결정</title>
+  <style>
+    :root { color-scheme: light; --bg:#f4f7fb; --panel:#fff; --text:#172033; --muted:#5d687c; --line:#dbe2ec; --accent:#2563eb; --soft:#eff6ff; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    main { width:min(920px,calc(100% - 32px)); margin:40px auto 80px; }
+    h1 { margin:0 0 8px; font-size:32px; line-height:1.2; }
+    h2 { margin:0 0 8px; font-size:21px; }
+    p { margin:0 0 14px; }
+    .lead { color:var(--muted); margin-bottom:28px; }
+    .notice { border:1px solid #f0c36a; background:#fff8e7; border-radius:12px; padding:16px; margin-bottom:20px; }
+    .decision { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:22px; margin:16px 0; box-shadow:0 8px 24px rgba(23,32,51,.05); }
+    .why { color:var(--muted); }
+    label.option { display:block; border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin:10px 0; cursor:pointer; }
+    label.option:has(input:checked) { border-color:var(--accent); background:var(--soft); }
+    input[type="radio"] { margin-right:10px; }
+    .result { display:block; color:var(--muted); margin:5px 0 0 28px; }
+    .recommended { color:var(--accent); font-weight:700; }
+    textarea.memo { width:100%; min-height:88px; border:1px solid var(--line); border-radius:10px; padding:12px; font:inherit; resize:vertical; }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; margin:24px 0 12px; }
+    button { min-height:44px; border:0; border-radius:10px; padding:0 18px; font:700 15px/1 system-ui,sans-serif; cursor:pointer; }
+    .primary { color:#fff; background:var(--accent); }
+    .secondary { color:var(--text); background:#e7ebf1; }
+    #output { width:100%; min-height:230px; border:2px solid var(--accent); border-radius:12px; padding:14px; font:14px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace; }
+    .links { margin-top:20px; color:var(--muted); }
+    a { color:var(--accent); }
+    @media (max-width:600px) { main { width:min(100% - 20px,920px); margin-top:20px; } h1 { font-size:27px; } .decision { padding:17px; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>v62 백엔드 결정</h1>
+  <p class="lead">댓글, 성과 제안, 학습 이력의 저장 경계를 정합니다. 추천안을 맨 위에 두었습니다.</p>
+  <div class="notice"><strong>현재 build는 차단 상태입니다.</strong> design과 eng-design 승인 전에는 이 선택을 소스나 DB에 반영하지 않습니다.</div>
+
+  <form id="board">
+    <section class="decision" data-title="댓글 첫 build 저장 방식">
+      <h2>1. 댓글 첫 build 저장 방식</h2>
+      <p class="why">댓글 본문 읽기와 답글을 실제 provider로 먼저 검증할지 정합니다.</p>
+      <label class="option"><input type="radio" name="comment_first" value="provider read-through로 먼저 검증"><span class="recommended">provider read-through로 먼저 검증 (추천)</span><span class="result">migration 없이 실제 읽기와 답글을 연결합니다. 나중 처리와 이력은 아직 없습니다.</span></label>
+      <label class="option"><input type="radio" name="comment_first" value="장기 테이블 승인까지 구현 보류">장기 테이블 승인까지 구현 보류<span class="result">스키마는 한 번에 확정되지만 댓글 P0가 계속 막힙니다.</span></label>
+      <textarea class="memo" name="comment_first_note" placeholder="메모"></textarea>
+    </section>
+
+    <section class="decision" data-title="댓글 장기 저장 구조">
+      <h2>2. 댓글 장기 저장 구조</h2>
+      <p class="why">나중 처리, 답글 이력, inbox까지 제품 범위에 넣을지 정합니다.</p>
+      <label class="option"><input type="radio" name="comment_long" value="engagement_items 테이블 신설"><span class="recommended">engagement_items 테이블 신설 (추천)</span><span class="result">댓글 unique key, 상태, 답글 결과, tenant RLS를 분리해 운영합니다.</span></label>
+      <label class="option"><input type="radio" name="comment_long" value="장기 저장 없이 provider read-through 유지">장기 저장 없이 provider read-through 유지<span class="result">migration은 없지만 provider 장애 때 상태와 처리 이력을 복원하지 못합니다.</span></label>
+      <label class="option"><input type="radio" name="comment_long" value="published_posts provider_meta에 snapshot 저장">published_posts provider_meta에 snapshot 저장<span class="result">빠르지만 JSONB 비대화와 동시 갱신 충돌 위험이 있어 추천하지 않습니다.</span></label>
+      <textarea class="memo" name="comment_long_note" placeholder="메모"></textarea>
+    </section>
+
+    <section class="decision" data-title="성과 제안 첫 build 저장 방식">
+      <h2>3. 성과 제안 첫 build 저장 방식</h2>
+      <p class="why">성과실의 제안을 생성실로 넘길 때 새 저장소를 만들지 정합니다.</p>
+      <label class="option"><input type="radio" name="suggestion_first" value="기존 queue_posts와 drafts payload 재사용"><span class="recommended">기존 queue_posts와 drafts payload 재사용 (추천)</span><span class="result">source, evidence, sample count를 payload에 보존하고 기존 큐를 재사용합니다.</span></label>
+      <label class="option"><input type="radio" name="suggestion_first" value="content_suggestions 테이블부터 신설">content_suggestions 테이블부터 신설<span class="result">lifecycle은 선명하지만 P0 연결보다 schema 작업이 먼저 옵니다.</span></label>
+      <textarea class="memo" name="suggestion_first_note" placeholder="메모"></textarea>
+    </section>
+
+    <section class="decision" data-title="성과 제안 장기 lifecycle">
+      <h2>4. 성과 제안 장기 lifecycle</h2>
+      <p class="why">제안 노출, 수락, 제작, 결과 성과를 KPI로 추적할지 정합니다.</p>
+      <label class="option"><input type="radio" name="suggestion_long" value="KPI 운영을 확정할 때 content_suggestions 신설"><span class="recommended">KPI 운영을 확정할 때 content_suggestions 신설 (추천)</span><span class="result">첫 build는 작게 시작하고 KPI 정의 뒤 lifecycle 테이블을 추가합니다.</span></label>
+      <label class="option"><input type="radio" name="suggestion_long" value="이번 eng-design에서 바로 content_suggestions 신설">이번 eng-design에서 바로 content_suggestions 신설<span class="result">처음부터 측정할 수 있지만 상태와 retention 결정을 지금 확정해야 합니다.</span></label>
+      <label class="option"><input type="radio" name="suggestion_long" value="장기 lifecycle 측정 안 함">장기 lifecycle 측정 안 함<span class="result">생성 인계는 되지만 제안 효과는 측정할 수 없습니다.</span></label>
+      <textarea class="memo" name="suggestion_long_note" placeholder="메모"></textarea>
+    </section>
+
+    <section class="decision" data-title="학습 후보 승인 이력">
+      <h2>5. 학습 후보 승인 이력</h2>
+      <p class="why">R98의 표본 문턱과 R168의 수락 행위를 재현 가능한 기록으로 남길지 정합니다.</p>
+      <label class="option"><input type="radio" name="learning" value="learning_candidates 테이블 신설"><span class="recommended">learning_candidates 테이블 신설 (추천)</span><span class="result">후보, 근거, 표본, 승인, 적용 대상을 분리해 감사하고 되돌릴 수 있습니다.</span></label>
+      <label class="option"><input type="radio" name="learning" value="승인된 결과만 기존 브랜드 문서에 반영">승인된 결과만 기존 브랜드 문서에 반영<span class="result">구현은 작지만 거절 이력과 제안 근거를 조회하지 못합니다.</span></label>
+      <textarea class="memo" name="learning_note" placeholder="메모"></textarea>
+    </section>
+  </form>
+
+  <div class="actions">
+    <button class="primary" type="button" id="copy">결정 복사</button>
+    <button class="secondary" type="button" id="reset">초기화</button>
+  </div>
+  <textarea id="output" aria-label="결정 마크다운 출력" placeholder="결정 복사를 누르면 선택과 메모가 마크다운으로 표시됩니다."></textarea>
+
+  <p class="links">상세 근거: <a href="osmu-v62-api-gap-audit-v1-gpt-codex.md">API 갭 감사</a>, <a href="osmu-v62-db-options-v1-gpt-codex.md">DB 선택지</a></p>
+</main>
+<script>
+  const key = "osmu-v62-backend-decisions-v1";
+  const form = document.getElementById("board");
+  const output = document.getElementById("output");
+
+  function snapshot() {
+    const data = {};
+    new FormData(form).forEach((value, name) => { data[name] = value; });
+    return data;
+  }
+
+  function save() {
+    localStorage.setItem(key, JSON.stringify(snapshot()));
+  }
+
+  function restore() {
+    const data = JSON.parse(localStorage.getItem(key) || "{}");
+    Object.entries(data).forEach(([name, value]) => {
+      const fields = form.elements[name];
+      if (!fields) return;
+      if (fields instanceof RadioNodeList) {
+        Array.from(fields).forEach((field) => { if (field.value === value) field.checked = true; });
+      } else {
+        fields.value = value;
+      }
+    });
+  }
+
+  function renderMarkdown() {
+    const lines = [];
+    document.querySelectorAll(".decision").forEach((section, index) => {
+      const radio = section.querySelector('input[type="radio"]:checked');
+      const memo = section.querySelector("textarea.memo").value.trim();
+      lines.push(`${index + 1}. ${section.dataset.title}: ${radio ? radio.value : "(미선택)"}`);
+      if (memo) lines.push(`   - 메모: ${memo}`);
+    });
+    output.value = lines.join("\n");
+    output.focus();
+    output.select();
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(output.value).catch(() => {});
+  }
+
+  form.addEventListener("input", save);
+  document.getElementById("copy").addEventListener("click", renderMarkdown);
+  document.getElementById("reset").addEventListener("click", () => {
+    form.reset();
+    output.value = "";
+    localStorage.removeItem(key);
+  });
+  restore();
+</script>
+<!--
+STAMP | line: osmu | 생성: 2026-08-27 20:40 KST | model: gpt-5.6 | agent: code-builder
+SKILLS_SKIPPED: 매칭되는 설치 코드 스킬 없음
+SOURCES: osmu-v62-api-gap-audit-v1-gpt-codex.md | osmu-v62-db-options-v1-gpt-codex.md
+MODEL: gpt-5.6 / code-builder
+-->
+</body>
+</html>

@@ -4,6 +4,9 @@ const H = vi.hoisted(() => ({
   complete: {} as Record<string, boolean>,
   source: {} as Record<string, "db" | "env">,
   reason: {} as Record<string, "credential_store_unavailable" | undefined>,
+  externalReview: {} as Record<string, "required" | "unknown">,
+  connection: {} as Record<string, "connected" | "reconnect" | "disconnected">,
+  connectionError: false,
   bulkCalls: [] as string[][],
 }));
 
@@ -22,8 +25,16 @@ vi.mock("@/lib/oauth-app-credentials", () => ({
       configured: [],
       missing: H.complete[provider] ? [] : ["clientSecret"],
       updatedAt: null,
+      externalReview: H.externalReview[provider] || "unknown",
       reason: H.reason[provider],
     }]));
+  }),
+}));
+
+vi.mock("@/lib/channel-connection", () => ({
+  getChannelConnectionStates: vi.fn(async (_tenantId: string, providers: string[]) => {
+    if (H.connectionError) throw new Error("channel account DB unavailable");
+    return Object.fromEntries(providers.map((provider) => [provider, H.connection[provider] || "disconnected"]));
   }),
 }));
 
@@ -32,6 +43,9 @@ beforeEach(() => {
   H.complete = {};
   H.source = {};
   H.reason = {};
+  H.externalReview = {};
+  H.connection = {};
+  H.connectionError = false;
   H.bulkCalls = [];
 });
 
@@ -44,7 +58,7 @@ describe("customer readiness central resolver wiring", () => {
     const text = await res.text();
     const body = JSON.parse(text);
 
-    expect(body.providers.x).toEqual({ available: true });
+    expect(body.providers.x).toEqual({ status: "not_connected", available: true });
     expect(text).not.toContain("clientSecret");
     expect(H.bulkCalls).toHaveLength(1);
     expect(new Set(H.bulkCalls[0])).toContain("facebook");
@@ -57,7 +71,7 @@ describe("customer readiness central resolver wiring", () => {
     const res = await GET(new Request("https://app.example/api/connect/readiness?tenant_id=tenant-1"));
     const body = await res.json();
 
-    expect(body.providers.facebook.available).toBe(false);
+    expect(body.providers.facebook).toMatchObject({ status: "opening_soon", available: false });
     expect(body.providers.facebook.reason).toContain("자격증명");
   });
 
@@ -68,9 +82,62 @@ describe("customer readiness central resolver wiring", () => {
     const body = await res.json();
 
     expect(body.providers.x).toEqual({
+      status: "error",
       available: false,
       reason: "OAuth 자격증명 저장소에 일시적으로 연결할 수 없습니다. 관리자 복구 후 다시 시도해주세요.",
     });
     expect(H.bulkCalls).toHaveLength(1);
+  });
+
+  it("distinguishes tenant connection from operator readiness", async () => {
+    H.complete.x = true;
+    H.connection.x = "connected";
+    const { GET } = await import("@/app/api/connect/readiness/route");
+    const res = await GET(new Request("https://app.example/api/connect/readiness?tenant_id=tenant-1"));
+    const body = await res.json();
+
+    expect(body.providers.x).toEqual({ status: "connected", available: true });
+  });
+
+  it("returns publish_pending but keeps the connection available while external review is pending", async () => {
+    // 외부 심사는 발행만 제한한다 — 연결 자체는 유효(available:true). 심사를 이유로 연결을
+    // available:false로 막던 회귀(회장 2026-08-13 라이브)를 이 케이스가 잠근다.
+    H.complete.instagram = true;
+    H.externalReview.instagram = "required";
+    H.connection.instagram = "connected";
+    const { GET } = await import("@/app/api/connect/readiness/route");
+    const res = await GET(new Request("https://app.example/api/connect/readiness?tenant_id=tenant-1"));
+    const body = await res.json();
+
+    expect(body.providers.instagram).toMatchObject({
+      status: "publish_pending",
+      available: true,
+    });
+    expect(body.providers.instagram.reason).toContain("외부 앱 심사");
+  });
+
+  it("keeps the connect button available for an unconnected provider whose external review is pending", async () => {
+    // 미연결 + credential 있음 + 심사 대기 → not_connected(연결 버튼 활성). opening_soon으로 막지 않는다.
+    H.complete.youtube = true;
+    H.externalReview.youtube = "required";
+    H.connection.youtube = "disconnected";
+    const { GET } = await import("@/app/api/connect/readiness/route");
+    const res = await GET(new Request("https://app.example/api/connect/readiness?tenant_id=tenant-1"));
+    const body = await res.json();
+
+    expect(body.providers.youtube).toMatchObject({
+      status: "not_connected",
+      available: true,
+    });
+  });
+
+  it("fails closed with error when tenant channel accounts cannot be read", async () => {
+    H.complete.x = true;
+    H.connectionError = true;
+    const { GET } = await import("@/app/api/connect/readiness/route");
+    const res = await GET(new Request("https://app.example/api/connect/readiness?tenant_id=tenant-1"));
+    const body = await res.json();
+
+    expect(body.providers.x).toMatchObject({ status: "error", available: false });
   });
 });

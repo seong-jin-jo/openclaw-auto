@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>채널 연결 상태 카드 — 시안</title>
+
+  <style>
+    /* ============ DESIGN.md §2.1 시맨틱 토큰 (globals.css 정본 그대로) ============ */
+    :root {
+      --bg: #FBFBFC;
+      --surface: #FFFFFF;
+      --surface-2: #F4F4F5;
+      --border: #E4E4E7;
+      --text: #18181B;
+      --text-muted: #52525B;
+      --text-subtle: #A1A1AA;
+      --accent: #2563EB;
+      --accent-hover: #1D4ED8;
+      --accent-fg: #FFFFFF;
+      --accent-soft: #EFF4FF;
+      --success: #16A34A;
+      --warning: #D97706;
+      --danger: #DC2626;
+      --shadow: 0 4px 12px rgba(16, 24, 40, 0.08);
+    }
+
+    html[data-theme="dark"] {
+      --bg: #0A0A0B;
+      --surface: #161618;
+      --surface-2: #1F1F23;
+      --border: #27272A;
+      --text: #F4F4F5;
+      --text-muted: #A1A1AA;
+      --text-subtle: #71717A;
+      --accent: #3B82F6;
+      --accent-hover: #60A5FA;
+      --accent-fg: #FFFFFF;
+      --accent-soft: #172554;
+      --success: #22C55E;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* DESIGN.md §2.3: Pretendard → 시스템 폴백. 새 폰트 추가 금지. */
+    body {
+      font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 24px;
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* ---------- 프리뷰 크롬 (시안 확인용 컨트롤 — 제품 UI 아님) ---------- */
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 32px;
+      gap: 12px;
+    }
+    .app-header h1 { font-size: 18px; font-weight: 700; }
+    .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+    .theme-toggle,
+    .state-btn {
+      background-color: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      min-height: 44px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+    }
+    .theme-toggle:hover,
+    .state-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background-color: var(--accent-soft);
+    }
+    .state-selector { display: flex; gap: 8px; flex-wrap: wrap; }
+    .state-btn.active {
+      background-color: var(--accent);
+      border-color: var(--accent);
+      color: var(--accent-fg);
+    }
+
+    /* ---------- 카드 (DESIGN.md §2.2 .card + .channel-card) ---------- */
+    .container { max-width: 480px; margin: 0 auto; }
+
+    .card {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .channel-card { display: flex; flex-direction: column; gap: 16px; }
+    .channel-card:hover {
+      box-shadow: var(--shadow);
+      transform: translateY(-2px);
+    }
+
+    /* 헤더: 아이콘 + 채널명 + 상태 뱃지 */
+    .card-header { display: flex; align-items: center; gap: 12px; }
+
+    /* ui-rules §19: 미등록 채널 아이콘 = 첫 글자 fallback. 그라데이션·이모지 금지. */
+    .channel-icon {
+      width: 44px;
+      height: 44px;
+      background-color: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      flex-shrink: 0;
+    }
+
+    .header-text { flex: 1; min-width: 0; }
+    .channel-name { font-size: 14px; font-weight: 600; color: var(--text); }
+    .channel-category { font-size: 12px; color: var(--text-subtle); }
+
+    /* 상태 뱃지 — 색만으로 전달하지 않고 도트+라벨 병행 */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .status-badge.live      { background-color: color-mix(in srgb, var(--success) 12%, transparent); color: var(--success); }
+    .status-badge.connected { background-color: color-mix(in srgb, var(--accent) 12%, transparent);  color: var(--accent); }
+    .status-badge.error     { background-color: color-mix(in srgb, var(--danger) 12%, transparent);  color: var(--danger); }
+    .status-badge.hidden    { display: none; } /* ui-rules §3: 미입력 = 뱃지 없음 */
+
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: currentColor; }
+    .status-badge.live .status-dot { animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    @media (prefers-reduced-motion: reduce) {
+      .status-badge.live .status-dot { animation: none; }
+      .channel-card:hover { transform: none; }
+    }
+
+    /* 에러 배너 — 원인 + 다음 행동 (토스식 에러 문구 원칙) */
+    .error-banner {
+      display: none;
+      background-color: color-mix(in srgb, var(--danger) 8%, transparent);
+      border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .error-banner strong { color: var(--danger); font-weight: 600; }
+    .channel-card.is-error .error-banner { display: block; }
+
+    /* 미연결 안내 — 빈 상태 방치 금지 (DESIGN.md §6-9) */
+    .empty-hint {
+      display: none;
+      background-color: var(--surface-2);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .channel-card.is-not-connected .empty-hint { display: block; }
+    .channel-card.is-not-connected .info-section { display: none; }
+
+    /* 지표: 라벨 → 값 위계 (크기+굵기+색 토큰) */
+    .info-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .info-item { display: flex; flex-direction: column; gap: 2px; }
+    .info-label { font-size: 12px; color: var(--text-subtle); font-weight: 500; }
+    .info-value { font-size: 18px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+    .info-subtext { font-size: 12px; color: var(--text-muted); }
+
+    /* 액션 */
+    .action-section {
+      display: flex;
+      gap: 8px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .btn {
+      flex: 1;
+      padding: 12px 16px;
+      min-height: 44px;
+      border-radius: 8px;
+      border: none;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn:focus-visible,
+    .state-btn:focus-visible,
+    .theme-toggle:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .btn-primary { background-color: var(--accent); color: var(--accent-fg); }
+    .btn-primary:hover { background-color: var(--accent-hover); }
+    .btn-danger { background-color: var(--danger); color: var(--accent-fg); }
+    .btn-secondary {
+      background-color: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      border-color: var(--accent);
+      background-color: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    /* ---------- 반응형 (모바일 ≤480 = 세로 스택, 데스크톱 = 2컬럼 지표) ---------- */
+    @media (max-width: 480px) {
+      body { padding: 16px; }
+      .card { padding: 16px; }
+      .info-section { grid-template-columns: 1fr; }
+      .action-section { flex-direction: column; }
+      .btn { width: 100%; }
+      .state-btn { flex: 1; min-width: 72px; }
+    }
+
+    /* ---------- STAMP (artifact-stamp 규격) ---------- */
+    .stamp {
+      max-width: 480px;
+      margin: 32px auto 0;
+      font-size: 11px;
+      color: var(--text-subtle);
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+      line-height: 1.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-header">
+    <h1>채널 연결 상태 카드 — 시안 프리뷰</h1>
+    <div class="controls">
+      <button class="theme-toggle" id="themeToggle" type="button">다크 모드</button>
+      <div class="state-selector" role="group" aria-label="상태 미리보기 전환">
+        <button class="state-btn active" data-state="live" type="button">Live</button>
+        <button class="state-btn" data-state="connected" type="button">Connected</button>
+        <button class="state-btn" data-state="not-connected" type="button">미연결</button>
+        <button class="state-btn" data-state="error" type="button">에러</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card channel-card" id="channelCard">
+      <!-- 헤더: 첫 글자 fallback 아이콘 + 채널명 + 상태 뱃지 -->
+      <div class="card-header">
+        <div class="channel-icon" aria-hidden="true">T</div>
+        <div class="header-text">
+          <div class="channel-name">Threads</div>
+          <div class="channel-category">Social 채널</div>
+        </div>
+        <div class="status-badge live" id="statusBadge">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="statusLabel">Live</span>
+        </div>
+      </div>
+
+      <!-- 에러: 원인 + 다음 행동 -->
+      <div class="error-banner" id="errorBanner">
+        <strong>연결이 끊어졌어요.</strong> 접근 토큰(채널이 발급한 열쇠)이 만료됐습니다.
+        다시 연결하면 멈춘 예약 발행이 이어서 재개됩니다.
+      </div>
+
+      <!-- 미연결: 빈 상태 안내 -->
+      <div class="empty-hint" id="emptyHint">
+        아직 연결되지 않은 채널이에요. 연결하면 발행 현황과 예약이 여기에 표시됩니다.
+      </div>
+
+      <!-- 지표 -->
+      <div class="info-section" id="infoSection">
+        <div class="info-item">
+          <div class="info-label">이번 주 발행</div>
+          <div class="info-value" id="publishCount">12개</div>
+          <div class="info-subtext" id="publishSub">마지막 발행 오늘 09:30</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">다음 예약</div>
+          <div class="info-value" id="nextTime">14:00</div>
+          <div class="info-subtext" id="nextSub">2026-07-16 (오늘)</div>
+        </div>
+      </div>
+
+      <!-- 액션 -->
+      <div class="action-section" id="actionSection">
+        <button class="btn btn-secondary" id="secondaryBtn" type="button">발행 큐 보기</button>
+        <button class="btn btn-primary" id="primaryBtn" type="button">설정 열기 →</button>
+      </div>
+    </div>
+
+    <!-- STAMP: artifact-stamp 규격 -->
+    <div class="stamp">
+      STAMP · 2026-07-16 21:45 KST · model=claude-fable-5 · agent=product-designer(rehearsal)
+      · skills=design-html,design-review · 근거=/DESIGN.md §1–§6 + docs/ui-rules.md §3·§19
+      · 고민: 상태 4종이 각각 "다음 행동"을 갖도록 — 에러=원인+재연결, 미연결=빈상태 안내+연결 유도, 뱃지는 ui-rules §3(미입력=뱃지 없음) 준수.
+    </div>
+  </div>
+
+  <script>
+    // 테마 토글 (data-theme + localStorage — DESIGN.md §2)
+    const themeToggle = document.getElementById('themeToggle');
+    const htmlElement = document.documentElement;
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    htmlElement.setAttribute('data-theme', savedTheme);
+    updateThemeButton();
+
+    themeToggle.addEventListener('click', () => {
+      const next = htmlElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+      htmlElement.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      updateThemeButton();
+    });
+    function updateThemeButton() {
+      themeToggle.textContent = htmlElement.getAttribute('data-theme') === 'light' ? '다크 모드' : '라이트 모드';
+    }
+
+    // 상태별 데이터·문구 — 상태와 논리적으로 일치하는 실사용 시나리오 값
+    const stateConfig = {
+      live: {
+        badge: { label: 'Live', className: 'live', show: true },
+        info: { count: '12개', countSub: '마지막 발행 오늘 09:30', next: '14:00', nextSub: '2026-07-16 (오늘)' },
+        secondary: { label: '발행 큐 보기', show: true },
+        primary: { label: '설정 열기 →', className: 'btn-primary' }
+      },
+      connected: {
+        badge: { label: 'Connected', className: 'connected', show: true },
+        info: { count: '0개', countSub: '자동화 시작 전', next: '—', nextSub: '자동화를 켜면 예약이 잡혀요' },
+        secondary: { label: '발행 큐 보기', show: true },
+        primary: { label: '자동화 시작하기 →', className: 'btn-primary' }
+      },
+      'not-connected': {
+        badge: { show: false }, // ui-rules §3: 미입력 = 뱃지 없음
+        secondary: { show: false },
+        primary: { label: '채널 연결하기 →', className: 'btn-primary' }
+      },
+      error: {
+        badge: { label: '연결 오류', className: 'error', show: true },
+        info: { count: '12개', countSub: '마지막 발행 어제 18:00', next: '중단됨', nextSub: '재연결하면 재개돼요' },
+        secondary: { label: '설정 열기', show: true },
+        primary: { label: '다시 연결하기 →', className: 'btn-danger' }
+      }
+    };
+
+    const card = document.getElementById('channelCard');
+    const statusBadge = document.getElementById('statusBadge');
+    const statusLabel = document.getElementById('statusLabel');
+    const primaryBtn = document.getElementById('primaryBtn');
+    const secondaryBtn = document.getElementById('secondaryBtn');
+
+    document.querySelectorAll('.state-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.state-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        applyState(btn.getAttribute('data-state'));
+      });
+    });
+
+    function applyState(state) {
+      const c = stateConfig[state];
+      card.className = 'card channel-card' + (state === 'error' ? ' is-error' : '') + (state === 'not-connected' ? ' is-not-connected' : '');
+
+      if (c.badge.show) {
+        statusBadge.className = 'status-badge ' + c.badge.className;
+        statusLabel.textContent = c.badge.label;
+      } else {
+        statusBadge.className = 'status-badge hidden';
+      }
+
+      if (c.info) {
+        document.getElementById('publishCount').textContent = c.info.count;
+        document.getElementById('publishSub').textContent = c.info.countSub;
+        document.getElementById('nextTime').textContent = c.info.next;
+        document.getElementById('nextSub').textContent = c.info.nextSub;
+      }
+
+      secondaryBtn.style.display = c.secondary.show ? 'flex' : 'none';
+      if (c.secondary.show) secondaryBtn.textContent = c.secondary.label;
+      primaryBtn.textContent = c.primary.label;
+      primaryBtn.className = 'btn ' + c.primary.className;
+    }
+  </script>
+</body>
+</html>

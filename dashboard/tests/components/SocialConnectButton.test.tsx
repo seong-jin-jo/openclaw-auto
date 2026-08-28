@@ -37,6 +37,41 @@ describe("SocialConnectButton — OAuth popup activation", () => {
     });
   }
 
+  function mockReadinessStatus(status: string, available: boolean, reason?: string) {
+    return vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ providers: { threads: { status, available, reason } } }),
+    });
+  }
+
+  it("shows not_connected as an active customer action", async () => {
+    vi.stubGlobal("fetch", mockReadinessStatus("not_connected", true));
+
+    render(<SocialConnectButton provider="threads" label="Threads" />);
+
+    expect(await screen.findByTestId("readiness-status-threads")).toHaveTextContent("미연결");
+    expect(screen.getByTestId("connect-threads")).not.toBeDisabled();
+  });
+
+  it("shows opening_soon as a neutral waiting state without an active connect CTA", async () => {
+    vi.stubGlobal("fetch", mockReadinessStatus("opening_soon", false, "외부 앱 심사 대기"));
+
+    render(<SocialConnectButton provider="threads" label="Threads" />);
+
+    expect(await screen.findByTestId("readiness-status-threads")).toHaveTextContent("오픈 준비중");
+    expect(screen.getByTestId("connect-threads")).toBeDisabled();
+    expect(screen.getByTestId("readiness-reason-threads")).toHaveTextContent("외부 앱 심사 대기");
+  });
+
+  it("shows publish_pending separately from connection readiness", async () => {
+    vi.stubGlobal("fetch", mockReadinessStatus("publish_pending", false, "외부 앱 심사 대기"));
+
+    render(<SocialConnectButton provider="threads" label="Threads" />);
+
+    expect(await screen.findByTestId("readiness-status-threads")).toHaveTextContent("발행 준비중");
+    expect(screen.getByTestId("connect-threads")).toBeDisabled();
+  });
+
   it("opens the popup synchronously before the connect fetch resolves", async () => {
     const openOrder: string[] = [];
     let resolveFetch!: (v: unknown) => void;

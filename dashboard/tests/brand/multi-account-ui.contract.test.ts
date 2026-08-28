@@ -80,8 +80,8 @@ describe("SNS-007 multi-account source contracts", () => {
 
   it("connect UI recognizes direct video publishing providers", () => {
     const button = source("components/channel/SocialConnectButton.tsx");
-    const constants = source("lib/constants.ts");
-    expect(constants).toContain('VIDEO_PUBLISH_PLATFORMS = ["youtube", "tiktok"]');
+    const capabilities = source("lib/channel-capabilities.ts");
+    expect(capabilities).toContain('VIDEO_PUBLISH_PLATFORMS = ["youtube", "tiktok"]');
     expect(button).toContain("...VIDEO_PUBLISH_PLATFORMS");
   });
 });

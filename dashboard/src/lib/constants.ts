@@ -47,7 +47,7 @@ export type SchedulablePlatform = (typeof SCHEDULABLE_PLATFORMS)[number];
 
 // 텍스트 예약 루프와 별도인 /api/video/publish 직접 발행 provider.
 // SocialConnectButton의 "직접 발행 미지원" 표기가 실제 영상 API와 드리프트하지 않게 공유한다.
-export const VIDEO_PUBLISH_PLATFORMS = ["youtube", "tiktok"] as const;
+export { PUBLISH_CHANNEL_GROUPS, VIDEO_PUBLISH_PLATFORMS } from "@/lib/channel-capabilities";
 
 /** 발행 채널 그룹 — 사이드바와 Settings>Channels와 ChannelConnect 모달의 단일 소스(SSOT).
  * "사이드바=연결가능=실제 발행가능" 원칙: 여기 있는 채널만 노출한다.
@@ -56,10 +56,6 @@ export const VIDEO_PUBLISH_PLATFORMS = ["youtube", "tiktok"] as const;
  * (linkedin/pinterest/tumblr/tiktok/youtube/naver_blog/line)은 "발행가능"으로 오인되지 않도록
  * 여기서 제외한다(2026-07-16 P0 QA 정정 — 라벨/extension 설정은 constants 하단에 보존, 노출만 제거).
  * video/blog 그룹은 실제 항목이 없어 삭제. */
-export const PUBLISH_CHANNEL_GROUPS = [
-  { key: "social", title: "Social", channels: ["threads", "x", "instagram", "facebook", "bluesky"] },
-  { key: "messaging", title: "Messaging", channels: ["telegram", "discord", "slack"] },
-] as const satisfies ReadonlyArray<{ key: string; title: string; channels: readonly SchedulablePlatform[] }>;
 export const SCHEDULABLE_PLATFORM_LABELS: Record<SchedulablePlatform, string> = {
   threads: "Threads",
   x: "X",

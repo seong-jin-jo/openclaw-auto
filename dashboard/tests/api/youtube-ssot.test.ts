@@ -141,13 +141,29 @@ describe("POST /api/youtube/refresh — 공유 헬퍼(lib/youtube-token) 사용"
     vi.stubGlobal("fetch", vi.fn(async () => ({
       ok: true,
       status: 200,
-      json: async () => ({ access_token: "NEW_AT" }),
+      json: async () => ({ access_token: "NEW_AT", expires_in: 3600 }),
     })));
     const { POST } = await import("@/app/api/youtube/refresh/route");
     const res = await POST(new Request("http://localhost/api/youtube/refresh", { method: "POST" }));
     expect(res.status).toBe(200);
     expect(H.updateCalls).toHaveLength(1);
     expect(JSON.stringify(H.updateCalls[0])).toContain("NEW_AT");
+  });
+
+  it("갱신 응답에 expires_in이 없으면 새 token을 저장하지 않는다", async () => {
+    H.cred = { token: "OLD_AT", refreshToken: "RT", meta: {}, accountId: "yt-acc-1" };
+    process.env.YOUTUBE_CLIENT_ID = "cid";
+    process.env.YOUTUBE_CLIENT_SECRET = "csecret";
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ access_token: "NEW_WITHOUT_EXPIRY" }),
+    })));
+    const { refreshYoutubeAccessToken } = await import("@/lib/youtube-token");
+    const result = await refreshYoutubeAccessToken("tenant-1", "yt-acc-1");
+
+    expect(result).toEqual(expect.objectContaining({ ok: false, status: 502 }));
+    expect(H.updateCalls).toHaveLength(0);
   });
 
   it("선택 accountId의 암호화 access/refresh token만 갱신한다", async () => {
@@ -157,7 +173,7 @@ describe("POST /api/youtube/refresh — 공유 헬퍼(lib/youtube-token) 사용"
     vi.stubGlobal("fetch", vi.fn(async () => ({
       ok: true,
       status: 200,
-      json: async () => ({ access_token: "NEW_SELECTED" }),
+      json: async () => ({ access_token: "NEW_SELECTED", expires_in: 3600 }),
     })));
     const { refreshYoutubeAccessToken } = await import("@/lib/youtube-token");
     const result = await refreshYoutubeAccessToken("tenant-1", "yt-acc-2");
@@ -165,6 +181,10 @@ describe("POST /api/youtube/refresh — 공유 헬퍼(lib/youtube-token) 사용"
     expect(JSON.stringify(H.updateCalls)).toContain("NEW_SELECTED");
     expect(JSON.stringify(H.updateCalls)).toContain("RT_SELECTED");
     expect(JSON.stringify(H.updateCalls)).toContain("yt-acc-2");
+    const persistedExpiry = H.updateCalls.flat().find((value) =>
+      typeof value === "string" && Number.isFinite(Date.parse(value)) && Date.parse(value) > Date.now(),
+    );
+    expect(persistedExpiry).toBeDefined();
   });
 });
 
@@ -307,7 +327,7 @@ describe("POST /api/video/publish — youtube 브랜치", () => {
       const u = url.toString();
       if (u.includes("oauth2.googleapis.com/token")) {
         refreshCallCount += 1;
-        return { ok: true, status: 200, json: async () => ({ access_token: "REFRESHED_AT" }) };
+        return { ok: true, status: 200, json: async () => ({ access_token: "REFRESHED_AT", expires_in: 3600 }) };
       }
       if (u.includes("uploadType=resumable")) {
         initCallCount += 1;

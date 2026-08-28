@@ -218,6 +218,7 @@ services:
 
   openclaw-dashboard-osmu:
     <<: *dashboard-base
+    image: openclaw-auto/dashboard:0.2.0
     container_name: openclaw-dashboard-osmu
     labels:
       autoheal: "true"   # autoheal 워치독이 unhealthy 시 자동 재시작

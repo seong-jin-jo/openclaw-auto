@@ -60,20 +60,20 @@ export function KwPlannerSettings() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-pad-inset">
       {/* Naver Search Ad (Keyword Planner) */}
-      <div className="card p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded bg-green-900 flex items-center justify-center text-[10px] font-bold text-green-300">N</span>
-            <span className="text-sm font-medium text-text">Naver Keyword Planner</span>
+      <div className="card p-pad-inset">
+        <div className="flex items-center justify-between mb-stack">
+          <div className="flex items-center gap-stack-tight">
+            <span className="w-5 h-5 rounded-chip bg-success flex items-center justify-center text-caption font-bold text-status-fg">N</span>
+            <span className="text-body-sm font-medium text-text">Naver Keyword Planner</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${kwCfg?.configured ? "bg-green-900/50 text-green-400" : "bg-surface-2 text-subtle"}`}>
+          <div className="flex items-center gap-stack-tight">
+            <span className={`text-caption px-stack-tight py-micro rounded-pill ${kwCfg?.configured ? "bg-success/15 text-success" : "bg-surface-2 text-subtle"}`}>
               {kwCfg?.configured ? "Connected" : "Not set"}
             </span>
             {kwCfg?.configured && !editingKw && (
-              <button onClick={() => setEditingKw(true)} className="text-[10px] text-accent hover:text-accent">Edit</button>
+              <button onClick={() => setEditingKw(true)} className="text-caption text-accent hover:text-accent">수정</button>
             )}
           </div>
         </div>
@@ -83,20 +83,20 @@ export function KwPlannerSettings() {
           const clientSecretVal = kwForm.clientSecret ?? kwCfg?.clientSecret ?? "";
           const customerIdVal = kwForm.customerId ?? kwCfg?.customerId ?? "";
           return (
-            <div className="space-y-2">
+            <div className="space-y-stack-tight">
               <div>
-                <label className="text-xs text-subtle block mb-0.5">API Key (Client ID)</label>
+                <label className="text-caption text-subtle block mb-micro">API Key (Client ID)</label>
                 <input
                   value={clientIdVal}
                   readOnly={!isEditable}
                   onChange={(e) => setKwForm({ ...kwForm, clientId: e.target.value })}
                   placeholder="API Key (Client ID)"
                   title={clientIdVal}
-                  className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 text-[11px] text-muted placeholder-gray-600 font-mono`}
+                  className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded-chip px-stack py-stack-tight text-caption text-muted placeholder-gray-600 font-mono`}
                 />
               </div>
               <div>
-                <label className="text-xs text-subtle block mb-0.5">Secret Key</label>
+                <label className="text-caption text-subtle block mb-micro">Secret Key</label>
                 <div className="relative">
                   <input
                     type={showKwSecret ? "text" : "password"}
@@ -105,35 +105,35 @@ export function KwPlannerSettings() {
                     onChange={(e) => setKwForm({ ...kwForm, clientSecret: e.target.value })}
                     placeholder="Secret Key"
                     title={clientSecretVal}
-                    className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-[11px] text-muted placeholder-gray-600 font-mono`}
+                    className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded-chip px-stack py-stack-tight pr-wide text-caption text-muted placeholder-gray-600 font-mono`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowKwSecret(!showKwSecret)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-subtle hover:text-muted"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-caption text-subtle hover:text-muted"
                   >
                     {showKwSecret ? "Hide" : "Show"}
                   </button>
                 </div>
               </div>
               <div>
-                <label className="text-xs text-subtle block mb-0.5">Customer ID</label>
+                <label className="text-caption text-subtle block mb-micro">Customer ID</label>
                 <input
                   value={customerIdVal}
                   readOnly={!isEditable}
                   onChange={(e) => setKwForm({ ...kwForm, customerId: e.target.value })}
                   placeholder="Customer ID"
                   title={customerIdVal}
-                  className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 text-[11px] text-muted placeholder-gray-600 font-mono`}
+                  className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded-chip px-stack py-stack-tight text-caption text-muted placeholder-gray-600 font-mono`}
                 />
               </div>
-              <p className="text-[10px] text-subtle">searchad.naver.com &rarr; Tools &rarr; API &rarr; Credentials</p>
+              <p className="text-caption text-subtle">searchad.naver.com &rarr; Tools &rarr; API &rarr; Credentials</p>
               {isEditable && (
-                <div className="flex gap-2">
-                  <button onClick={saveKw} className="px-3 py-1.5 text-xs bg-accent text-text rounded hover:bg-accent-hover">
+                <div className="flex gap-stack-tight">
+                  <button onClick={saveKw} className="px-stack py-stack-tight text-caption bg-accent text-accent-fg rounded-chip hover:bg-accent-hover">
                     {kwCfg?.configured ? "Update" : "Save"}
                   </button>
-                  {editingKw && <button onClick={() => setEditingKw(false)} className="px-3 py-1.5 text-xs bg-surface-2 text-muted rounded">Cancel</button>}
+                  {editingKw && <button onClick={() => setEditingKw(false)} className="px-stack py-stack-tight text-caption bg-surface-2 text-muted rounded-chip">취소</button>}
                 </div>
               )}
             </div>
@@ -142,18 +142,18 @@ export function KwPlannerSettings() {
       </div>
 
       {/* Naver Datalab */}
-      <div className="card p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded bg-green-900 flex items-center justify-center text-[10px] font-bold text-green-300">D</span>
-            <span className="text-sm font-medium text-text">Naver Datalab</span>
+      <div className="card p-pad-inset">
+        <div className="flex items-center justify-between mb-stack">
+          <div className="flex items-center gap-stack-tight">
+            <span className="w-5 h-5 rounded-chip bg-success flex items-center justify-center text-caption font-bold text-status-fg">D</span>
+            <span className="text-body-sm font-medium text-text">Naver Datalab</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${dlCfg?.configured ? "bg-green-900/50 text-green-400" : "bg-surface-2 text-subtle"}`}>
+          <div className="flex items-center gap-stack-tight">
+            <span className={`text-caption px-stack-tight py-micro rounded-pill ${dlCfg?.configured ? "bg-success/15 text-success" : "bg-surface-2 text-subtle"}`}>
               {dlCfg?.configured ? "Connected" : "Not set"}
             </span>
             {dlCfg?.configured && !editingDl && (
-              <button onClick={() => setEditingDl(true)} className="text-[10px] text-accent hover:text-accent">Edit</button>
+              <button onClick={() => setEditingDl(true)} className="text-caption text-accent hover:text-accent">수정</button>
             )}
           </div>
         </div>
@@ -162,20 +162,20 @@ export function KwPlannerSettings() {
           const clientIdVal = dlForm.clientId ?? dlCfg?.clientId ?? "";
           const clientSecretVal = dlForm.clientSecret ?? dlCfg?.clientSecret ?? "";
           return (
-            <div className="space-y-2">
+            <div className="space-y-stack-tight">
               <div>
-                <label className="text-xs text-subtle block mb-0.5">Client ID</label>
+                <label className="text-caption text-subtle block mb-micro">Client ID</label>
                 <input
                   value={clientIdVal}
                   readOnly={!isEditable}
                   onChange={(e) => setDlForm({ ...dlForm, clientId: e.target.value })}
                   placeholder="Client ID"
                   title={clientIdVal}
-                  className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 text-[11px] text-muted placeholder-gray-600 font-mono`}
+                  className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded-chip px-stack py-stack-tight text-caption text-muted placeholder-gray-600 font-mono`}
                 />
               </div>
               <div>
-                <label className="text-xs text-subtle block mb-0.5">Client Secret</label>
+                <label className="text-caption text-subtle block mb-micro">Client Secret</label>
                 <div className="relative">
                   <input
                     type={showDlSecret ? "text" : "password"}
@@ -184,24 +184,24 @@ export function KwPlannerSettings() {
                     onChange={(e) => setDlForm({ ...dlForm, clientSecret: e.target.value })}
                     placeholder="Client Secret"
                     title={clientSecretVal}
-                    className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded px-3 py-2 pr-16 text-[11px] text-muted placeholder-gray-600 font-mono`}
+                    className={`w-full ${isEditable ? "bg-surface" : "bg-surface/50 cursor-default"} border border-border rounded-chip px-stack py-stack-tight pr-wide text-caption text-muted placeholder-gray-600 font-mono`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowDlSecret(!showDlSecret)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-subtle hover:text-muted"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-caption text-subtle hover:text-muted"
                   >
                     {showDlSecret ? "Hide" : "Show"}
                   </button>
                 </div>
               </div>
-              <p className="text-[10px] text-subtle">developers.naver.com &rarr; Application &rarr; Datalab</p>
+              <p className="text-caption text-subtle">developers.naver.com &rarr; Application &rarr; Datalab</p>
               {isEditable && (
-                <div className="flex gap-2">
-                  <button onClick={saveDl} className="px-3 py-1.5 text-xs bg-accent text-text rounded hover:bg-accent-hover">
+                <div className="flex gap-stack-tight">
+                  <button onClick={saveDl} className="px-stack py-stack-tight text-caption bg-accent text-accent-fg rounded-chip hover:bg-accent-hover">
                     {dlCfg?.configured ? "Update" : "Save"}
                   </button>
-                  {editingDl && <button onClick={() => setEditingDl(false)} className="px-3 py-1.5 text-xs bg-surface-2 text-muted rounded">Cancel</button>}
+                  {editingDl && <button onClick={() => setEditingDl(false)} className="px-stack py-stack-tight text-caption bg-surface-2 text-muted rounded-chip">취소</button>}
                 </div>
               )}
             </div>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>빌드로그 SJ — 브랜드 비주얼 쇼케이스</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+  :root{
+    --base:#0B0F1A; --surface:#151B2B; --amber:#F59E0B; --mint:#34D399;
+    --text:#F8FAFC; --text-sub:#94A3B8;
+    --scale: 0.25; /* global scale — every asset shown at the SAME ratio of its true pixel size */
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; background:var(--base); color:var(--text);
+    font-family:'Pretendard', sans-serif;
+    padding:64px 72px 120px;
+  }
+  h1{ font-weight:800; font-size:40px; letter-spacing:-1px; margin:0 0 6px; }
+  .sub{
+    font-family:'JetBrains Mono', monospace; color:var(--text-sub); font-size:16px; letter-spacing:1px;
+    margin-bottom:56px;
+  }
+  .sub b{ color:var(--mint); }
+  section{ margin-bottom:72px; }
+  .sec-title{
+    font-family:'JetBrains Mono', monospace; font-weight:700; font-size:15px; letter-spacing:3px;
+    color:var(--amber); text-transform:uppercase; margin-bottom:22px;
+    display:flex; align-items:center; gap:12px;
+  }
+  .sec-title::before{ content:"›"; color:var(--amber); }
+  .sec-title .count{ color:var(--text-sub); font-weight:400; }
+  .row{ display:flex; flex-wrap:wrap; gap:36px; align-items:flex-end; }
+  .card{
+    background:var(--surface); border:1px solid rgba(255,255,255,0.07);
+    border-radius:14px; padding:20px; display:flex; flex-direction:column; gap:14px;
+    box-shadow:0 20px 50px -20px rgba(0,0,0,0.5);
+  }
+  .frame{
+    background:#000; border-radius:8px; overflow:hidden; display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.05);
+  }
+  .frame img{ display:block; }
+  .frame.circle{ border-radius:50%; }
+  .meta{ font-family:'JetBrains Mono', monospace; font-size:13px; color:var(--text-sub); }
+  .meta .fname{ color:var(--text); font-weight:700; display:block; margin-bottom:3px; font-size:14px; }
+  .meta .dims{ color:var(--mint); }
+</style>
+</head>
+<body>
+  <h1>빌드로그 SJ — 브랜드 비주얼 쇼케이스</h1>
+  <div class="sub">모든 자산은 <b>동일 비율(25%)</b>로 축소 — 실제 상대 크기 그대로 비교 가능. 팔레트: <b>#0B0F1A</b> / <b>#151B2B</b> / amber <b>#F59E0B</b> / mint <b>#34D399</b></div>
+
+  <section>
+    <div class="sec-title">프로필 이미지 <span class="count">(800 × 800, 원형 크롭 프리뷰 포함)</span></div>
+    <div class="row">
+      <div class="card">
+        <div class="frame" style="width:200px;height:200px;"><img src="profile-1-cursor.png" width="200" height="200"></div>
+        <div class="meta"><span class="fname">profile-1-cursor.png</span><span class="dims">800×800 · 로고①(커서 모노그램)</span></div>
+      </div>
+      <div class="card">
+        <div class="frame" style="width:200px;height:200px;"><img src="profile-2-wordmark.png" width="200" height="200"></div>
+        <div class="meta"><span class="fname">profile-2-wordmark.png</span><span class="dims">800×800 · 로고②(프롬프트 워드마크)</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-title">YouTube 채널 배너 <span class="count">(2560 × 1440, safe zone 1546 × 423)</span></div>
+    <div class="row">
+      <div class="card">
+        <div class="frame" style="width:640px;height:360px;"><img src="banner-safezone.png" width="640" height="360"></div>
+        <div class="meta"><span class="fname">banner-safezone.png</span><span class="dims">safe-zone 가이드 버전 (QA용)</span></div>
+      </div>
+      <div class="card">
+        <div class="frame" style="width:640px;height:360px;"><img src="banner-clean.png" width="640" height="360"></div>
+        <div class="meta"><span class="fname">banner-clean.png</span><span class="dims">클린 버전 (업로드용)</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-title">YouTube 썸네일 템플릿 <span class="count">(1280 × 720, 3종)</span></div>
+    <div class="row">
+      <div class="card">
+        <div class="frame" style="width:320px;height:180px;"><img src="thumbnail-buildlog.png" width="320" height="180"></div>
+        <div class="meta"><span class="fname">thumbnail-buildlog.png</span><span class="dims">빌드로그 · amber</span></div>
+      </div>
+      <div class="card">
+        <div class="frame" style="width:320px;height:180px;"><img src="thumbnail-stuck.png" width="320" height="180"></div>
+        <div class="meta"><span class="fname">thumbnail-stuck.png</span><span class="dims">막힘해부 · mint</span></div>
+      </div>
+      <div class="card">
+        <div class="frame" style="width:320px;height:180px;"><img src="thumbnail-debate.png" width="320" height="180"></div>
+        <div class="meta"><span class="fname">thumbnail-debate.png</span><span class="dims">경계 논쟁 · white</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-title">Instagram 하이라이트 커버 <span class="count">(400 × 400, 3종)</span></div>
+    <div class="row">
+      <div class="card">
+        <div class="frame" style="width:100px;height:100px;"><img src="highlight-buildlog.png" width="100" height="100"></div>
+        <div class="meta"><span class="fname">highlight-buildlog.png</span></div>
+      </div>
+      <div class="card">
+        <div class="frame" style="width:100px;height:100px;"><img src="highlight-stuck.png" width="100" height="100"></div>
+        <div class="meta"><span class="fname">highlight-stuck.png</span></div>
+      </div>
+      <div class="card">
+        <div class="frame" style="width:100px;height:100px;"><img src="highlight-metrics.png" width="100" height="100"></div>
+        <div class="meta"><span class="fname">highlight-metrics.png</span></div>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

@@ -1,0 +1,36 @@
+import { dataPath, mutateJson } from "@/lib/file-io";
+import { mirrorQueuePost } from "@/lib/queue-store";
+import { requestReviewTransition, type ReviewTransitionResult } from "@/lib/review-request";
+import { effectiveTenantId } from "@/lib/tenant-auth";
+import { runWithTenant } from "@/lib/tenant-context";
+
+interface QueueData { posts: Array<Record<string, unknown>> }
+
+export async function POST(request: Request, { params }: { params: Promise<{ postId: string }> }) {
+  const body = await request.json().catch(() => ({}));
+  const tenantId = await effectiveTenantId(request, body.tenant_id ?? null);
+  return runWithTenant(tenantId, async () => {
+    const { postId } = await params;
+    let transition: ReviewTransitionResult | null = null;
+
+    await mutateJson<QueueData>(dataPath("queue.json"), (queue) => {
+      const post = (queue.posts || []).find((candidate) => candidate.id === postId);
+      if (post) transition = requestReviewTransition(post, new Date().toISOString());
+      return queue;
+    }, { posts: [] });
+
+    if (!transition) return Response.json({ error: "post not found" }, { status: 404 });
+    const result = transition as ReviewTransitionResult;
+    if (!result.ok) {
+      return Response.json({ error: result.error, code: result.code }, { status: 409 });
+    }
+
+    await mirrorQueuePost(tenantId, result.post as Record<string, unknown> & { id: string });
+    return Response.json({
+      ok: true,
+      post: result.post,
+      reviewRequest: result.reviewRequest,
+      reused: result.reused,
+    });
+  });
+}

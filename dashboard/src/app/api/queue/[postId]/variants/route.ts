@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { readJson, mutateJson, dataPath } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
+import { mirrorQueuePost } from "@/lib/queue-store";
 
 // 소스 큐 포스트(특히 비디오 클립)의 텍스트만 N개로 변형해 같은 영상으로 큐에 추가.
 // "이 영상으로 5개 텍스트 변형" — 영상 1개를 여러 캡션으로 OSMU 재활용하는 흐름.
@@ -104,6 +105,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ pos
       (q) => { q.posts.push(...newPosts); return q; },
       { version: 2, posts: [] },
     );
+    await Promise.all(newPosts.map((post) => mirrorQueuePost(__t, post)));
     return Response.json({ ok: true, created: variants.length });
   });
 }

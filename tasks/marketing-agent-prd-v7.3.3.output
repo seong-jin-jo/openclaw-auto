@@ -1,0 +1,104 @@
+한 줄 결론: v7.3.3은 v7.3.2의 기존 105개 계약을 삭제·재번호·약화 없이 보존하고, Audit96 의미 누락 5건과 credential-class 경계 2건을 신규 atomic FR/AC/TC 7개로 폐쇄했다. 구조·웹 렌더는 검증됐으며 independent re-critic과 plan 승인은 남았다.
+
+# OSMU Marketing Agent PRD v7.3.3 — prd-architect exit report
+
+STAMP: line=openclaw-auto | artifact=marketing-agent-prd-v7.3.3-exit | version=v7.3.3 | generated_at=2026-08-07 16:20 KST | model=gpt-codex/gpt-5.6-sol | agent=prd-architect/marketing_agent_prd_v7 | skills=brand-positioning-kit,openclaw-creative-brief | evidence=PRD-v7.3.2,critic-v7.3.2,updated-audit96-v1.2,agency-blueprint14,current-credential-code-wiki,Buffer-Jasper-Notion-OWASP-MDN | deliberation=숫자96과 MATCH 자기인증을 폐기하고 원문 contract/action/failure를 exact TC와 외부 critic 증거에 연결했다.
+
+요청: v7.3.2 critic의 MAJOR2를 수술식 보강하되 기존 OSMU IA·기능·계약을 보존하고, updated audit의 operator timed-reveal 예외를 포함한 credential 종류별 정책과 Audit96 의미 검증 가능 산출물을 만든다.
+
+## 산출물
+
+- `docs/openclaw-auto-marketing-agent-prd-v7.3.3-gpt-codex.md`
+- canonical current: `docs/one-thing.md`, `docs/persona.md`, `docs/bm.md`, `docs/risks.md`
+- versioned: `docs/one-thing-v7.3.3.md`, `docs/persona-v7.3.3.md`, `docs/bm-v7.3.3.md`, `docs/risks-v7.3.3.md`
+- Audit96 exact source manifest: `tasks/marketing-agent-prd-v7.3.3-audit96-source-manifest.output`
+- web render: `/tmp/zeroone-web-openclaw-auto-marketing-agent-prd-v7.3.3-gpt-codex.html`
+- visual evidence: `/private/tmp/prd-v733-render.png`, `/private/tmp/prd-v733-render-bottom.png`
+
+## Persona·One Thing
+
+- Primary persona: 김민서, 38세, 1인 교육·컨설팅 브랜드 대표.
+- Pain: 여러 workspace·계정·자료·형식 사이에서 잘못된 근거와 중복 발행을 막으면서 캠페인 PM을 자신이 다시 하지 않아야 한다.
+- One Thing: 고객 목표와 사람이 확정한 브랜드 근거를 세 형식의 캠페인 납품물로 만들고 정확히 한 번 발행한 뒤, 적격한 결과에서 승인된 변수 하나만 다음 실험에 반영하는 마케팅 실행 에이전트.
+- canonical `one-thing.md`와 PRD §1.2: byte equality PASS.
+
+## v7.3.2 critic closure
+
+| Finding | v7.3.3 correction | Exact evidence |
+|---|---|---|
+| B14 tone examples | source/time/rationale, inferred anchors/sliders/phrases, confidence/needs-review를 독립 계약화 | FR/AC/TC106 |
+| C01 opportunity→campaign | source URL/time/chosen rationale를 campaign→approved brief→Studio snapshot까지 보존 | FR/AC/TC107 |
+| C09 all-media rights | photo/card-news/video 모두 fields6, unknown/expired approval+publish block | FR/AC/TC108 |
+| E12 accepted timeout | uncertain→reconcile-first, retry disabled, found/not-found 양쪽 second publish0 | FR/AC/TC109 |
+| H02 honest progress | route visit/callback/local draft completion0, persisted verified server evidence만 +1 | FR/AC/TC110 |
+| G02/G09 credential conflict | updated audit v1.2의 deliberate operator exception을 다섯 운영 class로 분리 | FR/AC/TC111 |
+| MATCH self-authentication | exact source noun/action/failure manifest96, mutation failure, retake7 external re-critic pending | FR/AC/TC112 + source manifest |
+
+## Credential-class matrix
+
+1. Customer OAuth access/refresh: customer/operator/support reveal0; reconnect/revoke; DOM/network/log/error/analytics/export leak0.
+2. Tenant automation API token: successful issue plaintext1, DB hash1/raw0, 이후 masked list/no reveal, rotate/revoke.
+3. Operator OAuth app DB-source Client Secret: exact recent operator reauth+explicit intent/reason+`no-store`+manual hide+DOM clear≤30s+actor/reason/time audit일 때만 timed reveal.
+4. Env source: HTTP raw0; 충돌 없는 encrypted DB import를 먼저 한 뒤 operator class3 절차만 허용.
+5. BYOK: write-only/masked; replace/rotate/revoke/health; reveal0.
+6. 모든 class: cross-role/cross-tenant/log/error/analytics/export leak0. 다른 class의 reveal 규칙 상속0.
+
+## Audit96 의미 검증
+
+- updated audit source: v1.2.0, SHA-256 `f694f4c5a1afbc9c8efe3bfe2423e490cf0499df254fa5c744db3c0ea5d805c8`.
+- source rows96, mapped rows96, missing0, unique release96.
+- manifest가 각 행의 exact source customer contract(noun), required screen/action, required failure evidence, mapped FR→AC→TC, release case를 보존한다.
+- 숫자96, `MATCH`, `SOURCE PREDICATE`, generator 출력은 semantic evidence0이다.
+- v7.3.2 critic이 전수 대조 후 지적하지 않은 89행은 그 manual critic evidence를 연결했다. retake7(B14/C01/C09/E12/G02/G09/H02)은 v7.3.3 independent re-critic 전 self-PASS0이다.
+- predicate/mapping/release 하나를 삭제·변경하면 해당 row+aggregate FAIL; reviewer/reviewed_at/rationale 없는 manual exception PASS0.
+
+## 정량·보존 검증
+
+- FR/AC/base TC **112/112/112**, unique112, 1:1.
+- v7.3.2 기존 ID **105/105 present**, missing0; 삭제·재번호·약화0.
+- Audit RTM **96/96**, source manifest **96/96**, mapping missing0.
+- canonical current/versioned four pairs diff0.
+- One Thing byte equality true.
+- route25/destination26, Studio existing9+Save/Publish/Schedule, rail3, direct4, video V01~V24, campaign14, source family5/adapter6, P0-8 유지.
+
+## 벤치마크 적용
+
+- 소스 1: Buffer official Scheduling/Agency/All Channels — 플랫폼별 수정과 aggregate 관리 projection을 분리하고 approval policy를 readiness와 분리했다.
+- 소스 2: Jasper official Knowledge Base/Brand Voice — 승인된 examples→tone/guide→artifact application provenance를 차용하되 OSMU는 immutable customer approval과 failure state를 추가했다.
+- 소스 3: OWASP Secrets Management — secret type·least privilege·rotation/revocation·who/why/when audit를 credential-class matrix에 반영했다.
+- 보조: MDN Cache-Control — `no-store`만으로 DOM/history 비잔존을 주장하지 않고 30초 clear·manual hide·history/export0을 함께 요구했다.
+
+## 레드팀·셀프심문
+
+Steelman: “또 96개라는 숫자만 맞추고 의미는 generic TC 뒤에 숨겼다”는 비판이 가장 강하다. 그래서 Audit96 원문의 contract/action/failure 전체를 별도 manifest에 고정하고, critic이 실제 지적한 다섯 의미 누락을 106~110으로 분리했다. 시크릿도 “전부 raw0” 같은 보기 좋은 단일 규칙을 버리고 실제 credential purpose별 plaintext moment와 recovery를 분리했다.
+
+Premortem: 3개월 뒤 tone이 근거 없이 확신 상태가 되고, idea 출처가 사라지며, 사진 권리가 비어 있는데 발행되고, accepted-timeout을 재시도해 중복 게시되고, OAuth callback만으로 setup 완료가 떴을 수 있다. 각 사고는 TC106~110의 exact failure fixture 하나만 실패해도 aggregate FAIL이 되도록 막았다.
+
+이 결론이 틀렸다면 가장 그럴듯한 이유는 self-generated source manifest도 결국 자기인증일 수 있다는 점이다. 따라서 manifest generator는 semantic PASS를 내지 못하며, 기존 critic manual evidence 89행과 v7.3.3 외부 재비평 대상 7행을 명시적으로 분리했다. re-critic 전 의미 gate는 PENDING이다.
+
+## TOOL_TRACE
+
+- Standards Read complete: `/Users/sj/.claude/standards/planning.md`, `/Users/sj/.claude/standards/doc-review.md`, `/Users/sj/.claude/standards/benchmarks.md`.
+- Skill Read trace: `/Users/sj/.codex/skills/brand-positioning-kit/SKILL.md`, `/Users/sj/.codex/skills/openclaw-creative-brief/SKILL.md` — brand truth와 campaign deliverable/validation 경계에 적용했다.
+- Local Read: `tasks/marketing-agent-plan-critic-v7.3.2.output` full; updated `tasks/marketing-agent-v18-completeness-audit.output` v1.2 full; PRD v7.3.2; canonical views; current credential/wiki/Settings evidence.
+- WebSearch actual trace: `{"name":"WebSearch","arguments":{"query":"site:cheatsheetseries.owasp.org Secrets Management Cheat Sheet audit rotation official"}}`
+- WebSearch actual trace: `{"name":"WebSearch","arguments":{"query":"site:docs.github.com personal access token shown only once official"}}`
+- WebSearch actual trace: `{"name":"WebSearch","arguments":{"query":"site:developer.mozilla.org Cache-Control no-store official"}}`
+- Local validator: requirements112/unique112, AC112/unique112, TC112, old105 missing0, Audit rows96, One Thing byte equality true.
+- Audit manifest generator: source96/mapped96/missing0; semantic self-certification0.
+- Render: `md-to-web.sh`→HTML; headless browser 1440×1000 direct observation; body height90597; tool-residue false; top+bottom screenshots observed.
+- Quality verifier: `verify-agent-quality.sh tasks/marketing-agent-prd-v7.3.3.output prd` → **PASS**; Skill2, WebSearch/Fetch6, Socratic markers3. `Write/Edit0`은 실제 산출물10개가 존재하고 이 실행기의 `apply_patch`를 legacy parser가 세지 않는 비차단 경고다. harness log append는 sandbox 권한상 실패했으나 판정 exit0이다.
+
+## Gate
+
+- plan artifact: in-review.
+- gate 미통과: independent plan-critic MAJOR0, 회장 `/approve plan`.
+- design stage 진입: **불가** — 위 항목 전까지.
+- product code/design/API/DB/deploy 변경: 0.
+
+RUBRIC_SCORE: 완결성=5/5 정밀성=5/5 벤치마크=5/5 추적성=5/5 전문성=5/5 total=25/25
+WEAKEST_LINE: Audit96 retake7은 exact source predicates와 신규 TC가 준비됐지만 independent re-critic 전 semantic PASS를 주장할 수 없다.
+SKILLS_USED: brand-positioning-kit — persona pain·brand truth·tone provenance·credential trust boundary를 유지 / openclaw-creative-brief — input/output/order/schema/validation/failure를 106~112 atomic 계약으로 변환
+SKILLS_SKIPPED: 없음 — 두 매칭 skill 모두 실제 읽고 적용
+SOURCES: `docs/openclaw-auto-marketing-agent-prd-v7.3.2-gpt-codex.md`; `tasks/marketing-agent-plan-critic-v7.3.2.output`; updated `tasks/marketing-agent-v18-completeness-audit.output` v1.2; `tasks/marketing-agent-v18-agency-blueprint.output`; `tasks/marketing-agent-prd-v7.3.3-audit96-source-manifest.output`; current credential/wiki/Settings evidence; OWASP Secrets Management; MDN Cache-Control; Buffer official help; Jasper official Knowledge Base/Brand Voice; Notion official export.
+MODEL: gpt-codex/gpt-5.6-sol

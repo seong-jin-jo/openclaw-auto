@@ -19,6 +19,7 @@ export interface PublishResult {
   externalId?: string;
   permalink?: string;
   error?: string;
+  failureKind?: "definitive" | "indeterminate";
 }
 
 // SSRF 가드 1단계(lexical) — 서버가 직접 fetch하는 image_url에만 적용(현재 Bluesky uploadBlob 경로).
@@ -196,7 +197,12 @@ export async function fetchThreadsPermalink(token: string, mediaId: string): Pro
 }
 
 // Threads 발행 (text + 선택 image). 2-step container→publish.
-export async function publishThreads(cred: ChannelCred, text: string, imageUrl?: string): Promise<PublishResult> {
+export async function publishThreads(
+  cred: ChannelCred,
+  text: string,
+  imageUrl?: string,
+  replyToId?: string,
+): Promise<PublishResult> {
   const length = countTextCharacters(text);
   if (length > CHANNEL_TEXT_LIMITS.threads) {
     return {
@@ -212,6 +218,7 @@ export async function publishThreads(cred: ChannelCred, text: string, imageUrl?:
     media_type: imageUrl ? "IMAGE" : "TEXT", text, access_token: cred.token,
   };
   if (imageUrl) params.image_url = imageUrl;
+  if (replyToId) params.reply_to_id = replyToId;
 
   let containerId: string;
   try {
@@ -237,12 +244,12 @@ export async function publishThreads(cred: ChannelCred, text: string, imageUrl?:
       method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ creation_id: containerId, access_token: cred.token }),
     });
-    if (!pub.ok) return { ok: false, error: `publish 실패(${pub.status}): Threads 채널 권한을 확인하거나 다시 연결해주세요.` };
+    if (!pub.ok) return { ok: false, error: `publish 실패(${pub.status}): Threads 채널 권한을 확인하거나 다시 연결해주세요.`, failureKind: "definitive" };
     const pubBody = (await pub.json()) as { id?: string };
-    if (!pubBody.id) return { ok: false, error: "Threads 발행에 실패했습니다. 잠시 후 다시 시도해주세요." };
+    if (!pubBody.id) return { ok: false, error: "Threads 발행 결과를 확인하지 못했습니다. 중복 방지를 위해 상태 확인이 필요합니다.", failureKind: "indeterminate" };
     mediaId = pubBody.id;
   } catch {
-    return { ok: false, error: "Threads 발행 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요." };
+    return { ok: false, error: "Threads 발행 결과를 확인하지 못했습니다. 중복 방지를 위해 상태 확인이 필요합니다.", failureKind: "indeterminate" };
   }
 
   // 발행 직후 media 조회가 아직 비어 있을 수 있어 짧게 재시도한다. permalink 실패는 발행 성공을 뒤집지 않는다.
@@ -491,6 +498,30 @@ export async function publishX(cred: ChannelCred, text: string): Promise<Publish
   const data = (await resp.json()) as { data?: { id?: string } };
   const tweetId = data.data?.id;
   return { ok: true, externalId: tweetId, permalink: tweetId ? `https://x.com/i/web/status/${tweetId}` : undefined };
+}
+
+export async function publishXReply(cred: ChannelCred, text: string, parentId: string): Promise<PublishResult> {
+  const meta = (cred.meta ?? {}) as Record<string, unknown>;
+  const keys: XKeys = {
+    apiKey: String(meta.apiKey ?? ""),
+    apiSecret: String(meta.apiSecret ?? meta.apiKeySecret ?? ""),
+    accessToken: String(meta.accessToken ?? ""),
+    accessSecret: String(meta.accessSecret ?? meta.accessTokenSecret ?? ""),
+  };
+  if (!keys.apiKey || !keys.apiSecret || !keys.accessToken || !keys.accessSecret) {
+    return { ok: false, error: "X 4키(apiKey/apiSecret/accessToken/accessSecret) 누락" };
+  }
+  const body = [...text].slice(0, CHANNEL_TEXT_LIMITS.x).join("");
+  const url = `${X_API}/tweets`;
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: { Authorization: buildXOAuthHeader("POST", url, keys), "Content-Type": "application/json" },
+    body: JSON.stringify({ text: body, reply: { in_reply_to_tweet_id: parentId } }),
+  });
+  if (!resp.ok) return { ok: false, error: `X reply 실패(${resp.status})` };
+  const data = (await resp.json()) as { data?: { id?: string } };
+  const id = data.data?.id;
+  return { ok: true, externalId: id, permalink: id ? `https://x.com/i/web/status/${id}` : undefined };
 }
 
 // Facebook 페이지 발행 (Graph API). imageUrl 있으면 /photos(caption), 없으면 /feed(message).

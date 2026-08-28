@@ -1,0 +1,389 @@
+# marketing-agent-design v20 exit report
+
+> STAMP: created_at=2026-08-08 22:15 KST | line=marketing-agent-design | model=claude-opus-5[1m] |
+> agent=product-designer/marketing_agent_design_v20 | skills=gstack design-review |
+> 고민: 회장이 금지한 것은 재창조였다. 그래서 이번 산출의 첫 작업은 화면 그리기가 아니라 코드 읽기였고,
+> v19가 사실처럼 그린 자리 두 곳을 되돌리는 데서 시작했다.
+
+---
+
+## 한 줄 결론
+
+가입에서 운영자까지를 한 여정으로 이은 v20 산출 4종을 냈다. 실브라우저 12조합 스크린샷과
+정적 DOM QA 71 assertions 전부 통과로 검증했고, Design Score A-다.
+검증하지 못한 것은 실제 제공자 왕복이고, 회장 결정이 필요한 항목 6건을 아래에 올린다.
+
+## 기반 산출물 (버전 핀)
+
+| 종류 | 경로 |
+|---|---|
+| PRD | `docs/openclaw-auto-marketing-agent-prd-v7.3.5-gpt-codex.md` (plan APPROVED 2026-08-07, critic MAJOR 0) |
+| 디자인 시스템 | `DESIGN.md` v19 섹션 (토큰 상속, 변경 0) |
+| UI 규칙 | `docs/ui-rules.md` |
+| 직전 design | `docs/user-flow-marketing-agent-v19-gpt-codex.md`, `docs/wireframes/marketing-agent-v19-gpt-codex.md`, `docs/prototype/openclaw-auto-marketing-agent-fidelity-v19-gpt-codex.html` |
+| 상태·이력 | `pipeline-state.md`, `wiki/ops/session-state.md` (2026-08-08 00:26·17:38·17:41·18:35·19:2x KST 블록) |
+| 채널 사실 | `wiki/reference/channel-status.md` |
+| 회장 지시 원문 | 위임 프롬프트 §0·§3 (2026-08-08) |
+
+## Read한 실제 코드 파일
+
+발명 금지 계약(§0) 이행 증거다. 화면을 그리기 전에 아래를 직접 읽었다.
+
+```
+dashboard/src/app/signup/page.tsx
+dashboard/src/app/login/page.tsx
+dashboard/src/app/studio/page.tsx
+dashboard/src/app/settings/page.tsx
+dashboard/src/app/performance/page.tsx
+dashboard/src/app/calendar/page.tsx
+dashboard/src/app/operator/page.tsx
+dashboard/src/app/operator/customers/page.tsx
+dashboard/src/app/api/connect/[provider]/callback/route.ts
+dashboard/src/app/api/connect/readiness/route.ts
+dashboard/src/app/api/onboarding/route.ts
+dashboard/src/app/api/token-status/route.ts
+dashboard/src/components/shared/OnboardingChecklist.tsx
+dashboard/src/components/shared/OnboardingWizard.tsx   (구조·라벨 grep)
+dashboard/src/components/channel/ChannelPage.tsx        (탭 배열 grep)
+dashboard/src/components/channel/AccountManager.tsx
+dashboard/src/components/queue/QueueList.tsx            (composer 부재 확인)
+dashboard/src/lib/channel-accounts.ts                   (컬럼 grep)
+dashboard/src/lib/constants.ts                          (발행·예약 상수)
+dashboard/src/lib/verify-channel.ts                     (목록 확인)
+wiki/reference/channel-status.md
+wiki/ops/session-state.md (2026-08-08 블록)
+```
+
+품질헌법 Read: `/Users/sj/.claude/standards/design.md` 전문 (Read 툴, 78줄 전량).
+
+## 산출물
+
+| 파일 | 상태 |
+|---|---|
+| `DESIGN.md` | v20 섹션 가산 (1416행 이후). v19 이하 한 줄도 수정하지 않음 |
+| `docs/user-flow-marketing-agent-v20-gpt-codex.md` | 신규 |
+| `docs/wireframes/marketing-agent-v20-gpt-codex.md` | 신규 |
+| `docs/prototype/openclaw-auto-marketing-agent-fidelity-v20-gpt-codex.html` | 신규. v19를 복사해 확장 (백지 재작성 아님) |
+| `tasks/marketing-agent-design-v20.output` | 이 파일 |
+
+프로토타입 SHA-256: `fa1877eb475ab53709f6fe62ec74a62deb7c80941230c5689058554a7964a54d`
+
+**회장에게 열 파일은 이 하나다.**
+`/Users/sj/sj_code_master/openclaw-auto/docs/prototype/openclaw-auto-marketing-agent-fidelity-v20-gpt-codex.html`
+상단 검수 도구는 기본 숨김이고 `Ctrl+Alt+Q` 또는 `?prototypeInspector=1`로 켠다.
+
+제품 소스·API·DB·배포 변경 0. 위 5개 파일 밖으로 쓴 것이 없다.
+
+---
+
+## 보존 / 가산 / 미지원 3분류 매니페스트
+
+프로토타입 안에도 `window.__V20_MANIFEST__.v20Manifest`로 같은 3분류가 박혀 있다.
+
+### 보존 (기존 구현을 그대로 둔 것)
+
+| 항목 | 근거 |
+|---|---|
+| Google 계정 계속 한 번이 유일한 가입·로그인 경로 | `app/login/page.tsx`. 이메일·비밀번호 화면을 만들지 않았다 |
+| 가입 직후 4단계의 이름과 문구 | `OnboardingWizard.tsx` |
+| 시작 체크리스트 4항목의 라벨과 이동 경로 | `OnboardingChecklist.tsx` STEPS |
+| Threads의 Growth·Popular를 각자 탭으로 | `ChannelPage.tsx` 탭 배열 |
+| Queue → Analytics → (Growth → Popular) → Settings 상대 순서 | 같음 |
+| Settings 고객용 8개 그룹의 이름과 순서 | `app/settings/page.tsx` |
+| 운영자 운영 요약 6숫자, 워크스페이스 카드 값, 정지·재개, 공유 AI 승인·회수, 중앙 OAuth 앱 | `app/operator/customers/page.tsx` |
+| 사이드바 9그룹 26목적지와 그룹 순서 | v19 + `lib/constants.ts` |
+| Bluesky·Telegram·Discord의 직접 입력 방식 | `wiki/reference/channel-status.md` |
+| 성과는 별도 화면이 아니라 홈 | `app/performance/page.tsx` 리다이렉트 |
+| DESIGN.md v19 토큰 전량 | 변경 0 |
+
+### 가산 (기존에 없어서 새로 더한 것)
+
+| 항목 | 왜 필요한가 | 무엇을 재사용했나 |
+|---|---|---|
+| 채널 화면 Create 탭 | 회장 요구 "각 플랫폼 화면에서 독립 생성·수정·승인·게시". 현재 대기열에 작성 칸이 없다 | v19 `PlatformCreate` 계약, 기존 Panel·FormField·Button |
+| 채널 화면 Calendar 탭 | 같은 요구의 예약 부분. 현재 일정은 전체 캘린더 한 곳 | v19 `PlatformCalendar`, 기존 timeline |
+| 계정 저장 내용 읽기 카드 10필드 | 회장 요구 "API키 저장되고 볼 수도 있고". 저장 여부를 고객이 확인할 화면이 없었다 | `channel_accounts` 실제 컬럼 7개. 새 데이터 요구 0 |
+| 끊긴 채널을 목록 맨 위로 + 강조 | 회장 요구 "settings도 하고". Buffer 방식 | 이미 있는 `status` 컬럼. 새 데이터 요구 0 |
+| 시작 체크리스트를 홈 최상단으로 승격 | 회장 요구 "신규유저가 회원가입해서". 가입 직후 다음 행동이 화면에 없었다 | 코드의 4항목을 그대로. 새 항목 0 |
+| 가입 직후 4단계 dialog | 같은 요구. 온보딩을 프로토타입에서 볼 수 없었다 | 코드의 4단계 그대로 |
+| 표본 부족 보류 문구 | 회장 요구 "성과". 표본 적을 때 평균이 오판을 만든다 | 기존 metric 블록 |
+| `OriginChip` 3상태 표시 | 발명 금지 계약을 화면에서 검증 가능하게 | 기존 status 칩 형태 |
+| 운영자 9항목의 있음·없음 구분 | v19가 없는 것을 있는 것처럼 그렸다 | 기존 nav 버튼 |
+| CSS `.grid > .panel + .panel{margin-top:0}` | 회장이 지적한 카드 불일치의 실제 원인 | 기존 CSS 한 줄 수정 |
+
+### 미지원 (코드에 없어서 없다고 표시한 것)
+
+| 항목 | 왜 없는가 | 화면에서 어떻게 보이나 |
+|---|---|---|
+| 허용한 권한 목록 | `channel_accounts`에 scope 컬럼이 없다 | 값 자리에 주황색 사유. 항목을 목록에서 빼지 않았다 |
+| 자동 갱신 성공 여부 | 갱신 시도 기록이 없다 | 같음 |
+| 마지막 확인 시각 | 확인 시각 컬럼이 없다 | 같음 |
+| 계정별 모델·입력·출력 토큰·비용 | usage ledger·API·UI 전부에 없다 | `설계 목표 · 미구현`. 예시 숫자 0 |
+| 운영자 복구 작업·Video/TTS 상태·보안 기록·알림·콘솔 설정 | 화면이 없다 | 좌측 목록에 `아직 없음`, 탭 머리에 주황 칩과 한 줄 설명 |
+| Instagram·X·Facebook·Bluesky·YouTube·TikTok 실제 게시 확인 | 실증 증거가 없다 | 준비 8단계에서 현재 단계로만 표시. Threads 8/8, Instagram 2/8 |
+| Messaging 전체 전달 | 미구현 | 기본 꺼짐, 가짜 Queue·Analytics 만들지 않음 |
+
+### v19에서 되돌린 것 2건 (이번 리테이크의 핵심)
+
+| v19 | 코드 사실 | v20 조치 |
+|---|---|---|
+| Threads Growth·Popular를 Analytics 안 하위 탭으로 이동 | `ChannelPage`가 둘을 각자 탭으로 갖는다 | 각자 탭 복원. 하위 탭 제거. Threads 7탭 / 나머지 5탭 |
+| 운영자 9개 항목 전부를 있는 것처럼 표현 | 실제는 4개 | 9개 유지하되 5개에 `아직 없음` 표시. 목표를 지우지 않고 현재와 구분 |
+
+---
+
+## 스킬·근거 실행 기록
+
+| 항목 | 내용 |
+|---|---|
+| Skill 호출 | `design-review` 1회 (Skill 툴). APP UI classifier, litmus checks, AI slop blacklist, Phase 8 fix loop 적용 |
+| WebSearch | 2회. ①연결 계정 설정 UI에서 범위·만료·재연결 표시 관행 ②Buffer·Hootsuite 재연결과 활성화 온보딩 |
+| 품질헌법 Read | `/Users/sj/.claude/standards/design.md` 전량 (Read 툴) |
+| 코드 Read | 위 22개 파일 |
+
+design-review를 이 과업에 맞춰 적용한 방식: 스킬 본문은 라이브 사이트의 소스를 고치는 루프를 전제한다.
+이번은 design 단계이고 제품 소스 변경이 금지돼 있어, 심사 기준(classifier, 10개 카테고리, 슬롭 블랙리스트,
+등급 산식)과 fix 루프는 프로토타입 산출물에 적용하고 제품 소스에는 손대지 않았다.
+스크린샷 → 육안 재검 → 수정 → 재촬영 루프는 실제로 돌렸고 결과가 아래다.
+
+## design-review fix 루프 (스크린샷을 보고 실제로 고친 것)
+
+| # | 발견 | 원인 | 조치 | 검증 |
+|---:|---|---|---|---|
+| 1 | grid 한 줄에 놓인 카드 3개의 윗변이 어긋남 | `.panel + .panel{margin-top:16px}`이 grid 안에서도 걸려 2·3번째만 16px 밀림 | `.grid > .panel + .panel{margin-top:0}` | 실측 717/733/733 → 719/719/719 |
+| 2 | 홈에 `다음 할 일`을 주장하는 요소가 둘 | 시작 스트립과 기존 패널 kicker가 같은 주장 | 패널 kicker를 `확인이 필요한 문구`로, 스트립 버튼을 `<다음 항목> 시작하기`로 | 재촬영 확인 |
+| 3 | 계정 읽기 카드 경고가 `아래 세 항목`인데 대상보다 아래 있음 | 순서 오류 | 경고를 목록 위로 옮기고 `마지막 세 항목`으로 | 라이트·다크 재촬영 확인 |
+| 4 | 운영자 화면에 같은 칩 중복 | 페이지 머리와 패널이 같은 말 | 패널 칩 제거, 기간·확인 시각으로 대체 | 재촬영 확인 |
+| 5 | 캡션 2곳이 11px | 규칙 위반 (최소 12px) | `.origin-chip`, `.start-steps small` 12px | 재측정 확인 |
+
+## 실브라우저 검증 (v20 전용, 승계 없음)
+
+이전 세션에서 실패했던 브라우저 실행이 이번에는 됐다. gstack browse로 실행했다.
+
+| 항목 | 결과 |
+|---|---|
+| 12조합 스크린샷 | `/tmp/ma-v20/{customer,operator}-{light,dark}-{1440,1024,390}.png` 12장 |
+| 추가 화면 | `/tmp/ma-v20/platform-settings-dark-1440.png`, `/tmp/ma-v20/settings-channels-1440.png` |
+| 접근가능 이름 없는 컨트롤 | 0 (12조합 전부) |
+| 등록되지 않은 핸들러 | 0 (12조합 전부) |
+| 44×44 미달 컨트롤 | 0 (12조합 전부) |
+| 가로 스크롤 | 0 (390 포함 12조합 전부) |
+| 고객 화면 원초성 식별자 | 0 |
+| 검수 도구 기본 노출 | 0 |
+| 컨트롤 수 | 고객 47, 운영자 14 |
+| 대비 (라이트) | 칩 4.75, 미구현 값 5.02, 라벨 4.83, 값 17.72, 힌트 4.62, 보류 7.73, 완료 라벨 4.79 |
+| 대비 (다크) | 칩 5.78, 미구현 값 10.83, 라벨 7.05, 값 16.44, 힌트 5.82, 보류 12.23, 완료 라벨 8.55 |
+
+전부 4.5:1 이상. v18·v19의 브라우저 증거를 v20 해시로 승계하지 않았고 현재 해시로 다시 측정했다.
+
+## 정적 DOM QA
+
+스크립트 `/tmp/marketing-v20-static-qa.cjs`, 로그 `/tmp/marketing-v20-static-qa.log`.
+
+```
+assertions 71, failed 0, pass true, consoleErrors 0
+```
+
+검증한 계약: 목적지 26 보존, 사이드바 그룹 순서 보존, 3분류 매니페스트 비어있지 않음,
+운영자 코드 존재 4 / 미존재 5, 시작 체크리스트 라벨이 코드와 정확히 일치, 온보딩 4단계,
+강조 정확히 1개, 온보딩 3단계에서 읽기 카드 노출, Threads 7탭·Growth·Popular 각자 탭,
+Analytics 안 하위 탭 부재, 비-Threads 5탭, Create·Calendar만 `added` 표시,
+읽기 카드 10필드 중 미구현 3, 고객 화면에 토큰 문자열 0, 채널 7행·끊긴 채널 첫 행·잠긴 버튼 존재,
+Settings 8탭, 운영자 9탭·5개 미존재 표시·요약 6숫자·모든 탭 truth 칩,
+7개 상태 각각 탈출 2개 이상, 엠대시 렌더·소스 0, 검수 도구 기본 숨김.
+
+## 증거 등급
+
+| 주장 | 등급 |
+|---|---|
+| v20 산출 4종이 존재하고 v19를 덮지 않았다 | 관찰됨 |
+| 프로토타입이 12조합에서 렌더되고 접근성·목표·오버플로 측정을 통과한다 | 관찰됨 (스크린샷 + 계산값) |
+| 카드 정렬 수정이 실제로 효과가 있다 | 관찰됨 (717/733 → 719/719 실측) |
+| 화면에 표시한 코드 사실이 실제 코드와 일치한다 | 근거 확인 (22개 파일 Read) |
+| 실제 제공자 OAuth 왕복부터 게시·permalink까지 | **미검증**. design 단계 범위 밖 |
+| 이 표시 방식이 실사용자에게 어떻게 읽히는지 | **미검증**. 사용자 관찰 없음 |
+
+## 셀프심문 (CoVe)
+
+**Q1. 0번 게이트를 지켰나, 매칭 스킬을 실제로 호출했나?**
+호출했다. `design-review` 1회. `design-consultation`·`design-shotgun`은 의도적으로 건너뛰었고 사유를
+SKILLS_SKIPPED에 적었다. 이번 지시는 v19 발전이고 DESIGN.md 토큰 상속이 원칙이라 방향 발산이 금지됐다.
+
+**Q2. 이 설계가 틀렸다면 가장 그럴듯한 이유는?**
+`볼 수도 있고`를 "저장 여부 읽기"로 해석한 것이 회장 의도와 다를 수 있다.
+회장이 "다른 도구에 그 키를 옮겨 쓰고 싶다"는 뜻으로 말했다면 이 카드로는 요구가 안 채워진다.
+그 경우 필요한 것은 화면 노출이 아니라 별도 발급 경로이고 보안 결정이다. 회수 항목 1번으로 올렸다.
+추측으로 닫지 않았다.
+
+**Q3. 가장 load-bearing한 가정은?**
+"코드에 있는 것이 곧 보존해야 할 것"이라는 등식이다. 이 등식 때문에 Threads 탭이 7개가 되어
+채널마다 탭 수가 달라졌고, 길찾기 일관성은 v19보다 나빠졌다. 즉 정확성을 위해 일관성을 팔았다.
+이번 지시가 발명 금지였으므로 그 거래가 맞다고 판단했지만, 디자이너 임의 판단으로 굳힐 사안이 아니라
+회수 항목 3번으로 올렸다.
+
+**Q4. 미구현을 있는 것처럼 그린 곳이 정말 없나?**
+프로토타입 전체를 훑고 QA로 강제했다. 운영자 5개 화면, scope·갱신·확인 시각 3필드,
+계정별 비용, Create·Calendar 탭 전부 표시가 붙어 있다. Growth·Popular는 코드에 있는 기능이라
+실제 내용을 담았고 이는 발명이 아니다. 다만 그 안의 수치는 예시이며 화면에 기간·수집 시각을 붙였다.
+
+## 레드팀 (경쟁자 관점 1회)
+
+경쟁자로서 이 산출물을 공격한다.
+
+"정직 표시를 잔뜩 붙인 화면은 미완성으로 보인다. 고객에게 파는 화면이 아니라 개발 보드다.
+우리는 같은 기능을 표시 없이 매끄럽게 보여줄 테니, 나란히 놓으면 당신들이 덜 완성돼 보인다."
+
+이 공격을 견디게 한 수정 3개:
+1. 칩 무게를 12px로 묶고 색 대비를 낮춰 제목보다 항상 뒤로 물렸다. 화면당 최대 2개로 제한했다.
+2. 표시 문구를 상태가 아니라 위치로 바꿨다. `아직 없음`이 아니라
+   `현재 제품의 대기열에는 작성 칸이 없습니다`처럼 지금 그 일을 어디서 하는지 알려준다. 고객은 막히지 않고 옮겨간다.
+3. 표시가 설계 단계 장치인지 배포 UI인지를 회장 결정으로 올렸다. 배포본에 그대로 내보내는 것은
+   금지 패턴에 명시했다.
+
+견디지 못하는 부분도 있다. 경쟁자가 실제로 게시까지 되는 채널이 8개인데 우리는 Threads 1개다.
+표시를 어떻게 다듬어도 이 격차는 디자인으로 메울 수 없다. 그건 OAuth·QA 단계의 일이다.
+
+---
+
+## Design Score
+
+Classifier: **APP UI**.
+
+**Design Score: A-** (B 이상 합격선 통과, 리테이크 불필요)
+**AI Slop Score: A-**
+
+| 카테고리 | 등급 |
+|---|---|
+| 시각 위계 | A- |
+| 타이포그래피 | A- |
+| 간격과 레이아웃 | A |
+| 색과 대비 | A- |
+| 상호작용 상태 | A |
+| 반응형 | A- |
+| 내용과 문구 | A |
+| AI 슬롭 | A- |
+| 모션 | B+ |
+
+Litmus 체크: 제품 정체 첫 화면에서 분명함 YES / 시각 앵커 하나 YES / 제목만 훑어 이해 가능 YES /
+섹션마다 한 가지 일 YES / 카드가 실제로 필요한가 YES (전부 데이터 경계) /
+모션이 위계에 복무하는가 부분 (shimmer 하나뿐) / 장식 그림자 제거해도 견디는가 YES.
+
+Hard rejection 7개 항목 전부 해당 없음.
+
+---
+
+## ⛔ 회수 필요 (회장 결정 사항 6건)
+
+### 1. `볼 수도 있고`의 의도
+
+- 배경: 회장 지시 원문이 `OAuth연결만하면 API키 저장되고 볼수도있고`였다. 화면을 그리려면
+  "본다"의 대상이 저장 여부인지 값 자체인지 정해야 한다. 값 자체 노출은 기존 확정 정책과 충돌한다.
+- 무엇을 정하나: 고객이 보는 것을 저장 여부로 할지, 값 반출까지 허용할지.
+- 옵션 A (추천): 저장 여부 읽기까지. 계정·식별자 끝자리·기본 여부·상태·연결일·만료·방식 7항목.
+  → 고르면: 이번 v20 그대로 확정. 보안 경계 변경 0. / 안 고르면: 리스크 없음.
+- 옵션 B: 별도 발급 경로로 값 반출 허용.
+  → 고르면: 다른 도구에서 우리 연결을 재사용 가능. / 트레이드오프: 유출 시 고객 계정 탈취.
+  발급·폐기·감사 화면을 새로 설계해야 하고 boundary 재검토가 필요하다.
+- 추천 근거: 코드에 값을 화면으로 내려주는 경로 자체가 없고, 복호화는 서버 발행 경로에서만 일어난다.
+  업계 기준도 소유자·범위·만료·마지막 사용을 보여주는 쪽이다.
+
+### 2. `이번에 더함`·`아직 없음` 표시의 수명
+
+- 배경: 발명 금지 계약을 화면에서 검증 가능하게 하려고 3상태 칩을 넣었다.
+- 무엇을 정하나: 이 표시를 설계 단계 장치로만 쓸지, 배포 UI에도 남길 신뢰 장치로 볼지.
+- 옵션 A (추천): 설계 단계 장치. 구현 완료 시 제거하고 그 제거를 완료 증거로 쓴다.
+  → 고르면: 고객 화면이 깔끔해진다. / 안 고르면: 미완성 인상 리스크.
+- 옵션 B: 배포 UI에도 유지. 뱅크샐러드식 의도된 마찰로 신뢰 장치로 쓴다.
+  → 고르면: 우리가 무엇을 아직 못 하는지 정직하게 말하는 브랜드가 된다. / 트레이드오프: 경쟁 제품과 나란히 놓일 때 덜 완성돼 보인다.
+- 추천 근거: 지금 표시가 가리키는 것 대부분(운영자 5화면, scope 3필드)은 구현 예정 항목이다.
+  영구 사실이 아닌 것을 영구 UI로 만들면 나중에 거짓이 된다.
+
+### 3. Threads 탭 개수 차이 (7 대 5)
+
+- 배경: v19는 모든 채널을 5탭으로 통일했으나 실제 코드는 Threads에 Growth·Popular가 더 있다.
+  발명 금지 계약에 따라 코드를 따랐고, 그 결과 채널마다 탭 수가 달라졌다.
+- 무엇을 정하나: 정확성 우선으로 유지할지, 일관성 우선으로 다시 통일할지.
+- 옵션 A (추천): 유지. Threads 7탭, 나머지 5탭.
+  → 고르면: 기존 화면과 어긋나지 않고 이번 계약에 맞다. / 안 고르면: 없음.
+- 옵션 B: v19처럼 Growth·Popular를 Analytics 안으로 통일.
+  → 고르면: 모든 채널이 5탭으로 길찾기가 같아진다. / 트레이드오프: 기존 화면을 옮기는 것이므로
+  §0 계약 위반이고, 구현 시 기존 코드 수정 범위가 늘어난다.
+- 추천 근거: 이번 지시가 "기존 구현 참고해서 새로 만들거나 이상한 소리 하지 말라"였다.
+  배치 개선은 별도 안건으로 올리는 것이 순서다.
+
+### 4. Create·Calendar 신설의 범위 편입
+
+- 배경: 회장이 요구한 "각 플랫폼 화면에서 독립 생성·수정·승인·게시·예약"을 성립시키려면
+  두 탭이 필요하고, 현재 코드에는 없다.
+- 무엇을 정하나: 두 탭을 이번 구현 범위에 넣을지, 설계만 남기고 다음으로 미룰지.
+- 옵션 A (추천): 이번 범위에 넣는다.
+  → 고르면: 회장 요구가 실제로 충족된다. / 안 고르면: 요구가 문서에만 남는다.
+- 옵션 B: 설계만 남기고 다음 스프린트.
+  → 고르면: 이번 개발 범위가 작아진다. / 트레이드오프: 회장이 지시한 핵심이 미뤄진다.
+- 추천 근거: 회장 지시 §3의 3번이 이 요구를 명시했고, PRD v7.3.5도 같은 방향이다.
+
+### 5. 계정 읽기 카드 10필드의 기본 상태
+
+- 배경: 문제가 생겼을 때 보는 화면이라 밀도가 친절함이지만, 평소에는 표가 자리를 먹는다.
+- 무엇을 정하나: 기본 펼침인지 접힘인지.
+- 옵션 A (추천): 상태가 정상이면 접힘, 만료·해제면 자동 펼침.
+  → 고르면: 필요할 때만 보인다. / 안 고르면: 정상 채널에서도 10줄 표를 본다.
+- 옵션 B: 항상 펼침.
+  → 고르면: 언제나 확인 가능. / 트레이드오프: Settings 화면이 길어진다.
+- 추천 근거: Buffer도 문제 채널을 위로 올려 강조하고 정상 채널은 한 줄로 둔다.
+
+### 6. 기술설계에서 합의할 계약 (design이 정할 수 없는 것)
+
+- 배경: 아래 항목은 API·DB 계약을 바꾼다. 하네스 §6.3.5에 따라 디자이너가 확정할 수 없다.
+- 무엇을 정하나: 아래 4건을 eng-design 티키타카에서 회장과 합의.
+  1. 한 콘텐츠 식별과 투영 쓰기 소유
+  2. 게시·예약 시도 멱등과 재조정
+  3. `channel_accounts`에 scope·갱신 이력·확인 시각 컬럼 신설 여부
+  4. 계정별 모델·토큰·비용 원천 신설 여부
+- 추천 근거: 3번과 4번은 v20이 화면에서 `미구현`으로 표시한 항목들이고,
+  컬럼이 생기는 순간 그 표시가 실제 값으로 바뀐다. 즉 이 결정이 v20 화면의 완성 조건이다.
+
+---
+
+## 다음 실행
+
+1. 부모 컨트롤러가 프로토타입 1개를 회장에게 열어 보여준다 (경로는 위 산출물 표).
+2. 회수 6건을 회장에게 릴레이한다. 1·2·3번은 이 화면의 확정 조건이고 4·5번은 범위, 6번은 다음 단계다.
+3. 회장 판단 뒤 `/approve design` 또는 지적 반영 리테이크.
+4. approve 통과 시 eng-design 티키타카로 전환하고 회수 6번의 4건을 선택지·트레이드오프로 제시한다.
+
+미검증으로 남는 것: 실제 제공자 OAuth 왕복(연결부터 게시·permalink·지표까지)과 사용자 관찰.
+둘 다 design 단계에서 닫을 수 없고 QA·OAuth 단계의 일이다.
+
+---
+
+SOURCES: `docs/openclaw-auto-marketing-agent-prd-v7.3.5-gpt-codex.md`; `DESIGN.md` v19·v20;
+`docs/ui-rules.md`; `docs/user-flow-marketing-agent-v19-gpt-codex.md`;
+`docs/wireframes/marketing-agent-v19-gpt-codex.md`;
+`docs/prototype/openclaw-auto-marketing-agent-fidelity-v19-gpt-codex.html`;
+`pipeline-state.md`; `wiki/ops/session-state.md`; `wiki/reference/channel-status.md`;
+위 22개 실제 코드 파일; `/Users/sj/.claude/standards/design.md`;
+`/tmp/marketing-v20-static-qa.log`; `/tmp/ma-v20/*.png` 14장;
+https://support.buffer.com/article/552-best-practices-for-keeping-your-social-channels-connected ;
+https://support.buffer.com/article/573-refreshing-a-channel-in-buffer ;
+https://goodux.appcues.com/blog/hootsuite-activation-onboarding ;
+https://help.hootsuite.com/hc/en-us/articles/1260804308209-Reconnect-a-social-account ;
+https://www.useparagon.com/blog/oauth-token-refresh-expiry-at-scale ;
+https://www.scalekit.com/blog/audit-trail-agent-auth
+
+MODEL: claude-opus-5[1m]
+
+SKILLS_USED: gstack design-review for APP UI classifier, litmus checks, 10-category grading,
+AI slop blacklist and the screenshot fix loop (5 findings fixed and re-verified)
+
+SKILLS_SKIPPED: design-consultation과 design-shotgun. DESIGN.md v19 토큰 상속이 원칙이고
+회장 지시가 v19 발전이라 새 디자인 시스템 제안·방향 발산이 금지됨. design-html은 v19 프로토타입을
+확장하는 방식이라 신규 생성이 필요하지 않았음
+
+PRESENTATION_CHECK: 태그 잔재 없음 확인 (프로토타입에 XML·툴콜 문자열 0) / 실브라우저 렌더 확인함
+(12조합 스크린샷 육안 검수, 5건 수정 후 재촬영)
+
+RUBRIC_SCORE: hook=5/5 detail=5/5 rhythm=5/5 voice=5/5 slop=5/5 total=25/25
+
+WEAKEST_LINE: "코드에 있는 것이 곧 보존할 것"이라는 등식은 이번 계약에는 맞지만,
+그 결과로 팔아버린 탭 일관성의 비용을 실사용자 관찰로 재보지 않았다.

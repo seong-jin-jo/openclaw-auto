@@ -1,0 +1,30 @@
+{
+  "created_at": "2026-08-13T18:35:36.274602Z",
+  "display_name": "Seedance 2.5",
+  "id": "bb81d5d8-ed02-4f19-9218-11079bec2490",
+  "job_type": "seedance_2_5",
+  "min_result_url": null,
+  "params": {
+    "aspect_ratio": "9:16",
+    "bitrate_mode": "standard",
+    "duration": 5,
+    "extension_mode": null,
+    "generate_audio": true,
+    "genre": "auto",
+    "height": 1280,
+    "medias": [],
+    "model": "default",
+    "multi_prompt": [],
+    "multi_shot_mode": "custom",
+    "multi_shots": false,
+    "prompt": "Vertical framing. A wall calendar mounted on a plain wall, its paper pages flipping backward rapidly in a blur of motion, then settling on one single page as a deep red round rubber stamp presses down and its ink bleeds into the paper fibers. Beside the calendar a small mountain shaped line graph icon. Warm cream and deep navy palette, subtle paper grain, natural soft light, no text, no letters, no numbers anywhere.",
+    "prompt_language": "en",
+    "reference_elements": [],
+    "resolution": "720p",
+    "speedramp": "auto",
+    "width": 720
+  },
+  "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183536_bb81d5d8-ed02-4f19-9218-11079bec2490.mp4",
+  "status": "completed",
+  "thumbnail_url": "https://cdn.higgsfield.ai/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183536_bb81d5d8-ed02-4f19-9218-11079bec2490_thumbnail.webp"
+}

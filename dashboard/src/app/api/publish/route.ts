@@ -1,8 +1,22 @@
 import { withTenant } from "@/lib/db";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { markQueuePublished } from "@/lib/queue-store";
-import { reportFailure, normalizePlatform, classifyPublishFailure } from "@/lib/observability";
+import { reportFailure, reportRecovery, normalizePlatform, classifyPublishFailure } from "@/lib/observability";
+import { normalizeIncidentSource } from "@/lib/observability/incidents";
 import { refreshImageDeliveryUrl } from "@/lib/image-token";
+import {
+  getFirstCommentCapability,
+  normalizeFirstComment,
+  publishFirstComment,
+  type FirstCommentPlatform,
+} from "@/lib/first-comment";
+import {
+  buildUnifiedPublishStatus,
+  isPublishStatusTarget,
+  PUBLISH_STATUS_TARGETS,
+  type PublishedPostStatusRow,
+  type PublishStatusTarget,
+} from "@/lib/publish-job-status";
 import {
   getChannelCred,
   fetchInstagramPermalink,
@@ -19,6 +33,38 @@ import {
 } from "@/lib/publish";
 
 type PersistenceStage = "publication_record" | "queue_record";
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const draftId = url.searchParams.get("draft_id") || "";
+  const tenantId = await effectiveTenantId(request, url.searchParams.get("tenant_id"));
+  if (!tenantId) return Response.json({ error: "tenant required" }, { status: 401 });
+  if (!UUID_RE.test(draftId)) {
+    return Response.json({ error: "draft_id must be a UUID" }, { status: 400 });
+  }
+
+  const platformParam = url.searchParams.get("platforms");
+  const targets: PublishStatusTarget[] = platformParam
+    ? platformParam.split(",").map((value) => value.trim()).filter(Boolean) as PublishStatusTarget[]
+    : [...PUBLISH_STATUS_TARGETS];
+  if (targets.length === 0 || targets.some((target) => !isPublishStatusTarget(target))) {
+    return Response.json({ error: "platforms contains an unsupported target" }, { status: 400 });
+  }
+
+  try {
+    const rows = await withTenant(tenantId, (sql) => sql<PublishedPostStatusRow[]>`
+      SELECT platform, status, external_id, provider_post_id, permalink, error, published_at
+        FROM published_posts
+       WHERE tenant_id = ${tenantId}::uuid
+         AND draft_id = ${draftId}::uuid
+       ORDER BY published_at DESC
+    `);
+    return Response.json(buildUnifiedPublishStatus(draftId, rows, targets));
+  } catch {
+    return Response.json({ error: "publish status unavailable" }, { status: 503 });
+  }
+}
 
 function partialPersistenceFailure(
   result: PublishResult,
@@ -80,9 +126,24 @@ function partialPersistenceFailure(
 export async function POST(request: Request) {
   const __b = await request.json();
   const { platform, text, image_url, draft_id, account_id } = __b;
+  let firstCommentText: string | null;
+  try {
+    firstCommentText = normalizeFirstComment(__b.first_comment);
+  } catch (error) {
+    return Response.json({ error: (error as Error).message }, { status: 400 });
+  }
   const tenant_id = await effectiveTenantId(request, __b.tenant_id);
   if (!tenant_id || !platform) {
     return Response.json({ error: "tenant_id, platform required" }, { status: 400 });
+  }
+  if (firstCommentText) {
+    const capability = getFirstCommentCapability(platform);
+    if (!capability?.supported) {
+      return Response.json({
+        error: capability?.reason ?? `${platform} first comment unsupported`,
+        capability: capability ?? { platform, supported: false },
+      }, { status: 400 });
+    }
   }
 
   let publishImageUrl: string | undefined;
@@ -108,12 +169,32 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+  const incidentResourceKey = `account:${cred.accountId ?? "default"}`;
 
   // 동일 초안·플랫폼·계정의 성공 발행을 순차 재시도에서 다시 외부 API로 보내지 않는다.
   // UUID가 아닌 legacy draft id는 기존 동작을 유지한다.
-  const isDraftUuid = typeof draft_id === "string"
-    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(draft_id);
+  const isDraftUuid = typeof draft_id === "string" && UUID_RE.test(draft_id);
+  let reservationId: string | null = null;
   if (isDraftUuid) {
+    try {
+      const [reservation] = await withTenant(tenant_id, (sql) => sql<{ id: string }[]>`
+        INSERT INTO published_posts
+          (tenant_id, draft_id, platform, text, status, account_id)
+        VALUES
+          (${tenant_id}::uuid, ${draft_id}::uuid, ${platform}, ${text ?? null}, 'in_progress', ${cred.accountId ?? null}::uuid)
+        ON CONFLICT DO NOTHING
+        RETURNING id::text
+      `);
+      reservationId = reservation?.id ?? null;
+    } catch {
+      return Response.json({
+        ok: false,
+        code: "PUBLISH_RESERVATION_FAILED",
+        error: "발행 중복 방지 예약을 만들지 못해 외부 게시를 시작하지 않았습니다.",
+      }, { status: 503, headers: { "Cache-Control": "no-store" } });
+    }
+
+    if (!reservationId) {
     const [existing] = await withTenant(tenant_id, (sql) => sql<{
       external_id: string | null;
       permalink: string | null;
@@ -129,6 +210,12 @@ export async function POST(request: Request) {
        LIMIT 1
     `);
     if (existing) {
+      if (firstCommentText) {
+        return Response.json({
+          error: "이미 발행된 게시물의 first comment 상태를 확인할 수 없어 중복 방지를 위해 거절했습니다.",
+          code: "first_comment_state_unknown",
+        }, { status: 409 });
+      }
       let permalink = existing.permalink ?? undefined;
       if (!permalink && existing.external_id && (platform === "threads" || platform === "instagram")) {
         const recoveredPermalink = platform === "threads"
@@ -192,6 +279,12 @@ export async function POST(request: Request) {
         alreadyPublished: true,
       });
     }
+      return Response.json({
+        ok: false,
+        code: "PUBLISH_ALREADY_IN_PROGRESS",
+        error: "같은 작업물의 발행이 진행 중이거나 결과 확인이 필요합니다. 중복 게시를 막기 위해 다시 보내지 않았습니다.",
+      }, { status: 409, headers: { "Cache-Control": "no-store" } });
+    }
   }
 
   let result: PublishResult;
@@ -217,6 +310,13 @@ export async function POST(request: Request) {
     result = { ok: false, error: `${platform} 미지원` };
   }
 
+  let firstCommentResult: PublishResult | null = null;
+  if (result.ok && firstCommentText) {
+    firstCommentResult = result.externalId
+      ? await publishFirstComment(platform as FirstCommentPlatform, cred, result.externalId, firstCommentText)
+      : { ok: false, error: "게시물 ID가 없어 first comment를 발행하지 못했습니다." };
+  }
+
   // 실발행 실패 고위험 경계 — "채널 미연결"(설정 문제, 위에서 이미 400 반환)은 대상이 아니고,
   // 여기 도달한 !ok는 플랫폼 API 호출이 실제로 실패한 경우만. fire-and-forget — 응답/상태코드 불변.
   // platform(요청 바디 원문, 공격자 통제 가능)과 result.error(플랫폼 API 응답 본문 포함 가능한
@@ -226,17 +326,56 @@ export async function POST(request: Request) {
     void reportFailure({
       event: "publish_failed",
       severity: "warning",
+      workspaceId: tenant_id,
+      resourceKey: incidentResourceKey,
+      context: { platform: normalizePlatform(platform), reason, httpStatus },
+    });
+  } else if (!firstCommentResult || firstCommentResult.ok) {
+    void reportRecovery?.({
+      workspaceId: tenant_id,
+      category: "publish_failed",
+      source: normalizeIncidentSource(platform),
+      resourceKey: incidentResourceKey,
+    });
+  } else {
+    const { reason, httpStatus } = classifyPublishFailure(firstCommentResult.error);
+    void reportFailure({
+      event: "publish_failed",
+      severity: "warning",
+      workspaceId: tenant_id,
+      resourceKey: incidentResourceKey,
       context: { platform: normalizePlatform(platform), reason, httpStatus },
     });
   }
 
   // published_posts 기록(성공/실패 모두)
   try {
-    await withTenant(tenant_id, (sql) => sql`
-      INSERT INTO published_posts (tenant_id, draft_id, platform, external_id, permalink, text, status, error, account_id)
-      VALUES (${tenant_id}, ${draft_id ?? null}, ${platform}, ${result.externalId ?? null},
-              ${result.permalink ?? null}, ${text ?? null},
-              ${result.ok ? "published" : "failed"}, ${result.error ?? null}, ${cred.accountId ?? null})`);
+    await withTenant(tenant_id, (sql) => reservationId
+      ? sql`
+          UPDATE published_posts
+          SET external_id = ${result.externalId ?? null},
+              permalink = ${result.permalink ?? null},
+              text = ${text ?? null},
+              status = ${result.ok ? "published" : "failed"},
+              error = ${result.error ?? null},
+              provider_meta = ${sql.json(firstCommentResult ? { firstComment: firstCommentResult } as never : {} as never)},
+              published_at = now()
+          WHERE tenant_id = ${tenant_id}::uuid AND id = ${reservationId}::uuid
+        `
+      : firstCommentResult
+        ? sql`
+          INSERT INTO published_posts
+            (tenant_id, draft_id, platform, external_id, permalink, text, status, error, account_id, provider_meta)
+          VALUES (${tenant_id}, ${draft_id ?? null}, ${platform}, ${result.externalId ?? null},
+                  ${result.permalink ?? null}, ${text ?? null},
+                  ${result.ok ? "published" : "failed"}, ${result.error ?? null}, ${cred.accountId ?? null},
+                  ${sql.json({ firstComment: firstCommentResult } as never)})`
+        : sql`
+          INSERT INTO published_posts
+            (tenant_id, draft_id, platform, external_id, permalink, text, status, error, account_id)
+          VALUES (${tenant_id}, ${draft_id ?? null}, ${platform}, ${result.externalId ?? null},
+                  ${result.permalink ?? null}, ${text ?? null},
+                  ${result.ok ? "published" : "failed"}, ${result.error ?? null}, ${cred.accountId ?? null})`);
   } catch {
     if (result.ok) {
       return partialPersistenceFailure(result, {
@@ -283,5 +422,11 @@ export async function POST(request: Request) {
       });
     }
   }
-  return Response.json(result);
+  return Response.json({
+    ...result,
+    ...(firstCommentResult ? {
+      firstComment: firstCommentResult,
+      partial: result.ok && !firstCommentResult.ok,
+    } : {}),
+  });
 }

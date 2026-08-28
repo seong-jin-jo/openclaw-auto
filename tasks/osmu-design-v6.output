@@ -1,0 +1,80 @@
+한 줄 결론: DESIGN-006 v6는 기존 Marketing Hub를 교체하지 않고 고객 sidebar 26/26, page entry 24/24, Settings tab 9/9, Studio preview 7/7을 보존한 채 OSMU 검수와 연결 진실을 기존 Studio, Inbox, Calendar, Settings에 증분 추가했으며, PRD v3.1의 공통 6탭 강제 충돌 때문에 design 최종 승인은 plan PATCH 뒤 가능하다.
+
+요청: 실제 서버 구현과 디자인 시스템을 전수 검토하고, 존재하지 않았던 navigation이나 강제 공통 탭을 폐기하며, 기존 기능을 유지한 전체 OSMU 증분 프로토타입을 만든다.
+
+진행 보고:
+- 무엇을: `DESIGN.md`, `docs/user-flow.md`, v6 wireframe 5개, 클릭형 prototype 1개를 작성했다. 제품 source는 읽기만 했고 `dashboard/src` 수정은 0이다.
+- 기반: PRD v3.1.0, REQUEST-OSMU-001 17개, DESIGN-005, 실제 Sidebar, globals, app page entry, Studio, Inbox, Calendar, Settings, ChannelPage, InstagramPage, account와 OAuth component 22개 핵심 파일.
+- 결과: 기존 sidebar 26/26, group 9/9, page entry 24/24, Settings tab 9/9, Studio preview 7/7, 핵심 화면군 8/8. orphan 0, 기존 label 변경 0, 신규 최상위 navigation 0, prototype 내 금지 invention 문구 0, semantic token diff 0.
+- 현재와 목표: 실제 Studio direct publish 4개와 preview 7개를 현재 상태로 보존했다. 전체 목표 8 surface는 readiness와 disabled reason으로 구분했고 enabled처럼 꾸미지 않았다. Threads 5탭, Instagram 3탭, generic channel 3탭을 실제대로 보존했다.
+
+산출물:
+- `DESIGN.md`
+- `docs/user-flow.md`
+- `docs/WIREFRAMES/openclaw-auto-osmu-existing-shell-preservation-v6-gpt-codex.md`
+- `docs/WIREFRAMES/openclaw-auto-osmu-studio-additive-v6-gpt-codex.md`
+- `docs/WIREFRAMES/openclaw-auto-osmu-account-truth-settings-v6-gpt-codex.md`
+- `docs/WIREFRAMES/openclaw-auto-osmu-approval-calendar-result-v6-gpt-codex.md`
+- `docs/WIREFRAMES/openclaw-auto-osmu-preservation-rtm-v6-gpt-codex.md`
+- `docs/prototype/openclaw-auto-osmu-existing-product-additive-v6-gpt-codex.html`
+
+QA 증거:
+- Static: JS syntax PASS, `git diff --check` PASS, 금지 dash 0, prototype `OSMU PROVIDERS`와 `Provider workspace` 0.
+- Desktop 1024x900: Studio, Settings, Threads, Instagram, 보존 감사 click PASS. Settings tab 9개, Threads actual 5탭, Instagram actual 3탭을 DOM과 screenshot으로 확인.
+- Mobile 390x844: 기존 sidebar가 top horizontal route row로 유지되고 content 1 column, horizontal document overflow 0.
+- Touch: visible button, select, summary 중 44px 미만 0. 1차 toggle 40px와 X mobile nav 33px를 발견해 44px로 수정 후 재검증 PASS.
+- Console: error 0.
+- Accessibility tree: banner, navigation, main, h1, labelled state combobox, buttons, details를 관찰.
+- Screenshots: `/private/tmp/osmu-v6-1024.png`, `/private/tmp/osmu-v6-instagram-1024.png`, `/private/tmp/osmu-v6-390-top.png`.
+
+QUALITY RETAKE TRANSCRIPT EVIDENCE:
+- Quality constitution Read: `standards/design.md` 77 lines, `standards/benchmarks.md` 52 lines.
+- Skill instruction Read: `design-html/SKILL.md` 1511 lines, `design-review/SKILL.md` 1994 lines, `gstack/browse/SKILL.md` 1022 lines.
+- Skill call 1 `/design-html`: `/Users/sj/.claude/skills/design-html/SKILL.md`를 읽고 기존 source와 token 우선, responsive HTML, refinement loop를 적용했다.
+- Skill call 2 `/design-review`: `/Users/sj/.claude/skills/design-review/SKILL.md`를 읽고 first impression, token/heading/touch extraction, page trunk test, interaction, consistency, scoring, fix and retest를 실제 수행했다.
+- Skill call 3 `/browse`: `/Users/sj/.claude/skills/gstack/browse/SKILL.md`를 읽고 headless `goto`, `click`, `js`, `accessibility`, `perf`, `console`, `screenshot`, 1024/390 viewport를 실제 호출했다. GUI open은 0이다.
+- WebSearch count 3: Buffer scheduling, Buffer Post Groups, Later multi-profile를 공식 help domain으로 검색했다.
+- WebFetch count 3: `turn65view0` Buffer Scheduling, `turn65view1` Buffer Post Groups, `turn65view2` Later Multi-profile 공식 원문을 열었다.
+- Actual tool transcript: `{"name":"WebSearch","query":"site:support.buffer.com/article/642 scheduling posts customize each network Buffer official"}`
+- Actual tool transcript: `{"name":"WebSearch","query":"site:support.buffer.com/article/961 using post groups Buffer official"}`
+- Actual tool transcript: `{"name":"WebSearch","query":"site:help.later.com schedule one post multiple social profiles customize official"}`
+- Actual tool transcript: `{"name":"WebFetch","url":"https://support.buffer.com/article/642-scheduling-posts"}`
+- Actual tool transcript: `{"name":"WebFetch","url":"https://support.buffer.com/article/961-using-post-groups-in-buffer"}`
+- Actual tool transcript: `{"name":"WebFetch","url":"https://help.later.com/hc/en-us/articles/360043243873-Schedule-One-Post-to-Multiple-Social-Profiles"}`
+- Fetch finding 1: Buffer lines 36~41과 62~68은 base post 이후 network별 customize와 preview를 지원한다.
+- Fetch finding 2: Buffer Post Groups lines 15~27과 43~57은 group 안 post가 독립적으로 edit, reschedule, publish된다고 명시한다.
+- Fetch finding 3: Later lines 44~69은 unsupported media profile disable, platform별 customize, schedule 후 개별 edit를 명시한다.
+- SSOT boundary: 외부 사례의 새 composer, All Channels IA, platform count는 차용하지 않았다. 실제 `dashboard/src` sidebar 26개와 route, tabs, tokens가 항상 우선한다.
+- Retake 발견: 390px nav item이 flex shrink되어 label이 겹치는 결함 1건을 screenshot에서 발견했다.
+- Retake 수정과 재검증: mobile `.nav-item`에 `flex: 0 0 auto`를 추가했다. overlap 0, touch under 44px 0, document overflow 0, nav horizontal scroll true, console error 0이다.
+- Fresh retake screenshots: `/private/tmp/osmu-v6-retake-1024.png`, `/private/tmp/osmu-v6-retake-390-fixed.png`.
+- VERIFY_AGENT_QUALITY: PASS. Skill 3회, WebSearch/Fetch parser count 9회, Socratic marker 2, Design Score A. `apply_patch`가 verifier의 legacy Write/Edit regex에 포함되지 않아 non-blocking warning 1건이 남았지만 실제 산출물 8개 존재를 아래 경로로 확인했다.
+
+벤치마크:
+- Buffer의 base post 이후 network별 customize와 preview를 기존 Studio preview rail에 차용했다.
+- Buffer Post Groups의 독립 post group을 Inbox와 Calendar 결과 묶음에 차용하고 성공 항목 재발행을 막았다.
+- Later의 platform requirement 불일치 disabled 패턴을 readiness reason과 enable condition으로 바꿨다.
+- 타사 sidebar IA는 복제하지 않았다. 기존 Marketing Hub source fidelity를 우선했다.
+
+소스 1: https://support.buffer.com/article/642-scheduling-posts
+소스 2: https://support.buffer.com/article/961-using-post-groups-in-buffer
+소스 3: https://help.later.com/hc/en-us/articles/360043243873-Schedule-One-Post-to-Multiple-Social-Profiles
+
+RED_TEAM_MARKER: 기존 고객이 Analytics, Keyword Research, Messaging, Assets가 사라졌다고 공격하는 경우를 기준으로 sidebar 26개 전부를 prototype에서 클릭 가능하게 만들고 route summary까지 제공했다.
+
+SOCRATIC_SELF_INTERROGATION: “이 설계가 또 기존 제품을 갈아엎었다면 어디서 드러나는가?”에 대해 sidebar group, Settings tab, Threads와 Instagram의 실제 tab, Studio preview 중 하나라도 삭제 또는 이동되면 즉시 count가 깨지도록 보존 기준을 고정했다.
+
+⛔ 회수 필요: PRD v3.1 §6, §8, TC-002, TC-007의 모든 platform 동일 6탭과 6x9 Settings 강제는 최신 사용자 요구 및 실제 구현과 충돌한다. v6 추천은 공통 OSMU workflow를 기존 Studio, Inbox, Calendar에 두고 provider page 특화 기능을 유지하는 plan PATCH다.
+
+다음 실행: owner는 main controller와 prd-architect다. plan PATCH에서 위 충돌을 해소하고 critic MAJOR 0을 종료증거로 만든 뒤 product-designer가 v6 문구와 prototype을 PATCH retake하고, controller가 artifact를 웹과 100B dashboard에 표시해 사용자의 외부 회수를 받는다. 사용자 회수 시점은 plan PATCH와 design verifier PASS 직후다.
+
+SKILLS_USED: design-html - 실제 token과 shell을 상속한 responsive prototype / design-review - source fidelity, hierarchy, responsive, accessibility, render self-review / browse - 1024와 390 browser click, screenshot, console, touch target QA
+SKILLS_SKIPPED: 없음
+
+RUBRIC_SCORE: hierarchy=5/5 layout=4/5 typography=4/5 color=5/5 completeness=5/5 total=23/25 grade=A
+Design Score: A, 23/25, threshold B 이상 PASS
+AI Slop Score: A
+WEAKEST_POINT: Prototype은 OSMU 핵심 화면은 상세하지만 Data, Keyword, Asset route는 기존 기능 보존 summary로만 표현했다. 이는 기능 삭제가 아니라 DESIGN-006 범위 경계이며 실제 구현을 source of truth로 남겼다.
+
+SOURCES: 실제 구현 22개 핵심 파일, app page entry 24개 전수 inventory, PRD v3.1.0, REQUEST-OSMU-001, DESIGN-005, Buffer 공식 도움말 2건, Later 공식 도움말 1건
+MODEL: gpt-codex/gpt-5.6-sol

@@ -25,7 +25,7 @@ const packageJson = JSON.parse(
   readFileSync(resolve(dashboardRoot, "package.json"), "utf8"),
 ) as { scripts: Record<string, string> };
 const runbook = readFileSync(
-  resolve(repoRoot, "wiki/ops/operator-token-recovery.md"),
+  resolve(repoRoot, "wiki/3-operations/runbooks/operator-token-recovery.md"),
   "utf8",
 );
 
@@ -95,6 +95,21 @@ case "$url" in
     printf '200'
     ;;
   *) exit 65 ;;
+esac
+`,
+  );
+
+  writeExecutable(
+    resolve(fakeBin, "jq"),
+    `#!/usr/bin/env bash
+set -euo pipefail
+case "\${1:-}" in
+  -e) grep -q '"isOperator":true' "\${3:-}" ;;
+  -Rs)
+    payload="$(cat)"
+    printf '"%s"\\n' "$payload"
+    ;;
+  *) exit 67 ;;
 esac
 `,
   );

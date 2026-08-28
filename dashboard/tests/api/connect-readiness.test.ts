@@ -8,6 +8,12 @@ vi.mock("@/lib/tenant-auth", () => ({
   effectiveTenantId: vi.fn(async () => "tenant-1"),
 }));
 
+vi.mock("@/lib/channel-connection", () => ({
+  getChannelConnectionStates: vi.fn(async (_tenantId: string, providers: string[]) => (
+    Object.fromEntries(providers.map((provider) => [provider, "disconnected"]))
+  )),
+}));
+
 const ENV_KEYS = [
   "X_CLIENT_ID", "X_CLIENT_SECRET",
   "FB_APP_ID", "FB_APP_SECRET", "FB_CONFIG_ID",
@@ -38,6 +44,7 @@ describe("GET /api/connect/readiness", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.providers.x.available).toBe(false);
+    expect(body.providers.x.status).toBe("opening_soon");
     expect(body.providers.x.reason).toContain("자격증명");
     expect(body.providers.x.reason).not.toMatch(/^\{/); // raw JSON 아님
   });
@@ -49,6 +56,7 @@ describe("GET /api/connect/readiness", () => {
     const res = await GET(req());
     const body = await res.json();
     expect(body.providers.x.available).toBe(true);
+    expect(body.providers.x.status).toBe("not_connected");
     expect(body.providers.x.reason).toBeUndefined();
   });
 
@@ -62,7 +70,9 @@ describe("GET /api/connect/readiness", () => {
     expect(body.providers.facebook.reason).toContain("FB_CONFIG_ID");
   });
 
-  it("SNS-004: FB 3키 모두 있으면 available=true지만 Meta 앱 모드는 '확인 불가'로 정직하게 알린다", async () => {
+  it("SNS-004: FB 3키가 있으면 외부 앱 심사 미완이어도 연결은 열어둔다(발행만 심사 후)", async () => {
+    // 회장 2026-08-13 라이브 회귀 수정: 외부 심사는 연결을 막지 않는다. credential 3키가 갖춰졌고
+    // 아직 미연결이면 not_connected(연결 버튼 활성). 심사 제약은 발행 단계에서만 표기한다.
     process.env.FB_APP_ID = "id";
     process.env.FB_APP_SECRET = "secret";
     process.env.FB_CONFIG_ID = "cfg";
@@ -70,7 +80,8 @@ describe("GET /api/connect/readiness", () => {
     const res = await GET(req());
     const body = await res.json();
     expect(body.providers.facebook.available).toBe(true);
-    expect(body.providers.facebook.reason).toMatch(/미리 알 수 없습니다/);
+    expect(body.providers.facebook.status).toBe("not_connected");
+    expect(body.providers.facebook.reason).toMatch(/외부 앱 심사/);
   });
 
   it("비밀값 자체는 응답에 절대 포함하지 않는다", async () => {

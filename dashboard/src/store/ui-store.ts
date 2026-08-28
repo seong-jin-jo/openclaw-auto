@@ -2,13 +2,15 @@
 
 import { create } from "zustand";
 
-// 활성 워크스페이스(테넌트) — 멀티테넌트 컨텍스트. localStorage persist.
+// 활성 워크스페이스(테넌트). 멀티테넌트 컨텍스트. localStorage persist.
 export interface Workspace {
   id: string;
   slug: string;
   name: string;
   tier?: string; // team | private(19금)
 }
+
+export type StudioRoom = "create" | "edit" | "publish";
 
 const WS_KEY = "active_workspace";
 function loadWorkspace(): Workspace | null {
@@ -28,6 +30,7 @@ interface UIState {
   subTab: string;
   queueFilter: string;
   sidebarCollapsed: Record<string, boolean>;
+  studioRoom: StudioRoom;
   editingPost: string | null;
   selectedIds: Set<string>;
   editingChannel: string | null;
@@ -40,6 +43,7 @@ interface UIState {
   setSubTab: (tab: string) => void;
   setQueueFilter: (filter: string) => void;
   toggleSidebar: (key: string) => void;
+  setStudioRoom: (room: StudioRoom) => void;
   setEditingPost: (id: string | null) => void;
   toggleSelect: (id: string) => void;
   selectAll: (ids: string[]) => void;
@@ -57,6 +61,7 @@ export const useUIStore = create<UIState>((set) => ({
   subTab: "queue",
   queueFilter: "all",
   sidebarCollapsed: {},
+  studioRoom: "publish",
   editingPost: null,
   selectedIds: new Set(),
   editingChannel: null,
@@ -79,6 +84,7 @@ export const useUIStore = create<UIState>((set) => ({
     set((s) => ({
       sidebarCollapsed: { ...s.sidebarCollapsed, [key]: !s.sidebarCollapsed[key] },
     })),
+  setStudioRoom: (studioRoom) => set({ studioRoom }),
   setEditingPost: (id) => set({ editingPost: id }),
   toggleSelect: (id) =>
     set((s) => {

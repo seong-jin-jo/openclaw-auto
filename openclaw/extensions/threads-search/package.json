@@ -1,0 +1,12 @@
+{
+  "name": "@openclaw/threads-search",
+  "version": "2026.3.22",
+  "private": true,
+  "description": "OpenClaw Threads trending posts search plugin",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

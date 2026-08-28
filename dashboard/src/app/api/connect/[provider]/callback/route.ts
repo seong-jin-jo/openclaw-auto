@@ -35,15 +35,18 @@ function safeInlineJson(value: unknown): string {
 function resultHtml(title: string, sub: string, opts: { provider: string; ok: boolean; origin: string }): Response {
   const payload = safeInlineJson({ source: "osmu-oauth-connect", provider: opts.provider, ok: opts.ok, message: sub });
   const targetOrigin = safeInlineJson(opts.origin);
-  const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head>
-  <body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh">
-    <div style="text-align:center;max-width:520px;padding:24px"><h2>${escapeHtml(title)}</h2><p style="color:#aaa;line-height:1.5">${escapeHtml(sub)}</p>
+  const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>
+    :root{--surface:rgb(10 10 10);--text:rgb(255 255 255);--muted:rgb(170 170 170)}
+    body{background:var(--surface);color:var(--text);font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh}
+    main{text-align:center;max-width:520px;padding:24px}p{color:var(--muted);line-height:1.5}
+  </style></head><body>
+    <main><h2>${escapeHtml(title)}</h2><p>${escapeHtml(sub)}</p>
     <script>
       try {
         if (window.opener) { window.opener.postMessage(${payload}, ${targetOrigin}); }
       } catch (e) { /* opener가 다른 origin이거나 이미 닫힘 — 무시하고 창은 닫는다 */ }
       setTimeout(function(){ window.close(); }, 1200);
-    </script></div></body></html>`;
+    </script></main></body></html>`;
   const headers = new Headers({ "Content-Type": "text/html; charset=utf-8" });
   // provider는 URL path param이므로, 지원 목록에 있는 값일 때만 cookie name/path에 사용한다.
   // 그렇지 않으면 CRLF 등을 넣은 provider가 Set-Cookie 헤더를 깨거나 주입하는 경로가 될 수 있다.
@@ -131,7 +134,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
     const tok = provider === "facebook"
       ? await exchangeFacebookCode(code, origin)
       : await exchangeCode(provider, code, origin, { codeVerifier });
-    if (!tok.accessToken) return fail(oauthErrorMessage(tok.error || "토큰 교환 실패", cfg.label).slice(0, 240));
+    if (!tok.accessToken) {
+      // 진단(2026-08-14 회장 재연결 실패 추적): 토큰/시크릿 미포함, 에러 사유만 기록. 원인 확정 후 제거.
+      console.error("[connect-callback][exchange-fail]", provider, tok.error);
+      return fail(oauthErrorMessage(tok.error || "토큰 교환 실패", cfg.label).slice(0, 240));
+    }
 
     // api 플래그: 발행 라우터가 어느 API 경로를 써야 할지 판별하는 힌트.
     // Meta 계열은 구분자 유지, 표준 OAuth 채널은 provider 라벨 그대로.
@@ -147,12 +154,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
     // 별도로 저장한다(아래 tok.refreshToken 인자). meta는 평문 JSONB라 여기 넣으면 암호화 우회가 된다.
     const meta: Record<string, unknown> = { api: apiFlag, connectedAt: new Date().toISOString() };
 
-    // SNS-007: 저장 전 provider 토큰으로 authoritative 외부 식별자를 resolve(가능하면 실제
-    // /me·channels.list 왕복, 안 되면 토큰교환 응답의 userId, 그마저 없으면 synthetic)한다.
+    // SNS-007: 저장 전 provider 토큰으로 authoritative 외부 식별자를 resolve한다.
+    // `/me`·channels.list를 구현한 provider는 실제 왕복 실패 시 callback을 fail-closed한다.
     // 이 id가 channel_accounts UNIQUE(tenant_id,provider,external_account_id)의 dedup 키라
     // 부정확하면 "재연결"이 "새 계정 추가"로 오분류된다.
     const identity = await resolveExternalIdentity(provider, tok.accessToken, tok.userId, tenantId);
     meta.userId = identity.externalId;
+    const tokenExpiresAt = tok.expiresInSeconds
+      ? new Date(Date.now() + tok.expiresInSeconds * 1000).toISOString()
+      : null;
 
     const { id: accountId, isDefault } = await upsertChannelAccount({
       tenantId,
@@ -163,6 +173,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
       accessToken: tok.accessToken,
       refreshToken: tok.refreshToken,
       meta,
+      status: "active",
+      tokenExpiresAt,
     });
 
     // legacy integrations는 "현재 기본계정"만 미러링한다 — 신규 비기본 계정 추가가 기존
@@ -171,6 +183,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
 
     return resultHtml(`${cfg.label} 연결 완료!`, "이 창을 닫고 대시보드로 돌아가세요.", { provider, ok: true, origin });
   } catch (e) {
+    // 진단(2026-08-14 회장 재연결 실패 추적): 신원검증/저장 예외 사유 기록(토큰 미포함). 원인 확정 후 제거.
+    console.error("[connect-callback][catch]", provider, e instanceof Error ? e.message : String(e));
     return fail(oauthErrorMessage(e instanceof Error ? e.message : String(e), cfg.label).slice(0, 240));
   }
 }

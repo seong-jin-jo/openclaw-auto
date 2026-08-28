@@ -24,7 +24,7 @@ async function tryConnect(): Promise<Sql | null> {
 }
 
 describe("L1 RLS 교차테넌트 격리 (라이브 Supabase)", () => {
-  it("osmu_service + 타테넌트 컨텍스트 → drafts 조회 0", async (ctx) => {
+  it("TENANT-RLS-LEGACY-01 osmu_service + 타테넌트 컨텍스트에서 소유자 drafts 조회 0", async (ctx) => {
     const sql = await tryConnect();
     if (!sql) return ctx.skip();
     try {
@@ -45,11 +45,13 @@ describe("L1 RLS 교차테넌트 격리 (라이브 Supabase)", () => {
         await tx`set local role osmu_service`;
         // 타테넌트(other) 컨텍스트: owner의 draft는 RLS로 숨겨져 0이어야 함.
         await tx`select set_config('app.tenant_id', ${other.id}, true)`;
-        const cross = await tx<{ c: number }[]>`select count(*)::int as c from drafts`;
+        const cross = await tx<{ c: number }[]>`
+          select count(*)::int as c from drafts where tenant_id = ${ownerId}`;
         expect(cross[0].c).toBe(0);
         // owner 컨텍스트: 자기 draft는 보여야 함(>0).
         await tx`select set_config('app.tenant_id', ${ownerId}, true)`;
-        const own = await tx<{ c: number }[]>`select count(*)::int as c from drafts`;
+        const own = await tx<{ c: number }[]>`
+          select count(*)::int as c from drafts where tenant_id = ${ownerId}`;
         expect(own[0].c).toBeGreaterThan(0);
       });
     } finally {
@@ -78,10 +80,12 @@ describe("L1 RLS 교차테넌트 격리 (라이브 Supabase)", () => {
         await sql.begin(async (tx) => {
           await tx`set local role osmu_service`;
           await tx`select set_config('app.tenant_id', ${other.id}, true)`;
-          const cross = await tx<{ c: number }[]>`select count(*)::int as c from ${tx(table)}`;
+          const cross = await tx<{ c: number }[]>`
+            select count(*)::int as c from ${tx(table)} where tenant_id = ${ownerId}`;
           expect(cross[0].c, `${table} 교차테넌트 조회`).toBe(0);
           await tx`select set_config('app.tenant_id', ${ownerId}, true)`;
-          const own = await tx<{ c: number }[]>`select count(*)::int as c from ${tx(table)}`;
+          const own = await tx<{ c: number }[]>`
+            select count(*)::int as c from ${tx(table)} where tenant_id = ${ownerId}`;
           expect(own[0].c, `${table} 자기 조회`).toBeGreaterThan(0);
         });
         asserted++;

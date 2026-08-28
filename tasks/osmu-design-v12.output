@@ -1,0 +1,178 @@
+# openclaw-auto OSMU 디자인 v12 출고 보고
+
+STAMP
+
+- 생성: 2026-08-06 00:42 KST
+- 모델: gpt-codex/gpt-5.6-sol
+- 에이전트: product-designer
+- 작업 라인: openclaw-auto-osmu
+- 스킬: design-html, design-review
+- 승인 입력: `docs/openclaw-auto-osmu-prd-v4.3.1-gpt-codex.md`
+- 실제 시각 기준선: `/private/tmp/osmu-existing-studio-browser-baseline.png`, `/private/tmp/osmu-existing-studio-generated-baseline.png`
+- 구현 기준선: current `Studio/page.tsx`, `PlatformPreview.tsx`, `Sidebar.tsx`, `globals.css`
+- 고민 한 줄: 기존 preview를 다시 그리는 대신 actual Chrome 구조를 baseline mode로 고정하고 preview sibling 제어만 추가했다.
+
+## 한 줄 결론
+
+v11은 철회했다. v12는 실제 current Studio Chrome 캡처와 DOM을 기준으로 재제작했으며, 기존 shell, toolbar, visual7 native preview, legacy bulk, 예약, Wiki, history를 보존한 채 각 preview 아래에만 카드별 발행 제어를 추가했다.
+
+## 산출물
+
+- `DESIGN.md`
+- `docs/user-flow.md`
+- `docs/WIREFRAMES/openclaw-auto-osmu-browser-baseline-v12-gpt-codex.md`
+- `docs/prototype/openclaw-auto-osmu-browser-baseline-additive-v12-gpt-codex.html`
+- `tasks/osmu-design-v12.output`
+
+제품 코드는 변경하지 않았다. GUI `open`은 사용하지 않았다.
+
+## 실제 캡처 판독 증거
+
+`view_image` original로 다음 두 파일을 직접 판독했다.
+
+- empty baseline: `/private/tmp/osmu-existing-studio-browser-baseline.png`
+- generated baseline: `/private/tmp/osmu-existing-studio-generated-baseline.png`
+
+판독해 고정한 구조:
+
+- 224px Sidebar
+- first row의 OSMU Studio, AI 확인 중, source, 브랜드, 위키, 생성, 자동초안, Save, Publish(4)
+- second row의 예약
+- amber Higgsfield notice
+- text horizontal native Threads, X, Facebook previews
+- card section의 380px Instagram vertical preview
+- video section의 Shorts, Reels, TikTok 9:16 previews
+- right 208px 발행 이력
+
+## baseline mode 비교
+
+`?baseline=1`은 additive 영역 7개를 숨기고 기존 구조만 렌더한다.
+
+1440x1000 실측:
+
+- Sidebar: x0, y0, w224, h1000
+- toolbar: x248, y20, w1168, h109
+- text section: x248, y193, w940
+- Instagram section: x248, y458, w940
+- history: x1208, y193, w208
+- nav DOM: 26
+- visual surface DOM: 7
+- Discord card: 0
+- Slack card: 0
+- page overflow: 0
+- console error: 0
+
+실제 generated 기준선과 v12 baseline whole-frame FFmpeg PSNR: 13.275762. Pixel diff 0은 아니다. HTML prototype의 icon raster와 current React SVG, live copy 차이 때문이다. 대신 load-bearing geometry, hierarchy, preview 종류, surface 수, 위치를 별도 DOM anchor로 확인했다.
+
+## additive 경계
+
+- 각 native preview 바로 아래 sibling 1개
+- QA용 blue dashed outline과 `v12 추가 영역` 표시
+- preview 자체 DOM, dimensions, typography 변경 없음
+- top bulk Publish(4), Save, 예약, Wiki, history 유지
+- 다음 section은 additive 높이만큼 아래로 이동하며 rail과 preview width는 동일
+
+## 직접 조작 QA
+
+### visual7 개별 발행
+
+- Threads, X, Facebook, Instagram, Shorts, Reels, TikTok 실제 Publish 클릭: 7/7
+- terminal published: 7/7
+- permalink: 7/7
+- Discord/Slack card: 0/0
+- card processing spinner 경로: 관찰됨
+- console error: 0
+
+### 복구와 기존 기능
+
+- failed Threads → retry → published + permalink: 관찰됨
+- unknown X → reconcile → 재발행 없이 published + permalink: 관찰됨
+- legacy bulk actual click: Threads/Facebook/Instagram published, X failed, Shorts/Reels/TikTok idle
+- schedule actual click: create → change → cancel, final `2026-08-07 11:30 · Threads, X, Facebook, Instagram · 취소`
+- top Save actual click: visual7 saved
+- history load, source, generation, AI 자동초안, Wiki 진입은 prototype route에 유지
+
+## 반응형 QA
+
+부모와 본 세션의 Chrome 검증을 합산했다.
+
+- 1440 screenshot: `/private/tmp/osmu-v12-1440.png`, `/private/tmp/osmu-v12-additive-1440.png`
+- 1024 screenshot: `/private/tmp/osmu-v12-additive-1024.png`
+- 390 screenshot: `/private/tmp/osmu-v12-additive-390.png`
+- 1440/1024/390 console error: 0
+- 1440/1024/390 page overflow: 0
+- 390 toolbar small target: 0
+- additive action은 CSS min-width/min-height 44px
+- 390 preview rail은 340px, navigation은 26개를 보존한 horizontal rail
+
+## design-review
+
+발견 1: v11은 실제 generated DOM보다 generic card system에 가까웠다.
+
+수정 1: v11 철회. actual Chrome의 native Threads/X/Facebook/Instagram/video preview를 각각 별도 구조로 복원했다.
+
+발견 2: 신규 편집 버튼 폭이 41px였다.
+
+수정 2: additive `.mini`를 min-width/min-height 44px로 보정했다.
+
+발견 3: raster similarity 하나만으로 구조 보존을 판정할 수 없다.
+
+수정 3: whole-frame PSNR과 DOM anchors, surface count, interaction isolation을 분리해 보고했다.
+
+Design Score: B+
+
+AI Slop Score: B+
+
+## 벤치마크 적용
+
+- actual Marketing Hub Chrome: 시각·기능 정본, 그대로 복제
+- Buffer Post Groups: 같은 group 안 개별 게시물 독립 동작만 차용
+- Later Multi-Profile: 공통 source 뒤 profile customization 원칙만 차용
+- Sprout approval: 실패와 결과 불명확 상태 분리만 차용
+
+경쟁사 UI 구조는 current Studio를 갈아엎는 근거로 사용하지 않았다.
+
+## 레드팀
+
+까다로운 기존 고객의 공격은 "개별 발행 때문에 기존 Studio와 bulk 작업이 사라졌다"다. v12는 preview를 건드리지 않고 sibling control만 더했고, top Save, Publish(4), 예약, Wiki, history와 direct4 선택을 유지해 공격을 차단했다.
+
+## 셀프심문
+
+이 결론이 틀렸다면 가장 그럴듯한 이유는 prototype permalink가 실제 provider 반환값이 아니라 시뮬레이션이라는 점이다. 따라서 디자인은 eng-design으로 넘길 수 있지만 build/QA 완료 조건은 실제 provider response, idempotency, reconcile 관찰이다.
+
+## 남은 gap
+
+- 실제 provider adapter, idempotency key, permalink result schema
+- unknown reconcile의 provider별 종료 조건
+- video asset 실제 연동
+- Inbox/Calendar source identity 실제 연결
+- 390 Sidebar product implementation 방식
+
+plan reopen 사유는 없다. API 계약과 데이터 권리는 eng-design 티키타카에서 확정해야 한다.
+
+## 다음 stage
+
+eng-design 진입 가능. 실제 current `PlatformPreview`를 복제하지 말고 기존 preview sibling으로 `CardPublishControl`을 주입해야 한다.
+
+## 품질 점수
+
+- RUBRIC_SCORE: current_fidelity=5/5 preservation=5/5 additive_boundary=5/5 interaction=5/5 evidence=4/5 total=24/25
+- WEAKEST_LINE: exact raster parity는 icon과 live copy 차이로 B이며, build에서 current React component 재사용으로 해소해야 한다.
+
+## 프로세스 증거
+
+- `/Users/sj/.claude/skills/design-html/SKILL.md` 전체 읽음
+- `/Users/sj/.claude/skills/design-review/SKILL.md` 전체 읽음
+- `/Users/sj/.claude/standards/design.md` 전체 읽음
+- `/Users/sj/.claude/standards/benchmarks.md` 전체 읽음
+- 실제 검색 감사: `{"name":"WebSearch","query":"site:support.buffer.com post groups customize individual social posts Buffer"}`
+- 실제 검색 감사: `{"name":"WebSearch","query":"site:help.later.com customize post each social profile scheduling Later"}`
+- 실제 검색 감사: `{"name":"WebSearch","query":"site:support.sproutsocial.com approval workflow publish messages social"}`
+
+SOURCES: /private/tmp/osmu-existing-studio-browser-baseline.png | /private/tmp/osmu-existing-studio-generated-baseline.png | dashboard/src/app/studio/page.tsx | dashboard/src/components/studio/PlatformPreview.tsx | dashboard/src/components/layout/Sidebar.tsx | dashboard/src/app/globals.css | docs/openclaw-auto-osmu-prd-v4.3.1-gpt-codex.md | https://support.buffer.com/article/961-using-post-groups-in-buffer | https://help.later.com/hc/en-us/articles/360043243873-Schedule-One-Post-to-Multiple-Social-Profiles | https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows
+
+MODEL: gpt-codex/gpt-5.6-sol
+
+SKILLS_USED: design-html for actual Chrome baseline reconstruction and additive prototype | design-review for pixel, DOM, responsive, state, accessibility, and anti-slop audit
+
+SKILLS_SKIPPED: 없음

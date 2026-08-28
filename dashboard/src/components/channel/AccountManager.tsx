@@ -30,7 +30,7 @@ function accountLabel(a: AccountRow): string {
 
 function statusBadge(status: string): { text: string; className: string } {
   if (status === "active") return { text: "정상", className: "text-success" };
-  if (status === "expired") return { text: "만료됨 — 재연결 필요", className: "text-warning" };
+  if (status === "expired") return { text: "만료됨. 재연결 필요", className: "text-warning" };
   if (status === "revoked") return { text: "연결 해제됨", className: "text-danger" };
   return { text: status, className: "text-muted" };
 }
@@ -149,11 +149,11 @@ export function AccountManager({
 
   if (!activeWorkspace) return null;
   if (loading) {
-    return <p className="text-[11px] text-subtle" data-testid={`account-manager-loading-${provider}`}>계정 목록 확인 중…</p>;
+    return <p className="text-caption text-subtle" data-testid={`account-manager-loading-${provider}`}>계정 목록 확인 중…</p>;
   }
   if (error) {
     return (
-      <p className="text-[11px] text-danger" data-testid={`account-manager-error-${provider}`}>
+      <p className="text-caption text-danger" data-testid={`account-manager-error-${provider}`}>
         ⛔ {error}
       </p>
     );
@@ -177,39 +177,39 @@ export function AccountManager({
   }
 
   return (
-    <div className="mt-3" data-testid={`account-manager-${provider}`}>
-      <p className="text-[11px] font-semibold text-muted mb-1">연결된 {label} 계정 ({accounts.length})</p>
-      <ul className="space-y-1.5">
+    <div className="mt-stack" data-testid={`account-manager-${provider}`}>
+      <p className="text-caption font-semibold text-muted mb-micro">연결된 {label} 계정 ({accounts.length})</p>
+      <ul className="space-y-stack-tight">
         {accounts.map((a) => {
           const badge = statusBadge(a.status);
           return (
             <li
               key={a.id}
               data-testid={`account-row-${provider}-${a.id}`}
-              className="flex items-center justify-between gap-2 rounded-md border border-border bg-surface-2 px-2.5 py-1.5 text-xs"
+              className="flex items-center justify-between gap-stack-tight rounded-control border border-border bg-surface-2 px-stack py-stack-tight text-caption"
             >
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-stack-tight">
                   <span className="truncate text-text">{accountLabel(a)}</span>
                   {a.is_default && (
                     <span
                       data-testid={`account-default-badge-${provider}-${a.id}`}
-                      className="shrink-0 rounded bg-accent/20 px-1.5 py-0.5 text-[10px] text-accent"
+                      className="shrink-0 rounded-chip bg-accent/20 px-stack-tight py-micro text-caption text-accent"
                     >
                       기본
                     </span>
                   )}
                 </div>
-                <span className={`text-[10px] ${badge.className}`}>{badge.text}</span>
+                <span className={`text-caption ${badge.className}`}>{badge.text}</span>
               </div>
-              <div className="flex shrink-0 items-center gap-1.5">
+              <div className="flex shrink-0 items-center gap-stack-tight">
                 {!a.is_default && (
                   <button
                     type="button"
                     onClick={() => setDefault(a.id)}
                     disabled={busyId === a.id}
                     data-testid={`account-set-default-${provider}-${a.id}`}
-                    className="rounded px-2 py-1 text-[10px] text-accent hover:bg-accent/10 disabled:opacity-50"
+                    className="rounded-chip px-stack-tight py-micro text-caption text-accent hover:bg-accent/10 disabled:opacity-50"
                   >
                     기본으로
                   </button>
@@ -219,7 +219,7 @@ export function AccountManager({
                   onClick={() => remove(a.id)}
                   disabled={busyId === a.id}
                   data-testid={`account-delete-${provider}-${a.id}`}
-                  className="rounded px-2 py-1 text-[10px] text-danger hover:bg-danger/10 disabled:opacity-50"
+                  className="rounded-chip px-stack-tight py-micro text-caption text-danger hover:bg-danger/10 disabled:opacity-50"
                 >
                   삭제
                 </button>
@@ -229,7 +229,7 @@ export function AccountManager({
         })}
       </ul>
       {allowManualAdd && (
-        <div className="mt-2">
+        <div className="mt-stack-tight">
           <ManualAddBlock
             provider={provider}
             label={label}
@@ -280,18 +280,18 @@ function ManualAddBlock({
         type="button"
         onClick={() => setShowAdd(!showAdd)}
         data-testid={`account-add-toggle-${provider}`}
-        className="text-[11px] text-accent underline underline-offset-2"
+        className="text-caption text-accent underline underline-offset-2"
       >
         {showAdd ? "닫기" : `+ ${label} 계정 추가(App Password)`}
       </button>
       {showAdd && (
-        <div className="mt-2 space-y-1.5 rounded-md border border-border bg-surface p-2.5">
+        <div className="mt-stack-tight space-y-stack-tight rounded-control border border-border bg-surface p-stack">
           <input
             value={handle}
             onChange={(e) => setHandle(e.target.value)}
             placeholder="handle.bsky.social"
             data-testid={`account-add-handle-${provider}`}
-            className="w-full rounded border border-border bg-surface-2 px-2 py-1 text-xs text-text"
+            className="w-full rounded-chip border border-border bg-surface-2 px-stack-tight py-micro text-caption text-text"
           />
           <input
             value={appPassword}
@@ -299,18 +299,18 @@ function ManualAddBlock({
             placeholder="App Password"
             type="password"
             data-testid={`account-add-password-${provider}`}
-            className="w-full rounded border border-border bg-surface-2 px-2 py-1 text-xs text-text"
+            className="w-full rounded-chip border border-border bg-surface-2 px-stack-tight py-micro text-caption text-text"
           />
           <button
             type="button"
             onClick={addManual}
             disabled={addBusy || !handle || !appPassword}
             data-testid={`account-add-submit-${provider}`}
-            className="w-full rounded bg-accent px-2 py-1.5 text-xs text-accent-fg disabled:opacity-50"
+            className="w-full rounded-chip bg-accent px-stack-tight py-stack-tight text-caption text-accent-fg disabled:opacity-50"
           >
             {addBusy ? "연결 중…" : "계정 추가"}
           </button>
-          {addMsg && <p className="text-[10px] text-subtle">{addMsg}</p>}
+          {addMsg && <p className="text-caption text-subtle">{addMsg}</p>}
         </div>
       )}
     </div>

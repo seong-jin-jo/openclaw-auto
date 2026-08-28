@@ -5,8 +5,12 @@ import { useUIStore } from "@/store/ui-store";
 import { authHeaders } from "@/lib/auth";
 import { oauthErrorMessage } from "@/lib/oauth-errors";
 import { SCHEDULABLE_PLATFORMS, VIDEO_PUBLISH_PLATFORMS } from "@/lib/constants";
+import {
+  CONNECT_READINESS_LABELS,
+  type ConnectReadinessStatus,
+} from "@/lib/connect-readiness";
 
-interface Readiness { available: boolean; reason?: string }
+interface Readiness { status?: ConnectReadinessStatus; available: boolean; reason?: string }
 type ReadinessState = Readiness | "error";
 
 // Meta 계열(threads/instagram)은 브라우저가 이미 로그인된 Meta 세션 쿠키를 팝업과 공유한다.
@@ -80,12 +84,13 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
   const [readiness, setReadiness] = useState<ReadinessState | null>(null);
   const [readinessLoading, setReadinessLoading] = useState(true);
   const [showSwitchNote, setShowSwitchNote] = useState(false);
+  const [readinessAttempt, setReadinessAttempt] = useState(0);
   // "노출=발행가능" 원칙(wiki/reference/channel-status.md) — 연결 UI는 12채널이지만
   // 텍스트 예약 발행과 영상 직접 발행 중 하나라도 있으면 발행 가능으로 표시한다.
   const publishReady = ([...SCHEDULABLE_PLATFORMS, ...VIDEO_PUBLISH_PLATFORMS] as readonly string[]).includes(provider);
   const accountSwitchHelp = ACCOUNT_SWITCH_HELP[provider];
   const resolvedRef = useRef(false); // postMessage로 이미 결과를 받았는지(closed-폴링 오탐 방지)
-  const watchClosedRef = useRef<number | null>(null); // closed-폴링 interval id — unmount 시 정리
+  const watchClosedRef = useRef<number | null>(null); // closed-폴링 interval id. unmount 시 정리
   const mountedRef = useRef(true); // connect fetch가 pending인 동안 unmount되는 레이스 가드
 
   // 컴포넌트 unmount 시 진행 중인 closed-폴링 interval을 정리한다 — 안 하면 팝업을 열어둔 채
@@ -114,7 +119,7 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
       resolvedRef.current = true;
       setBusy(false);
       if (data.ok) {
-        setMsg(`${label} 연결 완료 — 채널 상태를 새로고침합니다.`);
+        setMsg(`${label} 연결 완료. 채널 상태를 새로고침합니다.`);
         onConnected?.();
       } else {
         setMsg(oauthErrorMessage(data.message || "연결 실패", label));
@@ -150,16 +155,31 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
       })
       .finally(() => { if (!cancelled) setReadinessLoading(false); });
     return () => { cancelled = true; };
-  }, [provider, activeWorkspace]);
+  }, [provider, activeWorkspace, readinessAttempt]);
 
-  const readinessFailed = readiness === "error";
   const readinessEntry = readiness && readiness !== "error" ? readiness : null;
+  const readinessStatus: ConnectReadinessStatus | null = readiness === "error"
+    ? "error"
+    : readinessEntry?.status
+      || (readinessEntry ? (readinessEntry.available ? "not_connected" : "opening_soon") : null);
+  const readinessFailed = readinessStatus === "error";
   const known = readinessEntry !== null;
-  const serverReady = readinessEntry?.available ?? false; // 미확인은 fail-closed(비허용)
-  const disabledByReadiness = readinessFailed || (known && !serverReady);
+  // 연결(connect) 차단은 available(=우리 앱 credential 부재 or 오류)로만 판단한다. 외부 앱 심사가
+  // 남은 publish_pending은 available:true라 연결 버튼을 막지 않는다 — 심사 제약은 발행 단계에서만
+  // 적용(회장 2026-08-13 라이브 회귀 수정: 심사대상 채널이 연결까지 막혀 마케팅 가동 불가였음).
+  const disabledByReadiness = readinessFailed
+    || readinessStatus === "opening_soon"
+    || (known && !readinessEntry.available);
   // available=true여도 reason(예: Meta 앱 리뷰 상태 "확인 불가")이 있으면 조용히 버리지 않고
   // 경고로 보여준다 — finding 2.
   const readinessWarning = readinessEntry?.available && readinessEntry.reason ? readinessEntry.reason : null;
+  const connectLabel = readinessStatus === "connected"
+    ? "다른 계정 연결"
+    : readinessStatus === "opening_soon"
+      ? "오픈 준비중"
+      : readinessStatus === "publish_pending"
+        ? "발행 준비중"
+        : `${label} OAuth 연결`;
 
   const connect = async () => {
     if (!activeWorkspace) {
@@ -213,7 +233,7 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
         watchClosedRef.current = watchClosed;
         return; // busy는 postMessage/closed 감지가 최종 해제
       } else {
-        popup.close(); // authUrl 없음 — 예약해둔 빈 창을 남겨두지 않는다.
+        popup.close(); // authUrl 없음. 예약해둔 빈 창을 남겨두지 않는다.
         setMsg(oauthErrorMessage(d.error || "OAuth 앱 자격증명이 아직 설정되지 않았습니다.", label));
         setBusy(false);
       }
@@ -226,33 +246,54 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
   };
 
   return (
-    <div className="rounded-lg border border-accent/40 bg-accent/10 p-3">
-      <p className="text-xs text-muted mb-2">
-        <b className="text-text">{label} OAuth 연결</b> — 버튼 한 번이면 끝. 비밀번호·토큰 입력 없이
+    <div className="rounded-control border border-accent/40 bg-accent/10 p-stack">
+      <p className="text-caption text-muted mb-stack-tight">
+        <b className="text-text">{label} OAuth 연결</b>. 버튼 한 번이면 끝. 비밀번호·토큰 입력 없이
         {label} 공식 로그인으로 안전하게 연결됩니다.
       </p>
+      {!readinessLoading && readinessStatus && (
+        <p
+          className={`text-caption mb-stack-tight ${
+            readinessStatus === "connected"
+              ? "text-success"
+              : readinessStatus === "publish_pending"
+                ? "text-warning"
+                : readinessStatus === "error"
+                  ? "text-danger"
+                  : "text-subtle"
+          }`}
+          data-testid={`readiness-status-${provider}`}
+          data-status={readinessStatus}
+        >
+          {CONNECT_READINESS_LABELS[readinessStatus]}
+        </p>
+      )}
       <button
         onClick={connect}
         disabled={busy || readinessLoading || disabledByReadiness}
         data-testid={`connect-${provider}`}
         data-ready={disabledByReadiness ? "false" : "true"}
-        className="px-4 py-2 text-sm bg-accent text-text rounded-lg hover:bg-accent-hover disabled:opacity-50"
+        className={`px-pad-inset py-stack-tight text-body-sm rounded-control disabled:opacity-50 ${
+          disabledByReadiness
+            ? "bg-surface-2 text-subtle"
+            : "bg-accent text-accent-fg hover:bg-accent-hover"
+        }`}
       >
-        {busy ? "여는 중…" : readinessLoading ? "확인 중…" : `${label} OAuth 연결`}
+        {busy ? "여는 중…" : readinessLoading ? "확인 중…" : connectLabel}
       </button>
       {accountSwitchHelp && (
-        <div className="mt-2">
+        <div className="mt-stack-tight">
           <button
             type="button"
             onClick={() => setShowSwitchNote((v) => !v)}
             data-testid={`switch-account-${provider}`}
-            className="text-[11px] text-accent underline underline-offset-2"
+            className="text-caption text-accent underline underline-offset-2"
           >
             다른 계정으로 연결하고 싶어요
           </button>
           {showSwitchNote && (
-            <div className="mt-1 space-y-2">
-              <p className="text-[11px] text-muted" data-testid={`switch-account-note-${provider}`}>
+            <div className="mt-micro space-y-stack-tight">
+              <p className="text-caption text-muted" data-testid={`switch-account-note-${provider}`}>
                 {accountSwitchHelp.note}
               </p>
               <a
@@ -260,11 +301,11 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
                 target="_blank"
                 rel="noopener noreferrer"
                 data-testid={`manage-provider-account-${provider}`}
-                className="inline-flex text-[11px] text-accent underline underline-offset-2"
+                className="inline-flex text-caption text-accent underline underline-offset-2"
               >
                 {accountSwitchHelp.managementLabel} ↗
               </a>
-              <p className="text-[10px] text-subtle">
+              <p className="text-caption text-subtle">
                 새 탭에서 계정 전환·로그아웃을 마친 뒤 이 화면의 OAuth 연결을 다시 누르세요.
               </p>
             </div>
@@ -272,27 +313,36 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
         </div>
       )}
       {readinessFailed && (
-        <p className="text-[11px] text-danger mt-2" data-testid={`readiness-error-${provider}`}>
-          ⛔ 준비 상태 확인 실패—새로고침/관리자
-        </p>
+        <div className="mt-stack-tight">
+          <p className="text-caption text-danger" data-testid={`readiness-error-${provider}`}>
+            준비 상태를 확인하지 못했습니다.
+          </p>
+          <button
+            type="button"
+            onClick={() => setReadinessAttempt((attempt) => attempt + 1)}
+            className="mt-micro text-caption text-accent underline underline-offset-2"
+          >
+            다시 확인
+          </button>
+        </div>
       )}
       {!readinessFailed && disabledByReadiness && (
-        <p className="text-[11px] text-danger mt-2" data-testid={`readiness-reason-${provider}`}>
-          ⛔ {readinessEntry?.reason || `${label} 연결이 아직 준비되지 않았습니다.`}
+        <p className="text-caption text-subtle mt-stack-tight" data-testid={`readiness-reason-${provider}`}>
+          {readinessEntry?.reason || `${label} 연결이 아직 준비되지 않았습니다.`}
         </p>
       )}
       {readinessWarning && (
-        <p className="text-[11px] text-warning mt-2" data-testid={`readiness-warning-${provider}`}>
-          ⚠ {readinessWarning}
+        <p className="text-caption text-warning mt-stack-tight" data-testid={`readiness-warning-${provider}`}>
+          {readinessWarning}
         </p>
       )}
       {!publishReady && (
-        <p className="text-[11px] text-warning mt-2" data-testid="publish-not-ready-badge">
-          ⚠ 발행 준비 중 — 지금은 {label} 연결만 미리 가능하고, 대시보드에서 직접 발행은 아직
+        <p className="text-caption text-warning mt-stack-tight" data-testid="publish-not-ready-badge">
+          발행 준비 중. 지금은 {label} 연결만 미리 가능하고, 대시보드에서 직접 발행은 아직
           지원하지 않습니다.
         </p>
       )}
-      {msg && <p className="text-[11px] text-subtle mt-2">{msg}</p>}
+      {msg && <p className="text-caption text-subtle mt-stack-tight">{msg}</p>}
     </div>
   );
 }

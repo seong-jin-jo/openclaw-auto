@@ -1,0 +1,213 @@
+{
+  "workspaceId": "cd1d0a40-540d-4524-9b49-bf2445d82182",
+  "widths": [
+    390,
+    768,
+    1024,
+    1440
+  ],
+  "observations": [
+    {
+      "width": 390,
+      "room": "create",
+      "path": "/studio?room=create",
+      "viewportWidth": 390,
+      "documentWidth": 390,
+      "fullScreenOverlay": false,
+      "nextActionVisible": true,
+      "suggestionCount": 0,
+      "inlineOnboarding": false
+    },
+    {
+      "width": 390,
+      "room": "edit",
+      "path": "/studio?room=edit",
+      "viewportWidth": 390,
+      "documentWidth": 390,
+      "fullScreenOverlay": false,
+      "nextActionVisible": true,
+      "suggestionCount": 0,
+      "inlineOnboarding": false
+    },
+    {
+      "width": 390,
+      "room": "publish",
+      "path": "/studio?room=publish",
+      "viewportWidth": 390,
+      "documentWidth": 390,
+      "fullScreenOverlay": false,
+      "nextActionVisible": true,
+      "suggestionCount": 0,
+      "inlineOnboarding": false
+    },
+    {
+      "width": 390,
+      "room": "performance",
+      "path": "/",
+      "viewportWidth": 390,
+      "documentWidth": 390,
+      "fullScreenOverlay": false,
+      "nextActionVisible": true,
+      "suggestionCount": 3,
+      "inlineOnboarding": true
+    },
+    {
+      "width": 390,
+      "room": "performance-to-create",
+      "path": "/studio?room=create",
+      "navigated": true
+    },
+    {
+      "width": 768,
+      "room": "create",
+      "path": "/studio?room=create",
+      "viewportWidth": 768,
+      "documentWidth": 768,
+      "fullScreenOverlay": false,
+      "nextActionVisible": true,
+      "suggestionCount": 0,
+      "inlineOnboarding": false
+    },
+    {
+      "width": 768,
+      "room": "edit",
+      "path": "/studio?room=edit",
+      "viewportWidth": 768,
+      "documentWidth": 768,
+      "fullScreenOverlay": false,
+      "nextActionVisible": true,
+      "suggestionCount": 0,
+      "inlineOnboarding": false
+    },
+    {
+      "width": 768,
+      "room": "publish",
+      "path": "/studio?room=publish",
+      "viewportWidth": 768,
+      "documentWidth": 768,
+      "fullScreenOverlay": false,
+      "nextActionVisible": true,
+      "suggestionCount": 0,
+      "inlineOnboarding": false
+    },
+    {
+      "width": 768,
+      "room": "performance",
+      "path": "/",
+      "viewportWidth": 768,
+      "documentWidth": 768,
+      "fullScreenOverlay": false,
+      "nextActionVisible": true,
+      "suggestionCount": 3,
+      "inlineOnboarding": true
+    },
+    {
+      "width": 768,
+      "room": "performance-to-create",
+      "path": "/studio?room=create",
+      "navigated": true
+    },
+    {
+      "width": 1024,
+      "room": "create",
+      "path": "/studio?room=create",
+      "viewportWidth": 1024,
+      "documentWidth": 1024,
+      "fullScreenOverlay": false,
+      "nextActionVisible": true,
+      "suggestionCount": 0,
+      "inlineOnboarding": false
+    },
+    {
+      "width": 1024,
+      "room": "edit",
+      "path": "/studio?room=edit",
+      "viewportWidth": 1024,
+      "documentWidth": 1024,
+      "fullScreenOverlay": false,
+      "nextActionVisible": true,
+      "suggestionCount": 0,
+      "inlineOnboarding": false
+    },
+    {
+      "width": 1024,
+      "room": "publish",
+      "path": "/studio?room=publish",
+      "viewportWidth": 1024,
+      "documentWidth": 1024,
+      "fullScreenOverlay": false,
+      "nextActionVisible": true,
+      "suggestionCount": 0,
+      "inlineOnboarding": false
+    },
+    {
+      "width": 1024,
+      "room": "performance",
+      "path": "/",
+      "viewportWidth": 1024,
+      "documentWidth": 1024,
+      "fullScreenOverlay": false,
+      "nextActionVisible": true,
+      "suggestionCount": 3,
+      "inlineOnboarding": true
+    },
+    {
+      "width": 1024,
+      "room": "performance-to-create",
+      "path": "/studio?room=create",
+      "navigated": true
+    },
+    {
+      "width": 1440,
+      "room": "create",
+      "path": "/studio?room=create",
+      "viewportWidth": 1440,
+      "documentWidth": 1440,
+      "fullScreenOverlay": false,
+      "nextActionVisible": true,
+      "suggestionCount": 0,
+      "inlineOnboarding": false
+    },
+    {
+      "width": 1440,
+      "room": "edit",
+      "path": "/studio?room=edit",
+      "viewportWidth": 1440,
+      "documentWidth": 1440,
+      "fullScreenOverlay": false,
+      "nextActionVisible": true,
+      "suggestionCount": 0,
+      "inlineOnboarding": false
+    },
+    {
+      "width": 1440,
+      "room": "publish",
+      "path": "/studio?room=publish",
+      "viewportWidth": 1440,
+      "documentWidth": 1440,
+      "fullScreenOverlay": false,
+      "nextActionVisible": true,
+      "suggestionCount": 0,
+      "inlineOnboarding": false
+    },
+    {
+      "width": 1440,
+      "room": "performance",
+      "path": "/",
+      "viewportWidth": 1440,
+      "documentWidth": 1440,
+      "fullScreenOverlay": false,
+      "nextActionVisible": true,
+      "suggestionCount": 3,
+      "inlineOnboarding": true
+    },
+    {
+      "width": 1440,
+      "room": "performance-to-create",
+      "path": "/studio?room=create",
+      "navigated": true
+    }
+  ],
+  "consoleErrors": [],
+  "unauthorizedUrls": []
+}

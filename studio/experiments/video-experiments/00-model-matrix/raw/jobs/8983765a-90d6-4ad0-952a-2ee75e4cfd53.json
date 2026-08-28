@@ -1,0 +1,19 @@
+{
+  "created_at": "2026-08-13T18:37:54.433333Z",
+  "display_name": "Kling 3.0 Turbo",
+  "id": "8983765a-90d6-4ad0-952a-2ee75e4cfd53",
+  "job_type": "kling3_0_turbo",
+  "min_result_url": null,
+  "params": {
+    "aspect_ratio": "9:16",
+    "duration": 8,
+    "height": 1280,
+    "medias": [],
+    "prompt": "A vertical 9:16 tense but factual economics micro-documentary about a bank run. A calm line of fictional adults waits at an unbranded ATM. One person steps away worried, then the line rapidly grows as a row of plain wooden dominoes falls toward a small model bank but stops one piece before impact. Realistic city lighting, controlled camera push-in, educational not sensational, no cash shower, no readable text, no logos, no captions.",
+    "resolution": "720p",
+    "width": 720
+  },
+  "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183754_8983765a-90d6-4ad0-952a-2ee75e4cfd53.mp4",
+  "status": "completed",
+  "thumbnail_url": "https://cdn.higgsfield.ai/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183754_8983765a-90d6-4ad0-952a-2ee75e4cfd53_thumbnail.webp"
+}

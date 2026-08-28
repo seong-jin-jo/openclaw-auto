@@ -1,0 +1,157 @@
+<title>밤사이 만든 것</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1a1a19;--muted:#6b6b68;--line:#e4e4e1;--card:#fff;--accent:#2563eb}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#16161a;--fg:#ececea;--muted:#9a9a97;--line:#2c2c31;--card:#1e1e23;--accent:#7aa2ff}}
+:root[data-theme="dark"]{--bg:#16161a;--fg:#ececea;--muted:#9a9a97;--line:#2c2c31;--card:#1e1e23;--accent:#7aa2ff}
+body{background:var(--bg);color:var(--fg);font:16px/1.7 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard",sans-serif;margin:0;padding:40px 24px 80px}
+.wrap{max-width:900px;margin:0 auto}
+h1{font-size:30px;letter-spacing:-.02em;margin:0 0 6px}
+.sub{color:var(--muted);margin:0 0 36px}
+h2{font-size:20px;margin:44px 0 14px;padding-top:20px;border-top:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;font-size:15px;display:block;overflow-x:auto}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:13px}
+code{background:var(--card);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:13px}
+.shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;margin-top:16px}
+figure{margin:0;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+figure img{display:block;width:100%;height:auto}
+figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px solid var(--line)}
+.note{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;padding:14px 16px;margin:18px 0}
+</style>
+<div class="wrap">
+<h1>밤사이 만든 것</h1>
+<p class="sub">2026년 08월 28일 22시 39분 기준. 이 장은 감독이 1분마다 새로 씁니다.</p>
+<div class="note">실제로 눌러 보시려면 <code>http://localhost:3456/studio</code> 입니다. 아래 그림은 방금 그 앱을 찍은 것입니다.</div>
+<h2>지금 도는 것</h2><table><tr><th>판</th><th>갈래</th><th>상태</th><th>시각</th></tr>
+<tr><td>build10</td><td>build</td><td>끝남</td><td>07:21</td></tr>
+<tr><td>build5</td><td>build</td><td>빈손</td><td>04:54</td></tr>
+<tr><td>build6</td><td>build</td><td>빈손</td><td>05:40</td></tr>
+<tr><td>build7</td><td>build</td><td>끝남</td><td>05:42</td></tr>
+<tr><td>build8</td><td>build</td><td>끝남</td><td>06:12</td></tr>
+<tr><td>build9</td><td>build</td><td>끝남</td><td>06:39</td></tr>
+<tr><td>fe10</td><td>fe</td><td>끝남</td><td>07:29</td></tr>
+<tr><td>fe5</td><td>fe</td><td>끝남</td><td>04:41</td></tr>
+<tr><td>fe6</td><td>fe</td><td>빈손</td><td>05:26</td></tr>
+<tr><td>fe7</td><td>fe</td><td>끝남</td><td>06:05</td></tr>
+<tr><td>fe8</td><td>fe</td><td>끝남</td><td>06:07</td></tr>
+<tr><td>fe9</td><td>fe</td><td>끝남</td><td>06:53</td></tr>
+<tr><td>fix1</td><td>build</td><td>끝남</td><td>19:07</td></tr>
+<tr><td>fixdoc08281</td><td>build</td><td>끝남</td><td>20:18</td></tr>
+<tr><td>fixdoc08282</td><td>build</td><td>끝남</td><td>21:01</td></tr>
+<tr><td>fixdoc08283</td><td>review</td><td>끝남</td><td>20:45</td></tr>
+<tr><td>fixdoc08284</td><td>qa</td><td>끝남</td><td>21:32</td></tr>
+<tr><td>fixdoc08285</td><td>build</td><td>끝남</td><td>20:45</td></tr>
+<tr><td>flow1</td><td>fe</td><td>끝남</td><td>19:07</td></tr>
+<tr><td>flowcheck082822</td><td>qa</td><td>돌는중</td><td>22:11</td></tr>
+<tr><td>qa1</td><td>qa</td><td>끝남</td><td>18:59</td></tr>
+<tr><td>review1</td><td>review</td><td>끝남</td><td>18:42</td></tr>
+<tr><td>ship1</td><td>review</td><td>빈손</td><td>22:25</td></tr>
+</table>
+<h2>화면</h2>
+<div class="shots">
+<figure><img src="아침보고-화면/channel-threads-1024.png" alt="channel-threads-1024"><figcaption>channel-threads-1024</figcaption></figure>
+<figure><img src="아침보고-화면/channel-threads-1440.png" alt="channel-threads-1440"><figcaption>channel-threads-1440</figcaption></figure>
+<figure><img src="아침보고-화면/channel-threads-390.png" alt="channel-threads-390"><figcaption>channel-threads-390</figcaption></figure>
+<figure><img src="아침보고-화면/channel-threads-768.png" alt="channel-threads-768"><figcaption>channel-threads-768</figcaption></figure>
+<figure><img src="아침보고-화면/create-room-1024.png" alt="create-room-1024"><figcaption>create-room-1024</figcaption></figure>
+<figure><img src="아침보고-화면/create-room-1440.png" alt="create-room-1440"><figcaption>create-room-1440</figcaption></figure>
+<figure><img src="아침보고-화면/create-room-390.png" alt="create-room-390"><figcaption>create-room-390</figcaption></figure>
+<figure><img src="아침보고-화면/create-room-768.png" alt="create-room-768"><figcaption>create-room-768</figcaption></figure>
+<figure><img src="아침보고-화면/edit-room-1024.png" alt="edit-room-1024"><figcaption>edit-room-1024</figcaption></figure>
+<figure><img src="아침보고-화면/edit-room-1440.png" alt="edit-room-1440"><figcaption>edit-room-1440</figcaption></figure>
+<figure><img src="아침보고-화면/edit-room-390.png" alt="edit-room-390"><figcaption>edit-room-390</figcaption></figure>
+<figure><img src="아침보고-화면/edit-room-768.png" alt="edit-room-768"><figcaption>edit-room-768</figcaption></figure>
+<figure><img src="아침보고-화면/performance-room-1024.png" alt="performance-room-1024"><figcaption>performance-room-1024</figcaption></figure>
+<figure><img src="아침보고-화면/performance-room-1440.png" alt="performance-room-1440"><figcaption>performance-room-1440</figcaption></figure>
+<figure><img src="아침보고-화면/performance-room-390.png" alt="performance-room-390"><figcaption>performance-room-390</figcaption></figure>
+<figure><img src="아침보고-화면/performance-room-768.png" alt="performance-room-768"><figcaption>performance-room-768</figcaption></figure>
+<figure><img src="아침보고-화면/publish-room-1440.png" alt="publish-room-1440"><figcaption>publish-room-1440</figcaption></figure>
+<figure><img src="아침보고-화면/publish-room-390.png" alt="publish-room-390"><figcaption>publish-room-390</figcaption></figure>
+<figure><img src="아침보고-화면/settings-1024.png" alt="settings-1024"><figcaption>settings-1024</figcaption></figure>
+<figure><img src="아침보고-화면/settings-1440.png" alt="settings-1440"><figcaption>settings-1440</figcaption></figure>
+<figure><img src="아침보고-화면/settings-390.png" alt="settings-390"><figcaption>settings-390</figcaption></figure>
+<figure><img src="아침보고-화면/settings-768.png" alt="settings-768"><figcaption>settings-768</figcaption></figure>
+<figure><img src="아침보고-화면/sidebar-4room-1024.png" alt="sidebar-4room-1024"><figcaption>sidebar-4room-1024</figcaption></figure>
+<figure><img src="아침보고-화면/sidebar-4room-1440.png" alt="sidebar-4room-1440"><figcaption>sidebar-4room-1440</figcaption></figure>
+<figure><img src="아침보고-화면/studio-publish-1024.png" alt="studio-publish-1024"><figcaption>studio-publish-1024</figcaption></figure>
+<figure><img src="아침보고-화면/studio-publish-1440.png" alt="studio-publish-1440"><figcaption>studio-publish-1440</figcaption></figure>
+<figure><img src="아침보고-화면/studio-publish-390.png" alt="studio-publish-390"><figcaption>studio-publish-390</figcaption></figure>
+<figure><img src="아침보고-화면/studio-publish-768.png" alt="studio-publish-768"><figcaption>studio-publish-768</figcaption></figure>
+</div>
+<h2>밤사이 들어간 작업</h2><table><tr><th>커밋</th><th>무엇을</th></tr>
+<tr><td><code>a23dbc77</code></td><td>인계: Claude 에서 Codex 로 세션 교대 기록 최종화</td></tr>
+<tr><td><code>dfec813e</code></td><td>test(qa): verify four-room flow across four widths</td></tr>
+<tr><td><code>0be50434</code></td><td>감독: 자리가 남는데 던질 판이 없으면 즉시 채우게 고침</td></tr>
+<tr><td><code>ad096bc1</code></td><td>docs: 깨끗한 CI 테스트 규율 기록</td></tr>
+<tr><td><code>4354beea</code></td><td>docs: PR CI 증거와 배포 보류 기록</td></tr>
+<tr><td><code>a2b0a19f</code></td><td>test: CI 환경 의존 제거</td></tr>
+<tr><td><code>b2c807d3</code></td><td>release: 0.2.0 병합 검토 준비</td></tr>
+<tr><td><code>e4009d52</code></td><td>docs(qa): v24 최종 실화면 캡처 갱신</td></tr>
+<tr><td><code>182b18c8</code></td><td>docs(qa): v24 지적 보수 증거와 판정 기록</td></tr>
+<tr><td><code>42befd9a</code></td><td>test(qa): 승인 프로토타입 3폭 대조 증거 추가</td></tr>
+<tr><td><code>08f78bc3</code></td><td>test(qa): 모바일 현재 방 계약 갱신</td></tr>
+<tr><td><code>581de86b</code></td><td>test(qa): v24 실앱 재현과 화면 증거 추가</td></tr>
+<tr><td><code>8967a69f</code></td><td>fix(qa): V24-DR-006 OAuth 개수 진실원 정렬</td></tr>
+<tr><td><code>8b3de8aa</code></td><td>fix(qa): V24-DR-001 현재 방 중복 딱지 제거</td></tr>
+<tr><td><code>4a1971cd</code></td><td>fix(qa): V24-DR-002 성과실 중복 패널 제거</td></tr>
+<tr><td><code>6e34a11e</code></td><td>docs(qa): record Opus cross-review remediation evidence</td></tr>
+<tr><td><code>40a71ddd</code></td><td>배포 준비: 개발용 신원 우회가 운영에서 열리지 않게 막고 릴리스 판을 발주</td></tr>
+<tr><td><code>592bdd3b</code></td><td>fix(qa): OSMU-BLOCK-C5 serialize comment likes</td></tr>
+<tr><td><code>dc3b289a</code></td><td>감독: 갈래당 한 명을 동시 여섯 명으로 올리고 몫 우회를 재현으로 검증</td></tr>
+<tr><td><code>6e5be518</code></td><td>test(qa): OSMU-BLOCK-D2 preserve onboarding draft recovery</td></tr>
+<tr><td><code>42701de0</code></td><td>fix(qa): OSMU-BLOCK-D1 restore brand document guidance</td></tr>
+<tr><td><code>ea303437</code></td><td>fix(qa): OSMU-BLOCK-F3 keep partial publish incidents open</td></tr>
+<tr><td><code>da310d71</code></td><td>fix(qa): OSMU-BLOCK-F2 scope recovery by account</td></tr>
+<tr><td><code>f7787e1a</code></td><td>fix(qa): OSMU-BLOCK-C4 retain uncertain reply claims</td></tr>
+<tr><td><code>9f4ac6b5</code></td><td>fix(qa): OSMU-BLOCK-M2 separate regeneration idempotency</td></tr>
+<tr><td><code>87ed9af5</code></td><td>docs(osmu): record code review remediation evidence</td></tr>
+<tr><td><code>e424a43e</code></td><td>fix(osmu): close tenant and operations review gaps</td></tr>
+<tr><td><code>4bb34194</code></td><td>fix(osmu): make publish and regeneration idempotent</td></tr>
+<tr><td><code>cd93c465</code></td><td>감독: 백로그가 비면 스스로 다음 판을 만들어 채운다</td></tr>
+<tr><td><code>bbb656a0</code></td><td>docs(qa): 네 방 기본 흐름 실사 증거 기록</td></tr>
+<tr><td><code>235aa736</code></td><td>docs(qa): 교차 모델 BLOCK 수정 증거 기록</td></tr>
+<tr><td><code>c9f9573e</code></td><td>test(qa): 네 방 4개 폭 실사 검증 종료 보장</td></tr>
+<tr><td><code>e7530a27</code></td><td>qa: 실제 사람 동선 출고 NG 보고</td></tr>
+<tr><td><code>880de3b0</code></td><td>fix(engagement): 답글 청구 만료와 미확정 응답 구분</td></tr>
+<tr><td><code>f59ee363</code></td><td>감독: 백로그가 비어도 죽지 않게 하고 cron 감시를 한 겹 더 둠</td></tr>
+<tr><td><code>2121ef60</code></td><td>test(observability): 사람 개입 장애 실측 추가</td></tr>
+<tr><td><code>1f21cc4d</code></td><td>test(studio): 죽은 공장 실행 실측 검증 추가</td></tr>
+<tr><td><code>f8363e73</code></td><td>fix(qa): OSMU-FLOW-UI-02-03 빈 방의 다음 행동 연결</td></tr>
+<tr><td><code>8e6d5773</code></td><td>fix(qa): OSMU-FLOW-UI-01 성과실을 온보딩보다 먼저 표시</td></tr>
+<tr><td><code>5f2eb1fb</code></td><td>fix(engagement): 인증 오류를 401로 반환</td></tr>
+<tr><td><code>525c45d2</code></td><td>docs(audit): add overnight OSMU code review</td></tr>
+<tr><td><code>67028795</code></td><td>흐름: 네 방 기본 흐름을 최우선으로 올리고 도달 불가 결함을 발주</td></tr>
+<tr><td><code>90740835</code></td><td>fix(studio): 숏폼 공장 죽은 실행을 회수</td></tr>
+<tr><td><code>c78aa3ec</code></td><td>fix(studio): 무료 재생성 몫을 UTC 날짜로 고정</td></tr>
+<tr><td><code>dbd8b831</code></td><td>검수: 교차 모델 리뷰가 BLOCK 판정. 중대 8건 수정 발주</td></tr>
+<tr><td><code>067b937c</code></td><td>검수: 새 세션으로 코드리뷰와 QA 를 걸고 감독에 두 갈래를 더함</td></tr>
+<tr><td><code>5d941aa0</code></td><td>docs(ui): pin pre-token visual baseline</td></tr>
+<tr><td><code>39080c64</code></td><td>test(ui): record four-width token evidence</td></tr>
+<tr><td><code>c56ed9ed</code></td><td>test(observability): prove concurrent incident coalescing</td></tr>
+<tr><td><code>e2a9126f</code></td><td>refactor(ui): unify dashboard visual tokens</td></tr>
+<tr><td><code>ec4fcb6f</code></td><td>docs(observability): record live alert evidence</td></tr>
+<tr><td><code>ce193d4c</code></td><td>feat(observability): route actionable workspace alerts</td></tr>
+<tr><td><code>2e63be24</code></td><td>docs: record room performance verification</td></tr>
+<tr><td><code>7a95dc9a</code></td><td>feat(observability): add tenant incident ledger</td></tr>
+<tr><td><code>ed088f87</code></td><td>docs: record tenant isolation build evidence</td></tr>
+<tr><td><code>6caafe96</code></td><td>perf(dashboard): prioritize first room render</td></tr>
+<tr><td><code>b4ee60ab</code></td><td>test: prove tenant isolation boundaries</td></tr>
+<tr><td><code>bc80b5cc</code></td><td>test: add live tenant isolation attack harness</td></tr>
+<tr><td><code>961376e8</code></td><td>docs: record shorts factory verification</td></tr>
+<tr><td><code>a8eb113b</code></td><td>feat(onboarding): create first content before channel connect</td></tr>
+<tr><td><code>ad9ae5a7</code></td><td>feat: add isolated eight-concept shorts factory</td></tr>
+<tr><td><code>c4415dc5</code></td><td>감독: 아침에 열어 볼 한 장을 1분마다 새로 쓰고, 앱이 죽으면 되살린다</td></tr>
+<tr><td><code>dc11b48b</code></td><td>test(studio): record v63 room browser evidence</td></tr>
+<tr><td><code>ee5cbfbb</code></td><td>feat(engagement): add comment read and action APIs</td></tr>
+<tr><td><code>12a6f7d9</code></td><td>fix(studio): keep editor kind and readiness aligned</td></tr>
+<tr><td><code>bdea4664</code></td><td>feat(engagement): add capability and state schema contracts</td></tr>
+<tr><td><code>7b1f407f</code></td><td>감독: 워커 제한시간을 90분으로 늘리고 백로그를 열 판으로 채움</td></tr>
+<tr><td><code>f673e69b</code></td><td>feat(studio): implement v63 create and edit rooms</td></tr>
+<tr><td><code>4c8ea392</code></td><td>fix: preserve member-global studio generation contracts</td></tr>
+<tr><td><code>a2730c63</code></td><td>감독: 개발이 끝날 때까지 워커를 쉬지 않고 돌리는 감독 스크립트</td></tr>
+<tr><td><code>bb960340</code></td><td>docs: record studio generation database evidence</td></tr>
+</table>
+<h2>회장이 확인하실 것</h2>
+<p>멈추려면 <code>touch /tmp/osmu-supervisor.stop</code> 입니다. 진행 기록은 <code>/tmp/osmu-supervisor.log</code> 에 있습니다.</p>
+</div>

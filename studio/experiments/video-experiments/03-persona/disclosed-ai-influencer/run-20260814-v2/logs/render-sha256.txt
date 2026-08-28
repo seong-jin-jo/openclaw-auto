@@ -1,0 +1,8 @@
+1047bdc0a12474b6d8b13ce39ff8e9b9ee9ce3aa6f8c57e53de86b574f7cb3d9  /Users/sj/OSMU-archive/video-experiments/03-persona/disclosed-ai-influencer/run-20260814-v2/renders/P08-kling3_0_turbo.mp4
+18bc5b628a26847fd43c510d32abb4612f2b3fac722a041d42b2b4320dd775c1  /Users/sj/OSMU-archive/video-experiments/03-persona/disclosed-ai-influencer/run-20260814-v2/renders/P11-kling3_0_turbo.mp4
+4c3594faff6dad7dc43ce255afb43c8695856a7b4dc3e9661e7e56db11a2283c  /Users/sj/OSMU-archive/video-experiments/03-persona/disclosed-ai-influencer/run-20260814-v2/renders/P07-kling3_0_turbo.mp4
+5942ee3187dbccf5b6907d700c778646ff4b8bc587008fc69140b0557a44792e  /Users/sj/OSMU-archive/video-experiments/03-persona/disclosed-ai-influencer/run-20260814-v2/renders/P09-kling3_0_turbo.mp4
+688487caab6420007ab881de1b2ef7f208946107fc9847314d4e6fd99348569d  /Users/sj/OSMU-archive/video-experiments/03-persona/disclosed-ai-influencer/run-20260814-v2/renders/P02-wan2_7.mp4
+8eeb410a849a9bac69f78601ac21056cb82a1e7dbefaf24a534ba4c55611839c  /Users/sj/OSMU-archive/video-experiments/03-persona/disclosed-ai-influencer/run-20260814-v2/renders/P05-wan2_7.mp4
+dd9d01e6e3a5625b7eef80aeec59019f0077fd5e8c92f0c44bb1cf062813b08f  /Users/sj/OSMU-archive/video-experiments/03-persona/disclosed-ai-influencer/run-20260814-v2/renders/P10-kling3_0_turbo.mp4
+f394c55f646766ceff0cbe7341f8f7b18b601d621b7fd4d14ffe66ffa32610ce  /Users/sj/OSMU-archive/video-experiments/03-persona/disclosed-ai-influencer/run-20260814-v2/renders/P01-wan2_7.mp4

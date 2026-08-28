@@ -1,0 +1,36 @@
+# Marketing Hub wiki current — exit report
+
+## Result
+
+Updated the Marketing Hub wiki to distinguish current local implementation, browser-observed visual-only
+authentication, and production/external-unverified status. No product code was changed.
+
+## Files owned and changed
+
+- `wiki/product/marketing-hub-surface-map.md` (new): 25 page entries; customer Sidebar 26; customer/operator
+  shells; provider tabs; Settings customer 8/operator 9; Studio visual 7/direct 4/text API 8/video 3;
+  queue-view Inbox/Calendar; disabled/external/redirect/loading routes; responsive observations; production open issues.
+- `wiki/product/index.md`: surface-map entry point.
+- `wiki/product/studio.md`: replaces stale “5 channels + video” framing with separate current inventories.
+- `wiki/reference/channel-status.md`: removes stale `/videos` hash-link claim and adds truth/open-issue boundary.
+- `wiki/architecture/overview.md`: adds implementation vs production verification boundary.
+
+## Verification
+
+- `git diff --check`: passed.
+- Markdown local links introduced or changed: checked as existing (`product/marketing-hub-surface-map.md` from
+  index/studio/reference/architecture). Broken links: 0.
+- Self-check: all 25 page entries are enumerated; Sidebar 26 and required routing/status facts are present;
+  local code, visual observation, and production observations are not conflated.
+
+## Sources / model
+
+- Sources: `tasks/osmu-full-ui-code-audit.output`, `wiki/ops/session-state.md`, and audited current dashboard source.
+- Model: gpt-5.6-terra.
+- External benchmark intentionally skipped: this was a mechanical compilation of supplied audit/current code;
+  outside product comparison cannot verify implementation or production state.
+
+## Open, not resolved
+
+OAuth false-success, Instagram duplicate token UI, missing Settings status, and observed OSMU 502 remain
+production-observed issues requiring a separate production/browser/provider/log investigation.

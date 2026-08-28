@@ -1,6 +1,7 @@
 import { readJson, dataPath } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
+import { buildPublishReturnContext, isPublishReturnSource } from "@/lib/publish-return-context";
 
 interface QueueData {
   posts: Array<Record<string, unknown>>;
@@ -8,10 +9,21 @@ interface QueueData {
 
 export async function GET(request: Request) {
   // 테넌트별 파일 격리 컨텍스트로 래핑
-  const __t = await effectiveTenantId(request, null);
+  const requestUrl = new URL(request.url);
+  const __t = await effectiveTenantId(request, requestUrl.searchParams.get("tenant_id"));
   return runWithTenant(__t, async () => {
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = requestUrl;
     const status = searchParams.get("status");
+    const returnTo = searchParams.get("returnTo");
+    const legacySource = searchParams.get("source");
+    if (returnTo && legacySource && returnTo !== legacySource) {
+      return Response.json({ error: "returnTo and source must match" }, { status: 400 });
+    }
+    const source = returnTo ?? legacySource;
+    if (source && !isPublishReturnSource(source)) {
+      return Response.json({ error: "returnTo must be inbox or calendar" }, { status: 400 });
+    }
+    const returnSource = source && isPublishReturnSource(source) ? source : null;
 
     const queue = readJson<QueueData>(dataPath("queue.json")) || { posts: [] };
     let posts = queue.posts || [];
@@ -26,6 +38,13 @@ export async function GET(request: Request) {
       const bAt = (b.generatedAt as string) || "";
       return bAt.localeCompare(aAt);
     });
+
+    if (returnSource) {
+      posts = posts.map((post) => ({
+        ...post,
+        publishContext: buildPublishReturnContext(post, returnSource),
+      }));
+    }
 
     return Response.json({ posts, total: posts.length });
   });

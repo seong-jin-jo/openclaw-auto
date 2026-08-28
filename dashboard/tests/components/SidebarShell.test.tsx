@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import React from "react";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useUIStore } from "@/store/ui-store";
@@ -58,6 +58,7 @@ describe("Sidebar operator/customer shell separation", () => {
     useUIStore.setState({
       activeWorkspace: { id: "persisted-customer", slug: "romeo", name: "Romeo-n-cupid" },
       sidebarCollapsed: {},
+      studioRoom: "publish",
     });
     mocks.pathname.mockReturnValue("/operator/customers");
     mocks.signOut.mockReset();
@@ -92,7 +93,7 @@ describe("Sidebar operator/customer shell separation", () => {
     expect(localStorage.getItem("active_workspace")).toBeNull();
   });
 
-  it("preserves the customer marketing shell and exposes independent YouTube and TikTok management links", () => {
+  it("FE3-SIDEBAR-01 정상: 고객 셸 맨 위에 네 방 흐름과 그 아래 채널 링크를 노출한다", () => {
     mocks.pathname.mockReturnValue("/");
     mocks.swr.mockImplementation((key: string | null) => {
       if (key === "/api/me") {
@@ -110,9 +111,12 @@ describe("Sidebar operator/customer shell separation", () => {
 
     render(<Sidebar />);
 
-    expect(screen.getByText("Marketing Hub")).toBeInTheDocument();
     expect(screen.getByText("고객 워크스페이스")).toBeInTheDocument();
-    expect(screen.getByText("OSMU Studio")).toBeInTheDocument();
+    expect(screen.getByText("한 편의 제작 순서")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /생성실/ })).toHaveAttribute("href", "/studio?room=create");
+    expect(screen.getByRole("link", { name: /편집실/ })).toHaveAttribute("href", "/studio?room=edit");
+    expect(screen.getByRole("link", { name: /발행실/ })).toHaveAttribute("href", "/studio?room=publish");
+    expect(screen.getByRole("link", { name: /성과실/ })).toHaveAttribute("href", "/");
     expect(screen.getByText("Video")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "YouTube" })).toHaveAttribute(
       "href",
@@ -122,6 +126,59 @@ describe("Sidebar operator/customer shell separation", () => {
       "href",
       "/channels/tiktok",
     );
+  });
+
+  it("FE3-SIDEBAR-02 거절: 기존 Overview와 OSMU Studio 중복 진입로를 다시 노출하지 않는다", () => {
+    mocks.pathname.mockReturnValue("/studio");
+    mocks.swr.mockImplementation((key: string | null) => {
+      if (key === "/api/me") return { data: { isOperator: false, tenant: { id: "customer-1", slug: "customer", name: "고객 워크스페이스" } }, mutate: vi.fn() };
+      if (key === "/api/images") return { data: [] };
+      return { data: undefined };
+    });
+
+    render(<Sidebar />);
+
+    expect(screen.queryByText("Overview")).not.toBeInTheDocument();
+    expect(screen.queryByText("OSMU Studio")).not.toBeInTheDocument();
+  });
+
+  it("FE4-SIDEBAR-01 정상: 390 셸은 닫힌 서랍과 현재 방 이름으로 본문 폭을 보존한다", () => {
+    mocks.pathname.mockReturnValue("/studio");
+    mocks.swr.mockImplementation((key: string | null) => {
+      if (key === "/api/me") return { data: { isOperator: false, tenant: { id: "customer-1", slug: "customer", name: "고객 워크스페이스" } }, mutate: vi.fn() };
+      if (key === "/api/images") return { data: [] };
+      return { data: undefined };
+    });
+
+    render(<Sidebar />);
+
+    const sidebar = screen.getByRole("complementary", { name: "주요 사이드바" });
+    const openButton = screen.getByRole("button", { name: "메뉴 열기" });
+    expect(sidebar).toHaveClass("hidden", "md:flex", "md:w-24");
+    expect(screen.getAllByText("편집실").length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText("지금 여기")).not.toBeInTheDocument();
+    expect(openButton).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(openButton);
+    expect(sidebar).toHaveClass("fixed", "flex");
+    expect(openButton).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(screen.getByRole("button", { name: "메뉴 닫기" }));
+    expect(sidebar).toHaveClass("hidden");
+  });
+
+  it("FE4-SIDEBAR-02 거절: 좁은 폭에서도 고정 96px 레일을 강제하는 옛 셸을 되살리지 않는다", () => {
+    mocks.pathname.mockReturnValue("/");
+    mocks.swr.mockImplementation((key: string | null) => {
+      if (key === "/api/me") return { data: { isOperator: false, tenant: { id: "customer-1", slug: "customer", name: "고객 워크스페이스" } }, mutate: vi.fn() };
+      if (key === "/api/images") return { data: [] };
+      return { data: undefined };
+    });
+
+    render(<Sidebar />);
+
+    const sidebar = screen.getByRole("complementary", { name: "주요 사이드바" });
+    expect(sidebar.className).not.toContain("sticky top-0 flex h-screen w-24");
+    expect(sidebar).toHaveClass("w-[min(20rem,86vw)]", "md:sticky", "md:h-screen");
   });
 
   it("clears the persisted active workspace when a customer logs out", async () => {

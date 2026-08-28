@@ -1,6 +1,6 @@
 {
   "name": "dashboard",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,10 +9,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:publish": "vitest run tests/publish",
+    "audit:ui-tokens": "node scripts/ui-token-audit.mjs src --check",
     "e2e": "bash scripts/verify-e2e.sh",
     "e2e:local": "bash -c 'bash scripts/verify-e2e.sh \"${1:-http://localhost:3456}\"' _",
     "e2e:publish": "bash scripts/verify-publish-e2e.sh",
     "e2e:operator": "bash scripts/verify-operator-form-e2e.sh",
+    "e2e:r02": "node scripts/verify-r02-e2e.mjs",
     "ops:recover-operator-token": "bash scripts/recover-operator-token.sh"
   },
   "dependencies": {

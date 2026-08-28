@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>학습 정보 층계 v4</title>
+<style>
+:root{
+  --bg:#0f1115; --panel:#171a21; --line:#272c37; --tx:#e7eaf0; --dim:#9aa3b2;
+  --sys:#5b6b8c; --our:#3f7a8c; --usr:#c08a3e; --usr2:#d9a94f; --mix:#7a5f9e; --lrn:#4e8f5f; --req:#b5544e;
+  --st:#6f7fd6; --oc:#c98a4b;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);
+ font-family:-apple-system,"Apple SD Gothic Neo","Pretendard",sans-serif;line-height:1.75;font-size:16px;
+ -webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:56px 28px 120px}
+h1{font-size:34px;letter-spacing:-.02em;margin:0 0 8px}
+h2{font-size:24px;margin:64px 0 6px;padding-top:26px;border-top:1px solid var(--line)}
+h3{font-size:18px;margin:32px 0 8px;color:#fff}
+p{margin:10px 0;color:#d3d8e2}
+.sub{color:var(--dim);margin:0 0 34px}
+.lead{font-size:17.5px;color:#fff;background:#1b1f27;border-left:3px solid #5b8cff;
+ padding:14px 18px;border-radius:0 8px 8px 0;margin:18px 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px 24px;margin:20px 0}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:5px;color:#fff;
+ font-family:ui-monospace,Menlo,monospace}
+.dim{color:var(--dim)} small{color:var(--dim)}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px}
+th,td{border-bottom:1px solid var(--line);padding:9px 10px;text-align:left;vertical-align:top}
+th{color:var(--dim);font-weight:600;font-size:13px}
+.scroll{overflow-x:auto} svg{max-width:100%;height:auto;display:block}
+.note{font-size:14px;color:var(--dim);margin-top:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+.badbox{border-left:3px solid #e07b74;background:#1e1719;padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0}
+.goodbox{border-left:3px solid #5fbf7f;background:#161e19;padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0}
+.qbox{border-left:3px solid #c9a04b;background:#1e1b14;padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0}
+.rule{background:#12161d;border:1px dashed #3a4560;border-radius:10px;padding:16px 20px;margin:14px 0;
+ font-size:17px;color:#fff}
+</style></head><body><div class="wrap">
+
+<h1>학습 정보 층계</h1>
+<p class="sub">v4 · 2026-08-21 · 세 가지 물음에 답함<br>
+<small>회장 질문: ①바뀌는 것을 위로 올린 게 컴퓨터공학 관습을 따른 것이냐 ②U2와 U3 구분 기준이 애매하다 ③studio가 뭘 받아가고 openclaw가 뭘 받아가는지</small></p>
+
+<div class="lead">
+①<b>관습 맞습니다. 그것도 우리한테는 돈이 걸린 관습입니다.</b> 자주 바뀌는 걸 위로 올리는 건 도커 파일 작성 관습이자 <b>프롬프트 캐시가 먹히는 조건</b>입니다.<br>
+②<b>회장님 분류가 맞습니다.</b> 다만 기준에 이름이 없어서 애매했습니다. 판별 문장 하나로 고정했습니다. <b>그리고 회장님 목록에 성격이 다른 항목이 하나 섞여 있습니다.</b><br>
+③층별로 <b>누가 갖고 누가 받아가는지</b> 그림으로 붙였습니다.
+</div>
+
+<h2>1. "자주 바뀌는 걸 위로"는 어떤 관습인가</h2>
+
+<p>같은 원리가 컴퓨터공학에 세 군데 있습니다. 셋 다 <b>"안 바뀌는 것을 앞에 두면 앞부분을 다시 안 계산해도 된다"</b>는 한 문장입니다.</p>
+
+<div class="scroll"><table>
+<tr><th style="width:210px">어디서 쓰는 관습</th><th>내용</th><th style="width:210px">우리에게 무엇이 같은가</th></tr>
+<tr><td><b>도커 파일 층 순서</b></td><td>거의 안 바뀌는 명령을 위에, 자주 바뀌는 것(소스 복사)을 아래에 쓴다. 한 층이 바뀌면 <b>그 아래 층은 전부 다시 만들어야</b> 하기 때문</td><td>층 순서를 바꾸면 재사용이 깨진다</td></tr>
+<tr><td><b>스타일 우선순위</b></td><td>나중에 온 것이 앞의 것을 덮되, 강제 표시가 붙은 것은 못 덮는다</td><td>위가 아래를 덮되 <span class="mono">S0</span>과 <span class="mono">U2</span> 금지 표현은 못 덮는다</td></tr>
+<tr><td><b>프롬프트 캐시</b><br><small>바로 이게 핵심</small></td><td>모델에 보내는 글의 <b>앞부분이 지난번과 글자 하나까지 같으면</b> 그 부분을 다시 안 읽고 값도 크게 깎아준다. 앞부분이 한 글자라도 다르면 그 지점부터 전부 새로 읽는다</td><td><b>앞부분이 곧 우리 층계의 아래쪽입니다.</b> 아래를 고정해야 값이 내려갑니다</td></tr>
+</table></div>
+
+<div class="goodbox">
+<b>그래서 이 순서는 미관이 아니라 원가입니다.</b>
+<span class="mono">S0</span> <span class="mono">S1</span>은 사용자가 몇 번을 요청하든 똑같습니다. <span class="mono">U2</span>는 이 사용자의 모든 요청에서 똑같습니다. <span class="mono">U3</span>는 이 작업 공간 안에서 똑같습니다.
+<b>여기까지가 매번 같은 앞부분</b>이고, 달라지는 건 <span class="mono">L5</span> <span class="mono">R6</span>뿐입니다.
+만약 순서를 흩어서 사용자가 친 문장이 위쪽에 섞이면 <b>앞부분이 매번 달라져 재사용이 통째로 깨집니다.</b>
+</div>
+
+<div class="card">
+<div class="scroll">
+<svg viewBox="0 0 900 250" role="img" aria-label="캐시가 먹히는 순서와 깨지는 순서">
+<defs><style>
+.ch{font:700 14px -apple-system,sans-serif;fill:#fff}
+.cl{font:700 12px ui-monospace,Menlo,monospace;fill:#fff}
+.cn{font:13px -apple-system,sans-serif;fill:#cfd5e0}
+.cs{font:12px -apple-system,sans-serif;fill:#9aa3b2}
+</style></defs>
+
+<text class="ch" x="10" y="22">순서를 지켰을 때</text>
+<rect x="10" y="34" width="360" height="34" rx="7" fill="#1c2430" stroke="#4a5568"/>
+<text class="cs" x="26" y="56">고정 구간 · 매번 글자까지 같음 · 다시 안 읽음</text>
+<g>
+<rect x="10" y="76" width="66" height="26" rx="5" fill="var(--sys)"/><text class="cl" x="32" y="94">S0</text>
+<rect x="82" y="76" width="66" height="26" rx="5" fill="var(--our)"/><text class="cl" x="104" y="94">S1</text>
+<rect x="154" y="76" width="66" height="26" rx="5" fill="var(--usr)"/><text class="cl" x="176" y="94">U2</text>
+<rect x="226" y="76" width="66" height="26" rx="5" fill="var(--usr)"/><text class="cl" x="248" y="94">U3</text>
+<rect x="298" y="76" width="66" height="26" rx="5" fill="var(--mix)"/><text class="cl" x="320" y="94">X4</text>
+</g>
+<rect x="376" y="76" width="66" height="26" rx="5" fill="var(--lrn)"/><text class="cl" x="398" y="94">L5</text>
+<rect x="448" y="76" width="66" height="26" rx="5" fill="var(--req)"/><text class="cl" x="470" y="94">R6</text>
+<rect x="376" y="34" width="138" height="34" rx="7" fill="#2a1b1b" stroke="#7a4a46"/>
+<text class="cs" x="392" y="56">여기만 새로 읽음</text>
+<text class="cn" x="530" y="94">값이 내려가고 응답도 빨라집니다</text>
+
+<line x1="10" y1="130" x2="890" y2="130" stroke="#272c37"/>
+
+<text class="ch" x="10" y="164">순서를 흩었을 때</text>
+<g>
+<rect x="10" y="180" width="66" height="26" rx="5" fill="var(--sys)"/><text class="cl" x="32" y="198">S0</text>
+<rect x="82" y="180" width="66" height="26" rx="5" fill="var(--req)"/><text class="cl" x="104" y="198">R6</text>
+<rect x="154" y="180" width="66" height="26" rx="5" fill="var(--our)"/><text class="cl" x="176" y="198">S1</text>
+<rect x="226" y="180" width="66" height="26" rx="5" fill="var(--usr)"/><text class="cl" x="248" y="198">U2</text>
+<rect x="298" y="180" width="66" height="26" rx="5" fill="var(--usr)"/><text class="cl" x="320" y="198">U3</text>
+<rect x="370" y="180" width="66" height="26" rx="5" fill="var(--mix)"/><text class="cl" x="392" y="198">X4</text>
+<rect x="442" y="180" width="66" height="26" rx="5" fill="var(--lrn)"/><text class="cl" x="464" y="198">L5</text>
+</g>
+<rect x="82" y="214" width="426" height="26" rx="6" fill="#2a1b1b" stroke="#7a4a46"/>
+<text class="cs" x="98" y="232">사용자가 친 문장 하나 때문에 뒤가 전부 새로 읽힘</text>
+<text class="cn" x="530" y="198">같은 내용인데 값만 몇 배가 됩니다</text>
+</svg>
+</div>
+<p class="note">덧붙임: 우리는 여기에 한 겹을 더 얹을 수 있습니다. <b>같은 사용자의 연속 요청</b>이면 <span class="mono">U2</span> <span class="mono">U3</span>까지 고정 구간이 됩니다. 층을 이 순서로 두는 것만으로 그 이득이 자동으로 생깁니다.</p>
+</div>
+
+<h2>2. U2와 U3를 가르는 문장</h2>
+
+<p><b>회장님 분류가 맞습니다.</b> 애매했던 건 분류가 아니라 기준에 이름이 없었기 때문입니다. 판별 문장을 하나로 고정합니다.</p>
+
+<div class="rule">
+👉 <b>"작업 공간을 하나 더 만들면 이 값이 또 바뀌나?"</b><br>
+<span style="color:#9aa3b2;font-size:15px">안 바뀌면 <b class="mono" style="color:#fff">U2</b>. 바뀌면 <b class="mono" style="color:#fff">U3</b>.</span>
+</div>
+
+<p class="note">이 문장이 좋은 이유는 <b>층계 전체와 같은 기준이기 때문</b>입니다. 위아래를 가른 게 "얼마나 자주 바뀌나"였는데, U2와 U3도 같은 자로 잽니다. 기준이 하나면 나중에 새 항목이 들어와도 다툴 일이 없습니다.</p>
+
+<div class="card">
+<div class="scroll">
+<svg viewBox="0 0 900 340" role="img" aria-label="U2와 U3 구분">
+<defs><style>
+.uh{font:700 15px -apple-system,sans-serif;fill:#fff}
+.um{font:700 13px ui-monospace,Menlo,monospace;fill:#fff}
+.ui{font:13.5px -apple-system,sans-serif;fill:#e7eaf0}
+.uq{font:12.5px -apple-system,sans-serif;fill:#9aa3b2}
+</style></defs>
+
+<rect x="10" y="14" width="430" height="316" rx="11" fill="#221c11" stroke="var(--usr)" stroke-width="1.5"/>
+<rect x="34" y="34" width="46" height="22" rx="5" fill="var(--usr)"/><text class="um" x="46" y="50">U2</text>
+<text class="uh" x="92" y="50">계정 공통 · 이 사람이 누구인가</text>
+<text class="uq" x="34" y="76">공간을 열 개 만들어도 그대로인 것</text>
+<line x1="34" y1="88" x2="416" y2="88" stroke="#4a3d22"/>
+<text class="ui" x="34" y="114">마케팅을 하려고 왔다</text>
+<text class="ui" x="34" y="142">운영하는 채널은 이것들이다</text>
+<text class="ui" x="34" y="170">영상·음악·글·소설 중 이것을 만든다</text>
+<text class="ui" x="34" y="198">마케팅 지식은 이 정도다</text>
+<text class="ui" x="34" y="226">브랜드 사실, 절대 못 쓰는 말</text>
+<text class="ui" x="34" y="254">기본 말투, 브랜드킷, 소재 권리</text>
+<rect x="34" y="272" width="382" height="42" rx="7" fill="#2b2317" stroke="#6b5730" stroke-dasharray="4 3"/>
+<text class="uq" x="48" y="290">100% 알아서 해달라 / 최종 손질은 내가 한다</text>
+<text class="uq" x="48" y="308" fill="#d9a94f">← 여기만 성격이 다릅니다. 아래에서 따로 봅니다</text>
+
+<rect x="460" y="14" width="430" height="316" rx="11" fill="#221c11" stroke="var(--usr)" stroke-width="1.5"/>
+<rect x="484" y="34" width="46" height="22" rx="5" fill="var(--usr)"/><text class="um" x="496" y="50">U3</text>
+<text class="uh" x="542" y="50">작업 공간 · 이번 판이 무엇인가</text>
+<text class="uq" x="484" y="76">공간을 하나 더 만들면 새로 정하는 것</text>
+<line x1="484" y1="88" x2="866" y2="88" stroke="#4a3d22"/>
+<text class="ui" x="484" y="114">이번 공간의 타깃은 누구인가</text>
+<text class="ui" x="484" y="142">이번 공간의 컨셉은 무엇인가</text>
+<text class="ui" x="484" y="170">이번 공간이 노리는 결과는 무엇인가</text>
+<text class="ui" x="484" y="198">이 공간에서만 쓰는 말투 조정</text>
+<text class="ui" x="484" y="226">반입한 문서에서 뽑은 항목</text>
+<text class="ui" x="484" y="254">기존 채널을 읽어 요약한 결과</text>
+<text class="uq" x="484" y="292">같은 원장이 "재활 회원"과 "가을 신규"</text>
+<text class="uq" x="484" y="310">두 공간을 열면 이 여섯 줄이 서로 다릅니다</text>
+</svg>
+</div>
+</div>
+
+<h3>회장님 목록에서 하나를 떼어내야 합니다</h3>
+
+<div class="qbox">
+<b>"100% 알아서 해줬으면 좋겠다 / 최종 리터치는 내가 하고 싶다"</b>는 나머지와 종류가 다릅니다.<br><br>
+나머지는 전부 <b>모델에 실려 나가는 값</b>입니다. 브랜드가 뭘 파는지, 어떤 말을 피하는지는 글에 영향을 줍니다.
+그런데 이 항목은 <b>모델에 실어봐야 아무 소용이 없습니다.</b> "알아서 해주세요"를 프롬프트에 넣는다고 결과가 좋아지지 않습니다.
+이건 <b>화면이 어떻게 움직일지를 정하는 값</b>입니다. 확인 단계를 몇 번 띄울지, 초안을 바로 발행 대기로 보낼지 손질 화면에 세울지를 가릅니다.
+</div>
+
+<p>그래서 층 안의 값을 <b>두 종류로 나눠 표시</b>하기를 제안합니다. 같은 <span class="mono">U2</span>에 두되 꼬리표를 다르게 답니다.</p>
+
+<div class="card">
+<div class="scroll">
+<svg viewBox="0 0 900 210" role="img" aria-label="실리는 값과 모는 값">
+<defs><style>
+.vh{font:700 14.5px -apple-system,sans-serif;fill:#fff}
+.vt{font:13px -apple-system,sans-serif;fill:#cfd5e0}
+.vs{font:12px -apple-system,sans-serif;fill:#9aa3b2}
+.vm{font:700 12px ui-monospace,Menlo,monospace;fill:#fff}
+</style></defs>
+<rect x="10" y="16" width="430" height="180" rx="10" fill="#171a21" stroke="#3f7a8c" stroke-width="1.5"/>
+<text class="vh" x="34" y="46">실리는 값</text>
+<text class="vs" x="34" y="68">모델에게 같이 보내는 것</text>
+<line x1="34" y1="80" x2="416" y2="80" stroke="#2d3342"/>
+<text class="vt" x="34" y="106">브랜드 사실 · 금지 표현 · 말투</text>
+<text class="vt" x="34" y="132">타깃 · 컨셉 · 반입 문서 요약</text>
+<text class="vt" x="34" y="158">학습된 규칙 · 이번 주제</text>
+<text class="vs" x="34" y="182">글의 내용을 바꿉니다</text>
+
+<rect x="460" y="16" width="430" height="180" rx="10" fill="#171a21" stroke="#c08a3e" stroke-width="1.5"/>
+<text class="vh" x="484" y="46">모는 값</text>
+<text class="vs" x="484" y="68">화면과 절차를 정하는 것</text>
+<line x1="484" y1="80" x2="866" y2="80" stroke="#2d3342"/>
+<text class="vt" x="484" y="106">자동화 정도 (알아서 / 내가 손질)</text>
+<text class="vt" x="484" y="132">마케팅 지식 수준 (설명을 얼마나 붙일지)</text>
+<text class="vt" x="484" y="158">비용 상한 · 확인 단계 수</text>
+<text class="vs" x="484" y="182">글의 내용은 안 바꾸고 흐름을 바꿉니다</text>
+</svg>
+</div>
+<div class="goodbox">
+<b>왜 굳이 나누나.</b> 모는 값을 프롬프트에 섞으면 두 가지가 망가집니다. 첫째, 앞부분이 길어져 캐시 이득이 줄어듭니다. 둘째, 모델이 "알아서 해주세요"를 <b>내용 지시로 오해</b>해서 글투가 흔들립니다. 실제로 이런 문장은 결과를 나쁘게 만듭니다.<br>
+<b>대신 모는 값은 화면이 읽습니다.</b> "알아서"를 고르면 확인 단계를 건너뛰고 발행 대기로 바로 보내고, "손질하겠다"를 고르면 편집 화면에 세웁니다.
+</div>
+</div>
+
+<h3>"마케팅 지식 수준"은 양쪽에 걸칩니다</h3>
+<p>이건 정직하게 말하면 애매한 항목입니다. <b>화면 쪽</b>으로는 용어에 설명을 붙일지 말지를 정하고, <b>글 쪽</b>으로는 제안 카드를 얼마나 풀어 쓸지에 영향을 줍니다. 저는 <b>모는 값으로 두고 화면에서만 쓰기</b>를 권합니다. 모델에 "이 사람은 초보다"를 넣으면 결과물 자체가 유치해지는 부작용이 흔합니다. 사용자가 원한 건 <b>설명이 친절한 것</b>이지 <b>콘텐츠가 초보용인 것</b>이 아닙니다.</p>
+
+<h2>3. studio가 받아가는 것과 openclaw가 갖는 것</h2>
+
+<p class="note">전제: 상태를 전부 openclaw가 갖고 studio는 무상태로 두는 안입니다. 이건 기획서 미결 1로 아직 열려 있고, 다른 안으로 정하시면 이 그림이 바뀝니다.</p>
+
+<div class="card">
+<div class="scroll">
+<svg viewBox="0 0 900 430" role="img" aria-label="두 서비스가 층을 나눠 갖는 그림">
+<defs>
+<marker id="a2" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L8,3.2 L0,6.4" fill="#7d879b"/></marker>
+<style>
+.sh{font:700 15px -apple-system,sans-serif;fill:#fff}
+.ss{font:12px -apple-system,sans-serif;fill:#9aa3b2}
+.sm{font:700 12px ui-monospace,Menlo,monospace;fill:#fff}
+.si{font:13px -apple-system,sans-serif;fill:#cfd5e0}
+.sc{font:12.5px -apple-system,sans-serif;fill:#b9c1d0}
+</style></defs>
+
+<!-- openclaw -->
+<rect x="10" y="14" width="330" height="400" rx="12" fill="#1e1913" stroke="var(--oc)" stroke-width="1.5"/>
+<text class="sh" x="34" y="44">openclaw</text>
+<text class="ss" x="34" y="64">화면과 계정과 채널을 가진 쪽. 저장은 여기</text>
+
+<rect x="34" y="82" width="46" height="22" rx="5" fill="var(--usr)"/><text class="sm" x="46" y="98">U2</text>
+<text class="si" x="92" y="98">계정 공통</text>
+<rect x="34" y="112" width="46" height="22" rx="5" fill="var(--usr)"/><text class="sm" x="46" y="128">U3</text>
+<text class="si" x="92" y="128">작업 공간</text>
+<rect x="34" y="142" width="46" height="22" rx="5" fill="var(--lrn)"/><text class="sm" x="46" y="158">L5</text>
+<text class="si" x="92" y="158">학습된 규칙</text>
+<rect x="34" y="172" width="46" height="22" rx="5" fill="var(--req)"/><text class="sm" x="46" y="188">R6</text>
+<text class="si" x="92" y="188">이번 요청을 여기서 만듦</text>
+<rect x="34" y="202" width="46" height="22" rx="5" fill="var(--mix)"/><text class="sm" x="46" y="218">X4</text>
+<text class="si" x="92" y="218">사용자가 올린 스킬 보관</text>
+
+<line x1="34" y1="240" x2="316" y2="240" stroke="#4a3d22"/>
+<text class="ss" x="34" y="262">이것도 openclaw 것입니다</text>
+<text class="sc" x="34" y="286">채널 연결과 열쇠</text>
+<text class="sc" x="34" y="308">발행 예약과 실제 발행</text>
+<text class="sc" x="34" y="330">성과 수집과 댓글 운영</text>
+<text class="sc" x="34" y="352">관찰 기록 (L5의 재료)</text>
+<text class="sc" x="34" y="374">결제와 사용량</text>
+<text class="sc" x="34" y="396">완성물 보관</text>
+
+<!-- arrows -->
+<path d="M348 150 L470 150" stroke="#7d879b" stroke-width="2" marker-end="url(#a2)"/>
+<text class="sc" x="352" y="140" fill="#fff">봉투 하나로 넘김</text>
+<text class="ss" x="352" y="172">U2 U3 L5 R6 + 고른 스킬</text>
+
+<path d="M470 300 L348 300" stroke="#7d879b" stroke-width="2" marker-end="url(#a2)"/>
+<text class="sc" x="360" y="290" fill="#fff">결과를 돌려줌</text>
+<text class="ss" x="360" y="322">완성물 + 제작 정보</text>
+
+<!-- studio -->
+<rect x="478" y="14" width="412" height="400" rx="12" fill="#161826" stroke="var(--st)" stroke-width="1.5"/>
+<text class="sh" x="502" y="44">studio</text>
+<text class="ss" x="502" y="64">만드는 쪽. 자기 것만 갖고 나머지는 받아씀</text>
+
+<text class="ss" x="502" y="94">자기가 늘 갖고 있는 것</text>
+<rect x="502" y="104" width="46" height="22" rx="5" fill="var(--sys)"/><text class="sm" x="514" y="120">S0</text>
+<text class="si" x="560" y="120">안전선과 정책</text>
+<rect x="502" y="134" width="46" height="22" rx="5" fill="var(--our)"/><text class="sm" x="514" y="150">S1</text>
+<text class="si" x="560" y="150">시장·모델 지식</text>
+<rect x="502" y="164" width="46" height="22" rx="5" fill="var(--mix)"/><text class="sm" x="514" y="180">X4</text>
+<text class="si" x="560" y="180">우리가 등록한 스킬 원문</text>
+
+<line x1="502" y1="200" x2="866" y2="200" stroke="#333a55"/>
+<text class="ss" x="502" y="222">요청마다 받아서 쓰고 안 남기는 것</text>
+<text class="sc" x="502" y="246">계정 공통 · 작업 공간 · 학습된 규칙 · 이번 요청</text>
+
+<line x1="502" y1="264" x2="866" y2="264" stroke="#333a55"/>
+<text class="ss" x="502" y="286">여기서 하는 일</text>
+<text class="sc" x="502" y="310">받은 것을 순서대로 조립한다</text>
+<text class="sc" x="502" y="332">금지 표현을 쓸 수 있는 말로 바꾼다</text>
+<text class="sc" x="502" y="354">어긋나는 문장을 잡아낸다</text>
+<text class="sc" x="502" y="376">만들고 장면 정보를 붙여 돌려준다</text>
+<text class="sc" x="502" y="398" fill="#8a93a8">사용자가 누구인지는 모릅니다</text>
+</svg>
+</div>
+</div>
+
+<div class="scroll"><table>
+<tr><th style="width:70px">층</th><th style="width:150px">저장은 누가</th><th style="width:150px">쓸 때는 누가</th><th>메모</th></tr>
+<tr><td><span class="tag mono" style="background:var(--sys)">S0</span></td><td>studio</td><td>studio</td><td>openclaw도 발행 직전에 같은 판을 봐야 합니다. 정책은 발행에서도 걸리기 때문입니다</td></tr>
+<tr><td><span class="tag mono" style="background:var(--our)">S1</span></td><td>studio</td><td>studio</td><td>트렌드 신호만 openclaw가 모아 studio에 넘깁니다. 채널을 가진 쪽이 openclaw라서입니다</td></tr>
+<tr><td><span class="tag mono" style="background:var(--usr)">U2</span></td><td>openclaw</td><td>둘 다</td><td><b>실리는 값</b>은 studio로, <b>모는 값</b>은 openclaw 화면이 씁니다</td></tr>
+<tr><td><span class="tag mono" style="background:var(--usr)">U3</span></td><td>openclaw</td><td>둘 다</td><td>기존 채널 분석은 채널을 가진 openclaw가 하고 결과만 넘깁니다</td></tr>
+<tr><td><span class="tag mono" style="background:var(--mix)">X4</span></td><td>갈림</td><td>studio</td><td>우리 스킬은 studio가, 사용자가 올린 스킬은 openclaw가 보관하고 요청 때 실어 보냅니다</td></tr>
+<tr><td><span class="tag mono" style="background:var(--lrn)">L5</span></td><td>openclaw</td><td>studio</td><td>관찰 기록이 openclaw에 있으니 후보도 openclaw가 뽑습니다. studio는 <b>승낙된 규칙만</b> 받습니다</td></tr>
+<tr><td><span class="tag mono" style="background:var(--req)">R6</span></td><td>안 남김</td><td>studio</td><td>openclaw 화면에서 만들어져 그 요청에만 실립니다</td></tr>
+</table></div>
+
+<div class="goodbox">
+<b>이 그림이 지키는 규칙 하나.</b> studio는 <b>사용자가 누구인지 모릅니다.</b> 받은 봉투만 보고 만듭니다.
+그래서 나중에 studio를 개발자용으로 따로 팔 때 손댈 곳이 없습니다.
+반대로 openclaw는 <b>사용자에 대한 모든 것을 갖되 만들지는 않습니다.</b>
+</div>
+
+<h3>돌려받는 제작 정보</h3>
+<p>studio가 결과와 함께 돌려주는 것입니다. 사진에 찍힌 날짜와 렌즈 정보가 붙는 것과 같습니다.</p>
+<div class="card" style="padding:16px 22px">
+<table>
+<tr><th style="width:210px">항목</th><th>왜 필요한가</th></tr>
+<tr><td>어느 층의 어떤 값이 실렸나</td><td>결과가 이상할 때 어느 층을 고쳐야 하는지 바로 압니다</td></tr>
+<tr><td>어떤 스킬을 썼나</td><td>같은 결과를 다시 뽑을 수 있습니다</td></tr>
+<tr><td>장면 정보</td><td>자막이나 위치를 손질했을 때 다시 만들지 않고 다시 그리기만 하면 됩니다</td></tr>
+<tr><td>든 비용과 모델</td><td>사용량 계산과 값 조정에 씁니다</td></tr>
+</table>
+</div>
+
+<h2>4. 확정하면 바뀌는 것</h2>
+<p>앞글자와 U2·U3 기준이 확정되면 사업계획과 두 기획서와 이전 정리 문서, 네 곳의 층 표기를 한 번에 갈아끼웁니다. 지금은 네 문서가 옛 표기라 미룰수록 어긋납니다.</p>
+<div class="qbox">
+새로 생기는 항목도 하나 있습니다. <b>모는 값</b>이라는 구분이 들어가면 기획서에 "이 값은 모델에 안 실린다"는 표시가 층 표마다 필요합니다.
+</div>
+
+</div></body></html>

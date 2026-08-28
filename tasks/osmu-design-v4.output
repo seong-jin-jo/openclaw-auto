@@ -1,0 +1,225 @@
+# DESIGN-004 exit report: 기존 Marketing Hub 안에 더한 OSMU 전체 흐름 v4
+
+요청: v3의 전면 재설계 인상을 폐기하고 실제 Sidebar, header, spacing, card, route를 보존한 채 OSMU 목적, 양 플랫폼 공통 6탭, 고객 제보 항목의 성공과 복구 화면을 모두 클릭 가능하게 만든다.
+
+한 줄 결론: 기존 Marketing Hub를 유지하고 OSMUContextBar와 공통 `Queue / Editor / Analytics / Growth / Popular / Settings`만 더했다. Threads TEXT/IMAGE와 Instagram IMAGE/Reels의 즉시·예약·Queue·Calendar·게시물 링크·분석, OAuth 성공과 재연결, 502 조회 후 안전 재발행이 실제 성공 화면으로 끝난다. 최종 브라우저 검수는 14화면 × 15상태 = 210조합 실패 0, 양 플랫폼 6탭 클릭 12/12, 콘솔 오류 0, 모바일 가로 넘침 0이다.
+
+## [모델]
+
+`gpt-codex/gpt-5.6-sol` / agent `product-designer`
+
+## [RAW TRANSCRIPT EVIDENCE]
+
+아래는 실제로 읽거나 실행한 항목만 기록했다.
+
+### Skill Read and execution
+
+```jsonl
+{"name":"Read","file_path":"/Users/sj/.claude/skills/gstack/design-consultation/SKILL.md","result":"loaded and applied: preserve recognizable product anchors and define additive delta"}
+{"name":"Read","file_path":"/Users/sj/.claude/skills/gstack/design-shotgun/SKILL.md","result":"loaded and applied: divergent concepts were constrained to additive shell alternatives before convergence"}
+{"name":"Read","file_path":"/Users/sj/.claude/skills/gstack/design-html/SKILL.md","result":"loaded and applied: one self-contained 390/1024 clickable routing hub with state controls"}
+{"name":"Read","file_path":"/Users/sj/.claude/skills/gstack/design-review/SKILL.md","result":"loaded and completed: rendered desktop/mobile, responsive, hierarchy, accessibility and slop review"}
+{"name":"Read","file_path":"/Users/sj/.claude/standards/design.md","result":"loaded: Design Score B minimum, state coverage, 390/1024, 44px actions, no em/en dash"}
+{"name":"Read","file_path":"/Users/sj/.claude/standards/benchmarks.md","result":"loaded: benchmark interaction principles from official sources"}
+{"name":"Read","file_path":"/Users/sj/.claude/standards/artifact-stamp.md","result":"loaded: versioned line artifact, one routing hub, internal stamp"}
+```
+
+design-shotgun 실행 결과는 앞선 같은 OSMU 디자인 루프와 동일하게 3안 외부 생성이 0/3으로 막혔다. API required input 누락 1건, organization verification 2건이며 성공으로 주장하지 않았다. DESIGN-004에서는 실제 운영 shell, 전면교체안, additive context-bar안을 구조 비교했고, 사용자 피드백과 as-built fidelity 때문에 additive안을 선택했다.
+
+### Official benchmark WebSearch
+
+```jsonl
+{"name":"WebSearch","query":"site:support.buffer.com/article/857 Threads Buffer active browser account connect correct account 2026","result":"turn37search1, official Buffer Threads Help"}
+{"name":"WebSearch","query":"site:docs.postiz.com/public-api/posts/create draft schedule now Postiz","result":"turn37search0, official Postiz Create Post"}
+{"name":"WebSearch","query":"site:help.later.com/hc/en-us \"About Draft Posts\" Later","result":"turn39search0, official Later Draft Posts"}
+{"name":"WebSearch","query":"site:support.sproutsocial.com Publishing Calendar Queue Drafts Approval Instagram Reels","result":"turn37search3 and turn37search11, official Sprout Support"}
+```
+
+### Official benchmark WebFetch
+
+```jsonl
+{"name":"WebFetch","url":"https://support.buffer.com/article/857-using-threads-with-buffer","result":"turn38view0 lines 27-45: active browser account determines connection, logout/login recovery, no account picker"}
+{"name":"WebFetch","url":"https://support.buffer.com/article/568-connecting-your-instagram-business-or-creator-account-to-buffer","result":"turn38view1 lines 119-132: active Instagram account, wrong account risk, reconnect steps"}
+{"name":"WebFetch","url":"https://docs.postiz.com/public-api/posts/create","result":"turn38view2 lines 164-185: now, schedule and draft are distinct modes; duplicate requires a new clean submission"}
+{"name":"WebFetch","url":"https://help.later.com/hc/en-us/articles/8843980454295-About-Draft-Posts","result":"turn39search0: drafts do not publish at selected time; explicitly promote to scheduled"}
+{"name":"WebFetch","url":"https://support.sproutsocial.com/hc/en-us/articles/360000121343-How-do-I-use-the-Publishing-Calendar","result":"turn38view4 lines 447-505: List/Week/Month and Scheduled/Queued/Sent states with edit, send, preview and reschedule"}
+{"name":"WebFetch","url":"https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows","result":"turn38view5 lines 472-511, 551-575, 704-710: draft/approval separation, retained recovery, Reels approval and scheduled publish"}
+```
+
+### Headless QA raw observation
+
+```jsonl
+{"name":"Bash","command":"browse goto file:///Users/sj/sj_code_master/openclaw-auto/docs/prototype/openclaw-auto-osmu-additive-full-flow-v4-gpt-codex.html","result":"200"}
+{"name":"Bash","command":"browse screen-state matrix audit","result":{"views":14,"states":15,"combinations":210,"failures":0,"maxLoading":1}}
+{"name":"Bash","command":"browse platform tab audit","result":{"threads":{"order":["Queue","Editor","Analytics","Growth","Popular","Settings"],"heights":[44,44,44,44,44,44],"clicks":"6/6"},"instagram":{"order":["Queue","Editor","Analytics","Growth","Popular","Settings"],"heights":[44,44,44,44,44,44],"clicks":"6/6"}}}
+{"name":"Bash","command":"browse mobile audit 430x900 with internal 390 viewport","result":{"bodyOverflow":0,"viewportWidth":390,"osmuVisible":true,"minActionHeight":44,"loadingCount":0}}
+{"name":"Bash","command":"browse console --errors","result":"no console errors"}
+{"name":"view_image","file_path":"/private/tmp/osmu-v4-desktop.png","result":"Marketing Hub Sidebar, OSMU context, Threads six tabs and connected settings visually inspected"}
+{"name":"view_image","file_path":"/private/tmp/osmu-v4-mobile.png","result":"390px Instagram Editor, OSMU context, horizontal six-tab rail and single-column cards visually inspected"}
+```
+
+## [기반과 실제 제품 보존]
+
+- 상류: `docs/openclaw-auto-osmu-prd-v2.4-gpt-codex.md`, `docs/qa-tracker.md` REQUEST-OSMU-001과 DESIGN-004.
+- 실제 shell: `dashboard/src/components/layout/Sidebar.tsx`, `dashboard/src/app/globals.css`.
+- 실제 채널: `dashboard/src/components/channel/ChannelPage.tsx`, `dashboard/src/components/channel/InstagramPage.tsx`.
+- 실제 작업: `dashboard/src/components/queue/QueueList.tsx`, `dashboard/src/app/studio/page.tsx`, `dashboard/src/app/settings/page.tsx`.
+- 실제 화면: `docs/evidence/sns007-live-threads-account-manager-20260717.png`, `docs/evidence/sns007-live-instagram-account-manager-20260717.png`, `docs/evidence/threads-auto-publish-20260724.png`, `docs/evidence/sns015-instagram-reel-operating-20260721.png`.
+
+| 현재 제품 anchor | v4 판정 |
+|---|---|
+| 224px CustomerSidebar, Marketing Hub, workspace | 유지 |
+| Overview와 Social 등 기존 그룹과 route | 유지, 삭제 0 |
+| `px-8 py-6`, 32px channel icon, page title, flat card | 유지 |
+| Threads 기존 5탭 | Editor를 추가해 공통 6탭 |
+| Instagram 기존 3탭 | Analytics, Growth, Popular를 추가해 공통 6탭 |
+| OSMU 인지 | Sidebar `OSMU Studio` 유지 + 주요 본문 OSMUContextBar 추가 |
+| 개발 추적 정보 | 고객 viewport 밖 별도 `유지·추가·수정 근거` 패널 |
+
+소스 구현 파일은 수정하지 않았다.
+
+## [산출물]
+
+- `DESIGN.md` §13: additive shell, OSMU identity, 공통 6탭, 유지·추가·수정·제거 0, 성공·복구, 금지 패턴.
+- `docs/user-flow.md` §13: login부터 logout/relogin, happy/edge/empty/error/loading, 502, dead-end audit.
+- `docs/WIREFRAMES/openclaw-auto-osmu-07-as-built-shell-identity-v3-gpt-codex.md` DESIGN-004 correction.
+- `docs/WIREFRAMES/openclaw-auto-osmu-08-draft-review-delivery-v3-gpt-codex.md` DESIGN-004 correction.
+- `docs/WIREFRAMES/openclaw-auto-osmu-09-recovery-settings-capability-v3-gpt-codex.md` DESIGN-004 correction.
+- `docs/prototype/openclaw-auto-osmu-additive-full-flow-v4-gpt-codex.html`: 단일 클릭 routing hub, 14화면, 15상태, 390/1024, light/dark, trace panel.
+
+## [REQUEST-OSMU-001 + DESIGN-004 RTM]
+
+| 요구 | 성공 화면 | 복구 화면 | 판정 |
+|---|---|---|---|
+| 기존 제품에 더하기 | Marketing Hub/Sidebar/header/card 유지 | trace panel에서 제거 0 확인 | PASS |
+| OSMU 즉시 인지 | 인증 후 모든 주요 화면 OSMUContextBar | Sidebar OSMU Studio로 복귀 | PASS |
+| 양 플랫폼 6탭 동일 | 문자·순서 일치, 12/12 클릭 | 데이터 0이면 수집/첫 게시물 CTA | PASS |
+| 로그인 계정 혼선 | workspace와 목표 handle 확인 | 목표/반환 handle 병렬, 변경 안내 | PASS |
+| Threads OAuth | 연결됨, handle, 마지막 확인, 연결 CTA 제거 | checking/failed/reconnect/wrong account | PASS |
+| Instagram OAuth | 연결됨, handle, 마지막 확인, 연결 CTA 제거 | checking/failed/reconnect/wrong account | PASS |
+| Graph form 기본 숨김 | 일반 Settings form 0 | 고급 복구 열기, 위험·범위·취소 | PASS |
+| 전역 Settings 정합 | 같은 handle/status/time | 재연결 상태도 동일 | PASS |
+| Threads Editor | TEXT와 IMAGE → review | 생성 실패 시 원문 보존·직접 편집 | PASS |
+| Instagram Editor | IMAGE와 Reels → review | 생성 실패 시 원문 보존·직접 편집 | PASS |
+| 지금 발행 | publishing → published → 실제 링크 | 결과 확인·기록 보기 | PASS |
+| 예약 발행 | scheduled → Queue → Calendar | 수정·초안 복귀·재연결 | PASS |
+| Queue/Calendar | 같은 시간·handle·상태 | 실패와 재연결 경로 | PASS |
+| 502 중복 방지 | 기존 결과 조회 → 링크 회수 | 미발행 확인 뒤에만 safe retry → 링크 | PASS |
+| Analytics | 게시물 링크별 성과 | 0 data면 수집/첫 게시물 | PASS |
+| Growth | 실제 follower snapshot 목표 | snapshot 0이면 수집 CTA | PASS |
+| Popular | 실제 published post 성과와 링크 | 글 0이면 Editor, 성과 0이면 수집 | PASS |
+| logout/relogin | `/login → workspace → /` | 다른 계정이면 mismatch 확인 | PASS |
+| loading 제한 | 영향 영역 1개만 shimmer | 다른 작업 계속하기 | PASS |
+| 고객 언어 | 내부 메타 0 | 추적 번호는 고객 지원 용어로 설명 | PASS |
+
+RTM: `20 / 20 PASS = 100%`, dead-end `0`.
+
+## [벤치마크 적용]
+
+- Buffer: 현재 브라우저 계정이 연결 대상을 결정하는 제약을 차용했다. OSMU는 연결 전 계정 안내, 복귀 후 handle 검증, wrong-account 복구로 바꿨다.
+- Postiz: draft, now, schedule의 명확한 분리를 차용했다. OSMU는 기존 Studio, Queue, Calendar route 안에서 상태를 연결했다.
+- Later: draft는 시간값이 있어도 게시되지 않는다는 구분을 차용했다. 검수본과 예약본을 같은 표현으로 뭉개지 않았다.
+- Sprout: Queue/Scheduled/Sent와 approval, Calendar의 왕복 동작을 차용했다. OSMU는 1인 운영에 맞게 승인 단계를 `발행 전 확인` 한 번으로 줄이고 실제 링크를 성공 기준으로 강화했다.
+
+차별화는 새 대시보드가 아니다. 기존 Marketing Hub 안에서 `한 원문 → 플랫폼별 형식 → 사람 검수 → 실제 게시물 링크 → 성과`를 한 증거 흐름으로 연결한 것이다.
+
+## [Prototype QA]
+
+| 검사 | 최종 관찰 |
+|---|---|
+| file load | 200 |
+| console errors | 0 |
+| 14화면 × 15상태 | 210/210, 실패 0 |
+| 동시에 보이는 loading | 최대 1 |
+| Threads 탭 | 정확한 6개 순서, 6/6 클릭, 각 44px |
+| Instagram 탭 | 정확한 6개 순서, 6/6 클릭, 각 44px |
+| OAuth connected | handle true, last checked true, 기본 연결 CTA false |
+| reconnect | 재연결 CTA true, 초안 복귀 true |
+| Instagram advanced | 초기 hidden, 열기 뒤 위험·범위·취소 true |
+| Threads IMAGE | Editor → review → delivery → published → link PASS |
+| Instagram Reels | Editor → review → delivery → published → link PASS |
+| 예약 | delivery → Queue → Calendar PASS |
+| 502 | lookup → not-published → safe-publish → published → link PASS |
+| mobile | 내부 viewport 390px, body overflow 0, action 최소 44px |
+| OSMU 목적 | 로그인 제외 모든 주요 화면 true |
+
+렌더 캡처는 `/private/tmp/osmu-v4-desktop.png`, `/private/tmp/osmu-v4-mobile.png`에 있으며 두 파일 모두 `view_image`로 직접 관찰했다. 요청대로 GUI `open`은 호출하지 않았다.
+
+## [Design Review]
+
+| 축 | 점수 | 근거 |
+|---|---:|---|
+| 기존 제품 인지도 | 5/5 | 실제 Sidebar, workspace, route, channel header, spacing, card density 유지 |
+| OSMU 명료성 | 5/5 | 주요 화면 동일 목적 문장, Studio와 다음 행동 연결 |
+| 기능·상태 완결성 | 5/5 | 210조합, RTM 20/20, dead-end 0, 성공·복구 병렬 |
+| 반응형·접근성 | 4/5 | 390/1024, 44px action/tab, focus-visible, overflow 0. 실제 스크린리더 수동 검증은 미수행 |
+| 시각 절제 | 5/5 | 현재 flat blue/zinc shell, 장식성 gradient·blob·hero 없음, 추적 정보 분리 |
+
+Design Score: **B+ (`24/25`)**. Design Score B 이상 통과.
+
+AI_SLOP_AUDIT: 전면 hero, 장식 gradient, blob/wave, 과장 KPI, 가짜 긴급성, 기능 없는 CTA, 내부 요구사항 반복 노출 0. 기존 제품 셸과 정보 밀도를 우선했다.
+
+AI Slop Score: **A**.
+
+## [Red team]
+
+까다로운 기존 고객: “Marketing Hub가 또 사라지고 OSMU라는 새 앱이 생겼다.” v3에는 타당한 공격이었다. v4는 실제 224px Sidebar, Marketing Hub, workspace, 그룹, route, header, card를 복원하고 OSMU를 40px context bar로만 추가했다. 제거는 0이다.
+
+경쟁자: “탭 이름만 맞췄고 Instagram Growth와 Popular는 가짜다.” 이 공격을 막기 위해 허구 숫자를 넣지 않았다. Growth는 follower snapshot, Popular는 published post insight라는 목표 데이터와 0 data 수집 행동만 설계했다. 데이터 계약은 eng-design 결정으로 회수한다.
+
+회의적 투자자: “상태 문구 정리는 경쟁력이 아니다.” 맞다. 검증 대상은 한 원문이 실제 게시물 링크와 성과로 닫히는지다. 그래서 연결 성공, 4개 media 형식, 즉시/예약, 502를 각각 클릭 가능한 최종 화면까지 연결했다.
+
+## [셀프심문]
+
+질문: **“기존 제품을 알아볼 수 있는가? OSMU가 즉시 보이는가? Threads/Instagram 탭 6개가 문자와 순서까지 동일한가? 사용자가 안 된다고 한 각 항목이 실제 성공 화면으로 끝나는가?”**
+
+답: 모두 예다. 첫째, Marketing Hub와 실제 Sidebar 구조가 데스크톱 캡처에서 즉시 식별된다. 둘째, 인증 후 주요 화면 모두 OSMU 목적 문장을 보인다. 셋째, DOM 검사에서 양 플랫폼 순서가 정확히 같고 각 6개가 클릭된다. 넷째, OAuth는 handle/time과 CTA 제거, 4개 media는 게시물 링크, 예약은 Queue/Calendar, 502는 lookup 후 안전 재발행과 링크로 끝난다.
+
+이 결론이 틀렸다면 가장 그럴듯한 이유는 프로토타입의 성공 데이터가 실제 API 응답과 아직 결선되지 않았기 때문이다. 그래서 UI는 완료하되 Instagram Growth/Popular source, identity authority, 502 lookup 계약을 다음 기술설계의 load-bearing 합의로 명시하고 실제 제품 동작 완료로 과장하지 않는다.
+
+## [남은 gap과 다음 stage]
+
+⛔ 회수 필요: Instagram Growth의 follower snapshot과 Popular의 post insight를 어느 API, 저장 주기, 비용으로 제공할지는 eng-design 합의가 필요하다.
+
+⛔ 회수 필요: 로그인 계정, workspace, channel-config, OAuth 반환 handle이 충돌할 때 authoritative identity와 발행 차단 규칙은 eng-design에서 확정해야 한다.
+
+⛔ 회수 필요: 502 기존 결과 조회가 어떤 provider identifier로 idempotent lookup하는지는 API 계약으로 확정해야 한다.
+
+다음 stage 가능 여부: **조건부 가능**. 회장이 v4의 additive shell과 공통 6탭을 확인하면 design 승인 후보이며, 위 3개는 eng-design 대화에서 회수한다. 실제 제품 구현·배포 완료는 주장하지 않는다.
+
+🏷 STAMP | line: openclaw-auto-osmu | 생성: 2026-08-03 22:15 KST | model: gpt-codex/gpt-5.6-sol | agent: product-designer | skills: design-consultation, design-shotgun, design-html, design-review | 근거: 실제 dashboard shell·운영 screenshots·Buffer/Postiz/Later/Sprout | 고민: 기존 제품을 잃지 않으면서 OSMU 목적과 완결 경로를 한눈에 만드는 데 집중했다.
+
+SOURCES:
+
+- `docs/openclaw-auto-osmu-prd-v2.4-gpt-codex.md`
+- `docs/qa-tracker.md`
+- `dashboard/src/components/layout/Sidebar.tsx`
+- `dashboard/src/app/globals.css`
+- `dashboard/src/components/channel/ChannelPage.tsx`
+- `dashboard/src/components/channel/InstagramPage.tsx`
+- `dashboard/src/components/queue/QueueList.tsx`
+- `dashboard/src/app/studio/page.tsx`
+- `dashboard/src/app/settings/page.tsx`
+- `docs/evidence/sns007-live-threads-account-manager-20260717.png`
+- `docs/evidence/sns007-live-instagram-account-manager-20260717.png`
+- `docs/evidence/threads-auto-publish-20260724.png`
+- `docs/evidence/sns015-instagram-reel-operating-20260721.png`
+- https://support.buffer.com/article/857-using-threads-with-buffer
+- https://support.buffer.com/article/568-connecting-your-instagram-business-or-creator-account-to-buffer
+- https://docs.postiz.com/public-api/posts/create
+- https://help.later.com/hc/en-us/articles/8843980454295-About-Draft-Posts
+- https://support.sproutsocial.com/hc/en-us/articles/360000121343-How-do-I-use-the-Publishing-Calendar
+- https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows
+- `/Users/sj/.claude/standards/design.md`
+- `/Users/sj/.claude/standards/benchmarks.md`
+- `/Users/sj/.claude/standards/artifact-stamp.md`
+
+MODEL: `gpt-codex/gpt-5.6-sol`
+
+RUBRIC_SCORE: hierarchy=5/5 fidelity=5/5 functionality=5/5 accessibility=4/5 slop=5/5 total=24/25 DESIGN_SCORE=B+
+
+WEAKEST_LINE: 실제 API·DB 결선 전에는 Growth, Popular, identity authority, 502 idempotent lookup이 디자인 계약으로만 존재한다.
+
+SKILLS_USED: design-consultation에 실제 제품 anchor와 additive delta / design-shotgun에 전면교체·기능숨김·context-bar 3방향 비교, 외부 생성 0/3 실패는 위조 없이 기록 / design-html에 14화면×15상태 단일 클릭 허브 / design-review에 데스크톱·390px 렌더, 210조합, 6탭, 44px, overflow, console, slop QA
+
+SKILLS_SKIPPED: 없음

@@ -1,0 +1,23 @@
+{
+  "created_at": "2026-08-13T18:35:35.614829Z",
+  "display_name": "Wan 2.6 Video",
+  "id": "f0a6df0f-bec9-4a84-a419-b5ec2d98f9c2",
+  "job_type": "wan2_6",
+  "min_result_url": null,
+  "params": {
+    "aspect_ratio": "9:16",
+    "duration": 5,
+    "height": 1344,
+    "input_audio": null,
+    "input_images": [],
+    "input_videos": [],
+    "multi_shots": false,
+    "prompt": "Vertical framing. A wall calendar mounted on a plain wall, its paper pages flipping backward rapidly in a blur of motion, then settling on one single page as a deep red round rubber stamp presses down and its ink bleeds into the paper fibers. Beside the calendar a small mountain shaped line graph icon. Warm cream and deep navy palette, subtle paper grain, natural soft light, no text, no letters, no numbers anywhere.",
+    "quality": "720p",
+    "seed": 235045,
+    "width": 768
+  },
+  "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183535_f0a6df0f-bec9-4a84-a419-b5ec2d98f9c2.mp4",
+  "status": "completed",
+  "thumbnail_url": "https://cdn.higgsfield.ai/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260813_183535_f0a6df0f-bec9-4a84-a419-b5ec2d98f9c2_thumbnail.webp"
+}

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>banner-x</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+  :root{
+    --base:#0B0F1A; --surface:#151B2B; --amber:#F59E0B; --mint:#34D399;
+    --text:#F8FAFC; --text-sub:#94A3B8;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ width:1500px; height:500px; overflow:hidden; }
+  body{
+    position:relative;
+    font-family:'Pretendard', sans-serif;
+    background:#0B0F1A;
+  }
+  .photo{
+    position:absolute; inset:0;
+    background-image:url('bg-banner.png');
+    background-size:cover;
+    background-position:70% 42%;
+    filter:saturate(0.95) brightness(0.8);
+  }
+  .scrim{
+    position:absolute; inset:0;
+    background:
+      linear-gradient(100deg, rgba(11,15,26,0.94) 0%, rgba(11,15,26,0.72) 42%, rgba(11,15,26,0.24) 68%, rgba(11,15,26,0.4) 100%);
+  }
+  /* keep bottom-left clear where the profile photo circle overlaps */
+  .avatar-clear{
+    position:absolute; left:0; bottom:0; width:230px; height:190px;
+    background:radial-gradient(circle at 20% 100%, rgba(11,15,26,0.55) 0%, transparent 70%);
+  }
+  .content{
+    position:absolute; left:64px; top:56px; width:820px;
+    display:flex; flex-direction:column; gap:16px;
+  }
+  .kicker{
+    display:flex; align-items:center; gap:8px;
+    font-family:'JetBrains Mono', monospace; font-weight:700; font-size:19px;
+    letter-spacing:2px; color:var(--amber);
+  }
+  .kicker .sep{ color:var(--text-sub); font-weight:400; }
+  .kicker .name{ color:var(--text); }
+  .tagline{
+    font-weight:800; font-size:50px; line-height:1.18; letter-spacing:-1.5px;
+    color:var(--text);
+    text-shadow:0 4px 20px rgba(0,0,0,0.6);
+  }
+  .schedule{
+    display:flex; align-items:center; gap:10px;
+    font-family:'JetBrains Mono', monospace; font-weight:700; font-size:22px;
+    color:var(--mint); letter-spacing:0.5px;
+  }
+  .schedule .bar{ width:8px; height:8px; border-radius:2px; background:var(--mint); box-shadow:0 0 14px 2px rgba(52,211,153,0.6); }
+
+  .mini-card{
+    position:absolute; right:52px; top:96px; width:360px;
+    background:linear-gradient(180deg, #1A2236 0%, var(--surface) 100%);
+    border-radius:14px; border:1px solid rgba(255,255,255,0.09);
+    box-shadow:0 40px 90px -18px rgba(0,0,0,0.7);
+    overflow:hidden;
+    transform:rotate(-6deg);
+  }
+  .mini-card .chrome{
+    height:34px; background:rgba(0,0,0,0.32); display:flex; align-items:center; gap:6px; padding:0 14px;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+  }
+  .mini-card .dot{ width:9px; height:9px; border-radius:50%; }
+  .mini-card .dot.r{ background:#EF4444; } .mini-card .dot.y{ background:#F59E0B; } .mini-card .dot.g{ background:#34D399; }
+  .mini-card .body{ padding:16px 18px; font-family:'JetBrains Mono', monospace; font-size:14px; line-height:1.8; }
+  .k{ color:var(--mint); } .s{ color:var(--text-sub); } .v{ color:var(--text); } .n{ color:var(--amber); font-weight:700; }
+</style>
+</head>
+<body>
+  <div class="photo"></div>
+  <div class="scrim"></div>
+  <div class="avatar-clear"></div>
+
+  <div class="mini-card">
+    <div class="chrome"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="body">
+      <div><span class="s">$</span> <span class="v">osmu publish</span></div>
+      <div><span class="k">✓</span> <span class="v">발행</span> <span class="n">21</span><span class="s">/주</span></div>
+      <div><span class="v">자동화</span> <span class="n">54%</span></div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="kicker"><span>&gt;</span><span class="name">SJ</span><span class="sep">_BUILDLOG</span></div>
+    <div class="tagline">혼자 만들고, 전부 공개함</div>
+    <div class="schedule"><span class="bar"></span>매주 목요일</div>
+  </div>
+</body>
+</html>

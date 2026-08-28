@@ -1,247 +1,777 @@
-# DESIGN.md — 제품 대시보드 디자인 시스템 정본
+# OSMU 디자인 시스템 (현행)
 
-> **이 파일의 목적**: 어떤 모델(Opus/Sonnet/Haiku/Codex)이 새 화면을 만들어도 **동일한 디자인**이 나오게 하는 단일 진실원(SSOT).
-> 신규 창작 문서가 아니라 **이미 구현된 실물을 컴파일**한 정본이다. 여기 적힌 토큰·컴포넌트는 전부 코드에서 실제 확인한 것이다(추측 0).
->
-> **판정 우선순위** (충돌 시 위가 이김): ① 이 DESIGN.md → ② `docs/ui-rules.md`(레이아웃·페이지 상세) → ③ `dashboard/CLAUDE.md`(코딩 규칙) → ④ `~/.claude/standards/design.md`(품질헌법) → ⑤ 모델 취향(최후).
->
-> **실물 정본 위치**: 토큰=`dashboard/src/app/globals.css` · 레이아웃/화면 규칙=`docs/ui-rules.md` · 컴포넌트=`dashboard/src/components/**` · 코딩 규칙=`dashboard/CLAUDE.md`.
-> 이 파일과 실물이 어긋나면 **실물(globals.css/components)이 진실**이다 — 이 파일을 실물에 맞춰 갱신하라(반대 금지).
+> **이 문서는 지금 유효한 시스템만 담는다. 과거 판(v15~v31) 본문은 `docs/design-archive/DESIGN-v15-v31-archive.md`로 옮겼다.**
+> 스프린트 이력·판올림 로그를 여기에 덧붙이지 않는다. 변경 이력은 프로토타입 파일의 STAMP와 아카이브가 갖는다.
 
----
-
-## 0. 경계선 (무엇이 이 파일 소관이고 무엇이 아닌가)
-
-| 구분 | 정본 | 소관 |
-|---|---|---|
-| **제품 UI**(대시보드 화면·컴포넌트·토큰) | **이 DESIGN.md** | 여기 |
-| SNS 마케팅 비주얼(카드뉴스·릴스·썸네일 등 발행 에셋) | `wiki/marketing/design-system.md` | 별도 — 이 파일과 무관 |
-
-- **이 파일은 제품 UI 정본이다.** 브랜드명(OSMU 등)·특정 서비스 URL·특정 고객 도메인을 넣지 않는다(공통 플랫폼 중립성 — `CLAUDE.md` 공통 레포 정책).
-- 마케팅 에셋의 색·폰트는 제품 UI 토큰과 **다를 수 있고 그래도 된다**. 서로 참조하지 않는다.
-
----
-
-## 1. 브랜드 형용사 3개 + 디자인 원칙
-
-**기억시킬 한 가지(memorable thing)**: *"복잡한 SNS 자동화를, 사장님도 클릭 몇 번으로 — 믿고 맡기는 차분한 관제탑."*
-
-도출 근거: `globals.css` 무드 주석("도박틱 퍼플→핑크 제거, 신뢰형 플랫 블루") + `docs/ui-rules.md` 서두("대상 사용자: 일반인·자영업자·비개발자, 개발자 용어 최소화") + 실제 신뢰 장치 컴포넌트(TenantIsolationBanner·ConsentBanner·FreeEventBanner)의 존재.
-
-### 톤앵커 → 화면 발현 (1:1, 이 표를 못 채우면 그 화면은 톤 미달 = 재작업)
-
-| 형용사 | 뜻 | 화면 요소로 어떻게 발현되나 (실물 근거) |
-|---|---|---|
-| **믿음직한** (Trustworthy) | 사장님이 자기 계정·데이터를 맡겨도 안심 | 신뢰형 **플랫 블루 단일 액센트**(`--accent #2563EB`, 그라데이션·도박틱 색 금지) / **상태를 색으로 즉시 구분**(Live=초록 `--success`, Connected=파랑 `--accent`, 에러=빨강 `--danger`) / 민감 지점에 **신뢰 장치 노출**(TenantIsolationBanner의 RLS 실증 버튼, ConsentBanner의 거부 경로, FreeEventBanner의 과금 주체 명시) / credential은 기본 마스킹·readonly |
-| **또렷한** (Clear) | 비개발자가 헤매지 않고 지금 뭘 할지 안다 | **개발자 용어 최소화**, 쓰면 바로 옆 한국어 설명(SetupGuide) / **한 화면 한 결정**(Don't make me think), 자주 쓰는 기능은 최소 클릭 / **시맨틱 텍스트 위계** `text-text`(본문) → `text-muted`(보조) → `text-subtle`(비활성/힌트) / 빈 화면 방치 금지(EmptyState·OnboardingChecklist가 첫 행동 유도) |
-| **차분한** (Calm) | 밀도 높은 관제탑인데 시끄럽지 않다 | **desaturated 중립(zinc) 팔레트 + 액센트 1개**만 채도 보유(Linear식 절제) / 카드 radius 12px 통일·과한 그림자 없음(`--shadow`는 낮게) / 애니메이션 절제(`.channel-card` hover `translateY(-2px)`, `.pulse-dot` 은은한 opacity 펄스) / 장식용 blob·wave·gradient 0 |
-
-### 핵심 디자인 원칙
-
-1. **일반인 우선(Don't make me think).** 개발자 용어는 마지막 수단, 쓰면 옆에 설명. 한 화면 한 결정.
-2. **상태는 색으로 즉시.** 연결/미연결/에러/발행됨을 텍스트 읽기 전에 색으로 안다.
-3. **신뢰는 설계된다.** "느낌상 믿음직"이 아니라 거부 경로·과정 노출·실증 버튼 같은 **구체 요소**로 신뢰를 만든다(뱅크샐러드식 의도된 마찰).
-4. **절제가 밀도를 만든다.** 요소를 더해 채우지 말고 빼서 또렷하게. 액센트는 하나, 나머지는 중립.
-5. **라이트·다크 동시 성립.** 모든 화면은 두 테마 모두에서 깨지지 않는다(하드코딩 색 금지 — §2).
-
----
-
-## 2. 토큰 정본 (globals.css — 유일한 색·테마 원천)
-
-**철칙: 새 색·새 폰트·임의 hex 추가 금지.** 모든 색은 아래 시맨틱 토큰을 **Tailwind 유틸리티**로만 쓴다. `bg-gray-900`, `text-amber-200`, `#3b82f6` 같은 직접값·하드코딩 다크 클래스는 라이트 테마에서 깨진다 — **금지**(`dashboard/CLAUDE.md` 코딩 규칙).
-
-테마 전환: `<html data-theme="dark">` (라이트가 기본, ThemeToggle + layout FOUC 스크립트가 관리, next-themes 미사용).
-
-### 2.1 시맨틱 토큰 표 (라이트 기본 / 다크 토글)
-
-| 토큰(CSS 변수) | Tailwind 유틸리티 | 라이트 | 다크 | 용도 |
-|---|---|---|---|---|
-| `--bg` | `bg-bg` | `#FBFBFC` | `#0A0A0B` | 페이지 최하단 배경(true-grey, 순수 검정 아님) |
-| `--surface` | `bg-surface` | `#FFFFFF` | `#161618` | 카드·패널 표면(1단 elevation) |
-| `--surface-2` | `bg-surface-2` | `#F4F4F5` | `#1F1F23` | 중첩 표면·hover·입력칸(2단 elevation) |
-| `--border` | `border-border` | `#E4E4E7` | `#27272A` | 경계선·구분선 |
-| `--text` | `text-text` | `#18181B` | `#F4F4F5` | 본문·제목(주 텍스트) |
-| `--text-muted` | `text-muted` | `#52525B` | `#A1A1AA` | 보조 텍스트·라벨 |
-| `--text-subtle` | `text-subtle` | `#A1A1AA` | `#71717A` | 힌트·비활성·placeholder |
-| `--accent` | `bg-accent` / `text-accent` | `#2563EB` | `#3B82F6` | 단일 액센트(신뢰형 플랫 블루) — CTA·활성탭·링크 |
-| `--accent-hover` | `bg-accent-hover` | `#1D4ED8` | `#60A5FA` | 액센트 hover |
-| `--accent-fg` | `text-accent-fg` | `#FFFFFF` | `#FFFFFF` | 액센트 배경 위 글자(항상 흰색) |
-| `--accent-soft` | `bg-accent-soft` | `#EFF4FF` | `#172554` | 액센트 연한 배경(활성 사이드바·정보 배너) |
-| `--success` | `text-success` | `#16A34A` | `#22C55E` | 성공·Live 상태(다크에서 desaturate 조정됨) |
-| `--warning` | `text-warning` | `#D97706` | `#F59E0B` | 경고·주의 배너 |
-| `--danger` | `text-danger` | `#DC2626` | `#EF4444` | 에러·실패·삭제 |
-| `--shadow` | (`.card`/`.channel-card` 내부) | `0 4px 12px rgba(16,24,40,.08)` | `0 4px 12px rgba(0,0,0,.5)` | 낮은 그림자(elevation on hover) |
-
-> **2026 벤치마크 정합 확인(WebSearch)**: 위 시스템은 현행 SaaS 대시보드 베스트프랙티스와 일치한다 — ①순수 `#000` 대신 true-grey 다크 베이스(`#0A0A0B`) ②중립(zinc) 위에 **채도 있는 액센트 1개**(desaturated system + single accent) ③success/warning/danger를 **다크 전용값으로 별도 튜닝**(dark-mode-aware semantic color) ④surface→surface-2로 3~6% 밝기 스텝 elevation. (AYDesign·925studios 2026, §5 출처.)
-
-### 2.2 재사용 CSS 프리미티브 (globals.css 정의 — 컴포넌트 아님)
-
-| 클래스 | 용도 | 비고 |
-|---|---|---|
-| `.card` | 표준 카드(surface + border + radius 12px, hover 시 border 밝아짐) | `<Card>` 컴포넌트가 감싼다 |
-| `.channel-card` | 채널 카드(hover `translateY(-2px)` + shadow) | Marketing Home 그리드 |
-| `.sidebar-item` | 사이드바 항목(active 시 `accent-soft` 배경 + 우측 2px 액센트 라인) | Sidebar |
-| `.pulse-dot` | 연결 상태 라이브 도트(2s opacity 펄스) | 상태 표시 |
-| `.blog-article-body` | 블로그 미리보기 본문(라이트 콘텐츠 전용, 의도적 고정색 유지) | **예외**: 블로그 프리뷰는 발행 콘텐츠라 라이트 고정 — 대시보드 UI 아님 |
-| `.bg-accent` | 액센트 배경 요소는 항상 `--accent-fg` 흰 글씨 강제 | 가독성 보장 |
-
-### 2.3 타이포그래피
-
-- **주 서체**: `Pretendard` → `-apple-system, BlinkMacSystemFont, system-ui, sans-serif` 폴백(한국어 UI 최적, 블로그 프리뷰에서 명시 사용). 대시보드 본문은 Tailwind 기본 sans 스택 위에 시스템 폰트로 렌더 — **한글 가독이 최우선**이라 장식 서체를 쓰지 않는 것이 의도된 선택이다(품질헌법 §4 "무심코 system-ui" 함정 회피 — 여기선 근거 있는 선택: 자영업자 대상 정보 밀도 UI).
-- **위계**: 크기+굵기로만 만든다. 제목 `font-bold`, 본문 기본, 라벨·힌트는 `text-[10px]~text-xs` + `text-subtle`. (실물 관찰: 라벨류는 `text-[10px]`/`text-xs`, 카드 제목 `text-sm font-medium`.)
-- 새 폰트 추가 금지. 표현이 부족하면 **크기·굵기·색 토큰**으로 해결.
+```yaml
+version: v33
+updated: 2026-08-27
+owner: product-designer
+정본_프로토타입: docs/prototype/openclaw-auto-4room-v64.html
+캡처: docs/prototype/qa-v64/
+기반:
+  - docs/사업계획-osmu-v1.0.md  # §3.2, §3.3과 MVP 정의
+  - studio/docs/prd-studio-생성-v1.0.md
+  - docs/prd-openclaw-운영-v2.0.md
+  - docs/requests/회장-확정-요구사항-대장.md  # R01~R186, 최신 요구 우선 (R176=사이드바는 유저 흐름 · R177=디스플레이는 고르는 자리가 아니다 · R181·R182=편집실 배치 · R184=플랫폼별 발행 설정 · R185=댓글은 성과실)
+  - docs/prototype/contracts/상시원칙.tsv          # 기계 검사 계약 (판이 바뀌어도 안 갈아 끼운다)
+  - dashboard/src/components/channel/ChannelPage.tsx    # 채널 화면과 연결 자리 진실원
+  - dashboard/src/components/channel/AccountManager.tsx # 채널당 다중 계정 진실원
+  - dashboard/src/components/studio/PlatformPreview.tsx  # OSMU 미리보기 진실원 (일곱 프레임 동시)
+  - dashboard/src/app/studio/page.tsx                    # 일곱 칸 배치 진실원 (529~535행)
+  - dashboard/src/app/login/page.tsx                     # 로그인 진실원
+  - dashboard/src/app/page.tsx                  # 성과 화면 진실원
+  - dashboard/src/app/calendar/page.tsx        # 월간 달력 진실원
+  - dashboard/src/app/settings/page.tsx        # 계정 연결 진실원
+  - dashboard/src/components/settings/ChannelsSettings.tsx
+  - dashboard/src/lib/constants.ts             # 채널 라벨 진실원
+  - docs/requests/2026-08-17-회장-4실-구조-구상.md
+  - docs/requests/2026-08-16-회장-유저플로우-전면개정.md
+  - dashboard/src/components/layout/Sidebar.tsx  # 셸과 사이드바 진실원
+  - dashboard/src/lib/channel-capabilities.ts    # 채널 그룹 진실원
+  - dashboard/src/lib/first-comment.ts           # 첫 댓글 채널 능력 진실원 (지원 4 · 미지원 3 + 사유)
+  - dashboard/src/lib/publish-job-status.ts      # 발행 상태·중지 능력 진실원 (stopSupported:false)
+  - dashboard/src/lib/performance-suggestions.ts # 제안 basis 3종·표본 문턱 5 진실원
+  - dashboard/src/app/api/suggestions/route.ts   # 성과 제안 응답 계약
+  - wiki/architecture/two-service-boundary.md
+  - docs/design-docs/channel-capability-and-readiness-contract-v1-opus.md
+tokens:
+  color:
+    bg: "#fbfbfc"; surface: "#ffffff"; surface-2: "#f4f4f5"; border: "#e4e4e7"
+    text: "#18181b"; muted: "#52525b"; subtle: "#71717a"
+    accent: "#2563eb"; accent-soft: "#eff4ff"; ink: "#1d4ed8"; paper: "#f8f7f4"
+    accent-ink: "#ffffff"                        # 라이트. 강조색 위에 얹는 글자색
+    accent-ink(dark): "#0b1220"                  # 다크. 흰 글자를 그대로 쓰면 2.5:1로 AA 미달
+    success: "#16a34a"; warning: "#b45309"; danger: "#dc2626"
+    studio: "#1d4ed8"; studio-soft: "#eff4ff"    # studio-service 소유
+    claw: "#0f766e";  claw-soft: "#effcf9"       # openclaw-service 소유
+  font: "Pretendard, -apple-system, Apple SD Gothic Neo, sans-serif"
+  size: [12, 13, 15, 17, 21]
+  space: [4, 8, 12, 16, 24, 32]
+  radius: { chip: 6px, control: 8px, radius: 12px, pill: 99px, circle: 50% }
+  motion: { fast: 120ms, base: 200ms, slow: 320ms, ease: "cubic-bezier(.2,0,0,1)", ease-out: "cubic-bezier(0,0,.2,1)" }
+```
 
 ---
 
-## 3. 컴포넌트 인벤토리 (dashboard/src/components/** — 실제 스캔, 55개)
+## 1. Overview · 무엇을 만드는가와 톤
 
-**철칙: 새 화면은 이 인벤토리 재사용이 기본.** 신규 컴포넌트는 **여기 등재한 뒤** 사용한다(등재 없이 즉흥 생성 금지). 재사용 판단은 "같은 역할의 컴포넌트가 이미 있는가?"부터.
+### 디스플레이의 정체 (R177 · 이 시스템의 제1원리)
 
-### 3.1 shared/ — 전역 재사용 프리미티브 (17개) ★가장 먼저 재사용 검토
+> 회장 확정 원문: "그냥 챗봇 UI 에서 선택을 하되 디스플레이에선 유저만의 정보가 쌓이는 느낌이 들게 하면 되지 않을까? 각 스텝에 대한 설명이나 예시가 디스플레이 있어야지, 디스플레이에 설명이나 선택을 하게끔 하지말라니까"
 
-| 컴포넌트 | 경로 | 용도 | 재사용 조건 |
+**디스플레이가 하는 일은 둘뿐이다.**
+
+1. **그 단계의 설명과 예시를 보여준다.** 설명 문단이 아니라 실물 예시다. 예시에는 예시라고 적는다.
+2. **회원 고유의 정보가 쌓이는 느낌을 준다.** 숫자가 늘고 칸이 채워지는 것을 보이게 한다.
+
+**고르는 것은 전부 오른쪽 대화창이다.** 단추도 선택 카드도 항목 채우기 동선도 디스플레이에 두지 않는다.
+R115 · R137 · R157 · R158 · R173 · R177 이 같은 말을 여섯 번 반복했다. 이 절이 그 정본이다.
+
+**적용 경계 (방마다 다르다).**
+
+| 방 | 디스플레이가 하는 일 | 조작이 있나 | 근거 |
 |---|---|---|---|
-| `Card` | shared/Card.tsx | `.card` 래퍼(surface+border+radius) | 모든 패널/카드의 기본 컨테이너 — **항상 이걸로 감싼다** |
-| `StatusBadge` | shared/Badge.tsx | 상태 pill(constants의 `CH_STATUS_BADGE`/`_LABEL` 매핑) | 채널/글 상태 표기 전부 |
-| `EmptyState` | shared/EmptyState.tsx | 빈 목록 안내("아직 데이터 없음") | 리스트·큐·분석 빈 상태 |
-| `ErrorBoundary` | shared/ErrorBoundary.tsx | UI 크래시 캐치 + `/api/errors` 리포트 | 페이지/위험 영역 래핑 |
-| `BackButton` | shared/BackButton.tsx | 진짜 뒤로가기(history 있으면 back, 없으면 fallback) | 하위 페이지 상단 |
-| `LoginModal` | shared/LoginModal.tsx | 401 시 로그인 모달(`auth:required` 이벤트) | 전역 1회 마운트 |
-| `AuthGate` | shared/AuthGate.tsx | 인증 게이트 + 정지/이용불가 풀스크린 | 앱 셸 |
-| `CredentialForm` | shared/CredentialForm.tsx | credential 입력(마스킹·Show/Hide·readonly) | 모든 채널 자격증명 |
-| `SetupGuide` | shared/SetupGuide.tsx | Quick Setup 단계 + 더 알아보기 토글(progressive disclosure) | 모든 채널 연결 가이드 |
-| `ConsentBanner` | shared/ConsentBanner.tsx | GA 동의 배너(Consent Mode v2, 거부 경로) | 전역, 신뢰 장치 |
-| `TenantIsolationBanner` | shared/TenantIsolationBanner.tsx | "내 데이터만 보임" RLS **실증 버튼** | 데이터 화면, 신뢰 장치 |
-| `FreeEventBanner` | shared/FreeEventBanner.tsx | 무료 이벤트·과금 주체 명시(compact 옵션) | 온보딩/생성 화면, 신뢰 장치 |
-| `ChannelConnectBanner` | shared/ChannelConnectBanner.tsx | 미연결 채널 유도 배너(warning 톤) | 홈/발행 진입 |
-| `OnboardingChecklist` | shared/OnboardingChecklist.tsx | 4단계 가치체감 체크리스트(완료 시 사라짐, Zeigarnik) | 홈 상단 |
-| `OnboardingWizard` | shared/OnboardingWizard.tsx | 3단계 온보딩(업종→채널→연결) | 최초 진입 |
-| `BrandSetupWizard` | shared/BrandSetupWizard.tsx | 6문항 브랜드 셋업 → 증류 | Studio 최초 |
-| `RouteTracker` | shared/RouteTracker.tsx | App Router page_view 트래킹(동의 연동) | 전역 1회 |
+| 생성실 | 이 단계의 설명·예시 + 쌓인 것. **그것뿐이다** | 없다. 표식 `data-display-readonly` | R177 원문 그대로 |
+| 편집실 | 결과물을 보며 다듬는 작업대 | **있다.** 목차·대사·아이콘 조작 | R181 · R182 가 화면 요소를 직접 지정 |
+| 발행실 | 올릴 곳에 맞추는 작업대 | **있다.** 칸을 눌러 여는 드로어 하나로 모음 | R184 |
+| 성과실 | 답할 것을 보고 답하는 작업대 | **있다.** 답글은 고른 하나만 열림 | R185 |
 
-### 3.2 layout/ — 앱 셸 (4개)
+> **경계 판단은 해석(회장 미확인)이다.** "무엇을 만들지 고르는 선택"은 전부 대화창으로 보내고, "이미 정해진 결과물을 다듬는 손"은 방에 남겼다. R181·R182 가 편집 조작을 화면 요소로 직접 지정하셨기 때문이다.
 
-| 컴포넌트 | 경로 | 용도 |
-|---|---|---|
-| `Sidebar` | layout/Sidebar.tsx | 카테고리 그룹 사이드바(연결수/전체, 자동 열림, 모바일 가로탭) |
-| `ThemeToggle` | layout/ThemeToggle.tsx | 라이트/다크 토글(`data-theme` + localStorage) |
-| `Toast` | layout/Toast.tsx | 토스트(ToastProvider + `useToast`, success/error/warning/info) |
-| `Providers` | layout/Providers.tsx | SWRConfig + ToastProvider 루트 |
+**제품 한 문장.** 혼자 일하는 사람이 담당과 대화하며 콘텐츠를 만들고 여러 채널로 내보내고 성과를 되돌려 받는다.
 
-### 3.3 channel/ — 채널 페이지 조립 (9개)
+**브랜드 형용사 3개와 화면 발현.**
 
-| 컴포넌트 | 경로 | 용도 |
-|---|---|---|
-| `ChannelPage` | channel/ChannelPage.tsx | 콘텐츠 발행 채널 페이지 셸(Queue/Analytics/Growth/Popular/Settings 탭) |
-| `MessagingPage` | channel/MessagingPage.tsx | 메시징 채널(알림 설정 + 테스트 발송, Content Guide 없음) |
-| `DataChannelPage` | channel/DataChannelPage.tsx | Data & SEO 채널 |
-| `InstagramPage` | channel/InstagramPage.tsx | 인스타 카드뉴스 전용 페이지 |
-| `ContentGuide` | channel/ContentGuide.tsx | 채널별 Content Guide 편집(공통 복사) |
-| `KeywordsEditor` | channel/KeywordsEditor.tsx | 채널별 키워드 편집 |
-| `NotifStatusCard` | channel/NotifStatusCard.tsx | 이벤트별 알림 ON/OFF(onPublish/onViral/onError/weeklyReport) |
-| `TestSendCard` | channel/TestSendCard.tsx | 즉시 테스트 메시지 발송 |
-| `SocialConnectButton` | channel/SocialConnectButton.tsx | OAuth "연결" 버튼(비번/토큰 개념 없이, ADR-004) |
-
-### 3.4 queue/ — 발행 큐 (4개)
-
-| 컴포넌트 | 경로 | 용도 |
-|---|---|---|
-| `QueueList` | queue/QueueList.tsx | 큐 목록 + 필터(전체/초안/승인됨/발행됨/실패) |
-| `UnifiedPostCard` | queue/UnifiedPostCard.tsx | 멀티채널 통합 글 카드(채널별 상태) |
-| `PostCard` | queue/PostCard.tsx | 단일 글 카드 |
-| `ImagePickerModal` | queue/ImagePickerModal.tsx | 첨부 이미지 선택 모달 |
-
-### 3.5 settings/ — 설정 8탭 (16개)
-
-`Account` · `AIEngine` · `AiKeySettings` · `ChannelsSettings` · `ClaudeToken` · `DesignToolsSettings` · `ElevenLabsSettings` · `InteractiveChat` · `KeywordBankSettings` · `KwPlannerSettings` · `LlmModel` · `Notifications` · `SlackSettings` · `StorageSettings` · `SystemSettings` · `TenantTokensSettings` (모두 `settings/`). 탭 구조는 `docs/ui-rules.md` §15 참조.
-
-### 3.6 home/ · studio/ (5개)
-
-| 컴포넌트 | 경로 | 용도 |
-|---|---|---|
-| `PipelineTimeline` | home/PipelineTimeline.tsx | 초안→승인→발행→성과 파이프라인 시각화 |
-| `ChannelConnect` | studio/ChannelConnect.tsx | 채널 연결 모달(검증 경로 통일) |
-| `PlatformPreview` | studio/PlatformPreview.tsx | 플랫폼별 발행물 미리보기(threads/x/ig/shorts) |
-| `RepoConnect` | studio/RepoConnect.tsx | 레포 위키 연동(폴더 전체/특정 파일 2모드) |
-| `SchedulePanel` | studio/SchedulePanel.tsx | 예약 발행(날짜·시간 picker + 플랫폼 체크) |
-
----
-
-## 4. 레이아웃·패턴 규칙 (상세 정본 = docs/ui-rules.md, 여기선 요약만)
-
-중복 서술 금지 — 아래는 인덱스이고 **상세는 `docs/ui-rules.md`가 정본**이다.
-
-- **페이지 구조**(ui-rules §1): Marketing Home / 채널별 페이지(Queue·Analytics·Growth·Popular·Settings) / Blog / Images / 전역 Settings.
-- **사이드바**(§2): 카테고리(Social/Video/Blog/Messaging/Data&SEO/Custom) · 연결 있으면 자동 열림 · `연결수/전체` 카운터 · 모바일은 가로 버튼.
-- **채널 상태**(§3): Live=초록 / Connected=파랑 / 미입력=뱃지 없음 / Coming Soon=회색. 색은 §2 토큰 사용.
-- **채널 유형별 페이지 구성**(§6): 발행 채널 vs Messaging vs Data — 2컬럼 레이아웃 패턴.
-- **Credentials/Setup Guide**(§4·§5): 마스킹 readonly + Edit 모드 / Quick Setup(항상) + 더 알아보기(토글).
-- **Analytics 빈 상태**(§8): 크론 안 돌아도 이전 데이터 표시, 없으면 안내 메시지.
-- **온보딩**(§16): 3단계 위저드(업종→채널→연결) + "나중에 설정하기".
-
-### 반응형 (품질헌법 §1.4 이중 레이아웃 — 실물 근거)
-
-- **모바일(≤768px)**: `globals.css` 미디어쿼리가 사이드바를 **가로 버튼 리스트**로 전환(`aside nav` flex-wrap, 그룹 라벨 숨김). 카드 1열.
-- **데스크톱(≥1024px)**: 사이드바(고정) + 본문 멀티컬럼(발행 채널 2컬럼: Credentials|Info / Content Guide|Keywords). "폭만 늘린 모바일" 금지 — 넓은 폭엔 그 폭에 맞는 정보 배치.
-- 새 화면도 두 폭 모두 설계한다(네이티브 앱 전용 화면 없음 — 전부 웹).
-
----
-
-## 5. 벤치마크 Reference 표
-
-시작점 = `~/.claude/standards/benchmarks.md` §디자인. 이 제품(자영업자용 SNS 자동화 관제탑)에 맞는 것만 채택. 최신성 검증 WebSearch 1회 완료(2026 SaaS 대시보드 베스트프랙티스 — §2.1 정합 확인, 출처 하단).
-
-### 채택 (무엇을 가져오고 / 무엇을 버리나)
-
-| 레퍼런스 | 가져온 것 (이 제품에 어떻게) | 버린 것 / 안 훔친 것 |
-|---|---|---|
-| **Linear** (linear.app) | 밀도 높은 정보를 차갑지 않게 — **중립 위 단일 액센트**의 절제, 크기·굵기로 만든 타이포 위계, surface 스텝 elevation. → globals.css의 zinc+blue 시스템·`.card`/`.surface-2` 구조가 이 원리. | 보라 그라데이션(맥락 없으면 슬롭 1호) — **제거됨**. Linear 특유 모션 강도도 절제(우린 자영업자 대상, 더 차분히). |
-| **뱅크샐러드** | **의도된 마찰 = 신뢰 장치.** 민감 지점(자격증명·데이터 격리·동의)에서 과정을 보여준다. → `TenantIsolationBanner`(RLS 실증 버튼) · `ConsentBanner`(거부 경로) · `FreeEventBanner`(과금 주체 명시)가 직접 구현. | 브랜드 자산 없음(원리만 차용). |
-| **토스** | **디자이너=편집자, 한 화면 한 결정** + 마이크로카피 구어체 정확성. → "일반인 우선, 개발자 용어 최소" 원칙 · 에러 문구 "원인+다음행동" · 최소 클릭. | 토스체 폰트·일러스트 스타일(전재 금지). |
-| **Stripe** | **점진 공개(progressive disclosure)** — 어려운 걸 처음부터 다 보여주지 않는다. → `SetupGuide`의 Quick Setup(항상) + "더 알아보기"(토글), 개발자 용어 뒤 한국어 설명. | 그라디언트 아이덴티티(안 가져옴 — 우린 플랫). |
-
-### 기각 (왜 이 제품엔 안 맞나)
-
-| 레퍼런스 | 기각 사유 |
+| 형용사 | 화면에서 어떻게 나타나는가 |
 |---|---|
-| **배민** | 강한 대비·키치·과감한 브랜드 목소리는 "믿고 맡기는 차분한 관제탑" 톤과 충돌. 이 제품은 유머보다 **신뢰·또렷함**이 우선 — 도구가 시끄러우면 안 된다. |
-| **오늘의집** | 매거진 감성·감성 사진 전면 배치는 콘텐츠-커머스용. 이 제품은 밀도 높은 **운영 도구**라 매거진 톤이 부적합. |
+| 담백한 | 장식 0. 그라디언트는 이미지 자리 표시에만. 값은 라벨과 숫자로 말한다 |
+| 정직한 | 없는 값은 0이 아니라 "미수집". 근거에는 표본·기간·한계를 붙인다. 예시 데이터는 예시라고 적는다 |
+| 곁에 있는 | 담당자가 먼저 말을 건다. 빈 입력창으로 시작하는 화면은 0개 |
+
+**톤앵커 판정.** 셋 중 하나라도 화면 요소로 못 짚으면 그 화면은 미달이다.
 
 ---
 
-## 6. 금지 패턴 (관찰된 원칙 + 품질헌법 §4 블랙리스트에서 도출)
+## 2. Colors · 팔레트와 역할
 
-1. **도박틱/보라·핑크 그라데이션.** `globals.css`가 명시적으로 제거한 이력("도박틱 퍼플→핑크 제거"). AI 슬롭 1호. 액센트는 **플랫 블루 하나**뿐.
-2. **토큰 밖 임의 hex / 하드코딩 다크 클래스.** `bg-gray-900`, `text-amber-200`, `#3b82f6`, `*-900/50` 직접 사용 금지 — 라이트에서 깨진다. §2 시맨틱 유틸리티만.
-3. **라이트/다크 한쪽만 스타일링.** 두 테마 다 성립해야 한다. `dark:` 변형·조건부 색 대신 토큰 사용.
-4. **개발자 전문용어 노출.** 대상이 일반인. 용어를 쓰면 옆에 한국어 설명(SetupGuide 패턴).
-5. **generic 카드 나열·의미 없는 장식.** blob·wave·아이콘-원-배경 반복·전부 가운데 정렬 금지. 요소를 빼서 또렷하게.
-6. **빈 CTA.** "시작하기/더 알아보기" 금지 → 동사+대상+이득("채널 연결하기 →", "무료로 바로 시작"). (실물 `ChannelConnectBanner`가 이미 준수.)
-7. **다크패턴.** 가짜 긴급·강제 연속결제·사전 체크된 동의 금지(`ConsentBanner`는 거부 경로 제공).
-8. **인벤토리 무시 즉흥 컴포넌트.** §3에 같은 역할이 있으면 재사용. 신규는 §3 등재 후.
-9. **빈 상태 방치.** 빈 화면은 `EmptyState`/체크리스트로 첫 행동 유도(방치 화면 금지).
+> **v61 신설 · `--focus`.** 초점 링 색은 `color-mix(in srgb, var(--accent) 35%, transparent)`이고 **토큰 이름은 `--focus`다.** v61 이전에는 이 이름을 세 곳에서 참조하면서 정의가 어디에도 없었다. 정의 없는 `var()`는 조용히 무효가 되어 그 선언이 통째로 버려지므로, 시트 손잡이·접힌 대화창·디스플레이 카드 셋이 **초점 표시 없이** 있었다. `--accent-fg` 사고(v57)와 같은 실패 형태다. **새 CSS 변수를 쓰기 전에 이 절에 정의가 있는지 먼저 확인한다.**
 
-### ⚠️ 관찰된 토큰-부채 (신규 화면은 답습 금지, 기존은 점진 마이그레이션 대상)
-
-실물 스캔 중 발견한 **기존 위반**(정직하게 기록 — 이걸 새 화면에 복제하지 마라):
-- `queue/PostCard.tsx`·`queue/UnifiedPostCard.tsx`: `bg-yellow-900/50 text-yellow-300` 등 하드코딩 상태색.
-- `shared/OnboardingChecklist.tsx`: `bg-green-900/30 text-green-300`.
-- `shared/TenantIsolationBanner.tsx`: `bg-emerald-900/15 text-emerald-200`.
-- `layout/Toast.tsx`: `COLORS`가 `bg-green-800` 등 하드코딩.
-- `shared/OnboardingWizard.tsx`: 인스타 아이콘 `bg-gradient-to-br from-pink-500 to-orange-400`(브랜드 로고 재현 목적 — 예외 허용하되 UI 액센트로 확산 금지).
-
-→ **규칙**: 신규 화면은 상태색을 `text-success`/`text-warning`/`text-danger` + `bg-accent-soft`류 토큰으로만 쓴다. 위 부채는 별건으로 토큰화(이 파일 착수 범위 아님, `pipeline reopen` 없이 후속 정리).
+- **중립 5단**(bg / surface / surface-2 / border / text)이 지면을 만든다. 회색조 위에 색은 의미가 있을 때만 얹는다.
+- **소유 색 2종은 장식이 아니라 경계 표시다.** `--studio` = 생성·편집이 studio-service 소유임을, `--claw` = 발행·성과가 openclaw-service 소유임을 나타낸다. 다른 용도로 쓰지 않는다.
+- **상태 색 3종**: success(연결됨·올라감) / warning(대기·오픈 준비중) / danger(확인 필요·실패). 색만으로 구분하지 않고 항상 글자 라벨을 함께 둔다.
+- 제품 UI 본문 명암비는 AA(4.5:1) 이상. `--subtle`은 12px 보조 텍스트에만 쓴다.
+- **`--subtle` 값은 `#66666e`다(v28에서 `#71717a`에서 내렸다).** 종전 값은 흰 지면 위에서는 4.83으로 통과했지만 `--surface-2`(`#f4f4f5`) 위에서 4.40이라 AA에 못 미쳤다. 뱃지·칩·채널 상태 라벨이 전부 그 지면에 앉아 있어 값을 한 칸 내렸다. 실측 도구로 확인한 값이다.
+- **강조색 위 글자색 토큰은 `--accent-ink` 하나다. `--accent-fg`라고 쓰지 않는다.** v56까지 네 곳이 Tailwind 클래스명(`text-accent-fg`)을 그대로 CSS 변수 이름으로 옮겨 적어 `var(--accent-fg)`를 참조했는데, 그런 변수는 정의된 적이 없다. 정의 없는 `var()`는 오류를 내지 않고 조용히 상속된 본문 색(거의 검정)을 쓴다. 그래서 파란 배경 위 글자가 **3.43:1**로 AA에 못 미친 채 다섯 판을 지나갔다. v57에서 네 곳을 `--accent-ink`로 맞췄다(라이트 5.17 · 다크 7.36). **코드에서 옮겨 올 때 클래스명과 변수명을 구분한다.**
+- **재생기는 테마를 따르지 않는다.** 영상 위 조작은 라이트에서도 어둡다(YouTube·CapCut 관습). 그래서 전역 표면 변수를 쓰지 않고 재생기 전용 변수 `--player-surface` `--player-panel` `--player-control` `--player-line` `--player-text` `--player-on` `--player-on-text` 일곱 개를 따로 둔다. 재생기 안에서 맨 hex를 쓰지 않는다.
 
 ---
 
-## 7. 디자인 작업 절차 (새 화면·컴포넌트 요청 시)
+## 3. Typography · 위계
 
-1. **이 DESIGN.md를 Read** — 톤앵커 3형용사·토큰·금지 패턴 확인.
-2. **인벤토리 재사용 판단**(§3) — 같은 역할 컴포넌트가 있으면 재사용. 없으면 신규를 §3에 **먼저 등재**.
-3. **레이아웃 정본 확인**(`docs/ui-rules.md`) — 페이지 유형별 구성·상태 규칙.
-4. **목업**: `design-html` 스킬로 production 품질 시안(모바일 390px + 데스크톱 ≥1024px 둘 다, 상태 4종 empty/loading/error/disabled 포함).
-5. **자가 QA**: `design-review` 스킬 완주 → **Design Score 등급 출력**. B 미만이면 findings 반영 리테이크(최대 2회). **스킬 실호출만 인정 — 수동 체크리스트·자가 검사로 등급을 대신 매기는 것 금지**(2026-07-16 리허설 실측: 하위모델이 스킬을 스킵하고 "A"를 자가 산출하는 드리프트 관찰됨. 검증 스크립트가 스킬 실호출 여부를 트랜스크립트에서 확인한다).
-6. **구현**: 시맨틱 토큰 유틸리티만, 라이트/다크 둘 다 검수(`browse` 라이트/다크).
-7. **판단 불가 시**(브랜드 결정·미정의 요구·토큰으로 표현 불가): 추측 말고 `⛔ 회수 필요: <질문>`으로 상류에 올린다.
+서체 1종(Pretendard). 웹폰트가 없는 환경에서도 한글 자간이 무너지지 않게 시스템 한글 폰트로 폴백한다.
 
-**착수 전 필독**: `~/.claude/standards/design.md`(품질헌법 — 판정 우선순위·5디자이너 원칙·안티슬롭). 벤치마크는 `~/.claude/standards/benchmarks.md` §디자인에서 시작 + 최신성 WebSearch ≥1.
+| 역할 | 크기 / 행간 | 굵기 | 비고 |
+|---|---|---|---|
+| 주인공 제목 (`.panel.hero > h2`) | 32 / 40 | 750 | **화면당 하나만.** 그 화면에서 사람이 볼 단 하나의 것 |
+| 화면 제목 h1 (`.page-head h1`) | 24 / 32 | 700 | 헤더가 이름을 말하지 않는 화면에서만. **방 화면에서는 쓰지 않는다** |
+| 방 눈썹 (`.room-eyebrow`) | 13 / 20 | 800 | 방 이름을 그 방 본문 첫 줄에서 되짚는다. 헤더 딱지와 함께 "지금 어디인가"를 말하는 세 자리 중 하나 |
+| 구역 제목 (`.panel h2`) | 15 / 24 | 700 | 카드 하나의 제목 |
+| 조용한 구역 제목 (`.panel.calm > h2`) | 13 / 20 | 800 | 카드가 아닌 구역. 위에 실선 한 줄 |
+| 본문 | 15 / 25 | 400 | `--muted` |
+| 보조·값·표 | 13 / 20~21 | 400~700 | 숫자는 `tabular-nums` |
+| 라벨·뱃지 | 12 / 16 | 650~800 | 최소 크기. 10px 금지 |
+| 큰 숫자 (`.metric`) | 24 / 32 | 750 | `tabular-nums` |
+
+**같은 크기를 한 화면에서 세 번 쓰지 않는다.** v36에서 방 제목·주인공 제목·큰 숫자가 전부 24px이라 아무것도 이기지 못했다. 32는 화면당 하나다.
+
+`word-break: keep-all`로 어절을 유지한다. 수동 줄바꿈 금지.
+
+제품 프레임 안에 보이는 글자의 절대 하한은 12px이다. 채널 상태, 상단 보조, 카드 보조, 선택지 보조도 예외가 없다. 검수 셸의 STAMP와 측정 패널은 제품 UI가 아니므로 이 하한의 측정 범위에서 제외한다.
+
+### 12px 하한의 유일한 예외 · 실물 재현 영역 (v61 마감에서 명문화)
+
+**발행실 플랫폼 미리보기 칸(`.pv59-*`) 안의 글자는 12px 하한을 적용하지 않는다.** 근거는 R196(플랫폼 미리보기는 실제 화면처럼 보여라)이다.
+
+이 칸은 우리 화면이 아니라 **남의 화면을 재현하는 자리**다. X와 YouTube와 Instagram의 실제 게시물이 그 크기로 그려지므로, 여기 글자를 12px로 올리면 올라갈 모습이 실제와 달라진다. 회원이 발행 전에 확인하려는 것이 바로 "실제로 이렇게 보인다"이므로, 읽기 편하게 키우는 순간 이 칸은 제 일을 못 한다.
+
+- **예외가 적용되는 범위**: 기기 프레임 안 `.pv59-*` 로 시작하는 선택자 전부. 게시물 본문·계정 이름·시각·반응 수·해시태그·인증 표식·세로 영상 자막과 안전 영역 표시. 현행 값은 9px(인증 표식)에서 11.5px 사이다.
+- **예외가 적용되지 않는 것**: 같은 발행실이어도 미리보기 칸 **밖**은 우리 화면이다. 발행 선택지·채널 딱지·왕복 띠·캡션 편집 라벨은 12px 하한을 그대로 지킨다.
+- **검수 셸**(`.hub-*` · `.sc-*` · `.mx-*`)은 애초에 제품이 아니라 하한의 측정 범위 밖이다. 예외가 아니라 대상 아님이다.
+- **새 예외를 늘리지 않는다.** 실물 재현이 아닌 이유로 글자를 12px 아래로 내리려면 그것은 자리가 모자란 것이고, 자리는 §4의 접는 순서로 번다.
+
+---
+
+## 4. Layout · 그리드와 간격
+
+- **간격은 4·8·12·16·24·32·48만 쓴다.** 임의 px 금지. **블록 사이 24, 구역 사이 24, 카드 안쪽 24, 본문 바깥 32.** (v37에서 16→24로 올렸다. 16은 상자와 상자가 붙어 보여 화면이 어수선해진다. Linear가 블록 사이 24·카드 안쪽 24를 쓰는 것과 같은 값이다.)
+- **셸 구조**: 헤더(상단 두 줄) → 앱 사이드바 + 본문 + 상시 담당. 1440은 좌 224px 또는 56px, 우 304px이다. 1024는 좌 56px 자동 축소, 본문과 우측 담당 70:30이다.
+  - 헤더 윗줄 = 작업 공간 전환 · 작업물 전체 · 크레딧 · 알림 · 계정. **작업 공간 라벨과 이름은 가로 배열한다.** 근거 없는 제품명이나 조직명은 앞에 붙이지 않는다.
+  - 헤더 아랫줄 = **일의 흐름**: 네 단계(생성·편집·발행·성과)와 각 단계에 걸린 건수만 둔다. 선택 학습의 상세는 작업 화면과 분리된 별도 창이 소유한다.
+  - **흐름은 헤더가 소유한다.** 단계 이름과 설명을 방 안에서 반복하지 않는다. 선택 학습의 상세를 본문에 상주시키지 않는다.
+  - **사이드바 맨 위에 네 방을 둔다(R08 · R14 · R172).** 그 아래가 대상 목록이다: 채널 · 데이터 · 키워드 · 자산 · 설정. 실제 코드 `dashboard/src/components/layout/Sidebar.tsx` 항목을 하나도 빼지 않는다.
+  - **헤더와 사이드바는 하는 일이 다르므로 중복이 아니다.** 헤더 작업물 전체 = 지금 어느 단계에 몇 건이 걸려 있나, 그리고 그것을 꺼내 오는 자리. 사이드바 네 방 = 어디에 있든 한 번에 그 방으로 가는 상시 이동. 강조는 두 곳이 늘 같은 곳을 가리킨다(`state.path` 하나만 본다). v54~v56은 사이드바에서 네 방을 뺐는데 그 근거는 회장 지시가 아니라 컨트롤러가 지어낸 문장이었다(대장 R166 정정 블록). v57에서 되살렸다.
+- **본문 정렬선**: 컨테이너 900px 이상 20px 패딩, 1200px 이상은 `max-width:1280px; margin:0 auto`로 정렬선을 고정한다. 폭이 넓다고 본문을 늘이지 않는다.
+- **주축 방향을 명시한다**(개발이 뒤집지 않게): 셸=column(GNB→body), body=row(사이드바→본문), main=row(본문 열→상시 담당). 1024의 main은 70:30 두 열이다. 390에서 main=column + `align-items:stretch`이며 담당은 본문 아래에 이어진다.
+- **왼쪽 사이드바는 전체를 접는다.** 펼침 224px, 접힘 56px이다. 브랜드 오른쪽 아이콘 하나가 두 상태를 오가며, 접히면 아이콘과 현재 항목 강조만 남는다. 선택은 `localStorage`에 보존한다. 모바일은 기존 서랍 메뉴를 유지하고 전체 접기 아이콘을 중복 노출하지 않는다.
+- **담당은 상시 보이는 작업 열이다.** 1440에서는 오른쪽 304px이다. 1024에서는 전체 작업영역의 30% 이하이며 최소 240px이다.
+- **390에서 담당은 화면 아래 상시 시트다 (v61에서 개정. 이전 규칙 "본문 아래에 상시 이어진다"는 폐기).**
+  - 폐기한 이유는 실측이다. 본문 아래에 이어 두면 본문 길이만큼 밀려나 **대화창이 화면 밖에 있다**(v60 실측: 388x812 프레임에서 대화창 상단이 1725px, 화면 아래 913px 밖). 이 제품은 선택을 전부 챗봇에서 하므로(R177) 그 상태는 모바일에서 제품을 쓸 수 없다는 뜻이다.
+  - **기기 화면은 통째로 스크롤하지 않는다.** 셸을 `height:100%` flex column으로 잠그고 **본문만 안에서 구른다**. 그래야 시트가 화면 아래에 붙는다.
+  - **세 걸음**: 살짝(`--sheet-peek` 152px) → 반(58%) → 가득(`100% - 8px`) → 다시 살짝. 손잡이를 누르면 돈다. `Escape`로 한 걸음 접힌다. **접히는 상태는 없다.**
+  - **살짝 단계가 지켜야 하는 것**: 담당의 마지막 말 한 줄(36px, 2줄 clamp) + 입력칸 + 보내기가 **항상 보인다**. 본문에는 `padding-bottom: var(--sheet-peek)`를 줘서 시트가 내용을 덮지 않게 한다.
+  - **R101과의 관계**: "챗봇은 접지 않고 항상 오른쪽"은 넓은 폭 규칙이다. 390에는 오른쪽이 없으므로 **정신(항상 손이 닿는다)만 지키고 자리는 엄지가 닿는 아래로** 옮긴다. 접히지 않는다는 조건은 그대로다.
+  - 근거: NN/g "Bottom Sheets: Definition and UX Guidelines"(비모달 = 뒤를 계속 참조해야 할 때) · Material Design standard(persistent) bottom sheet(본문과 공존하는 peek 높이) · ChatGPT Canvas와 Claude Artifacts가 둘 다 좌우 두 판 구조를 데스크톱에 한정하고 2026-05에 canvas를 접어 대화 안 블록으로 되돌린 것(좁은 폭에서 두 판을 **세로로 쌓으면** 한쪽이 화면 밖으로 나간다).
+- **390 상단 안전영역은 `--safe-top`(24px) 토큰이다.** 기기 노치 실측 22px에 여유를 더한 값이다. 리터럴 px로 흩지 않는다. 헤더 첫 줄이 이 아래에서 시작한다.
+- **390 헤더는 두 줄로 못박는다.** 자리가 모자라면 알아서 접히게 두지 않는다(v60은 그래서 세 줄 161px = 화면의 19.8%가 됐다). 1층 = 나와 내 것(메뉴 · 작업 공간 · 학습 정보 · 크레딧 · 테마 · 계정), 2층 = 지금 일감(작업물 · 지금 만드는 것 · 승인 인박스 · 발행 캘린더). `order` 1~11을 명시하고 `.gnb-spacer`가 줄바꿈을 맡는다.
+  - **접는 순서 (자리가 모자랄 때)**: ①맥락 설명 → ②크레딧 이름표(숫자는 남긴다) → ③테마를 아이콘으로 → ④학습 정보의 보조 줄. **글자 크기를 줄여서 자리를 벌지 않는다.** 12px 하한이 먼저다.
+- **GNB 주축은 row 한 줄이다.** 작업 공간 이름과 맥락, 작업물 전체, 크레딧, 알림, 계정을 같은 줄에 둔다. 선택 학습의 상세는 별도 창에서 연다. 390에서는 맥락 설명과 저빈도 항목을 숨기되 작업 공간, 크레딧, 알림의 순서는 보존한다.
+- **본문 열은 칸 폭을 그대로 쓴다**: `min-width:0`에 더해 `width:100%`까지 지정한다. min-width만으로는 칸보다 넓게 잡히는 경우를 실측했다.
+- **12칸 격자의 칸 최소값은 0으로 못박는다**(`repeat(12,minmax(0,1fr))`). 기본값 `minmax(auto,1fr)`은 넓은 표 하나가 격자 전체를 늘려 화면을 옆으로 민다.
+- **넓은 표는 열을 지우지 않고 가로로 민다**: 표 감싼 `.table-wrap`에 `overflow-x:auto`, 표에 `min-width`. 셀은 `white-space:nowrap`. 열을 없애면 정보가 사라지지만 스크롤은 사라지지 않는다.
+- **자리 수가 못 박힌 탭 줄은 옆으로 밀지 않고 줄을 바꾼다**(v52, R154). 채널 탭(`.ch-tabs`)은 다섯 자리가 계약이라 폭이 달라도 탭 수가 달라 보이면 안 된다. `flex-wrap:wrap` + `row-gap:8px`를 쓰고 `data-horizontal-scroll`을 붙이지 않는다. 1440 한 줄, 1024 두 줄, 390 세 줄이고 어느 폭에서나 전부 보인다. 월간 달력을 가로 스크롤로 처리하지 않는 규칙과 같은 이유다.
+- **반대로 수가 변하는 탭 줄은 그대로 가로로 민다**: 발행실 플랫폼 탭(`.pv-tabs`)과 영상 형식·복구 상태 탭(`.platform-tabs`)은 항목이 계속 늘어나므로 스크롤이 맞다. 단 그때는 `옆으로 밀어 더 보기` 안내를 반드시 함께 둔다. **판단 기준은 탭 개수가 아니라 자리 수가 계약인가 아닌가다.**
+- **OSMU 미리보기는 한 화면에 일곱 곳을 동시에 둔다(v53, R164).** 진실원은 `dashboard/src/components/studio/PlatformPreview.tsx`와 그 사용처 `dashboard/src/app/studio/page.tsx` 529~535행이다. 주축은 `row`, `flex-wrap:nowrap`, `align-items:flex-start`, `overflow-x:auto`이고 칸 폭은 320px 고정이다(정본 `max-w-sm` 384px을 우리 프레임 폭에 맞춰 줄인 값이고 비율은 같다). 640px 아래에서는 한 칸이 폭을 다 쓰고 `scroll-snap-type:x mandatory`로 넘긴다. **플랫폼 탭으로 한 번에 하나만 보여 주지 않는다.** 플랫폼은 수가 계속 늘어나는 목록이라 자리 수가 계약인 채널 탭과 반대이며, 그래서 줄바꿈이 아니라 가로 스크롤을 쓰되 밀린다는 것을 제목 줄 오른쪽에 한 줄로 알린다.
+- **발행실 본문은 두 단이다(v57, R174).** 진실원 `dashboard/src/app/studio/page.tsx` 520~580행. 왼쪽 = 작업물을 **갈래로 먼저 묶고** 그 안에서만 가로로 민다(`GROUPS` = ✍️ 텍스트 / 🎬 영상 9:16 / 🖼️ 카드뉴스). 오른쪽 = 폭이 고정된 **발행 이력 레일**(정본 `w-52` 208px, 우리는 한글 제목이 접히는 폭을 실측해 232px). 일곱 칸을 갈래 없이 한 벌로 늘어놓지 않는다. 이력을 화면 맨 아래로 내리지 않는다.
+- **이력 레일을 옆에 세우는 기준은 프레임 1150px이다.** 이 컨테이너 질의는 기기 프레임 폭을 재는데 본문이 실제로 쓰는 폭은 거기서 사이드바(224)와 상시 대화창(300)을 뺀 값이다. 1024 프레임에서 본문은 600px 남짓이라 232px 레일을 옆에 세우면 320px 칸이 하나도 온전히 안 들어간다. 1150 아래에서는 레일이 본문 아래로 내려가고 벽이 폭을 다 쓴다. **900px으로 잡으면 1024에서 칸 하나만 보인다(실측).**
+- **옆으로 미는 벽은 자기 안쪽 폭을 부모에게 요구하면 안 된다.** `overflow-x:auto`만으로는 부족하다. 벽과 그 조상 사슬(본문 열 · 격자 · 묶음 카드 · 감싼 칸)에 `min-width:0; max-width:100%`를 함께 건다. 안 걸면 칸 일곱의 합계 폭이 그대로 위로 새어 390에서 화면이 통째로 넘친다(v57 실측 469px 넘침 → 0).
+- **OSMU 칸 머리는 `Frame()` 머리를 따른다**: 로고 · 이름 · 연결 상태 · 오른쪽 글자수. 32px 글자 표식은 채널 화면 머리(`ChannelPage.tsx` 145~173행)의 부품이라 여기 넣지 않는다. 칸이 320px라 표식까지 넣으면 이름이 밀린다.
+- **편집 영역은 세 층으로 나눈다(v53, R161·R162).** 결과물 아래는 ①고칠 것을 고르는 타일 줄 ②고른 것만 다듬는 칸 ③결과물 전체에 걸리는 것 한 줄이다. 셋은 글자 크기와 무게가 다르다. **받아 가기는 조작이 아니라 출구라 ③번 줄 오른쪽 끝 조용한 단추로 물러난다.** 값 목록을 같은 크기 칸으로 나란히 늘어놓지 않는다.
+- **격자 칸수**: 후보 3열 → 1099px 2열 → 719px 1열. 발행 미리보기 2열 → 899px 1열. 캘린더 7칸 → 1199px 4칸 → 479px 2칸. 자산 4열 → 899px 2열.
+- 모든 격자·플렉스 칸에 `min-width:0`. 세로로 접힐 때 `align-items:stretch`. 이 둘이 빠지면 칸이 내용 최대폭으로 부풀어 프레임을 넘는다.
+
+### 디스플레이 전용 골격 (v43)
+
+- 사용자와 담당이 함께 보는 결과 영역의 제품명은 **디스플레이** 하나만 쓴다. 같이 보는 화면, 가운데 화면, 캔버스를 혼용하지 않는다.
+- 주축은 `column`: 장면 탭 → 현재 장면. 현재 장면의 기본 비교는 `row` 3열이며 1024·1440에서 `repeat(3,minmax(0,1fr))`이다.
+- 디스플레이는 발표 화면이다. 프레임 820px 안에서 GNB, 네 단계, 장면 탭, 현재 장면이 끝나며 내부 세로 스크롤을 두지 않는다. 브랜드·말투·설명 같은 맥락은 GNB에 있고 본문에는 보여 줄 결과물만 둔다.
+- 카드 전체가 선택 동작이다. 카드 오른쪽 위 44px 확대 아이콘은 보조 동작이며 `크게 보기`, `담당에게 이걸로 말하기` 같은 문장형 단추를 만들지 않는다.
+- 390에서는 기능을 아래로 길게 쌓지 않는다. `후보 1 · 후보 2 · 후보 3` 탭과 선택한 후보 한 장만 같은 접힘선에 둔다. 탭을 누르면 카드 한 장이 교체되고 선택 상태가 테두리와 글자로 반영된다. 전체 근거는 담당 대화 또는 큰 화면에서 점진 노출한다.
+- 내용 없음·정상·내용 많음 세 데이터량을 직접 렌더한다. 내용 많음은 전체 수와 상위 3개를 한 장에 보이고 나머지를 다음 장으로 넘긴다. 긴 제목은 2~3줄, 근거는 3~4줄에서 의미 단위로 줄인다.
+- 설명이 길어질 때는 기본 장면을 밀어내지 않는다. `자세한 설명` 탭 한 장으로 격리한다.
+
+### 한 편의 콘텐츠 흐름 골격 (v44)
+
+- 디스플레이의 첫 장면은 `한 편의 흐름`이다. 설명용 도식이 아니라 실제 작업물 하나의 현재 위치와 다음 이동을 보여 주는 조작 화면이다.
+- 주축은 `column`: 현재 작업물 줄 → 네 단계 흐름 레일 → 현재 결과 → 다음 이동이다. 1024·1440에서도 현재 결과가 가장 넓은 한 열을 차지하며 상주 학습 패널을 만들지 않는다.
+- 네 방 레일은 `row` 4열 고정이다. 생성실 → 편집실 → 발행실 → 성과실 순서를 바꾸지 않는다. 지난 방은 `done`, 현재 방은 `active`, 아직 안 간 방은 기본 상태로 표시한다. 마지막 성과실의 끝 표시는 다음 생성으로 돌아오는 고리다.
+- 각 단계 본문은 실제 결과와 현재 행동만 쓴다. 제작 기록과 선택 학습은 별도 창에서 필요할 때 열고, 내부 변수명·층 코드·서비스명은 제품 화면에 쓰지 않는다.
+- 다음 방으로는 결과물과 기록을 한 묶음으로 넘긴다. 앞 방 원본을 덮어쓰지 않는다. 되돌리기도 같은 원본 보존 규칙을 따른다.
+- 첫 생성에서는 채널을 연결하지 않는다. 첫 단계는 실제 제안 화면을 고르고, 편집 단계에서 세부 플랫폼의 제목과 캡션을 수정하며, 발행 단계에서 실제 계정을 연결한다.
+- 성과 단계는 현재 `dashboard/src/app/page.tsx`의 성과 요약, 플랫폼 필터, 콘텐츠 파이프라인, 발행 콘텐츠 표, 최근 활동을 계승한다. 제작 기록이나 공개 흐름을 본문에 상주시켜 성과 판단을 밀어내지 않는다.
+- 390에서는 흐름 레일과 현재 결과를 남긴다. 큰 결과 그림은 화면 폭에 맞게 한 열로 쌓고, 별도 창이 소유한 기록과 선택 학습을 본문에 복제하지 않는다.
+- 상태 5종은 흐름 맥락을 잃지 않는다. 내용 없음은 첫 갈래 선택, 불러오는 중은 읽는 정보 표시, 오류는 원본 보존과 재시도, 내용 많음은 상위 기록과 접힌 건수로 닫는다.
+
+### 방 사이 전달물과 선택 보드 (v45)
+
+- 네 단계 레일은 순서와 현재 위치만 말한다. 전달물의 상세는 반복 설명하지 않는다. 실제 편집 결과와 플랫폼별 제목·캡션은 편집 단계에서 확정되고, 발행 단계는 그 결과를 읽기 전용으로 확인한다.
+- 1024·1440의 주축은 `row` 7칸이다. 방 네 칸은 `minmax(0,1fr)`, 전달물 세 칸은 72px이다. 현재 방에서 나가는 전달물만 강조하고 이미 지난 전달물은 완료 상태로 둔다.
+- 390의 주축은 기존 `row` 4열을 유지한다. 전달물 세 칸을 억지로 넣지 않고 현재 인계 한 줄만 네 방 바로 아래에 보여 준다. 결과물과 기록의 의미는 사라지지 않는다.
+- 카드 여백은 회장 미결이라 검수 셸에서 두 안을 같은 화면으로 비교한다. `A 높이 맞춤`은 세 카드의 바닥을 맞추고, `B 내용 높이`는 각 카드가 내용만 감싼다. 제품 토큰과 카드 내부 8pt 간격은 두 안 모두 같다.
+- 화면 선택은 제품 기능이 아니라 검수 셸 기능이다. 현재 화면 담기 → 선택 저장하고 복사 → 실제 화면 미리보기와 복사 문장 생성 순서다. 선택 화면, 카드 여백, 자유 메모는 `localStorage`에 자동 저장한다.
+- 선택 저장 버튼은 저장과 복사를 함께 수행한다. Clipboard API가 막히면 읽기 전용 문장을 남겨 수동 복사할 수 있게 한다. 토글은 고정 라벨과 `aria-pressed` 상태를 쓴다.
+
+**v45 벤치마크 차용과 변경.** Google Stitch의 실시간 캔버스, 다안 탐색, 화면 export를 화면 선택과 복사 문장으로 바꿨다. Figma의 같은 탭 인라인 미리보기는 저장한 실제 화면을 바로 확인하는 방식으로 차용했다. Stitch의 자유 캔버스는 발표형 무스크롤 디스플레이와 충돌하므로 쓰지 않았다.
+
+- <https://blog.google/innovation-and-ai/models-and-research/google-labs/stitch-updates/>
+- <https://developers.googleblog.com/en/stitch-a-new-way-to-design-uis/>
+- <https://help.figma.com/hc/en-us/articles/360040318013-Play-your-prototypes>
+- <https://www.w3.org/WAI/ARIA/apg/patterns/button/>
+- <https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/writeText>
+- <https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage>
+
+**Google Stitch 차용과 경계.** 공식 Stitch가 여러 화면을 공간에 놓고 프로토타입을 재생하며 프로젝트의 이전 결정을 문맥으로 유지하는 방식을 확인했다. v44는 이 중 화면 연결, 재생 가능한 여정, 누적 맥락 유지 세 원리를 네 방 레일과 단계 클릭 전환에 차용했다. 무한 캔버스는 스크롤 없는 발표형 디스플레이 원칙과 충돌하므로 차용하지 않았다.
+
+공식 근거:
+
+- <https://stitch.withgoogle.com/>
+- <https://developers.googleblog.com/en/stitch-a-new-way-to-design-uis/>
+- <https://blog.google/innovation-and-ai/models-and-research/google-labs/stitch-gemini-3/>
+- <https://blog.google/innovation-and-ai/models-and-research/google-labs/stitch-updates/>
+
+### 상시 담당과 접히는 셸 (v46)
+
+- 디스플레이 본문은 방 이름을 다시 말하지 않는다. 현재 단계 이름은 헤더 2층 진행 띠 한 곳만 소유한다. 본문에는 현재 결과와 현재 행동만 남긴다.
+- 데스크톱 주축은 `row`: 접을 수 있는 사이드바 224px 또는 56px → `minmax(0,1fr)` 디스플레이 → 상시 담당 304px이다. 열 사이 간격은 16px이다.
+- 390 주축은 `column`: 헤더 → 디스플레이 → 상시 담당이다. 디스플레이 높이는 272px이고 담당 패널은 최대 320px이다. 대화 본문은 152px, 입력은 65px 별도 영역으로 두어 첫 선택지와 입력을 812px 프레임에 함께 수용한다.
+- 카드 여백 A는 Google Stitch 공식 Play 화면의 같은 규격 프레임 6개가 공통 위·아래선과 일정한 간격으로 나란히 선 비교 리듬에서 가져왔다. 화면 간 차이를 같은 기준선에서 비교할 때 쓴다.
+- 카드 여백 B는 Linear Board가 카드에 필수 속성만 남기고 설명과 전체 속성은 Space Peek로 여는 내용 밀도에서 가져왔다. 카드별 정보량이 다르고 빈 공간이 오히려 읽기 순서를 흐릴 때 쓴다.
+- Google Stitch 본체 `<https://stitch.withgoogle.com/>`는 WebFetch에서 본문이 0줄인 JavaScript 앱 셸만 반환해 로그인 뒤 조작 화면은 조사하지 못했다. Google 공식 발표의 1928×1085 AI-native canvas와 1920×1080 Play 이미지를 직접 열어 확인한 범위만 차용했다.
+- Notion의 `<<`·`>>` 전체 사이드바 전환, Microsoft 365 Copilot의 작업물 옆 side pane, Figma UI3의 접을 수 있는 패널을 차용했다. hover-only 전환은 터치와 발견성이 약해 기각했고, Figma의 전체 UI 숨김은 담당 상시 노출 요구와 충돌해 기각했다.
+
+근거:
+
+- <https://blog.google/innovation-and-ai/models-and-research/google-labs/stitch-ai-ui-design/>
+- <https://linear.app/docs/board-layout>
+- <https://www.notion.com/en-gb/help/navigate-with-the-sidebar>
+- <https://support.microsoft.com/en-US/Microsoft-365-Copilot/how-copilot-chat-works-in-microsoft-365-apps>
+- <https://www.figma.com/blog/behind-our-redesign-ui3/>
+
+### 폭 적응형 상시 담당 (v47)
+
+- 1024의 기본 주축은 `row`다. 왼쪽 탐색 56px → 본문 70% → 상시 담당 30% 순서이며 열 사이는 16px이다. 오른쪽 담당은 240px보다 좁아지지 않고 전체 작업영역의 30%를 넘지 않는다.
+- 1024에서 왼쪽 탐색을 펼치면 224px 패널이 56px 레일 위로 임시 겹침된다. 본문과 담당의 폭은 바뀌지 않는다. 닫으면 즉시 56px 레일로 돌아가며 화면, 단계, 대화 상태를 보존한다.
+- 1440은 v46 계약을 유지한다. 왼쪽 탐색 224px 또는 56px, 본문 `minmax(0,1fr)`, 오른쪽 담당 304px이다.
+- 390의 주축은 `column`이다. 본문 뒤에 담당이 이어지며 입력과 버튼은 최소 44px, 딱지는 최소 12/16 글자 규격을 지킨다.
+- 흐름 상세의 주축은 결과 우선 `column`이다. 1024에서 플레이어와 플랫폼 편집은 한 열로 쌓고, 글자를 자르지 않고 어절 단위로 줄바꿈한다.
+- 딱지는 한 줄 고정과 말줄임을 금지한다. `white-space:normal`, `word-break:keep-all`, `overflow-wrap:break-word`를 함께 쓰고 2줄 이상이 필요하면 카드 높이가 늘어난다.
+- 학습 고리는 1024와 390 모두 세 단계의 어절을 보존한다. 연결선이 먼저 줄고 글자는 한두 글자짜리 세로 열로 쪼개지지 않는다.
+
+공식 근거와 판단:
+
+| 제품 | 공식 규칙 | 차용 또는 기각 |
+|---|---|---|
+| Android canonical layouts | 600dp 미만 보조 패널 아래 또는 bottom sheet, 600dp 이상 50:50, 840dp 이상 70:30 | 1024의 70:30과 390의 아래 배치 차용 |
+| Apple HIG Sidebars | 제한 폭에서 compact control, 창 크기에 따른 자동 숨김 | 1024 왼쪽 탐색 56px 자동 축소 차용 |
+| Figma UI3 | hover-only 패널의 불안정성을 수정하고 접기와 크기 조절 제공. 공개 숫자 없음 | 오른쪽 담당은 안정적으로 상시 노출. 갑자기 사라지는 안 기각 |
+| Notion side peek | 오른쪽 peek가 열린 동안 왼쪽 목록 문맥 유지. 공개 숫자 없음 | 본문 문맥 유지 차용. 전체 화면 전환 기각 |
+| Intercom Messenger | 데스크톱 최소 20px 여백, 창 크기 사용자 지정 불가 | 고정 크기 overlay가 본문을 계속 먹는 안 기각 |
+| Linear Peek | Space로 임시 미리보기, Esc로 닫기. 공개 숫자 없음 | 상시 가시성 R101과 충돌해 임시 peek 기각 |
+
+### 모바일 대화 읽기와 터치 하한 (v49 유지 계약)
+
+- 390의 대화 본문 `clientHeight`는 120px 아래로 내려가지 않는다. 현행값은 152px이다. 첫 선택지는 최초 렌더에서 카드 전체가 보이는 위치로 정렬하며, 입력 영역과 대화 본문은 서로 겹치지 않는다.
+- 대화 본문은 카드 단위 `scroll-snap-align:start`를 쓰고 하단 `scroll-padding` 24px을 둔다. 마지막 선택지가 입력 바로 위에서 애매하게 잘리는 것을 막는다.
+- 390에서 보이는 버튼, 탭, 입력은 모두 44px 이상이다. `한 편의 흐름`, `추천`, 후보 선택, 보내기, 계정 조작에 예외가 없다.
+- 모든 폭의 제품 UI 텍스트는 12px 이상이다. 예외는 발행실 플랫폼 미리보기(`.pv59-*`) 하나뿐이고 근거는 R196이다(§3 실물 재현 영역).
+- 1024의 왼쪽 56px 아이콘 줄과 본문·담당 70:30 배분은 v47 통과안 그대로다. 카드 여백 A와 B 토글도 그대로 보존한다.
+- 활성 transition은 `all`을 쓰지 않는다. 배경색, 테두리색, 글자색, 그림자, 이동, 투명도처럼 실제 변하는 속성만 열거한다.
+
+공식 근거:
+
+- <https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced>
+- <https://www.w3.org/WAI/WCAG22/Techniques/css/C43>
+- <https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-padding-bottom>
+
+- <https://developer.android.com/develop/ui/views/layout/canonical-layouts>
+- <https://developer.apple.com/design/human-interface-guidelines/sidebars>
+- <https://www.figma.com/blog/behind-our-redesign-ui3/>
+- <https://www.notion.com/help/views-filters-and-sorts>
+- <https://www.intercom.com/help/en/articles/6612597-messenger-faqs>
+- <https://linear.app/docs/peek>
+
+### 결과 중심 네 단계 (v50 기준)
+
+R110~R143과 현재 구현을 기준으로 화면 책임을 고정한다. 과거 PRD의 플랫폼 문구 소유 규칙과 충돌하면 최신 요구사항 대장을 따른다.
+
+**소유 경계의 기준은 그 지식이 어느 DB에 사는가다(R132).** 콘텐츠를 어떻게 만들지는 studio가, 플랫폼에서 어떻게 말할지는 openclaw가 갖는다. 따라서 제목·문구·해시태그·첫 댓글·댓글 관리는 **발행실**이고, 편집실은 **콘텐츠 자체**(영상 길이·자막·비율·이미지·음성·컷 순서)만 다룬다. 이 경계는 확정이며 화면에서 되돌리지 않는다.
+
+**한 화면에는 결정 하나만 둔다(R137·R138).** 결정이 둘 이상이면 단계로 나눈다. 다음 결정을 앞 화면 아래에 덧붙이지 않는다.
+
+| 단계 | 주인공 | 주축과 열 | 소유하는 조작 | 소유하지 않는 것 |
+|---|---|---|---|---|
+| 01 | 단계 1 제안 화면 3장 → 단계 2 후보 3개 → 단계 3 완성 확인 | `column`, 제안 비교는 데스크톱 3열·1024 이하 1열. 단계 줄은 `row` | 1단계 카드 선택 · 2단계 후보 선택 · 3단계 편집실로 넘김 | 한 화면에 두 단계 동시 노출, 빈 입력, 카드마다 반복 행동 |
+| 02 | 큰 재생 플레이어 | `column`, 재생기 열과 편집 패널 2열(`minmax(520px,1.4fr) minmax(300px,360px)`) | 자막 문구·자막 크기·영상 속도·이미지·음성·컷 순서·원본 내려받기 | **제목·캡션·해시태그·첫 댓글(발행실 소유)**, 별도 되돌림 블록 |
+| 03 | 올라갈 모습 · 올리기 · 댓글 관리 · 승인 인박스 · 월간 달력 | `column`, 달력 칸수는 §4 격자 규칙(7 → 1199px 4 → 479px 2) | 플랫폼별 문구·해시태그·첫 댓글, 즉시 발행/보관/예약, 댓글 답글 | 콘텐츠 자체 편집(길이·자막), 원본 내려받기 |
+| 04 | 기존 홈 성과 구조 | `column`, 요약 타일 5열 두 줄(좁으면 2열), 파이프라인 4칸, 표와 활동 8:4 | 플랫폼 필터, 콘텐츠 성과, 오류 확인 | 새 지표 체계나 새 카드 모자이크 |
+
+컴포넌트는 `ActualProposal`, `StepFlowBar`, `VideoPlayer`, `PlatformPreviewEditor`, `ChannelHead`, `MonthCalendar`, `PerformanceHomeInheritance`, `CommentThread` 여덟 개다. 새 색, 새 서체, 새 간격 토큰은 만들지 않는다. 재생기 전용 색 변수 일곱 개만 §2에 더했다.
+
+`ActualProposal`은 텍스트 설명 대신 실제 영상, 캐러셀, 게시 화면을 보여 준다. 카드 안에 근거 배지를 넣지 않는다. 카드 전체가 고르는 동작이고 카드 안에 단추를 두지 않는다.
+
+`StepFlowBar`는 단계 셋을 `row`로 놓고 지금 단계에 `aria-current="step"`을 준다. 지난 단계는 눌러서 돌아갈 수 있고 앞 단계는 `aria-disabled`다. 높이 44px, 칸 사이 8px, 사이 구분선 16px. 한 화면에 결정이 둘이 되려 하면 이 부품을 쓴다.
+
+`VideoPlayer`는 유튜브 실물 배치를 따른다. **영상이 프레임을 다 쓰고(`width:100%; aspect-ratio:16/9`), 자막은 영상 위 아래쪽에 얹히고, 조작은 영상 아래 가로 한 줄이다.** 줄 순서는 재생 · 진행 막대(`flex-grow`) · 남은 시각 · CC · 설정(톱니) · 전체 화면. 진행 막대는 보이는 두께가 8px이지만 누르는 면은 44px이다(보이는 크기와 잡는 크기를 분리한다). 설정은 재생기 오른쪽 아래에서 위로 열리고 영상 전체를 덮지 않는다. 520px 아래에서는 진행 막대와 남은 시각이 조작 줄 위로 올라가고 아래 줄에는 단추만 남는다(두 줄까지. 세 줄이 되면 영상이 눌린다).
+
+**재생기 안에 글을 고치는 입력칸을 두지 않는다.** 자막 문구·속도·재료는 오른쪽 편집 패널이 갖는다. 속도는 결과물의 길이를 바꾸는 값이라 보기 설정이 아니다. 바뀌는 길이를 그 자리에 적는다.
+
+`PlatformPreviewEditor`는 **발행실**에 산다. Threads, X, Instagram, Facebook, Shorts, Reels, TikTok 미리보기 옆에 문구·해시태그·첫 댓글을 둔다. 별도 "채널별 문구" 탭을 만들지 않는다.
+
+`ChannelHead`는 **모든 플랫폼이 같은 네 부품을 같은 순서로** 쓴다(R141). 진실원은 `dashboard/src/components/channel/ChannelPage.tsx` 145~173행이다. ① 32px 사각 표식(채널 이름 첫 글자, radius 8px) ② 채널 이름 ③ 그 아래 연결 상태 한 줄 ④ 오른쪽 상태 딱지. 재연결이 필요하면 헤더 바로 아래 경고 띠 한 줄을 둔다. 상태 말은 `dashboard/src/lib/constants.ts`의 `CH_STATUS_LABEL`(Live · Connected · Coming Soon)만 쓴다. 플랫폼마다 다른 머리를 만들지 않는다.
+
+`MonthCalendar`는 월, 요일, 날짜, 예약 콘텐츠가 있는 격자다. 칸수는 §4 규칙을 따른다. **칸수가 7이 아니게 되면 맨 위 요일 줄을 감추고 요일을 날짜 옆에 적는다**(4칸·2칸에서 요일 줄이 날짜와 어긋나기 때문이다). 한 날짜에 보이는 일정은 두 건까지이고 나머지는 `+N건 더` 한 줄로 접는다. 날짜 칸 최소 높이는 7칸 128px, 4칸 112px, 2칸 96px이다.
+
+`CommentThread`는 카드가 아니다. 위쪽 1px 구분선과 24px 위아래 여백만 쓴다. 눌리는 것은 줄 안의 답글 단추이지 줄 자체가 아니므로 카드 껍데기를 두르지 않는다.
+
+모바일 390에서 플레이어, 플랫폼 미리보기, 편집 폼은 `column` 순서다. 대화 본문은 최소 120px, 현행 목표 152px이다. 모든 탭과 버튼은 44px 이상, 제품 글자는 12px 이상이다.
+
+**월간 달력을 가로 스크롤로 처리하지 않는다.** 390에서 2칸으로 접는다. 손가락으로 옆으로 밀어야 다음 요일이 나오는 것은 달력이 아니라 표다.
+
+**이 부품들의 반응형은 `@media`가 아니라 `@container frame`으로 쓴다.** 프로토타입에서 `.frame`이 컨테이너이므로 `@media`로 쓰면 검수 창 크기에 반응하고 제품 프레임 안에서는 한 번도 발동하지 않는다. 구현으로 옮길 때도 같다. 뷰포트가 아니라 그 부품이 앉은 자리의 폭이 기준이다.
+
+금지 패턴은 다음과 같다.
+
+- 제품 화면 안 이용 주체 전환
+- 현재 작업 화면의 테마 전환
+- 본문 상주 선택 학습 설명
+- **확정 용어를 임의로 개명하기.** `학습 정보`는 회장 확정 자산이고 헤더 오른쪽(크레딧 왼쪽)이 그 자리다(R136). 사이드바 System 묶음에는 두지 않는다. `채널 운영`과 잇달아 놓이면 한 덩어리로 읽힌다(R142)
+- **화면에 설명 문장 두기(R135).** 위치 표시줄, 방 설명 문장, 근거 표시 안내, 담당 아래 상주 안내는 두지 않는다. 화면에 남는 글자는 판단에 쓰이는 값이거나 누를 것의 이름뿐이다
+- **결정 창을 앞 화면 아래에 덧붙이기(R137).** 다음 결정은 다음 단계나 자기 탭으로 보낸다
+- **편집실에서 제목·캡션·해시태그·첫 댓글 다루기(R139).** 그 자리는 발행실이다
+- 카드마다 같은 행동 두 개 반복
+- 헤더의 단계 이름을 본문에서 다시 큰 제목으로 표시
+- 발행 단계에서 콘텐츠 자체(영상 길이·자막)를 편집하거나 원본을 내려받기 (R132: 콘텐츠는 편집실, 제목·문구·해시태그·댓글은 발행실)
+- 발행실에 "채널별 문구" 전용 탭을 따로 두기 (R124: 각 플랫폼 미리보기 옆에서 그 자리에서 고친다)
+- 월간 달력을 세로 목록으로 대체
+- 사이드바 채널 묶음에 구현에 없는 이름 쓰기 (`Social` / `Messaging` / `Video`만. 진실원은 `dashboard/src/lib/channel-capabilities.ts`)
+- 사이드바 묶음 이름을 `h2`로 두기 (이름표이지 제목이 아니다. 본문 제목보다 앞선 `h2`가 여러 개 서면 읽어 주는 도구의 목차가 뒤집힌다)
+- 현재 `dashboard/src/app/page.tsx`를 무시한 성과 카드 재구성
+- **OSMU 미리보기를 플랫폼 탭으로 바꿔 한 번에 하나만 보여 주기 (R164).** 한 화면에 스레드·인스타·쇼츠·릴스가 동시에 보이는 것이 이 제품의 핵심이다
+- **디스플레이에 결정 단추를 두기 (R157).** 후보 만들기·고해상도 만들기 같은 결정은 오른쪽 대화에서 보내기로 한다. 디스플레이에 남는 것은 고를 대상 자체와 이동뿐이다
+- **디스플레이에 설명 문장을 두기 (R158).** 이번에 추가·생성 결과·금액과 소요 시간은 예시 값입니다·한 장을 고르면 다음으로 넘어갑니다 같은 줄은 두지 않는다. 카드에 이미 있는 설명을 아래에서 되풀이하지 않는다
+- **헤더에 고정 단계 표시줄을 두기 (R160).** 네 단계는 헤더의 작업물 전체 한 곳이 소유한다. 같은 일을 하는 길을 둘로 두지 않는다
+- **사이드바에 네 방을 상시 목록으로 두기 (R166).** 띠를 걷고 목록을 남기는 것은 합친 것이 아니다. 네 방으로 가는 상시 진입로는 **작업물 전체 하나**다. 지금 어디인지는 헤더 딱지·"지금 여기" 딱지·방 본문 첫 줄이 말한다
+- **제품 안 이동에 `window.scrollTo(0,0)`을 쓰기 (R167).** 그것은 제품이 아니라 그 제품을 담은 페이지 전체를 맨 위로 올린다. 프로토타입에서는 검수 페이지가 튀고, 실제 서비스에서는 사용자가 보던 자리가 사라진다. 올릴 것은 **제품 화면 컨테이너의 `scrollTop`**뿐이다
+- **강조색 위 글자색을 `#fff`로 못 박기.** 다크에서 강조색이 밝아지면 2.5:1까지 떨어져 AA에 미달한다. `--accent-ink`를 테마마다 뒤집어 쓴다
+- **좁은 폭에서 유일한 진입로를 숨기기.** 폭이 없으면 낱말을 접되 단추 자체를 `display:none`으로 지우지 않는다
+- **받은 적 없는 값을 받은 것처럼 쓰기 (R168).** 첫 손님에게 "공통 정보 4판에서 상속"이라고 적으면 화면이 거짓말을 한다. 층이 비었으면 **비었다고 적는다.**
+- **화면 함수만 만들고 경로를 안 잇기 (R168).** `/onboard`·`/learn`은 v40부터 화면이 있었는데 목적지 표에 없어 눌러도 엉뚱한 데로 떨어졌다. 화면을 더하면 **목적지 표와 폴백을 같이 확인한다.**
+- **한글을 어절 한가운데서 끊기.** 좁은 폭 문단·제목에는 `word-break:keep-all`을 건다. "세 걸음 / 입니다", "9가지만 받 / 고"처럼 갈리면 읽다가 걸린다
+- **이름을 말줄임으로 자르기.** "Studio 생성"을 "Studio ..."로 자르면 어느 방인지 못 읽는다. 폭이 모자라면 짧은 이름을 쓰지 이름을 자르지 않는다
+- **방을 눌렀을 때 헤더가 스스로 펼쳐지기 (R159).** 열고 닫는 것은 사람이 정한다. 유도는 글자가 아니라 움직임으로 한다(`prefers-reduced-motion`에서는 끈다)
+- **소리 편집이라고 부르기 (R163).** 그 갈래가 하는 일은 배경음악을 만들어 고르는 것이다. 이름은 음악이다
+
+벤치마크 판단은 실제로 열어 본 공식 문서에 한정한다. 확인한 여섯 곳과 그 판단은 아래와 같고, 같은 표가 프로토타입 화면별 우측 근거 패널에도 들어 있다.
+
+| 출처 | 확인한 규칙 | 우리 판단 |
+|---|---|---|
+| [YouTube 재생 속도](https://support.google.com/youtube/answer/7509567) | 속도는 재생기 설정(톱니) 안에서 고른다 | 우리 속도는 보기 설정이 아니라 결과물의 길이를 바꾸는 값이라 재생기 밖 편집 패널에 두고 바뀌는 길이를 그 자리에 적는다 |
+| [YouTube 자막 옵션](https://support.google.com/youtube/answer/100078) | CC 아이콘은 재생기 오른쪽 아래에 있고, 글꼴·크기·색·불투명도·배경·테두리는 설정 > 자막 > 옵션 두 겹 안에 있다 | CC 자리는 그대로 따랐다. 크기는 두 겹을 한 겹으로 폈고 글꼴과 배경은 브랜드가 이미 정해 고를 자유가 없어 뺐다 |
+| [MDN Video player styling basics](https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Audio_and_video_delivery/Video_player_styling_basics) | 조작을 가로 한 줄에 눕히고 진행 막대에 남는 폭을 준다. 좁은 폭에서는 진행 막대를 조작 줄 위로 올린다 | 그대로 따랐고 기준 폭만 680px에서 520px로 바꿨다 |
+| [W3C WAI 미디어 재생기](https://www.w3.org/WAI/media/av/player/) | 자판 조작, 보이는 초점 표시, 분명한 이름, 충분한 대비 | 조작마다 이름을 달고 진행 막대에 slider 역할과 초점 테두리를 줬다 |
+| [WCAG 2.2 2.5.8 최소 표적 크기](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html) | 최소 24×24 CSS 픽셀 | 24는 하한이라 44로 잡았다. 영상 위에서 누르는 것은 손가락이 화면을 가린다 |
+| [FullCalendar dayMaxEvents](https://fullcalendar.io/docs/dayMaxEvents) | 한 날짜에 보일 일정 수를 정하고 나머지는 `+N more`로 접는다 | 관습을 쓰되 자동 대신 두 건 고정으로 잡았다. 칸 높이가 화면마다 달라지면 어느 날이 바쁜 날인지 눈으로 못 잰다 |
+
+---
+
+### 사이드바 = 유저 흐름 (v58 · R176)
+
+사이드바 첫 묶음 `한 편의 제작 순서`는 **기록이 아니라 흐름**이다. 작업물 개수를 붙이지 않는다.
+
+| 부품 | 규격 |
+|---|---|
+| 순번 칩 `.fl58-n` | 22px 원 · 아이콘 자리를 대체한다(접힌 레일에서도 순서가 읽혀야 한다) · 지나온 방은 `✓` |
+| 연결선 `.nav-item.flow58::before` | 좌측 19px · 폭 2px · 지나온 구간과 지금 구간만 `--accent` |
+| 상태 배지 `.fl58-st` | 지금 여기 / 다음 두 값만. 그 밖은 배지 없음 |
+| 진행 요약 `.fl58-sum` | 묶음 라벨 바로 아래 한 줄. `지금 2 / 4 · 다음은 발행실` |
+
+채널 목록은 이 묶음 **아래에 그대로** 둔다. 채널을 눌러 연결하는 경로가 정본이다(R175).
+
+### 생성실 디스플레이 2단 골격 (v58 · R177)
+
+```
+.d58  grid  1.55fr | 1fr   gap 16   (frame < 1100px 이면 1단)
+ ├ 왼쪽  .panel        이 단계의 설명과 예시
+ │    .d58-step  단계 번호와 이름표 (제목과 같은 말을 두 번 하지 않는다)
+ │    .d58-h     26px/800  단계 이름 (390에서 21px)
+ │    .d58-lead  13px 최대 52ch  이 단계에서 무슨 일이 일어나는가
+ │    .d58-exlab 점선 알약  "이 단계를 지나면 이런 것이 나옵니다" 또는 "회원님께 받은 값으로 뽑았습니다"
+ │    .d58-ex    3칸 카드 (frame < 560px 이면 1칸)
+ └ 오른쪽 .panel.calm   회원께 쌓인 것
+      .d58-count  30px/800 채워진 수  +  / 전체
+      .d58-bar    5px 막대
+      .d58-lay    층별 묶음 · 채워진 칩(`got`)과 아직인 칩(`wait` 점선)
+```
+
+두 칸은 **같은 무게**다. 둘 다 16px 라운드와 1px 테두리를 갖는다. 한쪽만 카드면 위계가 어긋난다.
+
+### 편집실 3영역 골격 (v58 · R181 · R182)
+
+```
+.e58   grid  214px | 1fr   align-items:stretch
+ ├ 왼쪽  .e58-outline   영상 목차 · 장 목차 · 곡 목차   (frame < 820px 이면 1단, 최대 높이 216px)
+ │      .e58-shot  44px 썸네일 + 이름 + 시간   고른 항목 아래에만 앞으로·뒤로
+ └ 가운데 .e58-main
+        .e58-stage   재생기 · 카드 · 파형
+        .e58-tools   아이콘 조작 띠. 아이콘 하나 = 조작 하나. 한 번에 하나만 열린다
+                     아이콘 옆에 지금 값을 적는다. 접었다고 상태를 못 보게 하면 숨긴 것이다
+                     .e58-pop  열리는 판. 고를 값과 한 줄 안내만
+.e58-script          대사. 어느 갈래든 항상 아래 전체 폭. 지금 컷만 입력 가능, 나머지는 읽기
+```
+
+조작 값을 제목 붙은 큰 칸으로 세우지 않는다. 값 여섯을 펼치면 결과물이 그만큼 줄어든다.
+
+### 성과실 골격 (v61 전면 개정 · R186 · R195 · R127 · R149 · R185 · R168 · R98 · R68 · R56)
+
+**탭을 쓰지 않는다. 한 화면 한 흐름이다.** v58~v60의 세 탭(답할 것 / 무엇이 통했나 / 기록)은 폐기한다.
+
+> **왜 네 판이나 반려됐나 (v61에서 밝힌 진단. 해석이므로 회장 확인 전이다).**
+> v58은 정본을 안 보고 새로 그려 반려됐고, v59·v60은 정본을 **그대로 옮겨** 또 반려됐다. 그러니 문제는 계승이냐 창조냐가 아니었다.
+> 정본 `dashboard/src/app/page.tsx`는 openclaw 대시보드 **홈**이다. 홈은 훑는 자리라 같은 크기 타일을 격자로 까는 것이 맞다.
+> **성과실은 홈이 아니라 판정하고 되돌리는 방이다.** 숫자 열 개를 같은 크기로 깔면 화면이 "네가 읽어라"라고 말한다.
+> **"조잡"은 밀도가 아니라 판정의 부재였다.** 정본은 레이아웃 정답이 아니라 **무엇이 이미 계측되고 있는지의 재료 목록**으로 읽는다.
+
+| 순서 | 자리 | 무엇 | 골격 | 표식 |
+|---|---|---|---|---|
+| ① | **판정** | 무엇이 통했고 무엇이 안 통했나. **이 방의 주인공은 숫자가 아니라 문장이다** | `.panel.hero` 하나. 판정 문장 32/40 → 근거 줄(화면 숫자에서 뽑는다) → 플랫폼 집중 칩 → 핵심 넷 `.pf61-core` 4열 24/32 → 나머지 여섯 `.pf61-rest` 한 줄 12px → 사용량 줄 | `data-perf-verdict` · `data-perf-tier` |
+| ② | **되돌림** | 통한 것을 다음 한 편으로 잇고, 배운 규칙을 승낙받는다 | `.panel.calm`. `.pf58-win` 카드 셋(첫 카드만 `.lead` 강조 + **이 결로 한 편 더**) → `l5Panel()` | `data-perf-loop` |
+| ③ | **답하기** | 달린 댓글과 반응에 답한다 | `.pf58` grid 172px \| 1fr · 왼쪽 필터 레일 · 가운데 스트림 · 자동 처리 요약은 오른쪽 | `data-perf-comments` |
+| ④ | **원자료** | 판정의 근거. 주인공이 아니라 **접어 둔다** | `<details>` · 글별 성적 표 일곱 열 + 확인할 것 | `data-perf-inherit` |
+
+**주인공은 ①뿐이다.** `.panel.hero`를 이 화면에 둘 이상 두지 않는다(§8.5). ②를 hero로 만들면 눈이 어디서 시작할지 모른다.
+
+**타일 열 개는 지우지 않는다(R195). 위계로 가른다.** 개수를 줄이면 R195 위반이고, 같은 크기로 두면 R186("조잡") 위반이다. 위계가 유일한 답이다.
+- 크게(`.pf61-c`, 24/32): 조회 · 저장 · 답글 · 팔로워. **회원이 판정에 실제로 쓰는 넷**이다.
+- 얇게(`.pf61-rest`, 12px 한 줄): 총 발행 · 참여율 · 대기 큐 · 터진 글 · 도달 · 참여. **누를 수 없는 값이므로 카드로 감싸지 않는다**(§8.5). 윗선 하나로 구역만 나눈다.
+
+**정본에 있어도 이 화면에 안 쓰이면 뺀다. 뺀 것은 사유를 적는다.**
+
+| 정본 | 판정 | 사유 |
+|---|---|---|
+| 141~146 콘텐츠 파이프라인 넷 | **안 씀** | 네 숫자가 각각 **다른 방의 상태**다. draft·approved는 헤더 승인 인박스가, published는 발행실이, performing은 이 방의 판정이 이미 말한다. 한 방에서 네 방 상태를 또 까는 것이 조잡의 한 원인이었다. 390에서 이 넷이 세로로 늘어져 화면 하나를 다 먹던 문제도 여기서 사라진다 |
+| 306~326 Channels Status | **안 씀** | 채널 연결 상태는 사이드바 채널 줄 딱지와 발행실 연결 띠가 상시로 말한다. 행동이 필요한 것만 ④의 확인할 것에 남긴다 |
+| 250~286 최근 활동 · 330~370 Agent Activity | **안 씀** | 판정에 쓰이지 않는 로그다. 무엇을 근거로 뽑았는지는 회원이 **학습 정보**에서 확인한다(R178) |
+| (정본에 없음) | **신설** | 정본 대시보드에는 **댓글 본문을 읽고 답하는 화면이 없다**(숫자 `replies`만 있다. 실측). R185로 ③을 세웠다 |
+| (정본에 끊겨 있음) | **이었다** | 정본의 `성과 기반 다음 아이디어`는 아이디어를 **글자로만** 뿌리고 생성 큐로 넣는 경로가 없다(실측). ②의 **이 결로 한 편 더**가 그 빠진 다리다(R68 가속) |
+
+**표본이 문턱을 못 넘으면 단정하지 않는다(R98).** 같은 선택 3회 또는 성과 표본 5건 미만이면 판정 문장 앞에 `근거 부족` 딱지를 붙인다. 배운 규칙은 **승낙한 것만** 다음 생성이 읽는다(R168).
+
+댓글에는 **어느 글에 달린 것인지**를 반드시 적는다. 답글 칸은 **고른 하나만** 연다.
+
+#### 성과실 · 표본 0건 상태 (v61 마감 신설, `state.perfEmpty`)
+
+첫 손님은 반드시 이 상태를 지난다. 발행이 0건인 회원이 이 방에 들어왔을 때 판정 문장이 무엇을 말하는가가 이 방의 성패다. **채워진 화면의 값만 0으로 바꿔 끼우지 않는다.** 그러면 조회 0 · 저장 0 · 답글 0이 네 칸 크게 서서 "아무도 안 봤다"고 말한다. 사실이 아니다. 아직 아무것도 안 나갔을 뿐이다.
+
+| 자리 | 표본 있음 | 표본 0건 |
+|---|---|---|
+| 판정 문장 | 무엇이 통했는지 한 문장 | **아직 판정할 표본이 없습니다** |
+| 근거 줄 | 화면 숫자에서 뽑은 근거 | `근거 부족` 딱지 + 문턱 명시(5건이 모이면) |
+| 핵심 넷 `.pf61-c` | 값과 증감 | **미수집** + `발행 뒤부터 모읍니다`. **0으로 세지 않는다** |
+| 나머지 여섯 `.pf61-rest` | 값 | **미수집** |
+| 다음 행동 | 통한 카드의 `이 결로 한 편 더` | 판정 바로 아래 `생성실에서 첫 편 만들기` · `발행실에서 올릴 것 고르기` |
+| 되돌림 판 | `무엇이 통했나` 셋(우리 표본) | `표본이 없을 때 무엇으로 시작하나` 셋. 라벨은 **가설 · 우리 검증 기록 아님** |
+| 반응 | 댓글 스트림 | 빈 상태 한 줄 + 첫 편이 나가면 여기 모인다는 예고 |
+| 원자료 | 표 · 확인할 것 | 0건 안내 줄. `td[colspan]`은 390에서 라벨 짝 없이 한 단으로 흐른다 |
+| 담당 대사 | 반응을 모아 두었다 | **아직 나간 글이 없어 모을 반응이 없다.** 화면이 없다고 말하는데 담당이 있다고 말하면 그 순간 이 방을 못 믿는다 |
+
+- **방의 뼈대는 바꾸지 않는다.** 순서는 표본이 있을 때와 같다(판정 → 되돌림 → 답하기 → 원자료). 상태가 달라졌다고 배치가 달라지면 첫 편을 올린 다음 날 낯선 화면을 다시 배워야 한다.
+- **R68 을 지키되 출처를 부풀리지 않는다.** 성과가 없어도 방향은 제안하지만 그 제안에 `우리 검증 기록` 라벨을 달지 않는다. 우리 기록이 0건인데 그 라벨을 달면 이 방의 모든 판정을 못 믿게 된다.
+
+### 4.x 접는 순서 · 자리가 모자랄 때 무엇부터 접나 (v59 신설)
+
+폭이 줄면 **없애는 것이 아니라 접는다.** 무엇부터 접을지는 화면마다 미리 정해 둔다. 정해 두지 않으면 접는 규칙이 그때그때 달라지고, 정작 중요한 칸이 먼저 사라진다(v59 에서 실제로 캡션 칸이 먼저 사라진 사고가 났다).
+
+| 화면 | 접는 순서 (먼저 접히는 것부터) | 마지막까지 남는 것 | 왜 |
+|---|---|---|---|
+| 플랫폼별 설정 목록 | 설정 열기 → 해시태그 · 표시 이름 → 제목 · 첫 댓글 | **캡션 글자수** | 글자수 초과가 나는 칸이 캡션이고, 그것이 이 목록을 보는 첫 이유다 |
+| 헤더 | 작업 공간 말투 → 지금 방 딱지(사이드바가 펼쳐져 있을 때) → 학습 정보 층수 → 인박스·캘린더 긴 이름 | 이름 + 건수 | 숫자만 남으면 무슨 숫자인지 모른다 |
+| 발행물 표 | (접지 않는다) | 일곱 열 전부 | 719px 아래에서는 한 발행물을 한 덩이로 세워 열 이름을 값 왼쪽에 붙인다 |
+
+## 5. Shapes · 형태
+
+radius는 아래 5개만 쓴다. 리터럴 값 금지.
+
+| 토큰 | 값 | 쓰는 곳 |
+|---|---|---|
+| `--chip` | 6px | 작은 아이콘 타일, 캘린더 슬롯, 썸네일 |
+| `--control` | 8px | 버튼, 입력, 작업물 카드 |
+| `--radius` | 12px | 카드, 패널, 리스트 묶음 |
+| `--pill` | 99px | 칩, 뱃지, 토글, 스위치 |
+| 원형 | 50% | 아바타, 도장 |
+
+**제2 반경 금지 (v64).** 판을 거듭하며 `border-radius:14px` 이 14곳에 두 번째 기본값처럼 굳어 있었다. 전부 `var(--radius)` 로 회수했다. 리터럴 radius 를 새로 쓰는 순간 이 표가 무너진다.
+
+테두리는 1px `--border` 한 종류. 강조는 두께가 아니라 좌측 2~3px 색선 또는 `box-shadow: 0 0 0 3px var(--accent-soft)`로 준다.
+
+---
+
+## 6. Elevation · 뎁스
+
+3단만 쓴다.
+
+1. **지면**(그림자 없음): 사이드바, 본문 배경.
+2. **카드**(테두리만): 리스트, 패널, 후보 카드.
+3. **떠 있는 것**(`0 4px 16px rgba(37,99,235,.10)`): 호버 중인 카드, 기기 프레임.
+
+화면을 덮는 층은 만들지 않는다. 더 보여줄 것이 있으면 같은 자리 아래로 펼친다.
+
+**예외 하나 (v61 신설, 근거 있는 것만).** 390의 상시 대화 시트가 **가득(full)** 단계일 때만 뒤를 `color-mix(in srgb, var(--text) 28%, transparent)`로 눌러 지금 대화가 앞이라는 것을 알리고, 그 자리를 눌러 접는 길을 준다. 살짝·반 단계에서는 덮지 않는다. NN/g 바닥 시트 지침의 "비모달은 뒤 내용을 계속 참조할 수 있어야 한다"를 살린 채, 같은 지침의 "닫는 길을 눈에 보이게 두라"를 만족시키는 최소한이다. **이 예외는 390 대화 시트에만 적용된다.** 다른 곳에 덮는 층을 새로 만들려면 이 문서에 먼저 근거를 올린다.
+
+---
+
+## 7. Components · 인벤토리와 상태
+
+| 컴포넌트 | 클래스 | 규칙 |
+|---|---|---|
+| 작업물 전체 판 | `.gnb-panel[data-gnb-panel="works"]` `.wk-cells` | **네 방으로 가는 유일한 상시 진입로.** 헤더 단추를 눌러야 열린다. 네 칸이 격자로 서고 칸마다 건수가 있다. 720px 미만에서 2열. 맨 아래에 "닫고 디스플레이와 대화만 보기" |
+| 단계 칸 | `.wk-cell` `.wk-cell.on` `.wk-cell.here` `.wk-n` | 건수(24px) + 방 이름 + 상태 한 줄. `.on`은 지금 펼친 칸(accent-soft 채움), `.here`는 지금 들어와 있는 방(accent 안쪽 링). 건수는 조용한 글자색이 기본이고 **사람 손이 필요할 때만** 경고색 |
+| 지금 여기 딱지 | `.wk-here` | 지금 있는 방 칸에만. pill 99px, `--accent` 채움 + `--accent-ink` 글자. **색만으로 말하지 않고 "지금 여기" 낱말을 함께 적는다** |
+| 단계 머리줄 | `.wk-open-head` | 칸을 펼치면 목록 위에 선다. 방 이름 + 그 방이 하는 일 한 줄 + **그 방 열기 단추**. 보관 0건인 단계도 이 단추로 들어간다(문을 목록에 달지 않는 이유) |
+| 첫 손님 관문 | `[data-create-gate]` `.fr-steps` `.fr-step` | **아직 안 받은 값이 있으면 생성실이 후보를 뽑지 않는다.** 걸음마다 무엇을 여쭐지를 이름으로 적고 그 자리로 가는 단추를 붙인다. 걸음과 못 받은 값을 **두 판으로 나누지 않는다**(같은 일을 하는 단추가 둘이 된다). 막다른 길을 막기 위해 "예시로 보기"를 남기되 그 화면에는 회원 값이 아니라는 표시를 붙인다 |
+| 조립층 근거 | `[data-basis-receipt]` `.basis-row` | 후보를 보여 주기 **전에** 그 후보가 어느 층에서 나왔는지 층별 한 줄. **없는 층은 없다고 적는다**(점선 칸 + "아직 배운 것이 없습니다"). 있지도 않은 판 수를 상속했다고 쓰지 않는다 |
+| 배운 규칙 승낙 | `[data-l5-panel]` | **성과실에만 둔다.** 일곱 층 중 배운 규칙만 쓰기가 있고 그 쓰기는 성과실 몫이다. 성과 요약 **다음**에 온다(순서가 인과다). 후보마다 근거·표본 수·얇으면 얇다는 표시. 승낙과 거절이 같은 무게. 다 정하면 판이 접히고 한 줄만 남는다 |
+| 헤더 현재 방 딱지 | `.gnb-here` | 작업물 전체 단추가 지금 방 이름을 데리고 다닌다. 방 밖에서는 뜨지 않는다. 좁은 폭에서도 지우지 않는다. 여기가 "지금 어디인가"를 말하는 마지막 자리이기 때문 |
+| 선택 기록 창 | `.selection-record-window` | 작업 화면과 분리된 별도 창. 소재·선택 신호·취향 프로파일·승인 대기를 필요할 때만 연다 |
+| 헤더 GNB | `.gnb` | 작업 공간 전환 · 작업물과 히스토리 · 크레딧 · 알림 · 계정. 719px 미만에서 두 줄로 접힌다 |
+| GNB 패널 | `.gpanel` | GNB 아래로 펼쳐진다. 화면을 덮지 않는다 |
+| 앱 사이드바 | `.sidebar` `.sidebar-toggle` `.sidebar-collapsed` | **맨 위에 네 방을 둔다(R08 · R14 · R172).** 그 아래로 `constants.ts` 채널 라벨 + 데이터 + 키워드 + 자산 + 설정. `처음과 배움` 그룹은 두지 않는다. 펼침 224px, 접힘 56px. 접히면 방은 아이콘, 채널은 글자 표식이라 두 무리가 구분된다. 아이콘 하나로 전체를 전환하고 선택값을 저장한다. **항목 최소 높이 44px** |
+| 방 묶음 | `.nav-group.room-group` | 사이드바 맨 위 묶음. 이름표는 `한 편의 제작 순서`. 항목마다 그 방에 걸린 건수를 오른쪽에 적는다(작업물 목록에서 센 값이지 지어낸 숫자가 아니다) |
+| 발행실 두 단 | `.v57-pub` `.v57-pub-main` `.v57-pub-side` | 주축 row. 왼쪽 auto, 오른쪽 232px 고정. 프레임 1150px 아래에서 column으로 접히고 레일이 아래로 간다. 두 열 모두 `min-width:0` |
+| 갈래 묶음 | `.v57-grp` `.v57-grp-h` `.v60-grpn` `.v60-undoall` | 묶음 머리는 `h2`(16px/700) + 채널 이름들 + `글자를 눌러 그 자리에서 고칩니다` + `이 갈래를 공통 문구로 되돌리기` + `옆으로 밀어 더 보기`. **머리글만 훑어도 이 방이 무엇을 하는지 서야 한다.** `b`로 두면 제목 위계에 안 잡힌다. 719px 아래에서 힌트가 자기 줄로 내려가고(`order:3`) 되돌리기가 뒤에 선다 |
+| 미리보기 칸 | `.osmu-col.v60-col` `[data-pub-fields]` | **칸은 보는 자리이자 고치는 자리다(R124 · R197).** 칸 전체를 누르는 단추로 만들지 않는다. 칸 머리는 정본 계승(로고 · 이름 · 연결 상태 · 글자수 · 발행 체크 · 계정 고르기), 그 아래가 실제 게시물 모습, 발밑이 상태줄 |
+| 제자리 편집 자리 | `.ie60` `[data-pv-inline-edit="<채널>:<칸>"]` | **다섯 값(제목 · 표시 이름 · 캡션 · 해시태그 · 첫 댓글)을 미리보기 글자 그 자리에서 고친다.** 별도 판·서랍·톱니를 두지 않는다. `contenteditable="plaintext-only"` + `role="textbox"` + `aria-multiline` + `aria-label`. 평소 `accent 22%` 밑줄(터치 기기는 38%), hover 60%, 편집 중 `0 0 0 2px var(--accent)`. **입력칸처럼 그리지 않는다** — 미리보기의 본분은 "실제로 이렇게 올라간다"이다. 한 줄 칸은 엔터로 확정, Esc로 빠져나온다. 조합(한글 IME) 중에는 상태를 건드리지 않고, 타자 중에는 다시 그리지 않는다(커서 유실 방지). 접힌 캡션은 편집 중 펴진다(`.clamp-2:has(.ie60:focus)`) |
+| 칸 발밑 상태줄 | `.v60-meter` `.v60-badge` `.v60-undo` | `공통 문구 그대로` 또는 `따로 쓴 문구` 딱지, 따로 쓸 때만 뜨는 `공통으로` 되돌리기, 그 채널에 없는 칸 안내. 719px 아래에서 되돌리기는 최소 높이 44px |
+| 첫 댓글 줄 | `.pv60-first` | 게시물 **아래 답글 줄**로 선다. 설정 칸이 아니라 실제로 함께 나가는 그 댓글의 모습이다 |
+| 발행 이력 레일 | `.v56-hist` (레일 안) | 줄을 세로로 쌓고 제목·시각·단추를 각각 줄바꿈한다. 232px에서 한 줄로 밀면 옆에 세운 뜻이 없어진다. 머리는 `h2`(13px/700) |
+| 채널 연결 자리 | `[data-connect-panel]` | **채널 화면 Settings 탭이 연결 자리다(R175 · `ChannelPage.tsx` 109행).** 발행실 안에 연결 탭을 만들지 않는다. 왼쪽 = OAuth 단추 + 준비 상태 + 다른 계정으로 연결 + 연결된 계정 목록 + 고급 토큰 입력 + 연결 테스트. 오른쪽 = 연결 방법 3단계 + 채널 정보(Status · 계정 · 식별자 · 토큰 보관 · 발행) |
+| 연결된 계정 목록 | `.v57-accts` | `AccountManager.tsx` 계승. 한 채널에 계정이 여럿 쌓인다. 줄마다 이름 · 상태(정상 / 만료됨(재연결 필요) / 연결 해제됨) · 기본 표시 또는 기본으로 전환 · 삭제 |
+| 발행 왕복 띠 | `.tr59` `.tr59-s` `[data-publish-trip]` | **발행실 · 승인 인박스 · 발행 캘린더 셋을 한 줄로 세운다(v59 · R193).** 세 자리 어디에 있든 같은 자리에 같은 모양으로 선다. 지금 자리는 accent 테두리 + accent 8% 채움이고 낱말(`정하는 자리` `검토를 기다리는 자리` `언제 나갈지 잡는 자리`)을 함께 적어 색만으로 말하지 않는다 |
+| 헤더 인박스·캘린더 | `.gnb59` `[data-header-inbox]` `[data-header-calendar]` | **발행실 탭이 아니라 헤더가 갖는다(v59 · R193).** 이름 + 건수 알약. 1100px 아래에서 짧은 이름(`인박스` `캘린더`)으로 바뀐다. **숫자만 남기지 않는다** |
+| 플랫폼별 설정 목록 | `.pf59-set` `.pf59-row` `[data-pub-fields-entry]` | **눌러야 알 수 있는 기능은 없는 기능이다(v59 · R191).** 일곱 줄이 서고 줄마다 제목 · 표시 이름 · 캡션 글자수 · 해시태그 · 첫 댓글의 **지금 값**이 적힌다. 없는 칸은 감추지 않고 `없는 칸`이라 적는다. 한도를 넘긴 캡션은 그 줄에서 붉다. 오른쪽 끝 딱지는 `공통 그대로` 또는 `따로 씀`. 1199px에서 표시 이름과 해시태그가 접히고 719px에서 캡션만 남는다(**캡션이 마지막까지 남는다**) |
+| 칸 설정 톱니 | `.v59-gear` `.v59-sum` | 미리보기 칸 머리에 **상시로 보이는** 설정 단추와 칸 아래 지금 값 요약 줄. 목록·톱니·요약 셋 다 같은 서랍을 연다 |
+| 플랫폼 게시물 미리보기 | `.pv59-*` `[data-pv-styled]` | **각 플랫폼의 실제 게시물 화면 구성을 따른다(v59 · R196).** Threads = 알약 넷 / X = 답글·리포스트·좋아요·조회 다음 저장과 공유 / Instagram = 아바타 고리 + 4:5 캐러셀 + 파란 해시태그 / Facebook = 반응 방울 + 아래 세 칸 / 세로 영상 = 플랫폼별 상단 띠 + 오른쪽 조작 기둥. **가져오는 것은 구조이지 자산이 아니다.** 로고 원본·브랜드 서체·색 코드 전재 금지. 색은 우리 토큰 안에서 계열만 맞추고, **뜻이 색에 실린 곳**(인증 표식·반응 색·인스타그램 아바타 고리)만 그 플랫폼 색을 쓴다 |
+| 안전 영역 선 | `.pv59-safe` | **실제 플랫폼에는 없고 발행 도구에만 필요한 선이다.** 세로 영상 미리보기 아래에 점선과 `안전 영역 밖 · 아래 320px` 딱지. TikTok 아래 400px · 릴스 아래 약 500px · Shorts 아래 약 320px(출처는 프로토타입 검수 패널). 본문 글은 이 안쪽에만 놓인다 |
+| 성과 플랫폼 집중 | `.pf59-focus` `[data-perf-focus]` | **정본 `app/page.tsx` 155~161행 계승.** 전체 + 일곱 플랫폼 칩. 누르면 위 열 칸과 아래 발행물 표가 함께 좁혀진다. 걸린 거르개는 숫자 바로 위에 붙박여 지금 무엇을 보는지가 늘 보인다 |
+| 성과 요약 칸 | `.pf59-cards` `.pf59-card` | 5열 격자(1199px 3열 · 719px 2열). 이름(10.5px) · 값(22px/800) · 지난 기간 대비(11px). **값이 없으면 0 이 아니라 `연동 전`** |
+| 발행물 표 | `.pf59-tb` | 일곱 열. **719px 아래에서는 옆으로 밀지 않고 한 발행물을 한 덩이로 세운다.** 열 이름은 `td[data-h]` 로 값 왼쪽에 붙는다 |
+| 미연결 안내 띠 | `.v56-banner` `[data-connect-banner]` | 미연결이 0개면 아예 안 보인다. 누르면 **사이드바가 가리키는 그 채널 화면**으로 간다. 발행실 안 탭으로 보내지 않는다 |
+| 사이드바 그룹 | `.side .grp` | 접고 펼 수 있고 머리에 연결 수(2/5)를 남긴다 |
+| 작업물 카드 | `.work` | 제목 2줄 clamp + 방 뱃지 + 형식 + 갱신 시각 + 히스토리 한 줄 |
+| 대화 패널 | `.chat.wide` / `.chat.rail` | 보여줄 결과물이 없으면 wide, 있으면 rail(284px) |
+| 후보 카드 | `.cand` | 저해상도 표시 + 선택 도장. 선택은 강한 학습 신호 |
+| 채널 행 | `.chrow` | 아이콘 + 이름 + 설명 + 상태 뱃지 + 행동 버튼 |
+| 리스트 행 | `.row` | 상태 뱃지 + 제목·보조 + 행동 버튼. 559px 미만에서 버튼 전폭 |
+| 상속 층 | `.layer .l2~.l4` | 층마다 14px 들여쓰기. 719px 미만 해제 |
+| 출처 표시 | `.src` `.own` `.ov` | 상속됨 / 여기서 정의 / 덮어씀 세 가지만 |
+| 뱃지 | `.badge` | ok · wait · err · mut · ink |
+| 스위치 | `.sw` | 21px 시각 크기 + `::before`로 히트 영역 확장 |
+| 빈 상태 | `.empty` | 무슨 일이 생기면 채워지는지 + 지금 할 수 있는 행동 1개 |
+| 상시 담당 | `.chat-dock[data-chat-dock="persistent"]` `.chat-persistent` | 1440은 오른쪽 304px. 1024는 작업영역의 30% 이하, 최소 240px. 390은 본문 아래 최대 320px, 대화 본문 152px, 입력 65px. 닫기·접기 상태 없음. 대화 내용만 내부 스크롤 |
+| 근거 라벨 | `.ev` `.ev-log` `.ev-pub` `.ev-hyp` | **색만으로 구분하지 않는다.** 라벨 안에 이름을 쓰고(우리 실험 로그 / 공개 사례 / 가설) 테두리 모양도 다르게 한다(실선 / 파선 / 점선). 뜻 한 줄은 범례로 화면에 상주 |
+| 근거 범례 | `.ev-legend` | 세 라벨의 이름과 뜻. 접을 수 있고 기본은 펼침 |
+| 추천(제안) 카드 | `.reco-card` | 근거 라벨 + 실제 나갈 문구 + 형식·비용·소요 + 주 행동. 테두리 2px |
+| 옵션 알약 | `.opt-pill` `.opt-block` | 근거 없이 그냥 고르는 것. 파선 묶음 + 얇은 알약. **추천과 절대 같은 모양으로 그리지 않는다** |
+| 방 이동 | `.room-flow` `.room-step` | 네 방을 항상 같은 자리에 같은 순서로. 현재 방만 채움 |
+| 단계 전달 요약 | `.flow-transfer` `.flow-transfer-card` | 본문에서 방 이름을 되풀이하지 않고 현재 단계의 `받아온 묶음 / 다음 묶음`만 표시. 단계 이름은 헤더 진행 띠 소유 |
+| 카드 여백 비교 | `[data-card-space="fill"]` `[data-card-space="hug"]` | 검수 셸 전용. A Stitch 높이 맞춤과 B Linear 내용 높이를 같은 화면에서 토글. A는 비교 기준선, B는 내용 밀도에 근거. 내부 간격은 고정 |
+| 화면 선택 보드 | `.selection-board` `.selection-preview` `.selection-prompt` | 검수 셸 전용. 현재 화면 담기, 자동 저장, 실제 화면 미리보기, 복사 문장, 자유 메모, 초기화 |
+| 되돌리기 배너 | `.rollback-banner` | 어디서·어디로·들고 온 맥락·원본 보존 네 칸. 되돌린 화면 맨 위에 붙는다 |
+| 편집 조작 | `.ed-seg` `.ed-order` | 누르면 왼쪽 미리보기가 그 자리에서 바뀐다. 무료/과금을 라벨로 먼저 표시 |
+| 발행 선택지 | `.pub-opt` | 지금 발행하기 / 승인 인박스에 보관하기 / 캘린더로 예약하기. 이름만으로 무슨 일이 생기는지 읽힌다 |
+| 선택 기록 줄 | `.record-row` | 별도 선택 기록 창 안에서만 시스템 고정 · 우리 지식 · 개인 · 작업 공간 · 스킬 · 배운 규칙 · 이번 요청을 구분한다. 작업 본문에는 노출하지 않는다 |
+| 값 종류 이름표 | `.val-kind[data-kind]` | **실리는 값 / 모는 값** 두 가지뿐. 글자로 쓴다. 모는 값 옆에는 `.drive-note`로 "결과물 내용을 안 바꾸고 화면과 절차만 바꿉니다"를 반드시 붙인다 |
+| 고르는 칸 | `.pick` `.pick-grid` `.pick-multi` | 빈칸 대신 눌러서 정하는 자리. 최소 196px, 한 줄에 제목 + 한 줄 설명. 여러 개 고르는 칸은 고른 뒤 "고름" 글자가 붙는다 |
+| 세 단계 표 | `.ob-track` `.ob-step[data-when]` | 처음 시작을 언제 무엇을 받는지로 나눈 표. 지금 단계만 설명을 편다(done / now / later) |
+| 진행 표시 | `.ob-meter` | 몇 개 중 몇 개를 고르셨는지 + 안 고르셔도 넘어간다는 한 줄 |
+| 규칙 승낙 줄 | `.rule-row[data-answer]` `.rule-basis` | 규칙 문장 + 근거 칩(표본 수·관찰 기간·얻은 공간) + 예·아니오. 답한 줄은 결과 문장이 붙는다. **승낙 없이 실리지 않는다** |
+| 다시 검사 줄 | `.rc-row` `.rc-hit` | 걸린 항목마다 지금 문장과 고친 문장을 나란히. 걸린 낱말은 `.rc-hit`로 그 자리에 표시. 고칠지 그대로 낼지 두 버튼 |
+| 제작 기록 | `.made-line` `.made-grid` `.cost-row` | 칸 이름 + 실린 값 한 줄. 안 실린 것은 `<em>` 흐린 글씨로 괄호에. 값과 모델은 숫자 세 칸으로 |
+| 담당이 건넨 말 | `.offer` `.offer-card` | 화면 맨 위 한 덩어리. 말 한 문장(20/30) + 왜 그렇게 봤는지 한 줄 + 고를 것 셋. 카드마다 값과 걸리는 시간을 적는다 |
+| 칸 나눔 표 | `.own-tbl` `.own-clash` | 어느 칸을 어디에 두고 어느 방이 쓰나. 두 번 다르게 정해진 자리는 `.own-clash`로 겹친다고 적고 지우지 않는다 |
+| 디스플레이 | `.tg-stage` `.tg-grid` `.tg-card` `.tg-thumb` `.tg-long` `.display-mobile-picker` | 담당이 만든 추천·예시·편집 중인 것을 사용자와 함께 보는 발표형 결과 영역. 1024·1440은 3열, 390은 후보 3개 탭과 선택한 한 장. 내부 세로 스크롤 0. 설명은 별도 장면 |
+| 선택 상태 | `.tg-card.pointed` `.tg-card .pt` | 대화에서 고르면 대응 카드가 즉시 테두리와 `선택됨` 글자 상태로 바뀐다. 말이 무엇을 가리켰는지 반복 설명하는 칩·목록은 만들지 않는다 |
+| 디스플레이 상태 | `.display-state` `.display-scene` `.display-count` | 정상·내용 없음·불러오는 중·오류·내용 많음. 모든 상태가 한 장 안에서 원인·보존·다음 행동을 닫는다 |
+| 한 편 흐름 레일 | `.flow-board` `.flow-rail` `.flow-step` | 한 작업물의 네 방 현재 위치와 지난 방을 가로 4열로 표시. 단계를 누르면 같은 디스플레이 안에서 현재 방 상세가 바뀐다 |
+| 흐름 정보 묶음 | `.flow-data` `.flow-bundle` `.flow-chip` | 현재 방의 `지금 읽음`과 `이번에 쌓임`을 나란히 표시. 새로 쌓인 값은 글자와 테두리로 함께 구분한다 |
+| 방 사이 인계 | `.flow-handoff` `.flow-nextbox` | 다음 방 이름, 넘기는 결과물과 기록, 원본 보존을 한 묶음으로 표시. 문장형 단추 대신 다음 방 이름만 쓴다 |
+| 학습 고리 | `.flow-loop` `.flow-loop-lock` `.flow-loop-active` | 성과와 제작 정보 → 규칙 후보 → 승낙 뒤 다음 생성. 자동 적용이 아님을 데스크톱에서 함께 표시하고 390에서도 세 단계를 모두 보존한다 |
+| 말풍선 안 고르기 | `.chat-ask` `.ask-opt` `.ask-foot` | 담당 대화의 선택 통로. 한 번에 한 질문과 한 행동만 보이고, 작업 본문에 지난 선택을 상주시키지 않는다 |
+| 채널 OAuth 연결 | `.v56-oauth` `[data-social-connect]` | 정본 `components/channel/SocialConnectButton.tsx` 그대로. 안내 한 줄 → 준비 상태 한 줄 → 단추 하나(상태에 따라 라벨이 갈린다) → 다른 계정 안내 → 막힌 사유. 상태 키(`connected` `publish_pending` `opening_soon` `error` `not_connected`)를 우리말로 바꾸지 않는다 |
+| 채널 연결 판 | `.v56-pills` `.v56-guide` `.v56-connbox` `.v56-test` | 정본 `components/studio/ChannelConnect.tsx` 그대로. 채널 알약(연결된 것에 ✓) → 왼쪽 연결 방법 → 오른쪽 OAuth와 고급 수동 입력 → "연결 테스트 (저장된 키 재검증)" → 결과 세 갈래(완료·미검증·실패) |
+| 로그인 모달 | `[data-login-modal]` `.v56-loginmodal` | 정본 `components/shared/LoginModal.tsx` 그대로. 제목 `Login Required` · Auth Token 한 칸 · Login / Cancel. 영어 라벨을 그대로 둔다 |
+| 미연결 안내 띠 | `.v56-banner` `[data-connect-banner]` | 정본 `components/shared/ChannelConnectBanner.tsx` 그대로. 미연결 N개와 이름 셋 · 오른쪽 "연결하기 →". **0개면 아예 렌더하지 않는다** |
+| 발행 진행 줄 | `.v56-prog` `[data-publish-progress]` | 정본 `app/studio/page.tsx` 492~510행. 백분율 · 막대 · 채널별 상태 딱지(done·failed·doing) · 성공 채널 게시물 링크 · 진행 중 "■ 중지" |
+| 대사 줄 (VREW) | `.v56-script` `.v56-line` | 편집실 시간축을 트랙이 아니라 **말**로 표현한다. 줄을 빼면 그 구간이 빠지고 길이 초가 즉시 다시 계산된다. 뺀 줄은 사라지지 않고 흐려져 남는다(되살릴 수 있어야 한다). 무음 줄은 점선 |
+| 채널 두 글자 표식 | `.nav-chmark` | 정본 `app/page.tsx` 38~52행 `ALL_CHANNELS`. 접힌 사이드바에서 공용 아이콘 셋으로는 채널 열넷이 구분되지 않는다. 24px 사각(접히면 28px)에 12px 두 글자 |
+| 작업 공간 전환 | `.brand-strip` `.brand-pill` | 기존 클래스는 호환을 위해 유지하되 의미는 작업 공간이다. 브랜드가 다르면 작업 공간을 추가하며 선택 기록도 함께 분리한다. 디스플레이 본문에는 이 줄을 두지 않는다 |
+
+버튼: primary(강조) / claw(운영 소유) / 기본 / disabled. **최소 높이 44px(모든 폭에서).** 40px·36px 혼용 금지. 2026-08-18 실측에서 GNB·방 이동·편집 조작·칩이 36~40px로 갈려 있던 것을 44px로 통일했다.
+
+**상태 계약.** 상호작용 화면은 정상·empty·loading·error·overflow 다섯 상태를 모두 갖는다.
+- empty = 방치 화면이 아니라 첫 행동 유도 화면.
+- error = 원인 + 보존 여부 + 다음 행동을 한 줄에.
+- overflow = 긴 제목·많은 행에서도 격자가 터지지 않는다(제목 2줄 clamp, 리스트 스크롤, 칸수 축소).
+
+---
+
+## 8. 반응형 브레이크포인트
+
+컨테이너 쿼리 기준(창 폭이 아니라 프레임 폭).
+
+| 폭 | 무엇이 바뀌는가 |
+|---|---|
+| 390 | 사이드바를 상단 서랍으로 접는다. GNB 두 줄 고정(위 4장 접는 순서). **담당은 화면 아래 상시 시트**(살짝 152px). 본문만 안에서 구르고 기기 화면은 스크롤하지 않는다. 디스플레이는 후보 3개 탭 + 선택한 카드 1장 |
+| 768 | 격자 2열. 사이드바는 여전히 서랍 |
+| 1024 | 왼쪽 탐색 56px 자동 축소. 본문과 상시 담당 70:30 두 열. 펼친 탐색은 56px 레일 위로 겹침 |
+| 1440 | 본문 정렬선 1280px 고정. 남는 폭은 여백 |
+
+**검수 셸의 폭(제품이 아니라 프로토타입 셸 규칙, v40에서 고침).** 셸을 창보다 넓혀 가로로 스크롤시키지 않는다. 그러면 우측 해설이 창 밖으로 나가 사라진 것처럼 보인다. 대신 프레임을 남는 자리에 맞춰 줄여서 보여 준다(`transform: scale`, 상한 1배, 하한 0.34배). 프레임은 자기 진짜 폭을 그대로 갖고 있어야 하므로 줄일 때 `max-width`를 푼다. 그래야 안쪽 컨테이너 쿼리가 눌린 폭이 아니라 1440 기준으로 돈다. 1배로 보는 스위치를 상단에 둔다.
+
+데스크톱은 폭만 늘린 모바일이 아니다. 1024 이상에서는 지침 패널·대화 레일이 본문 옆에 선다.
+
+---
+
+## 8.5 위계 · 한 화면의 주인공은 하나 (v37 신설)
+
+블록마다 무게가 같으면 눈이 쉴 곳이 없고 화면이 쓰레기장처럼 읽힌다. 그래서 블록을 두 종류로만 나눈다.
+
+| 종류 | 클래스 | 생김새 | 언제 |
+|---|---|---|---|
+| 주인공 | `.panel.hero` | 테두리 있는 카드, 안쪽 여백 32, 제목 32/40 | **화면당 하나.** 그 화면에 온 이유 |
+| 조용한 구역 | `.panel.calm` | 카드를 벗고 위에 실선 한 줄, 제목 13/20 | 주인공을 뒷받침하는 나머지 전부 |
+
+- **상자 안 상자 금지.** 안에 고르는 카드가 들어 있는 주인공 블록(예: 제안 카드 묶음)은 바깥 테두리를 벗는다(`.panel.hero[data-reco-deck]`). 카드는 한 겹만 보인다.
+- **카드는 그 카드가 곧 조작일 때만 쓴다.** 읽기만 하는 목록·표는 카드가 아니라 조용한 구역이다.
+- 방마다 주인공: 생성=오늘의 제안 묶음 · 편집=미리보기 · 발행=플랫폼 실물 미리보기 · 성과=이번 주 숫자.
+- 별도 지원 화면의 주인공: 처음 시작=첫 질문의 고르는 칸, 선택 기록=필요할 때 여는 기록 표, 규칙 승낙=규칙 줄, 다시 검사=걸린 항목 목록, 제작 정보=어느 칸의 무엇이 실렸나 표, 담당이 건넨 말=말 한 문장.
+- **처음 시작 화면은 첫 고를 것이 접힘선 위에 있어야 한다.** 안내문·진행 표시·단계 표를 위에 쌓아 첫 선택을 밀어내면 그 화면은 다시 백지 공포 화면이 된다.
+
+---
+
+## 9. Do / Don't
+
+**Don't · 제품 화면에 내부 코드 표기를 쓰지 않는다.** 층을 코드로 부르는 것은 우리끼리 쓰는 말이다. 회원이 보는 화면에는 뜻말만 쓴다(개인 · 작업 공간 · 스킬 · 배운 규칙 · 이번 요청 · 우리 지식 · 시스템 고정). 코드 표기는 기기 프레임 밖 검수 패널과 담당자 화면에만 남긴다.
+
+**Do · 백엔드 계약이 못 하는 조작은 그리지 않는다 (v64).** 화면이 계약보다 낙관적이면 그 화면이 거짓말이다. 중지를 지원하지 않으면 중지 단추를 그리지 않고, 첫 댓글을 못 다는 채널에는 입력칸을 그리지 않는다. 못 하는 사실은 지면색 점선 칩 하나(12px `--subtle` · `--surface-2` · `cursor:help`)로 그 자리에서 말하고, 긴 사유는 title 로 내린다. 진실원 = `first-comment.ts` · `publish-job-status.ts`.
+
+**Do · 판정·제안에는 표본 문턱과 근거 종류를 계약 값 그대로 쓴다 (v64).** 표본 문턱은 5건(`assessPerformanceSample`)이고 화면은 `data-perf-sample` · `data-sample-threshold` · `data-sample-met` 로 그 형태를 노출한다. 제안 근거는 셋뿐이다. performance = `우리 검증 기록`(문턱 미달이면 `표본 부족 · n/5`) · trend = `트렌드 신호` · hypothesis = `가설 · 우리 검증 기록 아님`(고정 문구). 라벨을 지어내면 근거의 출처를 부풀리는 것이다.
+
+**Do · 접힌 launcher 는 콘텐츠가 아니라 빈 띠 위에 앉는다 (v64).** 대화창을 접으면 본문 바닥에 96px 여백을 깐다(`.main:has(.chat-dock.closed)`). launcher(56px)와 라벨 막대가 카드 조작을 덮지 않는다.
+
+**Do · 상태 전환 모션은 명단제다 (v64).** 재렌더마다 화면 전체가 뛰면 산만하므로 움직이는 것을 명단으로 좁힌다. launcher 튀어나옴 `--fast` · 라벨 막대/토스트/대화상자 떠오름 `--base` · 진행/대조 막대 폭 `--slow`. 전부 `prefers-reduced-motion` 존중, `transition:all` 금지.
+
+**Do · 디스플레이는 결과 자체가 대답하게 한다 (v43).** 담당 대화의 선택은 같은 상태를 읽는 카드 테두리와 `선택됨` 글자로 즉시 반영한다. 반복 설명 칩과 지나간 말 목록을 다시 만들지 않는다.
+
+**Do · 네 방을 개별 메뉴로만 그리지 않는다 (v44).** 작업물 하나가 지금 어디에 있고 무엇을 읽고 쌓으며 다음 방에 무엇을 넘기는지 같은 디스플레이에서 보인다. 성과실의 끝은 규칙 후보와 사람의 승낙을 거쳐 다음 생성으로 닫힌다.
+
+**Don't · 별도 브랜드 칸이나 디스플레이 브랜드 줄을 만들지 않는다.** 개인과 작업 공간만 범위로 삼는다. 브랜드와 취향이 다르면 작업 공간을 추가하거나 복제한다.
+
+**Don't · 디스플레이 카드에 문장형 보조 단추를 붙이지 않는다.** 카드 전체 선택과 44px 확대 아이콘으로 카드 행동을 표현한다. 담당은 오른쪽 상시 열에서 대화를 이어 간다.
+
+**Don't · 사이드바에 작업물 개수를 붙이지 않는다 (v58 · R176).** 개수는 이미 한 일의 양이고 순서는 다음에 할 일이다. 사이드바를 보는 순간 필요한 것은 앞쪽이다. 개수를 보고 꺼내는 일은 헤더 `작업물 전체`가 갖는다.
+
+**Don't · 생성실 디스플레이에 고르는 단추도 항목 채우기 동선도 두지 않는다 (v58 · R177).** 카드를 눌러 고르게 하는 것도 디스플레이에서 고르는 것이다. 카드는 보여 주기만 하고 A · B · C 이름을 붙여 대화창에서 부르게 한다.
+
+**Don't · 뽑은 근거를 생성 화면에 쓰지 않는다 (v58 · R178).** 근거는 의심이 들 때 찾는 값이다. 의심이 없을 때 매번 들이밀면 그것 자체가 의심을 만든다. 자리는 학습 정보 화면이다.
+
+**Don't · 디스플레이에 진행 멘트를 띄우지 않는다 (v58 · R179).** 잘 받았다는 인사와 다음에 무엇을 할지는 담당이 대화창에서 할 말이다.
+
+**Do · 지금 만드는 갈래는 헤더 상태판이 갖는다 (v58 · R180).** 디스플레이에 갈래 선택을 두지 않는다. 상태판은 **만드는 방(생성실·편집실)에서만** 세운다. 발행실과 성과실에는 만들 갈래가 없다. 좁은 폭에서 이름표를 지우지 않는다. 값만 남으면 무슨 값인지 알 수 없다.
+
+**Don't · 같은 층에 자리를 넷 두지 않는다 (v59 · R192).** 발행실 안에 올라갈 모습 · 올리기 · 승인 인박스 · 발행 캘린더 넷을 탭으로 세우면 무엇부터인지 화면이 못 말한다. 발행실은 **정하는 자리** 하나만 갖는다. 저장 · 검토 요청 · Publish · 예약이 띠 하나에 서고, 기다리는 자리와 잡는 자리는 층을 올려 헤더가 갖는다.
+
+**Do · 층을 가르면 돌아오는 길을 줄마다 놓는다 (v59 · R193).** 인박스와 캘린더는 왕복 띠 · 화면 머리의 돌아가기 · 줄마다의 돌아가기 셋을 갖는다. 사용자가 보고 있는 자리에서 가장 가까운 문이 매번 다르기 때문이다.
+
+**Don't · 눌러야 알 수 있는 상태로 두지 않는다 (v59 · R191).** 기능이 있어도 그 자리가 화면에 안 보이면 없는 기능이다. 값을 목록에 미리 적어 두면 어느 칸을 손봐야 하는지가 누르기 전에 보인다.
+
+**Don't · 미리보기를 우리 회색 토큰으로만 그리지 않는다 (v59 · R196).** 미리보기는 **올린 뒤와 같아 보일 때만** 미리보기다. 다만 가져오는 것은 부품 구성과 순서이지 로고·서체·색 자산이 아니다.
+
+**Don't · 실패가 나지도 않았는데 실패 대비 안내를 상시로 세우지 않는다 (v59 · R187).** 그 자리에서 실패했을 때 말하면 되는 것이다. 미리 펴 두면 화면이 겁을 준다.
+
+**Don't · 화면이 자기가 무엇인지 설명하게 두지 않는다 (v59 · R188 · R194).** 안내 문단 · 뱃지 · 담당이 무엇을 대신 해 준다는 말은 전부 화면이 자기 소개를 하는 것이다. 제목과 값이 이미 말한다. **일곱 번 지적받은 자리다.**
+
+**Don't · 좁은 폭에서 이름표를 지워 숫자만 남기지 않는다 (v59).** 긴 이름과 짧은 이름을 둘 다 넣어 두고 자리에 맞는 쪽만 세운다. 숫자만 남으면 그 숫자가 무엇인지 손님이 추측해야 한다.
+
+**Don't · 자리가 모자랄 때 옆으로 밀지 않는다 (v59, R154 의 일반화).** 표도 탭도 칩 레일도 줄을 바꾸거나 덩이로 세운다. 밀린다는 표시 없는 가로 스크롤은 금지 항목이다.
+
+**Do · 정본에 있어도 이 화면에 필요 없으면 안 가져온다 (v58 · R183).** 계승 계약표 네 번째 열에 `정본에 있으나 이 화면엔 불필요` 판정을 두고 왜 안 가져왔는지 적는다. 계승은 구조를 참고하라는 것이지 무비판으로 복사하라는 것이 아니다.
+
+**Do · 플랫폼마다 있는 칸이 다르면 없다고 적는다 (v58 · R184).** 제목 · 표시 이름 · 캡션 · 해시태그 · 첫 댓글 중 그 플랫폼에 없는 것은 빈칸으로 두지 않고 왜 없는지 한 줄로 쓴다. 캡션 한도는 칸 머리에 적는다.
+
+**한다**
+- 담당자가 먼저 근거와 함께 말을 건다.
+- 값이 없으면 미수집이라고 적는다.
+- 채널 상태를 연결됨 / 미연결 / 오픈 준비중 / 확인 필요 넷으로 나눈다. 미연결(고객이 누르면 됨)과 오픈 준비중(우리가 끝내야 함)을 절대 합치지 않는다.
+- 되돌리기는 덮어쓰지 않고 앞 방 목록에 항목을 추가한다. **되돌린 화면 맨 위에는 무엇을 어디서 어디로 되돌렸는지 배너로 붙인다.** 맥락 없이 초기 화면으로 보내지 않는다.
+- 실제 코드에 있는 화면은 사이드바에서 빼지 않는다.
+- 발행 전에는 플랫폼별 실물 미리보기를 보여준다. Threads 게시물, Instagram 카드뉴스 캐러셀, 세로 영상, X, Facebook을 실제 문구·해시태그·첫 댓글·자막·반응 수까지 넣어 그린다.
+- 담당 레일은 1024·1440에서 어느 방이든 같은 오른쪽 열과 같은 상단 좌표다. 390에서는 디스플레이 아래 같은 순서다.
+- 추천에는 근거와 실물을 붙이고, 옵션은 그냥 고르게 둔다. **둘을 다른 부품으로 그린다.**
+- 판단 버튼은 그 대상 옆에 둔다. 화면 맨 아래 큰 버튼 하나로 뭉뚱그리지 않는다.
+- 방 이름은 확정 전까지 후보 4벌(공간형·동사형·직군형·명사형)을 토글로 비교할 수 있게 둔다.
+- **색에 순위를 준다.** 파랑=지금 누를 수 있는 것(행동에만), 빨강=사람 손이 필요한 예외(한 화면에 하나), 주황=기다리는 중(헤더 건수 칩), 초록·회색=읽는 상태. 우리 사정("오픈 준비중")은 경고색을 쓰지 않는다.
+- **테두리는 "따로 떨어진 조작 대상"이라는 뜻으로만 쓴다.** 읽기만 하는 목록·표는 테두리 대신 글자 크기와 여백으로 나눈다.
+- 검수 도구가 화면을 덮을 때도 그 도구를 끄는 버튼은 덮이지 않게 둔다(막의 z-index는 상단 조작줄보다 낮다).
+
+**안 한다**
+- 화면을 덮는 대화 상자, 브라우저 기본 대화 상자.
+- 빈 입력창으로 시작하는 화면.
+- 프레임 안에 두 줄 넘는 서술형 문단(제품 UI는 라벨과 값이다).
+- 디스플레이 안의 세로 스크롤. 담기지 않으면 더 넣지 말고 장면을 나누거나 상위 3개만 편집한다.
+- 헤더에 근거 없는 제품명·조직명을 붙이는 것. 작업 공간은 라벨과 이름을 가로로만 쓴다.
+- 챗봇에 말과 화면의 대응을 반복 설명하는 칩과 되짚기 목록을 붙이는 것.
+- 내부 코드·라우트 문자열을 제품 화면에 노출하는 것(해설은 프레임 밖 검수 패널로).
+- em dash와 en dash.
+- 리터럴 radius, 임의 간격 px, 12px 미만 글자.
+- 눌러도 아무 일 없는 회색 탭(불가능한 것은 없애고, 미구현은 "연동 예정"으로 남긴다).
+- 근거 없는 순위·가짜 정밀 숫자.
+- 근거 표시를 색으로만 구분하는 것(이름과 뜻을 화면에 밝힌다).
+- 눌러도 아무것도 안 바뀌는 정지 화면 목업(편집실은 실제로 눌리고 결과가 바뀌어야 한다).
+- 같은 값을 헤더와 방 안에 두 번 그리는 것(방 이름은 헤더가 말한다. 본문에서 큰 글자로 되풀이하지 않는다).
+- 한 화면에서 같은 글자 크기를 세 번 쓰는 것. 32px은 화면당 하나다.
+- 카드 안에 카드, 그 안에 또 색 박스(한 겹만 보이게 한다).
+- 담당을 원형 단추나 접힌 세로 기둥으로 줄이는 것. v46의 담당은 항상 보인다.
+- 가로로 넘치는 줄에 넘친다는 표시를 안 주는 것(스크롤 막대를 숨겼으면 끝을 흐리게 해서 더 있다고 알린다).
+- **자리 수가 계약인 탭을 가로 스크롤에 넣는 것.** 폭에 따라 탭 수가 달라 보이면 사용자는 그 채널에 기능이 없다고 읽는다.
+- **범위를 안 좁힌 자손 선택자로 상태 클래스를 감추는 것**(v52 실측 사고). `.sidebar-collapsed .off{display:none}`이 본문의 `.ch-tabs button.off`까지 지웠다. `.off` `.on` `.active` 같은 흔한 상태 이름은 반드시 부모 부품까지 함께 적는다(`.nav-item .off`).
+- 이전 판을 버리고 백지에서 다시 시작하는 것. 프로토타입은 항상 직전 정본 파일을 복사해 그 위에 얹는다. **파일이 작아지면 그것은 손실이다.**
+
+---
+
+## 10. 에이전트 프롬프트 가이드
+
+이 시스템으로 화면을 만들 때 프롬프트에 그대로 넣을 것.
+
+```
+OSMU 화면을 만든다. DESIGN.md v26의 토큰만 쓴다(신규 색·서체·크기 단 금지).
+- 셸: 헤더 GNB + 접을 수 있는 좌측 사이드바 + 본문 + 오른쪽 상시 담당.
+- 사이드바 항목은 dashboard/src/components/layout/Sidebar.tsx가 진실원이다. 코드에 있는 항목을 빼지 마라.
+- 간격 4/8/12/16/24/32, radius chip6·control8·radius12·pill99·원형, 글자 12/13/15/17/21.
+- 상태 5종(정상·empty·loading·error·overflow)을 모두 렌더한다.
+- 뷰포트 390 / 768 / 1024 / 1440 실레이아웃을 각각 만든다. 폭만 늘리지 마라.
+- 화면을 덮는 층·em dash·두 줄 초과 문단·내부 코드 노출 금지.
+- 전환 화면에는 심리 근거(Fogg / Hook / Zeigarnik / 손실회피 / Hick / Jakob 중 1개 이상)를 주석으로 남긴다.
+```
+
+**합격선.** design-review 완주 + Design Score B 이상. 뷰포트 4종 × 주요 화면 전수에서 가로 넘침 0, 콘솔 에러 0.
+
+---
+
+## 부록 · 지금 유효한 프로토타입
+
+> 판올림 로그는 여기 쌓지 않는다. v52 이전 판 목록은 `docs/design-archive/DESIGN-v15-v31-archive.md` 와 각 파일의 STAMP 가 갖는다.
+
+| 파일 | 무엇 |
+|---|---|
+| `docs/prototype/openclaw-auto-4room-v61.html` | **현행 정본.** 컨트롤러 자체 감사 A1~A8 · 미결 8건 확정 · R198 · R199 · 성과실 전면 재작업 반영. ①**390 을 하나의 흐름으로 다시 짰다** · 대화창을 화면 아래 상시 시트(살짝·반·가득)로, 헤더를 두 줄로 못박고, 노치 아래 `--safe-top`. ②**성과실 전면 재작업** · 탭 셋을 없애고 판정 문장 → 되돌림(가속·승낙) → 답하기 → 접힌 원자료 한 흐름. 요약 타일 열 개는 지우지 않고 **넷 크게 여섯 얇게**. 정본에 있으나 이 화면에 안 쓰이는 것(파이프라인 넷·채널 상태·담당 로그)은 사유를 적고 뺐다. ③**중복 렌더 경로 제거** · 같은 방을 그리는 함수가 둘씩이던 것을 하나로 합치고 죽은 정의 606줄 삭제. ④발행실 안내 문구 넷 제거, 공통·따로 딱지를 점 + 한 단어로. ⑤방 이름 네 개를 한 어투로(생성실·편집실·발행실·성과실), 방 이름 표시줄 아홉 곳 제거, 접힌 레일에 방 두 글자 표식. 상시 원칙 계약 **83건 전부 통과**. design-review 1차 C+ → 20건 반영 후 **B+** |
+| `docs/prototype/qa-v61/` | v61 실렌더. 1440·1024·390 가로·세로 넘침 0, 콘솔 오류 0, 프레임 안 12px 미만 0건, 44px 미만 표적 0건. design-review 로 잡아 고친 것: `var(--focus)` 미정의(참조 3·정의 0) · 44px 계약을 여섯 곳에서 자기가 깸 · 성과실 `hero` 두 개 · 29px 두 벌 · 9.5px 글자 · 스케일 밖 px 스무 종 · radius 리터럴 · `!important` 29 → 13 · 목차 격자가 컨테이너 질의를 죽임 · 점만으로 상태 구분 |
+| `docs/prototype/openclaw-auto-4room-v60.html` | v61의 기반. R197(=R124 두 번째 지시) 반영. **발행실 한 곳만** 고쳤다. ①벽 위 별도 값 목록 판·칸 머리 톱니·요약 줄·편집 서랍을 통째로 걷었다 ②플랫폼별 다섯 값을 미리보기 칸 글자 그 자리에서 고치게 했다(`data-pv-inline-edit` 31곳 / 7칸) ③칸 머리 글자수가 실제로 나갈 것(캡션+해시태그)을 센다 ④되돌리기는 칸마다·갈래마다. 상시 원칙 계약 63건 전부 통과 |
+| `docs/prototype/qa-v60/` | v60 실렌더 9장. 1440·1024·390 가로·세로 넘침 0, 콘솔 오류 0. design-review 로 잡아 고친 것: 편집 신호가 hover 에만 있어 터치에서 0 · 접힌 영상 캡션 안에서 편집하면 방금 친 글자가 잘려 안 보임 · 글자수가 해시태그를 안 세어 미리보기가 거짓을 말함 · 붙여넣기 서식 유입 · 한글 조합 중 상태 갱신 · 10.5px·4px·9px 비토큰 값 6개 · 되돌리기 터치 타깃 미달 · 긴 태그 오버플로 · 갈래 머리 좁은 폭 붕괴 · 연필 글리프가 hover 마다 미리보기를 밀던 것 |
+| `docs/prototype/openclaw-auto-4room-v59.html` | v60의 기반. R187~R196 반영. 요구를 번호 순서로 처리한 판이 아니라 **발행 동선과 성과 화면을 먼저 그리고 요구를 그 위에 얹은 판**이다. ①발행실 탭 폐지, 저장·검토 요청·Publish·예약을 띠 하나로 ②승인 인박스와 발행 캘린더를 헤더로 올리고 왕복 동선 셋(왕복 띠·머리 돌아가기·줄마다 돌아가기) ③플랫폼별 설정 동선을 목록·톱니·요약 셋으로 노출 ④성과실 기록 탭을 정본 `app/page.tsx` 373행 순서 그대로 재구성(플랫폼 집중 필터·성과 수집·에러 표시·최근 활동·Agent Activity 복원) ⑤일곱 플랫폼 미리보기를 실제 게시물 화면 구성으로 + 세로 영상 안전 영역 선 ⑥목차 앞으로·뒤로 폐지, 끌어서 옮기기 ⑦군더더기 문구 넷 제거 ⑧화면마다 벤치마크 근거를 우측 검수 패널에. 상시 원칙 계약 61건 전부 통과 |
+| `docs/prototype/qa-v59/` | v59 실렌더. 1440·1024·390 **전수 가로 넘침 0**. design-review 로 잡아 고친 것: 헤더가 생성실·편집실 1440 에서 175px 넘침(v58 부터 있던 결함) · `@media` 를 써서 컨테이너 질의가 안 걸림 · `v59Log()` 를 만들고 방에 연결하지 않음 · `nth-of-type` 오지정으로 1024 에서 캡션 칸이 사라짐 · `span.spacer` 가 `.topbar` 밖에서 아무 일도 안 하고 있었음(패널 안 단추가 전부 왼쪽에 붙어 있었다) · 세로 영상 본문이 조작 기둥과 겹침 · 10px·9px 글자와 62px 여백이 스케일 밖 |
+| `docs/prototype/openclaw-auto-4room-v58.html` | v59의 기반. R176~R186 반영. 요구를 하나씩 처리한 판이 아니라 **디스플레이 원리(R177)를 세우고 네 방을 전부 그 원리로 다시 그린 판**이다. ①사이드바를 개수에서 유저 흐름으로 ②생성실 디스플레이를 2단(이 단계와 예시 / 쌓인 것)으로 재설계, 고르는 자리를 전부 대화창으로 ③근거 판을 학습 정보로 이관하고 `basisReceipt` 제거 ④진행 멘트 제거 ⑤갈래를 헤더 상태판으로 ⑥편집실을 목차(왼쪽)·대사(아래)·아이콘 조작으로 재배치 ⑦올린 기록 제거 + 플랫폼별 제목·이름·캡션·첫 댓글 신설 ⑧댓글과 반응을 성과실로 ⑨성과실을 일하는 순서 세 탭으로 재작업. 계약 49건 전부 통과. design-review 중 캡처로 잡아 고친 결함 7건 |
+| `docs/prototype/qa-v58/` | v58 실렌더 18장. 1440·1024·390 **전수 가로·세로 넘침 0**. 캡처로 잡은 것: 미정의 토큰 `--line` 30곳(테두리가 통째로 안 그려지고 있었다) · `@media` 가 기기 프레임이 아닌 창 폭을 봐서 390에서 436px 넘침 · 예시 카드 안 목업이 46px로 뭉갬 · 머리말과 제목 중복 · 탭 4 대 레일 3 숫자 불일치 · 발행실·성과실에 갈래 상태판 오출력 |
+| `docs/prototype/openclaw-auto-4room-v57.html` | v58의 기반. R172~R175 반영. 사이드바 네 방 복원(컨트롤러 날조 되돌림) · 채널 로그인·연결을 채널 화면 Settings 탭으로 · 디스플레이 설명 문장 39곳 제거 · 발행실을 정본 `studio/page.tsx` 구조로 재구성 |
+| `docs/prototype/openclaw-auto-4room-v56.html` | v57의 기반. R169~R171. 편집실 VREW 재벤치마킹 · 채널 연결 부품 네 개 복원 |
+| `docs/prototype/openclaw-auto-4room-v55.html` | v56의 기반. R168. 학습 정보 유입 흐름(사업계획 §3.4.2 시간축) · `/onboard`·`/learn` 라우팅 복구 |
+| `docs/design-archive/DESIGN-v15-v31-archive.md` | 과거 판 본문 전량(참고용) |

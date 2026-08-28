@@ -1,0 +1,2 @@
+Error: Unsupported validation rule for wan3_0: params.duration == -1 || params.duration >= 2
+Hint: Run: hf model get wan3_0

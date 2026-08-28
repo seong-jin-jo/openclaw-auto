@@ -49,6 +49,11 @@ export async function refreshYoutubeAccessToken(tenantId: string, accountId?: st
     if (!res.ok || !newTokens.access_token) {
       return { ok: false, error: `YouTube 토큰 갱신 실패 (오류 코드 ${res.status}). 다시 연결이 필요할 수 있습니다.`, status: 502 };
     }
+    const expiresInSeconds = Number(newTokens.expires_in);
+    if (!Number.isFinite(expiresInSeconds) || expiresInSeconds <= 0) {
+      return { ok: false, error: "YouTube 토큰 갱신 응답의 만료시각을 확인할 수 없습니다.", status: 502 };
+    }
+    const tokenExpiresAt = new Date(Date.now() + expiresInSeconds * 1000).toISOString();
 
     const resolvedAccountId = cred?.accountId;
     if (resolvedAccountId) {
@@ -60,6 +65,7 @@ export async function refreshYoutubeAccessToken(tenantId: string, accountId?: st
               refresh_enc = armor(pgp_sym_encrypt(${refresh}, ${key})),
               meta = COALESCE(meta, '{}'::jsonb) - 'refreshToken',
               status = 'active',
+              token_expires_at = ${tokenExpiresAt},
               updated_at = now()
           WHERE tenant_id = ${tenantId} AND provider = 'youtube' AND id = ${resolvedAccountId}
           RETURNING is_default`;

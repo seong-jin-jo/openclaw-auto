@@ -1,0 +1,23 @@
+[
+  {
+    "id": "7adbe9f1-49b7-4e74-8248-9fa6fbd46224",
+    "status": "completed",
+    "display_name": "FLUX.2",
+    "job_set_type": "flux_2",
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3EqxC7Y2r6lyY2vR25cT5zA8Leh/hf_20260710_112015_7adbe9f1-49b7-4e74-8248-9fa6fbd46224.png",
+    "created_at": 1783682415.68183,
+    "params": {
+      "prompt": "wide cinematic empty desk scene with a single monitor glow, amber rim light on dark navy, negative space on left 60% for text, dark navy background (#0B0F1A), amber accent lighting (#F59E0B), minimal tech aesthetic, late-night workspace mood, clean composition, no text, no watermark, no human face, high contrast, professional product-brand photography style",
+      "seed": 296574,
+      "width": 1920,
+      "height": 1088,
+      "batch_size": 1,
+      "resolution": "2k",
+      "input_images": [],
+      "aspect_ratio": "16:9",
+      "model": "pro",
+      "steps": null,
+      "cfg": null
+    }
+  }
+]

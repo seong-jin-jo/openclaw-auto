@@ -65,8 +65,12 @@ jobs:
           LINE_CLIENT_ID=${{ secrets.LINE_CLIENT_ID }}
           LINE_CLIENT_SECRET=${{ secrets.LINE_CLIENT_SECRET }}
           EOF
+          if grep -Eq '^STUDIO_IDENTITY_MODE=development$|^STUDIO_DEV_|^STUDIO_ALLOW_DEV_IDENTITY_IN_PROD=' .env.osmu; then
+            echo "::error::Studio 개발용 신원 설정은 운영 환경에 넣을 수 없음"
+            exit 1
+          fi
           echo ".env.osmu rendered ($(grep -c . .env.osmu) lines)"
-      - name: OSMU DB 스키마/RLS 적용 (멱등 — 앱 기동 전)
+      - name: OSMU DB 스키마, 마이그레이션, RLS 적용
         # usage_events/subscriptions/usage_quotas 누락으로 /api/operator/customers 500 난 실사고
         # (2026-07-12) 재발 방지. schema.sql(IF NOT EXISTS)·rls.sql(DO+DROP POLICY IF EXISTS) 둘 다
         # 멱등이라 매 배포 실행 안전. 접속 문자열은 step env → 컨테이너 env로만 전달(커맨드라인
@@ -80,14 +84,21 @@ jobs:
             -e OSMU_DATABASE_URL \
             -v "$GITHUB_WORKSPACE/dashboard/db":/db:ro \
             postgres:16 \
-            sh -c 'psql "$OSMU_DATABASE_URL" -q -v ON_ERROR_STOP=1 -f /db/schema.sql \
-                && psql "$OSMU_DATABASE_URL" -q -v ON_ERROR_STOP=1 -f /db/rls.sql'
-          echo "✅ schema.sql + rls.sql 적용 완료 (멱등)"
+            sh -c 'set -eu
+              psql "$OSMU_DATABASE_URL" -q -v ON_ERROR_STOP=1 -f /db/schema.sql
+              psql "$OSMU_DATABASE_URL" -q -v ON_ERROR_STOP=1 -f /db/rls.sql
+              for migration in /db/migrations/*.sql; do
+                psql "$OSMU_DATABASE_URL" -q -v ON_ERROR_STOP=1 -f "$migration"
+              done
+              psql "$OSMU_DATABASE_URL" -q -v ON_ERROR_STOP=1 -f /db/rls.sql'
+          echo "schema.sql, migrations, rls.sql 적용 완료"
       - name: 이미지 빌드 (gateway + dashboard)
         # NEXT_PUBLIC_* 는 빌드 시점 인라인된다. compose가 .env.osmu를 읽고 필수 Supabase
         # 공개값이 없으면 interpolation 단계에서 즉시 실패한다(수동 배포도 같은 경로 사용).
         run: |
-          docker compose --env-file .env.osmu -f docker-compose.postagi-4tenants.yml build
+          # services 지정 시 그 서비스만 빌드(전체 빌드로 무관한 게이트웨이 확장 빌드 실패에
+          # osmu 대시보드 배포가 막히는 것 방지). 비우면 기존대로 전체 빌드.
+          docker compose --env-file .env.osmu -f docker-compose.postagi-4tenants.yml build ${{ github.event.inputs.services }}
       - name: 기동
         # required NEXT_PUBLIC_* interpolation은 build와 up 모두에서 실행된다.
         run: |

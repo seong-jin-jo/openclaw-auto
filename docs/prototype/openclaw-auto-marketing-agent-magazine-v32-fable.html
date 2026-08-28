@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OSMU 마케팅 에이전트 · 프로토타입 v32 · 조립 라인</title>
+<style>
+/* ─ v32 토큰: DESIGN.md v16 상속 + 모션·잉크 추가 (변경 근거는 하단 STAMP) ─ */
+:root{
+  --bg:#fbfbfc; --surface:#ffffff; --surface-2:#f4f4f5; --border:#e4e4e7;
+  --text:#18181b; --muted:#52525b; --subtle:#71717a;
+  --accent:#2563eb; --accent-soft:#eff4ff;
+  --success:#16a34a; --warning:#b45309; --danger:#dc2626;
+  --ink:#1d4ed8;            /* v32 추가: 선택의 잉크. 진행 레일과 도장에만 사용 */
+  --paper:#f8f7f4;          /* v32 추가: 제안 카드의 종이 결. 백지가 아니라 이미 인쇄된 종이 */
+  --radius:12px; --control:8px; --pill:99px;
+  --dur-fast:120ms; --dur-base:200ms; --dur-slow:320ms;
+  --ease:cubic-bezier(.2,0,0,1); --ease-out:cubic-bezier(0,0,.2,1);
+  --font:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:1ms!important;transition-duration:1ms!important}
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.45;word-break:keep-all}
+button{font-family:inherit;font-size:13px;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:var(--control);padding:9px 14px;min-height:36px;transition:transform var(--dur-fast) var(--ease),background var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease)}
+button:hover{border-color:var(--subtle)}
+button:active{transform:scale(.97)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.primary:hover{background:#1d4ed8}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+small{color:var(--subtle);font-size:12px}
+b{font-weight:600}
+
+/* ─ 상단 조종석 (프로토타입 전용 크롬) ─ */
+.cockpit{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.cockpit .brand{font-weight:700;font-size:14px;letter-spacing:-.2px}
+.cockpit .brand small{display:block;font-weight:400}
+.seg{display:flex;border:1px solid var(--border);border-radius:var(--pill);overflow:hidden}
+.seg button{border:0;border-radius:0;padding:6px 12px;font-size:12px;background:transparent;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--text);color:#fff}
+.cockpit .spacer{flex:1}
+
+/* ─ 여정 레일: 흐름의 어디인지 항상 보인다 ─ */
+.rail{display:flex;gap:0;align-items:center;background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;overflow-x:auto}
+.rail-step{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.rail-dot{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--subtle);transition:all var(--dur-base) var(--ease)}
+.rail-step.done .rail-dot{background:var(--ink);border-color:var(--ink);color:#fff}
+.rail-step.now .rail-dot{border-color:var(--ink);color:var(--ink);box-shadow:0 0 0 4px var(--accent-soft)}
+.rail-step span.lbl{font-size:12px;color:var(--subtle);white-space:nowrap}
+.rail-step.now span.lbl{color:var(--text);font-weight:700}
+.rail-step.done span.lbl{color:var(--muted)}
+.rail-link{width:28px;height:2px;background:var(--border);margin:0 8px;flex-shrink:0;position:relative;overflow:hidden}
+.rail-link::after{content:"";position:absolute;inset:0;background:var(--ink);transform:scaleX(0);transform-origin:left;transition:transform var(--dur-slow) var(--ease-out)}
+.rail-step.done + .rail-link::after{transform:scaleX(1)}
+.rail-step{cursor:pointer;border:0;background:transparent;padding:0}
+
+/* ─ 무대: 사이드바 + 프레임 ─ */
+.stage{display:flex;justify-content:center;padding:24px 16px 96px;gap:0}
+.frame{width:1024px;max-width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;display:flex;container-type:inline-size;transition:width var(--dur-slow) var(--ease);box-shadow:0 1px 2px rgba(0,0,0,.04),0 8px 32px rgba(0,0,0,.05)}
+.frame.w390{width:390px}.frame.w768{width:768px}.frame.w1024{width:1024px}.frame.w1440{width:1440px}
+
+/* 사이드바: 실제 Sidebar.tsx 정보구조 */
+.side{width:200px;flex-shrink:0;border-right:1px solid var(--border);background:var(--surface);padding:12px 0;font-size:13px}
+.side .logo{display:flex;align-items:center;gap:8px;padding:4px 14px 12px;font-weight:700;font-size:14px}
+.side .logo i{width:18px;height:18px;border-radius:5px;background:var(--accent);display:inline-block;position:relative}
+.side .logo i::before{content:"";position:absolute;left:-4px;top:-4px;width:12px;height:12px;border-radius:4px;background:var(--border)}
+.side h6{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--subtle);padding:10px 14px 4px}
+.side a{display:flex;align-items:center;gap:8px;padding:8px 14px;min-height:36px;color:var(--muted);text-decoration:none;cursor:pointer;border-left:2px solid transparent}
+.side a.on{color:var(--text);font-weight:600;border-left-color:var(--accent);background:var(--accent-soft)}
+.side a .tag{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:var(--pill);background:var(--surface-2);color:var(--subtle)}
+.side a .tag.live{background:#dcfce7;color:var(--success)}
+.side a .tag.new{background:var(--accent-soft);color:var(--accent)}
+@container (max-width: 899px){ .side{display:none} .m-crumb{display:flex} }
+.m-crumb{display:none;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--subtle)}
+.m-crumb b{color:var(--text)}
+
+/* 본문 */
+.main{flex:1;min-width:0;padding:24px;position:relative}
+@container (max-width:899px){ .main{padding:16px} }
+.screen{animation:enter var(--dur-slow) var(--ease-out)}
+@keyframes enter{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.kicker{font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--accent);text-transform:uppercase;margin-bottom:4px}
+h1{font-size:22px;letter-spacing:-.3px;line-height:1.25;margin-bottom:4px}
+.lede{color:var(--muted);font-size:13px;margin-bottom:16px}
+
+/* 제안 카드: 종이 위에 이미 인쇄된 것 */
+.deck{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@container (max-width:899px){.deck{grid-template-columns:repeat(2,1fr)}}
+@container (max-width:559px){.deck{grid-template-columns:1fr}}
+.prop{background:var(--paper);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:left;display:flex;flex-direction:column;gap:8px;cursor:pointer;transition:transform var(--dur-fast) var(--ease),box-shadow var(--dur-base) var(--ease),border-color var(--dur-fast) var(--ease);position:relative}
+.prop:hover{border-color:var(--accent);box-shadow:0 4px 16px rgba(37,99,235,.10);transform:translateY(-2px)}
+.prop:active{transform:scale(.98)}
+.prop .fmt{font-size:11px;font-weight:700;color:var(--subtle)}
+.prop h3{font-size:15px;line-height:1.35}
+.prop .why{font-size:12px;color:var(--muted)}
+.prop .ev{font-size:11px;padding:2px 8px;border-radius:var(--pill);align-self:flex-start}
+.ev.log{background:#dcfce7;color:var(--success)}
+.ev.pub{background:var(--accent-soft);color:var(--accent)}
+.ev.hyp{background:#fef3c7;color:var(--warning)}
+.prop .cost{margin-top:auto;font-size:12px;color:var(--subtle);display:flex;justify-content:space-between;border-top:1px dashed var(--border);padding-top:8px}
+.prop .go{color:var(--accent);font-weight:600}
+
+/* 후보 3장 */
+.cands{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@container (max-width:767px){.cands{grid-template-columns:1fr}}
+.cand{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface);cursor:pointer;text-align:left;padding:0;transition:transform var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease),box-shadow var(--dur-base) var(--ease);position:relative}
+.cand:hover{border-color:var(--accent);box-shadow:0 4px 16px rgba(37,99,235,.10)}
+.cand .pv{height:120px;padding:12px;font-size:11px;line-height:1.5;color:var(--muted);background:var(--surface-2);filter:blur(.4px);opacity:.85;overflow:hidden;position:relative}
+.cand .pv::after{content:"저해상도 프리뷰";position:absolute;right:8px;bottom:6px;font-size:10px;color:var(--subtle);background:var(--surface);padding:1px 6px;border-radius:var(--pill);border:1px solid var(--border);filter:none}
+.cand .meta{padding:12px;display:flex;flex-direction:column;gap:6px}
+.cand .meta b{font-size:14px}
+.cand .meta small{display:block}
+.cand.picked{border-color:var(--ink);box-shadow:0 0 0 3px var(--accent-soft)}
+.stamp{position:absolute;top:10px;right:10px;width:52px;height:52px;border:2.5px solid var(--ink);border-radius:50%;color:var(--ink);font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center;transform:rotate(-12deg);background:rgba(255,255,255,.85);animation:stamp var(--dur-slow) var(--ease-out);pointer-events:none}
+@keyframes stamp{0%{transform:rotate(-12deg) scale(1.8);opacity:0}60%{transform:rotate(-12deg) scale(.94);opacity:1}100%{transform:rotate(-12deg) scale(1)}}
+
+/* 판단 */
+.judge{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@container (max-width:767px){.judge{grid-template-columns:1fr}}
+.jopt{border:1px solid var(--border);border-radius:var(--radius);padding:16px;background:var(--surface);text-align:left;display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:transform var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease)}
+.jopt:hover{border-color:var(--accent)}
+.jopt b{font-size:15px}
+.jopt small{line-height:1.5}
+.jopt .fee{margin-top:auto;font-size:12px;color:var(--subtle);border-top:1px dashed var(--border);padding-top:8px}
+.consent{margin-top:16px;border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;display:flex;gap:12px;align-items:center;background:var(--paper)}
+.consent .sw{width:40px;height:22px;border-radius:var(--pill);background:var(--border);position:relative;flex-shrink:0;transition:background var(--dur-base) var(--ease);border:0}
+.consent .sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform var(--dur-base) var(--ease);box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.consent .sw[aria-checked="true"]{background:var(--success)}
+.consent .sw[aria-checked="true"]::after{transform:translateX(18px)}
+
+/* 플랫폼 미리보기 편집 */
+.pubgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@container (max-width:767px){.pubgrid{grid-template-columns:1fr}}
+.pcard{border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);overflow:hidden;transition:opacity var(--dur-base) var(--ease)}
+.pcard.off{opacity:.45}
+.pcard header{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600}
+.pcard header .pi{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff}
+.pcard .mock{padding:12px;font-size:12px;line-height:1.55;color:var(--text)}
+.pcard .mock .acct{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.pcard .mock .av{width:26px;height:26px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border)}
+.pcard .mock textarea{width:100%;border:1px solid transparent;border-radius:var(--control);font:inherit;resize:none;background:transparent;padding:4px;color:inherit}
+.pcard .mock textarea:hover{border-color:var(--border)}
+.pcard .mock textarea:focus{border-color:var(--accent);outline:0;background:var(--surface-2)}
+.pcard .mock .img{height:84px;border-radius:var(--control);background:linear-gradient(160deg,#e0e7ff, #f4f4f5);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--subtle);margin-top:8px}
+.pcard footer{display:flex;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid var(--border);font-size:12px;color:var(--subtle)}
+.pcard footer .sw{width:36px;height:20px;border-radius:var(--pill);background:var(--border);position:relative;border:0;flex-shrink:0;transition:background var(--dur-base) var(--ease)}
+.pcard footer .sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform var(--dur-base) var(--ease);box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.pcard footer .sw[aria-checked="true"]{background:var(--success)}
+.pcard footer .sw[aria-checked="true"]::after{transform:translateX(16px)}
+
+/* 발행 결과 · 리스트 · 상태 */
+.list{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border);font-size:13px;background:var(--surface)}
+.row:last-child{border-bottom:0}
+.row .grow{flex:1;min-width:0}
+.row .grow small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:var(--pill);flex-shrink:0}
+.badge.ok{background:#dcfce7;color:var(--success)}
+.badge.wait{background:#fef3c7;color:var(--warning)}
+.badge.err{background:#fee2e2;color:var(--danger)}
+.badge.mut{background:var(--surface-2);color:var(--subtle)}
+.notice{border:1px solid var(--border);border-left:3px solid var(--warning);border-radius:var(--control);padding:10px 12px;font-size:12px;color:var(--muted);background:var(--surface);margin:12px 0}
+.notice.blue{border-left-color:var(--accent)}
+.actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.confetti-done{display:inline-flex;align-items:center;gap:8px;font-weight:700;color:var(--success);animation:pop var(--dur-slow) var(--ease-out)}
+@keyframes pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.06)}100%{transform:scale(1)}}
+
+/* 로딩 스켈레톤 */
+.skel{height:120px;border-radius:var(--radius);background:linear-gradient(90deg,var(--surface-2) 25%,#ececee 50%,var(--surface-2) 75%);background-size:200% 100%;animation:shimmer 1.2s linear infinite}
+@keyframes shimmer{to{background-position:-200% 0}}
+.gen-line{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);margin-bottom:12px}
+.gen-line .bar{flex:1;height:6px;border-radius:var(--pill);background:var(--surface-2);overflow:hidden}
+.gen-line .bar i{display:block;height:100%;width:64%;background:var(--ink);border-radius:var(--pill);transition:width var(--dur-slow) var(--ease)}
+
+/* 학습 정보 */
+.taste-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@container (max-width:767px){.taste-grid{grid-template-columns:1fr}}
+.tbox{border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);padding:14px}
+.tbox h4{font-size:13px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.tbox ul{list-style:none;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+.tbox li{display:flex;gap:8px;align-items:baseline}
+.tbox li .k{color:var(--subtle);flex-shrink:0}
+
+/* 해설 서랍 (화면을 덮지 않고 아래 고정 바) */
+.dossier{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--border);box-shadow:0 -4px 24px rgba(0,0,0,.06);transform:translateY(calc(100% - 40px));transition:transform var(--dur-slow) var(--ease)}
+.dossier.open{transform:none}
+.dossier .grip{width:100%;border:0;background:transparent;border-radius:0;padding:10px 16px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted)}
+.dossier .grip b{color:var(--text)}
+.dossier .grip .chev{margin-left:auto;transition:transform var(--dur-base) var(--ease)}
+.dossier.open .grip .chev{transform:rotate(180deg)}
+.dossier .body{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;padding:4px 20px 20px;max-height:34vh;overflow-y:auto;font-size:12px;color:var(--muted)}
+@media (max-width:767px){.dossier .body{grid-template-columns:1fr}}
+.dossier h5{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--subtle);margin-bottom:6px}
+.dossier code{font-family:ui-monospace,monospace;font-size:11px;background:var(--surface-2);padding:1px 5px;border-radius:4px}
+.dossier p{margin-bottom:6px;line-height:1.55}
+
+.stampbar{max-width:1440px;margin:0 auto;padding:16px;font-size:11px;color:var(--subtle);line-height:1.7}
+</style>
+</head>
+<body>
+
+<!-- 조종석: 프로토타입 컨트롤 (제품 UI 아님) -->
+<div class="cockpit">
+  <div class="brand">OSMU 제작 흐름 · v32<br><small>조립 라인 프로토타입 · 클릭이 곧 진행</small></div>
+  <div class="spacer"></div>
+  <div class="seg" role="group" aria-label="사용자 상태">
+    <button data-user="first" aria-pressed="false">첫 가입</button>
+    <button data-user="active" aria-pressed="true">활성 고객</button>
+  </div>
+  <div class="seg" role="group" aria-label="뷰포트">
+    <button data-vp="390" aria-pressed="false">390</button>
+    <button data-vp="768" aria-pressed="false">768</button>
+    <button data-vp="1024" aria-pressed="true">1024</button>
+    <button data-vp="1440" aria-pressed="false">1440</button>
+  </div>
+</div>
+
+<!-- 여정 레일 -->
+<nav class="rail" id="rail" aria-label="제작 여정"></nav>
+
+<!-- 무대 -->
+<div class="stage">
+  <div class="frame w1024" id="frame">
+    <aside class="side" id="side"></aside>
+    <div class="main" style="display:flex;flex-direction:column">
+      <div class="m-crumb" id="crumb"></div>
+      <div id="screenRoot" style="flex:1"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 해설 서랍 -->
+<div class="dossier" id="dossier">
+  <button class="grip" id="dossierGrip" aria-expanded="false">
+    <b>이 화면의 근거</b> <span id="dossierTitle"></span>
+    <span class="chev">▲</span>
+  </button>
+  <div class="body" id="dossierBody"></div>
+</div>
+
+<div class="stampbar">
+  STAMP · openclaw-auto-marketing-agent-magazine-v32-fable.html · 2026-08-17 KST · claude-fable-5 · product-designer ·
+  skills: design-html, design-review · 기반: v31(gpt-codex) + two-service-boundary.md + PRD v8.2.1 + 회장요청 2026-08-16 + Sidebar.tsx ·
+  고민 한 줄: 매거진 3단을 버리고 "여정 레일 + 무대 + 해설 서랍"으로 바꿨다. 회장이 흐름의 어디를 보는지 레일이 항상 답하고, 근거는 덮지 않고 아래에서 올라온다.
+  모션 근거: Linear 계열 실측(120·200·320ms, ease-out 우선, 비대칭 전이) · 후보 선택 = Midjourney 그리드 픽 패턴의 도장(stamp) 번역.
+</div>
+
+<script>
+"use strict";
+/* ───────── 상태 ───────── */
+var S = {
+  screen: "propose",          // propose | generating | candidates | judge | preview | published | taste | perf
+  user: "active",             // first | active
+  picked: null,               // 후보 A/B/C
+  consent: true,              // 학습 동의
+  platforms: { threads:true, x:true, instagram:true, shorts:false },
+  chosenProp: null,
+  clicks: 0
+};
+
+var RAIL = [
+  {k:"propose", n:1, lbl:"오늘의 제안"},
+  {k:"candidates", n:2, lbl:"후보 셋"},
+  {k:"judge", n:3, lbl:"판단"},
+  {k:"preview", n:4, lbl:"플랫폼 미리보기"},
+  {k:"published", n:5, lbl:"발행"},
+  {k:"perf", n:6, lbl:"성과"}
+];
+var ORDER = ["propose","candidates","judge","preview","published","perf"];
+
+/* 제안 카드: 실데이터. 페르소나 = 박도윤(혼자 SaaS를 만드는 바이브 코더). 예시 데이터 각주는 해설 서랍에. */
+var PROPS = [
+  {fmt:"Threads 회고 글", t:"만들다 만 기능을 버린 날", why:"실패 회고는 최근 12게시 중 저장률 1위였습니다", ev:"log", evl:"우리 실험 로그 · exp-2026-031 · 7/28~8/10 · 표본 12게시", cost:"약 1,200크레딧", time:"약 4분"},
+  {fmt:"Instagram 카드뉴스 5장", t:"출시 전 체크리스트 7가지", why:"체크리스트형은 저장으로 이어지는 공개 패턴입니다", ev:"pub", evl:"공개 사례 · 동종 계정 관찰 08-12 · 지표 7일", cost:"약 2,800크레딧", time:"약 9분"},
+  {fmt:"X 짧은 글 + 스크린샷", t:"첫 유료 고객이 생긴 날의 화면", why:"인증 컷이 프로필 방문을 늘린다는 가설입니다", ev:"hyp", evl:"가설 · 검증 지표: 프로필 방문 · 14일", cost:"약 900크레딧", time:"약 3분"},
+  {fmt:"Shorts 45초", t:"개발자 도구로 3분 랜딩 진단", why:"화면 녹화형 튜토리얼은 완주율이 높은 공개 패턴입니다", ev:"pub", evl:"공개 사례 · 관찰 08-09 · 지표 7일", cost:"약 5,400크레딧", time:"약 18분"},
+  {fmt:"Threads 투표 글", t:"요금제 고민을 공개합니다", why:"의사결정 공개는 댓글 유입 가설이 있습니다", ev:"hyp", evl:"가설 · 검증 지표: 댓글 수 · 14일", cost:"약 700크레딧", time:"약 2분"}
+];
+
+var CANDS = [
+  {k:"A", tone:"담백한 회고", pv:"기능 하나를 3주 붙잡고 있었다. 오늘 삭제 커밋을 눌렀다. 유저는 그 기능을 한 번도 요청한 적이 없었다는 걸, 코드를 지우고 나서야 인정했다.", note:"1인칭 서술 · 짧은 문장", up:"완성 승격 약 1,100크레딧"},
+  {k:"B", tone:"숫자로 여는 훅", pv:"3주, 커밋 41개, 사용자 요청 0건. 오늘 이 기능을 버렸다. 혼자 만들 때 가장 비싼 비용은 서버비가 아니라 아무도 원하지 않는 기능이었다.", note:"숫자 훅 · 대비 구조", up:"완성 승격 약 1,100크레딧"},
+  {k:"C", tone:"질문으로 여는 대화형", pv:"여러분은 만들던 기능을 버려본 적 있나요. 저는 오늘 3주짜리 기능을 지웠습니다. 지우고 나니 로드맵이 처음으로 가벼워 보였습니다.", note:"질문 오프닝 · 댓글 유도", up:"완성 승격 약 1,100크레딧"}
+];
+
+/* ───────── 사이드바 (실제 Sidebar.tsx IA + 학습 정보) ───────── */
+function sideHTML(){
+  function item(k,lbl,tag,tagCls){
+    var on = (S.screen==="taste"&&k==="taste")||(S.screen==="perf"&&k==="perf")||(["propose","generating","candidates","judge"].indexOf(S.screen)>=0&&k==="studio")||(["preview","published"].indexOf(S.screen)>=0&&k==="inbox");
+    return '<a class="'+(on?"on":"")+'" data-nav="'+k+'">'+lbl+(tag?'<span class="tag '+(tagCls||"")+'">'+tag+'</span>':"")+'</a>';
+  }
+  return '<div class="logo"><i></i>Marketing Hub</div>'
+    +'<h6>Overview</h6>'
+    +item("perf","성과")
+    +item("studio","OSMU Studio","NEW","new")
+    +item("inbox","승인 인박스", S.screen==="preview"?"1":"", S.screen==="preview"?"new":"")
+    +item("cal","발행 캘린더")
+    +item("taste","학습 정보")
+    +'<h6>발행 채널</h6>'
+    +item("threads","Threads","Live","live")
+    +item("x","X (Twitter)","Live","live")
+    +item("instagram","Instagram","Connected","")
+    +item("youtube","YouTube","")
+    +'<h6>Data &amp; Analytics</h6>'
+    +item("blogperf","Blog Performance")
+    +'<h6>Keyword Research</h6>'
+    +item("kw","Keyword Planner")
+    +'<h6>Assets &amp; Tools</h6>'
+    +item("images","Images")+item("videos","Videos")
+    +'<h6>System</h6>'
+    +item("settings","Settings");
+}
+
+/* ───────── 화면들 ───────── */
+function scrPropose(){
+  var first = S.user==="first";
+  var head = first
+    ? '<div class="kicker">1단계 · 오늘의 제안</div><h1>가입하자마자, 이미 다섯 개가 만들어져 있습니다</h1><p class="lede">업종(1인 SaaS) 하나로 깔아 둔 제안입니다. 마음에 드는 것을 누르면 그게 곧 시작입니다.</p>'
+    : '<div class="kicker">1단계 · 오늘의 제안</div><h1>오늘은 이 다섯 개를 준비했습니다</h1><p class="lede">최근 성과와 취향 프로파일 v7 기준입니다. 클릭 한 번이 곧 다음 단계입니다.</p>';
+  var cards = PROPS.map(function(p,i){
+    return '<button class="prop" data-prop="'+i+'">'
+      +'<span class="fmt">'+p.fmt+'</span><h3>'+p.t+'</h3>'
+      +'<span class="why">'+p.why+'</span>'
+      +'<span class="ev '+p.ev+'">'+p.evl+'</span>'
+      +'<span class="cost"><span>'+p.cost+' · '+p.time+'</span><span class="go">누르면 후보 생성 →</span></span>'
+    +'</button>';
+  }).join("");
+  var foot = first
+    ? '<div class="notice blue">업종이 다르면 바꿔 주세요. 제안이 즉시 다시 깔립니다. <b>1인 SaaS</b> · 부업 크리에이터 · 예비창업자</div>'
+    : '<div class="notice blue">직접 주제를 넣고 싶으면 아래 보조 입력을 쓰세요. 필수가 아닙니다.</div><div class="actions"><button>직접 주제 넣기</button><button data-nav="taste">학습 정보 보기</button></div>';
+  return head+'<div class="deck">'+cards+'</div>'+foot;
+}
+
+function scrGenerating(){
+  var p = PROPS[S.chosenProp||0];
+  return '<div class="kicker">후보 만드는 중</div><h1>'+p.t+'</h1>'
+    +'<p class="lede">저해상도 후보 3개를 만들고 있습니다. 선택한 하나만 고해상도로 완성됩니다.</p>'
+    +'<div class="gen-line"><span>후보 2 / 3</span><div class="bar"><i id="genbar"></i></div><span id="genpct">64%</span></div>'
+    +'<div class="cands"><div class="skel"></div><div class="skel"></div><div class="skel"></div></div>'
+    +'<div class="notice">이 화면에서 기다리지 않아도 됩니다. 끝나면 승인 인박스로 알려 드립니다.</div>';
+}
+
+function scrCandidates(){
+  var p = PROPS[S.chosenProp||0];
+  var cards = CANDS.map(function(c){
+    var picked = S.picked===c.k;
+    return '<button class="cand'+(picked?" picked":"")+'" data-cand="'+c.k+'">'
+      +(picked?'<span class="stamp">선택</span>':"")
+      +'<div class="pv">'+c.pv+'</div>'
+      +'<div class="meta"><b>'+c.k+'안 · '+c.tone+'</b><small>'+c.note+'</small><small>'+c.up+' · 지금은 무과금</small></div>'
+    +'</button>';
+  }).join("");
+  return '<div class="kicker">2단계 · 후보 셋</div><h1>'+p.t+' · 셋 중 하나를 고르세요</h1>'
+    +'<p class="lede">고르는 클릭이 곧 다음 단계입니다. 선택은 강한 학습 신호로 기록됩니다.</p>'
+    +'<div class="cands">'+cards+'</div>'
+    +'<div class="notice">셋 다 아니면 새 후보를 요청할 수 있습니다(후보 원가만 차감). 고른 뒤 남은 안을 완성하면 추가 과금입니다.</div>'
+    +'<div class="actions"><button>새 후보 3개 요청</button><button data-nav="propose">제안으로 돌아가기</button></div>';
+}
+
+function scrJudge(){
+  var c = CANDS.filter(function(x){return x.k===S.picked;})[0]||CANDS[1];
+  return '<div class="kicker">3단계 · 판단</div><h1>'+c.k+'안으로 정했습니다. 어떻게 할까요</h1>'
+    +'<p class="lede">여기서 누르는 것이 곧 확정입니다. 다음 화면은 묻는 자리가 아니라 알리는 자리입니다.</p>'
+    +'<div class="judge">'
+    +'<button class="jopt" data-judge="go"><b>이대로 올리기</b><small>선택안을 고해상도로 완성해 승인 인박스로 보냅니다.</small><span class="fee">완성 승격 약 1,100크레딧</span></button>'
+    +'<button class="jopt" data-judge="more"><b>다른 안 더 보기</b><small>같은 제안으로 새 후보 3개를 다시 만듭니다.</small><span class="fee">후보 원가 약 300크레딧</span></button>'
+    +'<button class="jopt" data-judge="up"><b>품질 더 높이기</b><small>수정 지시를 붙여 이 안만 다듬습니다. 약한 학습 신호로 기록됩니다.</small><span class="fee">지시서 재렌더 · 컷 단위 과금</span></button>'
+    +'</div>'
+    +'<div class="consent"><button class="sw" id="consentSw" role="switch" aria-checked="'+(S.consent?"true":"false")+'" aria-label="이 선택을 취향으로 학습"></button>'
+    +'<div><b style="font-size:13px">이 선택을 취향으로 학습할까요</b><br><small>끄면 이번 선택은 프로파일에 반영되지 않습니다. 언제든 학습 정보에서 지울 수 있습니다.</small></div></div>';
+}
+
+function scrPreview(){
+  function sw(k){return '<button class="sw" data-pf="'+k+'" role="switch" aria-checked="'+(S.platforms[k]?"true":"false")+'" aria-label="'+k+' 올림 여부"></button>';}
+  function card(k,name,color,body,note){
+    return '<div class="pcard'+(S.platforms[k]?"":" off")+'"><header><span class="pi" style="background:'+color+'">'+name[0]+'</span>'+name+'</header>'
+    +'<div class="mock"><div class="acct"><span class="av"></span><b>@dyn.builds</b><small>· 방금</small></div>'+body+'</div>'
+    +'<footer>'+sw(k)+'<span>'+(S.platforms[k]?"이 플랫폼에 올림":"올리지 않음 · 초안 보존")+'</span><span style="margin-left:auto">'+note+'</span></footer></div>';
+  }
+  var base="3주, 커밋 41개, 사용자 요청 0건. 오늘 이 기능을 버렸다. 혼자 만들 때 가장 비싼 비용은 서버비가 아니라 아무도 원하지 않는 기능이었다.";
+  return '<div class="kicker">4단계 · 승인 인박스 · 플랫폼 미리보기</div><h1>실제 올라갈 모습 그대로 보고, 살짝만 고치세요</h1>'
+    +'<p class="lede">하나의 작업이 플랫폼별 출구로 갈라졌습니다. 문구는 칸 안에서 바로 고칠 수 있습니다.</p>'
+    +'<div class="pubgrid">'
+    +card("threads","Threads","#18181b",'<textarea rows="4" aria-label="Threads 문구">'+base+'</textarea>',"글자수 여유")
+    +card("x","X","#0f172a",'<textarea rows="3" aria-label="X 문구">3주, 커밋 41개, 요청 0건. 오늘 기능을 버렸다. 1인 개발의 최대 비용은 아무도 원하지 않는 기능이다.</textarea>',"272 / 280자")
+    +card("instagram","Instagram","#d6249f",'<textarea rows="2" aria-label="Instagram 캡션">버린 기능이 가르쳐 준 것. 저장해 두면 출시 전에 다시 보게 됩니다.</textarea><div class="img">카드뉴스 1/5 · 1:1 · 대체 텍스트 있음</div>',"첫 댓글 준비됨")
+    +card("shorts","YouTube Shorts","#dc2626",'<div class="img" style="height:110px">9:16 세로 영상 · 45초 · 자막 안전영역 확인</div>',"연결 안 됨 · 초안 보존")
+    +'</div>'
+    +'<div class="notice">Shorts는 채널이 연결되지 않아 꺼져 있습니다. 연결하면 이 초안 그대로 이어집니다.</div>'
+    +'<div class="actions"><button class="primary" data-go="published">지금 3곳에 올리기</button><button data-nav="cal">예약으로 보내기</button><button data-nav="judge">판단으로 돌아가기</button></div>';
+}
+
+function scrPublished(){
+  return '<div class="kicker">발행 결과</div><h1><span class="confetti-done">✓ 3곳에 올라갔습니다</span></h1>'
+    +'<p class="lede">발행 자체는 크레딧을 쓰지 않습니다. 실패 시 재시도도 무료입니다.</p>'
+    +'<div class="list">'
+    +'<div class="row"><span class="badge ok">올라감</span><div class="grow"><b>Threads</b><small>오늘 17:42 · 링크 확인됨</small></div><button>플랫폼에서 보기</button></div>'
+    +'<div class="row"><span class="badge ok">올라감</span><div class="grow"><b>X</b><small>오늘 17:42 · 링크 확인됨</small></div><button>플랫폼에서 보기</button></div>'
+    +'<div class="row"><span class="badge err">실패</span><div class="grow"><b>Instagram</b><small>토큰 만료 · 초안과 예약은 보존됨</small></div><button>다시 연결 후 재시도</button></div>'
+    +'<div class="row"><span class="badge mut">안 올림</span><div class="grow"><b>YouTube Shorts</b><small>선택하지 않음 · 초안 보존</small></div><button data-nav="preview">다시 열기</button></div>'
+    +'</div>'
+    +'<div class="notice blue">성과는 수집되는 대로 성과 화면과 다음 제안에 반영됩니다. 반영 전에는 프로파일을 바꾸지 않습니다.</div>'
+    +'<div class="actions"><button class="primary" data-nav="perf">성과 종합 보기</button><button data-nav="propose">다음 제안 보러 가기</button></div>';
+}
+
+function scrTaste(){
+  return '<div class="kicker">학습 정보 · 언제든 열람과 수정</div><h1>제품이 나에 대해 알고 있는 것</h1>'
+    +'<p class="lede">네 칸이 전부입니다. 소재는 재료이고, 신호가 취향을 바꿉니다. 승인 전에는 아무것도 바뀌지 않습니다.</p>'
+    +'<div class="taste-grid">'
+    +'<div class="tbox"><h4>소재 <span class="badge mut">취향을 바꾸지 않음</span></h4><ul>'
+    +'<li><span class="k">위키</span>제품 문서 24페이지 · 08-14 반입 · v3</li>'
+    +'<li><span class="k">노션</span>출시 일지 export · 11페이지 · 08-10</li>'
+    +'<li><span class="k">원본</span>잘 쓴 스레드 3편 · 결 참고용</li></ul>'
+    +'<div class="actions"><button>자료 더 넣기</button></div></div>'
+    +'<div class="tbox"><h4>학습 신호</h4><ul>'
+    +'<li><span class="k">강</span>후보 선택 9회 · B형(숫자 훅) 6회</li>'
+    +'<li><span class="k">약</span>수정 지시 14회 · "문장 더 짧게" 5회</li>'
+    +'<li><span class="k">동의</span>자동 학습 켜짐 · 항목별 삭제 가능</li></ul>'
+    +'<div class="actions"><button>신호 기록 보기</button></div></div>'
+    +'<div class="tbox"><h4>성과 신호</h4><ul>'
+    +'<li><span class="k">저장</span>회고형 글이 평균의 2.1배 · 표본 12게시 · 7/28~8/10</li>'
+    +'<li><span class="k">한계</span>표본 4건 이하 채널은 평균을 내지 않고 보류</li></ul></div>'
+    +'<div class="tbox"><h4>취향 프로파일 · 언어별</h4><ul>'
+    +'<li><span class="k">한국어</span>v7 · 근거 23건 · 숫자 훅 + 담백한 서술</li>'
+    +'<li><span class="k">영어</span>v1 · 근거 부족 · 기본 프로파일 사용 중</li>'
+    +'<li><span class="k">대기</span>승인 대기 2건 · 반영 전 미변경</li></ul>'
+    +'<div class="actions"><button>직접 수정</button><button>대기 항목 승인</button></div></div>'
+    +'</div>'
+    +'<div class="notice blue">출력 언어는 취향이 아니라 요청 제약입니다. 한국어에서 먹힌 훅을 일본어로 자동 이식하지 않습니다.</div>';
+}
+
+function scrPerf(){
+  return '<div class="kicker">성과 · 종합 관리</div><h1>발행한 것들이 어떻게 됐나</h1>'
+    +'<p class="lede">각 플랫폼에 직접 들어가 봐도 되고, 여기서 종합으로 봐도 됩니다.</p>'
+    +'<div class="list">'
+    +'<div class="row"><span class="badge ok">수집됨</span><div class="grow"><b>만들다 만 기능을 버린 날 · Threads</b><small>조회 1,840 · 저장 31 · 7일 · 08-17 16:20 확인</small></div><button>글 보기</button></div>'
+    +'<div class="row"><span class="badge ok">수집됨</span><div class="grow"><b>같은 글 · X</b><small>노출 920 · 프로필 방문 18 · 7일</small></div><button>글 보기</button></div>'
+    +'<div class="row"><span class="badge wait">수집 중</span><div class="grow"><b>출시 전 체크리스트 · Instagram</b><small>발행 6시간 · 첫 수집은 24시간 후</small></div></div>'
+    +'</div>'
+    +'<div class="notice blue">이 성과는 학습 신호로 들어가 다음 제안의 근거가 됩니다. 값이 없는 항목을 0으로 세지 않습니다.</div>'
+    +'<div class="actions"><button class="primary" data-nav="propose">이 성과로 다음 제안 받기</button><button data-nav="taste">학습 정보에서 확인</button></div>';
+}
+
+/* ───────── 해설 서랍 내용 ───────── */
+var DOSSIER = {
+  propose:{t:"1단계 · 오늘의 제안", impl:"라우트 <code>/studio</code> · 제안 API는 openclaw-service가 studio 취향 상태 조회 접점으로 조립. 카드 클릭 = 제작 요청 접점 호출.",
+    psy:"백지공포 해소 = Fogg B=MAP의 능력(A) 극대화: 입력 0, 클릭 1. 근거 라벨 3종(실험 로그·공개 사례·가설)은 신뢰 설계(양희연 원칙). 벤치: Canva Magic Design의 '시안 먼저' 순서.",
+    reuse:"v31의 제안 5장 구조·근거 라벨·비용 표기를 계승. 새로 한 것: 카드 자체가 종이 결(--paper)로 '이미 인쇄됨'을 시각화."},
+  generating:{t:"후보 생성 중", impl:"studio 제작 요청 job 1개 · 진행률은 상태 폴링. 이탈해도 승인 인박스로 복귀.",
+    psy:"Zeigarnik: 진행 바가 미완성 긴장을 만들되, '기다리지 않아도 됨'으로 이탈 허용. 지각 성능(모션이 대기를 짧게 느끼게 함).",
+    reuse:"v31에 없던 화면. 모션 부재 지적(qa-v31 미해결 1건)의 직접 응답."},
+  candidates:{t:"2단계 · 후보 셋", impl:"저해상도 후보 3 · 선택 기록 접점(강한 신호). 미선택 추가 승격 = 명시 과금.",
+    psy:"Midjourney 2x2 그리드 픽 패턴의 번역: 고르는 행위가 곧 학습이자 진행. 도장 모션 = Hook 가변 보상 + 회장 제시 '도장' 컨셉. Hick: 선택지 3으로 고정.",
+    reuse:"v31 후보 화면 계승 + 선택 도장 스탬프 모션 신설(320ms ease-out)."},
+  judge:{t:"3단계 · 판단", impl:"이대로 = 승격 API(과금 고지) · 더 보기 = 후보 재요청 · 높이기 = 편집 지시(약한 신호). 동의 토글 = 신호 기록 on/off.",
+    psy:"한 화면 한 결정(토스 편집자 원칙). 손실회피: 각 선택지에 비용을 먼저 보여 몰래 차감 0. 학습 동의 = 의도된 마찰(뱅크샐러드 원칙).",
+    reuse:"v31 판단 3택 계승. 새로 한 것: 학습 동의를 별도 화면이 아니라 판단 자리에 인라인."},
+  preview:{t:"4단계 · 플랫폼 미리보기 편집", impl:"라우트 <code>/inbox</code> · 플랫폼은 출구: 올림 토글만 openclaw, 문구 수정은 studio 편집 지시. Shorts 미연결 = 초안 보존.",
+    psy:"플랫폼별 실물 미리보기 = 발행 직전 신뢰 장치. 끈 카드가 사라지지 않고 흐려짐 = 손실회피(잃지 않음 신호).",
+    reuse:"v31 승인 인박스 구조 계승. 새로 한 것: 4플랫폼을 한 그리드에서 토글·인라인 편집."},
+  published:{t:"발행 결과", impl:"발행 실행·결과 링크·실패 사유 = openclaw. 재시도 무료(발행은 크레딧 0).",
+    psy:"완료 체크 팝 모션 = Hook 가변 보상(성취에만, 320ms). 실패를 숨기지 않고 다음 행동과 함께(에러 = 원인+행동).",
+    reuse:"v31 발행 결과 계승 + 실패·안올림 행을 같은 리스트에 정직하게 병렬."},
+  taste:{t:"학습 정보", impl:"studio 취향 상태 조회 접점 표시. 수정·삭제·대기 승인 = 신호 입구 하나로 기록.",
+    psy:"신뢰는 설계된다: 근거 ID·기간·표본·한계를 값마다 표기. 승인 전 미변경 = 통제감.",
+    reuse:"v31 학습 4분류(소재·학습신호·성과신호·프로파일) 그대로. 새로 한 것: 2x2 한 화면 요약."},
+  perf:{t:"성과", impl:"성과 수집 = openclaw · 신호 넣기 접점으로 studio에 전달되어 다음 제안 근거가 됨.",
+    psy:"루프의 닫힘을 보여줌: 성과 → 다음 제안 버튼(Hook 재유발). 값 없는 항목 0 표기 금지 = 정직.",
+    reuse:"v31 성과 화면 계승 + '이 성과로 다음 제안 받기' 루프 버튼 신설."}
+};
+
+/* ───────── 렌더 ───────── */
+function railHTML(){
+  var idx = ORDER.indexOf(S.screen==="generating"?"candidates":(S.screen==="taste"?"propose":S.screen));
+  return RAIL.map(function(r,i){
+    var cls = i<idx?"done":(i===idx?"now":"");
+    return '<button class="rail-step '+cls+'" data-rail="'+r.k+'"><span class="rail-dot">'+(i<idx?"✓":r.n)+'</span><span class="lbl">'+r.lbl+'</span></button>'+(i<RAIL.length-1?'<span class="rail-link"></span>':"");
+  }).join("");
+}
+function render(){
+  document.getElementById("side").innerHTML = sideHTML();
+  document.getElementById("rail").innerHTML = railHTML();
+  var fn = {propose:scrPropose,generating:scrGenerating,candidates:scrCandidates,judge:scrJudge,preview:scrPreview,published:scrPublished,taste:scrTaste,perf:scrPerf}[S.screen];
+  var root = document.getElementById("screenRoot");
+  root.innerHTML = '<div class="screen">'+fn()+'</div>';
+  var d = DOSSIER[S.screen]||DOSSIER.propose;
+  document.getElementById("dossierTitle").textContent = "· "+d.t;
+  document.getElementById("dossierBody").innerHTML =
+    '<div><h5>흐름의 어디인가 + 실구현 경로</h5><p>'+d.impl+'</p></div>'
+    +'<div><h5>심리 · 벤치마크 근거</h5><p>'+d.psy+'</p></div>'
+    +'<div><h5>v31에서 이어받은 것 / 새로 한 것</h5><p>'+d.reuse+'</p><p>수치·계정은 프로토타입 예시 데이터입니다.</p></div>';
+  document.getElementById("crumb").innerHTML = '<b>'+d.t+'</b><span>· 확정까지 클릭 3회 · 발행까지 4회</span>';
+}
+function go(k){ S.screen=k; render(); window.scrollTo({top:0,behavior:"smooth"}); }
+
+/* ───────── 이벤트 ───────── */
+document.addEventListener("click",function(e){
+  var t = e.target.closest("button,a"); if(!t) return;
+  if(t.dataset.vp){ var f=document.getElementById("frame"); f.className="frame w"+t.dataset.vp;
+    document.querySelectorAll("[data-vp]").forEach(function(b){b.setAttribute("aria-pressed",b===t?"true":"false")}); return; }
+  if(t.dataset.user){ S.user=t.dataset.user; S.screen="propose"; S.picked=null;
+    document.querySelectorAll("[data-user]").forEach(function(b){b.setAttribute("aria-pressed",b===t?"true":"false")}); render(); return; }
+  if(t.id==="dossierGrip"){ var dz=document.getElementById("dossier"); dz.classList.toggle("open");
+    t.setAttribute("aria-expanded",dz.classList.contains("open")?"true":"false"); return; }
+  if(t.dataset.rail){ go(t.dataset.rail); return; }
+  if(t.dataset.prop!==undefined && t.classList.contains("prop")){ S.chosenProp=+t.dataset.prop; S.clicks=1; go("generating");
+    var pct=64; var iv=setInterval(function(){ pct+=12; var bar=document.getElementById("genbar"),p=document.getElementById("genpct");
+      if(bar){bar.style.width=Math.min(pct,100)+"%"; p.textContent=Math.min(pct,100)+"%";}
+      if(pct>=100){clearInterval(iv); if(S.screen==="generating") go("candidates");}},450); return; }
+  if(t.dataset.cand){ S.picked=t.dataset.cand; S.clicks=2; render();
+    setTimeout(function(){ if(S.screen==="candidates") go("judge"); },620); return; }
+  if(t.dataset.judge){ S.clicks=3;
+    if(t.dataset.judge==="go") go("preview");
+    else if(t.dataset.judge==="more") go("generating");
+    else go("preview"); return; }
+  if(t.id==="consentSw"){ S.consent=!S.consent; t.setAttribute("aria-checked",S.consent?"true":"false"); return; }
+  if(t.dataset.pf){ S.platforms[t.dataset.pf]=!S.platforms[t.dataset.pf]; render(); return; }
+  if(t.dataset.go){ S.clicks=4; go(t.dataset.go); return; }
+  if(t.dataset.nav){ var m={studio:"propose",inbox:"preview",cal:"published",perf:"perf",taste:"taste",propose:"propose",judge:"judge",preview:"preview"};
+    go(m[t.dataset.nav]||"propose"); return; }
+});
+render();
+</script>
+</body>
+</html>

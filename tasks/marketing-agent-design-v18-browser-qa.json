@@ -1,0 +1,1345 @@
+{
+  "pass": true,
+  "consoleErrors": [],
+  "combos": [
+    {
+      "role": "customer",
+      "theme": "light",
+      "viewport": 1440,
+      "auditPass": true,
+      "auditFailures": [],
+      "customerLanguage": {
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      "controls": 68,
+      "minContrast": 4.79,
+      "contrast": [
+        {
+          "name": "text/surface",
+          "ratio": 17.72
+        },
+        {
+          "name": "muted/surface",
+          "ratio": 7.73
+        },
+        {
+          "name": "subtle/surface",
+          "ratio": 4.83
+        },
+        {
+          "name": "accent/surface",
+          "ratio": 5.17
+        },
+        {
+          "name": "success/soft",
+          "ratio": 4.79
+        },
+        {
+          "name": "warning/soft",
+          "ratio": 4.84
+        },
+        {
+          "name": "danger/soft",
+          "ratio": 5.91
+        }
+      ],
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "qaToolsHidden": true,
+      "qaRestoreHidden": true,
+      "screenshot": "/private/tmp/ma-v18-final/customer-light-1440.png"
+    },
+    {
+      "role": "customer",
+      "theme": "light",
+      "viewport": 1024,
+      "auditPass": true,
+      "auditFailures": [],
+      "customerLanguage": {
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      "controls": 68,
+      "minContrast": 4.79,
+      "contrast": [
+        {
+          "name": "text/surface",
+          "ratio": 17.72
+        },
+        {
+          "name": "muted/surface",
+          "ratio": 7.73
+        },
+        {
+          "name": "subtle/surface",
+          "ratio": 4.83
+        },
+        {
+          "name": "accent/surface",
+          "ratio": 5.17
+        },
+        {
+          "name": "success/soft",
+          "ratio": 4.79
+        },
+        {
+          "name": "warning/soft",
+          "ratio": 4.84
+        },
+        {
+          "name": "danger/soft",
+          "ratio": 5.91
+        }
+      ],
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "qaToolsHidden": true,
+      "qaRestoreHidden": true,
+      "screenshot": "/private/tmp/ma-v18-final/customer-light-1024.png"
+    },
+    {
+      "role": "customer",
+      "theme": "light",
+      "viewport": 390,
+      "auditPass": true,
+      "auditFailures": [],
+      "customerLanguage": {
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      "controls": 68,
+      "minContrast": 4.79,
+      "contrast": [
+        {
+          "name": "text/surface",
+          "ratio": 17.72
+        },
+        {
+          "name": "muted/surface",
+          "ratio": 7.73
+        },
+        {
+          "name": "subtle/surface",
+          "ratio": 4.83
+        },
+        {
+          "name": "accent/surface",
+          "ratio": 5.17
+        },
+        {
+          "name": "success/soft",
+          "ratio": 4.79
+        },
+        {
+          "name": "warning/soft",
+          "ratio": 4.84
+        },
+        {
+          "name": "danger/soft",
+          "ratio": 5.91
+        }
+      ],
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "qaToolsHidden": true,
+      "qaRestoreHidden": true,
+      "screenshot": "/private/tmp/ma-v18-final/customer-light-390.png"
+    },
+    {
+      "role": "customer",
+      "theme": "dark",
+      "viewport": 1440,
+      "auditPass": true,
+      "auditFailures": [],
+      "customerLanguage": {
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      "controls": 68,
+      "minContrast": 5.84,
+      "contrast": [
+        {
+          "name": "text/surface",
+          "ratio": 16.44
+        },
+        {
+          "name": "muted/surface",
+          "ratio": 12.23
+        },
+        {
+          "name": "subtle/surface",
+          "ratio": 7.05
+        },
+        {
+          "name": "accent/surface",
+          "ratio": 7.11
+        },
+        {
+          "name": "success/soft",
+          "ratio": 8.55
+        },
+        {
+          "name": "warning/soft",
+          "ratio": 8.73
+        },
+        {
+          "name": "danger/soft",
+          "ratio": 5.84
+        }
+      ],
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "qaToolsHidden": true,
+      "qaRestoreHidden": true,
+      "screenshot": "/private/tmp/ma-v18-final/customer-dark-1440.png"
+    },
+    {
+      "role": "customer",
+      "theme": "dark",
+      "viewport": 1024,
+      "auditPass": true,
+      "auditFailures": [],
+      "customerLanguage": {
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      "controls": 68,
+      "minContrast": 5.84,
+      "contrast": [
+        {
+          "name": "text/surface",
+          "ratio": 16.44
+        },
+        {
+          "name": "muted/surface",
+          "ratio": 12.23
+        },
+        {
+          "name": "subtle/surface",
+          "ratio": 7.05
+        },
+        {
+          "name": "accent/surface",
+          "ratio": 7.11
+        },
+        {
+          "name": "success/soft",
+          "ratio": 8.55
+        },
+        {
+          "name": "warning/soft",
+          "ratio": 8.73
+        },
+        {
+          "name": "danger/soft",
+          "ratio": 5.84
+        }
+      ],
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "qaToolsHidden": true,
+      "qaRestoreHidden": true,
+      "screenshot": "/private/tmp/ma-v18-final/customer-dark-1024.png"
+    },
+    {
+      "role": "customer",
+      "theme": "dark",
+      "viewport": 390,
+      "auditPass": true,
+      "auditFailures": [],
+      "customerLanguage": {
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      "controls": 68,
+      "minContrast": 5.84,
+      "contrast": [
+        {
+          "name": "text/surface",
+          "ratio": 16.44
+        },
+        {
+          "name": "muted/surface",
+          "ratio": 12.23
+        },
+        {
+          "name": "subtle/surface",
+          "ratio": 7.05
+        },
+        {
+          "name": "accent/surface",
+          "ratio": 7.11
+        },
+        {
+          "name": "success/soft",
+          "ratio": 8.55
+        },
+        {
+          "name": "warning/soft",
+          "ratio": 8.73
+        },
+        {
+          "name": "danger/soft",
+          "ratio": 5.84
+        }
+      ],
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "qaToolsHidden": true,
+      "qaRestoreHidden": true,
+      "screenshot": "/private/tmp/ma-v18-final/customer-dark-390.png"
+    },
+    {
+      "role": "operator",
+      "theme": "light",
+      "viewport": 1440,
+      "auditPass": true,
+      "auditFailures": [],
+      "customerLanguage": {
+        "role": "operator",
+        "surfaceCount": 0,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      "controls": 11,
+      "minContrast": 4.79,
+      "contrast": [
+        {
+          "name": "text/surface",
+          "ratio": 17.72
+        },
+        {
+          "name": "muted/surface",
+          "ratio": 7.73
+        },
+        {
+          "name": "subtle/surface",
+          "ratio": 4.83
+        },
+        {
+          "name": "accent/surface",
+          "ratio": 5.17
+        },
+        {
+          "name": "success/soft",
+          "ratio": 4.79
+        },
+        {
+          "name": "warning/soft",
+          "ratio": 4.84
+        },
+        {
+          "name": "danger/soft",
+          "ratio": 5.91
+        }
+      ],
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "qaToolsHidden": true,
+      "qaRestoreHidden": true,
+      "screenshot": "/private/tmp/ma-v18-final/operator-light-1440.png"
+    },
+    {
+      "role": "operator",
+      "theme": "light",
+      "viewport": 1024,
+      "auditPass": true,
+      "auditFailures": [],
+      "customerLanguage": {
+        "role": "operator",
+        "surfaceCount": 0,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      "controls": 11,
+      "minContrast": 4.79,
+      "contrast": [
+        {
+          "name": "text/surface",
+          "ratio": 17.72
+        },
+        {
+          "name": "muted/surface",
+          "ratio": 7.73
+        },
+        {
+          "name": "subtle/surface",
+          "ratio": 4.83
+        },
+        {
+          "name": "accent/surface",
+          "ratio": 5.17
+        },
+        {
+          "name": "success/soft",
+          "ratio": 4.79
+        },
+        {
+          "name": "warning/soft",
+          "ratio": 4.84
+        },
+        {
+          "name": "danger/soft",
+          "ratio": 5.91
+        }
+      ],
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "qaToolsHidden": true,
+      "qaRestoreHidden": true,
+      "screenshot": "/private/tmp/ma-v18-final/operator-light-1024.png"
+    },
+    {
+      "role": "operator",
+      "theme": "light",
+      "viewport": 390,
+      "auditPass": true,
+      "auditFailures": [],
+      "customerLanguage": {
+        "role": "operator",
+        "surfaceCount": 0,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      "controls": 11,
+      "minContrast": 4.79,
+      "contrast": [
+        {
+          "name": "text/surface",
+          "ratio": 17.72
+        },
+        {
+          "name": "muted/surface",
+          "ratio": 7.73
+        },
+        {
+          "name": "subtle/surface",
+          "ratio": 4.83
+        },
+        {
+          "name": "accent/surface",
+          "ratio": 5.17
+        },
+        {
+          "name": "success/soft",
+          "ratio": 4.79
+        },
+        {
+          "name": "warning/soft",
+          "ratio": 4.84
+        },
+        {
+          "name": "danger/soft",
+          "ratio": 5.91
+        }
+      ],
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "qaToolsHidden": true,
+      "qaRestoreHidden": true,
+      "screenshot": "/private/tmp/ma-v18-final/operator-light-390.png"
+    },
+    {
+      "role": "operator",
+      "theme": "dark",
+      "viewport": 1440,
+      "auditPass": true,
+      "auditFailures": [],
+      "customerLanguage": {
+        "role": "operator",
+        "surfaceCount": 0,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      "controls": 11,
+      "minContrast": 5.84,
+      "contrast": [
+        {
+          "name": "text/surface",
+          "ratio": 16.44
+        },
+        {
+          "name": "muted/surface",
+          "ratio": 12.23
+        },
+        {
+          "name": "subtle/surface",
+          "ratio": 7.05
+        },
+        {
+          "name": "accent/surface",
+          "ratio": 7.11
+        },
+        {
+          "name": "success/soft",
+          "ratio": 8.55
+        },
+        {
+          "name": "warning/soft",
+          "ratio": 8.73
+        },
+        {
+          "name": "danger/soft",
+          "ratio": 5.84
+        }
+      ],
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "qaToolsHidden": true,
+      "qaRestoreHidden": true,
+      "screenshot": "/private/tmp/ma-v18-final/operator-dark-1440.png"
+    },
+    {
+      "role": "operator",
+      "theme": "dark",
+      "viewport": 1024,
+      "auditPass": true,
+      "auditFailures": [],
+      "customerLanguage": {
+        "role": "operator",
+        "surfaceCount": 0,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      "controls": 11,
+      "minContrast": 5.84,
+      "contrast": [
+        {
+          "name": "text/surface",
+          "ratio": 16.44
+        },
+        {
+          "name": "muted/surface",
+          "ratio": 12.23
+        },
+        {
+          "name": "subtle/surface",
+          "ratio": 7.05
+        },
+        {
+          "name": "accent/surface",
+          "ratio": 7.11
+        },
+        {
+          "name": "success/soft",
+          "ratio": 8.55
+        },
+        {
+          "name": "warning/soft",
+          "ratio": 8.73
+        },
+        {
+          "name": "danger/soft",
+          "ratio": 5.84
+        }
+      ],
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "qaToolsHidden": true,
+      "qaRestoreHidden": true,
+      "screenshot": "/private/tmp/ma-v18-final/operator-dark-1024.png"
+    },
+    {
+      "role": "operator",
+      "theme": "dark",
+      "viewport": 390,
+      "auditPass": true,
+      "auditFailures": [],
+      "customerLanguage": {
+        "role": "operator",
+        "surfaceCount": 0,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      "controls": 11,
+      "minContrast": 5.84,
+      "contrast": [
+        {
+          "name": "text/surface",
+          "ratio": 16.44
+        },
+        {
+          "name": "muted/surface",
+          "ratio": 12.23
+        },
+        {
+          "name": "subtle/surface",
+          "ratio": 7.05
+        },
+        {
+          "name": "accent/surface",
+          "ratio": 7.11
+        },
+        {
+          "name": "success/soft",
+          "ratio": 8.55
+        },
+        {
+          "name": "warning/soft",
+          "ratio": 8.73
+        },
+        {
+          "name": "danger/soft",
+          "ratio": 5.84
+        }
+      ],
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "qaToolsHidden": true,
+      "qaRestoreHidden": true,
+      "screenshot": "/private/tmp/ma-v18-final/operator-dark-390.png"
+    }
+  ],
+  "customerLanguage": {
+    "routes": [
+      {
+        "route": "/",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/studio",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/inbox",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/calendar",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/channels/threads",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/channels/x",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/channels/instagram",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/channels/facebook",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/channels/bluesky",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/channels/telegram",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/channels/discord",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/channels/slack",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/channels/youtube",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/channels/tiktok",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/blog-performance",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/search-console",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/google-analytics",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/keyword-planner",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/search-advisor",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/naver-trends",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/google-trends",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/blog",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/images",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/videos",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/channels/midjourney",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/settings",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      }
+    ],
+    "journey": [
+      {
+        "step": 1,
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "step": 2,
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "step": 3,
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "step": 4,
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "step": 5,
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "step": 6,
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "step": 7,
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "step": 8,
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "step": 9,
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "step": 10,
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "step": 11,
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "step": 12,
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "step": 13,
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "step": 14,
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      }
+    ],
+    "dialogs": [
+      {
+        "route": "/studio",
+        "action": "edit-variants",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/studio",
+        "action": "bulk-review",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/calendar",
+        "action": "schedule",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      },
+      {
+        "route": "/channels/threads",
+        "action": "open-result",
+        "role": "customer",
+        "surfaceCount": 1,
+        "rawIdentifierHits": [],
+        "implementationJargonHits": [],
+        "pass": true
+      }
+    ]
+  },
+  "lineage": {
+    "originalIds": [
+      "ext_ig_8801",
+      "ext_th_8802",
+      "ext_yt_8803"
+    ],
+    "selectedAfterReorder": "ext_ig_8801",
+    "applied": {
+      "revision": "rev_8",
+      "source": [
+        "ext_ig_8801",
+        "ext_th_8802"
+      ],
+      "changed": "첫 문장의 구체성",
+      "held": [
+        "이미지",
+        "게시 시간",
+        "행동 안내"
+      ]
+    },
+    "undone": {
+      "revision": "rev_7",
+      "experiment": null
+    }
+  },
+  "recovery": [
+    {
+      "owner": "home",
+      "state": "loading",
+      "preserved": "cnt_2047|workspace:monostudio|rev_7",
+      "action": "home-loading",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "home",
+      "state": "empty",
+      "preserved": "cnt_2047|workspace:monostudio|rev_7",
+      "action": "home-empty",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "home",
+      "state": "partial",
+      "preserved": "cnt_2047|workspace:monostudio|rev_7",
+      "action": "home-partial",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "home",
+      "state": "permission",
+      "preserved": "cnt_2047|workspace:monostudio|rev_7",
+      "action": "home-permission",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "home",
+      "state": "uncertain",
+      "preserved": "cnt_2047|workspace:monostudio|rev_7",
+      "action": "home-uncertain",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "home",
+      "state": "repair",
+      "preserved": "cnt_2047|workspace:monostudio|rev_7",
+      "action": "home-repair",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "studio",
+      "state": "loading",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "studio-loading",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "studio",
+      "state": "empty",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "studio-empty",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "studio",
+      "state": "partial",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "studio-partial",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "studio",
+      "state": "permission",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "studio-permission",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "studio",
+      "state": "uncertain",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "studio-uncertain",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "studio",
+      "state": "repair",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "studio-repair",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "inbox",
+      "state": "loading",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "inbox-loading",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "inbox",
+      "state": "empty",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "inbox-empty",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "inbox",
+      "state": "partial",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "inbox-partial",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "inbox",
+      "state": "permission",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "inbox-permission",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "inbox",
+      "state": "uncertain",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "inbox-uncertain",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "inbox",
+      "state": "repair",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "inbox-repair",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "calendar",
+      "state": "loading",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "calendar-loading",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "calendar",
+      "state": "empty",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "calendar-empty",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "calendar",
+      "state": "partial",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "calendar-partial",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "calendar",
+      "state": "permission",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "calendar-permission",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "calendar",
+      "state": "uncertain",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "calendar-uncertain",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "calendar",
+      "state": "repair",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "calendar-repair",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "platform",
+      "state": "loading",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "platform-loading",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "platform",
+      "state": "empty",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "platform-empty",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "platform",
+      "state": "partial",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "platform-partial",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "platform",
+      "state": "permission",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "platform-permission",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "platform",
+      "state": "uncertain",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "platform-uncertain",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "platform",
+      "state": "repair",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "platform-repair",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "settings",
+      "state": "loading",
+      "preserved": "cnt_2047|workspace:monostudio|rev_7",
+      "action": "settings-loading",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "settings",
+      "state": "empty",
+      "preserved": "cnt_2047|workspace:monostudio|rev_7",
+      "action": "settings-empty",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "settings",
+      "state": "partial",
+      "preserved": "cnt_2047|workspace:monostudio|rev_7",
+      "action": "settings-partial",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "settings",
+      "state": "permission",
+      "preserved": "cnt_2047|workspace:monostudio|rev_7",
+      "action": "settings-permission",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "settings",
+      "state": "uncertain",
+      "preserved": "cnt_2047|workspace:monostudio|rev_7",
+      "action": "settings-uncertain",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "settings",
+      "state": "repair",
+      "preserved": "cnt_2047|workspace:monostudio|rev_7",
+      "action": "settings-repair",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "results",
+      "state": "loading",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "results-loading",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "results",
+      "state": "empty",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "results-empty",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "results",
+      "state": "partial",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "results-partial",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "results",
+      "state": "permission",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "results-permission",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "results",
+      "state": "uncertain",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "results-uncertain",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "results",
+      "state": "repair",
+      "preserved": "cnt_2047|@monostudio|rev_7",
+      "action": "results-repair",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "operator",
+      "state": "loading",
+      "preserved": "cnt_2047|operator:admin-01|rev_7",
+      "action": "operator-loading",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "operator",
+      "state": "empty",
+      "preserved": "cnt_2047|operator:admin-01|rev_7",
+      "action": "operator-empty",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "operator",
+      "state": "partial",
+      "preserved": "cnt_2047|operator:admin-01|rev_7",
+      "action": "operator-partial",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "operator",
+      "state": "permission",
+      "preserved": "cnt_2047|operator:admin-01|rev_7",
+      "action": "operator-permission",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "operator",
+      "state": "uncertain",
+      "preserved": "cnt_2047|operator:admin-01|rev_7",
+      "action": "operator-uncertain",
+      "status": "safe-transition-complete"
+    },
+    {
+      "owner": "operator",
+      "state": "repair",
+      "preserved": "cnt_2047|operator:admin-01|rev_7",
+      "action": "operator-repair",
+      "status": "safe-transition-complete"
+    }
+  ]
+}

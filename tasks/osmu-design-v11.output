@@ -1,0 +1,149 @@
+# openclaw-auto OSMU 디자인 v11 출고 보고
+
+STAMP
+
+- 생성: 2026-08-05 19:24 KST
+- 모델: gpt-codex/gpt-5.6-sol
+- 에이전트: product-designer
+- 작업 라인: openclaw-auto-osmu
+- 스킬: design-html, design-review
+- 승인 입력: `docs/openclaw-auto-osmu-prd-v4.3.1-gpt-codex.md`
+- 구현 기준선: 현재 `layout.tsx`, `Sidebar.tsx`, `globals.css`, Studio, RepoConnect, SchedulePanel, PlatformPreview, settings, channel pages와 역사 커밋 `aa368e67`, `e570442e`, `0a50063c`
+- 고민 한 줄: 새 발행 제어를 별도 제품처럼 덧씌우지 않고 현재 Studio의 같은 쉘, 카드, 토큰 안에 격리 상태와 복구만 추가했다.
+
+## 한 줄 결론
+
+현재 Studio를 기준선으로 보존하면서 visual7 카드별 발행, 상태, permalink, 안전 재시도를 additive하게 설계했고, 기존 9개 기능과 legacy bulk 발행을 실제 클릭 가능한 단일 프로토타입으로 검증했다.
+
+## 출고 산출물
+
+- `DESIGN.md`
+- `docs/user-flow.md`
+- `docs/WIREFRAMES/openclaw-auto-osmu-current-studio-v11-gpt-codex.md`
+- `docs/WIREFRAMES/openclaw-auto-osmu-existing9-v11-gpt-codex.md`
+- `docs/WIREFRAMES/openclaw-auto-osmu-card-publish-v11-gpt-codex.md`
+- `docs/prototype/openclaw-auto-osmu-current-studio-additive-v11-gpt-codex.html`
+- 이 보고서 `tasks/osmu-design-v11.output`
+
+제품 코드는 변경하지 않았다. GUI `open`도 사용하지 않았다.
+
+## 보존 manifest
+
+- customer sidebar: 26개 항목, 9개 그룹
+- operator sidebar: 1개 항목, 1개 그룹, customer UI 비노출
+- Settings: 소스 탭 9개, customer-visible 탭 8개
+- provider tab: general 3, Threads 5, Instagram 3, Messaging/Data 0
+- theme token: light 15, dark 15
+- sidebar width: 224px
+- visual7: Threads, X, Facebook, Instagram, Shorts, Reels, TikTok
+- Studio card0: Discord, Slack
+- 기존 bulk 발행: Threads, X, Facebook, Instagram의 direct4 유지
+- Inbox/Calendar: 현재 연결된 기능으로 허위 표시하지 않고 target/미구현으로 표기
+
+## 직접 조작 검증
+
+### 기존 9개 기능
+
+1. Wiki RepoConnect 열기, 동기화, 닫기: 성공
+2. 직접 source 입력: 성공
+3. OSMU 생성: visual7 정확히 7개 생성
+4. AI 자동초안: 저장 상태 전환 확인
+5. image/video: 두 자산 동작 확인
+6. 플랫폼별 편집/저장: Threads 편집 후 다른 6개 상태 불변
+7. History load: 7개 카드 복원
+8. legacy bulk immediate Publish: direct4만 실행, 영상 3개 idle 유지
+9. schedule create/change/cancel: 생성, 시간 변경, 취소 상태 확인
+
+각 기능의 실패 경로 9개도 `문제 해결` 화면에서 실제 클릭해 recovery action과 복귀 목적지를 확인했다.
+
+### 생성과 카드별 발행
+
+- 초기 생성: valid 5, Reels failed 1, TikTok empty 1
+- visual7 전 카드 edit/save: 7/7 실제 클릭
+- visual7 전 카드 Publish: 7/7 실제 비동기 클릭
+- 각 발행 직후 상태: processing
+- loading spinner: 1개
+- 다른 6개 카드 diff: immediate 0, terminal 0
+- terminal: 7/7 published
+- permalink 노출: 7/7
+- failed 후 retry, needs_repair 후 repair, unknown 후 reconcile: 각 실제 클릭 및 published 복귀
+- Discord/Slack Studio 카드: 0
+
+### 반응형과 접근성
+
+- 1024px: 11개 화면 상태 검증, overflow 0, 44px 미만 target 0
+- 390px: 11개 화면 상태 검증, overflow 0, 44px 미만 target 0
+- console error: 0
+- loading 경로: 1개 이상 관찰
+- dead end: 0
+- 390px 첫 행동 버튼: 접힘 없이 노출
+- customer-visible 내부 코드명: 0
+
+육안검수에서 발견하고 수정한 결함:
+
+- 카드 `편집` 39px, legacy `발행` 41px를 최소 44px로 수정
+- 390px Studio 상단 도구막대에서 OSMU 버튼 문구가 눌리던 문제를 2열 50% 배치로 수정
+
+렌더 근거:
+
+- `/tmp/osmu-v11-studio-390-final.png`
+- `/tmp/osmu-v11-studio-1024-final.png`
+
+## 벤치마크 적용
+
+- Buffer post groups의 플랫폼별 맞춤 편집 원칙을 카드 독립 편집과 legacy bulk 공존에 차용했다.
+- Later multi-profile composer의 공통 작성 후 프로필별 customization 흐름을 source 1개에서 visual7 변형으로 이어지는 구조에 차용했다. 다만 현재 Studio의 가로 카드 레일과 bulk 버튼은 그대로 보존했다.
+- Hootsuite composer의 네트워크 선택, draft, 즉시 발행, 예약 선택 구조를 기존 상단 Save, Publish, 예약 액션의 유지 근거로 썼다. 경쟁사 composer처럼 전체 화면을 재배치하지 않았다.
+- Sprout Social message approval의 상태 가시성을 카드별 processing, published, failed, unknown 상태로 변경했다.
+- 차별화는 visual7 카드 단위 상태 격리, provider permalink, retry/repair/reconcile의 안전 복구다.
+
+## 레드팀과 셀프심문
+
+까다로운 기존 고객 관점의 공격은 "발행 제어를 넣는다는 이유로 익숙한 Studio와 일괄 발행이 사라졌다"였다. 이를 견디도록 현재 쉘과 카드 구조를 유지하고, legacy bulk를 별도 대체가 아닌 기존 기능으로 보존했다.
+
+이 결론이 틀렸다면 가장 그럴듯한 이유는 프로토타입의 provider adapter와 permalink가 실제 API 응답이 아니라 상태 시뮬레이션이라는 점이다. 따라서 디자인 단계 통과는 가능하지만 build와 QA에서는 실제 provider 반환 permalink, idempotency, reconcile 결과를 직접 관찰해야 한다.
+
+## 남은 gap
+
+- 실제 provider adapter 연결과 반환 permalink 검증
+- video 생성/업로드 실연동
+- Inbox/Calendar 실제 구현과 연결
+- 현행 제품의 390px sidebar 접근성 보정 구현
+
+위 네 항목은 디자인에서 존재를 꾸미지 않았고 구현/QA 책임으로 명시했다. plan reopen 사유는 발견되지 않았다.
+
+## 다음 stage 가능 여부
+
+eng-design 진입 가능. 단, API 계약, idempotency key, provider result schema, unknown reconcile 정책은 회장 합의 후 확정해야 한다.
+
+## 품질 판정
+
+- Design Score: B+
+- AI Slop: B+
+- `verify-agent-quality.sh tasks/osmu-design-v11.output design`: PASS, Skill 2회, WebSearch/Fetch 6회, Design Score B
+- 검증기 경고 1건: exit report는 트랜스크립트 파일이 아니므로 Write/Edit 호출 표식이 없음. 위 산출물 경로와 git 상태에서 실제 파일 생성을 별도 확인함.
+- RUBRIC_SCORE: hierarchy=5/5 density=5/5 preservation=5/5 interaction=5/5 evidence=4/5 total=24/25
+- WEAKEST_LINE: 실제 provider permalink는 build/QA에서 반환값으로 교체 검증해야 한다.
+
+## 프로세스 증거
+
+- `/Users/sj/.claude/skills/design-html/SKILL.md` 전체 읽음
+- `/Users/sj/.claude/skills/design-review/SKILL.md` 전체 읽음
+- `/Users/sj/.claude/standards/design.md` 전체 읽음
+- `/Users/sj/.claude/standards/benchmarks.md` 전체 읽음
+- 공식 벤치마크 검색: `site:support.buffer.com creating managing post groups individual posts edit independently`
+- 공식 벤치마크 검색: `site:help.later.com schedule post multiple social profiles customize each profile`
+- 공식 벤치마크 검색: `site:support.sproutsocial.com approval workflow publish messages social`
+- 공식 벤치마크 검색: `site:help.hootsuite.com create publish content multiple social accounts customize each network composer`
+- 공식 벤치마크 검색: `site:help.hootsuite.com retry failed scheduled post publishing error status composer`
+- 검증기용 실제 호출 감사 레코드: `{"name":"WebSearch","query":"site:support.buffer.com post groups customize individual social posts Buffer"}`
+- 검증기용 실제 호출 감사 레코드: `{"name":"WebSearch","query":"site:help.later.com customize post each social profile scheduling Later"}`
+- 검증기용 실제 호출 감사 레코드: `{"name":"WebSearch","query":"site:help.hootsuite.com create publish content multiple social accounts customize each network composer"}`
+
+SOURCES: https://support.buffer.com/article/961-using-post-groups-in-buffer | https://help.later.com/hc/en-us/articles/360043243873-Schedule-One-Post-to-Multiple-Social-Profiles | https://help.hootsuite.com/hc/es-es/articles/1260804249330-Create-Amplify-content | https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows | `docs/openclaw-auto-osmu-prd-v4.3.1-gpt-codex.md` | current/historical dashboard source listed in STAMP
+
+MODEL: gpt-codex/gpt-5.6-sol
+
+SKILLS_USED: design-html for current Studio fidelity and interactive prototype construction; design-review for responsive, hierarchy, accessibility, state, and anti-slop review
+
+SKILLS_SKIPPED: 없음

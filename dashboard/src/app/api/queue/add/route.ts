@@ -1,75 +1,30 @@
-import crypto from "crypto";
-import { mutateJson, dataPath } from "@/lib/file-io";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
-import { mirrorQueuePost } from "@/lib/queue-store";
-
-interface QueuePost {
-  id: string;
-  text: string;
-  originalText: null;
-  topic: string;
-  hashtags: string[];
-  status: string;
-  generatedAt: string;
-  approvedAt: null;
-  scheduledAt: null;
-  publishedAt: null;
-  threadsMediaId: null;
-  error: null;
-  abVariant: string;
-  model: string;
-  imageUrl: string | null;
-  imageUrls?: string[] | null;
-  cardBatchId?: string | null;
-  videoFilename?: string | null;
-  videoUrl?: string | null;
-  videoThumbnail?: string | null;
-  engagement: null;
-}
+import { addQueuePost, QueueInputError } from "@/lib/queue-add";
 
 export async function POST(request: Request) {
-  // 테넌트별 파일 격리 컨텍스트로 래핑
-  const __t = await effectiveTenantId(request, null);
+  const data = await request.json().catch(() => ({}));
+  const __t = await effectiveTenantId(request, data.tenant_id ?? null);
   return runWithTenant(__t, async () => {
-    const data = await request.json();
-    const text = (data.text || "").trim();
-
-    if (!text) return Response.json({ error: "text required" }, { status: 400 });
-
-    const imageUrls: string[] | null = data.imageUrls || null;
-
-    const post: QueuePost = {
-      id: crypto.randomUUID(),
-      text,
-      originalText: null,
-      topic: data.topic || "general",
-      hashtags: data.hashtags || [],
-      status: "draft",
-      generatedAt: new Date().toISOString().replace(/\.\d+Z$/, ""),
-      approvedAt: null,
-      scheduledAt: null,
-      publishedAt: null,
-      threadsMediaId: null,
-      error: null,
-      abVariant: "A",
-      model: "manual",
-      imageUrl: data.imageUrl || (imageUrls ? imageUrls[0] : null) || null,
-      imageUrls,
-      cardBatchId: data.cardBatchId || null,
-      videoFilename: data.videoFilename || null,
-      videoUrl: data.videoUrl || null,
-      videoThumbnail: data.videoThumbnail || null,
-      engagement: null,
-    };
-
-    await mutateJson<{ version: number; posts: QueuePost[] }>(
-      dataPath("queue.json"),
-      (queue) => { queue.posts.push(post); return queue; },
-      { version: 2, posts: [] },
-    );
-    // P4 dual-write: DB 그림자 복제(best-effort, 실패해도 위 json 쓰기엔 영향 없음 — 무중단).
-    await mirrorQueuePost(__t, post as unknown as { id: string; [k: string]: unknown });
-    return Response.json({ success: true, post });
+    try {
+      const result = await addQueuePost(__t, {
+        text: typeof data.text === "string" ? data.text : "",
+        draftId: typeof data.draftId === "string" ? data.draftId : null,
+        topic: data.topic,
+        hashtags: data.hashtags,
+        imageUrl: data.imageUrl,
+        imageUrls: data.imageUrls,
+        cardBatchId: data.cardBatchId,
+        videoFilename: data.videoFilename,
+        videoUrl: data.videoUrl,
+        videoThumbnail: data.videoThumbnail,
+      });
+      return Response.json({ success: true, ...result });
+    } catch (error) {
+      if (error instanceof QueueInputError) {
+        return Response.json({ error: error.message }, { status: 400 });
+      }
+      throw error;
+    }
   });
 }

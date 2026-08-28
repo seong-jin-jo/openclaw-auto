@@ -115,7 +115,7 @@ export function SchedulePanel({
     const iso = toIso(when);
     if (!iso) { showToast("예약 시각을 입력하세요", "error"); return; }
     if (Date.parse(iso) <= Date.now()) { showToast("예약 시각은 미래여야 합니다", "error"); return; }
-    if (!draftId) { showToast("먼저 💾 Save로 초안을 저장한 뒤 예약하세요", "error"); return; }
+    if (!draftId) { showToast("먼저 저장 단추로 초안을 저장한 뒤 예약하세요", "error"); return; }
     setSaving(true);
     try {
       const accountIds = Object.fromEntries(
@@ -137,33 +137,33 @@ export function SchedulePanel({
   const schedules = data?.schedules || [];
 
   return (
-    <div className="card p-4 mb-4 border border-accent">
-      <div className="flex items-center gap-2 mb-1">
-        <b className="text-sm text-text">🗓️ 예약 발행</b>
-        <span className="text-[10px] text-subtle">미래 시각에 멀티채널 자동 발행</span>
+    <div className="card p-pad-inset mb-pad-inset border border-accent">
+      <div className="flex items-center gap-stack-tight mb-micro">
+        <b className="text-body-sm text-text">예약 발행</b>
+        <span className="text-caption text-subtle">미래 시각에 멀티채널 자동 발행</span>
       </div>
       {/* 정직 표기: 예약은 DB에 적재되고, 실제 게시는 자동화 파이프라인(크론)이 수행한다.
-          파이프라인 미연결 시 '예약됨' 상태로 대기 — 가짜 '발행됨' 표시 안 함. */}
-      <p className="text-[10px] text-subtle mb-3">
+          파이프라인 미연결 시 '예약됨' 상태로 대기. 가짜 '발행됨' 표시 안 함. */}
+      <p className="text-caption text-subtle mb-stack">
         예약은 저장되고, 자동화 파이프라인이 예약 시각에 발행합니다. 파이프라인 미연결 시 <b className="text-warning">예약됨</b>으로 대기합니다.
       </p>
 
-      <div className="flex flex-wrap items-end gap-3 mb-3">
+      <div className="flex flex-wrap items-end gap-stack mb-stack">
         <div>
-          <label className="block text-[11px] text-subtle mb-1">예약 시각</label>
+          <label className="block text-caption text-subtle mb-micro">예약 시각</label>
           <input
             type="datetime-local"
             value={when}
             onChange={(e) => setWhen(e.target.value)}
-            className="bg-surface-2 text-text text-sm p-2 rounded border border-border"
+            className="bg-surface-2 text-text text-body-sm p-stack-tight rounded-chip border border-border"
           />
         </div>
         <div className="flex-1 min-w-[220px]">
-          <label className="block text-[11px] text-subtle mb-1">플랫폼</label>
-          <div className="flex flex-wrap gap-2">
+          <label className="block text-caption text-subtle mb-micro">플랫폼</label>
+          <div className="flex flex-wrap gap-stack-tight">
             {PLATFORMS.map((p) => (
-              <div key={p} className="flex items-center gap-1">
-                <label className="flex items-center gap-1 text-[11px] text-muted bg-surface-2 px-2 py-1 rounded border border-border cursor-pointer">
+              <div key={p} className="flex items-center gap-micro">
+                <label className="flex items-center gap-micro text-caption text-muted bg-surface-2 px-stack-tight py-micro rounded-chip border border-border cursor-pointer">
                   <input type="checkbox" checked={!!sel[p]} onChange={(e) => setSel((x) => ({ ...x, [p]: e.target.checked }))} />
                   {LABEL[p]}
                 </label>
@@ -172,7 +172,7 @@ export function SchedulePanel({
                     data-testid={`schedule-account-select-${p}`}
                     value={selectedAccounts[p] ?? ""}
                     onChange={(e) => setSelectedAccounts((x) => ({ ...x, [p]: e.target.value }))}
-                    className="text-[10px] bg-surface-2 border border-border rounded px-1 py-1 text-text max-w-[90px]"
+                    className="text-caption bg-surface-2 border border-border rounded-chip px-micro py-micro text-text max-w-[90px]"
                   >
                     <option value="">기본계정</option>
                     {accountsByPlatform[p].map((a) => (
@@ -187,26 +187,26 @@ export function SchedulePanel({
         <button
           onClick={submit}
           disabled={saving}
-          className="px-4 py-2 text-sm bg-accent hover:bg-accent-hover text-text rounded-lg disabled:opacity-50"
+          className="px-pad-inset py-stack-tight text-body-sm bg-accent hover:bg-accent-hover text-accent-fg rounded-control disabled:opacity-50"
         >
           {saving ? "예약 중…" : "예약"}
         </button>
       </div>
 
       {/* 예약 목록 */}
-      <div className="border-t border-border pt-2">
-        <div className="text-[11px] text-subtle mb-1.5">예약 목록 ({schedules.length})</div>
+      <div className="border-t border-border pt-stack-tight">
+        <div className="text-caption text-subtle mb-stack-tight">예약 목록 ({schedules.length})</div>
         {schedules.length === 0 ? (
-          <p className="text-xs text-subtle">예약 없음</p>
+          <p className="text-caption text-subtle">예약 없음</p>
         ) : (
-          <div className="space-y-1.5 max-h-48 overflow-y-auto">
+          <div className="space-y-stack-tight max-h-48 overflow-y-auto">
             {schedules.map((s) => (
-              <div key={s.id} className="flex items-center justify-between bg-surface/60 rounded px-2.5 py-1.5">
+              <div key={s.id} className="flex items-center justify-between bg-surface/60 rounded-chip px-stack py-stack-tight">
                 <div className="min-w-0">
-                  <div className="text-xs text-muted">{new Date(s.scheduledAt).toLocaleString("ko-KR")}</div>
-                  <div className="text-[10px] text-subtle truncate">{(s.platforms || []).map((p) => LABEL[p] || p).join(" · ")}</div>
+                  <div className="text-caption text-muted">{new Date(s.scheduledAt).toLocaleString("ko-KR")}</div>
+                  <div className="text-caption text-subtle truncate">{(s.platforms || []).map((p) => LABEL[p] || p).join(" · ")}</div>
                 </div>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${statusClass(s.status)}`}>
+                <span className={`text-caption px-stack-tight py-micro rounded-pill shrink-0 ${statusClass(s.status)}`}>
                   {statusLabel(s.status)}
                 </span>
               </div>

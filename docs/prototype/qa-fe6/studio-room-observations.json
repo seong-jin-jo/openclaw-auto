@@ -1,0 +1,113 @@
+[
+  {
+    "room": "create",
+    "width": 390,
+    "httpStatus": 201,
+    "viewportWidth": 390,
+    "bodyScrollWidth": 390,
+    "roomClientWidth": 342,
+    "roomScrollWidth": 342,
+    "displayButtons": 0,
+    "candidateCards": 3,
+    "chatVisible": true
+  },
+  {
+    "room": "create",
+    "width": 768,
+    "httpStatus": 201,
+    "viewportWidth": 768,
+    "bodyScrollWidth": 768,
+    "roomClientWidth": 624,
+    "roomScrollWidth": 624,
+    "displayButtons": 0,
+    "candidateCards": 3,
+    "chatVisible": true
+  },
+  {
+    "room": "create",
+    "width": 1024,
+    "httpStatus": 201,
+    "viewportWidth": 1024,
+    "bodyScrollWidth": 1024,
+    "roomClientWidth": 880,
+    "roomScrollWidth": 880,
+    "displayButtons": 0,
+    "candidateCards": 3,
+    "chatVisible": true
+  },
+  {
+    "room": "create",
+    "width": 1440,
+    "httpStatus": 201,
+    "viewportWidth": 1440,
+    "bodyScrollWidth": 1440,
+    "roomClientWidth": 1168,
+    "roomScrollWidth": 1168,
+    "displayButtons": 0,
+    "candidateCards": 3,
+    "chatVisible": true
+  },
+  {
+    "room": "edit",
+    "width": 390,
+    "httpStatus": 200,
+    "viewportWidth": 390,
+    "bodyScrollWidth": 390,
+    "roomClientWidth": 342,
+    "roomScrollWidth": 342,
+    "outlineLeftOfStage": true,
+    "scriptBelowStage": true,
+    "toolButtons": 8,
+    "chatVisible": true,
+    "honestPreview": true
+  },
+  {
+    "room": "edit",
+    "width": 768,
+    "httpStatus": 200,
+    "viewportWidth": 768,
+    "bodyScrollWidth": 768,
+    "roomClientWidth": 624,
+    "roomScrollWidth": 624,
+    "outlineLeftOfStage": true,
+    "scriptBelowStage": true,
+    "toolButtons": 8,
+    "chatVisible": true,
+    "honestPreview": true
+  },
+  {
+    "room": "edit",
+    "width": 1024,
+    "httpStatus": 200,
+    "viewportWidth": 1024,
+    "bodyScrollWidth": 1024,
+    "roomClientWidth": 880,
+    "roomScrollWidth": 880,
+    "outlineLeftOfStage": true,
+    "scriptBelowStage": true,
+    "toolButtons": 8,
+    "chatVisible": true,
+    "honestPreview": true
+  },
+  {
+    "room": "edit",
+    "width": 1440,
+    "httpStatus": 200,
+    "viewportWidth": 1440,
+    "bodyScrollWidth": 1440,
+    "roomClientWidth": 1168,
+    "roomScrollWidth": 1168,
+    "outlineLeftOfStage": true,
+    "scriptBelowStage": true,
+    "toolButtons": 8,
+    "chatVisible": true,
+    "honestPreview": true
+  },
+  {
+    "room": "edit",
+    "interaction": "대사 빼기와 되살리기",
+    "durationBefore": "20초 · 대사를 다듬는 중",
+    "durationAfterRemove": "16초 · 대사를 다듬는 중",
+    "durationAfterRestore": "20초 · 대사를 다듬는 중"
+  }
+]

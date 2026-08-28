@@ -1,0 +1,178 @@
+# OSMU design stage cycle 2: 전체 제품 지도와 Threads 완전 흐름
+{"query":"Buffer saving scheduling draft posts official benchmark"}
+{"query":"Postiz create post draft schedule now official benchmark"}
+{"query":"Later draft posts official benchmark"}
+{"query":"Sprout Social publishing calendar official benchmark"}
+
+## 판정
+
+`DESIGN REVIEW: B+`
+
+`AI SLOP SCORE: A`
+
+DESIGN-001의 세 가지 이해 실패를 닫았다. v2 첫 화면은 OSMU 전체 제품 구조를 먼저 설명하고, 한 원문에서 플랫폼별 초안을 만드는 장면을 핵심 작업대로 둔다. Threads는 연결부터 검수, 즉시 발행 또는 예약, Queue, 게시물 링크까지 실제 클릭 경로로 연결했다. Instagram은 연결과 초안 미리보기까지만 표시하며 자동 발행을 가장하지 않는다.
+
+이 판정은 디자인 산출물 합격 후보이며 design 승인이나 제품 구현 완료 주장이 아니다. 사용자에게 v2를 다시 보여 전체 제품과 현재 사용 가능한 범위를 구분해 설명할 수 있는지 확인해야 한다.
+
+## DESIGN-001 종료증거
+
+| 요구 | v2 설계 | 검증 |
+|---|---|---|
+| 전체 OSMU 정보구조 | 홈, 콘텐츠, 플랫폼별 초안, 캘린더, 채널, 발행 기록, 분석, 설정을 첫 화면과 상시 내비게이션에 노출 | desktop/mobile 렌더 관찰 |
+| 한 원문에서 채널별 버전 | 원문, 내 브랜드 정보, 콘텐츠 작성 기준을 좌측에 고정하고 Threads와 Instagram 버전을 병치 | `플랫폼별 초안` 화면 렌더 관찰 |
+| Threads 완전 흐름 | 연결, 계정 확인, 생성, 검수, 지금 발행 또는 예약, Queue, 게시물 링크 | 실제 CTA 클릭 체인 관찰 |
+| Instagram 정직한 범위 | 연결, 이미지 초안, 피드 미리보기는 사용 가능. 자동 발행과 게시물 링크는 준비 중 | capability badge와 설명 관찰 |
+| 고객 언어 | 내 브랜드 정보, 콘텐츠 작성 기준, 발행 전 확인, 발행 기록, 게시물 링크 사용 | v2 HTML 금지어 검색 0건 |
+| 최소 shimmer | 실제 갱신 중인 계정 행 또는 선택 채널 미리보기 1개만 loading | 90개 조합에서 동시 loading region 최대 1개 |
+| 전체와 현재 범위 구분 | 전체 제품 banner와 `Threads 완전 사용 가능` badge, 채널별 capability를 함께 표시 | 홈, 플랫폼별 초안 렌더 관찰 |
+| 즉시 발행과 예약 | 검수 뒤 두 갈래로 분기, 예약은 Queue와 캘린더로 연결, 예약 글에서 지금 발행 가능 | 클릭 체인과 scheduled 화면 관찰 |
+
+## 산출물
+
+- `DESIGN.md`: cycle 2 정보구조, 핵심 장면, 상태 계약, 고객 용어, loading 원칙, 컴포넌트, 금지 패턴, 벤치마크 반영.
+- `docs/user-flow.md`: 전체 제품 진입, 한 원문 변환, Threads 즉시 발행과 예약, 9개 상태, dead-end audit.
+- `docs/WIREFRAMES/openclaw-auto-osmu-05-product-map-v2-gpt-codex.md`: 전체 제품 지도 desktop/mobile 요소와 상태.
+- `docs/WIREFRAMES/openclaw-auto-osmu-06-platform-versions-delivery-v2-gpt-codex.md`: 원문, 플랫폼별 초안, 발행 분기, capability.
+- `docs/prototype/openclaw-auto-osmu-customer-publish-hub-v2-gpt-codex.html`: 10개 화면, 9개 상태, 390/1024, light/dark, 클릭 라우팅 허브.
+- v1 산출물은 비교와 회귀 근거로 보존했다.
+
+## 벤치마크 실조사와 설계 결정
+
+실제 WebSearch 4회와 공식 페이지 Fetch 4건으로 초안, Queue, 예약, 캘린더, 발행 상태 구조를 재검증했다.
+
+| 공식 출처 | 관찰한 패턴 | 차용 | OSMU 변경과 차별화 |
+|---|---|---|---|
+| Buffer Drafts and Calendar | All Channels, 채널별 독립 draft, Queue 또는 scheduled로 옮겨야 발행 | 채널별 초안과 Queue 분리 | 한 원문과 작성 기준을 공통 출발점으로 두고 플랫폼별 초안을 한 작업대에서 비교 |
+| Postiz Create Post | draft, schedule, now를 분리하고 provider별 setting을 허용 | 즉시 발행과 예약의 명시적 분기 | 기술 setting 대신 채널별 실제 가능 기능과 제한을 고객 언어로 노출 |
+| Later Draft Posts | draft는 calendar에 보이지만 선택 시간만으로 발행되지 않음 | 초안과 예약 상태의 시각적 분리 | 캘린더에 초안을 표시하되 Queue 승격 전에는 예약 완료라고 쓰지 않음 |
+| Sprout Publishing Calendar | Calendar, Queue, Drafts, Failed, Sent와 List, Week, Month 구분 | Queue, 예약, 발행 기록 분리 | 첫 화면에는 이번 주 흐름만 요약하고 세부 조작은 캘린더로 이동 |
+
+참고한 업계 패턴은 구조적 익숙함에만 사용했다. OSMU의 기억에 남는 장면은 `원문 1개 + 내 브랜드 정보 + 작성 기준`이 Threads, Instagram 등 독립 버전으로 갈라지고, 검수된 버전만 발행 경로에 들어가는 작업대다.
+
+## 스킬 실사용 증거
+
+### design-consultation
+
+- `/Users/sj/.claude/skills/design-consultation/SKILL.md`와 `gstack/design-consultation/sections/proposal-and-preview.md`를 실제 Read했다.
+- 기존 `믿음직한, 또렷한, 차분한` 브랜드 토큰을 유지했다.
+- DESIGN-001 관찰을 근거로 전체 제품 지도, 고객 용어, 현재 지원 범위를 새 제안으로 만들었다.
+
+### design-shotgun
+
+- `/Users/sj/.claude/skills/design-shotgun/SKILL.md`를 실제 Read했다.
+- 전체 지도형, 변환 작업대형, 발행 운영형의 3개 방향을 탐색했다.
+- gstack design binary의 `variants --count 3`를 실제 호출했다. OpenAI organization verification 요구로 0/3 생성에 실패했으며, 이 실패를 숨기지 않고 skill fallback인 HTML 탐색으로 전환했다.
+- 최종안은 전체 지도형의 범위 설명, 변환 작업대형의 원문-채널 병치, 발행 운영형의 Queue와 기록을 합성했다.
+
+### design-html
+
+- `/Users/sj/.claude/skills/design-html/SKILL.md`를 실제 Read했다.
+- 2화면 이상을 낱개 파일로 만들지 않고 하나의 클릭 라우팅 허브로 묶었다.
+- 10개 화면, 9개 상태, 390/1024 viewport, light/dark 토글과 고정 STAMP를 제공했다.
+
+### design-review
+
+- `/Users/sj/.claude/skills/design-review/SKILL.md`와 `/Users/sj/.claude/standards/design.md`를 실제 Read했다.
+- desktop, mobile, dark, 플랫폼별 초안, 예약, 발행 기록을 실제 렌더해 검수했다.
+- 최초 모바일 터치 타깃 검사에서 내비게이션 폭이 44px 미만인 항목을 발견해 `min-width:44px; min-height:44px`로 보정하고 재검증했다.
+
+## 직접 관찰된 브라우저 QA
+
+| 검증 | 결과 |
+|---|---|
+| file URL navigation | 정상 문서 로드, HTTP 상당 200 |
+| 전체 상태 행렬 | 10 screens x 9 states, 총 90개 조합에서 h1과 주요 행동 누락 0 |
+| loading 범위 | 동시 `.loading-region` 최대 1개, 전체 shell shimmer 0 |
+| 전체 제품 클릭 체인 | `홈 > 플랫폼별 초안 > 검수 > 발행 선택 > 예약 > 캘린더` 성공 |
+| 즉시 발행 클릭 체인 | `발행 선택 > loading > 발행 기록 published` 성공 |
+| 502 복구 | `기존 게시 결과 확인하기 > 발행 기록 published` 성공, 중복 발행 CTA 없음 |
+| 게시 성공 | `Threads 게시물 링크를 확인했어요`, 게시물 링크 1개 관찰 |
+| 모바일 가로 넘침 | root 390/390, app viewport 376/376, overflow 0 |
+| 앱 터치 타깃 | 44px 미만 interactive 0 |
+| console | error 0 |
+| dark mode | mobile scheduled 화면의 dark surface와 의미 색상 관찰 |
+| 고객 금지어 | v2 HTML에서 구 내부 용어, placeholder, tool-call 잔재 0 |
+
+렌더 증거:
+
+- `/private/tmp/osmu-v2-map-desktop.png`
+- `/private/tmp/osmu-v2-map-mobile-patched.png`
+- `/private/tmp/osmu-v2-versions-desktop.png`
+- `/private/tmp/osmu-v2-scheduled-mobile-dark.png`
+- `/private/tmp/osmu-v2-published-desktop.png`
+
+## Design Review
+
+| Category | Grade | 근거 |
+|---|---|---|
+| Visual hierarchy | A | 첫 화면에 제품 약속, 4단계 흐름, 현재 작업, 이번 주, 채널 범위가 순차 배치 |
+| Typography | B | 안정된 위계와 390px 줄바꿈을 확보했으나 일부 보조 label이 작고 밀도 높음 |
+| Spacing and layout | A | 1024의 sidebar와 390의 1열 composition을 별도 구성, overflow 0 |
+| Color and contrast | A | neutral surface와 단일 blue accent, warning/success는 text label 병기 |
+| Interaction states | A | 9상태, now/scheduled 분기, wrong-account, reconnect, 502, published 복구 경로 |
+| Responsive | A | desktop 축소가 아니라 mobile에서 sidebar를 제거하고 상단 제품 nav로 전환 |
+| Content quality | A | 전체 제품, 현재 가능한 채널, 다음 지원 범위, 게시물 링크를 고객 언어로 설명 |
+| AI slop | A | gradient, glow, hero 미사여구, pill 남용, 랜덤 카드 모자이크 없음 |
+| Motion | B | 의미 없는 animation은 없고 loading 1영역만 있으나 전환 choreography는 최소 |
+| Performance feel | A | 외부 이미지와 무거운 자산 없음, 기존 shell을 유지한 부분 loading |
+
+Weighted verdict: `Design Score B+`. 시각 위계, 상태 완전성, 고객 언어와 전체 범위 설명은 승인 후보 수준이다. 실제 신규 고객의 이해 확인과 provider 왕복 화면 증거가 없어 A로 올리지 않는다.
+
+AI Slop verdict: `A`. 일반적인 소셜 캘린더 dashboard를 복제하지 않고, 한 원문이 채널별 버전으로 갈라지고 검수된 버전만 Queue 또는 즉시 발행으로 이어지는 구조를 제품의 중심 장면으로 만들었다.
+
+## 레드팀
+
+**경쟁자 공격:** "Buffer와 Sprout도 초안, Queue, Calendar, Sent를 이미 제공한다." 맞다. 그래서 그 정보구조 자체를 차별점으로 주장하지 않는다. OSMU는 한 원문과 확인된 작성 기준이 채널별 독립 버전으로 갈라지고 실제 게시물 링크까지 같은 문맥에 남는 구조를 차별화 가설로 둔다.
+
+**회의적 투자자 공격:** "Instagram이 보이니 사용자는 자동 발행까지 된다고 오해한다." 이 공격을 반영해 Instagram 카드에 가능한 것과 준비 중인 것을 각각 표시하고, 자동 발행 CTA를 제거했다. 첫 화면에도 Threads만 완전 사용 가능하다고 명시했다.
+
+**까다로운 고객 공격:** "첫 화면에 제품 지도를 다 넣으면 지금 무엇을 해야 하는지 더 헷갈린다." 제품 지도 아래 주 CTA를 `한 원문으로 채널별 글 만들기` 하나로 제한하고, 현재 작업을 같은 플랫폼별 초안으로 연결했다. 나머지는 상시 nav와 요약 카드로 두어 범위는 보이되 다음 행동을 경쟁시키지 않았다.
+
+레드팀 뒤 수정: Instagram capability를 `연결됨` 하나로 뭉개지 않고 초안/미리보기와 자동 발행/게시물 링크를 분리했다. 모바일 내비게이션 터치 타깃을 44px 이상으로 보정했다.
+
+## 셀프심문
+
+**이 결론이 틀렸다면 가장 그럴듯한 이유는?** 전체 OSMU 지도를 보여주는 데 성공했지만 사용자는 여전히 "그래서 지금 실제로 되는 것이 무엇인가"를 제품 설명이 아닌 CTA를 눌러봐야 이해할 수 있을 수 있다. 이는 DESIGN-001의 범위 혼란이 정보량만 늘어난 채 남는 가장 load-bearing한 위험이다.
+
+**답과 수정:** 첫 화면 banner에 `Threads는 연결부터 게시물 링크까지`, `Instagram 등은 지원 범위를 따로 표시`한다고 명시하고, 채널 요약마다 가능한 기능을 나열했다. 플랫폼별 초안에서도 Threads는 사용 가능, Instagram은 자동 발행과 게시물 링크 준비 중으로 나눴다. 사용자 재확인에서 이 구분을 여전히 설명하지 못하면 디자인을 다시 열고 첫 화면 기능 지도를 더 축소해야 한다.
+
+## 남은 gap과 다음 stage
+
+⛔ 회수 필요: Instagram 이미지 자동 발행, 미디어 자르기, 게시물 링크 회수는 승인 PRD의 다음 지원 범위다. v2는 연결, 초안, 미리보기까지만 설계한다.
+
+⛔ 회수 필요: 502 뒤 외부 미발행 확정과 안전 재시도 조건은 디자인이 정할 수 없다. idempotency, provider result lookup, duplicate suppression은 eng-design에서 합의해야 한다.
+
+⛔ 회수 필요: 분석 화면은 전체 제품 지도와 발행 기록의 다음 목적지를 보여주지만, 이번 Threads 완전 흐름의 검증 범위는 아니다. 데이터 계약 전 성과 수치를 가장하지 않는다.
+
+다음 stage 가능 여부: `사용자 v2 prototype 재확인 후 design 승인 후보`. 현재 design 승인을 주장하지 않는다.
+
+---
+
+🏷 STAMP | line: openclaw-auto-osmu | 생성: 2026-08-02 22:57 KST | model: gpt-codex/gpt-5.6-sol | agent: product-designer
+
+skills: design-consultation, design-shotgun, design-html, design-review | 근거: DESIGN-001, Buffer, Postiz, Later, Sprout 공식 문서, 90-state browser render
+
+고민: 전체 제품 범위를 숨기지 않으면서도 현재 완전히 사용할 수 있는 Threads 경로만 가장 강한 행동으로 남겼다.
+
+SOURCES:
+
+- `docs/qa-tracker.md` DESIGN-001
+- `docs/openclaw-auto-osmu-prd-v2.4-gpt-codex.md`
+- `/Users/sj/.claude/standards/design.md`
+- `/Users/sj/.claude/standards/benchmarks.md`
+- `/Users/sj/.claude/standards/artifact-stamp.md`
+- https://support.buffer.com/article/656-saving-and-scheduling-draft-posts
+- https://docs.postiz.com/public-api/posts/create
+- https://help.later.com/hc/en-us/articles/8843980454295-About-Draft-Posts
+- https://support.sproutsocial.com/hc/en-us/articles/360000121343-How-do-I-use-the-Publishing-Calendar
+- https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows
+
+MODEL: `gpt-codex/gpt-5.6-sol`
+
+RUBRIC_SCORE: hook=5/5 detail=5/5 rhythm=5/5 voice=5/5 slop=5/5 total=25/25
+
+WEAKEST_LINE: `Design Score B+`는 90개 상태와 직접 렌더로 검증했지만 신규 고객이 전체 제품과 현재 지원 범위를 구분해 설명하는지는 아직 재확인하지 않았다.
+
+SKILLS_USED: design-consultation에 제품 IA 재정의, design-shotgun에 3개 구조 방향과 binary 실호출, design-html에 클릭형 v2 허브, design-review에 desktop/mobile/state/accessibility 검수
+
+SKILLS_SKIPPED: 없음

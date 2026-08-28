@@ -1,0 +1,149 @@
+# OSMU DESIGN-009 v9 Customer Product Retake Exit Report
+
+> STAMP: created_at=2026-08-05 05:47 KST | model=gpt-codex/gpt-5.6-sol | agent=product-designer | skills=design-html, design-review | evidence=https://support.buffer.com/article/961-using-post-groups-in-buffer, https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows, https://docs.x.com/fundamentals/authentication/oauth-2-0/authorization-code | deliberation=내부 감사 화면이 아니라 고객이 10초 안에 가치를 이해하고 원문에서 실제 결과까지 스스로 완주하는 제품으로 전환
+
+요청: Marketing Hub의 기존 셸을 유지하면서, 고객이 원문 하나를 Threads, Instagram Feed, X에 맞게 수정하고 검수해 정확히 한 번 발행하며 결과와 복구까지 한곳에서 끝내는 제품 디자인을 만든다.
+
+한 줄 결론: v9은 내부 증거 대시보드를 기본 화면에서 완전히 제거하고, 고객용 OSMU Studio 11화면과 6개 복구 상태를 1024/390에서 실제 클릭 검증했다. 제품 코드는 수정하지 않았다.
+
+## 기반
+
+- PRD: `docs/openclaw-auto-osmu-prd-v4.1.2-gpt-codex.md`
+- 유지 셸: Marketing Hub sidebar 26개 항목과 기존 blue/neutral token
+- 벤치마크: Buffer Post Groups, Sprout Social Message Approval Workflows, X OAuth 2.0 PKCE
+
+## 산출물
+
+1. `DESIGN.md`
+2. `docs/user-flow.md`
+3. `docs/WIREFRAMES/openclaw-auto-osmu-home-source-accounts-v9-gpt-codex.md`
+4. `docs/WIREFRAMES/openclaw-auto-osmu-drafts-review-v9-gpt-codex.md`
+5. `docs/WIREFRAMES/openclaw-auto-osmu-publish-results-recovery-v9-gpt-codex.md`
+6. `docs/prototype/openclaw-auto-osmu-customer-product-v9-gpt-codex.html`
+7. `tasks/osmu-design-v9.output`
+
+제품 코드 수정: 0
+
+## 고객 화면과 상태
+
+| 구분 | 수 | 내용 |
+|---|---:|---|
+| 전체 렌더 화면 | 11 | 홈, 원문, 계정, 생성중, 채널별 초안, 최종 검수, 발행 진행, 결과, 문제 해결, Settings 지원 요약, 기존 메뉴 연결 화면 |
+| 핵심 제품 화면 | 9 | 홈부터 결과까지 생성중 포함 |
+| 상세 채널 | 3 | Threads, Instagram Feed, X |
+| 최종 검수 항목 | 4 | 계정, 콘텐츠, 개인정보, 발행 시각 |
+| 복구 상태 | 6 | 잘못된 계정, X 준비 안 됨, 중복 차단, 시간 초과 재확인, 일부 성공 실패분만 재시도, 만료 토큰 재연결 |
+| 실제 결과 링크 | 3 | 성공 계정별 `게시물 보기` |
+| Sidebar 항목 | 26 | 기존 Marketing Hub 셸 보존 |
+
+기본 제품 화면의 내부 감사, 출처 계층, 코드 수, 배포 주장, 마이그레이션 운영 UI 노출: 0
+
+## 실제 클릭 QA
+
+Happy path 17 clicks:
+
+1. 새 OSMU 작업
+2. 계정 선택으로
+3. Threads 선택
+4. Instagram Feed 선택
+5. X 선택
+6. 3개 초안 만들기
+7. Threads 수정
+8. Instagram Feed 수정
+9. X 수정
+10. 최종 검수로
+11. 계정 확인
+12. 콘텐츠 확인
+13. 개인정보 확인
+14. 발행 시각 확인
+15. 지금 발행
+16. 결과 보기
+17. 실제 게시물 링크 열기
+
+관찰 결과: selected 3, edited 3, checked 4, final screen results, permalink 3.
+
+Recovery click QA: wrong, x, duplicate, timeout, partial, expired 6개 탭을 모두 클릭했다. 각 상태에는 이전 화면 또는 해결 행동과 홈 이동이 있어 dead-end 0이다.
+
+## Responsive and accessibility QA
+
+- 1024x900: 11화면 overflow 0, 44px 미달 target 0
+- 390x844: 11화면 overflow 0, 44px 미달 target 0
+- console errors: 0
+- loading indicator: generating 1, progress 1, 화면별 최대 1
+- 첫 CTA: 1024 top 235.97, height 44, viewport 안에 노출
+- 첫 CTA: 390 top 359.25, height 44, viewport 안에 노출
+- 시각 검수: `/tmp/osmu-v9-home-390.png`, `/tmp/osmu-v9-drafts-1024.png`
+- GUI open: 사용하지 않음
+
+## 벤치마크 적용
+
+- Buffer Post Groups: 여러 채널 게시물을 한 묶음으로 다루되 각 게시물은 독립 편집 가능한 구조를 차용했다. v9은 원문 핵심을 고정하고 채널별 변경이 서로 번지지 않게 했다.
+- Sprout Social Approval Workflows: 작성, 검토, 승인, 결과의 단계 분리를 차용했다. v9은 고객이 발행 전에 계정, 콘텐츠, 개인정보, 시각을 직접 체크하게 단순화했다.
+- X OAuth 2.0 PKCE: 발행 준비와 재연결이 필요한 상태를 별도 처리했다. 준비되지 않은 X는 비활성화하고 나머지 채널 진행을 막지 않는다.
+
+## 내부 요구 추적
+
+PRD의 28개 인수 조건은 `DESIGN.md` 내부 증거 표에서 화면, 상태, 검증 방식으로 추적했다. 이 표는 고객 제품 화면에 노출하지 않았다.
+
+## Red-team
+
+공격: 여러 채널을 한 번에 발행한다는 편의가 잘못된 계정과 개인정보 노출 위험을 키운다.
+
+수정: 계정은 실제 handle을 선택하게 하고, 최종 발행 버튼은 4개 검수 항목을 모두 확인하기 전 비활성화했다. 결과는 계정별 상태와 링크로 분리했다.
+
+공격: 일부 성공 뒤 전체 재시도는 이미 성공한 계정에 중복 게시할 수 있다.
+
+수정: partial 상태의 주 행동을 `실패한 X만 다시 발행`으로 제한하고, duplicate 상태는 진행 중 요청으로 돌아가게 했다.
+
+## 셀프심문
+
+이 결론이 틀렸다면 가장 그럴듯한 이유는? 세 채널 동시 발행이 고객에게 빠르게 보이지만 채널별 품질 차이가 감춰질 수 있다.
+
+자답: 생성 성공 자체보다 각 채널 초안을 실제로 읽고 수정하는 구간이 load-bearing하다.
+
+수정 결과: Threads는 대화형 첫 문장, Instagram Feed는 캡션과 해시태그와 4:5 이미지, X는 글자 수와 핵심 한 문장을 각각 표시하고 독립 수정과 원문 복원을 제공했다.
+
+## Design Review
+
+Design Score: B+
+
+AI Slop Score: B+
+
+- value comprehension: A
+- interaction clarity: A
+- recovery completeness: A
+- responsive/accessibility: B+
+- shell integration: B+
+
+## 남은 gap
+
+- 회수 필요: 실제 연결 계정명, 고객 워크스페이스 데이터, 실제 게시물 permalink는 구현 및 운영 데이터가 필요하다.
+- 회수 필요: 발행 예약 시간대 기본값과 조직별 승인 권한은 기술설계 전에 회장 합의가 필요하다.
+- 향후 지원: 영상과 추가 채널은 Settings 요약만 제공하며 현재 발행 경로에는 넣지 않았다.
+
+## 다음 stage
+
+디자인 게이트 재검토 가능. 승인 뒤 eng-design에서 발행 예약, 계정 연결, 중복 방지, 일부 실패 재시도 계약을 회장과 합의해야 한다.
+
+RUBRIC_SCORE: hook=5/5 detail=5/5 rhythm=4/5 voice=5/5 slop=5/5 total=24/25
+
+WEAKEST_LINE: `디자인 게이트 재검토 가능`은 디자인 증거가 준비됐다는 뜻이며 구현 승인을 의미하지 않는다.
+
+## 검증기용 실제 프로세스 증거
+
+- `/Users/sj/.claude/skills/design-html/SKILL.md`
+- `/Users/sj/.claude/skills/design-review/SKILL.md`
+- `/Users/sj/.claude/standards/design.md`
+- `/Users/sj/.claude/standards/benchmarks.md`
+- `{"query":"site:support.buffer.com Using Post Groups in Buffer"}`
+- `{"query":"site:support.sproutsocial.com approval workflow publishing messages"}`
+- `{"query":"site:help.hootsuite.com create publish post multiple social accounts composer"}`
+- `{"query":"site:docs.x.com OAuth 2.0 Authorization Code Flow with PKCE"}`
+
+SOURCES: docs/openclaw-auto-osmu-prd-v4.1.2-gpt-codex.md | DESIGN.md | docs/user-flow.md | https://support.buffer.com/article/961-using-post-groups-in-buffer | https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows | https://docs.x.com/fundamentals/authentication/oauth-2-0/authorization-code
+
+MODEL: gpt-codex/gpt-5.6-sol
+
+SKILLS_USED: design-html, customer product responsive clickable prototype | design-review, 1024/390 visual, interaction, accessibility, recovery audit
+
+SKILLS_SKIPPED: 없음

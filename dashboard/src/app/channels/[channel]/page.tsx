@@ -16,7 +16,7 @@ export default function ChannelRoute({ params }: { params: Promise<{ channel: st
   // Validate channel exists
   if (!CH_LABELS[channel]) {
     return (
-      <div className="px-8 py-6">
+      <div className="px-region py-stack-section">
         <p className="text-[var(--text-muted)]">Unknown channel: {channel}</p>
       </div>
     );

@@ -1,0 +1,846 @@
+{
+  "label": "before",
+  "measuredAt": "2026-08-27T21:14:38.931Z",
+  "baseUrl": "http://localhost:3456",
+  "workspaceId": "cd1d0a40-540d-4524-9b49-bf2445d82182",
+  "runCount": 3,
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "cache": "새 브라우저 문맥으로 각 회차 냉캐시 측정",
+  "summary": {
+    "home": {
+      "fcpMs": 492,
+      "firstPictureMs": 652.5,
+      "requestCount": 38,
+      "apiRequestCount": 13,
+      "scriptTransferKb": 3.4,
+      "slowestApis": [
+        {
+          "path": "/api/onboarding",
+          "status": 200,
+          "durationMs": 708.4
+        },
+        {
+          "path": "/api/activity",
+          "status": 200,
+          "durationMs": 516.9
+        },
+        {
+          "path": "/api/channel-config",
+          "status": 200,
+          "durationMs": 513.4
+        },
+        {
+          "path": "/api/metrics?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 512.3
+        },
+        {
+          "path": "/api/overview",
+          "status": 200,
+          "durationMs": 437.1
+        }
+      ]
+    },
+    "performance": {
+      "fcpMs": 588,
+      "firstPictureMs": 942,
+      "requestCount": 38,
+      "apiRequestCount": 13,
+      "scriptTransferKb": 3.4,
+      "slowestApis": [
+        {
+          "path": "/api/channel-config",
+          "status": 200,
+          "durationMs": 284.5
+        },
+        {
+          "path": "/api/onboarding",
+          "status": 200,
+          "durationMs": 282
+        },
+        {
+          "path": "/api/channel-config",
+          "status": 200,
+          "durationMs": 249.7
+        },
+        {
+          "path": "/api/onboarding",
+          "status": 200,
+          "durationMs": 247.9
+        },
+        {
+          "path": "/api/usage?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 237.9
+        }
+      ]
+    },
+    "create": {
+      "fcpMs": 524,
+      "firstPictureMs": 711.2,
+      "requestCount": 41,
+      "apiRequestCount": 16,
+      "scriptTransferKb": 3.4,
+      "slowestApis": [
+        {
+          "path": "/api/channels/instagram/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 207.2
+        },
+        {
+          "path": "/api/channels/x/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 205.8
+        },
+        {
+          "path": "/api/channels/facebook/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 202.7
+        },
+        {
+          "path": "/api/channels/threads/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 200.4
+        },
+        {
+          "path": "/api/channels/x/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 182.3
+        }
+      ]
+    },
+    "edit": {
+      "fcpMs": 904,
+      "firstPictureMs": 1312.2,
+      "requestCount": 41,
+      "apiRequestCount": 16,
+      "scriptTransferKb": 3.4,
+      "slowestApis": [
+        {
+          "path": "/api/channels/x/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 469.3
+        },
+        {
+          "path": "/api/channels/threads/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 468.7
+        },
+        {
+          "path": "/api/channels/facebook/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 465.8
+        },
+        {
+          "path": "/api/channels/instagram/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 465.1
+        },
+        {
+          "path": "/api/channels/x/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 427.1
+        }
+      ]
+    },
+    "publish": {
+      "fcpMs": 948,
+      "firstPictureMs": 1135.3,
+      "requestCount": 41,
+      "apiRequestCount": 16,
+      "scriptTransferKb": 3.4,
+      "slowestApis": [
+        {
+          "path": "/api/channels/x/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 762.8
+        },
+        {
+          "path": "/api/channels/threads/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 762.7
+        },
+        {
+          "path": "/api/channels/facebook/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 761.9
+        },
+        {
+          "path": "/api/channels/instagram/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 761.3
+        },
+        {
+          "path": "/api/studio/drafts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 585.5
+        }
+      ]
+    }
+  },
+  "observations": [
+    {
+      "scenario": "home",
+      "path": "/",
+      "run": 1,
+      "wallReadyMs": 2309.1,
+      "fcpMs": 492,
+      "firstPictureMs": 652.5,
+      "ttfbMs": 68.8,
+      "domContentLoadedMs": 105.9,
+      "loadEndMs": 414.8,
+      "requestCount": 38,
+      "apiRequestCount": 13,
+      "scriptRequestCount": 22,
+      "declaredTransferBytes": 3481,
+      "scriptTransferBytes": 3481,
+      "slowestApis": [
+        {
+          "path": "/api/onboarding",
+          "status": 200,
+          "durationMs": 708.4
+        },
+        {
+          "path": "/api/activity",
+          "status": 200,
+          "durationMs": 516.9
+        },
+        {
+          "path": "/api/channel-config",
+          "status": 200,
+          "durationMs": 513.4
+        },
+        {
+          "path": "/api/metrics?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 512.3
+        },
+        {
+          "path": "/api/overview",
+          "status": 200,
+          "durationMs": 437.1
+        }
+      ],
+      "consoleErrors": []
+    },
+    {
+      "scenario": "home",
+      "path": "/",
+      "run": 2,
+      "wallReadyMs": 2056.5,
+      "fcpMs": 904,
+      "firstPictureMs": 944.7,
+      "ttfbMs": 83.4,
+      "domContentLoadedMs": 116.8,
+      "loadEndMs": 711.1,
+      "requestCount": 38,
+      "apiRequestCount": 13,
+      "scriptRequestCount": 22,
+      "declaredTransferBytes": 3481,
+      "scriptTransferBytes": 3481,
+      "slowestApis": [
+        {
+          "path": "/api/channel-config",
+          "status": 200,
+          "durationMs": 321.7
+        },
+        {
+          "path": "/api/onboarding",
+          "status": 200,
+          "durationMs": 319.9
+        },
+        {
+          "path": "/api/overview",
+          "status": 200,
+          "durationMs": 233.1
+        },
+        {
+          "path": "/api/metrics?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 217.2
+        },
+        {
+          "path": "/api/usage?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 207.2
+        }
+      ],
+      "consoleErrors": []
+    },
+    {
+      "scenario": "home",
+      "path": "/",
+      "run": 3,
+      "wallReadyMs": 1639.4,
+      "fcpMs": 488,
+      "firstPictureMs": 514.9,
+      "ttfbMs": 60.4,
+      "domContentLoadedMs": 88.8,
+      "loadEndMs": 347.9,
+      "requestCount": 38,
+      "apiRequestCount": 13,
+      "scriptRequestCount": 22,
+      "declaredTransferBytes": 3481,
+      "scriptTransferBytes": 3481,
+      "slowestApis": [
+        {
+          "path": "/api/channel-config",
+          "status": 200,
+          "durationMs": 185.4
+        },
+        {
+          "path": "/api/onboarding",
+          "status": 200,
+          "durationMs": 183.2
+        },
+        {
+          "path": "/api/metrics?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 182.6
+        },
+        {
+          "path": "/api/overview",
+          "status": 200,
+          "durationMs": 159.3
+        },
+        {
+          "path": "/api/usage?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 137.6
+        }
+      ],
+      "consoleErrors": []
+    },
+    {
+      "scenario": "performance",
+      "path": "/",
+      "run": 1,
+      "wallReadyMs": 2186.6,
+      "fcpMs": 836,
+      "firstPictureMs": 1107.6,
+      "ttfbMs": 88.3,
+      "domContentLoadedMs": 134.1,
+      "loadEndMs": 598.9,
+      "requestCount": 38,
+      "apiRequestCount": 13,
+      "scriptRequestCount": 22,
+      "declaredTransferBytes": 3481,
+      "scriptTransferBytes": 3481,
+      "slowestApis": [
+        {
+          "path": "/api/channel-config",
+          "status": 200,
+          "durationMs": 284.5
+        },
+        {
+          "path": "/api/onboarding",
+          "status": 200,
+          "durationMs": 282
+        },
+        {
+          "path": "/api/usage?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 237.9
+        },
+        {
+          "path": "/api/metrics?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 234.7
+        },
+        {
+          "path": "/api/overview",
+          "status": 200,
+          "durationMs": 185.1
+        }
+      ],
+      "consoleErrors": []
+    },
+    {
+      "scenario": "performance",
+      "path": "/",
+      "run": 2,
+      "wallReadyMs": 1652.9,
+      "fcpMs": 492,
+      "firstPictureMs": 699.4,
+      "ttfbMs": 53.2,
+      "domContentLoadedMs": 83.4,
+      "loadEndMs": 354.3,
+      "requestCount": 38,
+      "apiRequestCount": 13,
+      "scriptRequestCount": 22,
+      "declaredTransferBytes": 3481,
+      "scriptTransferBytes": 3481,
+      "slowestApis": [
+        {
+          "path": "/api/onboarding",
+          "status": 200,
+          "durationMs": 189
+        },
+        {
+          "path": "/api/channel-config",
+          "status": 200,
+          "durationMs": 164.7
+        },
+        {
+          "path": "/api/metrics?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 163.5
+        },
+        {
+          "path": "/api/usage?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 130.6
+        },
+        {
+          "path": "/api/overview",
+          "status": 200,
+          "durationMs": 129
+        }
+      ],
+      "consoleErrors": []
+    },
+    {
+      "scenario": "performance",
+      "path": "/",
+      "run": 3,
+      "wallReadyMs": 1887,
+      "fcpMs": 588,
+      "firstPictureMs": 942,
+      "ttfbMs": 81.4,
+      "domContentLoadedMs": 124.2,
+      "loadEndMs": 553.2,
+      "requestCount": 38,
+      "apiRequestCount": 13,
+      "scriptRequestCount": 22,
+      "declaredTransferBytes": 3481,
+      "scriptTransferBytes": 3481,
+      "slowestApis": [
+        {
+          "path": "/api/channel-config",
+          "status": 200,
+          "durationMs": 249.7
+        },
+        {
+          "path": "/api/onboarding",
+          "status": 200,
+          "durationMs": 247.9
+        },
+        {
+          "path": "/api/metrics?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 197.3
+        },
+        {
+          "path": "/api/overview",
+          "status": 200,
+          "durationMs": 168.2
+        },
+        {
+          "path": "/api/activity",
+          "status": 200,
+          "durationMs": 164.5
+        }
+      ],
+      "consoleErrors": []
+    },
+    {
+      "scenario": "create",
+      "path": "/studio?room=create",
+      "run": 1,
+      "wallReadyMs": 1714.7,
+      "fcpMs": 484,
+      "firstPictureMs": 678.6,
+      "ttfbMs": 59.7,
+      "domContentLoadedMs": 85.7,
+      "loadEndMs": 352.3,
+      "requestCount": 41,
+      "apiRequestCount": 16,
+      "scriptRequestCount": 22,
+      "declaredTransferBytes": 3481,
+      "scriptTransferBytes": 3481,
+      "slowestApis": [
+        {
+          "path": "/api/channels/facebook/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 167.1
+        },
+        {
+          "path": "/api/channels/x/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 167
+        },
+        {
+          "path": "/api/channels/threads/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 150.6
+        },
+        {
+          "path": "/api/channels/facebook/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 149.7
+        },
+        {
+          "path": "/api/channels/threads/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 149.6
+        }
+      ],
+      "consoleErrors": []
+    },
+    {
+      "scenario": "create",
+      "path": "/studio?room=create",
+      "run": 2,
+      "wallReadyMs": 1739.7,
+      "fcpMs": 552,
+      "firstPictureMs": 750.9,
+      "ttfbMs": 70,
+      "domContentLoadedMs": 102.8,
+      "loadEndMs": 402.5,
+      "requestCount": 41,
+      "apiRequestCount": 16,
+      "scriptRequestCount": 22,
+      "declaredTransferBytes": 3481,
+      "scriptTransferBytes": 3481,
+      "slowestApis": [
+        {
+          "path": "/api/channels/instagram/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 207.2
+        },
+        {
+          "path": "/api/channels/x/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 205.8
+        },
+        {
+          "path": "/api/channels/facebook/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 202.7
+        },
+        {
+          "path": "/api/channels/threads/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 200.4
+        },
+        {
+          "path": "/api/channels/threads/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 167.6
+        }
+      ],
+      "consoleErrors": []
+    },
+    {
+      "scenario": "create",
+      "path": "/studio?room=create",
+      "run": 3,
+      "wallReadyMs": 1660.4,
+      "fcpMs": 524,
+      "firstPictureMs": 711.2,
+      "ttfbMs": 78.2,
+      "domContentLoadedMs": 111,
+      "loadEndMs": 379.3,
+      "requestCount": 41,
+      "apiRequestCount": 16,
+      "scriptRequestCount": 22,
+      "declaredTransferBytes": 3481,
+      "scriptTransferBytes": 3481,
+      "slowestApis": [
+        {
+          "path": "/api/channels/x/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 182.3
+        },
+        {
+          "path": "/api/channels/threads/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 182
+        },
+        {
+          "path": "/api/channels/facebook/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 181.5
+        },
+        {
+          "path": "/api/channels/instagram/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 181.1
+        },
+        {
+          "path": "/api/channels/facebook/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 146.5
+        }
+      ],
+      "consoleErrors": []
+    },
+    {
+      "scenario": "edit",
+      "path": "/studio?room=edit",
+      "run": 1,
+      "wallReadyMs": 1949,
+      "fcpMs": 396,
+      "firstPictureMs": 704.6,
+      "ttfbMs": 74.7,
+      "domContentLoadedMs": 100.1,
+      "loadEndMs": 365.2,
+      "requestCount": 41,
+      "apiRequestCount": 16,
+      "scriptRequestCount": 22,
+      "declaredTransferBytes": 3481,
+      "scriptTransferBytes": 3481,
+      "slowestApis": [
+        {
+          "path": "/api/channels/threads/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 160.7
+        },
+        {
+          "path": "/api/channels/x/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 160.1
+        },
+        {
+          "path": "/api/channels/facebook/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 158.3
+        },
+        {
+          "path": "/api/channels/instagram/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 157.8
+        },
+        {
+          "path": "/api/me",
+          "status": 200,
+          "durationMs": 129.7
+        }
+      ],
+      "consoleErrors": []
+    },
+    {
+      "scenario": "edit",
+      "path": "/studio?room=edit",
+      "run": 2,
+      "wallReadyMs": 2555.5,
+      "fcpMs": 904,
+      "firstPictureMs": 1312.2,
+      "ttfbMs": 90.8,
+      "domContentLoadedMs": 124.4,
+      "loadEndMs": 609.2,
+      "requestCount": 41,
+      "apiRequestCount": 16,
+      "scriptRequestCount": 22,
+      "declaredTransferBytes": 3481,
+      "scriptTransferBytes": 3481,
+      "slowestApis": [
+        {
+          "path": "/api/channels/x/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 469.3
+        },
+        {
+          "path": "/api/channels/threads/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 468.7
+        },
+        {
+          "path": "/api/channels/facebook/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 465.8
+        },
+        {
+          "path": "/api/channels/instagram/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 465.1
+        },
+        {
+          "path": "/api/studio/drafts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 278.7
+        }
+      ],
+      "consoleErrors": []
+    },
+    {
+      "scenario": "edit",
+      "path": "/studio?room=edit",
+      "run": 3,
+      "wallReadyMs": 2749.5,
+      "fcpMs": 912,
+      "firstPictureMs": 1532.9,
+      "ttfbMs": 85.9,
+      "domContentLoadedMs": 152.2,
+      "loadEndMs": 559.3,
+      "requestCount": 41,
+      "apiRequestCount": 16,
+      "scriptRequestCount": 22,
+      "declaredTransferBytes": 3481,
+      "scriptTransferBytes": 3481,
+      "slowestApis": [
+        {
+          "path": "/api/channels/x/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 427.1
+        },
+        {
+          "path": "/api/channels/facebook/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 421.8
+        },
+        {
+          "path": "/api/channels/instagram/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 417.5
+        },
+        {
+          "path": "/api/channels/threads/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 411.3
+        },
+        {
+          "path": "/api/channel-config",
+          "status": 200,
+          "durationMs": 300
+        }
+      ],
+      "consoleErrors": []
+    },
+    {
+      "scenario": "publish",
+      "path": "/studio?room=publish",
+      "run": 1,
+      "wallReadyMs": 3223.6,
+      "fcpMs": 948,
+      "firstPictureMs": 1135.3,
+      "ttfbMs": 88.8,
+      "domContentLoadedMs": 136.3,
+      "loadEndMs": 660.8,
+      "requestCount": 41,
+      "apiRequestCount": 16,
+      "scriptRequestCount": 22,
+      "declaredTransferBytes": 3481,
+      "scriptTransferBytes": 3481,
+      "slowestApis": [
+        {
+          "path": "/api/channels/x/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 762.8
+        },
+        {
+          "path": "/api/channels/threads/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 762.7
+        },
+        {
+          "path": "/api/channels/facebook/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 761.9
+        },
+        {
+          "path": "/api/channels/instagram/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 761.3
+        },
+        {
+          "path": "/api/studio/drafts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 577.5
+        }
+      ],
+      "consoleErrors": []
+    },
+    {
+      "scenario": "publish",
+      "path": "/studio?room=publish",
+      "run": 2,
+      "wallReadyMs": 2356.6,
+      "fcpMs": 840,
+      "firstPictureMs": 1084.2,
+      "ttfbMs": 78.5,
+      "domContentLoadedMs": 115.9,
+      "loadEndMs": 805,
+      "requestCount": 41,
+      "apiRequestCount": 16,
+      "scriptRequestCount": 22,
+      "declaredTransferBytes": 3481,
+      "scriptTransferBytes": 3481,
+      "slowestApis": [
+        {
+          "path": "/api/channels/threads/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 352.3
+        },
+        {
+          "path": "/api/channels/x/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 352.1
+        },
+        {
+          "path": "/api/channels/facebook/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 350.8
+        },
+        {
+          "path": "/api/channels/instagram/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 349.9
+        },
+        {
+          "path": "/api/channels/threads/accounts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 349.8
+        }
+      ],
+      "consoleErrors": []
+    },
+    {
+      "scenario": "publish",
+      "path": "/studio?room=publish",
+      "run": 3,
+      "wallReadyMs": 3443.4,
+      "fcpMs": 984,
+      "firstPictureMs": 1567.5,
+      "ttfbMs": 79.1,
+      "domContentLoadedMs": 114,
+      "loadEndMs": 766,
+      "requestCount": 41,
+      "apiRequestCount": 16,
+      "scriptRequestCount": 22,
+      "declaredTransferBytes": 3481,
+      "scriptTransferBytes": 3481,
+      "slowestApis": [
+        {
+          "path": "/api/studio/drafts?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 585.5
+        },
+        {
+          "path": "/api/studio/brand-setup?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 585
+        },
+        {
+          "path": "/api/me",
+          "status": 200,
+          "durationMs": 583.4
+        },
+        {
+          "path": "/api/studio/engine-status?tenant_id=cd1d0a40-540d-4524-9b49-bf2445d82182",
+          "status": 200,
+          "durationMs": 583.2
+        },
+        {
+          "path": "/api/publish/first-comment-capabilities",
+          "status": 200,
+          "durationMs": 581.2
+        }
+      ],
+      "consoleErrors": []
+    }
+  ]
+}

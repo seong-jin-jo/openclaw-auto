@@ -1,0 +1,79 @@
+한 줄 결론: PRD v7.3.0은 기존 67개 계약을 삭제·재번호 없이 보존하고, 브랜드 지식 운영·승인형 캠페인·성과의 실제 다음 생성 적용을 신규 17개 계약으로 추가해 FR/AC/TC 84/84/84로 닫았다. plan은 아직 미승인이고 product code/API/DB/deploy는 건드리지 않았다.
+
+STAMP: line=openclaw-auto | artifact=marketing-agent-prd-v7.3.0-exit | version=v7.3.0 | generated_at=2026-08-07 12:58 KST | model=gpt-codex/gpt-5.6-sol | agent=prd-architect/marketing_agent_prd_v7 | skills=brand-positioning-kit,openclaw-creative-brief | evidence=PRD-v7.2.1,final-v18-audits,current-brand-Studio-code,Jasper-HubSpot-GitHub-official | deliberation=기존 publishing 계약을 보존하고 brand truth·campaign accountability·applied learning의 빠진 spine만 additive로 닫음
+
+요청: 기존 코드·위키·화면과 원요구를 기반으로 “마케팅 콘텐츠 생성·발행 자동화 에이전트”의 기획을 다시 세우고, 다음 design prototype이 누락 없이 구현할 PRD와 canonical view를 만든다.
+
+## 생성·수정 산출물
+
+- `docs/openclaw-auto-marketing-agent-prd-v7.3.0-gpt-codex.md`
+- `docs/one-thing.md`, `docs/one-thing-v7.3.0.md`
+- `docs/persona.md`, `docs/persona-v7.3.0.md`
+- `docs/bm.md`, `docs/bm-v7.3.0.md`
+- `docs/risks.md`, `docs/risks-v7.3.0.md`
+- 이 exit report
+
+## 무엇을 확정했나
+
+- One Thing: 한 번의 고객 목표와 브랜드 근거를 승인 가능한 캠페인 납품물과 증명 가능한 발행 결과로 바꾸고, 그 결과를 다음 실험에 되돌리는 마케팅 실행 에이전트.
+- Persona: 김민서(38세, 1인 교육·컨설팅 대표). Pain은 “목표를 맡겨도 조사·브리프·검수·파일 정리·성과 해석을 다시 자신이 PM해야 한다”는 것이다.
+- Current preservation: 기존 Studio Save/Publish/예약/per-card edit, route25, unique destination26, video V01~V24, Header7/OAuth/token/Midjourney/native8 계약을 유지했다.
+- Latest sidebar order: `Social · 게시물 → Messaging → Social · 짧은 영상`. Messaging은 별도·default OFF이고 OSMU 생성 rail이 아니다.
+- OSMU deliverable order: `텍스트 → 사진/카드 → 영상`.
+- Brand knowledge: GitHub 일반 repo Markdown folder, 특정 tone file, 6문항 setup, direct paste, in-product new wiki의 source5; import failure7; wiki/guide immutable version·diff·archive·last-good·rollback-as-new-version; generation snapshot lineage.
+- Brand guide: positioning, audience, promise/proof, tone3+각 반례, taboo3+, visual rule의 generate→edit→confirm→reopen→reconfirm→next-generation apply.
+- Campaign spine: signup/workspace→customer work order→brand sources/guide→research→approved brief/plan→text→photo/card→video→feedback/revision→final approval→queue/calendar/video jobs→publish/schedule proof→result library/report→next experiment의 14단계.
+- Closed loop: `다음 초안에 반영` 링크만으로 완료 처리하지 않는다. metric/result/publication evidence IDs, window, limitation, approved changed variable1이 next generation input에 들어가고 revision diff로 보여야 한다.
+- Psychology: progressive disclosure·safe default는 truth/decision visibility를 위한 design rationale이며, 고객 조작·자동 opt-in·가짜 progress 요구가 아니다.
+
+## 현재 구현 경계
+
+| 요구 | 현재 판정 | 근거 | v7.3 target |
+|---|---|---|---|
+| GitHub Markdown folder import | 이미 구현·보정 필요 | `RepoConnect.tsx`, `sync-wiki/route.ts` | diff/history/last-good/removal confirmation |
+| 특정 tone file·6문항 setup | 이미/부분 구현 | RepoConnect, BrandSetupWizard | draft→edit→human confirm→version apply |
+| direct paste·in-product wiki CRUD/version/archive | 미구현 | current brand/wiki paths에 customer CRUD 없음 | source5 계약으로 신규 구현 |
+| wiki retrieval→Studio | 부분 구현 | `wiki-retrieve.ts`, Studio | exact fact/guide/brief generation snapshot |
+| campaign brief/plan | 미구현 | onboarding은 industry/channels 중심 | customer-approved work order/research/brief/plan |
+| metric→next generation | 미구현 | 기존 visual/link 요구만 존재 | evidence IDs+variable1+input/diff proof |
+
+## 정량 추적성
+
+- FR/AC/base TC: **84/84/84**, orphan0, duplicate0. MA72-001~067 보존, MA73-068~084 additive.
+- 기존 release denominator: R3 30, R4 53, OAuth18, viewport75, owner-state60, header11.
+- 신규 release denominator: source5+failure7+guide6+campaign14+format3+learning2 = **37**, plan 단계 M=0.
+- provider production 동작은 미검증이며 static prototype·route click·2xx로 완료 처리하지 않는다.
+
+## 근거
+
+- 실제 스킬 Read: `/Users/sj/.codex/skills/brand-positioning-kit/SKILL.md`; `/Users/sj/.codex/skills/openclaw-creative-brief/SKILL.md`.
+- 실제 품질헌법 Read: `/Users/sj/.claude/standards/planning.md`; `doc-review.md`; `benchmarks.md`; `branding.md`; `writing.md`; `marketing.md`.
+- 실제 웹 조사 query 기록: `{"query":"Jasper Brand Voice official documentation"}`, `{"query":"Jasper Knowledge Base official documentation"}`, `{"query":"HubSpot create campaigns goal audience budget owner official"}`, `{"query":"GitHub REST repository contents API official"}`.
+- 소스 1: 상류 PRD `docs/openclaw-auto-marketing-agent-prd-v7.2.1-gpt-codex.md`와 기존 critic closure.
+- 소스 2: final `tasks/marketing-agent-v18-completeness-audit.output` — knowledge/campaign/learning/mobile P0.
+- 소스 3: final `tasks/marketing-agent-v18-agency-blueprint.output` — campaign14, logical artifacts, client/agent/approval/evidence/recovery contract.
+- 코드 근거: RepoConnect, BrandSetupWizard, sync-wiki, wiki-retrieve, onboarding, Studio를 실제 읽어 current/partial/missing을 분리했다.
+- 벤치마크: Jasper Brand Voice/Knowledge Base/Style Guide에서 generation context 적용을, HubSpot Campaigns에서 goal/audience/budget/date/owner campaign unit을, GitHub Contents API에서 repo/ref/path import scope를 차용했다. 승인·발행 proof·metric-to-next-experiment lineage는 OSMU 차별화로 추가했다. Buffer/Sprout/Later/Hootsuite는 기존 승인·예약·관리 화면 계약을 보존하는 근거로 사용했다.
+
+## 레드팀·셀프심문
+
+- 레드팀: 회의적 투자자는 “브랜드 wiki와 14단계 campaign이 제품을 느리고 비싼 서비스 운영체제로 만들며, 실제 native data도 부족해 자동화 이익보다 support burden이 커진다”고 공격한다. 이에 일반 CMS·광고 집행·전문 편집기 복제를 범위 밖으로 두고, source recovery·revision·campaign closure·support time에 정량 kill criterion을 연결했다.
+- 까다로운 고객 공격: “초안은 많아졌지만 결국 PM은 내가 한다.” → Agent가 research/brief/revision/result/report를 소유하고 고객은 명시된 결정과 승인만 맡도록 campaign14를 추가했다.
+- 경쟁자 공격: “Buffer·Jasper·Canva의 열등한 합집합이다.” → 전문 편집기·CRM·광고 집행·general CMS는 제외하고 brand/campaign/approval/proof/experiment lineage만 product spine으로 제한했다.
+- 가장 load-bearing한 가정: 모든 사용자가 매번 campaign14를 원한다는 가정은 틀릴 수 있다. 그래서 `대행 캠페인`과 `빠른 1회 게시`를 분리하되 shortcut도 account/rights/approval safety를 우회하지 않는다.
+- 이 단계가 틀렸다면 가장 그럴듯한 이유: native evidence가 부족해 closed-loop가 실제 가치를 못 만들 수 있다. Social5 permanent unsupported≥3 또는 eligible publication≥20에서 evidence-linked next change<50%면 판매 문구를 내리는 kill criterion을 유지했다.
+
+## Gate
+
+- gate 미통과: independent plan critic, quality verifier, `/approve plan`, provider/live E2E.
+- 다음 stage 진입: **불가** — critic MAJOR0 + verifier PASS + 회장 `/approve plan`이 필요하다.
+- 출고 범위: PRD/canonical plan artifacts만. product code/API/DB/deploy/wiki 정본 변경 없음.
+
+RUBRIC_SCORE: 완결성=5/5 정밀성=5/5 벤치마크=5/5 추적성=5/5 전문성=4/5 total=24/25
+WEAKEST_LINE: campaign14와 source5의 storage/API transaction 경계는 eng-design 대화 전 확정하지 않았다.
+SKILLS_USED: brand-positioning-kit — brand guide 최소 계약과 tone/taboo/counterexample / openclaw-creative-brief — campaign inputs/output schema/order/validation/feedback를 FR/AC/TC로 변환
+SKILLS_SKIPPED: 없음
+PRESENTATION_CHECK: PRD·canonical views를 `md-to-web.sh`로 HTML 렌더하고 1440px screenshot에서 title·metadata table·목차 typography를 직접 확인함; final content 재렌더 완료
+SOURCES: PRD v7.2.1; final v18 completeness audit; final v18 agency blueprint; current RepoConnect/BrandSetupWizard/sync-wiki/wiki-retrieve/onboarding/Studio; planning/doc-review/benchmarks/branding/writing/marketing standards; Jasper/HubSpot/GitHub/Buffer/Sprout/Later/Hootsuite official docs.
+MODEL: gpt-codex/gpt-5.6-sol
+VERIFIER_STATUS: PASS — Skill2/WebSearch1/Socratic2; warning1=`exit report가 raw Write/Edit transcript 형식이 아님`, 실제 산출 경로·file existence는 별도 검증함

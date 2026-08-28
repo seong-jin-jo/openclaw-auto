@@ -35,10 +35,22 @@ export type Severity = "critical" | "error" | "warning";
 const ALLOWED_SEVERITIES: readonly Severity[] = ["critical", "error", "warning"];
 
 // ── 고정 이벤트명 (닫힌 세계) ────────────────────────────────────────────────
+import {
+  recoverOperationalIncidents,
+  recordOperationalIncident,
+  type IncidentCategory,
+  type IncidentIntervention,
+  type IncidentReason,
+  type IncidentSource,
+} from "@/lib/observability/incidents";
+
 const ALLOWED_EVENTS = [
   "auth_service_unavailable",
   "shared_ai_generation_execution_failed",
+  "studio_generation_failed",
   "publish_failed",
+  "token_expired",
+  "external_service_error",
   "operator_mutation_failed",
 ] as const;
 type AllowedEvent = (typeof ALLOWED_EVENTS)[number];
@@ -50,7 +62,7 @@ export const AUTH_REASONS = [
   "tenant_status_db_unreachable",
   "supabase_jwt_verify_unreachable",
 ] as const;
-export const AI_FAILURE_REASONS = ["timeout", "output_limit", "spawn_failed", "exit_nonzero", "stdin_failed", "unknown"] as const;
+export const AI_FAILURE_REASONS = ["timeout", "provider_unavailable", "output_limit", "spawn_failed", "exit_nonzero", "stdin_failed", "unknown"] as const;
 export const PUBLISH_FAILURE_REASONS = ["http_error", "network_error", "unsupported_platform", "unknown"] as const;
 export const OPERATOR_ACTIONS = [
   "pause_user",
@@ -68,8 +80,17 @@ export const PUBLISH_PLATFORMS = [
   "telegram",
   "discord",
   "slack",
+  "youtube",
+  "linkedin",
+  "pinterest",
+  "tumblr",
+  "tiktok",
+  "line",
+  "naver_blog",
   "unknown_platform",
 ] as const;
+export const TOKEN_REASONS = ["token_expired", "token_revoked"] as const;
+export const EXTERNAL_SERVICE_REASONS = ["provider_unreachable", "network_error", "http_429", "http_5xx"] as const;
 
 type FieldSchema = { kind: "enum"; values: readonly string[] } | { kind: "httpStatus" };
 type EventSchema = Record<string, FieldSchema>;
@@ -77,9 +98,19 @@ type EventSchema = Record<string, FieldSchema>;
 const EVENT_SCHEMAS: Record<AllowedEvent, EventSchema> = {
   auth_service_unavailable: { reason: { kind: "enum", values: AUTH_REASONS } },
   shared_ai_generation_execution_failed: { reason: { kind: "enum", values: AI_FAILURE_REASONS } },
+  studio_generation_failed: { reason: { kind: "enum", values: AI_FAILURE_REASONS } },
   publish_failed: {
     platform: { kind: "enum", values: PUBLISH_PLATFORMS },
     reason: { kind: "enum", values: PUBLISH_FAILURE_REASONS },
+    httpStatus: { kind: "httpStatus" },
+  },
+  token_expired: {
+    provider: { kind: "enum", values: PUBLISH_PLATFORMS },
+    reason: { kind: "enum", values: TOKEN_REASONS },
+  },
+  external_service_error: {
+    provider: { kind: "enum", values: PUBLISH_PLATFORMS },
+    reason: { kind: "enum", values: EXTERNAL_SERVICE_REASONS },
     httpStatus: { kind: "httpStatus" },
   },
   operator_mutation_failed: { action: { kind: "enum", values: OPERATOR_ACTIONS } },
@@ -90,8 +121,12 @@ export type FailureContext = Record<string, unknown>;
 export interface FailureEvent {
   event: string;
   severity: Severity;
+  workspaceId?: string;
+  resourceKey?: string;
   context?: FailureContext;
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isAllowedEvent(event: string): event is AllowedEvent {
   return (ALLOWED_EVENTS as readonly string[]).includes(event);
@@ -126,6 +161,8 @@ interface AlertPayload {
   kind: "osmu_alert";
   event: string;
   severity: Severity;
+  workspaceId?: string;
+  resourceKey?: string;
   context: Record<string, string | number>;
 }
 
@@ -141,14 +178,77 @@ function buildPayload(input: FailureEvent): AlertPayload {
     kind: "osmu_alert",
     event: input.event,
     severity,
+    workspaceId: typeof input.workspaceId === "string" && UUID_RE.test(input.workspaceId) ? input.workspaceId : undefined,
+    resourceKey: typeof input.resourceKey === "string" && /^account:(?:default|[0-9a-f-]{36})$/i.test(input.resourceKey)
+      ? input.resourceKey
+      : undefined,
     context: sanitizeContext(input.event, input.context),
   };
 }
 
 function formatSlackText(payload: AlertPayload): string {
-  const lines = Object.entries(payload.context).map(([k, v]) => `• ${k}: ${String(v)}`);
+  const lines = [
+    ...(payload.workspaceId ? [`• workspace: ${payload.workspaceId}`] : []),
+    ...Object.entries(payload.context).map(([k, v]) => `• ${k}: ${String(v)}`),
+  ];
   const text = [`:rotating_light: *${payload.severity.toUpperCase()}* \`${payload.event}\``, ...lines].join("\n");
   return text.slice(0, SLACK_TEXT_MAX);
+}
+
+interface IncidentMapping {
+  category: IncidentCategory;
+  source: IncidentSource;
+  reasonCode: IncidentReason;
+  intervention: IncidentIntervention;
+}
+
+function mapIncident(payload: AlertPayload): IncidentMapping | null {
+  const source = (payload.context.platform || payload.context.provider || "studio") as IncidentSource;
+  const reason = payload.context.reason;
+
+  if (payload.event === "publish_failed") {
+    if (reason === "unsupported_platform") return null;
+    const status = typeof payload.context.httpStatus === "number" ? payload.context.httpStatus : undefined;
+    const reasonCode: IncidentReason = status === 429
+      ? "http_429"
+      : status && status >= 500
+        ? "http_5xx"
+        : reason === "network_error"
+          ? "network_error"
+          : status && status >= 400
+            ? "http_4xx"
+            : "unknown";
+    const intervention: IncidentIntervention = reasonCode === "http_429" || reasonCode === "http_5xx" || reasonCode === "network_error"
+      ? "automatic"
+      : "human";
+    return { category: "publish_failed", source, reasonCode, intervention };
+  }
+
+  if (payload.event === "token_expired") {
+    return {
+      category: "token_expired",
+      source,
+      reasonCode: reason === "token_revoked" ? "token_revoked" : "token_expired",
+      intervention: "human",
+    };
+  }
+
+  if (payload.event === "external_service_error") {
+    const reasonCode = EXTERNAL_SERVICE_REASONS.includes(reason as never) ? reason as IncidentReason : "provider_unreachable";
+    return { category: "external_service_error", source, reasonCode, intervention: "automatic" };
+  }
+
+  if (payload.event === "studio_generation_failed" || payload.event === "shared_ai_generation_execution_failed") {
+    const reasonCode = AI_FAILURE_REASONS.includes(reason as never) ? reason as IncidentReason : "unknown";
+    return {
+      category: "generation_failed",
+      source: payload.event === "shared_ai_generation_execution_failed" ? "shared_ai" : "studio",
+      reasonCode,
+      intervention: reasonCode === "timeout" || reasonCode === "provider_unavailable" ? "automatic" : "human",
+    };
+  }
+
+  return null;
 }
 
 // best-effort Slack 발송 — 절대 throw하지 않는다. non-2xx 응답도 실패로 취급하되(fetch는 HTTP
@@ -175,10 +275,30 @@ export async function reportFailure(input: FailureEvent): Promise<void> {
   try {
     const payload = buildPayload(input);
     console.error(JSON.stringify(payload));
+    if (payload.workspaceId) {
+      const incident = mapIncident(payload);
+      if (!incident) return;
+      await recordOperationalIncident({
+        workspaceId: payload.workspaceId,
+        severity: payload.severity,
+        resourceKey: payload.resourceKey,
+        ...incident,
+      });
+      if (incident.intervention === "automatic") return;
+    }
     await deliverToSlack(payload);
   } catch {
     // buildPayload/console.error가 예기치 않게 던져도 절대 전파하지 않는다.
   }
+}
+
+export async function reportRecovery(input: {
+  workspaceId: string;
+  category: IncidentCategory;
+  source: IncidentSource;
+  resourceKey?: string;
+}): Promise<void> {
+  await recoverOperationalIncidents(input.workspaceId, input);
 }
 
 // ── 호출부 공용 정규화 헬퍼 (원본 문자열 → 고정 코드) ───────────────────────

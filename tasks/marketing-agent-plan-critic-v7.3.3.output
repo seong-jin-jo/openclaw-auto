@@ -1,0 +1,185 @@
+한 줄 결론: PRD v7.3.3은 지적받은 신규 7개 계약과 비밀값 source-class 정책은 대체로 정확히 보강했지만, Audit96의 나머지 89행을 실제 전수검토 없이 통과시킨 근거 위조와 직접 확인된 다수 의미 누락 때문에 출고 불가(NO-GO)다.
+
+요청: PRD v7.3.3이 원본 Audit96의 96개 의미 계약, One Thing, IA, 기존 105개 요구를 보존하면서 B14·C01·C09·E12·H02·G02·G09을 정확히 보완했는지 독립 최종 비평한다.
+
+STAMP
+- 생성시각: 2026-08-07 14:26 KST
+- 모델: gpt-codex/gpt-5.6-sol
+- 에이전트: plan-critic
+- 작업 라인: marketing-agent
+- 근거 URL: OWASP Secrets Management Cheat Sheet, MDN Cache-Control, Jasper Brand Voice
+- 고민 한 줄: 신규 7개 수정의 정확성과 별개로, Audit96 전체 의미 보존 주장을 실제 원문-테스트 계약 대조로 반증할 수 있는지가 load-bearing 판단이었다.
+
+## 패널 비평 - OpenClaw Auto 마케팅 실행 에이전트 PRD v7.3.3
+
+### 창업자
+
+나는 이 버전이 제품의 중심을 다시 잡은 점은 인정한다. One Thing은 기준 문서와 byte-equal이고, Studio의 텍스트→사진·카드뉴스→짧은 영상 순서, Social의 게시물→Messaging→Social→짧은 영상 순서, 기존 105개 FR/TC도 보존됐다. 특히 브랜드 사실에 source/time/rationale/confidence를 붙이고, 아이디어가 캠페인으로 승격되는 lineage를 남기며, 미디어 권리 미확인과 accepted-timeout 중복 발행을 막은 것은 고객 신뢰를 지키는 필수 수정이다.
+
+그러나 나는 `112/112/112`라는 숫자를 제품 완성의 근거로 승인하지 않는다. 원본 Audit96의 나머지 89행을 “이전 critic 전수 대조”로 처리했지만 실제 이전 critic은 “표본 밖 추가 semantic mismatch가 더 있을 수 있다”고 명시했다. 이 상태에서 PASS를 선언하면 고객에게 팔 제품보다 내부 숫자 맞추기가 우선된다.
+
+### 운영자
+
+나는 신규 운영 계약을 대부분 실행 가능하다고 본다. E12는 accepted timeout 뒤 무조건 재시도를 막고 provider/account/time/hash로 먼저 reconcile하며, H02는 서버 persisted account만 완료로 인정한다. 비밀값도 고객 OAuth raw0, tenant token 발급 시 1회 평문 후 hash/mask, operator DB-source Client Secret의 엄격한 timed reveal, env import-first, BYOK write-only로 계층이 분리됐다.
+
+하지만 운영 검수표는 아직 닫히지 않았다. A05의 approver 역할과 view/edit/approve/publish/credential/support-recovery 행위 매트릭스, B10/B15의 실제 편집·저장·재로딩·감사, E06의 DST·과거시각·취소·중복 방지, E11의 attempt history와 단 한 번의 새 시도 같은 원본 장애 계약이 매핑된 TC에 없다. 현장에서는 이런 누락이 “화면은 있는데 복구와 책임 추적이 안 되는” 운영 사고로 나타난다.
+
+### 회의론자
+
+나는 가장 위험한 문장을 PRD §23.10의 “v7.3.2 critic이 전수 대조”라고 본다. 실제 v7.3.2 critic의 마지막 문장은 표본 밖 불일치 가능성을 명시한다. 따라서 89행의 manual evidence는 증거가 아니라 검토하지 않은 범위를 검토했다고 잘못 승격한 자기인증이다.
+
+원문과 매핑 TC를 직접 다시 대조하자 즉시 반례가 나왔다. A05, B10, B15, C03, C05, D03, E06, E11, F01, G07, H01은 핵심 명사·행동·실패조건 중 하나 이상이 빠졌다. 열한 반례만으로도 `N=96, M=0`은 반증되며, 나머지 행을 추가로 세지 않아도 전체 의미 폐쇄 주장은 성립하지 않는다.
+
+### 시장분석가
+
+나는 이 제품의 차별점이 “콘텐츠 생성”이 아니라 근거→승인→정확히 한 번 발행→학습의 운영 폐쇄루프라고 본다. Jasper가 writing example과 preview를 통해 Brand Voice를 사람이 확인하게 하는 방식은 B14의 근거·preview 방향을 지지한다. OWASP는 비밀 평문 노출 시간을 최소화하고 누가·왜·언제 접근했는지 감사하도록 권고하므로 source-class별 공개 정책과 timed reveal은 맞는 방향이다. MDN의 `no-store`는 캐시 저장을 막을 뿐 이미 저장된 응답을 지우지 않으므로 30초 DOM clear와 export/log 차단까지 별도로 검증해야 한다.
+
+반대로, Audit96 의미 계약을 숫자로만 닫으면 경쟁 제품 대비 강점이 사라진다. 플랫폼별 세부 운영, 접근성, 스케줄 충돌, 자산 권리, 재시도 증거가 누락된 채 생성·발행 화면만 넓어지면 “마케팅 실행 에이전트”가 아니라 기능이 많은 게시 도구가 된다.
+
+### One Thing 후보 1문장 + 함정답 3개
+
+One Thing 후보: **고객 목표와 사람이 확정한 브랜드 근거를 세 형식의 캠페인 납품물로 만들고 정확히 한 번 발행한 뒤, 적격한 결과에서 승인된 변수 하나만 다음 실험에 반영하는 마케팅 실행 에이전트.**
+
+함정답:
+
+1. “모든 SNS에 AI 콘텐츠를 한 번에 만드는 도구” — 승인·근거·발행 증거·학습이 빠진 생성기다.
+2. “OAuth 토큰을 연결해 자동 게시하는 플랫폼” — 마케팅 판단과 세 형식 캠페인 운영을 연결 기능으로 축소한다.
+3. “전체 채널 성과를 한 대시보드에서 보는 분석 도구” — 생성·승인·발행의 주행 경로가 사라진 사후 리포터다.
+
+### 확인 결과
+
+#### 통과한 계약 — 근거 확인
+
+- B14 / TC-MA-106: approved E1/E2 source locator, observed_at, selection rationale, inferred anchor/slider/phrase, confidence basis, E1-only `검토 필요`, active mutation0, external0을 명시했다.
+- C01 / TC-MA-107: 아이디어의 source URL·observed_at·evidence·선정 이유가 campaign/approved brief/Studio snapshot까지 이어지고 missing/cancel/duplicate/persist failure를 막는다.
+- C09 / TC-MA-108: 사진·카드뉴스·영상 모두 source/license-or-permission/territory/expiry/owner/proof 6필드를 가지며 unknown/expired는 승인·발행을 차단한다.
+- E12 / TC-MA-109: accepted timeout은 `uncertain`으로 두고 retry를 비활성화하며, reconciliation에서 기존 게시물을 찾으면 second call0, 못 찾으면 증거 기반 failed 전환 전까지 retry0이다.
+- H02 / TC-MA-110: route visit, 미식별 callback, local draft는 완료0이고 persisted server-read account만 완료+1이다.
+- G02/G09 정책: 고객 OAuth raw0, tenant automation token은 발급 시 평문1·이후 hash/masked/revoke, operator DB-source Client Secret은 exact reauth+명시적 intent/reason+no-store+30초 clear+audit, env는 reveal0/import-first, BYOK는 write-only/masked로 사용자 확정 정책을 보존했다.
+- 구조 보존: Audit96 원문 96행과 manifest 96행의 noun/action/failure 문자열은 기계적으로 동일하고 pinned SHA-256도 현행 audit와 일치한다. One Thing은 `docs/one-thing.md`와 동일하며, 기존 v7.3.2의 105 FR+TC는 v7.3.3에서 byte-identical이다.
+
+#### MAJOR 1 — Audit96 전체 의미 폐쇄 근거가 성립하지 않음
+
+원인: `tasks/marketing-agent-prd-v7.3.3-audit96-source-manifest.output`과 PRD §23.10은 v7.3.2 critic이 나머지 89행을 전수 대조했다고 주장한다. 그러나 실제 `tasks/marketing-agent-plan-critic-v7.3.2.output`은 “표본 밖 추가 semantic mismatch가 더 있을 수 있다”고 썼다. 즉 manifest는 source predicate 복사에는 성공했지만, mapped TC가 이를 충족한다는 manual evidence를 갖지 못했다.
+
+직접 반례:
+
+| Source | 원본의 load-bearing 의미 | 현재 매핑 TC의 누락 |
+|---|---|---|
+| A05 | customer/approver/operator별 view·edit·approve·publish·credential·support recovery와 forged API reject | approver와 정확한 행위 매트릭스·credential/recovery 없음 |
+| B10 | positioning/audience/promise/proof/taboo/vocabulary 편집, save/validation/reload, actor+changed fields 감사 | 일반 guide lifecycle만 있고 저장·재로딩·감사 없음 |
+| B15 | tone sliders, do/don't, preview sentence, save/error, before/after external0 | generic guide lifecycle만 있음 |
+| C03 | audience/offer/CTA/key message 한 필드 수정이 모든 variant에 전파되되 플랫폼 차이는 보존 | intake/brief stale만 있고 variant propagation 없음 |
+| C05 | start/end/deadline/timezone, overdue/conflict/fit, cross-timezone·past, approval/Calendar 노출 | required-field presence만 있음 |
+| D03 | photo/card flow의 slide, crop, alt, caption, rights, platform preview, save/reload, publish projection | 영상 slot·asset lineage·metadata 일부뿐이며 실제 카드 플로우 없음 |
+| E06 | local time/timezone/account/revision/approval, DST/past/conflict, timezone change/cancel/no duplicate | 승인·레코드 바인딩만 있고 시간대·취소·중복 계약 없음 |
+| E11 | confirmed failure reason/correlation/retry eligibility/preserved revision/attempt history, 새 시도 정확히 1회 | fault class만 있고 보존 draft·attempt history·single retry 없음 |
+| F01 | metric definition, included channel/account/period/freshness/coverage, unsupported exclusion | whitelist/formula만 있고 기간·신선도·coverage 문맥 없음 |
+| G07 | focus/label/contrast/error association/reduced motion/live announcement/keyboard dialog 전 표면 | 일반 focus·AA·44px만 있음 |
+| H01 | identity/readiness/target/approval consequence를 390/1024 포함 3 viewport 결정 지점에 숨은 도움 없이 노출 | 개별 필드·정책은 있으나 viewport/no-hidden-help 계약 없음 |
+
+영향: 96/96, orphan0, mismatch0 및 112/112/112는 구조 카운트일 뿐 의미 완전성 증거가 아니다. 이 PRD를 디자인으로 넘기면 원본 요구가 다시 누락된 프로토타입을 “요구사항 전부 반영”으로 오인하게 된다.
+
+수정 조건: 96행 전부를 새로 대조해 각 행에 `(source predicate 원문 → 충족하는 정확한 TC 문장 → happy/edge/failure assertion)`을 연결한다. 이전 critic의 침묵은 PASS evidence로 사용하지 않는다. 위 11행은 최소 확정 반례이며, 나머지 85행도 같은 방식으로 독립 재검토한다.
+
+#### MINOR 1 — G02 시험 계약의 감사·동시 import 명시가 제품 정책보다 약함
+
+§10.1의 source-class 정책은 맞지만 TC-MA-104/111은 operator DB-secret reveal 감사에 `actor/reason/time 및 secret 미포함`을 한 묶음의 assertion으로 쓰지 않았고, env import-first의 동시 import가 기존 값을 overwrite하지 않는다는 edge도 명시하지 않았다. reveal 허용 자체는 결함이 아니다. 원본 G02의 정확한 audit/concurrency predicate가 테스트 계약에 내려오지 않은 추적성 결함이다.
+
+수정 조건: operator DB-source reveal 성공/거부 양쪽에서 actor·reason·time 기록과 audit raw-secret0을 assert하고, concurrent env import 두 건이 기존 DB 값을 overwrite0임을 독립 fixture로 추가한다.
+
+### kill-criteria 3개 + 반증 여부
+
+1. **Audit96 의미 보존:** 96행 모두 source predicate와 TC assertion이 1:1로 대조되고 독립 critic 반례0. → **반증됨.** 현재 11개 직접 반례와 89행 evidence 허위 승격이 있다.
+2. **중복 외부 발행0:** accepted timeout/재시도/조정에서 같은 payload의 second publish call0. → **문서상 반증되지 않음.** TC-MA-109는 정확하지만 실제 E2E 관찰 전에는 미검증이다.
+3. **비밀값 교차 역할 누출0:** customer/operator/support/log/export/history에서 source-class 정책 밖 raw secret0. → **문서상 반증되지 않음.** 정책은 맞지만 G02 감사·동시 import assertion 보강과 실제 보안 테스트가 필요하다.
+
+### Steelman
+
+Steelman 검증: 찬성 측의 최강 논지는 신규 일곱 계약과 hash-pinned manifest면 변경 범위가 충분하다는 것이지만, 원문 복사와 테스트 의미 충족은 다른 명제이며 직접 반례 열한 개가 후자를 반증한다.
+
+찬성 측의 가장 강한 주장은 v7.3.3이 이전 critic이 지목한 7개 불일치를 정확히 고쳤고, 96개 원문 predicate를 hash-pinned manifest로 보존했으므로 더 이상의 PRD 확장은 과잉이라는 것이다. 실제로 신규 TC106~111은 구체적이고, source-class별 비밀값 정책도 사용자 확정 결정을 제대로 반영했다.
+
+그럼에도 이 주장은 “원문을 manifest에 복사했다”와 “그 의미가 TC에 구현됐다”를 혼동한다. 직접 11개 반례가 나왔고 89행의 유일한 manual evidence가 실제 critic 기록과 모순되므로, 현재 gate를 통과시키는 것이 오히려 재작업 비용을 키운다.
+
+### Pre-mortem
+
+Premortem 검증: 실패의 최유력 원인은 96개라는 구조 카운트를 의미 검증으로 오인해 카드 편집·시간대 예약·재시도 이력·접근성의 실제 고객 경로가 또 빠지고 하류에서 반복 재작업하는 것이다.
+
+6개월 뒤 실패했다면 가장 그럴듯한 시나리오는 프로토타입이 넓은 IA와 예쁜 상태표시를 갖췄지만, 카드뉴스 편집·시간대 예약·재시도 이력·접근성처럼 고객이 실제 운영에서 밟는 세부 계약이 빠져 다시 “기존 코드와 요청을 안 봤다”는 평가를 받는 것이다. 원인은 96개라는 숫자와 hash 일치를 의미 검증으로 착각한 데 있다.
+
+두 번째 시나리오는 operator secret reveal 정책은 맞지만 감사 필드와 concurrent import 실패조건이 느슨해 운영 사고 조사에서 누가 언제 왜 열람했는지 증명하지 못하는 것이다. 예방책은 새 기능 추가가 아니라 원본 predicate를 executable assertion으로 내리는 것이다.
+
+### 자기잠식 점검
+
+- Romeo·Dark-Cupid·Yeon·Polyamory: 동일한 콘텐츠 자동화와 audience targeting이 각 사업의 고유 브랜드 운영을 평준화할 위험이 있다 (unsourced). 방어선은 venture별 승인된 브랜드 근거와 tenant boundary다.
+- OKgram: 게시·분석 기능이 겹칠 가능성이 가장 높다 (unsourced). OSMU는 cross-format campaign execution과 evidence/approval loop를 소유하고, OKgram이 단일 채널 운영을 소유하는 식의 경계 확정이 필요하다.
+- 교육: 과정 홍보 콘텐츠 생성에는 재사용 가치가 있지만 교육 제품 개발 시간까지 Studio 기능 확장에 빨려 들어갈 위험이 있다 (unsourced).
+- 사용자·시간·예산: Audit96를 제대로 닫기 전에 화면과 provider를 추가하면 디자인·개발·QA가 누락 요구를 세 번 재작업한다. 지금 96행 의미 매핑을 끝내는 것이 가장 싼 순서다.
+
+### 법적 리스크 플래그
+
+- 미디어 권리의 territory/expiry/proof 누락은 저작권·초상권 분쟁으로 이어질 수 있으므로 unknown/expired 승인·발행 차단을 유지해야 한다. 구체 법률 적용은 관할별 자문 필요 (unsourced; 법률 자문 아님).
+- OAuth/BYOK/operator secret의 로그·DOM·export 노출은 개인정보·계정 탈취 및 플랫폼 약관 위반 위험을 만든다. 최소권한, 접근감사, 보존기간은 별도 보안·법무 검토가 필요하다.
+- 외부 플랫폼 자동발행·분석은 각 provider API 약관과 앱 심사 범위가 바뀔 수 있으므로 build 전에 현행 공식 정책 재확인이 필요하다.
+
+### 이 판단이 틀렸다면 가장 그럴듯한 이유는?
+
+PRD의 다른 TC 조합이 표의 누락 의미를 암묵적으로 충족하고 있는데 내가 단일 매핑 중심으로 너무 엄격히 판정했을 수 있다. 이를 반박하기 위해 manifest가 지정한 모든 mapped TC 조합을 읽었지만, A05의 approver/action matrix, D03의 slide/crop/alt flow, E06의 DST/cancel/no-duplicate처럼 검색 가능한 핵심 assertion 자체가 없었다. 따라서 표현 차이가 아니라 요구 계약 부재라는 결론을 유지한다.
+
+### 판정: NO-GO
+
+- MAJOR: 1
+- MINOR: 1
+- 판정 근거: 신규 7개 수정의 품질과 무관하게 Audit96 의미 보존이라는 출고 전제가 반증됐다. 디자인 단계 인계 금지.
+- 증거 등급: 원문·PRD·manifest·이전 critic 직접 대조는 `근거 확인`; 실제 UI/E2E는 이번 비평 범위 밖 `미검증`.
+
+### prd-architect 인계 노트
+
+1. 소유자: prd-architect. Audit96 96행을 원문 기준으로 전수 재대조하고, 이전 critic의 침묵을 evidence로 쓰지 않는다.
+2. 우선 수정: A05/B10/B15/C03/C05/D03/E06/E11/F01/G07/H01의 누락 predicate를 기존 또는 신규 TC의 명시적 happy/edge/failure assertion으로 복구한다.
+3. G02 보강: operator DB-secret reveal의 actor/reason/time/audit-secret0과 concurrent env import overwrite0을 테스트 계약에 적는다. 사용자 확정 timed reveal 정책을 universal raw0로 바꾸지 않는다.
+4. 종료 증거: manifest 각 96행에 source predicate 원문, 정확한 TC 인용, happy/edge/failure assertion, 독립 critic 결과를 남기고 mutation 1건으로 해당 행과 aggregate가 동시에 FAIL하는 것을 재현한다.
+5. 금지: `96/96`, hash equality, 행 수 일치, 이전 critic이 지적하지 않았다는 사실만으로 semantic PASS를 선언하지 않는다.
+
+회수 필요:
+- 제품 방향에 대한 회장 결정은 현재 필요 없다. 확정된 One Thing과 secret source-class 정책을 유지한 채 문서 추적성 결함을 재위임하면 된다.
+- API 약관·법적 보존기간·사업 간 OKgram 경계는 build 전에 별도 회수 필요다.
+
+다음 실행: prd-architect가 v7.3.4로 96행 전수 의미 매핑을 다시 작성하고, plan-critic이 원문에서 독립 샘플이 아니라 96/96 전수 재검증한다. 종료증거는 반례0, source predicate→TC assertion 96행, mutation fail 증거이며 외부 회수 시점은 디자인 게이트 재승인 직전이다.
+
+벤치마크:
+- 차용: Jasper의 실제 writing example 기반 Brand Voice와 before/after preview를 B14 인간 검토 계약의 기준으로 사용했다.
+- 변경: 단순 voice 저장을 넘어 source/time/rationale/confidence와 E1-only `검토 필요`를 요구한다.
+- 차별화: OWASP식 source-class secret control과 exact-once publish reconciliation을 캠페인 승인 플로우에 함께 묶는다.
+
+소스 1: OWASP, Secrets Management Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html
+소스 2: MDN, Cache-Control (`no-store`) — https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control
+소스 3: Jasper Help Center, Brand Voice — https://help.jasper.ai/hc/en-us/articles/18618639047323-Brand-Voice
+
+TOOL_TRACE:
+{"name":"WebSearch","arguments":{"query":"site:cheatsheetseries.owasp.org Secrets Management Cheat Sheet audit who what when secret official"}}
+{"name":"WebSearch","arguments":{"query":"site:developer.mozilla.org Cache-Control no-store official"}}
+{"name":"WebSearch","arguments":{"query":"site:help.jasper.ai Brand Voice examples preview official Jasper"}}
+
+SOURCES:
+- docs/openclaw-auto-marketing-agent-prd-v7.3.3-gpt-codex.md
+- tasks/marketing-agent-v18-completeness-audit.output (v1.2.0)
+- tasks/marketing-agent-v18-agency-blueprint.output
+- tasks/marketing-agent-prd-v7.3.3-audit96-source-manifest.output
+- tasks/marketing-agent-plan-critic-v7.3.2.output
+- docs/one-thing.md
+- /Users/sj/.claude/standards/planning.md
+- /Users/sj/.claude/standards/benchmarks.md
+- OWASP Secrets Management Cheat Sheet
+- MDN Cache-Control
+- Jasper Brand Voice
+
+MODEL: gpt-codex/gpt-5.6-sol
+SKILLS_USED: 없음 — 매칭되는 설치 스킬이 없어 planning/benchmarks 품질헌법과 원문 대조로 수행
+SKILLS_SKIPPED: 매칭 스킬 없음
+
+major_findings:1
+minor_findings:1
+verdict:NO-GO
+VERIFIER_RESULT: PASS — verify-agent-quality.sh plan; Skill 0회(매칭 없음), WebSearch/Fetch 6회, 소크라 마커 5. 로그 원장 쓰기는 sandbox 권한으로 거부됐으나 품질 판정 exit 0.

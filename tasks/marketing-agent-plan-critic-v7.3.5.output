@@ -1,0 +1,354 @@
+한 줄 결론: PRD v7.3.5는 v7.3.4의 의미 FAIL 8개를 모두 observable FR/AC/TC와 actual manifest H/E/F로 닫고, 실제 emitted manifest baseline PASS·mktemp B10 mutation FAIL·정본 SHA 불변까지 재현했으며 나머지 88개 의미 계약도 보존되어 MAJOR0/MINOR0, plan 단계 GO다.
+
+요청: PRD v7.3.5를 Audit96 원문·독립 H/E/F 288개·actual emitted manifest·v7.3.4 critic에 전수 대조하고, 이전 FAIL8 우선 공격, 나머지88 회귀, base131, old124, One Thing, IA/Studio order, credential 정책과 actual-manifest mutation teeth를 독립 판정한다.
+
+STAMP
+- 생성시각: 2026-08-07 15:30 KST
+- 모델: gpt-codex/gpt-5.6-sol
+- 에이전트: plan-critic
+- 작업 라인: marketing-agent
+- 스킬: 매칭 스킬 없음
+- 근거 URL: W3C WCAG 2.2 Focus Visible, OWASP Secrets Management Cheat Sheet, Buffer Timezones and Posting Schedules
+- 고민 한 줄: 같은 작성자가 만든 보강 assertion을 숫자나 validator PASS로 승인하지 않고, 이전 critic의 정확한 반례 8개와 Audit 원문 predicate를 다시 맞댄 뒤 actual artifact 오염 탐지까지 별도로 재현했다.
+
+## 패널 비평 - OSMU Marketing Agent PRD v7.3.5
+
+### 창업자
+
+나는 v7.3.5가 제품의 One Thing을 바꾸지 않고 검증 계약만 additive하게 보강한 점을 높게 본다. 기존124 FR/TC는 byte-identical이고, 새 TC125~131은 distinct tenant, atomic workspace switch, imported citation, guide applied_at, viewport별 Studio order, Telegram health/schedule, bulk account list라는 정확한 누락에만 배정됐다.
+
+이제 “Audit96 96/96”은 행수 자기인증이 아니라 각 source contract/action/failure와 observable H/E/F의 대응으로 설명할 수 있다. 다만 이것은 plan 계약의 합격이며 실제 OAuth·provider publish·native analytics가 작동한다는 뜻은 아니다.
+
+### 운영자
+
+나는 actual emitted manifest를 직접 읽는 validator와 정본을 건드리지 않는 mktemp mutation이 release 운영에서 핵심 개선이라고 본다. baseline은 정본 manifest 96행·H/E/F288·header/schema/row failure0으로 exit0했고, B10 happy action만 제거한 사본은 B10 row와 aggregate가 함께 exit1했으며 정본 SHA는 전후 동일했다.
+
+또한 workspace switch의 five-projection parity, stale confirmation mutation0, unhealthy Telegram call0, credential class별 raw 경계는 사고를 탐지 가능한 상태로 만든다. 설계·개발에서는 이 계약을 화면 배지로만 복제하지 말고 같은 seeded identity/version과 실제 side effect/readback으로 검증해야 한다.
+
+### 회의론자
+
+나는 v7.3.5 fixture 자체가 semantic supplement 8개를 기대값으로 포함하므로 validator PASS만으로 의미 승인을 주는 논리를 거부했다. 대신 Audit v1.2의 정확한 noun/action/failure, v7.3.4 critic의 반례, 새 FR/AC/TC와 actual manifest H/E/F를 행별로 직접 대조했다.
+
+가장 강한 공격은 “나머지88도 재생성 과정에서 조용히 바뀌었을 수 있다”는 것이다. v7.3.4와 v7.3.5의 other88 actual rows를 비교하자 `Independent ` 접두어 삭제 외 semantic text·mapping·release 차이는 0이었고, 그 접두어를 정규화한 diff는 완전 0이었다.
+
+### 시장분석가
+
+나는 경쟁력의 핵심을 다채널 수가 아니라 고객 목표→확정 근거→승인→정확히 한 번 실행→증명→승인된 변수1의 책임 사슬로 본다. Buffer의 공식 문서는 next available queue slot과 exact date/time schedule이 다른 계약임을 보여주고, PRD는 이 차이를 local time/timezone/account/revision/approval snapshot과 DST·변경 edge로 구체화했다.
+
+W3C는 route 방문이 아니라 실제 visible keyboard focus를 요구하고, OWASP는 secret별 least privilege와 who/why/when audit를 요구한다. PRD의 G07과 credential class matrix는 이 기준을 제품별 observable contract로 번역했으며, UI나 provider 구현 여부는 후속 design/build/QA에서 다시 증명해야 한다.
+
+### One Thing 후보 1문장 + 함정답 3개
+
+One Thing 후보: **고객 목표와 사람이 확정한 브랜드 근거를 세 형식의 캠페인 납품물로 만들고 정확히 한 번 발행한 뒤, 적격한 결과에서 승인된 변수 하나만 다음 실험에 반영하는 마케팅 실행 에이전트.**
+
+함정답:
+
+1. “96개 요구사항이 있는 SNS 대시보드” — 숫자와 화면이 고객 완료를 대신한다.
+2. “모든 플랫폼을 같은 Queue·Analytics로 맞춘 OSMU” — provider capability와 native truth를 위조한다.
+3. “AI가 성과를 보고 자동 최적화한다” — 승인 threshold·baseline·variable1 없이 인과를 과장한다.
+
+## 검증 방법과 증거 경계
+
+- Source: `marketing-agent-v18-completeness-audit.output` v1.2.0의 A01~H04 contract/action/evidence를 원문으로 읽었다.
+- Independent inputs: ABC34·DE41·FGH21 exact catalogs의 H/E/F 288개를 읽었다.
+- Semantic decision: actual manifest H/E/F와 mapped FR/AC/TC의 합집합이 source predicate를 observable하게 닫는지 판정했다.
+- Regression: v7.3.4 critic의 PASS88을 출발점으로 삼되 v7.3.5 actual other88 rows의 normalized diff0을 직접 확인했다.
+- Mechanical boundary: hash/count/fixture PASS는 artifact integrity 증거이지 독립 semantic acceptance가 아니다.
+- Evidence grade: 문서·manifest·fixture 직접 대조와 실행은 `근거 확인/테스트됨`; 실제 UI·OAuth·provider E2E는 `미검증`이다.
+
+## Audit96 ID별 PASS/FAIL — full semantic review
+
+### A — Entry, identity, tenant, role
+
+| ID | 결과 | 독립 의미 판정 |
+|---|---|---|
+| A01 | PASS | Google 시작·continuation·cancel·callback failure/retry·false shell0이 보존됐다. |
+| A02 | PASS | TC125와 actual H/E/F가 fresh A/B의 distinct tenant IDs, same-name edge, cross-membership/source/draft/account/job/metric0을 직접 검증한다. invite join은 보존된 TC096/097이 함께 닫는다. |
+| A03 | PASS | TC126이 A→B 전환 후 source·draft·account·Queue·analytics의 동일 workspace ID와 partial/stale command0, 실패 시 A atomic retain을 검증한다. |
+| A04 | PASS | source/content/asset/account/job/metric cross-tenant read/write/deep-link/external0이 보존됐다. |
+| A05 | PASS | role3×action6의 허용·disabled reason·forged UI/API denial이 보존됐다. |
+| A06 | PASS | timeout·401·403·500·callback mismatch와 false-ready0·safe retry가 보존됐다. |
+
+### B — Wiki, knowledge, guide, tone
+
+| ID | 결과 | 독립 의미 판정 |
+|---|---|---|
+| B01 | PASS | TC127이 imported claim을 exact tenant/document/locator/span citation으로 resolve하고 malformed/skipped count·wrong citation usable-success0을 직접 검증한다. |
+| B02 | PASS | repo/ref/path/permission preview와 selected-file retrieval 전 success0이 보존됐다. |
+| B03 | PASS | new wiki title·blank/template·first save·reload·retrieval·tenant ownership이 보존됐다. |
+| B04 | PASS | fact/inference/unverified 편집, citation, confirmed-use와 unverified block이 보존됐다. |
+| B05 | PASS | supported/inference/unsupported claim의 source·badge·blocker가 보존됐다. |
+| B06 | PASS | sync time/hash/version, changed retrieval, unchanged idempotency, stale false-fresh0이 보존됐다. |
+| B07 | PASS | permission/timeout/parse/deleted/partial의 last-good·repair·partial overwrite0이 보존됐다. |
+| B08 | PASS | added/changed/removed diff·author/source/time·accept/reject·old-active 보존이 유지됐다. |
+| B09 | PASS | approved facts→cited guide draft, scope/progress/warning, auto-approval0이 보존됐다. |
+| B10 | PASS | actual manifest에 fields6 edit→validate→save→reload와 actor/changed-fields audit가 clean하게 존재한다. invalid/stale/save failure의 prior preservation도 닫혔고 `[REMOVED_*]` contamination0이다. |
+| B11 | PASS | named immutable versions, diff, old binding, rollback-as-new-version이 보존됐다. |
+| B12 | PASS | human approve/reject/change actor/time과 forged activation denial이 보존됐다. |
+| B13 | PASS | TC128이 applied guide version·rules·immutable `applied_at` 저장/reload, regeneration/rollback 새 revision time, inferred/rewritten time0을 검증한다. |
+| B14 | PASS | example source/time/rationale, tone anchors/sliders/phrases/confidence, insufficient→needs-review가 보존됐다. |
+| B15 | PASS | slider·do/don't·preview·before/after·save/reload/error·external0이 보존됐다. |
+| B16 | PASS | tone draft/approved/retired history, diff, approver/effective date, content-change invalidation이 보존됐다. |
+| B17 | PASS | applied tone version/rules와 same-source delta, version-stamp 없는 적용 주장0이 보존됐다. |
+
+### C — Campaign, approval, safety, rights
+
+| ID | 결과 | 독립 의미 판정 |
+|---|---|---|
+| C01 | PASS | idea source URL/time/evidence/rationale→campaign/brief/Studio lineage와 cancel/persist failure0이 보존됐다. |
+| C02 | PASS | explicit measurable goal, exploratory branch, missing-goal fan-out0이 보존됐다. |
+| C03 | PASS | audience/offer/CTA/key message와 one-field propagation·platform difference·reapproval이 보존됐다. |
+| C04 | PASS | no-paid-spend default, production cap 분리, ad/billing/spend call0이 보존됐다. |
+| C05 | PASS | date4·timezone·approval/Calendar parity·DST/overdue/conflict가 보존됐다. |
+| C06 | PASS | brief status·actor/time/version과 upstream-change invalidation이 보존됐다. |
+| C07 | PASS | prohibited topic/claim, crisis·legal·medical·financial warning, named repair가 보존됐다. |
+| C08 | PASS | claim/evidence/state/resolution과 unsupported price/guarantee block이 보존됐다. |
+| C09 | PASS | media3 rights fields6와 unknown/expired approval·publish·adapter0이 보존됐다. |
+| C10 | PASS | consent/disclosure/N-A reason, person fixture block, required disclosure propagation이 보존됐다. |
+| C11 | PASS | campaign ID/version의 idea→content→approval→job→result→learning clickable lineage가 보존됐다. |
+
+### D — Creation order, IA, destination ownership, account truth
+
+| ID | 결과 | 독립 의미 판정 |
+|---|---|---|
+| D01 | PASS | TC129가 1440/1024/390의 Text1→Photo/Card2→Video3 DOM·visual·keyboard·jump order와 blocked/incomplete fixed position, generic screenshot PASS0을 검증한다. |
+| D02 | PASS | supported Social card별 generate/edit/publish/schedule/analytics capability와 unsupported adapter0이 보존됐다. |
+| D03 | PASS | card-news slide1/N, reorder/crop/alt/caption/rights/preview/save/reload/approve/schedule가 보존됐다. |
+| D04 | PASS | video script/asset/rights/render/review/account/metadata/approval/result와 failure recovery가 보존됐다. |
+| D05 | PASS | Sidebar Social posts→Messaging→Social short video와 viewport3·bulk-mixing0이 보존됐다. |
+| D06 | PASS | Messaging handoff identity/preview/approval/result, explicit opt-in, selected call1/default0이 보존됐다. |
+| D07 | PASS | YouTube/TikTok account/readiness/video Queue/result/native truth와 false Ready0이 보존됐다. |
+| D08 | PASS | Midjourney safe-disabled·Images 대안·credential/user-token/network0이 보존됐다. |
+| D09 | PASS | Header7 server projection·refresh/revoke/downgrade와 callback/local Ready0이 보존됐다. |
+| D10 | PASS | provider ID/name/time, two-account switch+reload, cancel/mismatch target mutation0이 보존됐다. |
+| D11 | PASS | Authorized→Stored→Identified→Scoped→Refreshable→Capable→Projected→Ready ladder가 보존됐다. |
+| D12 | PASS | revoke의 five-surface capability version 전파·stale warning·stale executor0이 보존됐다. |
+| D13 | PASS | Threads exact account·capability·Queue/result/permalink/native와 Growth/Popular misuse0이 보존됐다. |
+| D14 | PASS | X limit/readiness/result/permalink·permission blocker·unsupported analytics zero0이 보존됐다. |
+| D15 | PASS | Facebook Page ID/name selection/readback·permission dispatch0·missing metric zero0이 보존됐다. |
+| D16 | PASS | Instagram format3 readiness/rights/disclosure/container/result/native와 unresolved block이 보존됐다. |
+| D17 | PASS | Bluesky handle·implemented capability·result·N/A analytics와 false Ready/adapter0이 보존됐다. |
+| D18 | PASS | YouTube channel/metadata/processing/native·fault recovery·readback 전 success0이 보존됐다. |
+| D19 | PASS | TikTok creator/privacy/disclosure/poll/result/native와 terminal 전 retry/success0이 보존됐다. |
+| D20 | PASS | TC130이 bot identity·health·chat·approved preview·future schedule·terminal result를 record1에 고정하고 degraded/changed/stale/past repair와 unsafe send/schedule0을 검증한다. |
+| D21 | PASS | Discord bot/webhook/guild/channel permission·preview·approval/result와 user-token/default call0이 보존됐다. |
+| D22 | PASS | Slack workspace/app/channel/scopes·preview·approval/schedule/result·reconnect/default0이 보존됐다. |
+| D23 | PASS | Midjourney unsupported/Images-only, readiness total 제외, connect/publish0이 보존됐다. |
+| D24 | PASS | Naver destination fields·draft/copy/export와 unsupported direct call0이 보존됐다. |
+| D25 | PASS | Medium publication/fields/preview/export와 false connected/published0이 보존됐다. |
+| D26 | PASS | Substack subject/preview/body/CTA/audience/export와 send default OFF/call0이 보존됐다. |
+
+### E — Review, schedule, publish, recovery
+
+| ID | 결과 | 독립 의미 판정 |
+|---|---|---|
+| E01 | PASS | per-card dirty/save/error/revision, reload, sibling hash0이 보존됐다. |
+| E02 | PASS | TC131이 selected count+ordered exact account list, impact/exclusions, selection·permission·capability change의 re-preview와 stale/hidden/wrong/count mismatch mutation0을 검증한다. |
+| E03 | PASS | approval snapshot version/claim/right/safety/hash/expiry/account/time/channel과 mutation stale0이 보존됐다. |
+| E04 | PASS | itemized bulk approvals/blockers/results와 2 approved+1 blocked truth가 보존됐다. |
+| E05 | PASS | fresh/new account publish/message default OFF와 explicit account/scope/consequence가 보존됐다. |
+| E06 | PASS | schedule local time/timezone/account/revision/approval, DST/past/change/cancel/conflict/duplicate0이 보존됐다. |
+| E07 | PASS | invariant label, policy/account/claims/rights/approval preflight, blocker call0/all-ready job1이 보존됐다. |
+| E08 | PASS | idempotency inspector fields6와 double/retry/concurrent convergence, external≤1이 보존됐다. |
+| E09 | PASS | six projection same ID/truth/updated_at/version, atomic propagation, stale reconcile가 보존됐다. |
+| E10 | PASS | artifact→render→publication chain, schedule once, failed render publish-job0이 보존됐다. |
+| E11 | PASS | reason/correlation/retry eligibility/preserved revision/history와 duplicate0이 보존됐다. |
+| E12 | PASS | accepted timeout→uncertain→reconcile first, found proof/second call0, not-found retry0이 보존됐다. |
+| E13 | PASS | destination별 success/failed/uncertain과 failed-only repair가 보존됐다. |
+| E14 | PASS | provider ID/permalink/account/time/readback, unsupported N/A, malformed proof success0이 보존됐다. |
+| E15 | PASS | 400/401/403/429/500/timeout safe copy/correlation/action, draft 보존, secret/stack0이 보존됐다. |
+
+### F — Aggregate, native analytics, learning
+
+| ID | 결과 | 독립 의미 판정 |
+|---|---|---|
+| F01 | PASS | whitelist별 definition/channel/account/period/freshness/coverage와 unsupported sum0이 보존됐다. |
+| F02 | PASS | provider/account/post native name/unit/definition/source/time과 cross-sum0이 보존됐다. |
+| F03 | PASS | actual zero provenance와 no-data/permission/delayed/stale/error/unsupported 분리가 보존됐다. |
+| F04 | PASS | account/revision/publication/period binding과 filter/time atomic refresh가 보존됐다. |
+| F05 | PASS | observation/sample/window/evidence/confidence/limitation/alternative hypothesis와 causal0이 보존됐다. |
+| F06 | PASS | changed variable1, before/after, approver/revision/result IDs와 hold-constant diff0이 보존됐다. |
+| F07 | PASS | applied result/evidence/diff, undo-as-new-baseline, hold no mutation이 보존됐다. |
+| F08 | PASS | observe/draft/approve/execute 분리와 auto reply/delete/repost/spend0이 보존됐다. |
+
+### G — Settings, Admin, QA
+
+| ID | 결과 | 독립 의미 판정 |
+|---|---|---|
+| G01 | PASS | Customer Settings8 exact groups·owner action·state·member denial·operator secret0이 보존됐다. |
+| G02 | PASS | DB-source timed reveal, success/denial audit actor/reason/time/outcome secret0, env import race overwrite0이 보존됐다. |
+| G03 | PASS | owner-approved bounded support·audit·expiry와 customer proxy forbidden actions0이 보존됐다. |
+| G04 | PASS | route25/destination26 route·owner·purpose·action과 silent remove/bounce/generic0이 보존됐다. |
+| G05 | PASS | Korean state/reason/action과 FR/AC/TC/internal route/stack/provider jargon0이 보존됐다. |
+| G06 | PASS | viewport3 readability/operability·drawer/sticky/keyboard·overlap/occlusion0이 보존됐다. |
+| G07 | PASS | surfaces7 label/focus/AA/target/error-live/keyboard/reduced motion과 route-only PASS0이 보존됐다. |
+| G08 | PASS | evidence grades4, same campaign/account/revision, provider call/readback와 static external PASS0이 보존됐다. |
+| G09 | PASS | OAuth raw0, tenant token plaintext1→hash/reveal0, operator DB timed reveal, env import-first raw0, BYOK write-only가 보존됐다. |
+
+### H — Psychology truth guardrails
+
+| ID | 결과 | 독립 의미 판정 |
+|---|---|---|
+| H01 | PASS | viewport3 decision point identity/readiness/target/consequence/rights/blocker와 hidden truth action0이 보존됐다. |
+| H02 | PASS | persisted server-read만 +1, route/callback/local draft0, fault/stale celebration0이 보존됐다. |
+| H03 | PASS | fresh publish/message OFF, reversible audited opt-in, pre-opt-in calls0이 보존됐다. |
+| H04 | PASS | novice contextual order와 expert search/recent/template/jump, valid option deletion0이 보존됐다. |
+
+## 전수 집계
+
+- full_semantic_rows_checked:96
+- semantic_pass_rows:96
+- semantic_fail_rows:0
+- semantic_fail_ids:없음
+- group totals: A 6/6, B 17/17, C 11/11, D 26/26, E 15/15, F 8/8, G 9/9, H 4/4.
+- prior FAIL8 closure: A02,A03,B01,B10,B13,D01,D20,E02 = 8/8 PASS.
+- preserved other88: semantic text/mapping/release normalized diff0; v7.3.4의 `Independent ` 접두어만 제거됐고 predicate 변화0.
+
+## 독립 기계·회귀 검증
+
+| 항목 | 직접 실행 결과 | 판정 |
+|---|---|---|
+| Actual emitted manifest read | fixture `validateActual(actualPath)`가 `fs.readFileSync(actualPath, 'utf8')`; default path는 v7.3.5 manifest | PASS |
+| Clean baseline | exit0; parsed rows96, assertions288, header/schema/row failure0, aggregate PASS | PASS |
+| B10 temp mutation | `mktemp -d` 사본의 B10-H action만 제거; exit1, failed_rows1=B10, aggregate FAIL | PASS |
+| Canonical integrity | SHA before=after `70665ce7e0ef905aa980dfdfd82ff7f7c92e3072f8ca4ac36c0bacca1fe7cafb`; mutation copy SHA 별도 | PASS |
+| Contamination | canonical `[REMOVED_*]` 0 | PASS |
+| Manifest headers | SOURCE SHA `f694f4…d805c8`; PRD SHA `ae6155…a296e`가 실제 파일 SHA와 exact equality | PASS |
+| old124 FR | v7.3.4↔v7.3.5 124줄 exact equality; SHA 양쪽 `d95bb7…f488` | PASS, changed0 |
+| old124 base TC | 124줄 exact equality; SHA 양쪽 `72ce8c…bc7ad` | PASS, changed0 |
+| base counts | FR131 unique, AC131 unique, TC131 unique; 신규125~131 7개 | PASS |
+| Audit/QA | Audit source96, QA release96 unique, H/E/F288, duplicate/orphan0 | PASS |
+| One Thing | `docs/one-thing.md`와 PRD §1.2 문장 exact equality | PASS |
+| Physical IA | `Social · 게시물`→`Messaging`→`Social · 짧은 영상`; Messaging separate/default OFF | PASS |
+| Studio order | Text→Photo/Card→Video; viewport3 DOM/visual/keyboard/jump assertion | PASS(plan contract) |
+| Secret matrix | OAuth raw0 / tenant issue plaintext1 이후 hash·reveal0 / operator DB timed reveal / env import-first raw0 / BYOK write-only | PASS |
+
+## MAJOR / MINOR
+
+### MAJOR
+
+없음.
+
+### MINOR
+
+없음. `Independent ` 접두어 삭제는 assertion 의미·mapping·release를 바꾸지 않는 표현 정리이며 normalized other88 diff0이다.
+
+## kill-criteria 3개 + 반증 여부
+
+1. **Audit96 semantic completeness:** source predicate 96/96, missing/contradicted predicate0. → **반증되지 않음: 96/96 PASS.**
+2. **검사대상 무결성:** actual normative artifact baseline PASS, temp mutation row+aggregate FAIL, 정본 SHA 불변·contamination0. → **반증되지 않음: 세 조건 모두 재현.**
+3. **실행 신뢰:** unapproved/wrong-account/duplicate/raw-secret incident1이면 automation off. → plan의 forbidden-action 계약은 반증되지 않았으나 실제 provider/build 경로는 **미검증**이며 후속 QA kill gate를 유지한다.
+
+## Steelman
+
+Steelman 검증: 찬성 측의 최강 논지는 v7.3.5가 제품 범위나 UX를 다시 발명하지 않고 critic의 정확한 8개 반례만 atomic TC로 보강했고, 실제 manifest를 읽는 validator로 정본 무결성까지 닫았다는 것이다. old124와 other88 회귀0은 이 주장을 지지한다.
+
+반대 측의 최강 논지는 fixture의 semantic supplement도 PRD 작성자가 정의했으므로 기대값과 결과가 같은 자기인증일 수 있다는 것이다. 이 공격 때문에 validator PASS를 의미 승인으로 세지 않았고, 본 critic이 Audit 원문→H/E/F→mapped TC를 독립 대조한 결과 8개 모두 source noun/action/failure를 observable하게 닫는다고 판정했다.
+
+## Premortem
+
+Premortem 검증: 6개월 뒤 실패했다면 design/build가 이 131개 계약을 화면 라벨과 fixture 데이터로만 복제하고 실제 workspace switch·OAuth account·provider readback·idempotent side effect를 검증하지 않았을 가능성이 가장 크다. 특히 “Queue에 보임”과 “provider에 정확히 한 번 게시됨”을 같은 증거로 취급하면 plan PASS가 production false-success로 변한다.
+
+두 번째 실패 시나리오는 campaign14가 모든 작업의 강제 경로가 되어 빠른 1회 게시 고객을 이탈시키거나, 반대로 shortcut이 guide·rights·account·approval 안전을 우회하는 것이다. PRD가 두 경로를 분리했으므로 design pilot에서 선택률·완료시간·오류율을 측정하고 안전 invariant는 공통으로 검증해야 한다.
+
+## 7원칙 판정표
+
+| # | 원칙 | 판정 | 이유 |
+|---:|---|---|---|
+| 1 | 용어 통일 | PASS | authority/view/initiation, policy/readiness, source family/adapter, native state가 분리됐다. |
+| 2 | 구체화 | PASS | FR/AC/TC131, Audit96, H/E/F288, viewport3, destination-format8이 수치화됐다. |
+| 3 | 입출력 분리 | PASS | source·brief·approval 입력과 artifact·publication·result·learning 출력이 분리됐다. |
+| 4 | 정합성 | PASS | actual manifest→source/PRD SHA→exact row/schema/assertion 검사가 재현됐다. |
+| 5 | 정책 상세 | PASS | approval migration, readiness, Messaging OFF, unsupported N/A, credential class edge가 구체적이다. |
+| 6 | 추출 철저 | PASS | 이전 FAIL8 포함 Audit96 전 행이 observable contract로 닫혔다. |
+| 7 | 논리 영역 | PASS | external≤1, call0, mutation0, false-zero0, stale success0처럼 판정 가능하다. |
+
+## 자기잠식 점검
+
+- OKgram: Instagram 전문 운영과 OSMU의 Instagram Feed/Reels 실행이 가장 겹친다 (근거: PRD §22.5). OSMU는 cross-format campaign lineage·approval·proof를, OKgram은 Instagram specialty를 소유하는 경계를 유지한다.
+- Romeo·Dark-Cupid·Yeon·Polyamory: 공통 generation layer가 venture별 audience·account·guide를 평준화할 위험이 있다 (unsourced). tenant+approved guide/brief/generation snapshot 격리를 유지한다.
+- 교육: knowledge/wiki가 LMS·curriculum·general CMS로 팽창하면 교육 제품 시간을 잠식한다 (근거: PRD §1.4, §22.5). brand fact/source/tone/taboo/proof ingest·version 범위만 허용한다.
+- 시간·예산: OAuth/support·provider expansion이 6사업 콘텐츠 운영을 잠식할 수 있다 (근거: PRD §21.2, §22.5). support>60m/workspace-week 또는 provider ceiling 초과 시 expansion을 멈춘다.
+
+## 법적 리스크 플래그
+
+- 저작권·초상권·AI disclosure: asset source/license/territory/expiry/person consent가 unknown이면 approval/publish0을 유지한다. 관할별 법률 검토가 필요하다 (법률 자문 아님).
+- OAuth·BYOK·tenant/operator secret: raw 노출은 계정 탈취·개인정보·provider 약관 위험이므로 class별 least privilege, audit, retention, incident response를 security/legal review한다.
+- 자동 발행·native metric: provider API 정책과 이용약관은 변경될 수 있으므로 build/production-ready 주장 전 각 provider 공식 정책을 다시 확인한다.
+
+⛔ 회수 필요: API/DB physical encoding, provider production capability, secret·audit 보존기간, 관할별 disclosure 문구는 plan에서 임의 확정하지 않고 eng-design/security/legal gate에서 회수한다.
+
+## 이 판단이 틀렸다면 가장 그럴듯한 이유는?
+
+가장 load-bearing한 가능성은 보강8개가 문서상 observable해 보여도 실제 디자인에서 고객이 이해할 수 없는 진단 문구로 노출되거나 build에서 서로 다른 store/API를 사용해 atomicity가 깨지는 것이다. 그러나 그것은 plan semantic 누락이 아니라 후속 design/build 준수 실패이며, G08이 prototype-observed·code-tested·sandbox-tested·production-observed를 분리해 해당 과대주장을 금지한다.
+
+두 번째 가능성은 other88 normalized diff0이 문장 보존만 확인하고 upstream PRD의 다른 전역 규칙과 새 TC 간 모순을 놓쳤다는 것이다. 새 TC125~131은 기존124를 변경하지 않고 실패 행에 additive mapping됐고, approval/default/IA/secret/One Thing 전역 불변과도 충돌하지 않았다. 따라서 현재 증거에서는 GO를 유지한다.
+
+## 레드팀 최종 공격과 수정
+
+까다로운 고객은 “96/96 배지는 보여주되 실제 OAuth·게시·analytics는 또 안 되는 것 아니냐”고 공격할 것이다. 그래서 판정 문구를 `plan GO`로 제한하고 provider E2E를 `미검증`으로 명시했으며, design/build/QA에서 same seeded campaign/account/revision+adapter call+readback 없이는 완료 주장을 금지했다.
+
+경쟁자는 “Jasper·Buffer·Canva 기능을 모두 흉내 내다 복잡성만 커졌다”고 공격할 것이다. PRD의 범위는 general CMS·ad buying·fake Queue/Analytics를 제외하고 source→approved campaign→세 형식→proof→variable1의 lineage에만 차별화를 둔다. 이 경계를 넘는 추가 기능은 본 GO에 포함되지 않는다.
+
+## 판정: GO
+
+- MAJOR: 0
+- MINOR: 0
+- full_semantic_rows_checked:96
+- pass/fail: 96/0
+- design gate: plan-critic 조건은 충족. controller의 verifier PASS와 회장 `/approve plan` 후에만 design 진입.
+- 출고 범위: plan 계약 승인 후보. 구현·provider production 완료 주장은 출고하지 않는다.
+
+### prd-architect 인계 노트
+
+1. v7.3.5에 추가 수정 요구는 없다. PRD·manifest·fixture를 같은 SHA/version pin으로 유지한다.
+2. 후속 단계가 gap을 발견하면 controller가 plan을 reopen하고 v7.3.6+로 올린다. controller hand-patch로 manifest를 고치지 않는다.
+3. product-designer에는 PRD v7.3.5, One Thing v7.3.5, Audit96 actual manifest, 본 critic을 version-pinned 입력으로 넘긴다.
+4. design은 current fidelity를 보존하면서 source family5/adapter6, campaign14, Text→Photo/Card→Video, Social→Messaging→Social video, Settings8/9, native8, provider-unobserved U를 prototype state로 검증한다.
+
+다음 실행: root Stage Controller가 본 critic을 quality verifier로 PASS 확인하고 `/approve plan` 증거에 PRD v7.3.5 SHA·manifest SHA·critic MAJOR0을 pin한 뒤 product-designer에게 design retake를 위임한다. 소유자는 root controller→product-designer이며 종료증거는 approved plan state, pinned upstream paths/SHA, current-screen fidelity+Audit96 prototype trace, Design Score B+다. 외부 회수 시점은 design review에서 회장에게 실제 렌더 URL을 띄운 직후다.
+
+벤치마크:
+- W3C: route 도달이 아니라 keyboard focus의 실제 가시성과 지속성을 G07의 observable acceptance에 사용했다.
+- OWASP: fine-grained least privilege와 who/why/when audit를 credential class matrix와 G02/G09에 사용했다.
+- Buffer: recurring queue slot과 exact date/time schedule의 차이를 C05/E06/D20의 timezone·schedule truth에 사용했다.
+
+소스 1: W3C, Understanding SC 2.4.7 Focus Visible — https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html
+소스 2: OWASP, Secrets Management Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html
+소스 3: Buffer, Setting up your timezones and posting schedules — https://support.buffer.com/article/514-setting-up-your-timezones-and-posting-schedules
+
+TOOL_TRACE:
+{"name":"WebSearch","arguments":{"query":"site:w3.org/WAI/WCAG22/Understanding focus visible official WCAG 2.2"}}
+{"name":"WebSearch","arguments":{"query":"site:cheatsheetseries.owasp.org Secrets Management Cheat Sheet least privilege audit official"}}
+{"name":"WebSearch","arguments":{"query":"site:support.buffer.com timezones posting schedules official Buffer"}}
+
+SOURCES:
+- docs/openclaw-auto-marketing-agent-prd-v7.3.5-gpt-codex.md
+- tasks/marketing-agent-prd-v7.3.5-audit96-source-manifest.output
+- tasks/marketing-agent-v7.3.5-audit96-semantic-fixture.mjs
+- tasks/marketing-agent-plan-critic-v7.3.4.output
+- tasks/marketing-agent-v18-completeness-audit.output v1.2.0
+- tasks/audit96-abc-exact-assertions.output
+- tasks/audit96-de-exact-assertions.output
+- tasks/audit96-fgh-exact-assertions.output
+- docs/one-thing.md v7.3.5
+- /tmp/marketing-agent-v735-critic-baseline.json
+- /tmp/marketing-agent-v735-critic-mutation.json
+- /tmp/marketing-agent-v735-other88.normalized.diff
+- /Users/sj/.claude/standards/planning.md
+- /Users/sj/.claude/standards/benchmarks.md
+- W3C WCAG 2.2 Focus Visible
+- OWASP Secrets Management Cheat Sheet
+- Buffer Timezones and Posting Schedules
+
+MODEL: gpt-codex/gpt-5.6-sol
+SKILLS_USED: 없음 — plan-critic 전수 의미 감사에 직접 매칭되는 설치 스킬이 없어 planning/benchmarks 품질헌법과 원문·공식 근거로 수행
+SKILLS_SKIPPED: 매칭 스킬 없음
+
+full_semantic_rows_checked:96
+semantic_pass_rows:96
+semantic_fail_rows:0
+major_findings:0
+minor_findings:0
+verdict:GO
+VERIFIER_RESULT: PASS — verify-agent-quality.sh plan exit0; Skill 0회(매칭 없음), WebSearch/Fetch 6회, 소크라 마커7. 선택적 harness log append만 sandbox 권한으로 거부됐고 품질 판정에는 영향 없음.

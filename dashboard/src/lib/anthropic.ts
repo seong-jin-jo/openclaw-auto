@@ -1,7 +1,7 @@
 import { withTenant, db } from "@/lib/db";
 import { spawn, type ChildProcess } from "child_process";
 import os from "os";
-import { reportFailure, classifySharedAiFailure } from "@/lib/observability";
+import { reportFailure, reportRecovery, classifySharedAiFailure } from "@/lib/observability";
 
 // 공유 claude -p 실행 실패(spawn/timeout/output-overflow/non-zero exit) 전용 알림 — quota 초과
 // (SharedGenerationQuotaError)·미승인(SharedAiApprovalRequiredError)은 정상적인 사용량 게이트일 뿐
@@ -10,10 +10,11 @@ import { reportFailure, classifySharedAiFailure } from "@/lib/observability";
 // 안정된 문구만 담기지만, 그래도 원문을 context에 넣지 않고 classifySharedAiFailure로 고정
 // reason 코드(timeout/output_limit/spawn_failed/exit_nonzero/stdin_failed/unknown)로만 변환한다
 // (이중 방어 — 메시지 포맷이 향후 바뀌어도 유출 표면이 늘지 않는다).
-function reportSharedAiExecutionFailure(e: unknown): void {
+function reportSharedAiExecutionFailure(e: unknown, workspaceId?: string): void {
   void reportFailure({
     event: "shared_ai_generation_execution_failed",
     severity: "error",
+    workspaceId,
     context: { reason: classifySharedAiFailure(e) },
   });
 }
@@ -399,12 +400,14 @@ export async function generateText(prompt: string, tenantId: string | null): Pro
   }
   await assertSharedAiApproved(tenantId);
   try {
-    return await runSharedCliWithQuota(tenantId, prompt);
+    const output = await runSharedCliWithQuota(tenantId, prompt);
+    void reportRecovery?.({ workspaceId: tenantId, category: "generation_failed", source: "shared_ai" });
+    return output;
   } catch (e) {
     // quota reserve(SharedGenerationQuotaError)는 runSharedCliWithQuota 내부에서 일어나 이 try에
     // 걸리지만 정상적인 사용량 게이트일 뿐 실행 장애가 아니므로 알림 대상에서 제외한다.
     if (!(e instanceof SharedGenerationQuotaError)) {
-      reportSharedAiExecutionFailure(e);
+      reportSharedAiExecutionFailure(e, tenantId);
     }
     throw e;
   }

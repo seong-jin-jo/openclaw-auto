@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import React from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChannelPage } from "@/components/channel/ChannelPage";
 import { InstagramPage } from "@/components/channel/InstagramPage";
+import { MessagingPage } from "@/components/channel/MessagingPage";
 
 const mocks = vi.hoisted(() => ({
   swr: vi.fn(),
@@ -15,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   setExpandedPopular: vi.fn(),
   subTab: "settings",
   channelConfigData: {} as Record<string, unknown>,
+  showToast: vi.fn(),
 }));
 
 vi.mock("swr", () => ({
@@ -47,7 +49,7 @@ vi.mock("@/store/ui-store", () => ({
 }));
 
 vi.mock("@/components/layout/Toast", () => ({
-  useToast: () => ({ showToast: vi.fn() }),
+  useToast: () => ({ showToast: mocks.showToast }),
 }));
 
 vi.mock("@/components/shared/CredentialForm", () => ({ CredentialForm: () => null }));
@@ -72,6 +74,7 @@ describe("ChannelPage customer/operator API boundary", () => {
     mocks.apiPost.mockResolvedValue({ ok: true });
     mocks.subTab = "settings";
     mocks.channelConfigData = {};
+    mocks.showToast.mockReset();
   });
 
   afterEach(() => {
@@ -113,7 +116,7 @@ describe("ChannelPage customer/operator API boundary", () => {
 
     fireEvent.click(screen.getByRole("checkbox", { name: "Auto Publish" }));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(mocks.apiPost).toHaveBeenCalledWith(
         "/api/channel-settings/youtube",
         { auto_publish: false },
@@ -133,6 +136,65 @@ describe("ChannelPage customer/operator API boundary", () => {
     const keys = mocks.swr.mock.calls.map(([key]) => key);
     expect(keys).toContain("/api/queue");
     expect(keys).not.toContain("/api/design-tools");
+  });
+
+  it("keeps migrated channel tabs wired to shared UI state", () => {
+    render(<ChannelPage channel="threads" />);
+
+    fireEvent.click(screen.getByRole("tab", { name: "Analytics" }));
+
+    expect(mocks.setSubTab).toHaveBeenCalledWith("analytics");
+  });
+
+  it("keeps unimplemented generic tabs visible and announces that integration is planned", () => {
+    render(<ChannelPage channel="x" />);
+
+    const growth = screen.getByTestId("channel-tab-x-growth");
+    expect(growth).toHaveAttribute("aria-disabled", "true");
+    expect(growth).toHaveTextContent("연동 예정");
+
+    fireEvent.click(growth);
+
+    expect(mocks.setSubTab).not.toHaveBeenCalledWith("growth");
+    expect(mocks.showToast).toHaveBeenCalledWith("연동 예정입니다", "warning");
+  });
+
+  it("preserves Instagram Editor while adding the common Analytics tab", () => {
+    render(<InstagramPage />);
+
+    expect(screen.getByTestId("channel-tab-instagram-editor")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("channel-tab-instagram-analytics"));
+
+    expect(mocks.setSubTab).toHaveBeenCalledWith("analytics");
+  });
+
+  it("keeps structurally impossible messaging tabs removed", () => {
+    render(<MessagingPage channel="telegram" />);
+
+    expect(screen.getByTestId("channel-tab-telegram-settings")).toBeInTheDocument();
+    expect(screen.queryByTestId("channel-tab-telegram-queue")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("channel-tab-telegram-analytics")).not.toBeInTheDocument();
+  });
+
+  it("keeps the migrated popular-post action wired to its API", async () => {
+    mocks.subTab = "popular";
+    mocks.swr.mockImplementation((key: string | null) => ({
+      data: key === "/api/popular" ? { posts: [] } : undefined,
+      mutate: vi.fn(),
+    }));
+    render(<ChannelPage channel="threads" />);
+
+    fireEvent.change(screen.getByPlaceholderText("인기글 텍스트를 붙여넣기"), {
+      target: { value: "검증할 인기글" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "추가" }));
+
+    await waitFor(() => {
+      expect(mocks.apiPost).toHaveBeenCalledWith(
+        "/api/popular/add",
+        { text: "검증할 인기글", url: "", topic: "general" },
+      );
+    });
   });
 
   it("restores Instagram tenant automation settings without global cron requests", async () => {

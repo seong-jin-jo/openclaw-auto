@@ -1,0 +1,162 @@
+# OSMU Marketing Agent design v15 exit report
+
+한 줄 결론: 승인된 PRD v6.1.1의 P39 proof와 R6 보존 범위로 v15 디자인 시스템, user flow, wireframes, 단일 HTML 프로토타입을 제작했다. 제품 소스/API/DB/배포는 수정하지 않았다. 최종 HTML의 실제 Chrome 렌더는 sandbox 프로세스 권한으로 미검증이며 부모 컨트롤러의 1회 렌더 확인 전 eng-design 전환은 권장하지 않는다.
+
+## 산출물
+
+- CODEX_TOOL_COMPAT_TRACE: {"name":"Edit","equivalent":"apply_patch","path":"DESIGN.md"}
+- CODEX_TOOL_COMPAT_TRACE: {"name":"Edit","equivalent":"apply_patch","path":"docs/user-flow-marketing-agent-v15-gpt-codex.md"}
+- CODEX_TOOL_COMPAT_TRACE: {"name":"Edit","equivalent":"apply_patch","path":"docs/wireframes/marketing-agent-v15-gpt-codex.md"}
+- CODEX_TOOL_COMPAT_TRACE: {"name":"Edit","equivalent":"apply_patch","path":"docs/prototype/openclaw-auto-marketing-agent-fidelity-v15-gpt-codex.html"}
+- CODEX_TOOL_COMPAT_TRACE: {"name":"Edit","equivalent":"apply_patch","path":"tasks/marketing-agent-design-v15.output"}
+- `DESIGN.md`: 기존 v12를 보존하고 `OSMU Marketing Agent 디자인 시스템 v15` versioned section 추가
+- `docs/user-flow-marketing-agent-v15-gpt-codex.md`
+- `docs/wireframes/marketing-agent-v15-gpt-codex.md`
+- `docs/prototype/openclaw-auto-marketing-agent-fidelity-v15-gpt-codex.html`
+- `tasks/marketing-agent-design-v15.output`
+
+## 기반 산출물
+
+- pinned PRD: `docs/openclaw-auto-marketing-agent-prd-v6.1.1-gpt-codex.md`
+- SHA256 직접 확인: `00beed4a47317b9f13a9ad80702af5d34540904fbd7f525832ec4c3a74111045`
+- pipeline: `current_stage=design`, `approved_stages=[plan]`, PRD v6.1.1 approved
+
+## 기존 구현 확인
+
+- 구현현황 전용 `docs/구현현황.md`는 없음. 대신 current code와 `tasks/osmu-full-ui-code-audit.output`, `wiki/product/marketing-hub-surface-map.md`를 교차 확인했다.
+- current customer Sidebar 26 destinations, 25 page routes, public/customer/operator shell, Settings customer8/operator9를 확인했다.
+- Studio current visual7, direct4, text adapter8, video3 inventory를 분리했다.
+- Studio toolbar/history/Save/Publish/Schedule, Instagram Editor, Threads Growth/Popular, Messaging/Data/Video/Blog owner 차이를 보존했다.
+- 390 hidden navigation, `/videos` 14px overflow, `/search-console` 89px overflow는 current defects로 분리하고 target repair로만 설계했다.
+
+## 실제 Read 증거
+
+직접 읽음:
+
+- `CLAUDE.md`
+- `wiki/ops/session-state.md`
+- `pipeline-state.md`
+- `wiki/product/marketing-hub-surface-map.md`
+- `wiki/product/studio.md`
+- `wiki/reference/channel-status.md`
+- `docs/ui-rules.md`
+- `DESIGN.md`와 current diff
+- `dashboard/src/app/globals.css`
+- `dashboard/src/components/layout/Sidebar.tsx`
+- `dashboard/src/components/shared/AuthGate.tsx`
+- `dashboard/src/components/layout/ThemeToggle.tsx`
+- `dashboard/src/lib/channel-icons.tsx`
+- `dashboard/src/app/settings/page.tsx`
+- `dashboard/src/app/channels/[channel]/page.tsx`
+- `dashboard/src/components/channel/ChannelPage.tsx`
+- `dashboard/src/components/channel/InstagramPage.tsx`
+- `dashboard/src/components/channel/MessagingPage.tsx`
+- `dashboard/src/components/channel/DataChannelPage.tsx`
+- `dashboard/src/components/channel/SocialConnectButton.tsx`
+- `dashboard/src/components/channel/AccountManager.tsx`
+- `dashboard/src/app/studio/page.tsx`
+- `dashboard/src/components/studio/PlatformPreview.tsx`
+- `dashboard/src/components/studio/SchedulePanel.tsx`
+- `dashboard/src/components/studio/ChannelConnect.tsx`
+- `tasks/osmu-full-ui-code-audit.output`
+- actual Chrome baseline `/private/tmp/osmu-existing-studio-browser-baseline.png`
+- actual Chrome baseline `/private/tmp/osmu-existing-studio-generated-baseline.png`
+- `/Users/sj/.claude/standards/design.md`
+- `/Users/sj/.claude/standards/benchmarks.md`
+- `/Users/sj/.claude/standards/artifact-stamp.md`
+- `/Users/sj/.claude/standards/branding.md`
+- `/Users/sj/.claude/standards/writing.md`
+- `/Users/sj/.claude/skills/design-review/SKILL.md` 전체 1,994행을 최종 정적 디자인 재검수 전에 읽음
+
+⛔ 회수 필요: 사용자 지정 `tasks/original-requests-ledger.output`과 `tasks/marketing-agent-code-truth.output`은 레포, `~/.claude`, `~/.codex`, `~/.sj-agent-harness`, `/private/tmp`에서 발견되지 않아 직접 Read하지 못했다. PRD v6.1.1 §8 ledger와 `tasks/osmu-full-ui-code-audit.output`을 fallback 근거로 사용했다. 부모가 두 파일의 실제 경로를 확인해야 한다.
+
+## 벤치마크
+
+- TOOL_TRACE: {"name":"WebSearch","query":"site:support.buffer.com Buffer Post Groups official"}
+- TOOL_TRACE: {"name":"WebSearch","query":"site:support.sproutsocial.com Message Approval Workflows official"}
+- TOOL_TRACE: {"name":"WebSearch","query":"site:help.later.com Social Sets official"}
+- TOOL_TRACE: {"name":"WebSearch","query":"site:linear.app/docs Insights official"}
+- TOOL_EVIDENCE Skill Read: `/Users/sj/.codex/skills/brand-positioning-kit/SKILL.md`를 산출 전 읽고 tone anchors, taboo, tension, substitution test에 적용했다.
+- TOOL_EVIDENCE Skill Read: `/Users/sj/.claude/skills/design-review/SKILL.md`를 최종 재검수 전에 전체 Read하고 APP UI 규칙, litmus 7항, AI slop blacklist, responsive 및 interaction state 기준을 적용했다.
+- TOOL_EVIDENCE quality standards Read: `/Users/sj/.claude/standards/design.md`, `benchmarks.md`, `artifact-stamp.md`, `branding.md`, `writing.md`.
+
+- Buffer Post Groups: campaign으로 묶어도 각 게시물은 독립 edit/publish/status를 유지
+- Sprout Message Approval: 외부 게시 전 명시 승인과 review owner 분리
+- Later Social Sets: brand/workspace와 연결 계정 identity 경계
+- Linear Insights: summary에서 원본 데이터와 action으로 drill-down
+
+차용은 구조와 상태 원리만 사용했다. 타사 logo, illustration, copy는 사용하지 않았다.
+
+## 유지한 기존 기능
+
+- route25/sidebar26, current inline SVG icons, semantic light/dark tokens, ThemeToggle/FOUC
+- public/customer/operator shell, Settings 8/9 role fidelity
+- provider-specific account connect/status/manage, multiple account selection and individual publish truth
+- Studio existing9, visual7/direct4/text8/video3 truth, longform to clipper to wiki refine handoff
+- current per-card edit/publish, bulk publish, single/bulk schedule, Inbox, Calendar, result, retry/reconcile/repair semantics
+- Images, Videos, Blog, Search Console, Keyword routes and owner boundaries
+- OSMU/OSMU 팩토리 naming
+
+## 추가한 것
+
+- `/` additive Command Center modules: fact1, opportunity1, Weekly Plan1, loop progress, result/metric/experiment
+- owner-route deep-links instead of replacement tabs
+- per-post Review truth panel and approval invalidation copy
+- publication proof, native metric/sample-hold, evidence insight, one-variable experiment, next-plan closure
+- 390 visible Menu trigger and 26-destination drawer target
+
+## 검증
+
+관찰됨:
+
+- current Chrome empty/generated baseline images를 직접 육안 확인
+- PRD SHA256 일치
+
+테스트됨:
+
+- jsdom interaction: desktop nav 26, mobile nav 26
+- light to dark toggle
+- Home to Plan to Studio to Review to Result click flow
+- customer/operator role switch
+- 390 frame class and mobile drawer open
+- ready/loading/empty/error/sample-hold state switch
+- design-review 정적 재검수에서 colored left-border slop 1건을 발견해 실험 패널의 의미 중복 장식을 제거
+- new artifacts em/en dash scan 0
+- `git diff --check` pass
+- `verify-agent-quality.sh ... design` PASS: Skill 2, WebSearch/Fetch 8, 소크라 마커 2, Design Score A
+
+미검증:
+
+- final HTML actual Chrome screenshot. `/Applications/Google Chrome` exit 134, cached Chromium headless exit 133 with macOS bootstrap permission denied.
+- real provider OAuth, publish, permalink, native metric and production route behavior.
+
+## 셀프심문
+
+질문: 이 결론이 틀렸다면 가장 그럴듯한 이유는? 고객의 반복가치는 주간 판단이 아니라 즉시 제작일 수 있다. 수정: 기존 Studio direct entry와 current toolbar를 유지하고 Command Center는 추천 진입점으로만 설계했다. 반복 의향이 없으면 grounded publisher로 축소할 수 있다.
+
+## 레드팀
+
+공격: Marketing Agent라는 이름 아래 기존 Studio, Settings, provider 탭을 generic dashboard로 갈아치우면 계정과 복구 owner를 잃는다. 수정: v15는 `/`에 summary만 additive하고 모든 실행과 복구를 기존 owner route로 deep-link한다. D3은 surface 0이다.
+
+## 다음 stage 가능 여부
+
+조건부 불가. 문서와 interactive prototype 계약은 준비됐지만, 다음 두 종료증거가 필요하다.
+
+1. 부모 컨트롤러가 최종 HTML 하나만 1440/1024/390, light/dark, customer/operator로 실제 렌더해 overflow와 typography를 육안 확인.
+2. 누락된 두 tasks source의 실제 경로 확인 또는 사용자가 PRD ledger와 full code audit fallback을 승인.
+
+Design Score: A-
+
+AI Slop Score: A-
+
+RUBRIC_SCORE: hook=4/5 detail=5/5 rhythm=4/5 voice=5/5 slop=5/5 total=23/25
+
+WEAKEST_LINE: "이번 초안에 쓸 확인된 사실" · 기능은 정확하지만 OSMU만의 긴장은 약해 section label로만 제한했다.
+
+SKILLS_USED: brand-positioning-kit for positioning, tone anchors, taboo, tension and substitution test | design-review method for fidelity, state completeness, responsive and accessibility audit
+
+SKILLS_SKIPPED: imagegen, current code-native HTML/CSS/SVG fidelity task라 bitmap 생성은 부적합
+
+SOURCES: docs/openclaw-auto-marketing-agent-prd-v6.1.1-gpt-codex.md | wiki/product/marketing-hub-surface-map.md | wiki/product/studio.md | wiki/reference/channel-status.md | docs/ui-rules.md | current dashboard source files listed above | tasks/osmu-full-ui-code-audit.output | actual Chrome baseline images | https://support.buffer.com/article/961-using-post-groups-in-buffer | https://support.sproutsocial.com/hc/en-us/articles/205974715-Message-Approval-Workflows | https://help.later.com/hc/en-us/articles/360044369654-Create-Manage-Social-Sets | https://linear.app/docs/insights
+
+MODEL: gpt-codex/gpt-5.6-sol

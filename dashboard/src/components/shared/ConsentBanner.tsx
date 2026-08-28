@@ -40,23 +40,23 @@ export function ConsentBanner() {
     <div
       role="dialog"
       aria-label="분석 쿠키 동의"
-      className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-sm z-50 card p-4 border border-border shadow-lg bg-surface"
+      className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-sm z-50 card p-pad-inset border border-border shadow-lg bg-surface"
     >
-      <p className="text-sm text-text mb-1 font-medium">쿠키/분석 사용 동의</p>
-      <p className="text-xs text-subtle mb-3">
+      <p className="text-body-sm text-text mb-micro font-medium">쿠키/분석 사용 동의</p>
+      <p className="text-caption text-subtle mb-stack">
         서비스 개선을 위해 방문 통계를 익명으로 수집합니다. 광고 목적으로는 사용하지 않으며, 동의는
         언제든 아래 &ldquo;개인정보 설정&rdquo;에서 변경할 수 있습니다.
       </p>
-      <div className="flex gap-2 justify-end">
+      <div className="flex gap-stack-tight justify-end">
         <button
           onClick={reject}
-          className="px-3 py-1.5 text-xs rounded border border-border text-muted hover:bg-surface-2"
+          className="px-stack py-stack-tight text-caption rounded-chip border border-border text-muted hover:bg-surface-2"
         >
           거부
         </button>
         <button
           onClick={accept}
-          className="px-3 py-1.5 text-xs rounded bg-accent text-accent-fg"
+          className="px-stack py-stack-tight text-caption rounded-chip bg-accent text-accent-fg"
         >
           동의
         </button>
@@ -73,7 +73,7 @@ export function PrivacySettingsLink() {
   return (
     <button
       onClick={openConsentSettings}
-      className="fixed bottom-1 left-1 text-[10px] text-subtle underline z-40 opacity-70 hover:opacity-100"
+      className="fixed bottom-1 left-1 text-caption text-subtle underline z-40 opacity-70 hover:opacity-100"
     >
       개인정보 설정
     </button>

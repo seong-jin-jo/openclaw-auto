@@ -1,0 +1,73 @@
+한 줄 결론: PRD v2.4.0 정본을 기준으로 One Thing·페르소나의 내용은 보존하고 핀만 갱신했으며, BM의 USD 79 직접비 후보/미승인 USD 500 총 현금지출 hard cap과 리스크의 6사업 우선보호·SJ 단일 DRI를 4개 별도 view에 동기화했다.
+
+요청: v2.3.0에 머문 `docs/one-thing.md`, `docs/persona.md`, `docs/bm.md`, `docs/risks.md`를 새 결정 없이 PRD v2.4.0 정본과 일치시킨다.
+
+정본 핀:
+- 파일: `docs/openclaw-auto-osmu-prd-v2.4-gpt-codex.md`
+- 버전: `v2.4.0`
+- SHA-256: `7e1de84f55c4c73e4f9ab233bc5fd5a05dc1e9756f1650e24f77e7b295920687`
+
+품질헌법 실제 Read 증거:
+- `/Users/sj/.claude/standards/planning.md` — 73줄 전체 Read
+- `/Users/sj/.claude/standards/doc-review.md` — 151줄 전체 Read
+- `/Users/sj/.claude/standards/benchmarks.md` — 52줄 전체 Read
+- `/Users/sj/.claude/standards/artifact-stamp.md` — 47줄 전체 Read
+
+공식 벤치마크 재확인 증거:
+{"name":"WebSearch","query":"site:postiz.com/pricing Postiz Standard $29 5 channels"}
+{"name":"WebFetch","url":"https://postiz.com/pricing"}
+- 확인: Postiz Standard는 공식 페이지 기준 월 USD 29, 5 channels다. BM에는 공급자 선정이나 지출 승인으로 승격하지 않고 직접비 후보로만 유지했다.
+
+{"name":"WebSearch","query":"site:support.claude.com prepaid billing credits failed requests non-refundable Claude API"}
+{"name":"WebFetch","url":"https://support.claude.com/en/articles/8977456-how-do-i-pay-for-my-claude-api-usage"}
+- 확인: Claude API는 prepaid credit 방식이고 실패 요청은 과금하지 않으며 구매 credit은 환불 불가다. 따라서 선결제·환불 불가 금액은 현금이 나가는 시점에 USD 500 cap에서 차감한다는 정본 문구를 유지했다.
+
+{"name":"WebSearch","query":"site:handbook.gitlab.com product development flow SSOT DRI"}
+{"name":"WebFetch","url":"https://handbook.gitlab.com/handbook/product-development/how-we-work/product-development-flow/"}
+- 확인: GitLab은 issue SSOT와 DRI의 우선순위·검증 책임을 강조한다. 다만 단계별 DRI가 달라지거나 복수일 수 있다는 원문도 있으므로 `SJ(회장·서비스 운영자)` 단일 DRI는 GitLab의 보편 규칙으로 주장하지 않고 PRD v2.4.0의 내부 승인 결정으로만 반영했다.
+
+변경 결과:
+
+| View | v2.4.0 동기화 내용 | 새 결정 |
+|---|---|---|
+| `docs/one-thing.md` | 정본 링크·버전·SHA·STAMP만 갱신; One Thing·MVP·hard stop 내용 보존 | 없음 |
+| `docs/persona.md` | 정본 링크·버전·SHA·STAMP만 갱신; 김민서 persona·pain·JTBD 내용 보존 | 없음 |
+| `docs/bm.md` | USD 79를 직접비 후보로 한정하고 미승인 USD 500 총 현금지출 hard cap, 포함 비용, 견적 미확정 NO-GO를 정본대로 반영 | 없음 |
+| `docs/risks.md` | 모든 리스크 DRI를 SJ 1인으로 통일하고 대행자는 DRI가 아님을 명시; 6사업별 보호·OSMU 우선중단·공통 자원 우선순위 반영 | 없음 |
+
+STEELMAN: 별도 view 자체를 없애고 정본 하나만 읽게 하면 drift 가능성이 가장 낮다는 반론이 강하다. 그러나 현재 파이프라인이 페르소나·One Thing·BM·리스크 view를 gate 입력으로 요구하므로, view임을 명시하고 정본 버전·SHA를 고정하는 편이 현 gate와 추적성을 함께 지킨다.
+
+PREMORTEM: 다음 PRD 개정 때 네 view 중 하나만 다시 낡으면 USD 79가 총예산으로 읽히거나 대행자가 제2 DRI로 오인될 수 있다. 이를 막기 위해 네 파일 모두 같은 v2.4.0 정본 SHA를 표시하고, BM·리스크에 load-bearing 문구를 정본과 동일한 의미로 중복 확인했다.
+
+셀프심문: 이 결론이 틀렸다면 가장 그럴듯한 이유는 압축한 리스크 view가 6사업 매트릭스의 보호 의미를 잃었기 때문이다. 사업별 위험 설명 전부를 복제하지는 않았지만 각 사업의 실제 중단 규칙과 공통 우선순위를 보존했고, 사용자 중복은 미검증 위험 가설이라는 경계도 남겼다.
+
+검증 결과:
+- `rg -n "v2\\.3|cf1b60357b1f" docs/one-thing.md docs/persona.md docs/bm.md docs/risks.md` → exit 1, 잔존 0건.
+- v2.4.0·전체 SHA·USD 79·USD 500·`SJ(회장·서비스 운영자)`·OSMU 우선중단·공통 우선순위 필수문구 검색 → exit 0, 네 view에서 기대 항목 확인.
+- `git diff --check -- docs/one-thing.md docs/persona.md docs/bm.md docs/risks.md tasks/osmu-prd-v2.4-artifact-views.output` → exit 0.
+- `verify-agent-quality.sh tasks/osmu-prd-v2.4-artifact-views.output prd` → exit 0, `PASS(근거 있음): Skill 0회(없음) · WebSearch/Fetch 9회 · 소크라마커 2`; apply_patch 기반 편집을 Write/Edit로 세지 못한 경고 1건만 존재.
+
+소스 1: [OSMU 고객 발행 활성화 PRD v2.4.0](../docs/openclaw-auto-osmu-prd-v2.4-gpt-codex.md)
+소스 2: [Postiz Pricing](https://postiz.com/pricing)
+소스 3: [Claude API prepaid billing](https://support.claude.com/en/articles/8977456-how-do-i-pay-for-my-claude-api-usage)
+
+다음 실행: 컨트롤러가 이 transcript와 4개 view의 diff·검증 결과를 재확인해 plan 승인 여부를 판정한다. 승인 전 공급자 계약·신규 지출·외부 고객 초대는 NO-GO다.
+
+SKILLS_USED: 없음 — 사용 가능한 Codex skills 중 PRD artifact-view 정본 동기화와 직접 매칭되는 skill이 없었다.
+SKILLS_SKIPPED: 없음 — 매칭되는 skill이 없어 standards와 승인 정본을 직접 적용했다.
+
+SOURCES:
+- `docs/openclaw-auto-osmu-prd-v2.4-gpt-codex.md` (`v2.4.0`, SHA-256 `7e1de84f55c4c73e4f9ab233bc5fd5a05dc1e9756f1650e24f77e7b295920687`)
+- https://postiz.com/pricing
+- https://support.claude.com/en/articles/8977456-how-do-i-pay-for-my-claude-api-usage
+- https://handbook.gitlab.com/handbook/product-development/how-we-work/product-development-flow/
+- `/Users/sj/.claude/standards/planning.md`
+- `/Users/sj/.claude/standards/doc-review.md`
+- `/Users/sj/.claude/standards/benchmarks.md`
+- `/Users/sj/.claude/standards/artifact-stamp.md`
+
+MODEL: `gpt-codex/gpt-5.6-sol`
+
+RUBRIC_SCORE: completeness=5/5 precision=5/5 traceability=5/5 readability=5/5 slop=5/5 total=25/25
+
+WEAKEST_LINE: “별도 view 자체를 없애고 정본 하나만 읽게 하면 drift 가능성이 가장 낮다.” — 구조적 정답에 가깝지만 현재 gate가 요구하는 분리 산출물 계약은 바꾸지 않으므로 이번 범위에서는 핀 동기화로만 통제했다.

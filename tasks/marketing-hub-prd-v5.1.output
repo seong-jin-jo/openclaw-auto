@@ -1,0 +1,14 @@
+# Marketing Hub PRD v5.1 exit report
+
+Created `docs/openclaw-auto-marketing-hub-prd-v5.1.0-gpt-codex.md`; v5.0 is untouched.
+
+- Critic Major 1: distinct FR-MH/AC-MH/MH-V51-TC IDs 001–048; Given/When/Then includes inputs, state, external-call ceiling and terminal evidence.
+- Major 2: 25-route owner/action/API/PFDEO matrix plus 26-sidebar, 1024/390, 44px/focus/dead-end and services terminal contract.
+- Major 3: canonical account schema, state machine, atomic callback/readback, wrong-session/manual recovery and tenant/account edge coverage.
+- Major 4: explicit additive target manifest: text8 + video3=11; baseline visual7/direct4; Discord/Slack card0 additive.
+- Major 5: provenance, job/queue bridge, idempotency/reconcile and schedule/DST/revoke/race contract.
+- Major 6: planning principles, steelman, pre-mortem, anti-cannibalization, BM-unsourced label, 2-week circuit breaker.
+
+`docs/qa-tracker.md` received an additive V51 section with 48 matching test IDs. No product code or wiki file changed.
+
+Validation observed: FR unique=48, AC unique=48, PRD TC unique=48, QA-tracker TC unique=48, route rows=25, placeholder=0, PRD whitespace check passed, and the tracked `qa-tracker.md` diff check passed.

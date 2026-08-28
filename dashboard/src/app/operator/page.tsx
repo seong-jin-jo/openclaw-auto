@@ -37,15 +37,14 @@ export default function OperatorPage() {
   }, [token, busy]);
 
   return (
-    <div className="min-h-screen bg-bg flex items-center justify-center px-6">
-      <div className="card p-8 w-full max-w-sm relative overflow-hidden">
+    <div className="min-h-screen bg-bg flex items-center justify-center px-stack-section">
+      <div className="card p-region w-full max-w-sm relative overflow-hidden">
         <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-[2px]"
-          style={{ background: "linear-gradient(90deg, transparent, var(--accent), transparent)" }}
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-0.5 bg-accent"
         />
-        <div className="text-center mb-6">
-          <h1 className="text-lg font-bold text-text mb-2">운영자 콘솔</h1>
-          <p className="text-xs text-subtle">DASHBOARD_AUTH_TOKEN으로 접속하세요</p>
+        <div className="text-center mb-stack-section">
+          <h1 className="text-lead font-bold text-text mb-stack-tight">운영자 콘솔</h1>
+          <p className="text-caption text-subtle">DASHBOARD_AUTH_TOKEN으로 접속하세요</p>
         </div>
         <input
           type="password"
@@ -53,18 +52,18 @@ export default function OperatorPage() {
           onChange={(e) => setToken(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && doLogin()}
           placeholder="운영자 Auth Token"
-          className="w-full bg-surface text-text text-sm p-3 rounded-lg border border-border focus:border-accent focus:outline-none transition-colors mb-2"
+          className="w-full bg-surface text-text text-body-sm p-stack rounded-control border border-border focus:border-accent focus:outline-none transition-colors mb-stack-tight"
           autoFocus
         />
         <button
           onClick={doLogin}
           disabled={busy}
-          className="w-full py-2.5 rounded-lg text-text font-semibold text-sm bg-accent hover:bg-accent-hover transition-all disabled:opacity-50"
+          className="w-full py-stack rounded-control text-accent-fg font-semibold text-body-sm bg-accent hover:bg-accent-hover transition-colors disabled:opacity-50"
         >
           {busy ? "확인 중…" : "접속"}
         </button>
-        {error && <p className="mt-2 text-xs text-danger">{error}</p>}
-        <a href="/login" className="block w-full mt-4 text-center text-[11px] text-subtle hover:text-muted transition-colors">
+        {error && <p className="mt-stack-tight text-caption text-danger">{error}</p>}
+        <a href="/login" className="block w-full mt-pad-inset text-center text-caption text-subtle hover:text-muted transition-colors">
           ← 고객 로그인으로
         </a>
       </div>
