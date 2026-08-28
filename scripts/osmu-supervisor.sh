@@ -104,6 +104,16 @@ idle_rounds=0
 while :; do
   [ -f "$STOP" ] && { echo "[$(date +%H:%M)] 멈춤 요청을 받아 종료한다."; break; }
   dispatched=0
+  # 자리가 남았는데 던질 판이 없으면 먼저 채운다. 예전에는 "아무도 안 돌 때"만
+  # 채워서, 오래 도는 워커 하나가 남아 있으면 나머지 자리가 계속 비어 있었다
+  # (회장 2026-08-28 "또 멍때리고 있지").
+  sweep_finished
+  if [ "$(running_count)" -lt "$MAX_PARALLEL" ]; then
+    if [ -z "$(next_pending build)" ] && [ -z "$(next_pending fe)" ] &&
+       [ -z "$(next_pending review)" ] && [ -z "$(next_pending qa)" ]; then
+      bash "$ROOT/scripts/refill-backlog.sh" 2>&1 | grep "백로그에" || true
+    fi
+  fi
   # 갈래당 한 명이 아니라 전체 동시 MAX_PARALLEL 명까지 돌린다.
   # 갈래당 1명이면 같은 갈래 판이 줄줄이 대기해 회장 눈에는 멈춘 것으로 보인다
   # (회장 2026-08-28 "안된거 다 매워").

@@ -3319,3 +3319,10 @@
 {"ts":"2026-08-28T11:54:35Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
 {"ts":"2026-08-28T11:54:35Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"# release-manager — 릴리스 버전·이미지 정합 전"}
 {"ts":"2026-08-28T11:54:35Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"# release-manager — 릴리스 버전·이미지 정합 전"}
+{"ts":"2026-08-28T12:01:35Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-28T12:13:03Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-28T12:48:41Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-28T12:51:06Z","hook":"secret-leak-check","status":"pass","detail":"no secrets"}
+{"ts":"2026-08-28T13:12:02Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-28T13:12:03Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI QA 검증 전문가다.\n'코드 작성 = 동�"}
+{"ts":"2026-08-28T13:12:03Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI QA 검증 전문가다.\n'코드 작성 = 동�"}
