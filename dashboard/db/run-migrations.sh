@@ -432,7 +432,10 @@ SQL
 
 case "$PHASE" in
   preflight)
-    assert_fingerprint
+    # During the approved expand sequence, generation can remain tenant-scoped
+    # while quota is already member-scoped. The compatibility guard below is
+    # still mandatory, so only this exact mixed transition is deployable.
+    assert_fingerprint "S1|S2"
     assert_no_duplicates
     assert_compatibility_ready
     ;;
@@ -449,7 +452,11 @@ case "$PHASE" in
     adopt_baseline
     ;;
   baseline|apply-legacy|expand-fk|expand-guard|expand-member|prepare-rollback|contract-generation|contract-quota|cleanup)
-    if [ "$PHASE" = "contract-quota" ]; then assert_fingerprint "S3|S2"; else assert_fingerprint; fi
+    case "$PHASE" in
+      baseline|apply-legacy|expand-fk|expand-guard|expand-member) assert_fingerprint "S1|S2" ;;
+      contract-quota) assert_fingerprint "S3|S2" ;;
+      *) assert_fingerprint ;;
+    esac
     assert_no_duplicates
     ensure_ledger
     adopt_baseline
@@ -459,7 +466,11 @@ case "$PHASE" in
       apply_phase "$PHASE"
     fi
     if [ "$PHASE" = "prepare-rollback" ]; then assert_exact_rollback_indexes; fi
-    if [ "$PHASE" = "contract-generation" ]; then assert_fingerprint "S3|S2"; else assert_fingerprint; fi
+    case "$PHASE" in
+      baseline|apply-legacy|expand-fk|expand-guard) assert_fingerprint "S1|S2" ;;
+      contract-generation) assert_fingerprint "S3|S2" ;;
+      *) assert_fingerprint ;;
+    esac
     ;;
   *)
     echo "usage: $0 {preflight|bootstrap|baseline|apply-legacy|expand-fk|expand-guard|expand-member|prepare-rollback|contract-generation|contract-quota|cleanup}" >&2
