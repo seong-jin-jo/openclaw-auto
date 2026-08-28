@@ -64,12 +64,14 @@ export interface OperationalIncidentInput {
   reasonCode: IncidentReason;
   severity: IncidentSeverity;
   intervention: IncidentIntervention;
+  resourceKey?: string;
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function fingerprint(input: Pick<OperationalIncidentInput, "category" | "source" | "reasonCode">): string {
-  return `${input.category}:${input.source}:${input.reasonCode}`;
+function fingerprint(input: Pick<OperationalIncidentInput, "category" | "source" | "reasonCode" | "resourceKey">): string {
+  const base = `${input.category}:${input.source}:${input.reasonCode}`;
+  return input.resourceKey ? `${base}:${input.resourceKey}` : base;
 }
 
 export async function recordOperationalIncident(input: OperationalIncidentInput): Promise<boolean> {
@@ -112,20 +114,32 @@ export async function recordOperationalIncident(input: OperationalIncidentInput)
 
 export async function recoverOperationalIncidents(
   workspaceId: string,
-  match: Pick<OperationalIncidentInput, "category" | "source">,
+  match: Pick<OperationalIncidentInput, "category" | "source" | "resourceKey">,
 ): Promise<boolean> {
   if (!UUID_RE.test(workspaceId)) return false;
 
   try {
     await withTenant(workspaceId, async (tx) => {
-      await tx`
-        UPDATE operational_incidents
-        SET status = 'recovered', recovered_at = now(), last_seen_at = now()
-        WHERE tenant_id = ${workspaceId}
-          AND category = ${match.category}
-          AND source = ${match.source}
-          AND status = 'open'
-      `;
+      if (match.resourceKey) {
+        await tx`
+          UPDATE operational_incidents
+          SET status = 'recovered', recovered_at = now(), last_seen_at = now()
+          WHERE tenant_id = ${workspaceId}
+            AND category = ${match.category}
+            AND source = ${match.source}
+            AND fingerprint LIKE ${`${match.category}:${match.source}:%:${match.resourceKey}`}
+            AND status = 'open'
+        `;
+      } else {
+        await tx`
+          UPDATE operational_incidents
+          SET status = 'recovered', recovered_at = now(), last_seen_at = now()
+          WHERE tenant_id = ${workspaceId}
+            AND category = ${match.category}
+            AND source = ${match.source}
+            AND status = 'open'
+        `;
+      }
     });
     return true;
   } catch {

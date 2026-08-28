@@ -122,6 +122,7 @@ export interface FailureEvent {
   event: string;
   severity: Severity;
   workspaceId?: string;
+  resourceKey?: string;
   context?: FailureContext;
 }
 
@@ -161,6 +162,7 @@ interface AlertPayload {
   event: string;
   severity: Severity;
   workspaceId?: string;
+  resourceKey?: string;
   context: Record<string, string | number>;
 }
 
@@ -177,6 +179,9 @@ function buildPayload(input: FailureEvent): AlertPayload {
     event: input.event,
     severity,
     workspaceId: typeof input.workspaceId === "string" && UUID_RE.test(input.workspaceId) ? input.workspaceId : undefined,
+    resourceKey: typeof input.resourceKey === "string" && /^account:(?:default|[0-9a-f-]{36})$/i.test(input.resourceKey)
+      ? input.resourceKey
+      : undefined,
     context: sanitizeContext(input.event, input.context),
   };
 }
@@ -276,6 +281,7 @@ export async function reportFailure(input: FailureEvent): Promise<void> {
       await recordOperationalIncident({
         workspaceId: payload.workspaceId,
         severity: payload.severity,
+        resourceKey: payload.resourceKey,
         ...incident,
       });
       if (incident.intervention === "automatic") return;
@@ -290,6 +296,7 @@ export async function reportRecovery(input: {
   workspaceId: string;
   category: IncidentCategory;
   source: IncidentSource;
+  resourceKey?: string;
 }): Promise<void> {
   await recoverOperationalIncidents(input.workspaceId, input);
 }

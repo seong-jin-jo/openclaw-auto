@@ -169,6 +169,7 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+  const incidentResourceKey = `account:${cred.accountId ?? "default"}`;
 
   // 동일 초안·플랫폼·계정의 성공 발행을 순차 재시도에서 다시 외부 API로 보내지 않는다.
   // UUID가 아닌 legacy draft id는 기존 동작을 유지한다.
@@ -326,6 +327,7 @@ export async function POST(request: Request) {
       event: "publish_failed",
       severity: "warning",
       workspaceId: tenant_id,
+      resourceKey: incidentResourceKey,
       context: { platform: normalizePlatform(platform), reason, httpStatus },
     });
   } else {
@@ -333,6 +335,7 @@ export async function POST(request: Request) {
       workspaceId: tenant_id,
       category: "publish_failed",
       source: normalizeIncidentSource(platform),
+      resourceKey: incidentResourceKey,
     });
   }
 

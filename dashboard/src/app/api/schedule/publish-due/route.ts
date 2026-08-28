@@ -107,6 +107,7 @@ async function processTenant(tenantId: string, limit: number) {
             event: "publish_failed",
             severity: "warning",
             workspaceId: tenantId,
+            resourceKey: `account:${resolvedAccountId ?? "default"}`,
             context: { platform: normalizePlatform(platform), reason, httpStatus },
           });
         } else if (result.ok) {
@@ -114,6 +115,7 @@ async function processTenant(tenantId: string, limit: number) {
             workspaceId: tenantId,
             category: "publish_failed",
             source: normalizeIncidentSource(platform),
+            resourceKey: `account:${resolvedAccountId ?? "default"}`,
           });
         }
         // FK-safe: 존재가 확인된 resolvedAccountId만 기록(requestedAccountId 폴백 금지 — 삭제된
