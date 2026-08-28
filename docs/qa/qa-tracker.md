@@ -2,6 +2,47 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-08-29 NG → 수정 → 범위 PASS: 읽기 API 99개 전수 실사
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
+|---|---|---|---|---|
+| R128, R151, R165, R171, R175 | 기존 채널 연결 경로와 화면을 보존하고 채널 화면에서 연결한다 | API-READ-20260829-01 | PASS | 최초 `/api/connect/threads` HTTP 500. 수정 후 실제 앱 HTTP 503, 구성 부재로 분리. `social-connect.test.ts` 61/61 |
+| R150 | 플랫폼별 지원 기능과 비활성 경계를 실제 계약과 일치시킨다 | API-READ-20260829-02 | PASS | 최초 운영자 토큰 400, 고객 토큰 403. 수정 후 고객 토큰으로 핸들러에 도달해 없는 발행 ID를 작업 공간 범위 404로 관찰. 관련 회귀 75/75 |
+| R01~R207 이월 | 회장 확정 요구 전건 승계 | REQ-ALL | 이월 | 전건 판정 정본은 `docs/qa/osmu-qa-2026-08-28.md`. 이번 실사는 읽기 API 상태코드 회귀만 재검증 |
+
+| 검증 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| GET export 전수 | PASS | 99개 실제 호출. 정상 89, 의도된 거절 10, HTTP 500 0, 요청 실패 0 |
+| health | PASS | `/api/health` HTTP 200, `ok:true`, DB `up` |
+| seed와 기본 흐름 | PASS | 실제 작업 공간에 생성 작업, 초안, 발행 큐, 성과 제안 인계. `verify-basic-flow-e2e.mjs` 11/11 |
+| Studio v1 | PASS | `verify-studio-v1-e2e.mjs` 12/12 |
+| Playwright | PASS | 네 방 4개와 390, 768, 1024, 1440의 16화면. 가로 넘침 0, 콘솔 오류 0, 401 URL 0 |
+| backend regression | PASS | Studio 이중 고유 제약 실패 2건 재현 후 충돌 예약 보정. 실제 DB 집중 10/10, 전체 190파일 1,358건 통과, 조건부 3건 제외 |
+| web typecheck와 build | PASS | `npx tsc --noEmit` exit 0, `npm run build` exit 0, 정적 페이지 174/174 |
+| design lint | PASS | `design-lint.sh dashboard/src`, 디자인 토큰 위반 0 |
+| Maestro | 해당 없음 | 웹 전용 제품 범위. `optional:true` 우회 없음 |
+| 전체 제품 QA | NG 유지 | 운영 고객 Studio 생성 503과 승인 시안 디자인 정합 NG는 이번 API 범위 밖이며 해소되지 않음 |
+
+이전 실사 문서는 GET 84개로 보고했지만 당시 커밋 `5283f7da`의 정적 export는 95개였다. 현재 99개는 실제 순증 4개이며, 새 경로는 engagement, operator incidents, Studio shorts factory 목록과 상세다. 상세 상태와 변경표는 `docs/audit/osmu-api-read-sweep-v1-gpt-codex.md`에 있다.
+
+페르소나 결정: 김민서는 이제 OAuth 구성 부재를 서버 고장 500으로 받지 않고 503으로 구분하며, TikTok 상태 조회는 운영자 전용 403이 아니라 자신의 작업 공간에서 없는 발행 기록 404까지 도달한다. 실제 연결 TikTok provider 성공 응답은 미검증이다.
+
+
+## 2026-08-29 NG: 지난 24시간 코드 리뷰 머지 차단
+
+| 테스트번호 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| OSMU-REVIEW-24H-01 | NG | `856ab35e`부터 `50e1c56b`까지 104개 커밋을 승인 v63, 요구 대장, 사업 좌표, DESIGN과 대조. MAJOR 25건, MINOR 5건. `docs/audit/osmu-code-review-2026-08-29.md` |
+| OSMU-REVIEW-24H-02 | PASS | `http://localhost:3456/api/health` HTTP 200, DB `up` |
+| OSMU-REVIEW-24H-03 | PASS | 실제 작업 공간 `cd1d0a40-540d-4524-9b49-bf2445d82182` 기본 흐름 11/11 |
+| OSMU-REVIEW-24H-04 | PASS | 실제 Studio 생성 계약 12/12 |
+| OSMU-REVIEW-24H-05 | PASS | Vitest 187파일, 1,338건 통과, 4건 조건부 스킵. TypeScript 종료 코드 0 |
+| OSMU-REVIEW-24H-06 | NG | `git diff --check`가 v63 시안과 여러 산출물의 후행 공백 및 EOF 빈 줄로 실패 |
+
+정상 흐름 통과와 별개로 작업 공간 전환 시 브라우저 상태 누수, 인박스 큐와 다른 초안 주입, 병렬 발행 복구값 덮어쓰기, 외부 성공 뒤 내부 기록 실패, 가입자 조회 실패를 0명으로 표시하는 부분 성공이 남아 있다. 실제 공개 채널 발행과 실 provider 댓글은 실행하지 않았다.
+
+REVIEW_VERDICT: BLOCK
+
 ## 2026-08-28 PASS: inbox와 calendar 발행실 복귀
 
 | 테스트번호 | 최초 판정 | 최종 판정 | 직접 관찰 증거 |

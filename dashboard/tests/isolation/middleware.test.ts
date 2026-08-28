@@ -123,13 +123,14 @@ describe("proxy Studio 독립 인증 경계", () => {
     expect(mockVerifySupabaseJwt).not.toHaveBeenCalled();
   });
 
-  it("STUDIO-AUTH-02 한국어 설명: 운영의 개발용 Studio 신원은 토큰 값과 관계없이 503으로 닫힌다", async () => {
+  it("STUDIO-AUTH-02 한국어 설명: 운영의 개발용 Studio 신원은 무효 고객 토큰으로 우회되지 않는다", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("DASHBOARD_AUTH_TOKEN", "dashboard-only-token");
     vi.stubEnv("STUDIO_IDENTITY_MODE", "development");
     vi.stubEnv("STUDIO_DEV_BEARER_TOKEN", "expected-studio-token");
     vi.stubEnv("STUDIO_DEV_MEMBER_ID", "member-proxy-contract");
     vi.stubEnv("STUDIO_DEV_WORKSPACE_IDS", "11111111-1111-4111-8111-111111111111");
+    mockVerifySupabaseJwt.mockResolvedValue({ status: "invalid" });
     const req = new NextRequest("http://localhost/api/studio/v1/generations", {
       method: "POST",
       headers: {
@@ -143,8 +144,8 @@ describe("proxy Studio 독립 인증 경계", () => {
     const { POST } = await import("@/app/api/studio/v1/generations/route");
     const response = await POST(req);
     const body = await response.json();
-    expect(response.status).toBe(503);
-    expect(body.error.code).toBe("IDENTITY_ADAPTER_NOT_CONFIGURED");
+    expect(response.status).toBe(401);
+    expect(body.error.code).toBe("TOKEN_INVALID");
   });
 
   it("STUDIO-AUTH-03 한국어 설명: 기존 Studio 대시보드 API는 예외에 섞이지 않고 대시보드 인증을 유지한다", async () => {
@@ -335,6 +336,8 @@ describe("proxy 테넌트 토큰(인증모델 b) 분기 — 실검증", () => {
     "/api/channels/threads/accounts/account-1/default",
     "/api/suggestions/enqueue",
     "/api/tiktok/creator-info",
+    // Regression: API-READ-20260829-02. UI가 polling하는 경로가 모든 인증 조합에서 막혔다.
+    "/api/tiktok/publish-status",
   ])("BE-V63-02 고객 경계 정상 경로: osmu_ 토큰 + tenant API(%s)는 운영자 전용으로 막히지 않는다", async (path) => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");

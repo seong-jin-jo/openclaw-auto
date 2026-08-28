@@ -49,7 +49,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
     const reason = provider === "facebook"
       ? "Facebook OAuth 앱 자격증명(FB_APP_ID/FB_APP_SECRET/FB_CONFIG_ID)이 미설정 또는 불완전합니다."
       : `${cfg.label} OAuth 앱 자격증명이 미설정 또는 불완전합니다.`;
-    return Response.json({ error: reason }, { status: 500 });
+    return Response.json({ error: reason }, { status: 503 });
   }
 
   const isSecure = origin.startsWith("https://");

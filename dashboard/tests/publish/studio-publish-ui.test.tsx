@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
   swr: vi.fn(),
   swrKeys: [] as Array<string | null>,
   isOperator: true,
-  workspace: { id: "tenant-a", name: "Tenant A" },
+  workspace: { id: "tenant-a", name: "작업 공간 A" },
   drafts: [] as Array<Record<string, unknown>>,
   returnPosts: [] as Array<Record<string, unknown>>,
   setStudioRoom: vi.fn(),
@@ -30,7 +30,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/api", () => ({
   fetcher: mocks.fetcher,
   apiPost: (...args: unknown[]) => mocks.apiPost(...args),
-  isExternalPublishPersistenceError: () => false,
+  isExternalPublishPersistenceError: (error: unknown) => Boolean((error as { externalPersistence?: boolean })?.externalPersistence),
   ApiResponseError: class ApiResponseError extends Error {
     payload: unknown = null;
   },
@@ -87,7 +87,7 @@ vi.mock("@/lib/auth", () => ({
 }));
 
 function restoreStudio(platforms: string[]) {
-  localStorage.setItem("studio_work", JSON.stringify({
+  localStorage.setItem(`studio_work:${mocks.workspace.id}`, JSON.stringify({
     idea: "부분 성공 테스트",
     text: {
       threads: "Threads 본문",
@@ -117,6 +117,8 @@ describe("Studio publish result integrity", () => {
     mocks.trackEvent.mockReset();
     mocks.swr.mockReset();
     mocks.swrKeys.length = 0;
+    mocks.workspace.id = "tenant-a";
+    mocks.workspace.name = "작업 공간 A";
     mocks.isOperator = true;
     mocks.drafts = [];
     mocks.returnPosts = [];
@@ -296,7 +298,7 @@ describe("Studio publish result integrity", () => {
   });
 
   it("defaults publish targets to supported channels and labels generation-only video channels", async () => {
-    localStorage.setItem("studio_work", JSON.stringify({
+    localStorage.setItem("studio_work:tenant-a", JSON.stringify({
       idea: "기본 발행 대상 테스트",
       text: {
         threads: "Threads 본문",
@@ -375,7 +377,7 @@ describe("Studio publish result integrity", () => {
     const link = await screen.findByTitle("게시물 보기");
     expect(link).toHaveAttribute("href", "https://www.threads.net/@example/post/ok");
     expect(draftSaveStatuses()).toEqual(["draft", "published"]);
-    expect(mocks.showToast).toHaveBeenCalledWith("발행 완료 ✓", "success");
+    expect(mocks.showToast).toHaveBeenCalledWith("발행 완료", "success");
   });
 
   it("FE2-PUB-01 정상: 지원 채널 첫 댓글은 미리보기에서 편집되고 발행 API에 전달된다", async () => {
@@ -449,6 +451,123 @@ describe("Studio publish result integrity", () => {
     await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith("초안 저장 실패", "error"));
     expect(mocks.apiPost.mock.calls.some(([path]) => path === "/api/queue/add")).toBe(false);
     expect(mocks.apiPost.mock.calls.some(([path]) => String(path).includes("request-review"))).toBe(false);
+  });
+
+  it("M3-STUDIO-01 정상: 작업 공간을 바꾸면 각 공간의 저장 상태만 복원한다", async () => {
+    localStorage.setItem("studio_work:tenant-a", JSON.stringify({
+      idea: "A 작업물",
+      text: { threads: "A 작업 공간 본문" },
+      includes: { threads: true },
+    }));
+    localStorage.setItem("studio_work:tenant-b", JSON.stringify({
+      idea: "B 작업물",
+      text: { threads: "B 작업 공간 본문" },
+      includes: { threads: true },
+    }));
+    const view = render(<StudioPage />);
+
+    expect(await screen.findByText("A 작업물", { exact: true })).toBeInTheDocument();
+    mocks.workspace.id = "tenant-b";
+    mocks.workspace.name = "작업 공간 B";
+    view.rerender(<StudioPage />);
+
+    expect(await screen.findByText("B 작업물", { exact: true })).toBeInTheDocument();
+    expect(screen.queryByText("A 작업물", { exact: true })).not.toBeInTheDocument();
+  });
+
+  it("M3-STUDIO-02 거절: 작업 공간 없는 옛 공용 저장 키는 복원하지 않는다", async () => {
+    localStorage.setItem("studio_work", JSON.stringify({
+      idea: "다른 작업 공간에서 남은 작업물",
+      text: { threads: "누수 본문" },
+    }));
+
+    render(<StudioPage />);
+
+    await waitFor(() => expect(localStorage.getItem("studio_work")).toBeNull());
+    expect(screen.queryByText("다른 작업 공간에서 남은 작업물", { exact: true })).not.toBeInTheDocument();
+  });
+
+  it("M4-STUDIO-01 거절: 큐에 연결된 초안과 URL 초안이 다르면 둘 다 불러오지 않는다", async () => {
+    window.history.replaceState(null, "", "/studio?room=publish&queue_id=queue-a&from=inbox&draft_id=draft-b");
+    mocks.drafts = [{ id: "draft-b", idea: "주입된 B 초안", text: { threads: "B 본문" } }];
+    mocks.returnPosts = [{
+      id: "queue-a",
+      text: "A 큐 본문",
+      publishContext: { sourceRoute: "inbox", queuePostId: "queue-a", draftId: "draft-a" },
+    }];
+
+    render(<StudioPage />);
+
+    await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith(
+      "주소의 초안과 작업물 연결 정보가 달라 불러오지 않았습니다",
+      "error",
+    ));
+    expect(screen.queryByText("주입된 B 초안", { exact: true })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /곳에 올리기/ })).not.toBeInTheDocument();
+  });
+
+  it("M5-STUDIO-01 경합: 플랫폼 둘의 외부 성공 뒤 기록 실패를 모두 복구 지도에 보존한다", async () => {
+    restoreStudio(["threads", "x"]);
+    mocks.apiPost.mockImplementation(async (path: string, body: { platform?: string; publishReconciliations?: Record<string, unknown> }) => {
+      if (path === "/api/studio/drafts" && body.publishReconciliations) return { id: "draft-reconcile" };
+      if (path === "/api/studio/drafts") return { id: "draft-reconcile" };
+      if (path === "/api/publish" && body.platform) {
+        const platform = body.platform;
+        throw Object.assign(new Error(`${platform} 기록 실패`), {
+          externalPersistence: true,
+          payload: {
+            permalink: `https://example.test/${platform}`,
+            persistence: {
+              reconciliation: {
+                required: true,
+                action: "repair_persistence_only",
+                retryPublish: false,
+                draftId: "draft-reconcile",
+                platform,
+                accountId: null,
+                externalId: `external-${platform}`,
+                permalink: `https://example.test/${platform}`,
+              },
+            },
+          },
+        });
+      }
+      throw new Error(`unexpected path: ${path}`);
+    });
+
+    render(<StudioPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "2곳에 올리기" }));
+
+    await waitFor(() => expect(mocks.apiPost.mock.calls.some(([path, body]) => {
+      if (path !== "/api/studio/drafts") return false;
+      const draft = body as { id?: string; publishReconciliations?: Record<string, unknown> };
+      const keys = Object.keys(draft.publishReconciliations ?? {});
+      return draft.id === "draft-reconcile" && keys.includes("threads") && keys.includes("x");
+    })).toBe(true));
+    fireEvent.click(screen.getByRole("button", { name: "2곳에 올리기" }));
+    await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith(
+      "외부 게시가 이미 완료된 항목입니다. 재발행하지 말고 내부 기록을 먼저 복구하세요.",
+      "error",
+    ));
+    expect(mocks.apiPost.mock.calls.filter(([path]) => path === "/api/publish")).toHaveLength(2);
+  });
+
+  it("M5-STUDIO-02 거절: 발행 전 초안 ID를 확보하지 못하면 외부 발행을 시작하지 않는다", async () => {
+    restoreStudio(["threads"]);
+    mocks.apiPost.mockImplementation(async (path: string) => {
+      if (path === "/api/studio/drafts") return null;
+      if (path === "/api/publish") throw new Error("외부 발행이 호출되면 안 됩니다");
+      throw new Error(`unexpected path: ${path}`);
+    });
+
+    render(<StudioPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "1곳에 올리기" }));
+
+    await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith(
+      "발행할 초안을 저장하지 못했습니다",
+      "error",
+    ));
+    expect(mocks.apiPost.mock.calls.filter(([path]) => path === "/api/publish")).toHaveLength(0);
   });
 });
 

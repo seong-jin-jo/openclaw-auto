@@ -29,7 +29,7 @@ import { SCHEDULABLE_PLATFORMS } from "@/lib/constants";
 import { StudioCommandPanel } from "@/components/studio/StudioCommandPanel";
 import type { EditorHandoff } from "@/lib/studio/editor-handoff";
 import { resolveStudioRoomFromSearch, shouldLoadPublishResources } from "@/lib/studio/room-routing";
-import { buildPublishReturnWork, readPublishReturnRequest } from "@/lib/publish-return-context";
+import { buildPublishReturnWork, readPublishReturnRequest, resolvePublishReturnDraftId } from "@/lib/publish-return-context";
 
 // SNS-007: /api/publish가 실제로 계정별 발행을 받는 4개 플랫폼(threads/x/facebook/instagram)만
 // 계정 셀렉터를 노출한다. shorts/reels/tiktok은 /api/publish 미지원(실발행 분기 없음. 위
@@ -70,6 +70,23 @@ interface VidResult {
 }
 type PubStatus = "wait" | "doing" | "done" | "failed";
 type PublishReconciliation = ExternalPublishPersistenceFailure["persistence"]["reconciliation"];
+type PublishReconciliationMap = Record<string, PublishReconciliation>;
+
+function normalizePublishReconciliations(value: unknown): PublishReconciliationMap {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const candidate = value as Record<string, unknown>;
+  if (candidate.retryPublish === false && typeof candidate.platform === "string") {
+    return { [candidate.platform]: candidate as PublishReconciliation };
+  }
+  return Object.fromEntries(Object.entries(candidate).filter((entry): entry is [string, PublishReconciliation] => {
+    const reconciliation = entry[1] as Partial<PublishReconciliation> | null;
+    return Boolean(reconciliation && reconciliation.retryPublish === false && reconciliation.platform === entry[0]);
+  }));
+}
+
+function studioWorkStorageKey(workspaceId: string): string {
+  return `studio_work:${workspaceId}`;
+}
 
 const GROUPS: { title: string; platforms: PreviewPlatform[] }[] = [
   { title: "텍스트", platforms: ["threads", "x", "facebook"] },
@@ -153,7 +170,7 @@ export default function StudioPage() {
   const [img, setImg] = useState<ImgResult | null>(null);
   const [vid, setVid] = useState<VidResult | null>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
-  const [publishReconciliation, setPublishReconciliation] = useState<PublishReconciliation | null>(null);
+  const [publishReconciliations, setPublishReconciliations] = useState<PublishReconciliationMap>({});
   const [editorHandoff, setEditorHandoff] = useState<EditorHandoff | null>(null);
   const [includes, setIncludes] = useState<Record<string, boolean>>(() => normalizeIncludes());
   const [displayNames, setDisplayNames] = useState<Record<string, string>>({});
@@ -238,27 +255,38 @@ export default function StudioPage() {
     return () => { window.removeEventListener("mousemove", onDrag); window.removeEventListener("mouseup", up); };
   }, [onDrag]);
   // ── 작업 데이터 유지 (나갔다 와도 복원) ──
-  const [hydrated, setHydrated] = useState(false);
+  const [hydratedWorkspaceId, setHydratedWorkspaceId] = useState<string | null>(null);
   useEffect(() => {
+    const workspaceId = activeWorkspace?.id ?? null;
+    setHydratedWorkspaceId(null);
+    setIdea(""); setText(null); setImg(null); setVid(null); setDraftId(null);
+    setIncludes(normalizeIncludes()); setPublishReconciliations({}); setEditorHandoff(null);
+    setDisplayNames({}); setTitles({}); setHashtags({}); setFirstComments({});
+    setEditLines([]); setReviewQueueId(null); setSelectedCandidate(null);
+    setCreateBranch("video"); setEditKind("video");
+    setPub({ running: false, stopped: false, status: {}, urls: {}, errors: {} });
+    if (!workspaceId) return;
     try {
-      const raw = localStorage.getItem("studio_work");
+      localStorage.removeItem("studio_work");
+      const raw = localStorage.getItem(studioWorkStorageKey(workspaceId));
       if (raw) {
         const w = JSON.parse(raw);
         setIdea(w.idea || ""); setText(w.text || null); setImg(w.img || null); setVid(w.vid || null);
         if (w.includes) setIncludes(normalizeIncludes(w.includes)); setDraftId(w.draftId || null);
-        setPublishReconciliation(w.publishReconciliation || null);
+        setPublishReconciliations(normalizePublishReconciliations(w.publishReconciliations ?? w.publishReconciliation));
         setDisplayNames(w.displayNames || {}); setTitles(w.titles || {}); setHashtags(w.hashtags || {});
         setFirstComments(w.firstComments || {}); setEditLines(w.editLines || []); setReviewQueueId(w.reviewQueueId || null);
         if (w.createBranch === "video" || w.createBranch === "text_image") setCreateBranch(w.createBranch);
         if (w.editKind === "video" || w.editKind === "card" || w.editKind === "audio") setEditKind(w.editKind);
       }
     } catch { /* noop */ }
-    setHydrated(true);
-  }, []);
+    setHydratedWorkspaceId(workspaceId);
+  }, [activeWorkspace?.id]);
   useEffect(() => {
-    if (!hydrated) return; // 첫 렌더(복원 전) 빈 상태로 덮어쓰기 방지
-    try { localStorage.setItem("studio_work", JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliation, displayNames, titles, hashtags, firstComments, editLines, reviewQueueId, createBranch, editKind })); } catch { /* noop */ }
-  }, [hydrated, idea, text, img, vid, includes, draftId, publishReconciliation, displayNames, titles, hashtags, firstComments, editLines, reviewQueueId, createBranch, editKind]);
+    const workspaceId = activeWorkspace?.id;
+    if (!workspaceId || hydratedWorkspaceId !== workspaceId) return;
+    try { localStorage.setItem(studioWorkStorageKey(workspaceId), JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, editLines, reviewQueueId, createBranch, editKind })); } catch { /* noop */ }
+  }, [activeWorkspace?.id, hydratedWorkspaceId, idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, editLines, reviewQueueId, createBranch, editKind]);
 
   const media = { imgUrl: img?.file, vidUrl: vid?.file };
   const upText = (patch: Partial<TextVariants>) => setText((p) => ({ ...(p || {}), ...patch }));
@@ -314,7 +342,7 @@ export default function StudioPage() {
   async function runOSMU() {
     if (!idea.trim()) { showToast("글감을 입력하세요", "error"); return; }
     setLastError(null);
-    setText(null); setImg(null); setVid(null); setDraftId(null); setPublishReconciliation(null); setEditorHandoff(null);
+    setText(null); setImg(null); setVid(null); setDraftId(null); setPublishReconciliations({}); setEditorHandoff(null);
     try {
       setBusy("텍스트 변형 생성 중..."); const t = await genText(); if (!t) return;
       if (canGenerate) {
@@ -343,18 +371,19 @@ export default function StudioPage() {
   }
   async function save(
     status: "draft" | "published" | "partial" | "stopped" = "draft",
-    reconciliation: PublishReconciliation | null = publishReconciliation,
+    reconciliations: PublishReconciliationMap = publishReconciliations,
+    persistedDraftId: string | null = draftId,
   ) {
     const r = await apiPost<{ id?: string }>("/api/studio/drafts", {
       tenant_id: activeWorkspace?.id,
-      id: draftId,
+      id: persistedDraftId,
       idea,
       text,
       img,
       vid,
       includes,
       status,
-      publishReconciliation: reconciliation,
+      publishReconciliations: reconciliations,
       displayNames,
       titles,
       hashtags,
@@ -386,18 +415,22 @@ export default function StudioPage() {
   async function publish() {
     if (!text) return;
     if (!activeWorkspace) { showToast("워크스페이스를 선택하세요", "error"); return; }
-    if (publishReconciliation?.retryPublish === false) {
+    if (Object.keys(publishReconciliations).length > 0) {
       showToast("외부 게시가 이미 완료된 항목입니다. 재발행하지 말고 내부 기록을 먼저 복구하세요.", "error");
       return;
     }
     const did = await save("draft");
+    if (!did) {
+      showToast("발행할 초안을 저장하지 못했습니다", "error");
+      return;
+    }
     const targets = selectedPublishTargets(includes);
     if (!targets.length) { showToast("발행할 플랫폼을 선택하세요", "error"); return; }
     const status: Record<string, PubStatus> = {}; targets.forEach((p) => (status[p] = "wait"));
     const urls: Record<string, string> = {};
     const errors: Record<string, string> = {};
     const errs: string[] = [];
-    let pendingReconciliation: PublishReconciliation | null = null;
+    const pendingReconciliations: PublishReconciliationMap = {};
     setPub({ running: true, stopped: false, status: { ...status }, urls: {}, errors: {} });
     await Promise.all(targets.map(async (p) => {
       status[p] = "doing";
@@ -422,8 +455,8 @@ export default function StudioPage() {
         }
       } catch (e) {
         if (isExternalPublishPersistenceError(e)) {
-          pendingReconciliation = e.payload.persistence.reconciliation;
-          setPublishReconciliation(pendingReconciliation);
+          const reconciliation = e.payload.persistence.reconciliation;
+          pendingReconciliations[p] = reconciliation;
           if (e.payload.permalink) urls[p] = e.payload.permalink;
           failureReason = "외부 게시 완료·내부 기록 복구 필요 (재발행 금지)";
           errs.push(`${LABEL[p]}: ${failureReason}`);
@@ -449,9 +482,10 @@ export default function StudioPage() {
       urls: { ...urls },
       errors: { ...errors },
     });
-    if (pendingReconciliation) {
+    if (Object.keys(pendingReconciliations).length > 0) {
+      setPublishReconciliations(pendingReconciliations);
       try {
-        await save("partial", pendingReconciliation);
+        await save("partial", pendingReconciliations, did);
       } catch {
         // The same storage incident can prevent the draft write too. The state was
         // already copied to localStorage-bound React state, so keep the no-republish
@@ -459,17 +493,18 @@ export default function StudioPage() {
         errs.push("복구 정보 서버 저장 실패·현재 브라우저에만 보존됨");
       }
     } else {
-      await save(errs.length ? "partial" : "published", null);
-      setPublishReconciliation(null);
+      await save(errs.length ? "partial" : "published", {}, did);
+      setPublishReconciliations({});
     }
     if (errs.length) showToast(`발행 결과: ${errs.join(" / ")}`.slice(0, 180), "error");
-    else showToast("발행 완료 ✓", "success");
+    else showToast("발행 완료", "success");
   }
   function loadDraft(d: Record<string, unknown>) {
     setIdea((d.idea as string) || ""); setText((d.text as TextVariants) || null);
     setImg((d.img as ImgResult) || null); setVid((d.vid as VidResult) || null);
     setIncludes(d.includes ? normalizeIncludes(d.includes as Record<string, boolean>) : includes); setDraftId(d.id as string);
-    setPublishReconciliation((d.publishReconciliation as PublishReconciliation) || null);
+    const savedReconciliations = normalizePublishReconciliations(d.publishReconciliations ?? d.publishReconciliation);
+    setPublishReconciliations(savedReconciliations);
     setEditorHandoff((d.editorHandoff as EditorHandoff) || null);
     setDisplayNames((d.displayNames as Record<string, string>) || {});
     setTitles((d.titles as Record<string, string>) || {});
@@ -477,10 +512,10 @@ export default function StudioPage() {
     setFirstComments((d.firstComments as Record<string, string>) || {});
     setEditLines((d.editLines as string[]) || []);
     showToast(
-      d.publishReconciliation
+      Object.keys(savedReconciliations).length > 0
         ? "외부 게시 완료·내부 기록 복구 필요. 재발행 금지"
         : "불러옴. 수정 후 재발행 가능",
-      d.publishReconciliation ? "error" : "success",
+      Object.keys(savedReconciliations).length > 0 ? "error" : "success",
     );
   }
   const commentHandoffLoaded = useRef<string | null>(null);
@@ -506,9 +541,13 @@ export default function StudioPage() {
       showToast("돌아갈 작업물을 찾지 못했습니다", "error");
       return;
     }
-    const linkedDraftId = publishReturnRequest.draftId
-      ?? (queuePost.publishContext as { draftId?: string | null } | undefined)?.draftId
-      ?? null;
+    const draftResolution = resolvePublishReturnDraftId(publishReturnRequest, queuePost);
+    if (!draftResolution.ok) {
+      publishReturnLoaded.current = loadKey;
+      showToast("주소의 초안과 작업물 연결 정보가 달라 불러오지 않았습니다", "error");
+      return;
+    }
+    const linkedDraftId = draftResolution.draftId;
     if (linkedDraftId && !hist?.drafts) return;
     const linkedDraft = linkedDraftId
       ? hist?.drafts.find((draft) => draft.id === linkedDraftId)
@@ -544,7 +583,7 @@ export default function StudioPage() {
       setFirstComments((linkedDraft?.firstComments as Record<string, string>) || {});
       setEditLines((linkedDraft?.editLines as string[]) || []);
       setDraftId(linkedDraftId);
-      setPublishReconciliation((linkedDraft?.publishReconciliation as PublishReconciliation) || null);
+      setPublishReconciliations(normalizePublishReconciliations(linkedDraft?.publishReconciliations ?? linkedDraft?.publishReconciliation));
       setEditorHandoff((linkedDraft?.editorHandoff as EditorHandoff) || null);
     }
     setReviewQueueId(publishReturnRequest.queuePostId);
@@ -687,6 +726,10 @@ export default function StudioPage() {
       ) : null}
     </header>
   );
+
+  if (activeWorkspace && hydratedWorkspaceId !== activeWorkspace.id) {
+    return <div aria-busy="true" className="min-h-screen bg-bg" />;
+  }
 
   if (activeRoom === "create") return (
     <div className="px-stack-section py-pad-inset">

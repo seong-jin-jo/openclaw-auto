@@ -2,6 +2,39 @@
 
 최신이 위. 이 파일만 읽고 30초 안에 이어갈 수 있어야 한다.
 
+## [2026-08-29 01:36] 읽기 API 99개 전수 실사 범위 PASS
+
+- canonical `pipeline-state.osmu.md`의 `current_stage: qa`를 확인하고 이번 실사를 시작했다.
+- `localhost:3456`, 작업 공간 `cd1d0a40-540d-4524-9b49-bf2445d82182`에서 GET export 99개를 실제 호출했다. 최종 정상 89, 의도된 거절 10, HTTP 500 0, 요청 실패 0이다.
+- 수정 커밋: `c0b4d8b4` OAuth 구성 부재 500을 503으로 분리, `e3affd62` 고객 TikTok 상태 polling 인증 경계 복구, `dd3bb0c9` Studio 이중 고유 제약 회귀 보정, `04f91170` 전수 실사 스크립트 추가.
+- 검증: health 200 DB up, 기본 흐름 11/11, Studio v1 12/12, Playwright 네 방 16화면과 복귀 4/4, 콘솔 오류·401 URL·가로 넘침 0. 전체 Vitest 190파일 1,358건 통과와 조건부 3건 제외, `npx tsc --noEmit`, production build 174/174, design lint 0 통과.
+- 증거: `docs/audit/osmu-api-read-sweep-v1-gpt-codex.md`, `docs/qa/qa-tracker.md`, `docs/구현현황.md`.
+- 전체 제품 QA는 NG를 유지한다. 운영 고객 Studio 생성이 503이고 승인 시안 디자인 정합 NG가 별도로 남아 있다. 실제 연결 TikTok provider 성공 응답과 공개 채널 발행도 미검증이다.
+- 다음 실행: code-builder가 운영 고객 JWT를 Studio principal로 연결한다. 종료증거는 실제 운영 고객 세션으로 후보 3개 생성, 편집실 인계, 발행실 작업물 도달이다. product-designer와 qa-verifier는 승인 시안 정합 NG를 별도 루프로 닫아야 한다.
+
+
+## [2026-08-29 00:20] 지난 24시간 코드 리뷰 BLOCK
+
+### 무엇을 어디까지 했나
+
+- 사용자 지정 기반을 우선했다. `pipeline-state.osmu.md`, v63 프로토타입, 회장 확정 요구 대장, 사업 좌표, DESIGN을 읽고 `856ab35e`부터 `50e1c56b`까지 104개 커밋을 검토했다.
+- tmux의 `openclaw:0.1`, `openclaw:0.2`, 이전 `osmu-review1` 문맥을 확인했다. 숨은 pane 상태가 아니라 사용자가 지정한 지난 24시간 커밋과 현재 파일 상태를 리뷰 기준으로 확정했다.
+- 소스는 수정하지 않았다. 감사 문서는 `docs/audit/osmu-code-review-2026-08-29.md`다.
+- MAJOR 25건, MINOR 5건이다. 작업 공간 격리 누수, 부분 실패, 외부 부작용 뒤 기록 실패, 승인 시안 이탈이 있어 `REVIEW_VERDICT: BLOCK`이다.
+
+### 검증했나
+
+- 관찰됨: localhost health HTTP 200, DB `up`.
+- 테스트됨: 기본 흐름 11/11, Studio 생성 계약 12/12, Vitest 187파일 1,338건 통과와 4건 조건부 스킵, TypeScript 종료 코드 0.
+- NG: `git diff --check`가 이번 범위의 후행 공백과 EOF 빈 줄로 실패.
+- 미검증: 실제 공개 채널 발행, 실 provider 댓글 읽기와 답글, 운영 배포.
+
+### 정확한 다음 행동
+
+- 소유자: build 라인 코드 작성자.
+- 우선순위: 감사 문서 M1부터 M10의 과금, 격리, 부분 실패를 먼저 수정한다. 이후 M11부터 M25와 MINOR를 처리한다.
+- 종료 증거: 각 재현 전용 회귀 테스트, 실제 작업 공간 전환 브라우저 관찰, 외부 성공 뒤 내부 실패 fault injection, 전체 필수 테스트 재통과, 독립 코드 재리뷰 PASS.
+
 ## [2026-08-28 22:45] 네 방 기본 흐름 QA와 픽셀 대조
 
 ### 무엇을 어디까지 했나

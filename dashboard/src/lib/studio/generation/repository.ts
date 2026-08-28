@@ -67,7 +67,7 @@ export class PostgresGenerationRepository implements GenerationRepository {
           (${input.job.workspaceId}, ${input.job.memberId}, ${input.operation},
            ${input.idempotencyKey}, ${input.requestHash}, ${input.job.jobId},
            ${sql.json(input.response as Parameters<typeof sql.json>[0])})
-        ON CONFLICT (member_id, operation, idempotency_key) DO NOTHING
+        ON CONFLICT (tenant_id, member_id, operation, idempotency_key) DO NOTHING
         RETURNING request_hash, response_payload`;
 
       if (!reserved) {
@@ -113,7 +113,7 @@ export class PostgresGenerationRepository implements GenerationRepository {
         VALUES
           (${input.replacement.workspaceId}, ${input.replacement.memberId}, ${input.localDate},
            ${input.originalJobId}, ${input.replacement.jobId})
-        ON CONFLICT (member_id, local_date) DO NOTHING
+        ON CONFLICT DO NOTHING
         RETURNING id`;
       if (!reserved) {
         const [existing] = await sql<IdempotencyRow[]>`

@@ -5,6 +5,7 @@ import { Button } from "@/components/shared/Button";
 import { Field } from "@/components/shared/Field";
 import { Stack } from "@/components/shared/Stack";
 import { requestStudioCandidates, type StudioGenerationCandidate } from "@/lib/studio/generation/client";
+import { getAuthToken } from "@/lib/auth";
 
 export type CreateContentBranch = "text_image" | "video";
 export type EditContentKind = "video" | "card" | "audio";
@@ -67,12 +68,10 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
   async function generate() {
     setError(null);
     if (!workspaceId) { setError("작업 공간을 먼저 선택하세요"); return; }
-    const token = sessionStorage.getItem("studio_generation_token") || "";
-    const skillVersionId = sessionStorage.getItem("studio_skill_version_id") || "";
-    const studioWorkspaceId = sessionStorage.getItem("studio_workspace_id") || workspaceId;
+    const token = getAuthToken();
     setLoading(true);
     try {
-      const next = await requestStudioCandidates({ workspaceId: studioWorkspaceId, topic, purpose, audience, workspaceFacts: facts, forbiddenPhrases: [], materialRightsConfirmed: rightsConfirmed, skillVersionId, contentBranch }, token);
+      const next = await requestStudioCandidates({ workspaceId, topic, purpose, audience, workspaceFacts: facts, forbiddenPhrases: [], materialRightsConfirmed: rightsConfirmed, contentBranch }, token);
       setCandidates(next);
       setSelected(null);
     } catch (cause) {

@@ -1,6 +1,6 @@
 import { parseGenerationRequest } from "@/lib/studio/generation/contracts";
 import { studioFailure, studioSuccess, readJson } from "@/lib/studio/generation/http";
-import { assertWorkspaceAccess, resolveDevelopmentPrincipal } from "@/lib/studio/generation/identity";
+import { assertWorkspaceAccess, resolveStudioPrincipal } from "@/lib/studio/generation/identity";
 import { generationRuntime } from "@/lib/studio/generation/runtime";
 import { isStudioApiError } from "@/lib/studio/generation/errors";
 import { reportFailure, reportRecovery } from "@/lib/observability";
@@ -8,7 +8,7 @@ import { reportFailure, reportRecovery } from "@/lib/observability";
 export async function POST(request: Request) {
   let workspaceId: string | null = null;
   try {
-    const principal = resolveDevelopmentPrincipal(request);
+    const principal = await resolveStudioPrincipal(request);
     const input = parseGenerationRequest(await readJson(request));
     workspaceId = input.workspaceId;
     assertWorkspaceAccess(principal, input.workspaceId);

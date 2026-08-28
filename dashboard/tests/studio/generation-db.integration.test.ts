@@ -40,6 +40,8 @@ async function liveDatabase(ctx: { skip: () => void }): Promise<boolean> {
 
 async function cleanup(): Promise<void> {
   if (!admin || !memberId) return;
+  await admin`DELETE FROM studio_free_regeneration_uses WHERE member_id = ${memberId}`;
+  await admin`DELETE FROM studio_generation_idempotency WHERE member_id = ${memberId}`;
   await admin`DELETE FROM studio_generation_jobs WHERE member_id = ${memberId}`;
   if (temporaryTenantId) await admin`DELETE FROM tenants WHERE id = ${temporaryTenantId}`;
 }
@@ -83,6 +85,30 @@ describe("Studio 생성 Postgres 장부 계약", () => {
         (SELECT count(*)::int FROM studio_generation_jobs WHERE tenant_id = ${tenantId} AND member_id = ${memberId}) AS jobs,
         (SELECT count(*)::int FROM studio_generation_idempotency WHERE tenant_id = ${tenantId} AND member_id = ${memberId}) AS idempotency`;
     expect(counts).toEqual({ jobs: 1, idempotency: 1 });
+  });
+
+  it("M1-GEN-DB-01 경합: 구 앱과 신 앱의 멱등 충돌 대상이 배포 전환 중 함께 동작한다", async (ctx) => {
+    if (!await liveDatabase(ctx)) return;
+    const service = new GenerationService(new PostgresGenerationRepository());
+    const body = generationRequestFixture();
+    body.workspace_id = tenantId;
+    await service.create(memberId, "db-expand-contract", parseGenerationRequest(body));
+
+    const duplicated = await admin!<{ id: string }[]>`
+      INSERT INTO studio_generation_idempotency
+        (tenant_id, member_id, operation, idempotency_key, request_hash, job_id, response_payload)
+      SELECT tenant_id, member_id, operation, idempotency_key, request_hash, job_id, response_payload
+      FROM studio_generation_idempotency
+      WHERE tenant_id = ${tenantId} AND member_id = ${memberId}
+        AND operation = 'generation.create' AND idempotency_key = 'db-expand-contract'
+      ON CONFLICT (tenant_id, member_id, operation, idempotency_key) DO NOTHING
+      RETURNING id`;
+
+    expect(duplicated).toEqual([]);
+    const [count] = await admin!<{ value: number }[]>`
+      SELECT count(*)::int AS value FROM studio_generation_idempotency
+      WHERE member_id = ${memberId} AND idempotency_key = 'db-expand-contract'`;
+    expect(count.value).toBe(1);
   });
 
   it("GEN-DB-02 한국어 설명: 같은 멱등 키에 다른 본문은 실제 DB 기록을 바꾸지 않고 거절한다", async (ctx) => {
@@ -129,7 +155,7 @@ describe("Studio 생성 Postgres 장부 계약", () => {
     expect(counts).toEqual({ jobs: 2, free_uses: 1 });
   });
 
-  it("GEN-DB-04 한국어 설명: 같은 회원의 멱등 키는 워크스페이스가 달라도 두 번째 생성을 거절한다", async (ctx) => {
+  it("GEN-DB-04 한국어 설명: 같은 회원 문자열과 멱등 키도 워크스페이스가 다르면 서로 격리된다", async (ctx) => {
     if (!await liveDatabase(ctx)) return;
     const otherTenantId = await createTemporaryTenant();
     const service = new GenerationService(new PostgresGenerationRepository());
@@ -139,12 +165,10 @@ describe("Studio 생성 Postgres 장부 계약", () => {
     const second = generationRequestFixture();
     second.workspace_id = otherTenantId;
 
-    await expect(service.create(memberId, "db-member-global-key", parseGenerationRequest(second))).rejects.toEqual(
-      expect.objectContaining({ code: "IDEMPOTENCY_CONFLICT", status: 409 }),
-    );
+    await service.create(memberId, "db-member-global-key", parseGenerationRequest(second));
     const [count] = await admin!<{ value: number }[]>`
       SELECT count(*)::int AS value FROM studio_generation_jobs WHERE member_id = ${memberId}`;
-    expect(count.value).toBe(1);
+    expect(count.value).toBe(2);
   });
 
   it("GEN-DB-05 한국어 설명: 같은 회원의 UTC 날짜 무료 몫은 워크스페이스가 달라도 한 번뿐이다", async (ctx) => {
@@ -193,5 +217,33 @@ describe("Studio 생성 Postgres 장부 계약", () => {
       FROM studio_free_regeneration_uses
       WHERE tenant_id = ${tenantId} AND member_id = ${memberId}`;
     expect(count.value).toBe(1);
+  });
+
+  it("M2-GEN-DB-07 거절: 무료 몫을 쓴 작업 공간을 삭제해도 같은 회원의 당일 둘째 무료 재생성을 막는다", async (ctx) => {
+    if (!await liveDatabase(ctx)) return;
+    const deletedTenantId = await createTemporaryTenant();
+    const service = new GenerationService(new PostgresGenerationRepository());
+    const first = generationRequestFixture();
+    first.workspace_id = deletedTenantId;
+    const firstJob = await service.create(memberId, "db-delete-free-a", parseGenerationRequest(first));
+    const now = new Date("2026-08-29T04:00:00.000Z");
+    await service.regenerate(memberId, firstJob.jobId, [deletedTenantId], now);
+
+    await admin!`DELETE FROM tenants WHERE id = ${deletedTenantId}`;
+    temporaryTenantId = "";
+    const replacementTenantId = await createTemporaryTenant();
+    const second = generationRequestFixture();
+    second.workspace_id = replacementTenantId;
+    second.learning_context.r6.topic = "작업 공간 삭제 뒤 둘째 무료 재생성";
+    const secondJob = await service.create(memberId, "db-delete-free-b", parseGenerationRequest(second));
+
+    await expect(service.regenerate(memberId, secondJob.jobId, [replacementTenantId], now)).rejects.toEqual(
+      expect.objectContaining({ code: "PAID_REGENERATION_APPROVAL_REQUIRED", status: 409 }),
+    );
+    const rows = await admin!<{ tenant_id: string | null; uses: number }[]>`
+      SELECT min(tenant_id::text) AS tenant_id, count(*)::int AS uses
+      FROM studio_free_regeneration_uses
+      WHERE member_id = ${memberId}`;
+    expect(rows[0]).toEqual({ tenant_id: null, uses: 1 });
   });
 });

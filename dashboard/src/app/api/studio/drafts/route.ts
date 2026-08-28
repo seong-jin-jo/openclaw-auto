@@ -11,6 +11,7 @@ interface DraftRow {
     img?: unknown;
     vid?: unknown;
     includes?: Record<string, boolean>;
+    publishReconciliations?: unknown;
     publishReconciliation?: unknown;
     editor_handoff?: unknown;
   };
@@ -48,6 +49,7 @@ export async function GET(request: Request) {
       img: r.payload?.img ?? null,
       vid: r.payload?.vid ?? null,
       includes: r.payload?.includes ?? {},
+      publishReconciliations: r.payload?.publishReconciliations ?? null,
       publishReconciliation: r.payload?.publishReconciliation ?? null,
       editorHandoff: r.payload?.editor_handoff ?? null,
       status: r.status,
@@ -67,6 +69,7 @@ export async function POST(request: Request) {
   const payload = {
     text: body.text ?? null, img: body.img ?? null, vid: body.vid ?? null,
     includes: body.includes ?? {},
+    publishReconciliations: body.publishReconciliations ?? {},
     publishReconciliation: body.publishReconciliation ?? null,
   };
   const status = body.status || "draft";

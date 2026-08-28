@@ -37,7 +37,23 @@ function nonEmptyText(value: unknown): string | null {
 function linkedDraftId(post: Record<string, unknown>): string | null {
   const direct = nonEmptyText(post.draftId) ?? nonEmptyText(post.draft_id);
   if (direct) return direct;
-  return nonEmptyText(record(post.sourceContext)?.draftId);
+  return nonEmptyText(record(post.sourceContext)?.draftId)
+    ?? nonEmptyText(record(post.publishContext)?.draftId);
+}
+
+export type PublishReturnDraftResolution =
+  | { ok: true; draftId: string | null }
+  | { ok: false; code: "PUBLISH_RETURN_DRAFT_MISMATCH" };
+
+export function resolvePublishReturnDraftId(
+  request: PublishReturnRequest,
+  post: Record<string, unknown>,
+): PublishReturnDraftResolution {
+  const queueDraftId = linkedDraftId(post);
+  if (request.draftId && request.draftId !== queueDraftId) {
+    return { ok: false, code: "PUBLISH_RETURN_DRAFT_MISMATCH" };
+  }
+  return { ok: true, draftId: queueDraftId };
 }
 
 export function isPublishReturnSource(value: string | null): value is PublishReturnSource {

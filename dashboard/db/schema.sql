@@ -110,24 +110,28 @@ CREATE TABLE IF NOT EXISTS studio_generation_idempotency (
   job_id            UUID NOT NULL,
   response_payload  JSONB NOT NULL,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT uq_studio_generation_idempotency_member_operation_key
-    UNIQUE (member_id, operation, idempotency_key),
+  CONSTRAINT uq_studio_generation_idempotency_tenant_member_operation_key
+    UNIQUE (tenant_id, member_id, operation, idempotency_key),
   FOREIGN KEY (tenant_id, job_id)
     REFERENCES studio_generation_jobs(tenant_id, id)
     ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED
 );
 DO $$
 BEGIN
-  ALTER TABLE studio_generation_idempotency
-    DROP CONSTRAINT IF EXISTS studio_generation_idempotency_tenant_id_member_id_operation_key;
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
     WHERE conrelid = 'studio_generation_idempotency'::regclass
-      AND conname = 'uq_studio_generation_idempotency_member_operation_key'
+      AND contype = 'u'
+      AND conkey = ARRAY[
+        (SELECT attnum FROM pg_attribute WHERE attrelid = 'studio_generation_idempotency'::regclass AND attname = 'tenant_id'),
+        (SELECT attnum FROM pg_attribute WHERE attrelid = 'studio_generation_idempotency'::regclass AND attname = 'member_id'),
+        (SELECT attnum FROM pg_attribute WHERE attrelid = 'studio_generation_idempotency'::regclass AND attname = 'operation'),
+        (SELECT attnum FROM pg_attribute WHERE attrelid = 'studio_generation_idempotency'::regclass AND attname = 'idempotency_key')
+      ]::smallint[]
   ) THEN
     ALTER TABLE studio_generation_idempotency
-      ADD CONSTRAINT uq_studio_generation_idempotency_member_operation_key
-      UNIQUE (member_id, operation, idempotency_key);
+      ADD CONSTRAINT uq_studio_generation_idempotency_tenant_member_operation_key
+      UNIQUE (tenant_id, member_id, operation, idempotency_key);
   END IF;
 END $$;
 CREATE INDEX IF NOT EXISTS idx_studio_generation_idempotency_job
@@ -135,24 +139,38 @@ CREATE INDEX IF NOT EXISTS idx_studio_generation_idempotency_job
 
 CREATE TABLE IF NOT EXISTS studio_free_regeneration_uses (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id           UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id           UUID REFERENCES tenants(id) ON DELETE SET NULL,
   member_id           TEXT NOT NULL,
   local_date          DATE NOT NULL,
-  original_job_id     UUID NOT NULL,
-  replacement_job_id  UUID NOT NULL,
+  original_job_id     UUID,
+  replacement_job_id  UUID,
   created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_studio_free_regeneration_tenant_member_date
+    UNIQUE (tenant_id, member_id, local_date),
   CONSTRAINT uq_studio_free_regeneration_member_date
     UNIQUE (member_id, local_date),
   FOREIGN KEY (tenant_id, original_job_id)
-    REFERENCES studio_generation_jobs(tenant_id, id) ON DELETE CASCADE,
+    REFERENCES studio_generation_jobs(tenant_id, id) ON DELETE SET NULL,
   FOREIGN KEY (tenant_id, replacement_job_id)
     REFERENCES studio_generation_jobs(tenant_id, id)
-    ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED
+    ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED
 );
 DO $$
 BEGIN
-  ALTER TABLE studio_free_regeneration_uses
-    DROP CONSTRAINT IF EXISTS studio_free_regeneration_uses_tenant_id_member_id_local_dat_key;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'studio_free_regeneration_uses'::regclass
+      AND contype = 'u'
+      AND conkey = ARRAY[
+        (SELECT attnum FROM pg_attribute WHERE attrelid = 'studio_free_regeneration_uses'::regclass AND attname = 'tenant_id'),
+        (SELECT attnum FROM pg_attribute WHERE attrelid = 'studio_free_regeneration_uses'::regclass AND attname = 'member_id'),
+        (SELECT attnum FROM pg_attribute WHERE attrelid = 'studio_free_regeneration_uses'::regclass AND attname = 'local_date')
+      ]::smallint[]
+  ) THEN
+    ALTER TABLE studio_free_regeneration_uses
+      ADD CONSTRAINT uq_studio_free_regeneration_tenant_member_date
+      UNIQUE (tenant_id, member_id, local_date);
+  END IF;
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
     WHERE conrelid = 'studio_free_regeneration_uses'::regclass
@@ -162,6 +180,33 @@ BEGIN
       ADD CONSTRAINT uq_studio_free_regeneration_member_date
       UNIQUE (member_id, local_date);
   END IF;
+END $$;
+DO $$
+BEGIN
+  ALTER TABLE studio_free_regeneration_uses
+    ALTER COLUMN tenant_id DROP NOT NULL,
+    ALTER COLUMN original_job_id DROP NOT NULL,
+    ALTER COLUMN replacement_job_id DROP NOT NULL;
+  ALTER TABLE studio_free_regeneration_uses
+    DROP CONSTRAINT IF EXISTS studio_free_regeneration_uses_tenant_id_fkey,
+    DROP CONSTRAINT IF EXISTS studio_free_regeneration_uses_tenant_id_original_job_id_fkey,
+    DROP CONSTRAINT IF EXISTS studio_free_regeneration_uses_tenant_id_replacement_job_id_fkey;
+  ALTER TABLE studio_free_regeneration_uses
+    ADD CONSTRAINT studio_free_regeneration_uses_tenant_id_fkey
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE SET NULL NOT VALID,
+    ADD CONSTRAINT studio_free_regeneration_uses_tenant_id_original_job_id_fkey
+      FOREIGN KEY (tenant_id, original_job_id)
+      REFERENCES studio_generation_jobs(tenant_id, id) ON DELETE SET NULL NOT VALID,
+    ADD CONSTRAINT studio_free_regeneration_uses_tenant_id_replacement_job_id_fkey
+      FOREIGN KEY (tenant_id, replacement_job_id)
+      REFERENCES studio_generation_jobs(tenant_id, id)
+      ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED NOT VALID;
+  ALTER TABLE studio_free_regeneration_uses
+    VALIDATE CONSTRAINT studio_free_regeneration_uses_tenant_id_fkey;
+  ALTER TABLE studio_free_regeneration_uses
+    VALIDATE CONSTRAINT studio_free_regeneration_uses_tenant_id_original_job_id_fkey;
+  ALTER TABLE studio_free_regeneration_uses
+    VALIDATE CONSTRAINT studio_free_regeneration_uses_tenant_id_replacement_job_id_fkey;
 END $$;
 CREATE INDEX IF NOT EXISTS idx_studio_free_regeneration_jobs
   ON studio_free_regeneration_uses(tenant_id, original_job_id, replacement_job_id);

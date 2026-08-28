@@ -1,12 +1,12 @@
 import { studioFailure, studioSuccess } from "@/lib/studio/generation/http";
-import { resolveDevelopmentPrincipal } from "@/lib/studio/generation/identity";
+import { resolveStudioPrincipal } from "@/lib/studio/generation/identity";
 import { generationRuntime } from "@/lib/studio/generation/runtime";
 
 type RouteContext = { params: Promise<{ jobId: string }> };
 
 export async function POST(request: Request, context: RouteContext) {
   try {
-    const principal = resolveDevelopmentPrincipal(request);
+    const principal = await resolveStudioPrincipal(request);
     const { jobId } = await context.params;
     return studioSuccess(await generationRuntime().regenerate(
       principal.memberId,
