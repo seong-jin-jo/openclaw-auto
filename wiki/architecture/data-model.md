@@ -61,6 +61,19 @@ This is the reference for all persistent state. Most data is tenant-scoped for S
 - Dashboard tenant selection and Studio development workspace selection remain separate runtime identities.
   The latter is held in `sessionStorage` as `studio_workspace_id`; it does not create persistent schema state.
 
+#### Comment engagement state (2026-08-28)
+
+- Comment authors and bodies are read from each provider when the performance room requests them. They are
+  not copied into the local database.
+- `engagement_items` stores only durable operator state and delivery history: provider comment ID, reply
+  request key and text, external reply ID, reply time, like time, defer time, and editor handoff draft.
+- `(tenant_id, platform, provider_comment_id)` is unique. Reply claim uses an atomic conflict update so two
+  workers cannot send the same comment reply at the same time.
+- The table uses the existing `withTenant()` transaction and `osmu_service` RLS policy. The foreign keys to
+  `published_posts` and `drafts` keep engagement state attached to the tenant-owned source content.
+- Channel behavior comes from `dashboard/src/lib/channel-capabilities.ts`. Unsupported providers return the
+  provider limitation instead of creating local state or pretending that the action succeeded.
+
 #### Home data cutover and rollback (2026-08-13)
 
 - `/api/overview`, `/api/activity`, `/api/weekly-report`, and `/api/weekly-summary` read
