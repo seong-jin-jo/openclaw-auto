@@ -2,6 +2,28 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-08-28 PASS: 교차 모델 BLOCK 필수 3건 수정과 추가 5건 보정
+
+| 시험 항목 | 수정 결과 | 직접 증거 | 판정 |
+|---|---|---|---|
+| OSMU-BLOCK-M1 | 무료 재생성 몫 키를 회원의 UTC 날짜로 고정하고 요청 시간대는 초기화 안내에만 사용 | `localhost:3456`에서 서로 반대 시간대의 별도 작업을 만든 뒤 첫 재생성 201, 둘째 409. Studio E2E 12/12 | PASS |
+| OSMU-BLOCK-C1 | 공장 실행에 갱신 시각과 heartbeat를 두고 15분 미갱신 실행 회수, 운영자 강제 종료 API 추가 | 죽은 실행 뒤 새 실행 HTTP 201과 이전 행 `failed`. 운영자 강제 종료 HTTP 200과 행 `failed` | PASS |
+| OSMU-BLOCK-F1 | 사람 개입 장애는 원장 저장 뒤에도 Slack으로 보내고 자동 복구 장애만 Slack에서 제외 | 격리 서버의 실제 `/api/channel-config` HTTP 200, DB 장애 `open`, 로컬 Slack webhook 1건 | PASS |
+| OSMU-BLOCK-I1/I2 | 숏폼 공장 모든 저장소 쿼리에 tenant 조건을 추가하고 migration을 transaction으로 감쌈 | 실제 PostgreSQL 공장 격리와 경합 통합 테스트 4건 통과 | PASS |
+| OSMU-BLOCK-I3 | 댓글 API 인증 해석을 오류 경계 안으로 옮겨 AuthError 상태를 보존 | `localhost:3456` 무효 bearer 요청 HTTP 401, Route 계약 4건 통과 | PASS |
+| OSMU-BLOCK-C3 | 답글 청구에 기본 15분 lease와 시간 기반 회수를 추가 | 실제 PostgreSQL에서 살아 있는 청구는 conflict, 2초로 만든 만료 청구는 새 요청이 claim | PASS |
+| OSMU-BLOCK-C4 | 답글 시간 초과와 응답 불명은 청구를 유지하고, 확정 HTTP 거절만 청구를 해제 | provider와 service 계약 7건 통과. 실제 공개 댓글 provider는 미검증 | 조건부 PASS |
+
+**전체 회귀:** `npm run test` 172파일 1,293건 통과, 조건부 6건 건너뜀. `npx tsc --noEmit`,
+Webpack production build, 정적 페이지 174개 생성, `design-lint.sh dashboard/src` 위반 0건.
+`verify-studio-v1-e2e.mjs` 12/12와 `verify-shorts-factory-recovery-e2e.mjs` 2/2 통과.
+
+**정리:** M1 실측을 위해 잠시 옮긴 기존 UTC 몫 행은 원래 날짜로 복구했다. C1과 F1에서 만든
+검증 실행, 임시 tenant, 계정, 장애 행은 삭제했다. 비밀값과 원문 토큰은 출력하거나 문서에 남기지 않았다.
+
+**남은 감사 항목:** F2, M2, D1, D2, F3, F4는 이번 수정 범위에서 미구현이다. C4 실제 공개 댓글
+시간 초과는 중복 게시 위험 때문에 실계정에서 강제로 만들지 않았으며 QA 환경의 provider fault injection이 필요하다.
+
 ## 2026-08-28 ❌ NG: 네 방 기본 흐름의 마지막 방과 첫 행동 차단
 
 | 시험 항목 | 재현된 결함 | 현재 판정 | 종료증거 |

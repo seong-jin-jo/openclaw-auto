@@ -1,3 +1,13 @@
+## [2026-08-28 19:01 교차 모델 BLOCK 필수 3건과 추가 5건 build 완료]
+
+- **인계 기준:** 회장이 직접 지정한 `docs/audit/osmu-cross-review-2026-08-28-opus.md`와 현재 과제를 primary로 사용했다. 확인한 pane은 `openclaw-auto:0.0`, `osmu-fix1:0.0`, `studio-auth-runtime:0.0`이다.
+- **구현:** M1 UTC 무료 몫, C1 공장 lease와 stale 회수와 운영자 강제 종료, F1 사람 개입 장애 DB와 Slack 이중 전달을 완료했다. 추가로 I1 tenant 조건, I2 transaction migration, I3 인증 401, C3 답글 claim lease, C4 외부 응답 불명 시 claim 유지까지 보정했다.
+- **직접 증거:** Studio 반대 시간대 재생성은 201 한 번과 409 한 번. 죽은 공장 실행 뒤 새 실행 201, 운영자 강제 종료 200. F1 격리 실앱은 HTTP 200, DB open, 로컬 webhook 1건. 무효 댓글 bearer는 401이다.
+- **전체 검증:** Vitest 172파일 1,293건 통과, 조건부 6건 건너뜀. TypeScript, Webpack production build 174페이지, Studio E2E 12/12, 공장 회수 E2E 2/2, 디자인 lint 위반 0건.
+- **정리:** 임시 공장 실행, F1 tenant와 계정과 장애, M1 임시 몫 변경을 모두 회수했다. 운영 배포는 하지 않았다.
+- **미구현:** 감사 항목 F2, M2, D1, D2, F3, F4. C4 실제 공개 댓글 provider 시간 초과는 중복 게시 위험 때문에 미검증이다.
+- **다음 실행:** 소유자=QA verifier. 종료증거=고정 commit에서 전체 테스트와 E2E를 독립 재실행하고 provider fault injection 환경에서 C4 시간 초과 뒤 공개 답글이 한 건인지 확인한다.
+
 ## [2026-08-28 네 방 기본 흐름 UI 결함 수정 진행]
 
 - **인계 기준:** 회장이 직접 지정한 네 방 기본 흐름 과제를 primary로 사용한다. 확인한 활성 pane은
