@@ -68,7 +68,7 @@ describe("Studio 생성 HTTP 통합 계약", () => {
     expect(body.error.code).toBe("TOKEN_INVALID");
   });
 
-  it("GEN-HTTP-04 한국어 설명: 무료 재생성 뒤 두 번째 요청은 과금 승인 오류를 반환한다", async () => {
+  it("GEN-HTTP-04 한국어 설명: 같은 원본 무료 재생성 재시도는 같은 교체 작업을 재생한다", async () => {
     const { POST: create } = await import("@/app/api/studio/v1/generations/route");
     const created = await (await create(postRequest(generationRequestFixture()))).json();
     const { POST: regenerate } = await import("@/app/api/studio/v1/regenerations/[jobId]/route");
@@ -79,11 +79,12 @@ describe("Studio 생성 HTTP 통합 계약", () => {
     const context = { params: Promise.resolve({ jobId: created.data.job_id }) };
     const first = await regenerate(request, context);
     const second = await regenerate(request, context);
+    const firstBody = await first.json();
     const secondBody = await second.json();
 
     expect(first.status).toBe(201);
-    expect(second.status).toBe(409);
-    expect(secondBody.error.code).toBe("PAID_REGENERATION_APPROVAL_REQUIRED");
+    expect(second.status).toBe(201);
+    expect(secondBody.data.replacement.job_id).toBe(firstBody.data.replacement.job_id);
   });
 
   it("GEN-HTTP-05 한국어 설명: 다른 Next 번들에서 온 도메인 오류도 안정 상태 코드로 보존한다", async () => {

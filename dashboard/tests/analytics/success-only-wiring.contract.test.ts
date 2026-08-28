@@ -47,8 +47,8 @@ describe("publish_success fires only after confirmed API success, not on click a
   it("studio/page.tsx: publish_success trackEvent only fires inside `if (r?.ok)` after apiPost('/api/publish') resolves", () => {
     const src = read("src/app/studio/page.tsx");
     const attemptIdx = src.indexOf('trackEvent({ name: "publish_attempt"');
-    const apiCallIdx = src.indexOf('apiPost<{ ok?: boolean; permalink?: string; error?: string }>("/api/publish"', attemptIdx);
-    const successIdx = src.indexOf('if (r?.ok)', apiCallIdx);
+    const apiCallIdx = src.indexOf('apiPost<{ ok?: boolean; partial?: boolean;', attemptIdx);
+    const successIdx = src.indexOf('if (r?.ok && !r.partial)', apiCallIdx);
     const trackSuccessIdx = src.indexOf('trackEvent({ name: "publish_success"', successIdx);
     // publish_attempt must precede the API call (submission time), publish_success must be
     // strictly after the API call resolves and inside the ok-branch.
@@ -73,19 +73,19 @@ describe("publish_success fires only after confirmed API success, not on click a
     const publishEnd = src.indexOf("function loadDraft(", publishStart);
     const block = src.slice(publishStart, publishEnd);
     const preflightGuard = block.indexOf("publishReconciliation?.retryPublish === false");
-    const apiCall = block.indexOf('apiPost<{ ok?: boolean; permalink?: string; error?: string }>("/api/publish"');
+    const apiCall = block.indexOf('apiPost<{ ok?: boolean; partial?: boolean;');
     const partialGuard = block.indexOf("isExternalPublishPersistenceError(e)");
     const preserveUrl = block.indexOf("e.payload.permalink", partialGuard);
-    const stopLoop = block.indexOf("break", partialGuard);
+    const parallelJoin = block.indexOf("await Promise.all(targets.map", preflightGuard);
     const persistPartial = block.indexOf('save("partial", pendingReconciliation)');
 
     expect(preflightGuard).toBeGreaterThan(-1);
     expect(preflightGuard).toBeLessThan(apiCall);
     expect(partialGuard).toBeGreaterThan(-1);
     expect(preserveUrl).toBeGreaterThan(partialGuard);
-    expect(stopLoop).toBeGreaterThan(partialGuard);
-    expect(persistPartial).toBeGreaterThan(stopLoop);
-    expect(block.slice(partialGuard, stopLoop)).not.toContain('name: "publish_success"');
+    expect(parallelJoin).toBeGreaterThan(preflightGuard);
+    expect(persistPartial).toBeGreaterThan(partialGuard);
+    expect(block.slice(partialGuard, persistPartial)).not.toContain('name: "publish_success"');
     expect(block).not.toContain("retryPublish(");
   });
 

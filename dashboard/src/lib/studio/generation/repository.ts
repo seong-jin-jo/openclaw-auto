@@ -6,6 +6,7 @@ import type {
   PersistCreationInput,
   PersistFreeRegenerationInput,
   PersistedCreation,
+  PersistedFreeRegeneration,
 } from "./service";
 
 type Sql = ReturnType<typeof db>;
@@ -104,7 +105,7 @@ export class PostgresGenerationRepository implements GenerationRepository {
     return null;
   }
 
-  async persistFreeRegeneration(input: PersistFreeRegenerationInput): Promise<boolean> {
+  async persistFreeRegeneration(input: PersistFreeRegenerationInput): Promise<PersistedFreeRegeneration> {
     return withTenant(input.replacement.workspaceId, async (sql) => {
       const [reserved] = await sql<{ id: string }[]>`
         INSERT INTO studio_free_regeneration_uses
@@ -114,7 +115,19 @@ export class PostgresGenerationRepository implements GenerationRepository {
            ${input.originalJobId}, ${input.replacement.jobId})
         ON CONFLICT (member_id, local_date) DO NOTHING
         RETURNING id`;
-      if (!reserved) return false;
+      if (!reserved) {
+        const [existing] = await sql<IdempotencyRow[]>`
+          SELECT request_hash, response_payload
+          FROM studio_generation_idempotency
+          WHERE tenant_id = ${input.replacement.workspaceId}
+            AND member_id = ${input.replacement.memberId}
+            AND operation = ${input.operation}
+            AND idempotency_key = ${input.idempotencyKey}
+          LIMIT 1`;
+        return existing?.request_hash === input.requestHash
+          ? { consumed: true, response: existing.response_payload }
+          : { consumed: false, response: null };
+      }
 
       await sql`
         INSERT INTO studio_generation_idempotency
@@ -124,7 +137,7 @@ export class PostgresGenerationRepository implements GenerationRepository {
            ${input.idempotencyKey}, ${input.requestHash}, ${input.replacement.jobId},
            ${sql.json(input.response as Parameters<typeof sql.json>[0])})`;
       await insertJob(sql, input.replacement);
-      return true;
+      return { consumed: true, response: input.response };
     });
   }
 }

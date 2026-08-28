@@ -62,6 +62,7 @@ export type PersistCreationInput = {
 };
 
 export type PersistedCreation = IdempotencyRecord & { created: boolean };
+export type PersistedFreeRegeneration = { consumed: boolean; response: GenerationResponse | null };
 
 export type PersistFreeRegenerationInput = {
   originalJobId: string;
@@ -76,7 +77,7 @@ export type PersistFreeRegenerationInput = {
 export interface GenerationRepository {
   persistCreation(input: PersistCreationInput): Promise<PersistedCreation>;
   findJob(memberId: string, jobId: string, allowedWorkspaceIds: readonly string[]): Promise<GenerationJob | null>;
-  persistFreeRegeneration(input: PersistFreeRegenerationInput): Promise<boolean>;
+  persistFreeRegeneration(input: PersistFreeRegenerationInput): Promise<PersistedFreeRegeneration>;
 }
 
 function stableJson(value: unknown): string {
@@ -307,7 +308,7 @@ export class GenerationService {
     const idempotencyKey = `free-regeneration:${jobId}:${localDate}`;
     const replacementJob = buildJob(memberId, original.request, now);
     const replacement = publicResponse(replacementJob);
-    const consumed = await this.repository.persistFreeRegeneration({
+    const persisted = await this.repository.persistFreeRegeneration({
       originalJobId: jobId,
       replacement: replacementJob,
       localDate,
@@ -316,10 +317,10 @@ export class GenerationService {
       requestHash: hashRequest(original.request),
       response: replacement,
     });
-    if (!consumed) throw paidRegenerationApprovalRequired(now, original.timeZone);
+    if (!persisted.consumed || !persisted.response) throw paidRegenerationApprovalRequired(now, original.timeZone);
     return {
       freeRetryConsumed: true,
-      replacement,
+      replacement: persisted.response,
       freeRetryResetsAt: nextLocalDateBoundary(now, original.timeZone),
     };
   }

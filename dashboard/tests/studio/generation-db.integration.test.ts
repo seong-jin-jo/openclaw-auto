@@ -117,10 +117,11 @@ describe("Studio 생성 Postgres 장부 계약", () => {
       service.regenerate(memberId, original.jobId, [tenantId], now),
     ]);
 
-    expect(settled.filter((result) => result.status === "fulfilled")).toHaveLength(1);
-    expect(settled.find((result) => result.status === "rejected")).toEqual(expect.objectContaining({
-      reason: expect.objectContaining({ code: "PAID_REGENERATION_APPROVAL_REQUIRED", status: 409 }),
-    }));
+    expect(settled.filter((result) => result.status === "fulfilled")).toHaveLength(2);
+    const replacements = settled
+      .filter((result): result is PromiseFulfilledResult<Awaited<ReturnType<typeof service.regenerate>>> => result.status === "fulfilled")
+      .map((result) => result.value.replacement.jobId);
+    expect(new Set(replacements).size).toBe(1);
     const [counts] = await admin!<{ jobs: number; free_uses: number }[]>`
       SELECT
         (SELECT count(*)::int FROM studio_generation_jobs WHERE tenant_id = ${tenantId} AND member_id = ${memberId}) AS jobs,

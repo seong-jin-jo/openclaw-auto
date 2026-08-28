@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { parseGenerationRequest } from "@/lib/studio/generation/contracts";
-import { StudioApiError } from "@/lib/studio/generation/errors";
 import { GenerationService } from "@/lib/studio/generation/service";
 import { generationRequestFixture } from "./generation-fixture";
 import { MemoryGenerationRepository } from "./generation-memory-repository";
@@ -117,28 +116,17 @@ describe("Studio 생성 도메인 계약", () => {
     expect(retried.freeRetryResetsAt).toBe("2026-08-27T15:00:00.000Z");
   });
 
-  it("GEN-RETRY-02 한국어 설명: 같은 회원의 두 번째 재생성은 비용 승인 전 거절한다", async () => {
+  it("GEN-RETRY-02 한국어 설명: 같은 원본의 두 번째 재생성 요청은 같은 교체 작업을 재생한다", async () => {
     const service = generationService();
     const original = await service.create("member-1", "create-1", parseGenerationRequest(generationRequestFixture()));
     const now = new Date("2026-08-27T01:00:00.000Z");
-    await service.regenerate("member-1", original.jobId, WORKSPACES, now);
+    const first = await service.regenerate("member-1", original.jobId, WORKSPACES, now);
+    const replay = await service.regenerate("member-1", original.jobId, WORKSPACES, now);
 
-    try {
-      await service.regenerate("member-1", original.jobId, WORKSPACES, now);
-      throw new Error("두 번째 재생성이 거절되지 않았습니다");
-    } catch (error) {
-      expect(error).toBeInstanceOf(StudioApiError);
-      expect(error).toEqual(expect.objectContaining({
-        code: "PAID_REGENERATION_APPROVAL_REQUIRED",
-        status: 409,
-        details: expect.objectContaining({
-          paid_retry_quote: { currency: "KRW", amount_minor: 4900 },
-        }),
-      }));
-    }
+    expect(replay.replacement.jobId).toBe(first.replacement.jobId);
   });
 
-  it("GEN-RETRY-03 한국어 설명: 동시에 두 번 재생성해도 무료 처리는 한 건만 성공한다", async () => {
+  it("GEN-RETRY-03 한국어 설명: 동시에 같은 재생성을 두 번 보내도 교체 작업은 한 건으로 수렴한다", async () => {
     const service = generationService();
     const original = await service.create("member-1", "create-1", parseGenerationRequest(generationRequestFixture()));
     const now = new Date("2026-08-27T01:00:00.000Z");
@@ -147,9 +135,11 @@ describe("Studio 생성 도메인 계약", () => {
       service.regenerate("member-1", original.jobId, WORKSPACES, now),
     ]);
 
-    expect(settled.filter((result) => result.status === "fulfilled")).toHaveLength(1);
-    const rejected = settled.find((result) => result.status === "rejected") as PromiseRejectedResult;
-    expect(rejected.reason).toEqual(expect.objectContaining({ code: "PAID_REGENERATION_APPROVAL_REQUIRED" }));
+    expect(settled.filter((result) => result.status === "fulfilled")).toHaveLength(2);
+    const replacements = settled
+      .filter((result): result is PromiseFulfilledResult<Awaited<ReturnType<typeof service.regenerate>>> => result.status === "fulfilled")
+      .map((result) => result.value.replacement.jobId);
+    expect(new Set(replacements).size).toBe(1);
   });
 
   it("M1-GEN-RETRY-04 한국어 설명: 서로 다른 시간대의 서로 다른 작업도 UTC 하루 무료 몫을 한 번만 쓴다", async () => {

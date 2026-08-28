@@ -5,6 +5,7 @@ import type {
   PersistCreationInput,
   PersistFreeRegenerationInput,
   PersistedCreation,
+  PersistedFreeRegeneration,
 } from "@/lib/studio/generation/service";
 
 export class MemoryGenerationRepository implements GenerationRepository {
@@ -27,15 +28,20 @@ export class MemoryGenerationRepository implements GenerationRepository {
     return job;
   }
 
-  async persistFreeRegeneration(input: PersistFreeRegenerationInput): Promise<boolean> {
+  async persistFreeRegeneration(input: PersistFreeRegenerationInput): Promise<PersistedFreeRegeneration> {
     const useKey = `${input.replacement.memberId}:${input.localDate}`;
-    if (this.freeRetryUses.has(useKey)) return false;
+    if (this.freeRetryUses.has(useKey)) {
+      const existing = this.idempotency.get(`${input.replacement.memberId}:${input.operation}:${input.idempotencyKey}`);
+      return existing?.requestHash === input.requestHash
+        ? { consumed: true, response: existing.response }
+        : { consumed: false, response: null };
+    }
     this.freeRetryUses.add(useKey);
     this.jobs.set(input.replacement.jobId, input.replacement);
     this.idempotency.set(
       `${input.replacement.memberId}:${input.operation}:${input.idempotencyKey}`,
       { requestHash: input.requestHash, response: input.response },
     );
-    return true;
+    return { consumed: true, response: input.response };
   }
 }

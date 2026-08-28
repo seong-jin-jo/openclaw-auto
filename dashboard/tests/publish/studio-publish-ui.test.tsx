@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   apiPost: vi.fn(),
   fetcher: vi.fn(),
   showToast: vi.fn(),
+  trackEvent: vi.fn(),
   swr: vi.fn(),
   swrKeys: [] as Array<string | null>,
   isOperator: true,
@@ -72,7 +73,7 @@ vi.mock("@/components/studio/SchedulePanel", () => ({
 }));
 
 vi.mock("@/lib/analytics/events", () => ({
-  trackEvent: vi.fn(),
+  trackEvent: mocks.trackEvent,
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -107,6 +108,7 @@ describe("Studio publish result integrity", () => {
     mocks.apiPost.mockReset();
     mocks.fetcher.mockReset();
     mocks.showToast.mockReset();
+    mocks.trackEvent.mockReset();
     mocks.swr.mockReset();
     mocks.swrKeys.length = 0;
     mocks.isOperator = true;
@@ -182,6 +184,51 @@ describe("Studio publish result integrity", () => {
     expect(screen.getByText("일부 발행 실패")).toBeInTheDocument();
     expect(screen.getByText("X 계정 미연결")).toBeInTheDocument();
     expect(draftSaveStatuses()).toEqual(["draft", "partial"]);
+  });
+
+  it("발행-부분-03 거절: 본문 성공 뒤 첫 댓글 실패를 전체 성공과 publish_success로 세지 않는다", async () => {
+    restoreStudio(["x"]);
+    mocks.apiPost.mockImplementation(async (path: string) => {
+      if (path === "/api/studio/drafts") return { id: "draft-first-comment" };
+      if (path === "/api/publish") return {
+        ok: true,
+        partial: true,
+        permalink: "https://x.com/example/status/1",
+        firstComment: { ok: false, error: "첫 댓글 공급자 거절" },
+      };
+      throw new Error(`unexpected path: ${path}`);
+    });
+
+    render(<StudioPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "1곳에 올리기" }));
+
+    await waitFor(() => expect(screen.getByText("0%")).toBeInTheDocument());
+    expect(screen.getByText("첫 댓글 공급자 거절")).toBeInTheDocument();
+    expect(draftSaveStatuses()).toEqual(["draft", "partial"]);
+    expect(mocks.trackEvent.mock.calls.filter(([event]) => event.name === "publish_success")).toHaveLength(0);
+  });
+
+  it("발행-병렬-04 경합: 느린 첫 채널이 끝나기 전에 둘째 채널 요청을 시작한다", async () => {
+    restoreStudio(["threads", "x"]);
+    let releaseThreads: () => void = () => {};
+    const threadsPending = new Promise<void>((resolve) => { releaseThreads = resolve; });
+    mocks.apiPost.mockImplementation(async (path: string, body: { platform?: string }) => {
+      if (path === "/api/studio/drafts") return { id: "draft-parallel" };
+      if (path === "/api/publish" && body.platform === "threads") {
+        await threadsPending;
+        return { ok: true, permalink: "https://threads.net/p/1" };
+      }
+      if (path === "/api/publish" && body.platform === "x") return { ok: true, permalink: "https://x.com/p/2" };
+      throw new Error(`unexpected path: ${path}`);
+    });
+
+    render(<StudioPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "2곳에 올리기" }));
+
+    await waitFor(() => expect(mocks.apiPost.mock.calls.some(([, body]) => (body as { platform?: string })?.platform === "x")).toBe(true));
+    expect(mocks.apiPost.mock.calls.some(([, body]) => (body as { platform?: string })?.platform === "threads")).toBe(true);
+    releaseThreads();
+    await waitFor(() => expect(screen.getByText("100%")).toBeInTheDocument());
   });
 
   it("defaults publish targets to supported channels and labels generation-only video channels", async () => {

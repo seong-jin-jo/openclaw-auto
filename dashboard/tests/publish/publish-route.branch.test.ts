@@ -21,6 +21,8 @@ const H = vi.hoisted(() => ({
   markQueuePublishedCalls: [] as unknown[][],
   queueRecordError: null as Error | null,
   instagramPermalink: "https://www.instagram.com/p/recovered/",
+  reservationClaimed: false,
+  reservation: null as null | { tenant: unknown; draft: unknown; platform: unknown; text: unknown; accountId: unknown },
 }));
 
 vi.mock("@/lib/tenant-auth", () => ({
@@ -31,11 +33,35 @@ vi.mock("@/lib/db", () => ({
   withTenant: vi.fn(async (_tid: string, cb: (sql: unknown) => unknown) => {
     const sql = (strings: TemplateStringsArray, ...vals: unknown[]) => {
       const query = strings.join(" ");
+      if (query.includes("INSERT INTO published_posts") && query.includes("'in_progress'")) {
+        if (H.existingPublication || H.reservationClaimed) return Promise.resolve([]);
+        H.reservationClaimed = true;
+        H.reservation = { tenant: vals[0], draft: vals[1], platform: vals[2], text: vals[3], accountId: vals[4] };
+        return Promise.resolve([{ id: "11111111-1111-4111-8111-111111111111" }]);
+      }
       if (query.includes("SELECT external_id, permalink")) {
         return Promise.resolve(H.existingPublication ? [H.existingPublication] : []);
       }
       if (query.includes("INSERT INTO published_posts") && H.publicationRecordError) {
         return Promise.reject(H.publicationRecordError);
+      }
+      if (query.includes("UPDATE published_posts") && query.includes("SET external_id")) {
+        if (H.publicationRecordError) return Promise.reject(H.publicationRecordError);
+        const reservation = H.reservation!;
+        H.inserts.push([
+          reservation.tenant,
+          reservation.draft,
+          reservation.platform,
+          vals[0],
+          vals[1],
+          vals[2],
+          vals[3],
+          vals[4],
+          reservation.accountId,
+          vals[5],
+        ]);
+        if (vals[3] === "published") H.existingPublication = { external_id: vals[0] as string | null, permalink: vals[1] as string | null };
+        return Promise.resolve([]);
       }
       H.inserts.push(vals);
       return Promise.resolve([]);
@@ -92,6 +118,8 @@ beforeEach(() => {
   H.markQueuePublishedCalls = [];
   H.queueRecordError = null;
   H.instagramPermalink = "https://www.instagram.com/p/recovered/";
+  H.reservationClaimed = false;
+  H.reservation = null;
   vi.mocked(withTenant).mockClear();
 });
 
@@ -235,6 +263,22 @@ describe("/api/publish — happy path (실 publish* + fetch 목)", () => {
       externalId: "already-1",
       permalink: "https://www.threads.net/@u/post/already",
     }]]);
+  });
+
+  it("BE-V63-발행-예약-05 경합: 동일 초안 동시 요청은 외부 공급자를 한 번만 호출한다", async () => {
+    H.cred = { token: "", meta: { apiKey: "a", apiSecret: "b", accessToken: "c", accessSecret: "d" } };
+    const { calls } = installFetch([{ match: "api.twitter.com/2/tweets", json: { data: { id: "tw-race-1" } } }]);
+    const body = {
+      platform: "x",
+      text: "동시 발행",
+      draft_id: "13730d99-a268-47de-9cf9-90157ea1fa79",
+    };
+
+    const [first, second] = await Promise.all([callPublish(body), callPublish(body)]);
+
+    expect([first.status, second.status].sort()).toEqual([200, 409]);
+    expect([first.body.code, second.body.code]).toContain("PUBLISH_ALREADY_IN_PROGRESS");
+    expect(calls).toHaveLength(1);
   });
 
   it("기존 성공 기록의 permalink가 비었으면 외부 재발행 없이 URL만 복구한다", async () => {

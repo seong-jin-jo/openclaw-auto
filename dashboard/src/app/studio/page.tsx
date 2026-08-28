@@ -391,7 +391,7 @@ export default function StudioPage() {
     const errs: string[] = [];
     let pendingReconciliation: PublishReconciliation | null = null;
     setPub({ running: true, stopped: false, status: { ...status }, urls: {}, errors: {} });
-    for (const p of targets) {
+    await Promise.all(targets.map(async (p) => {
       status[p] = "doing";
       setPub({ running: true, stopped: false, status: { ...status }, urls: { ...urls }, errors: { ...errors } });
       let failureReason: string | null = null;
@@ -400,14 +400,16 @@ export default function StudioPage() {
         // publish_attempt = 실제 제출 시점(클릭 즉시가 아니라 이 루프 진입 시점). publish_success는
         // API가 ok:true를 반환한 뒤에만 처리한다. 낙관적 발행 금지.
         trackEvent({ name: "publish_attempt", params: { channel: p as AnalyticsChannel } });
-        const r = await apiPost<{ ok?: boolean; permalink?: string; error?: string }>("/api/publish", {
+        const r = await apiPost<{ ok?: boolean; partial?: boolean; permalink?: string; error?: string; firstComment?: { ok?: boolean; error?: string } }>("/api/publish", {
           tenant_id: activeWorkspace.id, platform: p, text: publishText(p), image_url: img?.url, draft_id: did,
           account_id: selectedAccounts[p] || undefined,
           first_comment: capabilityFor(p).supported && firstComments[p]?.trim() ? firstComments[p].trim() : undefined,
         });
-        if (r?.ok) { urls[p] = r.permalink || POST_URL[p] || "#"; trackEvent({ name: "publish_success", params: { channel: p as AnalyticsChannel } }); }
+        if (r?.ok && !r.partial) { urls[p] = r.permalink || POST_URL[p] || "#"; trackEvent({ name: "publish_success", params: { channel: p as AnalyticsChannel } }); }
         else {
-          failureReason = r?.error || "실패";
+          failureReason = r?.partial
+            ? r.firstComment?.error || "본문은 올라갔지만 첫 댓글 발행에 실패했습니다"
+            : r?.error || "실패";
           errs.push(`${LABEL[p]}: ${failureReason}`);
         }
       } catch (e) {
@@ -431,8 +433,7 @@ export default function StudioPage() {
         urls: { ...urls },
         errors: { ...errors },
       });
-      if (pendingReconciliation) break;
-    }
+    }));
     setPub({
       running: false,
       stopped: false,

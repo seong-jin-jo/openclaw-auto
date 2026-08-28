@@ -173,7 +173,27 @@ export async function POST(request: Request) {
   // 동일 초안·플랫폼·계정의 성공 발행을 순차 재시도에서 다시 외부 API로 보내지 않는다.
   // UUID가 아닌 legacy draft id는 기존 동작을 유지한다.
   const isDraftUuid = typeof draft_id === "string" && UUID_RE.test(draft_id);
+  let reservationId: string | null = null;
   if (isDraftUuid) {
+    try {
+      const [reservation] = await withTenant(tenant_id, (sql) => sql<{ id: string }[]>`
+        INSERT INTO published_posts
+          (tenant_id, draft_id, platform, text, status, account_id)
+        VALUES
+          (${tenant_id}::uuid, ${draft_id}::uuid, ${platform}, ${text ?? null}, 'in_progress', ${cred.accountId ?? null}::uuid)
+        ON CONFLICT DO NOTHING
+        RETURNING id::text
+      `);
+      reservationId = reservation?.id ?? null;
+    } catch {
+      return Response.json({
+        ok: false,
+        code: "PUBLISH_RESERVATION_FAILED",
+        error: "발행 중복 방지 예약을 만들지 못해 외부 게시를 시작하지 않았습니다.",
+      }, { status: 503, headers: { "Cache-Control": "no-store" } });
+    }
+
+    if (!reservationId) {
     const [existing] = await withTenant(tenant_id, (sql) => sql<{
       external_id: string | null;
       permalink: string | null;
@@ -258,6 +278,12 @@ export async function POST(request: Request) {
         alreadyPublished: true,
       });
     }
+      return Response.json({
+        ok: false,
+        code: "PUBLISH_ALREADY_IN_PROGRESS",
+        error: "같은 작업물의 발행이 진행 중이거나 결과 확인이 필요합니다. 중복 게시를 막기 위해 다시 보내지 않았습니다.",
+      }, { status: 409, headers: { "Cache-Control": "no-store" } });
+    }
   }
 
   let result: PublishResult;
@@ -312,15 +338,27 @@ export async function POST(request: Request) {
 
   // published_posts 기록(성공/실패 모두)
   try {
-    await withTenant(tenant_id, (sql) => firstCommentResult
+    await withTenant(tenant_id, (sql) => reservationId
       ? sql`
+          UPDATE published_posts
+          SET external_id = ${result.externalId ?? null},
+              permalink = ${result.permalink ?? null},
+              text = ${text ?? null},
+              status = ${result.ok ? "published" : "failed"},
+              error = ${result.error ?? null},
+              provider_meta = ${sql.json(firstCommentResult ? { firstComment: firstCommentResult } as never : {} as never)},
+              published_at = now()
+          WHERE tenant_id = ${tenant_id}::uuid AND id = ${reservationId}::uuid
+        `
+      : firstCommentResult
+        ? sql`
           INSERT INTO published_posts
             (tenant_id, draft_id, platform, external_id, permalink, text, status, error, account_id, provider_meta)
           VALUES (${tenant_id}, ${draft_id ?? null}, ${platform}, ${result.externalId ?? null},
                   ${result.permalink ?? null}, ${text ?? null},
                   ${result.ok ? "published" : "failed"}, ${result.error ?? null}, ${cred.accountId ?? null},
                   ${sql.json({ firstComment: firstCommentResult } as never)})`
-      : sql`
+        : sql`
           INSERT INTO published_posts
             (tenant_id, draft_id, platform, external_id, permalink, text, status, error, account_id)
           VALUES (${tenant_id}, ${draft_id ?? null}, ${platform}, ${result.externalId ?? null},
