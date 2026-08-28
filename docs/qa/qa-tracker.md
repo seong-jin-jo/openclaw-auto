@@ -2,16 +2,62 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
-## 2026-08-28 NG: 네 방 보조 프로브가 종료되지 않음
+## 2026-08-28 PASS: 네 방 기본 흐름 재검증, 전체 v63 정합 NG 유지
 
 | 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
 |---|---|---|---|---|
-| R08, R150, R201 | 네 방 실제 경로와 사이드바 흐름을 반복 검증 | OSMU-FLOW-RERUN-02 | NG | `node scripts/probe-four-room-flow.mjs`가 출력 없이 65초 이상 실행됐고 프로세스가 남아 수동 종료 대상이 됨 |
+| R08 | 사이드바의 네 방을 실제 경로로 이동 | OSMU-FLOW-RERUN-01 | PASS | 실제 `localhost:3456`에서 4개 방 x 4폭 링크 클릭, 경로 16/16 일치 |
+| R150 | 채널 capability 계약을 유지한 기본 흐름 | OSMU-FLOW-RERUN-02 | PASS | 생성부터 발행 큐까지 실제 API 기본 흐름 11/11, 지원 여부 응답 포함 |
+| R200, R207 | 성과실 제안과 생성실 재진입 | OSMU-FLOW-RERUN-03 | 부분 PASS | 4폭 모두 제안 3건, 성과실에서 생성실 복귀 4/4. 전체 v63 정합은 NG 유지 |
+| R201 | 네 방 이동을 가리는 사족과 모달 제거 | OSMU-FLOW-RERUN-04 | PASS | 전체 화면 모달 0건, 브라우저 401 0건, 콘솔 오류 0건, 가로 넘침 0건 |
+| R206 | 승인 시안 수준의 화면 정합 | CONF-ALL | NG 유지 | `docs/qa/osmu-v24-design-conformance-matrix-v1-gpt-codex.md`와 전체 12행 정합 NG |
+| R01~R207 이월 | 회장 확정 요구 전건 승계 | REQ-ALL | 이월 | 전건 판정은 `docs/qa/osmu-qa-2026-08-28.md` 요청 번호 승계표를 정본으로 사용 |
 
-**관찰:** `verify-basic-flow-e2e.mjs`는 실제 `localhost:3456`에서 11/11 통과했지만,
-`probe-four-room-flow.mjs`는 첫 결과도 출력하지 않은 채 종료되지 않았다. 앱의 네 방 실패와
-검증 스크립트의 대기 결함을 구분하기 위해 실제 고객 토큰을 쓰는 네 폭 클릭 검증을 별도로 실행한다.
-프로브는 방별 제한시간과 종료 정리를 갖춘 뒤 같은 명령으로 재검증한다.
+**실제 앱 관찰:** 작업 공간 `cd1d0a40-540d-4524-9b49-bf2445d82182`로 생성실에서
+성과실까지 사람처럼 링크를 눌렀다. 390, 768, 1024, 1440에서 생성실, 편집실, 발행실,
+성과실 16화면과 성과실에서 생성실로 돌아가는 4건이 통과했다. 각 폭의 문서 폭은 viewport와
+같았고 가린 모달, 브라우저 401, 콘솔 오류는 모두 0건이었다. 캡처와 관찰 JSON은
+`docs/prototype/qa-flow-rerun-20260828/`에 있다.
+
+**실행 증거:** health HTTP 200, 실제 API 기본 흐름 11/11, Studio 경계 계약 12/12,
+Vitest 186파일 1,330건 PASS와 5건 조건부 SKIP, TypeScript exit 0, Next production build
+174경로, 디자인 lint 위반 0건이다. 임시 PostgreSQL에 schema, test seed, RLS를 적용해
+`seed-a`, `seed-b`와 `seed-a` 초안 1건을 확인했고 임시 DB 잔존은 0건이다. 웹 전용이라
+Maestro는 해당 없음이다. production build의 기존 NFT 추적 경고 1건은 남았다.
+
+**결함 판정:** 네 방 기본 동선에서 끊긴 곳은 관찰되지 않아 앱 코드는 수정하지 않았다.
+첫 보조 프로브가 동시 Next build 중 65초 넘게 지연됐지만 단독 재실행은 약 32초에 exit 0으로
+종료됐다. 프로브는 `/api/me`를 가로채므로 보조 증거로만 썼고, 완료 근거는 실제 자격증명으로
+실행한 16화면 클릭과 실제 API 11단계다.
+
+**페르소나 결정:** 콘텐츠 도구를 처음 쓰는 사용자가 네 방을 순서대로 이동해 성과실에 도달할
+수 있는가에는 PASS다. 설명 없이 첫 콘텐츠를 완성할 수 있는가와 승인 v63의 전체 시각 정합에는
+이번 동선 증거만으로 답할 수 없으므로 전체 QA 승인은 NG를 유지한다.
+
+**레드팀:** 까다로운 고객은 테스트 개수가 아니라 작은 화면에서 버튼이 실제로 눌리고 모달이
+가리지 않으며 성과실까지 도착하는지를 본다. 그래서 mock 프로브를 완료 근거에서 제외하고 실제
+서버와 고객 작업 공간의 4폭 클릭을 판정 근거로 남겼다.
+
+**셀프심문:** 이 결론이 틀렸다면 가장 그럴듯한 이유는 기본 동선 PASS를 전체 디자인 PASS로
+과장하는 것이다. 기본 동선과 전체 v63 정합 판정을 분리해 후자는 NG로 유지했다.
+
+STAMP | line: osmu-flow-rerun | 생성: 2026-08-28 22:33 KST | model: gpt-codex/gpt-5.6-sol | agent: qa-verifier | skill: qa | 고민: mock 프로브와 실제 고객 경로의 증거 등급을 분리했다.
+
+SKILLS_USED: qa, 결함 재현, 실제 브라우저 검증, 회귀 순서, 증거 기록에 사용 / SKILLS_SKIPPED: 없음
+
+SOURCES: `docs/prototype/openclaw-auto-4room-v63.html` | `docs/requests/회장-확정-요구사항-대장.md` | `wiki/product/사업좌표-OSMU와-ZERO-ONE.md` | `docs/fdd/test-plan-r02-v1.0.0-opus.md` | `docs/qa/osmu-qa-2026-08-28.md` | https://playwright.dev/docs/locators | https://playwright.dev/docs/actionability | https://playwright.dev/docs/test-projects
+
+MODEL: gpt-codex/gpt-5.6-sol / qa-verifier
+
+## 2026-08-28 초기 NG -> 재실행 PASS: 네 방 보조 프로브 종료 지연
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
+|---|---|---|---|---|
+| R08, R150, R201 | 네 방 실제 경로와 사이드바 흐름을 반복 검증 | OSMU-FLOW-RERUN-05 | 초기 NG, 최종 PASS | 동시 Next build 중 65초 이상 지연. 단독 재실행은 약 32초에 exit 0, 네 방 본문과 가린 모달 0건 확인 |
+
+**관찰:** 최초 실행은 동시 Next build가 끝나기 전 지연돼 수동 종료했다. 같은 소스를 단독으로
+재실행하자 네 방을 모두 읽고 가린 모달 0건을 출력한 뒤 종료했다. 앱 수정은 없었다. 재발 시에는
+동시 build를 끝낸 뒤 제한시간을 둔 단독 실행으로 앱 결함과 자원 경합을 분리한다.
 
 ## 2026-08-28 PASS: v24 디자인 검수 지적 보수, 전체 design gate는 NG 유지
 

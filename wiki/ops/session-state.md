@@ -1,3 +1,26 @@
+## [2026-08-28 22:33 네 방 기본 흐름 독립 재검증]
+
+**핸드오프 기준:** 회장이 이 세션에 직접 지정한 네 방 기본 흐름 과제를 primary로 사용했다.
+tmux `osmu-flowcheck082822:0.0`은 이 워커 자신의 실행 문맥이었고, canonical
+`pipeline-state.osmu.md`는 착수 시 이미 `current_stage: qa`였다.
+
+- 기반: `docs/prototype/openclaw-auto-4room-v63.html`, 회장 확정 요구 대장,
+  `wiki/product/사업좌표-OSMU와-ZERO-ONE.md`, test plan, ONE THING, persona를 읽었다.
+- 실제 앱: 작업 공간 `cd1d0a40-540d-4524-9b49-bf2445d82182`에서 4개 방 x 4폭과
+  성과실에서 생성실 복귀 4건 PASS. 전체 화면 모달, 브라우저 401, 콘솔 오류, 가로 넘침 0건.
+- 회귀: health 200, 기본 API 흐름 11/11, Studio 12/12, Vitest 186파일 1,330건과
+  조건부 SKIP 5건, TypeScript, production build 174경로, design lint 0건 PASS.
+- 데이터: 임시 PostgreSQL에 schema, test seed, RLS 적용. seed tenant 2건과 seed-a 초안
+  1건을 확인하고 임시 DB를 폐기해 잔존 0건.
+- 결함 판정: 네 방 동선은 끊기지 않아 앱 코드는 수정하지 않았다. 보조 프로브 최초 지연은
+  동시 Next build와 겹쳤고 단독 재실행에서 exit 0으로 닫혔다.
+- 산출물: `docs/prototype/qa-flow-rerun-20260828/`, `docs/qa/qa-tracker.md`,
+  `docs/구현현황.md`. 전체 승인 v63 디자인 정합은 기존 NG를 유지한다.
+- 공유 트리 주의: 감독 백로그, 렌더 이미지, `.codex/logs/harness.jsonl`은 다른 세션 소유다.
+  되돌리거나 이번 QA 커밋에 포함하지 않는다.
+- 다음 실행: 소유자=product-designer와 qa-verifier. 종료증거=전체 v63 디자인 정합 행렬 전행
+  PASS와 실제 첫 사용자 발행 직전 동선 PASS. 그 전 qa 승인과 운영 배포 금지.
+
 ## [2026-08-28 21:40 릴리스 후보 0.2.0 병합 요청 준비]
 
 **핸드오프 기준:** 회장이 이 세션에 직접 지정한 release-manager 과제를 primary로 사용했다.
