@@ -73,6 +73,7 @@ describe("AuthGate operator route separation", () => {
     cleanup();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    window.history.replaceState(null, "", "/");
   });
 
   it.each(["/", "/videos", "/channels/youtube"])(
@@ -219,17 +220,20 @@ describe("AuthGate operator route separation", () => {
     expect(localStorage.getItem("dashboard_auth_token")).toBe("operator-token");
   });
 
-  it("routes a rejected customer JWT through Supabase sign-out and /login", async () => {
+  it("QA-AUTH-06 정상: 만료 고객 JWT는 운영자 화면 대신 returnTo가 보존된 고객 로그인으로 보낸다", async () => {
     const jwt = `${"a".repeat(24)}.${"b".repeat(24)}.${"c".repeat(24)}`;
     localStorage.setItem("dashboard_auth_token", jwt);
+    mocks.pathname.mockReturnValue("/studio");
+    window.history.replaceState(null, "", "/studio?room=edit");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 401 })));
 
     render(<AuthGate><div>customer child</div></AuthGate>);
 
     await waitFor(() => {
       expect(mocks.signOut).toHaveBeenCalledTimes(1);
-      expect(mocks.replace).toHaveBeenCalledWith("/login");
+      expect(mocks.replace).toHaveBeenCalledWith("/login?returnTo=%2Fstudio%3Froom%3Dedit");
     });
+    expect(mocks.replace).not.toHaveBeenCalledWith("/operator");
     expect(localStorage.getItem("dashboard_auth_token")).toBeNull();
     expect(screen.queryByText("customer child")).not.toBeInTheDocument();
   });

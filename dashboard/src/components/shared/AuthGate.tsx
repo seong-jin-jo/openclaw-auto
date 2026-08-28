@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { getAuthToken, setAuthToken, clearAuthToken } from "@/lib/auth";
+import { clearAuthToken, customerLoginUrl, getAuthToken, setAuthToken } from "@/lib/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { useUIStore } from "@/store/ui-store";
@@ -412,8 +412,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     setHasToken(false);
     setGateStatus("checking");
     if (reauthOwnerToken.current === token) reauthOwnerToken.current = null;
-    router.replace(customerJwt ? "/login" : "/operator");
-  }, [router, setActiveWorkspace]);
+    const returnTo = `${pathname}${typeof window !== "undefined" ? window.location.search : ""}`;
+    router.replace(customerJwt ? customerLoginUrl(returnTo) : "/operator");
+  }, [pathname, router, setActiveWorkspace]);
 
   useEffect(() => {
     const handler = () => { void reauthenticateCurrentIdentity(); };

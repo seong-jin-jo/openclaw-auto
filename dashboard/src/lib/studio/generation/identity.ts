@@ -14,6 +14,11 @@ function safeEqual(left: string, right: string): boolean {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
+function isPlausibleCustomerJwt(value: string): boolean {
+  const segments = value.split(".");
+  return segments.length === 3 && segments.every(Boolean);
+}
+
 export function resolveDevelopmentPrincipal(request: Request): StudioPrincipal {
   // 개발용 우회가 운영에 켜진 채로 나가면 그 자체가 사고다. 운영에서는 설정이
   // 어떻게 되어 있든 이 경로를 쓰지 않는다(배포 준비 점검, 2026-08-28).
@@ -98,7 +103,14 @@ async function resolveCustomerPrincipal(request: Request): Promise<StudioPrincip
 
 export async function resolveStudioPrincipal(request: Request): Promise<StudioPrincipal> {
   if (process.env.NODE_ENV !== "production" && process.env.STUDIO_IDENTITY_MODE === "development") {
-    return resolveDevelopmentPrincipal(request);
+    const raw = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+    const developmentToken = process.env.STUDIO_DEV_BEARER_TOKEN ?? "";
+    if (raw && developmentToken && safeEqual(raw, developmentToken)) {
+      return resolveDevelopmentPrincipal(request);
+    }
+    if (!isPlausibleCustomerJwt(raw)) {
+      return resolveDevelopmentPrincipal(request);
+    }
   }
   return resolveCustomerPrincipal(request);
 }
