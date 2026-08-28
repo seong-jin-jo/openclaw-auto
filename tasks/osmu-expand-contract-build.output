@@ -1,12 +1,12 @@
 # OSMU Studio generation Expand and Contract build 보고
 
-STAMP | line: osmu-expand-contract | 생성: 2026-08-29 02:32 KST | model: gpt-codex/gpt-5.6-sol | agent: code-builder | skill: 없음 | 근거 URL: https://www.postgresql.org/docs/16/sql-insert.html | 고민: 회원 전역 계약을 tenant 격리와 충돌시키지 않고 단계별로 배포 가능한 DB 상태로 만들었다.
+STAMP | line: osmu-expand-contract | 생성: 2026-08-29 03:09 KST | model: gpt-codex/gpt-5.6-sol | agent: code-builder | skill: 없음 | 근거 URL: https://www.postgresql.org/docs/16/sql-insert.html | 고민: 독립 리뷰 BLOCK 10건을 실제 runner failure injection과 rollback까지 닫았다.
 
 ## 요청과 결론
 
 요청은 Studio 생성 멱등성과 UTC 하루 1회 무료 재시도 quota를 회원 전역 계약으로 확정하고, 운영 중단 없이 작업공간별 제약에서 전환할 구현과 테스트를 만드는 것이었다.
 
-결론은 build 구현과 격리 PostgreSQL 동시성 검증까지 끝났다. 운영 DB와 운영 배포는 이 worker의 권한 범위에서 실행하지 않았다. 최종 전체 Vitest green 한 번은 테스트 프로세스 종료 후 실행 세션만 대기하는 현상 때문에 결과 파일을 얻지 못해 미검증이다. 최초 전체 실행에서 실패한 낡은 배포 계약 한 건은 수정했고 관련 focused 12/12는 통과했다.
+결론은 build, 격리 PostgreSQL 상태 전환·rollback matrix, 전체 회귀와 production build까지 통과했다. 운영 DB와 운영 배포는 이 worker의 권한 범위에서 실행하지 않았다.
 
 ## 기반 산출물
 
@@ -25,32 +25,37 @@ STAMP | line: osmu-expand-contract | 생성: 2026-08-29 02:32 KST | model: gpt-c
 - 일반 deploy의 `schema.sql` 및 migration wildcard replay를 제거하고 read-only preflight만 남겼다.
 - 명시 manifest, SHA-256 checksum, migration ledger, session advisory lock, running·applied·failed 상태를 갖춘 runner를 추가했다.
 - `20260828_010`은 baseline-only이며 historical SQL을 재실행하지 않는다.
-- 수동 승인 GitHub Actions workflow는 baseline, expand-guard, expand-member, contract phase를 각각 직렬 실행한다.
+- 수동 승인 GitHub Actions workflow는 체크박스를 신뢰하지 않고 실행 중인 모든 OSMU container의 image digest와 build commit label을 직접 관찰한다. compatibility 기준 commit의 후손이며 모든 instance가 같은 digest일 때만 E3와 C1을 연다.
+- 기존 필수 migration 20260828_020~060과 quota FK 수명 migration 20260829_010을 explicit manifest에 포함했다. 20260828_010만 historical baseline-only다.
+- fingerprint는 이름뿐 아니라 constraint definition과 backing index의 unique·valid·ready를 확인하고, baseline 전에 generation duplicate, quota duplicate, request-hash divergence를 감사한다.
+- generation C1과 quota C1을 서로 다른 phase로 분리했다. rollback index 준비, 원본 rollback manifest artifact, generation·quota rollback script, 7일 deadline cleanup을 추가했다.
+- DB URL은 `psql` argv에 전달하지 않고 URI를 libpq `PG*` 환경으로 분해한다.
+- serialization failure와 deadlock 재시도 소진은 retryable 503 busy로 매핑한다.
 - 잘못 추가된 tenant-scoped idempotency migration `20260829_020_studio_generation_tenant_idempotency.sql`은 제거했다.
 
 ## 검증 증거
 
 - 격리 PostgreSQL 16 actual matrix: S1·S2·S3 각각 generation 교차 tenant 경합 count=1, quota 교차 tenant 경합 count=1.
-- migration repeatability: S1, S2, S3 각 두 번 실행 PASS.
-- partial recovery: valid unique index 존재, constraint 미연결 상태에서 S2 복구 PASS.
-- actual runner: bootstrap 후 baseline=`baselined`, expand-member=`applied`, contract=`applied` ledger 관찰.
-- focused DB·계약: 5 files, 20/20 PASS.
-- 배포 runner·호환 계약 보정: 3 files, 12/12 PASS.
+- actual runner matrix: bootstrap, 기존 migration explicit apply, S1 guard, E3, rollback index 준비, generation C1, quota C1, rollback, 재-contract, cleanup을 순서대로 실행 PASS.
+- failure injection: wrong-definition index hard-stop, failed concurrent invalid index drop·rebuild, mixed C1 general preflight 차단 PASS.
+- data retention: workspace 삭제 뒤 quota ledger가 `tenant_id=NULL`로 남음 PASS.
+- 동시성: S1·S2·S3 각각 generation과 quota의 두 PID를 개별 성공 검사했고 각 count=1 PASS.
+- rollback: checksummed manifest로 quota와 generation tenant constraint 재부착, S2 복귀 PASS. cleanup 두 번 실행과 최종 S3 PASS.
+- focused DB·계약: 4 files, 27/27 PASS. channel concurrency 분리 1/1 PASS.
 - TypeScript: `npx tsc --noEmit` PASS.
 - production build: Next.js 174/174 routes PASS.
 - shell syntax와 diff whitespace: PASS.
-- 최초 전체 Vitest: 1,367 total, 1,365 PASS, 1 FAIL, 1 pending. 유일한 실패는 제거한 wildcard replay를 기대한 기존 테스트였고 수정 후 focused PASS.
-- 최종 전체 Vitest: 미검증. 재실행에서 worker 프로세스가 사라진 뒤 세션만 대기했고 JSON 결과가 생성되지 않아 무한 재시작 없이 중단했다.
+- 전체 Vitest 최종: 499 suites PASS, 1,377 PASS, 0 FAIL, 1 조건부 제외, success=true.
 - frontend design lint: 해당 없음. UI·스타일 파일을 수정하지 않았다.
 - 운영 DB·배포·운영 QA: 실행하지 않음.
 
 ## 배포 전 남은 gate
 
-1. 운영 read-only preflight에서 현재 constraint fingerprint와 회원 전역 중복 행 수를 증거로 저장한다.
-2. 현재 앱 버전을 먼저 배포해 targetless conflict와 bounded reread 호환 코드를 운영에 올린다.
-3. 승인 workflow로 baseline, expand-guard, expand-member, contract를 순서대로 실행한다. 각 phase 사이에 오류율과 DB timeout을 확인한다.
+1. 운영 read-only preflight에서 현재 exact fingerprint, duplicate·divergence audit와 E1 readiness를 증거로 저장한다.
+2. S1이면 기존 migration apply, FK 수명 migration, E1 guard를 먼저 적용한다. 그 뒤 build commit label을 포함한 compatibility 앱을 배포한다.
+3. 승인 workflow가 실제 실행 image digest를 관찰한 뒤 expand-member, prepare-rollback, contract-generation을 실행한다. quota contract는 별도 phase로 실행한다.
 4. 운영에서 같은 회원·다른 workspace·같은 idempotency key 동시 요청과 UTC quota 동시 요청을 직접 검증한다.
-5. 전체 Vitest 최종 green을 배포 담당 세션에서 한 번 회수한다.
+5. 운영 QA와 7일 관찰 뒤 같은 rollback artifact를 지정해 cleanup을 실행한다.
 
 ## 레드팀과 셀프심문
 

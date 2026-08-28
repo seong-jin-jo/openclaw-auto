@@ -1,84 +1,109 @@
 #!/usr/bin/env bash
-# Actual PostgreSQL S1 -> S2 -> S3 concurrency and migration recovery proof.
 set -euo pipefail
 
 BASE_URL="${DATABASE_URL:-}"
-if [ -z "$BASE_URL" ]; then
-  echo "ERROR: DATABASE_URL is required" >&2
-  exit 2
-fi
-if ! command -v psql >/dev/null 2>&1; then
-  echo "ERROR: psql is required" >&2
-  exit 2
-fi
+[ -n "$BASE_URL" ] || { echo "ERROR: DATABASE_URL is required" >&2; exit 2; }
+command -v psql >/dev/null 2>&1 || { echo "ERROR: psql is required" >&2; exit 2; }
 
 DASHBOARD_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DB_NAME="osmu_matrix_${$}_$(date +%s)"
-DB_BASE="${BASE_URL%/*}"
-MATRIX_URL="$DB_BASE/$DB_NAME"
+MATRIX_URL="${BASE_URL%/*}/$DB_NAME"
+BASE_DATABASE="${BASE_URL##*/}"; BASE_DATABASE="${BASE_DATABASE%%\?*}"
 TMP_DIR="$(mktemp -d)"
+RUNNER_COMMIT="$(git -C "$DASHBOARD_DIR/.." rev-parse HEAD)"
+APP_DIGEST="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+PREVIOUS_DIGEST="sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 
+raw="${BASE_URL#*://}"; credentials="${raw%%@*}"; host_path="${raw#*@}"
+host_port="${host_path%%/*}"; user_encoded="${credentials%%:*}"; password_encoded="${credentials#*:}"
+export PGUSER="$(printf '%b' "${user_encoded//%/\\x}")" PGPASSWORD="$(printf '%b' "${password_encoded//%/\\x}")"
+export PGHOST="${host_port%:*}" PGPORT="${host_port##*:}"
+unset raw credentials host_path host_port user_encoded password_encoded
+
+base_psql() { PGDATABASE="$BASE_DATABASE" psql -X -q -v ON_ERROR_STOP=1 "$@"; }
+matrix_psql() { PGDATABASE="$DB_NAME" psql -X -q -v ON_ERROR_STOP=1 "$@"; }
 cleanup() {
-  psql "$BASE_URL" -X -q -v ON_ERROR_STOP=1 -c "DROP DATABASE IF EXISTS \"$DB_NAME\" WITH (FORCE)" >/dev/null || true
+  base_psql -c "DROP DATABASE IF EXISTS \"$DB_NAME\" WITH (FORCE)" >/dev/null || true
   rm -rf "$TMP_DIR"
 }
 trap cleanup EXIT
 
-psql "$BASE_URL" -X -q -v ON_ERROR_STOP=1 -c "CREATE DATABASE \"$DB_NAME\""
+run_phase() {
+  DATABASE_URL="$MATRIX_URL" RUNNER_COMMIT="$RUNNER_COMMIT" \
+    VERIFIED_APP_IMAGE_DIGEST="$APP_DIGEST" VERIFIED_APP_COMMIT="$RUNNER_COMMIT" \
+    ROLLBACK_MANIFEST_PATH="${ROLLBACK_MANIFEST_PATH:-}" \
+    ROLLBACK_MANIFEST_SHA256="${ROLLBACK_MANIFEST_SHA256:-}" \
+    bash "$DASHBOARD_DIR/db/run-migrations.sh" "$1"
+}
 
-psql "$MATRIX_URL" -X -q -v ON_ERROR_STOP=1 <<'SQL'
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-DO $role$
+base_psql -c "CREATE DATABASE \"$DB_NAME\""
+run_phase bootstrap
+run_phase apply-legacy
+
+# Fresh S3를 old-schema S1으로 되돌려 실제 upgrade path를 시험한다.
+matrix_psql <<'SQL'
+ALTER TABLE public.studio_generation_idempotency
+  DROP CONSTRAINT uq_studio_generation_idempotency_member_operation_key,
+  ADD CONSTRAINT uq_studio_generation_idempotency_tenant_member_operation_key
+    UNIQUE (tenant_id,member_id,operation,idempotency_key);
+ALTER TABLE public.studio_free_regeneration_uses
+  DROP CONSTRAINT uq_studio_free_regeneration_member_date,
+  ADD CONSTRAINT uq_studio_free_regeneration_tenant_member_date
+    UNIQUE (tenant_id,member_id,local_date);
+INSERT INTO public.tenants(id,slug,name,status) VALUES
+  ('11111111-1111-4111-8111-111111111111','matrix-a','Matrix A','active'),
+  ('22222222-2222-4222-8222-222222222222','matrix-b','Matrix B','active');
+INSERT INTO public.studio_generation_jobs
+  (id,tenant_id,member_id,status,candidates,layer_revisions,time_zone,request_payload,created_at)
+VALUES
+  ('11111111-1111-4111-8111-111111111112','11111111-1111-4111-8111-111111111111','member-global','succeeded','[]','[]','UTC','{}',now()),
+  ('22222222-2222-4222-8222-222222222223','22222222-2222-4222-8222-222222222222','member-global','succeeded','[]','[]','UTC','{}',now());
+SQL
+
+run_phase expand-fk
+run_phase expand-guard
+run_phase preflight
+
+# FK migration proof: workspace deletion must preserve the UTC quota ledger.
+matrix_psql <<'SQL'
+INSERT INTO public.tenants(id,slug,name,status)
+VALUES ('33333333-3333-4333-8333-333333333333','matrix-delete','Matrix delete','active');
+INSERT INTO public.studio_generation_jobs
+  (id,tenant_id,member_id,status,candidates,layer_revisions,time_zone,request_payload,created_at)
+VALUES
+  ('33333333-3333-4333-8333-333333333334','33333333-3333-4333-8333-333333333333','fk-member','succeeded','[]','[]','UTC','{}',now()),
+  ('33333333-3333-4333-8333-333333333335','33333333-3333-4333-8333-333333333333','fk-member','succeeded','[]','[]','UTC','{}',now());
+INSERT INTO public.studio_free_regeneration_uses
+  (tenant_id,member_id,local_date,original_job_id,replacement_job_id)
+VALUES
+  ('33333333-3333-4333-8333-333333333333','fk-member','2026-08-29',
+   '33333333-3333-4333-8333-333333333334','33333333-3333-4333-8333-333333333335');
+DELETE FROM public.tenants WHERE id='33333333-3333-4333-8333-333333333333';
+DO $proof$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='osmu_service') THEN
-    CREATE ROLE osmu_service NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
+  IF NOT EXISTS (SELECT 1 FROM public.studio_free_regeneration_uses WHERE member_id='fk-member' AND tenant_id IS NULL) THEN
+    RAISE EXCEPTION 'quota ledger was deleted with tenant';
   END IF;
 END
-$role$;
-CREATE TABLE public.tenants (id UUID PRIMARY KEY);
-CREATE TABLE public.studio_generation_jobs (
-  id UUID PRIMARY KEY,
-  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  member_id TEXT NOT NULL,
-  UNIQUE (tenant_id,id)
-);
-CREATE TABLE public.studio_generation_idempotency (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  member_id TEXT NOT NULL,
-  operation TEXT NOT NULL,
-  idempotency_key TEXT NOT NULL,
-  request_hash CHAR(64) NOT NULL,
-  job_id UUID NOT NULL,
-  response_payload JSONB NOT NULL,
-  CONSTRAINT uq_studio_generation_idempotency_tenant_member_operation_key
-    UNIQUE (tenant_id,member_id,operation,idempotency_key)
-);
-CREATE TABLE public.studio_free_regeneration_uses (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID,
-  member_id TEXT NOT NULL,
-  local_date DATE NOT NULL,
-  original_job_id UUID,
-  replacement_job_id UUID,
-  CONSTRAINT uq_studio_free_regeneration_tenant_member_date
-    UNIQUE (tenant_id,member_id,local_date)
-);
-INSERT INTO public.tenants(id) VALUES
-  ('11111111-1111-4111-8111-111111111111'),
-  ('22222222-2222-4222-8222-222222222222');
+$proof$;
+DELETE FROM public.studio_free_regeneration_uses WHERE member_id='fk-member';
 SQL
 
 insert_generation() {
-  local tenant="$1" key="$2"
-  psql "$MATRIX_URL" -X -qAt -v ON_ERROR_STOP=1 -v tenant="$tenant" -v key="$key" <<'SQL'
+  local tenant="$1" key="$2" job
+  if [ "$tenant" = '11111111-1111-4111-8111-111111111111' ]; then
+    job='11111111-1111-4111-8111-111111111112'
+  else
+    job='22222222-2222-4222-8222-222222222223'
+  fi
+  PGDATABASE="$DB_NAME" psql -X -qAt -v ON_ERROR_STOP=1 -v tenant="$tenant" -v key="$key" -v job="$job" <<'SQL'
 BEGIN;
 SET LOCAL statement_timeout='5000ms';
 SET LOCAL lock_timeout='1500ms';
+SELECT pg_sleep(0.1);
 INSERT INTO public.studio_generation_idempotency
   (tenant_id,member_id,operation,idempotency_key,request_hash,job_id,response_payload)
-VALUES
-  (:'tenant'::uuid,'member-global','generation.create',:'key',repeat('a',64),gen_random_uuid(),'{}'::jsonb)
+VALUES (:'tenant'::uuid,'member-global','generation.create',:'key',repeat('a',64),:'job'::uuid,'{}')
 ON CONFLICT DO NOTHING RETURNING id;
 COMMIT;
 SQL
@@ -86,14 +111,14 @@ SQL
 
 insert_quota() {
   local tenant="$1"
-  psql "$MATRIX_URL" -X -qAt -v ON_ERROR_STOP=1 -v tenant="$tenant" <<'SQL'
+  PGDATABASE="$DB_NAME" psql -X -qAt -v ON_ERROR_STOP=1 -v tenant="$tenant" <<'SQL'
 BEGIN;
 SET LOCAL statement_timeout='5000ms';
 SET LOCAL lock_timeout='1500ms';
+SELECT pg_sleep(0.1);
 INSERT INTO public.studio_free_regeneration_uses
   (tenant_id,member_id,local_date,original_job_id,replacement_job_id)
-VALUES
-  (:'tenant'::uuid,'member-global','2026-08-29',gen_random_uuid(),gen_random_uuid())
+VALUES (:'tenant'::uuid,'member-global','2026-08-29',NULL,NULL)
 ON CONFLICT DO NOTHING RETURNING id;
 COMMIT;
 SQL
@@ -101,69 +126,84 @@ SQL
 
 assert_one() {
   local table="$1" where="$2" label="$3" count
-  count="$(psql "$MATRIX_URL" -X -qAt -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM public.$table WHERE $where")"
-  if [ "$count" != "1" ]; then
-    echo "FAIL $label expected=1 actual=$count" >&2
-    exit 1
-  fi
+  count="$(PGDATABASE="$DB_NAME" psql -X -qAt -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM public.$table WHERE $where")"
+  [ "$count" = "1" ] || { echo "FAIL $label expected=1 actual=$count" >&2; exit 1; }
   echo "PASS $label count=1"
 }
 
 run_race() {
-  local state="$1" key="$2"
-  insert_generation '11111111-1111-4111-8111-111111111111' "$key" >"$TMP_DIR/${state}-g1" &
-  local p1=$!
-  insert_generation '22222222-2222-4222-8222-222222222222' "$key" >"$TMP_DIR/${state}-g2" &
-  local p2=$!
-  wait "$p1" "$p2"
+  local state="$1" key="$2" p1 p2
+  insert_generation '11111111-1111-4111-8111-111111111111' "$key" >"$TMP_DIR/${state}-g1" 2>&1 & p1=$!
+  insert_generation '22222222-2222-4222-8222-222222222222' "$key" >"$TMP_DIR/${state}-g2" 2>&1 & p2=$!
+  wait "$p1" || { cat "$TMP_DIR/${state}-g1" >&2; echo "FAIL $state generation request 1" >&2; exit 1; }
+  wait "$p2" || { cat "$TMP_DIR/${state}-g2" >&2; echo "FAIL $state generation request 2" >&2; exit 1; }
   assert_one studio_generation_idempotency "member_id='member-global' AND idempotency_key='$key'" "$state generation cross-tenant race"
 
-  psql "$MATRIX_URL" -X -q -v ON_ERROR_STOP=1 -c "DELETE FROM public.studio_free_regeneration_uses" >/dev/null
-  insert_quota '11111111-1111-4111-8111-111111111111' >"$TMP_DIR/${state}-q1" &
-  p1=$!
-  insert_quota '22222222-2222-4222-8222-222222222222' >"$TMP_DIR/${state}-q2" &
-  p2=$!
-  wait "$p1" "$p2"
+  matrix_psql -c "DELETE FROM public.studio_free_regeneration_uses WHERE member_id='member-global'" >/dev/null
+  insert_quota '11111111-1111-4111-8111-111111111111' >"$TMP_DIR/${state}-q1" 2>&1 & p1=$!
+  insert_quota '22222222-2222-4222-8222-222222222222' >"$TMP_DIR/${state}-q2" 2>&1 & p2=$!
+  wait "$p1" || { cat "$TMP_DIR/${state}-q1" >&2; echo "FAIL $state quota request 1" >&2; exit 1; }
+  wait "$p2" || { cat "$TMP_DIR/${state}-q2" >&2; echo "FAIL $state quota request 2" >&2; exit 1; }
   assert_one studio_free_regeneration_uses "member_id='member-global' AND local_date='2026-08-29'" "$state quota cross-tenant race"
 }
 
-# S1 guard is repeatable and enforces member scope before member indexes exist.
-psql "$MATRIX_URL" -X -q -v ON_ERROR_STOP=1 -f "$DASHBOARD_DIR/db/migrations/20260829_020_generation_guard_expand.sql"
-psql "$MATRIX_URL" -X -q -v ON_ERROR_STOP=1 -f "$DASHBOARD_DIR/db/migrations/20260829_020_generation_guard_expand.sql"
-psql "$MATRIX_URL" -X -qAt -v ON_ERROR_STOP=1 <<'SQL' | grep -qx 't|t|t'
-SELECT
-  pg_get_userbyid(p.proowner)='osmu_generation_guard_owner',
-  p.proconfig @> ARRAY['search_path=pg_catalog, pg_temp'],
-  NOT has_function_privilege('public', p.oid, 'EXECUTE')
-FROM pg_proc p
-WHERE p.oid='public.guard_studio_generation_idempotency_member_scope()'::regprocedure;
-SQL
 run_race S1 matrix-s1
 
-# Simulate partial E3: valid indexes exist but are not attached. Migration must resume and attach.
-psql "$MATRIX_URL" -X -q -v ON_ERROR_STOP=1 -c "CREATE UNIQUE INDEX CONCURRENTLY uq_studio_generation_idempotency_member_operation_key ON public.studio_generation_idempotency(member_id,operation,idempotency_key)"
-psql "$MATRIX_URL" -X -q -v ON_ERROR_STOP=1 -c "CREATE UNIQUE INDEX CONCURRENTLY uq_studio_free_regeneration_member_date ON public.studio_free_regeneration_uses(member_id,local_date)"
-psql "$MATRIX_URL" -X -q -v ON_ERROR_STOP=1 -f "$DASHBOARD_DIR/db/migrations/20260829_030_member_unique_expand.sql"
-psql "$MATRIX_URL" -X -q -v ON_ERROR_STOP=1 -f "$DASHBOARD_DIR/db/migrations/20260829_030_member_unique_expand.sql"
-psql "$MATRIX_URL" -X -q -v ON_ERROR_STOP=1 -c "DELETE FROM public.studio_generation_idempotency; DELETE FROM public.studio_free_regeneration_uses" >/dev/null
+# Wrong-definition must hard-stop without deleting the operator-owned index.
+matrix_psql -c "CREATE UNIQUE INDEX uq_studio_free_regeneration_member_date ON public.studio_free_regeneration_uses(member_id,local_date,tenant_id)"
+if run_phase expand-member >"$TMP_DIR/wrong-definition" 2>&1; then
+  echo "FAIL wrong-definition index was accepted" >&2; exit 1
+fi
+grep -q 'definition drift requires manual recovery' "$TMP_DIR/wrong-definition"
+echo "PASS wrong-definition index hard stop"
+matrix_psql -c "DROP INDEX public.uq_studio_free_regeneration_member_date"
+
+# Failed concurrent build leaves invalid index. The next approved retry must drop and rebuild it.
+matrix_psql <<'SQL'
+ALTER TABLE public.studio_generation_idempotency DISABLE TRIGGER trg_studio_generation_member_guard;
+INSERT INTO public.studio_generation_idempotency
+  (tenant_id,member_id,operation,idempotency_key,request_hash,job_id,response_payload)
+VALUES
+  ('11111111-1111-4111-8111-111111111111','invalid-member','generation.create','invalid-key',repeat('a',64),'11111111-1111-4111-8111-111111111112','{}'),
+  ('22222222-2222-4222-8222-222222222222','invalid-member','generation.create','invalid-key',repeat('a',64),'22222222-2222-4222-8222-222222222223','{}');
+SQL
+if matrix_psql -c "CREATE UNIQUE INDEX CONCURRENTLY uq_studio_generation_idempotency_member_operation_key ON public.studio_generation_idempotency(member_id,operation,idempotency_key)" >"$TMP_DIR/invalid-build" 2>&1; then
+  echo "FAIL duplicate concurrent index build unexpectedly succeeded" >&2; exit 1
+fi
+matrix_psql <<'SQL'
+DELETE FROM public.studio_generation_idempotency
+WHERE id IN (SELECT id FROM public.studio_generation_idempotency WHERE member_id='invalid-member' ORDER BY id OFFSET 1);
+ALTER TABLE public.studio_generation_idempotency ENABLE TRIGGER trg_studio_generation_member_guard;
+SQL
+run_phase expand-member
+echo "PASS invalid concurrent index drop and rebuild recovery"
 run_race S2 matrix-s2
 
-# C1 is repeatable and converges to member-only S3 while preserving rollback indexes.
-psql "$MATRIX_URL" -X -q -v ON_ERROR_STOP=1 -f "$DASHBOARD_DIR/db/migrations/20260829_040_tenant_unique_contract.sql"
-psql "$MATRIX_URL" -X -q -v ON_ERROR_STOP=1 -f "$DASHBOARD_DIR/db/migrations/20260829_040_tenant_unique_contract.sql"
-psql "$MATRIX_URL" -X -q -v ON_ERROR_STOP=1 -c "DELETE FROM public.studio_generation_idempotency; DELETE FROM public.studio_free_regeneration_uses" >/dev/null
+run_phase prepare-rollback
+export VERIFIED_APP_IMAGE_DIGEST="$APP_DIGEST" VERIFIED_APP_COMMIT="$RUNNER_COMMIT"
+export PREVIOUS_COMPATIBLE_IMAGE_DIGEST="$PREVIOUS_DIGEST" ROLLBACK_DEADLINE_UTC='2099-01-01T00:00:00Z'
+export DATABASE_URL="$MATRIX_URL" ROLLBACK_MANIFEST_PATH="$TMP_DIR/rollback-future.json"
+bash "$DASHBOARD_DIR/db/write-rollback-manifest.sh" "$ROLLBACK_MANIFEST_PATH"
+export ROLLBACK_MANIFEST_SHA256="$(sha256sum "$ROLLBACK_MANIFEST_PATH" | awk '{print $1}')"
+
+run_phase contract-generation
+if run_phase preflight >"$TMP_DIR/mixed-preflight" 2>&1; then echo "FAIL mixed C1 state passed general preflight" >&2; exit 1; fi
+run_phase contract-quota
 run_race S3 matrix-s3
 
-fingerprint="$(psql "$MATRIX_URL" -X -qAt -v ON_ERROR_STOP=1 <<'SQL'
-SELECT
-  NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='uq_studio_generation_idempotency_tenant_member_operation_key')
-  AND EXISTS (SELECT 1 FROM pg_constraint WHERE conname='uq_studio_generation_idempotency_member_operation_key')
-  AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='uq_studio_free_regeneration_tenant_member_date')
-  AND EXISTS (SELECT 1 FROM pg_constraint WHERE conname='uq_studio_free_regeneration_member_date');
-SQL
-)"
-if [ "$fingerprint" != "t" ]; then
-  echo "FAIL final S3 fingerprint" >&2
-  exit 1
-fi
-echo "PASS final S3 fingerprint and repeatability"
+bash "$DASHBOARD_DIR/db/rollback-migration.sh" rollback-quota
+bash "$DASHBOARD_DIR/db/rollback-migration.sh" rollback-generation
+run_phase preflight
+echo "PASS rollback manifest and tenant constraint reattach"
+
+# Re-contract, then prove cleanup is deadline-gated and repeatable.
+run_phase prepare-rollback
+export ROLLBACK_DEADLINE_UTC='2000-01-01T00:00:00Z' ROLLBACK_MANIFEST_PATH="$TMP_DIR/rollback-expired.json"
+bash "$DASHBOARD_DIR/db/write-rollback-manifest.sh" "$ROLLBACK_MANIFEST_PATH"
+export ROLLBACK_MANIFEST_SHA256="$(sha256sum "$ROLLBACK_MANIFEST_PATH" | awk '{print $1}')"
+run_phase contract-generation
+run_phase contract-quota
+run_phase cleanup
+run_phase cleanup
+run_phase preflight
+echo "PASS final S3 fingerprint, rollback, cleanup, and repeatability"

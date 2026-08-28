@@ -22,7 +22,7 @@ describe("OSMU explicit migration runner 계약", () => {
   it("GEN-MIG-01 정상: manifest의 모든 SQL checksum이 실제 파일과 일치한다", () => {
     for (const [id, phase, file, expected] of manifestRows()) {
       expect(id).toBeTruthy();
-      expect(["baseline", "legacy", "expand-fk", "expand-guard", "expand-member", "contract-generation", "contract-quota", "cleanup"]).toContain(phase);
+      expect(["baseline", "legacy", "expand-fk", "expand-guard", "expand-member", "prepare-rollback", "contract-generation", "contract-quota", "cleanup"]).toContain(phase);
       const actual = crypto.createHash("sha256").update(readFileSync(resolve(dbRoot, file))).digest("hex");
       expect(actual, `${id} checksum`).toBe(expected);
     }
@@ -79,6 +79,7 @@ describe("OSMU explicit migration runner 계약", () => {
     expect(manifest).toContain("contract-quota\tmigrations/20260829_045_quota_tenant_unique_contract.sql");
     expect(migrationWorkflow).toContain("- contract-generation");
     expect(migrationWorkflow).toContain("- contract-quota");
+    expect(migrationWorkflow).toContain("- prepare-rollback");
   });
 
   it("GEN-MIG-08 거절: FK 수명 migration과 기존 필수 migration은 explicit manifest로만 적용한다", () => {

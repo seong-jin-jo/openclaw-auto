@@ -6,6 +6,7 @@ import { getDatabaseUrl } from "../isolation/_env";
 type Sql = ReturnType<typeof postgres>;
 
 const previousSecretKey = process.env.OSMU_SECRET_KEY;
+const previousDatabaseUrl = process.env.DATABASE_URL;
 
 async function tryConnect(): Promise<Sql | null> {
   const url = getDatabaseUrl();
@@ -24,6 +25,8 @@ async function tryConnect(): Promise<Sql | null> {
 afterEach(() => {
   if (previousSecretKey === undefined) delete process.env.OSMU_SECRET_KEY;
   else process.env.OSMU_SECRET_KEY = previousSecretKey;
+  if (previousDatabaseUrl === undefined) delete process.env.DATABASE_URL;
+  else process.env.DATABASE_URL = previousDatabaseUrl;
 });
 
 describe("channel_accounts first-account concurrency (live Postgres)", () => {
@@ -43,6 +46,7 @@ describe("channel_accounts first-account concurrency (live Postgres)", () => {
     }
 
     const provider = `qa-concurrency-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    process.env.DATABASE_URL = getDatabaseUrl()!;
     process.env.OSMU_SECRET_KEY = "qa-channel-account-concurrency-key";
 
     try {
