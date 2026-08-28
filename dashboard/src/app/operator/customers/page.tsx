@@ -140,7 +140,7 @@ export default function OperatorCustomersPage() {
   const [credentialInputs, setCredentialInputs] = useState<Record<string, Record<string, string>>>({});
   const [visibleCredentialInputs, setVisibleCredentialInputs] = useState<Record<string, Record<string, boolean>>>({});
   const [revealedValues, setRevealedValues] = useState<Record<string, Record<string, string>>>({});
-  // F4(fdd-r02): 14개 플랫폼 폼을 기본 접힘으로 둔다. 펼친 것만 카드 본문을 렌더해 스크롤 압박을 줄인다.
+  // 등록된 OAuth provider를 기본 접힘으로 둔다. 펼친 카드만 본문을 렌더해 스크롤 압박을 줄인다.
   const [expandedProviders, setExpandedProviders] = useState<Record<string, boolean>>({});
   const toggleProviderExpanded = (provider: string) =>
     setExpandedProviders((prev) => ({ ...prev, [provider]: !prev[provider] }));
