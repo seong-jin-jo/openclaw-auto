@@ -330,12 +330,21 @@ export async function POST(request: Request) {
       resourceKey: incidentResourceKey,
       context: { platform: normalizePlatform(platform), reason, httpStatus },
     });
-  } else {
+  } else if (!firstCommentResult || firstCommentResult.ok) {
     void reportRecovery?.({
       workspaceId: tenant_id,
       category: "publish_failed",
       source: normalizeIncidentSource(platform),
       resourceKey: incidentResourceKey,
+    });
+  } else {
+    const { reason, httpStatus } = classifyPublishFailure(firstCommentResult.error);
+    void reportFailure({
+      event: "publish_failed",
+      severity: "warning",
+      workspaceId: tenant_id,
+      resourceKey: incidentResourceKey,
+      context: { platform: normalizePlatform(platform), reason, httpStatus },
     });
   }
 
