@@ -767,7 +767,7 @@ export default function StudioPage() {
             <div><b className="block text-body text-text">발행 담당</b><span className="text-caption text-success">지금 대기 중</span></div>
           </div>
           <div className="space-y-stack bg-surface-2 p-stack">
-            <div className="max-w-[90%] rounded-surface rounded-tl-chip border border-border bg-surface p-stack text-body-sm text-text">
+            <div className="max-w-[90%] rounded-surface rounded-tl-chip border border-border bg-surface p-stack text-body-sm text-text" data-empty-next={!text ? "publish" : undefined}>
               {text ? `${selectedPublishTargets(includes).length}곳이 선택되어 있습니다.` : "발행할 작업물을 먼저 가져와 주세요."}
             </div>
             {text ? (
@@ -776,7 +776,9 @@ export default function StudioPage() {
                 <Button size="sm" onClick={() => setShowSchedule(true)}>시간은 내가 골라 줘</Button>
                 <Button size="sm" onClick={requestReview}>먼저 검토받기</Button>
               </div>
-            ) : null}
+            ) : (
+              <Button variant="primary" onClick={() => changeRoom("create")}>생성실 열기</Button>
+            )}
           </div>
           <form onSubmit={submitPublishChat} className="flex gap-stack-tight border-t border-border p-stack">
             <input aria-label="발행 담당에게 명령" value={publishChatDraft} onChange={(event) => setPublishChatDraft(event.target.value)} placeholder="직접 쓰셔도 됩니다" className="min-h-control-touch min-w-0 flex-1 rounded-control border border-border bg-surface px-stack text-body-sm text-text" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/shared/Button";
 import { Field } from "@/components/shared/Field";
 import { Stack } from "@/components/shared/Stack";
@@ -42,6 +42,7 @@ const CREATE_EXAMPLES = [
 ] as const;
 
 export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBranch = "text_image", onContentBranchChange, onTopicChange, onOpenLearning, onCandidateSelect, onOpenEditor }: CreateRoomProps) {
+  const topicInputRef = useRef<HTMLInputElement>(null);
   const [purpose, setPurpose] = useState("");
   const [audience, setAudience] = useState("");
   const [rightsConfirmed, setRightsConfirmed] = useState(false);
@@ -129,14 +130,15 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
         </div>
         <AssistantPanel title="생성 담당">
           <Stack gap={16}>
-            <div className="max-w-[90%] rounded-surface rounded-tl-control border border-border bg-surface p-stack text-body-sm text-text">{selectedCandidate ? "선택한 구조 초안을 편집실로 옮길 수 있습니다. 실제 미디어 생성은 준비 중입니다." : candidates.length ? "A, B, C 중 마음에 드는 방향을 골라 주세요." : "이번에 만들 종류와 주제, 목적, 대상을 알려 주세요."}</div>
+            <div className="max-w-[90%] rounded-surface rounded-tl-control border border-border bg-surface p-stack text-body-sm text-text" data-empty-next={!candidates.length ? "create" : undefined}>{selectedCandidate ? "선택한 구조 초안을 편집실로 옮길 수 있습니다. 실제 미디어 생성은 준비 중입니다." : candidates.length ? "A, B, C 중 마음에 드는 방향을 골라 주세요." : "먼저 주제를 적고 후보 세 장을 만드세요."}</div>
             {!candidates.length ? <>
+              <Button variant="primary" onClick={() => topicInputRef.current?.focus()}>주제부터 적기</Button>
               <div className="space-y-stack rounded-surface border border-border bg-surface p-stack">
                 <fieldset><legend className="mb-stack-tight text-caption font-semibold text-text">만들 종류</legend><div className="flex flex-wrap gap-stack-tight">
                   <Button size="sm" variant={contentBranch === "video" ? "primary" : "secondary"} aria-pressed={contentBranch === "video"} onClick={() => onContentBranchChange?.("video")}>영상</Button>
                   <Button size="sm" variant={contentBranch === "text_image" ? "primary" : "secondary"} aria-pressed={contentBranch === "text_image"} onClick={() => onContentBranchChange?.("text_image")}>글·카드뉴스</Button>
                 </div><p className="mt-stack-tight break-keep text-caption text-subtle">음악 생성은 준비 중입니다.</p></fieldset>
-                <Field label="이번 주제" htmlFor="studio-topic"><input id="studio-topic" value={topic} onChange={(event) => onTopicChange(event.target.value)} placeholder="콘텐츠 주제 입력" className="w-full rounded-control border border-border bg-surface-2 px-stack text-body text-text" /></Field>
+                <Field label="이번 주제" htmlFor="studio-topic"><input ref={topicInputRef} id="studio-topic" value={topic} onChange={(event) => onTopicChange(event.target.value)} placeholder="콘텐츠 주제 입력" className="w-full rounded-control border border-border bg-surface-2 px-stack text-body text-text" /></Field>
                 <Field label="목적" htmlFor="studio-purpose"><input id="studio-purpose" value={purpose} onChange={(event) => setPurpose(event.target.value)} className="w-full rounded-control border border-border bg-surface-2 px-stack text-body text-text" /></Field>
                 <Field label="대상" htmlFor="studio-audience"><input id="studio-audience" value={audience} onChange={(event) => setAudience(event.target.value)} className="w-full rounded-control border border-border bg-surface-2 px-stack text-body text-text" /></Field>
                 <label className="flex items-start gap-stack-tight text-caption text-muted"><input type="checkbox" checked={rightsConfirmed} onChange={(event) => setRightsConfirmed(event.target.checked)} />소재 권리를 확인했습니다</label>
