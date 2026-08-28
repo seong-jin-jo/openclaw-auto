@@ -335,6 +335,8 @@ describe("proxy 테넌트 토큰(인증모델 b) 분기 — 실검증", () => {
     "/api/channels/threads/accounts/account-1/default",
     "/api/suggestions/enqueue",
     "/api/tiktok/creator-info",
+    // Regression: API-READ-20260829-02. UI가 polling하는 경로가 모든 인증 조합에서 막혔다.
+    "/api/tiktok/publish-status",
   ])("BE-V63-02 고객 경계 정상 경로: osmu_ 토큰 + tenant API(%s)는 운영자 전용으로 막히지 않는다", async (path) => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("DASHBOARD_AUTH_TOKEN", "secret-abc");

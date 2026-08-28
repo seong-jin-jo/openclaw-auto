@@ -99,6 +99,7 @@ const TENANT_AWARE_PATHS = [
   "/api/suggestions/enqueue",
   "/api/threads-username",
   "/api/tiktok/creator-info",
+  "/api/tiktok/publish-status",
   "/api/trend-report",
   "/api/usage/record",
   "/api/usage",
