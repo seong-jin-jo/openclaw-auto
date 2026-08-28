@@ -10,6 +10,20 @@ Studio is the "power user" surface for one-off or assisted generation, complemen
 - 반환되는 후보는 구조화된 스토리보드이다. 실제 이미지·영상 provider 생성 결과가 아니다.
 - 현재 identity와 job ledger는 명시적 development mode와 단일 process 메모리 runtime으로만 열린다. production에서는 fail closed한다. R104, R105를 위한 신규 DB table과 object storage signing adapter는 기술설계 합의 전까지 미구현이다.
 
+## 교차검수 안전 계약, 2026-08-28
+
+- 일반 생성과 무료 재생성은 같은 멱등 키 문자열을 받아도 서로 다른 작업 이름 공간을 쓴다.
+  사용자가 내부 키 모양을 먼저 사용해도 무료 재생성은 원인 불명 오류를 내지 않는다.
+- 답글 공급자 응답을 확인하지 못하면 청구를 `status-unknown`으로 보존한다. 자동 lease 회수로
+  같은 공개 답글을 다시 보내지 않고 운영 확인 대상으로 남긴다.
+- 같은 작업 공간과 댓글에 들어온 좋아요 요청은 PostgreSQL transaction 자문 잠금으로 직렬화한다.
+  먼저 성공한 요청만 공급자를 호출하고 뒤 요청은 저장된 좋아요 상태를 재생한다.
+- 발행 장애와 복구는 계정 단위 지문으로 맞춘다. 한 계정의 성공이 다른 계정의 열린 장애를 닫지 않는다.
+- 본문 발행 뒤 첫 댓글이 실패하면 전체 성공이나 정상 복구로 세지 않는다. 저장된 멱등 응답의
+  단순 재생도 새 복구 사건으로 세지 않는다.
+- 온보딩은 첫 콘텐츠 생성을 먼저 허용하면서 그 다음 행동으로 브랜드 문서 연결을 계속 보여 준다.
+  업종과 콘텐츠 갈래 선택은 새로고침 뒤 복원하며 손상된 자동저장 값은 선택으로 사용하지 않는다.
+
 ## Purpose in the SaaS
 - Quick idea → publishable assets (text variants + visuals + shorts video).
 - Experiment with tones, wiki facts, or new hooks.

@@ -2,19 +2,33 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
-## 2026-08-28 NG: Opus 교차검수 잔여 결함 재검증 착수
+## 2026-08-28 PASS: Opus 교차검수 전 항목 위험도순 재검증
 
-| 우선순위 | 시험 항목 | 현재 관찰 | 판정 |
-|---|---|---|---|
-| P0 돈 | OSMU-BLOCK-M2 | 무료 재생성 몫 예약 뒤 내부 멱등 기록 삽입은 충돌 처리가 없어 사용자 생성 키와 충돌하면 원인 불명 오류가 날 수 있음 | NG |
-| P0 외부 중복 | OSMU-BLOCK-C4/C5 | 답글 응답 불명 청구도 lease 만료 뒤 다시 획득 가능하고, 좋아요는 확인과 외부 실행 사이에 원자적 예약이 없음 | NG |
-| P1 거짓 복구 | OSMU-BLOCK-F2/F3 | 발행 성공 복구 신호가 계정 식별자 없이 같은 플랫폼 장애를 닫고, 첫 댓글 실패에도 복구 신호가 발생함 | NG |
-| P1 기본 흐름 | OSMU-BLOCK-D1 | 온보딩 API가 브랜드 위키 수를 계산하지만 체크리스트에서 브랜드 문서 항목이 빠져 있음 | NG |
-| P1 회귀 안전망 | OSMU-BLOCK-D2 | 입력 자동저장 구현은 복구됐으나 새로고침 복원 계약 테스트가 없어 재삭제를 먼저 잡지 못함 | NG |
+| 우선순위 | 시험 항목 | 수정 또는 재검증 결과 | 직접 증거 | 판정 |
+|---|---|---|---|---|
+| P0 돈 | OSMU-BLOCK-M1 | 무료 재생성 몫을 회원의 UTC 날짜로 고정 | `localhost:3456` Studio 계약 12/12. 반대 시간대 작업 중 무료 몫은 최대 한 번 | PASS |
+| P0 돈 | OSMU-BLOCK-M2 | 일반 생성과 무료 재생성의 멱등 작업 이름 공간을 분리 | 실제 PostgreSQL에서 내부 모양 키 선점 뒤 재생성 성공, 두 작업 이름 동시 보존 | PASS |
+| P0 격리 | OSMU-BLOCK-I1/I2 | 공장 쿼리의 tenant 조건과 transaction migration 유지 | 실제 PostgreSQL 공장 격리 및 경합 4건, 전체 계약 통과 | PASS |
+| P0 격리 | OSMU-BLOCK-I3 | 인증 오류를 API 오류 경계 안에서 처리 | `localhost:3456` 무효 bearer 댓글 요청 HTTP 401 | PASS |
+| P0 외부 중복 | OSMU-BLOCK-C1/C2 | 죽은 공장 실행을 lease로 회수하고 거짓 진행 상태 대신 이전 실행을 실패로 닫음 | 실제 앱 새 실행 HTTP 201, 이전 행 `failed`, 운영자 종료 HTTP 200 | PASS |
+| P0 외부 중복 | OSMU-BLOCK-C3 | 답글 청구에 15분 lease와 만료 회수 추가 | 실제 PostgreSQL에서 살아 있는 청구 거절, 만료 청구 회수 | PASS |
+| P0 외부 중복 | OSMU-BLOCK-C4 | 응답 불명 청구에 `status-unknown` 표식을 남겨 lease 재획득 차단 | 실제 PostgreSQL에서 만료시각 뒤에도 재청구 `conflict`. 공개 provider 시간 초과는 미검증 | 조건부 PASS |
+| P0 외부 중복 | OSMU-BLOCK-C5 | 같은 tenant와 댓글의 외부 좋아요 호출을 transaction 자문 잠금으로 직렬화 | 실제 PostgreSQL 동시 요청 2건에서 provider callback 1회, 실패 뒤 재시도 성공 | PASS |
+| P1 거짓 성공 | OSMU-BLOCK-F1 | 사람 개입 장애는 원장 저장 뒤에도 Slack 전달 | 격리 실앱 HTTP 200, DB `open`, 로컬 Slack webhook 1건 | PASS |
+| P1 거짓 성공 | OSMU-BLOCK-F2 | 발행 장애와 복구 지문에 계정 식별자 추가 | 실제 PostgreSQL에서 계정 B 복구 뒤 계정 A 장애 `open` 유지 | PASS |
+| P1 거짓 성공 | OSMU-BLOCK-F3 | 첫 댓글 실패를 복구가 아니라 발행 실패로 기록 | 발행 route 정상 및 거절 계약 2건, UI 부분 성공 계약 16건 | PASS |
+| P1 거짓 성공 | OSMU-BLOCK-F4 | 저장된 멱등 응답은 장애 복구 신호 없이 즉시 재생 | 재생 경로에서 실패 및 복구 호출 0건 계약 | PASS |
+| P1 기본 흐름 | OSMU-BLOCK-D1 | 첫 콘텐츠 다음에 브랜드 문서 연결 항목 복구, 생성 차단 없음 | 실제 브라우저 1440 화면에서 `브랜드 문서 연결` 노출, API 및 컴포넌트 3건 | PASS |
+| P1 기본 흐름 | OSMU-BLOCK-D2 | 자동저장 복원과 손상 값 거절 회귀 안전망 추가 | 새로고침 복원 및 깨진 JSON 거절 2건 | PASS |
 
-**재현 기준:** `docs/audit/osmu-cross-review-2026-08-28-opus.md`의 M2, C4, C5, F2,
-F3, D1, D2 시나리오를 사용한다. M1, I1~I3, C1~C3, F1, F4는 현재 소스와 기존
-증거를 다시 실행해 회귀 여부를 확인한다. 수정 전 PASS 기록만으로 종결하지 않는다.
+**전체 회귀:** `npm run test` 181파일 1,314건 통과, 조건부 6건 건너뜀.
+`npx tsc --noEmit`, `design-lint.sh dashboard/src`, `npm run build`가 통과했고 정적 경로
+174개를 생성했다. 기존 NFT 추적 경고 1건은 남았다. 실제 `localhost:3456`에서 기본 흐름
+11/11, Studio 계약 12/12, 숏폼 회수 2/2, 무효 댓글 인증 401, 네 방 4개 x 4폭,
+브라우저 401 0건, 콘솔 오류 0건을 관찰했다.
+
+**미검증 범위:** 실제 공개 채널에서 응답만 잃는 답글 시간 초과와 실제 좋아요 요청은
+계정과 provider fault injection이 없어 실행하지 않았다. 운영 배포도 하지 않았다.
 
 ## 2026-08-28 부분 PASS: OSMU 코드리뷰 P0·P1 수정 검증
 
