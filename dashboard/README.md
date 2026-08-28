@@ -33,6 +33,8 @@ Studio v1의 비용 안내와 작업 회수 시간은 선택 설정이다. 값�
 
 ## 빌드 & 배포
 
+PR CI는 로컬 환경파일 없이 Node.js 20과 PostgreSQL 16에서 TypeScript, production build, schema·seed·RLS, 전체 Vitest를 실행한다. 테스트는 개발 머신의 환경변수나 설치 명령에 기대지 않고 필요한 DB와 실행 도구를 자체 mock으로 제공해야 한다.
+
 ```bash
 npm run build                    # .next/ 생성
 node .next/standalone/server.js  # standalone 실행
