@@ -42,3 +42,15 @@ export function authHeaders(): Record<string, string> {
   const t = getAuthToken();
   return t ? { Authorization: `Bearer ${t}` } : {};
 }
+
+/** Keep customer reauthentication on customer-owned routes only. */
+export function safeCustomerReturnTo(value: string | null | undefined): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/operator")) {
+    return "/";
+  }
+  return value;
+}
+
+export function customerLoginUrl(returnTo: string | null | undefined): string {
+  return `/login?returnTo=${encodeURIComponent(safeCustomerReturnTo(returnTo))}`;
+}

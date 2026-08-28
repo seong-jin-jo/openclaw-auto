@@ -150,7 +150,13 @@ describe("Studio publish result integrity", () => {
       }
       return { data: undefined, mutate: vi.fn() };
     });
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ accounts: [] })));
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL | Request) => {
+      const platform = /\/api\/channels\/([^/]+)\/accounts/.exec(String(input))?.[1];
+      const connected = platform && ["threads", "x", "instagram"].includes(platform)
+        ? [{ id: `${platform}-account`, display_name: `${platform} 계정`, username: platform, is_default: true }]
+        : [];
+      return Response.json({ accounts: connected });
+    }));
   });
 
   afterEach(() => {
@@ -339,6 +345,23 @@ describe("Studio publish result integrity", () => {
         playbackSpeed: 1,
         voice: "차분한 남성",
       }))).toBe(true);
+  });
+
+  it("QA-PUBLISH-06 거절: 연결 계정이 0개면 모든 발행 선택과 실행을 잠그고 설정 연결을 안내한다", async () => {
+    restoreStudio(["threads", "x", "instagram"]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ accounts: [] })));
+
+    render(<StudioPage />);
+
+    expect(await screen.findByText("연결된 발행 계정이 없습니다.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "설정에서 채널 연결하기" })).toHaveAttribute("href", "/settings");
+    for (const label of ["Threads 발행", "X 발행", "Instagram 발행"]) {
+      expect(screen.getByRole("checkbox", { name: label })).toBeDisabled();
+      expect(screen.getByRole("checkbox", { name: label })).not.toBeChecked();
+    }
+    expect(screen.getByRole("button", { name: "0곳에 올리기" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "지금 발행하기" })).toBeDisabled();
+    expect(mocks.apiPost).not.toHaveBeenCalledWith("/api/publish", expect.anything());
   });
 
   it("FE3-PUBLISH-03 거절: 발행 이력은 발행실에 다시 노출하지 않는다", async () => {

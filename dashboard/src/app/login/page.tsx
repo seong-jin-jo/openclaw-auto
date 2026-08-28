@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createBrowserSupabase } from "@/lib/supabase";
-import { setAuthToken } from "@/lib/auth";
+import { safeCustomerReturnTo, setAuthToken } from "@/lib/auth";
 import { oauthErrorMessage } from "@/lib/oauth-errors";
 import { trackEvent } from "@/lib/analytics/events";
 
@@ -57,7 +57,7 @@ export default function LoginPage() {
           }
         }
         try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch { /* ignore */ }
-        window.location.href = "/";
+        window.location.href = safeCustomerReturnTo(new URLSearchParams(window.location.search).get("returnTo"));
       };
       sb.auth.getSession().then(({ data }) => {
         if (data.session) enter(data.session.access_token);
@@ -79,7 +79,8 @@ export default function LoginPage() {
     if (busy) return;
     setBusy(true);
     try {
-      const redirectTo = `${window.location.origin}/login`;
+      const returnTo = safeCustomerReturnTo(new URLSearchParams(window.location.search).get("returnTo"));
+      const redirectTo = `${window.location.origin}/login?returnTo=${encodeURIComponent(returnTo)}`;
       const r = await fetch(`/api/auth/google?redirect_to=${encodeURIComponent(redirectTo)}`);
       const d = (await r.json()) as { authUrl?: string; error?: string };
       if (!r.ok || !d.authUrl) {

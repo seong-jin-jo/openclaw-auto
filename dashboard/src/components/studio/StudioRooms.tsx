@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/shared/Button";
 import { Field } from "@/components/shared/Field";
 import { Stack } from "@/components/shared/Stack";
-import { requestStudioCandidates, type StudioGenerationCandidate } from "@/lib/studio/generation/client";
+import { regenerateStudioCandidates, requestStudioCandidates, type StudioGenerationCandidate } from "@/lib/studio/generation/client";
 import { getAuthToken } from "@/lib/auth";
 import {
   CARD_ASPECT_RATIOS,
@@ -21,8 +21,9 @@ import {
 } from "@/lib/studio/content-edit-format";
 
 export type CreateContentBranch = "text_image" | "video";
-export type EditContentKind = "video" | "card" | "audio";
+export type EditContentKind = "video" | "card" | "audio" | "text";
 const ONBOARDING_CONTENT_BRANCH_KEY = "studio_content_branch";
+const createInputStorageKey = (workspaceId: string) => `studio_create_input:${workspaceId}`;
 
 function AssistantPanel({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -63,6 +64,8 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
   const [candidates, setCandidates] = useState<StudioGenerationCandidate[]>([]);
   const [selected, setSelected] = useState<"A" | "B" | "C" | null>(null);
   const [loading, setLoading] = useState(false);
+  const generationInFlight = useRef(false);
+  const [inputHydratedFor, setInputHydratedFor] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const facts = useMemo(() => guide.trim() ? [guide.trim()] : [], [guide]);
   const learnedCount = [workspaceName, guide, purpose, audience].filter((value) => value?.trim()).length;
@@ -78,10 +81,42 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
     sessionStorage.removeItem(ONBOARDING_CONTENT_BRANCH_KEY);
   }, [onContentBranchChange]);
 
+  useEffect(() => {
+    setInputHydratedFor(null);
+    setPurpose("");
+    setAudience("");
+    setRightsConfirmed(false);
+    if (!workspaceId) return;
+    try {
+      const saved = JSON.parse(localStorage.getItem(createInputStorageKey(workspaceId)) || "null") as {
+        purpose?: string;
+        audience?: string;
+        rightsConfirmed?: boolean;
+      } | null;
+      setPurpose(saved?.purpose || "");
+      setAudience(saved?.audience || "");
+      setRightsConfirmed(saved?.rightsConfirmed === true);
+    } catch {
+      setPurpose("");
+      setAudience("");
+      setRightsConfirmed(false);
+    }
+    setInputHydratedFor(workspaceId);
+  }, [workspaceId]);
+
+  useEffect(() => {
+    if (!workspaceId || inputHydratedFor !== workspaceId) return;
+    try {
+      localStorage.setItem(createInputStorageKey(workspaceId), JSON.stringify({ purpose, audience, rightsConfirmed }));
+    } catch { /* 저장소 제한이면 현재 화면 상태만 유지 */ }
+  }, [audience, inputHydratedFor, purpose, rightsConfirmed, workspaceId]);
+
   async function generate() {
+    if (generationInFlight.current) return;
     setError(null);
     if (!workspaceId) { setError("작업 공간을 먼저 선택하세요"); return; }
     const token = getAuthToken();
+    generationInFlight.current = true;
     setLoading(true);
     try {
       const next = await requestStudioCandidates({ workspaceId, topic, purpose, audience, workspaceFacts: facts, forbiddenPhrases: [], materialRightsConfirmed: rightsConfirmed, contentBranch }, token);
@@ -90,6 +125,25 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "후보 생성에 실패했습니다");
     } finally {
+      generationInFlight.current = false;
+      setLoading(false);
+    }
+  }
+
+  async function regenerateAll() {
+    if (generationInFlight.current) return;
+    const jobId = candidates[0]?.generation_id;
+    if (!jobId) { setError("다시 만들 기존 후보를 찾지 못했습니다"); return; }
+    generationInFlight.current = true;
+    setLoading(true);
+    setError(null);
+    try {
+      setCandidates(await regenerateStudioCandidates(jobId, getAuthToken()));
+      setSelected(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "무료 재생성에 실패했습니다");
+    } finally {
+      generationInFlight.current = false;
       setLoading(false);
     }
   }
@@ -159,7 +213,10 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
               {!guide.trim() ? <Button onClick={onOpenLearning}>학습 정보 채우기</Button> : null}
               <Button variant="primary" onClick={generate} disabled={loading}>{loading ? "후보 만드는 중" : "후보 세 장 만들기"}</Button>
             </> : null}
-            {candidates.length && !selectedCandidate ? candidates.map((candidate) => <Button key={candidate.label} variant="secondary" onClick={() => choose(candidate)}>{candidate.label}안 선택</Button>) : null}
+            {candidates.length && !selectedCandidate ? <>
+              {candidates.map((candidate) => <Button key={candidate.label} variant="secondary" onClick={() => choose(candidate)}>{candidate.label}안 선택</Button>)}
+              <Button onClick={regenerateAll} disabled={loading}>{loading ? "다시 만드는 중" : "모두 거절하고 무료로 다시 만들기"}</Button>
+            </> : null}
             {selectedCandidate ? <Stack gap={8}><Button variant="primary" onClick={onOpenEditor}>편집실로 이동</Button><Button onClick={() => setSelected(null)}>후보 다시 보기</Button></Stack> : null}
             {error ? <p role="alert" className="text-caption text-danger">{error}</p> : null}
           </Stack>
@@ -238,23 +295,24 @@ function ToolIcon({ tool }: { tool: ToolName }) {
 }
 
 export function EditRoom({ lines, onLinesChange, kind = "video", previewReady = false, commandPanel, initialFormat, onFormatChange }: EditRoomProps) {
+  const formatKind = kind === "text" ? "card" : kind;
   const safeLines = lines.length ? lines : ["대사를 입력하세요"];
   const [activeLine, setActiveLine] = useState(0);
   const [activeTool, setActiveTool] = useState<ToolName>("비율");
   const [toolValues, setToolValues] = useState<ToolValues>(() => toolValuesFromFormat(
-    initialFormat?.kind === kind ? initialFormat : defaultContentEditFormat(kind),
+    initialFormat?.kind === formatKind ? initialFormat : defaultContentEditFormat(formatKind),
   ));
   const [visibleLines, setVisibleLines] = useState<boolean[]>(() => safeLines.map(() => true));
-  const selectedFormat = useMemo(() => formatFromToolValues(kind, toolValues), [kind, toolValues]);
+  const selectedFormat = useMemo(() => formatFromToolValues(formatKind, toolValues), [formatKind, toolValues]);
   const lastEmittedFormat = useRef("");
   useEffect(() => { setVisibleLines((current) => safeLines.map((_, index) => current[index] ?? true)); setActiveLine((current) => Math.min(current, safeLines.length - 1)); }, [safeLines.length]);
   useEffect(() => {
-    const nextFormat = initialFormat?.kind === kind ? initialFormat : defaultContentEditFormat(kind);
+    const nextFormat = initialFormat?.kind === formatKind ? initialFormat : defaultContentEditFormat(formatKind);
     if (JSON.stringify(nextFormat) !== lastEmittedFormat.current) {
       setToolValues(toolValuesFromFormat(nextFormat));
     }
     setActiveTool(kind === "audio" ? "목소리" : "비율");
-  }, [initialFormat, kind]);
+  }, [formatKind, initialFormat, kind]);
   useEffect(() => {
     lastEmittedFormat.current = JSON.stringify(selectedFormat);
     onFormatChange?.(selectedFormat);
@@ -266,9 +324,9 @@ export function EditRoom({ lines, onLinesChange, kind = "video", previewReady = 
   const selectedLine = safeLines[activeLine] ?? "";
   const silenceIndexes = safeLines.map((line, index) => (/…|\.{3}|^\s*$/.test(line) ? index : -1)).filter((index) => index >= 0);
   const visibleSilences = silenceIndexes.filter((index) => visibleLines[index]).length;
-  const tools = kind === "card" ? CARD_TOOLS : kind === "audio" ? AUDIO_TOOLS : VIDEO_TOOLS;
-  const outlineTitle = kind === "card" ? "장 목차" : kind === "audio" ? "곡 목차" : "영상 목차";
-  const unit = kind === "card" ? "장" : "장면";
+  const tools = kind === "card" || kind === "text" ? CARD_TOOLS : kind === "audio" ? AUDIO_TOOLS : VIDEO_TOOLS;
+  const outlineTitle = kind === "text" ? "글 목차" : kind === "card" ? "장 목차" : kind === "audio" ? "곡 목차" : "영상 목차";
+  const unit = kind === "card" ? "장" : kind === "text" ? "문단" : "장면";
   const updateLine = (value: string) => onLinesChange(safeLines.map((line, index) => index === activeLine ? value : line));
   const toggleLine = (index: number) => setVisibleLines((current) => current.map((visible, lineIndex) => lineIndex === index ? !visible : visible));
   const trimSilences = () => setVisibleLines((current) => current.map((visible, index) => silenceIndexes.includes(index) ? false : visible));
@@ -283,27 +341,27 @@ export function EditRoom({ lines, onLinesChange, kind = "video", previewReady = 
           </nav>
           <div className="min-w-0 p-pad-inset">
             {kind === "audio" ? <section className="grid min-h-80 place-items-center rounded-surface border border-dashed border-border bg-surface-2 p-region text-center" data-edit-readiness><div className="max-w-xl"><b className="text-subheading text-text">음악 생성 백엔드는 준비 중입니다</b><p className="mt-stack break-keep text-body-sm text-muted">현재는 나레이션 대사만 확인할 수 있습니다. 음악 파일이나 파형은 아직 표시하지 않습니다.</p></div></section> : <>
-              <section className={`grid place-items-center rounded-surface border border-border bg-surface-2 p-stack-section ${kind === "card" ? "aspect-[4/5] max-h-96" : "aspect-video"}`} aria-label={kind === "card" ? "카드뉴스 미리보기" : "영상 미리보기"} data-edit-stage>
+              <section className={`grid place-items-center rounded-surface border border-border bg-surface-2 p-stack-section ${kind === "card" ? "aspect-[4/5] max-h-96" : kind === "text" ? "min-h-80" : "aspect-video"}`} aria-label={kind === "card" ? "카드뉴스 미리보기" : kind === "text" ? "글 미리보기" : "영상 미리보기"} data-edit-stage>
                 <div className="grid h-full w-full place-items-center rounded-control bg-accent-soft p-region text-center"><div><span className="text-caption font-semibold text-accent">{previewReady ? "미리보기" : "구조 초안"}</span><p className="mt-stack max-w-xl break-keep text-heading font-bold text-text">{visibleLines[activeLine] ? selectedLine : "이 대사는 빠진 상태입니다"}</p>{!previewReady && kind === "video" ? <p className="mt-stack text-caption text-muted">실제 영상 렌더는 준비 중입니다.</p> : null}</div></div>
               </section>
               <section className="mt-stack border-b border-border pb-stack" aria-label="간편 편집 도구" data-edit-tools>
                 <div className="flex flex-wrap gap-stack-tight">{tools.map((tool) => <Button key={tool} size="sm" variant={activeTool === tool ? "primary" : "secondary"} onClick={() => setActiveTool(tool)} aria-pressed={activeTool === tool} aria-label={`${tool} 도구`}><ToolIcon tool={tool} /><span>{toolValues[tool]}</span></Button>)}
                   {kind === "video" ? <Button size="sm" onClick={trimSilences} disabled={visibleSilences === 0}>무음 구간 {visibleSilences}개 줄이기</Button> : null}
                 </div>
-                <div className="mt-stack flex flex-wrap gap-stack-tight" aria-label={`${activeTool} 선택지`}>{toolOptions(kind, activeTool).map((option) => <Button key={option} size="sm" variant={toolValues[activeTool] === option ? "primary" : "secondary"} aria-pressed={toolValues[activeTool] === option} onClick={() => setToolValues((current) => ({ ...current, [activeTool]: option }))}>{option}</Button>)}</div>
+                <div className="mt-stack flex flex-wrap gap-stack-tight" aria-label={`${activeTool} 선택지`}>{toolOptions(formatKind, activeTool).map((option) => <Button key={option} size="sm" variant={toolValues[activeTool] === option ? "primary" : "secondary"} aria-pressed={toolValues[activeTool] === option} onClick={() => setToolValues((current) => ({ ...current, [activeTool]: option }))}>{option}</Button>)}</div>
               </section>
             </>}
             <section className="mt-pad-inset" aria-labelledby="edit-script-title" data-edit-script>
-              <div className="mb-stack flex flex-wrap items-center justify-between gap-stack-tight"><b id="edit-script-title" className="text-body text-text">{kind === "card" ? "장 문구" : "대사"}</b><span className="text-caption text-subtle">화면 아래에서 바로 고칩니다</span></div>
+              <div className="mb-stack flex flex-wrap items-center justify-between gap-stack-tight"><b id="edit-script-title" className="text-body text-text">{kind === "card" ? "장 문구" : kind === "text" ? "문단" : "대사"}</b><span className="text-caption text-subtle">화면 아래에서 바로 고칩니다</span></div>
               <ol className="space-y-stack-tight">{safeLines.map((line, index) => <li key={`script-${index}`} className={`grid gap-stack-tight rounded-control border border-border bg-surface-2 p-stack md:grid-cols-[4rem_minmax(0,1fr)_auto] ${visibleLines[index] ? "" : "opacity-60"}`} data-script-line={index + 1}>
                 <span className="text-caption text-subtle">{index * secondsPerLine}초부터</span>
-                {activeLine === index ? <input aria-label={`${kind === "card" ? "문구" : "대사"} ${index + 1}`} value={line} onChange={(event) => updateLine(event.target.value)} className={`min-h-control-touch min-w-0 rounded-control border border-border bg-surface px-stack text-body-sm text-text ${visibleLines[index] ? "" : "line-through"}`} /> : <button type="button" onClick={() => setActiveLine(index)} className={`min-h-control-touch min-w-0 break-keep rounded-control px-stack text-left text-body-sm text-text hover:bg-surface ${visibleLines[index] ? "" : "line-through"}`}>{line || "빈 대사"}</button>}
+                {activeLine === index ? <input aria-label={`${kind === "card" ? "문구" : kind === "text" ? "문단" : "대사"} ${index + 1}`} value={line} onChange={(event) => updateLine(event.target.value)} className={`min-h-control-touch min-w-0 rounded-control border border-border bg-surface px-stack text-body-sm text-text ${visibleLines[index] ? "" : "line-through"}`} /> : <button type="button" onClick={() => setActiveLine(index)} className={`min-h-control-touch min-w-0 break-keep rounded-control px-stack text-left text-body-sm text-text hover:bg-surface ${visibleLines[index] ? "" : "line-through"}`}>{line || "빈 대사"}</button>}
                 <Button size="sm" onClick={() => toggleLine(index)}>{visibleLines[index] ? "빼기" : "되살리기"}</Button>
               </li>)}</ol>
             </section>
           </div>
         </div>
-        {commandPanel ?? <AssistantPanel title="편집 담당"><Stack gap={12}><div className="rounded-control border border-border bg-surface p-stack"><span className="text-caption text-subtle">현재 위치</span><p className="mt-micro text-body text-text">{activeLine + 1} / {safeLines.length}</p></div><div className="rounded-control border border-border bg-surface p-stack"><span className="text-caption text-subtle">지금 고치는 것</span><p className="mt-micro text-body text-text">{kind === "card" ? "카드뉴스" : kind === "audio" ? "음악" : "영상"}</p></div></Stack></AssistantPanel>}
+        {commandPanel ?? <AssistantPanel title="편집 담당"><Stack gap={12}><div className="rounded-control border border-border bg-surface p-stack"><span className="text-caption text-subtle">현재 위치</span><p className="mt-micro text-body text-text">{activeLine + 1} / {safeLines.length}</p></div><div className="rounded-control border border-border bg-surface p-stack"><span className="text-caption text-subtle">지금 고치는 것</span><p className="mt-micro text-body text-text">{kind === "card" ? "카드뉴스" : kind === "text" ? "글" : kind === "audio" ? "음악" : "영상"}</p></div></Stack></AssistantPanel>}
       </div>
     </section>
   );
