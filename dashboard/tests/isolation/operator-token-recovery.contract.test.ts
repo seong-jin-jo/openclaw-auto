@@ -25,7 +25,7 @@ const packageJson = JSON.parse(
   readFileSync(resolve(dashboardRoot, "package.json"), "utf8"),
 ) as { scripts: Record<string, string> };
 const runbook = readFileSync(
-  resolve(repoRoot, "wiki/ops/operator-token-recovery.md"),
+  resolve(repoRoot, "wiki/3-operations/runbooks/operator-token-recovery.md"),
   "utf8",
 );
 
