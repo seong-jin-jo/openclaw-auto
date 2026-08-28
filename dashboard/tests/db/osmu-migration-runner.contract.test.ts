@@ -62,8 +62,15 @@ describe("OSMU explicit migration runner 계약", () => {
     expect(runner).toContain("quota_member_unique OR quota_guard");
     expect(runner).toContain("compatibility app requires member UNIQUE or enabled E1 guard");
     const preflightCase = runner.slice(runner.indexOf("  preflight)"), runner.indexOf("  bootstrap)"));
-    expect(preflightCase).toContain("assert_fingerprint");
+    expect(preflightCase).toContain('assert_fingerprint "S1|S2"');
     expect(preflightCase).toContain("assert_compatibility_ready");
+  });
+
+  it("GEN-MIG-05A 정상: 승인된 S1|S2 전환만 guard 설치 전후 단계에서 허용한다", () => {
+    const migrationCase = runner.slice(runner.indexOf("  baseline|"));
+    expect(migrationCase).toContain('baseline|apply-legacy|expand-fk|expand-guard|expand-member) assert_fingerprint "S1|S2"');
+    expect(migrationCase).toContain('baseline|apply-legacy|expand-fk|expand-guard) assert_fingerprint "S1|S2"');
+    expect(migrationCase).not.toContain('assert_fingerprint "S2|S1"');
   });
 
   it("GEN-MIG-06 거절: E3와 C1은 체크박스가 아니라 모든 실행 image digest와 commit을 직접 검증한다", () => {
