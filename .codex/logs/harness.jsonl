@@ -3316,3 +3316,6 @@
 {"ts":"2026-08-28T11:43:20Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 코드리뷰 전문가다. **고치는 사람이 아�"}
 {"ts":"2026-08-28T11:43:20Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI QA 검증 전문가다.\n'코드 작성 = 동�"}
 {"ts":"2026-08-28T11:43:20Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI QA 검증 전문가다.\n'코드 작성 = 동�"}
+{"ts":"2026-08-28T11:54:35Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-28T11:54:35Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"# release-manager — 릴리스 버전·이미지 정합 전"}
+{"ts":"2026-08-28T11:54:35Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"# release-manager — 릴리스 버전·이미지 정합 전"}
