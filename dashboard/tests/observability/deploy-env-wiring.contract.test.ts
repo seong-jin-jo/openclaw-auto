@@ -34,11 +34,11 @@ describe("deploy-marketing.yml — OSMU_ALERT_SLACK_WEBHOOK_URL 배선 계약", 
     expect(SRC).toContain("Studio 개발용 신원 설정은 운영 환경에 넣을 수 없음");
   });
 
-  it("앱 기동 전에 schema, 이름순 migration, RLS를 오류 즉시 중단으로 적용한다", () => {
-    expect(SRC).toContain('psql "$OSMU_DATABASE_URL" -q -v ON_ERROR_STOP=1 -f /db/schema.sql');
-    expect(SRC).toContain("for migration in /db/migrations/*.sql");
-    expect(SRC).toContain('psql "$OSMU_DATABASE_URL" -q -v ON_ERROR_STOP=1 -f "$migration"');
-    expect(SRC).toContain('psql "$OSMU_DATABASE_URL" -q -v ON_ERROR_STOP=1 -f /db/rls.sql');
+  it("앱 기동 전에 DB fingerprint만 읽고 schema·historical migration을 재실행하지 않는다", () => {
+    expect(SRC).toContain("bash /db/run-migrations.sh preflight");
+    expect(SRC).not.toContain('psql "$OSMU_DATABASE_URL" -q -v ON_ERROR_STOP=1 -f /db/schema.sql');
+    expect(SRC).not.toContain("for migration in /db/migrations/*.sql");
+    expect(SRC).not.toContain('psql "$OSMU_DATABASE_URL" -q -v ON_ERROR_STOP=1 -f "$migration"');
   });
 
   it("openclaw-dashboard-osmu 컨테이너는 env_file: .env.osmu 를 그대로 쓴다(런타임 env 자동 전달, 별도 배선 불필요)", () => {

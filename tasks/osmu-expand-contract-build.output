@@ -1,0 +1,73 @@
+# OSMU Studio generation Expand and Contract build 보고
+
+STAMP | line: osmu-expand-contract | 생성: 2026-08-29 02:32 KST | model: gpt-codex/gpt-5.6-sol | agent: code-builder | skill: 없음 | 근거 URL: https://www.postgresql.org/docs/16/sql-insert.html | 고민: 회원 전역 계약을 tenant 격리와 충돌시키지 않고 단계별로 배포 가능한 DB 상태로 만들었다.
+
+## 요청과 결론
+
+요청은 Studio 생성 멱등성과 UTC 하루 1회 무료 재시도 quota를 회원 전역 계약으로 확정하고, 운영 중단 없이 작업공간별 제약에서 전환할 구현과 테스트를 만드는 것이었다.
+
+결론은 build 구현과 격리 PostgreSQL 동시성 검증까지 끝났다. 운영 DB와 운영 배포는 이 worker의 권한 범위에서 실행하지 않았다. 최종 전체 Vitest green 한 번은 테스트 프로세스 종료 후 실행 세션만 대기하는 현상 때문에 결과 파일을 얻지 못해 미검증이다. 최초 전체 실행에서 실패한 낡은 배포 계약 한 건은 수정했고 관련 focused 12/12는 통과했다.
+
+## 기반 산출물
+
+- `docs/design-docs/osmu-generation-expand-contract-v1.0.2-gpt-codex.md`
+- `docs/qa/osmu-expand-contract-design-review-v2-gpt-codex.md`
+- 회장 확정 입력: 회원 전역 `member_id`와 UTC 날짜 기준 하루 1회
+- 고객 identity 근거: 검증된 Supabase JWT의 `user.id`를 `member_id`로 사용하며 workspace 변경과 무관하게 동일하다.
+
+## 구현 결과
+
+- fresh schema를 generation `(member_id, operation, idempotency_key)`, quota `(member_id, local_date)` UNIQUE로 정렬했다.
+- S1 보호 trigger, S2 회원 전역 UNIQUE 병존, S3 tenant UNIQUE 제거 migration을 분리했다.
+- S1 함수 소유자는 `NOLOGIN BYPASSRLS` 전용 role이고, SECURITY DEFINER의 search path를 `pg_catalog, pg_temp`로 고정했으며 PUBLIC 실행 권한을 회수했다.
+- app transaction은 1.5초 lock timeout, 5초 statement timeout, serialization·deadlock 최대 2회 재시도, 23505 제한 재조회를 사용한다.
+- insert는 특정 constraint 이름에 종속되지 않는 targetless `ON CONFLICT DO NOTHING`을 사용한다.
+- 일반 deploy의 `schema.sql` 및 migration wildcard replay를 제거하고 read-only preflight만 남겼다.
+- 명시 manifest, SHA-256 checksum, migration ledger, session advisory lock, running·applied·failed 상태를 갖춘 runner를 추가했다.
+- `20260828_010`은 baseline-only이며 historical SQL을 재실행하지 않는다.
+- 수동 승인 GitHub Actions workflow는 baseline, expand-guard, expand-member, contract phase를 각각 직렬 실행한다.
+- 잘못 추가된 tenant-scoped idempotency migration `20260829_020_studio_generation_tenant_idempotency.sql`은 제거했다.
+
+## 검증 증거
+
+- 격리 PostgreSQL 16 actual matrix: S1·S2·S3 각각 generation 교차 tenant 경합 count=1, quota 교차 tenant 경합 count=1.
+- migration repeatability: S1, S2, S3 각 두 번 실행 PASS.
+- partial recovery: valid unique index 존재, constraint 미연결 상태에서 S2 복구 PASS.
+- actual runner: bootstrap 후 baseline=`baselined`, expand-member=`applied`, contract=`applied` ledger 관찰.
+- focused DB·계약: 5 files, 20/20 PASS.
+- 배포 runner·호환 계약 보정: 3 files, 12/12 PASS.
+- TypeScript: `npx tsc --noEmit` PASS.
+- production build: Next.js 174/174 routes PASS.
+- shell syntax와 diff whitespace: PASS.
+- 최초 전체 Vitest: 1,367 total, 1,365 PASS, 1 FAIL, 1 pending. 유일한 실패는 제거한 wildcard replay를 기대한 기존 테스트였고 수정 후 focused PASS.
+- 최종 전체 Vitest: 미검증. 재실행에서 worker 프로세스가 사라진 뒤 세션만 대기했고 JSON 결과가 생성되지 않아 무한 재시작 없이 중단했다.
+- frontend design lint: 해당 없음. UI·스타일 파일을 수정하지 않았다.
+- 운영 DB·배포·운영 QA: 실행하지 않음.
+
+## 배포 전 남은 gate
+
+1. 운영 read-only preflight에서 현재 constraint fingerprint와 회원 전역 중복 행 수를 증거로 저장한다.
+2. 현재 앱 버전을 먼저 배포해 targetless conflict와 bounded reread 호환 코드를 운영에 올린다.
+3. 승인 workflow로 baseline, expand-guard, expand-member, contract를 순서대로 실행한다. 각 phase 사이에 오류율과 DB timeout을 확인한다.
+4. 운영에서 같은 회원·다른 workspace·같은 idempotency key 동시 요청과 UTC quota 동시 요청을 직접 검증한다.
+5. 전체 Vitest 최종 green을 배포 담당 세션에서 한 번 회수한다.
+
+## 레드팀과 셀프심문
+
+레드팀 공격: 코드와 격리 DB가 통과해도 운영 DB에 기존 중복이 있으면 concurrent unique index 생성은 실패한다. 앱보다 constraint를 먼저 바꾸면 구버전 conflict target이 배포 중 깨질 수 있다.
+
+보정: migration 030은 중복을 먼저 검사하고 실패시키며, 앱 deploy는 schema mutation을 하지 않는다. 운영 순서는 호환 앱 선배포 후 단계 migration으로 고정했다.
+
+이 결론이 틀렸다면 가장 그럴듯한 이유는 운영 `member_id`가 workspace별 값이라는 전제다. 현재 identity adapter는 검증된 Supabase `user.id`를 직접 사용하므로 workspace가 바뀌어도 같은 회원 UUID를 유지한다. tenant는 권한과 데이터 소유권 범위로만 남긴다.
+
+## 벤치마크 적용
+
+- PostgreSQL 16 `INSERT`: targetless `ON CONFLICT DO NOTHING`이 사용 가능한 모든 unique conflict를 처리하는 계약을 차용했다.
+- PostgreSQL 16 transaction isolation: serialization failure는 전체 transaction 재시도가 필요하다는 계약을 차용했다.
+- PostgreSQL 16 explicit locking: advisory lock과 lock timeout을 사용해 migration 및 hot-key 경합을 제한했다.
+
+SKILLS_USED: 없음. DB migration build에 직접 대응하는 설치 스킬이 없다. / SKILLS_SKIPPED: qa는 QA 단계 E2E 소유라 사용하지 않았고 build 소유 단위·통합 테스트를 직접 추가했다.
+
+SOURCES: `docs/design-docs/osmu-generation-expand-contract-v1.0.2-gpt-codex.md` | `docs/qa/osmu-expand-contract-design-review-v2-gpt-codex.md` | https://www.postgresql.org/docs/16/sql-insert.html | https://www.postgresql.org/docs/16/transaction-iso.html | https://www.postgresql.org/docs/16/explicit-locking.html | https://www.postgresql.org/docs/16/sql-createfunction.html
+
+MODEL: gpt-codex/gpt-5.6-sol / code-builder

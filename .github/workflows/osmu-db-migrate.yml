@@ -1,0 +1,48 @@
+name: OSMU approved DB migration
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: 'Explicit migration phase'
+        required: true
+        type: choice
+        options:
+          - baseline
+          - expand-guard
+          - expand-member
+          - contract
+      compatibility_app_digest_verified:
+        description: 'All running OSMU app instances use the compatibility release'
+        required: true
+        type: boolean
+        default: false
+
+permissions: {}
+concurrency:
+  group: osmu-approved-db-migration
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: [self-hosted, marketing_runner]
+    environment: osmu-db-migration-approval
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate approval inputs
+        if: ${{ inputs.phase != 'baseline' && inputs.phase != 'expand-guard' && !inputs.compatibility_app_digest_verified }}
+        run: |
+          echo "::error::expand-member/contract require a verified compatibility app digest"
+          exit 1
+      - name: Apply explicit manifest phase
+        env:
+          OSMU_DATABASE_URL: ${{ secrets.OSMU_DATABASE_URL }}
+          COMPATIBILITY_APP_DIGEST_VERIFIED: ${{ inputs.compatibility_app_digest_verified && '1' || '0' }}
+          RUNNER_COMMIT: ${{ github.sha }}
+        run: |
+          docker run --rm \
+            -e OSMU_DATABASE_URL \
+            -e COMPATIBILITY_APP_DIGEST_VERIFIED \
+            -e RUNNER_COMMIT \
+            -v "$GITHUB_WORKSPACE/dashboard/db":/db:ro \
+            postgres:16 \
+            bash /db/run-migrations.sh "${{ inputs.phase }}"
