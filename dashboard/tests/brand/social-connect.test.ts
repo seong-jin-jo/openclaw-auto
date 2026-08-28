@@ -17,6 +17,10 @@ vi.mock("@/lib/tenant-auth", () => ({
 }));
 
 vi.mock("@/lib/db", () => ({
+  db: vi.fn(() => Object.assign(
+    async () => [],
+    { json: (value: unknown) => value },
+  )),
   withTenant: vi.fn(async (_t: string, cb: (sql: unknown) => unknown) => {
     const sql = Object.assign(
       (_s: TemplateStringsArray, ...vals: unknown[]) => { H.inserts.push(vals); return Promise.resolve([]); },

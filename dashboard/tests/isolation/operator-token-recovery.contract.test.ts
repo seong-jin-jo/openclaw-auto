@@ -100,6 +100,21 @@ esac
   );
 
   writeExecutable(
+    resolve(fakeBin, "jq"),
+    `#!/usr/bin/env bash
+set -euo pipefail
+case "\${1:-}" in
+  -e) grep -q '"isOperator":true' "\${3:-}" ;;
+  -Rs)
+    payload="$(cat)"
+    printf '"%s"\\n' "$payload"
+    ;;
+  *) exit 67 ;;
+esac
+`,
+  );
+
+  writeExecutable(
     resolve(fakeBin, "browse"),
     `#!/usr/bin/env bash
 set -euo pipefail
