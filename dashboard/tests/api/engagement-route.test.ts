@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const H = vi.hoisted(() => ({
+  AuthError: class AuthError extends Error {
+    name = "AuthError";
+    constructor(public status: 401 | 403 | 503, public code: string, message: string) { super(message); }
+  },
+  authError: null as null | { status: 401 | 403 | 503; code: string; message: string },
   tenantId: "11111111-1111-4111-8111-111111111111" as string | null,
   list: vi.fn(),
   draft: vi.fn(),
@@ -10,7 +15,13 @@ const H = vi.hoisted(() => ({
   handoff: vi.fn(),
 }));
 
-vi.mock("@/lib/tenant-auth", () => ({ effectiveTenantId: vi.fn(async () => H.tenantId) }));
+vi.mock("@/lib/tenant-auth", () => ({
+  AuthError: H.AuthError,
+  effectiveTenantId: vi.fn(async () => {
+    if (H.authError) throw new H.AuthError(H.authError.status, H.authError.code, H.authError.message);
+    return H.tenantId;
+  }),
+}));
 vi.mock("@/lib/anthropic", () => ({
   sharedAiApprovalErrorResponse: vi.fn(() => null),
   sharedGenerationQuotaErrorResponse: vi.fn(() => null),
@@ -32,6 +43,7 @@ describe("BE-V63-08 댓글 HTTP 계약", () => {
 
   beforeEach(() => {
     H.tenantId = tenantId;
+    H.authError = null;
     for (const mock of [H.list, H.draft, H.reply, H.like, H.defer, H.handoff]) mock.mockReset();
   });
 
@@ -77,5 +89,22 @@ describe("BE-V63-08 댓글 HTTP 계약", () => {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(baseBody),
     }));
     expect(noTenant.status).toBe(400);
+  });
+
+  it("I3-BE-V63-08 인증 거절: 무효 인증은 GET과 POST 모두 401로 반환한다", async () => {
+    H.authError = { status: 401, code: "invalid_token", message: "유효하지 않은 세션 토큰" };
+    const { GET, POST } = await import("@/app/api/engagement/route");
+
+    const getResponse = await GET(new Request(`http://localhost/api/engagement?tenant_id=${tenantId}&post_id=${postId}`));
+    const postResponse = await POST(new Request("http://localhost/api/engagement", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...baseBody, action: "defer" }),
+    }));
+
+    expect(getResponse.status).toBe(401);
+    expect(postResponse.status).toBe(401);
+    expect(await getResponse.json()).toMatchObject({ code: "invalid_token" });
+    expect(await postResponse.json()).toMatchObject({ code: "invalid_token" });
   });
 });
