@@ -4,9 +4,30 @@
 
 ## [2026-08-29 03:27] 편집 형식값 서버 validation build
 
+### 무엇을 어디까지 했나
+
 - 회장 요청의 두 갭 감사 문서를 대조해 아직 없던 형식값 서버 validation을 선택했다. 명시된 이번 요청을 primary handoff basis로 사용했고 `osmu-gapfill082903` pane을 확인했다.
 - 승인 프로토타입 v63의 영상·카드·음악 형식값을 공용 계약으로 만들고 편집실, 초안 저장, 콘텐츠 사전 검증, 발행 서버에 연결했다.
 - 커밋은 `b42cec92`, `637d36ea`다. 다른 세션의 생성 재시도와 인증 변경은 보존했고 이번 커밋에 포함하지 않았다.
+
+### 남은 이슈·블로커
+
+- 운영 배포와 공개 채널 발행, 실제 provider 렌더 결과는 미검증이다.
+- pipeline-state의 build 승인, QA, 배포 gate는 넘기지 않았다.
+
+### 다음에 칠 명령
+
+```bash
+cd dashboard
+set -a
+. ./.env.local
+set +a
+node scripts/verify-basic-flow-e2e.mjs
+node scripts/verify-studio-v1-e2e.mjs
+```
+
+### 검증했나
+
 - 실제 작업 공간에서 정상 형식 200, 잘못된 비율 발행 422, 카드 4:5 초안 저장과 재조회 200을 관찰했다. 전체 Vitest 1,388건, TypeScript, production build 174/174, 기본 흐름 11/11, Studio v1 12/12, design lint를 통과했다.
 - 갭 정정본, 구현현황, QA tracker, 현재 제품 상태를 갱신했다. 운영 배포와 공개 채널 발행, provider 렌더 결과는 미검증이다.
 - 다음 실행: qa-verifier가 실제 브라우저에서 편집 도구 선택값의 새로고침 복원과 발행 직전 422 오류 UI를 검증한다. 종료증거는 화면 선택값 복원, 잘못된 값 차단 안내, 기존 기본 흐름 회귀 0이다.
