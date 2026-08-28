@@ -34,6 +34,13 @@ interface StudioGenerationEnvelope {
   error?: { message?: string; field_errors?: Array<{ field: string; reason: string }> };
 }
 
+interface StudioRegenerationEnvelope {
+  data?: {
+    replacement: { job_id: string; candidates: StudioGenerationCandidate[] };
+  };
+  error?: { message?: string };
+}
+
 function required(value: string, label: string): string {
   const normalized = value.trim();
   if (!normalized) throw new Error(`${label}이 비어 있습니다`);
@@ -97,4 +104,20 @@ export async function requestStudioCandidates(input: StudioLearningInput, token:
     ...candidate,
     generation_id: body.data!.job_id,
   }));
+}
+
+export async function regenerateStudioCandidates(jobId: string, token: string): Promise<StudioGenerationCandidate[]> {
+  const authorization = required(token, "Studio 인증");
+  const generationId = required(jobId, "기존 생성 작업");
+  const response = await fetch(`/api/studio/v1/regenerations/${encodeURIComponent(generationId)}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${authorization}` },
+  });
+  const body = await response.json() as StudioRegenerationEnvelope;
+  if (!response.ok || !body.data) {
+    throw new Error(body.error?.message || "무료 재생성에 실패했습니다");
+  }
+  const replacement = body.data.replacement;
+  if (replacement.candidates.length !== 3) throw new Error("Studio가 대체 후보 세 장을 반환하지 않았습니다");
+  return replacement.candidates.map((candidate) => ({ ...candidate, generation_id: replacement.job_id }));
 }

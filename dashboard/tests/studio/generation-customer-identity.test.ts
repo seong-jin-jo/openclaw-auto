@@ -59,4 +59,25 @@ describe("Studio 고객 신원 계약", () => {
       headers: { Authorization: "Bearer customer-jwt" },
     }))).rejects.toEqual(expect.objectContaining({ status: 403, code: "ACCOUNT_PAUSED" }));
   });
+
+  it("GEN-AUTH-04 정상: 개발 모드에서도 개발 bearer와 다른 실제 고객 JWT를 검증한다", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("STUDIO_IDENTITY_MODE", "development");
+    vi.stubEnv("STUDIO_DEV_BEARER_TOKEN", "dev-only-token");
+    mockVerify.mockResolvedValue({
+      status: "valid",
+      user: { id: "auth-user-local", email: "local@example.test" } as never,
+    });
+    mockEnsureTenant.mockResolvedValue("33333333-3333-4333-8333-333333333333");
+    mockTenantStatus.mockResolvedValue("active");
+
+    const customerJwt = `${"a".repeat(24)}.${"b".repeat(24)}.${"c".repeat(24)}`;
+    const principal = await resolveStudioPrincipal(new Request("http://localhost/api/studio/v1/generations", {
+      headers: { Authorization: `Bearer ${customerJwt}` },
+    }));
+
+    expect(principal.memberId).toBe("auth-user-local");
+    expect([...principal.allowedWorkspaceIds]).toEqual(["33333333-3333-4333-8333-333333333333"]);
+    expect(mockVerify).toHaveBeenCalledWith(customerJwt);
+  });
 });
