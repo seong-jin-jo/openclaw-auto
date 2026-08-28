@@ -124,6 +124,80 @@ describe("화면 2차 생성실 계약", () => {
     expect(JSON.parse(String(request.body)).workspace_id).toBe("11111111-1111-4111-8111-111111111111");
     expect(request.headers).toMatchObject({ Authorization: "Bearer customer-jwt" });
   });
+
+  it("QA-CREATE-04 정상: 목적·대상·권리동의를 방 왕복 뒤 작업 공간별로 복원한다", async () => {
+    const props = {
+      workspaceId: "workspace-a",
+      workspaceName: "작업 공간 A",
+      guide: "브랜드 사실",
+      topic: "주제",
+      onTopicChange: vi.fn(),
+      onOpenLearning: vi.fn(),
+      onCandidateSelect: vi.fn(),
+    };
+    const first = render(<CreateRoom {...props} />);
+    fireEvent.change(screen.getByLabelText("목적"), { target: { value: "문의 전환" } });
+    fireEvent.change(screen.getByLabelText("대상"), { target: { value: "1인 사업가" } });
+    fireEvent.click(screen.getByLabelText("소재 권리를 확인했습니다"));
+    await waitFor(() => expect(localStorage.getItem("studio_create_input:workspace-a")).toContain("문의 전환"));
+
+    first.unmount();
+    render(<CreateRoom {...props} />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("목적")).toHaveValue("문의 전환");
+      expect(screen.getByLabelText("대상")).toHaveValue("1인 사업가");
+      expect(screen.getByLabelText("소재 권리를 확인했습니다")).toBeChecked();
+    });
+  });
+
+  it("QA-CREATE-05 경합: 후보 생성 연타는 클라이언트에서 단일 POST로 합친다", async () => {
+    localStorage.setItem("dashboard_auth_token", "customer-jwt");
+    let resolveRequest!: (response: Response) => void;
+    const fetchMock = vi.fn(() => new Promise<Response>((resolve) => { resolveRequest = resolve; }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<CreateRoom workspaceId="workspace" workspaceName="작업 공간" guide="브랜드 사실" topic="주제" onTopicChange={vi.fn()} onOpenLearning={vi.fn()} onCandidateSelect={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("목적"), { target: { value: "운영 시간을 줄인다" } });
+    fireEvent.change(screen.getByLabelText("대상"), { target: { value: "1인 사업가" } });
+    fireEvent.click(screen.getByLabelText("소재 권리를 확인했습니다"));
+    const button = screen.getByRole("button", { name: "후보 세 장 만들기" });
+
+    fireEvent.click(button);
+    fireEvent.click(button);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(button).toBeDisabled();
+    resolveRequest(Response.json({ data: { job_id: "job-1", candidates: [] } }, { status: 201 }));
+    await waitFor(() => expect(button).not.toBeDisabled());
+  });
+
+  it("QA-CREATE-06 정상: 후보 모두 거절은 기존 무료 재생성 API로 대체 후보를 받는다", async () => {
+    localStorage.setItem("dashboard_auth_token", "customer-jwt");
+    const candidates = (prefix: string) => ["A", "B", "C"].map((label, index) => ({
+      candidate_id: `${prefix}-${label}`,
+      ordinal: index + 1,
+      label,
+      angle: "problem_first",
+      title: `${prefix} ${label} 제목`,
+      rationale: `${prefix} ${label} 근거`,
+      format: { content_branch: "text_image", preview_kind: "structured_storyboard", quality: "draft", outline: ["첫 장면"] },
+    }));
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json({ data: { job_id: "job-1", candidates: candidates("원본") } }, { status: 201 }))
+      .mockResolvedValueOnce(Response.json({ data: { replacement: { job_id: "job-2", candidates: candidates("대체") } } }, { status: 201 }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<CreateRoom workspaceId="workspace" workspaceName="작업 공간" guide="브랜드 사실" topic="주제" onTopicChange={vi.fn()} onOpenLearning={vi.fn()} onCandidateSelect={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("목적"), { target: { value: "운영 시간을 줄인다" } });
+    fireEvent.change(screen.getByLabelText("대상"), { target: { value: "1인 사업가" } });
+    fireEvent.click(screen.getByLabelText("소재 권리를 확인했습니다"));
+    fireEvent.click(screen.getByRole("button", { name: "후보 세 장 만들기" }));
+    await screen.findByText("원본 A 제목");
+
+    fireEvent.click(screen.getByRole("button", { name: "모두 거절하고 무료로 다시 만들기" }));
+
+    expect(await screen.findByText("대체 A 제목")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/studio/v1/regenerations/job-1", expect.objectContaining({ method: "POST" }));
+  });
 });
 
 describe("화면 2차 편집실 계약", () => {
@@ -194,5 +268,15 @@ describe("화면 2차 편집실 계약", () => {
     expect(screen.getByText("음악 생성 백엔드는 준비 중입니다")).toBeInTheDocument();
     expect(document.querySelector("[data-edit-stage]")).not.toBeInTheDocument();
     expect(document.querySelector("[data-edit-tools]")).not.toBeInTheDocument();
+  });
+
+  it("QA-EDIT-06 정상: 글 형식은 카드뉴스가 아니라 글 목차와 문단 편집기로 전환된다", () => {
+    render(<EditRoom lines={["첫 문단", "둘째 문단"]} onLinesChange={vi.fn()} kind="text" />);
+
+    expect(document.querySelector('[data-edit-kind="text"]')).toBeInTheDocument();
+    expect(document.querySelector("[data-edit-outline]")).toHaveAttribute("aria-label", "글 목차");
+    expect(screen.getByRole("region", { name: "글 미리보기" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "문단 1" })).toBeInTheDocument();
+    expect(document.querySelector('[data-room-top="edit"]')).toHaveTextContent("2개 문단");
   });
 });

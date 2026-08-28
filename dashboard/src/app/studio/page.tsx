@@ -202,6 +202,8 @@ export default function StudioPage() {
   // 기본계정으로 resolve(/api/publish 계약과 동일). 계정이 1개뿐이면 셀렉터 자체를 숨긴다.
   const [accountsByPlatform, setAccountsByPlatform] = useState<Record<string, AccountOption[]>>({});
   const [selectedAccounts, setSelectedAccounts] = useState<Record<string, string>>({});
+  const [accountsLoaded, setAccountsLoaded] = useState(false);
+  const publishTargets = selectedPublishTargets(includes).filter((platform) => (accountsByPlatform[platform] || []).length > 0);
 
   useEffect(() => {
     const requested = resolveStudioRoomFromSearch(`?${search}`, storedRoom);
@@ -216,6 +218,7 @@ export default function StudioPage() {
 
   useEffect(() => {
     setSelectedAccounts({});
+    setAccountsLoaded(false);
     if (!shouldLoadPublishResources(activeRoom) || !activeWorkspace) { setAccountsByPlatform({}); return; }
     let cancelled = false;
     (async () => {
@@ -237,7 +240,13 @@ export default function StudioPage() {
         }),
       );
       if (cancelled) return;
-      setAccountsByPlatform(Object.fromEntries(entries));
+      const nextAccounts = Object.fromEntries(entries);
+      setAccountsByPlatform(nextAccounts);
+      setIncludes((current) => Object.fromEntries(ALL.map((platform) => [
+        platform,
+        Boolean(current[platform]) && (nextAccounts[platform]?.length ?? 0) > 0,
+      ])));
+      setAccountsLoaded(true);
     })();
     return () => { cancelled = true; };
   }, [activeRoom, activeWorkspace]);
@@ -277,7 +286,7 @@ export default function StudioPage() {
         setDisplayNames(w.displayNames || {}); setTitles(w.titles || {}); setHashtags(w.hashtags || {});
         setFirstComments(w.firstComments || {}); setEditLines(w.editLines || []); setReviewQueueId(w.reviewQueueId || null);
         if (w.createBranch === "video" || w.createBranch === "text_image") setCreateBranch(w.createBranch);
-        if (w.editKind === "video" || w.editKind === "card" || w.editKind === "audio") setEditKind(w.editKind);
+        if (w.editKind === "video" || w.editKind === "card" || w.editKind === "audio" || w.editKind === "text") setEditKind(w.editKind);
       }
     } catch { /* noop */ }
     setHydratedWorkspaceId(workspaceId);
@@ -424,8 +433,8 @@ export default function StudioPage() {
       showToast("발행할 초안을 저장하지 못했습니다", "error");
       return;
     }
-    const targets = selectedPublishTargets(includes);
-    if (!targets.length) { showToast("발행할 플랫폼을 선택하세요", "error"); return; }
+    const targets = publishTargets;
+    if (!targets.length) { showToast("연결된 발행 계정이 없습니다. 설정에서 채널을 먼저 연결하세요", "error"); return; }
     const status: Record<string, PubStatus> = {}; targets.forEach((p) => (status[p] = "wait"));
     const urls: Record<string, string> = {};
     const errors: Record<string, string> = {};
@@ -661,7 +670,7 @@ export default function StudioPage() {
         const added = await apiPost<{ post?: { id?: string } }>("/api/queue/add", {
           tenant_id: activeWorkspace.id,
           draftId: linkedDraftId,
-          text: publishText(selectedPublishTargets(includes)[0] || "threads"),
+          text: publishText(publishTargets[0] || "threads"),
           topic: idea || "Studio 작업물",
           hashtags: (hashtags.instagram || "").split(/[\s,]+/).map((value) => value.replace(/^#/, "")).filter(Boolean),
           imageUrl: img?.url || null,
@@ -710,7 +719,7 @@ export default function StudioPage() {
       </span>
       {activeRoom === "create" || activeRoom === "edit" ? (
         <span className="rounded-pill border border-accent/30 bg-surface px-stack py-stack-tight text-caption font-semibold text-accent" data-kind-board>
-          지금 만드는 것: {activeRoom === "create" ? createBranch === "video" ? "영상" : "글·카드뉴스" : editKind === "video" ? "영상" : editKind === "card" ? "카드뉴스" : "음악"}
+          지금 만드는 것: {activeRoom === "create" ? createBranch === "video" ? "영상" : "글·카드뉴스" : editKind === "video" ? "영상" : editKind === "card" ? "카드뉴스" : editKind === "text" ? "글" : "음악"}
         </span>
       ) : null}
       <span className="rounded-control border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle" title={engine?.error || engine?.model || ""}>AI {engine?.label || "확인 중"}</span>
@@ -768,8 +777,8 @@ export default function StudioPage() {
           editorLines={editLines}
           source={{ generationId: selectedCandidate?.generation_id, candidateId: selectedCandidate?.candidate_id }}
           initialHandoff={editorHandoff}
-          preferredKind={editKind === "video" ? "video" : editKind === "audio" ? "audio" : "card"}
-          onKindSelect={(kind) => setEditKind(kind === "video" ? "video" : kind === "audio" ? "audio" : "card")}
+          preferredKind={editKind === "video" ? "video" : editKind === "audio" ? "audio" : editKind === "text" ? "text" : "card"}
+          onKindSelect={(kind) => setEditKind(kind === "video" ? "video" : kind === "audio" ? "audio" : kind === "text" ? "text" : "card")}
           onDraftId={setDraftId}
           onHandoff={setEditorHandoff}
           onQueueChanged={() => mutateHist()}
@@ -786,7 +795,7 @@ export default function StudioPage() {
       <section data-room="publish" className="grid gap-stack-section pb-wide lg:grid-cols-[minmax(0,1fr)_20rem] lg:pb-none">
         <div className="min-w-0 space-y-region">
           <section data-room-top="publish" aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch items-center justify-between rounded-surface border border-border bg-surface px-pad-inset py-stack">
-            <b className="text-lead text-accent">{selectedPublishTargets(includes).length}곳</b>
+            <b className="text-lead text-accent">{publishTargets.length}곳</b>
             <span className="text-caption text-subtle">발행할 채널</span>
           </section>
           {lastError ? <div className="rounded-control border border-danger/30 bg-danger/10 p-stack text-caption text-danger">마지막 실패: {lastError}</div> : null}
@@ -804,13 +813,18 @@ export default function StudioPage() {
               </div>
             </div>
           ) : null}
-          {showSchedule && activeWorkspace ? <SchedulePanel tenantId={activeWorkspace.id} draftId={draftId} defaultPlatforms={selectedPublishTargets(includes)} /> : null}
+          {showSchedule && activeWorkspace ? <SchedulePanel tenantId={activeWorkspace.id} draftId={draftId} defaultPlatforms={publishTargets} /> : null}
+          {accountsLoaded && publishTargets.length === 0 ? (
+            <div className="rounded-control border border-warning/30 bg-warning/10 p-stack text-body-sm text-warning">
+              연결된 발행 계정이 없습니다. <Link href="/settings" className="font-semibold underline">설정에서 채널 연결하기</Link>
+            </div>
+          ) : null}
           {text ? (
             <div className="card flex flex-wrap items-center gap-stack p-stack">
               <b className="mr-auto min-w-0 truncate text-body text-text">{idea || "현재 작업물"}</b>
               <Button onClick={() => save("draft")}>초안으로 저장</Button>
               <Button onClick={requestReview} disabled={reviewBusy}>{reviewBusy ? "요청 중" : "검토 요청"}</Button>
-              <Button variant="primary" onClick={publish} disabled={pub.running}>{selectedPublishTargets(includes).length}곳에 올리기</Button>
+              <Button variant="primary" onClick={publish} disabled={pub.running || !accountsLoaded || publishTargets.length === 0}>{publishTargets.length}곳에 올리기</Button>
               {activeWorkspace ? <Button variant={showSchedule ? "primary" : "secondary"} onClick={() => setShowSchedule((value) => !value)}>날짜 잡기</Button> : null}
             </div>
           ) : null}
@@ -829,7 +843,7 @@ export default function StudioPage() {
                         <div className="flex flex-wrap items-center justify-end gap-stack-tight">
                           {PUBLISH_SUPPORTED.has(platform) ? (
                             <label className="flex items-center gap-micro text-caption text-muted">
-                              <input aria-label={`${LABEL[platform]} 발행`} type="checkbox" checked={Boolean(includes[platform])} onChange={(event) => setIncludes((current) => ({ ...current, [platform]: event.target.checked }))} />
+                              <input aria-label={`${LABEL[platform]} 발행`} type="checkbox" checked={Boolean(includes[platform])} disabled={!accountsLoaded || (accountsByPlatform[platform] || []).length === 0} onChange={(event) => setIncludes((current) => ({ ...current, [platform]: event.target.checked }))} />
                               발행
                             </label>
                           ) : (
@@ -838,7 +852,7 @@ export default function StudioPage() {
                               미지원
                             </label>
                           )}
-                          {ACCOUNT_SELECTABLE.has(platform) ? (
+                          {ACCOUNT_SELECTABLE.has(platform) && (accountsByPlatform[platform] || []).length > 0 ? (
                             <select
                               aria-label={`${LABEL[platform]} 발행 계정`}
                               data-testid={`publish-account-select-${platform}`}
@@ -880,11 +894,11 @@ export default function StudioPage() {
           </div>
           <div className="space-y-stack bg-surface-2 p-stack">
             <div className="max-w-[90%] rounded-surface rounded-tl-chip border border-border bg-surface p-stack text-body-sm text-text" data-empty-next={!text ? "publish" : undefined}>
-              {text ? `${selectedPublishTargets(includes).length}곳이 선택되어 있습니다.` : "발행할 작업물을 먼저 가져와 주세요."}
+              {text ? `${publishTargets.length}곳이 선택되어 있습니다.` : "발행할 작업물을 먼저 가져와 주세요."}
             </div>
             {text ? (
               <div className="flex flex-wrap gap-stack-tight" aria-label="발행 담당 빠른 답장">
-                <Button size="sm" onClick={publish}>지금 발행하기</Button>
+                <Button size="sm" onClick={publish} disabled={!accountsLoaded || publishTargets.length === 0}>지금 발행하기</Button>
                 <Button size="sm" onClick={() => setShowSchedule(true)}>시간은 내가 골라 줘</Button>
                 <Button size="sm" onClick={requestReview}>먼저 검토받기</Button>
               </div>
