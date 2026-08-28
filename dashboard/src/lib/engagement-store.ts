@@ -13,6 +13,15 @@ export interface EngagementStateRow {
   editor_draft_id: string | null;
 }
 
+const DEFAULT_REPLY_CLAIM_STALE_AFTER_MS = 15 * 60 * 1000;
+
+function replyClaimStaleAfterMs(): number {
+  const configured = Number(process.env.ENGAGEMENT_REPLY_CLAIM_STALE_AFTER_MS);
+  return Number.isSafeInteger(configured) && configured >= 1000
+    ? configured
+    : DEFAULT_REPLY_CLAIM_STALE_AFTER_MS;
+}
+
 export async function listEngagementStates(tenantId: string, postId: string): Promise<EngagementStateRow[]> {
   return withTenant(tenantId, (sql) => sql<EngagementStateRow[]>`
     SELECT provider_comment_id, state, reply_request_key, reply_text, reply_external_id,
@@ -42,7 +51,11 @@ export async function claimReply(input: {
       ON CONFLICT (tenant_id, platform, provider_comment_id) DO UPDATE
       SET state = 'replying', reply_request_key = EXCLUDED.reply_request_key,
           reply_text = EXCLUDED.reply_text, updated_at = now()
-      WHERE engagement_items.replied_at IS NULL AND engagement_items.state <> 'replying'
+      WHERE engagement_items.replied_at IS NULL
+        AND (
+          engagement_items.state <> 'replying'
+          OR engagement_items.updated_at < now() - (${replyClaimStaleAfterMs()} * interval '1 millisecond')
+        )
       RETURNING provider_comment_id, state, reply_request_key, reply_text, reply_external_id,
                 replied_at::text, liked_at::text, deferred_at::text, editor_handoff_at::text, editor_draft_id`;
     if (claimed) return { status: "claimed" as const, row: claimed };
@@ -54,6 +67,14 @@ export async function claimReply(input: {
     if (existing?.replied_at && existing.reply_request_key === input.requestKey) return { status: "replay" as const, row: existing };
     return { status: "conflict" as const, row: existing ?? null };
   });
+}
+
+export async function touchReplyClaim(tenantId: string, platform: string, commentId: string, requestKey: string): Promise<void> {
+  await withTenant(tenantId, (sql) => sql`
+    UPDATE engagement_items
+    SET updated_at = now()
+    WHERE tenant_id = ${tenantId} AND platform = ${platform} AND provider_comment_id = ${commentId}
+      AND state = 'replying' AND reply_request_key = ${requestKey}`);
 }
 
 export async function releaseReplyClaim(tenantId: string, platform: string, commentId: string, requestKey: string): Promise<void> {

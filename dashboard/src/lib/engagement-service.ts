@@ -5,7 +5,7 @@ import { getChannelCred } from "@/lib/publish";
 import { getWikiContext } from "@/lib/wiki-retrieve";
 import { likeProviderComment, listProviderComments, replyToProvider, type ProviderComment } from "@/lib/engagement-provider";
 import {
-  claimReply, completeReply, getEngagementState, listEngagementStates, markEngagement, releaseReplyClaim,
+  claimReply, completeReply, getEngagementState, listEngagementStates, markEngagement, releaseReplyClaim, touchReplyClaim,
   type EngagementStateRow,
 } from "@/lib/engagement-store";
 
@@ -131,6 +131,10 @@ export async function sendReply(tenantId: string, postId: string, commentId: str
   if (claim.status === "conflict") throw new EngagementError(409, "REPLY_ALREADY_CLAIMED", "이미 답글을 보내고 있거나 답글 이력이 있습니다.", context.capability);
   const result = await replyToProvider(context.platform, context.cred, commentId, text.trim());
   if (!result.ok) {
+    if (result.failureKind === "indeterminate") {
+      await touchReplyClaim(tenantId, context.platform, commentId, requestKey);
+      throw new EngagementError(502, "PROVIDER_REPLY_STATUS_UNKNOWN", result.error ?? "답글 전송 결과를 확인하지 못했습니다.", context.capability);
+    }
     await releaseReplyClaim(tenantId, context.platform, commentId, requestKey);
     throw new EngagementError(502, "PROVIDER_REPLY_FAILED", result.error ?? "답글 전송에 실패했습니다.", context.capability);
   }

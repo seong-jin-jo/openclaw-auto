@@ -38,4 +38,20 @@ describe("BE-V63-09 provider 댓글 어댑터", () => {
     await expect(listProviderComments("tiktok", { token: "secret" }, "video-1")).rejects.toThrow("계약이 없습니다");
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it("C4-BE-V63-09 불확정 경로: 답글 요청 시간 초과는 중복 방지를 위해 결과 미확정으로 분류한다", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new DOMException("시간 초과", "TimeoutError"); }));
+    const { replyToProvider } = await import("@/lib/engagement-provider");
+
+    await expect(replyToProvider("facebook", { token: "secret" }, "comment-1", "답글"))
+      .resolves.toMatchObject({ ok: false, failureKind: "indeterminate" });
+  });
+
+  it("C4-BE-V63-09 확정 거절: provider 400 응답은 재시도 가능한 확정 거절로 분류한다", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 400 })));
+    const { replyToProvider } = await import("@/lib/engagement-provider");
+
+    await expect(replyToProvider("facebook", { token: "secret" }, "comment-1", "답글"))
+      .resolves.toMatchObject({ ok: false, failureKind: "definitive" });
+  });
 });

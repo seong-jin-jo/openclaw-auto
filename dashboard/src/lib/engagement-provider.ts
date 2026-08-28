@@ -25,6 +25,13 @@ export interface ProviderMutationResult {
   ok: boolean;
   externalId?: string;
   error?: string;
+  failureKind?: "definitive" | "indeterminate";
+}
+
+class ProviderRequestError extends Error {
+  constructor(message: string, readonly failureKind: "definitive" | "indeterminate") {
+    super(message);
+  }
 }
 
 function providerError(platform: string, status: number): string {
@@ -39,10 +46,14 @@ async function providerJson<T>(platform: string, url: string, init?: RequestInit
   try {
     response = await fetch(url, { ...init, signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS) });
   } catch {
-    throw new Error(`${platform} 댓글 서버에 연결하지 못했습니다. 잠시 후 다시 시도해주세요.`);
+    throw new ProviderRequestError(`${platform} 댓글 요청 결과를 확인하지 못했습니다. 중복 방지를 위해 상태 확인이 필요합니다.`, "indeterminate");
   }
-  if (!response.ok) throw new Error(providerError(platform, response.status));
-  return response.json() as Promise<T>;
+  if (!response.ok) throw new ProviderRequestError(providerError(platform, response.status), "definitive");
+  try {
+    return await response.json() as T;
+  } catch {
+    throw new ProviderRequestError(`${platform} 댓글 응답을 확인하지 못했습니다. 중복 방지를 위해 상태 확인이 필요합니다.`, "indeterminate");
+  }
 }
 
 function instagramBase(cred: ChannelCred): string {
@@ -148,9 +159,15 @@ async function graphReply(base: string, platform: string, cred: ChannelCred, com
       method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ message: text, access_token: cred.token }),
     });
-    return body.id ? { ok: true, externalId: body.id } : { ok: false, error: `${platform} 답글 응답에 ID가 없습니다.` };
+    return body.id
+      ? { ok: true, externalId: body.id }
+      : { ok: false, error: `${platform} 답글 응답에 ID가 없습니다.`, failureKind: "indeterminate" };
   } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : `${platform} 답글에 실패했습니다.` };
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : `${platform} 답글에 실패했습니다.`,
+      failureKind: error instanceof ProviderRequestError ? error.failureKind : "indeterminate",
+    };
   }
 }
 
@@ -166,12 +183,18 @@ export async function replyToProvider(platform: string, cred: ChannelCred, comme
         method: "POST", headers: { Authorization: `Bearer ${cred.token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ snippet: { parentId: commentId, textOriginal: text } }),
       });
-      return body.id ? { ok: true, externalId: body.id } : { ok: false, error: "YouTube 답글 응답에 ID가 없습니다." };
+      return body.id
+        ? { ok: true, externalId: body.id }
+        : { ok: false, error: "YouTube 답글 응답에 ID가 없습니다.", failureKind: "indeterminate" };
     } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : "YouTube 답글에 실패했습니다." };
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : "YouTube 답글에 실패했습니다.",
+        failureKind: error instanceof ProviderRequestError ? error.failureKind : "indeterminate",
+      };
     }
   }
-  return { ok: false, error: `${platform} 답글 계약이 없습니다.` };
+  return { ok: false, error: `${platform} 답글 계약이 없습니다.`, failureKind: "definitive" };
 }
 
 export async function likeProviderComment(platform: string, cred: ChannelCred, commentId: string): Promise<ProviderMutationResult> {

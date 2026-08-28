@@ -19,6 +19,7 @@ export interface PublishResult {
   externalId?: string;
   permalink?: string;
   error?: string;
+  failureKind?: "definitive" | "indeterminate";
 }
 
 // SSRF 가드 1단계(lexical) — 서버가 직접 fetch하는 image_url에만 적용(현재 Bluesky uploadBlob 경로).
@@ -243,12 +244,12 @@ export async function publishThreads(
       method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ creation_id: containerId, access_token: cred.token }),
     });
-    if (!pub.ok) return { ok: false, error: `publish 실패(${pub.status}): Threads 채널 권한을 확인하거나 다시 연결해주세요.` };
+    if (!pub.ok) return { ok: false, error: `publish 실패(${pub.status}): Threads 채널 권한을 확인하거나 다시 연결해주세요.`, failureKind: "definitive" };
     const pubBody = (await pub.json()) as { id?: string };
-    if (!pubBody.id) return { ok: false, error: "Threads 발행에 실패했습니다. 잠시 후 다시 시도해주세요." };
+    if (!pubBody.id) return { ok: false, error: "Threads 발행 결과를 확인하지 못했습니다. 중복 방지를 위해 상태 확인이 필요합니다.", failureKind: "indeterminate" };
     mediaId = pubBody.id;
   } catch {
-    return { ok: false, error: "Threads 발행 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요." };
+    return { ok: false, error: "Threads 발행 결과를 확인하지 못했습니다. 중복 방지를 위해 상태 확인이 필요합니다.", failureKind: "indeterminate" };
   }
 
   // 발행 직후 media 조회가 아직 비어 있을 수 있어 짧게 재시도한다. permalink 실패는 발행 성공을 뒤집지 않는다.
