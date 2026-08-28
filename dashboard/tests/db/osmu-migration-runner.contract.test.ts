@@ -11,6 +11,7 @@ const migrationWorkflow = readFileSync(resolve(__dirname, "../../../.github/work
 const rollbackWriter = readFileSync(resolve(dbRoot, "write-rollback-manifest.sh"), "utf8");
 const rollbackRunner = readFileSync(resolve(dbRoot, "rollback-migration.sh"), "utf8");
 const rollbackIndexVerifier = readFileSync(resolve(dbRoot, "verify-rollback-indexes.sql"), "utf8");
+const migrationMatrix = readFileSync(resolve(__dirname, "../../scripts/verify-generation-migration-matrix.sh"), "utf8");
 const memberMigration = readFileSync(resolve(dbRoot, "migrations/20260829_030_member_unique_expand.sql"), "utf8");
 
 function manifestRows(): string[][] {
@@ -175,5 +176,15 @@ describe("OSMU explicit migration runner 계약", () => {
     expect(runner).toContain("SELECT 1/0;");
     expect(runner).toContain("atomic_with_ledger");
     expect(runner).toContain("and ledger transaction rolled back");
+  });
+
+  it("GEN-MIG-18 정상: CI matrix는 checkout git ownership에 의존하지 않고 제공된 SHA를 검증해 사용한다", () => {
+    expect(migrationMatrix).toContain('RUNNER_COMMIT="${RUNNER_COMMIT:-${GITHUB_SHA:-}}"');
+    expect(migrationMatrix.indexOf('RUNNER_COMMIT="${RUNNER_COMMIT:-${GITHUB_SHA:-}}"')).toBeLessThan(
+      migrationMatrix.indexOf('git -C "$DASHBOARD_DIR/.." rev-parse HEAD'),
+    );
+    expect(migrationMatrix).toContain('if [ -z "$RUNNER_COMMIT" ]');
+    expect(migrationMatrix).toContain('RUNNER_COMMIT or GITHUB_SHA must be a 40-character git SHA');
+    expect(migrationMatrix).not.toContain("safe.directory");
   });
 });
