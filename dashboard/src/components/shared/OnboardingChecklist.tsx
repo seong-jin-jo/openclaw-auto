@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useOnboardingStatus } from "@/hooks/useOnboarding";
 
 interface ChecklistData {
-  checklist?: { created?: boolean; channel?: boolean; published?: boolean; analytics?: boolean };
+  checklist?: { created?: boolean; wiki?: boolean; channel?: boolean; published?: boolean; analytics?: boolean };
 }
 
-const STEPS: { key: "created" | "channel" | "published" | "analytics"; label: string; href?: string }[] = [
+const STEPS: { key: "created" | "wiki" | "channel" | "published" | "analytics"; label: string; href?: string }[] = [
   { key: "created", label: "첫 콘텐츠 만들기", href: "/studio" },
+  { key: "wiki", label: "브랜드 문서 연결", href: "/studio?setup=brand" },
   { key: "channel", label: "발행할 때 왼쪽 채널에서 연결" },
   { key: "published", label: "첫 콘텐츠 발행", href: "/studio" },
   { key: "analytics", label: "성과 확인", href: "/" },

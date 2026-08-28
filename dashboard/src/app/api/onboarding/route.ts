@@ -84,6 +84,7 @@ export async function GET(request: Request) {
     generationCount,
     checklist: {
       created: generationCount > 0,
+      wiki: wikiCount > 0,
       channel: channelConnected,
       published: publishCount > 0,
       analytics: fileSignals.analyticsViewed,
