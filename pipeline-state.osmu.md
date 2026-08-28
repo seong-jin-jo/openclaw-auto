@@ -15,7 +15,7 @@
 project: openclaw-auto-osmu
 repo: /Users/sj/sj_code_master/openclaw-auto
 pipeline_version: 1
-current_stage: design               # 회장 확정 2026-08-18: openclaw-service = 기획+프로토타입 진행 중. 정식 파이프라인.  # plan|design|eng-design|build|qa|ship  (QA cross-check audit started 2026-08-10)
+current_stage: qa                   # 2026-08-28 OSMU 실제 앱 QA 진행 중.  # plan|design|eng-design|build|qa|ship
 approved_stages: [plan]
 approved_artifacts:
   # ── 2026-08-18 갱신 (회장 지적: 디자인 위임 입력이 pipeline-state에 정의돼 있는데 컨트롤러가 안 따랐다) ──

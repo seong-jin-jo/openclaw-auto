@@ -3279,3 +3279,9 @@
 {"ts":"2026-08-27T22:14:25Z","hook":"secret-leak-check","status":"pass","detail":"no secrets"}
 {"ts":"2026-08-27T22:18:19Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
 {"ts":"2026-08-27T22:18:47Z","hook":"secret-leak-check","status":"pass","detail":"no secrets"}
+{"ts":"2026-08-28T09:01:07Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-28T09:01:08Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 코드리뷰 전문가다. **고치는 사람이 아�"}
+{"ts":"2026-08-28T09:01:08Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 코드리뷰 전문가다. **고치는 사람이 아�"}
+{"ts":"2026-08-28T09:01:11Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-28T09:01:11Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI QA 검증 전문가다.\n'코드 작성 = 동�"}
+{"ts":"2026-08-28T09:01:11Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI QA 검증 전문가다.\n'코드 작성 = 동�"}

@@ -76,7 +76,7 @@ idle_rounds=0
 while :; do
   [ -f "$STOP" ] && { echo "[$(date +%H:%M)] 멈춤 요청을 받아 종료한다."; break; }
   dispatched=0
-  for lane in build fe; do
+  for lane in build fe review qa; do
     [ -n "$(running_in_lane "$lane")" ] && continue
     entry="$(next_pending "$lane")"
     [ -z "$entry" ] && continue
@@ -92,7 +92,10 @@ while :; do
     echo "[$(date +%H:%M)] $lane 갈래가 비었다. $id 를 던진다."
     # 45분 기본은 이 레포의 판 하나에 짧다. build5·fe4 가 실제 작업을 끝내고
     # 보고를 쓰다가 잘렸다. 90분으로 늘린다.
-    if CODEX_TIMEOUT="${CODEX_TIMEOUT:-5400}" bash "$HOME/.claude/harness/bin/codex-in-pane.sh" "$sess" code-builder "$prompt" >/dev/null 2>&1; then
+    role="code-builder"
+    [ "$lane" = "review" ] && role="code-reviewer"
+    [ "$lane" = "qa" ] && role="qa-verifier"
+    if CODEX_TIMEOUT="${CODEX_TIMEOUT:-5400}" bash "$HOME/.claude/harness/bin/codex-in-pane.sh" "$sess" "$role" "$prompt" >/dev/null 2>&1; then
       mark "$id" "$lane" "돌는중" "$sess"; dispatched=1
     else
       echo "[$(date +%H:%M)] $id 발주 실패"
@@ -103,7 +106,9 @@ while :; do
   # 두 갈래 모두 비었고 던질 것도 없으면 백로그가 소진된 것이다.
   if [ "$dispatched" = "0" ] &&
      [ -z "$(running_in_lane build)" ] && [ -z "$(running_in_lane fe)" ] &&
-     [ -z "$(next_pending build)" ] && [ -z "$(next_pending fe)" ]; then
+     [ -z "$(running_in_lane review)" ] && [ -z "$(running_in_lane qa)" ] &&
+     [ -z "$(next_pending build)" ] && [ -z "$(next_pending fe)" ] &&
+     [ -z "$(next_pending review)" ] && [ -z "$(next_pending qa)" ]; then
     idle_rounds=$((idle_rounds+1))
     [ "$idle_rounds" -ge 2 ] && { echo "[$(date +%H:%M)] 백로그를 다 비웠다. 감독을 마친다."; break; }
   else

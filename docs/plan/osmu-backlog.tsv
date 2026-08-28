@@ -9,3 +9,5 @@ build9	build	build9-tenant-isolation.txt
 build10	build	build10-observability.txt
 fe9	fe	fe9-perf-and-a11y.txt
 fe10	fe	fe10-brand-consistency.txt
+review1	review	review1-code-review.txt
+qa1	qa	qa1-app-qa.txt
