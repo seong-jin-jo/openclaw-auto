@@ -1,0 +1,74 @@
+{
+  "workspaceId": "cd1d0a40-540d-4524-9b49-bf2445d82182",
+  "widths": [
+    390,
+    1024,
+    1440
+  ],
+  "observations": [
+    {
+      "width": 390,
+      "performance": {
+        "roomCount": 1,
+        "documentWidth": 390,
+        "legacyPipeline": false,
+        "legacyRecent": false,
+        "legacyChannels": false,
+        "redundantLocation": false
+      },
+      "draftBodyRestored": true
+    },
+    {
+      "width": 1024,
+      "performance": {
+        "roomCount": 1,
+        "documentWidth": 1024,
+        "legacyPipeline": false,
+        "legacyRecent": false,
+        "legacyChannels": false,
+        "redundantLocation": false
+      },
+      "draftBodyRestored": true
+    },
+    {
+      "width": 1440,
+      "performance": {
+        "roomCount": 1,
+        "documentWidth": 1440,
+        "legacyPipeline": false,
+        "legacyRecent": false,
+        "legacyChannels": false,
+        "redundantLocation": false
+      },
+      "draftBodyRestored": true
+    },
+    {
+      "width": 390,
+      "operator": {
+        "providerCount": 12,
+        "expandedCount": 0,
+        "documentWidth": 390,
+        "apiProviderCount": 12
+      }
+    },
+    {
+      "width": 1024,
+      "operator": {
+        "providerCount": 12,
+        "expandedCount": 0,
+        "documentWidth": 1024,
+        "apiProviderCount": 12
+      }
+    },
+    {
+      "width": 1440,
+      "operator": {
+        "providerCount": 12,
+        "expandedCount": 0,
+        "documentWidth": 1440,
+        "apiProviderCount": 12
+      }
+    }
+  ],
+  "browserFailures": []
+}
