@@ -214,7 +214,7 @@ function toolValuesFromFormat(format: ContentEditFormat): ToolValues {
   return { ...defaults, 목소리: format.voice, 음악: format.musicTrack, 음량: `${format.musicVolume}%` };
 }
 
-function formatFromToolValues(kind: EditContentKind, values: ToolValues): ContentEditFormat {
+function formatFromToolValues(kind: ContentEditFormat["kind"], values: ToolValues): ContentEditFormat {
   const candidate = kind === "video"
     ? { kind, aspectRatio: values.비율, subtitleSize: values.자막, playbackSpeed: Number.parseFloat(values.속도), voice: values.목소리 }
     : kind === "card"
