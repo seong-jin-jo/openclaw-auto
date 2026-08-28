@@ -540,8 +540,9 @@ describe("Studio publish result integrity", () => {
 
     await waitFor(() => expect(mocks.apiPost.mock.calls.some(([path, body]) => {
       if (path !== "/api/studio/drafts") return false;
-      const keys = Object.keys((body as { publishReconciliations?: Record<string, unknown> }).publishReconciliations ?? {});
-      return keys.includes("threads") && keys.includes("x");
+      const draft = body as { id?: string; publishReconciliations?: Record<string, unknown> };
+      const keys = Object.keys(draft.publishReconciliations ?? {});
+      return draft.id === "draft-reconcile" && keys.includes("threads") && keys.includes("x");
     })).toBe(true));
     fireEvent.click(screen.getByRole("button", { name: "2곳에 올리기" }));
     await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith(
@@ -549,6 +550,24 @@ describe("Studio publish result integrity", () => {
       "error",
     ));
     expect(mocks.apiPost.mock.calls.filter(([path]) => path === "/api/publish")).toHaveLength(2);
+  });
+
+  it("M5-STUDIO-02 거절: 발행 전 초안 ID를 확보하지 못하면 외부 발행을 시작하지 않는다", async () => {
+    restoreStudio(["threads"]);
+    mocks.apiPost.mockImplementation(async (path: string) => {
+      if (path === "/api/studio/drafts") return null;
+      if (path === "/api/publish") throw new Error("외부 발행이 호출되면 안 됩니다");
+      throw new Error(`unexpected path: ${path}`);
+    });
+
+    render(<StudioPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "1곳에 올리기" }));
+
+    await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith(
+      "발행할 초안을 저장하지 못했습니다",
+      "error",
+    ));
+    expect(mocks.apiPost.mock.calls.filter(([path]) => path === "/api/publish")).toHaveLength(0);
   });
 });
 

@@ -77,7 +77,7 @@ describe("publish_success fires only after confirmed API success, not on click a
     const partialGuard = block.indexOf("isExternalPublishPersistenceError(e)");
     const preserveUrl = block.indexOf("e.payload.permalink", partialGuard);
     const parallelJoin = block.indexOf("await Promise.all(targets.map", preflightGuard);
-    const persistPartial = block.indexOf('save("partial", pendingReconciliations)');
+    const persistPartial = block.indexOf('save("partial", pendingReconciliations, did)');
 
     expect(preflightGuard).toBeGreaterThan(-1);
     expect(preflightGuard).toBeLessThan(apiCall);

@@ -372,10 +372,11 @@ export default function StudioPage() {
   async function save(
     status: "draft" | "published" | "partial" | "stopped" = "draft",
     reconciliations: PublishReconciliationMap = publishReconciliations,
+    persistedDraftId: string | null = draftId,
   ) {
     const r = await apiPost<{ id?: string }>("/api/studio/drafts", {
       tenant_id: activeWorkspace?.id,
-      id: draftId,
+      id: persistedDraftId,
       idea,
       text,
       img,
@@ -419,6 +420,10 @@ export default function StudioPage() {
       return;
     }
     const did = await save("draft");
+    if (!did) {
+      showToast("발행할 초안을 저장하지 못했습니다", "error");
+      return;
+    }
     const targets = selectedPublishTargets(includes);
     if (!targets.length) { showToast("발행할 플랫폼을 선택하세요", "error"); return; }
     const status: Record<string, PubStatus> = {}; targets.forEach((p) => (status[p] = "wait"));
@@ -480,7 +485,7 @@ export default function StudioPage() {
     if (Object.keys(pendingReconciliations).length > 0) {
       setPublishReconciliations(pendingReconciliations);
       try {
-        await save("partial", pendingReconciliations);
+        await save("partial", pendingReconciliations, did);
       } catch {
         // The same storage incident can prevent the draft write too. The state was
         // already copied to localStorage-bound React state, so keep the no-republish
@@ -488,7 +493,7 @@ export default function StudioPage() {
         errs.push("복구 정보 서버 저장 실패·현재 브라우저에만 보존됨");
       }
     } else {
-      await save(errs.length ? "partial" : "published", {});
+      await save(errs.length ? "partial" : "published", {}, did);
       setPublishReconciliations({});
     }
     if (errs.length) showToast(`발행 결과: ${errs.join(" / ")}`.slice(0, 180), "error");
