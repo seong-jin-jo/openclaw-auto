@@ -2,6 +2,50 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-08-28 PASS: v24 디자인 검수 지적 보수, 전체 design gate는 NG 유지
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
+|---|---|---|---|---|
+| R08, R150 | 실제 네 방 경로와 최신 채널 탭 계약 보존 | V24-DR-001 | PASS | 네 방 4개 x 4폭 실제 클릭. 채널 capability 7건 PASS |
+| R201 | 사이드바의 `지금 여기`, `다음` 제거 | V24-DR-001 | PASS | 390, 1024, 1440 실제 DOM 문구 0건. 회귀 2파일 7건 PASS |
+| R200, R207 | 성과실 중복 제거와 한 작업 흐름 유지 | V24-DR-002 | 부분 PASS | `PerformanceRoom` 1건, 레거시 패널 문구 0건. 전체 v63 정합은 NG 유지 |
+| R206 | 승인 시안 수준의 화면 정합 | CONF-ALL | NG 유지 | `docs/qa/osmu-v24-design-conformance-matrix-v1-gpt-codex.md` |
+| 이월 | v24 저장 본문, 토큰, OAuth 점진 공개와 진실원 | V24-DR-003~008 | PASS 또는 조건부 PASS | 본문 복원 3폭, design lint 0건, API와 DOM OAuth 12개, 기본 펼침 0건 |
+
+**위험도순 결과:** 이 감사에는 돈 손실이나 작업 공간 격리 침해 지적이 없었다. 기본 흐름 P1인
+실제 경로, 성과실 중복, 저장 본문 연속성, OAuth 진실원을 먼저 처리했다. 없는 OAuth provider
+두 개는 만들지 않았다. API가 반환한 12개를 UI가 그대로 그리며 `14개` 고정 주석만 제거했다.
+
+**실제 앱:** `localhost:3456`에서 v24 재현 3종을 390, 1024, 1440으로 실행했다. 성과실 단일
+블록, 저장 본문 복원, OAuth 12개 기본 접힘과 API 정합이 전부 PASS다. 네 방 UI는 추가로
+390, 768, 1024, 1440에서 16화면과 성과실 왕복 4건이 PASS다. 가로 넘침, 브라우저 401,
+콘솔 오류는 모두 0건이다. 증거는 `docs/prototype/qa-v24-remediation/`에 있다.
+
+**전체 회귀:** Vitest 185파일 1,321건 PASS, 6건 조건부 SKIP. `npx tsc --noEmit`, Next
+production build 174경로, 디자인 lint 0건. 실제 앱 기본 흐름 11/11, Studio 계약 12/12,
+health HTTP 200. 임시 PostgreSQL에 schema, test seed, RLS를 적용해 `seed-a`, `seed-b`와
+seed draft 1건을 관찰한 뒤 임시 DB를 폐기했다. 웹 전용이라 Maestro는 해당 없음이다.
+
+**전환 판정:** v24 audit의 지적 보수는 PASS다. 전체 v63 디자인 정합은 기존 12행이 NG라
+qa 승인과 배포 전환은 금지한다. 세부 근거는
+`docs/qa/osmu-v24-design-conformance-matrix-v1-gpt-codex.md`다.
+
+## 2026-08-28 NG: 신규 마이그레이션 파일명의 실행 순서
+
+| 시험 항목 | 재현된 결함 | 현재 판정 | 종료증거 |
+|---|---|---|---|
+| RELEASE-MIGRATION-01 | 같은 날짜의 신규 파일을 이름순으로 실행하면 `code_review_tenant_fk`가 `engagement_items`보다 먼저, `shorts_factory_run_leases`가 `shorts_factory_runs`보다 먼저 실행된다 | NG | 빈 PostgreSQL의 기존 운영 스키마와 최신 스키마 양쪽에서 신규 마이그레이션 전체가 이름순으로 성공하고 트랜잭션 경계가 확인됨 |
+
+**근본 원인:** 날짜만 있는 파일명에 의존하면서 같은 날의 선후 의존성을 나타내는 순번을 두지 않았다. 배포 스크립트가 이름순으로 실행해도 참조 대상 테이블이 먼저 생성되도록 파일명에 명시적 순번이 필요하다.
+
+## 2026-08-28 NG: Studio 개발용 신원 우회의 운영 예외값
+
+| 시험 항목 | 재현된 결함 | 현재 판정 | 종료증거 |
+|---|---|---|---|
+| RELEASE-IDENTITY-01 | `NODE_ENV=production` 이어도 `STUDIO_ALLOW_DEV_IDENTITY_IN_PROD=1`이면 개발용 bearer로 회원과 작업 공간을 가장할 수 있다 | NG | 예외 환경변수를 설정해도 운영에서 `IDENTITY_ADAPTER_NOT_CONFIGURED`로 거절되고 전체 회귀가 통과 |
+
+**근본 원인:** 운영 안전장치에 현장 우회용 예외값을 남겼고, 회귀 테스트는 그 예외값이 없는 경우만 검증했다. 운영 신원 경계는 실행 중 플래그로 재개방할 수 없게 고정해야 한다.
+
 ## 2026-08-28 PASS: Opus 교차검수 전 항목 위험도순 재검증
 
 | 우선순위 | 시험 항목 | 수정 또는 재검증 결과 | 직접 증거 | 판정 |

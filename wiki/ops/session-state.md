@@ -1,3 +1,25 @@
+## [2026-08-28 21:20 v24 디자인 검수 지적 보수와 실앱 재현]
+
+**핸드오프 기준:** 회장이 지정한 `docs/audit/v24-design-review.md`와 기반 산출물 3종을 primary로
+사용했다. canonical `pipeline-state.osmu.md`는 착수 시 이미 `current_stage: qa`였다.
+
+- 수정: 성과실 아래 레거시 Home 패널 제거, 사이드바와 모바일 헤더의 `지금 여기` 제거,
+  운영자 OAuth 화면의 고정 14개 주석 제거. 공통 채널 탭, 저장 본문 복원, OAuth 12개 SSOT,
+  인라인 온보딩은 보존했다.
+- 회귀: 원인별 Vitest 3파일과 `dashboard/scripts/verify-v24-design-review-e2e.mjs`를 추가했다.
+- 실제 증거: `localhost:3456`에서 성과실 단일 블록, 저장 본문 복원, OAuth 12개 기본 접힘을
+  390, 1024, 1440에서 확인했다. 네 방 4개 x 4폭, 브라우저 401과 콘솔 오류와 가로 넘침 0건.
+- 전체 검증: Vitest 185파일 1,321건 PASS와 조건부 SKIP 6건, TypeScript, Next build 174경로,
+  design lint 0건, health 200, 기본 흐름 11/11, Studio 12/12, 임시 PostgreSQL schema와 seed와
+  RLS 적용 통과. 임시 DB와 고객 토큰은 폐기했다.
+- 판정: v24 audit 재현 범위는 PASS. 전체 v63 design conformance는 기존 12행이 NG라 qa 승인과
+  배포 전환은 금지한다. 상세 문서 `docs/qa/osmu-v24-design-conformance-matrix-v1-gpt-codex.md`.
+- 커밋: `4a1971cd`, `8b3de8aa`, `8967a69f`, `581de86b`, `08f78bc3`, `42befd9a`.
+- 공유 트리 주의: 릴리스 준비 트랙의 identity, workflow, package, compose, migration 변경과 렌더
+  이미지는 다른 세션 소유다. 되돌리거나 이번 QA 문서 커밋에 포함하지 않는다.
+- 다음 실행: 소유자=product-designer와 qa-verifier. 종료증거=기존 전체 v63 NG 12행을 화면별로
+  수정하고 동일 3폭 prototype 대조에서 전행 PASS. 그 전 design과 qa 승인 금지.
+
 ## [2026-08-28 Opus 교차검수 전 항목 build 수정과 검증]
 
 **핸드오프 기준: 회장이 명시한 `docs/audit/osmu-cross-review-2026-08-28-opus.md`와 기반 산출물 3종. 관련 코드 tmux pane은 없었고 `studio-auth-runtime`은 `localhost:3456` 실행 전용으로 사용했다.**
