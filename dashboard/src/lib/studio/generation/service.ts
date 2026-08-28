@@ -105,6 +105,10 @@ function dateInZone(now: Date, timeZone: string): string {
   return `${values.year}-${values.month}-${values.day}`;
 }
 
+function quotaDate(now: Date): string {
+  return dateInZone(now, "UTC");
+}
+
 function nextLocalDateBoundary(now: Date, timeZone: string): string {
   const current = dateInZone(now, timeZone);
   let low = now.getTime();
@@ -299,7 +303,7 @@ export class GenerationService {
     if (!original) {
       throw new StudioApiError({ status: 404, code: "RESOURCE_NOT_FOUND", message: "생성 작업을 찾을 수 없습니다" });
     }
-    const localDate = dateInZone(now, original.timeZone);
+    const localDate = quotaDate(now);
     const idempotencyKey = `free-regeneration:${jobId}:${localDate}`;
     const replacementJob = buildJob(memberId, original.request, now);
     const replacement = publicResponse(replacementJob);

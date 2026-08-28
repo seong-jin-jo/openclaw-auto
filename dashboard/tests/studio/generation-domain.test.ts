@@ -151,4 +151,21 @@ describe("Studio 생성 도메인 계약", () => {
     const rejected = settled.find((result) => result.status === "rejected") as PromiseRejectedResult;
     expect(rejected.reason).toEqual(expect.objectContaining({ code: "PAID_REGENERATION_APPROVAL_REQUIRED" }));
   });
+
+  it("M1-GEN-RETRY-04 한국어 설명: 서로 다른 시간대의 서로 다른 작업도 UTC 하루 무료 몫을 한 번만 쓴다", async () => {
+    const service = generationService();
+    const eastBody = generationRequestFixture();
+    eastBody.learning_context.u2.time_zone = "Pacific/Kiritimati";
+    const westBody = generationRequestFixture();
+    westBody.learning_context.u2.time_zone = "Etc/GMT+12";
+    westBody.learning_context.r6.topic = "서쪽 시간대 작업";
+    const east = await service.create("member-1", "create-east", parseGenerationRequest(eastBody));
+    const west = await service.create("member-1", "create-west", parseGenerationRequest(westBody));
+    const now = new Date("2026-08-27T12:30:00.000Z");
+
+    await service.regenerate("member-1", east.jobId, WORKSPACES, now);
+    await expect(service.regenerate("member-1", west.jobId, WORKSPACES, now)).rejects.toEqual(
+      expect.objectContaining({ code: "PAID_REGENERATION_APPROVAL_REQUIRED", status: 409 }),
+    );
+  });
 });

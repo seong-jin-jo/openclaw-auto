@@ -104,7 +104,7 @@ describe("Studio 생성 Postgres 장부 계약", () => {
     expect(count.value).toBe(1);
   });
 
-  it("GEN-DB-03 한국어 설명: 동시에 두 번 재생성해도 회원 현지 날짜 무료 몫은 한 건만 소비한다", async (ctx) => {
+  it("GEN-DB-03 한국어 설명: 동시에 두 번 재생성해도 회원 UTC 날짜 무료 몫은 한 건만 소비한다", async (ctx) => {
     if (!await liveDatabase(ctx)) return;
     const service = new GenerationService(new PostgresGenerationRepository());
     const body = generationRequestFixture();
@@ -146,7 +146,7 @@ describe("Studio 생성 Postgres 장부 계약", () => {
     expect(count.value).toBe(1);
   });
 
-  it("GEN-DB-05 한국어 설명: 같은 회원의 현지 날짜 무료 몫은 워크스페이스가 달라도 한 번뿐이다", async (ctx) => {
+  it("GEN-DB-05 한국어 설명: 같은 회원의 UTC 날짜 무료 몫은 워크스페이스가 달라도 한 번뿐이다", async (ctx) => {
     if (!await liveDatabase(ctx)) return;
     const otherTenantId = await createTemporaryTenant();
     const service = new GenerationService(new PostgresGenerationRepository());
@@ -167,5 +167,30 @@ describe("Studio 생성 Postgres 장부 계약", () => {
         (SELECT count(*)::int FROM studio_generation_jobs WHERE member_id = ${memberId}) AS jobs,
         (SELECT count(*)::int FROM studio_free_regeneration_uses WHERE member_id = ${memberId}) AS free_uses`;
     expect(counts).toEqual({ jobs: 3, free_uses: 1 });
+  });
+
+  it("M1-GEN-DB-06 한국어 설명: 동서 끝 시간대의 서로 다른 작업도 실제 DB에서 UTC 하루 몫을 공유한다", async (ctx) => {
+    if (!await liveDatabase(ctx)) return;
+    const service = new GenerationService(new PostgresGenerationRepository());
+    const eastBody = generationRequestFixture();
+    eastBody.workspace_id = tenantId;
+    eastBody.learning_context.u2.time_zone = "Pacific/Kiritimati";
+    const westBody = generationRequestFixture();
+    westBody.workspace_id = tenantId;
+    westBody.learning_context.u2.time_zone = "Etc/GMT+12";
+    westBody.learning_context.r6.topic = "DB 서쪽 시간대 작업";
+    const east = await service.create(memberId, "db-time-zone-east", parseGenerationRequest(eastBody));
+    const west = await service.create(memberId, "db-time-zone-west", parseGenerationRequest(westBody));
+    const now = new Date("2026-08-27T12:30:00.000Z");
+
+    await service.regenerate(memberId, east.jobId, [tenantId], now);
+    await expect(service.regenerate(memberId, west.jobId, [tenantId], now)).rejects.toEqual(
+      expect.objectContaining({ code: "PAID_REGENERATION_APPROVAL_REQUIRED", status: 409 }),
+    );
+    const [count] = await admin!<{ value: number }[]>`
+      SELECT count(*)::int AS value
+      FROM studio_free_regeneration_uses
+      WHERE tenant_id = ${tenantId} AND member_id = ${memberId}`;
+    expect(count.value).toBe(1);
   });
 });

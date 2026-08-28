@@ -48,8 +48,20 @@ record("만든 작업을 다시 조회할 수 있다", lookup.status, 200);
 const missing = await fetch(`${base}/api/studio/v1/generations/00000000-0000-0000-0000-000000000000`, { headers: auth });
 record("없는 작업 조회는 404 로 답한다", missing.status, 404);
 
-// 무료 다시 만들기 몫은 작업 단위가 아니라 회원의 하루 단위다(service.ts 의 memberId:localDate 키).
-// 그러므로 이 날 첫 호출이면 201, 이미 썼으면 409 이며, 어느 쪽이든 그 다음 호출은 반드시 409 다.
+const oppositeZoneBody = structuredClone(body);
+oppositeZoneBody.learning_context.u2.time_zone = body.learning_context.u2.time_zone === "Pacific/Kiritimati"
+  ? "Etc/GMT+12"
+  : "Pacific/Kiritimati";
+oppositeZoneBody.learning_context.r6.topic = `${body.learning_context.r6.topic} 교차 시간대`;
+const oppositeZoneCreated = await fetch(`${base}/api/studio/v1/generations`, {
+  method: "POST", headers: json(), body: JSON.stringify(oppositeZoneBody),
+});
+record("다른 시간대의 별도 작업도 생성된다", oppositeZoneCreated.status, 201);
+const oppositeZoneJobId = (await oppositeZoneCreated.json()).data?.job_id;
+
+// 무료 다시 만들기 몫은 작업이나 클라이언트 시간대가 아니라 회원의 UTC 하루 단위다.
+// 반복 실행으로 이미 오늘 몫을 쓴 환경에서는 두 호출이 모두 409일 수 있다. 첫 호출이 201이면
+// 반대 시간대의 별도 작업은 반드시 409여야 하며, 어느 경우든 두 작업에서 201이 둘 나오면 실패다.
 const retry = await fetch(`${base}/api/studio/v1/regenerations/${jobId}`, { method: "POST", headers: json(), body: JSON.stringify({ reason: "free_retry" }) });
 record("무료 다시 만들기 첫 호출은 받아들이거나 오늘 몫 소진으로 거절한다", [201, 409].includes(retry.status), true);
 if (retry.status === 409) {
@@ -60,8 +72,11 @@ if (retry.status === 409) {
   record("첫 무료 다시 만들기는 사용 사실과 교체 작업을 돌려준다", Boolean(accepted.data?.free_retry_consumed && accepted.data?.replacement?.job_id), true);
 }
 
-const retryAgain = await fetch(`${base}/api/studio/v1/regenerations/${jobId}`, { method: "POST", headers: json(), body: JSON.stringify({ reason: "free_retry" }) });
-record("하루 몫을 쓴 뒤의 다시 만들기는 거절된다", retryAgain.status, 409);
+const retryOtherZone = await fetch(`${base}/api/studio/v1/regenerations/${oppositeZoneJobId}`, {
+  method: "POST", headers: json(), body: JSON.stringify({ reason: "free_retry" }),
+});
+record("서로 다른 시간대의 두 작업에서 무료 몫은 최대 한 번만 나간다", [retry.status, retryOtherZone.status].filter((status) => status === 201).length <= 1, true);
+record("한 작업이 무료 몫을 썼다면 반대 시간대 작업은 거절된다", retry.status === 201 ? retryOtherZone.status : 409, 409);
 
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length}건 중 통과 ${results.length - failed.length}건, 실패 ${failed.length}건`);
