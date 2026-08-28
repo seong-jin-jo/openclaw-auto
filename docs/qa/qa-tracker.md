@@ -2,6 +2,21 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-08-29 NG: 지난 24시간 코드 리뷰 머지 차단
+
+| 테스트번호 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| OSMU-REVIEW-24H-01 | NG | `856ab35e`부터 `50e1c56b`까지 104개 커밋을 승인 v63, 요구 대장, 사업 좌표, DESIGN과 대조. MAJOR 25건, MINOR 5건. `docs/audit/osmu-code-review-2026-08-29.md` |
+| OSMU-REVIEW-24H-02 | PASS | `http://localhost:3456/api/health` HTTP 200, DB `up` |
+| OSMU-REVIEW-24H-03 | PASS | 실제 작업 공간 `cd1d0a40-540d-4524-9b49-bf2445d82182` 기본 흐름 11/11 |
+| OSMU-REVIEW-24H-04 | PASS | 실제 Studio 생성 계약 12/12 |
+| OSMU-REVIEW-24H-05 | PASS | Vitest 187파일, 1,338건 통과, 4건 조건부 스킵. TypeScript 종료 코드 0 |
+| OSMU-REVIEW-24H-06 | NG | `git diff --check`가 v63 시안과 여러 산출물의 후행 공백 및 EOF 빈 줄로 실패 |
+
+정상 흐름 통과와 별개로 작업 공간 전환 시 브라우저 상태 누수, 인박스 큐와 다른 초안 주입, 병렬 발행 복구값 덮어쓰기, 외부 성공 뒤 내부 기록 실패, 가입자 조회 실패를 0명으로 표시하는 부분 성공이 남아 있다. 실제 공개 채널 발행과 실 provider 댓글은 실행하지 않았다.
+
+REVIEW_VERDICT: BLOCK
+
 ## 2026-08-28 PASS: inbox와 calendar 발행실 복귀
 
 | 테스트번호 | 최초 판정 | 최종 판정 | 직접 관찰 증거 |
