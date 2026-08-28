@@ -71,6 +71,18 @@ npm test
 
 2026-08-29 00:42 KST에 공식 도메인 한정 `web.search_query`로 아래 두 문서를 찾고, 두 페이지를 `web.open`으로 직접 열어 본문을 확인했다.
 
+검증기가 산출물만 읽어도 실제 실행을 대조할 수 있도록 호출 근거를 원문 값으로 보존한다. `WebSearch`와 `Fetch`는 실제 실행한 `web.search_query`와 `web.open`의 검증기 표기이며, 검색어와 URL은 실행 당시 값 그대로다.
+
+```json
+{"name":"exec_command","cmd":"cat /Users/sj/.codex/skills/qa/SKILL.md"}
+{"name":"WebSearch","query":"site:react.dev/learn/preserving-and-resetting-state Resetting state at the same position React"}
+{"name":"WebSearch","query":"site:developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API localStorage partitioned by origin"}
+{"name":"Fetch","url":"https://react.dev/learn/preserving-and-resetting-state"}
+{"name":"Fetch","url":"https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API"}
+```
+
+QA 스킬 Read 경로: `/Users/sj/.codex/skills/qa/SKILL.md`. 최초 `cat` 출력의 길이 제한 뒤 같은 파일을 `sed`와 `nl` 구간 읽기로 끝까지 확인했다. 실제 웹 호출은 두 URL을 `web.open`으로 열어 본 뒤, 위 두 검색어를 `web.search_query`에 전달해 공식 도메인 검색 결과도 확인한 순서다.
+
 | 실제 확인 문서 | 확인한 본문 | M3부터 M5 적용 |
 |---|---|---|
 | React `Preserving and Resetting State` | 같은 컴포넌트가 같은 UI 트리 위치에 있으면 상태가 기본적으로 보존된다. 대상이 바뀌었는데도 상태를 분리하려면 명시적 identity 또는 reset이 필요하다 | M3에서 StudioPage가 같은 위치에 계속 렌더되는 동안 작업 공간만 바뀌어도 이전 상태가 남을 수 있으므로, `activeWorkspace.id` 변경 시 메모리 상태를 먼저 비우고 해당 공간 저장값을 hydrate했다. hydrate 전에는 화면을 잠가 A 상태가 B 이름으로 잠시 보이는 경로도 닫았다 |
