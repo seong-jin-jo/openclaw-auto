@@ -3,13 +3,13 @@ import { PostgresShortsFactoryRepository } from "./repository";
 import { ShortsFactoryService } from "./service";
 
 const factoryGlobal = globalThis as typeof globalThis & {
-  __shortsFactoryRuntime?: { version: 1; service: ShortsFactoryService };
+  __shortsFactoryRuntime?: { version: 2; service: ShortsFactoryService };
 };
 
 function runtimeInstance(): ShortsFactoryService {
-  if (factoryGlobal.__shortsFactoryRuntime?.version !== 1) {
+  if (factoryGlobal.__shortsFactoryRuntime?.version !== 2) {
     factoryGlobal.__shortsFactoryRuntime = {
-      version: 1,
+      version: 2,
       service: new ShortsFactoryService(
         new PostgresShortsFactoryRepository(),
         async ({ memberId, idempotencyKey, request }) => generationRuntime().create(memberId, idempotencyKey, request),
@@ -24,5 +24,5 @@ export function shortsFactoryRuntime(): ShortsFactoryService {
 }
 
 export function setShortsFactoryRuntimeForTests(service: ShortsFactoryService): void {
-  factoryGlobal.__shortsFactoryRuntime = { version: 1, service };
+  factoryGlobal.__shortsFactoryRuntime = { version: 2, service };
 }
