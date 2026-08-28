@@ -2,6 +2,33 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-08-29 범위 PASS: 읽기 API 99개 전수 재실사
+
+커밋 `d5ac3d1c`의 `localhost:3456`에서 GET export 99개를 모두 실제 호출했다. 정상 89개, 의도된 거절 10개, HTTP 500과 요청 실패는 각각 0개였다. 새 고장이 없어 제품 코드 수정은 없었다. 이번 읽기 API 범위만 PASS이며, 기존 디자인 정합과 운영 실채널 검증 NG 때문에 전체 제품 QA는 PASS가 아니다.
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
+|---|---|---|---|---|
+| R128, R151, R165, R171, R175 | 기존 채널 연결 경로와 화면을 보존하고 채널 화면에서 연결 | API-READ-RERUN-01 | PASS | Threads 연결 준비 503, readiness와 채널 조회 200, 새 HTTP 500 0 |
+| R150 | 플랫폼별 지원 기능과 인증 경계를 실제 계약과 일치 | API-READ-RERUN-02 | PASS | 임시 고객 토큰으로 TikTok 경계 도달, 계정과 발행 기록 부재 404, 실사 뒤 토큰 폐기 확인 |
+| R132, R146, R147, R182 | Studio 편집 형식값을 저장하고 다시 읽기 | API-READ-RERUN-03 | PASS | `/api/studio/drafts` HTTP 200, `editFormat` 반환 구현 확인 |
+| R01~R207 | 회장 확정 요구 전건 | REQ-ALL | 이월 | 전건 판정 정본 유지. 이번 읽기 API 범위 밖 판정은 변경하지 않음 |
+
+| 검증 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| health | PASS | `/api/health` HTTP 200, DB `up` |
+| GET 전수 실사 | PASS | 99개 중 정상 89, 의도된 거절 10, HTTP 500과 요청 실패 0 |
+| 전체 Vitest | PASS | 기본 병렬 실행의 Studio DB 2건 5초 timeout은 집중 9/9와 단일 워커 전체 194파일, 1,404건 통과로 비재현. 조건부 1건 제외 |
+| TypeScript | PASS | `npx tsc --noEmit` 종료 코드 0 |
+| production build | PASS | `npm run build` 종료 코드 0, 정적 페이지 174/174. 기존 NFT 추적 경고 1건 유지 |
+| 기본 흐름 | PASS | `verify-basic-flow-e2e.mjs` 11/11 |
+| Studio v1 | PASS | `verify-studio-v1-e2e.mjs` 12/12 |
+| Playwright | PASS | 네 방 4개와 390, 768, 1024, 1440. 가로 넘침, 콘솔 오류, 401 URL 각각 0 |
+| design lint | PASS | `design-lint.sh dashboard/src`, 디자인 토큰 위반 0 |
+| mobile, Maestro | 해당 없음 | 별도 mobile 앱이 없는 웹 제품 범위 |
+
+상세 99개 상태코드와 8월 28일 대비표는 `docs/audit/osmu-api-read-sweep-v2-gpt-codex.md`에 있다.
+
+
 ## 2026-08-29 NG: 최근 24시간 코드 리뷰 2차 검증
 
 리뷰 시작 시 고정한 `6a618c59..6eaf3a45` 범위는 MAJOR 41건, MINOR 4건으로 머지 차단이다. 코드 수정은 하지 않았다. 상세 지적과 재현 시나리오는 `docs/audit/osmu-code-review-2026-08-29.md`에 있다.
