@@ -38,6 +38,7 @@ jobs:
           OSMU_SECRET_KEY=${{ secrets.OSMU_SECRET_KEY }}
           OSMU_PUBLIC_URL=${{ secrets.OSMU_PUBLIC_URL }}
           OSMU_ALERT_SLACK_WEBHOOK_URL=${{ secrets.OSMU_ALERT_SLACK_WEBHOOK_URL }}
+          OSMU_BUILD_COMMIT=${GITHUB_SHA}
           CLAUDE_CODE_OAUTH_TOKEN=${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           IG_APP_ID=${{ secrets.IG_APP_ID }}
           IG_APP_SECRET=${{ secrets.IG_APP_SECRET }}
@@ -70,11 +71,9 @@ jobs:
             exit 1
           fi
           echo ".env.osmu rendered ($(grep -c . .env.osmu) lines)"
-      - name: OSMU DB 스키마, 마이그레이션, RLS 적용
-        # usage_events/subscriptions/usage_quotas 누락으로 /api/operator/customers 500 난 실사고
-        # (2026-07-12) 재발 방지. schema.sql(IF NOT EXISTS)·rls.sql(DO+DROP POLICY IF EXISTS) 둘 다
-        # 멱등이라 매 배포 실행 안전. 접속 문자열은 step env → 컨테이너 env로만 전달(커맨드라인
-        # 인터폴레이션·echo 금지 — GitHub Actions secrets 가이드).
+      - name: OSMU DB 스키마 read-only preflight
+        # 일반 앱 배포는 DB DDL을 실행하지 않는다. 역사 migration wildcard
+        # replay를 금지하고, 승인형 osmu-db-migrate workflow만 명시 phase를 적용한다.
         if: ${{ github.event.inputs.services == '' || contains(github.event.inputs.services, 'osmu') }}
         env:
           OSMU_DATABASE_URL: ${{ secrets.OSMU_DATABASE_URL }}
@@ -84,14 +83,8 @@ jobs:
             -e OSMU_DATABASE_URL \
             -v "$GITHUB_WORKSPACE/dashboard/db":/db:ro \
             postgres:16 \
-            sh -c 'set -eu
-              psql "$OSMU_DATABASE_URL" -q -v ON_ERROR_STOP=1 -f /db/schema.sql
-              psql "$OSMU_DATABASE_URL" -q -v ON_ERROR_STOP=1 -f /db/rls.sql
-              for migration in /db/migrations/*.sql; do
-                psql "$OSMU_DATABASE_URL" -q -v ON_ERROR_STOP=1 -f "$migration"
-              done
-              psql "$OSMU_DATABASE_URL" -q -v ON_ERROR_STOP=1 -f /db/rls.sql'
-          echo "schema.sql, migrations, rls.sql 적용 완료"
+            bash /db/run-migrations.sh preflight
+          echo "OSMU DB fingerprint preflight 완료"
       - name: 이미지 빌드 (gateway + dashboard)
         # NEXT_PUBLIC_* 는 빌드 시점 인라인된다. compose가 .env.osmu를 읽고 필수 Supabase
         # 공개값이 없으면 interpolation 단계에서 즉시 실패한다(수동 배포도 같은 경로 사용).

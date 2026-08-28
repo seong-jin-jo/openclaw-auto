@@ -1,0 +1,156 @@
+name: OSMU approved DB migration
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: 'Explicit migration or rollback phase'
+        required: true
+        type: choice
+        options:
+          - baseline
+          - apply-legacy
+          - expand-fk
+          - expand-guard
+          - expand-member
+          - prepare-rollback
+          - contract-generation
+          - rollback-generation
+          - rollback-quota
+          - cleanup
+      previous_compatible_image_digest:
+        description: 'Observed previous compatible image digest for rollback'
+        required: false
+        type: string
+      previous_compatible_image_ref:
+        description: 'Pullable registry ref for previous image, or blank to use a preserved stopped OSMU container'
+        required: false
+        type: string
+      rollback_manifest_run_id:
+        description: 'Contract-generation run ID whose rollback artifact must be reused'
+        required: false
+        type: string
+
+permissions:
+  actions: read
+concurrency:
+  group: osmu-approved-db-migration
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: [self-hosted, marketing_runner]
+    environment: osmu-db-migration-approval
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Observe and verify every running compatibility image
+        id: app
+        if: ${{ !contains(fromJSON('["baseline","apply-legacy","expand-fk","expand-guard"]'), inputs.phase) }}
+        env:
+          COMPATIBILITY_BASE_COMMIT: 9b72c05bf7ab2ff30ec4a669267ee3133ff71db4
+        run: |
+          mapfile -t containers < <(docker ps --filter label=com.docker.compose.service=openclaw-dashboard-osmu --format '{{.ID}}')
+          [ "${#containers[@]}" -gt 0 ] || { echo "::error::no running OSMU app instance"; exit 1; }
+          expected_digest=""
+          expected_commit=""
+          for container in "${containers[@]}"; do
+            image_digest="$(docker container inspect --format '{{.Image}}' "$container")"
+            app_commit="$(docker container inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$container")"
+            [[ "$image_digest" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "::error::running image digest is not observable"; exit 1; }
+            [[ "$app_commit" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::running app commit label is not observable"; exit 1; }
+            git merge-base --is-ancestor "$COMPATIBILITY_BASE_COMMIT" "$app_commit" \
+              || { echo "::error::running app predates compatibility release"; exit 1; }
+            [ -z "$expected_digest" ] && expected_digest="$image_digest" && expected_commit="$app_commit"
+            [ "$image_digest" = "$expected_digest" ] && [ "$app_commit" = "$expected_commit" ] \
+              || { echo "::error::OSMU instances do not run one verified image"; exit 1; }
+          done
+          echo "image_digest=$expected_digest" >> "$GITHUB_OUTPUT"
+          echo "app_commit=$expected_commit" >> "$GITHUB_OUTPUT"
+      - name: Observe and verify the previous compatibility image
+        id: previous
+        if: ${{ inputs.phase == 'contract-generation' }}
+        env:
+          REQUESTED_PREVIOUS_DIGEST: ${{ inputs.previous_compatible_image_digest }}
+          PREVIOUS_IMAGE_REF: ${{ inputs.previous_compatible_image_ref }}
+          COMPATIBILITY_BASE_COMMIT: 9b72c05bf7ab2ff30ec4a669267ee3133ff71db4
+        run: |
+          [[ "$REQUESTED_PREVIOUS_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] \
+            || { echo "::error::previous compatible image digest is required"; exit 1; }
+          image_source=""
+          if [ -n "$PREVIOUS_IMAGE_REF" ]; then
+            docker pull "$PREVIOUS_IMAGE_REF"
+            image_source="$PREVIOUS_IMAGE_REF"
+          else
+            while IFS= read -r container; do
+              [ "$(docker container inspect --format '{{.State.Running}}' "$container")" = "false" ] || continue
+              [ "$(docker container inspect --format '{{.Image}}' "$container")" = "$REQUESTED_PREVIOUS_DIGEST" ] || continue
+              image_source="$REQUESTED_PREVIOUS_DIGEST"
+              break
+            done < <(docker ps -aq --filter label=com.docker.compose.service=openclaw-dashboard-osmu)
+          fi
+          [ -n "$image_source" ] || { echo "::error::previous image is neither pullable nor preserved by a stopped OSMU container"; exit 1; }
+          observed_digest="$(docker image inspect --format '{{.Id}}' "$image_source")"
+          [ "$observed_digest" = "$REQUESTED_PREVIOUS_DIGEST" ] \
+            || { echo "::error::previous image digest does not match the observed image"; exit 1; }
+          previous_commit="$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$image_source")"
+          [[ "$previous_commit" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::previous image commit label is missing"; exit 1; }
+          git merge-base --is-ancestor "$COMPATIBILITY_BASE_COMMIT" "$previous_commit" \
+            || { echo "::error::previous image predates the compatibility release"; exit 1; }
+          probe="$(docker create --entrypoint /bin/true "$image_source")"
+          docker rm "$probe" >/dev/null
+          echo "image_digest=$observed_digest" >> "$GITHUB_OUTPUT"
+          echo "app_commit=$previous_commit" >> "$GITHUB_OUTPUT"
+      - name: Build rollback manifest from observed pre-contract state
+        id: rollback
+        if: ${{ inputs.phase == 'contract-generation' }}
+        env:
+          OSMU_DATABASE_URL: ${{ secrets.OSMU_DATABASE_URL }}
+          VERIFIED_APP_IMAGE_DIGEST: ${{ steps.app.outputs.image_digest }}
+          VERIFIED_APP_COMMIT: ${{ steps.app.outputs.app_commit }}
+          PREVIOUS_COMPATIBLE_IMAGE_DIGEST: ${{ steps.previous.outputs.image_digest }}
+        run: |
+          export ROLLBACK_DEADLINE_UTC="$(date -u -d '+7 days' '+%Y-%m-%dT%H:%M:%SZ')"
+          bash dashboard/db/write-rollback-manifest.sh "$RUNNER_TEMP/osmu-rollback-manifest.json"
+          manifest_sha="$(sha256sum "$RUNNER_TEMP/osmu-rollback-manifest.json" | awk '{print $1}')"
+          echo "path=$RUNNER_TEMP/osmu-rollback-manifest.json" >> "$GITHUB_OUTPUT"
+          echo "sha256=$manifest_sha" >> "$GITHUB_OUTPUT"
+      - name: Download the original rollback manifest
+        id: prior
+        if: ${{ contains(fromJSON('["rollback-generation","rollback-quota","cleanup"]'), inputs.phase) }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MANIFEST_RUN_ID: ${{ inputs.rollback_manifest_run_id }}
+        run: |
+          [[ "$MANIFEST_RUN_ID" =~ ^[0-9]+$ ]] || { echo "::error::rollback manifest run ID is required"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/prior-rollback"
+          gh run download "$MANIFEST_RUN_ID" \
+            --name "osmu-db-rollback-manifest-$MANIFEST_RUN_ID" \
+            --dir "$RUNNER_TEMP/prior-rollback"
+          manifest_path="$RUNNER_TEMP/prior-rollback/osmu-rollback-manifest.json"
+          [ -f "$manifest_path" ] || { echo "::error::rollback manifest artifact missing"; exit 1; }
+          echo "path=$manifest_path" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(sha256sum "$manifest_path" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        if: ${{ inputs.phase == 'contract-generation' }}
+        with:
+          name: osmu-db-rollback-manifest-${{ github.run_id }}
+          path: ${{ steps.rollback.outputs.path }}
+          retention-days: 14
+      - name: Apply explicit manifest phase
+        if: ${{ !startsWith(inputs.phase, 'rollback-') }}
+        env:
+          OSMU_DATABASE_URL: ${{ secrets.OSMU_DATABASE_URL }}
+          VERIFIED_APP_IMAGE_DIGEST: ${{ steps.app.outputs.image_digest }}
+          VERIFIED_APP_COMMIT: ${{ steps.app.outputs.app_commit }}
+          ROLLBACK_MANIFEST_PATH: ${{ steps.rollback.outputs.path || steps.prior.outputs.path }}
+          ROLLBACK_MANIFEST_SHA256: ${{ steps.rollback.outputs.sha256 || steps.prior.outputs.sha256 }}
+          RUNNER_COMMIT: ${{ github.sha }}
+        run: bash dashboard/db/run-migrations.sh "${{ inputs.phase }}"
+      - name: Execute approved rollback script
+        if: ${{ startsWith(inputs.phase, 'rollback-') }}
+        env:
+          OSMU_DATABASE_URL: ${{ secrets.OSMU_DATABASE_URL }}
+          ROLLBACK_MANIFEST_PATH: ${{ steps.prior.outputs.path }}
+          ROLLBACK_MANIFEST_SHA256: ${{ steps.prior.outputs.sha256 }}
+        run: bash dashboard/db/rollback-migration.sh "${{ inputs.phase }}"

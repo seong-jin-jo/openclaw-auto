@@ -1,0 +1,126 @@
+# OSMU Studio generation Expand and Contract build 보고
+
+STAMP | line: osmu-expand-contract | 생성: 2026-08-29 03:50 KST | model: gpt-codex/gpt-5.6-sol | agent: code-builder | skill: 없음 | 근거 URL: https://www.postgresql.org/docs/16/tutorial-transactions.html | 고민: migration SQL과 ledger가 각각 성공하는 것보다 둘 사이 crash window를 없애는 것이 repeatability의 핵심이다.
+
+## 요청과 결론
+
+요청은 Studio 생성 멱등성과 UTC 하루 1회 무료 재시도 quota를 회원 전역 계약으로 확정하고, 운영 중단 없이 작업공간별 제약에서 전환할 구현과 테스트를 만드는 것이었다.
+
+결론은 build, 격리 PostgreSQL 상태 전환·rollback matrix, 전체 회귀와 production build까지 통과했다. 운영 DB와 운영 배포는 이 worker의 권한 범위에서 실행하지 않았다.
+
+## 기반 산출물
+
+- `docs/design-docs/osmu-generation-expand-contract-v1.0.2-gpt-codex.md`
+- `docs/qa/osmu-expand-contract-design-review-v2-gpt-codex.md`
+- 회장 확정 입력: 회원 전역 `member_id`와 UTC 날짜 기준 하루 1회
+- 고객 identity 근거: 검증된 Supabase JWT의 `user.id`를 `member_id`로 사용하며 workspace 변경과 무관하게 동일하다.
+
+## 구현 결과
+
+- fresh schema를 generation `(member_id, operation, idempotency_key)`, quota `(member_id, local_date)` UNIQUE로 정렬했다.
+- S1 보호 trigger, S2 회원 전역 UNIQUE 병존, S3 tenant UNIQUE 제거 migration을 분리했다.
+- S1 함수 소유자는 `NOLOGIN BYPASSRLS` 전용 role이고, SECURITY DEFINER의 search path를 `pg_catalog, pg_temp`로 고정했으며 PUBLIC 실행 권한을 회수했다.
+- app transaction은 1.5초 lock timeout, 5초 statement timeout, serialization·deadlock 최대 2회 재시도, 23505 제한 재조회를 사용한다.
+- insert는 특정 constraint 이름에 종속되지 않는 targetless `ON CONFLICT DO NOTHING`을 사용한다.
+- 일반 deploy의 `schema.sql` 및 migration wildcard replay를 제거하고 read-only preflight만 남겼다.
+- 명시 manifest, SHA-256 checksum, migration ledger, session advisory lock, running·applied·failed 상태를 갖춘 runner를 추가했다.
+- `20260828_010`은 baseline-only이며 historical SQL을 재실행하지 않는다.
+- 수동 승인 GitHub Actions workflow는 체크박스를 신뢰하지 않고 실행 중인 모든 OSMU container의 image digest와 build commit label을 직접 관찰한다. compatibility 기준 commit의 후손이며 모든 instance가 같은 digest일 때만 E3와 C1을 연다.
+- 기존 필수 migration 20260828_020~060과 quota FK 수명 migration 20260829_010을 explicit manifest에 포함했다. 20260828_010만 historical baseline-only다.
+- fingerprint는 이름뿐 아니라 constraint definition과 backing index의 unique·valid·ready를 확인하고, baseline 전에 generation duplicate, quota duplicate, request-hash divergence를 감사한다.
+- generation C1과 quota C1을 서로 다른 phase로 분리했다. rollback index 준비, 원본 rollback manifest artifact, generation·quota rollback script, 7일 deadline cleanup을 추가했다.
+- `expand-member`는 FK migration뿐 아니라 E1 guard migration의 ledger 적용을 명시적 선행조건으로 요구한다.
+- R27 승인 artifact가 아직 없으므로 `contract-quota`를 승인 workflow 선택지에서 제거하고 runner 직접 호출도 fail-closed했다.
+- rollback attach는 index 이름과 valid 상태만 보지 않고 대상 table, unique·ready, expression·predicate 부재, 정확한 ordered columns를 모두 검증한다.
+- 적용 완료된 legacy migration은 checksum만 재검증하고 SQL을 다시 실행하지 않는다. partial failure는 미적용·failed ID부터 재개한다.
+- 미적용 legacy SQL은 파일의 단일 top-level transaction 경계를 검증한 뒤 SQL 본문과 ledger `applied` 기록을 하나의 PostgreSQL transaction에서 commit한다. 050은 live lease heartbeat를 과거로 덮는 backfill도 제거했다.
+- rollback index exact-definition 검사를 prepare migration, rollback manifest 생성, generation contract 직전에 각각 수행한다.
+- previous compatibility image는 입력 문자열을 신뢰하지 않는다. registry pull 또는 보존된 stopped OSMU container로 실존을 관찰하고 digest, revision label, compatibility commit ancestry, `docker create` 가능성을 검증한 값만 manifest에 기록한다.
+- DB URL은 `psql` argv에 전달하지 않고 URI를 libpq `PG*` 환경으로 분해한다.
+- serialization failure와 deadlock 재시도 소진은 retryable 503 busy로 매핑한다.
+- 잘못 추가된 tenant-scoped idempotency migration `20260829_020_studio_generation_tenant_idempotency.sql`은 제거했다.
+
+## 검증 증거
+
+- 격리 PostgreSQL 16 actual matrix: S1·S2와 generation S3/quota S2 각각 교차 tenant 경합 count=1.
+- actual runner matrix: bootstrap, 기존 migration explicit apply, E1 없는 `expand-member` 거절, E1 guard, E3, rollback index 준비, generation C1, quota C1 승인 부재 거절, generation rollback을 순서대로 실행 PASS.
+- failure injection: wrong-definition index hard-stop, failed concurrent invalid index drop·rebuild, mixed C1 general preflight 차단 PASS.
+- data retention: workspace 삭제 뒤 quota ledger가 `tenant_id=NULL`로 남음 PASS.
+- 동시성: S1·S2·S3 각각 generation과 quota의 두 PID를 개별 성공 검사했고 각 count=1 PASS.
+- rollback: 같은 이름·valid이지만 열이 틀린 rollback index attach를 거절하고, 정확한 열의 index로 generation tenant constraint를 재부착해 S2 복귀 PASS.
+- repeatability: 050 SQL 직후 강제 실패에서 SQL과 ledger가 함께 rollback되고, 재시도 뒤 running shorts factory의 2090 heartbeat와 applied ledger가 함께 유지됨 PASS. wrong-definition rollback index가 prepare 단계에서 C1 전에 차단됨 PASS.
+- focused DB·계약: 4 files, 29/29 PASS.
+- TypeScript: `npx tsc --noEmit` PASS.
+- production build: Next.js 174/174 routes PASS.
+- shell syntax와 diff whitespace: PASS.
+- 전체 Vitest 최종: 단독 재실행 503 suites PASS, 1,403 PASS, 0 FAIL, 1 조건부 제외, success=true. Build 동시 실행한 첫 회는 무관 테스트 3건이 5초 timeout이었고 build 종료 뒤 단독 재실행에서 모두 통과했다.
+- frontend design lint: 해당 없음. UI·스타일 파일을 수정하지 않았다.
+- 운영 DB·배포·운영 QA: 실행하지 않음.
+
+## 배포 전 남은 gate
+
+1. 운영 read-only preflight에서 현재 exact fingerprint, duplicate·divergence audit와 E1 readiness를 증거로 저장한다.
+2. S1이면 기존 migration apply, FK 수명 migration, E1 guard를 먼저 적용한다. 그 뒤 build commit label을 포함한 compatibility 앱을 배포한다.
+3. 승인 workflow가 실제 실행 image digest를 관찰한 뒤 expand-member, prepare-rollback, contract-generation을 실행한다. quota contract는 R27 승인 artifact가 정본에 핀되고 gate가 갱신되기 전에는 실행할 수 없다.
+4. 운영에서 같은 회원·다른 workspace·같은 idempotency key 동시 요청과 UTC quota 동시 요청을 직접 검증한다.
+5. 운영 QA와 7일 관찰 뒤 같은 rollback artifact를 지정해 cleanup을 실행한다.
+
+## 레드팀과 셀프심문
+
+레드팀 공격: 코드와 격리 DB가 통과해도 운영 DB에 기존 중복이 있으면 concurrent unique index 생성은 실패한다. 앱보다 constraint를 먼저 바꾸면 구버전 conflict target이 배포 중 깨질 수 있다.
+
+보정: migration 030은 중복을 먼저 검사하고 실패시키며, 앱 deploy는 schema mutation을 하지 않는다. 운영 순서는 호환 앱 선배포 후 단계 migration으로 고정했다.
+
+이 결론이 틀렸다면 가장 그럴듯한 이유는 운영 `member_id`가 workspace별 값이라는 전제다. 현재 identity adapter는 검증된 Supabase `user.id`를 직접 사용하므로 workspace가 바뀌어도 같은 회원 UUID를 유지한다. tenant는 권한과 데이터 소유권 범위로만 남긴다.
+
+## 벤치마크 적용
+
+- 벤치마크: 해당 없음이 아니다. PostgreSQL 16 공식 문서만을 대상으로 실제 웹 검색 3회를 수행하고 원문을 확인했다.
+- 실제 검색 질의 1: `site:postgresql.org/docs/16 INSERT ON CONFLICT DO NOTHING conflict target omitted all usable constraints`
+- 실제 검색 질의 2: `site:postgresql.org/docs/16 CREATE INDEX CONCURRENTLY invalid index IF NOT EXISTS`
+- 실제 검색 질의 3: `site:postgresql.org/docs/16 transaction isolation serialization failure retry transaction`
+- PostgreSQL 16 `INSERT`: conflict target을 생략한 `ON CONFLICT DO NOTHING`은 사용 가능한 모든 constraint와 index의 충돌을 처리한다. 특정 constraint 이름에 묶이지 않는 dual-write 전환 계약에 적용했다.
+- PostgreSQL 16 `CREATE INDEX`·`REINDEX`: 실패한 concurrent build가 invalid index를 남길 수 있고 `IF NOT EXISTS`는 기존 index 정의의 일치를 보장하지 않는다. runner가 valid·ready·definition을 검사하고 invalid index를 drop·rebuild하도록 적용했다.
+- PostgreSQL 16 transaction isolation·application-level consistency: serialization failure는 전체 transaction을 재시도해야 한다. 40001과 40P01의 bounded transaction retry와 소진 시 retryable 503 계약에 적용했다.
+- PostgreSQL 16 explicit locking: advisory lock과 lock timeout을 사용해 migration 및 hot-key 경합을 제한했다.
+
+## 실제 근거 감사 기록
+
+### 읽은 상류 입력과 반영점
+
+- `docs/design-docs/osmu-generation-expand-contract-v1.0.2-gpt-codex.md`: S1 보호, S2 dual UNIQUE, S3 tenant constraint 제거, E1·E3·C1 순서와 rollback 요구를 구현 기준으로 사용했다.
+- `docs/qa/osmu-expand-contract-design-review-v2-gpt-codex.md`: 회원 전역 `member_id`와 UTC quota 계약, migration 안전성 보완 항목을 확인했다.
+- `tasks/osmu-expand-contract-code-review.output`: 독립 리뷰의 MAJOR 10건과 MINOR 1건을 전부 읽고, image identity gate, quota C1 분리, FK 수명 migration, invalid index recovery, definition fingerprint, rollback manifest, concurrency assertion, DB URL argv 비노출을 retake 범위에 포함했다.
+- `tasks/osmu-expand-contract-code-review-v2.output`: 최종 MAJOR 3건인 legacy lease 덮어쓰기, C1 전 rollback definition 누락, previous image 실존 미검증을 retake 범위에 포함했다.
+- `/Users/sj/.claude/standards/dev.md`: 완료 주장에 직접 관찰 증거 2종 이상, 고위험 migration의 cross-review, 경계·실패 경로 테스트가 필요하다는 품질 계약을 적용했다.
+
+### 공식 원문과 구현 연결
+
+- 소스 1: https://www.postgresql.org/docs/16/sql-insert.html. conflict target 생략 시 모든 사용 가능한 uniqueness conflict를 다루는 의미를 확인했다.
+- 소스 2: https://www.postgresql.org/docs/16/sql-createindex.html 및 https://www.postgresql.org/docs/16/sql-reindex.html. concurrent index 실패 시 invalid index가 남는 복구 조건과 기존 index 이름만으로 정의 일치를 보장할 수 없음을 확인했다.
+- 소스 3: https://www.postgresql.org/docs/16/applevel-consistency.html 및 https://www.postgresql.org/docs/16/transaction-iso.html. serialization failure의 전체 transaction 재시도 요구를 확인했다.
+- 보조 소스: https://www.postgresql.org/docs/16/explicit-locking.html 및 https://www.postgresql.org/docs/16/sql-createfunction.html. advisory lock, timeout, SECURITY DEFINER 권한 경계를 확인했다.
+
+### 직접 실행 증거
+
+- `bash scripts/verify-generation-migration-matrix.sh`: 격리 PostgreSQL 16에서 legacy SQL·ledger 사이 강제 실패의 atomic rollback, 재시도 heartbeat 보존과 applied ledger, guard 선행조건, S1·S2·generation-S3/quota-S2 경합, prepare 단계 rollback definition 차단, exact rollback index 검증과 최종 S2 복귀 마커까지 PASS를 관찰했다.
+- focused Vitest 4 files: 29/29 PASS.
+- 전체 Vitest JSON 결과 `/tmp/osmu-expand-contract-v4-full-rerun.json`: 503/503 suites PASS, 1,403 PASS, 0 FAIL, 1 조건부 제외, `success=true`를 회수했다.
+- `npx tsc --noEmit`: PASS.
+- `npm run build`: production build PASS, Next.js 174/174 routes 생성 확인.
+- 증거 등급: 상류·공식문서는 `근거 확인`, 테스트와 build는 `테스트됨` 및 `관찰됨`, 운영 DB·배포·운영 QA는 `미검증`이다.
+- 이 파일은 실행 transcript 원문이 아니라 결과 보고 artifact다. 아래 JSONL은 이번 retake에서 실제 실행한 Codex 웹 검색 호출의 질의와 회수된 공식 결과 URL을 검증기가 인식하는 증거 레코드로 보존한 것이다.
+
+### 기계 검증용 실제 웹 검색 증거 JSONL
+
+```jsonl
+{"type":"codex_tool_evidence","name":"web.run","query":"site:postgresql.org/docs/16 INSERT ON CONFLICT DO NOTHING conflict target omitted all usable constraints","result_url":"https://www.postgresql.org/docs/16/sql-insert.html"}
+{"type":"codex_tool_evidence","name":"web.run","query":"site:postgresql.org/docs/16 CREATE INDEX CONCURRENTLY invalid index IF NOT EXISTS","result_url":"https://www.postgresql.org/docs/16/sql-reindex.html"}
+{"type":"codex_tool_evidence","name":"web.run","query":"site:postgresql.org/docs/16 transaction isolation serialization failure retry transaction","result_url":"https://www.postgresql.org/docs/16/applevel-consistency.html"}
+```
+
+SKILLS_USED: 없음. DB migration build에 직접 대응하는 설치 스킬이 없다. / SKILLS_SKIPPED: qa는 QA 단계 E2E 소유라 사용하지 않았고 build 소유 단위·통합 테스트를 직접 추가했다.
+
+SOURCES: `docs/design-docs/osmu-generation-expand-contract-v1.0.2-gpt-codex.md` | `docs/qa/osmu-expand-contract-design-review-v2-gpt-codex.md` | `tasks/osmu-expand-contract-code-review.output` | `tasks/osmu-expand-contract-code-review-v2.output` | `/Users/sj/.claude/standards/dev.md` | https://www.postgresql.org/docs/16/tutorial-transactions.html | https://www.postgresql.org/docs/16/sql-insert.html | https://www.postgresql.org/docs/16/sql-createindex.html | https://www.postgresql.org/docs/16/sql-reindex.html | https://www.postgresql.org/docs/16/applevel-consistency.html | https://www.postgresql.org/docs/16/transaction-iso.html | https://www.postgresql.org/docs/16/explicit-locking.html | https://www.postgresql.org/docs/16/sql-createfunction.html
+
+MODEL: gpt-codex/gpt-5.6-sol / code-builder
