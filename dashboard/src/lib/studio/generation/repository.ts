@@ -67,7 +67,7 @@ export class PostgresGenerationRepository implements GenerationRepository {
           (${input.job.workspaceId}, ${input.job.memberId}, ${input.operation},
            ${input.idempotencyKey}, ${input.requestHash}, ${input.job.jobId},
            ${sql.json(input.response as Parameters<typeof sql.json>[0])})
-        ON CONFLICT DO NOTHING
+        ON CONFLICT (tenant_id, member_id, operation, idempotency_key) DO NOTHING
         RETURNING request_hash, response_payload`;
 
       if (!reserved) {

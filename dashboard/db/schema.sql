@@ -112,8 +112,6 @@ CREATE TABLE IF NOT EXISTS studio_generation_idempotency (
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT uq_studio_generation_idempotency_tenant_member_operation_key
     UNIQUE (tenant_id, member_id, operation, idempotency_key),
-  CONSTRAINT uq_studio_generation_idempotency_member_operation_key
-    UNIQUE (member_id, operation, idempotency_key),
   FOREIGN KEY (tenant_id, job_id)
     REFERENCES studio_generation_jobs(tenant_id, id)
     ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED
@@ -134,15 +132,6 @@ BEGIN
     ALTER TABLE studio_generation_idempotency
       ADD CONSTRAINT uq_studio_generation_idempotency_tenant_member_operation_key
       UNIQUE (tenant_id, member_id, operation, idempotency_key);
-  END IF;
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conrelid = 'studio_generation_idempotency'::regclass
-      AND conname = 'uq_studio_generation_idempotency_member_operation_key'
-  ) THEN
-    ALTER TABLE studio_generation_idempotency
-      ADD CONSTRAINT uq_studio_generation_idempotency_member_operation_key
-      UNIQUE (member_id, operation, idempotency_key);
   END IF;
 END $$;
 CREATE INDEX IF NOT EXISTS idx_studio_generation_idempotency_job

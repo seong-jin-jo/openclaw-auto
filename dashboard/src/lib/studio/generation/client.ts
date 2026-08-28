@@ -6,9 +6,12 @@ export interface StudioLearningInput {
   workspaceFacts: string[];
   forbiddenPhrases: string[];
   materialRightsConfirmed: boolean;
-  skillVersionId: string;
   contentBranch: "text_image" | "video";
 }
+
+// 현재 생성기는 서버의 내장 X4 조립 규칙 v1을 사용한다. 사용자가 세션 저장소에 내부 UUID를
+// 심어야만 생성되는 것은 제품 계약이 아니므로, 클라이언트 릴리스에 고정된 추적 ID로 보낸다.
+export const STUDIO_GENERATION_SKILL_VERSION_ID = "9f73f414-7084-4a44-9ab4-6fe0fd0f5140";
 
 export interface StudioGenerationCandidate {
   generation_id?: string;
@@ -41,7 +44,6 @@ export function buildStudioGenerationRequest(input: StudioLearningInput) {
   const topic = required(input.topic, "이번 주제");
   const purpose = required(input.purpose, "목적");
   const audience = required(input.audience, "대상");
-  const skillVersionId = required(input.skillVersionId, "Studio 스킬 버전");
   if (!input.materialRightsConfirmed) throw new Error("소재 권리 확인이 필요합니다");
 
   return {
@@ -64,7 +66,7 @@ export function buildStudioGenerationRequest(input: StudioLearningInput) {
       },
       x4: {
         revision: 1,
-        skill_version_id: skillVersionId,
+        skill_version_id: STUDIO_GENERATION_SKILL_VERSION_ID,
         structure_rules: ["후보 A, B, C를 서로 다른 도입 각도로 만든다"],
       },
       l5: { revision: 0, accepted_rules: [] },

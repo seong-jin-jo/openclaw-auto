@@ -1,4 +1,6 @@
 import crypto from "node:crypto";
+import { ensureTenantForUser, getTenantStatus } from "@/lib/tenant-auth";
+import { verifySupabaseJwt } from "@/lib/supabase";
 import { StudioApiError } from "./errors";
 
 export type StudioPrincipal = {
@@ -49,6 +51,56 @@ export function resolveDevelopmentPrincipal(request: Request): StudioPrincipal {
     throw new StudioApiError({ status: 401, code: "TOKEN_INVALID", message: "Studio 인증에 실패했습니다" });
   }
   return { memberId, allowedWorkspaceIds };
+}
+
+async function resolveCustomerPrincipal(request: Request): Promise<StudioPrincipal> {
+  const raw = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+  if (!raw) {
+    throw new StudioApiError({ status: 401, code: "TOKEN_INVALID", message: "Studio 인증이 필요합니다" });
+  }
+
+  const verified = await verifySupabaseJwt(raw);
+  if (verified.status === "unavailable") {
+    throw new StudioApiError({
+      status: 503,
+      code: "IDENTITY_ADAPTER_UNAVAILABLE",
+      message: "Studio 회원 인증을 확인하지 못했습니다",
+      retryable: true,
+    });
+  }
+  if (verified.status === "invalid") {
+    throw new StudioApiError({ status: 401, code: "TOKEN_INVALID", message: "Studio 인증에 실패했습니다" });
+  }
+
+  let workspaceId: string;
+  let status: string | null;
+  try {
+    workspaceId = await ensureTenantForUser(verified.user.id, verified.user.email ?? null);
+    status = await getTenantStatus(workspaceId);
+  } catch {
+    throw new StudioApiError({
+      status: 503,
+      code: "IDENTITY_ADAPTER_UNAVAILABLE",
+      message: "Studio 작업 공간을 확인하지 못했습니다",
+      retryable: true,
+    });
+  }
+  if (status !== "active") {
+    throw new StudioApiError({
+      status: 403,
+      code: status === "paused" ? "ACCOUNT_PAUSED" : "ACCOUNT_UNAVAILABLE",
+      message: status === "paused" ? "계정 이용이 중지되었습니다" : "작업 공간을 사용할 수 없습니다",
+    });
+  }
+
+  return { memberId: verified.user.id, allowedWorkspaceIds: new Set([workspaceId]) };
+}
+
+export async function resolveStudioPrincipal(request: Request): Promise<StudioPrincipal> {
+  if (process.env.NODE_ENV !== "production" && process.env.STUDIO_IDENTITY_MODE === "development") {
+    return resolveDevelopmentPrincipal(request);
+  }
+  return resolveCustomerPrincipal(request);
 }
 
 export function assertWorkspaceAccess(principal: StudioPrincipal, workspaceId: string): void {

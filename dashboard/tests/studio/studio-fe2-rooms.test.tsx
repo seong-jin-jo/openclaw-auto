@@ -7,6 +7,7 @@ import { CreateRoom, EditRoom } from "@/components/studio/StudioRooms";
 import {
   buildStudioGenerationRequest,
   requestStudioCandidates,
+  STUDIO_GENERATION_SKILL_VERSION_ID,
   type StudioLearningInput,
 } from "@/lib/studio/generation/client";
 
@@ -18,7 +19,6 @@ const VALID_INPUT: StudioLearningInput = {
   workspaceFacts: ["매주 세 편을 발행한다"],
   forbiddenPhrases: [],
   materialRightsConfirmed: true,
-  skillVersionId: "22222222-2222-4222-8222-222222222222",
   contentBranch: "text_image",
 };
 
@@ -27,6 +27,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   sessionStorage.clear();
+  localStorage.clear();
 });
 
 describe("화면 2차 생성실 계약", () => {
@@ -49,6 +50,7 @@ describe("화면 2차 생성실 계약", () => {
     const [, request] = fetchMock.mock.calls[0] as [string, RequestInit];
     const body = JSON.parse(String(request.body));
     expect(Object.keys(body.learning_context)).toEqual(["s0", "s1", "u2", "u3", "x4", "l5", "r6"]);
+    expect(body.learning_context.x4.skill_version_id).toBe(STUDIO_GENERATION_SKILL_VERSION_ID);
     expect(request.headers).toMatchObject({ Authorization: "Bearer studio-token" });
   });
 
@@ -68,8 +70,7 @@ describe("화면 2차 생성실 계약", () => {
   });
 
   it("FE6-CREATE-02 정상: 영상 선택은 대화창에서 생성 계약으로 전달한다", async () => {
-    sessionStorage.setItem("studio_generation_token", "studio-token");
-    sessionStorage.setItem("studio_skill_version_id", "22222222-2222-4222-8222-222222222222");
+    localStorage.setItem("dashboard_auth_token", "customer-jwt");
     const fetchMock = vi.fn().mockResolvedValue(Response.json({ data: { job_id: "job-1", candidates: [] } }, { status: 201 }));
     vi.stubGlobal("fetch", fetchMock);
     const onBranchChange = vi.fn();
@@ -83,16 +84,15 @@ describe("화면 2차 생성실 계약", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const [, request] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(JSON.parse(String(request.body)).learning_context.u3.content_branch).toBe("video");
+    expect(request.headers).toMatchObject({ Authorization: "Bearer customer-jwt" });
   });
 
   it("FE2-CREATE-02 거절: 소재 권리 미확인 입력은 네트워크 호출 전에 막는다", () => {
     expect(() => buildStudioGenerationRequest({ ...VALID_INPUT, materialRightsConfirmed: false })).toThrow("소재 권리 확인이 필요합니다");
   });
 
-  it("FE2-CREATE-03 인증 경계: 대시보드 tenant와 분리된 Studio workspace로 생성한다", async () => {
-    sessionStorage.setItem("studio_generation_token", "studio-token");
-    sessionStorage.setItem("studio_skill_version_id", "22222222-2222-4222-8222-222222222222");
-    sessionStorage.setItem("studio_workspace_id", "11111111-1111-4111-8111-111111111111");
+  it("FE2-CREATE-03 인증 경계: 고객 JWT와 화면의 active tenant로 생성한다", async () => {
+    localStorage.setItem("dashboard_auth_token", "customer-jwt");
     const candidates = ["A", "B", "C"].map((label, index) => ({
       candidate_id: `candidate-${label}`,
       ordinal: index + 1,
@@ -106,7 +106,7 @@ describe("화면 2차 생성실 계약", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     render(<CreateRoom
-      workspaceId="dashboard-tenant"
+      workspaceId="11111111-1111-4111-8111-111111111111"
       workspaceName="대시보드 작업 공간"
       guide="브랜드 사실"
       topic="작은 팀의 콘텐츠 운영"
@@ -122,6 +122,7 @@ describe("화면 2차 생성실 계약", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const [, request] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(JSON.parse(String(request.body)).workspace_id).toBe("11111111-1111-4111-8111-111111111111");
+    expect(request.headers).toMatchObject({ Authorization: "Bearer customer-jwt" });
   });
 });
 

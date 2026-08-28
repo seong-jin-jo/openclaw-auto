@@ -155,7 +155,7 @@ describe("Studio 생성 Postgres 장부 계약", () => {
     expect(counts).toEqual({ jobs: 2, free_uses: 1 });
   });
 
-  it("GEN-DB-04 한국어 설명: 같은 회원의 멱등 키는 워크스페이스가 달라도 두 번째 생성을 거절한다", async (ctx) => {
+  it("GEN-DB-04 한국어 설명: 같은 회원 문자열과 멱등 키도 워크스페이스가 다르면 서로 격리된다", async (ctx) => {
     if (!await liveDatabase(ctx)) return;
     const otherTenantId = await createTemporaryTenant();
     const service = new GenerationService(new PostgresGenerationRepository());
@@ -165,12 +165,10 @@ describe("Studio 생성 Postgres 장부 계약", () => {
     const second = generationRequestFixture();
     second.workspace_id = otherTenantId;
 
-    await expect(service.create(memberId, "db-member-global-key", parseGenerationRequest(second))).rejects.toEqual(
-      expect.objectContaining({ code: "IDEMPOTENCY_CONFLICT", status: 409 }),
-    );
+    await service.create(memberId, "db-member-global-key", parseGenerationRequest(second));
     const [count] = await admin!<{ value: number }[]>`
       SELECT count(*)::int AS value FROM studio_generation_jobs WHERE member_id = ${memberId}`;
-    expect(count.value).toBe(1);
+    expect(count.value).toBe(2);
   });
 
   it("GEN-DB-05 한국어 설명: 같은 회원의 UTC 날짜 무료 몫은 워크스페이스가 달라도 한 번뿐이다", async (ctx) => {
