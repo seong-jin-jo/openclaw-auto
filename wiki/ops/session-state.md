@@ -1,3 +1,37 @@
+## [2026-08-28 19:50 멈춤의 셋째 층 제거 · 백로그 자동 충전 · 성과실 도달 복구 확인]
+
+**핸드오프 기준: 이 파일. tmux 는 보조.**
+
+### 이번 턴 핵심: 멈춤 원인이 세 층이었고 셋째를 이제야 고쳤다
+| 층 | 원인 | 조치 시점 |
+|---|---|---|
+| 1 | 컨트롤러가 워커 회수만 기다림 | 08-28 오전, CLAUDE.md §4.8 |
+| 2 | 감독이 백로그 비우고 스스로 종료 | 08-28 저녁, §4.9 + cron guard |
+| 3 | **백로그 충전 경로가 사람 손뿐** | **이번 턴**, `scripts/refill-backlog.sh` |
+
+3층이 뿌리였다. 감독은 배차만 하고 일을 만들지 못하므로, 배차 원천이 사람이면 감독을 살려도 같은 자리에서 멈춘다.
+
+### 만진 파일
+- `scripts/refill-backlog.sh` (신설): 백로그가 비면 ①미처리 검수 지적 문서(`docs/audit/*review*.md`, `docs/qa/osmu-qa-*.md`)를 찾아 수정 판으로 등록, 소비 목록은 `docs/plan/backlog-consumed.txt` ②없으면 상시 점검 4종(전수 실사·네 방 흐름·갭 채우기·공격 리뷰)을 시각 기반 회전으로 등록.
+- `scripts/osmu-supervisor.sh`: 대기 루프에서 refill 호출.
+- `scripts/osmu-supervisor-guard.sh` + crontab 5분: 감독 사망 시 부활. `/tmp/osmu-supervisor.stop` 있으면 부활 안 함.
+- `~/.claude/CLAUDE.md` §4.9 신설.
+
+### 검증 상태(컨트롤러 직접 관찰)
+- 감독 대기 → refill 5건 자동 등록 → `fixdoc08281` 자동 배차까지 **관찰됨**(`/tmp/osmu-supervisor.log` 19:48).
+- **성과실 도달 복구 확인**: `dashboard/scripts/probe-four-room-flow.mjs` 재실행 결과 성과실 true, 가린모달 0, 단추 23. 이전엔 성과실 false, 가린모달 1(온보딩이 홈을 전체화면으로 덮어 네 번째 방 도달 불가)이었다.
+- 백엔드 기본 흐름 11단계 통과 유지(`verify-basic-flow-e2e.mjs`).
+- **미검증**: 어젯밤 BLOCK 8건 중 몫 시간대 우회(M1)·공장 영구잠금(C1) 수정본을 아직 내가 재현으로 확인하지 않았다. 커밋만 확인(`c78aa3ec`, `90740835`).
+
+### 막힌 것
+- 실제 채널 발행과 provider 댓글 읽기: 계정 로그인 필요, 회장 몫. 세션 물리 불가.
+- 배포: 교차 리뷰 BLOCK 미해소 상태라 열지 않음.
+
+### 정확한 다음 액션
+1. `fixdoc0828*` 5건 회수 시 §9.2대로 워커 주장 대신 직접 재현 검증. 특히 M1은 서로 다른 시간대로 두 작업 생성 후 몫이 1회만 나가는지 관찰.
+2. QA NG 보고(`docs/qa/osmu-qa-2026-08-28.md`)는 refill 이 이미 백로그에 넣었으므로 감독이 처리. 컨트롤러는 회수 검증만.
+3. 감독 상태 점검 명령: `tail -5 /tmp/osmu-supervisor.log` / 상태표 `docs/plan/osmu-backlog-state.tsv` / 멈춤 `touch /tmp/osmu-supervisor.stop`.
+
 ## [2026-08-28 19:08 네 방 기본 흐름 UI 수정과 실화면 검증 완료]
 
 - **인계 기준:** 회장이 직접 지정한 네 방 기본 흐름 과제를 primary로 사용했다. 기반은 v63 확정 시안, 확정 요구 대장, 사업 좌표, `DESIGN.md`, `pipeline-state.studio.md`다.
