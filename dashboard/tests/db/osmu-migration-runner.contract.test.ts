@@ -143,9 +143,10 @@ describe("OSMU explicit migration runner 계약", () => {
   });
 
   it("GEN-MIG-14 정상: 적용된 legacy migration은 checksum만 확인하고 SQL을 재실행하지 않는다", () => {
-    expect(runner).toContain('if [ "$state" = "applied" ]');
-    expect(runner).toContain("action=checksum-only");
-    expect(runner.indexOf('if [ "$state" = "applied" ]')).toBeLessThan(runner.indexOf('psql -X -q -v ON_ERROR_STOP=1 -f "$DB_DIR/$file"'));
+    const legacyApply = runner.slice(runner.indexOf("apply_legacy_manifest()"), runner.indexOf("assert_exact_rollback_indexes()"));
+    expect(legacyApply).toContain('if [ "$state" = "applied" ]');
+    expect(legacyApply).toContain("action=checksum-only");
+    expect(legacyApply.indexOf('if [ "$state" = "applied" ]')).toBeLessThan(legacyApply.indexOf('transaction_tmp="$(mktemp)"'));
   });
 
   it("GEN-MIG-15 거절: prepare와 contract, manifest 생성 모두 rollback index exact definition을 검증한다", () => {
@@ -166,5 +167,13 @@ describe("OSMU explicit migration runner 계약", () => {
     expect(migrationWorkflow).toContain('git merge-base --is-ancestor "$COMPATIBILITY_BASE_COMMIT" "$previous_commit"');
     expect(migrationWorkflow).toContain('docker create --entrypoint /bin/true "$image_source"');
     expect(migrationWorkflow).toContain("PREVIOUS_COMPATIBLE_IMAGE_DIGEST: ${{ steps.previous.outputs.image_digest }}");
+  });
+
+  it("GEN-MIG-17 경합: legacy SQL과 applied ledger는 한 transaction이며 중간 실패는 둘 다 rollback한다", () => {
+    expect(runner).toContain("must contain exactly one top-level BEGIN/COMMIT pair");
+    expect(runner).toContain("OSMU_TEST_FAIL_AFTER_LEGACY_ID");
+    expect(runner).toContain("SELECT 1/0;");
+    expect(runner).toContain("atomic_with_ledger");
+    expect(runner).toContain("and ledger transaction rolled back");
   });
 });

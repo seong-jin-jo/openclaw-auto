@@ -64,10 +64,21 @@ VALUES
   ('11111111-1111-4111-8111-111111111119','11111111-1111-4111-8111-111111111111','lease-member','running',1,1,'lease-key',repeat('c',64),'2020-01-01','2090-01-01','2020-01-02');
 SQL
 
+matrix_psql -c "DELETE FROM public.osmu_schema_migrations WHERE migration_id='20260828_050_shorts_factory_run_leases'"
+if OSMU_TEST_FAIL_AFTER_LEGACY_ID='20260828_050_shorts_factory_run_leases' run_phase apply-legacy >"$TMP_DIR/legacy-crash-window" 2>&1; then
+  echo "FAIL injected legacy transaction failure unexpectedly committed" >&2; exit 1
+fi
+grep -q 'legacy migration 20260828_050_shorts_factory_run_leases and ledger transaction rolled back' "$TMP_DIR/legacy-crash-window"
+lease_updated_at="$(matrix_psql -At -c "SELECT updated_at AT TIME ZONE 'UTC' FROM public.shorts_factory_runs WHERE id='11111111-1111-4111-8111-111111111119'")"
+ledger_state="$(matrix_psql -At -c "SELECT COALESCE(max(state),'missing') FROM public.osmu_schema_migrations WHERE migration_id='20260828_050_shorts_factory_run_leases'")"
+[[ "$lease_updated_at" == 2090-01-01* && "$ledger_state" == missing ]] \
+  || { echo "FAIL atomic rollback heartbeat=$lease_updated_at ledger=$ledger_state" >&2; exit 1; }
 run_phase apply-legacy
 lease_updated_at="$(matrix_psql -At -c "SELECT updated_at AT TIME ZONE 'UTC' FROM public.shorts_factory_runs WHERE id='11111111-1111-4111-8111-111111111119'")"
-[[ "$lease_updated_at" == 2090-01-01* ]] || { echo "FAIL applied legacy replay changed active lease updated_at=$lease_updated_at" >&2; exit 1; }
-echo "PASS applied legacy checksum-only retry preserves active lease heartbeat"
+ledger_state="$(matrix_psql -At -c "SELECT state FROM public.osmu_schema_migrations WHERE migration_id='20260828_050_shorts_factory_run_leases'")"
+[[ "$lease_updated_at" == 2090-01-01* && "$ledger_state" == applied ]] \
+  || { echo "FAIL legacy recovery heartbeat=$lease_updated_at ledger=$ledger_state" >&2; exit 1; }
+echo "PASS atomic legacy failure recovery preserves active lease heartbeat and applies ledger"
 
 run_phase expand-fk
 if run_phase expand-member >"$TMP_DIR/member-before-guard" 2>&1; then
