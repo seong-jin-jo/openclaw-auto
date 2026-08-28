@@ -2,6 +2,29 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-08-29 NG → 수정 → 범위 PASS: 플랫폼별 성과 수집 범위와 결측 이유
+
+최초 `GET /api/metrics`는 HTTP 200과 `posts`만 반환해 성과 0이 실제 0인지, 수집 전인지, 수집 미지원인지 구분할 수 없었다. 수정 뒤 같은 실제 작업 공간에서 기존 `posts`와 coverage v1, 일곱 대상별 지원 범위와 결측 이유를 관찰했다. 이번 범위만 PASS이며 Threads 외 실제 provider 수집과 운영 배포는 미검증이다.
+
+| 테스트번호 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| METRICS-COVERAGE-01 | 최초 NG | 작업 공간 `cd1d0a40-540d-4524-9b49-bf2445d82182`, HTTP 200, 응답 키 `posts`만 존재, `coverage` 없음 |
+| METRICS-COVERAGE-02 | PASS | 수정 뒤 같은 요청 HTTP 200, 응답 키 `coverage`, `posts`, coverage version `v1`, 플랫폼 7건 |
+| METRICS-COVERAGE-03 | PASS | 검증용 실제 DB 행에서 Threads 발행 2건, 수집 1건, 미수집 1건, `PARTIAL_COLLECTION` 관찰 |
+| METRICS-COVERAGE-04 | PASS | 검증용 실제 DB 행에서 X 발행 1건, `collectionSupported=false`, `COLLECTOR_NOT_IMPLEMENTED` 관찰 |
+| METRICS-COVERAGE-05 | PASS | 검증용 발행 행 삭제 뒤 작업 공간 잔여 0건 확인 |
+
+| 검증 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| coverage 계약 단위·통합 | PASS | 정상 경로와 잘못된 집계 거절 4/4 |
+| 전체 Vitest | PASS | 196파일, 1,408건 통과, 조건부 1건 제외 |
+| TypeScript | PASS | `npx tsc --noEmit` 종료 코드 0 |
+| production build | PASS | 174/174 생성, 기존 NFT 추적 경고 1건 유지 |
+| 기본 흐름 | PASS | `verify-basic-flow-e2e.mjs` 11/11 |
+| Studio v1 | PASS | `verify-studio-v1-e2e.mjs` 12/12 |
+| design lint | PASS | `design-lint.sh dashboard/src`, 디자인 토큰 위반 0 |
+| 외부 provider와 운영 | 미검증 | Threads 외 여섯 provider 수집기, 실제 외부 수치, 운영 배포는 이번 범위 밖 |
+
 ## 2026-08-29 범위 PASS: 읽기 API 99개 전수 재실사
 
 커밋 `d5ac3d1c`의 `localhost:3456`에서 GET export 99개를 모두 실제 호출했다. 정상 89개, 의도된 거절 10개, HTTP 500과 요청 실패는 각각 0개였다. 새 고장이 없어 제품 코드 수정은 없었다. 이번 읽기 API 범위만 PASS이며, 기존 디자인 정합과 운영 실채널 검증 NG 때문에 전체 제품 QA는 PASS가 아니다.

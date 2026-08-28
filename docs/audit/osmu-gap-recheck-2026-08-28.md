@@ -1,8 +1,34 @@
 # 갭 감사 재확인 2026-08-28
 
-한 줄 결론: 이전 재확인 문서가 남았다고 적은 댓글 다섯 항목은 현재 코드에 모두 구현돼 있다. 2026-08-29 build는 비율, 자막, 속도, 목소리, 배경, 음악 형식값의 서버 validation 부족 판정을 추가로 닫았다.
+한 줄 결론: 이전 재확인 문서가 남았다고 적은 댓글 다섯 항목은 현재 코드에 모두 구현돼 있다. 2026-08-29 build는 성과 API에 일곱 플랫폼의 실제 수집 지원 범위와 결측 이유를 추가해 0의 의미를 구분하지 못하던 계약 갭을 닫았다.
 
 이 문서는 `docs/audit/osmu-v62-api-gap-audit-v1-gpt-codex.md`의 2026-08-28 현재 정정본이다. 원 감사의 당시 판정은 보존하되 새 작업 발주는 이 문서를 먼저 본다.
+
+## 2026-08-29 성과 수집 범위 계약 build
+
+원 감사와 직전 재확인의 `플랫폼별 실제 성과 수집 범위와 결측 이유의 단일 계약`을 선택했다. 생성, 편집, 발행 뒤 성과를 확인하는 기본 흐름의 마지막 경계이며, 기존 `/api/metrics`는 게시물만 반환해 값이 0인 이유를 구분할 수 없었다.
+
+| 계약 | 구현 | 관찰 증거 |
+|---|---|---|
+| 일곱 대상 단일 응답 | Threads, X, Instagram, Facebook, YouTube Shorts, Instagram Reels, TikTok을 `coverage.version=v1` 한 응답으로 반환 | 실제 작업 공간 GET 200, `platforms` 7건 관찰 |
+| 실제 지원 범위 | 현재 앱에서 수집기가 연결된 Threads만 `collectionSupported=true`, 수집기와 지표 목록을 명시 | 실제 응답에서 `threads_post_insights`, views·likes·replies·reposts 관찰 |
+| 결측 이유 | 발행 없음, 수집 전, 부분 수집, 수집기 미구현을 코드와 한국어 설명으로 구분 | 임시 실제 DB 행에서 Threads `PARTIAL_COLLECTION`, X `COLLECTOR_NOT_IMPLEMENTED` 관찰 |
+| 수집 진척 | 플랫폼별 발행, 수집, 미수집 건수와 마지막 수집 시각 제공 | Threads 발행 2건, 수집 1건, 미수집 1건 관찰 |
+| 잘못된 집계 거절 | 음수, 정수가 아닌 건수, 수집 건수가 발행 건수보다 큰 입력을 계약 오류로 거절 | 정상·거절 단위 계약과 route 통합 계약 4/4 통과 |
+
+작업 공간 `cd1d0a40-540d-4524-9b49-bf2445d82182`에 검증용 발행 행 3건을 잠시 넣어 실제 앱 응답을 관찰한 뒤 모두 삭제했고 잔여 0건을 확인했다. 기존 `posts` 응답과 Threads POST 수집 경로는 보존했다. 새 DB 구조와 provider 호출은 추가하지 않았다.
+
+이번 build가 닫은 것은 수집 지원 범위와 결측 이유를 숨기지 않는 단일 계약이다. Threads 외 여섯 플랫폼의 실제 수집기는 여전히 미구현이며 응답에 그 사실을 명시한다. 실제 외부 provider 수치 수집과 운영 배포는 미검증이다.
+
+검증 결과는 전체 Vitest 196파일, 1,408건 통과와 조건부 1건 제외, `npx tsc --noEmit`, production build 174/174, 기본 흐름 11/11, Studio v1 12/12, design lint 위반 0이다. production build의 기존 NFT 추적 경고 1건은 유지됐다.
+
+STAMP | line: osmu-gapfill082907 | 생성: 2026-08-29 07:42 KST | model: gpt-codex/gpt-5.6-sol | agent: code-builder | skill: 없음 | 고민: 없는 수집기를 만든 척하지 않고 실제 지원 범위와 결측 이유를 기존 성과 API에 호환 방식으로 드러냈다.
+
+SKILLS_USED: 없음. 설치된 스킬 중 build 코드 구현에 직접 대응하는 스킬이 없다. SKILLS_SKIPPED: qa는 QA 단계의 브라우저 E2E 소유 스킬이라 사용하지 않았다.
+
+SOURCES: `docs/audit/osmu-v62-api-gap-audit-v1-gpt-codex.md` | `docs/prototype/openclaw-auto-4room-v63.html` | `docs/requests/회장-확정-요구사항-대장.md` | `wiki/2-product/build/사업좌표-OSMU와-ZERO-ONE.md` | `DESIGN.md` | https://www.postman.com/meta/threads/documentation/dht3nzz/threads-api | https://developers.google.com/youtube/analytics/metrics
+
+MODEL: gpt-codex/gpt-5.6-sol / code-builder
 
 ## 2026-08-29 이번 build에서 닫은 갭
 
@@ -63,7 +89,7 @@ localhost 실요청에서 같은 queue 항목이 inbox와 calendar 각각에 대
 - 일곱 플랫폼을 아우르는 서버 측 발행 중지 계약
 - 게시물별 성과 시계열 snapshot과 재현 가능한 30일 비교
 - 학습 후보 수락 및 거절 이력
-- 플랫폼별 실제 성과 수집 범위와 결측 이유의 단일 계약
+- Threads 외 여섯 플랫폼의 실제 provider 성과 수집기
 
 현재 코드에 부분 구현이 있으므로 다음 작업 전에는 각 항목을 다시 실측해야 한다. 이 목록만 보고 새 스키마나 API를 만들면 안 된다.
 
