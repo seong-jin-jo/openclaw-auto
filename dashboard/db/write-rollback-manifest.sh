@@ -30,6 +30,7 @@ if ! [[ "$APP_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] \
 fi
 
 umask 077
+psql -X -q -v ON_ERROR_STOP=1 -f "$(cd "$(dirname "$0")" && pwd)/verify-rollback-indexes.sql"
 psql -X -qAt -v ON_ERROR_STOP=1 \
   -v digest="$APP_DIGEST" -v previous_digest="$PREVIOUS_DIGEST" \
   -v app_commit="$APP_COMMIT" -v deadline="$DEADLINE" >"$OUTPUT" <<'SQL'
