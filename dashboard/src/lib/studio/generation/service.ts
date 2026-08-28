@@ -68,7 +68,7 @@ export type PersistFreeRegenerationInput = {
   originalJobId: string;
   replacement: GenerationJob;
   localDate: string;
-  operation: "generation.create";
+  operation: "generation.regenerate";
   idempotencyKey: string;
   requestHash: string;
   response: GenerationResponse;
@@ -312,7 +312,7 @@ export class GenerationService {
       originalJobId: jobId,
       replacement: replacementJob,
       localDate,
-      operation: "generation.create",
+      operation: "generation.regenerate",
       idempotencyKey,
       requestHash: hashRequest(original.request),
       response: replacement,
