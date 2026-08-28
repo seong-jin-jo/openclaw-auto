@@ -40,10 +40,16 @@ jobs:
   migrate:
     runs-on: [self-hosted, marketing_runner]
     environment: osmu-db-migration-approval
+    env:
+      SOURCE_DIR: ${{ github.workspace }}/source-${{ github.run_id }}
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}/source-${{ github.run_id }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          path: source-${{ github.run_id }}
       - name: Observe and verify every running compatibility image
         id: app
         if: ${{ !contains(fromJSON('["baseline","apply-legacy","expand-fk","expand-guard"]'), inputs.phase) }}
@@ -117,7 +123,7 @@ jobs:
             -e VERIFIED_APP_COMMIT \
             -e PREVIOUS_COMPATIBLE_IMAGE_DIGEST \
             -e ROLLBACK_DEADLINE_UTC \
-            -v "$GITHUB_WORKSPACE/dashboard/db":/db:ro \
+            -v "$SOURCE_DIR/dashboard/db":/db:ro \
             -v "$RUNNER_TEMP":/runner-temp \
             postgres:16 \
             bash /db/write-rollback-manifest.sh /runner-temp/osmu-rollback-manifest.json
@@ -170,7 +176,7 @@ jobs:
             -e ROLLBACK_MANIFEST_PATH \
             -e ROLLBACK_MANIFEST_SHA256 \
             -e RUNNER_COMMIT \
-            -v "$GITHUB_WORKSPACE/dashboard/db":/db:ro \
+            -v "$SOURCE_DIR/dashboard/db":/db:ro \
             -v "$RUNNER_TEMP":/runner-temp \
             postgres:16 \
             bash /db/run-migrations.sh "$MIGRATION_PHASE"
@@ -190,7 +196,7 @@ jobs:
             -e OSMU_DATABASE_URL \
             -e ROLLBACK_MANIFEST_PATH \
             -e ROLLBACK_MANIFEST_SHA256 \
-            -v "$GITHUB_WORKSPACE/dashboard/db":/db:ro \
+            -v "$SOURCE_DIR/dashboard/db":/db:ro \
             -v "$RUNNER_TEMP":/runner-temp \
             postgres:16 \
             bash /db/rollback-migration.sh "$MIGRATION_PHASE"
