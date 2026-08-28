@@ -52,6 +52,7 @@ export async function claimReply(input: {
       SET state = 'replying', reply_request_key = EXCLUDED.reply_request_key,
           reply_text = EXCLUDED.reply_text, updated_at = now()
       WHERE engagement_items.replied_at IS NULL
+        AND engagement_items.reply_external_id IS NULL
         AND (
           engagement_items.state <> 'replying'
           OR engagement_items.updated_at < now() - (${replyClaimStaleAfterMs()} * interval '1 millisecond')
@@ -76,7 +77,7 @@ export async function claimReply(input: {
 export async function touchReplyClaim(tenantId: string, platform: string, commentId: string, requestKey: string): Promise<void> {
   await withTenant(tenantId, (sql) => sql`
     UPDATE engagement_items
-    SET updated_at = now()
+    SET reply_external_id = COALESCE(reply_external_id, 'status-unknown'), updated_at = now()
     WHERE tenant_id = ${tenantId} AND platform = ${platform} AND provider_comment_id = ${commentId}
       AND state = 'replying' AND reply_request_key = ${requestKey}`);
 }
