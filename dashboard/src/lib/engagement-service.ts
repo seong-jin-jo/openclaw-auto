@@ -5,7 +5,7 @@ import { getChannelCred } from "@/lib/publish";
 import { getWikiContext } from "@/lib/wiki-retrieve";
 import { likeProviderComment, listProviderComments, replyToProvider, type ProviderComment } from "@/lib/engagement-provider";
 import {
-  claimReply, completeReply, getEngagementState, listEngagementStates, markEngagement, releaseReplyClaim, touchReplyClaim,
+  claimReply, completeReply, likeEngagementOnce, listEngagementStates, markEngagement, releaseReplyClaim, touchReplyClaim,
   type EngagementStateRow,
 } from "@/lib/engagement-store";
 
@@ -145,12 +145,16 @@ export async function sendReply(tenantId: string, postId: string, commentId: str
 export async function likeComment(tenantId: string, postId: string, commentId: string) {
   const post = await loadPost(tenantId, postId);
   const context = await loadComment(tenantId, post, commentId, "like");
-  const existing = await getEngagementState(tenantId, context.platform, commentId);
-  if (existing?.liked_at) return { ok: true, reused: true, state: displayState(existing), capability: context.capability };
-  const result = await likeProviderComment(context.platform, context.cred, commentId);
-  if (!result.ok) throw new EngagementError(502, "PROVIDER_LIKE_FAILED", result.error ?? "댓글 좋아요에 실패했습니다.", context.capability);
-  const row = await markEngagement({ tenantId, postId, platform: context.platform, commentId, action: "like" });
-  return { ok: true, reused: false, state: displayState(row), capability: context.capability };
+  const applied = await likeEngagementOnce(
+    { tenantId, postId, platform: context.platform, commentId },
+    async () => {
+      const result = await likeProviderComment(context.platform, context.cred, commentId);
+      if (!result.ok) {
+        throw new EngagementError(502, "PROVIDER_LIKE_FAILED", result.error ?? "댓글 좋아요에 실패했습니다.", context.capability);
+      }
+    },
+  );
+  return { ok: true, reused: applied.reused, state: displayState(applied.row), capability: context.capability };
 }
 
 export async function deferComment(tenantId: string, postId: string, commentId: string) {

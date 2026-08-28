@@ -39,6 +39,37 @@ export async function getEngagementState(tenantId: string, platform: string, com
   return row ?? null;
 }
 
+export async function likeEngagementOnce(
+  input: { tenantId: string; postId: string; platform: string; commentId: string },
+  performProviderLike: () => Promise<void>,
+): Promise<{ reused: boolean; row: EngagementStateRow }> {
+  return withTenant(input.tenantId, async (sql) => {
+    const lockKey = `engagement-like:${input.tenantId}:${input.platform}:${input.commentId}`;
+    await sql`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
+
+    const [existing] = await sql<EngagementStateRow[]>`
+      SELECT provider_comment_id, state, reply_request_key, reply_text, reply_external_id,
+             replied_at::text, liked_at::text, deferred_at::text, editor_handoff_at::text, editor_draft_id
+      FROM engagement_items
+      WHERE tenant_id = ${input.tenantId} AND platform = ${input.platform}
+        AND provider_comment_id = ${input.commentId}`;
+    if (existing?.liked_at) return { reused: true, row: existing };
+
+    await performProviderLike();
+    const [row] = await sql<EngagementStateRow[]>`
+      INSERT INTO engagement_items
+        (tenant_id, published_post_id, platform, provider_comment_id, state, liked_at)
+      VALUES
+        (${input.tenantId}, ${input.postId}, ${input.platform}, ${input.commentId}, 'unread', now())
+      ON CONFLICT (tenant_id, platform, provider_comment_id) DO UPDATE
+      SET liked_at = COALESCE(engagement_items.liked_at, EXCLUDED.liked_at), updated_at = now()
+      RETURNING provider_comment_id, state, reply_request_key, reply_text, reply_external_id,
+                replied_at::text, liked_at::text, deferred_at::text, editor_handoff_at::text, editor_draft_id`;
+    if (!row) throw new Error("댓글 좋아요 결과를 저장하지 못했습니다.");
+    return { reused: false, row };
+  });
+}
+
 export async function claimReply(input: {
   tenantId: string; postId: string; platform: string; commentId: string; requestKey: string; text: string;
 }): Promise<{ status: "claimed" | "replay" | "conflict"; row: EngagementStateRow | null }> {
