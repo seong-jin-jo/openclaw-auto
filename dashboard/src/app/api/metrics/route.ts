@@ -3,6 +3,10 @@ import { effectiveTenantId } from "@/lib/tenant-auth";
 import { getChannelCred } from "@/lib/publish";
 import { readJson, writeJson, dataPath } from "@/lib/file-io";
 import { runWithTenant } from "@/lib/tenant-context";
+import {
+  buildPerformanceMetricsCoverage,
+  type MetricsCoverageAggregateRow,
+} from "@/lib/performance-metrics-coverage";
 
 const THREADS_API = "https://graph.threads.net/v1.0";
 
@@ -19,16 +23,33 @@ function markAnalyticsViewed(tenantId: string) {
 // GET /api/metrics?tenant_id=... — 발행물 + 성과 목록(성과 대시보드)
 export async function GET(request: Request) {
   const tenantId = await effectiveTenantId(request, new URL(request.url).searchParams.get("tenant_id"));
-  if (!tenantId) return Response.json({ posts: [] });
+  if (!tenantId) {
+    return Response.json({ posts: [], coverage: buildPerformanceMetricsCoverage([]) });
+  }
   try {
-    const posts = await withTenant(tenantId, (sql) => sql`
-      SELECT id, platform, external_id, permalink, text, status, error, published_at,
-             views, likes, replies, reposts, metrics_at
-      FROM published_posts WHERE tenant_id = ${tenantId}
-      ORDER BY published_at DESC LIMIT 100`);
-    return Response.json({ posts });
+    const { posts, coverageRows } = await withTenant(tenantId, async (sql) => {
+      const posts = await sql`
+        SELECT id, platform, external_id, permalink, text, status, error, published_at,
+               views, likes, replies, reposts, metrics_at
+        FROM published_posts WHERE tenant_id = ${tenantId}
+        ORDER BY published_at DESC LIMIT 100`;
+      const coverageRows = await sql<MetricsCoverageAggregateRow[]>`
+        SELECT platform,
+               COUNT(*) FILTER (WHERE status = 'published')::int AS published_count,
+               COUNT(*) FILTER (WHERE status = 'published' AND metrics_at IS NOT NULL)::int AS collected_count,
+               MAX(metrics_at)::text AS last_collected_at
+        FROM published_posts
+        WHERE tenant_id = ${tenantId}
+        GROUP BY platform`;
+      return { posts, coverageRows };
+    });
+    return Response.json({ posts, coverage: buildPerformanceMetricsCoverage(coverageRows) });
   } catch (e) {
-    return Response.json({ posts: [], error: String(e) }, { status: 500 });
+    return Response.json({
+      posts: [],
+      coverage: buildPerformanceMetricsCoverage([]),
+      error: String(e),
+    }, { status: 500 });
   }
 }
 
