@@ -187,4 +187,29 @@ describe("OSMU explicit migration runner 계약", () => {
     expect(migrationMatrix).toContain('RUNNER_COMMIT or GITHUB_SHA must be a 40-character git SHA');
     expect(migrationMatrix).not.toContain("safe.directory");
   });
+
+  it("GEN-MIG-19 정상: 승인 DB workflow는 host psql 없이 postgres:16 client로 모든 DB script를 실행한다", () => {
+    const manifestStep = migrationWorkflow.slice(
+      migrationWorkflow.indexOf("Build rollback manifest from observed pre-contract state"),
+      migrationWorkflow.indexOf("Download the original rollback manifest"),
+    );
+    const applyStep = migrationWorkflow.slice(
+      migrationWorkflow.indexOf("Apply explicit manifest phase"),
+      migrationWorkflow.indexOf("Execute approved rollback script"),
+    );
+    const rollbackStep = migrationWorkflow.slice(migrationWorkflow.indexOf("Execute approved rollback script"));
+    for (const step of [manifestStep, applyStep, rollbackStep]) {
+      expect(step).toContain("docker run --rm");
+      expect(step).toContain("postgres:16");
+      expect(step).toContain('-e OSMU_DATABASE_URL');
+      expect(step).not.toContain('${{ secrets.OSMU_DATABASE_URL }}:');
+      expect(step).toContain('-v "$GITHUB_WORKSPACE/dashboard/db":/db:ro');
+    }
+    expect(manifestStep).toContain('-v "$RUNNER_TEMP":/runner-temp');
+    expect(manifestStep).toContain("bash /db/write-rollback-manifest.sh /runner-temp/osmu-rollback-manifest.json");
+    expect(applyStep).toContain("bash /db/run-migrations.sh");
+    expect(rollbackStep).toContain("bash /db/rollback-migration.sh");
+    expect(applyStep).toContain('rollback manifest must be under RUNNER_TEMP');
+    expect(rollbackStep).toContain('rollback manifest must be under RUNNER_TEMP');
+  });
 });

@@ -111,7 +111,16 @@ jobs:
           PREVIOUS_COMPATIBLE_IMAGE_DIGEST: ${{ steps.previous.outputs.image_digest }}
         run: |
           export ROLLBACK_DEADLINE_UTC="$(date -u -d '+7 days' '+%Y-%m-%dT%H:%M:%SZ')"
-          bash dashboard/db/write-rollback-manifest.sh "$RUNNER_TEMP/osmu-rollback-manifest.json"
+          docker run --rm \
+            -e OSMU_DATABASE_URL \
+            -e VERIFIED_APP_IMAGE_DIGEST \
+            -e VERIFIED_APP_COMMIT \
+            -e PREVIOUS_COMPATIBLE_IMAGE_DIGEST \
+            -e ROLLBACK_DEADLINE_UTC \
+            -v "$GITHUB_WORKSPACE/dashboard/db":/db:ro \
+            -v "$RUNNER_TEMP":/runner-temp \
+            postgres:16 \
+            bash /db/write-rollback-manifest.sh /runner-temp/osmu-rollback-manifest.json
           manifest_sha="$(sha256sum "$RUNNER_TEMP/osmu-rollback-manifest.json" | awk '{print $1}')"
           echo "path=$RUNNER_TEMP/osmu-rollback-manifest.json" >> "$GITHUB_OUTPUT"
           echo "sha256=$manifest_sha" >> "$GITHUB_OUTPUT"
@@ -146,11 +155,42 @@ jobs:
           ROLLBACK_MANIFEST_PATH: ${{ steps.rollback.outputs.path || steps.prior.outputs.path }}
           ROLLBACK_MANIFEST_SHA256: ${{ steps.rollback.outputs.sha256 || steps.prior.outputs.sha256 }}
           RUNNER_COMMIT: ${{ github.sha }}
-        run: bash dashboard/db/run-migrations.sh "${{ inputs.phase }}"
+          MIGRATION_PHASE: ${{ inputs.phase }}
+        run: |
+          if [ -n "${ROLLBACK_MANIFEST_PATH:-}" ]; then
+            manifest_relative="${ROLLBACK_MANIFEST_PATH#"$RUNNER_TEMP"/}"
+            [ "$manifest_relative" != "$ROLLBACK_MANIFEST_PATH" ] \
+              || { echo "::error::rollback manifest must be under RUNNER_TEMP"; exit 1; }
+            export ROLLBACK_MANIFEST_PATH="/runner-temp/$manifest_relative"
+          fi
+          docker run --rm \
+            -e OSMU_DATABASE_URL \
+            -e VERIFIED_APP_IMAGE_DIGEST \
+            -e VERIFIED_APP_COMMIT \
+            -e ROLLBACK_MANIFEST_PATH \
+            -e ROLLBACK_MANIFEST_SHA256 \
+            -e RUNNER_COMMIT \
+            -v "$GITHUB_WORKSPACE/dashboard/db":/db:ro \
+            -v "$RUNNER_TEMP":/runner-temp \
+            postgres:16 \
+            bash /db/run-migrations.sh "$MIGRATION_PHASE"
       - name: Execute approved rollback script
         if: ${{ startsWith(inputs.phase, 'rollback-') }}
         env:
           OSMU_DATABASE_URL: ${{ secrets.OSMU_DATABASE_URL }}
           ROLLBACK_MANIFEST_PATH: ${{ steps.prior.outputs.path }}
           ROLLBACK_MANIFEST_SHA256: ${{ steps.prior.outputs.sha256 }}
-        run: bash dashboard/db/rollback-migration.sh "${{ inputs.phase }}"
+          MIGRATION_PHASE: ${{ inputs.phase }}
+        run: |
+          manifest_relative="${ROLLBACK_MANIFEST_PATH#"$RUNNER_TEMP"/}"
+          [ "$manifest_relative" != "$ROLLBACK_MANIFEST_PATH" ] \
+            || { echo "::error::rollback manifest must be under RUNNER_TEMP"; exit 1; }
+          export ROLLBACK_MANIFEST_PATH="/runner-temp/$manifest_relative"
+          docker run --rm \
+            -e OSMU_DATABASE_URL \
+            -e ROLLBACK_MANIFEST_PATH \
+            -e ROLLBACK_MANIFEST_SHA256 \
+            -v "$GITHUB_WORKSPACE/dashboard/db":/db:ro \
+            -v "$RUNNER_TEMP":/runner-temp \
+            postgres:16 \
+            bash /db/rollback-migration.sh "$MIGRATION_PHASE"
