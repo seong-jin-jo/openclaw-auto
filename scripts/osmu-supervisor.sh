@@ -111,6 +111,9 @@ while :; do
      [ -z "$(next_pending review)" ] && [ -z "$(next_pending qa)" ]; then
     # 백로그가 비었다고 죽지 않는다(회장 2026-08-28 "대기하고 있다가 재지시하라").
     # 죽으면 다음 판을 사람이 손으로 걸어야 한다. 그게 멍때림의 원인이었다.
+    # 할 일이 없으면 스스로 만들어 채운다. 감독이 살아 있어도 백로그가 비면
+    # 멈춘 것과 같기 때문이다(회장 2026-08-28 두 번째 지적).
+    bash "$ROOT/scripts/refill-backlog.sh" 2>&1 | grep "백로그에" || true
     idle_rounds=$((idle_rounds+1))
     if [ "$idle_rounds" = "2" ] || [ $((idle_rounds % 30)) = "0" ]; then
       echo "[$(date +%H:%M)] 백로그가 비었다. 새 판이 들어올 때까지 기다린다(대기 ${idle_rounds}회)."

@@ -13,3 +13,8 @@ review1	review	review1-code-review.txt
 qa1	qa	qa1-app-qa.txt
 fix1	build	fix1-review-blockers.txt
 flow1	fe	flow1-four-room-basics.txt
+fixdoc08281	build	fixdoc08281.txt
+fixdoc08282	build	fixdoc08282.txt
+fixdoc08283	build	fixdoc08283.txt
+fixdoc08284	build	fixdoc08284.txt
+fixdoc08285	build	fixdoc08285.txt
