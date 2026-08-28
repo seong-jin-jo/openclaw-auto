@@ -40,6 +40,18 @@ const observations = [];
 const consoleErrors = [];
 const unauthorizedUrls = [];
 
+async function closeBrowserWithin(timeoutMs) {
+  if (!browser) return;
+  let timeout;
+  await Promise.race([
+    browser.close(),
+    new Promise((resolve) => {
+      timeout = setTimeout(resolve, timeoutMs);
+    }),
+  ]);
+  if (timeout) clearTimeout(timeout);
+}
+
 function firstUserSettings(raw) {
   const parsed = JSON.parse(raw);
   return JSON.stringify({ ...parsed, onboardingComplete: false }, null, 2);
@@ -139,10 +151,12 @@ try {
   console.log(`PASS 전체 화면 모달 0건, 브라우저 401 0건, 콘솔 오류 0건`);
   console.log(`CAPTURES ${outputDir}`);
 } finally {
-  if (browser) await browser.close();
   fs.writeFileSync(settingsPath, originalSettings);
   if (issuedTokenId) {
     const revoked = await request(`/api/tenant-tokens?id=${encodeURIComponent(issuedTokenId)}`, { method: "DELETE" });
     if (!revoked.ok) console.error(`임시 고객 토큰 폐기 실패: HTTP ${revoked.status}`);
   }
+  await closeBrowserWithin(5000);
 }
+
+process.exit(0);
