@@ -2,6 +2,30 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-08-28 PASS: inbox와 calendar 발행실 복귀
+
+| 테스트번호 | 최초 판정 | 최종 판정 | 직접 관찰 증거 |
+|---|---|---|---|
+| FE-V63-RETURN-01 | 정상 | PASS | inbox queue 본문과 선택 플랫폼을 발행실 상태로 복원 |
+| FE-V63-RETURN-02 | 거절 | PASS | URL의 queue 항목이 없으면 발행 단추를 만들지 않음 |
+| FE-V63-RETURN-03 | 정상과 거절 | PASS | inbox와 calendar 링크 노출, legacy context 없는 항목은 링크를 만들지 않음 |
+| FE-V63-RETURN-04 | 최초 NG | 수정 후 PASS | `text=null`인 편집 인계 초안이 빈 발행실을 만들던 문제를 queue 본문과 초안 메타데이터 결합으로 수정 |
+| BE-V63-03 | 정상과 거절 | PASS | sourceContext의 draft ID를 inbox와 calendar 복귀 URL에 보존, 알 수 없는 source는 400 |
+
+**실제 앱 관찰:** 작업 공간 `cd1d0a40-540d-4524-9b49-bf2445d82182`에서 health HTTP 200과 DB `up`을 확인했다. 기본 흐름 E2E 11/11로 만든 편집 인계 초안과 queue를 조회했으며 inbox와 calendar 응답 모두 같은 draft ID를 가진 Studio 복귀 URL을 반환했다. 실제 Chromium에서 두 화면의 `발행실로 돌아가기`를 눌러 발행실 도착과 작업물 복원을 관찰했다. 미디어 없는 검증 항목에서는 브라우저 401 0건, 콘솔 오류 0건이다. 임시 queue와 고객 토큰은 삭제했다.
+
+**회귀:** `npm run test -- --maxWorkers=8 --minWorkers=1 --testTimeout=15000` 187파일 1,336건 PASS, 조건부 6건 SKIP. TypeScript, Next production build 174경로, 기본 흐름 11/11, Studio v1 12/12, UI 토큰 감사와 design lint 위반 0건이다. build의 기존 NFT 추적 경고 1건은 남았다.
+
+**남은 gate:** 운영 배포와 실제 공개 채널 발행은 미검증이다. 전체 v63 디자인 정합 NG와 design, qa 승인 보류를 유지한다.
+
+STAMP | line: osmu-gapfill082823 | 생성: 2026-08-28 23:46 KST | model: gpt-5.6-sol | agent: code-builder | skill: pipeline | 고민: 링크 노출만 통과시키지 않고 본문 없는 편집 인계 초안의 실제 복원까지 검증했다.
+
+SKILLS_USED: pipeline. build 허용 범위와 단계 gate 확인에 사용. SKILLS_SKIPPED: 설치 코드 구현 전용 매칭 스킬 없음.
+
+SOURCES: `docs/audit/osmu-gap-recheck-2026-08-28.md` | `docs/prototype/openclaw-auto-4room-v63.html` | `docs/requests/회장-확정-요구사항-대장.md` | `wiki/2-product/build/사업좌표-OSMU와-ZERO-ONE.md` | https://support.buffer.com/en-us/articles/managing-and-approving-draft-posts-57li7M8tDA
+
+MODEL: gpt-5.6-sol / code-builder
+
 ## 2026-08-28 PASS: 네 방 기본 흐름 재검증, 전체 v63 정합 NG 유지
 
 | 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
