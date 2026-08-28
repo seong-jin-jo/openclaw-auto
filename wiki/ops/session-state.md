@@ -5,12 +5,18 @@
 
 - 릴리스 후보: `0.2.0`. 매니페스트 `RELEASE.md`, 상세 안내
   `docs/releases/2026-08-28-osmu-네방.md`, 이미지 태그 `openclaw-auto/dashboard:0.2.0`.
+- 병합 요청: [PR #26](https://github.com/seong-jin-jo/openclaw-auto/pull/26). 최신 커밋
+  `a2b0a19f`, GitHub 병합 상태 CLEAN. 병합과 운영 배포는 실행하지 않았다.
 - 운영 안전: production에서 Studio 개발 신원 모드를 항상 503으로 차단하고, 배포 workflow도
   `STUDIO_IDENTITY_MODE=development`와 `STUDIO_DEV_*`를 거부한다. 설정이 없는 standalone 서버는
   6개 핵심 경로에서 500이 0건이었다.
-- 직접 증거: Vitest 186파일 1,332건 PASS와 3건 SKIP, TypeScript PASS, production build 174/174,
+- 직접 증거: 최종 로컬 Vitest 186파일 1,329건 PASS와 6건 SKIP, TypeScript PASS, production build 174/174,
   기본 흐름 11/11, Studio 12/12, 빈 DB와 기존 DB 마이그레이션 2개 경로 PASS, 로컬 Docker 이미지
   `sha256:8afe50435060773d4d171472dd428564d29e6faa44e15fd9c299962cee47a0b3` 생성.
+- 원격 증거: [CI run 33173838496](https://github.com/seong-jin-jo/openclaw-auto/actions/runs/33173838496)에서
+  TypeScript, production build, PostgreSQL schema와 seed와 RLS, 186파일 1,321건 PASS와 1건 SKIP.
+- CI 근본 수정: OAuth 테스트의 DB mock 누락과 운영자 복구 계약의 시스템 `jq` 의존을 제거했다.
+  환경파일 없는 집중 67건과 원격 전체 CI로 재발 방지를 확인했다.
 - 로그: `/tmp/osmu-release-regression.log`, `/tmp/osmu-release-tsc.log`,
   `/tmp/osmu-release-production-build-final.log`, `/tmp/osmu-release-migration.log`,
   `/tmp/osmu-release-basic-flow-e2e.log`, `/tmp/osmu-release-studio-v1-e2e.log`.

@@ -25,8 +25,9 @@ changelog: CHANGELOG.md#020-2026-08-28
 | 무설정 기동 | PASS | `/` 200, 주요 설정 의존 API 503, 500 응답 0건, `/tmp/osmu-release-no-config-smoke-final.tsv` |
 | 마이그레이션 | PASS | 기존 운영 스키마에서 순차 적용 6/6, 최신 스키마에서 재적용 6/6, 대상 테이블 7/7, `/tmp/osmu-release-migration.log` |
 | 개발 신원 운영 차단 | PASS | 운영 환경에서는 모든 개발 신원 예외값을 무시하고 503으로 거절, 배포 환경파일 정적 차단 계약 |
-| 전체 회귀 | PASS | Vitest 186파일, 1,332건 통과, 3건 조건부 제외, 실패 0. `/tmp/osmu-release-regression.log` |
+| 전체 회귀 | PASS | 최종 로컬 Vitest 186파일, 1,329건 통과, 6건 조건부 제외, 실패 0. `/tmp/osmu-release-regression-post-ci-fix.log` |
 | TypeScript | PASS | `npx tsc --noEmit`, `/tmp/osmu-release-tsc.log` |
+| PR CI | PASS | 커밋 `a2b0a19f`, 186파일, 1,321건 통과, 1건 조건부 제외. [GitHub Actions run 33173838496](https://github.com/seong-jin-jo/openclaw-auto/actions/runs/33173838496) |
 | 기본 흐름 | PASS | 실제 `localhost:3456` 11/11, `/tmp/osmu-release-basic-flow-e2e.log` |
 | Studio 개발 계약 | PASS | 실제 `localhost:3456` 12/12, `/tmp/osmu-release-studio-v1-e2e.log` |
 | Docker 이미지 | PASS | 로컬 검증 이미지 `openclaw-auto/dashboard:0.2.0`, 이미지 ID `sha256:8afe50435060773d4d171472dd428564d29e6faa44e15fd9c299962cee47a0b3` |

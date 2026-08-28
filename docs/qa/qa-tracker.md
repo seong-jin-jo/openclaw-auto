@@ -30,6 +30,16 @@ seed draft 1건을 관찰한 뒤 임시 DB를 폐기했다. 웹 전용이라 Mae
 qa 승인과 배포 전환은 금지한다. 세부 근거는
 `docs/qa/osmu-v24-design-conformance-matrix-v1-gpt-codex.md`다.
 
+## 2026-08-28 NG -> 수정 -> PASS: CI 환경 독립성
+
+| 시험 항목 | 재현된 결함 | 현재 판정 | 종료증거 |
+|---|---|---|---|
+| RELEASE-CI-01 | 로컬 환경파일이 OAuth 테스트의 DB mock 누락과 운영자 복구 테스트의 시스템 `jq` 의존을 가려 PR CI 33건이 실패했다 | PASS | `.env.local` 없는 CI 유사 환경 집중 67건 PASS, 전체 로컬 186파일 PASS, 원격 [run 33173838496](https://github.com/seong-jin-jo/openclaw-auto/actions/runs/33173838496) 186파일 1,321건 PASS |
+
+**근본 원인:** 단위 테스트가 자기가 쓰는 DB와 명령을 모두 모킹하지 않고 개발 머신의 환경파일과 설치 도구를 암묵적으로 믿었다. 로컬 통과가 깨끗한 CI 통과를 보장하지 못했다.
+
+**수정:** OAuth 테스트는 `DATABASE_URL` 존재 여부와 무관하게 빈 credential DB를 명시적으로 모킹한다. 운영자 복구 계약은 필요한 `jq` 동작까지 자체 fixture로 제공한다. 두 테스트를 환경파일 없이 재실행하고 PR CI 전체를 다시 통과시켰다.
+
 ## 2026-08-28 NG -> 수정 -> PASS: 신규 마이그레이션 실행 순서
 
 | 시험 항목 | 재현된 결함 | 현재 판정 | 종료증거 |
@@ -44,7 +54,7 @@ qa 승인과 배포 전환은 금지한다. 세부 근거는
 
 | 시험 항목 | 재현된 결함 | 현재 판정 | 종료증거 |
 |---|---|---|---|
-| RELEASE-IDENTITY-01 | `NODE_ENV=production` 이어도 `STUDIO_ALLOW_DEV_IDENTITY_IN_PROD=1`이면 개발용 bearer로 회원과 작업 공간을 가장할 수 있다 | PASS | 예외값 없음, `0`, `1` 모두 운영에서 503 거절. 집중 3파일 15건과 전체 186파일 1,332건 통과 |
+| RELEASE-IDENTITY-01 | `NODE_ENV=production` 이어도 `STUDIO_ALLOW_DEV_IDENTITY_IN_PROD=1`이면 개발용 bearer로 회원과 작업 공간을 가장할 수 있다 | PASS | 예외값 없음, `0`, `1` 모두 운영에서 503 거절. 집중 3파일 15건과 최종 로컬 전체 186파일 통과 |
 
 **근본 원인:** 운영 안전장치에 현장 우회용 예외값을 남겼고, 회귀 테스트는 그 예외값이 없는 경우만 검증했다. 운영 신원 경계는 실행 중 플래그로 재개방할 수 없게 고정해야 한다.
 
