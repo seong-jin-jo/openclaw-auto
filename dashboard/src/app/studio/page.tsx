@@ -513,7 +513,9 @@ export default function StudioPage() {
     const linkedDraft = linkedDraftId
       ? hist?.drafts.find((draft) => draft.id === linkedDraftId)
       : null;
-    if (linkedDraft) {
+    const linkedDraftHasPublishText = linkedDraft?.text !== null
+      && typeof linkedDraft?.text === "object";
+    if (linkedDraft && linkedDraftHasPublishText) {
       loadDraft(linkedDraft);
     } else {
       const work = buildPublishReturnWork(queuePost);
@@ -523,7 +525,7 @@ export default function StudioPage() {
         return;
       }
       const tagText = work.hashtags.map((tag) => tag.replace(/^#/, "")).join(" ");
-      setIdea(work.idea);
+      setIdea((linkedDraft?.idea as string) || work.idea);
       setText({
         threads: work.body,
         x: work.body,
@@ -536,10 +538,14 @@ export default function StudioPage() {
       setIncludes(work.includedPlatforms.length
         ? normalizeIncludes(Object.fromEntries(ALL.map((platform) => [platform, work.includedPlatforms.includes(platform)])))
         : normalizeIncludes());
-      setHashtags(tagText ? { instagram: tagText } : {});
-      setDraftId(null);
-      setPublishReconciliation(null);
-      setEditorHandoff(null);
+      setDisplayNames((linkedDraft?.displayNames as Record<string, string>) || {});
+      setTitles((linkedDraft?.titles as Record<string, string>) || {});
+      setHashtags((linkedDraft?.hashtags as Record<string, string>) || (tagText ? { instagram: tagText } : {}));
+      setFirstComments((linkedDraft?.firstComments as Record<string, string>) || {});
+      setEditLines((linkedDraft?.editLines as string[]) || []);
+      setDraftId(linkedDraftId);
+      setPublishReconciliation((linkedDraft?.publishReconciliation as PublishReconciliation) || null);
+      setEditorHandoff((linkedDraft?.editorHandoff as EditorHandoff) || null);
     }
     setReviewQueueId(publishReturnRequest.queuePostId);
     setActiveRoom("publish");

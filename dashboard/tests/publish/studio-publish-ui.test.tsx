@@ -177,6 +177,29 @@ describe("Studio publish result integrity", () => {
     expect(screen.getByRole("checkbox", { name: "X 발행" })).not.toBeChecked();
   });
 
+  it("FE-V63-RETURN-04 경계: 본문 없는 편집 인계 초안은 큐 본문과 초안 메타데이터를 함께 복원한다", async () => {
+    window.history.replaceState(null, "", "/studio?room=publish&queue_id=queue-handoff&from=calendar&draft_id=draft-handoff");
+    mocks.drafts = [{
+      id: "draft-handoff",
+      idea: "편집 인계 주제",
+      text: null,
+      editorHandoff: { kind: "video", revision: 4 },
+    }];
+    mocks.returnPosts = [{
+      id: "queue-handoff",
+      text: "편집을 마친 영상 요약",
+      topic: "studio-handoff",
+      videoUrl: "https://example.invalid/video.mp4",
+      publishContext: { sourceRoute: "calendar", queuePostId: "queue-handoff", draftId: "draft-handoff" },
+    }];
+
+    render(<StudioPage />);
+
+    await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith("발행 일정 작업물을 불러왔습니다", "success"));
+    expect(screen.getByText("편집 인계 주제", { exact: true })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "3곳에 올리기" })).toBeInTheDocument();
+  });
+
   it("FE-V63-RETURN-02 거절: URL의 큐 작업물이 없으면 빈 작업물을 발행 가능 상태로 만들지 않는다", async () => {
     window.history.replaceState(null, "", "/studio?room=publish&queue_id=missing&from=calendar");
     mocks.returnPosts = [];
