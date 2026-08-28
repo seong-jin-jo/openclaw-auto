@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api";
+import type { PublishReturnContext } from "@/lib/publish-return-context";
 
 interface Post {
   id: string;
@@ -12,6 +14,7 @@ interface Post {
   approvedAt?: string | null;
   generatedAt?: string | null;
   publishedAt?: string | null;
+  publishContext?: PublishReturnContext | null;
 }
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -35,7 +38,7 @@ function postDate(p: Post): string | null {
 }
 
 export default function CalendarPage() {
-  const { data } = useSWR<{ posts: Post[] }>("/api/queue?status=all", fetcher);
+  const { data } = useSWR<{ posts: Post[] }>("/api/queue?status=all&returnTo=calendar", fetcher);
   const posts = useMemo(() => data?.posts || [], [data]);
 
   // 표시 기준 연/월(0-index month)
@@ -146,6 +149,14 @@ export default function CalendarPage() {
                     <p className="text-muted line-clamp-2 whitespace-pre-wrap">{p.text || "(내용 없음)"}</p>
                     <p className="text-caption text-subtle mt-micro">{p.status || "draft"}</p>
                   </div>
+                  {p.publishContext ? (
+                    <Link
+                      href={p.publishContext.returnUrl}
+                      className="inline-flex min-h-control-touch shrink-0 items-center rounded-control border border-border bg-surface-2 px-stack text-caption font-semibold text-muted hover:bg-surface"
+                    >
+                      발행실로 돌아가기
+                    </Link>
+                  ) : null}
                 </div>
               ))}
             </div>

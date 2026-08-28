@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import useSWR from "swr";
 import { fetcher, apiPost } from "@/lib/api";
 import { useToast } from "@/components/layout/Toast";
 import type { VoiceTone } from "@/lib/voice-tone";
+import type { PublishReturnContext } from "@/lib/publish-return-context";
 
 const TONE_SLIDERS: { key: keyof VoiceTone; left: string; right: string }[] = [
   { key: "formal", left: "격식", right: "구어" },
@@ -24,6 +26,7 @@ interface Post {
   videoFilename?: string;
   videoThumbnail?: string;
   channels?: Record<string, unknown>;
+  publishContext?: PublishReturnContext | null;
 }
 
 // "Approve, don't author" — AI가 쓰고 사람은 승인만. 한 주치 초안을 90초에 스와이프 승인하는 모바일 우선 인박스.
@@ -31,7 +34,7 @@ interface Post {
 interface ProductSource { type?: string; owner?: string; repo?: string; path?: string; ref?: string; token?: string }
 
 export default function InboxPage() {
-  const { data, mutate, isLoading } = useSWR<{ posts: Post[] }>("/api/queue?status=draft", fetcher);
+  const { data, mutate, isLoading } = useSWR<{ posts: Post[] }>("/api/queue?status=draft&returnTo=inbox", fetcher);
   const { data: psData, mutate: mutatePsrc } = useSWR<{ source: ProductSource | null }>("/api/product-source", fetcher);
   const { showToast } = useToast();
 
@@ -303,6 +306,14 @@ export default function InboxPage() {
               승인 <span className="text-caption opacity-80">(A)</span>
             </button>
           </div>
+          {current.publishContext ? (
+            <Link
+              href={current.publishContext.returnUrl}
+              className="mt-stack inline-flex min-h-control-touch w-full items-center justify-center rounded-control border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface"
+            >
+              발행실로 돌아가기
+            </Link>
+          ) : null}
           <p className="text-caption text-subtle text-center mt-stack-tight">단축키: A 승인 · R 거절 · ← → 이동</p>
         </div>
       )}

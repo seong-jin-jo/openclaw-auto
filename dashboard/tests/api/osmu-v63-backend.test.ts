@@ -162,9 +162,20 @@ describe("BE-V63-03 inbox와 calendar 발행실 복귀 컨텍스트", () => {
       sourceRoute: "calendar",
       queuePostId: "queue-1",
       draftId: "draft-1",
-      returnUrl: "/studio?queue_id=queue-1&from=calendar&draft_id=draft-1",
+      returnUrl: "/studio?room=publish&queue_id=queue-1&from=calendar&draft_id=draft-1",
     });
     vi.doUnmock("@/lib/file-io");
+  });
+
+  it("BE-V63-03 정상 경로: Studio 인계 큐는 sourceContext의 draft id를 복귀 URL에 보존한다", async () => {
+    const { buildPublishReturnContext } = await import("@/lib/publish-return-context");
+    expect(buildPublishReturnContext({
+      id: "queue-2",
+      sourceContext: { type: "studio_handoff", draftId: "draft-source" },
+    }, "inbox")).toEqual(expect.objectContaining({
+      draftId: "draft-source",
+      returnUrl: "/studio?room=publish&queue_id=queue-2&from=inbox&draft_id=draft-source",
+    }));
   });
 
   it("BE-V63-03 거절 경로: 알 수 없는 source는 400으로 거절한다", async () => {

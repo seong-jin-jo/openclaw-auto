@@ -29,6 +29,7 @@ import { SCHEDULABLE_PLATFORMS } from "@/lib/constants";
 import { StudioCommandPanel } from "@/components/studio/StudioCommandPanel";
 import type { EditorHandoff } from "@/lib/studio/editor-handoff";
 import { resolveStudioRoomFromSearch, shouldLoadPublishResources } from "@/lib/studio/room-routing";
+import { buildPublishReturnWork, readPublishReturnRequest } from "@/lib/publish-return-context";
 
 // SNS-007: /api/publish가 실제로 계정별 발행을 받는 4개 플랫폼(threads/x/facebook/instagram)만
 // 계정 셀렉터를 노출한다. shorts/reels/tiktok은 /api/publish 미지원(실발행 분기 없음. 위
@@ -103,6 +104,7 @@ export default function StudioPage() {
     `?${search}`,
     storedRoom,
   );
+  const publishReturnRequest = readPublishReturnRequest(search);
   const { data: me } = useSWR<{ isOperator?: boolean }>("/api/me", fetcher);
   const canGenerate = me?.isOperator === true;
   const { data: acct, mutate: mutateAcct } = useSWR<{ credits?: number; needsLogin?: boolean }>(
@@ -114,6 +116,12 @@ export default function StudioPage() {
     fetcher,
   );
   const { data: hist, mutate: mutateHist } = useSWR<{ drafts: Array<Record<string, unknown>> }>(activeWorkspace ? `/api/studio/drafts?tenant_id=${activeWorkspace.id}` : null, fetcher);
+  const { data: publishReturnQueue } = useSWR<{ posts: Array<Record<string, unknown>> }>(
+    activeWorkspace && publishReturnRequest
+      ? `/api/queue?status=all&returnTo=${publishReturnRequest.sourceRoute}&tenant_id=${activeWorkspace.id}`
+      : null,
+    fetcher,
+  );
   const { data: brandData, mutate: mutateBrand } = useSWR<{ guide: { prompt_guide?: string } | null }>(
     activeWorkspace ? `/api/studio/brand-setup?tenant_id=${activeWorkspace.id}` : null, fetcher);
   const { data: firstCommentData } = useSWR<{ capabilities: FirstCommentCapability[] }>(
@@ -487,6 +495,57 @@ export default function StudioPage() {
     setActiveRoom("edit");
     commentHandoffLoaded.current = requestedDraftId;
   }, [hist?.drafts, setActiveRoom]);
+  const publishReturnLoaded = useRef<string | null>(null);
+  useEffect(() => {
+    if (!publishReturnRequest || !publishReturnQueue?.posts) return;
+    const loadKey = `${publishReturnRequest.sourceRoute}:${publishReturnRequest.queuePostId}`;
+    if (publishReturnLoaded.current === loadKey) return;
+    const queuePost = publishReturnQueue.posts.find((post) => post.id === publishReturnRequest.queuePostId);
+    if (!queuePost) {
+      publishReturnLoaded.current = loadKey;
+      showToast("돌아갈 작업물을 찾지 못했습니다", "error");
+      return;
+    }
+    const linkedDraftId = publishReturnRequest.draftId
+      ?? (queuePost.publishContext as { draftId?: string | null } | undefined)?.draftId
+      ?? null;
+    if (linkedDraftId && !hist?.drafts) return;
+    const linkedDraft = linkedDraftId
+      ? hist?.drafts.find((draft) => draft.id === linkedDraftId)
+      : null;
+    if (linkedDraft) {
+      loadDraft(linkedDraft);
+    } else {
+      const work = buildPublishReturnWork(queuePost);
+      if (!work) {
+        publishReturnLoaded.current = loadKey;
+        showToast("작업물 본문이 없어 발행실로 가져오지 못했습니다", "error");
+        return;
+      }
+      const tagText = work.hashtags.map((tag) => tag.replace(/^#/, "")).join(" ");
+      setIdea(work.idea);
+      setText({
+        threads: work.body,
+        x: work.body,
+        facebook: work.body,
+        instagram: { caption: work.body, hashtags: work.hashtags.map((tag) => tag.replace(/^#/, "")) },
+        shorts: { hook: work.body, body: "", cta: "" },
+      });
+      setImg(work.imageUrl ? { url: work.imageUrl, file: work.imageUrl, localPath: work.imageUrl } : null);
+      setVid(work.videoUrl ? { url: work.videoUrl, file: work.videoUrl, model: "기존 작업물" } : null);
+      setIncludes(work.includedPlatforms.length
+        ? normalizeIncludes(Object.fromEntries(ALL.map((platform) => [platform, work.includedPlatforms.includes(platform)])))
+        : normalizeIncludes());
+      setHashtags(tagText ? { instagram: tagText } : {});
+      setDraftId(null);
+      setPublishReconciliation(null);
+      setEditorHandoff(null);
+    }
+    setReviewQueueId(publishReturnRequest.queuePostId);
+    setActiveRoom("publish");
+    publishReturnLoaded.current = loadKey;
+    showToast(publishReturnRequest.sourceRoute === "inbox" ? "승인 인박스 작업물을 불러왔습니다" : "발행 일정 작업물을 불러왔습니다", "success");
+  }, [hist?.drafts, publishReturnQueue?.posts, publishReturnRequest, setActiveRoom, showToast]);
   const pubPct = (() => { const v = Object.values(pub.status); return v.length ? Math.round((v.filter((s) => s === "done").length / v.length) * 100) : 0; })();
   const pubFailed = Object.values(pub.status).filter((s) => s === "failed").length;
   const pubResultLabel = pub.running

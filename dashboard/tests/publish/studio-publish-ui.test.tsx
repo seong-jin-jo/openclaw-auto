@@ -15,10 +15,16 @@ const mocks = vi.hoisted(() => ({
   isOperator: true,
   workspace: { id: "tenant-a", name: "Tenant A" },
   drafts: [] as Array<Record<string, unknown>>,
+  returnPosts: [] as Array<Record<string, unknown>>,
+  setStudioRoom: vi.fn(),
 }));
 
 vi.mock("swr", () => ({
   default: (...args: unknown[]) => mocks.swr(...args),
+}));
+
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 
 vi.mock("@/lib/api", () => ({
@@ -38,7 +44,7 @@ vi.mock("@/store/ui-store", () => ({
   useUIStore: () => ({
     activeWorkspace: mocks.workspace,
     studioRoom: "publish",
-    setStudioRoom: vi.fn(),
+    setStudioRoom: mocks.setStudioRoom,
   }),
 }));
 
@@ -113,6 +119,8 @@ describe("Studio publish result integrity", () => {
     mocks.swrKeys.length = 0;
     mocks.isOperator = true;
     mocks.drafts = [];
+    mocks.returnPosts = [];
+    mocks.setStudioRoom.mockReset();
     mocks.swr.mockImplementation((key: string | null) => {
       mocks.swrKeys.push(key);
       if (key === "/api/me") {
@@ -120,6 +128,9 @@ describe("Studio publish result integrity", () => {
       }
       if (key === "/api/studio/drafts?tenant_id=tenant-a") {
         return { data: { drafts: mocks.drafts }, mutate: vi.fn() };
+      }
+      if (key?.startsWith("/api/queue?status=all&returnTo=")) {
+        return { data: { posts: mocks.returnPosts }, mutate: vi.fn() };
       }
       if (key === "/api/studio/brand-setup?tenant_id=tenant-a") {
         return { data: { guide: null }, mutate: vi.fn() };
@@ -144,6 +155,36 @@ describe("Studio publish result integrity", () => {
     cleanup();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    window.history.replaceState(null, "", "/");
+  });
+
+  it("FE-V63-RETURN-01 정상: 인박스 큐 작업물을 발행실 상태로 복원한다", async () => {
+    window.history.replaceState(null, "", "/studio?room=publish&queue_id=queue-return&from=inbox");
+    mocks.returnPosts = [{
+      id: "queue-return",
+      text: "인박스에서 되돌린 본문",
+      topic: "복귀 작업물",
+      hashtags: ["복귀"],
+      channels: { threads: { status: "pending" } },
+      publishContext: { sourceRoute: "inbox", queuePostId: "queue-return", draftId: null },
+    }];
+
+    render(<StudioPage />);
+
+    await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith("승인 인박스 작업물을 불러왔습니다", "success"));
+    expect(screen.getByRole("button", { name: "1곳에 올리기" })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Threads 발행" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "X 발행" })).not.toBeChecked();
+  });
+
+  it("FE-V63-RETURN-02 거절: URL의 큐 작업물이 없으면 빈 작업물을 발행 가능 상태로 만들지 않는다", async () => {
+    window.history.replaceState(null, "", "/studio?room=publish&queue_id=missing&from=calendar");
+    mocks.returnPosts = [];
+
+    render(<StudioPage />);
+
+    await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith("돌아갈 작업물을 찾지 못했습니다", "error"));
+    expect(screen.queryByRole("button", { name: /곳에 올리기/ })).not.toBeInTheDocument();
   });
 
   it("does not report 100% or completed, and never stores published, when every channel returns ok:false", async () => {
