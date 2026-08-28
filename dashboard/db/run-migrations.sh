@@ -347,6 +347,7 @@ apply_phase() {
     expand-guard) require_applied "20260829_010_studio_generation_expand_contract" ;;
     expand-member)
       require_applied "20260829_010_studio_generation_expand_contract"
+      require_applied "20260829_020_generation_guard_expand"
       require_verified_app
       ;;
     prepare-rollback)
@@ -359,9 +360,8 @@ apply_phase() {
       validate_rollback_manifest
       ;;
     contract-quota)
-      require_applied "20260829_040_generation_tenant_unique_contract"
-      require_verified_app
-      validate_rollback_manifest
+      echo "ERROR: contract-quota is disabled until an approved R27 member-scope and UTC contract artifact is pinned" >&2
+      exit 5
       ;;
     cleanup)
       require_applied "20260829_045_quota_tenant_unique_contract"

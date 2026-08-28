@@ -35,12 +35,14 @@ case "$ACTION" in
     constraint="uq_studio_generation_idempotency_tenant_member_operation_key"
     index="uq_studio_generation_tenant_rollback_idx"
     member_constraint="uq_studio_generation_idempotency_member_operation_key"
+    expected_columns_sql="'tenant_id','member_id','operation','idempotency_key'"
     ;;
   rollback-quota)
     table="public.studio_free_regeneration_uses"
     constraint="uq_studio_free_regeneration_tenant_member_date"
     index="uq_studio_quota_tenant_rollback_idx"
     member_constraint="uq_studio_free_regeneration_member_date"
+    expected_columns_sql="'tenant_id','member_id','local_date'"
     ;;
   *)
     echo "usage: $0 {rollback-generation|rollback-quota}" >&2
@@ -70,9 +72,17 @@ BEGIN
       JOIN pg_catalog.pg_namespace AS n ON n.oid=c.relnamespace
       JOIN pg_catalog.pg_index AS i ON i.indexrelid=c.oid
       WHERE n.nspname='public' AND c.relname='$index'
+        AND i.indrelid=relation_oid
         AND i.indisunique AND i.indisvalid AND i.indisready
+        AND i.indexprs IS NULL AND i.indpred IS NULL
+        AND (
+          SELECT pg_catalog.array_agg(a.attname ORDER BY keys.ordinality)
+          FROM pg_catalog.unnest(i.indkey) WITH ORDINALITY AS keys(attnum, ordinality)
+          JOIN pg_catalog.pg_attribute AS a
+            ON a.attrelid=i.indrelid AND a.attnum=keys.attnum
+        ) = ARRAY[$expected_columns_sql]::name[]
     ) THEN
-      RAISE EXCEPTION 'valid rollback index missing';
+      RAISE EXCEPTION 'exact valid rollback index missing or definition drifted';
     END IF;
     EXECUTE pg_catalog.format(
       'ALTER TABLE %s ADD CONSTRAINT %I UNIQUE USING INDEX %I',
