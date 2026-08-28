@@ -1,4 +1,5 @@
 import { CHANNEL_TEXT_LIMITS, countTextCharacters } from "@/lib/channel-text-limits";
+import { validateContentEditFormat } from "@/lib/studio/content-edit-format";
 
 export async function POST(request: Request) {
   const data = await request.json();
@@ -9,6 +10,16 @@ export async function POST(request: Request) {
 
   const warnings: Array<{ type: string; message: string }> = [];
   const suggestions: string[] = [];
+
+  if (data.edit_format !== undefined) {
+    const formatValidation = validateContentEditFormat(data.edit_format);
+    if (!formatValidation.valid) {
+      warnings.push(...formatValidation.issues.map((issue) => ({
+        type: "invalid_format",
+        message: issue.message,
+      })));
+    }
+  }
 
   // 텍스트 길이
   if (!text || text.length < 30) {

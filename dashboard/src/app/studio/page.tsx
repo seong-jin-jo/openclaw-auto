@@ -30,6 +30,11 @@ import { StudioCommandPanel } from "@/components/studio/StudioCommandPanel";
 import type { EditorHandoff } from "@/lib/studio/editor-handoff";
 import { resolveStudioRoomFromSearch, shouldLoadPublishResources } from "@/lib/studio/room-routing";
 import { buildPublishReturnWork, readPublishReturnRequest, resolvePublishReturnDraftId } from "@/lib/publish-return-context";
+import {
+  defaultContentEditFormat,
+  validateContentEditFormat,
+  type ContentEditFormat,
+} from "@/lib/studio/content-edit-format";
 
 // SNS-007: /api/publish가 실제로 계정별 발행을 받는 4개 플랫폼(threads/x/facebook/instagram)만
 // 계정 셀렉터를 노출한다. shorts/reels/tiktok은 /api/publish 미지원(실발행 분기 없음. 위
@@ -184,6 +189,7 @@ export default function StudioPage() {
   const [selectedCandidate, setSelectedCandidate] = useState<StudioGenerationCandidate | null>(null);
   const [createBranch, setCreateBranch] = useState<CreateContentBranch>("video");
   const [editKind, setEditKind] = useState<EditContentKind>("video");
+  const [editFormat, setEditFormat] = useState<ContentEditFormat>(() => defaultContentEditFormat("video"));
   const [editing, setEditing] = useState<PreviewPlatform | null>(null);
   const [showTx, setShowTx] = useState(false);
   const { data: tx } = useSWR<{ items?: Array<{ display_name?: string; credits?: number; action?: string; created_at?: string; output?: string | null; outputKind?: string | null }> }>(
@@ -263,7 +269,7 @@ export default function StudioPage() {
     setIncludes(normalizeIncludes()); setPublishReconciliations({}); setEditorHandoff(null);
     setDisplayNames({}); setTitles({}); setHashtags({}); setFirstComments({});
     setEditLines([]); setReviewQueueId(null); setSelectedCandidate(null);
-    setCreateBranch("video"); setEditKind("video");
+    setCreateBranch("video"); setEditKind("video"); setEditFormat(defaultContentEditFormat("video"));
     setPub({ running: false, stopped: false, status: {}, urls: {}, errors: {} });
     if (!workspaceId) return;
     try {
@@ -277,7 +283,13 @@ export default function StudioPage() {
         setDisplayNames(w.displayNames || {}); setTitles(w.titles || {}); setHashtags(w.hashtags || {});
         setFirstComments(w.firstComments || {}); setEditLines(w.editLines || []); setReviewQueueId(w.reviewQueueId || null);
         if (w.createBranch === "video" || w.createBranch === "text_image") setCreateBranch(w.createBranch);
-        if (w.editKind === "video" || w.editKind === "card" || w.editKind === "audio") setEditKind(w.editKind);
+        if (w.editKind === "video" || w.editKind === "card" || w.editKind === "audio") {
+          setEditKind(w.editKind);
+          const savedFormat = validateContentEditFormat(w.editFormat);
+          setEditFormat(savedFormat.valid && savedFormat.value.kind === w.editKind
+            ? savedFormat.value
+            : defaultContentEditFormat(w.editKind));
+        }
       }
     } catch { /* noop */ }
     setHydratedWorkspaceId(workspaceId);
@@ -285,8 +297,8 @@ export default function StudioPage() {
   useEffect(() => {
     const workspaceId = activeWorkspace?.id;
     if (!workspaceId || hydratedWorkspaceId !== workspaceId) return;
-    try { localStorage.setItem(studioWorkStorageKey(workspaceId), JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, editLines, reviewQueueId, createBranch, editKind })); } catch { /* noop */ }
-  }, [activeWorkspace?.id, hydratedWorkspaceId, idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, editLines, reviewQueueId, createBranch, editKind]);
+    try { localStorage.setItem(studioWorkStorageKey(workspaceId), JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, editLines, reviewQueueId, createBranch, editKind, editFormat })); } catch { /* noop */ }
+  }, [activeWorkspace?.id, hydratedWorkspaceId, idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, editLines, reviewQueueId, createBranch, editKind, editFormat]);
 
   const media = { imgUrl: img?.file, vidUrl: vid?.file };
   const upText = (patch: Partial<TextVariants>) => setText((p) => ({ ...(p || {}), ...patch }));
@@ -389,6 +401,7 @@ export default function StudioPage() {
       hashtags,
       firstComments,
       editLines,
+      editFormat,
       publishedAt: status === "published" ? new Date().toISOString() : undefined,
     });
     if (r?.id) setDraftId(r.id); mutateHist(); return r?.id;
@@ -445,6 +458,7 @@ export default function StudioPage() {
           tenant_id: activeWorkspace.id, platform: p, text: publishText(p), image_url: img?.url, draft_id: did,
           account_id: selectedAccounts[p] || undefined,
           first_comment: capabilityFor(p).supported && firstComments[p]?.trim() ? firstComments[p].trim() : undefined,
+          edit_format: editFormat,
         });
         if (r?.ok && !r.partial) { urls[p] = r.permalink || POST_URL[p] || "#"; trackEvent({ name: "publish_success", params: { channel: p as AnalyticsChannel } }); }
         else {
@@ -511,6 +525,11 @@ export default function StudioPage() {
     setHashtags((d.hashtags as Record<string, string>) || {});
     setFirstComments((d.firstComments as Record<string, string>) || {});
     setEditLines((d.editLines as string[]) || []);
+    const savedFormat = validateContentEditFormat(d.editFormat);
+    if (savedFormat.valid) {
+      setEditKind(savedFormat.value.kind);
+      setEditFormat(savedFormat.value);
+    }
     showToast(
       Object.keys(savedReconciliations).length > 0
         ? "외부 게시 완료·내부 기록 복구 필요. 재발행 금지"
@@ -615,7 +634,9 @@ export default function StudioPage() {
       shorts: { hook: candidate.title, body: candidate.format.outline.join("\n"), cta: candidate.rationale },
     });
     setEditLines([candidate.title, ...candidate.format.outline, candidate.rationale]);
-    setEditKind(candidate.format.content_branch === "video" ? "video" : "card");
+    const nextKind = candidate.format.content_branch === "video" ? "video" : "card";
+    setEditKind(nextKind);
+    setEditFormat(defaultContentEditFormat(nextKind));
   }
 
   function updatePreviewCaption(platform: PreviewPlatform, value: string) {
@@ -757,6 +778,8 @@ export default function StudioPage() {
         lines={editLines.length ? editLines : [text?.shorts?.hook || "", text?.shorts?.body || "", text?.shorts?.cta || ""]}
         onLinesChange={setEditLines}
         kind={editKind}
+        initialFormat={editFormat}
+        onFormatChange={setEditFormat}
         previewReady={editKind === "video" ? Boolean(vid?.file) : editKind === "card" ? Boolean(img?.file) : false}
         commandPanel={activeWorkspace ? <StudioCommandPanel
           workspaceId={activeWorkspace.id}
@@ -769,7 +792,11 @@ export default function StudioPage() {
           source={{ generationId: selectedCandidate?.generation_id, candidateId: selectedCandidate?.candidate_id }}
           initialHandoff={editorHandoff}
           preferredKind={editKind === "video" ? "video" : editKind === "audio" ? "audio" : "card"}
-          onKindSelect={(kind) => setEditKind(kind === "video" ? "video" : kind === "audio" ? "audio" : "card")}
+          onKindSelect={(kind) => {
+            const nextKind = kind === "video" ? "video" : kind === "audio" ? "audio" : "card";
+            setEditKind(nextKind);
+            setEditFormat(defaultContentEditFormat(nextKind));
+          }}
           onDraftId={setDraftId}
           onHandoff={setEditorHandoff}
           onQueueChanged={() => mutateHist()}

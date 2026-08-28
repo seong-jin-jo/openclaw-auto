@@ -189,6 +189,20 @@ describe("화면 2차 편집실 계약", () => {
     expect(screen.getByRole("button", { name: "무음 구간 0개 줄이기" })).toBeDisabled();
   });
 
+  it("FMT-UI-01 정상: 승인 시안의 재생 속도를 고르면 발행용 형식값으로 전달한다", async () => {
+    const onFormatChange = vi.fn();
+    render(<EditRoom lines={["첫 줄", "둘째 줄"]} onLinesChange={vi.fn()} kind="video" onFormatChange={onFormatChange} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "속도 도구" }));
+    fireEvent.click(screen.getByRole("button", { name: "1.5배" }));
+
+    await waitFor(() => expect(onFormatChange).toHaveBeenLastCalledWith(expect.objectContaining({
+      kind: "video",
+      aspectRatio: "9:16",
+      playbackSpeed: 1.5,
+    })));
+  });
+
   it("FE6-EDIT-05 거절: 음악 백엔드가 없을 때 파일이나 파형을 완성된 것처럼 표시하지 않는다", () => {
     render(<EditRoom lines={["나레이션"]} onLinesChange={vi.fn()} kind="audio" />);
     expect(screen.getByText("음악 생성 백엔드는 준비 중입니다")).toBeInTheDocument();

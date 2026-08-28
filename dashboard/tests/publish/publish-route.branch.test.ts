@@ -128,6 +128,26 @@ afterEach(() => {
 });
 
 describe("/api/publish — 입력/인증 분기", () => {
+  it("FMT-API-02 거절: 허용하지 않은 영상 비율은 자격 조회와 외부 발행 전에 422로 막는다", async () => {
+    const { status, body } = await callPublish({
+      platform: "threads",
+      text: "hi",
+      edit_format: {
+        kind: "video",
+        aspectRatio: "4:3",
+        subtitleSize: "보통",
+        playbackSpeed: 1,
+        voice: "차분한 남성",
+      },
+    });
+
+    expect(status).toBe(422);
+    expect(body.code).toBe("INVALID_EDIT_FORMAT");
+    expect(body.issues).toEqual(expect.arrayContaining([expect.objectContaining({ field: "aspectRatio" })]));
+    expect(H.getChannelCredCalls).toHaveLength(0);
+    expect(H.inserts).toHaveLength(0);
+  });
+
   it("platform 누락 → 400, DB 기록 없음", async () => {
     const { status, body } = await callPublish({ text: "hi" });
     expect(status).toBe(400);

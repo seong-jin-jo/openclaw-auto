@@ -31,6 +31,7 @@ import {
   publishSlack,
   type PublishResult,
 } from "@/lib/publish";
+import { validateContentEditFormat } from "@/lib/studio/content-edit-format";
 
 type PersistenceStage = "publication_record" | "queue_record";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -126,6 +127,17 @@ function partialPersistenceFailure(
 export async function POST(request: Request) {
   const __b = await request.json();
   const { platform, text, image_url, draft_id, account_id } = __b;
+  if (__b.edit_format !== undefined) {
+    const formatValidation = validateContentEditFormat(__b.edit_format);
+    if (!formatValidation.valid) {
+      return Response.json({
+        ok: false,
+        code: "INVALID_EDIT_FORMAT",
+        error: "편집 형식값을 확인해 주세요",
+        issues: formatValidation.issues,
+      }, { status: 422, headers: { "Cache-Control": "no-store" } });
+    }
+  }
   let firstCommentText: string | null;
   try {
     firstCommentText = normalizeFirstComment(__b.first_comment);

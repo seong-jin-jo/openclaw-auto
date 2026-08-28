@@ -6,6 +6,19 @@ import { Field } from "@/components/shared/Field";
 import { Stack } from "@/components/shared/Stack";
 import { requestStudioCandidates, type StudioGenerationCandidate } from "@/lib/studio/generation/client";
 import { getAuthToken } from "@/lib/auth";
+import {
+  CARD_ASPECT_RATIOS,
+  EDIT_BACKGROUNDS,
+  EDIT_MUSIC_TRACKS,
+  EDIT_MUSIC_VOLUMES,
+  EDIT_VOICES,
+  PLAYBACK_SPEEDS,
+  SUBTITLE_SIZES,
+  VIDEO_ASPECT_RATIOS,
+  defaultContentEditFormat,
+  validateContentEditFormat,
+  type ContentEditFormat,
+} from "@/lib/studio/content-edit-format";
 
 export type CreateContentBranch = "text_image" | "video";
 export type EditContentKind = "video" | "card" | "audio";
@@ -156,11 +169,60 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
   );
 }
 
-interface EditRoomProps { lines: string[]; onLinesChange: (lines: string[]) => void; kind?: EditContentKind; previewReady?: boolean; commandPanel?: ReactNode }
-type ToolName = "비율" | "배경" | "목소리" | "속도" | "자막";
+interface EditRoomProps {
+  lines: string[];
+  onLinesChange: (lines: string[]) => void;
+  kind?: EditContentKind;
+  previewReady?: boolean;
+  commandPanel?: ReactNode;
+  initialFormat?: ContentEditFormat;
+  onFormatChange?: (format: ContentEditFormat) => void;
+}
+type ToolName = "비율" | "배경" | "목소리" | "속도" | "자막" | "음악" | "음량";
 const VIDEO_TOOLS: ToolName[] = ["비율", "목소리", "속도", "자막"];
 const CARD_TOOLS: ToolName[] = ["비율", "배경", "자막"];
-const TOOL_OPTIONS: Record<ToolName, string[]> = { 비율: ["세로", "정사각", "가로"], 배경: ["밝게", "차분하게", "강조"], 목소리: ["차분하게", "또렷하게", "활기차게"], 속도: ["느리게", "보통", "빠르게"], 자막: ["작게", "보통", "크게"] };
+const AUDIO_TOOLS: ToolName[] = ["목소리", "음악", "음량"];
+
+type ToolValues = Record<ToolName, string>;
+
+function toolOptions(kind: EditContentKind, tool: ToolName): string[] {
+  if (tool === "비율") return [...(kind === "card" ? CARD_ASPECT_RATIOS : VIDEO_ASPECT_RATIOS)];
+  if (tool === "배경") return [...EDIT_BACKGROUNDS];
+  if (tool === "목소리") return [...EDIT_VOICES];
+  if (tool === "속도") return PLAYBACK_SPEEDS.map((value) => `${value}배`);
+  if (tool === "자막") return [...SUBTITLE_SIZES];
+  if (tool === "음악") return [...EDIT_MUSIC_TRACKS];
+  return EDIT_MUSIC_VOLUMES.map((value) => `${value}%`);
+}
+
+function toolValuesFromFormat(format: ContentEditFormat): ToolValues {
+  const defaults: ToolValues = {
+    비율: "9:16",
+    배경: "작업실 책상",
+    목소리: "차분한 남성",
+    속도: "1배",
+    자막: "보통",
+    음악: "없음",
+    음량: "20%",
+  };
+  if (format.kind === "video") {
+    return { ...defaults, 비율: format.aspectRatio, 목소리: format.voice, 속도: `${format.playbackSpeed}배`, 자막: format.subtitleSize };
+  }
+  if (format.kind === "card") {
+    return { ...defaults, 비율: format.aspectRatio, 배경: format.background, 자막: format.subtitleSize };
+  }
+  return { ...defaults, 목소리: format.voice, 음악: format.musicTrack, 음량: `${format.musicVolume}%` };
+}
+
+function formatFromToolValues(kind: EditContentKind, values: ToolValues): ContentEditFormat {
+  const candidate = kind === "video"
+    ? { kind, aspectRatio: values.비율, subtitleSize: values.자막, playbackSpeed: Number.parseFloat(values.속도), voice: values.목소리 }
+    : kind === "card"
+      ? { kind, aspectRatio: values.비율, subtitleSize: values.자막, background: values.배경 }
+      : { kind, voice: values.목소리, musicTrack: values.음악, musicVolume: Number.parseInt(values.음량, 10) };
+  const validation = validateContentEditFormat(candidate);
+  return validation.valid ? validation.value : defaultContentEditFormat(kind);
+}
 
 function ToolIcon({ tool }: { tool: ToolName }) {
   const paths: Record<ToolName, ReactNode> = {
@@ -169,24 +231,42 @@ function ToolIcon({ tool }: { tool: ToolName }) {
     목소리: <><path d="M5 10v4h3l4 3V7L8 10H5Z" /><path d="M16 9c1 1 1 5 0 6" /></>,
     속도: <><circle cx="12" cy="12" r="8" /><path d="m12 12 4-3" /></>,
     자막: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M7 10h10M7 14h7" /></>,
+    음악: <><path d="M9 18V6l10-2v12" /><circle cx="6" cy="18" r="3" /><circle cx="16" cy="16" r="3" /></>,
+    음량: <><path d="M5 10v4h3l4 3V7L8 10H5Z" /><path d="M16 9c1 1 1 5 0 6" /></>,
   };
   return <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[tool]}</svg>;
 }
 
-export function EditRoom({ lines, onLinesChange, kind = "video", previewReady = false, commandPanel }: EditRoomProps) {
+export function EditRoom({ lines, onLinesChange, kind = "video", previewReady = false, commandPanel, initialFormat, onFormatChange }: EditRoomProps) {
   const safeLines = lines.length ? lines : ["대사를 입력하세요"];
   const [activeLine, setActiveLine] = useState(0);
   const [activeTool, setActiveTool] = useState<ToolName>("비율");
-  const [toolValues, setToolValues] = useState<Record<ToolName, string>>({ 비율: "세로", 배경: "밝게", 목소리: "차분하게", 속도: "보통", 자막: "보통" });
+  const [toolValues, setToolValues] = useState<ToolValues>(() => toolValuesFromFormat(
+    initialFormat?.kind === kind ? initialFormat : defaultContentEditFormat(kind),
+  ));
   const [visibleLines, setVisibleLines] = useState<boolean[]>(() => safeLines.map(() => true));
+  const selectedFormat = useMemo(() => formatFromToolValues(kind, toolValues), [kind, toolValues]);
+  const lastEmittedFormat = useRef("");
   useEffect(() => { setVisibleLines((current) => safeLines.map((_, index) => current[index] ?? true)); setActiveLine((current) => Math.min(current, safeLines.length - 1)); }, [safeLines.length]);
+  useEffect(() => {
+    const nextFormat = initialFormat?.kind === kind ? initialFormat : defaultContentEditFormat(kind);
+    if (JSON.stringify(nextFormat) !== lastEmittedFormat.current) {
+      setToolValues(toolValuesFromFormat(nextFormat));
+    }
+    setActiveTool(kind === "audio" ? "목소리" : "비율");
+  }, [initialFormat, kind]);
+  useEffect(() => {
+    lastEmittedFormat.current = JSON.stringify(selectedFormat);
+    onFormatChange?.(selectedFormat);
+  }, [onFormatChange, selectedFormat]);
   const visibleCount = visibleLines.filter(Boolean).length;
-  const secondsPerLine = toolValues.속도 === "빠르게" ? 3 : toolValues.속도 === "느리게" ? 5 : 4;
+  const secondsPerLine = kind === "video" && selectedFormat.kind === "video" ? 4 / selectedFormat.playbackSpeed : 4;
   const duration = visibleCount * secondsPerLine;
+  const durationLabel = Number.isInteger(duration) ? String(duration) : duration.toFixed(1);
   const selectedLine = safeLines[activeLine] ?? "";
   const silenceIndexes = safeLines.map((line, index) => (/…|\.{3}|^\s*$/.test(line) ? index : -1)).filter((index) => index >= 0);
   const visibleSilences = silenceIndexes.filter((index) => visibleLines[index]).length;
-  const tools = kind === "card" ? CARD_TOOLS : VIDEO_TOOLS;
+  const tools = kind === "card" ? CARD_TOOLS : kind === "audio" ? AUDIO_TOOLS : VIDEO_TOOLS;
   const outlineTitle = kind === "card" ? "장 목차" : kind === "audio" ? "곡 목차" : "영상 목차";
   const unit = kind === "card" ? "장" : "장면";
   const updateLine = (value: string) => onLinesChange(safeLines.map((line, index) => index === activeLine ? value : line));
@@ -194,7 +274,7 @@ export function EditRoom({ lines, onLinesChange, kind = "video", previewReady = 
   const trimSilences = () => setVisibleLines((current) => current.map((visible, index) => silenceIndexes.includes(index) ? false : visible));
   return (
     <section data-room="edit" data-edit-kind={kind} className="space-y-region">
-      <section data-room-top="edit" aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch items-center justify-between rounded-surface border border-border bg-surface px-pad-inset py-stack"><b className="text-lead text-accent">{visibleCount}개 {unit}</b><span className="text-caption text-subtle" data-edit-duration>{kind === "audio" ? "음악 생성 준비 중" : `${duration}초 · 대사를 다듬는 중`}</span></section>
+      <section data-room-top="edit" aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch items-center justify-between rounded-surface border border-border bg-surface px-pad-inset py-stack"><b className="text-lead text-accent">{visibleCount}개 {unit}</b><span className="text-caption text-subtle" data-edit-duration>{kind === "audio" ? "음악 생성 준비 중" : `${durationLabel}초 · 대사를 다듬는 중`}</span></section>
       <div className="grid gap-stack-section lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="card grid min-w-0 overflow-hidden md:grid-cols-[15rem_minmax(0,1fr)]" data-edit-workspace>
           <nav className="max-h-72 overflow-y-auto border-b border-border p-pad-inset md:max-h-none md:border-b-0 md:border-r" aria-label={outlineTitle} data-edit-outline>
@@ -210,7 +290,7 @@ export function EditRoom({ lines, onLinesChange, kind = "video", previewReady = 
                 <div className="flex flex-wrap gap-stack-tight">{tools.map((tool) => <Button key={tool} size="sm" variant={activeTool === tool ? "primary" : "secondary"} onClick={() => setActiveTool(tool)} aria-pressed={activeTool === tool} aria-label={`${tool} 도구`}><ToolIcon tool={tool} /><span>{toolValues[tool]}</span></Button>)}
                   {kind === "video" ? <Button size="sm" onClick={trimSilences} disabled={visibleSilences === 0}>무음 구간 {visibleSilences}개 줄이기</Button> : null}
                 </div>
-                <div className="mt-stack flex flex-wrap gap-stack-tight" aria-label={`${activeTool} 선택지`}>{TOOL_OPTIONS[activeTool].map((option) => <Button key={option} size="sm" variant={toolValues[activeTool] === option ? "primary" : "secondary"} aria-pressed={toolValues[activeTool] === option} onClick={() => setToolValues((current) => ({ ...current, [activeTool]: option }))}>{option}</Button>)}</div>
+                <div className="mt-stack flex flex-wrap gap-stack-tight" aria-label={`${activeTool} 선택지`}>{toolOptions(kind, activeTool).map((option) => <Button key={option} size="sm" variant={toolValues[activeTool] === option ? "primary" : "secondary"} aria-pressed={toolValues[activeTool] === option} onClick={() => setToolValues((current) => ({ ...current, [activeTool]: option }))}>{option}</Button>)}</div>
               </section>
             </>}
             <section className="mt-pad-inset" aria-labelledby="edit-script-title" data-edit-script>

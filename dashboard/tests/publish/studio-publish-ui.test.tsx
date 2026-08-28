@@ -330,6 +330,15 @@ describe("Studio publish result integrity", () => {
       .filter(([path]) => path === "/api/publish")
       .map(([, body]) => (body as { platform: string }).platform))
       .toEqual(["threads", "x", "instagram"]);
+    expect(mocks.apiPost.mock.calls
+      .filter(([path]) => path === "/api/publish")
+      .every(([, body]) => JSON.stringify((body as { edit_format?: unknown }).edit_format) === JSON.stringify({
+        kind: "video",
+        aspectRatio: "9:16",
+        subtitleSize: "보통",
+        playbackSpeed: 1,
+        voice: "차분한 남성",
+      }))).toBe(true);
   });
 
   it("FE3-PUBLISH-03 거절: 발행 이력은 발행실에 다시 노출하지 않는다", async () => {
