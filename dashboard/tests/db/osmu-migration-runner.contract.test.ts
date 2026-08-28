@@ -74,12 +74,23 @@ describe("OSMU explicit migration runner 계약", () => {
     expect(runner).toContain("VERIFIED_APP_COMMIT");
   });
 
-  it("GEN-MIG-07 거절: generation과 quota contract는 별도 manifest ID와 workflow phase다", () => {
+  it("GEN-MIG-07 거절: R27 승인 증거 전에는 quota contract를 workflow와 runner에서 실행할 수 없다", () => {
     expect(manifest).toContain("contract-generation\tmigrations/20260829_040_tenant_unique_contract.sql");
     expect(manifest).toContain("contract-quota\tmigrations/20260829_045_quota_tenant_unique_contract.sql");
     expect(migrationWorkflow).toContain("- contract-generation");
-    expect(migrationWorkflow).toContain("- contract-quota");
+    expect(migrationWorkflow).not.toMatch(/^\s+- contract-quota\s*$/m);
     expect(migrationWorkflow).toContain("- prepare-rollback");
+    expect(runner).toContain("contract-quota is disabled until an approved R27 member-scope and UTC contract artifact is pinned");
+  });
+
+  it("GEN-MIG-07A 거절: member UNIQUE 확장은 FK뿐 아니라 E1 guard 적용을 선행조건으로 요구한다", () => {
+    const expandMemberCase = runner.slice(
+      runner.indexOf("    expand-member)"),
+      runner.indexOf("    prepare-rollback)"),
+    );
+    expect(expandMemberCase).toContain('require_applied "20260829_010_studio_generation_expand_contract"');
+    expect(expandMemberCase).toContain('require_applied "20260829_020_generation_guard_expand"');
+    expect(expandMemberCase).toContain("require_verified_app");
   });
 
   it("GEN-MIG-08 거절: FK 수명 migration과 기존 필수 migration은 explicit manifest로만 적용한다", () => {
@@ -119,5 +130,14 @@ describe("OSMU explicit migration runner 계약", () => {
     expect(runner).not.toMatch(/psql\s+"\$DB_URL/);
     expect(runner).toContain("PGPASSWORD");
     expect(runner).toContain("psql -X");
+  });
+
+  it("GEN-MIG-13 거절: rollback attach는 이름과 valid뿐 아니라 대상 테이블과 정확한 열 순서를 검증한다", () => {
+    expect(rollbackRunner).toContain("i.indrelid=relation_oid");
+    expect(rollbackRunner).toContain("i.indexprs IS NULL AND i.indpred IS NULL");
+    expect(rollbackRunner).toContain("array_agg(a.attname ORDER BY keys.ordinality)");
+    expect(rollbackRunner).toContain("'tenant_id','member_id','operation','idempotency_key'");
+    expect(rollbackRunner).toContain("'tenant_id','member_id','local_date'");
+    expect(rollbackRunner).toContain("exact valid rollback index missing or definition drifted");
   });
 });

@@ -61,6 +61,11 @@ VALUES
 SQL
 
 run_phase expand-fk
+if run_phase expand-member >"$TMP_DIR/member-before-guard" 2>&1; then
+  echo "FAIL expand-member ran before E1 guard" >&2; exit 1
+fi
+grep -q 'prerequisite migration 20260829_020_generation_guard_expand is not applied' "$TMP_DIR/member-before-guard"
+echo "PASS expand-member rejects missing E1 guard prerequisite"
 run_phase expand-guard
 run_phase preflight
 
@@ -188,22 +193,23 @@ export ROLLBACK_MANIFEST_SHA256="$(sha256sum "$ROLLBACK_MANIFEST_PATH" | awk '{p
 
 run_phase contract-generation
 if run_phase preflight >"$TMP_DIR/mixed-preflight" 2>&1; then echo "FAIL mixed C1 state passed general preflight" >&2; exit 1; fi
-run_phase contract-quota
-run_race S3 matrix-s3
+if run_phase contract-quota >"$TMP_DIR/quota-contract-no-approval" 2>&1; then
+  echo "FAIL quota contract ran without approved R27 artifact" >&2; exit 1
+fi
+grep -q 'contract-quota is disabled until an approved R27' "$TMP_DIR/quota-contract-no-approval"
+echo "PASS quota contract blocked without R27 approval artifact"
+run_race S3-generation-S2-quota matrix-mixed
 
-bash "$DASHBOARD_DIR/db/rollback-migration.sh" rollback-quota
+# A same-name valid UNIQUE with the wrong columns must never be attached.
+matrix_psql -c "DROP INDEX public.uq_studio_generation_tenant_rollback_idx"
+matrix_psql -c "CREATE UNIQUE INDEX uq_studio_generation_tenant_rollback_idx ON public.studio_generation_idempotency(tenant_id,id)"
+if bash "$DASHBOARD_DIR/db/rollback-migration.sh" rollback-generation >"$TMP_DIR/wrong-rollback-index" 2>&1; then
+  echo "FAIL wrong-definition rollback index was attached" >&2; exit 1
+fi
+grep -q 'exact valid rollback index missing or definition drifted' "$TMP_DIR/wrong-rollback-index"
+echo "PASS rollback rejects same-name valid index with wrong columns"
+matrix_psql -c "DROP INDEX public.uq_studio_generation_tenant_rollback_idx"
+matrix_psql -c "CREATE UNIQUE INDEX uq_studio_generation_tenant_rollback_idx ON public.studio_generation_idempotency(tenant_id,member_id,operation,idempotency_key)"
 bash "$DASHBOARD_DIR/db/rollback-migration.sh" rollback-generation
 run_phase preflight
-echo "PASS rollback manifest and tenant constraint reattach"
-
-# Re-contract, then prove cleanup is deadline-gated and repeatable.
-run_phase prepare-rollback
-export ROLLBACK_DEADLINE_UTC='2000-01-01T00:00:00Z' ROLLBACK_MANIFEST_PATH="$TMP_DIR/rollback-expired.json"
-bash "$DASHBOARD_DIR/db/write-rollback-manifest.sh" "$ROLLBACK_MANIFEST_PATH"
-export ROLLBACK_MANIFEST_SHA256="$(sha256sum "$ROLLBACK_MANIFEST_PATH" | awk '{print $1}')"
-run_phase contract-generation
-run_phase contract-quota
-run_phase cleanup
-run_phase cleanup
-run_phase preflight
-echo "PASS final S3 fingerprint, rollback, cleanup, and repeatability"
+echo "PASS exact rollback index validation and S2 restoration"

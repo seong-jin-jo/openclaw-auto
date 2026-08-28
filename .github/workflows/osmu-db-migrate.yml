@@ -14,7 +14,6 @@ on:
           - expand-member
           - prepare-rollback
           - contract-generation
-          - contract-quota
           - rollback-generation
           - rollback-quota
           - cleanup
@@ -82,7 +81,7 @@ jobs:
           echo "sha256=$manifest_sha" >> "$GITHUB_OUTPUT"
       - name: Download the original rollback manifest
         id: prior
-        if: ${{ contains(fromJSON('["contract-quota","rollback-generation","rollback-quota","cleanup"]'), inputs.phase) }}
+        if: ${{ contains(fromJSON('["rollback-generation","rollback-quota","cleanup"]'), inputs.phase) }}
         env:
           GH_TOKEN: ${{ github.token }}
           MANIFEST_RUN_ID: ${{ inputs.rollback_manifest_run_id }}
