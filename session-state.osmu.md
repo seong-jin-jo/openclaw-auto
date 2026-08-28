@@ -2,6 +2,44 @@
 
 최신이 위. 이 파일만 읽고 30초 안에 이어갈 수 있어야 한다.
 
+## [2026-08-28 22:45] 네 방 기본 흐름 QA와 픽셀 대조
+
+### 무엇을 어디까지 했나
+
+- canonical `pipeline-state.osmu.md`는 착수 시 이미 `current_stage: qa`였다.
+- 작업 공간 `cd1d0a40-540d-4524-9b49-bf2445d82182`에서 생성실부터 성과실까지
+  390, 768, 1024, 1440으로 실제 클릭했다. 화면 16/16과 성과실에서 생성실 복귀 4/4 PASS다.
+- 실제 API 기본 흐름 11/11, Studio 12/12, health 200, Vitest 186파일 1,330건,
+  TypeScript, production build 174경로, design lint 0건을 확인했다.
+- 임시 PostgreSQL에 schema, test seed, RLS를 적용했다. tenant 2건과 seed-a 초안 1건을
+  관찰한 뒤 임시 DB를 폐기해 잔존 0건이다.
+- v63 성과실 시안 `docs/board/v63-perf-1440.png`과 dev 실화면
+  `docs/prototype/qa-flow-rerun-20260828/1440-performance.png`을 원본 크기로 각각 열었다.
+  시안의 상단 전역 탐색과 우측 담당 패널이 dev에 없고, dev에는 채널 연결 경고와 첫 사용자
+  온보딩이 추가돼 있다. 기본 동선은 PASS지만 전체 v63 픽셀 정합은 NG다.
+- QA 증거 커밋은 `dfec813e`다.
+
+### 남은 이슈와 블로커
+
+- 전체 v63 디자인 정합 행렬이 NG다. design과 qa 승인은 금지한다.
+- 실제 공개 채널 발행과 운영 배포는 미검증이다.
+- production build의 기존 NFT 추적 경고 1건이 남아 있다.
+
+### 다음에 칠 명령
+
+```bash
+cd dashboard
+set -a && . ./.env.local && set +a
+WORKSPACE_ID=cd1d0a40-540d-4524-9b49-bf2445d82182 BASE_URL=http://localhost:3456 timeout 120 node scripts/verify-basic-flow-e2e.mjs
+WORKSPACE_ID=cd1d0a40-540d-4524-9b49-bf2445d82182 BASE_URL=http://localhost:3456 timeout 120 node scripts/probe-four-room-flow.mjs
+```
+
+### 검증했나
+
+- 검증했다. 직접 앱, 실제 API, 브라우저 4폭, 임시 DB seed, 전체 회귀를 관찰했다.
+- 전체 디자인 일치는 검증 결과 NG다. 근거는 `docs/qa/qa-tracker.md`와
+  `docs/qa/osmu-v24-design-conformance-matrix-v1-gpt-codex.md`다.
+
 ## 🔴 [2026-08-28 22:30] Claude → Codex 세션 교대. 여기서 시작해라
 
 **Claude 컨트롤러가 토큰을 다 써서 이 세션이 끝난다. Codex 가 이어받는다.**

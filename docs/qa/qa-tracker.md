@@ -19,6 +19,11 @@
 같았고 가린 모달, 브라우저 401, 콘솔 오류는 모두 0건이었다. 캡처와 관찰 JSON은
 `docs/prototype/qa-flow-rerun-20260828/`에 있다.
 
+**픽셀 대조:** v63 성과실 시안 `docs/board/v63-perf-1440.png`과 dev 실화면
+`docs/prototype/qa-flow-rerun-20260828/1440-performance.png`을 원본 크기로 각각 열어
+대조했다. 시안의 상단 전역 탐색과 우측 담당 패널이 dev에 없고, dev에는 채널 연결 경고와
+첫 사용자 온보딩이 추가돼 있다. 따라서 기본 동선 PASS와 별개로 전체 v63 정합은 NG다.
+
 **실행 증거:** health HTTP 200, 실제 API 기본 흐름 11/11, Studio 경계 계약 12/12,
 Vitest 186파일 1,330건 PASS와 5건 조건부 SKIP, TypeScript exit 0, Next production build
 174경로, 디자인 lint 위반 0건이다. 임시 PostgreSQL에 schema, test seed, RLS를 적용해
