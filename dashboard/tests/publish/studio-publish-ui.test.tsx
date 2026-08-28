@@ -352,6 +352,7 @@ describe("Studio publish result integrity", () => {
   it("FE3-REVIEW-01 정상: 검토 요청은 큐 생성 뒤 기존 검토 API를 호출한다", async () => {
     restoreStudio(["threads"]);
     mocks.apiPost.mockImplementation(async (path: string) => {
+      if (path === "/api/studio/drafts") return { id: "draft-review" };
       if (path === "/api/queue/add") return { post: { id: "queue-review" } };
       if (path === "/api/queue/queue-review/request-review") return { reused: false };
       throw new Error(`unexpected path: ${path}`);
@@ -364,20 +365,25 @@ describe("Studio publish result integrity", () => {
       "/api/queue/queue-review/request-review",
       expect.objectContaining({ tenant_id: "tenant-a" }),
     ));
+    expect(mocks.apiPost).toHaveBeenCalledWith(
+      "/api/queue/add",
+      expect.objectContaining({ draftId: "draft-review" }),
+    );
     expect(mocks.showToast).toHaveBeenCalledWith("승인 인박스로 검토 요청을 보냈습니다", "success");
   });
 
-  it("FE3-REVIEW-02 거절: 큐 생성 실패 시 검토 API를 호출하지 않는다", async () => {
+  it("FE3-REVIEW-02 거절: 초안 저장 실패 시 큐와 검토 API를 호출하지 않는다", async () => {
     restoreStudio(["threads"]);
     mocks.apiPost.mockImplementation(async (path: string) => {
-      if (path === "/api/queue/add") throw new Error("큐 저장 실패");
+      if (path === "/api/studio/drafts") throw new Error("초안 저장 실패");
       throw new Error(`unexpected path: ${path}`);
     });
 
     render(<StudioPage />);
     fireEvent.click(await screen.findByRole("button", { name: "검토 요청" }));
 
-    await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith("큐 저장 실패", "error"));
+    await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith("초안 저장 실패", "error"));
+    expect(mocks.apiPost.mock.calls.some(([path]) => path === "/api/queue/add")).toBe(false);
     expect(mocks.apiPost.mock.calls.some(([path]) => String(path).includes("request-review"))).toBe(false);
   });
 });

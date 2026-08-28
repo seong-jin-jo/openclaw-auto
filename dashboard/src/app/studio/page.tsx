@@ -552,8 +552,11 @@ export default function StudioPage() {
     try {
       let queueId = reviewQueueId;
       if (!queueId) {
+        const linkedDraftId = draftId || await save("draft");
+        if (!linkedDraftId) throw new Error("검토 요청용 초안을 저장하지 못했습니다");
         const added = await apiPost<{ post?: { id?: string } }>("/api/queue/add", {
           tenant_id: activeWorkspace.id,
+          draftId: linkedDraftId,
           text: publishText(selectedPublishTargets(includes)[0] || "threads"),
           topic: idea || "Studio 작업물",
           hashtags: (hashtags.instagram || "").split(/[\s,]+/).map((value) => value.replace(/^#/, "")).filter(Boolean),

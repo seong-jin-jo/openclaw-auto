@@ -9,6 +9,7 @@ export async function POST(request: Request) {
     try {
       const result = await addQueuePost(__t, {
         text: typeof data.text === "string" ? data.text : "",
+        draftId: typeof data.draftId === "string" ? data.draftId : null,
         topic: data.topic,
         hashtags: data.hashtags,
         imageUrl: data.imageUrl,

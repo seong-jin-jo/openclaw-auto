@@ -25,6 +25,7 @@ export type QueueSourceContext = PerformanceSuggestionSourceContext | StudioHand
 
 export interface AddQueuePostInput {
   text: string;
+  draftId?: string | null;
   topic?: string;
   hashtags?: string[];
   imageUrl?: string | null;
@@ -39,6 +40,7 @@ export interface AddQueuePostInput {
 
 export interface QueuePost {
   id: string;
+  draftId: string | null;
   text: string;
   originalText: null;
   topic: string;
@@ -91,6 +93,7 @@ export async function addQueuePost(
 
       const post: QueuePost = {
         id: crypto.randomUUID(),
+        draftId: input.draftId?.trim() || null,
         text,
         originalText: null,
         topic: input.topic?.trim() || "general",
