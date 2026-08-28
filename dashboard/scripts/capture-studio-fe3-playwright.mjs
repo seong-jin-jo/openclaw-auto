@@ -18,6 +18,7 @@ if (!dashboardToken || !studioToken || !workspaceId) {
 }
 fs.mkdirSync(outputDir, { recursive: true });
 let chatAlwaysAt390 = 0;
+const basicFlow = [];
 let chatVisibleAt390 = false;
 const responsiveObservations = [];
 const performanceObservations = [];
@@ -110,6 +111,23 @@ try {
     if (await preview.getByRole("combobox", { name: new RegExp("발행 계정$") }).count() !== 1) throw new Error(`${platform} inline account selector missing`);
   }
   await page.screenshot({ path: path.join(outputDir, "publish-room-1440.png"), fullPage: true });
+
+  // 기본 흐름 점검: 네 방이 각각 실제 내용을 그리는지 본다(회장 2026-08-28 우선순위).
+  for (const room of ["create", "edit", "publish", "perf"]) {
+    await page.goto(`${baseUrl}/studio?room=${room}`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(900);
+    basicFlow.push(await page.evaluate((roomName) => ({
+      room: roomName,
+      rendered: document.querySelector(`[data-room="${roomName}"]`) !== null,
+      roomTop: document.querySelector(`[data-room-top="${roomName}"]`) !== null,
+      outlineItems: document.querySelectorAll("[data-edit-outline] li").length,
+      scriptLines: document.querySelectorAll("[data-edit-script] input, [data-edit-script] li").length,
+      previews: document.querySelectorAll(".osmu-wall > *").length,
+      buttons: document.querySelectorAll("main button").length,
+    }), room));
+  }
+  await page.goto(`${baseUrl}/studio`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(600);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(600);
   chatAlwaysAt390 = await page.locator('[data-chat-always="true"]').count();
@@ -335,6 +353,7 @@ try {
     generationStatus: response.status(),
     candidateButtons: 3,
     publishStopButtons: 0,
+    basicFlow,
     chatAlwaysAt390,
     chatVisibleAt390,
     unauthorizedUrls,

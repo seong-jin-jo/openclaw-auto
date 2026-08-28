@@ -31,7 +31,7 @@ describe("작업 공간별 장애 알림 분기 계약", () => {
     delete process.env.OSMU_ALERT_SLACK_WEBHOOK_URL;
   });
 
-  it("관측-09 정상: 토큰 만료를 작업 공간과 사람 개입 대상으로 원장에 기록한다", async () => {
+  it("F1-관측-09 정상: 토큰 만료를 원장에 기록하고 운영자 슬랙에도 보낸다", async () => {
     const { reportFailure } = await import("@/lib/observability");
     await reportFailure({
       event: "token_expired",
@@ -46,8 +46,23 @@ describe("작업 공간별 장애 알림 분기 계약", () => {
       source: "threads",
       intervention: "human",
     }));
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe("https://hooks.slack.test/operator");
     expect(errorSpy.mock.calls[0][0]).toContain(`"workspaceId":"${workspaceId}"`);
+  });
+
+  it("F1-관측-09B 경계: 사람 개입 장애의 원장 저장이 실패해도 운영자 슬랙은 보낸다", async () => {
+    incidentMocks.record.mockResolvedValue(false);
+    const { reportFailure } = await import("@/lib/observability");
+    await reportFailure({
+      event: "publish_failed",
+      severity: "error",
+      workspaceId,
+      context: { platform: "threads", reason: "http_error", httpStatus: 400 },
+    });
+
+    expect(incidentMocks.record).toHaveBeenCalledWith(expect.objectContaining({ intervention: "human" }));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("관측-10 거절: 자동 복구 외부 오류는 원장 저장이 실패해도 슬랙 알림을 보내지 않는다", async () => {

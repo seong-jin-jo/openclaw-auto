@@ -273,12 +273,12 @@ export async function reportFailure(input: FailureEvent): Promise<void> {
     if (payload.workspaceId) {
       const incident = mapIncident(payload);
       if (!incident) return;
-      const stored = await recordOperationalIncident({
+      await recordOperationalIncident({
         workspaceId: payload.workspaceId,
         severity: payload.severity,
         ...incident,
       });
-      if (stored || incident.intervention === "automatic") return;
+      if (incident.intervention === "automatic") return;
     }
     await deliverToSlack(payload);
   } catch {
