@@ -87,6 +87,25 @@ describe("Studio 생성 Postgres 장부 계약", () => {
     expect(counts).toEqual({ jobs: 1, idempotency: 1 });
   });
 
+  it("GEN-DB-01B 경합: pool 5에서 같은 멱등 키 20건은 작업·응답 하나로 수렴한다", async (ctx) => {
+    if (!await liveDatabase(ctx)) return;
+    const service = new GenerationService(new PostgresGenerationRepository());
+    const body = generationRequestFixture();
+    body.workspace_id = tenantId;
+    const request = parseGenerationRequest(body);
+
+    const responses = await Promise.all(
+      Array.from({ length: 20 }, () => service.create(memberId, "db-hot-key-20", request)),
+    );
+
+    expect(new Set(responses.map((response) => response.jobId)).size).toBe(1);
+    const [counts] = await admin!<{ jobs: number; idempotency: number }[]>`
+      SELECT
+        (SELECT count(*)::int FROM studio_generation_jobs WHERE member_id = ${memberId}) AS jobs,
+        (SELECT count(*)::int FROM studio_generation_idempotency WHERE member_id = ${memberId}) AS idempotency`;
+    expect(counts).toEqual({ jobs: 1, idempotency: 1 });
+  });
+
   it("M1-GEN-DB-01 경합: 구 앱과 신 앱의 멱등 충돌 대상이 배포 전환 중 함께 동작한다", async (ctx) => {
     if (!await liveDatabase(ctx)) return;
     const service = new GenerationService(new PostgresGenerationRepository());
@@ -155,20 +174,25 @@ describe("Studio 생성 Postgres 장부 계약", () => {
     expect(counts).toEqual({ jobs: 2, free_uses: 1 });
   });
 
-  it("GEN-DB-04 한국어 설명: 같은 회원 문자열과 멱등 키도 워크스페이스가 다르면 서로 격리된다", async (ctx) => {
+  it("GEN-DB-04 경합: 같은 회원의 멱등 키는 워크스페이스가 달라도 한 작업만 생성한다", async (ctx) => {
     if (!await liveDatabase(ctx)) return;
     const otherTenantId = await createTemporaryTenant();
     const service = new GenerationService(new PostgresGenerationRepository());
     const first = generationRequestFixture();
     first.workspace_id = tenantId;
-    await service.create(memberId, "db-member-global-key", parseGenerationRequest(first));
     const second = generationRequestFixture();
     second.workspace_id = otherTenantId;
 
-    await service.create(memberId, "db-member-global-key", parseGenerationRequest(second));
+    const settled = await Promise.allSettled([
+      service.create(memberId, "db-member-global-key", parseGenerationRequest(first)),
+      service.create(memberId, "db-member-global-key", parseGenerationRequest(second)),
+    ]);
+    expect(settled.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    const rejected = settled.find((result): result is PromiseRejectedResult => result.status === "rejected");
+    expect(rejected?.reason).toEqual(expect.objectContaining({ code: "IDEMPOTENCY_CONFLICT", status: 409 }));
     const [count] = await admin!<{ value: number }[]>`
       SELECT count(*)::int AS value FROM studio_generation_jobs WHERE member_id = ${memberId}`;
-    expect(count.value).toBe(2);
+    expect(count.value).toBe(1);
   });
 
   it("GEN-DB-05 한국어 설명: 같은 회원의 UTC 날짜 무료 몫은 워크스페이스가 달라도 한 번뿐이다", async (ctx) => {
@@ -183,8 +207,13 @@ describe("Studio 생성 Postgres 장부 계약", () => {
     const secondJob = await service.create(memberId, "db-free-global-b", parseGenerationRequest(second));
     const now = new Date("2026-08-27T01:00:00.000Z");
 
-    await service.regenerate(memberId, firstJob.jobId, [tenantId], now);
-    await expect(service.regenerate(memberId, secondJob.jobId, [otherTenantId], now)).rejects.toEqual(
+    const settled = await Promise.allSettled([
+      service.regenerate(memberId, firstJob.jobId, [tenantId], now),
+      service.regenerate(memberId, secondJob.jobId, [otherTenantId], now),
+    ]);
+    expect(settled.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    const rejected = settled.find((result): result is PromiseRejectedResult => result.status === "rejected");
+    expect(rejected?.reason).toEqual(
       expect.objectContaining({ code: "PAID_REGENERATION_APPROVAL_REQUIRED", status: 409 }),
     );
     const [counts] = await admin!<{ jobs: number; free_uses: number }[]>`

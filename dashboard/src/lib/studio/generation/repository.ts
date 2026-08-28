@@ -8,6 +8,7 @@ import type {
   PersistedCreation,
   PersistedFreeRegeneration,
 } from "./service";
+import { StudioApiError } from "./errors";
 
 type Sql = ReturnType<typeof db>;
 
@@ -28,6 +29,69 @@ type IdempotencyRow = {
   request_hash: string;
   response_payload: GenerationResponse;
 };
+
+type PostgresError = Error & { code?: string; constraint_name?: string };
+
+function postgresCode(error: unknown): string | null {
+  return error instanceof Error && typeof (error as PostgresError).code === "string"
+    ? (error as PostgresError).code ?? null
+    : null;
+}
+
+function databaseError(error: unknown): StudioApiError {
+  const code = postgresCode(error);
+  if (code === "55P03") {
+    return new StudioApiError({
+      status: 503,
+      code: "GENERATION_DB_BUSY",
+      message: "생성 요청이 몰려 잠시 후 다시 시도해야 합니다",
+      retryable: true,
+      details: { retry_after_ms: 1500 },
+    });
+  }
+  if (code === "57014") {
+    return new StudioApiError({
+      status: 503,
+      code: "GENERATION_DB_TIMEOUT",
+      message: "생성 저장 시간이 초과되어 잠시 후 다시 시도해야 합니다",
+      retryable: true,
+      details: { retry_after_ms: 1500 },
+    });
+  }
+  if (code === "42P10") {
+    return new StudioApiError({
+      status: 500,
+      code: "GENERATION_DB_DEPLOYMENT_MISMATCH",
+      message: "생성 저장소 배포 상태가 일치하지 않습니다",
+    });
+  }
+  return new StudioApiError({
+    status: 500,
+    code: "GENERATION_DB_INVARIANT_VIOLATION",
+    message: "생성 저장소의 무결성 조건을 확인하지 못했습니다",
+  });
+}
+
+async function generationTransaction<T>(workspaceId: string, action: (sql: Sql) => Promise<T>): Promise<T> {
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      return await withTenant(workspaceId, async (sql) => {
+        await sql`SET LOCAL statement_timeout = '5000ms'`;
+        await sql`SET LOCAL lock_timeout = '1500ms'`;
+        return action(sql);
+      });
+    } catch (error) {
+      const code = postgresCode(error);
+      if ((code === "40001" || code === "40P01") && attempt < 2) {
+        const jitter = 25 + Math.floor(Math.random() * 51);
+        await new Promise((resolve) => setTimeout(resolve, jitter));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error("generation transaction retry loop exhausted");
+}
 
 function rowToJob(row: GenerationJobRow): GenerationJob {
   return {
@@ -59,19 +123,8 @@ async function insertJob(sql: Sql, job: GenerationJob): Promise<void> {
 
 export class PostgresGenerationRepository implements GenerationRepository {
   async persistCreation(input: PersistCreationInput): Promise<PersistedCreation> {
-    return withTenant(input.job.workspaceId, async (sql) => {
-      const [reserved] = await sql<IdempotencyRow[]>`
-        INSERT INTO studio_generation_idempotency
-          (tenant_id, member_id, operation, idempotency_key, request_hash, job_id, response_payload)
-        VALUES
-          (${input.job.workspaceId}, ${input.job.memberId}, ${input.operation},
-           ${input.idempotencyKey}, ${input.requestHash}, ${input.job.jobId},
-           ${sql.json(input.response as Parameters<typeof sql.json>[0])})
-        ON CONFLICT (tenant_id, member_id, operation, idempotency_key) DO NOTHING
-        RETURNING request_hash, response_payload`;
-
-      if (!reserved) {
-        const [existing] = await sql<IdempotencyRow[]>`
+    const selectExisting = async (sql: Sql) => {
+      const [existing] = await sql<IdempotencyRow[]>`
           SELECT request_hash, response_payload
           FROM studio_generation_idempotency
           WHERE tenant_id = ${input.job.workspaceId}
@@ -79,22 +132,45 @@ export class PostgresGenerationRepository implements GenerationRepository {
             AND operation = ${input.operation}
             AND idempotency_key = ${input.idempotencyKey}
           LIMIT 1`;
-        if (!existing) {
-          // 동일 회원의 키가 다른 워크스페이스에서 이미 쓰였다. RLS로 그 행은 읽지 않고
-          // 해시 불일치만 반환해 service가 기존 계약대로 409를 내도록 한다.
-          return { created: false, requestHash: "", response: input.response };
-        }
-        return { created: false, requestHash: existing.request_hash, response: existing.response_payload };
-      }
+      return existing;
+    };
+    const readExisting = () => generationTransaction(input.job.workspaceId, selectExisting);
 
-      await insertJob(sql, input.job);
-      return { created: true, requestHash: input.requestHash, response: input.response };
-    });
+    try {
+      return await generationTransaction(input.job.workspaceId, async (sql) => {
+        const [reserved] = await sql<IdempotencyRow[]>`
+          INSERT INTO studio_generation_idempotency
+            (tenant_id, member_id, operation, idempotency_key, request_hash, job_id, response_payload)
+          VALUES
+            (${input.job.workspaceId}, ${input.job.memberId}, ${input.operation},
+             ${input.idempotencyKey}, ${input.requestHash}, ${input.job.jobId},
+             ${sql.json(input.response as Parameters<typeof sql.json>[0])})
+          ON CONFLICT DO NOTHING
+          RETURNING request_hash, response_payload`;
+
+        if (!reserved) {
+          const existing = await selectExisting(sql);
+          if (!existing) {
+            return { created: false, requestHash: "", response: input.response };
+          }
+          return { created: false, requestHash: existing.request_hash, response: existing.response_payload };
+        }
+
+        await insertJob(sql, input.job);
+        return { created: true, requestHash: input.requestHash, response: input.response };
+      });
+    } catch (error) {
+      if (postgresCode(error) === "23505") {
+        const existing = await readExisting();
+        if (existing) return { created: false, requestHash: existing.request_hash, response: existing.response_payload };
+      }
+      throw databaseError(error);
+    }
   }
 
   async findJob(memberId: string, jobId: string, allowedWorkspaceIds: readonly string[]): Promise<GenerationJob | null> {
     for (const workspaceId of allowedWorkspaceIds) {
-      const [row] = await withTenant(workspaceId, (sql) => sql<GenerationJobRow[]>`
+      const [row] = await generationTransaction(workspaceId, (sql) => sql<GenerationJobRow[]>`
         SELECT id, tenant_id, member_id, status, candidates, layer_revisions,
                platform_spec_receipt, time_zone, request_payload, created_at
         FROM studio_generation_jobs
@@ -106,17 +182,8 @@ export class PostgresGenerationRepository implements GenerationRepository {
   }
 
   async persistFreeRegeneration(input: PersistFreeRegenerationInput): Promise<PersistedFreeRegeneration> {
-    return withTenant(input.replacement.workspaceId, async (sql) => {
-      const [reserved] = await sql<{ id: string }[]>`
-        INSERT INTO studio_free_regeneration_uses
-          (tenant_id, member_id, local_date, original_job_id, replacement_job_id)
-        VALUES
-          (${input.replacement.workspaceId}, ${input.replacement.memberId}, ${input.localDate},
-           ${input.originalJobId}, ${input.replacement.jobId})
-        ON CONFLICT DO NOTHING
-        RETURNING id`;
-      if (!reserved) {
-        const [existing] = await sql<IdempotencyRow[]>`
+    const selectExisting = async (sql: Sql) => {
+      const [existing] = await sql<IdempotencyRow[]>`
           SELECT request_hash, response_payload
           FROM studio_generation_idempotency
           WHERE tenant_id = ${input.replacement.workspaceId}
@@ -124,20 +191,46 @@ export class PostgresGenerationRepository implements GenerationRepository {
             AND operation = ${input.operation}
             AND idempotency_key = ${input.idempotencyKey}
           LIMIT 1`;
-        return existing?.request_hash === input.requestHash
-          ? { consumed: true, response: existing.response_payload }
-          : { consumed: false, response: null };
-      }
+      return existing;
+    };
+    const readExisting = () => generationTransaction(input.replacement.workspaceId, selectExisting);
 
-      await sql`
-        INSERT INTO studio_generation_idempotency
-          (tenant_id, member_id, operation, idempotency_key, request_hash, job_id, response_payload)
-        VALUES
-          (${input.replacement.workspaceId}, ${input.replacement.memberId}, ${input.operation},
-           ${input.idempotencyKey}, ${input.requestHash}, ${input.replacement.jobId},
-           ${sql.json(input.response as Parameters<typeof sql.json>[0])})`;
-      await insertJob(sql, input.replacement);
-      return { consumed: true, response: input.response };
-    });
+    try {
+      return await generationTransaction(input.replacement.workspaceId, async (sql) => {
+        const [reserved] = await sql<{ id: string }[]>`
+          INSERT INTO studio_free_regeneration_uses
+            (tenant_id, member_id, local_date, original_job_id, replacement_job_id)
+          VALUES
+            (${input.replacement.workspaceId}, ${input.replacement.memberId}, ${input.localDate},
+             ${input.originalJobId}, ${input.replacement.jobId})
+          ON CONFLICT DO NOTHING
+          RETURNING id`;
+        if (!reserved) {
+          const existing = await selectExisting(sql);
+          return existing?.request_hash === input.requestHash
+            ? { consumed: true, response: existing.response_payload }
+            : { consumed: false, response: null };
+        }
+
+        await sql`
+          INSERT INTO studio_generation_idempotency
+            (tenant_id, member_id, operation, idempotency_key, request_hash, job_id, response_payload)
+          VALUES
+            (${input.replacement.workspaceId}, ${input.replacement.memberId}, ${input.operation},
+             ${input.idempotencyKey}, ${input.requestHash}, ${input.replacement.jobId},
+             ${sql.json(input.response as Parameters<typeof sql.json>[0])})
+          ON CONFLICT DO NOTHING`;
+        await insertJob(sql, input.replacement);
+        return { consumed: true, response: input.response };
+      });
+    } catch (error) {
+      if (postgresCode(error) === "23505") {
+        const existing = await readExisting();
+        if (existing?.request_hash === input.requestHash) {
+          return { consumed: true, response: existing.response_payload };
+        }
+      }
+      throw databaseError(error);
+    }
   }
 }
