@@ -72,6 +72,14 @@ ALTER FUNCTION public.guard_studio_free_regeneration_member_scope()
   OWNER TO osmu_generation_guard_owner;
 REVOKE ALL ON FUNCTION public.guard_studio_generation_idempotency_member_scope() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.guard_studio_free_regeneration_member_scope() FROM PUBLIC;
+DO $service_acl$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'osmu_service') THEN
+    REVOKE ALL ON FUNCTION public.guard_studio_generation_idempotency_member_scope() FROM osmu_service;
+    REVOKE ALL ON FUNCTION public.guard_studio_free_regeneration_member_scope() FROM osmu_service;
+  END IF;
+END
+$service_acl$;
 GRANT USAGE ON SCHEMA public TO osmu_generation_guard_owner;
 GRANT SELECT ON public.studio_generation_idempotency,
                 public.studio_free_regeneration_uses
@@ -110,32 +118,49 @@ $trigger$;
 
 DO $preflight$
 DECLARE
-  generation_owner TEXT;
-  quota_owner TEXT;
+  safe_functions INTEGER;
   owner_flags_ok BOOLEAN;
   execute_leak BOOLEAN;
+  unexpected_table_privilege BOOLEAN;
 BEGIN
-  SELECT pg_catalog.pg_get_userbyid(proowner)
-    INTO generation_owner
-  FROM pg_catalog.pg_proc
-  WHERE oid = 'public.guard_studio_generation_idempotency_member_scope()'::regprocedure;
-  SELECT pg_catalog.pg_get_userbyid(proowner)
-    INTO quota_owner
-  FROM pg_catalog.pg_proc
-  WHERE oid = 'public.guard_studio_free_regeneration_member_scope()'::regprocedure;
+  SELECT count(*) INTO safe_functions
+  FROM pg_catalog.pg_proc AS p
+  WHERE p.oid IN (
+    'public.guard_studio_generation_idempotency_member_scope()'::regprocedure,
+    'public.guard_studio_free_regeneration_member_scope()'::regprocedure
+  )
+    AND pg_catalog.pg_get_userbyid(p.proowner) = 'osmu_generation_guard_owner'
+    AND p.proconfig @> ARRAY['search_path=pg_catalog, pg_temp'];
   SELECT NOT rolcanlogin AND rolbypassrls AND NOT rolsuper
          AND NOT rolcreatedb AND NOT rolcreaterole AND NOT rolinherit
     INTO owner_flags_ok
   FROM pg_catalog.pg_roles
   WHERE rolname = 'osmu_generation_guard_owner';
-  SELECT pg_catalog.has_function_privilege('public', p.oid, 'EXECUTE')
-    INTO execute_leak
+  SELECT EXISTS (
+    SELECT 1
   FROM pg_catalog.pg_proc AS p
-  WHERE p.oid = 'public.guard_studio_generation_idempotency_member_scope()'::regprocedure;
-  IF generation_owner <> 'osmu_generation_guard_owner'
-     OR quota_owner <> 'osmu_generation_guard_owner'
+    WHERE p.oid IN (
+      'public.guard_studio_generation_idempotency_member_scope()'::regprocedure,
+      'public.guard_studio_free_regeneration_member_scope()'::regprocedure
+    ) AND (
+      pg_catalog.has_function_privilege('public', p.oid, 'EXECUTE')
+      OR (EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='osmu_service')
+          AND pg_catalog.has_function_privilege('osmu_service', p.oid, 'EXECUTE'))
+    )
+  ) INTO execute_leak;
+  SELECT EXISTS (
+    SELECT 1 FROM information_schema.role_table_grants
+    WHERE grantee='osmu_generation_guard_owner'
+      AND NOT (
+        table_schema='public'
+        AND table_name IN ('studio_generation_idempotency','studio_free_regeneration_uses')
+        AND privilege_type='SELECT'
+      )
+  ) INTO unexpected_table_privilege;
+  IF safe_functions <> 2
      OR NOT owner_flags_ok
-     OR execute_leak THEN
+     OR execute_leak
+     OR unexpected_table_privilege THEN
     RAISE EXCEPTION 'generation guard privilege preflight failed';
   END IF;
 END

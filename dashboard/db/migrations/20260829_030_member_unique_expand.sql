@@ -16,6 +16,62 @@ BEGIN
 END
 $audit$;
 
+-- CREATE INDEX CONCURRENTLY 실패 뒤 같은 이름의 invalid/not-ready index가 남을 수 있다.
+-- IF NOT EXISTS는 이를 복구하지 않으므로 transaction 밖에서 먼저 제거한다.
+SELECT pg_catalog.format('DROP INDEX CONCURRENTLY %I.%I', n.nspname, c.relname)
+FROM pg_catalog.pg_class AS c
+JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+JOIN pg_catalog.pg_index AS i ON i.indexrelid = c.oid
+WHERE n.nspname = 'public'
+  AND c.relname IN (
+    'uq_studio_generation_idempotency_member_operation_key',
+    'uq_studio_free_regeneration_member_date'
+  )
+  AND (NOT i.indisvalid OR NOT i.indisready)
+\gexec
+
+DO $definition$
+DECLARE
+  generation_ok BOOLEAN;
+  quota_ok BOOLEAN;
+BEGIN
+  SELECT NOT EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_class AS c
+    JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+    JOIN pg_catalog.pg_index AS i ON i.indexrelid = c.oid
+    WHERE n.nspname = 'public'
+      AND c.relname = 'uq_studio_generation_idempotency_member_operation_key'
+      AND (
+        NOT i.indisunique OR i.indexprs IS NOT NULL OR i.indpred IS NOT NULL
+        OR i.indkey::smallint[] <> ARRAY[
+          (SELECT attnum FROM pg_catalog.pg_attribute WHERE attrelid='public.studio_generation_idempotency'::regclass AND attname='member_id'),
+          (SELECT attnum FROM pg_catalog.pg_attribute WHERE attrelid='public.studio_generation_idempotency'::regclass AND attname='operation'),
+          (SELECT attnum FROM pg_catalog.pg_attribute WHERE attrelid='public.studio_generation_idempotency'::regclass AND attname='idempotency_key')
+        ]::smallint[]
+      )
+  ) INTO generation_ok;
+  SELECT NOT EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_class AS c
+    JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+    JOIN pg_catalog.pg_index AS i ON i.indexrelid = c.oid
+    WHERE n.nspname = 'public'
+      AND c.relname = 'uq_studio_free_regeneration_member_date'
+      AND (
+        NOT i.indisunique OR i.indexprs IS NOT NULL OR i.indpred IS NOT NULL
+        OR i.indkey::smallint[] <> ARRAY[
+          (SELECT attnum FROM pg_catalog.pg_attribute WHERE attrelid='public.studio_free_regeneration_uses'::regclass AND attname='member_id'),
+          (SELECT attnum FROM pg_catalog.pg_attribute WHERE attrelid='public.studio_free_regeneration_uses'::regclass AND attname='local_date')
+        ]::smallint[]
+      )
+  ) INTO quota_ok;
+  IF NOT generation_ok OR NOT quota_ok THEN
+    RAISE EXCEPTION 'member unique index definition drift requires manual recovery';
+  END IF;
+END
+$definition$;
+
 CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS uq_studio_generation_idempotency_member_operation_key
   ON public.studio_generation_idempotency(member_id, operation, idempotency_key);
 CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS uq_studio_free_regeneration_member_date

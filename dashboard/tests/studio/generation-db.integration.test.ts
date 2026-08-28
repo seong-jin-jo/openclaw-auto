@@ -26,6 +26,34 @@ async function liveDatabase(ctx: { skip: () => void }): Promise<boolean> {
   try {
     const [tenant] = await admin<{ id: string }[]>`SELECT id FROM tenants ORDER BY created_at LIMIT 1`;
     if (!tenant) throw new Error("Studio generation DB integration requires one tenant");
+    const [readiness] = await admin<{ generation_ready: boolean; quota_ready: boolean }[]>`
+      SELECT
+        EXISTS (
+          SELECT 1 FROM pg_catalog.pg_constraint
+          WHERE conrelid = 'public.studio_generation_idempotency'::regclass
+            AND conname = 'uq_studio_generation_idempotency_member_operation_key'
+        ) OR EXISTS (
+          SELECT 1 FROM pg_catalog.pg_trigger
+          WHERE tgrelid = 'public.studio_generation_idempotency'::regclass
+            AND tgname = 'trg_studio_generation_member_guard'
+            AND tgenabled <> 'D'
+        ) AS generation_ready,
+        EXISTS (
+          SELECT 1 FROM pg_catalog.pg_constraint
+          WHERE conrelid = 'public.studio_free_regeneration_uses'::regclass
+            AND conname = 'uq_studio_free_regeneration_member_date'
+        ) OR EXISTS (
+          SELECT 1 FROM pg_catalog.pg_trigger
+          WHERE tgrelid = 'public.studio_free_regeneration_uses'::regclass
+            AND tgname = 'trg_studio_free_regeneration_member_guard'
+            AND tgenabled <> 'D'
+        ) AS quota_ready`;
+    if (!readiness?.generation_ready || !readiness.quota_ready) {
+      throw new Error(
+        `Studio generation DB integration requires E1 guard or member UNIQUE ` +
+        `(generation=${readiness?.generation_ready ?? false}, quota=${readiness?.quota_ready ?? false})`,
+      );
+    }
     tenantId = tenant.id;
     memberId = `studio-db-${crypto.randomUUID()}`;
     return true;
