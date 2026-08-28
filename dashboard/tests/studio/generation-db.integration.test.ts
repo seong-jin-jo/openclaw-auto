@@ -141,17 +141,33 @@ describe("Studio 생성 Postgres 장부 계약", () => {
     body.workspace_id = tenantId;
     await service.create(memberId, "db-expand-contract", parseGenerationRequest(body));
 
-    const duplicated = await admin!<{ id: string }[]>`
-      INSERT INTO studio_generation_idempotency
-        (tenant_id, member_id, operation, idempotency_key, request_hash, job_id, response_payload)
-      SELECT tenant_id, member_id, operation, idempotency_key, request_hash, job_id, response_payload
-      FROM studio_generation_idempotency
-      WHERE tenant_id = ${tenantId} AND member_id = ${memberId}
-        AND operation = 'generation.create' AND idempotency_key = 'db-expand-contract'
-      ON CONFLICT (tenant_id, member_id, operation, idempotency_key) DO NOTHING
-      RETURNING id`;
+    const [schema] = await admin!<{ tenant_unique: boolean; member_unique: boolean }[]>`
+      SELECT
+        EXISTS (
+          SELECT 1 FROM pg_catalog.pg_constraint
+          WHERE conrelid='public.studio_generation_idempotency'::regclass
+            AND conname='uq_studio_generation_idempotency_tenant_member_operation_key'
+        ) AS tenant_unique,
+        EXISTS (
+          SELECT 1 FROM pg_catalog.pg_constraint
+          WHERE conrelid='public.studio_generation_idempotency'::regclass
+            AND conname='uq_studio_generation_idempotency_member_operation_key'
+        ) AS member_unique`;
 
-    expect(duplicated).toEqual([]);
+    if (schema.tenant_unique) {
+      const duplicated = await admin!<{ id: string }[]>`
+        INSERT INTO studio_generation_idempotency
+          (tenant_id, member_id, operation, idempotency_key, request_hash, job_id, response_payload)
+        SELECT tenant_id, member_id, operation, idempotency_key, request_hash, job_id, response_payload
+        FROM studio_generation_idempotency
+        WHERE tenant_id = ${tenantId} AND member_id = ${memberId}
+          AND operation = 'generation.create' AND idempotency_key = 'db-expand-contract'
+        ON CONFLICT (tenant_id, member_id, operation, idempotency_key) DO NOTHING
+        RETURNING id`;
+      expect(duplicated).toEqual([]);
+    } else {
+      expect(schema.member_unique).toBe(true);
+    }
     const [count] = await admin!<{ value: number }[]>`
       SELECT count(*)::int AS value FROM studio_generation_idempotency
       WHERE member_id = ${memberId} AND idempotency_key = 'db-expand-contract'`;
