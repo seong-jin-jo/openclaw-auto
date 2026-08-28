@@ -72,12 +72,12 @@ describe("publish_success fires only after confirmed API success, not on click a
     const publishStart = src.indexOf("async function publish()");
     const publishEnd = src.indexOf("function loadDraft(", publishStart);
     const block = src.slice(publishStart, publishEnd);
-    const preflightGuard = block.indexOf("publishReconciliation?.retryPublish === false");
+    const preflightGuard = block.indexOf("Object.keys(publishReconciliations).length > 0");
     const apiCall = block.indexOf('apiPost<{ ok?: boolean; partial?: boolean;');
     const partialGuard = block.indexOf("isExternalPublishPersistenceError(e)");
     const preserveUrl = block.indexOf("e.payload.permalink", partialGuard);
     const parallelJoin = block.indexOf("await Promise.all(targets.map", preflightGuard);
-    const persistPartial = block.indexOf('save("partial", pendingReconciliation)');
+    const persistPartial = block.indexOf('save("partial", pendingReconciliations)');
 
     expect(preflightGuard).toBeGreaterThan(-1);
     expect(preflightGuard).toBeLessThan(apiCall);
@@ -91,8 +91,8 @@ describe("publish_success fires only after confirmed API success, not on click a
 
   it("studio draft API persists and restores reconciliation metadata across reloads", () => {
     const src = read("src/app/api/studio/drafts/route.ts");
-    expect(src).toContain("publishReconciliation: body.publishReconciliation ?? null");
-    expect(src).toContain("publishReconciliation: r.payload?.publishReconciliation ?? null");
+    expect(src).toContain("publishReconciliations: body.publishReconciliations ?? {}");
+    expect(src).toContain("publishReconciliations: r.payload?.publishReconciliations ?? null");
   });
 });
 
