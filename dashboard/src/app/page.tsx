@@ -67,18 +67,6 @@ export default function HomePage() {
   const connectedCount = Object.values(cfg).filter((c) => c.connected || c.status === "live").length;
   const showOnboarding = onboardingStatus && !onboardingStatus.completed && connectedCount === 0 && !dismissedOnboarding;
 
-  if (showOnboarding) {
-    return (
-      <OnboardingWizard
-        onComplete={() => {
-          mutateOnboarding();
-          dismissOnboarding();
-        }}
-        onDismiss={dismissOnboarding}
-      />
-    );
-  }
-
   const posts = metricsData?.posts || [];
   const publishedPosts = posts.filter((p) => p.status === "published");
   const homeSummary = (o.summary || {}) as Record<string, number | null>;
@@ -111,6 +99,19 @@ export default function HomePage() {
         collecting={collecting}
         onCollectMetrics={collectMetrics}
       />
+
+      {showOnboarding ? (
+        <div className="mb-region" data-onboarding-help="first-content">
+          <OnboardingWizard
+            embedded
+            onComplete={() => {
+              mutateOnboarding();
+              dismissOnboarding();
+            }}
+            onDismiss={dismissOnboarding}
+          />
+        </div>
+      ) : null}
 
       {/* 기존 콘텐츠 파이프라인은 성과실 원자료 아래로 이동해 보존한다. */}
       <PipelineTimeline

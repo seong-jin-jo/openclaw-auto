@@ -28,6 +28,7 @@ export const STUDIO_CONTENT_BRANCH_KEY = "studio_content_branch";
 interface OnboardingWizardProps {
   onComplete: () => void;
   onDismiss: () => void;
+  embedded?: boolean;
 }
 
 interface OnboardingDraft {
@@ -35,7 +36,7 @@ interface OnboardingDraft {
   contentBranch?: CreateContentBranch;
 }
 
-export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProps) {
+export function OnboardingWizard({ onComplete, onDismiss, embedded = false }: OnboardingWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [industry, setIndustry] = useState<string | null>(null);
@@ -105,8 +106,11 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-player-surface/70 backdrop-blur-sm">
-      <div className="mx-stack w-full max-w-2xl overflow-hidden rounded-surface border border-border bg-surface shadow-2xl">
+    <div
+      className={embedded ? "w-full" : "fixed inset-0 z-50 flex items-center justify-center bg-player-surface/70 backdrop-blur-sm"}
+      data-onboarding-mode={embedded ? "inline" : "modal"}
+    >
+      <div className={`${embedded ? "w-full" : "mx-stack w-full max-w-2xl shadow-2xl"} overflow-hidden rounded-surface border border-border bg-surface`}>
         <header className="border-b border-border px-pad-inset py-stack-section">
           <div className="flex items-center justify-between gap-stack">
             <h2 className="text-heading font-bold text-text">첫 콘텐츠 만들기</h2>
