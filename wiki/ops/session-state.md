@@ -1,3 +1,15 @@
+## [2026-08-28 07:40 밤샘 열 판 완료 · 컨트롤러 직접 검증 통과 · 실채널만 미검증]
+
+**감독이 04:40~07:31 동안 열 판을 자동 배차하고 백로그를 비운 뒤 스스로 종료.** 컨트롤러 개입 0회.
+
+- **컨트롤러 직접 검증(워커 주장 미사용, §9.2)**: 전체 시험 168파일 **1,274건 통과** 실패 0 / `npx tsc --noEmit` 통과 / `verify-studio-v1-e2e.mjs` **10/10** / 도는 앱 주요 경로 6개(`/api/health`,`/me`,`/queue`,`/suggestions`,`/studio/drafts`,`/operator/customers`) 전부 200.
+- **완료된 열 판**: 댓글 읽기·답글 API(`src/app/api/engagement/`), 발행 굳히기, 숏폼 공장 8컨셉 격리(`src/lib/studio/shorts-factory/`), 생성실·편집실 화면, 처음 온 사람의 길(채널 연결 전 첫 콘텐츠), 빈 상태·오류 상태, 테넌트 격리 공격 하네스(`tests/isolation/tenant-api-attack-script.contract.test.ts`), 운영 관측·사건 장부, 첫 화면 속도, 생김새 토큰 통일.
+- **빈손 기록 3건(build5·build6·fe6)은 실제로는 산출 완료**. 시간 초과로 보고를 쓰다 잘렸을 뿐이며 커밋은 이미 들어가 있었다. 컨트롤러가 파일 실재를 하나씩 확인함.
+- **미검증 범위(중요)**: ①실제 채널 발행 ②provider 댓글 본문 읽기. 둘 다 계정 로그인이 필요해 세션이 물리적으로 불가. `/api/engagement` 는 발행 글 0건이라 404 로 정확히 거절하는 것까지만 확인됨.
+- **회장이 아침에 열 것**: `open docs/rendered/아침보고.html` (화면 28장, 작업 25건). 앱 `http://localhost:3456/studio`.
+- 감독은 백로그 소진으로 종료됨. 다시 돌리려면 `docs/plan/osmu-backlog.tsv` 에 판을 추가하고 `nohup bash scripts/osmu-supervisor.sh &`.
+- 다음: 회장이 채널 1곳 연결·발행 → 그 글로 댓글 계약 검증 → 배포 준비.
+
 ## [2026-08-28 07:12 작업 공간별 운영 장애 관측 build 완료]
 
 - **인계 기준:** 회장이 지정한 운영 장애 관측 code-builder 과제와 v63 프로토타입,
