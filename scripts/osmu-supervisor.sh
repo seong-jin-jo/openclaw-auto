@@ -46,6 +46,34 @@ running_in_lane() {
   echo ""
 }
 
+MAX_PARALLEL="${OSMU_MAX_PARALLEL:-4}"
+
+# 끝난 pane 을 상태표에서 닫는다.
+sweep_finished() {
+  local id l st ts sess
+  while IFS=$'\t' read -r id l st ts sess; do
+    [ "$st" = "돌는중" ] || continue
+    [ "$(status_of "$id")" = "돌는중" ] || continue
+    if ! tmux has-session -t "$sess" 2>/dev/null ||
+       tmux capture-pane -pt "$sess" 2>/dev/null | tail -40 | grep -q "■ 끝났습니다"; then
+      local verdict="끝남"
+      tmux capture-pane -pt "$sess" 2>/dev/null | tail -40 | grep -qE "회수 필요|타임아웃|미완료" && verdict="빈손"
+      mark "$id" "$l" "$verdict" "$sess"
+    fi
+  done < "$STATE"
+}
+
+# 지금 실제로 돌고 있는 워커 수.
+running_count() {
+  local n=0 id l st ts sess
+  while IFS=$'\t' read -r id l st ts sess; do
+    [ "$st" = "돌는중" ] || continue
+    [ "$(status_of "$id")" = "돌는중" ] || continue
+    tmux has-session -t "$sess" 2>/dev/null && n=$((n+1))
+  done < "$STATE"
+  echo "$n"
+}
+
 next_pending() {
   local lane="$1" id l pf
   while IFS=$'\t' read -r id l pf; do
@@ -76,10 +104,14 @@ idle_rounds=0
 while :; do
   [ -f "$STOP" ] && { echo "[$(date +%H:%M)] 멈춤 요청을 받아 종료한다."; break; }
   dispatched=0
+  # 갈래당 한 명이 아니라 전체 동시 MAX_PARALLEL 명까지 돌린다.
+  # 갈래당 1명이면 같은 갈래 판이 줄줄이 대기해 회장 눈에는 멈춘 것으로 보인다
+  # (회장 2026-08-28 "안된거 다 매워").
+  sweep_finished
   for lane in build fe review qa; do
-    [ -n "$(running_in_lane "$lane")" ] && continue
+    while [ "$(running_count)" -lt "$MAX_PARALLEL" ]; do
     entry="$(next_pending "$lane")"
-    [ -z "$entry" ] && continue
+    [ -z "$entry" ] && break
     id="${entry%%$'\t'*}"; pf="${entry##*$'\t'}"
     prompt="$PROMPTS/$pf"
     if [ ! -f "$prompt" ]; then
@@ -101,12 +133,12 @@ while :; do
       echo "[$(date +%H:%M)] $id 발주 실패"
       mark "$id" "$lane" "발주실패" "$sess"
     fi
+    done
   done
 
   # 두 갈래 모두 비었고 던질 것도 없으면 백로그가 소진된 것이다.
   if [ "$dispatched" = "0" ] &&
-     [ -z "$(running_in_lane build)" ] && [ -z "$(running_in_lane fe)" ] &&
-     [ -z "$(running_in_lane review)" ] && [ -z "$(running_in_lane qa)" ] &&
+     [ "$(running_count)" = "0" ] &&
      [ -z "$(next_pending build)" ] && [ -z "$(next_pending fe)" ] &&
      [ -z "$(next_pending review)" ] && [ -z "$(next_pending qa)" ]; then
     # 백로그가 비었다고 죽지 않는다(회장 2026-08-28 "대기하고 있다가 재지시하라").

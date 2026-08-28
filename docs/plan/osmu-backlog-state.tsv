@@ -32,3 +32,8 @@ qa1	qa	끝남	18:59	osmu-qa1
 fix1	build	끝남	19:07	osmu-fix1
 flow1	fe	끝남	19:07	osmu-flow1
 fixdoc08281	build	돌는중	19:48	osmu-fixdoc08281
+fixdoc08281	build	끝남	20:18	osmu-fixdoc08281
+fixdoc08282	build	돌는중	20:18	osmu-fixdoc08282
+fixdoc08285	build	돌는중	20:43	osmu-fixdoc08285
+fixdoc08283	review	돌는중	20:43	osmu-fixdoc08283
+fixdoc08284	qa	돌는중	20:43	osmu-fixdoc08284
