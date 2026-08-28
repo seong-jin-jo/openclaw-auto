@@ -1,6 +1,6 @@
 # OSMU 코드 리뷰 2026-08-29
 
-STAMP | line: osmu | 생성: 2026-08-29 15:20 KST | model: gpt-codex/gpt-5.6-sol | agent: code-reviewer | skill: review | 고민: 정상 경로의 통과가 외부 부작용, 작업 공간 격리, 부분 실패의 안전까지 증명하는지 분리해 판정했다.
+STAMP | line: osmu | 생성: 2026-08-29 04:20 KST | model: gpt-codex/gpt-5.6-sol | agent: code-reviewer | skill: review | 고민: 정상 경로의 통과가 외부 부작용, 작업 공간 격리, 부분 실패의 안전까지 증명하는지 분리해 판정했다.
 
 검토 범위: 리뷰 시작 시 고정한 `6a618c59404fb2c30291fba77df92783eff3076a..6eaf3a4577d551cb2387d32c948a061c447c712f`. 2026-08-28 03:55 KST부터 2026-08-29 03:52 KST까지의 커밋이며, 657개 파일, 추가 29,600줄, 삭제 9,316줄이다. 리뷰 중 다른 세션이 만든 후속 커밋은 범위 밖이다. 소스 코드는 수정하지 않았다.
 
