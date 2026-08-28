@@ -10,7 +10,14 @@ DB_NAME="osmu_matrix_${$}_$(date +%s)"
 MATRIX_URL="${BASE_URL%/*}/$DB_NAME"
 BASE_DATABASE="${BASE_URL##*/}"; BASE_DATABASE="${BASE_DATABASE%%\?*}"
 TMP_DIR="$(mktemp -d)"
-RUNNER_COMMIT="$(git -C "$DASHBOARD_DIR/.." rev-parse HEAD)"
+RUNNER_COMMIT="${RUNNER_COMMIT:-${GITHUB_SHA:-}}"
+if [ -z "$RUNNER_COMMIT" ]; then
+  RUNNER_COMMIT="$(git -C "$DASHBOARD_DIR/.." rev-parse HEAD)"
+fi
+if ! [[ "$RUNNER_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "ERROR: RUNNER_COMMIT or GITHUB_SHA must be a 40-character git SHA" >&2
+  exit 2
+fi
 APP_DIGEST="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 PREVIOUS_DIGEST="sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 
