@@ -60,7 +60,12 @@ WITH constraints AS (
     (SELECT count(*) FROM (
       SELECT 1 FROM public.studio_free_regeneration_uses
       GROUP BY member_id,local_date HAVING count(*) > 1
-    ) AS d) AS quota
+    ) AS d) AS quota,
+    (SELECT count(*) FROM (
+      SELECT 1 FROM public.studio_generation_idempotency
+      GROUP BY member_id,operation,idempotency_key
+      HAVING count(DISTINCT request_hash) > 1
+    ) AS d) AS request_hash_divergence
 )
 SELECT pg_catalog.jsonb_build_object(
   'manifest_version', 1,

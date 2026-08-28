@@ -1,7 +1,4 @@
 -- Quota C1: 회원 전역·UTC 계약의 별도 승인 뒤 quota tenant-scoped UNIQUE만 제거한다.
-CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS uq_studio_quota_tenant_rollback_idx
-  ON public.studio_free_regeneration_uses(tenant_id, member_id, local_date);
-
 BEGIN;
 SET LOCAL lock_timeout = '5000ms';
 DO $contract$

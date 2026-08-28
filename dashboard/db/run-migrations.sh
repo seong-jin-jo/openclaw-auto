@@ -137,14 +137,19 @@ SELECT
   (SELECT count(*) FROM (
     SELECT 1 FROM public.studio_free_regeneration_uses
     GROUP BY member_id,local_date HAVING count(*) > 1
-  ) AS quota_duplicates)::text;
+  ) AS quota_duplicates)::text || '|' ||
+  (SELECT count(*) FROM (
+    SELECT 1 FROM public.studio_generation_idempotency
+    GROUP BY member_id,operation,idempotency_key
+    HAVING count(DISTINCT request_hash) > 1
+  ) AS request_hash_divergence)::text;
 SQL
 }
 
 assert_no_duplicates() {
   local counts
   counts="$(duplicate_counts)"
-  if [ "$counts" != "0|0" ]; then
+  if [ "$counts" != "0|0|0" ]; then
     echo "ERROR: member-scope duplicate audit failed: $counts" >&2
     exit 3
   fi
@@ -324,7 +329,7 @@ apply_phase() {
   row="$(manifest_entry "$wanted")"
   IFS=$'\t' read -r id manifest_phase file expected <<<"$row"
   case "$manifest_phase" in
-    expand-fk|expand-guard|expand-member) ledger_phase="expand" ;;
+    expand-fk|expand-guard|expand-member|prepare-rollback) ledger_phase="expand" ;;
     contract-generation|contract-quota) ledger_phase="contract" ;;
     cleanup) ledger_phase="cleanup" ;;
     *) echo "ERROR: phase $manifest_phase is not executable" >&2; exit 2 ;;
@@ -344,8 +349,12 @@ apply_phase() {
       require_applied "20260829_010_studio_generation_expand_contract"
       require_verified_app
       ;;
-    contract-generation)
+    prepare-rollback)
       require_applied "20260829_030_member_unique_expand"
+      require_verified_app
+      ;;
+    contract-generation)
+      require_applied "20260829_035_rollback_indexes_expand"
       require_verified_app
       validate_rollback_manifest
       ;;
@@ -402,7 +411,7 @@ case "$PHASE" in
     ensure_ledger
     adopt_baseline
     ;;
-  baseline|apply-legacy|expand-fk|expand-guard|expand-member|contract-generation|contract-quota|cleanup)
+  baseline|apply-legacy|expand-fk|expand-guard|expand-member|prepare-rollback|contract-generation|contract-quota|cleanup)
     if [ "$PHASE" = "contract-quota" ]; then assert_fingerprint "S3|S2"; else assert_fingerprint; fi
     assert_no_duplicates
     ensure_ledger
@@ -415,7 +424,7 @@ case "$PHASE" in
     if [ "$PHASE" = "contract-generation" ]; then assert_fingerprint "S3|S2"; else assert_fingerprint; fi
     ;;
   *)
-    echo "usage: $0 {preflight|bootstrap|baseline|apply-legacy|expand-fk|expand-guard|expand-member|contract-generation|contract-quota|cleanup}" >&2
+    echo "usage: $0 {preflight|bootstrap|baseline|apply-legacy|expand-fk|expand-guard|expand-member|prepare-rollback|contract-generation|contract-quota|cleanup}" >&2
     exit 2
     ;;
 esac

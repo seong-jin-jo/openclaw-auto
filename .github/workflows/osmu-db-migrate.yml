@@ -12,6 +12,7 @@ on:
           - expand-fk
           - expand-guard
           - expand-member
+          - prepare-rollback
           - contract-generation
           - contract-quota
           - rollback-generation

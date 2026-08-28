@@ -1,8 +1,5 @@
 -- Generation C1: compatibility app 확인 뒤 generation tenant-scoped UNIQUE만 제거한다.
 -- Quota C1은 별도 승인 migration에서만 실행한다.
-CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS uq_studio_generation_tenant_rollback_idx
-  ON public.studio_generation_idempotency(tenant_id, member_id, operation, idempotency_key);
-
 BEGIN;
 SET LOCAL lock_timeout = '5000ms';
 DO $contract$

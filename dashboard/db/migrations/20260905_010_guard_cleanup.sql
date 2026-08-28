@@ -9,3 +9,12 @@ DROP FUNCTION IF EXISTS public.guard_studio_free_regeneration_member_scope();
 
 DROP INDEX CONCURRENTLY IF EXISTS public.uq_studio_generation_tenant_rollback_idx;
 DROP INDEX CONCURRENTLY IF EXISTS public.uq_studio_quota_tenant_rollback_idx;
+
+DO $role_cleanup$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='osmu_generation_guard_owner') THEN
+    EXECUTE 'DROP OWNED BY osmu_generation_guard_owner';
+    EXECUTE 'DROP ROLE osmu_generation_guard_owner';
+  END IF;
+END
+$role_cleanup$;
