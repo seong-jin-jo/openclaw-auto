@@ -109,8 +109,12 @@ while :; do
      [ -z "$(running_in_lane review)" ] && [ -z "$(running_in_lane qa)" ] &&
      [ -z "$(next_pending build)" ] && [ -z "$(next_pending fe)" ] &&
      [ -z "$(next_pending review)" ] && [ -z "$(next_pending qa)" ]; then
+    # 백로그가 비었다고 죽지 않는다(회장 2026-08-28 "대기하고 있다가 재지시하라").
+    # 죽으면 다음 판을 사람이 손으로 걸어야 한다. 그게 멍때림의 원인이었다.
     idle_rounds=$((idle_rounds+1))
-    [ "$idle_rounds" -ge 2 ] && { echo "[$(date +%H:%M)] 백로그를 다 비웠다. 감독을 마친다."; break; }
+    if [ "$idle_rounds" = "2" ] || [ $((idle_rounds % 30)) = "0" ]; then
+      echo "[$(date +%H:%M)] 백로그가 비었다. 새 판이 들어올 때까지 기다린다(대기 ${idle_rounds}회)."
+    fi
   else
     idle_rounds=0
   fi
