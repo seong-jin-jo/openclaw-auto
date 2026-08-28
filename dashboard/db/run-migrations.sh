@@ -308,7 +308,7 @@ SQL
 }
 
 apply_legacy_manifest() {
-  local id phase file expected state
+  local id phase file expected state begin_count commit_count body_tmp transaction_tmp
   while IFS=$'\t' read -r id phase file expected; do
     [ "$phase" = "legacy" ] || continue
     verify_entry "$id" "$file" "$expected"
@@ -320,15 +320,38 @@ SQL
       echo "legacy_migration=$id state=applied action=checksum-only"
       continue
     fi
-    psql -X -q -v ON_ERROR_STOP=1 -f "$DB_DIR/$file"
-    psql -X -q -v ON_ERROR_STOP=1 \
-      -v id="$id" -v sha="$expected" -v commit="$RUNNER_COMMIT" <<'SQL'
+    begin_count="$(grep -c '^BEGIN;$' "$DB_DIR/$file" || true)"
+    commit_count="$(grep -c '^COMMIT;$' "$DB_DIR/$file" || true)"
+    if [ "$begin_count" != "1" ] || [ "$commit_count" != "1" ]; then
+      echo "ERROR: legacy migration $id must contain exactly one top-level BEGIN/COMMIT pair" >&2
+      exit 4
+    fi
+    body_tmp="$(mktemp)"
+    transaction_tmp="$(mktemp)"
+    sed -e '/^BEGIN;$/d' -e '/^COMMIT;$/d' "$DB_DIR/$file" >"$body_tmp"
+    {
+      echo '\set ON_ERROR_STOP on'
+      echo 'BEGIN;'
+      printf "\\i '%s'\n" "$body_tmp"
+      if [ "${OSMU_TEST_FAIL_AFTER_LEGACY_ID:-}" = "$id" ]; then
+        echo 'SELECT 1/0;'
+      fi
+      cat <<'SQL'
 INSERT INTO public.osmu_schema_migrations
   (migration_id,sha256,phase,state,runner_commit,started_at,applied_at,details)
-VALUES (:'id',:'sha','baseline','applied',:'commit',now(),now(),'{"explicit_historical_apply":true}'::jsonb)
+VALUES (:'id',:'sha','baseline','applied',:'commit',now(),now(),'{"explicit_historical_apply":true,"atomic_with_ledger":true}'::jsonb)
 ON CONFLICT (migration_id) DO UPDATE
-SET state='applied',runner_commit=EXCLUDED.runner_commit,applied_at=now();
+SET state='applied',runner_commit=EXCLUDED.runner_commit,applied_at=now(),details=EXCLUDED.details;
+COMMIT;
 SQL
+    } >"$transaction_tmp"
+    if ! psql -X -q -v ON_ERROR_STOP=1 \
+      -v id="$id" -v sha="$expected" -v commit="$RUNNER_COMMIT" -f "$transaction_tmp"; then
+      rm -f "$body_tmp" "$transaction_tmp"
+      echo "ERROR: legacy migration $id and ledger transaction rolled back" >&2
+      exit 6
+    fi
+    rm -f "$body_tmp" "$transaction_tmp"
   done <"$MANIFEST"
 }
 
