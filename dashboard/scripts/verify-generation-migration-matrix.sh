@@ -58,7 +58,16 @@ INSERT INTO public.studio_generation_jobs
 VALUES
   ('11111111-1111-4111-8111-111111111112','11111111-1111-4111-8111-111111111111','member-global','succeeded','[]','[]','UTC','{}',now()),
   ('22222222-2222-4222-8222-222222222223','22222222-2222-4222-8222-222222222222','member-global','succeeded','[]','[]','UTC','{}',now());
+INSERT INTO public.shorts_factory_runs
+  (id,tenant_id,member_id,status,concurrency_limit,total_concepts,idempotency_key,request_hash,created_at,updated_at,started_at)
+VALUES
+  ('11111111-1111-4111-8111-111111111119','11111111-1111-4111-8111-111111111111','lease-member','running',1,1,'lease-key',repeat('c',64),'2020-01-01','2090-01-01','2020-01-02');
 SQL
+
+run_phase apply-legacy
+lease_updated_at="$(matrix_psql -At -c "SELECT updated_at AT TIME ZONE 'UTC' FROM public.shorts_factory_runs WHERE id='11111111-1111-4111-8111-111111111119'")"
+[[ "$lease_updated_at" == 2090-01-01* ]] || { echo "FAIL applied legacy replay changed active lease updated_at=$lease_updated_at" >&2; exit 1; }
+echo "PASS applied legacy checksum-only retry preserves active lease heartbeat"
 
 run_phase expand-fk
 if run_phase expand-member >"$TMP_DIR/member-before-guard" 2>&1; then
@@ -184,6 +193,14 @@ run_phase expand-member
 echo "PASS invalid concurrent index drop and rebuild recovery"
 run_race S2 matrix-s2
 
+# Wrong same-name rollback index must fail before C1, at prepare-rollback.
+matrix_psql -c "CREATE UNIQUE INDEX uq_studio_generation_tenant_rollback_idx ON public.studio_generation_idempotency(tenant_id,id)"
+if run_phase prepare-rollback >"$TMP_DIR/wrong-prepare-index" 2>&1; then
+  echo "FAIL prepare-rollback accepted wrong-definition index" >&2; exit 1
+fi
+grep -q 'generation rollback index definition drifted' "$TMP_DIR/wrong-prepare-index"
+echo "PASS prepare-rollback blocks wrong-definition index before C1"
+matrix_psql -c "DROP INDEX public.uq_studio_generation_tenant_rollback_idx"
 run_phase prepare-rollback
 export VERIFIED_APP_IMAGE_DIGEST="$APP_DIGEST" VERIFIED_APP_COMMIT="$RUNNER_COMMIT"
 export PREVIOUS_COMPATIBLE_IMAGE_DIGEST="$PREVIOUS_DIGEST" ROLLBACK_DEADLINE_UTC='2099-01-01T00:00:00Z'

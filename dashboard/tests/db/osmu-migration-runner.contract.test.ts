@@ -10,6 +10,7 @@ const deployWorkflow = readFileSync(resolve(__dirname, "../../../.github/workflo
 const migrationWorkflow = readFileSync(resolve(__dirname, "../../../.github/workflows/osmu-db-migrate.yml"), "utf8");
 const rollbackWriter = readFileSync(resolve(dbRoot, "write-rollback-manifest.sh"), "utf8");
 const rollbackRunner = readFileSync(resolve(dbRoot, "rollback-migration.sh"), "utf8");
+const rollbackIndexVerifier = readFileSync(resolve(dbRoot, "verify-rollback-indexes.sql"), "utf8");
 const memberMigration = readFileSync(resolve(dbRoot, "migrations/20260829_030_member_unique_expand.sql"), "utf8");
 
 function manifestRows(): string[][] {
@@ -139,5 +140,31 @@ describe("OSMU explicit migration runner 계약", () => {
     expect(rollbackRunner).toContain("'tenant_id','member_id','operation','idempotency_key'");
     expect(rollbackRunner).toContain("'tenant_id','member_id','local_date'");
     expect(rollbackRunner).toContain("exact valid rollback index missing or definition drifted");
+  });
+
+  it("GEN-MIG-14 정상: 적용된 legacy migration은 checksum만 확인하고 SQL을 재실행하지 않는다", () => {
+    expect(runner).toContain('if [ "$state" = "applied" ]');
+    expect(runner).toContain("action=checksum-only");
+    expect(runner.indexOf('if [ "$state" = "applied" ]')).toBeLessThan(runner.indexOf('psql -X -q -v ON_ERROR_STOP=1 -f "$DB_DIR/$file"'));
+  });
+
+  it("GEN-MIG-15 거절: prepare와 contract, manifest 생성 모두 rollback index exact definition을 검증한다", () => {
+    expect(rollbackIndexVerifier).toContain("i.indrelid='public.studio_generation_idempotency'::regclass");
+    expect(rollbackIndexVerifier).toContain("i.indrelid='public.studio_free_regeneration_uses'::regclass");
+    expect(rollbackIndexVerifier).toContain("i.indexprs IS NULL AND i.indpred IS NULL");
+    expect(rollbackIndexVerifier).toContain("i.indnatts=4 AND i.indnkeyatts=4");
+    expect(rollbackIndexVerifier).toContain("i.indnatts=3 AND i.indnkeyatts=3");
+    expect(runner).toContain("assert_exact_rollback_indexes");
+    expect(rollbackWriter).toContain("verify-rollback-indexes.sql");
+  });
+
+  it("GEN-MIG-16 거절: previous image는 pull 또는 stopped container로 실존을 확인하고 commit 호환성을 검사한다", () => {
+    expect(migrationWorkflow).toContain('docker pull "$PREVIOUS_IMAGE_REF"');
+    expect(migrationWorkflow).toContain("docker ps -aq --filter label=com.docker.compose.service=openclaw-dashboard-osmu");
+    expect(migrationWorkflow).toContain('docker image inspect --format \'{{.Id}}\' "$image_source"');
+    expect(migrationWorkflow).toContain("org.opencontainers.image.revision");
+    expect(migrationWorkflow).toContain('git merge-base --is-ancestor "$COMPATIBILITY_BASE_COMMIT" "$previous_commit"');
+    expect(migrationWorkflow).toContain('docker create --entrypoint /bin/true "$image_source"');
+    expect(migrationWorkflow).toContain("PREVIOUS_COMPATIBLE_IMAGE_DIGEST: ${{ steps.previous.outputs.image_digest }}");
   });
 });

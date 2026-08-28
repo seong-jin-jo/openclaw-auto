@@ -308,10 +308,18 @@ SQL
 }
 
 apply_legacy_manifest() {
-  local id phase file expected
+  local id phase file expected state
   while IFS=$'\t' read -r id phase file expected; do
     [ "$phase" = "legacy" ] || continue
     verify_entry "$id" "$file" "$expected"
+    state="$(psql -X -qAt -v ON_ERROR_STOP=1 -v id="$id" <<'SQL'
+SELECT state FROM public.osmu_schema_migrations WHERE migration_id=:'id';
+SQL
+)"
+    if [ "$state" = "applied" ]; then
+      echo "legacy_migration=$id state=applied action=checksum-only"
+      continue
+    fi
     psql -X -q -v ON_ERROR_STOP=1 -f "$DB_DIR/$file"
     psql -X -q -v ON_ERROR_STOP=1 \
       -v id="$id" -v sha="$expected" -v commit="$RUNNER_COMMIT" <<'SQL'
@@ -322,6 +330,11 @@ ON CONFLICT (migration_id) DO UPDATE
 SET state='applied',runner_commit=EXCLUDED.runner_commit,applied_at=now();
 SQL
   done <"$MANIFEST"
+}
+
+assert_exact_rollback_indexes() {
+  psql -X -q -v ON_ERROR_STOP=1 -f "$DB_DIR/verify-rollback-indexes.sql"
+  echo "rollback_indexes=exact-valid-ready"
 }
 
 apply_phase() {
@@ -357,6 +370,7 @@ apply_phase() {
     contract-generation)
       require_applied "20260829_035_rollback_indexes_expand"
       require_verified_app
+      assert_exact_rollback_indexes
       validate_rollback_manifest
       ;;
     contract-quota)
@@ -421,6 +435,7 @@ case "$PHASE" in
     elif [ "$PHASE" != "baseline" ]; then
       apply_phase "$PHASE"
     fi
+    if [ "$PHASE" = "prepare-rollback" ]; then assert_exact_rollback_indexes; fi
     if [ "$PHASE" = "contract-generation" ]; then assert_fingerprint "S3|S2"; else assert_fingerprint; fi
     ;;
   *)
