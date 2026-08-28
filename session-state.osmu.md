@@ -2,6 +2,17 @@
 
 최신이 위. 이 파일만 읽고 30초 안에 이어갈 수 있어야 한다.
 
+## [2026-08-29 01:36] 읽기 API 99개 전수 실사 범위 PASS
+
+- canonical `pipeline-state.osmu.md`의 `current_stage: qa`를 확인하고 이번 실사를 시작했다.
+- `localhost:3456`, 작업 공간 `cd1d0a40-540d-4524-9b49-bf2445d82182`에서 GET export 99개를 실제 호출했다. 최종 정상 89, 의도된 거절 10, HTTP 500 0, 요청 실패 0이다.
+- 수정 커밋: `c0b4d8b4` OAuth 구성 부재 500을 503으로 분리, `e3affd62` 고객 TikTok 상태 polling 인증 경계 복구, `dd3bb0c9` Studio 이중 고유 제약 회귀 보정, `04f91170` 전수 실사 스크립트 추가.
+- 검증: health 200 DB up, 기본 흐름 11/11, Studio v1 12/12, Playwright 네 방 16화면과 복귀 4/4, 콘솔 오류·401 URL·가로 넘침 0. 전체 Vitest 190파일 1,358건 통과와 조건부 3건 제외, `npx tsc --noEmit`, production build 174/174, design lint 0 통과.
+- 증거: `docs/audit/osmu-api-read-sweep-v1-gpt-codex.md`, `docs/qa/qa-tracker.md`, `docs/구현현황.md`.
+- 전체 제품 QA는 NG를 유지한다. 운영 고객 Studio 생성이 503이고 승인 시안 디자인 정합 NG가 별도로 남아 있다. 실제 연결 TikTok provider 성공 응답과 공개 채널 발행도 미검증이다.
+- 다음 실행: code-builder가 운영 고객 JWT를 Studio principal로 연결한다. 종료증거는 실제 운영 고객 세션으로 후보 3개 생성, 편집실 인계, 발행실 작업물 도달이다. product-designer와 qa-verifier는 승인 시안 정합 NG를 별도 루프로 닫아야 한다.
+
+
 ## [2026-08-29 00:20] 지난 24시간 코드 리뷰 BLOCK
 
 ### 무엇을 어디까지 했나
