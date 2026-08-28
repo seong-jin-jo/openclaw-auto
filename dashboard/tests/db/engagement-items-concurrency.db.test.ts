@@ -42,13 +42,43 @@ describe("BE-V63-10 댓글 상태 tenant 격리와 답글 경합", () => {
         VALUES (${postId}::uuid, ${tenantA}::uuid, 'threads', 'provider-post-1', 'published')`;
       process.env.DATABASE_URL = getDatabaseUrl()!;
       vi.resetModules();
-      const { claimReply, listEngagementStates } = await import("@/lib/engagement-store");
+      const { claimReply, completeReply, listEngagementStates, markEngagement } = await import("@/lib/engagement-store");
       const [first, second] = await Promise.all([
         claimReply({ tenantId: tenantA, postId, platform: "threads", commentId: "comment-1", requestKey: "request-a1", text: "답글 하나" }),
         claimReply({ tenantId: tenantA, postId, platform: "threads", commentId: "comment-1", requestKey: "request-b2", text: "답글 둘" }),
       ]);
       expect([first.status, second.status].sort()).toEqual(["claimed", "conflict"]);
       expect(await listEngagementStates(tenantB, postId)).toEqual([]);
+      const winner = first.status === "claimed" ? first : second;
+      const winnerKey = winner.row?.reply_request_key ?? "";
+      const winnerText = winner.row?.reply_text ?? "";
+      await completeReply({
+        tenantId: tenantA,
+        platform: "threads",
+        commentId: "comment-1",
+        requestKey: winnerKey,
+        externalId: "reply-external-1",
+      });
+      const replay = await claimReply({
+        tenantId: tenantA, postId, platform: "threads", commentId: "comment-1",
+        requestKey: winnerKey, text: winnerText,
+      });
+      const changedBody = await claimReply({
+        tenantId: tenantA, postId, platform: "threads", commentId: "comment-1",
+        requestKey: winnerKey, text: `${winnerText} 변경`,
+      });
+      expect(replay.status).toBe("replay");
+      expect(changedBody.status).toBe("conflict");
+
+      const deferred = await markEngagement({
+        tenantId: tenantA, postId, platform: "threads", commentId: "comment-like-state", action: "defer",
+      });
+      const liked = await markEngagement({
+        tenantId: tenantA, postId, platform: "threads", commentId: "comment-like-state", action: "like",
+      });
+      expect(deferred.state).toBe("deferred");
+      expect(liked.state).toBe("deferred");
+      expect(liked.liked_at).not.toBeNull();
       const { db } = await import("@/lib/db");
       appDb = db();
     } finally {

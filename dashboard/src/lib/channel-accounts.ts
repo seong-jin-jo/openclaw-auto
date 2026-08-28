@@ -264,7 +264,8 @@ export async function getSelectedChannelAccountCred(
                meta
         FROM channel_accounts
         WHERE tenant_id = ${tenantId} AND provider = ${provider} AND id = ${accountId}
-          AND status = 'active'`;
+          AND status = 'active'
+          AND (token_expires_at IS NULL OR token_expires_at > now())`;
     }
     return sql<{ id: string; token: string | null; refresh_token: string | null; meta: Record<string, unknown> | null }[]>`
       SELECT id,
@@ -273,7 +274,8 @@ export async function getSelectedChannelAccountCred(
              meta
       FROM channel_accounts
       WHERE tenant_id = ${tenantId} AND provider = ${provider} AND is_default = true
-        AND status = 'active'`;
+        AND status = 'active'
+        AND (token_expires_at IS NULL OR token_expires_at > now())`;
   });
   if (!row || !row.token) return null;
   const meta = row.meta ?? {};

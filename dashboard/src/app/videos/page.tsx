@@ -663,7 +663,7 @@ export default function VideosPage() {
                   <input type="checkbox" checked={fanoutText} onChange={(e) => setFanoutText(e.target.checked)} className="rounded-chip" />
                   OSMU 팬아웃(영상+텍스트)
                 </label>
-                <button onClick={addAllClipsToQueue} disabled={addingAll} className="text-caption px-stack py-micro bg-success hover:bg-success rounded-chip disabled:opacity-50">
+                <button onClick={addAllClipsToQueue} disabled={addingAll} className="text-caption px-stack py-micro bg-success text-status-fg hover:bg-success rounded-chip disabled:opacity-50">
                   {addingAll ? "추가 중…" : `전체 큐에 추가 (${rankedClips.length})`}
                 </button>
               </div>
@@ -704,7 +704,7 @@ export default function VideosPage() {
                         <button onClick={() => refineClip(oi)} disabled={refiningClip === c.id} className="flex-1 text-caption px-micro py-micro bg-accent hover:bg-accent-hover rounded-chip disabled:opacity-50">
                           {refiningClip === c.id ? "다듬는 중…" : "Wiki/브랜드 톤"}
                         </button>
-                        <button onClick={() => addClipToLibrary(c)} className="flex-1 text-caption px-micro py-micro bg-success hover:bg-success rounded-chip">
+                        <button onClick={() => addClipToLibrary(c)} className="flex-1 text-caption px-micro py-micro bg-success text-status-fg hover:bg-success rounded-chip">
                           큐에 추가
                         </button>
                       </div>

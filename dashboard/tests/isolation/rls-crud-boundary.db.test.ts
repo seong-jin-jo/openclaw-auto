@@ -15,6 +15,7 @@ const protectedTables = [
   "shorts_factory_concept_runs",
   "published_posts",
   "engagement_items",
+  "operational_incidents",
   "queue_posts",
   "schedules",
   "growth_metrics",
@@ -117,6 +118,43 @@ describe("작업 공간 RLS 읽기·수정·삭제 경계", () => {
       if (tenantA || tenantB) {
         await sql`delete from tenants where id in (${tenantA}::uuid, ${tenantB}::uuid)`.catch(() => {});
       }
+      await sql.end({ timeout: 5 });
+    }
+  });
+
+  it("TENANT-RLS-03 거절: A 댓글은 B 발행 글이나 B 편집 초안을 참조할 수 없다", async (ctx) => {
+    const sql = await connectRequired(ctx);
+    if (!sql) return;
+    const suffix = `${Date.now()}-${crypto.randomBytes(3).toString("hex")}`;
+    let tenantA: string | null = null;
+    let tenantB: string | null = null;
+    try {
+      const [a, b] = await sql.begin(async (tx) => {
+        const [createdA] = await tx<{ id: string }[]>`
+          insert into tenants (slug, name, status) values (${`qa-fk-a-${suffix}`}, 'QA FK A', 'active') returning id`;
+        const [createdB] = await tx<{ id: string }[]>`
+          insert into tenants (slug, name, status) values (${`qa-fk-b-${suffix}`}, 'QA FK B', 'active') returning id`;
+        return [createdA, createdB];
+      });
+      tenantA = a.id;
+      tenantB = b.id;
+      const [postB] = await sql<{ id: string }[]>`
+        insert into published_posts (tenant_id, platform, status) values (${tenantB}::uuid, 'threads', 'published') returning id`;
+      const [draftB] = await sql<{ id: string }[]>`
+        insert into drafts (tenant_id, idea, status) values (${tenantB}::uuid, 'B 초안', 'draft') returning id`;
+
+      await expect(sql`
+        insert into engagement_items
+          (tenant_id, published_post_id, platform, provider_comment_id)
+        values (${tenantA}::uuid, ${postB.id}::uuid, 'threads', 'cross-post')`
+      ).rejects.toThrow();
+      await expect(sql`
+        insert into engagement_items
+          (tenant_id, published_post_id, platform, provider_comment_id, editor_draft_id)
+        values (${tenantA}::uuid, ${postB.id}::uuid, 'threads', 'cross-draft', ${draftB.id}::uuid)`
+      ).rejects.toThrow();
+    } finally {
+      if (tenantA || tenantB) await sql`delete from tenants where id in (${tenantA}::uuid, ${tenantB}::uuid)`.catch(() => {});
       await sql.end({ timeout: 5 });
     }
   });

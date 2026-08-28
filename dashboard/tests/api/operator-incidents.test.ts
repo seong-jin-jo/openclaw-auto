@@ -39,6 +39,10 @@ describe("운영 장애 API 계약", () => {
       last_seen_at: "2026-08-28T06:00:00.000Z",
       recovered_at: null,
       notified_at: null,
+    }]).mockResolvedValueOnce([{
+      human_open: 1,
+      automatic_open: 0,
+      recovered: 0,
     }]);
     const { GET } = await import("@/app/api/operator/incidents/route");
 
@@ -52,6 +56,24 @@ describe("운영 장애 API 계약", () => {
       workspaceName: "해낼게",
       intervention: "human",
     });
+  });
+
+  it("관측-09 경계: 최근 200건 밖의 미알림 사람 장애도 목록에 포함하고 요약은 전체 원장에서 계산한다", async () => {
+    sqlMock.mockResolvedValueOnce([]).mockResolvedValueOnce([{
+      human_open: 3,
+      automatic_open: 201,
+      recovered: 8,
+    }]);
+    const { GET } = await import("@/app/api/operator/incidents/route");
+
+    const response = await GET(request());
+    const body = await response.json();
+    const listQuery = String(sqlMock.mock.calls[0]?.[0]);
+
+    expect(response.status).toBe(200);
+    expect(body.summary).toEqual({ humanOpen: 3, automaticOpen: 201, recovered: 8 });
+    expect(listQuery).toContain("notified_at IS NULL");
+    expect(listQuery).toContain("row_number <= 200");
   });
 
   it("관측-07 거절: 운영자 인증이 없으면 장애 목록을 노출하지 않는다", async () => {

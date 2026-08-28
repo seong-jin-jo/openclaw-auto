@@ -34,6 +34,25 @@ function reset() {
 function fakeSql(strings: TemplateStringsArray, ...vals: unknown[]) {
   const text = strings.join("?");
 
+  if (text.includes("CASE WHEN secret_enc") && text.includes("FROM channel_accounts")) {
+    const accountId = text.includes("AND id =") ? String(vals.at(-1)) : undefined;
+    const provider = String(vals.at(accountId ? -2 : -1));
+    const tenantId = String(vals.at(accountId ? -3 : -2));
+    const row = H.rows.find((candidate) => (
+      candidate.tenant_id === tenantId
+      && candidate.provider === provider
+      && candidate.status === "active"
+      && (accountId ? candidate.id === accountId : candidate.is_default)
+      && (!candidate.token_expires_at || Date.parse(candidate.token_expires_at) > Date.now())
+    ));
+    return Promise.resolve(row ? [{
+      id: row.id,
+      token: row.secret_enc,
+      refresh_token: row.refresh_enc,
+      meta: row.meta,
+    }] : []);
+  }
+
   if (text.includes("SELECT id, is_default FROM channel_accounts") && text.includes("external_account_id")) {
     const [tenantId, provider, externalId] = vals as [string, string, string];
     const row = H.rows.find((r) => r.tenant_id === tenantId && r.provider === provider && r.external_account_id === externalId);
@@ -180,6 +199,27 @@ describe("upsertChannelAccount — 2계정 + 재연결 idempotency", () => {
       tokenExpiresAt,
     });
     expect(H.rows[0]?.token_expires_at).toBe(tokenExpiresAt);
+  });
+});
+
+describe("getSelectedChannelAccountCred: 만료 토큰 사전 차단", () => {
+  it("채널-만료-01 정상: 만료 전 active 계정은 발행 자격으로 반환한다", async () => {
+    const { upsertChannelAccount, getSelectedChannelAccountCred } = await import("@/lib/channel-accounts");
+    const account = await upsertChannelAccount({
+      tenantId: "t1", provider: "threads", externalId: "live", accessToken: "token-live",
+      tokenExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+    });
+    await expect(getSelectedChannelAccountCred("t1", "threads", account.id))
+      .resolves.toMatchObject({ accountId: account.id, token: "token-live" });
+  });
+
+  it("채널-만료-02 거절: active여도 만료 시각이 지났으면 공급자 호출용 자격을 반환하지 않는다", async () => {
+    const { upsertChannelAccount, getSelectedChannelAccountCred } = await import("@/lib/channel-accounts");
+    const account = await upsertChannelAccount({
+      tenantId: "t1", provider: "threads", externalId: "expired", accessToken: "token-expired",
+      tokenExpiresAt: new Date(Date.now() - 60_000).toISOString(),
+    });
+    await expect(getSelectedChannelAccountCred("t1", "threads", account.id)).resolves.toBeNull();
   });
 });
 

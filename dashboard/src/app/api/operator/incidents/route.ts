@@ -20,6 +20,12 @@ interface IncidentRow {
   notified_at: string | null;
 }
 
+interface IncidentSummaryRow {
+  human_open: number | string;
+  automatic_open: number | string;
+  recovered: number | string;
+}
+
 function operatorError(request: Request): Response | null {
   const operatorToken = process.env.DASHBOARD_AUTH_TOKEN || "";
   if (!operatorToken) return Response.json({ error: "operator token not configured" }, { status: 503 });
@@ -55,7 +61,8 @@ export async function GET(request: Request) {
   try {
     const sql = db();
     const rows = await sql<IncidentRow[]>`
-      SELECT
+      WITH ranked AS (
+        SELECT
         oi.id::text,
         oi.tenant_id::text,
         t.name AS workspace_name,
@@ -70,19 +77,33 @@ export async function GET(request: Request) {
         oi.first_seen_at::text,
         oi.last_seen_at::text,
         oi.recovered_at::text,
-        oi.notified_at::text
+        oi.notified_at::text,
+        row_number() OVER (ORDER BY (oi.status = 'open') DESC, oi.last_seen_at DESC) AS row_number
       FROM operational_incidents oi
       JOIN tenants t ON t.id = oi.tenant_id
-      ORDER BY (oi.status = 'open') DESC, oi.last_seen_at DESC
-      LIMIT 200
+      )
+      SELECT id, tenant_id, workspace_name, workspace_slug, category, source, reason_code,
+             severity, intervention, status, occurrences, first_seen_at, last_seen_at,
+             recovered_at, notified_at
+      FROM ranked
+      WHERE row_number <= 200
+         OR (status = 'open' AND intervention = 'human' AND notified_at IS NULL)
+      ORDER BY (status = 'open') DESC, last_seen_at DESC
+    `;
+    const [summaryRow] = await sql<IncidentSummaryRow[]>`
+      SELECT
+        count(*) FILTER (WHERE status = 'open' AND intervention = 'human')::int AS human_open,
+        count(*) FILTER (WHERE status = 'open' AND intervention = 'automatic')::int AS automatic_open,
+        count(*) FILTER (WHERE status = 'recovered')::int AS recovered
+      FROM operational_incidents
     `;
     const incidents = rows.map(serialize);
     return Response.json({
       incidents,
       summary: {
-        humanOpen: incidents.filter((item) => item.status === "open" && item.intervention === "human").length,
-        automaticOpen: incidents.filter((item) => item.status === "open" && item.intervention === "automatic").length,
-        recovered: incidents.filter((item) => item.status === "recovered").length,
+        humanOpen: Number(summaryRow?.human_open ?? 0),
+        automaticOpen: Number(summaryRow?.automatic_open ?? 0),
+        recovered: Number(summaryRow?.recovered ?? 0),
       },
     });
   } catch {

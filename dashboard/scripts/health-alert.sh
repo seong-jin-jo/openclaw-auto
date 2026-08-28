@@ -17,6 +17,7 @@ STATE_FILE="${STATE_FILE:-/tmp/osmu-health.state}"
 OPERATOR_TOKEN="${OPERATOR_TOKEN:-}"
 BODY_FILE="${STATE_FILE}.body"
 INCIDENT_FILE="${STATE_FILE}.incidents"
+ALERT_STATE_FILE="${STATE_FILE}.alerted"
 
 [ -z "$BASE_URL" ] && { echo "ERROR: BASE_URL 미설정" >&2; exit 2; }
 
@@ -24,6 +25,12 @@ slack() {
   [ -n "$HOOK" ] || return 1
   curl -fsS -m 10 -X POST "$HOOK" -H 'Content-Type: application/json' \
     -d "{\"text\":$(printf '%s' "$1" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}" >/dev/null 2>&1
+}
+
+sanitize_slack_text() {
+  python3 -c 'import html,sys
+value=" ".join(sys.stdin.read().split())[:160]
+print(html.escape(value, quote=False), end="")'
 }
 
 operator_curl() {
@@ -44,6 +51,9 @@ send_operational_incidents() {
 
   while IFS=$'\t' read -r incident_id workspace category source occurrences; do
     [ -n "$incident_id" ] || continue
+    workspace=$(printf '%s' "$workspace" | sanitize_slack_text)
+    category=$(printf '%s' "$category" | sanitize_slack_text)
+    source=$(printf '%s' "$source" | sanitize_slack_text)
     if slack "$(printf '운영 장애 알림\n작업 공간: %s\n분류: %s\n서비스: %s\n발생: %s회' "$workspace" "$category" "$source" "$occurrences")"; then
       local ack_body
       ack_body=$(jq -nc --arg id "$incident_id" '{action:"mark_notified",ids:[$id]}')
@@ -54,6 +64,7 @@ send_operational_incidents() {
 }
 
 fails=$(cat "$STATE_FILE" 2>/dev/null || echo 0)
+alerted=$(cat "$ALERT_STATE_FILE" 2>/dev/null || echo 0)
 case "$fails" in
   ""|*[!0-9]*) fails=0 ;;
 esac
@@ -65,14 +76,17 @@ if [ "$code" = "200" ]; then
     slack "OSMU 대시보드 복구됨: /api/health 200 ($BASE_URL)" || true
   fi
   echo 0 > "$STATE_FILE"
+  echo 0 > "$ALERT_STATE_FILE"
   send_operational_incidents
 else
   fails=$((fails + 1))
   echo "$fails" > "$STATE_FILE"
   body=$(head -c 300 "$BODY_FILE" 2>/dev/null)
-  # 임계 도달 그 순간에만 1회 경보. 이후 복구까지 침묵한다.
-  if [ "$fails" -eq "$THRESHOLD" ]; then
-    slack "$(printf 'OSMU 대시보드 장애: /api/health http=%s (연속 %s회) %s\n%s' "$code" "$fails" "$BASE_URL" "$body")" || true
+  # 임계 이상이고 아직 성공한 알림이 없으면 매 점검에서 제한 재시도한다.
+  if [ "$fails" -ge "$THRESHOLD" ] && [ "$alerted" != "1" ]; then
+    if slack "$(printf 'OSMU 대시보드 장애: /api/health http=%s (연속 %s회) %s\n%s' "$code" "$fails" "$BASE_URL" "$body")"; then
+      echo 1 > "$ALERT_STATE_FILE"
+    fi
   fi
   echo "[health-alert] FAIL http=$code fails=$fails" >&2
 fi

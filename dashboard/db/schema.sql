@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS drafts (
 );
 
 CREATE INDEX IF NOT EXISTS idx_drafts_tenant ON drafts(tenant_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_drafts_tenant_id ON drafts(tenant_id, id);
 CREATE INDEX IF NOT EXISTS idx_integrations_tenant ON integrations(tenant_id);
 
 -- Studio v1 생성 장부. 프로세스 메모리 대신 작업, 멱등 응답, 회원별 현지 날짜 무료 재생성을
@@ -241,6 +242,8 @@ CREATE TABLE IF NOT EXISTS published_posts (
   reposts       INTEGER,
   metrics_at    TIMESTAMPTZ
 );
+CREATE UNIQUE INDEX IF NOT EXISTS uq_published_posts_tenant_id
+  ON published_posts(tenant_id, id);
 CREATE INDEX IF NOT EXISTS idx_pubposts_tenant ON published_posts(tenant_id, published_at DESC);
 
 -- 댓글 본문은 provider에서 읽고, 사람이 정한 상태와 외부 답글 결과만 보관한다.
@@ -264,6 +267,29 @@ CREATE TABLE IF NOT EXISTS engagement_items (
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (tenant_id, platform, provider_comment_id)
 );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'engagement_items'::regclass
+      AND conname = 'fk_engagement_items_tenant_published_post'
+  ) THEN
+    ALTER TABLE engagement_items
+      ADD CONSTRAINT fk_engagement_items_tenant_published_post
+      FOREIGN KEY (tenant_id, published_post_id)
+      REFERENCES published_posts(tenant_id, id);
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'engagement_items'::regclass
+      AND conname = 'fk_engagement_items_tenant_editor_draft'
+  ) THEN
+    ALTER TABLE engagement_items
+      ADD CONSTRAINT fk_engagement_items_tenant_editor_draft
+      FOREIGN KEY (tenant_id, editor_draft_id)
+      REFERENCES drafts(tenant_id, id);
+  END IF;
+END $$;
 CREATE INDEX IF NOT EXISTS idx_engagement_items_tenant_state
   ON engagement_items(tenant_id, state, updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_engagement_items_post

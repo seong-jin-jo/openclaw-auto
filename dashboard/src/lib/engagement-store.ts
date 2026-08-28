@@ -64,7 +64,11 @@ export async function claimReply(input: {
              replied_at::text, liked_at::text, deferred_at::text, editor_handoff_at::text, editor_draft_id
       FROM engagement_items
       WHERE tenant_id = ${input.tenantId} AND platform = ${input.platform} AND provider_comment_id = ${input.commentId}`;
-    if (existing?.replied_at && existing.reply_request_key === input.requestKey) return { status: "replay" as const, row: existing };
+    if (
+      existing?.replied_at
+      && existing.reply_request_key === input.requestKey
+      && existing.reply_text === input.text
+    ) return { status: "replay" as const, row: existing };
     return { status: "conflict" as const, row: existing ?? null };
   });
 }
@@ -112,7 +116,11 @@ export async function markEngagement(input: {
        ${input.action === "like" ? new Date() : null}, ${input.action === "defer" ? new Date() : null},
        ${input.action === "editorHandoff" ? new Date() : null}, ${input.action === "editorHandoff" ? input.draftId ?? null : null})
     ON CONFLICT (tenant_id, platform, provider_comment_id) DO UPDATE
-    SET state = CASE WHEN engagement_items.replied_at IS NOT NULL THEN engagement_items.state ELSE EXCLUDED.state END,
+    SET state = CASE
+          WHEN EXCLUDED.liked_at IS NOT NULL THEN engagement_items.state
+          WHEN engagement_items.replied_at IS NOT NULL THEN engagement_items.state
+          ELSE EXCLUDED.state
+        END,
         liked_at = COALESCE(EXCLUDED.liked_at, engagement_items.liked_at),
         deferred_at = COALESCE(EXCLUDED.deferred_at, engagement_items.deferred_at),
         editor_handoff_at = COALESCE(EXCLUDED.editor_handoff_at, engagement_items.editor_handoff_at),

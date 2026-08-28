@@ -2,6 +2,7 @@
 
 import useSWR from "swr";
 import { fetcher, isAuthRequiredError } from "@/lib/api";
+import type { IncidentSource } from "@/lib/observability/incidents";
 
 interface OperationalIncident {
   id: string;
@@ -30,7 +31,7 @@ const CATEGORY_LABEL: Record<string, string> = {
   external_service_error: "외부 서비스 오류",
 };
 
-const SOURCE_LABEL: Record<string, string> = {
+const SOURCE_LABEL: Record<IncidentSource, string> = {
   threads: "스레드",
   instagram: "인스타그램",
   x: "엑스",
@@ -40,6 +41,12 @@ const SOURCE_LABEL: Record<string, string> = {
   discord: "디스코드",
   slack: "슬랙",
   youtube: "유튜브",
+  linkedin: "링크드인",
+  pinterest: "핀터레스트",
+  tumblr: "텀블러",
+  tiktok: "틱톡",
+  line: "라인",
+  naver_blog: "네이버 블로그",
   shared_ai: "공유 인공지능",
   studio: "스튜디오",
   unknown_platform: "확인 필요",
@@ -102,7 +109,7 @@ export function OperationalIncidentPanel() {
                   <p className="mt-micro truncate text-caption text-muted">{incident.workspaceName} ({incident.workspaceSlug})</p>
                 </div>
                 <div className="text-caption text-subtle">
-                  <p>{SOURCE_LABEL[incident.source] || "외부 서비스"}</p>
+                  <p>{SOURCE_LABEL[incident.source as IncidentSource] || "외부 서비스"}</p>
                   <p className="mt-micro">발생 {incident.occurrences}회</p>
                 </div>
                 <time className="text-caption text-subtle" dateTime={incident.lastSeenAt}>{formatSeenAt(incident.lastSeenAt)}</time>
