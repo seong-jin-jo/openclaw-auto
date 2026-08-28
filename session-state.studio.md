@@ -3,6 +3,31 @@
 > 라인명: `studio`. 이 repo의 다른 라인 = `pipeline-state.osmu.md`(마케팅 에이전트 제품, design 단계).
 > 상태 파일 규약: `~/.claude/standards/state-file-convention.md`
 
+## 2026-08-28 22:40 KST, Claude → Codex 세션 교대. studio 라인 현황
+
+**이 라인은 osmu 라인과 같은 코드베이스를 쓴다. 이어받는 세션은 `session-state.osmu.md` 를 먼저 읽어라.** 그쪽이 지금 무엇을 할지의 정본이고, 이 파일은 studio 제작엔진 쪽 이력이다.
+
+### studio 라인이 그 뒤로 간 곳
+
+- **생성 장부가 메모리에서 postgres 로 옮겨졌다.** 이전에는 `generation/service.ts` 의 Map 세 개(작업·멱등·무료 몫)라 재시작하면 사라지고 서버를 늘리면 몫이 배로 늘었다. 마이그레이션 `db/migrations/20260828_010_studio_generation.sql`. 컨트롤러가 앱을 껐다 켠 뒤 같은 작업이 후보 3장과 함께 조회되는 것을 직접 관찰했다.
+- **무료 몫의 시간대 우회를 막았다.** 몫 키의 현지 날짜를 클라이언트가 보낸 `u2.time_zone` 으로 만들면 협정시 -12 부터 +14 까지 26시간이 벌어져 하루에 두세 번 몫이 살아난다. 협정시 기준으로 고정했다. 회귀 스크립트 `scripts/verify-free-quota-timezone-attack.mjs`.
+- **개발용 신원 우회가 운영에서 열리지 않게 막았다.** `identity.ts:18` 에서 `NODE_ENV=production` 이면 설정과 무관하게 거절한다. 회귀 테스트 `tests/studio/dev-identity-prod-guard.test.ts`.
+- **계약 검증이 10건에서 12건으로 늘었다.** `scripts/verify-studio-v1-e2e.mjs`.
+- **편집 인계 계약**(`/api/studio/handoffs`, `/api/studio/drafts/[draftId]/editor`)이 붙었다. 장면 순서 변경, 문장 삭제와 복원, 낡은 판번호 거절까지 컨트롤러가 직접 관찰했다.
+
+### 검증 상태
+
+`node scripts/verify-studio-v1-e2e.mjs` 12/12, `node scripts/verify-basic-flow-e2e.mjs` 11/11, 전체 시험 186파일 1,329건 통과, 운영 빌드 174경로, 빈 DB 마이그레이션 6/6.
+
+### 남은 것
+
+- studio 를 단독 상품으로 파는 데 필요한 회원 인증 어댑터가 아직 없다. 지금은 개발용 신원만 있고 운영에서는 503 으로 닫힌다. 이것이 studio 단독 판매의 다음 관문이다.
+- 실채널 발행과 provider 댓글 읽기는 계정 로그인이 필요해 미검증이다.
+
+### 주의
+
+**몫 검증 함정**: `verify-free-quota-timezone-attack.mjs` 는 오늘 몫을 이미 썼으면 전부 거절이 나와 막힌 것처럼 보인다. 반드시 `psql "$DATABASE_URL" -c "delete from studio_free_regeneration_uses"` 후에 돌려라.
+
 ## 2026-08-27 23:10 KST, Studio 생성 API build 인계
 
 - 사용자 확정 기반: 이 세션에 주입된 Studio 생성 API 과제와 `docs/prototype/openclaw-auto-4room-v63.html`, 회장 확정 요구사항 R27, R37, R71, R104, R105, R132, R133, `docs/학습정보-층계-계약-v1.0.md`.
