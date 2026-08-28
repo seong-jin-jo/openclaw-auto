@@ -142,7 +142,7 @@ describe("Sidebar operator/customer shell separation", () => {
     expect(screen.queryByText("OSMU Studio")).not.toBeInTheDocument();
   });
 
-  it("FE4-SIDEBAR-01 정상: 390 셸은 닫힌 서랍과 현재 방 표시로 본문 폭을 보존한다", () => {
+  it("FE4-SIDEBAR-01 정상: 390 셸은 닫힌 서랍과 현재 방 이름으로 본문 폭을 보존한다", () => {
     mocks.pathname.mockReturnValue("/studio");
     mocks.swr.mockImplementation((key: string | null) => {
       if (key === "/api/me") return { data: { isOperator: false, tenant: { id: "customer-1", slug: "customer", name: "고객 워크스페이스" } }, mutate: vi.fn() };
@@ -155,7 +155,8 @@ describe("Sidebar operator/customer shell separation", () => {
     const sidebar = screen.getByRole("complementary", { name: "주요 사이드바" });
     const openButton = screen.getByRole("button", { name: "메뉴 열기" });
     expect(sidebar).toHaveClass("hidden", "md:flex", "md:w-24");
-    expect(screen.getAllByText("지금 여기").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("편집실").length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText("지금 여기")).not.toBeInTheDocument();
     expect(openButton).toHaveAttribute("aria-expanded", "false");
 
     fireEvent.click(openButton);
