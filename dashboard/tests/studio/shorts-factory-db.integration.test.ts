@@ -115,17 +115,83 @@ describe("숏폼 공장 Postgres 격리와 경합 계약", () => {
 
     await repository.createRun({
       workspaceId: first.workspaceId, memberId, idempotencyKey: "active-a", requestHash: "a".repeat(64),
-      concurrencyLimit: first.concurrencyLimit, concepts: first.concepts,
+      concurrencyLimit: first.concurrencyLimit, staleAfterMs: 15 * 60 * 1000, concepts: first.concepts,
     });
     await expect(repository.createRun({
       workspaceId: first.workspaceId, memberId, idempotencyKey: "active-b", requestHash: "b".repeat(64),
-      concurrencyLimit: first.concurrencyLimit, concepts: first.concepts,
+      concurrencyLimit: first.concurrencyLimit, staleAfterMs: 15 * 60 * 1000, concepts: first.concepts,
     })).rejects.toEqual(expect.objectContaining({ code: "FACTORY_RUN_ALREADY_ACTIVE", status: 409 }));
 
     const other = await repository.createRun({
       workspaceId: second.workspaceId, memberId, idempotencyKey: "active-other-workspace", requestHash: "c".repeat(64),
-      concurrencyLimit: second.concurrencyLimit, concepts: second.concepts,
+      concurrencyLimit: second.concurrencyLimit, staleAfterMs: 15 * 60 * 1000, concepts: second.concepts,
     });
     expect(other.run.workspaceId).toBe(secondTenantId);
+    await repository.forceFailRun(firstTenantId, (await repository.listRuns(memberId, firstTenantId))[0].runId);
+    await repository.forceFailRun(secondTenantId, other.run.runId);
+  });
+
+  it("C1-FACTORY-DB-03 한국어 설명: 마지막 진행 신호가 만료된 실행을 회수한 뒤 새 실행을 허용한다", async (ctx) => {
+    if (!await liveDatabase(ctx)) return;
+    const memberId = `factory-stale-${crypto.randomUUID()}`;
+    members.push(memberId);
+    const repository = new PostgresShortsFactoryRepository();
+    const request = parseShortsFactoryRequest(factoryBody(firstTenantId));
+    const dead = await repository.createRun({
+      workspaceId: firstTenantId,
+      memberId,
+      idempotencyKey: "stale-run",
+      requestHash: "d".repeat(64),
+      concurrencyLimit: request.concurrencyLimit,
+      staleAfterMs: 1000,
+      concepts: request.concepts,
+    });
+    await repository.markRunRunning(firstTenantId, dead.run.runId);
+    await admin!`
+      UPDATE shorts_factory_runs
+      SET updated_at = now() - interval '2 seconds'
+      WHERE tenant_id = ${firstTenantId} AND id = ${dead.run.runId}`;
+
+    const replacement = await repository.createRun({
+      workspaceId: firstTenantId,
+      memberId,
+      idempotencyKey: "replacement-run",
+      requestHash: "e".repeat(64),
+      concurrencyLimit: request.concurrencyLimit,
+      staleAfterMs: 1000,
+      concepts: request.concepts,
+    });
+
+    expect(replacement.created).toBe(true);
+    const [oldRun] = await admin!<{ status: string; failed: number }[]>`
+      SELECT status, failed_concepts::int AS failed
+      FROM shorts_factory_runs
+      WHERE tenant_id = ${firstTenantId} AND id = ${dead.run.runId}`;
+    expect(oldRun).toEqual({ status: "failed", failed: 8 });
+    await repository.forceFailRun(firstTenantId, replacement.run.runId);
+  });
+
+  it("C1-FACTORY-DB-04 한국어 설명: 운영자 강제 종료는 활성 실행과 남은 컨셉을 실패로 닫는다", async (ctx) => {
+    if (!await liveDatabase(ctx)) return;
+    const memberId = `factory-force-${crypto.randomUUID()}`;
+    members.push(memberId);
+    const repository = new PostgresShortsFactoryRepository();
+    const request = parseShortsFactoryRequest(factoryBody(firstTenantId));
+    const active = await repository.createRun({
+      workspaceId: firstTenantId,
+      memberId,
+      idempotencyKey: "force-run",
+      requestHash: "f".repeat(64),
+      concurrencyLimit: request.concurrencyLimit,
+      staleAfterMs: 15 * 60 * 1000,
+      concepts: request.concepts,
+    });
+    await repository.markRunRunning(firstTenantId, active.run.runId);
+
+    const stopped = await repository.forceFailRun(firstTenantId, active.run.runId);
+
+    expect(stopped.status).toBe("failed");
+    expect(stopped.failedConcepts).toBe(8);
+    expect(stopped.concepts.every((concept) => concept.status === "failed" && concept.errorCode === "FACTORY_RUN_FORCE_STOPPED")).toBe(true);
   });
 });

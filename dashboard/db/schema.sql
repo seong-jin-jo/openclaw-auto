@@ -180,6 +180,7 @@ CREATE TABLE IF NOT EXISTS shorts_factory_runs (
   idempotency_key     TEXT NOT NULL CHECK (char_length(idempotency_key) BETWEEN 1 AND 255),
   request_hash        CHAR(64) NOT NULL,
   created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
   started_at          TIMESTAMPTZ,
   finished_at         TIMESTAMPTZ,
   UNIQUE (tenant_id, member_id, idempotency_key),

@@ -73,6 +73,8 @@ class MemoryFactoryRepository implements ShortsFactoryRepository {
     this.run!.startedAt = new Date().toISOString();
   }
 
+  async touchRun() {}
+
   async markConceptRunning(_workspaceId: string, _runId: string, conceptId: string) {
     const concept = this.run!.concepts.find((item) => item.conceptId === conceptId)!;
     concept.status = "running";
@@ -104,6 +106,18 @@ class MemoryFactoryRepository implements ShortsFactoryRepository {
     this.run!.failedConcepts = failed;
     this.run!.status = succeeded === 0 ? "failed" : failed === 0 ? "succeeded" : "partial";
     this.run!.finishedAt = new Date().toISOString();
+    return structuredClone(this.run!);
+  }
+
+  async forceFailRun() {
+    this.run!.status = "failed";
+    this.run!.failedConcepts = this.run!.concepts.filter((concept) => concept.status !== "succeeded").length;
+    for (const concept of this.run!.concepts) {
+      if (concept.status === "succeeded") continue;
+      concept.status = "failed";
+      concept.stage = "failed";
+      concept.errorCode = "FACTORY_RUN_FORCE_STOPPED";
+    }
     return structuredClone(this.run!);
   }
 

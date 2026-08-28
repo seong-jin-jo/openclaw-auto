@@ -1,4 +1,6 @@
 -- 여덟 컨셉 숏폼 공장 실행과 컨셉별 진행 상태를 작업 공간 단위로 보관한다.
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS shorts_factory_runs (
   id                  UUID PRIMARY KEY,
   tenant_id           UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
@@ -12,6 +14,7 @@ CREATE TABLE IF NOT EXISTS shorts_factory_runs (
   idempotency_key     TEXT NOT NULL CHECK (char_length(idempotency_key) BETWEEN 1 AND 255),
   request_hash        CHAR(64) NOT NULL,
   created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
   started_at          TIMESTAMPTZ,
   finished_at         TIMESTAMPTZ,
   UNIQUE (tenant_id, member_id, idempotency_key),
@@ -67,3 +70,5 @@ CREATE POLICY tenant_iso ON shorts_factory_concept_runs
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON shorts_factory_runs TO osmu_service;
 GRANT SELECT, INSERT, UPDATE, DELETE ON shorts_factory_concept_runs TO osmu_service;
+
+COMMIT;

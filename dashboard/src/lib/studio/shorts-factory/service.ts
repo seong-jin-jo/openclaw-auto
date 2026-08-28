@@ -30,6 +30,13 @@ function conceptError(error: unknown): { code: string; message: string } {
   return { code: "CONCEPT_EXECUTION_FAILED", message: "컨셉 생성 중 오류가 발생했습니다" };
 }
 
+const DEFAULT_STALE_AFTER_MS = 15 * 60 * 1000;
+
+function staleAfterMs(): number {
+  const raw = Number(process.env.SHORTS_FACTORY_STALE_AFTER_MS);
+  return Number.isSafeInteger(raw) && raw >= 1000 ? raw : DEFAULT_STALE_AFTER_MS;
+}
+
 export class ShortsFactoryService {
   constructor(
     private readonly repository: ShortsFactoryRepository,
@@ -53,6 +60,7 @@ export class ShortsFactoryService {
       idempotencyKey,
       requestHash: requestHash(request),
       concurrencyLimit: request.concurrencyLimit,
+      staleAfterMs: staleAfterMs(),
       concepts: request.concepts,
     });
     if (!created.created) return { run: created.run, reused: true };
@@ -65,6 +73,10 @@ export class ShortsFactoryService {
         cursor += 1;
         const concept = request.concepts[index];
         await this.repository.markConceptRunning(request.workspaceId, created.run.runId, concept.conceptId);
+        const heartbeat = setInterval(() => {
+          void this.repository.touchRun(request.workspaceId, created.run.runId).catch(() => {});
+        }, Math.min(30_000, Math.max(1000, Math.floor(staleAfterMs() / 3))));
+        heartbeat.unref?.();
         try {
           const generation = parseGenerationRequest(concept.generationBody);
           const result = await this.executeConcept({
@@ -87,6 +99,8 @@ export class ShortsFactoryService {
             normalized.code,
             normalized.message,
           );
+        } finally {
+          clearInterval(heartbeat);
         }
       }
     };
@@ -104,5 +118,12 @@ export class ShortsFactoryService {
 
   list(memberId: string, workspaceId: string): Promise<FactoryRunSnapshot[]> {
     return this.repository.listRuns(memberId, workspaceId);
+  }
+
+  forceFail(workspaceId: string, runId: string): Promise<FactoryRunSnapshot> {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(runId)) {
+      throw new StudioApiError({ status: 422, code: "FACTORY_RUN_INVALID", message: "올바른 실행 번호가 필요합니다" });
+    }
+    return this.repository.forceFailRun(workspaceId, runId);
   }
 }

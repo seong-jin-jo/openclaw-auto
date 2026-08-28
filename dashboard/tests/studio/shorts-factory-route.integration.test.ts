@@ -40,6 +40,7 @@ class RouteMemoryRepository implements ShortsFactoryRepository {
     return { run: structuredClone(this.run), created: true };
   }
   async markRunRunning() { this.run!.status = "running"; }
+  async touchRun() {}
   async markConceptRunning(_w: string, _r: string, id: string) {
     Object.assign(this.run!.concepts.find((concept) => concept.conceptId === id)!, { status: "running", stage: "generating_candidates" });
   }
@@ -53,6 +54,15 @@ class RouteMemoryRepository implements ShortsFactoryRepository {
     this.run!.succeededConcepts = this.run!.concepts.filter((concept) => concept.status === "succeeded").length;
     this.run!.failedConcepts = this.run!.concepts.filter((concept) => concept.status === "failed").length;
     this.run!.status = this.run!.failedConcepts ? "partial" : "succeeded";
+    return structuredClone(this.run!);
+  }
+  async forceFailRun() {
+    this.run!.status = "failed";
+    this.run!.failedConcepts = this.run!.concepts.filter((concept) => concept.status !== "succeeded").length;
+    for (const concept of this.run!.concepts) {
+      if (concept.status === "succeeded") continue;
+      Object.assign(concept, { status: "failed", stage: "failed", errorCode: "FACTORY_RUN_FORCE_STOPPED" });
+    }
     return structuredClone(this.run!);
   }
   async findRun(_member: string, runId: string, workspaces: readonly string[]) {
