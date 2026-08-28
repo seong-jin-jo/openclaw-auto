@@ -54,6 +54,8 @@ STAMP | line: osmu-api-read-sweep | 생성: 2026-08-29 05:30 KST | model: gpt-co
 
 8월 28일 이후 추가된 GET은 `/api/engagement` 404, `/api/operator/incidents` 200, `/api/studio/v1/shorts-factory/runs` 200, `/api/studio/v1/shorts-factory/runs/[runId]` 404다. 직전 v1 이후 경로 수와 최종 상태 분포는 바뀌지 않았다. 다만 `/api/studio/drafts` GET은 payload의 `editFormat`을 반환하도록 확장됐고 실제 HTTP 200이었다. `/api/studio/v1/generations/[jobId]`는 Studio principal 해석 경계를 사용하도록 바뀌었으며, 고객 토큰과 없는 UUID에서 HTTP 404를 반환했다.
 
+실사 종료 뒤 다른 워커가 공유 작업 트리의 `/api/metrics` GET에 수집 커버리지를 추가했다. 이 미커밋 변경은 대상 커밋 `d5ac3d1c`에 포함되지 않지만 최신 dev 앱에서 즉시 재호출했다. HTTP 200, `posts` 배열, `coverage.version`, `coverage.source`, `coverage.platforms`, 오류 없음으로 관찰돼 전수 실사의 HTTP 500 0건 결론은 유지된다.
+
 ## 99개 경로 상태
 
 | 경로 | 상태 | 판정 |
