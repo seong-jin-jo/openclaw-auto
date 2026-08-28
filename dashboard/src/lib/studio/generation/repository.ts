@@ -38,9 +38,9 @@ function postgresCode(error: unknown): string | null {
     : null;
 }
 
-function databaseError(error: unknown): StudioApiError {
+export function mapGenerationDatabaseError(error: unknown): StudioApiError {
   const code = postgresCode(error);
-  if (code === "55P03") {
+  if (code === "55P03" || code === "40001" || code === "40P01") {
     return new StudioApiError({
       status: 503,
       code: "GENERATION_DB_BUSY",
@@ -164,7 +164,7 @@ export class PostgresGenerationRepository implements GenerationRepository {
         const existing = await readExisting();
         if (existing) return { created: false, requestHash: existing.request_hash, response: existing.response_payload };
       }
-      throw databaseError(error);
+      throw mapGenerationDatabaseError(error);
     }
   }
 
@@ -230,7 +230,7 @@ export class PostgresGenerationRepository implements GenerationRepository {
           return { consumed: true, response: existing.response_payload };
         }
       }
-      throw databaseError(error);
+      throw mapGenerationDatabaseError(error);
     }
   }
 }

@@ -17,6 +17,8 @@ ENV NEXT_PUBLIC_GA_MEASUREMENT_ID=$NEXT_PUBLIC_GA_MEASUREMENT_ID
 RUN npm run build
 
 FROM node:20-alpine
+ARG BUILD_COMMIT="unknown"
+LABEL org.opencontainers.image.revision=$BUILD_COMMIT
 RUN apk add --no-cache docker-cli
 # claude CLI — generateText의 폴백 경로(테넌트 Anthropic 키 미등록 시 `claude -p`).
 # 내부 4앱은 이 폴백으로 운영(운영자 Max 구독). 인증(~/.claude OAuth)은 런타임 볼륨 마운트로 주입:
