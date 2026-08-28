@@ -2,6 +2,45 @@
 
 최신이 위. 이 파일만 읽고 30초 안에 이어갈 수 있어야 한다.
 
+## 🔴 [2026-08-28 22:30] Claude → Codex 세션 교대. 여기서 시작해라
+
+**Claude 컨트롤러가 토큰을 다 써서 이 세션이 끝난다. Codex 가 이어받는다.**
+
+### 첫 다섯 줄
+```
+cat pipeline-state.osmu.md | head -60      # 단계·승인 이력과 인계 요약
+tail -5 /tmp/osmu-supervisor.log           # 감독이 지금 무엇을 돌리나
+cat docs/plan/osmu-backlog-state.tsv       # 판 상태표
+git log --oneline -5                       # 최근 커밋
+gh pr view 26                              # 회장 병합 대기 중인 릴리스
+```
+
+### 지금 상태 한 줄
+0.2.0 병합 요청 26번이 열려 있고 **회장 병합 대기**다. 개발과 검수는 끝났고 컨트롤러가 직접 재검증까지 마쳤다.
+
+### Codex 가 지켜야 할 것 (이 세션에서 반복해 깨졌던 것들)
+1. **병합·운영 배포는 회장 몫이다.** `gh pr merge` 나 배포 워크플로를 실행하지 마라.
+2. **워커 주장을 근거로 쓰지 마라.** 통과했다고 적힌 문장 말고 직접 재현해서 관찰해라. 이 세션에서 워커가 "통과"라고 쓴 것 중 실제로는 안 된 것이 여러 번 나왔다.
+3. **감독이 도는지 매 턴 확인해라.** 멈춤 원인이 네 층이었고 넷 다 컨트롤러가 만든 것이었다. 같은 증상이 나오면 감독을 껐다 켜는 것으로 끝내지 말고 다섯째 층을 찾아라.
+4. **몫 검증 함정.** `verify-free-quota-timezone-attack.mjs` 는 오늘 몫을 이미 썼으면 전부 거절이 나와 막힌 것처럼 보인다. 반드시 `psql "$DATABASE_URL" -c "delete from studio_free_regeneration_uses"` 후에 돌려라.
+5. **디자인 정합을 눈으로 대조하기 전에는 "시안과 일치"라고 말하지 마라.** 시안 렌더와 dev 실화면 2장을 나란히 열어야 한다.
+
+### 로컬 환경
+- 앱 `localhost:3456` (`cd dashboard && npx next dev -p 3456`), 자격증명 `dashboard/.env.local`.
+- 데이터베이스 `127.0.0.1:55432`. **임시 경로라 컴퓨터를 껐다 켜면 사라진다.** 계속 쓸 거면 영구 경로로 옮겨야 한다.
+- 작업 공간 `cd1d0a40-540d-4524-9b49-bf2445d82182`.
+
+### 검증 스크립트 (전부 `cd dashboard && set -a && . ./.env.local && set +a` 후)
+| 스크립트 | 무엇을 |
+|---|---|
+| `node scripts/verify-basic-flow-e2e.mjs` | 네 방 기본 흐름 11단계 |
+| `node scripts/verify-studio-v1-e2e.mjs` | studio 생성 계약 12건 |
+| `node scripts/verify-free-quota-timezone-attack.mjs` | 무료 몫 시간대 우회 |
+| `node scripts/probe-four-room-flow.mjs` | 네 방 화면 DOM 실측 |
+| `node scripts/capture-studio-fe3-playwright.mjs` | 네 폭 캡처 |
+
+---
+
 ## [2026-08-28 22:20] 0.2.0 병합 요청 올라감. 회장 병합 대기
 
 ### 무엇을 어디까지 했나
