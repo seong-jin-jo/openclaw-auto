@@ -1,6 +1,6 @@
 # OSMU Studio generation Expand and Contract build 보고
 
-STAMP | line: osmu-expand-contract | 생성: 2026-08-29 03:22 KST | model: gpt-codex/gpt-5.6-sol | agent: code-builder | skill: 없음 | 근거 URL: https://www.postgresql.org/docs/16/sql-insert.html | 고민: 승인 근거가 없는 quota C1은 구현되어 있다는 이유로 열어두지 않고 fail-closed했다.
+STAMP | line: osmu-expand-contract | 생성: 2026-08-29 03:36 KST | model: gpt-codex/gpt-5.6-sol | agent: code-builder | skill: 없음 | 근거 URL: https://www.postgresql.org/docs/16/sql-createindex.html | 고민: C1 이후 rollback 실패를 찾는 것으로는 늦으므로 rollback index 정의와 이전 앱 image 복구 가능성을 C1 전에 증명하게 했다.
 
 ## 요청과 결론
 
@@ -32,6 +32,9 @@ STAMP | line: osmu-expand-contract | 생성: 2026-08-29 03:22 KST | model: gpt-c
 - `expand-member`는 FK migration뿐 아니라 E1 guard migration의 ledger 적용을 명시적 선행조건으로 요구한다.
 - R27 승인 artifact가 아직 없으므로 `contract-quota`를 승인 workflow 선택지에서 제거하고 runner 직접 호출도 fail-closed했다.
 - rollback attach는 index 이름과 valid 상태만 보지 않고 대상 table, unique·ready, expression·predicate 부재, 정확한 ordered columns를 모두 검증한다.
+- 적용 완료된 legacy migration은 checksum만 재검증하고 SQL을 다시 실행하지 않는다. partial failure는 미적용·failed ID부터 재개한다.
+- rollback index exact-definition 검사를 prepare migration, rollback manifest 생성, generation contract 직전에 각각 수행한다.
+- previous compatibility image는 입력 문자열을 신뢰하지 않는다. registry pull 또는 보존된 stopped OSMU container로 실존을 관찰하고 digest, revision label, compatibility commit ancestry, `docker create` 가능성을 검증한 값만 manifest에 기록한다.
 - DB URL은 `psql` argv에 전달하지 않고 URI를 libpq `PG*` 환경으로 분해한다.
 - serialization failure와 deadlock 재시도 소진은 retryable 503 busy로 매핑한다.
 - 잘못 추가된 tenant-scoped idempotency migration `20260829_020_studio_generation_tenant_idempotency.sql`은 제거했다.
@@ -44,11 +47,12 @@ STAMP | line: osmu-expand-contract | 생성: 2026-08-29 03:22 KST | model: gpt-c
 - data retention: workspace 삭제 뒤 quota ledger가 `tenant_id=NULL`로 남음 PASS.
 - 동시성: S1·S2·S3 각각 generation과 quota의 두 PID를 개별 성공 검사했고 각 count=1 PASS.
 - rollback: 같은 이름·valid이지만 열이 틀린 rollback index attach를 거절하고, 정확한 열의 index로 generation tenant constraint를 재부착해 S2 복귀 PASS.
-- focused DB·계약: 4 files, 25/25 PASS.
+- repeatability: applied legacy 재실행 뒤 running shorts factory의 2090 heartbeat가 유지됨 PASS. wrong-definition rollback index가 prepare 단계에서 C1 전에 차단됨 PASS.
+- focused DB·계약: 4 files, 28/28 PASS.
 - TypeScript: `npx tsc --noEmit` PASS.
 - production build: Next.js 174/174 routes PASS.
 - shell syntax와 diff whitespace: PASS.
-- 전체 Vitest 최종: 501 suites PASS, 1,388 PASS, 0 FAIL, 1 조건부 제외, success=true.
+- 전체 Vitest 최종: 503 suites PASS, 1,401 PASS, 0 FAIL, 1 조건부 제외, success=true.
 - frontend design lint: 해당 없음. UI·스타일 파일을 수정하지 않았다.
 - 운영 DB·배포·운영 QA: 실행하지 않음.
 
@@ -86,6 +90,7 @@ STAMP | line: osmu-expand-contract | 생성: 2026-08-29 03:22 KST | model: gpt-c
 - `docs/design-docs/osmu-generation-expand-contract-v1.0.2-gpt-codex.md`: S1 보호, S2 dual UNIQUE, S3 tenant constraint 제거, E1·E3·C1 순서와 rollback 요구를 구현 기준으로 사용했다.
 - `docs/qa/osmu-expand-contract-design-review-v2-gpt-codex.md`: 회원 전역 `member_id`와 UTC quota 계약, migration 안전성 보완 항목을 확인했다.
 - `tasks/osmu-expand-contract-code-review.output`: 독립 리뷰의 MAJOR 10건과 MINOR 1건을 전부 읽고, image identity gate, quota C1 분리, FK 수명 migration, invalid index recovery, definition fingerprint, rollback manifest, concurrency assertion, DB URL argv 비노출을 retake 범위에 포함했다.
+- `tasks/osmu-expand-contract-code-review-v2.output`: 최종 MAJOR 3건인 legacy lease 덮어쓰기, C1 전 rollback definition 누락, previous image 실존 미검증을 retake 범위에 포함했다.
 - `/Users/sj/.claude/standards/dev.md`: 완료 주장에 직접 관찰 증거 2종 이상, 고위험 migration의 cross-review, 경계·실패 경로 테스트가 필요하다는 품질 계약을 적용했다.
 
 ### 공식 원문과 구현 연결
@@ -97,9 +102,9 @@ STAMP | line: osmu-expand-contract | 생성: 2026-08-29 03:22 KST | model: gpt-c
 
 ### 직접 실행 증거
 
-- `bash scripts/verify-generation-migration-matrix.sh`: 격리 PostgreSQL 16에서 bootstrap, legacy apply, guard 선행조건, S1·S2·generation-S3/quota-S2 경합, wrong-definition hard stop, invalid-index recovery, quota 승인 부재 차단, exact rollback index 검증과 S2 복귀를 실행해 PASS를 관찰했다.
-- focused Vitest 4 files: 25/25 PASS.
-- 전체 Vitest JSON 결과 `/tmp/osmu-expand-contract-v2-full.json`: 501/501 suites PASS, 1,388 PASS, 0 FAIL, 1 조건부 제외, `success=true`를 회수했다.
+- `bash scripts/verify-generation-migration-matrix.sh`: 격리 PostgreSQL 16에서 applied legacy heartbeat 불변, guard 선행조건, S1·S2·generation-S3/quota-S2 경합, invalid-index recovery, prepare 단계 rollback definition 차단, quota 승인 부재 차단, exact rollback index 검증과 최종 S2 복귀 마커까지 PASS를 관찰했다.
+- focused Vitest 4 files: 28/28 PASS.
+- 전체 Vitest JSON 결과 `/tmp/osmu-expand-contract-v3-full.json`: 503/503 suites PASS, 1,401 PASS, 0 FAIL, 1 조건부 제외, `success=true`를 회수했다.
 - `npx tsc --noEmit`: PASS.
 - `npm run build`: production build PASS, Next.js 174/174 routes 생성 확인.
 - 증거 등급: 상류·공식문서는 `근거 확인`, 테스트와 build는 `테스트됨` 및 `관찰됨`, 운영 DB·배포·운영 QA는 `미검증`이다.
@@ -115,6 +120,6 @@ STAMP | line: osmu-expand-contract | 생성: 2026-08-29 03:22 KST | model: gpt-c
 
 SKILLS_USED: 없음. DB migration build에 직접 대응하는 설치 스킬이 없다. / SKILLS_SKIPPED: qa는 QA 단계 E2E 소유라 사용하지 않았고 build 소유 단위·통합 테스트를 직접 추가했다.
 
-SOURCES: `docs/design-docs/osmu-generation-expand-contract-v1.0.2-gpt-codex.md` | `docs/qa/osmu-expand-contract-design-review-v2-gpt-codex.md` | `tasks/osmu-expand-contract-code-review.output` | `/Users/sj/.claude/standards/dev.md` | https://www.postgresql.org/docs/16/sql-insert.html | https://www.postgresql.org/docs/16/sql-createindex.html | https://www.postgresql.org/docs/16/sql-reindex.html | https://www.postgresql.org/docs/16/applevel-consistency.html | https://www.postgresql.org/docs/16/transaction-iso.html | https://www.postgresql.org/docs/16/explicit-locking.html | https://www.postgresql.org/docs/16/sql-createfunction.html
+SOURCES: `docs/design-docs/osmu-generation-expand-contract-v1.0.2-gpt-codex.md` | `docs/qa/osmu-expand-contract-design-review-v2-gpt-codex.md` | `tasks/osmu-expand-contract-code-review.output` | `tasks/osmu-expand-contract-code-review-v2.output` | `/Users/sj/.claude/standards/dev.md` | https://www.postgresql.org/docs/16/sql-insert.html | https://www.postgresql.org/docs/16/sql-createindex.html | https://www.postgresql.org/docs/16/sql-reindex.html | https://www.postgresql.org/docs/16/applevel-consistency.html | https://www.postgresql.org/docs/16/transaction-iso.html | https://www.postgresql.org/docs/16/explicit-locking.html | https://www.postgresql.org/docs/16/sql-createfunction.html
 
 MODEL: gpt-codex/gpt-5.6-sol / code-builder
