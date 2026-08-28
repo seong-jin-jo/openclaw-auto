@@ -144,7 +144,6 @@ function RoomFlowNav({ pathname, onNavigate }: { pathname: string; onNavigate?: 
                   {done ? "✓" : `0${index + 1}`}
                 </span>
                 <span>{room.label}</span>
-                {active ? <span className="ml-auto whitespace-nowrap rounded-pill bg-accent-fg/15 px-stack-tight py-micro text-caption max-xl:ml-none max-xl:px-micro">지금 여기</span> : null}
               </Link>
             </li>
           );
@@ -374,12 +373,9 @@ function CustomerSidebar({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7h16M4 12h16M4 17h16" />
           </svg>
         </button>
-        {currentRoomLabel ? (
-          <div className="text-left">
-            <p className="text-caption font-semibold text-accent">지금 여기</p>
-            <p className="text-body-sm font-semibold text-text">{currentRoomLabel}</p>
-          </div>
-        ) : <p className="text-body-sm font-semibold text-text">작업 공간</p>}
+        <p className="text-body-sm font-semibold text-text">
+          {currentRoomLabel ?? "작업 공간"}
+        </p>
       </header>
 
       <aside
