@@ -12,6 +12,7 @@ const SRC = readFileSync(DEPLOY_PATH, "utf-8");
 
 const COMPOSE_PATH = resolve(__dirname, "../../../docker-compose.postagi-4tenants.yml");
 const COMPOSE_SRC = readFileSync(COMPOSE_PATH, "utf-8");
+const RELEASE_VERSION = readFileSync(resolve(__dirname, "../../../VERSION"), "utf-8").trim();
 
 describe("deploy-marketing.yml — OSMU_ALERT_SLACK_WEBHOOK_URL 배선 계약", () => {
   it(".env.osmu 렌더 블록에 새 시크릿이 있다(다른 OSMU 시크릿과 같은 EOF heredoc 안)", () => {
@@ -28,9 +29,22 @@ describe("deploy-marketing.yml — OSMU_ALERT_SLACK_WEBHOOK_URL 배선 계약", 
     expect(SRC).not.toMatch(/cat \.env\.osmu/);
   });
 
+  it("Studio 개발용 신원 설정이 운영 환경 파일에 들어가면 배포를 차단한다", () => {
+    expect(SRC).toContain("^STUDIO_IDENTITY_MODE=development$|^STUDIO_DEV_|^STUDIO_ALLOW_DEV_IDENTITY_IN_PROD=");
+    expect(SRC).toContain("Studio 개발용 신원 설정은 운영 환경에 넣을 수 없음");
+  });
+
+  it("앱 기동 전에 schema, 이름순 migration, RLS를 오류 즉시 중단으로 적용한다", () => {
+    expect(SRC).toContain('psql "$OSMU_DATABASE_URL" -q -v ON_ERROR_STOP=1 -f /db/schema.sql');
+    expect(SRC).toContain("for migration in /db/migrations/*.sql");
+    expect(SRC).toContain('psql "$OSMU_DATABASE_URL" -q -v ON_ERROR_STOP=1 -f "$migration"');
+    expect(SRC).toContain('psql "$OSMU_DATABASE_URL" -q -v ON_ERROR_STOP=1 -f /db/rls.sql');
+  });
+
   it("openclaw-dashboard-osmu 컨테이너는 env_file: .env.osmu 를 그대로 쓴다(런타임 env 자동 전달, 별도 배선 불필요)", () => {
     const svcIdx = COMPOSE_SRC.indexOf("openclaw-dashboard-osmu:");
     const svcBlock = COMPOSE_SRC.slice(svcIdx, COMPOSE_SRC.indexOf("healthcheck:", svcIdx));
     expect(svcBlock).toMatch(/env_file:\s*\.env\.osmu/);
+    expect(svcBlock).toContain(`image: openclaw-auto/dashboard:${RELEASE_VERSION}`);
   });
 });

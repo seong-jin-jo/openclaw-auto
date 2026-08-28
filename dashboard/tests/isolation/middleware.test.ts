@@ -123,7 +123,7 @@ describe("proxy Studio 독립 인증 경계", () => {
     expect(mockVerifySupabaseJwt).not.toHaveBeenCalled();
   });
 
-  it("STUDIO-AUTH-02 한국어 설명: 잘못된 Studio bearer는 프록시가 대시보드 401로 바꾸지 않고 Studio가 401로 거절한다", async () => {
+  it("STUDIO-AUTH-02 한국어 설명: 운영의 개발용 Studio 신원은 토큰 값과 관계없이 503으로 닫힌다", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("DASHBOARD_AUTH_TOKEN", "dashboard-only-token");
     vi.stubEnv("STUDIO_IDENTITY_MODE", "development");
@@ -143,8 +143,8 @@ describe("proxy Studio 독립 인증 경계", () => {
     const { POST } = await import("@/app/api/studio/v1/generations/route");
     const response = await POST(req);
     const body = await response.json();
-    expect(response.status).toBe(401);
-    expect(body.error.code).toBe("TOKEN_INVALID");
+    expect(response.status).toBe(503);
+    expect(body.error.code).toBe("IDENTITY_ADAPTER_NOT_CONFIGURED");
   });
 
   it("STUDIO-AUTH-03 한국어 설명: 기존 Studio 대시보드 API는 예외에 섞이지 않고 대시보드 인증을 유지한다", async () => {

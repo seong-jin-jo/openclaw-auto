@@ -13,7 +13,7 @@
 - 현재 범위: 기존 Studio 후보 생성 8개를 묶는 운영 장부와 조정 계층까지 구현됐다. 실제 영상
   렌더 8개와 외부 채널 발행 8개의 병렬 실행은 아직 검증되지 않았다.
 - 근거: `dashboard/src/lib/studio/shorts-factory/`,
-  `dashboard/db/migrations/20260828_shorts_factory_runs.sql`,
+  `dashboard/db/migrations/20260828_040_shorts_factory_runs.sql`,
   `dashboard/scripts/verify-shorts-factory-e2e.mjs`.
 
 ## 코드 기준 갱신 (2026-08-25)

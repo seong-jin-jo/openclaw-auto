@@ -15,7 +15,7 @@ function safeEqual(left: string, right: string): boolean {
 export function resolveDevelopmentPrincipal(request: Request): StudioPrincipal {
   // 개발용 우회가 운영에 켜진 채로 나가면 그 자체가 사고다. 운영에서는 설정이
   // 어떻게 되어 있든 이 경로를 쓰지 않는다(배포 준비 점검, 2026-08-28).
-  if (process.env.NODE_ENV === "production" && process.env.STUDIO_ALLOW_DEV_IDENTITY_IN_PROD !== "1") {
+  if (process.env.NODE_ENV === "production") {
     throw new StudioApiError({
       status: 503,
       code: "IDENTITY_ADAPTER_NOT_CONFIGURED",

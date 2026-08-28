@@ -15,12 +15,21 @@ npm run dev          # http://localhost:3000
 - `DASHBOARD_AUTH_TOKEN` — 인증 토큰 (미설정 시 인증 비활성화)
 - `PORT` — 서버 포트
 
-Studio v1 로컬 개발 인증은 대시보드 로그인과 독립된 아래 이름을 사용한다. 실제 값은 이 문서나 저장소에 기록하지 않는다.
+Studio v1 로컬 개발 인증은 대시보드 로그인과 독립된 아래 이름을 사용한다. 실제 값은 이 문서나 저장소에 기록하지 않는다. 아래 네 값은 개발 전용이다. 운영에는 모두 넣지 않으며, `STUDIO_IDENTITY_MODE=development`는 운영 시작 단계에서 거절된다.
 
 - `STUDIO_IDENTITY_MODE` (`development`일 때만 개발 어댑터 활성)
 - `STUDIO_DEV_BEARER_TOKEN`
 - `STUDIO_DEV_MEMBER_ID`
 - `STUDIO_DEV_WORKSPACE_IDS` (쉼표로 구분한 UUID 목록)
+
+Studio v1의 비용 안내와 작업 회수 시간은 선택 설정이다. 값이 없거나 잘못돼도 서버 오류를 내지 않고 안전한 기본값 또는 비용 미표시 상태를 사용한다.
+
+- `STUDIO_PREVIEW_COST_MIN_MINOR`, `STUDIO_PREVIEW_COST_MAX_MINOR`: 예상 비용의 최소값과 최대값. 둘 다 양의 정수이고 최소값이 최대값 이하여야 표시한다.
+- `STUDIO_PAID_REGENERATION_MINOR`: 유료 재생성 안내 금액. 양의 정수가 아니면 유료 견적을 표시하지 않는다.
+- `STUDIO_COST_CURRENCY`: 통화 코드. 미설정 기본값은 `KRW`다.
+- `SHORTS_FACTORY_STALE_AFTER_MS`: 숏폼 공장 실행 회수 시간. 미설정 또는 1초 미만이면 15분이다.
+- `ENGAGEMENT_REPLY_CLAIM_STALE_AFTER_MS`: 댓글 답글 청구 회수 시간. 미설정 또는 1초 미만이면 15분이다.
+- `OSMU_ALERT_SLACK_WEBHOOK_URL`: 운영 장애 알림 주소. 미설정이면 원장 기록은 유지하고 외부 알림만 건너뛴다.
 
 ## 빌드 & 배포
 

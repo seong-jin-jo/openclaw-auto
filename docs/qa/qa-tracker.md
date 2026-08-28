@@ -30,21 +30,25 @@ seed draft 1건을 관찰한 뒤 임시 DB를 폐기했다. 웹 전용이라 Mae
 qa 승인과 배포 전환은 금지한다. 세부 근거는
 `docs/qa/osmu-v24-design-conformance-matrix-v1-gpt-codex.md`다.
 
-## 2026-08-28 NG: 신규 마이그레이션 파일명의 실행 순서
+## 2026-08-28 NG -> 수정 -> PASS: 신규 마이그레이션 실행 순서
 
 | 시험 항목 | 재현된 결함 | 현재 판정 | 종료증거 |
 |---|---|---|---|
-| RELEASE-MIGRATION-01 | 같은 날짜의 신규 파일을 이름순으로 실행하면 `code_review_tenant_fk`가 `engagement_items`보다 먼저, `shorts_factory_run_leases`가 `shorts_factory_runs`보다 먼저 실행된다 | NG | 빈 PostgreSQL의 기존 운영 스키마와 최신 스키마 양쪽에서 신규 마이그레이션 전체가 이름순으로 성공하고 트랜잭션 경계가 확인됨 |
+| RELEASE-MIGRATION-01 | 같은 날짜의 신규 파일을 이름순으로 실행하면 `code_review_tenant_fk`가 `engagement_items`보다 먼저, `shorts_factory_run_leases`가 `shorts_factory_runs`보다 먼저 실행된다 | PASS | 기존 운영 스키마에서 6/6, 최신 스키마 재적용 6/6, 대상 테이블 7/7. `/tmp/osmu-release-migration.log` |
 
 **근본 원인:** 날짜만 있는 파일명에 의존하면서 같은 날의 선후 의존성을 나타내는 순번을 두지 않았다. 배포 스크립트가 이름순으로 실행해도 참조 대상 테이블이 먼저 생성되도록 파일명에 명시적 순번이 필요하다.
 
-## 2026-08-28 NG: Studio 개발용 신원 우회의 운영 예외값
+**수정:** Studio 장부를 만드는 `010`부터 교차 tenant FK를 보강하는 `060`까지 순번을 부여했다. 모든 파일은 `BEGIN`과 `COMMIT`으로 감쌌고 배포 워크플로가 schema와 RLS 적용 사이에 이름순으로 전부 실행한다.
+
+## 2026-08-28 NG -> 수정 -> PASS: Studio 개발용 신원 우회의 운영 예외값
 
 | 시험 항목 | 재현된 결함 | 현재 판정 | 종료증거 |
 |---|---|---|---|
-| RELEASE-IDENTITY-01 | `NODE_ENV=production` 이어도 `STUDIO_ALLOW_DEV_IDENTITY_IN_PROD=1`이면 개발용 bearer로 회원과 작업 공간을 가장할 수 있다 | NG | 예외 환경변수를 설정해도 운영에서 `IDENTITY_ADAPTER_NOT_CONFIGURED`로 거절되고 전체 회귀가 통과 |
+| RELEASE-IDENTITY-01 | `NODE_ENV=production` 이어도 `STUDIO_ALLOW_DEV_IDENTITY_IN_PROD=1`이면 개발용 bearer로 회원과 작업 공간을 가장할 수 있다 | PASS | 예외값 없음, `0`, `1` 모두 운영에서 503 거절. 집중 3파일 15건과 전체 186파일 1,332건 통과 |
 
 **근본 원인:** 운영 안전장치에 현장 우회용 예외값을 남겼고, 회귀 테스트는 그 예외값이 없는 경우만 검증했다. 운영 신원 경계는 실행 중 플래그로 재개방할 수 없게 고정해야 한다.
+
+**수정:** 운영이면 환경값과 관계없이 개발 principal 해석을 중단한다. 배포 환경파일에도 `STUDIO_IDENTITY_MODE=development`와 `STUDIO_DEV_*`를 넣지 못하게 계약으로 고정했다.
 
 ## 2026-08-28 PASS: Opus 교차검수 전 항목 위험도순 재검증
 

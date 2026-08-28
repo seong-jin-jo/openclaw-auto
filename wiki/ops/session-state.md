@@ -1,3 +1,27 @@
+## [2026-08-28 21:40 릴리스 후보 0.2.0 병합 요청 준비]
+
+**핸드오프 기준:** 회장이 이 세션에 직접 지정한 release-manager 과제를 primary로 사용했다.
+운영 배포는 회장 몫이며, 이 세션은 PR 생성까지만 수행한다.
+
+- 릴리스 후보: `0.2.0`. 매니페스트 `RELEASE.md`, 상세 안내
+  `docs/releases/2026-08-28-osmu-네방.md`, 이미지 태그 `openclaw-auto/dashboard:0.2.0`.
+- 운영 안전: production에서 Studio 개발 신원 모드를 항상 503으로 차단하고, 배포 workflow도
+  `STUDIO_IDENTITY_MODE=development`와 `STUDIO_DEV_*`를 거부한다. 설정이 없는 standalone 서버는
+  6개 핵심 경로에서 500이 0건이었다.
+- 직접 증거: Vitest 186파일 1,332건 PASS와 3건 SKIP, TypeScript PASS, production build 174/174,
+  기본 흐름 11/11, Studio 12/12, 빈 DB와 기존 DB 마이그레이션 2개 경로 PASS, 로컬 Docker 이미지
+  `sha256:8afe50435060773d4d171472dd428564d29e6faa44e15fd9c299962cee47a0b3` 생성.
+- 로그: `/tmp/osmu-release-regression.log`, `/tmp/osmu-release-tsc.log`,
+  `/tmp/osmu-release-production-build-final.log`, `/tmp/osmu-release-migration.log`,
+  `/tmp/osmu-release-basic-flow-e2e.log`, `/tmp/osmu-release-studio-v1-e2e.log`.
+- 출고 판정: 배포 반려. 전체 v63 디자인 정합이 NG이며, drift check에서 design spec, FDD,
+  API contract, ERD 4개 승인 산출물이 없음을 확인했다. production Studio 신원 adapter와 실제 외부
+  provider 경로도 미검증이다.
+- 공유 트리 주의: 렌더 이미지, 감독 백로그, `.codex/logs/harness.jsonl`은 다른 세션 소유다.
+  이번 릴리스 커밋에 포함하지 않는다.
+- 다음 실행: 소유자=product-designer, tech-architect, qa-verifier. 종료증거=누락 승인 산출물 4개를
+  현재 버전으로 핀하고 전체 디자인 정합 전행 PASS, QA 승인, production 신원 adapter 실경로 확인.
+
 ## [2026-08-28 21:20 v24 디자인 검수 지적 보수와 실앱 재현]
 
 **핸드오프 기준:** 회장이 지정한 `docs/audit/v24-design-review.md`와 기반 산출물 3종을 primary로
@@ -43,7 +67,7 @@
   Studio 12/12. 웹 빌드 174/174 경로와 종료 코드 0. 실제 DB 교차 tenant FK 거절.
   기존 발행 예약에 같은 요청을 보내 HTTP 409 관찰.
 - 코드 커밋: `4bb34194` 발행·재생성 멱등, `e424a43e` tenant 격리·운영 보강.
-- 로컬 DB 적용: `dashboard/db/migrations/20260828_code_review_tenant_fk.sql`.
+- 로컬 DB 적용: `dashboard/db/migrations/20260828_060_code_review_tenant_fk.sql`.
 - 운영 배포와 실제 외부 채널 발행은 미검증.
 - 정확한 다음 행동: 남은 P0인 예약 발행 영구 processing 회수와 답글 provider reconciliation 계약을
   상류 합의 뒤 구현. 그 전 MAJOR 1·3의 파괴적 데이터 정리는 금지.

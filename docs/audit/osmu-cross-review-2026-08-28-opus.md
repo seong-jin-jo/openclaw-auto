@@ -20,7 +20,7 @@ deliberation: 밤사이 코드는 전부 codex 가 짰다. 같은 모델이 다�
 | 번호 | 무엇이 | 어디서 |
 |---|---|---|
 | M1 | 시간대를 바꾸면 무료 재생성 몫이 하루에 두세 번 살아난다 | `studio/generation/service.ts:302`, `contracts.ts:97` |
-| C1 | 숏폼 공장이 한 번의 시간 초과로 그 작업 공간에서 영구히 잠긴다 | `shorts-factory/service.ts:60`, `20260828_shorts_factory_runs.sql:19` |
+| C1 | 숏폼 공장이 한 번의 시간 초과로 그 작업 공간에서 영구히 잠긴다 | `shorts-factory/service.ts:60`, `20260828_040_shorts_factory_runs.sql:19` |
 | F1 | 발행 실패 슬랙 알림이 이번 변경으로 조용해졌다 | `lib/observability.ts:273` |
 
 ## 심각도 1: 돈

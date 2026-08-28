@@ -58,9 +58,9 @@ MAJOR 1은 기존 작업 공간별 유일성 제약을 유지한 채 회원 전�
 
 19. MAJOR: [회귀 위험·거짓 성공·돈] `dashboard/src/lib/studio/shorts-factory/service.ts:68` : 생성 실행과 성공 상태 기록을 같은 try에 넣어 성공 기록 실패도 컨셉 실패로 덮는다 / 공장 상태판이 실제 Studio 생성 작업 번호와 오류를 정직하게 보여야 한다는 계약에 어긋난다 / 생성 작업은 DB에 생겼지만 `markConceptSucceeded`만 실패하면 공장은 failed로 표시하고 새 실행에서 같은 컨셉을 다시 만들어 비용이 중복된다 / 생성 실패와 기록 실패를 분리하고 job ID를 가진 reconciliation 상태에서 성공 기록을 멱등 재시도해야 한다.
 
-20. MAJOR: [회귀 위험·격리] `dashboard/db/migrations/20260828_shorts_factory_runs.sql:2` : 마이그레이션이 트랜잭션 없이 테이블을 만든 뒤 `:54`에서야 RLS를 켜며, `dashboard/src/lib/studio/shorts-factory/repository.ts:123`은 tenant 조건 없이 ID와 회원만으로 조회한다 / 사업좌표 문서의 “여섯 사업체가 같은 물건을 쓴다”는 격리 경계와 어긋난다 / RLS 단계 전에 마이그레이션이 실패하면 무정책 테이블이 자동 커밋되고, 같은 회원의 A 토큰과 B 실행 ID 조합으로 B 실행을 읽을 수 있다 / 전체 DDL, GRANT, RLS를 한 트랜잭션으로 묶고 모든 조회와 갱신에도 tenant 조건을 넣어야 한다.
+20. MAJOR: [회귀 위험·격리] `dashboard/db/migrations/20260828_040_shorts_factory_runs.sql:2` : 마이그레이션이 트랜잭션 없이 테이블을 만든 뒤 `:54`에서야 RLS를 켜며, `dashboard/src/lib/studio/shorts-factory/repository.ts:123`은 tenant 조건 없이 ID와 회원만으로 조회한다 / 사업좌표 문서의 “여섯 사업체가 같은 물건을 쓴다”는 격리 경계와 어긋난다 / RLS 단계 전에 마이그레이션이 실패하면 무정책 테이블이 자동 커밋되고, 같은 회원의 A 토큰과 B 실행 ID 조합으로 B 실행을 읽을 수 있다 / 전체 DDL, GRANT, RLS를 한 트랜잭션으로 묶고 모든 조회와 갱신에도 tenant 조건을 넣어야 한다.
 
-21. MAJOR: [회귀 위험·격리·DB 무결성] `dashboard/db/migrations/20260828_engagement_items.sql:6` : 댓글 행의 tenant와 참조한 발행 글 및 편집 초안의 tenant가 같은지 DB가 보장하지 않는다 / 작업 공간이 독립 데이터 경계라는 요구와 어긋난다 / `app.tenant_id=A`에서 A tenant 댓글 행이 B의 `published_post_id`와 `draft_id`를 참조해도 RLS는 새 행의 tenant만 보고 통과하며, B 글 삭제가 A 댓글을 cascade 삭제할 수 있다 / 부모 테이블에 `(tenant_id,id)` UNIQUE를 두고 댓글 FK를 복합 FK로 바꿔야 한다.
+21. MAJOR: [회귀 위험·격리·DB 무결성] `dashboard/db/migrations/20260828_020_engagement_items.sql:6` : 댓글 행의 tenant와 참조한 발행 글 및 편집 초안의 tenant가 같은지 DB가 보장하지 않는다 / 작업 공간이 독립 데이터 경계라는 요구와 어긋난다 / `app.tenant_id=A`에서 A tenant 댓글 행이 B의 `published_post_id`와 `draft_id`를 참조해도 RLS는 새 행의 tenant만 보고 통과하며, B 글 삭제가 A 댓글을 cascade 삭제할 수 있다 / 부모 테이블에 `(tenant_id,id)` UNIQUE를 두고 댓글 FK를 복합 FK로 바꿔야 한다.
 
 22. MAJOR: [회귀 위험·거짓 복구] `dashboard/src/lib/observability/incidents.ts:121` : 복구 조건이 tenant, category, source만 비교하고 reason, 계정, 게시물, 요청을 구분하지 않는다 / 사람 확인 필요와 자동 복구 대기를 구분한다는 운영 계약과 어긋난다 / 같은 작업 공간에서 계정 A의 사람 확인 사건이 열린 뒤 계정 B 발행이 성공하면 A 사건까지 `recovered`로 닫힌다 / 실패 단위 fingerprint와 계정 또는 resource identity를 복구 조건에 포함해야 한다.
 
