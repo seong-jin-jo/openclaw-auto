@@ -2,6 +2,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import playwright from "/Users/sj/kimstudy-auto/node_modules/playwright-core/index.js";
 
 const { chromium } = playwright;
@@ -9,6 +10,7 @@ const baseUrl = process.env.V24_BASE_URL || "http://localhost:3456";
 const operatorToken = process.env.DASHBOARD_AUTH_TOKEN || "";
 const workspaceId = process.env.V24_WORKSPACE_ID || "cd1d0a40-540d-4524-9b49-bf2445d82182";
 const outputDir = process.env.V24_OUTPUT_DIR || path.resolve(process.cwd(), "../docs/prototype/qa-v24-remediation");
+const prototypePath = process.env.V24_PROTOTYPE_PATH || path.resolve(process.cwd(), "../docs/prototype/openclaw-auto-4room-v63.html");
 const executablePath = process.env.V24_CHROME_PATH || "/Users/sj/Library/Caches/ms-playwright/chromium-1228/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing";
 const widths = [390, 1024, 1440];
 const draftMarker = "V24 본문 복원 관찰 증거";
@@ -66,6 +68,16 @@ try {
 
   browser = await chromium.launch({ executablePath, headless: true });
   const browserFailures = [];
+
+  for (const width of widths) {
+    const context = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : 1200 } });
+    const page = await context.newPage();
+    recordBrowserFailures(page, `프로토타입 ${width}`, browserFailures);
+    await page.goto(pathToFileURL(prototypePath).href, { waitUntil: "networkidle", timeout: 60000 });
+    await page.screenshot({ path: path.join(outputDir, `v63-${width}-approved-prototype.png`), fullPage: true });
+    observations.push({ width, approvedPrototypeCaptured: true });
+    await context.close();
+  }
 
   for (const width of widths) {
     const context = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : 1200 } });

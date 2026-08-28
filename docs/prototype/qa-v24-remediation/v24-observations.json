@@ -8,6 +8,18 @@
   "observations": [
     {
       "width": 390,
+      "approvedPrototypeCaptured": true
+    },
+    {
+      "width": 1024,
+      "approvedPrototypeCaptured": true
+    },
+    {
+      "width": 1440,
+      "approvedPrototypeCaptured": true
+    },
+    {
+      "width": 390,
       "performance": {
         "roomCount": 1,
         "documentWidth": 390,
