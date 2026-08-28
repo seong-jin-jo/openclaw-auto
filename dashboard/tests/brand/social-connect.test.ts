@@ -187,15 +187,25 @@ describe("GET /api/connect/instagram — OAuth 동의 URL", () => {
     expect(res.status).toBe(400);
   });
 
-  it("IG_APP_ID 미설정 → 500", async () => {
+  // Regression: API-READ-20260829-01. OAuth 설정 부재를 서버 고장으로 오분류했다.
+  // Found by /qa on 2026-08-29
+  // Report: docs/audit/openclaw-api-live-sweep-2026-08-29.md
+  it("IG_APP_ID 미설정 → 503", async () => {
     delete process.env.IG_APP_ID;
     const { GET } = await import("@/app/api/connect/[provider]/route");
     const res = await GET(new Request("https://app.example/api/connect/instagram?tenant_id=tenant-1"), params("instagram"));
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(503);
   });
 });
 
 describe("GET /api/connect/threads — reply 권한", () => {
+  it("THREADS_APP_ID 미설정은 서버 고장이 아니라 준비 안 됨으로 답한다", async () => {
+    delete process.env.THREADS_APP_ID;
+    const { GET } = await import("@/app/api/connect/[provider]/route");
+    const res = await GET(new Request("https://app.example/api/connect/threads?tenant_id=tenant-1"), params("threads"));
+    expect(res.status).toBe(503);
+  });
+
   it("BE-V63-11 정상 경로: authUrl에 댓글 읽기와 답글 발행 권한을 포함한다", async () => {
     process.env.THREADS_APP_ID = "threads-app-1";
     process.env.THREADS_APP_SECRET = "threads-secret-1";
@@ -336,12 +346,12 @@ describe("Facebook Login for Business — config_id authorize URL", () => {
     expect(await buildAuthUrl(cfg, "https://live.example", "facebook", "tenant-1")).toBeNull();
   });
 
-  it("GET /api/connect/facebook — FB_CONFIG_ID 미설정 시 500 + 안내 메시지", async () => {
+  it("GET /api/connect/facebook — FB_CONFIG_ID 미설정 시 503 + 안내 메시지", async () => {
     process.env.FB_APP_ID = "fb-app-1";
     delete process.env.FB_CONFIG_ID;
     const { GET } = await import("@/app/api/connect/[provider]/route");
     const res = await GET(new Request("https://app.example/api/connect/facebook?tenant_id=tenant-1"), params("facebook"));
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(503);
     const body = await res.json();
     expect(body.error).toContain("FB_CONFIG_ID");
   });
@@ -384,11 +394,11 @@ describe("GET /api/connect/linkedin — authUrl", () => {
     delete process.env.LINKEDIN_CLIENT_SECRET;
   });
 
-  it("LINKEDIN_CLIENT_ID 미설정 → 500", async () => {
+  it("LINKEDIN_CLIENT_ID 미설정 → 503", async () => {
     delete process.env.LINKEDIN_CLIENT_ID;
     const { GET } = await import("@/app/api/connect/[provider]/route");
     const res = await GET(new Request("https://app.example/api/connect/linkedin?tenant_id=tenant-1"), params("linkedin"));
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(503);
   });
 });
 
@@ -408,11 +418,11 @@ describe("GET /api/connect/youtube — access_type=offline", () => {
     delete process.env.YOUTUBE_CLIENT_SECRET;
   });
 
-  it("YOUTUBE_CLIENT_ID 미설정 → 500", async () => {
+  it("YOUTUBE_CLIENT_ID 미설정 → 503", async () => {
     delete process.env.YOUTUBE_CLIENT_ID;
     const { GET } = await import("@/app/api/connect/[provider]/route");
     const res = await GET(new Request("https://app.example/api/connect/youtube?tenant_id=tenant-1"), params("youtube"));
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(503);
   });
 });
 
@@ -469,11 +479,11 @@ describe("GET /api/connect/x — PKCE", () => {
     delete process.env.X_CLIENT_SECRET;
   });
 
-  it("X_CLIENT_ID 미설정 → 500", async () => {
+  it("X_CLIENT_ID 미설정 → 503", async () => {
     delete process.env.X_CLIENT_ID;
     const { GET } = await import("@/app/api/connect/[provider]/route");
     const res = await GET(new Request("https://app.example/api/connect/x?tenant_id=tenant-1"), params("x"));
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(503);
   });
 });
 
