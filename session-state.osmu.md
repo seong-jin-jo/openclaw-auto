@@ -2,6 +2,31 @@
 
 최신이 위. 이 파일만 읽고 30초 안에 이어갈 수 있어야 한다.
 
+## [2026-08-29 08:28] 최근 24시간 코드 리뷰 BLOCK
+
+### 무엇을 어디까지 했나
+
+- 회장 현재 요청을 primary handoff basis로 사용하고 기존 `osmu-review1:0.0` pane과 이전 감사서를 확인한 뒤, 현재 24시간 범위 `5d941aa0..3c251689`의 97개 커밋을 다시 검토했다.
+- 승인 PRD, 프로토타입 v63, 요구 대장, 사업 좌표, DESIGN을 실제로 읽고 대조했다.
+- `docs/audit/osmu-code-review-2026-08-29.md`를 현재 범위 기준 MAJOR 19건, MINOR 5건, `REVIEW_VERDICT: BLOCK`으로 갱신했다. 제품 코드는 수정하지 않았다.
+- `docs/qa/qa-tracker.md` 맨 위에 독립 검증 증거를 추가했다.
+
+### 남은 이슈와 블로커
+
+- 같은 작업 트리의 동시 코드 쓰기, 발행 멱등과 부분 실패, 무료 몫 응답 시간 경계, migration preflight, E2E 격리와 거짓 양성, 승인 플레이어 부품 누락이 머지 차단 상태다.
+- 2026-08-29 08:01 DB workflow 수정은 현재 HEAD에서 실행된 CI가 없어 운영 runner 성공 여부가 미검증이다.
+
+### 다음 실행
+
+- code-builder가 감사서의 MAJOR를 돈, 격리, 외부 부작용 순으로 수정한다. 종료 증거는 각 재현 시나리오의 거절과 복구, 독립 E2E다.
+- qa-verifier가 수정 뒤 지정 작업 공간을 오염시키지 않는 필수 E2E와 실제 성과 readiness 응답을 재검증한다.
+
+### 검증했나
+
+- 관찰됨: localhost health 200, DB up, 연결 채널 0개, metrics GET 지원 true와 POST 미연결 400의 모순.
+- 테스트됨: Vitest 196파일 1,409건과 1건 제외, TypeScript, 기본 흐름 11/11, Studio 12/12.
+- 미검증: 실제 외부 채널 성공, 운영 migration workflow, 지적 수정 뒤 재검증.
+
 ## [2026-08-29 07:42] 성과 수집 범위 계약 build 종료
 
 ### 무엇을 어디까지 했나

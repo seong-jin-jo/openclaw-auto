@@ -2,6 +2,22 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-08-29 NG: 최근 24시간 코드 리뷰 현재 범위 재검증
+
+리뷰 시작 시 고정한 `5d941aa0..3c251689`의 97개 커밋과 438개 파일 diff를 승인 PRD, 프로토타입 v63, 요구 대장, 사업 좌표, DESIGN에 대조했다. MAJOR 19건, MINOR 5건으로 머지 차단이다. 소스 코드는 수정하지 않았다. 상세 지적과 재현 시나리오는 `docs/audit/osmu-code-review-2026-08-29.md`에 있다.
+
+| 검증 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| 앱 health | PASS | `localhost:3456/api/health` HTTP 200, DB `up` |
+| 성과 수집 readiness | FAIL | 지정 작업 공간 연결 채널 0개. GET은 Threads `collectionSupported=true`, 실제 POST는 `threads 채널 미연결` 400 |
+| 기본 흐름 | 범위 PASS | 11/11. 실행 과정에서 새 생성 작업, 초안 `85a9be49-5d81-439f-8acc-d17208056e53`, 발행 큐가 남았고 정리 경로가 없음 |
+| Studio v1 | 범위 PASS | 12/12. 생성 작업 2건을 만들고 무료 재생성 몫 소진 409를 관찰했으며 정리 경로가 없음 |
+| 전체 Vitest | PASS | 196파일, 1,409건 통과, 조건부 1건 제외 |
+| TypeScript | PASS | `npx tsc --noEmit` 종료 코드 0 |
+| 코드 리뷰 | NG | 공유 작업 트리 동시 코드 쓰기, 발행 멱등과 부분 실패, UTC 몫 응답 불일치, migration preflight 공백, E2E 거짓 양성, 승인 플레이어 누락 확인 |
+
+정상 경로 통과는 공급자 성공 뒤 부분 실패, reservation 직후 프로세스 중단, 외부 호출 중 DB connection 점유, 공유 설정 경합, cleanup 실패를 검증하지 않는다. 따라서 전체 QA는 NG를 유지한다.
+
 ## 2026-08-29 NG → 수정 → 범위 PASS: 플랫폼별 성과 수집 범위와 결측 이유
 
 최초 `GET /api/metrics`는 HTTP 200과 `posts`만 반환해 성과 0이 실제 0인지, 수집 전인지, 수집 미지원인지 구분할 수 없었다. 수정 뒤 같은 실제 작업 공간에서 기존 `posts`와 coverage v1, 일곱 대상별 지원 범위와 결측 이유를 관찰했다. 이번 범위만 PASS이며 Threads 외 실제 provider 수집과 운영 배포는 미검증이다.
