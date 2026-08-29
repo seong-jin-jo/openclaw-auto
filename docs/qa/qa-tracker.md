@@ -4323,3 +4323,6 @@ useEffect(() => { setLearningInfo(...) }, [activeWorkspace]);
 
 **남겨 두는 것**: `src/app/studio/page.tsx` 에도 작업 공간 객체를 의존성으로 쓰는 같은 모양이
 있다. 지금 멈추지는 않지만 같은 뿌리다. 이번 범위를 넘으므로 손대지 않고 다음 일거리로 적는다.
+
+**CI 실측**: 커밋 `5eeab8a5` 를 올린 뒤 CI (dashboard) 실행 `33273464200` 이 success 로 끝났다.
+실패하던 실행 `33272245619` 와 같은 워크플로다.
