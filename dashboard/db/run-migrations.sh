@@ -383,14 +383,24 @@ verify_entry() {
     echo "ERROR: manifest checksum mismatch for $id" >&2
     exit 4
   fi
-  local recorded
+  local recorded recorded_state
   recorded="$(psql -X -qAt -v ON_ERROR_STOP=1 -v id="$id" <<'SQL'
 SELECT sha256 FROM public.osmu_schema_migrations WHERE migration_id=:'id';
 SQL
 )"
+  recorded_state="$(psql -X -qAt -v ON_ERROR_STOP=1 -v id="$id" <<'SQL'
+SELECT state FROM public.osmu_schema_migrations WHERE migration_id=:'id';
+SQL
+)"
   if [ -n "$recorded" ] && [ "$recorded" != "$expected" ]; then
-    echo "ERROR: ledger checksum mismatch for $id" >&2
-    exit 4
+    # 적용된 기록의 체크섬이 달라졌다면 실제 스키마와 장부가 어긋난 것이므로 계속 거절한다.
+    # 반대로 failed 기록은 스키마를 바꾸지 못한 시도의 흔적이다. 그 시도의 체크섬 때문에
+    # 고쳐진 migration 이 영원히 못 돌면 재진입 경로가 사라진다(코드리뷰 run-migrations.sh:415).
+    if [ "$recorded_state" != "failed" ]; then
+      echo "ERROR: ledger checksum mismatch for $id (state=$recorded_state)" >&2
+      exit 4
+    fi
+    echo "ledger_supersede=$id previous_state=failed previous_sha256=$recorded new_sha256=$expected"
   fi
 }
 
