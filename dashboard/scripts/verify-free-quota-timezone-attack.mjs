@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// verify-free-quota-timezone-attack.mjs — 무료 재생성 몫의 시간대 우회 회귀 검증.
+// verify-free-quota-timezone-attack.mjs: 무료 재생성 몫의 시간대 우회 회귀 검증.
 //
 // 왜 (교차 모델 리뷰 M1, 2026-08-28):
 //   몫 키의 현지 날짜를 클라이언트가 보낸 시간대로 만들면, 협정시 -12 부터 +14 까지

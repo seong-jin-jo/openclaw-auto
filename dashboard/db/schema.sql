@@ -189,6 +189,23 @@ END $$;
 CREATE INDEX IF NOT EXISTS idx_studio_free_regeneration_jobs
   ON studio_free_regeneration_uses(tenant_id, original_job_id, replacement_job_id);
 
+-- 후보 거절 장부. 무료 재생성은 후보 셋을 모두 거절한 뒤에만 나간다(요구 대장 R27).
+-- 거절 여부를 클라이언트 상태로 판단하면 생성 직후 재생성을 불러 몫을 공짜로 태울 수 있다.
+CREATE TABLE IF NOT EXISTS studio_generation_candidate_rejections (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id     UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  member_id     TEXT NOT NULL,
+  job_id        UUID NOT NULL,
+  candidate_id  UUID NOT NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_studio_generation_candidate_rejection
+    UNIQUE (tenant_id, job_id, candidate_id),
+  FOREIGN KEY (tenant_id, job_id)
+    REFERENCES studio_generation_jobs(tenant_id, id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_studio_generation_candidate_rejections_job
+  ON studio_generation_candidate_rejections(tenant_id, job_id);
+
 -- 여덟 컨셉 숏폼 공장 실행 장부. 작업 공간마다 실행 중인 공장은 하나로 제한하고,
 -- 각 컨셉은 독립 상태와 Studio 생성 작업을 가져 한 건 실패가 나머지를 막지 않게 한다.
 CREATE TABLE IF NOT EXISTS shorts_factory_runs (

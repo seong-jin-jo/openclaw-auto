@@ -45,15 +45,17 @@ export async function GET(request: Request) {
       ? CREDENTIAL_STORE_UNAVAILABLE_REASON
       : connectionLookupError
       ? "연결 계정 상태를 확인할 수 없습니다. 잠시 후 다시 시도해주세요."
+      // 자격증명이 없으면 심사 여부보다 그 사실을 먼저 알린다. 자격증명 미설정 상태에서
+      // "심사가 끝나면 연결할 수 있습니다"라고 안내하면 고객이 기다리기만 하게 된다.
+      : !credentials?.complete
+      ? `서버에 ${name} OAuth 앱 자격증명(${cfg.appIdEnv}/${cfg.appSecretEnv})이 아직 설정되지 않았습니다.`
       : externalReviewPending
       ? connectionState === "connected"
         ? `${cfg.label} 계정은 연결됐지만 외부 앱 심사가 완료되기 전에는 실제 발행이 제한됩니다.`
         : `${cfg.label} 외부 앱 심사가 완료되면 연결할 수 있습니다.`
-      : credentials?.complete
-      ? connectionState === "reconnect"
-        ? `${cfg.label} 계정을 다시 연결해주세요.`
-        : undefined
-      : `서버에 ${name} OAuth 앱 자격증명(${cfg.appIdEnv}/${cfg.appSecretEnv})이 아직 설정되지 않았습니다.`;
+      : connectionState === "reconnect"
+      ? `${cfg.label} 계정을 다시 연결해주세요.`
+      : undefined;
     result[name] = resolveConnectReadiness({
       credentialsComplete: Boolean(credentials?.complete),
       credentialStoreError,
