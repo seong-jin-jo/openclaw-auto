@@ -1,3 +1,25 @@
+## 2026-08-30 00:30 진행상태 갱신 (Claude, osmu 라인)
+
+stage: qa
+
+★ 컨트롤러 직접 실행: node scripts/probe-four-room-flow.mjs (네 방 실렌더)
+  create/edit/publish/performance 네 방 전부 그려짐 true, 방머리 true, 가린모달 0.
+  성과실 도달 true. 단추 수 create 24 / edit 26 / publish 5 / performance 25.
+  편집실 목차항목 1, 대사줄 2, 미리보기 2 관측.
+  ★미확인 2건: 브라우저 콘솔에 403 두 건. 개발 서버 로그에는 403 이 없어
+   우리 API 가 아니라 외부 자원으로 보인다. 다음 QA 판이 출처를 확정할 것.
+  ★발행실 단추 5개는 다른 방(24~26)에 비해 얇다. 발행실 대화창 판에서 함께 볼 것.
+
+성과실 구현 회수됨(822fa94a, c9482772). verify PASS.
+안 터진 글 정리 실행 기능 발주(sonnet). 승낙 없는 삭제 경로 금지를 못 박음.
+생성실·편집실 조 진행중(f9feb84e 로 헤더 학습 정보 복구 등 일부 커밋됨).
+
+게이트: 30건 대조표 재실행으로 판정 갱신하기 전까지 qa 통과 주장 금지.
+대조표 재위임 시 프롬프트에 '~/.claude/standards/doc-review.md Read 필수' 명시할 것.
+
+배포: PR #36 회장 머지 대기. 순서는
+docs/releases/2026-08-29-배포-교착-해소-순서.md.
+
 ## 2026-08-29 23:58 진행상태 갱신 (Claude, osmu 라인)
 
 stage: qa
