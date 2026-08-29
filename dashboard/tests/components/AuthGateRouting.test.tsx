@@ -71,6 +71,7 @@ describe("AuthGate operator route separation", () => {
 
   afterEach(() => {
     cleanup();
+    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     window.history.replaceState(null, "", "/");
@@ -112,6 +113,58 @@ describe("AuthGate operator route separation", () => {
     expect(screen.getByTestId("sidebar")).toBeInTheDocument();
   });
 
+  it("QA-AUTH-15 거절: 고객은 /operator/customers의 자식과 캐시를 마운트하지 않고 고객 홈으로 돌아간다", async () => {
+    const customerJwt = `${"d".repeat(24)}.${"e".repeat(24)}.${"f".repeat(24)}`;
+    localStorage.setItem("dashboard_auth_token", customerJwt);
+    localStorage.setItem("dashboard_auth_identity_kind", "customer");
+    mocks.pathname.mockReturnValue("/operator/customers");
+    mocks.sessionToken = customerJwt;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({
+      isOperator: false,
+      tenant: { id: "customer-1", slug: "customer", name: "Customer" },
+    })));
+
+    render(<AuthGate><div>cached operator customer list</div></AuthGate>);
+
+    await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/"));
+    expect(screen.queryByText("cached operator customer list")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("sidebar")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    { isOperator: false, tenant: null },
+    { isOperator: false, tenant: null, tenantError: true },
+  ])("QA-AUTH-16 거절: tenant 없는 고객 응답은 children 대신 계정 이용 불가로 닫는다", async (payload) => {
+    const customerJwt = `${"d".repeat(24)}.${"e".repeat(24)}.${"f".repeat(24)}`;
+    localStorage.setItem("dashboard_auth_token", customerJwt);
+    localStorage.setItem("dashboard_auth_identity_kind", "customer");
+    mocks.pathname.mockReturnValue("/studio");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(payload)));
+
+    render(<AuthGate><div>customer child</div></AuthGate>);
+
+    await waitFor(() => expect(screen.getByText("계정 상태를 확인할 수 없습니다")).toBeInTheDocument());
+    expect(screen.queryByText("customer child")).not.toBeInTheDocument();
+    expect(mocks.replace).not.toHaveBeenCalledWith("/operator/customers");
+  });
+
+  it("QA-AUTH-18 거절: /api/me 네트워크 예외는 무한 확인 중 대신 재시도 가능한 서비스 실패로 닫는다", async () => {
+    const customerJwt = `${"d".repeat(24)}.${"e".repeat(24)}.${"f".repeat(24)}`;
+    localStorage.setItem("dashboard_auth_token", customerJwt);
+    localStorage.setItem("dashboard_auth_identity_kind", "customer");
+    mocks.pathname.mockReturnValue("/studio");
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network down")));
+
+    render(<AuthGate><div>customer child</div></AuthGate>);
+
+    await waitFor(() => expect(screen.getByText("서비스 확인 실패")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "새로고침" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "로그아웃" })).toBeInTheDocument();
+    expect(screen.queryByText("확인 중...")).not.toBeInTheDocument();
+    expect(screen.queryByText("customer child")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("sidebar")).not.toBeInTheDocument();
+  });
+
   it("preserves an operator-only browser session through null Supabase initial and sign-out events", async () => {
     mocks.pathname.mockReturnValue("/operator/customers");
     vi.stubGlobal(
@@ -141,7 +194,7 @@ describe("AuthGate operator route separation", () => {
     let resolvePreOperatorSession!: (value: {
       data: { session: { access_token: string } | null };
     }) => void;
-    mocks.pathname.mockReturnValue("/login");
+    mocks.pathname.mockReturnValue("/privacy");
     mocks.getSession
       .mockImplementationOnce(() => new Promise((resolve) => {
         resolvePreOperatorSession = resolve;
@@ -197,10 +250,17 @@ describe("AuthGate operator route separation", () => {
 
   it("promotes an established customer Supabase session over a residual operator token outside the operator console", async () => {
     const customerJwt = `${"d".repeat(24)}.${"e".repeat(24)}.${"f".repeat(24)}`;
-    mocks.pathname.mockReturnValue("/login");
+    mocks.pathname.mockReturnValue("/videos");
     mocks.sessionToken = customerJwt;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(Response.json({
+        isOperator: false,
+        tenant: { id: "customer-1", slug: "customer", name: "Customer" },
+      })),
+    );
 
-    render(<AuthGate><div>login child</div></AuthGate>);
+    render(<AuthGate><div>customer child</div></AuthGate>);
 
     await waitFor(() => {
       expect(localStorage.getItem("dashboard_auth_token")).toBe(customerJwt);
@@ -238,6 +298,37 @@ describe("AuthGate operator route separation", () => {
     expect(screen.queryByText("customer child")).not.toBeInTheDocument();
   });
 
+  it("QA-AUTH-08 거절: 형식 불량 고객 잔존 토큰도 고객 로그인에 머물고 운영자 화면을 열지 않는다", async () => {
+    localStorage.setItem("dashboard_auth_token", "stale-customer-token");
+    mocks.pathname.mockReturnValue("/studio");
+    window.history.replaceState(null, "", "/studio?room=edit");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 401 })));
+
+    render(<AuthGate><div>customer child</div></AuthGate>);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith("/login?returnTo=%2Fstudio%3Froom%3Dedit");
+    });
+    expect(mocks.replace).not.toHaveBeenCalledWith("/operator");
+    expect(screen.queryByText("베타 신청하기")).not.toBeInTheDocument();
+    expect(screen.queryByText("customer child")).not.toBeInTheDocument();
+    expect(screen.getByText("로그인 화면으로 이동 중...")).toBeInTheDocument();
+  });
+
+  it("QA-AUTH-09 거절: 보호 경로의 무토큰 상태는 공개 랜딩을 렌더하지 않고 고객 로그인으로 보낸다", async () => {
+    localStorage.clear();
+    mocks.pathname.mockReturnValue("/studio");
+    window.history.replaceState(null, "", "/studio?room=edit");
+
+    render(<AuthGate><div>customer child</div></AuthGate>);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith("/login?returnTo=%2Fstudio%3Froom%3Dedit");
+    });
+    expect(screen.queryByText("베타 신청하기")).not.toBeInTheDocument();
+    expect(screen.getByText("로그인 화면으로 이동 중...")).toBeInTheDocument();
+  });
+
   it("ignores a stale /api/me 401 after the request token has been replaced", async () => {
     const oldJwt = `${"a".repeat(24)}.${"b".repeat(24)}.${"c".repeat(24)}`;
     const newJwt = `${"d".repeat(24)}.${"e".repeat(24)}.${"f".repeat(24)}`;
@@ -264,6 +355,44 @@ describe("AuthGate operator route separation", () => {
     await waitFor(() => expect(localStorage.getItem("dashboard_auth_token")).toBe(newJwt));
     expect(mocks.signOut).not.toHaveBeenCalled();
     expect(mocks.replace).not.toHaveBeenCalled();
+  });
+
+  it("QA-AUTH-24 경합 거절: 늦은 과거 정상 응답이 최신 이용 중지 상태를 덮지 않는다", async () => {
+    vi.useFakeTimers();
+    let resolveFirst!: (response: Response) => void;
+    const fetchMock = vi.fn()
+      .mockImplementationOnce(() => new Promise<Response>((resolve) => {
+        resolveFirst = resolve;
+      }))
+      .mockResolvedValueOnce(Response.json({
+        isOperator: false,
+        tenant: { id: "customer-1", slug: "customer", name: "Customer" },
+        accessPaused: true,
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<AuthGate><div>customer child</div></AuthGate>);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15000);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(screen.getByText("계정 이용이 중지되었습니다")).toBeInTheDocument();
+
+    await act(async () => {
+      resolveFirst(Response.json({
+        isOperator: false,
+        tenant: { id: "customer-1", slug: "customer", name: "Customer" },
+        accessPaused: false,
+      }));
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText("계정 이용이 중지되었습니다")).toBeInTheDocument();
+    expect(screen.queryByText("customer child")).not.toBeInTheDocument();
   });
 
   it("preserves a new session when an old 401 sign-out emits SIGNED_OUT after replacement", async () => {

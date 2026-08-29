@@ -27,7 +27,7 @@ export default function OperatorPage() {
         setError("이 토큰은 운영자 모드가 아닙니다.");
         return;
       }
-      setAuthToken(t);
+      setAuthToken(t, "operator");
       window.location.href = "/operator/customers";
     } catch {
       setError("토큰 확인 중 오류가 발생했습니다.");
