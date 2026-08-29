@@ -25,9 +25,12 @@ export default function HomePage() {
   // 성과실도 다른 세 방(생성실·편집실·발행실)과 같은 헤더 학습 정보 배지를 보여준다(회장 지적: 성과실만 빠짐).
   // 저장은 studio 쪽과 같은 작업 공간별 localStorage — 여기서는 읽기만 하고, 채우기는 /studio에서 한다.
   const [learningInfo, setLearningInfo] = useState<LearningInfo>({});
+  // 의존성은 작업 공간 객체가 아니라 그 id(원시값)다. 객체를 걸면 부모가 매 렌더 새 객체를
+  // 넘길 때 이 효과가 다시 돌고, 그 안의 setState 가 또 렌더를 부르는 무한 갱신이 된다.
+  const activeWorkspaceId = activeWorkspace?.id;
   useEffect(() => {
-    setLearningInfo(activeWorkspace ? readLearningInfo(activeWorkspace.id) : {});
-  }, [activeWorkspace]);
+    setLearningInfo(activeWorkspaceId ? readLearningInfo(activeWorkspaceId) : {});
+  }, [activeWorkspaceId]);
   // 발행물 성과(성과 페이지 통합). 활성 워크스페이스의 published_posts
   const { data: metricsData, mutate: mutateMetrics } = useSWR<{ posts?: PerformancePost[] }>(
     activeWorkspace ? `/api/metrics?tenant_id=${activeWorkspace.id}` : null, fetcher);
