@@ -39,16 +39,19 @@ class RouteMemoryRepository implements ShortsFactoryRepository {
     };
     return { run: structuredClone(this.run), created: true };
   }
-  async markRunRunning() { this.run!.status = "running"; }
-  async touchRun() {}
+  async markRunRunning() { this.run!.status = "running"; return true; }
+  async touchRun() { return true; }
   async markConceptRunning(_w: string, _r: string, id: string) {
     Object.assign(this.run!.concepts.find((concept) => concept.conceptId === id)!, { status: "running", stage: "generating_candidates" });
+    return true;
   }
   async markConceptSucceeded(_w: string, _r: string, id: string, jobId: string) {
     Object.assign(this.run!.concepts.find((concept) => concept.conceptId === id)!, { status: "succeeded", stage: "completed", studioJobId: jobId });
+    return true;
   }
   async markConceptFailed(_w: string, _r: string, id: string, code: string, message: string) {
     Object.assign(this.run!.concepts.find((concept) => concept.conceptId === id)!, { status: "failed", stage: "failed", errorCode: code, errorMessage: message });
+    return true;
   }
   async finalizeRun() {
     this.run!.succeededConcepts = this.run!.concepts.filter((concept) => concept.status === "succeeded").length;

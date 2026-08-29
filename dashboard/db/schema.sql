@@ -212,6 +212,9 @@ CREATE TABLE IF NOT EXISTS shorts_factory_runs (
   id                  UUID PRIMARY KEY,
   tenant_id           UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   member_id           TEXT NOT NULL,
+  -- 울타리 표. 이 실행을 소유한 worker 만 진행 신호와 마감을 쓸 수 있다.
+  -- 강제 종료와 회수는 표를 지워 옛 worker 를 즉시 무효로 만든다.
+  lease_token         UUID,
   status              TEXT NOT NULL DEFAULT 'queued'
                       CHECK (status IN ('queued', 'running', 'succeeded', 'partial', 'failed')),
   concurrency_limit   SMALLINT NOT NULL CHECK (concurrency_limit BETWEEN 1 AND 8),

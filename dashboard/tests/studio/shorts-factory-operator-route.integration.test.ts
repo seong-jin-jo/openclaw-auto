@@ -34,11 +34,11 @@ class OperatorMemoryRepository implements ShortsFactoryRepository {
     })),
   };
   async createRun(): Promise<never> { throw new Error("unused"); }
-  async markRunRunning() {}
-  async touchRun() {}
-  async markConceptRunning() {}
-  async markConceptSucceeded() {}
-  async markConceptFailed() {}
+  async markRunRunning() { return true; }
+  async touchRun() { return true; }
+  async markConceptRunning() { return true; }
+  async markConceptSucceeded() { return true; }
+  async markConceptFailed() { return true; }
   async finalizeRun() { return structuredClone(this.run); }
   async findRun() { return structuredClone(this.run); }
   async listRuns() { return [structuredClone(this.run)]; }
