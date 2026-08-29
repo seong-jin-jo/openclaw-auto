@@ -3716,3 +3716,83 @@ SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open �
 ### 미검증
 
 - `/studio` 실화면 로그인 게이트(Google OAuth) 때문에 로그인된 상태의 실렌더 계산값은 이 판에서 다시 재지 않았다(직전 판이 이미 편집실/발행실/성과실 3화면 실측을 남겼음). 새로 깨진 자리는 없다는 결론은 정적 CSS 분석 + 격리 probe 실측 기반이며, 로그인 후 3화면 전수 시각 재검증은 다음 판으로 넘긴다.
+
+## 🔧 부분 PASS: 성과실 챗봇·상시규칙·플랫폼 드릴다운·캘린더 진입뷰 (2026-08-29~30, code-builder)
+
+- 기반: `docs/qa/회장-피드백-대조표-2026-08-29.md` 성과실 절(#25~28) + 미해결 우선순위 7·9·10번,
+  `docs/design-docs/osmu-4room-구조질문-선택지-v1.0.0-opus-20260829.md` 질문3(성과실 챗봇)·질문4(성과실/채널 경계) 추천안.
+  담당 파일: `dashboard/src/app/page.tsx`(성과실 진입) 하위 `PerformanceRoom.tsx` + 신규
+  `PerformanceChatPanel.tsx` / `AutomationRulesPanel.tsx` / `api/performance/learned-rules/route.ts`
+  / `app/calendar/page.tsx`.
+
+### 기존 구현 확인 (재창조 금지 게이트)
+
+- `Grep`으로 확인: 자동 좋아요는 이미 서버에 있었다 — `channel-settings.json`의 `auto_like_replies`가
+  cron job `threads-collect-insights`에 매핑돼 있고(`FEATURE_TO_CRON`), `/api/cron-status`가 실행
+  기록을 낸다. 새로 만들지 않고 그 위에 UI만 얹었다.
+- `low_engagement_cleanup`은 `constants.ts`에 `implemented:false`로 이미 명시돼 있었다 — 자동 삭제
+  실행 자체가 없다는 뜻. 있는 척 토글을 만들지 않고 "준비 중" 배지로 정직하게 표기했다.
+- 성과 제안 API(`/api/suggestions`)·큐 API(`/api/suggestions/enqueue`)·댓글 API(`/api/engagement`)는
+  이미 완성돼 있었다. 챗봇의 "이거 왜 잘 됐어"는 이 데이터(이미 내려오는 `posts` prop)를 그대로 재사용해
+  새 DB 조회를 만들지 않았다.
+
+### 만든 것
+
+1. **성과실 담당 대화(PerformanceChatPanel)**: "이번 주 왜 이랬어"(표본<5면 판정 보류를 명시)
+   / "안 터진 글 정리해줘"(평균의 30% 이하 후보 목록, 자동삭제는 없다고 명시하고 실제 삭제는
+   각 채널에서 직접 하도록 안내) / "이거 왜 잘 됐어"(상위 3편 공통점 → 규칙 후보 →
+   "배우기/넘어가기") 세 갈래. "배우기"를 누르면 `POST /api/performance/learned-rules`로
+   실제 저장되고, 화면 하단 "성과에서 배운 규칙" 목록에 출처(포스트 편수·날짜)와 함께 뜬다 —
+   대조표 #3(L5가 성과실에 존재하는지)의 답을 화면에 만들었다.
+2. **돌고 있는 규칙(AutomationRulesPanel)**: 자동 좋아요 토글이 실제로 `/api/channel-settings/threads`를
+   호출해 켜고 끈다(curl로 200 확인, 아래). 마지막 실행 시각은 `/api/cron-status`에서 가져온다.
+3. **플랫폼 두 번째 클릭 = 이동**: 칩을 누르면(첫 클릭) 성과실 안에서 필터만 걸리고,
+   그 아래 "OO 계정 자세히 보기" 링크(두 번째 클릭)를 눌러야 `/channels/[channel]`로 나간다.
+4. **발행 캘린더 진입 뷰**: 성과실 헤더의 "발행 캘린더에서 보기" 링크가 `/calendar?from=performance`로
+   가고, 그 화면은 발행이 몰린 날을 배경 진하기로 강조한다(성과실에서 열렸을 때만).
+5. **문구**: "생성 큐에 넣기" → "이 제안으로 새 콘텐츠 만들기" / "생성실 대기 목록에 넣었어요"로 정정.
+
+### 테스트됨
+
+- `npx tsc --noEmit` exit 0.
+- `npx vitest run tests/components/HomeDesignSystemIntegration.test.tsx`: 11/11 PASS
+  (신규 OSMU-PERF-AUTO-01·OSMU-PERF-CHAT-01 포함, 자동 좋아요 API 호출과 규칙 학습 API 호출을
+  실제로 mock 호출 인자까지 검증).
+- `npm run build` (production, Turbopack): 성공, `/calendar`·`/channels/[channel]` 포함 전 라우트 컴파일.
+- curl 실측(로컬 dev, `Authorization: Bearer devlocaltoken`):
+  `POST /api/performance/learned-rules` → `{"ok":true,"rule":{...}}`,
+  `GET /api/performance/learned-rules` → 방금 넣은 규칙 반환,
+  `POST /api/channel-settings/threads {"auto_like_replies":true}` → `{"ok":true,"settings":{...auto_like_replies:true...}}`.
+  검증 후 테스트 데이터는 DELETE로 정리했다.
+- `dashboard/src/components/studio/`·`api/publish`·`lib/publish.ts`·`lib/studio/generation`·`db/`
+  등 금지 경로는 건드리지 않았다(git status로 확인).
+
+### 미검증 (부분 PASS로 낮추는 이유)
+
+- **실제 로그인 화면 스크린샷을 못 남겼다.** 대시보드 고객 로그인은 Supabase Google OAuth 전용이고
+  로컬 `.env.local`엔 `DASHBOARD_AUTH_TOKEN`(운영자 전용 토큰)만 있어, 브라우저로 그 토큰을
+  `localStorage.dashboard_auth_token`에 넣으면 고객 화면이 아니라 **운영자 콘솔**로 라우팅된다
+  (실측: `/operator/customers`로 이동해 워크스페이스 `local-v63-verification` 존재를 확인했을 뿐).
+  실 고객 JWT를 로컬에서 발급할 방법이 없어 API 레벨(curl)과 컴포넌트 레벨(vitest RTL) 증거로
+  대체했다. 다음 판이 실 계정으로 성과실을 열어 스크린샷 대조가 필요하다.
+- 캘린더 "지난 4주" 기본 보기는 구조질문 문서가 제안한 전용 4주 뷰(성과 숫자 얹기)까지는
+  못 갔다 — 현재 월 그리드에 "발행 몰린 날 강조"만 얹은 축소판이다. `published_posts`의 조회수를
+  캘린더 화면까지 끌어오려면 `queue.json` 파일 데이터와 DB `published_posts`를 조인해야 해서
+  이번 판 범위를 넘었다.
+- "안 터진 글 정리" 후보의 실제 삭제 실행 API는 없다(위 기존구현 확인대로 서버에 없음) —
+  이번 판은 후보 제시까지만 하고 삭제는 고객이 각 채널에서 직접 하게 안내했다. 자동 삭제
+  기능 자체를 만드는 것은 범위 밖(별도 발주 필요).
+
+### 셀프심문
+
+"회장이 이 화면을 열면 같은 불만을 또 낼까" — 부분적으로 그렇다. L5·상시규칙·플랫폼 드릴다운·
+캘린더 연결·문구는 실제로 바뀌었으니 #3, #25, #26, #27, #28, #6 재발 가능성은 낮다. 다만
+"안 터진 글 삭제"를 회장이 "자동으로 지워지는 것"으로 기대했다면 이번 판은 그 기대를 충족 못한다
+(자동 삭제 자체가 서버에 없다는 사실을 처음 발견했고, 이 판은 그걸 만드는 대신 정직하게 드러냈다).
+이건 범위를 넘는 새 기능이라 다음 판 발주로 남겨야 한다.
+
+SOURCES/MODEL
+- MODEL: claude-sonnet-5 (agent: code-builder)
+- 근거: 위 커밋 `822fa94a`, `docs/qa/회장-피드백-대조표-2026-08-29.md`,
+  `docs/design-docs/osmu-4room-구조질문-선택지-v1.0.0-opus-20260829.md`,
+  로컬 dev 서버 curl 실측, `npm run build`/`npx tsc --noEmit`/`npx vitest` 로그.
