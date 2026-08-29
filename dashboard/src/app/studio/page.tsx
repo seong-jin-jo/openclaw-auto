@@ -735,7 +735,7 @@ export default function StudioPage() {
     else if (/날짜|예약/.test(command)) setShowSchedule(true);
     else if (/저장|초안/.test(command)) await save("draft");
     else if (/발행|publish/i.test(command)) await publish();
-    else showToast("초안 저장, 검토 요청, 발행, 날짜 잡기 중 하나로 말씀해 주세요", "error");
+    else showToast("임시 저장, 승인 인박스로 보내기, 지금 발행, 예약 발행 중 하나로 말씀해 주세요", "error");
   }
 
   const roomHeader = (
@@ -747,8 +747,8 @@ export default function StudioPage() {
       <Button onClick={() => setShowWorks((value) => !value)} aria-expanded={showWorks} aria-controls="studio-work-overview">
         작업물 전체 <span className="ml-micro text-accent">{hist?.drafts.length ?? 0}</span>
       </Button>
-      <Link href="/inbox" className="inline-flex min-h-control-touch items-center rounded-control border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">승인 인박스</Link>
-      <Link href="/calendar" className="inline-flex min-h-control-touch items-center rounded-control border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">발행 캘린더</Link>
+      <Link href="/inbox" title="발행 전에 검토를 기다리는 작업물 목록" className="inline-flex min-h-control-touch items-center gap-micro rounded-control border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">승인 인박스<span className="text-caption font-normal text-subtle">검토 대기</span></Link>
+      <Link href="/calendar" title="예약해 둔 발행 일정을 날짜별로 보는 곳" className="inline-flex min-h-control-touch items-center gap-micro rounded-control border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">발행 캘린더<span className="text-caption font-normal text-subtle">예약 일정</span></Link>
       <span className="rounded-pill bg-accent-soft px-stack py-stack-tight text-caption font-semibold text-accent">
         {activeRoom === "create" ? "생성실" : activeRoom === "edit" ? "편집실" : "발행실"}
       </span>
@@ -876,10 +876,10 @@ export default function StudioPage() {
           {text ? (
             <div className="card flex flex-wrap items-center gap-stack p-stack">
               <b className="mr-auto min-w-0 truncate text-body text-text">{idea || "현재 작업물"}</b>
-              <Button onClick={() => save("draft")}>초안으로 저장</Button>
-              <Button onClick={requestReview} disabled={reviewBusy}>{reviewBusy ? "요청 중" : "검토 요청"}</Button>
-              <Button variant="primary" onClick={publish} disabled={pub.running || !accountsLoaded || publishTargets.length === 0}>{publishTargets.length}곳에 올리기</Button>
-              {activeWorkspace ? <Button variant={showSchedule ? "primary" : "secondary"} onClick={() => setShowSchedule((value) => !value)}>날짜 잡기</Button> : null}
+              <Button onClick={() => save("draft")}>임시 저장하기</Button>
+              <Button onClick={requestReview} disabled={reviewBusy}>{reviewBusy ? "보내는 중" : "승인 인박스로 보내기"}</Button>
+              <Button variant="primary" onClick={publish} disabled={pub.running || !accountsLoaded || publishTargets.length === 0}>선택한 {publishTargets.length}곳에 지금 발행</Button>
+              {activeWorkspace ? <Button variant={showSchedule ? "primary" : "secondary"} onClick={() => setShowSchedule((value) => !value)}>예약 발행</Button> : null}
             </div>
           ) : null}
           {GROUPS.map((group) => (
@@ -906,6 +906,16 @@ export default function StudioPage() {
                               미지원
                             </label>
                           )}
+                          {accountsLoaded && PUBLISH_SUPPORTED.has(platform) && (accountsByPlatform[platform] || []).length === 0 ? (
+                            <Link
+                              href={`/settings?tab=channels&channel=${platform}`}
+                              data-testid={`publish-connect-link-${platform}`}
+                              title={`${LABEL[platform]} 계정을 연결하러 갑니다`}
+                              className="inline-flex min-h-control-touch items-center rounded-control border border-accent/40 bg-accent-soft px-stack-tight text-caption font-semibold text-accent hover:bg-surface"
+                            >
+                              계정 연결하기
+                            </Link>
+                          ) : null}
                           {ACCOUNT_SELECTABLE.has(platform) && (accountsByPlatform[platform] || []).length > 0 ? (
                             <select
                               aria-label={`${LABEL[platform]} 발행 계정`}

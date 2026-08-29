@@ -62,7 +62,14 @@ export type PersistCreationInput = {
 };
 
 export type PersistedCreation = IdempotencyRecord & { created: boolean };
-export type PersistedFreeRegeneration = { consumed: boolean; response: GenerationResponse | null };
+
+// 무료 재생성이 나가지 않은 사유를 호출부가 구분할 수 있어야 한다.
+// quota_exhausted 는 오늘 몫을 이미 쓴 것이고, candidates_not_rejected 는 후보 셋을
+// 다 거절하지 않은 것이다(요구 대장 R27). 둘을 뭉뚱그리면 안내가 거짓말이 된다.
+export type FreeRegenerationRefusal = "quota_exhausted" | "candidates_not_rejected";
+export type PersistedFreeRegeneration =
+  | { consumed: true; response: GenerationResponse; refusal?: undefined; pendingCandidateIds?: undefined }
+  | { consumed: false; response: null; refusal: FreeRegenerationRefusal; pendingCandidateIds?: string[] };
 
 export type PersistFreeRegenerationInput = {
   originalJobId: string;
@@ -72,11 +79,22 @@ export type PersistFreeRegenerationInput = {
   idempotencyKey: string;
   requestHash: string;
   response: GenerationResponse;
+  // 이 작업의 후보 전체. 저장소는 몫 차감과 같은 transaction 안에서
+  // 이 후보들이 모두 거절 장부에 있는지 확인한다.
+  requiredRejections: readonly string[];
+};
+
+export type RecordRejectionInput = {
+  workspaceId: string;
+  memberId: string;
+  jobId: string;
+  candidateId: string;
 };
 
 export interface GenerationRepository {
   persistCreation(input: PersistCreationInput): Promise<PersistedCreation>;
   findJob(memberId: string, jobId: string, allowedWorkspaceIds: readonly string[]): Promise<GenerationJob | null>;
+  recordCandidateRejection(input: RecordRejectionInput): Promise<{ rejectedCandidateIds: string[] }>;
   persistFreeRegeneration(input: PersistFreeRegenerationInput): Promise<PersistedFreeRegeneration>;
 }
 
@@ -110,16 +128,14 @@ function quotaDate(now: Date): string {
   return dateInZone(now, "UTC");
 }
 
-function nextLocalDateBoundary(now: Date, timeZone: string): string {
-  const current = dateInZone(now, timeZone);
-  let low = now.getTime();
-  let high = low + 36 * 60 * 60 * 1000;
-  while (high - low > 1000) {
-    const middle = Math.floor((low + high) / 2);
-    if (dateInZone(new Date(middle), timeZone) === current) low = middle;
-    else high = middle;
-  }
-  return new Date(Math.floor(high / 1000) * 1000).toISOString();
+// 몫 키가 협정시 날짜이므로 복구 안내도 협정시 자정이어야 한다.
+// 원본 작업의 시간대 자정을 알리면 서울 23:30 사용자에게 "00:00 복구"라고 말하고
+// 실제로는 09:00 까지 잠기는 거짓 안내가 된다.
+// 몫 키를 클라이언트 시간대로 만들지 않는 이유는 시간대를 바꿔가며 하루 몫을
+// 두세 번 받는 우회를 막기 위해서다(scripts/verify-free-quota-timezone-attack.mjs).
+function nextQuotaBoundary(now: Date): string {
+  const next = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+  return new Date(next).toISOString();
 }
 
 function envPositiveInt(name: string): number | null {
@@ -241,13 +257,22 @@ function buildJob(memberId: string, request: GenerationRequest, now: Date): Gene
   };
 }
 
-function paidRegenerationApprovalRequired(now: Date, timeZone: string): StudioApiError {
+function candidatesNotRejected(pending: readonly string[]): StudioApiError {
+  return new StudioApiError({
+    status: 409,
+    code: "CANDIDATES_NOT_REJECTED",
+    message: "후보 세 장을 모두 거절해야 무료 재생성을 쓸 수 있습니다",
+    details: { pending_candidate_ids: [...pending] },
+  });
+}
+
+function paidRegenerationApprovalRequired(now: Date): StudioApiError {
   return new StudioApiError({
     status: 409,
     code: "PAID_REGENERATION_APPROVAL_REQUIRED",
     message: "오늘의 무료 재생성을 이미 사용했습니다",
     details: {
-      free_retry_resets_at: nextLocalDateBoundary(now, timeZone),
+      free_retry_resets_at: nextQuotaBoundary(now),
       paid_retry_quote: envPositiveInt("STUDIO_PAID_REGENERATION_MINOR") === null ? null : {
         currency: process.env.STUDIO_COST_CURRENCY || "KRW",
         amount_minor: envPositiveInt("STUDIO_PAID_REGENERATION_MINOR"),
@@ -295,6 +320,38 @@ export class GenerationService {
     return publicResponse(job);
   }
 
+  // 후보 한 장 거절을 서버 장부에 남긴다. 무료 재생성 판정의 유일한 근거다.
+  async rejectCandidate(
+    memberId: string,
+    jobId: string,
+    candidateId: string,
+    allowedWorkspaceIds: readonly string[],
+  ): Promise<{ jobId: string; rejectedCandidateIds: string[]; pendingCandidateIds: string[]; allRejected: boolean }> {
+    const job = await this.repository.findJob(memberId, jobId, allowedWorkspaceIds);
+    if (!job) {
+      throw new StudioApiError({ status: 404, code: "RESOURCE_NOT_FOUND", message: "생성 작업을 찾을 수 없습니다" });
+    }
+    if (!job.candidates.some((candidate) => candidate.candidateId === candidateId)) {
+      throw new StudioApiError({ status: 404, code: "RESOURCE_NOT_FOUND", message: "이 작업의 후보가 아닙니다" });
+    }
+    const { rejectedCandidateIds } = await this.repository.recordCandidateRejection({
+      workspaceId: job.workspaceId,
+      memberId,
+      jobId,
+      candidateId,
+    });
+    const rejected = new Set(rejectedCandidateIds);
+    const pendingCandidateIds = job.candidates
+      .map((candidate) => candidate.candidateId)
+      .filter((id) => !rejected.has(id));
+    return {
+      jobId,
+      rejectedCandidateIds,
+      pendingCandidateIds,
+      allRejected: pendingCandidateIds.length === 0,
+    };
+  }
+
   async regenerate(memberId: string, jobId: string, allowedWorkspaceIds: readonly string[], now = new Date()): Promise<{
     freeRetryConsumed: true;
     replacement: GenerationResponse;
@@ -304,6 +361,7 @@ export class GenerationService {
     if (!original) {
       throw new StudioApiError({ status: 404, code: "RESOURCE_NOT_FOUND", message: "생성 작업을 찾을 수 없습니다" });
     }
+    const requiredRejections = original.candidates.map((candidate) => candidate.candidateId);
     const localDate = quotaDate(now);
     const idempotencyKey = `free-regeneration:${jobId}:${localDate}`;
     const replacementJob = buildJob(memberId, original.request, now);
@@ -316,12 +374,16 @@ export class GenerationService {
       idempotencyKey,
       requestHash: hashRequest(original.request),
       response: replacement,
+      requiredRejections,
     });
-    if (!persisted.consumed || !persisted.response) throw paidRegenerationApprovalRequired(now, original.timeZone);
+    if (!persisted.consumed) {
+      if (persisted.refusal === "candidates_not_rejected") throw candidatesNotRejected(requiredRejections);
+      throw paidRegenerationApprovalRequired(now);
+    }
     return {
       freeRetryConsumed: true,
       replacement: persisted.response,
-      freeRetryResetsAt: nextLocalDateBoundary(now, original.timeZone),
+      freeRetryResetsAt: nextQuotaBoundary(now),
     };
   }
 }

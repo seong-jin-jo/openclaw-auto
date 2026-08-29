@@ -29,10 +29,14 @@ export function Button({
   type = "button",
   ...props
 }: ButtonProps) {
+  // 기본값은 라벨이 줄바꿈되지 않도록 min-w-max다. 다만 좁은 칸(목차, 카드) 안에서는 이 값이
+  // 칸을 밀어내 글자를 가린다. 호출부가 min-w-를 직접 주면 그 값을 존중한다.
+  const minWidthClass = /(^|\s)min-w-/.test(className) ? "" : "min-w-max";
+
   return (
     <button
       type={type}
-      className={`ds-label inline-flex min-h-control-touch min-w-max items-center justify-center gap-micro rounded-control font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]} ${className}`}
+      className={`ds-label inline-flex min-h-control-touch ${minWidthClass} items-center justify-center gap-micro rounded-control font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]} ${className}`}
       {...props}
     />
   );

@@ -69,7 +69,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
   const [error, setError] = useState<string | null>(null);
   const facts = useMemo(() => guide.trim() ? [guide.trim()] : [], [guide]);
   const learnedCount = [workspaceName, guide, purpose, audience].filter((value) => value?.trim()).length;
-  const missing = [!topic.trim() && "주제", !purpose.trim() && "목적", !audience.trim() && "대상", !rightsConfirmed && "소재 권리 확인"].filter(Boolean) as string[];
+  const missing = [!topic.trim() && "주제", !purpose.trim() && "목적", !audience.trim() && "대상", !rightsConfirmed && "사용 권리 확인"].filter(Boolean) as string[];
   const selectedCandidate = candidates.find((candidate) => candidate.label === selected) ?? null;
   const displayCandidates = candidates.length ? candidates : CREATE_EXAMPLES;
   const stage = selected ? { count: "3 / 3", label: "완성 확인" } : candidates.length ? { count: "2 / 3", label: "후보 고르기" } : { count: "1 / 3", label: "주제 받는 중" };
@@ -207,7 +207,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
                 <Field label="이번 주제" htmlFor="studio-topic"><input ref={topicInputRef} id="studio-topic" value={topic} onChange={(event) => onTopicChange(event.target.value)} placeholder="콘텐츠 주제 입력" className="w-full rounded-control border border-border bg-surface-2 px-stack text-body text-text" /></Field>
                 <Field label="목적" htmlFor="studio-purpose"><input id="studio-purpose" value={purpose} onChange={(event) => setPurpose(event.target.value)} className="w-full rounded-control border border-border bg-surface-2 px-stack text-body text-text" /></Field>
                 <Field label="대상" htmlFor="studio-audience"><input id="studio-audience" value={audience} onChange={(event) => setAudience(event.target.value)} className="w-full rounded-control border border-border bg-surface-2 px-stack text-body text-text" /></Field>
-                <label className="flex items-start gap-stack-tight text-caption text-muted"><input type="checkbox" checked={rightsConfirmed} onChange={(event) => setRightsConfirmed(event.target.checked)} />소재 권리를 확인했습니다</label>
+                <label className="flex items-start gap-stack-tight text-caption text-muted"><input type="checkbox" checked={rightsConfirmed} onChange={(event) => setRightsConfirmed(event.target.checked)} />이 콘텐츠에 쓰는 사진과 글을 제가 쓸 권리가 있습니다</label>
               </div>
               {missing.length ? <div className="rounded-control border border-warning/30 bg-warning/10 p-stack text-caption text-warning">비어 있음: {missing.join(", ")}</div> : null}
               {!guide.trim() ? <Button onClick={onOpenLearning}>학습 정보 채우기</Button> : null}
@@ -335,9 +335,9 @@ export function EditRoom({ lines, onLinesChange, kind = "video", previewReady = 
       <section data-room-top="edit" aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch items-center justify-between rounded-surface border border-border bg-surface px-pad-inset py-stack"><b className="text-lead text-accent">{visibleCount}개 {unit}</b><span className="text-caption text-subtle" data-edit-duration>{kind === "audio" ? "음악 생성 준비 중" : `${durationLabel}초 · 대사를 다듬는 중`}</span></section>
       <div className="grid gap-stack-section lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="card grid min-w-0 overflow-hidden md:grid-cols-[15rem_minmax(0,1fr)]" data-edit-workspace>
-          <nav className="max-h-72 overflow-y-auto border-b border-border p-pad-inset md:max-h-none md:border-b-0 md:border-r" aria-label={outlineTitle} data-edit-outline>
+          <nav className="min-w-0 max-h-72 overflow-y-auto border-b border-border p-pad-inset md:max-h-none md:border-b-0 md:border-r" aria-label={outlineTitle} data-edit-outline>
             <b className="text-body text-text">{outlineTitle}</b>
-            <ol className="mt-stack space-y-stack-tight">{safeLines.map((line, index) => <li key={`${index}-${line.slice(0, 16)}`}><Button size="sm" variant={activeLine === index ? "primary" : "secondary"} onClick={() => setActiveLine(index)} className={`w-full justify-start overflow-hidden text-left ${visibleLines[index] ? "" : "line-through opacity-60"}`}><span className="truncate">{index + 1}. {line || "빈 대사"}</span></Button></li>)}</ol>
+            <ol className="mt-stack space-y-stack-tight">{safeLines.map((line, index) => <li key={`${index}-${line.slice(0, 16)}`}><Button size="sm" variant={activeLine === index ? "primary" : "secondary"} onClick={() => setActiveLine(index)} className={`w-full min-w-0 justify-start overflow-hidden text-left ${visibleLines[index] ? "" : "line-through opacity-60"}`}><span className="min-w-0 truncate">{index + 1}. {line || "빈 대사"}</span></Button></li>)}</ol>
           </nav>
           <div className="min-w-0 p-pad-inset">
             {kind === "audio" ? <section className="grid min-h-80 place-items-center rounded-surface border border-dashed border-border bg-surface-2 p-region text-center" data-edit-readiness><div className="max-w-xl"><b className="text-subheading text-text">음악 생성 백엔드는 준비 중입니다</b><p className="mt-stack break-keep text-body-sm text-muted">현재는 나레이션 대사만 확인할 수 있습니다. 음악 파일이나 파형은 아직 표시하지 않습니다.</p></div></section> : <>

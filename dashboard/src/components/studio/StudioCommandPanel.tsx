@@ -197,14 +197,14 @@ export function StudioCommandPanel({
       action: "mark_ready",
       draft_id: draftId,
       expected_revision: handoff.revision,
-    }, "발행 준비 확인 중", () => "OpenClaw가 받을 수 있는 상태로 표시했습니다.");
+    }, "발행 준비 확인 중", () => "편집을 마쳤습니다. 이제 발행 준비 큐에 넣을 수 있습니다.");
   };
 
   const enqueue = async () => {
     const response = await command({
       action: "enqueue_openclaw",
       draft_id: draftId,
-    }, "OpenClaw 큐 인계 중", (result) => result.reused ? "이미 같은 revision을 넘겼습니다." : "OpenClaw 발행 준비 큐에 넣었습니다.");
+    }, "발행 준비 큐에 넣는 중", (result) => result.reused ? "이미 같은 수정본을 발행 준비 큐에 넣었습니다." : "발행 준비 큐에 넣었습니다. 발행실에서 이어서 올릴 수 있습니다.");
     if (response) onQueueChanged();
   };
 
@@ -282,7 +282,7 @@ export function StudioCommandPanel({
             {handoff.status === "editing" ? (
               <Button variant="primary" onClick={markReady} disabled={Boolean(busy)}>발행 준비 마치기</Button>
             ) : (
-              <Button variant="primary" onClick={enqueue} disabled={Boolean(busy)}>OpenClaw 큐로 넘기기</Button>
+              <Button variant="primary" onClick={enqueue} disabled={Boolean(busy)}>발행 준비 큐에 넣기</Button>
             )}
           </Stack>
         )}
