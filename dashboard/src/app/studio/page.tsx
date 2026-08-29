@@ -32,6 +32,15 @@ import { SCHEDULABLE_PLATFORMS } from "@/lib/constants";
 import { StudioCommandPanel } from "@/components/studio/StudioCommandPanel";
 import type { EditorHandoff } from "@/lib/studio/editor-handoff";
 import { resolveStudioRoomFromSearch, shouldLoadPublishResources } from "@/lib/studio/room-routing";
+import {
+  HASHTAG_BUDGET,
+  parseHashtags,
+  parsePublishCommand,
+  spreadDisplayName,
+  spreadHashtags,
+  trimAllOverLimit,
+  type BulkPlatform,
+} from "@/lib/studio/publish-bulk";
 import { buildPublishReturnWork, readPublishReturnRequest, resolvePublishReturnDraftId } from "@/lib/publish-return-context";
 import {
   defaultContentEditFormat,
@@ -725,6 +734,54 @@ export default function StudioPage() {
     };
   }
 
+  // ── 발행실에서만 한 번에 되는 일 ──
+  // 손으로 하면 칸을 일곱 번 열어 일곱 번 고쳐야 하는 것들이다. 채널마다 다른 규격(해시태그 개수,
+  // 본문 한도)을 고객이 외우지 않아도 되게 대화창이 대신 맞춘다. 규칙은 lib/studio/publish-bulk.ts.
+  const bulkTargets = ALL.filter((platform) => PUBLISH_SUPPORTED.has(platform)) as BulkPlatform[];
+  const connectedTargets = bulkTargets.filter((platform) => (accountsByPlatform[platform] || []).length > 0);
+  const previewTargets = ALL as BulkPlatform[];
+
+  function selectAllChannels() {
+    if (!connectedTargets.length) { showToast("연결된 채널이 아직 없습니다. 먼저 계정을 연결해 주세요", "error"); return; }
+    setIncludes((current) => ({ ...current, ...Object.fromEntries(connectedTargets.map((platform) => [platform, true])) }));
+    showToast(`연결된 ${connectedTargets.length}곳을 모두 골랐습니다`, "success");
+  }
+  function clearAllChannels() {
+    setIncludes((current) => ({ ...current, ...Object.fromEntries(bulkTargets.map((platform) => [platform, false])) }));
+    showToast("고른 곳을 모두 해제했습니다", "success");
+  }
+  function excludeChannel(platform: BulkPlatform) {
+    setIncludes((current) => ({ ...current, [platform]: false }));
+    showToast(`${LABEL[platform]}만 빼고 두었습니다`, "success");
+  }
+  function keepOnlyChannel(platform: BulkPlatform) {
+    if (!(accountsByPlatform[platform] || []).length) { showToast(`${LABEL[platform]} 계정이 아직 연결되지 않았습니다`, "error"); return; }
+    setIncludes((current) => ({ ...current, ...Object.fromEntries(bulkTargets.map((p) => [p, p === platform])) }));
+    showToast(`${LABEL[platform]} 한 곳만 남겼습니다`, "success");
+  }
+  function unifyHashtagsAcrossChannels() {
+    const source = hashtags.instagram || Object.values(hashtags).find((value) => value?.trim()) || (text?.instagram?.hashtags || []).join(" ");
+    const tags = parseHashtags(source);
+    if (!tags.length) { showToast("맞출 해시태그가 아직 없습니다. 한 곳에 먼저 적어 주세요", "error"); return; }
+    const spread = spreadHashtags(source, previewTargets);
+    setHashtags((current) => ({ ...current, ...spread }));
+    upIg({ hashtags: tags.slice(0, HASHTAG_BUDGET.instagram) });
+    showToast(`해시태그를 일곱 곳 규격에 맞춰 나눴습니다. X는 ${HASHTAG_BUDGET.x}개, 인스타그램은 ${HASHTAG_BUDGET.instagram}개입니다`, "success");
+  }
+  function unifyDisplayNameAcrossChannels() {
+    const source = Object.values(displayNames).find((value) => value?.trim()) || activeWorkspace?.name || "";
+    if (!source.trim()) { showToast("맞출 표시 이름이 없습니다", "error"); return; }
+    setDisplayNames((current) => ({ ...current, ...spreadDisplayName(source, previewTargets) }));
+    showToast(`표시 이름을 일곱 곳 모두 "${source.trim()}"으로 맞췄습니다`, "success");
+  }
+  function trimOverLimitChannels() {
+    const next = trimAllOverLimit((platform) => platformText(platform), previewTargets);
+    const changed = Object.keys(next);
+    if (!changed.length) { showToast("한도를 넘긴 곳이 없습니다", "success"); return; }
+    for (const platform of changed) updatePreviewCaption(platform as PreviewPlatform, next[platform]);
+    showToast(`한도를 넘긴 ${changed.map((platform) => LABEL[platform]).join(", ")}만 줄였습니다`, "success");
+  }
+
   async function requestReview() {
     if (!text || !activeWorkspace) {
       showToast("검토할 작업물이 없습니다", "error");
@@ -762,14 +819,25 @@ export default function StudioPage() {
 
   async function submitPublishChat(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const command = publishChatDraft.trim();
-    if (!command) return;
+    const raw = publishChatDraft.trim();
+    if (!raw) return;
     setPublishChatDraft("");
-    if (/검토/.test(command)) await requestReview();
-    else if (/날짜|예약/.test(command)) setShowSchedule(true);
-    else if (/저장|초안/.test(command)) await save("draft");
-    else if (/발행|publish/i.test(command)) await publish();
-    else showToast("임시 저장, 승인 인박스로 보내기, 지금 발행, 예약 발행 중 하나로 말씀해 주세요", "error");
+    const command = parsePublishCommand(raw);
+    switch (command.kind) {
+      case "selectAll": selectAllChannels(); return;
+      case "clearAll": clearAllChannels(); return;
+      case "exclude": excludeChannel(command.platform); return;
+      case "onlyOne": keepOnlyChannel(command.platform); return;
+      case "unifyHashtags": unifyHashtagsAcrossChannels(); return;
+      case "unifyDisplayName": unifyDisplayNameAcrossChannels(); return;
+      case "trimOverLimit": trimOverLimitChannels(); return;
+      case "schedule": setShowSchedule(true); return;
+      case "requestReview": await requestReview(); return;
+      case "saveDraft": await save("draft"); showToast("임시 저장했습니다", "success"); return;
+      case "publishNow": await publish(); return;
+      default:
+        showToast("전부 고르기, 한 곳 빼기, 해시태그 맞추기, 표시 이름 맞추기, 한도 넘는 곳 줄이기, 예약 발행, 검토 요청, 임시 저장, 지금 발행 중 하나로 말씀해 주세요", "error");
+    }
   }
 
   const roomHeader = (
@@ -899,9 +967,27 @@ export default function StudioPage() {
       {roomHeader}
       <section data-room="publish" className="grid gap-stack-section pb-wide lg:grid-cols-[minmax(0,1fr)_20rem] lg:pb-none">
         <div className="min-w-0 space-y-region">
-          <section data-room-top="publish" aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch items-center justify-between rounded-surface border border-border bg-surface px-pad-inset py-stack">
+          <section data-room-top="publish" aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch flex-wrap items-center gap-stack rounded-surface border border-border bg-surface px-pad-inset py-stack">
             <b className="text-lead text-accent">{publishTargets.length}곳</b>
-            <span className="text-caption text-subtle">발행할 채널</span>
+            <span className="mr-auto text-caption text-subtle">
+              발행할 채널 · 연결된 곳 {connectedTargets.length}
+            </span>
+            <Button
+              size="sm"
+              data-testid="publish-select-all"
+              onClick={selectAllChannels}
+              disabled={!accountsLoaded || connectedTargets.length === 0 || publishTargets.length === connectedTargets.length}
+            >
+              연결된 {connectedTargets.length}곳 전부 고르기
+            </Button>
+            <Button
+              size="sm"
+              data-testid="publish-clear-all"
+              onClick={clearAllChannels}
+              disabled={publishTargets.length === 0}
+            >
+              전부 해제
+            </Button>
           </section>
           {lastError ? <div className="rounded-control border border-danger/30 bg-danger/10 p-stack text-caption text-danger">마지막 실패: {lastError}</div> : null}
           {vid?.narration?.message ? <div className="rounded-control border border-warning/30 bg-warning/10 p-stack text-caption text-warning">{vid.narration.message}</div> : null}
@@ -921,7 +1007,7 @@ export default function StudioPage() {
           {showSchedule && activeWorkspace ? <SchedulePanel tenantId={activeWorkspace.id} draftId={draftId} defaultPlatforms={publishTargets} /> : null}
           {accountsLoaded && publishTargets.length === 0 ? (
             <div className="rounded-control border border-warning/30 bg-warning/10 p-stack text-body-sm text-warning">
-              연결된 발행 계정이 없습니다. <Link href="/settings" className="font-semibold underline">설정에서 채널 연결하기</Link>
+              연결된 발행 계정이 없습니다. 아래 각 칸의 계정 연결하기를 누르면 그 채널 연결 화면으로 갑니다. <Link href="/channels/threads" className="font-semibold underline">Threads부터 연결하기</Link>
             </div>
           ) : null}
           {text ? (
@@ -959,9 +1045,9 @@ export default function StudioPage() {
                           )}
                           {accountsLoaded && PUBLISH_SUPPORTED.has(platform) && (accountsByPlatform[platform] || []).length === 0 ? (
                             <Link
-                              href={`/settings?tab=channels&channel=${platform}`}
+                              href={`/channels/${platform}`}
                               data-testid={`publish-connect-link-${platform}`}
-                              title={`${LABEL[platform]} 계정을 연결하러 갑니다`}
+                              title={`${LABEL[platform]} 연결 화면으로 갑니다. 연결한 뒤 그 화면에서 기본 계정도 정할 수 있습니다`}
                               className="inline-flex min-h-control-touch items-center rounded-control border border-accent/40 bg-accent-soft px-stack-tight text-caption font-semibold text-accent hover:bg-surface"
                             >
                               계정 연결하기
@@ -993,7 +1079,7 @@ export default function StudioPage() {
           data-chat-dock="persistent"
           data-chat-always="true"
           aria-label="발행 담당 대화창"
-          className={`card overflow-hidden lg:static lg:h-fit lg:max-h-none lg:translate-y-0 lg:rounded-surface lg:border lg:shadow-none lg:sticky lg:top-pad-inset fixed inset-x-0 bottom-0 z-40 max-h-[60vh] overflow-y-auto rounded-b-none shadow-lg transition-transform ${chatOpen ? "translate-y-0" : "translate-y-[calc(100%-3.5rem)]"}`}
+          className={`card fixed inset-x-0 bottom-0 z-40 max-h-[60vh] overflow-y-auto rounded-b-none shadow-lg transition-transform lg:sticky lg:inset-x-auto lg:bottom-auto lg:top-pad-inset lg:z-0 lg:h-fit lg:max-h-none lg:translate-y-0 lg:rounded-surface lg:border lg:shadow-none ${chatOpen ? "translate-y-0" : "translate-y-[calc(100%-3.5rem)]"}`}
         >
           <button
             type="button"

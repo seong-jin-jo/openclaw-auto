@@ -1,3 +1,24 @@
+## 2026-08-30 01:20 진행상태 갱신 (Claude, osmu 라인)
+
+stage: qa
+
+★ 컨트롤러 직접 실행: npx vitest run tests/isolation/ → 17파일 175건 전부 통과.
+  격리 구멍(learned-rules 공격 목록 누락)은 실제 유출 없이 해소됐다.
+
+★ 미해소 위험 1건: 승낙 없이 글을 지우는 옛 경로.
+  extensions/threads-insights/src/threads-insights-tool.ts:311 cleanupLowEngagement()
+  CLAUDE.md 크론 표가 threads-collect-insights 를 "저조 삭제" 로 기술.
+  크론 정의가 이 레포에 없어 현재 실행 여부 확인 불가.
+  차단 조 가동중(ab7cac87). ★이것이 닫히기 전까지 배포 승인 주장 금지.
+
+안 터진 글 정리는 승낙형으로 구현 완료(후보 조회와 삭제 분리, 사람이 고른 것만 삭제).
+
+가동중 두 조: 발행실(opus, ae325754), 승낙 없는 삭제 차단(sonnet, ab7cac87).
+
+게이트: 30건 대조표 재실행으로 판정 갱신하기 전까지 qa 통과 주장 금지.
+
+배포: PR #36 회장 머지 대기.
+
 ## 2026-08-30 00:50 진행상태 갱신 (Claude, osmu 라인)
 
 stage: qa
