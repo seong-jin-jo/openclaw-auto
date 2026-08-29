@@ -2,6 +2,25 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-08-30 PASS: 격리 공격 목록 누락 복구 (`/api/performance/learned-rules`)
+
+커밋 `822fa94a`가 `/api/performance/learned-rules` GET/POST/DELETE를 새로 만들면서 `scripts/verify-tenant-isolation-e2e.mjs`의 공격 목록에 등록하지 않아 `tests/isolation/tenant-api-attack-script.contract.test.ts`(TENANT-READ-01)가 실패했다. 어제 밤 `822fa94a`가 원인이며 착수 전부터 있던 실패가 아니다.
+
+- **실제로 뚫리는지 직접 확인**: 로컬 3456에서 임시 스크립트로 테넌트 A/B를 발급해 학습 규칙 API를 직접 공격했다. `/api/performance/learned-rules`는 `TENANT_AWARE_PATHS`(`dashboard/src/proxy.ts`)에 아직 없어 고객/osmu 테넌트 토큰은 라우트 도달 전에 전부 403 "이 API는 운영자 전용입니다"로 막힌다(fail-closed). 운영자 토큰으로 직접 POST/GET을 쳐도 데이터는 `data/tenants/{tenantId}/performance-learned-rules.json` 파일 하위로 물리 격리돼 있어(같은 밤 확인된 `dataPath()`의 `tenantSeg()` 접두 규칙) 교차 테넌트 마커 유출이 없음을 관찰했다. 현재 이 경로는 자기잠식 위험 없이 안전하다 — 단, 고객 셀프서브로 노출을 확장하려면 그때 `TENANT_AWARE_PATHS`에 명시 등록이 필요하다.
+- **공격 목록 등록**: `scripts/verify-tenant-isolation-e2e.mjs`에 `["READ-55", "/api/performance/learned-rules"]` 추가.
+- **같은 밤 다른 신규 경로 훑음**: `git diff --name-only 3b74b799..HEAD -- 'dashboard/src/app/api/**'`로 확인한 GET+`effectiveTenantId` 경로 중 `/api/threads/low-engagement-candidates`도 공격 목록에서 빠져 있었다(다른 조가 만든 경로, 컴포넌트·라우트 자체는 만지지 않고 목록에만 `["READ-56", "/api/threads/low-engagement-candidates"]`로 추가). 나머지 신규/수정 경로(`channel-config`, `channel-settings/[channel]`, `connect/[provider]`, `connect/readiness`, `engagement`, `metrics`, `onboarding`, `publish`, `studio/drafts`)는 기존 공격 목록 항목과 라우트 패턴이 이미 매치돼 누락이 아니었다.
+- **저장 방식 안전성 판정**: `learned-rules`는 파일 기반이 맞다. 다른 표들처럼 DB RLS로 갈리는 게 아니라 `file-io.ts`의 `dataPath()`가 `currentTenantId()`(AsyncLocalStorage, `runWithTenant`로 라우트가 직접 감쌈)를 읽어 `data/tenants/{id}/` 하위 파일 경로로 물리 분리한다. 이 파일 자체는 하나의 워크스페이스 내부에서 배열로 규칙을 통으로 담고(레코드 단위 tenant_id 필드 없음) 있으나, 파일 자체가 이미 테넌트별로 갈려 있어 교차 테넌트 문제는 아니다. RLS 정책이 아니라는 점만 정확히 적어 둔다.
+
+| 검증 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| 실제 교차 테넌트 GET 공격 | PASS(안전) | 로컬 3456, 테넌트 A/B 토큰 발급 후 POST(B 마커)→GET(A) 시도, tenant 토큰 자체가 403(운영자 전용)으로 라우트 미도달 |
+| 공격 목록 등록 | PASS | `tests/isolation/tenant-api-attack-script.contract.test.ts` TENANT-READ-01 통과 |
+| `npx vitest run tests/isolation/` | PASS | 17 파일, 175건 통과 |
+| `npm run test` | PASS | 202 파일, 1500건 통과, 1건 skip |
+| `npx tsc --noEmit` | PASS | 종료 코드 0, 출력 없음 |
+
+셀프심문: "목록에 넣어 테스트만 초록으로 만들고 실제 구멍은 남겨 두는 것 아닌가" → 아니다. 목록 등록 전에 실제 A/B 테넌트 토큰으로 교차 요청을 먼저 쏴서 403(라우트 미도달)과 파일 물리 격리(`dataPath` tenant 접두)를 직접 관찰했다. 다만 이 경로가 앞으로 `TENANT_AWARE_PATHS`에 들어가 고객 토큰이 직접 호출하게 되는 순간 이 판정은 재검증이 필요하다 — 지금은 운영자 전용이라 안전한 것이지 라우트 코드 자체의 테넌트 분리 로직이 검증된 것은 아니다(파일 하위 경로 분리는 맞으나, 배열 내부에 tenant_id 필드가 없어 향후 공유 파일로 잘못 옮기면 바로 샐 구조).
+
 ## 2026-08-29 NG: 최근 24시간 코드리뷰 재검토
 
 고정 범위 `5d941aa0..47a54e4b`의 109개 커밋에서 MAJOR 34건, MINOR 7건을 확인해 머지를 차단했다. 제품 코드는 수정하지 않았다. 상세 위치, 계약 인용, 재현, 수정 방향은 `docs/audit/osmu-code-review-2026-08-29.md`에 있다.
@@ -3870,3 +3889,86 @@ SOURCES/MODEL
 - 코드 근거: `dashboard/src/components/studio/{learning-info.ts,LearningStatus.tsx,LearningCardWizard.tsx,EditPreview.tsx,StudioRooms.tsx,StudioCommandPanel.tsx}`,
   `dashboard/src/app/studio/page.tsx`, `dashboard/tests/studio/studio-chairman-feedback-2026-08-29.test.tsx`
 - 실행 근거: `/tmp/capture-chair.mjs` 실행 출력, `/tmp/osmu-test-final.log`, `node scripts/ui-token-audit.mjs`
+
+## ✅ PASS: 안 터진 글 자동 삭제 — 후보 조회 + 승낙 후 삭제 실행 (2026-08-30, code-builder)
+
+- 기반: 이전 판(위 "부분 PASS: 성과실 챗봇·상시규칙…")이 발견한 갭 — "안 터진 글 정리" 후보는 있었지만
+  실제 삭제 실행 API가 서버에 없었다. 이번 판이 그 API를 안전하게(승낙 없는 삭제 경로 0) 만들었다.
+
+### 기존 구현 확인 (재창조 금지 게이트)
+
+- `extensions/threads-insights/src/threads-insights-tool.ts`의 `cleanupLowEngagement()`가 이미
+  존재했지만, **호출되면 승낙 없이 즉시 전체 자동삭제**하는 레거시 위험 함수임을 확인(action:
+  `cleanup_low_engagement`). 현재 어떤 cron job에도 안 걸려 있고 archived PRD 두 곳에 "legacy 위험
+  기능, 기본 비활성" 경고가 이미 있었다. 이 함수는 그대로 재사용하지 않고, 대신 새 API가 postId
+  화이트리스트를 받아 그 목록에 대해서만 1회성으로 Threads DELETE를 직접 호출하는 구조로 새로 짰다.
+- `VIRAL_THRESHOLD`(반대 짝) 패턴을 그대로 따라 `LOW_ENGAGEMENT_MIN_VIEWS_DEFAULT`/`MIN_LIKES_DEFAULT`를
+  `constants.ts`에 신설(env override 지원), 채널/워크스페이스별 조정은 `channel-settings.json`의
+  `low_engagement_min_views`/`low_engagement_min_likes` override로 지원(기존 boolean-only 검증에
+  숫자 키 예외 추가).
+- x-publish/instagram-publish extension에 delete 기능이 없음을 grep으로 확인 → 삭제 가능 채널은
+  `DELETE_SUPPORTED_CHANNELS = ["threads"]` 하나뿐, UI·API가 이 배열 하나를 공유(SSOT).
+
+### 만든 것
+
+1. `GET /api/threads/low-engagement-candidates` — 읽기 전용, 부작용 없음. queue.json에서 발행 24시간
+   이상 지나고 views/likes가 기준 미달인 threads 글만 후보로 반환. 절대 삭제하지 않는다.
+2. `POST /api/threads/low-engagement-cleanup` — body에 **사람이 고른 postId 배열**이 있어야만 동작.
+   빈 배열/누락은 400으로 거부. 각 postId를 순회하며 threads mediaId가 있는 것만 `getChannelCred`로
+   실 토큰을 얻어 Threads Graph API DELETE를 호출하고, 성공/실패를 postId별로 반환. 다른 채널
+   postId(예: instagram만 발행된 글)는 "채널 미지원"류 에러로 명확히 거부하고 지우지 않는다.
+   삭제 성공한 postId만 queue.json 상태를 갱신(다른 글은 절대 건드리지 않음), 실행 기록은
+   `data/low-engagement-cleanup-log.json`에 append.
+3. `AutomationRulesPanel.tsx` "안 터진 글 정리" 카드: "준비 중" 배지 제거 → 후보 건수 실시간 표시,
+   최근 삭제 요약 1줄, "후보 보기" 버튼 → 모달(체크박스로 개별 선택) → "선택한 N건 삭제" →
+   **2단계 확인**("N건을 삭제합니다. 되돌릴 수 없습니다") → 승낙 후에만 실제 삭제 API 호출.
+   DESIGN.md 토큰만 사용(Card/Button/Stack, hex·임의 px·이모지·긴 대시 없음).
+
+### 테스트됨
+
+- `npx tsc --noEmit` exit 0 (전체).
+- `npx vitest run tests/api/low-engagement-candidates.test.ts tests/api/low-engagement-cleanup.test.ts
+  tests/api/channel-settings.test.ts`: 8/8 PASS — ①24시간 미만 글 후보 제외 ②기준 이상 engagement
+  글 후보 제외 ③기준 미달+24시간 경과 글만 후보 포함 ④postId 없이 호출 시 400 거부
+  ⑤미지원 채널(threads mediaId 없음) postId 요청 시 삭제 없이 명확한 에러 ⑥승낙된 postId만 삭제되고
+  다른 글(`untouched`)은 그대로 유지됨을 큐 파일 직접 읽어 검증 ⑦삭제 로그 파일에 기록됨을 검증.
+- `npm run test`(전체 vitest): 1499 PASS / 1 skip / 1 FAIL(`tenant-api-attack-script.contract.test.ts`
+  — `/api/performance/learned-rules`가 공격 목록에서 빠졌다는 지적, 이번 판이 만들지도 건드리지도
+  않은 기존 라우트라 무관함, git status로 미변경 확인).
+- curl 실측(로컬 dev :3456, `Authorization: Bearer devlocaltoken`, tenant
+  `cd1d0a40-540d-4524-9b49-bf2445d82182`):
+  `GET /api/threads/low-engagement-candidates?tenant_id=...` → 200
+  `{"candidates":[],"total":0,"threshold":{"minViews":100,"minLikes":3,"minAgeMs":86400000},"deleteSupportedChannels":["threads"]}`;
+  `POST /api/threads/low-engagement-cleanup` (postIds 없이) → 400
+  `{"error":"postIds(문자열 배열)가 필요합니다. 개별 글을 선택해야 삭제됩니다."}`;
+  `POST /api/threads/low-engagement-cleanup {"postIds":["nonexistent-post-xyz"]}` → 200
+  `{"ok":true,"deleted":0,"failed":1,"results":[{"postId":"nonexistent-post-xyz","ok":false,"error":"글을 찾을 수 없습니다."}]}`
+  (인증 없이 호출하면 401 `Unauthorized`도 확인).
+- `dashboard/src/components/studio/`·`api/publish`·`lib/publish.ts`·`lib/studio/generation`·
+  `db/run-migrations.sh` 등 금지 경로는 건드리지 않았다.
+- `AUTOMATION_FEATURES`의 `low_engagement_cleanup.implemented`는 **여전히 `false`로 남겼다** — 이
+  플래그는 원래 "정기 자동삭제 실행" 여부를 뜻했고, 이번 판이 만든 건 정기 자동삭제가 아니라
+  "사람이 승낙해야만 도는" 1회성 삭제이므로, 그 의미로 `true`로 바꾸면 "자동 실행된다"는
+  오인을 유발한다. 후보 건수·삭제 UI 자체는 이미 화면에 노출돼 있다(implemented 플래그와 무관하게
+  동작).
+
+### 셀프심문
+
+"승낙 없이 남의 글이 지워질 수 있는 경로가 정말 하나도 없는가" — 코드를 다시 훑었다:
+①`POST /api/threads/low-engagement-cleanup`은 body에 `postIds`(비지 않은 문자열 배열)가 없으면
+Threads API를 호출하는 코드 블록 자체에 도달하지 못한다(400으로 조기 반환). ②이 라우트를 부르는
+크론/스케줄러는 어디에도 추가하지 않았다(레거시 `cleanupLowEngagement()`도 여전히 어떤 job에도
+안 걸려 있음, grep으로 재확인). ③UI에서 이 API를 부르는 유일한 경로(`AutomationRulesPanel`의
+`runDelete`)는 체크박스로 고른 `selectedIds`만 보내고, 그 버튼도 "정말 삭제" 2단계 확인을 거친
+뒤에만 눌린다. ④후보 API(GET)는 애초에 삭제 코드가 없다. 결론: 승낙 없는 삭제 경로는 없다고
+본다 — 단, 이 결론은 "이 레포 안에서"의 검증이고, Threads 쪽 토큰이 다른 자동화(예: OpenClaw
+크론이 같은 extension 함수를 직접 호출)로 새로 연결되면 재검토가 필요하다.
+
+SOURCES/MODEL
+- MODEL: claude-sonnet-5 (agent: code-builder)
+- 코드 근거: `dashboard/src/lib/constants.ts`, `dashboard/src/app/api/channel-settings/[channel]/route.ts`,
+  `dashboard/src/app/api/threads/low-engagement-candidates/route.ts`,
+  `dashboard/src/app/api/threads/low-engagement-cleanup/route.ts`,
+  `dashboard/src/components/home/AutomationRulesPanel.tsx`,
+  `dashboard/tests/api/low-engagement-candidates.test.ts`, `dashboard/tests/api/low-engagement-cleanup.test.ts`
+- 실행 근거: `/tmp/tsc5.log`, `/tmp/vitest2.log`, `/tmp/vitest-full.log`, 위 curl 출력(직접 관찰)
