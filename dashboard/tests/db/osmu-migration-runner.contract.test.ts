@@ -12,6 +12,7 @@ const rollbackWriter = readFileSync(resolve(dbRoot, "write-rollback-manifest.sh"
 const rollbackRunner = readFileSync(resolve(dbRoot, "rollback-migration.sh"), "utf8");
 const rollbackIndexVerifier = readFileSync(resolve(dbRoot, "verify-rollback-indexes.sql"), "utf8");
 const migrationMatrix = readFileSync(resolve(__dirname, "../../scripts/verify-generation-migration-matrix.sh"), "utf8");
+const guardMigrationSource = readFileSync(resolve(dbRoot, "migrations/20260829_020_generation_guard_expand.sql"), "utf8");
 const memberMigration = readFileSync(resolve(dbRoot, "migrations/20260829_030_member_unique_expand.sql"), "utf8");
 
 function manifestRows(): string[][] {
@@ -56,14 +57,17 @@ describe("OSMU explicit migration runner 계약", () => {
     expect(runner).toContain("catalog state must be re-evaluated before retry");
   });
 
-  it("GEN-MIG-05 거절: 일반 앱 preflight는 S1 guard 또는 member UNIQUE가 없는 DB를 통과시키지 않는다", () => {
+  it("GEN-MIG-05 거절: 회원 전역 강제는 expand-member 의 사후 조건으로 남아 있다", () => {
     expect(runner).toContain("assert_compatibility_ready");
     expect(runner).toContain("generation_member_unique OR generation_guard");
     expect(runner).toContain("quota_member_unique OR quota_guard");
     expect(runner).toContain("compatibility app requires member UNIQUE or enabled E1 guard");
+    // 배포의 사전 조건이 아니라 확장 단계의 사후 조건이어야 한다. 배포에 걸어 두면
+    // 배포가 스스로를 막는다(GEN-MIG-10c).
+    expect(runner).toContain('if [ "$PHASE" = "expand-member" ]; then assert_compatibility_ready; fi');
     const preflightCase = runner.slice(runner.indexOf("  preflight)"), runner.indexOf("  bootstrap)"));
     expect(preflightCase).toContain("assert_fingerprint");
-    expect(preflightCase).toContain("assert_compatibility_ready");
+    expect(preflightCase).not.toContain("assert_compatibility_ready");
   });
 
   it("GEN-MIG-06 거절: E3와 C1은 체크박스가 아니라 모든 실행 image digest와 commit을 직접 검증한다", () => {
@@ -132,6 +136,40 @@ describe("OSMU explicit migration runner 계약", () => {
     );
     expect(skipList).toContain("expand-guard");
     expect(skipList).toContain("audit");
+  });
+
+  it("GEN-MIG-10c 경계: 배포 preflight 는 readiness false|true 를 거절하지 않되 얇아지지도 않는다", () => {
+    // 2026-08-29 운영 실측: fingerprint S1|S2, readiness false|true 로 이틀간 정상 가동 중인데
+    // 배포가 그 상태를 거절했다. expand-guard 는 Supabase 권한으로 영구 불가하고,
+    // expand-member 는 배포가 붙이는 revision 라벨을 요구해서 배포 없이는 못 돈다.
+    // 그래서 배포 preflight 가 자기가 만든 정상 중간 상태를 거절하는 순환이 닫혔다.
+    const preflightCase = runner.slice(runner.indexOf("  preflight)"), runner.indexOf("  bootstrap)"));
+    expect(preflightCase).toContain("assert_deploy_compatible");
+    // 게이트를 끈 것이 아니라 옮긴 것이다. 아래 셋은 preflight 에 그대로 남아야 한다.
+    expect(preflightCase).toContain("assert_fingerprint");
+    expect(preflightCase).toContain("assert_no_duplicates");
+    expect(preflightCase).toContain("assert_runtime_schema");
+    // 배포가 요구하는 불변식: 두 장부가 최소 tenant+member 범위의 유효 UNIQUE 로 강제된다.
+    expect(runner).toContain("deploy requires a valid tenant+member scoped UNIQUE on both ledgers");
+    expect(runner).toContain("axis_supported \"$generation\" || ! axis_supported \"$quota\"");
+  });
+
+  it("GEN-MIG-10d 거절: 올라갔던 회원 전역 강제가 사라지면 장부로 되돌림을 잡는다", () => {
+    // 같은 지문 S1 이라도 오는 길이 다르다. 아직 안 올라간 S1 은 정상 중간 상태이고,
+    // 올라갔다가 내려간 S1 은 절차 밖에서 제약이 지워졌다는 신호다.
+    // 지원 집합 검사만으로는 그 둘을 못 가른다. 장부가 가른다.
+    expect(runner).toContain("assert_ledger_monotonic");
+    expect(runner).toContain("ledger says 20260829_030_member_unique_expand is applied but the member-global UNIQUE it created is gone");
+    // 앞으로 가는 단계는 회원 전역 UNIQUE 를 걷어내지 않는다. contract 가 걷어내는 것은
+    // tenant 범위 제약이므로 S2 와 S3 둘 다 회원 전역 UNIQUE 를 가진다.
+    expect(runner).toContain('axis_has_member_unique() { [ "$1" = "S2" ] || [ "$1" = "S3" ]; }');
+    // 되돌림 검사는 배포 게이트 안에 있어야 한다.
+    const deployCase = runner.slice(runner.indexOf("assert_deploy_compatible() {"), runner.indexOf("# 앱이 실제로 읽고 쓰는 필수 relation"));
+    expect(deployCase).toContain("assert_ledger_monotonic");
+    // 방어 장치는 조건부 대체물이라 되돌림 판정 근거가 될 수 없다. 규칙을 걸지 않았음을 못박는다.
+    expect(runner).not.toContain("a member-scope guard trigger is missing or disabled");
+    expect(guardMigrationSource).toContain("IF NOT generation_member_unique THEN");
+    expect(guardMigrationSource).toContain("IF NOT quota_member_unique THEN");
   });
 
   it("GEN-MIG-10b 거절: 배포 preflight 는 필수 relation·RLS·osmu_service 까지 fail-closed 로 본다", () => {
