@@ -2,6 +2,33 @@
 
 최신이 위. 이 파일만 읽고 30초 안에 이어갈 수 있어야 한다.
 
+## [2026-08-29 10:39] 네 방 기본 흐름 QA 범위 PASS, 전체 디자인 NG
+
+### 무엇을 어디까지 했나
+
+- 회장 현재 요청과 task pane `osmu-flowcheck082910:0.0`을 primary handoff basis로 사용했다. canonical `pipeline-state.osmu.md`는 착수 시 이미 `current_stage: qa`였다.
+- 승인 prototype v63, 요구 대장, 사업 좌표, test plan, 페르소나 PRD를 읽고 지정 작업 공간의 실제 API와 브라우저를 검증했다.
+- 기본 흐름 11/11, Studio v1 12/12, 네 방 4개 x 4폭, 성과실에서 생성실 복귀 4건이 통과했다. 모달, 401, 콘솔 오류, 가로 넘침은 각각 0건이다.
+- `probe-four-room-flow.mjs`가 네 방 false에도 exit 0을 내던 거짓 양성을 실제 임시 고객 토큰과 assertion으로 수정했다. 제품 화면 코드는 수정하지 않았다.
+- 상세 증거는 `docs/qa/osmu-four-room-basic-flow-v1-gpt-codex.md`, 캡처는 `docs/qa/osmu-four-room-flow-20260829/`다.
+
+### 남은 이슈·블로커
+
+- 승인 v63 대비 4화면 x 3폭 디자인 정합 12행은 NG다. 기능 흐름 PASS와 별개로 design과 전체 qa gate는 승인 불가다.
+- 실제 외부 공개 채널 발행과 운영 배포 재검증은 이번 범위 밖이며 미검증이다.
+- 장기 Turbopack 개발 서버가 health와 생성 요청을 멈추는 로컬 환경 정체가 한 번 관찰됐다. 제한 시간 webpack 서버에서는 재현되지 않았다.
+
+### 다음에 칠 명령
+
+- product-designer와 code-builder가 v63 정합 12행을 화면별로 수렴한다. 종료증거는 동일 390, 1024, 1440 screenshot pair와 8개 배치 속성 전건 PASS다.
+- qa-verifier가 수정판에서 `verify-basic-flow-e2e.mjs`, `verify-studio-v1-e2e.mjs`, `probe-four-room-flow.mjs`, `verify-four-room-ui-e2e.mjs`를 재실행한다. 종료증거는 11/11, 12/12, 네 방 true, 16화면과 왕복 4건이다.
+
+### 검증했나
+
+- 관찰됨: health 200 DB up, 실제 API 11/11과 12/12, Playwright 16화면과 왕복 4건, 임시 토큰 폐기.
+- 테스트됨: Vitest 198파일 1,443건과 조건부 1건 제외, TypeScript, production build 174/174, design lint 위반 0.
+- 미검증: 운영 배포, 실제 외부 공개 발행. NG: 승인 v63 디자인 정합.
+
 ## [2026-08-29 09:15] 읽기 API 99개 전수 재실사 v3
 
 ### 무엇을 어디까지 했나

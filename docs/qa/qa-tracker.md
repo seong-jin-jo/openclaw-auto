@@ -2,6 +2,44 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-08-29 NG 후 수정, 기본 흐름 범위 PASS: 네 방 끝까지 재검증
+
+지정 작업 공간 `cd1d0a40-540d-4524-9b49-bf2445d82182`에서 실제 API 기본 흐름 11/11,
+Studio v1 계약 12/12, 390, 768, 1024, 1440 네 폭의 네 방 16화면과 성과실에서 생성실
+복귀 4건이 통과했다. 가린 모달, 브라우저 401, 콘솔 오류, 가로 넘침은 각각 0건이다.
+
+최초 `probe-four-room-flow.mjs`는 네 방을 모두 `false`로 출력하고도 종료 코드 0을 냈다.
+실제 임시 고객 토큰, visible assertion, 모달, 401, 콘솔 오류 검사와 토큰 폐기를 추가했다.
+수정판은 네 방 모두 `true`와 오류 0건을 반환했다. 제품 화면 코드는 수정하지 않았다.
+
+장시간 돌던 Turbopack 개발 서버의 첫 health timeout과 `GENERATION_DB_TIMEOUT`은 제한 시간
+webpack 서버에서 재현되지 않았고 health HTTP 200, DB `up`, 기본 흐름 11/11로 회복했다.
+이는 로컬 장기 개발 서버 정체 위험으로 남긴다. 전체 v63 디자인 정합 12행은 NG이므로 이번
+기능 PASS를 전체 QA 승인으로 확대하지 않는다.
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
+|---|---|---|---|---|
+| R08, R168 | 네 방 흐름과 첫 후보 생성 | FLOW-11-01 | PASS | 후보 3장, 편집 인계, 발행 큐, 성과 제안까지 11/11 |
+| R08, R193 | 네 방 화면과 성과실 복귀 | FLOW-UI-01 | PASS | 4방 x 4폭, 성과실에서 생성실 복귀 4건 |
+| R104 | 고객 인증 경계 | FLOW-AUTH-01 | PASS | 실제 임시 고객 토큰, 브라우저 401 0건, 폐기 HTTP 200 |
+| R200, R206, R207 | 성과실 UX와 승인 시안 정합 | CONF-ALL | 기능 PASS, 디자인 NG | 제안 3건과 왕복은 PASS. prototype v63 대비 배치 12행은 NG |
+| R01~R207 | 회장 확정 요구 전건 | REQ-ALL | 이월 | 상세 승계는 `docs/qa/osmu-four-room-basic-flow-v1-gpt-codex.md`에 기록 |
+
+| 검증 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| health | PASS | `/api/health` HTTP 200, DB `up` |
+| 전체 Vitest | PASS | 198파일, 1,443건 통과, 조건부 1건 제외 |
+| TypeScript와 build | PASS | `npx tsc --noEmit` exit 0, production build 174/174 |
+| 기본 흐름과 Studio v1 | PASS | 11/11, 12/12 |
+| 요청된 네 방 탐침 | NG 후 수정, PASS | 수정 전 거짓 양성. 수정 뒤 네 방 true, 모달, 401, 콘솔 오류 0 |
+| Playwright 실제 클릭 | PASS | 16화면, 왕복 4건, 가로 넘침 0 |
+| design lint | PASS | 토큰 위반 0 |
+| mobile과 Maestro | 해당 없음 | dashboard 웹 제품 범위. `optional:true` 우회 없음 |
+| 승인 v63 디자인 정합 | NG 유지 | 화면 x 3폭 12행에서 요소 순서, 열 수, 표시 상태, 버튼 위계 불일치 |
+
+상세 행렬과 캡처는 `docs/qa/osmu-four-room-basic-flow-v1-gpt-codex.md`와
+`docs/qa/osmu-four-room-flow-20260829/`에 있다.
+
 ## 2026-08-29 범위 PASS: 읽기 API 99개 전수 재실사 v3
 
 커밋 `783b97ce`의 `localhost:3456`에서 GET export 99개를 실제 호출했다. 정상 89개, 의도된 거절 10개, HTTP 500과 요청 실패는 각각 0개다. 직전 v2와 비교해 추가, 삭제, 상태코드 변화는 모두 0건이다. v2 이후 변경된 `/api/metrics`는 HTTP 200, 기존 `posts`, coverage v1, source `published_posts`, 플랫폼 7건을 반환했다. 새 고장이 없어 제품 코드는 수정하지 않았다.
