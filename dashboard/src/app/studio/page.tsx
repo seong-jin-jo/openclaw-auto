@@ -1089,11 +1089,14 @@ export default function StudioPage() {
           ))}
         </div>
 
+        {/* 좁은 화면에서는 아래에서 올라오는 시트, 넓은 화면에서는 오른쪽 기둥이다. 두 벌의 규칙이
+            한 줄에 섞여 있어 넓은 화면에서 높이가 0으로 접혔고 대화창이 통째로 안 보였다.
+            회장이 "왜 여긴 챗봇 없어"라고 하신 자리가 여기다. max-lg로 갈라 둔다. */}
         <aside
           data-chat-dock="persistent"
           data-chat-always="true"
           aria-label="발행 담당 대화창"
-          className={`card fixed inset-x-0 bottom-0 z-40 max-h-[60vh] overflow-y-auto rounded-b-none shadow-lg transition-transform lg:sticky lg:inset-x-auto lg:bottom-auto lg:top-pad-inset lg:z-0 lg:h-fit lg:max-h-none lg:translate-y-0 lg:rounded-surface lg:border lg:shadow-none ${chatOpen ? "translate-y-0" : "translate-y-[calc(100%-3.5rem)]"}`}
+          className={`card z-40 overflow-y-auto transition-transform max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:max-h-[60vh] max-lg:rounded-b-none max-lg:shadow-lg lg:sticky lg:top-pad-inset lg:h-fit lg:rounded-surface lg:border ${chatOpen ? "max-lg:translate-y-0" : "max-lg:translate-y-[calc(100%-3.5rem)]"}`}
         >
           <button
             type="button"
