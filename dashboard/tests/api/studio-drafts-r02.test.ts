@@ -41,6 +41,23 @@ describe("GET /api/studio/drafts R-02 본문 복원", () => {
     }));
   });
 
+  it("BE-CURRENT-05 통합: 실제 데이터베이스 Date 저장 시각도 현재 작업 응답에 포함한다", async () => {
+    H.rows = [{
+      id: "draft-db-date",
+      idea: "데이터베이스 초안",
+      payload: { text: { threads: "본문" } },
+      status: "draft",
+      updated_at: new Date("2026-08-29T08:22:00.000Z"),
+    }];
+    const { GET } = await import("@/app/api/studio/drafts/route");
+    const body = await (await GET(new Request("http://localhost/api/studio/drafts"))).json();
+
+    expect(body.currentWork).toEqual(expect.objectContaining({
+      draftId: "draft-db-date",
+      savedAt: "2026-08-29T08:22:00.000Z",
+    }));
+  });
+
   it("레거시 최상위 플랫폼 키를 text variants로 복원한다", async () => {
     H.rows = [{
       id: "draft-legacy",

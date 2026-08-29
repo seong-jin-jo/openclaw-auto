@@ -44,26 +44,35 @@ function stageOf(draft: StudioDraftForCurrentWork): CurrentWorkStage {
   return "create";
 }
 
+function normalizeSavedAt(value: unknown): string | null {
+  if (value instanceof Date) {
+    return Number.isFinite(value.getTime()) ? value.toISOString() : null;
+  }
+  if (typeof value !== "string" || !value.trim() || !Number.isFinite(Date.parse(value))) {
+    return null;
+  }
+  return value;
+}
+
 export function resolveCurrentWork(drafts: StudioDraftForCurrentWork[]): CurrentWork | null {
   const eligible = drafts
-    .filter((draft): draft is StudioDraftForCurrentWork & { id: string; savedAt: string } => (
-      typeof draft.id === "string"
-      && draft.id.trim().length > 0
-      && typeof draft.savedAt === "string"
-      && draft.savedAt.trim().length > 0
-      && Number.isFinite(Date.parse(draft.savedAt))
+    .map((draft) => ({ draft, savedAt: normalizeSavedAt(draft.savedAt) }))
+    .filter((candidate): candidate is { draft: StudioDraftForCurrentWork & { id: string }; savedAt: string } => (
+      typeof candidate.draft.id === "string"
+      && candidate.draft.id.trim().length > 0
+      && candidate.savedAt !== null
     ))
     .sort((left, right) => Date.parse(right.savedAt) - Date.parse(left.savedAt));
 
   const current = eligible[0];
   if (!current) return null;
-  const stage = stageOf(current);
+  const stage = stageOf(current.draft);
   return {
-    draftId: current.id,
-    idea: typeof current.idea === "string" && current.idea.trim() ? current.idea.trim() : "제목 없는 작업물",
+    draftId: current.draft.id,
+    idea: typeof current.draft.idea === "string" && current.draft.idea.trim() ? current.draft.idea.trim() : "제목 없는 작업물",
     stage,
     stageLabel: STAGE_LABELS[stage],
-    status: typeof current.status === "string" && current.status ? current.status : "draft",
+    status: typeof current.draft.status === "string" && current.draft.status ? current.draft.status : "draft",
     savedAt: current.savedAt,
   };
 }

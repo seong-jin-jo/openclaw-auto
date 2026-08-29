@@ -53,4 +53,18 @@ describe("Studio 현재 작업 단일 계약", () => {
       savedAt: "2026-08-29T08:21:00.000Z",
     }])?.stage).toBe("publish");
   });
+
+  it("BE-CURRENT-04 통합: 데이터베이스 드라이버의 Date 저장 시각도 현재 작업으로 판정한다", () => {
+    expect(resolveCurrentWork([{
+      id: "draft-db-date",
+      idea: "실제 데이터베이스 초안",
+      text: { threads: "본문" },
+      status: "draft",
+      savedAt: new Date("2026-08-29T08:22:00.000Z"),
+    }])).toEqual(expect.objectContaining({
+      draftId: "draft-db-date",
+      stage: "edit",
+      savedAt: "2026-08-29T08:22:00.000Z",
+    }));
+  });
 });
