@@ -205,6 +205,11 @@ describe("Studio publish result integrity", () => {
 
     await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith("발행 일정 작업물을 불러왔습니다", "success"));
     expect(screen.getByText("편집 인계 주제", { exact: true })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole("checkbox", { name: "Threads 발행" })).toBeEnabled();
+      expect(screen.getByRole("checkbox", { name: "X 발행" })).toBeEnabled();
+      expect(screen.getByRole("checkbox", { name: "Instagram 발행" })).toBeEnabled();
+    });
     expect(screen.getByRole("button", { name: "3곳에 올리기" })).toBeInTheDocument();
   });
 
