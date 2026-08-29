@@ -91,7 +91,7 @@ run_phase expand-fk
 if run_phase expand-member >"$TMP_DIR/member-before-guard" 2>&1; then
   echo "FAIL expand-member ran before E1 guard" >&2; exit 1
 fi
-grep -q 'prerequisite migration 20260829_020_generation_guard_expand is not applied' "$TMP_DIR/member-before-guard"
+grep -q 'prerequisite migration 20260829_021_generation_guard_expand is not applied' "$TMP_DIR/member-before-guard"
 echo "PASS expand-member rejects missing E1 guard prerequisite"
 run_phase expand-guard
 run_phase preflight
