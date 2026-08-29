@@ -21,7 +21,7 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 </style>
 <div class="wrap">
 <h1>밤사이 만든 것</h1>
-<p class="sub">2026년 08월 28일 22시 39분 기준. 이 장은 감독이 1분마다 새로 씁니다.</p>
+<p class="sub">2026년 08월 29일 19시 25분 기준. 이 장은 감독이 1분마다 새로 씁니다.</p>
 <div class="note">실제로 눌러 보시려면 <code>http://localhost:3456/studio</code> 입니다. 아래 그림은 방금 그 앱을 찍은 것입니다.</div>
 <h2>지금 도는 것</h2><table><tr><th>판</th><th>갈래</th><th>상태</th><th>시각</th></tr>
 <tr><td>build10</td><td>build</td><td>끝남</td><td>07:21</td></tr>
@@ -42,11 +42,29 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <tr><td>fixdoc08283</td><td>review</td><td>끝남</td><td>20:45</td></tr>
 <tr><td>fixdoc08284</td><td>qa</td><td>끝남</td><td>21:32</td></tr>
 <tr><td>fixdoc08285</td><td>build</td><td>끝남</td><td>20:45</td></tr>
+<tr><td>fixdoc08291</td><td>build</td><td>끝남</td><td>00:25</td></tr>
+<tr><td>fixfeedback082919</td><td>build</td><td>끝남</td><td>19:16</td></tr>
 <tr><td>flow1</td><td>fe</td><td>끝남</td><td>19:07</td></tr>
-<tr><td>flowcheck082822</td><td>qa</td><td>돌는중</td><td>22:11</td></tr>
+<tr><td>flowcheck082822</td><td>qa</td><td>끝남</td><td>22:42</td></tr>
+<tr><td>flowcheck082902</td><td>qa</td><td>끝남</td><td>02:07</td></tr>
+<tr><td>flowcheck082910</td><td>qa</td><td>끝남</td><td>10:05</td></tr>
+<tr><td>flowcheck082918</td><td>qa</td><td>끝남</td><td>18:46</td></tr>
+<tr><td>gapfill082823</td><td>build</td><td>끝남</td><td>23:23</td></tr>
+<tr><td>gapfill082903</td><td>build</td><td>끝남</td><td>03:03</td></tr>
+<tr><td>gapfill082907</td><td>build</td><td>끝남</td><td>07:12</td></tr>
+<tr><td>gapfill082911</td><td>build</td><td>끝남</td><td>11:03</td></tr>
+<tr><td>gapfill082919</td><td>build</td><td>끝남</td><td>19:04</td></tr>
 <tr><td>qa1</td><td>qa</td><td>끝남</td><td>18:59</td></tr>
+<tr><td>regress082900</td><td>review</td><td>끝남</td><td>00:03</td></tr>
+<tr><td>regress082904</td><td>review</td><td>끝남</td><td>04:02</td></tr>
+<tr><td>regress082908</td><td>review</td><td>끝남</td><td>08:02</td></tr>
+<tr><td>regress082912</td><td>review</td><td>끝남</td><td>12:02</td></tr>
 <tr><td>review1</td><td>review</td><td>끝남</td><td>18:42</td></tr>
 <tr><td>ship1</td><td>review</td><td>빈손</td><td>22:25</td></tr>
+<tr><td>sweep082901</td><td>qa</td><td>끝남</td><td>01:01</td></tr>
+<tr><td>sweep082905</td><td>qa</td><td>끝남</td><td>05:04</td></tr>
+<tr><td>sweep082909</td><td>qa</td><td>끝남</td><td>09:02</td></tr>
+<tr><td>sweep082913</td><td>qa</td><td>끝남</td><td>13:05</td></tr>
 </table>
 <h2>화면</h2>
 <div class="shots">
@@ -80,6 +98,66 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <figure><img src="아침보고-화면/studio-publish-768.png" alt="studio-publish-768"><figcaption>studio-publish-768</figcaption></figure>
 </div>
 <h2>밤사이 들어간 작업</h2><table><tr><th>커밋</th><th>무엇을</th></tr>
+<tr><td><code>f5894835</code></td><td>docs(audit): block unsafe OSMU changes</td></tr>
+<tr><td><code>47a54e4b</code></td><td>docs(handoff): satisfy OSMU stop contract</td></tr>
+<tr><td><code>31b48850</code></td><td>docs(handoff): record current work build evidence</td></tr>
+<tr><td><code>2db13136</code></td><td>docs(studio): record current work gap closure</td></tr>
+<tr><td><code>31498002</code></td><td>fix(studio): normalize database draft timestamps</td></tr>
+<tr><td><code>0a1bbc59</code></td><td>test(studio): wait for publish accounts before asserting</td></tr>
+<tr><td><code>479be3ed</code></td><td>feat(studio): expose resumable current work</td></tr>
+<tr><td><code>e74d458f</code></td><td>qa: correct unmatched design comparison verdict</td></tr>
+<tr><td><code>01d17335</code></td><td>qa: verify four-room flow and harden probe</td></tr>
+<tr><td><code>3472565f</code></td><td>fix(auth): enforce customer and operator boundaries</td></tr>
+<tr><td><code>dd7197b7</code></td><td>docs(qa): record API read sweep v3 evidence</td></tr>
+<tr><td><code>783b97ce</code></td><td>docs(handoff): normalize OSMU review handoff</td></tr>
+<tr><td><code>52beed44</code></td><td>docs(audit): refresh current 24h code review</td></tr>
+<tr><td><code>3c251689</code></td><td>fix(ci): run database workflow with postgres client</td></tr>
+<tr><td><code>00cb44be</code></td><td>docs(metrics): record coverage contract evidence</td></tr>
+<tr><td><code>1afc3d11</code></td><td>docs(qa): verify concurrent metrics route</td></tr>
+<tr><td><code>0b4c3b62</code></td><td>feat(metrics): expose collection coverage contract</td></tr>
+<tr><td><code>6bb3dbdb</code></td><td>docs(qa): note concurrent metrics verification</td></tr>
+<tr><td><code>2759be34</code></td><td>docs(qa): update read sweep evidence</td></tr>
+<tr><td><code>5b7076f2</code></td><td>docs(qa): record API read sweep rerun</td></tr>
+<tr><td><code>d5ac3d1c</code></td><td>test(studio): respect generation schema state</td></tr>
+<tr><td><code>862540f7</code></td><td>docs(audit): 코드 리뷰 생성 시각 정정</td></tr>
+<tr><td><code>0a568bbf</code></td><td>docs(audit): 최근 24시간 코드 리뷰 차단 근거 갱신</td></tr>
+<tr><td><code>48807e54</code></td><td>fix(ci): trust provided migration matrix commit</td></tr>
+<tr><td><code>6eaf3a45</code></td><td>fix(studio): close production QA regressions</td></tr>
+<tr><td><code>00f7c47c</code></td><td>docs(studio): record atomic legacy recovery proof</td></tr>
+<tr><td><code>5349bb6a</code></td><td>fix(studio): make legacy ledger application atomic</td></tr>
+<tr><td><code>c89c1ddb</code></td><td>docs(studio): record final migration recovery proof</td></tr>
+<tr><td><code>864cc900</code></td><td>docs(osmu): refresh gapfill handoff note</td></tr>
+<tr><td><code>68fe429d</code></td><td>fix(studio): harden migration recovery evidence</td></tr>
+<tr><td><code>9f5052e7</code></td><td>docs(studio): close edit format validation gap</td></tr>
+<tr><td><code>637d36ea</code></td><td>fix(studio): narrow format parser kind</td></tr>
+<tr><td><code>ea3d8126</code></td><td>docs(studio): record migration gate retake evidence</td></tr>
+<tr><td><code>113aab63</code></td><td>fix(studio): close migration approval prerequisites</td></tr>
+<tr><td><code>b42cec92</code></td><td>feat(studio): validate edit formats before publish</td></tr>
+<tr><td><code>40f0ac79</code></td><td>docs(studio): record migration build evidence</td></tr>
+<tr><td><code>c0e45d5a</code></td><td>test(studio): prove migration rollback matrix</td></tr>
+<tr><td><code>987e4acd</code></td><td>fix(studio): enforce migration rollout gates</td></tr>
+<tr><td><code>9b72c05b</code></td><td>fix(studio): harden member-scope generation migration</td></tr>
+<tr><td><code>fcdc97c7</code></td><td>fix(studio): connect customer auth and tenant idempotency</td></tr>
+<tr><td><code>93142d58</code></td><td>docs(qa): record exhaustive API read evidence</td></tr>
+<tr><td><code>04f91170</code></td><td>test(qa): add exhaustive API read sweep</td></tr>
+<tr><td><code>dd3bb0c9</code></td><td>fix(qa): tolerate dual Studio idempotency constraints</td></tr>
+<tr><td><code>e3affd62</code></td><td>fix(qa): allow customer TikTok status polling</td></tr>
+<tr><td><code>c0b4d8b4</code></td><td>fix(qa): classify missing OAuth configuration as unavailable</td></tr>
+<tr><td><code>cbe56b88</code></td><td>docs(osmu): preserve M3 M5 tool evidence</td></tr>
+<tr><td><code>c58625ad</code></td><td>docs(osmu): add verified web basis for M3 M5</td></tr>
+<tr><td><code>49ed711a</code></td><td>docs(osmu): report M3 M5 block fixes</td></tr>
+<tr><td><code>5444b186</code></td><td>fix(osmu): bind publish recovery to saved draft</td></tr>
+<tr><td><code>cfa74e46</code></td><td>fix(osmu): preserve quota ledger across workspace deletion</td></tr>
+<tr><td><code>31754f8f</code></td><td>fix(osmu): isolate studio state and preserve publish recovery</td></tr>
+<tr><td><code>22a9eb07</code></td><td>audit(osmu): block last 24h changes</td></tr>
+<tr><td><code>50e1c56b</code></td><td>docs(osmu): record publish return gap closure</td></tr>
+<tr><td><code>f363e995</code></td><td>fix(osmu): restore handoff queues with publish text</td></tr>
+<tr><td><code>5edf1178</code></td><td>test: follow canonical operator runbook path</td></tr>
+<tr><td><code>70aafb64</code></td><td>feat(osmu): return queued work to publish room</td></tr>
+<tr><td><code>adb33ca9</code></td><td>fix(osmu): link review requests to studio drafts</td></tr>
+<tr><td><code>ad056aac</code></td><td>wiki: A안 통일+fresh(코드·산출물 정본) — openclaw-auto</td></tr>
+<tr><td><code>b18cb1ef</code></td><td>인계: studio 라인 상태도 교대 시점으로 최종화</td></tr>
+<tr><td><code>947f217a</code></td><td>docs(qa): record pixel comparison handoff</td></tr>
 <tr><td><code>a23dbc77</code></td><td>인계: Claude 에서 Codex 로 세션 교대 기록 최종화</td></tr>
 <tr><td><code>dfec813e</code></td><td>test(qa): verify four-room flow across four widths</td></tr>
 <tr><td><code>0be50434</code></td><td>감독: 자리가 남는데 던질 판이 없으면 즉시 채우게 고침</td></tr>

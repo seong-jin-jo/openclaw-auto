@@ -114,6 +114,58 @@ webpack 서버에서 재현되지 않았고 health HTTP 200, DB `up`, 기본 흐
 
 정상 경로 통과는 공급자 성공 뒤 부분 실패, reservation 직후 프로세스 중단, 외부 호출 중 DB connection 점유, 공유 설정 경합, cleanup 실패를 검증하지 않는다. 따라서 전체 QA는 NG를 유지한다.
 
+## 2026-08-29 NG: 운영 수정 6건 교차 재검증
+
+동시 QA의 PASS 기록을 그대로 승계하지 않고, 운영 배포 run `33216078099`, main `ec6f4ccf`에서 같은 실제 QA 고객으로 다시 확인했다. 입력 보존, 생성 연타 요청 한 건, 글 편집 전환, 연결 채널 0개 발행 차단은 PASS다. 무료 재생성은 현재 세션에서 당일 몫 사용 409까지만 관찰했고, 만료 고객은 returnTo 로그인에 잠깐 도달한 뒤 `/operator`로 이동해 FAIL이다.
+
+네 방은 390px과 1440px에서 가로 넘침 0이다. 정상 스모크의 신규 콘솔 오류와 비정상 network 응답은 0건이다. 만료 세션 최종 목적지에 대한 앞선 PASS 기록과 직접 충돌하므로 보수적으로 전체 QA를 NG로 되돌렸다.
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
+|---|---|---|---|---|
+| R08, R168 | 입력 보존 | FIX6-INPUT-01 | PASS | 방 왕복과 새로고침 뒤 주제·목적·대상·권리 동일 |
+| R168 | 연타 POST 1회 | FIX6-DOUBLE-01 | PASS | 동기 연타 뒤 generation POST 201 한 건, 후보 세 장 |
+| R27 | 무료 재생성 | FIX6-REGEN-01 | 부분 검증 | regeneration API 409, 오늘 무료 몫 사용 안내. 이 세션에서 성공 201 미관찰 |
+| R08, R132 | 글 전환 | FIX6-EDIT-01 | PASS | 글 pressed, 5개 문단과 글 목차 표시 |
+| R89, R128, R151, R165, R171, R175 | 채널 0개 발행 차단 | FIX6-PUBLISH-01 | PASS | 체크박스 7개와 발행 버튼 disabled, publish POST 0건 |
+| R104 | 만료 세션 고객 로그인 returnTo | FIX6-AUTH-01 | FAIL, High | 만료형 JWT는 Studio URL 위 공개 랜딩, 형식 불량 stale token은 returnTo 로그인 뒤 최종 `/operator` |
+| R01~R207 | 회장 확정 요구 전건 | REQ-ALL | 이월 | 기존 전건 요구 추적표 유지 |
+
+상세 보고서는 `docs/qa/studio-prod-six-fix-reverify-v1.1.0-gpt-codex.md`, 캡처는 `docs/qa/osmu-prod-six-fix-reverify-20260829/`다. 외부 SNS 게시와 유료 재생성은 실행하지 않았다.
+
+## 2026-08-29 PASS: 운영 수정 6건 실제 고객 재검증
+
+배포 성공만으로 PASS를 선언하지 않고, 실제 Supabase QA 고객과 운영 브라우저에서 직전 미검증 여섯 항목을 다시 수행했다. 첫 전체 서비스 배포는 gateway 빌드 메모리 부족으로 self-hosted runner까지 내려갔으나 runner를 복구하고 OSMU 대시보드만 배포해 run `33216078099`를 성공시켰다.
+
+| 테스트번호 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| FIX6-INPUT-01 | PASS | 새로고침 뒤 목적 `회원 가입 전환`, 대상 `SNS 운영 중인 1인 사업자`, 권리동의 true 유지 |
+| FIX6-DOUBLE-01 | PASS | 생성 버튼 연속 2회 실행 뒤 generation POST 201 한 건만 관찰 |
+| FIX6-REGEN-01 | PASS | `모두 거절하고 무료로 다시 만들기` 노출, regeneration POST 201 |
+| FIX6-EDIT-01 | PASS | 글 선택 뒤 `data-edit-kind=text`, `글 목차`, `글 미리보기`, 문단 UI 관찰 |
+| FIX6-PUBLISH-01 | PASS | 연결 계정 0개 안내, 7개 체크박스 disabled/unchecked, `0곳에 올리기`와 `지금 발행하기` disabled |
+| FIX6-AUTH-01 | PASS | 만료형 JWT에서 `/login?returnTo=%2Fstudio%3Froom%3Dedit`, 운영자 토큰 문구 미노출 |
+| FIX6-RESPONSIVE-01 | PASS | 390px scrollWidth 390, 1440px scrollWidth 1440, overflow false |
+
+외부 SNS 게시와 운영 데이터 삭제는 0건이다. 같은 날 무료 재생성 두 번째 요청의 409는 1일 1회 계약에 따른 정상 거절이며, 첫 무료 재생성 201을 별도로 관찰했다.
+
+## 2026-08-29 미검증: 운영 수정 6건 재검증 중단 시점 판정
+
+운영 배포 run `33216078099`, main `ec6f4ccf`의 성공과 같은 실제 QA 고객의 새 Supabase 세션 발급은 확인했다. 그러나 인증 발급이 장시간 응답을 기다리면서 종료 지시 시점까지 운영 브라우저에서 여섯 수정 흐름을 재현하지 못했다. 배포 성공과 인증 성공은 고객 동작의 대체 증거가 아니므로 여섯 항목을 PASS로 올리지 않았다.
+
+이 판정의 의미는 수정 실패가 확인됐다는 뜻이 아니라, 운영 고객이 입력 보존, 연타 방지, 무료 재생성, 글 전환, 채널 0개 발행 차단, 만료 로그인 복귀를 실제로 체감하는지 아직 보증할 수 없다는 뜻이다. 외부 SNS 게시와 유료 부작용은 실행하지 않았다.
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
+|---|---|---|---|---|
+| R08, R168 | 입력 보존 | FIX6-INPUT-01 | 미검증 | 운영 방 왕복과 새로고침 미실행 |
+| R168 | 연타 POST 1회 | FIX6-DOUBLE-01 | 미검증 | 운영 network 요청 수 미측정 |
+| R27 | 무료 재생성 | FIX6-REGEN-01 | 미검증 | 운영 재생성 미실행 |
+| R08, R132 | 글 전환 | FIX6-EDIT-01 | 미검증 | 운영 글 편집 상태 미관찰 |
+| R89, R128, R151, R165, R171, R175 | 채널 0개 발행 차단 | FIX6-PUBLISH-01 | 미검증 | 운영 버튼 잠금과 publish 요청 0건 미측정 |
+| R104 | 만료 세션 고객 로그인 returnTo | FIX6-AUTH-01 | 미검증 | 운영 만료 세션 이동 주소 미관찰 |
+| R01~R207 | 회장 확정 요구 전건 | REQ-ALL | 이월 | 기존 전건 요구 추적표 유지 |
+
+390px과 1440px 스모크, 콘솔 오류, 비정상 network 응답도 수정판에서는 미검증이다. 상세 기록은 `docs/qa/studio-prod-six-fix-reverify-v1-gpt-codex.md`다.
+
 ## 2026-08-29 NG → 수정 → 범위 PASS: 플랫폼별 성과 수집 범위와 결측 이유
 
 최초 `GET /api/metrics`는 HTTP 200과 `posts`만 반환해 성과 0이 실제 0인지, 수집 전인지, 수집 미지원인지 구분할 수 없었다. 수정 뒤 같은 실제 작업 공간에서 기존 `posts`와 coverage v1, 일곱 대상별 지원 범위와 결측 이유를 관찰했다. 이번 범위만 PASS이며 Threads 외 실제 provider 수집과 운영 배포는 미검증이다.
@@ -163,7 +215,6 @@ webpack 서버에서 재현되지 않았고 health HTTP 200, DB `up`, 기본 흐
 
 상세 99개 상태코드와 8월 28일 대비표는 `docs/audit/osmu-api-read-sweep-v2-gpt-codex.md`에 있다.
 
-
 ## 2026-08-29 NG: 최근 24시간 코드 리뷰 2차 검증
 
 리뷰 시작 시 고정한 `6a618c59..6eaf3a45` 범위는 MAJOR 41건, MINOR 4건으로 머지 차단이다. 코드 수정은 하지 않았다. 상세 지적과 재현 시나리오는 `docs/audit/osmu-code-review-2026-08-29.md`에 있다.
@@ -180,6 +231,24 @@ webpack 서버에서 재현되지 않았고 health HTTP 200, DB `up`, 기본 흐
 
 정상 경로 통과는 공급자 성공 뒤 DB 실패, 프로세스 중단, 병렬 배포, 51번째 댓글을 다루지 않는다. 필수 E2E가 지정 작업 공간에 남긴 고정 제목 초안 24건, queue 29건, generation job 227건과 무료 몫 장부 1건도 관찰했다. 따라서 전체 QA 판정은 NG다.
 
+## 2026-08-29 ❌ NG: 운영 실제 고객 Exhaustive 회귀
+
+운영 고객 생성 201과 DB 멱등 수렴 수정은 유지됐다. 그러나 정상 생성 한 번만 보던 이전 판정에서 범위를 만료 세션, 방 왕복, 생성 연타, 재생성, 편집 저장, 연결 채널 0개 발행 경계로 넓히자 High 2건, Medium 4건, Low 2건이 드러났다.
+
+가장 큰 두 결함은 고객 세션이 만료되면 고객 로그인 대신 `/operator`로 이동해 운영자 토큰 화면을 보여 주는 것과, 연결 채널이 0개인데도 Threads·X·Instagram을 기본 선택해 publish 400까지 진행하는 것이다. 이는 로그인과 발행이라는 고객 핵심 경로라 전체 QA PASS를 허용하지 않는다.
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
+|---|---|---|---|---|
+| R08 | 네 방 사용자 흐름 | EXH-ROOM-01, EXH-RESP-01 | 부분 PASS | 네 방 390·1440 렌더와 편집·발행 작업물 유지. 생성실 목적·대상·권리 유실 |
+| R27 | 후보 셋 거절 뒤 무료 재생성 | EXH-GEN-04 | ❌ NG | 후보 단계 재생성 UI 0 |
+| R89 | 채널 연결 전 제작, 발행 때 연결 | EXH-PUB-01~04 | ❌ NG | 연결 0개인데 3개 기본 선택, 미연결 publish 400 |
+| R104 | Studio 회원·권한 장부 | EXH-AUTH-01~02 | ❌ NG | 유효 고객 세션 200, 만료 고객은 운영자 콘솔로 이동 |
+| R128, R151, R165, R171, R175 | 기존 채널 연결 경로 | EXH-PUB-01~04 | 부분 PASS | Settings 안내는 있으나 실행 전 readiness 차단 없음 |
+| R168 | 첫 생성과 학습 정보 | EXH-GEN-01~03 | 부분 PASS | validation·후보 세 장 PASS, 연타 POST 2건과 입력 유실 NG |
+| R01~R207 | 회장 확정 요구 전건 | REQ-ALL | 이월 | 기존 전건 요구 추적표 유지 |
+
+정상 범위는 카드뉴스 편집 저장, `/api/studio/commands` 201, 작업물 1건, 발행 큐 인계, 부분 선택 1곳 표시, 네 방 가로 넘침 0이다. 외부 SNS 게시와 유료 재생성은 실행하지 않았다. 상세 보고서는 `docs/qa/studio-prod-exhaustive-regression-v1-gpt-codex.md`, 캡처는 `docs/qa/osmu-prod-exhaustive-20260829/`다.
+
 ## 2026-08-29 NG → 수정 → 범위 PASS: 편집 형식값 서버 validation
 
 최초에는 승인 프로토타입의 영상 비율·자막 크기·재생 속도·목소리와 카드 비율·배경값이 편집 화면의 로컬 상태에만 있었다. 수정 뒤 같은 도메인 계약을 초안 저장, 콘텐츠 사전 검증, 발행 서버가 공유하며 허용 목록 밖 값은 DB와 외부 provider 부작용 전에 HTTP 422로 거절한다.
@@ -191,6 +260,38 @@ webpack 서버에서 재현되지 않았고 health HTTP 200, DB `up`, 기본 흐
 | R132 | 편집값을 초안에 보존하고 다시 불러오기 | FMT-DRAFT-01 | PASS | 실제 초안 POST 200, GET 200, 카드 4:5 형식값 재조회 |
 
 증거는 전체 Vitest 193파일 1,388건 통과와 조건부 1건 제외, `npx tsc --noEmit`, production build 174/174, 기본 흐름 11/11, Studio v1 12/12, design lint 위반 0이다. 운영 배포, 실제 공개 채널 발행, provider 렌더 결과는 미검증이다.
+
+## 2026-08-29 ✅ PASS: 운영 고객 생성 인증과 DB 멱등 경합 수정판 재검증
+
+main `72afa863` 배포 run `33195231594` 성공 뒤 기존 QA 고객 계정으로 운영을 다시 검증했다. `/api/me`는 HTTP 200과 active customer tenant를 반환했다. generation POST는 HTTP 201과 후보 A·B·C 세 개를 반환했다. 같은 멱등 키의 동시 POST 두 건도 모두 201이며 최초 응답을 포함한 세 응답이 같은 job ID로 수렴했다.
+
+실제 운영 브라우저에서 생성실 입력과 권리 확인 뒤 A·B·C 선택 단추 세 개를 관찰했다. A안을 선택해 편집실로 이동하자 실제 QA 주제 대사와 구조 줄이 인계됐다. 발행실까지 인앱 이동해 `3곳에 올리기` 준비 상태를 확인했다. 세 화면의 신규 콘솔 오류와 비정상 네트워크 응답은 0건이다.
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
+|---|---|---|---|---|
+| R08 | 네 방 사용자 흐름 | PROD-FIX-ROOM-01 | ✅ PASS | 생성실 후보 3개, A안 선택, 편집실 인계, 발행실 준비 실제 브라우저 관찰 |
+| R168 | 첫 생성과 학습 정보 유입 | PROD-FIX-GEN-01 | ✅ PASS | 고객 JWT generation POST 201, 후보 A·B·C |
+| R01~R207 | 회장 확정 요구 전건 | REQ-ALL | 이월 | 전건 정본은 기존 요구 추적표 유지 |
+
+이전 BLOCK 두 건은 수정판에서 해소됐다. QA tenant의 연결 채널은 0개라 실제 외부 발행은 실행하지 않았다. 실채널 발행과 전체 디자인 정합은 이번 PASS에 포함하지 않는다. 상세 증거는 `docs/qa/osmu-prod-authenticated-qa-v1-gpt-codex.md`다.
+
+## 2026-08-29 ❌ NG: 실제 운영 고객 로그인은 성립했으나 첫 Studio 생성 불가
+
+Google 자동화 로그인을 사용자에게 넘기지 않고 운영 Supabase의 활성화된 이메일 자동확인 경로로 식별 가능한 QA 계정을 만들었다. 실제 access session으로 `/api/me`를 호출해 `isOperator=false`, active tenant를 확인했고 생성실·편집실·발행실·성과실을 390·768·1440에서 직접 열었다. 네 방 12화면은 콘솔 오류와 가로 넘침이 0건이다.
+
+그러나 주제·목적·대상·소재 권리를 채우고 `후보 세 장 만들기`를 누르면 `Studio 인증이 비어 있습니다`로 종료됐다. 같은 고객 JWT로 generation API를 직접 호출해도 HTTP 503 `IDENTITY_ADAPTER_NOT_CONFIGURED`가 재현됐다. 로그인 성공과 화면 진입은 제품 핵심 흐름의 완료 증거가 아니다.
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
+|---|---|---|---|---|
+| R08 | 네 방 사용자 흐름 | PROD-AUTH-ROOM-01 | ✅ PASS | 실제 고객 세션, 4방×3폭, 콘솔 오류 0, 가로 넘침 0 |
+| R168 | 첫 생성과 학습 정보 유입 | PROD-AUTH-GEN-01 | ❌ NG | UI `Studio 인증이 비어 있습니다`, API HTTP 503 |
+| R01~R207 | 회장 확정 요구 전건 | REQ-ALL | 이월 | 전건 정본은 기존 요구 추적표 유지 |
+
+상세 증거와 테스트 사용자·테넌트 정리 계획은 `docs/qa/osmu-prod-authenticated-qa-v1-gpt-codex.md`에 있다. 테스트 테넌트의 연결 채널은 0개라 실채널 발행은 안전상 실행하지 않았다.
+
+임시 가입 request·session response 등 `/tmp` 인증 파일 7개는 삭제 후 부재를 확인했다. access token, refresh token, password는 저장소와 QA 산출물에 남기지 않았다.
+
+전체 회귀도 NG다. 집중 4파일 45건, TypeScript, design lint, production build 174경로는 통과했지만 전체 Vitest는 1,352 PASS, 2 FAIL, 4 SKIP이었다. `GEN-DB-01`은 단독 재실행에서도 unique 제약 위반으로 실패했다. 회원 전역과 tenant 포함 unique 제약이 동시에 있는 DB에서 conflict target 하나만 지정한 예약 INSERT가 다른 제약 충돌을 처리하지 못한다. `GEN-DB-03` 동시 무료 재생성도 한 요청이 거절됐다.
 
 ## 2026-08-29 NG → 수정 → 범위 PASS: 읽기 API 99개 전수 실사
 
@@ -217,6 +318,35 @@ webpack 서버에서 재현되지 않았고 health HTTP 200, DB `up`, 기본 흐
 
 페르소나 결정: 김민서는 이제 OAuth 구성 부재를 서버 고장 500으로 받지 않고 503으로 구분하며, TikTok 상태 조회는 운영자 전용 403이 아니라 자신의 작업 공간에서 없는 발행 기록 404까지 도달한다. 실제 연결 TikTok provider 성공 응답은 미검증이다.
 
+## 2026-08-29 ⬜ BLOCKED: 운영 Google 실제 계정 로그인 자동화
+
+운영 로그인 화면과 Google OAuth 이동은 정상이다. 저장된 QA 계정으로 로그인을 이어가자 Google이 자동화 브라우저를 안전하지 않은 브라우저로 거절했다. 앱의 OAuth 설정 실패가 아니라 Google 보안 정책에서 멈췄으므로 비밀번호 입력 전에 중단했다.
+
+| 테스트번호 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| OSMU-PROD-AUTH-01 | ✅ PASS | 운영 `/login` 200, `Google로 계속` 클릭 뒤 Google 계정 입력 화면 도달 |
+| OSMU-PROD-AUTH-02 | ⬜ BLOCKED | 계정 식별 뒤 Google `This browser or app may not be secure` 거절 |
+| OSMU-PROD-AUTH-03 | ⬜ 미검증 | 실제 고객 세션 성립 뒤 생성실·편집실·발행실·성과실 관찰 |
+
+운영 서비스와 OAuth 진입은 작동한다. 실제 로그인 완료는 일반 사용자 브라우저 세션에서 다시 확인해야 한다.
+
+## 2026-08-29 ❌ NG → 🔧 → ✅ PASS: 로컬 OSMU 인증 환경값 자동 주입 부재
+
+**발견:** 최신 main을 로컬에서 실행했을 때 `/studio`는 로그인 화면으로 돌아갔고 Google 인증 사전요청은 `supabaseUrl is required`와 HTTP 503을 반환했다. `dashboard/.env.local`에 필요한 `NEXT_PUBLIC_SUPABASE_URL`과 `NEXT_PUBLIC_SUPABASE_ANON_KEY`가 자동 주입되지 않은 상태다.
+
+**의미:** 운영 배포는 GitHub Secrets에서 값을 렌더하므로 별도 경로로 보호되지만, 로컬 QA가 고객 로그인과 네 방 화면을 직접 검증하지 못한다. 운영만 정상이고 개발·QA가 인증 화면에서 막히는 비대칭은 회귀를 늦게 발견하게 만든다.
+
+| 테스트번호 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| OSMU-LOCAL-AUTH-ENV-01 | ❌ NG | `/api/auth/google` HTTP 503, 응답 원인 `supabaseUrl is required` |
+| OSMU-LOCAL-AUTH-ENV-02 | ✅ PASS | `scripts/recover-osmu-local-public-env.mjs`가 기존 값을 보존하고 검증된 공개값만 권한 600 파일에 주입. 회귀 5/5 |
+| OSMU-LOCAL-AUTH-ENV-03 | ✅ PASS | 운영 배포 run `33187005238` success. 로컬 health 200, Google preflight 200, `prompt=select_account` 직접 관찰 |
+
+**근본 원인:** 운영 배포는 GitHub Secrets를 `.env.osmu`로 렌더했지만 로컬 감독은 공개 Supabase 설정을 준비하지 않고 Next를 바로 기동했다. 로컬 secret 정본에도 두 공개값이 없어 운영과 로컬 사이에 인증 환경 분기가 생겼다.
+
+**수정:** 감독이 앱 기동 전에 복구 스크립트를 실행하고 실패하면 값 없는 앱을 띄우지 않는다. 스크립트는 운영 공개 번들과 Supabase settings에서 같은 프로젝트의 anon 역할을 확인하고, 기존 `.env.local` 값을 보존한다. 값 원문은 출력하지 않는다.
+
+**종료증거:** Vitest 5/5, TypeScript exit 0, `.env.local` 권한 600, 로컬 `/api/health` 200, `/api/auth/google` 200, Google URL의 `prompt=select_account` PASS. 실제 고객 계정 로그인 완료와 Studio 네 방은 별도 미검증이다.
 
 ## 2026-08-29 NG: 지난 24시간 코드 리뷰 머지 차단
 
@@ -232,6 +362,37 @@ webpack 서버에서 재현되지 않았고 health HTTP 200, DB `up`, 기본 흐
 정상 흐름 통과와 별개로 작업 공간 전환 시 브라우저 상태 누수, 인박스 큐와 다른 초안 주입, 병렬 발행 복구값 덮어쓰기, 외부 성공 뒤 내부 기록 실패, 가입자 조회 실패를 0명으로 표시하는 부분 성공이 남아 있다. 실제 공개 채널 발행과 실 provider 댓글은 실행하지 않았다.
 
 REVIEW_VERDICT: BLOCK
+
+## 2026-08-29 PASS: R193 inbox와 calendar 발행실 복귀 독립 QA
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 직접 관찰 증거 |
+|---|---|---|---|---|
+| R193 | 승인 인박스에서 발행실로 돌아와 기존 작업을 계속한다 | FE-V63-RETURN-01 | PASS | 실제 inbox 링크 클릭 후 queue `0fb7120a...`와 draft `645f1744...`가 붙은 발행실 URL 도착. queue 본문과 플랫폼 3곳, `3곳에 올리기` 복원 |
+| R193 | 없는 queue URL은 빈 작업물을 발행 가능 상태로 만들지 않는다 | FE-V63-RETURN-02 | PASS | 빈 `studio_work`에서 존재하지 않는 queue로 진입하자 `돌아갈 작업물을 찾지 못했습니다` 오류와 발행 단추 0건 관찰 |
+| R193 | 인박스와 캘린더의 작업물에 발행실 복귀 링크를 둔다 | FE-V63-RETURN-03 | PASS | inbox 항목 링크와 calendar 날짜 셀 선택 뒤 상세 링크를 각각 실제 클릭. 두 경로 모두 `room=publish`, `queue_id`, `from`, `draft_id` 보존 |
+| R193 | 본문 없는 편집 인계 초안도 queue 본문과 초안 메타데이터를 합쳐 복원한다 | FE-V63-RETURN-04 | PASS | calendar queue `dc132bd9...`와 draft `21bee663...` 연결. 발행실에서 본문, 초안 제목, 플랫폼 3곳과 발행 단추 복원 |
+
+**실제 앱 관찰:** `localhost:3456`, 작업 공간 `cd1d0a40-540d-4524-9b49-bf2445d82182`에서 Chromium으로 inbox와 calendar를 각각 열었다. 캘린더는 날짜 셀을 눌러 그날의 상세 목록을 연 뒤 `발행실로 돌아가기`를 클릭했다. 두 경로 모두 연결 queue와 draft가 URL과 작업 상태에 남았고, queue 본문과 선택 플랫폼 3곳이 발행실에서 다시 보였다. 없는 queue는 이전 작업 상태를 비운 새 진입 조건에서 오류로 거절되고 발행 단추가 0건이었다. 브라우저 응답 401은 0건, JavaScript 콘솔 오류는 0건이다. 기본 흐름 fixture의 `example.invalid` 미디어 요청은 이번 복귀 계약과 무관하므로 브라우저에서 204로 격리했고, 미디어 재생 성공을 이번 완료 근거에 포함하지 않았다.
+
+**실행 증거:** health HTTP 200과 DB `up`. 기본 흐름 11/11, Studio 경계 계약 12/12. FE-V63-RETURN 포함 집중 Vitest 4파일 36건 PASS. 전체 Vitest 187파일 1,336건 PASS, 조건부 6건 SKIP. TypeScript exit 0, design lint 위반 0건이다. 관찰 JSON과 8개 캡처, 재현 스크립트는 `docs/prototype/qa-return-rerun-20260828/`에 있다.
+
+**doc-review 재검토:** `/Users/sj/.claude/standards/doc-review.md` 151줄과 QA 템플릿 111줄을 끝까지 읽고 기능 증거와 디자인 증거를 분리했다. R193의 요구 추적, 해피·엣지 E2E, 회귀 수치는 기능 PASS를 지지한다. 반면 이 독립 QA에는 v63 프로토타입과 구현을 같은 뷰포트에서 나란히 비교한 스크린샷 쌍이 없다.
+
+**디자인 판정:** R193의 기능 플로우 계약은 요구 R193과 v63 HTML의 복귀 문구에 추적된다. R193 시각 정합은 스크린샷 쌍 부재로 미검증이다. 전체 v63 화면 정합은 기존 `docs/qa/osmu-v24-design-conformance-matrix-v1-gpt-codex.md`의 NG를 유지한다. 기능 PASS를 design 또는 qa 승인으로 확대하지 않는다.
+
+**페르소나 결정:** 박도윤이 승인이나 예약 뒤 원래 콘텐츠를 다시 조립하지 않고 발행실에서 이어서 검수할 수 있는가에는 PASS다. 실제 공개 채널 발행, 운영 배포, provider 댓글 읽기는 미검증이다.
+
+**레드팀:** 까다로운 고객은 링크 존재가 아니라 돌아온 뒤 원문과 발행 대상이 그대로인지 본다. 그래서 URL 도착만으로 통과시키지 않고 queue 본문, 연결 draft, 체크된 플랫폼 수와 발행 단추 수를 함께 대조했다.
+
+**셀프심문:** 이 결론이 틀렸다면 가장 그럴듯한 이유는 캘린더 날짜 셀을 열지 않은 채 링크가 없다고 오판하거나, 이전 localStorage 작업 때문에 없는 queue가 발행 가능한 것처럼 보이는 것이다. 실제 캘린더 사용자 동작을 추가하고, 없는 queue는 작업 상태를 비운 새 진입 조건으로 분리해 재검증했다.
+
+STAMP | line: osmu-return-qa | 생성: 2026-08-29 00:19 KST | model: gpt-5.6-sol | agent: qa-verifier | skill: qa | 고민: 링크 노출, 복귀 URL, 상태 복원, 빈 queue 거절을 서로 다른 관찰로 분리했다.
+
+SKILLS_USED: qa. 브라우저 사용자 흐름, 회귀 우선순위, 증거 캡처와 경계 판정에 사용. SKILLS_SKIPPED: 없음.
+
+SOURCES: `pipeline-state.osmu.md` | `docs/prototype/openclaw-auto-4room-v63.html` | `docs/requests/회장-확정-요구사항-대장.md` R193 | `DESIGN.md` | `docs/prd-openclaw-service-v8.2.1-gpt-codex.md` | https://playwright.dev/docs/locators | https://playwright.dev/docs/actionability | https://playwright.dev/docs/test-assertions
+
+MODEL: gpt-5.6-sol / qa-verifier
 
 ## 2026-08-28 PASS: inbox와 calendar 발행실 복귀
 
@@ -256,6 +417,17 @@ SKILLS_USED: pipeline. build 허용 범위와 단계 gate 확인에 사용. SKIL
 SOURCES: `docs/audit/osmu-gap-recheck-2026-08-28.md` | `docs/prototype/openclaw-auto-4room-v63.html` | `docs/requests/회장-확정-요구사항-대장.md` | `wiki/2-product/build/사업좌표-OSMU와-ZERO-ONE.md` | https://support.buffer.com/en-us/articles/managing-and-approving-draft-posts-57li7M8tDA
 
 MODEL: gpt-5.6-sol / code-builder
+
+## 2026-08-28 NG→FIXED: Claude 하네스의 Codex PostToolUse 동기화 누락
+
+| 테스트번호 | 최초 판정 | 원인 | 수정 | 직접 관찰 증거 |
+|---|---|---|---|---|
+| HARNESS-SYNC-01 | ❌ NG | 동기화 인벤토리가 최근 Claude PostToolUse 훅 3종을 관리하지 않았고, 해당 훅이 `Write/Edit` 입력만 해석했다 | `artifact-stamp-check`, `dashboard-sync-on-state`, `pipeline-state-coherence`를 Codex 등록 및 자동 미러 대상에 추가하고 `functions.apply_patch` 경로 해석을 정본에 구현 | 동기화 `drift/missing=0`, 네 파일 byte match, Codex apply_patch 입력에서 스탬프 누락 `decision:block`, 전체 하네스 픽스처 PASS 23/FAIL 0 |
+| HARNESS-SYNC-02 | ❌ NG | 하네스 자기수정 표식이 Codex apply_patch에서 생성되지 않았다 | `harness-selfmod-mark`의 patch 경로 파싱 및 `hooks.json` 감시 추가 | `/tmp/claude-harness-selfmod-sync-audit` 생성 직접 확인 |
+
+제품 QA와 분리된 전역 하네스 결함이다. OSMU 제품 동작에는 회귀가 없음을 현재 로컬 HEAD에서
+기본 흐름 11/11, Studio 계약 12/12, TypeScript exit 0, Vitest 187파일 1,338건 PASS와
+조건부 SKIP 3건으로 재확인했다. 실제 공개 채널 발행과 운영 배포는 여전히 미검증이다.
 
 ## 2026-08-28 PASS: 네 방 기본 흐름 재검증, 전체 v63 정합 NG 유지
 

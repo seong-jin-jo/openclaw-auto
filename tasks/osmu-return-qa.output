@@ -1,0 +1,248 @@
+<!--
+STAMP
+line: osmu-return-qa
+artifact: R193 발행실 복귀 독립 QA 재검토 보고서
+version: v1.1.0
+created_at: 2026-08-29 00:24 KST
+model: gpt-codex/gpt-5.6-sol
+agent: qa-verifier
+skills: qa, 브라우저 기능 검증과 회귀 우선순위 및 증거 판정에 사용
+basis: pipeline-state.osmu.md, docs/prototype/openclaw-auto-4room-v63.html, docs/requests/회장-확정-요구사항-대장.md R193, DESIGN.md
+deliberation: 기능 E2E PASS를 시각 정합 PASS로 확대하지 않고 증거 등급을 분리했다.
+-->
+
+# OSMU R193 발행실 복귀 독립 QA 재검토 보고서
+
+| 항목 | 값 |
+|---|---|
+| 버전 | v1.1.0 |
+| 작성일 | 2026-08-29 |
+| 작성자/모델 | qa-verifier / gpt-codex/gpt-5.6-sol |
+| 상류 산출물 | 요구 대장 R193, DESIGN.md, v63 HTML |
+| 대상 커밋 | `adb33ca9`, `70aafb64`, `5edf1178`, `f363e995`, `50e1c56b` |
+| 환경 | `http://localhost:3456`, workspace `cd1d0a40-540d-4524-9b49-bf2445d82182` |
+| 게이트 | `current_stage: qa`, design과 qa 미승인 |
+
+## 목차
+
+1. 결론
+2. 목적과 범위
+3. doc-review 실제 Read 증거
+4. 벤치마크와 적용
+5. 테스트 전략과 커버리지
+6. 요구 추적표
+7. 직접 관찰과 회귀 결과
+8. 디자인 정합 재판정
+9. 미검증과 결함
+10. 최종 판정과 출고 권고
+11. 레드팀과 셀프심문
+12. 변경과 개정 이력
+
+## 1. 결론
+
+R193 기능은 PASS를 유지한다. inbox와 calendar에서 발행실로 복귀해 연결 queue, draft, 본문, 플랫폼 3곳을 복원했고, 없는 queue는 발행 단추 0건으로 거절했다. 브라우저 401과 콘솔 오류는 각각 0건이다.
+
+다만 R193 시각 정합은 미검증으로 정정한다. v63 프로토타입과 구현을 같은 뷰포트에서 대조한 전용 스크린샷 쌍이 없기 때문이다. 전체 v63 디자인 정합 NG와 전체 qa NG는 유지한다.
+
+## 2. 목적과 범위
+
+목적은 R193의 발행실 복귀 기능과 FE-V63-RETURN-01부터 04까지를 실제 브라우저와 회귀 테스트로 검증하는 것이다.
+
+포함 범위:
+
+- inbox 복귀
+- calendar 날짜 선택과 상세 복귀
+- queue 본문, draft 메타데이터, 플랫폼 선택 복원
+- 존재하지 않는 queue 거절
+- 기본 흐름과 Studio 계약 회귀
+- 401과 콘솔 오류 관찰
+
+제외 범위:
+
+- 실제 공개 채널 발행
+- 운영 배포
+- provider 댓글 읽기와 답글
+- fixture의 `example.invalid` 미디어 재생
+- R193 전용 3폭 prototype-build 시각 대조
+
+용어:
+
+- 기능 PASS: 사용자 동작과 상태 복원 계약이 실제 브라우저에서 관찰됨
+- 시각 정합: 승인 프로토타입과 구현을 같은 뷰포트에서 배치 속성별로 비교한 판정
+- 전체 qa NG: 기능 일부 PASS와 별개로 출고 게이트를 열 수 없는 상태
+
+## 3. doc-review 실제 Read 증거
+
+실행 명령:
+
+```text
+wc -l /Users/sj/.claude/standards/doc-review.md
+sed -n '1,260p' /Users/sj/.claude/standards/doc-review.md
+```
+
+직접 결과:
+
+- `doc-review.md`는 151줄이다.
+- `sed` 출력으로 1줄부터 마지막 151줄까지 읽었다.
+- 확인한 핵심 절은 문서 판정 원칙, 5축 루브릭, 구조 게이트, QA 전용 요구, 프로토타입 정합, 추적성, 자동 반려 조건, 업계 표준, 템플릿이다.
+
+추가 실행 명령:
+
+```text
+wc -l /Users/sj/.claude/standards/templates/doc-template-qa.md
+sed -n '1,260p' /Users/sj/.claude/standards/templates/doc-template-qa.md
+```
+
+직접 결과:
+
+- QA 템플릿은 111줄이다.
+- 1줄부터 마지막 111줄까지 읽고 목적, 전략, 환경, 커버리지, RTM, Gherkin, 디자인 정합, 결함, 미검증, 출고 권고 구조를 적용했다.
+- QA 착수 전에 `/Users/sj/.codex/skills/qa/SKILL.md` 882줄도 끝까지 읽고 브라우저 검증, 회귀 우선, 직접 증거 규율을 적용했다.
+
+## 4. 벤치마크와 적용
+
+| 소스 | 확인한 기준 | 이번 QA에 적용한 방식 |
+|---|---|---|
+| [Playwright Locators](https://playwright.dev/docs/locators) | 사용자 관점 locator와 재평가 | inbox와 calendar의 사용자 동작을 링크와 날짜 셀 기준으로 재현 |
+| [Playwright Actionability](https://playwright.dev/docs/actionability) | 클릭 전 visible, stable, enabled 검사와 auto-wait | 링크 존재만 세지 않고 실제 클릭과 도착 상태를 관찰 |
+| [Playwright Assertions](https://playwright.dev/docs/test-assertions) | 자동 재시도 assertion | queue 본문, 플랫폼 수, 발행 단추를 최종 상태로 검증 |
+| ISO/IEC/IEEE 29119 | 테스트 계획, 실행, 증거 분리 | 기능 결과, 회귀, 미검증을 수치와 증거로 분리 |
+| Gherkin | Given, When, Then 시나리오 | 정상 복귀와 없는 queue 거절을 별도 시나리오로 분리 |
+| ISO 29148 RTM | 요구와 테스트 역추적 | R193을 FE-V63-RETURN-01부터 04까지 1:1 매핑 |
+
+차용한 점은 사용자 동작 locator, 클릭 가능성 확인, 재시도 assertion, 요구 역추적이다. 변경한 점은 단순 URL 도착을 통과 조건으로 삼지 않고 queue 본문, draft ID, 플랫폼 선택, 발행 단추까지 제품 상태로 묶은 것이다.
+
+## 5. 테스트 전략과 커버리지
+
+| 레벨 | 대상 | 도구 | 결과 |
+|---|---|---|---|
+| 집중 회귀 | FE-V63-RETURN 관련 4파일 | Vitest | 36/36 PASS |
+| 전체 회귀 | dashboard 전체 | Vitest | 187파일, 1,336 PASS, 6 조건부 SKIP |
+| 타입 | dashboard | TypeScript | exit 0 |
+| E2E 기본 | 생성부터 발행 큐 | Node E2E | 11/11 PASS |
+| E2E Studio | 정상과 경계 계약 | Node E2E | 12/12 PASS |
+| 브라우저 | inbox, calendar, missing queue | Chromium | 3/3 시나리오 관찰 |
+| 헬스 | 앱과 DB | curl | HTTP 200, DB `up` |
+| 디자인 lint | `dashboard/src` | design-lint | 위반 0건 |
+
+| 커버리지 항목 | 값 |
+|---|---|
+| R193 요구 커버 | 4/4 테스트 매핑 |
+| 브라우저 시나리오 | 3/3 관찰 |
+| 기능 수용기준 | 4/4 PASS |
+| 시각 정합 | 0/3폭, 미검증 |
+| 미검증 범주 | 5개 |
+
+테스트 흐름:
+
+```text
+workspace 준비
+  -> inbox 또는 calendar 진입
+  -> 발행실 복귀 링크 실제 클릭
+  -> room, queue_id, from, draft_id 확인
+  -> queue 본문과 플랫폼 3곳 복원 확인
+  -> 없는 queue를 빈 studio_work에서 재현
+  -> 오류와 발행 단추 0건 확인
+  -> 401과 console error 집계
+```
+
+## 6. 요구 추적표
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
+|---|---|---|---|---|
+| R193 | 승인 인박스에서 기존 작업으로 복귀 | FE-V63-RETURN-01 | PASS | inbox queue `0fb7120a...`, draft `645f1744...`, 본문과 플랫폼 3곳 복원 |
+| R193 | 없는 queue를 발행 가능 상태로 만들지 않음 | FE-V63-RETURN-02 | PASS | 오류 표시, 발행 단추 0건 |
+| R193 | inbox와 calendar에 복귀 링크 제공 | FE-V63-RETURN-03 | PASS | 두 경로 실제 클릭, `room`, `queue_id`, `from`, `draft_id` 보존 |
+| R193 | 본문 없는 초안도 queue와 메타데이터로 복원 | FE-V63-RETURN-04 | PASS | calendar queue `dc132bd9...`, draft `21bee663...`, 본문과 플랫폼 3곳 복원 |
+
+## 7. 직접 관찰과 회귀 결과
+
+직접 관찰 증거:
+
+- `docs/prototype/qa-return-rerun-20260828/observations.json`
+- `docs/prototype/qa-return-rerun-20260828/inbox-publish-restored.png`
+- `docs/prototype/qa-return-rerun-20260828/calendar-publish-restored.png`
+- `docs/prototype/qa-return-rerun-20260828/missing-queue-rejected.png`
+- `docs/prototype/qa-return-rerun-20260828/verify-return-flow.mjs`
+
+관찰 JSON의 정량 결과:
+
+- inbox: queue 본문 복원 `true`, 플랫폼 기대 3, 관찰 3
+- calendar: queue 본문 복원 `true`, 플랫폼 기대 3, 관찰 3
+- missing queue: rejected `true`, 발행 단추 0
+- unauthorized URLs: 0
+- console errors: 0
+
+기본 흐름 11/11과 Studio 계약 12/12도 같은 서버와 workspace를 기준으로 다시 실행했다. 기능 판정은 코드 존재가 아니라 이 관찰과 실행 결과에 근거한다.
+
+## 8. 디자인 정합 재판정
+
+| 화면 | 기능 계약 | 구현 캡처 | 동일 폭 prototype 캡처 | 판정 |
+|---|---|---|---|---|
+| inbox 복귀 | R193, v63 HTML 문구 추적 | 있음 | 없음 | 기능 PASS, 시각 미검증 |
+| calendar 복귀 | R193, v63 HTML 문구 추적 | 있음 | 없음 | 기능 PASS, 시각 미검증 |
+| missing queue | 거절 계약 추적 | 있음 | 없음 | 기능 PASS, 시각 미검증 |
+
+이전 문구인 `R193 복귀 동선은 v63 프로토타입 계약과 일치한다`는 기능 계약 추적과 시각 정합을 섞었다. `doc-review.md`의 프론트 QA 기준에 따라 `docs/qa/qa-tracker.md`와 `session-state.osmu.md`를 수정했다.
+
+기존 `docs/qa/osmu-v24-design-conformance-matrix-v1-gpt-codex.md`는 전체 v63 NG를 명시한다. 따라서 이 기능 PASS로 design 또는 qa 승인을 올릴 수 없다.
+
+## 9. 미검증과 결함
+
+| 항목 | 상태 | 이유 |
+|---|---|---|
+| 실제 공개 채널 발행 | 미검증 | 외부 부작용 범위 제외 |
+| 운영 배포 | 미검증 | qa 게이트 NG |
+| provider 댓글 읽기와 답글 | 미검증 | R193 범위 아님 |
+| fixture 미디어 재생 | 미검증 | `example.invalid` 요청을 204로 격리 |
+| R193 시각 정합 3폭 | 미검증 | prototype-build 동일 폭 스크린샷 쌍 없음 |
+
+열린 결함은 전체 v63 디자인 정합 NG다. R193 기능 자체에서 새 blocker는 관찰되지 않았다.
+
+## 10. 최종 판정과 출고 권고
+
+| 판정 대상 | 최종 판정 | 근거 |
+|---|---|---|
+| R193 기능 | PASS 유지 | 실제 브라우저 3/3, FE 4/4, 401 0, 콘솔 오류 0 |
+| R193 시각 정합 | 미검증으로 정정 | 동일 폭 prototype-build 캡처 쌍 없음 |
+| 전체 design | NG 유지 | 기존 전체 v63 정합 행렬 NG |
+| 전체 qa | NG 유지 | design NG와 운영 핵심 경로 미검증 |
+
+출고 권고는 NO-GO다. R193 기능은 다음 단계 후보지만 전체 제품 배포 승인 근거는 아니다.
+
+페르소나 질문: 박도윤이 승인이나 예약 뒤 원래 콘텐츠를 다시 조립하지 않고 발행실에서 이어서 검수할 수 있는가?
+
+답: 이 로컬 workspace의 inbox와 calendar 복귀 기능에는 PASS다. 운영 배포와 실제 채널 발행까지 된다는 뜻은 아니다.
+
+## 11. 레드팀과 셀프심문
+
+레드팀: 까다로운 고객은 링크가 보이는지가 아니라 돌아온 작업물이 원문과 발행 대상을 정확히 유지하는지 본다. 그래서 URL 도착 외에 queue 본문, draft ID, 플랫폼 수, 발행 단추를 함께 대조했다. 또한 기능 PASS를 시각 정합이나 전체 출고 PASS로 확대하는 문구를 제거했다.
+
+셀프심문: 이 결론이 틀렸다면 가장 그럴듯한 이유는 실제 구현 캡처가 있다는 사실을 prototype 비교 증거로 오해한 것이다. 구현 캡처만으로는 주축, 요소 순서, 열 수, 정렬, 여백, 표시와 숨김, 글꼴 단계, 버튼 위계를 승인 시안과 비교할 수 없다. 따라서 R193 기능 PASS는 유지하되 시각 정합은 미검증으로 낮췄다.
+
+## 12. 변경과 개정 이력
+
+변경 파일:
+
+- `docs/qa/qa-tracker.md`: 기능 계약과 시각 정합 판정 분리
+- `session-state.osmu.md`: 최신 재검토 핸드오프 추가
+- `tasks/osmu-return-qa.output`: doc-review 기준 자기완결 보고서로 전면 갱신
+
+제품 코드는 수정하지 않았다.
+
+| 버전 | 날짜 | 변경 | 작성자 |
+|---|---|---|---|
+| v1.0.0 | 2026-08-29 | 최초 R193 독립 QA | qa-verifier |
+| v1.1.0 | 2026-08-29 | doc-review 완독 후 기능 PASS와 시각 미검증 분리 | qa-verifier |
+
+SKILLS_USED: qa. 브라우저 사용자 흐름, 회귀 우선순위, 증거 캡처와 판정 분리에 사용.
+
+SKILLS_SKIPPED: 없음.
+
+RUBRIC_SCORE: 완결성=5/5 정밀성=5/5 벤치마크=5/5 추적성=5/5 전문성=4/5 total=24/25
+
+WEAKEST_LINE: "R193 전용 3폭 시각 정합은 아직 미검증이다."
+
+SOURCES: `/Users/sj/.codex/skills/qa/SKILL.md` | `/Users/sj/.claude/standards/doc-review.md` | `/Users/sj/.claude/standards/templates/doc-template-qa.md` | `/Users/sj/.claude/standards/dev.md` | `/Users/sj/.claude/standards/benchmarks.md` | `pipeline-state.osmu.md` | `docs/prototype/openclaw-auto-4room-v63.html` | `docs/requests/회장-확정-요구사항-대장.md` R193 | `DESIGN.md` | `docs/prd-openclaw-service-v8.2.1-gpt-codex.md` | https://playwright.dev/docs/locators | https://playwright.dev/docs/actionability | https://playwright.dev/docs/test-assertions | ISO/IEC/IEEE 29119 | Gherkin | ISO 29148 RTM
+
+MODEL: gpt-codex/gpt-5.6-sol / qa-verifier

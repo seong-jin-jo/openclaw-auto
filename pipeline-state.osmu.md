@@ -83,7 +83,7 @@ stage_artifacts:
     prototype_v40:{ path: docs/prototype/openclaw-auto-4room-v40.html, status: 산출완료-구판 }
     design_system:{ path: DESIGN.md, status: 산출완료-미승인, version: v29, 비고: "v55 기준. OSMU 벽 규칙·편집 3층 규칙 추가" }
     wireframes:   { path: docs/WIREFRAMES/openclaw-auto-display-v43-gpt-codex.md, status: 산출완료-미승인 }
-    design_spec:  { path: "docs/design-spec-*.md", status: 미산출, 비고: "stages.yaml design.design_spec required:true 인데 아직 0건" }
+    design_spec:  { path: docs/design-spec-osmu-4room-convergence-v1.0.1-gpt-codex-20260829-0025.md, status: 산출완료-미승인, sha256: 81477fc54be5e179b72f052b1b780a310e436c6995b650ec56f296e7e26a7b82, 비고: "품질 검증 PASS. 최신 main 12화면 matched-pair 재촬영과 독립 design-review 전이라 승인 불가" }
     rendered:     { path: docs/rendered/, status: 열람용 렌더뷰. 산출물 아님(원본은 위 md) }
   eng-design:
     # 2026-08-22 실제 산출 확인. 승인 산출물 핀이 아니라 studio 라인의 미승인 기술설계 현황이다.
@@ -97,7 +97,7 @@ stage_artifacts:
     erd:          { path: docs/erd.md, status: 미산출 }
 stages:
   plan:       { status: approved, artifacts_ok: true }       # ✅ APPROVED 2026-08-07 (PRD v7.3.5, critic n=26 MAJOR0)
-  design:     { status: in-progress, artifacts_ok: false } # v19 플랫폼별 생성·OAuth/Admin·UI 일관성 리테이크
+  design:     { status: blocked, artifacts_ok: false } # 독립 리뷰 C+ BLOCK, 실제 화면 0/12. plan 승인 상태와 D-10 계약 충돌 회수 필요
   eng-design: { status: pending, artifacts_ok: false }
   build:      { status: in-progress, artifacts_ok: false }
   qa:         { status: pending, artifacts_ok: false }

@@ -1,0 +1,47 @@
+# OSMU Expand and Contract 독립 설계 재리뷰 결과
+
+STATUS: DONE_WITH_SCOPE_SPLIT
+
+리뷰 대상: `docs/design-docs/osmu-generation-expand-contract-v1.0.2-gpt-codex.md`
+
+한 줄 결론: 이전 MAJOR 7건은 모두 설계상 폐쇄됐다. generation idempotency E1/E2/E3/C1 generation은 GO다. 전체 eng-design과 quota C1은 RTM gap 2 때문에 RETAKE / NO-GO다.
+
+## 진행 보고
+
+- 무엇을: migration ledger와 explicit manifest, baseline-only `20260828_010`, SECURITY DEFINER owner와 권한, timeout, E3/C1 재실행 상태기계, RTM, API 오류 계약을 현재 코드와 PostgreSQL 16 동작에 대조했다.
+- 근거: v1.0.2는 wildcard replay를 금지하고 S1/S2/S3와 X1/X2/X3 transition을 명시했다. PostgreSQL 16 isolated test에서 `lock_timeout=1500ms`가 advisory xact lock 대기를 약 1.58초에 `55P03`으로 중단했다.
+- 결과: MAJOR 7건 폐쇄. 기존 MINOR 중 Mermaid 렌더 증거와 cleanup SLO가 잔존한다. 신규 MINOR는 오류 예시의 `field_errors:null` 대 실제 serializer의 `[]`, 기술 결정 ID raw provenance 부재다.
+- 검증 등급: 설계 계약과 PostgreSQL timeout은 관찰됨. manifest, ledger, migration, repository 구현과 실제 앱 hot-key concurrency는 아직 미구현 또는 미검증이다.
+
+## 판정
+
+- GO: generation idempotency bug remediation만 구현 진입 가능.
+- NO-GO: R27 확정 전 quota C1, DESIGN v33 승인 전 formal build gate.
+- RUBRIC: 21/25. 점수선은 통과했지만 RTM gap 2 때문에 전체 게이트는 반려.
+
+## 다음 실행
+
+- 소유자 code-builder: generation 한정 manifest, ledger, E1/E2/E3/C1 generation, repository와 테스트 구현. 종료증거는 S1/S2/S3 concurrent20, X1/X2/X3 failure injection, deploy 2회 historical replay 0, rollback 수렴이다.
+- 소유자 tech-architect: `field_errors:[]`, cleanup SLO 임계값, 기술 결정 provenance를 PATCH 리테이크. 종료증거는 독립 재리뷰 gap 0이다.
+- 외부 회수 시점: quota C1 직전에는 회장이 R27 member scope와 UTC 기준을 PRD PATCH로 확정해야 한다. formal build 승인 직전에는 DESIGN v33 승인핀이 필요하다.
+
+## 산출물
+
+- `docs/qa/osmu-expand-contract-design-review-v2-gpt-codex.md`
+- `tasks/osmu-expand-contract-review.output`
+
+벤치마크: PostgreSQL 16 공식 runtime configuration, advisory lock, INSERT, CREATE FUNCTION, CREATE INDEX 문서. timeout은 PostgreSQL 16 isolated 재현으로 추가 검증했다.
+
+소스 1: `docs/design-docs/osmu-generation-expand-contract-v1.0.2-gpt-codex.md`
+
+소스 2: `docs/qa/osmu-expand-contract-design-review-v1-gpt-codex.md`
+
+소스 3: `dashboard/src/lib/studio/generation/errors.ts`, `dashboard/src/lib/studio/generation/http.ts`
+
+SKILLS_USED: review. SQL 안전성, 동시성, 보안, 완결성 설계 리뷰에 사용.
+
+SKILLS_SKIPPED: 없음
+
+SOURCES/MODEL: gpt-codex/gpt-5.6-sol | 대상 FDD v1.0.2 | 이전 독립리뷰 v1 | 현재 API serializer | PostgreSQL 16 공식문서와 isolated reproduction
+
+RUBRIC total=21/25
