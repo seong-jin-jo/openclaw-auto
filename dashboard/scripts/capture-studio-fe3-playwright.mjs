@@ -102,7 +102,7 @@ try {
   if (await page.getByRole("complementary", { name: "발행 담당 대화창" }).getByText("발행 채널", { exact: true }).count()) throw new Error("legacy channel selector rendered in chat dock");
   if (await page.getByText("발행 이력", { exact: true }).count()) throw new Error("legacy publish history rendered");
   if (await page.getByRole("button", { name: /중지/ }).count()) throw new Error("unsupported publish stop button rendered");
-  for (const label of ["초안으로 저장", "검토 요청", "3곳에 올리기", "날짜 잡기"]) {
+  for (const label of ["임시 저장하기", "승인 인박스로 보내기", "선택한 3곳에 지금 발행", "예약 발행"]) {
     if (await page.getByRole("button", { name: label, exact: true }).count() !== 1) throw new Error(`${label} action missing`);
   }
   for (const platform of ["threads", "x", "facebook", "instagram"]) {
@@ -151,7 +151,7 @@ try {
   await page.locator("#studio-topic").fill("1인 사업가의 콘텐츠 운영 시간 줄이기");
   await page.locator("#studio-purpose").fill("콘텐츠 운영 시간을 줄인다");
   await page.locator("#studio-audience").fill("1인 사업가");
-  await page.getByLabel("소재 권리를 확인했습니다").check();
+  await page.getByLabel("이 콘텐츠에 쓰는 사진과 글을 제가 쓸 권리가 있습니다").check();
   const generationResponse = page.waitForResponse((response) => response.url().includes("/api/studio/v1/generations") && response.request().method() === "POST");
   await page.getByRole("button", { name: "후보 세 장 만들기" }).click();
   const response = await generationResponse;

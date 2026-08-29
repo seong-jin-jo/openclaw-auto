@@ -23,6 +23,7 @@ import { trackEvent, type AnalyticsChannel } from "@/lib/analytics/events";
 import { authHeaders } from "@/lib/auth";
 import { CHANNEL_TEXT_LIMITS, countTextCharacters } from "@/lib/channel-text-limits";
 import { Button } from "@/components/shared/Button";
+import { RoomHeader } from "@/components/shared/RoomHeader";
 import { Field } from "@/components/shared/Field";
 import { Stack } from "@/components/shared/Stack";
 import { SCHEDULABLE_PLATFORMS } from "@/lib/constants";
@@ -100,6 +101,14 @@ const GROUPS: { title: string; platforms: PreviewPlatform[] }[] = [
   { title: "카드뉴스", platforms: ["instagram"] },
 ];
 const ALL: PreviewPlatform[] = PREVIEW_PLATFORMS.map((platform) => platform.key);
+
+// 플랫폼마다 본문을 다르게 지어내지 않는다. 같은 본문을 그 플랫폼 한도까지만 줄여 보여준다.
+// 한도를 넘으면 줄임표를 붙여 잘린 사실이 화면에서 보이게 한다.
+function trimToChannelLimit(body: string, channel: keyof typeof CHANNEL_TEXT_LIMITS): string {
+  const limit = CHANNEL_TEXT_LIMITS[channel];
+  if (countTextCharacters(body) <= limit) return body;
+  return `${body.slice(0, Math.max(0, limit - 1))}…`;
+}
 const DEFAULT_PUBLISH_TARGETS = new Set<PreviewPlatform>(["threads", "x", "instagram"]);
 const normalizeIncludes = (saved?: Record<string, boolean>): Record<string, boolean> => (
   Object.fromEntries(ALL.map((platform) => [
@@ -755,25 +764,26 @@ export default function StudioPage() {
   }
 
   const roomHeader = (
-    <header className="relative mb-stack-section flex flex-wrap items-center gap-stack border-b border-border pb-pad-inset">
-      <div className="mr-auto min-w-0">
-        <b className="block truncate text-lead text-text">{activeWorkspace?.name || "작업 공간"}</b>
-        <span className="text-caption text-subtle">콘텐츠 작업실</span>
-      </div>
-      <Button onClick={() => setShowWorks((value) => !value)} aria-expanded={showWorks} aria-controls="studio-work-overview">
-        작업물 전체 <span className="ml-micro text-accent">{hist?.drafts.length ?? 0}</span>
-      </Button>
-      <Link href="/inbox" title="발행 전에 검토를 기다리는 작업물 목록" className="inline-flex min-h-control-touch items-center gap-micro rounded-control border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">승인 인박스<span className="text-caption font-normal text-subtle">검토 대기</span></Link>
-      <Link href="/calendar" title="예약해 둔 발행 일정을 날짜별로 보는 곳" className="inline-flex min-h-control-touch items-center gap-micro rounded-control border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">발행 캘린더<span className="text-caption font-normal text-subtle">예약 일정</span></Link>
-      <span className="rounded-pill bg-accent-soft px-stack py-stack-tight text-caption font-semibold text-accent">
-        {activeRoom === "create" ? "생성실" : activeRoom === "edit" ? "편집실" : "발행실"}
-      </span>
-      {activeRoom === "create" || activeRoom === "edit" ? (
-        <span className="rounded-pill border border-accent/30 bg-surface px-stack py-stack-tight text-caption font-semibold text-accent" data-kind-board>
-          지금 만드는 것: {activeRoom === "create" ? createBranch === "video" ? "영상" : "글·카드뉴스" : editKind === "video" ? "영상" : editKind === "card" ? "카드뉴스" : editKind === "text" ? "글" : "음악"}
-        </span>
-      ) : null}
-      <span className="rounded-control border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle" title={engine?.error || engine?.model || ""}>AI {engine?.label || "확인 중"}</span>
+    <RoomHeader
+      workspaceName={activeWorkspace?.name}
+      subtitle="콘텐츠 작업실"
+      roomLabel={activeRoom === "create" ? "생성실" : activeRoom === "edit" ? "편집실" : "발행실"}
+      leading={
+        <Button onClick={() => setShowWorks((value) => !value)} aria-expanded={showWorks} aria-controls="studio-work-overview">
+          작업물 전체 <span className="ml-micro text-accent">{hist?.drafts.length ?? 0}</span>
+        </Button>
+      }
+      trailing={
+        <>
+          {activeRoom === "create" || activeRoom === "edit" ? (
+            <span className="rounded-pill border border-accent/30 bg-surface px-stack py-stack-tight text-caption font-semibold text-accent" data-kind-board>
+              지금 만드는 것: {activeRoom === "create" ? createBranch === "video" ? "영상" : "글·카드뉴스" : editKind === "video" ? "영상" : editKind === "card" ? "카드뉴스" : editKind === "text" ? "글" : "음악"}
+            </span>
+          ) : null}
+          <span className="rounded-control border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle" title={engine?.error || engine?.model || ""}>AI {engine?.label || "확인 중"}</span>
+        </>
+      }
+    >
       {showWorks ? (
         <div id="studio-work-overview" className="absolute left-0 right-0 top-full z-20 mt-stack space-y-stack rounded-surface border border-border bg-surface p-pad-inset shadow-lg">
           {hist?.currentWork && hist.drafts.some((draft) => draft.id === hist.currentWork?.draftId) ? (
@@ -789,7 +799,7 @@ export default function StudioPage() {
           ) : null}
           <div className="grid gap-stack md:grid-cols-4">
             {(["create", "edit", "publish"] as StudioRoom[]).map((room) => (
-              <Button key={room} variant={activeRoom === room ? "primary" : "secondary"} onClick={() => changeRoom(room)}>
+              <Button key={room} variant={activeRoom === room ? "primary" : "secondary"} onClick={() => changeRoom(room)} className="min-w-0">
                 {room === "create" ? "생성실" : room === "edit" ? "편집실" : "발행실"}
               </Button>
             ))}
@@ -797,7 +807,7 @@ export default function StudioPage() {
           </div>
         </div>
       ) : null}
-    </header>
+    </RoomHeader>
   );
 
   if (activeWorkspace && hydratedWorkspaceId !== activeWorkspace.id) {

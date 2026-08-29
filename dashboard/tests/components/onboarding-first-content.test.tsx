@@ -91,7 +91,7 @@ describe("FE7 첫 콘텐츠 온보딩 계약", () => {
 
     await waitFor(() => expect(onContentBranchChange).toHaveBeenCalledWith("video"));
     expect(sessionStorage.getItem(STUDIO_CONTENT_BRANCH_KEY)).toBeNull();
-    expect(screen.getByText(/비어 있음:/)).toHaveTextContent("주제, 목적, 대상, 소재 권리 확인");
+    expect(screen.getByText(/비어 있음:/)).toHaveTextContent("주제, 목적, 대상, 사용 권리 확인");
     expect(screen.getByText(/비어 있음:/)).not.toHaveTextContent("브랜드 가이드");
   });
 });

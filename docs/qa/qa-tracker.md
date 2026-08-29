@@ -3610,3 +3610,31 @@ SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open �
 - 2026-08-14 04:15 KST 수정 상태: 🔧. Meta 장기 토큰·Facebook long user token 교환을 fail-closed했고, 응답 `expires_in`을 `token_expires_at`으로 저장한다. `/me` 신원 검증 실패는 fallback ID로 덮지 않는다.
 - 테스트됨: TypeScript exit 0. 전체 Vitest 138 files, 1,121 passed, 11 skipped, 실패 0. `design-lint.sh dashboard/src` 위반 0.
 - 미검증: 샌드박스에서 실 OAuth·localhost·실 SNS 발행을 실행할 수 없어 현재 판정은 🔧를 유지한다. 운영 재연결 후 `token_expires_at` non-null, Channel Info `Connected`, Studio Threads 발행 permalink를 관찰해야 PASS로 전환한다.
+
+## ✅ PASS: 회장 4실 실사용 피드백 화면 결함 10건 수리 (2026-08-29)
+
+- 기반: `docs/requests/2026-08-29-회장-4실-실사용-피드백.md`, `docs/requests/회장-확정-요구사항-대장.md`, `docs/audit/osmu-code-review-2026-08-29.md`, `DESIGN.md`.
+- 범위: 고장난 화면과 뜻이 안 통하는 문구만. 구조 재설계와 발행 로직은 이 판에서 만지지 않았다.
+
+### 근본 원인 두 가지
+
+- 편집실 목차가 통째로 사라진 원인은 `max-h-72`다. 이 프로젝트 테마는 이름 있는 간격 토큰만 정의해 숫자 간격 유틸리티가 `max-height: 0`으로 풀린다. 실측: `nav` clientHeight 32, scrollHeight 216, computed `max-height: 0px`. `max-h-[40vh]`로 바꾼 뒤 clientHeight 560, scrollHeight 560.
+- 목차 글자가 가려진 두 번째 원인은 공용 단추의 `min-w-max`와 `.ds-label { min-width: max-content }`다. 240px 칸 안에서 단추가 431px를 요구했다. `.ds-label-fill`(min-width 0, flex 0 1 auto)을 더해 207px로 들어가고 말줄임으로 끊긴다.
+
+### 관찰됨 (localhost:3456 실제 화면, 1440 폭, 고객 신원)
+
+- 편집실: 목차 3줄이 모두 보이고 각 줄이 칸 안에서 말줄임된다. 캡처 `/tmp/osmu-fixshots3/edit.png`.
+- 발행실: 7개 플랫폼 미리보기가 각각 표시 이름, 캡션, 해시태그, 첫 댓글 입력을 따로 가진다. X 본문이 Threads와 같은 본문이고 한도까지만 줄어든다. 표시 이름이 미리보기 밖으로 나가지 않는다. 미연결 4개 채널에 `계정 연결하기` 경로가 붙었다. 캡처 `/tmp/osmu-fixshots2/publish.png`.
+- 성과실: 네 방 공용 머리줄이 붙었다(`data-room-header="성과실"`). 캡처 `/tmp/osmu-fixshots3/performance.png`.
+- 성과 제안 단추 3개 실측: 위치 1291, 높이 44, 폭 342로 전부 같다. 수정 전에는 68/68/44로 어긋나 있었다.
+- 가로 넘침 0px, 콘솔 오류 0건(성과실·편집실·발행실 3화면).
+
+### 테스트됨
+
+- `npx tsc --noEmit` exit 0.
+- `npm run test`: 199 files, 1,458 passed, 5 failed, 1 skipped. 실패 5건은 전부 `/api/publish` 계열(`publish-route.branch`, `publish-alert`, `publish-f3-f4`)이며 다른 조가 같은 시각에 `src/app/api/publish/route.ts`, `src/lib/publish.ts`, 발행 임차 마이그레이션을 작업 중이라 발생했다. 이 판이 만진 파일의 테스트는 전부 통과했다(`studio-publish-ui` 27, `studio-fe2-rooms` 19, `LoginModalRouting` 9, `DesignSystem` 8, `connect-readiness` 12).
+
+### 미검증
+
+- 390 폭 실렌더와 다크 모드 대조는 이 판에서 하지 않았다.
+- 실제 SNS 발행 결과와 미리보기의 픽셀 대조는 실계정이 필요해 미검증이다.

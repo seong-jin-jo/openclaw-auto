@@ -11,6 +11,9 @@ import { OnboardingWizard } from "@/components/shared/OnboardingWizard";
 import { ChannelConnectBanner } from "@/components/shared/ChannelConnectBanner";
 import { OnboardingChecklist } from "@/components/shared/OnboardingChecklist";
 import { PerformanceRoom, type PerformancePost } from "@/components/home/PerformanceRoom";
+import { RoomHeader } from "@/components/shared/RoomHeader";
+import { Button } from "@/components/shared/Button";
+import Link from "next/link";
 
 export default function HomePage() {
   const { dismissedOnboarding, dismissOnboarding, activeWorkspace } = useUIStore();
@@ -53,6 +56,17 @@ export default function HomePage() {
 
   return (
     <div className="px-region py-stack-section">
+      {/* 네 방이 같은 머리줄을 쓴다. 성과실에서만 사라지면 길잡이가 끊긴다. */}
+      <RoomHeader
+        workspaceName={activeWorkspace?.name}
+        subtitle="콘텐츠 작업실"
+        roomLabel="성과실"
+        trailing={
+          <Link href="/studio" className="inline-flex min-h-control-touch items-center rounded-control border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">
+            작업실로 가기
+          </Link>
+        }
+      />
       {/* 미연결 채널 알림. 발행 전 연결 유도 */}
       <ChannelConnectBanner />
       {/* 시작 체크리스트. 가치 체감까지 4단계 */}

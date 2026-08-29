@@ -513,15 +513,15 @@ export function PerformanceRoom({
           </div>
           {suggestionError && <p role="alert" className="rounded-control bg-danger/10 p-stack text-body-sm text-danger break-keep">{suggestionError}</p>}
           {suggestions.length > 0 && (
-            <div className="grid gap-stack lg:grid-cols-3">
+            <div className="grid items-stretch gap-stack lg:grid-cols-3">
               {suggestions.map((suggestion) => {
                 const state = queueState[suggestion.id];
                 return (
-                  <Card key={suggestion.id} className={suggestion.verified ? "p-pad-inset" : "border-dashed p-pad-inset"}>
-                    <Stack gap={12}>
+                  <Card key={suggestion.id} className={`flex h-full flex-col ${suggestion.verified ? "p-pad-inset" : "border-dashed p-pad-inset"}`}>
+                    <Stack gap={12} className="h-full">
                       <span className={`self-start rounded-pill px-stack-tight py-micro text-caption font-semibold ${suggestion.verified ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>{suggestion.label}</span>
-                      <p className="text-body font-semibold text-text break-keep">{suggestion.text}</p>
-                      <Button variant="primary" className="w-full" disabled={state === "loading" || state === "queued" || state === "reused"} onClick={() => void enqueueSuggestion(suggestion)}>
+                      <p className="break-keep text-body font-semibold text-text">{suggestion.text}</p>
+                      <Button variant="primary" className="ds-label-fill mt-auto w-full min-w-0" disabled={state === "loading" || state === "queued" || state === "reused"} onClick={() => void enqueueSuggestion(suggestion)}>
                         {state === "loading" ? "생성 큐에 넣는 중" : state === "queued" ? "생성 큐에 넣었어요" : state === "reused" ? "이미 생성 큐에 있어요" : "이 제안을 생성 큐에 넣기"}
                       </Button>
                       {state === "error" && <p role="alert" className="text-caption text-danger break-keep">생성 큐에 넣지 못했어요. 잠시 후 다시 눌러 주세요.</p>}
