@@ -13,6 +13,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("swr", () => ({ default: (...args: unknown[]) => mocks.swr(...args) }));
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => new URLSearchParams(window.location.search),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn(), forward: vi.fn(), refresh: vi.fn(), prefetch: vi.fn() }),
+}));
 vi.mock("@/lib/api", () => ({
   fetcher: vi.fn(),
   apiPost: vi.fn(),

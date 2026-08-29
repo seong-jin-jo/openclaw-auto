@@ -7,6 +7,7 @@ import { fetcher, apiPost } from "@/lib/api";
 import { useToast } from "@/components/layout/Toast";
 import type { VoiceTone } from "@/lib/voice-tone";
 import type { PublishReturnContext } from "@/lib/publish-return-context";
+import { PublishTrip } from "@/components/shared/PublishTrip";
 
 const TONE_SLIDERS: { key: keyof VoiceTone; left: string; right: string }[] = [
   { key: "formal", left: "격식", right: "구어" },
@@ -159,9 +160,15 @@ export default function InboxPage() {
 
   return (
     <div className="px-pad-inset sm:px-region py-stack-section max-w-lg mx-auto">
+      <PublishTrip current="inbox" />
       <div className="mb-pad-inset">
         <h2 className="text-subheading font-bold text-text">승인 인박스</h2>
-        <p className="text-caption text-subtle mt-micro">검수 승인 · AI·크론·Studio가 만든 초안을 승인·거절. 승인하면 예약 시각에 자동 발행 파이프라인이 게시합니다.</p>
+        <p className="text-caption text-subtle mt-micro">
+          아직 올릴지 정하지 않은 글을 한 장씩 넘겨 보며 올릴지 말지만 정하는 곳입니다. 승인한 글은 정해진 시각에 자동으로 올라갑니다.
+        </p>
+        <p className="text-caption text-subtle mt-micro">
+          날짜가 이미 정해진 것은 <Link href="/calendar" className="font-semibold underline">발행 캘린더</Link>에서 봅니다. 여기는 날짜가 아직 없는 것만 봅니다.
+        </p>
       </div>
 
       {/* 제품 소스(제품-grounded): repo를 연결하면 "방금 만든 것"을 자동 홍보하는 글이 생성됨 */}

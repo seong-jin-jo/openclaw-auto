@@ -8,6 +8,7 @@ import StudioPage from "@/app/studio/page";
 const mocks = vi.hoisted(() => ({
   apiPost: vi.fn(),
   fetcher: vi.fn(),
+  routerPush: vi.fn(),
   showToast: vi.fn(),
   trackEvent: vi.fn(),
   swr: vi.fn(),
@@ -26,6 +27,7 @@ vi.mock("swr", () => ({
 
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(window.location.search),
+  useRouter: () => ({ push: mocks.routerPush, replace: vi.fn(), back: vi.fn(), forward: vi.fn(), refresh: vi.fn(), prefetch: vi.fn() }),
 }));
 
 vi.mock("@/lib/api", () => ({
@@ -360,14 +362,19 @@ describe("Studio publish result integrity", () => {
 
     render(<StudioPage />);
 
-    expect(await screen.findByText("연결된 발행 계정이 없습니다.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "설정에서 채널 연결하기" })).toHaveAttribute("href", "/settings");
+    expect(await screen.findByText(/연결된 발행 계정이 없습니다\./)).toBeInTheDocument();
+    // 연결 경로는 채널을 무시하는 설정 목록이 아니라 그 채널 화면이다. 거기에 연결과 기본 계정이 함께 있다.
+    expect(screen.getByRole("link", { name: "Threads부터 연결하기" })).toHaveAttribute("href", "/channels/threads");
+    expect(screen.getByTestId("publish-connect-link-x")).toHaveAttribute("href", "/channels/x");
     for (const label of ["Threads 발행", "X 발행", "Instagram 발행"]) {
       expect(screen.getByRole("checkbox", { name: label })).toBeDisabled();
       expect(screen.getByRole("checkbox", { name: label })).not.toBeChecked();
     }
     expect(screen.getByRole("button", { name: "선택한 0곳에 지금 발행" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "지금 발행하기" })).toBeDisabled();
+    // 연결된 곳이 0이면 전체 고르기도 눌러도 되는 단추가 아니다(죽은 단추 금지).
+    expect(screen.getByTestId("publish-select-all")).toBeDisabled();
+    expect(screen.getByTestId("publish-bulk-select-all")).toBeDisabled();
     expect(mocks.apiPost).not.toHaveBeenCalledWith("/api/publish", expect.anything());
   });
 

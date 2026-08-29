@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api";
 import { useUIStore } from "@/store/ui-store";
+import { PublishTrip } from "@/components/shared/PublishTrip";
 import { SCHEDULABLE_PLATFORM_LABELS } from "@/lib/constants";
 import type { PublishReturnContext } from "@/lib/publish-return-context";
 
@@ -125,6 +126,7 @@ export default function CalendarPage() {
 
   return (
     <div className="px-pad-inset sm:px-region py-stack-section">
+      <PublishTrip current="calendar" />
       <div className="flex items-center justify-between mb-pad-inset">
         <div>
           <h2 className="text-subheading font-bold text-text">발행 캘린더</h2>
