@@ -66,6 +66,8 @@ interface CreateRoomProps {
   onOpenEditor?: () => void;
   /** 같이 만들 갈래가 바뀌면 헤더 상태판이 따라 바뀐다 */
   onAlsoKindsChange?: (kinds: CreateKind[]) => void;
+  /** 학습 정보가 문답에서 갱신되면 이 값이 올라가고 생성실이 다시 읽는다 */
+  learningVersion?: number;
   /** 만들던 것 이어서 하기. 0이면 줄이 아예 안 뜬다 */
   resumeCount?: number;
   onResume?: () => void;
@@ -94,7 +96,7 @@ function topicCandidates(industryTitle: string, purposeTitle: string): string[] 
   return templates.map((template) => template.replaceAll("{{일}}", work));
 }
 
-export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBranch = "text_image", onContentBranchChange, onTopicChange, onOpenLearning, onCandidateSelect, onOpenEditor, onAlsoKindsChange, resumeCount = 0, onResume }: CreateRoomProps) {
+export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBranch = "text_image", onContentBranchChange, onTopicChange, onOpenLearning, onCandidateSelect, onOpenEditor, onAlsoKindsChange, learningVersion = 0, resumeCount = 0, onResume }: CreateRoomProps) {
   const topicInputRef = useRef<HTMLInputElement>(null);
   const [primaryKind, setPrimaryKind] = useState<CreateKind | null>(contentBranch === "video" ? "video" : null);
   const [alsoKinds, setAlsoKinds] = useState<CreateKind[]>([]);
@@ -137,7 +139,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
     setRightsConfirmed(Boolean(saved.rights));
     setPurpose("");
     setTopicOpen(false);
-  }, [workspaceId]);
+  }, [workspaceId, learningVersion]);
 
   const rememberLearning = (patch: LearningInfo) => {
     setLearning((current) => {
@@ -154,11 +156,10 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
   };
 
   const toggleAlso = (kind: CreateKind) => {
-    setAlsoKinds((current) => {
-      const next = current.includes(kind) ? current.filter((one) => one !== kind) : [...current, kind];
-      onAlsoKindsChange?.(next);
-      return next;
-    });
+    // 갱신 함수 안에서 부모 콜백을 부르면 렌더 중 부모 상태를 바꾸게 된다. 밖에서 계산해 부른다.
+    const next = alsoKinds.includes(kind) ? alsoKinds.filter((one) => one !== kind) : [...alsoKinds, kind];
+    setAlsoKinds(next);
+    onAlsoKindsChange?.(next);
   };
 
   const chooseAudience = (value: string) => {

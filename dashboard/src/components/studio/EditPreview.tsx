@@ -95,9 +95,16 @@ export function EditPreview({
           <div className="absolute inset-0 grid place-items-center p-pad-inset text-center">
             <div className="min-w-0">
               <span className="text-caption font-semibold text-accent">
-                {renderReady ? "미리보기" : `${unit} ${activeLine + 1} 구성`}
+                {renderReady ? "미리보기" : `${unit} ${activeLine + 1}`}
               </span>
-              <p className="mt-stack break-keep text-body font-bold text-text">{line || `이 ${unit}은 비어 있습니다`}</p>
+              {/* 영상과 카드뉴스는 같은 문장을 아래 자막이 이미 들고 있다. 가운데는 화면에 무엇이 놓이는지만 말한다. */}
+              <p className="mt-stack break-keep text-body font-bold text-text">
+                {kind === "text" || kind === "card"
+                  ? line || `이 ${unit}은 비어 있습니다`
+                  : line
+                    ? `여기에 ${unit} 화면이 놓입니다`
+                    : `이 ${unit}은 비어 있습니다`}
+              </p>
             </div>
           </div>
 

@@ -213,21 +213,30 @@ export function StudioCommandPanel({
 
   // 대화창으로만 되는 일. 손으로 하면 줄마다 반복해야 하는 것을 한 번에 한다.
   // 회장 지적 "챗봇만의 UX 장점이 있어야 쓰는거아님?"의 답이 이 넷이다.
-  const bulkLines = (transform: (line: string) => string, done: string) => {
+  // 몇 줄이 실제로 바뀌었는지 세어 그대로 말한다. 안 바뀐 것을 바꿨다고 하면 그 자리에서 들통난다.
+  const bulkLines = (transform: (line: string) => string, done: (changed: number) => string, none: string) => {
     if (!onEditorLinesChange || !editorLines.length) {
       setError("대화창이 고칠 대사가 아직 없습니다");
       return;
     }
-    onEditorLinesChange(editorLines.map(transform));
-    setMessage(done);
+    const next = editorLines.map(transform);
+    const changed = next.filter((line, index) => line !== editorLines[index]).length;
+    if (!changed) {
+      setMessage(none);
+      return;
+    }
+    onEditorLinesChange(next);
+    setMessage(done(changed));
   };
   const shortenAll = () => bulkLines(
     (line) => (line.length > 24 ? `${line.slice(0, 23)}…` : line),
-    `${editorLines.length}줄을 한 번에 짧게 줄였습니다. 되돌리려면 아래에서 다시 고치시면 됩니다.`,
+    (changed) => `긴 줄 ${changed}개를 한 번에 줄였습니다. 되돌리려면 아래에서 다시 고치시면 됩니다.`,
+    "스물넉 자를 넘는 줄이 없어 줄일 것이 없습니다.",
   );
   const politeAll = () => bulkLines(
     (line) => line.replace(/(다|음|함)\.?$/u, "습니다").replace(/\s+$/u, ""),
-    `${editorLines.length}줄의 말끝을 높임말로 맞췄습니다.`,
+    (changed) => `${changed}줄의 말끝을 높임말로 맞췄습니다.`,
+    "말끝이 이미 다 높임말입니다.",
   );
   const dropEmpty = () => {
     if (!onEditorLinesChange) return;

@@ -847,17 +847,21 @@ export default function StudioPage() {
         onCandidateSelect={chooseCandidate}
         onOpenEditor={() => changeRoom("edit")}
         onAlsoKindsChange={setAlsoKinds}
+        learningVersion={learningFlash + countFilledLearningSlots(learningInfo, { guide })}
         resumeCount={hist?.drafts.length ?? 0}
         onResume={() => setShowWorks(true)}
       />
     </div>
   );
 
+  // 편집실 본 화면과 대화창이 같은 대사를 본다. 대화창만 빈 배열을 받으면 일괄 편집이 죽은 단추가 된다.
+  const resolvedEditLines = editLines.length ? editLines : [text?.shorts?.hook || "", text?.shorts?.body || "", text?.shorts?.cta || ""].filter(Boolean);
+
   if (activeRoom === "edit") return (
     <div className="px-stack-section py-pad-inset">
       {roomHeader}
       <EditRoom
-        lines={editLines.length ? editLines : [text?.shorts?.hook || "", text?.shorts?.body || "", text?.shorts?.cta || ""]}
+        lines={resolvedEditLines}
         onLinesChange={setEditLines}
         kind={editKind}
         initialFormat={editFormat}
@@ -870,7 +874,7 @@ export default function StudioPage() {
           text={text}
           imageUrl={img?.file ?? null}
           videoUrl={vid?.file ?? null}
-          editorLines={editLines}
+          editorLines={resolvedEditLines}
           onEditorLinesChange={setEditLines}
           source={{ generationId: selectedCandidate?.generation_id, candidateId: selectedCandidate?.candidate_id }}
           initialHandoff={editorHandoff}
