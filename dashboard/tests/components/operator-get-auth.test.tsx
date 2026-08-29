@@ -19,6 +19,7 @@ describe("operator GET authentication handling", () => {
   beforeEach(() => {
     localStorage.clear();
     mocks.swr.mockReset();
+    window.history.replaceState(null, "", "/operator/customers");
   });
 
   afterEach(() => {
@@ -43,6 +44,7 @@ describe("operator GET authentication handling", () => {
   });
 
   it("customer JWT 401 requests Google/Supabase reauthentication instead of the Auth Token modal", async () => {
+    window.history.replaceState(null, "", "/studio");
     const jwt = `${"a".repeat(24)}.${"b".repeat(24)}.${"c".repeat(24)}`;
     localStorage.setItem("dashboard_auth_token", jwt);
     const onCustomerReauth = vi.fn();
@@ -60,6 +62,7 @@ describe("operator GET authentication handling", () => {
   });
 
   it("stale customer JWT 401 cannot reauthenticate or clear a newer customer session", async () => {
+    window.history.replaceState(null, "", "/studio");
     const oldJwt = `${"a".repeat(24)}.${"b".repeat(24)}.${"c".repeat(24)}`;
     const newJwt = `${"d".repeat(24)}.${"e".repeat(24)}.${"f".repeat(24)}`;
     localStorage.setItem("dashboard_auth_token", oldJwt);
@@ -79,6 +82,23 @@ describe("operator GET authentication handling", () => {
     expect(onCustomerReauth).not.toHaveBeenCalled();
 
     window.removeEventListener("auth:customer-reauth-required", onCustomerReauth);
+  });
+
+  it("형식 불량 고객 토큰 401도 고객 경로에서는 운영자 Auth Token 모달을 열지 않는다", async () => {
+    window.history.replaceState(null, "", "/studio?room=edit");
+    localStorage.setItem("dashboard_auth_token", "malformed-stale-customer-token");
+    const onCustomerReauth = vi.fn();
+    const onManualToken = vi.fn();
+    window.addEventListener("auth:customer-reauth-required", onCustomerReauth);
+    window.addEventListener("auth:required", onManualToken);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 401 })));
+
+    await expect(fetcher("/api/images")).rejects.toMatchObject({ name: "AuthRequiredError" });
+    expect(onCustomerReauth).toHaveBeenCalledTimes(1);
+    expect(onManualToken).not.toHaveBeenCalled();
+
+    window.removeEventListener("auth:customer-reauth-required", onCustomerReauth);
+    window.removeEventListener("auth:required", onManualToken);
   });
 
   it("a fresh login clears an orphaned workspace even when no previous auth token remains", () => {

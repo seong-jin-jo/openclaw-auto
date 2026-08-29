@@ -2,16 +2,19 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { clearAuthToken, customerLoginUrl, getAuthToken, setAuthToken } from "@/lib/auth";
+import {
+  clearAuthToken,
+  customerLoginUrl,
+  getAuthIdentityKind,
+  getAuthToken,
+  isCustomerAuthToken,
+  setAuthToken,
+} from "@/lib/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { useUIStore } from "@/store/ui-store";
 
 type GateStatus = "checking" | "ok" | "access_paused" | "account_unavailable" | "auth_error" | "service_error";
-
-function isJwtToken(t: string | null | undefined): boolean {
-  return !!t && t.split(".").length === 3 && t.length > 40;
-}
 
 /* ─── 정지/이용불가 풀스크린 — 로그아웃 후 랜딩(로그인 CTA)으로 보내는 게 misleading해서
    여기서는 새로고침(재확인)과 로그아웃 두 액션만 제공 ─── */
@@ -369,10 +372,14 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [hasToken, setHasToken] = useState<boolean | null>(null);
   const [gateStatus, setGateStatus] = useState<GateStatus>("checking");
+  const [verifiedAccessKey, setVerifiedAccessKey] = useState<string | null>(null);
   const reauthInFlight = useRef(false);
   const reauthOwnerToken = useRef<string | null>(null);
+  const pollGeneration = useRef(0);
+  const pollAbortController = useRef<AbortController | null>(null);
   const setActiveWorkspace = useUIStore((state) => state.setActiveWorkspace);
   const isPublicPath = ["/login", "/signup", "/operator", "/privacy", "/terms", "/data-deletion"].includes(pathname);
+  const isCustomerProtectedPath = !isPublicPath && pathname !== "/" && !pathname.startsWith("/operator");
 
   useEffect(() => {
     setHasToken(!!getAuthToken());
@@ -383,8 +390,14 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     if (reauthInFlight.current) return;
     reauthInFlight.current = true;
     const token = expectedToken ?? getAuthToken();
-    const customerJwt = isJwtToken(token);
-    if (customerJwt) {
+    const identityKind = getAuthIdentityKind();
+    // A legacy malformed customer snapshot has no reliable JWT shape. On a customer
+    // route it still belongs to the customer login boundary unless an operator login
+    // explicitly stamped the credential as operator.
+    const customerCredential = !pathname.startsWith("/operator")
+      || identityKind === "customer"
+      || isCustomerAuthToken(token);
+    if (customerCredential) {
       // Supabase emits SIGNED_OUT from signOut(). This operation owns that event:
       // the auth-state listener must not independently clear a replacement session.
       reauthOwnerToken.current = token;
@@ -413,7 +426,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     setGateStatus("checking");
     if (reauthOwnerToken.current === token) reauthOwnerToken.current = null;
     const returnTo = `${pathname}${typeof window !== "undefined" ? window.location.search : ""}`;
-    router.replace(customerJwt ? customerLoginUrl(returnTo) : "/operator");
+    router.replace(customerCredential ? customerLoginUrl(returnTo) : "/operator");
   }, [pathname, router, setActiveWorkspace]);
 
   useEffect(() => {
@@ -422,22 +435,38 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("auth:customer-reauth-required", handler);
   }, [reauthenticateCurrentIdentity]);
 
+  // Protected customer routes never render the public marketing landing while a
+  // rejected or missing credential is being handed to the customer login page.
+  // This also makes router replacement resilient to Supabase SIGNED_OUT races.
+  useEffect(() => {
+    if (hasToken !== false || !isCustomerProtectedPath) return;
+    const returnTo = `${pathname}${window.location.search}`;
+    router.replace(customerLoginUrl(returnTo));
+  }, [hasToken, isCustomerProtectedPath, pathname, router]);
+
   // Supabase 세션 ↔ localStorage 토큰 스냅샷 동기화.
   // 수동 스냅샷은 자동갱신이 안 돼 만료(~1h) 후에도 "로그인됨"으로 보여 전 API가 401이 된다.
   // getSession으로 갱신된 토큰을 스냅샷에 반영하고, onAuthStateChange로 계속 동기화.
   // SIGNED_OUT이면 스냅샷 제거 → 랜딩으로.
   useEffect(() => {
+    // LoginPage is the sole owner of validating a recovered Supabase session before
+    // redirecting. Promoting here would race getSession/onAuthStateChange and could
+    // re-install an expired token that LoginPage is simultaneously rejecting.
+    if (pathname === "/login") return;
     let cancelled = false;
     let unsub: (() => void) | undefined;
     // 운영자 콘솔에서는 비-JWT 운영자 토큰을 Supabase 세션보다 우선한다. 반대로 고객 로그인/
     // 고객 화면에서 Supabase 세션이 확립되면 잔존 운영자 토큰보다 고객 JWT를 승격한다.
     // 두 identity가 같은 localStorage 키를 공유하므로 path 경계를 함께 봐야 한다.
     const operatorConsoleActive = pathname.startsWith("/operator");
-    const operatorActive = () => { const t = getAuthToken(); return !!t && !isJwtToken(t); };
+    const operatorActive = () => getAuthIdentityKind() === "operator"
+      || (pathname.startsWith("/operator") && !!getAuthToken() && !isCustomerAuthToken(getAuthToken()));
     const promoteCustomerSession = (accessToken: string) => {
       if (cancelled) return;
       if (getAuthToken() !== accessToken) setActiveWorkspace(null);
-      setAuthToken(accessToken);
+      setAuthToken(accessToken, "customer");
+      setVerifiedAccessKey(null);
+      setGateStatus("checking");
       setHasToken(true);
     };
     (async () => {
@@ -491,12 +520,22 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     async function poll() {
+      const generation = ++pollGeneration.current;
+      pollAbortController.current?.abort();
+      const controller = new AbortController();
+      pollAbortController.current = controller;
+      const requestToken = getAuthToken();
+      const requestAccessKey = `${pathname}\u0000${requestToken}`;
+      const ownsPoll = () => !cancelled
+        && generation === pollGeneration.current
+        && !controller.signal.aborted
+        && getAuthToken() === requestToken;
       try {
-        const requestToken = getAuthToken();
         const res = await fetch("/api/me", {
           headers: requestToken ? { Authorization: `Bearer ${requestToken}` } : {},
+          signal: controller.signal,
         });
-        if (cancelled) return;
+        if (!ownsPoll()) return;
         if (res.status === 401) {
           // Customer JWTs re-enter the only supported login path (Google/Supabase).
           // Operator tokens retain their separate /operator credential entry.
@@ -505,11 +544,14 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         }
         if (!res.ok) {
           // 403/5xx/기타 — 상태를 신뢰할 수 없으니 fail-closed. 재시도 가능한 서비스 확인 실패 화면.
+          setVerifiedAccessKey(requestAccessKey);
           setGateStatus("service_error");
           return;
         }
         const data = await res.json().catch(() => null);
+        if (!ownsPoll()) return;
         if (!data) {
+          setVerifiedAccessKey(requestAccessKey);
           setGateStatus("service_error");
           return;
         }
@@ -523,12 +565,33 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             router.replace("/operator/customers");
             return;
           }
+        } else {
+          const validCustomerTenant = typeof data.tenant?.id === "string"
+            && data.tenant.id.length > 0
+            && data.tenantError !== true;
+          if (!validCustomerTenant) {
+            setVerifiedAccessKey(requestAccessKey);
+            setGateStatus("account_unavailable");
+            return;
+          }
+          if (pathname.startsWith("/operator")) {
+            // A customer credential can never authorize the operator shell. Keep
+            // children closed while returning to the customer home.
+            router.replace("/");
+            return;
+          }
         }
+        setVerifiedAccessKey(requestAccessKey);
         if (data.accessPaused) setGateStatus("access_paused");
         else if (data.accountUnavailable) setGateStatus("account_unavailable");
         else setGateStatus("ok");
-      } catch {
-        if (!cancelled) setGateStatus("service_error");
+      } catch (error) {
+        if (ownsPoll() && !(error instanceof DOMException && error.name === "AbortError")) {
+          setVerifiedAccessKey(requestAccessKey);
+          setGateStatus("service_error");
+        }
+      } finally {
+        if (pollAbortController.current === controller) pollAbortController.current = null;
       }
     }
 
@@ -536,6 +599,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     const id = setInterval(poll, 15000);
     return () => {
       cancelled = true;
+      pollGeneration.current += 1;
+      pollAbortController.current?.abort();
+      pollAbortController.current = null;
       clearInterval(id);
     };
   }, [isPublicPath, hasToken, pathname, reauthenticateCurrentIdentity, router, setActiveWorkspace]);
@@ -545,7 +611,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     // 고객(JWT) 세션은 Supabase 서버 세션도 함께 끊어야 안전한 로그아웃이다 — localStorage만
     // 지우면 refresh token이 남아 다른 탭/재접속에서 세션이 되살아날 수 있다. 운영자(비-JWT)
     // 토큰은 Supabase auth와 무관하므로 signOut을 호출하지 않는다.
-    if (isJwtToken(t)) {
+    if (getAuthIdentityKind() === "customer" || isCustomerAuthToken(t)) {
       try {
         const { createBrowserSupabase } = await import("@/lib/supabase");
         await createBrowserSupabase().auth.signOut();
@@ -571,10 +637,21 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   if (hasToken === null) return null;
 
   // 미인증: 랜딩(마케팅 + 로그인/회원가입 CTA → /login)
-  if (!hasToken) return <LandingPage />;
+  if (!hasToken) {
+    if (isCustomerProtectedPath) {
+      return (
+        <div className="min-h-screen w-full bg-bg flex items-center justify-center px-stack-section">
+          <p className="text-body-sm text-subtle">로그인 화면으로 이동 중...</p>
+        </div>
+      );
+    }
+    return <LandingPage />;
+  }
 
-  // 승인/정지 상태 확인 전에는 children을 절대 mount하지 않는다(fail-open 방지) — 확인 중 화면만 표시.
-  if (gateStatus === "checking") {
+  const currentAccessKey = `${pathname}\u0000${getAuthToken()}`;
+
+  // 승인된 token+pathname 쌍이 아니면 이전 경로의 children/SWR cache를 한 프레임도 mount하지 않는다.
+  if (gateStatus === "checking" || verifiedAccessKey !== currentAccessKey) {
     return (
       <div className="min-h-screen w-full bg-bg flex items-center justify-center px-stack-section">
         <p className="text-body-sm text-subtle">확인 중...</p>
