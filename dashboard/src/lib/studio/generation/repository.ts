@@ -245,6 +245,12 @@ export class PostgresGenerationRepository implements GenerationRepository {
           ON CONFLICT DO NOTHING
           RETURNING id`;
         if (!reserved) {
+          // 동시 요청이 방금 같은 키로 몫을 잡았을 수 있다. 그 요청이 커밋한 멱등 기록이
+          // 보이면 새 몫을 태우지 않고 같은 교체 작업을 재생한다.
+          const settled = await selectExisting(sql);
+          if (settled?.request_hash === input.requestHash) {
+            return { consumed: true, response: settled.response_payload } as const;
+          }
           return { consumed: false, response: null, refusal: "quota_exhausted" } as const;
         }
 

@@ -138,6 +138,7 @@ const TENANT_AWARE_MATCHERS = TENANT_AWARE_PATHS.map((pattern) => {
 const STUDIO_INDEPENDENT_MATCHERS = [
   /^\/api\/studio\/v1\/generations$/,
   /^\/api\/studio\/v1\/generations\/[^/]+$/,
+  /^\/api\/studio\/v1\/generations\/[^/]+\/rejections$/,
   /^\/api\/studio\/v1\/regenerations\/[^/]+$/,
   /^\/api\/studio\/v1\/shorts-factory\/runs$/,
   /^\/api\/studio\/v1\/shorts-factory\/runs\/[^/]+$/,

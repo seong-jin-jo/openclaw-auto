@@ -78,7 +78,7 @@ describe("화면 2차 생성실 계약", () => {
 
     fireEvent.change(screen.getByLabelText("목적"), { target: { value: "운영 시간을 줄인다" } });
     fireEvent.change(screen.getByLabelText("대상"), { target: { value: "1인 사업가" } });
-    fireEvent.click(screen.getByLabelText("소재 권리를 확인했습니다"));
+    fireEvent.click(screen.getByLabelText("이 콘텐츠에 쓰는 사진과 글을 제가 쓸 권리가 있습니다"));
     fireEvent.click(screen.getByRole("button", { name: "후보 세 장 만들기" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
@@ -116,7 +116,7 @@ describe("화면 2차 생성실 계약", () => {
     />);
     fireEvent.change(screen.getByLabelText("목적"), { target: { value: "운영 시간을 줄인다" } });
     fireEvent.change(screen.getByLabelText("대상"), { target: { value: "1인 사업가" } });
-    fireEvent.click(screen.getByLabelText("소재 권리를 확인했습니다"));
+    fireEvent.click(screen.getByLabelText("이 콘텐츠에 쓰는 사진과 글을 제가 쓸 권리가 있습니다"));
     fireEvent.click(screen.getByRole("button", { name: "후보 세 장 만들기" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
@@ -138,7 +138,7 @@ describe("화면 2차 생성실 계약", () => {
     const first = render(<CreateRoom {...props} />);
     fireEvent.change(screen.getByLabelText("목적"), { target: { value: "문의 전환" } });
     fireEvent.change(screen.getByLabelText("대상"), { target: { value: "1인 사업가" } });
-    fireEvent.click(screen.getByLabelText("소재 권리를 확인했습니다"));
+    fireEvent.click(screen.getByLabelText("이 콘텐츠에 쓰는 사진과 글을 제가 쓸 권리가 있습니다"));
     await waitFor(() => expect(localStorage.getItem("studio_create_input:workspace-a")).toContain("문의 전환"));
 
     first.unmount();
@@ -147,7 +147,7 @@ describe("화면 2차 생성실 계약", () => {
     await waitFor(() => {
       expect(screen.getByLabelText("목적")).toHaveValue("문의 전환");
       expect(screen.getByLabelText("대상")).toHaveValue("1인 사업가");
-      expect(screen.getByLabelText("소재 권리를 확인했습니다")).toBeChecked();
+      expect(screen.getByLabelText("이 콘텐츠에 쓰는 사진과 글을 제가 쓸 권리가 있습니다")).toBeChecked();
     });
   });
 
@@ -159,7 +159,7 @@ describe("화면 2차 생성실 계약", () => {
     render(<CreateRoom workspaceId="workspace" workspaceName="작업 공간" guide="브랜드 사실" topic="주제" onTopicChange={vi.fn()} onOpenLearning={vi.fn()} onCandidateSelect={vi.fn()} />);
     fireEvent.change(screen.getByLabelText("목적"), { target: { value: "운영 시간을 줄인다" } });
     fireEvent.change(screen.getByLabelText("대상"), { target: { value: "1인 사업가" } });
-    fireEvent.click(screen.getByLabelText("소재 권리를 확인했습니다"));
+    fireEvent.click(screen.getByLabelText("이 콘텐츠에 쓰는 사진과 글을 제가 쓸 권리가 있습니다"));
     const button = screen.getByRole("button", { name: "후보 세 장 만들기" });
 
     fireEvent.click(button);
@@ -189,7 +189,7 @@ describe("화면 2차 생성실 계약", () => {
     render(<CreateRoom workspaceId="workspace" workspaceName="작업 공간" guide="브랜드 사실" topic="주제" onTopicChange={vi.fn()} onOpenLearning={vi.fn()} onCandidateSelect={vi.fn()} />);
     fireEvent.change(screen.getByLabelText("목적"), { target: { value: "운영 시간을 줄인다" } });
     fireEvent.change(screen.getByLabelText("대상"), { target: { value: "1인 사업가" } });
-    fireEvent.click(screen.getByLabelText("소재 권리를 확인했습니다"));
+    fireEvent.click(screen.getByLabelText("이 콘텐츠에 쓰는 사진과 글을 제가 쓸 권리가 있습니다"));
     fireEvent.click(screen.getByRole("button", { name: "후보 세 장 만들기" }));
     await screen.findByText("원본 A 제목");
 

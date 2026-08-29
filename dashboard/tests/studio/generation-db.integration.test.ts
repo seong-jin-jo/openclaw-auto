@@ -69,9 +69,21 @@ async function liveDatabase(ctx: { skip: () => void }): Promise<boolean> {
 async function cleanup(): Promise<void> {
   if (!admin || !memberId) return;
   await admin`DELETE FROM studio_free_regeneration_uses WHERE member_id = ${memberId}`;
+  await admin`DELETE FROM studio_generation_candidate_rejections WHERE member_id = ${memberId}`;
   await admin`DELETE FROM studio_generation_idempotency WHERE member_id = ${memberId}`;
   await admin`DELETE FROM studio_generation_jobs WHERE member_id = ${memberId}`;
   if (temporaryTenantId) await admin`DELETE FROM tenants WHERE id = ${temporaryTenantId}`;
+}
+
+// 무료 재생성은 후보 셋을 모두 거절한 뒤에만 나간다(요구 대장 R27).
+async function rejectAllCandidates(
+  service: GenerationService,
+  workspaceId: string,
+  job: { jobId: string; candidates: { candidateId: string }[] },
+): Promise<void> {
+  for (const candidate of job.candidates) {
+    await service.rejectCandidate(memberId, job.jobId, candidate.candidateId, [workspaceId]);
+  }
 }
 
 async function createTemporaryTenant(): Promise<string> {
@@ -199,6 +211,7 @@ describe("Studio 생성 Postgres 장부 계약", () => {
     const body = generationRequestFixture();
     body.workspace_id = tenantId;
     const original = await service.create(memberId, "db-retry-origin", parseGenerationRequest(body));
+    await rejectAllCandidates(service, tenantId, original);
     const now = new Date("2026-08-27T01:00:00.000Z");
 
     const settled = await Promise.allSettled([
@@ -249,6 +262,8 @@ describe("Studio 생성 Postgres 장부 계약", () => {
     const second = generationRequestFixture();
     second.workspace_id = otherTenantId;
     const secondJob = await service.create(memberId, "db-free-global-b", parseGenerationRequest(second));
+    await rejectAllCandidates(service, tenantId, firstJob);
+    await rejectAllCandidates(service, otherTenantId, secondJob);
     const now = new Date("2026-08-27T01:00:00.000Z");
 
     const settled = await Promise.allSettled([
@@ -279,6 +294,8 @@ describe("Studio 생성 Postgres 장부 계약", () => {
     westBody.learning_context.r6.topic = "DB 서쪽 시간대 작업";
     const east = await service.create(memberId, "db-time-zone-east", parseGenerationRequest(eastBody));
     const west = await service.create(memberId, "db-time-zone-west", parseGenerationRequest(westBody));
+    await rejectAllCandidates(service, tenantId, east);
+    await rejectAllCandidates(service, tenantId, west);
     const now = new Date("2026-08-27T12:30:00.000Z");
 
     await service.regenerate(memberId, east.jobId, [tenantId], now);
@@ -300,6 +317,7 @@ describe("Studio 생성 Postgres 장부 계약", () => {
     first.workspace_id = deletedTenantId;
     const firstJob = await service.create(memberId, "db-delete-free-a", parseGenerationRequest(first));
     const now = new Date("2026-08-29T04:00:00.000Z");
+    await rejectAllCandidates(service, deletedTenantId, firstJob);
     await service.regenerate(memberId, firstJob.jobId, [deletedTenantId], now);
 
     await admin!`DELETE FROM tenants WHERE id = ${deletedTenantId}`;
@@ -309,6 +327,7 @@ describe("Studio 생성 Postgres 장부 계약", () => {
     second.workspace_id = replacementTenantId;
     second.learning_context.r6.topic = "작업 공간 삭제 뒤 둘째 무료 재생성";
     const secondJob = await service.create(memberId, "db-delete-free-b", parseGenerationRequest(second));
+    await rejectAllCandidates(service, replacementTenantId, secondJob);
 
     await expect(service.regenerate(memberId, secondJob.jobId, [replacementTenantId], now)).rejects.toEqual(
       expect.objectContaining({ code: "PAID_REGENERATION_APPROVAL_REQUIRED", status: 409 }),

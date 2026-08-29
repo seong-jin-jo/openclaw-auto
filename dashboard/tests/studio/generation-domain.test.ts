@@ -10,6 +10,18 @@ function generationService(): GenerationService {
   return new GenerationService(new MemoryGenerationRepository());
 }
 
+// 무료 재생성은 후보 셋을 모두 거절한 뒤에만 나간다(요구 대장 R27).
+// 거절은 서버 장부에만 남으므로 검증도 실제 거절 호출을 거쳐야 한다.
+async function rejectAllCandidates(
+  service: GenerationService,
+  memberId: string,
+  job: { jobId: string; candidates: { candidateId: string }[] },
+): Promise<void> {
+  for (const candidate of job.candidates) {
+    await service.rejectCandidate(memberId, job.jobId, candidate.candidateId, WORKSPACES);
+  }
+}
+
 beforeEach(() => {
   process.env.STUDIO_PREVIEW_COST_MIN_MINOR = "1200";
   process.env.STUDIO_PREVIEW_COST_MAX_MINOR = "3600";
@@ -108,17 +120,19 @@ describe("Studio 생성 도메인 계약", () => {
   it("GEN-RETRY-01 한국어 설명: 후보 셋 거절 뒤 첫 재생성은 회원에게 하루 한 번 무료다", async () => {
     const service = generationService();
     const original = await service.create("member-1", "create-1", parseGenerationRequest(generationRequestFixture()));
+    await rejectAllCandidates(service, "member-1", original);
     const retried = await service.regenerate("member-1", original.jobId, WORKSPACES, new Date("2026-08-27T01:00:00.000Z"));
 
     expect(retried.freeRetryConsumed).toBe(true);
     expect(retried.replacement.jobId).not.toBe(original.jobId);
     expect(retried.replacement.candidates).toHaveLength(3);
-    expect(retried.freeRetryResetsAt).toBe("2026-08-27T15:00:00.000Z");
+    expect(retried.freeRetryResetsAt).toBe("2026-08-28T00:00:00.000Z");
   });
 
   it("GEN-RETRY-02 한국어 설명: 같은 원본의 두 번째 재생성 요청은 같은 교체 작업을 재생한다", async () => {
     const service = generationService();
     const original = await service.create("member-1", "create-1", parseGenerationRequest(generationRequestFixture()));
+    await rejectAllCandidates(service, "member-1", original);
     const now = new Date("2026-08-27T01:00:00.000Z");
     const first = await service.regenerate("member-1", original.jobId, WORKSPACES, now);
     const replay = await service.regenerate("member-1", original.jobId, WORKSPACES, now);
@@ -129,6 +143,7 @@ describe("Studio 생성 도메인 계약", () => {
   it("GEN-RETRY-03 한국어 설명: 동시에 같은 재생성을 두 번 보내도 교체 작업은 한 건으로 수렴한다", async () => {
     const service = generationService();
     const original = await service.create("member-1", "create-1", parseGenerationRequest(generationRequestFixture()));
+    await rejectAllCandidates(service, "member-1", original);
     const now = new Date("2026-08-27T01:00:00.000Z");
     const settled = await Promise.allSettled([
       service.regenerate("member-1", original.jobId, WORKSPACES, now),
@@ -142,6 +157,55 @@ describe("Studio 생성 도메인 계약", () => {
     expect(new Set(replacements).size).toBe(1);
   });
 
+  it("R27-GEN-RETRY-05 거절: 후보를 하나도 거절하지 않은 재생성은 무료 몫을 쓰지 않고 막힌다", async () => {
+    const service = generationService();
+    const original = await service.create("member-1", "create-1", parseGenerationRequest(generationRequestFixture()));
+    const now = new Date("2026-08-27T01:00:00.000Z");
+
+    await expect(service.regenerate("member-1", original.jobId, WORKSPACES, now)).rejects.toEqual(
+      expect.objectContaining({ code: "CANDIDATES_NOT_REJECTED", status: 409 }),
+    );
+
+    // 막힌 요청이 몫을 태우지 않았어야 한다. 셋을 거절하면 오늘 몫이 그대로 남아 있다.
+    await rejectAllCandidates(service, "member-1", original);
+    const retried = await service.regenerate("member-1", original.jobId, WORKSPACES, now);
+    expect(retried.freeRetryConsumed).toBe(true);
+  });
+
+  it("R27-GEN-RETRY-06 거절: 후보 두 장만 거절한 재생성도 막고 남은 후보를 알려준다", async () => {
+    const service = generationService();
+    const original = await service.create("member-1", "create-1", parseGenerationRequest(generationRequestFixture()));
+    for (const candidate of original.candidates.slice(0, 2)) {
+      await service.rejectCandidate("member-1", original.jobId, candidate.candidateId, WORKSPACES);
+    }
+
+    await expect(service.regenerate("member-1", original.jobId, WORKSPACES, new Date("2026-08-27T01:00:00.000Z")))
+      .rejects.toEqual(expect.objectContaining({
+        code: "CANDIDATES_NOT_REJECTED",
+        details: expect.objectContaining({ pending_candidate_ids: [original.candidates[2].candidateId] }),
+      }));
+  });
+
+  it("R27-GEN-RETRY-07 거절: 같은 후보를 두 번 거절해도 거절 장부는 한 장으로 센다", async () => {
+    const service = generationService();
+    const original = await service.create("member-1", "create-1", parseGenerationRequest(generationRequestFixture()));
+    const target = original.candidates[0].candidateId;
+    await service.rejectCandidate("member-1", original.jobId, target, WORKSPACES);
+    const second = await service.rejectCandidate("member-1", original.jobId, target, WORKSPACES);
+
+    expect(second.rejectedCandidateIds).toEqual([target]);
+    expect(second.allRejected).toBe(false);
+    expect(second.pendingCandidateIds).toHaveLength(2);
+  });
+
+  it("R27-GEN-RETRY-08 거절: 이 작업의 후보가 아닌 번호는 거절 장부에 들어가지 않는다", async () => {
+    const service = generationService();
+    const original = await service.create("member-1", "create-1", parseGenerationRequest(generationRequestFixture()));
+
+    await expect(service.rejectCandidate("member-1", original.jobId, "99999999-9999-4999-8999-999999999999", WORKSPACES))
+      .rejects.toEqual(expect.objectContaining({ code: "RESOURCE_NOT_FOUND", status: 404 }));
+  });
+
   it("M1-GEN-RETRY-04 한국어 설명: 서로 다른 시간대의 서로 다른 작업도 UTC 하루 무료 몫을 한 번만 쓴다", async () => {
     const service = generationService();
     const eastBody = generationRequestFixture();
@@ -151,6 +215,8 @@ describe("Studio 생성 도메인 계약", () => {
     westBody.learning_context.r6.topic = "서쪽 시간대 작업";
     const east = await service.create("member-1", "create-east", parseGenerationRequest(eastBody));
     const west = await service.create("member-1", "create-west", parseGenerationRequest(westBody));
+    await rejectAllCandidates(service, "member-1", east);
+    await rejectAllCandidates(service, "member-1", west);
     const now = new Date("2026-08-27T12:30:00.000Z");
 
     await service.regenerate("member-1", east.jobId, WORKSPACES, now);

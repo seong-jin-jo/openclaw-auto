@@ -19,6 +19,22 @@ function postRequest(body: unknown, idempotencyKey = "integration-create-1", tok
   });
 }
 
+// 무료 재생성 전에 후보 셋을 서버 장부에 거절로 남긴다(요구 대장 R27).
+async function rejectAllCandidatesOverHttp(created: { data: { job_id: string; candidates: { candidate_id: string }[] } }): Promise<void> {
+  const { POST: reject } = await import("@/app/api/studio/v1/generations/[jobId]/rejections/route");
+  for (const candidate of created.data.candidates) {
+    const response = await reject(
+      new Request("http://localhost/api/studio/v1/generations/job/rejections", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ candidate_id: candidate.candidate_id }),
+      }),
+      { params: Promise.resolve({ jobId: created.data.job_id }) },
+    );
+    if (response.status !== 201) throw new Error(`후보 거절이 실패했습니다: ${response.status}`);
+  }
+}
+
 beforeEach(() => {
   setGenerationRuntimeForTests(new GenerationService(new MemoryGenerationRepository()));
   process.env.STUDIO_IDENTITY_MODE = "development";
@@ -71,6 +87,7 @@ describe("Studio 생성 HTTP 통합 계약", () => {
   it("GEN-HTTP-04 한국어 설명: 같은 원본 무료 재생성 재시도는 같은 교체 작업을 재생한다", async () => {
     const { POST: create } = await import("@/app/api/studio/v1/generations/route");
     const created = await (await create(postRequest(generationRequestFixture()))).json();
+    await rejectAllCandidatesOverHttp(created);
     const { POST: regenerate } = await import("@/app/api/studio/v1/regenerations/[jobId]/route");
     const request = new Request("http://localhost/api/studio/v1/regenerations/job", {
       method: "POST",
@@ -101,5 +118,45 @@ describe("Studio 생성 HTTP 통합 계약", () => {
 
     expect(response.status).toBe(409);
     expect(body.error.code).toBe("PAID_REGENERATION_APPROVAL_REQUIRED");
+  });
+});
+
+describe("R27 무료 재생성 거절 관문 HTTP 계약", () => {
+  it("R27-HTTP-01 거절: 후보를 거절하지 않은 재생성 호출은 409로 막고 몫을 태우지 않는다", async () => {
+    const { POST: create } = await import("@/app/api/studio/v1/generations/route");
+    const created = await (await create(postRequest(generationRequestFixture()))).json();
+    const { POST: regenerate } = await import("@/app/api/studio/v1/regenerations/[jobId]/route");
+    const context = { params: Promise.resolve({ jobId: created.data.job_id }) };
+    const request = () => new Request("http://localhost/api/studio/v1/regenerations/job", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${TOKEN}` },
+    });
+
+    const blocked = await regenerate(request(), context);
+    const blockedBody = await blocked.json();
+    expect(blocked.status).toBe(409);
+    expect(blockedBody.error.code).toBe("CANDIDATES_NOT_REJECTED");
+
+    await rejectAllCandidatesOverHttp(created);
+    const granted = await regenerate(request(), context);
+    expect(granted.status).toBe(201);
+  });
+
+  it("R27-HTTP-02 거절: 후보 번호가 없는 거절 요청은 422로 막는다", async () => {
+    const { POST: create } = await import("@/app/api/studio/v1/generations/route");
+    const created = await (await create(postRequest(generationRequestFixture()))).json();
+    const { POST: reject } = await import("@/app/api/studio/v1/generations/[jobId]/rejections/route");
+
+    const response = await reject(
+      new Request("http://localhost/api/studio/v1/generations/job/rejections", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      }),
+      { params: Promise.resolve({ jobId: created.data.job_id }) },
+    );
+
+    expect(response.status).toBe(422);
+    expect((await response.json()).error.code).toBe("CANDIDATE_ID_REQUIRED");
   });
 });
