@@ -12,9 +12,9 @@ DROP INDEX CONCURRENTLY IF EXISTS public.uq_studio_quota_tenant_rollback_idx;
 
 DO $role_cleanup$
 BEGIN
-  IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='osmu_generation_guard_owner') THEN
-    EXECUTE 'DROP OWNED BY osmu_generation_guard_owner';
-    EXECUTE 'DROP ROLE osmu_generation_guard_owner';
+  IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='osmu_generation_guard_owner_v2') THEN
+    EXECUTE 'DROP OWNED BY osmu_generation_guard_owner_v2';
+    EXECUTE 'DROP ROLE osmu_generation_guard_owner_v2';
   END IF;
 END
 $role_cleanup$;
