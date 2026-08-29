@@ -92,14 +92,14 @@ describe("OSMU explicit migration runner 계약", () => {
     expect(runner).toContain("contract-quota is disabled until an approved R27 member-scope and UTC contract artifact is pinned");
   });
 
-  it("GEN-MIG-07A 거절: member UNIQUE 확장은 FK뿐 아니라 E1 guard 적용을 선행조건으로 요구한다", () => {
+  it("GEN-MIG-07A 거절: member UNIQUE 확장은 FK와 실제 실행 중인 호환 앱 검증을 선행조건으로 요구한다", () => {
     const expandMemberCase = runner.slice(
       runner.indexOf("    expand-member)"),
       runner.indexOf("    prepare-rollback)"),
     );
     expect(expandMemberCase).toContain('require_applied "20260829_010_studio_generation_expand_contract"');
-    expect(expandMemberCase).toContain('require_applied "20260829_021_generation_guard_expand"');
     expect(expandMemberCase).toContain("require_verified_app");
+    expect(expandMemberCase).not.toContain("generation_guard_expand");
   });
 
   it("GEN-MIG-08 거절: FK 수명 migration과 기존 필수 migration은 explicit manifest로만 적용한다", () => {

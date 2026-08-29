@@ -383,7 +383,6 @@ apply_phase() {
     expand-guard) require_applied "20260829_010_studio_generation_expand_contract" ;;
     expand-member)
       require_applied "20260829_010_studio_generation_expand_contract"
-      require_applied "20260829_021_generation_guard_expand"
       require_verified_app
       ;;
     prepare-rollback)
