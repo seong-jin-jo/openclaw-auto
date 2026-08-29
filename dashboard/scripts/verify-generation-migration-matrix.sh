@@ -88,11 +88,12 @@ ledger_state="$(matrix_psql -At -c "SELECT state FROM public.osmu_schema_migrati
 echo "PASS atomic legacy failure recovery preserves active lease heartbeat and applies ledger"
 
 run_phase expand-fk
-if run_phase expand-member >"$TMP_DIR/member-before-guard" 2>&1; then
-  echo "FAIL expand-member ran before E1 guard" >&2; exit 1
+if DATABASE_URL="$MATRIX_URL" RUNNER_COMMIT="$RUNNER_COMMIT" \
+  bash "$DASHBOARD_DIR/db/run-migrations.sh" expand-member >"$TMP_DIR/member-without-app" 2>&1; then
+  echo "FAIL expand-member ran without a verified compatibility app" >&2; exit 1
 fi
-grep -q 'prerequisite migration 20260829_021_generation_guard_expand is not applied' "$TMP_DIR/member-before-guard"
-echo "PASS expand-member rejects missing E1 guard prerequisite"
+grep -q 'phase requires an observed running app image digest and commit' "$TMP_DIR/member-without-app"
+echo "PASS expand-member rejects missing compatibility app evidence"
 run_phase expand-guard
 run_phase preflight
 
