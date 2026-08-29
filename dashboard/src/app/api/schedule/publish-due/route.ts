@@ -308,17 +308,26 @@ async function recordPublishedPost(
   accountId?: string,
 ) {
   const text = textForPlatform(platform, row.payload, row.draft_payload);
+  // 게시 성공 뒤 응답만 끊긴 경우는 실패가 아니라 uncertain 이다. failed 로 적으면
+  // 다음 예약 처리나 수동 재시도가 같은 글을 한 번 더 올린다.
+  const status = result.ok
+    ? "published"
+    : result.failureKind === "indeterminate" ? "uncertain" : "failed";
   await withTenant(tenantId, (sql) => sql`
     INSERT INTO published_posts (tenant_id, draft_id, platform, external_id, permalink, text, status, error, account_id)
     VALUES (${tenantId}, ${row.draft_id ?? null}, ${platform}, ${result.externalId ?? null},
             ${result.permalink ?? null}, ${text || null},
-            ${result.ok ? "published" : "failed"}, ${result.error ?? null}, ${accountId ?? null})
+            ${status}, ${result.error ?? null}, ${accountId ?? null})
   `);
 }
 
-function scheduleStatus(results: PlatformPublishResult[]): "published" | "partial" | "failed" {
+// 결과를 확인하지 못한 채널이 하나라도 있으면 그 예약은 failed 로 닫지 않는다.
+// failed 로 닫으면 사람이 안심하고 다시 예약해 중복 게시가 난다.
+function scheduleStatus(results: PlatformPublishResult[]): "published" | "partial" | "failed" | "uncertain" {
   const ok = results.filter((r) => r.ok).length;
+  const uncertain = results.filter((r) => !r.ok && r.failureKind === "indeterminate").length;
   if (ok === results.length && results.length > 0) return "published";
+  if (uncertain > 0) return "uncertain";
   if (ok > 0) return "partial";
   return "failed";
 }
@@ -326,7 +335,7 @@ function scheduleStatus(results: PlatformPublishResult[]): "published" | "partia
 async function finishSchedule(
   tenantId: string,
   scheduleId: string,
-  status: "published" | "partial" | "failed",
+  status: "published" | "partial" | "failed" | "uncertain",
   results: PlatformPublishResult[],
 ) {
   const publishResultPayload = {

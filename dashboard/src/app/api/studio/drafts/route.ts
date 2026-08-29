@@ -1,5 +1,7 @@
 import { withTenant } from "@/lib/db";
 import { effectiveTenantId } from "@/lib/tenant-auth";
+import { validateContentEditFormat } from "@/lib/studio/content-edit-format";
+import { resolveCurrentWork } from "@/lib/studio/current-work";
 
 // Studio 초안/발행 이력 — Supabase drafts 테이블(테넌트별). payload jsonb에 본문 보관.
 interface DraftRow {
@@ -14,6 +16,7 @@ interface DraftRow {
     publishReconciliations?: unknown;
     publishReconciliation?: unknown;
     editor_handoff?: unknown;
+    editFormat?: unknown;
   };
   status: string;
   created_at: string;
@@ -35,7 +38,7 @@ function extractVariants(payload: Record<string, unknown> | null | undefined): u
 // GET /api/studio/drafts?tenant_id=... — 워크스페이스 초안 목록(최근 50)
 export async function GET(request: Request) {
   const tenantId = await effectiveTenantId(request, new URL(request.url).searchParams.get("tenant_id"));
-  if (!tenantId) return Response.json({ drafts: [] });
+  if (!tenantId) return Response.json({ drafts: [], currentWork: null });
   try {
     const rows = await withTenant(tenantId, (sql) => sql<DraftRow[]>`
       SELECT id, tenant_id, idea, payload, status, created_at, updated_at
@@ -52,18 +55,30 @@ export async function GET(request: Request) {
       publishReconciliations: r.payload?.publishReconciliations ?? null,
       publishReconciliation: r.payload?.publishReconciliation ?? null,
       editorHandoff: r.payload?.editor_handoff ?? null,
+      editFormat: r.payload?.editFormat ?? null,
       status: r.status,
       savedAt: r.updated_at,
     }));
-    return Response.json({ drafts });
+    return Response.json({ drafts, currentWork: resolveCurrentWork(drafts) });
   } catch (e) {
-    return Response.json({ drafts: [], error: String(e) }, { status: 500 });
+    return Response.json({ drafts: [], currentWork: null, error: String(e) }, { status: 500 });
   }
 }
 
 // POST /api/studio/drafts — 초안 저장/갱신 { tenant_id, id?, idea, text, img, vid, includes, status }
 export async function POST(request: Request) {
   const body = await request.json();
+  if (body.editFormat !== undefined) {
+    const formatValidation = validateContentEditFormat(body.editFormat);
+    if (!formatValidation.valid) {
+      return Response.json({
+        ok: false,
+        code: "INVALID_EDIT_FORMAT",
+        error: "편집 형식값을 확인해 주세요",
+        issues: formatValidation.issues,
+      }, { status: 422, headers: { "Cache-Control": "no-store" } });
+    }
+  }
   const tenantId = await effectiveTenantId(request, body.tenant_id);
   if (!tenantId) return Response.json({ error: "tenant_id required" }, { status: 400 });
   const payload = {
@@ -71,6 +86,7 @@ export async function POST(request: Request) {
     includes: body.includes ?? {},
     publishReconciliations: body.publishReconciliations ?? {},
     publishReconciliation: body.publishReconciliation ?? null,
+    editFormat: body.editFormat ?? null,
   };
   const status = body.status || "draft";
   const idea = body.idea || "";

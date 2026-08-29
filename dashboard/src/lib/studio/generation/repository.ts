@@ -7,6 +7,7 @@ import type {
   PersistFreeRegenerationInput,
   PersistedCreation,
   PersistedFreeRegeneration,
+  RecordRejectionInput,
 } from "./service";
 import { StudioApiError } from "./errors";
 
@@ -181,6 +182,26 @@ export class PostgresGenerationRepository implements GenerationRepository {
     return null;
   }
 
+  async recordCandidateRejection(input: RecordRejectionInput): Promise<{ rejectedCandidateIds: string[] }> {
+    try {
+      return await generationTransaction(input.workspaceId, async (sql) => {
+        await sql`
+          INSERT INTO studio_generation_candidate_rejections
+            (tenant_id, member_id, job_id, candidate_id)
+          VALUES
+            (${input.workspaceId}, ${input.memberId}, ${input.jobId}, ${input.candidateId})
+          ON CONFLICT (tenant_id, job_id, candidate_id) DO NOTHING`;
+        const rows = await sql<{ candidate_id: string }[]>`
+          SELECT candidate_id
+          FROM studio_generation_candidate_rejections
+          WHERE tenant_id = ${input.workspaceId} AND job_id = ${input.jobId}`;
+        return { rejectedCandidateIds: rows.map((row) => row.candidate_id) };
+      });
+    } catch (error) {
+      throw mapGenerationDatabaseError(error);
+    }
+  }
+
   async persistFreeRegeneration(input: PersistFreeRegenerationInput): Promise<PersistedFreeRegeneration> {
     const selectExisting = async (sql: Sql) => {
       const [existing] = await sql<IdempotencyRow[]>`
@@ -197,6 +218,24 @@ export class PostgresGenerationRepository implements GenerationRepository {
 
     try {
       return await generationTransaction(input.replacement.workspaceId, async (sql) => {
+        // 같은 요청의 재송신은 먼저 돌려준다. 아래 거절 검사와 몫 차감은 한 transaction
+        // 안에서만 성립하므로, 검사 통과와 차감 사이에 다른 요청이 끼어들 수 없다.
+        const replay = await selectExisting(sql);
+        if (replay?.request_hash === input.requestHash) {
+          return { consumed: true, response: replay.response_payload } as const;
+        }
+
+        const rejectedRows = await sql<{ candidate_id: string }[]>`
+          SELECT candidate_id
+          FROM studio_generation_candidate_rejections
+          WHERE tenant_id = ${input.replacement.workspaceId}
+            AND job_id = ${input.originalJobId}`;
+        const rejected = new Set(rejectedRows.map((row) => row.candidate_id));
+        const pendingCandidateIds = input.requiredRejections.filter((id) => !rejected.has(id));
+        if (pendingCandidateIds.length > 0) {
+          return { consumed: false, response: null, refusal: "candidates_not_rejected", pendingCandidateIds } as const;
+        }
+
         const [reserved] = await sql<{ id: string }[]>`
           INSERT INTO studio_free_regeneration_uses
             (tenant_id, member_id, local_date, original_job_id, replacement_job_id)
@@ -206,10 +245,13 @@ export class PostgresGenerationRepository implements GenerationRepository {
           ON CONFLICT DO NOTHING
           RETURNING id`;
         if (!reserved) {
-          const existing = await selectExisting(sql);
-          return existing?.request_hash === input.requestHash
-            ? { consumed: true, response: existing.response_payload }
-            : { consumed: false, response: null };
+          // 동시 요청이 방금 같은 키로 몫을 잡았을 수 있다. 그 요청이 커밋한 멱등 기록이
+          // 보이면 새 몫을 태우지 않고 같은 교체 작업을 재생한다.
+          const settled = await selectExisting(sql);
+          if (settled?.request_hash === input.requestHash) {
+            return { consumed: true, response: settled.response_payload } as const;
+          }
+          return { consumed: false, response: null, refusal: "quota_exhausted" } as const;
         }
 
         await sql`
@@ -229,6 +271,7 @@ export class PostgresGenerationRepository implements GenerationRepository {
         if (existing?.request_hash === input.requestHash) {
           return { consumed: true, response: existing.response_payload };
         }
+        return { consumed: false, response: null, refusal: "quota_exhausted" };
       }
       throw mapGenerationDatabaseError(error);
     }

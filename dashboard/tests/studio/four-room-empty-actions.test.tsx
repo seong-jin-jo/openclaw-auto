@@ -13,6 +13,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("swr", () => ({ default: (...args: unknown[]) => mocks.swr(...args) }));
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => new URLSearchParams(window.location.search),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn(), forward: vi.fn(), refresh: vi.fn(), prefetch: vi.fn() }),
+}));
 vi.mock("@/lib/api", () => ({
   fetcher: vi.fn(),
   apiPost: vi.fn(),
@@ -69,17 +73,22 @@ describe("OSMU-FLOW-UI-02 발행실 빈 상태 계약", () => {
 });
 
 describe("OSMU-FLOW-UI-03 생성실 첫 행동 계약", () => {
-  it("OSMU-FLOW-UI-03 정상 경로: 후보가 없으면 주제부터 적으라는 한 줄과 단추를 보인다", () => {
+  it("OSMU-FLOW-UI-03 정상 경로: 첫 화면에 적을 칸이 아니라 고를 카드를 보인다", () => {
     render(<CreateRoom workspaceId="tenant-empty" workspaceName="빈 작업 공간" guide="" topic="" onTopicChange={vi.fn()} onOpenLearning={vi.fn()} onCandidateSelect={vi.fn()} />);
 
-    expect(document.querySelector('[data-empty-next="create"]')).toHaveTextContent("먼저 주제를 적고 후보 세 장을 만드세요.");
-    expect(screen.getByRole("button", { name: "주제부터 적기" })).toBeInTheDocument();
+    expect(document.querySelector('[data-empty-next="create"]')).toHaveTextContent("고르기만 하시면 됩니다. 적을 것은 없습니다.");
+    // 회장 지적("주관식이면 나라도 뭘 입력해야할 지를 모르겠는데")의 계약.
+    // 기본 경로에는 자유 입력 칸이 한 칸도 없다.
+    expect(document.querySelectorAll('[data-create-topic-picker] input')).toHaveLength(0);
+    expect(screen.getByRole("button", { name: "영상" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "카드뉴스" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "글" })).toBeInTheDocument();
   });
 
-  it("OSMU-FLOW-UI-03 거절 조건: 첫 행동 단추는 죽은 단추가 아니라 주제 입력으로 초점을 옮긴다", () => {
+  it("OSMU-FLOW-UI-03 거절 조건: 카드에 없는 주제는 직접 적는 칸으로 빠져나갈 수 있다", () => {
     render(<CreateRoom workspaceId="tenant-empty" workspaceName="빈 작업 공간" guide="" topic="" onTopicChange={vi.fn()} onOpenLearning={vi.fn()} onCandidateSelect={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "주제부터 적기" }));
-    expect(screen.getByLabelText("이번 주제")).toHaveFocus();
+    fireEvent.click(screen.getByRole("button", { name: "여기 없습니다. 직접 적겠습니다" }));
+    expect(screen.getByLabelText("이번 주제")).toBeInTheDocument();
   });
 });

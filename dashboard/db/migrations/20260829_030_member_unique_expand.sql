@@ -44,11 +44,13 @@ BEGIN
       AND c.relname = 'uq_studio_generation_idempotency_member_operation_key'
       AND (
         NOT i.indisunique OR i.indexprs IS NOT NULL OR i.indpred IS NOT NULL
-        OR i.indkey::smallint[] <> ARRAY[
-          (SELECT attnum FROM pg_catalog.pg_attribute WHERE attrelid='public.studio_generation_idempotency'::regclass AND attname='member_id'),
-          (SELECT attnum FROM pg_catalog.pg_attribute WHERE attrelid='public.studio_generation_idempotency'::regclass AND attname='operation'),
-          (SELECT attnum FROM pg_catalog.pg_attribute WHERE attrelid='public.studio_generation_idempotency'::regclass AND attname='idempotency_key')
-        ]::smallint[]
+        OR i.indnatts <> 3 OR i.indnkeyatts <> 3
+        OR (
+          SELECT pg_catalog.array_agg(a.attname ORDER BY keys.ordinality)
+          FROM pg_catalog.unnest(i.indkey) WITH ORDINALITY AS keys(attnum, ordinality)
+          JOIN pg_catalog.pg_attribute AS a
+            ON a.attrelid=i.indrelid AND a.attnum=keys.attnum
+        ) IS DISTINCT FROM ARRAY['member_id','operation','idempotency_key']::name[]
       )
   ) INTO generation_ok;
   SELECT NOT EXISTS (
@@ -60,10 +62,13 @@ BEGIN
       AND c.relname = 'uq_studio_free_regeneration_member_date'
       AND (
         NOT i.indisunique OR i.indexprs IS NOT NULL OR i.indpred IS NOT NULL
-        OR i.indkey::smallint[] <> ARRAY[
-          (SELECT attnum FROM pg_catalog.pg_attribute WHERE attrelid='public.studio_free_regeneration_uses'::regclass AND attname='member_id'),
-          (SELECT attnum FROM pg_catalog.pg_attribute WHERE attrelid='public.studio_free_regeneration_uses'::regclass AND attname='local_date')
-        ]::smallint[]
+        OR i.indnatts <> 2 OR i.indnkeyatts <> 2
+        OR (
+          SELECT pg_catalog.array_agg(a.attname ORDER BY keys.ordinality)
+          FROM pg_catalog.unnest(i.indkey) WITH ORDINALITY AS keys(attnum, ordinality)
+          JOIN pg_catalog.pg_attribute AS a
+            ON a.attrelid=i.indrelid AND a.attnum=keys.attnum
+        ) IS DISTINCT FROM ARRAY['member_id','local_date']::name[]
       )
   ) INTO quota_ok;
   IF NOT generation_ok OR NOT quota_ok THEN

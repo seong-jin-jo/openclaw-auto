@@ -6,12 +6,14 @@ import type {
   PersistFreeRegenerationInput,
   PersistedCreation,
   PersistedFreeRegeneration,
+  RecordRejectionInput,
 } from "@/lib/studio/generation/service";
 
 export class MemoryGenerationRepository implements GenerationRepository {
   private readonly jobs = new Map<string, GenerationJob>();
   private readonly idempotency = new Map<string, IdempotencyRecord>();
   private readonly freeRetryUses = new Set<string>();
+  private readonly rejections = new Map<string, Set<string>>();
 
   async persistCreation(input: PersistCreationInput): Promise<PersistedCreation> {
     const scope = `${input.job.memberId}:${input.operation}:${input.idempotencyKey}`;
@@ -28,13 +30,27 @@ export class MemoryGenerationRepository implements GenerationRepository {
     return job;
   }
 
+  async recordCandidateRejection(input: RecordRejectionInput): Promise<{ rejectedCandidateIds: string[] }> {
+    const key = `${input.workspaceId}:${input.jobId}`;
+    const set = this.rejections.get(key) ?? new Set<string>();
+    set.add(input.candidateId);
+    this.rejections.set(key, set);
+    return { rejectedCandidateIds: [...set] };
+  }
+
   async persistFreeRegeneration(input: PersistFreeRegenerationInput): Promise<PersistedFreeRegeneration> {
     const useKey = `${input.replacement.memberId}:${input.localDate}`;
+    const existing = this.idempotency.get(`${input.replacement.memberId}:${input.operation}:${input.idempotencyKey}`);
+    if (existing?.requestHash === input.requestHash) {
+      return { consumed: true, response: existing.response };
+    }
+    const rejected = this.rejections.get(`${input.replacement.workspaceId}:${input.originalJobId}`) ?? new Set<string>();
+    const pendingCandidateIds = input.requiredRejections.filter((id) => !rejected.has(id));
+    if (pendingCandidateIds.length > 0) {
+      return { consumed: false, response: null, refusal: "candidates_not_rejected", pendingCandidateIds };
+    }
     if (this.freeRetryUses.has(useKey)) {
-      const existing = this.idempotency.get(`${input.replacement.memberId}:${input.operation}:${input.idempotencyKey}`);
-      return existing?.requestHash === input.requestHash
-        ? { consumed: true, response: existing.response }
-        : { consumed: false, response: null };
+      return { consumed: false, response: null, refusal: "quota_exhausted" };
     }
     this.freeRetryUses.add(useKey);
     this.jobs.set(input.replacement.jobId, input.replacement);

@@ -146,7 +146,7 @@ describe("숏폼 공장 Postgres 격리와 경합 계약", () => {
       staleAfterMs: 1000,
       concepts: request.concepts,
     });
-    await repository.markRunRunning(firstTenantId, dead.run.runId);
+    await repository.markRunRunning(firstTenantId, dead.run.runId, crypto.randomUUID());
     await admin!`
       UPDATE shorts_factory_runs
       SET updated_at = now() - interval '2 seconds'
@@ -171,6 +171,39 @@ describe("숏폼 공장 Postgres 격리와 경합 계약", () => {
     await repository.forceFailRun(firstTenantId, replacement.run.runId);
   });
 
+  it("C1-FACTORY-DB-05 보존: 강제 종료된 실행은 옛 표를 든 worker 의 마감으로 되살아나지 않는다", async (ctx) => {
+    if (!await liveDatabase(ctx)) return;
+    const memberId = `factory-fence-${crypto.randomUUID()}`;
+    members.push(memberId);
+    const repository = new PostgresShortsFactoryRepository();
+    const request = parseShortsFactoryRequest(factoryBody(firstTenantId));
+    const run = await repository.createRun({
+      workspaceId: firstTenantId,
+      memberId,
+      idempotencyKey: "fence-run",
+      requestHash: "9".repeat(64),
+      concurrencyLimit: request.concurrencyLimit,
+      staleAfterMs: 15 * 60 * 1000,
+      concepts: request.concepts,
+    });
+    const staleToken = crypto.randomUUID();
+    expect(await repository.markRunRunning(firstTenantId, run.run.runId, staleToken)).toBe(true);
+
+    await repository.forceFailRun(firstTenantId, run.run.runId);
+
+    // 강제 종료 뒤에는 옛 표의 진행 신호도, 컨셉 기록도, 마감도 통하지 않아야 한다.
+    expect(await repository.touchRun(firstTenantId, run.run.runId, staleToken)).toBe(false);
+    expect(await repository.markConceptSucceeded(
+      firstTenantId, run.run.runId, request.concepts[0].conceptId, crypto.randomUUID(), staleToken,
+    )).toBe(false);
+    const afterFinalize = await repository.finalizeRun(firstTenantId, run.run.runId, staleToken);
+    expect(afterFinalize.status).toBe("failed");
+    const [row] = await admin!<{ status: string }[]>`
+      SELECT status FROM shorts_factory_runs
+      WHERE tenant_id = ${firstTenantId} AND id = ${run.run.runId}`;
+    expect(row.status).toBe("failed");
+  });
+
   it("C1-FACTORY-DB-04 한국어 설명: 운영자 강제 종료는 활성 실행과 남은 컨셉을 실패로 닫는다", async (ctx) => {
     if (!await liveDatabase(ctx)) return;
     const memberId = `factory-force-${crypto.randomUUID()}`;
@@ -186,7 +219,7 @@ describe("숏폼 공장 Postgres 격리와 경합 계약", () => {
       staleAfterMs: 15 * 60 * 1000,
       concepts: request.concepts,
     });
-    await repository.markRunRunning(firstTenantId, active.run.runId);
+    await repository.markRunRunning(firstTenantId, active.run.runId, crypto.randomUUID());
 
     const stopped = await repository.forceFailRun(firstTenantId, active.run.runId);
 

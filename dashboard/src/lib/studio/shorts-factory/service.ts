@@ -8,6 +8,8 @@ export type FactoryConceptExecutor = (input: {
   memberId: string;
   idempotencyKey: string;
   request: GenerationRequest;
+  // 실행 소유권을 잃으면 곧바로 끊긴다. 비용이 드는 실행은 이 신호를 존중해야 한다.
+  signal: AbortSignal;
 }) => Promise<{ jobId: string }>;
 
 function stableJson(value: unknown): string {
@@ -65,30 +67,60 @@ export class ShortsFactoryService {
     });
     if (!created.created) return { run: created.run, reused: true };
 
-    await this.repository.markRunRunning(request.workspaceId, created.run.runId);
+    // 울타리 표. 이 실행의 소유자임을 증명하는 값이고, 강제 종료나 회수는 이 표를 지운다.
+    const leaseToken = crypto.randomUUID();
+    const owned = await this.repository.markRunRunning(request.workspaceId, created.run.runId, leaseToken);
+    if (!owned) {
+      throw new StudioApiError({
+        status: 409,
+        code: "FACTORY_RUN_ALREADY_ACTIVE",
+        message: "이 실행은 이미 다른 작업자가 맡았습니다",
+        retryable: true,
+      });
+    }
+
+    // 진행 신호가 거절되면(강제 종료, 회수, 실행이 이미 끝남) 즉시 취소로 전환한다.
+    // 예전에는 이 실패를 삼켜서 무효가 된 worker 가 비용 작업을 계속 만들었다.
+    const cancellation = new AbortController();
+    const heartbeat = setInterval(() => {
+      void this.repository.touchRun(request.workspaceId, created.run.runId, leaseToken)
+        .then((alive) => { if (!alive) cancellation.abort(); })
+        .catch(() => cancellation.abort());
+    }, Math.min(30_000, Math.max(1000, Math.floor(staleAfterMs() / 3))));
+    heartbeat.unref?.();
+
     let cursor = 0;
     const worker = async () => {
       while (cursor < request.concepts.length) {
+        if (cancellation.signal.aborted) return;
         const index = cursor;
         cursor += 1;
         const concept = request.concepts[index];
-        await this.repository.markConceptRunning(request.workspaceId, created.run.runId, concept.conceptId);
-        const heartbeat = setInterval(() => {
-          void this.repository.touchRun(request.workspaceId, created.run.runId).catch(() => {});
-        }, Math.min(30_000, Math.max(1000, Math.floor(staleAfterMs() / 3))));
-        heartbeat.unref?.();
+        const claimed = await this.repository.markConceptRunning(
+          request.workspaceId,
+          created.run.runId,
+          concept.conceptId,
+          leaseToken,
+        );
+        // 표를 잃었으면 이 컨셉을 시작하지 않는다. 비용은 여기서 끊긴다.
+        if (!claimed) {
+          cancellation.abort();
+          return;
+        }
         try {
           const generation = parseGenerationRequest(concept.generationBody);
           const result = await this.executeConcept({
             memberId,
             idempotencyKey: `${created.run.runId}:${concept.conceptId}`,
             request: generation,
+            signal: cancellation.signal,
           });
           await this.repository.markConceptSucceeded(
             request.workspaceId,
             created.run.runId,
             concept.conceptId,
             result.jobId,
+            leaseToken,
           );
         } catch (error) {
           const normalized = conceptError(error);
@@ -98,14 +130,19 @@ export class ShortsFactoryService {
             concept.conceptId,
             normalized.code,
             normalized.message,
+            leaseToken,
           );
-        } finally {
-          clearInterval(heartbeat);
         }
       }
     };
-    await Promise.all(Array.from({ length: request.concurrencyLimit }, worker));
-    return { run: await this.repository.finalizeRun(request.workspaceId, created.run.runId), reused: false };
+
+    try {
+      await Promise.all(Array.from({ length: request.concurrencyLimit }, worker));
+    } finally {
+      clearInterval(heartbeat);
+    }
+    // 마감도 표가 있어야 쓴다. 표를 잃었으면 현재 상태를 그대로 읽어 돌려준다.
+    return { run: await this.repository.finalizeRun(request.workspaceId, created.run.runId, leaseToken), reused: false };
   }
 
   async get(memberId: string, runId: string, allowedWorkspaceIds: readonly string[]): Promise<FactoryRunSnapshot> {

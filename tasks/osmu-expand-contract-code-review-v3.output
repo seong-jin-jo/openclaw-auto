@@ -1,0 +1,52 @@
+# OSMU generation Expand and Contract 코드 재리뷰 v3
+
+STAMP | line: osmu-expand-contract | 생성: 2026-08-29 03:42 KST | model: gpt-codex/gpt-5.6-sol | agent: code-reviewer | skill: review | 대상: `68fe429d`, `c89c1ddb`
+
+한 줄 결론: v2 MAJOR 3건 중 rollback index와 이전 image 검증 2건은 폐쇄됐다. legacy migration의 정상 재실행은 안전해졌지만 SQL commit과 ledger 기록 사이 프로세스 중단 상태에서는 활성 lease를 다시 덮는 문제가 PostgreSQL 16에서 재현됐다. generation C1 운영 배포는 차단한다.
+
+MAJOR: [회귀 위험, migration ledger repeatability] `dashboard/db/run-migrations.sh:323` : legacy SQL은 첫 번째 `psql`에서 commit되고, 적용 ledger는 별도 `psql`인 `dashboard/db/run-migrations.sh:324`에서 기록된다. 두 프로세스 사이에 runner가 종료되면 SQL은 적용됐지만 ledger row가 없는 상태가 되며 다음 `apply-legacy`가 같은 SQL을 다시 실행한다. `dashboard/db/migrations/20260828_050_shorts_factory_run_leases.sql:6`은 queued/running 행의 `updated_at`을 과거 `started_at` 또는 `created_at`으로 덮는다 / 설계의 checksum ledger, partial failure 재개, 데이터 손실 없는 migration 계약과 어긋난다 / PostgreSQL 16에서 050 적용 후 ledger row가 없는 failure state를 만들고 활성 run의 `updated_at=2090-01-01`로 설정한 뒤 `apply-legacy`를 재실행했다. 결과가 `2020-01-02`로 되돌아가 stale lease 회수 가능성이 직접 재현됐다 / legacy 실행 전에 ledger를 `running`으로 기록하고, 재진입 시 catalog와 migration별 완료 marker로 applied adoption 또는 수동 복구를 판정한다. 가장 안전한 방식은 050의 data backfill과 ledger applied 기록을 같은 DB transaction에 묶고, SQL commit 직후 프로세스 kill failure injection에서 heartbeat 보존을 증명하는 것이다.
+
+## v2 MAJOR 폐쇄 대조
+
+| v2 지적 | 판정 | 증거 |
+|---|---|---|
+| applied legacy를 전량 재실행해 lease 덮어쓰기 | 부분 폐쇄, BLOCK | `state=applied`면 checksum-only로 건너뛴다. 그러나 SQL commit과 ledger insert가 서로 다른 psql이라 crash state에서 재실행과 lease 덮어쓰기가 재현됐다 |
+| C1 전 rollback index exact definition 미검증 | 폐쇄 | `verify-rollback-indexes.sql`이 table, ordered columns, key count, unique, valid, ready, expression/predicate 부재를 prepare, manifest, contract에서 검사한다. wrong-definition prepare failure injection도 통과했다 |
+| previous compatible image가 문자열 모양만 검증됨 | 폐쇄 | workflow가 registry pull 또는 보존된 stopped container를 요구하고 observed image ID 일치, build commit label, compatibility ancestor, container create 가능성을 검사한 뒤 관찰 digest만 manifest로 넘긴다 |
+
+## 실제 검증
+
+- PostgreSQL 16 격리 matrix: `MATRIX_EXIT=0`.
+- 관찰 경로: applied legacy checksum-only heartbeat 보존, E1 없는 E3 거절, S1/S2 동시성, invalid member index 복구, wrong rollback index prepare 차단, generation C1, R27 없는 quota C1 차단, wrong rollback attach 차단, exact rollback과 S2 복귀.
+- workflow 계약 Vitest: `osmu-migration-runner.contract.test.ts`, `release-migration-order.contract.test.ts` 합계 24/24 PASS.
+- 추가 failure state: 050 SQL 적용 뒤 ledger row 없음, active lease `2090-01-01`, 재실행 후 `2020-01-02`. MAJOR 직접 재현.
+- 임시 PostgreSQL 16 인스턴스는 검증 뒤 제거했다.
+
+## 4축 판정
+
+- 승인 시안 이탈: 지적 1건. UI 시각물은 해당 없음. 승인 기술설계의 partial failure 재개 계약 이탈이다.
+- 회귀 위험: 지적 1건. crash-state legacy 재실행이 활성 lease를 과거로 덮는다.
+- 토큰 위반: 문제없음. UI와 style 변경이 없다.
+- 무기록 삭제: 문제없음. 기능 또는 migration phase의 신규 무기록 삭제가 없다.
+
+## 셀프심문과 레드팀
+
+내가 GO를 준다면 회장이 운영에서 발견할 가장 그럴듯한 문제는 무엇인가? `apply-legacy` 실행 중 050은 commit됐지만 runner가 ledger insert 전에 끊긴 뒤 재실행되어, 정상 shorts factory run의 heartbeat가 과거로 돌아가 stale 실패 처리되는 문제다. 실제 PostgreSQL에서 같은 상태 전이를 재현했으므로 놓친 가능성이 아니라 배포 차단 결함이다.
+
+반대 입장은 두 psql 사이가 짧아 사고 확률이 낮다는 주장이다. 고위험 DB migration의 ledger는 바로 그 프로세스 중단과 재실행을 안전하게 받기 위한 장치다. 짧은 crash window를 허용하면 ledger의 핵심 목적이 무너지고, 영향도 활성 작업의 잘못된 실패 처리이므로 MAJOR를 낮출 근거가 없다.
+
+## 벤치마크
+
+- 소스 1: https://www.postgresql.org/docs/16/sql-begin.html. 데이터 변경과 완료 marker를 한 transaction 경계로 묶어 atomicity를 확보하는 기준에 적용했다.
+- 소스 2: https://www.postgresql.org/docs/16/sql-createindex.html. rollback index의 `IF NOT EXISTS` 이름 검사가 정의 일치를 보장하지 않는 기준을 v2 폐쇄 확인에 적용했다.
+- 소스 3: https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment. workflow approval과 실제 artifact/image 검증의 책임 분리를 previous image 폐쇄 확인에 적용했다.
+
+SKILLS_USED: review. SQL/Data Safety, Race Conditions, Security, Completeness 렌즈로 v2 차단 3건과 보정 회귀만 재검토했다.
+
+SKILLS_SKIPPED: 없음
+
+SOURCES: `tasks/osmu-expand-contract-code-review-v2.output` | `docs/design-docs/osmu-generation-expand-contract-v1.0.2-gpt-codex.md` | `docs/qa/osmu-expand-contract-design-review-v2-gpt-codex.md` | `dashboard/db/run-migrations.sh` | `dashboard/db/verify-rollback-indexes.sql` | `.github/workflows/osmu-db-migrate.yml` | PostgreSQL 16 BEGIN, CREATE INDEX 공식 문서 | GitHub Actions environments 공식 문서
+
+MODEL: gpt-codex/gpt-5.6-sol
+
+REVIEW_VERDICT: BLOCK

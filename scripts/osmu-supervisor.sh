@@ -25,6 +25,20 @@ rm -f "$STOP"
 status_of() { awk -F'\t' -v i="$1" '$1==i{s=$3} END{print s}' "$STATE"; }
 mark() { printf '%s\t%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$(date +%H:%M)" "$4" >> "$STATE"; }
 
+# codex-in-pane가 정상 종료해 셸 프롬프트로 돌아왔는데 종료 문구를 남기지 않는
+# 경우가 있다. tmux 세션 존재만 보면 이 판을 영원히 실행 중으로 오인하므로,
+# pane의 현재 명령이 대기 셸이면 종료로 판정한다.
+pane_finished() {
+  local sess="$1" cmd
+  tmux has-session -t "$sess" 2>/dev/null || return 0
+  tmux capture-pane -pt "$sess" 2>/dev/null | tail -40 | grep -q "■ 끝났습니다" && return 0
+  cmd="$(tmux display-message -p -t "$sess" '#{pane_current_command}' 2>/dev/null || true)"
+  case "$cmd" in
+    sh|bash|zsh|fish) return 0 ;;
+  esac
+  return 1
+}
+
 # 그 갈래에서 지금 돌고 있는 세션이 있으면 이름을, 없으면 빈 문자열을 준다.
 running_in_lane() {
   local lane="$1" id sess
@@ -32,8 +46,7 @@ running_in_lane() {
     [ "$l" = "$lane" ] || continue
     [ "$st" = "돌는중" ] || continue
     [ "$(status_of "$id")" = "돌는중" ] || continue
-    if tmux has-session -t "$sess" 2>/dev/null &&
-       ! tmux capture-pane -pt "$sess" 2>/dev/null | tail -40 | grep -q "■ 끝났습니다"; then
+    if ! pane_finished "$sess"; then
       echo "$sess"; return
     fi
     # pane 이 끝났으면 결과를 판정해 닫는다
@@ -54,8 +67,7 @@ sweep_finished() {
   while IFS=$'\t' read -r id l st ts sess; do
     [ "$st" = "돌는중" ] || continue
     [ "$(status_of "$id")" = "돌는중" ] || continue
-    if ! tmux has-session -t "$sess" 2>/dev/null ||
-       tmux capture-pane -pt "$sess" 2>/dev/null | tail -40 | grep -q "■ 끝났습니다"; then
+    if pane_finished "$sess"; then
       local verdict="끝남"
       tmux capture-pane -pt "$sess" 2>/dev/null | tail -40 | grep -qE "회수 필요|타임아웃|미완료" && verdict="빈손"
       mark "$id" "$l" "$verdict" "$sess"
@@ -89,6 +101,10 @@ next_pending() {
 # 증거 없이 끝난다. 매 판 돌기 전에 앱을 확인하고 죽었으면 되살린다.
 ensure_app() {
   curl -s -o /dev/null --max-time 5 http://localhost:3456/api/health 2>/dev/null && return
+  node "$ROOT/scripts/recover-osmu-local-public-env.mjs" >> /tmp/osmu-dev.log 2>&1 || {
+    echo "[$(date +%H:%M)] 공개 인증 환경값 복구 실패. 값 없는 앱은 띄우지 않는다."
+    return 1
+  }
   echo "[$(date +%H:%M)] 앱이 죽어 있다. 되살린다."
   ( cd "$ROOT/dashboard" && nohup npx next dev -p 3456 > /tmp/osmu-dev.log 2>&1 & )
   for _ in $(seq 1 20); do

@@ -2,6 +2,316 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-08-30 PASS: 격리 공격 목록 누락 복구 (`/api/performance/learned-rules`)
+
+커밋 `822fa94a`가 `/api/performance/learned-rules` GET/POST/DELETE를 새로 만들면서 `scripts/verify-tenant-isolation-e2e.mjs`의 공격 목록에 등록하지 않아 `tests/isolation/tenant-api-attack-script.contract.test.ts`(TENANT-READ-01)가 실패했다. 어제 밤 `822fa94a`가 원인이며 착수 전부터 있던 실패가 아니다.
+
+- **실제로 뚫리는지 직접 확인**: 로컬 3456에서 임시 스크립트로 테넌트 A/B를 발급해 학습 규칙 API를 직접 공격했다. `/api/performance/learned-rules`는 `TENANT_AWARE_PATHS`(`dashboard/src/proxy.ts`)에 아직 없어 고객/osmu 테넌트 토큰은 라우트 도달 전에 전부 403 "이 API는 운영자 전용입니다"로 막힌다(fail-closed). 운영자 토큰으로 직접 POST/GET을 쳐도 데이터는 `data/tenants/{tenantId}/performance-learned-rules.json` 파일 하위로 물리 격리돼 있어(같은 밤 확인된 `dataPath()`의 `tenantSeg()` 접두 규칙) 교차 테넌트 마커 유출이 없음을 관찰했다. 현재 이 경로는 자기잠식 위험 없이 안전하다 — 단, 고객 셀프서브로 노출을 확장하려면 그때 `TENANT_AWARE_PATHS`에 명시 등록이 필요하다.
+- **공격 목록 등록**: `scripts/verify-tenant-isolation-e2e.mjs`에 `["READ-55", "/api/performance/learned-rules"]` 추가.
+- **같은 밤 다른 신규 경로 훑음**: `git diff --name-only 3b74b799..HEAD -- 'dashboard/src/app/api/**'`로 확인한 GET+`effectiveTenantId` 경로 중 `/api/threads/low-engagement-candidates`도 공격 목록에서 빠져 있었다(다른 조가 만든 경로, 컴포넌트·라우트 자체는 만지지 않고 목록에만 `["READ-56", "/api/threads/low-engagement-candidates"]`로 추가). 나머지 신규/수정 경로(`channel-config`, `channel-settings/[channel]`, `connect/[provider]`, `connect/readiness`, `engagement`, `metrics`, `onboarding`, `publish`, `studio/drafts`)는 기존 공격 목록 항목과 라우트 패턴이 이미 매치돼 누락이 아니었다.
+- **저장 방식 안전성 판정**: `learned-rules`는 파일 기반이 맞다. 다른 표들처럼 DB RLS로 갈리는 게 아니라 `file-io.ts`의 `dataPath()`가 `currentTenantId()`(AsyncLocalStorage, `runWithTenant`로 라우트가 직접 감쌈)를 읽어 `data/tenants/{id}/` 하위 파일 경로로 물리 분리한다. 이 파일 자체는 하나의 워크스페이스 내부에서 배열로 규칙을 통으로 담고(레코드 단위 tenant_id 필드 없음) 있으나, 파일 자체가 이미 테넌트별로 갈려 있어 교차 테넌트 문제는 아니다. RLS 정책이 아니라는 점만 정확히 적어 둔다.
+
+| 검증 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| 실제 교차 테넌트 GET 공격 | PASS(안전) | 로컬 3456, 테넌트 A/B 토큰 발급 후 POST(B 마커)→GET(A) 시도, tenant 토큰 자체가 403(운영자 전용)으로 라우트 미도달 |
+| 공격 목록 등록 | PASS | `tests/isolation/tenant-api-attack-script.contract.test.ts` TENANT-READ-01 통과 |
+| `npx vitest run tests/isolation/` | PASS | 17 파일, 175건 통과 |
+| `npm run test` | PASS | 202 파일, 1500건 통과, 1건 skip |
+| `npx tsc --noEmit` | PASS | 종료 코드 0, 출력 없음 |
+
+셀프심문: "목록에 넣어 테스트만 초록으로 만들고 실제 구멍은 남겨 두는 것 아닌가" → 아니다. 목록 등록 전에 실제 A/B 테넌트 토큰으로 교차 요청을 먼저 쏴서 403(라우트 미도달)과 파일 물리 격리(`dataPath` tenant 접두)를 직접 관찰했다. 다만 이 경로가 앞으로 `TENANT_AWARE_PATHS`에 들어가 고객 토큰이 직접 호출하게 되는 순간 이 판정은 재검증이 필요하다 — 지금은 운영자 전용이라 안전한 것이지 라우트 코드 자체의 테넌트 분리 로직이 검증된 것은 아니다(파일 하위 경로 분리는 맞으나, 배열 내부에 tenant_id 필드가 없어 향후 공유 파일로 잘못 옮기면 바로 샐 구조).
+
+## 2026-08-29 NG: 최근 24시간 코드리뷰 재검토
+
+고정 범위 `5d941aa0..47a54e4b`의 109개 커밋에서 MAJOR 34건, MINOR 7건을 확인해 머지를 차단했다. 제품 코드는 수정하지 않았다. 상세 위치, 계약 인용, 재현, 수정 방향은 `docs/audit/osmu-code-review-2026-08-29.md`에 있다.
+
+| 검증 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| localhost health | NG | TCP 연결 뒤 10초 응답 0바이트, curl 종료 코드 28 |
+| 지정 작업 공간 초안 API | NG | TCP 연결 뒤 15초 응답 0바이트, curl 종료 코드 28 |
+| 전체 Vitest | PASS | 199개 파일, 1,450건 통과, 조건부 1건 제외 |
+| TypeScript | PASS | `npx tsc --noEmit` 종료 코드 0 |
+| 기본 흐름 E2E | NG | 생성실 표지 뒤 멈춤, 외부 180초 제한 종료 코드 124 |
+| Studio v1 E2E | NG | 출력 없이 멈춤, 외부 180초 제한 종료 코드 124 |
+
+정적 검증 통과는 실제 앱 무응답과 거짓 E2E 판정을 뒤집지 않는다. REVIEW_VERDICT는 BLOCK이다.
+
+## 2026-08-29 build 범위 PASS: 현재 작업과 이어갈 방 단일 계약
+
+지정 작업 공간 `cd1d0a40-540d-4524-9b49-bf2445d82182`의 localhost 실제 API에서 초안 39건, 현재 작업 1건, 현재 단계 발행실, 현재 작업 ID의 초안 목록 일치를 관찰했다. 첫 요청에서는 PostgreSQL 드라이버가 저장 시각을 `Date`로 반환해 현재 작업이 비는 결함을 발견했다. 날짜 정규화와 회귀 계약을 추가한 뒤 같은 실제 요청이 통과했다.
+
+| 검증 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| 현재 작업 API | PASS | HTTP 200, 초안 39건, 단계 발행실, 목록 일치 예 |
+| 정상 및 거절 계약 | PASS | 현재 작업 도메인 4건, 초안 API 7건, Studio 화면 포함 집중 38건 |
+| 전체 Vitest | PASS | `npm run test`, 199파일 1,450건 통과, 조건부 1건 제외 |
+| TypeScript와 build | PASS | `npx tsc --noEmit` exit 0, production build 174/174 |
+| 기본 흐름과 Studio v1 | PASS | 11/11, 12/12 |
+| design lint | PASS | `dashboard/src` 토큰 위반 0 |
+| 운영과 실채널 | 미검증 | 로컬 build 범위. 운영 배포와 공개 채널 발행 미실행 |
+
+이번 판정은 현재 작업 build 범위 PASS다. 기존 v63 전체 디자인 정합과 제품 전체 QA의 승인 보류를 뒤집지 않는다.
+
+## 2026-08-29 NG 후 수정, 기본 흐름 범위 PASS: 네 방 끝까지 재검증
+
+지정 작업 공간 `cd1d0a40-540d-4524-9b49-bf2445d82182`에서 실제 API 기본 흐름 11/11,
+Studio v1 계약 12/12, 390, 768, 1024, 1440 네 폭의 네 방 16화면과 성과실에서 생성실
+복귀 4건이 통과했다. 가린 모달, 브라우저 401, 콘솔 오류, 가로 넘침은 각각 0건이다.
+
+최초 `probe-four-room-flow.mjs`는 네 방을 모두 `false`로 출력하고도 종료 코드 0을 냈다.
+실제 임시 고객 토큰, visible assertion, 모달, 401, 콘솔 오류 검사와 토큰 폐기를 추가했다.
+수정판은 네 방 모두 `true`와 오류 0건을 반환했다. 제품 화면 코드는 수정하지 않았다.
+
+장시간 돌던 Turbopack 개발 서버의 첫 health timeout과 `GENERATION_DB_TIMEOUT`은 제한 시간
+webpack 서버에서 재현되지 않았고 health HTTP 200, DB `up`, 기본 흐름 11/11로 회복했다.
+이는 로컬 장기 개발 서버 정체 위험으로 남긴다. 시안과 dev 캡처의 데이터 상태가 달라 v63
+디자인 정합은 미검증이다. 이번 기능 PASS를 전체 QA 승인으로 확대하지 않는다.
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
+|---|---|---|---|---|
+| R08, R168 | 네 방 흐름과 첫 후보 생성 | FLOW-11-01 | PASS | 후보 3장, 편집 인계, 발행 큐, 성과 제안까지 11/11 |
+| R08, R193 | 네 방 화면과 성과실 복귀 | FLOW-UI-01 | PASS | 4방 x 4폭, 성과실에서 생성실 복귀 4건 |
+| R104 | 고객 인증 경계 | FLOW-AUTH-01 | PASS | 실제 임시 고객 토큰, 브라우저 401 0건, 폐기 HTTP 200 |
+| R200, R206, R207 | 성과실 UX와 승인 시안 정합 | CONF-ALL | 기능 PASS, 디자인 미검증 | 제안 3건과 왕복은 PASS. same-state 매치드 페어 부재 |
+| R01~R207 | 회장 확정 요구 전건 | REQ-ALL | 이월 | 상세 승계는 `docs/qa/osmu-four-room-basic-flow-v1-gpt-codex.md`에 기록 |
+
+| 검증 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| health | PASS | `/api/health` HTTP 200, DB `up` |
+| 전체 Vitest | PASS | 198파일, 1,443건 통과, 조건부 1건 제외 |
+| TypeScript와 build | PASS | `npx tsc --noEmit` exit 0, production build 174/174 |
+| 기본 흐름과 Studio v1 | PASS | 11/11, 12/12 |
+| 요청된 네 방 탐침 | NG 후 수정, PASS | 수정 전 거짓 양성. 수정 뒤 네 방 true, 모달, 401, 콘솔 오류 0 |
+| Playwright 실제 클릭 | PASS | 16화면, 왕복 4건, 가로 넘침 0 |
+| design lint | PASS | 토큰 위반 0 |
+| mobile과 Maestro | 해당 없음 | dashboard 웹 제품 범위. `optional:true` 우회 없음 |
+| 승인 v63 디자인 정합 | 미검증 | 직접 연 시안과 dev가 서로 다른 데이터 상태라 일치와 불일치 모두 확정 불가 |
+
+상세 행렬과 캡처는 `docs/qa/osmu-four-room-basic-flow-v1-gpt-codex.md`와
+`docs/qa/osmu-four-room-flow-20260829/`에 있다.
+
+## 2026-08-29 범위 PASS: 읽기 API 99개 전수 재실사 v3
+
+커밋 `783b97ce`의 `localhost:3456`에서 GET export 99개를 실제 호출했다. 정상 89개, 의도된 거절 10개, HTTP 500과 요청 실패는 각각 0개다. 직전 v2와 비교해 추가, 삭제, 상태코드 변화는 모두 0건이다. v2 이후 변경된 `/api/metrics`는 HTTP 200, 기존 `posts`, coverage v1, source `published_posts`, 플랫폼 7건을 반환했다. 새 고장이 없어 제품 코드는 수정하지 않았다.
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
+|---|---|---|---|---|
+| R128, R151, R165, R171, R175 | 기존 채널 연결 경로와 화면을 보존하고 채널 화면에서 연결 | API-READ-V3-01 | PASS | Threads 연결 준비 503, readiness와 채널 조회 200, HTTP 500 0 |
+| R150 | 플랫폼별 지원 기능과 인증 경계를 실제 계약과 일치 | API-READ-V3-02 | PASS | 임시 고객 토큰으로 TikTok 경계 도달, 두 경로 404, 폐기 HTTP 200과 활성 토큰 0 |
+| R207 | 성과실에서 통한 콘텐츠와 배울 정보를 제공 | API-READ-V3-03 | 범위 PASS | `/api/metrics` HTTP 200, coverage v1, 플랫폼 7건. 외부 provider 실제 수집은 미검증 |
+| R01~R207 | 회장 확정 요구 전건 | REQ-ALL | 이월 | 기존 전건 요구 추적표 유지. 이번 범위 밖 판정은 변경하지 않음 |
+
+| 검증 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| health | PASS | `/api/health` HTTP 200, DB `up` |
+| GET 전수 실사 | PASS | 99개 중 정상 89, 의도된 거절 10, HTTP 500과 요청 실패 0 |
+| 전체 Vitest | PASS | `npm run test`, 198파일, 1,433건 통과, 조건부 1건 제외 |
+| TypeScript | PASS | `npx tsc --noEmit` 종료 코드 0 |
+| production build | PASS | `npm run build` 종료 코드 0, 정적 페이지 174/174. 기존 NFT 추적 경고 1건 유지 |
+| 기본 흐름 | PASS | `verify-basic-flow-e2e.mjs` 11/11 |
+| Studio v1 | PASS | `verify-studio-v1-e2e.mjs` 12/12 |
+| Playwright | PASS | 네 방 4개와 390, 768, 1024, 1440. 가로 넘침, 모달, 401, 콘솔 오류 각각 0 |
+| design lint | PASS | `design-lint.sh dashboard/src`, 위반 0 |
+| mobile, Maestro | 해당 없음 | 별도 mobile 앱이 없는 웹 제품 범위 |
+| 전체 디자인 정합 | NG 유지 | 기존 승인 프로토타입 정합 NG와 운영 실채널 검증 NG를 이번 API 범위 PASS로 뒤집지 않음 |
+
+상세 99개 상태와 비교표는 `docs/audit/osmu-api-read-sweep-v3-gpt-codex-20260829-0915.md`에 있다.
+
+## 2026-08-29 NG: 최근 24시간 코드 리뷰 현재 범위 재검증
+
+리뷰 시작 시 고정한 `5d941aa0..3c251689`의 97개 커밋과 438개 파일 diff를 승인 PRD, 프로토타입 v63, 요구 대장, 사업 좌표, DESIGN에 대조했다. MAJOR 19건, MINOR 5건으로 머지 차단이다. 소스 코드는 수정하지 않았다. 상세 지적과 재현 시나리오는 `docs/audit/osmu-code-review-2026-08-29.md`에 있다.
+
+| 검증 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| 앱 health | PASS | `localhost:3456/api/health` HTTP 200, DB `up` |
+| 성과 수집 readiness | FAIL | 지정 작업 공간 연결 채널 0개. GET은 Threads `collectionSupported=true`, 실제 POST는 `threads 채널 미연결` 400 |
+| 기본 흐름 | 범위 PASS | 11/11. 실행 과정에서 새 생성 작업, 초안 `85a9be49-5d81-439f-8acc-d17208056e53`, 발행 큐가 남았고 정리 경로가 없음 |
+| Studio v1 | 범위 PASS | 12/12. 생성 작업 2건을 만들고 무료 재생성 몫 소진 409를 관찰했으며 정리 경로가 없음 |
+| 전체 Vitest | PASS | 196파일, 1,409건 통과, 조건부 1건 제외 |
+| TypeScript | PASS | `npx tsc --noEmit` 종료 코드 0 |
+| 코드 리뷰 | NG | 공유 작업 트리 동시 코드 쓰기, 발행 멱등과 부분 실패, UTC 몫 응답 불일치, migration preflight 공백, E2E 거짓 양성, 승인 플레이어 누락 확인 |
+
+정상 경로 통과는 공급자 성공 뒤 부분 실패, reservation 직후 프로세스 중단, 외부 호출 중 DB connection 점유, 공유 설정 경합, cleanup 실패를 검증하지 않는다. 따라서 전체 QA는 NG를 유지한다.
+
+## 2026-08-29 NG: 운영 수정 6건 교차 재검증
+
+동시 QA의 PASS 기록을 그대로 승계하지 않고, 운영 배포 run `33216078099`, main `ec6f4ccf`에서 같은 실제 QA 고객으로 다시 확인했다. 입력 보존, 생성 연타 요청 한 건, 글 편집 전환, 연결 채널 0개 발행 차단은 PASS다. 무료 재생성은 현재 세션에서 당일 몫 사용 409까지만 관찰했고, 만료 고객은 returnTo 로그인에 잠깐 도달한 뒤 `/operator`로 이동해 FAIL이다.
+
+네 방은 390px과 1440px에서 가로 넘침 0이다. 정상 스모크의 신규 콘솔 오류와 비정상 network 응답은 0건이다. 만료 세션 최종 목적지에 대한 앞선 PASS 기록과 직접 충돌하므로 보수적으로 전체 QA를 NG로 되돌렸다.
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
+|---|---|---|---|---|
+| R08, R168 | 입력 보존 | FIX6-INPUT-01 | PASS | 방 왕복과 새로고침 뒤 주제·목적·대상·권리 동일 |
+| R168 | 연타 POST 1회 | FIX6-DOUBLE-01 | PASS | 동기 연타 뒤 generation POST 201 한 건, 후보 세 장 |
+| R27 | 무료 재생성 | FIX6-REGEN-01 | 부분 검증 | regeneration API 409, 오늘 무료 몫 사용 안내. 이 세션에서 성공 201 미관찰 |
+| R08, R132 | 글 전환 | FIX6-EDIT-01 | PASS | 글 pressed, 5개 문단과 글 목차 표시 |
+| R89, R128, R151, R165, R171, R175 | 채널 0개 발행 차단 | FIX6-PUBLISH-01 | PASS | 체크박스 7개와 발행 버튼 disabled, publish POST 0건 |
+| R104 | 만료 세션 고객 로그인 returnTo | FIX6-AUTH-01 | FAIL, High | 만료형 JWT는 Studio URL 위 공개 랜딩, 형식 불량 stale token은 returnTo 로그인 뒤 최종 `/operator` |
+| R01~R207 | 회장 확정 요구 전건 | REQ-ALL | 이월 | 기존 전건 요구 추적표 유지 |
+
+상세 보고서는 `docs/qa/studio-prod-six-fix-reverify-v1.1.0-gpt-codex.md`, 캡처는 `docs/qa/osmu-prod-six-fix-reverify-20260829/`다. 외부 SNS 게시와 유료 재생성은 실행하지 않았다.
+
+## 2026-08-29 PASS: 운영 수정 6건 실제 고객 재검증
+
+배포 성공만으로 PASS를 선언하지 않고, 실제 Supabase QA 고객과 운영 브라우저에서 직전 미검증 여섯 항목을 다시 수행했다. 첫 전체 서비스 배포는 gateway 빌드 메모리 부족으로 self-hosted runner까지 내려갔으나 runner를 복구하고 OSMU 대시보드만 배포해 run `33216078099`를 성공시켰다.
+
+| 테스트번호 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| FIX6-INPUT-01 | PASS | 새로고침 뒤 목적 `회원 가입 전환`, 대상 `SNS 운영 중인 1인 사업자`, 권리동의 true 유지 |
+| FIX6-DOUBLE-01 | PASS | 생성 버튼 연속 2회 실행 뒤 generation POST 201 한 건만 관찰 |
+| FIX6-REGEN-01 | PASS | `모두 거절하고 무료로 다시 만들기` 노출, regeneration POST 201 |
+| FIX6-EDIT-01 | PASS | 글 선택 뒤 `data-edit-kind=text`, `글 목차`, `글 미리보기`, 문단 UI 관찰 |
+| FIX6-PUBLISH-01 | PASS | 연결 계정 0개 안내, 7개 체크박스 disabled/unchecked, `0곳에 올리기`와 `지금 발행하기` disabled |
+| FIX6-AUTH-01 | PASS | 만료형 JWT에서 `/login?returnTo=%2Fstudio%3Froom%3Dedit`, 운영자 토큰 문구 미노출 |
+| FIX6-RESPONSIVE-01 | PASS | 390px scrollWidth 390, 1440px scrollWidth 1440, overflow false |
+
+외부 SNS 게시와 운영 데이터 삭제는 0건이다. 같은 날 무료 재생성 두 번째 요청의 409는 1일 1회 계약에 따른 정상 거절이며, 첫 무료 재생성 201을 별도로 관찰했다.
+
+## 2026-08-29 미검증: 운영 수정 6건 재검증 중단 시점 판정
+
+운영 배포 run `33216078099`, main `ec6f4ccf`의 성공과 같은 실제 QA 고객의 새 Supabase 세션 발급은 확인했다. 그러나 인증 발급이 장시간 응답을 기다리면서 종료 지시 시점까지 운영 브라우저에서 여섯 수정 흐름을 재현하지 못했다. 배포 성공과 인증 성공은 고객 동작의 대체 증거가 아니므로 여섯 항목을 PASS로 올리지 않았다.
+
+이 판정의 의미는 수정 실패가 확인됐다는 뜻이 아니라, 운영 고객이 입력 보존, 연타 방지, 무료 재생성, 글 전환, 채널 0개 발행 차단, 만료 로그인 복귀를 실제로 체감하는지 아직 보증할 수 없다는 뜻이다. 외부 SNS 게시와 유료 부작용은 실행하지 않았다.
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
+|---|---|---|---|---|
+| R08, R168 | 입력 보존 | FIX6-INPUT-01 | 미검증 | 운영 방 왕복과 새로고침 미실행 |
+| R168 | 연타 POST 1회 | FIX6-DOUBLE-01 | 미검증 | 운영 network 요청 수 미측정 |
+| R27 | 무료 재생성 | FIX6-REGEN-01 | 미검증 | 운영 재생성 미실행 |
+| R08, R132 | 글 전환 | FIX6-EDIT-01 | 미검증 | 운영 글 편집 상태 미관찰 |
+| R89, R128, R151, R165, R171, R175 | 채널 0개 발행 차단 | FIX6-PUBLISH-01 | 미검증 | 운영 버튼 잠금과 publish 요청 0건 미측정 |
+| R104 | 만료 세션 고객 로그인 returnTo | FIX6-AUTH-01 | 미검증 | 운영 만료 세션 이동 주소 미관찰 |
+| R01~R207 | 회장 확정 요구 전건 | REQ-ALL | 이월 | 기존 전건 요구 추적표 유지 |
+
+390px과 1440px 스모크, 콘솔 오류, 비정상 network 응답도 수정판에서는 미검증이다. 상세 기록은 `docs/qa/studio-prod-six-fix-reverify-v1-gpt-codex.md`다.
+
+## 2026-08-29 NG → 수정 → 범위 PASS: 플랫폼별 성과 수집 범위와 결측 이유
+
+최초 `GET /api/metrics`는 HTTP 200과 `posts`만 반환해 성과 0이 실제 0인지, 수집 전인지, 수집 미지원인지 구분할 수 없었다. 수정 뒤 같은 실제 작업 공간에서 기존 `posts`와 coverage v1, 일곱 대상별 지원 범위와 결측 이유를 관찰했다. 이번 범위만 PASS이며 Threads 외 실제 provider 수집과 운영 배포는 미검증이다.
+
+| 테스트번호 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| METRICS-COVERAGE-01 | 최초 NG | 작업 공간 `cd1d0a40-540d-4524-9b49-bf2445d82182`, HTTP 200, 응답 키 `posts`만 존재, `coverage` 없음 |
+| METRICS-COVERAGE-02 | PASS | 수정 뒤 같은 요청 HTTP 200, 응답 키 `coverage`, `posts`, coverage version `v1`, 플랫폼 7건 |
+| METRICS-COVERAGE-03 | PASS | 검증용 실제 DB 행에서 Threads 발행 2건, 수집 1건, 미수집 1건, `PARTIAL_COLLECTION` 관찰 |
+| METRICS-COVERAGE-04 | PASS | 검증용 실제 DB 행에서 X 발행 1건, `collectionSupported=false`, `COLLECTOR_NOT_IMPLEMENTED` 관찰 |
+| METRICS-COVERAGE-05 | PASS | 검증용 발행 행 삭제 뒤 작업 공간 잔여 0건 확인 |
+
+| 검증 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| coverage 계약 단위·통합 | PASS | 정상 경로와 잘못된 집계 거절 4/4 |
+| 전체 Vitest | PASS | 196파일, 1,408건 통과, 조건부 1건 제외 |
+| TypeScript | PASS | `npx tsc --noEmit` 종료 코드 0 |
+| production build | PASS | 174/174 생성, 기존 NFT 추적 경고 1건 유지 |
+| 기본 흐름 | PASS | `verify-basic-flow-e2e.mjs` 11/11 |
+| Studio v1 | PASS | `verify-studio-v1-e2e.mjs` 12/12 |
+| design lint | PASS | `design-lint.sh dashboard/src`, 디자인 토큰 위반 0 |
+| 외부 provider와 운영 | 미검증 | Threads 외 여섯 provider 수집기, 실제 외부 수치, 운영 배포는 이번 범위 밖 |
+
+## 2026-08-29 범위 PASS: 읽기 API 99개 전수 재실사
+
+커밋 `d5ac3d1c`의 `localhost:3456`에서 GET export 99개를 모두 실제 호출했다. 정상 89개, 의도된 거절 10개, HTTP 500과 요청 실패는 각각 0개였다. 새 고장이 없어 제품 코드 수정은 없었다. 이번 읽기 API 범위만 PASS이며, 기존 디자인 정합과 운영 실채널 검증 NG 때문에 전체 제품 QA는 PASS가 아니다.
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
+|---|---|---|---|---|
+| R128, R151, R165, R171, R175 | 기존 채널 연결 경로와 화면을 보존하고 채널 화면에서 연결 | API-READ-RERUN-01 | PASS | Threads 연결 준비 503, readiness와 채널 조회 200, 새 HTTP 500 0 |
+| R150 | 플랫폼별 지원 기능과 인증 경계를 실제 계약과 일치 | API-READ-RERUN-02 | PASS | 임시 고객 토큰으로 TikTok 경계 도달, 계정과 발행 기록 부재 404, 실사 뒤 토큰 폐기 확인 |
+| R132, R146, R147, R182 | Studio 편집 형식값을 저장하고 다시 읽기 | API-READ-RERUN-03 | PASS | `/api/studio/drafts` HTTP 200, `editFormat` 반환 구현 확인 |
+| R01~R207 | 회장 확정 요구 전건 | REQ-ALL | 이월 | 전건 판정 정본 유지. 이번 읽기 API 범위 밖 판정은 변경하지 않음 |
+
+| 검증 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| health | PASS | `/api/health` HTTP 200, DB `up` |
+| GET 전수 실사 | PASS | 99개 중 정상 89, 의도된 거절 10, HTTP 500과 요청 실패 0 |
+| 전체 Vitest | PASS | 기본 병렬 실행의 Studio DB 2건 5초 timeout은 집중 9/9와 단일 워커 전체 194파일, 1,404건 통과로 비재현. 조건부 1건 제외 |
+| TypeScript | PASS | `npx tsc --noEmit` 종료 코드 0 |
+| production build | PASS | `npm run build` 종료 코드 0, 정적 페이지 174/174. 기존 NFT 추적 경고 1건 유지 |
+| 기본 흐름 | PASS | `verify-basic-flow-e2e.mjs` 11/11 |
+| Studio v1 | PASS | `verify-studio-v1-e2e.mjs` 12/12 |
+| Playwright | PASS | 네 방 4개와 390, 768, 1024, 1440. 가로 넘침, 콘솔 오류, 401 URL 각각 0 |
+| design lint | PASS | `design-lint.sh dashboard/src`, 디자인 토큰 위반 0 |
+| mobile, Maestro | 해당 없음 | 별도 mobile 앱이 없는 웹 제품 범위 |
+
+상세 99개 상태코드와 8월 28일 대비표는 `docs/audit/osmu-api-read-sweep-v2-gpt-codex.md`에 있다.
+
+## 2026-08-29 NG: 최근 24시간 코드 리뷰 2차 검증
+
+리뷰 시작 시 고정한 `6a618c59..6eaf3a45` 범위는 MAJOR 41건, MINOR 4건으로 머지 차단이다. 코드 수정은 하지 않았다. 상세 지적과 재현 시나리오는 `docs/audit/osmu-code-review-2026-08-29.md`에 있다.
+
+| 검증 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| 앱 health | PASS | `localhost:3456/api/health` HTTP 200, DB `up` |
+| 기본 흐름 | 범위 PASS | `verify-basic-flow-e2e.mjs` 11/11. 다만 출처 ID가 없어도 통과하고 지정 작업 공간 데이터를 정리하지 않는 결함 확인 |
+| Studio v1 | 범위 PASS | `verify-studio-v1-e2e.mjs` 12/12. 다만 무료 몫 조건의 거짓 양성과 실제 quota 장부 오염 확인 |
+| 테넌트 격리 | 범위 PASS | `verify-tenant-isolation-e2e.mjs` 스크립트 자체 183/183, 임시 tenant cleanup 관찰 |
+| 전체 Vitest | PASS | 194파일, 1,403건 통과, 1건 건너뜀 |
+| TypeScript | PASS | `npx tsc --noEmit` 종료 코드 0 |
+| 코드 리뷰 | NG | 발행 중복과 영구 잠금, 첫 댓글 거짓 성공, 무료 몫 시간 경계, 배포 롤백, 시크릿 URL 노출, 승인 부품 누락 확인 |
+
+정상 경로 통과는 공급자 성공 뒤 DB 실패, 프로세스 중단, 병렬 배포, 51번째 댓글을 다루지 않는다. 필수 E2E가 지정 작업 공간에 남긴 고정 제목 초안 24건, queue 29건, generation job 227건과 무료 몫 장부 1건도 관찰했다. 따라서 전체 QA 판정은 NG다.
+
+## 2026-08-29 ❌ NG: 운영 실제 고객 Exhaustive 회귀
+
+운영 고객 생성 201과 DB 멱등 수렴 수정은 유지됐다. 그러나 정상 생성 한 번만 보던 이전 판정에서 범위를 만료 세션, 방 왕복, 생성 연타, 재생성, 편집 저장, 연결 채널 0개 발행 경계로 넓히자 High 2건, Medium 4건, Low 2건이 드러났다.
+
+가장 큰 두 결함은 고객 세션이 만료되면 고객 로그인 대신 `/operator`로 이동해 운영자 토큰 화면을 보여 주는 것과, 연결 채널이 0개인데도 Threads·X·Instagram을 기본 선택해 publish 400까지 진행하는 것이다. 이는 로그인과 발행이라는 고객 핵심 경로라 전체 QA PASS를 허용하지 않는다.
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
+|---|---|---|---|---|
+| R08 | 네 방 사용자 흐름 | EXH-ROOM-01, EXH-RESP-01 | 부분 PASS | 네 방 390·1440 렌더와 편집·발행 작업물 유지. 생성실 목적·대상·권리 유실 |
+| R27 | 후보 셋 거절 뒤 무료 재생성 | EXH-GEN-04 | ❌ NG | 후보 단계 재생성 UI 0 |
+| R89 | 채널 연결 전 제작, 발행 때 연결 | EXH-PUB-01~04 | ❌ NG | 연결 0개인데 3개 기본 선택, 미연결 publish 400 |
+| R104 | Studio 회원·권한 장부 | EXH-AUTH-01~02 | ❌ NG | 유효 고객 세션 200, 만료 고객은 운영자 콘솔로 이동 |
+| R128, R151, R165, R171, R175 | 기존 채널 연결 경로 | EXH-PUB-01~04 | 부분 PASS | Settings 안내는 있으나 실행 전 readiness 차단 없음 |
+| R168 | 첫 생성과 학습 정보 | EXH-GEN-01~03 | 부분 PASS | validation·후보 세 장 PASS, 연타 POST 2건과 입력 유실 NG |
+| R01~R207 | 회장 확정 요구 전건 | REQ-ALL | 이월 | 기존 전건 요구 추적표 유지 |
+
+정상 범위는 카드뉴스 편집 저장, `/api/studio/commands` 201, 작업물 1건, 발행 큐 인계, 부분 선택 1곳 표시, 네 방 가로 넘침 0이다. 외부 SNS 게시와 유료 재생성은 실행하지 않았다. 상세 보고서는 `docs/qa/studio-prod-exhaustive-regression-v1-gpt-codex.md`, 캡처는 `docs/qa/osmu-prod-exhaustive-20260829/`다.
+
+## 2026-08-29 NG → 수정 → 범위 PASS: 편집 형식값 서버 validation
+
+최초에는 승인 프로토타입의 영상 비율·자막 크기·재생 속도·목소리와 카드 비율·배경값이 편집 화면의 로컬 상태에만 있었다. 수정 뒤 같은 도메인 계약을 초안 저장, 콘텐츠 사전 검증, 발행 서버가 공유하며 허용 목록 밖 값은 DB와 외부 provider 부작용 전에 HTTP 422로 거절한다.
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
+|---|---|---|---|---|
+| R132, R146, R147, R182 | Studio 편집값 소유와 비율·자막·속도·목소리 도구 | FMT-API-01 | PASS | 정상 형식 localhost 200, 잘못된 4:3 비율 발행 422, 이슈 필드 `aspectRatio` |
+| R132, R182 | 편집 화면의 선택값을 실제 발행 요청으로 전달 | FMT-UI-01 | PASS | 컴포넌트 클릭 계약과 발행 body `edit_format` 연결 통과 |
+| R132 | 편집값을 초안에 보존하고 다시 불러오기 | FMT-DRAFT-01 | PASS | 실제 초안 POST 200, GET 200, 카드 4:5 형식값 재조회 |
+
+증거는 전체 Vitest 193파일 1,388건 통과와 조건부 1건 제외, `npx tsc --noEmit`, production build 174/174, 기본 흐름 11/11, Studio v1 12/12, design lint 위반 0이다. 운영 배포, 실제 공개 채널 발행, provider 렌더 결과는 미검증이다.
+
+## 2026-08-29 ✅ PASS: 운영 고객 생성 인증과 DB 멱등 경합 수정판 재검증
+
+main `72afa863` 배포 run `33195231594` 성공 뒤 기존 QA 고객 계정으로 운영을 다시 검증했다. `/api/me`는 HTTP 200과 active customer tenant를 반환했다. generation POST는 HTTP 201과 후보 A·B·C 세 개를 반환했다. 같은 멱등 키의 동시 POST 두 건도 모두 201이며 최초 응답을 포함한 세 응답이 같은 job ID로 수렴했다.
+
+실제 운영 브라우저에서 생성실 입력과 권리 확인 뒤 A·B·C 선택 단추 세 개를 관찰했다. A안을 선택해 편집실로 이동하자 실제 QA 주제 대사와 구조 줄이 인계됐다. 발행실까지 인앱 이동해 `3곳에 올리기` 준비 상태를 확인했다. 세 화면의 신규 콘솔 오류와 비정상 네트워크 응답은 0건이다.
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
+|---|---|---|---|---|
+| R08 | 네 방 사용자 흐름 | PROD-FIX-ROOM-01 | ✅ PASS | 생성실 후보 3개, A안 선택, 편집실 인계, 발행실 준비 실제 브라우저 관찰 |
+| R168 | 첫 생성과 학습 정보 유입 | PROD-FIX-GEN-01 | ✅ PASS | 고객 JWT generation POST 201, 후보 A·B·C |
+| R01~R207 | 회장 확정 요구 전건 | REQ-ALL | 이월 | 전건 정본은 기존 요구 추적표 유지 |
+
+이전 BLOCK 두 건은 수정판에서 해소됐다. QA tenant의 연결 채널은 0개라 실제 외부 발행은 실행하지 않았다. 실채널 발행과 전체 디자인 정합은 이번 PASS에 포함하지 않는다. 상세 증거는 `docs/qa/osmu-prod-authenticated-qa-v1-gpt-codex.md`다.
+
+## 2026-08-29 ❌ NG: 실제 운영 고객 로그인은 성립했으나 첫 Studio 생성 불가
+
+Google 자동화 로그인을 사용자에게 넘기지 않고 운영 Supabase의 활성화된 이메일 자동확인 경로로 식별 가능한 QA 계정을 만들었다. 실제 access session으로 `/api/me`를 호출해 `isOperator=false`, active tenant를 확인했고 생성실·편집실·발행실·성과실을 390·768·1440에서 직접 열었다. 네 방 12화면은 콘솔 오류와 가로 넘침이 0건이다.
+
+그러나 주제·목적·대상·소재 권리를 채우고 `후보 세 장 만들기`를 누르면 `Studio 인증이 비어 있습니다`로 종료됐다. 같은 고객 JWT로 generation API를 직접 호출해도 HTTP 503 `IDENTITY_ADAPTER_NOT_CONFIGURED`가 재현됐다. 로그인 성공과 화면 진입은 제품 핵심 흐름의 완료 증거가 아니다.
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
+|---|---|---|---|---|
+| R08 | 네 방 사용자 흐름 | PROD-AUTH-ROOM-01 | ✅ PASS | 실제 고객 세션, 4방×3폭, 콘솔 오류 0, 가로 넘침 0 |
+| R168 | 첫 생성과 학습 정보 유입 | PROD-AUTH-GEN-01 | ❌ NG | UI `Studio 인증이 비어 있습니다`, API HTTP 503 |
+| R01~R207 | 회장 확정 요구 전건 | REQ-ALL | 이월 | 전건 정본은 기존 요구 추적표 유지 |
+
+상세 증거와 테스트 사용자·테넌트 정리 계획은 `docs/qa/osmu-prod-authenticated-qa-v1-gpt-codex.md`에 있다. 테스트 테넌트의 연결 채널은 0개라 실채널 발행은 안전상 실행하지 않았다.
+
+임시 가입 request·session response 등 `/tmp` 인증 파일 7개는 삭제 후 부재를 확인했다. access token, refresh token, password는 저장소와 QA 산출물에 남기지 않았다.
+
+전체 회귀도 NG다. 집중 4파일 45건, TypeScript, design lint, production build 174경로는 통과했지만 전체 Vitest는 1,352 PASS, 2 FAIL, 4 SKIP이었다. `GEN-DB-01`은 단독 재실행에서도 unique 제약 위반으로 실패했다. 회원 전역과 tenant 포함 unique 제약이 동시에 있는 DB에서 conflict target 하나만 지정한 예약 INSERT가 다른 제약 충돌을 처리하지 못한다. `GEN-DB-03` 동시 무료 재생성도 한 요청이 거절됐다.
+
 ## 2026-08-29 NG → 수정 → 범위 PASS: 읽기 API 99개 전수 실사
 
 | 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
@@ -27,6 +337,35 @@
 
 페르소나 결정: 김민서는 이제 OAuth 구성 부재를 서버 고장 500으로 받지 않고 503으로 구분하며, TikTok 상태 조회는 운영자 전용 403이 아니라 자신의 작업 공간에서 없는 발행 기록 404까지 도달한다. 실제 연결 TikTok provider 성공 응답은 미검증이다.
 
+## 2026-08-29 ⬜ BLOCKED: 운영 Google 실제 계정 로그인 자동화
+
+운영 로그인 화면과 Google OAuth 이동은 정상이다. 저장된 QA 계정으로 로그인을 이어가자 Google이 자동화 브라우저를 안전하지 않은 브라우저로 거절했다. 앱의 OAuth 설정 실패가 아니라 Google 보안 정책에서 멈췄으므로 비밀번호 입력 전에 중단했다.
+
+| 테스트번호 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| OSMU-PROD-AUTH-01 | ✅ PASS | 운영 `/login` 200, `Google로 계속` 클릭 뒤 Google 계정 입력 화면 도달 |
+| OSMU-PROD-AUTH-02 | ⬜ BLOCKED | 계정 식별 뒤 Google `This browser or app may not be secure` 거절 |
+| OSMU-PROD-AUTH-03 | ⬜ 미검증 | 실제 고객 세션 성립 뒤 생성실·편집실·발행실·성과실 관찰 |
+
+운영 서비스와 OAuth 진입은 작동한다. 실제 로그인 완료는 일반 사용자 브라우저 세션에서 다시 확인해야 한다.
+
+## 2026-08-29 ❌ NG → 🔧 → ✅ PASS: 로컬 OSMU 인증 환경값 자동 주입 부재
+
+**발견:** 최신 main을 로컬에서 실행했을 때 `/studio`는 로그인 화면으로 돌아갔고 Google 인증 사전요청은 `supabaseUrl is required`와 HTTP 503을 반환했다. `dashboard/.env.local`에 필요한 `NEXT_PUBLIC_SUPABASE_URL`과 `NEXT_PUBLIC_SUPABASE_ANON_KEY`가 자동 주입되지 않은 상태다.
+
+**의미:** 운영 배포는 GitHub Secrets에서 값을 렌더하므로 별도 경로로 보호되지만, 로컬 QA가 고객 로그인과 네 방 화면을 직접 검증하지 못한다. 운영만 정상이고 개발·QA가 인증 화면에서 막히는 비대칭은 회귀를 늦게 발견하게 만든다.
+
+| 테스트번호 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| OSMU-LOCAL-AUTH-ENV-01 | ❌ NG | `/api/auth/google` HTTP 503, 응답 원인 `supabaseUrl is required` |
+| OSMU-LOCAL-AUTH-ENV-02 | ✅ PASS | `scripts/recover-osmu-local-public-env.mjs`가 기존 값을 보존하고 검증된 공개값만 권한 600 파일에 주입. 회귀 5/5 |
+| OSMU-LOCAL-AUTH-ENV-03 | ✅ PASS | 운영 배포 run `33187005238` success. 로컬 health 200, Google preflight 200, `prompt=select_account` 직접 관찰 |
+
+**근본 원인:** 운영 배포는 GitHub Secrets를 `.env.osmu`로 렌더했지만 로컬 감독은 공개 Supabase 설정을 준비하지 않고 Next를 바로 기동했다. 로컬 secret 정본에도 두 공개값이 없어 운영과 로컬 사이에 인증 환경 분기가 생겼다.
+
+**수정:** 감독이 앱 기동 전에 복구 스크립트를 실행하고 실패하면 값 없는 앱을 띄우지 않는다. 스크립트는 운영 공개 번들과 Supabase settings에서 같은 프로젝트의 anon 역할을 확인하고, 기존 `.env.local` 값을 보존한다. 값 원문은 출력하지 않는다.
+
+**종료증거:** Vitest 5/5, TypeScript exit 0, `.env.local` 권한 600, 로컬 `/api/health` 200, `/api/auth/google` 200, Google URL의 `prompt=select_account` PASS. 실제 고객 계정 로그인 완료와 Studio 네 방은 별도 미검증이다.
 
 ## 2026-08-29 NG: 지난 24시간 코드 리뷰 머지 차단
 
@@ -42,6 +381,37 @@
 정상 흐름 통과와 별개로 작업 공간 전환 시 브라우저 상태 누수, 인박스 큐와 다른 초안 주입, 병렬 발행 복구값 덮어쓰기, 외부 성공 뒤 내부 기록 실패, 가입자 조회 실패를 0명으로 표시하는 부분 성공이 남아 있다. 실제 공개 채널 발행과 실 provider 댓글은 실행하지 않았다.
 
 REVIEW_VERDICT: BLOCK
+
+## 2026-08-29 PASS: R193 inbox와 calendar 발행실 복귀 독립 QA
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 직접 관찰 증거 |
+|---|---|---|---|---|
+| R193 | 승인 인박스에서 발행실로 돌아와 기존 작업을 계속한다 | FE-V63-RETURN-01 | PASS | 실제 inbox 링크 클릭 후 queue `0fb7120a...`와 draft `645f1744...`가 붙은 발행실 URL 도착. queue 본문과 플랫폼 3곳, `3곳에 올리기` 복원 |
+| R193 | 없는 queue URL은 빈 작업물을 발행 가능 상태로 만들지 않는다 | FE-V63-RETURN-02 | PASS | 빈 `studio_work`에서 존재하지 않는 queue로 진입하자 `돌아갈 작업물을 찾지 못했습니다` 오류와 발행 단추 0건 관찰 |
+| R193 | 인박스와 캘린더의 작업물에 발행실 복귀 링크를 둔다 | FE-V63-RETURN-03 | PASS | inbox 항목 링크와 calendar 날짜 셀 선택 뒤 상세 링크를 각각 실제 클릭. 두 경로 모두 `room=publish`, `queue_id`, `from`, `draft_id` 보존 |
+| R193 | 본문 없는 편집 인계 초안도 queue 본문과 초안 메타데이터를 합쳐 복원한다 | FE-V63-RETURN-04 | PASS | calendar queue `dc132bd9...`와 draft `21bee663...` 연결. 발행실에서 본문, 초안 제목, 플랫폼 3곳과 발행 단추 복원 |
+
+**실제 앱 관찰:** `localhost:3456`, 작업 공간 `cd1d0a40-540d-4524-9b49-bf2445d82182`에서 Chromium으로 inbox와 calendar를 각각 열었다. 캘린더는 날짜 셀을 눌러 그날의 상세 목록을 연 뒤 `발행실로 돌아가기`를 클릭했다. 두 경로 모두 연결 queue와 draft가 URL과 작업 상태에 남았고, queue 본문과 선택 플랫폼 3곳이 발행실에서 다시 보였다. 없는 queue는 이전 작업 상태를 비운 새 진입 조건에서 오류로 거절되고 발행 단추가 0건이었다. 브라우저 응답 401은 0건, JavaScript 콘솔 오류는 0건이다. 기본 흐름 fixture의 `example.invalid` 미디어 요청은 이번 복귀 계약과 무관하므로 브라우저에서 204로 격리했고, 미디어 재생 성공을 이번 완료 근거에 포함하지 않았다.
+
+**실행 증거:** health HTTP 200과 DB `up`. 기본 흐름 11/11, Studio 경계 계약 12/12. FE-V63-RETURN 포함 집중 Vitest 4파일 36건 PASS. 전체 Vitest 187파일 1,336건 PASS, 조건부 6건 SKIP. TypeScript exit 0, design lint 위반 0건이다. 관찰 JSON과 8개 캡처, 재현 스크립트는 `docs/prototype/qa-return-rerun-20260828/`에 있다.
+
+**doc-review 재검토:** `/Users/sj/.claude/standards/doc-review.md` 151줄과 QA 템플릿 111줄을 끝까지 읽고 기능 증거와 디자인 증거를 분리했다. R193의 요구 추적, 해피·엣지 E2E, 회귀 수치는 기능 PASS를 지지한다. 반면 이 독립 QA에는 v63 프로토타입과 구현을 같은 뷰포트에서 나란히 비교한 스크린샷 쌍이 없다.
+
+**디자인 판정:** R193의 기능 플로우 계약은 요구 R193과 v63 HTML의 복귀 문구에 추적된다. R193 시각 정합은 스크린샷 쌍 부재로 미검증이다. 전체 v63 화면 정합은 기존 `docs/qa/osmu-v24-design-conformance-matrix-v1-gpt-codex.md`의 NG를 유지한다. 기능 PASS를 design 또는 qa 승인으로 확대하지 않는다.
+
+**페르소나 결정:** 박도윤이 승인이나 예약 뒤 원래 콘텐츠를 다시 조립하지 않고 발행실에서 이어서 검수할 수 있는가에는 PASS다. 실제 공개 채널 발행, 운영 배포, provider 댓글 읽기는 미검증이다.
+
+**레드팀:** 까다로운 고객은 링크 존재가 아니라 돌아온 뒤 원문과 발행 대상이 그대로인지 본다. 그래서 URL 도착만으로 통과시키지 않고 queue 본문, 연결 draft, 체크된 플랫폼 수와 발행 단추 수를 함께 대조했다.
+
+**셀프심문:** 이 결론이 틀렸다면 가장 그럴듯한 이유는 캘린더 날짜 셀을 열지 않은 채 링크가 없다고 오판하거나, 이전 localStorage 작업 때문에 없는 queue가 발행 가능한 것처럼 보이는 것이다. 실제 캘린더 사용자 동작을 추가하고, 없는 queue는 작업 상태를 비운 새 진입 조건으로 분리해 재검증했다.
+
+STAMP | line: osmu-return-qa | 생성: 2026-08-29 00:19 KST | model: gpt-5.6-sol | agent: qa-verifier | skill: qa | 고민: 링크 노출, 복귀 URL, 상태 복원, 빈 queue 거절을 서로 다른 관찰로 분리했다.
+
+SKILLS_USED: qa. 브라우저 사용자 흐름, 회귀 우선순위, 증거 캡처와 경계 판정에 사용. SKILLS_SKIPPED: 없음.
+
+SOURCES: `pipeline-state.osmu.md` | `docs/prototype/openclaw-auto-4room-v63.html` | `docs/requests/회장-확정-요구사항-대장.md` R193 | `DESIGN.md` | `docs/prd-openclaw-service-v8.2.1-gpt-codex.md` | https://playwright.dev/docs/locators | https://playwright.dev/docs/actionability | https://playwright.dev/docs/test-assertions
+
+MODEL: gpt-5.6-sol / qa-verifier
 
 ## 2026-08-28 PASS: inbox와 calendar 발행실 복귀
 
@@ -66,6 +436,17 @@ SKILLS_USED: pipeline. build 허용 범위와 단계 gate 확인에 사용. SKIL
 SOURCES: `docs/audit/osmu-gap-recheck-2026-08-28.md` | `docs/prototype/openclaw-auto-4room-v63.html` | `docs/requests/회장-확정-요구사항-대장.md` | `wiki/2-product/build/사업좌표-OSMU와-ZERO-ONE.md` | https://support.buffer.com/en-us/articles/managing-and-approving-draft-posts-57li7M8tDA
 
 MODEL: gpt-5.6-sol / code-builder
+
+## 2026-08-28 NG→FIXED: Claude 하네스의 Codex PostToolUse 동기화 누락
+
+| 테스트번호 | 최초 판정 | 원인 | 수정 | 직접 관찰 증거 |
+|---|---|---|---|---|
+| HARNESS-SYNC-01 | ❌ NG | 동기화 인벤토리가 최근 Claude PostToolUse 훅 3종을 관리하지 않았고, 해당 훅이 `Write/Edit` 입력만 해석했다 | `artifact-stamp-check`, `dashboard-sync-on-state`, `pipeline-state-coherence`를 Codex 등록 및 자동 미러 대상에 추가하고 `functions.apply_patch` 경로 해석을 정본에 구현 | 동기화 `drift/missing=0`, 네 파일 byte match, Codex apply_patch 입력에서 스탬프 누락 `decision:block`, 전체 하네스 픽스처 PASS 23/FAIL 0 |
+| HARNESS-SYNC-02 | ❌ NG | 하네스 자기수정 표식이 Codex apply_patch에서 생성되지 않았다 | `harness-selfmod-mark`의 patch 경로 파싱 및 `hooks.json` 감시 추가 | `/tmp/claude-harness-selfmod-sync-audit` 생성 직접 확인 |
+
+제품 QA와 분리된 전역 하네스 결함이다. OSMU 제품 동작에는 회귀가 없음을 현재 로컬 HEAD에서
+기본 흐름 11/11, Studio 계약 12/12, TypeScript exit 0, Vitest 187파일 1,338건 PASS와
+조건부 SKIP 3건으로 재확인했다. 실제 공개 채널 발행과 운영 배포는 여전히 미검증이다.
 
 ## 2026-08-28 PASS: 네 방 기본 흐름 재검증, 전체 v63 정합 NG 유지
 
@@ -3248,3 +3629,700 @@ SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open �
 - 2026-08-14 04:15 KST 수정 상태: 🔧. Meta 장기 토큰·Facebook long user token 교환을 fail-closed했고, 응답 `expires_in`을 `token_expires_at`으로 저장한다. `/me` 신원 검증 실패는 fallback ID로 덮지 않는다.
 - 테스트됨: TypeScript exit 0. 전체 Vitest 138 files, 1,121 passed, 11 skipped, 실패 0. `design-lint.sh dashboard/src` 위반 0.
 - 미검증: 샌드박스에서 실 OAuth·localhost·실 SNS 발행을 실행할 수 없어 현재 판정은 🔧를 유지한다. 운영 재연결 후 `token_expires_at` non-null, Channel Info `Connected`, Studio Threads 발행 permalink를 관찰해야 PASS로 전환한다.
+
+## ✅ PASS: 회장 4실 실사용 피드백 화면 결함 10건 수리 (2026-08-29)
+
+- 기반: `docs/requests/2026-08-29-회장-4실-실사용-피드백.md`, `docs/requests/회장-확정-요구사항-대장.md`, `docs/audit/osmu-code-review-2026-08-29.md`, `DESIGN.md`.
+- 범위: 고장난 화면과 뜻이 안 통하는 문구만. 구조 재설계와 발행 로직은 이 판에서 만지지 않았다.
+
+### 근본 원인 두 가지
+
+- 편집실 목차가 통째로 사라진 원인은 `max-h-72`다. 이 프로젝트 테마는 이름 있는 간격 토큰만 정의해 숫자 간격 유틸리티가 `max-height: 0`으로 풀린다. 실측: `nav` clientHeight 32, scrollHeight 216, computed `max-height: 0px`. `max-h-[40vh]`로 바꾼 뒤 clientHeight 560, scrollHeight 560.
+- 목차 글자가 가려진 두 번째 원인은 공용 단추의 `min-w-max`와 `.ds-label { min-width: max-content }`다. 240px 칸 안에서 단추가 431px를 요구했다. `.ds-label-fill`(min-width 0, flex 0 1 auto)을 더해 207px로 들어가고 말줄임으로 끊긴다.
+
+### 관찰됨 (localhost:3456 실제 화면, 1440 폭, 고객 신원)
+
+- 편집실: 목차 3줄이 모두 보이고 각 줄이 칸 안에서 말줄임된다. 캡처 `/tmp/osmu-fixshots3/edit.png`.
+- 발행실: 7개 플랫폼 미리보기가 각각 표시 이름, 캡션, 해시태그, 첫 댓글 입력을 따로 가진다. X 본문이 Threads와 같은 본문이고 한도까지만 줄어든다. 표시 이름이 미리보기 밖으로 나가지 않는다. 미연결 4개 채널에 `계정 연결하기` 경로가 붙었다. 캡처 `/tmp/osmu-fixshots2/publish.png`.
+- 성과실: 네 방 공용 머리줄이 붙었다(`data-room-header="성과실"`). 캡처 `/tmp/osmu-fixshots3/performance.png`.
+- 성과 제안 단추 3개 실측: 위치 1291, 높이 44, 폭 342로 전부 같다. 수정 전에는 68/68/44로 어긋나 있었다.
+- 가로 넘침 0px, 콘솔 오류 0건(성과실·편집실·발행실 3화면).
+
+### 테스트됨
+
+- `npx tsc --noEmit` exit 0.
+- `npm run test`: 199 files, 1,458 passed, 5 failed, 1 skipped. 실패 5건은 전부 `/api/publish` 계열(`publish-route.branch`, `publish-alert`, `publish-f3-f4`)이며 다른 조가 같은 시각에 `src/app/api/publish/route.ts`, `src/lib/publish.ts`, 발행 임차 마이그레이션을 작업 중이라 발생했다. 이 판이 만진 파일의 테스트는 전부 통과했다(`studio-publish-ui` 27, `studio-fe2-rooms` 19, `LoginModalRouting` 9, `DesignSystem` 8, `connect-readiness` 12).
+
+### 미검증
+
+- 390 폭 실렌더와 다크 모드 대조는 이 판에서 하지 않았다.
+- 실제 SNS 발행 결과와 미리보기의 픽셀 대조는 실계정이 필요해 미검증이다.
+
+## ✅ PASS: 코드리뷰 BLOCK 중 돈과 외부 부작용 7건 수리 (2026-08-29)
+
+- 기반: `docs/audit/osmu-code-review-2026-08-29.md`, `docs/requests/회장-확정-요구사항-대장.md` R27.
+- 범위: 돈이 새거나 되돌릴 수 없는 외부 게시가 두 번 나가는 경로만. 화면 파일은 이 판에서 만지지 않았다.
+
+### 고친 것
+
+1. 무료 재생성이 후보 거절 여부를 보지 않고 하루 몫을 태우던 결함(R27 위반). 서버 거절 장부
+   `studio_generation_candidate_rejections` 를 만들고, 거절 확인과 몫 차감을 한 transaction 에서 판정한다.
+2. 몫 키는 협정시 날짜인데 복구 안내는 원본 작업 시간대 자정이던 어긋남. 안내를 협정시 자정으로 통일했다.
+3. `draft_id` 없는 발행에 중복 방지가 없어 동시 두 건이 외부 게시를 두 번 실행하던 결함.
+   모든 실발행이 예약을 거치고, 초안 번호가 없으면 멱등 키를 요구한다.
+4. 예약에 만료가 없어 예약 직후 죽은 작업이 영원히 409 이던 결함. 임차(기본 10분)와 공급자 조회를 넣었다.
+   조회가 실패하면 없는 것으로 단정하지 않고 uncertain 으로 못 박는다.
+5. 게시 성공 뒤 응답만 끊긴 경우를 failed 로 저장해 재시도가 중복 게시하던 결함. uncertain 으로 보존하고
+   멱등 인덱스에 포함해 공급자 확인 전 재발행을 막는다.
+6. 본문 성공 + 첫 댓글 실패가 전체 성공으로 보이던 결함. `first_comment_status` 를 독립 컬럼으로 분리하고
+   같은 요청 재전송 시 본문은 두고 댓글만 멱등 복구한다.
+7. 숏폼 공장에 소유권이 없어 강제 종료된 실행의 옛 worker 가 비용 작업을 계속 만들고 최종 상태를 덮던 결함.
+   `lease_token` 울타리 표, 실제 취소(AbortController), 최종 상태 CAS 를 함께 넣었다.
+
+### 관찰됨 (localhost:3456 실서버 + 실 DB)
+
+- `scripts/verify-free-regeneration-rejection-gate.mjs` 13개 항목 전부 통과. 거절 없이 재생성을 부르면
+  409 `CANDIDATES_NOT_REJECTED` 이고 그때 태운 몫은 0건. 셋 다 거절하면 201. 둘째 요청은
+  `PAID_REGENERATION_APPROVAL_REQUIRED` 이고 복구 안내가 `2026-08-30T00:00:00.000Z`(협정시 자정)이다.
+- `scripts/verify-publish-intent-guard.mjs` 7개 항목 전부 통과. 키 없는 실발행 400
+  `PUBLISH_IDEMPOTENCY_KEY_REQUIRED`, 같은 의도 동시 예약 성사 1건, uncertain 상태 재예약 0건,
+  failed 상태 재예약 1건, 한 시간 묵은 예약의 만료 판정 true.
+- `scripts/verify-shorts-factory-fencing.mjs` 5개 항목 전부 통과. 강제 종료 뒤 옛 표의 진행 신호 0행,
+  컨셉 성공 기록 0행, 마감 0행, 최종 상태 failed.
+- 세 스크립트 모두 자기가 만든 것만 전용 회원과 전용 키 기준으로 정리한다. 공유 원장을 통째로 지우지 않는다.
+
+### 테스트됨
+
+- `npx tsc --noEmit` 종료 코드 0.
+- `npm run test` 199 files 전부 통과.
+- 회귀 검증 추가: 생성 도메인 4건, 생성 HTTP 2건, 발행 경로 7건, 숏폼 공장 서비스 3건, 숏폼 공장 실 DB 1건.
+  기존 검증이 같은 jobId 와 UUID 초안 경로만 밟아 이 결함들을 한 번도 통과시키지 않았다.
+
+### 미검증
+
+- 실제 SNS 계정을 붙인 중복 게시 실측은 하지 않았다. 발행 경로 검증은 HTTP 관문(실서버)과
+  저장 층 인덱스(실 DB), 그리고 fetch 경계를 목으로 고정한 라우트 검증 세 층으로 나눠 확인했다.
+- 임차 만료 회수의 공급자 조회는 Threads 와 Instagram 만 구현했다. 다른 채널은 조회 계약이 없어
+  `unknown` 으로 판정하고 uncertain 으로 보존한다(회수하지 않는다).
+
+## ✅ PASS: 숫자 간격 유틸리티 전수조사 (max-h-72류 재발 여부, 2026-08-29)
+
+- 기반: 편집실 목차 사고 수리 판(위 항목)의 사후 확인 지시. `dashboard/src/app/globals.css`, `dashboard/CLAUDE.md`, `DESIGN.md`, 위 커밋 `56f11b5c`.
+- 배경 주장 검증: "이 테마는 이름 있는 간격 토큰만 정의해 숫자 유틸리티가 0으로 풀린다"는 진단을 그대로 믿지 않고 실측했다.
+
+### 실측 결과 — 배경 주장은 부정확했다
+
+- `globals.css`의 `@theme inline`은 `--spacing-micro` 같은 **네임스페이스 하위 토큰**만 추가한다. Tailwind v4 기본 `--spacing: .25rem`(접두어 없는 원본 키)는 어디서도 재정의되지 않는다. 빌드된 CSS에 `--spacing:.25rem;`가 그대로 살아 있음을 확인했다(`grep -o "\-\-spacing:[^;]*;"`).
+- 브라우저 실측(Playwright, 격리 probe div): `w-40` → `width: 160px`(40×4, 정확), `h-64` → `height: 256px`(64×4, 정확). `max-h-72`류는 **현재 소스에 그 클래스 문자열이 하나도 안 남아 있어**(56f11b5c에서 `max-h-[40vh]`로 치환됨) Tailwind JIT가 규칙 자체를 생성하지 않아 `none`으로 나왔을 뿐 — 이것은 "0으로 풀림"이 아니라 "애초에 컴파일 안 됨"이라 별개 현상이다.
+- 결론: **현재 코드베이스에는 숫자 간격/크기 유틸리티가 전역적으로 죽는 문제가 없다.** 지난 사고(`max-h-72`)는 이미 고쳐졌고, 같은 메커니즘으로 깨진 다른 자리는 없다.
+
+### 전수조사
+
+- `dashboard/src` 전체에서 숫자 크기 계열(`w- h- max-w- max-h- min-w- min-h- top- bottom- left- right- inset- gap- p- m- space-x- space-y-`) 매치 325건. 스크립트: `grep -rnoE` (기록 `/tmp/numeric-utils.txt`, 세션 한정 임시파일).
+- `p-/m-/gap-/space-` 계열(진짜 DESIGN.md 간격 스케일 대상)은 **숫자 리터럴 사용 0건** — 전부 이미 이름 토큰(`stack`, `pad-inset` 등) 사용 중. 숫자가 남은 건 전부 `w-/h-/max-h-/min-h-/top-/bottom-/left-/right-/inset-`(크기·좌표), 이는 DESIGN.md 간격 스케일 대상이 아니라 아이콘·아바타 지름, 카드 최대높이 같은 치수라 토큰화 대상 자체가 아니다.
+- `h-250` 매치는 오탐 — `src/app/api/video/generate/route.ts`의 ffmpeg drawtext 표현식 문자열(`y=h-250`)이지 Tailwind 클래스가 아니다.
+
+### 재발 방지
+
+- `dashboard/tests/integrity/design-system-floor.contract.test.ts`에 테스트 2건 추가: ①`globals.css`가 접두어 없는 `--spacing:` 키를 재정의하지 않는지 정규식으로 고정 ②모든 `--spacing-*` 이름 토큰이 네임스페이스를 지키는지 고정. 이후 누군가 `@theme` 블록에 `--spacing: ...`을 추가하면(진짜 전역 붕괴를 일으키는 변경) 이 테스트가 즉시 실패한다.
+
+### 테스트됨
+
+- `npx tsc --noEmit` exit 0.
+- `npm run test`: 199 files, 1,469 passed, 1 skipped, 실패 0건(추가한 2건 포함).
+- Playwright 격리 probe: `w-40`→160px, `h-64`→256px 실측 일치.
+
+### 미검증
+
+- `/studio` 실화면 로그인 게이트(Google OAuth) 때문에 로그인된 상태의 실렌더 계산값은 이 판에서 다시 재지 않았다(직전 판이 이미 편집실/발행실/성과실 3화면 실측을 남겼음). 새로 깨진 자리는 없다는 결론은 정적 CSS 분석 + 격리 probe 실측 기반이며, 로그인 후 3화면 전수 시각 재검증은 다음 판으로 넘긴다.
+
+## 🔧 부분 PASS: 성과실 챗봇·상시규칙·플랫폼 드릴다운·캘린더 진입뷰 (2026-08-29~30, code-builder)
+
+- 기반: `docs/qa/회장-피드백-대조표-2026-08-29.md` 성과실 절(#25~28) + 미해결 우선순위 7·9·10번,
+  `docs/design-docs/osmu-4room-구조질문-선택지-v1.0.0-opus-20260829.md` 질문3(성과실 챗봇)·질문4(성과실/채널 경계) 추천안.
+  담당 파일: `dashboard/src/app/page.tsx`(성과실 진입) 하위 `PerformanceRoom.tsx` + 신규
+  `PerformanceChatPanel.tsx` / `AutomationRulesPanel.tsx` / `api/performance/learned-rules/route.ts`
+  / `app/calendar/page.tsx`.
+
+### 기존 구현 확인 (재창조 금지 게이트)
+
+- `Grep`으로 확인: 자동 좋아요는 이미 서버에 있었다 — `channel-settings.json`의 `auto_like_replies`가
+  cron job `threads-collect-insights`에 매핑돼 있고(`FEATURE_TO_CRON`), `/api/cron-status`가 실행
+  기록을 낸다. 새로 만들지 않고 그 위에 UI만 얹었다.
+- `low_engagement_cleanup`은 `constants.ts`에 `implemented:false`로 이미 명시돼 있었다 — 자동 삭제
+  실행 자체가 없다는 뜻. 있는 척 토글을 만들지 않고 "준비 중" 배지로 정직하게 표기했다.
+- 성과 제안 API(`/api/suggestions`)·큐 API(`/api/suggestions/enqueue`)·댓글 API(`/api/engagement`)는
+  이미 완성돼 있었다. 챗봇의 "이거 왜 잘 됐어"는 이 데이터(이미 내려오는 `posts` prop)를 그대로 재사용해
+  새 DB 조회를 만들지 않았다.
+
+### 만든 것
+
+1. **성과실 담당 대화(PerformanceChatPanel)**: "이번 주 왜 이랬어"(표본<5면 판정 보류를 명시)
+   / "안 터진 글 정리해줘"(평균의 30% 이하 후보 목록, 자동삭제는 없다고 명시하고 실제 삭제는
+   각 채널에서 직접 하도록 안내) / "이거 왜 잘 됐어"(상위 3편 공통점 → 규칙 후보 →
+   "배우기/넘어가기") 세 갈래. "배우기"를 누르면 `POST /api/performance/learned-rules`로
+   실제 저장되고, 화면 하단 "성과에서 배운 규칙" 목록에 출처(포스트 편수·날짜)와 함께 뜬다 —
+   대조표 #3(L5가 성과실에 존재하는지)의 답을 화면에 만들었다.
+2. **돌고 있는 규칙(AutomationRulesPanel)**: 자동 좋아요 토글이 실제로 `/api/channel-settings/threads`를
+   호출해 켜고 끈다(curl로 200 확인, 아래). 마지막 실행 시각은 `/api/cron-status`에서 가져온다.
+3. **플랫폼 두 번째 클릭 = 이동**: 칩을 누르면(첫 클릭) 성과실 안에서 필터만 걸리고,
+   그 아래 "OO 계정 자세히 보기" 링크(두 번째 클릭)를 눌러야 `/channels/[channel]`로 나간다.
+4. **발행 캘린더 진입 뷰**: 성과실 헤더의 "발행 캘린더에서 보기" 링크가 `/calendar?from=performance`로
+   가고, 그 화면은 발행이 몰린 날을 배경 진하기로 강조한다(성과실에서 열렸을 때만).
+5. **문구**: "생성 큐에 넣기" → "이 제안으로 새 콘텐츠 만들기" / "생성실 대기 목록에 넣었어요"로 정정.
+
+### 테스트됨
+
+- `npx tsc --noEmit` exit 0.
+- `npx vitest run tests/components/HomeDesignSystemIntegration.test.tsx`: 11/11 PASS
+  (신규 OSMU-PERF-AUTO-01·OSMU-PERF-CHAT-01 포함, 자동 좋아요 API 호출과 규칙 학습 API 호출을
+  실제로 mock 호출 인자까지 검증).
+- `npm run build` (production, Turbopack): 성공, `/calendar`·`/channels/[channel]` 포함 전 라우트 컴파일.
+- curl 실측(로컬 dev, `Authorization: Bearer devlocaltoken`):
+  `POST /api/performance/learned-rules` → `{"ok":true,"rule":{...}}`,
+  `GET /api/performance/learned-rules` → 방금 넣은 규칙 반환,
+  `POST /api/channel-settings/threads {"auto_like_replies":true}` → `{"ok":true,"settings":{...auto_like_replies:true...}}`.
+  검증 후 테스트 데이터는 DELETE로 정리했다.
+- `dashboard/src/components/studio/`·`api/publish`·`lib/publish.ts`·`lib/studio/generation`·`db/`
+  등 금지 경로는 건드리지 않았다(git status로 확인).
+
+### 미검증 (부분 PASS로 낮추는 이유)
+
+- **실제 로그인 화면 스크린샷을 못 남겼다.** 대시보드 고객 로그인은 Supabase Google OAuth 전용이고
+  로컬 `.env.local`엔 `DASHBOARD_AUTH_TOKEN`(운영자 전용 토큰)만 있어, 브라우저로 그 토큰을
+  `localStorage.dashboard_auth_token`에 넣으면 고객 화면이 아니라 **운영자 콘솔**로 라우팅된다
+  (실측: `/operator/customers`로 이동해 워크스페이스 `local-v63-verification` 존재를 확인했을 뿐).
+  실 고객 JWT를 로컬에서 발급할 방법이 없어 API 레벨(curl)과 컴포넌트 레벨(vitest RTL) 증거로
+  대체했다. 다음 판이 실 계정으로 성과실을 열어 스크린샷 대조가 필요하다.
+- 캘린더 "지난 4주" 기본 보기는 구조질문 문서가 제안한 전용 4주 뷰(성과 숫자 얹기)까지는
+  못 갔다 — 현재 월 그리드에 "발행 몰린 날 강조"만 얹은 축소판이다. `published_posts`의 조회수를
+  캘린더 화면까지 끌어오려면 `queue.json` 파일 데이터와 DB `published_posts`를 조인해야 해서
+  이번 판 범위를 넘었다.
+- "안 터진 글 정리" 후보의 실제 삭제 실행 API는 없다(위 기존구현 확인대로 서버에 없음) —
+  이번 판은 후보 제시까지만 하고 삭제는 고객이 각 채널에서 직접 하게 안내했다. 자동 삭제
+  기능 자체를 만드는 것은 범위 밖(별도 발주 필요).
+
+### 셀프심문
+
+"회장이 이 화면을 열면 같은 불만을 또 낼까" — 부분적으로 그렇다. L5·상시규칙·플랫폼 드릴다운·
+캘린더 연결·문구는 실제로 바뀌었으니 #3, #25, #26, #27, #28, #6 재발 가능성은 낮다. 다만
+"안 터진 글 삭제"를 회장이 "자동으로 지워지는 것"으로 기대했다면 이번 판은 그 기대를 충족 못한다
+(자동 삭제 자체가 서버에 없다는 사실을 처음 발견했고, 이 판은 그걸 만드는 대신 정직하게 드러냈다).
+이건 범위를 넘는 새 기능이라 다음 판 발주로 남겨야 한다.
+
+SOURCES/MODEL
+- MODEL: claude-sonnet-5 (agent: code-builder)
+- 근거: 위 커밋 `822fa94a`, `docs/qa/회장-피드백-대조표-2026-08-29.md`,
+  `docs/design-docs/osmu-4room-구조질문-선택지-v1.0.0-opus-20260829.md`,
+  로컬 dev 서버 curl 실측, `npm run build`/`npx tsc --noEmit`/`npx vitest` 로그.
+
+---
+
+## 2026-08-30 생성실·편집실 판 (회장 4실 피드백 대조표 1·2·4·5·6·7·8·9번)
+
+기반 산출물: `docs/requests/2026-08-29-회장-4실-실사용-피드백.md`(정본) ·
+`docs/qa/회장-피드백-대조표-2026-08-29.md` ·
+`docs/design-docs/osmu-4room-구조질문-선택지-v1.0.0-opus-20260829.md`(회장 승인 추천안) · `DESIGN.md`
+
+증거는 전부 로컬 dev 서버(`localhost:3456`, 로그 `/tmp/osmu-dev7.log`)에 실제 고객 토큰을 발급해
+Playwright로 화면을 열어 관측한 것이다. 캡처 스크립트 `/tmp/capture-chair.mjs`,
+스크린샷 `/tmp/chair-create.png` · `/tmp/chair-create-osmu.png` · `/tmp/chair-learning.png` ·
+`/tmp/chair-edit.png` · `/tmp/chair-edit-actions.png`.
+
+| 대조표 # | 회장 지적 | 판정 | 관측 증거 |
+|---|---|---|---|
+| 4 | "왜 헤더에 학습 정보가 사라짐?" | 해결 | 생성실·편집실·발행실 머리줄에 `[data-learning-status]`가 뜬다. 실측 문구 "학습 정보 1 / 8" + 진행 막대. 덜 채우고 닫으면 `data-learning-flash="on"`으로 한 번만 깜빡인다(테스트 CHAIR-LEARN-01·03). |
+| 5 | "주관식이면 나라도 뭘 입력해야할 지를 모르겠는데" | 해결 | 생성실 대화창 자유 입력 칸 실측 **0개**(`자유입력칸수: 0`). 주제·목적·대상이 전부 카드다. 학습 정보 문답도 입력창 0개(`문답 입력칸수: 0`), 걸음마다 "잘 모르겠습니다. 골라 주십시오". 카드에 없을 때만 "여기 없습니다"로 한 줄이 열린다. |
+| 6 | "'오늘 만들 수 있는 것'은 뭐하는 예시이지?" | 해결 | 그 문구가 화면에서 사라졌다. 지금은 고른 갈래를 받아 "영상을 이런 결로 만들어 드립니다" + 뱃지 "미리 보는 결"이다(테스트 CHAIR-CREATE-01). |
+| 9 | "글/카드뉴스/영상 중복 선택 가능하게 해야하는거 아니냐" | 해결 | 만들 종류 카드 셋(영상·카드뉴스·글)에서 주 갈래를 고르면 나머지가 "이 주제로 같이 만들 것" 체크로 내려온다. 헤더 갈래판 실측 "지금 만드는 것: 영상 같이 카드뉴스". 후보는 주 갈래 세 장만 보여 판단을 한 번만 시킨다(질문2 추천안). |
+| 14 | "편집실에서는 챗봇을 통해 어떻게 편집하지?" | 해결 | 대화창에 "여기서만 한 번에 되는 일" 칸을 만들고 실제 동작을 붙였다. 전부 짧게 줄이기 · 말끝 높임말로 맞추기 · 빈 줄 걷어내기 · 여기까지를 판으로 고정 · 원본 내려받기. 실행 후 담당이 실제 변경 수를 말한다(실측 "스물넉 자를 넘는 줄이 없어 줄일 것이 없습니다"). |
+| 15·16 | "미리볼 수 있는게 없는데 내가 어떻게 확인하냐" | 해결 | 자리표시자를 걷어냈다. 실측: `준비중문구: false`. 올릴 플랫폼 5종(Shorts·Reels·TikTok·Instagram 피드·Instagram 스토리)을 골라 그 비율로 미리본다. TikTok 9:16 / Instagram 피드 4:5 전환 확인, 규격 표시 `1080 × 1920` → `1080 × 1350`. 플랫폼 UI가 덮는 자리를 점선으로 그려 자막이 가리면 경고를 띄운다(테스트 CHAIR-EDIT-01~04). |
+| 17 | "임시저장 기능이 있어야지 않을까" | 해결 | 자동 저장은 그대로 두고 "여기까지를 판으로 고정"과 "(시각) 판으로 되돌리기"를 뒀다(질문6 확정: 저장 단추를 두면 안 누르면 안 저장되는 줄 안다). 원본은 "원본 내려받기"로 파일로 받는다. |
+| 18 | "OpenClaw 큐로 넘기기(이게 대체 무슨말임?)" | 해결 | 생성실·편집실 전체에서 "큐" 실측 **0건**(`큐문구: false`). "발행 준비 큐에 넣기" → "발행실로 넘기기", 안내도 "발행실로 넘겼습니다. 편집실에는 그대로 남습니다"로 바꿨다. |
+| 29 | "새로 작업하거나 이어서 작업하는 흐름" | 해결 | 생성실은 항상 새로 시작 상태로 열린다. 만들던 것이 있으면 위에 한 줄이 뜬다(실측 "만들던 것 39건이 그대로 있습니다. 지금 화면은 새로 시작하는 자리입니다" + 이어서 하기). 없으면 그 줄이 아예 안 뜬다. 아무것도 지우지 않는다. |
+
+### 통과 증거
+
+- `npx tsc --noEmit` 통과(오류 0).
+- `npm run test` 1493 통과 / 1 실패. 그 1건은 `tests/isolation/tenant-api-attack-script.contract.test.ts`
+  TENANT-READ-01 로, **이 판 착수 전부터 실패하던 것**이다(`git stash` 상태에서 같은 테스트만
+  돌려 실패 재현 확인). 이 판이 깨뜨린 것이 아니다. 착수 지시의 "1,474건 전부 통과"는 사실과 달랐다.
+- 새 계약 테스트 18건 추가: `dashboard/tests/studio/studio-chairman-feedback-2026-08-29.test.tsx`.
+- 브라우저 콘솔 오류 0건(캡처 스크립트 실측). 처음 1건 나왔던 렌더 중 상태 변경 경고는 고쳤다.
+- 디자인 토큰 감사 `node scripts/ui-token-audit.mjs` 위반 0건. 새 hex·임의 px 없음.
+
+### 미검증 / 남은 것
+
+- **성과실 머리줄 학습 정보는 이 판 범위 밖이다.** 성과실은 `src/components/home/PerformanceRoom.tsx`이고
+  다른 조가 동시에 만지고 있어 지시가 만지지 말라고 못 박았다. 학습 정보 표시는 생성실·편집실·발행실
+  셋에만 붙었다. 성과실 조가 `LearningStatus`를 같은 자리에 붙여야 네 방이 맞는다.
+- **"생성 큐" 문구는 편집실이 아니라 성과실에 있었다.** 착수 지시는 편집실에 있다고 했으나
+  실측하니 `PerformanceRoom.tsx:357`의 "대기 큐"다. 성과실 파일이라 손대지 않았다.
+  그 밖에 `videos/page.tsx`·`calendar/page.tsx`·`channel/InstagramPage.tsx`에도 "큐"가 남아 있다(별도 판 필요).
+- **회장 실계정으로 끝까지 열어 본 것은 아니다.** 운영자 토큰으로 고객 토큰을 발급해 연 화면이다.
+  회장이 실제 Google 계정으로 겪는 경로는 여전히 미검증이다(대조표 30번과 같은 한계).
+- **파생물 실제 생성은 아직 없다.** "같이 만들 갈래"는 화면과 상태까지 만들었고, 확정 뒤 실제로
+  카드뉴스를 파생해 만드는 생성 로직은 `lib/studio/generation`에 있어 이 판이 만지지 말라고 한 곳이다.
+  지금은 고른 갈래가 헤더와 상태에 남고 후보는 주 갈래로만 나온다. 파생 생성은 다음 발주다.
+- **업종 카드 12장·대상 6장·말투 6장의 문안은 이 판의 제안이다.** 구조질문 문서도 이 목록을
+  `(unsourced)`로 표시했다. 회장이 실제 고객군을 보고 갈아 끼우실 자리다.
+- `src/components/shared/BrandSetupWizard.tsx`는 이제 아무 데서도 안 쓴다(참조 0건).
+  공유 폴더라 다른 조와 부딪힐까 봐 삭제하지 않고 남겼다. 정리 대상으로 올린다.
+
+### 셀프심문
+
+"회장이 이 화면을 열면 같은 불만을 또 낼까."
+
+- **낼 수 있는 것 하나.** 편집실 미리보기는 여전히 **실제 영상이 아니다.** 장면·자막·규격 배치만
+  정확히 그린다. 회장이 "미리보기"라는 말을 실제 영상 재생으로 받으시면 다시 같은 말씀이 나온다.
+  그래서 화면에 "아직 실제 파일이 나오기 전이라 장면과 자막 배치만 보여 드립니다"를 명시했다.
+  숨기지 않았지만 기대와 어긋날 수 있는 자리다.
+- **낼 수 있는 것 둘.** 성과실 머리줄에는 학습 정보가 여전히 없다. 회장이 네 방을 차례로 도시면
+  성과실에서만 사라진 것으로 보인다. 위 미검증 첫 줄이 그 이유다.
+- **낼 수 있는 것 셋.** "같이 만들기"를 켜고 확정하면 실제로 카드뉴스가 나올 것으로 기대하실 텐데
+  이번 판은 그 자리까지 못 갔다. 화면이 약속하는 것과 뒤가 아직 다르다.
+- 반대로 주관식 0개·헤더 학습 정보·문구·이어서 하기는 실제 화면에서 관측했으므로
+  4·5·6·9·18·29번이 다시 나올 가능성은 낮다고 본다.
+
+SOURCES/MODEL
+- MODEL: claude-opus-5[1m] (agent: code-builder)
+- 코드 근거: `dashboard/src/components/studio/{learning-info.ts,LearningStatus.tsx,LearningCardWizard.tsx,EditPreview.tsx,StudioRooms.tsx,StudioCommandPanel.tsx}`,
+  `dashboard/src/app/studio/page.tsx`, `dashboard/tests/studio/studio-chairman-feedback-2026-08-29.test.tsx`
+- 실행 근거: `/tmp/capture-chair.mjs` 실행 출력, `/tmp/osmu-test-final.log`, `node scripts/ui-token-audit.mjs`
+
+## ✅ PASS: 안 터진 글 자동 삭제 — 후보 조회 + 승낙 후 삭제 실행 (2026-08-30, code-builder)
+
+- 기반: 이전 판(위 "부분 PASS: 성과실 챗봇·상시규칙…")이 발견한 갭 — "안 터진 글 정리" 후보는 있었지만
+  실제 삭제 실행 API가 서버에 없었다. 이번 판이 그 API를 안전하게(승낙 없는 삭제 경로 0) 만들었다.
+
+### 기존 구현 확인 (재창조 금지 게이트)
+
+- `extensions/threads-insights/src/threads-insights-tool.ts`의 `cleanupLowEngagement()`가 이미
+  존재했지만, **호출되면 승낙 없이 즉시 전체 자동삭제**하는 레거시 위험 함수임을 확인(action:
+  `cleanup_low_engagement`). 현재 어떤 cron job에도 안 걸려 있고 archived PRD 두 곳에 "legacy 위험
+  기능, 기본 비활성" 경고가 이미 있었다. 이 함수는 그대로 재사용하지 않고, 대신 새 API가 postId
+  화이트리스트를 받아 그 목록에 대해서만 1회성으로 Threads DELETE를 직접 호출하는 구조로 새로 짰다.
+- `VIRAL_THRESHOLD`(반대 짝) 패턴을 그대로 따라 `LOW_ENGAGEMENT_MIN_VIEWS_DEFAULT`/`MIN_LIKES_DEFAULT`를
+  `constants.ts`에 신설(env override 지원), 채널/워크스페이스별 조정은 `channel-settings.json`의
+  `low_engagement_min_views`/`low_engagement_min_likes` override로 지원(기존 boolean-only 검증에
+  숫자 키 예외 추가).
+- x-publish/instagram-publish extension에 delete 기능이 없음을 grep으로 확인 → 삭제 가능 채널은
+  `DELETE_SUPPORTED_CHANNELS = ["threads"]` 하나뿐, UI·API가 이 배열 하나를 공유(SSOT).
+
+### 만든 것
+
+1. `GET /api/threads/low-engagement-candidates` — 읽기 전용, 부작용 없음. queue.json에서 발행 24시간
+   이상 지나고 views/likes가 기준 미달인 threads 글만 후보로 반환. 절대 삭제하지 않는다.
+2. `POST /api/threads/low-engagement-cleanup` — body에 **사람이 고른 postId 배열**이 있어야만 동작.
+   빈 배열/누락은 400으로 거부. 각 postId를 순회하며 threads mediaId가 있는 것만 `getChannelCred`로
+   실 토큰을 얻어 Threads Graph API DELETE를 호출하고, 성공/실패를 postId별로 반환. 다른 채널
+   postId(예: instagram만 발행된 글)는 "채널 미지원"류 에러로 명확히 거부하고 지우지 않는다.
+   삭제 성공한 postId만 queue.json 상태를 갱신(다른 글은 절대 건드리지 않음), 실행 기록은
+   `data/low-engagement-cleanup-log.json`에 append.
+3. `AutomationRulesPanel.tsx` "안 터진 글 정리" 카드: "준비 중" 배지 제거 → 후보 건수 실시간 표시,
+   최근 삭제 요약 1줄, "후보 보기" 버튼 → 모달(체크박스로 개별 선택) → "선택한 N건 삭제" →
+   **2단계 확인**("N건을 삭제합니다. 되돌릴 수 없습니다") → 승낙 후에만 실제 삭제 API 호출.
+   DESIGN.md 토큰만 사용(Card/Button/Stack, hex·임의 px·이모지·긴 대시 없음).
+
+### 테스트됨
+
+- `npx tsc --noEmit` exit 0 (전체).
+- `npx vitest run tests/api/low-engagement-candidates.test.ts tests/api/low-engagement-cleanup.test.ts
+  tests/api/channel-settings.test.ts`: 8/8 PASS — ①24시간 미만 글 후보 제외 ②기준 이상 engagement
+  글 후보 제외 ③기준 미달+24시간 경과 글만 후보 포함 ④postId 없이 호출 시 400 거부
+  ⑤미지원 채널(threads mediaId 없음) postId 요청 시 삭제 없이 명확한 에러 ⑥승낙된 postId만 삭제되고
+  다른 글(`untouched`)은 그대로 유지됨을 큐 파일 직접 읽어 검증 ⑦삭제 로그 파일에 기록됨을 검증.
+- `npm run test`(전체 vitest): 1499 PASS / 1 skip / 1 FAIL(`tenant-api-attack-script.contract.test.ts`
+  — `/api/performance/learned-rules`가 공격 목록에서 빠졌다는 지적, 이번 판이 만들지도 건드리지도
+  않은 기존 라우트라 무관함, git status로 미변경 확인).
+- curl 실측(로컬 dev :3456, `Authorization: Bearer devlocaltoken`, tenant
+  `cd1d0a40-540d-4524-9b49-bf2445d82182`):
+  `GET /api/threads/low-engagement-candidates?tenant_id=...` → 200
+  `{"candidates":[],"total":0,"threshold":{"minViews":100,"minLikes":3,"minAgeMs":86400000},"deleteSupportedChannels":["threads"]}`;
+  `POST /api/threads/low-engagement-cleanup` (postIds 없이) → 400
+  `{"error":"postIds(문자열 배열)가 필요합니다. 개별 글을 선택해야 삭제됩니다."}`;
+  `POST /api/threads/low-engagement-cleanup {"postIds":["nonexistent-post-xyz"]}` → 200
+  `{"ok":true,"deleted":0,"failed":1,"results":[{"postId":"nonexistent-post-xyz","ok":false,"error":"글을 찾을 수 없습니다."}]}`
+  (인증 없이 호출하면 401 `Unauthorized`도 확인).
+- `dashboard/src/components/studio/`·`api/publish`·`lib/publish.ts`·`lib/studio/generation`·
+  `db/run-migrations.sh` 등 금지 경로는 건드리지 않았다.
+- `AUTOMATION_FEATURES`의 `low_engagement_cleanup.implemented`는 **여전히 `false`로 남겼다** — 이
+  플래그는 원래 "정기 자동삭제 실행" 여부를 뜻했고, 이번 판이 만든 건 정기 자동삭제가 아니라
+  "사람이 승낙해야만 도는" 1회성 삭제이므로, 그 의미로 `true`로 바꾸면 "자동 실행된다"는
+  오인을 유발한다. 후보 건수·삭제 UI 자체는 이미 화면에 노출돼 있다(implemented 플래그와 무관하게
+  동작).
+
+### 셀프심문
+
+"승낙 없이 남의 글이 지워질 수 있는 경로가 정말 하나도 없는가" — 코드를 다시 훑었다:
+①`POST /api/threads/low-engagement-cleanup`은 body에 `postIds`(비지 않은 문자열 배열)가 없으면
+Threads API를 호출하는 코드 블록 자체에 도달하지 못한다(400으로 조기 반환). ②이 라우트를 부르는
+크론/스케줄러는 어디에도 추가하지 않았다(레거시 `cleanupLowEngagement()`도 여전히 어떤 job에도
+안 걸려 있음, grep으로 재확인). ③UI에서 이 API를 부르는 유일한 경로(`AutomationRulesPanel`의
+`runDelete`)는 체크박스로 고른 `selectedIds`만 보내고, 그 버튼도 "정말 삭제" 2단계 확인을 거친
+뒤에만 눌린다. ④후보 API(GET)는 애초에 삭제 코드가 없다. 결론: 승낙 없는 삭제 경로는 없다고
+본다 — 단, 이 결론은 "이 레포 안에서"의 검증이고, Threads 쪽 토큰이 다른 자동화(예: OpenClaw
+크론이 같은 extension 함수를 직접 호출)로 새로 연결되면 재검토가 필요하다.
+
+SOURCES/MODEL
+- MODEL: claude-sonnet-5 (agent: code-builder)
+- 코드 근거: `dashboard/src/lib/constants.ts`, `dashboard/src/app/api/channel-settings/[channel]/route.ts`,
+  `dashboard/src/app/api/threads/low-engagement-candidates/route.ts`,
+  `dashboard/src/app/api/threads/low-engagement-cleanup/route.ts`,
+  `dashboard/src/components/home/AutomationRulesPanel.tsx`,
+  `dashboard/tests/api/low-engagement-candidates.test.ts`, `dashboard/tests/api/low-engagement-cleanup.test.ts`
+- 실행 근거: `/tmp/tsc5.log`, `/tmp/vitest2.log`, `/tmp/vitest-full.log`, 위 curl 출력(직접 관찰)
+
+## 2026-08-30 — 옛 no-consent 삭제 경로(threads_insights agent 도구) 봉인
+
+### 배경
+직전 판이 승낙형 삭제 경로(`GET low-engagement-candidates` + `POST low-engagement-cleanup`,
+postId 필수)를 대시보드에 새로 만들었지만, `extensions/threads-insights/src/threads-insights-tool.ts`의
+`cleanupLowEngagement()`(OpenClaw agent 도구 `threads_insights`, action=`cleanup_low_engagement`)는
+그대로 남아 있었다. 이 함수는 사람 확인 없이 조건만 맞으면 Threads API에 `DELETE`를 직접
+호출했다 — 이 도구 액션은 `threads-collect-insights` 크론(CLAUDE.md에 "반응 수집 + 댓글 좋아요 +
+저조 삭제"로 명시)이 쓰는 `threads_insights` 도구에 스키마로 노출돼 있어, LLM 에이전트가 그
+크론 turn 안에서 자체 판단으로 이 액션을 호출할 수 있는 구조였다(사람이 개입할 지점이 없음).
+
+### 사실 확인 (추측 아님, 직접 grep/diff로 확인)
+1. `cleanupLowEngagement`는 이 레포에 **두 사본**으로 존재한다:
+   - `extensions/threads-insights/src/threads-insights-tool.ts` (활성 개발 트리, git log 상
+     `cleanup_low_engagement` 기능이 여기서 커밋됨 — `d0415494 Add trend analysis, auto-like
+     replies, low-engagement cleanup`)
+   - `openclaw/extensions/threads-insights/src/threads-insights-tool.ts` (docker-compose의
+     실제 gateway 빌드 컨텍스트, `docker-compose.postagi-4tenants.yml:18` `context: ./openclaw`가
+     이 사본을 이미지에 굽는다)
+2. **`openclaw/` 사본은 2026-03-22 이후 갱신되지 않아 `cleanup_low_engagement` 액션 자체가 없다**
+   (action enum이 `["collect"]`뿐, `autoLikeReplies`/`autoReplyToComments`/`cleanupLowEngagement`
+   함수가 없음). 즉 **현재 docker-compose로 빌드된 gateway 이미지에는 이 삭제 경로가 아예
+   존재하지 않는다** — 안전하지만 의도된 방어가 아니라 두 트리가 어긋나 생긴 우연한 안전이다.
+   (두 사본을 자동 동기화하는 스크립트는 grep으로 찾지 못했다 — 사람이 수동으로 옮기다 3월 이후
+   멈춘 것으로 보인다. `openclaw/`는 이 repo에 git으로 커밋된 일반 디렉터리이며 submodule이
+   아니다: `.gitmodules` 없음, `git ls-files openclaw/...`로 추적 확인.)
+3. `openclaw/` 사본을 빌드에 쓰지 않고 root `extensions/`를 직접 빌드하는 다른 docker-compose나
+   빌드 스크립트는 이 레포에서 찾지 못했다(`grep -rn "docker build" --include=*.sh .` 등).
+4. **크론 정의(jobs.json 또는 OpenClaw 런타임 `config/openclaw.json`)는 이 레포에 없다**
+   (`.gitignore:12`에 `config/openclaw.json` 명시, 로컬 파일도 부재). 따라서 "이 순간 실제
+   운영 중인 크론이 이 액션을 부르고 있는가"는 **이 레포에서 확인 불가** — 안전하다고 추측하지
+   않는다.
+
+### 조치
+- `extensions/threads-insights/src/threads-insights-tool.ts`의 `cleanupLowEngagement()`를
+  **삭제 없는 dry-run으로 고정**했다: Threads API DELETE 호출과 큐 쓰기(`writeJson`)를 완전히
+  제거하고, 후보 개수/ID만 반환한다(`requiresHumanConsent: true`). 실제 삭제는 여전히
+  대시보드의 사람 승낙 경로(`POST /api/threads/low-engagement-cleanup` + 선택한 postId)로만
+  일어난다 — 이것으로 "LLM 에이전트가 크론 중 자체 판단으로 삭제"가 구조적으로 불가능해졌다
+  (도구가 삭제할 능력 자체를 잃음).
+  - 왜 이 방향(env 플래그로 기본 꺼짐 대신 완전 제거)을 골랐나: 이미 사람 승낙형 삭제 경로가
+    대시보드에 정식으로 존재하므로, agent 도구가 삭제 *능력*을 갖고 있을 이유가 없다. env
+    플래그로 막는 안은 "플래그를 깜빡하고 켜면 다시 위험해지는" 여지를 남기지만, 능력 자체를
+    없애면 그 여지가 사라진다(실패 모드 자체를 제거 — fail-safe by construction).
+  - 도구 스키마 설명도 "삭제 없음, 대시보드 승낙 필요"로 갱신.
+- `openclaw/extensions/threads-insights/src/threads-insights-tool.ts`는 건드리지 않았다 —
+  이미 `cleanup_low_engagement` 액션이 없어 안전하고(§사실 확인 2), 새로 이식하면 오히려
+  위험 표면을 넓히는 것이라 최소 변경 원칙을 따랐다. 다만 이 사본이 3월 이후 스테일하다는 것
+  자체는 별도 정리 대상으로 남는다(이 판 범위 밖 — `auto_like_replies`/`auto_reply` 기능도
+  아직 빌드에 반영 안 됨, 별도 판단 필요).
+- `CLAUDE.md` 크론 표의 "저조 삭제" 설명이 실제 동작과 어긋나 있어 "저조 후보 집계(삭제 없음)"로
+  고치고, 승낙 흐름을 설명하는 각주를 추가했다(`CLAUDE.md:231` 부근).
+- 회귀 테스트 신설: `dashboard/tests/api/threads-insights-agent-tool-no-consent-delete.test.ts`
+  — 두 소스 트리를 정적 분석해 `cleanupLowEngagement` 함수 본문에 `method: "DELETE"`가 없는지,
+  큐를 직접 쓰지 않는지, `requiresHumanConsent` 계약이 유지되는지 검사한다. **레포 밖 OpenClaw
+  plugin-sdk 의존 때문에 함수를 직접 import/실행하지 못해 정적 분석 방식을 택했다** — git
+  HEAD(수정 전) 소스로 이 테스트를 돌려 실제로 FAIL하는 것을 확인했다(회귀 포착 능력 검증됨).
+
+### 검증 (직접 관찰)
+- `cd dashboard && npx vitest run tests/api/threads-insights-agent-tool-no-consent-delete.test.ts`
+  → 3 PASS. 같은 테스트를 `git show HEAD:extensions/.../threads-insights-tool.ts`(수정 전 소스)에
+  대해 node 스크립트로 재현했을 때 `method: "DELETE"` 매치가 나와 **수정 전 코드였다면 이 테스트가
+  잡아냈을 것**을 확인.
+- `cd dashboard && npx tsc --noEmit` → 통과(에러 0).
+- `cd dashboard && npm run test`(전체 vitest) → 202 파일 중 202 PASS, 1499 PASS / 1 skip,
+  **`studio-publish-ui.test.tsx` 29건 FAIL은 이번 판이 건드리지 않은 발행실(다른 조 작업 중,
+  `git status`로 `studio/page.tsx`·`SchedulePanel.tsx`가 이미 수정된 상태였음을 확인) 영역이라
+  무관** — `useSearchParams` 렌더 에러로 이번 변경(threads-insights)과 무관.
+
+### 셀프심문
+"승낙 없이 글이 지워질 수 있는 경로가 정말 하나도 안 남았는가. 레포 밖에서 부르는 경우까지
+생각했는가" —
+①`extensions/`의 agent 도구는 이제 물리적으로 DELETE를 호출하는 코드가 없다(함수 자체에서
+제거) — 프롬프트나 크론 설정이 무엇이든 이 함수를 아무리 여러 번 불러도 삭제는 안 일어난다.
+②`openclaw/` 빌드 사본은 애초에 이 액션이 없다. ③대시보드 삭제 라우트는 이전 판에서 이미
+postId 필수로 막혀 있고 이번 판에서 손대지 않았다(재확인 completed). ④**레포 밖 변수**: OpenClaw
+런타임이 `openclaw/`도 `extensions/`도 아닌 제3의 배포 경로(예: 프로덕션 서버에 별도로 올라간
+과거 빌드 이미지)를 쓰고 있다면, 그 이미지 안에는 이번 수정 전 코드가 그대로 있을 수 있다 —
+이건 이 레포의 코드 수정만으로는 닫을 수 없는 구멍이라 아래 판단 필요 항목으로 올린다.
+
+⛔ 회수 필요: 프로덕션에 이미 떠 있는 gateway 이미지가 옛 삭제 코드를 쓰고 있을 수 있다
+- 배경: 이번 작업으로 레포 소스(`extensions/`)의 삭제 코드는 제거했지만, 이미 빌드돼 서버에서
+  돌고 있는 컨테이너 이미지는 이 레포를 다시 빌드해 재배포하기 전까지는 옛 코드를 그대로 쓴다.
+  또한 `openclaw/` 빌드 사본은 3월부터 스테일해 애초에 이 액션이 없었으므로, 만약 현재 서버가
+  `openclaw/` 기반 이미지를 쓰고 있다면 원래도 위험하지 않았을 수 있다 — 어느 이미지가 실제
+  운영 중인지는 이 레포만으로 확인 불가.
+- 무엇을 정하나: 운영 중인 gateway 컨테이너를 지금 `docker-compose -f
+  docker-compose.postagi-4tenants.yml build`로 재빌드·재배포할지.
+- 옵션 A(추천): 지금 재빌드·재배포한다 → 고르면: 옛 삭제 코드가 남아있을 가능성이 있는 실행
+  중인 이미지를 이번 수정이 반영된 이미지로 교체해 확실히 닫는다. 안 고르면: 위 불확실성이
+  남는다(레포 코드는 고쳤지만 서버가 그 코드를 안 쓰고 있을 수 있음).
+- 옵션 B: 다음 정기 배포 사이클까지 기다린다 → 고르면: 지금 당장 배포 작업(다운타임/검증)을
+  피한다. 트레이드오프: 그 사이 기간 동안 "레포는 고쳤는데 서버는 안 고쳐진" 상태가 지속된다.
+- 추천 근거: 되돌릴 수 없는 삭제를 다루는 사고였고(§과업 배경), 레포 수정만으로 "끝났다"고
+  보고하면 §3(완료=증거) 위반이다. 재배포 여부는 배포 대상/타이밍 결정이라 회장 승인이 필요한
+  영역(§5 결정분류)이다.
+
+SKILLS_USED: 없음 (사실 확인·정적 분석·회귀 테스트 작성 — 코드 조사·수정 작업이라 매칭 skill 없음)
+SKILLS_SKIPPED: 없음
+
+SOURCES/MODEL
+- MODEL: claude-sonnet-5
+- 코드 근거: `extensions/threads-insights/src/threads-insights-tool.ts`,
+  `openclaw/extensions/threads-insights/src/threads-insights-tool.ts`,
+  `docker-compose.postagi-4tenants.yml:18-22`, `dashboard/src/app/api/threads/low-engagement-candidates/route.ts`,
+  `dashboard/src/app/api/threads/low-engagement-cleanup/route.ts`, `CLAUDE.md:225-236`
+- 실행 근거: `/tmp/vitest-le2.log`(신규 회귀테스트 PASS), `/tmp/dash-tsc.log`(tsc 0 에러),
+  `/tmp/dash-test-full.log`(전체 vitest 202/204 파일 PASS, FAIL 29건은 studio 무관 확인),
+  git log/diff/ls-files 직접 실행 결과(위 §사실 확인)
+
+---
+
+## 2026-08-30 발행실 채우기 (회장 2026-08-29 발행실 지적 6건)
+
+기반 산출물: `docs/requests/2026-08-29-회장-4실-실사용-피드백.md` <발행실> 절 전문,
+`docs/design-docs/osmu-4room-구조질문-선택지-v1.0.0-opus-20260829.md` 질문3(회장 승인),
+`docs/qa/회장-피드백-대조표-2026-08-29.md` #19~#24, `DESIGN.md`(v61 마감, `.tr59`·`.v57-pub`·색 토큰).
+
+### 네 방 단추 수 (`dashboard/scripts/probe-four-room-flow.mjs`, 관찰됨)
+
+| 방 | 이전 | 지금 |
+|---|---|---|
+| 생성실 | 24 | 24 |
+| 편집실 | 26 | 34 |
+| **발행실** | **5** | **20** |
+| 성과실 | 25 | 26 |
+
+★ **"발행실 5개"의 절반은 탐침이 틀린 것이었다.** 탐침이 작업물을 옛 공용 키
+`studio_work`에 심었는데, 발행실은 작업 공간별 키 `studio_work:<작업공간>`만 읽고 공용 키는
+화면이 뜨는 즉시 지운다(`src/app/studio/page.tsx` 307행). 그래서 발행실이 늘 빈 상태로
+측정됐다. 탐침 seed 키를 고쳤다. 미리보기 칸도 `data-room-preview`를 안 세고 있어 발행실
+미리보기가 0으로 나왔다(실제 7칸). 그 선택자도 넣었다. 그래도 남은 15개 차이는 실제 신설분이다.
+
+### 회장 지적 6건 대조
+
+| # | 회장 원문 | 이전 | 지금 | 증거 |
+|---|---|---|---|---|
+| 19 | "왜 여긴 챗봇 없어?" | 미해결 | 해결 | 대화창은 DOM에 있었으나 넓은 화면에서 **높이 0으로 접혀 안 보였다**. 한 className에 모바일 시트 규칙(`fixed bottom-0 max-h-[60vh]`)과 데스크톱 기둥 규칙(`lg:static` + `lg:sticky` 동시)이 섞여 `max-height:0px`으로 계산됐다. `max-lg:`로 갈랐다. 실측: 이전 `{w:320,h:2,maxHeight:"0px"}` → 지금 `{w:320,h:705,maxHeight:"none"}`, position sticky, x=1096(우측 기둥) |
+| 19b | "챗봇만의 UX 장점이 있어야 쓰는거아님?" | 없음 | 해결 | "여기서만 한 번에 되는 일" 5가지 신설. 손으로 하면 일곱 번인 것만 넣었다. 실측 로그: 해시태그 규격 나누기 → `{threads:5개, x:2개, facebook:3, instagram:3, shorts/reels/tiktok:3}`. 한도 넘는 곳만 줄이기 → before `{threads:400, x:400}` → after `{threads:400, x:280}` (X만 잘리고 Threads 500자 한도는 안 건드림). 자유 입력 "스레드 빼고 올려" → Threads 체크 해제됨 |
+| 22 | "왜 스레드에만 기본계정 토글" | 부분(코드만 봄) | 해결 | **화면을 실제로 열어 확인했다.** `/channels/{x,threads,facebook}` 셋 다 열어 `account-set-default-*` testid를 세어 전부 0. Threads 전용이 아니라 **연결된 계정이 0이라 셋 다 안 뜬 것**이다. 별개로 발행실 계정 고르개가 "기본계정"이라고만 적어 누구인지 말하지 않던 것을 기본 계정 이름으로 바꾸고 "계정 관리" 링크를 붙였다 |
+| 22b | "연결 안된 계정은 바로 연결하는 곳으로" | 미해결 | 해결 | 발행실 "계정 연결하기"가 `/settings?tab=channels&channel=x`로 가는데 **설정 화면은 그 쿼리를 통째로 무시한다**(`src/app/settings/page.tsx`에 `channel` 파라미터를 읽는 코드가 없다). 채널 목록만 나왔다. `/channels/<채널>`로 돌렸다. 그 화면은 미연결이면 Settings 탭으로 자동 전환되고 연결 단추와 기본 계정 전환이 함께 있다 |
+| 23 | "왜 2곳에 올리기야? 전체 못올려?" | 미해결 | 해결 | 전체를 고르는 길이 실제로 없었다(칸마다 체크 하나뿐). 채널 줄에 "연결된 N곳 전부 고르기"·"전부 해제"를 냈고 대화창에도 같은 것을 뒀다. 연결 0곳이면 죽은 단추가 아니라 비활성이다(테스트 QA-PUBLISH-06으로 고정) |
+| 24 | "예약 발행한건 어디서 확인해" | 설계만 | 해결 | **실제 원인을 찾았다.** 예약은 `schedules` 테이블에 쌓이는데 발행 캘린더는 `/api/queue`만 읽고 있었다. 즉 예약을 걸어도 캘린더에 영영 안 나왔다. 캘린더가 `/api/schedule`도 읽게 했다. 예약 직후 `/calendar?from=publish&date=<날짜>`로 이어진다. 실측: 예약 POST 200 → 그 날짜 캘린더에 "예약 발행 · Threads · X" 표시, "2026-09-01 · 1건", "발행실로 돌아가기" 단추 확인, 콘솔 오류 0 |
+| 24b | "승인 인박스는 뭐고 발행 캘린더는 뭐냐" | 부분(라벨만) | 해결 | 라벨 부제만으로는 부족했다. 규격 문서에 있으나 구현이 없던 **발행 왕복 띠**(`DESIGN.md` `.tr59`·`[data-publish-trip]`·v59·R193)를 만들어 세 화면 같은 자리에 세웠다. 낱말은 규격 그대로 "정하는 자리 / 검토를 기다리는 자리 / 언제 나갈지 잡는 자리". 인박스 설명에서 크론·Studio·파이프라인 같은 내부 용어를 걷어냈고, 캘린더 설명의 "큐"도 없앴다(실측: 캘린더 본문에 "큐" 0건) |
+| 21 | "플랫폼별 실제처럼 미리보기 · 각각 편집" | 앞 조가 함 | 유지 확인 | 일곱 칸에 제자리 편집기가 다 붙어 있다. 실측 `data-testid^=inline-editor-` 7개, 값 다섯(표시 이름·제목·캡션·해시태그·첫 댓글). 스크린샷 `/tmp/qa-flow-2-after-bulk.png` |
+
+### 탐침이 마지막에 던지는 403 세 건 — 출처 확정 (관찰됨)
+
+외부 자원이 아니다. **전부 localhost의 성과실 API이고 고객 토큰으로는 못 부르는 운영자 전용 경로다.**
+
+```
+403 http://localhost:3456/api/performance/learned-rules?tenant_id=cd1d0a40-...
+403 http://localhost:3456/api/cron-status
+403 http://localhost:3456/api/threads/low-engagement-candidates?tenant_id=cd1d0a40-...
+```
+
+개발 서버 로그에 안 남은 이유는 프록시 층에서 끊겨 라우트 핸들러까지 안 갔기 때문이다.
+세 경로 모두 이번 판의 금지 구역(`api/performance/`, `api/threads/low-engagement-*`)이라
+손대지 않았다. **성과실 조가 닫아야 할 건이다.**
+
+같은 실행에서 나온 `net::ERR_NAME_NOT_RESOLVED https://example.invalid/a.mp4`도 외부
+의존이 아니라 **`dashboard/scripts/verify-basic-flow-e2e.mjs:36`이 남긴 시험용 자료**다.
+DB에 그 URL이 든 행이 남아 화면이 `<video src>`로 그린다. 코드 결함이 아니라 자료 청소 건이다.
+
+### 검증 (증거)
+
+- `npx tsc --noEmit` → 0 (`/tmp/tsc5.log`)
+- `npm run test` → **204 파일 1528 통과 / 1 건너뜀 / 실패 0** (`/tmp/vitest-all2.log`)
+  - 신설 `tests/lib/publish-bulk.test.ts` 25건(해시태그 규격·한도 절단 경계·해석기 12갈래·빈 입력 거절)
+  - `next/navigation` 목에 `useRouter` 추가(내 변경으로 29건이 깨졌던 것을 고쳤다)
+  - `QA-PUBLISH-06`을 새 연결 경로와 "연결 0곳이면 전체 고르기도 비활성"으로 조였다
+- `node scripts/ui-token-audit.mjs src --check` → 위반 0 (색·간격·서체·모서리 전부)
+- 개발 서버 실기동 후 화면 직접 열람: `/tmp/qa-flow-1-publish.png`, `/tmp/qa-flow-2-after-bulk.png`,
+  `/tmp/qa-cal-scheduled.png`, `/tmp/qa-chan-{x,threads,facebook}.png`
+- 발행실 콘솔 오류 0건 (`/tmp/qa-flow.mjs` 실행 결과)
+
+### 미검증으로 남긴 것
+
+- **실계정 발행은 못 해봤다.** 이 작업 공간에 연결된 채널이 0곳이라 `/api/publish`가 실제로
+  나가는 경로는 안 탔다. 일괄 대행·전체 고르기·예약·캘린더 표시는 다 실측했지만, "일곱 곳에
+  진짜로 올라간다"는 연결된 계정으로 다시 봐야 한다.
+- **기본 계정 토글이 실제로 뜨는 모습은 못 봤다.** 계정이 0이라 렌더 조건에 안 걸렸다.
+  Threads 전용이 아님은 코드와 세 화면 실측으로 확인했으나, 계정이 2개 이상일 때의 모습은 미검증.
+- 예약이 시각에 맞춰 실제 발행되는지(크론 경로)는 이번 판 범위 밖이다.
+
+### 성과실 403 세 건 마감 (관찰됨, 2026-08-30)
+
+위 "탐침이 마지막에 던지는 403 세 건" 건을 실제로 닫았다. 출처 확정 보고대로 `learned-rules`·
+`low-engagement-candidates`는 이미 `effectiveTenantId` + `runWithTenant`로 테넌트-safe하게 짜여
+있었다 — 막고 있던 건 오직 `proxy.ts`의 `TENANT_AWARE_PATHS` 누락이었다.
+
+- `proxy.ts`에 `/api/performance/learned-rules`, `/api/threads/low-engagement-candidates`,
+  `/api/threads/low-engagement-cleanup`(같은 기능의 삭제 실행 경로, 같이 막혀 있었다) 3개 추가.
+- `/api/cron-status`는 **열지 않았다.** `config/cron/jobs.json` 전역 파일을 테넌트 구분 없이
+  통째로 반환해 열면 전체 배포의 크론 잡 목록이 새어 나간다. 대신 `AutomationRulesPanel.tsx`가
+  그 엔드포인트를 아예 호출하지 않게 고쳤다("마지막 실행 HH:MM" 대신 "항상 도는 규칙입니다" 고정 문구).
+- 성과실 머리줄(`src/app/page.tsx`)에 다른 세 방(`studio/page.tsx`)과 같은 `LearningStatus` 배지를
+  붙였다. 같은 작업 공간별 localStorage(`readLearningInfo`/`countFilledLearningSlots`)를 읽기만
+  하고, 클릭하면 `/studio?setup=brand`로 이동해 채운다(기존 온보딩 체크리스트와 같은 경로).
+
+**격리 재확인(셀프심문: "문을 열면서 남의 작업 공간 것이 새어 나갈 길을 만들지 않았는가"):**
+운영자 토큰 + 서로 다른 `tenant_id` 둘로 A에 `POST learned-rules`(text: 격리테스트-A전용규칙) →
+A로 GET하면 보이고, B로 GET하면 `{"rules":[]}` — 안 샌다. 확인 후 DELETE로 정리했다.
+
+증거:
+- `npx tsc --noEmit` → 0
+- `npx vitest run tests/isolation/` → 17 파일 175건 전부 통과(`customer-ui-api-boundary.test.ts`,
+  `tenant-api-attack-script.contract.test.ts`, `middleware.test.ts` 포함)
+- `npm run test` → 전체 스위트(진행 중 확인, 아래 최종 결과 라인 참조)
+- curl 실측: 고객 경로 무인증 401(막힘 유지 확인), 운영자 토큰 + tenant_id로 세 경로 200,
+  cron-status는 운영자 토큰으로도 여전히 별개 전역 응답(고객 화면에서 호출 자체를 제거)
+- A/B 작업 공간 교차 조회로 데이터 비유출 직접 확인(위 기록)
+
+기반: 위 "탐침이 마지막에 던지는 403 세 건 — 출처 확정" 보고, `proxy.ts` 헤더 주석의
+TENANT_AWARE_PATHS 계약.
+
+## origin/main 병합 충돌 18건 해소 (관찰됨, 2026-08-30)
+
+`feat/design-system-and-missing-features` 에 `origin/main` 을 병합하다 충돌 18건이 열린 채 멈춰
+있던 것을 풀었다. 두 가지가 아니라 하나의 사정이었다. 이 가지와 main 은 같은 작업을 각각
+복제해 들고 있었고(제목이 같은 커밋이 해시만 다르게 양쪽에 있다), 그 위에 서로 다른 뒷작업이
+쌓였다. 그래서 "어느 쪽이 옳은가"가 아니라 "각 파일에서 어느 쪽이 더 뒤인가"가 판단 기준이었다.
+
+**갈래별 판단**
+
+- 화면과 그 짝 테스트(로그인, 로그인 대화창, 생성·편집·발행·성과 네 방, 생성 저장소):
+  이 가지가 뒤다. main 의 화면 커밋 두 건(`fix(auth): enforce customer and operator boundaries`,
+  `fix(studio): close production QA regressions`)은 이 가지에 이미 같은 내용으로 들어와 있고,
+  그 위에 어젯밤 회장 피드백 수리 여덟 건이 더 쌓여 있다. 그래서 이 가지를 취했다.
+  덧붙여 main 쪽 `close production QA regressions` 는 편집실 도구 목록에서 소리 도구를 떨어뜨린
+  판이었고 이 가지 것은 소리 도구를 살린 판이다. main 을 취했으면 소리 편집이 사라질 뻔했다.
+- 데이터베이스: main 이 뒤다. 이 가지에 없는 커밋 다섯 건이 있었고 그중 셋은 실제로 살려야 했다.
+  ① 권한 역할 이름 충돌 회피(`osmu_generation_guard_owner` → `..._v2`, 마이그레이션 번호
+  `20260829_020` → `021`) ② 회원 확장의 선행조건에서 guard 요구 제거(guard 가 이미 깔린 운영
+  DB에서 확장이 영구히 막히던 것) ③ 승인형 DB 워크플로의 체크아웃 격리(`SOURCE_DIR`).
+  다만 `run-migrations.sh` 자체는 이 가지가 뒤였다(604줄 대 478줄). 그래서 이 가지를 바탕으로
+  두고 위 세 가지를 얹었다. 어느 한쪽을 통째로 버리지 않았다.
+- 색인 정합 검사(`20260829_030`): 이 가지를 취했다. main 판은 `indkey::smallint[]` 를 1부터
+  세는 배열과 견주어 **항상** 어긋난 것으로 판정한다(int2vector 는 0부터 센다). 이름으로 견주는
+  이 가지 판이 그 잠복 결함을 고친 것이다.
+- 구현현황 문서: 양쪽 합집합. 충돌 두 곳 모두 main 쪽이 비어 있어 이 가지 서술을 그대로 남겼다.
+
+**계약 테스트 재정렬**: 코드를 합친 결과에 맞춰 손으로 맞췄다. `GEN-MIG-07A` 는 guard 선행조건
+요구에서 "요구하지 않음"으로 뒤집고 그 이유를 주석으로 남겼다. `GEN-MIG-19` 에 `SOURCE_DIR`
+격리 단언 세 줄을 넣었고, guard 역할 이름 단언을 `_v2` 로 옮겼다. main 의 `GEN-MIG-05A`
+(S1|S2 대칭 강제)는 되살리지 않았다. 그 단언이 곧 교착의 계약이었고, 이 가지의
+`4b2ee6ca` 가 의도적으로 뒤집은 것이다.
+
+**셀프심문: 이 병합으로 어젯밤 작업 중 조용히 사라진 것이 있는가.**
+없다. 두 갈래로 확인했다.
+- 병합이 HEAD 대비 실제로 바꾼 파일은 여덟 개뿐이고 전부 위에 적은 main 의 세 가지에 해당한다
+  (`git diff --cached --stat` → 8 files, 38 insertions, 27 deletions). 화면 파일 다섯 개는
+  `git diff HEAD` 가 전부 0줄, 즉 어젯밤 상태 그대로다.
+- 배포 교착 해소분 네 가지를 파일 내용으로 하나씩 짚었다. 지원 상태 집합
+  (`SUPPORTED_AXIS_STATES="S1 S2 S3"`) 있음 / 대칭성 거절 문구 사라짐(0건) / 필수 표 21개와
+  RLS 활성·강제·정책과 권한 우회 검사 있음 / 색인 배열 시작 번호 수정 있고 옛 판
+  (`indkey::smallint`) 0건 / 읽기 전용 `audit` 단계 있음 / 실패 장부 재진입
+  (`ledger_supersede`) 있음.
+
+**증거**
+- 충돌 0건, 표식 0건: `git grep -nE '^(<<<<<<< |>>>>>>> |=======$)'` 무출력
+- 매니페스트 체크섬 16줄 전부 실제 파일과 일치(직접 계산해 대조)
+- `npx tsc --noEmit` → 종료 코드 0
+- `npx vitest run tests/isolation/` → 17 파일 175건 전부 통과
+- `npm run build` → 종료 코드 0, 전 라우트 생성
+- `npm run test` → 아래 최종 결과 줄 참조
+
+**미검증으로 남기는 것**: 운영 DB에 실제로 붙여 `audit` 단계를 돌린 적은 없다. 이 병합은 그
+단계를 실행 가능하게 만든 것까지이고, 실제 관측은 회장이 워크플로를 눌러야 나온다. 순서는
+`docs/releases/2026-08-29-배포-교착-해소-순서.md` 그대로다.
+
+### 최종 결과 줄과 남은 멈춤 2건 (관찰됨, 2026-08-30)
+
+병합 커밋 `2030346e` 로 마감했고 원격에 올렸다(`0612e1fb..2030346e`). 부모 둘을 가진 진짜
+병합 커밋이다.
+
+- `npx tsc --noEmit` → 0 (병합 커밋 이후 다시 실측)
+- `npm run build` → 0
+- `npx vitest run tests/isolation/` → 17 파일 175건 통과
+- DB 계약 테스트 2 파일 28건 통과(손으로 맞춘 부분의 직접 확인)
+- 단위 테스트 204 파일 중 **202 파일 통과, 실패 0**
+
+**남은 2건은 실패가 아니라 멈춤이고, 이 병합과 무관하다.**
+`tests/components/HomeDesignSystemIntegration.test.tsx` 와
+`tests/home/first-user-performance-access.test.tsx` 두 파일은 단독으로 돌려도 550초 동안
+출력 한 줄 없이 멈춘다. 둘 다 SWR·api·미리보기까지 전부 mock 이라 바깥으로 나가지 않는다.
+jsdom 에서 홈 화면을 그리다 멈추는 것으로 보인다.
+
+이 병합의 소행이 아니라는 근거 둘.
+- 병합이 HEAD 대비 실제로 바꾼 파일은 여덟 개뿐이고 전부 DB·워크플로·DB 계약 테스트다.
+  `src/` 는 한 줄도 바뀌지 않았다.
+- 병합 전 커밋(`0612e1fb`)을 별도 worktree 로 꺼내 두 시험 파일을 대조했더니 바이트 동일했다.
+  입력이 같으므로 결과가 달라질 수 없다.
+
+처음 `npm run test` 전량 실행이 종료 코드 137(메모리 부족 강제 종료)로 끊긴 것도 같은 뿌리로
+보인다. 이 두 파일이 메모리를 물고 늘어진다. **다음 세션이 이어받을 일거리**로 남긴다.
+회장이 내일 아침 쓰는 데는 지장이 없다. 운영 빌드와 격리 계약은 전부 통과했다.
+
+### 성과실 첫 화면 멈춤 2건 해소 (관찰됨, 2026-08-30)
+
+앞 조가 "다음 세션 일거리"로 남긴 멈춤 두 건을 원인까지 파고 고쳤다. 건너뛰기도 제한 시간
+연장도 쓰지 않았다.
+
+**멈춘 지점**: `src/app/page.tsx` 의 학습 정보 읽기 효과가 무한 갱신에 빠졌다.
+
+```
+useEffect(() => { setLearningInfo(...) }, [activeWorkspace]);
+```
+
+의존성이 작업 공간 **객체**였다. 두 시험 파일 모두 `@/store/ui-store` 를
+`useUIStore: () => ({ activeWorkspace: { id: ... } })` 로 흉내 내는데, 이 함수는 호출될 때마다
+새 객체를 만든다. 그래서 렌더마다 의존성이 달라 보이고, 효과가 다시 돌고, 그 안의 상태 갱신이
+또 렌더를 부른다. 끝나지 않는 대기도 타이머 문제도 아니고 **CPU 를 태우는 무한 렌더**였다.
+근거: 고치기 전 단독 실행 로그가 180초 동안 `RUN v2.1.9` 한 줄에서 멈춘 채 시험 이름을 한 줄도
+찍지 못했다(로그 217바이트, 네트워크 대기였다면 시험 이름은 찍힌다).
+
+**고친 방식**: 의존성을 객체가 아니라 원시값 `activeWorkspace?.id` 로 바꿨다. 부모가 매 렌더 새
+객체를 넘겨도 id 가 같으면 효과가 다시 돌지 않는다. 시험 코드는 한 줄도 손대지 않았다.
+
+**브라우저 확인 (이 항목이 핵심)**: 실제 운영 코드에서는 zustand 가 같은 상태 객체를 돌려주므로
+`activeWorkspace` 참조가 안정적이었고, 따라서 브라우저에서는 이 멈춤이 나타나지 않았다.
+추정으로 끝내지 않고 처음 온 사용자 상태로 직접 열어 확인했다. 탐침
+`dashboard/scripts/probe-first-user-performance-room.mjs` 신설(학습 정보도 작업물도 없는 상태로
+`/` 진입).
+
+```
+{ "firstPaintMs": 6304, "roomHeader": "성과실", "metricsCallsIn10s": 1,
+  "maxUpdateDepthWarnings": 0, "frameLatencyMs": 14, "consoleErrors": [],
+  "verdict": "PASS 화면이 멎지 않는다" }
+```
+
+화면 갱신 경고 0, 콘솔 오류 0, 같은 요청 반복 없음(10초 동안 1회), 화면 응답 14ms.
+캡처는 `docs/qa/first-user-performance-room.png`.
+
+**증거**
+
+| 관문 | 결과 |
+|---|---|
+| 두 파일 단독 실행 | 2 파일 13건 통과, 13.15초 (고치기 전: 180초 무출력) |
+| `npm run test` 전량 | **204 파일 통과, 1528건 통과, 1건 건너뜀, 실패 0, 오류 0** (이전 202/1502) |
+| `npx tsc --noEmit` | 0 |
+| `npm run build` | 성공 |
+| 브라우저 첫 사용자 진입 | 위 탐침 PASS |
+
+**셀프심문**: "회장이 내일 아침 처음 들어가서 이 화면에서 멈추지 않는다고 내가 실제로
+확인했는가." 확인했다. 시험 통과가 아니라 로컬 3456 에서 처음 온 사용자 상태로 성과실을 실제로
+열어 10초를 지켜본 결과다. 갱신 경고와 콘솔 오류가 0이고 화면이 계속 응답했다.
+
+**남겨 두는 것**: `src/app/studio/page.tsx` 에도 작업 공간 객체를 의존성으로 쓰는 같은 모양이
+있다. 지금 멈추지는 않지만 같은 뿌리다. 이번 범위를 넘으므로 손대지 않고 다음 일거리로 적는다.
+
+**CI 실측**: 커밋 `5eeab8a5` 를 올린 뒤 CI (dashboard) 실행 `33273464200` 이 success 로 끝났다.
+실패하던 실행 `33272245619` 와 같은 워크플로다.

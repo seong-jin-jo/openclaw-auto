@@ -1,0 +1,76 @@
+# OSMU generation Expand and Contract 코드 재리뷰 v4
+
+STAMP | line: osmu-expand-contract | 생성: 2026-08-29 03:53 KST | model: gpt-codex/gpt-5.6-sol | agent: code-reviewer | skill: review | 대상: `5349bb6a`, `00f7c47c`
+
+한 줄 결론: v3의 legacy SQL commit과 ledger 기록 사이 crash-window MAJOR가 폐쇄됐다. 강제 중간 실패에서 SQL과 ledger가 함께 rollback되고, 재실행 후 활성 lease를 보존한 채 ledger가 `applied`로 수렴했다. 신규 배포 차단 회귀는 발견되지 않았다.
+
+FINAL_GATE: GO
+
+## v3 MAJOR 폐쇄 판정
+
+문제없음: [회귀 위험, migration ledger repeatability] `dashboard/db/run-migrations.sh:330` : runner가 legacy 파일의 단일 `BEGIN/COMMIT`을 제거해 body로 만들고, 새 transaction 안에서 body와 ledger `applied` 기록을 함께 실행한다. `dashboard/db/run-migrations.sh:344`의 강제 실패는 COMMIT 전에 발생하므로 둘 다 rollback된다 / v3에서 어긋났던 checksum ledger와 partial failure 원자성 계약에 일치한다 / `dashboard/db/migrations/20260828_050_shorts_factory_run_leases.sql:6`의 과거 시각 backfill도 제거되어, ledger가 없는 재실행 상태에서도 live `updated_at` heartbeat를 뒤로 이동시키지 않는다.
+
+## 직접 검증
+
+- 실제 PostgreSQL 16 failure injection: `OSMU_TEST_FAIL_AFTER_LEGACY_ID=20260828_050_shorts_factory_run_leases` 실행은 의도대로 실패했다. 실패 직후 `updated_at=2090-01-01`, ledger state=`missing`으로 SQL과 ledger가 함께 rollback됨을 관찰했다.
+- 같은 DB 재실행: `updated_at=2090-01-01`이 유지되고 ledger state=`applied`로 수렴했다.
+- 실제 PostgreSQL 16 전체 matrix: 최종 marker `PASS exact rollback index validation and S2 restoration`까지 관찰했다.
+- 전체 matrix 주요 marker: `PASS atomic legacy failure recovery preserves active lease heartbeat and applies ledger`, E1 없는 E3 거절, S1/S2 경합 count=1, invalid index 복구, wrong rollback index C1 전 차단, R27 없는 quota C1 차단, exact rollback S2 복귀.
+- workflow 계약 Vitest: `osmu-migration-runner.contract.test.ts` 18건, `release-migration-order.contract.test.ts` 7건. 합계 25/25 PASS.
+- shell syntax: `bash -n dashboard/db/run-migrations.sh` PASS.
+- diff whitespace: `git diff --check 5349bb6a^..00f7c47c` PASS.
+
+ACTUAL_EVIDENCE: PostgreSQL16 | injected_failure=rollback | heartbeat_before=2090-01-01 | heartbeat_after_failure=2090-01-01 | ledger_after_failure=missing | heartbeat_after_retry=2090-01-01 | ledger_after_retry=applied
+
+ACTUAL_EVIDENCE: migration_matrix | final_marker="PASS exact rollback index validation and S2 restoration" | result=PASS
+
+ACTUAL_EVIDENCE: workflow_contract | vitest=25/25 | shell_syntax=PASS | diff_check=PASS
+
+## 실제 Skill 및 승인 정본 Read 근거
+
+- ACTUAL_SKILL_READ: `/Users/sj/.codex/skills/review/SKILL.md`. 이번 코드리뷰 시작 전에 전체 924행을 읽고 SQL/Data Safety, Race Conditions, Security, Completeness 렌즈를 적용했다.
+- ACTUAL_CANONICAL_READ: `pipeline-state.osmu.md`. `approved_artifacts`와 OSMU 단계 상태를 확인했다.
+- ACTUAL_CANONICAL_READ: `DESIGN.md`. 승인 디자인 계약과 이번 DB 전용 변경이 UI token 및 component 범위를 건드리지 않는지 확인했다.
+- ACTUAL_CANONICAL_READ: `docs/prototype/openclaw-auto-4room-v38.html`. pipeline 승인 prototype의 실제 파일을 열어 UI 부품 삭제가 없는 DB migration retake임을 확인했다.
+- ACTUAL_REQUEST_READ: `docs/requests/회장-확정-요구사항-대장.md`. R27이 `확인 필요`인 원문과 quota C1 fail-closed 근거를 확인했다.
+- ACTUAL_DESIGN_READ: `docs/design-docs/osmu-generation-expand-contract-v1.0.2-gpt-codex.md`. legacy ledger 원자성, rollback, E1/E3/C1 순서의 상류 계약을 대조했다.
+- ACTUAL_TEST_READ: `dashboard/tests/db/osmu-migration-runner.contract.test.ts:168`. legacy body와 applied ledger의 단일 transaction 및 강제 실패 marker 계약을 확인했다.
+
+```jsonl
+{"type":"codex_tool_evidence","name":"exec_command","command":"DATABASE_URL=<isolated-postgresql16> bash dashboard/scripts/verify-generation-migration-matrix.sh","result":"PASS atomic legacy failure recovery preserves active lease heartbeat and applies ledger; PASS exact rollback index validation and S2 restoration"}
+{"type":"codex_tool_evidence","name":"exec_command","command":"npx vitest run tests/db/osmu-migration-runner.contract.test.ts tests/db/release-migration-order.contract.test.ts","result":"2 files passed, 25 tests passed"}
+{"type":"codex_tool_evidence","name":"exec_command","command":"bash -n dashboard/db/run-migrations.sh; git diff --check 5349bb6a^..00f7c47c","result":"PASS"}
+```
+
+## 신규 배포 차단 회귀
+
+문제없음. 검토 범위의 manifest checksum은 변경된 050 SQL과 일치한다. 모든 현재 legacy 파일은 runner가 요구하는 top-level `BEGIN/COMMIT` 한 쌍을 가지며, 조건 불일치 파일은 실행 전에 fail-closed한다. rollback index, previous image, E1 prerequisite, R27 quota 차단도 유지된다.
+
+## 4축 판정
+
+- 승인 시안 이탈: 문제없음. 승인 기술설계의 atomic ledger와 partial failure 재개 계약에 수렴했다.
+- 회귀 위험: 문제없음. 강제 실패와 재실행에서 lease와 ledger가 원자적으로 수렴했다.
+- 토큰 위반: 문제없음. UI와 style 변경이 없다.
+- 무기록 삭제: 문제없음. 삭제된 050 backfill은 live heartbeat 역행 원인이었고, 변경 사유와 검증이 migration 주석과 build evidence에 기록됐다.
+
+## 셀프심문과 레드팀
+
+내가 PASS를 준다면 회장이 운영에서 발견할 가장 그럴듯한 문제는 무엇인가? transaction body 실행 뒤 ledger insert 전에 DB 오류나 runner 종료가 발생하는 경우다. 현재 둘은 같은 PostgreSQL transaction과 connection 안에 있으며, 강제 `SELECT 1/0` 실패에서 body와 ledger가 함께 rollback되는 것을 직접 관찰했다. COMMIT 뒤 runner가 종료되면 둘 다 이미 commit됐으므로 다음 실행은 checksum-only로 수렴한다.
+
+반대 입장은 sed로 migration의 transaction wrapper를 제거하는 방식이 임의 SQL에 취약하다는 주장이다. runner는 정확히 한 개의 `^BEGIN;$`과 `^COMMIT;$`이 없는 legacy 파일을 실행 전에 거절한다. 현재 manifest의 legacy 5개 파일 모두 이 계약을 충족하며 shell syntax와 전체 실제 matrix가 통과했다. 향후 복잡한 transaction control이 필요한 migration은 이 legacy 경로가 아니라 새 explicit phase로 분리해야 한다.
+
+## 벤치마크
+
+- 소스 1: https://www.postgresql.org/docs/16/sql-begin.html. SQL body와 applied ledger를 동일 transaction으로 묶는 atomicity 기준에 적용했다.
+- 소스 2: https://www.postgresql.org/docs/16/sql-rollback.html. COMMIT 전 강제 오류가 data change와 ledger를 함께 되돌리는 failure injection 판정에 적용했다.
+- 소스 3: https://www.postgresql.org/docs/16/app-psql.html. `ON_ERROR_STOP`과 단일 psql session의 transaction 실행 계약을 runner 검토에 적용했다.
+
+SKILLS_USED: review. SQL/Data Safety, Race Conditions, Completeness 렌즈로 v3 crash-window와 보정 회귀만 검토했다.
+
+SKILLS_SKIPPED: 없음
+
+SOURCES: `tasks/osmu-expand-contract-code-review-v3.output` | `docs/design-docs/osmu-generation-expand-contract-v1.0.2-gpt-codex.md` | `dashboard/db/run-migrations.sh` | `dashboard/db/migrations/20260828_050_shorts_factory_run_leases.sql` | `dashboard/scripts/verify-generation-migration-matrix.sh` | `dashboard/tests/db/osmu-migration-runner.contract.test.ts` | PostgreSQL 16 BEGIN, ROLLBACK, psql 공식 문서
+
+MODEL: gpt-codex/gpt-5.6-sol
+
+REVIEW_VERDICT: PASS

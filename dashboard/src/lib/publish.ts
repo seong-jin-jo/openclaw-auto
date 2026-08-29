@@ -197,6 +197,74 @@ export async function fetchThreadsPermalink(token: string, mediaId: string): Pro
 }
 
 // Threads 발행 (text + 선택 image). 2-step container→publish.
+export interface ProviderReadbackHit {
+  externalId: string;
+  permalink?: string;
+}
+
+// 만료된 예약을 회수하기 전에 공급자에게 "이미 올라갔는지"를 먼저 묻는다.
+// 예약만 남기고 프로세스가 죽은 경우와, 게시까지 끝내고 죽은 경우를 구분하지 않으면
+// 회수가 곧 중복 게시가 된다. 같은 본문이 예약 시각 이후에 올라와 있으면 그 게시물을
+// 이 예약의 결과로 받아들이고 다시 올리지 않는다.
+// 공급자가 조회를 거절하거나 응답하지 않으면 null 이 아니라 "unknown"을 돌려준다.
+// 모른다는 것을 없다는 것으로 바꾸면 안 된다.
+export async function findRecentProviderPost(
+  platform: string,
+  cred: ChannelCred,
+  text: string,
+  since: Date,
+): Promise<{ state: "found"; hit: ProviderReadbackHit } | { state: "absent" } | { state: "unknown" }> {
+  const normalized = (text || "").trim();
+  if (!normalized) return { state: "unknown" };
+  if (!cred.token) return { state: "unknown" };
+
+  try {
+    if (platform === "threads") {
+      const identity = await resolveThreadsIdentity(cred.token);
+      if ("error" in identity) return { state: "unknown" };
+      const response = await fetch(
+        `${THREADS_API}/${identity.id}/threads?fields=id,text,timestamp,permalink&limit=25&access_token=${encodeURIComponent(cred.token)}`,
+        { signal: AbortSignal.timeout(10_000) },
+      );
+      if (!response.ok) return { state: "unknown" };
+      const body = (await response.json()) as {
+        data?: { id?: string; text?: string; timestamp?: string; permalink?: string }[];
+      };
+      if (!Array.isArray(body.data)) return { state: "unknown" };
+      const hit = body.data.find((post) =>
+        typeof post.id === "string"
+        && (post.text ?? "").trim() === normalized
+        && typeof post.timestamp === "string"
+        && new Date(post.timestamp).getTime() >= since.getTime() - 60_000);
+      return hit?.id ? { state: "found", hit: { externalId: hit.id, permalink: hit.permalink } } : { state: "absent" };
+    }
+
+    if (platform === "instagram") {
+      const base = cred.meta?.api === "instagram_login" ? IG_LOGIN_API : IG_API;
+      const response = await fetch(
+        `${base}/me/media?fields=id,caption,timestamp,permalink&limit=25&access_token=${encodeURIComponent(cred.token)}`,
+        { signal: AbortSignal.timeout(10_000) },
+      );
+      if (!response.ok) return { state: "unknown" };
+      const body = (await response.json()) as {
+        data?: { id?: string; caption?: string; timestamp?: string; permalink?: string }[];
+      };
+      if (!Array.isArray(body.data)) return { state: "unknown" };
+      const hit = body.data.find((media) =>
+        typeof media.id === "string"
+        && (media.caption ?? "").trim() === normalized
+        && typeof media.timestamp === "string"
+        && new Date(media.timestamp).getTime() >= since.getTime() - 60_000);
+      return hit?.id ? { state: "found", hit: { externalId: hit.id, permalink: hit.permalink } } : { state: "absent" };
+    }
+  } catch {
+    return { state: "unknown" };
+  }
+
+  // 조회 계약이 없는 채널은 "없다"고 단정하지 않는다.
+  return { state: "unknown" };
+}
+
 export async function publishThreads(
   cred: ChannelCred,
   text: string,

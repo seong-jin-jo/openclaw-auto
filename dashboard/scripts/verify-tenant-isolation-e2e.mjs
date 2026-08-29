@@ -185,6 +185,8 @@ const readCases = ({ tenantB, draftB, postB }) => [
   ["READ-52", "/api/weekly-report"],
   ["READ-53", "/api/weekly-summary"],
   ["READ-54", "/api/youtube/status"],
+  ["READ-55", "/api/performance/learned-rules"],
+  ["READ-56", "/api/threads/low-engagement-candidates"],
 ].map(([name, routePath]) => {
   const url = new URL(`${BASE_URL}${routePath}`);
   url.searchParams.set("tenant_id", tenantB);

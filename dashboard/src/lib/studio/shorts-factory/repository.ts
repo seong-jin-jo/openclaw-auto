@@ -74,14 +74,19 @@ export type CreateFactoryRunInput = {
   concepts: ShortsFactoryConceptInput[];
 };
 
+// 울타리 표. 실행을 시작한 worker 만 이 표를 가진다.
+// 강제 종료나 회수는 표를 지워 옛 worker 의 진행 신호, 컨셉 기록, 마감을 모두 무효로 만든다.
+// 표 없이 최종 상태를 쓰게 두면 강제 종료된 실행이 다시 succeeded 로 덮인다.
+export type FactoryLeaseToken = string;
+
 export interface ShortsFactoryRepository {
   createRun(input: CreateFactoryRunInput): Promise<{ run: FactoryRunSnapshot; created: boolean }>;
-  markRunRunning(workspaceId: string, runId: string): Promise<void>;
-  touchRun(workspaceId: string, runId: string): Promise<void>;
-  markConceptRunning(workspaceId: string, runId: string, conceptId: string): Promise<void>;
-  markConceptSucceeded(workspaceId: string, runId: string, conceptId: string, studioJobId: string): Promise<void>;
-  markConceptFailed(workspaceId: string, runId: string, conceptId: string, errorCode: string, errorMessage: string): Promise<void>;
-  finalizeRun(workspaceId: string, runId: string): Promise<FactoryRunSnapshot>;
+  markRunRunning(workspaceId: string, runId: string, leaseToken: FactoryLeaseToken): Promise<boolean>;
+  touchRun(workspaceId: string, runId: string, leaseToken: FactoryLeaseToken): Promise<boolean>;
+  markConceptRunning(workspaceId: string, runId: string, conceptId: string, leaseToken: FactoryLeaseToken): Promise<boolean>;
+  markConceptSucceeded(workspaceId: string, runId: string, conceptId: string, studioJobId: string, leaseToken: FactoryLeaseToken): Promise<boolean>;
+  markConceptFailed(workspaceId: string, runId: string, conceptId: string, errorCode: string, errorMessage: string, leaseToken: FactoryLeaseToken): Promise<boolean>;
+  finalizeRun(workspaceId: string, runId: string, leaseToken: FactoryLeaseToken): Promise<FactoryRunSnapshot>;
   forceFailRun(workspaceId: string, runId: string): Promise<FactoryRunSnapshot>;
   findRun(memberId: string, runId: string, allowedWorkspaceIds: readonly string[]): Promise<FactoryRunSnapshot | null>;
   listRuns(memberId: string, workspaceId: string, limit?: number): Promise<FactoryRunSnapshot[]>;
@@ -167,7 +172,7 @@ export class PostgresShortsFactoryRepository implements ShortsFactoryRepository 
           await sql`
             UPDATE shorts_factory_runs
             SET status = 'failed', failed_concepts = total_concepts - succeeded_concepts,
-                finished_at = now(), updated_at = now()
+                finished_at = now(), updated_at = now(), lease_token = NULL
             WHERE tenant_id = ${input.workspaceId}
               AND id = ANY(${staleIds}::uuid[])
               AND status IN ('queued', 'running')`;
@@ -232,66 +237,102 @@ export class PostgresShortsFactoryRepository implements ShortsFactoryRepository 
     }
   }
 
-  async markRunRunning(workspaceId: string, runId: string): Promise<void> {
-    await withTenant(workspaceId, async (sql) => {
-      await sql`
+  // 표를 발급하며 실행을 running 으로 올린다. 이미 다른 소유자가 있으면 false.
+  async markRunRunning(workspaceId: string, runId: string, leaseToken: string): Promise<boolean> {
+    return withTenant(workspaceId, async (sql) => {
+      const rows = await sql<{ id: string }[]>`
         UPDATE shorts_factory_runs
-        SET status = 'running', started_at = COALESCE(started_at, now()), updated_at = now()
-        WHERE tenant_id = ${workspaceId} AND id = ${runId} AND status = 'queued'`;
+        SET status = 'running', lease_token = ${leaseToken},
+            started_at = COALESCE(started_at, now()), updated_at = now()
+        WHERE tenant_id = ${workspaceId} AND id = ${runId} AND status = 'queued'
+          AND lease_token IS NULL
+        RETURNING id`;
+      return rows.length > 0;
     });
   }
 
-  async touchRun(workspaceId: string, runId: string): Promise<void> {
-    await withTenant(workspaceId, async (sql) => {
-      await sql`
+  // 진행 신호. 표가 지워졌거나 남의 표면 false 를 돌려준다.
+  // 호출부는 이 false 를 삼키지 말고 실행을 접어야 한다.
+  async touchRun(workspaceId: string, runId: string, leaseToken: string): Promise<boolean> {
+    return withTenant(workspaceId, async (sql) => {
+      const rows = await sql<{ id: string }[]>`
         UPDATE shorts_factory_runs
         SET updated_at = now()
-        WHERE tenant_id = ${workspaceId} AND id = ${runId} AND status IN ('queued', 'running')`;
+        WHERE tenant_id = ${workspaceId} AND id = ${runId}
+          AND status IN ('queued', 'running') AND lease_token = ${leaseToken}
+        RETURNING id`;
+      return rows.length > 0;
     });
   }
 
-  async markConceptRunning(workspaceId: string, runId: string, conceptId: string): Promise<void> {
-    await withTenant(workspaceId, async (sql) => {
-      await sql`
+  async markConceptRunning(workspaceId: string, runId: string, conceptId: string, leaseToken: string): Promise<boolean> {
+    return withTenant(workspaceId, async (sql) => {
+      const rows = await sql<{ id: string }[]>`
         UPDATE shorts_factory_concept_runs
         SET status = 'running', stage = 'generating_candidates', started_at = COALESCE(started_at, now())
         WHERE tenant_id = ${workspaceId} AND factory_run_id = ${runId}
-          AND concept_id = ${conceptId} AND status = 'queued'`;
+          AND concept_id = ${conceptId} AND status = 'queued'
+          AND EXISTS (
+            SELECT 1 FROM shorts_factory_runs
+            WHERE tenant_id = ${workspaceId} AND id = ${runId}
+              AND status = 'running' AND lease_token = ${leaseToken})
+        RETURNING id`;
+      if (rows.length === 0) return false;
       await sql`
         UPDATE shorts_factory_runs SET updated_at = now()
-        WHERE tenant_id = ${workspaceId} AND id = ${runId} AND status = 'running'`;
+        WHERE tenant_id = ${workspaceId} AND id = ${runId} AND status = 'running'
+          AND lease_token = ${leaseToken}`;
+      return true;
     });
   }
 
-  async markConceptSucceeded(workspaceId: string, runId: string, conceptId: string, studioJobId: string): Promise<void> {
-    await withTenant(workspaceId, async (sql) => {
-      await sql`
+  async markConceptSucceeded(workspaceId: string, runId: string, conceptId: string, studioJobId: string, leaseToken: string): Promise<boolean> {
+    return withTenant(workspaceId, async (sql) => {
+      const rows = await sql<{ id: string }[]>`
         UPDATE shorts_factory_concept_runs
         SET status = 'succeeded', stage = 'completed', studio_job_id = ${studioJobId},
             error_code = NULL, error_message = NULL, finished_at = now()
         WHERE tenant_id = ${workspaceId} AND factory_run_id = ${runId}
-          AND concept_id = ${conceptId} AND status = 'running'`;
+          AND concept_id = ${conceptId} AND status = 'running'
+          AND EXISTS (
+            SELECT 1 FROM shorts_factory_runs
+            WHERE tenant_id = ${workspaceId} AND id = ${runId}
+              AND status = 'running' AND lease_token = ${leaseToken})
+        RETURNING id`;
+      if (rows.length === 0) return false;
       await sql`
         UPDATE shorts_factory_runs SET updated_at = now()
-        WHERE tenant_id = ${workspaceId} AND id = ${runId} AND status = 'running'`;
+        WHERE tenant_id = ${workspaceId} AND id = ${runId} AND status = 'running'
+          AND lease_token = ${leaseToken}`;
+      return true;
     });
   }
 
-  async markConceptFailed(workspaceId: string, runId: string, conceptId: string, errorCode: string, errorMessage: string): Promise<void> {
-    await withTenant(workspaceId, async (sql) => {
-      await sql`
+  async markConceptFailed(workspaceId: string, runId: string, conceptId: string, errorCode: string, errorMessage: string, leaseToken: string): Promise<boolean> {
+    return withTenant(workspaceId, async (sql) => {
+      const rows = await sql<{ id: string }[]>`
         UPDATE shorts_factory_concept_runs
         SET status = 'failed', stage = 'failed', error_code = ${errorCode},
             error_message = ${errorMessage.slice(0, 1000)}, finished_at = now()
         WHERE tenant_id = ${workspaceId} AND factory_run_id = ${runId}
-          AND concept_id = ${conceptId} AND status IN ('queued', 'running')`;
+          AND concept_id = ${conceptId} AND status IN ('queued', 'running')
+          AND EXISTS (
+            SELECT 1 FROM shorts_factory_runs
+            WHERE tenant_id = ${workspaceId} AND id = ${runId}
+              AND status = 'running' AND lease_token = ${leaseToken})
+        RETURNING id`;
+      if (rows.length === 0) return false;
       await sql`
         UPDATE shorts_factory_runs SET updated_at = now()
-        WHERE tenant_id = ${workspaceId} AND id = ${runId} AND status = 'running'`;
+        WHERE tenant_id = ${workspaceId} AND id = ${runId} AND status = 'running'
+          AND lease_token = ${leaseToken}`;
+      return true;
     });
   }
 
-  async finalizeRun(workspaceId: string, runId: string): Promise<FactoryRunSnapshot> {
+  // 마감은 최종 상태 CAS 다. 여전히 running 이고 내 표일 때만 쓴다.
+  // 강제 종료나 회수로 이미 끝난 실행을 옛 worker 가 succeeded 로 되돌리지 못하게 한다.
+  async finalizeRun(workspaceId: string, runId: string, leaseToken: string): Promise<FactoryRunSnapshot> {
     return withTenant(workspaceId, async (sql) => {
       const [counts] = await sql<{ succeeded: number; failed: number }[]>`
         SELECT
@@ -305,11 +346,18 @@ export class PostgresShortsFactoryRepository implements ShortsFactoryRepository 
       const [run] = await sql<{ member_id: string }[]>`
         UPDATE shorts_factory_runs
         SET status = ${status}, succeeded_concepts = ${counts.succeeded},
-            failed_concepts = ${counts.failed}, finished_at = now(), updated_at = now()
+            failed_concepts = ${counts.failed}, finished_at = now(), updated_at = now(),
+            lease_token = NULL
         WHERE tenant_id = ${workspaceId} AND id = ${runId}
+          AND status = 'running' AND lease_token = ${leaseToken}
         RETURNING member_id`;
-      if (!run) throw new Error("factory run missing during finalize");
-      const result = await snapshot(sql, workspaceId, run.member_id, runId);
+      const [owner] = run
+        ? [run]
+        : await sql<{ member_id: string }[]>`
+            SELECT member_id FROM shorts_factory_runs
+            WHERE tenant_id = ${workspaceId} AND id = ${runId} LIMIT 1`;
+      if (!owner) throw new Error("factory run missing during finalize");
+      const result = await snapshot(sql, workspaceId, owner.member_id, runId);
       if (!result) throw new Error("factory run snapshot missing after finalize");
       return result;
     });
@@ -335,10 +383,11 @@ export class PostgresShortsFactoryRepository implements ShortsFactoryRepository 
             error_message = '운영자가 실행을 강제로 종료했습니다', finished_at = now()
         WHERE tenant_id = ${workspaceId} AND factory_run_id = ${runId}
           AND status IN ('queued', 'running')`;
+      // 표를 지워야 아직 돌고 있는 옛 worker 가 다음 신호에서 자기가 무효임을 알고 멈춘다.
       await sql`
         UPDATE shorts_factory_runs
         SET status = 'failed', failed_concepts = total_concepts - succeeded_concepts,
-            finished_at = now(), updated_at = now()
+            finished_at = now(), updated_at = now(), lease_token = NULL
         WHERE tenant_id = ${workspaceId} AND id = ${runId}`;
       const result = await snapshot(sql, workspaceId, run.member_id, runId);
       if (!result) throw new Error("factory run snapshot missing after force fail");

@@ -68,7 +68,7 @@ try {
   await page.locator("#studio-topic").fill("1인 사업가의 콘텐츠 운영 시간 줄이기");
   await page.locator("#studio-purpose").fill("콘텐츠 운영 시간을 줄인다");
   await page.locator("#studio-audience").fill("1인 사업가");
-  await page.getByLabel("소재 권리를 확인했습니다").check();
+  await page.getByLabel("이 콘텐츠에 쓰는 사진과 글을 제가 쓸 권리가 있습니다").check();
   const generationResponse = page.waitForResponse((response) => response.url().includes("/api/studio/v1/generations") && response.request().method() === "POST");
   await page.getByRole("button", { name: "후보 세 장 만들기" }).click();
   const response = await generationResponse;
@@ -102,7 +102,7 @@ try {
     if (readyStatus !== 200) throw new Error(`Studio ready command returned ${readyStatus}`);
 
     const enqueueResponse = page.waitForResponse((candidate) => candidate.url().includes("/api/studio/commands") && candidate.request().method() === "POST");
-    await page.getByRole("button", { name: "OpenClaw 큐로 넘기기" }).click();
+    await page.getByRole("button", { name: "발행 준비 큐에 넣기" }).click();
     const enqueue = await enqueueResponse;
     enqueueStatus = enqueue.status();
     if (![200, 201].includes(enqueueStatus)) throw new Error(`OpenClaw enqueue returned ${enqueueStatus}`);

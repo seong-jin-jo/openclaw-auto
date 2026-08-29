@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { ApiResponseError, apiPost, fetcher } from "@/lib/api";
 import type { EngagementCapability } from "@/lib/channel-capabilities";
 import { Logo, PREVIEW_PLATFORMS, type PreviewPlatform } from "@/components/studio/PlatformPreview";
@@ -8,6 +9,8 @@ import { Button } from "@/components/shared/Button";
 import { Card } from "@/components/shared/Card";
 import { Stack } from "@/components/shared/Stack";
 import { fmtAgo } from "@/lib/format";
+import { PerformanceChatPanel } from "./PerformanceChatPanel";
+import { AutomationRulesPanel } from "./AutomationRulesPanel";
 
 export interface PerformancePost {
   id: string;
@@ -366,7 +369,15 @@ export function PerformanceRoom({
       >
         <b className="text-body font-bold tabular-nums text-accent">표본 {assessment.count}건</b>
         <span className="min-w-0 truncate text-caption text-muted">최근 30일</span>
+        <Link
+          href="/calendar?from=performance"
+          className="ml-auto inline-flex min-h-control-touch shrink-0 items-center rounded-control border border-border bg-surface-2 px-stack text-caption font-semibold text-muted hover:bg-surface"
+        >
+          발행 캘린더에서 보기
+        </Link>
       </section>
+
+      <PerformanceChatPanel workspaceId={workspaceId} posts={posts} focus={focus} />
 
       <section
         className="card p-region"
@@ -415,6 +426,14 @@ export function PerformanceRoom({
             ))}
           </Stack>
           <span className="text-caption text-subtle sm:hidden">옆으로 밀어 더 보기</span>
+          {focus !== "all" && (
+            <Link
+              href={`/channels/${focus}`}
+              className="inline-flex w-fit items-center gap-micro text-caption font-semibold text-accent hover:underline"
+            >
+              {platformLabel(focus)} 계정 자세히 보기 →
+            </Link>
+          )}
 
           <div className="grid grid-cols-2 gap-stack-tight lg:grid-cols-4" data-perf-tier="core">
             {coreMetrics.map((metric) => (
@@ -513,18 +532,21 @@ export function PerformanceRoom({
           </div>
           {suggestionError && <p role="alert" className="rounded-control bg-danger/10 p-stack text-body-sm text-danger break-keep">{suggestionError}</p>}
           {suggestions.length > 0 && (
-            <div className="grid gap-stack lg:grid-cols-3">
+            <div className="grid items-stretch gap-stack lg:grid-cols-3">
               {suggestions.map((suggestion) => {
                 const state = queueState[suggestion.id];
                 return (
-                  <Card key={suggestion.id} className={suggestion.verified ? "p-pad-inset" : "border-dashed p-pad-inset"}>
-                    <Stack gap={12}>
+                  <Card key={suggestion.id} className={`flex h-full flex-col ${suggestion.verified ? "p-pad-inset" : "border-dashed p-pad-inset"}`}>
+                    <Stack gap={12} className="h-full">
                       <span className={`self-start rounded-pill px-stack-tight py-micro text-caption font-semibold ${suggestion.verified ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>{suggestion.label}</span>
-                      <p className="text-body font-semibold text-text break-keep">{suggestion.text}</p>
-                      <Button variant="primary" className="w-full" disabled={state === "loading" || state === "queued" || state === "reused"} onClick={() => void enqueueSuggestion(suggestion)}>
-                        {state === "loading" ? "생성 큐에 넣는 중" : state === "queued" ? "생성 큐에 넣었어요" : state === "reused" ? "이미 생성 큐에 있어요" : "이 제안을 생성 큐에 넣기"}
+                      <p className="break-keep text-body font-semibold text-text">{suggestion.text}</p>
+                      <Button variant="primary" className="ds-label-fill mt-auto w-full min-w-0" disabled={state === "loading" || state === "queued" || state === "reused"} onClick={() => void enqueueSuggestion(suggestion)}>
+                        {state === "loading" ? "새 콘텐츠 준비하는 중" : state === "queued" ? "생성실 대기 목록에 넣었어요" : state === "reused" ? "이미 생성실 대기 목록에 있어요" : "이 제안으로 새 콘텐츠 만들기"}
                       </Button>
-                      {state === "error" && <p role="alert" className="text-caption text-danger break-keep">생성 큐에 넣지 못했어요. 잠시 후 다시 눌러 주세요.</p>}
+                      {state === "queued" || state === "reused" ? (
+                        <Link href="/studio" className="text-caption font-semibold text-accent hover:underline">생성실에서 바로 확인하기</Link>
+                      ) : null}
+                      {state === "error" && <p role="alert" className="text-caption text-danger break-keep">준비하지 못했어요. 잠시 후 다시 눌러 주세요.</p>}
                     </Stack>
                   </Card>
                 );
@@ -636,6 +658,8 @@ export function PerformanceRoom({
           )}
         </Stack>
       </section>
+
+      <AutomationRulesPanel workspaceId={workspaceId} />
 
       <section className="border-t border-border pt-stack-section" data-perf-inherit="app/page.tsx">
         <details>

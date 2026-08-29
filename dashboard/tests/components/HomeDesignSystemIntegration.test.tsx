@@ -10,10 +10,24 @@ const mocks = vi.hoisted(() => ({
   fetcher: vi.fn(),
   mutateMetrics: vi.fn(),
   posts: [] as Array<Record<string, unknown>>,
+  cronJobs: [] as Array<Record<string, unknown>>,
+  channelSettings: {} as Record<string, unknown>,
+  learnedRules: [] as Array<Record<string, unknown>>,
 }));
 
 vi.mock("swr", () => ({
-  default: () => ({ data: { posts: mocks.posts }, mutate: mocks.mutateMetrics }),
+  default: (key: string | null) => {
+    if (typeof key === "string" && key.startsWith("/api/cron-status")) {
+      return { data: { jobs: mocks.cronJobs }, mutate: vi.fn() };
+    }
+    if (typeof key === "string" && key.startsWith("/api/channel-settings/")) {
+      return { data: mocks.channelSettings, mutate: vi.fn() };
+    }
+    if (typeof key === "string" && key.startsWith("/api/performance/learned-rules")) {
+      return { data: { rules: mocks.learnedRules }, mutate: vi.fn() };
+    }
+    return { data: { posts: mocks.posts }, mutate: mocks.mutateMetrics };
+  },
 }));
 
 vi.mock("@/lib/api", () => ({
@@ -58,6 +72,9 @@ describe("Home design-system migration interactions", () => {
     mocks.fetcher.mockReset();
     mocks.mutateMetrics.mockReset();
     mocks.posts = [];
+    mocks.cronJobs = [{ id: "threads-collect-insights", name: "반응 수집", enabled: true, lastRunAt: null, lastStatus: "unknown" }];
+    mocks.channelSettings = { auto_like_replies: false };
+    mocks.learnedRules = [];
     mocks.fetcher.mockImplementation(() => new Promise(() => {}));
     mocks.apiPost.mockImplementation(async (path: string) => {
       if (path === "/api/suggestions") {
@@ -99,7 +116,7 @@ describe("Home design-system migration interactions", () => {
   it("FE-V63-02 정상 경로: 제안 카드를 생성 큐 API로 인계한다", async () => {
     render(<HomePage />);
 
-    const queueButton = await screen.findByRole("button", { name: "이 제안을 생성 큐에 넣기" });
+    const queueButton = await screen.findByRole("button", { name: "이 제안으로 새 콘텐츠 만들기" });
     fireEvent.click(queueButton);
     await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith(
       "/api/suggestions/enqueue",
@@ -108,7 +125,7 @@ describe("Home design-system migration interactions", () => {
         suggestion: expect.objectContaining({ id: "hyp-1", label: "가설 · 우리 검증 기록 아님" }),
       }),
     ));
-    expect(await screen.findByRole("button", { name: "생성 큐에 넣었어요" })).toBeDisabled();
+    expect(await screen.findByRole("button", { name: "생성실 대기 목록에 넣었어요" })).toBeDisabled();
   });
 
   it("FE-V63-02 거절 경로: 큐 인계 실패는 다음 행동과 재시도를 남긴다", async () => {
@@ -134,9 +151,9 @@ describe("Home design-system migration interactions", () => {
     });
     render(<HomePage />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "이 제안을 생성 큐에 넣기" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("생성 큐에 넣지 못했어요. 잠시 후 다시 눌러 주세요.");
-    expect(screen.getByRole("button", { name: "이 제안을 생성 큐에 넣기" })).toBeEnabled();
+    fireEvent.click(await screen.findByRole("button", { name: "이 제안으로 새 콘텐츠 만들기" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("준비하지 못했어요. 잠시 후 다시 눌러 주세요.");
+    expect(screen.getByRole("button", { name: "이 제안으로 새 콘텐츠 만들기" })).toBeEnabled();
   });
 
   it("FE-V63-03 경계값: 성과 표본 5건이면 실제 조회값으로 판정 막대를 만든다", async () => {
@@ -275,4 +292,39 @@ describe("Home design-system migration interactions", () => {
     expect(screen.queryByRole("link", { name: "게시물에서 확인하기" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /답글/ })).not.toBeInTheDocument();
   }, 20_000);
+
+  it("OSMU-PERF-AUTO-01 정상 경로: 자동 좋아요 토글이 channel-settings API를 실제 호출한다", async () => {
+    render(<HomePage />);
+
+    const toggle = await screen.findByRole("button", { name: "꺼짐" });
+    fireEvent.click(toggle);
+    await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith(
+      expect.stringContaining("/api/channel-settings/threads"),
+      { auto_like_replies: true },
+    ));
+  });
+
+  it("OSMU-PERF-CHAT-01 정상 경로: '이거 왜 잘 됐어'가 규칙 후보를 내고 배우기가 learned-rules API를 호출한다", async () => {
+    mocks.posts = [1500, 1200, 1000, 200, 150, 100].map((views, index) => ({
+      id: `post-${index}`,
+      platform: "threads",
+      text: index < 3 ? `왜 잘 됐을까요 ${index}?` : `평범한 글 ${index}`,
+      status: "published",
+      published_at: "2026-08-27T10:00:00.000Z",
+      views,
+      likes: index,
+      replies: index,
+    }));
+    render(<HomePage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "대화 열기" }));
+    fireEvent.click(screen.getByRole("button", { name: "이거 왜 잘 됐어" }));
+
+    expect(await screen.findByText(/이 규칙을 배울까요\?/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "배우기" }));
+    await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith(
+      "/api/performance/learned-rules",
+      expect.objectContaining({ tenant_id: "tenant-a" }),
+    ));
+  });
 });

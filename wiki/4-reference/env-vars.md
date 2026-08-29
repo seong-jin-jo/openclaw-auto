@@ -1,5 +1,11 @@
 # Environment Variables & Configuration
 
+## 로컬과 운영의 OSMU 주입 경계 (2026-08-29)
+
+- 운영은 GitHub Secrets의 `OSMU_DATABASE_URL`, `OSMU_SUPABASE_URL`, `OSMU_SUPABASE_ANON_KEY`를 배포 workflow가 `.env.osmu`로 렌더한다. `NEXT_PUBLIC_SUPABASE_*`는 브라우저 bundle에 들어가므로 Docker build 시점 주입이 필수다.
+- 로컬은 `dashboard/.env.local`의 `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`를 사용한다. 2026-08-29 점검 당시 DB URL은 있었지만 Supabase 공개값 두 개가 없어서 `/api/auth/google`이 HTTP 503을 반환했다.
+- `~/.sj-agent-harness/secrets/openclaw-auto.env`에는 운영자 토큰만 있다. Supabase 공개값은 `scripts/recover-osmu-local-public-env.mjs`가 운영 공개 번들과 Supabase settings를 교차 검증한 뒤 기존 `dashboard/.env.local`을 보존하며 권한 600으로 주입한다. 감독은 이 복구가 실패하면 값 없는 앱을 기동하지 않는다.
+
 ## 현행 범주 (2026-08-25)
 
 아래 목록은 대표값이며 완전한 목록이 아니다. 실제 사용 여부는 코드 검색과 배포 환경 inventory로 확인한다.

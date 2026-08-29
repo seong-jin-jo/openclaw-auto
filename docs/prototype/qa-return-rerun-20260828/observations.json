@@ -1,0 +1,33 @@
+{
+  "workspaceId": "cd1d0a40-540d-4524-9b49-bf2445d82182",
+  "observations": [
+    {
+      "source": "inbox",
+      "queuePostId": "0fb7120a-2f64-4d74-b259-a1343eadf3dd",
+      "draftId": "645f1744-f6c9-49a0-b67c-4ae6f6eaa4a9",
+      "returnHref": "/studio?room=publish&queue_id=0fb7120a-2f64-4d74-b259-a1343eadf3dd&from=inbox&draft_id=645f1744-f6c9-49a0-b67c-4ae6f6eaa4a9",
+      "queueBodyRestored": true,
+      "platformSelectionExpected": 3,
+      "platformSelectionObserved": 3,
+      "publishButton": "3곳에 올리기"
+    },
+    {
+      "source": "calendar",
+      "queuePostId": "dc132bd9-658d-4979-9fc8-b08751ee3b67",
+      "draftId": "21bee663-399b-4908-b9b4-35ce4a100017",
+      "returnHref": "/studio?room=publish&queue_id=dc132bd9-658d-4979-9fc8-b08751ee3b67&from=calendar&draft_id=21bee663-399b-4908-b9b4-35ce4a100017",
+      "queueBodyRestored": true,
+      "platformSelectionExpected": 3,
+      "platformSelectionObserved": 3,
+      "publishButton": "3곳에 올리기"
+    },
+    {
+      "source": "missing",
+      "queuePostId": "qa-missing-1787930008180",
+      "rejected": true,
+      "publishButtonCount": 0
+    }
+  ],
+  "unauthorizedUrls": [],
+  "consoleErrors": []
+}

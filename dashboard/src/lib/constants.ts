@@ -131,6 +131,23 @@ export const AUTOMATION_FEATURES = [
   { key: "youtube_shorts", label: "YouTube Shorts", description: "카드뉴스 기반 짧은 영상 생성 + Shorts 발행", default: false, implemented: false },
 ];
 
+/**
+ * 안 터진 글 판정 기준 (VIRAL_THRESHOLD의 반대 짝).
+ * 발행 후 이 나이(ms)가 지나고, views/likes가 이 기준 미만이면 "안 터진 글" 후보다.
+ * 채널/워크스페이스별 override는 channel-settings.json의 low_engagement_min_views/
+ * low_engagement_min_likes에 저장(없으면 이 기본값 사용) — /api/channel-settings/[channel] 참고.
+ */
+export const LOW_ENGAGEMENT_MIN_AGE_MS = 24 * 60 * 60 * 1000;
+export const LOW_ENGAGEMENT_MIN_VIEWS_DEFAULT = Number(process.env.LOW_ENGAGEMENT_MIN_VIEWS) || 100;
+export const LOW_ENGAGEMENT_MIN_LIKES_DEFAULT = Number(process.env.LOW_ENGAGEMENT_MIN_LIKES) || 3;
+
+/**
+ * 실제로 게시물 삭제 API가 존재하는 채널 SSOT. 다른 채널(x/instagram 등)은 publish
+ * extension에 delete가 없어 이 목록에 없으면 "채널 미지원"으로 거부한다.
+ * UI(AutomationRulesPanel)와 API(/api/threads/low-engagement-cleanup)가 이 배열을 공유한다.
+ */
+export const DELETE_SUPPORTED_CHANNELS: string[] = ["threads"];
+
 /** Default notification settings */
 export const DEFAULT_NOTIFICATION_SETTINGS = {
   onPublish: { enabled: false, channels: [] as string[] },

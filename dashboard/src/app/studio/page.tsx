@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import {
   fetcher,
@@ -13,23 +13,42 @@ import {
 } from "@/lib/api";
 import { useToast } from "@/components/layout/Toast";
 import { PlatformPreview, PREVIEW_PLATFORMS, type PreviewInlineEditor, type PreviewPlatform } from "@/components/studio/PlatformPreview";
-import { CreateRoom, EditRoom, type CreateContentBranch, type EditContentKind } from "@/components/studio/StudioRooms";
+import { CreateRoom, EditRoom, type CreateContentBranch, type CreateKind, type EditContentKind } from "@/components/studio/StudioRooms";
 import type { StudioGenerationCandidate } from "@/lib/studio/generation/client";
 import { useUIStore, type StudioRoom } from "@/store/ui-store";
-import { BrandSetupWizard } from "@/components/shared/BrandSetupWizard";
+import { LearningCardWizard } from "@/components/studio/LearningCardWizard";
+import { LearningStatus } from "@/components/studio/LearningStatus";
+import { countFilledLearningSlots, readLearningInfo, type LearningInfo } from "@/components/studio/learning-info";
 import { RepoConnect } from "@/components/studio/RepoConnect";
 import { SchedulePanel } from "@/components/studio/SchedulePanel";
 import { trackEvent, type AnalyticsChannel } from "@/lib/analytics/events";
 import { authHeaders } from "@/lib/auth";
 import { CHANNEL_TEXT_LIMITS, countTextCharacters } from "@/lib/channel-text-limits";
 import { Button } from "@/components/shared/Button";
+import { RoomHeader } from "@/components/shared/RoomHeader";
+import { PublishTrip } from "@/components/shared/PublishTrip";
 import { Field } from "@/components/shared/Field";
 import { Stack } from "@/components/shared/Stack";
 import { SCHEDULABLE_PLATFORMS } from "@/lib/constants";
 import { StudioCommandPanel } from "@/components/studio/StudioCommandPanel";
 import type { EditorHandoff } from "@/lib/studio/editor-handoff";
 import { resolveStudioRoomFromSearch, shouldLoadPublishResources } from "@/lib/studio/room-routing";
+import {
+  HASHTAG_BUDGET,
+  parseHashtags,
+  parsePublishCommand,
+  spreadDisplayName,
+  spreadHashtags,
+  trimAllOverLimit,
+  type BulkPlatform,
+} from "@/lib/studio/publish-bulk";
 import { buildPublishReturnWork, readPublishReturnRequest, resolvePublishReturnDraftId } from "@/lib/publish-return-context";
+import {
+  defaultContentEditFormat,
+  validateContentEditFormat,
+  type ContentEditFormat,
+} from "@/lib/studio/content-edit-format";
+import type { CurrentWork } from "@/lib/studio/current-work";
 
 // SNS-007: /api/publish가 실제로 계정별 발행을 받는 4개 플랫폼(threads/x/facebook/instagram)만
 // 계정 셀렉터를 노출한다. shorts/reels/tiktok은 /api/publish 미지원(실발행 분기 없음. 위
@@ -94,6 +113,14 @@ const GROUPS: { title: string; platforms: PreviewPlatform[] }[] = [
   { title: "카드뉴스", platforms: ["instagram"] },
 ];
 const ALL: PreviewPlatform[] = PREVIEW_PLATFORMS.map((platform) => platform.key);
+
+// 플랫폼마다 본문을 다르게 지어내지 않는다. 같은 본문을 그 플랫폼 한도까지만 줄여 보여준다.
+// 한도를 넘으면 줄임표를 붙여 잘린 사실이 화면에서 보이게 한다.
+function trimToChannelLimit(body: string, channel: keyof typeof CHANNEL_TEXT_LIMITS): string {
+  const limit = CHANNEL_TEXT_LIMITS[channel];
+  if (countTextCharacters(body) <= limit) return body;
+  return `${body.slice(0, Math.max(0, limit - 1))}…`;
+}
 const DEFAULT_PUBLISH_TARGETS = new Set<PreviewPlatform>(["threads", "x", "instagram"]);
 const normalizeIncludes = (saved?: Record<string, boolean>): Record<string, boolean> => (
   Object.fromEntries(ALL.map((platform) => [
@@ -114,6 +141,7 @@ const isVideo = (p: PreviewPlatform) => p === "shorts" || p === "reels" || p ===
 
 export default function StudioPage() {
   const { showToast } = useToast();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const search = searchParams?.toString() ?? "";
   const { activeWorkspace, studioRoom: storedRoom, setStudioRoom: setActiveRoom } = useUIStore();
@@ -132,7 +160,7 @@ export default function StudioPage() {
     activeWorkspace ? `/api/studio/engine-status?tenant_id=${activeWorkspace.id}` : "/api/studio/engine-status",
     fetcher,
   );
-  const { data: hist, mutate: mutateHist } = useSWR<{ drafts: Array<Record<string, unknown>> }>(activeWorkspace ? `/api/studio/drafts?tenant_id=${activeWorkspace.id}` : null, fetcher);
+  const { data: hist, mutate: mutateHist } = useSWR<{ drafts: Array<Record<string, unknown>>; currentWork?: CurrentWork | null }>(activeWorkspace ? `/api/studio/drafts?tenant_id=${activeWorkspace.id}` : null, fetcher);
   const { data: publishReturnQueue } = useSWR<{ posts: Array<Record<string, unknown>> }>(
     activeWorkspace && publishReturnRequest
       ? `/api/queue?status=all&returnTo=${publishReturnRequest.sourceRoute}&tenant_id=${activeWorkspace.id}`
@@ -156,6 +184,10 @@ export default function StudioPage() {
   const [guide, setGuide] = useState("");
   // 활성 워크스페이스 브랜드 가이드 → 생성에 자동 주입(P3)
   useEffect(() => { if (brandData?.guide?.prompt_guide) setGuide(brandData.guide.prompt_guide); }, [brandData]);
+  // 헤더 학습 정보가 네 방 어디서든 같은 숫자를 보이게 작업 공간이 바뀔 때 다시 읽는다.
+  useEffect(() => {
+    setLearningInfo(activeWorkspace ? readLearningInfo(activeWorkspace.id) : {});
+  }, [activeWorkspace]);
   // 온보딩 위저드에서 "브랜드 설정하기"(/studio?setup=brand)로 오면 브랜드 위저드 자동 오픈.
   useEffect(() => {
     if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("setup") === "brand") {
@@ -177,13 +209,20 @@ export default function StudioPage() {
   const [titles, setTitles] = useState<Record<string, string>>({});
   const [hashtags, setHashtags] = useState<Record<string, string>>({});
   const [firstComments, setFirstComments] = useState<Record<string, string>>({});
+  // 플랫폼별 캡션 덮어쓰기. 세로영상 세 곳(Shorts, Reels, TikTok)은 원본 대본 하나를 공유하던
+  // 탓에 한 곳을 고치면 나머지도 같이 바뀌었다. 여기에 플랫폼 키로 따로 담아 각자 편집한다.
+  const [captions, setCaptions] = useState<Record<string, string>>({});
   const [reviewQueueId, setReviewQueueId] = useState<string | null>(null);
   const [reviewBusy, setReviewBusy] = useState(false);
   const [publishChatDraft, setPublishChatDraft] = useState("");
   const [editLines, setEditLines] = useState<string[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<StudioGenerationCandidate | null>(null);
   const [createBranch, setCreateBranch] = useState<CreateContentBranch>("video");
+  const [alsoKinds, setAlsoKinds] = useState<CreateKind[]>([]);
+  const [learningInfo, setLearningInfo] = useState<LearningInfo>({});
+  const [learningFlash, setLearningFlash] = useState(0);
   const [editKind, setEditKind] = useState<EditContentKind>("video");
+  const [editFormat, setEditFormat] = useState<ContentEditFormat>(() => defaultContentEditFormat("video"));
   const [editing, setEditing] = useState<PreviewPlatform | null>(null);
   const [showTx, setShowTx] = useState(false);
   const { data: tx } = useSWR<{ items?: Array<{ display_name?: string; credits?: number; action?: string; created_at?: string; output?: string | null; outputKind?: string | null }> }>(
@@ -272,7 +311,7 @@ export default function StudioPage() {
     setIncludes(normalizeIncludes()); setPublishReconciliations({}); setEditorHandoff(null);
     setDisplayNames({}); setTitles({}); setHashtags({}); setFirstComments({});
     setEditLines([]); setReviewQueueId(null); setSelectedCandidate(null);
-    setCreateBranch("video"); setEditKind("video");
+    setCreateBranch("video"); setEditKind("video"); setEditFormat(defaultContentEditFormat("video"));
     setPub({ running: false, stopped: false, status: {}, urls: {}, errors: {} });
     if (!workspaceId) return;
     try {
@@ -284,9 +323,16 @@ export default function StudioPage() {
         if (w.includes) setIncludes(normalizeIncludes(w.includes)); setDraftId(w.draftId || null);
         setPublishReconciliations(normalizePublishReconciliations(w.publishReconciliations ?? w.publishReconciliation));
         setDisplayNames(w.displayNames || {}); setTitles(w.titles || {}); setHashtags(w.hashtags || {});
-        setFirstComments(w.firstComments || {}); setEditLines(w.editLines || []); setReviewQueueId(w.reviewQueueId || null);
+        setFirstComments(w.firstComments || {}); setCaptions(w.captions || {}); setEditLines(w.editLines || []); setReviewQueueId(w.reviewQueueId || null);
         if (w.createBranch === "video" || w.createBranch === "text_image") setCreateBranch(w.createBranch);
-        if (w.editKind === "video" || w.editKind === "card" || w.editKind === "audio" || w.editKind === "text") setEditKind(w.editKind);
+        if (w.editKind === "video" || w.editKind === "card" || w.editKind === "audio" || w.editKind === "text") {
+          setEditKind(w.editKind);
+          const formatKind = w.editKind === "text" ? "card" : w.editKind;
+          const savedFormat = validateContentEditFormat(w.editFormat);
+          setEditFormat(savedFormat.valid && savedFormat.value.kind === formatKind
+            ? savedFormat.value
+            : defaultContentEditFormat(formatKind));
+        }
       }
     } catch { /* noop */ }
     setHydratedWorkspaceId(workspaceId);
@@ -294,8 +340,8 @@ export default function StudioPage() {
   useEffect(() => {
     const workspaceId = activeWorkspace?.id;
     if (!workspaceId || hydratedWorkspaceId !== workspaceId) return;
-    try { localStorage.setItem(studioWorkStorageKey(workspaceId), JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, editLines, reviewQueueId, createBranch, editKind })); } catch { /* noop */ }
-  }, [activeWorkspace?.id, hydratedWorkspaceId, idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, editLines, reviewQueueId, createBranch, editKind]);
+    try { localStorage.setItem(studioWorkStorageKey(workspaceId), JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, captions, editLines, reviewQueueId, createBranch, editKind, editFormat })); } catch { /* noop */ }
+  }, [activeWorkspace?.id, hydratedWorkspaceId, idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, captions, editLines, reviewQueueId, createBranch, editKind, editFormat]);
 
   const media = { imgUrl: img?.file, vidUrl: vid?.file };
   const upText = (patch: Partial<TextVariants>) => setText((p) => ({ ...(p || {}), ...patch }));
@@ -397,19 +443,27 @@ export default function StudioPage() {
       titles,
       hashtags,
       firstComments,
+      captions,
       editLines,
+      editFormat,
       publishedAt: status === "published" ? new Date().toISOString() : undefined,
     });
     if (r?.id) setDraftId(r.id); mutateHist(); return r?.id;
   }
   // 플랫폼별 발행 텍스트 추출
   function platformText(p: PreviewPlatform): string {
+    if (p === "shorts" || p === "reels" || p === "tiktok") {
+      const override = captions[p];
+      if (typeof override === "string") return override;
+      if (!text) return "";
+      return [text.shorts?.hook, text.shorts?.body, text.shorts?.cta].filter(Boolean).join("\n") || text.threads || "";
+    }
     if (!text) return "";
     if (p === "threads") return text.threads || "";
     if (p === "facebook") return text.facebook || "";
     if (p === "x") return text.x || "";
     if (p === "instagram") return text.instagram?.caption || "";
-    return [text.shorts?.hook, text.shorts?.body, text.shorts?.cta].filter(Boolean).join("\n") || text.threads || "";
+    return "";
   }
 
   function publishText(p: PreviewPlatform): string {
@@ -454,6 +508,7 @@ export default function StudioPage() {
           tenant_id: activeWorkspace.id, platform: p, text: publishText(p), image_url: img?.url, draft_id: did,
           account_id: selectedAccounts[p] || undefined,
           first_comment: capabilityFor(p).supported && firstComments[p]?.trim() ? firstComments[p].trim() : undefined,
+          edit_format: editFormat,
         });
         if (r?.ok && !r.partial) { urls[p] = r.permalink || POST_URL[p] || "#"; trackEvent({ name: "publish_success", params: { channel: p as AnalyticsChannel } }); }
         else {
@@ -519,13 +574,31 @@ export default function StudioPage() {
     setTitles((d.titles as Record<string, string>) || {});
     setHashtags((d.hashtags as Record<string, string>) || {});
     setFirstComments((d.firstComments as Record<string, string>) || {});
+    setCaptions((d.captions as Record<string, string>) || {});
     setEditLines((d.editLines as string[]) || []);
+    const savedFormat = validateContentEditFormat(d.editFormat);
+    if (savedFormat.valid) {
+      setEditKind(savedFormat.value.kind);
+      setEditFormat(savedFormat.value);
+    }
     showToast(
       Object.keys(savedReconciliations).length > 0
         ? "외부 게시 완료·내부 기록 복구 필요. 재발행 금지"
         : "불러옴. 수정 후 재발행 가능",
       Object.keys(savedReconciliations).length > 0 ? "error" : "success",
     );
+  }
+  function resumeCurrentWork() {
+    const current = hist?.currentWork;
+    if (!current) return;
+    const draft = hist.drafts.find((item) => item.id === current.draftId);
+    if (!draft) return;
+    loadDraft(draft);
+    if (current.stage === "performance") {
+      window.location.assign("/");
+      return;
+    }
+    changeRoom(current.stage);
   }
   const commentHandoffLoaded = useRef<string | null>(null);
   useEffect(() => {
@@ -590,6 +663,7 @@ export default function StudioPage() {
       setTitles((linkedDraft?.titles as Record<string, string>) || {});
       setHashtags((linkedDraft?.hashtags as Record<string, string>) || (tagText ? { instagram: tagText } : {}));
       setFirstComments((linkedDraft?.firstComments as Record<string, string>) || {});
+      setCaptions((linkedDraft?.captions as Record<string, string>) || {});
       setEditLines((linkedDraft?.editLines as string[]) || []);
       setDraftId(linkedDraftId);
       setPublishReconciliations(normalizePublishReconciliations(linkedDraft?.publishReconciliations ?? linkedDraft?.publishReconciliation));
@@ -618,13 +692,15 @@ export default function StudioPage() {
     const body = [candidate.title, candidate.rationale, ...candidate.format.outline].join("\n");
     setText({
       threads: body,
-      x: [candidate.title, candidate.format.outline[0]].filter(Boolean).join("\n"),
+      x: trimToChannelLimit(body, "x"),
       facebook: body,
       instagram: { caption: candidate.rationale, slides: candidate.format.outline, hashtags: [] },
       shorts: { hook: candidate.title, body: candidate.format.outline.join("\n"), cta: candidate.rationale },
     });
     setEditLines([candidate.title, ...candidate.format.outline, candidate.rationale]);
-    setEditKind(candidate.format.content_branch === "video" ? "video" : "card");
+    const nextKind = candidate.format.content_branch === "video" ? "video" : "card";
+    setEditKind(nextKind);
+    setEditFormat(defaultContentEditFormat(nextKind));
   }
 
   function updatePreviewCaption(platform: PreviewPlatform, value: string) {
@@ -632,7 +708,11 @@ export default function StudioPage() {
     else if (platform === "x") upText({ x: value });
     else if (platform === "facebook") upText({ facebook: value });
     else if (platform === "instagram") upIg({ caption: value });
-    else upText({ shorts: { ...(text?.shorts || {}), hook: value } });
+    else {
+      setCaptions((current) => ({ ...current, [platform]: value }));
+      // Shorts는 편집실 대본과 같은 원본을 쓰므로 저장 대상 본문에도 반영한다.
+      if (platform === "shorts") upText({ shorts: { ...(text?.shorts || {}), hook: value } });
+    }
   }
 
   function previewEditor(platform: PreviewPlatform): PreviewInlineEditor {
@@ -654,6 +734,54 @@ export default function StudioPage() {
       },
       onFirstCommentChange: (value) => setFirstComments((current) => ({ ...current, [platform]: value })),
     };
+  }
+
+  // ── 발행실에서만 한 번에 되는 일 ──
+  // 손으로 하면 칸을 일곱 번 열어 일곱 번 고쳐야 하는 것들이다. 채널마다 다른 규격(해시태그 개수,
+  // 본문 한도)을 고객이 외우지 않아도 되게 대화창이 대신 맞춘다. 규칙은 lib/studio/publish-bulk.ts.
+  const bulkTargets = ALL.filter((platform) => PUBLISH_SUPPORTED.has(platform)) as BulkPlatform[];
+  const connectedTargets = bulkTargets.filter((platform) => (accountsByPlatform[platform] || []).length > 0);
+  const previewTargets = ALL as BulkPlatform[];
+
+  function selectAllChannels() {
+    if (!connectedTargets.length) { showToast("연결된 채널이 아직 없습니다. 먼저 계정을 연결해 주세요", "error"); return; }
+    setIncludes((current) => ({ ...current, ...Object.fromEntries(connectedTargets.map((platform) => [platform, true])) }));
+    showToast(`연결된 ${connectedTargets.length}곳을 모두 골랐습니다`, "success");
+  }
+  function clearAllChannels() {
+    setIncludes((current) => ({ ...current, ...Object.fromEntries(bulkTargets.map((platform) => [platform, false])) }));
+    showToast("고른 곳을 모두 해제했습니다", "success");
+  }
+  function excludeChannel(platform: BulkPlatform) {
+    setIncludes((current) => ({ ...current, [platform]: false }));
+    showToast(`${LABEL[platform]}만 빼고 두었습니다`, "success");
+  }
+  function keepOnlyChannel(platform: BulkPlatform) {
+    if (!(accountsByPlatform[platform] || []).length) { showToast(`${LABEL[platform]} 계정이 아직 연결되지 않았습니다`, "error"); return; }
+    setIncludes((current) => ({ ...current, ...Object.fromEntries(bulkTargets.map((p) => [p, p === platform])) }));
+    showToast(`${LABEL[platform]} 한 곳만 남겼습니다`, "success");
+  }
+  function unifyHashtagsAcrossChannels() {
+    const source = hashtags.instagram || Object.values(hashtags).find((value) => value?.trim()) || (text?.instagram?.hashtags || []).join(" ");
+    const tags = parseHashtags(source);
+    if (!tags.length) { showToast("맞출 해시태그가 아직 없습니다. 한 곳에 먼저 적어 주세요", "error"); return; }
+    const spread = spreadHashtags(source, previewTargets);
+    setHashtags((current) => ({ ...current, ...spread }));
+    upIg({ hashtags: tags.slice(0, HASHTAG_BUDGET.instagram) });
+    showToast(`해시태그를 일곱 곳 규격에 맞춰 나눴습니다. X는 ${HASHTAG_BUDGET.x}개, 인스타그램은 ${HASHTAG_BUDGET.instagram}개입니다`, "success");
+  }
+  function unifyDisplayNameAcrossChannels() {
+    const source = Object.values(displayNames).find((value) => value?.trim()) || activeWorkspace?.name || "";
+    if (!source.trim()) { showToast("맞출 표시 이름이 없습니다", "error"); return; }
+    setDisplayNames((current) => ({ ...current, ...spreadDisplayName(source, previewTargets) }));
+    showToast(`표시 이름을 일곱 곳 모두 "${source.trim()}"으로 맞췄습니다`, "success");
+  }
+  function trimOverLimitChannels() {
+    const next = trimAllOverLimit((platform) => platformText(platform), previewTargets);
+    const changed = Object.keys(next);
+    if (!changed.length) { showToast("한도를 넘긴 곳이 없습니다", "success"); return; }
+    for (const platform of changed) updatePreviewCaption(platform as PreviewPlatform, next[platform]);
+    showToast(`한도를 넘긴 ${changed.map((platform) => LABEL[platform]).join(", ")}만 줄였습니다`, "success");
   }
 
   async function requestReview() {
@@ -693,47 +821,80 @@ export default function StudioPage() {
 
   async function submitPublishChat(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const command = publishChatDraft.trim();
-    if (!command) return;
+    const raw = publishChatDraft.trim();
+    if (!raw) return;
     setPublishChatDraft("");
-    if (/검토/.test(command)) await requestReview();
-    else if (/날짜|예약/.test(command)) setShowSchedule(true);
-    else if (/저장|초안/.test(command)) await save("draft");
-    else if (/발행|publish/i.test(command)) await publish();
-    else showToast("초안 저장, 검토 요청, 발행, 날짜 잡기 중 하나로 말씀해 주세요", "error");
+    const command = parsePublishCommand(raw);
+    switch (command.kind) {
+      case "selectAll": selectAllChannels(); return;
+      case "clearAll": clearAllChannels(); return;
+      case "exclude": excludeChannel(command.platform); return;
+      case "onlyOne": keepOnlyChannel(command.platform); return;
+      case "unifyHashtags": unifyHashtagsAcrossChannels(); return;
+      case "unifyDisplayName": unifyDisplayNameAcrossChannels(); return;
+      case "trimOverLimit": trimOverLimitChannels(); return;
+      case "schedule": setShowSchedule(true); return;
+      case "requestReview": await requestReview(); return;
+      case "saveDraft": await save("draft"); showToast("임시 저장했습니다", "success"); return;
+      case "publishNow": await publish(); return;
+      default:
+        showToast("전부 고르기, 한 곳 빼기, 해시태그 맞추기, 표시 이름 맞추기, 한도 넘는 곳 줄이기, 예약 발행, 검토 요청, 임시 저장, 지금 발행 중 하나로 말씀해 주세요", "error");
+    }
   }
 
   const roomHeader = (
-    <header className="relative mb-stack-section flex flex-wrap items-center gap-stack border-b border-border pb-pad-inset">
-      <div className="mr-auto min-w-0">
-        <b className="block truncate text-lead text-text">{activeWorkspace?.name || "작업 공간"}</b>
-        <span className="text-caption text-subtle">콘텐츠 작업실</span>
-      </div>
-      <Button onClick={() => setShowWorks((value) => !value)} aria-expanded={showWorks} aria-controls="studio-work-overview">
-        작업물 전체 <span className="ml-micro text-accent">{hist?.drafts.length ?? 0}</span>
-      </Button>
-      <Link href="/inbox" className="inline-flex min-h-control-touch items-center rounded-control border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">승인 인박스</Link>
-      <Link href="/calendar" className="inline-flex min-h-control-touch items-center rounded-control border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">발행 캘린더</Link>
-      <span className="rounded-pill bg-accent-soft px-stack py-stack-tight text-caption font-semibold text-accent">
-        {activeRoom === "create" ? "생성실" : activeRoom === "edit" ? "편집실" : "발행실"}
-      </span>
-      {activeRoom === "create" || activeRoom === "edit" ? (
-        <span className="rounded-pill border border-accent/30 bg-surface px-stack py-stack-tight text-caption font-semibold text-accent" data-kind-board>
-          지금 만드는 것: {activeRoom === "create" ? createBranch === "video" ? "영상" : "글·카드뉴스" : editKind === "video" ? "영상" : editKind === "card" ? "카드뉴스" : editKind === "text" ? "글" : "음악"}
-        </span>
-      ) : null}
-      <span className="rounded-control border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle" title={engine?.error || engine?.model || ""}>AI {engine?.label || "확인 중"}</span>
+    <RoomHeader
+      workspaceName={activeWorkspace?.name}
+      subtitle="콘텐츠 작업실"
+      roomLabel={activeRoom === "create" ? "생성실" : activeRoom === "edit" ? "편집실" : "발행실"}
+      leading={
+        <>
+          <Button onClick={() => setShowWorks((value) => !value)} aria-expanded={showWorks} aria-controls="studio-work-overview">
+            작업물 전체 <span className="ml-micro text-accent">{hist?.drafts.length ?? 0}</span>
+          </Button>
+          <LearningStatus
+            filled={countFilledLearningSlots(learningInfo, { guide })}
+            flashToken={learningFlash}
+            onOpen={() => setShowWizard(true)}
+          />
+        </>
+      }
+      trailing={
+        <>
+          {activeRoom === "create" || activeRoom === "edit" ? (
+            <span className="rounded-pill border border-accent/30 bg-surface px-stack py-stack-tight text-caption font-semibold text-accent" data-kind-board>
+              지금 만드는 것: {activeRoom === "create" ? createBranch === "video" ? "영상" : "글·카드뉴스" : editKind === "video" ? "영상" : editKind === "card" ? "카드뉴스" : editKind === "text" ? "글" : "음악"}
+              {activeRoom === "create" && alsoKinds.length ? <span className="ml-micro font-normal text-subtle">같이 {alsoKinds.map((kind) => (kind === "video" ? "영상" : kind === "card" ? "카드뉴스" : "글")).join(", ")}</span> : null}
+            </span>
+          ) : null}
+          <span className="rounded-control border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle" title={engine?.error || engine?.model || ""}>AI {engine?.label || "확인 중"}</span>
+        </>
+      }
+    >
       {showWorks ? (
-        <div id="studio-work-overview" className="absolute left-0 right-0 top-full z-20 mt-stack grid gap-stack rounded-surface border border-border bg-surface p-pad-inset shadow-lg md:grid-cols-4">
-          {(["create", "edit", "publish"] as StudioRoom[]).map((room) => (
-            <Button key={room} variant={activeRoom === room ? "primary" : "secondary"} onClick={() => changeRoom(room)}>
-              {room === "create" ? "생성실" : room === "edit" ? "편집실" : "발행실"}
-            </Button>
-          ))}
-          <Link href="/" className="inline-flex min-h-control-touch items-center justify-center rounded-control border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">성과실</Link>
+        <div id="studio-work-overview" className="absolute left-0 right-0 top-full z-20 mt-stack space-y-stack rounded-surface border border-border bg-surface p-pad-inset shadow-lg">
+          {hist?.currentWork && hist.drafts.some((draft) => draft.id === hist.currentWork?.draftId) ? (
+            <div className="flex flex-wrap items-center gap-stack border-b border-border pb-stack" data-current-work={hist.currentWork.stage}>
+              <div className="mr-auto min-w-0">
+                <span className="block text-caption text-subtle">현재 작업 · {hist.currentWork.stageLabel}</span>
+                <b className="block truncate text-body text-text">{hist.currentWork.idea}</b>
+              </div>
+              <Button variant="primary" onClick={resumeCurrentWork}>
+                {hist.currentWork.stage === "create" ? "이어 생성하기" : hist.currentWork.stage === "edit" ? "이어 편집하기" : hist.currentWork.stage === "publish" ? "이어 발행하기" : "성과 보기"}
+              </Button>
+            </div>
+          ) : null}
+          <div className="grid gap-stack md:grid-cols-4">
+            {(["create", "edit", "publish"] as StudioRoom[]).map((room) => (
+              <Button key={room} variant={activeRoom === room ? "primary" : "secondary"} onClick={() => changeRoom(room)} className="min-w-0">
+                {room === "create" ? "생성실" : room === "edit" ? "편집실" : "발행실"}
+              </Button>
+            ))}
+            <Link href="/" className="inline-flex min-h-control-touch items-center justify-center rounded-control border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">성과실</Link>
+          </div>
         </div>
       ) : null}
-    </header>
+    </RoomHeader>
   );
 
   if (activeWorkspace && hydratedWorkspaceId !== activeWorkspace.id) {
@@ -742,7 +903,7 @@ export default function StudioPage() {
 
   if (activeRoom === "create") return (
     <div className="px-stack-section py-pad-inset">
-      {showWizard && activeWorkspace ? <BrandSetupWizard workspace={activeWorkspace} onComplete={() => { setShowWizard(false); mutateBrand(); showToast("브랜드 가이드 저장됨"); }} onDismiss={() => setShowWizard(false)} /> : null}
+      {showWizard && activeWorkspace ? <LearningCardWizard workspaceId={activeWorkspace.id} workspaceName={activeWorkspace.name} onSaved={(info, completed) => { setLearningInfo(info); if (completed) { setShowWizard(false); mutateBrand(); showToast("학습 정보를 배웠습니다"); } else { setLearningFlash((value) => value + 1); } }} onClose={() => setShowWizard(false)} /> : null}
       {roomHeader}
       <CreateRoom
         workspaceId={activeWorkspace?.id}
@@ -755,17 +916,26 @@ export default function StudioPage() {
         onOpenLearning={() => setShowWizard(true)}
         onCandidateSelect={chooseCandidate}
         onOpenEditor={() => changeRoom("edit")}
+        onAlsoKindsChange={setAlsoKinds}
+        learningVersion={learningFlash + countFilledLearningSlots(learningInfo, { guide })}
+        resumeCount={hist?.drafts.length ?? 0}
+        onResume={() => setShowWorks(true)}
       />
     </div>
   );
+
+  // 편집실 본 화면과 대화창이 같은 대사를 본다. 대화창만 빈 배열을 받으면 일괄 편집이 죽은 단추가 된다.
+  const resolvedEditLines = editLines.length ? editLines : [text?.shorts?.hook || "", text?.shorts?.body || "", text?.shorts?.cta || ""].filter(Boolean);
 
   if (activeRoom === "edit") return (
     <div className="px-stack-section py-pad-inset">
       {roomHeader}
       <EditRoom
-        lines={editLines.length ? editLines : [text?.shorts?.hook || "", text?.shorts?.body || "", text?.shorts?.cta || ""]}
+        lines={resolvedEditLines}
         onLinesChange={setEditLines}
         kind={editKind}
+        initialFormat={editFormat}
+        onFormatChange={setEditFormat}
         previewReady={editKind === "video" ? Boolean(vid?.file) : editKind === "card" ? Boolean(img?.file) : false}
         commandPanel={activeWorkspace ? <StudioCommandPanel
           workspaceId={activeWorkspace.id}
@@ -774,11 +944,16 @@ export default function StudioPage() {
           text={text}
           imageUrl={img?.file ?? null}
           videoUrl={vid?.file ?? null}
-          editorLines={editLines}
+          editorLines={resolvedEditLines}
+          onEditorLinesChange={setEditLines}
           source={{ generationId: selectedCandidate?.generation_id, candidateId: selectedCandidate?.candidate_id }}
           initialHandoff={editorHandoff}
           preferredKind={editKind === "video" ? "video" : editKind === "audio" ? "audio" : editKind === "text" ? "text" : "card"}
-          onKindSelect={(kind) => setEditKind(kind === "video" ? "video" : kind === "audio" ? "audio" : kind === "text" ? "text" : "card")}
+          onKindSelect={(kind) => {
+            const nextKind = kind === "video" ? "video" : kind === "audio" ? "audio" : kind === "text" ? "text" : "card";
+            setEditKind(nextKind);
+            setEditFormat(defaultContentEditFormat(nextKind === "text" ? "card" : nextKind));
+          }}
           onDraftId={setDraftId}
           onHandoff={setEditorHandoff}
           onQueueChanged={() => mutateHist()}
@@ -789,14 +964,33 @@ export default function StudioPage() {
 
   if (activeRoom === "publish") return (
     <div className="px-stack-section py-pad-inset">
-      {showWizard && activeWorkspace ? <BrandSetupWizard workspace={activeWorkspace} onComplete={() => { setShowWizard(false); mutateBrand(); showToast("브랜드 가이드 저장됨"); }} onDismiss={() => setShowWizard(false)} /> : null}
+      {showWizard && activeWorkspace ? <LearningCardWizard workspaceId={activeWorkspace.id} workspaceName={activeWorkspace.name} onSaved={(info, completed) => { setLearningInfo(info); if (completed) { setShowWizard(false); mutateBrand(); showToast("학습 정보를 배웠습니다"); } else { setLearningFlash((value) => value + 1); } }} onClose={() => setShowWizard(false)} /> : null}
       {showRepo && activeWorkspace ? <RepoConnect workspace={activeWorkspace} onSynced={() => { mutateBrand(); showToast("브랜드 가이드 갱신됨"); }} onClose={() => setShowRepo(false)} /> : null}
       {roomHeader}
+      <PublishTrip current="publish" />
       <section data-room="publish" className="grid gap-stack-section pb-wide lg:grid-cols-[minmax(0,1fr)_20rem] lg:pb-none">
         <div className="min-w-0 space-y-region">
-          <section data-room-top="publish" aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch items-center justify-between rounded-surface border border-border bg-surface px-pad-inset py-stack">
+          <section data-room-top="publish" aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch flex-wrap items-center gap-stack rounded-surface border border-border bg-surface px-pad-inset py-stack">
             <b className="text-lead text-accent">{publishTargets.length}곳</b>
-            <span className="text-caption text-subtle">발행할 채널</span>
+            <span className="mr-auto text-caption text-subtle">
+              발행할 채널 · 연결된 곳 {connectedTargets.length}
+            </span>
+            <Button
+              size="sm"
+              data-testid="publish-select-all"
+              onClick={selectAllChannels}
+              disabled={!accountsLoaded || connectedTargets.length === 0 || publishTargets.length === connectedTargets.length}
+            >
+              연결된 {connectedTargets.length}곳 전부 고르기
+            </Button>
+            <Button
+              size="sm"
+              data-testid="publish-clear-all"
+              onClick={clearAllChannels}
+              disabled={publishTargets.length === 0}
+            >
+              전부 해제
+            </Button>
           </section>
           {lastError ? <div className="rounded-control border border-danger/30 bg-danger/10 p-stack text-caption text-danger">마지막 실패: {lastError}</div> : null}
           {vid?.narration?.message ? <div className="rounded-control border border-warning/30 bg-warning/10 p-stack text-caption text-warning">{vid.narration.message}</div> : null}
@@ -813,19 +1007,42 @@ export default function StudioPage() {
               </div>
             </div>
           ) : null}
-          {showSchedule && activeWorkspace ? <SchedulePanel tenantId={activeWorkspace.id} draftId={draftId} defaultPlatforms={publishTargets} /> : null}
+          {showSchedule && activeWorkspace ? (
+            <SchedulePanel
+              tenantId={activeWorkspace.id}
+              draftId={draftId}
+              defaultPlatforms={publishTargets}
+              onScheduled={(iso) => {
+                // 예약을 건 다음 확인할 곳이 없어 흐름이 끊겨 있었다. 그 예약이 놓인 날짜의
+                // 발행 캘린더로 바로 데려간다. 별도 예약 완료 화면을 새로 만들지 않는다.
+                const when = new Date(iso);
+                const dateKey = `${when.getFullYear()}-${String(when.getMonth() + 1).padStart(2, "0")}-${String(when.getDate()).padStart(2, "0")}`;
+                router.push(`/calendar?from=publish&date=${dateKey}`);
+              }}
+            />
+          ) : null}
           {accountsLoaded && publishTargets.length === 0 ? (
             <div className="rounded-control border border-warning/30 bg-warning/10 p-stack text-body-sm text-warning">
-              연결된 발행 계정이 없습니다. <Link href="/settings" className="font-semibold underline">설정에서 채널 연결하기</Link>
+              연결된 발행 계정이 없습니다. 아래 각 칸의 계정 연결하기를 누르면 그 채널 연결 화면으로 갑니다. <Link href="/channels/threads" className="font-semibold underline">Threads부터 연결하기</Link>
             </div>
           ) : null}
           {text ? (
-            <div className="card flex flex-wrap items-center gap-stack p-stack">
+            <div className="card space-y-stack p-stack">
+              <div className="flex flex-wrap items-center gap-stack">
               <b className="mr-auto min-w-0 truncate text-body text-text">{idea || "현재 작업물"}</b>
-              <Button onClick={() => save("draft")}>초안으로 저장</Button>
-              <Button onClick={requestReview} disabled={reviewBusy}>{reviewBusy ? "요청 중" : "검토 요청"}</Button>
-              <Button variant="primary" onClick={publish} disabled={pub.running || !accountsLoaded || publishTargets.length === 0}>{publishTargets.length}곳에 올리기</Button>
-              {activeWorkspace ? <Button variant={showSchedule ? "primary" : "secondary"} onClick={() => setShowSchedule((value) => !value)}>날짜 잡기</Button> : null}
+              <Button onClick={() => save("draft")}>임시 저장하기</Button>
+              <Button onClick={requestReview} disabled={reviewBusy}>{reviewBusy ? "보내는 중" : "승인 인박스로 보내기"}</Button>
+              <Button variant="primary" onClick={publish} disabled={pub.running || !accountsLoaded || publishTargets.length === 0}>선택한 {publishTargets.length}곳에 지금 발행</Button>
+              {activeWorkspace ? <Button variant={showSchedule ? "primary" : "secondary"} onClick={() => setShowSchedule((value) => !value)}>예약 발행</Button> : null}
+              </div>
+              {/* 단추 이름만으로는 무엇이 일어나는지 안 갈린다. 넷이 어떻게 다른지 한 줄로 적는다.
+                  눌러 봐야 아는 단추는 없는 단추다(R191). */}
+              <p className="break-keep text-caption text-subtle" data-publish-actions-note>
+                임시 저장은 아무 데도 안 올리고 이 작업물만 남깁니다.
+                승인 인박스로 보내면 검토를 기다리는 자리로 갑니다.
+                지금 발행은 고른 곳에 바로 올립니다.
+                예약 발행은 날짜와 시각을 잡고 그 날의 발행 캘린더로 이어집니다.
+              </p>
             </div>
           ) : null}
           {GROUPS.map((group) => (
@@ -852,17 +1069,40 @@ export default function StudioPage() {
                               미지원
                             </label>
                           )}
-                          {ACCOUNT_SELECTABLE.has(platform) && (accountsByPlatform[platform] || []).length > 0 ? (
-                            <select
-                              aria-label={`${LABEL[platform]} 발행 계정`}
-                              data-testid={`publish-account-select-${platform}`}
-                              value={selectedAccounts[platform] ?? ""}
-                              onChange={(event) => setSelectedAccounts((current) => ({ ...current, [platform]: event.target.value }))}
-                              className="min-h-control-touch max-w-32 rounded-control border border-border bg-surface-2 px-stack-tight text-caption text-text"
+                          {accountsLoaded && PUBLISH_SUPPORTED.has(platform) && (accountsByPlatform[platform] || []).length === 0 ? (
+                            <Link
+                              href={`/channels/${platform}`}
+                              data-testid={`publish-connect-link-${platform}`}
+                              title={`${LABEL[platform]} 연결 화면으로 갑니다. 연결한 뒤 그 화면에서 기본 계정도 정할 수 있습니다`}
+                              className="inline-flex min-h-control-touch items-center rounded-control border border-accent/40 bg-accent-soft px-stack-tight text-caption font-semibold text-accent hover:bg-surface"
                             >
-                              <option value="">기본계정</option>
-                              {(accountsByPlatform[platform] || []).map((account) => <option key={account.id} value={account.id}>{account.label}</option>)}
-                            </select>
+                              계정 연결하기
+                            </Link>
+                          ) : null}
+                          {ACCOUNT_SELECTABLE.has(platform) && (accountsByPlatform[platform] || []).length > 0 ? (
+                            <>
+                              <select
+                                aria-label={`${LABEL[platform]} 발행 계정`}
+                                data-testid={`publish-account-select-${platform}`}
+                                value={selectedAccounts[platform] ?? ""}
+                                onChange={(event) => setSelectedAccounts((current) => ({ ...current, [platform]: event.target.value }))}
+                                className="min-h-control-touch max-w-32 rounded-control border border-border bg-surface-2 px-stack-tight text-caption text-text"
+                              >
+                                {/* 어느 계정으로 올라가는지 이름으로 말한다. "기본계정"만 적으면 그게 누구인지 화면이 답을 못 한다. */}
+                                <option value="">
+                                  기본 {(accountsByPlatform[platform] || []).find((account) => account.is_default)?.label || "계정"}
+                                </option>
+                                {(accountsByPlatform[platform] || []).map((account) => <option key={account.id} value={account.id}>{account.label}</option>)}
+                              </select>
+                              <Link
+                                href={`/channels/${platform}`}
+                                data-testid={`publish-account-manage-${platform}`}
+                                title={`${LABEL[platform]} 계정을 더 연결하거나 기본 계정을 바꿉니다`}
+                                className="inline-flex min-h-control-touch items-center rounded-control border border-border bg-surface-2 px-stack-tight text-caption font-semibold text-muted hover:bg-surface"
+                              >
+                                계정 관리
+                              </Link>
+                            </>
                           ) : null}
                         </div>
                       }
@@ -874,11 +1114,14 @@ export default function StudioPage() {
           ))}
         </div>
 
+        {/* 좁은 화면에서는 아래에서 올라오는 시트, 넓은 화면에서는 오른쪽 기둥이다. 두 벌의 규칙이
+            한 줄에 섞여 있어 넓은 화면에서 높이가 0으로 접혔고 대화창이 통째로 안 보였다.
+            회장이 "왜 여긴 챗봇 없어"라고 하신 자리가 여기다. max-lg로 갈라 둔다. */}
         <aside
           data-chat-dock="persistent"
           data-chat-always="true"
           aria-label="발행 담당 대화창"
-          className={`card overflow-hidden lg:static lg:h-fit lg:max-h-none lg:translate-y-0 lg:rounded-surface lg:border lg:shadow-none lg:sticky lg:top-pad-inset fixed inset-x-0 bottom-0 z-40 max-h-[60vh] overflow-y-auto rounded-b-none shadow-lg transition-transform ${chatOpen ? "translate-y-0" : "translate-y-[calc(100%-3.5rem)]"}`}
+          className={`card z-40 overflow-y-auto transition-transform max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:max-h-[60vh] max-lg:rounded-b-none max-lg:shadow-lg lg:sticky lg:top-pad-inset lg:h-fit lg:rounded-surface lg:border ${chatOpen ? "max-lg:translate-y-0" : "max-lg:translate-y-[calc(100%-3.5rem)]"}`}
         >
           <button
             type="button"
@@ -894,7 +1137,9 @@ export default function StudioPage() {
           </div>
           <div className="space-y-stack bg-surface-2 p-stack">
             <div className="max-w-[90%] rounded-surface rounded-tl-chip border border-border bg-surface p-stack text-body-sm text-text" data-empty-next={!text ? "publish" : undefined}>
-              {text ? `${publishTargets.length}곳이 선택되어 있습니다.` : "발행할 작업물을 먼저 가져와 주세요."}
+              {text
+                ? `일곱 칸을 하나씩 고치지 않으셔도 됩니다. 지금 ${publishTargets.length}곳이 골라져 있습니다.`
+                : "발행할 작업물을 먼저 가져와 주세요."}
             </div>
             {text ? (
               <div className="flex flex-wrap gap-stack-tight" aria-label="발행 담당 빠른 답장">
@@ -906,6 +1151,32 @@ export default function StudioPage() {
               <Button variant="primary" onClick={() => changeRoom("create")}>생성실 열기</Button>
             )}
           </div>
+          {text ? (
+            <div className="space-y-stack border-t border-border bg-surface-2 p-stack" data-chat-only-actions="publish">
+              <span className="text-caption font-semibold text-text">여기서만 한 번에 되는 일</span>
+              <p className="break-keep text-caption text-subtle">
+                아래는 미리보기 칸에서 손으로 하면 일곱 번 반복해야 하는 일입니다. 채널마다 다른 규격은 제가 맞춥니다.
+              </p>
+              <Stack direction="horizontal" gap={8} wrap>
+                <Button size="sm" data-testid="publish-bulk-select-all" onClick={selectAllChannels} disabled={!accountsLoaded || connectedTargets.length === 0}>연결된 곳 전부 고르기</Button>
+                <Button size="sm" data-testid="publish-bulk-clear" onClick={clearAllChannels} disabled={publishTargets.length === 0}>전부 해제</Button>
+              </Stack>
+              <Stack direction="horizontal" gap={8} wrap>
+                <Button size="sm" data-testid="publish-bulk-hashtags" onClick={unifyHashtagsAcrossChannels}>해시태그 규격대로 맞추기</Button>
+                <Button size="sm" data-testid="publish-bulk-display-name" onClick={unifyDisplayNameAcrossChannels}>표시 이름 일곱 곳 통일</Button>
+                <Button size="sm" data-testid="publish-bulk-trim" onClick={trimOverLimitChannels}>한도 넘는 곳만 줄이기</Button>
+              </Stack>
+              <p className="break-keep text-caption text-subtle">
+                해시태그는 X {HASHTAG_BUDGET.x}개, 인스타그램 {HASHTAG_BUDGET.instagram}개, Threads {HASHTAG_BUDGET.threads}개로 자동으로 갈립니다.
+                본문 한도는 X {CHANNEL_TEXT_LIMITS.x}자, Threads {CHANNEL_TEXT_LIMITS.threads}자입니다.
+              </p>
+              {connectedTargets.length < bulkTargets.length ? (
+                <p className="break-keep text-caption text-warning">
+                  아직 연결 안 된 곳: {bulkTargets.filter((platform) => !connectedTargets.includes(platform)).map((platform) => LABEL[platform]).join(", ")}. 각 칸의 계정 연결하기로 갑니다.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
           <form onSubmit={submitPublishChat} className="flex gap-stack-tight border-t border-border p-stack">
             <input aria-label="발행 담당에게 명령" value={publishChatDraft} onChange={(event) => setPublishChatDraft(event.target.value)} placeholder="직접 쓰셔도 됩니다" className="min-h-control-touch min-w-0 flex-1 rounded-control border border-border bg-surface px-stack text-body-sm text-text" />
             <Button type="submit" variant="primary">보내기</Button>

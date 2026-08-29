@@ -19,6 +19,7 @@ afterEach(async () => {
   if (!admin || !memberId) return;
   await admin`DELETE FROM studio_generation_idempotency WHERE member_id = ${memberId}`;
   await admin`DELETE FROM studio_free_regeneration_uses WHERE member_id = ${memberId}`;
+  await admin`DELETE FROM studio_generation_candidate_rejections WHERE member_id = ${memberId}`;
   await admin`DELETE FROM studio_generation_jobs WHERE member_id = ${memberId}`;
   await admin.end({ timeout: 5 });
   admin = null;
@@ -51,6 +52,10 @@ describe("무료 재생성 멱등 이름 공간 회귀", () => {
     collidingBody.learning_context.r6.topic = "내부 키 모양을 선점한 일반 생성";
     await service.create(memberId, collisionKey, parseGenerationRequest(collidingBody), now);
 
+    // 무료 재생성은 후보 셋을 모두 거절한 뒤에만 나간다(요구 대장 R27).
+    for (const candidate of original.candidates) {
+      await service.rejectCandidate(memberId, original.jobId, candidate.candidateId, [tenant.id]);
+    }
     const regenerated = await service.regenerate(memberId, original.jobId, [tenant.id], now);
 
     expect(regenerated.freeRetryConsumed).toBe(true);

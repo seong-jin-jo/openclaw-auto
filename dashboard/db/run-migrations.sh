@@ -56,8 +56,8 @@ fingerprint() {
   psql -X -qAt -v ON_ERROR_STOP=1 <<'SQL'
 WITH expected AS (
   SELECT
-    'public.studio_generation_idempotency'::regclass AS generation_table,
-    'public.studio_free_regeneration_uses'::regclass AS quota_table
+    to_regclass('public.studio_generation_idempotency') AS generation_table,
+    to_regclass('public.studio_free_regeneration_uses') AS quota_table
 ), flags AS (
   SELECT
     EXISTS (
@@ -92,6 +92,8 @@ WITH expected AS (
         AND pg_catalog.pg_get_constraintdef(c.oid)='UNIQUE (member_id, local_date)'
         AND i.indisunique AND i.indisvalid AND i.indisready
     ) AS qm,
+    expected.generation_table IS NULL AS generation_missing,
+    expected.quota_table IS NULL AS quota_missing,
     (SELECT count(*) FROM pg_catalog.pg_constraint
       WHERE conrelid=expected.generation_table
         AND conname IN ('uq_studio_generation_idempotency_tenant_member_operation_key','uq_studio_generation_idempotency_member_operation_key')) AS generation_named,
@@ -102,10 +104,12 @@ WITH expected AS (
 )
 SELECT
   CASE
+    WHEN generation_missing THEN 'MISSING'
     WHEN generation_named <> gt::int + gm::int THEN 'X'
     WHEN gt AND NOT gm THEN 'S1' WHEN gt AND gm THEN 'S2' WHEN NOT gt AND gm THEN 'S3' ELSE 'X'
   END || '|' ||
   CASE
+    WHEN quota_missing THEN 'MISSING'
     WHEN quota_named <> qt::int + qm::int THEN 'X'
     WHEN qt AND NOT qm THEN 'S1' WHEN qt AND qm THEN 'S2' WHEN NOT qt AND qm THEN 'S3' ELSE 'X'
   END
@@ -113,21 +117,61 @@ FROM flags;
 SQL
 }
 
+# 앱이 실제로 지원하는 축별 상태 집합.
+#
+# 앱은 studio_generation_idempotency / studio_free_regeneration_uses 에 제약 이름을
+# 지정하지 않고 ON CONFLICT DO NOTHING 뒤 재조회로 동작한다
+# (dashboard/src/lib/studio/generation/repository.ts). 따라서 강제 객체가
+# tenant UNIQUE(S1)이든, tenant+member 둘 다(S2)든, member UNIQUE(S3)든 동일하게 동작한다.
+# 두 축이 서로 다른 단계에 있는 것(예: S1|S2)은 expand 와 contract 를 축별로 나눠 진행하는
+# 이 절차의 정상 중간 상태이지, 앱 비호환 상태가 아니다.
+#
+# 실제 데이터 안전은 아래 두 가지가 지킨다. 둘 다 fail-closed 로 유지한다.
+#   assert_compatibility_ready : 회원 전역 멱등과 무료 몫이 UNIQUE 또는 guard 로 강제되는가
+#   assert_no_duplicates       : 회원 범위 중복이 실제로 0인가
+# X 는 이름은 있는데 정의나 유효성이 어긋난 상태이므로 계속 거절한다.
+SUPPORTED_AXIS_STATES="S1 S2 S3"
+
+axis_supported() {
+  local axis="$1" candidate
+  for candidate in $SUPPORTED_AXIS_STATES; do
+    [ "$axis" = "$candidate" ] && return 0
+  done
+  return 1
+}
+
+# assert_fingerprint [정확히 일치해야 하는 값]
+# 인자를 주면 그 값과 정확히 일치해야 한다(단계 사후 검증용).
+# 인자가 없으면 두 축이 각각 지원 집합 안에 있기만 하면 된다.
 assert_fingerprint() {
-  local value
+  local value expected="${1:-}"
   value="$(fingerprint)"
-  if [[ "$value" == *X* ]]; then
-    echo "ERROR: unsupported generation/quota schema fingerprint: $value" >&2
-    exit 3
+  if [ -n "$expected" ]; then
+    if [ "$value" != "$expected" ]; then
+      echo "ERROR: schema fingerprint $value does not match the required $expected" >&2
+      exit 3
+    fi
+    echo "schema_fingerprint=$value"
+    return 0
   fi
-  if [ "${value%%|*}" != "${value##*|}" ] && [ "$value" != "${1:-}" ]; then
-    echo "ERROR: mixed generation/quota schema fingerprint requires an explicit recovery: $value" >&2
+  if ! axis_supported "${value%%|*}" || ! axis_supported "${value##*|}"; then
+    echo "ERROR: unsupported generation/quota schema fingerprint: $value (supported per axis: $SUPPORTED_AXIS_STATES)" >&2
     exit 3
   fi
   echo "schema_fingerprint=$value"
 }
 
+# 복구 단계(baseline, apply-legacy, expand-fk)는 아직 제약이 없거나 표 자체가 없는
+# 구형 DB에서 시작할 수 있다. 그 단계에서는 관측만 하고 막지 않는다.
+report_fingerprint() {
+  echo "schema_fingerprint=$(fingerprint)"
+}
+
 duplicate_counts() {
+  if [ "$(psql -X -qAt -v ON_ERROR_STOP=1 -c "SELECT (to_regclass('public.studio_generation_idempotency') IS NULL OR to_regclass('public.studio_free_regeneration_uses') IS NULL)::text")" = "t" ]; then
+    echo "MISSING|MISSING|MISSING"
+    return 0
+  fi
   psql -X -qAt -v ON_ERROR_STOP=1 <<'SQL'
 SELECT
   (SELECT count(*) FROM (
@@ -156,9 +200,12 @@ assert_no_duplicates() {
   echo "duplicate_groups=$counts"
 }
 
-assert_compatibility_ready() {
-  local readiness
-  readiness="$(psql -X -qAt -v ON_ERROR_STOP=1 <<'SQL'
+compatibility_readiness() {
+  if [ "$(psql -X -qAt -v ON_ERROR_STOP=1 -c "SELECT (to_regclass('public.studio_generation_idempotency') IS NULL OR to_regclass('public.studio_free_regeneration_uses') IS NULL)::text")" = "t" ]; then
+    echo "MISSING|MISSING"
+    return 0
+  fi
+  psql -X -qAt -v ON_ERROR_STOP=1 <<'SQL'
 WITH flags AS (
   SELECT
     EXISTS (
@@ -189,12 +236,67 @@ SELECT
   (quota_member_unique OR quota_guard)::text
 FROM flags;
 SQL
-)"
+}
+
+assert_compatibility_ready() {
+  local readiness
+  readiness="$(compatibility_readiness)"
   if [ "$readiness" != "true|true" ]; then
     echo "ERROR: compatibility app requires member UNIQUE or enabled E1 guard for generation and quota; readiness=$readiness" >&2
     exit 3
   fi
   echo "compatibility_ready=$readiness"
+}
+
+# 앱이 실제로 읽고 쓰는 필수 relation 과 테넌트 격리 상태를 한 번에 관측한다.
+# 정본은 dashboard/db/rls.sql 의 테넌트 스코프 목록이다. 여기서 벗어난 표가 생기면
+# 이 목록도 함께 고쳐야 한다.
+RUNTIME_REQUIRED_TENANT_TABLES="brand_guides integrations channel_accounts drafts studio_generation_jobs studio_generation_idempotency studio_free_regeneration_uses studio_generation_candidate_rejections shorts_factory_runs shorts_factory_concept_runs published_posts engagement_items operational_incidents queue_posts schedules growth_metrics viral_signals wiki_docs usage_events subscriptions usage_quotas"
+
+runtime_schema_report() {
+  local list
+  list="$(printf '%s' "$RUNTIME_REQUIRED_TENANT_TABLES" | tr ' ' '\n' | sed "s/^/('/;s/$/')/" | paste -sd, -)"
+  psql -X -qAt -v ON_ERROR_STOP=1 <<SQL
+WITH required(name) AS (VALUES $list)
+SELECT required.name || ' ' ||
+  CASE
+    WHEN c.oid IS NULL THEN 'missing-relation'
+    WHEN NOT c.relrowsecurity THEN 'rls-disabled'
+    WHEN NOT c.relforcerowsecurity THEN 'rls-not-forced'
+    WHEN NOT EXISTS (
+      SELECT 1 FROM pg_catalog.pg_policy p
+      WHERE p.polrelid = c.oid AND p.polname = 'tenant_iso'
+    ) THEN 'tenant-iso-policy-missing'
+    ELSE 'ok'
+  END
+FROM required
+LEFT JOIN pg_catalog.pg_class c
+  ON c.oid = to_regclass('public.' || required.name)
+ORDER BY required.name;
+SQL
+}
+
+# 앱 role 이 RLS 를 우회하면 위의 정책은 장식일 뿐이다.
+service_role_report() {
+  psql -X -qAt -v ON_ERROR_STOP=1 <<'SQL'
+SELECT CASE
+  WHEN NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='osmu_service') THEN 'osmu_service missing-role'
+  WHEN (SELECT rolbypassrls FROM pg_catalog.pg_roles WHERE rolname='osmu_service') THEN 'osmu_service bypasses-rls'
+  ELSE 'osmu_service ok'
+END;
+SQL
+}
+
+assert_runtime_schema() {
+  local report failures
+  report="$(runtime_schema_report; service_role_report)"
+  failures="$(printf '%s\n' "$report" | grep -v ' ok$' || true)"
+  if [ -n "$failures" ]; then
+    echo "ERROR: runtime schema audit failed" >&2
+    printf '%s\n' "$failures" >&2
+    exit 3
+  fi
+  echo "runtime_schema=ok ($(printf '%s\n' "$report" | grep -c . ) checks)"
 }
 
 ensure_ledger() {
@@ -281,14 +383,24 @@ verify_entry() {
     echo "ERROR: manifest checksum mismatch for $id" >&2
     exit 4
   fi
-  local recorded
+  local recorded recorded_state
   recorded="$(psql -X -qAt -v ON_ERROR_STOP=1 -v id="$id" <<'SQL'
 SELECT sha256 FROM public.osmu_schema_migrations WHERE migration_id=:'id';
 SQL
 )"
+  recorded_state="$(psql -X -qAt -v ON_ERROR_STOP=1 -v id="$id" <<'SQL'
+SELECT state FROM public.osmu_schema_migrations WHERE migration_id=:'id';
+SQL
+)"
   if [ -n "$recorded" ] && [ "$recorded" != "$expected" ]; then
-    echo "ERROR: ledger checksum mismatch for $id" >&2
-    exit 4
+    # 적용된 기록의 체크섬이 달라졌다면 실제 스키마와 장부가 어긋난 것이므로 계속 거절한다.
+    # 반대로 failed 기록은 스키마를 바꾸지 못한 시도의 흔적이다. 그 시도의 체크섬 때문에
+    # 고쳐진 migration 이 영원히 못 돌면 재진입 경로가 사라진다(코드리뷰 run-migrations.sh:415).
+    if [ "$recorded_state" != "failed" ]; then
+      echo "ERROR: ledger checksum mismatch for $id (state=$recorded_state)" >&2
+      exit 4
+    fi
+    echo "ledger_supersede=$id previous_state=failed previous_sha256=$recorded new_sha256=$expected"
   fi
 }
 
@@ -421,8 +533,8 @@ apply_phase() {
   if ! psql -X -q -f "$tmp"; then
     psql -X -q -v ON_ERROR_STOP=1 -v id="$id" <<'SQL' || true
 UPDATE public.osmu_schema_migrations
-SET state='failed',details=jsonb_build_object('failed_at',now())
-WHERE migration_id=:'id';
+SET state='failed',details=details||jsonb_build_object('failed_at',now())
+WHERE migration_id=:'id' AND state <> 'applied';
 SQL
     echo "ERROR: migration $id failed; catalog state must be re-evaluated before retry" >&2
     exit 6
@@ -430,13 +542,26 @@ SQL
 }
 
 case "$PHASE" in
+  audit)
+    # 읽기 전용. 아무것도 바꾸지 않고, 스키마 상태 때문에 실패하지도 않는다.
+    # 운영 DB에 접속하지 않고는 다음 단계를 정할 수 없어서 만든 관측 전용 경로다.
+    report_fingerprint
+    echo "duplicate_groups=$(duplicate_counts)"
+    echo "compatibility_readiness=$(compatibility_readiness)"
+    echo "--- runtime schema ---"
+    runtime_schema_report
+    service_role_report
+    echo "--- migration ledger ---"
+    psql -X -qAt -v ON_ERROR_STOP=1 <<'SQL' || echo "(ledger table absent)"
+SELECT migration_id || ' ' || state || ' ' || phase
+FROM public.osmu_schema_migrations ORDER BY migration_id;
+SQL
+    ;;
   preflight)
-    # During the approved expand sequence, generation can remain tenant-scoped
-    # while quota is already member-scoped. The compatibility guard below is
-    # still mandatory, so only this exact mixed transition is deployable.
-    assert_fingerprint "S1|S2"
+    assert_fingerprint
     assert_no_duplicates
     assert_compatibility_ready
+    assert_runtime_schema
     ;;
   bootstrap)
     if psql -X -qAt -c "SELECT to_regclass('public.tenants') IS NOT NULL" | grep -qx t; then
@@ -450,13 +575,9 @@ case "$PHASE" in
     ensure_ledger
     adopt_baseline
     ;;
-  baseline|apply-legacy|expand-fk|expand-guard|expand-member|prepare-rollback|contract-generation|contract-quota|cleanup)
-    case "$PHASE" in
-      baseline|apply-legacy|expand-fk|expand-guard|expand-member) assert_fingerprint "S1|S2" ;;
-      contract-quota) assert_fingerprint "S3|S2" ;;
-      *) assert_fingerprint ;;
-    esac
-    assert_no_duplicates
+  baseline|apply-legacy|expand-fk)
+    # 복구 단계다. 표나 제약이 아직 없는 구형 DB에서 시작할 수 있으므로 관측만 한다.
+    report_fingerprint
     ensure_ledger
     adopt_baseline
     if [ "$PHASE" = "apply-legacy" ]; then
@@ -464,15 +585,19 @@ case "$PHASE" in
     elif [ "$PHASE" != "baseline" ]; then
       apply_phase "$PHASE"
     fi
+    report_fingerprint
+    ;;
+  expand-guard|expand-member|prepare-rollback|contract-generation|contract-quota|cleanup)
+    if [ "$PHASE" = "contract-quota" ]; then assert_fingerprint "S3|S2"; else assert_fingerprint; fi
+    assert_no_duplicates
+    ensure_ledger
+    adopt_baseline
+    apply_phase "$PHASE"
     if [ "$PHASE" = "prepare-rollback" ]; then assert_exact_rollback_indexes; fi
-    case "$PHASE" in
-      baseline|apply-legacy|expand-fk|expand-guard) assert_fingerprint "S1|S2" ;;
-      contract-generation) assert_fingerprint "S3|S2" ;;
-      *) assert_fingerprint ;;
-    esac
+    if [ "$PHASE" = "contract-generation" ]; then assert_fingerprint "S3|S2"; else assert_fingerprint; fi
     ;;
   *)
-    echo "usage: $0 {preflight|bootstrap|baseline|apply-legacy|expand-fk|expand-guard|expand-member|prepare-rollback|contract-generation|contract-quota|cleanup}" >&2
+    echo "usage: $0 {audit|preflight|bootstrap|baseline|apply-legacy|expand-fk|expand-guard|expand-member|prepare-rollback|contract-generation|contract-quota|cleanup}" >&2
     exit 2
     ;;
 esac

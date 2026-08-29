@@ -9,6 +9,8 @@ export const PUBLISH_STATUS_TARGETS = [
 ] as const;
 
 export type PublishStatusTarget = (typeof PUBLISH_STATUS_TARGETS)[number];
+// uncertain 은 "외부 결과를 확인하지 못한 상태"다. 통합 상태에서는 아직 끝나지 않은
+// processing 으로 보여 재발행을 유도하지 않고, 진짜 상태는 providerStatus 로 그대로 알린다.
 export type UnifiedTargetStatus = "queued" | "processing" | "published" | "failed";
 
 export interface PublishedPostStatusRow {
@@ -19,6 +21,8 @@ export interface PublishedPostStatusRow {
   permalink: string | null;
   error: string | null;
   published_at: string;
+  first_comment_status?: string | null;
+  first_comment_error?: string | null;
 }
 
 const STORAGE_PLATFORM: Record<PublishStatusTarget, readonly string[]> = {
@@ -34,7 +38,7 @@ const STORAGE_PLATFORM: Record<PublishStatusTarget, readonly string[]> = {
 function normalizeStatus(status: string | undefined): UnifiedTargetStatus {
   if (status === "published") return "published";
   if (status === "failed") return "failed";
-  if (status === "in_progress" || status === "processing") return "processing";
+  if (status === "in_progress" || status === "processing" || status === "uncertain") return "processing";
   return "queued";
 }
 
@@ -60,6 +64,11 @@ export function buildUnifiedPublishStatus(
       permalink: row?.permalink ?? null,
       error: row?.error ?? null,
       updatedAt: row?.published_at ?? null,
+      // 본문 성공 + 첫 댓글 실패를 화면이 전체 성공으로 읽지 않게 따로 알린다.
+      firstComment: {
+        status: row?.first_comment_status ?? null,
+        error: row?.first_comment_error ?? null,
+      },
       stop: {
         supported: false,
         reason: "현재 provider adapter는 시작된 발행을 안전하게 중지하는 계약을 제공하지 않습니다.",

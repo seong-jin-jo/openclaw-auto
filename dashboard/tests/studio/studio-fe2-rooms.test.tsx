@@ -30,6 +30,15 @@ afterEach(() => {
   localStorage.clear();
 });
 
+
+// 회장 확정("주관식 칸 0개")대로 생성실 기본 경로에는 입력창이 없다.
+// 목적과 대상은 카드를 눌러 고르고, 소재 권리만 확인 표시를 누른다.
+function chooseCards() {
+  fireEvent.click(screen.getByRole("button", { name: "문의 받기" }));
+  fireEvent.click(screen.getByRole("button", { name: "혼자 일하는 사장" }));
+  fireEvent.click(screen.getByLabelText("이 콘텐츠에 쓰는 사진과 글을 제가 쓸 권리가 있습니다"));
+}
+
 describe("화면 2차 생성실 계약", () => {
   it("FE2-CREATE-01 정상: 일곱 층 요청을 보내고 Studio 후보 세 장을 받는다", async () => {
     const candidates = ["A", "B", "C"].map((label, index) => ({
@@ -76,9 +85,7 @@ describe("화면 2차 생성실 계약", () => {
     const onBranchChange = vi.fn();
     render(<CreateRoom workspaceId="workspace" workspaceName="작업 공간" guide="브랜드 사실" topic="주제" contentBranch="video" onContentBranchChange={onBranchChange} onTopicChange={vi.fn()} onOpenLearning={vi.fn()} onCandidateSelect={vi.fn()} />);
 
-    fireEvent.change(screen.getByLabelText("목적"), { target: { value: "운영 시간을 줄인다" } });
-    fireEvent.change(screen.getByLabelText("대상"), { target: { value: "1인 사업가" } });
-    fireEvent.click(screen.getByLabelText("소재 권리를 확인했습니다"));
+    chooseCards();
     fireEvent.click(screen.getByRole("button", { name: "후보 세 장 만들기" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
@@ -114,9 +121,7 @@ describe("화면 2차 생성실 계약", () => {
       onOpenLearning={vi.fn()}
       onCandidateSelect={vi.fn()}
     />);
-    fireEvent.change(screen.getByLabelText("목적"), { target: { value: "운영 시간을 줄인다" } });
-    fireEvent.change(screen.getByLabelText("대상"), { target: { value: "1인 사업가" } });
-    fireEvent.click(screen.getByLabelText("소재 권리를 확인했습니다"));
+    chooseCards();
     fireEvent.click(screen.getByRole("button", { name: "후보 세 장 만들기" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
@@ -125,7 +130,7 @@ describe("화면 2차 생성실 계약", () => {
     expect(request.headers).toMatchObject({ Authorization: "Bearer customer-jwt" });
   });
 
-  it("QA-CREATE-04 정상: 목적·대상·권리동의를 방 왕복 뒤 작업 공간별로 복원한다", async () => {
+  it("QA-CREATE-04 정상: 생성실은 새로 시작하되 브랜드에 매달린 값은 학습 정보에서 되살린다", async () => {
     const props = {
       workspaceId: "workspace-a",
       workspaceName: "작업 공간 A",
@@ -136,18 +141,18 @@ describe("화면 2차 생성실 계약", () => {
       onCandidateSelect: vi.fn(),
     };
     const first = render(<CreateRoom {...props} />);
-    fireEvent.change(screen.getByLabelText("목적"), { target: { value: "문의 전환" } });
-    fireEvent.change(screen.getByLabelText("대상"), { target: { value: "1인 사업가" } });
-    fireEvent.click(screen.getByLabelText("소재 권리를 확인했습니다"));
-    await waitFor(() => expect(localStorage.getItem("studio_create_input:workspace-a")).toContain("문의 전환"));
+    chooseCards();
+    await waitFor(() => expect(localStorage.getItem("studio_learning:workspace-a")).toContain("사람 더 못 뽑는 상황에서"));
 
     first.unmount();
     render(<CreateRoom {...props} />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText("목적")).toHaveValue("문의 전환");
-      expect(screen.getByLabelText("대상")).toHaveValue("1인 사업가");
-      expect(screen.getByLabelText("소재 권리를 확인했습니다")).toBeChecked();
+      // 대상과 소재 권리는 브랜드에 매달린 값이라 되살아난다.
+      expect(screen.getByRole("button", { name: "혼자 일하는 사장" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByLabelText("이 콘텐츠에 쓰는 사진과 글을 제가 쓸 권리가 있습니다")).toBeChecked();
+      // 이번 작업물에 딸린 목적은 새로 시작 상태다(구조 질문6 확정).
+      expect(screen.getByRole("button", { name: "문의 받기" })).toHaveAttribute("aria-pressed", "false");
     });
   });
 
@@ -157,9 +162,7 @@ describe("화면 2차 생성실 계약", () => {
     const fetchMock = vi.fn(() => new Promise<Response>((resolve) => { resolveRequest = resolve; }));
     vi.stubGlobal("fetch", fetchMock);
     render(<CreateRoom workspaceId="workspace" workspaceName="작업 공간" guide="브랜드 사실" topic="주제" onTopicChange={vi.fn()} onOpenLearning={vi.fn()} onCandidateSelect={vi.fn()} />);
-    fireEvent.change(screen.getByLabelText("목적"), { target: { value: "운영 시간을 줄인다" } });
-    fireEvent.change(screen.getByLabelText("대상"), { target: { value: "1인 사업가" } });
-    fireEvent.click(screen.getByLabelText("소재 권리를 확인했습니다"));
+    chooseCards();
     const button = screen.getByRole("button", { name: "후보 세 장 만들기" });
 
     fireEvent.click(button);
@@ -187,9 +190,7 @@ describe("화면 2차 생성실 계약", () => {
       .mockResolvedValueOnce(Response.json({ data: { replacement: { job_id: "job-2", candidates: candidates("대체") } } }, { status: 201 }));
     vi.stubGlobal("fetch", fetchMock);
     render(<CreateRoom workspaceId="workspace" workspaceName="작업 공간" guide="브랜드 사실" topic="주제" onTopicChange={vi.fn()} onOpenLearning={vi.fn()} onCandidateSelect={vi.fn()} />);
-    fireEvent.change(screen.getByLabelText("목적"), { target: { value: "운영 시간을 줄인다" } });
-    fireEvent.change(screen.getByLabelText("대상"), { target: { value: "1인 사업가" } });
-    fireEvent.click(screen.getByLabelText("소재 권리를 확인했습니다"));
+    chooseCards();
     fireEvent.click(screen.getByRole("button", { name: "후보 세 장 만들기" }));
     await screen.findByText("원본 A 제목");
 
@@ -261,6 +262,20 @@ describe("화면 2차 편집실 계약", () => {
   it("FE6-EDIT-04 거절: 무음 표식이 없으면 무음 줄이기 조작을 비활성화한다", () => {
     render(<EditRoom lines={["첫 줄", "둘째 줄"]} onLinesChange={vi.fn()} kind="video" />);
     expect(screen.getByRole("button", { name: "무음 구간 0개 줄이기" })).toBeDisabled();
+  });
+
+  it("FMT-UI-01 정상: 승인 시안의 재생 속도를 고르면 발행용 형식값으로 전달한다", async () => {
+    const onFormatChange = vi.fn();
+    render(<EditRoom lines={["첫 줄", "둘째 줄"]} onLinesChange={vi.fn()} kind="video" onFormatChange={onFormatChange} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "속도 도구" }));
+    fireEvent.click(screen.getByRole("button", { name: "1.5배" }));
+
+    await waitFor(() => expect(onFormatChange).toHaveBeenLastCalledWith(expect.objectContaining({
+      kind: "video",
+      aspectRatio: "9:16",
+      playbackSpeed: 1.5,
+    })));
   });
 
   it("FE6-EDIT-05 거절: 음악 백엔드가 없을 때 파일이나 파형을 완성된 것처럼 표시하지 않는다", () => {

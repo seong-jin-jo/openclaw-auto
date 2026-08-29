@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// verify-basic-flow-e2e.mjs — 네 방 기본 흐름 회귀 검증.
+// verify-basic-flow-e2e.mjs: 네 방 기본 흐름 회귀 검증.
 //
 // 왜 (회장 2026-08-28 "일단 기본 flow 잘 돌아가는 것에 우선순위를 높여라"):
 //   개별 API 는 통과하는데 방과 방 사이 인계가 끊기면 제품이 아니다.

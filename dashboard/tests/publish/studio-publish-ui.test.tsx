@@ -8,6 +8,7 @@ import StudioPage from "@/app/studio/page";
 const mocks = vi.hoisted(() => ({
   apiPost: vi.fn(),
   fetcher: vi.fn(),
+  routerPush: vi.fn(),
   showToast: vi.fn(),
   trackEvent: vi.fn(),
   swr: vi.fn(),
@@ -15,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   isOperator: true,
   workspace: { id: "tenant-a", name: "작업 공간 A" },
   drafts: [] as Array<Record<string, unknown>>,
+  currentWork: null as Record<string, unknown> | null,
   returnPosts: [] as Array<Record<string, unknown>>,
   setStudioRoom: vi.fn(),
 }));
@@ -25,6 +27,7 @@ vi.mock("swr", () => ({
 
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(window.location.search),
+  useRouter: () => ({ push: mocks.routerPush, replace: vi.fn(), back: vi.fn(), forward: vi.fn(), refresh: vi.fn(), prefetch: vi.fn() }),
 }));
 
 vi.mock("@/lib/api", () => ({
@@ -121,6 +124,7 @@ describe("Studio publish result integrity", () => {
     mocks.workspace.name = "작업 공간 A";
     mocks.isOperator = true;
     mocks.drafts = [];
+    mocks.currentWork = null;
     mocks.returnPosts = [];
     mocks.setStudioRoom.mockReset();
     mocks.swr.mockImplementation((key: string | null) => {
@@ -129,7 +133,7 @@ describe("Studio publish result integrity", () => {
         return { data: { isOperator: mocks.isOperator }, mutate: vi.fn() };
       }
       if (key === "/api/studio/drafts?tenant_id=tenant-a") {
-        return { data: { drafts: mocks.drafts }, mutate: vi.fn() };
+        return { data: { drafts: mocks.drafts, currentWork: mocks.currentWork }, mutate: vi.fn() };
       }
       if (key?.startsWith("/api/queue?status=all&returnTo=")) {
         return { data: { posts: mocks.returnPosts }, mutate: vi.fn() };
@@ -180,7 +184,7 @@ describe("Studio publish result integrity", () => {
     render(<StudioPage />);
 
     await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith("승인 인박스 작업물을 불러왔습니다", "success"));
-    expect(screen.getByRole("button", { name: "1곳에 올리기" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "선택한 1곳에 지금 발행" })).toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: "Threads 발행" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "X 발행" })).not.toBeChecked();
   });
@@ -210,7 +214,7 @@ describe("Studio publish result integrity", () => {
       expect(screen.getByRole("checkbox", { name: "X 발행" })).toBeEnabled();
       expect(screen.getByRole("checkbox", { name: "Instagram 발행" })).toBeEnabled();
     });
-    expect(screen.getByRole("button", { name: "3곳에 올리기" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "선택한 3곳에 지금 발행" })).toBeInTheDocument();
   });
 
   it("FE-V63-RETURN-02 거절: URL의 큐 작업물이 없으면 빈 작업물을 발행 가능 상태로 만들지 않는다", async () => {
@@ -220,7 +224,7 @@ describe("Studio publish result integrity", () => {
     render(<StudioPage />);
 
     await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith("돌아갈 작업물을 찾지 못했습니다", "error"));
-    expect(screen.queryByRole("button", { name: /곳에 올리기/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /곳에 지금 발행/ })).not.toBeInTheDocument();
   });
 
   it("does not report 100% or completed, and never stores published, when every channel returns ok:false", async () => {
@@ -232,7 +236,7 @@ describe("Studio publish result integrity", () => {
     });
 
     render(<StudioPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "2곳에 올리기" }));
+    fireEvent.click(await screen.findByRole("button", { name: "선택한 2곳에 지금 발행" }));
 
     await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledTimes(4));
     expect(screen.getByText("0%")).toBeInTheDocument();
@@ -254,7 +258,7 @@ describe("Studio publish result integrity", () => {
     });
 
     render(<StudioPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "2곳에 올리기" }));
+    fireEvent.click(await screen.findByRole("button", { name: "선택한 2곳에 지금 발행" }));
 
     await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledTimes(4));
     expect(screen.getByText("50%")).toBeInTheDocument();
@@ -277,7 +281,7 @@ describe("Studio publish result integrity", () => {
     });
 
     render(<StudioPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "1곳에 올리기" }));
+    fireEvent.click(await screen.findByRole("button", { name: "선택한 1곳에 지금 발행" }));
 
     await waitFor(() => expect(screen.getByText("0%")).toBeInTheDocument());
     expect(screen.getByText("첫 댓글 공급자 거절")).toBeInTheDocument();
@@ -300,7 +304,7 @@ describe("Studio publish result integrity", () => {
     });
 
     render(<StudioPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "2곳에 올리기" }));
+    fireEvent.click(await screen.findByRole("button", { name: "선택한 2곳에 지금 발행" }));
 
     await waitFor(() => expect(mocks.apiPost.mock.calls.some(([, body]) => (body as { platform?: string })?.platform === "x")).toBe(true));
     expect(mocks.apiPost.mock.calls.some(([, body]) => (body as { platform?: string })?.platform === "threads")).toBe(true);
@@ -325,7 +329,7 @@ describe("Studio publish result integrity", () => {
     });
 
     render(<StudioPage />);
-    const publishButton = await screen.findByRole("button", { name: "3곳에 올리기" });
+    const publishButton = await screen.findByRole("button", { name: "선택한 3곳에 지금 발행" });
     for (const [platform, label] of [["shorts", "Shorts"], ["reels", "Reels"], ["tiktok", "TikTok"]]) {
       expect(within(screen.getByTestId(`preview-${platform}`)).getByRole(
         "checkbox",
@@ -341,6 +345,15 @@ describe("Studio publish result integrity", () => {
       .filter(([path]) => path === "/api/publish")
       .map(([, body]) => (body as { platform: string }).platform))
       .toEqual(["threads", "x", "instagram"]);
+    expect(mocks.apiPost.mock.calls
+      .filter(([path]) => path === "/api/publish")
+      .every(([, body]) => JSON.stringify((body as { edit_format?: unknown }).edit_format) === JSON.stringify({
+        kind: "video",
+        aspectRatio: "9:16",
+        subtitleSize: "보통",
+        playbackSpeed: 1,
+        voice: "차분한 남성",
+      }))).toBe(true);
   });
 
   it("QA-PUBLISH-06 거절: 연결 계정이 0개면 모든 발행 선택과 실행을 잠그고 설정 연결을 안내한다", async () => {
@@ -349,14 +362,19 @@ describe("Studio publish result integrity", () => {
 
     render(<StudioPage />);
 
-    expect(await screen.findByText("연결된 발행 계정이 없습니다.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "설정에서 채널 연결하기" })).toHaveAttribute("href", "/settings");
+    expect(await screen.findByText(/연결된 발행 계정이 없습니다\./)).toBeInTheDocument();
+    // 연결 경로는 채널을 무시하는 설정 목록이 아니라 그 채널 화면이다. 거기에 연결과 기본 계정이 함께 있다.
+    expect(screen.getByRole("link", { name: "Threads부터 연결하기" })).toHaveAttribute("href", "/channels/threads");
+    expect(screen.getByTestId("publish-connect-link-x")).toHaveAttribute("href", "/channels/x");
     for (const label of ["Threads 발행", "X 발행", "Instagram 발행"]) {
       expect(screen.getByRole("checkbox", { name: label })).toBeDisabled();
       expect(screen.getByRole("checkbox", { name: label })).not.toBeChecked();
     }
-    expect(screen.getByRole("button", { name: "0곳에 올리기" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "선택한 0곳에 지금 발행" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "지금 발행하기" })).toBeDisabled();
+    // 연결된 곳이 0이면 전체 고르기도 눌러도 되는 단추가 아니다(죽은 단추 금지).
+    expect(screen.getByTestId("publish-select-all")).toBeDisabled();
+    expect(screen.getByTestId("publish-bulk-select-all")).toBeDisabled();
     expect(mocks.apiPost).not.toHaveBeenCalledWith("/api/publish", expect.anything());
   });
 
@@ -373,6 +391,52 @@ describe("Studio publish result integrity", () => {
     render(<StudioPage />);
     expect(screen.queryByText("발행 이력")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "불러오기" })).not.toBeInTheDocument();
+  });
+
+  it("FE-CURRENT-01 정상: 작업물 전체에서 서버가 판정한 현재 작업을 편집실로 이어간다", async () => {
+    mocks.drafts = [{
+      id: "draft-current",
+      idea: "고객 사례 카드뉴스",
+      text: { threads: "서버에 저장된 현재 본문" },
+      includes: { threads: true },
+      status: "draft",
+      savedAt: "2026-08-29T08:10:00.000Z",
+    }];
+    mocks.currentWork = {
+      draftId: "draft-current",
+      idea: "고객 사례 카드뉴스",
+      stage: "edit",
+      stageLabel: "편집실",
+      status: "draft",
+      savedAt: "2026-08-29T08:10:00.000Z",
+    };
+
+    render(<StudioPage />);
+    fireEvent.click(screen.getByRole("button", { name: /작업물 전체/ }));
+
+    expect(screen.getByText("고객 사례 카드뉴스", { exact: true })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "이어 편집하기" }));
+
+    expect(mocks.setStudioRoom).toHaveBeenCalledWith("edit");
+    expect(mocks.showToast).toHaveBeenCalledWith("불러옴. 수정 후 재발행 가능", "success");
+  });
+
+  it("FE-CURRENT-02 거절: 현재 작업이 다른 초안 ID를 가리키면 이어하기를 노출하지 않는다", () => {
+    mocks.drafts = [{ id: "draft-owned", idea: "내 작업", text: { threads: "본문" } }];
+    mocks.currentWork = {
+      draftId: "draft-missing",
+      idea: "잘못 연결된 작업",
+      stage: "edit",
+      stageLabel: "편집실",
+      status: "draft",
+      savedAt: "2026-08-29T08:10:00.000Z",
+    };
+
+    render(<StudioPage />);
+    fireEvent.click(screen.getByRole("button", { name: /작업물 전체/ }));
+
+    expect(screen.queryByRole("button", { name: "이어 편집하기" })).not.toBeInTheDocument();
+    expect(screen.queryByText("잘못 연결된 작업", { exact: true })).not.toBeInTheDocument();
   });
 
   it("FE3-PUBLISH-04 거절: 본문이 없으면 실행 단추를 노출하지 않는다", async () => {
@@ -400,7 +464,7 @@ describe("Studio publish result integrity", () => {
     });
 
     render(<StudioPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "1곳에 올리기" }));
+    fireEvent.click(await screen.findByRole("button", { name: "선택한 1곳에 지금 발행" }));
 
     const link = await screen.findByTitle("게시물 보기");
     expect(link).toHaveAttribute("href", "https://www.threads.net/@example/post/ok");
@@ -418,7 +482,7 @@ describe("Studio publish result integrity", () => {
 
     render(<StudioPage />);
     fireEvent.change(await screen.findByLabelText("threads 첫 댓글"), { target: { value: "첫 댓글 본문" } });
-    fireEvent.click(screen.getByRole("button", { name: "1곳에 올리기" }));
+    fireEvent.click(screen.getByRole("button", { name: "선택한 1곳에 지금 발행" }));
 
     await waitFor(() => expect(mocks.apiPost.mock.calls.some(([path, body]) => path === "/api/publish" && (body as { first_comment?: string }).first_comment === "첫 댓글 본문")).toBe(true));
   });
@@ -453,7 +517,7 @@ describe("Studio publish result integrity", () => {
     });
 
     render(<StudioPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "검토 요청" }));
+    fireEvent.click(await screen.findByRole("button", { name: "승인 인박스로 보내기" }));
 
     await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith(
       "/api/queue/queue-review/request-review",
@@ -474,7 +538,7 @@ describe("Studio publish result integrity", () => {
     });
 
     render(<StudioPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "검토 요청" }));
+    fireEvent.click(await screen.findByRole("button", { name: "승인 인박스로 보내기" }));
 
     await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith("초안 저장 실패", "error"));
     expect(mocks.apiPost.mock.calls.some(([path]) => path === "/api/queue/add")).toBe(false);
@@ -531,7 +595,7 @@ describe("Studio publish result integrity", () => {
       "error",
     ));
     expect(screen.queryByText("주입된 B 초안", { exact: true })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /곳에 올리기/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /곳에 지금 발행/ })).not.toBeInTheDocument();
   });
 
   it("M5-STUDIO-01 경합: 플랫폼 둘의 외부 성공 뒤 기록 실패를 모두 복구 지도에 보존한다", async () => {
@@ -564,7 +628,7 @@ describe("Studio publish result integrity", () => {
     });
 
     render(<StudioPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "2곳에 올리기" }));
+    fireEvent.click(await screen.findByRole("button", { name: "선택한 2곳에 지금 발행" }));
 
     await waitFor(() => expect(mocks.apiPost.mock.calls.some(([path, body]) => {
       if (path !== "/api/studio/drafts") return false;
@@ -572,7 +636,7 @@ describe("Studio publish result integrity", () => {
       const keys = Object.keys(draft.publishReconciliations ?? {});
       return draft.id === "draft-reconcile" && keys.includes("threads") && keys.includes("x");
     })).toBe(true));
-    fireEvent.click(screen.getByRole("button", { name: "2곳에 올리기" }));
+    fireEvent.click(screen.getByRole("button", { name: "선택한 2곳에 지금 발행" }));
     await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith(
       "외부 게시가 이미 완료된 항목입니다. 재발행하지 말고 내부 기록을 먼저 복구하세요.",
       "error",
@@ -589,7 +653,7 @@ describe("Studio publish result integrity", () => {
     });
 
     render(<StudioPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "1곳에 올리기" }));
+    fireEvent.click(await screen.findByRole("button", { name: "선택한 1곳에 지금 발행" }));
 
     await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith(
       "발행할 초안을 저장하지 못했습니다",

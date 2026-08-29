@@ -55,7 +55,7 @@ function Frame({ p, label, children, headerRight, characterCount }: {
     <div className="w-full max-w-sm">
       <div className="flex items-center gap-stack-tight mb-stack-tight px-micro">
         <Logo p={p} />
-        <span className="text-caption font-bold text-muted">{label}</span>
+        <span className="min-w-0 truncate text-caption font-bold text-muted">{label}</span>
         <div className="ml-auto flex items-center gap-stack-tight">
           {characterCount && (
             <span
@@ -210,7 +210,7 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
       <div className="bg-surface text-text rounded-surface border border-border px-pad-inset py-stack">
         <div className="flex gap-stack"><Av />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-micro text-body"><b>{handle}</b><span className="text-subtle text-body-sm ml-micro">1시간</span><div className="ml-auto text-subtle">{P(I.more)}</div></div>
+            <div className="flex min-w-0 items-center gap-micro text-body"><b className="min-w-0 truncate">{handle}</b><span className="shrink-0 text-subtle text-body-sm ml-micro">1시간</span><div className="ml-auto text-subtle">{P(I.more)}</div></div>
             <p className="text-body whitespace-pre-wrap leading-[1.45] mt-micro">{text.threads || <span className="text-subtle">텍스트…</span>}</p>
             {img && <img src={img} alt="" className="mt-stack-tight rounded-surface border border-border w-full max-h-80 object-cover" />}
             <div className="flex gap-stack-section mt-stack">{P(I.heart)}{P(I.chat)}{P(I.repost)}{P(I.send)}</div>
@@ -225,7 +225,7 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
       <div className="bg-surface text-text rounded-surface border border-border px-pad-inset py-stack">
         <div className="flex gap-stack"><Av />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-micro text-body"><b>{handle}</b><span className="text-accent">✓</span><span className="text-subtle ml-micro">@{handle} · 1분</span><div className="ml-auto text-subtle">{P(I.more)}</div></div>
+            <div className="flex min-w-0 items-center gap-micro text-body"><b className="min-w-0 truncate">{handle}</b><span className="shrink-0 text-accent">✓</span><span className="min-w-0 truncate text-subtle ml-micro">@{handle} · 1분</span><div className="ml-auto text-subtle">{P(I.more)}</div></div>
             <p className="text-body whitespace-pre-wrap leading-[1.4] mt-micro">{text.x || <span className="text-subtle">텍스트…</span>}</p>
             {img && <img src={img} alt="" className="mt-stack-tight rounded-surface border border-border w-full max-h-80 object-cover" />}
             <div className="flex justify-between mt-stack text-subtle text-body-sm">
@@ -239,7 +239,7 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
   if (platform === "facebook") return (
     <Frame p="facebook" label="Facebook" headerRight={headerRight} characterCount={characterCount}>
       <div className="bg-surface text-text rounded-control border border-border overflow-hidden">
-        <div className="flex items-center gap-stack-tight px-stack pt-stack"><Av /><div><div className="font-semibold text-body leading-tight">{handle}</div><div className="text-subtle text-caption">방금 · 전체 공개</div></div><div className="ml-auto text-subtle">{P(I.more)}</div></div>
+        <div className="flex items-center gap-stack-tight px-stack pt-stack"><Av /><div className="min-w-0"><div className="truncate font-semibold text-body leading-tight">{handle}</div><div className="text-subtle text-caption">방금 · 전체 공개</div></div><div className="ml-auto text-subtle">{P(I.more)}</div></div>
         <p className="px-stack py-stack-tight text-body whitespace-pre-wrap leading-snug">{text.facebook || <span className="text-subtle">텍스트…</span>}</p>
         {img && <img src={img} alt="" className="w-full max-h-80 object-cover" />}
         <div className="flex items-center justify-between px-stack py-stack-tight text-subtle text-body-sm border-b border-border"><span>반응 248</span><span>댓글 32 · 공유 12</span></div>
@@ -253,11 +253,11 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
     return (
       <Frame p="instagram" label="Instagram" headerRight={headerRight} characterCount={characterCount}>
         <div className="bg-surface text-text rounded-control border border-border overflow-hidden">
-          <div className="flex items-center gap-stack px-stack py-stack"><Av s={32} /><b className="text-body-sm">{handle}</b><span className="text-subtle text-caption">· 팔로우</span><div className="ml-auto text-subtle">{P(I.more)}</div></div>
+          <div className="flex items-center gap-stack px-stack py-stack"><Av s={32} /><b className="min-w-0 truncate text-body-sm">{handle}</b><span className="shrink-0 text-subtle text-caption">· 팔로우</span><div className="ml-auto text-subtle">{P(I.more)}</div></div>
           <IgCarousel cards={cards} />
           <div className="flex items-center gap-pad-inset px-stack pt-stack">{P(I.heart)}{P(I.chat)}{P(I.send)}<div className="ml-auto">{P(I.bookmark)}</div></div>
           <div className="px-stack pt-stack-tight text-body-sm font-semibold">좋아요 1,284개</div>
-          <div className="px-stack pt-micro pb-stack text-body-sm"><b>{handle}</b> <span className="text-muted">{text.instagram?.caption}</span>
+          <div className="px-stack pt-micro pb-stack text-body-sm"><b className="break-all">{handle}</b> <span className="text-muted">{text.instagram?.caption}</span>
             <div className="text-accent mt-micro">{(text.instagram?.hashtags || []).map((h) => `#${h.replace(/^#/, "")}`).join(" ")}</div></div>
         </div>
         {editor ? <InlinePreviewEditor platform="instagram" editor={editor} /> : null}
@@ -279,7 +279,7 @@ export function PlatformPreview({ platform, text, media, brand = "your_brand", h
           {k === "tiktok" && <div className="absolute top-3 left-0 right-0 flex justify-center gap-pad-inset text-text/80 text-body-sm"><span>팔로잉</span><b className="text-text border-b-2 border-player-text pb-micro">추천</b></div>}
           <VideoRail kind={k} />
           <div className="absolute left-3 right-12 bottom-3 text-text">
-            <div className="text-body-sm font-bold">@{handle}</div>
+            <div className="truncate text-body-sm font-bold">@{handle}</div>
             {editor?.title ? <div className="mt-micro text-body-sm font-semibold">{editor.title}</div> : null}
             <div className="text-caption leading-snug line-clamp-2 opacity-95">{cap}</div>
             {editor?.hashtags ? <div className="mt-micro line-clamp-1 text-caption opacity-90">{editor.hashtags}</div> : null}

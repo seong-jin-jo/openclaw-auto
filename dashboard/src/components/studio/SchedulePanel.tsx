@@ -63,10 +63,13 @@ export function SchedulePanel({
   tenantId,
   draftId,
   defaultPlatforms,
+  onScheduled,
 }: {
   tenantId: string;
   draftId: string | null;
   defaultPlatforms?: string[];
+  /** 예약이 실제로 등록된 뒤에만 불린다. 예약을 건 다음 어디로 가는지가 여기서 이어진다. */
+  onScheduled?: (scheduledAtIso: string, platforms: string[]) => void;
 }) {
   const { showToast } = useToast();
   const { data, mutate } = useSWR<{ schedules: ScheduleItem[] }>(
@@ -125,7 +128,7 @@ export function SchedulePanel({
         tenant_id: tenantId, draft_id: draftId, platforms, scheduled_at: iso,
         account_ids: Object.keys(accountIds).length ? accountIds : undefined,
       });
-      if (r?.ok) { showToast("예약 등록됨 ✓", "success"); mutate(); }
+      if (r?.ok) { showToast("예약을 걸었습니다", "success"); mutate(); onScheduled?.(iso, platforms); }
       else showToast(r?.error || "예약 실패", "error");
     } catch (e) {
       showToast(e instanceof Error ? e.message : "예약 실패", "error");

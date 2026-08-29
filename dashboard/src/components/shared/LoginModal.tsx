@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { setAuthToken } from "@/lib/auth";
+import { isAbortError, useAuthAttempt } from "@/lib/auth-attempt";
 import { useToast } from "@/components/layout/Toast";
 import { Button } from "@/components/shared/Button";
 
@@ -14,24 +15,20 @@ export function LoginModal() {
   const dialogRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
-  const validationGeneration = useRef(0);
-  const validationController = useRef<AbortController | null>(null);
+  const { begin: beginAttempt, invalidate: invalidateAttempt } = useAuthAttempt();
   const { showToast } = useToast();
 
   const handleLogin = useCallback(async () => {
     const candidate = token.trim();
     if (!candidate) return;
-    const generation = ++validationGeneration.current;
-    validationController.current?.abort();
-    const controller = new AbortController();
-    validationController.current = controller;
-    const ownsValidation = () => generation === validationGeneration.current && !controller.signal.aborted;
+    const attempt = beginAttempt();
+    const ownsValidation = attempt.owns;
     setError("");
     setBusy(true);
     try {
       const response = await fetch("/api/me", {
         headers: { Authorization: `Bearer ${candidate}` },
-        signal: controller.signal,
+        signal: attempt.signal,
       });
       const identity = response.ok ? await response.json().catch(() => null) : null;
       if (!ownsValidation()) return;
@@ -45,33 +42,26 @@ export function LoginModal() {
       showToast("로그인 완료", "success");
       previousFocusRef.current?.focus();
     } catch (requestError) {
-      if (ownsValidation() && !(requestError instanceof DOMException && requestError.name === "AbortError")) {
+      if (ownsValidation() && !isAbortError(requestError)) {
         setError("토큰 확인 중 오류가 발생했습니다. 다시 시도해주세요.");
       }
     } finally {
-      if (ownsValidation()) {
-        setBusy(false);
-        validationController.current = null;
-      }
+      if (ownsValidation()) setBusy(false);
     }
-  }, [showToast, token]);
+  }, [beginAttempt, showToast, token]);
 
   const cancel = useCallback(() => {
-    validationGeneration.current += 1;
-    validationController.current?.abort();
-    validationController.current = null;
+    invalidateAttempt();
     setBusy(false);
     setShow(false);
     setToken("");
     setError("");
     previousFocusRef.current?.focus();
-  }, []);
+  }, [invalidateAttempt]);
 
   useEffect(() => {
     const handler = () => {
-      validationGeneration.current += 1;
-      validationController.current?.abort();
-      validationController.current = null;
+      invalidateAttempt();
       previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       setError("");
       setBusy(false);
@@ -80,11 +70,9 @@ export function LoginModal() {
     window.addEventListener("auth:required", handler);
     return () => {
       window.removeEventListener("auth:required", handler);
-      validationGeneration.current += 1;
-      validationController.current?.abort();
-      validationController.current = null;
+      invalidateAttempt();
     };
-  }, []);
+  }, [invalidateAttempt]);
 
   useEffect(() => {
     if (show) inputRef.current?.focus();
@@ -127,7 +115,7 @@ export function LoginModal() {
         onKeyDown={handleDialogKeyDown}
         className="v56-loginmodal card p-stack-section w-80"
       >
-        <h2 id="login-modal-title" className="text-body-sm font-medium text-text mb-micro">Login Required</h2>
+        <h2 id="login-modal-title" className="text-body-sm font-medium text-text mb-micro">로그인이 필요합니다</h2>
         <p className="text-caption text-subtle mb-stack">이 작업을 수행하려면 로그인이 필요합니다.</p>
         <input
           ref={inputRef}
@@ -135,8 +123,8 @@ export function LoginModal() {
           value={token}
           onChange={(event) => setToken(event.target.value)}
           onKeyDown={(event) => event.key === "Enter" && void handleLogin()}
-          placeholder="Auth Token"
-          aria-label="Auth Token"
+          placeholder="운영자 토큰"
+          aria-label="운영자 토큰"
           className="w-full min-h-control-touch bg-surface text-muted text-body-sm p-stack rounded-chip border border-border mb-stack"
         />
         {error ? <p className="text-caption text-danger mb-stack">{error}</p> : null}
@@ -146,9 +134,9 @@ export function LoginModal() {
             onClick={() => void handleLogin()}
             className="flex-1"
           >
-            Login
+            로그인
           </Button>
-          <Button onClick={cancel}>Cancel</Button>
+          <Button onClick={cancel}>취소</Button>
         </div>
       </div>
     </div>

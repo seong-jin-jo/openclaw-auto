@@ -189,12 +189,32 @@ END $$;
 CREATE INDEX IF NOT EXISTS idx_studio_free_regeneration_jobs
   ON studio_free_regeneration_uses(tenant_id, original_job_id, replacement_job_id);
 
+-- 후보 거절 장부. 무료 재생성은 후보 셋을 모두 거절한 뒤에만 나간다(요구 대장 R27).
+-- 거절 여부를 클라이언트 상태로 판단하면 생성 직후 재생성을 불러 몫을 공짜로 태울 수 있다.
+CREATE TABLE IF NOT EXISTS studio_generation_candidate_rejections (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id     UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  member_id     TEXT NOT NULL,
+  job_id        UUID NOT NULL,
+  candidate_id  UUID NOT NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_studio_generation_candidate_rejection
+    UNIQUE (tenant_id, job_id, candidate_id),
+  FOREIGN KEY (tenant_id, job_id)
+    REFERENCES studio_generation_jobs(tenant_id, id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_studio_generation_candidate_rejections_job
+  ON studio_generation_candidate_rejections(tenant_id, job_id);
+
 -- 여덟 컨셉 숏폼 공장 실행 장부. 작업 공간마다 실행 중인 공장은 하나로 제한하고,
 -- 각 컨셉은 독립 상태와 Studio 생성 작업을 가져 한 건 실패가 나머지를 막지 않게 한다.
 CREATE TABLE IF NOT EXISTS shorts_factory_runs (
   id                  UUID PRIMARY KEY,
   tenant_id           UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   member_id           TEXT NOT NULL,
+  -- 울타리 표. 이 실행을 소유한 worker 만 진행 신호와 마감을 쓸 수 있다.
+  -- 강제 종료와 회수는 표를 지워 옛 worker 를 즉시 무효로 만든다.
+  lease_token         UUID,
   status              TEXT NOT NULL DEFAULT 'queued'
                       CHECK (status IN ('queued', 'running', 'succeeded', 'partial', 'failed')),
   concurrency_limit   SMALLINT NOT NULL CHECK (concurrency_limit BETWEEN 1 AND 8),
@@ -255,8 +275,13 @@ CREATE TABLE IF NOT EXISTS published_posts (
   provider_meta JSONB NOT NULL DEFAULT '{}'::jsonb, -- 비동기 provider 상태 판정에 필요한 비민감 옵션
   permalink     TEXT,
   text          TEXT,
-  status        TEXT NOT NULL DEFAULT 'published', -- published | failed
+  status        TEXT NOT NULL DEFAULT 'published', -- published | in_progress | uncertain | failed
   error         TEXT,
+  idempotency_key TEXT,                          -- draft_id 없는 실발행의 중복 방지 키
+  reserved_at   TIMESTAMPTZ,                     -- in_progress 예약의 임차 시작 시각
+  first_comment_status TEXT,                     -- not_requested | published | failed | uncertain
+  first_comment_error  TEXT,
+  first_comment_external_id TEXT,
   published_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   -- 성과(insights) — collect가 갱신
   views         INTEGER,
@@ -345,7 +370,7 @@ CREATE TABLE IF NOT EXISTS schedules (
   draft_id      UUID,                          -- 원 초안(선택)
   platforms     TEXT[],                        -- 발행 대상 채널 목록
   scheduled_at  TIMESTAMPTZ NOT NULL,          -- 예약 발행 시각
-  status        TEXT NOT NULL DEFAULT 'scheduled', -- scheduled | processing | published | partial | failed | canceled
+  status        TEXT NOT NULL DEFAULT 'scheduled', -- scheduled | processing | published | partial | uncertain | failed | canceled
   payload       JSONB,                         -- 발행 페이로드 스냅샷
   created_at    TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
@@ -533,9 +558,19 @@ END $$;
 -- 이 인덱스가 있어야 SELECT-then-INSERT 레이스(동시 2요청이 둘 다 "없음"을 보고 둘 다 외부 발행)를
 -- INSERT ... ON CONFLICT DO NOTHING 한 방으로 닫을 수 있다 — 5분짜리 컨테이너 폴링 구간 내내
 -- 트랜잭션을 붙들지 않고도(=커넥션 점유/락 홀드 없이) 중복 외부 발행을 막는 것이 목적.
+-- uncertain(게시 성공 뒤 응답만 끊긴 상태)도 재발행 금지 대상이라 인덱스에 포함한다.
 CREATE UNIQUE INDEX IF NOT EXISTS uq_published_posts_idem
   ON published_posts (tenant_id, draft_id, platform, COALESCE(account_id, '00000000-0000-0000-0000-000000000000'::uuid))
-  WHERE draft_id IS NOT NULL AND status IN ('published', 'in_progress');
+  WHERE draft_id IS NOT NULL AND status IN ('published', 'in_progress', 'uncertain');
+
+-- draft_id 없는 실발행은 클라이언트 멱등 키로 같은 보호를 받는다.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_published_posts_idem_key
+  ON published_posts (tenant_id, platform, COALESCE(account_id, '00000000-0000-0000-0000-000000000000'::uuid), idempotency_key)
+  WHERE idempotency_key IS NOT NULL AND status IN ('published', 'in_progress', 'uncertain');
+
+CREATE INDEX IF NOT EXISTS idx_published_posts_in_progress_lease
+  ON published_posts (tenant_id, reserved_at)
+  WHERE status = 'in_progress';
 
 -- 작업 공간별 운영 장애 원장. 원문 오류나 자격증명은 저장하지 않고 고정 코드만 남긴다.
 -- status='open'인 동일 fingerprint는 한 행으로 합쳐 알림 폭주를 막는다.

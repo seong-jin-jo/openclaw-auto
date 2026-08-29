@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { setAuthToken } from "@/lib/auth";
+import { isAbortError, useAuthAttempt } from "@/lib/auth-attempt";
 
 // 운영자 콘솔 진입 — DASHBOARD_AUTH_TOKEN으로 전체 접근. 고객 랜딩과 분리(비번 박스 노출 0).
 // 고객 셀프서브는 /login(Supabase)이 유일 진입. 여기는 운영자만.
@@ -9,32 +10,36 @@ export default function OperatorPage() {
   const [token, setToken] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const { begin: beginAttempt } = useAuthAttempt();
 
   const doLogin = useCallback(async () => {
     const t = token.trim();
     if (!t || busy) return;
+    // 이 화면을 떠난 뒤 늦게 온 응답이 그 사이 확정된 다른 신원을 덮지 못하게 한다.
+    const attempt = beginAttempt();
     setError("");
     setBusy(true);
     try {
       // 잘못된 토큰이 깨진 UI를 여는 걸 막기 위해 신뢰 전 검증.
-      const res = await fetch("/api/me", { headers: { Authorization: `Bearer ${t}` } });
+      const res = await fetch("/api/me", { headers: { Authorization: `Bearer ${t}` }, signal: attempt.signal });
+      const data = res.ok ? await res.json().catch(() => null) : null;
+      if (!attempt.owns()) return;
       if (!res.ok) {
         setError("운영자 토큰이 유효하지 않습니다. 다시 확인해주세요.");
         return;
       }
-      const data = await res.json();
       if (!data?.isOperator) {
         setError("이 토큰은 운영자 모드가 아닙니다.");
         return;
       }
       setAuthToken(t, "operator");
       window.location.href = "/operator/customers";
-    } catch {
-      setError("토큰 확인 중 오류가 발생했습니다.");
+    } catch (cause) {
+      if (attempt.owns() && !isAbortError(cause)) setError("토큰 확인 중 오류가 발생했습니다.");
     } finally {
-      setBusy(false);
+      if (attempt.owns()) setBusy(false);
     }
-  }, [token, busy]);
+  }, [beginAttempt, token, busy]);
 
   return (
     <div className="min-h-screen bg-bg flex items-center justify-center px-stack-section">
