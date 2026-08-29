@@ -4,8 +4,11 @@ import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
 
 interface ChannelSettingsData {
-  [channel: string]: Record<string, boolean>;
+  [channel: string]: Record<string, boolean | number>;
 }
+
+// boolean 토글과 별개로 숫자 override를 허용하는 키(안 터진 글 판정 기준 등).
+const NUMERIC_SETTING_KEYS = new Set(["low_engagement_min_views", "low_engagement_min_likes"]);
 
 // feature key → cron job name 매핑
 const FEATURE_TO_CRON: Record<string, Record<string, string>> = {
@@ -60,6 +63,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ cha
   if (!data[channel]) data[channel] = {};
   for (const [k, v] of Object.entries(body)) {
     if (validKeys.has(k) && typeof v === "boolean") {
+      data[channel][k] = v;
+    } else if (NUMERIC_SETTING_KEYS.has(k) && typeof v === "number" && v >= 0) {
       data[channel][k] = v;
     }
   }
