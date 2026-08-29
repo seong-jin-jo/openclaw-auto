@@ -34,6 +34,11 @@ describe("GET /api/studio/drafts R-02 본문 복원", () => {
     const body = await (await GET(new Request("http://localhost/api/studio/drafts"))).json();
 
     expect(body.drafts[0]).toEqual(expect.objectContaining({ text: { threads: "본문" } }));
+    expect(body.currentWork).toEqual(expect.objectContaining({
+      draftId: "draft-1",
+      stage: "edit",
+      stageLabel: "편집실",
+    }));
   });
 
   it("레거시 최상위 플랫폼 키를 text variants로 복원한다", async () => {

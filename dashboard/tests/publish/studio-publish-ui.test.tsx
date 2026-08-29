@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   isOperator: true,
   workspace: { id: "tenant-a", name: "작업 공간 A" },
   drafts: [] as Array<Record<string, unknown>>,
+  currentWork: null as Record<string, unknown> | null,
   returnPosts: [] as Array<Record<string, unknown>>,
   setStudioRoom: vi.fn(),
 }));
@@ -121,6 +122,7 @@ describe("Studio publish result integrity", () => {
     mocks.workspace.name = "작업 공간 A";
     mocks.isOperator = true;
     mocks.drafts = [];
+    mocks.currentWork = null;
     mocks.returnPosts = [];
     mocks.setStudioRoom.mockReset();
     mocks.swr.mockImplementation((key: string | null) => {
@@ -129,7 +131,7 @@ describe("Studio publish result integrity", () => {
         return { data: { isOperator: mocks.isOperator }, mutate: vi.fn() };
       }
       if (key === "/api/studio/drafts?tenant_id=tenant-a") {
-        return { data: { drafts: mocks.drafts }, mutate: vi.fn() };
+        return { data: { drafts: mocks.drafts, currentWork: mocks.currentWork }, mutate: vi.fn() };
       }
       if (key?.startsWith("/api/queue?status=all&returnTo=")) {
         return { data: { posts: mocks.returnPosts }, mutate: vi.fn() };
@@ -377,6 +379,52 @@ describe("Studio publish result integrity", () => {
     render(<StudioPage />);
     expect(screen.queryByText("발행 이력")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "불러오기" })).not.toBeInTheDocument();
+  });
+
+  it("FE-CURRENT-01 정상: 작업물 전체에서 서버가 판정한 현재 작업을 편집실로 이어간다", async () => {
+    mocks.drafts = [{
+      id: "draft-current",
+      idea: "고객 사례 카드뉴스",
+      text: { threads: "서버에 저장된 현재 본문" },
+      includes: { threads: true },
+      status: "draft",
+      savedAt: "2026-08-29T08:10:00.000Z",
+    }];
+    mocks.currentWork = {
+      draftId: "draft-current",
+      idea: "고객 사례 카드뉴스",
+      stage: "edit",
+      stageLabel: "편집실",
+      status: "draft",
+      savedAt: "2026-08-29T08:10:00.000Z",
+    };
+
+    render(<StudioPage />);
+    fireEvent.click(screen.getByRole("button", { name: /작업물 전체/ }));
+
+    expect(screen.getByText("고객 사례 카드뉴스", { exact: true })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "이어 편집하기" }));
+
+    expect(mocks.setStudioRoom).toHaveBeenCalledWith("edit");
+    expect(mocks.showToast).toHaveBeenCalledWith("불러옴. 수정 후 재발행 가능", "success");
+  });
+
+  it("FE-CURRENT-02 거절: 현재 작업이 다른 초안 ID를 가리키면 이어하기를 노출하지 않는다", () => {
+    mocks.drafts = [{ id: "draft-owned", idea: "내 작업", text: { threads: "본문" } }];
+    mocks.currentWork = {
+      draftId: "draft-missing",
+      idea: "잘못 연결된 작업",
+      stage: "edit",
+      stageLabel: "편집실",
+      status: "draft",
+      savedAt: "2026-08-29T08:10:00.000Z",
+    };
+
+    render(<StudioPage />);
+    fireEvent.click(screen.getByRole("button", { name: /작업물 전체/ }));
+
+    expect(screen.queryByRole("button", { name: "이어 편집하기" })).not.toBeInTheDocument();
+    expect(screen.queryByText("잘못 연결된 작업", { exact: true })).not.toBeInTheDocument();
   });
 
   it("FE3-PUBLISH-04 거절: 본문이 없으면 실행 단추를 노출하지 않는다", async () => {

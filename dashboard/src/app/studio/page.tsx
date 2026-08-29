@@ -35,6 +35,7 @@ import {
   validateContentEditFormat,
   type ContentEditFormat,
 } from "@/lib/studio/content-edit-format";
+import type { CurrentWork } from "@/lib/studio/current-work";
 
 // SNS-007: /api/publish가 실제로 계정별 발행을 받는 4개 플랫폼(threads/x/facebook/instagram)만
 // 계정 셀렉터를 노출한다. shorts/reels/tiktok은 /api/publish 미지원(실발행 분기 없음. 위
@@ -137,7 +138,7 @@ export default function StudioPage() {
     activeWorkspace ? `/api/studio/engine-status?tenant_id=${activeWorkspace.id}` : "/api/studio/engine-status",
     fetcher,
   );
-  const { data: hist, mutate: mutateHist } = useSWR<{ drafts: Array<Record<string, unknown>> }>(activeWorkspace ? `/api/studio/drafts?tenant_id=${activeWorkspace.id}` : null, fetcher);
+  const { data: hist, mutate: mutateHist } = useSWR<{ drafts: Array<Record<string, unknown>>; currentWork?: CurrentWork | null }>(activeWorkspace ? `/api/studio/drafts?tenant_id=${activeWorkspace.id}` : null, fetcher);
   const { data: publishReturnQueue } = useSWR<{ posts: Array<Record<string, unknown>> }>(
     activeWorkspace && publishReturnRequest
       ? `/api/queue?status=all&returnTo=${publishReturnRequest.sourceRoute}&tenant_id=${activeWorkspace.id}`
@@ -547,6 +548,18 @@ export default function StudioPage() {
       Object.keys(savedReconciliations).length > 0 ? "error" : "success",
     );
   }
+  function resumeCurrentWork() {
+    const current = hist?.currentWork;
+    if (!current) return;
+    const draft = hist.drafts.find((item) => item.id === current.draftId);
+    if (!draft) return;
+    loadDraft(draft);
+    if (current.stage === "performance") {
+      window.location.assign("/");
+      return;
+    }
+    changeRoom(current.stage);
+  }
   const commentHandoffLoaded = useRef<string | null>(null);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -746,13 +759,26 @@ export default function StudioPage() {
       ) : null}
       <span className="rounded-control border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle" title={engine?.error || engine?.model || ""}>AI {engine?.label || "확인 중"}</span>
       {showWorks ? (
-        <div id="studio-work-overview" className="absolute left-0 right-0 top-full z-20 mt-stack grid gap-stack rounded-surface border border-border bg-surface p-pad-inset shadow-lg md:grid-cols-4">
-          {(["create", "edit", "publish"] as StudioRoom[]).map((room) => (
-            <Button key={room} variant={activeRoom === room ? "primary" : "secondary"} onClick={() => changeRoom(room)}>
-              {room === "create" ? "생성실" : room === "edit" ? "편집실" : "발행실"}
-            </Button>
-          ))}
-          <Link href="/" className="inline-flex min-h-control-touch items-center justify-center rounded-control border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">성과실</Link>
+        <div id="studio-work-overview" className="absolute left-0 right-0 top-full z-20 mt-stack space-y-stack rounded-surface border border-border bg-surface p-pad-inset shadow-lg">
+          {hist?.currentWork && hist.drafts.some((draft) => draft.id === hist.currentWork?.draftId) ? (
+            <div className="flex flex-wrap items-center gap-stack border-b border-border pb-stack" data-current-work={hist.currentWork.stage}>
+              <div className="mr-auto min-w-0">
+                <span className="block text-caption text-subtle">현재 작업 · {hist.currentWork.stageLabel}</span>
+                <b className="block truncate text-body text-text">{hist.currentWork.idea}</b>
+              </div>
+              <Button variant="primary" onClick={resumeCurrentWork}>
+                {hist.currentWork.stage === "create" ? "이어 생성하기" : hist.currentWork.stage === "edit" ? "이어 편집하기" : hist.currentWork.stage === "publish" ? "이어 발행하기" : "성과 보기"}
+              </Button>
+            </div>
+          ) : null}
+          <div className="grid gap-stack md:grid-cols-4">
+            {(["create", "edit", "publish"] as StudioRoom[]).map((room) => (
+              <Button key={room} variant={activeRoom === room ? "primary" : "secondary"} onClick={() => changeRoom(room)}>
+                {room === "create" ? "생성실" : room === "edit" ? "편집실" : "발행실"}
+              </Button>
+            ))}
+            <Link href="/" className="inline-flex min-h-control-touch items-center justify-center rounded-control border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">성과실</Link>
+          </div>
         </div>
       ) : null}
     </header>
