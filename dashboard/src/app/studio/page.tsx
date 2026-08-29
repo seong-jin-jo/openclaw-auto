@@ -1027,12 +1027,22 @@ export default function StudioPage() {
             </div>
           ) : null}
           {text ? (
-            <div className="card flex flex-wrap items-center gap-stack p-stack">
+            <div className="card space-y-stack p-stack">
+              <div className="flex flex-wrap items-center gap-stack">
               <b className="mr-auto min-w-0 truncate text-body text-text">{idea || "현재 작업물"}</b>
               <Button onClick={() => save("draft")}>임시 저장하기</Button>
               <Button onClick={requestReview} disabled={reviewBusy}>{reviewBusy ? "보내는 중" : "승인 인박스로 보내기"}</Button>
               <Button variant="primary" onClick={publish} disabled={pub.running || !accountsLoaded || publishTargets.length === 0}>선택한 {publishTargets.length}곳에 지금 발행</Button>
               {activeWorkspace ? <Button variant={showSchedule ? "primary" : "secondary"} onClick={() => setShowSchedule((value) => !value)}>예약 발행</Button> : null}
+              </div>
+              {/* 단추 이름만으로는 무엇이 일어나는지 안 갈린다. 넷이 어떻게 다른지 한 줄로 적는다.
+                  눌러 봐야 아는 단추는 없는 단추다(R191). */}
+              <p className="break-keep text-caption text-subtle" data-publish-actions-note>
+                임시 저장은 아무 데도 안 올리고 이 작업물만 남깁니다.
+                승인 인박스로 보내면 검토를 기다리는 자리로 갑니다.
+                지금 발행은 고른 곳에 바로 올립니다.
+                예약 발행은 날짜와 시각을 잡고 그 날의 발행 캘린더로 이어집니다.
+              </p>
             </div>
           ) : null}
           {GROUPS.map((group) => (
