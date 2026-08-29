@@ -377,7 +377,9 @@ export class GenerationService {
       requiredRejections,
     });
     if (!persisted.consumed) {
-      if (persisted.refusal === "candidates_not_rejected") throw candidatesNotRejected(requiredRejections);
+      if (persisted.refusal === "candidates_not_rejected") {
+        throw candidatesNotRejected(persisted.pendingCandidateIds ?? requiredRejections);
+      }
       throw paidRegenerationApprovalRequired(now);
     }
     return {

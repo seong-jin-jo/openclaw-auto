@@ -183,6 +183,9 @@ export default function StudioPage() {
   const [titles, setTitles] = useState<Record<string, string>>({});
   const [hashtags, setHashtags] = useState<Record<string, string>>({});
   const [firstComments, setFirstComments] = useState<Record<string, string>>({});
+  // 플랫폼별 캡션 덮어쓰기. 세로영상 세 곳(Shorts, Reels, TikTok)은 원본 대본 하나를 공유하던
+  // 탓에 한 곳을 고치면 나머지도 같이 바뀌었다. 여기에 플랫폼 키로 따로 담아 각자 편집한다.
+  const [captions, setCaptions] = useState<Record<string, string>>({});
   const [reviewQueueId, setReviewQueueId] = useState<string | null>(null);
   const [reviewBusy, setReviewBusy] = useState(false);
   const [publishChatDraft, setPublishChatDraft] = useState("");
@@ -291,7 +294,7 @@ export default function StudioPage() {
         if (w.includes) setIncludes(normalizeIncludes(w.includes)); setDraftId(w.draftId || null);
         setPublishReconciliations(normalizePublishReconciliations(w.publishReconciliations ?? w.publishReconciliation));
         setDisplayNames(w.displayNames || {}); setTitles(w.titles || {}); setHashtags(w.hashtags || {});
-        setFirstComments(w.firstComments || {}); setEditLines(w.editLines || []); setReviewQueueId(w.reviewQueueId || null);
+        setFirstComments(w.firstComments || {}); setCaptions(w.captions || {}); setEditLines(w.editLines || []); setReviewQueueId(w.reviewQueueId || null);
         if (w.createBranch === "video" || w.createBranch === "text_image") setCreateBranch(w.createBranch);
         if (w.editKind === "video" || w.editKind === "card" || w.editKind === "audio" || w.editKind === "text") {
           setEditKind(w.editKind);
@@ -308,8 +311,8 @@ export default function StudioPage() {
   useEffect(() => {
     const workspaceId = activeWorkspace?.id;
     if (!workspaceId || hydratedWorkspaceId !== workspaceId) return;
-    try { localStorage.setItem(studioWorkStorageKey(workspaceId), JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, editLines, reviewQueueId, createBranch, editKind, editFormat })); } catch { /* noop */ }
-  }, [activeWorkspace?.id, hydratedWorkspaceId, idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, editLines, reviewQueueId, createBranch, editKind, editFormat]);
+    try { localStorage.setItem(studioWorkStorageKey(workspaceId), JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, captions, editLines, reviewQueueId, createBranch, editKind, editFormat })); } catch { /* noop */ }
+  }, [activeWorkspace?.id, hydratedWorkspaceId, idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, captions, editLines, reviewQueueId, createBranch, editKind, editFormat]);
 
   const media = { imgUrl: img?.file, vidUrl: vid?.file };
   const upText = (patch: Partial<TextVariants>) => setText((p) => ({ ...(p || {}), ...patch }));
@@ -411,6 +414,7 @@ export default function StudioPage() {
       titles,
       hashtags,
       firstComments,
+      captions,
       editLines,
       editFormat,
       publishedAt: status === "published" ? new Date().toISOString() : undefined,
@@ -419,12 +423,18 @@ export default function StudioPage() {
   }
   // 플랫폼별 발행 텍스트 추출
   function platformText(p: PreviewPlatform): string {
+    if (p === "shorts" || p === "reels" || p === "tiktok") {
+      const override = captions[p];
+      if (typeof override === "string") return override;
+      if (!text) return "";
+      return [text.shorts?.hook, text.shorts?.body, text.shorts?.cta].filter(Boolean).join("\n") || text.threads || "";
+    }
     if (!text) return "";
     if (p === "threads") return text.threads || "";
     if (p === "facebook") return text.facebook || "";
     if (p === "x") return text.x || "";
     if (p === "instagram") return text.instagram?.caption || "";
-    return [text.shorts?.hook, text.shorts?.body, text.shorts?.cta].filter(Boolean).join("\n") || text.threads || "";
+    return "";
   }
 
   function publishText(p: PreviewPlatform): string {
@@ -535,6 +545,7 @@ export default function StudioPage() {
     setTitles((d.titles as Record<string, string>) || {});
     setHashtags((d.hashtags as Record<string, string>) || {});
     setFirstComments((d.firstComments as Record<string, string>) || {});
+    setCaptions((d.captions as Record<string, string>) || {});
     setEditLines((d.editLines as string[]) || []);
     const savedFormat = validateContentEditFormat(d.editFormat);
     if (savedFormat.valid) {
@@ -623,6 +634,7 @@ export default function StudioPage() {
       setTitles((linkedDraft?.titles as Record<string, string>) || {});
       setHashtags((linkedDraft?.hashtags as Record<string, string>) || (tagText ? { instagram: tagText } : {}));
       setFirstComments((linkedDraft?.firstComments as Record<string, string>) || {});
+      setCaptions((linkedDraft?.captions as Record<string, string>) || {});
       setEditLines((linkedDraft?.editLines as string[]) || []);
       setDraftId(linkedDraftId);
       setPublishReconciliations(normalizePublishReconciliations(linkedDraft?.publishReconciliations ?? linkedDraft?.publishReconciliation));
@@ -651,7 +663,7 @@ export default function StudioPage() {
     const body = [candidate.title, candidate.rationale, ...candidate.format.outline].join("\n");
     setText({
       threads: body,
-      x: [candidate.title, candidate.format.outline[0]].filter(Boolean).join("\n"),
+      x: trimToChannelLimit(body, "x"),
       facebook: body,
       instagram: { caption: candidate.rationale, slides: candidate.format.outline, hashtags: [] },
       shorts: { hook: candidate.title, body: candidate.format.outline.join("\n"), cta: candidate.rationale },
@@ -667,7 +679,11 @@ export default function StudioPage() {
     else if (platform === "x") upText({ x: value });
     else if (platform === "facebook") upText({ facebook: value });
     else if (platform === "instagram") upIg({ caption: value });
-    else upText({ shorts: { ...(text?.shorts || {}), hook: value } });
+    else {
+      setCaptions((current) => ({ ...current, [platform]: value }));
+      // Shorts는 편집실 대본과 같은 원본을 쓰므로 저장 대상 본문에도 반영한다.
+      if (platform === "shorts") upText({ shorts: { ...(text?.shorts || {}), hook: value } });
+    }
   }
 
   function previewEditor(platform: PreviewPlatform): PreviewInlineEditor {
