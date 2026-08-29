@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/shared/Button";
+import { EditPreview } from "./EditPreview";
 import { Field } from "@/components/shared/Field";
 import { Stack } from "@/components/shared/Stack";
 import { regenerateStudioCandidates, requestStudioCandidates, type StudioGenerationCandidate } from "@/lib/studio/generation/client";
@@ -19,11 +20,26 @@ import {
   validateContentEditFormat,
   type ContentEditFormat,
 } from "@/lib/studio/content-edit-format";
+import {
+  AUDIENCE_CARDS,
+  INDUSTRY_CARDS,
+  LEARNING_SLOT_TOTAL,
+  PURPOSE_CARDS,
+  countFilledLearningSlots,
+  readLearningInfo,
+  writeLearningInfo,
+  type LearningInfo,
+} from "./learning-info";
 
 export type CreateContentBranch = "text_image" | "video";
 export type EditContentKind = "video" | "card" | "audio" | "text";
+/** 화면에서 고르는 갈래. 글과 카드뉴스는 만드는 방식이 달라 따로 고른다. */
+export type CreateKind = "video" | "card" | "text";
 const ONBOARDING_CONTENT_BRANCH_KEY = "studio_content_branch";
-const createInputStorageKey = (workspaceId: string) => `studio_create_input:${workspaceId}`;
+
+const CREATE_KIND_LABELS: Record<CreateKind, string> = { video: "영상", card: "카드뉴스", text: "글" };
+const CREATE_KIND_ORDER: CreateKind[] = ["video", "card", "text"];
+const kindToBranch = (kind: CreateKind): CreateContentBranch => (kind === "video" ? "video" : "text_image");
 
 function AssistantPanel({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -48,68 +64,112 @@ interface CreateRoomProps {
   onOpenLearning: () => void;
   onCandidateSelect: (candidate: StudioGenerationCandidate) => void;
   onOpenEditor?: () => void;
+  /** 같이 만들 갈래가 바뀌면 헤더 상태판이 따라 바뀐다 */
+  onAlsoKindsChange?: (kinds: CreateKind[]) => void;
+  /** 만들던 것 이어서 하기. 0이면 줄이 아예 안 뜬다 */
+  resumeCount?: number;
+  onResume?: () => void;
 }
 
 const CREATE_EXAMPLES = [
-  { label: "A", title: "문제부터 시작하는 영상", outline: ["지금 겪는 문제", "놓치기 쉬운 이유", "바로 할 한 가지"] },
-  { label: "B", title: "결과부터 보여 주는 카드뉴스", outline: ["바뀐 결과", "따라 한 과정", "적용할 조건"] },
-  { label: "C", title: "과정을 따라가는 글", outline: ["처음 상태", "바꾼 순서", "확인한 변화"] },
+  { label: "A", title: "문제부터 시작하는 결", outline: ["지금 겪는 문제", "놓치기 쉬운 이유", "바로 할 한 가지"] },
+  { label: "B", title: "결과부터 보여 주는 결", outline: ["바뀐 결과", "따라 한 과정", "적용할 조건"] },
+  { label: "C", title: "과정을 따라가는 결", outline: ["처음 상태", "바꾼 순서", "확인한 변화"] },
 ] as const;
 
-export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBranch = "text_image", onContentBranchChange, onTopicChange, onOpenLearning, onCandidateSelect, onOpenEditor }: CreateRoomProps) {
+// 주제도 빈칸으로 주지 않는다. 학습 정보에서 고른 하는 일과 목적으로 후보를 지어 카드로 준다.
+// 카드에 없을 때만 "직접 적겠습니다"로 입력창이 열린다.
+const TOPIC_TEMPLATES: Record<string, string[]> = {
+  알리기: ["{{일}}, 처음 오신 분께 드리는 안내", "{{일}}에서 가장 많이 받는 질문 셋", "우리가 이 일을 하는 이유"],
+  "믿게 하기": ["{{일}} 열두 달 지나며 배운 것", "직접 겪은 실패 하나와 고친 방법", "손님이 남긴 말 그대로 옮기기"],
+  "문의 받기": ["이런 경우면 한 번 물어보셔도 됩니다", "{{일}} 상담 전에 준비하면 좋은 것", "많이들 헷갈리시는 조건 정리"],
+  "찾아오게 하기": ["오시는 길과 가장 좋은 시간대", "{{일}} 처음 오시는 분 코스", "이번 주에만 여는 자리"],
+  "사게 하기": ["지금 고르시면 좋은 이유 셋", "{{일}} 가격을 그대로 공개합니다", "고민되실 때 비교하는 기준"],
+  "다시 오게 하기": ["한 번 오신 분께만 드리는 이야기", "{{일}} 두 번째 방문에서 달라지는 것", "지난번에 못 보여 드린 것"],
+};
+
+function topicCandidates(industryTitle: string, purposeTitle: string): string[] {
+  const work = industryTitle || "우리 일";
+  const templates = TOPIC_TEMPLATES[purposeTitle] || TOPIC_TEMPLATES["알리기"];
+  return templates.map((template) => template.replaceAll("{{일}}", work));
+}
+
+export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBranch = "text_image", onContentBranchChange, onTopicChange, onOpenLearning, onCandidateSelect, onOpenEditor, onAlsoKindsChange, resumeCount = 0, onResume }: CreateRoomProps) {
   const topicInputRef = useRef<HTMLInputElement>(null);
+  const [primaryKind, setPrimaryKind] = useState<CreateKind | null>(contentBranch === "video" ? "video" : null);
+  const [alsoKinds, setAlsoKinds] = useState<CreateKind[]>([]);
   const [purpose, setPurpose] = useState("");
   const [audience, setAudience] = useState("");
   const [rightsConfirmed, setRightsConfirmed] = useState(false);
+  const [topicOpen, setTopicOpen] = useState(false);
+  const [learning, setLearning] = useState<LearningInfo>({});
   const [candidates, setCandidates] = useState<StudioGenerationCandidate[]>([]);
   const [selected, setSelected] = useState<"A" | "B" | "C" | null>(null);
   const [loading, setLoading] = useState(false);
   const generationInFlight = useRef(false);
-  const [inputHydratedFor, setInputHydratedFor] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const facts = useMemo(() => guide.trim() ? [guide.trim()] : [], [guide]);
-  const learnedCount = [workspaceName, guide, purpose, audience].filter((value) => value?.trim()).length;
+  const learnedCount = countFilledLearningSlots(learning, { guide });
   const missing = [!topic.trim() && "주제", !purpose.trim() && "목적", !audience.trim() && "대상", !rightsConfirmed && "사용 권리 확인"].filter(Boolean) as string[];
   const selectedCandidate = candidates.find((candidate) => candidate.label === selected) ?? null;
   const displayCandidates = candidates.length ? candidates : CREATE_EXAMPLES;
-  const stage = selected ? { count: "3 / 3", label: "완성 확인" } : candidates.length ? { count: "2 / 3", label: "후보 고르기" } : { count: "1 / 3", label: "주제 받는 중" };
+  const stage = selected ? { count: "3 / 3", label: "완성 확인" } : candidates.length ? { count: "2 / 3", label: "후보 고르기" } : { count: "1 / 3", label: "무엇을 만들지 고르는 중" };
+  const industryTitle = useMemo(() => INDUSTRY_CARDS.find((card) => card.sample === learning.industry)?.title || "", [learning.industry]);
+  const purposeTitle = useMemo(() => PURPOSE_CARDS.find((card) => card.sample === purpose)?.title || "", [purpose]);
+  const topicCards = useMemo(() => topicCandidates(industryTitle, purposeTitle), [industryTitle, purposeTitle]);
 
   useEffect(() => {
     const savedBranch = sessionStorage.getItem(ONBOARDING_CONTENT_BRANCH_KEY);
     if (savedBranch !== "text_image" && savedBranch !== "video") return;
     onContentBranchChange?.(savedBranch);
+    if (savedBranch === "video") setPrimaryKind("video");
     sessionStorage.removeItem(ONBOARDING_CONTENT_BRANCH_KEY);
   }, [onContentBranchChange]);
 
+  // 생성실은 언제나 새로 시작 상태로 열린다(질문6 확정). 이전 작업물은 지우지 않고
+  // 헤더 작업물함에 그대로 있고, 위쪽 "이어서 하기" 한 줄로 부른다.
+  // 브랜드에 매달린 값(대상, 소재 권리)만 학습 정보에서 되살린다.
   useEffect(() => {
-    setInputHydratedFor(null);
-    setPurpose("");
-    setAudience("");
-    setRightsConfirmed(false);
     if (!workspaceId) return;
-    try {
-      const saved = JSON.parse(localStorage.getItem(createInputStorageKey(workspaceId)) || "null") as {
-        purpose?: string;
-        audience?: string;
-        rightsConfirmed?: boolean;
-      } | null;
-      setPurpose(saved?.purpose || "");
-      setAudience(saved?.audience || "");
-      setRightsConfirmed(saved?.rightsConfirmed === true);
-    } catch {
-      setPurpose("");
-      setAudience("");
-      setRightsConfirmed(false);
-    }
-    setInputHydratedFor(workspaceId);
+    const saved = readLearningInfo(workspaceId);
+    setLearning(saved);
+    setAudience(saved.audience || "");
+    setRightsConfirmed(Boolean(saved.rights));
+    setPurpose("");
+    setTopicOpen(false);
   }, [workspaceId]);
 
-  useEffect(() => {
-    if (!workspaceId || inputHydratedFor !== workspaceId) return;
-    try {
-      localStorage.setItem(createInputStorageKey(workspaceId), JSON.stringify({ purpose, audience, rightsConfirmed }));
-    } catch { /* 저장소 제한이면 현재 화면 상태만 유지 */ }
-  }, [audience, inputHydratedFor, purpose, rightsConfirmed, workspaceId]);
+  const rememberLearning = (patch: LearningInfo) => {
+    setLearning((current) => {
+      const next = { ...current, ...patch };
+      if (workspaceId) writeLearningInfo(workspaceId, next);
+      return next;
+    });
+  };
+
+  const choosePrimary = (kind: CreateKind) => {
+    setPrimaryKind(kind);
+    setAlsoKinds((current) => current.filter((one) => one !== kind));
+    onContentBranchChange?.(kindToBranch(kind));
+  };
+
+  const toggleAlso = (kind: CreateKind) => {
+    setAlsoKinds((current) => {
+      const next = current.includes(kind) ? current.filter((one) => one !== kind) : [...current, kind];
+      onAlsoKindsChange?.(next);
+      return next;
+    });
+  };
+
+  const chooseAudience = (value: string) => {
+    setAudience(value);
+    rememberLearning({ audience: value });
+  };
+
+  const confirmRights = (value: boolean) => {
+    setRightsConfirmed(value);
+    rememberLearning({ rights: value ? "쓸 권리를 확인했다고 회원님이 직접 알려 주셨습니다" : "" });
+  };
 
   async function generate() {
     if (generationInFlight.current) return;
@@ -153,8 +213,16 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
     onCandidateSelect(candidate);
   }
 
+  const kindHeading = primaryKind ? `${CREATE_KIND_LABELS[primaryKind]}을 이런 결로 만들어 드립니다` : "이런 결로 만들어 드립니다";
+
   return (
     <section data-room="create" className="space-y-region">
+      {resumeCount > 0 ? (
+        <section data-create-resume={resumeCount} className="flex min-h-control-touch flex-wrap items-center gap-stack rounded-surface border border-border bg-surface-2 px-pad-inset py-stack">
+          <span className="mr-auto break-keep text-body-sm text-muted">만들던 것 {resumeCount}건이 그대로 있습니다. 지금 화면은 새로 시작하는 자리입니다</span>
+          <Button size="sm" onClick={onResume}>이어서 하기</Button>
+        </section>
+      ) : null}
       <section data-room-top="create" data-create-stage={stage.count} aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch items-center justify-between rounded-surface border border-border bg-surface px-pad-inset py-stack">
         <b className="text-lead text-accent">{stage.count}</b><span className="text-caption text-subtle">{stage.label}</span>
       </section>
@@ -162,8 +230,8 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
         <div className="grid min-w-0 gap-stack-section xl:grid-cols-3" data-display-readonly="create">
           <section className="card min-w-0 p-pad-inset xl:col-span-2" aria-labelledby="create-display-title">
             <div className="mb-stack flex items-center justify-between border-b border-border pb-stack">
-              <b id="create-display-title" className="text-body text-text">{selectedCandidate ? "선택한 초안" : candidates.length ? "같은 주제의 다른 각도" : "오늘 만들 수 있는 것"}</b>
-              <span className="text-caption text-subtle">{selectedCandidate ? `${selectedCandidate.label}안` : candidates.length ? "세 가지" : "예시"}</span>
+              <b id="create-display-title" className="text-body text-text">{selectedCandidate ? "선택한 초안" : candidates.length ? "같은 주제의 다른 각도" : kindHeading}</b>
+              <span className="text-caption text-subtle">{selectedCandidate ? `${selectedCandidate.label}안` : candidates.length ? "세 가지" : "미리 보는 결"}</span>
             </div>
             <div className="grid gap-stack" data-create-candidate-deck>
               {displayCandidates.filter((candidate) => !selectedCandidate || candidate.label === selectedCandidate.label).map((candidate) => {
@@ -183,34 +251,81 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
             </div>
           </section>
           <section className="card p-pad-inset" aria-labelledby="create-learning-title">
-            <div className="mb-stack flex items-center justify-between border-b border-border pb-stack"><b id="create-learning-title" className="text-body text-text">회원님께 쌓인 것</b><span className="text-caption text-subtle">{learnedCount} / 4</span></div>
-            <progress className="progress-semantic mb-pad-inset w-full" max={4} value={learnedCount} aria-label="학습 정보 수집 정도" />
+            <div className="mb-stack flex items-center justify-between border-b border-border pb-stack"><b id="create-learning-title" className="text-body text-text">회원님께 쌓인 것</b><span className="text-caption text-subtle">{learnedCount} / {LEARNING_SLOT_TOTAL}</span></div>
+            <progress className="progress-semantic mb-pad-inset w-full" max={LEARNING_SLOT_TOTAL} value={learnedCount} aria-label="학습 정보 수집 정도" />
             <dl className="space-y-stack">
               <div><dt className="text-caption text-subtle">작업 공간</dt><dd className="text-body text-text">{workspaceName || "아직 없음"}</dd></div>
-              <div><dt className="text-caption text-subtle">브랜드</dt><dd className="line-clamp-4 break-keep text-body-sm text-muted">{guide || "아직 없음"}</dd></div>
+              <div><dt className="text-caption text-subtle">하는 일</dt><dd className="line-clamp-4 break-keep text-body-sm text-muted">{learning.industry || guide || "아직 없음"}</dd></div>
+              <div><dt className="text-caption text-subtle">말투</dt><dd className="break-keep text-body-sm text-muted">{learning.voice || "아직 없음"}</dd></div>
               <div><dt className="text-caption text-subtle">목적</dt><dd className="break-keep text-body-sm text-muted">{purpose || "아직 없음"}</dd></div>
               <div><dt className="text-caption text-subtle">대상</dt><dd className="break-keep text-body-sm text-muted">{audience || "아직 없음"}</dd></div>
-              <div className="border-t border-border pt-stack"><dt className="text-caption text-subtle">성과에서 배운 규칙</dt><dd className="text-body-sm text-muted">아직 없음</dd></div>
+              <div className="border-t border-border pt-stack"><dt className="text-caption text-subtle">성과에서 배운 규칙</dt><dd className="text-body-sm text-muted">{learning.learnedRules || "아직 없음"}</dd></div>
             </dl>
           </section>
         </div>
         <AssistantPanel title="생성 담당">
           <Stack gap={16}>
-            <div className="max-w-[90%] rounded-surface rounded-tl-control border border-border bg-surface p-stack text-body-sm text-text" data-empty-next={!candidates.length ? "create" : undefined}>{selectedCandidate ? "선택한 구조 초안을 편집실로 옮길 수 있습니다. 실제 미디어 생성은 준비 중입니다." : candidates.length ? "A, B, C 중 마음에 드는 방향을 골라 주세요." : "먼저 주제를 적고 후보 세 장을 만드세요."}</div>
+            <div className="max-w-[90%] rounded-surface rounded-tl-control border border-border bg-surface p-stack text-body-sm text-text" data-empty-next={!candidates.length ? "create" : undefined}>{selectedCandidate ? "선택한 구조 초안을 편집실로 옮길 수 있습니다. 실제 미디어 생성은 준비 중입니다." : candidates.length ? "A, B, C 중 마음에 드는 방향을 골라 주세요." : "고르기만 하시면 됩니다. 적을 것은 없습니다."}</div>
             {!candidates.length ? <>
-              <Button variant="primary" onClick={() => topicInputRef.current?.focus()}>주제부터 적기</Button>
               <div className="space-y-stack rounded-surface border border-border bg-surface p-stack">
-                <fieldset><legend className="mb-stack-tight text-caption font-semibold text-text">만들 종류</legend><div className="flex flex-wrap gap-stack-tight">
-                  <Button size="sm" variant={contentBranch === "video" ? "primary" : "secondary"} aria-pressed={contentBranch === "video"} onClick={() => onContentBranchChange?.("video")}>영상</Button>
-                  <Button size="sm" variant={contentBranch === "text_image" ? "primary" : "secondary"} aria-pressed={contentBranch === "text_image"} onClick={() => onContentBranchChange?.("text_image")}>글·카드뉴스</Button>
-                </div><p className="mt-stack-tight break-keep text-caption text-subtle">음악 생성은 준비 중입니다.</p></fieldset>
-                <Field label="이번 주제" htmlFor="studio-topic"><input ref={topicInputRef} id="studio-topic" value={topic} onChange={(event) => onTopicChange(event.target.value)} placeholder="콘텐츠 주제 입력" className="w-full rounded-control border border-border bg-surface-2 px-stack text-body text-text" /></Field>
-                <Field label="목적" htmlFor="studio-purpose"><input id="studio-purpose" value={purpose} onChange={(event) => setPurpose(event.target.value)} className="w-full rounded-control border border-border bg-surface-2 px-stack text-body text-text" /></Field>
-                <Field label="대상" htmlFor="studio-audience"><input id="studio-audience" value={audience} onChange={(event) => setAudience(event.target.value)} className="w-full rounded-control border border-border bg-surface-2 px-stack text-body text-text" /></Field>
-                <label className="flex items-start gap-stack-tight text-caption text-muted"><input type="checkbox" checked={rightsConfirmed} onChange={(event) => setRightsConfirmed(event.target.checked)} />이 콘텐츠에 쓰는 사진과 글을 제가 쓸 권리가 있습니다</label>
+                <fieldset data-create-kind-picker><legend className="mb-stack-tight text-caption font-semibold text-text">만들 종류</legend>
+                  <div className="flex flex-wrap gap-stack-tight">
+                    {CREATE_KIND_ORDER.map((kind) => (
+                      <Button key={kind} size="sm" variant={primaryKind === kind ? "primary" : "secondary"} aria-pressed={primaryKind === kind} onClick={() => choosePrimary(kind)}>{CREATE_KIND_LABELS[kind]}</Button>
+                    ))}
+                  </div>
+                  {primaryKind ? (
+                    <div className="mt-stack rounded-control border border-border bg-surface-2 p-stack" data-create-also-picker>
+                      <span className="text-caption font-semibold text-text">이 주제로 같이 만들 것</span>
+                      <div className="mt-stack-tight space-y-stack-tight">
+                        {CREATE_KIND_ORDER.filter((kind) => kind !== primaryKind).map((kind) => (
+                          <label key={kind} className="flex items-center gap-stack-tight text-caption text-muted">
+                            <input type="checkbox" checked={alsoKinds.includes(kind)} onChange={() => toggleAlso(kind)} />
+                            {CREATE_KIND_LABELS[kind]}도 같이 만들기
+                          </label>
+                        ))}
+                      </div>
+                      <p className="mt-stack-tight break-keep text-caption text-subtle">고르실 후보는 {CREATE_KIND_LABELS[primaryKind]} 세 장입니다. 확정하시면 나머지를 그 주제로 옮겨 만들어 드립니다.</p>
+                    </div>
+                  ) : null}
+                  <p className="mt-stack-tight break-keep text-caption text-subtle">음악 생성은 준비 중입니다.</p>
+                </fieldset>
+
+                <fieldset data-create-purpose-picker><legend className="mb-stack-tight text-caption font-semibold text-text">이번에 노리는 것</legend>
+                  <div className="flex flex-wrap gap-stack-tight">
+                    {PURPOSE_CARDS.map((card) => (
+                      <Button key={card.id} size="sm" variant={purpose === card.sample ? "primary" : "secondary"} aria-pressed={purpose === card.sample} title={card.sample} onClick={() => setPurpose(card.sample)}>{card.title}</Button>
+                    ))}
+                  </div>
+                  {purpose ? <p className="mt-stack-tight break-keep text-caption text-subtle">{purpose}</p> : null}
+                </fieldset>
+
+                <fieldset data-create-audience-picker><legend className="mb-stack-tight text-caption font-semibold text-text">말 거는 대상</legend>
+                  <div className="flex flex-wrap gap-stack-tight">
+                    {AUDIENCE_CARDS.map((card) => (
+                      <Button key={card.id} size="sm" variant={audience === card.sample ? "primary" : "secondary"} aria-pressed={audience === card.sample} title={card.sample} onClick={() => chooseAudience(card.sample)}>{card.title}</Button>
+                    ))}
+                  </div>
+                  {audience ? <p className="mt-stack-tight break-keep text-caption text-subtle">{audience}</p> : null}
+                </fieldset>
+
+                <fieldset data-create-topic-picker><legend className="mb-stack-tight text-caption font-semibold text-text">이번 주제</legend>
+                  <div className="space-y-stack-tight">
+                    {topicCards.map((suggestion) => (
+                      <Button key={suggestion} size="sm" variant={topic === suggestion ? "primary" : "secondary"} aria-pressed={topic === suggestion} onClick={() => { onTopicChange(suggestion); setTopicOpen(false); }} className="ds-label-fill w-full min-w-0 justify-start text-left"><span className="min-w-0 truncate">{suggestion}</span></Button>
+                    ))}
+                    {topicOpen ? (
+                      <Field label="이번 주제" htmlFor="studio-topic"><input ref={topicInputRef} id="studio-topic" value={topic} onChange={(event) => onTopicChange(event.target.value)} placeholder="직접 적으실 주제" className="w-full rounded-control border border-border bg-surface-2 px-stack text-body text-text" /></Field>
+                    ) : (
+                      <Button size="sm" onClick={() => { setTopicOpen(true); setTimeout(() => topicInputRef.current?.focus(), 0); }}>여기 없습니다. 직접 적겠습니다</Button>
+                    )}
+                  </div>
+                </fieldset>
+
+                <label className="flex items-start gap-stack-tight text-caption text-muted"><input type="checkbox" checked={rightsConfirmed} onChange={(event) => confirmRights(event.target.checked)} />이 콘텐츠에 쓰는 사진과 글을 제가 쓸 권리가 있습니다</label>
               </div>
               {missing.length ? <div className="rounded-control border border-warning/30 bg-warning/10 p-stack text-caption text-warning">비어 있음: {missing.join(", ")}</div> : null}
-              {!guide.trim() ? <Button onClick={onOpenLearning}>학습 정보 채우기</Button> : null}
+              <Button onClick={onOpenLearning}>{guide.trim() || learning.industry ? "학습 정보 더 채우기" : "학습 정보 채우기"}</Button>
               <Button variant="primary" onClick={generate} disabled={loading}>{loading ? "후보 만드는 중" : "후보 세 장 만들기"}</Button>
             </> : null}
             {candidates.length && !selectedCandidate ? <>
@@ -225,7 +340,6 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
     </section>
   );
 }
-
 interface EditRoomProps {
   lines: string[];
   onLinesChange: (lines: string[]) => void;
@@ -341,8 +455,15 @@ export function EditRoom({ lines, onLinesChange, kind = "video", previewReady = 
           </nav>
           <div className="min-w-0 p-pad-inset">
             {kind === "audio" ? <section className="grid min-h-80 place-items-center rounded-surface border border-dashed border-border bg-surface-2 p-region text-center" data-edit-readiness><div className="max-w-xl"><b className="text-subheading text-text">음악 생성 백엔드는 준비 중입니다</b><p className="mt-stack break-keep text-body-sm text-muted">현재는 나레이션 대사만 확인할 수 있습니다. 음악 파일이나 파형은 아직 표시하지 않습니다.</p></div></section> : <>
-              <section className={`grid place-items-center rounded-surface border border-border bg-surface-2 p-stack-section ${kind === "card" ? "aspect-[4/5] max-h-96" : kind === "text" ? "min-h-80" : "aspect-video"}`} aria-label={kind === "card" ? "카드뉴스 미리보기" : kind === "text" ? "글 미리보기" : "영상 미리보기"} data-edit-stage>
-                <div className="grid h-full w-full place-items-center rounded-control bg-accent-soft p-region text-center"><div><span className="text-caption font-semibold text-accent">{previewReady ? "미리보기" : "구조 초안"}</span><p className="mt-stack max-w-xl break-keep text-heading font-bold text-text">{visibleLines[activeLine] ? selectedLine : "이 대사는 빠진 상태입니다"}</p>{!previewReady && kind === "video" ? <p className="mt-stack text-caption text-muted">실제 영상 렌더는 준비 중입니다.</p> : null}</div></div>
+              <section aria-label={kind === "card" ? "카드뉴스 미리보기" : kind === "text" ? "글 미리보기" : "영상 미리보기"} data-edit-stage>
+                <EditPreview
+                  kind={kind}
+                  lines={safeLines.map((line, index) => (visibleLines[index] ? line : ""))}
+                  activeLine={activeLine}
+                  onActiveLine={setActiveLine}
+                  subtitleSize={toolValues.자막}
+                  renderReady={previewReady}
+                />
               </section>
               <section className="mt-stack border-b border-border pb-stack" aria-label="간편 편집 도구" data-edit-tools>
                 <div className="flex flex-wrap gap-stack-tight">{tools.map((tool) => <Button key={tool} size="sm" variant={activeTool === tool ? "primary" : "secondary"} onClick={() => setActiveTool(tool)} aria-pressed={activeTool === tool} aria-label={`${tool} 도구`}><ToolIcon tool={tool} /><span>{toolValues[tool]}</span></Button>)}

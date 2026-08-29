@@ -13,10 +13,12 @@ import {
 } from "@/lib/api";
 import { useToast } from "@/components/layout/Toast";
 import { PlatformPreview, PREVIEW_PLATFORMS, type PreviewInlineEditor, type PreviewPlatform } from "@/components/studio/PlatformPreview";
-import { CreateRoom, EditRoom, type CreateContentBranch, type EditContentKind } from "@/components/studio/StudioRooms";
+import { CreateRoom, EditRoom, type CreateContentBranch, type CreateKind, type EditContentKind } from "@/components/studio/StudioRooms";
 import type { StudioGenerationCandidate } from "@/lib/studio/generation/client";
 import { useUIStore, type StudioRoom } from "@/store/ui-store";
-import { BrandSetupWizard } from "@/components/shared/BrandSetupWizard";
+import { LearningCardWizard } from "@/components/studio/LearningCardWizard";
+import { LearningStatus } from "@/components/studio/LearningStatus";
+import { countFilledLearningSlots, readLearningInfo, type LearningInfo } from "@/components/studio/learning-info";
 import { RepoConnect } from "@/components/studio/RepoConnect";
 import { SchedulePanel } from "@/components/studio/SchedulePanel";
 import { trackEvent, type AnalyticsChannel } from "@/lib/analytics/events";
@@ -171,6 +173,10 @@ export default function StudioPage() {
   const [guide, setGuide] = useState("");
   // 활성 워크스페이스 브랜드 가이드 → 생성에 자동 주입(P3)
   useEffect(() => { if (brandData?.guide?.prompt_guide) setGuide(brandData.guide.prompt_guide); }, [brandData]);
+  // 헤더 학습 정보가 네 방 어디서든 같은 숫자를 보이게 작업 공간이 바뀔 때 다시 읽는다.
+  useEffect(() => {
+    setLearningInfo(activeWorkspace ? readLearningInfo(activeWorkspace.id) : {});
+  }, [activeWorkspace]);
   // 온보딩 위저드에서 "브랜드 설정하기"(/studio?setup=brand)로 오면 브랜드 위저드 자동 오픈.
   useEffect(() => {
     if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("setup") === "brand") {
@@ -201,6 +207,9 @@ export default function StudioPage() {
   const [editLines, setEditLines] = useState<string[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<StudioGenerationCandidate | null>(null);
   const [createBranch, setCreateBranch] = useState<CreateContentBranch>("video");
+  const [alsoKinds, setAlsoKinds] = useState<CreateKind[]>([]);
+  const [learningInfo, setLearningInfo] = useState<LearningInfo>({});
+  const [learningFlash, setLearningFlash] = useState(0);
   const [editKind, setEditKind] = useState<EditContentKind>("video");
   const [editFormat, setEditFormat] = useState<ContentEditFormat>(() => defaultContentEditFormat("video"));
   const [editing, setEditing] = useState<PreviewPlatform | null>(null);
@@ -769,15 +778,23 @@ export default function StudioPage() {
       subtitle="콘텐츠 작업실"
       roomLabel={activeRoom === "create" ? "생성실" : activeRoom === "edit" ? "편집실" : "발행실"}
       leading={
-        <Button onClick={() => setShowWorks((value) => !value)} aria-expanded={showWorks} aria-controls="studio-work-overview">
-          작업물 전체 <span className="ml-micro text-accent">{hist?.drafts.length ?? 0}</span>
-        </Button>
+        <>
+          <Button onClick={() => setShowWorks((value) => !value)} aria-expanded={showWorks} aria-controls="studio-work-overview">
+            작업물 전체 <span className="ml-micro text-accent">{hist?.drafts.length ?? 0}</span>
+          </Button>
+          <LearningStatus
+            filled={countFilledLearningSlots(learningInfo, { guide })}
+            flashToken={learningFlash}
+            onOpen={() => setShowWizard(true)}
+          />
+        </>
       }
       trailing={
         <>
           {activeRoom === "create" || activeRoom === "edit" ? (
             <span className="rounded-pill border border-accent/30 bg-surface px-stack py-stack-tight text-caption font-semibold text-accent" data-kind-board>
               지금 만드는 것: {activeRoom === "create" ? createBranch === "video" ? "영상" : "글·카드뉴스" : editKind === "video" ? "영상" : editKind === "card" ? "카드뉴스" : editKind === "text" ? "글" : "음악"}
+              {activeRoom === "create" && alsoKinds.length ? <span className="ml-micro font-normal text-subtle">같이 {alsoKinds.map((kind) => (kind === "video" ? "영상" : kind === "card" ? "카드뉴스" : "글")).join(", ")}</span> : null}
             </span>
           ) : null}
           <span className="rounded-control border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle" title={engine?.error || engine?.model || ""}>AI {engine?.label || "확인 중"}</span>
@@ -816,7 +833,7 @@ export default function StudioPage() {
 
   if (activeRoom === "create") return (
     <div className="px-stack-section py-pad-inset">
-      {showWizard && activeWorkspace ? <BrandSetupWizard workspace={activeWorkspace} onComplete={() => { setShowWizard(false); mutateBrand(); showToast("브랜드 가이드 저장됨"); }} onDismiss={() => setShowWizard(false)} /> : null}
+      {showWizard && activeWorkspace ? <LearningCardWizard workspaceId={activeWorkspace.id} workspaceName={activeWorkspace.name} onSaved={(info, completed) => { setLearningInfo(info); if (completed) { setShowWizard(false); mutateBrand(); showToast("학습 정보를 배웠습니다"); } else { setLearningFlash((value) => value + 1); } }} onClose={() => setShowWizard(false)} /> : null}
       {roomHeader}
       <CreateRoom
         workspaceId={activeWorkspace?.id}
@@ -829,6 +846,9 @@ export default function StudioPage() {
         onOpenLearning={() => setShowWizard(true)}
         onCandidateSelect={chooseCandidate}
         onOpenEditor={() => changeRoom("edit")}
+        onAlsoKindsChange={setAlsoKinds}
+        resumeCount={hist?.drafts.length ?? 0}
+        onResume={() => setShowWorks(true)}
       />
     </div>
   );
@@ -851,6 +871,7 @@ export default function StudioPage() {
           imageUrl={img?.file ?? null}
           videoUrl={vid?.file ?? null}
           editorLines={editLines}
+          onEditorLinesChange={setEditLines}
           source={{ generationId: selectedCandidate?.generation_id, candidateId: selectedCandidate?.candidate_id }}
           initialHandoff={editorHandoff}
           preferredKind={editKind === "video" ? "video" : editKind === "audio" ? "audio" : editKind === "text" ? "text" : "card"}
@@ -869,7 +890,7 @@ export default function StudioPage() {
 
   if (activeRoom === "publish") return (
     <div className="px-stack-section py-pad-inset">
-      {showWizard && activeWorkspace ? <BrandSetupWizard workspace={activeWorkspace} onComplete={() => { setShowWizard(false); mutateBrand(); showToast("브랜드 가이드 저장됨"); }} onDismiss={() => setShowWizard(false)} /> : null}
+      {showWizard && activeWorkspace ? <LearningCardWizard workspaceId={activeWorkspace.id} workspaceName={activeWorkspace.name} onSaved={(info, completed) => { setLearningInfo(info); if (completed) { setShowWizard(false); mutateBrand(); showToast("학습 정보를 배웠습니다"); } else { setLearningFlash((value) => value + 1); } }} onClose={() => setShowWizard(false)} /> : null}
       {showRepo && activeWorkspace ? <RepoConnect workspace={activeWorkspace} onSynced={() => { mutateBrand(); showToast("브랜드 가이드 갱신됨"); }} onClose={() => setShowRepo(false)} /> : null}
       {roomHeader}
       <section data-room="publish" className="grid gap-stack-section pb-wide lg:grid-cols-[minmax(0,1fr)_20rem] lg:pb-none">
