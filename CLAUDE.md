@@ -228,9 +228,15 @@ data/
 | `multi-channel-publish` | 2h | Haiku | 승인 글 멀티채널 발행 |
 | `instagram-generate-drafts` | 6h | Sonnet | Instagram 카드뉴스 콘텐츠 생성 |
 | `instagram-auto-publish` | 2h | Haiku | Instagram 이미지 글 자동 발행 |
-| `threads-collect-insights` | 6h | Haiku | 반응 수집 + 댓글 좋아요 + 저조 삭제 |
+| `threads-collect-insights` | 6h | Haiku | 반응 수집 + 댓글 좋아요 + 저조 후보 집계(삭제 없음) |
 | `threads-fetch-trending` | 주1회 | Haiku | 외부 인기글 수집 |
 | `threads-track-growth` | 매일 | Haiku | 팔로워 추적 |
+
+**저조 글 정리(안 터진 글 삭제)는 항상 사람 승낙이 있어야만 일어난다(회장 지시 2026-08-29).**
+`threads-collect-insights` 크론(및 `threads_insights` agent 도구의 `cleanup_low_engagement`
+액션)은 후보 목록만 계산하고 Threads API에 삭제 요청을 보내지 않는다. 실제 삭제는 대시보드에서
+`GET /api/threads/low-engagement-candidates`로 후보를 확인한 사람이 `POST
+/api/threads/low-engagement-cleanup`에 직접 고른 postId를 보낼 때만 수행된다.
 
 ## UI 규칙
 

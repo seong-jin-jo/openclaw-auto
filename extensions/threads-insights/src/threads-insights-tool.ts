@@ -137,7 +137,7 @@ function extractMetricValue(data: { data?: Array<{ name: string; values?: Array<
 const ThreadsInsightsToolSchema = Type.Object(
   {
     action: optionalStringEnum(["collect", "auto_like_replies", "auto_reply", "cleanup_low_engagement"] as const, {
-      description: 'Action: "collect" — collect engagement metrics, detect viral, auto-feed. "auto_like_replies" — like all replies. "auto_reply" — AI-generated reply to unanswered comments. "cleanup_low_engagement" — delete low-engagement posts after 3 days.',
+      description: 'Action: "collect" — collect engagement metrics, detect viral, auto-feed. "auto_like_replies" — like all replies. "auto_reply" — AI-generated reply to unanswered comments. "cleanup_low_engagement" — 저조 후보만 조회한다(삭제 없음). 실제 삭제는 사람이 대시보드에서 postId를 골라 POST /api/threads/low-engagement-cleanup 을 호출해야만 일어난다(회장 지시 2026-08-29, 승낙 없는 삭제 경로 금지).',
     }),
     minViews: Type.Optional(
       Type.Number({ description: "Min views threshold for cleanup (default: 100)." }),
@@ -308,12 +308,18 @@ function generateReplyText(commentText: string, username: string | undefined, to
   return defaults[Math.floor(Math.random() * defaults.length)];
 }
 
+// 회장 지시 2026-08-29: 승낙 없는 삭제 경로 금지. 이 함수는 절대 Threads API에 DELETE를
+// 보내지 않고 큐도 건드리지 않는다 — 저조 후보만 계산해 반환한다("dry-run" 고정).
+// 실제 삭제는 사람이 대시보드(GET /api/threads/low-engagement-candidates 로 후보를 보고
+// POST /api/threads/low-engagement-cleanup 에 선택한 postId를 넘길 때만) 수행한다.
+// 이 이력: 과거 버전은 여기서 바로 DELETE를 호출해 사람 승낙 없이 글을 지웠다(회귀 방지
+// 테스트 = extensions/threads-insights/src/__tests__/cleanup-no-consent-delete.test.ts).
 async function cleanupLowEngagement(config: ResolvedConfig, minViews: number, minLikes: number) {
   const queue = await readJson<QueueData>(config.queuePath, { version: 1, posts: [] });
   const now = new Date();
   const CLEANUP_AGE_MS = 24 * 60 * 60 * 1000; // 24시간
 
-  const toDelete = queue.posts.filter((p) => {
+  const candidates = queue.posts.filter((p) => {
     if (p.status !== "published" || !p.threadsMediaId || !p.publishedAt) return false;
     const age = now.getTime() - new Date(p.publishedAt).getTime();
     if (age < CLEANUP_AGE_MS) return false;
@@ -321,34 +327,13 @@ async function cleanupLowEngagement(config: ResolvedConfig, minViews: number, mi
     return p.engagement.views < minViews && p.engagement.likes < minLikes;
   });
 
-  let deleted = 0;
-  let errors = 0;
-
-  for (const post of toDelete) {
-    try {
-      const deleteUrl = `${THREADS_API_BASE}/${post.threadsMediaId}?access_token=${config.accessToken}`;
-      const resp = await fetch(deleteUrl, { method: "DELETE" });
-      if (resp.ok) {
-        post.status = "failed";
-        post.error = `Auto-deleted: low engagement (views=${post.engagement!.views}, likes=${post.engagement!.likes})`;
-        deleted++;
-      } else {
-        errors++;
-      }
-    } catch {
-      errors++;
-    }
-  }
-
-  if (deleted > 0) {
-    await writeJson(config.queuePath, queue);
-  }
-
   return jsonResult({
-    message: `Deleted ${deleted} low-engagement posts (${errors} errors)`,
-    deleted,
-    errors,
-    candidates: toDelete.length,
+    message: `${candidates.length}개 저조 후보를 찾았습니다. 삭제하려면 대시보드에서 사람이 직접 선택 후 승낙해야 합니다. 이 도구는 삭제하지 않습니다.`,
+    deleted: 0,
+    errors: 0,
+    candidates: candidates.length,
+    candidateIds: candidates.map((p) => p.id),
+    requiresHumanConsent: true,
   });
 }
 
@@ -357,7 +342,7 @@ export function createThreadsInsightsTool(api: OpenClawPluginApi) {
     name: "threads_insights",
     label: "Threads Insights",
     description:
-      "Collect engagement metrics, auto-like replies, and cleanup low-engagement posts. Actions: collect, auto_like_replies, cleanup_low_engagement.",
+      "Collect engagement metrics, auto-like replies, and list low-engagement candidates (read-only, no deletion). Actions: collect, auto_like_replies, cleanup_low_engagement.",
     parameters: ThreadsInsightsToolSchema,
     async execute(_toolCallId: string, rawParams: Record<string, unknown>) {
       const action = readStringParam(rawParams, "action") ?? "collect";

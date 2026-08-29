@@ -3972,3 +3972,113 @@ SOURCES/MODEL
   `dashboard/src/components/home/AutomationRulesPanel.tsx`,
   `dashboard/tests/api/low-engagement-candidates.test.ts`, `dashboard/tests/api/low-engagement-cleanup.test.ts`
 - 실행 근거: `/tmp/tsc5.log`, `/tmp/vitest2.log`, `/tmp/vitest-full.log`, 위 curl 출력(직접 관찰)
+
+## 2026-08-30 — 옛 no-consent 삭제 경로(threads_insights agent 도구) 봉인
+
+### 배경
+직전 판이 승낙형 삭제 경로(`GET low-engagement-candidates` + `POST low-engagement-cleanup`,
+postId 필수)를 대시보드에 새로 만들었지만, `extensions/threads-insights/src/threads-insights-tool.ts`의
+`cleanupLowEngagement()`(OpenClaw agent 도구 `threads_insights`, action=`cleanup_low_engagement`)는
+그대로 남아 있었다. 이 함수는 사람 확인 없이 조건만 맞으면 Threads API에 `DELETE`를 직접
+호출했다 — 이 도구 액션은 `threads-collect-insights` 크론(CLAUDE.md에 "반응 수집 + 댓글 좋아요 +
+저조 삭제"로 명시)이 쓰는 `threads_insights` 도구에 스키마로 노출돼 있어, LLM 에이전트가 그
+크론 turn 안에서 자체 판단으로 이 액션을 호출할 수 있는 구조였다(사람이 개입할 지점이 없음).
+
+### 사실 확인 (추측 아님, 직접 grep/diff로 확인)
+1. `cleanupLowEngagement`는 이 레포에 **두 사본**으로 존재한다:
+   - `extensions/threads-insights/src/threads-insights-tool.ts` (활성 개발 트리, git log 상
+     `cleanup_low_engagement` 기능이 여기서 커밋됨 — `d0415494 Add trend analysis, auto-like
+     replies, low-engagement cleanup`)
+   - `openclaw/extensions/threads-insights/src/threads-insights-tool.ts` (docker-compose의
+     실제 gateway 빌드 컨텍스트, `docker-compose.postagi-4tenants.yml:18` `context: ./openclaw`가
+     이 사본을 이미지에 굽는다)
+2. **`openclaw/` 사본은 2026-03-22 이후 갱신되지 않아 `cleanup_low_engagement` 액션 자체가 없다**
+   (action enum이 `["collect"]`뿐, `autoLikeReplies`/`autoReplyToComments`/`cleanupLowEngagement`
+   함수가 없음). 즉 **현재 docker-compose로 빌드된 gateway 이미지에는 이 삭제 경로가 아예
+   존재하지 않는다** — 안전하지만 의도된 방어가 아니라 두 트리가 어긋나 생긴 우연한 안전이다.
+   (두 사본을 자동 동기화하는 스크립트는 grep으로 찾지 못했다 — 사람이 수동으로 옮기다 3월 이후
+   멈춘 것으로 보인다. `openclaw/`는 이 repo에 git으로 커밋된 일반 디렉터리이며 submodule이
+   아니다: `.gitmodules` 없음, `git ls-files openclaw/...`로 추적 확인.)
+3. `openclaw/` 사본을 빌드에 쓰지 않고 root `extensions/`를 직접 빌드하는 다른 docker-compose나
+   빌드 스크립트는 이 레포에서 찾지 못했다(`grep -rn "docker build" --include=*.sh .` 등).
+4. **크론 정의(jobs.json 또는 OpenClaw 런타임 `config/openclaw.json`)는 이 레포에 없다**
+   (`.gitignore:12`에 `config/openclaw.json` 명시, 로컬 파일도 부재). 따라서 "이 순간 실제
+   운영 중인 크론이 이 액션을 부르고 있는가"는 **이 레포에서 확인 불가** — 안전하다고 추측하지
+   않는다.
+
+### 조치
+- `extensions/threads-insights/src/threads-insights-tool.ts`의 `cleanupLowEngagement()`를
+  **삭제 없는 dry-run으로 고정**했다: Threads API DELETE 호출과 큐 쓰기(`writeJson`)를 완전히
+  제거하고, 후보 개수/ID만 반환한다(`requiresHumanConsent: true`). 실제 삭제는 여전히
+  대시보드의 사람 승낙 경로(`POST /api/threads/low-engagement-cleanup` + 선택한 postId)로만
+  일어난다 — 이것으로 "LLM 에이전트가 크론 중 자체 판단으로 삭제"가 구조적으로 불가능해졌다
+  (도구가 삭제할 능력 자체를 잃음).
+  - 왜 이 방향(env 플래그로 기본 꺼짐 대신 완전 제거)을 골랐나: 이미 사람 승낙형 삭제 경로가
+    대시보드에 정식으로 존재하므로, agent 도구가 삭제 *능력*을 갖고 있을 이유가 없다. env
+    플래그로 막는 안은 "플래그를 깜빡하고 켜면 다시 위험해지는" 여지를 남기지만, 능력 자체를
+    없애면 그 여지가 사라진다(실패 모드 자체를 제거 — fail-safe by construction).
+  - 도구 스키마 설명도 "삭제 없음, 대시보드 승낙 필요"로 갱신.
+- `openclaw/extensions/threads-insights/src/threads-insights-tool.ts`는 건드리지 않았다 —
+  이미 `cleanup_low_engagement` 액션이 없어 안전하고(§사실 확인 2), 새로 이식하면 오히려
+  위험 표면을 넓히는 것이라 최소 변경 원칙을 따랐다. 다만 이 사본이 3월 이후 스테일하다는 것
+  자체는 별도 정리 대상으로 남는다(이 판 범위 밖 — `auto_like_replies`/`auto_reply` 기능도
+  아직 빌드에 반영 안 됨, 별도 판단 필요).
+- `CLAUDE.md` 크론 표의 "저조 삭제" 설명이 실제 동작과 어긋나 있어 "저조 후보 집계(삭제 없음)"로
+  고치고, 승낙 흐름을 설명하는 각주를 추가했다(`CLAUDE.md:231` 부근).
+- 회귀 테스트 신설: `dashboard/tests/api/threads-insights-agent-tool-no-consent-delete.test.ts`
+  — 두 소스 트리를 정적 분석해 `cleanupLowEngagement` 함수 본문에 `method: "DELETE"`가 없는지,
+  큐를 직접 쓰지 않는지, `requiresHumanConsent` 계약이 유지되는지 검사한다. **레포 밖 OpenClaw
+  plugin-sdk 의존 때문에 함수를 직접 import/실행하지 못해 정적 분석 방식을 택했다** — git
+  HEAD(수정 전) 소스로 이 테스트를 돌려 실제로 FAIL하는 것을 확인했다(회귀 포착 능력 검증됨).
+
+### 검증 (직접 관찰)
+- `cd dashboard && npx vitest run tests/api/threads-insights-agent-tool-no-consent-delete.test.ts`
+  → 3 PASS. 같은 테스트를 `git show HEAD:extensions/.../threads-insights-tool.ts`(수정 전 소스)에
+  대해 node 스크립트로 재현했을 때 `method: "DELETE"` 매치가 나와 **수정 전 코드였다면 이 테스트가
+  잡아냈을 것**을 확인.
+- `cd dashboard && npx tsc --noEmit` → 통과(에러 0).
+- `cd dashboard && npm run test`(전체 vitest) → 202 파일 중 202 PASS, 1499 PASS / 1 skip,
+  **`studio-publish-ui.test.tsx` 29건 FAIL은 이번 판이 건드리지 않은 발행실(다른 조 작업 중,
+  `git status`로 `studio/page.tsx`·`SchedulePanel.tsx`가 이미 수정된 상태였음을 확인) 영역이라
+  무관** — `useSearchParams` 렌더 에러로 이번 변경(threads-insights)과 무관.
+
+### 셀프심문
+"승낙 없이 글이 지워질 수 있는 경로가 정말 하나도 안 남았는가. 레포 밖에서 부르는 경우까지
+생각했는가" —
+①`extensions/`의 agent 도구는 이제 물리적으로 DELETE를 호출하는 코드가 없다(함수 자체에서
+제거) — 프롬프트나 크론 설정이 무엇이든 이 함수를 아무리 여러 번 불러도 삭제는 안 일어난다.
+②`openclaw/` 빌드 사본은 애초에 이 액션이 없다. ③대시보드 삭제 라우트는 이전 판에서 이미
+postId 필수로 막혀 있고 이번 판에서 손대지 않았다(재확인 completed). ④**레포 밖 변수**: OpenClaw
+런타임이 `openclaw/`도 `extensions/`도 아닌 제3의 배포 경로(예: 프로덕션 서버에 별도로 올라간
+과거 빌드 이미지)를 쓰고 있다면, 그 이미지 안에는 이번 수정 전 코드가 그대로 있을 수 있다 —
+이건 이 레포의 코드 수정만으로는 닫을 수 없는 구멍이라 아래 판단 필요 항목으로 올린다.
+
+⛔ 회수 필요: 프로덕션에 이미 떠 있는 gateway 이미지가 옛 삭제 코드를 쓰고 있을 수 있다
+- 배경: 이번 작업으로 레포 소스(`extensions/`)의 삭제 코드는 제거했지만, 이미 빌드돼 서버에서
+  돌고 있는 컨테이너 이미지는 이 레포를 다시 빌드해 재배포하기 전까지는 옛 코드를 그대로 쓴다.
+  또한 `openclaw/` 빌드 사본은 3월부터 스테일해 애초에 이 액션이 없었으므로, 만약 현재 서버가
+  `openclaw/` 기반 이미지를 쓰고 있다면 원래도 위험하지 않았을 수 있다 — 어느 이미지가 실제
+  운영 중인지는 이 레포만으로 확인 불가.
+- 무엇을 정하나: 운영 중인 gateway 컨테이너를 지금 `docker-compose -f
+  docker-compose.postagi-4tenants.yml build`로 재빌드·재배포할지.
+- 옵션 A(추천): 지금 재빌드·재배포한다 → 고르면: 옛 삭제 코드가 남아있을 가능성이 있는 실행
+  중인 이미지를 이번 수정이 반영된 이미지로 교체해 확실히 닫는다. 안 고르면: 위 불확실성이
+  남는다(레포 코드는 고쳤지만 서버가 그 코드를 안 쓰고 있을 수 있음).
+- 옵션 B: 다음 정기 배포 사이클까지 기다린다 → 고르면: 지금 당장 배포 작업(다운타임/검증)을
+  피한다. 트레이드오프: 그 사이 기간 동안 "레포는 고쳤는데 서버는 안 고쳐진" 상태가 지속된다.
+- 추천 근거: 되돌릴 수 없는 삭제를 다루는 사고였고(§과업 배경), 레포 수정만으로 "끝났다"고
+  보고하면 §3(완료=증거) 위반이다. 재배포 여부는 배포 대상/타이밍 결정이라 회장 승인이 필요한
+  영역(§5 결정분류)이다.
+
+SKILLS_USED: 없음 (사실 확인·정적 분석·회귀 테스트 작성 — 코드 조사·수정 작업이라 매칭 skill 없음)
+SKILLS_SKIPPED: 없음
+
+SOURCES/MODEL
+- MODEL: claude-sonnet-5
+- 코드 근거: `extensions/threads-insights/src/threads-insights-tool.ts`,
+  `openclaw/extensions/threads-insights/src/threads-insights-tool.ts`,
+  `docker-compose.postagi-4tenants.yml:18-22`, `dashboard/src/app/api/threads/low-engagement-candidates/route.ts`,
+  `dashboard/src/app/api/threads/low-engagement-cleanup/route.ts`, `CLAUDE.md:225-236`
+- 실행 근거: `/tmp/vitest-le2.log`(신규 회귀테스트 PASS), `/tmp/dash-tsc.log`(tsc 0 에러),
+  `/tmp/dash-test-full.log`(전체 vitest 202/204 파일 PASS, FAIL 29건은 studio 무관 확인),
+  git log/diff/ls-files 직접 실행 결과(위 §사실 확인)
