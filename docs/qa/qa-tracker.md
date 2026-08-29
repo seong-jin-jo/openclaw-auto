@@ -3685,3 +3685,34 @@ SELF_ONLY/공개 게시 왕복은 미검증이며 SNS-017 provider E2E는 open �
   저장 층 인덱스(실 DB), 그리고 fetch 경계를 목으로 고정한 라우트 검증 세 층으로 나눠 확인했다.
 - 임차 만료 회수의 공급자 조회는 Threads 와 Instagram 만 구현했다. 다른 채널은 조회 계약이 없어
   `unknown` 으로 판정하고 uncertain 으로 보존한다(회수하지 않는다).
+
+## ✅ PASS: 숫자 간격 유틸리티 전수조사 (max-h-72류 재발 여부, 2026-08-29)
+
+- 기반: 편집실 목차 사고 수리 판(위 항목)의 사후 확인 지시. `dashboard/src/app/globals.css`, `dashboard/CLAUDE.md`, `DESIGN.md`, 위 커밋 `56f11b5c`.
+- 배경 주장 검증: "이 테마는 이름 있는 간격 토큰만 정의해 숫자 유틸리티가 0으로 풀린다"는 진단을 그대로 믿지 않고 실측했다.
+
+### 실측 결과 — 배경 주장은 부정확했다
+
+- `globals.css`의 `@theme inline`은 `--spacing-micro` 같은 **네임스페이스 하위 토큰**만 추가한다. Tailwind v4 기본 `--spacing: .25rem`(접두어 없는 원본 키)는 어디서도 재정의되지 않는다. 빌드된 CSS에 `--spacing:.25rem;`가 그대로 살아 있음을 확인했다(`grep -o "\-\-spacing:[^;]*;"`).
+- 브라우저 실측(Playwright, 격리 probe div): `w-40` → `width: 160px`(40×4, 정확), `h-64` → `height: 256px`(64×4, 정확). `max-h-72`류는 **현재 소스에 그 클래스 문자열이 하나도 안 남아 있어**(56f11b5c에서 `max-h-[40vh]`로 치환됨) Tailwind JIT가 규칙 자체를 생성하지 않아 `none`으로 나왔을 뿐 — 이것은 "0으로 풀림"이 아니라 "애초에 컴파일 안 됨"이라 별개 현상이다.
+- 결론: **현재 코드베이스에는 숫자 간격/크기 유틸리티가 전역적으로 죽는 문제가 없다.** 지난 사고(`max-h-72`)는 이미 고쳐졌고, 같은 메커니즘으로 깨진 다른 자리는 없다.
+
+### 전수조사
+
+- `dashboard/src` 전체에서 숫자 크기 계열(`w- h- max-w- max-h- min-w- min-h- top- bottom- left- right- inset- gap- p- m- space-x- space-y-`) 매치 325건. 스크립트: `grep -rnoE` (기록 `/tmp/numeric-utils.txt`, 세션 한정 임시파일).
+- `p-/m-/gap-/space-` 계열(진짜 DESIGN.md 간격 스케일 대상)은 **숫자 리터럴 사용 0건** — 전부 이미 이름 토큰(`stack`, `pad-inset` 등) 사용 중. 숫자가 남은 건 전부 `w-/h-/max-h-/min-h-/top-/bottom-/left-/right-/inset-`(크기·좌표), 이는 DESIGN.md 간격 스케일 대상이 아니라 아이콘·아바타 지름, 카드 최대높이 같은 치수라 토큰화 대상 자체가 아니다.
+- `h-250` 매치는 오탐 — `src/app/api/video/generate/route.ts`의 ffmpeg drawtext 표현식 문자열(`y=h-250`)이지 Tailwind 클래스가 아니다.
+
+### 재발 방지
+
+- `dashboard/tests/integrity/design-system-floor.contract.test.ts`에 테스트 2건 추가: ①`globals.css`가 접두어 없는 `--spacing:` 키를 재정의하지 않는지 정규식으로 고정 ②모든 `--spacing-*` 이름 토큰이 네임스페이스를 지키는지 고정. 이후 누군가 `@theme` 블록에 `--spacing: ...`을 추가하면(진짜 전역 붕괴를 일으키는 변경) 이 테스트가 즉시 실패한다.
+
+### 테스트됨
+
+- `npx tsc --noEmit` exit 0.
+- `npm run test`: 199 files, 1,469 passed, 1 skipped, 실패 0건(추가한 2건 포함).
+- Playwright 격리 probe: `w-40`→160px, `h-64`→256px 실측 일치.
+
+### 미검증
+
+- `/studio` 실화면 로그인 게이트(Google OAuth) 때문에 로그인된 상태의 실렌더 계산값은 이 판에서 다시 재지 않았다(직전 판이 이미 편집실/발행실/성과실 3화면 실측을 남겼음). 새로 깨진 자리는 없다는 결론은 정적 CSS 분석 + 격리 probe 실측 기반이며, 로그인 후 3화면 전수 시각 재검증은 다음 판으로 넘긴다.

@@ -36,3 +36,28 @@ describe("DESIGN.md v23 typography floor", () => {
     expect(css).toContain("line-height: var(--font-caption-leading)");
   });
 });
+
+describe("Tailwind v4 numeric spacing scale is never overridden", () => {
+  // 사고 재발방지 (2026-08-29, 편집실 목차 max-h-72 사고): 이 테마는 `@theme inline`에
+  // --spacing-micro 같은 "이름 있는" 하위 토큰만 추가한다. 만약 누군가 --spacing 자체(접미사
+  // 없는 bare key)를 재정의하면 Tailwind v4 네임스페이스 override 규칙에 따라 w-40 / h-64 /
+  // max-h-72 같은 "숫자" 유틸리티 전체가 calc(var(--spacing) * N)에서 --spacing을 못 찾아
+  // 0으로 풀린다(치명적 — 전 화면 숫자 크기 유틸리티가 조용히 무너진다). 이 테스트는 globals.css가
+  // bare --spacing을 재정의하지 않는지, 그리고 named 토큰이 접두어 없는 --spacing과 절대
+  // 충돌하지 않는지 고정한다.
+  it("does not redefine the bare --spacing key anywhere in globals.css", () => {
+    const css = fs.readFileSync(path.join(process.cwd(), "src", "app", "globals.css"), "utf8");
+    // "--spacing:" (뒤에 이름이 붙지 않은 순수 키) 정의를 금지. "--spacing-xxx:"는 허용.
+    const bareSpacingRedefinition = /(^|[^-])--spacing\s*:/m;
+    expect(bareSpacingRedefinition.test(css)).toBe(false);
+  });
+
+  it("keeps every named --spacing-* token namespaced (never collides with the bare scale key)", () => {
+    const css = fs.readFileSync(path.join(process.cwd(), "src", "app", "globals.css"), "utf8");
+    const namedSpacingTokens = css.match(/--spacing-[a-z-]+\s*:/g) ?? [];
+    expect(namedSpacingTokens.length).toBeGreaterThan(0);
+    for (const token of namedSpacingTokens) {
+      expect(token).toMatch(/^--spacing-[a-z-]+:$/);
+    }
+  });
+});
