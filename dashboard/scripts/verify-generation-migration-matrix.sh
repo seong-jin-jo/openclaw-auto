@@ -227,7 +227,34 @@ bash "$DASHBOARD_DIR/db/write-rollback-manifest.sh" "$ROLLBACK_MANIFEST_PATH"
 export ROLLBACK_MANIFEST_SHA256="$(sha256sum "$ROLLBACK_MANIFEST_PATH" | awk '{print $1}')"
 
 run_phase contract-generation
-if run_phase preflight >"$TMP_DIR/mixed-preflight" 2>&1; then echo "FAIL mixed C1 state passed general preflight" >&2; exit 1; fi
+# 승인된 단계 뒤에도 앱 배포는 계속 가능해야 한다. contract-generation 직후 상태는
+# S3|S2 이고, 바로 아래 race 검사가 그 상태에서 회원 전역 멱등이 지켜짐을 실측한다.
+# 예전에는 여기서 preflight 가 실패하는 것을 정상으로 못박아 배포와 확장이 서로를
+# 기다리는 교착을 만들었다.
+run_phase preflight >"$TMP_DIR/mixed-preflight" 2>&1 \
+  || { echo "FAIL 승인된 C1 상태에서 일반 preflight 가 배포를 막는다" >&2; cat "$TMP_DIR/mixed-preflight" >&2; exit 1; }
+grep -q 'schema_fingerprint=S3|S2' "$TMP_DIR/mixed-preflight"
+echo "PASS 축이 어긋난 승인 상태에서도 배포 preflight 통과"
+
+# 그래도 회원 범위 강제가 사라지면 반드시 막아야 한다.
+matrix_psql -c "ALTER TABLE public.studio_free_regeneration_uses DROP CONSTRAINT uq_studio_free_regeneration_member_date"
+matrix_psql -c "ALTER TABLE public.studio_free_regeneration_uses DISABLE TRIGGER trg_studio_free_regeneration_member_guard" 2>/dev/null || true
+if run_phase preflight >"$TMP_DIR/unready-preflight" 2>&1; then
+  echo "FAIL 회원 범위 강제가 없는 DB가 preflight 를 통과했다" >&2; exit 1
+fi
+grep -q 'compatibility app requires member UNIQUE or enabled E1 guard' "$TMP_DIR/unready-preflight"
+echo "PASS 회원 범위 강제 없는 상태는 여전히 fail-closed"
+matrix_psql -c "ALTER TABLE public.studio_free_regeneration_uses ADD CONSTRAINT uq_studio_free_regeneration_member_date UNIQUE (member_id, local_date)"
+
+# 필수 relation 과 테넌트 격리도 배포 게이트가 본다.
+matrix_psql -c "ALTER TABLE public.drafts NO FORCE ROW LEVEL SECURITY"
+if run_phase preflight >"$TMP_DIR/rls-preflight" 2>&1; then
+  echo "FAIL RLS 가 강제되지 않은 DB가 preflight 를 통과했다" >&2; exit 1
+fi
+grep -q 'drafts rls-not-forced' "$TMP_DIR/rls-preflight"
+echo "PASS RLS 미강제 상태는 배포 preflight 에서 차단"
+matrix_psql -c "ALTER TABLE public.drafts FORCE ROW LEVEL SECURITY"
+run_phase preflight >/dev/null
 if run_phase contract-quota >"$TMP_DIR/quota-contract-no-approval" 2>&1; then
   echo "FAIL quota contract ran without approved R27 artifact" >&2; exit 1
 fi
