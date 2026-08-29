@@ -85,14 +85,16 @@ describe("OSMU explicit migration runner 계약", () => {
     expect(runner).toContain("contract-quota is disabled until an approved R27 member-scope and UTC contract artifact is pinned");
   });
 
-  it("GEN-MIG-07A 거절: member UNIQUE 확장은 FK뿐 아니라 E1 guard 적용을 선행조건으로 요구한다", () => {
+  it("GEN-MIG-07A 거절: member UNIQUE 확장은 FK와 실제 실행 중인 호환 앱 검증을 선행조건으로 요구한다", () => {
     const expandMemberCase = runner.slice(
       runner.indexOf("    expand-member)"),
       runner.indexOf("    prepare-rollback)"),
     );
     expect(expandMemberCase).toContain('require_applied "20260829_010_studio_generation_expand_contract"');
-    expect(expandMemberCase).toContain('require_applied "20260829_020_generation_guard_expand"');
     expect(expandMemberCase).toContain("require_verified_app");
+    // guard 적용을 선행조건으로 요구하면 guard 가 이미 깔린 운영 DB에서 확장이 영구히 막힌다.
+    // 안전은 require_verified_app 과 중복 감사가 지킨다.
+    expect(expandMemberCase).not.toContain("generation_guard_expand");
   });
 
   it("GEN-MIG-08 거절: FK 수명 migration과 기존 필수 migration은 explicit manifest로만 적용한다", () => {
@@ -238,6 +240,9 @@ describe("OSMU explicit migration runner 계약", () => {
   });
 
   it("GEN-MIG-19 정상: 승인 DB workflow는 host psql 없이 postgres:16 client로 모든 DB script를 실행한다", () => {
+    expect(migrationWorkflow).toContain('path: source-${{ github.run_id }}');
+    expect(migrationWorkflow).toContain('SOURCE_DIR: ${{ github.workspace }}/source-${{ github.run_id }}');
+    expect(migrationWorkflow).toContain('working-directory: ${{ github.workspace }}/source-${{ github.run_id }}');
     const manifestStep = migrationWorkflow.slice(
       migrationWorkflow.indexOf("Build rollback manifest from observed pre-contract state"),
       migrationWorkflow.indexOf("Download the original rollback manifest"),
@@ -252,7 +257,7 @@ describe("OSMU explicit migration runner 계약", () => {
       expect(step).toContain("postgres:16");
       expect(step).toContain('-e OSMU_DATABASE_URL');
       expect(step).not.toContain('${{ secrets.OSMU_DATABASE_URL }}:');
-      expect(step).toContain('-v "$GITHUB_WORKSPACE/dashboard/db":/db:ro');
+      expect(step).toContain('-v "$SOURCE_DIR/dashboard/db":/db:ro');
     }
     expect(manifestStep).toContain('-v "$RUNNER_TEMP":/runner-temp');
     expect(manifestStep).toContain("bash /db/write-rollback-manifest.sh /runner-temp/osmu-rollback-manifest.json");

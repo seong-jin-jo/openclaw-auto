@@ -4,11 +4,11 @@ BEGIN;
 
 DO $role$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'osmu_generation_guard_owner') THEN
-    CREATE ROLE osmu_generation_guard_owner
+  IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'osmu_generation_guard_owner_v2') THEN
+    CREATE ROLE osmu_generation_guard_owner_v2
       NOLOGIN BYPASSRLS NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT;
   END IF;
-  ALTER ROLE osmu_generation_guard_owner
+  ALTER ROLE osmu_generation_guard_owner_v2
     NOLOGIN BYPASSRLS NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT;
 END
 $role$;
@@ -67,9 +67,9 @@ END
 $function$;
 
 ALTER FUNCTION public.guard_studio_generation_idempotency_member_scope()
-  OWNER TO osmu_generation_guard_owner;
+  OWNER TO osmu_generation_guard_owner_v2;
 ALTER FUNCTION public.guard_studio_free_regeneration_member_scope()
-  OWNER TO osmu_generation_guard_owner;
+  OWNER TO osmu_generation_guard_owner_v2;
 REVOKE ALL ON FUNCTION public.guard_studio_generation_idempotency_member_scope() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.guard_studio_free_regeneration_member_scope() FROM PUBLIC;
 DO $service_acl$
@@ -80,10 +80,10 @@ BEGIN
   END IF;
 END
 $service_acl$;
-GRANT USAGE ON SCHEMA public TO osmu_generation_guard_owner;
+GRANT USAGE ON SCHEMA public TO osmu_generation_guard_owner_v2;
 GRANT SELECT ON public.studio_generation_idempotency,
                 public.studio_free_regeneration_uses
-TO osmu_generation_guard_owner;
+TO osmu_generation_guard_owner_v2;
 
 DO $trigger$
 DECLARE
@@ -129,13 +129,13 @@ BEGIN
     'public.guard_studio_generation_idempotency_member_scope()'::regprocedure,
     'public.guard_studio_free_regeneration_member_scope()'::regprocedure
   )
-    AND pg_catalog.pg_get_userbyid(p.proowner) = 'osmu_generation_guard_owner'
+    AND pg_catalog.pg_get_userbyid(p.proowner) = 'osmu_generation_guard_owner_v2'
     AND p.proconfig @> ARRAY['search_path=pg_catalog, pg_temp'];
   SELECT NOT rolcanlogin AND rolbypassrls AND NOT rolsuper
          AND NOT rolcreatedb AND NOT rolcreaterole AND NOT rolinherit
     INTO owner_flags_ok
   FROM pg_catalog.pg_roles
-  WHERE rolname = 'osmu_generation_guard_owner';
+  WHERE rolname = 'osmu_generation_guard_owner_v2';
   SELECT EXISTS (
     SELECT 1
   FROM pg_catalog.pg_proc AS p
@@ -150,7 +150,7 @@ BEGIN
   ) INTO execute_leak;
   SELECT EXISTS (
     SELECT 1 FROM information_schema.role_table_grants
-    WHERE grantee='osmu_generation_guard_owner'
+    WHERE grantee='osmu_generation_guard_owner_v2'
       AND NOT (
         table_schema='public'
         AND table_name IN ('studio_generation_idempotency','studio_free_regeneration_uses')

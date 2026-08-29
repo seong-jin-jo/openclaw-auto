@@ -21,7 +21,7 @@ describe("Studio 생성 장부 배포 호환 계약", () => {
 
   it("M1-DEPLOY-02 거절: S1 guard는 권한·RLS·대기 시간을 명시한다", () => {
     expect(guardMigration).toContain("SECURITY DEFINER");
-    expect(guardMigration).toContain("OWNER TO osmu_generation_guard_owner");
+    expect(guardMigration).toContain("OWNER TO osmu_generation_guard_owner_v2");
     expect(guardMigration).toContain("NOLOGIN BYPASSRLS NOSUPERUSER");
     expect(guardMigration).toContain("SET search_path TO pg_catalog, pg_temp");
     expect(guardMigration).toContain("set_config('lock_timeout', '1500ms', true)");
