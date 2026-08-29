@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import {
   fetcher,
@@ -140,6 +140,7 @@ const isVideo = (p: PreviewPlatform) => p === "shorts" || p === "reels" || p ===
 
 export default function StudioPage() {
   const { showToast } = useToast();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const search = searchParams?.toString() ?? "";
   const { activeWorkspace, studioRoom: storedRoom, setStudioRoom: setActiveRoom } = useUIStore();
@@ -1004,7 +1005,20 @@ export default function StudioPage() {
               </div>
             </div>
           ) : null}
-          {showSchedule && activeWorkspace ? <SchedulePanel tenantId={activeWorkspace.id} draftId={draftId} defaultPlatforms={publishTargets} /> : null}
+          {showSchedule && activeWorkspace ? (
+            <SchedulePanel
+              tenantId={activeWorkspace.id}
+              draftId={draftId}
+              defaultPlatforms={publishTargets}
+              onScheduled={(iso) => {
+                // 예약을 건 다음 확인할 곳이 없어 흐름이 끊겨 있었다. 그 예약이 놓인 날짜의
+                // 발행 캘린더로 바로 데려간다. 별도 예약 완료 화면을 새로 만들지 않는다.
+                const when = new Date(iso);
+                const dateKey = `${when.getFullYear()}-${String(when.getMonth() + 1).padStart(2, "0")}-${String(when.getDate()).padStart(2, "0")}`;
+                router.push(`/calendar?from=publish&date=${dateKey}`);
+              }}
+            />
+          ) : null}
           {accountsLoaded && publishTargets.length === 0 ? (
             <div className="rounded-control border border-warning/30 bg-warning/10 p-stack text-body-sm text-warning">
               연결된 발행 계정이 없습니다. 아래 각 칸의 계정 연결하기를 누르면 그 채널 연결 화면으로 갑니다. <Link href="/channels/threads" className="font-semibold underline">Threads부터 연결하기</Link>
@@ -1095,7 +1109,9 @@ export default function StudioPage() {
           </div>
           <div className="space-y-stack bg-surface-2 p-stack">
             <div className="max-w-[90%] rounded-surface rounded-tl-chip border border-border bg-surface p-stack text-body-sm text-text" data-empty-next={!text ? "publish" : undefined}>
-              {text ? `${publishTargets.length}곳이 선택되어 있습니다.` : "발행할 작업물을 먼저 가져와 주세요."}
+              {text
+                ? `일곱 칸을 하나씩 고치지 않으셔도 됩니다. 지금 ${publishTargets.length}곳이 골라져 있습니다.`
+                : "발행할 작업물을 먼저 가져와 주세요."}
             </div>
             {text ? (
               <div className="flex flex-wrap gap-stack-tight" aria-label="발행 담당 빠른 답장">
@@ -1107,6 +1123,32 @@ export default function StudioPage() {
               <Button variant="primary" onClick={() => changeRoom("create")}>생성실 열기</Button>
             )}
           </div>
+          {text ? (
+            <div className="space-y-stack border-t border-border bg-surface-2 p-stack" data-chat-only-actions="publish">
+              <span className="text-caption font-semibold text-text">여기서만 한 번에 되는 일</span>
+              <p className="break-keep text-caption text-subtle">
+                아래는 미리보기 칸에서 손으로 하면 일곱 번 반복해야 하는 일입니다. 채널마다 다른 규격은 제가 맞춥니다.
+              </p>
+              <Stack direction="horizontal" gap={8} wrap>
+                <Button size="sm" data-testid="publish-bulk-select-all" onClick={selectAllChannels} disabled={!accountsLoaded || connectedTargets.length === 0}>연결된 곳 전부 고르기</Button>
+                <Button size="sm" data-testid="publish-bulk-clear" onClick={clearAllChannels} disabled={publishTargets.length === 0}>전부 해제</Button>
+              </Stack>
+              <Stack direction="horizontal" gap={8} wrap>
+                <Button size="sm" data-testid="publish-bulk-hashtags" onClick={unifyHashtagsAcrossChannels}>해시태그 규격대로 맞추기</Button>
+                <Button size="sm" data-testid="publish-bulk-display-name" onClick={unifyDisplayNameAcrossChannels}>표시 이름 일곱 곳 통일</Button>
+                <Button size="sm" data-testid="publish-bulk-trim" onClick={trimOverLimitChannels}>한도 넘는 곳만 줄이기</Button>
+              </Stack>
+              <p className="break-keep text-caption text-subtle">
+                해시태그는 X {HASHTAG_BUDGET.x}개, 인스타그램 {HASHTAG_BUDGET.instagram}개, Threads {HASHTAG_BUDGET.threads}개로 자동으로 갈립니다.
+                본문 한도는 X {CHANNEL_TEXT_LIMITS.x}자, Threads {CHANNEL_TEXT_LIMITS.threads}자입니다.
+              </p>
+              {connectedTargets.length < bulkTargets.length ? (
+                <p className="break-keep text-caption text-warning">
+                  아직 연결 안 된 곳: {bulkTargets.filter((platform) => !connectedTargets.includes(platform)).map((platform) => LABEL[platform]).join(", ")}. 각 칸의 계정 연결하기로 갑니다.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
           <form onSubmit={submitPublishChat} className="flex gap-stack-tight border-t border-border p-stack">
             <input aria-label="발행 담당에게 명령" value={publishChatDraft} onChange={(event) => setPublishChatDraft(event.target.value)} placeholder="직접 쓰셔도 됩니다" className="min-h-control-touch min-w-0 flex-1 rounded-control border border-border bg-surface px-stack text-body-sm text-text" />
             <Button type="submit" variant="primary">보내기</Button>

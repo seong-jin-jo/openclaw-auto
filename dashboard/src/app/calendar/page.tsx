@@ -5,7 +5,17 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api";
+import { useUIStore } from "@/store/ui-store";
+import { SCHEDULABLE_PLATFORM_LABELS } from "@/lib/constants";
 import type { PublishReturnContext } from "@/lib/publish-return-context";
+
+interface ScheduleRow {
+  id: string;
+  draftId: string | null;
+  platforms: string[];
+  scheduledAt: string;
+  status: string;
+}
 
 interface Post {
   id: string;
@@ -28,14 +38,17 @@ const STATUS_COLOR: Record<string, string> = {
   failed: "bg-danger",
 };
 
-// 게시물의 대표 날짜: 예약>발행>승인>생성 순.
-function postDate(p: Post): string | null {
-  const raw = p.scheduledAt || p.publishedAt || p.approvedAt || p.generatedAt;
+// 로컬 날짜 키 YYYY-MM-DD
+function dateKey(raw: string | null | undefined): string | null {
   if (!raw) return null;
   const d = new Date(raw);
   if (isNaN(d.getTime())) return null;
-  // 로컬 날짜 키 YYYY-MM-DD
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// 게시물의 대표 날짜: 예약>발행>승인>생성 순.
+function postDate(p: Post): string | null {
+  return dateKey(p.scheduledAt || p.publishedAt || p.approvedAt || p.generatedAt);
 }
 
 export default function CalendarPage() {
@@ -43,23 +56,52 @@ export default function CalendarPage() {
   // 어디서 열었나에 따라 기본 보기가 다르다(구조질문 문서 질문4 승인안).
   // 성과실에서 열면 "지난 4주, 발행이 몰린 날이 진하다"가 기본이다. 헤더/발행실에서 열면 그대로 이번 달.
   const fromPerformance = searchParams?.get("from") === "performance";
+  const fromPublish = searchParams?.get("from") === "publish";
+  const focusDate = searchParams?.get("date") || null;
+  const { activeWorkspace } = useUIStore();
   const { data } = useSWR<{ posts: Post[] }>("/api/queue?status=all&returnTo=calendar", fetcher);
+  // 예약은 queue가 아니라 schedules에 쌓인다. 여기를 안 읽으면 방금 건 예약이 캘린더에
+  // 영영 안 보인다(회장 지적 "예약 발행한건 어디서 확인해"의 실제 원인).
+  const { data: scheduleData } = useSWR<{ schedules: ScheduleRow[] }>(
+    activeWorkspace ? `/api/schedule?tenant_id=${activeWorkspace.id}` : null,
+    fetcher,
+  );
   const posts = useMemo(() => data?.posts || [], [data]);
+  const schedules = useMemo(() => scheduleData?.schedules || [], [scheduleData]);
 
   // 표시 기준 연/월(0-index month)
   const today = new Date();
-  const [ym, setYm] = useState({ y: today.getFullYear(), m: today.getMonth() });
-  const [selected, setSelected] = useState<string | null>(null);
+  const focused = focusDate ? new Date(`${focusDate}T00:00:00`) : null;
+  const validFocus = focused && !isNaN(focused.getTime()) ? focused : null;
+  const [ym, setYm] = useState({
+    y: (validFocus ?? today).getFullYear(),
+    m: (validFocus ?? today).getMonth(),
+  });
+  const [selected, setSelected] = useState<string | null>(validFocus ? focusDate : null);
 
   const byDate = useMemo(() => {
     const map = new Map<string, Post[]>();
+    const push = (k: string, p: Post) => { (map.get(k) || map.set(k, []).get(k)!).push(p); };
     for (const p of posts) {
       const k = postDate(p);
       if (!k) continue;
-      (map.get(k) || map.set(k, []).get(k)!).push(p);
+      push(k, p);
+    }
+    // 예약 건은 어느 채널에 언제 올라가는지가 본문이다.
+    for (const s of schedules) {
+      const k = dateKey(s.scheduledAt);
+      if (!k) continue;
+      const labels = SCHEDULABLE_PLATFORM_LABELS as Record<string, string>;
+      const where = (s.platforms || []).map((p) => labels[p] || p).join(" · ") || "채널 미지정";
+      push(k, {
+        id: `schedule:${s.id}`,
+        text: `예약 발행 · ${where}`,
+        status: s.status === "scheduled" ? "scheduled" : s.status,
+        scheduledAt: s.scheduledAt,
+      });
     }
     return map;
-  }, [posts]);
+  }, [posts, schedules]);
 
   const first = new Date(ym.y, ym.m, 1);
   const startWeekday = first.getDay();
@@ -87,12 +129,26 @@ export default function CalendarPage() {
         <div>
           <h2 className="text-subheading font-bold text-text">발행 캘린더</h2>
           <p className="text-caption text-subtle mt-micro">
-            {fromPerformance
-              ? "성과실에서 왔어요. 발행이 몰린 날일수록 진하게 보입니다."
-              : "예약·발행된 글을 한눈에. 큐와 같은 데이터, 다른 뷰."}
+            {fromPublish
+              ? "예약을 걸었습니다. 그 예약이 놓인 날을 아래에서 펴 두었습니다."
+              : fromPerformance
+                ? "성과실에서 왔어요. 발행이 몰린 날일수록 진하게 보입니다."
+                : "언제 무엇이 올라가는지 날짜로 봅니다. 예약해 둔 것과 이미 올라간 것이 함께 보입니다."}
+          </p>
+          <p className="text-caption text-subtle mt-micro">
+            검토를 기다리는 작업물은 <Link href="/inbox" className="font-semibold underline">승인 인박스</Link>에 있습니다. 여기는 날짜가 정해진 것만 봅니다.
           </p>
         </div>
         <div className="flex items-center gap-stack-tight text-body-sm">
+          {fromPublish ? (
+            <Link
+              href="/studio?room=publish"
+              data-testid="calendar-back-to-publish"
+              className="inline-flex min-h-control-touch items-center rounded-control border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface"
+            >
+              발행실로 돌아가기
+            </Link>
+          ) : null}
           <button onClick={() => move(-1)} className="px-stack-tight py-micro rounded-chip bg-surface-2 hover:bg-surface-2 text-muted">←</button>
           <span className="text-text font-medium w-28 text-center">{ym.y}년 {ym.m + 1}월</span>
           <button onClick={() => move(1)} className="px-stack-tight py-micro rounded-chip bg-surface-2 hover:bg-surface-2 text-muted">→</button>
