@@ -1,6 +1,11 @@
 "use client";
 
-import { clearAuthToken, getAuthToken } from "./auth";
+import {
+  clearAuthToken,
+  getAuthIdentityKind,
+  getAuthToken,
+  isCustomerAuthToken,
+} from "./auth";
 
 export class AuthRequiredError extends Error {
   constructor() {
@@ -75,8 +80,10 @@ export function handleUnauthorizedResponse(requestToken: string, clearToken: boo
   // If login refreshed/replaced that credential meanwhile, the old 401 must not
   // invalidate the newer identity or open the global login modal.
   if (getAuthToken() !== requestToken) return;
-  const isCustomerJwt = requestToken.split(".").length === 3 && requestToken.length > 40;
-  if (isCustomerJwt) {
+  const isCustomerCredential = getAuthIdentityKind() === "customer"
+    || isCustomerAuthToken(requestToken)
+    || !window.location.pathname.startsWith("/operator");
+  if (isCustomerCredential) {
     // Customer auth is Google/Supabase-only. A rejected JWT must never fall back to
     // the legacy manual Auth Token modal; AuthGate signs out the stale Supabase
     // session and routes to /login. Keep the token until that handler can identify

@@ -21,8 +21,12 @@ describe("AuthGate — fail-open 회귀 방지 계약(소스 기반)", () => {
   });
 
   it("poll()의 catch(네트워크 오류) 분기는 service_error로 설정하고 ok로 fail-open하지 않는다", () => {
-    const catchBlock = SRC.slice(SRC.indexOf("async function poll"));
-    expect(catchBlock).toMatch(/catch[\s\S]{0,60}setGateStatus\("service_error"\)/);
+    const pollBlock = SRC.slice(SRC.indexOf("async function poll"), SRC.indexOf("const id = setInterval"));
+    const catchStart = pollBlock.lastIndexOf("} catch");
+    const catchBlock = pollBlock.slice(catchStart, catchStart + 420);
+    expect(catchBlock).toContain("setVerifiedAccessKey(requestAccessKey)");
+    expect(catchBlock).toContain('setGateStatus("service_error")');
+    expect(catchBlock).not.toContain('setGateStatus("ok")');
   });
 
   it("checking 상태는 children/Sidebar를 mount하는 return보다 먼저 명시적으로 처리된다(fail-open 방지)", () => {
@@ -45,7 +49,8 @@ describe("AuthGate — fail-open 회귀 방지 계약(소스 기반)", () => {
 
   it("로그아웃은 JWT 고객이면 Supabase auth.signOut()을 호출한 뒤 로컬 토큰을 지운다", () => {
     const logoutBlock = SRC.slice(SRC.indexOf("const doLogout"), SRC.indexOf("const doRefresh"));
-    expect(logoutBlock).toMatch(/isJwtToken\(t\)/);
+    expect(logoutBlock).toMatch(/getAuthIdentityKind\(\) === "customer"/);
+    expect(logoutBlock).toMatch(/isCustomerAuthToken\(t\)/);
     expect(logoutBlock).toMatch(/\.auth\.signOut\(\)/);
     expect(logoutBlock).toMatch(/clearAuthToken\(\)/);
   });

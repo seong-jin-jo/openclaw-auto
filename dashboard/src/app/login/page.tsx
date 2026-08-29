@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase";
-import { safeCustomerReturnTo, setAuthToken } from "@/lib/auth";
+import { clearAuthToken, safeCustomerReturnTo, setAuthToken } from "@/lib/auth";
 import { oauthErrorMessage } from "@/lib/oauth-errors";
 import { trackEvent } from "@/lib/analytics/events";
 
@@ -16,11 +17,14 @@ const OAUTH_PENDING_KEY = "osmu_oauth_pending";
 // 비밀번호 재설정 전부 제거, SMTP/Resend 도입 안 함). 성공 시 Supabase 세션의 access token을 저장 →
 // 이후 API 호출이 Bearer로 첨부 → 서버가 검증해 그 고객 테넌트로 스코프.
 export default function LoginPage() {
+  const router = useRouter();
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   // OAuth login event de-dupe: enter() can be invoked twice (getSession() resolve +
   // onAuthStateChange SIGNED_IN) — this guards a single `login` fire per mount regardless.
   const oauthTrackedRef = useRef(false);
+  const validationTokenRef = useRef<string | null>(null);
+  const rejectedTokenRef = useRef<string | null>(null);
 
   // OAuth 복귀 감지: Supabase는 URL fragment의 access_token/refresh_token 또는 PKCE ?code=... 으로
   // 되돌아온다. 클라가 URL 해시를 파싱(detectSessionInUrl 기본 on)하므로 mount 시 세션을 거둬
@@ -43,21 +47,63 @@ export default function LoginPage() {
         try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch { /* ignore */ }
       }
       const enter = (accessToken: string) => {
-        setAuthToken(accessToken);
-        if (hadHashToken) history.replaceState(null, "", window.location.pathname);
-        // OAuth 콜백으로 세션이 확정된 순간(백엔드 확인 후) — 신규/기존 구분 불가라 login으로 기록.
-        // 분류 근거는 오직 osmu_oauth_pending 마커뿐(위 설명).
-        // enter()가 getSession()+onAuthStateChange 양쪽에서 호출될 수 있어 ref로 1회만 발행.
-        if (!oauthTrackedRef.current) {
-          let oauthPending = false;
-          try { oauthPending = sessionStorage.getItem(OAUTH_PENDING_KEY) === "1"; } catch { /* ignore */ }
-          if (oauthPending) {
-            oauthTrackedRef.current = true;
-            trackEvent({ name: "login", params: { method: "oauth" } });
+        // getSession() reads browser storage and onAuthStateChange can emit the same
+        // candidate again. Neither is an authorization verdict, so validate once at
+        // our server boundary before persisting or following returnTo.
+        if (validationTokenRef.current === accessToken || rejectedTokenRef.current === accessToken) return;
+        validationTokenRef.current = accessToken;
+        // Keep the auth-state callback synchronous. Supabase documents that awaiting
+        // another auth method inside onAuthStateChange can deadlock the client.
+        void (async () => {
+          try {
+            const response = await fetch("/api/me", {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            const identity = response.ok ? await response.json().catch(() => null) : null;
+            // A newer TOKEN_REFRESHED/SIGNED_IN candidate owns the login now. A late
+            // 401 for the older token must not clear or sign out that replacement.
+            if (validationTokenRef.current !== accessToken) return;
+            const approvedCustomer = response.ok
+              && identity?.isOperator === false
+              && typeof identity?.tenant?.id === "string"
+              && identity.tenant.id.length > 0
+              && identity.tenantError !== true;
+            if (!approvedCustomer) {
+              rejectedTokenRef.current = accessToken;
+              clearAuthToken();
+              if (response.status === 401) {
+                try { await sb.auth.signOut({ scope: "local" }); } catch { /* keep login stable */ }
+                setMsg("세션이 만료되었습니다. Google로 다시 로그인해주세요.");
+              } else {
+                setMsg("로그인 상태를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.");
+              }
+              return;
+            }
+            setAuthToken(accessToken, "customer");
+            if (hadHashToken) {
+              history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+            }
+            // OAuth 콜백으로 세션이 확정된 순간(백엔드 확인 후) — 신규/기존 구분 불가라 login으로 기록.
+            // 분류 근거는 오직 osmu_oauth_pending 마커뿐(위 설명).
+            // enter()가 getSession()+onAuthStateChange 양쪽에서 호출될 수 있어 ref로 1회만 발행.
+            if (!oauthTrackedRef.current) {
+              let oauthPending = false;
+              try { oauthPending = sessionStorage.getItem(OAUTH_PENDING_KEY) === "1"; } catch { /* ignore */ }
+              if (oauthPending) {
+                oauthTrackedRef.current = true;
+                trackEvent({ name: "login", params: { method: "oauth" } });
+              }
+            }
+            try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch { /* ignore */ }
+            router.replace(safeCustomerReturnTo(new URLSearchParams(window.location.search).get("returnTo")));
+          } catch {
+            if (validationTokenRef.current === accessToken) {
+              setMsg("로그인 상태를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.");
+            }
+          } finally {
+            if (validationTokenRef.current === accessToken) validationTokenRef.current = null;
           }
-        }
-        try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch { /* ignore */ }
-        window.location.href = safeCustomerReturnTo(new URLSearchParams(window.location.search).get("returnTo"));
+        })();
       };
       sb.auth.getSession().then(({ data }) => {
         if (data.session) enter(data.session.access_token);
@@ -72,7 +118,7 @@ export default function LoginPage() {
       if (typeof console !== "undefined") console.warn("[login] supabase init:", e);
     }
     return () => { unsub?.(); };
-  }, []);
+  }, [router]);
 
   const google = async () => {
     setMsg("");
