@@ -4374,3 +4374,57 @@ S1 에서 앱은 자기 읽기 범위와 완전히 일치한다. 게이트를 �
 
 **회장이 누를 순서**: `docs/releases/2026-08-29-배포-교착-해소-순서.md` (2026-08-30 개정판).
 audit → apply-legacy → audit 재확인 → Deploy → expand-member. `expand-guard` 는 누르지 않는다.
+
+### 2026-08-30 추가: 병합 요청 37번 CI 실패 대응 (단조성 검사 신설)
+
+**CI 실패** 실행 33276049143. `verify-generation-migration-matrix.sh:239-245` 에서
+`FAIL 회원 범위 강제가 없는 DB가 preflight 를 통과했다`.
+
+**셀프심문: 내가 시험을 고친 것인가, 결함을 고친 것인가.**
+
+**결함을 고쳤다.** 컨트롤러의 가능성 1이 맞았고 내 앞 판의 완화는 실제로 너무 넓었다.
+
+그 자리는 `contract-generation` 을 끝낸 S3|S2 상태다. 거기서 회원 전역 제약을 떼면 지문은
+S3|S1 이 되는데, 이것은 운영의 S1 과 **지문은 같지만 오는 길이 다르다.** 운영은 아직 안
+올라간 것이고, 그 자리는 올라갔다가 내려간 것이다. 후자는 절차 밖에서 제약이 지워졌다는
+뜻이고, **장부가 "적용됨"이라고 말하는 것과 실제 스키마가 어긋났다**는 뜻이다. 장부와 스키마의
+불일치는 이 게이트 체계가 존재하는 이유 그 자체다(같은 계열: `verify_entry` 의 ledger
+checksum mismatch). 앞 판의 지원 집합 검사만으로는 그 둘을 가르지 못했다.
+
+**장부가 실제로 둘을 가른다는 것을 확인했다.** 운영 장부에는 `20260829_030_member_unique_expand`
+가 없다(expand-member 가 한 번도 성공한 적 없다). 확장을 끝낸 DB 에는 applied 로 있다.
+그리고 앞으로 가는 어떤 단계도 회원 전역 UNIQUE 를 걷어내지 않는다. contract 단계가 걷어내는
+것은 tenant 범위 제약이다(`20260829_040`, `20260829_045`). 그러므로 다음 명제가 성립한다.
+
+> `20260829_030` 이 applied 인데 회원 전역 UNIQUE 가 없으면, 그것은 되돌림이다.
+
+이것을 `assert_ledger_monotonic` 으로 넣고 배포 게이트 안에 걸었다.
+
+**시험은 지우지 않았다.** 그 자리는 여전히 막는 자리다. 바뀐 것은 무엇으로 막는지의 이름이다.
+그리고 **가르는 근거가 진짜인지를 증명하는 사례 두 개를 그 자리에 새로 넣었다.**
+사례 A와 사례 B는 **스키마가 완전히 같고 장부만 다르다.** A는 막히고 B는 통과한다.
+이것이 "지문이 아니라 방향을 본다"의 실측 증거다.
+
+**중간에 틀렸던 것 하나를 기록한다.** 처음에는 방어 장치(guard 트리거)에도 같은 단조성 규칙을
+걸었다가, 로컬 실행에서 `20260829_021` 이 applied 인데 트리거가 없는 정상 상태를 만나 되돌렸다.
+근거는 `20260829_020_generation_guard_expand.sql:104-115` 다. 그 마이그레이션은 회원 전역
+UNIQUE 가 **없을 때만** 트리거를 만든다. 즉 방어 장치는 UNIQUE 의 조건부 대체물이라
+"적용됨"이 "존재함"을 함의하지 않으므로 되돌림 판정 근거가 될 수 없다. 그 규칙은 제거했다.
+방어 장치가 지키던 회원 범위 중복은 `assert_no_duplicates` 가 직접 센다.
+
+**증거**
+
+| 관문 | 결과 |
+|---|---|
+| `verify-generation-migration-matrix.sh` 전량 | **18 사례 전부 PASS, 종료 코드 0** |
+| 신규 사례 A (장부 applied + 제약 없음) | `ledger says 20260829_030_member_unique_expand is applied but the member-global UNIQUE it created is gone` 로 차단 |
+| 신규 사례 B (같은 스키마, 장부만 미적용) | `deploy_compatible=S3\|S1` 통과. 장부가 둘을 가른다 |
+| `verify-deploy-preflight-deadlock.sh` (운영 상태 회귀) | `ledger_monotonic=ok (0 applied-stage checks)`, `deploy_compatible=S1\|S2`, ALL PASS, 종료 코드 0 |
+| 계약 시험 `GEN-MIG-10d` 신설 | 27건 통과 |
+
+운영 상태에서 `0 applied-stage checks` 가 찍히는 것이 핵심이다. 운영은 아직 아무것도
+올렸다고 주장하지 않으므로 검사할 되돌림도 없다. 배포는 그대로 열려 있다.
+
+**주의로 남기는 것.** 로컬에서 이 매트릭스를 돌릴 때는 `TZ=UTC PGTZ=UTC` 가 필요하다.
+KST 환경에서는 무관한 사례 하나(`atomic rollback heartbeat`)가 시간대 때문에 실패한다.
+CI 는 UTC 라 영향이 없다.

@@ -272,6 +272,63 @@ assert_compatibility_ready() {
 # 그러므로 여기서는 축별 상태가 지원 집합(S1/S2/S3) 안에 있는지만 fail-closed 로 본다.
 # MISSING(표 없음)과 X(정의가 어긋난 제약)는 계속 거절한다. 중복 0 검사와 RLS 감사도
 # preflight 에 그대로 남아 있어서 게이트가 얇아지지 않는다.
+# 같은 지문이라도 오는 길이 다르다.
+#
+# 아직 올라가지 않은 S1 은 정상 중간 상태다. 그러나 한 번 올라갔던 강제 객체가
+# 사라져서 생긴 S1 은 다른 이야기다. 그것은 누군가 제약을 지웠다는 뜻이고,
+# 장부가 "적용됨"이라고 말하는 것과 실제 스키마가 어긋났다는 뜻이다.
+# 장부와 스키마의 불일치는 이 게이트 체계가 존재하는 이유 그 자체다
+# (같은 계열: verify_entry 의 ledger checksum mismatch).
+#
+# 그 둘을 가르는 근거가 장부에 있다. 운영 장부에는 20260829_030 이 없다(아직 안 올라감).
+# 확장을 끝낸 DB 에는 applied 로 있다. 그러므로 "장부가 적용했다고 말한 단계가 만든
+# 물건이 지금도 있는가"를 물으면 두 상태가 정확히 갈린다.
+ledger_state() {
+  psql -X -qAt -v ON_ERROR_STOP=1 -v id="$1" <<'SQL'
+SELECT COALESCE(
+  (SELECT state FROM public.osmu_schema_migrations WHERE migration_id=:'id'),
+  'absent');
+SQL
+}
+
+ledger_applied() {
+  local state
+  state="$(ledger_state "$1")"
+  [ "$state" = "applied" ] || [ "$state" = "baselined" ]
+}
+
+# 축이 회원 전역 UNIQUE 를 가지고 있는가. S2 는 tenant 와 member 가 공존하는 확장 중간,
+# S3 는 tenant 를 걷어낸 뒤다. 어느 쪽이든 회원 전역 UNIQUE 는 있다.
+axis_has_member_unique() { [ "$1" = "S2" ] || [ "$1" = "S3" ]; }
+
+# 확장 단계가 만든 강제 객체가 그 뒤로도 남아 있는지 본다. 되돌림 감지 전용이다.
+# 앞으로 가는 단계는 어느 것도 회원 전역 UNIQUE 를 걷어내지 않는다. contract 단계가
+# 걷어내는 것은 tenant 범위 제약이다. 그러므로 20260829_030 이 적용된 뒤 회원 전역
+# UNIQUE 가 없다면 그것은 절차 밖에서 지워진 것이다.
+# 방어 장치는 예외가 하나 있다. 20260905_010_guard_cleanup 이 정당하게 걷어낸다.
+assert_ledger_monotonic() {
+  local value generation quota checked=0
+  value="$(fingerprint)"
+  generation="${value%%|*}"
+  quota="${value##*|}"
+
+  if ledger_applied "20260829_030_member_unique_expand"; then
+    checked=$((checked + 1))
+    if ! axis_has_member_unique "$generation" || ! axis_has_member_unique "$quota"; then
+      echo "ERROR: ledger says 20260829_030_member_unique_expand is applied but the member-global UNIQUE it created is gone; fingerprint=$value" >&2
+      echo "HINT: this is a regression, not a pre-expansion state. Recover the constraint or correct the ledger before deploying." >&2
+      exit 3
+    fi
+  fi
+
+  # 방어 장치(guard 트리거)에는 같은 규칙을 걸지 않는다. 근거가 있다.
+  # 20260829_020_generation_guard_expand.sql:104-115 는 회원 전역 UNIQUE 가 "없을 때만"
+  # 트리거를 만든다. 즉 방어 장치는 UNIQUE 의 조건부 대체물이라 "적용됨"이 "존재함"을
+  # 함의하지 않는다. 없는 것이 정상인 경우가 있으므로 되돌림 판정 근거가 될 수 없다.
+  # 방어 장치가 지키던 것(회원 범위 중복)은 assert_no_duplicates 가 직접 센다.
+  echo "ledger_monotonic=ok ($checked applied-stage checks)"
+}
+
 assert_deploy_compatible() {
   local value generation quota readiness
   value="$(fingerprint)"
@@ -281,6 +338,9 @@ assert_deploy_compatible() {
     echo "ERROR: deploy requires a valid tenant+member scoped UNIQUE on both ledgers; fingerprint=$value" >&2
     exit 3
   fi
+  # 지원 집합 검사만으로는 "아직 안 올라간 S1"과 "올라갔다가 내려간 S1"을 못 가른다.
+  # 되돌림은 장부로 잡는다.
+  assert_ledger_monotonic
   readiness="$(compatibility_readiness)"
   echo "deploy_compatible=$value member_global_readiness=$readiness"
   if [ "$readiness" != "true|true" ]; then

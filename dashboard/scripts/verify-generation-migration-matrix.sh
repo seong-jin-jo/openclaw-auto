@@ -237,15 +237,41 @@ run_phase preflight >"$TMP_DIR/mixed-preflight" 2>&1 \
 grep -q 'schema_fingerprint=S3|S2' "$TMP_DIR/mixed-preflight"
 echo "PASS 축이 어긋난 승인 상태에서도 배포 preflight 통과"
 
-# 그래도 회원 범위 강제가 사라지면 반드시 막아야 한다.
+# 그래도 한 번 올라갔던 회원 범위 강제가 사라지면 반드시 막아야 한다.
+#
+# 같은 지문 S1 이라도 오는 길이 다르다. 아직 안 올라간 S1 은 정상 중간 상태이고,
+# 올라갔다가 내려간 S1 은 절차 밖에서 제약이 지워졌다는 신호다. 그 둘을 가르는 근거는
+# 장부다. 아래 두 사례가 "장부가 실제로 그 둘을 가르는가"를 직접 증명한다.
 matrix_psql -c "ALTER TABLE public.studio_free_regeneration_uses DROP CONSTRAINT uq_studio_free_regeneration_member_date"
 matrix_psql -c "ALTER TABLE public.studio_free_regeneration_uses DISABLE TRIGGER trg_studio_free_regeneration_member_guard" 2>/dev/null || true
+
+# 사례 A. 장부에 20260829_030 이 applied 로 남아 있다. 되돌림이다. 막아야 한다.
 if run_phase preflight >"$TMP_DIR/unready-preflight" 2>&1; then
-  echo "FAIL 회원 범위 강제가 없는 DB가 preflight 를 통과했다" >&2; exit 1
+  echo "FAIL 되돌려진 회원 범위 강제가 preflight 를 통과했다" >&2
+  cat "$TMP_DIR/unready-preflight" >&2; exit 1
 fi
-grep -q 'compatibility app requires member UNIQUE or enabled E1 guard' "$TMP_DIR/unready-preflight"
-echo "PASS 회원 범위 강제 없는 상태는 여전히 fail-closed"
+grep -q 'ledger says 20260829_030_member_unique_expand is applied but the member-global UNIQUE it created is gone' "$TMP_DIR/unready-preflight" \
+  || { echo "FAIL 되돌림이 다른 이유로 막혔다" >&2; cat "$TMP_DIR/unready-preflight" >&2; exit 1; }
+echo "PASS 올라갔다가 내려간 회원 범위 강제는 fail-closed"
+
+# 사례 B. 스키마는 그대로 두고 장부에서 그 단계만 내린다. 이제 "아직 안 올라간" 상태다.
+# 운영이 바로 이 상태(S1, 20260829_030 미적용)이고, 배포가 통과해야 한다.
+# 두 사례의 스키마는 완전히 같다. 갈라놓는 것은 오직 장부다.
+matrix_psql -c "ALTER TABLE public.studio_free_regeneration_uses ENABLE TRIGGER trg_studio_free_regeneration_member_guard" 2>/dev/null || true
+# 장부만 "아직 안 올라감"으로 바꾼다. 체크섬 등 나머지 기록은 그대로 둔다.
+matrix_psql -c "UPDATE public.osmu_schema_migrations SET state='failed' WHERE migration_id='20260829_030_member_unique_expand'"
+run_phase preflight >"$TMP_DIR/preexpansion-preflight" 2>&1 \
+  || { echo "FAIL 확장 전 S1 상태에서 배포가 막혔다" >&2; cat "$TMP_DIR/preexpansion-preflight" >&2; exit 1; }
+grep -q 'deploy_compatible=S3|S1' "$TMP_DIR/preexpansion-preflight"
+echo "PASS 같은 스키마라도 아직 안 올라간 상태는 배포를 막지 않는다(장부가 둘을 가른다)"
+
+# 방어 장치(guard 트리거)에는 같은 규칙을 걸지 않는다. 20260829_020 은 회원 전역 UNIQUE 가
+# 없을 때만 트리거를 만드는 조건부 대체물이라, 장부의 "적용됨"이 "존재함"을 함의하지 않는다.
+# 그것이 지키던 회원 범위 중복은 assert_no_duplicates 가 직접 센다(위 duplicate 사례).
+
+# 원상 복구. 제약과 장부를 함께 되돌린다.
 matrix_psql -c "ALTER TABLE public.studio_free_regeneration_uses ADD CONSTRAINT uq_studio_free_regeneration_member_date UNIQUE (member_id, local_date)"
+matrix_psql -c "UPDATE public.osmu_schema_migrations SET state='applied' WHERE migration_id='20260829_030_member_unique_expand'"
 
 # 필수 relation 과 테넌트 격리도 배포 게이트가 본다.
 matrix_psql -c "ALTER TABLE public.drafts NO FORCE ROW LEVEL SECURITY"

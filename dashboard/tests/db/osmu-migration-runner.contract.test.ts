@@ -12,6 +12,7 @@ const rollbackWriter = readFileSync(resolve(dbRoot, "write-rollback-manifest.sh"
 const rollbackRunner = readFileSync(resolve(dbRoot, "rollback-migration.sh"), "utf8");
 const rollbackIndexVerifier = readFileSync(resolve(dbRoot, "verify-rollback-indexes.sql"), "utf8");
 const migrationMatrix = readFileSync(resolve(__dirname, "../../scripts/verify-generation-migration-matrix.sh"), "utf8");
+const guardMigrationSource = readFileSync(resolve(dbRoot, "migrations/20260829_020_generation_guard_expand.sql"), "utf8");
 const memberMigration = readFileSync(resolve(dbRoot, "migrations/20260829_030_member_unique_expand.sql"), "utf8");
 
 function manifestRows(): string[][] {
@@ -151,6 +152,24 @@ describe("OSMU explicit migration runner 계약", () => {
     // 배포가 요구하는 불변식: 두 장부가 최소 tenant+member 범위의 유효 UNIQUE 로 강제된다.
     expect(runner).toContain("deploy requires a valid tenant+member scoped UNIQUE on both ledgers");
     expect(runner).toContain("axis_supported \"$generation\" || ! axis_supported \"$quota\"");
+  });
+
+  it("GEN-MIG-10d 거절: 올라갔던 회원 전역 강제가 사라지면 장부로 되돌림을 잡는다", () => {
+    // 같은 지문 S1 이라도 오는 길이 다르다. 아직 안 올라간 S1 은 정상 중간 상태이고,
+    // 올라갔다가 내려간 S1 은 절차 밖에서 제약이 지워졌다는 신호다.
+    // 지원 집합 검사만으로는 그 둘을 못 가른다. 장부가 가른다.
+    expect(runner).toContain("assert_ledger_monotonic");
+    expect(runner).toContain("ledger says 20260829_030_member_unique_expand is applied but the member-global UNIQUE it created is gone");
+    // 앞으로 가는 단계는 회원 전역 UNIQUE 를 걷어내지 않는다. contract 가 걷어내는 것은
+    // tenant 범위 제약이므로 S2 와 S3 둘 다 회원 전역 UNIQUE 를 가진다.
+    expect(runner).toContain('axis_has_member_unique() { [ "$1" = "S2" ] || [ "$1" = "S3" ]; }');
+    // 되돌림 검사는 배포 게이트 안에 있어야 한다.
+    const deployCase = runner.slice(runner.indexOf("assert_deploy_compatible() {"), runner.indexOf("# 앱이 실제로 읽고 쓰는 필수 relation"));
+    expect(deployCase).toContain("assert_ledger_monotonic");
+    // 방어 장치는 조건부 대체물이라 되돌림 판정 근거가 될 수 없다. 규칙을 걸지 않았음을 못박는다.
+    expect(runner).not.toContain("a member-scope guard trigger is missing or disabled");
+    expect(guardMigrationSource).toContain("IF NOT generation_member_unique THEN");
+    expect(guardMigrationSource).toContain("IF NOT quota_member_unique THEN");
   });
 
   it("GEN-MIG-10b 거절: 배포 preflight 는 필수 relation·RLS·osmu_service 까지 fail-closed 로 본다", () => {
