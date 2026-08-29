@@ -1,50 +1,73 @@
-## 2026-08-30 02:35 KST Claude 세션 (osmu 라인) 성과실 403 개방, 배포 준비 최종
+## 2026-08-30 03:00 KST Claude 세션 (osmu 라인) 병합 완료, 배포는 러너 다운으로 중단
 
 핸드오프 기준: 이 파일(session-state.osmu.md).
 
-★★ 회장 지시: "QA 꼼꼼히 안해도되니까 일단 나 컨텐츠생성 발행 하게좀"
-   ⇒ 완결주의 중단. 회장 실사용이 최우선. 남은 미세 항목은 회장이 쓰면서 고친다.
+★★★ 지금 막고 있는 것 딱 하나: **마케팅 VM 의 GitHub Actions 러너가 offline 이다.**
+   확인: gh api repos/seong-jin-jo/openclaw-auto/actions/runners
+        → marketing-vm offline busy=false
+   원인 추정: 배포 실행 33277118330 의 이미지 빌드가 메모리 부족으로 죽었다(exit 137,
+   "failed to execute bake: signal: killed"). 그 여파로 러너 프로세스나 VM 이 죽은 것으로 보인다.
+   대기중 실행 33277724271(대시보드만 빌드하도록 좁힌 배포)이 러너를 기다리며 20분째 queued.
+   ⇒ 러너를 되살리면 그 실행이 바로 이어진다. 세션은 VM 접속이 차단돼 있어 못 한다.
 
-★★ 배포 준비 끝. PR #36 회장 머지 대기(origin/main 대비 82커밋).
-   순서: 머지 → audit → expand-guard → Deploy → expand-member.
-   정본 docs/releases/2026-08-29-배포-교착-해소-순서.md.
+★★ 좋은 소식: **배포 교착은 실제로 풀렸다.** 실행 33277118330 에서
+   OSMU DB 스키마 read-only preflight 가 **통과**했다. 이전에는 여기서 exit 3 으로 죽었다.
+   이제 막히는 자리는 그 다음의 이미지 빌드 메모리다. 성격이 완전히 다른 문제다.
 
-성과실 403 개방 완료 (커밋 3977ab02)
-- ★워커가 검증 대기 중 멈춰서 컨트롤러가 직접 마무리했다(§4.8).
-  같은 프롬프트로 재발주하면 같은 자리에서 또 끊긴다.
-- 무엇을 했나: proxy.ts 의 TENANT_AWARE_PATHS 에
-  /api/performance/learned-rules 와 /api/threads/low-engagement-candidates 를 추가.
-  ★/api/cron-status 는 일부러 안 열었다. config/cron/jobs.json 전역 파일을 통째로 읽어
-   작업 공간으로 못 가르기 때문이다. 대신 화면 쪽에서 안 부르게 고쳤다.
-- ★컨트롤러 직접 실행 증거:
-  · npx tsc --noEmit → 0
-  · npx vitest run tests/isolation/ → 17파일 175건 전부 통과 (연 뒤에도 격리 유지)
-  · npm run test 전체 → 종료 코드 0, 실패 표시 0건
-- 만진 파일: proxy.ts, app/page.tsx, components/home/AutomationRulesPanel.tsx, qa-tracker.md
+★ 병합 완료:
+- PR #36 병합됨(72086e40). 84커밋. 회장 지시 "너가 머지해" 에 따라 세션이 병합.
+  ★충돌 18건이 있었고 opus 조가 풀었다(2030346e). 화면은 이 가지가 뒤,
+   DB 는 main 이 뒤라는 기준으로 갈랐고, main 판 화면 커밋이 편집실 소리 도구를
+   떨어뜨린 것을 발견해 살렸다.
+- PR #37 병합됨(2b8e784c). 배포 교착 재발 해소 + 순서 문서 정정.
 
-이번 세션 누적 완료:
-- 로그인 실패 원인 규명, 배포 교착 해소, 돈·외부 부작용 MAJOR 7건,
-  회장 실사용 화면 고장 10건, 생성실 카드 문답(주관식 0개), 편집실 규격 미리보기·임시저장,
-  발행실 대화창과 깊이(단추 5→20), 성과실 대화창·규칙 칸, 안 터진 글 정리 승낙형,
-  격리 구멍, 승낙 없는 삭제 봉인, 성과실 403 개방.
-- 하네스: §5.5 신설(선택지는 추천안 자동 채택), 모델 고정 해제(난이도별 배정),
-  codex 감독 정지와 거짓 완료 기록 정정, 세션 라인 마커 osmu 선언.
+★ 운영 DB 에 실제로 돌린 것 (전부 실측):
+- audit 성공(33273870691). duplicate 0|0|0, readiness=false|true,
+  studio_generation_candidate_rejections missing-relation, 20260829_010 applied.
+- apply-legacy 성공(33274470699). 빠졌던 표들 적용됨.
+- expand-guard 실패. "permission denied to alter role ... BYPASSRLS".
+  ★운영 Supabase 계정 권한으로 이 길은 영구히 불가능하다. 순서 문서에서 뺐다.
+- expand-member 실패. "running app commit label is not observable". 배포 뒤에 해야 한다.
+- Deploy 33277118330: preflight 통과, 이미지 빌드에서 메모리 부족으로 실패.
 
-★ 남은 것 (회장이 쓰면서 고칠 수준):
-- "같이 만들기" 실제 파생 생성(lib/studio/generation). 화면·상태까지만 됐다.
-- 390 폭과 다크 모드 대조. 아무도 안 봤다.
-- 30건 대조표 재실행. 마지막 판정은 08-29 자다.
-  ★재위임 시 프롬프트에 '~/.claude/standards/doc-review.md Read 필수' 명시.
-- 실제 발행 경로와 기본 계정 토글 여러 개일 때 모습.
-  ★이 작업 공간에 연결된 채널이 0곳이라 못 봤다. 회장이 하나 연결하면 닫힌다.
+★ 코드 수리 (전부 CI green 으로 병합됨):
+- 5eeab8a5 성과실 무한 렌더. app/page.tsx 의 학습 정보 효과가 작업 공간 **객체**를
+  의존성으로 써서 렌더마다 새 객체로 보여 끝없이 갱신됐다. 원시값 id 로 바꿔 해소.
+  ★시험 2건이 180초 무출력으로 멈추던 원인이고 CI 를 막던 것이다.
+  워커가 브라우저에서 첫 사용자 상태로 성과실을 열어 확인했다:
+  metricsCallsIn10s=1, maxUpdateDepthWarnings=0, frameLatencyMs=14, consoleErrors 0.
+- 24e86aaa 배포 preflight 를 assert_deploy_compatible 로 분리.
+  회원 전역 강제는 expand-member 의 사후 조건으로 옮겼다. 게이트를 끈 것이 아니라
+  제자리로 옮긴 것이다. 중복 0, 필수 표 21개, 접근 정책 강제, 권한 우회 검사는 그대로.
+- 912c06be 장부 단조성 검사 추가. 컨트롤러가 "올라갔다가 내려간 상태와 아직 안 올라간
+  상태는 다르다"를 지적했고 워커가 인정해 assert_ledger_monotonic 을 넣었다.
+  20260829_030 이 applied 인데 회원 전역 UNIQUE 가 없으면 되돌림으로 판정해 막는다.
+  ★스키마가 완전히 같고 장부만 다른 두 사례를 시험에 넣어 증명했다.
 
-배포 후 할 것:
-1. 각 단계 gh run 으로 실측.
-2. 배포 주소에서 네 방 직접 열기.
-3. 회장이 채널 연결하면 실제 발행 한 건 확인.
+★★ 회장이 누를 순서 (문서 docs/releases/2026-08-29-배포-교착-해소-순서.md 재작성됨):
+   audit → apply-legacy → audit 재확인 → Deploy → expand-member.
+   ★expand-guard 는 절대 누르지 마라. 운영 권한으로 불가능하다.
+   ★내일 아침 콘텐츠 제작에 필요한 것은 Deploy 까지다.
 
-상품명: 회장 결정 대기. 추천 "OSMU 팩토리". 문서
-docs/design-docs/제품이름-후보와-근거-v1.0.0-fable-20260829.md.
+★ 배포 시 주의: 전체 서비스를 한 번에 빌드하면 메모리 부족으로 죽는다(exit 137).
+   services 입력에 openclaw-dashboard-osmu 만 넣어 좁혀서 돌려라.
+   대기중인 33277724271 이 이미 그 형태다.
 
-로컬 개발 서버: PORT=3456 로 띄워야 한다. 그냥 npm run dev 는 3000 으로 뜬다.
+남은 것(회장이 쓰면서 고칠 수준):
+- "같이 만들기" 실제 파생 생성(lib/studio/generation). 화면·상태까지만.
+- 390 폭과 다크 모드.
+- 30건 대조표 재실행.
+- 실제 발행 경로. 이 작업 공간에 연결된 채널이 0곳이라 아무도 못 봤다.
+  회장이 채널 하나 연결하면 닫힌다. 기본 계정 토글이 세 채널 다 안 뜨는 것도
+  계정 0개가 원인이라 같이 닫힌다.
+- 고위험 코드 크로스모델 리뷰 미실행. codex 한도 초과, 9월 4일 복구 예정.
+
+다음 액션:
+1. 러너가 살아나면 33277724271 이 자동으로 이어진다. 아니면 다시 dispatch.
+   services=openclaw-dashboard-osmu 로 좁혀서.
+2. 배포 성공 뒤 expand-member 실행(이제 표식이 붙어 통과할 것).
+3. 배포 주소에서 네 방 직접 열어 확인.
+4. 회장이 채널 연결하면 실제 발행 한 건 확인.
+
+로컬: 개발 서버는 PORT=3456 로 띄워야 한다. matrix 스크립트는 TZ=UTC PGTZ=UTC 필요.
 

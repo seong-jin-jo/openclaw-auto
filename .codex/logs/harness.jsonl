@@ -3474,3 +3474,6 @@
 {"ts":"2026-08-29T10:15:40Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
 {"ts":"2026-08-29T10:15:41Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
 {"ts":"2026-08-29T10:15:41Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-29T21:14:07Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-29T21:14:07Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
+{"ts":"2026-08-29T21:14:07Z","hook":"handoff-prompt-router","status":"pass","detail":"no keyword"}

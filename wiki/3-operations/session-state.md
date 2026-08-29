@@ -1,1 +1,1 @@
-- 2026-08-30 02:35 Claude(osmu 라인): 성과실 403 개방 완료(격리 175건 유지). 전체 테스트 통과. PR #36 회장 머지 대기, 배포 준비 끝. 상세는 session-state.osmu.md 최상단.
+- 2026-08-30 03:00 Claude(osmu 라인): PR #36·#37 병합 완료. 배포 교착 실제로 풀림(preflight 통과 확인). 마케팅 VM 러너가 offline 이라 배포 대기중. 상세는 session-state.osmu.md 최상단.
