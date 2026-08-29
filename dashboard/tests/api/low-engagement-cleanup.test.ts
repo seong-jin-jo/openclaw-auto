@@ -6,7 +6,9 @@ import { createTempDir, setupTestEnv, cleanupTestEnv, readTempJson } from '../he
 let tmpDir: string;
 
 function writeQueue(tmpDir: string, posts: unknown[]) {
-  fs.writeFileSync(path.join(tmpDir, 'queue.json'), JSON.stringify({ posts }, null, 2));
+  const dir = path.join(tmpDir, 'tenants', 'test-tenant');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'queue.json'), JSON.stringify({ posts }, null, 2));
 }
 
 vi.mock('@/lib/publish', () => ({
@@ -50,7 +52,7 @@ describe('POST /api/threads/low-engagement-cleanup', () => {
     expect(res.status).toBe(200);
     expect(body.results[0].ok).toBe(false);
     expect(body.results[0].error).toBeTruthy();
-    const saved = readTempJson<{ posts: Array<{ id: string; status: string }> }>(tmpDir, 'queue.json');
+    const saved = readTempJson<{ posts: Array<{ id: string; status: string }> }>(tmpDir, 'tenants/test-tenant/queue.json');
     expect(saved!.posts[0].status).toBe('published');
   });
 
@@ -71,13 +73,13 @@ describe('POST /api/threads/low-engagement-cleanup', () => {
     expect(res.status).toBe(200);
     expect(body.deleted).toBe(1);
 
-    const saved = readTempJson<{ posts: Array<{ id: string; status: string }> }>(tmpDir, 'queue.json');
+    const saved = readTempJson<{ posts: Array<{ id: string; status: string }> }>(tmpDir, 'tenants/test-tenant/queue.json');
     const target = saved!.posts.find((p) => p.id === 'target')!;
     const untouched = saved!.posts.find((p) => p.id === 'untouched')!;
     expect(target.status).toBe('failed');
     expect(untouched.status).toBe('published');
 
-    const log = readTempJson<{ entries: Array<{ postId: string; ok: boolean }> }>(tmpDir, 'low-engagement-cleanup-log.json');
+    const log = readTempJson<{ entries: Array<{ postId: string; ok: boolean }> }>(tmpDir, 'tenants/test-tenant/low-engagement-cleanup-log.json');
     expect(log!.entries.some((e) => e.postId === 'target' && e.ok)).toBe(true);
   });
 });
