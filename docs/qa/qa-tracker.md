@@ -4157,3 +4157,34 @@ DB에 그 URL이 든 행이 남아 화면이 `<video src>`로 그린다. 코드 
 - **기본 계정 토글이 실제로 뜨는 모습은 못 봤다.** 계정이 0이라 렌더 조건에 안 걸렸다.
   Threads 전용이 아님은 코드와 세 화면 실측으로 확인했으나, 계정이 2개 이상일 때의 모습은 미검증.
 - 예약이 시각에 맞춰 실제 발행되는지(크론 경로)는 이번 판 범위 밖이다.
+
+### 성과실 403 세 건 마감 (관찰됨, 2026-08-30)
+
+위 "탐침이 마지막에 던지는 403 세 건" 건을 실제로 닫았다. 출처 확정 보고대로 `learned-rules`·
+`low-engagement-candidates`는 이미 `effectiveTenantId` + `runWithTenant`로 테넌트-safe하게 짜여
+있었다 — 막고 있던 건 오직 `proxy.ts`의 `TENANT_AWARE_PATHS` 누락이었다.
+
+- `proxy.ts`에 `/api/performance/learned-rules`, `/api/threads/low-engagement-candidates`,
+  `/api/threads/low-engagement-cleanup`(같은 기능의 삭제 실행 경로, 같이 막혀 있었다) 3개 추가.
+- `/api/cron-status`는 **열지 않았다.** `config/cron/jobs.json` 전역 파일을 테넌트 구분 없이
+  통째로 반환해 열면 전체 배포의 크론 잡 목록이 새어 나간다. 대신 `AutomationRulesPanel.tsx`가
+  그 엔드포인트를 아예 호출하지 않게 고쳤다("마지막 실행 HH:MM" 대신 "항상 도는 규칙입니다" 고정 문구).
+- 성과실 머리줄(`src/app/page.tsx`)에 다른 세 방(`studio/page.tsx`)과 같은 `LearningStatus` 배지를
+  붙였다. 같은 작업 공간별 localStorage(`readLearningInfo`/`countFilledLearningSlots`)를 읽기만
+  하고, 클릭하면 `/studio?setup=brand`로 이동해 채운다(기존 온보딩 체크리스트와 같은 경로).
+
+**격리 재확인(셀프심문: "문을 열면서 남의 작업 공간 것이 새어 나갈 길을 만들지 않았는가"):**
+운영자 토큰 + 서로 다른 `tenant_id` 둘로 A에 `POST learned-rules`(text: 격리테스트-A전용규칙) →
+A로 GET하면 보이고, B로 GET하면 `{"rules":[]}` — 안 샌다. 확인 후 DELETE로 정리했다.
+
+증거:
+- `npx tsc --noEmit` → 0
+- `npx vitest run tests/isolation/` → 17 파일 175건 전부 통과(`customer-ui-api-boundary.test.ts`,
+  `tenant-api-attack-script.contract.test.ts`, `middleware.test.ts` 포함)
+- `npm run test` → 전체 스위트(진행 중 확인, 아래 최종 결과 라인 참조)
+- curl 실측: 고객 경로 무인증 401(막힘 유지 확인), 운영자 토큰 + tenant_id로 세 경로 200,
+  cron-status는 운영자 토큰으로도 여전히 별개 전역 응답(고객 화면에서 호출 자체를 제거)
+- A/B 작업 공간 교차 조회로 데이터 비유출 직접 확인(위 기록)
+
+기반: 위 "탐침이 마지막에 던지는 403 세 건 — 출처 확정" 보고, `proxy.ts` 헤더 주석의
+TENANT_AWARE_PATHS 계약.

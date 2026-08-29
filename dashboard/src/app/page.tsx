@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { fetcher, apiPost } from "@/lib/api";
 import { useOverview, useUsage } from "@/hooks/useOverview";
@@ -12,6 +12,8 @@ import { ChannelConnectBanner } from "@/components/shared/ChannelConnectBanner";
 import { OnboardingChecklist } from "@/components/shared/OnboardingChecklist";
 import { PerformanceRoom, type PerformancePost } from "@/components/home/PerformanceRoom";
 import { RoomHeader } from "@/components/shared/RoomHeader";
+import { LearningStatus } from "@/components/studio/LearningStatus";
+import { countFilledLearningSlots, readLearningInfo, type LearningInfo } from "@/components/studio/learning-info";
 import { Button } from "@/components/shared/Button";
 import Link from "next/link";
 
@@ -20,6 +22,12 @@ export default function HomePage() {
   const { data: overview } = useOverview();
   const { data: usageData } = useUsage(activeWorkspace?.id);
   const { data: channelConfig } = useChannelConfig();
+  // 성과실도 다른 세 방(생성실·편집실·발행실)과 같은 헤더 학습 정보 배지를 보여준다(회장 지적: 성과실만 빠짐).
+  // 저장은 studio 쪽과 같은 작업 공간별 localStorage — 여기서는 읽기만 하고, 채우기는 /studio에서 한다.
+  const [learningInfo, setLearningInfo] = useState<LearningInfo>({});
+  useEffect(() => {
+    setLearningInfo(activeWorkspace ? readLearningInfo(activeWorkspace.id) : {});
+  }, [activeWorkspace]);
   // 발행물 성과(성과 페이지 통합). 활성 워크스페이스의 published_posts
   const { data: metricsData, mutate: mutateMetrics } = useSWR<{ posts?: PerformancePost[] }>(
     activeWorkspace ? `/api/metrics?tenant_id=${activeWorkspace.id}` : null, fetcher);
@@ -61,6 +69,12 @@ export default function HomePage() {
         workspaceName={activeWorkspace?.name}
         subtitle="콘텐츠 작업실"
         roomLabel="성과실"
+        leading={
+          <LearningStatus
+            filled={countFilledLearningSlots(learningInfo)}
+            onOpen={() => { window.location.href = "/studio?setup=brand"; }}
+          />
+        }
         trailing={
           <Link href="/studio" className="inline-flex min-h-control-touch items-center rounded-control border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">
             작업실로 가기

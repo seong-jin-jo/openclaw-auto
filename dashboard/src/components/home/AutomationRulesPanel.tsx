@@ -2,9 +2,12 @@
 
 // "돌고 있는 규칙" 칸. 회장 지적: "자동 좋아요 댓글 관리나 안터진글 삭제 이런걸 여기서 하는게 맞겠지?"
 // 구조질문 문서 질문4: 상시 규칙은 성과실 아래 "돌고 있는 규칙" 칸에서 켜고/끄고, 마지막 실행 시각을 보여준다.
-// 서버 기능: /api/cron-status(잡 실행 상태) + /api/channel-settings/threads(auto_like_replies 토글) +
+// 서버 기능: /api/channel-settings/threads(auto_like_replies 토글) +
 // /api/threads/low-engagement-candidates(읽기 전용 후보) + /api/threads/low-engagement-cleanup(승낙 후 삭제).
 // 삭제는 정기 자동실행이 없다 — 사람이 후보를 보고 체크박스로 고른 뒤 확인 단계를 거쳐야만 지워진다.
+// /api/cron-status는 부르지 않는다(의도적). 그 엔드포인트는 테넌트 구분 없는 전역 운영 상태라
+// 고객 토큰으로는 403이고, proxy.ts TENANT_AWARE_PATHS에도 없다 — 계속 부르면 막힌 요청만 쌓인다.
+// "마지막 실행" 시각 대신 항상 도는 규칙이라는 사실만 문구로 알려준다.
 
 import { useEffect, useState } from "react";
 import useSWR from "swr";
@@ -13,18 +16,6 @@ import { Button } from "@/components/shared/Button";
 import { Card } from "@/components/shared/Card";
 import { Stack } from "@/components/shared/Stack";
 import { fmtAgo } from "@/lib/format";
-
-interface CronJob {
-  id: string;
-  name: string;
-  enabled: boolean;
-  lastRunAt: number | null;
-  lastStatus: string;
-}
-
-interface CronStatusResponse {
-  jobs: CronJob[];
-}
 
 interface ChannelSettings {
   auto_like_replies?: boolean;
@@ -56,7 +47,6 @@ interface CleanupResult {
 }
 
 export function AutomationRulesPanel({ workspaceId }: { workspaceId?: string }) {
-  const { data: cronData } = useSWR<CronStatusResponse>("/api/cron-status", fetcher, { refreshInterval: 60000 });
   const { data: settings, mutate: mutateSettings } = useSWR<ChannelSettings>(
     workspaceId ? `/api/channel-settings/threads?tenant_id=${encodeURIComponent(workspaceId)}` : null,
     fetcher,
@@ -77,7 +67,6 @@ export function AutomationRulesPanel({ workspaceId }: { workspaceId?: string }) 
 
   useEffect(() => setLocalAutoLike(null), [settings?.auto_like_replies]);
 
-  const insightsJob = cronData?.jobs?.find((job) => job.id === "threads-collect-insights") || null;
   const autoLikeOn = localAutoLike ?? Boolean(settings?.auto_like_replies);
 
   const toggleAutoLike = async () => {
@@ -150,11 +139,7 @@ export function AutomationRulesPanel({ workspaceId }: { workspaceId?: string }) 
                 </Button>
               </div>
               <p className="text-caption text-muted break-keep">내 글에 달린 댓글에 자동으로 좋아요를 남깁니다.</p>
-              <p className="text-caption text-subtle">
-                {insightsJob
-                  ? `마지막 실행 ${insightsJob.lastRunAt ? fmtAgo(new Date(insightsJob.lastRunAt).toISOString()) : "아직 없음"} · ${insightsJob.enabled ? "잡 실행 중" : "잡 꺼짐"}`
-                  : "실행 기록 불러오는 중"}
-              </p>
+              <p className="text-caption text-subtle">반응 수집과 함께 항상 도는 규칙입니다.</p>
             </Stack>
           </Card>
 

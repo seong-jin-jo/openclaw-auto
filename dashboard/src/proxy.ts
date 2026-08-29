@@ -38,6 +38,11 @@ const TENANT_AWARE_PATHS = [
   "/api/channels/[provider]/accounts/[id]",
   "/api/channels/[provider]/accounts",
   "/api/connect/[provider]",
+  // "/api/cron-status"는 여기 없다(의도적). config/cron/jobs.json 전역 파일을 통째로 읽어 테넌트
+  // 구분 없이 모든 크론 잡(이름·모델·주기)을 반환한다 — effectiveTenantId/runWithTenant를 전혀
+  // 쓰지 않는 순수 운영 인프라 상태다. 고객별로 거를 방법이 없어 열면 전체 배포의 잡 목록이 그대로
+  // 새어 나간다. 운영자 전용으로 유지하고, 성과실 UI(AutomationRulesPanel)는 이 엔드포인트를
+  // 아예 호출하지 않도록 고쳤다(막힌 요청 반복 호출 금지).
   "/api/errors",
   "/api/engagement",
   "/api/figma/export-to-queue",
@@ -64,6 +69,9 @@ const TENANT_AWARE_PATHS = [
   "/api/notification-log",
   "/api/onboarding",
   "/api/overview",
+  // /api/performance/learned-rules: GET/POST/DELETE 전부 effectiveTenantId(request, body/쿼리 tenant_id)로
+  // 테넌트를 유도하고 runWithTenant로 감싸 data/tenants/{tenantId}/ 하위 파일만 읽고 쓴다 — 테넌트-safe.
+  "/api/performance/learned-rules",
   "/api/popular/add",
   "/api/popular/delete",
   "/api/popular",
@@ -98,6 +106,10 @@ const TENANT_AWARE_PATHS = [
   "/api/suggestions",
   "/api/suggestions/enqueue",
   "/api/threads-username",
+  // /api/threads/low-engagement-candidates(GET, 읽기 전용)·/api/threads/low-engagement-cleanup(POST, 승낙된
+  // postId만 삭제)는 effectiveTenantId + runWithTenant로 테넌트를 격리한다 — 테넌트-safe.
+  "/api/threads/low-engagement-candidates",
+  "/api/threads/low-engagement-cleanup",
   "/api/tiktok/creator-info",
   "/api/tiktok/publish-status",
   "/api/trend-report",
