@@ -56,14 +56,17 @@ describe("OSMU explicit migration runner 계약", () => {
     expect(runner).toContain("catalog state must be re-evaluated before retry");
   });
 
-  it("GEN-MIG-05 거절: 일반 앱 preflight는 S1 guard 또는 member UNIQUE가 없는 DB를 통과시키지 않는다", () => {
+  it("GEN-MIG-05 거절: 회원 전역 강제는 expand-member 의 사후 조건으로 남아 있다", () => {
     expect(runner).toContain("assert_compatibility_ready");
     expect(runner).toContain("generation_member_unique OR generation_guard");
     expect(runner).toContain("quota_member_unique OR quota_guard");
     expect(runner).toContain("compatibility app requires member UNIQUE or enabled E1 guard");
+    // 배포의 사전 조건이 아니라 확장 단계의 사후 조건이어야 한다. 배포에 걸어 두면
+    // 배포가 스스로를 막는다(GEN-MIG-10c).
+    expect(runner).toContain('if [ "$PHASE" = "expand-member" ]; then assert_compatibility_ready; fi');
     const preflightCase = runner.slice(runner.indexOf("  preflight)"), runner.indexOf("  bootstrap)"));
     expect(preflightCase).toContain("assert_fingerprint");
-    expect(preflightCase).toContain("assert_compatibility_ready");
+    expect(preflightCase).not.toContain("assert_compatibility_ready");
   });
 
   it("GEN-MIG-06 거절: E3와 C1은 체크박스가 아니라 모든 실행 image digest와 commit을 직접 검증한다", () => {
@@ -132,6 +135,22 @@ describe("OSMU explicit migration runner 계약", () => {
     );
     expect(skipList).toContain("expand-guard");
     expect(skipList).toContain("audit");
+  });
+
+  it("GEN-MIG-10c 경계: 배포 preflight 는 readiness false|true 를 거절하지 않되 얇아지지도 않는다", () => {
+    // 2026-08-29 운영 실측: fingerprint S1|S2, readiness false|true 로 이틀간 정상 가동 중인데
+    // 배포가 그 상태를 거절했다. expand-guard 는 Supabase 권한으로 영구 불가하고,
+    // expand-member 는 배포가 붙이는 revision 라벨을 요구해서 배포 없이는 못 돈다.
+    // 그래서 배포 preflight 가 자기가 만든 정상 중간 상태를 거절하는 순환이 닫혔다.
+    const preflightCase = runner.slice(runner.indexOf("  preflight)"), runner.indexOf("  bootstrap)"));
+    expect(preflightCase).toContain("assert_deploy_compatible");
+    // 게이트를 끈 것이 아니라 옮긴 것이다. 아래 셋은 preflight 에 그대로 남아야 한다.
+    expect(preflightCase).toContain("assert_fingerprint");
+    expect(preflightCase).toContain("assert_no_duplicates");
+    expect(preflightCase).toContain("assert_runtime_schema");
+    // 배포가 요구하는 불변식: 두 장부가 최소 tenant+member 범위의 유효 UNIQUE 로 강제된다.
+    expect(runner).toContain("deploy requires a valid tenant+member scoped UNIQUE on both ledgers");
+    expect(runner).toContain("axis_supported \"$generation\" || ! axis_supported \"$quota\"");
   });
 
   it("GEN-MIG-10b 거절: 배포 preflight 는 필수 relation·RLS·osmu_service 까지 fail-closed 로 본다", () => {

@@ -248,6 +248,46 @@ assert_compatibility_ready() {
   echo "compatibility_ready=$readiness"
 }
 
+# 배포 preflight 가 요구하는 것과 확장 단계가 요구하는 것은 다르다.
+#
+# assert_compatibility_ready(true|true) 는 "회원 전역 멱등이 이미 강제된 상태"를 요구한다.
+# 그것은 expand-member 를 끝낸 뒤의 목표 상태이지, 배포의 전제가 아니다. 이 둘을 같은
+# 것으로 묶어 두면 배포가 스스로를 막는다. 배포 preflight 가 S1 을 거절하고, 그 배포가
+# 붙이는 revision 라벨이 없어서 expand-member 도 못 돌고, 그래서 S1 이 영원히 유지된다.
+# 2026-08-29 운영에서 실제로 이 순환이 발생했다(readiness=false|true 로 이틀간 정상 가동 중).
+#
+# 배포가 실제로 요구하는 안전 불변식은 이것 하나다.
+#   "멱등 장부와 무료 몫 장부가 최소한 (tenant_id, member_id, ...) 범위에서
+#    유효한 UNIQUE 로 강제되고 있고, 실제 중복이 0 이다."
+#
+# 앱의 읽기 경로가 정확히 그 범위이기 때문이다. repository.ts 의 selectExisting 은
+#   WHERE tenant_id = :workspace AND member_id = :member AND operation AND idempotency_key
+# 로 조회한다. 따라서 S1(tenant+member UNIQUE)에서 앱은 자기 읽기 범위와 완전히 일치한다.
+# 다른 회원이나 다른 작업 공간의 응답이 새어 나오는 경로는 없다.
+#
+# S1 에서 아직 닫히지 않은 것은 "한 회원이 두 작업 공간에 걸쳐 무료 몫을 두 번 쓸 수 있다"는
+# 사업 규칙의 빈틈이며, 데이터 파손이 아니다. 그 빈틈을 닫는 것이 expand-member 이고,
+# 그 빈틈은 이 절차가 시작되기 전부터 운영에 있던 상태다. 배포를 막는다고 닫히지 않는다.
+#
+# 그러므로 여기서는 축별 상태가 지원 집합(S1/S2/S3) 안에 있는지만 fail-closed 로 본다.
+# MISSING(표 없음)과 X(정의가 어긋난 제약)는 계속 거절한다. 중복 0 검사와 RLS 감사도
+# preflight 에 그대로 남아 있어서 게이트가 얇아지지 않는다.
+assert_deploy_compatible() {
+  local value generation quota readiness
+  value="$(fingerprint)"
+  generation="${value%%|*}"
+  quota="${value##*|}"
+  if ! axis_supported "$generation" || ! axis_supported "$quota"; then
+    echo "ERROR: deploy requires a valid tenant+member scoped UNIQUE on both ledgers; fingerprint=$value" >&2
+    exit 3
+  fi
+  readiness="$(compatibility_readiness)"
+  echo "deploy_compatible=$value member_global_readiness=$readiness"
+  if [ "$readiness" != "true|true" ]; then
+    echo "note: member-global enforcement is still expanding (readiness=$readiness). The app reads tenant+member scoped, so this transitional state is supported. Run expand-member to close it."
+  fi
+}
+
 # 앱이 실제로 읽고 쓰는 필수 relation 과 테넌트 격리 상태를 한 번에 관측한다.
 # 정본은 dashboard/db/rls.sql 의 테넌트 스코프 목록이다. 여기서 벗어난 표가 생기면
 # 이 목록도 함께 고쳐야 한다.
@@ -560,7 +600,7 @@ SQL
   preflight)
     assert_fingerprint
     assert_no_duplicates
-    assert_compatibility_ready
+    assert_deploy_compatible
     assert_runtime_schema
     ;;
   bootstrap)
@@ -593,6 +633,9 @@ SQL
     ensure_ledger
     adopt_baseline
     apply_phase "$PHASE"
+    # 회원 전역 강제는 expand-member 의 사후 조건이지 배포의 사전 조건이 아니다.
+    # 이 단계가 실제로 그 상태를 만들었는지를 여기서 fail-closed 로 확인한다.
+    if [ "$PHASE" = "expand-member" ]; then assert_compatibility_ready; fi
     if [ "$PHASE" = "prepare-rollback" ]; then assert_exact_rollback_indexes; fi
     if [ "$PHASE" = "contract-generation" ]; then assert_fingerprint "S3|S2"; else assert_fingerprint; fi
     ;;

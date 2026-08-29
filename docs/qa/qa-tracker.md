@@ -4326,3 +4326,51 @@ useEffect(() => { setLearningInfo(...) }, [activeWorkspace]);
 
 **CI 실측**: 커밋 `5eeab8a5` 를 올린 뒤 CI (dashboard) 실행 `33273464200` 이 success 로 끝났다.
 실패하던 실행 `33272245619` 와 같은 워크플로다.
+
+---
+
+## 2026-08-30 배포 preflight 교착 해소 (운영 실측 반영 2판)
+
+**무엇이 문제였나.** 배포 preflight 가 `compatibility_ready=true|true` 를 요구하는데 운영은
+`false|true` 다. `true` 로 만드는 두 길이 모두 막혀 있었다. `expand-guard` 는 Supabase 계정에
+역할 생성 권한이 없어 영구 불가(`permission denied to alter role`), `expand-member` 는 실행 중
+컨테이너의 revision 표식을 요구하는데 그 표식은 새 배포가 붙이고 그 배포는 preflight 에 막힌다.
+**검사가 자기가 만든 정상 중간 상태를 자기가 거절**하는 순환이었다.
+
+**무엇을 고쳤나.** `assert_compatibility_ready` 를 배포의 사전 조건에서 `expand-member` 의
+사후 조건으로 옮기고, 배포 preflight 에는 `assert_deploy_compatible` 을 두었다. 배포가 요구하는
+불변식은 "두 장부가 최소 `(tenant_id, member_id, ...)` 범위의 유효 UNIQUE 로 강제되고 중복이 0".
+앱의 조회가 정확히 그 범위(`repository.ts` 의 `WHERE tenant_id AND member_id AND ...`)이므로
+S1 에서 앱은 자기 읽기 범위와 완전히 일치한다. 게이트를 끈 것이 아니라 옮겼다.
+`expand-member` 의 앱 표식 검사는 손대지 않았다. 우회로를 만들지 않았다.
+
+**증거** (재현 스크립트 `dashboard/scripts/verify-deploy-preflight-deadlock.sh`, 종료 코드 0)
+
+| 관문 | 결과 |
+|---|---|
+| 운영 상태 재현 | `schema_fingerprint=S1\|S2`, `compatibility_readiness=false\|true` |
+| 표식 없는 상태에서 `preflight` | `deploy_compatible=S1\|S2 member_global_readiness=false\|true`, `runtime_schema=ok (22 checks)`, 0 |
+| 필수 표 제거 뒤 `preflight` | `studio_generation_candidate_rejections missing-relation` 차단 |
+| 격리 강제 해제 뒤 `preflight` | `drafts rls-not-forced` 차단 |
+| 앱 역할 격리 우회 뒤 `preflight` | `osmu_service bypasses-rls` 차단 |
+| 제약 정의 드리프트 뒤 `preflight` | `unsupported generation/quota schema fingerprint: X\|S2` 차단 |
+| 회원 범위 중복 뒤 `preflight` | `member-scope duplicate audit failed: 1\|0\|0` 차단 |
+| 표식 없이 `expand-member` | `phase requires an observed running app image digest and commit` 차단 |
+| 표식 붙인 뒤 `expand-member` | `compatibility_ready=true\|true`, `schema_fingerprint=S2\|S2`, 0 |
+| `npm run test` | **204 파일 통과, 1529건 통과, 1건 건너뜀, 실패 0** |
+| `npx vitest run tests/db/` | 12 파일 55건 통과, 0 |
+| `npx tsc --noEmit` | 0 |
+| `npm run build` | 성공 |
+
+계약 시험 `GEN-MIG-10c` 를 새로 넣어 이 교착이 다시 닫히면 시험이 깨지게 했다.
+`GEN-MIG-05` 는 "회원 전역 강제는 expand-member 의 사후 조건"으로 다시 썼다.
+
+**병합으로 사라졌던 것 점검.** 앞 판의 넷(지원 상태 집합, 필수 표 21개 검사, 격리 정책 검사,
+색인 배열 시작 번호 수정)은 현재 파일에 모두 살아 있음을 확인했다. 사라진 것은 배포 preflight
+완화 하나였고 이번 판에서 더 정확한 자리에 다시 넣었다.
+
+**미검증.** 운영 DB 에 접속하지 않았고 운영 워크플로도 실행하지 않았다. 위는 전부 로컬 재현이다.
+운영 배포와 `expand-member` 의 실제 통과는 회장이 누른 뒤에만 확인된다.
+
+**회장이 누를 순서**: `docs/releases/2026-08-29-배포-교착-해소-순서.md` (2026-08-30 개정판).
+audit → apply-legacy → audit 재확인 → Deploy → expand-member. `expand-guard` 는 누르지 않는다.
