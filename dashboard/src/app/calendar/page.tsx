@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api";
 import type { PublishReturnContext } from "@/lib/publish-return-context";
@@ -38,6 +39,10 @@ function postDate(p: Post): string | null {
 }
 
 export default function CalendarPage() {
+  const searchParams = useSearchParams();
+  // 어디서 열었나에 따라 기본 보기가 다르다(구조질문 문서 질문4 승인안).
+  // 성과실에서 열면 "지난 4주, 발행이 몰린 날이 진하다"가 기본이다. 헤더/발행실에서 열면 그대로 이번 달.
+  const fromPerformance = searchParams?.get("from") === "performance";
   const { data } = useSWR<{ posts: Post[] }>("/api/queue?status=all&returnTo=calendar", fetcher);
   const posts = useMemo(() => data?.posts || [], [data]);
 
@@ -81,7 +86,11 @@ export default function CalendarPage() {
       <div className="flex items-center justify-between mb-pad-inset">
         <div>
           <h2 className="text-subheading font-bold text-text">발행 캘린더</h2>
-          <p className="text-caption text-subtle mt-micro">예약·발행된 글을 한눈에. 큐와 같은 데이터, 다른 뷰.</p>
+          <p className="text-caption text-subtle mt-micro">
+            {fromPerformance
+              ? "성과실에서 왔어요. 발행이 몰린 날일수록 진하게 보입니다."
+              : "예약·발행된 글을 한눈에. 큐와 같은 데이터, 다른 뷰."}
+          </p>
         </div>
         <div className="flex items-center gap-stack-tight text-body-sm">
           <button onClick={() => move(-1)} className="px-stack-tight py-micro rounded-chip bg-surface-2 hover:bg-surface-2 text-muted">←</button>
@@ -105,11 +114,15 @@ export default function CalendarPage() {
           const k = keyOf(day);
           const dayPosts = byDate.get(k) || [];
           const isToday = k === todayKey;
+          const publishedCount = dayPosts.filter((p) => p.status === "published").length;
+          const heavy = fromPerformance && publishedCount >= 3;
+          const medium = fromPerformance && publishedCount >= 1 && publishedCount < 3;
+          const perfBg = heavy ? "bg-success/25" : medium ? "bg-success/10" : isToday ? "bg-accent-soft" : "bg-surface/40";
           return (
             <button
               key={k}
               onClick={() => setSelected(selected === k ? null : k)}
-              className={`aspect-square sm:aspect-[4/3] rounded-chip p-micro text-left flex flex-col border ${selected === k ? "border-accent" : "border-transparent"} ${isToday ? "bg-accent-soft" : "bg-surface/40"} hover:bg-surface-2/60`}
+              className={`aspect-square sm:aspect-[4/3] rounded-chip p-micro text-left flex flex-col border ${selected === k ? "border-accent" : "border-transparent"} ${fromPerformance ? perfBg : isToday ? "bg-accent-soft" : "bg-surface/40"} hover:bg-surface-2/60`}
             >
               <span className={`text-caption ${isToday ? "text-accent font-bold" : "text-subtle"}`}>{day}</span>
               <div className="flex-1 overflow-hidden mt-micro space-y-micro">
