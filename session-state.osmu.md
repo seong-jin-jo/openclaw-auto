@@ -1,51 +1,54 @@
-## 2026-08-29 19:35 KST Claude 세션 (osmu 라인) 배차 재편성
+## 2026-08-29 20:00 KST Claude 세션 (osmu 라인) 3개 조 가동
 
 핸드오프 기준: 이 파일(session-state.osmu.md).
 
-현재 작업: codex 사용량 소진으로 전 작업을 Claude 서브에이전트로 재편성.
+★ 모델 배정 정정: ~/.claude/harness/chairman-model-pin 에 회장이 opus 로 못박아 둔
+  지정이 있다. Sonnet/Haiku/Fable 로 나누려던 배차 계획은 훅
+  (chairman-directive-guard.sh)이 차단했다. 회장이 해제하기 전까지 전 조 opus 다.
 
-★ 중대 발견: codex 워커가 08-29 12:34 이후 사망. 그런데 감독은 계속 판을 던져
-  1~3분 만에 '끝남'으로 기록했다. 거짓 완료다. 12:40 이후 커밋 0건이 증거.
-  (osmu-backlog-state.tsv 의 sweep082913/flowcheck082918/gapfill082919/fixfeedback082919
-   전부 1~3분 종료, 커밋 없음.)
-
-조치:
-- /tmp/osmu-supervisor.stop 생성 + pkill 로 감독 정지. cron guard 가 되살리지 못한다.
-- 감독은 codex 전용이다(osmu-supervisor.sh:156 codex-in-pane.sh 단일 경로).
-  codex 가 돌아올 때까지 배차는 메인 세션이 직접 한다.
-- fixfeedback082919 상태를 '미실행(codex 소진)' 으로 정정.
-
-만진 파일:
-- docs/plan/osmu-backlog-state.tsv (거짓 완료 정정)
-- docs/plan/backlog-prompts/fixfeedback082919.txt (앞 턴 신규)
-- docs/plan/osmu-backlog.tsv (앞 턴 2줄 추가)
-
-배차 계획(모델 배정, 회장 승인 대기):
-- 1조 로그인 실패 진단: Opus 5. 진행중(서브에이전트 가동). 산출물
-  docs/audit/osmu-login-failure-diagnosis-2026-08-29-opus.md. 코드 수정 금지, 진단만.
-- 2조 돈/격리/동시성 MAJOR 수리: Opus 5. 무료 재생성 quota, 발행 idempotency,
+가동중인 조 (전부 opus):
+- 설계안: product-designer. 회장 구조 질문 6건 선택지 문서.
+  산출물 docs/design-docs/osmu-4room-구조질문-선택지-v1.0.0-opus-20260829.md
+- 돈/발행: code-builder. 무료 재생성 quota(R27 위반), quota 복구시각,
+  draft_id 없는 발행 idempotency, reservation lease, indeterminate 소비,
   첫 댓글 실패 published 저장, shorts factory fencing.
-- 3조 화면 고장 수리: Sonnet 5. 편집실 목차 가림, 발행실 플랫폼별 미리보기,
-  성과실 헤더, 버튼 정렬, 미연결 계정 연결 경로.
-- 4조 확정요구 위반 일괄: Haiku 4.5. LoginModal 영어 버튼 한국어 복구,
-  주석 em dash 5곳, 뜻 안 통하는 문구 6개.
-- 5조 구조 질문 5건 설계안: Fable 5. 회장 판단용 선택지+트레이드오프 문서.
-- 소스 쓰는 조는 서로 다른 git worktree 로 격리한다(오늘 리뷰 MAJOR 지적 반영).
+  만지는 파일: lib/studio/generation, api/publish, lib/publish.ts, shorts-factory
+- 화면/문구: code-builder. 편집실 목차 가림, 발행실 플랫폼별 미리보기, 성과실 헤더,
+  버튼 정렬, 미연결 계정 연결 경로, LoginModal 한국어 복구, readiness 문구 우선순위,
+  인증 경쟁 3건, 뜻 안 통하는 문구 6개, 주석 긴 대시 5곳.
+  만지는 파일: app/studio, components, app/page.tsx, app/login, app/operator,
+  api/connect/readiness
+  ★ 두 code-builder 는 만질 파일을 서로 배타로 잘라 놨다. 겹치면 그게 사고다.
 
-검증 상태: 이 턴은 배차 재편성이라 E2E 미실행. 로컬 앱은 여전히 죽어 있다
-(curl localhost:3456/api/health 응답 코드 000). 1조가 되살리기를 시도한다.
+로그인 진단 결과 (완료, aa52fe1f 커밋):
+- 문서 docs/audit/osmu-login-failure-diagnosis-2026-08-29-opus.md
+- 회장이 쓴 배포본은 ad096bc1(08-28 22:14). 리뷰가 지목한 인증 MAJOR 3건은
+  08-29 10:10 커밋 3472565f 가 만든 것이라 회장 증상의 원인이 아니다.
+  단 지금 상태로 배포하면 영어 라벨이 다음 증상이 된다.
+- 로컬 앱 되살려 실측: /api/health 200, /api/auth/google 200(Supabase authorize 정상),
+  /login 200, 무인증 /api/me 401, 운영자 토큰 /api/me 200. 로그인 시작 경로 코드는 정상.
+- "다 연결 실패"의 유력 경로: 서버에 채널 OAuth 자격증명이 없으면
+  /api/connect/readiness 가 12채널 전부 available:false 로 닫힌다. 로컬에서 재현했다.
+- 코드 결함 1건 발견: readiness 사유 문구 우선순위 역전(화면/문구 조가 고치는 중).
+- 설정 누락 후보(이름만): OSMU_SUPABASE_URL, OSMU_SUPABASE_ANON_KEY(빌드시각 인라인이라
+  나중에 넣었으면 재빌드 필요), OSMU_PUBLIC_URL, OSMU_DASHBOARD_AUTH_TOKEN,
+  OSMU_DATABASE_URL, OSMU_SECRET_KEY, 채널별 쌍. 레포 밖으로는 Supabase 인증
+  복귀 주소 허용목록에 운영 도메인 /login 이 있어야 한다.
+- 미검증: 운영 재현. 운영 공개 주소가 레포에 없어 실제로 두드리지 못했다.
+- verify-agent-quality FAIL(Skill/WebSearch 0회). 코드베이스 진단이라 벤치마크 축이
+  적용되지 않는 경우로 판단하고 경고 라벨을 붙여 출고했다.
+
+검증 상태: 로컬 개발 서버 3456 가동중(로그 /tmp/osmu-dev4.log). 각 조가 실측 책임.
 
 막힌 것:
 1. 배포: PR #35 회장 머지 대기. deploy preflight 가 schema hash S1|S2 로 거절중.
-2. 모델 배정 회장 승인 대기.
-3. 교차 모델 리뷰 불가. codex 부재로 Claude 가 Claude 를 리뷰한다.
-   완화책은 빌더와 리뷰어의 모델 티어를 다르게 두는 것뿐이다. 진짜 교차가 아니다.
-   codex 복귀 시 고위험 코드(돈/격리) 재리뷰 권장.
+2. 모델 배정: 회장 pin 이 opus. 비용 절감하려면 회장이 해제해야 한다.
+3. 교차 모델 리뷰 불가(codex 소진). Claude 가 Claude 를 리뷰한다.
+4. 운영 로그인 실패 최종 확정은 운영 주소 접근이 있어야 한다.
 
 다음 액션:
-1. 1조 진단 회수 후 그 결과를 2조 발주 프롬프트에 주입.
-2. 5조 Fable 발주(1조와 병렬, 소스 안 건드림).
-3. 3조/4조는 worktree 격리해 병렬.
-4. 마지막에 재검증 E2E + Opus 교차 리뷰.
-5. codex 복귀하면 /tmp/osmu-supervisor.stop 삭제 후 감독 재기동.
+1. 세 조 회수 후 각각 verify-agent-quality.sh 돌리고 릴레이.
+2. 설계안 나오면 회장께 선택지로 올린다.
+3. 두 code-builder 커밋 들어온 뒤 재검증 E2E + opus 교차 리뷰.
+4. codex 복귀하면 /tmp/osmu-supervisor.stop 삭제 후 감독 재기동, 고위험 코드 재리뷰.
 

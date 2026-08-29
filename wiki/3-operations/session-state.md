@@ -1,1 +1,1 @@
-- 2026-08-29 19:35 Claude(osmu 라인): codex 12:34 사망 확인, 감독의 거짓 완료 기록 정정 후 감독 정지. 전 작업을 Claude 5개 조로 재편성(모델 배정 회장 승인 대기). 상세는 session-state.osmu.md 최상단.
+- 2026-08-29 20:00 Claude(osmu 라인): 로그인 진단 회수(코드 정상, 설정 누락 유력). 회장 모델 pin 이 opus 라 배차 계획 정정. 설계안/돈발행/화면문구 3개 조 opus 로 가동. 상세는 session-state.osmu.md 최상단.
