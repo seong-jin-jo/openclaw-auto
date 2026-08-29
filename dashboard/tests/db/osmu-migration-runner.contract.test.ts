@@ -98,7 +98,7 @@ describe("OSMU explicit migration runner 계약", () => {
       runner.indexOf("    prepare-rollback)"),
     );
     expect(expandMemberCase).toContain('require_applied "20260829_010_studio_generation_expand_contract"');
-    expect(expandMemberCase).toContain('require_applied "20260829_020_generation_guard_expand"');
+    expect(expandMemberCase).toContain('require_applied "20260829_021_generation_guard_expand"');
     expect(expandMemberCase).toContain("require_verified_app");
   });
 
