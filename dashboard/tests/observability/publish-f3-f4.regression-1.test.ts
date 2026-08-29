@@ -40,7 +40,18 @@ vi.mock("@/lib/db", () => ({
       if (query.includes("INSERT INTO published_posts") && query.includes("'in_progress'")) {
         return Promise.resolve(H.existing ? [] : [{ id: "22222222-2222-4222-8222-222222222222" }]);
       }
-      if (query.includes("SELECT external_id, permalink")) return Promise.resolve(H.existing ? [H.existing] : []);
+      if (query.includes("SELECT id::text, status")) {
+        return Promise.resolve(H.existing
+          ? [{
+            id: "44444444-4444-4444-8444-444444444444",
+            status: "published",
+            external_id: H.existing.external_id,
+            permalink: H.existing.permalink,
+            reserved_at: null,
+            first_comment_status: "not_requested",
+          }]
+          : []);
+      }
       return Promise.resolve([]);
     };
     sql.json = (value: unknown) => value;

@@ -21,6 +21,7 @@ import {
   getChannelCred,
   fetchInstagramPermalink,
   fetchThreadsPermalink,
+  findRecentProviderPost,
   publishThreads,
   publishInstagram,
   publishX,
@@ -35,6 +36,49 @@ import { validateContentEditFormat } from "@/lib/studio/content-edit-format";
 
 type PersistenceStage = "publication_record" | "queue_record";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// 예약 임차 시간. 이 시간이 지나도록 in_progress 로 남은 예약은 발행 프로세스가 죽은 것으로 보고
+// 회수한다. 임차를 두지 않으면 예약 직후 프로세스가 죽은 작업이 영원히 409 가 된다.
+// 기본 10분은 최장 외부 발행 경로(threads container 대기 + 15초 제한 요청들)보다 넉넉히 길다.
+const DEFAULT_RESERVATION_LEASE_MS = 10 * 60 * 1000;
+function reservationLeaseMs(): number {
+  const raw = Number(process.env.PUBLISH_RESERVATION_LEASE_MS);
+  return Number.isSafeInteger(raw) && raw >= 30_000 ? raw : DEFAULT_RESERVATION_LEASE_MS;
+}
+
+// 발행 의도 식별자. UUID 초안이면 초안 번호가, 아니면 호출자가 준 멱등 키가 의도를 가른다.
+// 둘 다 없으면 같은 의도의 동시 두 요청을 구분할 수 없어 외부 게시가 두 번 나간다.
+function normalizeIdempotencyKey(request: Request, body: Record<string, unknown>): string | null {
+  const raw = request.headers.get("Idempotency-Key") ?? body.idempotency_key;
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  return trimmed.length > 0 && trimmed.length <= 255 ? trimmed : null;
+}
+
+type ReservationConflictRow = {
+  id: string;
+  status: string;
+  external_id: string | null;
+  permalink: string | null;
+  reserved_at: string | null;
+  first_comment_status: string | null;
+};
+
+// 첫 댓글 결과를 본문 상태와 따로 저장한다. 본문 성공 + 댓글 실패를 published/error NULL 로
+// 뭉개면 새로고침한 사용자에게 전체 성공으로 보이고, 복구할 대상도 사라진다.
+function firstCommentState(
+  requested: boolean,
+  result: PublishResult | null,
+): { status: string; error: string | null; externalId: string | null } {
+  if (!requested) return { status: "not_requested", error: null, externalId: null };
+  if (!result) return { status: "failed", error: "첫 댓글을 발행하지 못했습니다.", externalId: null };
+  if (result.ok) return { status: "published", error: null, externalId: result.externalId ?? null };
+  return {
+    status: result.failureKind === "indeterminate" ? "uncertain" : "failed",
+    error: result.error ?? "첫 댓글 발행에 실패했습니다.",
+    externalId: null,
+  };
+}
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -55,7 +99,8 @@ export async function GET(request: Request) {
 
   try {
     const rows = await withTenant(tenantId, (sql) => sql<PublishedPostStatusRow[]>`
-      SELECT platform, status, external_id, provider_post_id, permalink, error, published_at
+      SELECT platform, status, external_id, provider_post_id, permalink, error, published_at,
+             first_comment_status, first_comment_error
         FROM published_posts
        WHERE tenant_id = ${tenantId}::uuid
          AND draft_id = ${draftId}::uuid
@@ -158,6 +203,22 @@ export async function POST(request: Request) {
     }
   }
 
+  // 되돌릴 수 없는 외부 게시는 의도마다 한 번만 나가야 한다.
+  // UUID 초안이면 초안 번호가 의도를 가르고, 초안이 없으면 호출자가 준 멱등 키가 가른다.
+  // 예전에는 초안이 없는 요청이 이 관문을 통째로 건너뛰어, 같은 본문 두 건을 동시에 보내면
+  // 외부 게시가 두 번 실행됐다.
+  const isDraftUuid = typeof draft_id === "string" && UUID_RE.test(draft_id);
+  const idempotencyKey = normalizeIdempotencyKey(request, __b);
+  if (!isDraftUuid && !idempotencyKey) {
+    return Response.json({
+      ok: false,
+      code: "PUBLISH_IDEMPOTENCY_KEY_REQUIRED",
+      error: "초안 번호가 없는 발행은 Idempotency-Key 머리말이나 idempotency_key 값이 필요합니다. 중복 게시를 막기 위해 외부 게시를 시작하지 않았습니다.",
+    }, { status: 400, headers: { "Cache-Control": "no-store" } });
+  }
+  const reservationDraftId = isDraftUuid ? (draft_id as string) : null;
+  const reservationKey = isDraftUuid ? null : idempotencyKey;
+
   let publishImageUrl: string | undefined;
   if (image_url) {
     const refreshed = refreshImageDeliveryUrl(tenant_id, image_url);
@@ -183,17 +244,15 @@ export async function POST(request: Request) {
   }
   const incidentResourceKey = `account:${cred.accountId ?? "default"}`;
 
-  // 동일 초안·플랫폼·계정의 성공 발행을 순차 재시도에서 다시 외부 API로 보내지 않는다.
-  // UUID가 아닌 legacy draft id는 기존 동작을 유지한다.
-  const isDraftUuid = typeof draft_id === "string" && UUID_RE.test(draft_id);
   let reservationId: string | null = null;
-  if (isDraftUuid) {
+  {
     try {
       const [reservation] = await withTenant(tenant_id, (sql) => sql<{ id: string }[]>`
         INSERT INTO published_posts
-          (tenant_id, draft_id, platform, text, status, account_id)
+          (tenant_id, draft_id, platform, text, status, account_id, idempotency_key, reserved_at)
         VALUES
-          (${tenant_id}::uuid, ${draft_id}::uuid, ${platform}, ${text ?? null}, 'in_progress', ${cred.accountId ?? null}::uuid)
+          (${tenant_id}::uuid, ${reservationDraftId}::uuid, ${platform}, ${text ?? null}, 'in_progress',
+           ${cred.accountId ?? null}::uuid, ${reservationKey}, now())
         ON CONFLICT DO NOTHING
         RETURNING id::text
       `);
@@ -207,26 +266,176 @@ export async function POST(request: Request) {
     }
 
     if (!reservationId) {
-    const [existing] = await withTenant(tenant_id, (sql) => sql<{
-      external_id: string | null;
-      permalink: string | null;
-    }[]>`
-      SELECT external_id, permalink
+    const [conflict] = await withTenant(tenant_id, (sql) => sql<ReservationConflictRow[]>`
+      SELECT id::text, status, external_id, permalink,
+             reserved_at::text AS reserved_at, first_comment_status
         FROM published_posts
        WHERE tenant_id = ${tenant_id}::uuid
-         AND draft_id = ${draft_id}::uuid
          AND platform = ${platform}
-         AND status = 'published'
          AND account_id IS NOT DISTINCT FROM ${cred.accountId ?? null}::uuid
+         AND status IN ('published', 'in_progress', 'uncertain')
+         AND (
+           (${reservationDraftId}::uuid IS NOT NULL AND draft_id = ${reservationDraftId}::uuid)
+           OR (${reservationKey}::text IS NOT NULL AND idempotency_key = ${reservationKey})
+         )
        ORDER BY published_at DESC
        LIMIT 1
     `);
-    if (existing) {
-      if (firstCommentText) {
+
+    if (!conflict) {
+      // 예약은 막혔는데 막은 행을 못 찾았다. 상태를 모르는 채로 외부 게시를 시작하지 않는다.
+      return Response.json({
+        ok: false,
+        code: "PUBLISH_RESERVATION_FAILED",
+        error: "발행 예약 상태를 확인하지 못해 외부 게시를 시작하지 않았습니다. 잠시 후 다시 시도해주세요.",
+      }, { status: 503, headers: { "Cache-Control": "no-store" } });
+    }
+
+    if (conflict.status === "uncertain") {
+      return Response.json({
+        ok: false,
+        code: "PUBLISH_STATE_UNCERTAIN",
+        error: "직전 발행의 외부 결과를 확인하지 못했습니다. 중복 게시를 막기 위해 다시 보내지 않았습니다. 채널에서 게시 여부를 확인한 뒤 처리해주세요.",
+        reconciliation: { required: true, action: "verify_with_provider", retryPublish: false, platform },
+      }, { status: 409, headers: { "Cache-Control": "no-store" } });
+    }
+
+    if (conflict.status === "in_progress") {
+      const reservedAt = conflict.reserved_at ? new Date(conflict.reserved_at) : null;
+      const expired = reservedAt !== null && Date.now() - reservedAt.getTime() > reservationLeaseMs();
+      if (!expired) {
         return Response.json({
-          error: "이미 발행된 게시물의 first comment 상태를 확인할 수 없어 중복 방지를 위해 거절했습니다.",
-          code: "first_comment_state_unknown",
-        }, { status: 409 });
+          ok: false,
+          code: "PUBLISH_ALREADY_IN_PROGRESS",
+          error: "같은 작업물의 발행이 진행 중이거나 결과 확인이 필요합니다. 중복 게시를 막기 위해 다시 보내지 않았습니다.",
+        }, { status: 409, headers: { "Cache-Control": "no-store" } });
+      }
+
+      // 임차가 만료됐다. 회수 전에 공급자에게 이미 올라갔는지 먼저 묻는다.
+      // 조회 결과가 "있다"면 그 게시물을 이 예약의 결과로 확정하고 다시 올리지 않는다.
+      const readback = await findRecentProviderPost(platform, cred, text || "", reservedAt!);
+      if (readback.state === "found") {
+        try {
+          await withTenant(tenant_id, (sql) => sql`
+            UPDATE published_posts
+               SET status = 'published', external_id = ${readback.hit.externalId},
+                   permalink = ${readback.hit.permalink ?? null}, error = NULL,
+                   reserved_at = NULL, published_at = now()
+             WHERE tenant_id = ${tenant_id}::uuid AND id = ${conflict.id}::uuid AND status = 'in_progress'
+          `);
+        } catch {
+          return partialPersistenceFailure(
+            { ok: true, externalId: readback.hit.externalId, permalink: readback.hit.permalink },
+            { stage: "publication_record", draftId: draft_id, platform, accountId: cred.accountId },
+          );
+        }
+        return Response.json({
+          ok: true,
+          externalId: readback.hit.externalId,
+          permalink: readback.hit.permalink,
+          alreadyPublished: true,
+          recoveredFrom: "provider_readback",
+        });
+      }
+      if (readback.state === "unknown") {
+        // 모르는 것을 없는 것으로 바꾸지 않는다. uncertain 으로 못 박고 사람이 확인하게 한다.
+        await withTenant(tenant_id, (sql) => sql`
+          UPDATE published_posts
+             SET status = 'uncertain',
+                 error = '발행 예약이 만료됐고 공급자 조회도 실패해 게시 여부를 확인하지 못했습니다.',
+                 reserved_at = NULL
+           WHERE tenant_id = ${tenant_id}::uuid AND id = ${conflict.id}::uuid AND status = 'in_progress'
+        `).catch(() => {});
+        return Response.json({
+          ok: false,
+          code: "PUBLISH_STATE_UNCERTAIN",
+          error: "직전 발행의 외부 결과를 확인하지 못했습니다. 중복 게시를 막기 위해 다시 보내지 않았습니다. 채널에서 게시 여부를 확인한 뒤 처리해주세요.",
+          reconciliation: { required: true, action: "verify_with_provider", retryPublish: false, platform },
+        }, { status: 409, headers: { "Cache-Control": "no-store" } });
+      }
+
+      // 공급자가 "그런 게시물 없다"고 답했다. 그때만 임차를 회수해 다시 시도한다.
+      // 회수 경쟁은 예약 시각 비교로 닫는다. 한 요청만 이긴다.
+      const [taken] = await withTenant(tenant_id, (sql) => sql<{ id: string }[]>`
+        UPDATE published_posts
+           SET reserved_at = now(), error = NULL, text = ${text ?? null}
+         WHERE tenant_id = ${tenant_id}::uuid AND id = ${conflict.id}::uuid
+           AND status = 'in_progress'
+           AND reserved_at = ${conflict.reserved_at}::timestamptz
+        RETURNING id::text
+      `);
+      if (!taken) {
+        return Response.json({
+          ok: false,
+          code: "PUBLISH_ALREADY_IN_PROGRESS",
+          error: "같은 작업물의 발행이 진행 중이거나 결과 확인이 필요합니다. 중복 게시를 막기 위해 다시 보내지 않았습니다.",
+        }, { status: 409, headers: { "Cache-Control": "no-store" } });
+      }
+      void reportFailure({
+        event: "publish_failed",
+        severity: "warning",
+        workspaceId: tenant_id,
+        resourceKey: incidentResourceKey,
+        context: { platform: normalizePlatform(platform), reason: "reservation_lease_reclaimed", httpStatus: null },
+      });
+      reservationId = taken.id;
+    }
+
+    if (!reservationId) {
+      const existing = conflict;
+      // 본문은 이미 올라갔다. 첫 댓글만 요청됐고 그 상태를 서버가 알고 있으면 댓글만 멱등 복구한다.
+      if (firstCommentText) {
+        if (existing.first_comment_status === "published") {
+          return Response.json({
+            ok: true,
+            externalId: existing.external_id ?? undefined,
+            permalink: existing.permalink ?? undefined,
+            alreadyPublished: true,
+            firstComment: { ok: true, alreadyPublished: true },
+          });
+        }
+        if (existing.first_comment_status === "uncertain" || existing.first_comment_status === null) {
+          return Response.json({
+            error: "이미 발행된 게시물의 first comment 상태를 확인할 수 없어 중복 방지를 위해 거절했습니다.",
+            code: "first_comment_state_unknown",
+          }, { status: 409 });
+        }
+        // not_requested 또는 failed. 본문은 그대로 두고 댓글만 다시 시도한다.
+        if (!existing.external_id) {
+          return Response.json({
+            error: "본문 게시물 번호가 없어 first comment를 복구할 수 없습니다.",
+            code: "first_comment_recovery_unavailable",
+          }, { status: 409 });
+        }
+        const recovered = await publishFirstComment(
+          platform as FirstCommentPlatform,
+          cred,
+          existing.external_id,
+          firstCommentText,
+        );
+        const state = firstCommentState(true, recovered);
+        try {
+          await withTenant(tenant_id, (sql) => sql`
+            UPDATE published_posts
+               SET first_comment_status = ${state.status},
+                   first_comment_error = ${state.error},
+                   first_comment_external_id = ${state.externalId}
+             WHERE tenant_id = ${tenant_id}::uuid AND id = ${existing.id}::uuid
+          `);
+        } catch {
+          return partialPersistenceFailure(
+            { ok: true, externalId: existing.external_id, permalink: existing.permalink ?? undefined },
+            { stage: "publication_record", draftId: draft_id, platform, accountId: cred.accountId },
+          );
+        }
+        return Response.json({
+          ok: true,
+          externalId: existing.external_id,
+          permalink: existing.permalink ?? undefined,
+          alreadyPublished: true,
+          firstComment: recovered,
+          partial: !recovered.ok,
+        }, recovered.ok ? undefined : { headers: { "Cache-Control": "no-store" } });
       }
       let permalink = existing.permalink ?? undefined;
       if (!permalink && existing.external_id && (platform === "threads" || platform === "instagram")) {
@@ -238,11 +447,8 @@ export async function POST(request: Request) {
           try {
             await withTenant(tenant_id, (sql) => sql`
               UPDATE published_posts SET permalink = ${recoveredPermalink}
-               WHERE tenant_id = ${tenant_id}::uuid
-                 AND draft_id = ${draft_id}::uuid
-                 AND platform = ${platform}
+               WHERE tenant_id = ${tenant_id}::uuid AND id = ${existing.id}::uuid
                  AND status = 'published'
-                 AND external_id = ${existing.external_id}
             `);
           } catch {
             return partialPersistenceFailure(
@@ -262,13 +468,23 @@ export async function POST(request: Request) {
         externalId: existing.external_id ?? undefined,
         permalink,
       };
-      try {
-        const queueRecorded = await markQueuePublished(tenant_id, draft_id, {
-          platform,
-          externalId: existing.external_id ?? undefined,
-          permalink,
-        });
-        if (!queueRecorded) {
+      // queue 기록은 초안 기반 발행에만 있다. 멱등 키 기반 발행은 대상 queue 행이 없다.
+      if (isDraftUuid) {
+        try {
+          const queueRecorded = await markQueuePublished(tenant_id, draft_id, {
+            platform,
+            externalId: existing.external_id ?? undefined,
+            permalink,
+          });
+          if (!queueRecorded) {
+            return partialPersistenceFailure(existingResult, {
+              stage: "queue_record",
+              draftId: draft_id,
+              platform,
+              accountId: cred.accountId,
+            });
+          }
+        } catch {
           return partialPersistenceFailure(existingResult, {
             stage: "queue_record",
             draftId: draft_id,
@@ -276,13 +492,6 @@ export async function POST(request: Request) {
             accountId: cred.accountId,
           });
         }
-      } catch {
-        return partialPersistenceFailure(existingResult, {
-          stage: "queue_record",
-          draftId: draft_id,
-          platform,
-          accountId: cred.accountId,
-        });
       }
       return Response.json({
         ok: true,
@@ -291,11 +500,6 @@ export async function POST(request: Request) {
         alreadyPublished: true,
       });
     }
-      return Response.json({
-        ok: false,
-        code: "PUBLISH_ALREADY_IN_PROGRESS",
-        error: "같은 작업물의 발행이 진행 중이거나 결과 확인이 필요합니다. 중복 게시를 막기 위해 다시 보내지 않았습니다.",
-      }, { status: 409, headers: { "Cache-Control": "no-store" } });
     }
   }
 
@@ -360,34 +564,30 @@ export async function POST(request: Request) {
     });
   }
 
-  // published_posts 기록(성공/실패 모두)
+  // published_posts 기록.
+  // 게시 성공 뒤 응답만 끊긴 경우(failureKind indeterminate)는 실패가 아니라 uncertain 이다.
+  // 이걸 failed 로 저장하면 다음 시도가 같은 글을 한 번 더 올린다.
+  const recordStatus = result.ok
+    ? "published"
+    : result.failureKind === "indeterminate" ? "uncertain" : "failed";
+  // 본문과 첫 댓글은 독립 상태다. 댓글만 실패한 게시물이 전체 성공으로 보이면 안 된다.
+  const commentState = firstCommentState(Boolean(firstCommentText) && result.ok, firstCommentResult);
   try {
-    await withTenant(tenant_id, (sql) => reservationId
-      ? sql`
-          UPDATE published_posts
-          SET external_id = ${result.externalId ?? null},
-              permalink = ${result.permalink ?? null},
-              text = ${text ?? null},
-              status = ${result.ok ? "published" : "failed"},
-              error = ${result.error ?? null},
-              provider_meta = ${sql.json(firstCommentResult ? { firstComment: firstCommentResult } as never : {} as never)},
-              published_at = now()
-          WHERE tenant_id = ${tenant_id}::uuid AND id = ${reservationId}::uuid
-        `
-      : firstCommentResult
-        ? sql`
-          INSERT INTO published_posts
-            (tenant_id, draft_id, platform, external_id, permalink, text, status, error, account_id, provider_meta)
-          VALUES (${tenant_id}, ${draft_id ?? null}, ${platform}, ${result.externalId ?? null},
-                  ${result.permalink ?? null}, ${text ?? null},
-                  ${result.ok ? "published" : "failed"}, ${result.error ?? null}, ${cred.accountId ?? null},
-                  ${sql.json({ firstComment: firstCommentResult } as never)})`
-        : sql`
-          INSERT INTO published_posts
-            (tenant_id, draft_id, platform, external_id, permalink, text, status, error, account_id)
-          VALUES (${tenant_id}, ${draft_id ?? null}, ${platform}, ${result.externalId ?? null},
-                  ${result.permalink ?? null}, ${text ?? null},
-                  ${result.ok ? "published" : "failed"}, ${result.error ?? null}, ${cred.accountId ?? null})`);
+    await withTenant(tenant_id, (sql) => sql`
+      UPDATE published_posts
+      SET external_id = ${result.externalId ?? null},
+          permalink = ${result.permalink ?? null},
+          text = ${text ?? null},
+          status = ${recordStatus},
+          error = ${result.error ?? null},
+          reserved_at = NULL,
+          first_comment_status = ${commentState.status},
+          first_comment_error = ${commentState.error},
+          first_comment_external_id = ${commentState.externalId},
+          provider_meta = ${sql.json(firstCommentResult ? { firstComment: firstCommentResult } as never : {} as never)},
+          published_at = now()
+      WHERE tenant_id = ${tenant_id}::uuid AND id = ${reservationId}::uuid
+    `);
   } catch {
     if (result.ok) {
       return partialPersistenceFailure(result, {
@@ -434,10 +634,18 @@ export async function POST(request: Request) {
       });
     }
   }
+  if (recordStatus === "uncertain") {
+    return Response.json({
+      ...result,
+      code: "PUBLISH_STATE_UNCERTAIN",
+      reconciliation: { required: true, action: "verify_with_provider", retryPublish: false, platform },
+    }, { status: 409, headers: { "Cache-Control": "no-store" } });
+  }
   return Response.json({
     ...result,
     ...(firstCommentResult ? {
       firstComment: firstCommentResult,
+      firstCommentStatus: commentState.status,
       partial: result.ok && !firstCommentResult.ok,
     } : {}),
   });

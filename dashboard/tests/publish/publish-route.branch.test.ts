@@ -23,6 +23,10 @@ const H = vi.hoisted(() => ({
   instagramPermalink: "https://www.instagram.com/p/recovered/",
   reservationClaimed: false,
   reservation: null as null | { tenant: unknown; draft: unknown; platform: unknown; text: unknown; accountId: unknown },
+  existingFirstCommentStatus: null as string | null,
+  leaseTakeoverWon: true,
+  firstCommentResult: null as null | { ok: boolean; error?: string; externalId?: string; failureKind?: "definitive" | "indeterminate" },
+  conflictReservedAt: new Date().toISOString(),
 }));
 
 vi.mock("@/lib/tenant-auth", () => ({
@@ -36,11 +40,38 @@ vi.mock("@/lib/db", () => ({
       if (query.includes("INSERT INTO published_posts") && query.includes("'in_progress'")) {
         if (H.existingPublication || H.reservationClaimed) return Promise.resolve([]);
         H.reservationClaimed = true;
+        // 예약 INSERT 값 순서: tenant, draft, platform, text, accountId, idempotencyKey
         H.reservation = { tenant: vals[0], draft: vals[1], platform: vals[2], text: vals[3], accountId: vals[4] };
         return Promise.resolve([{ id: "11111111-1111-4111-8111-111111111111" }]);
       }
-      if (query.includes("SELECT external_id, permalink")) {
-        return Promise.resolve(H.existingPublication ? [H.existingPublication] : []);
+      // 예약이 막혔을 때 무엇이 막았는지 읽는 조회.
+      if (query.includes("SELECT id::text, status")) {
+        if (H.existingPublication) {
+          return Promise.resolve([{
+            id: "11111111-1111-4111-8111-111111111111",
+            status: "published",
+            external_id: H.existingPublication.external_id,
+            permalink: H.existingPublication.permalink,
+            reserved_at: null,
+            first_comment_status: H.existingFirstCommentStatus,
+          }]);
+        }
+        if (H.reservationClaimed) {
+          return Promise.resolve([{
+            id: "22222222-2222-4222-8222-222222222222",
+            status: "in_progress",
+            external_id: null,
+            permalink: null,
+            reserved_at: H.conflictReservedAt,
+            first_comment_status: null,
+          }]);
+        }
+        return Promise.resolve([]);
+      }
+      // 만료 임차 회수(CAS). 경쟁에서 이기면 그 예약 번호를 돌려준다.
+      if (query.includes("UPDATE published_posts") && query.includes("SET reserved_at = now()")) {
+        H.reservation = { tenant: null, draft: null, platform: null, text: vals[0], accountId: null };
+        return Promise.resolve(H.leaseTakeoverWon ? [{ id: "22222222-2222-4222-8222-222222222222" }] : []);
       }
       if (query.includes("INSERT INTO published_posts") && H.publicationRecordError) {
         return Promise.reject(H.publicationRecordError);
@@ -58,7 +89,7 @@ vi.mock("@/lib/db", () => ({
           vals[3],
           vals[4],
           reservation.accountId,
-          vals[5],
+          vals[8],
         ]);
         if (vals[3] === "published") H.existingPublication = { external_id: vals[0] as string | null, permalink: vals[1] as string | null };
         return Promise.resolve([]);
@@ -70,6 +101,17 @@ vi.mock("@/lib/db", () => ({
     return cb(sql);
   }),
 }));
+
+// 첫 댓글 발행은 본문과 같은 엔드포인트를 써서 URL 목으로는 둘을 가를 수 없다.
+// H.firstCommentResult 가 설정된 검증에서만 결과를 고정하고, 나머지는 실제 구현을 그대로 쓴다.
+vi.mock("@/lib/first-comment", async (importActual) => {
+  const actual = await importActual<typeof import("@/lib/first-comment")>();
+  return {
+    ...actual,
+    publishFirstComment: vi.fn(async (...args: Parameters<typeof actual.publishFirstComment>) =>
+      H.firstCommentResult ?? actual.publishFirstComment(...args)),
+  };
+});
 
 vi.mock("@/lib/queue-store", () => ({
   markQueuePublished: vi.fn(async (...args: unknown[]) => {
@@ -96,13 +138,19 @@ vi.mock("@/lib/publish", async (importActual) => {
 // [tenant_id, draft_id, platform, external_id, permalink, text, status, error, account_id]
 const I = { tenant: 0, draft: 1, platform: 2, externalId: 3, permalink: 4, text: 5, status: 6, error: 7, accountId: 8, providerMeta: 9 };
 
+// 초안 번호 없는 실발행은 이제 멱등 키를 요구한다(같은 본문 동시 두 건의 중복 게시 차단).
+// 키를 일부러 빼고 싶은 검증은 idempotency_key: null 을 넘긴다.
 async function callPublish(body: Record<string, unknown>) {
   const { POST } = await import("@/app/api/publish/route");
+  const { idempotency_key: key, ...rest } = body;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (key === undefined) headers["Idempotency-Key"] = "branch-test-intent";
+  else if (typeof key === "string") headers["Idempotency-Key"] = key;
   const res = await POST(
     new Request("http://localhost/api/publish", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      headers,
+      body: JSON.stringify(rest),
     }),
   );
   return { status: res.status, body: await res.json() };
@@ -120,6 +168,10 @@ beforeEach(() => {
   H.instagramPermalink = "https://www.instagram.com/p/recovered/";
   H.reservationClaimed = false;
   H.reservation = null;
+  H.existingFirstCommentStatus = null;
+  H.conflictReservedAt = new Date().toISOString();
+  H.firstCommentResult = null;
+  H.leaseTakeoverWon = true;
   vi.mocked(withTenant).mockClear();
 });
 
@@ -228,7 +280,9 @@ describe("/api/publish — happy path (실 publish* + fetch 목)", () => {
       { match: "/threads", json: { id: "container-1" } },
       { match: "fields=permalink", json: { permalink: "https://www.threads.net/@u/post/1" } },
     ]);
-    const { status, body } = await callPublish({ platform: "threads", text: "hi", draft_id: "d-1" });
+    // draft_id 는 UUID 여야 published_posts.draft_id(UUID 컬럼)에 그대로 남는다.
+    // UUID 가 아닌 옛 식별자는 애초에 이 컬럼에 들어갈 수 없어 NULL 로 기록된다.
+    const { status, body } = await callPublish({ platform: "threads", text: "hi", draft_id: "d1111111-1111-4111-8111-111111111111" });
     expect(status).toBe(200);
     expect(body.ok).toBe(true);
     expect(body.externalId).toBe("media-1");
@@ -238,7 +292,7 @@ describe("/api/publish — happy path (실 publish* + fetch 목)", () => {
     expect(v[I.status]).toBe("published");
     expect(v[I.platform]).toBe("threads");
     expect(v[I.externalId]).toBe("media-1");
-    expect(v[I.draft]).toBe("d-1");
+    expect(v[I.draft]).toBe("d1111111-1111-4111-8111-111111111111");
   });
 
   it("UUID draft 성공 시 queue를 published로 마킹한다", async () => {
@@ -510,5 +564,120 @@ describe("/api/publish — 실패/기록 분기", () => {
     expect(body.ok).toBe(false);
     expect(body.error).toMatch(/미지원/);
     expect(H.inserts[0][I.status]).toBe("failed");
+  });
+});
+
+// 2026-08-29 코드리뷰 BLOCK 지적 4건의 회귀 방지.
+// 이전 검증은 UUID 초안 경로만 밟아 초안 없는 발행, 임차 만료, 결과 미확정, 첫 댓글 실패를
+// 한 번도 통과시키지 않았다.
+describe("/api/publish — 되돌릴 수 없는 외부 게시 보호", () => {
+  const THREADS_OK = [
+    { match: "me?fields=id", json: { id: "live-id" } },
+    { match: "fields=status", json: { status: "FINISHED" } },
+    { match: "/threads_publish", json: { id: "media-9" } },
+    { match: "/threads", json: { id: "container-9" } },
+    { match: "fields=permalink", json: { permalink: "https://www.threads.net/@u/post/9" } },
+  ];
+
+  it("PUB-INTENT-01 거절: 초안 번호도 멱등 키도 없는 실발행은 외부 게시 전에 400으로 막는다", async () => {
+    const { status, body } = await callPublish({ platform: "threads", text: "hi", idempotency_key: null });
+
+    expect(status).toBe(400);
+    expect(body.code).toBe("PUBLISH_IDEMPOTENCY_KEY_REQUIRED");
+    expect(H.inserts).toHaveLength(0);
+    // 채널 자격 조회보다도 먼저 막는다. 키 없는 실발행은 어떤 준비 작업도 하지 않는다.
+    expect(H.getChannelCredCalls).toHaveLength(0);
+  });
+
+  it("PUB-INTENT-02 경합: 초안 없는 같은 멱등 키 두 건 중 하나만 외부 게시로 간다", async () => {
+    installFetch(THREADS_OK);
+    const first = await callPublish({ platform: "threads", text: "hi", idempotency_key: "same-intent" });
+    // 첫 요청이 예약을 잡았고 아직 진행 중이다.
+    H.existingPublication = null;
+    const second = await callPublish({ platform: "threads", text: "hi", idempotency_key: "same-intent" });
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(409);
+    expect(second.body.code).toBe("PUBLISH_ALREADY_IN_PROGRESS");
+  });
+
+  it("PUB-LEASE-01 회수: 임차가 만료됐고 공급자에 그 글이 없으면 예약을 회수해 다시 발행한다", async () => {
+    installFetch([
+      { match: "fields=id,text", json: { data: [] } },
+      ...THREADS_OK,
+    ]);
+    H.reservationClaimed = true; // 앞선 프로세스가 예약만 남기고 죽었다
+    H.conflictReservedAt = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+    const { status, body } = await callPublish({ platform: "threads", text: "hi", idempotency_key: "stale-intent" });
+
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
+  });
+
+  it("PUB-LEASE-02 거절: 임차가 만료돼도 그 글이 공급자에 이미 있으면 다시 올리지 않는다", async () => {
+    installFetch([
+      { match: "me?fields=id", json: { id: "live-id" } },
+      {
+        match: "fields=id,text",
+        json: { data: [{ id: "already-there", text: "hi", timestamp: new Date().toISOString(), permalink: "https://www.threads.net/@u/post/x" }] },
+      },
+    ]);
+    H.reservationClaimed = true;
+    H.conflictReservedAt = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+    const { status, body } = await callPublish({ platform: "threads", text: "hi", idempotency_key: "stale-intent" });
+
+    expect(status).toBe(200);
+    expect(body.alreadyPublished).toBe(true);
+    expect(body.externalId).toBe("already-there");
+    expect(body.recoveredFrom).toBe("provider_readback");
+  });
+
+  it("PUB-LEASE-03 보류: 임차가 만료됐는데 공급자 조회도 실패하면 uncertain 으로 못 박고 재발행하지 않는다", async () => {
+    installFetch([
+      { match: "me?fields=id", status: 500, json: {} },
+    ]);
+    H.reservationClaimed = true;
+    H.conflictReservedAt = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+    const { status, body } = await callPublish({ platform: "threads", text: "hi", idempotency_key: "stale-intent" });
+
+    expect(status).toBe(409);
+    expect(body.code).toBe("PUBLISH_STATE_UNCERTAIN");
+    expect(body.reconciliation.retryPublish).toBe(false);
+  });
+
+  it("PUB-UNCERTAIN-01 보존: 게시 뒤 응답만 끊긴 발행은 failed 가 아니라 uncertain 으로 저장한다", async () => {
+    installFetch([
+      { match: "me?fields=id", json: { id: "live-id" } },
+      { match: "fields=status", json: { status: "FINISHED" } },
+      { match: "/threads_publish", json: {} }, // id 없는 응답 = 결과 미확정
+      { match: "/threads", json: { id: "container-9" } },
+    ]);
+
+    const { status, body } = await callPublish({ platform: "threads", text: "hi", idempotency_key: "lost-response" });
+
+    expect(status).toBe(409);
+    expect(body.code).toBe("PUBLISH_STATE_UNCERTAIN");
+    expect(H.inserts[0][I.status]).toBe("uncertain");
+  });
+
+  it("PUB-COMMENT-01 분리: 본문 성공 + 첫 댓글 실패는 첫 댓글 상태를 failed 로 따로 남긴다", async () => {
+    installFetch(THREADS_OK);
+    H.firstCommentResult = { ok: false, error: "첫 댓글 발행 실패" };
+
+    const { body } = await callPublish({
+      platform: "threads",
+      text: "hi",
+      first_comment: "첫 댓글",
+      idempotency_key: "comment-fail",
+    });
+
+    expect(body.ok).toBe(true);
+    expect(body.partial).toBe(true);
+    expect(body.firstCommentStatus).toBe("failed");
+    // 본문 상태는 published 이되 첫 댓글 상태가 독립 컬럼으로 남아야 복구 대상이 사라지지 않는다.
+    expect(H.inserts[0][I.status]).toBe("published");
   });
 });

@@ -31,7 +31,15 @@ vi.mock("@/lib/observability", async (importActual) => {
 
 vi.mock("@/lib/db", () => ({
   withTenant: vi.fn(async (_tid: string, cb: (sql: unknown) => unknown) => {
-    const sql = () => Promise.resolve([]);
+    // 모든 실발행이 먼저 중복 방지 예약을 잡는다. 예약이 성사돼야 외부 게시로 넘어간다.
+    const sql = (strings: TemplateStringsArray) => {
+      const query = strings.join(" ");
+      if (query.includes("INSERT INTO published_posts") && query.includes("'in_progress'")) {
+        return Promise.resolve([{ id: "55555555-5555-4555-8555-555555555555" }]);
+      }
+      return Promise.resolve([]);
+    };
+    sql.json = (value: unknown) => value;
     return cb(sql);
   }),
 }));
@@ -46,7 +54,8 @@ async function callPublish(body: Record<string, unknown>) {
   const res = await POST(
     new Request("http://localhost/api/publish", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      // 초안 없는 실발행은 멱등 키가 필요하다(중복 외부 게시 차단).
+      headers: { "Content-Type": "application/json", "Idempotency-Key": "alert-boundary-intent" },
       body: JSON.stringify(body),
     }),
   );
