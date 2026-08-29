@@ -110,12 +110,61 @@ describe("OSMU explicit migration runner 계약", () => {
     expect(memberMigration).toContain("member unique index definition drift requires manual recovery");
   });
 
-  it("GEN-MIG-10 거절: fingerprint 정의·index validity·duplicate·mixed state를 baseline 전에 검사한다", () => {
+  it("GEN-MIG-10 거절: fingerprint 정의와 index validity를 검사하고 X 상태를 거절한다", () => {
     expect(runner).toContain("pg_get_constraintdef");
     expect(runner).toContain("i.indisunique AND i.indisvalid AND i.indisready");
-    expect(runner).toContain("mixed generation/quota schema fingerprint");
+    expect(runner).toContain("unsupported generation/quota schema fingerprint");
+    expect(runner).toContain('SUPPORTED_AXIS_STATES="S1 S2 S3"');
     expect(runner).toContain("assert_no_duplicates");
-    expect(runner.indexOf("assert_no_duplicates", runner.indexOf("  baseline|"))).toBeGreaterThan(-1);
+  });
+
+  it("GEN-MIG-10a 경계: 축이 어긋난 상태는 앱 지원 집합 안이면 통과하고 배포를 막지 않는다", () => {
+    // 배포 preflight 가 S1|S2 를 거절하고, 그 배포가 붙이는 revision 라벨이 없어
+    // expand-member 가 막히던 교착의 재발 방지. 앱은 제약 이름을 지정하지 않으므로
+    // 두 축이 서로 다른 단계여도 동작한다.
+    expect(runner).not.toContain("mixed generation/quota schema fingerprint");
+    expect(runner).toContain("axis_supported");
+    const skipList = migrationWorkflow.slice(
+      migrationWorkflow.indexOf("Observe and verify every running compatibility image"),
+      migrationWorkflow.indexOf("COMPATIBILITY_BASE_COMMIT"),
+    );
+    expect(skipList).toContain("expand-guard");
+    expect(skipList).toContain("audit");
+  });
+
+  it("GEN-MIG-10b 거절: 배포 preflight 는 필수 relation·RLS·osmu_service 까지 fail-closed 로 본다", () => {
+    const preflightCase = runner.slice(runner.indexOf("  preflight)"), runner.indexOf("  bootstrap)"));
+    expect(preflightCase).toContain("assert_runtime_schema");
+    expect(runner).toContain("runtime schema audit failed");
+    expect(runner).toContain("rls-not-forced");
+    expect(runner).toContain("tenant-iso-policy-missing");
+    expect(runner).toContain("missing-relation");
+    expect(runner).toContain("osmu_service bypasses-rls");
+    for (const table of ["drafts", "engagement_items", "published_posts", "studio_generation_idempotency"]) {
+      expect(runner).toContain(table);
+    }
+  });
+
+  it("GEN-MIG-10c 경계: audit 는 읽기 전용이고 구형 DB에서도 죽지 않는다", () => {
+    const auditCase = runner.slice(runner.indexOf("  audit)"), runner.indexOf("  preflight)"));
+    expect(auditCase).toContain("report_fingerprint");
+    expect(auditCase).not.toContain("psql -X -q -v ON_ERROR_STOP=1 -f");
+    expect(runner).toContain("to_regclass('public.studio_generation_idempotency')");
+    expect(runner).toContain("MISSING");
+  });
+
+  it("GEN-MIG-10d 경계: member unique index 정합 검사는 int2vector 경계에 걸리지 않는다", () => {
+    // int2vector 를 smallint[] 로 캐스팅하면 lower bound 가 0이라 1-based ARRAY 와 항상 다르다.
+    // 그 탓에 index 가 이미 있는 DB에서 expand-member 가 항상 drift 로 중단됐다.
+    expect(memberMigration).not.toContain("i.indkey::smallint[]");
+    expect(memberMigration).toContain("unnest(i.indkey) WITH ORDINALITY");
+    expect(memberMigration).toContain("ARRAY['member_id','operation','idempotency_key']::name[]");
+    expect(memberMigration).toContain("ARRAY['member_id','local_date']::name[]");
+  });
+
+  it("GEN-MIG-10e 경계: failed 로 남은 장부가 고쳐진 migration 의 재진입을 막지 않는다", () => {
+    expect(runner).toContain("ledger_supersede");
+    expect(runner).toContain('if [ "$recorded_state" != "failed" ]; then');
   });
 
   it("GEN-MIG-11 거절: C1 rollback manifest 원본·checksum과 승인 script, cleanup phase를 강제한다", () => {
