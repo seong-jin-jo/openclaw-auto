@@ -26,7 +26,10 @@ try {
   await ctx.addInitScript(({t,st,w})=>{
     localStorage.setItem("dashboard_auth_token",t);
     localStorage.setItem("active_workspace",JSON.stringify({id:w,slug:"local",name:"로컬 검증 작업 공간",tier:"team"}));
-    localStorage.setItem("studio_work",JSON.stringify({
+    // 발행실은 작업 공간별 키(`studio_work:<작업공간>`)에서만 작업물을 복원하고, 옛 공용 키는
+    // 화면이 뜨는 즉시 지운다. 지금까지 공용 키만 심어 온 탓에 발행실이 늘 빈 상태로 측정됐고
+    // "발행실 단추 5개"라는 숫자가 거기서 나왔다. 실제 화면이 아니라 탐침이 틀렸던 것이다.
+    localStorage.setItem(`studio_work:${w}`,JSON.stringify({
       idea:"1인 사업가의 콘텐츠 운영 시간 줄이기",
       text:{threads:"기준 셋",x:"반복부터 줄입니다.",facebook:"한 흐름으로 묶습니다.",
         instagram:{caption:"한 번 만들고 일곱 채널",hashtags:["OSMU"],slides:["1","2","3"]},
@@ -56,7 +59,9 @@ try {
       방머리:document.querySelector(`[data-room-top="${r}"]`) instanceof HTMLElement,
       목차항목:document.querySelectorAll("[data-edit-outline] li").length,
       대사줄:document.querySelectorAll("[data-edit-script] input, [data-edit-script] li").length,
-      미리보기:document.querySelectorAll("[data-pv-platform], [aria-label*='미리보기']").length,
+      // 발행실 미리보기 칸은 `data-room-preview`로 선다. 이 선택자가 빠져 있어 발행실 미리보기가
+      // 늘 0으로 세어졌다(실제로는 일곱 칸이 그려진다).
+      미리보기:document.querySelectorAll("[data-pv-platform], [data-room-preview], [aria-label*='미리보기']").length,
       성과실:document.querySelector("[data-room='performance']") instanceof HTMLElement,
       가린모달:document.querySelectorAll("[data-onboarding-mode='modal'], .fixed.inset-0.z-50").length,
       단추:document.querySelectorAll("main button").length,

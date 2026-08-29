@@ -4082,3 +4082,78 @@ SOURCES/MODEL
 - 실행 근거: `/tmp/vitest-le2.log`(신규 회귀테스트 PASS), `/tmp/dash-tsc.log`(tsc 0 에러),
   `/tmp/dash-test-full.log`(전체 vitest 202/204 파일 PASS, FAIL 29건은 studio 무관 확인),
   git log/diff/ls-files 직접 실행 결과(위 §사실 확인)
+
+---
+
+## 2026-08-30 발행실 채우기 (회장 2026-08-29 발행실 지적 6건)
+
+기반 산출물: `docs/requests/2026-08-29-회장-4실-실사용-피드백.md` <발행실> 절 전문,
+`docs/design-docs/osmu-4room-구조질문-선택지-v1.0.0-opus-20260829.md` 질문3(회장 승인),
+`docs/qa/회장-피드백-대조표-2026-08-29.md` #19~#24, `DESIGN.md`(v61 마감, `.tr59`·`.v57-pub`·색 토큰).
+
+### 네 방 단추 수 (`dashboard/scripts/probe-four-room-flow.mjs`, 관찰됨)
+
+| 방 | 이전 | 지금 |
+|---|---|---|
+| 생성실 | 24 | 24 |
+| 편집실 | 26 | 34 |
+| **발행실** | **5** | **20** |
+| 성과실 | 25 | 26 |
+
+★ **"발행실 5개"의 절반은 탐침이 틀린 것이었다.** 탐침이 작업물을 옛 공용 키
+`studio_work`에 심었는데, 발행실은 작업 공간별 키 `studio_work:<작업공간>`만 읽고 공용 키는
+화면이 뜨는 즉시 지운다(`src/app/studio/page.tsx` 307행). 그래서 발행실이 늘 빈 상태로
+측정됐다. 탐침 seed 키를 고쳤다. 미리보기 칸도 `data-room-preview`를 안 세고 있어 발행실
+미리보기가 0으로 나왔다(실제 7칸). 그 선택자도 넣었다. 그래도 남은 15개 차이는 실제 신설분이다.
+
+### 회장 지적 6건 대조
+
+| # | 회장 원문 | 이전 | 지금 | 증거 |
+|---|---|---|---|---|
+| 19 | "왜 여긴 챗봇 없어?" | 미해결 | 해결 | 대화창은 DOM에 있었으나 넓은 화면에서 **높이 0으로 접혀 안 보였다**. 한 className에 모바일 시트 규칙(`fixed bottom-0 max-h-[60vh]`)과 데스크톱 기둥 규칙(`lg:static` + `lg:sticky` 동시)이 섞여 `max-height:0px`으로 계산됐다. `max-lg:`로 갈랐다. 실측: 이전 `{w:320,h:2,maxHeight:"0px"}` → 지금 `{w:320,h:705,maxHeight:"none"}`, position sticky, x=1096(우측 기둥) |
+| 19b | "챗봇만의 UX 장점이 있어야 쓰는거아님?" | 없음 | 해결 | "여기서만 한 번에 되는 일" 5가지 신설. 손으로 하면 일곱 번인 것만 넣었다. 실측 로그: 해시태그 규격 나누기 → `{threads:5개, x:2개, facebook:3, instagram:3, shorts/reels/tiktok:3}`. 한도 넘는 곳만 줄이기 → before `{threads:400, x:400}` → after `{threads:400, x:280}` (X만 잘리고 Threads 500자 한도는 안 건드림). 자유 입력 "스레드 빼고 올려" → Threads 체크 해제됨 |
+| 22 | "왜 스레드에만 기본계정 토글" | 부분(코드만 봄) | 해결 | **화면을 실제로 열어 확인했다.** `/channels/{x,threads,facebook}` 셋 다 열어 `account-set-default-*` testid를 세어 전부 0. Threads 전용이 아니라 **연결된 계정이 0이라 셋 다 안 뜬 것**이다. 별개로 발행실 계정 고르개가 "기본계정"이라고만 적어 누구인지 말하지 않던 것을 기본 계정 이름으로 바꾸고 "계정 관리" 링크를 붙였다 |
+| 22b | "연결 안된 계정은 바로 연결하는 곳으로" | 미해결 | 해결 | 발행실 "계정 연결하기"가 `/settings?tab=channels&channel=x`로 가는데 **설정 화면은 그 쿼리를 통째로 무시한다**(`src/app/settings/page.tsx`에 `channel` 파라미터를 읽는 코드가 없다). 채널 목록만 나왔다. `/channels/<채널>`로 돌렸다. 그 화면은 미연결이면 Settings 탭으로 자동 전환되고 연결 단추와 기본 계정 전환이 함께 있다 |
+| 23 | "왜 2곳에 올리기야? 전체 못올려?" | 미해결 | 해결 | 전체를 고르는 길이 실제로 없었다(칸마다 체크 하나뿐). 채널 줄에 "연결된 N곳 전부 고르기"·"전부 해제"를 냈고 대화창에도 같은 것을 뒀다. 연결 0곳이면 죽은 단추가 아니라 비활성이다(테스트 QA-PUBLISH-06으로 고정) |
+| 24 | "예약 발행한건 어디서 확인해" | 설계만 | 해결 | **실제 원인을 찾았다.** 예약은 `schedules` 테이블에 쌓이는데 발행 캘린더는 `/api/queue`만 읽고 있었다. 즉 예약을 걸어도 캘린더에 영영 안 나왔다. 캘린더가 `/api/schedule`도 읽게 했다. 예약 직후 `/calendar?from=publish&date=<날짜>`로 이어진다. 실측: 예약 POST 200 → 그 날짜 캘린더에 "예약 발행 · Threads · X" 표시, "2026-09-01 · 1건", "발행실로 돌아가기" 단추 확인, 콘솔 오류 0 |
+| 24b | "승인 인박스는 뭐고 발행 캘린더는 뭐냐" | 부분(라벨만) | 해결 | 라벨 부제만으로는 부족했다. 규격 문서에 있으나 구현이 없던 **발행 왕복 띠**(`DESIGN.md` `.tr59`·`[data-publish-trip]`·v59·R193)를 만들어 세 화면 같은 자리에 세웠다. 낱말은 규격 그대로 "정하는 자리 / 검토를 기다리는 자리 / 언제 나갈지 잡는 자리". 인박스 설명에서 크론·Studio·파이프라인 같은 내부 용어를 걷어냈고, 캘린더 설명의 "큐"도 없앴다(실측: 캘린더 본문에 "큐" 0건) |
+| 21 | "플랫폼별 실제처럼 미리보기 · 각각 편집" | 앞 조가 함 | 유지 확인 | 일곱 칸에 제자리 편집기가 다 붙어 있다. 실측 `data-testid^=inline-editor-` 7개, 값 다섯(표시 이름·제목·캡션·해시태그·첫 댓글). 스크린샷 `/tmp/qa-flow-2-after-bulk.png` |
+
+### 탐침이 마지막에 던지는 403 세 건 — 출처 확정 (관찰됨)
+
+외부 자원이 아니다. **전부 localhost의 성과실 API이고 고객 토큰으로는 못 부르는 운영자 전용 경로다.**
+
+```
+403 http://localhost:3456/api/performance/learned-rules?tenant_id=cd1d0a40-...
+403 http://localhost:3456/api/cron-status
+403 http://localhost:3456/api/threads/low-engagement-candidates?tenant_id=cd1d0a40-...
+```
+
+개발 서버 로그에 안 남은 이유는 프록시 층에서 끊겨 라우트 핸들러까지 안 갔기 때문이다.
+세 경로 모두 이번 판의 금지 구역(`api/performance/`, `api/threads/low-engagement-*`)이라
+손대지 않았다. **성과실 조가 닫아야 할 건이다.**
+
+같은 실행에서 나온 `net::ERR_NAME_NOT_RESOLVED https://example.invalid/a.mp4`도 외부
+의존이 아니라 **`dashboard/scripts/verify-basic-flow-e2e.mjs:36`이 남긴 시험용 자료**다.
+DB에 그 URL이 든 행이 남아 화면이 `<video src>`로 그린다. 코드 결함이 아니라 자료 청소 건이다.
+
+### 검증 (증거)
+
+- `npx tsc --noEmit` → 0 (`/tmp/tsc5.log`)
+- `npm run test` → **204 파일 1528 통과 / 1 건너뜀 / 실패 0** (`/tmp/vitest-all2.log`)
+  - 신설 `tests/lib/publish-bulk.test.ts` 25건(해시태그 규격·한도 절단 경계·해석기 12갈래·빈 입력 거절)
+  - `next/navigation` 목에 `useRouter` 추가(내 변경으로 29건이 깨졌던 것을 고쳤다)
+  - `QA-PUBLISH-06`을 새 연결 경로와 "연결 0곳이면 전체 고르기도 비활성"으로 조였다
+- `node scripts/ui-token-audit.mjs src --check` → 위반 0 (색·간격·서체·모서리 전부)
+- 개발 서버 실기동 후 화면 직접 열람: `/tmp/qa-flow-1-publish.png`, `/tmp/qa-flow-2-after-bulk.png`,
+  `/tmp/qa-cal-scheduled.png`, `/tmp/qa-chan-{x,threads,facebook}.png`
+- 발행실 콘솔 오류 0건 (`/tmp/qa-flow.mjs` 실행 결과)
+
+### 미검증으로 남긴 것
+
+- **실계정 발행은 못 해봤다.** 이 작업 공간에 연결된 채널이 0곳이라 `/api/publish`가 실제로
+  나가는 경로는 안 탔다. 일괄 대행·전체 고르기·예약·캘린더 표시는 다 실측했지만, "일곱 곳에
+  진짜로 올라간다"는 연결된 계정으로 다시 봐야 한다.
+- **기본 계정 토글이 실제로 뜨는 모습은 못 봤다.** 계정이 0이라 렌더 조건에 안 걸렸다.
+  Threads 전용이 아님은 코드와 세 화면 실측으로 확인했으나, 계정이 2개 이상일 때의 모습은 미검증.
+- 예약이 시각에 맞춰 실제 발행되는지(크론 경로)는 이번 판 범위 밖이다.
