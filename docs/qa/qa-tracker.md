@@ -2,6 +2,33 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-08-29 범위 PASS: 읽기 API 99개 전수 재실사 v3
+
+커밋 `783b97ce`의 `localhost:3456`에서 GET export 99개를 실제 호출했다. 정상 89개, 의도된 거절 10개, HTTP 500과 요청 실패는 각각 0개다. 직전 v2와 비교해 추가, 삭제, 상태코드 변화는 모두 0건이다. v2 이후 변경된 `/api/metrics`는 HTTP 200, 기존 `posts`, coverage v1, source `published_posts`, 플랫폼 7건을 반환했다. 새 고장이 없어 제품 코드는 수정하지 않았다.
+
+| 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
+|---|---|---|---|---|
+| R128, R151, R165, R171, R175 | 기존 채널 연결 경로와 화면을 보존하고 채널 화면에서 연결 | API-READ-V3-01 | PASS | Threads 연결 준비 503, readiness와 채널 조회 200, HTTP 500 0 |
+| R150 | 플랫폼별 지원 기능과 인증 경계를 실제 계약과 일치 | API-READ-V3-02 | PASS | 임시 고객 토큰으로 TikTok 경계 도달, 두 경로 404, 폐기 HTTP 200과 활성 토큰 0 |
+| R207 | 성과실에서 통한 콘텐츠와 배울 정보를 제공 | API-READ-V3-03 | 범위 PASS | `/api/metrics` HTTP 200, coverage v1, 플랫폼 7건. 외부 provider 실제 수집은 미검증 |
+| R01~R207 | 회장 확정 요구 전건 | REQ-ALL | 이월 | 기존 전건 요구 추적표 유지. 이번 범위 밖 판정은 변경하지 않음 |
+
+| 검증 | 판정 | 직접 관찰 증거 |
+|---|---|---|
+| health | PASS | `/api/health` HTTP 200, DB `up` |
+| GET 전수 실사 | PASS | 99개 중 정상 89, 의도된 거절 10, HTTP 500과 요청 실패 0 |
+| 전체 Vitest | PASS | `npm run test`, 198파일, 1,433건 통과, 조건부 1건 제외 |
+| TypeScript | PASS | `npx tsc --noEmit` 종료 코드 0 |
+| production build | PASS | `npm run build` 종료 코드 0, 정적 페이지 174/174. 기존 NFT 추적 경고 1건 유지 |
+| 기본 흐름 | PASS | `verify-basic-flow-e2e.mjs` 11/11 |
+| Studio v1 | PASS | `verify-studio-v1-e2e.mjs` 12/12 |
+| Playwright | PASS | 네 방 4개와 390, 768, 1024, 1440. 가로 넘침, 모달, 401, 콘솔 오류 각각 0 |
+| design lint | PASS | `design-lint.sh dashboard/src`, 위반 0 |
+| mobile, Maestro | 해당 없음 | 별도 mobile 앱이 없는 웹 제품 범위 |
+| 전체 디자인 정합 | NG 유지 | 기존 승인 프로토타입 정합 NG와 운영 실채널 검증 NG를 이번 API 범위 PASS로 뒤집지 않음 |
+
+상세 99개 상태와 비교표는 `docs/audit/osmu-api-read-sweep-v3-gpt-codex-20260829-0915.md`에 있다.
+
 ## 2026-08-29 NG: 최근 24시간 코드 리뷰 현재 범위 재검증
 
 리뷰 시작 시 고정한 `5d941aa0..3c251689`의 97개 커밋과 438개 파일 diff를 승인 PRD, 프로토타입 v63, 요구 대장, 사업 좌표, DESIGN에 대조했다. MAJOR 19건, MINOR 5건으로 머지 차단이다. 소스 코드는 수정하지 않았다. 상세 지적과 재현 시나리오는 `docs/audit/osmu-code-review-2026-08-29.md`에 있다.

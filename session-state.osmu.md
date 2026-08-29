@@ -2,6 +2,33 @@
 
 최신이 위. 이 파일만 읽고 30초 안에 이어갈 수 있어야 한다.
 
+## [2026-08-29 09:15] 읽기 API 99개 전수 재실사 v3
+
+### 무엇을 어디까지 했나
+
+- 회장 현재 요청을 primary handoff basis로 사용했다. canonical `pipeline-state.osmu.md`는 착수 시 이미 `current_stage: qa`였다.
+- 커밋 `783b97ce`의 GET export 99개를 `localhost:3456`, 지정 작업 공간에서 실제 호출했다. 정상 89개, 의도된 거절 10개, HTTP 500과 요청 실패 0개다.
+- 직전 v2 이후 추가, 삭제, 상태 변화는 0건이다. 변경된 `/api/metrics`는 HTTP 200, coverage v1, 플랫폼 7건이다.
+- 임시 고객 토큰은 폐기 HTTP 200과 활성 0건을 확인했다. 새 고장이 없어 제품 코드는 수정하지 않았다.
+- 상세 증거는 `docs/audit/osmu-api-read-sweep-v3-gpt-codex-20260829-0915.md`와 `docs/qa/qa-tracker.md`에 기록했다.
+
+### 남은 이슈·블로커
+
+- 실제 연결된 외부 채널 성공 응답과 공개 발행은 미검증이다.
+- 읽기 API 범위만 PASS다. 기존 승인 프로토타입 디자인 정합 NG와 전체 코드 리뷰 BLOCK은 유지한다.
+- `/api/chat-channels`는 HTTP 200이지만 8.04초로 이번 실사에서 가장 느렸다.
+
+### 다음에 칠 명령
+
+- 외부 채널 자격증명이 준비되면 실제 고객 계정의 Threads와 TikTok 성공 응답을 검증한다. 종료증거는 고객 작업 공간 응답 2xx와 외부 provider 상태 일치다.
+- 전체 QA 승인 전 기존 코드 리뷰 BLOCK과 디자인 정합 NG를 별도 수정판과 재검증으로 닫는다.
+
+### 검증했나
+
+- 관찰됨: health 200과 DB up, GET 99개, 정상 89개, 의도된 거절 10개, HTTP 500과 요청 실패 0개, 임시 고객 토큰 폐기.
+- 테스트됨: Vitest 198파일 1,433건, TypeScript, production build 174/174, 기본 흐름 11/11, Studio v1 12/12, 네 방 4폭 Playwright, design lint.
+- 미검증: 실제 연결 외부 계정 성공 경로, 공개 발행, 전체 디자인 정합.
+
 ## [2026-08-29 08:28] 최근 24시간 코드 리뷰 BLOCK
 
 ### 무엇을 어디까지 했나
