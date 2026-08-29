@@ -503,6 +503,16 @@ export async function POST(request: Request) {
     }
   }
 
+  // 여기까지 왔으면 이 요청이 예약을 쥐고 있어야 한다. 쥐지 않은 채 외부 게시로 넘어가면
+  // 결과를 적을 행이 없고 중복 방지도 걸리지 않는다. 방어적으로 닫는다.
+  if (!reservationId) {
+    return Response.json({
+      ok: false,
+      code: "PUBLISH_RESERVATION_FAILED",
+      error: "발행 예약을 쥐지 못해 외부 게시를 시작하지 않았습니다.",
+    }, { status: 503, headers: { "Cache-Control": "no-store" } });
+  }
+
   let result: PublishResult;
   if (platform === "threads") {
     result = await publishThreads(cred, text || "", publishImageUrl);
