@@ -14,15 +14,15 @@ Studio v1 계약 12/12, 390, 768, 1024, 1440 네 폭의 네 방 16화면과 성�
 
 장시간 돌던 Turbopack 개발 서버의 첫 health timeout과 `GENERATION_DB_TIMEOUT`은 제한 시간
 webpack 서버에서 재현되지 않았고 health HTTP 200, DB `up`, 기본 흐름 11/11로 회복했다.
-이는 로컬 장기 개발 서버 정체 위험으로 남긴다. 전체 v63 디자인 정합 12행은 NG이므로 이번
-기능 PASS를 전체 QA 승인으로 확대하지 않는다.
+이는 로컬 장기 개발 서버 정체 위험으로 남긴다. 시안과 dev 캡처의 데이터 상태가 달라 v63
+디자인 정합은 미검증이다. 이번 기능 PASS를 전체 QA 승인으로 확대하지 않는다.
 
 | 요청번호 | 요청 요지 | 테스트번호 | 판정 | 증거 |
 |---|---|---|---|---|
 | R08, R168 | 네 방 흐름과 첫 후보 생성 | FLOW-11-01 | PASS | 후보 3장, 편집 인계, 발행 큐, 성과 제안까지 11/11 |
 | R08, R193 | 네 방 화면과 성과실 복귀 | FLOW-UI-01 | PASS | 4방 x 4폭, 성과실에서 생성실 복귀 4건 |
 | R104 | 고객 인증 경계 | FLOW-AUTH-01 | PASS | 실제 임시 고객 토큰, 브라우저 401 0건, 폐기 HTTP 200 |
-| R200, R206, R207 | 성과실 UX와 승인 시안 정합 | CONF-ALL | 기능 PASS, 디자인 NG | 제안 3건과 왕복은 PASS. prototype v63 대비 배치 12행은 NG |
+| R200, R206, R207 | 성과실 UX와 승인 시안 정합 | CONF-ALL | 기능 PASS, 디자인 미검증 | 제안 3건과 왕복은 PASS. same-state 매치드 페어 부재 |
 | R01~R207 | 회장 확정 요구 전건 | REQ-ALL | 이월 | 상세 승계는 `docs/qa/osmu-four-room-basic-flow-v1-gpt-codex.md`에 기록 |
 
 | 검증 | 판정 | 직접 관찰 증거 |
@@ -35,7 +35,7 @@ webpack 서버에서 재현되지 않았고 health HTTP 200, DB `up`, 기본 흐
 | Playwright 실제 클릭 | PASS | 16화면, 왕복 4건, 가로 넘침 0 |
 | design lint | PASS | 토큰 위반 0 |
 | mobile과 Maestro | 해당 없음 | dashboard 웹 제품 범위. `optional:true` 우회 없음 |
-| 승인 v63 디자인 정합 | NG 유지 | 화면 x 3폭 12행에서 요소 순서, 열 수, 표시 상태, 버튼 위계 불일치 |
+| 승인 v63 디자인 정합 | 미검증 | 직접 연 시안과 dev가 서로 다른 데이터 상태라 일치와 불일치 모두 확정 불가 |
 
 상세 행렬과 캡처는 `docs/qa/osmu-four-room-basic-flow-v1-gpt-codex.md`와
 `docs/qa/osmu-four-room-flow-20260829/`에 있다.

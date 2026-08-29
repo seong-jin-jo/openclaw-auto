@@ -2,7 +2,7 @@
 
 최신이 위. 이 파일만 읽고 30초 안에 이어갈 수 있어야 한다.
 
-## [2026-08-29 10:39] 네 방 기본 흐름 QA 범위 PASS, 전체 디자인 NG
+## [2026-08-29 10:39] 네 방 기본 흐름 QA 범위 PASS, 디자인 정합 미검증
 
 ### 무엇을 어디까지 했나
 
@@ -14,20 +14,20 @@
 
 ### 남은 이슈·블로커
 
-- 승인 v63 대비 4화면 x 3폭 디자인 정합 12행은 NG다. 기능 흐름 PASS와 별개로 design과 전체 qa gate는 승인 불가다.
+- 승인 v63 시안과 dev 캡처는 데이터 상태가 달라 디자인 일치와 불일치를 모두 확정할 수 없다. 기능 흐름 PASS와 별개로 design과 전체 qa gate는 승인 불가다.
 - 실제 외부 공개 채널 발행과 운영 배포 재검증은 이번 범위 밖이며 미검증이다.
 - 장기 Turbopack 개발 서버가 health와 생성 요청을 멈추는 로컬 환경 정체가 한 번 관찰됐다. 제한 시간 webpack 서버에서는 재현되지 않았다.
 
 ### 다음에 칠 명령
 
-- product-designer와 code-builder가 v63 정합 12행을 화면별로 수렴한다. 종료증거는 동일 390, 1024, 1440 screenshot pair와 8개 배치 속성 전건 PASS다.
+- product-designer가 v63 clean 시안과 dev를 같은 데이터 상태로 준비한다. code-builder가 필요한 차이를 반영한다. 종료증거는 동일 390, 1024, 1440 screenshot pair와 8개 배치 속성 전건 판정이다.
 - qa-verifier가 수정판에서 `verify-basic-flow-e2e.mjs`, `verify-studio-v1-e2e.mjs`, `probe-four-room-flow.mjs`, `verify-four-room-ui-e2e.mjs`를 재실행한다. 종료증거는 11/11, 12/12, 네 방 true, 16화면과 왕복 4건이다.
 
 ### 검증했나
 
 - 관찰됨: health 200 DB up, 실제 API 11/11과 12/12, Playwright 16화면과 왕복 4건, 임시 토큰 폐기.
 - 테스트됨: Vitest 198파일 1,443건과 조건부 1건 제외, TypeScript, production build 174/174, design lint 위반 0.
-- 미검증: 운영 배포, 실제 외부 공개 발행. NG: 승인 v63 디자인 정합.
+- 미검증: 운영 배포, 실제 외부 공개 발행, 승인 v63 same-state 디자인 정합.
 
 ## [2026-08-29 09:15] 읽기 API 99개 전수 재실사 v3
 
