@@ -76,7 +76,7 @@ describe("OSMU-FLOW-UI-03 생성실 첫 행동 계약", () => {
   it("OSMU-FLOW-UI-03 정상 경로: 첫 화면에 적을 칸이 아니라 고를 카드를 보인다", () => {
     render(<CreateRoom workspaceId="tenant-empty" workspaceName="빈 작업 공간" guide="" topic="" onTopicChange={vi.fn()} onOpenLearning={vi.fn()} onCandidateSelect={vi.fn()} />);
 
-    expect(document.querySelector('[data-empty-next="create"]')).toHaveTextContent("고르기만 하시면 됩니다. 적을 것은 없습니다.");
+    expect(document.querySelector('[data-empty-next="create"]')).toHaveTextContent("한 번에 하나씩 묻겠습니다. 선택한 답은 다음 질문에 반영됩니다.");
     // 회장 지적("주관식이면 나라도 뭘 입력해야할 지를 모르겠는데")의 계약.
     // 기본 경로에는 자유 입력 칸이 한 칸도 없다.
     expect(document.querySelectorAll('[data-create-topic-picker] input')).toHaveLength(0);
@@ -88,7 +88,11 @@ describe("OSMU-FLOW-UI-03 생성실 첫 행동 계약", () => {
   it("OSMU-FLOW-UI-03 거절 조건: 카드에 없는 주제는 직접 적는 칸으로 빠져나갈 수 있다", () => {
     render(<CreateRoom workspaceId="tenant-empty" workspaceName="빈 작업 공간" guide="" topic="" onTopicChange={vi.fn()} onOpenLearning={vi.fn()} onCandidateSelect={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "여기 없습니다. 직접 적겠습니다" }));
-    expect(screen.getByLabelText("이번 주제")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "영상" }));
+    fireEvent.click(screen.getByRole("button", { name: "다음" }));
+    fireEvent.click(screen.getByRole("button", { name: "브랜드 알리기" }));
+    fireEvent.click(screen.getByRole("button", { name: "처음 해 보는 사람" }));
+    fireEvent.click(screen.getByRole("button", { name: "직접 입력" }));
+    expect(screen.getByLabelText("직접 입력한 주제")).toBeInTheDocument();
   });
 });

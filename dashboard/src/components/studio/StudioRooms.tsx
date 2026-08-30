@@ -121,6 +121,7 @@ export function generationErrorMessage(cause: unknown): string {
 
 export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBranch = "text_image", onContentBranchChange, onTopicChange, onCandidateSelect, onOpenEditor, onPrimaryKindChange, onAlsoKindsChange, learningVersion = 0, resumeCount = 0, onResume }: CreateRoomProps) {
   const topicInputRef = useRef<HTMLInputElement>(null);
+  const previousWorkspaceId = useRef(workspaceId);
   const [primaryKind, setPrimaryKind] = useState<CreateKind | null>(null);
   const [alsoKinds, setAlsoKinds] = useState<CreateKind[]>([]);
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -169,11 +170,14 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
     setRightsConfirmed(Boolean(saved.rights));
     setPurpose("");
     setTopicOpen(false);
-    setPrimaryKind(null);
-    setAlsoKinds([]);
-    setQuestionIndex(0);
-    onPrimaryKindChange?.(null);
-    onAlsoKindsChange?.([]);
+    if (previousWorkspaceId.current !== workspaceId) {
+      previousWorkspaceId.current = workspaceId;
+      setPrimaryKind(null);
+      setAlsoKinds([]);
+      setQuestionIndex(0);
+      onPrimaryKindChange?.(null);
+      onAlsoKindsChange?.([]);
+    }
   }, [workspaceId, learningVersion, onAlsoKindsChange, onPrimaryKindChange]);
 
   const rememberLearning = (patch: LearningInfo) => {
