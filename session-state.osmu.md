@@ -1,3 +1,36 @@
+## 2026-08-30 22:29 KST Codex 편집실·발행실 build 회수 대기
+
+핸드오프 기준: 회장 2차 피드백 원문과 이 세션에 전달된 13개 항목.
+
+### 무엇을 어디까지 했나
+
+- R199·R204·2차 13번의 원인은 발행실 헤더에 이미 승인 인박스와 발행 캘린더가 있는데 본문에서도 `PublishTrip`을 다시 렌더한 중복이었다. `dashboard/src/app/studio/page.tsx`의 렌더와 미사용 import를 제거했다. 회장은 같은 이동 경로를 두 번 해석하지 않아도 된다.
+- 13개 항목 대조와 중단 사유는 `docs/qa/2차피드백-편집실과-발행실-대조-2026-08-30.md`에 기록했다. 구현현황과 QA tracker도 갱신했다.
+- 변경 5파일을 로컬 커밋 `5d54fbad`로 묶었다. 다른 조가 수정 중인 `dashboard/src/components/studio/learning-info.ts`는 건드리지 않았다.
+
+### 남은 이슈·블로커
+
+- 1번부터 12번은 미착수다. `pipeline-state.osmu.md`에 승인 프로토타입 핀이 없고 `DESIGN.md` 최상단은 v64, 부록은 v61을 현행 정본으로 적는다. 이 충돌을 임의 해석하면 편집실·발행실 구조가 다시 승인 시안에서 벗어날 수 있다.
+- 후보는 `docs/prototype/openclaw-auto-4room-v61.html`부터 v64까지다. 추천 후보는 DESIGN 최상단과 최고 semver가 함께 가리키는 v64다.
+- `git push origin feat/design-system-and-missing-features`는 실행 정책이 승인 필요로 차단했다. 원격 브랜치는 로컬보다 2개 커밋 뒤다.
+- 로컬 3456 실화면, 전체 `npm run test`, 플랫폼 7종 웹 조사, 1번부터 12번 구현은 미검증 또는 미착수다.
+
+### 다음에 칠 명령
+
+1. 컨트롤러가 `pipeline-state.osmu.md`의 `approved_artifacts`에 승인 프로토타입 한 개를 핀한다.
+2. `git status --short --untracked-files=no`로 생성실 조의 동시 변경을 확인하고, 편집실·발행실 범위만 재개한다.
+3. `cd dashboard && npm run test && npx tsc --noEmit && node scripts/ui-token-audit.mjs`로 전체 검증한다.
+4. 제한시간 dev 서버와 브라우저를 묶어 3456 편집실·발행실을 캡처한 뒤 서버를 종료한다.
+5. push 권한이 있는 세션에서 `git push origin feat/design-system-and-missing-features`를 실행한다.
+
+### 검증했나
+
+- 테스트됨: `npx vitest run tests/publish/studio-publish-ui.test.tsx`, 27건 통과.
+- 테스트됨: `npx tsc --noEmit`, 종료 코드 0.
+- 테스트됨: `node scripts/ui-token-audit.mjs`, 위반 0.
+- 첫 Vitest 시도는 기존 설정과 `--maxWorkers=1`이 충돌해 테스트를 시작하지 못했다. 표준 명령으로 재실행해 통과했다.
+- 미검증: 실제 3456 화면, 전체 테스트, 운영 배포, 원격 push.
+
 ## 2026-08-30 22:30 KST Claude 세션 (osmu 라인) ★★제품 핵심 부재 확인. codex 재가동.
 
 핸드오프 기준: 이 파일(session-state.osmu.md).
@@ -83,4 +116,3 @@ codex 재가동. 두 판 발주(항목 번호를 붙여 대조 보고하게 했�
 2. 회장이 Threads 재연결 1회 시도하면 로그에서 Meta 실사유 확인.
 3. **LLM 연동을 언제 할지 회장 판단 필요.** 이게 없으면 나머지는 껍데기다.
 4. 배포 후 컨트롤러가 직접 로그인부터 발행까지 밟는다.
-

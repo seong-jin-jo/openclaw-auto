@@ -2,6 +2,18 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-08-30 NG: 편집실·발행실 2차 피드백 build 기반 충돌
+
+회장 2차 피드백 13건 중 발행실 상단 왕복 띠 제거는 소스에 반영했다. 나머지 12건은 승인 프로토타입 경로가 `pipeline-state.osmu.md`에 없고 `DESIGN.md`의 현행 정본 표기가 v64와 v61로 충돌해 중단했다.
+
+| 검증 | 판정 | 직접 근거 |
+|---|---|---|
+| R199·R204 왕복 띠 | 수정, 집중 테스트 통과 | `dashboard/src/app/studio/page.tsx`에서 `PublishTrip` 렌더와 import 제거. 발행실 테스트 27건 통과 |
+| 승인 프로토타입 | NG | pipeline 승인 핀 없음. 후보 v61, v62, v63, v64 |
+| 나머지 12건 | 미착수 | 승인 핀 회수 전 임의 구현 금지 |
+| TypeScript·token audit | PASS | `npx tsc --noEmit` 종료 코드 0, UI token audit 0건 |
+| 로컬 화면·전체 테스트 | 미검증 | 승인 프로토타입 핀 회수 전 중단 |
+
 ## 2026-08-30 PASS: 격리 공격 목록 누락 복구 (`/api/performance/learned-rules`)
 
 커밋 `822fa94a`가 `/api/performance/learned-rules` GET/POST/DELETE를 새로 만들면서 `scripts/verify-tenant-isolation-e2e.mjs`의 공격 목록에 등록하지 않아 `tests/isolation/tenant-api-attack-script.contract.test.ts`(TENANT-READ-01)가 실패했다. 어제 밤 `822fa94a`가 원인이며 착수 전부터 있던 실패가 아니다.
