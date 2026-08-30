@@ -16,7 +16,7 @@ describe("public legal pages required by OAuth providers", () => {
   it("publishes privacy disclosures for OAuth tokens, tenant isolation, retention, and contact", () => {
     expect(privacy).toContain("소셜 플랫폼 비밀번호를 수집하거나 저장하지 않습니다");
     expect(privacy).toContain("토큰은 암호화해 저장");
-    expect(privacy).toContain("tenant");
+    expect(privacy).toContain("작업 공간 격리");
     expect(privacy).toContain("보유 기간과 삭제");
     expect(privacy).toContain("code0to1@gmail.com");
     expect(privacy).toContain("Threads 답글과 Instagram 댓글");

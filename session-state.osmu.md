@@ -1,3 +1,38 @@
+## 2026-08-31 05:20 KST Codex 세션 (osmu-appreview0831) Meta App Review 제출 준비 build 종료
+
+핸드오프 기준: 이 파일과 `docs/releases/meta-app-review-제출-준비-2026-08-31.md`.
+
+### 요청과 결론
+
+- ADR-004의 상품화 마일스톤인 Meta App Review 제출물을 작성했다.
+- Threads 현재 오류는 `threads_basic` Advanced Access 미승인 또는 Threads Tester 초대 미수락이 원인이다.
+- 개발 중 즉시 우회는 앱 905965605850465에 Threads Tester 추가 후 동일 Threads 계정에서 초대 수락이다. Meta 콘솔은 세션이 조작하지 않았다.
+- 외부 고객 OAuth는 App Review 승인 뒤 가능하다.
+- 9개 권한 전체 제출은 조건부 NO-GO다. `instagram_business_manage_insights` 실제 조회 기능과 성공 API 호출이 현재 없다. 별도 build로 구현하거나 첫 심사 범위에서 제거해야 한다.
+
+### 반영한 것
+
+- 채널 연결 전 안내: Instagram, Threads, Facebook은 앱 심사 전 테스터 등록과 초대 수락 계정만 연결 가능, 승인 뒤 일반 OAuth 연결 가능.
+- 법적 고지: `/privacy`, `/terms`, `/data-deletion`에 Meta 데이터 범위, 목적, 공유 제한, 보관 기간, 삭제 방법, 테스터 한계를 보강.
+- 제출 문서: 권한 9개 표, Advanced Access, 영상 대본 8개, 영문 이용 사례 9개, Threads와 Instagram 테스터 등록·수락 경로, 최종 체크리스트.
+- 코드 중간 커밋: `6bf30888 feat: Meta 심사 전 연결 조건과 데이터 정책 안내`.
+
+### 최종 검증
+
+- `cd dashboard && npm run test`: 207파일, 1,556건 통과, 조건부 1건 제외, 실패 0.
+- `cd dashboard && npx tsc --noEmit`: 오류 0.
+- `cd dashboard && npm run build`: 177/177, exit 0. 기존 NFT 추적 경고 1건 유지.
+- `design-lint.sh dashboard/src`: 토큰 위반 0.
+- 로컬 production 서버 `/privacy`, `/terms`, `/data-deletion`: 각각 HTTP 200, 콘솔 오류 0. 캡처 직접 확인 결과 잘림, 빈 화면, 본문 누락 0.
+- 운영의 세 URL은 HTTP 200이지만 이 변경은 아직 미배포. 운영 본문 최신화와 실제 Meta OAuth 연결은 미검증.
+
+### 다음 실행
+
+1. 회장: Meta 앱 905965605850465에 Threads Tester 추가 후 <https://www.threads.com/settings/website_permissions>에서 초대 수락. 종료 증거는 동일 계정 Threads OAuth 연결 성공과 `threads_basic` 400 미재현.
+2. 제품 결정: Instagram 인사이트 기능을 구현할지, 첫 App Review 요청에서 `instagram_business_manage_insights`를 제거할지 확정. 추천은 최소 권한 원칙에 따라 첫 제출에서 제거다. 단, OAuth scope 변경은 제품 계약이므로 구현 전 합의 필요.
+3. ship/배포 담당: 이 브랜치 배포 후 운영 법적 고지 3 URL의 최신 본문을 로그아웃 상태에서 확인. 종료 증거는 HTTPS 200과 이번 Meta 문구 표시.
+4. 회장: 제출 문서 체크리스트를 따라 권한별 녹화와 App Review 제출. 제출 버튼은 회장이 직접 누른다.
+
 ## 2026-08-31 04:50 KST Claude 세션 (osmu 라인) ADR 미독이 근본 원인. codex 4판 가동.
 
 핸드오프 기준: 이 파일(session-state.osmu.md).
@@ -97,4 +132,3 @@ EOF
 chmod +x /tmp/mvm.sh
 ```
 ★codex-in-pane.sh 는 프롬프트를 **파일 경로**로 받는다. 문자열 직접 전달은 죽는다.
-

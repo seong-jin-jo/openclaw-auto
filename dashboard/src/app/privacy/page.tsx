@@ -20,7 +20,7 @@ export default function PrivacyPage() {
         <p className="mt-stack-tight">회사는 소셜 플랫폼 비밀번호를 수집하거나 저장하지 않습니다. 로그인과 동의는 각 플랫폼의 공식 화면에서 처리됩니다.</p>
       </LegalSection>
       <LegalSection title="2. 이용 목적">
-        <p>회원 인증과 tenant 생성, 소셜 계정 연결, 콘텐츠 생성·예약·발행, 성과 확인, 고객 지원, 보안 사고 및 오류 대응을 위해 정보를 이용합니다.</p>
+        <p>회원 인증과 작업 공간 생성, 소셜 계정 연결, 콘텐츠 생성·예약·발행, 성과 확인, 고객 지원, 보안 사고 및 오류 대응을 위해 정보를 이용합니다.</p>
         <div className="mt-stack-tight overflow-x-auto">
           <table className="w-full min-w-xl text-left text-caption">
             <thead><tr className="border-b border-border"><th className="py-stack-tight pr-stack">처리 목적별 Meta 권한</th><th className="py-stack-tight">서비스에서 하는 일</th></tr></thead>
@@ -44,8 +44,8 @@ export default function PrivacyPage() {
       <LegalSection title="4. 처리 위탁 및 외부 서비스">
         <p>서비스 제공을 위해 Supabase(인증·데이터베이스), 호스팅·모니터링 사업자, AI 생성 서비스, 이용자가 직접 연결한 Meta·Google·X·TikTok 등 소셜 플랫폼을 사용할 수 있습니다. 각 플랫폼 전송은 이용자가 선택한 기능과 승인 범위 안에서만 이루어집니다. 회사는 Meta 플랫폼 데이터를 판매하지 않습니다. 법령상 의무가 있거나 이용자가 요청한 기능을 수행하는 경우를 제외하고 제3자에게 제공하지 않습니다.</p>
       </LegalSection>
-      <LegalSection title="5. 보호 조치와 tenant 격리">
-        <p>토큰은 암호화해 저장하고, 인증 정보에서 tenant를 결정하며, 다른 tenant의 계정·콘텐츠를 조회하거나 발행에 사용할 수 없도록 접근을 분리합니다. 전송 구간에는 HTTPS를 사용합니다.</p>
+      <LegalSection title="5. 보호 조치와 작업 공간 격리">
+        <p>토큰은 암호화해 저장하고, 인증 정보에서 작업 공간을 결정하며, 다른 작업 공간의 계정·콘텐츠를 조회하거나 발행에 사용할 수 없도록 접근을 분리합니다. 전송 구간에는 HTTPS를 사용합니다.</p>
       </LegalSection>
       <LegalSection title="6. 이용자의 권리">
         <p>이용자는 자신의 정보 조회·정정·삭제, 소셜 연결 해제, 분석 동의 철회를 요청할 수 있습니다. 대시보드에서 연결을 해제하거나 <a className="text-accent underline" href="/data-deletion">데이터 삭제 안내</a>에 따라 <a className="text-accent underline" href="mailto:code0to1@gmail.com">code0to1@gmail.com</a>으로 요청해 주세요.</p>
