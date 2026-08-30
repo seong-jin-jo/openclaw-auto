@@ -1,37 +1,36 @@
 ## 2026-08-31 04:00 KST Codex 실제 LLM 생성 연동 build 완료
 
-- 후보 3개와 글, 카드뉴스, 영상 파생을 실제 LLM 호출로 교체했다. 실패 시 템플릿 fallback은 없다.
-- 로컬 Studio 화면 생성 HTTP 201과 서로 다른 후보 3개, 영상 파생 HTTP 201과 실제 대본 및 장면, 사용량 token과 비용 장부를 관찰했다.
-- 운영 컨테이너의 Claude OAuth CLI JSON 호출도 성공했다. 임시 로컬 공유 AI 승인은 원상복구했다.
-- 전체 Vitest 207파일 1,554건, TypeScript, build 177/177, design lint 0을 통과했다.
-- 운영 배포와 운영 Studio UI 클릭은 미검증이다. 다음 행동은 커밋, push, QA 단계 재검증이다.
-- 구현과 증거는 `7fa3fb55`, `65b6abf6`로 커밋했다. 요청한 원격 push는 실행 정책이 승인 필요로 차단했으며 이 세션은 승인 요청이 금지돼 미실행이다.
-
-## 2026-08-31 KST Codex 실제 LLM 생성 연동 진행 중
-
-핸드오프 기준: 회장이 이 세션에 직접 전달한 실제 LLM 연동 과제와 `osmu-llm0831:0.0` pane. `osmu-gen0830`과 `osmu-edit0830`은 종료 기록만 확인했고 생성 로직 범위와 겹치지 않는다.
+핸드오프 기준: 회장이 이 세션에 직접 전달한 실제 LLM 연동 과제와 `osmu-llm0831:0.0` pane.
 
 ### 무엇을 어디까지 했나
 
-- `pipeline-state.osmu.md`의 실제 LLM 부재 게이트와 source-write 허용 범위를 확인했다.
-- 기존 구현과 QA tracker에서 후보 및 파생 생성이 고정 템플릿이라는 NG를 재확인했다.
-- 작업 범위는 `dashboard/src/lib/studio/generation/`의 생성 로직, 관련 계약 테스트, 증거 문서로 한정했다.
+- 후보 3개와 글, 카드뉴스, 영상 파생을 실제 LLM 호출로 교체했다. 실패 시 production 템플릿 fallback은 없다.
+- 모델, fallback, timeout, 재시도 상한을 설정으로 분리하고 사용량 장부에 model, attempt, token, 비용, 성공과 실패를 기록한다.
+- 구현과 증거는 `7fa3fb55`, `65b6abf6`, `77181ee2`로 커밋했다.
+- 상세 증거와 화면은 `docs/qa/생성-LLM-연동-2026-08-31.md`와 하위 captures에 있다.
 
 ### 남은 이슈·블로커
 
-- 실제 LLM 실행기, 사용량 기록, 실패 투명성, 후보와 파생 생성 연결은 아직 미구현이다.
-- 로컬 Claude Code OAuth 폴백과 운영 컨테이너의 `/root/.claude` 마운트는 아직 실호출 미검증이다.
+- 원격 push는 실행 정책이 별도 승인을 요구하지만 현재 세션은 승인 요청이 금지돼 미실행이다.
+- 운영 배포와 운영 Studio UI의 후보 및 파생 클릭은 미검증이다.
+- production build의 기존 NFT 추적 warning 1건은 유지됐다.
 
 ### 다음에 칠 명령
 
-1. 생성 로직 전체와 일곱 칸 학습 정보 계약을 읽고 테스트를 먼저 추가한다.
-2. Claude CLI 및 API provider 실행기와 사용량 기록을 구현한다.
-3. 로컬 앱 실호출, 전체 테스트, TypeScript, build, design lint를 검증한다.
+1. 실행 정책 승인이 가능한 컨트롤러가 `git push origin feat/design-system-and-missing-features`를 실행한다.
+2. QA 단계에서 운영 배포 전 실제 후보 생성, 영상 파생, 실패 화면, 사용량 장부를 다시 검증한다.
+3. QA 승인 전에는 merge와 운영 배포를 하지 않는다.
 
 ### 검증했나
 
-- 근거 확인: build source-write 허용, 기존 템플릿 경로, 다른 두 worker 종료 상태.
-- 미검증: 실제 LLM 응답, 화면, 전체 회귀, 운영 자격증명.
+- 관찰됨: 로컬 Studio 생성 클릭 HTTP 201, 서로 다른 후보 3개, 영상 파생 HTTP 201과 실제 대본 및 장면 구성.
+- 관찰됨: 운영 컨테이너 Claude OAuth CLI JSON 응답, token usage, 로컬 usage_events 비용 장부. 임시 로컬 공유 AI 승인은 원상복구했다.
+- 테스트됨: 전체 Vitest 207파일 1,554건, TypeScript, production build 177/177, design lint 0.
+- 미검증: 운영 배포, 운영 Studio UI.
+- 모델: gpt-codex/gpt-5.6-sol.
+- 벤치마크 소스 1: Anthropic Claude CLI 문서, https://docs.anthropic.com/en/docs/claude-code/cli-usage
+- 벤치마크 소스 2: Anthropic Messages API 문서, https://platform.claude.com/docs/en/api/typescript/messages
+- 벤치마크 소스 3: Anthropic structured outputs 문서, https://platform.claude.com/docs/en/build-with-claude/structured-outputs
 
 ## 2026-08-30 23:10 KST Codex 학습 정보·생성실 build 완료, push 정책 차단
 
