@@ -3483,3 +3483,14 @@
 {"ts":"2026-08-30T13:25:17Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
 {"ts":"2026-08-30T13:25:18Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
 {"ts":"2026-08-30T13:25:18Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-30T13:33:17Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-30T13:36:18Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-30T13:50:23Z","hook":"secret-leak-check","status":"pass","detail":"no secrets"}
+{"ts":"2026-08-30T13:58:36Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-30T14:00:25Z","hook":"secret-leak-check","status":"pass","detail":"no secrets"}
+{"ts":"2026-08-30T14:07:44Z","hook":"secret-leak-check","status":"pass","detail":"no secrets"}
+{"ts":"2026-08-30T14:16:14Z","hook":"secret-leak-check","status":"pass","detail":"no secrets"}
+{"ts":"2026-08-30T14:17:01Z","hook":"secret-leak-check","status":"pass","detail":"no secrets"}
+{"ts":"2026-08-30T18:28:06Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-08-30T18:28:07Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-08-30T18:28:07Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
