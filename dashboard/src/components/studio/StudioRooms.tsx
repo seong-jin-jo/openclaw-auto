@@ -5,7 +5,16 @@ import { Button } from "@/components/shared/Button";
 import { EditPreview } from "./EditPreview";
 import { Field } from "@/components/shared/Field";
 import { Stack } from "@/components/shared/Stack";
-import { regenerateStudioCandidates, requestStudioCandidates, type StudioGenerationCandidate } from "@/lib/studio/generation/client";
+import {
+  discardStudioDerivations,
+  quoteStudioDerivations,
+  regenerateStudioCandidates,
+  requestStudioCandidates,
+  requestStudioDerivations,
+  type StudioDerivationBatch,
+  type StudioDerivationQuote,
+  type StudioGenerationCandidate,
+} from "@/lib/studio/generation/client";
 import { getAuthToken } from "@/lib/auth";
 import {
   CARD_ASPECT_RATIOS,
@@ -108,6 +117,9 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
   const [candidates, setCandidates] = useState<StudioGenerationCandidate[]>([]);
   const [selected, setSelected] = useState<"A" | "B" | "C" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [alsoQuote, setAlsoQuote] = useState<StudioDerivationQuote | null>(null);
+  const [alsoBatch, setAlsoBatch] = useState<StudioDerivationBatch | null>(null);
+  const [alsoBusy, setAlsoBusy] = useState(false);
   const generationInFlight = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const facts = useMemo(() => guide.trim() ? [guide.trim()] : [], [guide]);
@@ -212,6 +224,50 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
   function choose(candidate: StudioGenerationCandidate) {
     setSelected(candidate.label);
     onCandidateSelect(candidate);
+  }
+
+  // 같이 만들 갈래를 고른 채로 후보를 고르면, 확정을 누르기 전에 값을 먼저 보여 준다.
+  // 값을 못 본 상태에서는 확정 단추가 뜨지 않으므로 조용히 나가는 경로가 없다.
+  useEffect(() => {
+    const jobId = candidates[0]?.generation_id;
+    if (!selectedCandidate || !jobId || alsoKinds.length === 0) { setAlsoQuote(null); return; }
+    let live = true;
+    quoteStudioDerivations(jobId, alsoKinds, getAuthToken())
+      .then((quote) => { if (live) setAlsoQuote(quote); })
+      .catch(() => { if (live) setAlsoQuote(null); });
+    return () => { live = false; };
+  }, [selectedCandidate, alsoKinds, candidates]);
+
+  async function confirmAlsoKinds() {
+    const jobId = candidates[0]?.generation_id;
+    if (!jobId || !selectedCandidate || !alsoQuote) return;
+    setAlsoBusy(true);
+    setError(null);
+    try {
+      setAlsoBatch(await requestStudioDerivations({
+        jobId,
+        candidateId: selectedCandidate.candidate_id,
+        kinds: alsoKinds,
+        acknowledgedCost: { currency: alsoQuote.currency, totalMinor: alsoQuote.total_minor },
+        token: getAuthToken(),
+      }));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "같이 만들기에 실패했습니다");
+    } finally {
+      setAlsoBusy(false);
+    }
+  }
+
+  async function discardAlso() {
+    if (!alsoBatch) return;
+    setAlsoBusy(true);
+    try {
+      setAlsoBatch(await discardStudioDerivations(alsoBatch.batch_id, getAuthToken()));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "파생물을 버리지 못했습니다");
+    } finally {
+      setAlsoBusy(false);
+    }
   }
 
   const kindHeading = primaryKind ? `${CREATE_KIND_LABELS[primaryKind]}을 이런 결로 만들어 드립니다` : "이런 결로 만들어 드립니다";
@@ -333,6 +389,39 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
               {candidates.map((candidate) => <Button key={candidate.label} variant="secondary" onClick={() => choose(candidate)}>{candidate.label}안 선택</Button>)}
               <Button onClick={regenerateAll} disabled={loading}>{loading ? "다시 만드는 중" : "모두 거절하고 무료로 다시 만들기"}</Button>
             </> : null}
+            {selectedCandidate && alsoQuote && !alsoBatch ? (
+              <div className="space-y-stack rounded-surface border border-border bg-surface p-stack" data-create-also-confirm>
+                <b className="block text-caption font-semibold text-text">이 주제로 같이 만들 것</b>
+                <ul className="space-y-stack-tight">
+                  {alsoQuote.lines.map((line) => (
+                    <li key={line.kind} className="flex justify-between text-caption text-muted">
+                      <span>{line.label}</span>
+                      <span>{line.unit_minor.toLocaleString("ko-KR")}원</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="flex justify-between border-t border-border pt-stack-tight text-caption font-semibold text-text" data-also-total-minor={alsoQuote.total_minor}>
+                  <span>확정하면 나가는 값</span>
+                  <span>{alsoQuote.total_minor.toLocaleString("ko-KR")}원</span>
+                </p>
+                <p className="break-keep text-caption text-subtle">무료로 다시 만드는 몫과는 따로 셉니다. 만들지 못한 갈래는 값을 매기지 않습니다</p>
+                <Button variant="primary" onClick={confirmAlsoKinds} disabled={alsoBusy}>{alsoBusy ? "같이 만드는 중" : "확정하고 같이 만들기"}</Button>
+              </div>
+            ) : null}
+            {alsoBatch ? (
+              <div className="space-y-stack rounded-surface border border-border bg-surface p-stack" data-create-also-result={alsoBatch.status}>
+                <b className="block text-caption font-semibold text-text">{alsoBatch.discarded_at ? "같이 만든 것을 버렸습니다" : "같이 만든 것"}</b>
+                <ul className="space-y-stack-tight">
+                  {alsoBatch.items.map((item) => (
+                    <li key={item.kind} className="break-keep text-caption text-muted" data-also-item={item.kind} data-also-item-status={item.status}>
+                      {item.label}: {item.status === "succeeded" ? "편집실에 넣었습니다" : `만들지 못했습니다. ${item.failure_reason ?? ""}`}
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-caption text-subtle">나간 값 {alsoBatch.cost.charged_minor.toLocaleString("ko-KR")}원</p>
+                {alsoBatch.discarded_at ? null : <Button onClick={discardAlso} disabled={alsoBusy}>같이 만든 것 버리기</Button>}
+              </div>
+            ) : null}
             {selectedCandidate ? <Stack gap={8}><Button variant="primary" onClick={onOpenEditor}>편집실로 이동</Button><Button onClick={() => setSelected(null)}>후보 다시 보기</Button></Stack> : null}
             {error ? <p role="alert" className="text-caption text-danger">{error}</p> : null}
           </Stack>

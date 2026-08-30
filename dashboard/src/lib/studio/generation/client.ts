@@ -121,3 +121,97 @@ export async function regenerateStudioCandidates(jobId: string, token: string): 
   if (replacement.candidates.length !== 3) throw new Error("Studio가 대체 후보 세 장을 반환하지 않았습니다");
   return replacement.candidates.map((candidate) => ({ ...candidate, generation_id: replacement.job_id }));
 }
+
+export type StudioDerivationKind = "text" | "card" | "video";
+
+export interface StudioDerivationQuote {
+  currency: string;
+  total_minor: number;
+  lines: Array<{ kind: StudioDerivationKind; label: string; unit_minor: number }>;
+  assumptions: string[];
+}
+
+export interface StudioDerivationBatch {
+  batch_id: string;
+  job_id: string;
+  candidate_id: string;
+  status: "succeeded" | "partially_succeeded" | "failed";
+  cost: {
+    currency: string;
+    quoted_minor: number;
+    charged_minor: number;
+    free_regeneration_consumed: boolean;
+  };
+  items: Array<{
+    kind: StudioDerivationKind;
+    label: string;
+    status: "succeeded" | "failed";
+    draft_id: string | null;
+    handoff_id: string | null;
+    summary: string;
+    charged_minor: number;
+    failure_reason: string | null;
+  }>;
+  discarded_at: string | null;
+}
+
+// 확정 전에 값을 먼저 받아 화면에 보인다. 회원이 이 값을 보고 확정을 눌러야
+// 아래 requestStudioDerivations 가 같은 값을 함께 보내 서버 검사를 통과한다.
+export async function quoteStudioDerivations(
+  jobId: string,
+  kinds: readonly StudioDerivationKind[],
+  token: string,
+): Promise<StudioDerivationQuote> {
+  const authorization = required(token, "Studio 인증");
+  const query = kinds.length ? `?kinds=${kinds.join(",")}` : "";
+  const response = await fetch(
+    `/api/studio/v1/generations/${encodeURIComponent(required(jobId, "기존 생성 작업"))}/derivations${query}`,
+    { headers: { Authorization: `Bearer ${authorization}` } },
+  );
+  const body = await response.json() as { data?: { quote: StudioDerivationQuote }; error?: { message?: string } };
+  if (!response.ok || !body.data) throw new Error(body.error?.message || "값을 불러오지 못했습니다");
+  return body.data.quote;
+}
+
+export async function requestStudioDerivations(input: {
+  jobId: string;
+  candidateId: string;
+  kinds: readonly StudioDerivationKind[];
+  acknowledgedCost: { currency: string; totalMinor: number };
+  token: string;
+}): Promise<StudioDerivationBatch> {
+  const authorization = required(input.token, "Studio 인증");
+  const response = await fetch(
+    `/api/studio/v1/generations/${encodeURIComponent(required(input.jobId, "기존 생성 작업"))}/derivations`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${authorization}`,
+        "Content-Type": "application/json",
+        "Idempotency-Key": crypto.randomUUID(),
+      },
+      body: JSON.stringify({
+        candidate_id: input.candidateId,
+        kinds: input.kinds,
+        acknowledged_cost: {
+          currency: input.acknowledgedCost.currency,
+          total_minor: input.acknowledgedCost.totalMinor,
+        },
+      }),
+    },
+  );
+  const body = await response.json() as { data?: StudioDerivationBatch; error?: { message?: string } };
+  if (!body.data) throw new Error(body.error?.message || "같이 만들기에 실패했습니다");
+  return body.data;
+}
+
+export async function discardStudioDerivations(batchId: string, token: string): Promise<StudioDerivationBatch> {
+  const authorization = required(token, "Studio 인증");
+  const response = await fetch(`/api/studio/v1/derivations/${encodeURIComponent(required(batchId, "파생 작업"))}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${authorization}` },
+  });
+  const body = await response.json() as { data?: StudioDerivationBatch; error?: { message?: string } };
+  if (!response.ok || !body.data) throw new Error(body.error?.message || "파생물을 버리지 못했습니다");
+  return body.data;
+}

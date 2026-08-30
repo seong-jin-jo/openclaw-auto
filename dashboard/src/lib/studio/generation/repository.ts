@@ -1,4 +1,9 @@
 import { db, withTenant } from "@/lib/db";
+import type { DerivationBatch, DerivationItem } from "./derivation";
+import type {
+  PersistDerivationInput,
+  PersistedDerivation,
+} from "./service";
 import type {
   GenerationJob,
   GenerationRepository,
@@ -122,7 +127,112 @@ async function insertJob(sql: Sql, job: GenerationJob): Promise<void> {
        ${job.timeZone}, ${json(job.request)}, ${job.createdAt})`;
 }
 
+type DerivationRow = {
+  id: string;
+  tenant_id: string;
+  job_id: string;
+  candidate_id: string;
+  status: DerivationBatch["status"];
+  currency: string;
+  quoted_minor: number;
+  charged_minor: number;
+  items: DerivationItem[];
+  created_at: Date | string;
+  discarded_at: Date | string | null;
+};
+
+function timestamp(value: Date | string | null): string | null {
+  if (value === null) return null;
+  return value instanceof Date ? value.toISOString() : value;
+}
+
+function rowToBatch(row: DerivationRow): DerivationBatch {
+  return {
+    batchId: row.id,
+    jobId: row.job_id,
+    candidateId: row.candidate_id,
+    status: row.status,
+    currency: row.currency,
+    quotedMinor: Number(row.quoted_minor),
+    chargedMinor: Number(row.charged_minor),
+    items: row.items,
+    createdAt: timestamp(row.created_at)!,
+    discardedAt: timestamp(row.discarded_at),
+  };
+}
+
 export class PostgresGenerationRepository implements GenerationRepository {
+  async persistDerivation(input: PersistDerivationInput): Promise<PersistedDerivation> {
+    const { batch } = input;
+    const selectExisting = async (sql: Sql) => {
+      const [row] = await sql<(DerivationRow & { request_hash: string })[]>`
+        SELECT id, tenant_id, job_id, candidate_id, status, currency, quoted_minor,
+               charged_minor, items, created_at, discarded_at, request_hash
+        FROM studio_derivation_batches
+        WHERE tenant_id = ${input.workspaceId}
+          AND member_id = ${input.memberId}
+          AND idempotency_key = ${input.idempotencyKey}
+        LIMIT 1`;
+      return row;
+    };
+    try {
+      return await generationTransaction(input.workspaceId, async (sql) => {
+        const existing = await selectExisting(sql);
+        if (existing) {
+          return { created: false, requestHash: existing.request_hash, batch: rowToBatch(existing) };
+        }
+        await sql`
+          INSERT INTO studio_derivation_batches
+            (id, tenant_id, member_id, job_id, candidate_id, idempotency_key, request_hash,
+             status, currency, quoted_minor, charged_minor, items, response_payload, created_at)
+          VALUES
+            (${batch.batchId}, ${input.workspaceId}, ${input.memberId}, ${batch.jobId},
+             ${batch.candidateId}, ${input.idempotencyKey}, ${input.requestHash},
+             ${batch.status}, ${batch.currency}, ${batch.quotedMinor}, ${batch.chargedMinor},
+             ${sql.json(batch.items as Parameters<typeof sql.json>[0])},
+             ${sql.json(batch as unknown as Parameters<typeof sql.json>[0])}, ${batch.createdAt})`;
+        return { created: true, requestHash: input.requestHash, batch };
+      });
+    } catch (error) {
+      if (postgresCode(error) === "23505") {
+        const existing = await generationTransaction(input.workspaceId, selectExisting);
+        if (existing) return { created: false, requestHash: existing.request_hash, batch: rowToBatch(existing) };
+      }
+      throw mapGenerationDatabaseError(error);
+    }
+  }
+
+  async findDerivation(
+    memberId: string,
+    batchId: string,
+    allowedWorkspaceIds: readonly string[],
+  ): Promise<{ batch: DerivationBatch; workspaceId: string } | null> {
+    for (const workspaceId of allowedWorkspaceIds) {
+      const [row] = await generationTransaction(workspaceId, (sql) => sql<DerivationRow[]>`
+        SELECT id, tenant_id, job_id, candidate_id, status, currency, quoted_minor,
+               charged_minor, items, created_at, discarded_at
+        FROM studio_derivation_batches
+        WHERE tenant_id = ${workspaceId} AND member_id = ${memberId} AND id = ${batchId}
+        LIMIT 1`);
+      if (row) return { batch: rowToBatch(row), workspaceId };
+    }
+    return null;
+  }
+
+  async markDerivationDiscarded(workspaceId: string, batchId: string, at: string): Promise<DerivationBatch | null> {
+    try {
+      const [row] = await generationTransaction(workspaceId, (sql) => sql<DerivationRow[]>`
+        UPDATE studio_derivation_batches
+        SET discarded_at = COALESCE(discarded_at, ${at}::timestamptz)
+        WHERE tenant_id = ${workspaceId} AND id = ${batchId}
+        RETURNING id, tenant_id, job_id, candidate_id, status, currency, quoted_minor,
+                  charged_minor, items, created_at, discarded_at`);
+      return row ? rowToBatch(row) : null;
+    } catch (error) {
+      throw mapGenerationDatabaseError(error);
+    }
+  }
+
   async persistCreation(input: PersistCreationInput): Promise<PersistedCreation> {
     const selectExisting = async (sql: Sql) => {
       const [existing] = await sql<IdempotencyRow[]>`

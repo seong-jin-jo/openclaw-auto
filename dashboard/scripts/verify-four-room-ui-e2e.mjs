@@ -17,6 +17,13 @@ if (!operatorToken) throw new Error("DASHBOARD_AUTH_TOKEN이 필요합니다");
 if (!fs.existsSync(settingsPath)) throw new Error(`첫 사용자 설정 파일이 없습니다: ${settingsPath}`);
 
 const widths = [390, 768, 1024, 1440];
+// 좁은 폭(390)과 어두운 화면은 QA가 넓은 화면·밝은 화면으로만 검증하고 넘어가기 쉽다
+// (2026-08-30 회장 지적: "390 폭과 어두운 화면을 아무도 안 봤다"). 테마는 라이트 기본값
+// 하나만으로는 가로 넘침·잘림이 안 잡히므로, 390 폭에서는 다크 모드도 같이 돈다.
+// 테마 전환은 media query가 아니라 <html data-theme> + localStorage('theme')로 이뤄진다
+// (src/app/layout.tsx FOUC 스크립트, src/components/layout/ThemeToggle.tsx) — colorScheme
+// 컨텍스트 옵션만으로는 실제 다크 렌더가 걸리지 않는다.
+const narrowDarkWidth = 390;
 const roomContracts = [
   { key: "create", label: "생성실", href: "/studio?room=create", selector: '[data-room="create"]' },
   { key: "edit", label: "편집실", href: "/studio?room=edit", selector: '[data-room="edit"]' },
@@ -78,7 +85,8 @@ async function clickRoom(page, width, room) {
   await page.locator(room.selector).waitFor({ state: "visible", timeout: 30000 });
 }
 
-async function measureRoom(page, width, room) {
+async function measureRoom(page, width, room, theme = "light") {
+  const tag = `${width}/${theme} ${room.label}`;
   if (room.key === "performance") {
     await page.waitForFunction(() => Number(document.querySelector("[data-perf-suggestions]")?.getAttribute("data-perf-suggestions") || 0) >= 3);
   }
@@ -98,14 +106,17 @@ async function measureRoom(page, width, room) {
       nextActionVisible: firstAction instanceof HTMLElement && firstAction.offsetParent !== null,
       suggestionCount: Number(document.querySelector("[data-perf-suggestions]")?.getAttribute("data-perf-suggestions") || 0),
       inlineOnboarding: document.querySelector('[data-onboarding-mode="inline"]') instanceof HTMLElement,
+      appliedTheme: document.documentElement.getAttribute("data-theme"),
+      bodyBackground: getComputedStyle(document.body).backgroundColor,
     };
   }, room.key);
-  if (metrics.documentWidth > width + 1) throw new Error(`${width} ${room.label} 가로 넘침 ${metrics.documentWidth}/${width}`);
-  if (metrics.fullScreenOverlay) throw new Error(`${width} ${room.label} 전체 화면 모달이 길을 막습니다`);
-  if (!metrics.nextActionVisible) throw new Error(`${width} ${room.label} 다음 행동이 보이지 않습니다`);
-  if (room.key === "performance" && metrics.suggestionCount < 3) throw new Error(`${width} 성과실 방향 제안이 ${metrics.suggestionCount}건입니다`);
-  observations.push({ width, room: room.key, path: new URL(page.url()).pathname + new URL(page.url()).search, ...metrics });
-  await page.screenshot({ path: path.join(outputDir, `${width}-${room.key}.png`), fullPage: true });
+  if (metrics.documentWidth > width + 1) throw new Error(`${tag} 가로 넘침 ${metrics.documentWidth}/${width}`);
+  if (metrics.fullScreenOverlay) throw new Error(`${tag} 전체 화면 모달이 길을 막습니다`);
+  if (!metrics.nextActionVisible) throw new Error(`${tag} 다음 행동이 보이지 않습니다`);
+  if (room.key === "performance" && metrics.suggestionCount < 3) throw new Error(`${tag} 방향 제안이 ${metrics.suggestionCount}건입니다`);
+  if (metrics.appliedTheme !== theme) throw new Error(`${tag} 테마가 적용 안 됨: data-theme=${metrics.appliedTheme} (기대 ${theme})`);
+  observations.push({ width, theme, room: room.key, path: new URL(page.url()).pathname + new URL(page.url()).search, ...metrics });
+  await page.screenshot({ path: path.join(outputDir, `${width}-${theme}-${room.key}.png`), fullPage: true });
 }
 
 try {
@@ -122,33 +133,40 @@ try {
 
   browser = await chromium.launch({ executablePath, headless: true });
   for (const width of widths) {
-    const context = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : width === 768 ? 1024 : 1200 } });
-    await context.addInitScript(({ token, workspace }) => {
-      localStorage.setItem("dashboard_auth_token", token);
-      localStorage.setItem("active_workspace", JSON.stringify({ id: workspace, slug: "qa-four-room", name: "네 방 검증 작업 공간", tier: "team" }));
-    }, { token: issuedBody.token, workspace: workspaceId });
-    const page = await context.newPage();
-    page.on("pageerror", (error) => consoleErrors.push(`${width}: ${error.message}`));
-    page.on("console", (message) => { if (message.type() === "error") consoleErrors.push(`${width}: ${message.text()}`); });
-    page.on("response", (response) => { if (response.status() === 401) unauthorizedUrls.push(`${width}: ${response.url()}`); });
+    // 390 폭은 라이트+다크 둘 다, 그 외 폭은 라이트만(마찰 대비 최소 범위 확대).
+    const themes = width === narrowDarkWidth ? ["light", "dark"] : ["light"];
+    for (const theme of themes) {
+      const context = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : width === 768 ? 1024 : 1200 } });
+      await context.addInitScript(({ token, workspace, mode }) => {
+        localStorage.setItem("dashboard_auth_token", token);
+        localStorage.setItem("active_workspace", JSON.stringify({ id: workspace, slug: "qa-four-room", name: "네 방 검증 작업 공간", tier: "team" }));
+        localStorage.setItem("theme", mode);
+      }, { token: issuedBody.token, workspace: workspaceId, mode: theme });
+      const page = await context.newPage();
+      const tag = `${width}/${theme}`;
+      page.on("pageerror", (error) => consoleErrors.push(`${tag}: ${error.message}`));
+      page.on("console", (message) => { if (message.type() === "error") consoleErrors.push(`${tag}: ${message.text()}`); });
+      page.on("response", (response) => { if (response.status() === 401) unauthorizedUrls.push(`${tag}: ${response.url()}`); });
 
-    await page.goto(`${baseUrl}/studio?room=create`, { waitUntil: "networkidle", timeout: 60000 });
-    for (const room of roomContracts) {
-      await clickRoom(page, width, room);
-      await measureRoom(page, width, room);
+      await page.goto(`${baseUrl}/studio?room=create`, { waitUntil: "networkidle", timeout: 60000 });
+      for (const room of roomContracts) {
+        await clickRoom(page, width, room);
+        await measureRoom(page, width, room, theme);
+      }
+
+      await clickRoom(page, width, roomContracts[0]);
+      if (!await page.locator('[data-room="create"]').isVisible()) throw new Error(`${tag} 성과실에서 생성실로 돌아가지 못했습니다`);
+      observations.push({ width, theme, room: "performance-to-create", path: new URL(page.url()).pathname + new URL(page.url()).search, navigated: true });
+      await context.close();
     }
-
-    await clickRoom(page, width, roomContracts[0]);
-    if (!await page.locator('[data-room="create"]').isVisible()) throw new Error(`${width} 성과실에서 생성실로 돌아가지 못했습니다`);
-    observations.push({ width, room: "performance-to-create", path: new URL(page.url()).pathname + new URL(page.url()).search, navigated: true });
-    await context.close();
   }
 
   if (consoleErrors.length) throw new Error(`브라우저 콘솔 오류 ${consoleErrors.length}건: ${consoleErrors.slice(0, 3).join(" | ")}`);
   if (unauthorizedUrls.length) throw new Error(`브라우저 401 ${unauthorizedUrls.length}건: ${unauthorizedUrls.slice(0, 3).join(" | ")}`);
   fs.writeFileSync(path.join(outputDir, "observations.json"), JSON.stringify({ workspaceId, widths, observations, consoleErrors, unauthorizedUrls }, null, 2));
-  console.log(`PASS 네 방 ${roomContracts.length}개 x ${widths.length}폭, 성과실 왕복 ${widths.length}건`);
-  console.log(`PASS 전체 화면 모달 0건, 브라우저 401 0건, 콘솔 오류 0건`);
+  const totalRuns = observations.filter((entry) => entry.room !== "performance-to-create").length;
+  console.log(`PASS 네 방 ${roomContracts.length}개 x ${widths.length}폭(390은 라이트+다크), 총 ${totalRuns}회 측정`);
+  console.log(`PASS 가로 넘침 0px, 전체 화면 모달 0건, 브라우저 401 0건, 콘솔 오류 0건, 390 다크 테마 미적용 0건`);
   console.log(`CAPTURES ${outputDir}`);
 } finally {
   fs.writeFileSync(settingsPath, originalSettings);
