@@ -421,6 +421,14 @@ function positiveExpiresIn(value: unknown): number | undefined {
   return Number.isFinite(seconds) && seconds > 0 ? Math.floor(seconds) : undefined;
 }
 
+// Meta 토큰 교환 실패 사유 문자열. provider가 준 message와 HTTP status를 함께 남겨야
+// 운영 로그에서 원인(자격증명 / 권한 / 만료 / 응답 형식)을 가를 수 있다. client_secret 등
+// 우리 비밀값은 여기 절대 들어가지 않는다(응답 본문과 status만 사용).
+function metaExchangeError(step: string, status: number, detail?: string): string {
+  const tail = detail ? `: ${String(detail).slice(0, 160)}` : "";
+  return `${step} 실패 (HTTP ${status})${tail}`;
+}
+
 // code → 토큰 교환. Instagram·Threads는 단기→장기 2단계. 표준 OAuth 채널은 단일 교환.
 // options.codeVerifier: PKCE 채널(X, TikTok)은 callback이 쿠키에서 꺼내 전달.
 // fetch 주입 가능(테스트).
@@ -497,23 +505,34 @@ export async function exchangeCode(
     }).toString(),
   });
   const lastText = await shortRes.text();
-  let short: { access_token?: string; user_id?: string; error_message?: string } = {};
+  let short: { access_token?: string; user_id?: string; error_message?: string; error?: { message?: string } } = {};
   try { short = JSON.parse(lastText); } catch { short = {}; }
   if (!shortRes.ok || !short.access_token) {
-    return { accessToken: "", error: short.error_message || "단기 토큰 교환 실패" };
+    // Meta는 두 가지 오류 형태를 섞어 쓴다: Instagram Basic Display 계열의 {error_message}와
+    // Graph 계열의 {error:{message}}. 후자를 못 읽어서 "단기 토큰 교환 실패"라는 사유 없는
+    // 문자열만 남던 것을 고친다(2026-08-30 threads 재연결 실패 추적).
+    return {
+      accessToken: "",
+      error: metaExchangeError("단기 토큰 교환", shortRes.status, short.error_message || short.error?.message),
+    };
   }
   // 2) 장기 토큰(60일)
   const longRes = await f(
     `${p.longTokenUrl}?grant_type=${p.longGrant}&client_secret=${encodeURIComponent(clientSecret)}&access_token=${encodeURIComponent(short.access_token)}`,
   );
   const longText = await longRes.text();
-  let long: { access_token?: string; expires_in?: number | string } = {};
+  let long: { access_token?: string; expires_in?: number | string; error?: { message?: string }; error_message?: string } = {};
   try { long = JSON.parse(longText); } catch { long = {}; }
   const expiresInSeconds = positiveExpiresIn(long.expires_in);
   // 단기 토큰으로 폴백하면 연결 직후만 성공하고 곧 실패하면서 active가 남는다.
   // 장기 토큰과 만료시각 둘 다 확인된 경우에만 콜백이 저장하도록 fail-closed한다.
   if (!longRes.ok || !long.access_token || !expiresInSeconds) {
-    return { accessToken: "", error: `${p.label} 장기 토큰 교환 실패` };
+    // 이전 버전은 provider 응답을 통째로 버리고 `${label} 장기 토큰 교환 실패`만 남겼다.
+    // 그래서 운영 로그만으로는 "앱 자격증명 문제인지 / 권한 문제인지 / expires_in 누락인지"를
+    // 가릴 수 없었다(2026-08-30 threads 재연결 실패). 사유를 반드시 실어 보낸다.
+    const detail = long.error?.message || long.error_message
+      || (longRes.ok && long.access_token && !expiresInSeconds ? "응답에 expires_in 없음" : undefined);
+    return { accessToken: "", error: metaExchangeError(`${p.label} 장기 토큰 교환`, longRes.status, detail) };
   }
   return {
     accessToken: long.access_token,
