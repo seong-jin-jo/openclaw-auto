@@ -10,18 +10,24 @@
 - 실제 생성은 여전히 LLM이 아니라 규칙 기반 구조 초안 3개다. 화면이 이를 `현재 제공`과 `준비 중`으로 분리해 완성 미디어가 나오는 것처럼 말하지 않게 했다.
 - 코드와 테스트 11파일을 다섯 커밋으로 묶었다: `7441ea74`, `37d4ec33`, `97dd29ad`, `c785d934`, `35a5dff7`. 증거 문서와 캡처는 `603c652e`에 묶었다.
 
+### 남은 이슈·블로커
+
+- 실제 LLM, 완성 영상, 카드뉴스 이미지, 완성 글 생성은 미구현이다. 현재 화면은 규칙 기반 구조 초안 3개만 제공한다고 명시한다.
+- 운영 배포와 운영 고객의 동일 19항목 재검증은 수행하지 않았다.
+- `git push origin feat/design-system-and-missing-features`는 저장소 실행 정책이 별도 승인을 요구하지만 현재 세션은 승인 요청이 금지돼 차단됐다. 로컬 브랜치는 원격보다 앞선 상태다.
+
+### 다음에 칠 명령
+
+1. push 권한이 있는 세션에서 `git push origin feat/design-system-and-missing-features`를 실행한다.
+2. QA 단계에서 운영 배포 전 동일 19항목을 캡처 기준으로 재검증한다.
+
 ### 검증했나
 
 - 테스트됨: 전체 Vitest 206파일, 1,550건 통과, 조건부 1건 제외.
 - 테스트됨: TypeScript 종료 코드 0, Web production build 정적 페이지 177/177, UI token audit 0, design lint 0. 기존 NFT 추적 경고 1건은 유지됐다.
 - 관찰됨: localhost 3456, 지정 작업 공간, 학습 정보 자동 팝업부터 generation POST 201과 후보 3개까지 캡처 5장. 브라우저 401과 콘솔 오류 0건.
 - 미검증: 운영 배포, 운영 고객 흐름, 실제 LLM과 완성 영상·카드 이미지·완성 글 생성.
-- 차단됨: `git push origin feat/design-system-and-missing-features`는 저장소 실행 정책이 별도 승인을 요구했지만 현재 세션은 승인 요청이 금지돼 실행되지 않았다. 로컬 브랜치는 원격보다 9개 커밋 앞선 상태다.
-
-### 다음 액션
-
-1. push 권한이 있는 세션에서 `git push origin feat/design-system-and-missing-features`를 실행한다.
-2. QA 단계에서 운영 배포 전 동일 19항목을 캡처 기준으로 재검증한다.
+- 차단됨: 원격 push는 실행되지 않았다.
 
 ## 2026-08-30 23:09 KST Codex 편집실·발행실 build 회수 대기
 
