@@ -3508,3 +3508,4 @@
 {"ts":"2026-08-30T21:05:03Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
 {"ts":"2026-08-30T21:05:08Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI QA 검증 전문가다.\n'코드 작성 = 동�"}
 {"ts":"2026-08-30T21:05:08Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI QA 검증 전문가다.\n'코드 작성 = 동�"}
+{"ts":"2026-08-30T21:25:18Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
