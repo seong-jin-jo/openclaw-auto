@@ -329,7 +329,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
           <section className="card min-w-0 p-pad-inset xl:col-span-2" aria-labelledby="create-display-title">
             <div className="mb-stack flex items-center justify-between border-b border-border pb-stack">
               <b id="create-display-title" className="text-body text-text">{selectedCandidate ? "선택한 구조 초안" : candidates.length ? "주제별 구조 초안 3개" : kindHeading}</b>
-              <span className="text-caption text-subtle">{selectedCandidate ? `${selectedCandidate.label} 구조` : candidates.length ? "규칙 기반 초안" : "구성 방식 예시"}</span>
+              <span className="text-caption text-subtle">{selectedCandidate ? `${selectedCandidate.label} 구조` : candidates.length ? "학습 정보 기반 초안" : "구성 방식 예시"}</span>
             </div>
             <div className="grid gap-stack" data-create-candidate-deck>
               {displayCandidates.filter((candidate) => !selectedCandidate || candidate.label === selectedCandidate.label).map((candidate) => {
@@ -364,13 +364,13 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
         <AssistantPanel title="생성 담당">
           <Stack gap={16}>
             <div className="max-w-[90%] rounded-surface rounded-tl-control border border-border bg-surface p-stack text-body-sm text-text" data-empty-next={!candidates.length ? "create" : undefined}>
-              {selectedCandidate ? "구조 초안이 준비됐습니다. 완성 영상, 카드뉴스 이미지, 완성 글 생성은 아직 지원하지 않습니다." : candidates.length ? "A, B, C 구조 중 편집할 초안을 하나 골라 주세요." : "한 번에 하나씩 묻겠습니다. 선택한 답은 다음 질문에 반영됩니다."}
+              {selectedCandidate ? "구조 초안이 준비됐습니다. 영상은 대본과 장면 구성까지만 제공하며 렌더링은 아직 지원하지 않습니다." : candidates.length ? "A, B, C 구조 중 편집할 초안을 하나 골라 주세요." : "한 번에 하나씩 묻겠습니다. 선택한 답은 다음 질문에 반영됩니다."}
             </div>
             <div className="rounded-control border border-border bg-surface-2 p-stack text-caption text-muted" data-generation-capability>
               <b className="block text-text">현재 제공</b>
-              <span className="block">주제에 맞춘 규칙 기반 구성 초안 3개</span>
+              <span className="block">일곱 칸 학습 정보를 반영한 구성 초안 3개</span>
               <b className="mt-stack-tight block text-text">준비 중</b>
-              <span className="block">완성 영상, 카드뉴스 이미지, 완성 글 생성</span>
+              <span className="block">영상 렌더링, 카드뉴스 이미지 생성</span>
             </div>
             {!candidates.length ? <>
               <div className="space-y-stack rounded-surface border border-border bg-surface p-stack" data-create-question={question}>
@@ -468,7 +468,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
                 <ul className="space-y-stack-tight">
                   {alsoBatch.items.map((item) => (
                     <li key={item.kind} className="break-keep text-caption text-muted" data-also-item={item.kind} data-also-item-status={item.status}>
-                      {item.label}: {item.status === "succeeded" ? "구성 초안을 준비했습니다" : `구성 초안을 만들지 못했습니다. ${item.failure_reason ?? ""}`}
+                      {item.label}: {item.status === "succeeded" ? (item.kind === "video" ? "대본과 장면 구성을 준비했습니다. 영상 렌더링은 아직 제공하지 않습니다" : "구성 초안을 준비했습니다") : `구성 초안을 만들지 못했습니다. ${item.failure_reason ?? ""}`}
                     </li>
                   ))}
                 </ul>

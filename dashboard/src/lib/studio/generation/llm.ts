@@ -190,6 +190,7 @@ function requiredText(value: unknown, min: number, max: number): string {
   if (typeof value !== "string") throw new StudioLlmExecutionError("invalid_output", true);
   const normalized = value.trim();
   if (normalized.length < min || normalized.length > max) throw new StudioLlmExecutionError("invalid_output", true);
+  if (/[\u2014\u2013]/.test(normalized)) throw new StudioLlmExecutionError("invalid_output", true);
   return normalized;
 }
 

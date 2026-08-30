@@ -111,7 +111,7 @@ describe("생성실 (회장: 오늘 만들 수 있는 것이 뭐하는 예시이
 
     expect(screen.queryByText("오늘 만들 수 있는 것")).toBeNull();
     expect(screen.getByText("콘텐츠 구성 초안 예시")).toBeInTheDocument();
-    expect(screen.getByText("완성 영상, 카드뉴스 이미지, 완성 글 생성")).toBeInTheDocument();
+    expect(screen.getByText("영상 렌더링, 카드뉴스 이미지 생성")).toBeInTheDocument();
   });
 
   it("CHAIR-CREATE-02 정상: 만들 형식을 한 질문에서 중복 없이 여러 개 고른다", () => {

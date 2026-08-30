@@ -118,7 +118,7 @@ describe("회장 2차 실사용 피드백 생성실", () => {
     fireEvent.click(screen.getByRole("button", { name: "구조 초안 3개 보기" }));
     await screen.findByRole("button", { name: "A 구조 초안 선택" });
     fireEvent.click(screen.getByRole("button", { name: "A 구조 초안 선택" }));
-    expect(screen.getByText(/완성 영상, 카드뉴스 이미지, 완성 글 생성은 아직 지원하지 않습니다/)).toBeInTheDocument();
+    expect(screen.getByText(/영상은 대본과 장면 구성까지만 제공하며 렌더링은 아직 지원하지 않습니다/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "선택한 구조 초안을 편집실에서 보기" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /확정하고 같이 만들기/ })).toBeNull();
   });

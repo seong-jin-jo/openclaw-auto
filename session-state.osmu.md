@@ -1,3 +1,11 @@
+## 2026-08-31 04:00 KST Codex 실제 LLM 생성 연동 build 완료
+
+- 후보 3개와 글, 카드뉴스, 영상 파생을 실제 LLM 호출로 교체했다. 실패 시 템플릿 fallback은 없다.
+- 로컬 Studio 화면 생성 HTTP 201과 서로 다른 후보 3개, 영상 파생 HTTP 201과 실제 대본 및 장면, 사용량 token과 비용 장부를 관찰했다.
+- 운영 컨테이너의 Claude OAuth CLI JSON 호출도 성공했다. 임시 로컬 공유 AI 승인은 원상복구했다.
+- 전체 Vitest 207파일 1,554건, TypeScript, build 177/177, design lint 0을 통과했다.
+- 운영 배포와 운영 Studio UI 클릭은 미검증이다. 다음 행동은 커밋, push, QA 단계 재검증이다.
+
 ## 2026-08-31 KST Codex 실제 LLM 생성 연동 진행 중
 
 핸드오프 기준: 회장이 이 세션에 직접 전달한 실제 LLM 연동 과제와 `osmu-llm0831:0.0` pane. `osmu-gen0830`과 `osmu-edit0830`은 종료 기록만 확인했고 생성 로직 범위와 겹치지 않는다.
