@@ -151,6 +151,8 @@ const STUDIO_INDEPENDENT_MATCHERS = [
   /^\/api\/studio\/v1\/generations$/,
   /^\/api\/studio\/v1\/generations\/[^/]+$/,
   /^\/api\/studio\/v1\/generations\/[^/]+\/rejections$/,
+  /^\/api\/studio\/v1\/generations\/[^/]+\/derivations$/,
+  /^\/api\/studio\/v1\/derivations\/[^/]+$/,
   /^\/api\/studio\/v1\/regenerations\/[^/]+$/,
   /^\/api\/studio\/v1\/shorts-factory\/runs$/,
   /^\/api\/studio\/v1\/shorts-factory\/runs\/[^/]+$/,

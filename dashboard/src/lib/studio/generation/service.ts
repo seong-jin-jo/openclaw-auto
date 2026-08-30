@@ -1,6 +1,19 @@
 import crypto from "node:crypto";
 import type { GenerationRequest, RequestedTarget } from "./contracts";
 import { StudioApiError } from "./errors";
+import {
+  assertAcknowledgedCost,
+  batchStatus,
+  buildDerivationPayload,
+  DerivationBuildError,
+  derivationQuote,
+  derivationSummary,
+  derivationUnitMinor,
+  type DerivationBatch,
+  type DerivationItem,
+  type DerivationKind,
+  type DerivationPayload,
+} from "./derivation";
 
 export type CostEstimate = {
   status: "quoted" | "unavailable";
@@ -91,11 +104,45 @@ export type RecordRejectionInput = {
   candidateId: string;
 };
 
+export type PersistDerivationInput = {
+  batch: DerivationBatch;
+  memberId: string;
+  workspaceId: string;
+  idempotencyKey: string;
+  requestHash: string;
+};
+
+export type PersistedDerivation = {
+  created: boolean;
+  requestHash: string;
+  batch: DerivationBatch;
+};
+
+// 파생물 하나를 편집실 작업물로 만든다. 갈래마다 따로 부르므로 한 갈래가 실패해도
+// 나머지 갈래는 그대로 남는다. 뭉쳐서 만들면 하나 실패에 전부 날아간다.
+export interface DerivationDraftSink {
+  createDraft(input: {
+    workspaceId: string;
+    summary: string;
+    jobId: string;
+    candidateId: string;
+    payload: DerivationPayload;
+  }): Promise<{ draftId: string; handoffId: string }>;
+  deleteDrafts(workspaceId: string, draftIds: readonly string[]): Promise<void>;
+}
+
 export interface GenerationRepository {
   persistCreation(input: PersistCreationInput): Promise<PersistedCreation>;
   findJob(memberId: string, jobId: string, allowedWorkspaceIds: readonly string[]): Promise<GenerationJob | null>;
   recordCandidateRejection(input: RecordRejectionInput): Promise<{ rejectedCandidateIds: string[] }>;
   persistFreeRegeneration(input: PersistFreeRegenerationInput): Promise<PersistedFreeRegeneration>;
+  persistDerivation(input: PersistDerivationInput): Promise<PersistedDerivation>;
+  findDerivation(
+    memberId: string,
+    batchId: string,
+    allowedWorkspaceIds: readonly string[],
+  ): Promise<{ batch: DerivationBatch; workspaceId: string } | null>;
+  markDerivationDiscarded(workspaceId: string, batchId: string, at: string): Promise<DerivationBatch | null>;
 }
 
 function stableJson(value: unknown): string {
@@ -282,7 +329,21 @@ function paidRegenerationApprovalRequired(now: Date): StudioApiError {
 }
 
 export class GenerationService {
-  constructor(private readonly repository: GenerationRepository) {}
+  constructor(
+    private readonly repository: GenerationRepository,
+    private readonly derivationSink?: DerivationDraftSink,
+  ) {}
+
+  private sink(): DerivationDraftSink {
+    if (!this.derivationSink) {
+      throw new StudioApiError({
+        status: 500,
+        code: "DERIVATION_SINK_MISSING",
+        message: "파생물을 편집실에 넣을 통로가 설정되지 않았습니다",
+      });
+    }
+    return this.derivationSink;
+  }
 
   async create(memberId: string, idempotencyKey: string, request: GenerationRequest, now = new Date()): Promise<GenerationResponse> {
     if (!idempotencyKey || idempotencyKey.length > 255) {
@@ -350,6 +411,138 @@ export class GenerationService {
       pendingCandidateIds,
       allRejected: pendingCandidateIds.length === 0,
     };
+  }
+
+  // 주 갈래를 확정하면서 같이 고른 갈래로 옮겨 만든다.
+  // 돈에 대한 규율 셋을 여기서 지킨다.
+  //   ① 무료 재생성 몫을 건드리지 않는다. 이 함수는 persistFreeRegeneration 을 부르지 않는다.
+  //   ② 확정 화면에서 본 값과 서버 값이 다르면 시작하지 않는다(assertAcknowledgedCost).
+  //   ③ 실패한 갈래는 값을 매기지 않는다. charged 는 성공한 갈래 단가의 합이다.
+  async derive(
+    memberId: string,
+    jobId: string,
+    candidateId: string,
+    kinds: readonly DerivationKind[],
+    acknowledgedCost: unknown,
+    idempotencyKey: string,
+    allowedWorkspaceIds: readonly string[],
+    now = new Date(),
+  ): Promise<DerivationBatch> {
+    if (!idempotencyKey || idempotencyKey.length > 255) {
+      throw new StudioApiError({
+        status: 400,
+        code: "IDEMPOTENCY_KEY_REQUIRED",
+        message: "Idempotency-Key 머리말이 필요합니다",
+      });
+    }
+    const job = await this.repository.findJob(memberId, jobId, allowedWorkspaceIds);
+    if (!job) {
+      throw new StudioApiError({ status: 404, code: "RESOURCE_NOT_FOUND", message: "생성 작업을 찾을 수 없습니다" });
+    }
+    const candidate = job.candidates.find((entry) => entry.candidateId === candidateId);
+    if (!candidate) {
+      throw new StudioApiError({ status: 404, code: "RESOURCE_NOT_FOUND", message: "이 작업의 후보가 아닙니다" });
+    }
+    const quote = derivationQuote(kinds);
+    assertAcknowledgedCost(quote, acknowledgedCost);
+
+    const requestHash = hashRequest({ jobId, candidateId, kinds: [...kinds].sort() });
+    const items: DerivationItem[] = [];
+    for (const kind of kinds) {
+      const summary = derivationSummary(candidate, kind);
+      try {
+        const payload = buildDerivationPayload(candidate, kind);
+        const saved = await this.sink().createDraft({
+          workspaceId: job.workspaceId,
+          summary,
+          jobId,
+          candidateId,
+          payload,
+        });
+        items.push({
+          kind,
+          status: "succeeded",
+          draftId: saved.draftId,
+          handoffId: saved.handoffId,
+          summary,
+          chargedMinor: derivationUnitMinor(kind),
+          failureReason: null,
+        });
+      } catch (error) {
+        // 한 갈래가 실패해도 나머지를 계속 만든다. 실패는 실패로 적는다.
+        items.push({
+          kind,
+          status: "failed",
+          draftId: null,
+          handoffId: null,
+          summary,
+          chargedMinor: 0,
+          failureReason: error instanceof DerivationBuildError
+            ? error.message
+            : "이 갈래를 만드는 중에 문제가 생겨 남기지 못했습니다",
+        });
+      }
+    }
+
+    const batch: DerivationBatch = {
+      batchId: crypto.randomUUID(),
+      jobId,
+      candidateId,
+      status: batchStatus(items),
+      currency: quote.currency,
+      quotedMinor: quote.totalMinor,
+      chargedMinor: items.reduce((sum, item) => sum + item.chargedMinor, 0),
+      items,
+      createdAt: now.toISOString(),
+      discardedAt: null,
+    };
+
+    const persisted = await this.repository.persistDerivation({
+      batch,
+      memberId,
+      workspaceId: job.workspaceId,
+      idempotencyKey,
+      requestHash,
+    });
+    if (!persisted.created) {
+      if (persisted.requestHash !== requestHash) {
+        throw new StudioApiError({
+          status: 409,
+          code: "IDEMPOTENCY_CONFLICT",
+          message: "같은 Idempotency-Key에 다른 요청 본문을 보낼 수 없습니다",
+        });
+      }
+      // 이미 만든 것이 있으면 이번에 만든 작업물은 버린다. 두 번 청구하지 않는다.
+      const orphans = batch.items.map((item) => item.draftId).filter((id): id is string => id !== null);
+      if (orphans.length > 0) await this.sink().deleteDrafts(job.workspaceId, orphans);
+    }
+    return persisted.batch;
+  }
+
+  async getDerivation(memberId: string, batchId: string, allowedWorkspaceIds: readonly string[]): Promise<DerivationBatch> {
+    const found = await this.repository.findDerivation(memberId, batchId, allowedWorkspaceIds);
+    if (!found) {
+      throw new StudioApiError({ status: 404, code: "RESOURCE_NOT_FOUND", message: "파생 작업을 찾을 수 없습니다" });
+    }
+    return found.batch;
+  }
+
+  // 파생을 안 쓰기로 하면 버린다. 주 갈래 결과(생성 작업과 후보)는 건드리지 않는다.
+  async discardDerivation(
+    memberId: string,
+    batchId: string,
+    allowedWorkspaceIds: readonly string[],
+    now = new Date(),
+  ): Promise<DerivationBatch> {
+    const found = await this.repository.findDerivation(memberId, batchId, allowedWorkspaceIds);
+    if (!found) {
+      throw new StudioApiError({ status: 404, code: "RESOURCE_NOT_FOUND", message: "파생 작업을 찾을 수 없습니다" });
+    }
+    if (found.batch.discardedAt) return found.batch;
+    const draftIds = found.batch.items.map((item) => item.draftId).filter((id): id is string => id !== null);
+    if (draftIds.length > 0) await this.sink().deleteDrafts(found.workspaceId, draftIds);
+    const updated = await this.repository.markDerivationDiscarded(found.workspaceId, batchId, now.toISOString());
+    return updated ?? { ...found.batch, discardedAt: now.toISOString() };
   }
 
   async regenerate(memberId: string, jobId: string, allowedWorkspaceIds: readonly string[], now = new Date()): Promise<{
