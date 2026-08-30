@@ -73,6 +73,8 @@ interface CreateRoomProps {
   onOpenLearning: () => void;
   onCandidateSelect: (candidate: StudioGenerationCandidate) => void;
   onOpenEditor?: () => void;
+  /** 생성실에서 첫 형식을 고르기 전 헤더가 특정 형식을 추측하지 않게 현재 선택을 전달한다. */
+  onPrimaryKindChange?: (kind: CreateKind | null) => void;
   /** 같이 만들 갈래가 바뀌면 헤더 상태판이 따라 바뀐다 */
   onAlsoKindsChange?: (kinds: CreateKind[]) => void;
   /** 학습 정보가 문답에서 갱신되면 이 값이 올라가고 생성실이 다시 읽는다 */
@@ -83,32 +85,45 @@ interface CreateRoomProps {
 }
 
 const CREATE_EXAMPLES = [
-  { label: "A", title: "문제부터 시작하는 결", outline: ["지금 겪는 문제", "놓치기 쉬운 이유", "바로 할 한 가지"] },
-  { label: "B", title: "결과부터 보여 주는 결", outline: ["바뀐 결과", "따라 한 과정", "적용할 조건"] },
-  { label: "C", title: "과정을 따라가는 결", outline: ["처음 상태", "바꾼 순서", "확인한 변화"] },
+  { label: "A", title: "문제 제시형", outline: ["고객이 겪는 문제", "문제가 생기는 이유", "바로 적용할 방법"] },
+  { label: "B", title: "결과 제시형", outline: ["먼저 보여 줄 결과", "결과를 만든 과정", "적용할 조건"] },
+  { label: "C", title: "과정 설명형", outline: ["시작 상태", "진행 순서", "확인할 변화"] },
 ] as const;
 
 // 주제도 빈칸으로 주지 않는다. 학습 정보에서 고른 하는 일과 목적으로 후보를 지어 카드로 준다.
 // 카드에 없을 때만 "직접 적겠습니다"로 입력창이 열린다.
 const TOPIC_TEMPLATES: Record<string, string[]> = {
-  알리기: ["{{일}}, 처음 오신 분께 드리는 안내", "{{일}}에서 가장 많이 받는 질문 셋", "우리가 이 일을 하는 이유"],
-  "믿게 하기": ["{{일}} 열두 달 지나며 배운 것", "직접 겪은 실패 하나와 고친 방법", "손님이 남긴 말 그대로 옮기기"],
-  "문의 받기": ["이런 경우면 한 번 물어보셔도 됩니다", "{{일}} 상담 전에 준비하면 좋은 것", "많이들 헷갈리시는 조건 정리"],
-  "찾아오게 하기": ["오시는 길과 가장 좋은 시간대", "{{일}} 처음 오시는 분 코스", "이번 주에만 여는 자리"],
-  "사게 하기": ["지금 고르시면 좋은 이유 셋", "{{일}} 가격을 그대로 공개합니다", "고민되실 때 비교하는 기준"],
-  "다시 오게 하기": ["한 번 오신 분께만 드리는 이야기", "{{일}} 두 번째 방문에서 달라지는 것", "지난번에 못 보여 드린 것"],
+  "브랜드 알리기": ["{{일}}을 처음 접하는 고객이 가장 많이 묻는 질문", "{{일}}을 시작하기 전에 알아둘 점", "우리가 {{일}}을 하는 이유"],
+  "신뢰 높이기": ["{{일}}을 하며 실제로 해결한 고객 문제", "직접 겪은 실패와 바꾼 방법", "고객이 선택 전에 확인할 기준"],
+  "문의 늘리기": ["이런 상황이라면 상담이 필요한 이유", "{{일}} 상담 전에 준비할 것", "고객이 자주 헷갈리는 조건"],
+  "방문·예약 늘리기": ["처음 방문하는 고객을 위한 안내", "{{일}} 예약 전에 확인할 것", "방문하면 받을 수 있는 서비스"],
+  "구매 늘리기": ["{{일}}을 고를 때 비교할 기준", "가격에 포함된 항목", "구매 전에 가장 많이 묻는 질문"],
+  "재방문 늘리기": ["기존 고객이 다시 찾는 이유", "두 번째 이용에서 달라지는 점", "이용 후 관리 방법"],
 };
 
 function topicCandidates(industryTitle: string, purposeTitle: string): string[] {
   const work = industryTitle || "우리 일";
-  const templates = TOPIC_TEMPLATES[purposeTitle] || TOPIC_TEMPLATES["알리기"];
+  const templates = TOPIC_TEMPLATES[purposeTitle] || TOPIC_TEMPLATES["브랜드 알리기"];
   return templates.map((template) => template.replaceAll("{{일}}", work));
 }
 
-export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBranch = "text_image", onContentBranchChange, onTopicChange, onOpenLearning, onCandidateSelect, onOpenEditor, onAlsoKindsChange, learningVersion = 0, resumeCount = 0, onResume }: CreateRoomProps) {
+type CreateQuestion = "kind" | "purpose" | "audience" | "topic" | "rights" | "review";
+const CREATE_QUESTIONS: readonly CreateQuestion[] = ["kind", "purpose", "audience", "topic", "rights", "review"];
+
+export function generationErrorMessage(cause: unknown): string {
+  const message = cause instanceof Error ? cause.message : "";
+  if (/저장소|무결성|constraint|database|relation|schema/i.test(message)) {
+    return "구조 초안을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+  }
+  if (/인증|로그인|unauthorized|forbidden/i.test(message)) return "로그인이 만료됐습니다. 다시 로그인해 주세요.";
+  return message || "구조 초안을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.";
+}
+
+export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBranch = "text_image", onContentBranchChange, onTopicChange, onCandidateSelect, onOpenEditor, onPrimaryKindChange, onAlsoKindsChange, learningVersion = 0, resumeCount = 0, onResume }: CreateRoomProps) {
   const topicInputRef = useRef<HTMLInputElement>(null);
-  const [primaryKind, setPrimaryKind] = useState<CreateKind | null>(contentBranch === "video" ? "video" : null);
+  const [primaryKind, setPrimaryKind] = useState<CreateKind | null>(null);
   const [alsoKinds, setAlsoKinds] = useState<CreateKind[]>([]);
+  const [questionIndex, setQuestionIndex] = useState(0);
   const [purpose, setPurpose] = useState("");
   const [audience, setAudience] = useState("");
   const [rightsConfirmed, setRightsConfirmed] = useState(false);
@@ -124,10 +139,11 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
   const [error, setError] = useState<string | null>(null);
   const facts = useMemo(() => guide.trim() ? [guide.trim()] : [], [guide]);
   const learnedCount = countFilledLearningSlots(learning, { guide });
-  const missing = [!topic.trim() && "주제", !purpose.trim() && "목적", !audience.trim() && "대상", !rightsConfirmed && "사용 권리 확인"].filter(Boolean) as string[];
+  const missing = [!primaryKind && "만들 형식", !topic.trim() && "주제", !purpose.trim() && "목표", !audience.trim() && "고객", !rightsConfirmed && "사용 권리 확인"].filter(Boolean) as string[];
   const selectedCandidate = candidates.find((candidate) => candidate.label === selected) ?? null;
   const displayCandidates = candidates.length ? candidates : CREATE_EXAMPLES;
-  const stage = selected ? { count: "3 / 3", label: "완성 확인" } : candidates.length ? { count: "2 / 3", label: "후보 고르기" } : { count: "1 / 3", label: "무엇을 만들지 고르는 중" };
+  const question = CREATE_QUESTIONS[questionIndex];
+  const stage = selected ? { count: "3 / 3", label: "선택한 구조 확인" } : candidates.length ? { count: "2 / 3", label: "구조 초안 고르기" } : { count: "1 / 3", label: `만들 조건 확인 ${Math.min(questionIndex + 1, 6)} / 6` };
   const industryTitle = useMemo(() => INDUSTRY_CARDS.find((card) => card.sample === learning.industry)?.title || "", [learning.industry]);
   const purposeTitle = useMemo(() => PURPOSE_CARDS.find((card) => card.sample === purpose)?.title || "", [purpose]);
   const topicCards = useMemo(() => topicCandidates(industryTitle, purposeTitle), [industryTitle, purposeTitle]);
@@ -136,9 +152,11 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
     const savedBranch = sessionStorage.getItem(ONBOARDING_CONTENT_BRANCH_KEY);
     if (savedBranch !== "text_image" && savedBranch !== "video") return;
     onContentBranchChange?.(savedBranch);
-    if (savedBranch === "video") setPrimaryKind("video");
+    const savedKind: CreateKind = savedBranch === "video" ? "video" : "card";
+    setPrimaryKind(savedKind);
+    onPrimaryKindChange?.(savedKind);
     sessionStorage.removeItem(ONBOARDING_CONTENT_BRANCH_KEY);
-  }, [onContentBranchChange]);
+  }, [onContentBranchChange, onPrimaryKindChange]);
 
   // 생성실은 언제나 새로 시작 상태로 열린다(질문6 확정). 이전 작업물은 지우지 않고
   // 헤더 작업물함에 그대로 있고, 위쪽 "이어서 하기" 한 줄로 부른다.
@@ -151,7 +169,12 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
     setRightsConfirmed(Boolean(saved.rights));
     setPurpose("");
     setTopicOpen(false);
-  }, [workspaceId, learningVersion]);
+    setPrimaryKind(null);
+    setAlsoKinds([]);
+    setQuestionIndex(0);
+    onPrimaryKindChange?.(null);
+    onAlsoKindsChange?.([]);
+  }, [workspaceId, learningVersion, onAlsoKindsChange, onPrimaryKindChange]);
 
   const rememberLearning = (patch: LearningInfo) => {
     setLearning((current) => {
@@ -162,13 +185,26 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
   };
 
   const choosePrimary = (kind: CreateKind) => {
-    setPrimaryKind(kind);
-    setAlsoKinds((current) => current.filter((one) => one !== kind));
-    onContentBranchChange?.(kindToBranch(kind));
-  };
-
-  const toggleAlso = (kind: CreateKind) => {
-    // 갱신 함수 안에서 부모 콜백을 부르면 렌더 중 부모 상태를 바꾸게 된다. 밖에서 계산해 부른다.
+    if (!primaryKind) {
+      setPrimaryKind(kind);
+      onPrimaryKindChange?.(kind);
+      onContentBranchChange?.(kindToBranch(kind));
+      return;
+    }
+    if (primaryKind === kind) {
+      if (alsoKinds.length) {
+        const [nextPrimary, ...rest] = alsoKinds;
+        setPrimaryKind(nextPrimary);
+        setAlsoKinds(rest);
+        onPrimaryKindChange?.(nextPrimary);
+        onAlsoKindsChange?.(rest);
+        onContentBranchChange?.(kindToBranch(nextPrimary));
+      } else {
+        setPrimaryKind(null);
+        onPrimaryKindChange?.(null);
+      }
+      return;
+    }
     const next = alsoKinds.includes(kind) ? alsoKinds.filter((one) => one !== kind) : [...alsoKinds, kind];
     setAlsoKinds(next);
     onAlsoKindsChange?.(next);
@@ -177,11 +213,12 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
   const chooseAudience = (value: string) => {
     setAudience(value);
     rememberLearning({ audience: value });
+    setQuestionIndex(3);
   };
 
   const confirmRights = (value: boolean) => {
     setRightsConfirmed(value);
-    rememberLearning({ rights: value ? "쓸 권리를 확인했다고 회원님이 직접 알려 주셨습니다" : "" });
+    rememberLearning({ rights: value ? "직접 만든 자료 또는 콘텐츠 제작·게시 허가를 받은 자료만 사용합니다." : "" });
   };
 
   async function generate() {
@@ -196,7 +233,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
       setCandidates(next);
       setSelected(null);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "후보 생성에 실패했습니다");
+      setError(generationErrorMessage(cause));
     } finally {
       generationInFlight.current = false;
       setLoading(false);
@@ -214,7 +251,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
       setCandidates(await regenerateStudioCandidates(jobId, getAuthToken()));
       setSelected(null);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "무료 재생성에 실패했습니다");
+      setError(generationErrorMessage(cause));
     } finally {
       generationInFlight.current = false;
       setLoading(false);
@@ -252,7 +289,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
         token: getAuthToken(),
       }));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "같이 만들기에 실패했습니다");
+      setError(generationErrorMessage(cause));
     } finally {
       setAlsoBusy(false);
     }
@@ -264,13 +301,13 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
     try {
       setAlsoBatch(await discardStudioDerivations(alsoBatch.batch_id, getAuthToken()));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "파생물을 버리지 못했습니다");
+      setError(generationErrorMessage(cause));
     } finally {
       setAlsoBusy(false);
     }
   }
 
-  const kindHeading = primaryKind ? `${CREATE_KIND_LABELS[primaryKind]}을 이런 결로 만들어 드립니다` : "이런 결로 만들어 드립니다";
+  const kindHeading = primaryKind ? `${CREATE_KIND_LABELS[primaryKind]} 구성 초안 예시` : "콘텐츠 구성 초안 예시";
 
   return (
     <section data-room="create" className="space-y-region">
@@ -287,8 +324,8 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
         <div className="grid min-w-0 gap-stack-section xl:grid-cols-3" data-display-readonly="create">
           <section className="card min-w-0 p-pad-inset xl:col-span-2" aria-labelledby="create-display-title">
             <div className="mb-stack flex items-center justify-between border-b border-border pb-stack">
-              <b id="create-display-title" className="text-body text-text">{selectedCandidate ? "선택한 초안" : candidates.length ? "같은 주제의 다른 각도" : kindHeading}</b>
-              <span className="text-caption text-subtle">{selectedCandidate ? `${selectedCandidate.label}안` : candidates.length ? "세 가지" : "미리 보는 결"}</span>
+              <b id="create-display-title" className="text-body text-text">{selectedCandidate ? "선택한 구조 초안" : candidates.length ? "주제별 구조 초안 3개" : kindHeading}</b>
+              <span className="text-caption text-subtle">{selectedCandidate ? `${selectedCandidate.label} 구조` : candidates.length ? "규칙 기반 초안" : "구성 방식 예시"}</span>
             </div>
             <div className="grid gap-stack" data-create-candidate-deck>
               {displayCandidates.filter((candidate) => !selectedCandidate || candidate.label === selectedCandidate.label).map((candidate) => {
@@ -297,7 +334,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
                   <article key={candidate.label} data-create-candidate={candidate.label} className={`grid gap-stack rounded-surface border p-pad-inset md:grid-cols-5 ${selected === candidate.label ? "border-accent bg-accent-soft" : "border-border bg-surface-2"}`}>
                     <div className="md:col-span-3">
                       <div className="mb-stack flex items-start gap-stack-tight"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-pill bg-accent text-caption font-bold text-accent-fg">{candidate.label}</span><b className="break-keep text-body-sm text-text">{candidate.title}</b></div>
-                      <p className="break-keep text-caption text-muted">{contentBranch === "video" ? "영상 장면 구성" : "글과 카드뉴스 구성"}</p>
+                      <p className="break-keep text-caption text-muted">{primaryKind ? `${CREATE_KIND_LABELS[primaryKind]}에 적용할 이야기 순서` : "형식을 고른 뒤 주제에 맞춰 바뀌는 이야기 순서"}</p>
                     </div>
                     <ol className="space-y-stack-tight border-l border-border pl-stack md:col-span-2">
                       {outline.map((item, index) => <li key={`${candidate.label}-${index}`} className="flex gap-stack-tight text-caption text-muted"><span className="text-accent">{index + 1}</span><span className="break-keep">{item}</span></li>)}
@@ -312,86 +349,99 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
             <progress className="progress-semantic mb-pad-inset w-full" max={LEARNING_SLOT_TOTAL} value={learnedCount} aria-label="학습 정보 수집 정도" />
             <dl className="space-y-stack">
               <div><dt className="text-caption text-subtle">작업 공간</dt><dd className="text-body text-text">{workspaceName || "아직 없음"}</dd></div>
-              <div><dt className="text-caption text-subtle">하는 일</dt><dd className="line-clamp-4 break-keep text-body-sm text-muted">{learning.industry || guide || "아직 없음"}</dd></div>
+              <div><dt className="text-caption text-subtle">업종</dt><dd className="line-clamp-4 break-keep text-body-sm text-muted">{learning.industry || guide || "아직 없음"}</dd></div>
               <div><dt className="text-caption text-subtle">말투</dt><dd className="break-keep text-body-sm text-muted">{learning.voice || "아직 없음"}</dd></div>
-              <div><dt className="text-caption text-subtle">목적</dt><dd className="break-keep text-body-sm text-muted">{purpose || "아직 없음"}</dd></div>
-              <div><dt className="text-caption text-subtle">대상</dt><dd className="break-keep text-body-sm text-muted">{audience || "아직 없음"}</dd></div>
+              <div><dt className="text-caption text-subtle">콘텐츠 목표</dt><dd className="break-keep text-body-sm text-muted">{purpose || "아직 없음"}</dd></div>
+              <div><dt className="text-caption text-subtle">주요 고객</dt><dd className="break-keep text-body-sm text-muted">{audience || "아직 없음"}</dd></div>
               <div className="border-t border-border pt-stack"><dt className="text-caption text-subtle">성과에서 배운 규칙</dt><dd className="text-body-sm text-muted">{learning.learnedRules || "아직 없음"}</dd></div>
             </dl>
           </section>
         </div>
         <AssistantPanel title="생성 담당">
           <Stack gap={16}>
-            <div className="max-w-[90%] rounded-surface rounded-tl-control border border-border bg-surface p-stack text-body-sm text-text" data-empty-next={!candidates.length ? "create" : undefined}>{selectedCandidate ? "선택한 구조 초안을 편집실로 옮길 수 있습니다. 실제 미디어 생성은 준비 중입니다." : candidates.length ? "A, B, C 중 마음에 드는 방향을 골라 주세요." : "고르기만 하시면 됩니다. 적을 것은 없습니다."}</div>
+            <div className="max-w-[90%] rounded-surface rounded-tl-control border border-border bg-surface p-stack text-body-sm text-text" data-empty-next={!candidates.length ? "create" : undefined}>
+              {selectedCandidate ? "구조 초안이 준비됐습니다. 완성 영상, 카드뉴스 이미지, 완성 글 생성은 아직 지원하지 않습니다." : candidates.length ? "A, B, C 구조 중 편집할 초안을 하나 골라 주세요." : "한 번에 하나씩 묻겠습니다. 선택한 답은 다음 질문에 반영됩니다."}
+            </div>
+            <div className="rounded-control border border-border bg-surface-2 p-stack text-caption text-muted" data-generation-capability>
+              <b className="block text-text">현재 제공</b>
+              <span className="block">주제에 맞춘 규칙 기반 구성 초안 3개</span>
+              <b className="mt-stack-tight block text-text">준비 중</b>
+              <span className="block">완성 영상, 카드뉴스 이미지, 완성 글 생성</span>
+            </div>
             {!candidates.length ? <>
-              <div className="space-y-stack rounded-surface border border-border bg-surface p-stack">
-                <fieldset data-create-kind-picker><legend className="mb-stack-tight text-caption font-semibold text-text">만들 종류</legend>
+              <div className="space-y-stack rounded-surface border border-border bg-surface p-stack" data-create-question={question}>
+                {question === "kind" ? <fieldset data-create-kind-picker><legend className="mb-stack-tight text-caption font-semibold text-text">무엇을 만들까요?</legend>
+                  <p className="mb-stack break-keep text-caption text-subtle">여러 형식을 고를 수 있습니다. 처음 고른 형식의 구조 초안 3개를 먼저 보여 드립니다.</p>
                   <div className="flex flex-wrap gap-stack-tight">
                     {CREATE_KIND_ORDER.map((kind) => (
-                      <Button key={kind} size="sm" variant={primaryKind === kind ? "primary" : "secondary"} aria-pressed={primaryKind === kind} onClick={() => choosePrimary(kind)}>{CREATE_KIND_LABELS[kind]}</Button>
+                      <Button key={kind} size="sm" variant={primaryKind === kind || alsoKinds.includes(kind) ? "primary" : "secondary"} aria-pressed={primaryKind === kind || alsoKinds.includes(kind)} onClick={() => choosePrimary(kind)}>{CREATE_KIND_LABELS[kind]}</Button>
                     ))}
                   </div>
-                  {primaryKind ? (
-                    <div className="mt-stack rounded-control border border-border bg-surface-2 p-stack" data-create-also-picker>
-                      <span className="text-caption font-semibold text-text">이 주제로 같이 만들 것</span>
-                      <div className="mt-stack-tight space-y-stack-tight">
-                        {CREATE_KIND_ORDER.filter((kind) => kind !== primaryKind).map((kind) => (
-                          <label key={kind} className="flex items-center gap-stack-tight text-caption text-muted">
-                            <input type="checkbox" checked={alsoKinds.includes(kind)} onChange={() => toggleAlso(kind)} />
-                            {CREATE_KIND_LABELS[kind]}도 같이 만들기
-                          </label>
-                        ))}
-                      </div>
-                      <p className="mt-stack-tight break-keep text-caption text-subtle">고르실 후보는 {CREATE_KIND_LABELS[primaryKind]} 세 장입니다. 확정하시면 나머지를 그 주제로 옮겨 만들어 드립니다.</p>
-                    </div>
-                  ) : null}
-                  <p className="mt-stack-tight break-keep text-caption text-subtle">음악 생성은 준비 중입니다.</p>
-                </fieldset>
+                  {primaryKind ? <p className="mt-stack-tight break-keep text-caption text-subtle">{CREATE_KIND_LABELS[primaryKind]} 구조를 먼저 확인합니다.{alsoKinds.length ? ` 추가 선택: ${alsoKinds.map((kind) => CREATE_KIND_LABELS[kind]).join(", ")}` : ""}</p> : null}
+                  <div className="mt-stack flex justify-end"><Button variant="primary" onClick={() => setQuestionIndex(1)} disabled={!primaryKind}>다음</Button></div>
+                </fieldset> : null}
 
-                <fieldset data-create-purpose-picker><legend className="mb-stack-tight text-caption font-semibold text-text">이번에 노리는 것</legend>
+                {question === "purpose" ? <fieldset data-create-purpose-picker><legend className="mb-stack-tight text-caption font-semibold text-text">이번 콘텐츠로 원하는 결과는 무엇인가요?</legend>
                   <div className="flex flex-wrap gap-stack-tight">
                     {PURPOSE_CARDS.map((card) => (
-                      <Button key={card.id} size="sm" variant={purpose === card.sample ? "primary" : "secondary"} aria-pressed={purpose === card.sample} title={card.sample} onClick={() => setPurpose(card.sample)}>{card.title}</Button>
+                      <Button key={card.id} size="sm" variant={purpose === card.sample ? "primary" : "secondary"} aria-pressed={purpose === card.sample} title={card.sample} onClick={() => { setPurpose(card.sample); setQuestionIndex(2); }}>{card.title}</Button>
                     ))}
                   </div>
                   {purpose ? <p className="mt-stack-tight break-keep text-caption text-subtle">{purpose}</p> : null}
-                </fieldset>
+                </fieldset> : null}
 
-                <fieldset data-create-audience-picker><legend className="mb-stack-tight text-caption font-semibold text-text">말 거는 대상</legend>
+                {question === "audience" ? <fieldset data-create-audience-picker><legend className="mb-stack-tight text-caption font-semibold text-text">누가 이 콘텐츠를 보나요?</legend>
+                  <p className="mb-stack break-keep text-caption text-subtle">우리 서비스를 이용하거나 구매할 고객을 기준으로 고르세요.</p>
                   <div className="flex flex-wrap gap-stack-tight">
                     {AUDIENCE_CARDS.map((card) => (
                       <Button key={card.id} size="sm" variant={audience === card.sample ? "primary" : "secondary"} aria-pressed={audience === card.sample} title={card.sample} onClick={() => chooseAudience(card.sample)}>{card.title}</Button>
                     ))}
                   </div>
                   {audience ? <p className="mt-stack-tight break-keep text-caption text-subtle">{audience}</p> : null}
-                </fieldset>
+                </fieldset> : null}
 
-                <fieldset data-create-topic-picker><legend className="mb-stack-tight text-caption font-semibold text-text">이번 주제</legend>
+                {question === "topic" ? <fieldset data-create-topic-picker><legend className="mb-stack-tight text-caption font-semibold text-text">어떤 주제로 만들까요?</legend>
+                  <p className="mb-stack break-keep text-caption text-subtle">학습 정보의 업종과 방금 고른 목표를 기준으로 제안했습니다.</p>
                   <div className="space-y-stack-tight">
                     {topicCards.map((suggestion) => (
-                      <Button key={suggestion} size="sm" variant={topic === suggestion ? "primary" : "secondary"} aria-pressed={topic === suggestion} onClick={() => { onTopicChange(suggestion); setTopicOpen(false); }} className="ds-label-fill w-full min-w-0 justify-start text-left"><span className="min-w-0 truncate">{suggestion}</span></Button>
+                      <Button key={suggestion} size="sm" variant={topic === suggestion ? "primary" : "secondary"} aria-pressed={topic === suggestion} onClick={() => { onTopicChange(suggestion); setTopicOpen(false); setQuestionIndex(4); }} className="ds-label-fill w-full min-w-0 justify-start text-left"><span className="min-w-0 truncate">{suggestion}</span></Button>
                     ))}
                     {topicOpen ? (
-                      <Field label="이번 주제" htmlFor="studio-topic"><input ref={topicInputRef} id="studio-topic" value={topic} onChange={(event) => onTopicChange(event.target.value)} placeholder="직접 적으실 주제" className="w-full rounded-control border border-border bg-surface-2 px-stack text-body text-text" /></Field>
+                      <><Field label="직접 입력한 주제" htmlFor="studio-topic"><input ref={topicInputRef} id="studio-topic" value={topic} onChange={(event) => onTopicChange(event.target.value)} placeholder="고객에게 전할 주제를 입력하세요" className="w-full rounded-control border border-border bg-surface-2 px-stack text-body text-text" /></Field><Button variant="primary" onClick={() => setQuestionIndex(4)} disabled={!topic.trim()}>이 주제로 계속</Button></>
                     ) : (
-                      <Button size="sm" onClick={() => { setTopicOpen(true); setTimeout(() => topicInputRef.current?.focus(), 0); }}>여기 없습니다. 직접 적겠습니다</Button>
+                      <Button size="sm" onClick={() => { setTopicOpen(true); setTimeout(() => topicInputRef.current?.focus(), 0); }}>직접 입력</Button>
                     )}
                   </div>
-                </fieldset>
+                </fieldset> : null}
 
-                <label className="flex items-start gap-stack-tight text-caption text-muted"><input type="checkbox" checked={rightsConfirmed} onChange={(event) => confirmRights(event.target.checked)} />이 콘텐츠에 쓰는 사진과 글을 제가 쓸 권리가 있습니다</label>
+                {question === "rights" ? <fieldset data-create-rights-picker><legend className="mb-stack-tight text-caption font-semibold text-text">사용할 자료의 권리를 확인해 주세요.</legend>
+                  <p className="mb-stack break-keep text-caption text-subtle">직접 만든 자료이거나, 저작권자에게 콘텐츠 제작과 게시 허가를 받은 사진·영상·글만 사용할 수 있습니다.</p>
+                  <label className="flex items-start gap-stack-tight text-caption text-muted"><input type="checkbox" checked={rightsConfirmed} onChange={(event) => confirmRights(event.target.checked)} />위 조건을 확인했습니다.</label>
+                  <div className="mt-stack flex justify-end"><Button variant="primary" onClick={() => setQuestionIndex(5)} disabled={!rightsConfirmed}>입력 내용 확인</Button></div>
+                </fieldset> : null}
+
+                {question === "review" ? <section data-create-review>
+                  <b className="text-caption font-semibold text-text">입력 내용을 확인해 주세요.</b>
+                  <dl className="mt-stack space-y-stack-tight text-caption text-muted">
+                    <div><dt className="text-subtle">형식</dt><dd>{primaryKind ? [primaryKind, ...alsoKinds].map((kind) => CREATE_KIND_LABELS[kind]).join(", ") : "미입력"}</dd></div>
+                    <div><dt className="text-subtle">목표</dt><dd>{purpose || "미입력"}</dd></div>
+                    <div><dt className="text-subtle">고객</dt><dd>{audience || "미입력"}</dd></div>
+                    <div><dt className="text-subtle">주제</dt><dd>{topic || "미입력"}</dd></div>
+                    <div><dt className="text-subtle">사용 권리</dt><dd>{rightsConfirmed ? "확인됨" : "미확인"}</dd></div>
+                  </dl>
+                </section> : null}
               </div>
-              {missing.length ? <div className="rounded-control border border-warning/30 bg-warning/10 p-stack text-caption text-warning">비어 있음: {missing.join(", ")}</div> : null}
-              <Button onClick={onOpenLearning}>{guide.trim() || learning.industry ? "학습 정보 더 채우기" : "학습 정보 채우기"}</Button>
-              <Button variant="primary" onClick={generate} disabled={loading}>{loading ? "후보 만드는 중" : "후보 세 장 만들기"}</Button>
+              {questionIndex > 0 && question !== "review" ? <Button onClick={() => setQuestionIndex((current) => Math.max(0, current - 1))}>이전 질문</Button> : null}
+              {question === "review" && missing.length ? <div className="rounded-control border border-warning/30 bg-warning/10 p-stack text-caption text-warning">확인 필요: {missing.join(", ")}</div> : null}
+              {question === "review" ? <><Button onClick={() => setQuestionIndex(0)}>입력 내용 수정</Button><Button variant="primary" onClick={generate} disabled={loading || missing.length > 0}>{loading ? "구조 초안 만드는 중" : "구조 초안 3개 보기"}</Button></> : null}
             </> : null}
             {candidates.length && !selectedCandidate ? <>
-              {candidates.map((candidate) => <Button key={candidate.label} variant="secondary" onClick={() => choose(candidate)}>{candidate.label}안 선택</Button>)}
-              <Button onClick={regenerateAll} disabled={loading}>{loading ? "다시 만드는 중" : "모두 거절하고 무료로 다시 만들기"}</Button>
+              {candidates.map((candidate) => <Button key={candidate.label} variant="secondary" onClick={() => choose(candidate)}>{candidate.label} 구조 초안 선택</Button>)}
+              <Button onClick={regenerateAll} disabled={loading}>{loading ? "다시 만드는 중" : "3개 모두 바꾸기"}</Button>
             </> : null}
             {selectedCandidate && alsoQuote && !alsoBatch ? (
               <div className="space-y-stack rounded-surface border border-border bg-surface p-stack" data-create-also-confirm>
-                <b className="block text-caption font-semibold text-text">이 주제로 같이 만들 것</b>
+                <b className="block text-caption font-semibold text-text">추가 형식의 구성 초안 비용</b>
                 <ul className="space-y-stack-tight">
                   {alsoQuote.lines.map((line) => (
                     <li key={line.kind} className="flex justify-between text-caption text-muted">
@@ -401,28 +451,28 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
                   ))}
                 </ul>
                 <p className="flex justify-between border-t border-border pt-stack-tight text-caption font-semibold text-text" data-also-total-minor={alsoQuote.total_minor}>
-                  <span>확정하면 나가는 값</span>
+                  <span>구성 초안 생성 비용</span>
                   <span>{alsoQuote.total_minor.toLocaleString("ko-KR")}원</span>
                 </p>
-                <p className="break-keep text-caption text-subtle">무료로 다시 만드는 몫과는 따로 셉니다. 만들지 못한 갈래는 값을 매기지 않습니다</p>
-                <Button variant="primary" onClick={confirmAlsoKinds} disabled={alsoBusy}>{alsoBusy ? "같이 만드는 중" : "확정하고 같이 만들기"}</Button>
+                <p className="break-keep text-caption text-subtle">완성 미디어가 아니라 선택한 구조를 다른 형식에 맞춘 구성 초안입니다. 실패한 형식은 청구하지 않습니다.</p>
+                <Button variant="primary" onClick={confirmAlsoKinds} disabled={alsoBusy}>{alsoBusy ? "구성 초안 만드는 중" : "선택한 형식의 구성 초안 만들기"}</Button>
               </div>
             ) : null}
             {alsoBatch ? (
               <div className="space-y-stack rounded-surface border border-border bg-surface p-stack" data-create-also-result={alsoBatch.status}>
-                <b className="block text-caption font-semibold text-text">{alsoBatch.discarded_at ? "같이 만든 것을 버렸습니다" : "같이 만든 것"}</b>
+                <b className="block text-caption font-semibold text-text">{alsoBatch.discarded_at ? "추가 구성 초안을 버렸습니다" : "추가 형식의 구성 초안"}</b>
                 <ul className="space-y-stack-tight">
                   {alsoBatch.items.map((item) => (
                     <li key={item.kind} className="break-keep text-caption text-muted" data-also-item={item.kind} data-also-item-status={item.status}>
-                      {item.label}: {item.status === "succeeded" ? "편집실에 넣었습니다" : `만들지 못했습니다. ${item.failure_reason ?? ""}`}
+                      {item.label}: {item.status === "succeeded" ? "구성 초안을 준비했습니다" : `구성 초안을 만들지 못했습니다. ${item.failure_reason ?? ""}`}
                     </li>
                   ))}
                 </ul>
                 <p className="text-caption text-subtle">나간 값 {alsoBatch.cost.charged_minor.toLocaleString("ko-KR")}원</p>
-                {alsoBatch.discarded_at ? null : <Button onClick={discardAlso} disabled={alsoBusy}>같이 만든 것 버리기</Button>}
+                {alsoBatch.discarded_at ? null : <Button onClick={discardAlso} disabled={alsoBusy}>추가 구성 초안 버리기</Button>}
               </div>
             ) : null}
-            {selectedCandidate ? <Stack gap={8}><Button variant="primary" onClick={onOpenEditor}>편집실로 이동</Button><Button onClick={() => setSelected(null)}>후보 다시 보기</Button></Stack> : null}
+            {selectedCandidate && (alsoKinds.length === 0 || Boolean(alsoBatch)) ? <Stack gap={8}><Button variant="primary" onClick={onOpenEditor}>선택한 구조 초안을 편집실에서 보기</Button><Button onClick={() => setSelected(null)}>구조 초안 다시 고르기</Button></Stack> : null}
             {error ? <p role="alert" className="text-caption text-danger">{error}</p> : null}
           </Stack>
         </AssistantPanel>

@@ -227,6 +227,7 @@ export default function StudioPage() {
   const [editLines, setEditLines] = useState<string[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<StudioGenerationCandidate | null>(null);
   const [createBranch, setCreateBranch] = useState<CreateContentBranch>("video");
+  const [createPrimaryKind, setCreatePrimaryKind] = useState<CreateKind | null>(null);
   const [alsoKinds, setAlsoKinds] = useState<CreateKind[]>([]);
   const [learningInfo, setLearningInfo] = useState<LearningInfo>({});
   const [learningFlash, setLearningFlash] = useState(0);
@@ -320,7 +321,7 @@ export default function StudioPage() {
     setIncludes(normalizeIncludes()); setPublishReconciliations({}); setEditorHandoff(null);
     setDisplayNames({}); setTitles({}); setHashtags({}); setFirstComments({});
     setEditLines([]); setReviewQueueId(null); setSelectedCandidate(null);
-    setCreateBranch("video"); setEditKind("video"); setEditFormat(defaultContentEditFormat("video"));
+    setCreateBranch("video"); setCreatePrimaryKind(null); setEditKind("video"); setEditFormat(defaultContentEditFormat("video"));
     setPub({ running: false, stopped: false, status: {}, urls: {}, errors: {} });
     if (!workspaceId) return;
     try {
@@ -328,12 +329,12 @@ export default function StudioPage() {
       const raw = localStorage.getItem(studioWorkStorageKey(workspaceId));
       if (raw) {
         const w = JSON.parse(raw);
-        setIdea(w.idea || ""); setText(w.text || null); setImg(w.img || null); setVid(w.vid || null);
+        if (activeRoom !== "create") setIdea(w.idea || "");
+        setText(w.text || null); setImg(w.img || null); setVid(w.vid || null);
         if (w.includes) setIncludes(normalizeIncludes(w.includes)); setDraftId(w.draftId || null);
         setPublishReconciliations(normalizePublishReconciliations(w.publishReconciliations ?? w.publishReconciliation));
         setDisplayNames(w.displayNames || {}); setTitles(w.titles || {}); setHashtags(w.hashtags || {});
         setFirstComments(w.firstComments || {}); setCaptions(w.captions || {}); setEditLines(w.editLines || []); setReviewQueueId(w.reviewQueueId || null);
-        if (w.createBranch === "video" || w.createBranch === "text_image") setCreateBranch(w.createBranch);
         if (w.editKind === "video" || w.editKind === "card" || w.editKind === "audio" || w.editKind === "text") {
           setEditKind(w.editKind);
           const formatKind = w.editKind === "text" ? "card" : w.editKind;
@@ -349,8 +350,8 @@ export default function StudioPage() {
   useEffect(() => {
     const workspaceId = activeWorkspace?.id;
     if (!workspaceId || hydratedWorkspaceId !== workspaceId) return;
-    try { localStorage.setItem(studioWorkStorageKey(workspaceId), JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, captions, editLines, reviewQueueId, createBranch, editKind, editFormat })); } catch { /* noop */ }
-  }, [activeWorkspace?.id, hydratedWorkspaceId, idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, captions, editLines, reviewQueueId, createBranch, editKind, editFormat]);
+    try { localStorage.setItem(studioWorkStorageKey(workspaceId), JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, captions, editLines, reviewQueueId, editKind, editFormat })); } catch { /* noop */ }
+  }, [activeWorkspace?.id, hydratedWorkspaceId, idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, captions, editLines, reviewQueueId, editKind, editFormat]);
 
   const media = { imgUrl: img?.file, vidUrl: vid?.file };
   const upText = (patch: Partial<TextVariants>) => setText((p) => ({ ...(p || {}), ...patch }));
@@ -872,11 +873,11 @@ export default function StudioPage() {
         <>
           {activeRoom === "create" || activeRoom === "edit" ? (
             <span className="rounded-pill border border-accent/30 bg-surface px-stack py-stack-tight text-caption font-semibold text-accent" data-kind-board>
-              지금 만드는 것: {activeRoom === "create" ? createBranch === "video" ? "영상" : "글·카드뉴스" : editKind === "video" ? "영상" : editKind === "card" ? "카드뉴스" : editKind === "text" ? "글" : "음악"}
+              지금 만드는 것: {activeRoom === "create" ? createPrimaryKind ? createPrimaryKind === "video" ? "영상" : createPrimaryKind === "card" ? "카드뉴스" : "글" : "선택 전" : editKind === "video" ? "영상" : editKind === "card" ? "카드뉴스" : editKind === "text" ? "글" : "음악"}
               {activeRoom === "create" && alsoKinds.length ? <span className="ml-micro font-normal text-subtle">같이 {alsoKinds.map((kind) => (kind === "video" ? "영상" : kind === "card" ? "카드뉴스" : "글")).join(", ")}</span> : null}
             </span>
           ) : null}
-          <span className="rounded-control border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle" title={engine?.error || engine?.model || ""}>AI {engine?.label || "확인 중"}</span>
+          <span className="rounded-control border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle" title={activeRoom === "create" ? "현재 생성실은 저장된 규칙으로 구성 초안만 만듭니다." : engine?.error || engine?.model || ""}>{activeRoom === "create" ? "규칙 기반 구성 초안" : `AI ${engine?.label || "확인 중"}`}</span>
         </>
       }
     >
@@ -921,6 +922,7 @@ export default function StudioPage() {
         topic={idea}
         contentBranch={createBranch}
         onContentBranchChange={setCreateBranch}
+        onPrimaryKindChange={setCreatePrimaryKind}
         onTopicChange={setIdea}
         onOpenLearning={() => setShowWizard(true)}
         onCandidateSelect={chooseCandidate}
