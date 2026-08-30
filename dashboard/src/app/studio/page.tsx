@@ -874,7 +874,7 @@ export default function StudioPage() {
           {activeRoom === "create" || activeRoom === "edit" ? (
             <span className="rounded-pill border border-accent/30 bg-surface px-stack py-stack-tight text-caption font-semibold text-accent" data-kind-board>
               지금 만드는 것: {activeRoom === "create" ? createPrimaryKind ? createPrimaryKind === "video" ? "영상" : createPrimaryKind === "card" ? "카드뉴스" : "글" : "선택 전" : editKind === "video" ? "영상" : editKind === "card" ? "카드뉴스" : editKind === "text" ? "글" : "음악"}
-              {activeRoom === "create" && alsoKinds.length ? <span className="ml-micro font-normal text-subtle">같이 {alsoKinds.map((kind) => (kind === "video" ? "영상" : kind === "card" ? "카드뉴스" : "글")).join(", ")}</span> : null}
+              {activeRoom === "create" && alsoKinds.length ? <span className="font-normal text-subtle">, {alsoKinds.map((kind) => (kind === "video" ? "영상" : kind === "card" ? "카드뉴스" : "글")).join(", ")}</span> : null}
             </span>
           ) : null}
           <span className="rounded-control border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle" title={activeRoom === "create" ? "현재 생성실은 저장된 규칙으로 구성 초안만 만듭니다." : engine?.error || engine?.model || ""}>{activeRoom === "create" ? "규칙 기반 구성 초안" : `AI ${engine?.label || "확인 중"}`}</span>
