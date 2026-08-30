@@ -1,10 +1,10 @@
 import crypto from "node:crypto";
 import type { GenerationRequest, RequestedTarget } from "./contracts";
 import { StudioApiError } from "./errors";
+import { StudioLlmExecutionError, type StudioContentGenerator } from "./llm";
 import {
   assertAcknowledgedCost,
   batchStatus,
-  buildDerivationPayload,
   DerivationBuildError,
   derivationQuote,
   derivationSummary,
@@ -132,6 +132,8 @@ export interface DerivationDraftSink {
 }
 
 export interface GenerationRepository {
+  findCreation(memberId: string, workspaceId: string, operation: "generation.create", idempotencyKey: string): Promise<IdempotencyRecord | null>;
+  findDerivationByIdempotency(memberId: string, workspaceId: string, idempotencyKey: string): Promise<PersistedDerivation | null>;
   persistCreation(input: PersistCreationInput): Promise<PersistedCreation>;
   findJob(memberId: string, jobId: string, allowedWorkspaceIds: readonly string[]): Promise<GenerationJob | null>;
   recordCandidateRejection(input: RecordRejectionInput): Promise<{ rejectedCandidateIds: string[] }>;
@@ -222,37 +224,15 @@ function requestedTargets(request: GenerationRequest): RequestedTarget[] {
   }];
 }
 
-function buildCandidates(request: GenerationRequest): GenerationCandidate[] {
-  const { topic } = request.learningContext.r6;
-  const { audience, purpose, contentBranch } = request.learningContext.u3;
+async function buildCandidates(
+  memberId: string,
+  request: GenerationRequest,
+  contentGenerator: StudioContentGenerator,
+): Promise<GenerationCandidate[]> {
+  const { contentBranch } = request.learningContext.u3;
   const cost = configuredCostEstimate();
   const channels = requestedTargets(request);
-  const specs = [
-    {
-      label: "A" as const,
-      ordinal: 1 as const,
-      angle: "problem_first" as const,
-      title: `${topic}: 문제부터 여는 안`,
-      rationale: `${audience}가 겪는 문제를 첫 장면에 놓고 목표인 "${purpose}"를 빠르게 이해시키는 구성입니다.`,
-      outline: ["사용자가 겪는 문제", "문제가 생기는 이유", "바로 적용할 다음 행동"],
-    },
-    {
-      label: "B" as const,
-      ordinal: 2 as const,
-      angle: "proof_first" as const,
-      title: `${topic}: 증거부터 보여주는 안`,
-      rationale: `결론이나 관찰 가능한 증거를 먼저 보여 준 뒤 ${audience}에게 필요한 맥락을 붙이는 구성입니다.`,
-      outline: ["확인 가능한 결과", "결과를 만든 핵심 원리", "같이 적용할 조건"],
-    },
-    {
-      label: "C" as const,
-      ordinal: 3 as const,
-      angle: "process_first" as const,
-      title: `${topic}: 과정을 따라가는 안`,
-      rationale: `"${purpose}"에 도달하는 과정을 순서대로 보여 주어 처음 보는 사람도 따라오게 하는 구성입니다.`,
-      outline: ["시작 조건", "핵심 과정", "완료 뒤 확인할 것"],
-    },
-  ];
+  const specs = await contentGenerator.generateCandidates({ memberId, request });
   return specs.map((spec) => ({
     candidateId: crypto.randomUUID(),
     ordinal: spec.ordinal,
@@ -274,14 +254,19 @@ function publicResponse(job: GenerationJob): GenerationResponse {
   };
 }
 
-function buildJob(memberId: string, request: GenerationRequest, now: Date): GenerationJob {
+async function buildJob(
+  memberId: string,
+  request: GenerationRequest,
+  now: Date,
+  contentGenerator: StudioContentGenerator,
+): Promise<GenerationJob> {
   const context = request.learningContext;
   return {
     jobId: crypto.randomUUID(),
     memberId,
     workspaceId: request.workspaceId,
     status: "succeeded",
-    candidates: buildCandidates(request),
+    candidates: await buildCandidates(memberId, request, contentGenerator),
     layerRevisions: {
       s0: context.s0.revision,
       s1: context.s1.revision,
@@ -302,6 +287,41 @@ function buildJob(memberId: string, request: GenerationRequest, now: Date): Gene
     },
     createdAt: now.toISOString(),
   };
+}
+
+function llmFailure(error: StudioLlmExecutionError): StudioApiError {
+  const messages: Record<StudioLlmExecutionError["reason"], string> = {
+    configuration_missing: "콘텐츠 생성 모델 설정이 없어 생성을 시작하지 못했습니다",
+    provider_unsupported: "현재 설정한 콘텐츠 생성 제공자는 이 실행 경로에서 지원하지 않습니다",
+    approval_required: "공유 AI 사용 승인이 없어 생성을 시작하지 못했습니다",
+    quota_exhausted: "이번 달 공유 AI 생성 한도를 모두 사용했습니다",
+    timeout: "AI 생성 엔진의 응답 시간이 초과되었습니다",
+    provider_unavailable: "AI 생성 엔진이 응답하지 않았습니다",
+    invalid_output: "AI 생성 결과가 콘텐츠 계약에 맞지 않아 저장하지 않았습니다",
+    usage_ledger_unavailable: "AI 사용량 기록을 남길 수 없어 생성을 시작하지 않았습니다",
+  };
+  const statuses: Record<StudioLlmExecutionError["reason"], number> = {
+    configuration_missing: 503,
+    provider_unsupported: 503,
+    approval_required: 403,
+    quota_exhausted: 429,
+    timeout: 504,
+    provider_unavailable: 503,
+    invalid_output: 502,
+    usage_ledger_unavailable: 503,
+  };
+  return new StudioApiError({
+    status: statuses[error.reason],
+    code: `STUDIO_LLM_${error.reason.toUpperCase()}`,
+    message: messages[error.reason],
+    retryable: error.retryable,
+    details: { reason: error.reason },
+  });
+}
+
+function derivationFailureReason(error: unknown): string {
+  if (!(error instanceof StudioLlmExecutionError)) return "편집실 작업물을 저장하지 못했습니다";
+  return llmFailure(error).message;
 }
 
 function candidatesNotRejected(pending: readonly string[]): StudioApiError {
@@ -332,7 +352,15 @@ export class GenerationService {
   constructor(
     private readonly repository: GenerationRepository,
     private readonly derivationSink?: DerivationDraftSink,
+    private readonly contentGenerator?: StudioContentGenerator,
   ) {}
+
+  private generator(): StudioContentGenerator {
+    if (!this.contentGenerator) {
+      throw llmFailure(new StudioLlmExecutionError("configuration_missing", false));
+    }
+    return this.contentGenerator;
+  }
 
   private sink(): DerivationDraftSink {
     if (!this.derivationSink) {
@@ -354,7 +382,20 @@ export class GenerationService {
       });
     }
     const requestHash = hashRequest(request);
-    const job = buildJob(memberId, request, now);
+    const existing = await this.repository.findCreation(memberId, request.workspaceId, "generation.create", idempotencyKey);
+    if (existing) {
+      if (existing.requestHash !== requestHash) {
+        throw new StudioApiError({ status: 409, code: "IDEMPOTENCY_CONFLICT", message: "같은 Idempotency-Key에 다른 요청 본문을 보낼 수 없습니다" });
+      }
+      return existing.response;
+    }
+    let job: GenerationJob;
+    try {
+      job = await buildJob(memberId, request, now, this.generator());
+    } catch (error) {
+      if (error instanceof StudioLlmExecutionError) throw llmFailure(error);
+      throw error;
+    }
     const response = publicResponse(job);
     const persisted = await this.repository.persistCreation({
       job,
@@ -447,11 +488,24 @@ export class GenerationService {
     assertAcknowledgedCost(quote, acknowledgedCost);
 
     const requestHash = hashRequest({ jobId, candidateId, kinds: [...kinds].sort() });
+    const existing = await this.repository.findDerivationByIdempotency(memberId, job.workspaceId, idempotencyKey);
+    if (existing) {
+      if (existing.requestHash !== requestHash) {
+        throw new StudioApiError({ status: 409, code: "IDEMPOTENCY_CONFLICT", message: "같은 Idempotency-Key에 다른 요청 본문을 보낼 수 없습니다" });
+      }
+      return existing.batch;
+    }
     const items: DerivationItem[] = [];
     for (const kind of kinds) {
       const summary = derivationSummary(candidate, kind);
       try {
-        const payload = buildDerivationPayload(candidate, kind);
+        const payload = await this.generator().generateDerivation({
+          memberId,
+          workspaceId: job.workspaceId,
+          request: job.request,
+          candidate,
+          kind,
+        });
         const saved = await this.sink().createDraft({
           workspaceId: job.workspaceId,
           summary,
@@ -477,9 +531,7 @@ export class GenerationService {
           handoffId: null,
           summary,
           chargedMinor: 0,
-          failureReason: error instanceof DerivationBuildError
-            ? error.message
-            : "이 갈래를 만드는 중에 문제가 생겨 남기지 못했습니다",
+          failureReason: error instanceof DerivationBuildError ? error.message : derivationFailureReason(error),
         });
       }
     }
@@ -557,7 +609,13 @@ export class GenerationService {
     const requiredRejections = original.candidates.map((candidate) => candidate.candidateId);
     const localDate = quotaDate(now);
     const idempotencyKey = `free-regeneration:${jobId}:${localDate}`;
-    const replacementJob = buildJob(memberId, original.request, now);
+    let replacementJob: GenerationJob;
+    try {
+      replacementJob = await buildJob(memberId, original.request, now, this.generator());
+    } catch (error) {
+      if (error instanceof StudioLlmExecutionError) throw llmFailure(error);
+      throw error;
+    }
     const replacement = publicResponse(replacementJob);
     const persisted = await this.repository.persistFreeRegeneration({
       originalJobId: jobId,

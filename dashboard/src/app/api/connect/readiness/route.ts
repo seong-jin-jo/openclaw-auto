@@ -8,6 +8,23 @@ import { resolveConnectReadiness, type ConnectReadinessEntry } from "@/lib/conne
 const CREDENTIAL_STORE_UNAVAILABLE_REASON =
   "OAuth 자격증명 저장소에 일시적으로 연결할 수 없습니다. 관리자 복구 후 다시 시도해주세요.";
 
+const META_REVIEW_PROVIDERS = new Set(["threads", "instagram", "facebook"]);
+
+function externalReviewReason(
+  provider: string,
+  label: string,
+  connectionState: "connected" | "reconnect" | "disconnected",
+): string {
+  if (META_REVIEW_PROVIDERS.has(provider)) {
+    return connectionState === "connected"
+      ? `${label}은 아직 앱 심사 전입니다. 현재 연결된 테스터 계정은 사용할 수 있지만 외부 고객 계정은 연결할 수 없습니다. 심사 승인 후에는 테스터 등록 없이 OAuth로 연결됩니다.`
+      : `${label}은 아직 앱 심사 전입니다. Meta 앱에서 테스터로 등록하고 초대를 수락한 계정만 연결할 수 있습니다. 심사 승인 후에는 테스터 등록 없이 OAuth로 연결됩니다.`;
+  }
+  return connectionState === "connected"
+    ? `${label} 계정은 연결됐지만 외부 앱 심사가 완료되기 전에는 실제 발행이 제한됩니다.`
+    : `${label} 외부 앱 심사가 완료되면 연결할 수 있습니다.`;
+}
+
 // GET /api/connect/readiness?tenant_id=... — 고객 UI가 "연결" 버튼을 그리기 전에 먼저 물어보는
 // 서버 준비상태 계약(SNS-001/SNS-003/SNS-004). 서버 credential(OAuth 앱 ID/Secret)이 없는
 // provider를 클릭 가능한 버튼으로 보여주면 고객이 누른 뒤에야 500/raw JSON을 보게 된다 —
@@ -50,9 +67,7 @@ export async function GET(request: Request) {
       : !credentials?.complete
       ? `서버에 ${name} OAuth 앱 자격증명(${cfg.appIdEnv}/${cfg.appSecretEnv})이 아직 설정되지 않았습니다.`
       : externalReviewPending
-      ? connectionState === "connected"
-        ? `${cfg.label} 계정은 연결됐지만 외부 앱 심사가 완료되기 전에는 실제 발행이 제한됩니다.`
-        : `${cfg.label} 외부 앱 심사가 완료되면 연결할 수 있습니다.`
+      ? externalReviewReason(name, cfg.label, connectionState)
       : connectionState === "reconnect"
       ? `${cfg.label} 계정을 다시 연결해주세요.`
       : undefined;
@@ -92,9 +107,7 @@ export async function GET(request: Request) {
       connectionLookupError,
       externalReviewPending,
       reason: externalReviewPending
-        ? connectionState === "connected"
-          ? "Facebook 계정은 연결됐지만 외부 앱 심사가 완료되기 전에는 실제 발행이 제한됩니다."
-          : "Facebook 외부 앱 심사가 완료되면 연결할 수 있습니다."
+        ? externalReviewReason("facebook", "Facebook", connectionState)
         : "Meta 앱 모드와 테스터 등록 상태는 연결 과정에서 최종 확인됩니다.",
     });
   }

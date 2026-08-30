@@ -1,0 +1,67 @@
+.ratioPortrait {
+  aspect-ratio: 9 / 16;
+}
+
+.ratioFeed {
+  aspect-ratio: 4 / 5;
+}
+
+.ratioSquare {
+  aspect-ratio: 1 / 1;
+}
+
+.ratioLandscape {
+  aspect-ratio: 16 / 9;
+}
+
+.ratioFacebook {
+  aspect-ratio: 1.91 / 1;
+}
+
+.height8 {
+  height: 8%;
+}
+
+.height10 {
+  height: 10%;
+}
+
+.height12 {
+  height: 12%;
+}
+
+.height16 {
+  height: 16%;
+}
+
+.height18 {
+  height: 18%;
+}
+
+.height22 {
+  height: 22%;
+}
+
+.height24 {
+  height: 24%;
+}
+
+.bottom8 {
+  bottom: 8%;
+}
+
+.bottom18 {
+  bottom: 18%;
+}
+
+.bottom20 {
+  bottom: 20%;
+}
+
+.bottom24 {
+  bottom: 24%;
+}
+
+.bottom26 {
+  bottom: 26%;
+}

@@ -49,11 +49,11 @@ describe("헤더 학습 정보 (회장: 왜 헤더에 학습 정보가 사라짐
   });
 });
 
-describe("첫 방문 세 걸음 카드 문답 (회장: 주관식이면 뭘 입력해야 할지 모르겠는데)", () => {
+describe("학습 정보 일곱 걸음 카드 문답", () => {
   it("CHAIR-CARD-01 정상: 걸음마다 입력창 없이 카드만 보인다", () => {
     render(<LearningCardWizard workspaceId="tenant-1" workspaceName="작업 공간" onSaved={noop} onClose={noop} />);
 
-    expect(screen.getByText("무엇을 하는 곳입니까")).toBeInTheDocument();
+    expect(screen.getByText("어떤 업종에서 일하시나요?")).toBeInTheDocument();
     expect(document.querySelectorAll("[data-learning-card]").length).toBeGreaterThan(6);
     expect(document.querySelectorAll("[data-learning-wizard] input")).toHaveLength(0);
   });
@@ -63,16 +63,16 @@ describe("첫 방문 세 걸음 카드 문답 (회장: 주관식이면 뭘 입�
 
     fireEvent.click(screen.getByRole("button", { name: /교육·강의/ }));
 
-    await waitFor(() => expect(screen.getByText("누구에게 말합니까")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("주로 어떤 고객에게 콘텐츠를 보여주나요?")).toBeInTheDocument());
     expect(readLearningInfo("tenant-1").industry).toContain("강의");
   });
 
   it("CHAIR-CARD-03 탈출구: 모르겠다고 하면 담당이 골라 넣고 다음으로 간다", async () => {
     render(<LearningCardWizard workspaceId="tenant-1" onSaved={noop} onClose={noop} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "잘 모르겠습니다. 골라 주십시오" }));
+    fireEvent.click(screen.getByRole("button", { name: "추천받기" }));
 
-    await waitFor(() => expect(screen.getByText("누구에게 말합니까")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("주로 어떤 고객에게 콘텐츠를 보여주나요?")).toBeInTheDocument());
     expect(readLearningInfo("tenant-1").industry).toBeTruthy();
   });
 
@@ -87,9 +87,9 @@ describe("첫 방문 세 걸음 카드 문답 (회장: 주관식이면 뭘 입�
   it("CHAIR-CARD-05 정상: 카드에 없으면 대화 한 줄로 빠져나간다", async () => {
     render(<LearningCardWizard workspaceId="tenant-1" onSaved={noop} onClose={noop} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "여기 없습니다" }));
-    fireEvent.change(screen.getByLabelText("담당에게 직접 말하기"), { target: { value: "수제 가죽 공방" } });
-    fireEvent.click(screen.getByRole("button", { name: "이대로 배우기" }));
+    fireEvent.click(screen.getByRole("button", { name: "직접 입력" }));
+    fireEvent.change(screen.getByLabelText("학습 정보 직접 입력"), { target: { value: "수제 가죽 공방" } });
+    fireEvent.click(screen.getByRole("button", { name: "입력하고 다음" }));
 
     await waitFor(() => expect(readLearningInfo("tenant-1").industry).toBe("수제 가죽 공방"));
   });
@@ -110,19 +110,20 @@ describe("생성실 (회장: 오늘 만들 수 있는 것이 뭐하는 예시이
     render(<CreateRoom {...props} />);
 
     expect(screen.queryByText("오늘 만들 수 있는 것")).toBeNull();
-    expect(screen.getByText("이런 결로 만들어 드립니다")).toBeInTheDocument();
+    expect(screen.getByText("콘텐츠 구성 초안 예시")).toBeInTheDocument();
+    expect(screen.getByText("영상 렌더링, 카드뉴스 이미지 생성")).toBeInTheDocument();
   });
 
-  it("CHAIR-CREATE-02 정상: 주 갈래를 고르면 같이 만들 갈래를 체크할 수 있다", () => {
+  it("CHAIR-CREATE-02 정상: 만들 형식을 한 질문에서 중복 없이 여러 개 고른다", () => {
     const onAlsoKindsChange = vi.fn();
     render(<CreateRoom {...props} onAlsoKindsChange={onAlsoKindsChange} />);
 
     fireEvent.click(screen.getByRole("button", { name: "영상" }));
-    fireEvent.click(screen.getByLabelText("카드뉴스도 같이 만들기"));
+    fireEvent.click(screen.getByRole("button", { name: "카드뉴스" }));
 
     expect(onAlsoKindsChange).toHaveBeenCalledWith(["card"]);
-    // 후보는 주 갈래 하나로만 보여 판단을 한 번만 시킨다.
-    expect(screen.getByText(/고르실 후보는 영상 세 장입니다/)).toBeInTheDocument();
+    expect(screen.getByText(/영상 구조를 먼저 확인합니다. 추가 선택: 카드뉴스/)).toBeInTheDocument();
+    expect(screen.queryByText("이 주제로 같이 만들 것")).toBeNull();
   });
 
   it("CHAIR-CREATE-03 정상: 만들 종류 세 갈래가 모두 고를 수 있게 열려 있다", () => {

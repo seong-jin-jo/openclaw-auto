@@ -8,7 +8,7 @@ import {
   parseDerivationKinds,
   publicBatch,
 } from "@/lib/studio/generation/derivation";
-import { generationRequestFixture } from "./generation-fixture";
+import { FIXTURE_STUDIO_CONTENT_GENERATOR, generationRequestFixture } from "./generation-fixture";
 import { MemoryDerivationSink, MemoryGenerationRepository } from "./generation-memory-repository";
 
 const WORKSPACES = ["11111111-1111-4111-8111-111111111111"];
@@ -17,7 +17,7 @@ const MEMBER = "member-derivation";
 function setup(failKinds: string[] = []) {
   const repository = new MemoryGenerationRepository();
   const sink = new MemoryDerivationSink(failKinds);
-  return { repository, sink, service: new GenerationService(repository, sink) };
+  return { repository, sink, service: new GenerationService(repository, sink, FIXTURE_STUDIO_CONTENT_GENERATOR) };
 }
 
 async function primaryJob(service: GenerationService) {

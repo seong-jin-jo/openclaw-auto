@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/shared/Button";
 import type { EditContentKind } from "./StudioRooms";
+import styles from "./EditPreview.module.css";
 
 // 편집실 미리보기.
 //
@@ -43,6 +44,32 @@ const SUBTITLE_CLASS: Record<string, string> = {
   크게: "text-body",
 };
 
+const RATIO_CLASS: Record<string, string> = {
+  "9 / 16": styles.ratioPortrait,
+  "4 / 5": styles.ratioFeed,
+  "1 / 1": styles.ratioSquare,
+  "16 / 9": styles.ratioLandscape,
+  "1.91 / 1": styles.ratioFacebook,
+};
+
+const SAFE_AREA_HEIGHT_CLASS: Record<number, string> = {
+  8: styles.height8,
+  10: styles.height10,
+  12: styles.height12,
+  16: styles.height16,
+  18: styles.height18,
+  22: styles.height22,
+  24: styles.height24,
+};
+
+const SUBTITLE_BOTTOM_CLASS: Record<number, string> = {
+  8: styles.bottom8,
+  18: styles.bottom18,
+  20: styles.bottom20,
+  24: styles.bottom24,
+  26: styles.bottom26,
+};
+
 export function EditPreview({
   kind,
   lines,
@@ -81,15 +108,14 @@ export function EditPreview({
 
       <div className="grid place-items-center rounded-surface border border-border bg-surface-2 p-stack">
         <div
-          className="relative w-full max-w-sm overflow-hidden rounded-control bg-accent-soft"
-          style={{ aspectRatio: spec.ratio }}
+          className={`relative w-full max-w-sm overflow-hidden rounded-control bg-accent-soft ${RATIO_CLASS[spec.ratio]}`}
           data-edit-preview-frame={spec.ratio}
         >
           {spec.safeTop > 0 ? (
-            <div aria-hidden="true" className="absolute inset-x-0 top-0 border-b border-dashed border-border bg-surface/40" style={{ height: `${spec.safeTop}%` }} />
+            <div aria-hidden="true" className={`absolute inset-x-0 top-0 border-b border-dashed border-border bg-surface/40 ${SAFE_AREA_HEIGHT_CLASS[spec.safeTop]}`} />
           ) : null}
           {spec.safeBottom > 0 ? (
-            <div aria-hidden="true" className="absolute inset-x-0 bottom-0 border-t border-dashed border-border bg-surface/40" style={{ height: `${spec.safeBottom}%` }} />
+            <div aria-hidden="true" className={`absolute inset-x-0 bottom-0 border-t border-dashed border-border bg-surface/40 ${SAFE_AREA_HEIGHT_CLASS[spec.safeBottom]}`} />
           ) : null}
 
           <div className="absolute inset-0 grid place-items-center p-pad-inset text-center">
@@ -111,8 +137,7 @@ export function EditPreview({
           {kind !== "text" ? (
             <p
               data-edit-preview-subtitle={subtitleHidden ? "가림" : "보임"}
-              className={`absolute inset-x-0 px-stack text-center font-semibold text-text ${SUBTITLE_CLASS[subtitleSize] || "text-body-sm"}`}
-              style={{ bottom: `${Math.max(spec.safeBottom, 6) + 2}%` }}
+              className={`absolute inset-x-0 px-stack text-center font-semibold text-text ${SUBTITLE_CLASS[subtitleSize] || "text-body-sm"} ${SUBTITLE_BOTTOM_CLASS[Math.max(spec.safeBottom, 6) + 2]}`}
             >
               {line}
             </p>

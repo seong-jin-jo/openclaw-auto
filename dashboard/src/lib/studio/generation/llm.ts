@@ -1,0 +1,432 @@
+import crypto from "node:crypto";
+import { generateTextWithUsage, type GeneratedTextResult } from "@/lib/anthropic";
+import { withTenant } from "@/lib/db";
+import { configPath, readJson } from "@/lib/file-io";
+import type { GenerationRequest } from "./contracts";
+import type { DerivationKind, DerivationPayload } from "./derivation";
+import type { GenerationCandidate } from "./service";
+import defaults from "./studio-llm.defaults.json";
+
+type ModelConfig = {
+  primary?: unknown;
+  fallbacks?: unknown;
+};
+
+type OpenClawConfig = {
+  agents?: { defaults?: { model?: ModelConfig } };
+};
+
+export type StudioLlmFailureReason =
+  | "configuration_missing"
+  | "provider_unsupported"
+  | "approval_required"
+  | "quota_exhausted"
+  | "timeout"
+  | "provider_unavailable"
+  | "invalid_output"
+  | "usage_ledger_unavailable";
+
+export class StudioLlmExecutionError extends Error {
+  constructor(
+    readonly reason: StudioLlmFailureReason,
+    readonly retryable: boolean,
+  ) {
+    super(reason);
+    this.name = "StudioLlmExecutionError";
+  }
+}
+
+export type GeneratedCandidateContent = Pick<
+  GenerationCandidate,
+  "label" | "ordinal" | "angle" | "title" | "rationale"
+> & { outline: string[] };
+
+export interface StudioContentGenerator {
+  generateCandidates(input: {
+    memberId: string;
+    request: GenerationRequest;
+  }): Promise<GeneratedCandidateContent[]>;
+  generateDerivation(input: {
+    memberId: string;
+    workspaceId: string;
+    request: GenerationRequest;
+    candidate: GenerationCandidate;
+    kind: DerivationKind;
+  }): Promise<DerivationPayload>;
+}
+
+export type StudioLlmRunner = (input: {
+  prompt: string;
+  tenantId: string;
+  model: string;
+  timeoutMs: number;
+  maxOutputTokens: number;
+}) => Promise<GeneratedTextResult>;
+
+type ResolvedConfig = {
+  models: string[];
+  maxAttempts: number;
+  timeoutMs: number;
+  maxOutputTokens: number;
+};
+
+function configuredPositiveInt(name: string, fallback: number, min: number, max: number): number {
+  const raw = process.env[name];
+  if (!raw || !/^\d+$/.test(raw)) return fallback;
+  const value = Number(raw);
+  return Number.isSafeInteger(value) && value >= min && value <= max ? value : fallback;
+}
+
+function stringList(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0).map((entry) => entry.trim())
+    : [];
+}
+
+function supportedModel(model: string): boolean {
+  return !model.includes("/") || model.startsWith("anthropic/") || model.startsWith("claude-cli/");
+}
+
+export function resolveStudioLlmConfig(): ResolvedConfig {
+  const shared = readJson<OpenClawConfig>(configPath("openclaw.json"));
+  const configured = shared?.agents?.defaults?.model;
+  const envPrimary = process.env.STUDIO_LLM_MODEL?.trim();
+  const envFallbacks = process.env.STUDIO_LLM_FALLBACK_MODELS === undefined
+    ? null
+    : process.env.STUDIO_LLM_FALLBACK_MODELS.split(",").map((entry) => entry.trim()).filter(Boolean);
+  const primary = envPrimary
+    || (typeof configured?.primary === "string" ? configured.primary.trim() : "")
+    || defaults.primary;
+  const sharedFallbacks = stringList(configured?.fallbacks).filter(supportedModel);
+  const fallbacks = envFallbacks ?? (sharedFallbacks.length > 0 ? sharedFallbacks : defaults.fallbacks);
+  if (!primary) throw new StudioLlmExecutionError("configuration_missing", false);
+  if (!supportedModel(primary)) throw new StudioLlmExecutionError("provider_unsupported", false);
+  const modelChain = [primary, ...fallbacks.filter(supportedModel)].filter(
+    (model, index, all) => all.indexOf(model) === index,
+  );
+  const maxAttempts = configuredPositiveInt("STUDIO_LLM_MAX_ATTEMPTS", defaults.max_attempts, 1, 3);
+  return {
+    models: modelChain.slice(0, maxAttempts),
+    maxAttempts,
+    timeoutMs: configuredPositiveInt("STUDIO_LLM_TIMEOUT_MS", defaults.timeout_ms, 5_000, 120_000),
+    maxOutputTokens: configuredPositiveInt("STUDIO_LLM_MAX_OUTPUT_TOKENS", defaults.max_output_tokens, 256, 8_000),
+  };
+}
+
+function stableValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, entry]) => [key, stableValue(entry)]),
+    );
+  }
+  return value;
+}
+
+export function buildCandidatePrompt(request: GenerationRequest): string {
+  const layers = request.learningContext;
+  return [
+    "당신은 한국어 콘텐츠 전략가입니다.",
+    "아래 일곱 칸 학습 정보를 모두 근거로 후보 A, B, C를 만드세요.",
+    "세 후보는 제목만 바꾸지 말고 도입, 전개, 사례, 마무리의 뼈대가 서로 달라야 합니다.",
+    "A는 problem_first, B는 proof_first, C는 process_first입니다.",
+    "각 outline은 실제 내용이 담긴 3개에서 6개의 문장이어야 합니다.",
+    "응답은 설명이나 코드 펜스 없이 JSON 객체 하나만 반환하세요.",
+    '형식: {"candidates":[{"label":"A","angle":"problem_first","title":"...","rationale":"...","outline":["...","...","..."]},{"label":"B","angle":"proof_first","title":"...","rationale":"...","outline":["...","...","..."]},{"label":"C","angle":"process_first","title":"...","rationale":"...","outline":["...","...","..."]}]}',
+    `S0 안전 규칙: ${JSON.stringify(layers.s0.safetyRules)}`,
+    `S1 시장 맥락: ${layers.s1.marketContext}`,
+    `U2 언어와 접근성: ${JSON.stringify({ locale: layers.u2.locale, timeZone: layers.u2.timeZone, accessibility: layers.u2.accessibilityRequirements })}`,
+    `U3 회원 목적과 대상: ${JSON.stringify({ purpose: layers.u3.purpose, audience: layers.u3.audience, contentBranch: layers.u3.contentBranch, workspaceFacts: layers.u3.workspaceFacts, forbiddenPhrases: layers.u3.forbiddenPhrases, tone: layers.u3.tone })}`,
+    `X4 구조 규칙: ${JSON.stringify(layers.x4.structureRules)}`,
+    `L5 승인된 학습 규칙: ${JSON.stringify(layers.l5.acceptedRules)}`,
+    `R6 이번 요청: ${JSON.stringify(stableValue(layers.r6))}`,
+    `요청 시점 채널 규격: ${JSON.stringify(stableValue(request.platformSpec?.targets ?? []))}`,
+  ].join("\n");
+}
+
+function buildDerivationPrompt(
+  request: GenerationRequest,
+  candidate: GenerationCandidate,
+  kind: DerivationKind,
+): string {
+  const common = [
+    "고른 주 갈래 결과를 새 갈래에 맞게 실제 내용으로 개작하세요.",
+    "원문의 제목을 반복해 칸만 채우지 말고, 각 문장에 구체적인 메시지를 넣으세요.",
+    `주 갈래: ${JSON.stringify({ title: candidate.title, rationale: candidate.rationale, outline: candidate.format.outline })}`,
+    `학습 정보: ${JSON.stringify(stableValue(request.learningContext))}`,
+    "응답은 설명이나 코드 펜스 없이 JSON 객체 하나만 반환하세요.",
+  ];
+  if (kind === "text") {
+    return [...common, '형식: {"body":"완성된 한국어 글 본문"}'].join("\n");
+  }
+  if (kind === "card") {
+    return [...common, '형식: {"slides":[{"text":"표지 문구"},{"text":"본문 문구"},{"text":"마무리 문구"}]}', "슬라이드는 4장 이상 10장 이하로 만드세요."].join("\n");
+  }
+  return [
+    ...common,
+    '형식: {"scenes":[{"title":"장면 제목","lines":["화면에 보일 대사","이어지는 대사"]}]}',
+    "장면은 3개 이상 8개 이하로 만드세요.",
+    "이 단계는 영상 렌더링이 아니라 대본과 장면 구성까지만 만듭니다. 영상 파일 URL을 만들지 마세요.",
+  ].join("\n");
+}
+
+function jsonObject(text: string): Record<string, unknown> {
+  const trimmed = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+  const start = trimmed.indexOf("{");
+  const end = trimmed.lastIndexOf("}");
+  if (start < 0 || end <= start) throw new StudioLlmExecutionError("invalid_output", true);
+  try {
+    const value = JSON.parse(trimmed.slice(start, end + 1));
+    if (value === null || typeof value !== "object" || Array.isArray(value)) throw new Error("object required");
+    return value as Record<string, unknown>;
+  } catch {
+    throw new StudioLlmExecutionError("invalid_output", true);
+  }
+}
+
+function requiredText(value: unknown, min: number, max: number): string {
+  if (typeof value !== "string") throw new StudioLlmExecutionError("invalid_output", true);
+  const normalized = value.trim();
+  if (normalized.length < min || normalized.length > max) throw new StudioLlmExecutionError("invalid_output", true);
+  if (/[\u2014\u2013]/.test(normalized)) throw new StudioLlmExecutionError("invalid_output", true);
+  return normalized;
+}
+
+function requiredTextList(value: unknown, minItems: number, maxItems: number): string[] {
+  if (!Array.isArray(value) || value.length < minItems || value.length > maxItems) {
+    throw new StudioLlmExecutionError("invalid_output", true);
+  }
+  return value.map((entry) => requiredText(entry, 3, 300));
+}
+
+export function parseCandidateOutput(text: string, forbiddenPhrases: readonly string[]): GeneratedCandidateContent[] {
+  const raw = jsonObject(text).candidates;
+  if (!Array.isArray(raw) || raw.length !== 3) throw new StudioLlmExecutionError("invalid_output", true);
+  const expected = [
+    { label: "A" as const, ordinal: 1 as const, angle: "problem_first" as const },
+    { label: "B" as const, ordinal: 2 as const, angle: "proof_first" as const },
+    { label: "C" as const, ordinal: 3 as const, angle: "process_first" as const },
+  ];
+  const candidates = expected.map((identity) => {
+    const item = raw.find((entry) => entry !== null && typeof entry === "object" && (entry as Record<string, unknown>).label === identity.label);
+    if (!item || typeof item !== "object") throw new StudioLlmExecutionError("invalid_output", true);
+    const record = item as Record<string, unknown>;
+    if (record.angle !== identity.angle) throw new StudioLlmExecutionError("invalid_output", true);
+    return {
+      ...identity,
+      title: requiredText(record.title, 4, 120),
+      rationale: requiredText(record.rationale, 20, 500),
+      outline: requiredTextList(record.outline, 3, 6),
+    };
+  });
+  const signatures = candidates.map((candidate) => `${candidate.title}\n${candidate.outline.join("\n")}`.toLocaleLowerCase("ko-KR"));
+  if (new Set(signatures).size !== 3 || new Set(candidates.map((candidate) => candidate.outline[0])).size !== 3) {
+    throw new StudioLlmExecutionError("invalid_output", true);
+  }
+  const combined = signatures.join("\n");
+  if (forbiddenPhrases.some((phrase) => phrase.trim() && combined.includes(phrase.trim().toLocaleLowerCase("ko-KR")))) {
+    throw new StudioLlmExecutionError("invalid_output", true);
+  }
+  return candidates;
+}
+
+export function parseDerivationOutput(text: string, kind: DerivationKind): DerivationPayload {
+  const value = jsonObject(text);
+  if (kind === "text") return { kind, body: requiredText(value.body, 80, 20_000) };
+  if (kind === "card") {
+    const slides = requiredTextList(
+      Array.isArray(value.slides) ? value.slides.map((entry) => (entry as Record<string, unknown>)?.text) : value.slides,
+      4,
+      10,
+    ).map((entry, order) => ({ id: crypto.randomUUID(), order, text: entry, image_url: null as null }));
+    return { kind, slides };
+  }
+  if (!Array.isArray(value.scenes) || value.scenes.length < 3 || value.scenes.length > 8) {
+    throw new StudioLlmExecutionError("invalid_output", true);
+  }
+  const scenes = value.scenes.map((entry, order) => {
+    if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
+      throw new StudioLlmExecutionError("invalid_output", true);
+    }
+    const scene = entry as Record<string, unknown>;
+    return {
+      id: crypto.randomUUID(),
+      order,
+      title: requiredText(scene.title, 2, 100),
+      lines: requiredTextList(scene.lines, 1, 4).map((line, lineOrder) => ({
+        id: crypto.randomUUID(),
+        order: lineOrder,
+        text: line,
+        visible: true as const,
+        deleted_at: null,
+      })),
+    };
+  });
+  return { kind, asset_url: "pending:render", scenes };
+}
+
+function failureReason(error: unknown): StudioLlmFailureReason {
+  if (error instanceof StudioLlmExecutionError) return error.reason;
+  const name = error instanceof Error ? error.name : "";
+  const message = error instanceof Error ? error.message : String(error);
+  if (name === "SharedAiApprovalRequiredError") return "approval_required";
+  if (name === "SharedGenerationQuotaError") return "quota_exhausted";
+  if (/timeout|aborted/i.test(message)) return "timeout";
+  if (/unsupported LLM provider/i.test(message)) return "provider_unsupported";
+  return "provider_unavailable";
+}
+
+export interface StudioLlmUsageRecorder {
+  start(input: { workspaceId: string; memberId: string; operation: string; model: string; attempt: number }): Promise<string>;
+  finish(input: {
+    workspaceId: string;
+    eventId: string;
+    status: "succeeded" | "failed";
+    memberId: string;
+    operation: string;
+    model: string;
+    attempt: number;
+    reason?: StudioLlmFailureReason;
+    result?: GeneratedTextResult;
+  }): Promise<void>;
+}
+
+class StudioLlmUsageLedger implements StudioLlmUsageRecorder {
+  async start(input: {
+    workspaceId: string;
+    memberId: string;
+    operation: string;
+    model: string;
+    attempt: number;
+  }): Promise<string> {
+    try {
+      const [row] = await withTenant(input.workspaceId, (sql) => sql<{ id: string }[]>`
+        INSERT INTO usage_events (tenant_id, event_type, quantity, meta)
+        VALUES (${input.workspaceId}, 'studioLlmAttempt', 1, ${sql.json({
+          status: "started",
+          member_id: input.memberId,
+          operation: input.operation,
+          model: input.model,
+          attempt: input.attempt,
+        })})
+        RETURNING id`);
+      if (!row?.id) throw new Error("usage row missing");
+      return row.id;
+    } catch {
+      throw new StudioLlmExecutionError("usage_ledger_unavailable", false);
+    }
+  }
+
+  async finish(input: {
+    workspaceId: string;
+    eventId: string;
+    status: "succeeded" | "failed";
+    memberId: string;
+    operation: string;
+    model: string;
+    attempt: number;
+    reason?: StudioLlmFailureReason;
+    result?: GeneratedTextResult;
+  }): Promise<void> {
+    const usage = input.result?.usage;
+    try {
+      const rows = await withTenant(input.workspaceId, (sql) => sql<{ id: string }[]>`
+        UPDATE usage_events
+        SET meta = ${sql.json({
+          status: input.status,
+          member_id: input.memberId,
+          operation: input.operation,
+          provider: input.result?.provider ?? null,
+          model: input.result?.model ?? input.model,
+          attempt: input.attempt,
+          failure_reason: input.reason ?? null,
+          input_tokens: usage?.inputTokens ?? null,
+          cache_creation_input_tokens: usage?.cacheCreationInputTokens ?? null,
+          cache_read_input_tokens: usage?.cacheReadInputTokens ?? null,
+          output_tokens: usage?.outputTokens ?? null,
+          total_tokens: usage?.totalTokens ?? null,
+          total_cost_usd: usage?.totalCostUsd ?? null,
+        })}
+        WHERE tenant_id = ${input.workspaceId} AND id = ${input.eventId}
+        RETURNING id`);
+      if (!rows[0]?.id) throw new Error("usage row missing");
+    } catch {
+      throw new StudioLlmExecutionError("usage_ledger_unavailable", false);
+    }
+  }
+}
+
+export class LlmStudioContentGenerator implements StudioContentGenerator {
+  constructor(
+    private readonly runner: StudioLlmRunner = generateTextWithUsage,
+    private readonly ledger: StudioLlmUsageRecorder = new StudioLlmUsageLedger(),
+  ) {}
+
+  private async execute<T>(input: {
+    workspaceId: string;
+    memberId: string;
+    operation: string;
+    prompt: string;
+    parse: (text: string) => T;
+  }): Promise<T> {
+    const config = resolveStudioLlmConfig();
+    let lastReason: StudioLlmFailureReason = "provider_unavailable";
+    for (const [index, model] of config.models.entries()) {
+      const attempt = index + 1;
+      const eventId = await this.ledger.start({ ...input, model, attempt });
+      let generated: GeneratedTextResult;
+      try {
+        generated = await this.runner({
+          prompt: input.prompt,
+          tenantId: input.workspaceId,
+          model,
+          timeoutMs: config.timeoutMs,
+          maxOutputTokens: config.maxOutputTokens,
+        });
+      } catch (error) {
+        lastReason = failureReason(error);
+        await this.ledger.finish({ ...input, eventId, model, attempt, status: "failed", reason: lastReason });
+        if (lastReason === "approval_required" || lastReason === "quota_exhausted" || lastReason === "provider_unsupported") break;
+        continue;
+      }
+      try {
+        const parsed = input.parse(generated.text);
+        await this.ledger.finish({ ...input, eventId, model, attempt, status: "succeeded", result: generated });
+        return parsed;
+      } catch (error) {
+        lastReason = failureReason(error);
+        await this.ledger.finish({ ...input, eventId, model, attempt, status: "failed", reason: lastReason, result: generated });
+        if (lastReason === "usage_ledger_unavailable") break;
+      }
+    }
+    throw new StudioLlmExecutionError(lastReason, lastReason === "timeout" || lastReason === "provider_unavailable");
+  }
+
+  generateCandidates(input: { memberId: string; request: GenerationRequest }): Promise<GeneratedCandidateContent[]> {
+    return this.execute({
+      workspaceId: input.request.workspaceId,
+      memberId: input.memberId,
+      operation: "generation.candidates",
+      prompt: buildCandidatePrompt(input.request),
+      parse: (text) => parseCandidateOutput(text, input.request.learningContext.u3.forbiddenPhrases),
+    });
+  }
+
+  generateDerivation(input: {
+    memberId: string;
+    workspaceId: string;
+    request: GenerationRequest;
+    candidate: GenerationCandidate;
+    kind: DerivationKind;
+  }): Promise<DerivationPayload> {
+    return this.execute({
+      workspaceId: input.workspaceId,
+      memberId: input.memberId,
+      operation: `generation.derivation.${input.kind}`,
+      prompt: buildDerivationPrompt(input.request, input.candidate, input.kind),
+      parse: (text) => parseDerivationOutput(text, input.kind),
+    });
+  }
+}

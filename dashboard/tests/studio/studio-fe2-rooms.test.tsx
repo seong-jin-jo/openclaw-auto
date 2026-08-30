@@ -34,9 +34,13 @@ afterEach(() => {
 // 회장 확정("주관식 칸 0개")대로 생성실 기본 경로에는 입력창이 없다.
 // 목적과 대상은 카드를 눌러 고르고, 소재 권리만 확인 표시를 누른다.
 function chooseCards() {
-  fireEvent.click(screen.getByRole("button", { name: "문의 받기" }));
+  fireEvent.click(screen.getByRole("button", { name: "영상" }));
+  fireEvent.click(screen.getByRole("button", { name: "다음" }));
+  fireEvent.click(screen.getByRole("button", { name: "문의 늘리기" }));
   fireEvent.click(screen.getByRole("button", { name: "혼자 일하는 사장" }));
-  fireEvent.click(screen.getByLabelText("이 콘텐츠에 쓰는 사진과 글을 제가 쓸 권리가 있습니다"));
+  fireEvent.click(document.querySelector("[data-create-topic-picker] button") as HTMLElement);
+  fireEvent.click(screen.getByLabelText("위 조건을 확인했습니다."));
+  fireEvent.click(screen.getByRole("button", { name: "입력 내용 확인" }));
 }
 
 describe("화면 2차 생성실 계약", () => {
@@ -75,7 +79,7 @@ describe("화면 2차 생성실 계약", () => {
     const display = document.querySelector('[data-display-readonly="create"]');
     expect(display).toBeInTheDocument();
     expect(display?.querySelectorAll("button")).toHaveLength(0);
-    expect(screen.getByRole("complementary", { name: "생성 담당 대화창" })).toHaveTextContent("만들 종류");
+    expect(screen.getByRole("complementary", { name: "생성 담당 대화창" })).toHaveTextContent("무엇을 만들까요?");
   });
 
   it("FE6-CREATE-02 정상: 영상 선택은 대화창에서 생성 계약으로 전달한다", async () => {
@@ -86,7 +90,7 @@ describe("화면 2차 생성실 계약", () => {
     render(<CreateRoom workspaceId="workspace" workspaceName="작업 공간" guide="브랜드 사실" topic="주제" contentBranch="video" onContentBranchChange={onBranchChange} onTopicChange={vi.fn()} onOpenLearning={vi.fn()} onCandidateSelect={vi.fn()} />);
 
     chooseCards();
-    fireEvent.click(screen.getByRole("button", { name: "후보 세 장 만들기" }));
+    fireEvent.click(screen.getByRole("button", { name: "구조 초안 3개 보기" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const [, request] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -122,7 +126,7 @@ describe("화면 2차 생성실 계약", () => {
       onCandidateSelect={vi.fn()}
     />);
     chooseCards();
-    fireEvent.click(screen.getByRole("button", { name: "후보 세 장 만들기" }));
+    fireEvent.click(screen.getByRole("button", { name: "구조 초안 3개 보기" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const [, request] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -147,13 +151,14 @@ describe("화면 2차 생성실 계약", () => {
     first.unmount();
     render(<CreateRoom {...props} />);
 
-    await waitFor(() => {
-      // 대상과 소재 권리는 브랜드에 매달린 값이라 되살아난다.
-      expect(screen.getByRole("button", { name: "혼자 일하는 사장" })).toHaveAttribute("aria-pressed", "true");
-      expect(screen.getByLabelText("이 콘텐츠에 쓰는 사진과 글을 제가 쓸 권리가 있습니다")).toBeChecked();
-      // 이번 작업물에 딸린 목적은 새로 시작 상태다(구조 질문6 확정).
-      expect(screen.getByRole("button", { name: "문의 받기" })).toHaveAttribute("aria-pressed", "false");
-    });
+    fireEvent.click(screen.getByRole("button", { name: "영상" }));
+    fireEvent.click(screen.getByRole("button", { name: "다음" }));
+    expect(screen.getByRole("button", { name: "문의 늘리기" })).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(screen.getByRole("button", { name: "브랜드 알리기" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "혼자 일하는 사장" })).toHaveAttribute("aria-pressed", "true"));
+    fireEvent.click(screen.getByRole("button", { name: "혼자 일하는 사장" }));
+    fireEvent.click(document.querySelector("[data-create-topic-picker] button") as HTMLElement);
+    expect(screen.getByLabelText("위 조건을 확인했습니다.")).toBeChecked();
   });
 
   it("QA-CREATE-05 경합: 후보 생성 연타는 클라이언트에서 단일 POST로 합친다", async () => {
@@ -163,7 +168,7 @@ describe("화면 2차 생성실 계약", () => {
     vi.stubGlobal("fetch", fetchMock);
     render(<CreateRoom workspaceId="workspace" workspaceName="작업 공간" guide="브랜드 사실" topic="주제" onTopicChange={vi.fn()} onOpenLearning={vi.fn()} onCandidateSelect={vi.fn()} />);
     chooseCards();
-    const button = screen.getByRole("button", { name: "후보 세 장 만들기" });
+    const button = screen.getByRole("button", { name: "구조 초안 3개 보기" });
 
     fireEvent.click(button);
     fireEvent.click(button);
@@ -191,10 +196,10 @@ describe("화면 2차 생성실 계약", () => {
     vi.stubGlobal("fetch", fetchMock);
     render(<CreateRoom workspaceId="workspace" workspaceName="작업 공간" guide="브랜드 사실" topic="주제" onTopicChange={vi.fn()} onOpenLearning={vi.fn()} onCandidateSelect={vi.fn()} />);
     chooseCards();
-    fireEvent.click(screen.getByRole("button", { name: "후보 세 장 만들기" }));
+    fireEvent.click(screen.getByRole("button", { name: "구조 초안 3개 보기" }));
     await screen.findByText("원본 A 제목");
 
-    fireEvent.click(screen.getByRole("button", { name: "모두 거절하고 무료로 다시 만들기" }));
+    fireEvent.click(screen.getByRole("button", { name: "3개 모두 바꾸기" }));
 
     expect(await screen.findByText("대체 A 제목")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/studio/v1/regenerations/job-1", expect.objectContaining({ method: "POST" }));

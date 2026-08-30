@@ -1,0 +1,9 @@
+{
+  "primary": "anthropic/claude-sonnet-4-6",
+  "fallbacks": [
+    "anthropic/claude-haiku-4-5"
+  ],
+  "max_attempts": 2,
+  "timeout_ms": 90000,
+  "max_output_tokens": 4000
+}

@@ -11,6 +11,12 @@ visibility: private
 
 # openclaw-auto 위키
 
+## SSOT 라우팅
+
+- 요청·결정·실수의 지속 지식: [거버넌스](./거버넌스/_index.md)
+- 단계별 버전핀 산출물: [docs](../docs/)
+- 브랜드·제품·마케팅·운영 지식: [brand](./brand/_index.md), [product](./product/_index.md), [marketing](./marketing/_index.md), [ops](./ops/_index.md)
+
 ## A안 전체 지도
 
 | 축 | 카테고리 | 무엇을 찾는가 |

@@ -26,7 +26,6 @@ import { authHeaders } from "@/lib/auth";
 import { CHANNEL_TEXT_LIMITS, countTextCharacters } from "@/lib/channel-text-limits";
 import { Button } from "@/components/shared/Button";
 import { RoomHeader } from "@/components/shared/RoomHeader";
-import { PublishTrip } from "@/components/shared/PublishTrip";
 import { Field } from "@/components/shared/Field";
 import { Stack } from "@/components/shared/Stack";
 import { SCHEDULABLE_PLATFORMS } from "@/lib/constants";
@@ -176,6 +175,7 @@ export default function StudioPage() {
   const [showWorks, setShowWorks] = useState(false);
   const [chatOpen, setChatOpen] = useState(true); // 좁은 화면에서도 대화창은 항상 손에 닿는다
   const [showWizard, setShowWizard] = useState(false);
+  const learningPromptedWorkspaceRef = useRef<string | null>(null);
   const [showRepo, setShowRepo] = useState(false); // 레포 위키 연동 모달
   const [showSchedule, setShowSchedule] = useState(false); // P6 예약 발행 패널 토글
   const [autoGen, setAutoGen] = useState(false);           // P8 AI 자동초안 진행중
@@ -186,7 +186,16 @@ export default function StudioPage() {
   useEffect(() => { if (brandData?.guide?.prompt_guide) setGuide(brandData.guide.prompt_guide); }, [brandData]);
   // 헤더 학습 정보가 네 방 어디서든 같은 숫자를 보이게 작업 공간이 바뀔 때 다시 읽는다.
   useEffect(() => {
-    setLearningInfo(activeWorkspace ? readLearningInfo(activeWorkspace.id) : {});
+    if (!activeWorkspace) {
+      setLearningInfo({});
+      return;
+    }
+    const nextLearningInfo = readLearningInfo(activeWorkspace.id);
+    setLearningInfo(nextLearningInfo);
+    if (learningPromptedWorkspaceRef.current !== activeWorkspace.id) {
+      learningPromptedWorkspaceRef.current = activeWorkspace.id;
+      if (Object.keys(nextLearningInfo).length === 0) setShowWizard(true);
+    }
   }, [activeWorkspace]);
   // 온보딩 위저드에서 "브랜드 설정하기"(/studio?setup=brand)로 오면 브랜드 위저드 자동 오픈.
   useEffect(() => {
@@ -218,6 +227,7 @@ export default function StudioPage() {
   const [editLines, setEditLines] = useState<string[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<StudioGenerationCandidate | null>(null);
   const [createBranch, setCreateBranch] = useState<CreateContentBranch>("video");
+  const [createPrimaryKind, setCreatePrimaryKind] = useState<CreateKind | null>(null);
   const [alsoKinds, setAlsoKinds] = useState<CreateKind[]>([]);
   const [learningInfo, setLearningInfo] = useState<LearningInfo>({});
   const [learningFlash, setLearningFlash] = useState(0);
@@ -311,7 +321,7 @@ export default function StudioPage() {
     setIncludes(normalizeIncludes()); setPublishReconciliations({}); setEditorHandoff(null);
     setDisplayNames({}); setTitles({}); setHashtags({}); setFirstComments({});
     setEditLines([]); setReviewQueueId(null); setSelectedCandidate(null);
-    setCreateBranch("video"); setEditKind("video"); setEditFormat(defaultContentEditFormat("video"));
+    setCreateBranch("video"); setCreatePrimaryKind(null); setEditKind("video"); setEditFormat(defaultContentEditFormat("video"));
     setPub({ running: false, stopped: false, status: {}, urls: {}, errors: {} });
     if (!workspaceId) return;
     try {
@@ -319,12 +329,12 @@ export default function StudioPage() {
       const raw = localStorage.getItem(studioWorkStorageKey(workspaceId));
       if (raw) {
         const w = JSON.parse(raw);
-        setIdea(w.idea || ""); setText(w.text || null); setImg(w.img || null); setVid(w.vid || null);
+        if (activeRoom !== "create") setIdea(w.idea || "");
+        setText(w.text || null); setImg(w.img || null); setVid(w.vid || null);
         if (w.includes) setIncludes(normalizeIncludes(w.includes)); setDraftId(w.draftId || null);
         setPublishReconciliations(normalizePublishReconciliations(w.publishReconciliations ?? w.publishReconciliation));
         setDisplayNames(w.displayNames || {}); setTitles(w.titles || {}); setHashtags(w.hashtags || {});
         setFirstComments(w.firstComments || {}); setCaptions(w.captions || {}); setEditLines(w.editLines || []); setReviewQueueId(w.reviewQueueId || null);
-        if (w.createBranch === "video" || w.createBranch === "text_image") setCreateBranch(w.createBranch);
         if (w.editKind === "video" || w.editKind === "card" || w.editKind === "audio" || w.editKind === "text") {
           setEditKind(w.editKind);
           const formatKind = w.editKind === "text" ? "card" : w.editKind;
@@ -340,8 +350,8 @@ export default function StudioPage() {
   useEffect(() => {
     const workspaceId = activeWorkspace?.id;
     if (!workspaceId || hydratedWorkspaceId !== workspaceId) return;
-    try { localStorage.setItem(studioWorkStorageKey(workspaceId), JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, captions, editLines, reviewQueueId, createBranch, editKind, editFormat })); } catch { /* noop */ }
-  }, [activeWorkspace?.id, hydratedWorkspaceId, idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, captions, editLines, reviewQueueId, createBranch, editKind, editFormat]);
+    try { localStorage.setItem(studioWorkStorageKey(workspaceId), JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, captions, editLines, reviewQueueId, editKind, editFormat })); } catch { /* noop */ }
+  }, [activeWorkspace?.id, hydratedWorkspaceId, idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, captions, editLines, reviewQueueId, editKind, editFormat]);
 
   const media = { imgUrl: img?.file, vidUrl: vid?.file };
   const upText = (patch: Partial<TextVariants>) => setText((p) => ({ ...(p || {}), ...patch }));
@@ -863,11 +873,11 @@ export default function StudioPage() {
         <>
           {activeRoom === "create" || activeRoom === "edit" ? (
             <span className="rounded-pill border border-accent/30 bg-surface px-stack py-stack-tight text-caption font-semibold text-accent" data-kind-board>
-              지금 만드는 것: {activeRoom === "create" ? createBranch === "video" ? "영상" : "글·카드뉴스" : editKind === "video" ? "영상" : editKind === "card" ? "카드뉴스" : editKind === "text" ? "글" : "음악"}
-              {activeRoom === "create" && alsoKinds.length ? <span className="ml-micro font-normal text-subtle">같이 {alsoKinds.map((kind) => (kind === "video" ? "영상" : kind === "card" ? "카드뉴스" : "글")).join(", ")}</span> : null}
+              지금 만드는 것: {activeRoom === "create" ? createPrimaryKind ? createPrimaryKind === "video" ? "영상" : createPrimaryKind === "card" ? "카드뉴스" : "글" : "선택 전" : editKind === "video" ? "영상" : editKind === "card" ? "카드뉴스" : editKind === "text" ? "글" : "음악"}
+              {activeRoom === "create" && alsoKinds.length ? <span className="font-normal text-subtle">, {alsoKinds.map((kind) => (kind === "video" ? "영상" : kind === "card" ? "카드뉴스" : "글")).join(", ")}</span> : null}
             </span>
           ) : null}
-          <span className="rounded-control border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle" title={engine?.error || engine?.model || ""}>AI {engine?.label || "확인 중"}</span>
+          <span className="rounded-control border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle" title={activeRoom === "create" ? "현재 생성실은 일곱 칸 학습 정보를 바탕으로 AI 구성 초안을 만듭니다." : engine?.error || engine?.model || ""}>{activeRoom === "create" ? "AI 구성 초안" : `AI ${engine?.label || "확인 중"}`}</span>
         </>
       }
     >
@@ -912,6 +922,7 @@ export default function StudioPage() {
         topic={idea}
         contentBranch={createBranch}
         onContentBranchChange={setCreateBranch}
+        onPrimaryKindChange={setCreatePrimaryKind}
         onTopicChange={setIdea}
         onOpenLearning={() => setShowWizard(true)}
         onCandidateSelect={chooseCandidate}
@@ -929,6 +940,7 @@ export default function StudioPage() {
 
   if (activeRoom === "edit") return (
     <div className="px-stack-section py-pad-inset">
+      {showWizard && activeWorkspace ? <LearningCardWizard workspaceId={activeWorkspace.id} workspaceName={activeWorkspace.name} onSaved={(info, completed) => { setLearningInfo(info); if (completed) { setShowWizard(false); mutateBrand(); showToast("학습 정보를 배웠습니다"); } else { setLearningFlash((value) => value + 1); } }} onClose={() => setShowWizard(false)} /> : null}
       {roomHeader}
       <EditRoom
         lines={resolvedEditLines}
@@ -967,7 +979,6 @@ export default function StudioPage() {
       {showWizard && activeWorkspace ? <LearningCardWizard workspaceId={activeWorkspace.id} workspaceName={activeWorkspace.name} onSaved={(info, completed) => { setLearningInfo(info); if (completed) { setShowWizard(false); mutateBrand(); showToast("학습 정보를 배웠습니다"); } else { setLearningFlash((value) => value + 1); } }} onClose={() => setShowWizard(false)} /> : null}
       {showRepo && activeWorkspace ? <RepoConnect workspace={activeWorkspace} onSynced={() => { mutateBrand(); showToast("브랜드 가이드 갱신됨"); }} onClose={() => setShowRepo(false)} /> : null}
       {roomHeader}
-      <PublishTrip current="publish" />
       <section data-room="publish" className="grid gap-stack-section pb-wide lg:grid-cols-[minmax(0,1fr)_20rem] lg:pb-none">
         <div className="min-w-0 space-y-region">
           <section data-room-top="publish" aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch flex-wrap items-center gap-stack rounded-surface border border-border bg-surface px-pad-inset py-stack">

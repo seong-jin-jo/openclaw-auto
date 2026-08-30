@@ -1,1 +1,3 @@
+- 2026-08-31 04:00 Codex(osmu-llm0831): 후보와 파생 실제 LLM 연동 build 완료. 로컬 화면 후보 3개와 영상 대본·장면, token·비용 장부 관찰. 전체 Vitest 1,554건, TypeScript, build, design lint PASS. 운영 배포 미검증. 상세는 session-state.osmu.md 최상단.
+- 2026-08-30 23:10 Codex(osmu-gen0830): 학습 정보 8건과 생성실 11건 build 완료. localhost 3456 generation POST 201, 후보 3개, 브라우저 401·콘솔 오류 0, 전체 Vitest 1,550건 PASS. 실제 LLM·완성 미디어는 미구현. 상세는 session-state.osmu.md 최상단.
 - 2026-08-30 20:40 Claude(osmu 라인): VM 컨테이너 12→2, 디스크 81%→36%. 찌꺼기 재발 방지 두 겹 설치. 인프라와 1차 개선 보고서 회장께 제출. R2 미연결이 회장 판단 대기. 상세는 session-state.osmu.md 최상단.

@@ -5,7 +5,7 @@ import { parseGenerationRequest } from "@/lib/studio/generation/contracts";
 import { PostgresGenerationRepository } from "@/lib/studio/generation/repository";
 import { GenerationService } from "@/lib/studio/generation/service";
 import { getDatabaseUrl } from "../isolation/_env";
-import { generationRequestFixture } from "./generation-fixture";
+import { FIXTURE_STUDIO_CONTENT_GENERATOR, generationRequestFixture } from "./generation-fixture";
 
 // Regression: OSMU-BLOCK-M2. 사용자가 내부 무료 재생성 키와 같은 생성 키를 선점하면
 // 두 번째 멱등 기록 INSERT가 unique violation으로 500을 내던 결함.
@@ -40,7 +40,7 @@ describe("무료 재생성 멱등 이름 공간 회귀", () => {
     if (!tenant) throw new Error("M2 regression requires one tenant");
 
     memberId = `studio-m2-${crypto.randomUUID()}`;
-    const service = new GenerationService(new PostgresGenerationRepository());
+    const service = new GenerationService(new PostgresGenerationRepository(), undefined, FIXTURE_STUDIO_CONTENT_GENERATOR);
     const body = generationRequestFixture();
     body.workspace_id = tenant.id;
     const original = await service.create(memberId, "m2-origin", parseGenerationRequest(body));

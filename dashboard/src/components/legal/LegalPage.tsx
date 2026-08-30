@@ -11,7 +11,7 @@ export function LegalPage({ title, summary, children }: { title: string; summary
         </div>
       </header>
       <article className="mx-auto max-w-3xl px-stack-section py-wide">
-        <p className="mb-stack text-caption text-subtle">최종 수정일: 2026년 7월 23일</p>
+        <p className="mb-stack text-caption text-subtle">최종 수정일: 2026년 8월 31일</p>
         <h1 className="mb-pad-inset text-display font-bold">{title}</h1>
         <p className="mb-wide text-body-sm leading-7 text-muted">{summary}</p>
         <div className="space-y-region text-body-sm leading-7 text-muted">{children}</div>

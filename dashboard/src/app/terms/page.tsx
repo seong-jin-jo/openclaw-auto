@@ -17,6 +17,7 @@ export default function TermsPage() {
       </LegalSection>
       <LegalSection title="4. 서비스 제한">
         <p>보안 위협, 정책 위반, 과도한 호출, 플랫폼 API 장애·심사·한도, 정기 점검이 발생하면 일부 기능을 제한하거나 중단할 수 있습니다. 회사는 가능한 경우 상태와 복구 방법을 안내합니다.</p>
+        <p className="mt-stack-tight">Meta 앱 심사 전에는 앱에서 테스터 계정으로 등록하고 초대를 수락한 계정만 Threads·Instagram 연결을 사용할 수 있습니다. 심사 승인 뒤에는 일반 이용자가 공식 OAuth 동의 화면에서 권한을 승인해 연결할 수 있습니다.</p>
       </LegalSection>
       <LegalSection title="5. 지식재산권">
         <p>이용자가 입력하거나 업로드한 자료와 생성 결과에 대한 권리는 관련 법령과 사용한 AI·소셜 플랫폼의 약관을 따릅니다. 이용자는 서비스 제공에 필요한 범위에서만 회사에 처리 권한을 부여합니다.</p>

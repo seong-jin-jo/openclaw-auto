@@ -26,10 +26,10 @@ export interface LearningSlot {
 
 // 여덟 칸. 순서가 곧 화면에 쌓이는 순서다.
 export const LEARNING_SLOTS: readonly LearningSlot[] = [
-  { key: "industry", label: "하는 일", layer: "U3" },
-  { key: "audience", label: "말 거는 대상", layer: "U4" },
+  { key: "industry", label: "업종", layer: "U3" },
+  { key: "audience", label: "주요 고객", layer: "U4" },
   { key: "voice", label: "말투", layer: "U3" },
-  { key: "purpose", label: "이번에 노리는 것", layer: "U4" },
+  { key: "purpose", label: "콘텐츠 목표", layer: "U4" },
   { key: "forbidden", label: "쓰지 않을 표현", layer: "U3" },
   { key: "palette", label: "브랜드 색", layer: "U3" },
   { key: "rights", label: "소재 권리", layer: "U3" },
@@ -85,12 +85,36 @@ export const VOICE_CARDS: readonly LearningCard[] = [
 
 /** 걸음 4. 이번에 노리는 것. */
 export const PURPOSE_CARDS: readonly LearningCard[] = [
-  { id: "awareness", title: "알리기", sample: "우리를 모르던 사람이 이름을 기억하게 한다" },
-  { id: "trust", title: "믿게 하기", sample: "이미 아는 사람이 믿을 만하다고 느끼게 한다" },
-  { id: "inquiry", title: "문의 받기", sample: "궁금한 사람이 말을 걸어오게 한다" },
-  { id: "visit", title: "찾아오게 하기", sample: "직접 방문하거나 예약하게 한다" },
-  { id: "sale", title: "사게 하기", sample: "지금 결제까지 가게 한다" },
-  { id: "retain", title: "다시 오게 하기", sample: "이미 산 사람이 한 번 더 오게 한다" },
+  { id: "awareness", title: "브랜드 알리기", sample: "처음 보는 고객이 브랜드 이름과 하는 일을 기억하게 합니다." },
+  { id: "trust", title: "신뢰 높이기", sample: "브랜드를 아는 고객에게 전문성과 실제 경험을 보여 줍니다." },
+  { id: "inquiry", title: "문의 늘리기", sample: "관심 있는 고객이 상담이나 문의를 시작하게 합니다." },
+  { id: "visit", title: "방문·예약 늘리기", sample: "고객이 매장 방문이나 예약을 진행하게 합니다." },
+  { id: "sale", title: "구매 늘리기", sample: "구매를 고민하는 고객이 주문이나 결제를 진행하게 합니다." },
+  { id: "retain", title: "재방문 늘리기", sample: "기존 고객이 다시 방문하거나 구매하게 합니다." },
+] as const;
+
+/** 걸음 5. 콘텐츠에서 사용하지 않을 표현. */
+export const FORBIDDEN_CARDS: readonly LearningCard[] = [
+  { id: "hype", title: "과장 표현", sample: "무조건, 100%, 역대급 같은 과장 표현은 쓰지 않습니다." },
+  { id: "pressure", title: "불안·압박 표현", sample: "지금 안 하면 손해 같은 불안과 압박을 주는 표현은 쓰지 않습니다." },
+  { id: "jargon", title: "어려운 전문 용어", sample: "고객이 바로 이해하기 어려운 전문 용어와 약어는 쓰지 않습니다." },
+  { id: "slang", title: "유행어·비속어", sample: "유행어, 비속어, 과한 반말은 쓰지 않습니다." },
+  { id: "none", title: "별도 제한 없음", sample: "법과 플랫폼 정책을 지키는 범위에서 별도 금지 표현은 없습니다." },
+] as const;
+
+/** 걸음 6. 콘텐츠에 사용할 대표 색 조합. */
+export const PALETTE_CARDS: readonly LearningCard[] = [
+  { id: "navy", title: "네이비·화이트", sample: "네이비와 화이트를 중심으로 차분하고 신뢰감 있게 표현합니다." },
+  { id: "black", title: "블랙·화이트", sample: "블랙과 화이트를 중심으로 간결하고 선명하게 표현합니다." },
+  { id: "green", title: "그린·크림", sample: "그린과 크림을 중심으로 편안하고 자연스럽게 표현합니다." },
+  { id: "blue", title: "블루·라이트 그레이", sample: "블루와 라이트 그레이를 중심으로 깨끗하고 전문적으로 표현합니다." },
+  { id: "warm", title: "오렌지·베이지", sample: "오렌지와 베이지를 중심으로 따뜻하고 친근하게 표현합니다." },
+] as const;
+
+/** 걸음 7. 콘텐츠 소재 사용 권리. 추천으로 대신 선택하면 안 된다. */
+export const RIGHTS_CARDS: readonly LearningCard[] = [
+  { id: "owned", title: "직접 만든 자료만 사용", sample: "직접 촬영하거나 직접 작성한 사진·영상·글만 사용합니다." },
+  { id: "licensed", title: "사용 허가를 받은 자료도 사용", sample: "직접 만든 자료와 저작권자에게 제작·게시 허가를 받은 자료만 사용합니다." },
 ] as const;
 
 export const LEARNING_CARDS: Partial<Record<LearningSlotKey, readonly LearningCard[]>> = {
@@ -98,6 +122,9 @@ export const LEARNING_CARDS: Partial<Record<LearningSlotKey, readonly LearningCa
   audience: AUDIENCE_CARDS,
   voice: VOICE_CARDS,
   purpose: PURPOSE_CARDS,
+  forbidden: FORBIDDEN_CARDS,
+  palette: PALETTE_CARDS,
+  rights: RIGHTS_CARDS,
 };
 
 export function learningStorageKey(workspaceId: string): string {

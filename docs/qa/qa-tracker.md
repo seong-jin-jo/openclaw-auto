@@ -2,6 +2,43 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-08-31 NG: 생성실 콘텐츠가 실제 LLM을 호출하지 않음
+
+회장 실사용에서 후보 A/B/C를 눌러도 실제 영상 후보가 나오지 않았다. 코드 확인 결과 `buildCandidates()`와 파생 생성이 고정 문자열 템플릿만 반환하고 LLM 호출은 0건이며, 영상 `asset_url`도 `pending:render`로 고정돼 있다. 실제 LLM 호출, 실패 사유 노출, 호출량 기록, 로컬 실호출 관찰이 끝날 때까지 생성 기능 완료 판정을 금지한다.
+
+| 검증 | 판정 | 직접 근거 |
+|---|---|---|
+| 후보 생성 경로 | NG | `dashboard/src/lib/studio/generation/service.ts`의 고정 문자열 후보 조립 |
+| 파생 생성 경로 | NG | `dashboard/src/lib/studio/generation/derivation.ts`의 템플릿 조립과 `pending:render` 고정 |
+| LLM 실패 투명성 | NG | 실패할 실제 LLM 호출 경로 자체가 없어 템플릿이 성공처럼 저장됨 |
+| 실제 LLM 응답 | 미검증 | 2026-08-31 착수 시점까지 로컬 또는 운영 실호출 관찰 없음 |
+
+## 2026-08-30 build 범위 PASS: 학습 정보·생성실 2차 실사용 피드백
+
+회장 2차 실사용 피드백 19건을 원문과 하나씩 대조했다. 학습 정보 8건과 생성실 11건의 문구, 순차 문답, 저장 경계, 지원 범위 표시를 수정했다. 실제 LLM과 완성 미디어 생성은 이번 범위가 아니므로 구현하지 않았고, 화면이 규칙 기반 구성 초안과 준비 중 기능을 정확히 구분하게 했다. 상세 19행 대조와 캡처는 `docs/qa/2차피드백-학습정보와-생성실-대조-2026-08-30.md`에 있다.
+
+| 검증 | 판정 | 직접 근거 |
+|---|---|---|
+| 학습 정보·생성실 계약 | PASS | 신규 번호 대조 8건 포함 전체 Vitest 206파일, 1,550건 통과, 조건부 1건 제외 |
+| TypeScript | PASS | `npx tsc --noEmit` 종료 코드 0 |
+| Web production build | PASS | 정적 페이지 177/177. 기존 NFT 추적 경고 1건 유지 |
+| UI token audit·design lint | PASS | 6분류 위반 0, 임의 px·hex·인라인 style 위반 0 |
+| localhost 3456 실제 화면 | PASS | 학습 정보 자동 팝업부터 generation POST 201과 후보 3개까지 5화면 캡처. 브라우저 401과 콘솔 오류 각각 0건 |
+| 실제 LLM·완성 미디어 | 미구현 | 현재 `buildCandidates()`와 파생 생성은 문자열 규칙 기반. 화면에 준비 중으로 명시 |
+| 원격 push | BLOCKED | 저장소 정책의 별도 승인 요구. 현재 세션은 승인 요청 불가 |
+
+## 2026-08-30 NG: 편집실·발행실 2차 피드백 build 기반 충돌
+
+회장 2차 피드백 13건 중 발행실 상단 왕복 띠 제거는 소스에 반영했다. 나머지 12건은 승인 프로토타입 경로가 `pipeline-state.osmu.md`에 없고 `DESIGN.md`의 현행 정본 표기가 v64와 v61로 충돌해 중단했다.
+
+| 검증 | 판정 | 직접 근거 |
+|---|---|---|
+| R199·R204 왕복 띠 | 수정, 집중 테스트 통과 | `dashboard/src/app/studio/page.tsx`에서 `PublishTrip` 렌더와 import 제거. 발행실 테스트 27건 통과 |
+| 승인 프로토타입 | NG | pipeline 승인 핀 없음. 후보 v61, v62, v63, v64 |
+| 나머지 12건 | 미착수 | 승인 핀 회수 전 임의 구현 금지 |
+| TypeScript·token audit | PASS | `npx tsc --noEmit` 종료 코드 0, UI token audit 0건 |
+| 로컬 화면·전체 테스트 | 미검증 | 승인 프로토타입 핀 회수 전 중단 |
+
 ## 2026-08-30 PASS: 격리 공격 목록 누락 복구 (`/api/performance/learned-rules`)
 
 커밋 `822fa94a`가 `/api/performance/learned-rules` GET/POST/DELETE를 새로 만들면서 `scripts/verify-tenant-isolation-e2e.mjs`의 공격 목록에 등록하지 않아 `tests/isolation/tenant-api-attack-script.contract.test.ts`(TENANT-READ-01)가 실패했다. 어제 밤 `822fa94a`가 원인이며 착수 전부터 있던 실패가 아니다.
@@ -4506,3 +4543,10 @@ CI 는 UTC 라 영향이 없다.
 파생 작업물이 `drafts` 표에 들어가므로 기존 화면의 "작업물 전체" 숫자가 파생물까지 함께 센다.
 이것은 실패를 성공으로 세는 것은 아니지만 파생과 원본을 구분하지 않는 자리이므로, 편집실에
 갈래 알약을 붙이는 다음 판이 다뤄야 한다.
+# 2026-08-31 PASS: 생성실 실제 LLM 연동
+
+- 로컬 Studio 생성 클릭 HTTP 201, 서로 다른 후보 A/B/C 화면 관찰.
+- 영상 파생 HTTP 201, 실제 대본과 장면 구성 관찰. 영상 렌더링은 미제공으로 명시.
+- LLM 실패 시 템플릿 fallback 없음, model·attempt·token·비용 장부 확인.
+- 전체 Vitest 207파일 1,554건, TypeScript, build 177/177, design lint 0.
+- 운영 배포와 운영 Studio UI는 미검증.

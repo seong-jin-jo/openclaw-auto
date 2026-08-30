@@ -1,78 +1,67 @@
-## 2026-08-30 22:10 KST Claude 세션 (osmu 라인) 계정 연결 실패 지점 특정
+## 2026-08-31 06:15 KST Claude 세션 (osmu 라인) 전건 대조 발주 + 이빨 3종 신설
 
 핸드오프 기준: 이 파일(session-state.osmu.md).
+★★ 이 항목 위의 모든 "완료" 는 배포 환경 실동작으로 확인된 것이 아니다. 그대로 믿지 마라.
 
-★★ 회장 지시 정정 두 가지:
-1. **표준 IT 용어 사전은 만들지 마라.** 회장이 불필요하다고 명시했다.
-   "내가 되게끔 해놓고 QA 자세히 들어가라고 했지 확인도 안하고 대충 만들어 올리라고 했냐."
-   ⇒ 문제의 해법은 사전이 아니라 **실제로 되게 만들고 QA 를 제대로 하는 것**이다.
-   ★단 보고와 문서에서 표준 IT 용어를 쓰는 것은 계속 지켜라
-    (container, environment variable, OAuth redirect URI, CI/CD runner 그대로).
-    억지 한국어 번역이 문제였지 용어 자체가 문제가 아니었다.
-2. **"내가 한 요청들 하나씩 대조하고 항목별로 결과 보고 하게 시켜."** ⇒ 대조 조 발주함.
+## 회장 지시 R-S16 (2026-08-31)
+> 회장 위키에서 훅 갱신했는데...? 거버넌스에 실수 결정사항 요청 원문 및 회고 잘기록하고
+> 내가 세션에서 했던 모든 얘기 '단 하나'도 빠짐없이 전 부다 대조 진행, 및 멍때리지말고
+> CODex가 멈춰도 너는 계속 진행하는거다 쭉. (멈추면 죽여버림)
 
-★★★ 계정 연결 실패 지점 특정됨. 컨트롤러가 운영 컨테이너 로그를 직접 읽었다.
+## ★회장이 직접 만든 훅 발견
+`~/.claude/hooks/chairman-request-capture.sh` (2026-08-31 05:53, UserPromptSubmit 등록됨)
+회장 주석: "내가 채팅으로 요청한거는 단 1건이라도 빠짐없이 올라가도록 아주 강력하게 걸어라.
+제일 화나는게 얘기했는데 딴소리하는거야."
+⇒ 회장 발화를 `<repo>/docs/requests/inbox/chairman-YYYY-MM.md` 에 verbatim 자동 박제.
+⇒ **05:53 이전 발화는 안 남아 있었다.** 컨트롤러가 대화 로그에서 16건 복원해 백필했다.
 
-```
-[connect-callback][exchange-fail] threads threads 장기 토큰 교환 실패
-```
+## 회장 세션 발화 16건 백필 완료 (커밋 70a162b3)
+`docs/requests/inbox/chairman-2026-08.md` 에 R-S01~R-S16 원문 박제.
+★앞선 266건 대조표는 확정요구 대장과 1·2차 피드백만 다뤘다.
+ **세션 대화 지시는 아무도 대조한 적이 없다.** 그것을 이번에 발주했다.
 
-그리고 이것이 수십 번 반복:
-```
-osmu_alert token_expired severity:error
-  workspaceId: badd844f-9106-4992-ad10-41a234fceb35
-  context: {provider: instagram, reason: token_revoked}
-  context: {provider: threads,   reason: token_revoked}
-osmu_alert publish_failed severity:warning
-  resourceKey: account:04db6842-39aa-46c4-b60d-7b096847aefb (instagram)
-  resourceKey: account:1ff8d851-426b-4829-9461-c97c75a0895a (threads)
-  context: {reason: "unknown"}
-```
+## 이빨 3종 신설 (다짐이 아니라 훅)
 
-**이 로그에서 읽히는 것:**
-- workspace badd844f... 가 실재하고 활동 중이다. **회장이 로그인에 성공한 적이 있다.**
-  ★"로그인이 안 된다"와 "연결이 안 된다"를 섞어 보지 마라. 로그로 갈라야 한다.
-- OAuth callback 은 돌아오는데 **long-lived token 교환에서 실패**한다. 그게 exchange-fail 이다.
-- 교환 실패 후에도 **계정 레코드가 남아** 매번 token_revoked 로 떨어진다.
-  ⇒ 실패한 연결이 레코드를 남기는 것 자체가 결함일 수 있다.
-    연결된 것처럼 보이는데 쓰면 죽는 상태다.
-- publish_failed 의 reason 이 "unknown" 이다. **실패 사유를 우리가 기록조차 못 하고 있다.**
+| 훅 | 무엇을 막나 | 시험 |
+|---|---|---|
+| `delegation-governance-gate.sh` (PreToolUse) | 위임 프롬프트에 거버넌스·ADR 근거 없으면 ask | 차단·통과 각 1회 확인 |
+| `live-verify-gate.sh` (Stop) | 배포 실동작 증거 없이 "쓰실 수 있다" 보고 차단 | 차단·통과 각 1회 확인 |
+| `wiki/거버넌스/외부-콘솔-의존-항목.md` | 콘솔에서만 되는 설정이 어디에도 없던 공백 | 문서(훅 아님) |
 
-★운영 공개 주소: 컨테이너 환경변수 OSMU_PUBLIC_URL 에 있다.
- (서비스 중립 레포라 여기 적지 않는다. VM 에서 꺼내 쓸 것)
- 컨트롤러 실측: GET /login 200, GET /api/auth/google 200 (authUrl 정상,
- redirect_to 가 운영 주소 /login, prompt=select_account 포함),
- GET /api/connect/readiness 401(비인증이라 정상).
- ⇒ **로그인 시작 지점까지는 서버가 정상 응답한다. 실패는 그 뒤다.**
+★한계 정직하게: 두 훅 다 **문자열이 있는지만** 본다. 실제로 읽었는지·밟았는지는 못 본다.
+ 우회 변수로 넘어갈 수 있다. 우회 사용은 실수 원장에 남긴다.
 
-가동중 두 조:
-- 로그인·계정연결 실패 원인 규명과 수정 (opus, acd16630).
-  위 로그를 추가 지시로 전달함. 산출물
-  docs/qa/로그인과-계정연결-실패-원인-2026-08-30.md
-  ★생성 경로가 실제 LLM 을 부르는지도 코드로 확정하라고 지시함
-   (화면에 "실제 미디어 생성은 준비 중입니다" 문구가 있다).
-- 회장 요청 전항목 대조 (opus, abaafdf8). 산출물
-  docs/qa/회장-요청-전항목-대조표-2026-08-30.md
-  ★대조 대상 넷: 확정 요구사항 대장, 1차 실사용 피드백,
-   2차 실사용 피드백(이 파일 21:30 항목의 UX 지적 29건), 앞선 30건 대조표 재판정.
-  ★"확인불가" 등급을 반드시 쓰게 했다. 로그인·연결이 막혀 확인 자체가 불가능한 것을
-   "충족"으로 밀어 넣지 않게 하기 위해서다.
+## 거버넌스 기록 완료 (회장 요구 전부)
+- 요청: `wiki/거버넌스/요청.md` + `docs/requests/inbox/chairman-2026-08.md`(원문 16건)
+- 결정: LLM 즉시 연동 / 용어 사전 중단 / 항목별 대조 강제 / App Review 착수 /
+  거버넌스를 위임 1번에 / 완료 판정 훅 / 세션 발화 전건 대조
+- 실수: ADR 미독 근본원인 / 완료 판정 위반 / 비표준 용어 반복 /
+  원인 2·3·4 조치결과 / Redirect URL 미확인 이유
+- 회고: `wiki/거버넌스/회고/2026-W35-osmu-스프린트-회고.md` **신설 완료**
+  한 줄 판정 "제품이 동작하지 않는 상태에서 그 위에 UI 를 4일간 쌓았다"
+- 평가: eval-log.sh neg 1점 적립
 
-★VM 접속 헬퍼는 세션 종료 시 사라진다. 재작성:
-```
-cat > /tmp/mvm.sh <<'EOF'
-#!/bin/bash
-set -a; . ~/.sj-agent-harness/secrets/zero-one-onprem.env; . ~/.sj-agent-harness/secrets/proxmox-vms.env; set +a
-sshpass -p "$PVE_JUMP_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 "$PVE_JUMP_USER@$PVE_JUMP_HOST" \
-  "sshpass -p '$MARKETING_PASS' ssh -o StrictHostKeyChecking=no -o ConnectTimeout=12 $MARKETING_USER@$MARKETING_HOST \"$1\"" 2>&1
-EOF
-chmod +x /tmp/mvm.sh
-```
-★이중 SSH 라 셸 확장에 주의. 파이프와 별표가 먹으면 따옴표 친 heredoc 을 써라.
+## 가동중 codex 5판 (전부 항목 번호 붙여 표로 대조 보고)
 
-다음 액션:
-1. 두 조 회수 → verify → 로그인·연결 수정 배포.
-2. 배포 후 **컨트롤러가 직접 로그인부터 발행까지 밟는다.** 이걸 하기 전에
-   회장께 "써 보시라"고 하지 마라. 이번 사고의 재발 방지 조건이다.
-3. 대조표로 미충족 항목 우선순위 잡고 순차 처리.
+| 세션 | 담당 | 산출물 |
+|---|---|---|
+| osmu-llm0831 | 실제 LLM 연동 | docs/qa/생성-LLM-연동-2026-08-31.md |
+| osmu-gen0830 | 학습정보 8 + 생성실 11 | docs/qa/2차피드백-학습정보와-생성실-대조-2026-08-30.md |
+| osmu-edit0830 | 편집실 8 + 발행실 4 + 왕복띠 제거 | docs/qa/2차피드백-편집실과-발행실-대조-2026-08-30.md |
+| osmu-appreview0831 | Meta App Review 제출 준비 | docs/releases/meta-app-review-제출-준비-2026-08-31.md |
+| osmu-fullaudit0831 | **회장 세션 발화 R-S01~R-S16 전건 대조** | docs/qa/회장-세션발화-전건-대조표-2026-08-31.md |
+
+★회수 시 **표의 행 수가 발주 항목 수와 같은지 센다. 모자라면 반려.**
+★회장 지시: **codex 가 멈춰도 컨트롤러는 계속 진행한다.** 멈추면 안 된다.
+
+## 회장 대기 (세션이 물리적으로 못 하는 것)
+- Meta Threads 테스터 등록 + **초대 수락**. 앱 905965605850465.
+  ★ADR-004 가 Meta 콘솔 자동 조작을 금지한다(2026-07-01 계정 플래그 실사고).
+- Supabase Redirect URL 두 줄. ★회장이 2026-08-31 등록 완료했다고 통보함.
+
+## 남은 것
+- 배포 스모크에 OAuth 왕복 완주 검사 추가(미착수)
+- 266건 대조표의 미충족 48 · 부분 60 처리
+- 배포 환경에서 컨트롤러가 직접 로그인부터 발행까지 통과
+  ★live-verify-gate.sh 가 이제 이걸 안 하고 "쓰실 수 있다"고 하면 막는다.
 

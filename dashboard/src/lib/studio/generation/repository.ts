@@ -162,6 +162,24 @@ function rowToBatch(row: DerivationRow): DerivationBatch {
 }
 
 export class PostgresGenerationRepository implements GenerationRepository {
+  async findCreation(memberId: string, workspaceId: string, operation: "generation.create", idempotencyKey: string) {
+    const [row] = await generationTransaction(workspaceId, (sql) => sql<IdempotencyRow[]>`
+      SELECT request_hash, response_payload FROM studio_generation_idempotency
+      WHERE tenant_id = ${workspaceId} AND member_id = ${memberId}
+        AND operation = ${operation} AND idempotency_key = ${idempotencyKey} LIMIT 1`);
+    return row ? { requestHash: row.request_hash, response: row.response_payload } : null;
+  }
+
+  async findDerivationByIdempotency(memberId: string, workspaceId: string, idempotencyKey: string) {
+    const [row] = await generationTransaction(workspaceId, (sql) => sql<(DerivationRow & { request_hash: string })[]>`
+      SELECT id, tenant_id, job_id, candidate_id, status, currency, quoted_minor,
+             charged_minor, items, created_at, discarded_at, request_hash
+      FROM studio_derivation_batches
+      WHERE tenant_id = ${workspaceId} AND member_id = ${memberId}
+        AND idempotency_key = ${idempotencyKey} LIMIT 1`);
+    return row ? { created: false, requestHash: row.request_hash, batch: rowToBatch(row) } : null;
+  }
+
   async persistDerivation(input: PersistDerivationInput): Promise<PersistedDerivation> {
     const { batch } = input;
     const selectExisting = async (sql: Sql) => {
