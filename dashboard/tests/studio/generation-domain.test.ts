@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { parseGenerationRequest } from "@/lib/studio/generation/contracts";
 import { GenerationService } from "@/lib/studio/generation/service";
-import { generationRequestFixture } from "./generation-fixture";
+import { FIXTURE_STUDIO_CONTENT_GENERATOR, generationRequestFixture } from "./generation-fixture";
 import { MemoryGenerationRepository } from "./generation-memory-repository";
 
 const WORKSPACES = ["11111111-1111-4111-8111-111111111111"];
 
 function generationService(): GenerationService {
-  return new GenerationService(new MemoryGenerationRepository());
+  return new GenerationService(new MemoryGenerationRepository(), undefined, FIXTURE_STUDIO_CONTENT_GENERATOR);
 }
 
 // 무료 재생성은 후보 셋을 모두 거절한 뒤에만 나간다(요구 대장 R27).

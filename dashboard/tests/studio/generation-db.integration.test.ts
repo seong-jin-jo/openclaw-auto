@@ -5,7 +5,7 @@ import { parseGenerationRequest } from "@/lib/studio/generation/contracts";
 import { PostgresGenerationRepository } from "@/lib/studio/generation/repository";
 import { GenerationService } from "@/lib/studio/generation/service";
 import { getDatabaseUrl } from "../isolation/_env";
-import { generationRequestFixture } from "./generation-fixture";
+import { FIXTURE_STUDIO_CONTENT_GENERATOR, generationRequestFixture } from "./generation-fixture";
 
 type Sql = ReturnType<typeof postgres>;
 
@@ -109,7 +109,7 @@ afterEach(async () => {
 describe("Studio 생성 Postgres 장부 계약", () => {
   it("GEN-DB-01 한국어 설명: 같은 멱등 키는 실제 DB에서 작업 한 건과 같은 응답으로 수렴한다", async (ctx) => {
     if (!await liveDatabase(ctx)) return;
-    const service = new GenerationService(new PostgresGenerationRepository());
+    const service = new GenerationService(new PostgresGenerationRepository(), undefined, FIXTURE_STUDIO_CONTENT_GENERATOR);
     const body = generationRequestFixture();
     body.workspace_id = tenantId;
     const request = parseGenerationRequest(body);
@@ -129,7 +129,7 @@ describe("Studio 생성 Postgres 장부 계약", () => {
 
   it("GEN-DB-01B 경합: pool 5에서 같은 멱등 키 20건은 작업·응답 하나로 수렴한다", async (ctx) => {
     if (!await liveDatabase(ctx)) return;
-    const service = new GenerationService(new PostgresGenerationRepository());
+    const service = new GenerationService(new PostgresGenerationRepository(), undefined, FIXTURE_STUDIO_CONTENT_GENERATOR);
     const body = generationRequestFixture();
     body.workspace_id = tenantId;
     const request = parseGenerationRequest(body);
@@ -148,7 +148,7 @@ describe("Studio 생성 Postgres 장부 계약", () => {
 
   it("M1-GEN-DB-01 경합: 구 앱과 신 앱의 멱등 충돌 대상이 배포 전환 중 함께 동작한다", async (ctx) => {
     if (!await liveDatabase(ctx)) return;
-    const service = new GenerationService(new PostgresGenerationRepository());
+    const service = new GenerationService(new PostgresGenerationRepository(), undefined, FIXTURE_STUDIO_CONTENT_GENERATOR);
     const body = generationRequestFixture();
     body.workspace_id = tenantId;
     await service.create(memberId, "db-expand-contract", parseGenerationRequest(body));
@@ -188,7 +188,7 @@ describe("Studio 생성 Postgres 장부 계약", () => {
 
   it("GEN-DB-02 한국어 설명: 같은 멱등 키에 다른 본문은 실제 DB 기록을 바꾸지 않고 거절한다", async (ctx) => {
     if (!await liveDatabase(ctx)) return;
-    const service = new GenerationService(new PostgresGenerationRepository());
+    const service = new GenerationService(new PostgresGenerationRepository(), undefined, FIXTURE_STUDIO_CONTENT_GENERATOR);
     const original = generationRequestFixture();
     original.workspace_id = tenantId;
     await service.create(memberId, "db-conflict-key", parseGenerationRequest(original));
@@ -207,7 +207,7 @@ describe("Studio 생성 Postgres 장부 계약", () => {
 
   it("GEN-DB-03 한국어 설명: 동시에 두 번 재생성해도 회원 UTC 날짜 무료 몫은 한 건만 소비한다", async (ctx) => {
     if (!await liveDatabase(ctx)) return;
-    const service = new GenerationService(new PostgresGenerationRepository());
+    const service = new GenerationService(new PostgresGenerationRepository(), undefined, FIXTURE_STUDIO_CONTENT_GENERATOR);
     const body = generationRequestFixture();
     body.workspace_id = tenantId;
     const original = await service.create(memberId, "db-retry-origin", parseGenerationRequest(body));
@@ -234,7 +234,7 @@ describe("Studio 생성 Postgres 장부 계약", () => {
   it("GEN-DB-04 경합: 같은 회원의 멱등 키는 워크스페이스가 달라도 한 작업만 생성한다", async (ctx) => {
     if (!await liveDatabase(ctx)) return;
     const otherTenantId = await createTemporaryTenant();
-    const service = new GenerationService(new PostgresGenerationRepository());
+    const service = new GenerationService(new PostgresGenerationRepository(), undefined, FIXTURE_STUDIO_CONTENT_GENERATOR);
     const first = generationRequestFixture();
     first.workspace_id = tenantId;
     const second = generationRequestFixture();
@@ -255,7 +255,7 @@ describe("Studio 생성 Postgres 장부 계약", () => {
   it("GEN-DB-05 한국어 설명: 같은 회원의 UTC 날짜 무료 몫은 워크스페이스가 달라도 한 번뿐이다", async (ctx) => {
     if (!await liveDatabase(ctx)) return;
     const otherTenantId = await createTemporaryTenant();
-    const service = new GenerationService(new PostgresGenerationRepository());
+    const service = new GenerationService(new PostgresGenerationRepository(), undefined, FIXTURE_STUDIO_CONTENT_GENERATOR);
     const first = generationRequestFixture();
     first.workspace_id = tenantId;
     const firstJob = await service.create(memberId, "db-free-global-a", parseGenerationRequest(first));
@@ -284,7 +284,7 @@ describe("Studio 생성 Postgres 장부 계약", () => {
 
   it("M1-GEN-DB-06 한국어 설명: 동서 끝 시간대의 서로 다른 작업도 실제 DB에서 UTC 하루 몫을 공유한다", async (ctx) => {
     if (!await liveDatabase(ctx)) return;
-    const service = new GenerationService(new PostgresGenerationRepository());
+    const service = new GenerationService(new PostgresGenerationRepository(), undefined, FIXTURE_STUDIO_CONTENT_GENERATOR);
     const eastBody = generationRequestFixture();
     eastBody.workspace_id = tenantId;
     eastBody.learning_context.u2.time_zone = "Pacific/Kiritimati";
@@ -312,7 +312,7 @@ describe("Studio 생성 Postgres 장부 계약", () => {
   it("M2-GEN-DB-07 거절: 무료 몫을 쓴 작업 공간을 삭제해도 같은 회원의 당일 둘째 무료 재생성을 막는다", async (ctx) => {
     if (!await liveDatabase(ctx)) return;
     const deletedTenantId = await createTemporaryTenant();
-    const service = new GenerationService(new PostgresGenerationRepository());
+    const service = new GenerationService(new PostgresGenerationRepository(), undefined, FIXTURE_STUDIO_CONTENT_GENERATOR);
     const first = generationRequestFixture();
     first.workspace_id = deletedTenantId;
     const firstJob = await service.create(memberId, "db-delete-free-a", parseGenerationRequest(first));

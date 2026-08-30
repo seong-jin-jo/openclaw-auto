@@ -29,6 +29,22 @@ const CLAUDE_CLI_MAX_OUTPUT_BYTES = 8 * 1024 * 1024;
 // 않게). 공유 CLI(spawn/큐/quota reserve) 경로에만 적용 — BYO Anthropic HTTP API 경로는 미적용.
 const CLAUDE_CLI_MAX_PROMPT_BYTES = 1_000_000;
 
+export type GeneratedTextUsage = {
+  inputTokens: number;
+  cacheCreationInputTokens: number;
+  cacheReadInputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  totalCostUsd: number | null;
+};
+
+export type GeneratedTextResult = {
+  text: string;
+  provider: "anthropic-api" | "claude-cli";
+  model: string;
+  usage: GeneratedTextUsage;
+};
+
 // 테넌트가 등록한 자기 Anthropic 키(integrations kind='anthropic') 복호화. 없으면 null.
 // withTenant(RLS) 안에서 복호화 — 키는 메모리에만.
 export async function getAnthropicKey(tenantId: string): Promise<string | null> {
@@ -163,6 +179,131 @@ function runClaudeCli(prompt: string): Promise<string> {
   });
 }
 
+function finiteNonNegative(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
+}
+
+function runClaudeCliWithUsage(
+  prompt: string,
+  model: string,
+  timeoutMs: number,
+): Promise<GeneratedTextResult> {
+  return new Promise<GeneratedTextResult>((resolve, reject) => {
+    let settled = false;
+    const settle = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      fn();
+    };
+
+    let child: ChildProcess;
+    try {
+      child = spawn(
+        CLAUDE_BIN,
+        [
+          "-p",
+          "--tools", "",
+          "--safe-mode",
+          "--disable-slash-commands",
+          "--no-session-persistence",
+          "--no-chrome",
+          "--max-turns", "1",
+          "--model", model,
+          "--output-format", "json",
+        ],
+        { cwd: os.tmpdir(), stdio: ["pipe", "pipe", "ignore"] },
+      );
+    } catch (error) {
+      reject(error instanceof Error ? error : new Error(String(error)));
+      return;
+    }
+
+    const stdoutChunks: Buffer[] = [];
+    let stdoutBytes = 0;
+    let overflowed = false;
+    const timer = setTimeout(() => {
+      killClaudeChild(child);
+      settle(() => reject(new Error(`claude CLI timeout(${timeoutMs}ms)`)));
+    }, timeoutMs);
+    const cleanup = () => clearTimeout(timer);
+
+    child.stdout?.on("data", (chunk: Buffer) => {
+      if (overflowed) return;
+      stdoutBytes += chunk.length;
+      if (stdoutBytes > CLAUDE_CLI_MAX_OUTPUT_BYTES) {
+        overflowed = true;
+        killClaudeChild(child);
+        cleanup();
+        settle(() => reject(new Error(`claude CLI output exceeded ${CLAUDE_CLI_MAX_OUTPUT_BYTES} bytes`)));
+        return;
+      }
+      stdoutChunks.push(chunk);
+    });
+    child.stdin?.on("error", () => {
+      cleanup();
+      killClaudeChild(child);
+      settle(() => reject(new Error("claude CLI stdin 오류")));
+    });
+    child.on("error", (error) => {
+      cleanup();
+      settle(() => reject(new Error(`claude CLI spawn 실패: ${error.message}`)));
+    });
+    child.on("close", (code) => {
+      cleanup();
+      if (overflowed) return;
+      if (code !== 0) {
+        settle(() => reject(new Error(`claude CLI exited with code ${code}`)));
+        return;
+      }
+      try {
+        const envelope = JSON.parse(Buffer.concat(stdoutChunks).toString("utf8")) as {
+          is_error?: boolean;
+          result?: unknown;
+          total_cost_usd?: unknown;
+          usage?: {
+            input_tokens?: unknown;
+            cache_creation_input_tokens?: unknown;
+            cache_read_input_tokens?: unknown;
+            output_tokens?: unknown;
+          };
+        };
+        if (envelope.is_error || typeof envelope.result !== "string" || !envelope.result.trim()) {
+          throw new Error("claude CLI가 사용할 수 있는 결과를 반환하지 않았습니다");
+        }
+        const inputTokens = finiteNonNegative(envelope.usage?.input_tokens);
+        const cacheCreationInputTokens = finiteNonNegative(envelope.usage?.cache_creation_input_tokens);
+        const cacheReadInputTokens = finiteNonNegative(envelope.usage?.cache_read_input_tokens);
+        const outputTokens = finiteNonNegative(envelope.usage?.output_tokens);
+        const totalCostUsd = typeof envelope.total_cost_usd === "number" && Number.isFinite(envelope.total_cost_usd)
+          ? Math.max(0, envelope.total_cost_usd)
+          : null;
+        settle(() => resolve({
+          text: envelope.result as string,
+          provider: "claude-cli",
+          model,
+          usage: {
+            inputTokens,
+            cacheCreationInputTokens,
+            cacheReadInputTokens,
+            outputTokens,
+            totalTokens: inputTokens + cacheCreationInputTokens + cacheReadInputTokens + outputTokens,
+            totalCostUsd,
+          },
+        }));
+      } catch {
+        settle(() => reject(new Error("claude CLI JSON 결과를 해석하지 못했습니다")));
+      }
+    });
+    try {
+      child.stdin?.end(prompt, "utf8");
+    } catch {
+      cleanup();
+      killClaudeChild(child);
+      settle(() => reject(new Error("claude CLI stdin 쓰기 실패")));
+    }
+  });
+}
+
 // 공유 claude -p 직렬화 큐 — CLI는 프로세스에 1개뿐인 공유 프로필(운영자 OAuth 세션)을 쓰므로
 // 여러 테넌트 요청이 동시에 들어오면 같은 자격증명/세션 상태를 놓고 경합한다.
 // 프로세스-로컬 FIFO(promise 체인)로 CLI 폴백만 한 번에 하나씩 실행한다.
@@ -265,11 +406,23 @@ async function releaseSharedGeneration(tenantId: string, period: string): Promis
 
 // 성공 시 usage_events에 aiGeneration 1건 기록(best-effort). 실패해도 이미 성공한 stdout 응답을
 // 실패시키지 않는다 — 단, quota count(reserve에서 이미 +1됨)는 그대로 유지(요구사항 4).
-async function recordSharedGenerationEvent(tenantId: string): Promise<void> {
+async function recordSharedGenerationEvent(
+  tenantId: string,
+  details: Partial<GeneratedTextUsage> & { model?: string; source?: string } = {},
+): Promise<void> {
   try {
     await withTenant(tenantId, (sql) => sql`
       INSERT INTO usage_events (tenant_id, event_type, quantity, meta)
-      VALUES (${tenantId}, 'aiGeneration', 1, ${sql.json({ source: "shared-claude-cli", model: MODEL })})`);
+      VALUES (${tenantId}, 'aiGeneration', 1, ${sql.json({
+        source: details.source ?? "shared-claude-cli",
+        model: details.model ?? MODEL,
+        input_tokens: details.inputTokens ?? null,
+        cache_creation_input_tokens: details.cacheCreationInputTokens ?? null,
+        cache_read_input_tokens: details.cacheReadInputTokens ?? null,
+        output_tokens: details.outputTokens ?? null,
+        total_tokens: details.totalTokens ?? null,
+        total_cost_usd: details.totalCostUsd ?? null,
+      })})`);
   } catch (e) {
     if (process.env.OSMU_DEBUG) console.error("[anthropic] usage_events 기록 실패(무시):", e);
   }
@@ -411,4 +564,82 @@ export async function generateText(prompt: string, tenantId: string | null): Pro
     }
     throw e;
   }
+}
+
+function anthropicModelId(modelRef: string): string {
+  const normalized = modelRef.trim();
+  if (!normalized) throw new Error("LLM model is not configured");
+  if (normalized.startsWith("anthropic/")) return normalized.slice("anthropic/".length);
+  if (normalized.startsWith("claude-cli/")) return normalized.slice("claude-cli/".length);
+  if (normalized.includes("/")) throw new Error("unsupported LLM provider");
+  return normalized;
+}
+
+export async function generateTextWithUsage(input: {
+  prompt: string;
+  tenantId: string;
+  model: string;
+  timeoutMs: number;
+  maxOutputTokens: number;
+}): Promise<GeneratedTextResult> {
+  assertPromptWithinCliLimit(input.prompt);
+  const model = anthropicModelId(input.model);
+  const apiKey = await getAnthropicKey(input.tenantId);
+  if (apiKey) {
+    const response = await fetch(ANTHROPIC_API, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({
+        model,
+        max_tokens: input.maxOutputTokens,
+        messages: [{ role: "user", content: input.prompt }],
+      }),
+      signal: AbortSignal.timeout(input.timeoutMs),
+    });
+    if (!response.ok) throw new Error(`Anthropic API exited with status ${response.status}`);
+    const data = await response.json() as {
+      content?: { text?: string }[];
+      usage?: {
+        input_tokens?: unknown;
+        cache_creation_input_tokens?: unknown;
+        cache_read_input_tokens?: unknown;
+        output_tokens?: unknown;
+      };
+    };
+    const text = data.content?.find((entry) => typeof entry.text === "string")?.text?.trim() ?? "";
+    if (!text) throw new Error("Anthropic API가 사용할 수 있는 결과를 반환하지 않았습니다");
+    const inputTokens = finiteNonNegative(data.usage?.input_tokens);
+    const cacheCreationInputTokens = finiteNonNegative(data.usage?.cache_creation_input_tokens);
+    const cacheReadInputTokens = finiteNonNegative(data.usage?.cache_read_input_tokens);
+    const outputTokens = finiteNonNegative(data.usage?.output_tokens);
+    const result: GeneratedTextResult = {
+      text,
+      provider: "anthropic-api",
+      model,
+      usage: {
+        inputTokens,
+        cacheCreationInputTokens,
+        cacheReadInputTokens,
+        outputTokens,
+        totalTokens: inputTokens + cacheCreationInputTokens + cacheReadInputTokens + outputTokens,
+        totalCostUsd: null,
+      },
+    };
+    await recordSharedGenerationEvent(input.tenantId, { ...result.usage, model, source: "byo-anthropic-api" });
+    return result;
+  }
+
+  await assertSharedAiApproved(input.tenantId);
+  return runSerializedCli(async () => {
+    const { period } = await reserveSharedGeneration(input.tenantId);
+    try {
+      const result = await runClaudeCliWithUsage(input.prompt, model, input.timeoutMs);
+      await recordSharedGenerationEvent(input.tenantId, { ...result.usage, model, source: "shared-claude-cli" });
+      return result;
+    } catch (error) {
+      await releaseSharedGeneration(input.tenantId, period);
+      reportSharedAiExecutionFailure(error, input.tenantId);
+      throw error;
+    }
+  });
 }

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { studioFailure } from "@/lib/studio/generation/http";
 import { setGenerationRuntimeForTests } from "@/lib/studio/generation/runtime";
 import { GenerationService } from "@/lib/studio/generation/service";
-import { generationRequestFixture, STUDIO_TEST_WORKSPACE_ID } from "./generation-fixture";
+import { FIXTURE_STUDIO_CONTENT_GENERATOR, generationRequestFixture, STUDIO_TEST_WORKSPACE_ID } from "./generation-fixture";
 import { MemoryGenerationRepository } from "./generation-memory-repository";
 
 const TOKEN = "local-test-token-without-production-authority";
@@ -36,7 +36,7 @@ async function rejectAllCandidatesOverHttp(created: { data: { job_id: string; ca
 }
 
 beforeEach(() => {
-  setGenerationRuntimeForTests(new GenerationService(new MemoryGenerationRepository()));
+  setGenerationRuntimeForTests(new GenerationService(new MemoryGenerationRepository(), undefined, FIXTURE_STUDIO_CONTENT_GENERATOR));
   process.env.STUDIO_IDENTITY_MODE = "development";
   process.env.STUDIO_DEV_BEARER_TOKEN = TOKEN;
   process.env.STUDIO_DEV_MEMBER_ID = "member-integration";

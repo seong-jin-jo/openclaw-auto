@@ -29,6 +29,17 @@ export class MemoryGenerationRepository implements GenerationRepository {
     return this.freeRetryUses.size;
   }
 
+  async findCreation(memberId: string, _workspaceId: string, operation: "generation.create", idempotencyKey: string) {
+    return this.idempotency.get(`${memberId}:${operation}:${idempotencyKey}`) ?? null;
+  }
+
+  async findDerivationByIdempotency(memberId: string, workspaceId: string, idempotencyKey: string) {
+    const existingId = this.derivationKeys.get(`${workspaceId}:${memberId}:${idempotencyKey}`);
+    if (!existingId) return null;
+    const existing = this.derivations.get(existingId)!;
+    return { created: false as const, requestHash: existing.requestHash, batch: existing.batch };
+  }
+
   async persistDerivation(input: PersistDerivationInput): Promise<PersistedDerivation> {
     const scope = `${input.workspaceId}:${input.memberId}:${input.idempotencyKey}`;
     const existingId = this.derivationKeys.get(scope);

@@ -7,7 +7,7 @@ import { ShortsFactoryService } from "@/lib/studio/shorts-factory/service";
 import { GenerationService } from "@/lib/studio/generation/service";
 import { PostgresGenerationRepository } from "@/lib/studio/generation/repository";
 import { getDatabaseUrl } from "../isolation/_env";
-import { generationRequestFixture } from "./generation-fixture";
+import { FIXTURE_STUDIO_CONTENT_GENERATOR, generationRequestFixture } from "./generation-fixture";
 
 type Sql = ReturnType<typeof postgres>;
 
@@ -76,7 +76,7 @@ describe("숏폼 공장 Postgres 격리와 경합 계약", () => {
     const memberId = `factory-db-${crypto.randomUUID()}`;
     members.push(memberId);
     const factoryRepository = new PostgresShortsFactoryRepository();
-    const generation = new GenerationService(new PostgresGenerationRepository());
+    const generation = new GenerationService(new PostgresGenerationRepository(), undefined, FIXTURE_STUDIO_CONTENT_GENERATOR);
     const service = new ShortsFactoryService(
       factoryRepository,
       async ({ memberId: owner, idempotencyKey, request }) => generation.create(owner, idempotencyKey, request),

@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { setShortsFactoryRuntimeForTests } from "@/lib/studio/shorts-factory/runtime";
 import { ShortsFactoryService } from "@/lib/studio/shorts-factory/service";
-import { generationRequestFixture, STUDIO_TEST_WORKSPACE_ID } from "./generation-fixture";
+import { FIXTURE_STUDIO_CONTENT_GENERATOR, generationRequestFixture, STUDIO_TEST_WORKSPACE_ID } from "./generation-fixture";
 import type { ShortsFactoryRepository } from "@/lib/studio/shorts-factory/repository";
 import { GenerationService } from "@/lib/studio/generation/service";
 import { MemoryGenerationRepository } from "./generation-memory-repository";
@@ -77,7 +77,7 @@ class RouteMemoryRepository implements ShortsFactoryRepository {
 }
 
 beforeEach(() => {
-  const generation = new GenerationService(new MemoryGenerationRepository());
+  const generation = new GenerationService(new MemoryGenerationRepository(), undefined, FIXTURE_STUDIO_CONTENT_GENERATOR);
   setShortsFactoryRuntimeForTests(new ShortsFactoryService(
     new RouteMemoryRepository(),
     async ({ memberId, idempotencyKey, request }) => generation.create(memberId, idempotencyKey, request),
