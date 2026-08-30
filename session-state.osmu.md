@@ -1,184 +1,100 @@
-## 2026-08-31 04:00 KST Codex 실제 LLM 생성 연동 build 완료
-
-핸드오프 기준: 회장이 이 세션에 직접 전달한 실제 LLM 연동 과제와 `osmu-llm0831:0.0` pane.
-
-### 무엇을 어디까지 했나
-
-- 후보 3개와 글, 카드뉴스, 영상 파생을 실제 LLM 호출로 교체했다. 실패 시 production 템플릿 fallback은 없다.
-- 모델, fallback, timeout, 재시도 상한을 설정으로 분리하고 사용량 장부에 model, attempt, token, 비용, 성공과 실패를 기록한다.
-- 구현과 증거는 `7fa3fb55`, `65b6abf6`, `77181ee2`로 커밋했다.
-- 상세 증거와 화면은 `docs/qa/생성-LLM-연동-2026-08-31.md`와 하위 captures에 있다.
-
-### 남은 이슈·블로커
-
-- 원격 push는 실행 정책이 별도 승인을 요구하지만 현재 세션은 승인 요청이 금지돼 미실행이다.
-- 운영 배포와 운영 Studio UI의 후보 및 파생 클릭은 미검증이다.
-- production build의 기존 NFT 추적 warning 1건은 유지됐다.
-
-### 다음에 칠 명령
-
-1. 실행 정책 승인이 가능한 컨트롤러가 `git push origin feat/design-system-and-missing-features`를 실행한다.
-2. QA 단계에서 운영 배포 전 실제 후보 생성, 영상 파생, 실패 화면, 사용량 장부를 다시 검증한다.
-3. QA 승인 전에는 merge와 운영 배포를 하지 않는다.
-
-### 검증했나
-
-- 관찰됨: 로컬 Studio 생성 클릭 HTTP 201, 서로 다른 후보 3개, 영상 파생 HTTP 201과 실제 대본 및 장면 구성.
-- 관찰됨: 운영 컨테이너 Claude OAuth CLI JSON 응답, token usage, 로컬 usage_events 비용 장부. 임시 로컬 공유 AI 승인은 원상복구했다.
-- 테스트됨: 전체 Vitest 207파일 1,554건, TypeScript, production build 177/177, design lint 0.
-- 미검증: 운영 배포, 운영 Studio UI.
-- 모델: gpt-codex/gpt-5.6-sol.
-- 벤치마크 소스 1: Anthropic Claude CLI 문서, https://docs.anthropic.com/en/docs/claude-code/cli-usage
-- 벤치마크 소스 2: Anthropic Messages API 문서, https://platform.claude.com/docs/en/api/typescript/messages
-- 벤치마크 소스 3: Anthropic structured outputs 문서, https://platform.claude.com/docs/en/build-with-claude/structured-outputs
-
-## 2026-08-30 23:10 KST Codex 학습 정보·생성실 build 완료, push 정책 차단
-
-핸드오프 기준: 회장 2차 실사용 피드백 원문과 `osmu-gen0830` 위임.
-
-### 무엇을 어디까지 했나
-
-- 학습 정보 8건과 생성실 11건을 원문 기준으로 각각 대조해 구현했다. 상세 결과는 `docs/qa/2차피드백-학습정보와-생성실-대조-2026-08-30.md`다.
-- 학습 정보는 Studio 진입 시 자동 팝업, 7개 직접 입력, 1개 자동 학습 설명, 검토와 명시적 저장으로 바뀌었다.
-- 생성실은 6개 질문을 한 번에 하나씩 묻고, 형식 중복 선택과 학습 정보 중복 버튼을 제거했다. 저장하지 않은 질문 상태는 새로고침 시 초기화한다.
-- 실제 생성은 여전히 LLM이 아니라 규칙 기반 구조 초안 3개다. 화면이 이를 `현재 제공`과 `준비 중`으로 분리해 완성 미디어가 나오는 것처럼 말하지 않게 했다.
-- 코드와 테스트 11파일을 다섯 커밋으로 묶었다: `7441ea74`, `37d4ec33`, `97dd29ad`, `c785d934`, `35a5dff7`. 증거 문서와 캡처는 `603c652e`에 묶었다.
-
-### 남은 이슈·블로커
-
-- 실제 LLM, 완성 영상, 카드뉴스 이미지, 완성 글 생성은 미구현이다. 현재 화면은 규칙 기반 구조 초안 3개만 제공한다고 명시한다.
-- 운영 배포와 운영 고객의 동일 19항목 재검증은 수행하지 않았다.
-- `git push origin feat/design-system-and-missing-features`는 저장소 실행 정책이 별도 승인을 요구하지만 현재 세션은 승인 요청이 금지돼 차단됐다. 로컬 브랜치는 원격보다 앞선 상태다.
-
-### 다음에 칠 명령
-
-1. push 권한이 있는 세션에서 `git push origin feat/design-system-and-missing-features`를 실행한다.
-2. QA 단계에서 운영 배포 전 동일 19항목을 캡처 기준으로 재검증한다.
-
-### 검증했나
-
-- 테스트됨: 전체 Vitest 206파일, 1,550건 통과, 조건부 1건 제외.
-- 테스트됨: TypeScript 종료 코드 0, Web production build 정적 페이지 177/177, UI token audit 0, design lint 0. 기존 NFT 추적 경고 1건은 유지됐다.
-- 관찰됨: localhost 3456, 지정 작업 공간, 학습 정보 자동 팝업부터 generation POST 201과 후보 3개까지 캡처 5장. 브라우저 401과 콘솔 오류 0건.
-- 미검증: 운영 배포, 운영 고객 흐름, 실제 LLM과 완성 영상·카드 이미지·완성 글 생성.
-- 차단됨: 원격 push는 실행되지 않았다.
-
-## 2026-08-30 23:09 KST Codex 편집실·발행실 build 회수 대기
-
-핸드오프 기준: 회장 2차 피드백 원문과 이 세션에 전달된 13개 항목.
-
-### 무엇을 어디까지 했나
-
-- R199·R204·2차 13번의 원인은 발행실 헤더에 이미 승인 인박스와 발행 캘린더가 있는데 본문에서도 `PublishTrip`을 다시 렌더한 중복이었다. `dashboard/src/app/studio/page.tsx`의 렌더와 미사용 import를 제거했다. 회장은 같은 이동 경로를 두 번 해석하지 않아도 된다.
-- 13개 항목 대조와 중단 사유는 `docs/qa/2차피드백-편집실과-발행실-대조-2026-08-30.md`에 기록했다. 구현현황과 QA tracker도 갱신했다.
-- 변경 5파일을 로컬 커밋 `4c1dcc3f`로 묶었다. 다른 조의 학습 정보·생성실 워커는 이후 별도 커밋 5개를 추가했고 이 커밋은 그대로 보존됐다.
-
-### 남은 이슈·블로커
-
-- 1번부터 12번은 미착수다. `pipeline-state.osmu.md`에 승인 프로토타입 핀이 없고 `DESIGN.md` 최상단은 v64, 부록은 v61을 현행 정본으로 적는다. 이 충돌을 임의 해석하면 편집실·발행실 구조가 다시 승인 시안에서 벗어날 수 있다.
-- 후보는 `docs/prototype/openclaw-auto-4room-v61.html`부터 v64까지다. 추천 후보는 DESIGN 최상단과 최고 semver가 함께 가리키는 v64다.
-- `git push origin feat/design-system-and-missing-features`는 실행 정책이 승인 필요로 차단했다. 다른 조 작업까지 합쳐 현재 HEAD는 `35a5dff7`이고 원격 브랜치는 로컬보다 7개 커밋 뒤다.
-- 다른 조가 `docs/qa/qa-tracker.md`에 남긴 미커밋 변경이 있다. 이 세션은 해당 변경을 커밋하거나 되돌리지 않았다.
-- 로컬 3456 실화면, 전체 `npm run test`, 플랫폼 7종 웹 조사, 1번부터 12번 구현은 미검증 또는 미착수다.
-
-### 다음에 칠 명령
-
-1. 컨트롤러가 `pipeline-state.osmu.md`의 `approved_artifacts`에 승인 프로토타입 한 개를 핀한다.
-2. `git status --short --untracked-files=no`로 생성실 조의 동시 변경을 확인하고, 편집실·발행실 범위만 재개한다.
-3. `cd dashboard && npm run test && npx tsc --noEmit && node scripts/ui-token-audit.mjs`로 전체 검증한다.
-4. 제한시간 dev 서버와 브라우저를 묶어 3456 편집실·발행실을 캡처한 뒤 서버를 종료한다.
-5. push 권한이 있는 세션에서 `git push origin feat/design-system-and-missing-features`를 실행한다.
-
-### 검증했나
-
-- 테스트됨: `npx vitest run tests/publish/studio-publish-ui.test.tsx`, 27건 통과.
-- 테스트됨: `npx tsc --noEmit`, 종료 코드 0.
-- 테스트됨: `node scripts/ui-token-audit.mjs`, 위반 0.
-- 첫 Vitest 시도는 기존 설정과 `--maxWorkers=1`이 충돌해 테스트를 시작하지 못했다. 표준 명령으로 재실행해 통과했다.
-- 미검증: 실제 3456 화면, 전체 테스트, 운영 배포, 원격 push.
-
-## 2026-08-30 22:30 KST Claude 세션 (osmu 라인) ★★제품 핵심 부재 확인. codex 재가동.
+## 2026-08-31 04:50 KST Claude 세션 (osmu 라인) ADR 미독이 근본 원인. codex 4판 가동.
 
 핸드오프 기준: 이 파일(session-state.osmu.md).
+★★ 이 항목 위의 모든 "완료" 는 배포 환경 실동작으로 확인된 것이 아니다. 그대로 믿지 마라.
 
-★★★ 가장 중요한 사실. 이것부터 읽어라.
+## ★★★ 근본 원인 확정: 이미 결정된 ADR 을 안 읽고 그 위에 개발했다
 
-**콘텐츠 생성이 LLM 을 한 번도 부르지 않는다. 전부 하드코딩된 문자열 템플릿이다.**
-- `src/lib/studio/generation/service.ts` 의 `buildCandidates()` 가 A/B/C 를 배열로 하드코딩.
-  예: `title: `${topic}: 문제부터 여는 안``
-- `src/lib/studio/generation/derivation.ts` 가 글·카드뉴스·영상을 템플릿으로 찍는다.
-- 영상은 `asset_url: "pending:render"` 고정.
-- 그 경로에 anthropic/claude/openai/fetch 호출 grep 0건.
-- ★컨트롤러가 코드를 직접 열어 확인했다. 워커 주장이 아니다.
+`wiki/거버넌스/결정.md` **ADR-004** 에 이미 적혀 있었다:
+- 개발 모드(현재): 계정을 앱에 테스터 초대 + 수락. 50명 한계.
+- 상품화: **App Review 1회** 통과 → 누구나 OAuth 연결. **테스터 등록·콘솔 작업 0.**
+- 상품화 마일스톤 = App Review 준비(privacy policy URL + 데모 영상 + 검수 제출).
+- ★**"Meta 콘솔 자동 운전 금지."** 2026-07-01 콘솔 자동 조작으로 개발자 계정 플래그 실사고.
 
-⇒ **회장이 "A, B, C 누르면 영상 후보 안나오는데?" 라고 한 것의 진짜 원인이 이것이다.**
-⇒ **이 위에 쌓은 파생 생성, 편집실, 발행실이 전부 빈 껍데기 위에 있다.**
-⇒ 파생 단가(카드 300원, 영상 1200원)도 실제 생성이 없으니 지금은 의미가 없다.
-   회장 판단 필요: 실제 LLM 연동 전까지 0으로 둘지.
+⇒ 회장이 "클릭클릭하다 API 발급? 돌았어?" 라고 한 요구는 **이미 ADR 로 확정돼 있었고**
+  전제 조건이 App Review 라는 것도 적혀 있었다. **아무도 실행하지 않았을 뿐이다.**
 
-★★ 로그인은 깨져 있지 않다. 깨진 것은 **채널 계정 연결**이다.
-회장이 "계정 연결 실패말하는거다" 로 확정해 줬다.
-- 워커 실측: Playwright 로 /login 열고 Google 버튼 클릭 → Google 로그인 화면 도달, 콘솔 오류 0.
-  그 뒤 계정 선택은 회장 계정이 필요해 못 밟았다.
-- 운영 DB 실측: workspace badd844f 의 threads/instagram 계정이
-  connectionStatus=invalid, connectionError=oauth_token_invalid, reconnectRequired=true.
-  ⇒ 화면이 "연결됨" 이라고 거짓말하지는 않는다(앞선 내 우려는 정정).
-- 24시간 로그에 connect 관련은 exchange-fail 단 1건. Threads 1회 시도가 전부.
-- 운영 THREADS_APP_ID/SECRET 으로 Meta 엔드포인트 직접 호출 → 응답이
-  "토큰/코드가 틀렸다" 이지 "앱이 틀렸다" 가 아니다. **앱 자격증명은 유효하다.**
-- 공식 문서 대조: 우리 요청 형식은 현행 Threads 규격과 일치한다.
+**왜 안 읽었나**: ①거버넌스를 읽는 절차가 실행 순서에 없었다. session-state 와 최신 QA 문서부터 봤다.
+②위임 프롬프트에 ADR 을 근거로 안 넣었다. ③"막힌 것을 뚫는다"에만 집중하고 상위 결정을 안 봤다.
 
-**고친 것 (PR #39 병합, 배포 33313508878 success)**:
-| 파일 | 결함 |
-|---|---|
-| social-connect.ts:516 | long-lived 교환 실패 시 status·body 를 버리고 고정 문자열만 남김. **원인 불명의 진짜 원인** |
-| 같은 파일 short 단계 | Meta 의 {error:{message}} 형식을 못 읽어 Graph 계열 오류가 뭉개짐 |
-| login/page.tsx:43 | OAuth 콜백 error 를 마커만 지우고 화면에 아무 말도 안 함 |
-| observability.ts:317 | 토큰 무효 실패가 전부 unknown. auth_invalid/decrypt_failed 추가 |
+**재발 방지(절차로 박음. 결정 원장에도 기록)**:
+- **모든 build 위임 프롬프트 Read 목록 1번 = 관련 ADR. 요청 원문보다 위다.**
+- 컨트롤러도 새 갈래를 열 때 거버넌스 세 원장을 먼저 읽는다. session-state 는 그 다음.
+- "막혔다"를 코드 문제로 단정하기 전에 결정 원장을 검색한다.
+  ★이번 건은 `grep "App Review" wiki/거버넌스/결정.md` 한 번이면 나왔다.
 
-⇒ **이제 회장이 Threads 재연결을 한 번 시도하면 로그에 Meta 가 준 진짜 사유가 남는다.**
-   그때 원인이 확정된다.
+## 계정 연결 실패 원인 확정 (로깅 수정이 값을 했다)
 
-★미수정 후속: channel-config GET 이 폴링마다 severity:error 알림을 쏜다.
- 로그가 수십 번 반복되던 정체이고 알림 설계 결함이다.
+운영 로그 실측:
+```
+[connect-callback][exchange-fail] threads 장기 토큰 교환 실패 (HTTP 400):
+This action requires the threads_basic permission. You must submit for app review,
+or your user must be in the list of Threads testers.
+```
+⇒ **코드 결함 아님. 앱이 심사 전이라 테스터 등록 계정만 연결된다.**
+⇒ 앱 자격증명 유효, 요청 형식도 공식 규격과 일치(워커가 Meta 직접 호출로 확인).
+⇒ Meta 앱 번호 905965605850465. 회장 계정 j.the.great.investor 테스터 등록 필요.
+  ★등록 후 **회장 계정에서 초대 수락**해야 적용된다. 이게 빠지면 같은 오류 반복.
+⇒ ★세션은 Meta 콘솔을 조작하지 않는다(ADR-004 금지 + 실사고).
 
-★회장이 확인해야 할 유일한 외부 항목: Supabase 콘솔 →
- Authentication → URL Configuration → Redirect URLs 에
- `<운영주소>/login` 과 `<운영주소>/login?**` 두 줄이 있는지.
- 와일드카드가 없으면 `?returnTo=` 때문에 정확일치에 실패한다.
+## Supabase Redirect URL 이 빈칸이었던 이유
 
-★★ 요청 전항목 대조표 완성: `docs/qa/회장-요청-전항목-대조표-2026-08-30.md` (커밋 009ffcad)
-**266건 중 충족 128 · 부분 60 · 미충족 48 · 확인불가 30.**
-★가장 중요한 숫자: **2차 실사용 피드백 31건 중 충족이 1건.** 어제 지적은 사실상 미착수다.
-회장이 먼저 볼 것 넷(대조 조가 꼽은 것):
-1. 발행실 상단 왕복 띠가 그대로. app/studio/page.tsx:970. R199·R204 로 두 번 지시, 세 번째 지적.
-2. 학습 정보가 8칸이라 표시하고 3칸만 받는다. 3걸음 마치면 "3 / 8", 나머지 채울 화면 없음.
-3. 학습 문답 질문 세 개가 어제와 한 글자도 안 바뀌었다.
-4. 만든 콘텐츠를 볼 수 없다(위 LLM 부재가 원인).
-★대조 조 셀프심문: 성과실 4건을 충족으로 적었으나 앞선 네 판에서도 같은 근거로
- 충족을 줬다가 네 번 다 반려됐다. 회장이 열어 보기 전엔 충족이라 하면 안 된다고 자인.
+배포 스모크가 `/api/auth/google` 200 과 authUrl 반환까지만 본다.
+**authUrl 은 우리 서버가 만드는 문자열이라 Supabase 설정과 무관하게 정상으로 나온다.**
+즉 스모크 통과가 로그인 완주를 전혀 보장하지 않았다. OAuth 는 브라우저가 밖으로 나갔다
+돌아오는 흐름인데 우리 검증은 전부 서버 관점이었다.
+설정값(회장께 안내함):
+```
+https://<운영주소>/login
+https://<운영주소>/login?**
+```
+재발 방지: 배포 스모크에 OAuth 왕복 완주 검사 추가. 그리고
+**외부 콘솔 의존 항목 목록**을 만든다(Supabase Redirect URL, Meta 테스터, 채널별 redirect URI).
 
-★★ 2차 피드백 원문을 요청 원장에 verbatim 박제함(커밋 51c46549):
-`wiki/거버넌스/요청-원문/2026-08-30-회장-2차-실사용-피드백.md`
-★요약본만 있어 항목 수가 어긋나 있었다(생성실 10 vs 실제 11, 발행실 3 vs 실제 4).
- 세는 단위가 어긋난 것이 누락의 씨앗이었다.
-★요청 원문 폴더가 docs/requests/ 에서 wiki/거버넌스/요청-원문/ 으로 이동 중이다. 양쪽 확인할 것.
+## 가동중 codex 4판 (전부 항목 번호 붙여 표로 대조 보고하게 함)
 
-★★ 회장 지시: "Codex 토큰 많으니까 적극 시키고 요청 하나 하나씩 대조하며 작업해라."
-codex 재가동. 두 판 발주(항목 번호를 붙여 대조 보고하게 했다):
-- osmu-gen0830 (code-builder): 학습 정보 8건 + 생성실 11건. 프롬프트 /tmp/codex-gen.txt
-  산출물 docs/qa/2차피드백-학습정보와-생성실-대조-2026-08-30.md
-  ★웹 조사 최소 5곳 의무(한국어 서비스 2곳 포함). 회장이 "어디서 벤치마킹한 UX 라이팅이냐"고 물었다.
-- osmu-edit0830 (code-builder): 편집실 8건 + 발행실 4건 + 왕복 띠 제거.
-  프롬프트 /tmp/codex-edit.txt
-  산출물 docs/qa/2차피드백-편집실과-발행실-대조-2026-08-30.md
-  ★플랫폼별 표시이름·캡션·해시태그 실조사 의무.
-   게시물 단위로 바꿀 수 있는 것과 없는 것을 갈라라. 표시 이름은 대부분 계정 설정이다.
-★codex-in-pane.sh 는 프롬프트를 **파일 경로**로 받는다. 문자열을 그대로 넘기면
- "프롬프트 파일 없음" 으로 죽는다. 내가 한 번 틀렸다.
+| 세션 | 담당 | 산출물 |
+|---|---|---|
+| osmu-llm0831 | **실제 LLM 연동**(회장 "지금 당장 붙여야지") | docs/qa/생성-LLM-연동-2026-08-31.md |
+| osmu-gen0830 | 학습 정보 8건 + 생성실 11건 | docs/qa/2차피드백-학습정보와-생성실-대조-2026-08-30.md |
+| osmu-edit0830 | 편집실 8건 + 발행실 4건 + 왕복 띠 제거 | docs/qa/2차피드백-편집실과-발행실-대조-2026-08-30.md |
+| osmu-appreview0831 | **Meta App Review 제출 준비** | docs/releases/meta-app-review-제출-준비-2026-08-31.md |
 
-다음 액션:
-1. 두 codex 판 회수 → 항목별 대조 보고 확인 → 병합·배포.
-2. 회장이 Threads 재연결 1회 시도하면 로그에서 Meta 실사유 확인.
-3. **LLM 연동을 언제 할지 회장 판단 필요.** 이게 없으면 나머지는 껍데기다.
-4. 배포 후 컨트롤러가 직접 로그인부터 발행까지 밟는다.
+★회수 시 **표의 행 수가 발주한 항목 수와 같은지 컨트롤러가 센다. 모자라면 반려.**
+★LLM 판에 못 박은 것: 실패 시 템플릿으로 조용히 대체 금지. 화면에 왜 안 되는지 말할 것.
+ 무료 몫 계약 유지, 호출 횟수·토큰 기록, 타임아웃·재시도 상한, 모델명 설정으로 분리.
+★App Review 판에 못 박은 것: Meta 콘솔 조작 금지. 제출물 제작까지만.
+
+## 거버넌스 기록 완료 (회장 확인 요구)
+
+- `wiki/거버넌스/요청.md`: 2026-08-31 지시 원문 + 처리 결과
+- `wiki/거버넌스/결정.md`: LLM 즉시 연동 / 용어 사전 중단 / 항목별 대조 강제 /
+  App Review 즉시 착수 / 거버넌스를 위임 1번에
+- `wiki/거버넌스/실수.md`: ADR 미독 근본 원인 / 완료 판정 위반 / 비표준 용어 반복 /
+  원인 2·3·4 조치 결과 / Redirect URL 미확인 이유
+- `wiki/거버넌스/요청-원문/2026-08-30-회장-2차-실사용-피드백.md`: verbatim 박제
+- ★`wiki/거버넌스/회고/` 는 아직 비어 있다. 스프린트 종료 시 작성할 것.
+- 평가 적립: eval-log.sh 로 osmu-controller neg 1점 기록(2026-08-31).
+
+## 남은 것
+
+- 배포 스모크에 OAuth 왕복 완주 검사 추가(미착수)
+- 외부 콘솔 의존 항목 목록 신설(미착수)
+- 스프린트 회고 작성(미착수)
+- 배포 환경에서 컨트롤러가 직접 로그인부터 발행까지 통과(미착수)
+  ★이걸 하기 전에 회장께 "써 보시라" 금지. 이번 사고의 재발 방지 조건.
+- 266건 대조표의 미충족 48 · 부분 60 처리
+
+## VM 접속 헬퍼 (세션 종료 시 사라짐. 재작성)
+
+```
+cat > /tmp/mvm.sh <<'EOF'
+#!/bin/bash
+set -a; . ~/.sj-agent-harness/secrets/zero-one-onprem.env; . ~/.sj-agent-harness/secrets/proxmox-vms.env; set +a
+sshpass -p "$PVE_JUMP_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 "$PVE_JUMP_USER@$PVE_JUMP_HOST" \
+  "sshpass -p '$MARKETING_PASS' ssh -o StrictHostKeyChecking=no -o ConnectTimeout=12 $MARKETING_USER@$MARKETING_HOST \"$1\"" 2>&1
+EOF
+chmod +x /tmp/mvm.sh
+```
+★codex-in-pane.sh 는 프롬프트를 **파일 경로**로 받는다. 문자열 직접 전달은 죽는다.
+
