@@ -1,1 +1,1 @@
-- 2026-08-30 03:00 Claude(osmu 라인): PR #36·#37 병합 완료. 배포 교착 실제로 풀림(preflight 통과 확인). 마케팅 VM 러너가 offline 이라 배포 대기중. 상세는 session-state.osmu.md 최상단.
+- 2026-08-30 06:00 Claude(osmu 라인): 운영 배포 성공(login 200 실측). 러너 복구, expand-member 완료. 인프라 구조 확인(Supabase DB + cloudflared + 마케팅 VM). 컨테이너 정리는 회장 승인 대기. 상세는 session-state.osmu.md 최상단.
