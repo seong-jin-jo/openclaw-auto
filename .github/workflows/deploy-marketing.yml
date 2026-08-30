@@ -166,3 +166,15 @@ jobs:
           echo "operator/customers=$OC"
           [ "$OC" = "200" ] || { echo "::error::/api/operator/customers HTTP $OC — 200이어야 함(DB 스키마 누락/운영자 토큰/라우트 장애 신호)"; exit 1; }
           echo "✅ 스모크 통과: 로그인페이지·인증게이트·supabase 빌드주입·Google-only(비밀번호UI無)·google 계정선택 preflight·operator/customers 정상"
+      - name: 배포 찌꺼기 정리 (다음 배포가 디스크로 죽지 않게)
+        # 2026-08-30: 디스크 81% 에서 이미지 빌드가 메모리·디스크로 죽었다(exit 137).
+        # 배포마다 옛 이미지와 빌드 캐시가 쌓이는데 아무도 안 치웠던 것이 원인이다.
+        # 지금 쓰는 이미지와 붙어 있는 볼륨은 prune 대상이 아니다(도커가 참조를 본다).
+        # 실패해도 배포를 되돌리지 않는다. 정리는 배포의 성패를 가르는 일이 아니다.
+        if: always()
+        run: |
+          docker image prune -af --filter "until=168h" || true
+          docker builder prune -af --filter "until=168h" || true
+          docker container prune -f --filter "until=168h" || true
+          echo "정리 뒤 디스크:"
+          df -h / | tail -1
