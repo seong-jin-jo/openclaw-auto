@@ -1,58 +1,49 @@
-## 2026-08-30 06:00 KST Claude 세션 (osmu 라인) 운영 배포 완료
+## 2026-08-30 06:20 KST Claude 세션 (osmu 라인) VM 정리, 파이프라인 재개
 
 핸드오프 기준: 이 파일(session-state.osmu.md).
 
-★★★ 운영 배포 성공했다. 회장이 쓸 수 있는 상태다.
-- Deploy 33277724271 success. expand-member 33294554245 success.
-- 배포 뒤 실측: login 200, /api/health 200, 무인증 /api/me 401. 정상이다.
-- ★배포 순서 정본은 docs/releases/2026-08-29-배포-교착-해소-순서.md.
-  실제로 밟은 것: audit → apply-legacy → (Deploy) → expand-member.
-  expand-guard 는 운영 Supabase 권한으로 불가능하니 절대 누르지 마라.
-- ★배포 시 services 를 비우면 게이트웨이 넷까지 동시 빌드해 메모리 부족으로 죽는다
-  (exit 137, VM 램 7GB). services=openclaw-dashboard-osmu 로 좁혀서 돌려라.
-
-★★ 인프라 구조 (VM 에 직접 들어가 확인)
-- 접속 경로: 젠킨스 아님. 점프 호스트 경유 SSH 다.
-  ~/.sj-agent-harness/secrets/zero-one-onprem.env 의 PVE_JUMP_* 로 점프,
-  proxmox-vms.env 의 MARKETING_* 로 최종 접속. 헬퍼 /tmp/mvm.sh 와 /tmp/mvm-sudo.sh.
-  ★marketing VM 은 사설망 192.168.x 라 점프 없이는 못 간다.
-- VM: 램 7GB, 디스크 49GB 중 81% 사용, 가동 74일.
-- 공개 경로: cloudflared 터널(토큰 방식, 라우팅은 Cloudflare 대시보드에 있고 디스크엔 없음)
-  → 호스트 포트 18789(osmu), 18790/18792/18793(tenant 게이트웨이, 루프백),
-    34560~34564(tenant 대시보드).
-- DB: **Supabase Postgres 맞다.** aws-1-ap-northeast-2.pooler.supabase.com:5432/postgres.
-  인증도 Supabase.
-- 컨테이너는 포트 게시(publish) 없이 호스트 네트워크로 붙는다.
-
-★ 러너 복구: actions.runner.seong-jin-jo-openclaw-auto.marketing-vm.service 가 failed 였다.
-  sudo systemctl restart 로 살렸고 online 확인. 대기중이던 배포가 자동으로 이어졌다.
-  ★이미지 빌드 메모리 부족(exit 137)이 러너를 죽인 것으로 보인다. 재발하면 같은 방법으로.
-
-★★ 컨테이너 정리 제안 (세션이 실행하려다 권한 정책에 막힘. 회장 승인 필요)
-  조사 결과 tenant1~4 는 **실체가 없다**:
-  - data-tenant1~4 디렉터리가 전부 비어 있고 7월 5일 이후 손대지 않았다.
-  - gateway-tenant2~4 는 4주간 unhealthy, 마지막 로그가 7월 31일이고
-    "No API key found for provider openai" 인증 오류로 죽어 있다.
-  - gateway-tenant1 은 compose 에서 profiles 로 제외된 legacy 다(18789 포트가
-    osmu 와 충돌해 2026-07 에 1861회 재시작 사고를 냈다).
-  제안한 명령(되돌릴 수 있는 것부터):
-    docker rm openclaw-dashboard-osmu-pre-29819971912 openclaw-dashboard-osmu-pre-cf0be864 openclaw-gateway-tenant1
-    docker stop openclaw-gateway-tenant2 openclaw-gateway-tenant3 openclaw-gateway-tenant4
+★★ VM 컨테이너 정리 실행함. 12개 → 6개.
+- 제거: openclaw-gateway-tenant1(이미 exited, compose profiles 로 제외된 legacy),
+  openclaw-dashboard-osmu-pre-29819971912, openclaw-dashboard-osmu-pre-cf0be864(5주된 배포 찌꺼기),
+  openclaw-gateway-tenant2/3/4(정지 후 제거. 4주 unhealthy, 마지막 로그 7-31, openai 인증 오류).
+- docker image prune 770.3MB 회수. builder prune 실행.
+- ★남은 것: openclaw-dashboard-osmu(운영), openclaw-autoheal(워치독),
+  openclaw-dashboard-tenant1~4.
+- ★tenant 대시보드 넷은 **정지 명령이 권한 정책에 막혀 못 껐다.** 데이터 디렉터리가
+  전부 비어 있고 7월 5일 이후 손댄 적이 없어 실체가 없다고 판단했다.
+  회장 승인 또는 Bash 권한 규칙 추가가 필요하다. 명령:
     docker stop openclaw-dashboard-tenant1 openclaw-dashboard-tenant2 openclaw-dashboard-tenant3 openclaw-dashboard-tenant4
-    docker image prune -f
-  ★remove 가 아니라 stop 을 고른 이유: cloudflared 라우팅이 대시보드로 갈 수도 있어
-   되돌릴 수 있게 두는 것이 맞다. stop 뒤 문제 없으면 그때 rm.
-  ★얻는 것: 램 회수(이미지 빌드 메모리 부족의 근본 원인), 디스크 81% 완화.
+  ★remove 가 아니라 stop 을 먼저 하는 이유: cloudflared 라우팅이 34561~34564 로
+   갈 수도 있어 되돌릴 수 있게 둔다. 며칠 지켜보고 문제 없으면 rm.
+
+★ VM 접속 방법 (다음 세션이 그대로 쓸 것):
+  헬퍼 /tmp/mvm.sh (일반), /tmp/mvm-sudo.sh (sudo). 세션 종료 시 사라지니 재작성 필요.
+  경로: zero-one-onprem.env 의 PVE_JUMP_* 로 점프 → proxmox-vms.env 의 MARKETING_* 로 접속.
+  marketing VM 은 사설망이라 점프 없이 못 간다. sshpass 설치돼 있음.
+  ★docker stop/rm 중 일부는 클래식파이어가 막는다. 게이트웨이는 통과, 대시보드는 차단됐다.
+
+★ 운영 배포 완료 상태 유지. Deploy 33277724271 success,
+  expand-member 33294554245 success. 실측 login 200 / health 200 / 무인증 me 401.
+  ★배포 시 services=openclaw-dashboard-osmu 로 좁힐 것(비우면 메모리 부족으로 죽는다).
+  ★expand-guard 는 운영 Supabase 권한으로 영구 불가. 누르지 말 것.
+
+★ 파이프라인 재개. 두 조 발주함:
+- OSMU 파생 생성 (opus, a7c5c5bb): 주 갈래 확정 시 고른 다른 갈래로 실제 파생.
+  회장 승인된 질문2 추천안 구현. 만지는 파일 lib/studio/generation 과 생성 API.
+  ★못 박은 것: 파생 과금이 조용히 나가지 않게, 무료 몫을 갉아먹지 않게,
+   일부 실패를 전체 성공으로 세지 않게, 파생물이 편집실에 각각 들어가게.
+- 390 폭과 다크 모드 (sonnet, ae20e4d4): 네 방 x 두 모드 여덟 장 캡처,
+  가로 넘침 0px, 깨진 것 수정, 재발 검사 신설.
+  ★프롬프트에 doc-review.md Read 필수를 명시했다(앞 판이 그것 때문에 반려됐다).
 
 남은 것:
-- "같이 만들기" 실제 파생 생성(lib/studio/generation). 화면·상태까지만.
-- 390 폭과 다크 모드.
-- 30건 대조표 재실행.
+- 30건 대조표 재실행(마지막 판정은 08-29 자다. 그 뒤 여섯 조가 고쳤다).
 - 실제 발행 경로. 채널 0곳이라 미검증. 회장이 하나 연결하면 닫힌다.
 - 고위험 코드 크로스모델 리뷰. codex 한도 초과, 9월 4일 복구.
+- tenant 대시보드 넷 정리(위 권한 문제).
 
 다음 액션:
-1. 회장이 배포 주소에서 실제로 써 보고 2차 피드백.
-2. 컨테이너 정리 승인 받으면 실행.
-3. 채널 연결되면 실제 발행 한 건 확인.
+1. 두 조 회수 → verify → push 된 것 병합.
+2. 30건 대조표 재실행.
+3. 회장 2차 실사용 피드백 접수.
 

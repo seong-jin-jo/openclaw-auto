@@ -1,1 +1,1 @@
-- 2026-08-30 06:00 Claude(osmu 라인): 운영 배포 성공(login 200 실측). 러너 복구, expand-member 완료. 인프라 구조 확인(Supabase DB + cloudflared + 마케팅 VM). 컨테이너 정리는 회장 승인 대기. 상세는 session-state.osmu.md 최상단.
+- 2026-08-30 06:20 Claude(osmu 라인): VM 컨테이너 12개→6개 정리, 이미지 770MB 회수. tenant 대시보드 넷은 권한 정책에 막혀 대기. 파생 생성과 390폭·다크 두 조 발주. 상세는 session-state.osmu.md 최상단.
