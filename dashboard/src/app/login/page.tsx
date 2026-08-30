@@ -48,6 +48,18 @@ export default function LoginPage() {
         // arrive for this attempt. Clear the marker now so it can't leak into and mislabel the
         // next unrelated auth attempt on this tab.
         try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch { /* ignore */ }
+        // 이전 버전은 마커만 지우고 아무것도 보여주지 않았다. 그래서 Supabase가 redirect URL
+        // 허용목록 불일치 등으로 error를 붙여 돌려보내면, 화면은 아무 말 없이 로그인 버튼만
+        // 남고 사용자는 "로그인이 그냥 안 된다"로만 경험했다(2026-08-30). 사유를 반드시 띄운다.
+        const hashParams = new URLSearchParams(hash.replace(/^#/, ""));
+        const detail =
+          p.get("error_description") || p.get("error_code") || p.get("error") ||
+          hashParams.get("error_description") || hashParams.get("error_code") || hashParams.get("error") || "";
+        setMsg(oauthErrorMessage(detail || "로그인이 취소되었거나 완료되지 못했습니다.", "Google"));
+        // 사유를 읽은 뒤 URL에서 지운다. 남겨두면 새로고침 때마다 같은 실패가 다시 뜬다.
+        // returnTo는 살려서 재시도 후에도 원래 가려던 화면으로 돌아가게 한다.
+        const keep = p.get("returnTo");
+        history.replaceState(null, "", keep ? `${window.location.pathname}?returnTo=${encodeURIComponent(keep)}` : window.location.pathname);
       }
       const enter = (accessToken: string) => {
         // getSession() reads browser storage and onAuthStateChange can emit the same

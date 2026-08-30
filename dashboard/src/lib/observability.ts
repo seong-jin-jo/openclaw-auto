@@ -63,7 +63,7 @@ export const AUTH_REASONS = [
   "supabase_jwt_verify_unreachable",
 ] as const;
 export const AI_FAILURE_REASONS = ["timeout", "provider_unavailable", "output_limit", "spawn_failed", "exit_nonzero", "stdin_failed", "unknown"] as const;
-export const PUBLISH_FAILURE_REASONS = ["http_error", "network_error", "unsupported_platform", "unknown"] as const;
+export const PUBLISH_FAILURE_REASONS = ["http_error", "network_error", "unsupported_platform", "auth_invalid", "decrypt_failed", "unknown"] as const;
 export const OPERATOR_ACTIONS = [
   "pause_user",
   "resume_user",
@@ -323,6 +323,10 @@ export function classifyPublishFailure(error: unknown): { reason: string; httpSt
     if (Number.isInteger(code) && code >= 100 && code <= 599) return { reason: "http_error", httpStatus: code };
   }
   if (/fetch failed|ENOTFOUND|network|econnrefused|econnreset|aborted/i.test(msg)) return { reason: "network_error" };
+  // 토큰이 무효/폐기된 경우가 실패의 대부분인데 이전 버전은 전부 "unknown"으로 뭉갰다.
+  // 그러면 운영 로그만 보고는 "재연결하면 되는 문제"인지조차 알 수 없다(2026-08-30).
+  if (/access token|oauth|token_invalid|token has expired|재연결|세션이 만료|권한/i.test(msg)) return { reason: "auth_invalid" };
+  if (/복호화|decrypt|OSMU_SECRET_KEY/i.test(msg)) return { reason: "decrypt_failed" };
   return { reason: "unknown" };
 }
 
