@@ -175,6 +175,7 @@ export default function StudioPage() {
   const [showWorks, setShowWorks] = useState(false);
   const [chatOpen, setChatOpen] = useState(true); // 좁은 화면에서도 대화창은 항상 손에 닿는다
   const [showWizard, setShowWizard] = useState(false);
+  const learningPromptedWorkspaceRef = useRef<string | null>(null);
   const [showRepo, setShowRepo] = useState(false); // 레포 위키 연동 모달
   const [showSchedule, setShowSchedule] = useState(false); // P6 예약 발행 패널 토글
   const [autoGen, setAutoGen] = useState(false);           // P8 AI 자동초안 진행중
@@ -185,7 +186,16 @@ export default function StudioPage() {
   useEffect(() => { if (brandData?.guide?.prompt_guide) setGuide(brandData.guide.prompt_guide); }, [brandData]);
   // 헤더 학습 정보가 네 방 어디서든 같은 숫자를 보이게 작업 공간이 바뀔 때 다시 읽는다.
   useEffect(() => {
-    setLearningInfo(activeWorkspace ? readLearningInfo(activeWorkspace.id) : {});
+    if (!activeWorkspace) {
+      setLearningInfo({});
+      return;
+    }
+    const nextLearningInfo = readLearningInfo(activeWorkspace.id);
+    setLearningInfo(nextLearningInfo);
+    if (learningPromptedWorkspaceRef.current !== activeWorkspace.id) {
+      learningPromptedWorkspaceRef.current = activeWorkspace.id;
+      if (Object.keys(nextLearningInfo).length === 0) setShowWizard(true);
+    }
   }, [activeWorkspace]);
   // 온보딩 위저드에서 "브랜드 설정하기"(/studio?setup=brand)로 오면 브랜드 위저드 자동 오픈.
   useEffect(() => {
@@ -928,6 +938,7 @@ export default function StudioPage() {
 
   if (activeRoom === "edit") return (
     <div className="px-stack-section py-pad-inset">
+      {showWizard && activeWorkspace ? <LearningCardWizard workspaceId={activeWorkspace.id} workspaceName={activeWorkspace.name} onSaved={(info, completed) => { setLearningInfo(info); if (completed) { setShowWizard(false); mutateBrand(); showToast("학습 정보를 배웠습니다"); } else { setLearningFlash((value) => value + 1); } }} onClose={() => setShowWizard(false)} /> : null}
       {roomHeader}
       <EditRoom
         lines={resolvedEditLines}
