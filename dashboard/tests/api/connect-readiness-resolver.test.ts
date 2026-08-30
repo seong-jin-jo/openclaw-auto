@@ -113,7 +113,8 @@ describe("customer readiness central resolver wiring", () => {
       status: "publish_pending",
       available: true,
     });
-    expect(body.providers.instagram.reason).toContain("외부 앱 심사");
+    expect(body.providers.instagram.reason).toContain("앱 심사 전");
+    expect(body.providers.instagram.reason).toContain("테스터 계정");
   });
 
   it("keeps the connect button available for an unconnected provider whose external review is pending", async () => {
@@ -129,6 +130,23 @@ describe("customer readiness central resolver wiring", () => {
       status: "not_connected",
       available: true,
     });
+  });
+
+  it("AR-UI-01: Meta 심사 전에는 테스터 등록과 초대 수락 조건을 연결 전에 알린다", async () => {
+    H.complete.threads = true;
+    H.externalReview.threads = "required";
+    H.connection.threads = "disconnected";
+    const { GET } = await import("@/app/api/connect/readiness/route");
+    const res = await GET(new Request("https://app.example/api/connect/readiness?tenant_id=tenant-1"));
+    const body = await res.json();
+
+    expect(body.providers.threads).toMatchObject({
+      status: "not_connected",
+      available: true,
+    });
+    expect(body.providers.threads.reason).toContain("테스터로 등록");
+    expect(body.providers.threads.reason).toContain("초대를 수락");
+    expect(body.providers.threads.reason).toContain("테스터 등록 없이 OAuth로 연결");
   });
 
   it("fails closed with error when tenant channel accounts cannot be read", async () => {

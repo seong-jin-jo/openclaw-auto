@@ -21,7 +21,10 @@ export default function DataDeletionPage() {
         <p>요청 접수 후 30일 이내에 처리 결과를 회신합니다. 법령상 보존 의무가 있는 자료는 분리 보관 후 보존 기간이 끝나면 삭제합니다. 백업 사본은 정기 보존 주기에 따라 안전하게 만료됩니다.</p>
       </LegalSection>
       <LegalSection title="Meta 앱 데이터 삭제">
-        <p>Facebook 또는 Instagram 설정의 앱 및 웹사이트에서 OSMU 접근 권한을 제거한 뒤 위 이메일로 삭제를 요청할 수 있습니다. 연결 해제 시 OSMU에 저장된 해당 Meta 액세스 토큰과 연결 정보가 제거됩니다.</p>
+        <p>Facebook, Instagram 또는 Threads의 앱·웹사이트 권한 설정에서 OSMU 접근 권한을 제거한 뒤 위 이메일로 삭제를 요청할 수 있습니다. 연결 해제 또는 삭제 요청을 받은 뒤 OSMU에 저장된 해당 Meta 액세스 토큰과 연결 정보를 제거합니다.</p>
+      </LegalSection>
+      <LegalSection title="Meta App Dashboard 등록 방법">
+        <p>이 페이지의 공개 주소를 Meta App Dashboard의 데이터 삭제 안내 URL에 등록합니다. 이 방식은 사용자가 따라 할 수 있는 삭제 안내를 제공하는 경로이며, Data Deletion Request Callback을 대신해 안내 URL을 등록하는 구성입니다.</p>
       </LegalSection>
     </LegalPage>
   );

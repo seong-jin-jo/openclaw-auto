@@ -268,6 +268,11 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
           {CONNECT_READINESS_LABELS[readinessStatus]}
         </p>
       )}
+      {readinessWarning && (
+        <p className="text-caption text-warning mb-stack-tight" data-testid={`readiness-warning-${provider}`}>
+          {readinessWarning}
+        </p>
+      )}
       <button
         onClick={connect}
         disabled={busy || readinessLoading || disabledByReadiness}
@@ -329,11 +334,6 @@ export function SocialConnectButton({ provider, label, onConnected }: { provider
       {!readinessFailed && disabledByReadiness && (
         <p className="text-caption text-subtle mt-stack-tight" data-testid={`readiness-reason-${provider}`}>
           {readinessEntry?.reason || `${label} 연결이 아직 준비되지 않았습니다.`}
-        </p>
-      )}
-      {readinessWarning && (
-        <p className="text-caption text-warning mt-stack-tight" data-testid={`readiness-warning-${provider}`}>
-          {readinessWarning}
         </p>
       )}
       {!publishReady && (

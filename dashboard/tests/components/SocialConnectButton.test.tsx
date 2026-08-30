@@ -53,6 +53,22 @@ describe("SocialConnectButton — OAuth popup activation", () => {
     expect(screen.getByTestId("connect-threads")).not.toBeDisabled();
   });
 
+  it("AR-UI-02: 연결 버튼을 누르기 전에 Meta 테스터 제한을 보여주고 연결은 허용한다", async () => {
+    vi.stubGlobal("fetch", mockReadinessStatus(
+      "not_connected",
+      true,
+      "Threads는 아직 앱 심사 전입니다. Meta 앱에서 테스터로 등록하고 초대를 수락한 계정만 연결할 수 있습니다.",
+    ));
+
+    render(<SocialConnectButton provider="threads" label="Threads" />);
+
+    const warning = await screen.findByTestId("readiness-warning-threads");
+    expect(warning).toHaveTextContent("테스터로 등록");
+    expect(warning).toHaveTextContent("초대를 수락");
+    expect(screen.getByTestId("connect-threads")).not.toBeDisabled();
+    expect(warning.compareDocumentPosition(screen.getByTestId("connect-threads")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("shows opening_soon as a neutral waiting state without an active connect CTA", async () => {
     vi.stubGlobal("fetch", mockReadinessStatus("opening_soon", false, "외부 앱 심사 대기"));
 

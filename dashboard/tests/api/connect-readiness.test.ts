@@ -81,7 +81,8 @@ describe("GET /api/connect/readiness", () => {
     const body = await res.json();
     expect(body.providers.facebook.available).toBe(true);
     expect(body.providers.facebook.status).toBe("not_connected");
-    expect(body.providers.facebook.reason).toMatch(/외부 앱 심사/);
+    expect(body.providers.facebook.reason).toMatch(/앱 심사 전/);
+    expect(body.providers.facebook.reason).toMatch(/테스터로 등록/);
   });
 
   it("비밀값 자체는 응답에 절대 포함하지 않는다", async () => {
