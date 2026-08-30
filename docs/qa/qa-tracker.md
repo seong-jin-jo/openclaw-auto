@@ -14,6 +14,7 @@
 | UI token audit·design lint | PASS | 6분류 위반 0, 임의 px·hex·인라인 style 위반 0 |
 | localhost 3456 실제 화면 | PASS | 학습 정보 자동 팝업부터 generation POST 201과 후보 3개까지 5화면 캡처. 브라우저 401과 콘솔 오류 각각 0건 |
 | 실제 LLM·완성 미디어 | 미구현 | 현재 `buildCandidates()`와 파생 생성은 문자열 규칙 기반. 화면에 준비 중으로 명시 |
+| 원격 push | BLOCKED | 저장소 정책의 별도 승인 요구. 현재 세션은 승인 요청 불가 |
 
 ## 2026-08-30 NG: 편집실·발행실 2차 피드백 build 기반 충돌
 
