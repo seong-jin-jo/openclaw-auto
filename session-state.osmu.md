@@ -1,4 +1,4 @@
-## 2026-08-30 22:29 KST Codex 편집실·발행실 build 회수 대기
+## 2026-08-30 23:09 KST Codex 편집실·발행실 build 회수 대기
 
 핸드오프 기준: 회장 2차 피드백 원문과 이 세션에 전달된 13개 항목.
 
@@ -6,13 +6,14 @@
 
 - R199·R204·2차 13번의 원인은 발행실 헤더에 이미 승인 인박스와 발행 캘린더가 있는데 본문에서도 `PublishTrip`을 다시 렌더한 중복이었다. `dashboard/src/app/studio/page.tsx`의 렌더와 미사용 import를 제거했다. 회장은 같은 이동 경로를 두 번 해석하지 않아도 된다.
 - 13개 항목 대조와 중단 사유는 `docs/qa/2차피드백-편집실과-발행실-대조-2026-08-30.md`에 기록했다. 구현현황과 QA tracker도 갱신했다.
-- 변경 5파일을 로컬 커밋 `5d54fbad`로 묶었다. 다른 조가 수정 중인 `dashboard/src/components/studio/learning-info.ts`는 건드리지 않았다.
+- 변경 5파일을 로컬 커밋 `4c1dcc3f`로 묶었다. 다른 조의 학습 정보·생성실 워커는 이후 별도 커밋 5개를 추가했고 이 커밋은 그대로 보존됐다.
 
 ### 남은 이슈·블로커
 
 - 1번부터 12번은 미착수다. `pipeline-state.osmu.md`에 승인 프로토타입 핀이 없고 `DESIGN.md` 최상단은 v64, 부록은 v61을 현행 정본으로 적는다. 이 충돌을 임의 해석하면 편집실·발행실 구조가 다시 승인 시안에서 벗어날 수 있다.
 - 후보는 `docs/prototype/openclaw-auto-4room-v61.html`부터 v64까지다. 추천 후보는 DESIGN 최상단과 최고 semver가 함께 가리키는 v64다.
-- `git push origin feat/design-system-and-missing-features`는 실행 정책이 승인 필요로 차단했다. 원격 브랜치는 로컬보다 2개 커밋 뒤다.
+- `git push origin feat/design-system-and-missing-features`는 실행 정책이 승인 필요로 차단했다. 다른 조 작업까지 합쳐 현재 HEAD는 `35a5dff7`이고 원격 브랜치는 로컬보다 7개 커밋 뒤다.
+- 다른 조가 `docs/qa/qa-tracker.md`에 남긴 미커밋 변경이 있다. 이 세션은 해당 변경을 커밋하거나 되돌리지 않았다.
 - 로컬 3456 실화면, 전체 `npm run test`, 플랫폼 7종 웹 조사, 1번부터 12번 구현은 미검증 또는 미착수다.
 
 ### 다음에 칠 명령
