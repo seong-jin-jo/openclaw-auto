@@ -92,6 +92,57 @@ External: Threads/X/IG/YouTube/TikTok APIs + R2 + ElevenLabs + Midjourney
 - Reliability: 에러를 사용자가 설명/재현 가능하게.
 - Shorts Factory + automation loop을 operator(0차)의 다중 서비스에서 안정 동작.
 
+## 플랫폼 권한 등록과 사용 구조 (OAuth)
+
+고객은 소셜 로그인만 하고 API 키를 직접 발급하지 않는다. 각 플랫폼에 **우리 OAuth 앱 하나**를
+등록해 두고, 고객 계정은 그 앱에 권한을 위임한다(ADR-004).
+
+### 1. 앱 자격증명
+
+provider 별 앱 식별자와 시크릿은 코드에 넣지 않고 환경변수 이름으로만 참조한다
+(`dashboard/src/lib/social-connect.ts` 의 `appIdEnv`/`appSecretEnv`).
+
+| provider | 앱 식별자 env | 비고 |
+|---|---|---|
+| threads | `THREADS_APP_ID` | Facebook 앱 ID가 아니라 **Threads 앱 ID**다. 이용 사례 `Threads API 액세스` → `설정` 에서 발급되는 별도 번호다. 두 값을 혼동하면 authorize 단계에서 권한 오류로 보인다. |
+| instagram | `IG_APP_ID` | Instagram 비즈니스 이용 사례 |
+| facebook | `FB_APP_ID` | 페이지 관리 이용 사례 |
+| x / linkedin / youtube / naver / pinterest / slack / line | `*_CLIENT_ID` | provider 표준 명칭 |
+
+시크릿 원문은 저장소·문서·로그에 쓰지 않는다. 서버 env 와 DB 자격증명 저장소
+(`resolveOAuthCredentialSets`)에서만 읽는다.
+
+### 2. 요청 scope
+
+`PROVIDERS` 정의가 정본이다. Threads 는 `threads_basic`, `threads_content_publish`,
+`threads_manage_insights`, `threads_read_replies`, `threads_manage_replies` 를 요청한다.
+Instagram 은 `instagram_business_basic`, `instagram_business_content_publish`,
+`instagram_business_manage_comments`, `instagram_business_manage_insights` 를 요청한다.
+**쓰는 화면이 없는 scope 는 심사에서 반려되므로 요청 목록에 두지 않는다.**
+
+### 3. redirect URI 등록
+
+authorize 요청의 `redirect_uri` 는 플랫폼 콘솔에 사전 등록된 값과 문자열이 완전히 같아야 한다.
+우리 값은 `${OSMU_PUBLIC_URL}/api/connect/<provider>/callback` 이고, 프록시 뒤 내부 주소가
+섞이지 않도록 `OSMU_PUBLIC_URL` 로 고정한다. Threads 는 콜백 외에
+`.../deauthorize`, `.../delete` 도 함께 등록한다.
+
+### 4. 심사 전 단계와 테스터
+
+앱 심사(App Review) 승인 전에는 **앱에 역할이 등록된 계정만** 연결된다.
+Threads 는 일반 `테스터` 가 아니라 `Threads 테스터` 역할이어야 한다. 등록만으로는 부족하고,
+해당 계정이 Threads 설정의 웹사이트 권한에서 초대를 **수락**해야 상태가 `대기 중` 에서 벗어난다.
+심사 승인 후에는 이 절차 없이 일반 고객이 OAuth 만으로 연결된다.
+
+이 제약은 `/api/connect/readiness` 가 provider 별 한국어 사유로 화면에 내려준다.
+연결 버튼을 먼저 그리고 실패를 뒤늦게 보여주지 않는다.
+
+### 5. 토큰 수명
+
+Threads·Instagram 은 단기 토큰을 장기 토큰으로 교환해 만료 시각과 함께 저장한다.
+교환이 실패하면 provider 응답 코드와 본문을 로그에 남기고 연결을 실패 처리한다.
+만료된 토큰을 유효한 것으로 취급하지 않는다.
+
 ## Data Flow for Shorts Factory (target)
 
 Longform (wiki page / blog) → longform_to_shorts → candidates
