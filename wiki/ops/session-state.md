@@ -4,7 +4,8 @@
 
 ## 2026-08-31 23:48 KST (Codex, OSMU 소셜 연결 안내)
 
-핸드오프 기준: 회장이 지정한 심사 전 소셜 연결 안내 과제. 상세는 `session-state.osmu.md`.
+핸드오프 기준: 회장이 지정한 심사 전 소셜 연결 안내 과제. 상세는
+`session-state.osmu-connectux0831.md`.
 
 현재 작업: readiness 구조화 안내, Threads와 Instagram 링크, 안내가 있어도 클릭 가능한 연결 단추,
 초대 미수락 오류와 같은 링크 재노출을 구현했다. 코드와 계약 테스트 7파일은 커밋 `ec092a89`다.
