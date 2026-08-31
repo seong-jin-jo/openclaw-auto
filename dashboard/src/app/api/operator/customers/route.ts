@@ -14,6 +14,8 @@ interface CustomerRow {
   tier: string;
   owner_auth_id: string | null;
   created_at: string;
+  last_accessed_at: string | null;
+  recent_access_days_30: number | null;
   shared_cli_approved_at: string | null;
   integrations: Array<{ kind: string; label: string | null; has_secret: boolean; connected_at?: string | null }>;
   channel_accounts: Array<{
@@ -78,6 +80,16 @@ export async function GET(request: Request) {
         t.tier,
         t.owner_auth_id::text,
         t.created_at::text,
+        t.last_accessed_at::text,
+        (
+          SELECT CASE
+            WHEN count(*) = 0 THEN NULL
+            ELSE count(DISTINCT (access.accessed_at AT TIME ZONE 'UTC')::date)::int
+          END
+          FROM tenant_access_events access
+          WHERE access.tenant_id = t.id
+            AND access.accessed_at >= now() - INTERVAL '30 days'
+        ) AS recent_access_days_30,
         t.shared_cli_approved_at::text,
         COALESCE((
           SELECT jsonb_agg(jsonb_build_object(
@@ -185,7 +197,9 @@ async function resolveTargetTenant(userId: unknown): Promise<{ error: Response }
   if (!authUser) {
     return { error: Response.json({ error: "unknown user_id" }, { status: 404 }) };
   }
-  const tenantId = await ensureTenantForUser(authUser.id, authUser.email);
+  // 운영자의 계정 조치는 고객 접속이 아니다. 아직 로그인하지 않은 가입자를 정지·재개해도
+  // 접속 이력을 만들지 않도록 명시적으로 기록을 끈다.
+  const tenantId = await ensureTenantForUser(authUser.id, authUser.email, { recordAccess: false });
   return { tenantId, id };
 }
 
