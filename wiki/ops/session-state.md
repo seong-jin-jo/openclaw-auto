@@ -8,7 +8,8 @@
 - 변경: 계정 행에 상태·만료 시각·기본 설명·선택 불가 사유를 표시하고, 기본 전환 409 가드, 사용 가능한 계정만 삭제 후 승격, 기본 기준 벌크 연결 판정을 추가했다. 자격증명 응답 필드는 추가하지 않았다.
 - 검증: 집중 46건, `tests/api tests/publish` 523건 통과와 조건부 2건 제외, TypeScript 오류 0, production build 정적 페이지 177개, design lint 0. dev server `/channels/threads` HTTP 200 관찰.
 - 문서: `docs/구현현황.md`, `wiki/4-reference/channel-status.md` 갱신. 기본 전환 뒤 발행 credential이 새 기본 id·token을 쓰는 계약 테스트 근거를 구현현황에 기록했다.
-- 커밋: 기능과 테스트 `298a7cde`. 미검증 범위는 실 테넌트 OAuth·외부 SNS 발행·브라우저 console error 0·운영 배포다. 다음 액션은 문서 커밋과 `git push origin work/accountui`다.
+- 커밋: 기능과 테스트 `298a7cde`, 구현현황과 계약 문서 `caf0c56c`. `work/accountui` 원격 브랜치 push 완료. PR 병합과 운영 배포는 하지 않았다.
+- 미검증 범위: 실 테넌트 OAuth, 외부 SNS 발행, 브라우저 console error 0, 운영 배포. 다음 QA는 실제 고객 세션에서 Threads 계정 2개 목록과 기본 전환 뒤 발행 대상 id를 대조한다.
 
 ## 2026-09-01 05:25 KST | pane openclaw-auto | 위임 하네스 결함과 배포 복구
 
