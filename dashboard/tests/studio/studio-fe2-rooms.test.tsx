@@ -273,7 +273,7 @@ describe("화면 2차 편집실 계약", () => {
     const onFormatChange = vi.fn();
     render(<EditRoom lines={["첫 줄", "둘째 줄"]} onLinesChange={vi.fn()} kind="video" onFormatChange={onFormatChange} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "속도 도구" }));
+    fireEvent.click(screen.getByRole("button", { name: "영상 재생 속도 도구" }));
     fireEvent.click(screen.getByRole("button", { name: "1.5배" }));
 
     await waitFor(() => expect(onFormatChange).toHaveBeenLastCalledWith(expect.objectContaining({

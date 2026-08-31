@@ -30,6 +30,7 @@ import { Field } from "@/components/shared/Field";
 import { Stack } from "@/components/shared/Stack";
 import { SCHEDULABLE_PLATFORMS } from "@/lib/constants";
 import { StudioCommandPanel } from "@/components/studio/StudioCommandPanel";
+import type { CardTextPosition } from "@/components/studio/EditPreview";
 import type { EditorHandoff } from "@/lib/studio/editor-handoff";
 import { resolveStudioRoomFromSearch, shouldLoadPublishResources } from "@/lib/studio/room-routing";
 import {
@@ -228,6 +229,7 @@ export default function StudioPage() {
   const [reviewBusy, setReviewBusy] = useState(false);
   const [publishChatDraft, setPublishChatDraft] = useState("");
   const [editLines, setEditLines] = useState<string[]>([]);
+  const [cardTextPositions, setCardTextPositions] = useState<CardTextPosition[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<StudioGenerationCandidate | null>(null);
   const [createBranch, setCreateBranch] = useState<CreateContentBranch>("video");
   const [createPrimaryKind, setCreatePrimaryKind] = useState<CreateKind | null>(null);
@@ -323,7 +325,7 @@ export default function StudioPage() {
     setIdea(""); setText(null); setImg(null); setVid(null); setDraftId(null);
     setIncludes(normalizeIncludes()); setPublishReconciliations({}); setEditorHandoff(null);
     setDisplayNames({}); setTitles({}); setHashtags({}); setFirstComments({});
-    setEditLines([]); setReviewQueueId(null); setSelectedCandidate(null);
+    setEditLines([]); setCardTextPositions([]); setReviewQueueId(null); setSelectedCandidate(null);
     setCreateBranch("video"); setCreatePrimaryKind(null); setEditKind("video"); setEditFormat(defaultContentEditFormat("video"));
     setPub({ running: false, stopped: false, status: {}, urls: {}, errors: {} });
     if (!workspaceId) return;
@@ -337,7 +339,7 @@ export default function StudioPage() {
         if (w.includes) setIncludes(normalizeIncludes(w.includes)); setDraftId(w.draftId || null);
         setPublishReconciliations(normalizePublishReconciliations(w.publishReconciliations ?? w.publishReconciliation));
         setDisplayNames(w.displayNames || {}); setTitles(w.titles || {}); setHashtags(w.hashtags || {});
-        setFirstComments(w.firstComments || {}); setCaptions(w.captions || {}); setEditLines(w.editLines || []); setReviewQueueId(w.reviewQueueId || null);
+        setFirstComments(w.firstComments || {}); setCaptions(w.captions || {}); setEditLines(w.editLines || []); setCardTextPositions(w.cardTextPositions || []); setReviewQueueId(w.reviewQueueId || null);
         if (w.editKind === "video" || w.editKind === "card" || w.editKind === "audio" || w.editKind === "text") {
           setEditKind(w.editKind);
           const formatKind = w.editKind === "text" ? "card" : w.editKind;
@@ -353,8 +355,8 @@ export default function StudioPage() {
   useEffect(() => {
     const workspaceId = activeWorkspace?.id;
     if (!workspaceId || hydratedWorkspaceId !== workspaceId) return;
-    try { localStorage.setItem(studioWorkStorageKey(workspaceId), JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, captions, editLines, reviewQueueId, editKind, editFormat })); } catch { /* noop */ }
-  }, [activeWorkspace?.id, hydratedWorkspaceId, idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, captions, editLines, reviewQueueId, editKind, editFormat]);
+    try { localStorage.setItem(studioWorkStorageKey(workspaceId), JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, captions, editLines, cardTextPositions, reviewQueueId, editKind, editFormat })); } catch { /* noop */ }
+  }, [activeWorkspace?.id, hydratedWorkspaceId, idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, captions, editLines, cardTextPositions, reviewQueueId, editKind, editFormat]);
 
   const media = { imgUrl: img?.file, vidUrl: vid?.file };
   const upText = (patch: Partial<TextVariants>) => setText((p) => ({ ...(p || {}), ...patch }));
@@ -458,6 +460,7 @@ export default function StudioPage() {
       firstComments,
       captions,
       editLines,
+      cardTextPositions,
       editFormat,
       publishedAt: status === "published" ? new Date().toISOString() : undefined,
     });
