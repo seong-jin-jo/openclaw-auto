@@ -18,15 +18,18 @@ function readEnv(): Record<string, string> {
   return result;
 }
 
+// 자격증명 원문은 절대 응답에 담지 않는다. 화면이 필요로 하는 것은 "설정돼 있는가"이지
+// 키 값이 아니다. 종전에는 access key 와 secret 을 그대로 내려 브라우저 입력칸에 채웠다.
+// 저장 경로(POST)는 빈 값을 보내면 기존 값을 유지하므로, 화면은 다시 입력하지 않아도 된다.
 export async function GET() {
   const env = readEnv();
-  const r2: Record<string, string> = {};
-  if (env.R2_ACCESS_KEY_ID) r2.accessKeyId = env.R2_ACCESS_KEY_ID;
-  if (env.R2_SECRET_ACCESS_KEY) r2.secretAccessKey = env.R2_SECRET_ACCESS_KEY;
-  if (env.R2_BUCKET) r2.bucket = env.R2_BUCKET;
-  if (env.R2_ENDPOINT) r2.endpoint = env.R2_ENDPOINT;
-  if (env.R2_PUBLIC_URL) r2.publicUrl = env.R2_PUBLIC_URL;
-  return Response.json(r2);
+  return Response.json({
+    bucket: env.R2_BUCKET || "",
+    endpoint: env.R2_ENDPOINT || "",
+    publicUrl: env.R2_PUBLIC_URL || "",
+    accessKeyIdSet: Boolean(env.R2_ACCESS_KEY_ID),
+    secretAccessKeySet: Boolean(env.R2_SECRET_ACCESS_KEY),
+  });
 }
 
 export async function POST(request: Request) {
