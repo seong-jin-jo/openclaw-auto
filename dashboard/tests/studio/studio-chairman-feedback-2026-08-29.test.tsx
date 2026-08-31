@@ -156,15 +156,14 @@ describe("생성실 (회장: 오늘 만들 수 있는 것이 뭐하는 예시이
 });
 
 describe("편집실 미리보기 (회장: 컨텐츠가 미리볼 수 있는게 없는데 내가 어떻게 확인하냐)", () => {
-  it("CHAIR-EDIT-01 정상: 올릴 플랫폼을 골라 그 규격으로 미리본다", () => {
+  it("CHAIR-EDIT-01 정상: 편집실은 발행 채널이 아니라 콘텐츠 크기를 골라 미리본다", () => {
     render(<EditPreview kind="video" lines={["첫 장면", "둘째 장면"]} activeLine={0} onActiveLine={noop} />);
 
-    expect(screen.getByRole("button", { name: "Shorts" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "세로형 9:16" })).toBeInTheDocument();
     expect(document.querySelector('[data-edit-preview-frame="9 / 16"]')).not.toBeNull();
-
-    fireEvent.click(screen.getByRole("button", { name: "Instagram 피드" }));
-    expect(document.querySelector('[data-edit-preview-frame="4 / 5"]')).not.toBeNull();
-    expect(document.querySelector("[data-edit-preview-size]")).toHaveTextContent("1080 × 1350");
+    expect(screen.queryByRole("button", { name: "Threads" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "X" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Facebook" })).not.toBeInTheDocument();
   });
 
   it("CHAIR-EDIT-02 거절 조건: 렌더 전이라도 빈 상자를 두지 않고 장면과 자막을 그린다", () => {
@@ -177,7 +176,7 @@ describe("편집실 미리보기 (회장: 컨텐츠가 미리볼 수 있는게 �
   it("CHAIR-EDIT-03 정상: 자막이 플랫폼 UI에 가리면 그 사실을 말한다", () => {
     render(<EditPreview kind="video" lines={["아주 길게 이어지는 자막 문장을 넣어 아래 버튼줄과 겹치게 만든다"]} activeLine={0} onActiveLine={noop} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "TikTok" }));
+    fireEvent.click(screen.getByRole("button", { name: "세로형 9:16" }));
     expect(document.querySelector('[data-edit-preview-subtitle="가림"]')).not.toBeNull();
     expect(screen.getByRole("status")).toHaveTextContent("아래 버튼줄에 가립니다");
   });
@@ -187,5 +186,56 @@ describe("편집실 미리보기 (회장: 컨텐츠가 미리볼 수 있는게 �
 
     expect(screen.queryByText("실제 영상 렌더는 준비 중입니다.")).toBeNull();
     expect(document.querySelector("[data-edit-preview]")).not.toBeNull();
+  });
+
+  it("R-S10-37 정상: 글은 초 단위 대사 줄이 아니라 하나의 문단 편집기로 고친다", () => {
+    const onLinesChange = vi.fn();
+    render(<EditRoom lines={["첫 문단", "둘째 문단"]} onLinesChange={onLinesChange} kind="text" />);
+
+    const editor = screen.getByRole("textbox", { name: "글 본문" });
+    expect(editor).toHaveValue("첫 문단\n\n둘째 문단");
+    expect(screen.queryByText(/초부터/)).not.toBeInTheDocument();
+    expect(screen.queryByText("대사")).not.toBeInTheDocument();
+
+    fireEvent.change(editor, { target: { value: "고친 첫 문단\n\n고친 둘째 문단" } });
+    expect(onLinesChange).toHaveBeenLastCalledWith(["고친 첫 문단", "고친 둘째 문단"]);
+  });
+
+  it("R-S10-32 정상: 편집할 콘텐츠 형식은 글·카드뉴스·영상·소리를 모두 한곳에 보여 준다", () => {
+    const onKindChange = vi.fn();
+    render(<EditRoom lines={["본문"]} onLinesChange={noop} kind="text" onKindChange={onKindChange} />);
+
+    const group = screen.getByRole("group", { name: "편집할 콘텐츠 형식" });
+    for (const label of ["글", "카드뉴스", "영상", "소리"]) {
+      expect(group.querySelector(`button[aria-label="${label}"]`)).not.toBeNull();
+    }
+    fireEvent.click(screen.getByRole("button", { name: "영상" }));
+    expect(onKindChange).toHaveBeenCalledWith("video");
+  });
+
+  it("R-S10-33 정상: 카드뉴스 글자를 이미지 안에서 고치고 끌어 옮긴다", () => {
+    const onLinesChange = vi.fn();
+    const onPositionsChange = vi.fn();
+    render(<EditPreview
+      kind="card"
+      lines={["카드 첫 문장"]}
+      activeLine={0}
+      onActiveLine={noop}
+      onLinesChange={onLinesChange}
+      cardTextPositions={["center"]}
+      onCardTextPositionsChange={onPositionsChange}
+    />);
+
+    const textEditor = screen.getByRole("textbox", { name: "카드 1 글자" });
+    fireEvent.change(textEditor, { target: { value: "카드 안에서 고친 문장" } });
+    expect(onLinesChange).toHaveBeenCalledWith(["카드 안에서 고친 문장"]);
+
+    const canvas = document.querySelector("[data-card-canvas]") as HTMLElement;
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+      x: 0, y: 0, left: 0, top: 0, right: 300, bottom: 400, width: 300, height: 400, toJSON: () => ({}),
+    });
+    fireEvent.pointerDown(screen.getByRole("button", { name: "카드 글자 끌어 옮기기" }), { pointerId: 1 });
+    fireEvent.pointerUp(canvas, { pointerId: 1, clientX: 280, clientY: 40 });
+    expect(onPositionsChange).toHaveBeenCalledWith(["top-right"]);
   });
 });

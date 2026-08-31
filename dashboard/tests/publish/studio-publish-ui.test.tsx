@@ -517,7 +517,7 @@ describe("Studio publish result integrity", () => {
     });
 
     render(<StudioPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "승인 인박스로 보내기" }));
+    fireEvent.click(await screen.findByRole("button", { name: "검토 요청하기" }));
 
     await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith(
       "/api/queue/queue-review/request-review",
@@ -527,7 +527,7 @@ describe("Studio publish result integrity", () => {
       "/api/queue/add",
       expect.objectContaining({ draftId: "draft-review" }),
     );
-    expect(mocks.showToast).toHaveBeenCalledWith("승인 인박스로 검토 요청을 보냈습니다", "success");
+    expect(mocks.showToast).toHaveBeenCalledWith("검토 요청을 보냈습니다", "success");
   });
 
   it("FE3-REVIEW-02 거절: 초안 저장 실패 시 큐와 검토 API를 호출하지 않는다", async () => {
@@ -538,7 +538,7 @@ describe("Studio publish result integrity", () => {
     });
 
     render(<StudioPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "승인 인박스로 보내기" }));
+    fireEvent.click(await screen.findByRole("button", { name: "검토 요청하기" }));
 
     await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith("초안 저장 실패", "error"));
     expect(mocks.apiPost.mock.calls.some(([path]) => path === "/api/queue/add")).toBe(false);
