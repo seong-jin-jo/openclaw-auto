@@ -111,8 +111,48 @@ interface UpsertInput {
   tokenExpiresAt?: string | null;
 }
 
+
+// 기본계정으로 쓸 수 있는 행인가. channel-connection.ts 의 판정과 같은 기준을 쓴다.
+const DEFAULT_REQUIRES_EXPIRY = new Set(["threads", "instagram", "facebook"]);
+
+function usableAsDefault(provider: string, status: string | null, tokenExpiresAt: string | null): boolean {
+  if (status !== "active") return false;
+  if (!tokenExpiresAt) return !DEFAULT_REQUIRES_EXPIRY.has(provider);
+  const at = Date.parse(tokenExpiresAt);
+  return Number.isFinite(at) && at > Date.now();
+}
+
+
+// 이번에 붙은 계정이 쓸 수 있고 기존 기본계정이 못 쓰는 상태면 기본을 넘긴다.
+// 넘기지 않으면 새로 연결해도 화면은 미연결로 남고 발행은 죽은 계정으로 간다.
+async function promoteIfDefaultUnusable(
+  sql: Parameters<Parameters<typeof withTenant>[1]>[0],
+  input: UpsertInput,
+  accountId: string,
+  alreadyDefault: boolean,
+): Promise<boolean> {
+  if (alreadyDefault) return true;
+  if (!usableAsDefault(input.provider, input.status ?? "active", input.tokenExpiresAt ?? null)) return false;
+
+  const [current] = await sql<{ id: string; status: string | null; token_expires_at: string | null }[]>`
+    SELECT id, status, token_expires_at::text AS token_expires_at
+    FROM channel_accounts
+    WHERE tenant_id = ${input.tenantId} AND provider = ${input.provider} AND is_default = true`;
+  if (current && usableAsDefault(input.provider, current.status, current.token_expires_at)) return false;
+
+  await sql`
+    UPDATE channel_accounts SET is_default = (id = ${accountId}), updated_at = now()
+    WHERE tenant_id = ${input.tenantId} AND provider = ${input.provider}`;
+  return true;
+}
+
 // tenant/provider/externalId로 upsert. 최초 계정이면 기본(is_default=true), 이후는 비기본으로 추가.
 // 재연결(동일 external id)은 그 계정의 토큰/메타만 갱신 — 기본 여부는 건드리지 않는다.
+//
+// 단, 기존 기본계정이 못 쓰는 상태(비활성이거나 Meta 계열인데 장기 토큰 만료 시각이 없음)이고
+// 이번에 붙은 계정이 쓸 수 있으면 기본을 이번 계정으로 넘긴다. 2026-09-01 회장 계정에서
+// 실제로 난 일이다. 새 계정이 정상 연결됐는데도 낡은 기본계정 때문에 화면은 계속 미연결이었고
+// 발행 대상도 죽은 계정을 가리키고 있었다. 사용자가 고칠 수 있는 화면이 없으므로 서버가 고친다.
 // 반환: 이 upsert가 만든/갱신한 계정이 기본계정인지(legacy integrations 동기화 판단용).
 export async function upsertChannelAccount(input: UpsertInput): Promise<{ id: string; isDefault: boolean }> {
   const key = process.env.OSMU_SECRET_KEY;
@@ -137,7 +177,10 @@ export async function upsertChannelAccount(input: UpsertInput): Promise<{ id: st
             token_expires_at = ${input.tokenExpiresAt ?? null},
             updated_at = now()
         WHERE id = ${existing.id}`;
-      return { id: existing.id, isDefault: existing.is_default };
+      const promotedExisting = await promoteIfDefaultUnusable(
+        sql, input, existing.id, existing.is_default,
+      );
+      return { id: existing.id, isDefault: promotedExisting };
     }
 
     const [{ cnt }] = await sql<{ cnt: string }[]>`
@@ -156,7 +199,10 @@ export async function upsertChannelAccount(input: UpsertInput): Promise<{ id: st
         ${isFirst}, ${input.status ?? "active"}, ${input.tokenExpiresAt ?? null}
       )
       RETURNING id`;
-    return { id: inserted.id, isDefault: isFirst };
+    const promoted = isFirst
+      ? true
+      : await promoteIfDefaultUnusable(sql, input, inserted.id, false);
+    return { id: inserted.id, isDefault: promoted };
   });
 }
 
