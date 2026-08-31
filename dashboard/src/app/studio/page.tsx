@@ -18,7 +18,7 @@ import type { StudioGenerationCandidate } from "@/lib/studio/generation/client";
 import { useUIStore, type StudioRoom } from "@/store/ui-store";
 import { LearningCardWizard } from "@/components/studio/LearningCardWizard";
 import { LearningStatus } from "@/components/studio/LearningStatus";
-import { countFilledLearningSlots, readLearningInfo, type LearningInfo } from "@/components/studio/learning-info";
+import { countFilledLearningSlots, markLearningPrompted, readLearningInfo, type LearningInfo } from "@/components/studio/learning-info";
 import { RepoConnect } from "@/components/studio/RepoConnect";
 import { SchedulePanel } from "@/components/studio/SchedulePanel";
 import { trackEvent, type AnalyticsChannel } from "@/lib/analytics/events";
@@ -192,11 +192,14 @@ export default function StudioPage() {
     }
     const nextLearningInfo = readLearningInfo(activeWorkspace.id);
     setLearningInfo(nextLearningInfo);
+    // 학습 정보 문답을 자동으로 띄우지 않는다(2026-08-31 회장 실사용).
+    // 모달이 생성실을 덮어 첫 화면에서 아무것도 누를 수 없었다. 대신 방머리의 학습 정보
+    // 카드가 미입력 개수를 보여주고, 사용자가 그 카드를 눌러 문답을 연다.
     if (learningPromptedWorkspaceRef.current !== activeWorkspace.id) {
       learningPromptedWorkspaceRef.current = activeWorkspace.id;
-      if (Object.keys(nextLearningInfo).length === 0) setShowWizard(true);
+      if (Object.keys(nextLearningInfo).length === 0) markLearningPrompted(activeWorkspace.id);
     }
-  }, [activeWorkspace]);
+  }, [activeWorkspace?.id]);
   // 온보딩 위저드에서 "브랜드 설정하기"(/studio?setup=brand)로 오면 브랜드 위저드 자동 오픈.
   useEffect(() => {
     if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("setup") === "brand") {

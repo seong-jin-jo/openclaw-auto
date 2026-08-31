@@ -182,3 +182,28 @@ export function learningToBrandAnswers(info: LearningInfo): Record<string, strin
     visual: info.palette || "",
   };
 }
+
+// 학습 정보 문답을 자동으로 띄운 적이 있는지 기억한다.
+// 메모리 ref 만으로는 방을 옮길 때마다 초기화돼, 네 방 어디를 눌러도 모달이 다시 떠
+// 화면을 가로막았다(2026-08-31 회장 실사용). 브라우저에 남겨 작업 공간당 한 번만 띄운다.
+function learningPromptKey(workspaceId: string): string {
+  return `studio_learning_prompted:${workspaceId}`;
+}
+
+export function wasLearningPrompted(workspaceId: string): boolean {
+  if (!workspaceId) return true;
+  try {
+    return localStorage.getItem(learningPromptKey(workspaceId)) === "1";
+  } catch {
+    return true;
+  }
+}
+
+export function markLearningPrompted(workspaceId: string): void {
+  if (!workspaceId) return;
+  try {
+    localStorage.setItem(learningPromptKey(workspaceId), "1");
+  } catch {
+    // 저장 실패는 무시한다. 다음 방문에 한 번 더 뜨는 정도의 영향만 있다.
+  }
+}
