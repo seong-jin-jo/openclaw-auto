@@ -1,3 +1,17 @@
+# OSMU 세션 상태
+
+## 2026-08-31 22:00 KST (Opus)
+
+무엇까지: Threads 연결 실패 원인을 찾아 콘솔에서 처리했고, 네 방을 덮던 모달을 없앴고, 운영에 배포했다(run 33394212507 success).
+
+- Threads 연결 원인: 회장 계정 `j.the.great.investor` 가 Meta 앱의 Threads 테스터 목록에 없었다. 등록된 것은 darkcupiding, isanghan.math, teamconnectors, zero_to_one_ai 4개뿐이었다. 콘솔에서 추가했고 상태는 `대기 중`이다.
+- 남은 회장 조치: <https://www.threads.com/settings/website_permissions> 의 `초대` 탭에서 정성컴퍼니 초대를 수락한다. 수락 전에는 연결되지 않는다.
+- 앱 번호 주의: `905965605850465` 는 Facebook 앱 번호가 아니라 Facebook 앱 `1553503759757107`(정성컴퍼니) 의 **Threads 앱 ID** 다. 운영 설정은 정상이다.
+- 운영 OAuth 동의 화면은 테스터 계정으로 정상 렌더를 직접 확인했다(권한 5개 표시).
+- 고친 것: 학습 정보 자동 모달 제거(네 방 차단 해소), 연결 준비상태 사유의 표시명, 로컬 데모 시드 외래키·기본키.
+- 검증: `npx vitest run` 207파일 1,557건 전건 통과. `probe-four-room-flow.mjs` PASS(가린 모달 0). `verify-four-room-ui-e2e.mjs` PASS(20회 측정).
+- 미검증: 운영 화면에서의 실제 생성. 운영 Studio API 는 Supabase 회원 JWT 만 받는다(운영자 토큰·테넌트 토큰 거부). 회장 로그인 세션이 있어야 눌러볼 수 있다.
+
 ## 2026-08-31 17:50 KST Claude 세션 (osmu 라인) Meta 심사 선행 조건 정리
 
 핸드오프 기준: 이 파일(session-state.osmu.md).
