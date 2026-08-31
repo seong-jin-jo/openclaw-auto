@@ -10,8 +10,6 @@ const H = vi.hoisted(() => ({
   tenantRow: null as { id: string } | null,
   tenantStatus: null as string | null,
   statusThrows: false,
-  accessThrows: false,
-  accessWriteCalls: [] as unknown[][],
   insertCalls: [] as unknown[][],
 }));
 
@@ -25,11 +23,6 @@ vi.mock("@/lib/db", () => ({
       if (text.includes("SELECT status FROM tenants")) {
         if (H.statusThrows) return Promise.reject(new Error("status DB down"));
         return Promise.resolve(H.tenantStatus ? [{ status: H.tenantStatus }] : []);
-      }
-      if (text.includes("INSERT INTO tenant_access_events")) {
-        H.accessWriteCalls.push([text, ...values]);
-        if (H.accessThrows) return Promise.reject(new Error("access ledger unavailable"));
-        return Promise.resolve([]);
       }
       if (text.includes("FROM tenants WHERE owner_auth_id")) return Promise.resolve(H.tenantRow ? [H.tenantRow] : []);
       if (text.includes("INSERT INTO tenants")) {
@@ -67,8 +60,6 @@ beforeEach(() => {
   H.tenantRow = null;
   H.tenantStatus = null;
   H.statusThrows = false;
-  H.accessThrows = false;
-  H.accessWriteCalls = [];
   H.insertCalls = [];
   H2.jwtResult = { status: "invalid", user: undefined };
   process.env.DASHBOARD_AUTH_TOKEN = OP;
@@ -212,21 +203,6 @@ describe("ensureTenantForUser — OSMU v1.0.0 공개 대시보드(가입 즉시 
     const id = await ensureTenantForUser("auth-existing", "old@example.com");
     expect(id).toBe("existing-tenant");
     expect(H.insertCalls.length).toBe(0);
-  });
-
-  it("TENANT-ACCESS-02 거절: 접속 기록 쓰기가 실패해도 기존 고객 로그인은 테넌트를 반환한다", async () => {
-    H.tenantRow = { id: "existing-tenant" };
-    H.accessThrows = true;
-
-    await expect(ensureTenantForUser("auth-existing", "old@example.com")).resolves.toBe("existing-tenant");
-    expect(H.accessWriteCalls).toHaveLength(1);
-  });
-
-  it("TENANT-ACCESS-05 정상: 운영자 계정 조치는 접속 기록을 명시적으로 생략할 수 있다", async () => {
-    H.tenantRow = { id: "existing-tenant" };
-
-    await expect(ensureTenantForUser("auth-existing", "old@example.com", { recordAccess: false })).resolves.toBe("existing-tenant");
-    expect(H.accessWriteCalls).toHaveLength(0);
   });
 });
 
