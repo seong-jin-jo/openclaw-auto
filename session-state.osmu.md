@@ -1,5 +1,36 @@
 # OSMU 세션 상태
 
+## 2026-09-01 07:48 KST | 편집실 v65 디자인 증분
+
+### 무엇을 어디까지 했나
+
+- 승인된 `docs/prototype/openclaw-auto-4room-v64.html`과 DESIGN.md v33, 거버넌스, 회장 원문, 현재 편집실 구현을 정독했다.
+- 제품 코드는 수정하지 않았다. DESIGN.md v34, 편집실 v65 프로토타입, 와이어프레임, 유저 플로우 증분, R-S10-31~38·41 대조 문서를 작성했다.
+- 편집실은 콘텐츠 형식만 소유하고 플랫폼과 채널별 문구는 발행실이 소유하도록 분리했다. 글 전체 자유 편집, 카드 안 직접 편집과 위치 이동, 단위가 있는 한국어 라벨, 자동 저장, `발행실로 이동` 단일 주 행동을 정본에 반영했다.
+- 로컬 커밋은 `66ad58dd`, `c6b4eada`다. 종료 훅 대응 핸드오프 갱신은 후속 커밋에 기록한다.
+
+### 남은 이슈·블로커
+
+- `git push origin work/editroom`은 실행 정책이 승인 필요로 차단했다. 이 세션은 승인 요청이 금지되어 원격 브랜치는 미생성·미검증이다.
+- pipeline design pin은 v64다. v65 집중 프로토타입과 DESIGN.md v34를 디자인 게이트에서 확인한 뒤 핀을 갱신해야 후속 구현 기준이 된다.
+- 전용 디자인 리뷰 스킬이 현재 세션에 없어 자동 Design Score는 미검증이다. 수동 판정은 B+다.
+- `.codex/logs/harness.jsonl`은 기존 하네스 변경이므로 커밋에서 제외했다.
+
+### 다음에 칠 명령
+
+```bash
+git push origin work/editroom
+```
+
+push 권한이 있는 컨트롤러가 실행한다. 종료 증거는 원격 `work/editroom`에 핸드오프 후속 커밋까지 보이는 것이다. 그 뒤 `/approve design` 검증으로 v65와 DESIGN.md v34의 핀 정합을 확인한다.
+
+### 검증했나
+
+- `cd dashboard && npx tsc --noEmit`: 오류 0.
+- `cd dashboard && npx vitest run tests/publish tests/api`: 최종 단독 실행 67파일, 519건 통과, 2건 제외, 실패 0.
+- Chromium 실렌더: 글·카드뉴스·영상·음악의 정상 상태와 빈 상태·불러오는 중·오류·긴 내용을 1024·390 총 16조합 확인했다. 가로 넘침 0, 자바스크립트 오류 0, 정상 상태 활성 주 버튼 1개, 차단 상태 0개.
+- 제품 운영 반영: 미검증.
+
 ## 2026-09-01 05:20 KST 위임 하네스 결함과 배포 복구
 
 - 테넌트 접속 이력(b6e0b4aa) push 하고 배포했다. run 33435731993 success. services=openclaw-dashboard-osmu.
