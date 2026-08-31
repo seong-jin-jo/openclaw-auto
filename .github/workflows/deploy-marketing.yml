@@ -37,6 +37,10 @@ jobs:
           DATABASE_URL=${{ secrets.OSMU_DATABASE_URL }}
           OSMU_SECRET_KEY=${{ secrets.OSMU_SECRET_KEY }}
           OSMU_PUBLIC_URL=${{ secrets.OSMU_PUBLIC_URL }}
+          R2_ACCESS_KEY_ID=${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY=${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET=${{ secrets.R2_BUCKET }}
+          R2_ENDPOINT=${{ secrets.R2_ENDPOINT }}
           OSMU_ALERT_SLACK_WEBHOOK_URL=${{ secrets.OSMU_ALERT_SLACK_WEBHOOK_URL }}
           OSMU_BUILD_COMMIT=${GITHUB_SHA}
           CLAUDE_CODE_OAUTH_TOKEN=${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

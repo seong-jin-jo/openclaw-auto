@@ -86,4 +86,21 @@ describe("POST /api/images/upload R2 장애 계약", () => {
     expect(body.error).toContain("R2 저장소에서 이미지를 저장하지 못했습니다");
     expect(fs.existsSync(path.join(dataDir, "tenants", "tenant-a", "images"))).toBe(false);
   });
+
+  it("IMG-R2-03 이전호환 기존 서명 URL은 R2에 객체가 없어도 로컬 원본을 배달한다", async () => {
+    const legacyPath = path.join(dataDir, "tenants", "tenant-a", "images", "legacy.png");
+    fs.mkdirSync(path.dirname(legacyPath), { recursive: true });
+    fs.writeFileSync(legacyPath, "legacy-pixel");
+    H.send.mockRejectedValueOnce({ name: "NoSuchKey", $metadata: { httpStatusCode: 404 } });
+    const { signImageToken } = await import("@/lib/image-token");
+    const { GET } = await import("@/app/api/images/deliver/[token]/route");
+    const token = signImageToken("tenant-a", "legacy.png")!;
+
+    const response = await GET(new Request(`https://app.example.com/api/images/deliver/${token}`), {
+      params: Promise.resolve({ token }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(Buffer.from(await response.arrayBuffer()).toString()).toBe("legacy-pixel");
+  });
 });

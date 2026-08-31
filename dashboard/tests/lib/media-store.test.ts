@@ -115,4 +115,36 @@ describe("media-store 저장소 선택과 장애 계약", () => {
     expect(Buffer.concat(chunks).toString()).toBe("legacy-pixel");
     expect(stored!.source).toBe("local");
   });
+
+  it("MS-06 정상 R2 객체를 웹 스트림으로 읽는다", async () => {
+    configureR2();
+    S3.send.mockResolvedValueOnce({
+      Body: Readable.from(Buffer.from("r2-pixel")),
+      ContentLength: 8,
+      ContentType: "image/png",
+    });
+    const { get } = await import("@/lib/media-store");
+
+    const stored = await get("tenant-a", "photo.png");
+
+    const chunks: Buffer[] = [];
+    for await (const chunk of Readable.fromWeb(stored!.body)) chunks.push(Buffer.from(chunk));
+    expect(Buffer.concat(chunks).toString()).toBe("r2-pixel");
+    expect(stored).toMatchObject({ source: "r2", contentLength: 8, contentType: "image/png" });
+  });
+
+  it("MS-07 정상 R2와 이전 로컬에 함께 있는 이미지를 모두 삭제한다", async () => {
+    configureR2();
+    const filePath = localPath("tenant-a", "photo.png");
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, "legacy-copy");
+    S3.send.mockResolvedValueOnce({}).mockResolvedValueOnce({});
+    const { mediaStore } = await import("@/lib/media-store");
+
+    const deleted = await mediaStore.delete("tenant-a", "photo.png");
+
+    expect(deleted).toBe(true);
+    expect(S3.send).toHaveBeenCalledTimes(2);
+    expect(fs.existsSync(filePath)).toBe(false);
+  });
 });

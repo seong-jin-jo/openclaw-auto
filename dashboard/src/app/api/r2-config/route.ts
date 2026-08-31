@@ -26,7 +26,6 @@ export async function GET() {
   return Response.json({
     bucket: env.R2_BUCKET || "",
     endpoint: env.R2_ENDPOINT || "",
-    publicUrl: env.R2_PUBLIC_URL || "",
     accessKeyIdSet: Boolean(env.R2_ACCESS_KEY_ID),
     secretAccessKeySet: Boolean(env.R2_SECRET_ACCESS_KEY),
   });
@@ -41,8 +40,10 @@ export async function POST(request: Request) {
     secretAccessKey: "R2_SECRET_ACCESS_KEY",
     bucket: "R2_BUCKET",
     endpoint: "R2_ENDPOINT",
-    publicUrl: "R2_PUBLIC_URL",
   };
+
+  // R2_PUBLIC_URL은 저장하거나 사용하지 않는다. 버킷은 비공개로 유지하고 외부 배달은
+  // 만료를 우리 서버가 통제하는 /api/images/deliver/<HMAC 토큰> 경로만 사용한다.
 
   for (const [key, envKey] of Object.entries(r2Map)) {
     const val = (data[key] || "").trim();

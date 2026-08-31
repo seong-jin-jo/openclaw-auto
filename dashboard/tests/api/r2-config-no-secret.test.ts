@@ -34,6 +34,7 @@ describe("GET /api/r2-config 자격증명 비노출", () => {
     expect(body.accessKeyIdSet).toBe(true);
     expect(body.secretAccessKeySet).toBe(true);
     expect(body.bucket).toBe("osmu-media");
-    expect(body.publicUrl).toBe("https://cdn.example.invalid");
+    expect(body.endpoint).toBe("https://example.invalid");
+    expect(body).not.toHaveProperty("publicUrl");
   });
 });
