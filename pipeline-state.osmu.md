@@ -1,3 +1,19 @@
+## 2026-09-01 01:15 승인 산출물 핀 (Claude, osmu 라인)
+
+stage: build. 편집실·발행실 화면 판을 다시 발주하기 위해 승인 산출물을 핀한다.
+
+approved_artifacts:
+- design_hub: `docs/prototype/openclaw-auto-4room-v64.html`
+- design_system: `DESIGN.md` (정본 v64)
+- requirements: `wiki/거버넌스/요청.md` 2026-08-30 회장 2차 실사용 피드백
+- audit: `docs/qa/회장-세션발화-전건-대조표-2026-08-31.md`
+
+핀 근거: v60부터 v64까지 후보가 있고 `DESIGN.md` 정본이 v64다. 최신이자 정본이라 v64를 택했다.
+직전 발주(`osmu-editroom0901`)가 이 핀이 없어 착수하지 못하고 종료했다. 그 차단을 여는 조치다.
+
+게이트(유지):
+- 컨트롤러가 운영에서 로그인부터 발행까지 직접 밟기 전까지 회장께 "써 보시라" 금지.
+
 ## 2026-08-30 22:35 진행상태 갱신 (Claude, osmu 라인)
 
 stage: qa 재개. ★"완료" 판정 전면 재검토 중.
