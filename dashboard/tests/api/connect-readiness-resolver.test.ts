@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const SAVED_REVIEW_APPROVED_PROVIDERS = process.env.OAUTH_APP_REVIEW_APPROVED_PROVIDERS;
 
 const H = vi.hoisted(() => ({
   complete: {} as Record<string, boolean>,
@@ -47,6 +49,15 @@ beforeEach(() => {
   H.connection = {};
   H.connectionError = false;
   H.bulkCalls = [];
+  delete process.env.OAUTH_APP_REVIEW_APPROVED_PROVIDERS;
+});
+
+afterEach(() => {
+  if (SAVED_REVIEW_APPROVED_PROVIDERS === undefined) {
+    delete process.env.OAUTH_APP_REVIEW_APPROVED_PROVIDERS;
+  } else {
+    process.env.OAUTH_APP_REVIEW_APPROVED_PROVIDERS = SAVED_REVIEW_APPROVED_PROVIDERS;
+  }
 });
 
 describe("customer readiness central resolver wiring", () => {
@@ -174,9 +185,10 @@ describe("customer readiness central resolver wiring", () => {
     );
   });
 
-  it("AR-GUIDE-002 거절: 심사 대기가 아니면 초대 수락 안내 계약을 반환하지 않는다", async () => {
+  it("AR-GUIDE-002 거절: 심사 승인 provider에는 초대 수락 안내 계약을 반환하지 않는다", async () => {
     H.complete.threads = true;
-    H.externalReview.threads = "unknown";
+    H.externalReview.threads = "required";
+    process.env.OAUTH_APP_REVIEW_APPROVED_PROVIDERS = "threads";
     const { GET } = await import("@/app/api/connect/readiness/route");
     const res = await GET(new Request("https://app.example/api/connect/readiness?tenant_id=tenant-1"));
     const body = await res.json();
@@ -185,6 +197,7 @@ describe("customer readiness central resolver wiring", () => {
       status: "not_connected",
       available: true,
     });
+    expect(body.providers.threads.reason).toBeUndefined();
     expect(body.providers.threads.guidance).toBeUndefined();
   });
 

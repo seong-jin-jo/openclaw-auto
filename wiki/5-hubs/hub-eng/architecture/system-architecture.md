@@ -137,6 +137,14 @@ Threads 는 일반 `테스터` 가 아니라 `Threads 테스터` 역할이어야
 이 제약은 `/api/connect/readiness` 가 provider 별 한국어 사유로 화면에 내려준다.
 연결 버튼을 먼저 그리고 실패를 뒤늦게 보여주지 않는다.
 
+심사 전 안내 계약은 `ConnectReadinessEntry.guidance` 선택 필드다. 제목, 순서가 있는 단계 목록,
+라벨과 URL을 가진 바깥 링크를 담으며 Threads와 Instagram의 서로 다른 초대 수락 화면은
+`dashboard/src/lib/connect-readiness.ts` 한 곳에서 관리한다. 운영자가 심사 승인된 provider를 비밀값이
+아닌 `OAUTH_APP_REVIEW_APPROVED_PROVIDERS` 환경변수에 등록하면 서버는 해당 provider의 심사 대기
+사유와 안내 필드를 내려주지 않고 화면도 함께 사라진다. 안내가 있어도 OAuth 연결 단추는 활성 상태를
+유지한다. 초대 미수락처럼 판별 가능한 실패는 사람 말로 바꾸고 같은 링크를 다시 제공하며, 판별할 수
+없는 실패는 자격증명과 토큰 모양을 가린 원문을 함께 남긴다.
+
 ### 5. 토큰 수명
 
 Threads·Instagram 은 단기 토큰을 장기 토큰으로 교환해 만료 시각과 함께 저장한다.

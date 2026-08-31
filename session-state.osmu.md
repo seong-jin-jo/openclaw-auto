@@ -1,5 +1,18 @@
 # OSMU 세션 상태
 
+## 2026-08-31 23:48 KST (Codex) 심사 전 소셜 연결 안내 build
+
+- 기반: 회장이 지정한 과제, `wiki/거버넌스/결정.md` ADR-004, `wiki/거버넌스/실수.md` 최신 기록,
+  `wiki/5-hubs/hub-eng/architecture/system-architecture.md` OAuth 절, 현행 readiness와 연결 컴포넌트.
+- 구현: readiness 선택형 `guidance` 계약, Threads와 Instagram의 서로 다른 초대 수락 링크,
+  중립 안내 단계, 연결 단추 활성 유지, 초대 미수락 사람 말 변환, 실패 때 같은 링크 재노출.
+- 보존: 계정 전환 도움말, 팝업 선점, origin 검증, 연결과 발행 상태 분리, readiness 장애 fail-closed.
+- 커밋: `ec092a89`.
+- 검증: 신규 계약 집중 Vitest 3파일 40건, 전체 Vitest 208파일 1,567건, TypeScript 오류 0,
+  프로덕션 build 정적 페이지 177개, design lint 토큰 위반 0.
+- 미검증: 운영 배포, 실제 Threads와 Instagram 초대 수락, 실제 OAuth 왕복.
+- 다음 액션: 문서 커밋, `feat/design-system-and-missing-features` push, QA의 실제 OAuth 왕복 검증.
+
 ## 2026-08-31 23:20 KST (Opus) 정정과 추가
 
 - **정정**: 앞 기록이 초대 수락을 제품 흐름처럼 적었다. 그것은 App Review 통과 전에만 있는 한시 절차다.
@@ -95,4 +108,3 @@
 - 테스터 등록되면 권한별 성공 호출 만들고 녹화 대본대로 진행
 - 배포 스모크에 OAuth 왕복 완주 검사 추가
 - 266건 대조표의 미충족 48 · 부분 60 처리
-

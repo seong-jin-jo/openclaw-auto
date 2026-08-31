@@ -218,6 +218,7 @@ data/
 | `DASHBOARD_PORT` | 대시보드 포트 (기본 3456) |
 | `DASHBOARD_AUTH_TOKEN` | 대시보드 로그인 토큰. 미설정 시 인증 비활성화 |
 | `OSMU_PUBLIC_URL` | 정본 공개 URL. OAuth redirect_uri를 이 값으로 고정(프록시 뒤 내부주소 오염 방지). 미설정 시 x-forwarded-*→request.url fallback |
+| `OAUTH_APP_REVIEW_APPROVED_PROVIDERS` | 앱 심사가 승인된 provider의 쉼표 구분 목록. 예: `threads,instagram`. 여기에 든 provider는 심사 전 초대 안내와 심사 대기 사유를 readiness에서 제거 |
 | `VIRAL_THRESHOLD` | 터진 글 기준 views (기본 500) |
 
 ## Cron Jobs

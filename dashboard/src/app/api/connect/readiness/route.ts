@@ -15,6 +15,17 @@ const CREDENTIAL_STORE_UNAVAILABLE_REASON =
 
 const META_REVIEW_PROVIDERS = new Set(["threads", "instagram", "facebook"]);
 
+function isExternalReviewPending(provider: string, review: "required" | "unknown" | undefined): boolean {
+  if (review !== "required") return false;
+  const approvedProviders = new Set(
+    String(process.env.OAUTH_APP_REVIEW_APPROVED_PROVIDERS || "")
+      .split(",")
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean),
+  );
+  return !approvedProviders.has(provider.toLowerCase());
+}
+
 function externalReviewReason(
   provider: string,
   label: string,
@@ -61,7 +72,7 @@ export async function GET(request: Request) {
   for (const [name, cfg] of Object.entries(PROVIDERS)) {
     const credentials = credentialsByProvider[name];
     const credentialStoreError = credentials?.reason === "credential_store_unavailable";
-    const externalReviewPending = credentials?.externalReview === "required";
+    const externalReviewPending = isExternalReviewPending(name, credentials?.externalReview);
     const connectionState = connectionStates[name] || "disconnected";
     const reason = credentialStoreError
       ? CREDENTIAL_STORE_UNAVAILABLE_REASON
@@ -109,7 +120,7 @@ export async function GET(request: Request) {
     });
   } else {
     const connectionState = connectionStates.facebook || "disconnected";
-    const externalReviewPending = facebook.externalReview === "required";
+    const externalReviewPending = isExternalReviewPending("facebook", facebook.externalReview);
     result.facebook = resolveConnectReadiness({
       credentialsComplete: true,
       connectionState,

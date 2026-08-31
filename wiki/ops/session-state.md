@@ -2,6 +2,19 @@
 
 트랙별 상세는 각 트랙 파일에 둔다. 이 파일은 어느 세션이 무엇을 primary 로 잡았는지만 남긴다.
 
+## 2026-08-31 23:48 KST (Codex, OSMU 소셜 연결 안내)
+
+핸드오프 기준: 회장이 지정한 심사 전 소셜 연결 안내 과제. 상세는 `session-state.osmu.md`.
+
+현재 작업: readiness 구조화 안내, Threads와 Instagram 링크, 안내가 있어도 클릭 가능한 연결 단추,
+초대 미수락 오류와 같은 링크 재노출을 구현했다. 코드와 계약 테스트 7파일은 커밋 `ec092a89`다.
+
+검증: 신규 계약 집중 Vitest 3파일 40건, 전체 Vitest 208파일 1,567건, `npx tsc --noEmit`,
+프로덕션 build 정적 페이지 177개, design lint 토큰 위반 0. 문서 커밋과 지정 브랜치 push는 진행 중이다.
+
+보존한 사용자 변경: `.codex/logs/harness.jsonl`, `docs/prototype/qa-flow/observations.json`,
+`docs/requests/inbox/chairman-2026-08.md`와 QA 캡처 파일은 이 작업에서 수정하거나 stage하지 않는다.
+
 ## 2026-08-31 22:05 KST (Opus, OSMU 라인)
 
 핸드오프 기준: 이 파일. 상세는 `session-state.osmu.md`.
