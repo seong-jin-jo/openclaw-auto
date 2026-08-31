@@ -1,5 +1,14 @@
 # 세션 상태 (얇은 인덱스)
 
+## 2026-09-01 06:56 KST | pane osmu-terms0901 | 인프라 표준 용어 교정
+
+- 핸드오프 기준: 회장이 이 턴에 지정한 문서 전용 과제와 `osmu-terms0901:0.0` pane. 요구된 입력, ADR-004, ADR-006, 현 구현 파일을 대조했다.
+- 현재 상태: 비표준 기술 용어 전수 조사와 표준 용어 대응표를 `docs/reports/osmu-비표준-용어-전수조사-2026-09-01.md`에 작성했다. 대체 인프라 보고서는 `docs/reports/osmu-인프라-아키텍처-2026-09-01.md`다. 기존 08-30 HTML에는 대체 안내를 추가하고 비표준 표현을 직접 교정했다. 운영 실측 수치와 개선 이력은 보존했다.
+- 핵심 판정: autoheal은 Docker healthcheck 수행 주체가 아니라 `unhealthy` 컨테이너 재시작 주체다. 이미지 경로는 R2 저장 모듈에 연결돼 있지만 영상 업로드는 현재 Docker named volume에 직접 기록한다. 텍스트 생성은 LLM 경로이며 R2 장애와 별개다.
+- 검증: Mermaid 4개를 `@mermaid-js/mermaid-cli@11.9.0`으로 PNG 렌더하고 다크 배경에서 직접 확인했다. 두 Markdown을 웹 HTML로 렌더해 열었다. 신규 보고서의 금지 용어, 긴 대시, 이모지 검색 결과는 0건이다. `dashboard/src/**` 변경은 0건이다.
+- 추적성: 이 문서 과제로 추가된 매핑 gap은 0건이다. `docs/user-flow.md:879-900`의 기존 미확정 gap 17건은 남아 있어 전체 기술설계 기준 build stage 진입은 불가하다.
+- 다음 액션: 의도한 문서 3개와 이 상태 기록만 커밋해 `origin/work/terms`에 push한다. `.codex/logs/harness.jsonl`의 기존 변경은 보존하고 stage하지 않는다.
+
 ## 2026-09-01 05:25 KST | pane openclaw-auto | 위임 하네스 결함과 배포 복구
 
 - 핸드오프 기준: 이 파일. 상세는 session-state.osmu.md 최상단.
