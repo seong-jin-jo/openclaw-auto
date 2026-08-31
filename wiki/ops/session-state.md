@@ -2,6 +2,33 @@
 
 트랙별 상세는 각 트랙 파일에 둔다. 이 파일은 어느 세션이 무엇을 primary 로 잡았는지만 남긴다.
 
+## 2026-09-01 01:35 KST (Opus, OSMU 라인)
+
+핸드오프 기준: 이 파일. 상세는 `session-state.osmu.md`.
+
+현재 작업: 회장 지적 두 건 처리(초대 절차 내재화 가능성, R2 생성)와 편집실 판 재발주.
+
+관찰한 것:
+- Threads 테스터 `j.the.great.investor` 초대 수락 완료. 콘솔에서 `대기 중` 표기가 사라졌다.
+- 초대 수락을 우리 앱 안에서 끝낼 수 없다. Meta 자산이고 사용자 Threads 로그인이 필요하며
+  로그인 리다이렉트와 교차출처 정책으로 임베드도 안 된다. 없애는 방법은 App Review 통과뿐이다.
+- 에셋은 R2 가 아니라 컨테이너 영속 볼륨에 있었고 Meta 는 `/api/images/deliver/<서명토큰>` 으로
+  가져간다. R2 는 발행의 전제가 아니다. 앞선 보고가 틀렸다.
+- Cloudflare 계정에 `osmu-media` 버킷 생성 완료(S3 API). 공개 URL 설정은 콘솔이 필요해 미완.
+  보유 토큰은 터널 전용이고 브라우저 쿠키 가져오기로도 콘솔 로그인이 살아나지 않았다.
+- OAuth 왕복: 동의 화면까지는 정상(권한 5개). curl 로 시작한 콜백은 브라우저 state 불일치로
+  정상 거절됐다. 보안 검사가 작동한 것이고 왕복 완주는 아직 못 봤다.
+
+만진 파일: `pipeline-state.osmu.md`(v64 핀), `wiki/5-hubs/hub-eng/architecture/system-architecture.md`,
+`wiki/거버넌스/실수.md`, `dashboard/src/app/api/r2-config/route.ts`, `dashboard/src/components/settings/StorageSettings.tsx`.
+
+진행 중 위임: `osmu-editroom0901b`(편집실·발행실 10건). 직전 판 `osmu-editroom0901` 은 승인 핀 부재로 빈손 종료.
+
+다음 액션:
+1. `osmu-editroom0901b` 회수, 검증, 배포.
+2. 회장이 대시보드에서 Threads 연결을 눌러 왕복 완주 확인.
+3. R2 를 실제로 쓸지 결정. 지금은 발행에 필요 없다.
+
 ## 2026-08-31 23:48 KST (Codex, OSMU 소셜 연결 안내)
 
 핸드오프 기준: 회장이 지정한 심사 전 소셜 연결 안내 과제. 상세는
