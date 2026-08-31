@@ -112,14 +112,16 @@ beforeEach(() => {
 });
 
 describe("GET /api/connect/instagram — OAuth 동의 URL", () => {
-  it("authUrl에 client_id·redirect_uri·scope·state(서명된 tenant) 포함", async () => {
+  it("META-SCOPE-001 정상: 첫 심사에 필요한 Instagram 연결·발행·댓글 권한을 요청한다", async () => {
     const { GET } = await import("@/app/api/connect/[provider]/route");
     const res = await GET(new Request("https://app.example/api/connect/instagram?tenant_id=tenant-1"), params("instagram"));
     const body = await res.json();
     expect(res.status).toBe(200);
     expect(body.authUrl).toContain("instagram.com/oauth/authorize");
     expect(body.authUrl).toContain("client_id=ig-app-123");
+    expect(body.authUrl).toContain("instagram_business_basic");
     expect(body.authUrl).toContain("instagram_business_content_publish");
+    expect(body.authUrl).toContain("instagram_business_manage_comments");
     // state는 이제 base64url(payload).sig로 서명되어 있어 "tenant-1"이 그대로 노출되지 않는다 —
     // verifyState로 왕복 복원해 tenantId가 맞는지 확인한다.
     const { verifyState } = await import("@/lib/social-connect");
@@ -128,6 +130,15 @@ describe("GET /api/connect/instagram — OAuth 동의 URL", () => {
     expect(verified.valid).toBe(true);
     expect(verified.tenantId).toBe("tenant-1");
     expect(body.authUrl).toContain("api%2Fconnect%2Finstagram%2Fcallback");
+  });
+
+  it("META-SCOPE-002 거절: 실제 조회 기능이 없는 Instagram 인사이트 권한은 요청하지 않는다", async () => {
+    const { GET } = await import("@/app/api/connect/[provider]/route");
+    const res = await GET(new Request("https://app.example/api/connect/instagram?tenant_id=tenant-1"), params("instagram"));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(new URL(body.authUrl).searchParams.get("scope")).not.toContain("instagram_business_manage_insights");
   });
 
   it("고객 JWT tenant와 쿼리 tenant_id가 다르면 값 없이 불일치 사실만 서버 로그에 남긴다", async () => {
