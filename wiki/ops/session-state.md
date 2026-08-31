@@ -2,6 +2,49 @@
 
 트랙별 상세는 각 트랙 파일에 둔다. 이 파일은 어느 세션이 무엇을 primary 로 잡았는지만 남긴다.
 
+## 2026-09-01 03:26 KST (Opus, OSMU 라인)
+
+핸드오프 기준: 이 파일. 상세는 `session-state.osmu.md`.
+
+현재 작업: 회장 질문 세 건(식별자 차이, 인프라 문서, R2) 처리와 편집실 글 편집 마무리.
+
+만진 파일:
+- `dashboard/src/components/studio/StudioRooms.tsx`, `EditPreview.tsx`, `EditPreview.module.css`,
+  `StudioCommandPanel.tsx`, `dashboard/src/app/studio/page.tsx` (글은 문단으로 편집)
+- `dashboard/src/app/api/operator/customers/route.ts` (연결 판정 입력 3값 노출, 자격증명 제외)
+- `dashboard/tests/studio/studio-fe2-rooms.test.tsx` (도구 이름 변경 반영)
+- `wiki/5-hubs/hub-eng/architecture/system-architecture.md` (권한 절, 미디어 절)
+
+검증: `npx tsc --noEmit` 은 R2 워커가 쓰는 중인 `tests/lib/media-store.test.ts` 만 오류.
+편집실 계약 19건 통과, 관련 UI 18파일 154건 통과. 전량 실행은 6파일 실패인데 넷은 로컬 DB
+연결 끊김, 둘은 워커 작업 중 파일이다. `osmu-media` 버킷 쓰기·읽기·삭제 왕복은 직접 확인.
+
+막힌 것:
+- 회장 Threads 연결이 저장은 됐는데(계정 2건, 2026-09-01 01:32 KST) 판정은 미연결이다.
+  원인 값(상태, 기본 계정, 만료 시각)을 운영자 조회에 노출했고 배포 후 확인해야 한다.
+- VM SSH 가 로컬 네트워크에서 닿지 않아 컨테이너 로그를 못 본다. 배포는 self-hosted runner 로 정상.
+
+진행 중 위임: `osmu-r2store0901`(R2 저장 계층). 커밋 `fd33b653`, `01e0f1bd`.
+
+다음 액션:
+1. R2 워커 회수, 전량 테스트, 배포.
+2. 배포 후 운영자 조회로 연결 판정 3값 확인, 원인 확정.
+3. 편집실 나머지 항목 순차 발주.
+
+## 2026-09-01 01:40 KST (Codex, OSMU 편집실·발행실 2차 피드백)
+
+핸드오프 기준: 회장이 이 턴에 지정한 편집실·발행실 10개 미충족 항목과
+`pipeline-state.osmu.md`의 v64 승인 핀. 이전 `osmu-editroom0901` pane은 핀 부재로 종료됐고,
+현재 `osmu-editroom0901b`가 같은 과제를 재개했다.
+
+현재 작업: 글 문단 편집, 영상 대사 편집 분리, 카드뉴스 이미지 안 글자 수정·이동,
+콘텐츠 형식과 발행 채널 분리, 저장과 발행실 이동 노출, 의미 불명 라벨 제거를 구현한다.
+착수 시점 결함은 `docs/qa/qa-tracker.md` 최상단에 NG로 등록했다.
+
+보존할 다른 세션 변경: `.codex/logs/harness.jsonl`, `docs/prototype/qa-flow/`,
+`docs/requests/inbox/chairman-2026-08.md`, `docs/requests/inbox/chairman-2026-09.md`는 수정하거나
+stage하지 않는다. 다음 액션은 편집실 계약 테스트를 먼저 추가한 뒤 소스 구현이다.
+
 ## 2026-09-01 01:35 KST (Opus, OSMU 라인)
 
 핸드오프 기준: 이 파일. 상세는 `session-state.osmu.md`.

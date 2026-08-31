@@ -1,5 +1,34 @@
 # OSMU 세션 상태
 
+## 2026-09-01 03:26 KST (Opus, OSMU 라인)
+
+핸드오프 기준: 이 파일. 상세는 `session-state.osmu.md`.
+
+현재 작업: 회장 질문 세 건(식별자 차이, 인프라 문서, R2) 처리와 편집실 글 편집 마무리.
+
+만진 파일:
+- `dashboard/src/components/studio/StudioRooms.tsx`, `EditPreview.tsx`, `EditPreview.module.css`,
+  `StudioCommandPanel.tsx`, `dashboard/src/app/studio/page.tsx` (글은 문단으로 편집)
+- `dashboard/src/app/api/operator/customers/route.ts` (연결 판정 입력 3값 노출, 자격증명 제외)
+- `dashboard/tests/studio/studio-fe2-rooms.test.tsx` (도구 이름 변경 반영)
+- `wiki/5-hubs/hub-eng/architecture/system-architecture.md` (권한 절, 미디어 절)
+
+검증: `npx tsc --noEmit` 은 R2 워커가 쓰는 중인 `tests/lib/media-store.test.ts` 만 오류.
+편집실 계약 19건 통과, 관련 UI 18파일 154건 통과. 전량 실행은 6파일 실패인데 넷은 로컬 DB
+연결 끊김, 둘은 워커 작업 중 파일이다. `osmu-media` 버킷 쓰기·읽기·삭제 왕복은 직접 확인.
+
+막힌 것:
+- 회장 Threads 연결이 저장은 됐는데(계정 2건, 2026-09-01 01:32 KST) 판정은 미연결이다.
+  원인 값(상태, 기본 계정, 만료 시각)을 운영자 조회에 노출했고 배포 후 확인해야 한다.
+- VM SSH 가 로컬 네트워크에서 닿지 않아 컨테이너 로그를 못 본다. 배포는 self-hosted runner 로 정상.
+
+진행 중 위임: `osmu-r2store0901`(R2 저장 계층). 커밋 `fd33b653`, `01e0f1bd`.
+
+다음 액션:
+1. R2 워커 회수, 전량 테스트, 배포.
+2. 배포 후 운영자 조회로 연결 판정 3값 확인, 원인 확정.
+3. 편집실 나머지 항목 순차 발주.
+
 ## 2026-09-01 01:22 KST (Opus)
 
 한 일:
