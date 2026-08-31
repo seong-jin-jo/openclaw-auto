@@ -4,7 +4,11 @@ import { resolveOAuthCredentialSets } from "@/lib/oauth-app-credentials";
 import { auditConnectTenantQueryMismatch } from "@/lib/connect-tenant-audit";
 import { getChannelConnectionStates } from "@/lib/channel-connection";
 import { CH_LABELS } from "@/lib/constants";
-import { resolveConnectReadiness, type ConnectReadinessEntry } from "@/lib/connect-readiness";
+import {
+  getMetaPreReviewGuidance,
+  resolveConnectReadiness,
+  type ConnectReadinessEntry,
+} from "@/lib/connect-readiness";
 
 const CREDENTIAL_STORE_UNAVAILABLE_REASON =
   "OAuth 자격증명 저장소에 일시적으로 연결할 수 없습니다. 관리자 복구 후 다시 시도해주세요.";
@@ -72,7 +76,7 @@ export async function GET(request: Request) {
       : connectionState === "reconnect"
       ? `${CH_LABELS[name] || cfg.label} 계정을 다시 연결해주세요.`
       : undefined;
-    result[name] = resolveConnectReadiness({
+    const readiness = resolveConnectReadiness({
       credentialsComplete: Boolean(credentials?.complete),
       credentialStoreError,
       connectionState,
@@ -80,6 +84,10 @@ export async function GET(request: Request) {
       externalReviewPending,
       reason,
     });
+    const guidance = externalReviewPending && readiness.available
+      ? getMetaPreReviewGuidance(name)
+      : undefined;
+    result[name] = guidance ? { ...readiness, guidance } : readiness;
   }
 
   // Facebook은 config_id 모델(비즈니스용 로그인) — FB_APP_ID/SECRET 외에 FB_CONFIG_ID도 필요.

@@ -149,6 +149,45 @@ describe("customer readiness central resolver wiring", () => {
     expect(body.providers.threads.reason).toContain("테스터 등록 없이 OAuth로 연결");
   });
 
+  it("AR-GUIDE-001 정상: 심사 전에는 provider별 초대 수락 안내 계약을 반환한다", async () => {
+    H.complete.threads = true;
+    H.complete.instagram = true;
+    H.externalReview.threads = "required";
+    H.externalReview.instagram = "required";
+    const { GET } = await import("@/app/api/connect/readiness/route");
+    const res = await GET(new Request("https://app.example/api/connect/readiness?tenant_id=tenant-1"));
+    const body = await res.json();
+
+    expect(body.providers.threads.guidance).toMatchObject({
+      title: "심사 전 연결 안내",
+      externalLink: {
+        label: "초대 수락하러 가기 (새 탭)",
+        url: "https://www.threads.com/settings/website_permissions",
+      },
+    });
+    expect(body.providers.threads.guidance.steps).toHaveLength(4);
+    expect(body.providers.instagram.guidance.externalLink.url).toBe(
+      "https://www.instagram.com/accounts/manage_access/",
+    );
+    expect(body.providers.instagram.guidance.externalLink.url).not.toBe(
+      body.providers.threads.guidance.externalLink.url,
+    );
+  });
+
+  it("AR-GUIDE-002 거절: 심사 대기가 아니면 초대 수락 안내 계약을 반환하지 않는다", async () => {
+    H.complete.threads = true;
+    H.externalReview.threads = "unknown";
+    const { GET } = await import("@/app/api/connect/readiness/route");
+    const res = await GET(new Request("https://app.example/api/connect/readiness?tenant_id=tenant-1"));
+    const body = await res.json();
+
+    expect(body.providers.threads).toMatchObject({
+      status: "not_connected",
+      available: true,
+    });
+    expect(body.providers.threads.guidance).toBeUndefined();
+  });
+
   it("fails closed with error when tenant channel accounts cannot be read", async () => {
     H.complete.x = true;
     H.connectionError = true;

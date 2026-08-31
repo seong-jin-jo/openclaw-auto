@@ -11,8 +11,29 @@ describe("oauthErrorMessage", () => {
 
   it("Meta tester invite 미수락 에러를 조치 가능한 문장으로 바꾼다", () => {
     const msg = oauthErrorMessage("Invalid Request: The user has not accepted the invite to test the app. error_code=1349245", "Threads");
-    expect(msg).toContain("테스트 사용자 초대");
+    expect(msg).toContain("이 계정은 아직 테스트 사용자 초대를 수락하지 않았습니다");
     expect(msg).toContain("Threads");
+  });
+
+  it("AR-ERROR-001 거절: 이미 변환된 초대 미수락 문장을 다시 일반 오류로 덮지 않는다", () => {
+    const once = oauthErrorMessage(
+      "Invalid Request: The user has not accepted the invite to test the app. error_code=1349245",
+      "Threads",
+    );
+    expect(oauthErrorMessage(once, "Threads")).toContain(
+      "이 계정은 아직 테스트 사용자 초대를 수락하지 않았습니다",
+    );
+  });
+
+  it("AR-ERROR-002 거절: 분류할 수 없는 오류는 자격증명을 가리고 원문을 함께 남긴다", () => {
+    const msg = oauthErrorMessage(
+      "unexpected provider response access_token=secret-token-value",
+      "Threads",
+    );
+    expect(msg).toContain("원문: unexpected provider response");
+    expect(msg).toContain("access_token=[가림]");
+    expect(msg).not.toContain("secret-token-value");
+    expect(oauthErrorMessage(msg, "Threads")).toBe(msg);
   });
 
   it("Supabase env missing 에러도 raw 문자열로 노출하지 않는다", () => {
