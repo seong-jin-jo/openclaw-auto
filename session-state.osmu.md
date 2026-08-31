@@ -11,7 +11,10 @@
 - 검증: 신규 계약 집중 Vitest 3파일 40건, 전체 Vitest 208파일 1,567건, TypeScript 오류 0,
   프로덕션 build 정적 페이지 177개, design lint 토큰 위반 0.
 - 미검증: 운영 배포, 실제 Threads와 Instagram 초대 수락, 실제 OAuth 왕복.
-- 다음 액션: 문서 커밋, `feat/design-system-and-missing-features` push, QA의 실제 OAuth 왕복 검증.
+- 출고 상태: 구현 커밋 `ec092a89`, 후속 계약·문서 커밋 `45b75f7c`. 로컬 HEAD는 원격보다 3개
+  커밋 앞서 있다. `git push origin feat/design-system-and-missing-features`는 실행 정책이 승인 필요로
+  차단했지만 이 세션은 승인 요청이 금지돼 원격 반영하지 못했다. 원격 HEAD는 `88407d09`로 관찰했다.
+- 다음 액션: 푸시 권한이 있는 컨트롤러가 동일 브랜치를 push한 뒤 QA가 실제 OAuth 왕복을 검증한다.
 
 ## 2026-08-31 23:20 KST (Opus) 정정과 추가
 

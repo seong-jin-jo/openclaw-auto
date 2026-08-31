@@ -10,7 +10,9 @@
 초대 미수락 오류와 같은 링크 재노출을 구현했다. 코드와 계약 테스트 7파일은 커밋 `ec092a89`다.
 
 검증: 신규 계약 집중 Vitest 3파일 40건, 전체 Vitest 208파일 1,567건, `npx tsc --noEmit`,
-프로덕션 build 정적 페이지 177개, design lint 토큰 위반 0. 문서 커밋과 지정 브랜치 push는 진행 중이다.
+프로덕션 build 정적 페이지 177개, design lint 토큰 위반 0. 구현과 문서는 `ec092a89`, `45b75f7c`로
+커밋했다. 지정 브랜치 push는 실행 정책이 승인 필요로 차단했고 이 세션은 승인 요청이 금지돼 미반영이다.
+로컬 HEAD `45b75f7c`, 원격 HEAD `88407d09`를 직접 확인했다.
 
 보존한 사용자 변경: `.codex/logs/harness.jsonl`, `docs/prototype/qa-flow/observations.json`,
 `docs/requests/inbox/chairman-2026-08.md`와 QA 캡처 파일은 이 작업에서 수정하거나 stage하지 않는다.
