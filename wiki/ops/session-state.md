@@ -8,7 +8,9 @@
 - 설계 결론: 형식은 편집실, 플랫폼과 채널별 문구는 발행실이 소유한다. 글은 전체 본문 자유 편집, 카드는 캔버스 안 직접 편집과 위치 이동, 저장은 자동 상태, 주 행동은 `발행실로 이동` 하나다.
 - 실렌더: Chromium으로 4형식 정상 상태와 빈 상태·불러오는 중·오류·긴 내용 상태를 1024·390 총 16조합 확인했다. 가로 넘침 0, 자바스크립트 오류 0, 정상 상태 활성 주 버튼 1개, 차단 상태 0개.
 - 검증: `npx tsc --noEmit` 오류 0. `npx vitest run tests/publish tests/api` 최종 단독 재실행 67파일, 519건 통과, 2건 제외, 실패 0. 첫 병렬 실행의 제한시간 초과 1건은 단독 재실행에서 통과했다. 디자인 리뷰 전용 스킬은 현재 세션에 없어 자동 Design Score는 미검증이다.
-- 다음 액션: 이 worktree 변경만 커밋해 `origin/work/editroom`으로 push한다. 컨트롤러가 v65와 DESIGN.md v34를 디자인 게이트에서 확인한 뒤 승인 핀을 갱신해야 구현 기준이 된다.
+- 커밋: `66ad58dd` (`design: clarify edit room flow and controls`). 작업 산출물만 포함했고 `.codex/logs/harness.jsonl`은 제외했다.
+- push: `git push origin work/editroom`을 실행했으나 실행 정책이 승인 필요 명령으로 차단했다. 이 세션은 승인 요청이 금지되어 원격 브랜치는 미생성·미검증이다.
+- 다음 액션: push 권한이 있는 컨트롤러가 로컬 커밋 `66ad58dd`을 `origin/work/editroom`에 올린 뒤, v65와 DESIGN.md v34를 디자인 게이트에서 확인하고 승인 핀을 갱신한다.
 
 ## 2026-09-01 05:25 KST | pane openclaw-auto | 위임 하네스 결함과 배포 복구
 
