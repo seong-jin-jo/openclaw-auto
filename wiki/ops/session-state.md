@@ -9,6 +9,16 @@
 - 추적성: 이 문서 과제로 추가된 매핑 gap은 0건이다. `docs/user-flow.md:879-900`의 기존 미확정 gap 17건은 남아 있어 전체 기술설계 기준 build stage 진입은 불가하다.
 - 출고 상태: 문서 3개와 이 상태 기록을 커밋 `9902264d`로 만들고 `origin/work/terms`에 push했다. `gh pr merge`는 실행하지 않았다. `.codex/logs/harness.jsonl`의 기존 변경은 보존하고 stage하지 않았다.
 - 다음 액션: 부모 컨트롤러가 두 보고서와 기존 user-flow gap 17건의 build 게이트 판정을 검토한다.
+## 2026-09-01 07:50 KST | work/accountui | 연결 계정 목록과 기본 계정 관리 build 검증 완료
+
+- 핸드오프 기준: 회장이 이 세션에 직접 준 `work/accountui` 과제. 관련 tmux pane은 이 worktree의 대기 셸뿐이며 다른 진행 transcript는 없다.
+- 기반: `pipeline-state.osmu.md` build 허용 선언과 approved `docs/prototype/openclaw-auto-4room-v64.html`, `DESIGN.md`, ADR-004, ADR-006.
+- 기존 구현 확인: `AccountManager`, 계정 목록·기본 전환·단일 삭제 API, 기본 발행 credential 선택이 이미 있다. 새로 만들지 않고 만료 시각 표시, 비활성 기본 선택 거절, 기본 의미 설명, 삭제 확인, 실제 발행 기본계정 회귀 테스트를 확장한다.
+- 변경: 계정 행에 상태·만료 시각·기본 설명·선택 불가 사유를 표시하고, 기본 전환 409 가드, 사용 가능한 계정만 삭제 후 승격, 기본 기준 벌크 연결 판정을 추가했다. 자격증명 응답 필드는 추가하지 않았다.
+- 검증: 집중 46건, `tests/api tests/publish` 523건 통과와 조건부 2건 제외, TypeScript 오류 0, production build 정적 페이지 177개, design lint 0. dev server `/channels/threads` HTTP 200 관찰.
+- 문서: `docs/구현현황.md`, `wiki/4-reference/channel-status.md` 갱신. 기본 전환 뒤 발행 credential이 새 기본 id·token을 쓰는 계약 테스트 근거를 구현현황에 기록했다.
+- 커밋: 기능과 테스트 `298a7cde`, 구현현황과 계약 문서 `caf0c56c`. `work/accountui` 원격 브랜치 push 완료. PR 병합과 운영 배포는 하지 않았다.
+- 미검증 범위: 실 테넌트 OAuth, 외부 SNS 발행, 브라우저 console error 0, 운영 배포. 다음 QA는 실제 고객 세션에서 Threads 계정 2개 목록과 기본 전환 뒤 발행 대상 id를 대조한다.
 
 ## 2026-09-01 05:25 KST | pane openclaw-auto | 위임 하네스 결함과 배포 복구
 
