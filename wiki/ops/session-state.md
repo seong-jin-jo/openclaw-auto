@@ -2,6 +2,25 @@
 
 트랙별 상세는 각 트랙 파일에 둔다. 이 파일은 어느 세션이 무엇을 primary 로 잡았는지만 남긴다.
 
+## 2026-09-01 03:40 KST (Codex, OSMU R2 저장 계층)
+
+핸드오프 기준: 회장이 이 턴에 지정한 비공개 R2 저장과 기존 HMAC 배달 유지 과제.
+
+현재 상태: `media-store` 단일 계층과 업로드·배달·삭제 전환, 로컬 이전 fallback, 이전 스크립트,
+환경변수와 배포 연결, 아키텍처 문서를 구현했다. 구현 커밋은 `fd33b653`, `01e0f1bd`다. 원격
+`feat/design-system-and-missing-features`에도 두 커밋이 포함된 것을 확인했다.
+
+검증: R2 집중 계약 10건 통과, 깨끗한 `npm ci` 설치에서 TypeScript 오류 0, production build 정적
+페이지 177/177, design lint 위반 0.
+실제 PostgreSQL 스키마와 RLS를 붙인 전체 Vitest는 211파일 중 210파일, 1,569건 중 1,566건 통과와
+조건부 1건 제외다. 실패 2건은 공유 브랜치 Studio의 `검토 요청하기` 단추 계약이며 R2 경로와 무관하다.
+
+남은 것: 깨끗한 설치 타입 보정과 구현현황 기록은 로컬 최신 커밋에 있다. `git push origin
+feat/design-system-and-missing-features`는 실행 정책이 승인을 요구했지만 이 세션은 승인 요청이 금지돼
+실행되지 않았다. 원격에는 구현 커밋 `fd33b653`, `01e0f1bd`까지 있고 최신 검증 기록 커밋은 로컬에만
+있다. 운영 R2 자격증명 주입, 실 업로드·배달, 로컬 파일 이전은 미실행·미검증이다. 다음 QA는 Studio
+계약 실패 2건 해소 뒤 `cd dashboard && npx vitest run` 전량 재실행이다.
+
 ## 2026-09-01 03:26 KST (Opus, OSMU 라인)
 
 핸드오프 기준: 이 파일. 상세는 `session-state.osmu.md`.

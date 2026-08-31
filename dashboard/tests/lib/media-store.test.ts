@@ -40,6 +40,21 @@ function localPath(tenantId: string, filename: string) {
   return path.join(dataDir, "tenants", tenantId, "images", filename);
 }
 
+async function readWebStream(body: ReadableStream<Uint8Array>): Promise<string> {
+  const reader = body.getReader();
+  const chunks: Buffer[] = [];
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(Buffer.from(value));
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return Buffer.concat(chunks).toString();
+}
+
 beforeEach(() => {
   dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "osmu-media-store-"));
   process.env.DATA_DIR = dataDir;
@@ -110,9 +125,7 @@ describe("media-store 저장소 선택과 장애 계약", () => {
     const stored = await get("tenant-a", "legacy.png");
 
     expect(stored).not.toBeNull();
-    const chunks: Buffer[] = [];
-    for await (const chunk of Readable.fromWeb(stored!.body)) chunks.push(Buffer.from(chunk));
-    expect(Buffer.concat(chunks).toString()).toBe("legacy-pixel");
+    expect(await readWebStream(stored!.body)).toBe("legacy-pixel");
     expect(stored!.source).toBe("local");
   });
 
@@ -127,9 +140,7 @@ describe("media-store 저장소 선택과 장애 계약", () => {
 
     const stored = await get("tenant-a", "photo.png");
 
-    const chunks: Buffer[] = [];
-    for await (const chunk of Readable.fromWeb(stored!.body)) chunks.push(Buffer.from(chunk));
-    expect(Buffer.concat(chunks).toString()).toBe("r2-pixel");
+    expect(await readWebStream(stored!.body)).toBe("r2-pixel");
     expect(stored).toMatchObject({ source: "r2", contentLength: 8, contentType: "image/png" });
   });
 
