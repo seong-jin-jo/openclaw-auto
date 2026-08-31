@@ -3,6 +3,7 @@ import { PROVIDERS, FACEBOOK } from "@/lib/social-connect";
 import { resolveOAuthCredentialSets } from "@/lib/oauth-app-credentials";
 import { auditConnectTenantQueryMismatch } from "@/lib/connect-tenant-audit";
 import { getChannelConnectionStates } from "@/lib/channel-connection";
+import { CH_LABELS } from "@/lib/constants";
 import { resolveConnectReadiness, type ConnectReadinessEntry } from "@/lib/connect-readiness";
 
 const CREDENTIAL_STORE_UNAVAILABLE_REASON =
@@ -17,8 +18,8 @@ function externalReviewReason(
 ): string {
   if (META_REVIEW_PROVIDERS.has(provider)) {
     return connectionState === "connected"
-      ? `${label}은 아직 앱 심사 전입니다. 현재 연결된 테스터 계정은 사용할 수 있지만 외부 고객 계정은 연결할 수 없습니다. 심사 승인 후에는 테스터 등록 없이 OAuth로 연결됩니다.`
-      : `${label}은 아직 앱 심사 전입니다. Meta 앱에서 테스터로 등록하고 초대를 수락한 계정만 연결할 수 있습니다. 심사 승인 후에는 테스터 등록 없이 OAuth로 연결됩니다.`;
+      ? `${label} 채널은 아직 앱 심사 전입니다. 현재 연결된 테스터 계정은 사용할 수 있지만 외부 고객 계정은 연결할 수 없습니다. 심사 승인 후에는 테스터 등록 없이 OAuth로 연결됩니다.`
+      : `${label} 채널은 아직 앱 심사 전입니다. Meta 앱에서 테스터로 등록하고 초대를 수락한 계정만 연결할 수 있습니다. 심사 승인 후에는 테스터 등록 없이 OAuth로 연결됩니다.`;
   }
   return connectionState === "connected"
     ? `${label} 계정은 연결됐지만 외부 앱 심사가 완료되기 전에는 실제 발행이 제한됩니다.`
@@ -67,9 +68,9 @@ export async function GET(request: Request) {
       : !credentials?.complete
       ? `서버에 ${name} OAuth 앱 자격증명(${cfg.appIdEnv}/${cfg.appSecretEnv})이 아직 설정되지 않았습니다.`
       : externalReviewPending
-      ? externalReviewReason(name, cfg.label, connectionState)
+      ? externalReviewReason(name, CH_LABELS[name] || cfg.label, connectionState)
       : connectionState === "reconnect"
-      ? `${cfg.label} 계정을 다시 연결해주세요.`
+      ? `${CH_LABELS[name] || cfg.label} 계정을 다시 연결해주세요.`
       : undefined;
     result[name] = resolveConnectReadiness({
       credentialsComplete: Boolean(credentials?.complete),
