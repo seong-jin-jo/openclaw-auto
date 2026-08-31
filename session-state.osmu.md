@@ -1,5 +1,37 @@
 # OSMU 세션 상태
 
+## 2026-09-01 04:26 KST (Opus, OSMU 라인)
+
+핸드오프 기준: 이 파일. 상세는 `session-state.osmu.md`.
+
+현재 작업: 회장 질문 5건 처리. 연결 미판정의 진짜 원인을 값으로 잡아 고쳤다.
+
+원인 확정(운영 실측):
+- 회장 테넌트 Threads 계정 2건. 기본계정 1건인데 그 행에 장기 토큰 만료 시각이 없다.
+  새로 연결한 계정은 만료 2026-10-30 으로 정상인데 기본이 아니다.
+- Threads·Instagram·Facebook 은 만료 시각이 없으면 재연결 필요로 판정한다. 그래서 저장은
+  됐는데 화면은 계속 미연결이었고 발행 대상도 죽은 계정을 가리켰다.
+- 고침: 기존 기본계정이 못 쓰는 상태면 새로 연결한 계정으로 기본을 넘긴다(`41ac094d`).
+
+만진 파일:
+- `dashboard/src/lib/channel-accounts.ts` (기본계정 승격), 회귀 테스트 신규
+- `dashboard/src/app/api/operator/customers/route.ts` (판정 입력 3값 노출)
+- `dashboard/src/app/studio/page.tsx` (`승인 인박스로 보내기` → `검토 요청하기`)
+- 편집실 글 문단 편집 마무리(`f4ad3326`)
+- `~/.claude/harness/bin/md-to-web.sh` (다크 모드에서 다이어그램이 안 보이던 것 수정)
+
+검증: `npx tsc --noEmit` 0. 배포 33430014377 success. 전량 테스트는 6파일 실패인데 전부
+로컬 Postgres 미가동 의존 판이다.
+
+진행 중 위임(병렬 2판):
+- `osmu-r2store0901` 종료. R2 저장 계층 커밋 완료.
+- `osmu-tenantlog0901` 진행 중. 별도 worktree `/tmp/osmu-wt-tenant` 에서 돈다.
+
+다음 액션:
+1. 회장이 Threads 연결을 한 번 더 누르면 기본계정이 승격돼 연결됨으로 바뀐다. 확인.
+2. `osmu-tenantlog0901` 회수와 배포.
+3. 편집실 나머지 항목 순차 발주.
+
 ## 2026-09-01 03:26 KST (Opus, OSMU 라인)
 
 핸드오프 기준: 이 파일. 상세는 `session-state.osmu.md`.
