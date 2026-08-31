@@ -1,5 +1,15 @@
 # OSMU 세션 상태
 
+## 2026-09-01 05:20 KST 위임 하네스 결함과 배포 복구
+
+- 테넌트 접속 이력(b6e0b4aa) push 하고 배포했다. run 33435731993 success. services=openclaw-dashboard-osmu.
+- 워커 3판(tenantlog, r2store, connectux)은 이미 끝나 있었다. 완료 감시를 안 걸어 세션이 그것을 몰랐다.
+- 워커가 매번 push 에 실패한 이유: 워커 샌드박스 기본값에 네트워크가 없다.
+- 배포 워크플로 이미지 빌드를 서비스별 순차로 바꿨다. VM 7.8GiB 인데 게이트웨이 빌드가 서비스마다 heap 8GiB 를 잡아 병렬이면 OOM.
+- 남은 상류 결함: 게이트웨이 전체 빌드는 extensions/qwen-portal-auth 의 QWEN_OAUTH_MARKER 미정의로 실패한다. 대시보드 배포에는 영향 없다.
+- 회장 승인 대기: 발주 래퍼에 완료 마커와 네트워크 기본값을 넣는 수정이 자동 승인 정책에 막혔다.
+
+
 ## 2026-09-01 04:26 KST (Opus, OSMU 라인)
 
 핸드오프 기준: 이 파일. 상세는 `session-state.osmu.md`.
