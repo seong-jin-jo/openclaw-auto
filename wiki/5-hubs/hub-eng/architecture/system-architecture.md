@@ -92,6 +92,25 @@ External: Threads/X/IG/YouTube/TikTok APIs + R2 + ElevenLabs + Midjourney
 - Reliability: 에러를 사용자가 설명/재현 가능하게.
 - Shorts Factory + automation loop을 operator(0차)의 다중 서비스에서 안정 동작.
 
+## 테넌트 접속 기록
+
+고객 Supabase JWT를 검증해 테넌트를 확정하는 `ensureTenantForUser` 경계에서 접속을 기록한다.
+`tenants.last_accessed_at`이 없거나 15분보다 오래된 경우에만 한 SQL 문장의 조건부 `UPDATE`와
+`tenant_access_events` `INSERT`를 실행한다. PostgreSQL Read Committed 격리에서 경합한 `UPDATE`는
+선행 트랜잭션이 끝난 뒤 조건을 현재 행에 다시 적용하므로 같은 테넌트의 동시 요청도 한 창에 한
+건만 기록한다. 이 판단은 [PostgreSQL Transaction Isolation 공식 문서](https://www.postgresql.org/docs/current/transaction-iso.html)를
+근거로 한다.
+
+접속 이력의 열은 `tenant_id`, `accessed_at`뿐이다. IP 주소, 위치, 브라우저, 사용자 에이전트,
+지문은 수집하지 않는다. AI 호출량과 비용 장부인 `usage_events`와도 합치지 않는다. 기록 쓰기가
+실패하면 고정된 관측 이벤트만 남기고 인증 성공을 되돌리지 않는다. 운영자 계정 조치는 실제 고객
+접속이 아니므로 기록을 명시적으로 끈다.
+
+`GET /api/operator/customers`는 마지막 접속 시각과 현재 시각 기준 최근 30일의 UTC 고유 접속 일수를
+반환한다. 이력이 없으면 둘 다 `null`이며 운영자 화면은 `접속 기록 없음`으로 표시한다. 0은 실제
+0일과 미수집을 구분할 수 없으므로 결측 표시에 사용하지 않는다. 이력 표는 인증 경계와 운영자
+연결만 사용한다. RLS는 켜되 고객 역할 `osmu_service`에는 정책과 권한을 주지 않는다.
+
 ## 플랫폼 권한 등록과 사용 구조 (OAuth)
 
 고객은 소셜 로그인만 하고 API 키를 직접 발급하지 않는다. 각 플랫폼에 **우리 OAuth 앱 하나**를
