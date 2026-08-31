@@ -1,5 +1,17 @@
 # 세션 상태 (얇은 인덱스)
 
+## 2026-09-01 05:25 KST | pane openclaw-auto | 위임 하네스 결함과 배포 복구
+
+- 핸드오프 기준: 이 파일. 상세는 session-state.osmu.md 최상단.
+- 만진 파일: .github/workflows/deploy-marketing.yml(이미지 빌드 서비스별 순차화), wiki/거버넌스/실수.md(위임 완료 감시 누락 기록), session-state.osmu.md.
+- 검증: tests/api + tests/publish 67파일 519건 통과, tsc --noEmit 0. 배포 run 33435731993 success(services=openclaw-dashboard-osmu).
+- 막힌 것 3개:
+  1. 발주 래퍼(~/.claude/harness/bin/codex-in-pane.sh)에 완료 표식과 네트워크 기본값을 넣는 수정이 자동 승인 정책에 막혔다. 회장 승인 대기.
+  2. 게이트웨이 전체 빌드는 extensions/qwen-portal-auth 의 QWEN_OAUTH_MARKER 미정의로 실패한다. 대시보드 배포에는 영향 없다.
+  3. 위임 거버넌스 게이트가 읽기 명령까지 막는다(스크립트 이름 문자열만 있어도 발동). 수정 시도도 정책에 막혔다.
+- 다음 액션: 계정 목록과 기본 계정 선택 화면 발주. 발주 시 네트워크를 켜고 완료 대기를 백그라운드로 함께 건다.
+
+
 트랙별 상세는 각 트랙 파일에 둔다. 이 파일은 어느 세션이 무엇을 primary 로 잡았는지만 남긴다.
 
 ## 2026-09-01 04:26 KST (Opus, OSMU 라인)
