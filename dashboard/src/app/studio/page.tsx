@@ -827,7 +827,7 @@ export default function StudioPage() {
       const response = await apiPost<{ reused?: boolean }>(`/api/queue/${queueId}/request-review`, {
         tenant_id: activeWorkspace.id,
       });
-      showToast(response?.reused ? "이미 검토 요청된 작업물입니다" : "승인 인박스로 검토 요청을 보냈습니다", "success");
+      showToast(response?.reused ? "이미 검토 요청된 작업물입니다" : "검토 요청을 보냈습니다", "success");
     } catch (error) {
       showToast(extractApiErrorMessage(error, "검토 요청에 실패했습니다"), "error");
     } finally {
@@ -1048,7 +1048,7 @@ export default function StudioPage() {
               <div className="flex flex-wrap items-center gap-stack">
               <b className="mr-auto min-w-0 truncate text-body text-text">{idea || "현재 작업물"}</b>
               <Button onClick={() => save("draft")}>임시 저장하기</Button>
-              <Button onClick={requestReview} disabled={reviewBusy}>{reviewBusy ? "보내는 중" : "승인 인박스로 보내기"}</Button>
+              <Button onClick={requestReview} disabled={reviewBusy}>{reviewBusy ? "보내는 중" : "검토 요청하기"}</Button>
               <Button variant="primary" onClick={publish} disabled={pub.running || !accountsLoaded || publishTargets.length === 0}>선택한 {publishTargets.length}곳에 지금 발행</Button>
               {activeWorkspace ? <Button variant={showSchedule ? "primary" : "secondary"} onClick={() => setShowSchedule((value) => !value)}>예약 발행</Button> : null}
               </div>
