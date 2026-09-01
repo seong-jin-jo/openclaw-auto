@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/shared/Button";
+import { StateNotice } from "@/components/shared/StateNotice";
 import { EditPreview, type CardTextPosition } from "./EditPreview";
 import { Field } from "@/components/shared/Field";
 import { Stack } from "@/components/shared/Stack";
@@ -39,6 +40,7 @@ import {
   writeLearningInfo,
   type LearningInfo,
 } from "./learning-info";
+import styles from "./StudioRooms.module.css";
 
 export type CreateContentBranch = "text_image" | "video";
 export type EditContentKind = "video" | "card" | "audio" | "text";
@@ -495,6 +497,13 @@ interface EditRoomProps {
   onFormatChange?: (format: ContentEditFormat) => void;
   cardTextPositions?: CardTextPosition[];
   onCardTextPositionsChange?: (positions: CardTextPosition[]) => void;
+  state?: "default" | "loading" | "error" | "overflow";
+  onOpenCreate?: () => void;
+  onRetry?: () => void;
+  onOpenPublish?: () => void;
+  lastSavedAt?: string;
+  moveBusy?: boolean;
+  autosaveError?: string;
 }
 type ToolName = "비율" | "배경" | "목소리" | "속도" | "자막" | "음악" | "음량";
 const VIDEO_TOOLS: ToolName[] = ["비율", "목소리", "속도", "자막"];
@@ -507,7 +516,7 @@ const EDIT_KIND_LABELS: Record<EditContentKind, string> = {
   text: "글",
   card: "카드뉴스",
   video: "영상",
-  audio: "소리",
+  audio: "음악",
 };
 const EDIT_KIND_ORDER: EditContentKind[] = ["text", "card", "video", "audio"];
 const SUBTITLE_SIZE_LABELS: Record<string, string> = {
@@ -522,7 +531,7 @@ const BACKGROUND_LABELS: Record<string, string> = {
 };
 
 function visibleToolName(kind: EditContentKind, tool: ToolName): string {
-  if (tool === "비율") return kind === "card" ? "카드 크기" : "영상 크기";
+  if (tool === "비율") return kind === "card" ? "카드 비율" : "영상 비율";
   if (tool === "배경") return "배경 이미지";
   if (tool === "자막") return kind === "card" ? "카드 글자 크기" : "자막 크기";
   if (tool === "속도") return "영상 재생 속도";
@@ -530,7 +539,10 @@ function visibleToolName(kind: EditContentKind, tool: ToolName): string {
   return tool;
 }
 
-function visibleToolValue(tool: ToolName, value: string): string {
+function visibleToolValue(tool: ToolName, value: string, kind?: EditContentKind): string {
+  if (tool === "비율" && kind === "card" && value === "4:5") return "4:5 · 1080 × 1350픽셀";
+  if (tool === "비율" && kind === "video" && value === "9:16") return "9:16 · 1080 × 1920픽셀";
+  if (tool === "자막" && kind === "card" && value === "보통") return "기본 28픽셀";
   if (tool === "자막") return SUBTITLE_SIZE_LABELS[value] ?? value;
   if (tool === "배경") return BACKGROUND_LABELS[value] ?? value;
   return value;
@@ -588,7 +600,25 @@ function ToolIcon({ tool }: { tool: ToolName }) {
   return <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[tool]}</svg>;
 }
 
-export function EditRoom({ lines, onLinesChange, kind = "video", onKindChange, previewReady = false, commandPanel, initialFormat, onFormatChange, cardTextPositions = [], onCardTextPositionsChange }: EditRoomProps) {
+export function EditRoom({
+  lines,
+  onLinesChange,
+  kind = "video",
+  onKindChange,
+  previewReady = false,
+  commandPanel,
+  initialFormat,
+  onFormatChange,
+  cardTextPositions = [],
+  onCardTextPositionsChange,
+  state = "default",
+  onOpenCreate,
+  onRetry,
+  onOpenPublish,
+  lastSavedAt,
+  moveBusy = false,
+  autosaveError,
+}: EditRoomProps) {
   const formatKind = kind === "text" ? "card" : kind;
   const safeLines = lines.length ? lines : [""];
   const [activeLine, setActiveLine] = useState(0);
@@ -597,6 +627,7 @@ export function EditRoom({ lines, onLinesChange, kind = "video", onKindChange, p
     initialFormat?.kind === formatKind ? initialFormat : defaultContentEditFormat(formatKind),
   ));
   const [visibleLines, setVisibleLines] = useState<boolean[]>(() => safeLines.map(() => true));
+  const [bulkMessage, setBulkMessage] = useState("");
   const selectedFormat = useMemo(() => formatFromToolValues(formatKind, toolValues), [formatKind, toolValues]);
   const lastEmittedFormat = useRef("");
   useEffect(() => { setVisibleLines((current) => safeLines.map((_, index) => current[index] ?? true)); setActiveLine((current) => Math.min(current, safeLines.length - 1)); }, [safeLines.length]);
@@ -619,122 +650,163 @@ export function EditRoom({ lines, onLinesChange, kind = "video", onKindChange, p
   const silenceIndexes = safeLines.map((line, index) => (/…|\.{3}|^\s*$/.test(line) ? index : -1)).filter((index) => index >= 0);
   const visibleSilences = silenceIndexes.filter((index) => visibleLines[index]).length;
   const tools = kind === "card" || kind === "text" ? CARD_TOOLS : kind === "audio" ? AUDIO_TOOLS : VIDEO_TOOLS;
-  const outlineTitle = kind === "text" ? "글 목차" : kind === "card" ? "장 목차" : kind === "audio" ? "곡 목차" : "영상 목차";
+  const outlineTitle = kind === "text" ? "글 문단" : kind === "card" ? "카드 목록" : kind === "audio" ? "대사 목록" : "영상 장면";
   const unit = kind === "card" ? "장" : kind === "text" ? "문단" : "장면";
+  const hasEditableContent = safeLines.some((line) => line.trim().length > 0);
+  const roomState = state === "default" && !hasEditableContent ? "empty" : state;
+  const editorVisible = roomState === "default" || roomState === "overflow";
   const updateLine = (value: string) => onLinesChange(safeLines.map((line, index) => index === activeLine ? value : line));
   const toggleLine = (index: number) => setVisibleLines((current) => current.map((visible, lineIndex) => lineIndex === index ? !visible : visible));
   const trimSilences = () => setVisibleLines((current) => current.map((visible, index) => silenceIndexes.includes(index) ? false : visible));
+  const shortenAll = () => {
+    const next = safeLines.map((line) => line.length > 24 ? `${line.slice(0, 23)}…` : line);
+    const changed = next.filter((line, index) => line !== safeLines[index]).length;
+    if (changed) onLinesChange(next);
+    setBulkMessage(changed ? `긴 문장 ${changed}개를 줄였습니다.` : "줄일 긴 문장이 없습니다.");
+  };
+  const politeAll = () => {
+    const next = safeLines.map((line) => line.replace(/(다|음|함)\.?$/u, "습니다").replace(/\s+$/u, ""));
+    const changed = next.filter((line, index) => line !== safeLines[index]).length;
+    if (changed) onLinesChange(next);
+    setBulkMessage(changed ? `${changed}개 문장의 말끝을 높임말로 맞췄습니다.` : "말끝이 이미 높임말입니다.");
+  };
+  const dropEmpty = () => {
+    const next = safeLines.filter((line) => line.trim());
+    const removed = safeLines.length - next.length;
+    if (removed) onLinesChange(next);
+    setBulkMessage(removed ? `빈 줄 ${removed}개를 걷어냈습니다.` : "빈 줄이 없습니다.");
+  };
   return (
-    <section data-room="edit" data-edit-kind={kind} className="space-y-region">
-      <section data-room-top="edit" aria-label="편집실 현재 작업" className="space-y-stack rounded-surface border border-border bg-surface px-pad-inset py-stack">
-        <div className="flex flex-wrap items-center justify-between gap-stack">
-          <b className="text-lead text-accent">{`${visibleCount}개 ${unit}`}</b>
-          <span className="text-caption text-subtle" data-edit-duration>
-            {kind === "text"
-              ? `${safeLines.join("\n\n").length}자 · 문단을 다듬는 중`
-              : kind === "audio" ? "음악 생성 준비 중" : kind === "card" ? "카드 안 글자를 다듬는 중" : `${durationLabel}초 · 대사를 다듬는 중`}
-          </span>
-        </div>
-        <div role="group" aria-label="편집할 콘텐츠 형식" className="flex flex-wrap gap-stack-tight">
-          {EDIT_KIND_ORDER.map((editKind) => (
-            <Button
-              key={editKind}
-              size="sm"
-              aria-label={EDIT_KIND_LABELS[editKind]}
-              aria-pressed={kind === editKind}
-              variant={kind === editKind ? "primary" : "secondary"}
-              onClick={() => onKindChange?.(editKind)}
-            >
-              {EDIT_KIND_LABELS[editKind]}
-            </Button>
-          ))}
-        </div>
-        <p className="break-keep text-caption text-subtle">
-          {kind === "text"
-            ? "글은 아래 문단 편집기에서 고칩니다. 발행 채널별 표현은 발행실에서 따로 맞춥니다."
-            : kind === "card"
-              ? "카드 안 글자를 직접 고치고, 글자 위치 옮기기를 잡아 원하는 자리로 끌어 놓습니다."
-              : kind === "video"
-                ? "영상은 장면별 대사를 고치고 순서를 다듬습니다. 완성 영상 파일이 없어도 대본 편집은 할 수 있습니다."
-                : "소리는 목소리와 배경음악을 다듬습니다. 음악 파일 생성은 아직 준비 중입니다."}
-        </p>
-      </section>
-      <div className="grid gap-stack-section lg:grid-cols-[minmax(0,1fr)_20rem]">
-        {kind === "text" ? (
-          // 글은 자막 줄이 아니라 문단이다(회장 2026-08-30 "글 선택했을때 자막고치듯이 저렇게 한 이유").
-          // 왼쪽은 문단 목차, 가운데는 전체 본문, 오른쪽 아래는 고른 문단만 고치는 칸이다.
-          <div className="card grid min-w-0 overflow-hidden md:grid-cols-[15rem_minmax(0,1fr)]" data-edit-workspace data-text-document-editor>
-            <nav className="min-w-0 max-h-[40vh] overflow-y-auto border-b border-border p-pad-inset md:border-b-0 md:border-r" aria-label={outlineTitle} data-edit-outline>
-              <b className="text-body text-text">{outlineTitle}</b>
-              <ol className="mt-stack space-y-stack-tight">{safeLines.map((line, index) => <li key={`${index}-${line.slice(0, 16)}`}><Button size="sm" variant={activeLine === index ? "primary" : "secondary"} onClick={() => setActiveLine(index)} className="ds-label-fill w-full min-w-0 justify-start overflow-hidden text-left"><span className="min-w-0 truncate">{index + 1}. {line || "빈 문단"}</span></Button></li>)}</ol>
-            </nav>
-            <div className="min-w-0 p-pad-inset">
-              <section aria-label="글 미리보기" data-edit-stage>
-                <div className="rounded-surface border border-border bg-surface-2 p-pad-inset">
-                  <b className="text-subheading text-text">글 본문</b>
-                  <span className="ml-stack-tight text-caption text-subtle">문단 사이에는 빈 줄을 둡니다</span>
-                  <textarea
-                    aria-label="글 본문"
-                    value={safeLines.join("\n\n")}
-                    rows={14}
-                    onChange={(event) => onLinesChange(event.target.value.split(/\n\s*\n/))}
-                    className="mt-stack min-h-80 w-full resize-y rounded-control border border-border bg-surface p-pad-inset text-body leading-relaxed text-text"
-                  />
+    <section data-room="edit" data-edit-kind={kind} data-edit-state={roomState} className="space-y-stack-section">
+      <div className={styles.editRoomGrid}>
+        <main className="min-w-0 space-y-pad-inset">
+          {editorVisible ? (
+            <>
+              <section data-room-top="edit" aria-label="편집실 현재 작업">
+                <h2 className="break-keep text-heading font-bold text-text">내용과 화면을 직접 다듬습니다</h2>
+                <p className="mt-stack-tight break-keep text-body-sm text-muted">만들 형식을 고른 뒤 결과물 자체를 고칩니다. 올릴 채널과 채널별 문구는 발행실에서 정합니다.</p>
+              </section>
+              <div role="group" aria-label="만들 콘텐츠 형식" className="flex flex-wrap gap-stack-tight">
+                {EDIT_KIND_ORDER.map((editKind) => (
+                  <Button
+                    key={editKind}
+                    size="sm"
+                    aria-label={EDIT_KIND_LABELS[editKind]}
+                    aria-pressed={kind === editKind}
+                    variant="secondary"
+                    className={kind === editKind ? "border-accent bg-accent-soft text-accent" : ""}
+                    onClick={() => onKindChange?.(editKind)}
+                  >
+                    {EDIT_KIND_LABELS[editKind]}
+                  </Button>
+                ))}
+              </div>
+              <p className="rounded-control bg-surface-2 p-pad-inset text-caption text-muted" data-platform-boundary>
+                <strong className="text-text">형식과 채널은 다릅니다.</strong> 여기서는 무엇을 만들지 고칩니다. 스레드, 인스타그램처럼 어디에 올릴지는 발행실에서 정합니다.
+              </p>
+              <div className={`card overflow-hidden ${styles.editWorkbench}`} data-edit-workspace data-text-document-editor={kind === "text" ? "true" : undefined}>
+                <nav className={`max-h-80 min-w-0 overflow-y-auto p-pad-inset ${styles.editOutline}`} aria-label={outlineTitle} data-edit-outline>
+                  <b className="text-body text-text">{outlineTitle}</b>
+                  <ol className="mt-stack space-y-stack-tight">{safeLines.map((line, index) => (
+                    <li key={`${index}-${line.slice(0, 16)}`}>
+                      <Button size="sm" variant="secondary" aria-pressed={activeLine === index} onClick={() => setActiveLine(index)} className={`ds-label-fill w-full min-w-0 justify-start overflow-hidden text-left ${activeLine === index ? "border-accent bg-accent-soft text-accent" : ""} ${visibleLines[index] ? "" : "line-through opacity-60"}`}>
+                        <span className="min-w-0 break-keep text-left">{index + 1}. {line || (kind === "text" ? "빈 문단" : "빈 대사")}</span>
+                      </Button>
+                    </li>
+                  ))}</ol>
+                </nav>
+                <div className="min-w-0 p-pad-inset">
+                  {kind === "text" ? (
+                    <section aria-labelledby="whole-text-title" data-edit-stage>
+                      <div className="mb-stack flex flex-wrap items-start justify-between gap-stack-tight">
+                        <div><b id="whole-text-title" className="text-body text-text">글 전체 편집</b><p className="text-caption text-subtle">공백 포함 {safeLines.join("\n\n").length}자 · 문단 {safeLines.length}개</p></div>
+                      </div>
+                      <textarea
+                        aria-label="글 전체"
+                        value={safeLines.join("\n\n")}
+                        rows={14}
+                        onChange={(event) => onLinesChange(event.target.value.split(/\n\s*\n/))}
+                        className="min-h-80 w-full resize-y overflow-y-auto rounded-control border border-border bg-surface p-pad-inset text-body leading-relaxed text-text"
+                      />
+                      <p className="mt-stack-tight text-caption text-subtle">문단을 나누거나 합쳐도 자동 저장됩니다.</p>
+                    </section>
+                  ) : (
+                    <>
+                      {kind === "audio" ? (
+                        <section className="space-y-pad-inset" data-edit-readiness>
+                          <div className="grid min-h-80 place-items-center rounded-surface bg-surface-2 p-region text-center"><b className="text-subheading text-text">나레이션 대사 편집</b></div>
+                          <p className="rounded-control border border-warning bg-warning-soft p-pad-inset text-body-sm text-warning">음악 파일 생성은 아직 제공하지 않습니다. 지금은 나레이션 대사만 편집할 수 있습니다.</p>
+                        </section>
+                      ) : (
+                        <>
+                          <section aria-label={kind === "card" ? "카드뉴스 미리보기" : "영상 미리보기"} data-edit-stage>
+                            <EditPreview
+                              kind={kind}
+                              lines={safeLines.map((line, index) => (visibleLines[index] ? line : ""))}
+                              activeLine={activeLine}
+                              onActiveLine={setActiveLine}
+                              subtitleSize={toolValues.자막}
+                              renderReady={previewReady}
+                              onLinesChange={onLinesChange}
+                              cardTextPositions={cardTextPositions}
+                              onCardTextPositionsChange={onCardTextPositionsChange}
+                              aspectRatio={toolValues.비율}
+                              onAspectRatioChange={(aspectRatio) => {
+                                if (toolOptions(formatKind, "비율").includes(aspectRatio)) {
+                                  setToolValues((current) => ({ ...current, 비율: aspectRatio }));
+                                }
+                              }}
+                            />
+                          </section>
+                          <section className="mt-pad-inset border-b border-border pb-pad-inset" aria-label="간편 편집 도구" data-edit-tools>
+                            <div className="flex flex-wrap gap-stack-tight">{tools.map((tool) => <Button key={tool} size="sm" variant="secondary" className={activeTool === tool ? "border-accent bg-accent-soft text-accent" : ""} onClick={() => setActiveTool(tool)} aria-pressed={activeTool === tool} aria-label={`${visibleToolName(kind, tool)} 도구`}><ToolIcon tool={tool} /><span>{visibleToolName(kind, tool)}: {visibleToolValue(tool, toolValues[tool], kind)}</span></Button>)}
+                              {kind === "video" ? <Button size="sm" onClick={trimSilences} disabled={visibleSilences === 0}>무음 구간 {visibleSilences}개 줄이기</Button> : null}
+                            </div>
+                            <div className="mt-pad-inset flex flex-wrap gap-stack-tight" aria-label={`${visibleToolName(kind, activeTool)} 선택지`}>{toolOptions(formatKind, activeTool).map((option) => <Button key={option} size="sm" variant="secondary" className={toolValues[activeTool] === option ? "border-accent bg-accent-soft text-accent" : ""} aria-pressed={toolValues[activeTool] === option} onClick={() => setToolValues((current) => ({ ...current, [activeTool]: option }))}>{visibleToolValue(activeTool, option, kind)}</Button>)}</div>
+                          </section>
+                        </>
+                      )}
+                      <section className="mt-pad-inset" aria-labelledby="edit-script-title" data-edit-script>
+                        <div className="mb-stack flex flex-wrap items-center justify-between gap-stack-tight"><b id="edit-script-title" className="text-body text-text">{kind === "card" ? "카드 글자" : kind === "audio" ? "나레이션 대사" : "선택한 장면 대사"}</b><span className="text-caption text-subtle" data-edit-duration={kind === "video" ? durationLabel : undefined}>{visibleCount}개 {unit}{kind === "video" ? ` · ${durationLabel}초` : ""}</span></div>
+                        <ol className="space-y-stack-tight">{safeLines.map((line, index) => <li key={`script-${index}`} className={`grid gap-stack-tight rounded-control border border-border bg-surface-2 p-stack md:grid-cols-[4rem_minmax(0,1fr)_auto] ${visibleLines[index] ? "" : "opacity-60"}`} data-script-line={index + 1}>
+                          <span className="text-caption text-subtle">{kind === "card" ? `${index + 1}장` : kind === "audio" ? `${index + 1}번째` : `${index * secondsPerLine}초부터`}</span>
+                          {activeLine === index ? <input aria-label={`${kind === "card" ? "문구" : "대사"} ${index + 1}`} value={line} onChange={(event) => updateLine(event.target.value)} className={`min-h-control-touch min-w-0 rounded-control border border-border bg-surface px-stack text-body-sm text-text ${visibleLines[index] ? "" : "line-through"}`} /> : <button type="button" onClick={() => setActiveLine(index)} className={`min-h-control-touch min-w-0 break-keep rounded-control px-stack text-left text-body-sm text-text hover:bg-surface ${visibleLines[index] ? "" : "line-through"}`}>{line || "빈 대사"}</button>}
+                          <Button size="sm" onClick={() => toggleLine(index)}>{visibleLines[index] ? "빼기" : "되살리기"}</Button>
+                        </li>)}</ol>
+                      </section>
+                    </>
+                  )}
                 </div>
-              </section>
-              <section className="mt-stack" aria-label="문단 고치기">
-                <b id="edit-paragraph-title" className="text-body text-text">문단</b>
-                <ol className="mt-stack space-y-stack-tight" aria-labelledby="edit-paragraph-title">{safeLines.map((line, index) => <li key={`p-${index}`} className="flex min-w-0 items-center gap-stack-tight">
-                  <span className="w-6 shrink-0 text-caption text-subtle">{index + 1}</span>
-                  <input
-                    aria-label={`문단 ${index + 1}`}
-                    value={line}
-                    onFocus={() => setActiveLine(index)}
-                    onChange={(event) => onLinesChange(safeLines.map((current, i) => (i === index ? event.target.value : current)))}
-                    className="min-h-control-touch min-w-0 flex-1 rounded-control border border-border bg-surface px-stack text-body-sm text-text"
-                  />
-                </li>)}</ol>
-              </section>
-            </div>
-          </div>
-        ) : <div className="card grid min-w-0 overflow-hidden md:grid-cols-[15rem_minmax(0,1fr)]" data-edit-workspace>
-          <nav className="min-w-0 max-h-[40vh] overflow-y-auto border-b border-border p-pad-inset md:border-b-0 md:border-r" aria-label={outlineTitle} data-edit-outline>
-            <b className="text-body text-text">{outlineTitle}</b>
-            <ol className="mt-stack space-y-stack-tight">{safeLines.map((line, index) => <li key={`${index}-${line.slice(0, 16)}`}><Button size="sm" variant={activeLine === index ? "primary" : "secondary"} onClick={() => setActiveLine(index)} className={`ds-label-fill w-full min-w-0 justify-start overflow-hidden text-left ${visibleLines[index] ? "" : "line-through opacity-60"}`}><span className="min-w-0 truncate">{index + 1}. {line || "빈 대사"}</span></Button></li>)}</ol>
-          </nav>
-          <div className="min-w-0 p-pad-inset">
-            {kind === "audio" ? <section className="grid min-h-80 place-items-center rounded-surface border border-dashed border-border bg-surface-2 p-region text-center" data-edit-readiness><div className="max-w-xl"><b className="text-subheading text-text">음악 생성 백엔드는 준비 중입니다</b><p className="mt-stack break-keep text-body-sm text-muted">현재는 나레이션 대사만 확인할 수 있습니다. 음악 파일이나 파형은 아직 표시하지 않습니다.</p></div></section> : <>
-              <section aria-label={kind === "card" ? "카드뉴스 미리보기" : "영상 미리보기"} data-edit-stage>
-                <EditPreview
-                  kind={kind}
-                  lines={safeLines.map((line, index) => (visibleLines[index] ? line : ""))}
-                  activeLine={activeLine}
-                  onActiveLine={setActiveLine}
-                  subtitleSize={toolValues.자막}
-                  renderReady={previewReady}
-                  onLinesChange={onLinesChange}
-                  cardTextPositions={cardTextPositions}
-                  onCardTextPositionsChange={onCardTextPositionsChange}
-                />
-              </section>
-              <section className="mt-stack border-b border-border pb-stack" aria-label="간편 편집 도구" data-edit-tools>
-                <div className="flex flex-wrap gap-stack-tight">{tools.map((tool) => <Button key={tool} size="sm" variant={activeTool === tool ? "primary" : "secondary"} onClick={() => setActiveTool(tool)} aria-pressed={activeTool === tool} aria-label={`${visibleToolName(kind, tool)} 도구`}><ToolIcon tool={tool} /><span>{visibleToolName(kind, tool)}: {visibleToolValue(tool, toolValues[tool])}</span></Button>)}
-                  {kind === "video" ? <Button size="sm" onClick={trimSilences} disabled={visibleSilences === 0}>무음 구간 {visibleSilences}개 줄이기</Button> : null}
-                </div>
-                <div className="mt-stack flex flex-wrap gap-stack-tight" aria-label={`${visibleToolName(kind, activeTool)} 선택지`}>{toolOptions(formatKind, activeTool).map((option) => <Button key={option} size="sm" variant={toolValues[activeTool] === option ? "primary" : "secondary"} aria-pressed={toolValues[activeTool] === option} onClick={() => setToolValues((current) => ({ ...current, [activeTool]: option }))}>{visibleToolValue(activeTool, option)}</Button>)}</div>
-              </section>
-            </>}
-            <section className="mt-pad-inset" aria-labelledby="edit-script-title" data-edit-script>
-              <div className="mb-stack flex flex-wrap items-center justify-between gap-stack-tight"><b id="edit-script-title" className="text-body text-text">{kind === "card" ? "장 문구" : "대사"}</b><span className="text-caption text-subtle">화면 아래에서 바로 고칩니다</span></div>
-              <ol className="space-y-stack-tight">{safeLines.map((line, index) => <li key={`script-${index}`} className={`grid gap-stack-tight rounded-control border border-border bg-surface-2 p-stack md:grid-cols-[4rem_minmax(0,1fr)_auto] ${visibleLines[index] ? "" : "opacity-60"}`} data-script-line={index + 1}>
-                <span className="text-caption text-subtle">{index * secondsPerLine}초부터</span>
-                {activeLine === index ? <input aria-label={`${kind === "card" ? "문구" : "대사"} ${index + 1}`} value={line} onChange={(event) => updateLine(event.target.value)} className={`min-h-control-touch min-w-0 rounded-control border border-border bg-surface px-stack text-body-sm text-text ${visibleLines[index] ? "" : "line-through"}`} /> : <button type="button" onClick={() => setActiveLine(index)} className={`min-h-control-touch min-w-0 break-keep rounded-control px-stack text-left text-body-sm text-text hover:bg-surface ${visibleLines[index] ? "" : "line-through"}`}>{line || "빈 대사"}</button>}
-                <Button size="sm" onClick={() => toggleLine(index)}>{visibleLines[index] ? "빼기" : "되살리기"}</Button>
-              </li>)}</ol>
+              </div>
+            </>
+          ) : roomState === "empty" ? (
+            <StateNotice tone="empty" title="아직 편집할 작업물이 없습니다" description="생성실에서 초안을 고르면 글, 카드뉴스, 영상 형식에 맞는 편집 도구가 열립니다." actionLabel="생성실에서 작업물 고르기" onAction={onOpenCreate} className="min-h-80 justify-center" />
+          ) : roomState === "error" ? (
+            <StateNotice tone="error" title="편집 내용을 불러오지 못했어요" description="마지막 자동 저장본은 남아 있습니다. 연결을 확인한 뒤 다시 불러오세요." actionLabel="다시 불러오기" onAction={onRetry} className="min-h-80 justify-center" />
+          ) : (
+            <section aria-label="편집 내용 불러오는 중" aria-busy="true" className="card grid min-h-80 place-items-center p-region">
+              <div className="w-full max-w-sm space-y-pad-inset"><div className="h-10 animate-pulse rounded-control bg-surface-2" /><div className="h-44 animate-pulse rounded-control bg-surface-2" /><div className="h-10 animate-pulse rounded-control bg-surface-2" /></div>
             </section>
-          </div>
-        </div>}
-        {commandPanel ?? <AssistantPanel title="편집 담당"><Stack gap={12}><div className="rounded-control border border-border bg-surface p-stack"><span className="text-caption text-subtle">현재 위치</span><p className="mt-micro text-body text-text">{activeLine + 1} / {safeLines.length}</p></div><div className="rounded-control border border-border bg-surface p-stack"><span className="text-caption text-subtle">지금 고치는 것</span><p className="mt-micro text-body text-text">{kind === "card" ? "카드뉴스" : kind === "text" ? "글" : kind === "audio" ? "음악" : "영상"}</p></div></Stack></AssistantPanel>}
+          )}
+        </main>
+        {commandPanel ?? (
+          <aside className={`card p-pad-inset ${styles.editHelper}`} aria-label="편집 담당" data-edit-helper>
+            <div className={styles.editHelperActions}>
+              <h2 className="text-body font-bold text-text">전체에 한 번에 적용</h2>
+              <p className="mt-stack-tight break-keep text-caption text-muted">반복해서 고칠 일은 담당에게 맡길 수 있습니다.</p>
+              <div className="mt-pad-inset grid gap-stack-tight">
+                <Button className="w-full min-w-0 justify-start" onClick={shortenAll} disabled={!hasEditableContent}>전부 짧게 줄이기</Button>
+                <Button className="w-full min-w-0 justify-start" onClick={politeAll} disabled={!hasEditableContent}>말끝을 높임말로 맞추기</Button>
+                <Button className="w-full min-w-0 justify-start" onClick={dropEmpty} disabled={!hasEditableContent}>빈 줄 걷어내기</Button>
+              </div>
+              {bulkMessage ? <p className="mt-stack text-caption text-success" aria-live="polite">{bulkMessage}</p> : null}
+            </div>
+            <div className={styles.editHelperFooter}>
+              <small className={autosaveError ? "text-caption text-danger" : "text-caption text-success"}>{autosaveError || (lastSavedAt ? `마지막 자동 저장 ${lastSavedAt}` : "고치는 대로 자동 저장됨")}</small>
+              <Button variant="primary" size="lg" className="w-full min-w-0" onClick={onOpenPublish} disabled={!editorVisible || !hasEditableContent || Boolean(autosaveError) || moveBusy}>{moveBusy ? "저장하고 이동 중" : "발행실로 이동"}</Button>
+            </div>
+          </aside>
+        )}
       </div>
     </section>
   );

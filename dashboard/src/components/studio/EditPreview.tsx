@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/shared/Button";
 import type { EditContentKind } from "./StudioRooms";
 import styles from "./EditPreview.module.css";
@@ -53,14 +53,11 @@ const CARD_POSITION_CLASS: Record<CardTextPosition, string> = {
   "bottom-right": styles.cardBottomRight,
 };
 
-function cardPositionAt(clientX: number, clientY: number, bounds: DOMRect): CardTextPosition {
-  const column = clientX < bounds.left + bounds.width / 3
-    ? "left"
-    : clientX > bounds.left + (bounds.width * 2) / 3 ? "right" : "center";
+function cardPositionAt(clientY: number, bounds: DOMRect): CardTextPosition {
   const row = clientY < bounds.top + bounds.height / 3
     ? "top"
     : clientY > bounds.top + (bounds.height * 2) / 3 ? "bottom" : "center";
-  return row === "center" && column === "center" ? "center" : `${row}-${column}` as CardTextPosition;
+  return row === "top" ? "top-center" : row === "bottom" ? "bottom-center" : "center";
 }
 
 const SUBTITLE_CLASS: Record<string, string> = {
@@ -105,6 +102,8 @@ export function EditPreview({
   onLinesChange,
   cardTextPositions = [],
   onCardTextPositionsChange,
+  aspectRatio,
+  onAspectRatioChange,
 }: {
   kind: EditContentKind;
   /** 화면에 남아 있는 대사만 넘긴다 */
@@ -117,26 +116,36 @@ export function EditPreview({
   onLinesChange?: (lines: string[]) => void;
   cardTextPositions?: CardTextPosition[];
   onCardTextPositionsChange?: (positions: CardTextPosition[]) => void;
+  aspectRatio?: string;
+  onAspectRatioChange?: (aspectRatio: string) => void;
 }) {
   const specs = useMemo(() => PREVIEW_SPECS.filter((spec) => spec.kinds.includes(kind)), [kind]);
-  const [specKey, setSpecKey] = useState(specs[0]?.key ?? "shorts");
+  const matchingSpec = specs.find((one) => one.ratio.replaceAll(" ", "").replace("/", ":") === aspectRatio);
+  const [specKey, setSpecKey] = useState(matchingSpec?.key ?? specs[0]?.key ?? "shorts");
+  useEffect(() => {
+    setSpecKey(matchingSpec?.key ?? specs[0]?.key ?? "shorts");
+  }, [matchingSpec?.key, specs]);
   const spec = specs.find((one) => one.key === specKey) ?? specs[0] ?? PREVIEW_SPECS[0];
   const line = lines[activeLine] ?? lines[0] ?? "";
   const unit = kind === "card" ? "장" : kind === "text" ? "문단" : "장면";
   const cardPosition = cardTextPositions[activeLine] ?? "center";
+  const cardVerticalPosition = cardPosition.startsWith("top") ? "top" : cardPosition.startsWith("bottom") ? "bottom" : "center";
   const movingCardText = useRef(false);
   // 자막이 아래 UI가 덮는 자리 안으로 들어가면 실제 업로드 화면에서 가린다.
   const subtitleHidden = spec.safeBottom >= 20 && (subtitleSize === "크게" || line.length > 34);
 
   return (
     <section aria-label="올릴 규격으로 미리보기" data-edit-preview={spec.key} className="min-w-0">
-      <div className="mb-stack flex flex-wrap items-center gap-stack-tight" role="group" aria-label="올릴 플랫폼 고르기">
+      <div className="mb-stack flex flex-wrap items-center gap-stack-tight" role="group" aria-label="콘텐츠 크기 고르기">
         {specs.map((one) => (
-          <Button key={one.key} size="sm" variant={one.key === spec.key ? "primary" : "secondary"} aria-pressed={one.key === spec.key} onClick={() => setSpecKey(one.key)}>
+          <Button key={one.key} size="sm" variant="secondary" className={one.key === spec.key ? "border-accent bg-accent-soft text-accent" : ""} aria-pressed={one.key === spec.key} onClick={() => {
+            setSpecKey(one.key);
+            onAspectRatioChange?.(one.ratio.replaceAll(" ", "").replace("/", ":"));
+          }}>
             {one.label}
           </Button>
         ))}
-        <span className="ml-auto text-caption text-subtle" data-edit-preview-size>{spec.size}</span>
+        <span className="ml-auto text-caption text-subtle" data-edit-preview-size>{spec.size}픽셀</span>
       </div>
 
       <div className="grid place-items-center rounded-surface border border-border bg-surface-2 p-stack">
@@ -148,7 +157,7 @@ export function EditPreview({
             if (kind !== "card" || !movingCardText.current || !onCardTextPositionsChange) return;
             movingCardText.current = false;
             const next = lines.map((_, index) => cardTextPositions[index] ?? "center");
-            next[activeLine] = cardPositionAt(event.clientX, event.clientY, event.currentTarget.getBoundingClientRect());
+            next[activeLine] = cardPositionAt(event.clientY, event.currentTarget.getBoundingClientRect());
             onCardTextPositionsChange(next);
           }}
         >
@@ -209,6 +218,29 @@ export function EditPreview({
         </div>
       </div>
 
+      {kind === "card" ? (
+        <div className="mt-stack flex flex-wrap items-center gap-stack-tight" role="group" aria-label="카드 글자 위치">
+          <span className="text-caption font-semibold text-muted">글자 위치</span>
+          {(["top", "center", "bottom"] as const).map((position) => (
+            <Button
+              key={position}
+              size="sm"
+              variant="secondary"
+              className={cardVerticalPosition === position ? "border-accent bg-accent-soft text-accent" : ""}
+              aria-pressed={cardVerticalPosition === position}
+              onClick={() => {
+                if (!onCardTextPositionsChange) return;
+                const next = lines.map((_, index) => cardTextPositions[index] ?? "center");
+                next[activeLine] = position === "top" ? "top-center" : position === "bottom" ? "bottom-center" : "center";
+                onCardTextPositionsChange(next);
+              }}
+            >
+              {position === "top" ? "상단" : position === "bottom" ? "하단" : "중앙"}
+            </Button>
+          ))}
+        </div>
+      ) : null}
+
       <div className="mt-stack flex flex-wrap items-center gap-stack-tight">
         <Button size="sm" onClick={() => onActiveLine(Math.max(0, activeLine - 1))} disabled={activeLine <= 0}>앞 {unit}</Button>
         <span className="text-caption text-subtle">{activeLine + 1} / {Math.max(lines.length, 1)}</span>
@@ -225,7 +257,7 @@ export function EditPreview({
       ) : null}
       {!renderReady ? (
         <p className="mt-stack-tight break-keep text-caption text-subtle">
-          아직 실제 파일이 나오기 전이라 장면과 자막 배치만 보여 드립니다. 위치와 잘림은 이 화면 그대로입니다.
+          {kind === "card" ? "아직 실제 이미지가 나오기 전이라 카드 글자와 위치만 보여 드립니다." : "아직 실제 파일이 나오기 전이라 장면과 자막 배치만 보여 드립니다. 위치와 잘림은 이 화면 그대로입니다."}
         </p>
       ) : null}
     </section>

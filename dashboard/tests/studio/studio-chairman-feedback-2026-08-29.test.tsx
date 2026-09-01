@@ -192,7 +192,7 @@ describe("편집실 미리보기 (회장: 컨텐츠가 미리볼 수 있는게 �
     const onLinesChange = vi.fn();
     render(<EditRoom lines={["첫 문단", "둘째 문단"]} onLinesChange={onLinesChange} kind="text" />);
 
-    const editor = screen.getByRole("textbox", { name: "글 본문" });
+    const editor = screen.getByRole("textbox", { name: "글 전체" });
     expect(editor).toHaveValue("첫 문단\n\n둘째 문단");
     expect(screen.queryByText(/초부터/)).not.toBeInTheDocument();
     expect(screen.queryByText("대사")).not.toBeInTheDocument();
@@ -201,12 +201,12 @@ describe("편집실 미리보기 (회장: 컨텐츠가 미리볼 수 있는게 �
     expect(onLinesChange).toHaveBeenLastCalledWith(["고친 첫 문단", "고친 둘째 문단"]);
   });
 
-  it("R-S10-32 정상: 편집할 콘텐츠 형식은 글·카드뉴스·영상·소리를 모두 한곳에 보여 준다", () => {
+  it("R-S10-32 정상: 만들 콘텐츠 형식은 글·카드뉴스·영상·음악을 모두 한곳에 보여 준다", () => {
     const onKindChange = vi.fn();
     render(<EditRoom lines={["본문"]} onLinesChange={noop} kind="text" onKindChange={onKindChange} />);
 
-    const group = screen.getByRole("group", { name: "편집할 콘텐츠 형식" });
-    for (const label of ["글", "카드뉴스", "영상", "소리"]) {
+    const group = screen.getByRole("group", { name: "만들 콘텐츠 형식" });
+    for (const label of ["글", "카드뉴스", "영상", "음악"]) {
       expect(group.querySelector(`button[aria-label="${label}"]`)).not.toBeNull();
     }
     fireEvent.click(screen.getByRole("button", { name: "영상" }));
@@ -236,6 +236,6 @@ describe("편집실 미리보기 (회장: 컨텐츠가 미리볼 수 있는게 �
     });
     fireEvent.pointerDown(screen.getByRole("button", { name: "카드 글자 끌어 옮기기" }), { pointerId: 1 });
     fireEvent.pointerUp(canvas, { pointerId: 1, clientX: 280, clientY: 40 });
-    expect(onPositionsChange).toHaveBeenCalledWith(["top-right"]);
+    expect(onPositionsChange).toHaveBeenCalledWith(["top-center"]);
   });
 });

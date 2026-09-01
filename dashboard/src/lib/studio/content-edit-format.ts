@@ -1,5 +1,5 @@
 export const VIDEO_ASPECT_RATIOS = ["9:16", "1:1", "16:9"] as const;
-export const CARD_ASPECT_RATIOS = ["1:1", "4:5"] as const;
+export const CARD_ASPECT_RATIOS = ["4:5", "1:1"] as const;
 export const SUBTITLE_SIZES = ["작게", "보통", "크게"] as const;
 export const PLAYBACK_SPEEDS = [0.75, 1, 1.25, 1.5] as const;
 export const EDIT_VOICES = ["차분한 남성", "또렷한 여성", "내 목소리 복제"] as const;
@@ -57,7 +57,7 @@ function oneOf<T extends readonly unknown[]>(
 
 export function defaultContentEditFormat(kind: ContentEditFormat["kind"]): ContentEditFormat {
   if (kind === "card") {
-    return { kind, aspectRatio: "1:1", subtitleSize: "보통", background: "작업실 책상" };
+    return { kind, aspectRatio: "4:5", subtitleSize: "보통", background: "작업실 책상" };
   }
   if (kind === "audio") {
     return { kind, voice: "차분한 남성", musicTrack: "없음", musicVolume: 20 };

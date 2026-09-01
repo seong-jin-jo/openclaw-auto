@@ -184,7 +184,7 @@ describe("Studio publish result integrity", () => {
     render(<StudioPage />);
 
     await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith("승인 인박스 작업물을 불러왔습니다", "success"));
-    expect(screen.getByRole("button", { name: "선택한 1곳에 지금 발행" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("button", { name: "선택한 1곳에 지금 발행" })).toBeInTheDocument());
     expect(screen.getByRole("checkbox", { name: "Threads 발행" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "X 발행" })).not.toBeChecked();
   });
@@ -660,6 +660,43 @@ describe("Studio publish result integrity", () => {
       "error",
     ));
     expect(mocks.apiPost.mock.calls.filter(([path]) => path === "/api/publish")).toHaveLength(0);
+  });
+
+  it("V65-PAGE-01 정상: 글을 직접 고친 뒤 저장 API를 호출하고 발행실로 이동한다", async () => {
+    window.history.replaceState(null, "", "/studio?room=edit");
+    localStorage.setItem(`studio_work:${mocks.workspace.id}`, JSON.stringify({
+      idea: "편집실 이동 테스트",
+      text: {
+        threads: "고치기 전 본문",
+        x: "고치기 전 본문",
+        facebook: "고치기 전 본문",
+        instagram: { caption: "고치기 전 본문", slides: ["고치기 전 본문"] },
+      },
+      editLines: ["고치기 전 본문"],
+      editKind: "text",
+      editFormat: { kind: "card", aspectRatio: "4:5", subtitleSize: "보통", background: "작업실 책상" },
+    }));
+    mocks.apiPost.mockImplementation(async (path: string) => {
+      if (path === "/api/studio/drafts") return { id: "draft-v65" };
+      throw new Error(`unexpected path: ${path}`);
+    });
+
+    render(<StudioPage />);
+    const editor = await screen.findByRole("textbox", { name: "글 전체" });
+    fireEvent.change(editor, { target: { value: "발행실로 넘길 본문" } });
+    fireEvent.click(screen.getByRole("button", { name: "발행실로 이동" }));
+
+    await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith("/api/studio/drafts", expect.objectContaining({
+      id: null,
+      editLines: ["발행실로 넘길 본문"],
+      text: expect.objectContaining({
+        threads: "발행실로 넘길 본문",
+        x: "발행실로 넘길 본문",
+        facebook: "발행실로 넘길 본문",
+      }),
+    })));
+    expect(mocks.setStudioRoom).toHaveBeenCalledWith("publish");
+    expect(window.location.pathname + window.location.search).toBe("/studio?room=publish");
   });
 });
 

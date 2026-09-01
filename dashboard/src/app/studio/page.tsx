@@ -29,7 +29,6 @@ import { RoomHeader } from "@/components/shared/RoomHeader";
 import { Field } from "@/components/shared/Field";
 import { Stack } from "@/components/shared/Stack";
 import { SCHEDULABLE_PLATFORMS } from "@/lib/constants";
-import { StudioCommandPanel } from "@/components/studio/StudioCommandPanel";
 import type { CardTextPosition } from "@/components/studio/EditPreview";
 import type { EditorHandoff } from "@/lib/studio/editor-handoff";
 import { resolveStudioRoomFromSearch, shouldLoadPublishResources } from "@/lib/studio/room-routing";
@@ -230,6 +229,9 @@ export default function StudioPage() {
   const [publishChatDraft, setPublishChatDraft] = useState("");
   const [editLines, setEditLines] = useState<string[]>([]);
   const [cardTextPositions, setCardTextPositions] = useState<CardTextPosition[]>([]);
+  const [editSavedAt, setEditSavedAt] = useState("");
+  const [editAutosaveError, setEditAutosaveError] = useState("");
+  const [moveToPublishBusy, setMoveToPublishBusy] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<StudioGenerationCandidate | null>(null);
   const [createBranch, setCreateBranch] = useState<CreateContentBranch>("video");
   const [createPrimaryKind, setCreatePrimaryKind] = useState<CreateKind | null>(null);
@@ -355,12 +357,44 @@ export default function StudioPage() {
   useEffect(() => {
     const workspaceId = activeWorkspace?.id;
     if (!workspaceId || hydratedWorkspaceId !== workspaceId) return;
-    try { localStorage.setItem(studioWorkStorageKey(workspaceId), JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, captions, editLines, cardTextPositions, reviewQueueId, editKind, editFormat })); } catch { /* noop */ }
+    try {
+      localStorage.setItem(studioWorkStorageKey(workspaceId), JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, captions, editLines, cardTextPositions, reviewQueueId, editKind, editFormat }));
+      setEditSavedAt(new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date()));
+      setEditAutosaveError("");
+    } catch {
+      setEditAutosaveError("자동 저장하지 못했습니다. 브라우저 저장 공간을 확인해 주세요.");
+    }
   }, [activeWorkspace?.id, hydratedWorkspaceId, idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, captions, editLines, cardTextPositions, reviewQueueId, editKind, editFormat]);
 
   const media = { imgUrl: img?.file, vidUrl: vid?.file };
   const upText = (patch: Partial<TextVariants>) => setText((p) => ({ ...(p || {}), ...patch }));
   const upIg = (patch: Partial<NonNullable<TextVariants["instagram"]>>) => setText((p) => ({ ...(p || {}), instagram: { ...(p?.instagram || {}), ...patch } }));
+  const syncEditLines = (nextLines: string[]) => {
+    setEditLines(nextLines);
+    setText((current) => {
+      if (!current) return current;
+      const body = nextLines.join("\n\n");
+      if (editKind === "text") {
+        return {
+          ...current,
+          threads: body,
+          x: body,
+          facebook: body,
+          instagram: { ...(current.instagram || {}), caption: body },
+        };
+      }
+      if (editKind === "card") {
+        return { ...current, instagram: { ...(current.instagram || {}), slides: nextLines } };
+      }
+      if (editKind === "video") {
+        const [hook = "", ...rest] = nextLines;
+        const cta = rest.length > 0 ? rest[rest.length - 1] : "";
+        const middle = rest.length > 1 ? rest.slice(0, -1) : [];
+        return { ...current, shorts: { ...(current.shorts || {}), hook, body: middle.join("\n"), cta } };
+      }
+      return current;
+    });
+  };
 
   async function genText() {
     setLastError(null);
@@ -443,6 +477,7 @@ export default function StudioPage() {
     status: "draft" | "published" | "partial" | "stopped" = "draft",
     reconciliations: PublishReconciliationMap = publishReconciliations,
     persistedDraftId: string | null = draftId,
+    persistedEditLines: string[] = editLines,
   ) {
     const r = await apiPost<{ id?: string }>("/api/studio/drafts", {
       tenant_id: activeWorkspace?.id,
@@ -459,12 +494,31 @@ export default function StudioPage() {
       hashtags,
       firstComments,
       captions,
-      editLines,
+      editLines: persistedEditLines,
       cardTextPositions,
       editFormat,
       publishedAt: status === "published" ? new Date().toISOString() : undefined,
     });
     if (r?.id) setDraftId(r.id); mutateHist(); return r?.id;
+  }
+  async function moveToPublish() {
+    const linesToPersist = editLines.length ? editLines : [text?.shorts?.hook || "", text?.shorts?.body || "", text?.shorts?.cta || ""].filter(Boolean);
+    if (!linesToPersist.some((line) => line.trim())) {
+      showToast("발행실로 넘길 편집 내용이 없습니다", "error");
+      return;
+    }
+    setMoveToPublishBusy(true);
+    try {
+      const savedDraftId = await save("draft", publishReconciliations, draftId, linesToPersist);
+      if (!savedDraftId) throw new Error("편집 내용을 저장하지 못했습니다");
+      if (!editLines.length) setEditLines(linesToPersist);
+      changeRoom("publish");
+      showToast("편집 내용을 저장하고 발행실로 이동했습니다", "success");
+    } catch (error) {
+      showToast(extractApiErrorMessage(error, "편집 내용을 저장하지 못했습니다"), "error");
+    } finally {
+      setMoveToPublishBusy(false);
+    }
   }
   // 플랫폼별 발행 텍스트 추출
   function platformText(p: PreviewPlatform): string {
@@ -950,32 +1004,22 @@ export default function StudioPage() {
       {roomHeader}
       <EditRoom
         lines={resolvedEditLines}
-        onLinesChange={setEditLines}
+        onLinesChange={syncEditLines}
         kind={editKind}
+        onKindChange={(nextKind) => {
+          setEditKind(nextKind);
+          setEditFormat(defaultContentEditFormat(nextKind === "text" ? "card" : nextKind));
+        }}
         initialFormat={editFormat}
         onFormatChange={setEditFormat}
         previewReady={editKind === "video" ? Boolean(vid?.file) : editKind === "card" ? Boolean(img?.file) : false}
-        commandPanel={activeWorkspace ? <StudioCommandPanel
-          workspaceId={activeWorkspace.id}
-          draftId={draftId}
-          idea={idea}
-          text={text}
-          imageUrl={img?.file ?? null}
-          videoUrl={vid?.file ?? null}
-          editorLines={resolvedEditLines}
-          onEditorLinesChange={setEditLines}
-          source={{ generationId: selectedCandidate?.generation_id, candidateId: selectedCandidate?.candidate_id }}
-          initialHandoff={editorHandoff}
-          preferredKind={editKind === "video" ? "video" : editKind === "audio" ? "audio" : editKind === "text" ? "text" : "card"}
-          onKindSelect={(kind) => {
-            const nextKind = kind === "video" ? "video" : kind === "audio" ? "audio" : kind === "text" ? "text" : "card";
-            setEditKind(nextKind);
-            setEditFormat(defaultContentEditFormat(nextKind === "text" ? "card" : nextKind));
-          }}
-          onDraftId={setDraftId}
-          onHandoff={setEditorHandoff}
-          onQueueChanged={() => mutateHist()}
-        /> : undefined}
+        cardTextPositions={cardTextPositions}
+        onCardTextPositionsChange={setCardTextPositions}
+        onOpenCreate={() => changeRoom("create")}
+        onOpenPublish={moveToPublish}
+        lastSavedAt={editSavedAt}
+        moveBusy={moveToPublishBusy}
+        autosaveError={editAutosaveError}
       />
     </div>
   );
