@@ -1,5 +1,17 @@
 # 세션 상태 (얇은 인덱스)
 
+## 2026-09-01 08:13 KST | pane osmu-publishfield0901b | 발행실 플랫폼 필드 v66 디자인 증분
+
+- 핸드오프 기준: 회장이 이 턴에 지정한 `work/publishfield2` 디자인 과제. 현재 tmux pane은 이 작업 셸뿐이며 다른 진행 transcript는 없었다. ADR-004, ADR-006, 실수 목록, 요청 원문, v64 승인 시안, DESIGN.md, QA 대조표, 실제 `PlatformPreview.tsx`와 `studio/page.tsx`를 순서대로 읽었다.
+- 기존 구현 확인: 일곱 플랫폼 미리보기, 미리보기 안 직접 편집, 발행 뒤 첫 댓글 4곳, 임시 저장, 검토 요청, 즉시 발행, 예약 발행이 이미 있다. 동시에 표시 이름 편집과 일괄 통일, 일반 캡션 한도, `승인 인박스로 보내면` 설명이 남아 있다. 제품 코드는 수정하지 않았다.
+- 디자인 산출물: DESIGN.md v35, `docs/reference/플랫폼-발행-필드-규격-2026-09-01.md`, `docs/prototype/osmu-publishfield-v66-gpt-codex-20260901-0813.html`, 같은 이름의 WIREFRAMES 문서, `docs/user-flow.md` v66 증분. 구현 커밋이 아니라 디자인 계약 커밋 `68062525`다.
+- 설계 결론: 표시 이름과 사용자명은 OAuth 연결 계정 정보이며 읽기 전용이다. 게시물 편집은 플랫폼별 실제 필드만 갖는다. X 해시태그 2개는 권고, Facebook 본문과 해시태그 및 TikTok 해시태그 개수는 공식 고정 상한을 확인하지 못해 `규격 확인 필요`로 남겼다. 사용자 용어는 `검토 요청하기`, `검토 대기`, `플랫폼 연결 준비 중`이다.
+- 실렌더: Chromium으로 1024와 390에서 기본, 빈 상태, 불러오는 중, 오류, 긴 내용 총 10조합을 확인했다. 문서, 앱, 본문 가로 넘침 0, 콘솔 오류 0. 기본 상태 일곱 카드, 표시 이름 편집기 0개, 읽기 전용 계정 머리 7개, Threads 501자 초과 경고, X 2개 권고, 플랫폼 집중 필터를 관찰했다.
+- 회귀 검증: `cd dashboard && npx tsc --noEmit` 오류 0. `npx vitest run tests/publish tests/api` 68파일, 523건 통과, 조건부 2건 제외, 실패 0. 첫 tsc 실행은 의존성 미설치로 실패했고 `npm ci` 뒤 같은 명령이 통과했다.
+- 남은 gap: 실제 `PlatformPreview.tsx`, `studio/page.tsx`, `channel-text-limits.ts`, 테스트에는 잘못된 표시 이름 편집과 임의 규격이 그대로다. 이 세션은 디자인 역할이므로 고치지 않았다. 디자인 게이트 승인 뒤 code-builder가 v66과 규격 문서를 버전핀으로 읽어 구현해야 한다.
+- 출고 상태: 제품 코드와 `.codex/logs/harness.jsonl`은 커밋에서 제외했다. 대상 원격은 `origin/work/publishfield2`, PR 병합과 Meta 개발자 콘솔 조작은 금지 상태다.
+- 다음 액션: 부모 컨트롤러가 v66 디자인을 검토해 승인 여부를 판단한다. 승인 증거는 DESIGN.md v35와 v66 프로토타입 버전핀이다. 승인되면 build 단계 소유자는 code-builder, 종료 증거는 표시 이름 편집 0, 플랫폼별 제한 테스트, TypeScript와 지정 Vitest 통과, 실제 브라우저 렌더다.
+
 ## 2026-09-01 06:56 KST | pane osmu-terms0901 | 인프라 표준 용어 교정
 
 - 핸드오프 기준: 회장이 이 턴에 지정한 문서 전용 과제와 `osmu-terms0901:0.0` pane. 요구된 입력, ADR-004, ADR-006, 현 구현 파일을 대조했다.
