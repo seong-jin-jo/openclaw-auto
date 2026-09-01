@@ -9,6 +9,9 @@ export const EDIT_MUSIC_VOLUMES = [0, 10, 20, 35] as const;
 
 export type ContentEditFormat =
   | {
+    kind: "text";
+  }
+  | {
     kind: "video";
     aspectRatio: typeof VIDEO_ASPECT_RATIOS[number];
     subtitleSize: typeof SUBTITLE_SIZES[number];
@@ -56,6 +59,7 @@ function oneOf<T extends readonly unknown[]>(
 }
 
 export function defaultContentEditFormat(kind: ContentEditFormat["kind"]): ContentEditFormat {
+  if (kind === "text") return { kind };
   if (kind === "card") {
     return { kind, aspectRatio: "4:5", subtitleSize: "보통", background: "작업실 책상" };
   }
@@ -70,6 +74,9 @@ export function validateContentEditFormat(value: unknown): ContentEditFormatVali
     return { valid: false, value: null, issues: [{ field: "edit_format", message: "edit_format은 객체여야 합니다" }] };
   }
   const issues: ContentEditFormatIssue[] = [];
+  if (value.kind === "text") {
+    return { valid: true, value: { kind: "text" }, issues: [] };
+  }
   if (value.kind === "video") {
     const aspectRatio = oneOf(value, "aspectRatio", VIDEO_ASPECT_RATIOS, issues);
     const subtitleSize = oneOf(value, "subtitleSize", SUBTITLE_SIZES, issues);
@@ -101,6 +108,6 @@ export function validateContentEditFormat(value: unknown): ContentEditFormatVali
   return {
     valid: false,
     value: null,
-    issues: [{ field: "kind", message: "kind 값은 video, card, audio 중 하나여야 합니다" }],
+    issues: [{ field: "kind", message: "kind 값은 text, video, card, audio 중 하나여야 합니다" }],
   };
 }

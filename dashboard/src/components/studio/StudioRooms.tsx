@@ -574,11 +574,14 @@ function toolValuesFromFormat(format: ContentEditFormat): ToolValues {
   if (format.kind === "card") {
     return { ...defaults, 비율: format.aspectRatio, 배경: format.background, 자막: format.subtitleSize };
   }
+  if (format.kind === "text") return defaults;
   return { ...defaults, 목소리: format.voice, 음악: format.musicTrack, 음량: `${format.musicVolume}%` };
 }
 
 function formatFromToolValues(kind: ContentEditFormat["kind"], values: ToolValues): ContentEditFormat {
-  const candidate = kind === "video"
+  const candidate = kind === "text"
+    ? { kind }
+    : kind === "video"
     ? { kind, aspectRatio: values.비율, subtitleSize: values.자막, playbackSpeed: Number.parseFloat(values.속도), voice: values.목소리 }
     : kind === "card"
       ? { kind, aspectRatio: values.비율, subtitleSize: values.자막, background: values.배경 }
@@ -619,7 +622,7 @@ export function EditRoom({
   moveBusy = false,
   autosaveError,
 }: EditRoomProps) {
-  const formatKind = kind === "text" ? "card" : kind;
+  const formatKind = kind;
   const safeLines = lines.length ? lines : [""];
   const [activeLine, setActiveLine] = useState(0);
   const [activeTool, setActiveTool] = useState<ToolName>("비율");

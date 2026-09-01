@@ -49,7 +49,7 @@ ${guide ? `브랜드 톤 가이드:\n${guide}\n` : ""}${wiki ? `\n=== 위키 참
 출력은 JSON만(다른 텍스트 없이):
 {
  "threads": "Threads용 본문 (${CHANNEL_TEXT_LIMITS.threads}자 이내, 구어체, 첫 줄 훅)",
- "facebook": "Facebook용 본문 (${CHANNEL_TEXT_LIMITS.facebook}자 이내, Threads 문장을 재사용하지 말고 Facebook 독자 맥락에 맞춰 독립 작성)",
+ "facebook": "Facebook용 본문 (확인되지 않은 글자 상한을 만들지 말고, Threads 문장을 재사용하지 않으며 Facebook 독자 맥락에 맞춰 독립 작성)",
  "x": "X용 (${CHANNEL_TEXT_LIMITS.x}자 이내, 압축)",
  "instagram": {"caption": "IG 캡션", "hashtags": ["태그", ...], "slides": ["카드1(표지 훅)", "카드2", "카드3", "카드4(CTA)"]},
  "shorts": {"hook": "0~3초 훅", "body": "3~20초 3포인트", "cta": "20~30초 CTA"},
