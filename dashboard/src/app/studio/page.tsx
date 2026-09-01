@@ -294,7 +294,7 @@ export default function StudioPage() {
           try {
             const r = await fetch(`/api/channels/${p}/accounts?tenant_id=${activeWorkspace.id}`, { headers: authHeaders() });
             const d = await r.json();
-            if (!r.ok) return [p, [], true] as const;
+            if (!r.ok) return [p, [] as AccountOption[], true] as const;
             const opts: AccountOption[] = (d.accounts ?? []).map((a: { id: string; display_name: string | null; username: string | null; is_default: boolean }) => ({
               id: a.id,
               label: a.display_name || (a.username ? `@${a.username}` : a.id.slice(0, 8)),
@@ -304,7 +304,7 @@ export default function StudioPage() {
             }));
             return [p, opts, false] as const;
           } catch {
-            return [p, [], true] as const;
+            return [p, [] as AccountOption[], true] as const;
           }
         }),
       );
