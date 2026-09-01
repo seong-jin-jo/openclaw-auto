@@ -417,18 +417,18 @@ describe("/api/publish — happy path (실 publish* + fetch 목)", () => {
     }]]);
   });
 
-  it("x: 4키 OAuth1.0a 트윗 → published 기록, 280자 절단", async () => {
+  it("PUB-LIMIT-API-02 정상: X 280가중 문자 경계값을 발행하고 기록한다", async () => {
     H.cred = { token: "", meta: { apiKey: "a", apiSecret: "b", accessToken: "c", accessSecret: "d" } };
     const { calls } = installFetch([{ match: "api.twitter.com/2/tweets", json: { data: { id: "tw-1" } } }]);
-    const longText = "가".repeat(300); // 300 코드포인트 → 280로 잘려야 함
-    const { status, body } = await callPublish({ platform: "x", text: longText });
+    const boundaryText = "가".repeat(140); // X 가중 문자 계산에서 한글 140자는 280이다.
+    const { status, body } = await callPublish({ platform: "x", text: boundaryText });
     expect(status).toBe(200);
     expect(body.ok).toBe(true);
     expect(body.externalId).toBe("tw-1");
     expect(H.inserts[0][I.status]).toBe("published");
-    // 전송된 트윗 본문이 정확히 280 코드포인트로 절단됐는지
+    // 경계값 본문이 손실 없이 전송되는지
     const sent = JSON.parse(calls.find((c) => c.url.includes("/2/tweets"))!.body!);
-    expect([...sent.text].length).toBe(280);
+    expect(sent.text).toBe(boundaryText);
     // OAuth1.0a 서명 헤더가 붙었는지(서명 자체 검증은 별도지만 헤더 존재는 회귀 방지)
   });
 

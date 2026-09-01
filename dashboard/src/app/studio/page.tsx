@@ -824,12 +824,12 @@ export default function StudioPage() {
   }
 
   function updatePreviewCaption(platform: PreviewPlatform, value: string) {
+    setCaptions((current) => ({ ...current, [platform]: value }));
     if (platform === "threads") upText({ threads: value });
     else if (platform === "x") upText({ x: value });
     else if (platform === "facebook") upText({ facebook: value });
     else if (platform === "instagram") upIg({ caption: value });
     else {
-      setCaptions((current) => ({ ...current, [platform]: value }));
       // Shorts는 편집실 대본과 같은 원본을 쓰므로 저장 대상 본문에도 반영한다.
       if (platform === "shorts") upText({ shorts: { ...(text?.shorts || {}), hook: value } });
     }
