@@ -226,20 +226,21 @@ describe("화면 2차 편집실 계약", () => {
     expect(onLinesChange).toHaveBeenCalledWith(["고친 첫 줄", "둘째 줄"]);
   });
 
-  it("FE3-EDIT-03 정상: 편집실 상단 한 줄은 현재 장면 수를 표시한다", () => {
+  it("FE3-EDIT-03 정상: 편집실 상단은 지금 무엇을 바꾸는지 설명한다", () => {
     render(<EditRoom lines={["첫 줄", "둘째 줄"]} onLinesChange={vi.fn()} />);
     const top = document.querySelector('[data-room-top="edit"]');
-    expect(top).toHaveTextContent("2개 장면");
+    expect(top).toHaveTextContent("내용과 화면을 직접 다듬습니다");
+    expect(top).toHaveTextContent("올릴 채널과 채널별 문구는 발행실에서 정합니다");
   });
 
-  it("FE6-EDIT-01 정상: 영상 목차와 아이콘 도구 뒤에 대사를 항상 배치한다", () => {
+  it("FE6-EDIT-01 정상: 영상 장면과 아이콘 도구 뒤에 대사를 항상 배치한다", () => {
     render(<EditRoom lines={["첫 줄", "둘째 줄"]} onLinesChange={vi.fn()} kind="video" />);
     const outline = document.querySelector("[data-edit-outline]");
     const stage = document.querySelector("[data-edit-stage]");
     const tools = document.querySelector("[data-edit-tools]");
     const script = document.querySelector("[data-edit-script]");
 
-    expect(outline).toHaveAttribute("aria-label", "영상 목차");
+    expect(outline).toHaveAttribute("aria-label", "영상 장면");
     expect(screen.getAllByRole("button", { name: /도구$/ })).toHaveLength(4);
     expect(stage!.compareDocumentPosition(script as Node) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(tools!.compareDocumentPosition(script as Node) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -250,17 +251,17 @@ describe("화면 2차 편집실 계약", () => {
     expect(document.querySelector("[data-edit-duration]")).toHaveTextContent("12초");
 
     fireEvent.click(screen.getAllByRole("button", { name: "빼기" })[0]);
-    expect(document.querySelector('[data-room-top="edit"]')).toHaveTextContent("2개 장면");
+    expect(document.querySelector("[data-edit-duration]")).toHaveTextContent("2개 장면");
     expect(document.querySelector("[data-edit-duration]")).toHaveTextContent("8초");
 
     fireEvent.click(screen.getByRole("button", { name: "되살리기" }));
-    expect(document.querySelector('[data-room-top="edit"]')).toHaveTextContent("3개 장면");
+    expect(document.querySelector("[data-edit-duration]")).toHaveTextContent("3개 장면");
   });
 
   it("FE6-EDIT-03 정상: 무음 표식이 있는 줄만 한 번에 줄인다", () => {
     render(<EditRoom lines={["첫 줄", "...", "둘째 줄"]} onLinesChange={vi.fn()} kind="video" />);
     fireEvent.click(screen.getByRole("button", { name: "무음 구간 1개 줄이기" }));
-    expect(document.querySelector('[data-room-top="edit"]')).toHaveTextContent("2개 장면");
+    expect(document.querySelector("[data-edit-duration]")).toHaveTextContent("2개 장면");
     expect(document.querySelector("[data-edit-duration]")).toHaveTextContent("8초");
   });
 
@@ -285,18 +286,18 @@ describe("화면 2차 편집실 계약", () => {
 
   it("FE6-EDIT-05 거절: 음악 백엔드가 없을 때 파일이나 파형을 완성된 것처럼 표시하지 않는다", () => {
     render(<EditRoom lines={["나레이션"]} onLinesChange={vi.fn()} kind="audio" />);
-    expect(screen.getByText("음악 생성 백엔드는 준비 중입니다")).toBeInTheDocument();
+    expect(screen.getByText("음악 파일 생성은 아직 제공하지 않습니다. 지금은 나레이션 대사만 편집할 수 있습니다.")).toBeInTheDocument();
     expect(document.querySelector("[data-edit-stage]")).not.toBeInTheDocument();
     expect(document.querySelector("[data-edit-tools]")).not.toBeInTheDocument();
   });
 
-  it("QA-EDIT-06 정상: 글 형식은 카드뉴스가 아니라 글 목차와 문단 편집기로 전환된다", () => {
+  it("QA-EDIT-06 정상: 글 형식은 카드뉴스가 아니라 글 문단과 연속 문서 편집기로 전환된다", () => {
     render(<EditRoom lines={["첫 문단", "둘째 문단"]} onLinesChange={vi.fn()} kind="text" />);
 
     expect(document.querySelector('[data-edit-kind="text"]')).toBeInTheDocument();
-    expect(document.querySelector("[data-edit-outline]")).toHaveAttribute("aria-label", "글 목차");
-    expect(screen.getByRole("region", { name: "글 미리보기" })).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "문단 1" })).toBeInTheDocument();
-    expect(document.querySelector('[data-room-top="edit"]')).toHaveTextContent("2개 문단");
+    expect(document.querySelector("[data-edit-outline]")).toHaveAttribute("aria-label", "글 문단");
+    expect(screen.getByRole("textbox", { name: "글 전체" })).toHaveValue("첫 문단\n\n둘째 문단");
+    expect(screen.queryByRole("textbox", { name: "문단 1" })).not.toBeInTheDocument();
+    expect(screen.getByText("공백 포함 11자 · 문단 2개")).toBeInTheDocument();
   });
 });
