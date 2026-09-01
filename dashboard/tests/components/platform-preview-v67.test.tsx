@@ -40,6 +40,20 @@ describe("PUB-ACCOUNT-01 연결 계정 읽기 전용 표시", () => {
     expect(screen.getByText("연결 계정을 확인하지 못했습니다")).toBeInTheDocument();
     expect(screen.queryByText("운영 계정")).not.toBeInTheDocument();
   });
+
+  it("경계: 계정 확인 중에는 게시 필드를 잠그고 미연결 상태는 별도로 밝힌다", () => {
+    const { rerender } = render(
+      <PlatformPreview platform="threads" text={{ threads: "정상 본문" }} media={{}} editor={editor({ account: { status: "loading" } })} />,
+    );
+
+    expect(screen.getByTestId("preview-account-threads")).toHaveAttribute("data-account-state", "loading");
+    expect(screen.getByText("연결 계정 확인 중")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "threads 캡션" })).toBeDisabled();
+
+    rerender(<PlatformPreview platform="threads" text={{ threads: "정상 본문" }} media={{}} editor={editor({ account: { status: "missing" } })} />);
+    expect(screen.getByTestId("preview-account-threads")).toHaveAttribute("data-account-state", "missing");
+    expect(screen.getByText("연결된 계정이 없습니다")).toBeInTheDocument();
+  });
 });
 
 describe("PUB-LIMIT-UI-01 발행 전 하드 한도", () => {
