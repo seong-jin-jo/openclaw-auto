@@ -200,6 +200,20 @@ describe("/api/publish — 입력/인증 분기", () => {
     expect(H.inserts).toHaveLength(0);
   });
 
+  it("PUB-LIMIT-API-01 거절: 플랫폼 하드 한도 초과는 자격 조회와 외부 발행 전에 422로 막는다", async () => {
+    const { status, body } = await callPublish({
+      platform: "threads",
+      text: "가".repeat(501),
+      publish_fields: { body: "가".repeat(501), topicTag: "운영팁" },
+    });
+
+    expect(status).toBe(422);
+    expect(body.code).toBe("PUBLISH_FIELD_LIMIT_EXCEEDED");
+    expect(body.issues).toEqual(expect.arrayContaining([expect.objectContaining({ field: "body" })]));
+    expect(H.getChannelCredCalls).toHaveLength(0);
+    expect(H.inserts).toHaveLength(0);
+  });
+
   it("platform 누락 → 400, DB 기록 없음", async () => {
     const { status, body } = await callPublish({ text: "hi" });
     expect(status).toBe(400);

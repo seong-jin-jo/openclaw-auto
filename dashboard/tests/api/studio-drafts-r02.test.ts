@@ -171,6 +171,7 @@ describe("GET /api/studio/drafts R-02 본문 복원", () => {
       titles: { shorts: "제목" },
       captions: { instagram: "캡션" },
       hashtags: { instagram: "#태그" },
+      topicTags: { threads: "주제" },
       firstComments: { instagram: "첫 댓글" },
       selectedAccounts: { instagram: "account-1" },
       editKind: "text",

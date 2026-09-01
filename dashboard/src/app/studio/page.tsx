@@ -12,7 +12,7 @@ import {
   type ExternalPublishPersistenceFailure,
 } from "@/lib/api";
 import { useToast } from "@/components/layout/Toast";
-import { PlatformPreview, PREVIEW_PLATFORMS, type PreviewInlineEditor, type PreviewPlatform } from "@/components/studio/PlatformPreview";
+import { PlatformPreview, PREVIEW_PLATFORMS, type PreviewAccount, type PreviewInlineEditor, type PreviewPlatform } from "@/components/studio/PlatformPreview";
 import { CreateRoom, EditRoom, type CreateContentBranch, type CreateKind, type EditContentKind } from "@/components/studio/StudioRooms";
 import type { StudioGenerationCandidate } from "@/lib/studio/generation/client";
 import { useUIStore, type StudioRoom } from "@/store/ui-store";
@@ -36,7 +36,6 @@ import {
   HASHTAG_BUDGET,
   parseHashtags,
   parsePublishCommand,
-  spreadDisplayName,
   spreadHashtags,
   trimAllOverLimit,
   type BulkPlatform,
@@ -47,6 +46,11 @@ import {
   validateContentEditFormat,
   type ContentEditFormat,
 } from "@/lib/studio/content-edit-format";
+import {
+  buildPlatformPublishText,
+  validatePlatformPublish,
+  type PlatformPublishInput,
+} from "@/lib/studio/platform-publish-fields";
 import type { CurrentWork } from "@/lib/studio/current-work";
 
 // SNS-007: /api/publish가 실제로 계정별 발행을 받는 4개 플랫폼(threads/x/facebook/instagram)만
@@ -57,7 +61,13 @@ const PUBLISH_SUPPORTED = new Set<PreviewPlatform>(
   SCHEDULABLE_PLATFORMS.filter((platform) => PREVIEW_PLATFORM_KEYS.has(platform)) as PreviewPlatform[],
 );
 const ACCOUNT_SELECTABLE = PUBLISH_SUPPORTED;
-interface AccountOption { id: string; label: string; is_default: boolean }
+interface AccountOption {
+  id: string;
+  label: string;
+  displayName?: string;
+  username?: string;
+  is_default: boolean;
+}
 interface FirstCommentCapability { platform: PreviewPlatform; supported: boolean; reason: string | null }
 
 // apiPost는 non-2xx에서 throw한다(ApiResponseError). 생성 함수들이 `r?.ok` 체크만 믿고
@@ -217,9 +227,9 @@ export default function StudioPage() {
   const [publishReconciliations, setPublishReconciliations] = useState<PublishReconciliationMap>({});
   const [editorHandoff, setEditorHandoff] = useState<EditorHandoff | null>(null);
   const [includes, setIncludes] = useState<Record<string, boolean>>(() => normalizeIncludes());
-  const [displayNames, setDisplayNames] = useState<Record<string, string>>({});
   const [titles, setTitles] = useState<Record<string, string>>({});
   const [hashtags, setHashtags] = useState<Record<string, string>>({});
+  const [topicTags, setTopicTags] = useState<Record<string, string>>({});
   const [firstComments, setFirstComments] = useState<Record<string, string>>({});
   // 플랫폼별 캡션 덮어쓰기. 세로영상 세 곳(Shorts, Reels, TikTok)은 원본 대본 하나를 공유하던
   // 탓에 한 곳을 고치면 나머지도 같이 바뀌었다. 여기에 플랫폼 키로 따로 담아 각자 편집한다.
@@ -258,6 +268,7 @@ export default function StudioPage() {
   // 기본계정으로 resolve(/api/publish 계약과 동일). 계정이 1개뿐이면 셀렉터 자체를 숨긴다.
   const [accountsByPlatform, setAccountsByPlatform] = useState<Record<string, AccountOption[]>>({});
   const [selectedAccounts, setSelectedAccounts] = useState<Record<string, string>>({});
+  const [accountLoadErrors, setAccountLoadErrors] = useState<Record<string, boolean>>({});
   const [accountsLoaded, setAccountsLoaded] = useState(false);
   const publishTargets = selectedPublishTargets(includes).filter((platform) => (accountsByPlatform[platform] || []).length > 0);
 
@@ -273,8 +284,8 @@ export default function StudioPage() {
   };
 
   useEffect(() => {
-    setSelectedAccounts({});
     setAccountsLoaded(false);
+    setAccountLoadErrors({});
     if (!shouldLoadPublishResources(activeRoom) || !activeWorkspace) { setAccountsByPlatform({}); return; }
     let cancelled = false;
     (async () => {
@@ -283,21 +294,27 @@ export default function StudioPage() {
           try {
             const r = await fetch(`/api/channels/${p}/accounts?tenant_id=${activeWorkspace.id}`, { headers: authHeaders() });
             const d = await r.json();
-            if (!r.ok) return [p, []] as const;
+            if (!r.ok) return [p, [], true] as const;
             const opts: AccountOption[] = (d.accounts ?? []).map((a: { id: string; display_name: string | null; username: string | null; is_default: boolean }) => ({
               id: a.id,
               label: a.display_name || (a.username ? `@${a.username}` : a.id.slice(0, 8)),
+              displayName: a.display_name || undefined,
+              username: a.username || undefined,
               is_default: a.is_default,
             }));
-            return [p, opts] as const;
+            return [p, opts, false] as const;
           } catch {
-            return [p, []] as const;
+            return [p, [], true] as const;
           }
         }),
       );
       if (cancelled) return;
-      const nextAccounts = Object.fromEntries(entries);
+      const nextAccounts = Object.fromEntries(entries.map(([platform, accounts]) => [platform, accounts]));
       setAccountsByPlatform(nextAccounts);
+      setAccountLoadErrors(Object.fromEntries(entries.map(([platform, , failed]) => [platform, failed])));
+      setSelectedAccounts((current) => Object.fromEntries(Object.entries(current).filter(([platform, accountId]) => (
+        (nextAccounts[platform] || []).some((account) => account.id === accountId)
+      ))));
       setIncludes((current) => Object.fromEntries(ALL.map((platform) => [
         platform,
         Boolean(current[platform]) && (nextAccounts[platform]?.length ?? 0) > 0,
@@ -326,8 +343,8 @@ export default function StudioPage() {
     setHydratedWorkspaceId(null);
     setIdea(""); setText(null); setImg(null); setVid(null); setDraftId(null);
     setIncludes(normalizeIncludes()); setPublishReconciliations({}); setEditorHandoff(null);
-    setDisplayNames({}); setTitles({}); setHashtags({}); setFirstComments({});
-    setEditLines([]); setCardTextPositions([]); setReviewQueueId(null); setSelectedCandidate(null);
+    setTitles({}); setHashtags({}); setTopicTags({}); setFirstComments({}); setCaptions({});
+    setSelectedAccounts({}); setEditLines([]); setCardTextPositions([]); setReviewQueueId(null); setSelectedCandidate(null);
     setCreateBranch("video"); setCreatePrimaryKind(null); setEditKind("video"); setEditFormat(defaultContentEditFormat("video"));
     setPub({ running: false, stopped: false, status: {}, urls: {}, errors: {} });
     if (!workspaceId) return;
@@ -340,11 +357,11 @@ export default function StudioPage() {
         setText(w.text || null); setImg(w.img || null); setVid(w.vid || null);
         if (w.includes) setIncludes(normalizeIncludes(w.includes)); setDraftId(w.draftId || null);
         setPublishReconciliations(normalizePublishReconciliations(w.publishReconciliations ?? w.publishReconciliation));
-        setDisplayNames(w.displayNames || {}); setTitles(w.titles || {}); setHashtags(w.hashtags || {});
-        setFirstComments(w.firstComments || {}); setCaptions(w.captions || {}); setEditLines(w.editLines || []); setCardTextPositions(w.cardTextPositions || []); setReviewQueueId(w.reviewQueueId || null);
+        setTitles(w.titles || {}); setHashtags(w.hashtags || {}); setTopicTags(w.topicTags || {});
+        setFirstComments(w.firstComments || {}); setCaptions(w.captions || {}); setSelectedAccounts(w.selectedAccounts || {}); setEditLines(w.editLines || []); setCardTextPositions(w.cardTextPositions || []); setReviewQueueId(w.reviewQueueId || null);
         if (w.editKind === "video" || w.editKind === "card" || w.editKind === "audio" || w.editKind === "text") {
           setEditKind(w.editKind);
-          const formatKind = w.editKind === "text" ? "card" : w.editKind;
+          const formatKind = w.editKind;
           const savedFormat = validateContentEditFormat(w.editFormat);
           setEditFormat(savedFormat.valid && savedFormat.value.kind === formatKind
             ? savedFormat.value
@@ -358,13 +375,13 @@ export default function StudioPage() {
     const workspaceId = activeWorkspace?.id;
     if (!workspaceId || hydratedWorkspaceId !== workspaceId) return;
     try {
-      localStorage.setItem(studioWorkStorageKey(workspaceId), JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, captions, editLines, cardTextPositions, reviewQueueId, editKind, editFormat }));
+      localStorage.setItem(studioWorkStorageKey(workspaceId), JSON.stringify({ idea, text, img, vid, includes, draftId, publishReconciliations, titles, hashtags, topicTags, firstComments, captions, selectedAccounts, editLines, cardTextPositions, reviewQueueId, editKind, editFormat }));
       setEditSavedAt(new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date()));
       setEditAutosaveError("");
     } catch {
       setEditAutosaveError("자동 저장하지 못했습니다. 브라우저 저장 공간을 확인해 주세요.");
     }
-  }, [activeWorkspace?.id, hydratedWorkspaceId, idea, text, img, vid, includes, draftId, publishReconciliations, displayNames, titles, hashtags, firstComments, captions, editLines, cardTextPositions, reviewQueueId, editKind, editFormat]);
+  }, [activeWorkspace?.id, hydratedWorkspaceId, idea, text, img, vid, includes, draftId, publishReconciliations, titles, hashtags, topicTags, firstComments, captions, selectedAccounts, editLines, cardTextPositions, reviewQueueId, editKind, editFormat]);
 
   const media = { imgUrl: img?.file, vidUrl: vid?.file };
   const upText = (patch: Partial<TextVariants>) => setText((p) => ({ ...(p || {}), ...patch }));
@@ -489,14 +506,17 @@ export default function StudioPage() {
       includes,
       status,
       publishReconciliations: reconciliations,
-      displayNames,
       titles,
       hashtags,
+      topicTags,
       firstComments,
       captions,
+      selectedAccounts,
       editLines: persistedEditLines,
       cardTextPositions,
+      editKind,
       editFormat,
+      reviewQueueId,
       publishedAt: status === "published" ? new Date().toISOString() : undefined,
     });
     if (r?.id) setDraftId(r.id); mutateHist(); return r?.id;
@@ -536,8 +556,17 @@ export default function StudioPage() {
     return "";
   }
 
+  function platformPublishInput(p: PreviewPlatform): PlatformPublishInput {
+    return {
+      title: titles[p] || "",
+      body: platformText(p),
+      hashtags: hashtags[p] || "",
+      topicTag: topicTags[p] || "",
+    };
+  }
+
   function publishText(p: PreviewPlatform): string {
-    return [titles[p], platformText(p), hashtags[p]].filter((value) => value?.trim()).join("\n");
+    return buildPlatformPublishText(p, platformPublishInput(p));
   }
 
   function capabilityFor(platform: PreviewPlatform): FirstCommentCapability {
@@ -550,6 +579,13 @@ export default function StudioPage() {
     if (!activeWorkspace) { showToast("워크스페이스를 선택하세요", "error"); return; }
     if (Object.keys(publishReconciliations).length > 0) {
       showToast("외부 게시가 이미 완료된 항목입니다. 재발행하지 말고 내부 기록을 먼저 복구하세요.", "error");
+      return;
+    }
+    const blocked = publishTargets
+      .map((platform) => ({ platform, issue: validatePlatformPublish(platform, platformPublishInput(platform)).blocking[0] }))
+      .find((entry) => entry.issue);
+    if (blocked?.issue) {
+      showToast(`${LABEL[blocked.platform]}: ${blocked.issue.message}`, "error");
       return;
     }
     const did = await save("draft");
@@ -576,6 +612,7 @@ export default function StudioPage() {
         trackEvent({ name: "publish_attempt", params: { channel: p as AnalyticsChannel } });
         const r = await apiPost<{ ok?: boolean; partial?: boolean; permalink?: string; error?: string; firstComment?: { ok?: boolean; error?: string } }>("/api/publish", {
           tenant_id: activeWorkspace.id, platform: p, text: publishText(p), image_url: img?.url, draft_id: did,
+          publish_fields: platformPublishInput(p),
           account_id: selectedAccounts[p] || undefined,
           first_comment: capabilityFor(p).supported && firstComments[p]?.trim() ? firstComments[p].trim() : undefined,
           edit_format: editFormat,
@@ -640,16 +677,22 @@ export default function StudioPage() {
     const savedReconciliations = normalizePublishReconciliations(d.publishReconciliations ?? d.publishReconciliation);
     setPublishReconciliations(savedReconciliations);
     setEditorHandoff((d.editorHandoff as EditorHandoff) || null);
-    setDisplayNames((d.displayNames as Record<string, string>) || {});
     setTitles((d.titles as Record<string, string>) || {});
     setHashtags((d.hashtags as Record<string, string>) || {});
+    setTopicTags((d.topicTags as Record<string, string>) || {});
     setFirstComments((d.firstComments as Record<string, string>) || {});
     setCaptions((d.captions as Record<string, string>) || {});
+    setSelectedAccounts((d.selectedAccounts as Record<string, string>) || {});
     setEditLines((d.editLines as string[]) || []);
+    setCardTextPositions((d.cardTextPositions as CardTextPosition[]) || []);
+    setReviewQueueId((d.reviewQueueId as string) || null);
     const savedFormat = validateContentEditFormat(d.editFormat);
     if (savedFormat.valid) {
       setEditKind(savedFormat.value.kind);
       setEditFormat(savedFormat.value);
+    } else if (d.editKind === "video" || d.editKind === "card" || d.editKind === "audio" || d.editKind === "text") {
+      setEditKind(d.editKind);
+      setEditFormat(defaultContentEditFormat(d.editKind));
     }
     showToast(
       Object.keys(savedReconciliations).length > 0
@@ -729,12 +772,19 @@ export default function StudioPage() {
       setIncludes(work.includedPlatforms.length
         ? normalizeIncludes(Object.fromEntries(ALL.map((platform) => [platform, work.includedPlatforms.includes(platform)])))
         : normalizeIncludes());
-      setDisplayNames((linkedDraft?.displayNames as Record<string, string>) || {});
       setTitles((linkedDraft?.titles as Record<string, string>) || {});
       setHashtags((linkedDraft?.hashtags as Record<string, string>) || (tagText ? { instagram: tagText } : {}));
+      setTopicTags((linkedDraft?.topicTags as Record<string, string>) || {});
       setFirstComments((linkedDraft?.firstComments as Record<string, string>) || {});
       setCaptions((linkedDraft?.captions as Record<string, string>) || {});
+      setSelectedAccounts((linkedDraft?.selectedAccounts as Record<string, string>) || {});
       setEditLines((linkedDraft?.editLines as string[]) || []);
+      setCardTextPositions((linkedDraft?.cardTextPositions as CardTextPosition[]) || []);
+      const linkedFormat = validateContentEditFormat(linkedDraft?.editFormat);
+      if (linkedFormat.valid) {
+        setEditKind(linkedFormat.value.kind);
+        setEditFormat(linkedFormat.value);
+      }
       setDraftId(linkedDraftId);
       setPublishReconciliations(normalizePublishReconciliations(linkedDraft?.publishReconciliations ?? linkedDraft?.publishReconciliation));
       setEditorHandoff((linkedDraft?.editorHandoff as EditorHandoff) || null);
@@ -742,7 +792,7 @@ export default function StudioPage() {
     setReviewQueueId(publishReturnRequest.queuePostId);
     setActiveRoom("publish");
     publishReturnLoaded.current = loadKey;
-    showToast(publishReturnRequest.sourceRoute === "inbox" ? "승인 인박스 작업물을 불러왔습니다" : "발행 일정 작업물을 불러왔습니다", "success");
+    showToast(publishReturnRequest.sourceRoute === "inbox" ? "검토 대기 작업물을 불러왔습니다" : "발행 일정 작업물을 불러왔습니다", "success");
   }, [hist?.drafts, publishReturnQueue?.posts, publishReturnRequest, setActiveRoom, showToast]);
   const pubPct = (() => { const v = Object.values(pub.status); return v.length ? Math.round((v.filter((s) => s === "done").length / v.length) * 100) : 0; })();
   const pubFailed = Object.values(pub.status).filter((s) => s === "failed").length;
@@ -785,23 +835,36 @@ export default function StudioPage() {
     }
   }
 
+  function previewAccount(platform: PreviewPlatform): PreviewAccount {
+    if (!PUBLISH_SUPPORTED.has(platform)) return { status: "unsupported" };
+    if (!accountsLoaded) return { status: "loading" };
+    if (accountLoadErrors[platform]) return { status: "error" };
+    const accounts = accountsByPlatform[platform] || [];
+    if (!accounts.length) return { status: "missing" };
+    const selected = accounts.find((account) => account.id === selectedAccounts[platform])
+      || accounts.find((account) => account.is_default)
+      || accounts[0];
+    return { status: "connected", displayName: selected.displayName, username: selected.username };
+  }
+
   function previewEditor(platform: PreviewPlatform): PreviewInlineEditor {
     const capability = capabilityFor(platform);
     return {
-      displayName: displayNames[platform] || activeWorkspace?.name || "your_brand",
+      account: previewAccount(platform),
       title: titles[platform] || "",
       caption: platformText(platform),
       hashtags: hashtags[platform] || (platform === "instagram" ? (text?.instagram?.hashtags || []).join(" ") : ""),
+      topicTag: topicTags[platform] || "",
       firstComment: firstComments[platform] || "",
       firstCommentSupported: capability.supported,
       firstCommentReason: capability.reason || undefined,
-      onDisplayNameChange: (value) => setDisplayNames((current) => ({ ...current, [platform]: value })),
       onTitleChange: (value) => setTitles((current) => ({ ...current, [platform]: value })),
       onCaptionChange: (value) => updatePreviewCaption(platform, value),
       onHashtagsChange: (value) => {
         setHashtags((current) => ({ ...current, [platform]: value }));
         if (platform === "instagram") upIg({ hashtags: value.split(/[,\s]+/).map((item) => item.replace(/^#/, "")).filter(Boolean) });
       },
+      onTopicTagChange: (value) => setTopicTags((current) => ({ ...current, [platform]: value })),
       onFirstCommentChange: (value) => setFirstComments((current) => ({ ...current, [platform]: value })),
     };
   }
@@ -839,12 +902,6 @@ export default function StudioPage() {
     setHashtags((current) => ({ ...current, ...spread }));
     upIg({ hashtags: tags.slice(0, HASHTAG_BUDGET.instagram) });
     showToast(`해시태그를 일곱 곳 규격에 맞춰 나눴습니다. X는 ${HASHTAG_BUDGET.x}개, 인스타그램은 ${HASHTAG_BUDGET.instagram}개입니다`, "success");
-  }
-  function unifyDisplayNameAcrossChannels() {
-    const source = Object.values(displayNames).find((value) => value?.trim()) || activeWorkspace?.name || "";
-    if (!source.trim()) { showToast("맞출 표시 이름이 없습니다", "error"); return; }
-    setDisplayNames((current) => ({ ...current, ...spreadDisplayName(source, previewTargets) }));
-    showToast(`표시 이름을 일곱 곳 모두 "${source.trim()}"으로 맞췄습니다`, "success");
   }
   function trimOverLimitChannels() {
     const next = trimAllOverLimit((platform) => platformText(platform), previewTargets);
@@ -901,14 +958,13 @@ export default function StudioPage() {
       case "exclude": excludeChannel(command.platform); return;
       case "onlyOne": keepOnlyChannel(command.platform); return;
       case "unifyHashtags": unifyHashtagsAcrossChannels(); return;
-      case "unifyDisplayName": unifyDisplayNameAcrossChannels(); return;
       case "trimOverLimit": trimOverLimitChannels(); return;
       case "schedule": setShowSchedule(true); return;
       case "requestReview": await requestReview(); return;
       case "saveDraft": await save("draft"); showToast("임시 저장했습니다", "success"); return;
       case "publishNow": await publish(); return;
       default:
-        showToast("전부 고르기, 한 곳 빼기, 해시태그 맞추기, 표시 이름 맞추기, 한도 넘는 곳 줄이기, 예약 발행, 검토 요청, 임시 저장, 지금 발행 중 하나로 말씀해 주세요", "error");
+        showToast("전부 고르기, 한 곳 빼기, 해시태그 맞추기, 한도 넘는 곳 줄이기, 예약 발행, 검토 요청, 임시 저장, 지금 발행 중 하나로 말씀해 주세요", "error");
     }
   }
 
@@ -1100,7 +1156,7 @@ export default function StudioPage() {
                   눌러 봐야 아는 단추는 없는 단추다(R191). */}
               <p className="break-keep text-caption text-subtle" data-publish-actions-note>
                 임시 저장은 아무 데도 안 올리고 이 작업물만 남깁니다.
-                승인 인박스로 보내면 검토를 기다리는 자리로 갑니다.
+                검토 요청은 다른 사람이 확인한 뒤 발행할 수 있도록 검토 대기로 보냅니다.
                 지금 발행은 고른 곳에 바로 올립니다.
                 예약 발행은 날짜와 시각을 잡고 그 날의 발행 캘린더로 이어집니다.
               </p>
@@ -1224,7 +1280,6 @@ export default function StudioPage() {
               </Stack>
               <Stack direction="horizontal" gap={8} wrap>
                 <Button size="sm" data-testid="publish-bulk-hashtags" onClick={unifyHashtagsAcrossChannels}>해시태그 규격대로 맞추기</Button>
-                <Button size="sm" data-testid="publish-bulk-display-name" onClick={unifyDisplayNameAcrossChannels}>표시 이름 일곱 곳 통일</Button>
                 <Button size="sm" data-testid="publish-bulk-trim" onClick={trimOverLimitChannels}>한도 넘는 곳만 줄이기</Button>
               </Stack>
               <p className="break-keep text-caption text-subtle">

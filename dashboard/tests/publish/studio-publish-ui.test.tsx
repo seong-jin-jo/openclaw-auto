@@ -61,9 +61,30 @@ vi.mock("@/components/studio/PlatformPreview", () => ({
     "reels",
     "tiktok",
   ].map((key) => ({ key, label: key })),
-  PlatformPreview: ({ platform, headerRight, editor }: { platform: string; headerRight?: React.ReactNode; editor?: { firstCommentSupported: boolean; firstCommentReason?: string; firstComment: string; onFirstCommentChange: (value: string) => void } }) => (
+  PlatformPreview: ({ platform, headerRight, editor }: { platform: string; headerRight?: React.ReactNode; editor?: {
+    account: { status: string; displayName?: string; username?: string };
+    title: string;
+    caption: string;
+    hashtags: string;
+    topicTag: string;
+    firstCommentSupported: boolean;
+    firstCommentReason?: string;
+    firstComment: string;
+    onTitleChange: (value: string) => void;
+    onCaptionChange: (value: string) => void;
+    onHashtagsChange: (value: string) => void;
+    onTopicTagChange: (value: string) => void;
+    onFirstCommentChange: (value: string) => void;
+  } }) => (
     <div data-testid={`preview-${platform}`}>
       {headerRight}
+      <span data-testid={`account-state-${platform}`}>{editor?.account.status}</span>
+      {editor?.account.displayName ? <span>{editor.account.displayName}</span> : null}
+      {editor?.account.username ? <span>@{editor.account.username}</span> : null}
+      <input aria-label={`${platform} 제목`} value={editor?.title ?? ""} onChange={(event) => editor?.onTitleChange(event.target.value)} />
+      <textarea aria-label={`${platform} 캡션`} value={editor?.caption ?? ""} onChange={(event) => editor?.onCaptionChange(event.target.value)} />
+      <input aria-label={`${platform} 해시태그`} value={editor?.hashtags ?? ""} onChange={(event) => editor?.onHashtagsChange(event.target.value)} />
+      <input aria-label={`${platform} 주제 태그`} value={editor?.topicTag ?? ""} onChange={(event) => editor?.onTopicTagChange(event.target.value)} />
       {editor?.firstCommentSupported ? <textarea aria-label={`${platform} 첫 댓글`} value={editor.firstComment} onChange={(event) => editor.onFirstCommentChange(event.target.value)} /> : <span>{editor?.firstCommentReason}</span>}
     </div>
   ),
@@ -501,6 +522,27 @@ describe("Studio publish result integrity", () => {
     expect(screen.getByRole("complementary", { name: "발행 담당 대화창" })).toBeInTheDocument();
   });
 
+  it("PUB-DRAFT-UI-01 정상: 플랫폼 필드와 선택 계정을 임시 저장하고 같은 초안에서 복원한다", async () => {
+    restoreStudio(["threads", "instagram"]);
+    mocks.apiPost.mockResolvedValue({ id: "draft-v67" });
+
+    render(<StudioPage />);
+    fireEvent.change(await screen.findByLabelText("shorts 제목"), { target: { value: "쇼츠 제목" } });
+    fireEvent.change(screen.getByLabelText("instagram 캡션"), { target: { value: "채널별 캡션" } });
+    fireEvent.change(screen.getByLabelText("instagram 해시태그"), { target: { value: "#하나 #둘" } });
+    fireEvent.change(screen.getByLabelText("threads 주제 태그"), { target: { value: "운영팁" } });
+    fireEvent.change(screen.getByTestId("publish-account-select-instagram"), { target: { value: "instagram-account" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "임시 저장하기" })[0]);
+
+    await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith("/api/studio/drafts", expect.objectContaining({
+      titles: expect.objectContaining({ shorts: "쇼츠 제목" }),
+      captions: expect.objectContaining({ instagram: "채널별 캡션" }),
+      hashtags: expect.objectContaining({ instagram: "#하나 #둘" }),
+      topicTags: expect.objectContaining({ threads: "운영팁" }),
+      selectedAccounts: expect.objectContaining({ instagram: "instagram-account" }),
+    })));
+  });
+
   it("FE3-PUBLISH-02 거절: 미지원 영상 채널은 미리보기 안에서 발행 체크를 잠근다", async () => {
     render(<StudioPage />);
     const tiktok = within(await screen.findByTestId("preview-tiktok"));
@@ -674,7 +716,7 @@ describe("Studio publish result integrity", () => {
       },
       editLines: ["고치기 전 본문"],
       editKind: "text",
-      editFormat: { kind: "card", aspectRatio: "4:5", subtitleSize: "보통", background: "작업실 책상" },
+      editFormat: { kind: "text" },
     }));
     mocks.apiPost.mockImplementation(async (path: string) => {
       if (path === "/api/studio/drafts") return { id: "draft-v65" };
@@ -688,6 +730,8 @@ describe("Studio publish result integrity", () => {
 
     await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith("/api/studio/drafts", expect.objectContaining({
       id: null,
+      editKind: "text",
+      editFormat: { kind: "text" },
       editLines: ["발행실로 넘길 본문"],
       text: expect.objectContaining({
         threads: "발행실로 넘길 본문",

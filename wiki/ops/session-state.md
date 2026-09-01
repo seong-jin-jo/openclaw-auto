@@ -1,5 +1,13 @@
 # 세션 상태 (얇은 인덱스)
 
+## 2026-09-02 08:23 KST | Codex code-builder | OSMU v67 중단판 이어받기
+
+- 핸드오프 기준: 회장이 이번 턴에 지정한 보존 커밋 `3bb6b787`과 `work/v67build`를 primary로 확정했다. `openclaw-auto:0.0`, `osmu-build:0.0` pane은 보조 맥락으로만 확인했다.
+- 승인 범위 해석: `pipeline-state.osmu.md` 최신 문구는 v67 디자인 후보로 남아 있으나, 이번 명시 지시는 이미 착수된 v67 중단판을 이어 마무리하며 운영 배포만 차단한다고 범위를 고정했다. 새 설계·API·DB 스키마 결정 없이 qa-tracker 최상단 NG 5행을 닫는 변경만 수행한다.
+- 기존 작업 트리: HEAD는 `3bb6b787`. 착수 전부터 `.codex/logs/harness.jsonl`, `docs/requests/inbox/chairman-2026-09.md`가 수정돼 있으며 사용자 변경으로 보존하고 제 커밋에서 제외한다.
+- 기반: ADR-004·005·006, `wiki/거버넌스/실수.md` 최신 기록, `docs/qa/qa-tracker.md` v67 NG 표, 회장 요청 원문, v67 통합 프로토타입, v67 delta 명세, `DESIGN.md` v36, `docs/구현현황.md`, 보존 커밋 diff.
+- 정확한 다음 액션: TypeScript 오류 2건을 호출부에서 제거한 뒤, 기존 v67 계약 테스트와 초안 저장·복원·플랫폼 한도·계정 읽기 전용 경로를 대조해 NG별 누락을 테스트 우선으로 보수한다. 의미 단위마다 커밋하고 마지막에 1024·390 실제 렌더, 지정 회귀, design lint, push를 수행한다. PR 병합과 배포는 하지 않는다.
+
 ## 2026-09-02 03:36 KST | Codex 메인 컨트롤러 | OSMU 자동 연쇄 재개·디자인 게이트 대기
 
 - 핸드오프 기준: 회장의 "다 진행하고 보고"를 primary로 삼았고, 여러 OSMU tmux pane을 임의 재개하지 않은 대신 `pipeline-state.osmu.md`, 최신 v65·v66 산출물, 현 HEAD를 병렬 대조했다. active goal을 걸고 상태 감사·코드리뷰·QA 준비 3판을 병렬로 돌렸다.

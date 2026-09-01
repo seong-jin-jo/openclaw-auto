@@ -23,6 +23,7 @@ interface DraftRow {
     titles?: unknown;
     captions?: unknown;
     hashtags?: unknown;
+    topicTags?: unknown;
     firstComments?: unknown;
     selectedAccounts?: unknown;
     reviewQueueId?: unknown;
@@ -71,6 +72,7 @@ export async function GET(request: Request) {
       titles: r.payload?.titles ?? {},
       captions: r.payload?.captions ?? {},
       hashtags: r.payload?.hashtags ?? {},
+      topicTags: r.payload?.topicTags ?? {},
       firstComments: r.payload?.firstComments ?? {},
       selectedAccounts: r.payload?.selectedAccounts ?? {},
       reviewQueueId: r.payload?.reviewQueueId ?? null,
@@ -121,6 +123,7 @@ export async function POST(request: Request) {
     titles: body.titles ?? {},
     captions: body.captions ?? {},
     hashtags: body.hashtags ?? {},
+    topicTags: body.topicTags ?? {},
     firstComments: body.firstComments ?? {},
     selectedAccounts: body.selectedAccounts ?? {},
     reviewQueueId: body.reviewQueueId ?? null,

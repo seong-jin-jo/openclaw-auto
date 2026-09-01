@@ -33,6 +33,12 @@ import {
   type PublishResult,
 } from "@/lib/publish";
 import { validateContentEditFormat } from "@/lib/studio/content-edit-format";
+import {
+  buildPlatformPublishText,
+  validatePlatformPublish,
+  type PlatformPublishInput,
+  type PublishPlatform,
+} from "@/lib/studio/platform-publish-fields";
 
 type PersistenceStage = "publication_record" | "queue_record";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -171,7 +177,8 @@ function partialPersistenceFailure(
 // 발행 후 published_posts에 기록(성과 수집 대상). 토큰 없으면 명확한 에러(크래시 X).
 export async function POST(request: Request) {
   const __b = await request.json();
-  const { platform, text, image_url, draft_id, account_id } = __b;
+  const { platform, image_url, draft_id, account_id } = __b;
+  const legacyText = typeof __b.text === "string" ? __b.text : "";
   if (__b.edit_format !== undefined) {
     const formatValidation = validateContentEditFormat(__b.edit_format);
     if (!formatValidation.valid) {
@@ -193,6 +200,36 @@ export async function POST(request: Request) {
   if (!tenant_id || !platform) {
     return Response.json({ error: "tenant_id, platform required" }, { status: 400 });
   }
+  const fieldPlatforms = new Set<PublishPlatform>(["threads", "x", "facebook", "instagram", "shorts", "reels", "tiktok"]);
+  const rawFields = __b.publish_fields;
+  if (rawFields !== undefined && (!rawFields || typeof rawFields !== "object" || Array.isArray(rawFields))) {
+    return Response.json({
+      ok: false,
+      code: "INVALID_PUBLISH_FIELDS",
+      error: "플랫폼별 발행 필드값을 확인해 주세요",
+    }, { status: 422, headers: { "Cache-Control": "no-store" } });
+  }
+  const publishFields: PlatformPublishInput = rawFields ? {
+    title: typeof rawFields.title === "string" ? rawFields.title : "",
+    body: typeof rawFields.body === "string" ? rawFields.body : legacyText,
+    hashtags: typeof rawFields.hashtags === "string" ? rawFields.hashtags : "",
+    topicTag: typeof rawFields.topicTag === "string" ? rawFields.topicTag : "",
+  } : { body: legacyText };
+  const fieldPlatform = fieldPlatforms.has(platform as PublishPlatform) ? platform as PublishPlatform : null;
+  if (fieldPlatform) {
+    const fieldValidation = validatePlatformPublish(fieldPlatform, publishFields);
+    if (fieldValidation.blocking.length > 0) {
+      return Response.json({
+        ok: false,
+        code: "PUBLISH_FIELD_LIMIT_EXCEEDED",
+        error: fieldValidation.blocking[0].message,
+        issues: fieldValidation.blocking,
+      }, { status: 422, headers: { "Cache-Control": "no-store" } });
+    }
+  }
+  const text = fieldPlatform && rawFields
+    ? buildPlatformPublishText(fieldPlatform, publishFields)
+    : legacyText;
   if (firstCommentText) {
     const capability = getFirstCommentCapability(platform);
     if (!capability?.supported) {
@@ -515,7 +552,7 @@ export async function POST(request: Request) {
 
   let result: PublishResult;
   if (platform === "threads") {
-    result = await publishThreads(cred, text || "", publishImageUrl);
+    result = await publishThreads(cred, text || "", publishImageUrl, undefined, publishFields.topicTag);
   } else if (platform === "instagram") {
     result = await publishInstagram(cred, text || "", publishImageUrl);
   } else if (platform === "x") {

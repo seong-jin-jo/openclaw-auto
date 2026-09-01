@@ -271,12 +271,13 @@ export async function publishThreads(
   text: string,
   imageUrl?: string,
   replyToId?: string,
+  topicTag?: string,
 ): Promise<PublishResult> {
-  const length = countTextCharacters(text);
-  if (length > CHANNEL_TEXT_LIMITS.threads) {
+  const validation = validatePlatformPublish("threads", { body: text, topicTag });
+  if (validation.blocking.length > 0) {
     return {
       ok: false,
-      error: `Threads 본문이 공식 상한 ${CHANNEL_TEXT_LIMITS.threads}자를 초과했습니다 (${length}/${CHANNEL_TEXT_LIMITS.threads}). 내용을 줄인 뒤 다시 발행해주세요.`,
+      error: validation.blocking[0].message,
     };
   }
   if (!cred.token) return { ok: false, error: "Threads 채널 토큰이 없습니다. 채널을 다시 연결해주세요." };
@@ -288,6 +289,7 @@ export async function publishThreads(
   };
   if (imageUrl) params.image_url = imageUrl;
   if (replyToId) params.reply_to_id = replyToId;
+  if (topicTag?.trim()) params.topic_tag = topicTag.trim().replace(/^#/, "");
 
   let containerId: string;
   try {
