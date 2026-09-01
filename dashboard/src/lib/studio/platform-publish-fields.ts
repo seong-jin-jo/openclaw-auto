@@ -1,4 +1,4 @@
-import { parseTweet } from "twitter-text";
+import twitterText from "twitter-text";
 
 export type PublishPlatform = "threads" | "x" | "facebook" | "instagram" | "shorts" | "reels" | "tiktok";
 
@@ -103,7 +103,7 @@ export function validatePlatformPublish(
       }
     }
   } else if (platform === "x") {
-    const parsed = parseTweet(combined);
+    const parsed = twitterText.parseTweet(combined);
     result.counters.body = { current: parsed.weightedLength, limit: 280, unit: "가중 문자" };
     if (!parsed.valid || parsed.weightedLength > 280) {
       result.blocking.push({ field: "body", message: `본문과 해시태그가 280가중 문자를 초과했습니다. 현재 ${parsed.weightedLength}가중 문자입니다.` });
