@@ -1,5 +1,36 @@
 # OSMU 세션 상태
 
+## 2026-09-02 디자인 게이트 재검수 | Codex 메인 컨트롤러 | v67 리테이크 진행 중
+
+### 무엇을 어디까지 했나
+
+- v65 편집실과 v66 발행실을 디자인 승인 후보로 올리기 전에 독립 디자인 감사, 산출물 감사, 요구 추적성 감사를 병렬 실행했다.
+- 감사 결과 Design Score C, BLOCK이다. 두 집중 프로토타입이 승인본 v64의 2층 GNB, 224/56 사이드바, 304 담당 패널, 390 대화 시트를 상속하지 않았고 clean frame, design-review 실행 증거, delta design-spec, `design_canonical`, matched-pair가 없다.
+- 기존 `/approve design` 요청은 철회했다. `pipeline-state.osmu.md`를 `stage: design`, `status: changes-requested`로 정정했다.
+- 전용 worktree `/private/tmp/osmu-wt-v67`, branch `work/osmu-v67`에서 product-designer가 v64 셸을 정확히 상속한 v67 단일 허브와 검증 산출물을 재작업 중이다. 제품 소스는 이 단계에서 수정하지 않는다.
+- active goal은 상태 정합화부터 디자인 승인, 개발, 코드리뷰, QA, 원격 CI, 운영 실경로 검증까지 연쇄 진행하도록 걸려 있다.
+
+### 남은 이슈·블로커
+
+- 현재 블로커는 회장 승인이 아니라 v67 디자인 품질 미달 해소다. v67이 Design Score B 이상과 필수 증거를 충족하기 전에는 승인 요청 금지다.
+- v67 승인 뒤에도 v66 미구현과 코드리뷰 MAJOR 10건이 남는다. 표시 이름 읽기 전용화, 플랫폼별 실제 필드와 제한, 계정 상태 보존, 하드 제한 발행 차단, 집중 필터, v65 런타임 상태와 글 형식 계약을 구현해야 한다.
+- 운영 실 고객 경로는 아직 미검증이다.
+
+### 다음에 칠 명령
+
+```text
+product-designer 결과 회수 -> clean frame 직접 관찰 -> design-review/품질 검증 -> 통과한 경우에만 /approve design 요청
+```
+
+### 검증했나
+
+- 로컬 `npm run test:publish`: 27파일 258건 통과, 2건 제외.
+- 로컬 `npx tsc --noEmit`: 오류 0.
+- 로컬 `npm run build`: 성공. 기존 NFT tracing 경고 1건.
+- PR #41 최신 원격 HEAD `0c387b91`, CI run `33550790269`: success.
+- v67 렌더와 Design Score: 작업 중, 미검증.
+- 운영 실경로: 미검증.
+
 ## 2026-09-02 04:33 KST | Codex 메인 컨트롤러 | v65·v66 디자인 승인 대기
 
 ### 무엇을 어디까지 했나

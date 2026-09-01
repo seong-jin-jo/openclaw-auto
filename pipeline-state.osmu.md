@@ -1,8 +1,10 @@
 ## 2026-09-02 디자인 재개: v65·v66 증분 승인 대기 (Codex 메인 컨트롤러)
 
 stage: design
-status: awaiting-approval
+status: changes-requested
 reopen_reason: v65 편집실은 디자인 승인 기록 없이 build가 먼저 진행됐고, v66 발행실은 디자인 산출물만 있고 구현·승인이 없다. v64 승인 정본을 유지한 채 두 증분을 묶어 디자인 게이트를 정상화한다.
+
+review_result: Design Score C, BLOCK. v65·v66이 v64 공유 셸을 상속하지 않았고, design-review·clean frame·delta design-spec·design_canonical·matched-pair 증거가 없다. `/approve design` 요청을 철회하고 v67 단일 허브 리테이크 중이다.
 
 candidate_artifacts:
 - design_hub: `docs/prototype/openclaw-auto-4room-v64.html` (기존 승인 전체 제품 정본)
