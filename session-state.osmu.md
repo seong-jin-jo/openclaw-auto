@@ -34,7 +34,7 @@
 - 로컬 `npm run test:publish`: 27파일 258건 통과, 2건 제외.
 - 로컬 `npx tsc --noEmit`: 오류 0.
 - 로컬 `npm run build`: 성공. 기존 NFT tracing 경고 1건.
-- PR #41 상태 기록 HEAD `61172554`, CI run `33552996869`: success.
+- PR #41 v67 통합 HEAD `439b4862`, CI run `33557708955`: success. TypeScript, build, PostgreSQL schema·seed·RLS, migration concurrency, 전체 테스트를 통과했다.
 - 운영 실경로: 미검증.
 
 ## 2026-09-02 04:33 KST | Codex 메인 컨트롤러 | v65·v66 디자인 승인 대기
