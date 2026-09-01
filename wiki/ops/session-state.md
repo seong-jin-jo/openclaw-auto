@@ -9,7 +9,8 @@
 - 실렌더: Chromium으로 1024와 390에서 기본, 빈 상태, 불러오는 중, 오류, 긴 내용 총 10조합을 확인했다. 문서, 앱, 본문 가로 넘침 0, 콘솔 오류 0. 기본 상태 일곱 카드, 표시 이름 편집기 0개, 읽기 전용 계정 머리 7개, Threads 501자 초과 경고, X 2개 권고, 플랫폼 집중 필터를 관찰했다.
 - 회귀 검증: `cd dashboard && npx tsc --noEmit` 오류 0. `npx vitest run tests/publish tests/api` 68파일, 523건 통과, 조건부 2건 제외, 실패 0. 첫 tsc 실행은 의존성 미설치로 실패했고 `npm ci` 뒤 같은 명령이 통과했다.
 - 남은 gap: 실제 `PlatformPreview.tsx`, `studio/page.tsx`, `channel-text-limits.ts`, 테스트에는 잘못된 표시 이름 편집과 임의 규격이 그대로다. 이 세션은 디자인 역할이므로 고치지 않았다. 디자인 게이트 승인 뒤 code-builder가 v66과 규격 문서를 버전핀으로 읽어 구현해야 한다.
-- 출고 상태: 제품 코드와 `.codex/logs/harness.jsonl`은 커밋에서 제외했다. 대상 원격은 `origin/work/publishfield2`, PR 병합과 Meta 개발자 콘솔 조작은 금지 상태다.
+- 출고 상태: 제품 코드와 `.codex/logs/harness.jsonl`은 커밋에서 제외했다. 디자인 `68062525`, 핸드오프 `130f7af2`를 만들었다. `git push origin work/publishfield2`는 실행 정책이 승인 필요 명령으로 차단했고 이 세션은 승인 요청이 금지되어 원격 전송은 미완료다. PR 병합과 Meta 개발자 콘솔 조작은 하지 않았다.
+- 출처 확인: 규격 문서의 공식 URL 20개는 HTTP 200을 확인했다. X 해시태그 도움말 1개는 자동 curl에 403을 반환했지만 이 세션의 웹 검색 도구로 본문과 `2개 이하 권고`를 직접 확인했다.
 - 다음 액션: 부모 컨트롤러가 v66 디자인을 검토해 승인 여부를 판단한다. 승인 증거는 DESIGN.md v35와 v66 프로토타입 버전핀이다. 승인되면 build 단계 소유자는 code-builder, 종료 증거는 표시 이름 편집 0, 플랫폼별 제한 테스트, TypeScript와 지정 Vitest 통과, 실제 브라우저 렌더다.
 
 ## 2026-09-01 06:56 KST | pane osmu-terms0901 | 인프라 표준 용어 교정
