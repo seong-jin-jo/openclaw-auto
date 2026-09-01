@@ -1,5 +1,24 @@
 # 세션 상태 (얇은 인덱스)
 
+## 2026-09-02 03:36 KST | Codex 메인 컨트롤러 | OSMU 자동 연쇄 재개·디자인 게이트 대기
+
+- 핸드오프 기준: 회장의 "다 진행하고 보고"를 primary로 삼았고, 여러 OSMU tmux pane을 임의 재개하지 않은 대신 `pipeline-state.osmu.md`, 최신 v65·v66 산출물, 현 HEAD를 병렬 대조했다. active goal을 걸고 상태 감사·코드리뷰·QA 준비 3판을 병렬로 돌렸다.
+- 파이프라인 판정: v64만 현재 승인본이다. v65 편집실은 디자인 승인 기록 없이 구현됐고, v66 발행실은 디자인만 있다. `pipeline-state.osmu.md`를 design `awaiting-approval`로 재개하고 v64 전체 정본 + v65·v66 증분 묶음을 승인 후보로 기록했다.
+- 독립 리뷰: v65 런타임 state 미연결, 글 저장 format을 `card`로 위장하는 계약, v66 표시 이름 편집·공통 필드·임의 글자수·금지 용어·집중 필터 미구현을 MAJOR 10건으로 확인했다. 소스 수정은 디자인 승인 전이라 착수하지 않았다.
+- 로컬 검증: `npm run test:publish` 27파일 258건 통과·2건 제외. `npx tsc --noEmit` 오류 0. `npm run build` 성공. 기존 NFT tracing 경고 1건은 유지된다.
+- 원격 검증: 로컬 10커밋을 `origin/feat/design-system-and-missing-features`에 push했고 초안 PR #41을 만들었다. CI run `33544210911` 성공. 머지·배포는 디자인·build·QA 승인 전이라 시도하지 않았다.
+- 보여줌: 승인 후 구현할 최종 디자인 원문 `docs/prototype/osmu-publishfield-v66-gpt-codex-20260901-0813.html`을 열었다.
+- 정확한 다음 액션: 회장이 `/approve design`으로 v64+v65+v66 묶음을 승인하면, code-builder 1명을 별도 worktree에 배차해 MAJOR 10건을 테스트 먼저 구현한다. 그 동안 code-reviewer·qa-verifier는 읽기·검증 판을 병렬로 돌린다. 종료 증거는 풀 회귀, 390·1024 실렌더, 최신 CI, 실 고객 세션 E2E다.
+
+## 2026-09-02 | Codex·Claude 하네스 동등성 보정과 OSMU 오케스트레이션 실측
+
+- 핸드오프 기준: 회장이 이 턴에 지정한 두 과제. 전역 Claude·Codex 하네스 동등성 감사·보정과, 현 Codex 메인세션의 OSMU 병렬 오케스트레이션 가능성 판정이다. OSMU 제품 작업은 여러 tmux pane·세션 노트·pipeline pin이 공존해 이 턴에서 임의 재개하지 않았다.
+- 근본 원인: 기존 `sync-codex-hooks.sh`가 예전 portable 목록만 검사해 Claude에 추가된 정책 게이트 10개와 표준 템플릿 10개, 등록 차이를 놓치고도 `drift=0`을 냈다.
+- 보정: Codex에 정책 훅 10개를 포팅·등록했고, Codex 메인 컨트롤러를 허용하는 현행 헌법으로 `pipeline-doctrine.sh`를 바꾸었다. 동기화 스크립트에 `--check`/그대로 적용 모드, 재귀적 standards/templates 미러, 스킬 symlink, 전체 훅 재고·등록 검사를 추가했다. Claude 전용 browser/command plugin 스킬 6개와 Read 예산·TUI statusline·timeline은 플랫폼 차이로 명시적 N/A다.
+- 검증: `sync-codex-hooks.sh --check` drift 0, 신규 훅 10개 파일·등록 전부 확인, 전 Codex 훅 `bash -n` 통과, `hooks.json` JSON 파싱 통과, 전역 harness fixture 통과. 역할 16개와 기반 산출물 주입 dry-run 경로도 확인했다.
+- 오케스트레이션 판정: 현 Codex 메인세션은 native 병렬 에이전트 제어와 `codex-delegate.sh` 역할 계약을 모두 쓸 수 있다. 읽기·리뷰·QA 준비는 병렬 가능하고, 소스 쓰기는 별도 worktree로 격리하며, 공유 wiki·pipeline state·머지·배포는 단일 소유자가 직렬화해야 한다.
+- 다음 액션: OSMU 작업 재개 전 `pipeline-state.osmu.md` v64 pin과 `wiki/ops/session-state.md` v65 구현·v66 설계 사이를 대조해 최신 승인 입력을 다시 핀한다. 그 뒤 독립 worktree 하나에 code-builder 하나만 배차하고, 병렬로 code-reviewer·qa-verifier 읽기 판을 돌린다.
+
 ## 2026-09-01 18:27 KST | pane osmu-editbuild0901 | 편집실 v65 build 검증 완료
 
 - 핸드오프 기준: 회장이 이 턴에 지정한 편집실 v65 구현 과제와 `osmu-editbuild0901:0.0` pane. v65 WIREFRAMES·HTML, DESIGN.md v34, ADR-004·005·006, 실수 목록, 현재 구현을 기준으로 했다.

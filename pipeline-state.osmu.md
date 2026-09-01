@@ -1,3 +1,24 @@
+## 2026-09-02 디자인 재개: v65·v66 증분 승인 대기 (Codex 메인 컨트롤러)
+
+stage: design
+status: awaiting-approval
+reopen_reason: v65 편집실은 디자인 승인 기록 없이 build가 먼저 진행됐고, v66 발행실은 디자인 산출물만 있고 구현·승인이 없다. v64 승인 정본을 유지한 채 두 증분을 묶어 디자인 게이트를 정상화한다.
+
+candidate_artifacts:
+- design_hub: `docs/prototype/openclaw-auto-4room-v64.html` (기존 승인 전체 제품 정본)
+- design_system: `DESIGN.md` v35, commit `68062525`
+- editroom_design: `docs/prototype/osmu-editroom-v65-gpt-codex-20260901-0710.html` + `docs/WIREFRAMES/osmu-editroom-v65-gpt-codex-20260901-0710.md`, commit `66ad58dd`
+- editroom_build_evidence: commits `e81caf6e`, `ddfb15d1`
+- publishfield_design: `docs/prototype/osmu-publishfield-v66-gpt-codex-20260901-0813.html` + `docs/WIREFRAMES/osmu-publishfield-v66-gpt-codex-20260901-0813.md`
+- publishfield_rules: `docs/reference/플랫폼-발행-필드-규격-2026-09-01.md`, commit `68062525`
+- requirements: `wiki/거버넌스/요청.md` 2026-08-30 회장 2차 실사용 피드백
+- audit: `docs/qa/회장-세션발화-전건-대조표-2026-08-31.md`
+
+게이트:
+- `/approve design` 전에 v66 소스 구현 금지.
+- v65 기존 구현은 삭제·재작성하지 않고 리뷰·QA 대상으로 보존.
+- 승인 후 build 소유자는 v66 미구현만 추가하고, code-reviewer·qa-verifier가 v65 회귀와 통합 경로를 병렬 검증.
+
 ## 2026-09-01 01:15 승인 산출물 핀 (Claude, osmu 라인)
 
 stage: build. 편집실·발행실 화면 판을 다시 발주하기 위해 승인 산출물을 핀한다.
@@ -52,4 +73,3 @@ stage: 운영 가동중. 회장 2차 실사용 대기.
 
 게이트: 30건 대조표 재실행 전까지 "회장 피드백 전부 해결" 주장 금지.
 배포 주의: services 좁히기, expand-guard 불가.
-
