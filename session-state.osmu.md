@@ -1,5 +1,38 @@
 # OSMU 세션 상태
 
+## 2026-09-02 04:33 KST | Codex 메인 컨트롤러 | v65·v66 디자인 승인 대기
+
+### 무엇을 어디까지 했나
+
+- 회장의 `다 진행하고 보고`를 primary로 삼고 active goal을 걸었다. 상태 정합화, 코드리뷰, QA 준비를 병렬 실행했다.
+- v64만 현재 승인본이며 v65 편집실은 디자인 승인 기록 없이 구현됐고, v66 발행실은 디자인만 있음을 확정했다.
+- `pipeline-state.osmu.md`를 `stage: design`, `status: awaiting-approval`로 재개했다. 승인 후 구현 기준은 v64 전체 정본 + v65 편집실 증분 + v66 발행실 증분이다.
+- 현 브랜치를 원격에 push하고 초안 PR #41을 열었다. 최신 HEAD `136a1c64`의 CI run `33549746071`은 성공했다.
+- 승인 후 구현할 원문 `docs/prototype/osmu-publishfield-v66-gpt-codex-20260901-0813.html`을 열었다.
+
+### 남은 이슈·블로커
+
+- 하드 블로커는 `/approve design` 하나다. 현 헌법상 메인 컨트롤러가 자가 승인할 수 없다.
+- 독립 리뷰에서 MAJOR 10건을 확인했다. v65 런타임 state 미연결, 글 저장 format 오류, v66 표시 이름 편집 잔존, 플랫폼별 필드·제한 미분리, 금지 용어 잔존, 집중 필터 미구현이다.
+- 머지·배포·실 고객 세션 QA는 build·QA 승인 전이라 미실행이다.
+- 사용자 소유 dirty 파일 `.codex/logs/harness.jsonl`, `docs/requests/inbox/chairman-2026-09.md`는 보존했다.
+
+### 다음에 칠 명령
+
+```text
+/approve design
+```
+
+승인 직후 메인 컨트롤러가 `code-builder` 1명을 별도 worktree에 배차하고 `code-reviewer`, `qa-verifier`를 병렬로 돌린다. 종료 증거는 MAJOR 10건 해소, 전체 회귀, 390·1024 실렌더, 최신 CI, 실 고객 세션 E2E다.
+
+### 검증했나
+
+- `npm run test:publish`: 27파일 258건 통과, 2건 제외.
+- `npx tsc --noEmit`: 오류 0.
+- `npm run build`: 성공. 기존 NFT tracing 경고 1건.
+- PR #41 CI run `33549746071`: success.
+- 운영 실경로: 미검증.
+
 ## 2026-09-01 07:48 KST | 편집실 v65 디자인 증분
 
 ### 무엇을 어디까지 했나
