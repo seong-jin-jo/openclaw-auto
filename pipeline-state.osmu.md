@@ -1,3 +1,29 @@
+## 2026-09-02 v67 편집실·발행실 통합 디자인 승인 후보
+
+stage: design
+status: awaiting-approval
+
+design_canonical_candidate:
+  version: v67
+  design_system: `DESIGN.md` v36
+  routing_hub: `docs/prototype/osmu-v67-edit-publish-hub-gpt-codex-20260902-0448.html`
+  delta_spec: `docs/design-spec-osmu-v65-v66-delta-v1.0.0-gpt-codex-20260902-0448.md`
+  clean_frames: `docs/design/clean-frames/osmu-v67-{edit|publish}-{normal|empty|loading|error|disabled|overflow}-{1024|390}-gpt-codex-20260902-0448.png`
+  frame_stamps: same basename with `.png.stamp.md`
+  capture_audit: `docs/design/clean-frames/osmu-v67-capture-audit-gpt-codex-20260902-0448.json`
+  seed: `osmu-v67-static-seed-01`
+  review_status: `B+ · 88/100`, `docs/qa/osmu-v67-design-review-gpt-codex-20260902-0448.md`
+  approval_status: candidate-only
+
+계승 계약:
+- 승인 정본 v64의 상단 2층 GNB, 224·56 탐색, 1024 본문 7:담당 3과 담당 최소 240px, 390 본문 다음 담당을 유지한다.
+- v65 편집 내용과 v66 발행 필드 내용을 같은 셸 한 파일에 통합한다.
+- normal, empty, loading, error, disabled, overflow 여섯 상태를 두 방과 두 폭에서 각각 렌더한다.
+
+게이트:
+- 이 블록은 design canonical 후보 핀이다. approved_artifacts가 아니며 `/approve design` 전 제품 소스 구현 기준으로 승격하지 않는다.
+- matched-pair actual frame은 build 뒤 같은 seed, state, viewport로 별도 생성한다.
+
 ## 2026-09-02 디자인 재개: v65·v66 증분 승인 대기 (Codex 메인 컨트롤러)
 
 stage: design

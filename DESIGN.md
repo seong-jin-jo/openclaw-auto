@@ -3,14 +3,15 @@
 > **이 문서는 지금 유효한 시스템만 담는다. 과거 판(v15~v31) 본문은 `docs/design-archive/DESIGN-v15-v31-archive.md`로 옮겼다.**
 > 스프린트 이력·판올림 로그를 여기에 덧붙이지 않는다. 변경 이력은 프로토타입 파일의 STAMP와 아카이브가 갖는다.
 
-```yaml
-version: v35
-updated: 2026-09-01
+---
+version: v36
+updated: 2026-09-02
 owner: product-designer
-정본_프로토타입: docs/prototype/openclaw-auto-4room-v64.html
-편집실_집중_프로토타입: docs/prototype/osmu-editroom-v65-gpt-codex-20260901-0710.html
-발행실_필드_집중_프로토타입: docs/prototype/osmu-publishfield-v66-gpt-codex-20260901-0813.html
-캡처: docs/prototype/qa-v64/
+승인_정본_프로토타입: docs/prototype/openclaw-auto-4room-v64.html
+통합_승인_후보: docs/prototype/osmu-v67-edit-publish-hub-gpt-codex-20260902-0448.html
+편집실_레거시_증분: docs/prototype/osmu-editroom-v65-gpt-codex-20260901-0710.html
+발행실_레거시_증분: docs/prototype/osmu-publishfield-v66-gpt-codex-20260901-0813.html
+클린_프레임: docs/design/clean-frames/
 기반:
   - docs/사업계획-osmu-v1.0.md  # §3.2, §3.3과 MVP 정의
   - studio/docs/prd-studio-생성-v1.0.md
@@ -41,11 +42,11 @@ owner: product-designer
 tokens:
   color:
     bg: "#fbfbfc"; surface: "#ffffff"; surface-2: "#f4f4f5"; border: "#e4e4e7"
-    text: "#18181b"; muted: "#52525b"; subtle: "#71717a"
-    accent: "#2563eb"; accent-soft: "#eff4ff"; ink: "#1d4ed8"; paper: "#f8f7f4"
+    text: "#18181b"; muted: "#52525b"; subtle: "#66666e"
+    accent: "#2563eb"; accent-soft: "#eff6ff"; ink: "#1d4ed8"; paper: "#f8f7f4"
     accent-ink: "#ffffff"                        # 라이트. 강조색 위에 얹는 글자색
     accent-ink(dark): "#0b1220"                  # 다크. 흰 글자를 그대로 쓰면 2.5:1로 AA 미달
-    success: "#16a34a"; warning: "#b45309"; danger: "#dc2626"
+    success: "#15803d"; warning: "#b45309"; danger: "#b91c1c"
     studio: "#1d4ed8"; studio-soft: "#eff4ff"    # studio-service 소유
     claw: "#0f766e";  claw-soft: "#effcf9"       # openclaw-service 소유
   font: "Pretendard, -apple-system, Apple SD Gothic Neo, sans-serif"
@@ -55,7 +56,7 @@ tokens:
   publish-room-space: [8, 16, 24, 32]         # v66 발행실 신규·수정 영역은 8pt 배수만 사용
   radius: { chip: 6px, control: 8px, radius: 12px, pill: 99px, circle: 50% }
   motion: { fast: 120ms, base: 200ms, slow: 320ms, ease: "cubic-bezier(.2,0,0,1)", ease-out: "cubic-bezier(0,0,.2,1)" }
-```
+---
 
 ---
 
@@ -502,6 +503,23 @@ R110~R143과 현재 구현을 기준으로 화면 책임을 고정한다. 과거
 - [Google Docs 문서 편집](https://support.google.com/docs/answer/7068618?hl=ko)에서 연속된 전체 본문 편집 관습을 차용했다.
 - OSMU 차별화: 편집 형식과 발행 채널을 4개 방의 소유 경계에 맞춰 분리한다.
 
+### v67 편집실·발행실 통합 셸 계약
+
+v65와 v66의 내용 계약은 유지하되 두 독립 프로토타입의 별도 셸은 폐기한다. 승인된 v64의 공통 셸을 단일 라우팅 허브에서 사용한다.
+
+| 폭 | 셸 | 편집실·발행실 공통 동작 |
+|---:|---|---|
+| 1024 | 접힌 탐색 56px, 상단 GNB 두 줄, 본문과 담당 7:3, 담당 최소 240px | 본문만 내부 스크롤. 담당은 같은 오른쪽 열에 상시 보인다 |
+| 390 | 탐색 숨김, 상단 GNB 두 줄, 본문 다음 담당 152px peek | 본문과 담당이 각자 내부 스크롤을 가진다. 발행실 행동은 플랫폼 카드보다 먼저 보인다 |
+
+공통 상태는 `normal`, `empty`, `loading`, `error`, `disabled`, `overflow` 여섯 개다. `disabled`는 `empty`와 별도다. 원인, 잠긴 행동, 다시 열리는 조건을 한 장면에 같이 보여 준다.
+
+편집실 주축은 데스크톱 `row`, 모바일 `column`이다. 순서는 형식 선택, 소유 경계 안내, 목차, 편집 대상, 다음 단계 행동이다. 플랫폼 값은 넣지 않는다.
+
+발행실 주축은 데스크톱 카드 2열, 모바일 카드 1열이다. 순서는 플랫폼 집중 필터, 발행 행동, 플랫폼 카드다. 연결 계정은 읽기 전용이고 게시물 필드만 편집한다. 선택 체크의 보이는 표식은 20px, 실제 조작면은 44px이다.
+
+클린 프레임은 검수 막대, STAMP, 상태 토글, 프로토타입 설명을 제거한 정적 PNG다. 같은 seed에서 방, 폭, 상태만 바꿔 비교한다. 경로는 `docs/design/clean-frames/osmu-v67-<room>-<state>-<viewport>-gpt-codex-20260902-0448.png`다.
+
 ### 성과실 골격 (v61 전면 개정 · R186 · R195 · R127 · R149 · R185 · R168 · R98 · R68 · R56)
 
 **탭을 쓰지 않는다. 한 화면 한 흐름이다.** v58~v60의 세 탭(답할 것 / 무엇이 통했나 / 기록)은 폐기한다.
@@ -849,10 +867,12 @@ OSMU 화면을 만든다. DESIGN.md v35의 토큰만 쓴다(신규 색·서체·
 
 | 파일 | 무엇 |
 |---|---|
+| `docs/prototype/osmu-v67-edit-publish-hub-gpt-codex-20260902-0448.html` | v64 공통 셸을 그대로 계승한 편집실·발행실 단일 라우팅 승인 후보. v65·v66 내용, 여섯 상태, 1024·390, clean mode를 한 파일에서 전환한다. 승인 전까지 v64 정본을 대체하지 않는다. |
+| `docs/design/clean-frames/` | v67 편집실·발행실 2방 × 1024·390 × 여섯 상태의 클린 프레임 24장, 프레임별 STAMP sidecar, 자동 캡처 감사 JSON. |
 | `docs/prototype/osmu-publishfield-v66-gpt-codex-20260901-0813.html` | v64의 4개 방 셸과 일곱 플랫폼 미리보기, 직접 편집, 기존 발행 행동을 보존한 발행실 필드 집중 프로토타입. 표시 이름과 사용자명을 읽기 전용 연결 계정 머리로 바꾸고, 플랫폼별 실제 필드와 공식 제한, 기본·빈 상태·불러오는 중·오류·긴 내용, 1024·390 검토 허브를 포함한다. DESIGN.md와 함께 승인받기 전까지 v64 전체 제품 정본을 대체하지 않는다. |
 | `docs/prototype/osmu-editroom-v65-gpt-codex-20260901-0710.html` | v64의 4개 방 셸을 보존한 편집실 집중 프로토타입. 글 전체 자유 편집, 카드 캔버스 안 텍스트 직접 편집과 위치 이동, 형식과 플랫폼 분리, 단위가 있는 한국어 라벨, 자동 저장과 `발행실로 이동` 단일 주 행동, 기본·빈 상태·불러오는 중·오류·긴 내용, 1024·390 검토 허브를 포함한다. DESIGN.md와 함께 승인받기 전까지 v64 전체 제품 정본을 대체하지 않는다. |
 | `docs/prototype/openclaw-auto-4room-v64.html` | 현재 승인된 전체 제품 정본. 편집실 v65는 이 셸과 방 구조 위에 만든 집중 증분이다. |
-| `docs/prototype/openclaw-auto-4room-v61.html` | **현행 정본.** 컨트롤러 자체 감사 A1~A8 · 미결 8건 확정 · R198 · R199 · 성과실 전면 재작업 반영. ①**390 을 하나의 흐름으로 다시 짰다** · 대화창을 화면 아래 상시 시트(살짝·반·가득)로, 헤더를 두 줄로 못박고, 노치 아래 `--safe-top`. ②**성과실 전면 재작업** · 탭 셋을 없애고 판정 문장 → 되돌림(가속·승낙) → 답하기 → 접힌 원자료 한 흐름. 요약 타일 열 개는 지우지 않고 **넷 크게 여섯 얇게**. 정본에 있으나 이 화면에 안 쓰이는 것(파이프라인 넷·채널 상태·담당 로그)은 사유를 적고 뺐다. ③**중복 렌더 경로 제거** · 같은 방을 그리는 함수가 둘씩이던 것을 하나로 합치고 죽은 정의 606줄 삭제. ④발행실 안내 문구 넷 제거, 공통·따로 딱지를 점 + 한 단어로. ⑤방 이름 네 개를 한 어투로(생성실·편집실·발행실·성과실), 방 이름 표시줄 아홉 곳 제거, 접힌 레일에 방 두 글자 표식. 상시 원칙 계약 **83건 전부 통과**. design-review 1차 C+ → 20건 반영 후 **B+** |
+| `docs/prototype/openclaw-auto-4room-v61.html` | v64 이전 계보 기준선. 컨트롤러 자체 감사 A1~A8 · 미결 8건 확정 · R198 · R199 · 성과실 전면 재작업 반영. 현행 승인 정본은 v64다. |
 | `docs/prototype/qa-v61/` | v61 실렌더. 1440·1024·390 가로·세로 넘침 0, 콘솔 오류 0, 프레임 안 12px 미만 0건, 44px 미만 표적 0건. design-review 로 잡아 고친 것: `var(--focus)` 미정의(참조 3·정의 0) · 44px 계약을 여섯 곳에서 자기가 깸 · 성과실 `hero` 두 개 · 29px 두 벌 · 9.5px 글자 · 스케일 밖 px 스무 종 · radius 리터럴 · `!important` 29 → 13 · 목차 격자가 컨테이너 질의를 죽임 · 점만으로 상태 구분 |
 | `docs/prototype/openclaw-auto-4room-v60.html` | v61의 기반. R197(=R124 두 번째 지시) 반영. **발행실 한 곳만** 고쳤다. ①벽 위 별도 값 목록 판·칸 머리 톱니·요약 줄·편집 서랍을 통째로 걷었다 ②플랫폼별 다섯 값을 미리보기 칸 글자 그 자리에서 고치게 했다(`data-pv-inline-edit` 31곳 / 7칸) ③칸 머리 글자수가 실제로 나갈 것(캡션+해시태그)을 센다 ④되돌리기는 칸마다·갈래마다. 상시 원칙 계약 63건 전부 통과 |
 | `docs/prototype/qa-v60/` | v60 실렌더 9장. 1440·1024·390 가로·세로 넘침 0, 콘솔 오류 0. design-review 로 잡아 고친 것: 편집 신호가 hover 에만 있어 터치에서 0 · 접힌 영상 캡션 안에서 편집하면 방금 친 글자가 잘려 안 보임 · 글자수가 해시태그를 안 세어 미리보기가 거짓을 말함 · 붙여넣기 서식 유입 · 한글 조합 중 상태 갱신 · 10.5px·4px·9px 비토큰 값 6개 · 되돌리기 터치 타깃 미달 · 긴 태그 오버플로 · 갈래 머리 좁은 폭 붕괴 · 연필 글리프가 hover 마다 미리보기를 밀던 것 |
@@ -865,13 +885,15 @@ OSMU 화면을 만든다. DESIGN.md v35의 토큰만 쓴다(신규 색·서체·
 | `docs/prototype/openclaw-auto-4room-v55.html` | v56의 기반. R168. 학습 정보 유입 흐름(사업계획 §3.4.2 시간축) · `/onboard`·`/learn` 라우팅 복구 |
 | `docs/design-archive/DESIGN-v15-v31-archive.md` | 과거 판 본문 전량(참고용) |
 
-### v35 품질 푸터
+### v36 품질 푸터
+
+DESIGN_SCORE: B+ · 88/100 · `docs/qa/osmu-v67-design-review-gpt-codex-20260902-0448.md`
 
 RUBRIC_SCORE: clarity=5/5 action=5/5 linebreak=5/5 tone=4/5 slop=5/5 total=24/25
 WEAKEST_LINE: `규격 확인 필요`는 정직하지만 해결 시점을 말하지 않는다. 업로드 전 검사라는 다음 행동을 같은 카드의 미디어 줄에 붙였다.
 
-SKILLS_USED: 없음. 현재 제공된 스킬 목록에 제품 화면 설계용 스킬이 없다.
-SKILLS_SKIPPED: design-review 계열 스킬이 현재 세션에 제공되지 않아 수동 디자인 리뷰와 상태 전수 점검으로 대체했다.
+SKILLS_USED: design-html · v64 셸 계승, 단일 라우팅 허브, 반응형·상태 산출물 제작. design-review · 24개 클린 프레임 실렌더, 픽셀 검수, 44px·가로 넘침·콘솔 오류 검사.
+SKILLS_SKIPPED: image generation. 새 비트맵 자산이 필요하지 않은 제품 UI라 사용하지 않았다.
 
-SOURCES: wiki/거버넌스/결정.md; wiki/거버넌스/실수.md; wiki/거버넌스/요청.md; docs/prototype/openclaw-auto-4room-v64.html; dashboard/src/components/studio/PlatformPreview.tsx; dashboard/src/app/studio/page.tsx; docs/reference/플랫폼-발행-필드-규격-2026-09-01.md; Meta, X, Google, TikTok 공식 문서; /Users/sj/.claude/standards/design.md; /Users/sj/.claude/standards/ux-writing.md
+SOURCES: wiki/거버넌스/결정.md; wiki/거버넌스/실수.md; wiki/거버넌스/요청.md; docs/prototype/openclaw-auto-4room-v64.html; docs/prototype/osmu-editroom-v65-gpt-codex-20260901-0710.html; docs/prototype/osmu-publishfield-v66-gpt-codex-20260901-0813.html; docs/reference/플랫폼-발행-필드-규격-2026-09-01.md; /Users/sj/.claude/skills/design-html/SKILL.md; /Users/sj/.claude/skills/design-review/SKILL.md; /Users/sj/.claude/standards/design.md; https://developer.android.com/develop/ui/compose/layouts/adaptive/canonical-layouts; https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html
 MODEL: gpt-codex/gpt-5.6-sol
