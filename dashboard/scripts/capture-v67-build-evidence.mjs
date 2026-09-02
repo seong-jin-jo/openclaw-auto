@@ -211,7 +211,7 @@ try {
   if (await page.locator('[data-room="publish"] [aria-label$="표시 이름"]').count()) throw new Error("표시 이름 편집기가 남아 있습니다");
 
   await page.getByRole("button", { name: /선택한 [0-9]+곳에 지금 발행/ }).click();
-  await page.getByText("발행 완료", { exact: true }).waitFor();
+  await page.locator('[data-room="publish"]').getByText("발행 완료", { exact: true }).waitFor();
   await page.goto(`${baseUrl}/`, { waitUntil: "networkidle", timeout: 60_000 });
   await page.locator('[data-room="performance"]').waitFor();
   observations.push({ room: "performance", width: 390, rendered: true });
