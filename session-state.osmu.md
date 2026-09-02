@@ -1,5 +1,39 @@
 # OSMU 세션 상태
 
+## 2026-09-03 05:53 KST | Codex code-builder | v69copy 운영 UI 결함 build 최종 인계
+
+### 지금까지 한 것
+
+- 기준: 회장이 지정한 `work/v69copy`, `pipeline-state.osmu.md`의 `approved-for-build`, ADR-004·005·006, 운영 캡처 4장, 승인 v68 프로토타입, DESIGN.md v37을 따랐다. `work/v69fix`는 건드리지 않았다.
+- 작업 공간 표시: 빈 이름과 이메일 형태 이름을 `기본 작업 공간`으로 바꾸는 공용 표시 함수를 추가하고 스튜디오, 성과 요약, 학습 정보에 적용했다.
+- 배너: 쿠키 동의 배너의 우하단 고정 배치를 제거하고 문서 흐름에 넣어 담당 패널 입력과 전송 단추를 가리지 않게 했다.
+- 채널 문구: 탭, 상태, 분석 지표, 자동화, 콘텐츠 가이드, 키워드, 저장 동작, Instagram·메시지 채널의 고객 라벨을 한국어화했다.
+- 연결 안내: 공식 OAuth 연결 단추와 다계정·재연결 기능을 유지했다. 직접 입력은 `고급 연결 정보`를 펼친 뒤에만 보이며 기본 안내에서 개발자 콘솔 절차를 제거했다.
+- 문구 규율: 고객 UI 문자열의 긴 대시를 AST 계약으로 금지하고 스튜디오 상단 내부 AI 실행 이름을 고객 상태 문구로 교체했다.
+- 구현·검증·상세 문서 커밋: `9499d275`, `65074316`, `51227be6`, `429b3404`, `b1785c5d`, `9fb3a761`, `4185cb12`, `0d4b61ac`. 이 루트 핸드오프 갱신 커밋이 그 위에 있다.
+
+### 검증
+
+- `cd dashboard && npx tsc --noEmit`: 오류 0.
+- `npx vitest run`: 223파일 1,600건 통과, 38건 조건부 제외, 실패 0.
+- `npm run build`: 성공, 정적 페이지 177/177. 기존 NFT 광범위 추적 경고 1건 유지.
+- `design-lint.sh dashboard/src`: 디자인 토큰 위반 0.
+- 종료형 production server와 브라우저에서 `/channels/threads` HTTP 200 뒤 로그인 화면 이동을 관찰했다. 서버와 브라우저는 종료했다.
+- 상세 근거: `docs/구현현황.md`, `docs/qa/qa-tracker.md`, `wiki/ops/session-state.md`, 로컬 `.gstack/qa-reports/qa-report-localhost-2026-09-03.md`.
+
+### 남은 이슈
+
+- `git push origin work/v69copy`는 실행 정책이 승인을 요구했지만 이 세션은 승인 요청 금지 모드라 명령 시작 전에 차단됐다. 읽기 전용 `git ls-remote --heads origin work/v69copy` 결과 원격 브랜치는 없다.
+- worktree에 Supabase 공개 설정과 고객 세션이 없어 로그인 상태의 연결·스튜디오·성과·생성 화면을 수정 후 직접 대조하지 못했다.
+- 실제 외부 OAuth 동의, 외부 게시, 운영 DB, 머지, 배포는 미검증이며 실행하지 않았다.
+- 사용자 소유 dirty `.codex/logs/harness.jsonl`, `docs/requests/inbox/chairman-2026-09.md`는 복원해 보존했고 stage하지 않았다.
+
+### 다음 액션
+
+- push 권한이 있는 부모 컨트롤러가 현재 브랜치 tip을 `git push origin HEAD:work/v69copy`로 전송하고 `git rev-parse HEAD`와 원격 SHA 일치를 확인한다.
+- QA 소유자가 로그인 상태 운영 또는 동일 조건 스테이징에서 1024 너비로 연결·스튜디오·성과·생성 화면을 재캡처한다. 종료 증거는 이메일 노출 0, 배너 겹침 0, 기존 영어 라벨 0, 공식 연결 단추 활성, 내부 실행 이름 0이다.
+- 머지와 배포는 별도 QA 승인 전 실행하지 않는다.
+
 ## 2026-09-03 02:07 KST | Codex code-builder | v68 생성실·성과실 build 최종 인계
 
 ### 지금까지 한 것
