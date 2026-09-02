@@ -203,7 +203,7 @@ export function PerformanceChatPanel({
   }, [open]);
 
   return (
-    <section className="card p-region" aria-label="성과실 담당 대화" data-perf-chat data-chat-dock="performance">
+    <aside className="card p-region" aria-label="성과실 담당 대화창" data-perf-chat data-chat-dock="performance">
       <Stack gap={12}>
         <div className="flex items-center justify-between gap-stack">
           <div>
@@ -280,6 +280,6 @@ export function PerformanceChatPanel({
           )}
         </div>
       </Stack>
-    </section>
+    </aside>
   );
 }

@@ -54,13 +54,13 @@ const kindToBranch = (kind: CreateKind): CreateContentBranch => (kind === "video
 
 function AssistantPanel({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="card h-fit min-w-0 overflow-y-auto max-lg:sticky max-lg:bottom-0 max-lg:z-30 max-lg:max-h-44 max-lg:rounded-b-none lg:sticky lg:top-pad-inset" aria-label={`${title} 대화창`} data-chat-dock="persistent" data-chat-always="true">
+    <aside className="card h-fit min-w-0 overflow-y-auto max-lg:sticky max-lg:bottom-0 max-lg:z-30 max-lg:max-h-44 max-lg:rounded-b-none lg:sticky lg:top-pad-inset" aria-label={`${title} 대화창`} data-chat-dock="persistent" data-chat-always="true">
       <div className="flex items-center gap-stack-tight border-b border-border p-stack">
         <div className="grid h-10 w-10 place-items-center rounded-pill bg-accent text-body font-bold text-accent-fg" aria-hidden="true">O</div>
         <div><b className="block text-body text-text">{title}</b><span className="text-caption text-success">지금 대기 중</span></div>
       </div>
       <div className="bg-surface-2 p-stack">{children}</div>
-    </section>
+    </aside>
   );
 }
 
@@ -806,7 +806,7 @@ export function EditRoom({
           )}
         </main>
         {commandPanel ?? (
-          <aside className={`card p-pad-inset ${styles.editHelper}`} aria-label="편집 담당" data-edit-helper>
+          <aside className={`card p-pad-inset ${styles.editHelper}`} aria-label="편집 담당 대화창" data-edit-helper>
             <div className={styles.editHelperActions}>
               <h2 className="text-body font-bold text-text">전체에 한 번에 적용</h2>
               <p className="mt-stack-tight break-keep text-caption text-muted">반복해서 고칠 일은 담당에게 맡길 수 있습니다.</p>

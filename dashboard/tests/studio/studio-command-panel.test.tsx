@@ -50,6 +50,8 @@ describe("FE-V63-31 Studio 담당 대화 명령 연결", () => {
       onOpenPublish={onOpenPublish}
     />);
 
+    expect(screen.getByRole("complementary", { name: "편집 담당 대화창" })).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole("button", { name: "편집 내용 저장" }));
     await waitFor(() => expect(onSaveEdit).toHaveBeenCalledTimes(1));
     fireEvent.click(screen.getByRole("button", { name: "발행실로 이동" }));

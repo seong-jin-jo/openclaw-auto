@@ -78,6 +78,24 @@
 
 # 세션 상태 (얇은 인덱스)
 
+## 2026-09-03 02:32 KST | Codex code-builder | v68 네 방 담당 패널 접근성 회귀 복구 검증
+
+- 핸드오프 기준: 회장이 지정한 `work/v68rooms` 브랜치와 `/private/tmp/osmu-wt-v68rooms` 워크트리, 이번 접근성 회귀 수정 과제를 primary로 사용했다. 메인 저장소 tmux pane은 다른 작업 트랙이라 이어받지 않았다.
+- 원인: v68 생성실 레이아웃 수정이 담당 패널을 `aside`에서 이름 있는 `section`으로 바꿨다. 시각적 이름은 유지됐지만 접근성 역할이 `complementary`에서 `region`으로 바뀌었다. 이전 검증은 `tests/components tests/publish tests/api tests/brand`만 실행해 깨진 `tests/studio` 계약을 보지 못했다.
+- 변경: 생성실을 `생성 담당 대화창` 보조 랜드마크로 복구했다. 편집실 기본·명령 패널을 `편집 담당 대화창`으로 통일하고 영문 화면 문구를 한국어로 바꿨다. 발행실 기존 계약을 확인했다. 성과실을 `성과실 담당 대화창` 보조 랜드마크로 바꾸고 계약 테스트를 추가했다.
+- 보존: 생성, 편집, 발행, 성과 기능과 OAuth 연결, App Review 임시 안내, 사람 승인 없는 외부 게시물 삭제 금지 계약은 변경하지 않았다. Meta 개발자 콘솔을 조작하지 않았다.
+- 검증: 최초 생성실 19건 중 2건 실패를 재현했다. 수정 뒤 생성실 19건과 네 방 집중 42건이 통과했다. 최종 `npx vitest run`은 221파일 1,586건 통과, 38건 조건부 제외, 실패 0이다. `npx tsc --noEmit` 오류 0, production build 177/177, design lint 위반 0, 종료형 서버 `/studio` HTTP 200을 관찰했다.
+- 커밋: `93c77e3e` 회귀 기록, `df552008` 생성실 랜드마크 복구, `5a63119a` 네 방 담당 랜드마크 정합, `2ed2d792` 검증·구현현황 기록.
+- 원격 상태: `git push origin work/v68rooms` 성공. 기능과 최신 핸드오프 문서까지 각 push 뒤 로컬·원격 SHA 일치를 확인했다. 이 브랜치 push로 시작된 GitHub Actions 실행은 없다.
+- 배포 상태: 머지와 운영 배포는 실행하지 않았다. 다음 QA는 실제 화면 낭독기 랜드마크 탐색으로 네 방 이름을 확인한다.
+
+## 2026-09-03 02:19 KST | Codex code-builder | v68 담당 패널 접근성 회귀 재현
+
+- 핸드오프 기준: 회장이 지정한 `work/v68rooms` 브랜치와 `/private/tmp/osmu-wt-v68rooms` 워크트리, 이번 접근성 회귀 수정 과제를 primary로 사용한다. 메인 저장소 tmux pane은 다른 작업 트랙이라 이어받지 않는다.
+- 승인 범위: `pipeline-state.osmu.md` 최상단 v68 `approved-for-build` 범위 안에서 네 방 담당 패널의 기존 접근성 계약만 복구한다. API, 데이터베이스, 배포는 바꾸지 않는다.
+- 재현: `npx vitest run tests/studio/studio-fe2-rooms.test.tsx`에서 19건 중 17건 통과, `FE3-CREATE-01`과 `FE6-CREATE-01` 두 건 실패를 관찰했다. 생성 담당 패널의 이름은 유지됐지만 `section` 때문에 역할이 `region`으로 노출된다.
+- 다음 액션: 생성 담당 패널을 `complementary` 랜드마크로 복구하고 편집실, 발행실, 성과실 담당 패널을 같은 기준으로 대조한 뒤 계약 테스트, TypeScript, 전체 Vitest를 실행한다.
+
 ## 2026-09-02 11:14 KST | Codex code-builder | v67 발행실 플랫폼 집중 필터 build 검증 완료
 
 - 핸드오프 기준: 회장이 지정한 `work/v67build` 워크트리와 이번 플랫폼 집중 필터 과제를 primary로 사용한다. 같은 worktree의 활성 tmux pane은 없었고 메인 저장소 pane은 다른 트랙이라 재개하지 않았다.

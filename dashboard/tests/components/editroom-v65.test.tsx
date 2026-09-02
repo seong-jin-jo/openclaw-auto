@@ -63,7 +63,7 @@ describe("편집실 v65 화면 계약", () => {
     const onLinesChange = vi.fn();
     render(<EditRoom lines={["아주 긴 문장을 스물네 글자보다 길게 작성해서 줄이는 동작을 확인한다", ""]} onLinesChange={onLinesChange} kind="text" />);
 
-    const helper = screen.getByRole("complementary", { name: "편집 담당" });
+    const helper = screen.getByRole("complementary", { name: "편집 담당 대화창" });
     expect(helper.querySelectorAll("button")).toHaveLength(4);
     fireEvent.click(screen.getByRole("button", { name: "빈 줄 걷어내기" }));
     expect(onLinesChange).toHaveBeenCalledWith(["아주 긴 문장을 스물네 글자보다 길게 작성해서 줄이는 동작을 확인한다"]);

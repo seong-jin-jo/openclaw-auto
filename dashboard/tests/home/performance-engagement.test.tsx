@@ -41,6 +41,13 @@ describe("FE-V63-07 성과실 댓글 행동", () => {
 
   afterEach(() => cleanup());
 
+  it("V68-PERF-03 정상: 성과실 담당 패널은 이름 있는 보조 랜드마크다", () => {
+    H.fetcher.mockImplementation(() => new Promise(() => {}));
+    render(room());
+
+    expect(screen.getByRole("complementary", { name: "성과실 담당 대화창" })).toBeInTheDocument();
+  });
+
   it("FE-V63-07 정상 경로: 본문을 읽고 다섯 후속 행동 단추가 실제 API를 호출한다", async () => {
     H.fetcher.mockResolvedValue({
       postId: post.id, platform: "threads", capability: supported,
