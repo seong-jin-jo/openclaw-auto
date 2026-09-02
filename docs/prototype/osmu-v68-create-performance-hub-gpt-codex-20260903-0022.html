@@ -148,6 +148,8 @@ decision: inherit the v67 four-stage shell and add only creation and performance
     .lead { margin: 8px 0 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
     .status-pill { flex: none; padding: 8px 10px; border-radius: 999px; background: var(--success-soft); color: var(--success); font-size: 12px; font-weight: 800; }
     .status-pill.warning { background: var(--warning-soft); color: var(--warning); }
+    .status-pill.error { background: var(--danger-soft); color: var(--danger); }
+    .status-pill.neutral { background: var(--surface-2); color: var(--muted); }
     .summary-strip { display: grid; grid-template-columns: 1.4fr .8fr .8fr; gap: 8px; margin-bottom: 16px; }
     .summary-cell, .card { border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius-md); }
     .summary-cell { padding: 12px; min-height: 64px; }
@@ -250,7 +252,8 @@ decision: inherit the v67 four-stage shell and add only creation and performance
       .assistant-head { padding: 10px 16px 8px; }
       .assistant-head span { display: none; }
       .chat-scroll { padding: 8px 12px; }
-      .chat-scroll .bubble:not(:last-of-type), .chat-scroll .choice-stack { display: none; }
+      .chat-scroll .bubble, .chat-scroll .choice-stack { display: none; }
+      .chat-scroll .bubble.current { display: block; }
       .assistant-actions { padding: 8px 12px; display: block; }
       .assistant-actions .secondary-button { display: none; }
       .page-head { display: block; margin-bottom: 12px; }
@@ -349,8 +352,8 @@ decision: inherit the v67 four-stage shell and add only creation and performance
         <aside class="assistant-pane" aria-label="생성 담당">
           <div class="assistant-head"><strong>생성 담당</strong><span>한 번에 하나씩 물어보고 구조 초안을 만듭니다.</span></div>
           <div class="chat-scroll">
-            <div class="bubble ai">${disabled ? "공유 AI 사용 승인 대기 상태입니다. 입력한 내용은 유지됩니다." : loading ? "선택한 형식에 맞춰 구조 초안 세 개를 만들고 있습니다." : error ? "구조 초안을 만들지 못했습니다. 입력한 내용은 그대로 두었습니다." : "어떤 형식으로 만들까요? 먼저 형식을 골라 주세요."}</div>
-            ${!disabled && !loading && !error ? `<div class="choice-stack"><button class="choice-button selected" type="button">짧은 영상</button><button class="choice-button" type="button">카드 묶음</button><button class="choice-button" type="button">텍스트</button></div><div class="bubble user">짧은 영상으로 만들게요.</div><div class="bubble ai">좋아요. 이번 콘텐츠의 목적은 무엇인가요?</div>` : ""}
+            <div class="bubble ai ${disabled || loading || error ? "current" : ""}">${disabled ? "공유 AI 사용 승인 대기 상태입니다. 입력한 내용은 유지됩니다." : loading ? "선택한 형식에 맞춰 구조 초안 세 개를 만들고 있습니다." : error ? "구조 초안을 만들지 못했습니다. 입력한 내용은 그대로 두었습니다." : "어떤 형식으로 만들까요? 먼저 형식을 골라 주세요."}</div>
+            ${!disabled && !loading && !error ? `<div class="choice-stack"><button class="choice-button selected" type="button">짧은 영상</button><button class="choice-button" type="button">카드 묶음</button><button class="choice-button" type="button">텍스트</button></div><div class="bubble user">짧은 영상으로 만들게요.</div><div class="bubble ai current">좋아요. 이번 콘텐츠의 목적은 무엇인가요?</div>` : ""}
           </div>
           <div class="assistant-actions">
             <button class="primary-button" type="button" ${disabled || loading ? "disabled" : ""}>${error ? "다시 만들기" : disabled ? "승인 상태 확인" : loading ? "만드는 중" : "편집실에서 다듬기"}</button>
@@ -385,12 +388,16 @@ decision: inherit the v67 four-stage shell and add only creation and performance
       if (state === "loading") body = loadingCreate();
       if (state === "error") body = statePanel("error", "!", "구조 초안을 만들지 못했습니다", "입력한 목적, 대상, 주제와 학습 정보는 유지했습니다. 연결을 확인한 뒤 다시 만들 수 있습니다.", "다시 만들기", "입력 내용 확인");
       if (state === "disabled") body = statePanel("disabled", "대기", "공유 AI 사용 승인 대기", "관리자의 사용 승인이 끝나면 바로 구조 초안을 만들 수 있습니다. 지금까지 입력한 내용은 사라지지 않습니다.", "승인 상태 확인", "자체 AI 연결 확인");
-      return `<div class="work-area"><section class="main-pane"><header class="page-head"><div><p class="eyebrow">1단계</p><h1>생성실</h1><p class="lead">형식을 먼저 고르고, 학습 정보를 반영한 구조 초안 세 개를 비교합니다.</p></div><span class="status-pill ${state === "disabled" ? "warning" : ""}">${state === "disabled" ? "승인 대기" : stateLabels[state]}</span></header>${body}</section>${createAssistant(state)}</div>`;
+      const statusClass = state === "disabled" ? "warning" : state === "error" ? "error" : state === "empty" || state === "loading" ? "neutral" : "";
+      return `<div class="work-area"><section class="main-pane"><header class="page-head"><div><p class="eyebrow">1단계</p><h1>생성실</h1><p class="lead">형식을 먼저 고르고, 학습 정보를 반영한 구조 초안 세 개를 비교합니다.</p></div><span class="status-pill ${statusClass}">${state === "disabled" ? "승인 대기" : stateLabels[state]}</span></header>${body}</section>${createAssistant(state)}</div>`;
     };
 
     const performanceAssistant = currentState => {
       const disabled = currentState === "disabled";
-      return `<aside class="assistant-pane" aria-label="성과 담당"><div class="assistant-head"><strong>성과 담당</strong><span>결과를 설명하고 다음 행동을 함께 정합니다.</span></div><div class="chat-scroll"><div class="bubble ai">${disabled ? "연결된 채널이 없어 성과를 확인할 수 없습니다. 연결 버튼은 계속 사용할 수 있습니다." : currentState === "loading" ? "최근 성과를 모으고 있습니다. 이전 화면으로 이동해도 작업은 이어집니다." : currentState === "error" ? "일부 성과를 불러오지 못했습니다. 마지막으로 확인한 내용은 유지했습니다." : "이번 주에는 저장이 늘었습니다. 잘된 콘텐츠의 공통점을 학습 정보로 제안할까요?"}</div>${!disabled && currentState !== "loading" ? `<div class="choice-stack"><button class="choice-button selected" type="button">잘된 이유 설명</button><button class="choice-button" type="button">반응 관리 후보 보기</button><button class="choice-button" type="button">다음 콘텐츠 제안</button></div>` : ""}</div><div class="assistant-actions"><button class="primary-button" type="button">${disabled ? "채널 연결하기" : currentState === "error" ? "다시 불러오기" : "다음 행동 확인"}</button><button class="secondary-button" type="button">학습 정보 제안 보기</button></div></aside>`;
+      const message = disabled ? "연결된 채널이 없어 성과를 확인할 수 없습니다. 연결 버튼은 계속 사용할 수 있습니다." : currentState === "loading" ? "최근 성과를 모으고 있습니다. 이전 화면으로 이동해도 작업은 이어집니다." : currentState === "error" ? "일부 성과를 불러오지 못했습니다. 마지막으로 확인한 내용은 유지했습니다." : currentState === "empty" ? "아직 발행한 콘텐츠가 없습니다. 첫 발행 뒤부터 반응을 모읍니다." : "이번 주에는 저장이 늘었습니다. 잘된 콘텐츠의 공통점을 학습 정보로 제안할까요?";
+      const showChoices = currentState === "normal" || currentState === "overflow";
+      const primary = disabled ? "채널 연결하기" : currentState === "error" ? "다시 불러오기" : currentState === "empty" ? "발행실 확인" : currentState === "loading" ? "수집 상태 확인" : "다음 행동 확인";
+      return `<aside class="assistant-pane" aria-label="성과 담당"><div class="assistant-head"><strong>성과 담당</strong><span>결과를 설명하고 다음 행동을 함께 정합니다.</span></div><div class="chat-scroll"><div class="bubble ai current">${message}</div>${showChoices ? `<div class="choice-stack"><button class="choice-button selected" type="button">잘된 이유 설명</button><button class="choice-button" type="button">반응 관리 후보 보기</button><button class="choice-button" type="button">다음 콘텐츠 제안</button></div>` : ""}</div><div class="assistant-actions"><button class="primary-button" type="button">${primary}</button><button class="secondary-button" type="button">학습 정보 제안 보기</button></div></aside>`;
     };
 
     const performanceNormal = overflow => `
@@ -409,7 +416,8 @@ decision: inherit the v67 four-stage shell and add only creation and performance
       if (state === "loading") body = loadingPerformance();
       if (state === "error") body = statePanel("error", "!", "일부 성과를 불러오지 못했습니다", "마지막 확인 시점의 성과는 유지했습니다. 연결 상태를 확인한 뒤 다시 불러올 수 있습니다.", "다시 불러오기", "마지막 성과 보기");
       if (state === "disabled") body = statePanel("disabled", "연결", "성과를 확인할 채널이 없습니다", "채널 연결이 끝나면 성과 수집이 시작됩니다. 심사 전 임시 안내가 표시되어도 연결 버튼은 계속 사용할 수 있습니다.", "채널 연결하기", "연결 안내 보기");
-      return `<div class="work-area"><section class="main-pane"><header class="page-head"><div><p class="eyebrow">4단계 후보</p><h1>성과실</h1><p class="lead">채널 전체를 먼저 보고, 잘된 이유와 다음 행동을 확인합니다.</p></div><span class="status-pill ${state === "disabled" ? "warning" : ""}">${state === "disabled" ? "연결 필요" : stateLabels[state]}</span></header>${body}</section>${performanceAssistant(state)}</div>`;
+      const statusClass = state === "disabled" ? "warning" : state === "error" ? "error" : state === "empty" || state === "loading" ? "neutral" : "";
+      return `<div class="work-area"><section class="main-pane"><header class="page-head"><div><p class="eyebrow">4단계 후보</p><h1>성과실</h1><p class="lead">채널 전체를 먼저 보고, 잘된 이유와 다음 행동을 확인합니다.</p></div><span class="status-pill ${statusClass}">${state === "disabled" ? "연결 필요" : stateLabels[state]}</span></header>${body}</section>${performanceAssistant(state)}</div>`;
     };
 
     function applyViewport() {
