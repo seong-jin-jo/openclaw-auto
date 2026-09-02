@@ -52,8 +52,12 @@ vi.mock("@/components/layout/Toast", () => ({
   useToast: () => ({ showToast: mocks.showToast }),
 }));
 
-vi.mock("@/components/shared/CredentialForm", () => ({ CredentialForm: () => null }));
-vi.mock("@/components/channel/SocialConnectButton", () => ({ SocialConnectButton: () => null }));
+vi.mock("@/components/shared/CredentialForm", () => ({
+  CredentialForm: ({ title }: { title?: string }) => <section>{title}</section>,
+}));
+vi.mock("@/components/channel/SocialConnectButton", () => ({
+  SocialConnectButton: ({ label }: { label: string }) => <button>{label} 연결</button>,
+}));
 vi.mock("@/components/channel/AccountManager", () => ({ AccountManager: () => null }));
 vi.mock("@/components/shared/SetupGuide", () => ({ SetupGuide: () => null }));
 vi.mock("@/components/channel/ContentGuide", () => ({ ContentGuide: () => null }));
@@ -232,5 +236,29 @@ describe("ChannelPage customer/operator API boundary", () => {
     ["Queue", "Analytics", "Growth", "Popular", "Settings", "Channel Info", "Automation", "Parameters"].forEach((label) => {
       expect(screen.queryByText(label, { exact: true })).not.toBeInTheDocument();
     });
+  });
+
+  it("V69-COPY-05 정상: 공식 연결 단추는 항상 활성 상태로 먼저 보인다", () => {
+    render(<ChannelPage channel="threads" />);
+
+    expect(screen.getByRole("button", { name: "Threads 연결" })).toBeEnabled();
+    expect(screen.queryByText("Threads 고급 연결 정보")).not.toBeInTheDocument();
+  });
+
+  it("V69-COPY-05 거절: 고급 연결 정보는 고객이 직접 펼치기 전에는 노출하지 않는다", () => {
+    render(<ChannelPage channel="threads" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "고급 연결 정보 열기" }));
+    expect(screen.getByText("Threads 고급 연결 정보")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Threads 연결" })).toBeEnabled();
+  });
+
+  it("V69-COPY-05 Instagram: 공식 연결을 유지하고 고급 연결 정보는 접어 둔다", () => {
+    render(<InstagramPage />);
+
+    expect(screen.getByRole("button", { name: "Instagram 연결" })).toBeEnabled();
+    expect(screen.queryByText("Instagram 고급 연결 정보")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "고급 연결 정보 열기" }));
+    expect(screen.getByText("Instagram 고급 연결 정보")).toBeInTheDocument();
   });
 });

@@ -105,6 +105,16 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
 
   const isThreads = channel === "threads";
   const oauthLabel = OAUTH_CONNECT[channel];
+  const customerGuide = oauthLabel && !showManualCreds && !["threads", "instagram", "facebook"].includes(channel)
+    ? {
+        quick: [
+          `위 "${oauthLabel} 연결" 단추를 누르세요.`,
+          "공식 로그인 화면에서 사용할 계정을 확인하고 권한에 동의하세요.",
+          "연결이 끝나면 이 화면에서 계정과 연결 상태를 확인하세요.",
+        ],
+        detail: "직접 입력은 지원팀의 안내를 받은 경우에만 고급 연결 정보에서 사용하세요.",
+      }
+    : sg;
 
   // 채널 진입 시 기본 탭: 미연결이면 '연결(설정)' 탭으로 보내 키를 바로 입력하게(연결됨이면 큐).
   // 예전엔 무조건 queue로 빠져 채널 세팅 자체가 불가능했음.
@@ -312,9 +322,9 @@ export function ChannelPage({ channel, variant = "text" }: ChannelPageProps) {
             </Section>
             <div className="card p-pad-inset">
               <SetupGuide
-                quick={sg.quick}
-                detail={sg.detail}
-                images={sg.images}
+                quick={customerGuide.quick}
+                detail={customerGuide.detail}
+                images={"images" in customerGuide ? customerGuide.images : undefined}
                 warning={channel === "x" ? "* 권한 변경 후 반드시 액세스 토큰을 재생성해야 합니다" : undefined}
               />
             </div>

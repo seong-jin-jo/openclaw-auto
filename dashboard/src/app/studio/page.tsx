@@ -997,7 +997,7 @@ export default function StudioPage() {
               {activeRoom === "create" && alsoKinds.length ? <span className="font-normal text-subtle">, {alsoKinds.map((kind) => (kind === "video" ? "영상" : kind === "card" ? "카드뉴스" : "글")).join(", ")}</span> : null}
             </span>
           ) : null}
-          <span className="rounded-control border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle" title={activeRoom === "create" ? "현재 생성실은 일곱 칸 학습 정보를 바탕으로 AI 구성 초안을 만듭니다." : engine?.error || engine?.model || ""}>{activeRoom === "create" ? "AI 구성 초안" : `AI ${engine?.label || "확인 중"}`}</span>
+          <span className="rounded-control border border-border bg-surface-2 px-stack py-stack-tight text-caption text-subtle" title={activeRoom === "create" ? "현재 생성실은 일곱 칸 학습 정보를 바탕으로 AI 구성 초안을 만듭니다." : "AI 작업 상태"}>{activeRoom === "create" ? "AI 구성 초안" : engine?.error ? "AI 연결 확인 필요" : "AI 사용 가능"}</span>
         </>
       }
     >

@@ -16,6 +16,7 @@ import { ContentGuide } from "./ContentGuide";
 import { KeywordsEditor } from "./KeywordsEditor";
 import { QueueList } from "@/components/queue/QueueList";
 import { BackButton } from "@/components/shared/BackButton";
+import { Button } from "@/components/shared/Button";
 import { TenantAutomationSettings } from "./TenantAutomationSettings";
 import { ChannelTabs } from "./ChannelTabs";
 import { AnalyticsTab } from "./ChannelPage";
@@ -280,7 +281,7 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
                     <div className="w-32 h-40 rounded-control overflow-hidden border border-border cursor-pointer" onClick={() => setPreviewImg(s)}>
                       <img src={s} alt={`Slide ${i + 1}`} className="w-full h-full object-cover pointer-events-none" />
                     </div>
-                    <button onClick={() => removeResultSlide(i)} className="absolute -top-1 -right-1 w-5 h-5 bg-danger text-status-fg rounded-pill text-caption opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">✕</button>
+                    <button aria-label="슬라이드 삭제" onClick={() => removeResultSlide(i)} className="absolute -top-1 -right-1 w-5 h-5 bg-danger text-status-fg rounded-pill text-caption opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">×</button>
                     <span className="absolute bottom-1 left-1 text-caption bg-player-surface/60 text-text px-micro rounded-chip">{i + 1}</span>
                   </div>
                 ))}
@@ -327,7 +328,7 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
       </div>
       {previewImg && (
         <div className="fixed inset-0 z-50 bg-player-surface/80 backdrop-blur-sm flex items-center justify-center cursor-pointer" onClick={() => setPreviewImg(null)}>
-          <img src={previewImg} className="max-h-[90vh] max-w-[90vw] rounded-control shadow-2xl" alt="Preview" />
+          <img src={previewImg} className="max-h-[90vh] max-w-[90vw] rounded-control shadow-2xl" alt="미리보기" />
         </div>
       )}
     </div>
@@ -340,6 +341,7 @@ function InstagramSettings() {
   const { showToast } = useToast();
   const { data: channelConfig, mutate: mutateConfig } = useChannelConfig();
   const [accountsRefreshTick, setAccountsRefreshTick] = useState(0);
+  const [showManualCreds, setShowManualCreds] = useState(false);
 
   const cfg = (channelConfig || {}) as Record<string, Record<string, unknown>>;
   const igCfg = cfg.instagram || {};
@@ -348,7 +350,7 @@ function InstagramSettings() {
   // 저장된 토큰이 있어도 Instagram이 OAuth code 190(무효)을 리턴하면 connected=false +
   // reconnectRequired=true로 온다(GET /api/channel-config 라이브 검증, 2026-07-16 P0 QA 정정).
   const reconnectRequired = !!igCfg.reconnectRequired;
-  const sg = setupGuides.instagram || { fields: [], labels: [], quick: ["Setup guide 준비 중"], detail: "" };
+  const sg = setupGuides.instagram || { fields: [], labels: [], quick: ["연결 안내 준비 중"], detail: "" };
 
   const handleCredSave = async (newKeys: Record<string, string>) => {
     const r = await apiPost<{ verified?: boolean; error?: string; account?: string }>("/api/channel-config/instagram", newKeys);
@@ -356,8 +358,8 @@ function InstagramSettings() {
       showToast(`Instagram 연결 완료${r.account ? ". " + r.account : ""}`, "success");
       mutateConfig();
     } else {
-      showToast(`연결 실패: ${r?.error || "Invalid credentials"}`, "error");
-      throw new Error(r?.error || "Verification failed");
+      showToast(`연결 실패: ${r?.error || "연결 정보를 확인해 주세요"}`, "error");
+      throw new Error(r?.error || "연결 확인에 실패했습니다");
     }
   };
 
@@ -380,22 +382,26 @@ function InstagramSettings() {
             label="Instagram"
             onAccountsChanged={mutateConfig}
           />
-          <p className="text-caption text-subtle mt-stack-tight">또는 아래에서 토큰을 직접 입력(고급).</p>
+          <p className="text-caption text-subtle mt-stack-tight">공식 연결이 기본입니다. 직접 입력은 지원 안내를 받은 경우에만 사용하세요.</p>
+          <Button size="sm" onClick={() => setShowManualCreds((value) => !value)} className="mt-stack-tight">
+            {showManualCreds ? "고급 연결 정보 닫기" : "고급 연결 정보 열기"}
+          </Button>
         </div>
-        <CredentialForm
-          channelKey="instagram"
-          fields={sg.fields}
-          labels={sg.labels}
-          currentKeys={keys}
-          onSave={handleCredSave}
-          connected={connected}
-          title="Instagram Graph API"
-          badge={{ text: "Graph API", color: "blue" }}
-          connectLabel="Instagram 연결"
-        />
+        {showManualCreds ? (
+          <CredentialForm
+            channelKey="instagram"
+            fields={sg.fields}
+            labels={sg.labels}
+            currentKeys={keys}
+            onSave={handleCredSave}
+            connected={connected}
+            title="Instagram 고급 연결 정보"
+            connectLabel="Instagram 연결"
+          />
+        ) : null}
         {reconnectRequired && (
           <div className="mt-stack rounded-control border border-warning/40 bg-warning/10 p-stack text-caption text-warning">
-            재연결 필요. 저장된 Instagram 토큰이 만료되었거나 무효합니다. 위 OAuth 단추로 다시 연결해 주세요.
+            재연결 필요. 저장된 연결이 만료되었거나 유효하지 않습니다. 위 연결 단추로 다시 연결해 주세요.
           </div>
         )}
       </div>
