@@ -921,7 +921,7 @@ OSMU 화면을 만든다. DESIGN.md v37의 토큰만 쓴다(신규 색·서체·
 
 ### v37 품질 푸터
 
-DESIGN_SCORE: B+ · 89/100 · v68 클린 프레임 전수 감사 후 확정
+DESIGN_SCORE: B+ · 89/100 · `docs/qa/osmu-v68-design-review-gpt-codex-20260903-0022.md`
 
 RUBRIC_SCORE: clarity=5/5 action=5/5 linebreak=5/5 tone=4/5 slop=5/5 total=24/25
 WEAKEST_LINE: `규격 확인 필요`는 정직하지만 해결 시점을 말하지 않는다. 업로드 전 검사라는 다음 행동을 같은 카드의 미디어 줄에 붙였다.
