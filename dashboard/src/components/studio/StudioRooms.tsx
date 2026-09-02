@@ -54,13 +54,13 @@ const kindToBranch = (kind: CreateKind): CreateContentBranch => (kind === "video
 
 function AssistantPanel({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <aside className="card h-fit min-w-0 overflow-hidden lg:sticky lg:top-pad-inset" aria-label={`${title} 대화창`} data-chat-dock="persistent" data-chat-always="true">
+    <section className="card h-fit min-w-0 overflow-y-auto max-lg:sticky max-lg:bottom-0 max-lg:z-30 max-lg:max-h-44 max-lg:rounded-b-none lg:sticky lg:top-pad-inset" aria-label={`${title} 대화창`} data-chat-dock="persistent" data-chat-always="true">
       <div className="flex items-center gap-stack-tight border-b border-border p-stack">
         <div className="grid h-10 w-10 place-items-center rounded-pill bg-accent text-body font-bold text-accent-fg" aria-hidden="true">O</div>
         <div><b className="block text-body text-text">{title}</b><span className="text-caption text-success">지금 대기 중</span></div>
       </div>
       <div className="bg-surface-2 p-stack">{children}</div>
-    </aside>
+    </section>
   );
 }
 
@@ -314,6 +314,14 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
   }
 
   const kindHeading = primaryKind ? `${CREATE_KIND_LABELS[primaryKind]} 구성 초안 예시` : "콘텐츠 구성 초안 예시";
+  const learningRows = [
+    ["작업 공간", workspaceName || "아직 없음"],
+    ["업종", learning.industry || guide || "아직 없음"],
+    ["말투", learning.voice || "아직 없음"],
+    ["콘텐츠 목표", purpose || "아직 없음"],
+    ["주요 고객", audience || "아직 없음"],
+    ["성과에서 배운 규칙", learning.learnedRules || "아직 없음"],
+  ];
 
   return (
     <section data-room="create" className="space-y-region">
@@ -323,26 +331,36 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
           <Button size="sm" onClick={onResume}>이어서 하기</Button>
         </section>
       ) : null}
-      <section data-room-top="create" data-create-stage={stage.count} aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch items-center justify-between rounded-surface border border-border bg-surface px-pad-inset py-stack">
-        <b className="text-lead text-accent">{stage.count}</b><span className="text-caption text-subtle">{stage.label}</span>
+      <section data-room-top="create" data-create-stage={stage.count} aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch flex-wrap items-start gap-stack rounded-surface border border-border bg-surface px-pad-inset py-stack">
+        <div className="mr-auto min-w-0">
+          <p className="text-caption font-semibold text-accent">1단계</p>
+          <h1 className="text-heading font-bold text-text">생성실</h1>
+          <p className="break-keep text-body-sm text-muted">형식을 먼저 고르고, 학습 정보를 반영한 구조 초안 세 개를 비교합니다.</p>
+        </div>
+        <div className="text-right"><b className="block text-body font-bold text-accent">{stage.count}</b><span className="text-caption text-subtle">{stage.label}</span></div>
       </section>
       <div className="grid gap-stack-section lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="grid min-w-0 gap-stack-section xl:grid-cols-3" data-display-readonly="create">
-          <section className="card min-w-0 p-pad-inset xl:col-span-2" aria-labelledby="create-display-title">
+        <div className="min-w-0 space-y-region" data-display-readonly="create">
+          <section className="grid gap-stack sm:grid-cols-3" aria-label="생성실 요약">
+            <article className="card p-pad-inset"><span className="text-caption text-subtle">선택한 형식</span><b className="mt-micro block text-body text-text">{primaryKind ? CREATE_KIND_LABELS[primaryKind] : "선택 전"}</b></article>
+            <article className="card p-pad-inset"><span className="text-caption text-subtle">반영한 학습 정보</span><b className="mt-micro block text-body text-text">{learnedCount}개</b></article>
+            <article className="card p-pad-inset"><span className="text-caption text-subtle">구조 초안</span><b className="mt-micro block text-body text-text">{candidates.length}개</b></article>
+          </section>
+          <section className="min-w-0" aria-labelledby="create-display-title">
             <div className="mb-stack flex items-center justify-between border-b border-border pb-stack">
-              <b id="create-display-title" className="text-body text-text">{selectedCandidate ? "선택한 구조 초안" : candidates.length ? "주제별 구조 초안 3개" : kindHeading}</b>
-              <span className="text-caption text-subtle">{selectedCandidate ? `${selectedCandidate.label} 구조` : candidates.length ? "학습 정보 기반 초안" : "구성 방식 예시"}</span>
+              <h2 id="create-display-title" className="text-subheading font-bold text-text">{selectedCandidate ? "선택한 구조 초안" : candidates.length ? "구조 초안 세 개" : kindHeading}</h2>
+              <span className="text-caption text-subtle">선택은 생성 담당에서</span>
             </div>
-            <div className="grid gap-stack" data-create-candidate-deck>
+            <div className="grid gap-stack md:grid-cols-3" data-create-candidate-deck>
               {displayCandidates.filter((candidate) => !selectedCandidate || candidate.label === selectedCandidate.label).map((candidate) => {
                 const outline = "format" in candidate ? candidate.format.outline : candidate.outline;
                 return (
-                  <article key={candidate.label} data-create-candidate={candidate.label} className={`grid gap-stack rounded-surface border p-pad-inset md:grid-cols-5 ${selected === candidate.label ? "border-accent bg-accent-soft" : "border-border bg-surface-2"}`}>
-                    <div className="md:col-span-3">
+                  <article key={candidate.label} data-create-candidate={candidate.label} className={`flex min-w-0 flex-col gap-stack rounded-surface border p-pad-inset ${selected === candidate.label ? "border-accent bg-accent-soft" : "border-border bg-surface"}`}>
+                    <div>
                       <div className="mb-stack flex items-start gap-stack-tight"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-pill bg-accent text-caption font-bold text-accent-fg">{candidate.label}</span><b className="break-keep text-body-sm text-text">{candidate.title}</b></div>
                       <p className="break-keep text-caption text-muted">{primaryKind ? `${CREATE_KIND_LABELS[primaryKind]}에 적용할 이야기 순서` : "형식을 고른 뒤 주제에 맞춰 바뀌는 이야기 순서"}</p>
                     </div>
-                    <ol className="space-y-stack-tight border-l border-border pl-stack md:col-span-2">
+                    <ol className="mt-auto space-y-stack-tight border-t border-border pt-stack">
                       {outline.map((item, index) => <li key={`${candidate.label}-${index}`} className="flex gap-stack-tight text-caption text-muted"><span className="text-accent">{index + 1}</span><span className="break-keep">{item}</span></li>)}
                     </ol>
                   </article>
@@ -351,15 +369,10 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
             </div>
           </section>
           <section className="card p-pad-inset" aria-labelledby="create-learning-title">
-            <div className="mb-stack flex items-center justify-between border-b border-border pb-stack"><b id="create-learning-title" className="text-body text-text">회원님께 쌓인 것</b><span className="text-caption text-subtle">{learnedCount} / {LEARNING_SLOT_TOTAL}</span></div>
-            <progress className="progress-semantic mb-pad-inset w-full" max={LEARNING_SLOT_TOTAL} value={learnedCount} aria-label="학습 정보 수집 정도" />
-            <dl className="space-y-stack">
-              <div><dt className="text-caption text-subtle">작업 공간</dt><dd className="text-body text-text">{workspaceName || "아직 없음"}</dd></div>
-              <div><dt className="text-caption text-subtle">업종</dt><dd className="line-clamp-4 break-keep text-body-sm text-muted">{learning.industry || guide || "아직 없음"}</dd></div>
-              <div><dt className="text-caption text-subtle">말투</dt><dd className="break-keep text-body-sm text-muted">{learning.voice || "아직 없음"}</dd></div>
-              <div><dt className="text-caption text-subtle">콘텐츠 목표</dt><dd className="break-keep text-body-sm text-muted">{purpose || "아직 없음"}</dd></div>
-              <div><dt className="text-caption text-subtle">주요 고객</dt><dd className="break-keep text-body-sm text-muted">{audience || "아직 없음"}</dd></div>
-              <div className="border-t border-border pt-stack"><dt className="text-caption text-subtle">성과에서 배운 규칙</dt><dd className="text-body-sm text-muted">{learning.learnedRules || "아직 없음"}</dd></div>
+            <div className="mb-stack flex flex-wrap items-center justify-between gap-stack"><div><h2 id="create-learning-title" className="text-body font-bold text-text">이번에 반영한 학습 정보</h2><p className="text-caption text-subtle">사용자가 승인한 내용만 적용합니다.</p></div><span className="text-caption text-subtle">{learnedCount} / {LEARNING_SLOT_TOTAL}</span></div>
+            <progress className="progress-semantic mb-stack w-full" max={LEARNING_SLOT_TOTAL} value={learnedCount} aria-label="학습 정보 수집 정도" />
+            <dl className="flex flex-wrap gap-stack-tight">
+              {learningRows.map(([label, value]) => <div key={label} className="min-w-0 rounded-pill bg-surface-2 px-stack py-stack-tight text-caption text-muted"><dt className="sr-only">{label}</dt><dd className="max-w-full truncate">{label}: {value}</dd></div>)}
             </dl>
           </section>
         </div>
@@ -478,7 +491,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
                 {alsoBatch.discarded_at ? null : <Button onClick={discardAlso} disabled={alsoBusy}>추가 구성 초안 버리기</Button>}
               </div>
             ) : null}
-            {selectedCandidate && (alsoKinds.length === 0 || Boolean(alsoBatch)) ? <Stack gap={8}><Button variant="primary" onClick={onOpenEditor}>선택한 구조 초안을 편집실에서 보기</Button><Button onClick={() => setSelected(null)}>구조 초안 다시 고르기</Button></Stack> : null}
+            {selectedCandidate && (alsoKinds.length === 0 || Boolean(alsoBatch)) ? <Stack gap={8}><Button variant="primary" onClick={onOpenEditor}>편집실에서 다듬기</Button><Button onClick={() => setSelected(null)}>구조 초안 다시 고르기</Button></Stack> : null}
             {error ? <p role="alert" className="text-caption text-danger">{error}</p> : null}
           </Stack>
         </AssistantPanel>

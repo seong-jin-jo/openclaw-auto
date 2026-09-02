@@ -3,7 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import HomePage from "@/app/page";
+import HomePage, { PerformanceDashboard } from "@/app/page";
 
 const mocks = vi.hoisted(() => ({
   apiPost: vi.fn(),
@@ -326,5 +326,34 @@ describe("Home design-system migration interactions", () => {
       "/api/performance/learned-rules",
       expect.objectContaining({ tenant_id: "tenant-a" }),
     ));
+  });
+
+  it("V68-PERF-01 정상: 전용 성과실은 04 단계를 표시하고 담당 대화를 처음부터 연다", async () => {
+    render(<PerformanceDashboard dedicatedRoom />);
+
+    expect(document.querySelector('[data-performance-layout="dedicated"]')).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "성과실" })).toBeInTheDocument();
+    expect(document.querySelector('[data-room-flow="performance"] [aria-current="step"]')).toHaveAttribute("href", "/performance");
+    expect(screen.getByRole("button", { name: "접기" })).toHaveAttribute("aria-expanded", "true");
+    await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith("/api/suggestions", { tenant_id: "tenant-a" }));
+  });
+
+  it("V68-PERF-02 거절: 낮은 반응 콘텐츠는 후보만 제시하고 자동 삭제 호출을 만들지 않는다", async () => {
+    mocks.posts = [1000, 900, 800, 10, 5].map((views, index) => ({
+      id: `cleanup-${index}`,
+      platform: "threads",
+      text: `성과 확인 글 ${index + 1}`,
+      status: "published",
+      published_at: "2026-08-27T10:00:00.000Z",
+      views,
+      likes: 0,
+      replies: 0,
+    }));
+    render(<PerformanceDashboard dedicatedRoom />);
+
+    fireEvent.click(screen.getByRole("button", { name: "안 터진 글 정리해줘" }));
+    expect(await screen.findByText(/자동 삭제는 아직 없습니다/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /삭제/ })).not.toBeInTheDocument();
+    expect(mocks.apiPost.mock.calls.some(([path]) => String(path).includes("delete"))).toBe(false);
   });
 });

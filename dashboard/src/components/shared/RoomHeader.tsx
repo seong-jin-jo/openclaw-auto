@@ -3,6 +3,15 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+export type ProductRoom = "create" | "edit" | "publish" | "performance";
+
+const ROOM_FLOW: ReadonlyArray<{ key: ProductRoom; number: string; label: string; href: string }> = [
+  { key: "create", number: "01", label: "생성실", href: "/studio?room=create" },
+  { key: "edit", number: "02", label: "편집실", href: "/studio?room=edit" },
+  { key: "publish", number: "03", label: "발행실", href: "/studio?room=publish" },
+  { key: "performance", number: "04", label: "성과실", href: "/performance" },
+];
+
 // 네 방이 함께 쓰는 머리줄. 생성실, 편집실, 발행실에만 있고 성과실에서는 사라져 있어서
 // 같은 서비스 안인데도 방을 옮기면 길잡이가 없어지는 문제가 있었다. 한 곳에서 만들어 네 방이
 // 같은 자리, 같은 순서로 쓴다.
@@ -31,10 +40,42 @@ export function RoomBadge({ label }: { label: string }) {
   );
 }
 
+export function RoomFlowHeader({ currentRoom }: { currentRoom: ProductRoom }) {
+  const activeIndex = ROOM_FLOW.findIndex((room) => room.key === currentRoom);
+
+  return (
+    <nav className="order-last grid w-full grid-cols-4 gap-stack-tight" aria-label="작업 단계" data-room-flow={currentRoom}>
+      {ROOM_FLOW.map((room, index) => {
+        const active = room.key === currentRoom;
+        const done = index < activeIndex;
+        return (
+          <Link
+            key={room.key}
+            href={room.href}
+            aria-current={active ? "step" : undefined}
+            data-room-step={room.key}
+            className={`flex min-h-control-touch min-w-0 items-center justify-center gap-micro rounded-control border px-stack-tight text-caption font-semibold transition-colors ${
+              active
+                ? "border-accent bg-accent-soft text-accent"
+                : done
+                  ? "border-border bg-surface-2 text-muted"
+                  : "border-transparent text-subtle hover:border-border hover:bg-surface-2"
+            }`}
+          >
+            <span className="tabular-nums">{room.number}</span>
+            <span className="truncate">{room.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 export function RoomHeader({
   workspaceName,
   subtitle,
   roomLabel,
+  currentRoom,
   leading,
   trailing,
   children,
@@ -42,6 +83,7 @@ export function RoomHeader({
   workspaceName?: string;
   subtitle: string;
   roomLabel: string;
+  currentRoom?: ProductRoom;
   leading?: ReactNode;
   trailing?: ReactNode;
   children?: ReactNode;
@@ -60,6 +102,7 @@ export function RoomHeader({
       <RoomBadge label={roomLabel} />
       {trailing}
       {children}
+      {currentRoom ? <RoomFlowHeader currentRoom={currentRoom} /> : null}
     </header>
   );
 }

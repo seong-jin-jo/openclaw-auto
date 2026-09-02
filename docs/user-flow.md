@@ -23,6 +23,98 @@ skills: 없음 호출. 이번 산출은 화면이 아니라 흐름 문서다. de
 
 # 유저 플로우: 생성 · 편집 · 발행 · 성과
 
+## v68 최신 증분 · 생성실과 성과실 여섯 상태를 닫는다 (2026-09-03)
+
+기반은 `docs/prototype/osmu-v67-edit-publish-hub-gpt-codex-20260902-0448.html`, DESIGN.md v37, 실제 `StudioRooms.tsx`, 홈의 `PerformanceRoom.tsx`, `PerformanceChatPanel.tsx`, `AutomationRulesPanel.tsx`다. 기존 네 단계와 현재 기능을 유지하고, 생성실과 성과실의 비교 가능한 화면 및 상태 경로만 추가한다.
+
+### 생성실 happy path
+
+```mermaid
+flowchart TD
+  IN["생성실 진입"] --> F{"형식을 골랐나"}
+  F -->|아니오| ASKF["생성 담당이 형식 하나를 질문"]
+  ASKF --> F
+  F -->|예| Q1["목적 질문"]
+  Q1 --> Q2["대상 질문"]
+  Q2 --> Q3["주제 질문"]
+  Q3 --> Q4["권리 확인"]
+  Q4 --> LEARN["승인된 학습 정보 읽기"]
+  LEARN --> GEN["A/B/C 구조 초안 세 개 생성"]
+  GEN --> PICK{"생성 담당에서 하나를 골랐나"}
+  PICK -->|아니오| COMPARE["디스플레이에서 세 초안 비교"]
+  COMPARE --> PICK
+  PICK -->|예| EDIT["편집실에서 다듬기"]
+```
+
+### 생성실 edge, empty, error, loading
+
+| 진입 상태 | 사용자에게 보이는 것 | 가능한 행동 | 종료 경로 |
+|---|---|---|---|
+| 빈 상태 | 구조 초안 0건, 시작 순서 | 형식부터 고르기, 학습 정보 확인 | 형식 질문으로 연결 |
+| 불러오는 중 | 카드 3개 형태의 뼈대, 입력 보존 안내 | 입력 내용 확인 | 생성 완료 뒤 비교로 연결 |
+| 오류 | 실패 이유, 목적·대상·주제·학습 정보 보존 | 다시 만들기, 입력 내용 확인 | 재시도 또는 질문 수정 |
+| 공유 AI 승인 대기 | 사용 불가 이유, 입력 보존, 다시 열리는 조건 | 승인 상태 확인, 자체 AI 연결 확인 | 승인 완료 뒤 같은 입력으로 생성 |
+| 긴 내용 | 긴 제목, 본문, 학습 정보 다중 태그 | 세로 스크롤 | A/B/C 선택 또는 편집실 이동 |
+
+생성실 dead-end: 0. 모든 상태에서 질문 재개, 재시도, 승인 상태 확인, 편집실 이동 중 하나로 끝난다.
+
+### 성과실 후보 happy path
+
+```mermaid
+flowchart TD
+  P["성과실 후보 진입"] --> C{"연결된 채널이 있나"}
+  C -->|아니오| CONNECT["채널 연결하기"]
+  CONNECT --> C
+  C -->|예| S{"수집된 성과가 있나"}
+  S -->|아니오| EMPTY["수집 전 상태와 첫 발행 안내"]
+  EMPTY --> PUB["발행실 확인"]
+  PUB --> S
+  S -->|예| ALL["채널 전체 한 줄 판정과 지표"]
+  ALL --> FILTER{"채널별로 좁힐까"}
+  FILTER -->|예| ONE["선택 채널의 같은 지표 구조"]
+  FILTER -->|아니오| WIN["잘된 콘텐츠 세 개"]
+  ONE --> WIN
+  WIN --> WHY["성과 담당이 잘된 이유 설명"]
+  WHY --> RULE{"학습 정보 제안을 승인할까"}
+  RULE -->|예| NEXT["다음 생성에 승인된 규칙 반영"]
+  RULE -->|아니오| KEEP["기존 학습 정보 유지"]
+  WIN --> REPLY["답글 후보 직접 검토"]
+  WIN --> LOW["낮은 반응 콘텐츠 직접 검토"]
+```
+
+### 성과실 edge, empty, error, loading
+
+| 진입 상태 | 사용자에게 보이는 것 | 가능한 행동 | 종료 경로 |
+|---|---|---|---|
+| 빈 상태 | 숫자 0이 아닌 수집 전 상태 | 발행실 확인, 수집 기준 보기 | 첫 발행 또는 안내 확인 |
+| 불러오는 중 | 필터와 지표 자리를 유지한 뼈대 | 다른 방 이동 | 수집 완료 뒤 같은 방으로 복귀 |
+| 오류 | 마지막 확인 시점의 성과와 일부 실패 안내 | 다시 불러오기, 마지막 성과 보기 | 재시도 또는 보존본 확인 |
+| 채널 미연결 | 연결 필요 이유와 심사 전 임시 안내 | 채널 연결하기, 연결 안내 보기 | 연결 뒤 성과 수집 시작 |
+| 긴 내용 | 긴 판정, 많은 콘텐츠와 반응 | 채널 필터, 세로 스크롤 | 다음 행동 또는 직접 검토 |
+
+성과실 dead-end: 0. 채널 연결 버튼은 심사 전 안내와 무관하게 활성 상태를 유지하며, 자동 삭제는 어떤 경로에도 없다.
+
+### 정보구조 분기
+
+```mermaid
+flowchart TD
+  DEC{"성과 작업의 정본 위치"}
+  DEC -->|A 추천, 회장 확정 필요| ROOM["네 번째 전용 성과실"]
+  DEC -->|B| HOME["홈 통합"]
+  ROOM --> RWORK["홈은 운영 요약, 성과실은 분석과 되돌림"]
+  HOME --> HWORK["홈에서 준비 상태와 성과 작업을 함께 처리"]
+```
+
+⛔ 회수 필요: 전용 성과실과 홈 통합 중 하나를 회장이 확정해야 한다. v68 시안은 A를 비교 가능한 후보로 만들었지만 정본으로 선언하지 않는다.
+
+### v68 품질 계약
+
+SKILLS_USED: 없음
+SKILLS_SKIPPED: imagegen. 기존 UI 시스템을 계승하는 코드 기반 제품 흐름이라 래스터 생성 작업과 맞지 않는다.
+
+SOURCES: `docs/prototype/osmu-v67-edit-publish-hub-gpt-codex-20260902-0448.html`; `dashboard/src/components/studio/StudioRooms.tsx`; `dashboard/src/components/home/PerformanceRoom.tsx`; `dashboard/src/components/home/PerformanceChatPanel.tsx`; `dashboard/src/components/home/AutomationRulesPanel.tsx`; https://www.canva.com/help/use-magic-design/; https://buffer.com/insights
+MODEL: gpt-codex/gpt-5.6
+
 ## v66 최신 증분 · 계정 정보와 게시물 필드를 분리한다 (2026-09-01)
 
 기반은 승인된 `docs/prototype/openclaw-auto-4room-v64.html`, DESIGN.md v34, 실제 `PlatformPreview.tsx`와 `studio/page.tsx`, `docs/reference/플랫폼-발행-필드-규격-2026-09-01.md`다. 기존 일곱 플랫폼 미리보기와 발행 행동은 유지한다. 이번 증분은 R-S10-39, R-S10-40, R-S10-42에 따라 표시 이름 소유권, 실제 플랫폼 필드, 사용자 용어를 바로잡는다.

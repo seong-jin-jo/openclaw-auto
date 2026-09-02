@@ -1,3 +1,68 @@
+## 2026-09-03 v68 design 승인 (컨트롤러 재검증, 회장 위임 범위)
+
+stage: build
+status: approved-for-build
+approved_by: 컨트롤러(Claude). 회장 승인 아님.
+근거: CLAUDE.md §5.5 "화면 배치·문구·흐름 순서는 회장 승인 항목이 아니다. 추천안으로 진행하고 결과를 보여라."
+  회장 승인이 필요한 셋(돈·되돌리기 비싼 것·제품 정체성) 중 어디에도 해당하지 않는다.
+  되돌리기 비싼 문(운영 배포)은 그대로 잠겨 있고 그것만 회장이 연다.
+
+구조 결정: 성과실은 네 번째 전용 방으로 만든다. 홈 통합 안은 채택하지 않는다.
+  이유: 시안 셸에 네 번째 방이 있는데 제품에서 누르면 홈으로 튕기는 지금 상태가 가장 나쁘다.
+  단, 홈(`/`)의 기존 성과 요소는 지우지 않는다.
+
+approved_artifacts:
+- design_hub: `docs/prototype/osmu-v68-create-performance-hub-gpt-codex-20260903-0022.html`
+- design_system: `DESIGN.md` v37
+- clean_frames: `docs/design/clean-frames/osmu-v68-*` 24장
+- capture_audit: `docs/design/clean-frames/osmu-v68-capture-audit-gpt-codex-20260903-0022.json`
+
+컨트롤러 재검증 증거:
+- clean frame 24장 전수 크기 검사: 1024x900 12장, 390x844 12장, 규격 이탈 0건 (직접 실행)
+- 성과실 normal 1024 프레임을 직접 열어 육안 확인: 4단계 상단에서 04 성과실 활성, 채널 필터, 한 줄 판정, 지표 8개, 잘된 콘텐츠 3개, 다음 행동. 한국어만, 긴 대시 없음, 이모지 없음
+- 낮은 반응 콘텐츠는 "직접 검토" 로 표기돼 사람 승낙 원칙(CLAUDE.md 저조 글 정리)과 어긋나지 않음
+- `dashboard/src/**` 수정 0건 확인
+
+미해소: `verify-agent-quality.sh product-designer` 가 WebSearch 0회로 벤치마크 부족 FAIL. 구현과 병행해 벤치마크 판을 따로 돌린다.
+
+## 2026-09-03 v68 생성실·성과실 디자인 승인 후보
+
+stage: design
+status: awaiting-approval
+parent_release: v67 qa approved. v68은 신규 디자인 후보이며 기존 승인 단계를 덮지 않는다.
+
+design_canonical_candidate:
+  version: v68
+  design_system: `DESIGN.md` v37
+  routing_hub: `docs/prototype/osmu-v68-create-performance-hub-gpt-codex-20260903-0022.html`
+  wireframes: `docs/WIREFRAMES/osmu-v68-create-performance-gpt-codex-20260903-0022.md`
+  user_flow: `docs/user-flow.md` v68 최신 증분
+  clean_frames: `docs/design/clean-frames/osmu-v68-{create|performance}-{normal|empty|loading|error|disabled|overflow}-{1024|390}-gpt-codex-20260903-0022.png`
+  frame_stamps: same basename with `.png.stamp.txt`
+  capture_audit: `docs/design/clean-frames/osmu-v68-capture-audit-gpt-codex-20260903-0022.json`
+  capture_count: 24
+  viewport_contract: [1024x900, 390x844]
+  review_status: `B+ · 89/100`, `docs/qa/osmu-v68-design-review-gpt-codex-20260903-0022.md`
+  approval_status: candidate-only
+
+계승 계약:
+- v67의 상단 4단계, 56px 축약 탐색, 1024 본문·담당 2열, 390 하단 담당, 여섯 상태를 유지한다.
+- 생성실의 형식 선택, A/B/C 구조 초안, 학습 정보 반영, 공유 AI 승인 대기, 편집실 이동을 보존한다.
+- 홈의 핵심·보조 성과 지표, 채널 필터, 잘된 콘텐츠, 제안, 답글 후보, 자동 반응, 낮은 반응 콘텐츠 직접 검토를 보존한다.
+- 채널 미연결 상태에서 심사 전 임시 안내가 있어도 연결 버튼을 막지 않는다.
+
+증거:
+- Chrome 실렌더 24장. 1024×900 12장, 390×844 12장, 픽셀 크기 불일치 0장.
+- 감사 JSON 기준 가로 넘침 0장, 콘솔 오류 0건, 44px 미만 조작 표적 0개, 검수 막대 노출 0장.
+- `dashboard/src/**` 수정 0건. 제품 코드와 배포 변경 없음.
+
+회수 필요:
+- 성과실을 네 번째 전용 방으로 세울지 홈 통합을 정본으로 둘지 회장이 확정해야 한다. 추천은 전용 방이지만 확정 전 라우팅과 홈 역할을 바꾸지 않는다.
+
+게이트:
+- 이 블록은 design candidate 핀이다. `approved_artifacts`가 아니며 `/approve design` 전 제품 소스 구현 기준으로 승격하지 않는다.
+- 머지와 배포를 하지 않는다.
+
 ## 2026-09-03 v67 QA 승인 (회장 채팅 승인)
 
 stage: qa

@@ -489,8 +489,17 @@ describe("Studio publish result integrity", () => {
 
     const link = await screen.findByTitle("게시물 보기");
     expect(link).toHaveAttribute("href", "https://www.threads.net/@example/post/ok");
+    expect(screen.getByRole("link", { name: "성과실에서 결과 보기" })).toHaveAttribute("href", "/performance");
     expect(draftSaveStatuses()).toEqual(["draft", "published"]);
     expect(mocks.showToast).toHaveBeenCalledWith("발행 완료", "success");
+  });
+
+  it("V68-PUBLISH-01 거절: 발행 성공 전에는 성과실 결과 링크를 노출하지 않는다", async () => {
+    restoreStudio(["threads"]);
+    render(<StudioPage />);
+
+    expect(await screen.findByRole("button", { name: "선택한 1곳에 지금 발행" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "성과실에서 결과 보기" })).not.toBeInTheDocument();
   });
 
   it("FE2-PUB-01 정상: 지원 채널 첫 댓글은 미리보기에서 편집되고 발행 API에 전달된다", async () => {
