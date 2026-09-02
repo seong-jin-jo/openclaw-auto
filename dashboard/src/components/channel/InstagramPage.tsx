@@ -184,7 +184,7 @@ function CardNewsEditor({ onReload, editingPostId, onBackToQueue }: { onReload: 
   return (
     <>
     {editingPostId && onBackToQueue && (
-      <button onClick={onBackToQueue} className="text-subtle hover:text-muted text-caption mb-stack block">← Queue로 돌아가기</button>
+      <button onClick={onBackToQueue} className="text-subtle hover:text-muted text-caption mb-stack block">대기열로 돌아가기</button>
     )}
     <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-section">
       {/* Left: Editor */}
@@ -391,7 +391,7 @@ function InstagramSettings() {
           connected={connected}
           title="Instagram Graph API"
           badge={{ text: "Graph API", color: "blue" }}
-          connectLabel="Connect Instagram"
+          connectLabel="Instagram 연결"
         />
         {reconnectRequired && (
           <div className="mt-stack rounded-control border border-warning/40 bg-warning/10 p-stack text-caption text-warning">
@@ -400,30 +400,30 @@ function InstagramSettings() {
         )}
       </div>
 
-      {/* Channel Info + Setup Guide */}
+      {/* 채널 정보와 연결 안내 */}
       <div className="space-y-pad-inset">
         <div className="card p-stack-section">
-          <h3 className="text-body-sm font-medium text-muted mb-stack">Channel Info</h3>
+          <h3 className="text-body-sm font-medium text-muted mb-stack">채널 정보</h3>
           <div className="space-y-stack-tight text-body-sm">
             <div className="flex justify-between">
-              <span className="text-subtle">Status</span>
+              <span className="text-subtle">상태</span>
               <span className={connected ? "text-success" : "text-warning"}>
-                {connected ? "Connected" : reconnectRequired ? "재연결 필요" : "Not connected"}
+                {connected ? "연결됨" : reconnectRequired ? "재연결 필요" : "연결 안 됨"}
               </span>
             </div>
             {igCfg.userId ? (
               <div className="flex justify-between">
-                <span className="text-subtle">User ID</span>
+                <span className="text-subtle">계정 식별자</span>
                 <span className="text-muted font-mono">{String(igCfg.userId)}</span>
               </div>
             ) : null}
             <div className="flex justify-between">
-              <span className="text-subtle">Character Limit</span>
+              <span className="text-subtle">글자 수 제한</span>
               <span className="text-muted">2,200</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-subtle">Image Format</span>
-              <span className="text-muted">Carousel / Single</span>
+              <span className="text-subtle">이미지 형식</span>
+              <span className="text-muted">캐러셀 / 단일 이미지</span>
             </div>
           </div>
         </div>
@@ -468,7 +468,7 @@ export function InstagramPage() {
         <span className="w-8 h-8 rounded-control bg-gradient-to-br from-warning to-accent flex items-center justify-center text-body-sm font-bold text-text">IG</span>
         <div>
           <h2 className="text-subheading font-semibold text-text">Instagram</h2>
-          <p className="text-caption text-subtle">{connected ? "Connected" : reconnectRequired ? "재연결 필요" : "Not connected"} {igCfg.userId ? ` · ID: ${igCfg.userId}` : ""}</p>
+          <p className="text-caption text-subtle">{connected ? "연결됨" : reconnectRequired ? "재연결 필요" : "연결 안 됨"}</p>
         </div>
       </div>
       <ChannelTabs channel="instagram" activeTab={subTab} onTabChange={setSubTab} />
@@ -483,7 +483,7 @@ export function InstagramPage() {
         ) : (
           <div className="card p-region text-center">
             <p className="text-subtle text-body-sm mb-stack-tight">Instagram 계정을 연결하면 큐를 사용할 수 있습니다</p>
-            <button onClick={() => setSubTab("settings")} className="text-caption text-accent hover:text-accent">Settings에서 연결하기</button>
+            <button onClick={() => setSubTab("settings")} className="text-caption text-accent hover:text-accent">설정에서 연결하기</button>
           </div>
         )
       )}
@@ -493,7 +493,7 @@ export function InstagramPage() {
         ) : (
           <div className="card p-region text-center">
             <p className="text-subtle text-body-sm mb-stack-tight">Instagram 계정을 연결하면 카드뉴스 에디터를 사용할 수 있습니다</p>
-            <button onClick={() => setSubTab("settings")} className="text-caption text-accent hover:text-accent">Settings에서 연결하기</button>
+            <button onClick={() => setSubTab("settings")} className="text-caption text-accent hover:text-accent">설정에서 연결하기</button>
           </div>
         )
       )}
@@ -501,7 +501,7 @@ export function InstagramPage() {
         connected ? <AnalyticsTab /> : (
           <div className="card p-pad-inset text-center">
             <p className="text-subtle text-body-sm mb-stack-tight">Instagram 계정을 연결하면 분석을 사용할 수 있습니다</p>
-            <button onClick={() => setSubTab("settings")} className="text-caption text-accent">Settings에서 연결하기</button>
+            <button onClick={() => setSubTab("settings")} className="text-caption text-accent">설정에서 연결하기</button>
           </div>
         )
       )}

@@ -64,15 +64,15 @@ export function MessagingPage({ channel }: MessagingPageProps) {
           />
         </div>
 
-        {/* Channel Info + Setup Guide */}
+        {/* 채널 정보와 연결 안내 */}
         <div className="space-y-pad-inset">
           <div className="card p-stack-section">
-            <h3 className="text-body-sm font-medium text-muted mb-stack">Channel Info</h3>
+            <h3 className="text-body-sm font-medium text-muted mb-stack">채널 정보</h3>
             <div className="space-y-stack-tight text-body-sm">
               <div className="flex justify-between">
-                <span className="text-subtle">Status</span>
+                <span className="text-subtle">상태</span>
                 <span className={status === "live" ? "text-success" : (connected || status === "connected") ? "text-accent" : "text-subtle"}>
-                  {status === "live" ? "Live" : (connected || status === "connected") ? "Connected" : "Not connected"}
+                  {status === "live" ? "사용 중" : (connected || status === "connected") ? "연결됨" : "연결 안 됨"}
                 </span>
               </div>
             </div>
