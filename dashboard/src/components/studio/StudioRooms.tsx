@@ -806,7 +806,7 @@ export function EditRoom({
           )}
         </main>
         {commandPanel ?? (
-          <aside className={`card p-pad-inset ${styles.editHelper}`} aria-label="편집 담당" data-edit-helper>
+          <aside className={`card p-pad-inset ${styles.editHelper}`} aria-label="편집 담당 대화창" data-edit-helper>
             <div className={styles.editHelperActions}>
               <h2 className="text-body font-bold text-text">전체에 한 번에 적용</h2>
               <p className="mt-stack-tight break-keep text-caption text-muted">반복해서 고칠 일은 담당에게 맡길 수 있습니다.</p>

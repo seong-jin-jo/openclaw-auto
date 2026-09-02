@@ -349,10 +349,10 @@ export function StudioCommandPanel({
   };
 
   return (
-    <aside className="card min-w-0 overflow-hidden" aria-label="Studio 담당 대화" data-chat-dock="persistent">
+    <aside className="card min-w-0 overflow-hidden" aria-label="편집 담당 대화창" data-chat-dock="persistent">
       <div className="flex items-center gap-stack-tight border-b border-border p-stack">
         <div className="grid h-10 w-10 place-items-center rounded-pill bg-accent text-body font-bold text-accent-fg">O</div>
-        <div><b className="block text-body text-text">Studio 담당</b><span className="text-caption text-success">지금 대기 중</span></div>
+        <div><b className="block text-body text-text">편집 담당</b><span className="text-caption text-success">지금 대기 중</span></div>
       </div>
       <div className="space-y-stack bg-surface-2 p-stack">
         <div className="max-w-[90%] rounded-surface rounded-tl-control border border-border bg-surface p-stack">
@@ -399,7 +399,7 @@ export function StudioCommandPanel({
         </p>
       </div>
       <form onSubmit={submitChat} className="flex gap-stack-tight border-t border-border p-stack">
-        <input aria-label="Studio 담당에게 명령" value={chatDraft} onChange={(event) => setChatDraft(event.target.value)} placeholder="직접 쓰셔도 됩니다" className="min-h-control-touch min-w-0 flex-1 rounded-control border border-border bg-surface px-stack text-body-sm text-text" />
+        <input aria-label="편집 담당에게 명령" value={chatDraft} onChange={(event) => setChatDraft(event.target.value)} placeholder="직접 쓰셔도 됩니다" className="min-h-control-touch min-w-0 flex-1 rounded-control border border-border bg-surface px-stack text-body-sm text-text" />
         <Button type="submit" variant="primary">보내기</Button>
       </form>
     </aside>
