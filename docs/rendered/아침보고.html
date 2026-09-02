@@ -21,7 +21,7 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 </style>
 <div class="wrap">
 <h1>밤사이 만든 것</h1>
-<p class="sub">2026년 09월 03일 00시 14분 기준. 이 장은 감독이 1분마다 새로 씁니다.</p>
+<p class="sub">2026년 09월 03일 03시 04분 기준. 이 장은 감독이 1분마다 새로 씁니다.</p>
 <div class="note">실제로 눌러 보시려면 <code>http://localhost:3456/studio</code> 입니다. 아래 그림은 방금 그 앱을 찍은 것입니다.</div>
 <h2>지금 도는 것</h2><table><tr><th>판</th><th>갈래</th><th>상태</th><th>시각</th></tr>
 <tr><td>build10</td><td>build</td><td>끝남</td><td>07:21</td></tr>
@@ -49,11 +49,13 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <tr><td>flowcheck082902</td><td>qa</td><td>끝남</td><td>02:07</td></tr>
 <tr><td>flowcheck082910</td><td>qa</td><td>끝남</td><td>10:05</td></tr>
 <tr><td>flowcheck082918</td><td>qa</td><td>끝남</td><td>18:46</td></tr>
+<tr><td>flowcheck090302</td><td>qa</td><td>발주실패</td><td>02:01</td></tr>
 <tr><td>gapfill082823</td><td>build</td><td>끝남</td><td>23:23</td></tr>
 <tr><td>gapfill082903</td><td>build</td><td>끝남</td><td>03:03</td></tr>
 <tr><td>gapfill082907</td><td>build</td><td>끝남</td><td>07:12</td></tr>
 <tr><td>gapfill082911</td><td>build</td><td>끝남</td><td>11:03</td></tr>
 <tr><td>gapfill082919</td><td>build</td><td>끝남</td><td>19:04</td></tr>
+<tr><td>gapfill090303</td><td>build</td><td>발주실패</td><td>03:01</td></tr>
 <tr><td>qa1</td><td>qa</td><td>끝남</td><td>18:59</td></tr>
 <tr><td>regress082900</td><td>review</td><td>끝남</td><td>00:03</td></tr>
 <tr><td>regress082904</td><td>review</td><td>끝남</td><td>04:02</td></tr>
@@ -66,6 +68,7 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <tr><td>sweep082905</td><td>qa</td><td>끝남</td><td>05:04</td></tr>
 <tr><td>sweep082909</td><td>qa</td><td>끝남</td><td>09:02</td></tr>
 <tr><td>sweep082913</td><td>qa</td><td>끝남</td><td>13:05</td></tr>
+<tr><td>sweep090301</td><td>qa</td><td>발주실패</td><td>01:01</td></tr>
 </table>
 <h2>화면</h2>
 <div class="shots">
@@ -99,6 +102,33 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <figure><img src="아침보고-화면/studio-publish-768.png" alt="studio-publish-768"><figcaption>studio-publish-768</figcaption></figure>
 </div>
 <h2>밤사이 들어간 작업</h2><table><tr><th>커밋</th><th>무엇을</th></tr>
+<tr><td><code>0308e310</code></td><td>docs(osmu): v68 두 방 구현 완료와 CI 성공 기록</td></tr>
+<tr><td><code>0a24950d</code></td><td>Merge branch 'work/v68rooms' into feat/design-system-and-missing-features</td></tr>
+<tr><td><code>0fa6e02f</code></td><td>docs: keep push handoff self-consistent</td></tr>
+<tr><td><code>73b3528e</code></td><td>docs: record v68 accessibility push</td></tr>
+<tr><td><code>2ed2d792</code></td><td>docs: record v68 accessibility verification</td></tr>
+<tr><td><code>5a63119a</code></td><td>fix: align room assistant landmarks</td></tr>
+<tr><td><code>df552008</code></td><td>fix: restore create assistant landmark</td></tr>
+<tr><td><code>93c77e3e</code></td><td>docs: record v68 accessibility regression</td></tr>
+<tr><td><code>95d2f3d8</code></td><td>Merge branch 'work/v68rooms' into feat/design-system-and-missing-features</td></tr>
+<tr><td><code>a18054fe</code></td><td>docs: refresh v68 root handoff</td></tr>
+<tr><td><code>ef5ff0ae</code></td><td>docs: record v68 push gate</td></tr>
+<tr><td><code>ba67cd83</code></td><td>docs: record v68 build verification</td></tr>
+<tr><td><code>1f066a02</code></td><td>feat: implement v68 create and performance flow</td></tr>
+<tr><td><code>e9c54a22</code></td><td>feat: establish dedicated performance room</td></tr>
+<tr><td><code>aa6bb843</code></td><td>pipeline(osmu): v68 design 컨트롤러 승인, 성과실 전용 방 확정</td></tr>
+<tr><td><code>2a1733dd</code></td><td>docs: record v68 build gate blocker</td></tr>
+<tr><td><code>eee1ca3f</code></td><td>docs: clarify v68 remote handoff</td></tr>
+<tr><td><code>c329378e</code></td><td>docs: record v68 verification and push status</td></tr>
+<tr><td><code>a5a05df7</code></td><td>docs(osmu): v68 시안 완성과 구조 결정 대기 기록</td></tr>
+<tr><td><code>1140d975</code></td><td>design: finalize Korean-only v68 clean frames</td></tr>
+<tr><td><code>b2e0c036</code></td><td>docs(osmu): v68 설계 판 잔여 산출물</td></tr>
+<tr><td><code>3cec1903</code></td><td>docs: register v68 design candidate</td></tr>
+<tr><td><code>61badada</code></td><td>design: export v68 clean frame matched pairs</td></tr>
+<tr><td><code>3c0f8afc</code></td><td>test: add v68 clean frame capture audit</td></tr>
+<tr><td><code>409f311c</code></td><td>docs: define v68 room flows and design contract</td></tr>
+<tr><td><code>d770d369</code></td><td>design: add v68 creation and performance prototype</td></tr>
+<tr><td><code>389e8726</code></td><td>docs(osmu): 운영 배포 성공과 남은 갭 기록</td></tr>
 <tr><td><code>cba7e5f0</code></td><td>pipeline(osmu): qa 승인 기록 (회장 채팅 승인, HEAD 74e092be)</td></tr>
 <tr><td><code>74e092be</code></td><td>docs(qa): v67 집중 필터와 운영 빌드 스모크 증거</td></tr>
 <tr><td><code>788234db</code></td><td>docs(osmu): 집중 필터 구현·CI 성공 핸드오프</td></tr>

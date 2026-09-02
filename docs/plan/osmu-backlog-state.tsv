@@ -81,3 +81,6 @@ gapfill082919	build	돌는중	19:01	osmu-gapfill082919
 gapfill082919	build	끝남	19:04	osmu-gapfill082919
 fixfeedback082919	build	미실행(codex 소진)	19:16	-
 regress090300	review	발주실패	00:10	osmu-regress090300
+sweep090301	qa	발주실패	01:01	osmu-sweep090301
+flowcheck090302	qa	발주실패	02:01	osmu-flowcheck090302
+gapfill090303	build	발주실패	03:01	osmu-gapfill090303
