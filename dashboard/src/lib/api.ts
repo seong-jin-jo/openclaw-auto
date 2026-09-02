@@ -118,7 +118,7 @@ export async function apiPost<T = unknown>(url: string, body?: unknown): Promise
     });
     if (res.status === 401) {
       handleUnauthorizedResponse(auth.token, false);
-      return null;
+      throw new AuthRequiredError();
     }
     if (!res.ok) {
       const d = await res.json().catch(() => ({})) as { error?: string };
@@ -139,7 +139,7 @@ export async function apiDelete<T = unknown>(url: string): Promise<T | null> {
   });
   if (res.status === 401) {
     handleUnauthorizedResponse(auth.token, false);
-    return null;
+    throw new AuthRequiredError();
   }
   if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
   return res.json();
