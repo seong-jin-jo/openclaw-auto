@@ -135,6 +135,7 @@ async function captureRoom(room, width) {
     if (await focusedCards.count() !== 1 || await focusedCards.first().getAttribute("data-room-preview") !== "x") {
       throw new Error(`${width} X 집중 보기가 한 장으로 좁혀지지 않았습니다`);
     }
+    await page.screenshot({ path: path.join(outputDir, `publish-x-focus-${width}.png`), fullPage: true });
 
     await root.getByTestId("publish-focus-threads").click();
     const selectedAfter = await root.getByRole("checkbox", { name: "Threads 발행" }).isChecked();
