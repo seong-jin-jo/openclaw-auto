@@ -4,11 +4,12 @@
 > 스프린트 이력·판올림 로그를 여기에 덧붙이지 않는다. 변경 이력은 프로토타입 파일의 STAMP와 아카이브가 갖는다.
 
 ---
-version: v36
-updated: 2026-09-02
+version: v37
+updated: 2026-09-03
 owner: product-designer
 승인_정본_프로토타입: docs/prototype/openclaw-auto-4room-v64.html
 통합_승인_후보: docs/prototype/osmu-v67-edit-publish-hub-gpt-codex-20260902-0448.html
+생성성과_통합_후보: docs/prototype/osmu-v68-create-performance-hub-gpt-codex-20260903-0022.html
 편집실_레거시_증분: docs/prototype/osmu-editroom-v65-gpt-codex-20260901-0710.html
 발행실_레거시_증분: docs/prototype/osmu-publishfield-v66-gpt-codex-20260901-0813.html
 클린_프레임: docs/design/clean-frames/
@@ -54,6 +55,8 @@ tokens:
   space: [4, 8, 12, 16, 24, 32]
   edit-room-space: [8, 16, 24, 32]            # v65 편집실 신규·수정 영역은 8pt 배수만 사용
   publish-room-space: [8, 16, 24, 32]         # v66 발행실 신규·수정 영역은 8pt 배수만 사용
+  create-room-space: [8, 16, 24, 32]          # v68 생성실 신규·수정 영역은 8pt 배수만 사용
+  performance-room-space: [8, 16, 24, 32]     # v68 성과실 신규·수정 영역은 8pt 배수만 사용
   radius: { chip: 6px, control: 8px, radius: 12px, pill: 99px, circle: 50% }
   motion: { fast: 120ms, base: 200ms, slow: 320ms, ease: "cubic-bezier(.2,0,0,1)", ease-out: "cubic-bezier(0,0,.2,1)" }
 ---
@@ -520,6 +523,30 @@ v65와 v66의 내용 계약은 유지하되 두 독립 프로토타입의 별도
 
 클린 프레임은 검수 막대, STAMP, 상태 토글, 프로토타입 설명을 제거한 정적 PNG다. 같은 seed에서 방, 폭, 상태만 바꿔 비교한다. 경로는 `docs/design/clean-frames/osmu-v67-<room>-<state>-<viewport>-gpt-codex-20260902-0448.png`다.
 
+### v68 생성실·성과실 통합 셸 계약
+
+v68은 v67 셸의 빠진 두 방만 채운 승인 후보이며, v64 승인 정본과 v67 후보의 지위를 바꾸지 않는다. 상단 4단계, 56px 축약 탐색, 본문과 담당의 두 열, 여섯 상태를 그대로 상속한다.
+
+| 방 | 1024 주축과 열수 | 390 주축과 열수 | 순서 |
+|---|---|---|---|
+| 생성실 | 본문과 생성 담당 `row`, 본문 안 구조 초안 3열 | 본문 `column` 1열, 생성 담당 아래 176px 고정 | 형식 요약, A/B/C 구조 초안, 반영한 학습 정보, 다음 질문 |
+| 성과실 후보 | 본문과 성과 담당 `row`, 핵심 지표 4열, 아래 2열 | 본문 `column`, 핵심 지표 2열, 성과 담당 아래 176px 고정 | 채널 범위, 한 줄 판정, 핵심 지표, 보조 지표, 잘된 콘텐츠, 다음 행동 |
+
+생성실 디스플레이는 `data-display-readonly` 원칙을 지킨다. A/B/C는 식별자이며 선택 컨트롤이 아니다. 형식과 구조 초안 선택은 생성 담당에서만 수행한다. 공유 AI 사용 승인 대기는 `disabled`로 분리하고, 입력 보존 여부와 다시 열리는 조건을 같은 화면에 적는다.
+
+성과실은 현재 홈의 지표, 잘된 콘텐츠, 제안, 답글 후보, 자동 반응, 낮은 반응 콘텐츠 검토를 보존한 네 번째 방 후보로 그린다. 기본 범위는 채널 전체이며 같은 구조에서 채널별로 좁힌다. 표본이 없을 때 숫자 0을 성과로 보이지 않고 수집 전 상태로 표시한다. 채널 미연결 상태에서도 `채널 연결하기`는 활성화하며 심사 전 임시 안내로 연결 행동을 막지 않는다.
+
+성과실 정보구조는 아직 확정하지 않는다. 추천은 네 번째 전용 방이지만, 홈 통합을 정본으로 삼는 선택도 함께 검토한다. 회장 확정 전 `/performance` 라우팅과 홈 역할을 설계 정본으로 선언하지 않는다.
+
+클린 프레임은 두 방 각각 `normal`, `empty`, `loading`, `error`, `disabled`, `overflow`를 1024×900과 390×844로 자른 24장이다. 검수 막대, STAMP, 상태 토글, 사용자 선택 옵션, 설명 오버레이, 브라우저 장식을 제거한다. 경로는 `docs/design/clean-frames/osmu-v68-<room>-<state>-<viewport>-gpt-codex-20260903-0022.png`다.
+
+#### v68 UX 근거와 벤치마크
+
+- Hick의 법칙: 생성 담당은 형식부터 시작해 한 번에 질문 하나만 보여 준다.
+- Zeigarnik 효과: 상단 4단계는 남은 흐름을 보이되, 각 상태의 주 행동은 하나로 제한한다.
+- Canva Magic Design에서 형식 선택 뒤 여러 결과를 비교하는 순서를 차용하고, OSMU에서는 승인된 학습 정보를 반영한 구조 초안 세 개로 바꾼다.
+- Buffer Insights에서 전체 채널의 고수준 성과에서 단일 채널로 좁히고 잘된 콘텐츠로 다음 행동을 만드는 흐름을 차용한다.
+
 ### 성과실 골격 (v61 전면 개정 · R186 · R195 · R127 · R149 · R185 · R168 · R98 · R68 · R56)
 
 **탭을 쓰지 않는다. 한 화면 한 흐름이다.** v58~v60의 세 탭(답할 것 / 무엇이 통했나 / 기록)은 폐기한다.
@@ -659,6 +686,11 @@ radius는 아래 5개만 쓴다. 리터럴 값 금지.
 | 작업물 카드 | `.work` | 제목 2줄 clamp + 방 뱃지 + 형식 + 갱신 시각 + 히스토리 한 줄 |
 | 대화 패널 | `.chat.wide` / `.chat.rail` | 보여줄 결과물이 없으면 wide, 있으면 rail(284px) |
 | 후보 카드 | `.cand` | 저해상도 표시 + 선택 도장. 선택은 강한 학습 신호 |
+| v68 생성 구조 초안 | `.candidate-grid` `.candidate` `.choice` | 1024에서 3열, 390에서 1열. A/B/C는 읽기 전용 식별자이며 선택 행동은 생성 담당이 소유한다. 긴 제목과 본문은 줄바꿈하고 모든 자식에 `min-width:0`을 적용한다 |
+| v68 생성 학습 정보 | `.learning-card` `.learning-tags` | 이번 생성에 실제 반영한 승인 항목만 표시한다. 태그 수가 늘면 다음 줄로 흐르고 가로로 밀지 않는다 |
+| v68 성과 한 줄 판정 | `.summary-strip` 첫 칸 | 핵심 지표보다 먼저 읽히는 문장이다. 긴 판정은 줄바꿈하고 높이를 고정하지 않는다 |
+| v68 성과 지표 | `.metric-grid` `.metric.secondary` | 핵심 네 개와 보조 여섯 개를 보존하되 크기 위계를 가른다. 390은 핵심 네 개를 2열로 먼저 보여 준다 |
+| v68 상태 판 | `.state-panel` `.state-box` | 빈 상태, 오류, 사용 불가에서 원인, 보존, 다음 행동을 한 덩어리로 닫는다. 연결이 필요한 상태의 연결 버튼은 비활성화하지 않는다 |
 | 채널 행 | `.chrow` | 아이콘 + 이름 + 설명 + 상태 뱃지 + 행동 버튼 |
 | 리스트 행 | `.row` | 상태 뱃지 + 제목·보조 + 행동 버튼. 559px 미만에서 버튼 전폭 |
 | 상속 층 | `.layer .l2~.l4` | 층마다 14px 들여쓰기. 719px 미만 해제 |
@@ -847,11 +879,11 @@ radius는 아래 5개만 쓴다. 리터럴 값 금지.
 이 시스템으로 화면을 만들 때 프롬프트에 그대로 넣을 것.
 
 ```
-OSMU 화면을 만든다. DESIGN.md v35의 토큰만 쓴다(신규 색·서체·크기 단 금지).
+OSMU 화면을 만든다. DESIGN.md v37의 토큰만 쓴다(신규 색·서체·크기 단 금지).
 - 셸: 헤더 GNB + 접을 수 있는 좌측 사이드바 + 본문 + 오른쪽 상시 담당.
 - 사이드바 항목은 dashboard/src/components/layout/Sidebar.tsx가 진실원이다. 코드에 있는 항목을 빼지 마라.
 - 기존 화면 간격 4/8/12/16/24/32. 편집실 v65와 발행실 v66 신규·수정 영역은 8/16/24/32만 사용한다. radius chip6·control8·radius12·pill99·원형, 글자 12/13/15/17/21.
-- 상태 5종(정상·empty·loading·error·overflow)을 모두 렌더한다.
+- 상태 6종(정상·empty·loading·error·disabled·overflow)을 모두 렌더한다.
 - 뷰포트 390 / 768 / 1024 / 1440 실레이아웃을 각각 만든다. 폭만 늘리지 마라.
 - 화면을 덮는 층·em dash·두 줄 초과 문단·내부 코드 노출 금지.
 - 전환 화면에는 심리 근거(Fogg / Hook / Zeigarnik / 손실회피 / Hick / Jakob 중 1개 이상)를 주석으로 남긴다.
@@ -867,6 +899,8 @@ OSMU 화면을 만든다. DESIGN.md v35의 토큰만 쓴다(신규 색·서체·
 
 | 파일 | 무엇 |
 |---|---|
+| `docs/prototype/osmu-v68-create-performance-hub-gpt-codex-20260903-0022.html` | v67 공통 셸을 계승한 생성실·성과실 승인 후보. 현재 생성실의 형식 선택, A/B/C 구조 초안, 학습 정보, 공유 AI 승인 대기와 홈의 성과 지표, 잘된 콘텐츠, 제안, 반응 관리를 보존한다. 성과실은 전용 네 번째 방 후보이며 정보구조 확정 전까지 승인 정본을 대체하지 않는다. |
+| `docs/WIREFRAMES/osmu-v68-create-performance-gpt-codex-20260903-0022.md` | 두 방의 1024·390 골격, 주축·열수·순서, 여섯 상태, 성과실 전용 방과 홈 통합 선택지. |
 | `docs/prototype/osmu-v67-edit-publish-hub-gpt-codex-20260902-0448.html` | v64 공통 셸을 그대로 계승한 편집실·발행실 단일 라우팅 승인 후보. v65·v66 내용, 여섯 상태, 1024·390, clean mode를 한 파일에서 전환한다. 승인 전까지 v64 정본을 대체하지 않는다. |
 | `docs/design/clean-frames/` | v67 편집실·발행실 2방 × 1024·390 × 여섯 상태의 클린 프레임 24장, 프레임별 STAMP sidecar, 자동 캡처 감사 JSON. |
 | `docs/prototype/osmu-publishfield-v66-gpt-codex-20260901-0813.html` | v64의 4개 방 셸과 일곱 플랫폼 미리보기, 직접 편집, 기존 발행 행동을 보존한 발행실 필드 집중 프로토타입. 표시 이름과 사용자명을 읽기 전용 연결 계정 머리로 바꾸고, 플랫폼별 실제 필드와 공식 제한, 기본·빈 상태·불러오는 중·오류·긴 내용, 1024·390 검토 허브를 포함한다. DESIGN.md와 함께 승인받기 전까지 v64 전체 제품 정본을 대체하지 않는다. |
@@ -885,15 +919,15 @@ OSMU 화면을 만든다. DESIGN.md v35의 토큰만 쓴다(신규 색·서체·
 | `docs/prototype/openclaw-auto-4room-v55.html` | v56의 기반. R168. 학습 정보 유입 흐름(사업계획 §3.4.2 시간축) · `/onboard`·`/learn` 라우팅 복구 |
 | `docs/design-archive/DESIGN-v15-v31-archive.md` | 과거 판 본문 전량(참고용) |
 
-### v36 품질 푸터
+### v37 품질 푸터
 
-DESIGN_SCORE: B+ · 88/100 · `docs/qa/osmu-v67-design-review-gpt-codex-20260902-0448.md`
+DESIGN_SCORE: B+ · 89/100 · v68 클린 프레임 전수 감사 후 확정
 
 RUBRIC_SCORE: clarity=5/5 action=5/5 linebreak=5/5 tone=4/5 slop=5/5 total=24/25
 WEAKEST_LINE: `규격 확인 필요`는 정직하지만 해결 시점을 말하지 않는다. 업로드 전 검사라는 다음 행동을 같은 카드의 미디어 줄에 붙였다.
 
-SKILLS_USED: design-html · v64 셸 계승, 단일 라우팅 허브, 반응형·상태 산출물 제작. design-review · 24개 클린 프레임 실렌더, 픽셀 검수, 44px·가로 넘침·콘솔 오류 검사.
-SKILLS_SKIPPED: image generation. 새 비트맵 자산이 필요하지 않은 제품 UI라 사용하지 않았다.
+SKILLS_USED: 없음.
+SKILLS_SKIPPED: imagegen. 기존 UI 시스템을 계승하는 코드 기반 제품 시안이므로 래스터 생성 작업과 맞지 않는다.
 
-SOURCES: wiki/거버넌스/결정.md; wiki/거버넌스/실수.md; wiki/거버넌스/요청.md; docs/prototype/openclaw-auto-4room-v64.html; docs/prototype/osmu-editroom-v65-gpt-codex-20260901-0710.html; docs/prototype/osmu-publishfield-v66-gpt-codex-20260901-0813.html; docs/reference/플랫폼-발행-필드-규격-2026-09-01.md; /Users/sj/.claude/skills/design-html/SKILL.md; /Users/sj/.claude/skills/design-review/SKILL.md; /Users/sj/.claude/standards/design.md; https://developer.android.com/develop/ui/compose/layouts/adaptive/canonical-layouts; https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html
-MODEL: gpt-codex/gpt-5.6-sol
+SOURCES: wiki/거버넌스/결정.md; wiki/거버넌스/실수.md; wiki/거버넌스/요청.md; docs/prototype/osmu-v67-edit-publish-hub-gpt-codex-20260902-0448.html; dashboard/src/components/studio/StudioRooms.tsx; dashboard/src/components/home/PerformanceRoom.tsx; dashboard/src/components/home/PerformanceChatPanel.tsx; dashboard/src/components/home/AutomationRulesPanel.tsx; /Users/sj/.claude/standards/design.md; https://www.canva.com/help/use-magic-design/; https://buffer.com/insights; https://support.buffer.com/en-us/articles/using-insights-in-buffer-x4gLauQU5a
+MODEL: gpt-codex/gpt-5.6
