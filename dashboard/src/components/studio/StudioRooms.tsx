@@ -17,6 +17,7 @@ import {
   type StudioGenerationCandidate,
 } from "@/lib/studio/generation/client";
 import { getAuthToken } from "@/lib/auth";
+import { workspaceDisplayName } from "@/lib/workspace-display-name";
 import {
   CARD_ASPECT_RATIOS,
   EDIT_BACKGROUNDS,
@@ -315,7 +316,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
 
   const kindHeading = primaryKind ? `${CREATE_KIND_LABELS[primaryKind]} 구성 초안 예시` : "콘텐츠 구성 초안 예시";
   const learningRows = [
-    ["작업 공간", workspaceName || "아직 없음"],
+    ["작업 공간", workspaceDisplayName(workspaceName)],
     ["업종", learning.industry || guide || "아직 없음"],
     ["말투", learning.voice || "아직 없음"],
     ["콘텐츠 목표", purpose || "아직 없음"],

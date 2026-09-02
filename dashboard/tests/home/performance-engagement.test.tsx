@@ -48,6 +48,14 @@ describe("FE-V63-07 성과실 댓글 행동", () => {
     expect(screen.getByRole("complementary", { name: "성과실 담당 대화창" })).toBeInTheDocument();
   });
 
+  it("V69-COPY-01 거절: 성과 요약에 이메일 형태의 작업 공간 이름을 노출하지 않는다", () => {
+    H.fetcher.mockImplementation(() => new Promise(() => {}));
+    render(<PerformanceRoom workspaceId="11111111-1111-4111-8111-111111111111" workspaceName="owner@example.test" metricsLoaded posts={[post]} publishedCount={1} followers="10" engagementRate={2} queuedCount={0} viralCount={0} collecting={false} onCollectMetrics={vi.fn(async () => {})} />);
+
+    expect(screen.getByText("성과 요약 · 기본 작업 공간 · 최근 30일")).toBeInTheDocument();
+    expect(screen.queryByText(/owner@example\.test/)).not.toBeInTheDocument();
+  });
+
   it("FE-V63-07 정상 경로: 본문을 읽고 다섯 후속 행동 단추가 실제 API를 호출한다", async () => {
     H.fetcher.mockResolvedValue({
       postId: post.id, platform: "threads", capability: supported,

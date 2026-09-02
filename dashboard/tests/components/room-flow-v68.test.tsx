@@ -3,7 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import React from "react";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { RoomFlowHeader, type ProductRoom } from "@/components/shared/RoomHeader";
+import { RoomFlowHeader, RoomHeader, type ProductRoom } from "@/components/shared/RoomHeader";
 
 afterEach(cleanup);
 
@@ -27,5 +27,20 @@ describe("V68 네 방 상단 단계 계약", () => {
 
     expect(screen.getByRole("link", { name: "04성과실" })).toHaveAttribute("href", "/performance");
     expect(document.querySelector('[data-room-step="performance"][href="/"]')).toBeNull();
+  });
+});
+
+describe("V69-COPY-01 작업 공간 이름 개인정보 계약", () => {
+  it("V69-COPY-01 정상: 고객이 정한 작업 공간 이름은 상단 제목에 유지한다", () => {
+    render(<RoomHeader workspaceName="브랜드 연구소" subtitle="생성할 내용을 정합니다" roomLabel="생성실" />);
+
+    expect(screen.getByText("브랜드 연구소")).toBeInTheDocument();
+  });
+
+  it("V69-COPY-01 거절: 이메일 형태의 이름은 상단 제목에 노출하지 않는다", () => {
+    render(<RoomHeader workspaceName="owner@example.test" subtitle="생성할 내용을 정합니다" roomLabel="생성실" />);
+
+    expect(screen.getByText("기본 작업 공간")).toBeInTheDocument();
+    expect(screen.queryByText("owner@example.test")).not.toBeInTheDocument();
   });
 });
