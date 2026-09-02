@@ -1,5 +1,42 @@
 # OSMU 세션 상태
 
+## 2026-09-03 07:58 KST | Codex code-builder | 승인 인박스 공백 승인 차단 build 인계
+
+### 회장 요청
+
+- 운영 승인 인박스에서 공백이나 줄바꿈만 든 본문이 정상 본문으로 판정되어 승인되는 결함을 막고, 제목 등 사람이 판단해야 하는 값도 함께 점검해 계약 테스트, 전체 지정 테스트, push까지 요구했다.
+
+### 지금까지 한 것
+
+- 공용 검토 콘텐츠 정규화 함수가 일반 공백과 줄바꿈뿐 아니라 zero width 문자도 제거한 뒤 본문과 제목의 실질 값을 판정하게 했다.
+- 인박스 화면은 실질 본문이 없거나 제공된 제목이 공백뿐이면 한국어 경고를 표시하고 승인 단추와 A 단축키를 차단한다. 유효한 제목은 검토 카드 제목으로 표시한다.
+- 개별 승인 API도 같은 검증을 적용해 누락 필드를 `REVIEW_CONTENT_MISSING` 422로 거절하며 상태를 바꾸지 않는다.
+- 일괄 승인 API는 선택된 초안을 모두 먼저 검증한다. 하나라도 본문이나 제공된 제목이 비어 있으면 전체 요청을 422로 거절해 부분 승인도 막는다.
+- 계약 테스트는 공백과 줄바꿈만 든 본문, 공백 제목, zero width 본문, A 단축키, 개별 API 상태 보존, 일괄 API 원자적 거절을 고정한다.
+- 기존 검토 요청, 편집, 예약, 승인, 거절 흐름과 사용자 소유 dirty 파일은 삭제하거나 stage하지 않았다.
+
+### 검증 증거
+
+- `cd dashboard && npx tsc --noEmit`: EXIT 0, 출력 오류 0.
+- `cd dashboard && npx vitest run tests/components tests/studio tests/api`: EXIT 0, 89파일 587건 통과, 15건 조건부 제외, 실패 0.
+- 집중 계약 테스트: 컴포넌트 7건, 개별 승인 API 포함 12건, queue API 10건 모두 EXIT 0.
+- `cd dashboard && npm run build`: EXIT 0, Next.js 컴파일과 TypeScript 검사 성공, 정적 페이지 177/177 생성. 기존 NFT 광범위 추적 경고 1건은 유지됐다.
+- `bash /Users/sj/.claude/harness/bin/design-lint.sh dashboard/src`: EXIT 0, 디자인 토큰 위반 0.
+- 운영 캡처 `docs/qa/osmu-live-walk-20260903/v70-inbox-1024.png`를 직접 열어 제목 아래 실질 본문이 없는데 승인 단추가 활성이고 경고가 없는 기존 결함을 관찰했다.
+- 수정 뒤 운영 화면은 배포 금지 조건 때문에 미검증이다. 소스 계약과 빌드 증거만 통과했다.
+
+### 변경 파일과 커밋
+
+- 기준 커밋 `3ed59b81` 이후 제품 코드, 계약 테스트, QA 기록, 구현현황, 핸드오프를 포함해 11개 파일을 변경했다.
+- 주요 커밋: `693892ed`, `4a43fb34`, `fc287b2a`, `1322ecdd`, `4ae52704`, `6ba8605b`. 이 정본 갱신 커밋을 추가해 `origin/work/v70impl`에 push하고 로컬과 원격 SHA 일치를 다시 확인한다.
+
+### 남은 이슈와 다음 액션
+
+- QA 게이트는 아직 미통과다. 운영 배포와 머지는 이번 과제 범위에서 실행하지 않았다.
+- QA 소유자가 배포된 같은 인박스 항목에서 경고 노출, 승인 단추 비활성, A 단축키 차단, 개별 승인 API 422, 일괄 승인 전체 거절을 직접 관찰해야 한다. 종료 증거는 운영 캡처와 API 응답 및 상태 불변 기록이다.
+- 다음 집중 QA 명령은 `cd dashboard && npx vitest run tests/components/inbox-v70-defects.test.tsx tests/publish/approve-route.test.ts tests/api/queue.test.ts`다.
+- 사용자 소유 dirty `.codex/logs/harness.jsonl`, `docs/requests/inbox/chairman-2026-09.md`는 stage하지 않고 보존했다.
+
 ## 2026-09-03 07:05 KST | Codex code-builder | v70 구현 완료, 디자인 픽셀 게이트는 열림
 
 ### 회장 요청
