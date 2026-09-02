@@ -78,6 +78,10 @@ await page.route("**/api/**", async (route) => {
   if (pathname === "/api/onboarding") return json(route, { completed: true });
   if (pathname === "/api/metrics") return json(route, request.method() === "POST" ? { ok: true } : { posts: [] });
   if (pathname === "/api/channel-config") return json(route, { threads: { connected: true }, instagram: { connected: true } });
+  if (pathname === "/api/connect/readiness") {
+    return json(route, { providers: { threads: { available: true, connected: false, status: "not_connected", reason: null, guidance: null } } });
+  }
+  if (pathname === "/api/connect/threads") return json(route, { authUrl: `${baseUrl}/oauth-build-fixture` });
   if (pathname === "/api/studio/brand-setup") return json(route, { guide: null });
   if (pathname === "/api/studio/engine-status") return json(route, { ready: true });
   if (pathname === "/api/publish/first-comment-capabilities") {
@@ -130,6 +134,23 @@ async function captureRoom(room, width) {
 }
 
 try {
+  await page.goto(`${baseUrl}/channels/threads`, { waitUntil: "networkidle", timeout: 60_000 });
+  const connectButton = page.getByTestId("connect-threads");
+  await connectButton.waitFor({ state: "visible" });
+  if (!(await connectButton.isEnabled())) throw new Error("Threads OAuth 연결 단추가 활성 상태가 아닙니다");
+  const popupPromise = context.waitForEvent("page");
+  await connectButton.click();
+  const popup = await popupPromise;
+  await page.evaluate(() => {
+    window.dispatchEvent(new MessageEvent("message", {
+      origin: window.location.origin,
+      data: { source: "osmu-oauth-connect", provider: "threads", ok: true },
+    }));
+  });
+  await page.getByText(/Threads 연결 완료/).waitFor();
+  observations.push({ room: "connection", provider: "threads", buttonActive: true, callbackObserved: true });
+  await popup.close();
+
   await page.goto(`${baseUrl}/studio?room=create`, { waitUntil: "networkidle", timeout: 60_000 });
   await page.locator('[data-room="create"]').waitFor();
   const kindPicker = page.locator("[data-create-kind-picker]");

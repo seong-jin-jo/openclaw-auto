@@ -1,6 +1,6 @@
 {
   "stamp": {
-    "createdAt": "2026-09-02T00:14:53.182Z",
+    "createdAt": "2026-09-02T00:22:35.076Z",
     "model": "gpt-5.6",
     "agent": "code-builder",
     "skill": "qa",
@@ -8,6 +8,12 @@
     "concern": "외부 플랫폼 대신 결정론적 API fixture를 사용한 build 단계 화면 증거다."
   },
   "observations": [
+    {
+      "room": "connection",
+      "provider": "threads",
+      "buttonActive": true,
+      "callbackObserved": true
+    },
     {
       "room": "edit",
       "width": 1024,
