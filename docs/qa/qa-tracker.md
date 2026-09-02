@@ -2,6 +2,24 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-09-02 build PASS: v67 집중 필터와 운영 빌드 스모크
+
+컨트롤러가 시안과 코드를 직접 대조해 앞 판이 놓친 플랫폼 집중 필터를 찾아 구현시켰고,
+운영과 같은 production build 로 실제 서버를 띄워 주요 경로를 직접 두드렸다.
+
+| 검증 | 판정 | 종료 증거 |
+|---|---|---|
+| 플랫폼 집중 필터 | PASS | `PlatformFocusFilter.tsx` 신설. 전체 7곳과 플랫폼 7개 칩, 선택 시 해당 카드만 표시. 필터 전환이 선택·입력값을 바꾸지 않는 계약 테스트 포함 |
+| 작업 공간 초기화 계약 | PASS | `multi-account-ui.contract.test.ts` 를 문장 순서 비의존으로 바꿔 통과. useEffect 블록 안의 초기화 존재만 검사 |
+| 타입 | PASS | `npx tsc --noEmit` 오류 0 |
+| 지정 회귀 | PASS | `tests/components tests/publish tests/brand` 64파일 553건 통과, 실패 0 |
+| production build | PASS | `npm run build` 성공 |
+| 운영 빌드 스모크 | PASS | `next start` 로 띄워 `/` `/studio` `/settings` `/channels/threads` `/images` `/blog` 전부 200 |
+| CI | PASS | run `33583258595`, HEAD `3fcc6af3`, conclusion success |
+| 운영 배포 | 미검증 | `/approve qa` 미승인. 컨트롤러는 배포 게이트를 우회하지 않는다 |
+
+운영 배포와 실제 외부 OAuth 동의, 외부 플랫폼 실게시, 운영 데이터베이스는 여전히 미검증이다.
+
 ## 2026-09-02 build PASS: v67 발행실 플랫폼 집중 필터
 
 v67 디자인 정본의 `전체 7곳`과 일곱 플랫폼 집중 필터를 발행실에 반영했다. 필터 상태는
