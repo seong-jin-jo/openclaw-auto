@@ -1111,6 +1111,9 @@ export default function StudioPage() {
               전부 해제
             </Button>
           </section>
+          <PlatformFocusFilter>
+            {(focus) => (
+              <>
           {lastError ? <div className="rounded-control border border-danger/30 bg-danger/10 p-stack text-caption text-danger">마지막 실패: {lastError}</div> : null}
           {vid?.narration?.message ? <div className="rounded-control border border-warning/30 bg-warning/10 p-stack text-caption text-warning">{vid.narration.message}</div> : null}
           {(pub.running || Object.keys(pub.status).length > 0) ? (
@@ -1164,8 +1167,7 @@ export default function StudioPage() {
               </p>
             </div>
           ) : null}
-          <PlatformFocusFilter>
-            {(focus) => GROUPS.map((group) => {
+          {GROUPS.map((group) => {
               const visiblePlatforms = focus === "all"
                 ? group.platforms
                 : group.platforms.filter((platform) => platform === focus);
@@ -1238,6 +1240,8 @@ export default function StudioPage() {
                 </section>
               );
             })}
+              </>
+            )}
           </PlatformFocusFilter>
         </div>
 
