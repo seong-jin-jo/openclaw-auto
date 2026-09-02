@@ -1,5 +1,13 @@
 # 세션 상태 (얇은 인덱스)
 
+## 2026-09-02 KST | Codex code-builder | v67 발행실 플랫폼 집중 필터 착수
+
+- 핸드오프 기준: 회장이 지정한 `work/v67build` 워크트리와 이번 플랫폼 집중 필터 과제를 primary로 사용한다. 같은 worktree의 활성 tmux pane은 없었고 메인 저장소 pane은 다른 트랙이라 재개하지 않았다.
+- 승인 범위: v67 디자인 정본의 `전체 7곳`과 일곱 플랫폼 칩을 발행실에 추가한다. 새 API, 데이터베이스, 발행 대상 계약, 계정 연결 계약은 바꾸지 않는다.
+- 기반: ADR-004·005·006, 실수 원장 상단, `DESIGN.md` v36, v67 통합 프로토타입, `docs/구현현황.md`, 현재 `PlatformPreview.tsx`와 `studio/page.tsx`를 읽었다.
+- 착수 상태: `docs/qa/qa-tracker.md` 최상단에 필터 누락을 NG로 등록했다. 기존 미커밋 `.codex/logs/harness.jsonl`과 회장 요청 원문 수집 파일은 사용자 변경으로 보존한다.
+- 정확한 다음 액션: 보기 전용 필터 상태와 칩 줄을 추가하고 `PUB-FOCUS-01·02·03` 계약을 `dashboard/tests/components/`에 작성한다. 이후 지정 TypeScript·Vitest, design lint, 1024·390 실제 렌더를 확인하고 문서와 원격 브랜치를 갱신한다.
+
 ## 2026-09-02 09:24 KST | Codex code-builder | OSMU v67 build 증거 완료, 원격 push 정책 차단
 
 - 핸드오프 기준: 회장이 갱신한 보존 커밋 `576945e1`, 이전 보존점 `3bb6b787`, 브랜치 `work/v67build`, 이 worktree를 primary로 사용했다. 기존 tmux pane은 보조 확인만 했고 다른 브랜치로 이동하지 않았다.
