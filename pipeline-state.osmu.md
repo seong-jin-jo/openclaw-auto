@@ -1,3 +1,19 @@
+## 2026-09-03 v67 QA 승인 (회장 채팅 승인)
+
+stage: qa
+status: approved
+approved_stages: [plan, design, build, qa]
+approved_by: 회장 (2026-09-03 채팅 "배포는 승인할게")
+approved_head: `74e092be`
+evidence:
+- CI run `33583258595` conclusion success, HEAD `3fcc6af3`
+- `npx tsc --noEmit` 오류 0
+- `tests/components tests/publish tests/brand` 64파일 553건 통과, 실패 0
+- `npm run build` 성공, `next start` 실서버 6경로 전부 200
+- `docs/qa/qa-tracker.md` 최상단 v67 판정표
+
+범위: `openclaw-dashboard-osmu` 서비스만 배포한다. 게이트웨이는 이 저장소 밖이며 범위가 아니다.
+
 ## 2026-09-02 v67 편집실·발행실 통합 디자인 승인 후보
 
 stage: design
