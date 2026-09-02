@@ -10,6 +10,7 @@
 - 직접 관찰: 종료형 Next.js와 Chromium으로 OAuth 연결 단추 활성·동일 출처 callback, 생성→편집→두 계정 발행→성과를 클릭했다. 편집실·발행실 1024·390 가로 넘침 0, 표시 이름 입력 0, 연결 계정 4곳, 발행 요청 2건, 콘솔 오류 0을 관찰했다. 증거는 `docs/qa/osmu-v67-build-evidence-20260902/`다.
 - QA·구현현황: qa-tracker의 v67 NG 5행을 build PASS와 종료 증거로 갱신했고 `docs/구현현황.md`에 STAMP, 기존·변경 기능, 검증, 미검증 경계를 기록했다.
 - 커밋: `5559586d`, `51c215f1`, `7df52fc9`, `79186e89`, `52b6b7b0`, `58a626a9`, `d086d8e2`. 이 기록 전 로컬 HEAD는 `d086d8e2`, 원격 `origin/work/v67build`는 `576945e1`이다.
+- 보존한 미커밋 파일: 기존 `.codex/logs/harness.jsonl`, 자동 수집된 회장 요청 원문, 출처가 불명확한 `sidebar-4room-1024.png`·`sidebar-4room-1440.png`은 이번 커밋에서 제외했다.
 - 원격 차단: 명시된 `git push origin work/v67build`를 실행했으나 외부 쓰기 승인 정책이 AskForApproval=Never 환경에서 거절했다. PR 병합과 운영 배포는 시도하지 않았다.
 - 다음 실행: push 권한이 있는 컨트롤러가 `work/v67build`를 원격에 전송한 뒤 원격 SHA가 이 기록 커밋을 포함하는지 확인한다. QA 소유자는 실제 고객 OAuth와 운영 데이터베이스로 연결→생성→편집→발행→성과를 재검증하고 외부 게시물 URL과 운영 콘솔 오류 0을 종료 증거로 남긴다.
 
