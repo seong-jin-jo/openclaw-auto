@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { apiPost } from "@/lib/api";
 import { Button } from "@/components/shared/Button";
+import { workspaceDisplayName } from "@/lib/workspace-display-name";
 import {
   AUDIENCE_CARDS, FORBIDDEN_CARDS, INDUSTRY_CARDS, PALETTE_CARDS, PURPOSE_CARDS,
   RIGHTS_CARDS, VOICE_CARDS, learningToBrandAnswers, readLearningInfo, writeLearningInfo,
@@ -90,7 +91,7 @@ export function LearningCardWizard({ workspaceId, workspaceName, onSaved, onClos
       <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-surface border border-border bg-surface p-stack-section shadow-floating" data-learning-wizard={reviewing ? "review" : step?.key}>
         <div className="flex flex-wrap items-center gap-stack border-b border-border pb-stack">
           <div className="mr-auto min-w-0">
-            <b className="block text-lead text-text">{workspaceName || "작업 공간"} 학습 정보</b>
+            <b className="block text-lead text-text">{workspaceDisplayName(workspaceName)} 학습 정보</b>
             <span className="text-caption text-subtle">7개는 직접 고르고, 성과 학습 1개는 발행 결과가 쌓이면 자동으로 채워집니다.</span>
           </div>
           <span className="rounded-pill bg-accent-soft px-stack py-stack-tight text-caption font-semibold text-accent" data-learning-step={`${Math.min(stepIndex + 1, STEPS.length)}/${STEPS.length}`}>

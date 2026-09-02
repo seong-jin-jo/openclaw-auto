@@ -11,6 +11,7 @@ import { Stack } from "@/components/shared/Stack";
 import { fmtAgo } from "@/lib/format";
 import { PerformanceChatPanel } from "./PerformanceChatPanel";
 import { AutomationRulesPanel } from "./AutomationRulesPanel";
+import { workspaceDisplayName } from "@/lib/workspace-display-name";
 
 export interface PerformancePost {
   id: string;
@@ -403,7 +404,7 @@ export function PerformanceRoom({
       >
         <Stack gap={16}>
           <Stack gap={8}>
-            <p className="text-caption font-semibold text-subtle">성과 요약 · {workspaceName || "작업 공간"} · 최근 30일</p>
+            <p className="text-caption font-semibold text-subtle">성과 요약 · {workspaceDisplayName(workspaceName)} · 최근 30일</p>
             <VerdictTitle className="flex items-start gap-stack text-display font-bold text-text break-keep">
               <span aria-hidden="true" className="mt-micro inline-grid size-stack-section shrink-0 place-items-center rounded-pill bg-accent text-caption text-accent-fg">1</span>
               <span>{verdict}</span>

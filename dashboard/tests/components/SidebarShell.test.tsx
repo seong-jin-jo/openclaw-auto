@@ -117,7 +117,7 @@ describe("Sidebar operator/customer shell separation", () => {
     expect(screen.getByRole("link", { name: /편집실/ })).toHaveAttribute("href", "/studio?room=edit");
     expect(screen.getByRole("link", { name: /발행실/ })).toHaveAttribute("href", "/studio?room=publish");
     expect(screen.getByRole("link", { name: /성과실/ })).toHaveAttribute("href", "/performance");
-    expect(screen.getByText("Video")).toBeInTheDocument();
+    expect(screen.getByText("영상")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "YouTube" })).toHaveAttribute(
       "href",
       "/channels/youtube",

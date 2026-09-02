@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { workspaceDisplayName } from "@/lib/workspace-display-name";
 
 export type ProductRoom = "create" | "edit" | "publish" | "performance";
 
@@ -94,7 +95,7 @@ export function RoomHeader({
       className="relative mb-stack-section flex flex-wrap items-center gap-stack border-b border-border pb-pad-inset"
     >
       <div className="mr-auto min-w-0">
-        <b className="block truncate text-lead text-text">{workspaceName || "작업 공간"}</b>
+        <b className="block truncate text-lead text-text">{workspaceDisplayName(workspaceName)}</b>
         <span className="text-caption text-subtle">{subtitle}</span>
       </div>
       {leading}
