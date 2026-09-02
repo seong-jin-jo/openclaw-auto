@@ -1,12 +1,16 @@
 # 세션 상태 (얇은 인덱스)
 
-## 2026-09-02 KST | Codex code-builder | v67 발행실 플랫폼 집중 필터 착수
+## 2026-09-02 10:55 KST | Codex code-builder | v67 발행실 플랫폼 집중 필터 build 검증 완료
 
 - 핸드오프 기준: 회장이 지정한 `work/v67build` 워크트리와 이번 플랫폼 집중 필터 과제를 primary로 사용한다. 같은 worktree의 활성 tmux pane은 없었고 메인 저장소 pane은 다른 트랙이라 재개하지 않았다.
 - 승인 범위: v67 디자인 정본의 `전체 7곳`과 일곱 플랫폼 칩을 발행실에 추가한다. 새 API, 데이터베이스, 발행 대상 계약, 계정 연결 계약은 바꾸지 않는다.
 - 기반: ADR-004·005·006, 실수 원장 상단, `DESIGN.md` v36, v67 통합 프로토타입, `docs/구현현황.md`, 현재 `PlatformPreview.tsx`와 `studio/page.tsx`를 읽었다.
-- 착수 상태: `docs/qa/qa-tracker.md` 최상단에 필터 누락을 NG로 등록했다. 기존 미커밋 `.codex/logs/harness.jsonl`과 회장 요청 원문 수집 파일은 사용자 변경으로 보존한다.
-- 정확한 다음 액션: 보기 전용 필터 상태와 칩 줄을 추가하고 `PUB-FOCUS-01·02·03` 계약을 `dashboard/tests/components/`에 작성한다. 이후 지정 TypeScript·Vitest, design lint, 1024·390 실제 렌더를 확인하고 문서와 원격 브랜치를 갱신한다.
+- 변경: 보기 전용 `PlatformFocusFilter`를 추가해 전체와 일곱 플랫폼 칩을 제공한다. 카드 노출만 좁히고 기존 입력, 발행 대상, 계정 선택 상태는 페이지에 그대로 보존한다.
+- 계약 검증: `PUB-FOCUS-01·02·03` 3건을 추가했다. 지정 Vitest는 64파일 553건 통과, 2건 조건부 제외, 실패 0이며 TypeScript 오류 0, production build 177/177, design lint 위반 0이다.
+- 직접 관찰: 종료형 standalone Next.js와 Chromium에서 1024·390 각각 칩 8개, 전체 7장, X 1장, 전체 복귀, 본문과 발행 체크 보존, 가로 넘침 0, 콘솔 오류 0을 관찰했다. 증거는 `docs/qa/osmu-v67-platform-focus-evidence-20260902/`다.
+- 기존 기능 보존: 일곱 플랫폼 미리보기, 직접 편집, 첫 댓글, 즉시·예약 발행, 계정 선택과 네 방 흐름을 유지했다. 작업 공간 계정 초기화 정적 계약 1건은 호출 순서를 복구해 다시 통과시켰다.
+- 커밋: `3a4cfa08`, `fb32ddf1`, `25ee6f26`, `93308e8e`, `01ed27e1`, `0353b158`, `5aee9d55`, `beda5932`. 기존 미커밋 `.codex/logs/harness.jsonl`과 회장 요청 원문 수집 파일은 사용자 변경으로 보존한다.
+- 정확한 다음 액션: 이 상태·QA·구현현황 기록을 커밋한 뒤 `git push origin work/v67build`를 실행해 원격 SHA를 확인한다. PR 병합과 운영 배포는 하지 않는다.
 
 ## 2026-09-02 09:24 KST | Codex code-builder | OSMU v67 build 증거 완료, 원격 push 정책 차단
 
