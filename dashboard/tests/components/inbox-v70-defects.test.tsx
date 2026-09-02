@@ -20,7 +20,14 @@ vi.mock("@/components/layout/Toast", () => ({
   useToast: () => ({ showToast: mocks.showToast }),
 }));
 
-function queue(posts: Array<{ id: string; text?: string; topic?: string }>) {
+function queue(posts: Array<{
+  id: string;
+  title?: string | null;
+  text?: string | null;
+  topic?: string;
+  hashtags?: string[];
+  channels?: Record<string, unknown>;
+}>) {
   mocks.swr.mockImplementation((key: string) => key === "/api/queue?status=draft&returnTo=inbox"
     ? { data: { posts }, mutate: vi.fn(), isLoading: false }
     : { data: undefined, mutate: vi.fn(), isLoading: false });
@@ -44,8 +51,8 @@ describe("V70-INBOX 승인 인박스 안전 계약", () => {
     expect(screen.getByRole("button", { name: "승인" })).toBeEnabled();
   });
 
-  it("V70-INBOX-02 거절: 본문이 없으면 승인 단추와 단축키 모두 승인 요청을 보내지 않는다", () => {
-    queue([{ id: "draft-empty", text: "   ", topic: "studio-handoff" }]);
+  it("V70-INBOX-02 거절: 공백과 줄바꿈뿐인 본문은 승인 단추와 단축키 모두 승인 요청을 보내지 않는다", () => {
+    queue([{ id: "draft-empty", text: "  \n\t  ", topic: "studio-handoff" }]);
 
     render(<InboxPage />);
 
@@ -55,7 +62,27 @@ describe("V70-INBOX 승인 인박스 안전 계약", () => {
     expect(mocks.apiPost).not.toHaveBeenCalled();
   });
 
-  it("V70-INBOX-03 정상: 내부 식별자와 중복 단축키를 고객 화면에 노출하지 않는다", () => {
+  it("V70-INBOX-03 거절: 제목 필드가 있으면 공백 제목을 승인하지 않는다", () => {
+    queue([{ id: "draft-title-empty", title: " \n ", text: "검토할 본문" }]);
+
+    render(<InboxPage />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("제목을 불러오지 못했습니다");
+    expect(screen.getByText("검토할 본문")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "승인" })).toBeDisabled();
+  });
+
+  it("V70-INBOX-04 정상: 제목과 본문을 공백 정리 뒤 표시하고 승인할 수 있다", () => {
+    queue([{ id: "draft-title", title: "  검토 제목  ", text: "  검토 본문  " }]);
+
+    render(<InboxPage />);
+
+    expect(screen.getByRole("heading", { name: "검토 제목" })).toBeInTheDocument();
+    expect(screen.getByText("검토 본문")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "승인" })).toBeEnabled();
+  });
+
+  it("V70-INBOX-05 정상: 내부 식별자와 중복 단축키를 고객 화면에 노출하지 않는다", () => {
     queue([{ id: "draft-2", text: "검토 본문", topic: "studio-handoff" }]);
 
     render(<InboxPage />);
@@ -66,12 +93,29 @@ describe("V70-INBOX 승인 인박스 안전 계약", () => {
     expect(screen.getByText(/단축키: A 승인/)).toBeInTheDocument();
   });
 
-  it("V70-INBOX-04 정상: 제품 연결 제목을 고객이 이해할 수 있는 말로 표시한다", () => {
+  it("V70-INBOX-06 정상: 제품 연결 제목을 고객이 이해할 수 있는 말로 표시한다", () => {
     queue([]);
 
     render(<InboxPage />);
 
     expect(screen.getByRole("button", { name: /제품 내용 연결/ })).toBeInTheDocument();
     expect(screen.queryByText(/저장소 기반 생성/)).not.toBeInTheDocument();
+  });
+
+  it("V70-INBOX-07 거절: 공백 주제와 해시태그와 채널 이름은 빈 판단값으로 노출하지 않는다", () => {
+    queue([{
+      id: "draft-metadata-empty",
+      text: "검토 본문",
+      topic: " \n ",
+      hashtags: [" ", "유효태그"],
+      channels: { " ": {}, threads: {} },
+    }]);
+
+    render(<InboxPage />);
+
+    expect(screen.getByText("일반 콘텐츠")).toBeInTheDocument();
+    expect(screen.getByText("#유효태그")).toBeInTheDocument();
+    expect(screen.getByText("threads")).toBeInTheDocument();
+    expect(screen.queryByText(/^#\s*$/)).not.toBeInTheDocument();
   });
 });

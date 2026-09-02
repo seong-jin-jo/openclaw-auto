@@ -8,6 +8,7 @@ import { useToast } from "@/components/layout/Toast";
 import type { VoiceTone } from "@/lib/voice-tone";
 import type { PublishReturnContext } from "@/lib/publish-return-context";
 import { PublishTrip } from "@/components/shared/PublishTrip";
+import { missingReviewFields, normalizeReviewText, type MissingReviewField } from "@/lib/review-content";
 
 const TONE_SLIDERS: { key: keyof VoiceTone; left: string; right: string }[] = [
   { key: "formal", left: "격식", right: "구어" },
@@ -18,7 +19,8 @@ const TONE_SLIDERS: { key: keyof VoiceTone; left: string; right: string }[] = [
 
 interface Post {
   id: string;
-  text?: string;
+  title?: string | null;
+  text?: string | null;
   topic?: string;
   status?: string;
   generatedAt?: string;
@@ -34,14 +36,24 @@ interface Post {
 // 검토 대상 = status=draft. 승인 → /approve, 거절 → /delete. 액션 후 다음 카드로.
 interface ProductSource { type?: string; owner?: string; repo?: string; path?: string; ref?: string; token?: string }
 
-function reviewBody(text?: string) {
-  return text?.trim() || "";
+function customerTopicLabel(topic?: string) {
+  const normalized = normalizeReviewText(topic);
+  if (!normalized || normalized === "post") return "일반 콘텐츠";
+  if (normalized === "studio-handoff") return "콘텐츠 작업실에서 보냄";
+  return normalized;
 }
 
-function customerTopicLabel(topic?: string) {
-  if (!topic || topic === "post") return "일반 콘텐츠";
-  if (topic === "studio-handoff") return "콘텐츠 작업실에서 보냄";
-  return topic;
+function approvalWarning(fields: MissingReviewField[]) {
+  if (fields.includes("body") && fields.includes("title")) {
+    return "제목과 본문을 불러오지 못했습니다. 내용을 확인할 수 있을 때만 승인할 수 있습니다.";
+  }
+  if (fields.includes("title")) {
+    return "제목을 불러오지 못했습니다. 내용을 확인할 수 있을 때만 승인할 수 있습니다.";
+  }
+  if (fields.includes("body")) {
+    return "본문을 불러오지 못했습니다. 내용을 확인할 수 있을 때만 승인할 수 있습니다.";
+  }
+  return "";
 }
 
 export default function InboxPage() {
@@ -114,15 +126,18 @@ export default function InboxPage() {
   }, [posts.length, idx]);
 
   const current = posts[idx];
-  const currentBody = reviewBody(current?.text);
-  const canApprove = Boolean(current && currentBody);
+  const currentTitle = normalizeReviewText(current?.title);
+  const currentBody = normalizeReviewText(current?.text);
+  const missingFields = current ? missingReviewFields(current) : [];
+  const blockedWarning = approvalWarning(missingFields);
+  const canApprove = Boolean(current && missingFields.length === 0);
 
   const advance = useCallback(() => {
     setIdx((i) => (i + 1 < posts.length ? i + 1 : i));
   }, [posts.length]);
 
   const approve = useCallback(async () => {
-    if (!current || busy || !reviewBody(current.text)) return;
+    if (!current || busy || missingReviewFields(current).length > 0) return;
     setBusy(true);
     try {
       await apiPost(`/api/queue/${current.id}/approve`, { hours: scheduleHours });
@@ -163,7 +178,12 @@ export default function InboxPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [approve, reject, posts.length]);
 
-  const channels = current?.channels ? Object.keys(current.channels) : [];
+  const channels = current?.channels
+    ? Object.keys(current.channels).map(normalizeReviewText).filter(Boolean)
+    : [];
+  const hashtags = current?.hashtags
+    ?.map(normalizeReviewText)
+    .filter(Boolean) ?? [];
   const videoSrc = current?.videoUrl
     ? (current.videoUrl.startsWith("http") ? current.videoUrl : `/videos/${current.videoUrl}`)
     : current?.videoFilename
@@ -279,18 +299,22 @@ export default function InboxPage() {
             </div>
           )}
 
-          {/* 본문 */}
+          {/* 제목과 본문 */}
+          {currentTitle ? (
+            <h3 className="text-body font-semibold text-text">{currentTitle}</h3>
+          ) : null}
+          {blockedWarning ? (
+            <div role="alert" className="min-h-[80px] rounded-control border border-warning/30 bg-warning/10 p-stack text-body-sm text-warning">
+              {blockedWarning}
+            </div>
+          ) : null}
           {currentBody ? (
             <p className="text-body-sm text-text whitespace-pre-wrap leading-relaxed min-h-[80px]">{currentBody}</p>
-          ) : (
-            <div role="alert" className="min-h-[80px] rounded-control border border-warning/30 bg-warning/10 p-stack text-body-sm text-warning">
-              본문을 불러오지 못했습니다. 내용을 확인할 수 있을 때만 승인할 수 있습니다.
-            </div>
-          )}
+          ) : null}
 
           {/* 해시태그 */}
-          {current.hashtags && current.hashtags.length > 0 && (
-            <p className="text-caption text-accent mt-stack-tight">{current.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}</p>
+          {hashtags.length > 0 && (
+            <p className="text-caption text-accent mt-stack-tight">{hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}</p>
           )}
 
           <div className="mt-stack text-caption text-subtle flex items-center justify-between">
