@@ -37,10 +37,10 @@ export function PlatformFocusFilter({
             <Button
               key={option.key}
               size="sm"
-              variant={active ? "primary" : "secondary"}
+              variant="secondary"
               aria-pressed={active}
               data-testid={`publish-focus-${option.key}`}
-              className="rounded-pill"
+              className={`rounded-pill !bg-surface ${active ? "!border-accent !text-accent" : ""}`}
               onClick={() => setFocus(option.key)}
             >
               {option.label}
