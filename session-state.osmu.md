@@ -30,6 +30,65 @@
 - 화면 비교는 `docs/qa/osmu-v67-prototype-dev-comparison-v1-gpt-codex.html`을 열어 확인한다. 새로운 선택 요청은 없으며 현재 build는 프로토타입 준수 상태를 보여 주는 단계다.
 
 ## 2026-09-02 05:24 KST | Codex 메인 컨트롤러 | v67 디자인 승인 후보 수렴
+## 2026-09-02 06:36 KST | Codex → Claude 인계 | v67 디자인 승인 후보
+
+### 무엇을 어디까지 했나
+
+- 회장이 이후 루프를 Claude에서 돌리기로 확정했다. 인계 기준은 이 파일과 `pipeline-state.osmu.md`, Claude pane `openclaw-auto:0.0`이다.
+- Codex는 v65·v66 독립 시안을 Design Score C로 반려한 뒤, 승인본 v64 셸에 통합한 v67 후보를 product-designer에게 재작업시켰다.
+- `DESIGN.md` v36, v67 단일 라우팅 허브, v65·v66 증분 명세, 디자인 리뷰 B+ 88/100, 24개 clean frame과 24개 stamp를 메인 브랜치에 통합했다.
+- 최신 원격 SHA는 `364dcef8`, PR #41 CI run `33558465126`은 success다.
+- Codex Goal은 디자인 승인 부재가 3회 반복되어 `blocked`로 닫았다. Claude가 별도 `/goal`로 재개하면 된다.
+
+### 남은 이슈·블로커
+
+- `pipeline-state.osmu.md` 최상단은 `stage: design`, `status: awaiting-approval`, v67 `approval_status: candidate-only`다.
+- `/approve design` 뒤 v66 미구현과 코드리뷰 MAJOR 10건을 구현해야 한다. 주요 항목은 표시 이름 읽기 전용화, 플랫폼별 실제 필드·제한, 계정 상태 보존, 하드 제한 발행 차단, 집중 필터, v65 런타임 상태와 글 형식 계약이다.
+- build 뒤 동일 seed·state·viewport의 actual frame 24조합을 만들어 matched-pair를 닫아야 한다.
+- 전체 QA, 원격 CI, 운영 로그인부터 실제 외부 채널 발행까지는 미검증이다.
+
+### 다음에 칠 명령
+
+```text
+/approve design
+/goal OSMU v67 승인 입력으로 MAJOR 10건 구현, 독립 코드리뷰, QA, 최신 CI, 운영 실경로 검증까지 완료
+```
+
+승인 직후 build는 별도 worktree의 code-builder 한 명이 소스를 소유하고, code-reviewer와 qa-verifier는 병렬 읽기·검증 판으로 돌린다.
+
+### 검증했나
+
+- design-review: B+ 88/100.
+- clean frame: 24/24, ready 누락 0, console error 0, 가로 넘침 0, 44px 미만 조작면 0, 검수 제어 노출 0.
+- frame purity, prototype coverage 24/24, `git diff --check`: PASS.
+- 최신 원격 CI run `33558465126`: success.
+- 운영 실경로: 미검증.
+
+## 2026-09-02 06:05 KST | Codex 메인 컨트롤러 | 디자인 승인 재확인
+
+### 무엇을 어디까지 했나
+
+- `pipeline-state.osmu.md`의 최상단을 재확인했다. v67은 `stage: design`, `status: awaiting-approval`, `approval_status: candidate-only`다.
+- 최신 원격 SHA `364dcef8`의 CI run `33558465126`이 성공 상태임을 다시 확인했다.
+
+### 남은 이슈·블로커
+
+- `/approve design` 기록이 없다. 단계 게이트상 제품 소스 개발은 시작할 수 없다.
+- 승인 뒤 코드리뷰 MAJOR 10건 구현, 독립 리뷰, QA, 원격 CI, 운영 실경로 검증이 남아 있다.
+
+### 다음에 칠 명령
+
+```text
+/approve design
+```
+
+### 검증했나
+
+- 파이프라인 상태: 직접 확인.
+- 최신 원격 CI: success 직접 확인.
+- 운영 실경로: 미검증.
+
+## 2026-09-02 06:04 KST | Codex 메인 컨트롤러 | v67 디자인 승인 후보 수렴
 
 ### 무엇을 어디까지 했나
 
@@ -63,7 +122,7 @@
 - 로컬 `npm run test:publish`: 27파일 258건 통과, 2건 제외.
 - 로컬 `npx tsc --noEmit`: 오류 0.
 - 로컬 `npm run build`: 성공. 기존 NFT tracing 경고 1건.
-- PR #41 v67 통합 HEAD `439b4862`, CI run `33557708955`: success. TypeScript, build, PostgreSQL schema·seed·RLS, migration concurrency, 전체 테스트를 통과했다.
+- PR #41 최신 HEAD `364dcef8`, CI run `33558465126`: success. TypeScript, build, PostgreSQL schema·seed·RLS, migration concurrency, 전체 테스트를 통과했다.
 - 운영 실경로: 미검증.
 
 ## 2026-09-02 04:33 KST | Codex 메인 컨트롤러 | v65·v66 디자인 승인 대기

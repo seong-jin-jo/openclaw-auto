@@ -21,6 +21,79 @@
 - 기존 작업 트리: HEAD는 `3bb6b787`. 착수 전부터 `.codex/logs/harness.jsonl`, `docs/requests/inbox/chairman-2026-09.md`가 수정돼 있으며 사용자 변경으로 보존하고 제 커밋에서 제외한다.
 - 기반: ADR-004·005·006, `wiki/거버넌스/실수.md` 최신 기록, `docs/qa/qa-tracker.md` v67 NG 표, 회장 요청 원문, v67 통합 프로토타입, v67 delta 명세, `DESIGN.md` v36, `docs/구현현황.md`, 보존 커밋 diff.
 - 정확한 다음 액션: TypeScript 오류 2건을 호출부에서 제거한 뒤, 기존 v67 계약 테스트와 초안 저장·복원·플랫폼 한도·계정 읽기 전용 경로를 대조해 NG별 누락을 테스트 우선으로 보수한다. 의미 단위마다 커밋하고 마지막에 1024·390 실제 렌더, 지정 회귀, design lint, push를 수행한다. PR 병합과 배포는 하지 않는다.
+## 2026-09-02 08:12 KST | Claude(Opus) | 워커 3연속 중단. 원인 규명과 실행 방식 전환
+
+- 목표 루프 가동 중. 조건은 "회장 요청 전건 화면 반영 + 계정 연결부터 성과까지 전체 플로우 동작".
+- **워커 1판(tmux osmu-v67build, 07:05)**: 커밋 전 tmux 세션 소멸. 작업분 613줄을 컨트롤러가 `3bb6b787` 로 보존하고 원격 `work/v67build` 에 푸시. tsc 오류 2건 잔존(`studio/page.tsx` 791 TS2353, 798 TS7006. 표시 이름 편집기를 미리보기에서 걷어내고 호출부 미정리).
+- **워커 2판(tmux osmu-v67build2, 07:46)**: 같은 방식으로 소멸. 커밋 0. 로그 1.2MB 까지 진행 후 중단.
+- **워커 3판(포그라운드, 08:02)**: 내 Bash 도구의 10분 상한에 걸려 exit 143 으로 내가 죽였다. 코덱스 잘못이 아니다. 이때 `npx tsc --noEmit` 을 돌리던 중이었다.
+- **판정**: 메모리는 원인이 아니다(물리 64GB, 여유 82%). 스왑 36.9/37.9GB 는 macOS 가 안 줄이는 과거치다. 코덱스 프로세스 101개 합계 2.9GB 로 크지 않다. 1·2판의 tmux 세션 소멸 원인은 아직 미규명이다.
+- **전환**: tmux 경유를 버리고 `codex-delegate.sh` 를 백그라운드 작업으로 직접 돌린다. 상한 없이 돌고 완료 통지가 온다. 4판 08:12 기동, 로그 `/tmp/osmu-v67build4.log`.
+- **하네스 결함 발견**: `delegation-governance-gate.sh` 는 명령 문자열만 본다. 프롬프트를 파일로 넘기면(`"$(cat 파일)"`) 파일 안의 ADR 을 못 읽어 반려한다. 즉 파일 기반 위임은 이 게이트가 실질 검사를 못 한다. `codex-in-pane.sh` 도 파일 경로를 넘기므로 마찬가지다. 게이트가 프롬프트 파일 내용까지 읽도록 고쳐야 한다.
+- 다음 액션: 4판 회수 → tsc·테스트 검증 → 코드리뷰·QA → 머지 → CI → 배포 승인 요청.
+
+## 2026-09-02 07:42 KST | Claude(Opus) | 목표 루프 가동. 빌더 코드 생산 중
+
+- **회장이 `/goal` 을 걸었다.** 조건은 "회장 요청사항 전부 화면 반영 + 계정 연결부터 성과까지 전체 플로우 동작. 갭이면 상류 복귀. 워커 멈추면 회수 재발주. 배포 직전 회장 승인." 매 턴 뒤 검사가 돌아 충족될 때까지 세션이 멈추지 않는다.
+- 빌더 진행(관찰됨): `work/v67build` 워크트리에서 실제 코드 생산 중. 수정 `PlatformPreview.tsx`, `StudioRooms.tsx`, `channel-text-limits.ts`, `publish.ts`, `content-edit-format.ts`, `api/studio/drafts`, `api/studio/text`. 신규 `lib/studio/platform-publish-fields.ts` 와 그 테스트. 아직 미커밋.
+- 감독 크론 복구 검증(관찰됨): 새 경로에서 5분마다 정상 실행 중(07:20·07:25·07:30·07:35·07:40 로그). 다만 `/tmp/osmu-supervisor.stop` 마커가 8월 29일부터 있어 감독 본체는 의도적으로 멈춰 있다. 지금은 이 세션이 `/goal` 로 컨트롤러 역할을 하므로 그대로 둔다.
+- **백로그 축소**: "게이트웨이 QWEN_OAUTH_MARKER 빌드 실패"는 이 저장소 밖이다. `extensions/qwen-portal-auth` 가 여기 없고 postAGI 배포 트리에 있다. 대시보드 배포는 `openclaw-dashboard-osmu` 서비스만 올리므로 이 목표의 범위가 아니다.
+- 다음 액션: 빌더 종료 감지 대기 중(백그라운드). 종료 시 diff 검증 → 코드리뷰·QA 투입 → 머지 → CI → 배포 승인 요청.
+
+## 2026-09-02 07:21 KST | Claude(Opus) | 폴더명 변경으로 끊겼던 감독 크론 복구
+
+- **시스템 crontab 이 이름 변경으로 죽어 있었다.** `*/5 * * * * .../openclaw-auto/scripts/osmu-supervisor-guard.sh` 가 없는 경로를 가리켜 5분마다 조용히 실패하고 있었다. 즉 §4.9 의 감독 되살리기 장치가 06:18 이후 작동하지 않았다. 새 경로 `zto1-marketing-studio` 로 고쳤고 원본은 `/tmp/crontab.bak.*` 에 보관했다. Romeo-N-Cupid 줄은 건드리지 않았다.
+- 교훈: **레포 폴더명을 바꾸면 crontab·launchd·워크트리·스크립트 하드코딩 경로가 함께 끊긴다.** 다음에 이름을 바꿀 때는 `crontab -l`, `git worktree list`, `grep -rn "옛이름" scripts/` 를 같이 점검한다.
+- 남은 옛 이름 참조: `scripts/provision-gateway.sh:20` 의 도커 이미지 태그, `scripts/refill-backlog.sh:42` 의 v63 프로토타입 파일명. 둘 다 경로가 아니라 문자열이라 지금은 안 끊긴다.
+- 세션 크론 `6a43c0e6` 은 삭제했다. 이 세션 메모리 안에만 있던 것이라 다른 사업체에 영향이 없었고, 시스템 crontab 과도 별개다. 자율 루프는 `/goal` 로 돌린다.
+
+## 2026-09-02 07:07 KST | Claude(Opus) | v67 마무리 판 배차 (성과 목표형)
+
+- 핸드오프 기준: 이 파일. 회장이 "체크리스트 말고 결과로 걸어라, 이상하면 상류 단계로 돌아갔다 올라오게 하라"고 지시.
+- **게이트 정정**: 소스 쓰기 차단은 이미 해제되어 있다(stage-gate.sh RULE1, 회장 2026-07-22 "코드 생성·수정·bash는 승인 없이"). 앞 보고에서 "`/approve design` 없으면 코드 수정이 막힌다"고 한 것은 내가 훅을 잘못 읽은 것이다. **실제로 막혀 있는 것은 운영 배포 하나뿐이고, 그것만 `/approve qa` 를 요구한다.** stages.yaml 에도 스테이지 내 `loop` 와 `reopen: any-downstream-to-upstream` 이 이미 정의돼 있어 수정 왕복에 승인이 필요 없다.
+- 배차: `work/v67build` 전용 브랜치, 워크트리 `/tmp/osmu-wt-v67build`, tmux `osmu-v67build`, 역할 code-builder, 제한시간 90분, 로그 `/tmp/osmu-v67build.log`. 발주서 `/tmp/osmu-prompts/v67build.md`.
+- 발주 성격: 항목 체크리스트가 아니라 결과 목표. "회장 요청 전건이 화면에 반영되고 계정 연결부터 성과까지 전체 플로우가 끝까지 돈다". 갭은 워커가 대조표와 코드를 직접 대조해 스스로 찾고, 상류(디자인·설계)가 틀렸으면 그 산출물을 고치고 내려오게 했다.
+- 감시: 크론 `6a43c0e6`(매시 13·38분) + `~/.claude/harness/bin/codex-watch.sh`.
+- 다음 액션: 워커 종료 시 산출물 검증 → 머지 → CI → 배포 승인 요청.
+
+## 2026-09-02 06:48 KST | Claude(Opus) | 자율 하트비트 크론 가동 + 폴더명 변경 반영
+
+- 핸드오프 기준: 이 파일.
+- **저장소 경로 변경**: 회장이 `openclaw-auto` 를 `zto1-marketing-studio` 로 이름 변경(2026-09-02 06:18 무렵). 옛 경로에 껍데기가 남아 있어 그 폴더를 보던 세션은 저장소가 사라진 것으로 오인한다. 새 세션은 `/Users/sj/sj_code_master/zto1-marketing-studio` 를 쓴다. HEAD 364dcef8.
+- 만진 것: 세션 크론 `6a43c0e6` 생성(매시 13분·38분). 코덱스 감시 실행 후 정체면 회수 판단, 아니면 백로그 진행. 세션 종료 시 소멸, 7일 자동 만료.
+- 신설: `~/.claude/harness/bin/codex-watch.sh`. Codex rollout jsonl 을 읽어 워커별 정체 시간과 자식 에이전트 스폰 수를 판정한다. 기존 감시가 부모 프로세스만 봐서 `wait_agent` 정체를 45분간 못 잡던 구멍을 메운다. 실행 시 정체 2건 검출됨.
+- 확인: 컨트롤러는 내장 슬래시 명령(`/goal`·`/compact`)을 호출할 도구가 없다. 반면 CronCreate 는 있다. 자기 기상은 크론으로 가능하고 `/goal` 은 회장만 건다.
+- 막힌 것: 없음.
+- 다음 액션: 크론이 25분마다 깨우면 백로그를 순서대로 진행. 성과실 구현 재발주 → 발행실 v66/v67 구현 패스.
+
+## 2026-09-02 06:36 KST | Codex → Claude | OSMU v67 인계
+
+- 회장 확정: 이후 OSMU 루프는 Claude pane `openclaw-auto:0.0`이 소유한다. 상세 정본은 루트 `session-state.osmu.md` 최상단과 `pipeline-state.osmu.md` 최상단이다.
+- 현재 위치: v67 디자인 후보 B+ 88/100, SHA `364dcef8`, PR #41 CI `33558465126` success. 제품 소스는 v67 기준 구현 전이다.
+- 다음 액션: `/approve design` 후 Claude `/goal`로 MAJOR 10건 구현 → 독립 리뷰 → QA → 최신 CI → 운영 실경로 검증을 연쇄 실행한다.
+- Codex Goal은 승인 부재 3회 반복으로 blocked 처리했다. Codex 세션 기록에 의존하지 않고 위 두 정본 파일만으로 재개할 수 있다.
+
+## 2026-09-02 06:12 KST | Claude(Opus) | 자식 에이전트 감시 신설 + `/goal` 정정
+
+- 핸드오프 기준: 이 파일. 회장 질문 4개(위임 층위 구분 / `/goal` 존재 / 내 멈춤을 Haiku가 고치나 / `codex exec` 확인)에 답하고, 그중 하나를 실물로 만들었다.
+- 만진 파일: `~/.claude/harness/bin/codex-watch.sh` 신설(하네스 자산, 이 레포 아님). 레포 코드 변경 없음.
+- 검증 상태: 관찰됨. `codex-watch.sh` 실행해 살아있는 rollout 4건 판정, 그중 2건을 20분 이상 정체로 검출(exit 1).
+- 정정: 앞 턴에서 "`/goal`은 Claude 명령이 아니다"라고 한 것은 틀렸다. Claude Code 2.1.252 내장 기능이다(바이너리 문자열 `/goal`·`goal-checkin`·`goal_met`·`restoreGoalFromTranscript` 확인). 매 턴 후 조건 충족을 검사해 충족까지 계속 돌리는 루프다. 컨트롤러는 내장 슬래시 명령을 호출할 수 없어 회장이 직접 쳐야 한다.
+- 판단: 컨트롤러(나)의 멈춤 원인은 Codex 와 다르다. Codex 는 자식 대기·네트워크로 hang 하고, 나는 턴이 끝나면 깨우는 것이 없어 멈춘다. 따라서 Haiku 역할분담은 판정 비용만 줄이고 정지는 못 고친다. 해법 순서는 `/goal`(시계) → `codex-watch.sh`(워커 실측) → Haiku(판정 위임) 이다.
+- 막힌 것: `/goal` 입력은 회장만 가능. 그 전까지 자율 루프 없음.
+- 다음 액션: `/goal` 이 걸리면 그 루프 안에서 백로그 재개. 우선순위 = 성과실 구현 재발주, 발행실 v66 구현 패스.
+- 미완 백로그(유지): 성과실 구현, 발행실 v66 구현, 게이트웨이 QWEN_OAUTH_MARKER 빌드 실패, delegation-governance-gate 읽기전용 명령 오탐.
+
+## 2026-09-02 04:40 KST | Claude(Opus) | 위임 루프 설계 조사 (코드 변경 없음)
+
+- 핸드오프 기준: 이 파일. 회장 질문 4개(코덱스 위임 프로세스 / `/goal` 부재 / Haiku 평가 루프 / 코덱스 자식 에이전트 감시)에 대한 조사·판단 턴이었다.
+- 만진 파일: 없음(읽기만). `codex-delegate.sh`, `codex-in-pane.sh`, `bg-agents.sh` 정독.
+- 검증 상태: 조사 결과는 관찰 증거 기반. Haiku 판정 루프와 자식 감시는 아직 구현 전이라 미검증.
+- 발견(중요): Codex 0.152 워커는 자식 에이전트를 실제로 스폰한다. rollout jsonl 실측에서 spawn_agent 14, wait_agent 51, list_agents 15, interrupt_agent 3. 현행 감시(timeout + `.done`)는 부모만 보므로, 부모가 wait_agent 에서 멈추면 45분 타임아웃까지 죽은 시간이 흐른다.
+- `/goal` 은 Claude 쪽 명령이 아니다(스킬 목록·commands 부재). 직전 Codex 컨트롤러 노트에 "active goal을 걸고"가 있어 Codex 측 기능으로 추정된다. 미확인.
+- 막힌 것: 없음. 회장 한 마디 대기(감시 스크립트를 지금 붙일지).
+- 다음 액션: 승인 시 `~/.claude/harness/bin/codex-watch.sh` 신설. 워커 tmux 세션별 최신 rollout jsonl 을 물고 ①마지막 이벤트 정체 시간 ②spawn_agent 대비 완료 이벤트 수를 판정해 부모에 알린다. 판정 모델은 Haiku, 머지·배포 권한은 주지 않는다.
+- 미완 백로그(유지): 성과실 구현 재발주, 발행실 v66 구현 패스, 게이트웨이 QWEN_OAUTH_MARKER 빌드 실패, delegation-governance-gate 읽기전용 명령 오탐.
 
 ## 2026-09-02 03:36 KST | Codex 메인 컨트롤러 | OSMU 자동 연쇄 재개·디자인 게이트 대기
 

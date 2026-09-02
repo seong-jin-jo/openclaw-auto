@@ -2,6 +2,7 @@
 
 stage: design
 status: awaiting-approval
+controller_handoff: `2026-09-02 06:36 KST, Codex → Claude pane openclaw-auto:0.0`
 
 design_canonical_candidate:
   version: v67
