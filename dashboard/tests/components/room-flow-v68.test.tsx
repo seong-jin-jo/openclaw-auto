@@ -1,0 +1,31 @@
+// @vitest-environment jsdom
+import "@testing-library/jest-dom/vitest";
+import React from "react";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+import { RoomFlowHeader, type ProductRoom } from "@/components/shared/RoomHeader";
+
+afterEach(cleanup);
+
+describe("V68 네 방 상단 단계 계약", () => {
+  it.each([
+    ["create", "01", "생성실", "/studio?room=create"],
+    ["edit", "02", "편집실", "/studio?room=edit"],
+    ["publish", "03", "발행실", "/studio?room=publish"],
+    ["performance", "04", "성과실", "/performance"],
+  ] as const)("V68-FLOW-01 정상: %s 방은 자기 단계를 하나만 현재 위치로 표시한다", (room, number, label, href) => {
+    render(<RoomFlowHeader currentRoom={room as ProductRoom} />);
+
+    const active = screen.getByRole("link", { name: `${number}${label}` });
+    expect(active).toHaveAttribute("href", href);
+    expect(active).toHaveAttribute("aria-current", "step");
+    expect(document.querySelectorAll('[aria-current="step"]')).toHaveLength(1);
+  });
+
+  it("V68-FLOW-02 거절: 홈 주소를 성과실 단계 주소로 사용하지 않는다", () => {
+    render(<RoomFlowHeader currentRoom="performance" />);
+
+    expect(screen.getByRole("link", { name: "04성과실" })).toHaveAttribute("href", "/performance");
+    expect(document.querySelector('[data-room-step="performance"][href="/"]')).toBeNull();
+  });
+});

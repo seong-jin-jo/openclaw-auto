@@ -798,6 +798,7 @@ export default function StudioPage() {
   }, [hist?.drafts, publishReturnQueue?.posts, publishReturnRequest, setActiveRoom, showToast]);
   const pubPct = (() => { const v = Object.values(pub.status); return v.length ? Math.round((v.filter((s) => s === "done").length / v.length) * 100) : 0; })();
   const pubFailed = Object.values(pub.status).filter((s) => s === "failed").length;
+  const hasPublishedResult = !pub.running && Object.values(pub.status).some((status) => status === "done");
   const pubResultLabel = pub.running
     ? "발행 중…"
     : pub.stopped
@@ -1124,10 +1125,11 @@ export default function StudioPage() {
                 <b className="text-body text-text">{pubResultLabel}</b>
                 <div className="mt-stack-tight flex flex-wrap gap-stack-tight">{Object.entries(pub.status).map(([key, status]) => {
                   const cls = `rounded-pill border px-stack-tight py-micro text-caption ${status === "done" ? "border-success/30 bg-success/10 text-success" : status === "failed" ? "border-danger/30 bg-danger/10 text-danger" : status === "doing" ? "border-warning/30 bg-warning/10 text-warning" : "border-border bg-surface-2 text-subtle"}`;
-                  const value = `${status === "done" ? "✓ " : status === "failed" ? "✕ " : status === "doing" ? "⟳ " : ""}${LABEL[key]}`;
-                  return status === "done" && pub.urls[key] ? <a key={key} href={pub.urls[key]} target="_blank" rel="noopener noreferrer" className={cls} title="게시물 보기">{value} ↗</a> : <span key={key} className={cls}>{value}{status === "failed" && pub.errors[key] ? <span className="ml-micro"><span>{pub.errors[key]}</span></span> : null}</span>;
+                  const value = `${status === "done" ? "완료 " : status === "failed" ? "실패 " : status === "doing" ? "발행 중 " : ""}${LABEL[key]}`;
+                  return status === "done" && pub.urls[key] ? <a key={key} href={pub.urls[key]} target="_blank" rel="noopener noreferrer" className={cls} title="게시물 보기">{value}<span className="sr-only"> 새 창</span></a> : <span key={key} className={cls}>{value}{status === "failed" && pub.errors[key] ? <span className="ml-micro"><span>{pub.errors[key]}</span></span> : null}</span>;
                 })}</div>
               </div>
+              {hasPublishedResult ? <Link href="/performance" className="shrink-0 rounded-control bg-accent px-stack py-stack-tight text-body-sm font-semibold text-accent-fg">성과실에서 결과 보기</Link> : null}
             </div>
           ) : null}
           {showSchedule && activeWorkspace ? (

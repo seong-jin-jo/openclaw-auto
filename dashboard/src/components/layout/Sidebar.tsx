@@ -141,7 +141,7 @@ function RoomFlowNav({ pathname, onNavigate }: { pathname: string; onNavigate?: 
                 className={`flex min-h-control-touch items-center gap-stack-tight rounded-control px-stack-tight py-stack-tight text-body-sm font-semibold transition-colors max-xl:flex-col max-xl:gap-micro max-xl:px-micro ${active ? "bg-accent text-accent-fg" : "text-muted hover:bg-surface-2"}`}
               >
                 <span className={`relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-pill border text-caption ${active ? "border-accent-fg/40 bg-accent-fg/15 text-accent-fg" : done ? "border-accent bg-accent-soft text-accent" : "border-border bg-surface text-subtle"}`}>
-                  {done ? "✓" : `0${index + 1}`}
+                  {`0${index + 1}`}
                 </span>
                 <span>{room.label}</span>
               </Link>

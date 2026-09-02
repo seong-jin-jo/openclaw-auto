@@ -351,7 +351,7 @@ export function PerformanceRoom({
     { label: "조회", value: metricValue(totalViews, empty), detail: empty ? "발행 뒤부터 집계" : "선택한 플랫폼 합계" },
     { label: "저장", value: "미수집", detail: "채널 제공 뒤부터 집계" },
     { label: "답글", value: metricValue(totalReplies, empty), detail: empty ? "발행 뒤부터 집계" : "선택한 플랫폼 합계" },
-    { label: "팔로워", value: metricValue(followers, empty), detail: empty ? "발행 뒤부터 집계" : followerDelta === undefined ? "지난 기간 비교 미수집" : `이번 주 ${followerDelta >= 0 ? "+" : ""}${followerDelta}` },
+    { label: "구독", value: metricValue(followers, empty), detail: empty ? "발행 뒤부터 집계" : followerDelta === undefined ? "지난 기간 비교 미수집" : `이번 주 ${followerDelta >= 0 ? "+" : ""}${followerDelta}` },
   ];
   const secondaryMetrics = [
     { label: "총 발행", value: metricValue(focus === "all" ? publishedCount : focusedPosts.length, empty) },
