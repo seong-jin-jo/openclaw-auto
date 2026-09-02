@@ -1,5 +1,37 @@
 # OSMU 세션 상태
 
+## 2026-09-03 02:07 KST | Codex code-builder | v68 생성실·성과실 build 최종 인계
+
+### 지금까지 한 것
+
+- 기준: `pipeline-state.osmu.md` 최상단 `stage: build`, `status: approved-for-build`와 핀된 v68 프로토타입, 와이어프레임, DESIGN.md v37, clean frame 24장을 따랐다.
+- 생성실: 기존 형식 선택, 한 번에 한 질문, 학습 정보, A/B/C 구조 초안, 공유 AI 승인 대기, 편집실 이동을 유지하며 v68 요약·비교 레이아웃과 모바일 담당 패널을 구현했다.
+- 성과실: `/performance`의 홈 리다이렉트를 제거하고 네 번째 전용 방을 렌더했다. 홈의 성과 지표, 채널 필터, 잘된 콘텐츠, 제안, 답글 후보, 낮은 반응 검토는 그대로 보존했다.
+- 흐름: 네 방 공용 4단계 머리줄과 발행 성공 뒤 `성과실에서 결과 보기` 링크를 추가했다. 낮은 반응 콘텐츠는 후보만 제시하며 자동 삭제 단추와 호출을 만들지 않았다.
+- 커밋: `e9c54a22`, `1f066a02`, `ba67cd83`, `ef5ff0ae`. 현재 브랜치는 `work/v68rooms`다.
+
+### 검증
+
+- `npx tsc --noEmit`: 오류 0.
+- `npx vitest run tests/components tests/publish tests/api tests/brand`: 107파일 832건 통과, 2건 조건부 제외, 실패 0.
+- `npm run build`: 성공, 정적 페이지 177/177. 기존 NFT 광범위 추적 경고 1건 유지.
+- `design-lint.sh dashboard/src`: 토큰 위반 0.
+- 승인 시안과 같은 뷰포트 컷으로 생성실·성과실 각각 1024x900, 390x844를 실제 렌더했다. 최종 허용 캡처 로그의 브라우저 오류는 0이다.
+- 구현현황과 상세 근거는 `docs/구현현황.md` 최상단과 `wiki/ops/session-state.md` 최상단에 기록했다.
+
+### 남은 이슈
+
+- `git push origin work/v68rooms`는 실행했으나 현재 실행 정책이 승인 필요 명령으로 차단했다. 원격은 `aa6bb843`, 로컬 HEAD는 `ef5ff0ae`이며 원격이 4커밋 뒤다.
+- QA 단계 승인, 머지, 운영 배포는 실행하지 않았다.
+- 실제 고객 OAuth, 운영 데이터베이스, 외부 게시물과 운영 화면은 미검증이다.
+- 사용자 소유 dirty `.codex/logs/harness.jsonl`, `docs/requests/inbox/chairman-2026-09.md`는 건드리거나 stage하지 않았다.
+
+### 다음 액션
+
+- push 권한이 있는 부모 컨트롤러가 로컬 커밋을 `origin/work/v68rooms`로 전송하고 원격 SHA를 확인한다.
+- QA 소유자가 실제 고객 세션과 운영 데이터로 생성실→편집실→발행실→성과실을 검증하고, 사람 승낙 없는 낮은 반응 콘텐츠 삭제가 없음을 재확인한다.
+- 머지와 운영 배포는 QA 승인 전 실행하지 않는다.
+
 ## 2026-09-03 00:55 KST | Codex product-designer | v68 생성실·성과실 디자인 후보 최종 인계
 
 ### 회장 요청
