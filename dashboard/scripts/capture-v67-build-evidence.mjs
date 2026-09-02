@@ -118,6 +118,41 @@ async function captureRoom(room, width) {
   await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
   const root = page.locator(`[data-room="${room}"]`);
   await root.waitFor({ state: "visible" });
+  let focusContract = null;
+  if (room === "publish") {
+    const allFilter = root.getByTestId("publish-focus-all");
+    await allFilter.click();
+    await root.locator("[data-room-preview]").first().waitFor({ state: "visible" });
+    if (await root.locator("[data-room-preview]").count() !== 7) throw new Error(`${width} 전체 보기 카드가 일곱 장이 아닙니다`);
+
+    const preservedValue = `필터 왕복 보존 본문 ${width}`;
+    const threadsCaption = root.getByRole("textbox", { name: "threads 캡션" });
+    await threadsCaption.fill(preservedValue);
+    const selectedBefore = await root.getByRole("checkbox", { name: "Threads 발행" }).isChecked();
+
+    await root.getByTestId("publish-focus-x").click();
+    const focusedCards = root.locator("[data-room-preview]");
+    if (await focusedCards.count() !== 1 || await focusedCards.first().getAttribute("data-room-preview") !== "x") {
+      throw new Error(`${width} X 집중 보기가 한 장으로 좁혀지지 않았습니다`);
+    }
+    await page.screenshot({ path: path.join(outputDir, `publish-x-focus-${width}.png`), fullPage: true });
+
+    await root.getByTestId("publish-focus-threads").click();
+    const selectedAfter = await root.getByRole("checkbox", { name: "Threads 발행" }).isChecked();
+    if (await threadsCaption.inputValue() !== preservedValue || selectedAfter !== selectedBefore) {
+      throw new Error(`${width} 필터 왕복에서 본문 또는 발행 대상 선택이 바뀌었습니다`);
+    }
+
+    await allFilter.click();
+    if (await root.locator("[data-room-preview]").count() !== 7) throw new Error(`${width} 전체 복귀 카드가 일곱 장이 아닙니다`);
+    focusContract = {
+      chipCount: await root.locator("[data-platform-filter] button").count(),
+      allPreviewCount: 7,
+      focusedPreviewCount: 1,
+      inputPreserved: true,
+      selectionPreserved: true,
+    };
+  }
   const metrics = await root.evaluate((element) => ({
     viewportWidth: window.innerWidth,
     documentWidth: document.documentElement.scrollWidth,
@@ -129,7 +164,7 @@ async function captureRoom(room, width) {
   if (metrics.documentWidth > width + 1 || metrics.roomScrollWidth > metrics.roomWidth + 1) {
     throw new Error(`${room} ${width} 가로 넘침: ${JSON.stringify(metrics)}`);
   }
-  observations.push({ room, width, ...metrics });
+  observations.push({ room, width, ...metrics, focusContract });
   await page.screenshot({ path: path.join(outputDir, `${room}-${width}.png`), fullPage: true });
 }
 
@@ -177,7 +212,7 @@ try {
   if (await page.locator('[data-room="publish"] [aria-label$="표시 이름"]').count()) throw new Error("표시 이름 편집기가 남아 있습니다");
 
   await page.getByRole("button", { name: /선택한 [0-9]+곳에 지금 발행/ }).click();
-  await page.getByText("발행 완료", { exact: true }).waitFor();
+  await page.locator('[data-room="publish"]').getByText("발행 완료", { exact: true }).waitFor();
   await page.goto(`${baseUrl}/`, { waitUntil: "networkidle", timeout: 60_000 });
   await page.locator('[data-room="performance"]').waitFor();
   observations.push({ room: "performance", width: 390, rendered: true });

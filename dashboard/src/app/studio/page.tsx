@@ -13,6 +13,7 @@ import {
 } from "@/lib/api";
 import { useToast } from "@/components/layout/Toast";
 import { PlatformPreview, PREVIEW_PLATFORMS, type PreviewAccount, type PreviewInlineEditor, type PreviewPlatform } from "@/components/studio/PlatformPreview";
+import { PlatformFocusFilter } from "@/components/studio/PlatformFocusFilter";
 import { CreateRoom, EditRoom, type CreateContentBranch, type CreateKind, type EditContentKind } from "@/components/studio/StudioRooms";
 import type { StudioGenerationCandidate } from "@/lib/studio/generation/client";
 import { useUIStore, type StudioRoom } from "@/store/ui-store";
@@ -339,12 +340,13 @@ export default function StudioPage() {
   // ── 작업 데이터 유지 (나갔다 와도 복원) ──
   const [hydratedWorkspaceId, setHydratedWorkspaceId] = useState<string | null>(null);
   useEffect(() => {
+    setSelectedAccounts({});
     const workspaceId = activeWorkspace?.id ?? null;
     setHydratedWorkspaceId(null);
     setIdea(""); setText(null); setImg(null); setVid(null); setDraftId(null);
     setIncludes(normalizeIncludes()); setPublishReconciliations({}); setEditorHandoff(null);
     setTitles({}); setHashtags({}); setTopicTags({}); setFirstComments({}); setCaptions({});
-    setSelectedAccounts({}); setEditLines([]); setCardTextPositions([]); setReviewQueueId(null); setSelectedCandidate(null);
+    setEditLines([]); setCardTextPositions([]); setReviewQueueId(null); setSelectedCandidate(null);
     setCreateBranch("video"); setCreatePrimaryKind(null); setEditKind("video"); setEditFormat(defaultContentEditFormat("video"));
     setPub({ running: false, stopped: false, status: {}, urls: {}, errors: {} });
     if (!workspaceId) return;
@@ -1109,6 +1111,9 @@ export default function StudioPage() {
               전부 해제
             </Button>
           </section>
+          <PlatformFocusFilter>
+            {(focus) => (
+              <>
           {lastError ? <div className="rounded-control border border-danger/30 bg-danger/10 p-stack text-caption text-danger">마지막 실패: {lastError}</div> : null}
           {vid?.narration?.message ? <div className="rounded-control border border-warning/30 bg-warning/10 p-stack text-caption text-warning">{vid.narration.message}</div> : null}
           {(pub.running || Object.keys(pub.status).length > 0) ? (
@@ -1162,11 +1167,16 @@ export default function StudioPage() {
               </p>
             </div>
           ) : null}
-          {GROUPS.map((group) => (
-            <section key={group.title}>
-              <div className="mb-stack flex items-center gap-stack-tight border-b border-border pb-stack"><b className="text-body text-text">{group.title}</b><span className="text-caption text-subtle">{group.platforms.map((platform) => LABEL[platform]).join(" · ")}</span></div>
-              <div className="grid items-start gap-stack-section md:grid-cols-2 xl:grid-cols-3">
-                {group.platforms.map((platform) => (
+          {GROUPS.map((group) => {
+              const visiblePlatforms = focus === "all"
+                ? group.platforms
+                : group.platforms.filter((platform) => platform === focus);
+              if (visiblePlatforms.length === 0) return null;
+              return (
+                <section key={group.title}>
+                  <div className="mb-stack flex items-center gap-stack-tight border-b border-border pb-stack"><b className="text-body text-text">{group.title}</b><span className="text-caption text-subtle">{visiblePlatforms.map((platform) => LABEL[platform]).join(" · ")}</span></div>
+                  <div className="grid items-start gap-stack-section md:grid-cols-2 xl:grid-cols-3">
+                    {visiblePlatforms.map((platform) => (
                   <div key={platform} data-room-preview={platform} className="min-w-0 rounded-surface border border-border bg-surface p-stack">
                     <PlatformPreview
                       platform={platform}
@@ -1225,10 +1235,14 @@ export default function StudioPage() {
                       }
                     />
                   </div>
-                ))}
-              </div>
-            </section>
-          ))}
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+              </>
+            )}
+          </PlatformFocusFilter>
         </div>
 
         {/* 좁은 화면에서는 아래에서 올라오는 시트, 넓은 화면에서는 오른쪽 기둥이다. 두 벌의 규칙이
