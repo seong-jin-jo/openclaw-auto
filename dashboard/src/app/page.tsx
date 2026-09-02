@@ -8,8 +8,7 @@ import { useChannelConfig } from "@/hooks/useChannelConfig";
 import { useOnboardingStatus } from "@/hooks/useOnboarding";
 import { useUIStore } from "@/store/ui-store";
 import { OnboardingWizard } from "@/components/shared/OnboardingWizard";
-import { ChannelConnectBanner } from "@/components/shared/ChannelConnectBanner";
-import { OnboardingChecklist } from "@/components/shared/OnboardingChecklist";
+import { GettingStartedStrip } from "@/components/shared/GettingStartedStrip";
 import { PerformanceRoom, type PerformancePost } from "@/components/home/PerformanceRoom";
 import { RoomHeader } from "@/components/shared/RoomHeader";
 import { LearningStatus } from "@/components/studio/LearningStatus";
@@ -85,10 +84,7 @@ export function PerformanceDashboard({ dedicatedRoom = false }: { dedicatedRoom?
           </Link>
         }
       />
-      {/* 미연결 채널 알림. 발행 전 연결 유도 */}
-      <ChannelConnectBanner />
-      {/* 시작 체크리스트. 가치 체감까지 4단계 */}
-      <OnboardingChecklist />
+      <GettingStartedStrip />
       <PerformanceRoom
         dedicated={dedicatedRoom}
         workspaceId={activeWorkspace?.id}

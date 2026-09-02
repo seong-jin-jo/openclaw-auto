@@ -354,6 +354,12 @@ export function PerformanceRoom({
     { label: "답글", value: metricValue(totalReplies, empty), detail: empty ? "발행 뒤부터 집계" : "선택한 플랫폼 합계" },
     { label: "구독", value: metricValue(followers, empty), detail: empty ? "발행 뒤부터 집계" : followerDelta === undefined ? "지난 기간 비교 미수집" : `이번 주 ${followerDelta >= 0 ? "+" : ""}${followerDelta}` },
   ];
+  const previewCoreMetrics = [
+    { label: "조회", value: "18,420", detail: "12% 증가" },
+    { label: "저장", value: "1,284", detail: "24% 증가" },
+    { label: "답글", value: "316", detail: "8% 증가" },
+    { label: "구독", value: "428", detail: "31명 증가" },
+  ];
   const secondaryMetrics = [
     { label: "총 발행", value: metricValue(focus === "all" ? publishedCount : focusedPosts.length, empty) },
     { label: "참여율", value: metricValue(focus === "all" && engagementRate != null ? `${engagementRate}%` : null, empty) },
@@ -432,6 +438,16 @@ export function PerformanceRoom({
             </div>
           )}
 
+          {empty ? (
+            <div className="grid gap-stack rounded-surface border border-border bg-surface p-pad-inset sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center" data-perf-empty-guide>
+              <div>
+                <h3 className="text-body font-bold text-text">아직 성과를 수집할 채널이 없습니다</h3>
+                <p className="mt-micro break-keep text-caption text-muted">채널을 연결하면 발행한 글의 조회, 저장, 답글, 구독이 이곳에 모입니다. 연결 뒤 첫 수집까지 시간이 조금 걸립니다.</p>
+              </div>
+              <Link href="/settings?tab=channels" className="inline-flex min-h-control-touch items-center justify-center rounded-control bg-accent px-stack text-caption font-semibold text-accent-fg">채널 연결하기</Link>
+            </div>
+          ) : null}
+
           <Stack direction="horizontal" gap={4} scroll className="scrollbar-semantic pb-micro" role="group" aria-label="플랫폼 집중">
             <Button variant={focus === "all" ? "primary" : "secondary"} size="sm" aria-pressed={focus === "all"} onClick={() => setFocus("all")}>전체</Button>
             {PREVIEW_PLATFORMS.map((platform) => (
@@ -451,9 +467,12 @@ export function PerformanceRoom({
             </Link>
           )}
 
-          <div className="grid grid-cols-2 gap-stack-tight lg:grid-cols-4" data-perf-tier="core">
-            {coreMetrics.map((metric) => (
-              <Card key={metric.label} className={`p-pad-inset ${empty ? "bg-surface-2" : ""}`}>
+          {empty ? (
+            <p className="text-caption text-muted" data-perf-preview-note><span className="mr-stack-tight rounded-pill bg-surface-2 px-stack-tight py-micro font-semibold">예시 데이터</span>채널을 연결하면 아래 자리가 실제 수치로 바뀝니다.</p>
+          ) : null}
+          <div className={`grid grid-cols-2 gap-stack-tight lg:grid-cols-4 ${empty ? "opacity-60" : ""}`} data-perf-tier="core" data-perf-preview={empty ? "example" : undefined}>
+            {(empty ? previewCoreMetrics : coreMetrics).map((metric) => (
+              <Card key={metric.label} className="p-pad-inset">
                 <Stack gap={4}>
                   <span className="text-caption text-muted">{metric.label}</span>
                   <b className="text-heading font-bold tabular-nums text-text">{metric.value}</b>

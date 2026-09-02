@@ -52,4 +52,24 @@ describe("V69-COPY-01 작업 공간 이름 개인정보 계약", () => {
     expect(screen.queryByText("검토 대기")).not.toBeInTheDocument();
     expect(screen.queryByText("예약 일정")).not.toBeInTheDocument();
   });
+
+  it("V70-HEADER-02 정상: 모바일 상단은 제목과 유틸, 네 단계의 두 줄 구조이며 기존 동작은 작업 메뉴에 보존한다", () => {
+    render(
+      <RoomHeader
+        workspaceName="브랜드 연구소"
+        subtitle="콘텐츠 작업실"
+        roomLabel="발행실"
+        currentRoom="publish"
+        leading={<button type="button">학습 정보</button>}
+        trailing={<button type="button">작업물 전체</button>}
+      />,
+    );
+
+    const header = document.querySelector('[data-room-header="발행실"]');
+    expect(header).toHaveClass("grid-cols-[minmax(0,1fr)_auto]");
+    expect(document.querySelector("[data-room-context-menu]")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "학습 정보" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "작업물 전체" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "작업 단계" })).toHaveClass("col-span-full");
+  });
 });

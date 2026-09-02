@@ -45,7 +45,7 @@ export function RoomFlowHeader({ currentRoom }: { currentRoom: ProductRoom }) {
   const activeIndex = ROOM_FLOW.findIndex((room) => room.key === currentRoom);
 
   return (
-    <nav className="order-last grid w-full grid-cols-4 gap-stack-tight" aria-label="작업 단계" data-room-flow={currentRoom}>
+    <nav className="col-span-full grid w-full grid-cols-4 gap-stack-tight" aria-label="작업 단계" data-room-flow={currentRoom}>
       {ROOM_FLOW.map((room, index) => {
         const active = room.key === currentRoom;
         const done = index < activeIndex;
@@ -92,16 +92,23 @@ export function RoomHeader({
   return (
     <header
       data-room-header={roomLabel}
-      className="relative mb-stack-section flex flex-wrap items-center gap-stack border-b border-border pb-pad-inset"
+      className="relative mb-stack-section grid grid-cols-[minmax(0,1fr)_auto] items-center gap-stack border-b border-border pb-pad-inset"
     >
-      <div className="mr-auto min-w-0">
+      <div className="min-w-0">
         <b className="block truncate text-lead text-text">{workspaceDisplayName(workspaceName)}</b>
         <span className="text-caption text-subtle">{subtitle}</span>
       </div>
-      {leading}
-      {trailing}
       <div className="ml-auto flex shrink-0 items-center gap-stack-tight" aria-label="검토와 일정">
         <RoomShortcutLinks />
+        {leading || trailing ? (
+          <details className="relative" data-room-context-menu>
+            <summary className={`${ROOM_UTILITY_CLASS} list-none cursor-pointer`}>작업</summary>
+            <div className="absolute right-0 top-full z-30 mt-stack-tight flex w-max flex-col gap-stack-tight rounded-surface border border-border bg-surface p-stack shadow-card">
+              {leading}
+              {trailing}
+            </div>
+          </details>
+        ) : null}
       </div>
       {children}
       {currentRoom ? <RoomFlowHeader currentRoom={currentRoom} /> : null}

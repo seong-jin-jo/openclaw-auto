@@ -29,6 +29,7 @@ import { Button } from "@/components/shared/Button";
 import { RoomHeader } from "@/components/shared/RoomHeader";
 import { Field } from "@/components/shared/Field";
 import { Stack } from "@/components/shared/Stack";
+import { GettingStartedStrip } from "@/components/shared/GettingStartedStrip";
 import { SCHEDULABLE_PLATFORMS } from "@/lib/constants";
 import type { CardTextPosition } from "@/components/studio/EditPreview";
 import type { EditorHandoff } from "@/lib/studio/editor-handoff";
@@ -1089,6 +1090,7 @@ export default function StudioPage() {
       {showWizard && activeWorkspace ? <LearningCardWizard workspaceId={activeWorkspace.id} workspaceName={activeWorkspace.name} onSaved={(info, completed) => { setLearningInfo(info); if (completed) { setShowWizard(false); mutateBrand(); showToast("학습 정보를 배웠습니다"); } else { setLearningFlash((value) => value + 1); } }} onClose={() => setShowWizard(false)} /> : null}
       {showRepo && activeWorkspace ? <RepoConnect workspace={activeWorkspace} onSynced={() => { mutateBrand(); showToast("브랜드 가이드 갱신됨"); }} onClose={() => setShowRepo(false)} /> : null}
       {roomHeader}
+      <GettingStartedStrip connectedCount={accountsLoaded && connectedTargets.length === 0 ? 0 : undefined} />
       <section data-room="publish" className="grid gap-stack-section pb-wide lg:grid-cols-[minmax(0,1fr)_20rem] lg:pb-none">
         <div className="min-w-0 space-y-region">
           <section data-room-top="publish" aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch flex-wrap items-center gap-stack rounded-surface border border-border bg-surface px-pad-inset py-stack">
@@ -1145,11 +1147,6 @@ export default function StudioPage() {
                 router.push(`/calendar?from=publish&date=${dateKey}`);
               }}
             />
-          ) : null}
-          {accountsLoaded && publishTargets.length === 0 ? (
-            <div className="rounded-control border border-warning/30 bg-warning/10 p-stack text-body-sm text-warning">
-              연결된 발행 계정이 없습니다. 아래 각 칸의 계정 연결하기를 누르면 그 채널 연결 화면으로 갑니다. <Link href="/channels/threads" className="font-semibold underline">Threads부터 연결하기</Link>
-            </div>
           ) : null}
           {text ? (
             <div className="card space-y-stack p-stack">

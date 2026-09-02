@@ -383,9 +383,8 @@ describe("Studio publish result integrity", () => {
 
     render(<StudioPage />);
 
-    expect(await screen.findByText(/연결된 발행 계정이 없습니다\./)).toBeInTheDocument();
-    // 연결 경로는 채널을 무시하는 설정 목록이 아니라 그 채널 화면이다. 거기에 연결과 기본 계정이 함께 있다.
-    expect(screen.getByRole("link", { name: "Threads부터 연결하기" })).toHaveAttribute("href", "/channels/threads");
+    expect(await screen.findByText(/채널 연결 0\/15/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "채널 연결하기" })).toHaveAttribute("href", "/settings?tab=channels");
     expect(screen.getByTestId("publish-connect-link-x")).toHaveAttribute("href", "/channels/x");
     for (const label of ["Threads 발행", "X 발행", "Instagram 발행"]) {
       expect(screen.getByRole("checkbox", { name: label })).toBeDisabled();

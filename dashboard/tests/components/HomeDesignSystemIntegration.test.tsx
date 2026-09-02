@@ -100,11 +100,14 @@ describe("Home design-system migration interactions", () => {
 
   afterEach(cleanup);
 
-  it("FE-V63-01 정상 경로: 표본 0건은 미수집과 5건 문턱을 표시한다", async () => {
+  it("FE-V63-01 정상 경로: 표본 0건은 안내 한 번과 예시 지표로 다음 모습을 표시한다", async () => {
     render(<HomePage />);
 
     expect(screen.getByRole("heading", { level: 1, name: "아직 판정할 표본이 없습니다" })).toBeInTheDocument();
-    expect(screen.getAllByText("미수집").length).toBeGreaterThanOrEqual(10);
+    expect(screen.getByText("아직 성과를 수집할 채널이 없습니다")).toBeInTheDocument();
+    expect(document.querySelector('[data-perf-tier="core"]')).toHaveTextContent("18,420");
+    expect(document.querySelector('[data-perf-tier="core"]')).not.toHaveTextContent("미수집");
+    expect(screen.getByText("예시 데이터")).toBeInTheDocument();
     expect(screen.getByText("성과 표본 0건입니다. 5건부터 판정합니다.")).toBeInTheDocument();
     await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith(
       "/api/suggestions",
