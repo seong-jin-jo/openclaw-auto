@@ -21,7 +21,7 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 </style>
 <div class="wrap">
 <h1>밤사이 만든 것</h1>
-<p class="sub">2026년 09월 03일 06시 09분 기준. 이 장은 감독이 1분마다 새로 씁니다.</p>
+<p class="sub">2026년 09월 03일 08시 14분 기준. 이 장은 감독이 1분마다 새로 씁니다.</p>
 <div class="note">실제로 눌러 보시려면 <code>http://localhost:3456/studio</code> 입니다. 아래 그림은 방금 그 앱을 찍은 것입니다.</div>
 <h2>지금 도는 것</h2><table><tr><th>판</th><th>갈래</th><th>상태</th><th>시각</th></tr>
 <tr><td>build10</td><td>build</td><td>끝남</td><td>07:21</td></tr>
@@ -57,12 +57,14 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <tr><td>gapfill082911</td><td>build</td><td>끝남</td><td>11:03</td></tr>
 <tr><td>gapfill082919</td><td>build</td><td>끝남</td><td>19:04</td></tr>
 <tr><td>gapfill090303</td><td>build</td><td>발주실패</td><td>03:01</td></tr>
+<tr><td>gapfill090307</td><td>build</td><td>발주실패</td><td>07:00</td></tr>
 <tr><td>qa1</td><td>qa</td><td>끝남</td><td>18:59</td></tr>
 <tr><td>regress082900</td><td>review</td><td>끝남</td><td>00:03</td></tr>
 <tr><td>regress082904</td><td>review</td><td>끝남</td><td>04:02</td></tr>
 <tr><td>regress082908</td><td>review</td><td>끝남</td><td>08:02</td></tr>
 <tr><td>regress082912</td><td>review</td><td>끝남</td><td>12:02</td></tr>
 <tr><td>regress090300</td><td>review</td><td>발주실패</td><td>00:10</td></tr>
+<tr><td>regress090308</td><td>review</td><td>발주실패</td><td>08:00</td></tr>
 <tr><td>review1</td><td>review</td><td>끝남</td><td>18:42</td></tr>
 <tr><td>ship1</td><td>review</td><td>빈손</td><td>22:25</td></tr>
 <tr><td>sweep082901</td><td>qa</td><td>끝남</td><td>01:01</td></tr>
@@ -103,6 +105,25 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <figure><img src="아침보고-화면/studio-publish-768.png" alt="studio-publish-768"><figcaption>studio-publish-768</figcaption></figure>
 </div>
 <h2>밤사이 들어간 작업</h2><table><tr><th>커밋</th><th>무엇을</th></tr>
+<tr><td><code>dceb08b9</code></td><td>docs(handoff): record inbox approval validation</td></tr>
+<tr><td><code>6ba8605b</code></td><td>docs(handoff): avoid stale push sha</td></tr>
+<tr><td><code>4ae52704</code></td><td>docs(handoff): record v70 push state</td></tr>
+<tr><td><code>1322ecdd</code></td><td>docs(build): record inbox approval evidence</td></tr>
+<tr><td><code>fc287b2a</code></td><td>fix(api): fail closed on invalid bulk approval</td></tr>
+<tr><td><code>4a43fb34</code></td><td>fix(api): reject approval without review content</td></tr>
+<tr><td><code>693892ed</code></td><td>fix(inbox): validate visible review content</td></tr>
+<tr><td><code>5ded6acb</code></td><td>docs(qa): record inbox whitespace approval gap</td></tr>
+<tr><td><code>3ed59b81</code></td><td>docs(qa): v70 배포 후 승인 인박스 재확인 캡처</td></tr>
+<tr><td><code>b66a1736</code></td><td>docs(osmu): v70 잔여 산출물</td></tr>
+<tr><td><code>16f29195</code></td><td>docs(handoff): refresh v70 pixel comparison state</td></tr>
+<tr><td><code>c77c16e1</code></td><td>docs(handoff): close v70 build handoff</td></tr>
+<tr><td><code>351414eb</code></td><td>docs(build): confirm v70 branch push</td></tr>
+<tr><td><code>d9b449b4</code></td><td>docs(build): record v70 implementation evidence</td></tr>
+<tr><td><code>6d553f7b</code></td><td>fix(studio): satisfy platform filter token contract</td></tr>
+<tr><td><code>20e1690f</code></td><td>fix(studio): apply v69 start and performance states</td></tr>
+<tr><td><code>c108389b</code></td><td>fix(studio): align header and preview controls with v69</td></tr>
+<tr><td><code>2586d312</code></td><td>fix(inbox): block approval when review body is missing</td></tr>
+<tr><td><code>107b3ecb</code></td><td>docs(qa): 수정 배포 후 운영 재확인 캡처와 남은 항목 정리</td></tr>
 <tr><td><code>80b7308b</code></td><td>Merge branch 'work/v69copy' into work/v69fix</td></tr>
 <tr><td><code>11abd67c</code></td><td>docs(handoff): v69copy 루트 세션 상태 갱신</td></tr>
 <tr><td><code>0d4b61ac</code></td><td>docs(handoff): v69copy push 차단 상태 기록</td></tr>
