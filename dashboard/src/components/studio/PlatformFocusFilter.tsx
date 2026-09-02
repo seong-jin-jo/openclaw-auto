@@ -29,7 +29,7 @@ export function PlatformFocusFilter({
       <div
         data-platform-filter
         aria-label="플랫폼 집중 필터"
-        className="scrollbar-semantic -mx-stack-section flex flex-nowrap gap-stack-tight overflow-x-auto px-stack-section pb-micro sm:mx-0 sm:px-0"
+        className="scrollbar-semantic flex flex-nowrap gap-stack-tight overflow-x-auto pb-micro"
       >
         {PLATFORM_FOCUS_OPTIONS.map((option) => {
           const active = focus === option.key;
