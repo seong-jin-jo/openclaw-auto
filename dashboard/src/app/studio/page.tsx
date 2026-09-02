@@ -340,12 +340,13 @@ export default function StudioPage() {
   // ── 작업 데이터 유지 (나갔다 와도 복원) ──
   const [hydratedWorkspaceId, setHydratedWorkspaceId] = useState<string | null>(null);
   useEffect(() => {
+    setSelectedAccounts({});
     const workspaceId = activeWorkspace?.id ?? null;
     setHydratedWorkspaceId(null);
     setIdea(""); setText(null); setImg(null); setVid(null); setDraftId(null);
     setIncludes(normalizeIncludes()); setPublishReconciliations({}); setEditorHandoff(null);
     setTitles({}); setHashtags({}); setTopicTags({}); setFirstComments({}); setCaptions({});
-    setSelectedAccounts({}); setEditLines([]); setCardTextPositions([]); setReviewQueueId(null); setSelectedCandidate(null);
+    setEditLines([]); setCardTextPositions([]); setReviewQueueId(null); setSelectedCandidate(null);
     setCreateBranch("video"); setCreatePrimaryKind(null); setEditKind("video"); setEditFormat(defaultContentEditFormat("video"));
     setPub({ running: false, stopped: false, status: {}, urls: {}, errors: {} });
     if (!workspaceId) return;
