@@ -1,5 +1,34 @@
 # OSMU 세션 상태
 
+## 2026-09-03 00:55 KST | Codex product-designer | v68 생성실·성과실 디자인 후보 최종 인계
+
+### 회장 요청
+
+- v67 셸을 계승해 생성실과 성과실의 프로토타입, 와이어프레임, 전체 상태 흐름, DESIGN.md 변경을 완성하고, 두 방과 여섯 상태와 두 폭의 clean frame 24장 및 감사 JSON을 만든 뒤 `work/v68rooms`에 push하라고 요청했다. 제품 코드는 수정하지 말라고 명시했다.
+
+### 지금까지 한 것
+
+- `docs/prototype/osmu-v68-create-performance-hub-gpt-codex-20260903-0022.html`, v68 와이어프레임, `docs/user-flow.md` v68 증분, `DESIGN.md` v37, 디자인 리뷰를 만들었다.
+- 생성실의 형식 선택, A/B/C 구조 초안, 학습 정보, 공유 AI 승인 대기, 편집실 이동을 보존했다.
+- 홈의 핵심·보조 성과 지표, 채널 필터, 잘된 콘텐츠, 제안, 답글 후보, 자동 반응, 낮은 반응 콘텐츠 직접 검토를 성과실 후보에 보존했다. `/performance`가 현재 홈으로 이동하는 임시 경로임을 확인했다.
+- Chrome으로 clean frame 24장을 생성했다. 1024×900 12장과 390×844 12장이다. 감사 결과 가로 넘침 0장, 콘솔 오류 0건, 44px 미만 조작 표적 0개, 검수 막대 노출 0장이다.
+- `pipeline-state.osmu.md` 최상단에 v68 `awaiting-approval`, `candidate-only` 블록을 추가했다. `dashboard/src/**` 변경은 0건이다.
+
+### 남은 이슈와 충돌
+
+- 성과실 정보구조는 디자인 산출물에서 A 전용 방을 추천하고 B 홈 통합과 함께 회수 항목으로 남겼다. `wiki/ops/session-state.md`의 최신 code-builder 기록은 A가 확정됐다고 해석하지만, 이 디자이너 세션에는 회장의 A 확정 응답이 없다. 부모 컨트롤러가 실제 승인 발화를 기준으로 정리해야 한다.
+- design stage는 승인되지 않았다. build와 제품 라우팅 변경을 시작하면 안 된다.
+- `git push origin work/v68rooms`는 Codex 전역 명령 정책이 승인을 요구했고 이 세션은 `AskForApproval=Never`라 실행 전 차단됐다. 원격은 `b2e0c036`, 로컬 HEAD는 `2a1733dd`이며 로컬이 4커밋 앞서 있다.
+- 운영 OAuth, 실제 성과 데이터, 제품 actual frame과의 matched pair는 미검증이다.
+- 남은 dirty는 자동 하네스 로그 `.codex/logs/harness.jsonl` 하나이며 산출물 커밋에서 제외했다.
+
+### 다음 액션
+
+- 부모 컨트롤러가 성과실 A 전용 방 또는 B 홈 통합의 회장 확정 여부를 확인한다.
+- 디자인 산출물을 재검증하고 `/approve design`으로 승인한 뒤에만 v68 `approved_artifacts`를 핀한다.
+- push 권한이 있는 컨트롤러가 로컬 HEAD를 `origin/work/v68rooms`로 전송하고 원격 SHA 일치를 확인한다.
+- 승인 뒤 build는 같은 seed, 상태, 뷰포트의 actual frame 24장을 만들고 clean frame과 matched pair로 대조한다.
+
 ## 2026-09-02 11:14 KST | Codex code-builder | v67 발행실 집중 필터 최종 인계
 
 ### 무엇을 어디까지 했나

@@ -1,3 +1,30 @@
+## 2026-09-03 v68 design 승인 (컨트롤러 재검증, 회장 위임 범위)
+
+stage: build
+status: approved-for-build
+approved_by: 컨트롤러(Claude). 회장 승인 아님.
+근거: CLAUDE.md §5.5 "화면 배치·문구·흐름 순서는 회장 승인 항목이 아니다. 추천안으로 진행하고 결과를 보여라."
+  회장 승인이 필요한 셋(돈·되돌리기 비싼 것·제품 정체성) 중 어디에도 해당하지 않는다.
+  되돌리기 비싼 문(운영 배포)은 그대로 잠겨 있고 그것만 회장이 연다.
+
+구조 결정: 성과실은 네 번째 전용 방으로 만든다. 홈 통합 안은 채택하지 않는다.
+  이유: 시안 셸에 네 번째 방이 있는데 제품에서 누르면 홈으로 튕기는 지금 상태가 가장 나쁘다.
+  단, 홈(`/`)의 기존 성과 요소는 지우지 않는다.
+
+approved_artifacts:
+- design_hub: `docs/prototype/osmu-v68-create-performance-hub-gpt-codex-20260903-0022.html`
+- design_system: `DESIGN.md` v37
+- clean_frames: `docs/design/clean-frames/osmu-v68-*` 24장
+- capture_audit: `docs/design/clean-frames/osmu-v68-capture-audit-gpt-codex-20260903-0022.json`
+
+컨트롤러 재검증 증거:
+- clean frame 24장 전수 크기 검사: 1024x900 12장, 390x844 12장, 규격 이탈 0건 (직접 실행)
+- 성과실 normal 1024 프레임을 직접 열어 육안 확인: 4단계 상단에서 04 성과실 활성, 채널 필터, 한 줄 판정, 지표 8개, 잘된 콘텐츠 3개, 다음 행동. 한국어만, 긴 대시 없음, 이모지 없음
+- 낮은 반응 콘텐츠는 "직접 검토" 로 표기돼 사람 승낙 원칙(CLAUDE.md 저조 글 정리)과 어긋나지 않음
+- `dashboard/src/**` 수정 0건 확인
+
+미해소: `verify-agent-quality.sh product-designer` 가 WebSearch 0회로 벤치마크 부족 FAIL. 구현과 병행해 벤치마크 판을 따로 돌린다.
+
 ## 2026-09-03 v68 생성실·성과실 디자인 승인 후보
 
 stage: design
