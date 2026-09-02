@@ -1,3 +1,41 @@
+## 2026-09-03 v68 생성실·성과실 디자인 승인 후보
+
+stage: design
+status: awaiting-approval
+parent_release: v67 qa approved. v68은 신규 디자인 후보이며 기존 승인 단계를 덮지 않는다.
+
+design_canonical_candidate:
+  version: v68
+  design_system: `DESIGN.md` v37
+  routing_hub: `docs/prototype/osmu-v68-create-performance-hub-gpt-codex-20260903-0022.html`
+  wireframes: `docs/WIREFRAMES/osmu-v68-create-performance-gpt-codex-20260903-0022.md`
+  user_flow: `docs/user-flow.md` v68 최신 증분
+  clean_frames: `docs/design/clean-frames/osmu-v68-{create|performance}-{normal|empty|loading|error|disabled|overflow}-{1024|390}-gpt-codex-20260903-0022.png`
+  frame_stamps: same basename with `.png.stamp.txt`
+  capture_audit: `docs/design/clean-frames/osmu-v68-capture-audit-gpt-codex-20260903-0022.json`
+  capture_count: 24
+  viewport_contract: [1024x900, 390x844]
+  review_status: `B+ · 89/100`, `docs/qa/osmu-v68-design-review-gpt-codex-20260903-0022.md`
+  approval_status: candidate-only
+
+계승 계약:
+- v67의 상단 4단계, 56px 축약 탐색, 1024 본문·담당 2열, 390 하단 담당, 여섯 상태를 유지한다.
+- 생성실의 형식 선택, A/B/C 구조 초안, 학습 정보 반영, 공유 AI 승인 대기, 편집실 이동을 보존한다.
+- 홈의 핵심·보조 성과 지표, 채널 필터, 잘된 콘텐츠, 제안, 답글 후보, 자동 반응, 낮은 반응 콘텐츠 직접 검토를 보존한다.
+- 채널 미연결 상태에서 심사 전 임시 안내가 있어도 연결 버튼을 막지 않는다.
+
+증거:
+- Chrome 실렌더 24장. 1024×900 12장, 390×844 12장, 픽셀 크기 불일치 0장.
+- 감사 JSON 기준 가로 넘침 0장, 콘솔 오류 0건, 44px 미만 조작 표적 0개, 검수 막대 노출 0장.
+- `dashboard/src/**` 수정 0건. 제품 코드와 배포 변경 없음.
+
+회수 필요:
+- 성과실을 네 번째 전용 방으로 세울지 홈 통합을 정본으로 둘지 회장이 확정해야 한다. 추천은 전용 방이지만 확정 전 라우팅과 홈 역할을 바꾸지 않는다.
+
+게이트:
+- 이 블록은 design candidate 핀이다. `approved_artifacts`가 아니며 `/approve design` 전 제품 소스 구현 기준으로 승격하지 않는다.
+- 머지와 배포를 하지 않는다.
+
 ## 2026-09-03 v67 QA 승인 (회장 채팅 승인)
 
 stage: qa
