@@ -21,31 +21,35 @@ type GateStatus = "checking" | "ok" | "access_paused" | "account_unavailable" | 
 function GateBlockScreen({
   title,
   desc,
-  onRefresh,
-  onLogout,
+  primaryLabel = "새로고침",
+  secondaryLabel = "로그아웃",
+  onPrimary,
+  onSecondary,
 }: {
   title: string;
   desc: string;
-  onRefresh: () => void;
-  onLogout: () => void;
+  primaryLabel?: string;
+  secondaryLabel?: string;
+  onPrimary: () => void;
+  onSecondary: () => void;
 }) {
   return (
-    <div className="min-h-screen w-full bg-bg flex items-center justify-center px-stack-section">
+    <div role="alert" className="min-h-screen w-full bg-bg flex items-center justify-center px-stack-section">
       <div className="card p-region w-full max-w-sm text-center">
         <h1 className="text-lead font-bold text-text mb-stack-tight">{title}</h1>
         <p className="text-body-sm text-subtle mb-stack-section">{desc}</p>
         <div className="flex flex-col gap-stack-tight">
           <button
-            onClick={onRefresh}
+            onClick={onPrimary}
             className="w-full py-stack rounded-control text-accent-fg font-semibold text-body-sm bg-accent hover:bg-accent-hover transition-colors"
           >
-            새로고침
+            {primaryLabel}
           </button>
           <button
-            onClick={onLogout}
+            onClick={onSecondary}
             className="w-full py-stack rounded-control text-caption text-subtle hover:text-muted transition-colors"
           >
-            로그아웃
+            {secondaryLabel}
           </button>
         </div>
       </div>
@@ -397,6 +401,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     const customerCredential = !pathname.startsWith("/operator")
       || identityKind === "customer"
       || isCustomerAuthToken(token);
+    // 어떤 보호 화면에서 401이 발생해도 provider signOut 완료를 기다리는 동안 이전 데이터와
+    // 행동 버튼이 살아 있으면 안 된다. 즉시 children을 내리고 재로그인 안내로 fail-closed한다.
+    setGateStatus("auth_error");
     if (customerCredential) {
       // Supabase emits SIGNED_OUT from signOut(). This operation owns that event:
       // the auth-state listener must not independently clear a replacement session.
@@ -663,9 +670,11 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return (
       <GateBlockScreen
         title="세션이 만료되었습니다"
-        desc="보안을 위해 다시 로그인해주세요."
-        onRefresh={doRefresh}
-        onLogout={doLogout}
+        desc="계속하려면 다시 로그인해주세요. 이전 화면의 데이터와 행동은 사용할 수 없습니다."
+        primaryLabel="로그인 화면으로 이동"
+        secondaryLabel="새로고침"
+        onPrimary={doLogout}
+        onSecondary={doRefresh}
       />
     );
   }
@@ -675,8 +684,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       <GateBlockScreen
         title="서비스 확인 실패"
         desc="계정 상태를 확인하지 못했습니다. 잠시 후 다시 시도해주세요."
-        onRefresh={doRefresh}
-        onLogout={doLogout}
+        onPrimary={doRefresh}
+        onSecondary={doLogout}
       />
     );
   }
@@ -686,8 +695,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       <GateBlockScreen
         title="계정 이용이 중지되었습니다"
         desc="문의사항은 운영팀에 연락해주세요."
-        onRefresh={doRefresh}
-        onLogout={doLogout}
+        onPrimary={doRefresh}
+        onSecondary={doLogout}
       />
     );
   }
@@ -697,8 +706,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       <GateBlockScreen
         title="계정 상태를 확인할 수 없습니다"
         desc="일시적인 문제일 수 있습니다. 잠시 후 다시 시도하거나 운영팀에 문의해주세요."
-        onRefresh={doRefresh}
-        onLogout={doLogout}
+        onPrimary={doRefresh}
+        onSecondary={doLogout}
       />
     );
   }

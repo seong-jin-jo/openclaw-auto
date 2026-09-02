@@ -298,6 +298,27 @@ describe("AuthGate operator route separation", () => {
     expect(screen.queryByText("customer child")).not.toBeInTheDocument();
   });
 
+  it("V71-AUTH-03 거절: 다른 화면의 조회 401도 로그아웃 처리를 기다리지 않고 즉시 화면 행동을 막는다", async () => {
+    const jwt = `${"a".repeat(24)}.${"b".repeat(24)}.${"c".repeat(24)}`;
+    localStorage.setItem("dashboard_auth_token", jwt);
+    localStorage.setItem("dashboard_auth_identity_kind", "customer");
+    mocks.pathname.mockReturnValue("/calendar");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({
+      isOperator: false,
+      tenant: { id: "customer-1", slug: "customer", name: "Customer" },
+    })));
+
+    render(<AuthGate><button type="button">예약 변경</button></AuthGate>);
+    await waitFor(() => expect(screen.getByRole("button", { name: "예약 변경" })).toBeInTheDocument());
+
+    mocks.signOut.mockReturnValue(new Promise(() => {}));
+    act(() => window.dispatchEvent(new CustomEvent("auth:customer-reauth-required")));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("세션이 만료되었습니다");
+    expect(screen.getByRole("button", { name: "로그인 화면으로 이동" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "예약 변경" })).not.toBeInTheDocument();
+  });
+
   it("QA-AUTH-08 거절: 형식 불량 고객 잔존 토큰도 고객 로그인에 머물고 운영자 화면을 열지 않는다", async () => {
     localStorage.setItem("dashboard_auth_token", "stale-customer-token");
     mocks.pathname.mockReturnValue("/studio");
