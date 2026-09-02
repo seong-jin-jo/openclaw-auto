@@ -15,6 +15,7 @@ vi.mock("swr", () => ({ default: (...args: unknown[]) => mocks.swr(...args) }));
 vi.mock("@/lib/api", () => ({
   fetcher: vi.fn(),
   apiPost: (...args: unknown[]) => mocks.apiPost(...args),
+  isAuthRequiredError: (error: unknown) => error instanceof Error && error.name === "AuthRequiredError",
 }));
 vi.mock("@/components/layout/Toast", () => ({
   useToast: () => ({ showToast: mocks.showToast }),
@@ -117,5 +118,40 @@ describe("V70-INBOX 승인 인박스 안전 계약", () => {
     expect(screen.getByText("#유효태그")).toBeInTheDocument();
     expect(screen.getByText("threads")).toBeInTheDocument();
     expect(screen.queryByText(/^#\s*$/)).not.toBeInTheDocument();
+  });
+
+  it("V71-AUTH-01 거절: 목록 조회가 401로 실패하면 안내와 로그인 경로를 보이고 승인과 거절을 막는다", () => {
+    const authError = Object.assign(new Error("Authentication required"), { name: "AuthRequiredError" });
+    mocks.swr.mockImplementation((key: string) => key === "/api/queue?status=draft&returnTo=inbox"
+      ? {
+          data: { posts: [{ id: "stale-draft", title: "남아 있던 제목", text: "남아 있던 본문" }] },
+          error: authError,
+          mutate: vi.fn(),
+          isLoading: false,
+        }
+      : { data: undefined, mutate: vi.fn(), isLoading: false });
+
+    render(<InboxPage />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("로그인 상태가 만료되었습니다");
+    expect(screen.getByRole("link", { name: "로그인 화면으로 이동" })).toHaveAttribute("href", "/login?returnTo=%2Finbox");
+    expect(screen.getByRole("button", { name: "승인" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "거절" })).toBeDisabled();
+    fireEvent.keyDown(window, { key: "A" });
+    fireEvent.keyDown(window, { key: "R" });
+    expect(mocks.apiPost).not.toHaveBeenCalled();
+  });
+
+  it("V71-AUTH-02 거절: 목록 조회가 일반 오류로 실패해도 빈 목록으로 속이지 않고 행동을 막는다", () => {
+    mocks.swr.mockImplementation((key: string) => key === "/api/queue?status=draft&returnTo=inbox"
+      ? { data: undefined, error: new Error("API error: 500"), mutate: vi.fn(), isLoading: false }
+      : { data: undefined, mutate: vi.fn(), isLoading: false });
+
+    render(<InboxPage />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("검토할 초안을 불러오지 못했습니다");
+    expect(screen.getByRole("button", { name: "다시 불러오기" })).toBeInTheDocument();
+    expect(screen.queryByText("검토할 초안이 없습니다")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "AI로 한 주치 초안 생성" })).not.toBeInTheDocument();
   });
 });

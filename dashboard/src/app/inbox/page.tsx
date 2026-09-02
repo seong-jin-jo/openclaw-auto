@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { fetcher, apiPost } from "@/lib/api";
+import { fetcher, apiPost, isAuthRequiredError } from "@/lib/api";
 import { useToast } from "@/components/layout/Toast";
 import type { VoiceTone } from "@/lib/voice-tone";
 import type { PublishReturnContext } from "@/lib/publish-return-context";
@@ -57,7 +57,7 @@ function approvalWarning(fields: MissingReviewField[]) {
 }
 
 export default function InboxPage() {
-  const { data, mutate, isLoading } = useSWR<{ posts: Post[] }>("/api/queue?status=draft&returnTo=inbox", fetcher);
+  const { data, error: queueError, mutate, isLoading } = useSWR<{ posts: Post[] }>("/api/queue?status=draft&returnTo=inbox", fetcher);
   const { data: psData, mutate: mutatePsrc } = useSWR<{ source: ProductSource | null }>("/api/product-source", fetcher);
   const { showToast } = useToast();
 
@@ -130,14 +130,16 @@ export default function InboxPage() {
   const currentBody = normalizeReviewText(current?.text);
   const missingFields = current ? missingReviewFields(current) : [];
   const blockedWarning = approvalWarning(missingFields);
-  const canApprove = Boolean(current && missingFields.length === 0);
+  const queueLoadFailed = Boolean(queueError);
+  const authExpired = isAuthRequiredError(queueError);
+  const canApprove = Boolean(current && missingFields.length === 0 && !queueLoadFailed);
 
   const advance = useCallback(() => {
     setIdx((i) => (i + 1 < posts.length ? i + 1 : i));
   }, [posts.length]);
 
   const approve = useCallback(async () => {
-    if (!current || busy || missingReviewFields(current).length > 0) return;
+    if (!current || busy || queueLoadFailed || missingReviewFields(current).length > 0) return;
     setBusy(true);
     try {
       await apiPost(`/api/queue/${current.id}/approve`, { hours: scheduleHours });
@@ -149,10 +151,10 @@ export default function InboxPage() {
     } finally {
       setBusy(false);
     }
-  }, [current, busy, scheduleHours, mutate, advance, showToast]);
+  }, [current, busy, queueLoadFailed, scheduleHours, mutate, advance, showToast]);
 
   const reject = useCallback(async () => {
-    if (!current || busy) return;
+    if (!current || busy || queueLoadFailed) return;
     setBusy(true);
     try {
       await apiPost(`/api/queue/${current.id}/delete`, {});
@@ -163,7 +165,7 @@ export default function InboxPage() {
     } finally {
       setBusy(false);
     }
-  }, [current, busy, mutate, advance, showToast]);
+  }, [current, busy, queueLoadFailed, mutate, advance, showToast]);
 
   // 데스크톱 단축키: A=승인, R=거절, ←/→ 이동
   useEffect(() => {
@@ -264,7 +266,40 @@ export default function InboxPage() {
         aria-label="승인 검토 진행률"
       />
 
-      {isLoading ? (
+      {queueLoadFailed ? (
+        <div
+          id="queue-load-failure"
+          role="alert"
+          className="card mb-stack-section border border-danger/30 bg-danger-soft p-pad-inset text-body-sm text-danger"
+        >
+          <p className="font-semibold">
+            {authExpired ? "로그인 상태가 만료되었습니다." : "검토할 초안을 불러오지 못했습니다."}
+          </p>
+          <p className="mt-stack-tight text-caption text-subtle">
+            {authExpired
+              ? "계속하려면 다시 로그인해주세요. 내용을 다시 불러오기 전까지 승인과 거절은 사용할 수 없습니다."
+              : "연결 상태를 확인한 뒤 다시 불러와주세요. 내용을 확인하기 전까지 승인과 거절은 사용할 수 없습니다."}
+          </p>
+          {authExpired ? (
+            <Link
+              href="/login?returnTo=%2Finbox"
+              className="mt-stack inline-flex min-h-control-touch items-center justify-center rounded-control bg-accent px-stack text-caption font-semibold text-accent-fg hover:bg-accent-hover"
+            >
+              로그인 화면으로 이동
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void mutate()}
+              className="mt-stack min-h-control-touch rounded-control bg-accent px-stack text-caption font-semibold text-accent-fg hover:bg-accent-hover"
+            >
+              다시 불러오기
+            </button>
+          )}
+        </div>
+      ) : null}
+
+      {queueLoadFailed && data === undefined ? null : isLoading && data === undefined ? (
         <div className="card p-region text-center text-subtle text-body-sm">불러오는 중…</div>
       ) : posts.length === 0 ? (
         <div className="card p-region text-center">
@@ -342,7 +377,8 @@ export default function InboxPage() {
           <div className="mt-stack-section grid grid-cols-2 gap-stack">
             <button
               onClick={reject}
-              disabled={busy}
+              disabled={busy || queueLoadFailed}
+              aria-describedby={queueLoadFailed ? "queue-load-failure" : undefined}
               className="py-stack rounded-control bg-danger/15 text-danger hover:bg-danger/25 text-body-sm font-medium disabled:opacity-50"
             >
               거절
@@ -350,13 +386,13 @@ export default function InboxPage() {
             <button
               onClick={approve}
               disabled={busy || !canApprove}
-              aria-describedby={!canApprove ? "approval-blocked-reason" : undefined}
+              aria-describedby={queueLoadFailed ? "queue-load-failure" : !canApprove ? "approval-blocked-reason" : undefined}
               className="py-stack rounded-control bg-success text-status-fg hover:bg-success text-body-sm font-medium disabled:opacity-50"
             >
               승인
             </button>
           </div>
-          {!canApprove ? (
+          {!queueLoadFailed && !canApprove ? (
             <p id="approval-blocked-reason" className="mt-stack-tight text-center text-caption text-warning">본문 확인 전에는 승인할 수 없습니다.</p>
           ) : null}
           {current.publishContext ? (
