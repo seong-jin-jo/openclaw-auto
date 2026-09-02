@@ -108,12 +108,12 @@ const ROOM_FLOW: Array<{ key: StudioRoom | "performance"; label: string; href: s
   { key: "create", label: "생성실", href: "/studio?room=create" },
   { key: "edit", label: "편집실", href: "/studio?room=edit" },
   { key: "publish", label: "발행실", href: "/studio?room=publish" },
-  { key: "performance", label: "성과실", href: "/" },
+  { key: "performance", label: "성과실", href: "/performance" },
 ];
 
 function RoomFlowNav({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
   const { studioRoom, setStudioRoom } = useUIStore();
-  const activeIndex = pathname === "/"
+  const activeIndex = pathname === "/performance"
     ? ROOM_FLOW.length - 1
     : pathname === "/studio"
       ? ROOM_FLOW.findIndex((room) => room.key === studioRoom)
@@ -312,7 +312,7 @@ function CustomerSidebar({
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [mobileMenuOpen]);
 
-  const currentRoomLabel = pathname === "/"
+  const currentRoomLabel = pathname === "/performance"
     ? "성과실"
     : pathname === "/studio"
       ? ROOM_FLOW.find((room) => room.key === studioRoom)?.label

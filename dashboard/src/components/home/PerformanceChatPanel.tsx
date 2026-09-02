@@ -57,10 +57,12 @@ export function PerformanceChatPanel({
   workspaceId,
   posts,
   focus,
+  expandedByDefault = false,
 }: {
   workspaceId?: string;
   posts: PerformancePost[];
   focus: string;
+  expandedByDefault?: boolean;
 }) {
   const { data: rulesData, mutate: mutateRules } = useSWR<{ rules: LearnedRule[] }>(
     workspaceId ? `/api/performance/learned-rules?tenant_id=${encodeURIComponent(workspaceId)}` : null,
@@ -73,7 +75,7 @@ export function PerformanceChatPanel({
   ]);
   const [draft, setDraft] = useState("");
   const [savingRuleFor, setSavingRuleFor] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(expandedByDefault);
 
   const published = useMemo(
     () => posts.filter((p) => p.status === "published" && (focus === "all" || platformOf(p) === focus)),

@@ -710,7 +710,7 @@ export default function StudioPage() {
     if (!draft) return;
     loadDraft(draft);
     if (current.stage === "performance") {
-      window.location.assign("/");
+      window.location.assign("/performance");
       return;
     }
     changeRoom(current.stage);
@@ -975,6 +975,7 @@ export default function StudioPage() {
       workspaceName={activeWorkspace?.name}
       subtitle="콘텐츠 작업실"
       roomLabel={activeRoom === "create" ? "생성실" : activeRoom === "edit" ? "편집실" : "발행실"}
+      currentRoom={activeRoom}
       leading={
         <>
           <Button onClick={() => setShowWorks((value) => !value)} aria-expanded={showWorks} aria-controls="studio-work-overview">
@@ -1018,7 +1019,7 @@ export default function StudioPage() {
                 {room === "create" ? "생성실" : room === "edit" ? "편집실" : "발행실"}
               </Button>
             ))}
-            <Link href="/" className="inline-flex min-h-control-touch items-center justify-center rounded-control border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">성과실</Link>
+            <Link href="/performance" className="inline-flex min-h-control-touch items-center justify-center rounded-control border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">성과실</Link>
           </div>
         </div>
       ) : null}

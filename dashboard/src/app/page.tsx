@@ -17,7 +17,7 @@ import { countFilledLearningSlots, readLearningInfo, type LearningInfo } from "@
 import { Button } from "@/components/shared/Button";
 import Link from "next/link";
 
-export default function HomePage() {
+export function PerformanceDashboard({ dedicatedRoom = false }: { dedicatedRoom?: boolean }) {
   const { dismissedOnboarding, dismissOnboarding, activeWorkspace } = useUIStore();
   const { data: overview } = useOverview();
   const { data: usageData } = useUsage(activeWorkspace?.id);
@@ -72,6 +72,7 @@ export default function HomePage() {
         workspaceName={activeWorkspace?.name}
         subtitle="콘텐츠 작업실"
         roomLabel="성과실"
+        currentRoom={dedicatedRoom ? "performance" : undefined}
         leading={
           <LearningStatus
             filled={countFilledLearningSlots(learningInfo)}
@@ -89,6 +90,7 @@ export default function HomePage() {
       {/* 시작 체크리스트. 가치 체감까지 4단계 */}
       <OnboardingChecklist />
       <PerformanceRoom
+        dedicated={dedicatedRoom}
         workspaceId={activeWorkspace?.id}
         workspaceName={activeWorkspace?.name}
         metricsLoaded={metricsData !== undefined}
@@ -118,4 +120,8 @@ export default function HomePage() {
       ) : null}
     </div>
   );
+}
+
+export default function HomePage() {
+  return <PerformanceDashboard />;
 }

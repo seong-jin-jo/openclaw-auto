@@ -102,6 +102,7 @@ interface UsageSummary {
 }
 
 interface PerformanceRoomProps {
+  dedicated?: boolean;
   workspaceId?: string;
   workspaceName?: string;
   metricsLoaded: boolean;
@@ -163,6 +164,7 @@ function PerformanceTableCell({
 }
 
 export function PerformanceRoom({
+  dedicated = false,
   workspaceId,
   workspaceName,
   metricsLoaded,
@@ -360,15 +362,26 @@ export function PerformanceRoom({
     { label: "참여", value: "미수집" },
   ];
 
+  const roomColumn = dedicated ? "lg:col-start-1" : "";
+  const RoomTitle = dedicated ? "h1" : "p";
+  const VerdictTitle = dedicated ? "h2" : "h1";
+
   return (
-    <div className="mb-region space-y-region" data-room="performance">
+    <div className={`mb-region gap-region ${dedicated ? "grid lg:grid-cols-[minmax(0,1fr)_20rem]" : "space-y-region"}`} data-room="performance" data-performance-layout={dedicated ? "dedicated" : "embedded"}>
       <section
         aria-label="이 방에서 지금 알아야 할 것"
-        className="card flex min-h-control-touch items-baseline gap-stack px-pad-inset py-stack-tight"
+        className={`${roomColumn} flex min-h-control-touch flex-wrap items-start gap-stack rounded-surface border border-border bg-surface px-pad-inset py-stack`}
         data-room-top="performance"
       >
-        <b className="text-body font-bold tabular-nums text-accent">표본 {assessment.count}건</b>
-        <span className="min-w-0 truncate text-caption text-muted">최근 30일</span>
+        <div className="mr-auto min-w-0">
+          <p className="text-caption font-semibold text-accent">4단계</p>
+          <RoomTitle className="text-heading font-bold text-text">성과실</RoomTitle>
+          <p className="break-keep text-body-sm text-muted">채널 전체를 먼저 보고, 잘된 이유와 다음 행동을 확인합니다.</p>
+        </div>
+        <div className="text-right">
+          <b className="block text-body font-bold tabular-nums text-accent">표본 {assessment.count}건</b>
+          <span className="text-caption text-muted">최근 30일</span>
+        </div>
         <Link
           href="/calendar?from=performance"
           className="ml-auto inline-flex min-h-control-touch shrink-0 items-center rounded-control border border-border bg-surface-2 px-stack text-caption font-semibold text-muted hover:bg-surface"
@@ -377,10 +390,12 @@ export function PerformanceRoom({
         </Link>
       </section>
 
-      <PerformanceChatPanel workspaceId={workspaceId} posts={posts} focus={focus} />
+      <div className={dedicated ? "lg:sticky lg:top-pad-inset lg:col-start-2 lg:row-start-1 lg:row-span-[12] lg:h-fit" : ""}>
+        <PerformanceChatPanel workspaceId={workspaceId} posts={posts} focus={focus} expandedByDefault={dedicated} />
+      </div>
 
       <section
-        className="card p-region"
+        className={`${roomColumn} card p-region`}
         data-perf-verdict={empty ? "empty" : assessment.thresholdMet ? "ready" : "thin"}
         data-perf-sample={assessment.count}
         data-sample-threshold={assessment.threshold}
@@ -389,10 +404,10 @@ export function PerformanceRoom({
         <Stack gap={16}>
           <Stack gap={8}>
             <p className="text-caption font-semibold text-subtle">성과 요약 · {workspaceName || "작업 공간"} · 최근 30일</p>
-            <h1 className="flex items-start gap-stack text-display font-bold text-text break-keep">
+            <VerdictTitle className="flex items-start gap-stack text-display font-bold text-text break-keep">
               <span aria-hidden="true" className="mt-micro inline-grid size-stack-section shrink-0 place-items-center rounded-pill bg-accent text-caption text-accent-fg">1</span>
               <span>{verdict}</span>
-            </h1>
+            </VerdictTitle>
             <p className="text-body-sm text-muted break-keep">
               {!assessment.thresholdMet && <span className="mr-stack-tight inline-flex rounded-pill bg-warning/15 px-stack-tight py-micro font-semibold text-warning">근거 부족</span>}
               성과 표본 {assessment.count}건입니다. {assessment.threshold}건부터 판정합니다.
@@ -466,7 +481,7 @@ export function PerformanceRoom({
         </Stack>
       </section>
 
-      <section className="border-t border-border pt-stack-section" data-perf-loop={topPosts.length}>
+      <section className={`${roomColumn} border-t border-border pt-stack-section`} data-perf-loop={topPosts.length}>
         <Stack gap={16}>
           <Stack gap={4}>
             <h2 className="text-subheading font-bold text-text"><span aria-hidden="true" className="mr-stack-tight inline-grid size-stack-section place-items-center rounded-pill bg-accent text-caption text-accent-fg">2</span>무엇이 통했나</h2>
@@ -520,7 +535,7 @@ export function PerformanceRoom({
         </Stack>
       </section>
 
-      <section className="border-t border-border pt-stack-section" data-perf-suggestions={suggestions.length} id="performance-suggestions">
+      <section className={`${roomColumn} border-t border-border pt-stack-section`} data-perf-suggestions={suggestions.length} id="performance-suggestions">
         <Stack gap={16}>
           <div className="flex flex-wrap items-center justify-between gap-stack">
             <Stack gap={4}>
@@ -556,7 +571,7 @@ export function PerformanceRoom({
         </Stack>
       </section>
 
-      <section className="border-t border-border pt-stack-section" data-perf-comments={reactionPosts.length}>
+      <section className={`${roomColumn} border-t border-border pt-stack-section`} data-perf-comments={reactionPosts.length}>
         <Stack gap={16}>
           <Stack gap={4}>
             <h2 className="text-subheading font-bold text-text"><span aria-hidden="true" className="mr-stack-tight inline-grid size-stack-section place-items-center rounded-pill bg-accent text-caption text-accent-fg">3</span>달린 반응</h2>
@@ -659,9 +674,9 @@ export function PerformanceRoom({
         </Stack>
       </section>
 
-      <AutomationRulesPanel workspaceId={workspaceId} />
+      <div className={roomColumn}><AutomationRulesPanel workspaceId={workspaceId} /></div>
 
-      <section className="border-t border-border pt-stack-section" data-perf-inherit="app/page.tsx">
+      <section className={`${roomColumn} border-t border-border pt-stack-section`} data-perf-inherit="app/page.tsx">
         <details>
           <summary className="flex min-h-control-touch cursor-pointer items-center gap-stack text-body font-bold text-text">
             <span>올린 글별 성적</span>
