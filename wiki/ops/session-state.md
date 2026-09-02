@@ -1,5 +1,18 @@
 # 세션 상태 (얇은 인덱스)
 
+## 2026-09-02 09:24 KST | Codex code-builder | OSMU v67 build 증거 완료, 원격 push 정책 차단
+
+- 핸드오프 기준: 회장이 갱신한 보존 커밋 `576945e1`, 이전 보존점 `3bb6b787`, 브랜치 `work/v67build`, 이 worktree를 primary로 사용했다. 기존 tmux pane은 보조 확인만 했고 다른 브랜치로 이동하지 않았다.
+- 기반 산출물: ADR-004·005·006, 회장 요청 원문, `docs/qa/qa-tracker.md` 최상단 NG 5행, `docs/prototype/osmu-v67-edit-publish-hub-gpt-codex-20260902-0448.html`, v67 delta 명세, `DESIGN.md` v36, `docs/구현현황.md`를 읽고 구현과 증거를 대조했다.
+- 기존 기능 보존: 네 방 셸, 생성 후보 3개, 편집실 네 형식, 초안 저장·복원, 일곱 플랫폼 미리보기, 첫 댓글, 즉시·예약 발행, 부분 실패 복구, 성과 제안·학습 기능을 유지했다.
+- 변경: 계정 fallback 타입 오류를 닫고, 플랫폼 caption 저장을 전 채널에 적용했으며, 계정 로딩·미연결 계약과 X 280가중 문자 경계를 추가했다. 실제 ESM export와 불일치하던 `twitter-text` import를 default export로 고쳐 Turbopack 런타임 500을 제거했다.
+- 계약 검증: `npx tsc --noEmit` 오류 0. 지정 Vitest 89파일 684건 통과, 2건 조건부 제외, 실패 0. `npm run build` 성공, 정적 페이지 177/177. `design-lint.sh dashboard/src` 토큰 위반 0. 기존 NFT 광범위 추적 경고 1건은 남아 있다.
+- 직접 관찰: 종료형 Next.js와 Chromium으로 OAuth 연결 단추 활성·동일 출처 callback, 생성→편집→두 계정 발행→성과를 클릭했다. 편집실·발행실 1024·390 가로 넘침 0, 표시 이름 입력 0, 연결 계정 4곳, 발행 요청 2건, 콘솔 오류 0을 관찰했다. 증거는 `docs/qa/osmu-v67-build-evidence-20260902/`다.
+- QA·구현현황: qa-tracker의 v67 NG 5행을 build PASS와 종료 증거로 갱신했고 `docs/구현현황.md`에 STAMP, 기존·변경 기능, 검증, 미검증 경계를 기록했다.
+- 커밋: `5559586d`, `51c215f1`, `7df52fc9`, `79186e89`, `52b6b7b0`, `58a626a9`, `d086d8e2`. 이 기록 전 로컬 HEAD는 `d086d8e2`, 원격 `origin/work/v67build`는 `576945e1`이다.
+- 원격 차단: 명시된 `git push origin work/v67build`를 실행했으나 외부 쓰기 승인 정책이 AskForApproval=Never 환경에서 거절했다. PR 병합과 운영 배포는 시도하지 않았다.
+- 다음 실행: push 권한이 있는 컨트롤러가 `work/v67build`를 원격에 전송한 뒤 원격 SHA가 이 기록 커밋을 포함하는지 확인한다. QA 소유자는 실제 고객 OAuth와 운영 데이터베이스로 연결→생성→편집→발행→성과를 재검증하고 외부 게시물 URL과 운영 콘솔 오류 0을 종료 증거로 남긴다.
+
 ## 2026-09-02 08:23 KST | Codex code-builder | OSMU v67 중단판 이어받기
 
 - 핸드오프 기준: 회장이 이번 턴에 지정한 보존 커밋 `3bb6b787`과 `work/v67build`를 primary로 확정했다. `openclaw-auto:0.0`, `osmu-build:0.0` pane은 보조 맥락으로만 확인했다.
