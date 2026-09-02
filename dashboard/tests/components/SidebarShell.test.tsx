@@ -142,6 +142,20 @@ describe("Sidebar operator/customer shell separation", () => {
     expect(screen.queryByText("OSMU Studio")).not.toBeInTheDocument();
   });
 
+  it("V70-INBOX-05 정상: 네 방 밖 승인 인박스에서도 현재 위치를 표시하고 무의미한 분수를 숨긴다", () => {
+    mocks.pathname.mockReturnValue("/inbox");
+    mocks.swr.mockImplementation((key: string | null) => {
+      if (key === "/api/me") return { data: { isOperator: false, tenant: { id: "customer-1", slug: "customer", name: "고객 워크스페이스" } }, mutate: vi.fn() };
+      if (key === "/api/images") return { data: [] };
+      return { data: undefined };
+    });
+
+    render(<Sidebar />);
+
+    expect(screen.getByRole("link", { name: /현재 위치\s*승인 인박스/ })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByText(/0\/\d+/)).not.toBeInTheDocument();
+  });
+
   it("FE4-SIDEBAR-01 정상: 390 셸은 닫힌 서랍과 현재 방 이름으로 본문 폭을 보존한다", () => {
     mocks.pathname.mockReturnValue("/studio");
     mocks.swr.mockImplementation((key: string | null) => {

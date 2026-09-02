@@ -46,8 +46,6 @@ function SidebarGroup({
   const pathname = usePathname();
   const { sidebarCollapsed, toggleSidebar } = useUIStore();
 
-  const liveCount = items.filter((i) => i.status === "Live" || i.status === "Connected").length;
-  const totalCount = items.length;
   const collapsed = sidebarCollapsed[groupKey] ?? false; // 기본 펼침 (사용자가 접으면 그 상태 유지)
 
   return (
@@ -58,11 +56,6 @@ function SidebarGroup({
       >
         <span className={`text-caption font-medium text-subtle uppercase tracking-wider ${showNarrowLabels ? "" : "max-xl:sr-only"}`}>{title}</span>
         <span className="flex items-center gap-micro">
-          {totalCount > 0 && (
-            <span className={`text-caption ${liveCount > 0 ? "text-success" : "text-subtle"}`}>
-              {liveCount}/{totalCount}
-            </span>
-          )}
           <svg
             className={`w-3 h-3 text-subtle transition-transform ${collapsed ? "" : "rotate-180"}`}
             fill="none"
@@ -118,6 +111,11 @@ function RoomFlowNav({ pathname, onNavigate }: { pathname: string; onNavigate?: 
     : pathname === "/studio"
       ? ROOM_FLOW.findIndex((room) => room.key === studioRoom)
       : -1;
+  const outsideRoom = pathname === "/inbox"
+    ? { label: "승인 인박스", href: "/inbox" }
+    : pathname === "/calendar"
+      ? { label: "발행 캘린더", href: "/calendar" }
+      : null;
 
   return (
     <section className="border-b border-border px-stack pb-stack" aria-label="한 편의 제작 순서">
@@ -149,6 +147,18 @@ function RoomFlowNav({ pathname, onNavigate }: { pathname: string; onNavigate?: 
           );
         })}
       </ol>
+      {outsideRoom ? (
+        <Link
+          href={outsideRoom.href}
+          onClick={onNavigate}
+          aria-current="page"
+          data-outside-room-current
+          className="mt-stack flex min-h-control-touch items-center gap-stack-tight rounded-control border border-accent bg-accent-soft px-stack text-body-sm font-semibold text-accent max-xl:flex-col max-xl:gap-micro max-xl:px-micro"
+        >
+          <span className="text-caption">현재 위치</span>
+          <span>{outsideRoom.label}</span>
+        </Link>
+      ) : null}
     </section>
   );
 }

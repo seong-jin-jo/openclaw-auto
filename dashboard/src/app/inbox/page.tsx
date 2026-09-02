@@ -34,6 +34,16 @@ interface Post {
 // 검토 대상 = status=draft. 승인 → /approve, 거절 → /delete. 액션 후 다음 카드로.
 interface ProductSource { type?: string; owner?: string; repo?: string; path?: string; ref?: string; token?: string }
 
+function reviewBody(text?: string) {
+  return text?.trim() || "";
+}
+
+function customerTopicLabel(topic?: string) {
+  if (!topic || topic === "post") return "일반 콘텐츠";
+  if (topic === "studio-handoff") return "콘텐츠 작업실에서 보냄";
+  return topic;
+}
+
 export default function InboxPage() {
   const { data, mutate, isLoading } = useSWR<{ posts: Post[] }>("/api/queue?status=draft&returnTo=inbox", fetcher);
   const { data: psData, mutate: mutatePsrc } = useSWR<{ source: ProductSource | null }>("/api/product-source", fetcher);
@@ -53,7 +63,7 @@ export default function InboxPage() {
   const [savingSrc, setSavingSrc] = useState(false);
   const saveSrc = async () => {
     if (!srcForm.owner.trim() || !srcForm.repo.trim() || !srcForm.path.trim()) {
-      showToast("owner/repo/path를 입력하세요", "error");
+      showToast("계정 이름, 프로젝트 이름, 파일 위치를 입력하세요", "error");
       return;
     }
     setSavingSrc(true);
@@ -104,13 +114,15 @@ export default function InboxPage() {
   }, [posts.length, idx]);
 
   const current = posts[idx];
+  const currentBody = reviewBody(current?.text);
+  const canApprove = Boolean(current && currentBody);
 
   const advance = useCallback(() => {
     setIdx((i) => (i + 1 < posts.length ? i + 1 : i));
   }, [posts.length]);
 
   const approve = useCallback(async () => {
-    if (!current || busy) return;
+    if (!current || busy || !reviewBody(current.text)) return;
     setBusy(true);
     try {
       await apiPost(`/api/queue/${current.id}/approve`, { hours: scheduleHours });
@@ -174,16 +186,16 @@ export default function InboxPage() {
       {/* 제품 소스(제품-grounded): repo를 연결하면 "방금 만든 것"을 자동 홍보하는 글이 생성됨 */}
       <div className="mb-pad-inset text-caption">
         <button onClick={() => setShowSrc((v) => !v)} className="text-subtle hover:text-muted">
-          {psrc?.owner ? `제품 소스: ${psrc.owner}/${psrc.repo}/${psrc.path}` : "제품 소스 연결 (선택. 저장소 기반 생성)"}
+          {psrc?.owner ? `제품 내용: ${psrc.owner}/${psrc.repo}/${psrc.path}` : "제품 내용 연결 (선택. 최근 변경 내용 반영)"}
           <span className="ml-micro text-subtle">{showSrc ? "▲" : "▼"}</span>
         </button>
         {showSrc && (
           <div className="mt-stack-tight card p-stack grid grid-cols-2 gap-stack-tight">
-            <input value={srcForm.owner} onChange={(e) => setSrcForm({ ...srcForm, owner: e.target.value })} placeholder="owner (예: my-gh-id)" className="bg-surface-2 p-stack-tight rounded-chip border border-border" />
-            <input value={srcForm.repo} onChange={(e) => setSrcForm({ ...srcForm, repo: e.target.value })} placeholder="repo (예: my-product)" className="bg-surface-2 p-stack-tight rounded-chip border border-border" />
-            <input value={srcForm.path} onChange={(e) => setSrcForm({ ...srcForm, path: e.target.value })} placeholder="path (예: CHANGELOG.md)" className="bg-surface-2 p-stack-tight rounded-chip border border-border" />
-            <input value={srcForm.ref} onChange={(e) => setSrcForm({ ...srcForm, ref: e.target.value })} placeholder="ref (main)" className="bg-surface-2 p-stack-tight rounded-chip border border-border" />
-            <input value={srcForm.token} onChange={(e) => setSrcForm({ ...srcForm, token: e.target.value })} placeholder="token (비공개 repo만)" type="password" className="bg-surface-2 p-stack-tight rounded-chip border border-border col-span-2" />
+            <input aria-label="계정 이름" value={srcForm.owner} onChange={(e) => setSrcForm({ ...srcForm, owner: e.target.value })} placeholder="계정 이름" className="bg-surface-2 p-stack-tight rounded-chip border border-border" />
+            <input aria-label="프로젝트 이름" value={srcForm.repo} onChange={(e) => setSrcForm({ ...srcForm, repo: e.target.value })} placeholder="프로젝트 이름" className="bg-surface-2 p-stack-tight rounded-chip border border-border" />
+            <input aria-label="변경 기록 파일 위치" value={srcForm.path} onChange={(e) => setSrcForm({ ...srcForm, path: e.target.value })} placeholder="변경 기록 파일 위치" className="bg-surface-2 p-stack-tight rounded-chip border border-border" />
+            <input aria-label="기준 브랜치" value={srcForm.ref} onChange={(e) => setSrcForm({ ...srcForm, ref: e.target.value })} placeholder="기준 브랜치" className="bg-surface-2 p-stack-tight rounded-chip border border-border" />
+            <input aria-label="접근 토큰" value={srcForm.token} onChange={(e) => setSrcForm({ ...srcForm, token: e.target.value })} placeholder="비공개 프로젝트 접근 토큰" type="password" className="bg-surface-2 p-stack-tight rounded-chip border border-border col-span-2" />
             <button onClick={saveSrc} disabled={savingSrc} className="col-span-2 py-stack-tight bg-accent hover:bg-accent-hover rounded-chip disabled:opacity-50">
               {savingSrc ? "저장 중…" : "연결 저장"}
             </button>
@@ -268,7 +280,13 @@ export default function InboxPage() {
           )}
 
           {/* 본문 */}
-          <p className="text-body-sm text-text whitespace-pre-wrap leading-relaxed min-h-[80px]">{current.text || "(내용 없음)"}</p>
+          {currentBody ? (
+            <p className="text-body-sm text-text whitespace-pre-wrap leading-relaxed min-h-[80px]">{currentBody}</p>
+          ) : (
+            <div role="alert" className="min-h-[80px] rounded-control border border-warning/30 bg-warning/10 p-stack text-body-sm text-warning">
+              본문을 불러오지 못했습니다. 내용을 확인할 수 있을 때만 승인할 수 있습니다.
+            </div>
+          )}
 
           {/* 해시태그 */}
           {current.hashtags && current.hashtags.length > 0 && (
@@ -276,7 +294,7 @@ export default function InboxPage() {
           )}
 
           <div className="mt-stack text-caption text-subtle flex items-center justify-between">
-            <span>{current.topic || "post"}</span>
+            <span>{customerTopicLabel(current.topic)}</span>
             <span>{current.generatedAt ? new Date(current.generatedAt).toLocaleString("ko-KR") : ""}</span>
           </div>
 
@@ -303,16 +321,20 @@ export default function InboxPage() {
               disabled={busy}
               className="py-stack rounded-control bg-danger/15 text-danger hover:bg-danger/25 text-body-sm font-medium disabled:opacity-50"
             >
-              거절 <span className="text-caption opacity-60">(R)</span>
+              거절
             </button>
             <button
               onClick={approve}
-              disabled={busy}
+              disabled={busy || !canApprove}
+              aria-describedby={!canApprove ? "approval-blocked-reason" : undefined}
               className="py-stack rounded-control bg-success text-status-fg hover:bg-success text-body-sm font-medium disabled:opacity-50"
             >
-              승인 <span className="text-caption opacity-80">(A)</span>
+              승인
             </button>
           </div>
+          {!canApprove ? (
+            <p id="approval-blocked-reason" className="mt-stack-tight text-center text-caption text-warning">본문 확인 전에는 승인할 수 없습니다.</p>
+          ) : null}
           {current.publishContext ? (
             <Link
               href={current.publishContext.returnUrl}
