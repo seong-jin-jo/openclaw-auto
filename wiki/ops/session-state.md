@@ -69,6 +69,13 @@
 
 # 세션 상태 (얇은 인덱스)
 
+## 2026-09-03 02:19 KST | Codex code-builder | v68 담당 패널 접근성 회귀 재현
+
+- 핸드오프 기준: 회장이 지정한 `work/v68rooms` 브랜치와 `/private/tmp/osmu-wt-v68rooms` 워크트리, 이번 접근성 회귀 수정 과제를 primary로 사용한다. 메인 저장소 tmux pane은 다른 작업 트랙이라 이어받지 않는다.
+- 승인 범위: `pipeline-state.osmu.md` 최상단 v68 `approved-for-build` 범위 안에서 네 방 담당 패널의 기존 접근성 계약만 복구한다. API, 데이터베이스, 배포는 바꾸지 않는다.
+- 재현: `npx vitest run tests/studio/studio-fe2-rooms.test.tsx`에서 19건 중 17건 통과, `FE3-CREATE-01`과 `FE6-CREATE-01` 두 건 실패를 관찰했다. 생성 담당 패널의 이름은 유지됐지만 `section` 때문에 역할이 `region`으로 노출된다.
+- 다음 액션: 생성 담당 패널을 `complementary` 랜드마크로 복구하고 편집실, 발행실, 성과실 담당 패널을 같은 기준으로 대조한 뒤 계약 테스트, TypeScript, 전체 Vitest를 실행한다.
+
 ## 2026-09-02 11:14 KST | Codex code-builder | v67 발행실 플랫폼 집중 필터 build 검증 완료
 
 - 핸드오프 기준: 회장이 지정한 `work/v67build` 워크트리와 이번 플랫폼 집중 필터 과제를 primary로 사용한다. 같은 worktree의 활성 tmux pane은 없었고 메인 저장소 pane은 다른 트랙이라 재개하지 않았다.
