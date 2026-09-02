@@ -138,6 +138,22 @@ h1{font-size:24px;line-height:1.25;margin:0;letter-spacing:-.02em}
 .perf-empty h2{margin:0 0 4px;font-size:15px}
 .perf-empty p{margin:0;font-size:12px;color:var(--muted);line-height:1.55}
 .perf-empty .primary-button{width:auto;padding:0 16px}
+/* 성과실 연결 후 본론 (v68 정본 상속: 잘된 콘텐츠 + 다음 행동) */
+.performance-columns{display:grid;grid-template-columns:1.1fr .9fr;gap:8px;margin-top:16px}
+.insight-card{padding:12px}
+.insight-card h3{margin:0 0 8px;font-size:13px}
+.rank-list,.task-list{display:grid;gap:6px}
+.rank-row,.task-row{padding:8px;border-radius:8px;background:var(--surface-3);font-size:11px;line-height:1.45;display:grid;grid-template-columns:24px minmax(0,1fr);gap:6px}
+.rank-row b{color:var(--accent)}
+.rank-row small,.task-row small{color:var(--subtle)}
+.task-row{grid-template-columns:12px minmax(0,1fr)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--warning);margin-top:4px}
+/* 발행실 연결 후 계정 행 (v67 정본 상속) */
+.account-row{display:grid;grid-template-columns:32px minmax(0,1fr);gap:8px;align-items:center;padding:12px 16px;background:var(--surface-2)}
+.account-row .avatar-sm{width:32px;height:32px;border-radius:50%;background:#dbeafe;color:#1d4ed8;display:grid;place-items:center;font-size:11px;font-weight:800}
+.account-row strong{display:block;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.account-row span{display:block;font-size:11px;color:var(--subtle)}
+.preview-text{margin-top:8px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:12px;line-height:1.6}
 /* 쿠키 배너: 좌하단 코너, 담당 패널·입력을 덮지 않음 */
 .cookie-banner{position:absolute;left:16px;bottom:16px;z-index:50;width:340px;max-width:calc(100% - 32px);border:1px solid var(--border);border-radius:var(--radius-md);background:#fff;box-shadow:0 16px 40px rgba(24,24,27,.18);padding:14px 16px;font-size:12px;line-height:1.55;color:var(--muted)}
 .cookie-banner b{display:block;color:var(--text);margin-bottom:4px;font-size:13px}
@@ -181,6 +197,7 @@ h1{font-size:24px;line-height:1.25;margin:0;letter-spacing:-.02em}
   .publish-grid{grid-template-columns:1fr}
   .metric-grid{grid-template-columns:1fr 1fr}
   .perf-empty{grid-template-columns:1fr}
+  .performance-columns{grid-template-columns:1fr}
   .perf-empty .primary-button{width:100%}
   /* 교정 8(390): 필터 칩 두 줄 깔림 방지 = 한 줄 가로 스크롤 */
   .filter-row{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-left:-16px;margin-right:-16px;padding:0 16px}
@@ -326,7 +343,8 @@ const assistant=(title,msg,primary)=>`
 const publishCard=(mark,name,limit,connected)=>`
   <article class="card publish-card">
     <div class="publish-head"><span class="ch-mark">${mark}</span><b>${name}</b><span class="counter">0/${limit}</span></div>
-    ${connected?`<div class="preview-body"><div class="ph">본문 미리보기 자리입니다. 편집실에서 다듬은 글이 여기 표시됩니다.</div></div>`
+    ${connected?`<div class="account-row"><span class="avatar-sm">${mark}</span><div><strong>예시 계정</strong><span>@example_official · 연결됨</span></div></div>
+      <div class="preview-body"><div class="preview-text">처음부터 잘하려 하지 않아도 되는 이유. 오늘은 첫 발행을 쉽게 만든 세 단계를 이야기합니다.</div></div>`
       :`<div class="connect-cta"><button type="button">${name} 계정 연결하기</button></div>
        <div class="preview-body"><div class="ph">연결하면 실제 계정 이름과 미리보기가 여기 표시됩니다.</div></div>`}
   </article>`;
@@ -389,6 +407,18 @@ const perfMain=(startOpen)=>{
       <button class="filter" type="button" ${before?"disabled":""}>Instagram</button>
       <button class="filter" type="button" ${before?"disabled":""}>Facebook</button>
     </div>
+    ${before?"":`<div class="performance-columns">
+      <article class="card insight-card"><h3>잘된 콘텐츠 세 개</h3><div class="rank-list">
+        <div class="rank-row"><b>1</b><span>첫 발행을 쉽게 만든 세 단계<br><small>저장 248 · 학습 정보 제안 가능</small></span></div>
+        <div class="rank-row"><b>2</b><span>빈 화면에서 멈추지 않는 방법<br><small>답글 76 · 첫 문장 반응 우수</small></span></div>
+        <div class="rank-row"><b>3</b><span>한 주 운영을 돌아보는 기준<br><small>조회 3,490 · 구독 전환 우수</small></span></div>
+      </div></article>
+      <article class="card insight-card"><h3>다음 행동과 반응 관리</h3><div class="task-list">
+        <div class="task-row"><span class="dot"></span><span>설명형 구조를 다음 생성에 반영</span></div>
+        <div class="task-row"><span class="dot"></span><span>답글이 필요한 반응 8개 확인</span></div>
+        <div class="task-row"><span class="dot"></span><span>낮은 반응 콘텐츠 3개를 직접 검토</span></div>
+      </div></article>
+    </div>`}
   </section>${assistant("성과 담당",state==="before"?"채널 연결이 끝나면 성과 해석을 도와드립니다.":"성과 해석과 조치를 도와드립니다. 아래 버튼으로 물어보거나 직접 써 주세요.","채널 연결하기")}</div>`;
 };
 
