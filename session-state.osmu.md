@@ -1,5 +1,34 @@
 # OSMU 세션 상태
 
+## 2026-09-02 09:29 KST | Codex code-builder | v67 build 종료 훅 보강
+
+### 무엇을 어디까지 했나
+
+- 회장이 지정한 보존 커밋 `576945e1`과 이전 보존점 `3bb6b787`에서 `work/v67build`를 이어받았다.
+- 계정 fallback 타입, 플랫폼 caption 저장·복원, 계정 로딩·미연결 상태, X 280가중 문자 경계, `twitter-text` ESM 브라우저 import를 보수했다.
+- qa-tracker 최상단 v67 NG 5행을 build PASS로 전환하고, `docs/구현현황.md`와 `wiki/ops/session-state.md`를 갱신했다.
+- v67 프로토타입과 현재 dev 실화면을 편집실·발행실, 1024·390로 좌우 배치한 `docs/qa/osmu-v67-prototype-dev-comparison-v1-gpt-codex.html`을 만들었다.
+
+### 검증했나
+
+- `cd dashboard && npx tsc --noEmit`: 오류 0.
+- `npx vitest run tests/publish tests/api tests/components`: 89파일, 684건 통과, 2건 조건부 제외, 실패 0.
+- `npm run build`: 성공, 정적 페이지 177/177. 기존 NFT 광범위 추적 경고 1건 유지.
+- `design-lint.sh dashboard/src`: 토큰 위반 0.
+- 종료형 Next.js와 Chromium: OAuth 연결 단추·동일 출처 callback, 생성→편집→두 계정 발행→성과 클릭. 1024·390 가로 넘침 0, 표시 이름 입력 0, 연결 계정 4곳, 발행 요청 2건, 콘솔 오류 0.
+
+### 남은 이슈·블로커
+
+- `git push origin work/v67build`는 승인 필요 명령을 허용하지 않는 현재 실행 정책에서 두 번 거절됐다. 로컬 제품·증거 커밋은 보존됐고 원격은 `576945e1`에 머물러 있다.
+- 실제 외부 OAuth 동의, 외부 플랫폼 게시물, 운영 데이터베이스, 운영 배포는 미검증이다. PR 병합과 배포는 요청대로 시도하지 않았다.
+- 기존 dirty `.codex/logs/harness.jsonl`, 자동 수집 요청 원문, 출처 불명 sidebar 캡처 2장은 이번 커밋에서 제외한다.
+
+### 다음 액션
+
+- push 권한이 있는 컨트롤러가 `git push origin work/v67build`를 실행하고 원격이 로컬 최신 커밋을 포함하는지 확인한다.
+- QA 소유자는 실제 고객 OAuth와 운영 데이터로 연결→생성→편집→발행→성과를 재검증하고 외부 게시물 URL과 콘솔 오류 0을 종료 증거로 남긴다.
+- 화면 비교는 `docs/qa/osmu-v67-prototype-dev-comparison-v1-gpt-codex.html`을 열어 확인한다. 새로운 선택 요청은 없으며 현재 build는 프로토타입 준수 상태를 보여 주는 단계다.
+
 ## 2026-09-02 05:24 KST | Codex 메인 컨트롤러 | v67 디자인 승인 후보 수렴
 
 ### 무엇을 어디까지 했나
