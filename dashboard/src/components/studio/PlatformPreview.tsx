@@ -66,7 +66,7 @@ function Frame({ p, label, children, headerRight, characterCount }: {
     <div className="w-full max-w-sm">
       <div className="flex items-center gap-stack-tight mb-stack-tight px-micro">
         <Logo p={p} />
-        <span className="min-w-0 truncate text-caption font-bold text-muted">{label}</span>
+        <span className="shrink-0 whitespace-nowrap text-caption font-bold text-muted">{label}</span>
         <div className="ml-auto flex items-center gap-stack-tight">
           {characterCount && (
             <span

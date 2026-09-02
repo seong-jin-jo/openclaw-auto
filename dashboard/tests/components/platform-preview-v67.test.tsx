@@ -63,3 +63,14 @@ describe("PUB-LIMIT-UI-01 발행 전 하드 한도", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("본문이 500자를 초과했습니다");
   });
 });
+
+describe("V70-PREVIEW 채널 이름과 카운터 배치", () => {
+  it("V70-PREVIEW-01 정상: Threads 전체 이름을 말줄임 없이 두고 글자 수를 별도 표시한다", () => {
+    render(<PlatformPreview platform="threads" text={{ threads: "정상 본문" }} media={{}} editor={editor()} />);
+
+    const label = screen.getByText("Threads");
+    expect(label).toHaveClass("whitespace-nowrap");
+    expect(label).not.toHaveClass("truncate");
+    expect(screen.getByTestId("character-count-threads")).toHaveTextContent("5/500");
+  });
+});

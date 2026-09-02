@@ -99,4 +99,15 @@ describe("발행실 플랫폼 집중 필터 계약", () => {
     expect(document.querySelectorAll("[data-focus-card]")).toHaveLength(7);
     expect(screen.getByRole("textbox", { name: "Threads 본문" })).toHaveValue("필터 뒤에도 남을 본문");
   });
+
+  it("V70-FILTER-01 정상: 플랫폼 필터는 한 줄 가로 스크롤이며 줄바꿈하지 않는다", () => {
+    render(<PublishPreviewHarness />);
+
+    const filter = document.querySelector("[data-platform-filter]");
+    expect(filter).toHaveClass("flex-nowrap", "overflow-x-auto");
+    expect(filter).not.toHaveClass("flex-wrap");
+    for (const button of screen.getAllByRole("button").slice(0, PLATFORM_FOCUS_OPTIONS.length)) {
+      expect(button).toHaveClass("min-h-control-touch");
+    }
+  });
 });

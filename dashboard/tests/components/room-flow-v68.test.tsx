@@ -43,4 +43,13 @@ describe("V69-COPY-01 작업 공간 이름 개인정보 계약", () => {
     expect(screen.getByText("기본 작업 공간")).toBeInTheDocument();
     expect(screen.queryByText("owner@example.test")).not.toBeInTheDocument();
   });
+
+  it("V70-HEADER-01 정상: 검토와 일정은 긴 이동 칩이 아니라 우측 유틸 단추로 둔다", () => {
+    render(<RoomHeader workspaceName="브랜드 연구소" subtitle="콘텐츠 작업실" roomLabel="발행실" currentRoom="publish" />);
+
+    expect(screen.getByRole("link", { name: "승인 인박스 열기" })).toHaveTextContent("검토");
+    expect(screen.getByRole("link", { name: "발행 일정 열기" })).toHaveTextContent("일정");
+    expect(screen.queryByText("검토 대기")).not.toBeInTheDocument();
+    expect(screen.queryByText("예약 일정")).not.toBeInTheDocument();
+  });
 });
