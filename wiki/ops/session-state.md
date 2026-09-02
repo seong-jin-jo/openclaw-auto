@@ -77,7 +77,7 @@
 - 보존: 생성, 편집, 발행, 성과 기능과 OAuth 연결, App Review 임시 안내, 사람 승인 없는 외부 게시물 삭제 금지 계약은 변경하지 않았다. Meta 개발자 콘솔을 조작하지 않았다.
 - 검증: 최초 생성실 19건 중 2건 실패를 재현했다. 수정 뒤 생성실 19건과 네 방 집중 42건이 통과했다. 최종 `npx vitest run`은 221파일 1,586건 통과, 38건 조건부 제외, 실패 0이다. `npx tsc --noEmit` 오류 0, production build 177/177, design lint 위반 0, 종료형 서버 `/studio` HTTP 200을 관찰했다.
 - 커밋: `93c77e3e` 회귀 기록, `df552008` 생성실 랜드마크 복구, `5a63119a` 네 방 담당 랜드마크 정합, `2ed2d792` 검증·구현현황 기록.
-- 원격 상태: `git push origin work/v68rooms` 성공. 로컬과 원격이 `2ed2d7929ac6167eedccae5c2e8b21ecd5913f9f`로 일치했다. 이 브랜치 push로 시작된 GitHub Actions 실행은 없다.
+- 원격 상태: `git push origin work/v68rooms` 성공. 기능과 최신 핸드오프 문서까지 각 push 뒤 로컬·원격 SHA 일치를 확인했다. 이 브랜치 push로 시작된 GitHub Actions 실행은 없다.
 - 배포 상태: 머지와 운영 배포는 실행하지 않았다. 다음 QA는 실제 화면 낭독기 랜드마크 탐색으로 네 방 이름을 확인한다.
 
 ## 2026-09-03 02:19 KST | Codex code-builder | v68 담당 패널 접근성 회귀 재현
