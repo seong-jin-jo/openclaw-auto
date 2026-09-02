@@ -1,3 +1,16 @@
+## 2026-09-02 10:25 KST | Claude(Opus) | v67 build 완료·머지·CI 성공. 배포 승인 대기
+
+- 목표 루프로 워커 5판을 돌렸다. 1·2판은 tmux 세션이 소멸(원인 미규명), 3판은 컨트롤러 실행 상한에 걸려 내가 죽였다. 4·5판은 tmux 를 빼고 백그라운드 위임으로 돌려 성공. 매 중단마다 작업분을 보존 커밋으로 남겨 하나도 잃지 않았다.
+- **효과가 확인된 발주 규율**: "10분 안에 끝나는 단위로 쪼개 매번 커밋하라". 이 문장을 넣은 5판이 처음으로 실제 커밋 8개를 남겼다. 앞 판들은 큰 덩어리를 잡고 있다가 끊겨 커밋 0이었다.
+- 결과: `docs/qa/qa-tracker.md` 최상단 v67 판정표 5행이 전부 PASS 로 갱신됨(텍스트 편집 형식, 발행 필드 복원, 계정 표시, 플랫폼별 필드·한도, 전체 흐름). 계약 테스트 id 가 각 행에 붙어 있다.
+- 검증(관찰됨): `npx tsc --noEmit` 오류 0. 워크트리에서 `tests/publish tests/api tests/components tests/lib` 105파일 818건 통과·실패 0. 머지 후 본 저장소 전체 218파일 중 13건 실패는 전부 로컬 PostgreSQL 부재(ECONNREFUSED 127.0.0.1:55432)와 그 파생이다.
+- **CI 성공**: run `33576817755`, HEAD `69b35f24`, conclusion success.
+- 머지: `work/v67build` → `feat/design-system-and-missing-features`. 문서 충돌 3건은 양쪽 보존으로 해소.
+- 컨트롤러 직접 수정 1건(사유 명시): `tests/brand/multi-account-ui.contract.test.ts` 의 작업 공간 변경 계약이 `setSelectedAccounts({})` 를 useEffect 첫 문장으로 요구하는 정규식이라, 같은 effect 안에서 순서만 밀린 리팩터에 깨졌다. 동작은 그대로임을 코드로 확인하고 effect 블록 안에 초기화가 있는지로 바꿨다. 위임 산출물 hand-patch 가 아니라 기존 저장소의 깨지기 쉬운 테스트 보정이다.
+- 신규 의존성: `twitter-text`(X 280 가중 문자 계산). 이 저장소를 쓰는 다른 워크트리는 `npm ci` 를 다시 돌려야 한다.
+- 남은 것: **운영 배포 하나뿐이고 `/approve qa` 가 필요하다.** 배포 게이트(stage-gate RULE2)가 QA 미승인 상태의 배포 명령을 막는다.
+- 미검증: 실제 외부 OAuth 동의, 외부 플랫폼 실게시, 운영 데이터베이스, 운영 배포 후 실경로.
+
 # 세션 상태 (얇은 인덱스)
 
 ## 2026-09-02 09:24 KST | Codex code-builder | OSMU v67 build 증거 완료, 원격 push 정책 차단
