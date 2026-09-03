@@ -26,9 +26,10 @@ describe("헤더 학습 정보 (회장: 왜 헤더에 학습 정보가 사라짐
   it("CHAIR-LEARN-01 정상: 헤더에 학습 정보가 진행 상태와 함께 항상 보인다", () => {
     render(<LearningStatus filled={3} onOpen={noop} />);
 
-    const status = screen.getByRole("button", { name: `학습 정보 3 / ${LEARNING_SLOT_TOTAL}칸 채움. 이어서 채우기` });
+    const status = screen.getByRole("button", { name: `학습 정보 3 / ${LEARNING_SLOT_TOTAL}칸 채움. 남은 5칸 이어 채우기` });
     expect(status).toHaveTextContent("학습 정보");
     expect(status).toHaveTextContent(`3 / ${LEARNING_SLOT_TOTAL}`);
+    expect(status).toHaveTextContent("남은 5칸 이어 채우기");
     expect(status.querySelector("progress")).toHaveAttribute("value", "3");
   });
 
@@ -138,7 +139,7 @@ describe("생성실 (회장: 오늘 만들 수 있는 것이 뭐하는 예시이
     const onResume = vi.fn();
     render(<CreateRoom {...props} resumeCount={2} onResume={onResume} />);
 
-    expect(document.querySelector('[data-create-resume="2"]')).toHaveTextContent("만들던 것 2건이 그대로 있습니다");
+    expect(document.querySelector('[data-create-resume="2"]')).toHaveTextContent("저장된 작업물 2건이 있습니다");
     fireEvent.click(screen.getByRole("button", { name: "이어서 하기" }));
     expect(onResume).toHaveBeenCalled();
   });

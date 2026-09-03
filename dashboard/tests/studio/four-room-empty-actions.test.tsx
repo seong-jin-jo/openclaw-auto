@@ -37,7 +37,29 @@ vi.mock("@/components/shared/BrandSetupWizard", () => ({ BrandSetupWizard: () =>
 vi.mock("@/components/studio/RepoConnect", () => ({ RepoConnect: () => null }));
 vi.mock("@/components/studio/SchedulePanel", () => ({ SchedulePanel: () => null }));
 vi.mock("@/lib/analytics/events", () => ({ trackEvent: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authHeaders: () => ({}) }));
+vi.mock("@/lib/auth", () => ({ authHeaders: () => ({}), getAuthToken: () => "customer-token" }));
+
+const generationCandidates = (["A", "B", "C"] as const).map((label, index) => ({
+  candidate_id: `candidate-${label}`,
+  ordinal: (index + 1) as 1 | 2 | 3,
+  label,
+  angle: (["problem_first", "proof_first", "process_first"] as const)[index],
+  title: `${label} 구조`,
+  rationale: `${label} 설명`,
+  format: { content_branch: "video" as const, preview_kind: "structured_storyboard" as const, quality: "draft" as const, outline: [`${label} 첫 장면`] },
+}));
+
+async function answerStudioQuestionnaire(topic: string) {
+  fireEvent.click(await screen.findByRole("button", { name: "영상" }));
+  fireEvent.click(screen.getByRole("button", { name: "다음" }));
+  fireEvent.click(screen.getByRole("button", { name: "문의 늘리기" }));
+  fireEvent.click(screen.getByRole("button", { name: "혼자 일하는 사장" }));
+  fireEvent.click(screen.getByRole("button", { name: "직접 입력" }));
+  fireEvent.change(screen.getByLabelText("직접 입력한 주제"), { target: { value: topic } });
+  fireEvent.click(screen.getByRole("button", { name: "이 주제로 계속" }));
+  fireEvent.click(screen.getByLabelText("위 조건을 확인했습니다."));
+  fireEvent.click(screen.getByRole("button", { name: "입력 내용 확인" }));
+}
 
 beforeEach(() => {
   localStorage.clear();
@@ -52,7 +74,13 @@ beforeEach(() => {
     if (key === "/api/publish/first-comment-capabilities") return { data: { capabilities: [] }, mutate: vi.fn() };
     return { data: undefined, mutate: vi.fn() };
   });
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ accounts: [] })));
+  vi.stubGlobal("fetch", vi.fn().mockImplementation(async (input: string | URL | Request) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (url.includes("/api/studio/v1/generations")) {
+      return Response.json({ data: { job_id: "job-v77", candidates: generationCandidates } }, { status: 201 });
+    }
+    return Response.json({ accounts: [] });
+  }));
 });
 
 afterEach(() => {
@@ -102,43 +130,48 @@ describe("OSMU-FLOW-UI-03 생성실 첫 행동 계약", () => {
   });
 });
 
-describe("V75-CREATE-NETWORK 생성실 직접 생성 계약", () => {
-  it("V75-CREATE-NETWORK-01 정상: 주제와 선택 구조를 text API에 보내고 결과를 화면에 표시한다", async () => {
+describe("V77-CREATE-NETWORK 생성 담당 구조 선택 계약", () => {
+  it("V77-CREATE-NETWORK-01 정상: 본문 직접 생성 동선을 유지하며 생성 담당에서 고른 주제와 구조를 text API에 보낸다", async () => {
     mocks.room = "create";
     window.history.replaceState(null, "", "/studio?room=create");
     mocks.apiPost.mockImplementation(async (path: string) => {
       if (path === "/api/studio/text") {
-        return { ok: true, threads: "네트워크 요청으로 생성된 한국어 본문입니다." };
+        return { ok: true, shorts: { hook: "네트워크 요청으로 생성된 영상 후보입니다.", body: "영상 본문", cta: "영상 마무리" } };
       }
       return { ok: true };
     });
 
-    render(<StudioPage />);
-    fireEvent.change(await screen.findByLabelText("초안 주제"), { target: { value: "고객 질문 답변" } });
-    fireEvent.click(screen.getByRole("button", { name: "A 구조 사용" }));
-    fireEvent.click(screen.getByRole("button", { name: "초안 만들기" }));
+    const { container } = render(<StudioPage />);
+    expect(container.querySelector("[data-create-workspace]")).toHaveTextContent("주제로 바로 초안 만들기");
+    expect(screen.getByRole("button", { name: "초안 만들기" })).toBeInTheDocument();
+    await answerStudioQuestionnaire("고객 질문 답변");
+    fireEvent.click(screen.getByRole("button", { name: "구조 초안 3개 보기" }));
+    fireEvent.click(await screen.findByRole("button", { name: "A 구조 초안 선택" }));
 
     await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith(
       "/api/studio/text",
       expect.objectContaining({
         idea: "고객 질문 답변",
         tenant_id: "tenant-empty",
-        structure: expect.objectContaining({ label: "A", title: "문제 제시형" }),
+        structure: expect.objectContaining({ label: "A", title: "A 구조" }),
       }),
     ));
-    expect(await screen.findByText("네트워크 요청으로 생성된 한국어 본문입니다.")).toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector("[data-quick-draft-result]")).toHaveTextContent("네트워크 요청으로 생성된 영상 후보입니다."));
+    expect(screen.getByLabelText("생성 담당 대화창")).toBeInTheDocument();
   });
 
-  it("V75-CREATE-NETWORK-02 거절: 주제가 비어 있으면 text API를 호출하지 않는다", async () => {
+  it("V77-CREATE-NETWORK-02 거절: 주제가 비어 있으면 구조 선택과 text API 호출로 진행하지 않는다", async () => {
     mocks.room = "create";
     window.history.replaceState(null, "", "/studio?room=create");
 
     render(<StudioPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "A 구조 사용" }));
-
-    const generate = screen.getByRole("button", { name: "초안 만들기" });
-    expect(generate).toBeDisabled();
-    fireEvent.click(generate);
+    fireEvent.click(await screen.findByRole("button", { name: "영상" }));
+    fireEvent.click(screen.getByRole("button", { name: "다음" }));
+    fireEvent.click(screen.getByRole("button", { name: "문의 늘리기" }));
+    fireEvent.click(screen.getByRole("button", { name: "혼자 일하는 사장" }));
+    fireEvent.click(screen.getByRole("button", { name: "직접 입력" }));
+    expect(screen.getByRole("button", { name: "이 주제로 계속" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: /구조 초안 선택/ })).toBeNull();
     expect(mocks.apiPost).not.toHaveBeenCalledWith("/api/studio/text", expect.anything());
   });
 });

@@ -60,10 +60,94 @@ export interface QuickDraftResult {
   shorts?: { hook?: string; body?: string; cta?: string };
 }
 const ONBOARDING_CONTENT_BRANCH_KEY = "studio_content_branch";
+const CREATE_DRAFT_STORAGE_PREFIX = "studio_create_state";
 
 const CREATE_KIND_LABELS: Record<CreateKind, string> = { video: "영상", card: "카드뉴스", text: "글" };
 const CREATE_KIND_ORDER: CreateKind[] = ["video", "card", "text"];
 const kindToBranch = (kind: CreateKind): CreateContentBranch => (kind === "video" ? "video" : "text_image");
+
+interface PersistedCreateDraft {
+  primaryKind: CreateKind | null;
+  alsoKinds: CreateKind[];
+  questionIndex: number;
+  purpose: string;
+  audience: string;
+  rightsConfirmed: boolean;
+  topicOpen: boolean;
+  candidates: StudioGenerationCandidate[];
+  selected: "A" | "B" | "C" | null;
+  quickStructure: CreateStructureChoice | null;
+}
+
+function createDraftStorageKey(workspaceId: string): string {
+  return `${CREATE_DRAFT_STORAGE_PREFIX}:${workspaceId}`;
+}
+
+function isCreateKind(value: unknown): value is CreateKind {
+  return value === "video" || value === "card" || value === "text";
+}
+
+function isCandidateLabel(value: unknown): value is "A" | "B" | "C" {
+  return value === "A" || value === "B" || value === "C";
+}
+
+function isStudioGenerationCandidate(value: unknown): value is StudioGenerationCandidate {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<StudioGenerationCandidate>;
+  return typeof candidate.candidate_id === "string"
+    && isCandidateLabel(candidate.label)
+    && typeof candidate.title === "string"
+    && Boolean(candidate.format)
+    && Array.isArray(candidate.format?.outline)
+    && candidate.format.outline.every((line) => typeof line === "string");
+}
+
+function readCreateDraft(workspaceId: string): PersistedCreateDraft | null {
+  try {
+    const raw = localStorage.getItem(createDraftStorageKey(workspaceId));
+    if (!raw) return null;
+    const value = JSON.parse(raw) as Partial<PersistedCreateDraft>;
+    const questionIndex = Number(value.questionIndex);
+    if ((value.primaryKind !== null && !isCreateKind(value.primaryKind))
+      || !Array.isArray(value.alsoKinds)
+      || value.alsoKinds.some((kind) => !isCreateKind(kind))
+      || !Number.isInteger(questionIndex)
+      || questionIndex < 0
+      || questionIndex >= CREATE_QUESTIONS.length
+      || typeof value.purpose !== "string"
+      || typeof value.audience !== "string"
+      || typeof value.rightsConfirmed !== "boolean"
+      || typeof value.topicOpen !== "boolean"
+      || !Array.isArray(value.candidates)
+      || value.candidates.some((candidate) => !isStudioGenerationCandidate(candidate))
+      || (value.selected !== null && !isCandidateLabel(value.selected))) {
+      throw new Error("생성실 임시 저장 형식이 올바르지 않습니다");
+    }
+    const quickStructure = value.quickStructure;
+    if (quickStructure !== null && (!quickStructure
+      || !isCandidateLabel(quickStructure.label)
+      || typeof quickStructure.title !== "string"
+      || !Array.isArray(quickStructure.outline)
+      || quickStructure.outline.some((line) => typeof line !== "string"))) {
+      throw new Error("생성실 구조 임시 저장 형식이 올바르지 않습니다");
+    }
+    return {
+      primaryKind: value.primaryKind ?? null,
+      alsoKinds: value.alsoKinds as CreateKind[],
+      questionIndex,
+      purpose: value.purpose,
+      audience: value.audience,
+      rightsConfirmed: value.rightsConfirmed,
+      topicOpen: value.topicOpen,
+      candidates: value.candidates as StudioGenerationCandidate[],
+      selected: value.selected ?? null,
+      quickStructure: quickStructure ?? null,
+    };
+  } catch {
+    localStorage.removeItem(createDraftStorageKey(workspaceId));
+    return null;
+  }
+}
 
 function AssistantPanel({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -140,7 +224,7 @@ export function generationErrorMessage(cause: unknown): string {
 
 export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBranch = "text_image", onContentBranchChange, onTopicChange, onCandidateSelect, onOpenEditor, onPrimaryKindChange, onAlsoKindsChange, learningVersion = 0, resumeCount = 0, onResume, quickDraft, quickDraftLoading = false, quickDraftError, onQuickDraftGenerate }: CreateRoomProps) {
   const topicInputRef = useRef<HTMLInputElement>(null);
-  const previousWorkspaceId = useRef(workspaceId);
+  const [hydratedCreateWorkspaceId, setHydratedCreateWorkspaceId] = useState<string | null>(null);
   const [primaryKind, setPrimaryKind] = useState<CreateKind | null>(null);
   const [alsoKinds, setAlsoKinds] = useState<CreateKind[]>([]);
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -169,37 +253,90 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
   const purposeTitle = useMemo(() => PURPOSE_CARDS.find((card) => card.sample === purpose)?.title || "", [purpose]);
   const topicCards = useMemo(() => topicCandidates(industryTitle, purposeTitle), [industryTitle, purposeTitle]);
 
-  useEffect(() => {
-    const savedBranch = sessionStorage.getItem(ONBOARDING_CONTENT_BRANCH_KEY);
-    if (savedBranch !== "text_image" && savedBranch !== "video") return;
-    onContentBranchChange?.(savedBranch);
-    const savedKind: CreateKind = savedBranch === "video" ? "video" : "card";
-    setPrimaryKind(savedKind);
-    onPrimaryKindChange?.(savedKind);
-    sessionStorage.removeItem(ONBOARDING_CONTENT_BRANCH_KEY);
-  }, [onContentBranchChange, onPrimaryKindChange]);
-
-  // 생성실은 언제나 새로 시작 상태로 열린다(질문6 확정). 이전 작업물은 지우지 않고
-  // 헤더 작업물함에 그대로 있고, 위쪽 "이어서 하기" 한 줄로 부른다.
-  // 브랜드에 매달린 값(대상, 소재 권리)만 학습 정보에서 되살린다.
+  // 학습 정보는 작업 공간마다 다시 읽는다. 생성실 문답의 임시 저장과는 별도다.
   useEffect(() => {
     if (!workspaceId) return;
     const saved = readLearningInfo(workspaceId);
     setLearning(saved);
-    setAudience(saved.audience || "");
-    setRightsConfirmed(Boolean(saved.rights));
+    setAudience((current) => current || saved.audience || "");
+    setRightsConfirmed((current) => current || Boolean(saved.rights));
+  }, [workspaceId, learningVersion]);
+
+  // 새로고침해도 생성실 질문, 선택 구조, 생성 후보를 작업 공간별로 이어 간다.
+  // 깨진 저장값은 조용히 폐기하고 학습 정보에서 확인된 기본값만 사용한다.
+  useEffect(() => {
+    setHydratedCreateWorkspaceId(null);
+    setPrimaryKind(null);
+    setAlsoKinds([]);
+    setQuestionIndex(0);
     setPurpose("");
+    setAudience("");
+    setRightsConfirmed(false);
     setTopicOpen(false);
-    if (previousWorkspaceId.current !== workspaceId) {
-      previousWorkspaceId.current = workspaceId;
-      setPrimaryKind(null);
-      setAlsoKinds([]);
-      setQuestionIndex(0);
-      setQuickStructure(null);
-      onPrimaryKindChange?.(null);
-      onAlsoKindsChange?.([]);
+    setCandidates([]);
+    setSelected(null);
+    setQuickStructure(null);
+    onPrimaryKindChange?.(null);
+    onAlsoKindsChange?.([]);
+    if (!workspaceId) return;
+
+    const learned = readLearningInfo(workspaceId);
+    const onboardingBranch = sessionStorage.getItem(ONBOARDING_CONTENT_BRANCH_KEY);
+    if (onboardingBranch === "text_image" || onboardingBranch === "video") {
+      const onboardingKind: CreateKind = onboardingBranch === "video" ? "video" : "card";
+      setPrimaryKind(onboardingKind);
+      onPrimaryKindChange?.(onboardingKind);
+      onContentBranchChange?.(onboardingBranch);
+      setAudience(learned.audience || "");
+      setRightsConfirmed(Boolean(learned.rights));
+      sessionStorage.removeItem(ONBOARDING_CONTENT_BRANCH_KEY);
+      setHydratedCreateWorkspaceId(workspaceId);
+      return;
     }
-  }, [workspaceId, learningVersion, onAlsoKindsChange, onPrimaryKindChange]);
+    const saved = readCreateDraft(workspaceId);
+    if (saved) {
+      setPrimaryKind(saved.primaryKind);
+      setAlsoKinds(saved.alsoKinds);
+      setQuestionIndex(saved.questionIndex);
+      setPurpose(saved.purpose);
+      setAudience(saved.audience || learned.audience || "");
+      setRightsConfirmed(saved.rightsConfirmed || Boolean(learned.rights));
+      setTopicOpen(saved.topicOpen);
+      setCandidates(saved.candidates);
+      setSelected(saved.selected);
+      setQuickStructure(saved.quickStructure);
+      onPrimaryKindChange?.(saved.primaryKind);
+      onAlsoKindsChange?.(saved.alsoKinds);
+      if (saved.primaryKind) onContentBranchChange?.(kindToBranch(saved.primaryKind));
+      const savedCandidate = saved.candidates.find((candidate) => candidate.label === saved.selected);
+      if (savedCandidate) onCandidateSelect(savedCandidate);
+    } else {
+      setAudience(learned.audience || "");
+      setRightsConfirmed(Boolean(learned.rights));
+    }
+    setHydratedCreateWorkspaceId(workspaceId);
+  }, [workspaceId]);
+
+  useEffect(() => {
+    if (!workspaceId || hydratedCreateWorkspaceId !== workspaceId) return;
+    const value: PersistedCreateDraft = {
+      primaryKind,
+      alsoKinds,
+      questionIndex,
+      purpose,
+      audience,
+      rightsConfirmed,
+      topicOpen,
+      candidates,
+      selected,
+      quickStructure,
+    };
+    try {
+      localStorage.setItem(createDraftStorageKey(workspaceId), JSON.stringify(value));
+    } catch {
+      setError("생성실 입력을 임시 저장하지 못했습니다. 브라우저 저장 공간을 확인해 주세요.");
+    }
+  }, [workspaceId, hydratedCreateWorkspaceId, primaryKind, alsoKinds, questionIndex, purpose, audience, rightsConfirmed, topicOpen, candidates, selected, quickStructure]);
 
   const rememberLearning = (patch: LearningInfo) => {
     setLearning((current) => {
@@ -288,6 +425,17 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
     onCandidateSelect(candidate);
   }
 
+  function chooseStructureCandidate(candidate: StudioGenerationCandidate) {
+    choose(candidate);
+    const structure: CreateStructureChoice = {
+      label: candidate.label,
+      title: candidate.title,
+      outline: candidate.format.outline,
+    };
+    setQuickStructure(structure);
+    void onQuickDraftGenerate?.(structure);
+  }
+
   // 같이 만들 갈래를 고른 채로 후보를 고르면, 확정을 누르기 전에 값을 먼저 보여 준다.
   // 값을 못 본 상태에서는 확정 단추가 뜨지 않으므로 조용히 나가는 경로가 없다.
   useEffect(() => {
@@ -333,10 +481,20 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
   }
 
   const kindHeading = primaryKind ? `${CREATE_KIND_LABELS[primaryKind]} 구성 초안 예시` : "콘텐츠 구성 초안 예시";
-  const quickDraftText = quickDraft?.threads
-    || quickDraft?.facebook
-    || quickDraft?.instagram?.caption
-    || [quickDraft?.shorts?.hook, quickDraft?.shorts?.body, quickDraft?.shorts?.cta].filter(Boolean).join("\n");
+  const quickDraftSections = (primaryKind ? [primaryKind, ...alsoKinds] : CREATE_KIND_ORDER)
+    .map((kind) => {
+      if (kind === "video") {
+        const lines = [quickDraft?.shorts?.hook, quickDraft?.shorts?.body, quickDraft?.shorts?.cta].filter((line): line is string => Boolean(line));
+        return { kind, label: "영상 대본 후보", lines };
+      }
+      if (kind === "card") {
+        const lines = [...(quickDraft?.instagram?.slides || []), quickDraft?.instagram?.caption || ""].filter(Boolean);
+        return { kind, label: "카드뉴스 후보", lines };
+      }
+      const lines = [quickDraft?.threads || quickDraft?.facebook || quickDraft?.x || ""].filter(Boolean);
+      return { kind, label: "글 후보", lines };
+    })
+    .filter((section) => section.lines.length > 0);
   const learningRows = [
     ["작업 공간", workspaceDisplayName(workspaceName)],
     ["업종", learning.industry || guide || "아직 없음"],
@@ -350,7 +508,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
     <section data-room="create" className="space-y-region">
       {resumeCount > 0 ? (
         <section data-create-resume={resumeCount} className="flex min-h-control-touch flex-wrap items-center gap-stack rounded-surface border border-border bg-surface-2 px-pad-inset py-stack">
-          <span className="mr-auto break-keep text-body-sm text-muted">만들던 것 {resumeCount}건이 그대로 있습니다. 지금 화면은 새로 시작하는 자리입니다</span>
+          <span className="mr-auto break-keep text-body-sm text-muted">저장된 작업물 {resumeCount}건이 있습니다. 지금 입력도 새로고침 뒤 이어집니다</span>
           <Button size="sm" onClick={onResume}>이어서 하기</Button>
         </section>
       ) : null}
@@ -379,9 +537,12 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
               />
             </Field>
             {quickStructure ? (
-              <p className="break-keep rounded-control bg-accent-soft p-stack text-caption text-accent" data-quick-structure={quickStructure.label}>
-                {quickStructure.label} {quickStructure.title} 구조를 반영합니다. {quickStructure.outline.join(", ")}
-              </p>
+              <article className="rounded-control border border-accent/30 bg-accent-soft p-stack" data-quick-structure={quickStructure.label}>
+                <b className="block text-body-sm text-accent">{quickStructure.label} {quickStructure.title} 후보</b>
+                <ol className="mt-stack-tight space-y-micro text-caption text-accent">
+                  {quickStructure.outline.map((line, index) => <li key={`${quickStructure.label}-${line}`}><span className="mr-micro font-semibold">{index + 1}.</span>{line}</li>)}
+                </ol>
+              </article>
             ) : (
               <p className="text-caption text-subtle">아래 A, B, C 중 하나를 골라 생성 구조를 정해 주세요.</p>
             )}
@@ -394,13 +555,6 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
               {quickDraftLoading ? "초안 만드는 중" : "초안 만들기"}
             </Button>
             {quickDraftError ? <p role="alert" className="text-caption text-danger">{quickDraftError}</p> : null}
-            {quickDraftText ? (
-              <section className="rounded-surface border border-success/30 bg-success/10 p-pad-inset" aria-labelledby="quick-draft-result-title" data-quick-draft-result>
-                <h3 id="quick-draft-result-title" className="text-body font-bold text-text">생성 결과</h3>
-                <p className="mt-stack whitespace-pre-wrap break-keep text-body-sm text-muted">{quickDraftText}</p>
-                {onOpenEditor ? <Button className="mt-stack" variant="primary" onClick={onOpenEditor}>편집실에서 다듬기</Button> : null}
-              </section>
-            ) : null}
           </section>
           <section className="grid gap-stack sm:grid-cols-3" aria-label="생성실 요약">
             <article className="card p-pad-inset"><span className="text-caption text-subtle">선택한 형식</span><b className="mt-micro block text-body text-text">{primaryKind ? CREATE_KIND_LABELS[primaryKind] : "선택 전"}</b></article>
@@ -425,7 +579,14 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
                       {outline.map((item, index) => <li key={`${candidate.label}-${index}`} className="flex gap-stack-tight text-caption text-muted"><span className="text-accent">{index + 1}</span><span className="break-keep">{item}</span></li>)}
                     </ol>
                     {"format" in candidate ? (
-                      <Button variant={selected === candidate.label ? "primary" : "secondary"} className="w-full min-w-0" onClick={() => choose(candidate)}>{candidate.label} 구조를 본문에서 선택</Button>
+                      <Button
+                        variant={selected === candidate.label ? "primary" : "secondary"}
+                        className="w-full min-w-0"
+                        onClick={() => chooseStructureCandidate(candidate)}
+                        disabled={quickDraftLoading}
+                      >
+                        {quickDraftLoading ? "후보 만드는 중" : `${candidate.label} 구조를 본문에서 선택`}
+                      </Button>
                     ) : (
                       <Button
                         variant={quickStructure?.label === candidate.label ? "primary" : "secondary"}
@@ -441,6 +602,21 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
               })}
             </div>
           </section>
+          {quickDraftSections.length ? (
+            <section className="rounded-surface border border-success/30 bg-success/10 p-pad-inset" aria-labelledby="quick-draft-result-title" data-quick-draft-result>
+              <h3 id="quick-draft-result-title" className="text-body font-bold text-text">고른 형식의 생성 후보</h3>
+              <div className="mt-stack grid gap-stack md:grid-cols-2">
+                {quickDraftSections.map((section) => (
+                  <article key={section.kind} className="rounded-control border border-success/30 bg-surface p-stack" data-quick-draft-format={section.kind}>
+                    <b className="block text-body-sm text-text">{section.label}</b>
+                    <ol className="mt-stack-tight space-y-stack-tight">
+                      {section.lines.map((line, index) => <li key={`${section.kind}-${index}`} className="whitespace-pre-wrap break-keep text-caption text-muted">{line}</li>)}
+                    </ol>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : null}
           <section className="card p-pad-inset" aria-labelledby="create-learning-title">
             <div className="mb-stack flex flex-wrap items-center justify-between gap-stack"><div><h2 id="create-learning-title" className="text-body font-bold text-text">이번에 반영한 학습 정보</h2><p className="text-caption text-subtle">사용자가 승인한 내용만 적용합니다.</p></div><span className="text-caption text-subtle">{learnedCount} / {LEARNING_SLOT_TOTAL}</span></div>
             <progress className="progress-semantic mb-stack w-full" max={LEARNING_SLOT_TOTAL} value={learnedCount} aria-label="학습 정보 수집 정도" />
@@ -528,7 +704,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
               {question === "review" ? <><Button onClick={() => setQuestionIndex(0)}>입력 내용 수정</Button><Button variant="primary" onClick={generate} disabled={loading || missing.length > 0}>{loading ? "구조 초안 만드는 중" : "구조 초안 3개 보기"}</Button></> : null}
             </> : null}
             {candidates.length && !selectedCandidate ? <>
-              {candidates.map((candidate) => <Button key={candidate.label} variant="secondary" onClick={() => choose(candidate)}>{candidate.label} 구조 초안 선택</Button>)}
+              {candidates.map((candidate) => <Button key={candidate.label} variant="secondary" onClick={() => chooseStructureCandidate(candidate)} disabled={quickDraftLoading}>{quickDraftLoading ? "후보 만드는 중" : `${candidate.label} 구조 초안 선택`}</Button>)}
               <Button onClick={regenerateAll} disabled={loading}>{loading ? "다시 만드는 중" : "3개 모두 바꾸기"}</Button>
             </> : null}
             {selectedCandidate && alsoQuote && !alsoBatch ? (
@@ -565,6 +741,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
               </div>
             ) : null}
             {selectedCandidate && (alsoKinds.length === 0 || Boolean(alsoBatch)) ? <Stack gap={8}><Button variant="primary" onClick={onOpenEditor}>편집실에서 다듬기</Button><Button onClick={() => setSelected(null)}>구조 초안 다시 고르기</Button></Stack> : null}
+            {quickDraftError ? <p role="alert" className="text-caption text-danger">{quickDraftError}</p> : null}
             {error ? <p role="alert" className="text-caption text-danger">{error}</p> : null}
           </Stack>
         </AssistantPanel>

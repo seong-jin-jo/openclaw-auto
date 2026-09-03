@@ -135,7 +135,7 @@ describe("화면 2차 생성실 계약", () => {
     expect(request.headers).toMatchObject({ Authorization: "Bearer customer-jwt" });
   });
 
-  it("QA-CREATE-04 정상: 생성실은 새로 시작하되 브랜드에 매달린 값은 학습 정보에서 되살린다", async () => {
+  it("V77-CREATE-PERSIST-03 정상: 생성실 문답과 학습 정보가 함께 되살아난다", async () => {
     const props = {
       workspaceId: "workspace-a",
       workspaceName: "작업 공간 A",
@@ -152,14 +152,11 @@ describe("화면 2차 생성실 계약", () => {
     first.unmount();
     render(<CreateRoom {...props} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "영상" }));
-    fireEvent.click(screen.getByRole("button", { name: "다음" }));
-    expect(screen.getByRole("button", { name: "문의 늘리기" })).toHaveAttribute("aria-pressed", "false");
-    fireEvent.click(screen.getByRole("button", { name: "브랜드 알리기" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "혼자 일하는 사장" })).toHaveAttribute("aria-pressed", "true"));
-    fireEvent.click(screen.getByRole("button", { name: "혼자 일하는 사장" }));
-    fireEvent.click(document.querySelector("[data-create-topic-picker] button") as HTMLElement);
-    expect(screen.getByLabelText("위 조건을 확인했습니다.")).toBeChecked();
+    expect(document.querySelector('[data-create-question="review"]')).toBeInTheDocument();
+    expect(document.querySelector("[data-create-review]")).toHaveTextContent("영상");
+    expect(document.querySelector("[data-create-review]")).toHaveTextContent("상담이나 문의를 시작");
+    expect(document.querySelector("[data-create-review]")).toHaveTextContent("사람 더 못 뽑는 상황");
+    expect(document.querySelector("[data-create-review]")).toHaveTextContent("확인됨");
   });
 
   it("QA-CREATE-05 경합: 후보 생성 연타는 클라이언트에서 단일 POST로 합친다", async () => {

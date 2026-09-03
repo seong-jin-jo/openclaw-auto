@@ -40,6 +40,22 @@ await page.route("**/api/**", async (route) => {
   if (pathname === "/api/studio/engine-status") return json(route, { ready: true });
   if (pathname === "/api/studio/drafts") return json(route, { drafts: [], currentWork: null });
   if (pathname === "/api/images") return json(route, { images: [] });
+  if (pathname === "/api/studio/v1/generations" && request.method() === "POST") {
+    return json(route, {
+      data: {
+        job_id: "job-v75-build",
+        candidates: ["A", "B", "C"].map((label, index) => ({
+          candidate_id: `candidate-${label}`,
+          ordinal: index + 1,
+          label,
+          angle: ["problem_first", "proof_first", "process_first"][index],
+          title: `${label} 구조`,
+          rationale: `${label} 설명`,
+          format: { content_branch: "video", preview_kind: "structured_storyboard", quality: "draft", outline: [`${label} 첫 장면`, `${label} 본문`, `${label} 마무리`] },
+        })),
+      },
+    }, 201);
+  }
   if (pathname === "/api/studio/text" && request.method() === "POST") {
     textRequests.push(JSON.parse(request.postData() || "{}"));
     if (useLiveText) return route.continue();
@@ -51,45 +67,56 @@ await page.route("**/api/**", async (route) => {
 try {
   await page.goto(`${baseUrl}/studio?room=create`, { waitUntil: "networkidle", timeout: 60_000 });
   await page.locator('[data-room="create"]').waitFor({ state: "visible" });
-  await page.getByLabel("초안 주제").fill("고객이 반복해서 묻는 질문에 답하기");
+  const assistant = page.getByLabel("생성 담당 대화창");
+  const workspace = page.locator("[data-create-workspace]");
+  const chatPresent = await assistant.isVisible();
+  const directGenerationButtonCount = await workspace.getByRole("button", { name: "초안 만들기", exact: true }).count();
+  await workspace.getByRole("button", { name: "B 구조 사용", exact: true }).click();
+  await workspace.getByLabel("초안 주제").fill("고객이 바로 이해하는 서비스 소개");
 
-  const structureBodyBefore = await page.evaluate(() => document.body.innerText.length);
-  await page.getByRole("button", { name: "B 구조 사용", exact: true }).click();
-  const structureBodyAfter = await page.evaluate(() => document.body.innerText.length);
-  const selectedStructureText = await page.locator('[data-quick-structure="B"]').innerText();
+  const directBodyBefore = await page.evaluate(() => document.body.innerText.length);
+  await workspace.getByRole("button", { name: "초안 만들기", exact: true }).click();
+  await page.locator("[data-quick-draft-result]").waitFor({ state: "visible" });
+  const directBodyAfter = await page.evaluate(() => document.body.innerText.length);
+  const observedGeneratedText = await page.locator("[data-quick-draft-result]").innerText();
 
-  const generateBodyBefore = await page.evaluate(() => document.body.innerText.length);
-  await page.getByRole("button", { name: "초안 만들기", exact: true }).click();
-  const resultBody = page.locator("[data-quick-draft-result] p");
-  await resultBody.waitFor({ state: "visible" });
-  const observedGeneratedText = await resultBody.innerText();
-  const generateBodyAfter = await page.evaluate(() => document.body.innerText.length);
+  const learningStatus = page.locator("button[data-learning-status]:visible").first();
+  const headerLearningText = (await learningStatus.innerText()).replace(/\s+/g, " ").trim();
+  const learningBodyBefore = await page.evaluate(() => document.body.innerText.length);
+  await learningStatus.click();
+  await page.locator("[data-learning-wizard]").waitFor({ state: "visible" });
+  const learningBodyAfter = await page.evaluate(() => document.body.innerText.length);
+  await page.getByRole("button", { name: "나중에 하기", exact: true }).click();
 
   const buttonTexts = await page.locator("button").allInnerTexts();
   const englishButtonLabels = buttonTexts
     .map((text) => text.replace(/\s+/g, " ").trim())
     .filter((text) => /[A-Za-z]{2,}/.test(text));
 
-  if (structureBodyAfter === structureBodyBefore) throw new Error("구조 카드 클릭 전후 본문 길이가 같습니다");
-  if (generateBodyAfter === generateBodyBefore) throw new Error("생성 단추 클릭 전후 본문 길이가 같습니다");
+  if (!chatPresent) throw new Error("생성 담당 대화창이 화면에 없습니다");
+  if (directGenerationButtonCount !== 1) throw new Error(`본문 직접 생성 단추가 ${directGenerationButtonCount}개입니다`);
+  if (directBodyAfter === directBodyBefore) throw new Error("본문 직접 생성 클릭 전후 본문 길이가 같습니다");
+  if (learningBodyAfter === learningBodyBefore) throw new Error("헤더 학습 정보 클릭 전후 본문 길이가 같습니다");
   if (textRequests.length !== 1) throw new Error(`텍스트 생성 요청이 ${textRequests.length}건입니다`);
   if (textRequests[0]?.structure?.label !== "B") throw new Error("선택한 B 구조가 생성 요청에 없습니다");
-  if (!useLiveText && observedGeneratedText !== generatedText) throw new Error("결정론적 생성 결과가 화면과 다릅니다");
+  if (!useLiveText && !observedGeneratedText.includes(generatedText)) throw new Error("결정론적 생성 결과가 화면과 다릅니다");
   if (englishButtonLabels.length !== 0) throw new Error(`영어 단추 라벨이 남았습니다: ${englishButtonLabels.join(", ")}`);
   if (consoleErrors.length !== 0) throw new Error(`브라우저 콘솔 오류가 남았습니다: ${consoleErrors.join(" | ")}`);
   if (screenshotPath) await page.screenshot({ path: screenshotPath, fullPage: true });
 
   const evidence = {
-    generateClick: {
-      bodyTextLengthBefore: generateBodyBefore,
-      bodyTextLengthAfter: generateBodyAfter,
-      delta: generateBodyAfter - generateBodyBefore,
+    directGenerationClick: {
+      bodyTextLengthBefore: directBodyBefore,
+      bodyTextLengthAfter: directBodyAfter,
+      delta: directBodyAfter - directBodyBefore,
     },
-    structureClick: {
-      bodyTextLengthBefore: structureBodyBefore,
-      bodyTextLengthAfter: structureBodyAfter,
-      delta: structureBodyAfter - structureBodyBefore,
-      selectedStructureText,
+    chatPresent,
+    directGenerationButtonCount,
+    headerLearningText,
+    learningClick: {
+      bodyTextLengthBefore: learningBodyBefore,
+      bodyTextLengthAfter: learningBodyAfter,
+      delta: learningBodyAfter - learningBodyBefore,
     },
     buttonTexts,
     englishButtonLabelCount: englishButtonLabels.length,
