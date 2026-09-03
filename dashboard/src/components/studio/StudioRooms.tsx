@@ -253,16 +253,6 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
   const purposeTitle = useMemo(() => PURPOSE_CARDS.find((card) => card.sample === purpose)?.title || "", [purpose]);
   const topicCards = useMemo(() => topicCandidates(industryTitle, purposeTitle), [industryTitle, purposeTitle]);
 
-  useEffect(() => {
-    const savedBranch = sessionStorage.getItem(ONBOARDING_CONTENT_BRANCH_KEY);
-    if (savedBranch !== "text_image" && savedBranch !== "video") return;
-    onContentBranchChange?.(savedBranch);
-    const savedKind: CreateKind = savedBranch === "video" ? "video" : "card";
-    setPrimaryKind(savedKind);
-    onPrimaryKindChange?.(savedKind);
-    sessionStorage.removeItem(ONBOARDING_CONTENT_BRANCH_KEY);
-  }, [onContentBranchChange, onPrimaryKindChange]);
-
   // 학습 정보는 작업 공간마다 다시 읽는다. 생성실 문답의 임시 저장과는 별도다.
   useEffect(() => {
     if (!workspaceId) return;
@@ -291,6 +281,18 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
     if (!workspaceId) return;
 
     const learned = readLearningInfo(workspaceId);
+    const onboardingBranch = sessionStorage.getItem(ONBOARDING_CONTENT_BRANCH_KEY);
+    if (onboardingBranch === "text_image" || onboardingBranch === "video") {
+      const onboardingKind: CreateKind = onboardingBranch === "video" ? "video" : "card";
+      setPrimaryKind(onboardingKind);
+      onPrimaryKindChange?.(onboardingKind);
+      onContentBranchChange?.(onboardingBranch);
+      setAudience(learned.audience || "");
+      setRightsConfirmed(Boolean(learned.rights));
+      sessionStorage.removeItem(ONBOARDING_CONTENT_BRANCH_KEY);
+      setHydratedCreateWorkspaceId(workspaceId);
+      return;
+    }
     const saved = readCreateDraft(workspaceId);
     if (saved) {
       setPrimaryKind(saved.primaryKind);
