@@ -3541,3 +3541,10 @@
 {"ts":"2026-09-01T16:35:40Z","hook":"handoff-prompt-router","status":"pass","detail":"no keyword"}
 {"ts":"2026-09-01T16:35:40Z","hook":"prompt-keyword-router","status":"pass","detail":"no keyword"}
 {"ts":"2026-09-01T19:55:19Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-09-03T00:15:05Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-09-03T00:15:09Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-09-03T00:15:09Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-09-03T00:15:09Z","hook":"chairman-request-capture","status":"captured","detail":"verbatim request preserved","file":"/private/tmp/osmu-wt-v71auth/docs/requests/inbox/chairman-2026-09.md","bytes":14763}
+{"ts":"2026-09-03T08:41:44Z","hook":"prompt-keyword-router","status":"trigger","detail":"issue keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-09-03T08:41:44Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
+{"ts":"2026-09-03T08:41:44Z","hook":"chairman-request-capture","status":"captured","detail":"verbatim request preserved","file":"/private/tmp/osmu-wt-v71auth/docs/requests/inbox/chairman-2026-09.md","bytes":15364}
