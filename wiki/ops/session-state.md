@@ -1,3 +1,10 @@
+## 2026-09-03 22:12 KST | Codex Stage Controller | v67 QA 필수 핀 결함으로 재개
+
+- 상태 변경: `pipeline-state.osmu.md`의 v67 QA를 `approved`에서 `in-progress`로 되돌리고 `approved_stages`에서 `qa`를 제거했다. v68 build의 기존 허용 범위는 변경하지 않았다.
+- 근거: `pipeline-pin-gate`가 기능 해피·엣지, 디자인 정합, 회귀의 세 필수 승인 핀이 없음을 차단했다. 현재 확인된 회귀 문서에는 전체 NG가 포함돼 있어 승인 증거로 대체할 수 없다.
+- 검증: `pipeline-artifact-lint.sh pipeline-state.osmu.md` 통과, `state-file-lint.sh` 종료코드 0, `git diff --check` 통과.
+- 다음 액션: qa-verifier가 v67 범위의 세 산출물을 실제 검증해 생성하고, Stage Controller가 핀한 뒤 `/approve qa`로만 다시 승인한다. 그 전까지 배포는 잠긴다.
+
 ## 2026-09-03 22:08 KST | Codex code-builder | 기존 v67 QA 승인 핀 결함 회수
 
 - 현재 작업과의 관계: v74 발행실 테스트 안정화 코드는 검증을 마쳤다. 종료 훅이 이번 변경과 무관한 `pipeline-state.osmu.md`의 기존 v67 QA 승인에서 필수 산출물 핀 누락을 발견했다.

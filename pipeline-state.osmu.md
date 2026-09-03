@@ -63,12 +63,14 @@ design_canonical_candidate:
 - 이 블록은 design candidate 핀이다. `approved_artifacts`가 아니며 `/approve design` 전 제품 소스 구현 기준으로 승격하지 않는다.
 - 머지와 배포를 하지 않는다.
 
-## 2026-09-03 v67 QA 승인 (회장 채팅 승인)
+## 2026-09-03 v67 QA 재개 (필수 승인 핀 누락)
 
 stage: qa
-status: approved
-approved_stages: [plan, design, build, qa]
-approved_by: 회장 (2026-09-03 채팅 "배포는 승인할게")
+status: in-progress
+approved_stages: [plan, design, build]
+reopened_by: Codex Stage Controller (2026-09-03 pipeline-pin-gate)
+reopen_reason: v67 QA 승인에 stages.yaml 필수 증거인 qa-tracker, design-conformance-matrix, regression의 승인 핀이 없다. NG 또는 다른 버전 산출물을 대신 핀하지 않고 QA를 재검증한다.
+previous_approval: 회장 (2026-09-03 채팅 "배포는 승인할게")
 approved_head: `74e092be`
 evidence:
 - CI run `33583258595` conclusion success, HEAD `3fcc6af3`
@@ -78,6 +80,9 @@ evidence:
 - `docs/qa/qa-tracker.md` 최상단 v67 판정표
 
 범위: `openclaw-dashboard-osmu` 서비스만 배포한다. 게이트웨이는 이 저장소 밖이며 범위가 아니다.
+
+승인 로그:
+- ⟲ REOPEN qa: v67 기능 해피·엣지, 디자인 정합, 회귀의 세 승인 산출물을 실제 검증하고 핀하기 전까지 QA와 배포 승인을 잠근다.
 
 ## 2026-09-02 v67 편집실·발행실 통합 디자인 승인 후보
 

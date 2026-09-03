@@ -3555,3 +3555,4 @@
 {"ts":"2026-09-03T13:02:04Z","hook":"pipeline-pin-gate","status":"block","detail":"approved artifact pin mismatch"}
 {"ts":"2026-09-03T13:04:01Z","hook":"pipeline-pin-gate","status":"block","detail":"approved artifact pin mismatch"}
 {"ts":"2026-09-03T13:06:30Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
+{"ts":"2026-09-03T13:08:17Z","hook":"pipeline-pin-gate","status":"block","detail":"approved artifact pin mismatch"}
