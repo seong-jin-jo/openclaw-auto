@@ -1,3 +1,13 @@
+## 2026-09-04 05:01 KST | Codex code-builder | v76 채널 재연결 중복 키 수정 검증
+
+- 핸드오프 기준: 회장이 지정한 `work/v76dup`, `/tmp/osmu-wt-v76dup`과 이 턴의 원인 확정 과제를 primary로 사용했다. 기존 운영 pane은 별도 트랙이며 이 격리 워크트리의 중복 실행은 없었다.
+- 변경: 공통 계정 INSERT를 `(tenant_id, provider, external_account_id)` 기준 원자적 갱신으로 바꿨다. 토큰, refresh token, 표시 이름, 사용자명, meta, 상태, 만료 시각을 갱신하되 `is_default`는 보존한다. callback은 기존 행이면 `연결을 새로 고쳤습니다`로 알린다.
+- 실제 DB 증거: PostgreSQL 16에서 1회차 성공 1, 2회차 성공 1, provider 행 1, token 갱신 1, 표시 이름 갱신 1, 기본 행 1, 기본 유지 1. refresh token, 사용자명, meta, 상태, 만료 시각도 2회차 값과 일치했다.
+- 회귀 증거: DB 집중 3건 통과, 전체 Vitest 226파일 1,676건 통과·1건 제외·실패 0, TypeScript 오류 0, design lint 위반 0, production build 177/177. 기존 NFT 경고 1건은 유지됐다.
+- 교차 모델 리뷰: Claude Sonnet 읽기 전용 리뷰는 코드 finding 0건이었다. 리뷰 CLI가 별도 session 브랜치로 전환하고 상태 파일을 쓴 부수효과는 즉시 제거하고 `work/v76dup`을 검증된 커밋으로 fast-forward했다.
+- 커밋: `10ac03db`, `5d878f09`, `397ee470`, `f3934f7a`, `721ced7f`, `acbab3d8`. 기존 `.codex/logs/harness.jsonl`과 `docs/requests/inbox/chairman-2026-09.md` 변경은 stage하지 않았다.
+- 배포: 머지와 운영 배포는 실행하지 않았다. 다음 QA는 운영 반영 뒤 기존 Threads 계정으로 재연결하고 popup 문구, 연결 상태, 기본 발행 계정 id를 직접 대조한다.
+
 ## 2026-09-04 04:19 KST | Codex code-builder | v76 채널 재연결 중복 키 수정 착수
 
 - 핸드오프 기준: 회장이 지정한 `work/v76dup`, `/tmp/osmu-wt-v76dup`과 이 턴의 원인 확정 과제를 primary로 사용한다. tmux에는 본 저장소의 기존 운영 pane이 있으나 이 격리 워크트리를 사용하는 중복 pane은 없다.
