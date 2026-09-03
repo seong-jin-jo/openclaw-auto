@@ -46,7 +46,7 @@ try {
   await page.goto(`${baseUrl}/studio?room=create`, { waitUntil: "networkidle", timeout: 60_000 });
   await page.locator('[data-room="create"]').waitFor({ state: "visible" });
 
-  const learningStatus = page.locator("button[data-learning-status]");
+  const learningStatus = page.locator("button[data-learning-status]:visible").first();
   const headerLearningText = (await learningStatus.innerText()).replace(/\s+/g, " ").trim();
   const learningBefore = await page.evaluate(() => document.body.innerText.length);
   await learningStatus.click();

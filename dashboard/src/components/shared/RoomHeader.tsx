@@ -100,16 +100,20 @@ export function RoomHeader({
       </div>
       <div className="ml-auto flex shrink-0 items-center gap-stack-tight" aria-label="검토와 일정">
         <RoomShortcutLinks />
-        {leading || trailing ? (
+        {trailing ? (
           <details className="relative" data-room-context-menu>
             <summary className={`${ROOM_UTILITY_CLASS} list-none cursor-pointer`}>작업</summary>
             <div className="absolute right-0 top-full z-30 mt-stack-tight flex w-max flex-col gap-stack-tight rounded-surface border border-border bg-surface p-stack shadow-card">
-              {leading}
               {trailing}
             </div>
           </details>
         ) : null}
       </div>
+      {leading ? (
+        <div className="col-span-full flex min-w-0 flex-wrap items-center gap-stack-tight" data-room-leading>
+          {leading}
+        </div>
+      ) : null}
       {children}
       {currentRoom ? <RoomFlowHeader currentRoom={currentRoom} /> : null}
     </header>
