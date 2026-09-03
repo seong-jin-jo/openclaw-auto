@@ -32,6 +32,21 @@ For each channel the pattern is:
 
 See extensions/ directory and dashboard/src/lib/constants.ts for IMPLEMENTED_PLUGINS.
 
+## 계정 재연결 저장 계약 (2026-09-04)
+
+- 모든 OAuth provider callback은 `upsertChannelAccount` 한 경로로 계정을 저장한다.
+- `(tenant_id, provider, external_account_id)`가 처음이면 새 행을 만든다. 같은 키가 이미 있으면
+  오류를 내거나 새 행을 만들지 않고 기존 행의 access token, refresh token, 표시 이름, 사용자명,
+  meta, 상태, 토큰 만료 시각을 갱신한다.
+- 재연결은 기존 `is_default`를 갱신하지 않는다. 이미 기본이던 계정은 기본을 유지하고,
+  비기본 계정의 재연결은 기존 기본 계정을 밀어내지 않는다. 기존 기본이 사용할 수 없는 경우에만
+  아래 다중 계정 계약의 승격 규칙을 적용한다.
+- 새 refresh token이 없는 재연결은 저장된 refresh token을 지우지 않는다. 새 값이 있으면
+  pgcrypto 암호문을 교체한다. 자격증명 원문은 응답과 로그에 포함하지 않는다.
+- callback 결과는 처음 연결이면 `연결 완료`, 기존 행 갱신이면 `연결을 새로 고쳤습니다`로 알린다.
+- 실제 PostgreSQL 16 검증 수치: 1회차 성공 1, 2회차 성공 1, provider 행 1,
+  토큰 갱신 1, 표시 이름 갱신 1, 기본 행 1, 기본 유지 1.
+
 
 ## 남의 공개 게시물을 읽을 수 있나 (2026-08-21 실측)
 
