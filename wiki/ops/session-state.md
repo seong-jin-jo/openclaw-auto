@@ -537,3 +537,13 @@ stage하지 않는다. 다음 액션은 편집실 계약 테스트를 먼저 추
 1. 회장이 https://www.threads.com/settings/website_permissions 초대 탭에서 정성컴퍼니 초대를 수락한다.
 2. 수락 확인 후 Threads 연결 왕복을 실측한다(연결 상태 connected).
 3. 회장 로그인 뒤 운영 생성 1회를 실측한다.
+## 2026-09-03 08:52 KST | Codex code-builder | v71 인증 실패 fail-closed 구현·검증 완료, push 직전
+
+- 핸드오프 기준: 회장이 지정한 `work/v71auth`, `/private/tmp/osmu-wt-v71auth`, API 401 운영 실측과 `final-inbox-1024.png`를 primary로 사용했다. 관련 tmux pane은 기존 운영·다른 트랙 상태만 확인했고 이번 작업 기준으로 사용하지 않았다.
+- 기반: `pipeline-state.osmu.md`의 v68 approved-for-build, `DESIGN.md` v37, ADR-004·005·006, 실수 원장 상단, 운영 캡처, 현재 인박스와 인증 경계·API 헬퍼.
+- 근본 원인: GET `fetcher`는 실패를 예외로 올렸지만 인박스가 SWR `error`를 읽지 않았다. 변경 요청 헬퍼는 401을 `null`로 바꿨다. Supabase signOut이 늦으면 다른 보호 화면도 이전 children을 잠시 유지했다.
+- 변경: 인박스 목록 실패 경고와 재로그인·재시도 경로를 추가하고, 오류 중 승인·거절·A·R을 차단했다. 공통 AuthGate는 어떤 보호 화면의 401도 즉시 재로그인 경계로 닫는다. POST·DELETE 401도 예외로 전파한다.
+- 보존: 인박스 카드 탐색, 예약, 발행실 복귀, 제품 내용·보이스 톤, 영상·본문·메타데이터와 기존 API·DB·OAuth·발행 계약을 유지했다.
+- 검증: `npx tsc --noEmit` 오류 0. 전체 Vitest 225파일 1,624건 통과, PostgreSQL 필요 38건 조건부 제외, 실패 0. design lint 위반 0. production build 정적 페이지 177/177, 기존 NFT 경고 1건만 유지.
+- 커밋: `a5ad5c14`, `ba4cc37c`, `2cd5a9bb`, `aabbb835`. 이 기록과 구현현황은 다음 문서 커밋으로 묶는다.
+- 배포: 머지와 배포는 실행하지 않는다. 다음 액션은 문서 커밋, `origin/work/v71auth` push, 원격 SHA 일치 확인이다.
