@@ -107,6 +107,8 @@ describe("Home design-system migration interactions", () => {
     expect(screen.getByText("아직 성과를 수집할 채널이 없습니다")).toBeInTheDocument();
     expect(document.querySelector('[data-perf-tier="core"]')).toHaveTextContent("18,420");
     expect(document.querySelector('[data-perf-tier="core"]')).not.toHaveTextContent("미수집");
+    expect(document.querySelector('[data-perf-tier="rest"]')).not.toBeInTheDocument();
+    expect(screen.queryByText("미수집")).not.toBeInTheDocument();
     expect(screen.getByText("예시 데이터")).toBeInTheDocument();
     expect(screen.getByText("성과 표본 0건입니다. 5건부터 판정합니다.")).toBeInTheDocument();
     await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith(

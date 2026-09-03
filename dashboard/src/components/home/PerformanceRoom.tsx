@@ -482,14 +482,16 @@ export function PerformanceRoom({
             ))}
           </div>
 
-          <div className="flex flex-wrap gap-x-stack-section gap-y-micro border-t border-border pt-stack" data-perf-tier="rest">
-            {secondaryMetrics.map((metric) => (
-              <span key={metric.label} className="inline-flex items-baseline gap-stack-tight">
-                <small className="text-caption text-muted">{metric.label}</small>
-                <b className="text-body font-bold tabular-nums text-text">{metric.value}</b>
-              </span>
-            ))}
-          </div>
+          {!empty ? (
+            <div className="flex flex-wrap gap-x-stack-section gap-y-micro border-t border-border pt-stack" data-perf-tier="rest">
+              {secondaryMetrics.map((metric) => (
+                <span key={metric.label} className="inline-flex items-baseline gap-stack-tight">
+                  <small className="text-caption text-muted">{metric.label}</small>
+                  <b className="text-body font-bold tabular-nums text-text">{metric.value}</b>
+                </span>
+              ))}
+            </div>
+          ) : null}
 
           {usage && (
             <div className="flex flex-wrap items-center gap-x-stack-section gap-y-micro border-t border-border pt-stack text-caption text-muted">
