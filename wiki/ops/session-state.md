@@ -1,3 +1,14 @@
+## 2026-09-03 18:05 KST | Codex code-builder | v71 초안 저장 실패 알림 build 검증 완료
+
+- 핸드오프 기준: 회장이 지정한 `work/v71auth`, `/tmp/osmu-wt-v71auth`와 CI의 `M5-STUDIO-02` 실패를 primary로 사용했다. 같은 worktree를 수정하는 tmux pane은 없었고 메인 저장소 pane은 별도 운영 트랙이라 이어받지 않았다.
+- 동기화: 착수 전 `git pull --ff-only origin work/v71auth`를 실행해 최신 상태를 확인했다.
+- 원인: `apiPost` 401이 `null`에서 예외로 바뀌었지만 발행 전 초안 저장은 `null`만 처리했다. 예외가 사용자 알림 전에 빠져나가 로컬 mock 계약은 통과하고 CI의 실제 실패 형태에서 알림이 끊겼다.
+- 변경: 발행 전 저장의 `null`과 예외를 같은 오류로 닫고, 수동 임시 저장은 실제 ID를 받은 뒤에만 성공으로 표시한다. 외부 발행 뒤 결과 저장 실패도 발행 결과 오류에 포함한다.
+- 보존: 조회 실패 승인·거절 차단, 인증 만료 안내, POST·DELETE 401 전파, 인박스·캘린더 발행실 복원, 계정 조회 전 복원 표시와 발행 잠금, 외부 발행 복구 지도를 유지했다.
+- 검증: `npx tsc --noEmit` 오류 0. 발행실 33건과 전체 Vitest 225파일 1,627건 통과, PostgreSQL 필요 38건 조건부 제외, 실패 0. production build 정적 페이지 177/177, design lint 위반 0.
+- 커밋: 요청·NG 기록 `9d015453`, 구현·계약 `70278e7c`. 문서 커밋과 원격 push 뒤 이 항목에 최종 SHA를 보강한다. 머지와 배포는 하지 않는다.
+- 다음 QA: 데이터베이스 저장 실패를 주입한 로그인 고객 화면에서 오류 알림과 외부 발행 요청 0건을 관찰한다.
+
 ## 2026-09-03 10:01 KST | Codex code-builder | v71 발행실 복원 대기 회귀 build 검증
 
 - 핸드오프 기준: 회장이 지정한 `work/v71auth` 브랜치, `/tmp/osmu-wt-v71auth` 워크트리와 이번 복원 회귀 과제를 primary로 사용했다. `studio-auth-runtime:0.0`은 메인 저장소 실서버 흔적만 확인했고 이 worktree의 중복 수정은 없었다.
