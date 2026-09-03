@@ -9,10 +9,24 @@ import { CHANNEL_TEXT_LIMITS } from "@/lib/channel-text-limits";
 // 0차: context_sources for multi-repo wiki (operator's other services). See sourcing for format.
 // tenant_id for Brand Wiki. Respects handoff deploy (no new build vars).
 export async function POST(request: Request) {
-  const { idea, guide = "", tenant_id, context_sources } = await request.json();
+  const { idea, guide = "", tenant_id, context_sources, structure } = await request.json();
   if (!idea || typeof idea !== "string") {
     return Response.json({ error: "idea required" }, { status: 400 });
   }
+  const structureInput = structure as { label?: unknown; title?: unknown; outline?: unknown } | undefined;
+  if (structureInput && (
+    !["A", "B", "C"].includes(String(structureInput.label))
+    || typeof structureInput.title !== "string"
+    || !structureInput.title.trim()
+    || !Array.isArray(structureInput.outline)
+    || structureInput.outline.length === 0
+    || structureInput.outline.some((item) => typeof item !== "string" || !item.trim())
+  )) {
+    return Response.json({ error: "structure invalid" }, { status: 400 });
+  }
+  const structureGuide = structureInput
+    ? `\n사용자가 고른 구조: ${structureInput.label} ${structureInput.title}\n이야기 순서: ${(structureInput.outline as string[]).join(" → ")}\n모든 플랫폼 초안에 이 구조와 순서를 반드시 반영한다.\n`
+    : "";
   // 위키 근거: 위키 전체 주입(작으면) 또는 관련 top-K(크면 자동 폴백) → 프롬프트 주입(사실 기반 생성)
   const tenantId = await effectiveTenantId(request, tenant_id);
   const { text: wiki } = tenantId ? await getWikiContext(tenantId, idea) : { text: "" };
@@ -44,6 +58,7 @@ export async function POST(request: Request) {
   const prompt = `너는 SNS 마케팅 카피라이터다. 아래 글감을 플랫폼 특성에 맞춰 변형하라.
 ${guide ? `브랜드 톤 가이드:\n${guide}\n` : ""}${wiki ? `\n=== 위키 참조(아래 사실에 근거해 작성, 없는 내용 지어내기 금지) ===\n${wiki}\n===\n` : ""}${extraContext ? `\n=== 추가 컨텍스트 (0차 multi-repo) ===\n${extraContext}\n===\n` : ""}
 글감: "${idea}"
+${structureGuide}
 
 규칙: 100% 한국어, AI가 쓴 티 금지, 후킹 첫 문장, 과한 이모지 금지.
 출력은 JSON만(다른 텍스트 없이):

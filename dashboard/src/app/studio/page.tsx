@@ -14,7 +14,7 @@ import {
 import { useToast } from "@/components/layout/Toast";
 import { PlatformPreview, PREVIEW_PLATFORMS, type PreviewAccount, type PreviewInlineEditor, type PreviewPlatform } from "@/components/studio/PlatformPreview";
 import { PlatformFocusFilter } from "@/components/studio/PlatformFocusFilter";
-import { CreateRoom, EditRoom, type CreateContentBranch, type CreateKind, type EditContentKind } from "@/components/studio/StudioRooms";
+import { CreateRoom, EditRoom, type CreateContentBranch, type CreateKind, type CreateStructureChoice, type EditContentKind } from "@/components/studio/StudioRooms";
 import type { StudioGenerationCandidate } from "@/lib/studio/generation/client";
 import { useUIStore, type StudioRoom } from "@/store/ui-store";
 import { LearningCardWizard } from "@/components/studio/LearningCardWizard";
@@ -420,10 +420,15 @@ export default function StudioPage() {
     });
   };
 
-  async function genText() {
+  async function genText(structure?: CreateStructureChoice) {
     setLastError(null);
     try {
-      const r = await apiPost<TextVariants & { ok?: boolean; error?: string }>("/api/studio/text", { idea, guide, tenant_id: activeWorkspace?.id });
+      const r = await apiPost<TextVariants & { ok?: boolean; error?: string }>("/api/studio/text", {
+        idea,
+        guide,
+        tenant_id: activeWorkspace?.id,
+        structure: structure ? { label: structure.label, title: structure.title, outline: structure.outline } : undefined,
+      });
       if (!r?.ok) { const msg = r?.error || "텍스트 생성 실패"; setLastError(`텍스트: ${msg}`); showToast(msg, "error"); return null; }
       // API가 성공을 확인한 뒤에만 발행한다. 클릭 시점 아님.
       trackEvent({ name: "content_generate", params: { kind: "text" } });
@@ -433,6 +438,17 @@ export default function StudioPage() {
     } catch (e) {
       const msg = extractApiErrorMessage(e, "텍스트 생성 실패");
       setLastError(`텍스트: ${msg}`); showToast(msg, "error"); return null;
+    }
+  }
+  async function generateQuickDraft(structure: CreateStructureChoice) {
+    if (!idea.trim()) { showToast("주제를 입력해 주세요", "error"); return; }
+    setBusy("초안 만드는 중");
+    setSelectedCandidate(null);
+    try {
+      const result = await genText(structure);
+      if (result) showToast(`${structure.label} 구조로 초안을 만들었습니다`, "success");
+    } finally {
+      setBusy(null);
     }
   }
   async function genImage(prompt: string) {
@@ -1074,6 +1090,10 @@ export default function StudioPage() {
         learningVersion={learningFlash + countFilledLearningSlots(learningInfo, { guide })}
         resumeCount={hist?.drafts.length ?? 0}
         onResume={() => setShowWorks(true)}
+        quickDraft={text}
+        quickDraftLoading={busy === "초안 만드는 중"}
+        quickDraftError={lastError}
+        onQuickDraftGenerate={generateQuickDraft}
       />
     </div>
   );

@@ -8,7 +8,9 @@ import { CreateRoom } from "@/components/studio/StudioRooms";
 
 const mocks = vi.hoisted(() => ({
   swr: vi.fn(),
+  apiPost: vi.fn(),
   showToast: vi.fn(),
+  room: "publish",
   workspace: { id: "tenant-empty", name: "빈 작업 공간" },
 }));
 
@@ -19,13 +21,13 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@/lib/api", () => ({
   fetcher: vi.fn(),
-  apiPost: vi.fn(),
+  apiPost: (...args: unknown[]) => mocks.apiPost(...args),
   isExternalPublishPersistenceError: () => false,
   ApiResponseError: class ApiResponseError extends Error { payload: unknown = null; },
 }));
 vi.mock("@/components/layout/Toast", () => ({ useToast: () => ({ showToast: mocks.showToast }) }));
 vi.mock("@/store/ui-store", () => ({
-  useUIStore: () => ({ activeWorkspace: mocks.workspace, studioRoom: "publish", setStudioRoom: vi.fn() }),
+  useUIStore: () => ({ activeWorkspace: mocks.workspace, studioRoom: mocks.room, setStudioRoom: vi.fn() }),
 }));
 vi.mock("@/components/studio/PlatformPreview", () => ({
   PREVIEW_PLATFORMS: ["threads", "x", "facebook", "instagram", "shorts", "reels", "tiktok"].map((key) => ({ key, label: key })),
@@ -39,6 +41,9 @@ vi.mock("@/lib/auth", () => ({ authHeaders: () => ({}) }));
 
 beforeEach(() => {
   localStorage.clear();
+  window.history.replaceState(null, "", "/studio");
+  mocks.room = "publish";
+  mocks.apiPost.mockReset();
   mocks.swr.mockReset();
   mocks.swr.mockImplementation((key: string | null) => {
     if (key === "/api/me") return { data: { isOperator: false }, mutate: vi.fn() };
@@ -94,5 +99,46 @@ describe("OSMU-FLOW-UI-03 생성실 첫 행동 계약", () => {
     fireEvent.click(screen.getByRole("button", { name: "처음 해 보는 사람" }));
     fireEvent.click(screen.getByRole("button", { name: "직접 입력" }));
     expect(screen.getByLabelText("직접 입력한 주제")).toBeInTheDocument();
+  });
+});
+
+describe("V75-CREATE-NETWORK 생성실 직접 생성 계약", () => {
+  it("V75-CREATE-NETWORK-01 정상: 주제와 선택 구조를 text API에 보내고 결과를 화면에 표시한다", async () => {
+    mocks.room = "create";
+    window.history.replaceState(null, "", "/studio?room=create");
+    mocks.apiPost.mockImplementation(async (path: string) => {
+      if (path === "/api/studio/text") {
+        return { ok: true, threads: "네트워크 요청으로 생성된 한국어 본문입니다." };
+      }
+      return { ok: true };
+    });
+
+    render(<StudioPage />);
+    fireEvent.change(await screen.findByLabelText("초안 주제"), { target: { value: "고객 질문 답변" } });
+    fireEvent.click(screen.getByRole("button", { name: "A 구조 사용" }));
+    fireEvent.click(screen.getByRole("button", { name: "초안 만들기" }));
+
+    await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith(
+      "/api/studio/text",
+      expect.objectContaining({
+        idea: "고객 질문 답변",
+        tenant_id: "tenant-empty",
+        structure: expect.objectContaining({ label: "A", title: "문제 제시형" }),
+      }),
+    ));
+    expect(await screen.findByText("네트워크 요청으로 생성된 한국어 본문입니다.")).toBeInTheDocument();
+  });
+
+  it("V75-CREATE-NETWORK-02 거절: 주제가 비어 있으면 text API를 호출하지 않는다", async () => {
+    mocks.room = "create";
+    window.history.replaceState(null, "", "/studio?room=create");
+
+    render(<StudioPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "A 구조 사용" }));
+
+    const generate = screen.getByRole("button", { name: "초안 만들기" });
+    expect(generate).toBeDisabled();
+    fireEvent.click(generate);
+    expect(mocks.apiPost).not.toHaveBeenCalledWith("/api/studio/text", expect.anything());
   });
 });

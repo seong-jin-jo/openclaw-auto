@@ -47,6 +47,18 @@ export type CreateContentBranch = "text_image" | "video";
 export type EditContentKind = "video" | "card" | "audio" | "text";
 /** 화면에서 고르는 갈래. 글과 카드뉴스는 만드는 방식이 달라 따로 고른다. */
 export type CreateKind = "video" | "card" | "text";
+export interface CreateStructureChoice {
+  label: "A" | "B" | "C";
+  title: string;
+  outline: readonly string[];
+}
+export interface QuickDraftResult {
+  threads?: string;
+  facebook?: string;
+  x?: string;
+  instagram?: { caption?: string; hashtags?: string[]; slides?: string[] };
+  shorts?: { hook?: string; body?: string; cta?: string };
+}
 const ONBOARDING_CONTENT_BRANCH_KEY = "studio_content_branch";
 
 const CREATE_KIND_LABELS: Record<CreateKind, string> = { video: "영상", card: "카드뉴스", text: "글" };
@@ -85,6 +97,10 @@ interface CreateRoomProps {
   /** 만들던 것 이어서 하기. 0이면 줄이 아예 안 뜬다 */
   resumeCount?: number;
   onResume?: () => void;
+  quickDraft?: QuickDraftResult | null;
+  quickDraftLoading?: boolean;
+  quickDraftError?: string | null;
+  onQuickDraftGenerate?: (structure: CreateStructureChoice) => Promise<void> | void;
 }
 
 const CREATE_EXAMPLES = [
@@ -122,7 +138,7 @@ export function generationErrorMessage(cause: unknown): string {
   return message || "구조 초안을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.";
 }
 
-export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBranch = "text_image", onContentBranchChange, onTopicChange, onCandidateSelect, onOpenEditor, onPrimaryKindChange, onAlsoKindsChange, learningVersion = 0, resumeCount = 0, onResume }: CreateRoomProps) {
+export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBranch = "text_image", onContentBranchChange, onTopicChange, onCandidateSelect, onOpenEditor, onPrimaryKindChange, onAlsoKindsChange, learningVersion = 0, resumeCount = 0, onResume, quickDraft, quickDraftLoading = false, quickDraftError, onQuickDraftGenerate }: CreateRoomProps) {
   const topicInputRef = useRef<HTMLInputElement>(null);
   const previousWorkspaceId = useRef(workspaceId);
   const [primaryKind, setPrimaryKind] = useState<CreateKind | null>(null);
@@ -135,6 +151,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
   const [learning, setLearning] = useState<LearningInfo>({});
   const [candidates, setCandidates] = useState<StudioGenerationCandidate[]>([]);
   const [selected, setSelected] = useState<"A" | "B" | "C" | null>(null);
+  const [quickStructure, setQuickStructure] = useState<CreateStructureChoice | null>(null);
   const [loading, setLoading] = useState(false);
   const [alsoQuote, setAlsoQuote] = useState<StudioDerivationQuote | null>(null);
   const [alsoBatch, setAlsoBatch] = useState<StudioDerivationBatch | null>(null);
@@ -178,6 +195,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
       setPrimaryKind(null);
       setAlsoKinds([]);
       setQuestionIndex(0);
+      setQuickStructure(null);
       onPrimaryKindChange?.(null);
       onAlsoKindsChange?.([]);
     }
@@ -315,6 +333,10 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
   }
 
   const kindHeading = primaryKind ? `${CREATE_KIND_LABELS[primaryKind]} 구성 초안 예시` : "콘텐츠 구성 초안 예시";
+  const quickDraftText = quickDraft?.threads
+    || quickDraft?.facebook
+    || quickDraft?.instagram?.caption
+    || [quickDraft?.shorts?.hook, quickDraft?.shorts?.body, quickDraft?.shorts?.cta].filter(Boolean).join("\n");
   const learningRows = [
     ["작업 공간", workspaceDisplayName(workspaceName)],
     ["업종", learning.industry || guide || "아직 없음"],
@@ -341,7 +363,45 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
         <div className="text-right"><b className="block text-body font-bold text-accent">{stage.count}</b><span className="text-caption text-subtle">{stage.label}</span></div>
       </section>
       <div className="grid gap-stack-section lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="min-w-0 space-y-region" data-display-readonly="create">
+        <div className="min-w-0 space-y-region" data-create-workspace>
+          <section className="card space-y-stack-section p-pad-inset" aria-labelledby="create-quick-title" data-create-quick-start>
+            <div>
+              <h2 id="create-quick-title" className="text-subheading font-bold text-text">주제로 바로 초안 만들기</h2>
+              <p className="break-keep text-caption text-subtle">주제를 적고 아래 구조를 고른 뒤 초안을 만드세요. 기존 생성 담당 문답도 그대로 사용할 수 있습니다.</p>
+            </div>
+            <Field label="초안 주제" htmlFor="studio-quick-topic">
+              <input
+                id="studio-quick-topic"
+                value={topic}
+                onChange={(event) => onTopicChange(event.target.value)}
+                placeholder="고객에게 전할 주제를 입력하세요"
+                className="h-control-touch w-full rounded-control border border-border bg-surface-2 px-stack text-body text-text"
+              />
+            </Field>
+            {quickStructure ? (
+              <p className="break-keep rounded-control bg-accent-soft p-stack text-caption text-accent" data-quick-structure={quickStructure.label}>
+                {quickStructure.label} {quickStructure.title} 구조를 반영합니다. {quickStructure.outline.join(", ")}
+              </p>
+            ) : (
+              <p className="text-caption text-subtle">아래 A, B, C 중 하나를 골라 생성 구조를 정해 주세요.</p>
+            )}
+            <Button
+              variant="primary"
+              className="w-full min-w-0"
+              onClick={() => quickStructure && onQuickDraftGenerate?.(quickStructure)}
+              disabled={quickDraftLoading || !workspaceId || !topic.trim() || !quickStructure || !onQuickDraftGenerate}
+            >
+              {quickDraftLoading ? "초안 만드는 중" : "초안 만들기"}
+            </Button>
+            {quickDraftError ? <p role="alert" className="text-caption text-danger">{quickDraftError}</p> : null}
+            {quickDraftText ? (
+              <section className="rounded-surface border border-success/30 bg-success/10 p-pad-inset" aria-labelledby="quick-draft-result-title" data-quick-draft-result>
+                <h3 id="quick-draft-result-title" className="text-body font-bold text-text">생성 결과</h3>
+                <p className="mt-stack whitespace-pre-wrap break-keep text-body-sm text-muted">{quickDraftText}</p>
+                {onOpenEditor ? <Button className="mt-stack" variant="primary" onClick={onOpenEditor}>편집실에서 다듬기</Button> : null}
+              </section>
+            ) : null}
+          </section>
           <section className="grid gap-stack sm:grid-cols-3" aria-label="생성실 요약">
             <article className="card p-pad-inset"><span className="text-caption text-subtle">선택한 형식</span><b className="mt-micro block text-body text-text">{primaryKind ? CREATE_KIND_LABELS[primaryKind] : "선택 전"}</b></article>
             <article className="card p-pad-inset"><span className="text-caption text-subtle">반영한 학습 정보</span><b className="mt-micro block text-body text-text">{learnedCount}개</b></article>
@@ -350,7 +410,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
           <section className="min-w-0" aria-labelledby="create-display-title">
             <div className="mb-stack flex items-center justify-between border-b border-border pb-stack">
               <h2 id="create-display-title" className="text-subheading font-bold text-text">{selectedCandidate ? "선택한 구조 초안" : candidates.length ? "구조 초안 세 개" : kindHeading}</h2>
-              <span className="text-caption text-subtle">선택은 생성 담당에서</span>
+              <span className="text-caption text-subtle">카드를 눌러 구조를 선택하세요</span>
             </div>
             <div className="grid gap-stack md:grid-cols-3" data-create-candidate-deck>
               {displayCandidates.filter((candidate) => !selectedCandidate || candidate.label === selectedCandidate.label).map((candidate) => {
@@ -364,6 +424,18 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
                     <ol className="mt-auto space-y-stack-tight border-t border-border pt-stack">
                       {outline.map((item, index) => <li key={`${candidate.label}-${index}`} className="flex gap-stack-tight text-caption text-muted"><span className="text-accent">{index + 1}</span><span className="break-keep">{item}</span></li>)}
                     </ol>
+                    {"format" in candidate ? (
+                      <Button variant={selected === candidate.label ? "primary" : "secondary"} className="w-full min-w-0" onClick={() => choose(candidate)}>{candidate.label} 구조 초안 선택</Button>
+                    ) : (
+                      <Button
+                        variant={quickStructure?.label === candidate.label ? "primary" : "secondary"}
+                        className="w-full min-w-0"
+                        aria-pressed={quickStructure?.label === candidate.label}
+                        onClick={() => setQuickStructure({ label: candidate.label, title: candidate.title, outline: candidate.outline })}
+                      >
+                        {candidate.label} 구조 사용
+                      </Button>
+                    )}
                   </article>
                 );
               })}

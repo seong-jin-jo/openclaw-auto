@@ -71,7 +71,7 @@ function SidebarGroup({
           const href = i.href ?? (i.key === "blog" ? "/blog" : i.key ? `/channels/${i.key}` : "#");
           const hrefPath = href.split(/[?#]/, 1)[0];
           const isActive = pathname === hrefPath;
-          const textColor = i.status === "Live" || i.status === "Connected" ? "text-muted" : "text-subtle";
+          const textColor = i.status === "사용 중" || i.status === "연결됨" ? "text-muted" : "text-subtle";
           return (
             <Link
               key={i.key || `${i.label}-${idx}`}
@@ -175,7 +175,7 @@ function chSidebarItem(key: string, channelConfig: Record<string, Record<string,
       label,
       icon: label[0],
       nav: true,
-      status: "Live" as const,
+      status: "사용 중" as const,
       statusClass: "bg-success/15 text-success",
     };
   }
@@ -185,7 +185,7 @@ function chSidebarItem(key: string, channelConfig: Record<string, Record<string,
       label,
       icon: label[0],
       nav: true,
-      status: "Connected" as const,
+      status: "연결됨" as const,
       statusClass: "bg-accent/15 text-accent",
     };
   }
@@ -264,18 +264,18 @@ function OperatorSidebar() {
     <aside className="w-56 border-r border-border/50 bg-surface flex flex-col h-screen sticky top-0">
       <div className="px-pad-inset py-stack-section border-b border-border/50">
         <div className="flex items-center gap-stack-tight">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-muted shrink-0" aria-label="Admin">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-muted shrink-0" aria-label="운영자">
             <rect x="3" y="3" width="18" height="18" rx="5" fill="var(--accent)" opacity="0.25" />
             <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
-          <h1 className="text-body font-semibold text-text tracking-tight">Admin</h1>
+          <h1 className="text-body font-semibold text-text tracking-tight">운영자</h1>
         </div>
         <p className="mt-micro text-caption text-subtle">운영자 콘솔</p>
       </div>
 
       <nav className="flex-1 min-h-0 overflow-y-auto py-stack">
         <div className="px-stack mb-stack-tight">
-          <span className="text-caption font-medium text-subtle uppercase tracking-wider">Operator</span>
+          <span className="text-caption font-medium text-subtle uppercase tracking-wider">운영</span>
         </div>
         <Link
           href="/operator/customers"
@@ -335,7 +335,7 @@ function CustomerSidebar({
     icon: "T",
     iconClass: "bg-accent text-accent-fg",
     nav: true,
-    status: (cfg.threads?.connected ? "Live" : "Off") as string,
+    status: (cfg.threads?.connected ? "사용 중" : "") as string,
     statusClass: cfg.threads?.connected
       ? "bg-success/15 text-success"
       : "bg-surface-2 text-subtle",
@@ -349,8 +349,8 @@ function CustomerSidebar({
     nav: true,
     status: cfg.x?.connected
       ? cfg.x?.enabled
-        ? "Live"
-        : "Connected"
+        ? "사용 중"
+        : "연결됨"
       : ("" as string),
     statusClass: cfg.x?.connected
       ? cfg.x?.enabled
@@ -427,15 +427,15 @@ function CustomerSidebar({
           />
         ))}
 
-        {/* "Data & SEO" 채널 그룹 제거. /channels/* 빈 연결폼으로 가던 죽은 항목이었음.
-            동작하는 읽기 대시보드는 아래 "Data & Analytics" 섹션이 제공(사이드바=연결가능 원칙). */}
+        {/* 데이터·검색 채널 그룹 제거. /channels/* 빈 연결폼으로 가던 죽은 항목이었음.
+            동작하는 읽기 대시보드는 아래 데이터와 분석 섹션이 제공(사이드바=연결가능 원칙). */}
 
         {/* ── Data & Analytics ── */}
         <div className="px-stack mt-stack-section mb-stack-tight">
-          <span className={`text-caption font-medium text-subtle uppercase tracking-wider ${narrowLabelClass}`}>Data & Analytics</span>
+          <span className={`text-caption font-medium text-subtle uppercase tracking-wider ${narrowLabelClass}`}>데이터와 분석</span>
         </div>
         {[
-          { href: "/blog-performance", key: "blog_performance", label: "Blog Performance" },
+          { href: "/blog-performance", key: "blog_performance", label: "블로그 성과" },
         ].map((item) => (
           <Link key={item.key} href={item.href}
             className={`sidebar-item ${pathname === item.href ? "active" : ""} w-full text-left px-pad-inset py-stack-tight text-body-sm text-muted flex items-center gap-stack`}>
@@ -446,12 +446,12 @@ function CustomerSidebar({
 
         {/* ── Keyword Research ── */}
         <div className="px-stack mt-stack-section mb-stack-tight">
-          <span className={`text-caption font-medium text-subtle uppercase tracking-wider ${narrowLabelClass}`}>Keyword Research</span>
+          <span className={`text-caption font-medium text-subtle uppercase tracking-wider ${narrowLabelClass}`}>키워드 조사</span>
         </div>
         {[
-          { href: "/keyword-planner", key: "keyword_planner", label: "Keyword Planner" },
-          { href: "/naver-trends", key: "naver_trends", label: "Naver Trends" },
-          { href: "/google-trends", key: "google_trends", label: "Google Trends" },
+          { href: "/keyword-planner", key: "keyword_planner", label: "키워드 찾기" },
+          { href: "/naver-trends", key: "naver_trends", label: "네이버 트렌드" },
+          { href: "/google-trends", key: "google_trends", label: "구글 트렌드" },
         ].map((item) => (
           <Link key={item.key} href={item.href}
             className={`sidebar-item ${pathname === item.href ? "active" : ""} w-full text-left px-pad-inset py-stack-tight text-body-sm text-muted flex items-center gap-stack`}>
@@ -460,18 +460,18 @@ function CustomerSidebar({
           </Link>
         ))}
 
-        {/* Custom Integration: custom_api/rss는 연결 미구현(빈 페이지)이라 제거. Blog만 노출(→/blog 동작). */}
+        {/* 외부 연동: custom_api/rss는 연결 미구현(빈 페이지)이라 제거. 블로그만 노출(→/blog 동작). */}
         <SidebarGroup
           groupKey="custom"
-          title="Custom Integration"
+          title="외부 연동"
           showNarrowLabels={mobileMenuOpen}
           items={[
-            { key: "blog", label: "Blog", icon: "B", nav: true },
+            { key: "blog", label: "블로그", icon: "B", nav: true },
           ]}
         />
 
         <div className="px-stack mt-stack-section mb-stack-tight">
-          <span className={`text-caption font-medium text-subtle uppercase tracking-wider ${narrowLabelClass}`}>Assets & Tools</span>
+          <span className={`text-caption font-medium text-subtle uppercase tracking-wider ${narrowLabelClass}`}>자산과 도구</span>
         </div>
         <Link
           href="/images"
@@ -485,7 +485,7 @@ function CustomerSidebar({
               d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
             />
           </svg>
-          <span className={narrowLabelClass}>Images</span>
+          <span className={narrowLabelClass}>이미지</span>
           <span className={`ml-auto text-caption px-stack-tight py-micro rounded-pill bg-surface-2 text-subtle ${mobileMenuOpen ? "" : "max-xl:hidden"}`}>{imageCount}</span>
         </Link>
         <Link
@@ -500,7 +500,7 @@ function CustomerSidebar({
               d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
             />
           </svg>
-          <span className={narrowLabelClass}>Videos</span>
+          <span className={narrowLabelClass}>영상</span>
         </Link>
         {(() => {
           const mjCfg = cfg.midjourney || {};
@@ -517,7 +517,7 @@ function CustomerSidebar({
         })()}
 
         <div className="px-stack mt-stack-section mb-stack-tight">
-          <span className={`text-caption font-medium text-subtle uppercase tracking-wider ${narrowLabelClass}`}>System</span>
+          <span className={`text-caption font-medium text-subtle uppercase tracking-wider ${narrowLabelClass}`}>시스템</span>
         </div>
         <Link
           href="/settings"
@@ -532,7 +532,7 @@ function CustomerSidebar({
             />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
-          <span className={narrowLabelClass}>Settings</span>
+          <span className={narrowLabelClass}>설정</span>
         </Link>
       </nav>
 

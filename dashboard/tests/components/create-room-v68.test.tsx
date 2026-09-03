@@ -44,4 +44,31 @@ describe("V68 생성실 계약", () => {
     expect(document.querySelector('[data-create-question="kind"]')).toBeInTheDocument();
     expect(document.querySelector("[data-create-purpose-picker]")).toBeNull();
   });
+
+  it("V75-CREATE-DIRECT-01 정상: A 구조를 고르면 본문이 바뀌고 주제와 구조로 직접 생성한다", () => {
+    const onTopicChange = vi.fn();
+    const onQuickDraftGenerate = vi.fn().mockResolvedValue(undefined);
+    const { rerender } = render(<CreateRoom {...props} topic="고객이 자주 묻는 질문" onTopicChange={onTopicChange} onQuickDraftGenerate={onQuickDraftGenerate} />);
+    const before = document.body.textContent?.length ?? 0;
+
+    fireEvent.click(screen.getByRole("button", { name: "A 구조 사용" }));
+
+    expect(document.body.textContent?.length ?? 0).not.toBe(before);
+    expect(document.querySelector('[data-quick-structure="A"]')).toHaveTextContent("고객이 겪는 문제");
+    fireEvent.click(screen.getByRole("button", { name: "초안 만들기" }));
+    expect(onQuickDraftGenerate).toHaveBeenCalledWith(expect.objectContaining({ label: "A", title: "문제 제시형" }));
+
+    rerender(<CreateRoom {...props} topic="고객이 자주 묻는 질문" onTopicChange={onTopicChange} onQuickDraftGenerate={onQuickDraftGenerate} quickDraft={{ threads: "실제로 생성된 한국어 본문입니다." }} />);
+    expect(document.querySelector("[data-quick-draft-result]")).toHaveTextContent("실제로 생성된 한국어 본문");
+  });
+
+  it("V75-CREATE-DIRECT-02 거절: 주제나 구조가 비면 직접 생성 요청을 보내지 않는다", () => {
+    const onQuickDraftGenerate = vi.fn();
+    render(<CreateRoom {...props} topic="" onQuickDraftGenerate={onQuickDraftGenerate} />);
+
+    const generate = screen.getByRole("button", { name: "초안 만들기" });
+    expect(generate).toBeDisabled();
+    fireEvent.click(generate);
+    expect(onQuickDraftGenerate).not.toHaveBeenCalled();
+  });
 });

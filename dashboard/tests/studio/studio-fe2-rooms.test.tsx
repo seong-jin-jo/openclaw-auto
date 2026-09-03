@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CreateRoom, EditRoom } from "@/components/studio/StudioRooms";
 import {
@@ -73,12 +73,13 @@ describe("화면 2차 생성실 계약", () => {
     expect(screen.getByRole("complementary", { name: "생성 담당 대화창" })).toBeInTheDocument();
   });
 
-  it("FE6-CREATE-01 정상: 디스플레이는 읽기 전용이고 선택 단추는 대화창에만 둔다", () => {
+  it("V75-CREATE-01 정상: 본문에 직접 생성 동선을 추가하고 기존 대화창을 유지한다", () => {
     render(<CreateRoom workspaceId="workspace" workspaceName="작업 공간" guide="브랜드 사실" topic="주제" onTopicChange={vi.fn()} onOpenLearning={vi.fn()} onCandidateSelect={vi.fn()} />);
 
-    const display = document.querySelector('[data-display-readonly="create"]');
-    expect(display).toBeInTheDocument();
-    expect(display?.querySelectorAll("button")).toHaveLength(0);
+    const workspace = document.querySelector("[data-create-workspace]");
+    expect(workspace).toBeInTheDocument();
+    expect(within(workspace as HTMLElement).getByLabelText("초안 주제")).toBeInTheDocument();
+    expect(within(workspace as HTMLElement).getByRole("button", { name: "초안 만들기" })).toBeInTheDocument();
     expect(screen.getByRole("complementary", { name: "생성 담당 대화창" })).toHaveTextContent("무엇을 만들까요?");
   });
 

@@ -78,7 +78,7 @@ describe("Sidebar operator/customer shell separation", () => {
 
     render(<Sidebar />);
 
-    expect(screen.getByText("Admin")).toBeInTheDocument();
+    expect(screen.getAllByText("운영자").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("link", { name: "고객 관리" })).toHaveAttribute(
       "href",
       "/operator/customers",
@@ -91,6 +91,24 @@ describe("Sidebar operator/customer shell separation", () => {
 
     await waitFor(() => expect(useUIStore.getState().activeWorkspace).toBeNull());
     expect(localStorage.getItem("active_workspace")).toBeNull();
+  });
+
+  it("V75-SIDEBAR-01 한국어 라벨: 고객 사이드바의 일반 항목은 영어 이름을 노출하지 않는다", () => {
+    mocks.pathname.mockReturnValue("/");
+    mocks.swr.mockImplementation((key: string | null) => {
+      if (key === "/api/me") return { data: { isOperator: false, tenant: { id: "customer-1", slug: "customer", name: "고객 작업 공간" } }, mutate: vi.fn() };
+      if (key === "/api/images") return { data: [] };
+      return { data: undefined };
+    });
+
+    render(<Sidebar />);
+
+    ["데이터와 분석", "블로그 성과", "키워드 조사", "키워드 찾기", "네이버 트렌드", "구글 트렌드", "외부 연동", "자산과 도구", "이미지", "영상", "시스템", "설정"].forEach((label) => {
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+    });
+    ["Custom Integration", "Data & Analytics", "Keyword Research", "Assets & Tools", "Images", "Videos", "Settings"].forEach((label) => {
+      expect(screen.queryByText(label)).not.toBeInTheDocument();
+    });
   });
 
   it("FE3-SIDEBAR-01 정상: 고객 셸 맨 위에 네 방 흐름과 그 아래 채널 링크를 노출한다", () => {
@@ -117,7 +135,7 @@ describe("Sidebar operator/customer shell separation", () => {
     expect(screen.getByRole("link", { name: /편집실/ })).toHaveAttribute("href", "/studio?room=edit");
     expect(screen.getByRole("link", { name: /발행실/ })).toHaveAttribute("href", "/studio?room=publish");
     expect(screen.getByRole("link", { name: /성과실/ })).toHaveAttribute("href", "/performance");
-    expect(screen.getByText("영상")).toBeInTheDocument();
+    expect(screen.getAllByText("영상").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: "YouTube" })).toHaveAttribute(
       "href",
       "/channels/youtube",
