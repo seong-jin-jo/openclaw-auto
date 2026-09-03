@@ -94,3 +94,4 @@ sweep090317	qa	발주실패	17:25	osmu-sweep090317
 flowcheck090318	qa	발주실패	18:01	osmu-flowcheck090318
 gapfill090319	build	발주실패	19:13	osmu-gapfill090319
 regress090320	review	발주실패	20:00	osmu-regress090320
+sweep090321	qa	발주실패	21:00	osmu-sweep090321
