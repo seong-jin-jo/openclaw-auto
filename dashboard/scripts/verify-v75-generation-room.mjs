@@ -5,6 +5,7 @@ import playwright from "/Users/sj/kimstudy-auto/node_modules/playwright-core/ind
 const { chromium } = playwright;
 const baseUrl = process.env.V75_BASE_URL || "http://127.0.0.1:3467";
 const executablePath = process.env.V75_CHROME_PATH || "/Users/sj/Library/Caches/ms-playwright/chromium-1228/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing";
+const useLiveText = process.env.V75_USE_LIVE_TEXT === "1";
 const workspaceId = "11111111-1111-4111-8111-111111111111";
 const generatedText = "선택한 구조가 반영된 한국어 초안입니다. 첫 문제를 짚고, 해결 순서를 설명한 뒤, 오늘 할 행동으로 마칩니다.";
 const textRequests = [];
@@ -40,6 +41,7 @@ await page.route("**/api/**", async (route) => {
   if (pathname === "/api/images") return json(route, { images: [] });
   if (pathname === "/api/studio/text" && request.method() === "POST") {
     textRequests.push(JSON.parse(request.postData() || "{}"));
+    if (useLiveText) return route.continue();
     return json(route, { ok: true, threads: generatedText });
   }
   return json(route, {});
@@ -57,7 +59,9 @@ try {
 
   const generateBodyBefore = await page.evaluate(() => document.body.innerText.length);
   await page.getByRole("button", { name: "초안 만들기", exact: true }).click();
-  await page.getByText(generatedText, { exact: true }).waitFor({ state: "visible" });
+  const resultBody = page.locator("[data-quick-draft-result] p");
+  await resultBody.waitFor({ state: "visible" });
+  const observedGeneratedText = await resultBody.innerText();
   const generateBodyAfter = await page.evaluate(() => document.body.innerText.length);
 
   const buttonTexts = await page.locator("button").allInnerTexts();
@@ -69,6 +73,7 @@ try {
   if (generateBodyAfter === generateBodyBefore) throw new Error("생성 단추 클릭 전후 본문 길이가 같습니다");
   if (textRequests.length !== 1) throw new Error(`텍스트 생성 요청이 ${textRequests.length}건입니다`);
   if (textRequests[0]?.structure?.label !== "B") throw new Error("선택한 B 구조가 생성 요청에 없습니다");
+  if (!useLiveText && observedGeneratedText !== generatedText) throw new Error("결정론적 생성 결과가 화면과 다릅니다");
   if (englishButtonLabels.length !== 0) throw new Error(`영어 단추 라벨이 남았습니다: ${englishButtonLabels.join(", ")}`);
   if (consoleErrors.length !== 0) throw new Error(`브라우저 콘솔 오류가 남았습니다: ${consoleErrors.join(" | ")}`);
 
@@ -88,7 +93,8 @@ try {
     englishButtonLabelCount: englishButtonLabels.length,
     textRequestCount: textRequests.length,
     textRequestStructure: textRequests[0].structure,
-    generatedResult: generatedText,
+    generatedResult: observedGeneratedText,
+    responseMode: useLiveText ? "실제 생성 경로" : "결정론적 build 응답",
     consoleErrorCount: consoleErrors.length,
   };
   process.stdout.write(`${JSON.stringify(evidence, null, 2)}\n`);
