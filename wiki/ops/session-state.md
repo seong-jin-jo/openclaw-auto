@@ -1,3 +1,13 @@
+## 2026-09-03 19:16 KST | Codex code-builder | v72 401 승인 캐시 build 검증
+
+- 핸드오프 기준: 회장이 지정한 `work/v72cache`, `/private/tmp/osmu-wt-v72cache`와 운영 401 후 캐시 승인 결함을 primary로 사용했다. 메인 저장소 tmux pane은 별도 운영 트랙으로 보존했다.
+- 원인: v71 `fetcher`는 401을 throw했지만 성공한 SWR `data`를 캐시에서 제거하지 않았다. mock으로 `data` 와 `error`를 동시 주입한 v71 테스트는 실제 전이를 놓쳤다.
+- 변경: 모든 클라이언트 API 401에서 provider 경계 `mutate`로 SWR 캐시 전체를 제거한다. 인박스는 오류가 있으면 옛 게시물을 숨기고 안내와 비활성 승인·거절만 남긴다.
+- 보존: 인박스 이동·예약·단축키·발행실 복귀·제품 소스·보이스 톤·영상 미리보기·판단값 표시와 기존 인증 흐름을 유지했다. API·DB·OAuth·배포 계약은 변경하지 않았다.
+- 검증: 실제 SWR 계약은 수정 전 옛 제목 잔존으로 실패했고 수정 뒤 통과했다. 지정 4파일 42건, 전체 Vitest 226파일 1,628건 통과, 38건 조건부 제외, 실패 0. TypeScript 오류 0, design lint 위반 0, Next.js production build 177/177.
+- 커밋: NG·요청 `129fb73d`, 실패 재현 계약 `1167af06`, 구현 `766e04de`. 검증 문서 커밋과 원격 push는 이어서 수행한다.
+- 배포: 머지와 운영 배포는 실행하지 않았다. 다음 QA는 만료된 로그인 세션에서 인박스를 열고 401 재조회 후 옛 카드 비노출, 만료 안내, 승인·거절 비활성을 직접 관찰하는 것이다.
+
 ## 2026-09-03 18:05 KST | Codex code-builder | v71 초안 저장 실패 알림 build 검증 완료
 
 - 핸드오프 기준: 회장이 지정한 `work/v71auth`, `/tmp/osmu-wt-v71auth`와 CI의 `M5-STUDIO-02` 실패를 primary로 사용했다. 같은 worktree를 수정하는 tmux pane은 없었고 메인 저장소 pane은 별도 운영 트랙이라 이어받지 않았다.

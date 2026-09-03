@@ -2,6 +2,24 @@
 
 > 2026-07-02 밤샘 라이브 QA(browse+curl, 직접 관찰). 형식: 증거 항목 → 결과 → 근거.
 
+## 2026-09-03 build PASS, 운영 재검증 대기: v72 401 승인 캐시 제거
+
+실제 SWR cache provider에 성공 조회를 저장한 뒤 같은 목록을 401로 재조회하는 계약을
+추가했다. 수정 전에는 오류 안내와 비활성 단추 뒤에 옛 제목과 본문이 남아 계약이
+실패했다. 수정 뒤에는 `fetcher`의 401이 인증 오류를 throw하기 전 공통 무효화 신호를
+보내고, SWR provider가 모든 보호 조회 캐시를 재검증 없이 제거한다.
+
+| 검증 | 판정 | 직접 근거 |
+|---|---|---|
+| 승인 인박스 실제 SWR 전이 | PASS | `V72-AUTH-CACHE-01`. 성공 캐시 뒤 401에서 옛 제목·본문 비노출, 만료 안내, 승인·거절 비활성 |
+| 다른 보호 화면 캐시 | PASS | 같은 계약에서 `/api/settings` 성공 캐시도 함께 제거됨을 관찰 |
+| 공통 API 401 | PASS | `fetcher`, `apiPost`, `apiDelete`가 모두 캐시 무효화 후 `AuthRequiredError` 유지 |
+| 지정 인증 회귀 | PASS | 4파일 42건 통과, 실패 0 |
+| TypeScript와 디자인 토큰 | PASS | `npx tsc --noEmit` 오류 0, `design-lint.sh dashboard/src` 위반 0 |
+| 전체 Vitest | PASS | 226파일 1,628건 통과, PostgreSQL 필요 38건 조건부 제외, 실패 0 |
+| Web build | PASS | Next.js production build 성공, 정적 페이지 177/177. 기존 NFT 광범위 추적 경고 1건 유지 |
+| 운영 실화면 | QA 대기 | 만료된 운영 세션에서 캐시 카드 비노출과 재로그인 안내를 브라우저로 재관찰 |
+
 ## 2026-09-03 NG: 401 후에도 승인 가능한 초안 캐시 잔존
 
 운영 브라우저에서 보호 API가 전부 401을 반환했지만, 이전 성공 조회의 SWR
