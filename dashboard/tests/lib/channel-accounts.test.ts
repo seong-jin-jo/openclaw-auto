@@ -9,6 +9,8 @@ interface Row {
   tenant_id: string;
   provider: string;
   external_account_id: string;
+  display_name: string | null;
+  username: string | null;
   secret_enc: string;
   refresh_enc: string | null;
   meta: Record<string, unknown> | null;
