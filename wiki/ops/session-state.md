@@ -1,3 +1,13 @@
+## 2026-09-03 21:56 KST | Codex code-builder | v74 발행실 UI 테스트 계정 조회 경합 build 검증
+
+- 핸드오프 기준: 회장이 지정한 `work/v74flaky`, `/private/tmp/osmu-wt-v74flaky`와 같은 커밋에서 실패 항목이 바뀐 CI 증거를 primary로 사용했다. `openclaw-auto:0.0`은 부모 컨트롤러이며 다른 tmux pane은 별도 운영 트랙이다.
+- 불안정 원인: 제품 발행 단추는 계정 조회 전에도 같은 이름으로 렌더되지만 `accountsLoaded` 전까지 비활성이다. 기존 테스트의 `findByRole`은 존재만 기다린 뒤 클릭해, CI 속도에 따라 클릭이 무시되고 API 호출 0건과 후속 상태 누락이 번갈아 드러났다. mock 초기화·cleanup은 이미 양쪽 describe에 있었고 모듈 상태 공유 근거는 없었다.
+- 변경: 제품 소스와 계약 기대값은 건드리지 않았다. 발행 클릭 11곳을 단추 활성 상태 뒤로 동기화하고, 계정 조회를 제어 Promise로 늦춘 `V74-PUBLISH-READY-01`을 추가해 비활성·요청 0건에서 활성·발행 1건으로의 전이를 고정했다. timeout 확장, skip, retry는 없다.
+- 유지: 기존 33개 발행 계약, 발행 전 저장 거절, 부분 성공, 병렬 발행, 복구 지도, 기본 플랫폼 선택, 영상 채널 잠금, 첫 댓글을 모두 보존했다. API, DB, 제품 UI, 배포는 변경하지 않았다.
+- 검증: `npx tsc --noEmit` 오류 0. 지정 파일 같은 명령 5회 각각 34건, 총 170건 통과. seed 7401 무작위 순서 34건 통과. `bash scripts/local-ci-db.sh test`는 PostgreSQL 16 적용 뒤 226파일 1,666건 통과, 1건 조건부 제외, 실패 0. design lint 위반 0. production build 정적 페이지 177/177, 기존 NFT 경고 1건 유지.
+- 커밋: NG 기록 `1f096a07`, 테스트 안정화 `ce2f8a21`. 구현현황·QA·핸드오프 최종 증거를 별도 커밋한 뒤 `origin/work/v74flaky`에 push한다. 머지와 배포는 하지 않는다.
+- 다음 QA: 브랜치 push로 실행되는 GitHub Actions 컨테이너에서 같은 지정 파일과 전체 테스트의 실패 0을 확인한다.
+
 ## 2026-09-03 21:40 KST | Codex code-builder | v74 발행실 UI 테스트 불안정 원인 조사 착수
 
 - 핸드오프 기준: 회장이 지정한 `work/v74flaky`, `/private/tmp/osmu-wt-v74flaky`와 같은 커밋에서 실패 항목이 바뀐 CI 증거를 primary로 사용한다. `openclaw-auto:0.0`은 이 작업을 발주하고 회수를 기다리는 부모 컨트롤러이며, 다른 tmux pane은 별도 운영 트랙이다.
