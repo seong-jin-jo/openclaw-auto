@@ -21,7 +21,7 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 </style>
 <div class="wrap">
 <h1>밤사이 만든 것</h1>
-<p class="sub">2026년 09월 03일 08시 14분 기준. 이 장은 감독이 1분마다 새로 씁니다.</p>
+<p class="sub">2026년 09월 03일 20시 18분 기준. 이 장은 감독이 1분마다 새로 씁니다.</p>
 <div class="note">실제로 눌러 보시려면 <code>http://localhost:3456/studio</code> 입니다. 아래 그림은 방금 그 앱을 찍은 것입니다.</div>
 <h2>지금 도는 것</h2><table><tr><th>판</th><th>갈래</th><th>상태</th><th>시각</th></tr>
 <tr><td>build10</td><td>build</td><td>끝남</td><td>07:21</td></tr>
@@ -51,6 +51,8 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <tr><td>flowcheck082918</td><td>qa</td><td>끝남</td><td>18:46</td></tr>
 <tr><td>flowcheck090302</td><td>qa</td><td>발주실패</td><td>02:01</td></tr>
 <tr><td>flowcheck090306</td><td>qa</td><td>발주실패</td><td>06:00</td></tr>
+<tr><td>flowcheck090310</td><td>qa</td><td>발주실패</td><td>10:01</td></tr>
+<tr><td>flowcheck090318</td><td>qa</td><td>발주실패</td><td>18:01</td></tr>
 <tr><td>gapfill082823</td><td>build</td><td>끝남</td><td>23:23</td></tr>
 <tr><td>gapfill082903</td><td>build</td><td>끝남</td><td>03:03</td></tr>
 <tr><td>gapfill082907</td><td>build</td><td>끝남</td><td>07:12</td></tr>
@@ -58,6 +60,8 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <tr><td>gapfill082919</td><td>build</td><td>끝남</td><td>19:04</td></tr>
 <tr><td>gapfill090303</td><td>build</td><td>발주실패</td><td>03:01</td></tr>
 <tr><td>gapfill090307</td><td>build</td><td>발주실패</td><td>07:00</td></tr>
+<tr><td>gapfill090311</td><td>build</td><td>발주실패</td><td>11:01</td></tr>
+<tr><td>gapfill090319</td><td>build</td><td>발주실패</td><td>19:13</td></tr>
 <tr><td>qa1</td><td>qa</td><td>끝남</td><td>18:59</td></tr>
 <tr><td>regress082900</td><td>review</td><td>끝남</td><td>00:03</td></tr>
 <tr><td>regress082904</td><td>review</td><td>끝남</td><td>04:02</td></tr>
@@ -65,6 +69,7 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <tr><td>regress082912</td><td>review</td><td>끝남</td><td>12:02</td></tr>
 <tr><td>regress090300</td><td>review</td><td>발주실패</td><td>00:10</td></tr>
 <tr><td>regress090308</td><td>review</td><td>발주실패</td><td>08:00</td></tr>
+<tr><td>regress090320</td><td>review</td><td>발주실패</td><td>20:00</td></tr>
 <tr><td>review1</td><td>review</td><td>끝남</td><td>18:42</td></tr>
 <tr><td>ship1</td><td>review</td><td>빈손</td><td>22:25</td></tr>
 <tr><td>sweep082901</td><td>qa</td><td>끝남</td><td>01:01</td></tr>
@@ -72,6 +77,8 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <tr><td>sweep082909</td><td>qa</td><td>끝남</td><td>09:02</td></tr>
 <tr><td>sweep082913</td><td>qa</td><td>끝남</td><td>13:05</td></tr>
 <tr><td>sweep090301</td><td>qa</td><td>발주실패</td><td>01:01</td></tr>
+<tr><td>sweep090309</td><td>qa</td><td>발주실패</td><td>09:01</td></tr>
+<tr><td>sweep090317</td><td>qa</td><td>발주실패</td><td>17:25</td></tr>
 </table>
 <h2>화면</h2>
 <div class="shots">
@@ -105,6 +112,31 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <figure><img src="아침보고-화면/studio-publish-768.png" alt="studio-publish-768"><figcaption>studio-publish-768</figcaption></figure>
 </div>
 <h2>밤사이 들어간 작업</h2><table><tr><th>커밋</th><th>무엇을</th></tr>
+<tr><td><code>957a6c6f</code></td><td>docs(handoff): record v72 push evidence</td></tr>
+<tr><td><code>e70f429d</code></td><td>docs(build): record v72 combined contract evidence</td></tr>
+<tr><td><code>d364103e</code></td><td>fix(studio): separate draft failure notification boundary</td></tr>
+<tr><td><code>0144c2a0</code></td><td>docs(qa): record v72 draft alert regression</td></tr>
+<tr><td><code>3b7e6d73</code></td><td>docs(handoff): refresh v72 cache build state</td></tr>
+<tr><td><code>61cb5728</code></td><td>docs(handoff): record v72 remote branch evidence</td></tr>
+<tr><td><code>8077e96c</code></td><td>docs(build): record v72 auth cache evidence</td></tr>
+<tr><td><code>766e04de</code></td><td>fix(auth): clear protected SWR cache on 401</td></tr>
+<tr><td><code>1167af06</code></td><td>test(inbox): reproduce stale cache after 401</td></tr>
+<tr><td><code>129fb73d</code></td><td>docs(qa): record v72 stale auth cache regression</td></tr>
+<tr><td><code>714a1396</code></td><td>docs(handoff): record v71 push policy block</td></tr>
+<tr><td><code>65109447</code></td><td>docs(build): record v71 draft alert evidence</td></tr>
+<tr><td><code>70278e7c</code></td><td>fix(studio): restore draft save failure alerts</td></tr>
+<tr><td><code>9d015453</code></td><td>docs(qa): record v71 draft alert regression</td></tr>
+<tr><td><code>43bad96d</code></td><td>docs(handoff): refresh v71 build state</td></tr>
+<tr><td><code>488a61a6</code></td><td>docs(handoff): record v71 push policy block</td></tr>
+<tr><td><code>c473ba8f</code></td><td>docs(build): record v71 publish restore evidence</td></tr>
+<tr><td><code>96465864</code></td><td>fix(studio): restore publish work before account readiness</td></tr>
+<tr><td><code>34eee362</code></td><td>docs(handoff): record v71 push policy block</td></tr>
+<tr><td><code>8c750cdf</code></td><td>docs(build): record v71 authentication evidence</td></tr>
+<tr><td><code>aabbb835</code></td><td>test(inbox): keep publish return mock complete</td></tr>
+<tr><td><code>2cd5a9bb</code></td><td>fix(api): propagate unauthorized mutation failures</td></tr>
+<tr><td><code>ba4cc37c</code></td><td>fix(auth): fail closed immediately on expired sessions</td></tr>
+<tr><td><code>a5ad5c14</code></td><td>fix(inbox): block review actions when loading fails</td></tr>
+<tr><td><code>bfe6793e</code></td><td>docs(qa): 배포 후 운영 실측과 미해소 결함 1건 기록</td></tr>
 <tr><td><code>dceb08b9</code></td><td>docs(handoff): record inbox approval validation</td></tr>
 <tr><td><code>6ba8605b</code></td><td>docs(handoff): avoid stale push sha</td></tr>
 <tr><td><code>4ae52704</code></td><td>docs(handoff): record v70 push state</td></tr>

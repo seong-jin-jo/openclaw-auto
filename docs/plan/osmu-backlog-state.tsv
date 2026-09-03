@@ -87,3 +87,10 @@ gapfill090303	build	발주실패	03:01	osmu-gapfill090303
 flowcheck090306	qa	발주실패	06:00	osmu-flowcheck090306
 gapfill090307	build	발주실패	07:00	osmu-gapfill090307
 regress090308	review	발주실패	08:00	osmu-regress090308
+sweep090309	qa	발주실패	09:01	osmu-sweep090309
+flowcheck090310	qa	발주실패	10:01	osmu-flowcheck090310
+gapfill090311	build	발주실패	11:01	osmu-gapfill090311
+sweep090317	qa	발주실패	17:25	osmu-sweep090317
+flowcheck090318	qa	발주실패	18:01	osmu-flowcheck090318
+gapfill090319	build	발주실패	19:13	osmu-gapfill090319
+regress090320	review	발주실패	20:00	osmu-regress090320
