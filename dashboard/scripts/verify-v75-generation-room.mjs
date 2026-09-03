@@ -6,6 +6,7 @@ const { chromium } = playwright;
 const baseUrl = process.env.V75_BASE_URL || "http://127.0.0.1:3467";
 const executablePath = process.env.V75_CHROME_PATH || "/Users/sj/Library/Caches/ms-playwright/chromium-1228/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing";
 const useLiveText = process.env.V75_USE_LIVE_TEXT === "1";
+const screenshotPath = process.env.V75_SCREENSHOT_PATH;
 const workspaceId = "11111111-1111-4111-8111-111111111111";
 const generatedText = "선택한 구조가 반영된 한국어 초안입니다. 첫 문제를 짚고, 해결 순서를 설명한 뒤, 오늘 할 행동으로 마칩니다.";
 const textRequests = [];
@@ -76,6 +77,7 @@ try {
   if (!useLiveText && observedGeneratedText !== generatedText) throw new Error("결정론적 생성 결과가 화면과 다릅니다");
   if (englishButtonLabels.length !== 0) throw new Error(`영어 단추 라벨이 남았습니다: ${englishButtonLabels.join(", ")}`);
   if (consoleErrors.length !== 0) throw new Error(`브라우저 콘솔 오류가 남았습니다: ${consoleErrors.join(" | ")}`);
+  if (screenshotPath) await page.screenshot({ path: screenshotPath, fullPage: true });
 
   const evidence = {
     generateClick: {
