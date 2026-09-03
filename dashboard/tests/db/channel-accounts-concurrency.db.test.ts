@@ -164,6 +164,16 @@ describe("channel_accounts first-account concurrency (live Postgres)", () => {
         meta: { api: "after", userId: externalId },
       });
       expect(Date.parse(stored.token_expires_at)).toBe(Date.parse(secondExpiry));
+      console.info([
+        "RECONNECT_DB_EVIDENCE",
+        "first_save_success=1",
+        "second_save_success=1",
+        `provider_rows=${stored.total}`,
+        `token_updated=${Number(stored.access_token === "access-after")}`,
+        `display_name_updated=${Number(stored.display_name === "연결 후 이름")}`,
+        `default_rows=${stored.defaults}`,
+        `default_preserved=${Number(first.id === second.id && second.isDefault)}`,
+      ].join(" "));
     } finally {
       await sql`
         delete from channel_accounts
