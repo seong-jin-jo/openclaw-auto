@@ -195,8 +195,9 @@ async function promoteIfDefaultUnusable(
 // 이번에 붙은 계정이 쓸 수 있으면 기본을 이번 계정으로 넘긴다. 2026-09-01 회장 계정에서
 // 실제로 난 일이다. 새 계정이 정상 연결됐는데도 낡은 기본계정 때문에 화면은 계속 미연결이었고
 // 발행 대상도 죽은 계정을 가리키고 있었다. 사용자가 고칠 수 있는 화면이 없으므로 서버가 고친다.
-// 반환: 이 upsert가 만든/갱신한 계정이 기본계정인지(legacy integrations 동기화 판단용).
-export async function upsertChannelAccount(input: UpsertInput): Promise<{ id: string; isDefault: boolean }> {
+// 반환: 이 upsert가 만든/갱신한 계정이 기본계정인지(legacy integrations 동기화 판단용)와
+// 기존 계정을 갱신한 재연결인지(사용자 결과 안내용).
+export async function upsertChannelAccount(input: UpsertInput): Promise<{ id: string; isDefault: boolean; reconnected: boolean }> {
   const key = process.env.OSMU_SECRET_KEY;
   if (!key) throw new Error("OSMU_SECRET_KEY 미설정 — 토큰 암호화 불가");
   return withTenant(input.tenantId, async (sql) => {
@@ -207,34 +208,16 @@ export async function upsertChannelAccount(input: UpsertInput): Promise<{ id: st
       SELECT id, is_default FROM channel_accounts
       WHERE tenant_id = ${input.tenantId} AND provider = ${input.provider} AND external_account_id = ${input.externalId}`;
 
-    if (existing) {
-      await sql`
-        UPDATE channel_accounts
-        SET secret_enc = armor(pgp_sym_encrypt(${input.accessToken}, ${key})),
-            refresh_enc = ${input.refreshToken ? sql`armor(pgp_sym_encrypt(${input.refreshToken}, ${key}))` : sql`refresh_enc`},
-            display_name = COALESCE(${input.displayName ?? null}, display_name),
-            username = COALESCE(${input.username ?? null}, username),
-            meta = ${input.meta ? sql.json(input.meta as Parameters<typeof sql.json>[0]) : sql`meta`},
-            status = ${input.status ?? "active"},
-            token_expires_at = ${input.tokenExpiresAt ?? null},
-            updated_at = now()
-        WHERE id = ${existing.id}`;
-      const promotedExisting = await promoteIfDefaultUnusable(
-        sql, input, existing.id, existing.is_default,
-      );
-      return { id: existing.id, isDefault: promotedExisting };
-    }
-
     const [{ cnt }] = await sql<{ cnt: string }[]>`
       SELECT count(*)::text AS cnt FROM channel_accounts WHERE tenant_id = ${input.tenantId} AND provider = ${input.provider}`;
-    const isFirst = Number(cnt) === 0;
+    const isFirst = !existing && Number(cnt) === 0;
     const isInitialDefault = isFirst && usableAsDefault(
       input.provider,
       input.status ?? "active",
       input.tokenExpiresAt ?? null,
     );
 
-    const [inserted] = await sql<{ id: string }[]>`
+    const [inserted] = await sql<{ id: string; is_default: boolean }[]>`
       INSERT INTO channel_accounts
         (tenant_id, provider, external_account_id, display_name, username, secret_enc, refresh_enc, meta, is_default, status, token_expires_at)
       VALUES (
@@ -245,11 +228,20 @@ export async function upsertChannelAccount(input: UpsertInput): Promise<{ id: st
         ${input.meta ? sql.json(input.meta as Parameters<typeof sql.json>[0]) : null},
         ${isInitialDefault}, ${input.status ?? "active"}, ${input.tokenExpiresAt ?? null}
       )
-      RETURNING id`;
-    const promoted = isInitialDefault
-      ? true
-      : await promoteIfDefaultUnusable(sql, input, inserted.id, false);
-    return { id: inserted.id, isDefault: promoted };
+      ON CONFLICT (tenant_id, provider, external_account_id) DO UPDATE
+        SET secret_enc = EXCLUDED.secret_enc,
+            refresh_enc = COALESCE(EXCLUDED.refresh_enc, channel_accounts.refresh_enc),
+            display_name = COALESCE(EXCLUDED.display_name, channel_accounts.display_name),
+            username = COALESCE(EXCLUDED.username, channel_accounts.username),
+            meta = COALESCE(EXCLUDED.meta, channel_accounts.meta),
+            status = EXCLUDED.status,
+            token_expires_at = EXCLUDED.token_expires_at,
+            updated_at = now()
+      RETURNING id, is_default`;
+    const promoted = await promoteIfDefaultUnusable(
+      sql, input, inserted.id, inserted.is_default,
+    );
+    return { id: inserted.id, isDefault: promoted, reconnected: Boolean(existing) };
   });
 }
 

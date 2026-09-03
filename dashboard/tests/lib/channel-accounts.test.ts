@@ -90,15 +90,31 @@ function fakeSql(strings: TemplateStringsArray, ...vals: unknown[]) {
     return Promise.resolve([{ cnt: String(cnt) }]);
   }
   if (text.includes("INSERT INTO channel_accounts")) {
-    const [tenantId, provider, externalId, displayName, username, accessToken, , refreshToken, , isDefault, status, tokenExpiresAt] = vals;
+    const [tenantId, provider, externalId, displayName, username, accessToken, , refreshToken, meta, isDefault, status, tokenExpiresAt] = vals;
+    const existing = H.rows.find((r) => (
+      r.tenant_id === tenantId
+      && r.provider === provider
+      && r.external_account_id === externalId
+    ));
+    if (existing) {
+      existing.secret_enc = accessToken as string;
+      if (refreshToken) existing.refresh_enc = refreshToken as string;
+      if (displayName) existing.display_name = displayName as string;
+      if (username) existing.username = username as string;
+      if (meta) existing.meta = meta as Record<string, unknown>;
+      existing.status = status as string;
+      existing.token_expires_at = (tokenExpiresAt as string) ?? null;
+      return Promise.resolve([{ id: existing.id, is_default: existing.is_default }]);
+    }
     const id = `acc-${++H.seq}`;
     H.rows.push({
       id, tenant_id: tenantId as string, provider: provider as string, external_account_id: externalId as string,
       secret_enc: accessToken as string, refresh_enc: (refreshToken as string) ?? null,
-      meta: { displayName, username }, is_default: Boolean(isDefault), status: status as string,
+      display_name: (displayName as string) ?? null, username: (username as string) ?? null,
+      meta: (meta as Record<string, unknown>) ?? null, is_default: Boolean(isDefault), status: status as string,
       token_expires_at: (tokenExpiresAt as string) ?? null, created_at: H.seq,
     });
-    return Promise.resolve([{ id }]);
+    return Promise.resolve([{ id, is_default: Boolean(isDefault) }]);
   }
   if (text.includes("SELECT id, status, token_expires_at::text AS token_expires_at") && text.includes("WHERE id =")) {
     const [accountId, tenantId, provider] = vals as [string, string, string];
@@ -205,13 +221,15 @@ describe("upsertChannelAccount — 2계정 + 재연결 idempotency", () => {
     expect(list).toHaveLength(2);
   });
 
-  it("재연결(동일 external id)은 새 계정을 만들지 않고 기존 행을 갱신한다", async () => {
+  it("채널-재연결-04 정상: 동일 external id는 새 행 없이 토큰과 표시 정보를 갱신하고 기본을 유지한다", async () => {
     const { upsertChannelAccount } = await import("@/lib/channel-accounts");
     const future = new Date(Date.now() + 60_000).toISOString();
-    const first = await upsertChannelAccount({ tenantId: "t1", provider: "threads", externalId: "ext-1", accessToken: "tok-1", tokenExpiresAt: future });
-    const reconnect = await upsertChannelAccount({ tenantId: "t1", provider: "threads", externalId: "ext-1", accessToken: "tok-1-new", tokenExpiresAt: future });
+    const first = await upsertChannelAccount({ tenantId: "t1", provider: "threads", externalId: "ext-1", displayName: "연결 전", accessToken: "tok-1", tokenExpiresAt: future });
+    const reconnect = await upsertChannelAccount({ tenantId: "t1", provider: "threads", externalId: "ext-1", displayName: "연결 후", accessToken: "tok-1-new", tokenExpiresAt: future });
     expect(reconnect.id).toBe(first.id);
+    expect(reconnect).toMatchObject({ isDefault: true, reconnected: true });
     expect(H.rows).toHaveLength(1);
+    expect(H.rows[0]).toMatchObject({ secret_enc: "tok-1-new", display_name: "연결 후", is_default: true });
   });
 
   it("두 번째 계정 추가가 첫 번째(기본) 계정의 토큰을 덮어쓰지 않는다", async () => {
