@@ -73,16 +73,14 @@ describe("화면 2차 생성실 계약", () => {
     expect(screen.getByRole("complementary", { name: "생성 담당 대화창" })).toBeInTheDocument();
   });
 
-  it("V77-CREATE-01 정상: 본문은 표시 전용이고 생성 선택은 대화창에만 둔다", () => {
+  it("V75-CREATE-01 정상: 본문에 직접 생성 동선을 추가하고 기존 대화창을 유지한다", () => {
     render(<CreateRoom workspaceId="workspace" workspaceName="작업 공간" guide="브랜드 사실" topic="주제" onTopicChange={vi.fn()} onOpenLearning={vi.fn()} onCandidateSelect={vi.fn()} />);
 
     const workspace = document.querySelector("[data-create-workspace]");
     expect(workspace).toBeInTheDocument();
-    expect(workspace).toHaveAttribute("data-display-readonly", "create");
-    expect(within(workspace as HTMLElement).queryAllByRole("button")).toHaveLength(0);
-    const assistant = screen.getByRole("complementary", { name: "생성 담당 대화창" });
-    expect(assistant).toHaveTextContent("무엇을 만들까요?");
-    expect(within(assistant).getByRole("button", { name: "영상" })).toBeInTheDocument();
+    expect(within(workspace as HTMLElement).getByLabelText("초안 주제")).toBeInTheDocument();
+    expect(within(workspace as HTMLElement).getByRole("button", { name: "초안 만들기" })).toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "생성 담당 대화창" })).toHaveTextContent("무엇을 만들까요?");
   });
 
   it("FE6-CREATE-02 정상: 영상 선택은 대화창에서 생성 계약으로 전달한다", async () => {
