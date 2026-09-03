@@ -43,23 +43,30 @@ describe("V70-INBOX 승인 인박스 안전 계약", () => {
 
   afterEach(cleanup);
 
-  it("V70-INBOX-01 정상: 본문이 있으면 내용을 보여 주고 승인할 수 있다", () => {
-    queue([{ id: "draft-1", text: "고객이 실제로 검토할 본문", topic: "일반 콘텐츠" }]);
+  it("V73-INBOX-01 정상: title 없이 text만 오면 본문 영역에 표시하고 빈 제목 자리를 만들지 않는다", () => {
+    queue([{ id: "draft-1", text: "QA 운영 브라우저 재검증: 다음 주 콘텐츠 계획", topic: "일반 콘텐츠" }]);
 
-    render(<InboxPage />);
+    const { container } = render(<InboxPage />);
 
-    expect(screen.getByText("고객이 실제로 검토할 본문")).toBeInTheDocument();
+    const body = container.querySelector("[data-review-body]");
+    expect(body).toHaveTextContent("QA 운영 브라우저 재검증: 다음 주 콘텐츠 계획");
+    expect(body).toHaveClass("min-h-control-touch");
+    expect(container.querySelector("[data-review-title]")).not.toBeInTheDocument();
+    expect(container.querySelector("[data-review-content] h3:empty")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "승인" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "거절" })).toBeEnabled();
   });
 
-  it("V70-INBOX-02 거절: 공백과 줄바꿈뿐인 본문은 승인 단추와 단축키 모두 승인 요청을 보내지 않는다", () => {
+  it("V73-INBOX-02 거절: 공백 본문은 승인과 거절 단추 및 A·R 단축키 요청을 모두 막는다", () => {
     queue([{ id: "draft-empty", text: "  \n\t  ", topic: "studio-handoff" }]);
 
     render(<InboxPage />);
 
     expect(screen.getByRole("alert")).toHaveTextContent("본문을 불러오지 못했습니다");
     expect(screen.getByRole("button", { name: "승인" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "거절" })).toBeDisabled();
     fireEvent.keyDown(window, { key: "A" });
+    fireEvent.keyDown(window, { key: "R" });
     expect(mocks.apiPost).not.toHaveBeenCalled();
   });
 

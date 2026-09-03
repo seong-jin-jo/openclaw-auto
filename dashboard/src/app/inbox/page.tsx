@@ -51,7 +51,7 @@ function approvalWarning(fields: MissingReviewField[]) {
     return "제목을 불러오지 못했습니다. 내용을 확인할 수 있을 때만 승인할 수 있습니다.";
   }
   if (fields.includes("body")) {
-    return "본문을 불러오지 못했습니다. 내용을 확인할 수 있을 때만 승인할 수 있습니다.";
+    return "본문을 불러오지 못했습니다. 내용을 확인할 수 있을 때만 승인하거나 거절할 수 있습니다.";
   }
   return "";
 }
@@ -154,7 +154,7 @@ export default function InboxPage() {
   }, [current, busy, queueLoadFailed, scheduleHours, mutate, advance, showToast]);
 
   const reject = useCallback(async () => {
-    if (!current || busy || queueLoadFailed) return;
+    if (!current || busy || queueLoadFailed || missingReviewFields(current).length > 0) return;
     setBusy(true);
     try {
       await apiPost(`/api/queue/${current.id}/delete`, {});
@@ -355,18 +355,20 @@ export default function InboxPage() {
             </div>
           )}
 
-          {/* 제목과 본문 */}
-          {currentTitle ? (
-            <h3 className="text-body font-semibold text-text">{currentTitle}</h3>
-          ) : null}
-          {blockedWarning ? (
-            <div role="alert" className="min-h-[80px] rounded-control border border-warning/30 bg-warning/10 p-stack text-body-sm text-warning">
-              {blockedWarning}
-            </div>
-          ) : null}
-          {currentBody ? (
-            <p className="text-body-sm text-text whitespace-pre-wrap leading-relaxed min-h-[80px]">{currentBody}</p>
-          ) : null}
+          {/* 제목은 실제 제목 값이 있을 때만, text는 항상 본문 영역에 표시한다. */}
+          <section aria-label="검토할 글" className="min-h-control-touch space-y-stack-tight" data-review-content>
+            {currentTitle ? (
+              <h3 className="text-body font-semibold text-text" data-review-title>{currentTitle}</h3>
+            ) : null}
+            {blockedWarning ? (
+              <div role="alert" className="rounded-control border border-warning/30 bg-warning/10 p-stack text-body-sm text-warning">
+                {blockedWarning}
+              </div>
+            ) : null}
+            {currentBody ? (
+              <p className="min-h-control-touch whitespace-pre-wrap text-body-sm leading-relaxed text-text" data-review-body>{currentBody}</p>
+            ) : null}
+          </section>
 
           {/* 해시태그 */}
           {hashtags.length > 0 && (
@@ -398,8 +400,8 @@ export default function InboxPage() {
           <div className="mt-stack-section grid grid-cols-2 gap-stack">
             <button
               onClick={reject}
-              disabled={busy || queueLoadFailed}
-              aria-describedby={queueLoadFailed ? "queue-load-failure" : undefined}
+              disabled={busy || !canApprove}
+              aria-describedby={queueLoadFailed ? "queue-load-failure" : !canApprove ? "approval-blocked-reason" : undefined}
               className="py-stack rounded-control bg-danger/15 text-danger hover:bg-danger/25 text-body-sm font-medium disabled:opacity-50"
             >
               거절
@@ -414,7 +416,7 @@ export default function InboxPage() {
             </button>
           </div>
           {!queueLoadFailed && !canApprove ? (
-            <p id="approval-blocked-reason" className="mt-stack-tight text-center text-caption text-warning">본문 확인 전에는 승인할 수 없습니다.</p>
+            <p id="approval-blocked-reason" className="mt-stack-tight text-center text-caption text-warning">본문 확인 전에는 승인하거나 거절할 수 없습니다.</p>
           ) : null}
           {current.publishContext ? (
             <Link
