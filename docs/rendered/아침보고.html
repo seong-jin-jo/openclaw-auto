@@ -21,7 +21,7 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 </style>
 <div class="wrap">
 <h1>밤사이 만든 것</h1>
-<p class="sub">2026년 09월 04일 05시 21분 기준. 이 장은 감독이 1분마다 새로 씁니다.</p>
+<p class="sub">2026년 09월 04일 08시 24분 기준. 이 장은 감독이 1분마다 새로 씁니다.</p>
 <div class="note">실제로 눌러 보시려면 <code>http://localhost:3456/studio</code> 입니다. 아래 그림은 방금 그 앱을 찍은 것입니다.</div>
 <h2>지금 도는 것</h2><table><tr><th>판</th><th>갈래</th><th>상태</th><th>시각</th></tr>
 <tr><td>build10</td><td>build</td><td>끝남</td><td>07:21</td></tr>
@@ -55,6 +55,7 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <tr><td>flowcheck090318</td><td>qa</td><td>발주실패</td><td>18:01</td></tr>
 <tr><td>flowcheck090322</td><td>qa</td><td>발주실패</td><td>22:01</td></tr>
 <tr><td>flowcheck090402</td><td>qa</td><td>발주실패</td><td>02:00</td></tr>
+<tr><td>flowcheck090406</td><td>qa</td><td>발주실패</td><td>06:01</td></tr>
 <tr><td>gapfill082823</td><td>build</td><td>끝남</td><td>23:23</td></tr>
 <tr><td>gapfill082903</td><td>build</td><td>끝남</td><td>03:03</td></tr>
 <tr><td>gapfill082907</td><td>build</td><td>끝남</td><td>07:12</td></tr>
@@ -66,6 +67,7 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <tr><td>gapfill090319</td><td>build</td><td>발주실패</td><td>19:13</td></tr>
 <tr><td>gapfill090323</td><td>build</td><td>발주실패</td><td>23:00</td></tr>
 <tr><td>gapfill090403</td><td>build</td><td>발주실패</td><td>03:22</td></tr>
+<tr><td>gapfill090407</td><td>build</td><td>발주실패</td><td>07:01</td></tr>
 <tr><td>qa1</td><td>qa</td><td>끝남</td><td>18:59</td></tr>
 <tr><td>regress082900</td><td>review</td><td>끝남</td><td>00:03</td></tr>
 <tr><td>regress082904</td><td>review</td><td>끝남</td><td>04:02</td></tr>
@@ -76,6 +78,7 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <tr><td>regress090320</td><td>review</td><td>발주실패</td><td>20:00</td></tr>
 <tr><td>regress090400</td><td>review</td><td>발주실패</td><td>00:01</td></tr>
 <tr><td>regress090404</td><td>review</td><td>발주실패</td><td>04:00</td></tr>
+<tr><td>regress090408</td><td>review</td><td>발주실패</td><td>08:00</td></tr>
 <tr><td>review1</td><td>review</td><td>끝남</td><td>18:42</td></tr>
 <tr><td>ship1</td><td>review</td><td>빈손</td><td>22:25</td></tr>
 <tr><td>sweep082901</td><td>qa</td><td>끝남</td><td>01:01</td></tr>
@@ -121,6 +124,25 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <figure><img src="아침보고-화면/studio-publish-768.png" alt="studio-publish-768"><figcaption>studio-publish-768</figcaption></figure>
 </div>
 <h2>밤사이 들어간 작업</h2><table><tr><th>커밋</th><th>무엇을</th></tr>
+<tr><td><code>4adaaa62</code></td><td>Merge branch 'work/v77req' into feat/design-system-and-missing-features</td></tr>
+<tr><td><code>abe26174</code></td><td>docs(osmu): refresh v77 regression handoff</td></tr>
+<tr><td><code>604fd1a3</code></td><td>docs(qa): confirm v77req remote handoff</td></tr>
+<tr><td><code>1a4d69dc</code></td><td>docs(qa): record dual generation evidence</td></tr>
+<tr><td><code>6aef08ad</code></td><td>test(studio): protect both generation paths</td></tr>
+<tr><td><code>476ddfee</code></td><td>fix(qa): ISSUE-001 restore dual generation paths</td></tr>
+<tr><td><code>f41d862f</code></td><td>docs(qa): record v75 generation regression</td></tr>
+<tr><td><code>d48e4321</code></td><td>test(studio): align browser checks with assistant flow</td></tr>
+<tr><td><code>f32d132f</code></td><td>fix(studio): keep generation choices in assistant</td></tr>
+<tr><td><code>efd5811b</code></td><td>docs(qa): close v77 chairman request evidence</td></tr>
+<tr><td><code>96e0be2d</code></td><td>test(studio): record v77 browser measurements</td></tr>
+<tr><td><code>46c806ef</code></td><td>fix(studio): keep learning action visible in room header</td></tr>
+<tr><td><code>9d5809c2</code></td><td>fix(studio): preserve onboarding format during restore</td></tr>
+<tr><td><code>108d5159</code></td><td>test(studio): add v77 browser click evidence</td></tr>
+<tr><td><code>526524bb</code></td><td>test(studio): align create restore navigation label</td></tr>
+<tr><td><code>f70be33d</code></td><td>feat(studio): restore create draft and surface learning path</td></tr>
+<tr><td><code>6c8bda1f</code></td><td>docs(qa): 대조 회장 학습 생성 편집 요청</td></tr>
+<tr><td><code>c21f43b1</code></td><td>docs(osmu): 입력 실패 인정과 요청 원문 재독 기록</td></tr>
+<tr><td><code>af34f292</code></td><td>docs(qa): 연결 실패 원인 확정(중복 키)과 재연결 왕복 실측</td></tr>
 <tr><td><code>5b532980</code></td><td>docs(handoff): record reconnect branch push</td></tr>
 <tr><td><code>093ad138</code></td><td>docs(qa): close channel reconnect build evidence</td></tr>
 <tr><td><code>acbab3d8</code></td><td>docs(osmu): record channel reconnect contract</td></tr>

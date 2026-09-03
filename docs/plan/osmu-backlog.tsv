@@ -62,3 +62,6 @@ flowcheck090402	qa	flowcheck090402.txt
 gapfill090403	build	gapfill090403.txt
 regress090404	review	regress090404.txt
 sweep090405	qa	sweep090405.txt
+flowcheck090406	qa	flowcheck090406.txt
+gapfill090407	build	gapfill090407.txt
+regress090408	review	regress090408.txt
