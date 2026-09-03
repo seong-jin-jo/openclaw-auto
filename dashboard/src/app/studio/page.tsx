@@ -54,6 +54,7 @@ import {
   type PlatformPublishInput,
 } from "@/lib/studio/platform-publish-fields";
 import type { CurrentWork } from "@/lib/studio/current-work";
+import { attemptRequiredDraftPersistence } from "@/lib/studio/required-draft-persistence";
 
 // SNS-007: /api/publish가 실제로 계정별 발행을 받는 4개 플랫폼(threads/x/facebook/instagram)만
 // 계정 셀렉터를 노출한다. shorts/reels/tiktok은 /api/publish 미지원(실발행 분기 없음. 위
@@ -606,17 +607,12 @@ export default function StudioPage() {
       showToast(`${LABEL[blocked.platform]}: ${blocked.issue.message}`, "error");
       return;
     }
-    let did: string | undefined;
-    try {
-      did = await save("draft");
-    } catch {
+    const draftPersistence = await attemptRequiredDraftPersistence(() => save("draft"));
+    if (!draftPersistence.ok) {
       showToast("발행할 초안을 저장하지 못했습니다", "error");
       return;
     }
-    if (!did) {
-      showToast("발행할 초안을 저장하지 못했습니다", "error");
-      return;
-    }
+    const did = draftPersistence.draftId;
     const targets = publishTargets;
     if (!targets.length) { showToast("연결된 발행 계정이 없습니다. 설정에서 채널을 먼저 연결하세요", "error"); return; }
     const status: Record<string, PubStatus> = {}; targets.forEach((p) => (status[p] = "wait"));
