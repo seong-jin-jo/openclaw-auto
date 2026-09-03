@@ -14,6 +14,8 @@ export class AuthRequiredError extends Error {
   }
 }
 
+export const AUTH_CACHE_INVALIDATION_EVENT = "auth:cache-invalidate";
+
 export class ApiResponseError<T = unknown> extends Error {
   readonly status: number;
   readonly payload: T;
@@ -75,6 +77,10 @@ function requestAuth(): { token: string; headers: Record<string, string> } {
   };
 }
 
+function invalidateAuthCache(): void {
+  window.dispatchEvent(new CustomEvent(AUTH_CACHE_INVALIDATION_EVENT));
+}
+
 export function handleUnauthorizedResponse(requestToken: string, clearToken: boolean): void {
   // A response belongs to the credential snapshot used when its request started.
   // If login refreshed/replaced that credential meanwhile, the old 401 must not
@@ -100,6 +106,7 @@ export async function fetcher<T>(url: string): Promise<T> {
   const auth = requestAuth();
   const res = await fetch(url, { headers: auth.headers });
   if (res.status === 401) {
+    invalidateAuthCache();
     handleUnauthorizedResponse(auth.token, true);
     throw new AuthRequiredError();
   }
@@ -117,6 +124,7 @@ export async function apiPost<T = unknown>(url: string, body?: unknown): Promise
       body: body ? JSON.stringify(body) : undefined,
     });
     if (res.status === 401) {
+      invalidateAuthCache();
       handleUnauthorizedResponse(auth.token, false);
       throw new AuthRequiredError();
     }
@@ -138,6 +146,7 @@ export async function apiDelete<T = unknown>(url: string): Promise<T | null> {
     headers: auth.headers,
   });
   if (res.status === 401) {
+    invalidateAuthCache();
     handleUnauthorizedResponse(auth.token, false);
     throw new AuthRequiredError();
   }

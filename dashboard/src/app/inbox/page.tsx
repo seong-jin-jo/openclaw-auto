@@ -61,7 +61,7 @@ export default function InboxPage() {
   const { data: psData, mutate: mutatePsrc } = useSWR<{ source: ProductSource | null }>("/api/product-source", fetcher);
   const { showToast } = useToast();
 
-  const posts = data?.posts || [];
+  const posts = queueError ? [] : data?.posts || [];
   const [idx, setIdx] = useState(0);
   const [scheduleHours, setScheduleHours] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -299,7 +299,28 @@ export default function InboxPage() {
         </div>
       ) : null}
 
-      {queueLoadFailed && data === undefined ? null : isLoading && data === undefined ? (
+      {queueLoadFailed ? (
+        <div className="card p-pad-inset">
+          <div className="grid grid-cols-2 gap-stack">
+            <button
+              type="button"
+              disabled
+              aria-describedby="queue-load-failure"
+              className="py-stack rounded-control bg-danger/15 text-danger text-body-sm font-medium disabled:opacity-50"
+            >
+              거절
+            </button>
+            <button
+              type="button"
+              disabled
+              aria-describedby="queue-load-failure"
+              className="py-stack rounded-control bg-success text-status-fg text-body-sm font-medium disabled:opacity-50"
+            >
+              승인
+            </button>
+          </div>
+        </div>
+      ) : isLoading && data === undefined ? (
         <div className="card p-region text-center text-subtle text-body-sm">불러오는 중…</div>
       ) : posts.length === 0 ? (
         <div className="card p-region text-center">
