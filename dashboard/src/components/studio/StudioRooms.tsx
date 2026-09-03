@@ -521,7 +521,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
         <div className="text-right"><b className="block text-body font-bold text-accent">{stage.count}</b><span className="text-caption text-subtle">{stage.label}</span></div>
       </section>
       <div className="grid gap-stack-section lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="min-w-0 space-y-region" data-create-workspace data-display-readonly>
+        <div className="min-w-0 space-y-region" data-create-workspace data-display-readonly="create">
           <section className="grid gap-stack sm:grid-cols-3" aria-label="생성실 요약">
             <article className="card p-pad-inset"><span className="text-caption text-subtle">선택한 형식</span><b className="mt-micro block text-body text-text">{primaryKind ? CREATE_KIND_LABELS[primaryKind] : "선택 전"}</b></article>
             <article className="card p-pad-inset"><span className="text-caption text-subtle">반영한 학습 정보</span><b className="mt-micro block text-body text-text">{learnedCount}개</b></article>

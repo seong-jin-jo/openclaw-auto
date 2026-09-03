@@ -148,16 +148,20 @@ try {
 
   await roomFlow.getByRole("link", { name: /생성실/ }).click();
   await page.locator('[data-room="create"]').waitFor();
-  await page.locator("#studio-topic").fill("1인 사업가의 콘텐츠 운영 시간 줄이기");
-  await page.locator("#studio-purpose").fill("콘텐츠 운영 시간을 줄인다");
-  await page.locator("#studio-audience").fill("1인 사업가");
-  await page.getByLabel("이 콘텐츠에 쓰는 사진과 글을 제가 쓸 권리가 있습니다").check();
+  const createAssistant = page.getByRole("complementary", { name: "생성 담당 대화창" });
+  await createAssistant.getByRole("button", { name: "영상", exact: true }).click();
+  await createAssistant.getByRole("button", { name: "다음", exact: true }).click();
+  await createAssistant.getByRole("button", { name: "문의 늘리기", exact: true }).click();
+  await createAssistant.getByRole("button", { name: "혼자 일하는 사장", exact: true }).click();
+  await createAssistant.locator("[data-create-topic-picker] button").first().click();
+  await createAssistant.getByLabel("위 조건을 확인했습니다.").check();
+  await createAssistant.getByRole("button", { name: "입력 내용 확인", exact: true }).click();
   const generationResponse = page.waitForResponse((response) => response.url().includes("/api/studio/v1/generations") && response.request().method() === "POST");
-  await page.getByRole("button", { name: "후보 세 장 만들기" }).click();
+  await createAssistant.getByRole("button", { name: "구조 초안 3개 보기", exact: true }).click();
   const response = await generationResponse;
   if (response.status() !== 201) throw new Error(`Studio generation returned ${response.status()}`);
-  await page.getByRole("button", { name: "A안 선택" }).waitFor();
-  if (await page.getByRole("button", { name: /안 선택$/ }).count() !== 3) throw new Error("Studio API candidates A, B, C did not render");
+  await createAssistant.getByRole("button", { name: "A 구조 초안 선택" }).waitFor();
+  if (await createAssistant.getByRole("button", { name: /구조 초안 선택$/ }).count() !== 3) throw new Error("Studio API candidates A, B, C did not render");
   for (const viewport of RESPONSIVE_VIEWPORTS) {
     await page.setViewportSize(viewport);
     await page.waitForTimeout(300);
@@ -182,8 +186,8 @@ try {
   }
 
   await page.setViewportSize({ width: 1440, height: 1200 });
-  await page.getByRole("button", { name: "A안 선택" }).click();
-  await page.getByRole("button", { name: "편집실로 이동" }).click();
+  await createAssistant.getByRole("button", { name: "A 구조 초안 선택" }).click();
+  await createAssistant.getByRole("button", { name: "편집실에서 다듬기" }).click();
   await page.locator('[data-room="edit"]').waitFor();
   for (const viewport of RESPONSIVE_VIEWPORTS) {
     await page.setViewportSize(viewport);

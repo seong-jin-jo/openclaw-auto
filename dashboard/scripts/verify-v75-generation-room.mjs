@@ -40,6 +40,22 @@ await page.route("**/api/**", async (route) => {
   if (pathname === "/api/studio/engine-status") return json(route, { ready: true });
   if (pathname === "/api/studio/drafts") return json(route, { drafts: [], currentWork: null });
   if (pathname === "/api/images") return json(route, { images: [] });
+  if (pathname === "/api/studio/v1/generations" && request.method() === "POST") {
+    return json(route, {
+      data: {
+        job_id: "job-v75-build",
+        candidates: ["A", "B", "C"].map((label, index) => ({
+          candidate_id: `candidate-${label}`,
+          ordinal: index + 1,
+          label,
+          angle: ["problem_first", "proof_first", "process_first"][index],
+          title: `${label} 구조`,
+          rationale: `${label} 설명`,
+          format: { content_branch: "video", preview_kind: "structured_storyboard", quality: "draft", outline: [`${label} 첫 장면`, `${label} 본문`, `${label} 마무리`] },
+        })),
+      },
+    }, 201);
+  }
   if (pathname === "/api/studio/text" && request.method() === "POST") {
     textRequests.push(JSON.parse(request.postData() || "{}"));
     if (useLiveText) return route.continue();
@@ -51,19 +67,24 @@ await page.route("**/api/**", async (route) => {
 try {
   await page.goto(`${baseUrl}/studio?room=create`, { waitUntil: "networkidle", timeout: 60_000 });
   await page.locator('[data-room="create"]').waitFor({ state: "visible" });
-  await page.getByLabel("초안 주제").fill("고객이 반복해서 묻는 질문에 답하기");
+  const assistant = page.getByLabel("생성 담당 대화창");
+  await assistant.getByRole("button", { name: "영상", exact: true }).click();
+  await assistant.getByRole("button", { name: "다음", exact: true }).click();
+  await assistant.getByRole("button", { name: "문의 늘리기", exact: true }).click();
+  await assistant.getByRole("button", { name: "혼자 일하는 사장", exact: true }).click();
+  await assistant.locator("[data-create-topic-picker] button").first().click();
+  await assistant.getByLabel("위 조건을 확인했습니다.").check();
+  await assistant.getByRole("button", { name: "입력 내용 확인", exact: true }).click();
+  await assistant.getByRole("button", { name: "구조 초안 3개 보기", exact: true }).click();
 
   const structureBodyBefore = await page.evaluate(() => document.body.innerText.length);
-  await page.getByRole("button", { name: "B 구조 사용", exact: true }).click();
+  await assistant.getByRole("button", { name: "B 구조 초안 선택", exact: true }).click();
+  await page.locator("[data-quick-draft-result]").waitFor({ state: "visible" });
   const structureBodyAfter = await page.evaluate(() => document.body.innerText.length);
-  const selectedStructureText = await page.locator('[data-quick-structure="B"]').innerText();
-
-  const generateBodyBefore = await page.evaluate(() => document.body.innerText.length);
-  await page.getByRole("button", { name: "초안 만들기", exact: true }).click();
   const resultBody = page.locator("[data-quick-draft-result] p");
   await resultBody.waitFor({ state: "visible" });
   const observedGeneratedText = await resultBody.innerText();
-  const generateBodyAfter = await page.evaluate(() => document.body.innerText.length);
+  const displayButtonCount = await page.locator('[data-display-readonly="create"] button').count();
 
   const buttonTexts = await page.locator("button").allInnerTexts();
   const englishButtonLabels = buttonTexts
@@ -71,26 +92,21 @@ try {
     .filter((text) => /[A-Za-z]{2,}/.test(text));
 
   if (structureBodyAfter === structureBodyBefore) throw new Error("구조 카드 클릭 전후 본문 길이가 같습니다");
-  if (generateBodyAfter === generateBodyBefore) throw new Error("생성 단추 클릭 전후 본문 길이가 같습니다");
   if (textRequests.length !== 1) throw new Error(`텍스트 생성 요청이 ${textRequests.length}건입니다`);
   if (textRequests[0]?.structure?.label !== "B") throw new Error("선택한 B 구조가 생성 요청에 없습니다");
   if (!useLiveText && observedGeneratedText !== generatedText) throw new Error("결정론적 생성 결과가 화면과 다릅니다");
+  if (displayButtonCount !== 0) throw new Error(`생성실 본문에 선택 단추가 ${displayButtonCount}개 남았습니다`);
   if (englishButtonLabels.length !== 0) throw new Error(`영어 단추 라벨이 남았습니다: ${englishButtonLabels.join(", ")}`);
   if (consoleErrors.length !== 0) throw new Error(`브라우저 콘솔 오류가 남았습니다: ${consoleErrors.join(" | ")}`);
   if (screenshotPath) await page.screenshot({ path: screenshotPath, fullPage: true });
 
   const evidence = {
-    generateClick: {
-      bodyTextLengthBefore: generateBodyBefore,
-      bodyTextLengthAfter: generateBodyAfter,
-      delta: generateBodyAfter - generateBodyBefore,
-    },
     structureClick: {
       bodyTextLengthBefore: structureBodyBefore,
       bodyTextLengthAfter: structureBodyAfter,
       delta: structureBodyAfter - structureBodyBefore,
-      selectedStructureText,
     },
+    displayButtonCount,
     buttonTexts,
     englishButtonLabelCount: englishButtonLabels.length,
     textRequestCount: textRequests.length,
