@@ -1,5 +1,36 @@
 # OSMU 세션 상태
 
+## 2026-09-03 19:21 KST | Codex code-builder | v72 401 승인 캐시 build 인계
+
+### 회장 요청
+
+- 보호 API가 전부 401인데도 이전 성공 조회의 초안 캐시가 승인 가능한 상태로 남는 운영 결함을 지적했다. 실제 SWR 캐시 전이를 재현하고, 401에서 옛 목록과 다른 보호 화면 캐시까지 제거한 뒤 전체 테스트와 `work/v72cache` push를 요구했다.
+
+### 지금까지 한 것
+
+- 기준은 회장이 지정한 `/private/tmp/osmu-wt-v72cache`, `work/v72cache`, `pipeline-state.osmu.md`, `DESIGN.md` v37, ADR-004·005·006, 실수 원장 상단이다.
+- 원인은 v71 `fetcher`가 401을 `AuthRequiredError`로 throw해도 성공했던 `data`를 SWR 캐시에서 제거하지 않은 것이다. v71 테스트는 `data` 와 `error`를 mock으로 동시 주입해 실제 성공 캐시 뒤 401 전이를 놓쳤다.
+- `fetcher`, `apiPost`, `apiDelete`가 401을 받으면 공통 이벤트를 보내고, 루트 `Providers`의 `useSWRConfig().mutate`가 현재 provider의 모든 보호 조회 캐시를 재검증 없이 제거하게 했다.
+- 승인 인박스는 목록 오류가 있는 동안 캐시된 게시물을 판단 데이터로 쓰지 않고, 옛 제목·본문 대신 만료 안내와 비활성 승인·거절만 남긴다.
+- 기존 카드 이동, 예약, A·R·방향키, 발행실 복귀, 제품 소스, 보이스 톤, 영상 미리보기, 제목·본문·해시태그·주제·생성 시각 표시, 재로그인 흐름을 유지했다. API, DB, OAuth, 배포 설정은 변경하지 않았다.
+- 제품·테스트·증거·핸드오프 8파일을 변경했다. 커밋은 `129fb73d`, `1167af06`, `766e04de`, `8077e96c`, `61cb5728`이다.
+
+### 검증 증거
+
+- 실제 Map 기반 SWR provider 계약 `V72-AUTH-CACHE-01`은 수정 전 옛 제목 잔존으로 실패했고 수정 뒤 통과했다. 인박스와 `/api/settings` 캐시 동시 제거를 관찰했다.
+- 지정 인증 회귀는 4파일 42건 통과, 실패 0이다.
+- `cd dashboard && npx tsc --noEmit`: EXIT 0, 오류 0.
+- `cd dashboard && npx vitest run`: 226파일 1,628건 통과, PostgreSQL 필요 38건 조건부 제외, 실패 0.
+- `cd dashboard && npm run build`: EXIT 0, Next.js production build 정적 페이지 177/177. 기존 NFT 광범위 추적 경고 1건은 유지됐다.
+- `design-lint.sh dashboard/src`: 디자인 토큰 위반 0.
+- `work/v72cache` push 후 로컬·원격 HEAD `61cb5728` 일치를 확인했다. 머지와 배포는 실행하지 않았다.
+
+### 남은 이슈와 다음 액션
+
+- QA 소유자가 만료된 운영 로그인 세션에서 승인 인박스를 열고 401 재조회 후 옛 카드 제목·본문 비노출, 만료 안내 노출, 승인·거절 비활성을 브라우저로 직접 관찰해야 한다. 이 운영 경로는 미검증이다.
+- 다음 집중 QA 명령은 `cd dashboard && npx vitest run tests/components/inbox-auth-cache-invalidation.test.tsx tests/components/inbox-v70-defects.test.tsx tests/components/operator-get-auth.test.tsx tests/components/AuthGateRouting.test.tsx`다.
+- 로컬 dirty는 세션 훅이 남긴 `.codex/logs/harness.jsonl`뿐이다. 제품 커밋에 넣지 않고 보존한다.
+
 ## 2026-09-03 10:02 KST | Codex code-builder | v71 인증 변경 뒤 발행실 복원 회귀 build 인계
 
 ### 회장 요청
