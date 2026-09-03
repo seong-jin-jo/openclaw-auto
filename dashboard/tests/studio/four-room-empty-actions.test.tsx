@@ -131,7 +131,7 @@ describe("OSMU-FLOW-UI-03 생성실 첫 행동 계약", () => {
 });
 
 describe("V77-CREATE-NETWORK 생성 담당 구조 선택 계약", () => {
-  it("V77-CREATE-NETWORK-01 정상: 생성 담당에서 고른 주제와 구조를 text API에 보내고 본문에는 결과만 표시한다", async () => {
+  it("V77-CREATE-NETWORK-01 정상: 본문 직접 생성 동선을 유지하며 생성 담당에서 고른 주제와 구조를 text API에 보낸다", async () => {
     mocks.room = "create";
     window.history.replaceState(null, "", "/studio?room=create");
     mocks.apiPost.mockImplementation(async (path: string) => {
@@ -141,7 +141,9 @@ describe("V77-CREATE-NETWORK 생성 담당 구조 선택 계약", () => {
       return { ok: true };
     });
 
-    render(<StudioPage />);
+    const { container } = render(<StudioPage />);
+    expect(container.querySelector("[data-create-workspace]")).toHaveTextContent("주제로 바로 초안 만들기");
+    expect(screen.getByRole("button", { name: "초안 만들기" })).toBeInTheDocument();
     await answerStudioQuestionnaire("고객 질문 답변");
     fireEvent.click(screen.getByRole("button", { name: "구조 초안 3개 보기" }));
     fireEvent.click(await screen.findByRole("button", { name: "A 구조 초안 선택" }));
@@ -155,7 +157,7 @@ describe("V77-CREATE-NETWORK 생성 담당 구조 선택 계약", () => {
       }),
     ));
     await waitFor(() => expect(document.querySelector("[data-quick-draft-result]")).toHaveTextContent("네트워크 요청으로 생성된 영상 후보입니다."));
-    expect(document.querySelector("[data-display-readonly]")?.querySelectorAll("button")).toHaveLength(0);
+    expect(screen.getByLabelText("생성 담당 대화창")).toBeInTheDocument();
   });
 
   it("V77-CREATE-NETWORK-02 거절: 주제가 비어 있으면 구조 선택과 text API 호출로 진행하지 않는다", async () => {

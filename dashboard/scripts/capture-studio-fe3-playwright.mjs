@@ -167,20 +167,21 @@ try {
     await page.waitForTimeout(300);
     const room = page.locator('[data-room="create"]');
     const metrics = await room.evaluate((root) => {
-      const display = root.querySelector('[data-display-readonly="create"]');
+      const workspace = root.querySelector("[data-create-workspace]");
       const chat = root.querySelector('[data-chat-always="true"]');
       return {
         viewportWidth: window.innerWidth,
         bodyScrollWidth: document.documentElement.scrollWidth,
         roomClientWidth: root.clientWidth,
         roomScrollWidth: root.scrollWidth,
-        displayButtons: display?.querySelectorAll("button").length ?? -1,
-        candidateCards: display?.querySelectorAll("[data-create-candidate]").length ?? -1,
+        directGenerationVisible: Boolean(workspace?.querySelector("#studio-quick-topic"))
+          && Array.from(workspace?.querySelectorAll("button") ?? []).some((button) => button.textContent?.trim() === "초안 만들기"),
+        candidateCards: workspace?.querySelectorAll("[data-create-candidate]").length ?? -1,
         chatVisible: chat instanceof HTMLElement && chat.offsetParent !== null,
       };
     });
     if (metrics.bodyScrollWidth > metrics.viewportWidth + 1 || metrics.roomScrollWidth > metrics.roomClientWidth + 1) throw new Error(`create ${viewport.width} overflow: ${JSON.stringify(metrics)}`);
-    if (metrics.displayButtons !== 0 || metrics.candidateCards !== 3 || !metrics.chatVisible) throw new Error(`create ${viewport.width} v63 contract failed: ${JSON.stringify(metrics)}`);
+    if (!metrics.directGenerationVisible || metrics.candidateCards !== 3 || !metrics.chatVisible) throw new Error(`create ${viewport.width} dual flow contract failed: ${JSON.stringify(metrics)}`);
     studioRoomObservations.push({ room: "create", width: viewport.width, httpStatus: response.status(), ...metrics });
     await page.screenshot({ path: path.join(outputDir, `create-room-${viewport.width}.png`), fullPage: true });
   }

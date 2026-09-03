@@ -76,7 +76,7 @@ try {
   await page.getByRole("button", { name: "나중에 하기", exact: true }).click();
 
   const createAssistant = page.getByLabel("생성 담당 대화창");
-  const displayButtonCount = await page.locator("[data-display-readonly] button").count();
+  const directGenerationButtonCount = await page.locator("[data-create-workspace]").getByRole("button", { name: "초안 만들기", exact: true }).count();
   await createAssistant.getByRole("button", { name: "영상", exact: true }).click();
   await createAssistant.getByRole("button", { name: "다음", exact: true }).click();
   await createAssistant.getByRole("button", { name: "문의 늘리기", exact: true }).click();
@@ -119,7 +119,7 @@ try {
 
   const evidence = {
     headerLearningText,
-    displayButtonCount,
+    directGenerationButtonCount,
     learningClick: {
       bodyTextLengthBefore: learningBefore,
       bodyTextLengthAfter: learningAfter,
@@ -136,7 +136,7 @@ try {
   };
 
   if (!headerLearningText.includes("학습 정보") || !headerLearningText.includes("남은")) throw new Error("헤더 학습 정보의 남은 칸 경로가 보이지 않습니다");
-  if (displayButtonCount !== 0) throw new Error(`생성실 본문에 선택 단추가 ${displayButtonCount}개 남았습니다`);
+  if (directGenerationButtonCount !== 1) throw new Error(`본문 직접 생성 단추가 ${directGenerationButtonCount}개입니다`);
   if (evidence.learningClick.delta === 0) throw new Error("학습 정보 클릭 전후 본문 길이가 같습니다");
   if (evidence.structureClick.delta === 0) throw new Error("구조 선택 전후 본문 길이가 같습니다");
   if (remainingString !== persistedTopic) throw new Error("새로고침 뒤 생성실 입력이 남지 않았습니다");
