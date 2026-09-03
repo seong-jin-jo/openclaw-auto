@@ -1,3 +1,11 @@
+## 2026-09-03 19:35 KST | Codex code-builder | v72 초안 알림과 401 캐시 계약 재복구 착수
+
+- 핸드오프 기준: 회장이 지정한 `work/v72cache`, `/tmp/osmu-wt-v72cache`와 CI의 `M5-STUDIO-02`, `M5-STUDIO-03` 재회귀 과제를 primary로 사용한다. `openclaw-auto:0.0`은 부모 컨트롤러, `osmu-build:0.0`은 이전 작업의 종료 보고라 이 워크트리 소스 수정 기준으로 사용하지 않는다.
+- 동기화: `git pull --ff-only origin work/v72cache` 결과 최신 상태다.
+- 기존 구현: v71은 발행 전 초안 저장의 `null`과 예외를 사용자 오류 알림으로 닫았다. v72는 조회·변경·삭제 401에서 보호 SWR 캐시를 제거하고 인박스 승인·거절을 막는다. 두 구현을 삭제하거나 되돌리지 않는다.
+- 현재 판정: CI 데이터베이스 포함 조합에서 알림 계약이 두 번째로 깨졌다. `docs/qa/qa-tracker.md` 최상단에 build NG를 등록했다.
+- 다음 액션: 전용 테스트를 단독 재현하고 테스트 간 전역 이벤트·mock 오염과 Studio 저장 경계를 추적한 뒤, 오류 전파와 사용자 알림을 분리한 최소 수정으로 두 계약을 함께 검증한다.
+
 ## 2026-09-03 19:16 KST | Codex code-builder | v72 401 승인 캐시 build 검증
 
 - 핸드오프 기준: 회장이 지정한 `work/v72cache`, `/private/tmp/osmu-wt-v72cache`와 운영 401 후 캐시 승인 결함을 primary로 사용했다. 메인 저장소 tmux pane은 별도 운영 트랙으로 보존했다.
