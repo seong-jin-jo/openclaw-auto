@@ -527,6 +527,18 @@ export default function StudioPage() {
     });
     if (r?.id) setDraftId(r.id); mutateHist(); return r?.id;
   }
+  async function saveDraftWithNotice() {
+    try {
+      const savedDraftId = await save("draft");
+      if (!savedDraftId) {
+        showToast("초안을 저장하지 못했습니다", "error");
+        return;
+      }
+      showToast("임시 저장했습니다", "success");
+    } catch (error) {
+      showToast(extractApiErrorMessage(error, "초안을 저장하지 못했습니다"), "error");
+    }
+  }
   async function moveToPublish() {
     const linesToPersist = editLines.length ? editLines : [text?.shorts?.hook || "", text?.shorts?.body || "", text?.shorts?.cta || ""].filter(Boolean);
     if (!linesToPersist.some((line) => line.trim())) {
@@ -594,7 +606,13 @@ export default function StudioPage() {
       showToast(`${LABEL[blocked.platform]}: ${blocked.issue.message}`, "error");
       return;
     }
-    const did = await save("draft");
+    let did: string | undefined;
+    try {
+      did = await save("draft");
+    } catch {
+      showToast("발행할 초안을 저장하지 못했습니다", "error");
+      return;
+    }
     if (!did) {
       showToast("발행할 초안을 저장하지 못했습니다", "error");
       return;
@@ -670,7 +688,12 @@ export default function StudioPage() {
         errs.push("복구 정보 서버 저장 실패·현재 브라우저에만 보존됨");
       }
     } else {
-      await save(errs.length ? "partial" : "published", {}, did);
+      try {
+        const savedDraftId = await save(errs.length ? "partial" : "published", {}, did);
+        if (!savedDraftId) errs.push("발행 결과를 저장하지 못했습니다");
+      } catch {
+        errs.push("발행 결과를 저장하지 못했습니다");
+      }
       setPublishReconciliations({});
     }
     if (errs.length) showToast(`발행 결과: ${errs.join(" / ")}`.slice(0, 180), "error");
@@ -968,7 +991,7 @@ export default function StudioPage() {
       case "trimOverLimit": trimOverLimitChannels(); return;
       case "schedule": setShowSchedule(true); return;
       case "requestReview": await requestReview(); return;
-      case "saveDraft": await save("draft"); showToast("임시 저장했습니다", "success"); return;
+      case "saveDraft": await saveDraftWithNotice(); return;
       case "publishNow": await publish(); return;
       default:
         showToast("전부 고르기, 한 곳 빼기, 해시태그 맞추기, 한도 넘는 곳 줄이기, 예약 발행, 검토 요청, 임시 저장, 지금 발행 중 하나로 말씀해 주세요", "error");
@@ -1155,7 +1178,7 @@ export default function StudioPage() {
             <div className="card space-y-stack p-stack">
               <div className="flex flex-wrap items-center gap-stack">
               <b className="mr-auto min-w-0 truncate text-body text-text">{idea || "현재 작업물"}</b>
-              <Button onClick={() => save("draft")}>임시 저장하기</Button>
+              <Button onClick={saveDraftWithNotice}>임시 저장하기</Button>
               <Button onClick={requestReview} disabled={reviewBusy}>{reviewBusy ? "보내는 중" : "검토 요청하기"}</Button>
               <Button variant="primary" onClick={publish} disabled={pub.running || !accountsLoaded || publishTargets.length === 0}>선택한 {selectedTargets.length}곳에 지금 발행</Button>
               {activeWorkspace ? <Button variant={showSchedule ? "primary" : "secondary"} onClick={() => setShowSchedule((value) => !value)}>예약 발행</Button> : null}

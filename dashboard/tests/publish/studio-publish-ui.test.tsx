@@ -551,6 +551,20 @@ describe("Studio publish result integrity", () => {
     })));
   });
 
+  it("PUB-DRAFT-UI-02 거절: 임시 저장 오류를 사용자에게 알리고 성공으로 표시하지 않는다", async () => {
+    restoreStudio(["threads"]);
+    mocks.apiPost.mockRejectedValue(new Error("초안 저장 요청에 실패했습니다"));
+
+    render(<StudioPage />);
+    fireEvent.click(screen.getAllByRole("button", { name: "임시 저장하기" })[0]);
+
+    await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith(
+      "초안 저장 요청에 실패했습니다",
+      "error",
+    ));
+    expect(mocks.showToast).not.toHaveBeenCalledWith("임시 저장했습니다", "success");
+  });
+
   it("FE3-PUBLISH-02 거절: 미지원 영상 채널은 미리보기 안에서 발행 체크를 잠근다", async () => {
     render(<StudioPage />);
     const tiktok = within(await screen.findByTestId("preview-tiktok"));
@@ -710,6 +724,47 @@ describe("Studio publish result integrity", () => {
       "error",
     ));
     expect(mocks.apiPost.mock.calls.filter(([path]) => path === "/api/publish")).toHaveLength(0);
+  });
+
+  it("M5-STUDIO-03 거절: 발행 전 초안 저장이 오류를 올려도 알림 뒤 외부 발행을 막는다", async () => {
+    restoreStudio(["threads"]);
+    mocks.apiPost.mockImplementation(async (path: string) => {
+      if (path === "/api/studio/drafts") throw new Error("초안 저장 실패");
+      if (path === "/api/publish") throw new Error("외부 발행이 호출되면 안 됩니다");
+      throw new Error(`unexpected path: ${path}`);
+    });
+
+    render(<StudioPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "선택한 1곳에 지금 발행" }));
+
+    await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith(
+      "발행할 초안을 저장하지 못했습니다",
+      "error",
+    ));
+    expect(mocks.apiPost.mock.calls.filter(([path]) => path === "/api/publish")).toHaveLength(0);
+  });
+
+  it("M5-STUDIO-04 거절: 외부 발행 뒤 결과 저장 실패를 사용자에게 알린다", async () => {
+    restoreStudio(["threads"]);
+    let draftSaveCount = 0;
+    mocks.apiPost.mockImplementation(async (path: string) => {
+      if (path === "/api/studio/drafts") {
+        draftSaveCount += 1;
+        if (draftSaveCount === 1) return { id: "draft-result-save" };
+        throw new Error("발행 결과 저장 실패");
+      }
+      if (path === "/api/publish") return { ok: true, permalink: "https://example.test/published" };
+      throw new Error(`unexpected path: ${path}`);
+    });
+
+    render(<StudioPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "선택한 1곳에 지금 발행" }));
+
+    await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith(
+      "발행 결과: 발행 결과를 저장하지 못했습니다",
+      "error",
+    ));
+    expect(mocks.apiPost.mock.calls.filter(([path]) => path === "/api/publish")).toHaveLength(1);
   });
 
   it("V65-PAGE-01 정상: 글을 직접 고친 뒤 저장 API를 호출하고 발행실로 이동한다", async () => {
