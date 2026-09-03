@@ -21,7 +21,7 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 </style>
 <div class="wrap">
 <h1>밤사이 만든 것</h1>
-<p class="sub">2026년 09월 04일 00시 22분 기준. 이 장은 감독이 1분마다 새로 씁니다.</p>
+<p class="sub">2026년 09월 04일 05시 21분 기준. 이 장은 감독이 1분마다 새로 씁니다.</p>
 <div class="note">실제로 눌러 보시려면 <code>http://localhost:3456/studio</code> 입니다. 아래 그림은 방금 그 앱을 찍은 것입니다.</div>
 <h2>지금 도는 것</h2><table><tr><th>판</th><th>갈래</th><th>상태</th><th>시각</th></tr>
 <tr><td>build10</td><td>build</td><td>끝남</td><td>07:21</td></tr>
@@ -54,6 +54,7 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <tr><td>flowcheck090310</td><td>qa</td><td>발주실패</td><td>10:01</td></tr>
 <tr><td>flowcheck090318</td><td>qa</td><td>발주실패</td><td>18:01</td></tr>
 <tr><td>flowcheck090322</td><td>qa</td><td>발주실패</td><td>22:01</td></tr>
+<tr><td>flowcheck090402</td><td>qa</td><td>발주실패</td><td>02:00</td></tr>
 <tr><td>gapfill082823</td><td>build</td><td>끝남</td><td>23:23</td></tr>
 <tr><td>gapfill082903</td><td>build</td><td>끝남</td><td>03:03</td></tr>
 <tr><td>gapfill082907</td><td>build</td><td>끝남</td><td>07:12</td></tr>
@@ -64,6 +65,7 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <tr><td>gapfill090311</td><td>build</td><td>발주실패</td><td>11:01</td></tr>
 <tr><td>gapfill090319</td><td>build</td><td>발주실패</td><td>19:13</td></tr>
 <tr><td>gapfill090323</td><td>build</td><td>발주실패</td><td>23:00</td></tr>
+<tr><td>gapfill090403</td><td>build</td><td>발주실패</td><td>03:22</td></tr>
 <tr><td>qa1</td><td>qa</td><td>끝남</td><td>18:59</td></tr>
 <tr><td>regress082900</td><td>review</td><td>끝남</td><td>00:03</td></tr>
 <tr><td>regress082904</td><td>review</td><td>끝남</td><td>04:02</td></tr>
@@ -73,6 +75,7 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <tr><td>regress090308</td><td>review</td><td>발주실패</td><td>08:00</td></tr>
 <tr><td>regress090320</td><td>review</td><td>발주실패</td><td>20:00</td></tr>
 <tr><td>regress090400</td><td>review</td><td>발주실패</td><td>00:01</td></tr>
+<tr><td>regress090404</td><td>review</td><td>발주실패</td><td>04:00</td></tr>
 <tr><td>review1</td><td>review</td><td>끝남</td><td>18:42</td></tr>
 <tr><td>ship1</td><td>review</td><td>빈손</td><td>22:25</td></tr>
 <tr><td>sweep082901</td><td>qa</td><td>끝남</td><td>01:01</td></tr>
@@ -83,6 +86,8 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <tr><td>sweep090309</td><td>qa</td><td>발주실패</td><td>09:01</td></tr>
 <tr><td>sweep090317</td><td>qa</td><td>발주실패</td><td>17:25</td></tr>
 <tr><td>sweep090321</td><td>qa</td><td>발주실패</td><td>21:00</td></tr>
+<tr><td>sweep090401</td><td>qa</td><td>발주실패</td><td>01:01</td></tr>
+<tr><td>sweep090405</td><td>qa</td><td>발주실패</td><td>05:01</td></tr>
 </table>
 <h2>화면</h2>
 <div class="shots">
@@ -116,6 +121,29 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <figure><img src="아침보고-화면/studio-publish-768.png" alt="studio-publish-768"><figcaption>studio-publish-768</figcaption></figure>
 </div>
 <h2>밤사이 들어간 작업</h2><table><tr><th>커밋</th><th>무엇을</th></tr>
+<tr><td><code>5b532980</code></td><td>docs(handoff): record reconnect branch push</td></tr>
+<tr><td><code>093ad138</code></td><td>docs(qa): close channel reconnect build evidence</td></tr>
+<tr><td><code>acbab3d8</code></td><td>docs(osmu): record channel reconnect contract</td></tr>
+<tr><td><code>721ced7f</code></td><td>test(dashboard): type reconnect fixture fields</td></tr>
+<tr><td><code>f3934f7a</code></td><td>test(dashboard): expose reconnect database evidence</td></tr>
+<tr><td><code>397ee470</code></td><td>fix(dashboard): upsert reconnected channel accounts</td></tr>
+<tr><td><code>5d878f09</code></td><td>test(dashboard): lock channel reconnect contract</td></tr>
+<tr><td><code>10ac03db</code></td><td>docs(qa): record channel reconnect duplicate key</td></tr>
+<tr><td><code>27eebfa9</code></td><td>docs(qa): 배포 후 컨트롤러 직접 클릭 실측 (초안 만들기 무반응 잔존)</td></tr>
+<tr><td><code>65a14404</code></td><td>docs(osmu): record v75 pixel gate result</td></tr>
+<tr><td><code>c80f1c8a</code></td><td>docs(osmu): record v75 design comparison handoff</td></tr>
+<tr><td><code>16826ffa</code></td><td>docs(osmu): finalize v75 handoff</td></tr>
+<tr><td><code>05289721</code></td><td>test(studio): support live generation verification</td></tr>
+<tr><td><code>5a07981c</code></td><td>docs(osmu): record v75 push policy block</td></tr>
+<tr><td><code>d12d7fe7</code></td><td>docs(osmu): record v75 generation evidence</td></tr>
+<tr><td><code>e12f3979</code></td><td>fix(studio): distinguish structure actions</td></tr>
+<tr><td><code>ae848c48</code></td><td>fix(ui): translate remaining generic labels</td></tr>
+<tr><td><code>766e77a5</code></td><td>fix(studio): add direct structured draft generation</td></tr>
+<tr><td><code>9fc1d178</code></td><td>test(osmu): record generation room build gap</td></tr>
+<tr><td><code>ac39ace8</code></td><td>docs(qa): 발행 실패를 앱 심사 탓으로 돌린 추측 철회 (회장 정정: 과거 발행 테스트·연결 완료 확인됨)</td></tr>
+<tr><td><code>23c1983b</code></td><td>docs(qa): 헤드리스 클릭 실측 결과 추가 (생성 단추 0개, 카드 무반응, 영어 잔존)</td></tr>
+<tr><td><code>266c9d4e</code></td><td>docs(qa): 왜 안 되는데 다 됐다고 보고했나 원인 분석</td></tr>
+<tr><td><code>ea6aba84</code></td><td>docs(osmu): 세션 마무리와 최종 배포 기록</td></tr>
 <tr><td><code>c5f7bda7</code></td><td>docs(qa): 실사용 결함 17건 최종 처리 결과와 운영 재확인 캡처</td></tr>
 <tr><td><code>e0cd88a2</code></td><td>docs(handoff): correct qa reopen timestamp</td></tr>
 <tr><td><code>b3b0c2df</code></td><td>chore(pipeline): reopen qa with missing evidence</td></tr>
