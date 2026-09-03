@@ -1,3 +1,10 @@
+## 2026-09-03 21:59 KST | Codex code-builder | v74 원격 전송 정책 차단
+
+- 로컬 상태: `work/v74flaky`의 현재 HEAD에 테스트 안정화와 모든 문서 증거가 커밋돼 있고 worktree는 clean이다. 기능·검증 증거 커밋은 `39a906a0`까지다.
+- 원격 상태: `git ls-remote --heads origin work/v74flaky` 결과가 비어 있어 원격 브랜치는 없다.
+- 차단: 사용자 지시대로 `git push origin work/v74flaky`를 실행했으나 실행 정책이 승인 필요 명령으로 분류했다. 이 워커는 승인 요청이 금지되어 프로세스 시작 전에 차단됐다. Git 인증이나 네트워크 실패가 아니다.
+- 다음 액션: 부모 컨트롤러가 `/private/tmp/osmu-wt-v74flaky`에서 같은 push를 승인 실행하고, 원격 ref가 `git rev-parse HEAD`와 같은지 확인한다. 머지와 배포는 하지 않는다.
+
 ## 2026-09-03 21:56 KST | Codex code-builder | v74 발행실 UI 테스트 계정 조회 경합 build 검증
 
 - 핸드오프 기준: 회장이 지정한 `work/v74flaky`, `/private/tmp/osmu-wt-v74flaky`와 같은 커밋에서 실패 항목이 바뀐 CI 증거를 primary로 사용했다. `openclaw-auto:0.0`은 부모 컨트롤러이며 다른 tmux pane은 별도 운영 트랙이다.
