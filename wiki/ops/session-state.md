@@ -1,3 +1,16 @@
+## 2026-09-04 00:30 KST | Claude(Opus) | 세션 잔여 전건 마무리 후 최종 배포 완료
+
+- **최종 배포 성공(관찰됨)**: 워크플로 `33771925994` conclusion success. 직전 CI `c5f7bda7` success. 이 세션 배포 총 8회 전부 success.
+- **운영 실경로 10곳 전부 200**: `/` `/studio` `/performance` `/inbox` `/calendar` `/settings` `/channels/threads` `/images` `/blog` `/api/health`.
+- **실사용 결함 17건 전건 해소**, 운영에서 눈으로 재확인. 결과표는 `docs/qa/osmu-live-walk-20260903/실사용-결함-목록.md` 하단.
+- **네 방 모두 운영 반영**: 생성실·편집실·발행실·성과실. 성과실은 홈으로 튕기던 리다이렉트에서 전용 방이 됐다.
+- **불안정 테스트 정리**: `studio-publish-ui.test.tsx` 가 CI 에서만 실패 항목을 바꿔 가며 깨졌다. 같은 커밋 재실행으로 다른 테스트가 깨지는 것을 확인해 흔들림을 입증했고, 발행 계정 준비 대기를 명시해 안정화했다. 3회 연속 34건 통과.
+- **신설 하네스 3종**
+  - `~/.claude/harness/bin/dev-shot-auth.mjs` 로그인 상태 화면을 시안과 같은 크기로 촬영
+  - `~/.claude/harness/bin/matched-pair.sh` 시안·dev 같은 크기 대조. 로그인 관문이면 스스로 중단
+  - `scripts/local-ci-db.sh` CI 와 같은 데이터베이스를 로컬에 띄워 재현. 건너뛰기 38건에서 1건으로
+- **남은 것**: 실제 외부 인증 동의, 외부 플랫폼 실게시, 앱 심사. 전부 회장 또는 외부 심사 몫이다.
+
 ## 2026-09-03 22:09 KST | Codex Stage Controller | v67 QA 필수 핀 결함으로 재개
 
 - 상태 변경: `pipeline-state.osmu.md`의 v67 QA를 `approved`에서 `in-progress`로 되돌리고 `approved_stages`에서 `qa`를 제거했다. v68 build의 기존 허용 범위는 변경하지 않았다.

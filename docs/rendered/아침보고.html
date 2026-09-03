@@ -21,7 +21,7 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 </style>
 <div class="wrap">
 <h1>밤사이 만든 것</h1>
-<p class="sub">2026년 09월 03일 21시 25분 기준. 이 장은 감독이 1분마다 새로 씁니다.</p>
+<p class="sub">2026년 09월 04일 00시 22분 기준. 이 장은 감독이 1분마다 새로 씁니다.</p>
 <div class="note">실제로 눌러 보시려면 <code>http://localhost:3456/studio</code> 입니다. 아래 그림은 방금 그 앱을 찍은 것입니다.</div>
 <h2>지금 도는 것</h2><table><tr><th>판</th><th>갈래</th><th>상태</th><th>시각</th></tr>
 <tr><td>build10</td><td>build</td><td>끝남</td><td>07:21</td></tr>
@@ -53,6 +53,7 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <tr><td>flowcheck090306</td><td>qa</td><td>발주실패</td><td>06:00</td></tr>
 <tr><td>flowcheck090310</td><td>qa</td><td>발주실패</td><td>10:01</td></tr>
 <tr><td>flowcheck090318</td><td>qa</td><td>발주실패</td><td>18:01</td></tr>
+<tr><td>flowcheck090322</td><td>qa</td><td>발주실패</td><td>22:01</td></tr>
 <tr><td>gapfill082823</td><td>build</td><td>끝남</td><td>23:23</td></tr>
 <tr><td>gapfill082903</td><td>build</td><td>끝남</td><td>03:03</td></tr>
 <tr><td>gapfill082907</td><td>build</td><td>끝남</td><td>07:12</td></tr>
@@ -62,6 +63,7 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <tr><td>gapfill090307</td><td>build</td><td>발주실패</td><td>07:00</td></tr>
 <tr><td>gapfill090311</td><td>build</td><td>발주실패</td><td>11:01</td></tr>
 <tr><td>gapfill090319</td><td>build</td><td>발주실패</td><td>19:13</td></tr>
+<tr><td>gapfill090323</td><td>build</td><td>발주실패</td><td>23:00</td></tr>
 <tr><td>qa1</td><td>qa</td><td>끝남</td><td>18:59</td></tr>
 <tr><td>regress082900</td><td>review</td><td>끝남</td><td>00:03</td></tr>
 <tr><td>regress082904</td><td>review</td><td>끝남</td><td>04:02</td></tr>
@@ -70,6 +72,7 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <tr><td>regress090300</td><td>review</td><td>발주실패</td><td>00:10</td></tr>
 <tr><td>regress090308</td><td>review</td><td>발주실패</td><td>08:00</td></tr>
 <tr><td>regress090320</td><td>review</td><td>발주실패</td><td>20:00</td></tr>
+<tr><td>regress090400</td><td>review</td><td>발주실패</td><td>00:01</td></tr>
 <tr><td>review1</td><td>review</td><td>끝남</td><td>18:42</td></tr>
 <tr><td>ship1</td><td>review</td><td>빈손</td><td>22:25</td></tr>
 <tr><td>sweep082901</td><td>qa</td><td>끝남</td><td>01:01</td></tr>
@@ -113,6 +116,17 @@ figcaption{padding:9px 12px;font-size:13px;color:var(--muted);border-top:1px sol
 <figure><img src="아침보고-화면/studio-publish-768.png" alt="studio-publish-768"><figcaption>studio-publish-768</figcaption></figure>
 </div>
 <h2>밤사이 들어간 작업</h2><table><tr><th>커밋</th><th>무엇을</th></tr>
+<tr><td><code>c5f7bda7</code></td><td>docs(qa): 실사용 결함 17건 최종 처리 결과와 운영 재확인 캡처</td></tr>
+<tr><td><code>e0cd88a2</code></td><td>docs(handoff): correct qa reopen timestamp</td></tr>
+<tr><td><code>b3b0c2df</code></td><td>chore(pipeline): reopen qa with missing evidence</td></tr>
+<tr><td><code>88e9fb5c</code></td><td>docs(handoff): surface v67 qa pin gap</td></tr>
+<tr><td><code>7e614ab5</code></td><td>chore(harness): record v74 pin audit</td></tr>
+<tr><td><code>e3644a01</code></td><td>docs(handoff): record v74 push policy block</td></tr>
+<tr><td><code>39a906a0</code></td><td>docs(request): preserve v74 flaky test directive</td></tr>
+<tr><td><code>24150353</code></td><td>docs(build): record v74 stability evidence</td></tr>
+<tr><td><code>ce2f8a21</code></td><td>test(studio): wait for publish account readiness</td></tr>
+<tr><td><code>1f096a07</code></td><td>docs(qa): record publish UI readiness race</td></tr>
+<tr><td><code>bb29645d</code></td><td>harness(osmu): CI 재현용 로컬 테스트 데이터베이스 스크립트 + 인박스 원인 확정 기록</td></tr>
 <tr><td><code>08509036</code></td><td>docs(handoff): record blocked v73 push</td></tr>
 <tr><td><code>e933c5c4</code></td><td>docs(handoff): record v73 remote evidence</td></tr>
 <tr><td><code>b3a1bfda</code></td><td>docs(build): record v73 verification evidence</td></tr>
