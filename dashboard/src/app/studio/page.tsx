@@ -272,7 +272,10 @@ export default function StudioPage() {
   const [selectedAccounts, setSelectedAccounts] = useState<Record<string, string>>({});
   const [accountLoadErrors, setAccountLoadErrors] = useState<Record<string, boolean>>({});
   const [accountsLoaded, setAccountsLoaded] = useState(false);
-  const publishTargets = selectedPublishTargets(includes).filter((platform) => (accountsByPlatform[platform] || []).length > 0);
+  // 복원한 작업물의 선택 상태는 계정 조회와 별개다. 계정 조회가 느려도 본문과 선택 채널은
+  // 먼저 복원해 보여 주고, 실제 발행 가능 대상만 조회 완료 뒤 따로 좁힌다.
+  const selectedTargets = selectedPublishTargets(includes);
+  const publishTargets = selectedTargets.filter((platform) => (accountsByPlatform[platform] || []).length > 0);
 
   useEffect(() => {
     const requested = resolveStudioRoomFromSearch(`?${search}`, storedRoom);
@@ -1094,7 +1097,7 @@ export default function StudioPage() {
       <section data-room="publish" className="grid gap-stack-section pb-wide lg:grid-cols-[minmax(0,1fr)_20rem] lg:pb-none">
         <div className="min-w-0 space-y-region">
           <section data-room-top="publish" aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch flex-wrap items-center gap-stack rounded-surface border border-border bg-surface px-pad-inset py-stack">
-            <b className="text-lead text-accent">{publishTargets.length}곳</b>
+            <b className="text-lead text-accent">{selectedTargets.length}곳</b>
             <span className="mr-auto text-caption text-subtle">
               발행할 채널 · 연결된 곳 {connectedTargets.length}
             </span>
@@ -1110,7 +1113,7 @@ export default function StudioPage() {
               size="sm"
               data-testid="publish-clear-all"
               onClick={clearAllChannels}
-              disabled={publishTargets.length === 0}
+              disabled={selectedTargets.length === 0}
             >
               전부 해제
             </Button>
@@ -1154,7 +1157,7 @@ export default function StudioPage() {
               <b className="mr-auto min-w-0 truncate text-body text-text">{idea || "현재 작업물"}</b>
               <Button onClick={() => save("draft")}>임시 저장하기</Button>
               <Button onClick={requestReview} disabled={reviewBusy}>{reviewBusy ? "보내는 중" : "검토 요청하기"}</Button>
-              <Button variant="primary" onClick={publish} disabled={pub.running || !accountsLoaded || publishTargets.length === 0}>선택한 {publishTargets.length}곳에 지금 발행</Button>
+              <Button variant="primary" onClick={publish} disabled={pub.running || !accountsLoaded || publishTargets.length === 0}>선택한 {selectedTargets.length}곳에 지금 발행</Button>
               {activeWorkspace ? <Button variant={showSchedule ? "primary" : "secondary"} onClick={() => setShowSchedule((value) => !value)}>예약 발행</Button> : null}
               </div>
               {/* 단추 이름만으로는 무엇이 일어나는지 안 갈린다. 넷이 어떻게 다른지 한 줄로 적는다.
@@ -1269,7 +1272,7 @@ export default function StudioPage() {
           <div className="space-y-stack bg-surface-2 p-stack">
             <div className="max-w-[90%] rounded-surface rounded-tl-chip border border-border bg-surface p-stack text-body-sm text-text" data-empty-next={!text ? "publish" : undefined}>
               {text
-                ? `일곱 칸을 하나씩 고치지 않으셔도 됩니다. 지금 ${publishTargets.length}곳이 골라져 있습니다.`
+                ? `일곱 칸을 하나씩 고치지 않으셔도 됩니다. 지금 ${selectedTargets.length}곳이 골라져 있습니다.`
                 : "발행할 작업물을 먼저 가져와 주세요."}
             </div>
             {text ? (
@@ -1290,7 +1293,7 @@ export default function StudioPage() {
               </p>
               <Stack direction="horizontal" gap={8} wrap>
                 <Button size="sm" data-testid="publish-bulk-select-all" onClick={selectAllChannels} disabled={!accountsLoaded || connectedTargets.length === 0}>연결된 곳 전부 고르기</Button>
-                <Button size="sm" data-testid="publish-bulk-clear" onClick={clearAllChannels} disabled={publishTargets.length === 0}>전부 해제</Button>
+                <Button size="sm" data-testid="publish-bulk-clear" onClick={clearAllChannels} disabled={selectedTargets.length === 0}>전부 해제</Button>
               </Stack>
               <Stack direction="horizontal" gap={8} wrap>
                 <Button size="sm" data-testid="publish-bulk-hashtags" onClick={unifyHashtagsAcrossChannels}>해시태그 규격대로 맞추기</Button>
