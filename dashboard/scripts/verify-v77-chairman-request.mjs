@@ -12,6 +12,7 @@ const persistedTopic = "새로고침 뒤에도 남는 고객 질문";
 const editBefore = "편집 전 글 본문";
 const editAfter = "편집 뒤 반영된 글 본문";
 const outputPath = path.resolve(process.cwd(), "../docs/qa/v77-click-observations.json");
+const screenshotPath = process.env.V77_SCREENSHOT_PATH || "/tmp/osmu-v77-studio-click.png";
 const consoleErrors = [];
 
 function json(route, body, status = 200) {
@@ -55,7 +56,7 @@ try {
   await page.getByRole("button", { name: "나중에 하기", exact: true }).click();
 
   await page.getByLabel("초안 주제").fill(persistedTopic);
-  await page.getByRole("button", { name: "영상", exact: true }).click();
+  await page.getByLabel("생성 담당 대화창").getByRole("button", { name: "영상", exact: true }).click();
   await page.waitForFunction(({ id, topic }) => {
     const work = localStorage.getItem(`studio_work:${id}`) || "";
     const create = localStorage.getItem(`studio_create_state:${id}`) || "";
@@ -108,6 +109,7 @@ try {
   if (observedEditBefore !== editBefore || observedEditAfter !== editAfter) throw new Error("글 본문 편집 전후 값이 다릅니다");
   if (consoleErrors.length) throw new Error(`브라우저 콘솔 오류가 남았습니다: ${consoleErrors.join(" | ")}`);
 
+  await page.screenshot({ path: screenshotPath, fullPage: true });
   fs.writeFileSync(outputPath, `${JSON.stringify(evidence, null, 2)}\n`);
   process.stdout.write(`${JSON.stringify(evidence, null, 2)}\n`);
 } finally {
