@@ -1,5 +1,35 @@
 # OSMU 세션 상태
 
+## 2026-09-03 10:02 KST | Codex code-builder | v71 인증 변경 뒤 발행실 복원 회귀 build 인계
+
+### 회장 요청
+
+- v71 인증 실패 전파와 만료 세션 fail-closed 변경 뒤 `FE-V63-RETURN-01`이 전체 테스트에서 시간 초과한 회귀를 지적했다. 인박스 작업물의 발행실 복원 동작을 되살리고, 조회 실패 시 행동 차단과 인증 끊김 안내를 보존한 채 전체 테스트, TypeScript, push까지 요구했다.
+
+### 지금까지 한 것
+
+- `pipeline-state.osmu.md`의 build 허용 범위, `DESIGN.md` v37, ADR-004·005·006, 실수 원장, 복원 계약, 직전 인증 커밋 `ba4cc37c`와 `2cd5a9bb`를 기준으로 작업했다.
+- 복원된 선택 채널 표시와 실제 발행 가능한 채널을 분리했다. 계정 조회 중에도 큐 본문과 선택 상태는 먼저 나타나며, 실제 발행 대상과 발행 단추는 계정 확인이 끝날 때까지 잠긴다.
+- 전체 실행에서 Vitest가 가용 CPU 16개를 파일 워커로 모두 사용해 jsdom과 API 통합 테스트가 경합한 사실을 확인했다. 테스트 제한시간과 기대값은 바꾸지 않고 파일 워커를 1개 이상 4개 이하로 제한했다.
+- 기존 인박스·캘린더 복귀, 큐 본문과 초안 결합, 잘못된 복원 거절, 조회 실패 시 승인·거절 비활성, 만료 세션 즉시 안내, POST·DELETE 401 전파를 보존했다.
+- 제품과 증거 커밋은 `96465864`, `c473ba8f`, `488a61a6`이다. 변경 파일은 제품 2개와 기록 3개, 총 5개다.
+
+### 검증 증거
+
+- `cd dashboard && npx tsc --noEmit`: EXIT 0, 오류 0.
+- `cd dashboard && npx vitest run --reporter=dot`: 225파일 1,624건 통과, PostgreSQL 필요 38건 조건부 제외, 실패 0. 전체 실행의 `FE-V63-RETURN-01`은 4.08초에 통과했다.
+- 같은 전체 실행에서 `V71-AUTH-01`부터 `05`까지 통과해 조회 실패 행동 차단과 인증 만료 처리를 보존했다.
+- `cd dashboard && npm run build`: EXIT 0, 정적 페이지 177/177. 기존 NFT 광범위 추적 경고 1건은 유지됐다.
+- `design-lint.sh dashboard/src`: 디자인 토큰 위반 0.
+- 실제 로그인 브라우저에서 인박스 복귀 링크를 누르는 QA는 아직 미검증이다.
+
+### 남은 이슈와 다음 액션
+
+- 시작 시 `git pull --ff-only origin work/v71auth`는 원격 브랜치가 없어 실패했다. 종료 시 `git push -u origin work/v71auth`를 실행했지만 승인 요청을 금지한 현재 실행 환경이 명령 시작 전에 차단했다. 로컬 HEAD는 `488a61a6`이고 원격 브랜치는 없다.
+- push 권한이 허용된 부모 컨트롤러가 이 핸드오프 커밋을 포함한 로컬 HEAD를 `origin/work/v71auth`로 전송하고 로컬과 원격 SHA 일치를 확인한다. 머지와 배포는 하지 않는다.
+- QA 소유자는 종료형 서버에서 `cd dashboard && npm run e2e:publish`를 실행하고, 로그인 고객 세션으로 인박스 복귀 링크 클릭 뒤 본문과 선택 채널 즉시 표시, 계정 확인 전 발행 잠금을 직접 관찰한다.
+- 기존 사용자와 훅 소유 dirty `.codex/logs/harness.jsonl`, `docs/requests/inbox/chairman-2026-09.md`는 stage하지 않고 보존했다.
+
 ## 2026-09-03 07:58 KST | Codex code-builder | 승인 인박스 공백 승인 차단 build 인계
 
 ### 회장 요청
