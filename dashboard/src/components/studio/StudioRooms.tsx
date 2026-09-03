@@ -425,7 +425,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
                       {outline.map((item, index) => <li key={`${candidate.label}-${index}`} className="flex gap-stack-tight text-caption text-muted"><span className="text-accent">{index + 1}</span><span className="break-keep">{item}</span></li>)}
                     </ol>
                     {"format" in candidate ? (
-                      <Button variant={selected === candidate.label ? "primary" : "secondary"} className="w-full min-w-0" onClick={() => choose(candidate)}>{candidate.label} 구조 초안 선택</Button>
+                      <Button variant={selected === candidate.label ? "primary" : "secondary"} className="w-full min-w-0" onClick={() => choose(candidate)}>{candidate.label} 구조를 본문에서 선택</Button>
                     ) : (
                       <Button
                         variant={quickStructure?.label === candidate.label ? "primary" : "secondary"}
