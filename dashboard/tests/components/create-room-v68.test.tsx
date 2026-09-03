@@ -71,4 +71,40 @@ describe("V68 생성실 계약", () => {
     fireEvent.click(generate);
     expect(onQuickDraftGenerate).not.toHaveBeenCalled();
   });
+
+  it("V77-CREATE-FORMAT-01 정상: 고른 영상, 카드뉴스, 글 후보를 생성 결과에 모두 보여준다", () => {
+    const { rerender } = render(<CreateRoom {...props} topic="고객 질문" />);
+    fireEvent.click(screen.getByRole("button", { name: "영상" }));
+    fireEvent.click(screen.getByRole("button", { name: "카드뉴스" }));
+    fireEvent.click(screen.getByRole("button", { name: "글" }));
+
+    rerender(<CreateRoom
+      {...props}
+      topic="고객 질문"
+      quickDraft={{
+        shorts: { hook: "영상 첫 문장", body: "영상 본문", cta: "영상 마무리" },
+        instagram: { slides: ["첫 카드", "둘째 카드"], caption: "카드 설명" },
+        threads: "글 본문",
+      }}
+    />);
+
+    expect(document.querySelector('[data-quick-draft-format="video"]')).toHaveTextContent("영상 첫 문장");
+    expect(document.querySelector('[data-quick-draft-format="card"]')).toHaveTextContent("첫 카드");
+    expect(document.querySelector('[data-quick-draft-format="text"]')).toHaveTextContent("글 본문");
+  });
+
+  it("V77-CREATE-FORMAT-02 거절: 고르지 않은 형식 후보는 결과에 섞지 않는다", () => {
+    const { rerender } = render(<CreateRoom {...props} topic="고객 질문" />);
+    fireEvent.click(screen.getByRole("button", { name: "영상" }));
+
+    rerender(<CreateRoom
+      {...props}
+      topic="고객 질문"
+      quickDraft={{ shorts: { hook: "영상 후보" }, threads: "고르지 않은 글" }}
+    />);
+
+    expect(document.querySelector('[data-quick-draft-format="video"]')).toHaveTextContent("영상 후보");
+    expect(document.querySelector('[data-quick-draft-format="text"]')).toBeNull();
+    expect(screen.queryByText("고르지 않은 글")).toBeNull();
+  });
 });

@@ -19,7 +19,7 @@ import type { StudioGenerationCandidate } from "@/lib/studio/generation/client";
 import { useUIStore, type StudioRoom } from "@/store/ui-store";
 import { LearningCardWizard } from "@/components/studio/LearningCardWizard";
 import { LearningStatus } from "@/components/studio/LearningStatus";
-import { countFilledLearningSlots, markLearningPrompted, readLearningInfo, type LearningInfo } from "@/components/studio/learning-info";
+import { countFilledLearningSlots, readLearningInfo, type LearningInfo } from "@/components/studio/learning-info";
 import { RepoConnect } from "@/components/studio/RepoConnect";
 import { SchedulePanel } from "@/components/studio/SchedulePanel";
 import { trackEvent, type AnalyticsChannel } from "@/lib/analytics/events";
@@ -188,7 +188,6 @@ export default function StudioPage() {
   const [showWorks, setShowWorks] = useState(false);
   const [chatOpen, setChatOpen] = useState(true); // 좁은 화면에서도 대화창은 항상 손에 닿는다
   const [showWizard, setShowWizard] = useState(false);
-  const learningPromptedWorkspaceRef = useRef<string | null>(null);
   const [showRepo, setShowRepo] = useState(false); // 레포 위키 연동 모달
   const [showSchedule, setShowSchedule] = useState(false); // P6 예약 발행 패널 토글
   const [autoGen, setAutoGen] = useState(false);           // P8 AI 자동초안 진행중
@@ -205,13 +204,7 @@ export default function StudioPage() {
     }
     const nextLearningInfo = readLearningInfo(activeWorkspace.id);
     setLearningInfo(nextLearningInfo);
-    // 학습 정보 문답을 자동으로 띄우지 않는다(2026-08-31 회장 실사용).
-    // 모달이 생성실을 덮어 첫 화면에서 아무것도 누를 수 없었다. 대신 방머리의 학습 정보
-    // 카드가 미입력 개수를 보여주고, 사용자가 그 카드를 눌러 문답을 연다.
-    if (learningPromptedWorkspaceRef.current !== activeWorkspace.id) {
-      learningPromptedWorkspaceRef.current = activeWorkspace.id;
-      if (Object.keys(nextLearningInfo).length === 0) markLearningPrompted(activeWorkspace.id);
-    }
+    // 첫 화면을 덮는 강제 모달 대신 헤더에서 남은 칸 수와 이어 채우기 경로를 항상 보여 준다.
   }, [activeWorkspace?.id]);
   // 온보딩 위저드에서 "브랜드 설정하기"(/studio?setup=brand)로 오면 브랜드 위저드 자동 오픈.
   useEffect(() => {
@@ -360,7 +353,7 @@ export default function StudioPage() {
       const raw = localStorage.getItem(studioWorkStorageKey(workspaceId));
       if (raw) {
         const w = JSON.parse(raw);
-        if (activeRoom !== "create") setIdea(w.idea || "");
+        setIdea(w.idea || "");
         setText(w.text || null); setImg(w.img || null); setVid(w.vid || null);
         if (w.includes) setIncludes(normalizeIncludes(w.includes)); setDraftId(w.draftId || null);
         setPublishReconciliations(normalizePublishReconciliations(w.publishReconciliations ?? w.publishReconciliation));
@@ -433,7 +426,6 @@ export default function StudioPage() {
       // API가 성공을 확인한 뒤에만 발행한다. 클릭 시점 아님.
       trackEvent({ name: "content_generate", params: { kind: "text" } });
       setText(r);
-      setEditLines([r.shorts?.hook, r.shorts?.body, r.shorts?.cta].filter((line): line is string => Boolean(line)));
       return r;
     } catch (e) {
       const msg = extractApiErrorMessage(e, "텍스트 생성 실패");
@@ -446,7 +438,18 @@ export default function StudioPage() {
     setSelectedCandidate(null);
     try {
       const result = await genText(structure);
-      if (result) showToast(`${structure.label} 구조로 초안을 만들었습니다`, "success");
+      if (result) {
+        const nextKind = createPrimaryKind ?? "text";
+        const nextLines = nextKind === "video"
+          ? [result.shorts?.hook, result.shorts?.body, result.shorts?.cta].filter((line): line is string => Boolean(line))
+          : nextKind === "card"
+            ? (result.instagram?.slides?.length ? result.instagram.slides : [result.instagram?.caption || ""]).filter(Boolean)
+            : [result.threads || result.facebook || result.x || ""].filter(Boolean);
+        setEditKind(nextKind);
+        setEditFormat(defaultContentEditFormat(nextKind));
+        setEditLines(nextLines);
+        showToast(`${structure.label} 구조로 초안을 만들었습니다`, "success");
+      }
     } finally {
       setBusy(null);
     }
@@ -1111,7 +1114,7 @@ export default function StudioPage() {
         kind={editKind}
         onKindChange={(nextKind) => {
           setEditKind(nextKind);
-          setEditFormat(defaultContentEditFormat(nextKind === "text" ? "card" : nextKind));
+          setEditFormat(defaultContentEditFormat(nextKind));
         }}
         initialFormat={editFormat}
         onFormatChange={setEditFormat}
@@ -1326,7 +1329,7 @@ export default function StudioPage() {
           </div>
           {text ? (
             <div className="space-y-stack border-t border-border bg-surface-2 p-stack" data-chat-only-actions="publish">
-              <span className="text-caption font-semibold text-text">여기서만 한 번에 되는 일</span>
+              <span className="text-caption font-semibold text-text">여러 채널 함께 바꾸기</span>
               <p className="break-keep text-caption text-subtle">
                 아래는 미리보기 칸에서 손으로 하면 일곱 번 반복해야 하는 일입니다. 채널마다 다른 규격은 제가 맞춥니다.
               </p>
