@@ -1,3 +1,10 @@
+## 2026-09-03 22:08 KST | Codex code-builder | 기존 v67 QA 승인 핀 결함 회수
+
+- 현재 작업과의 관계: v74 발행실 테스트 안정화 코드는 검증을 마쳤다. 종료 훅이 이번 변경과 무관한 `pipeline-state.osmu.md`의 기존 v67 QA 승인에서 필수 산출물 핀 누락을 발견했다.
+- 확인된 증거: `docs/qa/qa-tracker.md`와 `docs/qa/osmu-v67-prototype-dev-comparison-v1-gpt-codex.html`은 존재한다. 그러나 v67 승인 범위에 대응하는 독립 회귀 PASS 산출물은 확인하지 못했다. `docs/qa/studio-prod-exhaustive-regression-v1-gpt-codex.md`는 최종 NG이고, `docs/qa/studio-prod-six-fix-reverify-v1.1.0-gpt-codex.md`도 전체 QA NG다. v24 디자인 정합 행렬은 v67 증거가 아니다.
+- 안전 조치: NG 문서나 다른 버전 문서를 v67 승인 증거로 핀하지 않았다. code-builder가 회장 승인 상태를 임의로 취소하거나 `pin_lint: off`로 검사를 무력화하지 않았다.
+- 회수 필요: 부모 Stage Controller가 v67 QA를 재개해 `qa-tracker`, v67 디자인 정합 행렬, v67 회귀 PASS를 실제로 만들고 핀한 뒤 다시 승인하거나, 기존 QA 승인을 철회해야 한다. 그 전까지 QA 승인 핀 정합은 미통과다.
+
 ## 2026-09-03 21:59 KST | Codex code-builder | v74 원격 전송 정책 차단
 
 - 로컬 상태: `work/v74flaky`의 현재 HEAD에 테스트 안정화와 모든 문서 증거가 커밋돼 있고 worktree는 clean이다. 기능·검증 증거 커밋은 `39a906a0`까지다.

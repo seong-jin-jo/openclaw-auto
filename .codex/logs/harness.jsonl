@@ -3553,3 +3553,5 @@
 {"ts":"2026-09-03T12:37:20Z","hook":"handoff-prompt-router","status":"trigger","detail":"handoff keyword detected","prompt_first_60":"너는 postAGI 풀스택 code-builder다.\npipeline-state.md�"}
 {"ts":"2026-09-03T12:37:20Z","hook":"chairman-request-capture","status":"captured","detail":"verbatim request preserved","file":"/private/tmp/osmu-wt-v74flaky/docs/requests/inbox/chairman-2026-09.md","bytes":15984}
 {"ts":"2026-09-03T13:02:04Z","hook":"pipeline-pin-gate","status":"block","detail":"approved artifact pin mismatch"}
+{"ts":"2026-09-03T13:04:01Z","hook":"pipeline-pin-gate","status":"block","detail":"approved artifact pin mismatch"}
+{"ts":"2026-09-03T13:06:30Z","hook":"pipeline-doctrine","status":"inject","detail":"SessionStart 헌법 주입"}
