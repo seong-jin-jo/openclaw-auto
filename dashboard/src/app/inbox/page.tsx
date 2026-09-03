@@ -333,7 +333,7 @@ export default function InboxPage() {
           >
             {seeding ? "생성 중…" : "AI로 한 주치 초안 생성"}
           </button>
-          <p className="text-caption text-subtle mt-stack">크론·Studio·영상에서 만든 글도 여기로 모입니다.</p>
+          <p className="text-caption text-subtle mt-stack">예약 작업·생성실·영상에서 만든 글도 여기로 모입니다.</p>
         </div>
       ) : !current ? (
         <div className="card p-region text-center text-subtle text-body-sm">모두 검토 완료.</div>

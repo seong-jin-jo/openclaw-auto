@@ -183,7 +183,7 @@ function LandingPage() {
       {/* ────── Pipeline ────── */}
       <section className="max-w-5xl mx-auto px-stack-section py-wide">
         <div className="text-center mb-wide">
-          <p className="text-caption font-semibold tracking-widest uppercase text-accent mb-stack">How It Works</p>
+          <p className="text-caption font-semibold tracking-widest uppercase text-accent mb-stack">이용 방법</p>
           <h2 className="text-heading sm:text-display font-bold text-text mb-stack">완전 자동화 파이프라인</h2>
           <p className="text-body-sm text-subtle">설정 한 번이면 24/7 자동 운영</p>
         </div>
@@ -234,7 +234,7 @@ function LandingPage() {
       {/* ────── Features ────── */}
       <section className="max-w-5xl mx-auto px-stack-section py-wide">
         <div className="text-center mb-wide">
-          <p className="text-caption font-semibold tracking-widest uppercase text-accent mb-stack">Features</p>
+          <p className="text-caption font-semibold tracking-widest uppercase text-accent mb-stack">주요 기능</p>
           <h2 className="text-heading sm:text-display font-bold text-text mb-stack">마케팅에 필요한 모든 것</h2>
           <p className="text-body-sm text-subtle">채널 관리부터 콘텐츠 생성, 분석까지 한 곳에서</p>
         </div>
@@ -262,7 +262,7 @@ function LandingPage() {
       {/* ────── Pricing ────── */}
       <section className="max-w-3xl mx-auto px-stack-section py-wide">
         <div className="text-center mb-wide">
-          <p className="text-caption font-semibold tracking-widest uppercase text-success mb-stack">Pricing</p>
+          <p className="text-caption font-semibold tracking-widest uppercase text-success mb-stack">요금</p>
           <h2 className="text-heading sm:text-display font-bold text-text mb-stack">심플한 요금제</h2>
           <p className="text-body-sm text-subtle">베타 기간 월 기본 제공량 내 무료입니다</p>
         </div>
@@ -275,7 +275,7 @@ function LandingPage() {
             베타 무료 제공
           </div>
 
-          <h3 className="text-display font-bold text-text mb-micro">Free</h3>
+          <h3 className="text-display font-bold text-text mb-micro">무료</h3>
           <p className="text-body-sm text-subtle mb-region">₩0 / 월</p>
 
           <ul className="text-left space-y-stack mb-region">

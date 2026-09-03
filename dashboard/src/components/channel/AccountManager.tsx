@@ -347,7 +347,7 @@ function ManualAddBlock({
           <input
             value={appPassword}
             onChange={(e) => setAppPassword(e.target.value)}
-            placeholder="App Password"
+            placeholder="앱 비밀번호"
             type="password"
             data-testid={`account-add-password-${provider}`}
             className="w-full rounded-chip border border-border bg-surface-2 px-stack-tight py-micro text-caption text-text"

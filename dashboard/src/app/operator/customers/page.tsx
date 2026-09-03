@@ -421,7 +421,7 @@ export default function OperatorCustomersPage() {
                 className="mt-stack space-y-stack"
               >
                 <div>
-                  <p className="text-caption font-medium uppercase tracking-wide text-subtle">Callback URL</p>
+                  <p className="text-caption font-medium uppercase tracking-wide text-subtle">콜백 주소</p>
                   <div className="mt-micro flex items-start gap-stack-tight">
                     <code className="min-w-0 flex-1 break-all rounded-chip bg-surface-2 px-stack-tight py-stack-tight text-caption text-muted">
                       {item.callbackUrl}
@@ -437,7 +437,7 @@ export default function OperatorCustomersPage() {
                 </div>
                 <div>
                   <div className="flex items-center justify-between gap-stack-tight">
-                    <p className="text-caption font-medium uppercase tracking-wide text-subtle">Required fields</p>
+                    <p className="text-caption font-medium uppercase tracking-wide text-subtle">필수 항목</p>
                     {revealedValues[item.provider] ? (
                       <button type="button" onClick={() => hideCredentialValues(item.provider)} className="text-caption text-danger hover:underline">
                         숨기기
@@ -500,7 +500,7 @@ export default function OperatorCustomersPage() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-caption font-medium uppercase tracking-wide text-subtle">Console setup</p>
+                  <p className="text-caption font-medium uppercase tracking-wide text-subtle">콘솔 설정</p>
                   <ol className="mt-micro list-decimal space-y-micro pl-pad-inset text-caption leading-relaxed text-subtle">
                     {item.setupSteps.map((step) => <li key={step}>{step}</li>)}
                   </ol>
@@ -552,7 +552,7 @@ export default function OperatorCustomersPage() {
 
       <section className="mb-stack-section">
         <div className="flex items-center justify-between mb-stack">
-          <h3 className="text-body-sm font-semibold text-text">Auth 가입자</h3>
+          <h3 className="text-body-sm font-semibold text-text">인증 가입자</h3>
           <span className="text-caption text-subtle">{authUsers.length}명</span>
         </div>
         <div className="grid gap-stack-tight">

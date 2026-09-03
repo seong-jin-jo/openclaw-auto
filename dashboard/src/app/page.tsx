@@ -46,7 +46,7 @@ export function PerformanceDashboard({ dedicatedRoom = false }: { dedicatedRoom?
     quota?: any 
   } | undefined;
 
-  if (!o) return <div className="px-region py-stack-section"><p className="text-subtle">Loading...</p></div>;
+  if (!o) return <div className="px-region py-stack-section"><p className="text-subtle">불러오는 중...</p></div>;
 
   const sc = (o.statusCounts || {}) as Record<string, number>;
 
