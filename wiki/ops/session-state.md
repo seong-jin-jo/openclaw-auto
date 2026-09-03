@@ -1,3 +1,12 @@
+## 2026-09-04 04:19 KST | Codex code-builder | v76 채널 재연결 중복 키 수정 착수
+
+- 핸드오프 기준: 회장이 지정한 `work/v76dup`, `/tmp/osmu-wt-v76dup`과 이 턴의 원인 확정 과제를 primary로 사용한다. tmux에는 본 저장소의 기존 운영 pane이 있으나 이 격리 워크트리를 사용하는 중복 pane은 없다.
+- 기반: ADR-004·005·006, 실수 원장 상단, `docs/qa/osmu-원인분석-2026-09-04.md`, `wiki/4-reference/channel-status.md`, `channel_accounts` 유일 제약, 공통 계정 저장 함수와 OAuth callback을 읽었다.
+- 원인: 동일 계정 재연결 INSERT에 `(tenant_id, provider, external_account_id)` 충돌 처리가 없어 중복 키 예외가 난다. 기존 사전 조회와 UPDATE 분기만으로 INSERT 자체의 충돌 계약이 닫히지 않았다.
+- QA 상태: `docs/qa/qa-tracker.md` 최상단에 build NG와 실제 PostgreSQL 종료 증거 네 가지를 등록했다.
+- 보존할 기존 변경: `.codex/logs/harness.jsonl`, `docs/requests/inbox/chairman-2026-09.md`는 이 작업에서 수정하거나 stage하지 않는다.
+- 다음 액션: 원자적 UPSERT와 재연결 결과 구분을 계약 테스트로 먼저 고정하고, 실제 PostgreSQL에서 같은 계정을 두 번 저장해 행 수, 갱신 값, 기본 계정을 직접 대조한다.
+
 ## 2026-09-04 02:13 KST | Codex code-builder | v75 생성실 직접 생성 build 검증
 
 - 핸드오프 기준: 회장이 지정한 `work/v75gen`, `/private/tmp/osmu-wt-v75gen`과 원인분석 8절, v68·v69 승인 시안, DESIGN v37을 primary로 사용했다. `openclaw-auto:0.0`은 부모 컨트롤러이고 다른 pane은 별도 트랙이다.
