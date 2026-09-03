@@ -435,7 +435,6 @@ export default function StudioPage() {
   async function generateQuickDraft(structure: CreateStructureChoice) {
     if (!idea.trim()) { showToast("주제를 입력해 주세요", "error"); return; }
     setBusy("초안 만드는 중");
-    setSelectedCandidate(null);
     try {
       const result = await genText(structure);
       if (result) {

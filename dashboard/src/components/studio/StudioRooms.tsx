@@ -425,6 +425,17 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
     onCandidateSelect(candidate);
   }
 
+  function chooseStructureCandidate(candidate: StudioGenerationCandidate) {
+    choose(candidate);
+    const structure: CreateStructureChoice = {
+      label: candidate.label,
+      title: candidate.title,
+      outline: candidate.format.outline,
+    };
+    setQuickStructure(structure);
+    void onQuickDraftGenerate?.(structure);
+  }
+
   // 같이 만들 갈래를 고른 채로 후보를 고르면, 확정을 누르기 전에 값을 먼저 보여 준다.
   // 값을 못 본 상태에서는 확정 단추가 뜨지 않으므로 조용히 나가는 경로가 없다.
   useEffect(() => {
@@ -510,57 +521,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
         <div className="text-right"><b className="block text-body font-bold text-accent">{stage.count}</b><span className="text-caption text-subtle">{stage.label}</span></div>
       </section>
       <div className="grid gap-stack-section lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="min-w-0 space-y-region" data-create-workspace>
-          <section className="card space-y-stack-section p-pad-inset" aria-labelledby="create-quick-title" data-create-quick-start>
-            <div>
-              <h2 id="create-quick-title" className="text-subheading font-bold text-text">주제로 바로 초안 만들기</h2>
-              <p className="break-keep text-caption text-subtle">주제를 적고 아래 구조를 고른 뒤 초안을 만드세요. 기존 생성 담당 문답도 그대로 사용할 수 있습니다.</p>
-            </div>
-            <Field label="초안 주제" htmlFor="studio-quick-topic">
-              <input
-                id="studio-quick-topic"
-                value={topic}
-                onChange={(event) => onTopicChange(event.target.value)}
-                placeholder="고객에게 전할 주제를 입력하세요"
-                className="h-control-touch w-full rounded-control border border-border bg-surface-2 px-stack text-body text-text"
-              />
-            </Field>
-            {quickStructure ? (
-              <article className="rounded-control border border-accent/30 bg-accent-soft p-stack" data-quick-structure={quickStructure.label}>
-                <b className="block text-body-sm text-accent">{quickStructure.label} {quickStructure.title} 후보</b>
-                <ol className="mt-stack-tight space-y-micro text-caption text-accent">
-                  {quickStructure.outline.map((line, index) => <li key={`${quickStructure.label}-${line}`}><span className="mr-micro font-semibold">{index + 1}.</span>{line}</li>)}
-                </ol>
-              </article>
-            ) : (
-              <p className="text-caption text-subtle">아래 A, B, C 중 하나를 골라 생성 구조를 정해 주세요.</p>
-            )}
-            <Button
-              variant="primary"
-              className="w-full min-w-0"
-              onClick={() => quickStructure && onQuickDraftGenerate?.(quickStructure)}
-              disabled={quickDraftLoading || !workspaceId || !topic.trim() || !quickStructure || !onQuickDraftGenerate}
-            >
-              {quickDraftLoading ? "초안 만드는 중" : "초안 만들기"}
-            </Button>
-            {quickDraftError ? <p role="alert" className="text-caption text-danger">{quickDraftError}</p> : null}
-            {quickDraftSections.length ? (
-              <section className="rounded-surface border border-success/30 bg-success/10 p-pad-inset" aria-labelledby="quick-draft-result-title" data-quick-draft-result>
-                <h3 id="quick-draft-result-title" className="text-body font-bold text-text">고른 형식의 생성 후보</h3>
-                <div className="mt-stack grid gap-stack md:grid-cols-2">
-                  {quickDraftSections.map((section) => (
-                    <article key={section.kind} className="rounded-control border border-success/30 bg-surface p-stack" data-quick-draft-format={section.kind}>
-                      <b className="block text-body-sm text-text">{section.label}</b>
-                      <ol className="mt-stack-tight space-y-stack-tight">
-                        {section.lines.map((line, index) => <li key={`${section.kind}-${index}`} className="whitespace-pre-wrap break-keep text-caption text-muted">{line}</li>)}
-                      </ol>
-                    </article>
-                  ))}
-                </div>
-                {onOpenEditor ? <Button className="mt-stack" variant="primary" onClick={onOpenEditor}>편집실에서 다듬기</Button> : null}
-              </section>
-            ) : null}
-          </section>
+        <div className="min-w-0 space-y-region" data-create-workspace data-display-readonly>
           <section className="grid gap-stack sm:grid-cols-3" aria-label="생성실 요약">
             <article className="card p-pad-inset"><span className="text-caption text-subtle">선택한 형식</span><b className="mt-micro block text-body text-text">{primaryKind ? CREATE_KIND_LABELS[primaryKind] : "선택 전"}</b></article>
             <article className="card p-pad-inset"><span className="text-caption text-subtle">반영한 학습 정보</span><b className="mt-micro block text-body text-text">{learnedCount}개</b></article>
@@ -569,7 +530,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
           <section className="min-w-0" aria-labelledby="create-display-title">
             <div className="mb-stack flex items-center justify-between border-b border-border pb-stack">
               <h2 id="create-display-title" className="text-subheading font-bold text-text">{selectedCandidate ? "선택한 구조 초안" : candidates.length ? "구조 초안 세 개" : kindHeading}</h2>
-              <span className="text-caption text-subtle">카드를 눌러 구조를 선택하세요</span>
+              <span className="text-caption text-subtle">선택은 오른쪽 생성 담당에서</span>
             </div>
             <div className="grid gap-stack md:grid-cols-3" data-create-candidate-deck>
               {displayCandidates.filter((candidate) => !selectedCandidate || candidate.label === selectedCandidate.label).map((candidate) => {
@@ -583,23 +544,26 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
                     <ol className="mt-auto space-y-stack-tight border-t border-border pt-stack">
                       {outline.map((item, index) => <li key={`${candidate.label}-${index}`} className="flex gap-stack-tight text-caption text-muted"><span className="text-accent">{index + 1}</span><span className="break-keep">{item}</span></li>)}
                     </ol>
-                    {"format" in candidate ? (
-                      <Button variant={selected === candidate.label ? "primary" : "secondary"} className="w-full min-w-0" onClick={() => choose(candidate)}>{candidate.label} 구조를 본문에서 선택</Button>
-                    ) : (
-                      <Button
-                        variant={quickStructure?.label === candidate.label ? "primary" : "secondary"}
-                        className="w-full min-w-0"
-                        aria-pressed={quickStructure?.label === candidate.label}
-                        onClick={() => setQuickStructure({ label: candidate.label, title: candidate.title, outline: candidate.outline })}
-                      >
-                        {candidate.label} 구조 사용
-                      </Button>
-                    )}
                   </article>
                 );
               })}
             </div>
           </section>
+          {quickDraftSections.length ? (
+            <section className="rounded-surface border border-success/30 bg-success/10 p-pad-inset" aria-labelledby="quick-draft-result-title" data-quick-draft-result>
+              <h3 id="quick-draft-result-title" className="text-body font-bold text-text">고른 형식의 생성 후보</h3>
+              <div className="mt-stack grid gap-stack md:grid-cols-2">
+                {quickDraftSections.map((section) => (
+                  <article key={section.kind} className="rounded-control border border-success/30 bg-surface p-stack" data-quick-draft-format={section.kind}>
+                    <b className="block text-body-sm text-text">{section.label}</b>
+                    <ol className="mt-stack-tight space-y-stack-tight">
+                      {section.lines.map((line, index) => <li key={`${section.kind}-${index}`} className="whitespace-pre-wrap break-keep text-caption text-muted">{line}</li>)}
+                    </ol>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : null}
           <section className="card p-pad-inset" aria-labelledby="create-learning-title">
             <div className="mb-stack flex flex-wrap items-center justify-between gap-stack"><div><h2 id="create-learning-title" className="text-body font-bold text-text">이번에 반영한 학습 정보</h2><p className="text-caption text-subtle">사용자가 승인한 내용만 적용합니다.</p></div><span className="text-caption text-subtle">{learnedCount} / {LEARNING_SLOT_TOTAL}</span></div>
             <progress className="progress-semantic mb-stack w-full" max={LEARNING_SLOT_TOTAL} value={learnedCount} aria-label="학습 정보 수집 정도" />
@@ -687,7 +651,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
               {question === "review" ? <><Button onClick={() => setQuestionIndex(0)}>입력 내용 수정</Button><Button variant="primary" onClick={generate} disabled={loading || missing.length > 0}>{loading ? "구조 초안 만드는 중" : "구조 초안 3개 보기"}</Button></> : null}
             </> : null}
             {candidates.length && !selectedCandidate ? <>
-              {candidates.map((candidate) => <Button key={candidate.label} variant="secondary" onClick={() => choose(candidate)}>{candidate.label} 구조 초안 선택</Button>)}
+              {candidates.map((candidate) => <Button key={candidate.label} variant="secondary" onClick={() => chooseStructureCandidate(candidate)} disabled={quickDraftLoading}>{quickDraftLoading ? "후보 만드는 중" : `${candidate.label} 구조 초안 선택`}</Button>)}
               <Button onClick={regenerateAll} disabled={loading}>{loading ? "다시 만드는 중" : "3개 모두 바꾸기"}</Button>
             </> : null}
             {selectedCandidate && alsoQuote && !alsoBatch ? (
@@ -724,6 +688,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
               </div>
             ) : null}
             {selectedCandidate && (alsoKinds.length === 0 || Boolean(alsoBatch)) ? <Stack gap={8}><Button variant="primary" onClick={onOpenEditor}>편집실에서 다듬기</Button><Button onClick={() => setSelected(null)}>구조 초안 다시 고르기</Button></Stack> : null}
+            {quickDraftError ? <p role="alert" className="text-caption text-danger">{quickDraftError}</p> : null}
             {error ? <p role="alert" className="text-caption text-danger">{error}</p> : null}
           </Stack>
         </AssistantPanel>

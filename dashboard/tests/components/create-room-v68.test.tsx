@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import React from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CreateRoom } from "@/components/studio/StudioRooms";
 
@@ -15,12 +15,38 @@ const props = {
   onCandidateSelect: vi.fn(),
 };
 
+const candidates = (["A", "B", "C"] as const).map((label, index) => ({
+  candidate_id: `candidate-${label}`,
+  ordinal: (index + 1) as 1 | 2 | 3,
+  label,
+  angle: (["problem_first", "proof_first", "process_first"] as const)[index],
+  title: `${label} 구조`,
+  rationale: `${label} 설명`,
+  format: { content_branch: "video" as const, preview_kind: "structured_storyboard" as const, quality: "draft" as const, outline: [`${label} 첫 장면`] },
+}));
+
+function answerCreateQuestions() {
+  fireEvent.click(screen.getByRole("button", { name: "영상" }));
+  fireEvent.click(screen.getByRole("button", { name: "다음" }));
+  fireEvent.click(screen.getByRole("button", { name: "문의 늘리기" }));
+  fireEvent.click(screen.getByRole("button", { name: "혼자 일하는 사장" }));
+  fireEvent.click(document.querySelector("[data-create-topic-picker] button") as HTMLElement);
+  fireEvent.click(screen.getByLabelText("위 조건을 확인했습니다."));
+  fireEvent.click(screen.getByRole("button", { name: "입력 내용 확인" }));
+}
+
 beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
+  localStorage.setItem("dashboard_auth_token", "customer-token");
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ data: { job_id: "job-v68", candidates } }, { status: 201 })));
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 describe("V68 생성실 계약", () => {
   it("V68-CREATE-01 정상: 형식, 학습 정보, 구조 초안 세 축과 A/B/C를 함께 보여준다", () => {
@@ -45,30 +71,32 @@ describe("V68 생성실 계약", () => {
     expect(document.querySelector("[data-create-purpose-picker]")).toBeNull();
   });
 
-  it("V75-CREATE-DIRECT-01 정상: A 구조를 고르면 본문이 바뀌고 주제와 구조로 직접 생성한다", () => {
-    const onTopicChange = vi.fn();
+  it("V77-CREATE-ROLE-01 정상: 본문은 읽기 전용이고 생성 담당의 A 선택이 형식별 후보 생성을 호출한다", async () => {
     const onQuickDraftGenerate = vi.fn().mockResolvedValue(undefined);
-    const { rerender } = render(<CreateRoom {...props} topic="고객이 자주 묻는 질문" onTopicChange={onTopicChange} onQuickDraftGenerate={onQuickDraftGenerate} />);
+    const { rerender } = render(<CreateRoom {...props} topic="고객이 자주 묻는 질문" onQuickDraftGenerate={onQuickDraftGenerate} />);
+    const display = document.querySelector("[data-display-readonly]") as HTMLElement;
+    expect(within(display).queryAllByRole("button")).toHaveLength(0);
+    answerCreateQuestions();
+    fireEvent.click(screen.getByRole("button", { name: "구조 초안 3개 보기" }));
+    const structureButton = await screen.findByRole("button", { name: "A 구조 초안 선택" });
     const before = document.body.textContent?.length ?? 0;
 
-    fireEvent.click(screen.getByRole("button", { name: "A 구조 사용" }));
+    fireEvent.click(structureButton);
 
-    expect(document.body.textContent?.length ?? 0).not.toBe(before);
-    expect(document.querySelector('[data-quick-structure="A"]')).toHaveTextContent("고객이 겪는 문제");
-    fireEvent.click(screen.getByRole("button", { name: "초안 만들기" }));
-    expect(onQuickDraftGenerate).toHaveBeenCalledWith(expect.objectContaining({ label: "A", title: "문제 제시형" }));
+    await waitFor(() => expect(document.body.textContent?.length ?? 0).not.toBe(before));
+    expect(onQuickDraftGenerate).toHaveBeenCalledWith(expect.objectContaining({ label: "A", title: "A 구조", outline: ["A 첫 장면"] }));
 
-    rerender(<CreateRoom {...props} topic="고객이 자주 묻는 질문" onTopicChange={onTopicChange} onQuickDraftGenerate={onQuickDraftGenerate} quickDraft={{ threads: "실제로 생성된 한국어 본문입니다." }} />);
-    expect(document.querySelector("[data-quick-draft-result]")).toHaveTextContent("실제로 생성된 한국어 본문");
+    rerender(<CreateRoom {...props} topic="고객이 자주 묻는 질문" onQuickDraftGenerate={onQuickDraftGenerate} quickDraft={{ shorts: { hook: "실제로 생성된 영상 후보입니다." } }} />);
+    expect(document.querySelector("[data-quick-draft-result]")).toHaveTextContent("실제로 생성된 영상 후보");
   });
 
-  it("V75-CREATE-DIRECT-02 거절: 주제나 구조가 비면 직접 생성 요청을 보내지 않는다", () => {
+  it("V77-CREATE-ROLE-02 거절: 본문 예시에서는 구조 선택이나 직접 생성 요청을 시작하지 않는다", () => {
     const onQuickDraftGenerate = vi.fn();
     render(<CreateRoom {...props} topic="" onQuickDraftGenerate={onQuickDraftGenerate} />);
 
-    const generate = screen.getByRole("button", { name: "초안 만들기" });
-    expect(generate).toBeDisabled();
-    fireEvent.click(generate);
+    const display = document.querySelector("[data-display-readonly]") as HTMLElement;
+    expect(within(display).queryAllByRole("button")).toHaveLength(0);
+    expect(screen.queryByRole("button", { name: /구조 초안 선택/ })).toBeNull();
     expect(onQuickDraftGenerate).not.toHaveBeenCalled();
   });
 

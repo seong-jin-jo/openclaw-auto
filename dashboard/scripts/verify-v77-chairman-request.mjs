@@ -39,6 +39,26 @@ await page.route("**/api/**", async (route) => {
   if (pathname === "/api/studio/brand-setup") return json(route, { guide: null });
   if (pathname === "/api/studio/engine-status") return json(route, { ready: true });
   if (pathname === "/api/studio/drafts") return json(route, { drafts: [], currentWork: null });
+  if (pathname === "/api/studio/v1/generations") return json(route, {
+    data: {
+      job_id: "job-v77-click",
+      candidates: ["A", "B", "C"].map((label, index) => ({
+        candidate_id: `candidate-${label}`,
+        ordinal: index + 1,
+        label,
+        angle: ["problem_first", "proof_first", "process_first"][index],
+        title: `${label} 구조`,
+        rationale: `${label} 설명`,
+        format: { content_branch: "video", preview_kind: "structured_storyboard", quality: "draft", outline: [`${label} 첫 장면`, `${label} 본문`, `${label} 마무리`] },
+      })),
+    },
+  }, 201);
+  if (pathname === "/api/studio/text") return json(route, {
+    ok: true,
+    threads: "고른 구조로 만든 글 후보",
+    instagram: { slides: ["고른 구조로 만든 첫 카드", "고른 구조로 만든 마무리 카드"], caption: "카드뉴스 설명" },
+    shorts: { hook: "고른 구조로 만든 영상 첫 문장", body: "영상 본문", cta: "영상 마무리" },
+  });
   if (pathname === "/api/images") return json(route, { images: [] });
   return json(route, {});
 });
@@ -55,19 +75,31 @@ try {
   const learningAfter = await page.evaluate(() => document.body.innerText.length);
   await page.getByRole("button", { name: "나중에 하기", exact: true }).click();
 
-  await page.getByLabel("초안 주제").fill(persistedTopic);
-  await page.getByLabel("생성 담당 대화창").getByRole("button", { name: "영상", exact: true }).click();
+  const createAssistant = page.getByLabel("생성 담당 대화창");
+  const displayButtonCount = await page.locator("[data-display-readonly] button").count();
+  await createAssistant.getByRole("button", { name: "영상", exact: true }).click();
+  await createAssistant.getByRole("button", { name: "다음", exact: true }).click();
+  await createAssistant.getByRole("button", { name: "문의 늘리기", exact: true }).click();
+  await createAssistant.getByRole("button", { name: "혼자 일하는 사장", exact: true }).click();
+  await createAssistant.getByRole("button", { name: "직접 입력", exact: true }).click();
+  await createAssistant.getByLabel("직접 입력한 주제").fill(persistedTopic);
+  await createAssistant.getByRole("button", { name: "이 주제로 계속", exact: true }).click();
+  await createAssistant.getByLabel("위 조건을 확인했습니다.").check();
+  await createAssistant.getByRole("button", { name: "입력 내용 확인", exact: true }).click();
   await page.waitForFunction(({ id, topic }) => {
     const work = localStorage.getItem(`studio_work:${id}`) || "";
     const create = localStorage.getItem(`studio_create_state:${id}`) || "";
     return work.includes(topic) && create.includes('"primaryKind":"video"');
   }, { id: workspaceId, topic: persistedTopic });
   await page.reload({ waitUntil: "networkidle", timeout: 60_000 });
-  const remainingString = await page.getByLabel("초안 주제").inputValue();
+  const remainingString = (await page.getByText(persistedTopic, { exact: true }).innerText()).trim();
 
+  await page.getByLabel("생성 담당 대화창").getByRole("button", { name: "구조 초안 3개 보기", exact: true }).click();
+  const structureButton = page.getByLabel("생성 담당 대화창").getByRole("button", { name: "B 구조 초안 선택", exact: true });
+  await structureButton.waitFor({ state: "visible" });
   const structureBefore = await page.evaluate(() => document.body.innerText.length);
-  await page.getByRole("button", { name: "B 구조 사용", exact: true }).click();
-  await page.locator('[data-quick-structure="B"]').waitFor({ state: "visible" });
+  await structureButton.click();
+  await page.locator("[data-quick-draft-result]").waitFor({ state: "visible" });
   const structureAfter = await page.evaluate(() => document.body.innerText.length);
 
   await page.evaluate(({ id, before }) => {
@@ -87,6 +119,7 @@ try {
 
   const evidence = {
     headerLearningText,
+    displayButtonCount,
     learningClick: {
       bodyTextLengthBefore: learningBefore,
       bodyTextLengthAfter: learningAfter,
@@ -103,6 +136,7 @@ try {
   };
 
   if (!headerLearningText.includes("학습 정보") || !headerLearningText.includes("남은")) throw new Error("헤더 학습 정보의 남은 칸 경로가 보이지 않습니다");
+  if (displayButtonCount !== 0) throw new Error(`생성실 본문에 선택 단추가 ${displayButtonCount}개 남았습니다`);
   if (evidence.learningClick.delta === 0) throw new Error("학습 정보 클릭 전후 본문 길이가 같습니다");
   if (evidence.structureClick.delta === 0) throw new Error("구조 선택 전후 본문 길이가 같습니다");
   if (remainingString !== persistedTopic) throw new Error("새로고침 뒤 생성실 입력이 남지 않았습니다");
