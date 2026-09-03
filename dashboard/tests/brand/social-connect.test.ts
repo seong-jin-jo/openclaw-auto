@@ -10,6 +10,7 @@ const H = vi.hoisted(() => ({
   fetchSeq: [] as Array<{ status: number; body: unknown }>,
   fetchCalls: [] as string[],
   identityError: "",
+  reconnected: false,
 }));
 
 vi.mock("@/lib/tenant-auth", () => ({
@@ -45,7 +46,7 @@ vi.mock("@/lib/channel-accounts", () => ({
   }),
   upsertChannelAccount: vi.fn(async (input: Record<string, unknown>) => {
     H.inserts.push([input]);
-    return { id: `acc-${H.inserts.length}`, isDefault: true };
+    return { id: `acc-${H.inserts.length}`, isDefault: true, reconnected: H.reconnected };
   }),
   syncLegacyIntegration: vi.fn(async () => {}),
 }));
@@ -95,6 +96,7 @@ beforeEach(() => {
   H.inserts = [];
   H.fetchCalls = [];
   H.identityError = "";
+  H.reconnected = false;
   H.fetchSeq = [
     { status: 200, body: { access_token: "SHORT", user_id: 17841400000000001 } }, // 단기
     { status: 200, body: { access_token: "LONGLIVED60D", expires_in: 5_184_000 } }, // 장기
@@ -252,6 +254,21 @@ describe("GET /api/connect/instagram/callback — 토큰교환·저장", () => {
     const expiresAt = new Date(String(input.tokenExpiresAt)).getTime();
     expect(expiresAt).toBeGreaterThanOrEqual(startedAt + 5_184_000_000);
     expect(expiresAt).toBeLessThanOrEqual(Date.now() + 5_184_000_000 + 1_000);
+  });
+
+  it("채널-재연결-03 정상: 기존 계정 갱신이면 사용자에게 연결 새로 고침 결과를 알린다", async () => {
+    H.reconnected = true;
+    const state = await signedState("tenant-1", "instagram");
+    const { GET } = await import("@/app/api/connect/[provider]/callback/route");
+    const res = await GET(
+      callbackRequest("instagram", state, "AUTHCODE"),
+      params("instagram"),
+    );
+
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("연결을 새로 고쳤습니다");
+    expect(html).not.toContain("연결 실패");
   });
 
   it("장기 토큰 교환이 실패하면 단기 토큰을 active 계정으로 저장하지 않는다", async () => {
