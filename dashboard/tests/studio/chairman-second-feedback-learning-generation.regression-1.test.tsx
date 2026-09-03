@@ -99,7 +99,7 @@ describe("회장 2차 실사용 피드백 생성실", () => {
     first.unmount();
     render(<CreateRoom {...createProps} />);
     expect(document.querySelector('[data-create-question="purpose"]')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "이전" }));
+    fireEvent.click(screen.getByRole("button", { name: "이전 질문" }));
     expect(screen.getByRole("button", { name: "영상" })).toHaveAttribute("aria-pressed", "true");
   });
 
