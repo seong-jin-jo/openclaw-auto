@@ -1,0 +1,42 @@
+name: Diagnose connect failure (read-only)
+
+# 왜 (회장 2026-09-04 "여전히 연결 오류. duplicated key 어쩌고"):
+#   연결 실패의 실제 예외 문구가 컨테이너 로그에만 있다. 그 문구 없이는 원인을 추측하게 되고,
+#   추측으로 두 번 헛짚었다. 이 워크플로는 **읽기 전용**으로 그 한 줄만 꺼내 온다.
+#
+# 안전장치
+#   - 배포 runner 에서 돌지만 배포·재시작·설정 변경을 하지 않는다. docker logs 읽기만 한다.
+#   - 토큰·비밀값 모양을 지우고 출력한다. 매칭된 줄만 낸다.
+#   - 최근 것 일부만 본다.
+
+on:
+  workflow_dispatch:
+    inputs:
+      pattern:
+        description: '찾을 문구 (기본: connect-callback)'
+        required: false
+        default: 'connect-callback'
+      lines:
+        description: '훑을 최근 로그 줄 수'
+        required: false
+        default: '4000'
+
+jobs:
+  diagnose:
+    runs-on: [self-hosted, marketing_runner]
+    steps:
+      - name: 연결 실패 로그만 꺼내기 (비밀값 가림)
+        run: |
+          PAT='${{ github.event.inputs.pattern }}'
+          N='${{ github.event.inputs.lines }}'
+          echo "대상 컨테이너 목록"
+          docker ps --format '{{.Names}}' | grep -i osmu || true
+          for c in $(docker ps --format '{{.Names}}' | grep -i osmu); do
+            echo "::group::$c"
+            docker logs --tail "$N" "$c" 2>&1 \
+              | grep -aiE "$PAT|duplicate key|violates unique constraint" \
+              | sed -E 's/(EAA|IGQ|ya29|sbp_|eyJ)[A-Za-z0-9_.\-]+/[가림]/g' \
+              | sed -E 's/(secret|token|password|key)[=:][^ ,;]+/\1=[가림]/Ig' \
+              | tail -60
+            echo "::endgroup::"
+          done
