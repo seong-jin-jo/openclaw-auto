@@ -191,4 +191,65 @@ describe("channel_accounts first-account concurrency (live Postgres)", () => {
       accessToken: "not-stored",
     })).rejects.toThrow(/OSMU_SECRET_KEY/);
   });
+
+  // 2026-09-05 운영 장애 회귀 고정. 운영 로그: duplicate key value violates unique constraint
+  // "uq_channel_accounts_one_default". 기본계정 승격을 한 문장으로 뒤집으면 행 물리 순서에
+  // 따라 true 가 잠깐 둘이 되어 터진다. 승격 대상 행을 기존 기본계정보다 먼저 넣어 그 순서를
+  // 강제한다. 이 배치에서 예외 없이 통과해야 한다.
+  it("채널-재연결-02 회귀: 기존 기본계정이 앞줄이 아닐 때도 승격이 duplicate key 로 터지지 않는다", async (ctx) => {
+    const sql = await tryConnect();
+    if (!sql) {
+      if (process.env.CI) throw new Error("CI requires a reachable PostgreSQL service for promotion QA");
+      return ctx.skip();
+    }
+
+    const [tenant] = await sql<{ id: string }[]>`
+      select id from tenants where slug = 'seed-a' limit 1`;
+    if (!tenant) {
+      await sql.end({ timeout: 5 });
+      if (process.env.CI) throw new Error("CI requires the seed-a tenant for promotion QA");
+      return ctx.skip();
+    }
+
+    const provider = `qa-promote-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    process.env.DATABASE_URL = getDatabaseUrl()!;
+    process.env.OSMU_SECRET_KEY = "qa-channel-account-promote-key";
+
+    try {
+      // 승격될 계정을 먼저 넣어 물리 순서를 불리하게 만든다
+      await sql`
+        insert into channel_accounts (tenant_id, provider, external_account_id, secret_enc, is_default, status)
+        values (${tenant.id}, ${provider}, 'new-account', 'x', false, 'active')`;
+      // 못 쓰는 기존 기본계정을 뒤에 넣는다
+      await sql`
+        insert into channel_accounts (tenant_id, provider, external_account_id, secret_enc, is_default, status)
+        values (${tenant.id}, ${provider}, 'dead-account', 'x', true, 'revoked')`;
+
+      const result = await upsertChannelAccount({
+        tenantId: tenant.id,
+        provider,
+        externalId: "new-account",
+        accessToken: "token-new",
+      });
+
+      expect(result.isDefault).toBe(true);
+      expect(result.reconnected).toBe(true);
+
+      const [counts] = await sql<{ total: number; defaults: number; default_external: string }[]>`
+        select count(*)::int as total,
+               count(*) filter (where is_default)::int as defaults,
+               max(external_account_id) filter (where is_default) as default_external
+        from channel_accounts
+        where tenant_id = ${tenant.id} and provider = ${provider}`;
+
+      expect(counts.total).toBe(2);
+      expect(counts.defaults).toBe(1);
+      expect(counts.default_external).toBe("new-account");
+    } finally {
+      await sql`
+        delete from channel_accounts
+        where tenant_id = ${tenant.id} and provider = ${provider}`;
+      await sql.end({ timeout: 5 });
+    }
+  });
 });

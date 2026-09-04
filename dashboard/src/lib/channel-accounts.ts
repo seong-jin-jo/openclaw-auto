@@ -182,9 +182,17 @@ async function promoteIfDefaultUnusable(
     WHERE tenant_id = ${input.tenantId} AND provider = ${input.provider} AND is_default = true`;
   if (current && usableAsDefault(input.provider, current.status, current.token_expires_at)) return false;
 
+  // 한 문장으로 뒤집으면 안 된다. uq_channel_accounts_one_default 는 부분 유니크 인덱스라
+  // 지연 검사가 불가능하고, 갱신은 행 물리 순서대로 즉시 검사된다. 기본이 될 행이 기존
+  // 기본계정보다 앞에 있으면 true 가 잠깐 둘이 되어 duplicate key 로 터진다.
+  // 2026-09-05 회장 계정 연결 실패가 이것이었다(운영 로그 uq_channel_accounts_one_default).
+  // 순서를 고정한다: 먼저 전부 내리고, 그 다음 이번 계정만 올린다.
   await sql`
-    UPDATE channel_accounts SET is_default = (id = ${accountId}), updated_at = now()
-    WHERE tenant_id = ${input.tenantId} AND provider = ${input.provider}`;
+    UPDATE channel_accounts SET is_default = false, updated_at = now()
+    WHERE tenant_id = ${input.tenantId} AND provider = ${input.provider} AND is_default = true`;
+  await sql`
+    UPDATE channel_accounts SET is_default = true, updated_at = now()
+    WHERE id = ${accountId}`;
   return true;
 }
 
