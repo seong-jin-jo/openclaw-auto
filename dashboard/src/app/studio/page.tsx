@@ -270,6 +270,9 @@ export default function StudioPage() {
   // 먼저 복원해 보여 주고, 실제 발행 가능 대상만 조회 완료 뒤 따로 좁힌다.
   const selectedTargets = selectedPublishTargets(includes);
   const publishTargets = selectedTargets.filter((platform) => (accountsByPlatform[platform] || []).length > 0);
+  // 일부만 성공한 뒤에는 버튼이 '다시 발행'이 아니라 '실패한 곳만'이어야 한다.
+  const publishRetryOnly = publishTargets.some((platform) => pub.status[platform] === "done")
+    && publishTargets.some((platform) => pub.status[platform] === "failed");
 
   useEffect(() => {
     const requested = resolveStudioRoomFromSearch(`?${search}`, storedRoom);
@@ -631,11 +634,23 @@ export default function StudioPage() {
       return;
     }
     const did = draftPersistence.draftId;
-    const targets = publishTargets;
+    // 2026-09-05 회장 실사용: threads 는 실제로 올라갔는데 instagram 토큰 만료로 실패해
+    // 전체가 실패로 보였고, 발행 버튼이 그대로 남아 다시 누르면 이미 올라간 채널까지
+    // 재발행 대상이 됐다. 이번 초안에서 이미 성공한 채널은 대상에서 뺀다.
+    const alreadyPublished = publishTargets.filter((platform) => pub.status[platform] === "done");
+    const targets = publishTargets.filter((platform) => pub.status[platform] !== "done");
+    if (!targets.length && alreadyPublished.length) {
+      showToast(`${alreadyPublished.map((platform) => LABEL[platform]).join(", ")} 은 이미 발행됐습니다. 다시 올리지 않았습니다.`, "success");
+      return;
+    }
     if (!targets.length) { showToast("연결된 발행 계정이 없습니다. 설정에서 채널을 먼저 연결하세요", "error"); return; }
     const status: Record<string, PubStatus> = {}; targets.forEach((p) => (status[p] = "wait"));
     const urls: Record<string, string> = {};
     const errors: Record<string, string> = {};
+    alreadyPublished.forEach((platform) => {
+      status[platform] = "done";
+      if (pub.urls[platform]) urls[platform] = pub.urls[platform];
+    });
     const errs: string[] = [];
     const pendingReconciliations: PublishReconciliationMap = {};
     setPub({ running: true, stopped: false, status: { ...status }, urls: {}, errors: {} });
@@ -710,8 +725,12 @@ export default function StudioPage() {
       }
       setPublishReconciliations({});
     }
-    if (errs.length) showToast(`발행 결과: ${errs.join(" / ")}`.slice(0, 180), "error");
-    else showToast("발행 완료", "success");
+    // 일부만 실패했을 때 성공한 곳을 같이 말한다. 종전엔 실패만 보여서 전부 실패로 읽혔다.
+    const doneNow = Object.keys(status).filter((platform) => status[platform] === "done");
+    if (errs.length) {
+      const head = doneNow.length ? `발행됨 ${doneNow.map((platform) => LABEL[platform as keyof typeof LABEL]).join(", ")} · ` : "";
+      showToast(`${head}실패 ${errs.join(" / ")}`.slice(0, 180), "error");
+    } else showToast("발행 완료", "success");
   }
   function loadDraft(d: Record<string, unknown>) {
     setIdea((d.idea as string) || ""); setText((d.text as TextVariants) || null);
@@ -1318,7 +1337,7 @@ export default function StudioPage() {
             </div>
             {text ? (
               <div className="flex flex-wrap gap-stack-tight" aria-label="발행 담당 빠른 답장">
-                <Button size="sm" onClick={publish} disabled={!accountsLoaded || publishTargets.length === 0}>지금 발행하기</Button>
+                <Button size="sm" onClick={publish} disabled={!accountsLoaded || publishTargets.length === 0 || pub.running}>{publishRetryOnly ? "실패한 곳만 다시 발행" : "지금 발행하기"}</Button>
                 <Button size="sm" onClick={() => setShowSchedule(true)}>시간은 내가 골라 줘</Button>
                 <Button size="sm" onClick={requestReview}>먼저 검토받기</Button>
               </div>

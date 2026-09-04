@@ -766,9 +766,38 @@ describe("Studio publish result integrity", () => {
     render(<StudioPage />);
     fireEvent.click(await findEnabledButton("선택한 1곳에 지금 발행"));
 
+    // 2026-09-05: 일부만 실패했을 때 성공한 채널을 같이 알린다. 종전 문구는 실패만 보여
+    // 전부 실패한 것처럼 읽혔다(회장 실사용에서 threads 는 올라갔는데 전체 오류로 보임).
     await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith(
-      "발행 결과: 발행 결과를 저장하지 못했습니다",
+      expect.stringContaining("발행 결과를 저장하지 못했습니다"),
       "error",
+    ));
+    const [[resultMessage]] = mocks.showToast.mock.calls.slice(-1);
+    expect(resultMessage).toContain("발행됨");
+    expect(mocks.apiPost.mock.calls.filter(([path]) => path === "/api/publish")).toHaveLength(1);
+  });
+
+  // 2026-09-05 회장 실사용 회귀: 발행 뒤에도 발행 버튼이 그대로 남아 다시 누르면 이미 올라간
+  // 채널까지 재발행 대상이 됐다. 성공한 채널은 두 번째 클릭에서 제외돼야 한다.
+  it("발행-중복-01 거절: 이미 성공한 채널은 다시 눌러도 재발행하지 않는다", async () => {
+    restoreStudio(["threads"]);
+    mocks.apiPost.mockImplementation(async (path: string) => {
+      if (path === "/api/studio/drafts") return { id: "draft-no-republish" };
+      if (path === "/api/publish") return { ok: true, permalink: "https://example.test/published" };
+      throw new Error(`unexpected path: ${path}`);
+    });
+
+    render(<StudioPage />);
+    fireEvent.click(await findEnabledButton("선택한 1곳에 지금 발행"));
+    await waitFor(() => expect(
+      mocks.apiPost.mock.calls.filter(([path]) => path === "/api/publish"),
+    ).toHaveLength(1));
+
+    // 발행 뒤에도 대화 패널의 발행 단추는 남는다. 회장이 다시 누른 자리가 여기다.
+    fireEvent.click(await findEnabledButton("지금 발행하기"));
+    await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith(
+      expect.stringContaining("이미 발행됐습니다"),
+      "success",
     ));
     expect(mocks.apiPost.mock.calls.filter(([path]) => path === "/api/publish")).toHaveLength(1);
   });
