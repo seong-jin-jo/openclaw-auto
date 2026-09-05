@@ -61,15 +61,24 @@ export async function POST(request: Request) {
   const cred = await getChannelCred(tenant_id, "threads");
   if (!cred) return Response.json({ ok: false, error: "threads 채널 미연결" }, { status: 400 });
   try {
-    const { updated, total } = await withTenant(tenant_id, async (sql) => {
+    const { updated, total, skipped } = await withTenant(tenant_id, async (sql) => {
       const rows = await sql<{ id: string; external_id: string }[]>`
         SELECT id, external_id FROM published_posts
         WHERE tenant_id = ${tenant_id} AND platform = 'threads' AND external_id IS NOT NULL`;
       let n = 0;
+      // 2026-09-05 회장 계정 실측: 수집 대상 1건인데 갱신 0건으로 끝나고 화면에는 아무
+      // 말이 없었다. 제공자 응답이 실패하면 여기서 조용히 건너뛰었기 때문이다. 사유를
+      // 모으면 화면이 "왜 안 모였는지"를 말할 수 있다. 토큰은 절대 남기지 않는다.
+      const skipped: string[] = [];
       for (const r of rows) {
         try {
           const resp = await fetch(`${THREADS_API}/${r.external_id}/insights?metric=views,likes,replies,reposts&access_token=${cred.token}`);
-          if (!resp.ok) continue;
+          if (!resp.ok) {
+            const detail = (await resp.text().catch(() => "")).slice(0, 200);
+            console.error("[metrics][collect-skip] threads", resp.status, detail);
+            skipped.push(`${resp.status}`);
+            continue;
+          }
           const data = (await resp.json()) as { data?: { name: string; values: { value: number }[] }[] };
           const m: Record<string, number> = {};
           for (const d of data.data ?? []) m[d.name] = d.values?.[0]?.value ?? 0;
@@ -79,12 +88,28 @@ export async function POST(request: Request) {
                 reposts = ${m.reposts ?? 0}, metrics_at = now()
             WHERE id = ${r.id}`;
           n++;
-        } catch { /* 개별 실패 skip */ }
+        } catch (error) {
+          console.error("[metrics][collect-skip] threads exception",
+            error instanceof Error ? error.message : String(error));
+          skipped.push("exception");
+        }
       }
-      return { updated: n, total: rows.length };
+      return { updated: n, total: rows.length, skipped };
     });
     markAnalyticsViewed(tenant_id);
-    return Response.json({ ok: true, updated, total });
+    // 수집 대상이 있는데 하나도 못 모았으면 그것을 성공으로 말하지 않는다.
+    const collectionBlocked = total > 0 && updated === 0;
+    return Response.json({
+      ok: true,
+      updated,
+      total,
+      ...(collectionBlocked ? {
+        collectionBlocked: true,
+        reason: skipped.includes("exception")
+          ? "성과 조회 중 오류가 났습니다. 잠시 후 다시 시도해 주세요."
+          : `채널이 성과 조회를 거절했습니다(응답 ${skipped[0] ?? "알 수 없음"}). 채널을 다시 연결한 뒤 시도해 주세요.`,
+      } : {}),
+    });
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 });
   }

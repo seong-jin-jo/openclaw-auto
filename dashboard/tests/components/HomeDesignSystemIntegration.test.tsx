@@ -384,4 +384,24 @@ describe("Home design-system migration interactions", () => {
       "error",
     ));
   });
+
+  // 2026-09-05 회장 계정 실측 회귀: 수집 대상 1건인데 갱신 0건으로 끝나고 화면은 아무 말이
+  // 없었다. 눌렀는데 숫자가 그대로인 이유를 사용자가 알 수 없다.
+  it("V68-PERF-04 거절: 모을 대상이 있는데 하나도 못 모으면 이유를 알린다", async () => {
+    mocks.showToast.mockClear();
+    mocks.apiPost.mockImplementation(async (path: string) => {
+      if (String(path).includes("/api/metrics")) {
+        return { ok: true, updated: 0, total: 1, collectionBlocked: true, reason: "채널이 성과 조회를 거절했습니다(응답 403). 채널을 다시 연결한 뒤 시도해 주세요." };
+      }
+      return {};
+    });
+    render(<PerformanceDashboard dedicatedRoom />);
+
+    fireEvent.click(screen.getByRole("button", { name: "성과 다시 수집하기" }));
+
+    await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith(
+      expect.stringContaining("성과 조회를 거절"),
+      "error",
+    ));
+  });
 });

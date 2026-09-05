@@ -66,8 +66,14 @@ export function PerformanceDashboard({ dedicatedRoom = false }: { dedicatedRoom?
     if (!activeWorkspace || collecting) return;
     setCollecting(true);
     try {
-      await apiPost("/api/metrics", { tenant_id: activeWorkspace.id });
+      const r = await apiPost<{ updated?: number; total?: number; collectionBlocked?: boolean; reason?: string }>(
+        "/api/metrics", { tenant_id: activeWorkspace.id },
+      );
       await mutateMetrics();
+      // 대상이 있는데 하나도 못 모았으면 조용히 끝내지 않는다. 사용자는 눌렀는데 숫자가
+      // 그대로인 이유를 알 수 없었다(2026-09-05 회장 계정 실측: 대상 1건·갱신 0건·무반응).
+      if (r?.collectionBlocked) showToast(r.reason || "성과를 모으지 못했습니다. 채널 연결을 확인해 주세요.", "error");
+      else if (r?.updated) showToast(`성과 ${r.updated}건을 새로 모았습니다.`, "success");
     } catch {
       showToast("성과를 다시 수집하지 못했습니다. 채널 연결 상태를 확인한 뒤 다시 눌러 주세요.", "error");
     } finally {
