@@ -70,6 +70,12 @@ interface AccountOption {
   displayName?: string;
   username?: string;
   is_default: boolean;
+  /**
+   * 서버가 이미 판정해 내려 주는 값이다. "reconnect" 는 토큰이 만료·해지돼 이 계정으로는
+   * 못 올린다는 뜻이다. 종전에는 이 값을 버려서, 인스타그램 토큰이 해지된 상태인데도
+   * 발행 대상에 그대로 들어갔고 누를 때마다 실패했다(2026-09-05 운영 로그 token_revoked).
+   */
+  connectionState: "connected" | "reconnect";
 }
 interface FirstCommentCapability { platform: PreviewPlatform; supported: boolean; reason: string | null }
 
@@ -269,7 +275,11 @@ export default function StudioPage() {
   // 복원한 작업물의 선택 상태는 계정 조회와 별개다. 계정 조회가 느려도 본문과 선택 채널은
   // 먼저 복원해 보여 주고, 실제 발행 가능 대상만 조회 완료 뒤 따로 좁힌다.
   const selectedTargets = selectedPublishTargets(includes);
-  const publishTargets = selectedTargets.filter((platform) => (accountsByPlatform[platform] || []).length > 0);
+  const usableAccounts = (platform: PreviewPlatform) => (accountsByPlatform[platform] || []).filter((account) => account.connectionState === "connected");
+  const publishTargets = selectedTargets.filter((platform) => usableAccounts(platform).length > 0);
+  // 다시 연결해야 올릴 수 있는 채널. Buffer 도 끊긴 채널을 목록 위로 올려 재연결을 먼저 시킨다.
+  const reconnectTargets = selectedTargets.filter((platform) =>
+    (accountsByPlatform[platform] || []).length > 0 && usableAccounts(platform).length === 0);
   // 일부만 성공한 뒤에는 버튼이 '다시 발행'이 아니라 '실패한 곳만'이어야 한다.
   const publishRetryOnly = publishTargets.some((platform) => pub.status[platform] === "done")
     && publishTargets.some((platform) => pub.status[platform] === "failed");
@@ -297,12 +307,13 @@ export default function StudioPage() {
             const r = await fetch(`/api/channels/${p}/accounts?tenant_id=${activeWorkspace.id}`, { headers: authHeaders() });
             const d = await r.json();
             if (!r.ok) return [p, [] as AccountOption[], true] as const;
-            const opts: AccountOption[] = (d.accounts ?? []).map((a: { id: string; display_name: string | null; username: string | null; is_default: boolean }) => ({
+            const opts: AccountOption[] = (d.accounts ?? []).map((a: { id: string; display_name: string | null; username: string | null; is_default: boolean; connection_state?: string }) => ({
               id: a.id,
               label: a.display_name || (a.username ? `@${a.username}` : a.id.slice(0, 8)),
               displayName: a.display_name || undefined,
               username: a.username || undefined,
               is_default: a.is_default,
+              connectionState: a.connection_state === "reconnect" ? "reconnect" : "connected",
             }));
             return [p, opts, false] as const;
           } catch {
@@ -615,7 +626,12 @@ export default function StudioPage() {
   }
 
   async function publish() {
-    if (!text) return;
+    // 2026-09-05 회장 계정 실측: 발행 단추를 눌렀는데 요청도 안 나가고 알림도 없었다.
+    // 여기서 아무 말 없이 돌아섰기 때문이다. 조용한 반환은 고장으로 읽힌다. 이유를 말한다.
+    if (!text) {
+      showToast("발행할 본문이 없습니다. 생성실이나 작업물 전체에서 올릴 작업물을 먼저 가져와 주세요.", "error");
+      return;
+    }
     if (!activeWorkspace) { showToast("워크스페이스를 선택하세요", "error"); return; }
     if (Object.keys(publishReconciliations).length > 0) {
       showToast("외부 게시가 이미 완료된 항목입니다. 재발행하지 말고 내부 기록을 먼저 복구하세요.", "error");
@@ -1217,7 +1233,13 @@ export default function StudioPage() {
               <b className="mr-auto min-w-0 truncate text-body text-text">{idea || "현재 작업물"}</b>
               <Button onClick={saveDraftWithNotice}>임시 저장하기</Button>
               <Button onClick={requestReview} disabled={reviewBusy}>{reviewBusy ? "보내는 중" : "검토 요청하기"}</Button>
-              <Button variant="primary" onClick={publish} disabled={pub.running || !accountsLoaded || publishTargets.length === 0}>선택한 {selectedTargets.length}곳에 지금 발행</Button>
+              {/*
+                계정을 아직 못 불러온 동안에는 고른 수를 그대로 보여 준다. 그때는 몇 곳에
+                올릴 수 있는지 알 수 없고, 0곳이라고 쓰면 없는 사실을 말하는 것이 된다.
+                다 불러온 뒤에는 실제로 올라갈 수만 센다. 고른 수를 그대로 쓰면 연결이
+                끊긴 채널까지 세어 "2곳에 발행"이라 해 놓고 아무 데도 안 올라간다.
+              */}
+              <Button variant="primary" onClick={publish} disabled={pub.running || !accountsLoaded || publishTargets.length === 0}>선택한 {accountsLoaded ? publishTargets.length : selectedTargets.length}곳에 지금 발행{accountsLoaded && selectedTargets.length > publishTargets.length ? ` (올릴 수 없는 ${selectedTargets.length - publishTargets.length}곳 제외)` : ""}</Button>
               {activeWorkspace ? <Button variant={showSchedule ? "primary" : "secondary"} onClick={() => setShowSchedule((value) => !value)}>예약 발행</Button> : null}
               </div>
               {/* 단추 이름만으로는 무엇이 일어나는지 안 갈린다. 넷이 어떻게 다른지 한 줄로 적는다.
@@ -1363,6 +1385,30 @@ export default function StudioPage() {
                 해시태그는 X {HASHTAG_BUDGET.x}개, 인스타그램 {HASHTAG_BUDGET.instagram}개, Threads {HASHTAG_BUDGET.threads}개로 자동으로 갈립니다.
                 본문 한도는 X {CHANNEL_TEXT_LIMITS.x}자, Threads {CHANNEL_TEXT_LIMITS.threads}자입니다.
               </p>
+              {/*
+                끊긴 채널을 먼저, 아직 연결 안 한 채널을 그다음에 보여 준다. Buffer 도 연결이
+                풀린 채널을 목록 맨 위로 올리고 다시 연결을 먼저 시킨다
+                (support.buffer.com 채널 새로 고침 문서). 둘은 사용자가 할 일이 다르다.
+                끊긴 곳은 다시 연결, 안 한 곳은 처음 연결이다.
+              */}
+              {reconnectTargets.length ? (
+                <p className="break-keep rounded-control border border-warning bg-warning-soft p-stack text-caption text-warning" role="alert" data-reconnect-notice>
+                  연결이 만료되었거나 해제된 곳이 있습니다. 다시 연결하기 전에는 발행 대상에서 빠집니다.
+                  <span className="mt-stack-tight flex flex-wrap gap-stack-tight">
+                    {reconnectTargets.map((platform) => (
+                      <Link
+                        key={`reconnect-${platform}`}
+                        href={`/channels/${platform}`}
+                        data-testid={`publish-reconnect-link-${platform}`}
+                        title={`${LABEL[platform]} 연결 화면으로 갑니다. 다시 연결한 뒤 발행하세요`}
+                        className="inline-flex min-h-control-touch items-center rounded-control border border-warning bg-surface px-stack-tight text-caption font-semibold text-warning hover:bg-surface-2"
+                      >
+                        {LABEL[platform]} 다시 연결하기
+                      </Link>
+                    ))}
+                  </span>
+                </p>
+              ) : null}
               {connectedTargets.length < bulkTargets.length ? (
                 <p className="break-keep text-caption text-warning">
                   아직 연결 안 된 곳: {bulkTargets.filter((platform) => !connectedTargets.includes(platform)).map((platform) => LABEL[platform]).join(", ")}. 각 칸의 계정 연결하기로 갑니다.

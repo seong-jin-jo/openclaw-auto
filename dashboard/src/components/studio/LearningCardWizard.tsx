@@ -6,7 +6,7 @@ import { Button } from "@/components/shared/Button";
 import { workspaceDisplayName } from "@/lib/workspace-display-name";
 import {
   AUDIENCE_CARDS, FORBIDDEN_CARDS, INDUSTRY_CARDS, PALETTE_CARDS, PURPOSE_CARDS,
-  RIGHTS_CARDS, VOICE_CARDS, learningToBrandAnswers, readLearningInfo, writeLearningInfo,
+  RIGHTS_CARDS, VOICE_CARDS, cardValue, isCardChosen, learningToBrandAnswers, readLearningInfo, writeLearningInfo,
   type LearningCard, type LearningInfo, type LearningSlotKey,
 } from "./learning-info";
 
@@ -81,9 +81,9 @@ export function LearningCardWizard({ workspaceId, workspaceName, onSaved, onClos
 
   const pickForMe = () => {
     if (!step?.allowRecommendation) return;
-    const industryIndex = INDUSTRY_CARDS.findIndex((card) => card.sample === info.industry);
+    const industryIndex = INDUSTRY_CARDS.findIndex((card) => isCardChosen(card, info.industry));
     const seed = industryIndex >= 0 ? industryIndex : 0;
-    advance(step.cards[seed % step.cards.length].sample);
+    advance(cardValue(step.cards[seed % step.cards.length]));
   };
 
   return (
@@ -118,9 +118,9 @@ export function LearningCardWizard({ workspaceId, workspaceName, onSaved, onClos
             <p className="mt-stack-tight break-keep text-body-sm text-muted">{step.helper}</p>
             <div className="mt-stack grid gap-stack-tight sm:grid-cols-2" aria-label={`${step.question} 선택 카드`}>
               {step.cards.map((card) => {
-                const chosen = info[step.key] === card.sample;
+                const chosen = isCardChosen(card, info[step.key]);
                 return (
-                  <button key={card.id} type="button" data-learning-card={card.id} aria-pressed={chosen} onClick={() => advance(card.sample)} className={`min-h-control-touch rounded-surface border p-stack text-left ${chosen ? "border-accent bg-accent-soft" : "border-border bg-surface-2 hover:bg-surface"}`}>
+                  <button key={card.id} type="button" data-learning-card={card.id} aria-pressed={chosen} onClick={() => advance(cardValue(card))} className={`min-h-control-touch rounded-surface border p-stack text-left ${chosen ? "border-accent bg-accent-soft" : "border-border bg-surface-2 hover:bg-surface"}`}>
                     <b className="block text-body-sm text-text">{card.title}</b>
                     <span className="mt-micro block break-keep text-caption text-muted">{card.sample}</span>
                   </button>

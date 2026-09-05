@@ -101,9 +101,13 @@ describe("V68 생성실 계약", () => {
     const { container } = render(<CreateRoom {...props} topic="" onQuickDraftGenerate={onQuickDraftGenerate} />);
 
     const workspace = container.querySelector("[data-create-workspace]") as HTMLElement;
+    // 2026-09-05 계약 변경: 못 만드는 상태에서도 단추는 눌린다. 조용히 비활성이면
+    // 회장 실사용처럼 "눌러도 아무 일이 없다"로 읽힌다. 대신 무엇이 없는지 말하고
+    // 생성은 시작하지 않는다.
     const directGenerate = within(workspace).getByRole("button", { name: "초안 만들기" });
-    expect(directGenerate).toBeDisabled();
+    expect(directGenerate).toBeEnabled();
     fireEvent.click(directGenerate);
+    expect(screen.getByRole("alert")).toHaveTextContent("초안 주제를 먼저 적어 주세요");
     expect(screen.queryByRole("button", { name: /구조 초안 선택/ })).toBeNull();
     expect(onQuickDraftGenerate).not.toHaveBeenCalled();
   });

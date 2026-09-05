@@ -240,6 +240,8 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
   const [alsoQuote, setAlsoQuote] = useState<StudioDerivationQuote | null>(null);
   const [alsoBatch, setAlsoBatch] = useState<StudioDerivationBatch | null>(null);
   const [alsoBusy, setAlsoBusy] = useState(false);
+  // 초안을 못 만드는 이유를 단추 옆에서 말한다(조용한 비활성 금지).
+  const [quickBlockReason, setQuickBlockReason] = useState<string | null>(null);
   const generationInFlight = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const facts = useMemo(() => guide.trim() ? [guide.trim()] : [], [guide]);
@@ -546,14 +548,36 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
             ) : (
               <p className="text-caption text-subtle">아래 A, B, C 중 하나를 골라 생성 구조를 정해 주세요.</p>
             )}
+            {/*
+              2026-09-05 회장 계정 실측: 이 단추를 눌렀는데 화면이 한 글자도 안 바뀌었다.
+              구조를 안 골랐다는 이유로 조용히 비활성이었기 때문이다. 못 누르는 단추는
+              고장으로 읽힌다. 눌리게 두고, 무엇이 없어서 못 만드는지 그 자리에서 말한다.
+            */}
             <Button
               variant="primary"
               className="w-full min-w-0"
-              onClick={() => quickStructure && onQuickDraftGenerate?.(quickStructure)}
-              disabled={quickDraftLoading || !workspaceId || !topic.trim() || !quickStructure || !onQuickDraftGenerate}
+              onClick={() => {
+                const missing = !workspaceId
+                  ? "작업 공간을 먼저 고르세요."
+                  : !topic.trim()
+                    ? "초안 주제를 먼저 적어 주세요."
+                    : !quickStructure
+                      ? "아래 A, B, C 중 하나를 골라 구조를 정해 주세요."
+                      : null;
+                if (missing) {
+                  setQuickBlockReason(missing);
+                  if (!topic.trim()) document.getElementById("studio-quick-topic")?.focus();
+                  else if (!quickStructure) document.querySelector("[data-quick-structure-picker]")?.scrollIntoView({ block: "center" });
+                  return;
+                }
+                setQuickBlockReason(null);
+                if (quickStructure) onQuickDraftGenerate?.(quickStructure);
+              }}
+              disabled={quickDraftLoading}
             >
               {quickDraftLoading ? "초안 만드는 중" : "초안 만들기"}
             </Button>
+            {quickBlockReason ? <p role="alert" className="text-caption text-danger">{quickBlockReason}</p> : null}
             {quickDraftError ? <p role="alert" className="text-caption text-danger">{quickDraftError}</p> : null}
           </section>
           <section className="grid gap-stack sm:grid-cols-3" aria-label="생성실 요약">
@@ -566,7 +590,7 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
               <h2 id="create-display-title" className="text-subheading font-bold text-text">{selectedCandidate ? "선택한 구조 초안" : candidates.length ? "구조 초안 세 개" : kindHeading}</h2>
               <span className="text-caption text-subtle">카드를 눌러 구조를 선택하세요</span>
             </div>
-            <div className="grid gap-stack md:grid-cols-3" data-create-candidate-deck>
+            <div className="grid gap-stack md:grid-cols-3" data-create-candidate-deck data-quick-structure-picker>
               {displayCandidates.filter((candidate) => !selectedCandidate || candidate.label === selectedCandidate.label).map((candidate) => {
                 const outline = "format" in candidate ? candidate.format.outline : candidate.outline;
                 return (

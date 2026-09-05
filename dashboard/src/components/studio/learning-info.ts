@@ -167,6 +167,25 @@ export function missingLearningSlots(info: LearningInfo): LearningSlot[] {
   return LEARNING_SLOTS.filter((slot) => !(info[slot.key] || "").trim());
 }
 
+/**
+ * 고른 카드가 저장소에 남길 값.
+ *
+ * 2026-09-05 회장 계정 실측: 저장된 값이 `audience: "뭐부터 해야 할지 모르겠다면..."`,
+ * `voice: "이거 모르면 손해예요. 진짜로요."` 였다. 카드의 견본 문장만 저장했기 때문이다.
+ * 그 값이 그대로 생성 입력의 `target`(주요 고객)과 `tone`(말투)으로 들어가면,
+ * 모델은 "처음 해 보는 사람"이 아니라 저 카피 한 줄을 고객으로 읽는다.
+ * 이름과 견본을 함께 남겨 무엇을 고른 것인지와 그 결이 둘 다 전달되게 한다.
+ */
+export function cardValue(card: LearningCard): string {
+  return `${card.title}. 예: ${card.sample}`;
+}
+
+/** 저장값이 이 카드인가. 견본만 저장하던 시절의 값도 같은 카드로 인정한다. */
+export function isCardChosen(card: LearningCard, stored: string | undefined): boolean {
+  if (!stored) return false;
+  return stored === cardValue(card) || stored === card.sample;
+}
+
 export function cardById(cards: readonly LearningCard[], id: string | undefined): LearningCard | null {
   return cards.find((card) => card.id === id) ?? null;
 }
