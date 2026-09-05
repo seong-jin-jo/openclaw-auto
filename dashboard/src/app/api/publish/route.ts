@@ -513,13 +513,9 @@ export async function POST(request: Request) {
             externalId: existing.external_id ?? undefined,
             permalink,
           });
-          if (!queueRecorded) {
-            return partialPersistenceFailure(existingResult, {
-              stage: "queue_record",
-              draftId: draft_id,
-              platform,
-              accountId: cred.accountId,
-            });
+          // 위와 같은 이유로 큐에 없는 것은 실패가 아니다.
+          if (queueRecorded === "absent") {
+            console.info("[publish] queue_record_absent(dedupe)", platform, "승인 큐를 거치지 않은 직접 발행");
           }
         } catch {
           return partialPersistenceFailure(existingResult, {
@@ -669,14 +665,11 @@ export async function POST(request: Request) {
         externalId: result.externalId,
         permalink: result.permalink,
       });
-      if (!queueRecorded) {
-        console.error("[publish][persist-fail] queue_record_not_found", platform, "draft not in approval queue");
-        return partialPersistenceFailure(result, {
-          stage: "queue_record",
-          draftId: draft_id,
-          platform,
-          accountId: cred.accountId,
-        });
+      // 큐에 없는 것은 실패가 아니다. 스튜디오에서 바로 발행하면 승인 큐를 거치지 않으므로
+      // 없는 것이 정상이다. 종전에는 이것을 내부 기록 실패로 보고 사용자에게 복구를
+      // 요구하며 재발행을 막았다(2026-09-05 회장 계정 실측). 갱신 실패는 예외로 잡힌다.
+      if (queueRecorded === "absent") {
+        console.info("[publish] queue_record_absent", platform, "승인 큐를 거치지 않은 직접 발행");
       }
     } catch (error) {
       console.error("[publish][persist-fail] queue_record", platform,

@@ -20,6 +20,7 @@ const H = vi.hoisted(() => ({
   publicationRecordError: null as Error | null,
   markQueuePublishedCalls: [] as unknown[][],
   queueRecordError: null as Error | null,
+  queueOutcome: "updated" as "updated" | "absent",
   instagramPermalink: "https://www.instagram.com/p/recovered/",
   reservationClaimed: false,
   reservation: null as null | { tenant: unknown; draft: unknown; platform: unknown; text: unknown; accountId: unknown },
@@ -117,7 +118,7 @@ vi.mock("@/lib/queue-store", () => ({
   markQueuePublished: vi.fn(async (...args: unknown[]) => {
     H.markQueuePublishedCalls.push(args);
     if (H.queueRecordError) throw H.queueRecordError;
-    return true;
+    return H.queueOutcome;
   }),
 }));
 
@@ -164,6 +165,7 @@ beforeEach(() => {
   H.existingPublication = null;
   H.publicationRecordError = null;
   H.markQueuePublishedCalls = [];
+  H.queueOutcome = "updated";
   H.queueRecordError = null;
   H.instagramPermalink = "https://www.instagram.com/p/recovered/";
   H.reservationClaimed = false;
@@ -520,6 +522,36 @@ describe("/api/publish — 실패/기록 분기", () => {
       },
     });
     expect(JSON.stringify(body)).not.toContain("db down");
+  });
+
+  // 2026-09-05 회장 계정 실측 회귀. 스튜디오에서 바로 발행한 글이 실제로 올라가고 발행
+  // 기록도 남았는데 화면에는 "내부 기록 실패"가 떴다. 승인 큐에 그 초안이 없다는 이유였다.
+  // 직접 발행은 승인 큐를 거치지 않으므로 없는 것이 정상이고, 실패로 다루면 안 된다.
+  it("승인 큐에 없는 초안의 발행 → 실패가 아니라 정상으로 닫는다", async () => {
+    H.cred = {
+      token: "tok",
+      userId: "u-1",
+      accountId: "11111111-1111-4111-8111-111111111111",
+    };
+    H.queueOutcome = "absent";
+    installFetch([
+      { match: "me?fields=id", json: { id: "live-id" } },
+      { match: "fields=status", json: { status: "FINISHED" } },
+      { match: "/threads_publish", json: { id: "media-absent-1" } },
+      { match: "/threads", json: { id: "container-absent-1" } },
+      { match: "fields=permalink", json: { permalink: "https://www.threads.net/@u/post/absent-1" } },
+    ]);
+    const draftId = "23730d99-a268-47de-9cf9-90157ea1fa79";
+    const { status, body } = await callPublish({
+      platform: "threads",
+      text: "hi",
+      draft_id: draftId,
+      account_id: "11111111-1111-4111-8111-111111111111",
+    });
+
+    expect(status).toBe(200);
+    expect(body).toMatchObject({ ok: true, externalId: "media-absent-1" });
+    expect(body).not.toHaveProperty("persistence");
   });
 
   it("외부 발행·publication 기록 성공 뒤 queue 기록 실패 → 500 partial failure + 외부 식별자 보존", async () => {
