@@ -75,8 +75,14 @@ export async function POST(request: Request) {
           const resp = await fetch(`${THREADS_API}/${r.external_id}/insights?metric=views,likes,replies,reposts&access_token=${cred.token}`);
           if (!resp.ok) {
             const detail = (await resp.text().catch(() => "")).slice(0, 200);
-            console.error("[metrics][collect-skip] threads", resp.status, detail);
-            skipped.push(`${resp.status}`);
+            // 성과 조회가 막혔을 때 원인이 둘로 갈린다. 게시물을 못 찾는 것과 권한이 없는
+            // 것이다. 제공자 문구만으로는 구분되지 않아("does not exist, cannot be loaded
+            // due to missing permissions, or does not support this operation") 기본 조회를
+            // 한 번 더 해 본다. 기본 조회가 되면 게시물은 있고 성과 권한만 없는 것이다.
+            const basic = await fetch(`${THREADS_API}/${r.external_id}?fields=id&access_token=${cred.token}`)
+              .then((res) => res.status).catch(() => 0);
+            console.error("[metrics][collect-skip] threads insights", resp.status, "basic", basic, detail);
+            skipped.push(basic === 200 ? "insights_forbidden" : `${resp.status}`);
             continue;
           }
           const data = (await resp.json()) as { data?: { name: string; values: { value: number }[] }[] };
@@ -107,7 +113,9 @@ export async function POST(request: Request) {
         collectionBlocked: true,
         reason: skipped.includes("exception")
           ? "성과 조회 중 오류가 났습니다. 잠시 후 다시 시도해 주세요."
-          : `채널이 성과 조회를 거절했습니다(응답 ${skipped[0] ?? "알 수 없음"}). 채널을 다시 연결한 뒤 시도해 주세요.`,
+          : skipped.includes("insights_forbidden")
+            ? "게시물은 확인되는데 성과 조회 권한이 없습니다. 채널을 다시 연결해 성과 조회 권한을 허용해 주세요."
+            : `채널이 성과 조회를 거절했습니다(응답 ${skipped[0] ?? "알 수 없음"}). 채널을 다시 연결한 뒤 시도해 주세요.`,
       } : {}),
     });
   } catch (e) {
