@@ -81,7 +81,17 @@ export async function POST(request: Request) {
             // 한 번 더 해 본다. 기본 조회가 되면 게시물은 있고 성과 권한만 없는 것이다.
             const basic = await fetch(`${THREADS_API}/${r.external_id}?fields=id&access_token=${cred.token}`)
               .then((res) => res.status).catch(() => 0);
-            console.error("[metrics][collect-skip] threads insights", resp.status, "basic", basic, detail);
+            // 저장한 식별자가 이 계정의 게시물 목록에 있는지 본다. 없으면 우리가 잘못된
+            // 식별자를 저장한 것이고, 있으면 조회 권한 문제다. 이 구분이 있어야 다음
+            // 조치가 갈린다(우리 데이터 교정 대 채널 재연결).
+            const own = await fetch(`${THREADS_API}/me/threads?fields=id&limit=25&access_token=${cred.token}`)
+              .then(async (res) => res.ok
+                ? { status: res.status, ids: ((await res.json()) as { data?: { id: string }[] }).data?.map((x) => x.id) ?? [] }
+                : { status: res.status, ids: [] as string[] })
+              .catch(() => ({ status: 0, ids: [] as string[] }));
+            console.error("[metrics][collect-skip] threads insights", resp.status, "basic", basic,
+              "ownList", own.status, "ownCount", own.ids.length,
+              "idInOwnList", own.ids.includes(r.external_id), detail);
             skipped.push(basic === 200 ? "insights_forbidden" : `${resp.status}`);
             continue;
           }
