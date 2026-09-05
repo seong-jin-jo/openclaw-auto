@@ -452,6 +452,13 @@ export default function StudioPage() {
     try {
       const result = await genText(structure);
       if (result) {
+        // 2026-09-05 회장 계정 실측: 새 초안을 만들어도 이전 초안 번호를 그대로 들고 가서,
+        // 그 번호가 이미 발행된 것이면 발행이 매번 "이미 올라갔습니다"로 닫혔다. 스튜디오에서
+        // 두 번째 글을 영영 못 올리는 상태였다. 새로 만든 것은 새 작업물이므로 이전 번호와
+        // 발행 흔적을 끊는다. 끊지 않으면 새 글이 옛 글의 발행 기록에 덮어써진다.
+        setDraftId(null);
+        setPub({ running: false, stopped: false, status: {}, urls: {}, errors: {} });
+        setPublishReconciliations({});
         const nextKind = createPrimaryKind ?? "text";
         const nextLines = nextKind === "video"
           ? [result.shorts?.hook, result.shorts?.body, result.shorts?.cta].filter((line): line is string => Boolean(line))

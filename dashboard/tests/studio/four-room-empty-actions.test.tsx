@@ -160,6 +160,32 @@ describe("V77-CREATE-NETWORK 생성 담당 구조 선택 계약", () => {
     expect(screen.getByLabelText("생성 담당 대화창")).toBeInTheDocument();
   });
 
+  // 2026-09-05 회장 계정 실측 회귀: 새 초안을 만들어도 이전 초안 번호를 그대로 들고 가서,
+  // 그 번호가 이미 발행된 것이면 발행이 매번 "이미 올라갔습니다"로 닫혔다. 스튜디오에서
+  // 두 번째 글을 영영 못 올리는 상태였다. 새로 만든 것은 새 작업물이어야 한다.
+  it("V77-CREATE-NETWORK-03 정상: 새 초안을 만들면 이전 초안 번호를 끊는다", async () => {
+    mocks.room = "create";
+    window.history.replaceState(null, "", "/studio?room=create");
+    localStorage.setItem("studio_work:tenant-empty", JSON.stringify({ draftId: "old-draft-id", text: null }));
+    mocks.apiPost.mockImplementation(async (path: string) => {
+      if (path === "/api/studio/text") {
+        return { ok: true, shorts: { hook: "새 초안 본문", body: "본문", cta: "마무리" } };
+      }
+      return { ok: true };
+    });
+
+    render(<StudioPage />);
+    await answerStudioQuestionnaire("새 주제");
+    fireEvent.click(screen.getByRole("button", { name: "구조 초안 3개 보기" }));
+    fireEvent.click(await screen.findByRole("button", { name: "A 구조 초안 선택" }));
+
+    await waitFor(() => expect(document.querySelector("[data-quick-draft-result]")).toBeTruthy());
+    await waitFor(() => {
+      const saved = JSON.parse(localStorage.getItem("studio_work:tenant-empty") || "{}");
+      expect(saved.draftId ?? null).toBeNull();
+    });
+  });
+
   it("V77-CREATE-NETWORK-02 거절: 주제가 비어 있으면 구조 선택과 text API 호출로 진행하지 않는다", async () => {
     mocks.room = "create";
     window.history.replaceState(null, "", "/studio?room=create");
