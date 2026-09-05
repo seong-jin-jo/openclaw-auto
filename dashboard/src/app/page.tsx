@@ -14,10 +14,12 @@ import { RoomHeader } from "@/components/shared/RoomHeader";
 import { LearningStatus } from "@/components/studio/LearningStatus";
 import { countFilledLearningSlots, readLearningInfo, type LearningInfo } from "@/components/studio/learning-info";
 import { Button } from "@/components/shared/Button";
+import { useToast } from "@/components/layout/Toast";
 import Link from "next/link";
 
 export function PerformanceDashboard({ dedicatedRoom = false }: { dedicatedRoom?: boolean }) {
   const { dismissedOnboarding, dismissOnboarding, activeWorkspace } = useUIStore();
+  const { showToast } = useToast();
   const { data: overview } = useOverview();
   const { data: usageData } = useUsage(activeWorkspace?.id);
   const { data: channelConfig } = useChannelConfig();
@@ -57,11 +59,20 @@ export function PerformanceDashboard({ dedicatedRoom = false }: { dedicatedRoom?
   const posts = metricsData?.posts || [];
   const publishedPosts = posts.filter((p) => p.status === "published");
   const homeSummary = (o.summary || {}) as Record<string, number | null>;
+  // 2026-09-05: 실패해도 아무 말이 없었다. catch 가 없어 예외가 그대로 새고 화면은
+  // "성과 수집 중"에서 원래대로 돌아갈 뿐이라, 눌러도 아무 일이 없는 것으로 읽힌다.
+  // 생성실·발행실에서 고친 것과 같은 결함이다. 결과를 성공이든 실패든 말한다.
   const collectMetrics = async () => {
     if (!activeWorkspace || collecting) return;
     setCollecting(true);
-    try { await apiPost("/api/metrics", { tenant_id: activeWorkspace.id }); await mutateMetrics(); }
-    finally { setCollecting(false); }
+    try {
+      await apiPost("/api/metrics", { tenant_id: activeWorkspace.id });
+      await mutateMetrics();
+    } catch {
+      showToast("성과를 다시 수집하지 못했습니다. 채널 연결 상태를 확인한 뒤 다시 눌러 주세요.", "error");
+    } finally {
+      setCollecting(false);
+    }
   };
 
   return (

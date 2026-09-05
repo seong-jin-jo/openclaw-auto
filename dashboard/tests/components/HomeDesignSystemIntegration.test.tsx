@@ -7,6 +7,7 @@ import HomePage, { PerformanceDashboard } from "@/app/page";
 
 const mocks = vi.hoisted(() => ({
   apiPost: vi.fn(),
+  showToast: vi.fn(),
   fetcher: vi.fn(),
   mutateMetrics: vi.fn(),
   posts: [] as Array<Record<string, unknown>>,
@@ -34,6 +35,10 @@ vi.mock("@/lib/api", () => ({
   fetcher: (...args: unknown[]) => mocks.fetcher(...args),
   apiPost: (...args: unknown[]) => mocks.apiPost(...args),
   ApiResponseError: class ApiResponseError extends Error {},
+}));
+
+vi.mock("@/components/layout/Toast", () => ({
+  useToast: () => ({ showToast: mocks.showToast }),
 }));
 
 vi.mock("@/components/studio/PlatformPreview", () => ({
@@ -360,5 +365,23 @@ describe("Home design-system migration interactions", () => {
     expect(await screen.findByText(/자동 삭제는 아직 없습니다/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /삭제/ })).not.toBeInTheDocument();
     expect(mocks.apiPost.mock.calls.some(([path]) => String(path).includes("delete"))).toBe(false);
+  });
+
+  // 2026-09-05: 성과 다시 수집이 실패해도 아무 말이 없었다. catch 가 없어 예외가 그대로
+  // 새고 화면은 원래대로 돌아갈 뿐이라 눌러도 아무 일이 없는 것으로 읽혔다.
+  it("V68-PERF-03 거절: 성과 재수집이 실패하면 조용히 넘기지 않고 사용자에게 알린다", async () => {
+    mocks.showToast.mockClear();
+    mocks.apiPost.mockImplementation(async (path: string) => {
+      if (String(path).includes("/api/metrics")) throw new Error("수집 실패");
+      return {};
+    });
+    render(<PerformanceDashboard dedicatedRoom />);
+
+    fireEvent.click(screen.getByRole("button", { name: "성과 다시 수집하기" }));
+
+    await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith(
+      expect.stringContaining("성과를 다시 수집하지 못했습니다"),
+      "error",
+    ));
   });
 });
