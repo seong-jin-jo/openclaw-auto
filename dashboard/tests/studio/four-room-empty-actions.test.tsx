@@ -148,6 +148,8 @@ describe("V77-CREATE-NETWORK 생성 담당 구조 선택 계약", () => {
     fireEvent.click(screen.getByRole("button", { name: "구조 초안 3개 보기" }));
     fireEvent.click(await screen.findByRole("button", { name: "A 구조 초안 선택" }));
 
+    // 2026-09-06: 생성 호출에 중단 신호를 넘길 수 있게 되면서 인자가 하나 늘었다.
+    // 본문 계약은 그대로이므로 세 번째 인자는 있으면 있는 대로 받는다.
     await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith(
       "/api/studio/text",
       expect.objectContaining({
@@ -155,6 +157,7 @@ describe("V77-CREATE-NETWORK 생성 담당 구조 선택 계약", () => {
         tenant_id: "tenant-empty",
         structure: expect.objectContaining({ label: "A", title: "A 구조" }),
       }),
+      expect.anything(),
     ));
     await waitFor(() => expect(document.querySelector("[data-quick-draft-result]")).toHaveTextContent("네트워크 요청으로 생성된 영상 후보입니다."));
     expect(screen.getByLabelText("생성 담당 대화창")).toBeInTheDocument();
@@ -199,5 +202,23 @@ describe("V77-CREATE-NETWORK 생성 담당 구조 선택 계약", () => {
     expect(screen.getByRole("button", { name: "이 주제로 계속" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: /구조 초안 선택/ })).toBeNull();
     expect(mocks.apiPost).not.toHaveBeenCalledWith("/api/studio/text", expect.anything());
+  });
+
+  // 2026-09-06 회장 스모크 회귀: 세 방 어디에도 지금 작업물을 버리고 새로 시작하는 길이
+  // 없었다. 이미 발행한 작업물이 남으면 발행까지 중복으로 막힌다.
+  it("V78-RESET-01 정상: 새로 시작을 누르면 확인 뒤 작업물과 초안 번호를 비운다", async () => {
+    mocks.room = "create";
+    window.history.replaceState(null, "", "/studio?room=create");
+    localStorage.setItem("studio_work:tenant-empty", JSON.stringify({ draftId: "keep-me", idea: "옛 주제" }));
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    render(<StudioPage />);
+    fireEvent.click(await screen.findByTestId("studio-discard-work"));
+
+    await waitFor(() => {
+      const saved = JSON.parse(localStorage.getItem("studio_work:tenant-empty") || "{}");
+      expect(saved.draftId ?? null).toBeNull();
+    });
+    confirmSpy.mockRestore();
   });
 });

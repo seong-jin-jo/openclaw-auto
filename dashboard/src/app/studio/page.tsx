@@ -221,6 +221,15 @@ export default function StudioPage() {
   const [withVideo, setWithVideo] = useState(true);
   const [videoModel, setVideoModel] = useState("minimax_hailuo");
   const [busy, setBusy] = useState<string | null>(null);
+  // 2026-09-06 회장 스모크: 생성이 시작되면 끝날 때까지 취소할 방법이 없었고, 도는 동안
+  // 화면에 아무 표시도 없었다. 진행 중임을 보여 주고 그만둘 수 있게 한다.
+  const generationAbort = useRef<AbortController | null>(null);
+  function cancelGeneration() {
+    generationAbort.current?.abort();
+    generationAbort.current = null;
+    setBusy(null);
+    showToast("생성을 취소했습니다", "success");
+  }
   const [lastError, setLastError] = useState<string | null>(null);
   const [text, setText] = useState<TextVariants | null>(null);
   const [img, setImg] = useState<ImgResult | null>(null);
@@ -435,7 +444,7 @@ export default function StudioPage() {
         guide,
         tenant_id: activeWorkspace?.id,
         structure: structure ? { label: structure.label, title: structure.title, outline: structure.outline } : undefined,
-      });
+      }, { signal: generationAbort.current?.signal });
       if (!r?.ok) { const msg = r?.error || "텍스트 생성 실패"; setLastError(`텍스트: ${msg}`); showToast(msg, "error"); return null; }
       // API가 성공을 확인한 뒤에만 발행한다. 클릭 시점 아님.
       trackEvent({ name: "content_generate", params: { kind: "text" } });
@@ -448,6 +457,7 @@ export default function StudioPage() {
   }
   async function generateQuickDraft(structure: CreateStructureChoice) {
     if (!idea.trim()) { showToast("주제를 입력해 주세요", "error"); return; }
+    generationAbort.current = new AbortController();
     setBusy("초안 만드는 중");
     try {
       const result = await genText(structure);
@@ -471,6 +481,7 @@ export default function StudioPage() {
         showToast(`${structure.label} 구조로 초안을 만들었습니다`, "success");
       }
     } finally {
+      generationAbort.current = null;
       setBusy(null);
     }
   }
@@ -505,6 +516,25 @@ export default function StudioPage() {
       const msg = extractApiErrorMessage(e, "영상 생성 실패");
       setLastError(`영상: ${msg}`); showToast(msg, "error"); return null;
     }
+  }
+  // 지금 작업물을 버리고 처음부터 시작한다.
+  //
+  // 2026-09-06 회장 스모크: "생성실, 편집실, 발행실 리셋을 어떻게 해야하나 모르겠음
+  // (폐기하거나 다른 작업하고 싶을때)". 실제로 세 방 어디에도 새로 시작하는 길이 없었다.
+  // 이미 발행한 작업물이 남아 있으면 발행이 중복으로 막히기까지 한다.
+  // 되돌릴 수 없는 조작이므로 한 번 확인하고 지운다.
+  function discardCurrentWork() {
+    if (!text && !idea.trim() && !draftId) { showToast("이미 비어 있습니다", "success"); return; }
+    if (!window.confirm("지금 작업물을 버리고 새로 시작할까요? 저장하지 않은 내용은 사라집니다.")) return;
+    generationAbort.current?.abort();
+    generationAbort.current = null;
+    setBusy(null);
+    setIdea(""); setText(null); setImg(null); setVid(null); setDraftId(null);
+    setEditLines([]); setEditorHandoff(null);
+    setPublishReconciliations({});
+    setPub({ running: false, stopped: false, status: {}, urls: {}, errors: {} });
+    setTitles({}); setHashtags({}); setTopicTags({}); setFirstComments({}); setCaptions({});
+    showToast("새로 시작합니다", "success");
   }
   async function runOSMU() {
     if (!idea.trim()) { showToast("글감을 입력하세요", "error"); return; }
@@ -1071,6 +1101,21 @@ export default function StudioPage() {
     }
   }
 
+  // 도는 동안 무엇이 도는지와 그만두는 길을 같은 자리에서 보여 준다. 없으면 사용자는
+  // 멈춘 것인지 도는 것인지 알 수 없다(2026-09-06 회장 스모크: "로딩스피너가 없어서
+  // 전반적으로 진행상황 UI 확인이 안됨").
+  const progressStrip = busy ? (
+    <div role="status" aria-live="polite" data-generation-progress
+      className="mb-stack flex flex-wrap items-center gap-stack rounded-control border border-accent/40 bg-accent-soft px-stack py-stack-tight text-body-sm text-accent">
+      <span aria-hidden className="inline-block h-4 w-4 animate-spin rounded-pill border-2 border-accent border-t-transparent" />
+      <b className="font-semibold">{busy}</b>
+      <span className="text-caption text-muted">끝날 때까지 이 자리에 표시됩니다.</span>
+      <span className="ml-auto">
+        <Button size="sm" data-testid="generation-cancel" onClick={cancelGeneration}>생성 취소</Button>
+      </span>
+    </div>
+  ) : null;
+
   const roomHeader = (
     <RoomHeader
       workspaceName={activeWorkspace?.name}
@@ -1087,6 +1132,8 @@ export default function StudioPage() {
             flashToken={learningFlash}
             onOpen={() => setShowWizard(true)}
           />
+          {/* 세 방 어디서나 같은 자리에서 지금 작업물을 버리고 새로 시작한다. */}
+          <Button data-testid="studio-discard-work" onClick={discardCurrentWork}>새로 시작</Button>
         </>
       }
       trailing={
@@ -1135,6 +1182,7 @@ export default function StudioPage() {
     <div className="px-stack-section py-pad-inset">
       {showWizard && activeWorkspace ? <LearningCardWizard workspaceId={activeWorkspace.id} workspaceName={activeWorkspace.name} onSaved={(info, completed) => { setLearningInfo(info); if (completed) { setShowWizard(false); mutateBrand(); showToast("학습 정보를 배웠습니다"); } else { setLearningFlash((value) => value + 1); } }} onClose={() => setShowWizard(false)} /> : null}
       {roomHeader}
+      {progressStrip}
       <CreateRoom
         workspaceId={activeWorkspace?.id}
         workspaceName={activeWorkspace?.name}
