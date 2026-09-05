@@ -566,13 +566,32 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           void reauthenticateCurrentIdentity(requestToken);
           return;
         }
-        if (!res.ok) {
-          // 403/5xx/기타 — 상태를 신뢰할 수 없으니 fail-closed. 재시도 가능한 서비스 확인 실패 화면.
+        let statusRes = res;
+        if (!statusRes.ok) {
+          // 상태를 신뢰할 수 없으니 fail-closed 다. 다만 한 번의 실패로 곧장 막지는 않는다.
+          //
+          // 2026-09-05 회장 계정 실측: 배포로 컨테이너가 잠깐 재시작하는 사이 이 검사가 한 번
+          // 실패해 작업 중이던 화면이 통째로 "서비스 확인 실패"로 덮였다. 바로 뒤에 같은
+          // 토큰으로 부르니 200 이었다. 순간적인 장애로 작업 맥락을 잃게 만드는 것은 과하다.
+          // 서버 오류 계열만 한 번 더 물어보고, 성공하면 그 응답으로 평소 흐름을 이어간다.
+          // 권한 거부는 재시도해도 답이 같으므로 즉시 막는다.
+          if (statusRes.status >= 500) {
+            await new Promise((resolve) => setTimeout(resolve, 1200));
+            if (!ownsPoll()) return;
+            const retry = await fetch("/api/me", {
+              headers: requestToken ? { Authorization: `Bearer ${requestToken}` } : {},
+              signal: controller.signal,
+            }).catch(() => null);
+            if (!ownsPoll()) return;
+            if (retry?.ok) statusRes = retry;
+          }
+        }
+        if (!statusRes.ok) {
           setVerifiedAccessKey(requestAccessKey);
           setGateStatus("service_error");
           return;
         }
-        const data = await res.json().catch(() => null);
+        const data = await statusRes.json().catch(() => null);
         if (!ownsPoll()) return;
         if (!data) {
           setVerifiedAccessKey(requestAccessKey);

@@ -497,4 +497,24 @@ describe("AuthGate operator route separation", () => {
     expect(localStorage.getItem("active_workspace")).toBeNull();
     expect(useUIStore.getState().activeWorkspace).toBeNull();
   });
+
+  // 2026-09-05 회장 계정 실측 회귀: 배포로 컨테이너가 잠깐 재시작하는 사이 상태 검사가 한 번
+  // 실패해 작업 중이던 화면이 통째로 덮였다. 바로 뒤에 같은 토큰으로 부르니 정상이었다.
+  it("QA-AUTH-09 정상: 상태 검사가 일시적으로 500이면 한 번 더 물어보고 화면을 지킨다", async () => {
+    const jwt = `${"a".repeat(24)}.${"b".repeat(24)}.${"c".repeat(24)}`;
+    localStorage.setItem("dashboard_auth_token", jwt);
+    mocks.pathname.mockReturnValue("/studio");
+    let calls = 0;
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      calls += 1;
+      if (calls === 1) return new Response(null, { status: 503 });
+      return Response.json({ tenant: { id: "11111111-1111-4111-8111-111111111111" }, isOperator: false });
+    }));
+
+    render(<AuthGate><div>customer child</div></AuthGate>);
+
+    await waitFor(() => expect(screen.getByText("customer child")).toBeInTheDocument(), { timeout: 4000 });
+    expect(calls).toBeGreaterThanOrEqual(2);
+    expect(screen.queryByText("서비스 확인 실패")).toBeNull();
+  });
 });
