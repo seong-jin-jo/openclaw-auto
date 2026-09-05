@@ -1,5 +1,9 @@
 import { ensureAuthProfileStore, listProfilesForProvider } from "openclaw/plugin-sdk/agent-runtime";
-import { QWEN_OAUTH_MARKER } from "openclaw/plugin-sdk/agent-runtime";
+// 코어가 더는 이 표식을 내보내지 않는다. 표식 정책이 바뀌면서 model-auth-markers 에서
+// 빠졌는데(같은 파일의 테스트가 "qwen-oauth" 를 비밀 아닌 표식으로 인정하지 않는다고
+// 못박고 있다) 이 확장만 옛 이름을 계속 가져와 전체 빌드가 깨져 있었다.
+// 값은 그대로 두고 이 확장 안에서 정의한다. 코어의 표식 정책은 건드리지 않는다.
+const QWEN_OAUTH_MARKER = "qwen-oauth";
 import { loginQwenPortalOAuth } from "./oauth.js";
 import { buildQwenPortalProvider, QWEN_PORTAL_BASE_URL } from "./provider-catalog.js";
 import {
