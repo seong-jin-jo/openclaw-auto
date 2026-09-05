@@ -777,6 +777,37 @@ describe("Studio publish result integrity", () => {
     expect(mocks.apiPost.mock.calls.filter(([path]) => path === "/api/publish")).toHaveLength(1);
   });
 
+  // 2026-09-05 회장 실사용 회귀: 외부에는 올라갔는데 내부 기록이 없으면 발행이 막히는데,
+  // 정작 그 상태를 푸는 방법이 화면에 없어 막다른 길이었다. 한 번 눌러 닫을 수 있어야 한다.
+  it("발행-복구-01 정상: 외부 게시 완료 상태를 한 번 눌러 기록으로 닫는다", async () => {
+    restoreStudio(["threads"]);
+    let draftSaves = 0;
+    mocks.apiPost.mockImplementation(async (path: string, body: { status?: string }) => {
+      if (path === "/api/studio/drafts") { draftSaves += 1; return { id: "draft-reconcile", status: body.status }; }
+      if (path === "/api/publish") {
+        const error = new Error("외부 게시 완료") as Error & { payload?: unknown; externalPersistence?: boolean };
+        error.externalPersistence = true;
+        error.payload = {
+          permalink: "https://www.threads.net/@example/post/kept",
+          persistence: { reconciliation: { required: true, action: "verify_with_provider", retryPublish: false, platform: "threads" } },
+        };
+        throw error;
+      }
+      throw new Error(`unexpected path: ${path}`);
+    });
+
+    render(<StudioPage />);
+    fireEvent.click(await findEnabledButton("선택한 1곳에 지금 발행"));
+
+    const resolve = await screen.findByTestId("publish-reconciliation-resolve");
+    const savesBefore = draftSaves;
+    fireEvent.click(resolve);
+
+    await waitFor(() => expect(screen.queryByTestId("publish-reconciliation-resolve")).toBeNull());
+    expect(draftSaves).toBeGreaterThan(savesBefore);
+    expect(mocks.apiPost.mock.calls.filter(([path]) => path === "/api/publish")).toHaveLength(1);
+  });
+
   // 2026-09-05 회장 실사용 회귀: 발행 뒤에도 발행 버튼이 그대로 남아 다시 누르면 이미 올라간
   // 채널까지 재발행 대상이 됐다. 성공한 채널은 두 번째 클릭에서 제외돼야 한다.
   it("발행-중복-01 거절: 이미 성공한 채널은 다시 눌러도 재발행하지 않는다", async () => {

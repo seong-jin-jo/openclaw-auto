@@ -625,6 +625,23 @@ export default function StudioPage() {
       ?? { platform, supported: false, reason: "백엔드 응답 확인 중" };
   }
 
+  // 외부에는 올라갔는데 내부 기록을 못 남긴 상태를 사용자가 스스로 닫게 한다.
+  // 2026-09-05 회장 계정 실측: 이 상태에 걸리면 발행을 누를 때마다 "재발행하지 말고 내부
+  // 기록을 먼저 복구하세요" 만 뜨고, 정작 복구할 방법이 화면에 없었다. 막기만 하고 길이
+  // 없으면 그것은 보호가 아니라 막다른 길이다. Buffer 도 실패 건에 한 번 누르는 조치를 준다.
+  async function resolvePublishReconciliation() {
+    const platforms = Object.keys(publishReconciliations);
+    if (!platforms.length) return;
+    try {
+      const savedDraftId = await save("published", {}, draftId);
+      if (!savedDraftId) throw new Error("기록 저장 실패");
+      setPublishReconciliations({});
+      showToast(`${platforms.map((platform) => LABEL[platform as keyof typeof LABEL]).join(", ")} 은 이미 올라간 것으로 기록했습니다. 이제 다음 작업을 이어가실 수 있습니다.`, "success");
+    } catch {
+      showToast("기록을 정리하지 못했습니다. 잠시 뒤 다시 눌러 주세요.", "error");
+    }
+  }
+
   async function publish() {
     // 2026-09-05 회장 계정 실측: 발행 단추를 눌렀는데 요청도 안 나가고 알림도 없었다.
     // 여기서 아무 말 없이 돌아섰기 때문이다. 조용한 반환은 고장으로 읽힌다. 이유를 말한다.
@@ -1373,6 +1390,16 @@ export default function StudioPage() {
               <p className="break-keep text-caption text-subtle">
                 아래는 미리보기 칸에서 손으로 하면 일곱 번 반복해야 하는 일입니다. 채널마다 다른 규격은 제가 맞춥니다.
               </p>
+              {Object.keys(publishReconciliations).length ? (
+                <div className="break-keep rounded-control border border-warning bg-warning-soft p-stack text-caption text-warning" role="alert" data-publish-reconciliation>
+                  <b className="block">{Object.keys(publishReconciliations).map((platform) => LABEL[platform as keyof typeof LABEL]).join(", ")} 은 이미 올라갔습니다.</b>
+                  올라간 것은 확인됐는데 이 작업물의 내부 기록이 남지 않았습니다. 그대로 다시 발행하면 같은 글이 두 번 올라갑니다.
+                  아래를 누르면 이미 올라간 것으로 기록하고 이 알림을 닫습니다.
+                  <span className="mt-stack-tight block">
+                    <Button size="sm" data-testid="publish-reconciliation-resolve" onClick={resolvePublishReconciliation}>이미 올라간 것으로 기록하기</Button>
+                  </span>
+                </div>
+              ) : null}
               <Stack direction="horizontal" gap={8} wrap>
                 <Button size="sm" data-testid="publish-bulk-select-all" onClick={selectAllChannels} disabled={!accountsLoaded || connectedTargets.length === 0}>연결된 곳 전부 고르기</Button>
                 <Button size="sm" data-testid="publish-bulk-clear" onClick={clearAllChannels} disabled={selectedTargets.length === 0}>전부 해제</Button>
