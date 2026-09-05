@@ -635,7 +635,12 @@ export async function POST(request: Request) {
           published_at = now()
       WHERE tenant_id = ${tenant_id}::uuid AND id = ${reservationId}::uuid
     `);
-  } catch {
+  } catch (error) {
+    // 2026-09-05 회장 계정 실측: 실제로는 올라갔는데 "내부 기록 실패"만 뜨고, 컨테이너
+    // 로그에는 아무것도 없었다. 여기서 예외를 그대로 버렸기 때문이다. 이유를 안 남기면
+    // 같은 증상이 나도 매번 처음부터 추측해야 한다. 값은 남기지 않고 사유만 남긴다.
+    console.error("[publish][persist-fail] publication_record", platform,
+      error instanceof Error ? error.message : String(error));
     if (result.ok) {
       return partialPersistenceFailure(result, {
         stage: "publication_record",
@@ -665,6 +670,7 @@ export async function POST(request: Request) {
         permalink: result.permalink,
       });
       if (!queueRecorded) {
+        console.error("[publish][persist-fail] queue_record_not_found", platform, "draft not in approval queue");
         return partialPersistenceFailure(result, {
           stage: "queue_record",
           draftId: draft_id,
@@ -672,7 +678,9 @@ export async function POST(request: Request) {
           accountId: cred.accountId,
         });
       }
-    } catch {
+    } catch (error) {
+      console.error("[publish][persist-fail] queue_record", platform,
+        error instanceof Error ? error.message : String(error));
       return partialPersistenceFailure(result, {
         stage: "queue_record",
         draftId: draft_id,
