@@ -101,4 +101,13 @@ describe("FE-V63-07 성과실 댓글 행동", () => {
     expect(screen.queryByRole("button", { name: "이 답글 보내기" })).not.toBeInTheDocument();
     expect(H.apiPost).not.toHaveBeenCalled();
   });
+
+  // 2026-09-05 회장 계정 실측 회귀: 글이 이미 나갔는데도 빈 화면이 "첫 편이 나가면
+  // 모입니다" 라고 말했다. 실제 이유는 수집이 막힌 것이라 사용자는 기다리기만 한다.
+  it("FE-V63-08 거절: 나간 글이 있는데 반응이 비면 기다리라고 하지 않고 조치를 안내한다", () => {
+    render(<PerformanceRoom workspaceId="11111111-1111-4111-8111-111111111111" workspaceName="공용 작업 공간" metricsLoaded posts={[]} publishedCount={1} followers="10" engagementRate={2} queuedCount={0} viralCount={0} collecting={false} onCollectMetrics={vi.fn(async () => {})} />);
+
+    expect(screen.getByText(/성과 다시 수집하기를 눌러/)).toBeInTheDocument();
+    expect(screen.queryByText(/첫 편이 나가면 댓글과 반응이/)).toBeNull();
+  });
 });

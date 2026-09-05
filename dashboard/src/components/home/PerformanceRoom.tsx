@@ -690,7 +690,15 @@ export function PerformanceRoom({
             </div>
           ) : (
             <div className="rounded-surface border border-dashed border-border p-pad-inset text-body-sm text-muted break-keep">
-              아직 달린 반응이 없습니다. 첫 편이 나가면 댓글과 반응이 이 자리에 모입니다.
+              {/*
+                2026-09-05 회장 계정 실측: 글은 이미 나갔는데도 "첫 편이 나가면 모입니다"
+                라고 말하고 있었다. 실제 이유는 성과 수집이 막힌 것인데 빈 화면이 엉뚱한
+                이유를 대면 사용자는 기다리기만 한다. Sprout 의 통합 인박스도 비어 있을 때
+                왜 비었는지와 다음 조치를 같이 준다. 나간 글이 있는지로 문구를 가른다.
+              */}
+              {publishedCount > 0
+                ? "글은 나갔는데 반응을 아직 못 모았습니다. 위의 성과 다시 수집하기를 눌러 보시고, 거절 안내가 뜨면 그 안내대로 채널을 다시 연결해 주세요."
+                : "아직 달린 반응이 없습니다. 첫 편이 나가면 댓글과 반응이 이 자리에 모입니다."}
             </div>
           )}
         </Stack>
