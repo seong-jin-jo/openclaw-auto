@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   pathname: vi.fn(() => "/"),
   replace: vi.fn(),
   signOut: vi.fn(),
+  refreshSession: vi.fn(),
   getSession: vi.fn(),
   sessionToken: null as string | null,
   authStateCallback: null as null | ((event: string, session: { access_token?: string } | null) => void),
@@ -35,6 +36,7 @@ vi.mock("@/lib/supabase", () => ({
   createBrowserSupabase: () => ({
     auth: {
       getSession: mocks.getSession,
+      refreshSession: mocks.refreshSession,
       signOut: mocks.signOut,
       onAuthStateChange: vi.fn((callback) => {
         mocks.authStateCallback = callback;
@@ -55,6 +57,9 @@ describe("AuthGate operator route separation", () => {
     mocks.replace.mockReset();
     mocks.signOut.mockReset();
     mocks.signOut.mockResolvedValue({ error: null });
+    // 기본은 "갱신 불가". 갱신이 되는 경우는 각 케이스에서 명시한다.
+    mocks.refreshSession.mockReset();
+    mocks.refreshSession.mockResolvedValue({ data: { session: null }, error: { message: "no session" } });
     mocks.getSession.mockReset();
     mocks.getSession.mockImplementation(async () => ({
       data: {
@@ -278,6 +283,25 @@ describe("AuthGate operator route separation", () => {
 
     await waitFor(() => expect(mocks.authStateCallback).not.toBeNull());
     expect(localStorage.getItem("dashboard_auth_token")).toBe("operator-token");
+  });
+
+  // 2026-09-05 실측 회귀: 스튜디오 작업 도중 접근 토큰 수명이 끝나자 그대로 로그인
+  // 화면으로 튕겼다. 만료는 로그아웃 사유가 아니다. 갱신이 되면 있던 자리에 남아야 한다.
+  it("QA-AUTH-08 정상: 접근 토큰이 만료돼도 갱신에 성공하면 로그아웃시키지 않는다", async () => {
+    const jwt = `${"a".repeat(24)}.${"b".repeat(24)}.${"c".repeat(24)}`;
+    const renewed = `${"d".repeat(24)}.${"e".repeat(24)}.${"f".repeat(24)}`;
+    localStorage.setItem("dashboard_auth_token", jwt);
+    mocks.pathname.mockReturnValue("/studio");
+    window.history.replaceState(null, "", "/studio?room=edit");
+    mocks.refreshSession.mockResolvedValue({ data: { session: { access_token: renewed } }, error: null });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 401 })));
+
+    render(<AuthGate><div>customer child</div></AuthGate>);
+
+    await waitFor(() => expect(mocks.refreshSession).toHaveBeenCalled());
+    await waitFor(() => expect(localStorage.getItem("dashboard_auth_token")).toBe(renewed));
+    expect(mocks.signOut).not.toHaveBeenCalled();
+    expect(mocks.replace).not.toHaveBeenCalledWith("/login?returnTo=%2Fstudio%3Froom%3Dedit");
   });
 
   it("QA-AUTH-06 정상: 만료 고객 JWT는 운영자 화면 대신 returnTo가 보존된 고객 로그인으로 보낸다", async () => {

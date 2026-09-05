@@ -415,6 +415,23 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           reauthInFlight.current = false;
           return;
         }
+        // 만료는 로그아웃 사유가 아니다. 먼저 갱신을 시도한다.
+        //
+        // 2026-09-05 실측: 스튜디오에서 작업하는 도중 접근 토큰 수명이 끝나자 그대로
+        // 로그인 화면으로 튕겼다. 여기서 갱신 토큰을 한 번도 쓰지 않고 바로 로그아웃했기
+        // 때문이다. 접근 토큰은 원래 짧게 살고 갱신 토큰으로 이어 가는 것이 정상이다.
+        // 갱신에 성공하면 사용자는 있던 자리에 그대로 남고, 실패했을 때만 아래로 내려가
+        // 종전대로 로그아웃한다. 갱신 실패는 진짜 재로그인 사유다.
+        const refreshed = await createBrowserSupabase().auth.refreshSession();
+        const renewedToken = refreshed.data.session?.access_token;
+        if (!refreshed.error && renewedToken && renewedToken !== token) {
+          setAuthToken(renewedToken, "customer");
+          setHasToken(true);
+          setGateStatus("checking");
+          if (reauthOwnerToken.current === token) reauthOwnerToken.current = null;
+          reauthInFlight.current = false;
+          return;
+        }
         // Reauthenticate only this rejected browser session. A global sign-out can
         // revoke a replacement session that completed while this request was pending.
         await createBrowserSupabase().auth.signOut({ scope: "local" });
