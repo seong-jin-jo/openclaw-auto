@@ -92,7 +92,15 @@ export async function POST(request: Request) {
             console.error("[metrics][collect-skip] threads insights", resp.status, "basic", basic,
               "ownList", own.status, "ownCount", own.ids.length,
               "idInOwnList", own.ids.includes(r.external_id), detail);
-            skipped.push(basic === 200 ? "insights_forbidden" : `${resp.status}`);
+            // 2026-09-05 실측: 토큰은 정상(목록 조회 200)인데 그 계정의 게시물 목록이
+            // 0건이고 우리가 저장한 식별자도 목록에 없었다. 발행에 쓴 계정과 지금 연결된
+            // 계정이 다를 때 이 모양이 된다. 사용자에게는 재연결 대상이 계정이라는 것을
+            // 알려야 다음 행동이 정해진다.
+            skipped.push(
+              basic === 200 ? "insights_forbidden"
+                : own.status === 200 && !own.ids.includes(r.external_id) ? "post_not_in_account"
+                  : `${resp.status}`,
+            );
             continue;
           }
           const data = (await resp.json()) as { data?: { name: string; values: { value: number }[] }[] };
@@ -123,6 +131,8 @@ export async function POST(request: Request) {
         collectionBlocked: true,
         reason: skipped.includes("exception")
           ? "성과 조회 중 오류가 났습니다. 잠시 후 다시 시도해 주세요."
+          : skipped.includes("post_not_in_account")
+            ? "연결된 채널 계정에서 이 게시물을 찾을 수 없습니다. 글을 올린 계정과 지금 연결된 계정이 다를 수 있습니다. 채널을 다시 연결하면서 글을 올린 계정을 선택해 주세요."
           : skipped.includes("insights_forbidden")
             ? "게시물은 확인되는데 성과 조회 권한이 없습니다. 채널을 다시 연결해 성과 조회 권한을 허용해 주세요."
             : `채널이 성과 조회를 거절했습니다(응답 ${skipped[0] ?? "알 수 없음"}). 채널을 다시 연결한 뒤 시도해 주세요.`,
