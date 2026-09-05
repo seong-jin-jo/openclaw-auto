@@ -64,10 +64,15 @@ function Frame({ p, label, children, headerRight, characterCount }: {
 }) {
   return (
     <div className="w-full max-w-sm">
-      <div className="flex items-center gap-stack-tight mb-stack-tight px-micro">
+      {/*
+        2026-09-05 회장 계정 실측(폭 430): 이 머리줄이 담긴 칸보다 18픽셀 넓어져 오른쪽
+        끝의 발행 토글과 계정 관리가 잘렸다. 문서 가로 스크롤은 0이라 겉으로는 멀쩡해
+        보이지만 조작할 수 없는 단추가 생긴다. 좁으면 줄을 바꾸게 한다.
+      */}
+      <div className="flex flex-wrap items-center gap-stack-tight mb-stack-tight px-micro">
         <Logo p={p} />
         <span className="shrink-0 whitespace-nowrap text-caption font-bold text-muted">{label}</span>
-        <div className="ml-auto flex items-center gap-stack-tight">
+        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-stack-tight">
           {characterCount && (
             <span
               data-testid={`character-count-${p}`}
