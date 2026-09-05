@@ -30,7 +30,8 @@ export async function GET(request: Request) {
     const { posts, coverageRows } = await withTenant(tenantId, async (sql) => {
       const posts = await sql`
         SELECT id, platform, external_id, permalink, text, status, error, published_at,
-               views, likes, replies, reposts, metrics_at
+               views, likes, replies, reposts, metrics_at,
+               provider_meta -> 'metricsBlocked' AS metrics_blocked
         FROM published_posts WHERE tenant_id = ${tenantId}
         ORDER BY published_at DESC LIMIT 100`;
       const coverageRows = await sql<MetricsCoverageAggregateRow[]>`
@@ -96,11 +97,19 @@ export async function POST(request: Request) {
             // 0건이고 우리가 저장한 식별자도 목록에 없었다. 발행에 쓴 계정과 지금 연결된
             // 계정이 다를 때 이 모양이 된다. 사용자에게는 재연결 대상이 계정이라는 것을
             // 알려야 다음 행동이 정해진다.
-            skipped.push(
-              basic === 200 ? "insights_forbidden"
-                : own.status === 200 && !own.ids.includes(r.external_id) ? "post_not_in_account"
-                  : `${resp.status}`,
-            );
+            const skipCode = basic === 200 ? "insights_forbidden"
+              : own.status === 200 && !own.ids.includes(r.external_id) ? "post_not_in_account"
+                : `provider_${resp.status}`;
+            skipped.push(skipCode);
+            // 글 단위로 "왜 이 글은 못 재는지"를 남긴다. 남기지 않으면 성과실이 전부를
+            // "아직 수집 안 함"으로 뭉뚱그려, 기다리면 채워질 것처럼 보인다. 실제로는
+            // 계정이 바뀌기 전까지 영원히 안 채워지는 글이다(2026-09-05 실측).
+            await sql`
+              UPDATE published_posts
+              SET provider_meta = COALESCE(provider_meta, '{}'::jsonb) || ${sql.json({
+                metricsBlocked: { code: skipCode, at: new Date().toISOString() },
+              } as never)}
+              WHERE id = ${r.id}`;
             continue;
           }
           const data = (await resp.json()) as { data?: { name: string; values: { value: number }[] }[] };
@@ -109,7 +118,9 @@ export async function POST(request: Request) {
           await sql`
             UPDATE published_posts
             SET views = ${m.views ?? 0}, likes = ${m.likes ?? 0}, replies = ${m.replies ?? 0},
-                reposts = ${m.reposts ?? 0}, metrics_at = now()
+                reposts = ${m.reposts ?? 0}, metrics_at = now(),
+                -- 다시 재지게 되면 막힘 표식을 지운다. 남겨 두면 고쳐진 뒤에도 경고가 남는다.
+                provider_meta = COALESCE(provider_meta, '{}'::jsonb) - 'metricsBlocked'
             WHERE id = ${r.id}`;
           n++;
         } catch (error) {

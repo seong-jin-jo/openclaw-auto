@@ -110,4 +110,20 @@ describe("FE-V63-07 성과실 댓글 행동", () => {
     expect(screen.getByText(/성과 다시 수집하기를 눌러/)).toBeInTheDocument();
     expect(screen.queryByText(/첫 편이 나가면 댓글과 반응이/)).toBeNull();
   });
+
+  // 2026-09-05 실측 회귀: 계정이 바뀌기 전까지 영원히 안 채워지는 글을 "미수집"으로 적으면
+  // 사용자는 무한정 기다린다. 못 재는 글은 못 잰다고 적는다.
+  it("FE-V63-09 정상: 측정이 막힌 글은 미수집이 아니라 측정 불가로 적는다", () => {
+    const blocked = {
+      id: "blocked-1",
+      platform: "threads",
+      text: "측정 막힌 글",
+      status: "published",
+      published_at: "2026-09-04T20:41:14.000Z",
+      metrics_blocked: { code: "post_not_in_account", at: "2026-09-05T12:00:00.000Z" },
+    };
+    render(<PerformanceRoom workspaceId="11111111-1111-4111-8111-111111111111" workspaceName="공용 작업 공간" metricsLoaded posts={[blocked]} publishedCount={1} followers="10" engagementRate={2} queuedCount={0} viralCount={0} collecting={false} onCollectMetrics={vi.fn(async () => {})} />);
+
+    expect(screen.getAllByText("측정 불가").length).toBeGreaterThan(0);
+  });
 });

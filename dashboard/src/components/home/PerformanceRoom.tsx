@@ -25,6 +25,11 @@ export interface PerformancePost {
   likes?: number;
   replies?: number;
   reposts?: number;
+  /**
+   * 이 글을 지금 계정으로는 성과를 못 잰다는 표식. 서버가 수집 시도에서 남긴다.
+   * 없으면 아직 안 쟀거나 정상적으로 잰 것이다. 있으면 기다려도 안 채워진다.
+   */
+  metrics_blocked?: { code?: string; at?: string } | null;
 }
 
 interface PerformanceSampleAssessment {
@@ -736,9 +741,14 @@ export function PerformanceRoom({
                     <PerformanceTableCell label="상태" className="lg:text-center">
                       <span className={`rounded-pill px-stack-tight py-micro text-caption ${post.status === "published" ? "bg-success/15 text-success" : "bg-danger/15 text-danger"}`}>{postStatusLabel(post.status)}</span>
                     </PerformanceTableCell>
-                    <PerformanceTableCell label="조회" className="tabular-nums lg:text-center">{post.views ?? "미수집"}</PerformanceTableCell>
-                    <PerformanceTableCell label="좋아요" className="tabular-nums lg:text-center">{post.likes ?? "미수집"}</PerformanceTableCell>
-                    <PerformanceTableCell label="답글" className="tabular-nums lg:text-center">{post.replies ?? "미수집"}</PerformanceTableCell>
+                    {/*
+                      "미수집"과 "측정 불가"는 다르다. 앞은 기다리면 채워지고, 뒤는 계정을
+                      바꾸기 전까지 영원히 안 채워진다. 같은 말로 쓰면 사용자는 무한정
+                      기다린다(2026-09-05 회장 계정 실측).
+                    */}
+                    <PerformanceTableCell label="조회" className="tabular-nums lg:text-center">{post.views ?? (post.metrics_blocked ? "측정 불가" : "미수집")}</PerformanceTableCell>
+                    <PerformanceTableCell label="좋아요" className="tabular-nums lg:text-center">{post.likes ?? (post.metrics_blocked ? "측정 불가" : "미수집")}</PerformanceTableCell>
+                    <PerformanceTableCell label="답글" className="tabular-nums lg:text-center">{post.replies ?? (post.metrics_blocked ? "측정 불가" : "미수집")}</PerformanceTableCell>
                     <PerformanceTableCell label="발행" className="text-subtle lg:text-center">{fmtAgo(post.published_at)}</PerformanceTableCell>
                   </tr>
                 ))}
