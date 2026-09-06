@@ -1,12 +1,21 @@
 import path from "path";
 import fs from "fs";
 import { effectiveTenantId } from "@/lib/tenant-auth";
+import { signMediaToken } from "@/lib/media-token";
 import { runWithTenant } from "@/lib/tenant-context";
 import { hfRun, extractJson, findResultUrl, downloadTo, addNarration, logGen, recordMediaGenerationEvent, HiggsfieldUnavailableError, HiggsfieldUnauthenticatedError, assertHiggsfieldReady, studioDir, assetUrl } from "@/lib/higgsfield";
 
 // POST /api/higgsfield/video — image→video. body: { localPath, prompt, model?, narration? }
 // localPath = /api/higgsfield/image 가 반환한 서버측 절대경로(CLI가 자동 업로드).
 // model 기본 minimax_hailuo(6cr) — 무음. narration 주면 생성 후 TTS 음성 ffmpeg 합성(소리 추가).
+// img·video 태그는 인증 헤더를 못 붙인다. 그래서 헤더 인증만 있는 자산 경로로는 화면에
+// 아무것도 안 뜬다. 이미 있는 서명 배달 경로로 돌려준다. 서명이 없으면(비밀 미설정)
+// 종전 자산 경로로 떨어뜨려 최소한 운영자 화면에서는 보이게 한다.
+function deliverUrl(tenantId: string, filename: string): string {
+  const token = signMediaToken(tenantId, filename);
+  return token ? `/api/media/${encodeURIComponent(token)}` : assetUrl(tenantId, filename);
+}
+
 export async function POST(request: Request) {
   const body = await request.json();
   const { localPath, prompt, model = "minimax_hailuo", narration = "", label = "" } = body;
@@ -65,7 +74,7 @@ export async function POST(request: Request) {
     return Response.json({
       ok: true,
       url,
-      file: assetUrl(tenantId, finalName),
+      file: deliverUrl(tenantId, finalName),
       model,
       hasAudio,
       narration: {

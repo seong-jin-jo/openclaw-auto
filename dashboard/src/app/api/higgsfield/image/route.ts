@@ -1,10 +1,19 @@
 import path from "path";
 import { effectiveTenantId } from "@/lib/tenant-auth";
+import { signMediaToken } from "@/lib/media-token";
 import { runWithTenant } from "@/lib/tenant-context";
 import { hfRun, extractJson, findResultUrl, downloadTo, logGen, recordMediaGenerationEvent, HiggsfieldUnavailableError, HiggsfieldUnauthenticatedError, assertHiggsfieldReady, studioDir, assetUrl } from "@/lib/higgsfield";
 
 // POST /api/higgsfield/image — Soul V2 text→image. body: { prompt, aspectRatio?, quality?, label? }
 // 반환: { url(cloudfront), file(/studio-assets/..), localPath } — video 단계에서 localPath 재사용
+// img·video 태그는 인증 헤더를 못 붙인다. 그래서 헤더 인증만 있는 자산 경로로는 화면에
+// 아무것도 안 뜬다. 이미 있는 서명 배달 경로로 돌려준다. 서명이 없으면(비밀 미설정)
+// 종전 자산 경로로 떨어뜨려 최소한 운영자 화면에서는 보이게 한다.
+function deliverUrl(tenantId: string, filename: string): string {
+  const token = signMediaToken(tenantId, filename);
+  return token ? `/api/media/${encodeURIComponent(token)}` : assetUrl(tenantId, filename);
+}
+
 export async function POST(request: Request) {
   const body = await request.json();
   const { prompt, aspectRatio = "9:16", quality = "1.5k", label = "" } = body;
@@ -40,7 +49,7 @@ export async function POST(request: Request) {
     await downloadTo(url, localPath);
     runWithTenant(tenantId, () => logGen("image", "Higgsfield Soul V2", label));
     await recordMediaGenerationEvent(tenantId, "image", "Higgsfield Soul V2", label);
-    return Response.json({ ok: true, url, file: assetUrl(tenantId, fname), localPath });
+    return Response.json({ ok: true, url, file: deliverUrl(tenantId, fname), localPath });
   } catch (e) {
     mark("catch", e instanceof Error ? `${e.name}: ${e.message}` : String(e));
     if (e instanceof HiggsfieldUnauthenticatedError) {
