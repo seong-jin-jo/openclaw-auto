@@ -557,12 +557,17 @@ export async function publishX(cred: ChannelCred, text: string): Promise<Publish
     accessToken: String(meta.accessToken ?? ""),
     accessSecret: String(meta.accessSecret ?? meta.accessTokenSecret ?? ""),
   };
-  if (!keys.apiKey || !keys.apiSecret || !keys.accessToken || !keys.accessSecret) {
-    return { ok: false, error: "X 4키(apiKey/apiSecret/accessToken/accessSecret) 누락" };
-  }
   const body = text ?? "";
   const url = `${X_API}/tweets`;
-  const auth = buildXOAuthHeader("POST", url, keys);
+  // 2026-09-07 회장 계정 실측: 화면에서 X 를 연결하면 OAuth 2.0 사용자 토큰이 저장되는데
+  // 발행은 OAuth 1.0a 4키만 받아 "4키 누락" 으로 끝났다. 연결과 발행이 서로 다른 인증을
+  // 보고 있었다. X API v2 의 /tweets 는 OAuth 2.0 사용자 토큰(Bearer)으로도 올릴 수 있다.
+  // 화면으로 연결한 계정은 그 토큰으로 올리고, 4키가 있는 계정(구 방식)은 종전대로 둔다.
+  const hasLegacyKeys = Boolean(keys.apiKey && keys.apiSecret && keys.accessToken && keys.accessSecret);
+  if (!hasLegacyKeys && !cred.token) {
+    return { ok: false, error: "X 연결이 없습니다. 발행실에서 X 를 다시 연결해 주세요." };
+  }
+  const auth = hasLegacyKeys ? buildXOAuthHeader("POST", url, keys) : `Bearer ${cred.token}`;
   const resp = await fetch(url, {
     method: "POST",
     headers: { Authorization: auth, "Content-Type": "application/json" },
