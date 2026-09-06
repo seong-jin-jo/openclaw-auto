@@ -77,8 +77,8 @@ function expectOAuthCallbackCookies(response: Response, provider: "x" | "tiktok"
   expect(cookies).toHaveLength(2);
   for (const name of expectedNames) {
     const cookie = cookies.find((value) => value.startsWith(`${name}=`));
-    // 2026-09-07: 버전 없는 경로는 Meta 가 "Unsupported request" 로 거절한다. 실측 문구를
-    // 잡고 버전을 붙였다. 계약도 버전 있는 경로를 요구한다.
+    // 2026-09-07: 버전·방식을 세 조합으로 시도했으나 Meta 는 전부 "Unsupported request" 로
+    // 거절했다. 경로 문제이지 방식 문제가 아니다. 문서화된 기본 경로를 계약으로 둔다.
     expect(cookie).toBeDefined();
     expect(cookie).toContain("HttpOnly");
     expect(cookie).toContain("SameSite=Lax");
@@ -248,7 +248,7 @@ describe("GET /api/connect/instagram/callback — 토큰교환·저장", () => {
     // 단기+장기 두 번 호출
     expect(H.fetchCalls.length).toBe(2);
     expect(H.fetchCalls[0]).toContain("api.instagram.com/oauth/access_token");
-    expect(H.fetchCalls[1]).toContain("graph.instagram.com/v23.0/access_token");
+    expect(H.fetchCalls[1]).toContain("graph.instagram.com/access_token");
     // 장기토큰이 저장됨(단기 아님)
     expect(H.inserts).toHaveLength(1);
     expect(JSON.stringify(H.inserts[0])).toContain("LONGLIVED60D");

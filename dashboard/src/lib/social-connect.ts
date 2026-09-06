@@ -187,14 +187,18 @@ export const PROVIDERS: Record<string, ProviderConfig> = {
     appIdEnv: "IG_APP_ID",
     appSecretEnv: "IG_APP_SECRET",
     tokenUrl: "https://api.instagram.com/oauth/access_token",
-    // 2026-09-07 회장 계정 실측: 버전 없는 경로로 보내면 Meta 가
-    //   `Unsupported request - method type: get` (HTTP 400) 으로 거절한다. 이 문구는 Meta 가
-    //   "그런 경로 없다" 고 말할 때 쓰는 형태다. 버전을 붙인다. 환경변수로 덮을 수 있게 두어
-    //   Meta 가 버전을 올려도 배포만으로 따라갈 수 있게 한다.
-    longTokenUrl: process.env.IG_LONG_TOKEN_URL || "https://graph.instagram.com/v23.0/access_token",
+    // 2026-09-07 회장 계정 실측 기록. 동의까지 눌러 마지막 단계에 도달해 처음으로 실제
+    // 문구를 잡았다. 세 가지를 시도했고 결론은 "경로가 이 앱에 없다" 이다.
+    //   ① 버전 없는 GET  → `Unsupported request - method type: get`  (HTTP 400)
+    //   ② 버전 붙인 GET  → 같은 문구
+    //   ③ 버전 붙인 POST → `Unsupported request - method type: post` (HTTP 400)
+    // Meta 는 모르는 경로에 대해 "쓴 방식"을 그대로 되돌려 말한다. 방식 문제가 아니라
+    // 경로 문제다. 이 앱이 Instagram Login 이 아니라 다른 로그인 방식으로 만들어졌을 때
+    // 이렇게 된다(동의 화면 흐름값이 ig_biz_login_oauth 였다). 어느 쪽인지는 Meta 앱
+    // 설정을 봐야 정해지므로 문서화된 기본 경로로 되돌리고 환경변수로 바꿀 수 있게 둔다.
+    longTokenUrl: process.env.IG_LONG_TOKEN_URL || "https://graph.instagram.com/access_token",
     longGrant: "ig_exchange_token",
-    // 오류 문구가 "method type: get" 이라고 방식을 콕 집어 말했다. 시키는 대로 POST 로 보낸다.
-    longMethod: "POST",
+    longMethod: (process.env.IG_LONG_TOKEN_METHOD === "POST" ? "POST" : "GET"),
   },
   threads: {
     label: "threads",
