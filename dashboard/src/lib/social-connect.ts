@@ -478,9 +478,18 @@ export async function exchangeCode(
     if (options.codeVerifier) {
       bodyParams.code_verifier = options.codeVerifier;
     }
+    // X 는 기밀 클라이언트의 토큰 교환에 HTTP Basic 인증을 요구한다(RFC 6749 §2.3.1).
+    // body 에 client_secret 만 실으면 "Missing valid authorization header" 로 거절한다
+    // (2026-09-07 회장 계정 실측: 동의까지 통과한 뒤 콜백에서 이 문구로 끝났다).
+    // Basic 을 함께 보내되 body 의 값은 그대로 둔다. 다른 제공자는 body 를 읽고 X 는
+    // 헤더를 읽으므로 둘 다 있어야 한 코드로 양쪽을 만족한다.
+    const tokenHeaders: Record<string, string> = { "Content-Type": "application/x-www-form-urlencoded" };
+    if (p.pkce && clientSecret) {
+      tokenHeaders.Authorization = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`;
+    }
     const res = await f(p.tokenUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: tokenHeaders,
       body: new URLSearchParams(bodyParams).toString(),
     });
     const text = await res.text();
