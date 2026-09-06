@@ -2,7 +2,7 @@ import path from "path";
 import fs from "fs";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
-import { hfRun, extractJson, findResultUrl, downloadTo, addNarration, logGen, recordMediaGenerationEvent, STUDIO_DIR } from "@/lib/higgsfield";
+import { hfRun, extractJson, findResultUrl, downloadTo, addNarration, logGen, recordMediaGenerationEvent, HiggsfieldUnavailableError, STUDIO_DIR } from "@/lib/higgsfield";
 
 // POST /api/higgsfield/video — image→video. body: { localPath, prompt, model?, narration? }
 // localPath = /api/higgsfield/image 가 반환한 서버측 절대경로(CLI가 자동 업로드).
@@ -75,6 +75,12 @@ export async function POST(request: Request) {
       },
     });
   } catch (e) {
+    if (e instanceof HiggsfieldUnavailableError) {
+      return Response.json({
+        error: "영상 생성기가 아직 이 서버에 준비되지 않았습니다. 준비되면 바로 쓰실 수 있습니다.",
+        code: "GENERATOR_UNAVAILABLE",
+      }, { status: 503 });
+    }
     const msg = e instanceof Error ? e.message : String(e);
     return Response.json({ error: msg.slice(0, 400), nsfw: /nsfw/i.test(msg), credits: /not enough credits/i.test(msg) }, { status: 502 });
   }

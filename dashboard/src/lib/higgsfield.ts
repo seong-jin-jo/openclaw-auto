@@ -48,8 +48,25 @@ export function findResultUrl(data: unknown, ext: RegExp): string | null {
   return m ? m[0] : null;
 }
 
+/** 실행기 자체가 없을 때 던지는 오류. 라우트가 이것을 구분해 사용자에게 사실을 말한다. */
+export class HiggsfieldUnavailableError extends Error {
+  constructor() {
+    super("이미지·영상 생성기가 이 서버에 설치되어 있지 않습니다.");
+    this.name = "HiggsfieldUnavailableError";
+  }
+}
+
 export async function hfRun(args: string[], timeoutMs = 480000): Promise<{ stdout: string; stderr: string }> {
-  return execFileP(HF_BIN, args, { timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024 });
+  try {
+    return await execFileP(HF_BIN, args, { timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024 });
+  } catch (e) {
+    // 2026-09-06 실측: 운영 컨테이너에 실행기가 없어 생성 요청이 502 로 끝났다. 화면에는
+    // "Request failed: 502" 만 떠 무엇이 문제인지 알 수 없었다. 없는 것과 실패한 것을
+    // 구분해 사용자에게 사실을 말한다(ADR-007 조용한 실패 금지).
+    const code = (e as { code?: string })?.code;
+    if (code === "ENOENT") throw new HiggsfieldUnavailableError();
+    throw e;
+  }
 }
 
 // 생성 로그 — Higgsfield 거래내역(모델/시각만 줌)과 시간으로 매칭해 "어느 산출물인지" 표시용

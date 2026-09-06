@@ -1,7 +1,7 @@
 import path from "path";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
-import { hfRun, extractJson, findResultUrl, downloadTo, logGen, recordMediaGenerationEvent, STUDIO_DIR } from "@/lib/higgsfield";
+import { hfRun, extractJson, findResultUrl, downloadTo, logGen, recordMediaGenerationEvent, HiggsfieldUnavailableError, STUDIO_DIR } from "@/lib/higgsfield";
 
 // POST /api/higgsfield/image — Soul V2 text→image. body: { prompt, aspectRatio?, quality?, label? }
 // 반환: { url(cloudfront), file(/studio-assets/..), localPath } — video 단계에서 localPath 재사용
@@ -31,6 +31,12 @@ export async function POST(request: Request) {
     await recordMediaGenerationEvent(tenantId, "image", "Higgsfield Soul V2", label);
     return Response.json({ ok: true, url, file: `/api/higgsfield/asset/${fname}`, localPath });
   } catch (e) {
+    if (e instanceof HiggsfieldUnavailableError) {
+      return Response.json({
+        error: "이미지 생성기가 아직 이 서버에 준비되지 않았습니다. 준비되면 바로 쓰실 수 있습니다.",
+        code: "GENERATOR_UNAVAILABLE",
+      }, { status: 503 });
+    }
     const msg = e instanceof Error ? e.message : String(e);
     const nsfw = /nsfw/i.test(msg);
     const credits = /not enough credits/i.test(msg);
