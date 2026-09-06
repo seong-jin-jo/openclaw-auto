@@ -186,7 +186,11 @@ export const PROVIDERS: Record<string, ProviderConfig> = {
     appIdEnv: "IG_APP_ID",
     appSecretEnv: "IG_APP_SECRET",
     tokenUrl: "https://api.instagram.com/oauth/access_token",
-    longTokenUrl: "https://graph.instagram.com/access_token",
+    // 2026-09-07 회장 계정 실측: 버전 없는 경로로 보내면 Meta 가
+    //   `Unsupported request - method type: get` (HTTP 400) 으로 거절한다. 이 문구는 Meta 가
+    //   "그런 경로 없다" 고 말할 때 쓰는 형태다. 버전을 붙인다. 환경변수로 덮을 수 있게 두어
+    //   Meta 가 버전을 올려도 배포만으로 따라갈 수 있게 한다.
+    longTokenUrl: process.env.IG_LONG_TOKEN_URL || "https://graph.instagram.com/v23.0/access_token",
     longGrant: "ig_exchange_token",
   },
   threads: {
