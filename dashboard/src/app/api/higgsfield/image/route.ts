@@ -1,7 +1,7 @@
 import path from "path";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
-import { hfRun, extractJson, findResultUrl, downloadTo, logGen, recordMediaGenerationEvent, HiggsfieldUnavailableError, STUDIO_DIR } from "@/lib/higgsfield";
+import { hfRun, extractJson, findResultUrl, downloadTo, logGen, recordMediaGenerationEvent, HiggsfieldUnavailableError, HiggsfieldUnauthenticatedError, assertHiggsfieldReady, STUDIO_DIR } from "@/lib/higgsfield";
 
 // POST /api/higgsfield/image — Soul V2 text→image. body: { prompt, aspectRatio?, quality?, label? }
 // 반환: { url(cloudfront), file(/studio-assets/..), localPath } — video 단계에서 localPath 재사용
@@ -16,6 +16,7 @@ export async function POST(request: Request) {
   const tenantId = await effectiveTenantId(request, body.tenant_id);
   if (!tenantId) return Response.json({ error: "테넌트를 식별할 수 없습니다." }, { status: 401 });
   try {
+    await assertHiggsfieldReady();
     const { stdout } = await hfRun([
       "generate", "create", "text2image_soul_v2",
       "--prompt", prompt, "--aspect_ratio", aspectRatio, "--quality", quality,
@@ -31,6 +32,12 @@ export async function POST(request: Request) {
     await recordMediaGenerationEvent(tenantId, "image", "Higgsfield Soul V2", label);
     return Response.json({ ok: true, url, file: `/api/higgsfield/asset/${fname}`, localPath });
   } catch (e) {
+    if (e instanceof HiggsfieldUnauthenticatedError) {
+      return Response.json({
+        error: "이미지 생성기에 로그인되어 있지 않습니다. 서버에서 생성기 로그인을 한 번 해 주시면 바로 쓰실 수 있습니다.",
+        code: "GENERATOR_UNAUTHENTICATED",
+      }, { status: 503 });
+    }
     if (e instanceof HiggsfieldUnavailableError) {
       return Response.json({
         error: "이미지 생성기가 아직 이 서버에 준비되지 않았습니다. 준비되면 바로 쓰실 수 있습니다.",

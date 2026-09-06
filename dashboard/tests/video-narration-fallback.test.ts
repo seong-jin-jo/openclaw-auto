@@ -39,6 +39,11 @@ vi.mock("@/lib/higgsfield", () => ({
   // 2026-09-06: 생성 1건을 사용량 정본에 남기는 헬퍼가 추가됐다. 이 판의 관심사는
   // 무음 폴백 응답이므로 기록은 통과시킨다.
   recordMediaGenerationEvent: vi.fn(async () => {}),
+  // 2026-09-06: 긴 생성 호출 전에 생성기가 쓸 수 있는지 짧게 확인한다. 이 판은 무음
+  // 폴백 응답만 보므로 준비된 것으로 둔다.
+  assertHiggsfieldReady: vi.fn(async () => {}),
+  HiggsfieldUnavailableError: class extends Error {},
+  HiggsfieldUnauthenticatedError: class extends Error {},
   STUDIO_DIR: "/tmp/studio",
 }));
 

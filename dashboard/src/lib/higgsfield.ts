@@ -56,6 +56,31 @@ export class HiggsfieldUnavailableError extends Error {
   }
 }
 
+/** 실행기는 있는데 로그인이 안 된 상태. 사용자에게 할 일이 다르므로 따로 구분한다. */
+export class HiggsfieldUnauthenticatedError extends Error {
+  constructor() {
+    super("이미지·영상 생성기에 로그인되어 있지 않습니다.");
+    this.name = "HiggsfieldUnauthenticatedError";
+  }
+}
+
+/**
+ * 생성기가 쓸 수 있는 상태인지 짧게 먼저 확인한다.
+ *
+ * 2026-09-06 실측: 실행기를 컨테이너에 넣었더니 이번에는 인증이 없어 호출이 멈췄고,
+ * 게이트웨이가 502 를 돌려줬다. 사용자는 또 이유를 모른다. 긴 생성 호출에 들어가기 전에
+ * 짧은 확인을 한 번 해서, 없으면 없다고 로그인 안 됐으면 안 됐다고 말한다.
+ */
+export async function assertHiggsfieldReady(): Promise<void> {
+  try {
+    await execFileP(HF_BIN, ["auth", "token"], { timeout: 8000, maxBuffer: 1024 * 1024 });
+  } catch (e) {
+    const code = (e as { code?: string })?.code;
+    if (code === "ENOENT") throw new HiggsfieldUnavailableError();
+    throw new HiggsfieldUnauthenticatedError();
+  }
+}
+
 export async function hfRun(args: string[], timeoutMs = 480000): Promise<{ stdout: string; stderr: string }> {
   try {
     return await execFileP(HF_BIN, args, { timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024 });

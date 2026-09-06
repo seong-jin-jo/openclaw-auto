@@ -2,7 +2,7 @@ import path from "path";
 import fs from "fs";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
-import { hfRun, extractJson, findResultUrl, downloadTo, addNarration, logGen, recordMediaGenerationEvent, HiggsfieldUnavailableError, STUDIO_DIR } from "@/lib/higgsfield";
+import { hfRun, extractJson, findResultUrl, downloadTo, addNarration, logGen, recordMediaGenerationEvent, HiggsfieldUnavailableError, HiggsfieldUnauthenticatedError, assertHiggsfieldReady, STUDIO_DIR } from "@/lib/higgsfield";
 
 // POST /api/higgsfield/video — image→video. body: { localPath, prompt, model?, narration? }
 // localPath = /api/higgsfield/image 가 반환한 서버측 절대경로(CLI가 자동 업로드).
@@ -22,6 +22,7 @@ export async function POST(request: Request) {
     ? ["--mode", "ugc", "--aspect_ratio", "9:16"]
     : [];
   try {
+    await assertHiggsfieldReady();
     const { stdout } = await hfRun([
       "generate", "create", model,
       "--image", localPath, "--prompt", motion, ...extra,
@@ -75,6 +76,12 @@ export async function POST(request: Request) {
       },
     });
   } catch (e) {
+    if (e instanceof HiggsfieldUnauthenticatedError) {
+      return Response.json({
+        error: "영상 생성기에 로그인되어 있지 않습니다. 서버에서 생성기 로그인을 한 번 해 주시면 바로 쓰실 수 있습니다.",
+        code: "GENERATOR_UNAUTHENTICATED",
+      }, { status: 503 });
+    }
     if (e instanceof HiggsfieldUnavailableError) {
       return Response.json({
         error: "영상 생성기가 아직 이 서버에 준비되지 않았습니다. 준비되면 바로 쓰실 수 있습니다.",
