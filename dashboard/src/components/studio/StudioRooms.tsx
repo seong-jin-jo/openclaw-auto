@@ -186,6 +186,9 @@ interface CreateRoomProps {
   quickDraftError?: string | null;
   /** 카드뉴스 대표 이미지 생성. 비용 승인 관문은 호출부가 담당한다. */
   onGenerateCardImages?: () => Promise<void>;
+  /** 숏폼 영상 생성. 카드뉴스와 같이 비용 승인 관문은 호출부가 담당한다. */
+  onGenerateVideo?: () => Promise<void>;
+  videoBusy?: boolean;
   cardImageBusy?: boolean;
   onQuickDraftGenerate?: (structure: CreateStructureChoice) => Promise<void> | void;
 }
@@ -225,7 +228,7 @@ export function generationErrorMessage(cause: unknown): string {
   return message || "구조 초안을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.";
 }
 
-export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBranch = "text_image", onContentBranchChange, onTopicChange, onCandidateSelect, onOpenEditor, onPrimaryKindChange, onAlsoKindsChange, learningVersion = 0, resumeCount = 0, onResume, quickDraft, quickDraftLoading = false, quickDraftError, onQuickDraftGenerate, onGenerateCardImages, cardImageBusy = false }: CreateRoomProps) {
+export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBranch = "text_image", onContentBranchChange, onTopicChange, onCandidateSelect, onOpenEditor, onPrimaryKindChange, onAlsoKindsChange, learningVersion = 0, resumeCount = 0, onResume, quickDraft, quickDraftLoading = false, quickDraftError, onQuickDraftGenerate, onGenerateCardImages, cardImageBusy = false, onGenerateVideo, videoBusy = false }: CreateRoomProps) {
   const topicInputRef = useRef<HTMLInputElement>(null);
   const [hydratedCreateWorkspaceId, setHydratedCreateWorkspaceId] = useState<string | null>(null);
   const [primaryKind, setPrimaryKind] = useState<CreateKind | null>(null);
@@ -655,25 +658,38 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
         <AssistantPanel title="생성 담당">
           <Stack gap={16}>
             <div className="max-w-[90%] rounded-surface rounded-tl-control border border-border bg-surface p-stack text-body-sm text-text" data-empty-next={!candidates.length ? "create" : undefined}>
-              {selectedCandidate ? "구조 초안이 준비됐습니다. 영상은 대본과 장면 구성까지만 제공하며 렌더링은 아직 지원하지 않습니다." : candidates.length ? "A, B, C 구조 중 편집할 초안을 하나 골라 주세요." : "한 번에 하나씩 묻겠습니다. 선택한 답은 다음 질문에 반영됩니다."}
+              {selectedCandidate ? "구조 초안이 준비됐습니다. 카드뉴스 이미지와 숏폼 영상을 여기서 바로 만들 수 있습니다." : candidates.length ? "A, B, C 구조 중 편집할 초안을 하나 골라 주세요." : "한 번에 하나씩 묻겠습니다. 선택한 답은 다음 질문에 반영됩니다."}
             </div>
             <div className="rounded-control border border-border bg-surface-2 p-stack text-caption text-muted" data-generation-capability>
               <b className="block text-text">현재 제공</b>
               <span className="block">일곱 칸 학습 정보를 반영한 구성 초안 3개</span>
               <span className="block">카드뉴스 대표 이미지(만들기 전 비용을 보여 드립니다)</span>
+              <span className="block">숏폼 영상(대표 이미지를 움직이는 영상으로)</span>
               <b className="mt-stack-tight block text-text">준비 중</b>
-              <span className="block">영상 렌더링</span>
+              <span className="block">배경 음악</span>
             </div>
             {/*
               사업계획 v0.4 10절이 첫 매체를 카드뉴스로 정했고 7절이 만들기 전 비용 승인
               관문을 요구한다. 그동안 이 자리에 "준비 중"만 적혀 있어 고객은 카드뉴스를
               만들 수 없었다(2026-09-06 회장 스모크).
             */}
-            {onGenerateCardImages ? (
-              <Button size="sm" data-testid="create-card-image" onClick={() => void onGenerateCardImages()} disabled={cardImageBusy}>
-                {cardImageBusy ? "카드뉴스 이미지 만드는 중" : "카드뉴스 대표 이미지 만들기"}
-              </Button>
-            ) : null}
+            {/*
+              영상 버튼이 여기 없어서, 화면에서는 못 만드는데 세션이 API 를 직접 불러 만들어
+              놓고 "된다"고 보고한 사고가 났다(회장 2026-09-07 "생성실에는 영상 버튼 자체가
+              없는데 했다고 거짓보고한 이유"). 만들 수 있으면 버튼이 여기 있어야 한다.
+            */}
+            <div className="flex flex-wrap gap-stack-tight">
+              {onGenerateCardImages ? (
+                <Button size="sm" data-testid="create-card-image" onClick={() => void onGenerateCardImages()} disabled={cardImageBusy || videoBusy}>
+                  {cardImageBusy ? "카드뉴스 이미지 만드는 중" : "카드뉴스 대표 이미지 만들기"}
+                </Button>
+              ) : null}
+              {onGenerateVideo ? (
+                <Button size="sm" variant="secondary" data-testid="create-video" onClick={() => void onGenerateVideo()} disabled={cardImageBusy || videoBusy}>
+                  {videoBusy ? "숏폼 영상 만드는 중" : "숏폼 영상 만들기"}
+                </Button>
+              ) : null}
+            </div>
             {!candidates.length ? <>
               <div className="space-y-stack rounded-surface border border-border bg-surface p-stack" data-create-question={question}>
                 {question === "kind" ? <fieldset data-create-kind-picker><legend className="mb-stack-tight text-caption font-semibold text-text">무엇을 만들까요?</legend>

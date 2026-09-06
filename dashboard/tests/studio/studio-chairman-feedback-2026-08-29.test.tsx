@@ -115,10 +115,24 @@ describe("생성실 (회장: 오늘 만들 수 있는 것이 뭐하는 예시이
 
     expect(screen.queryByText("오늘 만들 수 있는 것")).toBeNull();
     expect(screen.getByText("콘텐츠 구성 초안 예시")).toBeInTheDocument();
-    // 2026-09-06: 카드뉴스 대표 이미지는 준비 중에서 제공으로 옮겼다(회장 확정으로 고객에게
-    // 개방). 준비 중에 남은 것은 영상 렌더링뿐이다.
-    expect(screen.getByText("영상 렌더링")).toBeInTheDocument();
+    // 2026-09-07: 영상도 준비 중에서 제공으로 옮겼다. 종전 이 계약은 "영상 렌더링" 이
+    // 준비 중 목록에 있는 것을 고정하고 있었고, 그 사이 문서에는 "영상을 고객이 만들 수
+    // 있다 = 통과" 라고 적혔다. 계약이 화면의 거짓을 지켜 준 셈이다. 이제 만들 수 있다고
+    // 적힌 것은 화면에 단추가 있어야 통과한다.
     expect(screen.getByText(/카드뉴스 대표 이미지/)).toBeInTheDocument();
+    expect(screen.getByText(/숏폼 영상/)).toBeInTheDocument();
+    expect(screen.queryByText("영상 렌더링")).toBeNull();
+  });
+
+  // 2026-09-07 사고 계약. 문서에 "고객이 만들 수 있다" 고 적힌 것은 화면에 누를 것이
+  // 있어야 한다. 종전에는 영상이 API 로만 열려 있었고, 그 상태에서 인수기준 문서가
+  // "통과" 로 바뀌었다. 회장이 화면에서 단추를 찾다가 없는 것을 발견해 드러났다.
+  // 이 계약은 그 재발을 막는다. 만들 수 있다고 말하는 것은 전부 여기 단추로 선다.
+  it("CHAIR-CREATE-01b 정상: 만들 수 있다고 적힌 것은 화면에 누를 단추가 있다", () => {
+    render(<CreateRoom {...props} onGenerateCardImages={async () => {}} onGenerateVideo={async () => {}} />);
+
+    expect(screen.getByTestId("create-card-image")).toBeInTheDocument();
+    expect(screen.getByTestId("create-video")).toBeInTheDocument();
   });
 
   it("CHAIR-CREATE-02 정상: 만들 형식을 한 질문에서 중복 없이 여러 개 고른다", () => {

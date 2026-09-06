@@ -591,6 +591,45 @@ export default function StudioPage() {
       setBusy(null);
     }
   }
+  // 회장 2026-09-07 "생성실에는 영상 버튼 자체가 없는데". 영상은 API 로만 만들 수 있고
+  // 화면에는 길이 없었다. 카드뉴스와 같은 비용 승인 관문을 태워 화면에서 만들 수 있게 한다.
+  // 영상은 대표 이미지를 움직이게 하는 것이라 이미지가 먼저 있어야 한다.
+  async function generateShortVideo() {
+    if (!activeWorkspace) { showToast("작업 공간을 먼저 고르세요", "error"); return; }
+    let source = img;
+    if (!source) {
+      showToast("먼저 카드뉴스 대표 이미지를 만들어 주세요. 영상은 그 이미지를 움직이게 합니다.", "error");
+      return;
+    }
+
+    const est = await apiPost<{
+      ok?: boolean; min_minor?: number; max_minor?: number;
+      estimated_seconds_min?: number; estimated_seconds_max?: number; assumptions?: string[];
+    }>("/api/studio/estimate", { tenant_id: activeWorkspace.id, kind: "video", count: 1 });
+    if (!est?.ok) { showToast("비용을 산정하지 못했습니다. 잠시 후 다시 시도해 주세요.", "error"); return; }
+
+    const approved = window.confirm(
+      [
+        "숏폼 영상을 만듭니다. 방금 만든 대표 이미지를 움직이는 영상으로 바꿉니다.",
+        `예상 비용 ${est.min_minor?.toLocaleString()}원에서 ${est.max_minor?.toLocaleString()}원`,
+        `예상 시간 ${est.estimated_seconds_min}초에서 ${est.estimated_seconds_max}초`,
+        "",
+        ...(est.assumptions ?? []).map((line) => `· ${line}`),
+        "",
+        "이 범위 안에서 만들까요?",
+      ].join("\n"),
+    );
+    if (!approved) { showToast("만들지 않았습니다", "success"); return; }
+
+    generationAbort.current = new AbortController();
+    setBusy("숏폼 영상 만드는 중");
+    try {
+      await genVideo(source.localPath);
+    } finally {
+      generationAbort.current = null;
+      setBusy(null);
+    }
+  }
   async function runOSMU() {
     if (!idea.trim()) { showToast("글감을 입력하세요", "error"); return; }
     setLastError(null);
@@ -1320,6 +1359,8 @@ export default function StudioPage() {
         quickDraftError={lastError}
         onQuickDraftGenerate={generateQuickDraft}
         onGenerateCardImages={generateCardImages}
+        onGenerateVideo={generateShortVideo}
+        videoBusy={busy === "숏폼 영상 만드는 중"}
         cardImageBusy={busy === "카드뉴스 이미지 만드는 중"}
       />
     </div>
