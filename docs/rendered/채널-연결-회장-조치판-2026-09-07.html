@@ -1,0 +1,79 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>채널 연결 조치판 · 2026-09-07</title>
+<style>
+:root{--bg:#0f1115;--card:#171a21;--line:#272b35;--tx:#e8ebf0;--mut:#9aa3b2;--ok:#3ddc97;--warn:#ffc857;--bad:#ff6b6b;--acc:#6aa8ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.7 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;padding:32px 20px}
+.wrap{max-width:860px;margin:0 auto}
+h1{font-size:26px;margin:0 0 6px}.sub{color:var(--mut);margin:0 0 28px;font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin:0 0 16px}
+.hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.ch{font-size:19px;font-weight:700}
+.tag{font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid}
+.t-wait{color:var(--warn);border-color:#5a4a1f;background:#2a2314}
+.t-ok{color:var(--ok);border-color:#1f5a41;background:#12261f}
+.why{color:var(--mut);font-size:14px;margin:0 0 12px}
+ol{margin:10px 0 14px;padding-left:20px}li{margin:5px 0}
+a.btn{display:inline-block;background:var(--acc);color:#08111f;text-decoration:none;font-weight:700;padding:10px 16px;border-radius:9px;font-size:14px}
+a.btn:hover{filter:brightness(1.1)}
+code{background:#0b0d12;border:1px solid var(--line);border-radius:6px;padding:2px 7px;font-size:13px}
+.done{border-color:#1f5a41}
+.foot{color:var(--mut);font-size:13px;margin-top:28px;border-top:1px solid var(--line);padding-top:16px}
+.copy{cursor:pointer;border:1px solid var(--line);background:#0b0d12;color:var(--tx);border-radius:7px;padding:7px 12px;font-size:13px;margin-left:8px}
+</style></head><body><div class="wrap">
+<h1>채널 연결 조치판</h1>
+<p class="sub">2026-09-07 · 회장님이 누르셔야 열리는 것만 모았습니다. 하나 끝내실 때마다 알려 주시면 제가 그 채널을 관통해 게시물 주소로 증명합니다.</p>
+
+<div class="card done"><div class="hd"><span class="ch">Threads</span><span class="tag t-ok">전 구간 통과</span></div>
+<p class="why">생성 36초 · 영상 75초 · 발행 100% · 게시물 응답 200 · 성과실 표시까지 실제로 확인했습니다. 회장님이 하실 것 없습니다.</p>
+<a class="btn" href="https://www.threads.com/@j.the.great.investor/post/Dc6W0HOmBGr" target="_blank" rel="noopener">발행된 글 보기</a></div>
+
+<div class="card"><div class="hd"><span class="ch">X</span><span class="tag t-wait">크레딧 충전만 남음</span></div>
+<p class="why">연결·인증은 제가 끝냈습니다. 마지막에 <code>402 credits depleted</code> 로 막힙니다. X API 가 사용량 과금으로 바뀌었고 이 계정 잔액이 0원입니다.</p>
+<ol>
+<li>아래 단추로 결제 화면을 엽니다</li>
+<li><b>$5</b> 를 고릅니다 (선불, 만료 없음. 발행 시험에는 이걸로 충분합니다)</li>
+<li>결제 수단을 넣고 결제합니다</li>
+<li>끝나면 알려 주십시오</li>
+</ol>
+<a class="btn" href="https://console.x.com/accounts/2096674741604016128/billing/credits" target="_blank" rel="noopener">X 크레딧 충전</a></div>
+
+<div class="card"><div class="hd"><span class="ch">유튜브</span><span class="tag t-wait">테스트 사용자 추가</span></div>
+<p class="why">콜백 주소는 제가 등록해 <code>redirect_uri_mismatch</code> 를 없앴습니다. 지금은 앱이 "테스트 중"이라 등록된 계정만 들어갑니다. 제가 여섯 번 저장을 시도했는데 서버가 매번 거부했습니다.</p>
+<ol>
+<li>아래 단추로 대상 화면을 엽니다</li>
+<li>맨 아래 <b>테스트 사용자 → Add users</b></li>
+<li><code>j.the.great.investor@gmail.com</code> 입력 후 <b>저장</b></li>
+<li>사용자가 4명으로 늘면 성공입니다</li>
+</ol>
+<button class="copy" onclick="navigator.clipboard.writeText('j.the.great.investor@gmail.com')">이메일 복사</button>
+<a class="btn" href="https://console.cloud.google.com/auth/audience?project=play-store-deploy-491206" target="_blank" rel="noopener">구글 콘솔 열기</a></div>
+
+<div class="card"><div class="hd"><span class="ch">인스타그램</span><span class="tag t-wait">앱 설정 확인</span></div>
+<p class="why">동의까지는 통과합니다. 마지막 60일 권한 교환에서 Meta 가 <code>Unsupported request</code> 로 거절합니다. 더미 토큰으로 재현해 보니 <b>경로는 살아 있고</b> 진짜 토큰에서만 이 오류가 납니다. 토큰의 앱 종류에 그 경로가 없다는 뜻입니다. Facebook 쪽 교환까지 넣어 봤지만 같은 사유로 막혔습니다.</p>
+<ol>
+<li>아래 단추로 Meta 앱 목록을 엽니다</li>
+<li>인스타그램에 쓰는 앱을 엽니다 (동의 화면 이름은 <b>정성컴퍼니-IG</b> 였습니다)</li>
+<li><b>제품(Products)</b> 목록에 <b>Instagram</b> 이 붙어 있는지 봅니다</li>
+<li>있으면 그 안에서 <b>API 설정</b> 이 Instagram 로그인인지 Facebook 로그인인지 확인해 알려 주십시오</li>
+</ol>
+<a class="btn" href="https://developers.facebook.com/apps/" target="_blank" rel="noopener">Meta 앱 열기</a></div>
+
+<div class="card"><div class="hd"><span class="ch">TikTok</span><span class="tag t-wait">메일 접근</span></div>
+<p class="why">가입이 비밀번호가 아니라 <b>이메일 PIN</b> 방식이라 제가 진행할 수 있습니다. 다만 PIN 을 읽으려면 Gmail 이 필요한데 Gmail 이 재로그인을 요구합니다. 비밀번호는 제가 입력하지 않습니다.</p>
+<ol>
+<li>아래 단추로 Gmail 을 열고 로그인만 해 주십시오</li>
+<li>로그인되면 알려 주십시오. 가입부터 앱 생성까지 제가 합니다</li>
+</ol>
+<a class="btn" href="https://mail.google.com/" target="_blank" rel="noopener">Gmail 열기</a></div>
+
+<div class="card"><div class="hd"><span class="ch">LinkedIn</span><span class="tag t-wait">회사 페이지 결정</span></div>
+<p class="why">앱을 만들려면 회사 페이지를 붙여야 하는데 <b>한 번 붙이면 되돌릴 수 없습니다.</b> 어느 페이지를 쓸지는 브랜드 결정이라 제가 임의로 고르지 않았습니다.</p>
+<ol>
+<li>이미 관리하시는 회사 페이지가 있으면 <b>이름만</b> 알려 주십시오</li>
+<li>없으면 새로 만들지, 만든다면 어떤 이름으로 할지 정해 주십시오</li>
+</ol>
+<a class="btn" href="https://www.linkedin.com/developers/apps" target="_blank" rel="noopener">LinkedIn 개발자 열기</a></div>
+
+<p class="foot">이 판에 없는 것은 제가 이미 끝냈습니다. 생성실 영상 단추, 비용 승인 화면, 생성물 표시, 자산 인가 구멍, 조용한 방 이동, 발행실 빈 본문 안내, X 인증 두 곳, 발행 실패 문구. 테스트 228 파일 1710건 통과.</p>
+</div></body></html>
