@@ -189,6 +189,9 @@ interface CreateRoomProps {
   /** 숏폼 영상 생성. 카드뉴스와 같이 비용 승인 관문은 호출부가 담당한다. */
   onGenerateVideo?: () => Promise<void>;
   videoBusy?: boolean;
+  /** 방금 만든 결과. 만든 자리에서 보여야 만들어졌다는 것을 안다(회장 2026-09-07). */
+  madeImageUrl?: string | null;
+  madeVideoUrl?: string | null;
   cardImageBusy?: boolean;
   onQuickDraftGenerate?: (structure: CreateStructureChoice) => Promise<void> | void;
 }
@@ -228,7 +231,7 @@ export function generationErrorMessage(cause: unknown): string {
   return message || "구조 초안을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.";
 }
 
-export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBranch = "text_image", onContentBranchChange, onTopicChange, onCandidateSelect, onOpenEditor, onPrimaryKindChange, onAlsoKindsChange, learningVersion = 0, resumeCount = 0, onResume, quickDraft, quickDraftLoading = false, quickDraftError, onQuickDraftGenerate, onGenerateCardImages, cardImageBusy = false, onGenerateVideo, videoBusy = false }: CreateRoomProps) {
+export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBranch = "text_image", onContentBranchChange, onTopicChange, onCandidateSelect, onOpenEditor, onPrimaryKindChange, onAlsoKindsChange, learningVersion = 0, resumeCount = 0, onResume, quickDraft, quickDraftLoading = false, quickDraftError, onQuickDraftGenerate, onGenerateCardImages, cardImageBusy = false, onGenerateVideo, videoBusy = false, madeImageUrl = null, madeVideoUrl = null }: CreateRoomProps) {
   const topicInputRef = useRef<HTMLInputElement>(null);
   const [hydratedCreateWorkspaceId, setHydratedCreateWorkspaceId] = useState<string | null>(null);
   const [primaryKind, setPrimaryKind] = useState<CreateKind | null>(null);
@@ -690,6 +693,25 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
                 </Button>
               ) : null}
             </div>
+            {/*
+              만든 결과가 만든 자리에 안 보이면 고객은 만들어졌는지 알 수 없다. 실제로
+              단추를 눌러 생성이 끝났는데 화면이 그대로라 "안 된다" 로 읽혔다
+              (회장 2026-09-07). 만든 것은 그 자리에서 보여 준다.
+            */}
+            {madeImageUrl || madeVideoUrl ? (
+              <div data-testid="create-made" className="space-y-stack-tight rounded-control border border-border bg-surface p-stack">
+                <b className="block text-caption text-text">방금 만든 것</b>
+                {madeImageUrl ? (
+                  <img data-testid="create-made-image" src={madeImageUrl} alt="방금 만든 카드뉴스 대표 이미지"
+                    className="max-h-64 w-full rounded-control object-contain" />
+                ) : null}
+                {madeVideoUrl ? (
+                  <video data-testid="create-made-video" src={madeVideoUrl} controls playsInline
+                    className="max-h-64 w-full rounded-control" />
+                ) : null}
+                <p className="text-caption text-subtle break-keep">편집실에서 글자를 얹고 발행실로 보낼 수 있습니다.</p>
+              </div>
+            ) : null}
             {!candidates.length ? <>
               <div className="space-y-stack rounded-surface border border-border bg-surface p-stack" data-create-question={question}>
                 {question === "kind" ? <fieldset data-create-kind-picker><legend className="mb-stack-tight text-caption font-semibold text-text">무엇을 만들까요?</legend>

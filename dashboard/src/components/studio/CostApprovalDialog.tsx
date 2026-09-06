@@ -55,7 +55,7 @@ export function CostApprovalDialog({ request, onApprove, onCancel }: Props) {
         className="card w-full max-w-md space-y-stack p-stack-section"
       >
         <h2 id="cost-approval-title" className="text-body font-semibold text-text">
-          {request.title}을 만들까요
+          {request.title} 만들기
         </h2>
         <p className="text-caption text-subtle break-keep">{request.description}</p>
 

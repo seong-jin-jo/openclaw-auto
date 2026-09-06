@@ -1367,6 +1367,8 @@ export default function StudioPage() {
         onGenerateCardImages={generateCardImages}
         onGenerateVideo={generateShortVideo}
         videoBusy={busy === "숏폼 영상 만드는 중"}
+        madeImageUrl={img?.file || img?.url || null}
+        madeVideoUrl={vid?.file || vid?.url || null}
         cardImageBusy={busy === "카드뉴스 이미지 만드는 중"}
       />
       <CostApprovalDialog request={costApproval} onApprove={() => settleCostApproval(true)} onCancel={() => settleCostApproval(false)} />
