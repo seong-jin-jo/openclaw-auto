@@ -27,6 +27,7 @@ import { trackEvent, type AnalyticsChannel } from "@/lib/analytics/events";
 import { authHeaders } from "@/lib/auth";
 import { CHANNEL_TEXT_LIMITS, countTextCharacters } from "@/lib/channel-text-limits";
 import { Button } from "@/components/shared/Button";
+import { CostApprovalDialog, type CostApprovalRequest } from "@/components/studio/CostApprovalDialog";
 import { RoomHeader } from "@/components/shared/RoomHeader";
 import { Field } from "@/components/shared/Field";
 import { Stack } from "@/components/shared/Stack";
@@ -233,6 +234,19 @@ export default function StudioPage() {
     }
   }, []);
   const [withVideo, setWithVideo] = useState(true);
+  // 비용 승인을 화면 안에서 받는다. window.confirm 은 페이지를 멈춰 세워 무엇을 승인하는지
+  // 나란히 볼 수 없었고, 돈이 나가는 관문에 맞는 화면이 아니었다(회장 2026-09-07 실사용).
+  const [costApproval, setCostApproval] = useState<CostApprovalRequest | null>(null);
+  const costApprovalResolve = useRef<((ok: boolean) => void) | null>(null);
+  function askCostApproval(req: CostApprovalRequest): Promise<boolean> {
+    setCostApproval(req);
+    return new Promise<boolean>((resolve) => { costApprovalResolve.current = resolve; });
+  }
+  function settleCostApproval(ok: boolean) {
+    setCostApproval(null);
+    costApprovalResolve.current?.(ok);
+    costApprovalResolve.current = null;
+  }
   const [videoModel, setVideoModel] = useState("minimax_hailuo");
   const [busy, setBusy] = useState<string | null>(null);
   // 2026-09-06 회장 스모크: 생성이 시작되면 끝날 때까지 취소할 방법이 없었고, 도는 동안
@@ -569,17 +583,13 @@ export default function StudioPage() {
     }>("/api/studio/estimate", { tenant_id: activeWorkspace.id, kind: "card", count: 1 });
     if (!est?.ok) { showToast("비용을 산정하지 못했습니다. 잠시 후 다시 시도해 주세요.", "error"); return; }
 
-    const approved = window.confirm(
-      [
-        "카드뉴스 대표 이미지를 만듭니다.",
-        `예상 비용 ${est.min_minor?.toLocaleString()}원에서 ${est.max_minor?.toLocaleString()}원`,
-        `예상 시간 ${est.estimated_seconds_min}초에서 ${est.estimated_seconds_max}초`,
-        "",
-        ...(est.assumptions ?? []).map((line) => `· ${line}`),
-        "",
-        "이 범위 안에서 만들까요?",
-      ].join("\n"),
-    );
+    const approved = await askCostApproval({
+      title: "카드뉴스 대표 이미지",
+      description: "고른 구조의 첫 장을 대표 이미지로 만듭니다. 정사각형으로 나옵니다.",
+      minMinor: est.min_minor, maxMinor: est.max_minor,
+      secondsMin: est.estimated_seconds_min, secondsMax: est.estimated_seconds_max,
+      assumptions: est.assumptions,
+    });
     if (!approved) { showToast("만들지 않았습니다", "success"); return; }
 
     generationAbort.current = new AbortController();
@@ -608,17 +618,13 @@ export default function StudioPage() {
     }>("/api/studio/estimate", { tenant_id: activeWorkspace.id, kind: "video", count: 1 });
     if (!est?.ok) { showToast("비용을 산정하지 못했습니다. 잠시 후 다시 시도해 주세요.", "error"); return; }
 
-    const approved = window.confirm(
-      [
-        "숏폼 영상을 만듭니다. 방금 만든 대표 이미지를 움직이는 영상으로 바꿉니다.",
-        `예상 비용 ${est.min_minor?.toLocaleString()}원에서 ${est.max_minor?.toLocaleString()}원`,
-        `예상 시간 ${est.estimated_seconds_min}초에서 ${est.estimated_seconds_max}초`,
-        "",
-        ...(est.assumptions ?? []).map((line) => `· ${line}`),
-        "",
-        "이 범위 안에서 만들까요?",
-      ].join("\n"),
-    );
+    const approved = await askCostApproval({
+      title: "숏폼 영상",
+      description: "방금 만든 대표 이미지를 움직이는 영상으로 바꿉니다. 소리는 없습니다.",
+      minMinor: est.min_minor, maxMinor: est.max_minor,
+      secondsMin: est.estimated_seconds_min, secondsMax: est.estimated_seconds_max,
+      assumptions: est.assumptions,
+    });
     if (!approved) { showToast("만들지 않았습니다", "success"); return; }
 
     generationAbort.current = new AbortController();
@@ -1363,6 +1369,7 @@ export default function StudioPage() {
         videoBusy={busy === "숏폼 영상 만드는 중"}
         cardImageBusy={busy === "카드뉴스 이미지 만드는 중"}
       />
+      <CostApprovalDialog request={costApproval} onApprove={() => settleCostApproval(true)} onCancel={() => settleCostApproval(false)} />
     </div>
   );
 
