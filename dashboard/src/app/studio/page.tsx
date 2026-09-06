@@ -1186,7 +1186,11 @@ export default function StudioPage() {
               className="inline-flex min-h-control-touch items-center gap-stack-tight rounded-control border border-border bg-surface-2 px-stack text-body-sm text-muted"
               title="이번 달 이 작업 공간에서 만든 건수입니다">
               <span>이번 달 생성</span>
-              <b className="text-accent">{Number(usage.thisMonth?.aiGeneration ?? 0) + Number(usage.thisMonth?.mediaGeneration ?? 0)}건</b>
+              {/*
+                2026-09-06 실측: 여기서 읽던 이름이 응답 필드와 달라(aiGeneration 대
+                aiGenerations) 실제 22건인데 화면에는 0건으로 떴다. 응답 정본 이름을 쓴다.
+              */}
+              <b className="text-accent">{Number(usage.thisMonth?.aiGenerations ?? 0)}건</b>
               {usage.tier ? <span className="text-caption text-subtle">{usage.tier} 요금제</span> : null}
             </span>
           ) : null}
