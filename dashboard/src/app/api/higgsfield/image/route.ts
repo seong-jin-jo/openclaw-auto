@@ -15,13 +15,20 @@ export async function POST(request: Request) {
   // 연 이상 이것이 없으면 모두의 이력이 한 파일에 섞인다(2026-09-06).
   const tenantId = await effectiveTenantId(request, body.tenant_id);
   if (!tenantId) return Response.json({ error: "테넌트를 식별할 수 없습니다." }, { status: 401 });
+  // 2026-09-06: 생성 요청이 Cloudflare 502(Host Error)로 끝나는데 컨테이너 로그에 아무것도
+  // 남지 않아 어느 단계가 죽는지 알 수 없었다. 단계 표식을 남겨 다음 시도 한 번이면 특정된다.
+  const mark = (step: string, extra?: string) =>
+    console.log(JSON.stringify({ kind: "hf_image_step", step, extra: extra?.slice(0, 300) }));
   try {
+    mark("ready:start");
     await assertHiggsfieldReady();
+    mark("ready:ok");
     const { stdout } = await hfRun([
       "generate", "create", "text2image_soul_v2",
       "--prompt", prompt, "--aspect_ratio", aspectRatio, "--quality", quality,
       "--wait", "--json",
     ]);
+    mark("run:ok", `stdout=${stdout.length}`);
     const url = findResultUrl(extractJson(stdout), /png|jpg|jpeg|webp/);
     if (!url) return Response.json({ error: "no image url", raw: stdout.slice(-400) }, { status: 502 });
 
@@ -32,6 +39,7 @@ export async function POST(request: Request) {
     await recordMediaGenerationEvent(tenantId, "image", "Higgsfield Soul V2", label);
     return Response.json({ ok: true, url, file: `/api/higgsfield/asset/${fname}`, localPath });
   } catch (e) {
+    mark("catch", e instanceof Error ? `${e.name}: ${e.message}` : String(e));
     if (e instanceof HiggsfieldUnauthenticatedError) {
       return Response.json({
         error: "이미지 생성기에 로그인되어 있지 않습니다. 서버에서 생성기 로그인을 한 번 해 주시면 바로 쓰실 수 있습니다.",
