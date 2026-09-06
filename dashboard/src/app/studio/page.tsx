@@ -1391,6 +1391,23 @@ export default function StudioPage() {
       <GettingStartedStrip connectedCount={accountsLoaded && connectedTargets.length === 0 ? 0 : undefined} />
       <section data-room="publish" className="grid gap-stack-section pb-wide lg:grid-cols-[minmax(0,1fr)_20rem] lg:pb-none">
         <div className="min-w-0 space-y-region">
+          {/*
+            2026-09-07 실계정 E2E 에서 찾았다. 본문 없는 작업물을 고르면 발행실이 "0/500" 인
+            채로 아무 말도 하지 않았다. 왜 비었는지도, 어디로 가야 하는지도 없다. 조용한
+            실패다(ADR-007). 비었으면 그 사실과 빠져나갈 길을 같이 준다.
+          */}
+          {!text ? (
+            <div data-testid="publish-empty" role="status" className="rounded-surface border border-warning/30 bg-warning/10 p-stack-section">
+              <b className="block text-body text-text">올릴 본문이 아직 없습니다</b>
+              <p className="mt-stack-tight break-keep text-body-sm text-muted">
+                이 작업물에는 본문이 없습니다. 생성실에서 새로 만들거나, 작업물 전체에서 본문이 있는 것을 고르세요.
+              </p>
+              <div className="mt-stack flex flex-wrap gap-stack-tight">
+                <Button size="sm" data-testid="publish-empty-create" onClick={() => changeRoom("create")}>생성실에서 만들기</Button>
+                <Button size="sm" variant="secondary" data-testid="publish-empty-works" onClick={() => setShowWorks(true)}>다른 작업물 고르기</Button>
+              </div>
+            </div>
+          ) : null}
           <section data-room-top="publish" aria-label="이 방에서 지금 알아야 할 것" className="flex min-h-control-touch flex-wrap items-center gap-stack rounded-surface border border-border bg-surface px-pad-inset py-stack">
             <b className="text-lead text-accent">{selectedTargets.length}곳</b>
             <span className="mr-auto text-caption text-subtle">
