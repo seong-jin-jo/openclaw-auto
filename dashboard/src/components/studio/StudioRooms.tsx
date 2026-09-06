@@ -184,6 +184,9 @@ interface CreateRoomProps {
   quickDraft?: QuickDraftResult | null;
   quickDraftLoading?: boolean;
   quickDraftError?: string | null;
+  /** 카드뉴스 대표 이미지 생성. 비용 승인 관문은 호출부가 담당한다. */
+  onGenerateCardImages?: () => Promise<void>;
+  cardImageBusy?: boolean;
   onQuickDraftGenerate?: (structure: CreateStructureChoice) => Promise<void> | void;
 }
 
@@ -222,7 +225,7 @@ export function generationErrorMessage(cause: unknown): string {
   return message || "구조 초안을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.";
 }
 
-export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBranch = "text_image", onContentBranchChange, onTopicChange, onCandidateSelect, onOpenEditor, onPrimaryKindChange, onAlsoKindsChange, learningVersion = 0, resumeCount = 0, onResume, quickDraft, quickDraftLoading = false, quickDraftError, onQuickDraftGenerate }: CreateRoomProps) {
+export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBranch = "text_image", onContentBranchChange, onTopicChange, onCandidateSelect, onOpenEditor, onPrimaryKindChange, onAlsoKindsChange, learningVersion = 0, resumeCount = 0, onResume, quickDraft, quickDraftLoading = false, quickDraftError, onQuickDraftGenerate, onGenerateCardImages, cardImageBusy = false }: CreateRoomProps) {
   const topicInputRef = useRef<HTMLInputElement>(null);
   const [hydratedCreateWorkspaceId, setHydratedCreateWorkspaceId] = useState<string | null>(null);
   const [primaryKind, setPrimaryKind] = useState<CreateKind | null>(null);
@@ -657,9 +660,20 @@ export function CreateRoom({ workspaceId, workspaceName, guide, topic, contentBr
             <div className="rounded-control border border-border bg-surface-2 p-stack text-caption text-muted" data-generation-capability>
               <b className="block text-text">현재 제공</b>
               <span className="block">일곱 칸 학습 정보를 반영한 구성 초안 3개</span>
+              <span className="block">카드뉴스 대표 이미지(만들기 전 비용을 보여 드립니다)</span>
               <b className="mt-stack-tight block text-text">준비 중</b>
-              <span className="block">영상 렌더링, 카드뉴스 이미지 생성</span>
+              <span className="block">영상 렌더링</span>
             </div>
+            {/*
+              사업계획 v0.4 10절이 첫 매체를 카드뉴스로 정했고 7절이 만들기 전 비용 승인
+              관문을 요구한다. 그동안 이 자리에 "준비 중"만 적혀 있어 고객은 카드뉴스를
+              만들 수 없었다(2026-09-06 회장 스모크).
+            */}
+            {onGenerateCardImages ? (
+              <Button size="sm" data-testid="create-card-image" onClick={() => void onGenerateCardImages()} disabled={cardImageBusy}>
+                {cardImageBusy ? "카드뉴스 이미지 만드는 중" : "카드뉴스 대표 이미지 만들기"}
+              </Button>
+            ) : null}
             {!candidates.length ? <>
               <div className="space-y-stack rounded-surface border border-border bg-surface p-stack" data-create-question={question}>
                 {question === "kind" ? <fieldset data-create-kind-picker><legend className="mb-stack-tight text-caption font-semibold text-text">무엇을 만들까요?</legend>

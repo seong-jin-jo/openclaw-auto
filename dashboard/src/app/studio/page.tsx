@@ -16,10 +16,11 @@ import { PlatformPreview, PREVIEW_PLATFORMS, type PreviewAccount, type PreviewIn
 import { PlatformFocusFilter } from "@/components/studio/PlatformFocusFilter";
 import { CreateRoom, EditRoom, type CreateContentBranch, type CreateKind, type CreateStructureChoice, type EditContentKind } from "@/components/studio/StudioRooms";
 import type { StudioGenerationCandidate } from "@/lib/studio/generation/client";
+import { useUsage } from "@/hooks/useOverview";
 import { useUIStore, type StudioRoom } from "@/store/ui-store";
 import { LearningCardWizard } from "@/components/studio/LearningCardWizard";
 import { LearningStatus } from "@/components/studio/LearningStatus";
-import { countFilledLearningSlots, readLearningInfo, type LearningInfo } from "@/components/studio/learning-info";
+import { countFilledUserSlots, readLearningInfo, type LearningInfo } from "@/components/studio/learning-info";
 import { RepoConnect } from "@/components/studio/RepoConnect";
 import { SchedulePanel } from "@/components/studio/SchedulePanel";
 import { trackEvent, type AnalyticsChannel } from "@/lib/analytics/events";
@@ -169,9 +170,15 @@ export default function StudioPage() {
   );
   const publishReturnRequest = readPublishReturnRequest(search);
   const { data: me } = useSWR<{ isOperator?: boolean }>("/api/me", fetcher);
-  const canGenerate = me?.isOperator === true;
+  // 운영자 전용으로 남는 것은 종합 관리 화면(상태 조회, 거래 내역)이다.
+  // 생성 자체는 고객에게 열려 있다(회장 2026-09-06 확정).
+  const isOperator = me?.isOperator === true;
+  // 2026-09-06 회장 확정: "토큰 잔여량이나 생성 이력은 고객도 봐야지".
+  // 고객은 자기 작업 공간 사용량을 보고, 운영자는 종합 관리 화면을 따로 본다.
+  const { data: usageData } = useUsage(activeWorkspace?.id);
+  const usage = usageData as { thisMonth?: Record<string, number>; tier?: string; quota?: Record<string, unknown> | null } | undefined;
   const { data: acct, mutate: mutateAcct } = useSWR<{ credits?: number; needsLogin?: boolean }>(
-    canGenerate ? "/api/higgsfield/status" : null,
+    isOperator ? "/api/higgsfield/status" : null,
     fetcher,
   );
   const { data: engine } = useSWR<{ mode?: string; label?: string; model?: string; error?: string }>(
@@ -264,7 +271,7 @@ export default function StudioPage() {
   const [editing, setEditing] = useState<PreviewPlatform | null>(null);
   const [showTx, setShowTx] = useState(false);
   const { data: tx } = useSWR<{ items?: Array<{ display_name?: string; credits?: number; action?: string; created_at?: string; output?: string | null; outputKind?: string | null }> }>(
-    canGenerate && showTx ? "/api/higgsfield/transactions?size=25" : null,
+    isOperator && showTx ? "/api/higgsfield/transactions?size=25" : null,
     fetcher,
   );
 
@@ -485,14 +492,15 @@ export default function StudioPage() {
       setBusy(null);
     }
   }
+  // 2026-09-06 회장 확정: "고객이 이미지 영상 생성 하려고 서비스 쓰는거아니야?"
+  // 종전에는 운영자만 생성할 수 있어 고객 계정에서는 카드뉴스와 영상이 아예 안 만들어졌다.
+  // PRD v8.2.1 이 고객 핵심 기능으로 규정한 것과도 어긋나 있었다. 고객에게 연다.
+  // 누가 얼마나 썼는지는 작업 공간별로 남겨 사용량 화면이 그것을 읽는다.
   async function genImage(prompt: string) {
-    if (!canGenerate) {
-      showToast("이미지 생성은 운영자 전용 기능입니다.", "error");
-      return null;
-    }
+    if (!activeWorkspace) { showToast("작업 공간을 먼저 고르세요", "error"); return null; }
     setLastError(null);
     try {
-      const r = await apiPost<ImgResult & { ok?: boolean; error?: string; nsfw?: boolean; credits?: boolean }>("/api/higgsfield/image", { prompt, aspectRatio: "9:16", label: idea });
+      const r = await apiPost<ImgResult & { ok?: boolean; error?: string; nsfw?: boolean; credits?: boolean }>("/api/higgsfield/image", { prompt, aspectRatio: "9:16", label: idea, tenant_id: activeWorkspace.id });
       if (!r?.ok) { const msg = r?.credits ? "Higgsfield 크레딧 부족" : r?.nsfw ? "Higgsfield NSFW 차단" : (r?.error || "이미지 실패"); setLastError(`이미지: ${msg}`); showToast(msg, "error"); return null; }
       setImg(r); mutateAcct(); return r;
     } catch (e) {
@@ -501,15 +509,12 @@ export default function StudioPage() {
     }
   }
   async function genVideo(localPath: string) {
-    if (!canGenerate) {
-      showToast("영상 생성은 운영자 전용 기능입니다.", "error");
-      return null;
-    }
+    if (!activeWorkspace) { showToast("작업 공간을 먼저 고르세요", "error"); return null; }
     setLastError(null);
     const s = text?.shorts;
     const narration = [s?.hook, s?.body, s?.cta].filter(Boolean).join(". ");
     try {
-      const r = await apiPost<VidResult & { ok?: boolean; error?: string; nsfw?: boolean; credits?: boolean }>("/api/higgsfield/video", { localPath, prompt: "subtle idle motion, gentle glow, fixed camera", model: videoModel, narration, label: idea });
+      const r = await apiPost<VidResult & { ok?: boolean; error?: string; nsfw?: boolean; credits?: boolean }>("/api/higgsfield/video", { localPath, prompt: "subtle idle motion, gentle glow, fixed camera", model: videoModel, narration, label: idea, tenant_id: activeWorkspace.id });
       if (!r?.ok) { const msg = r?.nsfw ? "Higgsfield NSFW 차단" : r?.credits ? "Higgsfield 크레딧 부족" : (r?.error || "영상 실패"); setLastError(`영상: ${msg}`); showToast(msg, "error"); return null; }
       setVid(r); mutateAcct(); return r;
     } catch (e) {
@@ -536,17 +541,58 @@ export default function StudioPage() {
     setTitles({}); setHashtags({}); setTopicTags({}); setFirstComments({}); setCaptions({});
     showToast("새로 시작합니다", "success");
   }
+  /**
+   * 카드뉴스 이미지를 만든다. 만들기 전에 비용을 보여 주고 승인을 받는다.
+   *
+   * 사업계획 v0.4 7절과 10절이 정한 관문이다. "원가는 생성 호출에서 난다. 그래서 만들기
+   * 전에 비용을 보여 주고 승인받는 관문과 재시도 상한이 필요하다." 승인 없이 부르면
+   * 실패가 그대로 비용이 된다. 같은 이유로 첫 매체는 카드뉴스다(10절).
+   */
+  async function generateCardImages() {
+    if (!activeWorkspace) { showToast("작업 공간을 먼저 고르세요", "error"); return; }
+    const slides = text?.instagram?.slides?.length ? text.instagram.slides : [];
+    if (!slides.length) { showToast("먼저 카드뉴스 초안을 만들어 주세요", "error"); return; }
+
+    const est = await apiPost<{
+      ok?: boolean; min_minor?: number; max_minor?: number;
+      estimated_seconds_min?: number; estimated_seconds_max?: number; assumptions?: string[];
+    }>("/api/studio/estimate", { tenant_id: activeWorkspace.id, kind: "card", count: 1 });
+    if (!est?.ok) { showToast("비용을 산정하지 못했습니다. 잠시 후 다시 시도해 주세요.", "error"); return; }
+
+    const approved = window.confirm(
+      [
+        "카드뉴스 대표 이미지를 만듭니다.",
+        `예상 비용 ${est.min_minor?.toLocaleString()}원에서 ${est.max_minor?.toLocaleString()}원`,
+        `예상 시간 ${est.estimated_seconds_min}초에서 ${est.estimated_seconds_max}초`,
+        "",
+        ...(est.assumptions ?? []).map((line) => `· ${line}`),
+        "",
+        "이 범위 안에서 만들까요?",
+      ].join("\n"),
+    );
+    if (!approved) { showToast("만들지 않았습니다", "success"); return; }
+
+    generationAbort.current = new AbortController();
+    setBusy("카드뉴스 이미지 만드는 중");
+    try {
+      await genImage(text?.image_prompt || slides[0] || idea);
+    } finally {
+      generationAbort.current = null;
+      setBusy(null);
+    }
+  }
   async function runOSMU() {
     if (!idea.trim()) { showToast("글감을 입력하세요", "error"); return; }
     setLastError(null);
     setText(null); setImg(null); setVid(null); setDraftId(null); setPublishReconciliations({}); setEditorHandoff(null);
     try {
       setBusy("텍스트 변형 생성 중..."); const t = await genText(); if (!t) return;
-      if (canGenerate) {
+      // 이미지·영상도 고객 흐름의 일부다. 운영자만 돌던 것을 모두에게 돌린다.
+      {
         setBusy("히어로 이미지 생성 중..."); const image = await genImage(t.image_prompt || idea);
         if (image && withVideo) { setBusy("숏폼 영상 생성 중 (1~2분)..."); await genVideo(image.localPath); }
       }
-      showToast(canGenerate ? "OSMU 생성 완료" : "텍스트 생성 완료", "success");
+      showToast("생성 완료", "success");
     } finally { setBusy(null); }
   }
   // P8: AI 자동초안. 브랜드 가이드 + 글감을 소스로 후보 초안 N개를 생성(status=draft).
@@ -1128,12 +1174,22 @@ export default function StudioPage() {
             작업물 전체 <span className="ml-micro text-accent">{hist?.drafts.length ?? 0}</span>
           </Button>
           <LearningStatus
-            filled={countFilledLearningSlots(learningInfo, { guide })}
+            filled={countFilledUserSlots(learningInfo, { guide })}
             flashToken={learningFlash}
             onOpen={() => setShowWizard(true)}
           />
           {/* 세 방 어디서나 같은 자리에서 지금 작업물을 버리고 새로 시작한다. */}
           <Button data-testid="studio-discard-work" onClick={discardCurrentWork}>새로 시작</Button>
+          {/* 내가 이번 달 얼마나 썼는지. 안 보이면 고객은 쓰다가 갑자기 막힌다. */}
+          {usage ? (
+            <span data-testid="studio-usage-chip"
+              className="inline-flex min-h-control-touch items-center gap-stack-tight rounded-control border border-border bg-surface-2 px-stack text-body-sm text-muted"
+              title="이번 달 이 작업 공간에서 만든 건수입니다">
+              <span>이번 달 생성</span>
+              <b className="text-accent">{Number(usage.thisMonth?.aiGeneration ?? 0) + Number(usage.thisMonth?.mediaGeneration ?? 0)}건</b>
+              {usage.tier ? <span className="text-caption text-subtle">{usage.tier} 요금제</span> : null}
+            </span>
+          ) : null}
         </>
       }
       trailing={
@@ -1196,13 +1252,15 @@ export default function StudioPage() {
         onCandidateSelect={chooseCandidate}
         onOpenEditor={() => changeRoom("edit")}
         onAlsoKindsChange={setAlsoKinds}
-        learningVersion={learningFlash + countFilledLearningSlots(learningInfo, { guide })}
+        learningVersion={learningFlash + countFilledUserSlots(learningInfo, { guide })}
         resumeCount={hist?.drafts.length ?? 0}
         onResume={() => setShowWorks(true)}
         quickDraft={text}
         quickDraftLoading={busy === "초안 만드는 중"}
         quickDraftError={lastError}
         onQuickDraftGenerate={generateQuickDraft}
+        onGenerateCardImages={generateCardImages}
+        cardImageBusy={busy === "카드뉴스 이미지 만드는 중"}
       />
     </div>
   );

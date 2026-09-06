@@ -36,6 +36,9 @@ vi.mock("@/lib/higgsfield", () => ({
   downloadTo: vi.fn(async () => 123),
   addNarration: vi.fn(async () => H.higgsNarration),
   logGen: vi.fn(),
+  // 2026-09-06: 생성 1건을 사용량 정본에 남기는 헬퍼가 추가됐다. 이 판의 관심사는
+  // 무음 폴백 응답이므로 기록은 통과시킨다.
+  recordMediaGenerationEvent: vi.fn(async () => {}),
   STUDIO_DIR: "/tmp/studio",
 }));
 
@@ -44,8 +47,10 @@ vi.mock("@/lib/file-io", () => ({
   dataPath: vi.fn((p: string) => path.join("/tmp/data", p)),
 }));
 
+// 2026-09-06: 영상 생성이 사용량을 작업 공간별로 남기게 되면서 테넌트 식별을 요구한다.
+// 이 판은 무음 폴백 응답 계약만 보므로 식별을 통과시킨다.
 vi.mock("@/lib/tenant-auth", () => ({
-  effectiveTenantId: vi.fn(async () => null),
+  effectiveTenantId: vi.fn(async () => "11111111-1111-4111-8111-111111111111"),
 }));
 
 vi.mock("@/lib/tenant-context", () => ({
@@ -70,6 +75,7 @@ describe("내레이션 무음 폴백 응답 계약", () => {
         localPath: "/tmp/input.png",
         prompt: "motion",
         narration: "읽어줄 문장",
+        tenant_id: "11111111-1111-4111-8111-111111111111",
       }),
     }));
     const body = await response.json();

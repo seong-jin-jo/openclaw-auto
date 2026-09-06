@@ -38,6 +38,23 @@ export const LEARNING_SLOTS: readonly LearningSlot[] = [
 
 export const LEARNING_SLOT_TOTAL = LEARNING_SLOTS.length;
 
+/**
+ * 사용자가 직접 채우는 칸만 모은다.
+ *
+ * 2026-09-06 회장 스모크: "완료의 개념이 없음". 여덟 칸 중 마지막 성과에서 배운 규칙은
+ * 발행 결과가 쌓여야 저절로 채워지는데 머리줄은 그것까지 세어 7/8 로 멈춰 있었다.
+ * 사용자는 다 했는데도 끝나지 않은 것으로 보인다. 채울 수 있는 칸으로 완료를 판정한다.
+ */
+export const LEARNING_USER_SLOTS = LEARNING_SLOTS.filter((slot) => slot.key !== "learnedRules");
+export const LEARNING_USER_SLOT_TOTAL = LEARNING_USER_SLOTS.length;
+
+/** 사용자가 채울 수 있는 칸 중 채운 수. 완료 판정은 이 값으로 한다. */
+export function countFilledUserSlots(info: LearningInfo, extras: { guide?: string } = {}): number {
+  const filled = LEARNING_USER_SLOTS.filter((slot) => (info[slot.key] || "").trim()).length;
+  if (!filled && extras.guide?.trim()) return 1;
+  return filled;
+}
+
 export type LearningInfo = Partial<Record<LearningSlotKey, string>>;
 
 export interface LearningCard {

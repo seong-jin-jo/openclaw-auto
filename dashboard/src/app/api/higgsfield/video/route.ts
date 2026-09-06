@@ -1,15 +1,21 @@
 import path from "path";
 import fs from "fs";
-import { hfRun, extractJson, findResultUrl, downloadTo, addNarration, logGen, STUDIO_DIR } from "@/lib/higgsfield";
+import { effectiveTenantId } from "@/lib/tenant-auth";
+import { runWithTenant } from "@/lib/tenant-context";
+import { hfRun, extractJson, findResultUrl, downloadTo, addNarration, logGen, recordMediaGenerationEvent, STUDIO_DIR } from "@/lib/higgsfield";
 
 // POST /api/higgsfield/video — image→video. body: { localPath, prompt, model?, narration? }
 // localPath = /api/higgsfield/image 가 반환한 서버측 절대경로(CLI가 자동 업로드).
 // model 기본 minimax_hailuo(6cr) — 무음. narration 주면 생성 후 TTS 음성 ffmpeg 합성(소리 추가).
 export async function POST(request: Request) {
-  const { localPath, prompt, model = "minimax_hailuo", narration = "", label = "" } = await request.json();
+  const body = await request.json();
+  const { localPath, prompt, model = "minimax_hailuo", narration = "", label = "" } = body;
   if (!localPath || !fs.existsSync(localPath)) {
     return Response.json({ error: "valid localPath required (먼저 /api/higgsfield/image 호출)" }, { status: 400 });
   }
+  // 이미지와 같은 이유로 작업 공간을 남긴다(2026-09-06 고객 개방).
+  const tenantId = await effectiveTenantId(request, body.tenant_id);
+  if (!tenantId) return Response.json({ error: "테넌트를 식별할 수 없습니다." }, { status: 401 });
   const motion = prompt || "subtle idle motion, gentle sway and glow, fixed camera, smooth";
   // Marketing Studio(UGC/제품광고)는 mode·aspect_ratio 파라미터 필요 → 모델별 분기
   const extra = model.startsWith("marketing_studio")
@@ -48,7 +54,8 @@ export async function POST(request: Request) {
         narrationReason = narrationResult.reason;
       }
     }
-    logGen("video", model, label);
+    runWithTenant(tenantId, () => logGen("video", model, label));
+    await recordMediaGenerationEvent(tenantId, "video", model, label);
     const narrationMessage = narrationReason === "server_tts_unavailable"
       ? "내레이션 없이 생성됨 (서버에 TTS 실행기가 없음)"
       : narrationReason === "audio_mix_failed"

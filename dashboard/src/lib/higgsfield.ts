@@ -53,18 +53,28 @@ export async function hfRun(args: string[], timeoutMs = 480000): Promise<{ stdou
 }
 
 // 생성 로그 — Higgsfield 거래내역(모델/시각만 줌)과 시간으로 매칭해 "어느 산출물인지" 표시용
-export const GENLOG = dataPath(path.join("studio", "genlog.json"));
+/**
+ * 생성 로그 경로.
+ *
+ * 2026-09-06: 상수로 두면 모듈을 처음 읽는 순간의 테넌트 문맥(=공유 루트)이 굳어,
+ * 고객에게 생성을 열자마자 모두의 이력이 한 파일에 섞인다. 호출 시점에 계산해
+ * 작업 공간별로 갈라 놓는다. dataPath 가 테넌트 문맥을 보고 경로를 나눈다.
+ */
+export function genlogPath(): string {
+  return dataPath(path.join("studio", "genlog.json"));
+}
 export function logGen(kind: "image" | "video", model: string, label: string): void {
   try {
-    fs.mkdirSync(STUDIO_DIR, { recursive: true });
+    const target = genlogPath();
+    fs.mkdirSync(path.dirname(target), { recursive: true });
     let arr: unknown[] = [];
-    try { arr = JSON.parse(fs.readFileSync(GENLOG, "utf8")); } catch { arr = []; }
+    try { arr = JSON.parse(fs.readFileSync(target, "utf8")); } catch { arr = []; }
     arr.push({ ts: Date.now(), kind, model, label: (label || "").slice(0, 80) });
-    fs.writeFileSync(GENLOG, JSON.stringify((arr as unknown[]).slice(-300)));
+    fs.writeFileSync(target, JSON.stringify((arr as unknown[]).slice(-300)));
   } catch { /* noop */ }
 }
 export function readGenLog(): Array<{ ts: number; kind: string; model: string; label: string }> {
-  try { return JSON.parse(fs.readFileSync(GENLOG, "utf8")); } catch { return []; }
+  try { return JSON.parse(fs.readFileSync(genlogPath(), "utf8")); } catch { return []; }
 }
 
 export const FFMPEG_BIN = process.env.FFMPEG_BIN || "ffmpeg";
@@ -106,4 +116,30 @@ export async function downloadTo(url: string, outPath: string): Promise<number> 
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, buf);
   return buf.length;
+}
+
+/**
+ * 미디어 생성 1건을 사용량 정본(usage_events)에 남긴다.
+ *
+ * 2026-09-06 회장 확정으로 이미지·영상 생성을 고객에게 열었다. 글 생성은 이미 토큰까지
+ * usage_events 에 남기는데 미디어는 파일 로그에만 남아 사용량 화면이 못 읽었다.
+ * 같은 자리에 남겨야 고객이 자기 사용량을 보고 운영자가 종합 관리를 할 수 있다.
+ * 기록 실패가 이미 성공한 생성을 뒤집지 않는다.
+ */
+export async function recordMediaGenerationEvent(
+  tenantId: string,
+  kind: "image" | "video",
+  model: string,
+  label: string,
+): Promise<void> {
+  try {
+    const { withTenant } = await import("@/lib/db");
+    await withTenant(tenantId, (sql) => sql`
+      INSERT INTO usage_events (tenant_id, event_type, quantity, meta)
+      VALUES (${tenantId}, 'mediaGeneration', 1, ${sql.json({
+        kind, model, label: (label || "").slice(0, 80), source: "higgsfield",
+      })})`);
+  } catch (e) {
+    if (process.env.OSMU_DEBUG) console.error("[higgsfield] usage_events 기록 실패(무시):", e);
+  }
 }

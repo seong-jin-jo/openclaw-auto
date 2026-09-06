@@ -8,7 +8,7 @@ import { CreateRoom, EditRoom } from "@/components/studio/StudioRooms";
 import { LearningStatus } from "@/components/studio/LearningStatus";
 import { LearningCardWizard } from "@/components/studio/LearningCardWizard";
 import { EditPreview } from "@/components/studio/EditPreview";
-import { LEARNING_SLOT_TOTAL, countFilledLearningSlots, readLearningInfo } from "@/components/studio/learning-info";
+import { LEARNING_USER_SLOT_TOTAL, countFilledLearningSlots, readLearningInfo } from "@/components/studio/learning-info";
 
 // 회장 4실 실사용 피드백(docs/requests/2026-08-29-회장-4실-실사용-피드백.md) 중
 // 생성실과 편집실 항목의 계약. 대조표에서 미해결로 판정된 자리만 여기서 못 박는다.
@@ -26,10 +26,13 @@ describe("헤더 학습 정보 (회장: 왜 헤더에 학습 정보가 사라짐
   it("CHAIR-LEARN-01 정상: 헤더에 학습 정보가 진행 상태와 함께 항상 보인다", () => {
     render(<LearningStatus filled={3} onOpen={noop} />);
 
-    const status = screen.getByRole("button", { name: `학습 정보 3 / ${LEARNING_SLOT_TOTAL}칸 채움. 남은 5칸 이어 채우기` });
+    // 2026-09-06: 완료 판정 기준이 여덟 칸에서 사용자가 채우는 일곱 칸으로 바뀌었다.
+    // 성과에서 배운 규칙은 발행 결과로 저절로 차므로 사용자 진행률에서 뺀다.
+    const remaining = LEARNING_USER_SLOT_TOTAL - 3;
+    const status = screen.getByRole("button", { name: `학습 정보 3 / ${LEARNING_USER_SLOT_TOTAL}칸 채움. 남은 ${remaining}칸 이어 채우기` });
     expect(status).toHaveTextContent("학습 정보");
-    expect(status).toHaveTextContent(`3 / ${LEARNING_SLOT_TOTAL}`);
-    expect(status).toHaveTextContent("남은 5칸 이어 채우기");
+    expect(status).toHaveTextContent(`3 / ${LEARNING_USER_SLOT_TOTAL}`);
+    expect(status).toHaveTextContent(`남은 ${remaining}칸 이어 채우기`);
     expect(status.querySelector("progress")).toHaveAttribute("value", "3");
   });
 
@@ -112,7 +115,10 @@ describe("생성실 (회장: 오늘 만들 수 있는 것이 뭐하는 예시이
 
     expect(screen.queryByText("오늘 만들 수 있는 것")).toBeNull();
     expect(screen.getByText("콘텐츠 구성 초안 예시")).toBeInTheDocument();
-    expect(screen.getByText("영상 렌더링, 카드뉴스 이미지 생성")).toBeInTheDocument();
+    // 2026-09-06: 카드뉴스 대표 이미지는 준비 중에서 제공으로 옮겼다(회장 확정으로 고객에게
+    // 개방). 준비 중에 남은 것은 영상 렌더링뿐이다.
+    expect(screen.getByText("영상 렌더링")).toBeInTheDocument();
+    expect(screen.getByText(/카드뉴스 대표 이미지/)).toBeInTheDocument();
   });
 
   it("CHAIR-CREATE-02 정상: 만들 형식을 한 질문에서 중복 없이 여러 개 고른다", () => {

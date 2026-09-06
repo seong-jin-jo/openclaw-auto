@@ -12,7 +12,7 @@ import { GettingStartedStrip } from "@/components/shared/GettingStartedStrip";
 import { PerformanceRoom, type PerformancePost } from "@/components/home/PerformanceRoom";
 import { RoomHeader } from "@/components/shared/RoomHeader";
 import { LearningStatus } from "@/components/studio/LearningStatus";
-import { countFilledLearningSlots, readLearningInfo, type LearningInfo } from "@/components/studio/learning-info";
+import { countFilledUserSlots, readLearningInfo, type LearningInfo } from "@/components/studio/learning-info";
 import { Button } from "@/components/shared/Button";
 import { useToast } from "@/components/layout/Toast";
 import Link from "next/link";
@@ -91,7 +91,7 @@ export function PerformanceDashboard({ dedicatedRoom = false }: { dedicatedRoom?
         currentRoom={dedicatedRoom ? "performance" : undefined}
         leading={
           <LearningStatus
-            filled={countFilledLearningSlots(learningInfo)}
+            filled={countFilledUserSlots(learningInfo)}
             onOpen={() => { window.location.href = "/studio?setup=brand"; }}
           />
         }
