@@ -75,6 +75,32 @@ jobs:
             exit 1
           fi
           echo ".env.osmu rendered ($(grep -c . .env.osmu) lines)"
+      - name: 이미지·영상 생성기 자격증명 배치 (시크릿이 있을 때만)
+        # 종전에는 배포 호스트에서 사람이 `higgsfield auth login` 을 한 번 해야 했다. 배포 VM 은
+        # 브라우저가 없는 서버라 그 한 번이 계속 되지 않았고 카드뉴스 생성이 막혀 있었다.
+        # 생성기는 자격증명을 작은 JSON 파일 하나로 읽는다. 그 파일을 시크릿에서 렌더한다.
+        # 회장은 본인 맥의 ~/.config/higgsfield/credentials.json 내용을
+        # HIGGSFIELD_CREDENTIALS_JSON 시크릿에 한 번 넣으면 된다. 서버 로그인은 필요 없다.
+        # 시크릿이 없으면 아무것도 하지 않는다 — 화면은 종전대로 "생성기 미로그인"으로 닫힌다.
+        env:
+          HIGGSFIELD_CREDENTIALS_JSON: ${{ secrets.HIGGSFIELD_CREDENTIALS_JSON }}
+        run: |
+          if [ -z "$HIGGSFIELD_CREDENTIALS_JSON" ]; then
+            echo "HIGGSFIELD_CREDENTIALS_JSON 미설정 — 생성기 자격증명 배치 건너뜀"
+            exit 0
+          fi
+          umask 077
+          mkdir -p "$HOME/.config/higgsfield"
+          # 값은 파일로만 흘린다. argv 나 로그에 남기지 않는다.
+          printf '%s' "$HIGGSFIELD_CREDENTIALS_JSON" > "$HOME/.config/higgsfield/credentials.json"
+          chmod 600 "$HOME/.config/higgsfield/credentials.json"
+          if ! python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));sys.exit(0 if d.get("access_token") else 1)' \
+              "$HOME/.config/higgsfield/credentials.json"; then
+            echo "::error::HIGGSFIELD_CREDENTIALS_JSON 형식이 올바르지 않음(access_token 없음)"
+            exit 1
+          fi
+          echo "생성기 자격증명 배치 완료"
+
       - name: OSMU DB 스키마 read-only preflight
         # 일반 앱 배포는 DB DDL을 실행하지 않는다. 역사 migration wildcard
         # replay를 금지하고, 승인형 osmu-db-migrate workflow만 명시 phase를 적용한다.
