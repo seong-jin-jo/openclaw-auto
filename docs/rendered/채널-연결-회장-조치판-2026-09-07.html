@@ -22,6 +22,9 @@ code{background:#0b0d12;border:1px solid var(--line);border-radius:6px;padding:2
 .copy{cursor:pointer;border:1px solid var(--line);background:#0b0d12;color:var(--tx);border-radius:7px;padding:7px 12px;font-size:13px;margin-left:8px}
 </style></head><body><div class="wrap">
 <h1>채널 연결 조치판</h1>
+<div class="card" style="border-color:#5a4a1f;background:#221d10"><b>먼저 바로잡습니다.</b>
+<p class="why" style="margin-top:8px">회장님 지적이 맞습니다. <b>고객이 가입할 때마다 개발자 센터에 들어가는 구조가 아닙니다.</b> 개발자 콘솔 등록은 <b>우리 앱 하나를 한 번</b> 만드는 일이고, 그 뒤로 고객은 연결 단추를 눌러 OAuth 동의만 하면 됩니다. 제가 유튜브에서 "테스트 사용자를 추가하라"고 한 것은 앱이 아직 <b>테스트 중</b>이라 생긴 임시방편이었고, 그것을 정답처럼 보고한 것이 잘못입니다. 아래 유튜브 항목을 그 기준으로 고쳐 적었습니다.</p>
+<p class="why">TikTok과 LinkedIn도 같습니다. 우리 앱을 한 번 만들면 고객은 OAuth 로그인만 합니다. 지금 막힌 것은 <b>그 한 번의 앱 생성</b>이지 고객 절차가 아닙니다.</p></div>
 <p class="sub">2026-09-07 · 회장님이 누르셔야 열리는 것만 모았습니다. 하나 끝내실 때마다 알려 주시면 제가 그 채널을 관통해 게시물 주소로 증명합니다.</p>
 
 <div class="card done"><div class="hd"><span class="ch">Threads</span><span class="tag t-ok">전 구간 통과</span></div>
@@ -38,26 +41,26 @@ code{background:#0b0d12;border:1px solid var(--line);border-radius:6px;padding:2
 </ol>
 <a class="btn" href="https://console.x.com/accounts/2096674741604016128/billing/credits" target="_blank" rel="noopener">X 크레딧 충전</a></div>
 
-<div class="card"><div class="hd"><span class="ch">유튜브</span><span class="tag t-wait">테스트 사용자 추가</span></div>
-<p class="why">콜백 주소는 제가 등록해 <code>redirect_uri_mismatch</code> 를 없앴습니다. 지금은 앱이 "테스트 중"이라 등록된 계정만 들어갑니다. 제가 여섯 번 저장을 시도했는데 서버가 매번 거부했습니다.</p>
+<div class="card"><div class="hd"><span class="ch">유튜브</span><span class="tag t-wait">앱을 공개로 올리기</span></div>
+<p class="why"><b>앞선 안내가 틀렸습니다.</b> 제가 "테스트 사용자로 계정을 추가하라"고 했는데, 그건 앱이 <b>테스트 중</b>일 때만 필요한 임시방편입니다. 회장님 지적대로 <b>고객이 가입할 때마다 콘솔에 들어가는 구조가 아닙니다.</b> 우리 앱을 한 번 <b>공개(프로덕션)</b>로 올리면 그 뒤로는 고객이 연결 단추만 누르면 됩니다.</p>
 <ol>
 <li>아래 단추로 대상 화면을 엽니다</li>
-<li>맨 아래 <b>테스트 사용자 → Add users</b></li>
-<li><code>j.the.great.investor@gmail.com</code> 입력 후 <b>저장</b></li>
-<li>사용자가 4명으로 늘면 성공입니다</li>
+<li><b>게시 상태</b>에서 <b>앱 게시</b>를 누릅니다</li>
+<li>막히면 <b>브랜딩</b> 화면에서 빠진 값을 채우고 <b>저장</b> 후 다시 시도합니다</li>
+<li>공개로 올라가면 심사 전에는 "확인되지 않은 앱" 경고가 뜨지만 고급을 눌러 진행할 수 있고, 고객 100명까지 쓸 수 있습니다</li>
+<li>정식 서비스로 열려면 그 뒤에 구글 심사를 넣습니다 (영상 업로드 권한은 민감 권한이라 심사 대상)</li>
 </ol>
-<button class="copy" onclick="navigator.clipboard.writeText('j.the.great.investor@gmail.com')">이메일 복사</button>
 <a class="btn" href="https://console.cloud.google.com/auth/audience?project=play-store-deploy-491206" target="_blank" rel="noopener">구글 콘솔 열기</a></div>
 
-<div class="card"><div class="hd"><span class="ch">인스타그램</span><span class="tag t-wait">앱 설정 확인</span></div>
-<p class="why">동의까지는 통과합니다. 마지막 60일 권한 교환에서 Meta 가 <code>Unsupported request</code> 로 거절합니다. 더미 토큰으로 재현해 보니 <b>경로는 살아 있고</b> 진짜 토큰에서만 이 오류가 납니다. 토큰의 앱 종류에 그 경로가 없다는 뜻입니다. Facebook 쪽 교환까지 넣어 봤지만 같은 사유로 막혔습니다.</p>
+<div class="card"><div class="hd"><span class="ch">인스타그램</span><span class="tag t-wait">발행 권한 추가</span></div>
+<p class="why">회장님이 띄워 두신 Meta 앱(<b>정성컴퍼니</b>, 앱 ID 1553503759757107)을 확인했습니다. Instagram 이용 사례는 붙어 있고 로그인 방식도 <b>Instagram 로그인</b>이 맞습니다. 우리 서버가 보내는 앱 ID(<code>1534059948198965</code>)도 화면의 Instagram 앱 ID와 <b>일치</b>합니다.</p>
+<p class="why">그런데 그 화면의 권한 목록에 <b>기본·댓글·메시지</b>만 있고 <b>콘텐츠 발행 권한이 없습니다</b>. 발행을 하려면 <code>instagram_business_content_publish</code> 가 있어야 합니다. 60일 권한 교환이 거절되는 것도 이것과 이어질 가능성이 큽니다.</p>
 <ol>
-<li>아래 단추로 Meta 앱 목록을 엽니다</li>
-<li>인스타그램에 쓰는 앱을 엽니다 (동의 화면 이름은 <b>정성컴퍼니-IG</b> 였습니다)</li>
-<li><b>제품(Products)</b> 목록에 <b>Instagram</b> 이 붙어 있는지 봅니다</li>
-<li>있으면 그 안에서 <b>API 설정</b> 이 Instagram 로그인인지 Facebook 로그인인지 확인해 알려 주십시오</li>
+<li>아래 단추로 Instagram 이용 사례 화면을 엽니다</li>
+<li><b>권한 및 기능</b>으로 가서 <code>instagram_business_content_publish</code> 를 추가합니다</li>
+<li>같은 화면의 <b>Instagram 앱 시크릿 코드 표시</b>를 눌러 값을 저에게 주시면 서버 값과 맞는지 제가 대조하고 필요하면 교체합니다</li>
 </ol>
-<a class="btn" href="https://developers.facebook.com/apps/" target="_blank" rel="noopener">Meta 앱 열기</a></div>
+<a class="btn" href="https://developers.facebook.com/apps/1553503759757107/use_cases/customize/?use_case_enum=INSTAGRAM_BUSINESS&selected_tab=API-Setup&product_route=instagram-business" target="_blank" rel="noopener">Instagram 이용 사례 열기</a></div>
 
 <div class="card"><div class="hd"><span class="ch">TikTok</span><span class="tag t-wait">PIN 6자리만</span></div>
 <p class="why">가입이 비밀번호가 아니라 <b>이메일 PIN</b> 방식이라 제가 진행할 수 있습니다. <b>방금 회장님 메일로 6자리 PIN 을 보내 놨습니다.</b> 그 숫자만 알려 주시면 가입부터 앱 생성·연결까지 제가 끝냅니다. 비밀번호는 제가 입력하지 않습니다.</p>
