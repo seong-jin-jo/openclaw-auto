@@ -176,6 +176,13 @@ export default function StudioPage() {
   // 2026-09-06 회장 확정: "토큰 잔여량이나 생성 이력은 고객도 봐야지".
   // 고객은 자기 작업 공간 사용량을 보고, 운영자는 종합 관리 화면을 따로 본다.
   const { data: usageData } = useUsage(activeWorkspace?.id);
+  // 사용량 칩을 누르면 이 작업 공간의 생성 이력을 편다. 숫자만 있고 무엇을 만들었는지
+  // 볼 수 없으면 고객은 자기 사용을 판단할 수 없다(회장 2026-09-06 확정).
+  const [showUsageHistory, setShowUsageHistory] = useState(false);
+  const { data: historyData } = useSWR<{ ok?: boolean; items?: Array<{ at: string; kind: string; model: string; label: string; totalTokens: number | null }>; error?: string }>(
+    showUsageHistory && activeWorkspace ? `/api/studio/generation-history?tenant_id=${activeWorkspace.id}&limit=20` : null,
+    fetcher,
+  );
   const usage = usageData as { thisMonth?: Record<string, number>; tier?: string; quota?: Record<string, unknown> | null } | undefined;
   const { data: acct, mutate: mutateAcct } = useSWR<{ credits?: number; needsLogin?: boolean }>(
     isOperator ? "/api/higgsfield/status" : null,
@@ -1182,9 +1189,11 @@ export default function StudioPage() {
           <Button data-testid="studio-discard-work" onClick={discardCurrentWork}>새로 시작</Button>
           {/* 내가 이번 달 얼마나 썼는지. 안 보이면 고객은 쓰다가 갑자기 막힌다. */}
           {usage ? (
-            <span data-testid="studio-usage-chip"
-              className="inline-flex min-h-control-touch items-center gap-stack-tight rounded-control border border-border bg-surface-2 px-stack text-body-sm text-muted"
-              title="이번 달 이 작업 공간에서 만든 건수입니다">
+            <button type="button" data-testid="studio-usage-chip"
+              onClick={() => setShowUsageHistory((open) => !open)}
+              aria-expanded={showUsageHistory}
+              className="inline-flex min-h-control-touch items-center gap-stack-tight rounded-control border border-border bg-surface-2 px-stack text-body-sm text-muted hover:bg-surface"
+              title="눌러서 이 작업 공간의 생성 이력을 봅니다">
               <span>이번 달 생성</span>
               {/*
                 2026-09-06 실측: 여기서 읽던 이름이 응답 필드와 달라(aiGeneration 대
@@ -1192,7 +1201,7 @@ export default function StudioPage() {
               */}
               <b className="text-accent">{Number(usage.thisMonth?.aiGenerations ?? 0)}건</b>
               {usage.tier ? <span className="text-caption text-subtle">{usage.tier} 요금제</span> : null}
-            </span>
+            </button>
           ) : null}
         </>
       }
@@ -1208,6 +1217,28 @@ export default function StudioPage() {
         </>
       }
     >
+      {showUsageHistory ? (
+        <div id="studio-usage-history" data-usage-history
+          className="absolute left-0 right-0 top-full z-50 mt-stack space-y-stack-tight rounded-surface border border-border bg-surface p-pad-inset shadow-lg">
+          <b className="block text-body text-text">이 작업 공간의 생성 이력</b>
+          <p className="break-keep text-caption text-subtle">최근 20건입니다. 무엇을 언제 만들었는지와 쓴 토큰을 보여 드립니다.</p>
+          {historyData && historyData.ok === false ? (
+            <p role="alert" className="text-caption text-danger">{historyData.error || "생성 이력을 불러오지 못했습니다."}</p>
+          ) : !historyData ? (
+            <p className="text-caption text-muted">불러오는 중입니다.</p>
+          ) : (historyData.items ?? []).length === 0 ? (
+            <p className="text-caption text-muted">아직 만든 것이 없습니다. 생성실에서 첫 초안을 만들어 보세요.</p>
+          ) : (historyData.items ?? []).map((item, index) => (
+            <div key={`${item.at}-${index}`} data-usage-history-item
+              className="flex flex-wrap items-center gap-stack rounded-control border border-border bg-surface-2 px-stack py-stack-tight text-body-sm">
+              <span className="shrink-0 rounded-pill bg-accent-soft px-stack-tight text-caption font-semibold text-accent">{item.kind}</span>
+              <b className="min-w-0 flex-1 truncate text-text">{item.label || "제목 없음"}</b>
+              {item.totalTokens ? <span className="shrink-0 text-caption text-subtle">토큰 {item.totalTokens.toLocaleString()}</span> : null}
+              <span className="shrink-0 text-caption text-subtle">{new Date(item.at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
       {showWorks ? (
         /*
           2026-09-06 회장 스모크: "발행실에서는 팝업이 챗봇에 가려짐". 이 판은 z-20 인데
