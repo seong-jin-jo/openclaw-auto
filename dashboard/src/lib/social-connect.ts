@@ -429,9 +429,17 @@ function positiveExpiresIn(value: unknown): number | undefined {
 // Meta 토큰 교환 실패 사유 문자열. provider가 준 message와 HTTP status를 함께 남겨야
 // 운영 로그에서 원인(자격증명 / 권한 / 만료 / 응답 형식)을 가를 수 있다. client_secret 등
 // 우리 비밀값은 여기 절대 들어가지 않는다(응답 본문과 status만 사용).
-function metaExchangeError(step: string, status: number, detail?: string): string {
-  const tail = detail ? `: ${String(detail).slice(0, 160)}` : "";
-  return `${step} 실패 (HTTP ${status})${tail}`;
+// 회장 2026-09-07 "장기토큰실패 이러는데 Refresh token 얘기냐 용어 왜이래":
+// 화면에 "장기 토큰 교환 실패" 라고 떴다. 이건 우리 코드가 부르는 이름이지 쓰는 사람의 말이
+// 아니다. 무엇이 안 됐는지를 사람 말로 먼저 쓰고, 개발자용 원문은 뒤에 괄호로 붙인다.
+const META_STEP_LABEL: Record<string, string> = {
+  short: "연결 확인",
+  long: "연결 유지 권한(60일)",
+};
+function metaExchangeError(stepKey: "short" | "long", label: string, status: number, detail?: string): string {
+  const what = META_STEP_LABEL[stepKey];
+  const tail = detail ? ` (원문: ${String(detail).slice(0, 160)})` : "";
+  return `${label} 연결이 마지막 단계에서 끊겼습니다. ${what}을 받지 못했습니다. 다시 연결해 보시고, 그래도 안 되면 앱 설정을 확인해야 합니다. [HTTP ${status}]${tail}`;
 }
 
 // code → 토큰 교환. Instagram·Threads는 단기→장기 2단계. 표준 OAuth 채널은 단일 교환.
@@ -518,10 +526,10 @@ export async function exchangeCode(
     // 문자열만 남던 것을 고친다(2026-08-30 threads 재연결 실패 추적).
     return {
       accessToken: "",
-      error: metaExchangeError("단기 토큰 교환", shortRes.status, short.error_message || short.error?.message),
+      error: metaExchangeError("short", p.label, shortRes.status, short.error_message || short.error?.message),
     };
   }
-  // 2) 장기 토큰(60일)
+  // 2) 60일짜리 연결 유지 권한 (Meta 용어로는 long-lived token)
   const longRes = await f(
     `${p.longTokenUrl}?grant_type=${p.longGrant}&client_secret=${encodeURIComponent(clientSecret)}&access_token=${encodeURIComponent(short.access_token)}`,
   );
@@ -537,7 +545,7 @@ export async function exchangeCode(
     // 가릴 수 없었다(2026-08-30 threads 재연결 실패). 사유를 반드시 실어 보낸다.
     const detail = long.error?.message || long.error_message
       || (longRes.ok && long.access_token && !expiresInSeconds ? "응답에 expires_in 없음" : undefined);
-    return { accessToken: "", error: metaExchangeError(`${p.label} 장기 토큰 교환`, longRes.status, detail) };
+    return { accessToken: "", error: metaExchangeError("long", p.label, longRes.status, detail) };
   }
   return {
     accessToken: long.access_token,

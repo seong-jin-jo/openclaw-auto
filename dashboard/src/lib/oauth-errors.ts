@@ -55,8 +55,15 @@ export function oauthErrorMessage(raw: string, provider?: string): string {
   if (/developer role|role.*permission|permission.*role|권한.*부족|개발자 역할/i.test(msg)) {
     return `${p}Meta가 이 계정의 앱 역할 권한을 확인하지 못했습니다. 앱 관리 화면에서 개발자, 테스터, 관리자 등록 여부와 초대 수락 여부를 확인해주세요.`;
   }
+  // 구글은 앱이 심사를 안 거쳤으면 동의 화면 대신 "액세스 차단됨 ... Google 인증 절차를
+  // 완료하지 않았습니다" 를 띄운다(회장 2026-09-07 실제 화면). 주소 불일치와 전혀 다른 문제인데
+  // 아래 redirect 규칙에 걸려 엉뚱한 안내가 나가던 것을 앞에서 가른다. 풀리는 길은 둘이다.
+  // 테스트 사용자로 등록해 쓰거나, 앱 심사를 받아 공개로 올리거나.
+  if (/access_blocked|has not completed the Google verification|Google 인증 절차를 완료하지|액세스 차단됨|admin_policy_enforced/i.test(msg)) {
+    return `${p}구글이 아직 이 앱을 확인하지 않아 로그인을 막았습니다. 구글 콘솔에서 이 계정을 테스트 사용자로 등록하면 바로 쓸 수 있고, 모두에게 열려면 앱 심사를 받아야 합니다.`;
+  }
   if (/redirect_uri|redirect uri|callback/i.test(msg)) {
-    return `${p}OAuth callback URL이 앱 콘솔 등록값과 다릅니다. 배포 공개 URL과 redirect URI를 같은 문자열로 맞춰야 합니다.`;
+    return `${p}연결하고 돌아올 주소가 앱 콘솔에 등록된 값과 다릅니다. 서비스 공개 주소와 등록 주소를 글자까지 같게 맞춰야 합니다.`;
   }
   if (/permission|scope|not approved|review/i.test(msg)) {
     const original = safeOriginalMessage(msg);
