@@ -10,6 +10,10 @@
 
 import { resolveOAuthCredentialSet } from "@/lib/oauth-app-credentials";
 
+// Meta Graph 기본 주소. 아래 FB_V 는 선언이 사용 지점보다 뒤라 여기서 쓰면 실행 중에
+// 초기화 전 접근으로 터진다(2026-09-07). 위쪽에서 쓰는 곳은 이 상수를 본다.
+const FB_GRAPH = "https://graph.facebook.com/v21.0";
+
 export interface ProviderConfig {
   label: string;            // integrations.label
   authorizeUrl: string;
@@ -565,19 +569,35 @@ export async function exchangeCode(
         body: new URLSearchParams(longParams).toString(),
       })
     : await f(`${p.longTokenUrl}?${new URLSearchParams(longParams).toString()}`);
-  const longText = await longRes.text();
+  let longEffective = longRes;
+  let longText = await longRes.text();
+  // 2026-09-07 실측: 더미 토큰으로는 이 경로가 190(토큰 못 읽음)을 준다. 즉 경로는 살아 있다.
+  //   그런데 진짜 토큰을 넣으면 `Unsupported request - method type: get` 이 온다. 토큰은
+  //   읽혔는데 그 토큰의 앱 종류에는 이 경로가 없다는 뜻이다. Instagram 을 Facebook 로그인으로
+  //   연동한 앱이 이 모양이다(동의 흐름값 ig_biz_login_oauth). 그 경우 60일 권한은 Facebook
+  //   쪽에서 받아야 한다. 첫 경로가 이 사유로 막히면 그쪽으로 한 번 더 시도한다.
+  if (!longRes.ok && /unsupported request/i.test(longText)) {
+    const fb = await f(
+      `${FB_GRAPH}/oauth/access_token?grant_type=fb_exchange_token`
+      + `&client_id=${encodeURIComponent(clientId)}`
+      + `&client_secret=${encodeURIComponent(clientSecret)}`
+      + `&fb_exchange_token=${encodeURIComponent(short.access_token)}`,
+    );
+    const fbText = await fb.text();
+    if (fb.ok) { longEffective = fb; longText = fbText; }
+  }
   let long: { access_token?: string; expires_in?: number | string; error?: { message?: string }; error_message?: string } = {};
   try { long = JSON.parse(longText); } catch { long = {}; }
   const expiresInSeconds = positiveExpiresIn(long.expires_in);
   // 단기 토큰으로 폴백하면 연결 직후만 성공하고 곧 실패하면서 active가 남는다.
   // 장기 토큰과 만료시각 둘 다 확인된 경우에만 콜백이 저장하도록 fail-closed한다.
-  if (!longRes.ok || !long.access_token || !expiresInSeconds) {
+  if (!longEffective.ok || !long.access_token || !expiresInSeconds) {
     // 이전 버전은 provider 응답을 통째로 버리고 `${label} 장기 토큰 교환 실패`만 남겼다.
     // 그래서 운영 로그만으로는 "앱 자격증명 문제인지 / 권한 문제인지 / expires_in 누락인지"를
     // 가릴 수 없었다(2026-08-30 threads 재연결 실패). 사유를 반드시 실어 보낸다.
     const detail = long.error?.message || long.error_message
-      || (longRes.ok && long.access_token && !expiresInSeconds ? "응답에 expires_in 없음" : undefined);
-    return { accessToken: "", error: metaExchangeError("long", p.label, longRes.status, detail) };
+      || (longEffective.ok && long.access_token && !expiresInSeconds ? "응답에 expires_in 없음" : undefined);
+    return { accessToken: "", error: metaExchangeError("long", p.label, longEffective.status, detail) };
   }
   return {
     accessToken: long.access_token,
