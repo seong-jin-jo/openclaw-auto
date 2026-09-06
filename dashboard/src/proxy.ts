@@ -104,6 +104,8 @@ const TENANT_AWARE_PATHS = [
   // 만들기 전 비용 산정. 고객이 승인 여부를 판단하는 화면이 부르므로 테넌트 경로다
   // (사업계획 v0.4 7절·10절의 비용 승인 관문).
   "/api/studio/estimate",
+  // 고객이 자기 생성 이력을 보는 경로(회장 2026-09-06 확정).
+  "/api/studio/generation-history",
   "/api/studio/handoffs",
   "/api/studio/text",
   // 2026-09-06 회장 확정으로 이미지·영상 생성을 고객에게 열었다. 두 라우트는
