@@ -35,7 +35,7 @@ import { GettingStartedStrip } from "@/components/shared/GettingStartedStrip";
 import { SCHEDULABLE_PLATFORMS } from "@/lib/constants";
 import type { CardTextPosition } from "@/components/studio/EditPreview";
 import type { EditorHandoff } from "@/lib/studio/editor-handoff";
-import { resolveStudioRoomFromSearch, shouldLoadPublishResources } from "@/lib/studio/room-routing";
+import { resolveStudioRoom, shouldLoadPublishResources } from "@/lib/studio/room-routing";
 import {
   HASHTAG_BUDGET,
   parseHashtags,
@@ -165,10 +165,18 @@ export default function StudioPage() {
   const searchParams = useSearchParams();
   const search = searchParams?.toString() ?? "";
   const { activeWorkspace, studioRoom: storedRoom, setStudioRoom: setActiveRoom } = useUIStore();
-  const activeRoom = resolveStudioRoomFromSearch(
-    `?${search}`,
-    storedRoom,
-  );
+  // 없는 방 이름으로 들어오면 조용히 다른 방을 그리지 않는다. 아는 별칭은 제 주소로
+  // 보내고, 모르는 값은 화면이 그 사실을 말한다(ADR-007).
+  const roomResolution = resolveStudioRoom(`?${search}`, storedRoom);
+  const activeRoom = roomResolution.room;
+  useEffect(() => {
+    if (roomResolution.redirectTo) window.location.replace(roomResolution.redirectTo);
+  }, [roomResolution.redirectTo]);
+  useEffect(() => {
+    if (roomResolution.unknownRoom) {
+      showToast(`"${roomResolution.unknownRoom}" 이라는 방은 없습니다. 생성실·편집실·발행실 중에서 고르시거나 성과실은 왼쪽 차림표에서 여세요.`, "error");
+    }
+  }, [roomResolution.unknownRoom]);
   const publishReturnRequest = readPublishReturnRequest(search);
   const { data: me } = useSWR<{ isOperator?: boolean }>("/api/me", fetcher);
   // 운영자 전용으로 남는 것은 종합 관리 화면(상태 조회, 거래 내역)이다.
@@ -233,7 +241,6 @@ export default function StudioPage() {
       setShowWizard(true);
     }
   }, []);
-  const [withVideo, setWithVideo] = useState(true);
   // 비용 승인을 화면 안에서 받는다. window.confirm 은 페이지를 멈춰 세워 무엇을 승인하는지
   // 나란히 볼 수 없었고, 돈이 나가는 관문에 맞는 화면이 아니었다(회장 2026-09-07 실사용).
   const [costApproval, setCostApproval] = useState<CostApprovalRequest | null>(null);
@@ -247,7 +254,8 @@ export default function StudioPage() {
     costApprovalResolve.current?.(ok);
     costApprovalResolve.current = null;
   }
-  const [videoModel, setVideoModel] = useState("minimax_hailuo");
+  // 화면에 모델 선택이 없다. 고르게 할 때까지는 상수로 둔다(죽은 상태값 금지).
+  const videoModel = "minimax_hailuo";
   const [busy, setBusy] = useState<string | null>(null);
   // 2026-09-06 회장 스모크: 생성이 시작되면 끝날 때까지 취소할 방법이 없었고, 도는 동안
   // 화면에 아무 표시도 없었다. 진행 중임을 보여 주고 그만둘 수 있게 한다.
@@ -322,7 +330,7 @@ export default function StudioPage() {
     && publishTargets.some((platform) => pub.status[platform] === "failed");
 
   useEffect(() => {
-    const requested = resolveStudioRoomFromSearch(`?${search}`, storedRoom);
+    const requested = resolveStudioRoom(`?${search}`, storedRoom).room;
     if (requested !== storedRoom) setActiveRoom(requested);
   }, [search, setActiveRoom, storedRoom]);
 
@@ -636,37 +644,8 @@ export default function StudioPage() {
       setBusy(null);
     }
   }
-  async function runOSMU() {
-    if (!idea.trim()) { showToast("글감을 입력하세요", "error"); return; }
-    setLastError(null);
-    setText(null); setImg(null); setVid(null); setDraftId(null); setPublishReconciliations({}); setEditorHandoff(null);
-    try {
-      setBusy("텍스트 변형 생성 중..."); const t = await genText(); if (!t) return;
-      // 이미지·영상도 고객 흐름의 일부다. 운영자만 돌던 것을 모두에게 돌린다.
-      {
-        setBusy("히어로 이미지 생성 중..."); const image = await genImage(t.image_prompt || idea);
-        if (image && withVideo) { setBusy("숏폼 영상 생성 중 (1~2분)..."); await genVideo(image.localPath); }
-      }
-      showToast("생성 완료", "success");
-    } finally { setBusy(null); }
-  }
   // P8: AI 자동초안. 브랜드 가이드 + 글감을 소스로 후보 초안 N개를 생성(status=draft).
   // 게이트웨이 크론(generate-drafts)의 수동 대응. /api/sourcing 재사용(longform→후보 청킹).
-  async function autoGenerate() {
-    if (!activeWorkspace) { showToast("워크스페이스를 선택하세요", "error"); return; }
-    const seed = [guide, idea].filter(Boolean).join("\n\n").trim();
-    if (seed.length < 50) { showToast("브랜드 가이드 설정 또는 글감을 더 입력하세요 (최소 50자)", "error"); return; }
-    setAutoGen(true);
-    try {
-      const r = await apiPost<{ ok?: boolean; savedDrafts?: number; error?: string }>("/api/sourcing", {
-        tenant_id: activeWorkspace.id, longform_text: seed, count: 5,
-      });
-      if (r?.ok) { showToast(`AI 자동초안 ${r.savedDrafts ?? 0}개 생성됨. 작업물 전체에서 확인`, "success"); mutateHist(); }
-      else showToast(r?.error || "자동초안 생성 실패", "error");
-    } catch (e) {
-      showToast(e instanceof Error ? e.message : "자동초안 생성 실패", "error");
-    } finally { setAutoGen(false); }
-  }
   async function save(
     status: "draft" | "published" | "partial" | "stopped" = "draft",
     reconciliations: PublishReconciliationMap = publishReconciliations,
