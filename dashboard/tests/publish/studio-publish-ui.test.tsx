@@ -440,7 +440,10 @@ describe("Studio publish result integrity", () => {
     render(<StudioPage />);
     fireEvent.click(screen.getByRole("button", { name: /작업물 전체/ }));
 
-    expect(screen.getByText("고객 사례 카드뉴스", { exact: true })).toBeInTheDocument();
+    // 2026-09-06: 작업물 전체 판이 목록까지 보여 주게 되면서 같은 제목이 현재 작업과
+    // 목록 두 곳에 나온다. 현재 작업 영역으로 좁혀 확인한다.
+    const currentWork = document.querySelector("[data-current-work]") as HTMLElement;
+    expect(within(currentWork).getByText("고객 사례 카드뉴스", { exact: true })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "이어 편집하기" }));
 
     expect(mocks.setStudioRoom).toHaveBeenCalledWith("edit");

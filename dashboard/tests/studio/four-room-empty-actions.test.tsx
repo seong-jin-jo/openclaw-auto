@@ -8,6 +8,7 @@ import { CreateRoom } from "@/components/studio/StudioRooms";
 
 const mocks = vi.hoisted(() => ({
   swr: vi.fn(),
+  drafts: [] as Array<Record<string, unknown>>,
   apiPost: vi.fn(),
   showToast: vi.fn(),
   room: "publish",
@@ -62,6 +63,7 @@ async function answerStudioQuestionnaire(topic: string) {
 }
 
 beforeEach(() => {
+  mocks.drafts = [];
   localStorage.clear();
   window.history.replaceState(null, "", "/studio");
   mocks.room = "publish";
@@ -69,7 +71,7 @@ beforeEach(() => {
   mocks.swr.mockReset();
   mocks.swr.mockImplementation((key: string | null) => {
     if (key === "/api/me") return { data: { isOperator: false }, mutate: vi.fn() };
-    if (key === "/api/studio/drafts?tenant_id=tenant-empty") return { data: { drafts: [] }, mutate: vi.fn() };
+    if (key === "/api/studio/drafts?tenant_id=tenant-empty") return { data: { drafts: mocks.drafts }, mutate: vi.fn() };
     if (key === "/api/studio/brand-setup?tenant_id=tenant-empty") return { data: { guide: null }, mutate: vi.fn() };
     if (key === "/api/publish/first-comment-capabilities") return { data: { capabilities: [] }, mutate: vi.fn() };
     return { data: undefined, mutate: vi.fn() };
@@ -220,5 +222,23 @@ describe("V77-CREATE-NETWORK 생성 담당 구조 선택 계약", () => {
       expect(saved.draftId ?? null).toBeNull();
     });
     confirmSpy.mockRestore();
+  });
+
+  // 2026-09-06 회장 스모크 회귀: "작업물 전체 12 클릭하면 1개밖에 없다". 숫자는 작업물
+  // 수인데 판에는 방 이동 단추만 있었다. 숫자가 약속한 목록을 실제로 보여 줘야 한다.
+  it("V78-WORKS-01 정상: 작업물 전체를 열면 숫자만큼의 작업물 목록이 보인다", async () => {
+    mocks.room = "create";
+    window.history.replaceState(null, "", "/studio?room=create");
+    mocks.drafts = [
+      { id: "d1", idea: "첫 번째 작업물", status: "draft" },
+      { id: "d2", idea: "두 번째 작업물", status: "published" },
+    ];
+
+    render(<StudioPage />);
+    fireEvent.click(await screen.findByRole("button", { name: /작업물 전체/ }));
+
+    await waitFor(() => expect(document.querySelectorAll("[data-work-item]").length).toBe(2));
+    expect(screen.getByText("첫 번째 작업물")).toBeInTheDocument();
+    expect(screen.getByText("두 번째 작업물")).toBeInTheDocument();
   });
 });

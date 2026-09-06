@@ -1205,7 +1205,12 @@ export default function StudioPage() {
       }
     >
       {showWorks ? (
-        <div id="studio-work-overview" className="absolute left-0 right-0 top-full z-20 mt-stack space-y-stack rounded-surface border border-border bg-surface p-pad-inset shadow-lg">
+        /*
+          2026-09-06 회장 스모크: "발행실에서는 팝업이 챗봇에 가려짐". 이 판은 z-20 인데
+          발행실 대화 패널이 z-40 이라 좁은 화면에서 덮였다. 머리줄에서 연 판은 그 아래
+          어떤 패널보다 위에 있어야 한다.
+        */
+        <div id="studio-work-overview" className="absolute left-0 right-0 top-full z-50 mt-stack space-y-stack rounded-surface border border-border bg-surface p-pad-inset shadow-lg">
           {hist?.currentWork && hist.drafts.some((draft) => draft.id === hist.currentWork?.draftId) ? (
             <div className="flex flex-wrap items-center gap-stack border-b border-border pb-stack" data-current-work={hist.currentWork.stage}>
               <div className="mr-auto min-w-0">
@@ -1217,13 +1222,30 @@ export default function StudioPage() {
               </Button>
             </div>
           ) : null}
-          <div className="grid gap-stack md:grid-cols-4">
-            {(["create", "edit", "publish"] as StudioRoom[]).map((room) => (
-              <Button key={room} variant={activeRoom === room ? "primary" : "secondary"} onClick={() => changeRoom(room)} className="min-w-0">
-                {room === "create" ? "생성실" : room === "edit" ? "편집실" : "발행실"}
-              </Button>
+          {/*
+            2026-09-06 회장 스모크: "작업물 전체 12 클릭하면 1개밖에 없고 생성실/편집실/
+            발행실/성과실은 왜 있는지 모르겠음". 숫자는 작업물 수를 가리키는데 판에는
+            작업물이 없고 방 이동 단추만 있었다. 방 이동은 머리줄에 이미 있으므로 여기서
+            빼고, 숫자가 약속한 목록을 실제로 보여 준다.
+          */}
+          <div className="space-y-stack-tight" data-work-list>
+            {(hist?.drafts ?? []).length === 0 ? (
+              <p className="break-keep text-body-sm text-muted">아직 작업물이 없습니다. 생성실에서 첫 초안을 만들어 보세요.</p>
+            ) : (hist?.drafts ?? []).slice(0, 20).map((draft) => (
+              <button
+                key={String((draft as { id?: unknown }).id ?? "")}
+                type="button"
+                data-work-item={String((draft as { id?: unknown }).id ?? "")}
+                onClick={() => { loadDraft(draft as unknown as Record<string, unknown>); setShowWorks(false); showToast("작업물을 불러왔습니다", "success"); }}
+                className="flex min-h-control-touch w-full flex-wrap items-center gap-stack rounded-control border border-border bg-surface-2 px-stack py-stack-tight text-left hover:bg-surface"
+              >
+                <b className="min-w-0 flex-1 truncate text-body-sm text-text">{(draft as { idea?: string }).idea || "제목 없는 작업물"}</b>
+                <span className="shrink-0 text-caption text-subtle">{(draft as { status?: string }).status || "초안"}</span>
+              </button>
             ))}
-            <Link href="/performance" className="inline-flex min-h-control-touch items-center justify-center rounded-control border border-border bg-surface-2 px-stack text-body-sm font-semibold text-muted hover:bg-surface">성과실</Link>
+            {(hist?.drafts ?? []).length > 20 ? (
+              <p className="text-caption text-subtle">최근 20개만 보여 드립니다. 전체 {hist?.drafts.length}개.</p>
+            ) : null}
           </div>
         </div>
       ) : null}
