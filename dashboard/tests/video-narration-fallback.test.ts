@@ -44,7 +44,10 @@ vi.mock("@/lib/higgsfield", () => ({
   assertHiggsfieldReady: vi.fn(async () => {}),
   HiggsfieldUnavailableError: class extends Error {},
   HiggsfieldUnauthenticatedError: class extends Error {},
-  STUDIO_DIR: "/tmp/studio",
+  // 2026-09-07: 만든 파일을 테넌트 폴더에 두고 주소에도 테넌트를 실어야 화면이 불러온다.
+  // 종전에는 공용 루트에 저장하고 주소에 테넌트가 없어 그림이 안 떴다.
+  studioDir: vi.fn((tenantId: string) => `/tmp/studio/${tenantId}`),
+  assetUrl: vi.fn((tenantId: string, key: string) => `/api/higgsfield/asset/${key}?tenant_id=${tenantId}`),
 }));
 
 vi.mock("@/lib/file-io", () => ({

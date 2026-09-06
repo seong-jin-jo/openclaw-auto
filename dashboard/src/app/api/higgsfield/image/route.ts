@@ -1,7 +1,7 @@
 import path from "path";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
-import { hfRun, extractJson, findResultUrl, downloadTo, logGen, recordMediaGenerationEvent, HiggsfieldUnavailableError, HiggsfieldUnauthenticatedError, assertHiggsfieldReady, STUDIO_DIR } from "@/lib/higgsfield";
+import { hfRun, extractJson, findResultUrl, downloadTo, logGen, recordMediaGenerationEvent, HiggsfieldUnavailableError, HiggsfieldUnauthenticatedError, assertHiggsfieldReady, studioDir, assetUrl } from "@/lib/higgsfield";
 
 // POST /api/higgsfield/image — Soul V2 text→image. body: { prompt, aspectRatio?, quality?, label? }
 // 반환: { url(cloudfront), file(/studio-assets/..), localPath } — video 단계에서 localPath 재사용
@@ -32,12 +32,15 @@ export async function POST(request: Request) {
     const url = findResultUrl(extractJson(stdout), /png|jpg|jpeg|webp/);
     if (!url) return Response.json({ error: "no image url", raw: stdout.slice(-400) }, { status: 502 });
 
+    // 종전에는 공용 루트에 저장하고 주소도 테넌트 없이 돌려줬다. 그런데 자산 라우트는
+    // 테넌트 폴더에서만 읽고 tenant_id 를 요구한다. 그래서 만들기는 성공하는데 화면에서
+    // 그림이 안 뜨는 상태였다(회장 2026-09-07 실사용). 저장과 주소를 테넌트로 맞춘다.
     const fname = `img_${Date.now()}.png`;
-    const localPath = path.join(STUDIO_DIR, fname);
+    const localPath = path.join(studioDir(tenantId), fname);
     await downloadTo(url, localPath);
     runWithTenant(tenantId, () => logGen("image", "Higgsfield Soul V2", label));
     await recordMediaGenerationEvent(tenantId, "image", "Higgsfield Soul V2", label);
-    return Response.json({ ok: true, url, file: `/api/higgsfield/asset/${fname}`, localPath });
+    return Response.json({ ok: true, url, file: assetUrl(tenantId, fname), localPath });
   } catch (e) {
     mark("catch", e instanceof Error ? `${e.name}: ${e.message}` : String(e));
     if (e instanceof HiggsfieldUnauthenticatedError) {

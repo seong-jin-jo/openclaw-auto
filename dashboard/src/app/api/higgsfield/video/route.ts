@@ -2,7 +2,7 @@ import path from "path";
 import fs from "fs";
 import { effectiveTenantId } from "@/lib/tenant-auth";
 import { runWithTenant } from "@/lib/tenant-context";
-import { hfRun, extractJson, findResultUrl, downloadTo, addNarration, logGen, recordMediaGenerationEvent, HiggsfieldUnavailableError, HiggsfieldUnauthenticatedError, assertHiggsfieldReady, STUDIO_DIR } from "@/lib/higgsfield";
+import { hfRun, extractJson, findResultUrl, downloadTo, addNarration, logGen, recordMediaGenerationEvent, HiggsfieldUnavailableError, HiggsfieldUnauthenticatedError, assertHiggsfieldReady, studioDir, assetUrl } from "@/lib/higgsfield";
 
 // POST /api/higgsfield/video — image→video. body: { localPath, prompt, model?, narration? }
 // localPath = /api/higgsfield/image 가 반환한 서버측 절대경로(CLI가 자동 업로드).
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     if (!url) return Response.json({ error: "no video url", status, raw: stdout.slice(-400) }, { status: 502 });
 
     const ts = Date.now();
-    const silentPath = path.join(STUDIO_DIR, `vidsilent_${ts}.mp4`);
+    const silentPath = path.join(studioDir(tenantId), `vidsilent_${ts}.mp4`);
     await downloadTo(url, silentPath);
 
     // 무음 클립에 내레이션 음성 합성 (성공 시 사운드 영상, 실패/비-mac이면 무음 유지)
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     let narrationReason: "server_tts_unavailable" | "audio_mix_failed" | undefined;
     if (narration && String(narration).trim()) {
       const soundName = `vid_${ts}.mp4`;
-      const narrationResult = await addNarration(silentPath, String(narration), path.join(STUDIO_DIR, soundName));
+      const narrationResult = await addNarration(silentPath, String(narration), path.join(studioDir(tenantId), soundName));
       if (narrationResult.ok) {
         finalName = soundName;
         hasAudio = true;
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     return Response.json({
       ok: true,
       url,
-      file: `/api/higgsfield/asset/${finalName}`,
+      file: assetUrl(tenantId, finalName),
       model,
       hasAudio,
       narration: {
