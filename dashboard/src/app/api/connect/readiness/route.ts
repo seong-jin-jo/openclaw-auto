@@ -15,6 +15,26 @@ const CREDENTIAL_STORE_UNAVAILABLE_REASON =
 
 const META_REVIEW_PROVIDERS = new Set(["threads", "instagram", "facebook"]);
 
+// 자격증명이 없을 때 화면에 뜨던 문구는 "서버에 x OAuth 앱 자격증명(X_CLIENT_ID/X_CLIENT_SECRET)이
+// 아직 설정되지 않았습니다" 였다. 회장 2026-09-06 "앱 자격증명 등록을 하라는게 뭔말이냐".
+// 설정 변수 이름은 우리 사정이고 화면을 보는 사람의 언어가 아니다. 어디에 가서 무엇을 만들고
+// 무엇을 받아 와야 하는지를 평문으로 적는다(ADR-007 조용한 실패 금지의 연장).
+const CONSOLE_GUIDE: Record<string, string> = {
+  x: "X 개발자 사이트(developer.x.com)에서 앱을 만들고 열쇠 두 개를 받아 오면 연결이 열립니다.",
+  tiktok: "TikTok 개발자 사이트(developers.tiktok.com)에서 앱을 만들고 열쇠 두 개를 받아 오면 연결이 열립니다.",
+  linkedin: "LinkedIn 개발자 사이트(developer.linkedin.com)에서 앱을 만들고 열쇠 두 개를 받아 오면 연결이 열립니다.",
+  youtube: "구글 클라우드 콘솔에서 앱을 만들고 열쇠 두 개를 받아 오면 연결이 열립니다.",
+  instagram: "Meta 개발자 사이트에서 앱을 만들고 열쇠 두 개를 받아 오면 연결이 열립니다.",
+  threads: "Meta 개발자 사이트에서 앱을 만들고 열쇠 두 개를 받아 오면 연결이 열립니다.",
+  facebook: "Meta 개발자 사이트에서 앱을 만들고 열쇠 두 개를 받아 오면 연결이 열립니다.",
+};
+
+function missingCredentialReason(provider: string, label: string): string {
+  const guide = CONSOLE_GUIDE[provider]
+    || "해당 플랫폼 개발자 사이트에서 앱을 만들고 열쇠 두 개를 받아 오면 연결이 열립니다.";
+  return `${label} 은 아직 열 준비가 되지 않았습니다. ${guide} 받은 값은 운영자 화면에서 등록합니다.`;
+}
+
 function isExternalReviewPending(provider: string, review: "required" | "unknown" | undefined): boolean {
   if (review !== "required") return false;
   const approvedProviders = new Set(
@@ -81,7 +101,7 @@ export async function GET(request: Request) {
       // 자격증명이 없으면 심사 여부보다 그 사실을 먼저 알린다. 자격증명 미설정 상태에서
       // "심사가 끝나면 연결할 수 있습니다"라고 안내하면 고객이 기다리기만 하게 된다.
       : !credentials?.complete
-      ? `서버에 ${name} OAuth 앱 자격증명(${cfg.appIdEnv}/${cfg.appSecretEnv})이 아직 설정되지 않았습니다.`
+      ? missingCredentialReason(name, CH_LABELS[name] || cfg.label)
       : externalReviewPending
       ? externalReviewReason(name, CH_LABELS[name] || cfg.label, connectionState)
       : connectionState === "reconnect"
