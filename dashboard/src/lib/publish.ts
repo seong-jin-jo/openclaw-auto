@@ -573,7 +573,22 @@ export async function publishX(cred: ChannelCred, text: string): Promise<Publish
     headers: { Authorization: auth, "Content-Type": "application/json" },
     body: JSON.stringify({ text: body }),
   });
-  if (!resp.ok) return { ok: false, error: `X tweet 실패(${resp.status}): ${(await resp.text()).slice(0, 200)}` };
+  if (!resp.ok) {
+    const raw = (await resp.text()).slice(0, 300);
+    // 402 는 X 가 사용량 요금을 다 썼다는 뜻이다. 제공자 JSON 을 그대로 보여 주면 고객은
+    // 무엇을 해야 하는지 모른다(2026-09-07 실측: `{"detail":"credits depleted"...}` 노출).
+    // 돈 문제와 권한 문제와 글자수 문제는 조치가 서로 다르므로 갈라서 말한다.
+    if (resp.status === 402 || /credits? depleted|payment required/i.test(raw)) {
+      return { ok: false, error: "X 사용 요금이 소진돼 올리지 못했습니다. X 개발자 콘솔에서 크레딧을 채우면 바로 올라갑니다." };
+    }
+    if (resp.status === 401 || resp.status === 403) {
+      return { ok: false, error: "X 가 이 계정의 권한을 받아들이지 않았습니다. 발행실에서 X 를 다시 연결해 주세요." };
+    }
+    if (resp.status === 429) {
+      return { ok: false, error: "X 가 잠시 요청을 제한했습니다. 조금 뒤 다시 올려 주세요." };
+    }
+    return { ok: false, error: `X 에 올리지 못했습니다 (HTTP ${resp.status}). 원문: ${raw.slice(0, 160)}` };
+  }
   const data = (await resp.json()) as { data?: { id?: string } };
   const tweetId = data.data?.id;
   return { ok: true, externalId: tweetId, permalink: tweetId ? `https://x.com/i/web/status/${tweetId}` : undefined };
