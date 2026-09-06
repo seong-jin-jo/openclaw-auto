@@ -19,6 +19,7 @@ export interface ProviderConfig {
   tokenUrl: string;         // 단기 토큰 교환(POST form)
   longTokenUrl: string;     // 장기 토큰 교환(GET). "" = 표준 OAuth(단계 없음)
   longGrant: string;        // ig_exchange_token | th_exchange_token | "" (표준 OAuth)
+  longMethod?: "GET" | "POST"; // 장기 토큰 교환 방식. 기본 GET. Instagram 은 POST 를 요구한다.
   pkce?: boolean;           // PKCE(RFC 7636) 필수 여부 — X, TikTok
   scopeSeparator?: string;  // scope 구분자. 기본 "," (Meta계열). 표준 OAuth는 " "
   extraAuthParams?: Record<string, string>; // authorize URL 추가 파라미터(YouTube: access_type, prompt)
@@ -192,6 +193,8 @@ export const PROVIDERS: Record<string, ProviderConfig> = {
     //   Meta 가 버전을 올려도 배포만으로 따라갈 수 있게 한다.
     longTokenUrl: process.env.IG_LONG_TOKEN_URL || "https://graph.instagram.com/v23.0/access_token",
     longGrant: "ig_exchange_token",
+    // 오류 문구가 "method type: get" 이라고 방식을 콕 집어 말했다. 시키는 대로 POST 로 보낸다.
+    longMethod: "POST",
   },
   threads: {
     label: "threads",
@@ -543,9 +546,21 @@ export async function exchangeCode(
     };
   }
   // 2) 60일짜리 연결 유지 권한 (Meta 용어로는 long-lived token)
-  const longRes = await f(
-    `${p.longTokenUrl}?grant_type=${p.longGrant}&client_secret=${encodeURIComponent(clientSecret)}&access_token=${encodeURIComponent(short.access_token)}`,
-  );
+  // 2026-09-07 회장 계정 실측: GET 으로 보내면 Meta 가 `Unsupported request - method type: get`
+  // (HTTP 400) 으로 거절한다. 오류가 방식을 콕 집어 말했으므로 그대로 따른다. Threads 는
+  // GET 으로 잘 되므로 제공자별로 가른다.
+  const longParams = {
+    grant_type: p.longGrant,
+    client_secret: clientSecret,
+    access_token: short.access_token,
+  };
+  const longRes = p.longMethod === "POST"
+    ? await f(p.longTokenUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams(longParams).toString(),
+      })
+    : await f(`${p.longTokenUrl}?${new URLSearchParams(longParams).toString()}`);
   const longText = await longRes.text();
   let long: { access_token?: string; expires_in?: number | string; error?: { message?: string }; error_message?: string } = {};
   try { long = JSON.parse(longText); } catch { long = {}; }
