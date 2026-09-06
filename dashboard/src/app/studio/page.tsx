@@ -503,11 +503,14 @@ export default function StudioPage() {
   // 종전에는 운영자만 생성할 수 있어 고객 계정에서는 카드뉴스와 영상이 아예 안 만들어졌다.
   // PRD v8.2.1 이 고객 핵심 기능으로 규정한 것과도 어긋나 있었다. 고객에게 연다.
   // 누가 얼마나 썼는지는 작업 공간별로 남겨 사용량 화면이 그것을 읽는다.
-  async function genImage(prompt: string) {
+  // 비율을 9:16 으로 못 박아 두면 카드뉴스가 세로 영상 비율로 나온다. 카드뉴스는 정사각이고
+  // 숏폼 히어로 이미지는 세로다. 쓰는 쪽이 정하게 한다(사업계획 v0.4 10절 첫 매체 = 카드뉴스).
+  // 생성기가 받는 값은 정해져 있다: 1:1, 16:9, 9:16, 4:3 등. 4:5 는 거절된다(2026-09-06 실측).
+  async function genImage(prompt: string, aspectRatio: "1:1" | "9:16" = "9:16") {
     if (!activeWorkspace) { showToast("작업 공간을 먼저 고르세요", "error"); return null; }
     setLastError(null);
     try {
-      const r = await apiPost<ImgResult & { ok?: boolean; error?: string; nsfw?: boolean; credits?: boolean }>("/api/higgsfield/image", { prompt, aspectRatio: "9:16", label: idea, tenant_id: activeWorkspace.id });
+      const r = await apiPost<ImgResult & { ok?: boolean; error?: string; nsfw?: boolean; credits?: boolean }>("/api/higgsfield/image", { prompt, aspectRatio, label: idea, tenant_id: activeWorkspace.id });
       if (!r?.ok) { const msg = r?.credits ? "Higgsfield 크레딧 부족" : r?.nsfw ? "Higgsfield NSFW 차단" : (r?.error || "이미지 실패"); setLastError(`이미지: ${msg}`); showToast(msg, "error"); return null; }
       setImg(r); mutateAcct(); return r;
     } catch (e) {
@@ -582,7 +585,7 @@ export default function StudioPage() {
     generationAbort.current = new AbortController();
     setBusy("카드뉴스 이미지 만드는 중");
     try {
-      await genImage(text?.image_prompt || slides[0] || idea);
+      await genImage(text?.image_prompt || slides[0] || idea, "1:1");
     } finally {
       generationAbort.current = null;
       setBusy(null);
