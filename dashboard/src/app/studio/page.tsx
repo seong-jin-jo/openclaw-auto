@@ -41,7 +41,6 @@ import {
   parseHashtags,
   parsePublishCommand,
   spreadHashtags,
-  trimAllOverLimit,
   type BulkPlatform,
 } from "@/lib/studio/publish-bulk";
 import { buildPublishReturnWork, readPublishReturnRequest, resolvePublishReturnDraftId } from "@/lib/publish-return-context";
@@ -52,6 +51,7 @@ import {
 } from "@/lib/studio/content-edit-format";
 import {
   buildPlatformPublishText,
+  trimBodyToFit,
   validatePlatformPublish,
   type PlatformPublishInput,
 } from "@/lib/studio/platform-publish-fields";
@@ -1117,7 +1117,14 @@ export default function StudioPage() {
     showToast(`해시태그를 일곱 곳 규격에 맞춰 나눴습니다. X는 ${HASHTAG_BUDGET.x}개, 인스타그램은 ${HASHTAG_BUDGET.instagram}개입니다`, "success");
   }
   function trimOverLimitChannels() {
-    const next = trimAllOverLimit((platform) => platformText(platform), previewTargets);
+    // 자르는 잣대를 막는 잣대와 같게 한다. 종전에는 본문만 코드포인트로 세어
+    // 잘랐는데 X 는 본문과 해시태그를 합쳐 가중 문자로 재기 때문에, 한글 본문은
+    // 이 단추를 눌러도 끝내 한도 안으로 못 들어왔다(2026-09-07 회장 계정 실측).
+    const next: Record<string, string> = {};
+    for (const platform of previewTargets) {
+      const trimmed = trimBodyToFit(platform as PreviewPlatform, platformPublishInput(platform as PreviewPlatform));
+      if (trimmed !== null) next[platform] = trimmed;
+    }
     const changed = Object.keys(next);
     if (!changed.length) { showToast("한도를 넘긴 곳이 없습니다", "success"); return; }
     for (const platform of changed) updatePreviewCaption(platform as PreviewPlatform, next[platform]);

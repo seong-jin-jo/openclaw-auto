@@ -135,3 +135,38 @@ export function buildPlatformPublishText(platform: PublishPlatform, input: Platf
   }
   return textAndHashtags(input);
 }
+
+/**
+ * 본문을 그 채널의 한도 안으로 줄인다. 무엇으로 재는지는 채널마다 다르다.
+ * X 는 본문과 해시태그를 합쳐 가중 문자로 재고, 인스타그램은 글자수, 쇼츠는 바이트다.
+ *
+ * 2026-09-07 회장 계정 실측: 발행실의 "한도 넘는 곳만 줄이기" 가 X 를 전혀 못 줄였다.
+ * 줄이는 쪽은 본문만 코드포인트로 세어 279자로 잘랐는데, 막는 쪽은 본문에 해시태그를
+ * 더해 가중 문자로 쟀다. 한글은 가중치가 2라서 279자는 언제나 558가중 문자다.
+ * 즉 이 단추를 몇 번을 눌러도 발행은 계속 막혔다. 화면이 약속한 일을 못 하는 것이
+ * 조용한 실패보다 나쁘다(ADR-007). 그래서 자르는 잣대를 막는 잣대와 같게 만든다.
+ *
+ * 해시태그만으로 이미 한도를 넘으면 본문을 다 지워도 통과하지 못한다. 그때는 빈 본문을
+ * 돌려주고 판정은 검증기에 맡긴다. 여기서 해시태그까지 손대면 사용자가 고른 것을
+ * 말없이 바꾸는 셈이라 그건 사용자 몫으로 남긴다.
+ */
+export function trimBodyToFit(
+  platform: PublishPlatform,
+  input: PlatformPublishInput,
+): string | null {
+  const body = input.body ?? "";
+  const fits = (candidate: string): boolean =>
+    !validatePlatformPublish(platform, { ...input, body: candidate })
+      .blocking.some((issue) => issue.field === "body");
+  if (fits(body)) return null;
+  const chars = [...body];
+  // 말줄임표 한 글자를 붙인 상태로 재야 실제 발행되는 문자열과 같은 길이가 된다.
+  let low = 0;
+  let high = chars.length;
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2);
+    if (fits(`${chars.slice(0, mid).join("")}…`)) low = mid;
+    else high = mid - 1;
+  }
+  return low > 0 ? `${chars.slice(0, low).join("")}…` : "";
+}
