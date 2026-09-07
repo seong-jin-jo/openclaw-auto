@@ -236,20 +236,41 @@ jobs:
         if: ${{ github.event.inputs.reimport_oauth != '' }}
         env:
           DASHBOARD_AUTH_TOKEN: ${{ secrets.OSMU_DASHBOARD_AUTH_TOKEN }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          X_CLIENT_ID: ${{ secrets.X_CLIENT_ID }}
+          X_CLIENT_SECRET: ${{ secrets.X_CLIENT_SECRET }}
+          IG_APP_ID: ${{ secrets.IG_APP_ID }}
+          IG_APP_SECRET: ${{ secrets.IG_APP_SECRET }}
         run: |
+          # import-env 는 DB 에 값이 이미 있으면 409 로 거절한다(2026-09-07 실측).
+          # 콘솔에서 시크릿을 갈아 끼운 경우가 바로 그 상황이므로 덮어쓰기를 쓴다.
+          umask 077
           for p in ${{ github.event.inputs.reimport_oauth }}; do
-            CODE=$(curl -s -o /tmp/reimport.out -w '%{http_code}' -X POST \
+            case "$p" in
+              youtube)   export CID="$YOUTUBE_CLIENT_ID"; export CSEC="$YOUTUBE_CLIENT_SECRET" ;;
+              x)         export CID="$X_CLIENT_ID";       export CSEC="$X_CLIENT_SECRET" ;;
+              instagram) export CID="$IG_APP_ID";         export CSEC="$IG_APP_SECRET" ;;
+              *) echo "::error::지원하지 않는 제공자: $p"; exit 1 ;;
+            esac
+            if [ -z "$CID" ] || [ -z "$CSEC" ]; then
+              echo "::error::$p 환경변수 값이 비어 있다"; exit 1
+            fi
+            # 값은 파일로만 흘린다. argv 나 로그에 남기지 않는다.
+            python3 -c 'import json,os,sys;json.dump({"provider":sys.argv[1],"values":{"clientId":os.environ["CID"],"clientSecret":os.environ["CSEC"]}},open("/tmp/cred.json","w"))' "$p"
+            CODE=$(curl -s -o /tmp/cred.out -w '%{http_code}' -X PUT \
               -H "Content-Type: application/json" -H @- \
-              --data "{\"action\":\"import-env\",\"provider\":\"$p\"}" \
+              --data @/tmp/cred.json \
               http://localhost:18789/api/operator/oauth-credentials <<CURL_HDR || echo 000
           Authorization: Bearer $DASHBOARD_AUTH_TOKEN
           CURL_HDR
             )
-            echo "$p 재수입 → HTTP $CODE"
-            sed -E 's/[A-Za-z0-9_-]{20,}/[가림]/g' /tmp/reimport.out | head -3
-            [ "$CODE" = "200" ] || { echo "::error::$p 자격증명 재수입 실패 (HTTP $CODE)"; exit 1; }
+            rm -f /tmp/cred.json
+            echo "$p 덮어쓰기 → HTTP $CODE"
+            sed -E 's/[A-Za-z0-9_-]{20,}/[가림]/g' /tmp/cred.out | head -3
+            rm -f /tmp/cred.out
+            [ "$CODE" = "200" ] || { echo "::error::$p 자격증명 덮어쓰기 실패 (HTTP $CODE)"; exit 1; }
           done
-          rm -f /tmp/reimport.out
 
       - name: 배포 찌꺼기 정리 (다음 배포가 디스크로 죽지 않게)
         # 2026-08-30: 디스크 81% 에서 이미지 빌드가 메모리·디스크로 죽었다(exit 137).
