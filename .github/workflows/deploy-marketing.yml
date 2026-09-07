@@ -6,6 +6,10 @@ on:
         description: '띄울 서비스 (compose 서비스명 공백구분, 비우면 전체)'
         required: false
         default: ''
+      reimport_oauth:
+        description: 'OAuth 앱 자격증명을 환경변수 값으로 다시 들여올 제공자 (공백구분, 비우면 안 함)'
+        required: false
+        default: ''
 jobs:
   deploy:
     runs-on: [self-hosted, marketing_runner]
@@ -223,6 +227,30 @@ jobs:
           echo "operator/customers=$OC"
           [ "$OC" = "200" ] || { echo "::error::/api/operator/customers HTTP $OC — 200이어야 함(DB 스키마 누락/운영자 토큰/라우트 장애 신호)"; exit 1; }
           echo "✅ 스모크 통과: 로그인페이지·인증게이트·supabase 빌드주입·Google-only(비밀번호UI無)·google 계정선택 preflight·operator/customers 정상"
+      - name: OAuth 앱 자격증명을 환경변수 값으로 다시 들여오기 (지정한 제공자만)
+        # 왜 (2026-09-07 회장 계정 실측): 자격증명은 DB 저장분이 환경변수보다 우선한다.
+        # 그래서 유튜브 시크릿을 새로 발급해 저장소 시크릿을 바꾸고 배포해도 연결이 계속
+        # "The provided client secret is invalid" 로 끝났다. 서버가 DB 의 옛 값을 보고 있었다.
+        # 콘솔에서 시크릿을 갈면 배포도 그 값을 따라가야 한다. 지정한 제공자만 건드려
+        # 운영자가 화면에서 넣은 값을 함부로 덮지 않는다.
+        if: ${{ github.event.inputs.reimport_oauth != '' }}
+        env:
+          DASHBOARD_AUTH_TOKEN: ${{ secrets.OSMU_DASHBOARD_AUTH_TOKEN }}
+        run: |
+          for p in ${{ github.event.inputs.reimport_oauth }}; do
+            CODE=$(curl -s -o /tmp/reimport.out -w '%{http_code}' -X POST \
+              -H "Content-Type: application/json" -H @- \
+              --data "{\"action\":\"import-env\",\"provider\":\"$p\"}" \
+              http://localhost:18789/api/operator/oauth-credentials <<CURL_HDR || echo 000
+          Authorization: Bearer $DASHBOARD_AUTH_TOKEN
+          CURL_HDR
+            )
+            echo "$p 재수입 → HTTP $CODE"
+            sed -E 's/[A-Za-z0-9_-]{20,}/[가림]/g' /tmp/reimport.out | head -3
+            [ "$CODE" = "200" ] || { echo "::error::$p 자격증명 재수입 실패 (HTTP $CODE)"; exit 1; }
+          done
+          rm -f /tmp/reimport.out
+
       - name: 배포 찌꺼기 정리 (다음 배포가 디스크로 죽지 않게)
         # 2026-08-30: 디스크 81% 에서 이미지 빌드가 메모리·디스크로 죽었다(exit 137).
         # 배포마다 옛 이미지와 빌드 캐시가 쌓이는데 아무도 안 치웠던 것이 원인이다.
