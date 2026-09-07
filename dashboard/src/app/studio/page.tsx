@@ -1662,7 +1662,14 @@ export default function StudioPage() {
                   </span>
                 </p>
               ) : null}
-              {connectedTargets.length < bulkTargets.length ? (
+              {/* 계정을 아직 못 읽은 동안에는 "연결 안 됨"이라고 단정하지 않는다. 종전에는
+                  발행실에 들어온 첫 십수 초 동안 멀쩡히 연결된 Threads·X·Instagram 이
+                  미연결로 적혀 나왔다. 화면이 사실이 아닌 것을 사실처럼 말하는 것은
+                  아무 말도 안 하는 것보다 나쁘다(ADR-007). 다 읽은 뒤에만 판정한다.
+                  2026-09-07 회장 계정 실측. */}
+              {!accountsLoaded ? (
+                <p className="break-keep text-caption text-muted">연결된 채널을 확인하고 있습니다.</p>
+              ) : connectedTargets.length < bulkTargets.length ? (
                 <p className="break-keep text-caption text-warning">
                   아직 연결 안 된 곳: {bulkTargets.filter((platform) => !connectedTargets.includes(platform)).map((platform) => LABEL[platform]).join(", ")}. 각 칸의 계정 연결하기로 갑니다.
                 </p>
