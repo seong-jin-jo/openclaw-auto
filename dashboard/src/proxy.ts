@@ -101,8 +101,20 @@ const TENANT_AWARE_PATHS = [
   "/api/studio/drafts/[draftId]/editor",
   "/api/studio/drafts/[draftId]/enqueue",
   "/api/studio/engine-status",
+  // 만들기 전 비용 산정. 고객이 승인 여부를 판단하는 화면이 부르므로 테넌트 경로다
+  // (사업계획 v0.4 7절·10절의 비용 승인 관문).
+  "/api/studio/estimate",
+  // 고객이 자기 생성 이력을 보는 경로(회장 2026-09-06 확정).
+  "/api/studio/generation-history",
   "/api/studio/handoffs",
   "/api/studio/text",
+  // 2026-09-06 회장 확정으로 이미지·영상 생성을 고객에게 열었다. 두 라우트는
+  // effectiveTenantId 로 테넌트를 확인하고 사용량을 그 작업 공간에 남긴다.
+  "/api/higgsfield/image",
+  "/api/higgsfield/video",
+  // 만든 그림과 영상을 화면이 불러오는 경로. 여기 없으면 만들기는 되는데 화면에 안 뜬다
+  // (회장 2026-09-07 실사용). 라우트 자체가 tenant_id 를 요구하고 그 테넌트 폴더에서만 읽는다.
+  "/api/higgsfield/asset/[file]",
   "/api/suggestions",
   "/api/suggestions/enqueue",
   "/api/threads-username",

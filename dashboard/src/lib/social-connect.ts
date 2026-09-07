@@ -10,6 +10,10 @@
 
 import { resolveOAuthCredentialSet } from "@/lib/oauth-app-credentials";
 
+// Meta Graph 기본 주소. 아래 FB_V 는 선언이 사용 지점보다 뒤라 여기서 쓰면 실행 중에
+// 초기화 전 접근으로 터진다(2026-09-07). 위쪽에서 쓰는 곳은 이 상수를 본다.
+const FB_GRAPH = "https://graph.facebook.com/v21.0";
+
 export interface ProviderConfig {
   label: string;            // integrations.label
   authorizeUrl: string;
@@ -19,6 +23,7 @@ export interface ProviderConfig {
   tokenUrl: string;         // 단기 토큰 교환(POST form)
   longTokenUrl: string;     // 장기 토큰 교환(GET). "" = 표준 OAuth(단계 없음)
   longGrant: string;        // ig_exchange_token | th_exchange_token | "" (표준 OAuth)
+  longMethod?: "GET" | "POST"; // 장기 토큰 교환 방식. 기본 GET. Instagram 은 POST 를 요구한다.
   pkce?: boolean;           // PKCE(RFC 7636) 필수 여부 — X, TikTok
   scopeSeparator?: string;  // scope 구분자. 기본 "," (Meta계열). 표준 OAuth는 " "
   extraAuthParams?: Record<string, string>; // authorize URL 추가 파라미터(YouTube: access_type, prompt)
@@ -177,12 +182,27 @@ export const PROVIDERS: Record<string, ProviderConfig> = {
   instagram: {
     label: "instagram",
     authorizeUrl: "https://www.instagram.com/oauth/authorize",
-    scopes: ["instagram_business_basic", "instagram_business_content_publish", "instagram_business_manage_insights", "instagram_business_manage_comments"],
+    scopes: [
+      "instagram_business_basic",
+      "instagram_business_content_publish",
+      "instagram_business_manage_comments",
+      // 쓰는 화면이 없어 첫 심사 범위에서 제외한다. 인사이트 화면 구현 후 2차 제출에 추가한다.
+    ],
     appIdEnv: "IG_APP_ID",
     appSecretEnv: "IG_APP_SECRET",
     tokenUrl: "https://api.instagram.com/oauth/access_token",
-    longTokenUrl: "https://graph.instagram.com/access_token",
+    // 2026-09-07 회장 계정 실측 기록. 동의까지 눌러 마지막 단계에 도달해 처음으로 실제
+    // 문구를 잡았다. 세 가지를 시도했고 결론은 "경로가 이 앱에 없다" 이다.
+    //   ① 버전 없는 GET  → `Unsupported request - method type: get`  (HTTP 400)
+    //   ② 버전 붙인 GET  → 같은 문구
+    //   ③ 버전 붙인 POST → `Unsupported request - method type: post` (HTTP 400)
+    // Meta 는 모르는 경로에 대해 "쓴 방식"을 그대로 되돌려 말한다. 방식 문제가 아니라
+    // 경로 문제다. 이 앱이 Instagram Login 이 아니라 다른 로그인 방식으로 만들어졌을 때
+    // 이렇게 된다(동의 화면 흐름값이 ig_biz_login_oauth 였다). 어느 쪽인지는 Meta 앱
+    // 설정을 봐야 정해지므로 문서화된 기본 경로로 되돌리고 환경변수로 바꿀 수 있게 둔다.
+    longTokenUrl: process.env.IG_LONG_TOKEN_URL || "https://graph.instagram.com/access_token",
     longGrant: "ig_exchange_token",
+    longMethod: (process.env.IG_LONG_TOKEN_METHOD === "POST" ? "POST" : "GET"),
   },
   threads: {
     label: "threads",
@@ -424,9 +444,17 @@ function positiveExpiresIn(value: unknown): number | undefined {
 // Meta 토큰 교환 실패 사유 문자열. provider가 준 message와 HTTP status를 함께 남겨야
 // 운영 로그에서 원인(자격증명 / 권한 / 만료 / 응답 형식)을 가를 수 있다. client_secret 등
 // 우리 비밀값은 여기 절대 들어가지 않는다(응답 본문과 status만 사용).
-function metaExchangeError(step: string, status: number, detail?: string): string {
-  const tail = detail ? `: ${String(detail).slice(0, 160)}` : "";
-  return `${step} 실패 (HTTP ${status})${tail}`;
+// 회장 2026-09-07 "장기토큰실패 이러는데 Refresh token 얘기냐 용어 왜이래":
+// 화면에 "장기 토큰 교환 실패" 라고 떴다. 이건 우리 코드가 부르는 이름이지 쓰는 사람의 말이
+// 아니다. 무엇이 안 됐는지를 사람 말로 먼저 쓰고, 개발자용 원문은 뒤에 괄호로 붙인다.
+const META_STEP_LABEL: Record<string, string> = {
+  short: "연결 확인",
+  long: "연결 유지 권한(60일)",
+};
+function metaExchangeError(stepKey: "short" | "long", label: string, status: number, detail?: string): string {
+  const what = META_STEP_LABEL[stepKey];
+  const tail = detail ? ` (원문: ${String(detail).slice(0, 160)})` : "";
+  return `${label} 연결이 마지막 단계에서 끊겼습니다. ${what}을 받지 못했습니다. 다시 연결해 보시고, 그래도 안 되면 앱 설정을 확인해야 합니다. [HTTP ${status}]${tail}`;
 }
 
 // code → 토큰 교환. Instagram·Threads는 단기→장기 2단계. 표준 OAuth 채널은 단일 교환.
@@ -465,9 +493,18 @@ export async function exchangeCode(
     if (options.codeVerifier) {
       bodyParams.code_verifier = options.codeVerifier;
     }
+    // X 는 기밀 클라이언트의 토큰 교환에 HTTP Basic 인증을 요구한다(RFC 6749 §2.3.1).
+    // body 에 client_secret 만 실으면 "Missing valid authorization header" 로 거절한다
+    // (2026-09-07 회장 계정 실측: 동의까지 통과한 뒤 콜백에서 이 문구로 끝났다).
+    // Basic 을 함께 보내되 body 의 값은 그대로 둔다. 다른 제공자는 body 를 읽고 X 는
+    // 헤더를 읽으므로 둘 다 있어야 한 코드로 양쪽을 만족한다.
+    const tokenHeaders: Record<string, string> = { "Content-Type": "application/x-www-form-urlencoded" };
+    if (p.pkce && clientSecret) {
+      tokenHeaders.Authorization = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`;
+    }
     const res = await f(p.tokenUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: tokenHeaders,
       body: new URLSearchParams(bodyParams).toString(),
     });
     const text = await res.text();
@@ -513,26 +550,54 @@ export async function exchangeCode(
     // 문자열만 남던 것을 고친다(2026-08-30 threads 재연결 실패 추적).
     return {
       accessToken: "",
-      error: metaExchangeError("단기 토큰 교환", shortRes.status, short.error_message || short.error?.message),
+      error: metaExchangeError("short", p.label, shortRes.status, short.error_message || short.error?.message),
     };
   }
-  // 2) 장기 토큰(60일)
-  const longRes = await f(
-    `${p.longTokenUrl}?grant_type=${p.longGrant}&client_secret=${encodeURIComponent(clientSecret)}&access_token=${encodeURIComponent(short.access_token)}`,
-  );
-  const longText = await longRes.text();
+  // 2) 60일짜리 연결 유지 권한 (Meta 용어로는 long-lived token)
+  // 2026-09-07 회장 계정 실측: GET 으로 보내면 Meta 가 `Unsupported request - method type: get`
+  // (HTTP 400) 으로 거절한다. 오류가 방식을 콕 집어 말했으므로 그대로 따른다. Threads 는
+  // GET 으로 잘 되므로 제공자별로 가른다.
+  const longParams = {
+    grant_type: p.longGrant,
+    client_secret: clientSecret,
+    access_token: short.access_token,
+  };
+  const longRes = p.longMethod === "POST"
+    ? await f(p.longTokenUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams(longParams).toString(),
+      })
+    : await f(`${p.longTokenUrl}?${new URLSearchParams(longParams).toString()}`);
+  let longEffective = longRes;
+  let longText = await longRes.text();
+  // 2026-09-07 실측: 더미 토큰으로는 이 경로가 190(토큰 못 읽음)을 준다. 즉 경로는 살아 있다.
+  //   그런데 진짜 토큰을 넣으면 `Unsupported request - method type: get` 이 온다. 토큰은
+  //   읽혔는데 그 토큰의 앱 종류에는 이 경로가 없다는 뜻이다. Instagram 을 Facebook 로그인으로
+  //   연동한 앱이 이 모양이다(동의 흐름값 ig_biz_login_oauth). 그 경우 60일 권한은 Facebook
+  //   쪽에서 받아야 한다. 첫 경로가 이 사유로 막히면 그쪽으로 한 번 더 시도한다.
+  if (!longRes.ok && /unsupported request/i.test(longText)) {
+    const fb = await f(
+      `${FB_GRAPH}/oauth/access_token?grant_type=fb_exchange_token`
+      + `&client_id=${encodeURIComponent(clientId)}`
+      + `&client_secret=${encodeURIComponent(clientSecret)}`
+      + `&fb_exchange_token=${encodeURIComponent(short.access_token)}`,
+    );
+    const fbText = await fb.text();
+    if (fb.ok) { longEffective = fb; longText = fbText; }
+  }
   let long: { access_token?: string; expires_in?: number | string; error?: { message?: string }; error_message?: string } = {};
   try { long = JSON.parse(longText); } catch { long = {}; }
   const expiresInSeconds = positiveExpiresIn(long.expires_in);
   // 단기 토큰으로 폴백하면 연결 직후만 성공하고 곧 실패하면서 active가 남는다.
   // 장기 토큰과 만료시각 둘 다 확인된 경우에만 콜백이 저장하도록 fail-closed한다.
-  if (!longRes.ok || !long.access_token || !expiresInSeconds) {
+  if (!longEffective.ok || !long.access_token || !expiresInSeconds) {
     // 이전 버전은 provider 응답을 통째로 버리고 `${label} 장기 토큰 교환 실패`만 남겼다.
     // 그래서 운영 로그만으로는 "앱 자격증명 문제인지 / 권한 문제인지 / expires_in 누락인지"를
     // 가릴 수 없었다(2026-08-30 threads 재연결 실패). 사유를 반드시 실어 보낸다.
     const detail = long.error?.message || long.error_message
-      || (longRes.ok && long.access_token && !expiresInSeconds ? "응답에 expires_in 없음" : undefined);
-    return { accessToken: "", error: metaExchangeError(`${p.label} 장기 토큰 교환`, longRes.status, detail) };
+      || (longEffective.ok && long.access_token && !expiresInSeconds ? "응답에 expires_in 없음" : undefined);
+    return { accessToken: "", error: metaExchangeError("long", p.label, longEffective.status, detail) };
   }
   return {
     accessToken: long.access_token,

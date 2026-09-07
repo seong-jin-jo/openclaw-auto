@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { withTenant } from "@/lib/db";
 import { getSelectedChannelAccountCred } from "@/lib/channel-accounts";
 import { CHANNEL_TEXT_LIMITS, countTextCharacters } from "@/lib/channel-text-limits";
+import { validatePlatformPublish } from "@/lib/studio/platform-publish-fields";
 
 // 대시보드 직접 발행(게이트웨이 docker 불필요). 토큰=integrations 테이블(테넌트별) → env 폴백(dev).
 // 게이트웨이 extensions/{ch}-publish 로직 포팅. 실발행은 실 토큰 필요.
@@ -270,12 +271,13 @@ export async function publishThreads(
   text: string,
   imageUrl?: string,
   replyToId?: string,
+  topicTag?: string,
 ): Promise<PublishResult> {
-  const length = countTextCharacters(text);
-  if (length > CHANNEL_TEXT_LIMITS.threads) {
+  const validation = validatePlatformPublish("threads", { body: text, topicTag });
+  if (validation.blocking.length > 0) {
     return {
       ok: false,
-      error: `Threads 본문이 공식 상한 ${CHANNEL_TEXT_LIMITS.threads}자를 초과했습니다 (${length}/${CHANNEL_TEXT_LIMITS.threads}). 내용을 줄인 뒤 다시 발행해주세요.`,
+      error: validation.blocking[0].message,
     };
   }
   if (!cred.token) return { ok: false, error: "Threads 채널 토큰이 없습니다. 채널을 다시 연결해주세요." };
@@ -287,6 +289,7 @@ export async function publishThreads(
   };
   if (imageUrl) params.image_url = imageUrl;
   if (replyToId) params.reply_to_id = replyToId;
+  if (topicTag?.trim()) params.topic_tag = topicTag.trim().replace(/^#/, "");
 
   let containerId: string;
   try {
@@ -540,8 +543,12 @@ function buildXOAuthHeader(method: string, url: string, k: XKeys): string {
   return `OAuth ${headerParts}`;
 }
 
-// X 발행 (text only, API v2). 4키 OAuth1.0a 서명. 280자 초과 시 자르기.
+// X 발행 (text only, API v2). 4키 OAuth1.0a 서명. 공식 가중 문자가 280을 넘으면 차단한다.
 export async function publishX(cred: ChannelCred, text: string): Promise<PublishResult> {
+  const validation = validatePlatformPublish("x", { body: text });
+  if (validation.blocking.length > 0) {
+    return { ok: false, error: validation.blocking[0].message };
+  }
   const meta = (cred.meta ?? {}) as Record<string, unknown>;
   // apiSecret/accessSecret은 게이트웨이 표기(apiKeySecret/accessTokenSecret)도 허용
   const keys: XKeys = {
@@ -550,25 +557,48 @@ export async function publishX(cred: ChannelCred, text: string): Promise<Publish
     accessToken: String(meta.accessToken ?? ""),
     accessSecret: String(meta.accessSecret ?? meta.accessTokenSecret ?? ""),
   };
-  if (!keys.apiKey || !keys.apiSecret || !keys.accessToken || !keys.accessSecret) {
-    return { ok: false, error: "X 4키(apiKey/apiSecret/accessToken/accessSecret) 누락" };
-  }
-  // 280자 초과 시 자르기(멀티바이트 안전 — 코드포인트 단위)
-  const body = [...(text ?? "")].slice(0, CHANNEL_TEXT_LIMITS.x).join("");
+  const body = text ?? "";
   const url = `${X_API}/tweets`;
-  const auth = buildXOAuthHeader("POST", url, keys);
+  // 2026-09-07 회장 계정 실측: 화면에서 X 를 연결하면 OAuth 2.0 사용자 토큰이 저장되는데
+  // 발행은 OAuth 1.0a 4키만 받아 "4키 누락" 으로 끝났다. 연결과 발행이 서로 다른 인증을
+  // 보고 있었다. X API v2 의 /tweets 는 OAuth 2.0 사용자 토큰(Bearer)으로도 올릴 수 있다.
+  // 화면으로 연결한 계정은 그 토큰으로 올리고, 4키가 있는 계정(구 방식)은 종전대로 둔다.
+  const hasLegacyKeys = Boolean(keys.apiKey && keys.apiSecret && keys.accessToken && keys.accessSecret);
+  if (!hasLegacyKeys && !cred.token) {
+    return { ok: false, error: "X 연결이 없습니다. 발행실에서 X 를 다시 연결해 주세요." };
+  }
+  const auth = hasLegacyKeys ? buildXOAuthHeader("POST", url, keys) : `Bearer ${cred.token}`;
   const resp = await fetch(url, {
     method: "POST",
     headers: { Authorization: auth, "Content-Type": "application/json" },
     body: JSON.stringify({ text: body }),
   });
-  if (!resp.ok) return { ok: false, error: `X tweet 실패(${resp.status}): ${(await resp.text()).slice(0, 200)}` };
+  if (!resp.ok) {
+    const raw = (await resp.text()).slice(0, 300);
+    // 402 는 X 가 사용량 요금을 다 썼다는 뜻이다. 제공자 JSON 을 그대로 보여 주면 고객은
+    // 무엇을 해야 하는지 모른다(2026-09-07 실측: `{"detail":"credits depleted"...}` 노출).
+    // 돈 문제와 권한 문제와 글자수 문제는 조치가 서로 다르므로 갈라서 말한다.
+    if (resp.status === 402 || /credits? depleted|payment required/i.test(raw)) {
+      return { ok: false, error: "X 사용 요금이 소진돼 올리지 못했습니다. X 개발자 콘솔에서 크레딧을 채우면 바로 올라갑니다." };
+    }
+    if (resp.status === 401 || resp.status === 403) {
+      return { ok: false, error: "X 가 이 계정의 권한을 받아들이지 않았습니다. 발행실에서 X 를 다시 연결해 주세요." };
+    }
+    if (resp.status === 429) {
+      return { ok: false, error: "X 가 잠시 요청을 제한했습니다. 조금 뒤 다시 올려 주세요." };
+    }
+    return { ok: false, error: `X 에 올리지 못했습니다 (HTTP ${resp.status}). 원문: ${raw.slice(0, 160)}` };
+  }
   const data = (await resp.json()) as { data?: { id?: string } };
   const tweetId = data.data?.id;
   return { ok: true, externalId: tweetId, permalink: tweetId ? `https://x.com/i/web/status/${tweetId}` : undefined };
 }
 
 export async function publishXReply(cred: ChannelCred, text: string, parentId: string): Promise<PublishResult> {
+  const validation = validatePlatformPublish("x", { body: text });
+  if (validation.blocking.length > 0) {
+    return { ok: false, error: validation.blocking[0].message };
+  }
   const meta = (cred.meta ?? {}) as Record<string, unknown>;
   const keys: XKeys = {
     apiKey: String(meta.apiKey ?? ""),
@@ -579,7 +609,7 @@ export async function publishXReply(cred: ChannelCred, text: string, parentId: s
   if (!keys.apiKey || !keys.apiSecret || !keys.accessToken || !keys.accessSecret) {
     return { ok: false, error: "X 4키(apiKey/apiSecret/accessToken/accessSecret) 누락" };
   }
-  const body = [...text].slice(0, CHANNEL_TEXT_LIMITS.x).join("");
+  const body = text;
   const url = `${X_API}/tweets`;
   const resp = await fetch(url, {
     method: "POST",
@@ -594,13 +624,6 @@ export async function publishXReply(cred: ChannelCred, text: string, parentId: s
 
 // Facebook 페이지 발행 (Graph API). imageUrl 있으면 /photos(caption), 없으면 /feed(message).
 export async function publishFacebook(cred: ChannelCred, message: string, imageUrl?: string): Promise<PublishResult> {
-  const length = countTextCharacters(message);
-  if (length > CHANNEL_TEXT_LIMITS.facebook) {
-    return {
-      ok: false,
-      error: `Facebook 본문이 공식 상한 ${CHANNEL_TEXT_LIMITS.facebook}자를 초과했습니다 (${length}/${CHANNEL_TEXT_LIMITS.facebook}). 내용을 줄인 뒤 다시 발행해주세요.`,
-    };
-  }
   const pageId = cred.userId;
   if (!pageId) return { ok: false, error: "Facebook pageId(meta.userId) 없음" };
   if (!cred.token) return { ok: false, error: "Facebook access token 없음" };

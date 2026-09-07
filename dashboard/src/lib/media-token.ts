@@ -32,7 +32,10 @@ export interface MediaTokenPayload {
  * 둘 다 없거나 너무 짧으면 null → 서명 자체를 거부(서명 없는 공개 URL 발급 금지).
  */
 function signingKey(): Buffer | null {
-  const raw = process.env.MEDIA_SIGNING_SECRET || process.env.DASHBOARD_AUTH_TOKEN || "";
+  // 2026-09-07: 배포 컨테이너에 앞의 두 값이 없어 서명이 발급되지 않았고, 그래서 만든
+  // 그림과 영상이 화면에 안 떴다(img·video 태그는 인증 헤더를 못 붙인다). 배포에 반드시
+  // 있는 OSMU_SECRET_KEY 까지 파생 후보에 넣는다. 원문을 키로 쓰지 않는 것은 그대로다.
+  const raw = process.env.MEDIA_SIGNING_SECRET || process.env.DASHBOARD_AUTH_TOKEN || process.env.OSMU_SECRET_KEY || "";
   if (raw.length < 16) return null;
   return crypto.createHmac("sha256", "osmu-media-delivery-v1").update(raw).digest();
 }

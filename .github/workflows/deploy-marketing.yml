@@ -6,6 +6,10 @@ on:
         description: '띄울 서비스 (compose 서비스명 공백구분, 비우면 전체)'
         required: false
         default: ''
+      reimport_oauth:
+        description: 'OAuth 앱 자격증명을 환경변수 값으로 다시 들여올 제공자 (공백구분, 비우면 안 함)'
+        required: false
+        default: ''
 jobs:
   deploy:
     runs-on: [self-hosted, marketing_runner]
@@ -36,7 +40,12 @@ jobs:
           NEXT_PUBLIC_GA_MEASUREMENT_ID=${{ secrets.OSMU_GA4_MEASUREMENT_ID }}
           DATABASE_URL=${{ secrets.OSMU_DATABASE_URL }}
           OSMU_SECRET_KEY=${{ secrets.OSMU_SECRET_KEY }}
+          MEDIA_SIGNING_SECRET=${{ secrets.OSMU_SECRET_KEY }}
           OSMU_PUBLIC_URL=${{ secrets.OSMU_PUBLIC_URL }}
+          R2_ACCESS_KEY_ID=${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY=${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET=${{ secrets.R2_BUCKET }}
+          R2_ENDPOINT=${{ secrets.R2_ENDPOINT }}
           OSMU_ALERT_SLACK_WEBHOOK_URL=${{ secrets.OSMU_ALERT_SLACK_WEBHOOK_URL }}
           OSMU_BUILD_COMMIT=${GITHUB_SHA}
           CLAUDE_CODE_OAUTH_TOKEN=${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -71,6 +80,46 @@ jobs:
             exit 1
           fi
           echo ".env.osmu rendered ($(grep -c . .env.osmu) lines)"
+      - name: 이미지·영상 생성기 자격증명 배치 (시크릿이 있을 때만)
+        # 종전에는 배포 호스트에서 사람이 `higgsfield auth login` 을 한 번 해야 했다. 배포 VM 은
+        # 브라우저가 없는 서버라 그 한 번이 계속 되지 않았고 카드뉴스 생성이 막혀 있었다.
+        # 생성기는 자격증명을 작은 JSON 파일 하나로 읽는다. 그 파일을 시크릿에서 렌더한다.
+        # 회장은 본인 맥의 ~/.config/higgsfield/credentials.json 내용을
+        # HIGGSFIELD_CREDENTIALS_JSON 시크릿에 한 번 넣으면 된다. 서버 로그인은 필요 없다.
+        # 시크릿이 없으면 아무것도 하지 않는다 — 화면은 종전대로 "생성기 미로그인"으로 닫힌다.
+        env:
+          HIGGSFIELD_CREDENTIALS_JSON: ${{ secrets.HIGGSFIELD_CREDENTIALS_JSON }}
+        run: |
+          if [ -z "$HIGGSFIELD_CREDENTIALS_JSON" ]; then
+            echo "HIGGSFIELD_CREDENTIALS_JSON 미설정 — 생성기 자격증명 배치 건너뜀"
+            exit 0
+          fi
+          umask 077
+          mkdir -p "$HOME/.config/higgsfield" 2>/dev/null || true
+          # compose 가 이 경로를 bind mount 하는데 없으면 docker 가 root 소유로 만들어 버린다.
+          # 그래서 첫 시도가 Permission denied 로 죽었다(2026-09-06 run 34033442243 실측).
+          # 러너 계정이 쓸 수 있도록 소유권을 되돌린다. docker 는 이 러너가 이미 쓰고 있다.
+          if [ ! -w "$HOME/.config/higgsfield" ]; then
+            echo "생성기 설정 디렉터리가 root 소유 — 소유권 회수"
+            docker run --rm -v "$HOME/.config":/c alpine:3 \
+              sh -c "mkdir -p /c/higgsfield && chown -R $(id -u):$(id -g) /c/higgsfield"
+          fi
+          # 값은 파일로만 흘린다. argv 나 로그에 남기지 않는다.
+          printf '%s' "$HIGGSFIELD_CREDENTIALS_JSON" > "$HOME/.config/higgsfield/credentials.json"
+          chmod 600 "$HOME/.config/higgsfield/credentials.json"
+          # 자격증명만으로는 부족하다. 작업 공간 선택이 별도 설정 파일에 있고, 그것이 없으면
+          # 인증은 통과하는데 생성에서 "No workspace selected" 로 끝난다(2026-09-06 실측).
+          # 작업 공간 식별자는 비밀값이 아니라 계정 안의 이름표라 평문으로 둔다.
+          printf '{"workspace_id": "%s"}' "${HIGGSFIELD_WORKSPACE_ID:-fc99282e-5af5-4127-b445-203ca2f64aa9}" \
+            > "$HOME/.config/higgsfield/config.json"
+          chmod 600 "$HOME/.config/higgsfield/config.json"
+          if ! python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));sys.exit(0 if d.get("access_token") else 1)' \
+              "$HOME/.config/higgsfield/credentials.json"; then
+            echo "::error::HIGGSFIELD_CREDENTIALS_JSON 형식이 올바르지 않음(access_token 없음)"
+            exit 1
+          fi
+          echo "생성기 자격증명 배치 완료"
+
       - name: OSMU DB 스키마 read-only preflight
         # 일반 앱 배포는 DB DDL을 실행하지 않는다. 역사 migration wildcard
         # replay를 금지하고, 승인형 osmu-db-migrate workflow만 명시 phase를 적용한다.
@@ -91,7 +140,19 @@ jobs:
         run: |
           # services 지정 시 그 서비스만 빌드(전체 빌드로 무관한 게이트웨이 확장 빌드 실패에
           # osmu 대시보드 배포가 막히는 것 방지). 비우면 기존대로 전체 빌드.
-          docker compose --env-file .env.osmu -f docker-compose.postagi-4tenants.yml build ${{ github.event.inputs.services }}
+          # 빌드는 한 번에 하나씩 한다. VM 메모리는 7.8GiB 인데 게이트웨이 빌드는
+          # 서비스마다 node heap 8GiB 를 잡는다. compose 기본 병렬 빌드로 4개가 동시에
+          # 돌면 heap out of memory 로 죽는다(2026-09-01 run 33432114188 실측).
+          SERVICES="${{ github.event.inputs.services }}"
+          if [ -z "$SERVICES" ]; then
+            SERVICES="$(docker compose --env-file .env.osmu -f docker-compose.postagi-4tenants.yml config --services)"
+          fi
+          for svc in $SERVICES; do
+            echo "::group::build $svc"
+            COMPOSE_BAKE=false COMPOSE_PARALLEL_LIMIT=1 \
+              docker compose --env-file .env.osmu -f docker-compose.postagi-4tenants.yml build "$svc"
+            echo "::endgroup::"
+          done
       - name: 기동
         # required NEXT_PUBLIC_* interpolation은 build와 up 모두에서 실행된다.
         run: |
@@ -166,6 +227,51 @@ jobs:
           echo "operator/customers=$OC"
           [ "$OC" = "200" ] || { echo "::error::/api/operator/customers HTTP $OC — 200이어야 함(DB 스키마 누락/운영자 토큰/라우트 장애 신호)"; exit 1; }
           echo "✅ 스모크 통과: 로그인페이지·인증게이트·supabase 빌드주입·Google-only(비밀번호UI無)·google 계정선택 preflight·operator/customers 정상"
+      - name: OAuth 앱 자격증명을 환경변수 값으로 다시 들여오기 (지정한 제공자만)
+        # 왜 (2026-09-07 회장 계정 실측): 자격증명은 DB 저장분이 환경변수보다 우선한다.
+        # 그래서 유튜브 시크릿을 새로 발급해 저장소 시크릿을 바꾸고 배포해도 연결이 계속
+        # "The provided client secret is invalid" 로 끝났다. 서버가 DB 의 옛 값을 보고 있었다.
+        # 콘솔에서 시크릿을 갈면 배포도 그 값을 따라가야 한다. 지정한 제공자만 건드려
+        # 운영자가 화면에서 넣은 값을 함부로 덮지 않는다.
+        if: ${{ github.event.inputs.reimport_oauth != '' }}
+        env:
+          DASHBOARD_AUTH_TOKEN: ${{ secrets.OSMU_DASHBOARD_AUTH_TOKEN }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          X_CLIENT_ID: ${{ secrets.X_CLIENT_ID }}
+          X_CLIENT_SECRET: ${{ secrets.X_CLIENT_SECRET }}
+          IG_APP_ID: ${{ secrets.IG_APP_ID }}
+          IG_APP_SECRET: ${{ secrets.IG_APP_SECRET }}
+        run: |
+          # import-env 는 DB 에 값이 이미 있으면 409 로 거절한다(2026-09-07 실측).
+          # 콘솔에서 시크릿을 갈아 끼운 경우가 바로 그 상황이므로 덮어쓰기를 쓴다.
+          umask 077
+          for p in ${{ github.event.inputs.reimport_oauth }}; do
+            case "$p" in
+              youtube)   export CID="$YOUTUBE_CLIENT_ID"; export CSEC="$YOUTUBE_CLIENT_SECRET" ;;
+              x)         export CID="$X_CLIENT_ID";       export CSEC="$X_CLIENT_SECRET" ;;
+              instagram) export CID="$IG_APP_ID";         export CSEC="$IG_APP_SECRET" ;;
+              *) echo "::error::지원하지 않는 제공자: $p"; exit 1 ;;
+            esac
+            if [ -z "$CID" ] || [ -z "$CSEC" ]; then
+              echo "::error::$p 환경변수 값이 비어 있다"; exit 1
+            fi
+            # 값은 파일로만 흘린다. argv 나 로그에 남기지 않는다.
+            python3 -c 'import json,os,sys;json.dump({"provider":sys.argv[1],"values":{"clientId":os.environ["CID"],"clientSecret":os.environ["CSEC"]}},open("/tmp/cred.json","w"))' "$p"
+            CODE=$(curl -s -o /tmp/cred.out -w '%{http_code}' -X PUT \
+              -H "Content-Type: application/json" -H @- \
+              --data @/tmp/cred.json \
+              http://localhost:18789/api/operator/oauth-credentials <<CURL_HDR || echo 000
+          Authorization: Bearer $DASHBOARD_AUTH_TOKEN
+          CURL_HDR
+            )
+            rm -f /tmp/cred.json
+            echo "$p 덮어쓰기 → HTTP $CODE"
+            sed -E 's/[A-Za-z0-9_-]{20,}/[가림]/g' /tmp/cred.out | head -3
+            rm -f /tmp/cred.out
+            [ "$CODE" = "200" ] || { echo "::error::$p 자격증명 덮어쓰기 실패 (HTTP $CODE)"; exit 1; }
+          done
+
       - name: 배포 찌꺼기 정리 (다음 배포가 디스크로 죽지 않게)
         # 2026-08-30: 디스크 81% 에서 이미지 빌드가 메모리·디스크로 죽었다(exit 137).
         # 배포마다 옛 이미지와 빌드 캐시가 쌓이는데 아무도 안 치웠던 것이 원인이다.

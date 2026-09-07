@@ -4,17 +4,37 @@ import { Readable } from "stream";
 import { dataPath } from "@/lib/file-io";
 import { runWithTenant } from "@/lib/tenant-context";
 import { verifyMediaToken } from "@/lib/media-token";
+import { tenantMediaDir } from "@/lib/storage";
 
 // GET /api/media/<signed-token> — SNS-015 서명 미디어 배달.
 // Instagram Reels 컨테이너 생성 시 Meta 서버가 직접 이 URL을 가져간다(= 인증 헤더를 못 붙임).
 // 그래서 인증 대신 "짧게 만료되는 HMAC 서명 토큰"이 자격증명 역할을 한다.
 // 보안: 토큰이 테넌트를 결정하고(cross-tenant 불가), 파일 경로는 항상 그 테넌트 컨텍스트의
 // data/videos 아래로만 해석되며, 모든 실패는 404로 통일해 파일 존재 여부 열거를 차단한다.
+// 2026-09-07: 생성실이 만든 그림과 영상도 이 길로 배달한다. img·video 태그는 인증 헤더를
+// 못 붙이므로 헤더 인증만 있는 경로로는 화면에 아무것도 안 뜬다. 실제로 만들기는 성공했는데
+// 그림이 안 떠서 "생성 안 됨" 으로 읽혔다(회장 2026-09-07). 서명 토큰이 자격증명 역할을 한다.
 const TYPES: Record<string, string> = {
   ".mp4": "video/mp4",
   ".webm": "video/webm",
   ".mov": "video/quicktime",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
 };
+
+// 토큰이 정한 테넌트 안에서만 찾는다. 영상 업로드 폴더와 생성실 폴더 두 곳을 본다.
+// 두 경로 모두 runWithTenant 안에서 계산되므로 다른 테넌트로 새지 않는다.
+function resolveDeliverable(tenantId: string, filename: string): string | null {
+  // data/tenants/{id}/videos (영상 업로드) 와 data/studio/{id} (생성실 산출물) 두 곳이다.
+  // 경로 계산이 서로 다른 뿌리를 쓰므로 한쪽만 보면 못 찾는다.
+  for (const dir of [dataPath("videos"), tenantMediaDir(tenantId)]) {
+    const fp = path.join(dir, filename);
+    if (fs.existsSync(fp) && fs.statSync(fp).isFile()) return fp;
+  }
+  return null;
+}
 
 /** Range 응답 1회 상한 — 메모리 보호. */
 const MAX_RANGE_CHUNK = 8 * 1024 * 1024;
@@ -27,10 +47,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ token: s
   if (!claim) return notFound();
 
   return runWithTenant(claim.tenantId, async () => {
-    const fp = path.join(dataPath("videos"), claim.filename);
-    if (!fs.existsSync(fp) || !fs.statSync(fp).isFile()) return notFound();
+    const fp = resolveDeliverable(claim.tenantId, claim.filename);
+    if (!fp) return notFound();
     const ct = TYPES[path.extname(fp).toLowerCase()];
-    if (!ct) return notFound(); // 영상 확장자만 배달 — 임의 파일 유출 방지
+    if (!ct) return notFound(); // 아는 확장자만 배달 — 임의 파일 유출 방지
 
     const size = fs.statSync(fp).size;
     const range = req.headers.get("range");
@@ -110,8 +130,8 @@ export async function HEAD(req: Request, { params }: { params: Promise<{ token: 
   if (!claim) return new Response(null, { status: 404 });
 
   return runWithTenant(claim.tenantId, async () => {
-    const fp = path.join(dataPath("videos"), claim.filename);
-    if (!fs.existsSync(fp) || !fs.statSync(fp).isFile()) return new Response(null, { status: 404 });
+    const fp = resolveDeliverable(claim.tenantId, claim.filename);
+    if (!fp) return new Response(null, { status: 404 });
     const ct = TYPES[path.extname(fp).toLowerCase()];
     if (!ct) return new Response(null, { status: 404 });
     const size = fs.statSync(fp).size;
